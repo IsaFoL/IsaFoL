@@ -284,7 +284,7 @@ proof -
         have [simp]: \<open>k - min (length M') k = 0\<close>
           unfolding k_def by auto
         have C_N_U: \<open>C \<in># N + U'\<close>
-          using learned kept unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def Sk
+          using learned kept unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_alt_def Sk
             k_def[symmetric]
           apply (subst (asm)(4)M')
           apply (subst (asm)(10)M')
@@ -449,7 +449,7 @@ proof -
         have [simp]: \<open>k - min (length M') k = 0\<close>
           unfolding k_def by auto
         have C_N_U: \<open>C \<in># N+N' + U'\<close>
-          using learned kept unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def Sk
+          using learned kept unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_alt_def Sk
             k_def[symmetric]
           apply (subst (asm)(4)M')
           apply (subst (asm)(10)M')
@@ -492,7 +492,7 @@ lemma cdcl\<^sub>W_all_struct_inv_move_to_init:
   using assms
   unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
           cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def
-          cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
+          cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_alt_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
           cdcl\<^sub>W_restart_mset.no_strange_atm_def cdcl\<^sub>W_restart_mset_state clauses_def
           assms
   apply (intro conjI impI)
@@ -664,7 +664,7 @@ proof (induction rule: negate_model_and_add_twl.induct)
       apply (intro allI impI conjI)
       subgoal for L E
         by (use M' struct_invs cdcl\<^sub>W_restart_mset.in_get_all_mark_of_propagated_in_trail[of E M]
-            in \<open>auto simp add: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def
+            in \<open>auto simp add: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_alt_def
                   cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_restart_mset_state clauses_def\<close>)
       done
     subgoal by simp
@@ -680,7 +680,7 @@ proof (induction rule: negate_model_and_add_twl.induct)
     using struct_invs
     by (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
         cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def
-        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
+        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_alt_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
         cdcl\<^sub>W_restart_mset.no_strange_atm_def cdcl\<^sub>W_restart_mset_state)
   with cdcl_W have struct_invs_add: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv
     (M1, clauses (add_mset (TWL_DECO_clause M) N) + NP, clauses U + UP, None)\<close>

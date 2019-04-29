@@ -91,7 +91,7 @@ qed (auto simp: in_plus_implies_atm_of_on_atms_of_ms)
 lemma atms_of_ms_lit_of_atms_of: "atms_of_ms (unmark ` c) = atm_of ` lit_of ` c"
   unfolding atms_of_ms_def using image_iff by force
 
-text \<open>\cwref{dpll:sound:model}{theorem 2.8.2 page 73}\<close>
+text \<open>\cwref{dpll:sound:model}{theorem 2.8.3 page 86}\<close>
 lemma dpll\<^sub>W_propagate_is_conclusion:
   assumes "dpll\<^sub>W S S'"
   and "all_decomposition_implies_m (clauses S) (get_all_ann_decomposition (trail S))"
@@ -242,7 +242,7 @@ next
     qed
 qed
 
-text \<open>\cwref{dpll:sound:propLits:valuation}{theorem 2.8.3 page 73}\<close>
+text \<open>\cwref{dpll:sound:propLits:valuation}{theorem 2.8.4 page 86}\<close>
 theorem dpll\<^sub>W_propagate_is_conclusion_of_decided:
   assumes "dpll\<^sub>W S S'"
   and "all_decomposition_implies_m (clauses S) (get_all_ann_decomposition (trail S))"
@@ -251,7 +251,7 @@ theorem dpll\<^sub>W_propagate_is_conclusion_of_decided:
     \<Turnstile>ps unmark ` \<Union>(set ` snd ` set (get_all_ann_decomposition (trail S')))"
   using all_decomposition_implies_trail_is_implied[OF dpll\<^sub>W_propagate_is_conclusion[OF assms]] .
 
-text \<open>\cwref{dpll:sound:propLits:unsat}{theorem 2.8.4 page 73}\<close>
+text \<open>\cwref{dpll:sound:propLits:unsat}{theorem 2.8.5 page 86}\<close>
 lemma only_propagated_vars_unsat:
   assumes decided: "\<forall>x \<in> set M. \<not> is_decided x"
   and DN: "D \<in> N" and D: "M \<Turnstile>as CNot D"
@@ -401,7 +401,7 @@ definition "conclusive_dpll\<^sub>W_state (S:: 'v dpll\<^sub>W_state) \<longleft
   (trail S \<Turnstile>asm clauses S \<or> ((\<forall>L \<in> set (trail S). \<not>is_decided L)
   \<and> (\<exists>C \<in># clauses S. trail S \<Turnstile>as CNot C)))"
 
-text \<open>\cwref{prop:prop:dpllcomplete}{theorem 2.8.6 page 74}\<close>
+text \<open>\cwref{prop:prop:dpllcomplete}{theorem 2.8.7 page 87}\<close>
 lemma dpll\<^sub>W_strong_completeness:
   assumes "set M \<Turnstile>sm N"
   and "consistent_interp (set M)"
@@ -416,7 +416,7 @@ proof -
     unfolding conclusive_dpll\<^sub>W_state_def by auto
 qed
 
-text \<open>\cwref{prop:prop:dpllsound}{theorem 2.8.5 page 73}\<close>
+text \<open>\cwref{prop:prop:dpllsound}{theorem 2.8.6 page 86}\<close>
 lemma dpll\<^sub>W_sound:
   assumes
     "rtranclp dpll\<^sub>W ([], N) (M, N)" and
@@ -532,7 +532,7 @@ next
     using backtrack_split_list_eq[of "trail S"] unfolding dpll\<^sub>W_mes_def by fastforce
 qed
 
-text \<open>\cwref{prop:prop:dpllterminating}{theorem 2.8.7 page 74}\<close>
+text \<open>\cwref{prop:prop:dpllterminating}{theorem 2.8.8 page 87}\<close>
 lemma dpll\<^sub>W_card_decrease':
   assumes dpll: "dpll\<^sub>W S S'"
   and atm_incl: "atm_of ` lits_of_l (trail S) \<subseteq> atms_of_mm (clauses S)"

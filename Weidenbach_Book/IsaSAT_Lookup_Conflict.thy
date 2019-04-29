@@ -564,9 +564,9 @@ where
      (_, clvls, zs, lbd, outl) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(i::nat, clvls :: nat, zs, lbd, outl).
          length (snd zs) = length (snd xs) \<and>
              Suc i \<le> uint_max \<and> Suc (fst zs) \<le> uint_max \<and> Suc clvls \<le> uint_max\<^esup>
-       (\<lambda>(i :: nat, clvls, zs, lbd, outl). i < length_u D)
+       (\<lambda>(i :: nat, clvls, zs, lbd, outl). i < length_uint32_nat D)
        (\<lambda>(i :: nat, clvls, zs, lbd, outl). do {
-           ASSERT(i < length_u D);
+           ASSERT(i < length_uint32_nat D);
            ASSERT(Suc i \<le> uint_max);
            let lbd = lbd_write lbd (get_level M (D!i)) True;
            let outl = outlearned_add M (D!i) zs outl;
@@ -1155,7 +1155,7 @@ proof -
     \<le> \<Down> ?Ref (merge_conflict_m_g init M D (Some C))\<close>
     unfolding resolve_lookup_conflict_aa_def lookup_conflict_merge_def PR_CONST_def
     distinct_mset_rempdups_union_mset[OF dist_D dist_CD] I_def[symmetric] conc_fun_SPEC
-    lbd_upd_def[symmetric] Let_def length_u_def merge_conflict_m_g_def
+    lbd_upd_def[symmetric] Let_def length_uint32_nat_def merge_conflict_m_g_def
     apply (refine_vcg WHILEIT_rule_stronger_inv[where R = \<open>measure (\<lambda>(j, _). length D - j)\<close> and
           I' = I'])
     subgoal by auto
@@ -4509,7 +4509,7 @@ sepref_definition minimize_and_extract_highest_lookup_conflict_code
     array_set_hnr_u[sepref_fr_rules]
   unfolding isa_minimize_and_extract_highest_lookup_conflict_def zero_uint32_nat_def[symmetric]
     one_uint32_nat_def[symmetric] PR_CONST_def
-    length_u_def[symmetric] minimize_and_extract_highest_lookup_conflict_inv_def
+    length_uint32_nat_def[symmetric] minimize_and_extract_highest_lookup_conflict_inv_def
   by sepref
 
 declare minimize_and_extract_highest_lookup_conflict_code.refine[sepref_fr_rules]
@@ -4527,7 +4527,7 @@ sepref_definition minimize_and_extract_highest_lookup_conflict_fast_code
     array_set_hnr_u[sepref_fr_rules]
   unfolding isa_minimize_and_extract_highest_lookup_conflict_def zero_uint32_nat_def[symmetric]
     one_uint32_nat_def[symmetric] PR_CONST_def
-    length_u_def[symmetric] minimize_and_extract_highest_lookup_conflict_inv_def
+    length_uint32_nat_def[symmetric] minimize_and_extract_highest_lookup_conflict_inv_def
   by sepref
 
 declare minimize_and_extract_highest_lookup_conflict_fast_code.refine[sepref_fr_rules]

@@ -47,8 +47,8 @@ definition unit_propagation_inner_loop_body :: \<open>'v literal \<Rightarrow> '
             else do {RETURN (propagate_lit L' C S)}
           else do {
             update_clauseS L C S
-        }
-        }
+          }
+      }
     }
   })
 \<close>
@@ -925,8 +925,10 @@ proof -
       moreover have \<open>-L \<in># the D\<close>
         using ns_s L'' confl D_empty
         by (force simp: cdcl\<^sub>W_restart_mset.skip.simps S M cdcl\<^sub>W_restart_mset_state)
-      ultimately have \<open>get_maximum_level M (remove1_mset (- lit_of (hd M)) (the D)) < count_decided M\<close>
-        using ns_r confl count_decided_ge_get_maximum_level[of M \<open>remove1_mset (-lit_of (hd M)) (the D)\<close>]
+      ultimately have \<open>get_maximum_level M (remove1_mset (- lit_of (hd M)) (the D))
+          < count_decided M\<close>
+        using ns_r confl count_decided_ge_get_maximum_level[of M
+	  \<open>remove1_mset (-lit_of (hd M)) (the D)\<close>]
         by (fastforce simp add: cdcl\<^sub>W_restart_mset.resolve.simps S M
             cdcl\<^sub>W_restart_mset_state)
 
@@ -939,7 +941,7 @@ proof -
 
     then have \<open>\<exists>K M1 M2. (Decided K # M1, M2) \<in> set (get_all_ann_decomposition M) \<and>
       get_level M K = get_maximum_level M (remove1_mset (-lit_of (hd M)) D') + 1\<close>
-      using cdcl\<^sub>W_restart_mset.backtrack_ex_decomp[OF lev_inv]
+      using cdcl\<^sub>W_restart_mset.backtrack_ex_decomp n_d
       by (auto simp: cdcl\<^sub>W_restart_mset_state S)
 
     define i where \<open>i = get_maximum_level M (remove1_mset (- lit_of (hd M)) D')\<close>

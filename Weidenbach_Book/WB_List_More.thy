@@ -166,6 +166,21 @@ lemma set_Collect_Pair_to_fst_snd:
 lemma butlast_Nil_iff: \<open>butlast xs = [] \<longleftrightarrow> length xs = 1 \<or> length xs = 0\<close>
   by (cases xs) auto
 
+lemma Set_remove_diff_insert: \<open>a \<in> B - A \<Longrightarrow> B - Set.remove a A = insert a (B - A)\<close>
+  by auto
+
+lemma Set_insert_diff_remove: \<open>B - insert a A = Set.remove a (B - A)\<close>
+  by auto
+
+lemma Set_remove_insert: \<open>a \<notin> A' \<Longrightarrow> Set.remove a (insert a A') = A'\<close>
+  by (auto simp: Set.remove_def)
+
+lemma diff_eq_insertD:
+  \<open>B - A = insert a A' \<Longrightarrow> a \<in> B\<close>
+  by auto
+
+lemma in_set_tlD: \<open>x \<in> set (tl xs) \<Longrightarrow> x \<in> set xs\<close>
+  by (cases xs) auto
 
 subsection \<open>List Updates\<close>
 
@@ -196,6 +211,24 @@ lemma take_2_if:
 lemma in_set_take_conv_nth:
   \<open>x \<in> set (take n xs) \<longleftrightarrow> (\<exists>m<min n (length xs). xs ! m = x)\<close>
   by (metis in_set_conv_nth length_take min.commute min.strict_boundedE nth_take)
+
+lemma in_set_dropI:
+  \<open>m < length xs \<Longrightarrow> m \<ge> n \<Longrightarrow> xs ! m \<in> set (drop n xs)\<close>
+  unfolding in_set_conv_nth
+  by (rule exI[of _ \<open>m - n\<close>]) auto
+
+lemma in_set_drop_conv_nth:
+  \<open>x \<in> set (drop n xs) \<longleftrightarrow> (\<exists>m \<ge> n. m < length xs \<and> xs ! m = x)\<close>
+  apply (rule iffI)
+  subgoal
+    apply (subst (asm) in_set_conv_nth)
+    apply clarsimp
+    apply (rule_tac x = \<open>n+i\<close> in exI)
+    apply (auto)
+    done
+  subgoal
+    by (auto intro: in_set_dropI)
+  done
 
 text \<open>Taken from \<^file>\<open>~~/src/HOL/Word/Word.thy\<close>\<close>
 lemma atd_lem: \<open>take n xs = t \<Longrightarrow> drop n xs = d \<Longrightarrow> xs = t @ d\<close>
@@ -674,6 +707,9 @@ proof -
   finally show ?thesis .
 qed
 
+lemma removeAll_notin: \<open>a \<notin># A \<Longrightarrow> removeAll_mset a A = A\<close>
+  using count_inI by force
+
 
 subsubsection \<open>Filter\<close>
 
@@ -773,6 +809,11 @@ lemma notin_add_mset_remdups_mset:
   \<open>a \<notin># A \<Longrightarrow> add_mset a (remdups_mset A) = remdups_mset (add_mset a A)\<close>
   by auto
 
+lemma distinct_mset_image_mset:
+  \<open>distinct_mset (image_mset f (mset xs)) \<longleftrightarrow> distinct (map f xs)\<close>
+  apply (subst mset_map[symmetric])
+  apply (subst distinct_mset_mset_distinct)
+  ..
 
 subsection \<open>Set of Distinct Multisets\<close>
 
@@ -1270,6 +1311,16 @@ next
     by (metis set_mset_mono)
 qed
 
+lemma distinct_set_mset_eq_iff:
+  assumes \<open>distinct_mset M\<close> \<open>distinct_mset N\<close>
+  shows \<open>set_mset M = set_mset N \<longleftrightarrow> M = N\<close>
+  using assms distinct_mset_set_mset_ident by fastforce
+
+lemma (in -) distinct_mset_union2:
+  \<open>distinct_mset (A + B) \<Longrightarrow> distinct_mset B\<close>
+  using distinct_mset_union[of B A]
+  by (auto simp: ac_simps)
+
 lemma in_remove1_msetI: \<open>x \<noteq> a \<Longrightarrow> x \<in># M \<Longrightarrow> x \<in># remove1_mset a M\<close>
   by (simp add: in_remove1_mset_neq)
 
@@ -1519,6 +1570,96 @@ lemma image_filter_replicate_mset:
   \<open>{#Ca \<in># replicate_mset m C. P Ca#} = (if P C then replicate_mset m C else {#})\<close>
   by (induction m) auto
 
+lemma size_Union_mset_image_mset:
+  \<open>size (\<Union># A) = (\<Sum>i \<in># A. size i)\<close>
+  by (induction A) auto
+
+lemma image_mset_minus_inj_on:
+  \<open>inj_on f (set_mset A \<union> set_mset B) \<Longrightarrow> f `# (A - B) = f `# A - f `# B\<close>
+  apply (induction A arbitrary: B)
+  subgoal by auto
+  subgoal for x A B
+    apply (cases \<open>x \<in># B\<close>)
+    apply (auto dest!: multi_member_split)
+    apply (subst diff_add_mset_swap)
+    apply auto
+    done
+  done
+
+lemma filter_mset_mono_subset:
+  \<open>A \<subseteq># B \<Longrightarrow> (\<And>x. x \<in># A \<Longrightarrow> P x \<Longrightarrow> Q x) \<Longrightarrow> filter_mset P A \<subseteq># filter_mset Q B\<close>
+  by (metis multiset_filter_mono multiset_filter_mono2 subset_mset.order_trans)
+
+
+lemma mset_inter_empty_set_mset: \<open>M \<inter># xc = {#} \<longleftrightarrow> set_mset M \<inter> set_mset xc = {}\<close>
+  by (induction xc) auto
+
+lemma sum_mset_mset_set_sum_set:
+  \<open>(\<Sum>A \<in># mset_set As. f A) = (\<Sum>A \<in> As. f A)\<close>
+  apply (cases \<open>finite As\<close>)
+  by (induction As rule: finite_induct) auto
+
+lemma sum_mset_sum_count:
+  \<open>(\<Sum>A \<in># As. f A) = (\<Sum>A \<in> set_mset As. count As A * f A)\<close>
+proof (induction As)
+  case empty
+  then show ?case by auto
+next
+  case (add x As)
+  define n where \<open>n = count As x\<close>
+  define As' where \<open>As' \<equiv> removeAll_mset x As\<close>
+  have As: \<open>As = As' + replicate_mset n x\<close>
+    by (auto simp: As'_def n_def intro!: multiset_eqI)
+  have [simp]: \<open>set_mset As' - {x} = set_mset As'\<close> \<open>count As' x = 0\<close> \<open>x \<notin># As'\<close>
+    unfolding As'_def
+    by auto
+  have \<open> (\<Sum>A\<in>set_mset As'.
+       (if x = A then Suc (count (As' + replicate_mset n x) A)
+        else count (As' + replicate_mset n x) A) *
+       f A) =
+       (\<Sum>A\<in>set_mset As'.
+       (count (As' + replicate_mset n x) A) *
+       f A)\<close>
+    by (rule sum.cong) auto
+  then show ?case using add by (auto simp: As sum.insert_remove)
+qed
+
+lemma sum_mset_inter_restrict:
+  \<open>(\<Sum> x \<in># filter_mset P M. f x) = (\<Sum> x \<in># M. if P x then f x else 0)\<close>
+  by (induction M) auto
+
+lemma mset_set_subset_iff:
+  \<open>mset_set A \<subseteq># I \<longleftrightarrow> infinite A \<or> A \<subseteq> set_mset I\<close>
+  by (metis finite_set_mset finite_set_mset_mset_set mset_set.infinite mset_set_set_mset_subseteq
+    set_mset_mono subset_imp_msubset_mset_set subset_mset.bot.extremum subset_mset.dual_order.trans)
+
+
+lemma sumset_diff_constant_left:
+  assumes \<open>\<And>x. x \<in># A \<Longrightarrow> f x \<le> n\<close>
+  shows \<open>(\<Sum>x\<in># A . n - f x) = size A * n - (\<Sum>x\<in># A . f x)\<close>
+proof -
+  have \<open>size A * n \<ge> (\<Sum>x\<in># A . f x)\<close>
+    if \<open>\<And>x. x \<in># A \<Longrightarrow> f x \<le> n\<close> for A
+    using that
+    by (induction A) (force simp: ac_simps)+
+  then show ?thesis
+    using assms
+    by (induction A) (auto simp: ac_simps)
+qed
+
+
+lemma mset_set_eq_mset_iff: \<open>finite x \<Longrightarrow>  mset_set x = mset xs \<longleftrightarrow> distinct xs \<and> x = set xs\<close>
+  apply (auto simp flip: distinct_mset_mset_distinct eq_commute[of _ \<open>mset_set _\<close>]
+    simp: distinct_mset_mset_set mset_set_set)
+  apply (metis finite_set_mset_mset_set set_mset_mset)
+  apply (metis finite_set_mset_mset_set set_mset_mset)
+  done
+
+lemma distinct_mset_iff:
+  \<open>\<not>distinct_mset C \<longleftrightarrow> (\<exists>a C'. C = add_mset a (add_mset a C'))\<close>
+  by (metis (no_types, hide_lams) One_nat_def
+      count_add_mset distinct_mset_add_mset distinct_mset_def
+      member_add_mset mset_add not_in_iff)
 
 
 section \<open>Finite maps and multisets\<close>
@@ -1543,6 +1684,10 @@ lemma in_mset_fset_fmember[simp]: \<open>x \<in># mset_fset N \<longleftrightarr
 
 lemma in_fset_mset_mset[simp]: \<open>x |\<in>| fset_mset N \<longleftrightarrow> x \<in># N\<close>
   by (auto simp: fmember.rep_eq fset_mset_def Abs_fset_inverse)
+
+lemma distinct_mset_subset_iff_remdups:
+  \<open>distinct_mset a \<Longrightarrow> a \<subseteq># b \<longleftrightarrow> a \<subseteq># remdups_mset b\<close>
+  by (simp add: distinct_mset_inter_remdups_mset subset_mset.le_iff_inf)
 
 
 subsubsection \<open>Finite map and multisets\<close>

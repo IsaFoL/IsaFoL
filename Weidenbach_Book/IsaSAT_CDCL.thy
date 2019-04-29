@@ -46,10 +46,6 @@ lemma cdcl_twl_o_prog_wl_D_heur_alt_def:
   unfolding cdcl_twl_o_prog_wl_D_heur_def isasat_current_status_def
   by auto
 
-(*TODO Move*)
-declare backtrack_wl_D_fast_code.refine[sepref_fr_rules]
-  backtrack_wl_D_code.refine[sepref_fr_rules]
-
 sepref_register get_conflict_wl_is_None decide_wl_or_skip_D_heur skip_and_resolve_loop_wl_D_heur
   backtrack_wl_D_nlit_heur isasat_current_status count_decided_st_heur get_conflict_wl_is_None_heur
 
@@ -74,12 +70,6 @@ sepref_definition cdcl_twl_o_prog_wl_D_fast_code
 
 declare cdcl_twl_o_prog_wl_D_code.refine[sepref_fr_rules]
   cdcl_twl_o_prog_wl_D_fast_code.refine[sepref_fr_rules]
-
-lemma twl_st_heur_count_decided_st_alt_def:
-  fixes S :: twl_st_wl_heur
-  shows \<open>(S, T) \<in> twl_st_heur \<Longrightarrow> count_decided_st_heur S = count_decided (get_trail_wl T)\<close>
-  unfolding count_decided_st_def twl_st_heur_def trail_pol_def
-  by (cases S) (auto simp: count_decided_st_heur_def)
 
 lemma twl_st_heur''D_twl_st_heurD:
   assumes H: \<open>(\<And>\<D> r. f \<in> twl_st_heur'' \<D> r \<rightarrow>\<^sub>f \<langle>twl_st_heur'' \<D> r\<rangle> nres_rel)\<close>

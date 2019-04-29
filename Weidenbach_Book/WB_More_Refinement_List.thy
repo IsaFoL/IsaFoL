@@ -126,4 +126,23 @@ lemma list_rel_append_single_iff:
   using list_all2_lengthD[of \<open>(\<lambda>x x'. (x, x') \<in> R)\<close> \<open>xs\<close> \<open>ys\<close>]
   by (auto simp: list_rel_def list_all2_append)
 
+lemma nth_in_sliceI:
+  \<open>i \<ge> j \<Longrightarrow> i < k \<Longrightarrow> k \<le> length xs \<Longrightarrow> xs ! i \<in> set (Misc.slice j k xs)\<close>
+  by (auto simp: Misc.slice_def in_set_take_conv_nth
+    intro!: bex_lessI[of _ \<open>i - j\<close>])
+
+lemma slice_Suc:
+  \<open>Misc.slice (Suc j) k xs = tl (Misc.slice j k xs)\<close>
+  apply (auto simp: Misc.slice_def in_set_take_conv_nth drop_Suc take_tl tl_drop
+    drop_take)
+  by (metis drop_Suc drop_take tl_drop)
+
+lemma slice_0:
+  \<open>Misc.slice 0 b xs = take b xs\<close>
+  by (auto simp: Misc.slice_def)
+
+lemma slice_end:
+  \<open>c = length xs \<Longrightarrow> Misc.slice b c xs = drop b xs\<close>
+  by (auto simp: Misc.slice_def)
+
 end

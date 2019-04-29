@@ -148,7 +148,7 @@ proof
     using C inv unfolding cdcl\<^sub>W_all_struct_inv_def distinct_cdcl\<^sub>W_state_def distinct_mset_set_def
     by auto
   moreover have \<open>\<not>tautology C\<close>
-    using C inv unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_learned_clause_def by auto
+    using C inv unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_learned_clause_alt_def by auto
   moreover
     have \<open>atms_of C \<subseteq> atms_of_mm (learned_clss S)\<close>
       using C by auto

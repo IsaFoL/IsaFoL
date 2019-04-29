@@ -34,7 +34,6 @@ fun get_trail :: \<open>'v twl_st \<Rightarrow> ('v, 'v clause) ann_lit list\<cl
 fun clauses_to_update :: \<open>'v twl_st \<Rightarrow> ('v literal \<times> 'v twl_cls) multiset\<close> where
   \<open>clauses_to_update (_, _, _, _, _, _, WS, _) = WS\<close>
 
-
 fun set_clauses_to_update :: \<open>('v literal \<times> 'v twl_cls) multiset \<Rightarrow> 'v twl_st \<Rightarrow> 'v twl_st\<close> where
   \<open>set_clauses_to_update WS (M, N, U, D, NE, UE, _, Q) = (M, N, U, D, NE, UE, WS, Q)\<close>
 
@@ -81,6 +80,7 @@ fun update_clause where
 text \<open>
   When updating clause, we do it non-deterministically: in case of duplicate clause in the two
   sets, one of the two can be updated (and it does not matter), contrary to an if-condition.
+  In later refinement, we know where the clause comes from and update it.
 \<close>
 inductive update_clauses ::
   \<open>'a multiset twl_clause multiset \<times> 'a multiset twl_clause multiset \<Rightarrow>
@@ -179,7 +179,7 @@ other': \<open>cdcl_twl_o S S' \<Longrightarrow> cdcl_twl_stgy S S'\<close>
 inductive_cases cdcl_twl_stgyE: \<open>cdcl_twl_stgy S T\<close>
 
 
-subsection \<open>Definition of the Two-watched literals Invariants\<close>
+subsection \<open>Definition of the Two-watched Literals Invariants\<close>
 
 subsubsection \<open>Definitions\<close>
 
@@ -211,8 +211,7 @@ text \<open>
   \<^item> the structure is correct (the watched part is of length exactly two).
   \<^item> if we do not have to update the clause, then the invariant holds.
 \<close>
-definition
-  twl_is_an_exception:: \<open>'a multiset twl_clause \<Rightarrow> 'a multiset \<Rightarrow>
+definition twl_is_an_exception :: \<open>'a multiset twl_clause \<Rightarrow> 'a multiset \<Rightarrow>
      ('b \<times> 'a multiset twl_clause) multiset \<Rightarrow> bool\<close>
 where
 \<open>twl_is_an_exception C Q WS \<longleftrightarrow>
@@ -221,7 +220,7 @@ where
 definition is_blit :: \<open>('a, 'b) ann_lits \<Rightarrow> 'a clause \<Rightarrow> 'a literal \<Rightarrow> bool\<close>where
   [simp]: \<open>is_blit M D L \<longleftrightarrow> (L \<in># D \<and> L \<in> lits_of_l M)\<close>
 
-definition has_blit:: \<open>('a, 'b) ann_lits \<Rightarrow> 'a clause \<Rightarrow> 'a literal \<Rightarrow> bool\<close>where
+definition has_blit :: \<open>('a, 'b) ann_lits \<Rightarrow> 'a clause \<Rightarrow> 'a literal \<Rightarrow> bool\<close>where
   \<open>has_blit M D L' \<longleftrightarrow> (\<exists>L. is_blit M D L \<and> get_level M L \<le> get_level M L')\<close>
 
 text \<open>This invariant state that watched literals are set at the end and are not swapped with an
@@ -257,7 +256,8 @@ fun no_duplicate_queued :: \<open>'v twl_st \<Rightarrow> bool\<close> where
 lemma no_duplicate_queued_alt_def:
    \<open>no_duplicate_queued S =
     ((\<forall>C C'. C \<in># clauses_to_update S \<longrightarrow> C' \<in># clauses_to_update S \<longrightarrow> fst C = fst C') \<and>
-     (\<forall>C. C \<in># clauses_to_update S \<longrightarrow> add_mset (fst C) (literals_to_update S) \<subseteq># uminus `# lit_of `# mset (get_trail S)) \<and>
+     (\<forall>C. C \<in># clauses_to_update S \<longrightarrow>
+       add_mset (fst C) (literals_to_update S) \<subseteq># uminus `# lit_of `# mset (get_trail S)) \<and>
      literals_to_update S \<subseteq># uminus `# lit_of `# mset (get_trail S))\<close>
   by (cases S) auto
 
@@ -486,7 +486,7 @@ proof -
     have LM: \<open>L \<in> lits_of_l M\<close>
       using that unfolding M by auto
     have \<open>undefined_lit M' L\<close>
-      by (rule cdcl\<^sub>W_restart_mset.no_dup_append_in_atm_notin)
+      by (rule no_dup_append_in_atm_notin)
         (use that n_d in \<open>auto simp: M M' defined_lit_map\<close>)
     then show lev_L_M1: \<open>get_level M L = get_level M1 L\<close>
       using that n_d by (auto simp: M image_Un M')
@@ -3474,7 +3474,7 @@ next
             using n_d_M1 unfolding M1 by (auto simp: atm_lit_of_set_lits_of_l
                 atm_of_in_atm_of_set_iff_in_set_or_uminus_in_set
                 defined_lit_map atm_of_eq_atm_of image_Un
-                dest: cdcl\<^sub>W_restart_mset.no_dup_uminus_append_in_atm_notin)
+                dest: no_dup_uminus_append_in_atm_notin)
           then show False
             using lev_M1_K''  count_decided_ge_get_level[of M1'' K''] unfolding M1
             by (auto simp: image_Un Int_Un_distrib)
@@ -3504,7 +3504,7 @@ next
     proof (rule ccontr)
       assume K''_M1'': \<open>\<not> ?thesis\<close>
       have \<open>undefined_lit (tl M2'' @ Decided K''' # []) (-K'')\<close>
-        apply (rule CDCL_W_Abstract_State.cdcl\<^sub>W_restart_mset.no_dup_append_in_atm_notin)
+        apply (rule no_dup_append_in_atm_notin)
          prefer 2 using K''_M1'' apply (simp; fail)
         by (use n_d in \<open>auto simp: M M1 no_dup_def; fail\<close>)[]
       then show False
@@ -3515,7 +3515,7 @@ next
     proof (rule ccontr)
       assume K'_M1'': \<open>\<not> ?thesis\<close>
       have \<open>undefined_lit (M3 @ M2 @ Decided K # tl M2'' @ Decided K''' # []) (-K')\<close>
-        apply (rule CDCL_W_Abstract_State.cdcl\<^sub>W_restart_mset.no_dup_append_in_atm_notin)
+        apply (rule no_dup_append_in_atm_notin)
          prefer 2 using K'_M1'' apply (simp; fail)
         by (use n_d in \<open>auto simp: M M1; fail\<close>)[]
       then show False
@@ -4119,7 +4119,7 @@ next
      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def by (auto simp: trail.simps)
 
   have \<open>undefined_lit (M3 @ M2 @ M1) K\<close>
-    by (rule cdcl\<^sub>W_restart_mset.no_dup_append_in_atm_notin[of _ \<open>[Decided K]\<close>])
+    by (rule no_dup_append_in_atm_notin[of _ \<open>[Decided K]\<close>])
       (use n_d M in \<open>auto simp: no_dup_def\<close>)
   then have L_uL': \<open>L \<noteq> - L'\<close>
     using lev_L lev_L' lev_K unfolding M by (auto simp: image_Un)
@@ -4377,7 +4377,7 @@ lemma no_dup_append_decided_Cons_lev:
   shows \<open>count_decided M1 = get_level (M2 @ Decided K # M1) K - 1\<close>
 proof -
   have \<open>undefined_lit (M2 @ M1) K\<close>
-    by (rule CDCL_W_Abstract_State.cdcl\<^sub>W_restart_mset.no_dup_append_in_atm_notin[of _
+    by (rule no_dup_append_in_atm_notin[of _
           \<open>[Decided K]\<close>])
       (use assms in auto)
   then show ?thesis
@@ -4595,7 +4595,7 @@ next
       unfolding M by auto
     moreover {
       have \<open>undefined_lit (M3 @ M2 @ [Decided K]) K''\<close>
-        by (rule CDCL_W_Abstract_State.cdcl\<^sub>W_restart_mset.no_dup_append_in_atm_notin[of _ \<open>M1\<close>])
+        by (rule no_dup_append_in_atm_notin[of _ \<open>M1\<close>])
           (use n_d M K''_M1 in auto)
       then have \<open>get_level M1 K'' = 0\<close>
         using lev_K'' unfolding M by (auto simp: image_Un)
@@ -5381,8 +5381,8 @@ proof -
         have [simp]: \<open>k - min (length M') k = 0\<close>
           unfolding k_def by auto
         have C_N_U: \<open>C \<in># N + U'\<close>
-          using learned kept unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def Sk
-            k_def[symmetric]
+          using learned kept unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_alt_def Sk
+            k_def[symmetric] cdcl\<^sub>W_restart_mset.reasons_in_clauses_def
           apply (subst (asm)(4)M')
           apply (subst (asm)(10)M')
           unfolding K
@@ -5529,8 +5529,8 @@ proof -
         have [simp]: \<open>k - min (length M') k = 0\<close>
           unfolding k_def by auto
         have C_N_U: \<open>C \<in># N + U'\<close>
-          using learned kept unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def Sk
-            k_def[symmetric]
+          using learned kept unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_alt_def Sk
+            k_def[symmetric] cdcl\<^sub>W_restart_mset.reasons_in_clauses_def
           apply (subst (asm)(4)M')
           apply (subst (asm)(10)M')
           unfolding K
@@ -5686,7 +5686,7 @@ proof -
     by (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def all_decomposition_implies_def
         S clauses_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def cdcl\<^sub>W_restart_mset_state
         cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init_def
-        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def)
+        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_alt_def)
   have \<open>set_mset N \<union> set_mset U \<Turnstile>ps CNot D\<close>
     by (rule true_clss_clss_true_clss_cls_true_clss_clss[OF N_U_M M_D])
   then have \<open>set_mset N \<Turnstile>ps CNot D\<close> \<open>set_mset N \<Turnstile>p D\<close>
@@ -5719,7 +5719,7 @@ proof -
     by (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def all_decomposition_implies_def
         S clauses_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def cdcl\<^sub>W_restart_mset_state
         cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init_def
-        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def)
+        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_alt_def)
   have \<open>set_mset N \<union> set_mset U \<Turnstile>ps CNot D\<close>
     by (rule true_clss_clss_true_clss_cls_true_clss_clss[OF N_U_M M_D])
   then have \<open>set_mset N \<union> set_mset U \<Turnstile>ps CNot D\<close> \<open>set_mset N \<union> set_mset U \<Turnstile>p D\<close>

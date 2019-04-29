@@ -11,16 +11,6 @@ imports
    Partial_Herbrand_Interpretation
 begin
 
-subsection \<open>More Literals\<close>
-
-text \<open>The following lemma is very useful when in the goal appears an axioms like @{term \<open>-L = K\<close>}:
-  this lemma allows the simplifier to rewrite L.\<close>
-lemma uminus_lit_swap: \<open>-(a::'a literal) = i \<longleftrightarrow> a = -i\<close>
-  by auto
-
-lemma in_image_uminus_uminus: \<open>a \<in> uminus ` A \<longleftrightarrow> -a \<in> A\<close> for a :: \<open>'v literal\<close>
-  using Partial_Annotated_Herbrand_Interpretation.uminus_lit_swap by auto
-
 
 subsection \<open>Decided Literals\<close>
 
@@ -103,6 +93,10 @@ lemma lits_of_l_empty_is_empty[iff]:
 
 lemma in_unmark_l_in_lits_of_l_iff: \<open>{#L#} \<in> unmark_l M \<longleftrightarrow> L \<in> lits_of_l M\<close>
   by (induction M) auto
+
+lemma atm_lit_of_set_lits_of_l:
+  "(\<lambda>l. atm_of (lit_of l)) ` set xs = atm_of ` lits_of_l xs"
+  unfolding lits_of_def by auto
 
 
 subsubsection \<open>Entailment\<close>
@@ -312,6 +306,26 @@ lemma in_lits_of_l_defined_litD: \<open>L_max \<in> lits_of_l M \<Longrightarrow
 
 lemma undefined_notin: \<open>undefined_lit M (lit_of x) \<Longrightarrow> x \<notin> set M\<close> for x M
   by (metis in_lits_of_l_defined_litD insert_iff lits_of_insert mk_disjoint_insert)
+
+lemma uminus_lits_of_l_definedD:
+  \<open>-x \<in> lits_of_l M \<Longrightarrow> defined_lit M x\<close>
+  by (simp add: Decided_Propagated_in_iff_in_lits_of_l)
+
+lemma defined_lit_Neg_Pos_iff:
+  \<open>defined_lit M (Neg A) \<longleftrightarrow> defined_lit M (Pos A)\<close>
+  by (simp add: defined_lit_map)
+
+lemma defined_lit_Pos_atm_iff[simp]:
+  \<open>defined_lit M1 (Pos (atm_of x)) \<longleftrightarrow> defined_lit M1 x\<close>
+  by (cases x) (auto simp: defined_lit_Neg_Pos_iff)
+
+lemma defined_lit_mono:
+  \<open>defined_lit M2 L \<Longrightarrow> set M2 \<subseteq> set M3 \<Longrightarrow> defined_lit M3 L\<close>
+  by (auto simp: Decided_Propagated_in_iff_in_lits_of_l)
+
+lemma defined_lit_nth:
+  \<open>n < length M2 \<Longrightarrow> defined_lit M2 (lit_of (M2 ! n))\<close>
+  by (auto simp: Decided_Propagated_in_iff_in_lits_of_l lits_of_def)
 
 
 subsection \<open>Backtracking\<close>
@@ -808,6 +822,9 @@ text \<open>
 definition CNot :: \<open>'v clause \<Rightarrow> 'v clause_set\<close> where
 \<open>CNot \<psi> = { {#-L#} | L. L \<in># \<psi> }\<close>
 
+lemma finite_CNot[simp]: \<open>finite (CNot C)\<close>
+  by (auto simp: CNot_def)
+
 lemma in_CNot_uminus[iff]:
   shows \<open>{#L#} \<in> CNot \<psi> \<longleftrightarrow> -L \<in># \<psi>\<close>
   unfolding CNot_def by force
@@ -1032,6 +1049,40 @@ lemma true_clss_clss_CNot_true_clss_cls_unsatisfiable:
       true_cls_empty true_clss_cls_def true_clss_clss_generalise_true_clss_clss
       true_clss_clss_true_clss_cls true_clss_clss_union_false_true_clss_clss_cnot)
 
+lemma true_clss_cls_neg:
+  \<open>N \<Turnstile>p I \<longleftrightarrow> N \<union> (\<lambda>L. {#-L#}) ` set_mset I \<Turnstile>p {#}\<close>
+proof -
+  have [simp]: \<open>(\<lambda>L. {#- L#}) ` set_mset I = CNot I\<close> for I
+    by (auto simp: CNot_def)
+  have [iff]: \<open> total_over_m Ia ((\<lambda>L. {#- L#}) ` set_mset I) \<longleftrightarrow>
+     total_over_set Ia (atms_of I)\<close> for Ia
+    by (auto simp: total_over_m_def
+       total_over_set_def atms_of_ms_def atms_of_def)
+  show ?thesis
+    by (auto simp: true_clss_cls_def consistent_CNot_not
+       total_not_CNot)
+qed
+
+lemma all_decomposition_implies_conflict_DECO_clause:
+  assumes \<open>all_decomposition_implies N (get_all_ann_decomposition M)\<close> and
+    \<open>M \<Turnstile>as CNot C\<close> and
+    \<open>C \<in> N\<close>
+  shows \<open>N \<Turnstile>p (uminus o lit_of) `# (filter_mset is_decided (mset M))\<close>
+    (is \<open>?I \<Turnstile>p ?A\<close>)
+proof -
+  have \<open>{unmark m |m. is_decided m \<and> m \<in> set M} =
+       unmark_s {L \<in> set M. is_decided L}\<close>
+     by auto
+  have \<open>N \<union> unmark_s {L \<in> set M. is_decided L} \<Turnstile>p {#}\<close>
+    by (metis (mono_tags, lifting) UnCI
+      \<open>{unmark m |m. is_decided m \<and> m \<in> set M} = unmark_s {L \<in> set M. is_decided L}\<close>
+      all_decomposition_implies_propagated_lits_are_implied assms
+      true_clss_clss_contradiction_true_clss_cls_false true_clss_clss_true_clss_cls_true_clss_clss)
+  then show ?thesis
+    apply (subst true_clss_cls_neg)
+    by (auto simp: image_image)
+qed
+
 
 subsection \<open>Other\<close>
 
@@ -1149,6 +1200,21 @@ lemma no_dup_map_lit_of: \<open>no_dup M \<Longrightarrow> distinct (map lit_of 
    apply (auto simp: dest: no_dup_imp_distinct)
   by (meson distinct.simps(2) no_dup_cons no_dup_imp_distinct)
 
+lemma no_dup_alt_def:
+  \<open>no_dup M \<longleftrightarrow> distinct_mset {#atm_of (lit_of x). x \<in># mset M#}\<close>
+  by (auto simp: no_dup_def simp flip: distinct_mset_mset_distinct)
+
+lemma no_dup_append_in_atm_notin:
+   assumes \<open>no_dup (M @ M')\<close> and \<open>L \<in> lits_of_l M'\<close>
+     shows \<open>undefined_lit M L\<close>
+  using assms by (auto simp add: atm_lit_of_set_lits_of_l no_dup_def
+      defined_lit_map)
+
+lemma no_dup_uminus_append_in_atm_notin:
+   assumes \<open>no_dup (M @ M')\<close> and \<open>-L \<in> lits_of_l M'\<close>
+     shows \<open>undefined_lit M L\<close>
+  using Decided_Propagated_in_iff_in_lits_of_l assms defined_lit_no_dupD(1) by blast
+
 
 subsection \<open>Extending Entailments to multisets\<close>
 
@@ -1188,6 +1254,10 @@ abbreviation true_clss_m:: \<open>'a partial_interp \<Rightarrow> 'a clause mult
 abbreviation true_clss_ext_m (infix "\<Turnstile>sextm" 49) where
 \<open>I \<Turnstile>sextm C \<equiv> I \<Turnstile>sext set_mset C\<close>
 
+lemma true_clss_cls_cong_set_mset:
+  \<open>N \<Turnstile>pm D \<Longrightarrow> set_mset D = set_mset D' \<Longrightarrow> N \<Turnstile>pm D'\<close>
+  by (auto simp add: true_clss_cls_def true_cls_def atms_of_cong_set_mset[of D D'])
+
 
 subsection \<open>More Lemmas\<close>
 
@@ -1198,5 +1268,26 @@ lemma no_dup_cannot_not_lit_and_uminus:
 lemma atms_of_ms_single_atm_of[simp]:
   \<open>atms_of_ms {unmark L |L. P L} = atm_of ` {lit_of L |L. P L}\<close>
   unfolding atms_of_ms_def by force
+
+lemma true_cls_mset_restrict:
+  \<open>{L \<in> I. atm_of L \<in> atms_of_mm N} \<Turnstile>m N \<longleftrightarrow> I \<Turnstile>m N\<close>
+  by (auto simp: true_cls_mset_def true_cls_def
+    dest!: multi_member_split)
+
+lemma true_clss_restrict:
+  \<open>{L \<in> I. atm_of L \<in> atms_of_mm N} \<Turnstile>sm N \<longleftrightarrow> I \<Turnstile>sm N\<close>
+  by (auto simp: true_clss_def true_cls_def
+    dest!: multi_member_split)
+
+
+lemma true_clss_restrict_iff:
+  assumes \<open>\<not>tautology \<chi>\<close>
+  shows \<open>N \<Turnstile>p \<chi> \<longleftrightarrow> N \<Turnstile>p {#L \<in># \<chi>. atm_of L \<in> atms_of_ms N#}\<close> (is \<open>?A \<longleftrightarrow> ?B\<close>)
+  apply (subst true_clss_alt_def2[OF assms])
+  apply (subst true_clss_alt_def2)
+  subgoal using not_tautology_mono[OF _ assms] by (auto dest: not_tautology_minus)
+  apply (rule HOL.iff_allI)
+  apply (auto 5 5 simp: true_cls_def atms_of_s_def dest!: multi_member_split)
+  done
 
 end

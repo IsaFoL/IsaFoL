@@ -36,7 +36,7 @@ definition empty_conflict_and_extract_clause_heur ::
     \<open>empty_conflict_and_extract_clause_heur \<A> M D outl = do {
      let C = replicate (length outl) (outl!0);
      (D, C, _) \<leftarrow> WHILE\<^sub>T\<^bsup>empty_conflict_and_extract_clause_heur_inv M outl\<^esup>
-         (\<lambda>(D, C, i). i < length_u outl)
+         (\<lambda>(D, C, i). i < length_uint32_nat outl)
          (\<lambda>(D, C, i). do {
            ASSERT(i < length outl);
            ASSERT(i < length C);
@@ -130,7 +130,7 @@ proof -
     if
       \<open>empty_conflict_and_extract_clause_heur_inv M outl s\<close> and
       I: \<open>I s\<close> and
-      \<open>case s of (D, C, i) \<Rightarrow> i < length_u outl\<close> and
+      \<open>case s of (D, C, i) \<Rightarrow> i < length_uint32_nat outl\<close> and
       st:
       \<open>s = (a, b)\<close>
       \<open>b = (aa, ba)\<close> and
@@ -245,7 +245,7 @@ proof -
   have mset_tl_out:  \<open>mset (tl outl) - mset outl = {#}\<close>
     by (cases outl) auto
   have H1: \<open>WHILE\<^sub>T\<^bsup>empty_conflict_and_extract_clause_heur_inv M outl\<^esup>
-     (\<lambda>(D, C, i). i < length_u outl)
+     (\<lambda>(D, C, i). i < length_uint32_nat outl)
      (\<lambda>(D, C, i). do {
            _ \<leftarrow> ASSERT (i < length outl);
            _ \<leftarrow> ASSERT (i < length C);
@@ -402,7 +402,7 @@ definition isa_empty_conflict_and_extract_clause_heur ::
     \<open>isa_empty_conflict_and_extract_clause_heur M D outl = do {
      let C = replicate (length outl) (outl!0);
      (D, C, _) \<leftarrow> WHILE\<^sub>T
-         (\<lambda>(D, C, i). i < length_u outl)
+         (\<lambda>(D, C, i). i < length_uint32_nat outl)
          (\<lambda>(D, C, i). do {
            ASSERT(i < length outl);
            ASSERT(i < length C);
@@ -1020,7 +1020,7 @@ proof -
       \<open>mset `# ran_mf (get_clauses_wl S) +  (get_unit_learned_clss_wl S + get_unit_init_clss_wl S) \<Turnstile>pm
         add_mset (- lit_of (hd (get_trail_wl S)))
            (remove1_mset (- lit_of (hd (get_trail_wl S))) (the (get_conflict_wl S)))\<close>
-      using uL_D learned not_none S_T T_U unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def
+      using uL_D learned not_none S_T T_U unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_alt_def
       by (auto simp: ac_simps twl_st get_unit_clauses_wl_alt_def)
     define cach' where \<open>cach' = (\<lambda>_::nat. SEEN_UNKNOWN)\<close>
     have mini: \<open>minimize_and_extract_highest_lookup_conflict (all_atms_st S) (get_trail_wl S) (get_clauses_wl S)
@@ -2419,7 +2419,7 @@ sepref_definition propagate_unit_bt_wl_D_code
   :: \<open>unat_lit_assn\<^sup>k *\<^sub>a isasat_unbounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_unbounded_assn\<close>
   supply [[goals_limit = 1]] vmtf_flush_def[simp] image_image[simp] uminus_\<A>\<^sub>i\<^sub>n_iff[simp]
   unfolding propagate_unit_bt_wl_D_int_def cons_trail_Propagated_def[symmetric] isasat_unbounded_assn_def
-    PR_CONST_def length_u_def[symmetric]
+    PR_CONST_def length_uint32_nat_def[symmetric]
   by sepref
 
 sepref_definition propagate_unit_bt_wl_D_fast_code
@@ -2427,7 +2427,7 @@ sepref_definition propagate_unit_bt_wl_D_fast_code
   :: \<open>unat_lit_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
   supply [[goals_limit = 1]] vmtf_flush_def[simp] image_image[simp] uminus_\<A>\<^sub>i\<^sub>n_iff[simp]
   unfolding propagate_unit_bt_wl_D_int_def cons_trail_Propagated_def[symmetric] isasat_bounded_assn_def
-    PR_CONST_def length_u_def[symmetric] zero_uint64_nat_def[symmetric]
+    PR_CONST_def length_uint32_nat_def[symmetric] zero_uint64_nat_def[symmetric]
   by sepref
 
 declare
@@ -2448,14 +2448,6 @@ sepref_definition extract_shorter_conflict_list_heur_st_code
 
 declare extract_shorter_conflict_list_heur_st_code.refine[sepref_fr_rules]
 
-(* TODO Move *)
-lemma (in -) uint64_neq0_gt: \<open>j \<noteq> (0::uint64) \<longleftrightarrow> j > 0\<close>
-  by transfer (auto simp: word_neq_0_conv)
-
-lemma (in -) uint64_gt0_ge1: \<open>j > 0 \<longleftrightarrow> j \<ge> (1::uint64)\<close>
-  apply (subst nat_of_uint64_less_iff[symmetric])
-  apply (subst nat_of_uint64_le_iff[symmetric])
-  by auto
 
 definition upt_uint64 where
   \<open>upt_uint64 a b = map uint64_of_nat [nat_of_uint64 a..<nat_of_uint64 b]\<close>
@@ -2543,5 +2535,8 @@ sepref_definition backtrack_wl_D_code
     cons_trail_Propagated_def[symmetric]
     size_conflict_wl_def[symmetric]
   by sepref
+
+declare backtrack_wl_D_fast_code.refine[sepref_fr_rules]
+  backtrack_wl_D_code.refine[sepref_fr_rules]
 
 end

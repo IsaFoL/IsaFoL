@@ -8,7 +8,7 @@ section \<open>A Well-Order on Terms that Extends IsaFoR's KBO\<close>
 
 theory IsaFoR_Term_KBO
 imports
-  IsaFoR_Term 
+  Functional_Ordered_Resolution_Prover.IsaFoR_Term
   Ord.KBO
 begin
 

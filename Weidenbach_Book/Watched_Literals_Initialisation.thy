@@ -215,9 +215,9 @@ proof -
       by (cases S)
         (auto 5 5 simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def clauses_def
           cdcl\<^sub>W_restart_mset_state cdcl\<^sub>W_restart_mset.no_strange_atm_def
-          cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def
+          cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_alt_def
           cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
-          cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
+          cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def cdcl\<^sub>W_restart_mset.reasons_in_clauses_def
           cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def all_decomposition_implies_def)
     subgoal using smaller count_dec by (cases S)(auto simp: cdcl\<^sub>W_restart_mset.no_smaller_propa_def clauses_def
           cdcl\<^sub>W_restart_mset_state)
@@ -353,8 +353,9 @@ proof -
     by (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
        cdcl\<^sub>W_restart_mset.no_strange_atm_def cdcl\<^sub>W_restart_mset_state
        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
-        cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def all_decomposition_implies_def
-        clauses_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def)
+       cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def all_decomposition_implies_def
+       clauses_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_alt_def
+       cdcl\<^sub>W_restart_mset.reasons_in_clauses_def)
 
   have \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa (M, clauses N + NE + OC, clauses U + UE, D)\<close>
     using invs unfolding T twl_struct_invs_init_def by auto
@@ -557,7 +558,7 @@ proof -
        cdcl\<^sub>W_restart_mset.no_strange_atm_def cdcl\<^sub>W_restart_mset_state
        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
        cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def all_decomposition_implies_def
-       clauses_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def
+       clauses_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_alt_def
        true_annots_true_cls_def_iff_negation_in_model)
 
   have \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa (M, clauses N + NE + OC, clauses U + UE, D)\<close>
@@ -623,7 +624,8 @@ proof -
        cdcl\<^sub>W_restart_mset.no_strange_atm_def cdcl\<^sub>W_restart_mset_state
        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
        cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def all_decomposition_implies_def
-       clauses_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def)
+       clauses_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_alt_def
+       cdcl\<^sub>W_restart_mset.reasons_in_clauses_def)
   then have [simp]:
    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (Propagated L {#L#} # M,
         add_mset {#L#} (clauses N + NE + OC), clauses U + UE, None)\<close>
@@ -631,7 +633,7 @@ proof -
         cdcl\<^sub>W_restart_mset.no_strange_atm_def cdcl\<^sub>W_restart_mset_state
         cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
         cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def all_decomposition_implies_def
-        clauses_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def
+        clauses_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_alt_def
         consistent_interp_insert_iff)
   have [iff]: \<open>Propagated L {#L#} # M = M' @ Decided K # Ma \<longleftrightarrow> False\<close> for M' K Ma
     using lev by (cases M') (auto simp: count_decided_0_iff T)
@@ -1019,7 +1021,7 @@ proof -
        cdcl\<^sub>W_restart_mset.no_strange_atm_def cdcl\<^sub>W_restart_mset_state
        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
        cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def all_decomposition_implies_def
-       clauses_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def
+       clauses_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_alt_def
        true_annots_true_cls_def_iff_negation_in_model)
 
   have \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa (M, clauses N + NE + OC, clauses U + UE, D)\<close>
@@ -1147,7 +1149,7 @@ proof -
        cdcl\<^sub>W_restart_mset.no_strange_atm_def cdcl\<^sub>W_restart_mset_state
        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
        cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def all_decomposition_implies_def
-       clauses_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def)
+       clauses_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_alt_def)
   have \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa (M, clauses N + NE + OC, clauses U + UE, None)\<close>
     using invs confl unfolding T twl_struct_invs_init_def by auto
   then have [simp]:
@@ -1485,7 +1487,7 @@ lemma init_dt_pre_empty_state:
       twl_struct_invs_def twl_st_inv.simps cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
       cdcl\<^sub>W_restart_mset.no_strange_atm_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
       cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
-      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def cdcl\<^sub>W_restart_mset.no_smaller_propa_def
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_alt_def cdcl\<^sub>W_restart_mset.no_smaller_propa_def
       past_invs.simps clauses_def
       cdcl\<^sub>W_restart_mset_state twl_list_invs_def
       twl_stgy_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant_def
@@ -1501,7 +1503,7 @@ lemma twl_init_invs:
       twl_struct_invs_def twl_st_inv.simps cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
       cdcl\<^sub>W_restart_mset.no_strange_atm_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
       cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
-      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def cdcl\<^sub>W_restart_mset.no_smaller_propa_def
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_alt_def cdcl\<^sub>W_restart_mset.no_smaller_propa_def
       past_invs.simps clauses_def
       cdcl\<^sub>W_restart_mset_state twl_list_invs_def
       twl_stgy_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant_def

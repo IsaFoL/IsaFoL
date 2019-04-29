@@ -45,7 +45,7 @@ definition level_in_lbd :: \<open>nat \<Rightarrow> lbd \<Rightarrow> bool\<clos
   \<open>level_in_lbd i = (\<lambda>lbd. i < length lbd \<and> lbd!i)\<close>
 
 definition level_in_lbd_ref :: \<open>nat \<Rightarrow> lbd_ref \<Rightarrow> bool\<close> where
-  \<open>level_in_lbd_ref = (\<lambda>i (lbd, _). i < length_u lbd \<and> lbd!i)\<close>
+  \<open>level_in_lbd_ref = (\<lambda>i (lbd, _). i < length_uint32_nat lbd \<and> lbd!i)\<close>
 
 lemma level_in_lbd_ref_level_in_lbd:
   \<open>(uncurry (RETURN oo level_in_lbd_ref), uncurry (RETURN oo level_in_lbd)) \<in>
@@ -96,14 +96,14 @@ qed
 
 definition lbd_write :: \<open>lbd \<Rightarrow> nat \<Rightarrow> bool \<Rightarrow> lbd\<close> where
   \<open>lbd_write = (\<lambda>lbd i b.
-    (if i < length_u lbd then (lbd[i := b])
+    (if i < length_uint32_nat lbd then (lbd[i := b])
      else (list_grow lbd (i + 1) False[i := b])))\<close>
 
 
 definition lbd_ref_write :: \<open>lbd_ref \<Rightarrow> nat \<Rightarrow> bool \<Rightarrow> lbd_ref nres\<close>  where
   \<open>lbd_ref_write = (\<lambda>(lbd, m) i b. do {
     ASSERT(length lbd \<le> uint_max);
-    (if i < length_u lbd then
+    (if i < length_uint32_nat lbd then
        RETURN (lbd[i := b], max i m)
      else do {
         ASSERT(i + 1 \<le> uint_max);

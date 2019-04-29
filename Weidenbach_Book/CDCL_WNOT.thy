@@ -120,7 +120,6 @@ sublocale conflict_driven_clause_learning\<^sub>W \<subseteq> cdcl\<^sub>N\<^sub
     \<and> distinct_mset C' \<and> L' \<notin># C' \<and> \<not>tautology (add_mset L' C')"
   by unfold_locales
 
-thm cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_proxy.axioms
 sublocale conflict_driven_clause_learning\<^sub>W \<subseteq> cdcl\<^sub>N\<^sub>O\<^sub>T_merge_bj_learn_proxy where
   trail = "\<lambda>S. convert_trail_from_W (trail S)" and
   clauses\<^sub>N\<^sub>O\<^sub>T = clauses and
@@ -406,7 +405,7 @@ next
       using tr_T tr_T' confl unfolding M''_def by (auto elim: rulesE)
     have "init_clss T' + learned_clss S \<Turnstile>pm ?D'"
       using inv_T' confl_T' \<open>clauses S = clauses T\<close> \<open>clauses T = clauses T'\<close> T'_L_D'
-      unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_learned_clause_def clauses_def by auto
+      unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_learned_clause_alt_def clauses_def by auto
     have "reduce_trail_to (convert_trail_from_NOT (convert_trail_from_W M1)) S =
       reduce_trail_to M1 S"
       by (rule reduce_trail_to_length) simp
@@ -1223,7 +1222,7 @@ proof -
   have M1_D': "M1 \<Turnstile>as CNot D'"
     using backtrack_M1_CNot_D'[of U D' \<open>i\<close> K M1 M2 L \<open>add_mset L D\<close> V \<open>Propagated L (add_mset L D')\<close>]
       inv_U confl_D decomp lev_L_U max_D_L_U i lev_K_U V U_L_D' D_D'
-    unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_conflicting_def
+    unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_conflicting_def cdcl\<^sub>W_M_level_inv_def
     by (auto simp: subset_mset_trans_add_mset)
   show ?thesis
     apply (rule cdcl\<^sub>W_with_strategy.backjump_l.intros[of S _ K

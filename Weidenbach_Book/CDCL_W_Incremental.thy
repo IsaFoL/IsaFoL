@@ -407,7 +407,7 @@ proof -
     qed
 
   have [simp]: "cdcl\<^sub>W_learned_clause ?T"
-    using inv_T unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_learned_clause_def
+    using inv_T unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_learned_clause_alt_def
     by (auto dest!: H_proped simp: clauses_def)
   show ?thesis
     using \<open>all_decomposition_implies_m (clauses ?T) (get_all_ann_decomposition (trail ?T))\<close>
@@ -553,7 +553,7 @@ next
   case (add_no_confl C T)
   have inv': "cdcl\<^sub>W_all_struct_inv (add_init_cls C S)"
     using inv \<open>distinct_mset C\<close> unfolding cdcl\<^sub>W_all_struct_inv_def no_strange_atm_def
-    cdcl\<^sub>W_M_level_inv_def distinct_cdcl\<^sub>W_state_def cdcl\<^sub>W_conflicting_def cdcl\<^sub>W_learned_clause_def
+    cdcl\<^sub>W_M_level_inv_def distinct_cdcl\<^sub>W_state_def cdcl\<^sub>W_conflicting_def cdcl\<^sub>W_learned_clause_alt_def
     by (auto 9 1 simp: all_decomposition_implies_insert_single clauses_def)
     (* SLOW ~2s *)
   case 1

@@ -636,26 +636,13 @@ lemma (in -)length_u_hnr[sepref_fr_rules]:
     (sep_auto simp: length_u_code_def array_assn_def hr_comp_def is_array_def
       uint32_nat_rel_def list_rel_imp_same_length br_def nat_of_uint32_uint32_of_nat_id)
 
-definition length_u where
-  [simp]: \<open>length_u xs = length xs\<close>
-
-(* TODO kill length_u in favour of length_uint32_nat *)
-lemma length_u_hnr'[sepref_fr_rules]:
-  \<open>(length_u_code, RETURN o length_u) \<in>
-     [\<lambda>xs. length xs \<le> uint32_max]\<^sub>a (array_assn R)\<^sup>k \<rightarrow> uint32_nat_assn\<close>
-  by sepref_to_hoare
-    (sep_auto simp: length_u_code_def array_assn_def is_array_def
-        hr_comp_def list_rel_def length_u_def
-        uint32_nat_rel_def br_def list_rel_pres_length
-        dest!: nat_of_uint32_uint32_of_nat_id)
-
 definition length_arl_u_code :: \<open>('a::heap) array_list \<Rightarrow> uint32 Heap\<close> where
   \<open>length_arl_u_code xs = do {
    n \<leftarrow> arl_length xs;
    return (uint32_of_nat n)}\<close>
 
 lemma length_arl_u_hnr[sepref_fr_rules]:
-  \<open>(length_arl_u_code, RETURN o length_u) \<in>
+  \<open>(length_arl_u_code, RETURN o length_uint32_nat) \<in>
      [\<lambda>xs. length xs \<le> uint32_max]\<^sub>a (arl_assn R)\<^sup>k \<rightarrow> uint32_nat_assn\<close>
   by sepref_to_hoare
     (sep_auto simp: length_u_code_def nat_of_uint32_uint32_of_nat_id
@@ -735,7 +722,6 @@ definition length_aa_u_code :: \<open>('a::heap array) array_list \<Rightarrow> 
 
 
 paragraph \<open>64-bits\<close>
-
 
 definition (in -)length_aa_u64 :: \<open>('a::heap array_list) array \<Rightarrow> uint64 \<Rightarrow> nat Heap\<close> where
   \<open>length_aa_u64 xs i = length_aa xs (nat_of_uint64 i)\<close>
@@ -1661,7 +1647,7 @@ definition length_arlO_u where
       return (uint32_of_nat n)}\<close>
 
 lemma length_arlO_u[sepref_fr_rules]:
-  \<open>(length_arlO_u, RETURN o length_u) \<in> [\<lambda>xs. length xs \<le> uint32_max]\<^sub>a (arlO_assn R)\<^sup>k \<rightarrow> uint32_nat_assn\<close>
+  \<open>(length_arlO_u, RETURN o length_uint32_nat) \<in> [\<lambda>xs. length xs \<le> uint32_max]\<^sub>a (arlO_assn R)\<^sup>k \<rightarrow> uint32_nat_assn\<close>
   by sepref_to_hoare
     (sep_auto simp: length_arlO_u_def arl_length_def uint32_nat_rel_def
       br_def nat_of_uint32_uint32_of_nat_id)
@@ -1996,5 +1982,21 @@ lemma butlast_nonresizing_hnr[sepref_fr_rules]:
     is_array_list_def  butlast_take list_rel_imp_same_length
     dest:
       list_rel_butlast[of \<open>take _ _\<close>])
+
+
+lemma update_aa_u64_rule[sep_heap_rules]:
+  assumes p: \<open>is_pure R\<close> and \<open>bb < length a\<close> and \<open>ba < length_ll a bb\<close> and \<open>(bb', bb) \<in> uint32_nat_rel\<close> and
+    \<open>(ba', ba) \<in> uint64_nat_rel\<close>
+  shows \<open><R b bi * arrayO_assn (arl_assn R) a ai> update_aa_u32_i64 ai bb' ba' bi
+      <\<lambda>r. R b bi * (\<exists>\<^sub>Ax. arrayO_assn (arl_assn R) x r * \<up> (x = update_ll a bb ba b))>\<^sub>t\<close>
+  using assms
+  by (sep_auto simp add: update_aa_u32_i64_def update_ll_def p uint64_nat_rel_def uint32_nat_rel_def br_def)
+
+lemma update_aa_u32_i64_hnr[sepref_fr_rules]:
+  assumes \<open>is_pure R\<close>
+  shows \<open>(uncurry3 update_aa_u32_i64, uncurry3 (RETURN oooo update_ll)) \<in>
+     [\<lambda>(((l,i), j), x). i < length l \<and> j < length_ll l i]\<^sub>a
+      (arrayO_assn (arl_assn R))\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a R\<^sup>k \<rightarrow> (arrayO_assn (arl_assn R))\<close>
+  by sepref_to_hoare (sep_auto simp: assms)
 
 end

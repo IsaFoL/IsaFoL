@@ -21,7 +21,6 @@ This means that reducing the size is better.
 
 The functions below are meant to replace (more-or-less) transparently tuples during code generation.
 Therefore, the refinement relation relates them to the tuple version.
-
 \<close>
 
 datatype ('a, 'b, 'c) tuple3 = Tuple3 'a 'b 'c

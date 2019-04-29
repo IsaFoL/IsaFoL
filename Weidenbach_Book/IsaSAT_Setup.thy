@@ -90,16 +90,49 @@ paragraph \<open>Moving averages\<close>
 text \<open>We use (at least hopefully) the variant of EMA-14 implemented in Cadical, but with fixed-point
 calculation (\<^term>\<open>1 :: nat\<close> is \<^term>\<open>(1 :: nat) >> 32\<close>).
 
-Remark that the coefficient \<^term>\<open>\<beta>\<close> already takes care of the fixed-point conversion of the glue.
+Remark that the coefficient \<^term>\<open>\<beta>\<close> already should not take care of the fixed-point conversion of the glue.
+Otherwise, \<^term>\<open>value\<close> is wrongly updated.
 \<close>
 type_synonym ema = \<open>uint64 \<times> uint64 \<times> uint64 \<times> uint64 \<times> uint64\<close>
 
 abbreviation ema_assn :: \<open>ema \<Rightarrow> ema \<Rightarrow> assn\<close> where
   \<open>ema_assn \<equiv> uint64_assn *a uint64_assn *a uint64_assn *a uint64_assn *a uint64_assn\<close>
 
+definition ema_bitshifting where
+  \<open>ema_bitshifting = (1 << 32)\<close>
+
+sepref_register ema_bitshifting
+
+lemma ema_bitshifting_hnr[sepref_fr_rules]:
+  \<open>(uncurry0 (return 4294967296), uncurry0 (RETURN ema_bitshifting)) \<in>
+     unit_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
+proof -
+  have [simp]: \<open>Suc 0 << 32 = 4294967296\<close>
+    by eval
+  show ?thesis
+    unfolding ema_bitshifting_def
+    by sepref_to_hoare
+      (sep_auto simp: uint64_nat_rel_def br_def ema_bitshifting_def
+         nat_of_uint64_1_32 uint32_max_def)
+qed
+
+lemma ema_bitshifting_hnr2[sepref_fr_rules]:
+  \<open>(uncurry0 (return 4294967296), uncurry0 (RETURN ema_bitshifting)) \<in>
+     unit_assn\<^sup>k \<rightarrow>\<^sub>a uint64_assn\<close>
+proof -
+  have [simp]: \<open>(1::uint64) << 32 = 4294967296\<close>
+    by eval
+  show ?thesis
+    unfolding ema_bitshifting_def
+    by sepref_to_hoare
+      (sep_auto simp: uint64_nat_rel_def br_def ema_bitshifting_def
+         nat_of_uint64_1_32 uint32_max_def)
+qed
+
 definition (in -) ema_update :: \<open>nat \<Rightarrow> ema \<Rightarrow> ema\<close> where
   \<open>ema_update = (\<lambda>lbd (value, \<alpha>, \<beta>, wait, period).
-     let value = value + \<beta> * ((uint64_of_nat lbd) - value) in
+     let lbd = (uint64_of_nat lbd) * ema_bitshifting in
+     let value = if lbd > value then value + (\<beta> * (lbd - value) >> 32) else value - (\<beta> * (value - lbd) >> 32) in
      if \<beta> \<le> \<alpha> \<or> wait > 0 then (value, \<alpha>, \<beta>, wait - 1, period)
      else
        let wait = 2 * period + 1 in
@@ -110,7 +143,8 @@ definition (in -) ema_update :: \<open>nat \<Rightarrow> ema \<Rightarrow> ema\<
 
 definition (in -) ema_update_ref :: \<open>uint32 \<Rightarrow> ema \<Rightarrow> ema\<close> where
   \<open>ema_update_ref = (\<lambda>lbd (value, \<alpha>, \<beta>, wait, period).
-     let value = value + \<beta> * ((uint64_of_uint32 lbd) - value) in
+     let lbd = (uint64_of_uint32 lbd) * ema_bitshifting in
+     let value = if lbd > value then value + (\<beta> * (lbd - value) >> 32) else value - (\<beta> * (value - lbd) >> 32) in
      if \<beta> \<le> \<alpha> \<or> wait > 0 then (value, \<alpha>, \<beta>, wait - 1, period)
      else
        let wait = 2 * period + 1 in
@@ -152,6 +186,7 @@ lemma (in -) ema_init_coeff_hnr[sepref_fr_rules]:
 text \<open>We use the default values for Cadical: \<^term>\<open>(3 / 10 ^2)\<close> and  \<^term>\<open>(1 / 10 ^ 5)\<close>  in our fixed-point
   version.
 \<close>
+
 abbreviation ema_fast_init :: ema where
   \<open>ema_fast_init \<equiv> ema_init (128849010)\<close>
 
@@ -516,10 +551,10 @@ lemma convert_wlists_to_nat_alt_def2:
                  length zs = length xs \<and> (\<forall>k\<ge>i. k < length xs \<longrightarrow> zs ! k = [])\<^esup>
        (\<lambda>(i, zs). i < length zs)
        (\<lambda>(i, zs). do {
-             _ \<leftarrow> ASSERT (i < length zs);
-             RETURN
-              (i + 1, convert_single_wl_to_nat_conv xs i zs i)
-           })
+          ASSERT (i < length zs);
+          RETURN
+            (i + 1, convert_single_wl_to_nat_conv xs i zs i)
+       })
        (0, zs);
     RETURN zs
   }\<close>
@@ -680,7 +715,8 @@ lemma twl_st_heur_state_simp:
   assumes \<open>(S, S') \<in> twl_st_heur\<close>
   shows
      \<open>(get_trail_wl_heur S, get_trail_wl S') \<in> trail_pol (all_atms_st S')\<close> and
-     twl_st_heur_state_simp_watched: \<open>C \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st S') \<Longrightarrow> watched_by_int S C = watched_by S' C\<close> and
+     twl_st_heur_state_simp_watched: \<open>C \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st S') \<Longrightarrow>
+       watched_by_int S C = watched_by S' C\<close> and
      \<open>literals_to_update_wl S' =
          uminus `# lit_of `# mset (drop (literals_to_update_wl_heur S) (rev (get_trail_wl S')))\<close>
   using assms unfolding twl_st_heur_def by (auto simp: map_fun_rel_def all_atms_def)
@@ -841,7 +877,7 @@ subsubsection \<open>Lift Operations to State\<close>
 definition polarity_st :: \<open>'v twl_st_wl \<Rightarrow> 'v literal \<Rightarrow> bool option\<close> where
   \<open>polarity_st S = polarity (get_trail_wl S)\<close>
 
-definition (in -) get_conflict_wl_is_None_heur :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close> where
+definition get_conflict_wl_is_None_heur :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close> where
   \<open>get_conflict_wl_is_None_heur = (\<lambda>(M, N, (b, _), Q, W, _). b)\<close>
 
 lemma get_conflict_wl_is_None_heur_get_conflict_wl_is_None:
@@ -1024,6 +1060,18 @@ lemma count_decided_st_heur[sepref_fr_rules]:
   unfolding count_decided_st_heur_def isasat_bounded_assn_def isasat_unbounded_assn_def
   by (sepref_to_hoare; sep_auto)+
 
+lemma twl_st_heur_count_decided_st_alt_def:
+  fixes S :: twl_st_wl_heur
+  shows \<open>(S, T) \<in> twl_st_heur \<Longrightarrow> count_decided_st_heur S = count_decided (get_trail_wl T)\<close>
+  unfolding count_decided_st_def twl_st_heur_def trail_pol_def
+  by (cases S) (auto simp: count_decided_st_heur_def)
+
+lemma twl_st_heur_isa_length_trail_get_trail_wl:
+  fixes S :: twl_st_wl_heur
+  shows \<open>(S, T) \<in> twl_st_heur \<Longrightarrow> isa_length_trail (get_trail_wl_heur S) = length (get_trail_wl T)\<close>
+  unfolding isa_length_trail_def twl_st_heur_def trail_pol_def
+  by (cases S) (auto dest: ann_lits_split_reasons_map_lit_of)
+
 
 lemma atm_of_all_lits_of_mm:
   \<open>set_mset (atm_of `# all_lits_of_mm bw) = atms_of_mm bw\<close>
@@ -1134,9 +1182,10 @@ definition clause_not_marked_to_delete_heur_pre where
   \<open>clause_not_marked_to_delete_heur_pre =
      (\<lambda>(S, C). arena_is_valid_clause_vdom (get_clauses_wl_heur S) C)\<close>
 
-definition clause_not_marked_to_delete_heur :: "_ \<Rightarrow> nat \<Rightarrow> bool"
+definition clause_not_marked_to_delete_heur :: \<open>_ \<Rightarrow> nat \<Rightarrow> bool\<close>
 where
-  \<open>clause_not_marked_to_delete_heur S C \<longleftrightarrow> arena_status (get_clauses_wl_heur S) C \<noteq> DELETED\<close>
+  \<open>clause_not_marked_to_delete_heur S C \<longleftrightarrow>
+    arena_status (get_clauses_wl_heur S) C \<noteq> DELETED\<close>
 
 lemma clause_not_marked_to_delete_rel:
   \<open>(uncurry (RETURN oo clause_not_marked_to_delete_heur),
@@ -1159,7 +1208,7 @@ definition (in -) access_lit_in_clauses_heur where
   \<open>access_lit_in_clauses_heur S i j = arena_lit (get_clauses_wl_heur S) (i + j)\<close>
 
 lemma access_lit_in_clauses_heur_alt_def:
-  \<open>access_lit_in_clauses_heur = (\<lambda>(M, N, _) i j.  arena_lit N (i + j))\<close>
+  \<open>access_lit_in_clauses_heur = (\<lambda>(M, N, _) i j. arena_lit N (i + j))\<close>
   by (auto simp: access_lit_in_clauses_heur_def intro!: ext)
 
 
@@ -1175,19 +1224,9 @@ sepref_definition access_lit_in_clauses_heur_code
 
 declare access_lit_in_clauses_heur_code.refine[sepref_fr_rules]
 
-(* TODO Move *)
-lemma (in -) arena_is_valid_clause_idx_le_uint64_max2:
-  \<open>arena_lit_pre be bd \<Longrightarrow> length be \<le> uint64_max \<Longrightarrow>
-   bd \<le> uint64_max\<close>
-  using arena_lifting(10)[of be _ _]
-  by (fastforce simp: arena_lifting arena_is_valid_clause_idx_def arena_lit_pre_def
-      arena_is_valid_clause_idx_and_access_def)
-(* End MOve *)
-
 lemma access_lit_in_clauses_heur_fast_pre:
   \<open>arena_lit_pre (get_clauses_wl_heur a) (ba + b) \<Longrightarrow>
-       isasat_fast a \<Longrightarrow>
-       ba + b \<le> uint64_max\<close>
+    isasat_fast a \<Longrightarrow> ba + b \<le> uint64_max\<close>
   by (auto simp: arena_lit_pre_def arena_is_valid_clause_idx_and_access_def
       dest!: arena_lifting(10)
       dest!: isasat_fast_length_leD)[]
@@ -1200,9 +1239,48 @@ sepref_definition access_lit_in_clauses_heur_fast_code
   supply length_rll_def[simp] [[goals_limit=1]] arena_is_valid_clause_idx_le_uint64_max[intro]
   unfolding isasat_bounded_assn_def access_lit_in_clauses_heur_alt_def
     fmap_rll_def[symmetric] access_lit_in_clauses_heur_pre_def
-    fmap_rll_u64_def[symmetric] arena_is_valid_clause_idx_le_uint64_max2[intro]
+    fmap_rll_u64_def[symmetric] arena_lit_pre_le[intro]
   by sepref
 
 declare access_lit_in_clauses_heur_fast_code.refine[sepref_fr_rules]
+
+lemma eq_insertD: \<open>A = insert a B \<Longrightarrow> a \<in> A \<and> B \<subseteq> A\<close>
+  by auto
+
+lemma \<L>\<^sub>a\<^sub>l\<^sub>l_add_mset:
+  \<open>set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l (add_mset L C)) = insert (Pos L) (insert (Neg L) (set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l C)))\<close>
+  by (auto simp: \<L>\<^sub>a\<^sub>l\<^sub>l_def)
+
+lemma correct_watching_dom_watched:
+  assumes \<open>correct_watching S\<close> and \<open>\<And>C. C \<in># ran_mf (get_clauses_wl S) \<Longrightarrow> C \<noteq> []\<close>
+  shows \<open>set_mset (dom_m (get_clauses_wl S)) \<subseteq>
+     \<Union>(((`) fst) ` set ` (get_watched_wl S) ` set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st S)))\<close>
+    (is \<open>?A \<subseteq> ?B\<close>)
+proof
+  fix C
+  assume \<open>C \<in> ?A\<close>
+  then obtain D where
+    D: \<open>D \<in># ran_mf (get_clauses_wl S)\<close> and
+    D': \<open>D = get_clauses_wl S \<propto> C\<close> and
+    C: \<open>C \<in># dom_m (get_clauses_wl S)\<close>
+    by auto
+  have \<open>atm_of (hd D) \<in># atm_of `# all_lits_st S\<close>
+    using D D' assms(2)[of D]
+    by (cases S; cases D)
+      (auto simp: all_lits_def
+          all_lits_of_mm_add_mset all_lits_of_m_add_mset
+        dest!: multi_member_split)
+  then show \<open>C \<in> ?B\<close>
+    using assms(1) assms(2)[of D] D D'
+      multi_member_split[OF C]
+    by (cases S; cases \<open>get_clauses_wl S \<propto> C\<close>;
+         cases \<open>hd (get_clauses_wl S \<propto> C)\<close>)
+       (auto simp: correct_watching.simps clause_to_update_def
+           all_lits_of_mm_add_mset all_lits_of_m_add_mset
+	  \<L>\<^sub>a\<^sub>l\<^sub>l_add_mset
+	  eq_commute[of \<open>_ # _\<close>] atm_of_eq_atm_of
+	dest!: multi_member_split eq_insertD
+	dest!:  arg_cong[of \<open>filter_mset _ _\<close> \<open>add_mset _ _\<close> set_mset])
+qed
 
 end

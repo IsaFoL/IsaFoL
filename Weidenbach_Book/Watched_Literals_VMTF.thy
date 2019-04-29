@@ -2,7 +2,6 @@ theory Watched_Literals_VMTF
   imports IsaSAT_Literals
 begin
 
-
 subsection \<open>Variable-Move-to-Front\<close>
 
 subsubsection \<open>Variants around head and last\<close>

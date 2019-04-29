@@ -95,7 +95,6 @@ session "CDCL_no_Sepref" (Weidenbach_Book) = "HOL"  +
     CDCL_W_Full
     CDCL_W_Restart
     CDCL_W_Incremental
-(*    CDCL_W_Optimal_Model*)
 
     DPLL_CDCL_W_Implementation
     DPLL_W_Implementation
@@ -134,7 +133,6 @@ session "CDCL" (Weidenbach_Book) = "Sepref_IICF"  +
     CDCL_W_Full
     CDCL_W_Restart
     CDCL_W_Incremental
-(*    CDCL_W_Optimal_Model*)
 
     DPLL_CDCL_W_Implementation
     DPLL_W_Implementation
@@ -145,6 +143,24 @@ session "CDCL" (Weidenbach_Book) = "Sepref_IICF"  +
   document_files
     "root.tex"
     "biblio.bib"
+
+session "CDCL_Extensions" (Weidenbach_Book) = "CDCL"  +
+  description \<open>This sessions contains the extensions of the CDCL calculus.\<close>
+  options [document = pdf, document_output = "output"]
+  sessions
+    "HOL-Library"
+
+  theories [quick_and_dirty = false, document = true]
+    CDCL_W_Optimal_Model
+    CDCL_W_Partial_Encoding
+    CDCL_W_MaxSAT
+    CDCL_W_Partial_Optimal_Model
+    CDCL_W_Covering_Models
+
+  document_files
+    "root.tex"
+    "biblio.bib"
+
 
 session "Watched_Literals" (Weidenbach_Book) = "CDCL"  +
   description \<open>This session contains all theories related to the two-watched literals. It links
@@ -167,10 +183,10 @@ session "Watched_Literals" (Weidenbach_Book) = "CDCL"  +
     Watched_Literals_Watch_List_Initialisation
     CDCL_Conflict_Minimisation
 
-    
   document_files
     "root.tex"
     "biblio.bib"
+
 
 session "IsaSAT" (Weidenbach_Book) = "Watched_Literals"  +
   description \<open>We here refine the previous session to generate code.\<close>
@@ -210,7 +226,6 @@ session "IsaSAT" (Weidenbach_Book) = "Watched_Literals"  +
 
     IsaSAT
 
- 
   document_files
     "root.tex"
     "biblio.bib"
@@ -220,7 +235,6 @@ session Model_Enumeration (Weidenbach_Book) = Watched_Literals +
   description \<open>This extends the previous version to a very simple 'SMT' solver: we enumerate all models and let an unspecified theoty solver checks if a model is valid or another must be found.\<close>
   sessions
     Normalisation
-    Resolution_Superposition
     CDCL
     Watched_Literals
   theories[document = true]
@@ -235,14 +249,17 @@ session Model_Enumeration (Weidenbach_Book) = Watched_Literals +
 
 session Weidenbach_Book (Weidenbach_Book) = IsaSAT +
   description \<open>We import everything\<close>
+  options [document = pdf, document_output = "output", quick_and_dirty]
   sessions
     Normalisation
-    Resolution_Superposition
     CDCL
+    CDCL_Extensions
     Watched_Literals
     Model_Enumeration
     IsaSAT
-  theories[document = true, quick_and_dirty]
+    "HOL-Library"
+    Resolution_Superposition
+  theories
     Weidenbach_Book
   document_files
     "root.tex"

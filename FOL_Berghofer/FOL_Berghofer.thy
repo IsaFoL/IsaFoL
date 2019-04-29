@@ -1,11 +1,11 @@
 (*  Author:     Stefan Berghofer, TU Muenchen, 2003
-    Author: Andreas Halkjær From, DTU Compute, 2017
-    Thanks to John Bruntse Larsen, Anders Schlichtkrull & Jørgen Villadsen
+    Author: Andreas Halkjær From, DTU Compute, 2019
+    Contributors: Alexander Birch Jensen, Anders Schlichtkrull & Jørgen Villadsen
 *)
 
-theory FOL_Berghofer
-  imports "HOL-Library.Countable"
-begin
+section \<open>First-Order Logic According to Berghofer\<close>
+
+theory FOL_Berghofer imports Main begin
 
 section \<open>Miscellaneous Utilities\<close>
 
@@ -21,28 +21,28 @@ The datatypes of terms and formulae in {\em de Bruijn notation}
 are defined as follows:
 \<close>
 
-datatype 'a "term"
-  = Var nat
-  | App 'a \<open>'a term list\<close>
+datatype 'a "term" =
+  Var nat |
+  Fun 'a \<open>'a term list\<close>
 
-datatype ('a, 'b) form
-  = FF
-  | TT
-  | Pred 'b \<open>'a term list\<close>
-  | And \<open>('a, 'b) form\<close> \<open>('a, 'b) form\<close>
-  | Or \<open>('a, 'b) form\<close> \<open>('a, 'b) form\<close>
-  | Impl \<open>('a, 'b) form\<close> \<open>('a, 'b) form\<close>
-  | Neg \<open>('a, 'b) form\<close>
-  | Forall \<open>('a, 'b) form\<close>
-  | Exists \<open>('a, 'b) form\<close>
+datatype ('a, 'b) form =
+  FF ("\<bottom>") |
+  TT ("\<top>") |
+  Pre 'b \<open>'a term list\<close> |
+  Con \<open>('a, 'b) form\<close> \<open>('a, 'b) form\<close> |
+  Dis \<open>('a, 'b) form\<close> \<open>('a, 'b) form\<close> |
+  Imp \<open>('a, 'b) form\<close> \<open>('a, 'b) form\<close> |
+  Neg \<open>('a, 'b) form\<close> |
+  Uni \<open>('a, 'b) form\<close> |
+  Exi \<open>('a, 'b) form\<close>
 
 text \<open>
-We use @{text \<open>'a\<close>} and @{text \<open>'b\<close>} to denote the type of
+We use \<open>'a\<close> and \<open>'b\<close> to denote the type of
 {\em function symbols} and {\em predicate symbols}, respectively.
-In applications @{text \<open>App a ts\<close>} and predicates
-@{text \<open>Pred a ts\<close>}, the length of @{text \<open>ts\<close>} is considered
-to be a part of the function or predicate name, so @{text \<open>App a [t]\<close>}
-and @{text \<open>App a [t,u]\<close>} refer to different functions.
+In applications \<open>Fun a ts\<close> and predicates
+\<open>Pre a ts\<close>, the length of \<open>ts\<close> is considered
+to be a part of the function or predicate name, so \<open>Fun a [t]\<close>
+and \<open>Fun a [t,u]\<close> refer to different functions.
 
 The size of a formula is used later for wellfounded induction. The
 default implementation provided by the datatype package is not quite
@@ -50,43 +50,43 @@ what we need, so here is an alternative version:
 \<close>
 
 primrec size_form :: \<open>('a, 'b) form \<Rightarrow> nat\<close> where
-  \<open>size_form FF = 0\<close>
-| \<open>size_form TT = 0\<close>
-| \<open>size_form (Pred _ _) = 0\<close>
-| \<open>size_form (And p q) = size_form p + size_form q + 1\<close>
-| \<open>size_form (Or p q) = size_form p + size_form q + 1\<close>
-| \<open>size_form (Impl p q) = size_form p + size_form q + 1\<close>
+  \<open>size_form \<bottom> = 0\<close>
+| \<open>size_form \<top> = 0\<close>
+| \<open>size_form (Pre _ _) = 0\<close>
+| \<open>size_form (Con p q) = size_form p + size_form q + 1\<close>
+| \<open>size_form (Dis p q) = size_form p + size_form q + 1\<close>
+| \<open>size_form (Imp p q) = size_form p + size_form q + 1\<close>
 | \<open>size_form (Neg p) = size_form p + 1\<close>
-| \<open>size_form (Forall p) = size_form p + 1\<close>
-| \<open>size_form (Exists p) = size_form p + 1\<close>
+| \<open>size_form (Uni p) = size_form p + 1\<close>
+| \<open>size_form (Exi p) = size_form p + 1\<close>
 
 subsection \<open>Closed terms and formulae\<close>
 
 text \<open>
 Many of the results proved in the following sections are restricted
 to closed terms and formulae. We call a term or formula {\em closed at
-level @{text i}}, if it only contains ``loose'' bound variables with
-indices smaller than @{text i}.
+level \<open>i\<close>}, if it only contains ``loose'' bound variables with
+indices smaller than \<open>i\<close>.
 \<close>
 
 primrec
   closedt :: \<open>nat \<Rightarrow> 'a term \<Rightarrow> bool\<close> and
   closedts :: \<open>nat \<Rightarrow> 'a term list \<Rightarrow> bool\<close> where
   \<open>closedt m (Var n) = (n < m)\<close>
-| \<open>closedt m (App a ts) = closedts m ts\<close>
+| \<open>closedt m (Fun a ts) = closedts m ts\<close>
 | \<open>closedts m [] = True\<close>
 | \<open>closedts m (t # ts) = (closedt m t \<and> closedts m ts)\<close>
 
 primrec closed :: \<open>nat \<Rightarrow> ('a, 'b) form \<Rightarrow> bool\<close> where
-  \<open>closed m FF = True\<close>
-| \<open>closed m TT = True\<close>
-| \<open>closed m (Pred b ts) = closedts m ts\<close>
-| \<open>closed m (And p q) = (closed m p \<and> closed m q)\<close>
-| \<open>closed m (Or p q) = (closed m p \<and> closed m q)\<close>
-| \<open>closed m (Impl p q) = (closed m p \<and> closed m q)\<close>
+  \<open>closed m \<bottom> = True\<close>
+| \<open>closed m \<top> = True\<close>
+| \<open>closed m (Pre b ts) = closedts m ts\<close>
+| \<open>closed m (Con p q) = (closed m p \<and> closed m q)\<close>
+| \<open>closed m (Dis p q) = (closed m p \<and> closed m q)\<close>
+| \<open>closed m (Imp p q) = (closed m p \<and> closed m q)\<close>
 | \<open>closed m (Neg p) = closed m p\<close>
-| \<open>closed m (Forall p) = closed (Suc m) p\<close>
-| \<open>closed m (Exists p) = closed (Suc m) p\<close>
+| \<open>closed m (Uni p) = closed (Suc m) p\<close>
+| \<open>closed m (Exi p) = closed (Suc m) p\<close>
 
 theorem closedt_mono: assumes le: \<open>i \<le> j\<close>
   shows \<open>closedt i (t::'a term) \<Longrightarrow> closedt j t\<close>
@@ -97,7 +97,7 @@ theorem closed_mono: assumes le: \<open>i \<le> j\<close>
   shows \<open>closed i p \<Longrightarrow> closed j p\<close>
   using le
 proof (induct p arbitrary: i j)
-  case (Pred i l)
+  case (Pre i l)
   then show ?case
     using closedt_mono by simp
 qed auto
@@ -115,7 +115,7 @@ primrec
   substt :: \<open>'a term \<Rightarrow> 'a term \<Rightarrow> nat \<Rightarrow> 'a term\<close> ("_[_'/_]" [300, 0, 0] 300) and
   substts :: \<open>'a term list \<Rightarrow> 'a term \<Rightarrow> nat \<Rightarrow> 'a term list\<close> ("_[_'/_]" [300, 0, 0] 300) where
   \<open>(Var i)[s/k] = (if k < i then Var (i - 1) else if i = k then s else Var i)\<close>
-| \<open>(App a ts)[s/k] = App a (ts[s/k])\<close>
+| \<open>(Fun a ts)[s/k] = Fun a (ts[s/k])\<close>
 | \<open>[][s/k] = []\<close>
 | \<open>(t # ts)[s/k] = t[s/k] # ts[s/k]\<close>
 
@@ -123,21 +123,21 @@ primrec
   liftt :: \<open>'a term \<Rightarrow> 'a term\<close> and
   liftts :: \<open>'a term list \<Rightarrow> 'a term list\<close> where
   \<open>liftt (Var i) = Var (Suc i)\<close>
-| \<open>liftt (App a ts) = App a (liftts ts)\<close>
+| \<open>liftt (Fun a ts) = Fun a (liftts ts)\<close>
 | \<open>liftts [] = []\<close>
 | \<open>liftts (t # ts) = liftt t # liftts ts\<close>
 
 primrec subst :: \<open>('a, 'b) form \<Rightarrow> 'a term \<Rightarrow> nat \<Rightarrow> ('a, 'b) form\<close>
   ("_[_'/_]" [300, 0, 0] 300) where
-  \<open>FF[s/k] = FF\<close>
-| \<open>TT[s/k] = TT\<close>
-| \<open>(Pred b ts)[s/k] = Pred b (ts[s/k])\<close>
-| \<open>(And p q)[s/k] = And (p[s/k]) (q[s/k])\<close>
-| \<open>(Or p q)[s/k] = Or (p[s/k]) (q[s/k])\<close>
-| \<open>(Impl p q)[s/k] = Impl (p[s/k]) (q[s/k])\<close>
+  \<open>\<bottom>[s/k] = \<bottom>\<close>
+| \<open>\<top>[s/k] = \<top>\<close>
+| \<open>(Pre b ts)[s/k] = Pre b (ts[s/k])\<close>
+| \<open>(Con p q)[s/k] = Con (p[s/k]) (q[s/k])\<close>
+| \<open>(Dis p q)[s/k] = Dis (p[s/k]) (q[s/k])\<close>
+| \<open>(Imp p q)[s/k] = Imp (p[s/k]) (q[s/k])\<close>
 | \<open>(Neg p)[s/k] = Neg (p[s/k])\<close>
-| \<open>(Forall p)[s/k] = Forall (p[liftt s/Suc k])\<close>
-| \<open>(Exists p)[s/k] = Exists (p[liftt s/Suc k])\<close>
+| \<open>(Uni p)[s/k] = Uni (p[liftt s/Suc k])\<close>
+| \<open>(Exi p)[s/k] = Exi (p[liftt s/Suc k])\<close>
 
 theorem lift_closed [simp]:
   \<open>closedt 0 (t::'a term) \<Longrightarrow> closedt 0 (liftt t)\<close>
@@ -161,8 +161,8 @@ theorem subst_size_form [simp]: \<open>size_form (subst p t i) = size_form p\<cl
 subsection \<open>Parameters\<close>
 
 text \<open>
-The introduction rule @{text ForallI} for the universal quantifier,
-as well as the elimination rule @{text ExistsE} for the existential
+The introduction rule \<open>ForallI\<close> for the universal quantifier,
+as well as the elimination rule \<open>ExistsE\<close> for the existential
 quantifier introduced in \secref{sec:proof-calculus} require the
 quantified variable to be replaced by a ``fresh'' parameter. Fitting's
 solution is to use a new nullary function symbol for this purpose.
@@ -174,44 +174,44 @@ primrec
   paramst :: \<open>'a term \<Rightarrow> 'a set\<close> and
   paramsts :: \<open>'a term list \<Rightarrow> 'a set\<close> where
   \<open>paramst (Var n) = {}\<close>
-| \<open>paramst (App a ts) = {a} \<union> paramsts ts\<close>
+| \<open>paramst (Fun a ts) = {a} \<union> paramsts ts\<close>
 | \<open>paramsts [] = {}\<close>
 | \<open>paramsts (t # ts) = (paramst t \<union> paramsts ts)\<close>
 
 primrec params :: \<open>('a, 'b) form \<Rightarrow> 'a set\<close> where
-  \<open>params FF = {}\<close>
-| \<open>params TT = {}\<close>
-| \<open>params (Pred b ts) = paramsts ts\<close>
-| \<open>params (And p q) = params p \<union> params q\<close>
-| \<open>params (Or p q) = params p \<union> params q\<close>
-| \<open>params (Impl p q) = params p \<union> params q\<close>
+  \<open>params \<bottom> = {}\<close>
+| \<open>params \<top> = {}\<close>
+| \<open>params (Pre b ts) = paramsts ts\<close>
+| \<open>params (Con p q) = params p \<union> params q\<close>
+| \<open>params (Dis p q) = params p \<union> params q\<close>
+| \<open>params (Imp p q) = params p \<union> params q\<close>
 | \<open>params (Neg p) = params p\<close>
-| \<open>params (Forall p) = params p\<close>
-| \<open>params (Exists p) = params p\<close>
+| \<open>params (Uni p) = params p\<close>
+| \<open>params (Exi p) = params p\<close>
 
 text\<open>
 We also define parameter substitution functions on terms and formulae
-that apply a function @{text f} to all function symbols.
+that apply a function \<open>f\<close> to all function symbols.
 \<close>
 
 primrec
   psubstt :: \<open>('a \<Rightarrow> 'c) \<Rightarrow> 'a term \<Rightarrow> 'c term\<close> and
   psubstts :: \<open>('a \<Rightarrow> 'c) \<Rightarrow> 'a term list \<Rightarrow> 'c term list\<close> where
   \<open>psubstt f (Var i) = Var i\<close>
-| \<open>psubstt f (App x ts) = App (f x) (psubstts f ts)\<close>
+| \<open>psubstt f (Fun x ts) = Fun (f x) (psubstts f ts)\<close>
 | \<open>psubstts f [] = []\<close>
 | \<open>psubstts f (t # ts) = psubstt f t # psubstts f ts\<close>
 
 primrec psubst :: \<open>('a \<Rightarrow> 'c) \<Rightarrow> ('a, 'b) form \<Rightarrow> ('c, 'b) form\<close> where
-  \<open>psubst f FF = FF\<close>
-| \<open>psubst f TT = TT\<close>
-| \<open>psubst f (Pred b ts) = Pred b (psubstts f ts)\<close>
-| \<open>psubst f (And p q) = And (psubst f p) (psubst f q)\<close>
-| \<open>psubst f (Or p q) = Or (psubst f p) (psubst f q)\<close>
-| \<open>psubst f (Impl p q) = Impl (psubst f p) (psubst f q)\<close>
+  \<open>psubst f \<bottom> = \<bottom>\<close>
+| \<open>psubst f \<top> = \<top>\<close>
+| \<open>psubst f (Pre b ts) = Pre b (psubstts f ts)\<close>
+| \<open>psubst f (Con p q) = Con (psubst f p) (psubst f q)\<close>
+| \<open>psubst f (Dis p q) = Dis (psubst f p) (psubst f q)\<close>
+| \<open>psubst f (Imp p q) = Imp (psubst f p) (psubst f q)\<close>
 | \<open>psubst f (Neg p) = Neg (psubst f p)\<close>
-| \<open>psubst f (Forall p) = Forall (psubst f p)\<close>
-| \<open>psubst f (Exists p) = Exists (psubst f p)\<close>
+| \<open>psubst f (Uni p) = Uni (psubst f p)\<close>
+| \<open>psubst f (Exi p) = Exi (psubst f p)\<close>
 
 theorem psubstt_closed [simp]:
   \<open>closedt i (psubstt f t) = closedt i t\<close>
@@ -270,23 +270,25 @@ text \<open>
 \label{sec:semantics}
 In this section, we define evaluation functions for terms and formulae.
 Evaluation is performed relative to an environment mapping indices of variables
-to values. We also introduce a function, denoted by @{text \<open>e\<langle>i:a\<rangle>\<close>}, for inserting
-a value @{text a} at position @{text i} into the environment. All values of variables
-with indices less than @{text i} are left untouched by this operation, whereas the
-values of variables with indices greater or equal than @{text i} are shifted one
+to values. We also introduce a function, denoted by \<open>e\<langle>i:a\<rangle>\<close>, for inserting
+a value \<open>a\<close> at position \<open>i\<close> into the environment. All values of variables
+with indices less than \<open>i\<close> are left untouched by this operation, whereas the
+values of variables with indices greater or equal than \<open>i\<close> are shifted one
 position up.
 \<close>
 
-definition shift :: \<open>(nat \<Rightarrow> 'a) \<Rightarrow> nat \<Rightarrow> 'a \<Rightarrow> nat \<Rightarrow> 'a\<close> ("_\<langle>_:_\<rangle>" [90, 0, 0] 91) where
-  \<open>e\<langle>i:a\<rangle> = (\<lambda>j. if j < i then e j else if j = i then a else e (j - 1))\<close>
+definition shift where
+  \<open>shift e v z \<equiv> \<lambda>n. if n < v then e n else if n = v then z else e (n - 1)\<close>
 
-lemma shift_eq [simp]: \<open>i = j \<Longrightarrow> (e\<langle>i:T\<rangle>) j = T\<close>
+notation shift ("_\<langle>_:_\<rangle>" [90, 0, 0] 91)
+
+lemma shift_eq [simp]: \<open>i = j \<Longrightarrow> (e\<langle>i:T\<rangle>) j = T\<close> for i :: nat
   by (simp add: shift_def)
 
-lemma shift_gt [simp]: \<open>j < i \<Longrightarrow> (e\<langle>i:T\<rangle>) j = e j\<close>
+lemma shift_gt [simp]: \<open>j < i \<Longrightarrow> (e\<langle>i:T\<rangle>) j = e j\<close> for i :: nat
   by (simp add: shift_def)
 
-lemma shift_lt [simp]: \<open>i < j \<Longrightarrow> (e\<langle>i:T\<rangle>) j = e (j - 1)\<close>
+lemma shift_lt [simp]: \<open>i < j \<Longrightarrow> (e\<langle>i:T\<rangle>) j = e (j - 1)\<close> for i :: nat
   by (simp add: shift_def)
 
 lemma shift_commute [simp]: \<open>e\<langle>i:U\<rangle>\<langle>0:T\<rangle> = e\<langle>0:T\<rangle>\<langle>Suc i:U\<rangle>\<close>
@@ -296,75 +298,72 @@ proof
     by (cases x) (simp_all add: shift_def)
 qed
 
-primrec
-  evalt :: \<open>(nat \<Rightarrow> 'c) \<Rightarrow> ('a \<Rightarrow> 'c list \<Rightarrow> 'c) \<Rightarrow> 'a term \<Rightarrow> 'c\<close> and
-  evalts :: \<open>(nat \<Rightarrow> 'c) \<Rightarrow> ('a \<Rightarrow> 'c list \<Rightarrow> 'c) \<Rightarrow> 'a term list \<Rightarrow> 'c list\<close> where
-  \<open>evalt e f (Var n) = e n\<close>
-| \<open>evalt e f (App a ts) = f a (evalts e f ts)\<close>
-| \<open>evalts e f [] = []\<close>
-| \<open>evalts e f (t # ts) = evalt e f t # evalts e f ts\<close>
+fun semantics_term and semantics_list where
+  \<open>semantics_term e f (Var n) = e n\<close> |
+  \<open>semantics_term e f (Fun i l) = f i (semantics_list e f l)\<close> |
+  \<open>semantics_list e f [] = []\<close> |
+  \<open>semantics_list e f (t # l) = semantics_term e f t # semantics_list e f l\<close>
 
-primrec eval :: \<open>(nat \<Rightarrow> 'c) \<Rightarrow> ('a \<Rightarrow> 'c list \<Rightarrow> 'c) \<Rightarrow>
-  ('b \<Rightarrow> 'c list \<Rightarrow> bool) \<Rightarrow> ('a, 'b) form \<Rightarrow> bool\<close> where
-  \<open>eval e f g FF = False\<close>
-| \<open>eval e f g TT = True\<close>
-| \<open>eval e f g (Pred a ts) = g a (evalts e f ts)\<close>
-| \<open>eval e f g (And p q) = ((eval e f g p) \<and> (eval e f g q))\<close>
-| \<open>eval e f g (Or p q) = ((eval e f g p) \<or> (eval e f g q))\<close>
-| \<open>eval e f g (Impl p q) = ((eval e f g p) \<longrightarrow> (eval e f g q))\<close>
-| \<open>eval e f g (Neg p) = (\<not> (eval e f g p))\<close>
-| \<open>eval e f g (Forall p) = (\<forall>z. eval (e\<langle>0:z\<rangle>) f g p)\<close>
-| \<open>eval e f g (Exists p) = (\<exists>z. eval (e\<langle>0:z\<rangle>) f g p)\<close>
+fun semantics where
+  \<open>semantics e f g \<bottom> = False\<close> |
+  \<open>semantics e f g \<top> = True\<close> |
+  \<open>semantics e f g (Pre i l) = g i (semantics_list e f l)\<close> |
+  \<open>semantics e f g (Con p q) = (semantics e f g p \<and> semantics e f g q)\<close> |
+  \<open>semantics e f g (Dis p q) = (semantics e f g p \<or> semantics e f g q)\<close> |
+  \<open>semantics e f g (Imp p q) = (semantics e f g p \<longrightarrow> semantics e f g q)\<close> |
+  \<open>semantics e f g (Neg p) = (\<not> semantics e f g p)\<close> |
+  \<open>semantics e f g (Uni p) = (\<forall>z. semantics (shift e 0 z) f g p)\<close> |
+  \<open>semantics e f g (Exi p) = (\<exists>z. semantics (shift e 0 z) f g p)\<close>
 
 text \<open>
-We write @{text \<open>e,f,g,ps \<Turnstile> p\<close>} to mean that the formula @{text p} is a
-semantic consequence of the list of formulae @{text ps} with respect to an
-environment @{text e} and interpretations @{text f} and @{text g} for
+We write \<open>e,f,g,ps \<Turnstile> p\<close> to mean that the formula \<open>p\<close> is a
+semantic consequence of the list of formulae \<open>ps\<close> with respect to an
+environment \<open>e\<close> and interpretations \<open>f\<close> and \<open>g\<close> for
 function and predicate symbols, respectively.
 \<close>
 
 definition model :: \<open>(nat \<Rightarrow> 'c) \<Rightarrow> ('a \<Rightarrow> 'c list \<Rightarrow> 'c) \<Rightarrow> ('b \<Rightarrow> 'c list \<Rightarrow> bool) \<Rightarrow>
     ('a, 'b) form list \<Rightarrow> ('a, 'b) form \<Rightarrow> bool\<close> ("_,_,_,_ \<Turnstile> _" [50,50] 50) where
-  \<open>(e,f,g,ps \<Turnstile> p) = (list_all (eval e f g) ps \<longrightarrow> eval e f g p)\<close>
+  \<open>(e,f,g,ps \<Turnstile> p) = (list_all (semantics e f g) ps \<longrightarrow> semantics e f g p)\<close>
 
 text \<open>
 The following substitution lemmas relate substitution and evaluation functions:
 \<close>
 
 theorem subst_lemma' [simp]:
-  \<open>evalt e f (substt t u i) = evalt (e\<langle>i:evalt e f u\<rangle>) f t\<close>
-  \<open>evalts e f (substts ts u i) = evalts (e\<langle>i:evalt e f u\<rangle>) f ts\<close>
-  by (induct t and ts rule: evalt.induct evalts.induct) simp_all
+  \<open>semantics_term e f (substt t u i) = semantics_term (e\<langle>i:semantics_term e f u\<rangle>) f t\<close>
+  \<open>semantics_list e f (substts ts u i) = semantics_list (e\<langle>i:semantics_term e f u\<rangle>) f ts\<close>
+  by (induct t and ts rule: substt.induct substts.induct) simp_all
 
 theorem lift_lemma [simp]:
-  \<open>evalt (e\<langle>0:z\<rangle>) f (liftt t) = evalt e f t\<close>
-  \<open>evalts (e\<langle>0:z\<rangle>) f (liftts ts) = evalts e f ts\<close>
-  by (induct t and ts rule: evalt.induct evalts.induct) simp_all
+  \<open>semantics_term (e\<langle>0:z\<rangle>) f (liftt t) = semantics_term e f t\<close>
+  \<open>semantics_list (e\<langle>0:z\<rangle>) f (liftts ts) = semantics_list e f ts\<close>
+  by (induct t and ts rule: liftt.induct liftts.induct) simp_all
 
 theorem subst_lemma [simp]:
-  \<open>eval e f g (subst a t i) = eval (e\<langle>i:evalt e f t\<rangle>) f g a\<close>
+  \<open>semantics e f g (subst a t i) = semantics (e\<langle>i:semantics_term e f t\<rangle>) f g a\<close>
   by (induct a arbitrary: e i t) simp_all
 
 theorem upd_lemma' [simp]:
-  \<open>n \<notin> paramst t \<Longrightarrow> evalt e (f(n := x)) t = evalt e f t\<close>
-  \<open>n \<notin> paramsts ts \<Longrightarrow> evalts e (f(n := x)) ts = evalts e f ts\<close>
-  by (induct t and ts rule: evalt.induct evalts.induct) auto
+  \<open>n \<notin> paramst t \<Longrightarrow> semantics_term e (f(n := x)) t = semantics_term e f t\<close>
+  \<open>n \<notin> paramsts ts \<Longrightarrow> semantics_list e (f(n := x)) ts = semantics_list e f ts\<close>
+  by (induct t and ts rule: paramst.induct paramsts.induct) auto
 
 theorem upd_lemma [simp]:
-  \<open>n \<notin> params p \<Longrightarrow> eval e (f(n := x)) g p = eval e f g p\<close>
+  \<open>n \<notin> params p \<Longrightarrow> semantics e (f(n := x)) g p = semantics e f g p\<close>
   by (induct p arbitrary: e) simp_all
 
 theorem list_upd_lemma [simp]: \<open>list_all (\<lambda>p. n \<notin> params p) G \<Longrightarrow>
-  list_all (eval e (f(n := x)) g) G = list_all (eval e f g) G\<close>
+  list_all (semantics e (f(n := x)) g) G = list_all (semantics e f g) G\<close>
   by (induct G) simp_all
 
 theorem psubst_eval' [simp]:
-  \<open>evalt e f (psubstt h t) = evalt e (\<lambda>p. f (h p)) t\<close>
-  \<open>evalts e f (psubstts h ts) = evalts e (\<lambda>p. f (h p)) ts\<close>
-  by (induct t and ts rule: evalt.induct evalts.induct) simp_all
+  \<open>semantics_term e f (psubstt h t) = semantics_term e (\<lambda>p. f (h p)) t\<close>
+  \<open>semantics_list e f (psubstts h ts) = semantics_list e (\<lambda>p. f (h p)) ts\<close>
+  by (induct t and ts rule: psubstt.induct psubstts.induct) simp_all
 
 theorem psubst_eval:
-  \<open>eval e f g (psubst h p) = eval e (\<lambda>p. f (h p)) g p\<close>
+  \<open>semantics e f g (psubst h p) = semantics e (\<lambda>p. f (h p)) g p\<close>
   by (induct p arbitrary: e) simp_all
 
 text \<open>
@@ -373,8 +372,8 @@ to an example:
 \<close>
 
 theorem ex_all_commute_eval:
-  \<open>eval e f g (Impl (Exists (Forall (Pred p [Var 1, Var 0])))
-    (Forall (Exists (Pred p [Var 0, Var 1]))))\<close>
+  \<open>semantics e f g (Imp (Exi (Uni (Pre p [Var 1, Var 0])))
+    (Uni (Exi (Pre p [Var 0, Var 1]))))\<close>
   apply simp
   txt \<open>
 Simplification yields the following proof state:
@@ -388,29 +387,29 @@ section \<open>Proof calculus\<close>
 text \<open>
 \label{sec:proof-calculus}
 We now introduce a natural deduction proof calculus for first order logic.
-The derivability judgement @{text \<open>G \<turnstile> a\<close>} is defined as an inductive predicate.
+The derivability judgement \<open>G \<turnstile> a\<close> is defined as an inductive predicate.
 \<close>
 
 inductive deriv :: \<open>('a, 'b) form list \<Rightarrow> ('a, 'b) form \<Rightarrow> bool\<close> ("_ \<turnstile> _" [50,50] 50) where
   Assum: \<open>a \<in> set G \<Longrightarrow> G \<turnstile> a\<close>
-| TTI: \<open>G \<turnstile> TT\<close>
-| FFE: \<open>G \<turnstile> FF \<Longrightarrow> G \<turnstile> a\<close>
-| NegI: \<open>a # G \<turnstile> FF \<Longrightarrow> G \<turnstile> Neg a\<close>
-| NegE: \<open>G \<turnstile> Neg a \<Longrightarrow> G \<turnstile> a \<Longrightarrow> G \<turnstile> FF\<close>
-| Class: \<open>Neg a # G \<turnstile> FF \<Longrightarrow> G \<turnstile> a\<close>
-| AndI: \<open>G \<turnstile> a \<Longrightarrow> G \<turnstile> b \<Longrightarrow> G \<turnstile> And a b\<close>
-| AndE1: \<open>G \<turnstile> And a b \<Longrightarrow> G \<turnstile> a\<close>
-| AndE2: \<open>G \<turnstile> And a b \<Longrightarrow> G \<turnstile> b\<close>
-| OrI1: \<open>G \<turnstile> a \<Longrightarrow> G \<turnstile> Or a b\<close>
-| OrI2: \<open>G \<turnstile> b \<Longrightarrow> G \<turnstile> Or a b\<close>
-| OrE: \<open>G \<turnstile> Or a b \<Longrightarrow> a # G \<turnstile> c \<Longrightarrow> b # G \<turnstile> c \<Longrightarrow> G \<turnstile> c\<close>
-| ImplI: \<open>a # G \<turnstile> b \<Longrightarrow> G \<turnstile> Impl a b\<close>
-| ImplE: \<open>G \<turnstile> Impl a b \<Longrightarrow> G \<turnstile> a \<Longrightarrow> G \<turnstile> b\<close>
-| ForallI: \<open>G \<turnstile> a[App n []/0] \<Longrightarrow> list_all (\<lambda>p. n \<notin> params p) G \<Longrightarrow>
-    n \<notin> params a \<Longrightarrow> G \<turnstile> Forall a\<close>
-| ForallE: \<open>G \<turnstile> Forall a \<Longrightarrow> G \<turnstile> a[t/0]\<close>
-| ExistsI: \<open>G \<turnstile> a[t/0] \<Longrightarrow> G \<turnstile> Exists a\<close>
-| ExistsE: \<open>G \<turnstile> Exists a \<Longrightarrow> a[App n []/0] # G \<turnstile> b \<Longrightarrow>
+| TTI: \<open>G \<turnstile> \<top>\<close>
+| FFE: \<open>G \<turnstile> \<bottom> \<Longrightarrow> G \<turnstile> a\<close>
+| NegI: \<open>a # G \<turnstile> \<bottom> \<Longrightarrow> G \<turnstile> Neg a\<close>
+| NegE: \<open>G \<turnstile> Neg a \<Longrightarrow> G \<turnstile> a \<Longrightarrow> G \<turnstile> \<bottom>\<close>
+| Class: \<open>Neg a # G \<turnstile> \<bottom> \<Longrightarrow> G \<turnstile> a\<close>
+| AndI: \<open>G \<turnstile> a \<Longrightarrow> G \<turnstile> b \<Longrightarrow> G \<turnstile> Con a b\<close>
+| AndE1: \<open>G \<turnstile> Con a b \<Longrightarrow> G \<turnstile> a\<close>
+| AndE2: \<open>G \<turnstile> Con a b \<Longrightarrow> G \<turnstile> b\<close>
+| OrI1: \<open>G \<turnstile> a \<Longrightarrow> G \<turnstile> Dis a b\<close>
+| OrI2: \<open>G \<turnstile> b \<Longrightarrow> G \<turnstile> Dis a b\<close>
+| OrE: \<open>G \<turnstile> Dis a b \<Longrightarrow> a # G \<turnstile> c \<Longrightarrow> b # G \<turnstile> c \<Longrightarrow> G \<turnstile> c\<close>
+| ImplI: \<open>a # G \<turnstile> b \<Longrightarrow> G \<turnstile> Imp a b\<close>
+| ImplE: \<open>G \<turnstile> Imp a b \<Longrightarrow> G \<turnstile> a \<Longrightarrow> G \<turnstile> b\<close>
+| ForallI: \<open>G \<turnstile> a[Fun n []/0] \<Longrightarrow> list_all (\<lambda>p. n \<notin> params p) G \<Longrightarrow>
+    n \<notin> params a \<Longrightarrow> G \<turnstile> Uni a\<close>
+| ForallE: \<open>G \<turnstile> Uni a \<Longrightarrow> G \<turnstile> a[t/0]\<close>
+| ExistsI: \<open>G \<turnstile> a[t/0] \<Longrightarrow> G \<turnstile> Exi a\<close>
+| ExistsE: \<open>G \<turnstile> Exi a \<Longrightarrow> a[Fun n []/0] # G \<turnstile> b \<Longrightarrow>
     list_all (\<lambda>p. n \<notin> params p) G \<Longrightarrow> n \<notin> params a \<Longrightarrow> n \<notin> params b \<Longrightarrow> G \<turnstile> b\<close>
 
 text \<open>
@@ -423,7 +422,7 @@ theorem Class': \<open>Neg A # G \<turnstile> A \<Longrightarrow> G \<turnstile>
 theorem cut: \<open>G \<turnstile> A \<Longrightarrow> A # G \<turnstile> B \<Longrightarrow> G \<turnstile> B\<close>
   by (rule ImplE, rule ImplI)
 
-theorem ForallE': \<open>G \<turnstile> Forall a \<Longrightarrow> subst a t 0 # G \<turnstile> B \<Longrightarrow> G \<turnstile> B\<close>
+theorem ForallE': \<open>G \<turnstile> Uni a \<Longrightarrow> subst a t 0 # G \<turnstile> B \<Longrightarrow> G \<turnstile> B\<close>
   by (rule cut, rule ForallE)
 
 text \<open>
@@ -432,124 +431,124 @@ for existential and universal quantifiers, the drinker principle, as well
 as Peirce's law are derivable in the calculus given above.
 \<close>
 
-theorem tnd: \<open>[] \<turnstile> Or (Pred p []) (Neg (Pred p []))\<close> (is \<open>_ \<turnstile> ?or\<close>)
+theorem tnd: \<open>[] \<turnstile> Dis (Pre p []) (Neg (Pre p []))\<close> (is \<open>_ \<turnstile> ?or\<close>)
 proof -
   have \<open>[Neg ?or] \<turnstile> Neg ?or\<close>
     by (simp add: Assum)
-  moreover { have \<open>[Pred p [], Neg ?or] \<turnstile> Neg ?or\<close>
+  moreover { have \<open>[Pre p [], Neg ?or] \<turnstile> Neg ?or\<close>
       by (simp add: Assum)
-    moreover have \<open>[Pred p [], Neg ?or] \<turnstile> Pred p []\<close>
+    moreover have \<open>[Pre p [], Neg ?or] \<turnstile> Pre p []\<close>
       by (simp add: Assum)
-    then have \<open>[Pred p [], Neg ?or] \<turnstile> ?or\<close>
+    then have \<open>[Pre p [], Neg ?or] \<turnstile> ?or\<close>
       by (rule OrI1)
-    ultimately have \<open>[Pred p [], Neg ?or] \<turnstile> FF\<close>
+    ultimately have \<open>[Pre p [], Neg ?or] \<turnstile> \<bottom>\<close>
       by (rule NegE)
-    then have \<open>[Neg ?or] \<turnstile> Neg (Pred p [])\<close>
+    then have \<open>[Neg ?or] \<turnstile> Neg (Pre p [])\<close>
       by (rule NegI)
     then have \<open>[Neg ?or] \<turnstile> ?or\<close>
       by (rule OrI2) }
-  ultimately have \<open>[Neg ?or] \<turnstile> FF\<close>
+  ultimately have \<open>[Neg ?or] \<turnstile> \<bottom>\<close>
     by (rule NegE)
   then show ?thesis
     by (rule Class)
 qed
 
 theorem ex_all_commute:
-  \<open>([]::(nat, 'b) form list) \<turnstile> Impl (Exists (Forall (Pred p [Var 1, Var 0])))
-     (Forall (Exists (Pred p [Var 0, Var 1])))\<close>
+  \<open>([]::(nat, 'b) form list) \<turnstile> Imp (Exi (Uni (Pre p [Var 1, Var 0])))
+     (Uni (Exi (Pre p [Var 0, Var 1])))\<close>
 proof -
-  let ?forall = \<open>Forall (Pred p [Var 1, Var 0]) :: (nat, 'b) form\<close>
+  let ?forall = \<open>Uni (Pre p [Var 1, Var 0]) :: (nat, 'b) form\<close>
 
-  have \<open>[Exists ?forall] \<turnstile> Exists ?forall\<close>
+  have \<open>[Exi ?forall] \<turnstile> Exi ?forall\<close>
     by (simp add: Assum)
-  moreover { have \<open>[?forall[App 1 []/0], Exists ?forall] \<turnstile> Forall (Pred p [App 1 [], Var 0])\<close>
+  moreover { have \<open>[?forall[Fun 1 []/0], Exi ?forall] \<turnstile> Uni (Pre p [Fun 1 [], Var 0])\<close>
       by (simp add: Assum)
-    moreover have \<open>[Pred p [App 1 [], Var 0][App 0 []/0], ?forall[App 1 []/0],
-      Exists ?forall] \<turnstile> Pred p [Var 0, App 0 []][App 1 []/0]\<close>
+    moreover have \<open>[Pre p [Fun 1 [], Var 0][Fun 0 []/0], ?forall[Fun 1 []/0],
+      Exi ?forall] \<turnstile> Pre p [Var 0, Fun 0 []][Fun 1 []/0]\<close>
       by (simp add: Assum)
-    ultimately have \<open>[?forall[App 1 []/0], Exists ?forall] \<turnstile> (Pred p [Var 0, App 0 []])[App 1 []/0]\<close>
+    ultimately have \<open>[?forall[Fun 1 []/0], Exi ?forall] \<turnstile> (Pre p [Var 0, Fun 0 []])[Fun 1 []/0]\<close>
       by (rule ForallE') }
-  then have \<open>[?forall[App 1 []/0], Exists ?forall] \<turnstile> Exists (Pred p [Var 0, App 0 []])\<close>
+  then have \<open>[?forall[Fun 1 []/0], Exi ?forall] \<turnstile> Exi (Pre p [Var 0, Fun 0 []])\<close>
     by (rule ExistsI)
-  moreover have \<open>list_all (\<lambda>p. 1 \<notin> params p) [Exists ?forall]\<close>
+  moreover have \<open>list_all (\<lambda>p. 1 \<notin> params p) [Exi ?forall]\<close>
     by simp
   moreover have \<open>1 \<notin> params ?forall\<close>
     by simp
-  moreover have \<open>1 \<notin> params (Exists (Pred p [Var 0, App (0 :: nat) []]))\<close>
+  moreover have \<open>1 \<notin> params (Exi (Pre p [Var 0, Fun (0 :: nat) []]))\<close>
     by simp
-  ultimately have \<open>[Exists ?forall] \<turnstile> Exists (Pred p [Var 0, App 0 []])\<close>
+  ultimately have \<open>[Exi ?forall] \<turnstile> Exi (Pre p [Var 0, Fun 0 []])\<close>
     by (rule ExistsE)
-  then have \<open>[Exists ?forall] \<turnstile> (Exists (Pred p [Var 0, Var 1]))[App 0 []/0]\<close>
+  then have \<open>[Exi ?forall] \<turnstile> (Exi (Pre p [Var 0, Var 1]))[Fun 0 []/0]\<close>
     by simp
-  moreover have \<open>list_all (\<lambda>p. 0 \<notin> params p) [Exists ?forall]\<close>
+  moreover have \<open>list_all (\<lambda>p. 0 \<notin> params p) [Exi ?forall]\<close>
     by simp
-  moreover have \<open>0 \<notin> params (Exists (Pred p [Var 0, Var 1]))\<close>
+  moreover have \<open>0 \<notin> params (Exi (Pre p [Var 0, Var 1]))\<close>
     by simp
-  ultimately have \<open>[Exists ?forall] \<turnstile> Forall (Exists (Pred p [Var 0, Var 1]))\<close>
+  ultimately have \<open>[Exi ?forall] \<turnstile> Uni (Exi (Pre p [Var 0, Var 1]))\<close>
     by (rule ForallI)
   then show ?thesis
     by (rule ImplI)
 qed
 
 theorem drinker: \<open>([]::(nat, 'b) form list) \<turnstile>
-  Exists (Impl (Pred P [Var 0]) (Forall (Pred P [Var 0])))\<close>
+  Exi (Imp (Pre P [Var 0]) (Uni (Pre P [Var 0])))\<close>
 proof -
-  let ?impl = \<open>(Impl (Pred P [Var 0]) (Forall (Pred P [Var 0]))) :: (nat, 'b) form\<close>
-  let ?G' = \<open>[Pred P [Var 0], Neg (Exists ?impl)]\<close>
-  let ?G = \<open>Neg (Pred P [App 0 []]) # ?G'\<close>
+  let ?impl = \<open>(Imp (Pre P [Var 0]) (Uni (Pre P [Var 0]))) :: (nat, 'b) form\<close>
+  let ?G' = \<open>[Pre P [Var 0], Neg (Exi ?impl)]\<close>
+  let ?G = \<open>Neg (Pre P [Fun 0 []]) # ?G'\<close>
 
-  have \<open>?G \<turnstile> Neg (Exists ?impl)\<close>
+  have \<open>?G \<turnstile> Neg (Exi ?impl)\<close>
     by (simp add: Assum)
-  moreover have \<open>Pred P [App 0 []] # ?G \<turnstile> Neg (Pred P [App 0 []])\<close>
-    and \<open>Pred P [App 0 []] # ?G \<turnstile> Pred P [App 0 []]\<close>
+  moreover have \<open>Pre P [Fun 0 []] # ?G \<turnstile> Neg (Pre P [Fun 0 []])\<close>
+    and \<open>Pre P [Fun 0 []] # ?G \<turnstile> Pre P [Fun 0 []]\<close>
     by (simp_all add: Assum)
-  then have \<open>Pred P [App 0 []] # ?G \<turnstile> FF\<close>
+  then have \<open>Pre P [Fun 0 []] # ?G \<turnstile> \<bottom>\<close>
     by (rule NegE)
-  then have \<open>Pred P [App 0 []] # ?G \<turnstile> Forall (Pred P [Var 0])\<close>
+  then have \<open>Pre P [Fun 0 []] # ?G \<turnstile> Uni (Pre P [Var 0])\<close>
     by (rule FFE)
-  then have \<open>?G \<turnstile> ?impl[App 0 []/0]\<close>
+  then have \<open>?G \<turnstile> ?impl[Fun 0 []/0]\<close>
     using ImplI by simp
-  then have \<open>?G \<turnstile> Exists ?impl\<close>
+  then have \<open>?G \<turnstile> Exi ?impl\<close>
     by (rule ExistsI)
-  ultimately have \<open>?G \<turnstile> FF\<close>
+  ultimately have \<open>?G \<turnstile> \<bottom>\<close>
     by (rule NegE)
-  then have \<open>?G' \<turnstile> Pred P [Var 0][App 0 []/0]\<close>
+  then have \<open>?G' \<turnstile> Pre P [Var 0][Fun 0 []/0]\<close>
     using Class by simp
   moreover have \<open>list_all (\<lambda>p. (0 :: nat) \<notin> params p) ?G'\<close>
     by simp
-  moreover have \<open>(0 :: nat) \<notin> params (Pred P [Var 0])\<close>
+  moreover have \<open>(0 :: nat) \<notin> params (Pre P [Var 0])\<close>
     by simp
-  ultimately have \<open>?G' \<turnstile> Forall (Pred P [Var 0])\<close>
+  ultimately have \<open>?G' \<turnstile> Uni (Pre P [Var 0])\<close>
     by (rule ForallI)
-  then have \<open>[Neg (Exists ?impl)] \<turnstile> ?impl[Var 0/0]\<close>
+  then have \<open>[Neg (Exi ?impl)] \<turnstile> ?impl[Var 0/0]\<close>
     using ImplI by simp
-  then have \<open>[Neg (Exists ?impl)] \<turnstile> Exists ?impl\<close>
+  then have \<open>[Neg (Exi ?impl)] \<turnstile> Exi ?impl\<close>
     by (rule ExistsI)
   then show ?thesis
     by (rule Class')
 qed
 
 theorem peirce:
-  \<open>[] \<turnstile> Impl (Impl (Impl (Pred P []) (Pred Q [])) (Pred P [])) (Pred P [])\<close>
-  (is \<open>[] \<turnstile> Impl ?PQP (Pred P [])\<close>)
+  \<open>[] \<turnstile> Imp (Imp (Imp (Pre P []) (Pre Q [])) (Pre P [])) (Pre P [])\<close>
+  (is \<open>[] \<turnstile> Imp ?PQP (Pre P [])\<close>)
 proof -
-  let ?PQPP = \<open>Impl ?PQP (Pred P [])\<close>
+  let ?PQPP = \<open>Imp ?PQP (Pre P [])\<close>
 
   have \<open>[?PQP, Neg ?PQPP] \<turnstile> ?PQP\<close>
     by (simp add: Assum)
-  moreover { have \<open>[Pred P [], ?PQP, Neg ?PQPP] \<turnstile> Neg ?PQPP\<close>
+  moreover { have \<open>[Pre P [], ?PQP, Neg ?PQPP] \<turnstile> Neg ?PQPP\<close>
       by (simp add: Assum)
-    moreover have \<open>[?PQP, Pred P [], ?PQP, Neg ?PQPP] \<turnstile> Pred P []\<close>
+    moreover have \<open>[?PQP, Pre P [], ?PQP, Neg ?PQPP] \<turnstile> Pre P []\<close>
       by (simp add: Assum)
-    then have \<open>[Pred P [], ?PQP, Neg ?PQPP] \<turnstile> ?PQPP\<close>
+    then have \<open>[Pre P [], ?PQP, Neg ?PQPP] \<turnstile> ?PQPP\<close>
       by (rule ImplI)
-    ultimately have \<open>[Pred P [], ?PQP, Neg ?PQPP] \<turnstile> FF\<close>
+    ultimately have \<open>[Pre P [], ?PQP, Neg ?PQPP] \<turnstile> \<bottom>\<close>
       by (rule NegE) }
-  then have \<open>[Pred P [], ?PQP, Neg ?PQPP] \<turnstile> Pred Q []\<close>
+  then have \<open>[Pre P [], ?PQP, Neg ?PQPP] \<turnstile> Pre Q []\<close>
     by (rule FFE)
-  then have \<open>[?PQP, Neg ?PQPP] \<turnstile> Impl (Pred P []) (Pred Q [])\<close>
+  then have \<open>[?PQP, Neg ?PQPP] \<turnstile> Imp (Pre P []) (Pre Q [])\<close>
     by (rule ImplI)
-  ultimately have \<open>[?PQP, Neg ?PQPP] \<turnstile> Pred P []\<close>
+  ultimately have \<open>[?PQP, Neg ?PQPP] \<turnstile> Pre P []\<close>
     by (rule ImplE)
   then have \<open>[Neg ?PQPP] \<turnstile> ?PQPP\<close>
     by (rule ImplI)
@@ -574,18 +573,18 @@ next
   show ?case
   proof (intro allI)
     fix f g and e :: \<open>nat \<Rightarrow> 'c\<close>
-    have \<open>\<forall>z. e, (f(n := \<lambda>x. z)), g, G \<Turnstile> (a[App n []/0])\<close>
+    have \<open>\<forall>z. e, (f(n := \<lambda>x. z)), g, G \<Turnstile> (a[Fun n []/0])\<close>
       using ForallI by blast
-    then have \<open>\<forall>z. list_all (eval e f g) G \<longrightarrow> eval (e\<langle>0:z\<rangle>) f g a\<close>
+    then have \<open>\<forall>z. list_all (semantics e f g) G \<longrightarrow> semantics (e\<langle>0:z\<rangle>) f g a\<close>
       using ForallI unfolding model_def by simp
-    then show \<open>e,f,g,G \<Turnstile> Forall a\<close> unfolding model_def by simp
+    then show \<open>e,f,g,G \<Turnstile> Uni a\<close> unfolding model_def by simp
   qed
 next
   case (ExistsE G a n b)
   show ?case
   proof (intro allI)
     fix f g and e :: \<open>nat \<Rightarrow> 'c\<close>
-    obtain z where \<open>list_all (eval e f g) G \<longrightarrow> eval (e\<langle>0:z\<rangle>) f g a\<close>
+    obtain z where \<open>list_all (semantics e f g) G \<longrightarrow> semantics (e\<langle>0:z\<rangle>) f g a\<close>
       using ExistsE unfolding model_def by simp blast
     then have \<open>e, (f(n := \<lambda>x. z)), g, G \<Turnstile> b\<close>
       using ExistsE unfolding model_def by simp
@@ -603,20 +602,20 @@ actual proof, it is useful to note that the following two formulations of
 completeness are equivalent:
 \begin{enumerate}
 \item All valid formulae are derivable, i.e.
-  @{text \<open>ps \<Turnstile> p \<Longrightarrow> ps \<turnstile> p\<close>}
+  \<open>ps \<Turnstile> p \<Longrightarrow> ps \<turnstile> p\<close>
 \item All consistent sets are satisfiable
 \end{enumerate}
 The latter property is called the {\em model existence theorem}. To see why 2
-implies 1, observe that @{text \<open>Neg p, ps \<notturnstile> FF\<close>} implies
-that @{text \<open>Neg p, ps\<close>} is consistent, which, by the model existence theorem,
-implies that @{text \<open>Neg p, ps\<close>} has a model, which in turn implies that
-@{text \<open>ps \<notTurnstile> p\<close>}. By contraposition, it therefore follows
-from @{text \<open>ps \<Turnstile> p\<close>} that @{text \<open>Neg p, ps \<turnstile> FF\<close>}, which allows us to
-deduce @{text \<open>ps \<turnstile> p\<close>} using rule @{text Class}.
+implies 1, observe that \<open>Neg p, ps \<notturnstile> \<bottom>\<close> implies
+that \<open>Neg p, ps\<close> is consistent, which, by the model existence theorem,
+implies that \<open>Neg p, ps\<close> has a model, which in turn implies that
+\<open>ps \<notTurnstile> p\<close>. By contraposition, it therefore follows
+from \<open>ps \<Turnstile> p\<close> that \<open>Neg p, ps \<turnstile> \<bottom>\<close>, which allows us to
+deduce \<open>ps \<turnstile> p\<close> using rule \<open>Class\<close>.
 
-In most textbooks on logic, a set @{text S} of formulae is called {\em consistent},
-if no contradiction can be derived from @{text S} using a {\em specific proof calculus},
-i.e.\ @{text \<open>S \<notturnstile> FF\<close>}. Rather than defining consistency relative to
+In most textbooks on logic, a set \<open>S\<close> of formulae is called {\em consistent},
+if no contradiction can be derived from \<open>S\<close> using a {\em specific proof calculus},
+i.e.\ \<open>S \<notturnstile> \<bottom>\<close>. Rather than defining consistency relative to
 a {\em specific} calculus, Fitting uses the more general approach of describing
 properties that all consistent sets must have (see \secref{sec:consistent-sets}).
 
@@ -655,52 +654,52 @@ following holds:
 
 definition consistency :: \<open>('a, 'b) form set set \<Rightarrow> bool\<close> where
   \<open>consistency C = (\<forall>S. S \<in> C \<longrightarrow>
-     (\<forall>p ts. \<not> (Pred p ts \<in> S \<and> Neg (Pred p ts) \<in> S)) \<and>
-     FF \<notin> S \<and> Neg TT \<notin> S \<and>
+     (\<forall>p ts. \<not> (Pre p ts \<in> S \<and> Neg (Pre p ts) \<in> S)) \<and>
+     \<bottom> \<notin> S \<and> Neg \<top> \<notin> S \<and>
      (\<forall>Z. Neg (Neg Z) \<in> S \<longrightarrow> S \<union> {Z} \<in> C) \<and>
-     (\<forall>A B. And A B \<in> S \<longrightarrow> S \<union> {A, B} \<in> C) \<and>
-     (\<forall>A B. Neg (Or A B) \<in> S \<longrightarrow> S \<union> {Neg A, Neg B} \<in> C) \<and>
-     (\<forall>A B. Or A B \<in> S \<longrightarrow> S \<union> {A} \<in> C \<or> S \<union> {B} \<in> C) \<and>
-     (\<forall>A B. Neg (And A B) \<in> S \<longrightarrow> S \<union> {Neg A} \<in> C \<or> S \<union> {Neg B} \<in> C) \<and>
-     (\<forall>A B. Impl A B \<in> S \<longrightarrow> S \<union> {Neg A} \<in> C \<or> S \<union> {B} \<in> C) \<and>
-     (\<forall>A B. Neg (Impl A B) \<in> S \<longrightarrow> S \<union> {A, Neg B} \<in> C) \<and>
-     (\<forall>P t. closedt 0 t \<longrightarrow> Forall P \<in> S \<longrightarrow> S \<union> {P[t/0]} \<in> C) \<and>
-     (\<forall>P t. closedt 0 t \<longrightarrow> Neg (Exists P) \<in> S \<longrightarrow> S \<union> {Neg (P[t/0])} \<in> C) \<and>
-     (\<forall>P. Exists P \<in> S \<longrightarrow> (\<exists>x. S \<union> {P[App x []/0]} \<in> C)) \<and>
-     (\<forall>P. Neg (Forall P) \<in> S \<longrightarrow> (\<exists>x. S \<union> {Neg (P[App x []/0])} \<in> C)))\<close>
+     (\<forall>A B. Con A B \<in> S \<longrightarrow> S \<union> {A, B} \<in> C) \<and>
+     (\<forall>A B. Neg (Dis A B) \<in> S \<longrightarrow> S \<union> {Neg A, Neg B} \<in> C) \<and>
+     (\<forall>A B. Dis A B \<in> S \<longrightarrow> S \<union> {A} \<in> C \<or> S \<union> {B} \<in> C) \<and>
+     (\<forall>A B. Neg (Con A B) \<in> S \<longrightarrow> S \<union> {Neg A} \<in> C \<or> S \<union> {Neg B} \<in> C) \<and>
+     (\<forall>A B. Imp A B \<in> S \<longrightarrow> S \<union> {Neg A} \<in> C \<or> S \<union> {B} \<in> C) \<and>
+     (\<forall>A B. Neg (Imp A B) \<in> S \<longrightarrow> S \<union> {A, Neg B} \<in> C) \<and>
+     (\<forall>P t. closedt 0 t \<longrightarrow> Uni P \<in> S \<longrightarrow> S \<union> {P[t/0]} \<in> C) \<and>
+     (\<forall>P t. closedt 0 t \<longrightarrow> Neg (Exi P) \<in> S \<longrightarrow> S \<union> {Neg (P[t/0])} \<in> C) \<and>
+     (\<forall>P. Exi P \<in> S \<longrightarrow> (\<exists>x. S \<union> {P[Fun x []/0]} \<in> C)) \<and>
+     (\<forall>P. Neg (Uni P) \<in> S \<longrightarrow> (\<exists>x. S \<union> {Neg (P[Fun x []/0])} \<in> C)))\<close>
 
 text \<open>
 In \secref{sec:finiteness}, we will show how to extend a consistency property
 to one that is of {\em finite character}. However, the above
 definition of a consistency property cannot be used for this, since there is
-a problem with the treatment of formulae of the form @{text \<open>Exists P\<close>} and
-@{text \<open>Neg (Forall P)\<close>}. Fitting therefore suggests to define an {\em alternative
+a problem with the treatment of formulae of the form \<open>Exi P\<close> and
+\<open>Neg (Uni P)\<close>. Fitting therefore suggests to define an {\em alternative
 consistency property} as follows:
 \<close>
 
 definition alt_consistency :: \<open>('a, 'b) form set set \<Rightarrow> bool\<close> where
   \<open>alt_consistency C = (\<forall>S. S \<in> C \<longrightarrow>
-     (\<forall>p ts. \<not> (Pred p ts \<in> S \<and> Neg (Pred p ts) \<in> S)) \<and>
-     FF \<notin> S \<and> Neg TT \<notin> S \<and>
+     (\<forall>p ts. \<not> (Pre p ts \<in> S \<and> Neg (Pre p ts) \<in> S)) \<and>
+     \<bottom> \<notin> S \<and> Neg \<top> \<notin> S \<and>
      (\<forall>Z. Neg (Neg Z) \<in> S \<longrightarrow> S \<union> {Z} \<in> C) \<and>
-     (\<forall>A B. And A B \<in> S \<longrightarrow> S \<union> {A, B} \<in> C) \<and>
-     (\<forall>A B. Neg (Or A B) \<in> S \<longrightarrow> S \<union> {Neg A, Neg B} \<in> C) \<and>
-     (\<forall>A B. Or A B \<in> S \<longrightarrow> S \<union> {A} \<in> C \<or> S \<union> {B} \<in> C) \<and>
-     (\<forall>A B. Neg (And A B) \<in> S \<longrightarrow> S \<union> {Neg A} \<in> C \<or> S \<union> {Neg B} \<in> C) \<and>
-     (\<forall>A B. Impl A B \<in> S \<longrightarrow> S \<union> {Neg A} \<in> C \<or> S \<union> {B} \<in> C) \<and>
-     (\<forall>A B. Neg (Impl A B) \<in> S \<longrightarrow> S \<union> {A, Neg B} \<in> C) \<and>
-     (\<forall>P t. closedt 0 t \<longrightarrow> Forall P \<in> S \<longrightarrow> S \<union> {P[t/0]} \<in> C) \<and>
-     (\<forall>P t. closedt 0 t \<longrightarrow> Neg (Exists P) \<in> S \<longrightarrow> S \<union> {Neg (P[t/0])} \<in> C) \<and>
-     (\<forall>P x. (\<forall>a \<in> S. x \<notin> params a) \<longrightarrow> Exists P \<in> S \<longrightarrow>
-       S \<union> {P[App x []/0]} \<in> C) \<and>
-     (\<forall>P x. (\<forall>a \<in> S. x \<notin> params a) \<longrightarrow> Neg (Forall P) \<in> S \<longrightarrow>
-       S \<union> {Neg (P[App x []/0])} \<in> C))\<close>
+     (\<forall>A B. Con A B \<in> S \<longrightarrow> S \<union> {A, B} \<in> C) \<and>
+     (\<forall>A B. Neg (Dis A B) \<in> S \<longrightarrow> S \<union> {Neg A, Neg B} \<in> C) \<and>
+     (\<forall>A B. Dis A B \<in> S \<longrightarrow> S \<union> {A} \<in> C \<or> S \<union> {B} \<in> C) \<and>
+     (\<forall>A B. Neg (Con A B) \<in> S \<longrightarrow> S \<union> {Neg A} \<in> C \<or> S \<union> {Neg B} \<in> C) \<and>
+     (\<forall>A B. Imp A B \<in> S \<longrightarrow> S \<union> {Neg A} \<in> C \<or> S \<union> {B} \<in> C) \<and>
+     (\<forall>A B. Neg (Imp A B) \<in> S \<longrightarrow> S \<union> {A, Neg B} \<in> C) \<and>
+     (\<forall>P t. closedt 0 t \<longrightarrow> Uni P \<in> S \<longrightarrow> S \<union> {P[t/0]} \<in> C) \<and>
+     (\<forall>P t. closedt 0 t \<longrightarrow> Neg (Exi P) \<in> S \<longrightarrow> S \<union> {Neg (P[t/0])} \<in> C) \<and>
+     (\<forall>P x. (\<forall>a \<in> S. x \<notin> params a) \<longrightarrow> Exi P \<in> S \<longrightarrow>
+       S \<union> {P[Fun x []/0]} \<in> C) \<and>
+     (\<forall>P x. (\<forall>a \<in> S. x \<notin> params a) \<longrightarrow> Neg (Uni P) \<in> S \<longrightarrow>
+       S \<union> {Neg (P[Fun x []/0])} \<in> C))\<close>
 
 text \<open>
-Note that in the clauses for @{text \<open>Exists P\<close>} and @{text \<open>Neg (Forall P)\<close>},
-the first definition requires the existence of a parameter @{text x} with a certain
-property, whereas the second definition requires that all parameters @{text x} that
-are new for @{text S} have a certain property. A consistency property can easily be
+Note that in the clauses for \<open>Exi P\<close> and \<open>Neg (Uni P)\<close>,
+the first definition requires the existence of a parameter \<open>x\<close> with a certain
+property, whereas the second definition requires that all parameters \<open>x\<close> that
+are new for \<open>S\<close> have a certain property. A consistency property can easily be
 turned into an alternative consistency property by applying a suitable parameter
 substitution:
 \<close>
@@ -720,24 +719,24 @@ proof (intro allI impI conjI)
     unfolding mk_alt_consistency_def by blast
 
   fix p ts
-  show \<open>\<not> (Pred p ts \<in> S \<and> Neg (Pred p ts) \<in> S)\<close>
+  show \<open>\<not> (Pre p ts \<in> S \<and> Neg (Pre p ts) \<in> S)\<close>
   proof
-    assume *: \<open>Pred p ts \<in> S \<and> Neg (Pred p ts) \<in> S\<close>
-    then have \<open>psubst f (Pred p ts) \<in> ?S'\<close>
+    assume *: \<open>Pre p ts \<in> S \<and> Neg (Pre p ts) \<in> S\<close>
+    then have \<open>psubst f (Pre p ts) \<in> ?S'\<close>
       by blast
-    then have \<open>Pred p (psubstts f ts) \<in> ?S'\<close>
+    then have \<open>Pre p (psubstts f ts) \<in> ?S'\<close>
       by simp
-    then have \<open>Neg (Pred p (psubstts f ts)) \<notin> ?S'\<close>
+    then have \<open>Neg (Pre p (psubstts f ts)) \<notin> ?S'\<close>
       using conc sc by (simp add: consistency_def)
-    then have \<open>Neg (Pred p ts) \<notin> S\<close>
+    then have \<open>Neg (Pre p ts) \<notin> S\<close>
       by force
     then show False
       using * by blast
   qed
 
-  have \<open>FF \<notin> ?S'\<close> and \<open>Neg TT \<notin> ?S'\<close>
+  have \<open>\<bottom> \<notin> ?S'\<close> and \<open>Neg \<top> \<notin> ?S'\<close>
     using conc sc unfolding consistency_def by simp_all
-  then show \<open>FF \<notin> S\<close> and \<open>Neg TT \<notin> S\<close>
+  then show \<open>\<bottom> \<notin> S\<close> and \<open>Neg \<top> \<notin> S\<close>
     by (force, force)
 
   { fix Z
@@ -750,8 +749,8 @@ proof (intro allI impI conjI)
       unfolding mk_alt_consistency_def by auto }
 
   { fix A B
-    assume \<open>And A B \<in> S\<close>
-    then have \<open>psubst f (And A B) \<in> ?S'\<close>
+    assume \<open>Con A B \<in> S\<close>
+    then have \<open>psubst f (Con A B) \<in> ?S'\<close>
       by blast
     then have \<open>?S' \<union> {psubst f A, psubst f B} \<in> C\<close>
       using conc sc by (simp add: consistency_def)
@@ -759,8 +758,8 @@ proof (intro allI impI conjI)
       unfolding mk_alt_consistency_def by auto }
 
   { fix A B
-    assume \<open>Neg (Or A B) \<in> S\<close>
-    then have \<open>psubst f (Neg (Or A B)) \<in> ?S'\<close>
+    assume \<open>Neg (Dis A B) \<in> S\<close>
+    then have \<open>psubst f (Neg (Dis A B)) \<in> ?S'\<close>
       by blast
     then have \<open>?S' \<union> {Neg (psubst f A), Neg (psubst f B)} \<in> C\<close>
       using conc sc by (simp add: consistency_def)
@@ -768,8 +767,8 @@ proof (intro allI impI conjI)
       unfolding mk_alt_consistency_def by auto }
 
   { fix A B
-    assume \<open>Neg (Impl A B) \<in> S\<close>
-    then have \<open>psubst f (Neg (Impl A B)) \<in> ?S'\<close>
+    assume \<open>Neg (Imp A B) \<in> S\<close>
+    then have \<open>psubst f (Neg (Imp A B)) \<in> ?S'\<close>
       by blast
     then have \<open>?S' \<union> {psubst f A, Neg (psubst f B)} \<in> C\<close>
       using conc sc by (simp add: consistency_def)
@@ -777,8 +776,8 @@ proof (intro allI impI conjI)
       unfolding mk_alt_consistency_def by auto }
 
   { fix A B
-    assume \<open>Or A B \<in> S\<close>
-    then have \<open>psubst f (Or A B) \<in> ?S'\<close>
+    assume \<open>Dis A B \<in> S\<close>
+    then have \<open>psubst f (Dis A B) \<in> ?S'\<close>
       by blast
     then have \<open>?S' \<union> {psubst f A} \<in> C \<or> ?S' \<union> {psubst f B} \<in> C\<close>
       using conc sc by (simp add: consistency_def)
@@ -786,8 +785,8 @@ proof (intro allI impI conjI)
       unfolding mk_alt_consistency_def by auto }
 
   { fix A B
-    assume \<open>Neg (And A B) \<in> S\<close>
-    then have \<open>psubst f (Neg (And A B)) \<in> ?S'\<close>
+    assume \<open>Neg (Con A B) \<in> S\<close>
+    then have \<open>psubst f (Neg (Con A B)) \<in> ?S'\<close>
       by blast
     then have \<open>?S' \<union> {Neg (psubst f A)} \<in> C \<or> ?S' \<union> {Neg (psubst f B)} \<in> C\<close>
       using conc sc by (simp add: consistency_def)
@@ -795,8 +794,8 @@ proof (intro allI impI conjI)
       unfolding mk_alt_consistency_def by auto }
 
   { fix A B
-    assume \<open>Impl A B \<in> S\<close>
-    then have \<open>psubst f (Impl A B) \<in> ?S'\<close>
+    assume \<open>Imp A B \<in> S\<close>
+    then have \<open>psubst f (Imp A B) \<in> ?S'\<close>
       by blast
     then have \<open>?S' \<union> {Neg (psubst f A)} \<in> C \<or> ?S' \<union> {psubst f B} \<in> C\<close>
       using conc sc by (simp add: consistency_def)
@@ -804,8 +803,8 @@ proof (intro allI impI conjI)
       unfolding mk_alt_consistency_def by auto }
 
   { fix P and t :: \<open>'a term\<close>
-    assume \<open>closedt 0 t\<close> and \<open>Forall P \<in> S\<close>
-    then have \<open>psubst f (Forall P) \<in> ?S'\<close>
+    assume \<open>closedt 0 t\<close> and \<open>Uni P \<in> S\<close>
+    then have \<open>psubst f (Uni P) \<in> ?S'\<close>
       by blast
     then have \<open>?S' \<union> {psubst f P[psubstt f t/0]} \<in> C\<close>
       using \<open>closedt 0 t\<close> conc sc by (simp add: consistency_def)
@@ -813,8 +812,8 @@ proof (intro allI impI conjI)
       unfolding mk_alt_consistency_def by auto }
 
   { fix P and t :: \<open>'a term\<close>
-    assume \<open>closedt 0 t\<close> and \<open>Neg (Exists P) \<in> S\<close>
-    then have \<open>psubst f (Neg (Exists P)) \<in> ?S'\<close>
+    assume \<open>closedt 0 t\<close> and \<open>Neg (Exi P) \<in> S\<close>
+    then have \<open>psubst f (Neg (Exi P)) \<in> ?S'\<close>
       by blast
     then have \<open>?S' \<union> {Neg (psubst f P[psubstt f t/0])} \<in> C\<close>
       using \<open>closedt 0 t\<close> conc sc by (simp add: consistency_def)
@@ -822,41 +821,41 @@ proof (intro allI impI conjI)
       unfolding mk_alt_consistency_def by auto }
 
   { fix P :: \<open>('a, 'b) form\<close> and x f'
-    assume \<open>\<forall>a \<in> S. x \<notin> params a\<close> and \<open>Exists P \<in> S\<close>
-    moreover have \<open>psubst f (Exists P) \<in> ?S'\<close>
+    assume \<open>\<forall>a \<in> S. x \<notin> params a\<close> and \<open>Exi P \<in> S\<close>
+    moreover have \<open>psubst f (Exi P) \<in> ?S'\<close>
       using calculation by blast
-    then have \<open>\<exists>y. ?S' \<union> {psubst f P[App y []/0]} \<in> C\<close>
+    then have \<open>\<exists>y. ?S' \<union> {psubst f P[Fun y []/0]} \<in> C\<close>
       using conc sc by (simp add: consistency_def)
-    then obtain y where \<open>?S' \<union> {psubst f P[App y []/0]} \<in> C\<close>
+    then obtain y where \<open>?S' \<union> {psubst f P[Fun y []/0]} \<in> C\<close>
       by blast
 
     moreover have \<open>psubst (f(x := y)) ` S = ?S'\<close>
       using calculation by (simp cong add: image_cong)
     moreover have \<open>psubst (f(x := y)) `
-        S \<union> {psubst (f(x := y)) P[App ((f(x := y)) x) []/0]} \<in> C\<close>
+        S \<union> {psubst (f(x := y)) P[Fun ((f(x := y)) x) []/0]} \<in> C\<close>
       using calculation by auto
-    ultimately have \<open>\<exists>f. psubst f ` S \<union> {psubst f P[App (f x) []/0]} \<in> C\<close>
+    ultimately have \<open>\<exists>f. psubst f ` S \<union> {psubst f P[Fun (f x) []/0]} \<in> C\<close>
       by blast
-    then show \<open>S \<union> {P[App x []/0]} \<in> ?C'\<close>
+    then show \<open>S \<union> {P[Fun x []/0]} \<in> ?C'\<close>
       unfolding mk_alt_consistency_def by simp }
 
   { fix P :: \<open>('a, 'b) form\<close> and x
-    assume \<open>\<forall>a \<in> S. x \<notin> params a\<close> and \<open>Neg (Forall P) \<in> S\<close>
-    moreover have \<open>psubst f (Neg (Forall P)) \<in> ?S'\<close>
+    assume \<open>\<forall>a \<in> S. x \<notin> params a\<close> and \<open>Neg (Uni P) \<in> S\<close>
+    moreover have \<open>psubst f (Neg (Uni P)) \<in> ?S'\<close>
       using calculation by blast
-    then have \<open>\<exists>y. ?S' \<union> {Neg (psubst f P[App y []/0])} \<in> C\<close>
+    then have \<open>\<exists>y. ?S' \<union> {Neg (psubst f P[Fun y []/0])} \<in> C\<close>
       using conc sc by (simp add: consistency_def)
-    then obtain y where \<open>?S' \<union> {Neg (psubst f P[App y []/0])} \<in> C\<close>
+    then obtain y where \<open>?S' \<union> {Neg (psubst f P[Fun y []/0])} \<in> C\<close>
       by blast
 
     moreover have \<open>psubst (f(x := y)) ` S = ?S'\<close>
       using calculation by (simp cong add: image_cong)
     moreover have \<open>psubst (f(x := y)) `
-    S \<union> {Neg (psubst (f(x := y)) P[App ((f(x := y)) x) []/0])} \<in> C\<close>
+    S \<union> {Neg (psubst (f(x := y)) P[Fun ((f(x := y)) x) []/0])} \<in> C\<close>
       using calculation by auto
-    ultimately have \<open>\<exists>f. psubst f ` S \<union> {Neg (psubst f P[App (f x) []/0])} \<in> C\<close>
+    ultimately have \<open>\<exists>f. psubst f ` S \<union> {Neg (psubst f P[Fun (f x) []/0])} \<in> C\<close>
       by blast
-    then show \<open>S \<union> {Neg (P[App x []/0])} \<in> ?C'\<close>
+    then show \<open>S \<union> {Neg (P[Fun x []/0])} \<in> ?C'\<close>
       unfolding mk_alt_consistency_def by simp }
 qed
 
@@ -906,19 +905,19 @@ proof (intro allI impI conjI)
     unfolding close_def by blast
 
   { fix p ts
-    have \<open>\<not> (Pred p ts \<in> x \<and> Neg (Pred p ts) \<in> x)\<close>
+    have \<open>\<not> (Pre p ts \<in> x \<and> Neg (Pre p ts) \<in> x)\<close>
       using \<open>x \<in> C\<close> conc unfolding consistency_def by simp
-    then show \<open>\<not> (Pred p ts \<in> S \<and> Neg (Pred p ts) \<in> S)\<close>
+    then show \<open>\<not> (Pre p ts \<in> S \<and> Neg (Pre p ts) \<in> S)\<close>
       using \<open>S \<subseteq> x\<close> by blast }
 
-  { have \<open>FF \<notin> x\<close>
+  { have \<open>\<bottom> \<notin> x\<close>
       using \<open>x \<in> C\<close> conc unfolding consistency_def by blast
-    then show \<open>FF \<notin> S\<close>
+    then show \<open>\<bottom> \<notin> S\<close>
       using \<open>S \<subseteq> x\<close> by blast }
 
-  { have \<open>Neg TT \<notin> x\<close>
+  { have \<open>Neg \<top> \<notin> x\<close>
       using \<open>x \<in> C\<close> conc unfolding consistency_def by blast
-    then show \<open>Neg TT \<notin> S\<close>
+    then show \<open>Neg \<top> \<notin> S\<close>
       using \<open>S \<subseteq> x\<close> by blast }
 
   { fix Z
@@ -931,8 +930,8 @@ proof (intro allI impI conjI)
       using \<open>S \<subseteq> x\<close> subset_in_close by blast }
 
   { fix A B
-    assume \<open>And A B \<in> S\<close>
-    then have \<open>And A B \<in> x\<close>
+    assume \<open>Con A B \<in> S\<close>
+    then have \<open>Con A B \<in> x\<close>
       using \<open>S \<subseteq> x\<close> by blast
     then have \<open>x \<union> {A, B} \<in> C\<close>
       using \<open>x \<in> C\<close> conc unfolding consistency_def by simp
@@ -940,8 +939,8 @@ proof (intro allI impI conjI)
       using \<open>S \<subseteq> x\<close> subset_in_close by blast }
 
   { fix A B
-    assume \<open>Neg (Or A B) \<in> S\<close>
-    then have \<open>Neg (Or A B) \<in> x\<close>
+    assume \<open>Neg (Dis A B) \<in> S\<close>
+    then have \<open>Neg (Dis A B) \<in> x\<close>
       using \<open>S \<subseteq> x\<close> by blast
     then have \<open>x \<union> {Neg A, Neg B} \<in> C\<close>
       using \<open>x \<in> C\<close> conc unfolding consistency_def by simp
@@ -949,8 +948,8 @@ proof (intro allI impI conjI)
       using \<open>S \<subseteq> x\<close> subset_in_close by blast }
 
   { fix A B
-    assume \<open>Or A B \<in> S\<close>
-    then have \<open>Or A B \<in> x\<close>
+    assume \<open>Dis A B \<in> S\<close>
+    then have \<open>Dis A B \<in> x\<close>
       using \<open>S \<subseteq> x\<close> by blast
     then have \<open>x \<union> {A} \<in> C \<or> x \<union> {B} \<in> C\<close>
       using \<open>x \<in> C\<close> conc unfolding consistency_def by simp
@@ -958,8 +957,8 @@ proof (intro allI impI conjI)
       using \<open>S \<subseteq> x\<close> subset_in_close by blast }
 
   { fix A B
-    assume \<open>Neg (And A B) \<in> S\<close>
-    then have \<open>Neg (And A B) \<in> x\<close>
+    assume \<open>Neg (Con A B) \<in> S\<close>
+    then have \<open>Neg (Con A B) \<in> x\<close>
       using \<open>S \<subseteq> x\<close> by blast
     then have \<open>x \<union> {Neg A} \<in> C \<or> x \<union> {Neg B} \<in> C\<close>
       using \<open>x \<in> C\<close> conc unfolding consistency_def by simp
@@ -967,8 +966,8 @@ proof (intro allI impI conjI)
       using \<open>S \<subseteq> x\<close> subset_in_close by blast }
 
   { fix A B
-    assume \<open>Impl A B \<in> S\<close>
-    then have \<open>Impl A B \<in> x\<close>
+    assume \<open>Imp A B \<in> S\<close>
+    then have \<open>Imp A B \<in> x\<close>
       using \<open>S \<subseteq> x\<close> by blast
     then have \<open>x \<union> {Neg A} \<in> C \<or> x \<union> {B} \<in> C\<close>
       using \<open>x \<in> C\<close> conc unfolding consistency_def by simp
@@ -976,8 +975,8 @@ proof (intro allI impI conjI)
       using \<open>S \<subseteq> x\<close> subset_in_close by blast }
 
   { fix A B
-    assume \<open>Neg (Impl A B) \<in> S\<close>
-    then have \<open>Neg (Impl A B) \<in> x\<close>
+    assume \<open>Neg (Imp A B) \<in> S\<close>
+    then have \<open>Neg (Imp A B) \<in> x\<close>
       using \<open>S \<subseteq> x\<close> by blast
     then have \<open>x \<union> {A, Neg B} \<in> C\<close>
       using \<open>x \<in> C\<close> conc unfolding consistency_def by blast
@@ -985,8 +984,8 @@ proof (intro allI impI conjI)
       using \<open>S \<subseteq> x\<close> subset_in_close by blast }
 
   { fix P and t :: \<open>'a term\<close>
-    assume \<open>closedt 0 t\<close> and \<open>Forall P \<in> S\<close>
-    then have \<open>Forall P \<in> x\<close>
+    assume \<open>closedt 0 t\<close> and \<open>Uni P \<in> S\<close>
+    then have \<open>Uni P \<in> x\<close>
       using \<open>S \<subseteq> x\<close> by blast
     then have \<open>x \<union> {P[t/0]} \<in> C\<close>
       using \<open>closedt 0 t\<close> \<open>x \<in> C\<close> conc unfolding consistency_def by blast
@@ -994,8 +993,8 @@ proof (intro allI impI conjI)
       using \<open>S \<subseteq> x\<close> subset_in_close by blast }
 
   { fix P and t :: \<open>'a term\<close>
-    assume \<open>closedt 0 t\<close> and \<open>Neg (Exists P) \<in> S\<close>
-    then have \<open>Neg (Exists P) \<in> x\<close>
+    assume \<open>closedt 0 t\<close> and \<open>Neg (Exi P) \<in> S\<close>
+    then have \<open>Neg (Exi P) \<in> x\<close>
       using \<open>S \<subseteq> x\<close> by blast
     then have \<open>x \<union> {Neg (P[t/0])} \<in> C\<close>
       using \<open>closedt 0 t\<close> \<open>x \<in> C\<close> conc unfolding consistency_def by blast
@@ -1003,21 +1002,21 @@ proof (intro allI impI conjI)
       using \<open>S \<subseteq> x\<close> subset_in_close by blast }
 
   { fix P
-    assume \<open>Exists P \<in> S\<close>
-    then have \<open>Exists P \<in> x\<close>
+    assume \<open>Exi P \<in> S\<close>
+    then have \<open>Exi P \<in> x\<close>
       using \<open>S \<subseteq> x\<close> by blast
-    then have \<open>\<exists>c. x \<union> {P[App c []/0]} \<in> C\<close>
+    then have \<open>\<exists>c. x \<union> {P[Fun c []/0]} \<in> C\<close>
       using \<open>x \<in> C\<close> conc unfolding consistency_def by blast
-    then show \<open>\<exists>c. S \<union> {P[App c []/0]} \<in> close C\<close>
+    then show \<open>\<exists>c. S \<union> {P[Fun c []/0]} \<in> close C\<close>
       using \<open>S \<subseteq> x\<close> subset_in_close by blast }
 
   { fix P
-    assume \<open>Neg (Forall P) \<in> S\<close>
-    then have \<open>Neg (Forall P) \<in> x\<close>
+    assume \<open>Neg (Uni P) \<in> S\<close>
+    then have \<open>Neg (Uni P) \<in> x\<close>
       using \<open>S \<subseteq> x\<close> by blast
-    then have \<open>\<exists>c. x \<union> {Neg (P[App c []/0])} \<in> C\<close>
+    then have \<open>\<exists>c. x \<union> {Neg (P[Fun c []/0])} \<in> C\<close>
       using \<open>x \<in> C\<close> conc unfolding consistency_def by simp
-    then show \<open>\<exists>c. S \<union> {Neg (P[App c []/0])} \<in> close C\<close>
+    then show \<open>\<exists>c. S \<union> {Neg (P[Fun c []/0])} \<in> close C\<close>
       using \<open>S \<subseteq> x\<close> subset_in_close by blast }
 qed
 
@@ -1028,7 +1027,7 @@ theorem close_subset: \<open>C \<subseteq> close C\<close>
   unfolding close_def by blast
 
 text \<open>
-If a consistency property @{text C} is closed under subsets, so is the
+If a consistency property \<open>C\<close> is closed under subsets, so is the
 corresponding alternative consistency property:
 \<close>
 
@@ -1056,9 +1055,9 @@ subsection \<open>Finite character\<close>
 text \<open>
 \label{sec:finiteness}
 In this section, we show that an alternative consistency property can
-be extended to one of finite character. A set of sets @{text C} is said
-to be of finite character, provided that @{text S} is a member of @{text C}
-if and only if every subset of @{text S} is.
+be extended to one of finite character. A set of sets \<open>C\<close> is said
+to be of finite character, provided that \<open>S\<close> is a member of \<open>C\<close>
+if and only if every subset of \<open>S\<close> is.
 \<close>
 
 definition finite_char :: \<open>'a set set \<Rightarrow> bool\<close> where
@@ -1084,28 +1083,28 @@ proof (intro allI impI conjI)
     by blast
 
   { fix p ts
-    show \<open>\<not> (Pred p ts \<in> S \<and> Neg (Pred p ts) \<in> S)\<close>
+    show \<open>\<not> (Pre p ts \<in> S \<and> Neg (Pre p ts) \<in> S)\<close>
     proof
-      assume \<open>Pred p ts \<in> S \<and> Neg (Pred p ts) \<in> S\<close>
-      then have \<open>{Pred p ts, Neg (Pred p ts)} \<in> C\<close>
+      assume \<open>Pre p ts \<in> S \<and> Neg (Pre p ts) \<in> S\<close>
+      then have \<open>{Pre p ts, Neg (Pre p ts)} \<in> C\<close>
         using finc by simp
       then show False
         using altconc unfolding alt_consistency_def by fast
     qed }
 
-  show \<open>FF \<notin> S\<close>
+  show \<open>\<bottom> \<notin> S\<close>
   proof
-    assume \<open>FF \<in> S\<close>
-    then have \<open>{FF} \<in> C\<close>
+    assume \<open>\<bottom> \<in> S\<close>
+    then have \<open>{\<bottom>} \<in> C\<close>
       using finc by simp
     then show False
       using altconc unfolding alt_consistency_def by fast
   qed
 
-  show \<open>Neg TT \<notin> S\<close>
+  show \<open>Neg \<top> \<notin> S\<close>
   proof
-    assume \<open>Neg TT \<in> S\<close>
-    then have \<open>{Neg TT} \<in> C\<close>
+    assume \<open>Neg \<top> \<in> S\<close>
+    then have \<open>{Neg \<top>} \<in> C\<close>
       using finc by simp
     then show False
       using altconc unfolding alt_consistency_def by fast
@@ -1133,12 +1132,12 @@ proof (intro allI impI conjI)
     qed }
 
   { fix A B
-    assume *: \<open>And A B \<in> S\<close>
+    assume *: \<open>Con A B \<in> S\<close>
     show \<open>S \<union> {A, B} \<in> mk_finite_char C\<close>
       unfolding mk_finite_char_def
     proof (intro allI impI CollectI)
       fix S'
-      let ?S' = \<open>S' - {A, B} \<union> {And A B}\<close>
+      let ?S' = \<open>S' - {A, B} \<union> {Con A B}\<close>
 
       assume \<open>S' \<subseteq> S \<union> {A, B}\<close> and \<open>finite S'\<close>
       then have \<open>?S' \<subseteq> S\<close>
@@ -1154,12 +1153,12 @@ proof (intro allI impI conjI)
     qed }
 
   { fix A B
-    assume *: \<open>Neg (Or A B) \<in> S\<close>
+    assume *: \<open>Neg (Dis A B) \<in> S\<close>
     show \<open>S \<union> {Neg A, Neg B} \<in> mk_finite_char C\<close>
       unfolding mk_finite_char_def
     proof (intro allI impI CollectI)
       fix S'
-      let ?S' = \<open>S' - {Neg A, Neg B} \<union> {Neg (Or A B)}\<close>
+      let ?S' = \<open>S' - {Neg A, Neg B} \<union> {Neg (Dis A B)}\<close>
 
       assume \<open>S' \<subseteq> S \<union> {Neg A, Neg B}\<close> and \<open>finite S'\<close>
       then have \<open>?S' \<subseteq> S\<close>
@@ -1175,12 +1174,12 @@ proof (intro allI impI conjI)
     qed }
 
   { fix A B
-    assume *: \<open>Neg (Impl A B) \<in> S\<close>
+    assume *: \<open>Neg (Imp A B) \<in> S\<close>
     show \<open>S \<union> {A, Neg B} \<in> mk_finite_char C\<close>
       unfolding mk_finite_char_def
     proof (intro allI impI CollectI)
       fix S'
-      let ?S' = \<open>S' - {A, Neg B} \<union> {Neg (Impl A B)}\<close>
+      let ?S' = \<open>S' - {A, Neg B} \<union> {Neg (Imp A B)}\<close>
 
       assume \<open>S' \<subseteq> S \<union> {A, Neg B}\<close> and \<open>finite S'\<close>
       then have \<open>?S' \<subseteq> S\<close>
@@ -1196,7 +1195,7 @@ proof (intro allI impI conjI)
     qed }
 
   { fix A B
-    assume *: \<open>Or A B \<in> S\<close>
+    assume *: \<open>Dis A B \<in> S\<close>
     show \<open>S \<union> {A} \<in> mk_finite_char C \<or> S \<union> {B} \<in> mk_finite_char C\<close>
     proof (rule ccontr)
       assume \<open>\<not> ?thesis\<close>
@@ -1205,7 +1204,7 @@ proof (intro allI impI conjI)
           and \<open>Sb \<subseteq> S \<union> {B}\<close> and \<open>finite Sb\<close> and \<open>Sb \<notin> C\<close>
         unfolding mk_finite_char_def by blast
 
-      let ?S' = \<open>(Sa - {A}) \<union> (Sb - {B}) \<union> {Or A B}\<close>
+      let ?S' = \<open>(Sa - {A}) \<union> (Sb - {B}) \<union> {Dis A B}\<close>
 
       have \<open>?S' \<subseteq> S\<close>
         using \<open>Sa \<subseteq> S \<union> {A}\<close> \<open>Sb \<subseteq> S \<union> {B}\<close> * by blast
@@ -1222,7 +1221,7 @@ proof (intro allI impI conjI)
     qed }
 
   { fix A B
-    assume *: \<open>Neg (And A B) \<in> S\<close>
+    assume *: \<open>Neg (Con A B) \<in> S\<close>
     show \<open>S \<union> {Neg A} \<in> mk_finite_char C \<or> S \<union> {Neg B} \<in> mk_finite_char C\<close>
     proof (rule ccontr)
       assume \<open>\<not> ?thesis\<close>
@@ -1231,7 +1230,7 @@ proof (intro allI impI conjI)
           and \<open>Sb \<subseteq> S \<union> {Neg B}\<close> and \<open>finite Sb\<close> and \<open>Sb \<notin> C\<close>
         unfolding mk_finite_char_def by blast
 
-      let ?S' = \<open>(Sa - {Neg A}) \<union> (Sb - {Neg B}) \<union> {Neg (And A B)}\<close>
+      let ?S' = \<open>(Sa - {Neg A}) \<union> (Sb - {Neg B}) \<union> {Neg (Con A B)}\<close>
 
       have \<open>?S' \<subseteq> S\<close>
         using \<open>Sa \<subseteq> S \<union> {Neg A}\<close> \<open>Sb \<subseteq> S \<union> {Neg B}\<close> * by blast
@@ -1248,7 +1247,7 @@ proof (intro allI impI conjI)
     qed }
 
   { fix A B
-    assume *: \<open>Impl A B \<in> S\<close>
+    assume *: \<open>Imp A B \<in> S\<close>
     show \<open>S \<union> {Neg A} \<in> mk_finite_char C \<or> S \<union> {B} \<in> mk_finite_char C\<close>
     proof (rule ccontr)
       assume \<open>\<not> ?thesis\<close>
@@ -1257,7 +1256,7 @@ proof (intro allI impI conjI)
           and \<open>Sb \<subseteq> S \<union> {B}\<close> and \<open>finite Sb\<close> and \<open>Sb \<notin> C\<close>
         unfolding mk_finite_char_def by blast
 
-      let ?S' = \<open>(Sa - {Neg A}) \<union> (Sb - {B}) \<union> {Impl A B}\<close>
+      let ?S' = \<open>(Sa - {Neg A}) \<union> (Sb - {B}) \<union> {Imp A B}\<close>
 
       have \<open>?S' \<subseteq> S\<close>
         using \<open>Sa \<subseteq> S \<union> {Neg A}\<close> \<open>Sb \<subseteq> S \<union> {B}\<close> * by blast
@@ -1274,12 +1273,12 @@ proof (intro allI impI conjI)
     qed }
 
   { fix P and t :: \<open>'a term\<close>
-    assume *: \<open>Forall P \<in> S\<close> and \<open>closedt 0 t\<close>
+    assume *: \<open>Uni P \<in> S\<close> and \<open>closedt 0 t\<close>
     show \<open>S \<union> {P[t/0]} \<in> mk_finite_char C\<close>
       unfolding mk_finite_char_def
     proof (intro allI impI CollectI)
       fix S'
-      let ?S' = \<open>S' - {P[t/0]} \<union> {Forall P}\<close>
+      let ?S' = \<open>S' - {P[t/0]} \<union> {Uni P}\<close>
 
       assume \<open>S' \<subseteq> S \<union> {P[t/0]}\<close> and \<open>finite S'\<close>
       then have \<open>?S' \<subseteq> S\<close>
@@ -1295,12 +1294,12 @@ proof (intro allI impI conjI)
     qed }
 
   { fix P and t :: \<open>'a term\<close>
-    assume *: \<open>Neg (Exists P) \<in> S\<close> and \<open>closedt 0 t\<close>
+    assume *: \<open>Neg (Exi P) \<in> S\<close> and \<open>closedt 0 t\<close>
     show \<open>S \<union> {Neg (P[t/0])} \<in> mk_finite_char C\<close>
       unfolding mk_finite_char_def
     proof (intro allI impI CollectI)
       fix S'
-      let ?S' = \<open>S' - {Neg (P[t/0])} \<union> {Neg (Exists P)}\<close>
+      let ?S' = \<open>S' - {Neg (P[t/0])} \<union> {Neg (Exi P)}\<close>
 
       assume \<open>S' \<subseteq> S \<union> {Neg (P[t/0])}\<close> and \<open>finite S'\<close>
       then have \<open>?S' \<subseteq> S\<close>
@@ -1316,14 +1315,14 @@ proof (intro allI impI conjI)
     qed }
 
   { fix P x
-    assume *: \<open>Exists P \<in> S\<close> and \<open>\<forall>a \<in> S. x \<notin> params a\<close>
-    show \<open>S \<union> {P[App x []/0]} \<in> mk_finite_char C\<close>
+    assume *: \<open>Exi P \<in> S\<close> and \<open>\<forall>a \<in> S. x \<notin> params a\<close>
+    show \<open>S \<union> {P[Fun x []/0]} \<in> mk_finite_char C\<close>
       unfolding mk_finite_char_def
     proof (intro allI impI CollectI)
       fix S'
-      let ?S' = \<open>S' - {P[App x []/0]} \<union> {Exists P}\<close>
+      let ?S' = \<open>S' - {P[Fun x []/0]} \<union> {Exi P}\<close>
 
-      assume \<open>S' \<subseteq> S \<union> {P[App x []/0]}\<close> and \<open>finite S'\<close>
+      assume \<open>S' \<subseteq> S \<union> {P[Fun x []/0]}\<close> and \<open>finite S'\<close>
       then have \<open>?S' \<subseteq> S\<close>
         using * by blast
       moreover have \<open>finite ?S'\<close>
@@ -1332,21 +1331,21 @@ proof (intro allI impI conjI)
         using finc by blast
       moreover have \<open>\<forall>a \<in> ?S'. x \<notin> params a\<close>
         using \<open>\<forall>a \<in> S. x \<notin> params a\<close> \<open>?S' \<subseteq> S\<close> by blast
-      ultimately have \<open>?S' \<union> {P[App x []/0]} \<in> C\<close>
+      ultimately have \<open>?S' \<union> {P[Fun x []/0]} \<in> C\<close>
         using altconc \<open>\<forall>a \<in> S. x \<notin> params a\<close> unfolding alt_consistency_def by blast
       then show \<open>S' \<in> C\<close>
         using sc by blast
     qed }
 
   { fix P x
-    assume *: \<open>Neg (Forall P) \<in> S\<close> and \<open>\<forall>a \<in> S. x \<notin> params a\<close>
-    show \<open>S \<union> {Neg (P[App x []/0])} \<in> mk_finite_char C\<close>
+    assume *: \<open>Neg (Uni P) \<in> S\<close> and \<open>\<forall>a \<in> S. x \<notin> params a\<close>
+    show \<open>S \<union> {Neg (P[Fun x []/0])} \<in> mk_finite_char C\<close>
       unfolding mk_finite_char_def
     proof (intro allI impI CollectI)
       fix S'
-      let ?S' = \<open>S' - {Neg (P[App x []/0])} \<union> {Neg (Forall P)}\<close>
+      let ?S' = \<open>S' - {Neg (P[Fun x []/0])} \<union> {Neg (Uni P)}\<close>
 
-      assume \<open>S' \<subseteq> S \<union> {Neg (P[App x []/0])}\<close> and \<open>finite S'\<close>
+      assume \<open>S' \<subseteq> S \<union> {Neg (P[Fun x []/0])}\<close> and \<open>finite S'\<close>
       then have \<open>?S' \<subseteq> S\<close>
         using * by blast
       moreover have \<open>finite ?S'\<close>
@@ -1355,7 +1354,7 @@ proof (intro allI impI conjI)
         using finc by blast
       moreover have \<open>\<forall>a \<in> ?S'. x \<notin> params a\<close>
         using \<open>\<forall>a \<in> S. x \<notin> params a\<close> \<open>?S' \<subseteq> S\<close> by blast
-      ultimately have \<open>?S' \<union> {Neg (P[App x []/0])} \<in> C\<close>
+      ultimately have \<open>?S' \<union> {Neg (P[Fun x []/0])} \<in> C\<close>
         using altconc \<open>\<forall>a \<in> S. x \<notin> params a\<close> unfolding alt_consistency_def by simp
       then show \<open>S' \<in> C\<close>
         using sc by blast
@@ -1382,25 +1381,250 @@ subsection \<open>Enumerating datatypes\<close>
 
 text \<open>
 \label{sec:enumeration}
-As has already been mentioned earlier, the proof of the model existence theorem
-relies on the fact that the set of formulae is enumerable. Using the infrastructure
-for datatypes, the types @{type term} and @{type form} can automatically be shown to
-be a member of the @{class countable} type class:
+In the following section, we will show that elements of datatypes
+can be enumerated. This will be done by specifying functions that
+map natural numbers to elements of datatypes and vice versa.
 \<close>
 
-instance \<open>term\<close> :: (countable) countable
-  by countable_datatype
+subsubsection \<open>Enumerating pairs of natural numbers\<close>
 
-instance form :: (countable, countable) countable
-  by countable_datatype
+text \<open>
+As a starting point, we show that pairs of natural numbers are enumerable.
+For this purpose, we use a method due to Cantor. The function for mapping
+natural numbers to pairs of natural numbers can be characterized recursively
+as follows:
+\<close>
+
+primrec diag :: \<open>nat \<Rightarrow> (nat \<times> nat)\<close> where
+  \<open>diag 0 = (0, 0)\<close>
+| \<open>diag (Suc n) =
+     (let (x, y) = diag n
+      in case y of
+          0 \<Rightarrow> (0, Suc x)
+        | Suc y \<Rightarrow> (Suc x, y))\<close>
+
+theorem diag_le1: \<open>fst (diag (Suc n)) < Suc n\<close>
+  by (induct n) (simp_all add: Let_def split_def split: nat.split)
+
+theorem diag_le2: \<open>snd (diag (Suc (Suc n))) < Suc (Suc n)\<close>
+proof (induct n)
+  case 0
+  then show ?case by simp
+next
+  case (Suc n')
+  then show ?case proof (induct n')
+    case 0
+    then show ?case by simp
+  next
+    case (Suc _)
+    then show ?case
+      using diag_le1 by (simp add: Let_def split_def split: nat.split)
+  qed
+qed
+
+theorem diag_le3: \<open>fst (diag n) = Suc x \<Longrightarrow> snd (diag n) < n\<close>
+proof (induct n)
+  case 0
+  then show ?case by simp
+next
+  case (Suc n')
+  then show ?case proof (induct n')
+    case 0
+    then show ?case by simp
+  next
+    case (Suc n'')
+    then show ?case using diag_le2 by simp
+  qed
+qed
+
+theorem diag_le4: \<open>fst (diag n) = Suc x \<Longrightarrow> x < n\<close>
+proof (induct n)
+  case 0
+  then show ?case by simp
+next
+  case (Suc n')
+  then have \<open>fst (diag (Suc n')) < Suc n'\<close>
+    using diag_le1 by blast
+  then show ?case using Suc by simp
+qed
+
+function undiag :: \<open>nat \<times> nat \<Rightarrow> nat\<close> where
+  \<open>undiag (0, 0) = 0\<close>
+| \<open>undiag (0, Suc y) = Suc (undiag (y, 0))\<close>
+| \<open>undiag (Suc x, y) = Suc (undiag (x, Suc y))\<close>
+  by pat_completeness auto
+termination
+  by (relation \<open>measure (\<lambda>(x, y). ((x + y) * (x + y + 1)) div 2 + x)\<close>) auto
+
+theorem diag_undiag [simp]: \<open>diag (undiag (x, y)) = (x, y)\<close>
+  by (induct rule: undiag.induct) simp_all
+
+subsubsection \<open>Enumerating trees\<close>
+
+text \<open>
+When writing enumeration functions for datatypes, it is useful to
+note that all datatypes are some kind of trees. In order to
+avoid re-inventing the wheel, we therefore write enumeration functions
+for trees once and for all. In applications, we then only have to write
+functions for converting between trees and concrete datatypes.
+\<close>
+
+datatype btree = Leaf nat | Branch btree btree
+
+function diag_btree :: \<open>nat \<Rightarrow> btree\<close> where
+  \<open>diag_btree n = (case fst (diag n) of
+       0 \<Rightarrow> Leaf (snd (diag n))
+     | Suc x \<Rightarrow> Branch (diag_btree x) (diag_btree (snd (diag n))))\<close>
+  by auto
+termination
+  by (relation \<open>measure id\<close>) (auto intro: diag_le3 diag_le4)
+
+primrec undiag_btree :: \<open>btree \<Rightarrow> nat\<close> where
+  \<open>undiag_btree (Leaf n) = undiag (0, n)\<close>
+| \<open>undiag_btree (Branch t1 t2) =
+     undiag (Suc (undiag_btree t1), undiag_btree t2)\<close>
+
+theorem diag_undiag_btree [simp]: \<open>diag_btree (undiag_btree t) = t\<close>
+  by (induct t) simp_all
+
+declare diag_btree.simps [simp del] undiag_btree.simps [simp del]
+
+subsubsection \<open>Enumerating lists\<close>
+
+fun list_of_btree :: \<open>(nat \<Rightarrow> 'a) \<Rightarrow> btree \<Rightarrow> 'a list\<close> where
+  \<open>list_of_btree f (Leaf x) = []\<close>
+| \<open>list_of_btree f (Branch (Leaf n) t) = f n # list_of_btree f t\<close>
+
+primrec btree_of_list :: \<open>('a \<Rightarrow> nat) \<Rightarrow> 'a list \<Rightarrow> btree\<close> where
+  \<open>btree_of_list f [] = Leaf 0\<close>
+| \<open>btree_of_list f (x # xs) = Branch (Leaf (f x)) (btree_of_list f xs)\<close>
+
+definition diag_list :: \<open>(nat \<Rightarrow> 'a) \<Rightarrow> nat \<Rightarrow> 'a list\<close> where
+  \<open>diag_list f n = list_of_btree f (diag_btree n)\<close>
+
+definition undiag_list :: \<open>('a \<Rightarrow> nat) \<Rightarrow> 'a list \<Rightarrow> nat\<close> where
+  \<open>undiag_list f xs = undiag_btree (btree_of_list f xs)\<close>
+
+theorem diag_undiag_list [simp]:
+  \<open>(\<And>x. d (u x) = x) \<Longrightarrow> diag_list d (undiag_list u xs) = xs\<close>
+  by (induct xs) (simp_all add: diag_list_def undiag_list_def)
+
+subsubsection \<open>Enumerating terms\<close>
+
+fun
+  term_of_btree :: \<open>(nat \<Rightarrow> 'a) \<Rightarrow> btree \<Rightarrow> 'a term\<close> and
+  term_list_of_btree :: \<open>(nat \<Rightarrow> 'a) \<Rightarrow> btree \<Rightarrow> 'a term list\<close> where
+  \<open>term_of_btree f (Leaf m) = Var m\<close>
+| \<open>term_of_btree f (Branch (Leaf m) t) =
+     Fun (f m) (term_list_of_btree f t)\<close>
+| \<open>term_list_of_btree f (Leaf m) = []\<close>
+| \<open>term_list_of_btree f (Branch t1 t2) =
+     term_of_btree f t1 # term_list_of_btree f t2\<close>
+
+primrec
+  btree_of_term :: \<open>('a \<Rightarrow> nat) \<Rightarrow> 'a term \<Rightarrow> btree\<close> and
+  btree_of_term_list :: \<open>('a \<Rightarrow> nat) \<Rightarrow> 'a term list \<Rightarrow> btree\<close> where
+  \<open>btree_of_term f (Var m) = Leaf m\<close>
+| \<open>btree_of_term f (Fun m ts) = Branch (Leaf (f m)) (btree_of_term_list f ts)\<close>
+| \<open>btree_of_term_list f [] = Leaf 0\<close>
+| \<open>btree_of_term_list f (t # ts) = Branch (btree_of_term f t) (btree_of_term_list f ts)\<close>
+
+theorem term_btree: assumes \<open>\<And>x. d (u x) = x\<close>
+  shows \<open>term_of_btree d (btree_of_term u t) = t\<close>
+    and \<open>term_list_of_btree d (btree_of_term_list u ts) = ts\<close>
+  by (induct t and ts rule: btree_of_term.induct btree_of_term_list.induct) (simp_all add: assms)
+
+definition diag_term :: \<open>(nat \<Rightarrow> 'a) \<Rightarrow> nat \<Rightarrow> 'a term\<close> where
+  \<open>diag_term f n = term_of_btree f (diag_btree n)\<close>
+
+definition undiag_term :: \<open>('a \<Rightarrow> nat) \<Rightarrow> 'a term \<Rightarrow> nat\<close> where
+  \<open>undiag_term f t = undiag_btree (btree_of_term f t)\<close>
+
+theorem diag_undiag_term [simp]:
+  \<open>(\<And>x. d (u x) = x) \<Longrightarrow> diag_term d (undiag_term u t) = t\<close>
+  by (simp add: diag_term_def undiag_term_def term_btree)
+
+fun form_of_btree :: \<open>(nat \<Rightarrow> 'a) \<Rightarrow> (nat \<Rightarrow> 'b) \<Rightarrow> btree \<Rightarrow> ('a, 'b) form\<close> where
+  \<open>form_of_btree f g (Leaf 0) = \<bottom>\<close>
+| \<open>form_of_btree f g (Leaf (Suc 0)) = \<top>\<close>
+| \<open>form_of_btree f g (Branch (Leaf 0) (Branch (Leaf m) (Leaf n))) =
+     Pre (g m) (diag_list (diag_term f) n)\<close>
+| \<open>form_of_btree f g (Branch (Leaf (Suc 0)) (Branch t1 t2)) =
+     Con (form_of_btree f g t1) (form_of_btree f g t2)\<close>
+| \<open>form_of_btree f g (Branch (Leaf (Suc (Suc 0))) (Branch t1 t2)) =
+     Dis (form_of_btree f g t1) (form_of_btree f g t2)\<close>
+| \<open>form_of_btree f g (Branch (Leaf (Suc (Suc (Suc 0)))) (Branch t1 t2)) =
+     Imp (form_of_btree f g t1) (form_of_btree f g t2)\<close>
+| \<open>form_of_btree f g (Branch (Leaf (Suc (Suc (Suc (Suc 0))))) t) =
+     Neg (form_of_btree f g t)\<close>
+| \<open>form_of_btree f g (Branch (Leaf (Suc (Suc (Suc (Suc (Suc 0)))))) t) =
+     Uni (form_of_btree f g t)\<close>
+| \<open>form_of_btree f g (Branch (Leaf (Suc (Suc (Suc (Suc (Suc (Suc 0))))))) t) =
+     Exi (form_of_btree f g t)\<close>
+
+primrec btree_of_form :: \<open>('a \<Rightarrow> nat) \<Rightarrow> ('b \<Rightarrow> nat) \<Rightarrow> ('a, 'b) form \<Rightarrow> btree\<close> where
+  \<open>btree_of_form f g \<bottom> = Leaf 0\<close>
+| \<open>btree_of_form f g \<top> = Leaf (Suc 0)\<close>
+| \<open>btree_of_form f g (Pre b ts) = Branch (Leaf 0)
+     (Branch (Leaf (g b)) (Leaf (undiag_list (undiag_term f) ts)))\<close>
+| \<open>btree_of_form f g (Con a b) = Branch (Leaf (Suc 0))
+     (Branch (btree_of_form f g a) (btree_of_form f g b))\<close>
+| \<open>btree_of_form f g (Dis a b) = Branch (Leaf (Suc (Suc 0)))
+     (Branch (btree_of_form f g a) (btree_of_form f g b))\<close>
+| \<open>btree_of_form f g (Imp a b) = Branch (Leaf (Suc (Suc (Suc 0))))
+     (Branch (btree_of_form f g a) (btree_of_form f g b))\<close>
+| \<open>btree_of_form f g (Neg a) = Branch (Leaf (Suc (Suc (Suc (Suc 0)))))
+     (btree_of_form f g a)\<close>
+| \<open>btree_of_form f g (Uni a) = Branch (Leaf (Suc (Suc (Suc (Suc (Suc 0))))))
+     (btree_of_form f g a)\<close>
+| \<open>btree_of_form f g (Exi a) = Branch
+     (Leaf (Suc (Suc (Suc (Suc (Suc (Suc 0)))))))
+     (btree_of_form f g a)\<close>
+
+definition diag_form :: \<open>(nat \<Rightarrow> 'a) \<Rightarrow> (nat \<Rightarrow> 'b) \<Rightarrow> nat \<Rightarrow> ('a, 'b) form\<close> where
+  \<open>diag_form f g n = form_of_btree f g (diag_btree n)\<close>
+
+definition undiag_form :: \<open>('a \<Rightarrow> nat) \<Rightarrow> ('b \<Rightarrow> nat) \<Rightarrow> ('a, 'b) form \<Rightarrow> nat\<close> where
+  \<open>undiag_form f g x = undiag_btree (btree_of_form f g x)\<close>
+
+theorem diag_undiag_form [simp]:
+  \<open>(\<And>x. d (u x) = x) \<Longrightarrow> (\<And>x. d' (u' x) = x) \<Longrightarrow>
+  diag_form d d' (undiag_form u u' f) = f\<close>
+  by (induct f) (simp_all add: diag_form_def undiag_form_def)
+
+definition diag_form' :: \<open>nat \<Rightarrow> (nat, nat) form\<close> where
+  \<open>diag_form' = diag_form (\<lambda>n. n) (\<lambda>n. n)\<close>
+
+definition undiag_form' :: \<open>(nat, nat) form \<Rightarrow> nat\<close> where
+  \<open>undiag_form' = undiag_form (\<lambda>n. n) (\<lambda>n. n)\<close>
+
+theorem diag_undiag_form' [simp]: \<open>diag_form' (undiag_form' f) = f\<close>
+  by (simp add: diag_form'_def undiag_form'_def)
+
+abbreviation \<open>from_nat \<equiv> diag_form'\<close>
+abbreviation \<open>to_nat \<equiv> undiag_form'\<close>
+
+text \<open>
+As an alternative to the enumerations in this section, one can delete the above abbreviations and
+use the countable type class by importing \<open>~~/src/HOL/Library/Countable\<close> and adding the following
+two instantiation commands:
+
+instantiation \<open>term\<close> :: (countable) countable begin
+instance by countable_datatype
+end
+
+instantiation form :: (countable, countable) countable begin
+instance by countable_datatype
+end
+\<close>
 
 subsection \<open>Extension to maximal consistent sets\<close>
 
 text \<open>
 \label{sec:extend}
-Given a set @{text C} of finite character, we show that
+Given a set \<open>C\<close> of finite character, we show that
 the least upper bound of a chain of sets that are elements
-of @{text C} is again an element of @{text C}.
+of \<open>C\<close> is again an element of \<open>C\<close>.
 \<close>
 
 definition is_chain :: \<open>(nat \<Rightarrow> 'a set) \<Rightarrow> bool\<close> where
@@ -1476,9 +1700,9 @@ proof -
 qed
 
 text \<open>
-We can now define a function @{text Extend} that extends a consistent
+We can now define a function \<open>Extend\<close> that extends a consistent
 set to a maximal consistent set. To this end, we first define an auxiliary
-function @{text extend} that produces the elements of an ascending chain of
+function \<open>extend\<close> that produces the elements of an ascending chain of
 consistent sets.
 \<close>
 
@@ -1486,22 +1710,22 @@ primrec (nonexhaustive) dest_Neg :: \<open>('a, 'b) form \<Rightarrow> ('a, 'b) 
   \<open>dest_Neg (Neg p) = p\<close>
 
 primrec (nonexhaustive) dest_Forall :: \<open>('a, 'b) form \<Rightarrow> ('a, 'b) form\<close> where
-  \<open>dest_Forall (Forall p) = p\<close>
+  \<open>dest_Forall (Uni p) = p\<close>
 
 primrec (nonexhaustive) dest_Exists :: \<open>('a, 'b) form \<Rightarrow> ('a, 'b) form\<close> where
-  \<open>dest_Exists (Exists p) = p\<close>
+  \<open>dest_Exists (Exi p) = p\<close>
 
 primrec extend :: \<open>(nat, 'b) form set \<Rightarrow> (nat, 'b) form set set \<Rightarrow>
     (nat \<Rightarrow> (nat, 'b) form) \<Rightarrow> nat \<Rightarrow> (nat, 'b) form set\<close> where
   \<open>extend S C f 0 = S\<close>
 | \<open>extend S C f (Suc n) = (if extend S C f n \<union> {f n} \<in> C
      then
-       (if (\<exists>p. f n = Exists p)
+       (if (\<exists>p. f n = Exi p)
         then extend S C f n \<union> {f n} \<union> {subst (dest_Exists (f n))
-          (App (SOME k. k \<notin> (\<Union>p \<in> extend S C f n \<union> {f n}. params p)) []) 0}
-        else if (\<exists>p. f n = Neg (Forall p))
+          (Fun (SOME k. k \<notin> (\<Union>p \<in> extend S C f n \<union> {f n}. params p)) []) 0}
+        else if (\<exists>p. f n = Neg (Uni p))
         then extend S C f n \<union> {f n} \<union> {Neg (subst (dest_Forall (dest_Neg (f n)))
-          (App (SOME k. k \<notin> (\<Union>p \<in> extend S C f n \<union> {f n}. params p)) []) 0)}
+          (Fun (SOME k. k \<notin> (\<Union>p \<in> extend S C f n \<union> {f n}. params p)) []) 0)}
         else extend S C f n \<union> {f n})
      else extend S C f n)\<close>
 
@@ -1543,20 +1767,20 @@ lemma extend_in_C_Exists:
   assumes \<open>alt_consistency C\<close>
     and \<open>infinite (- (\<Union>p \<in> S. params p))\<close>
     and \<open>extend S C f n \<union> {f n} \<in> C\<close> (is \<open>?S' \<in> C\<close>)
-    and \<open>\<exists>p. f n = Exists p\<close>
+    and \<open>\<exists>p. f n = Exi p\<close>
   shows \<open>extend S C f (Suc n) \<in> C\<close>
 proof -
-  obtain p where *: \<open>f n = Exists p\<close>
-    using \<open>\<exists>p. f n = Exists p\<close> by blast
+  obtain p where *: \<open>f n = Exi p\<close>
+    using \<open>\<exists>p. f n = Exi p\<close> by blast
   have \<open>\<exists>x. x \<notin> (\<Union>p \<in> ?S'. params p)\<close>
     using \<open>infinite (- (\<Union>p \<in> S. params p))\<close> infinite_params_available
     by blast
-  moreover have \<open>Exists p \<in> ?S'\<close>
+  moreover have \<open>Exi p \<in> ?S'\<close>
     using * by simp
-  then have \<open>\<forall>x. x \<notin> (\<Union>p \<in> ?S'. params p) \<longrightarrow> ?S' \<union> {p[App x []/0]} \<in> C\<close>
+  then have \<open>\<forall>x. x \<notin> (\<Union>p \<in> ?S'. params p) \<longrightarrow> ?S' \<union> {p[Fun x []/0]} \<in> C\<close>
     using \<open>?S' \<in> C\<close> \<open>alt_consistency C\<close>
     unfolding alt_consistency_def by simp
-  ultimately have \<open>(?S' \<union> {p[App (SOME k. k \<notin> (\<Union>p \<in> ?S'. params p)) []/0]}) \<in> C\<close>
+  ultimately have \<open>(?S' \<union> {p[Fun (SOME k. k \<notin> (\<Union>p \<in> ?S'. params p)) []/0]}) \<in> C\<close>
     by (metis (mono_tags, lifting) someI2)
   then show ?thesis
     using assms * by simp
@@ -1566,21 +1790,21 @@ lemma extend_in_C_Neg_Forall:
   assumes \<open>alt_consistency C\<close>
     and \<open>infinite (- (\<Union>p \<in> S. params p))\<close>
     and \<open>extend S C f n \<union> {f n} \<in> C\<close> (is \<open>?S' \<in> C\<close>)
-    and \<open>\<forall>p. f n \<noteq> Exists p\<close>
-    and \<open>\<exists>p. f n = Neg (Forall p)\<close>
+    and \<open>\<forall>p. f n \<noteq> Exi p\<close>
+    and \<open>\<exists>p. f n = Neg (Uni p)\<close>
   shows \<open>extend S C f (Suc n) \<in> C\<close>
 proof -
-  obtain p where *: \<open>f n = Neg (Forall p)\<close>
-    using \<open>\<exists>p. f n = Neg (Forall p)\<close> by blast
+  obtain p where *: \<open>f n = Neg (Uni p)\<close>
+    using \<open>\<exists>p. f n = Neg (Uni p)\<close> by blast
   have \<open>\<exists>x. x \<notin> (\<Union>p \<in> ?S'. params p)\<close>
     using \<open>infinite (- (\<Union>p \<in> S. params p))\<close> infinite_params_available
     by blast
-  moreover have \<open>Neg (Forall p) \<in> ?S'\<close>
+  moreover have \<open>Neg (Uni p) \<in> ?S'\<close>
     using * by simp
-  then have \<open>\<forall>x. x \<notin> (\<Union>p \<in> ?S'. params p) \<longrightarrow> ?S' \<union> {Neg (p[App x []/0])} \<in> C\<close>
+  then have \<open>\<forall>x. x \<notin> (\<Union>p \<in> ?S'. params p) \<longrightarrow> ?S' \<union> {Neg (p[Fun x []/0])} \<in> C\<close>
     using \<open>?S' \<in> C\<close> \<open>alt_consistency C\<close>
     unfolding alt_consistency_def by simp
-  ultimately have \<open>(?S' \<union> {Neg (p[App (SOME k. k \<notin> (\<Union>p \<in> ?S'. params p)) []/0])}) \<in> C\<close>
+  ultimately have \<open>(?S' \<union> {Neg (p[Fun (SOME k. k \<notin> (\<Union>p \<in> ?S'. params p)) []/0])}) \<in> C\<close>
     by (metis (mono_tags, lifting) someI2)
   then show ?thesis
     using assms * by simp
@@ -1588,8 +1812,8 @@ qed
 
 lemma extend_in_C_no_delta:
   assumes \<open>extend S C f n \<union> {f n} \<in> C\<close>
-    and \<open>\<forall>p. f n \<noteq> Exists p\<close>
-    and \<open>\<forall>p. f n \<noteq> Neg (Forall p)\<close>
+    and \<open>\<forall>p. f n \<noteq> Exi p\<close>
+    and \<open>\<forall>p. f n \<noteq> Neg (Uni p)\<close>
   shows \<open>extend S C f (Suc n) \<in> C\<close>
   using assms by simp
 
@@ -1613,10 +1837,10 @@ next
 qed
 
 text \<open>
-The main theorem about @{text Extend} says that if @{text C} is an
+The main theorem about \<open>Extend\<close> says that if \<open>C\<close> is an
 alternative consistency property that is of finite character,
-@{text S} is consistent and @{text S} uses only finitely many
-parameters, then @{text \<open>Extend S C f\<close>} is again consistent.
+\<open>S\<close> is consistent and \<open>S\<close> uses only finitely many
+parameters, then \<open>Extend S C f\<close> is again consistent.
 \<close>
 
 theorem Extend_in_C: \<open>alt_consistency C \<Longrightarrow> finite_char C \<Longrightarrow>
@@ -1635,7 +1859,7 @@ proof
 qed
 
 text \<open>
-The @{text Extend} function yields a maximal set:
+The \<open>Extend\<close> function yields a maximal set:
 \<close>
 
 definition maximal :: \<open>'a set \<Rightarrow> 'a set set \<Rightarrow> bool\<close> where
@@ -1690,45 +1914,45 @@ A Hintikka set is defined as follows:
 
 definition hintikka :: \<open>('a, 'b) form set \<Rightarrow> bool\<close> where
   \<open>hintikka H =
-     ((\<forall>p ts. \<not> (Pred p ts \<in> H \<and> Neg (Pred p ts) \<in> H)) \<and>
-     FF \<notin> H \<and> Neg TT \<notin> H \<and>
+     ((\<forall>p ts. \<not> (Pre p ts \<in> H \<and> Neg (Pre p ts) \<in> H)) \<and>
+     \<bottom> \<notin> H \<and> Neg \<top> \<notin> H \<and>
      (\<forall>Z. Neg (Neg Z) \<in> H \<longrightarrow> Z \<in> H) \<and>
-     (\<forall>A B. And A B \<in> H \<longrightarrow> A \<in> H \<and> B \<in> H) \<and>
-     (\<forall>A B. Neg (Or A B) \<in> H \<longrightarrow> Neg A \<in> H \<and> Neg B \<in> H) \<and>
-     (\<forall>A B. Or A B \<in> H \<longrightarrow> A \<in> H \<or> B \<in> H) \<and>
-     (\<forall>A B. Neg (And A B) \<in> H \<longrightarrow> Neg A \<in> H \<or> Neg B \<in> H) \<and>
-     (\<forall>A B. Impl A B \<in> H \<longrightarrow> Neg A \<in> H \<or> B \<in> H) \<and>
-     (\<forall>A B. Neg (Impl A B) \<in> H \<longrightarrow> A \<in> H \<and> Neg B \<in> H) \<and>
-     (\<forall>P t. closedt 0 t \<longrightarrow> Forall P \<in> H \<longrightarrow> subst P t 0 \<in> H) \<and>
-     (\<forall>P t. closedt 0 t \<longrightarrow> Neg (Exists P) \<in> H \<longrightarrow> Neg (subst P t 0) \<in> H) \<and>
-     (\<forall>P. Exists P \<in> H \<longrightarrow> (\<exists>t. closedt 0 t \<and> subst P t 0 \<in> H)) \<and>
-     (\<forall>P. Neg (Forall P) \<in> H \<longrightarrow> (\<exists>t. closedt 0 t \<and> Neg (subst P t 0) \<in> H)))\<close>
+     (\<forall>A B. Con A B \<in> H \<longrightarrow> A \<in> H \<and> B \<in> H) \<and>
+     (\<forall>A B. Neg (Dis A B) \<in> H \<longrightarrow> Neg A \<in> H \<and> Neg B \<in> H) \<and>
+     (\<forall>A B. Dis A B \<in> H \<longrightarrow> A \<in> H \<or> B \<in> H) \<and>
+     (\<forall>A B. Neg (Con A B) \<in> H \<longrightarrow> Neg A \<in> H \<or> Neg B \<in> H) \<and>
+     (\<forall>A B. Imp A B \<in> H \<longrightarrow> Neg A \<in> H \<or> B \<in> H) \<and>
+     (\<forall>A B. Neg (Imp A B) \<in> H \<longrightarrow> A \<in> H \<and> Neg B \<in> H) \<and>
+     (\<forall>P t. closedt 0 t \<longrightarrow> Uni P \<in> H \<longrightarrow> subst P t 0 \<in> H) \<and>
+     (\<forall>P t. closedt 0 t \<longrightarrow> Neg (Exi P) \<in> H \<longrightarrow> Neg (subst P t 0) \<in> H) \<and>
+     (\<forall>P. Exi P \<in> H \<longrightarrow> (\<exists>t. closedt 0 t \<and> subst P t 0 \<in> H)) \<and>
+     (\<forall>P. Neg (Uni P) \<in> H \<longrightarrow> (\<exists>t. closedt 0 t \<and> Neg (subst P t 0) \<in> H)))\<close>
 
 text \<open>
 In Herbrand models, each {\em closed} term is interpreted by itself.
-We introduce a new datatype @{text hterm} (``Herbrand terms''), which
-is similar to the datatype @{text term} introduced in \secref{sec:terms},
+We introduce a new datatype \<open>hterm\<close> (``Herbrand terms''), which
+is similar to the datatype \<open>term\<close> introduced in \secref{sec:terms},
 but without variables. We also define functions for converting between
 closed terms and Herbrand terms.
 \<close>
 
-datatype 'a hterm = HApp 'a \<open>'a hterm list\<close>
+datatype 'a hterm = HFun 'a \<open>'a hterm list\<close>
 
 primrec
   term_of_hterm :: \<open>'a hterm \<Rightarrow> 'a term\<close> and
   terms_of_hterms :: \<open>'a hterm list \<Rightarrow> 'a term list\<close> where
-  \<open>term_of_hterm (HApp a hts) = App a (terms_of_hterms hts)\<close>
+  \<open>term_of_hterm (HFun a hts) = Fun a (terms_of_hterms hts)\<close>
 | \<open>terms_of_hterms [] = []\<close>
 | \<open>terms_of_hterms (ht # hts) = term_of_hterm ht # terms_of_hterms hts\<close>
 
 theorem herbrand_evalt [simp]:
-  \<open>closedt 0 t \<Longrightarrow> term_of_hterm (evalt e HApp t) = t\<close>
-  \<open>closedts 0 ts \<Longrightarrow> terms_of_hterms (evalts e HApp ts) = ts\<close>
+  \<open>closedt 0 t \<Longrightarrow> term_of_hterm (semantics_term e HFun t) = t\<close>
+  \<open>closedts 0 ts \<Longrightarrow> terms_of_hterms (semantics_list e HFun ts) = ts\<close>
   by (induct t and ts rule: closedt.induct closedts.induct) simp_all
 
 theorem herbrand_evalt' [simp]:
-  \<open>evalt e HApp (term_of_hterm ht) = ht\<close>
-  \<open>evalts e HApp (terms_of_hterms hts) = hts\<close>
+  \<open>semantics_term e HFun (term_of_hterm ht) = ht\<close>
+  \<open>semantics_list e HFun (terms_of_hterms hts) = hts\<close>
   by (induct ht and hts rule: term_of_hterm.induct terms_of_hterms.induct) simp_all
 
 theorem closed_hterm [simp]:
@@ -1742,20 +1966,20 @@ Note that this theorem cannot be proved by a simple structural induction
 (as claimed in Fitting's book), since a parameter substitution has
 to be applied in the cases for quantifiers. However, since parameter
 substitution does not change the size of formulae, the theorem can
-be proved by well-founded induction on the size of the formula @{text p}.
+be proved by well-founded induction on the size of the formula \<open>p\<close>.
 \<close>
 
 theorem hintikka_model:
   assumes hin: \<open>hintikka H\<close>
   shows \<open>(p \<in> H \<longrightarrow> closed 0 p \<longrightarrow>
-    eval e HApp (\<lambda>a ts. Pred a (terms_of_hterms ts) \<in> H) p) \<and>
+    semantics e HFun (\<lambda>a ts. Pre a (terms_of_hterms ts) \<in> H) p) \<and>
   (Neg p \<in> H \<longrightarrow> closed 0 p \<longrightarrow>
-    eval e HApp (\<lambda>a ts. Pred a (terms_of_hterms ts) \<in> H) (Neg p))\<close>
+    semantics e HFun (\<lambda>a ts. Pre a (terms_of_hterms ts) \<in> H) (Neg p))\<close>
 proof (induct p rule: wf_induct [where r=\<open>measure size_form\<close>])
   show \<open>wf (measure size_form)\<close>
     by blast
 next
-  let ?eval = \<open>eval e HApp (\<lambda>a ts. Pred a (terms_of_hterms ts) \<in> H)\<close>
+  let ?eval = \<open>semantics e HFun (\<lambda>a ts. Pre a (terms_of_hterms ts) \<in> H)\<close>
 
   fix x
   assume wf: \<open>\<forall>y. (y, x) \<in> measure size_form \<longrightarrow>
@@ -1787,19 +2011,19 @@ next
         using TT hin by (simp add: hintikka_def)
     qed
   next
-    case (Pred p ts)
+    case (Pre p ts)
     show ?thesis
     proof (intro conjI impI)
       assume \<open>x \<in> H\<close> and \<open>closed 0 x\<close>
-      then show \<open>?eval x\<close> using Pred by simp
+      then show \<open>?eval x\<close> using Pre by simp
     next
       assume \<open>Neg x \<in> H\<close> and \<open>closed 0 x\<close>
-      then have \<open>Neg (Pred p ts) \<in> H\<close>
-        using Pred by simp
-      then have \<open>Pred p ts \<notin> H\<close>
+      then have \<open>Neg (Pre p ts) \<in> H\<close>
+        using Pre by simp
+      then have \<open>Pre p ts \<notin> H\<close>
         using hin unfolding hintikka_def by fast
       then show \<open>?eval (Neg x)\<close>
-        using Pred \<open>closed 0 x\<close> by simp
+        using Pre \<open>closed 0 x\<close> by simp
     qed
   next
     case (Neg Z)
@@ -1821,156 +2045,156 @@ next
         using Neg by simp
     qed
   next
-    case (And A B)
+    case (Con A B)
     then show ?thesis
     proof (intro conjI impI)
       assume \<open>x \<in> H\<close> and \<open>closed 0 x\<close>
-      then have \<open>And A B \<in> H\<close> and \<open>closed 0 (And A B)\<close>
-        using And by simp_all
+      then have \<open>Con A B \<in> H\<close> and \<open>closed 0 (Con A B)\<close>
+        using Con by simp_all
       then have \<open>A \<in> H \<and> B \<in> H\<close>
-        using And hin unfolding hintikka_def by blast
+        using Con hin unfolding hintikka_def by blast
       then show \<open>?eval x\<close>
-        using And wf \<open>closed 0 (And A B)\<close> by simp
+        using Con wf \<open>closed 0 (Con A B)\<close> by simp
     next
       assume \<open>Neg x \<in> H\<close> and \<open>closed 0 x\<close>
-      then have \<open>Neg (And A B) \<in> H\<close> and \<open>closed 0 (And A B)\<close>
-        using And by simp_all
+      then have \<open>Neg (Con A B) \<in> H\<close> and \<open>closed 0 (Con A B)\<close>
+        using Con by simp_all
       then have \<open>Neg A \<in> H \<or> Neg B \<in> H\<close>
         using hin unfolding hintikka_def by blast
       then show \<open>?eval (Neg x)\<close>
-        using And wf \<open>closed 0 (And A B)\<close> by fastforce
+        using Con wf \<open>closed 0 (Con A B)\<close> by fastforce
     qed
   next
-    case (Or A B)
+    case (Dis A B)
     then show ?thesis
     proof (intro conjI impI)
       assume \<open>x \<in> H\<close> and \<open>closed 0 x\<close>
-      then have \<open>Or A B \<in> H\<close> and \<open>closed 0 (Or A B)\<close>
-        using Or by simp_all
+      then have \<open>Dis A B \<in> H\<close> and \<open>closed 0 (Dis A B)\<close>
+        using Dis by simp_all
       then have \<open>A \<in> H \<or> B \<in> H\<close>
         using hin unfolding hintikka_def by blast
       then show \<open>?eval x\<close>
-        using Or wf \<open>closed 0 (Or A B)\<close> by fastforce
+        using Dis wf \<open>closed 0 (Dis A B)\<close> by fastforce
     next
       assume \<open>Neg x \<in> H\<close> and \<open>closed 0 x\<close>
-      then have \<open>Neg (Or A B) \<in> H\<close> and \<open>closed 0 (Or A B)\<close>
-        using Or by simp_all
+      then have \<open>Neg (Dis A B) \<in> H\<close> and \<open>closed 0 (Dis A B)\<close>
+        using Dis by simp_all
       then have \<open>Neg A \<in> H \<and> Neg B \<in> H\<close>
         using hin unfolding hintikka_def by blast
       then show \<open>?eval (Neg x)\<close>
-        using Or wf \<open>closed 0 (Or A B)\<close> by simp
+        using Dis wf \<open>closed 0 (Dis A B)\<close> by simp
     qed
   next
-    case (Impl A B)
+    case (Imp A B)
     then show ?thesis
     proof (intro conjI impI)
       assume \<open>x \<in> H\<close> and \<open>closed 0 x\<close>
-      then have \<open>Impl A B \<in> H\<close> and \<open>closed 0 (Impl A B)\<close>
-        using Impl by simp_all
+      then have \<open>Imp A B \<in> H\<close> and \<open>closed 0 (Imp A B)\<close>
+        using Imp by simp_all
       then have \<open>Neg A \<in> H \<or> B \<in> H\<close>
         using hin unfolding hintikka_def by blast
       then show \<open>?eval x\<close>
-        using Impl wf \<open>closed 0 (Impl A B)\<close> by fastforce
+        using Imp wf \<open>closed 0 (Imp A B)\<close> by fastforce
     next
       assume \<open>Neg x \<in> H\<close> and \<open>closed 0 x\<close>
-      then have \<open>Neg (Impl A B) \<in> H\<close> and \<open>closed 0 (Impl A B)\<close>
-        using Impl by simp_all
+      then have \<open>Neg (Imp A B) \<in> H\<close> and \<open>closed 0 (Imp A B)\<close>
+        using Imp by simp_all
       then have \<open>A \<in> H \<and> Neg B \<in> H\<close>
         using hin unfolding hintikka_def by blast
       then show \<open>?eval (Neg x)\<close>
-        using Impl wf \<open>closed 0 (Impl A B)\<close> by simp
+        using Imp wf \<open>closed 0 (Imp A B)\<close> by simp
     qed
   next
-    case (Forall P)
+    case (Uni P)
     then show ?thesis
     proof (intro conjI impI)
       assume \<open>x \<in> H\<close> and \<open>closed 0 x\<close>
-      have \<open>\<forall>z. eval (e\<langle>0:z\<rangle>) HApp (\<lambda>a ts. Pred a (terms_of_hterms ts) \<in> H) P\<close>
+      have \<open>\<forall>z. semantics (e\<langle>0:z\<rangle>) HFun (\<lambda>a ts. Pre a (terms_of_hterms ts) \<in> H) P\<close>
       proof (rule allI)
         fix z
         from \<open>x \<in> H\<close> and \<open>closed 0 x\<close>
-        have \<open>Forall P \<in> H\<close> and \<open>closed 0 (Forall P)\<close>
-          using Forall by simp_all
-        then have *: \<open>\<forall>P t. closedt 0 t \<longrightarrow> Forall P \<in> H \<longrightarrow> P[t/0] \<in> H\<close>
+        have \<open>Uni P \<in> H\<close> and \<open>closed 0 (Uni P)\<close>
+          using Uni by simp_all
+        then have *: \<open>\<forall>P t. closedt 0 t \<longrightarrow> Uni P \<in> H \<longrightarrow> P[t/0] \<in> H\<close>
           using hin unfolding hintikka_def by blast
-        from \<open>closed 0 (Forall P)\<close>
+        from \<open>closed 0 (Uni P)\<close>
         have \<open>closed (Suc 0) P\<close> by simp
 
-        have \<open>(P[term_of_hterm z/0], Forall P) \<in> measure size_form \<longrightarrow>
+        have \<open>(P[term_of_hterm z/0], Uni P) \<in> measure size_form \<longrightarrow>
               (P[term_of_hterm z/0] \<in> H \<longrightarrow> closed 0 (P[term_of_hterm z/0]) \<longrightarrow>
               ?eval (P[term_of_hterm z/0]))\<close>
-          using Forall wf by blast
-        then show \<open>eval (e\<langle>0:z\<rangle>) HApp (\<lambda>a ts. Pred a (terms_of_hterms ts) \<in> H) P\<close>
-          using * \<open>Forall P \<in> H\<close> \<open>closed (Suc 0) P\<close> by simp
+          using Uni wf by blast
+        then show \<open>semantics (e\<langle>0:z\<rangle>) HFun (\<lambda>a ts. Pre a (terms_of_hterms ts) \<in> H) P\<close>
+          using * \<open>Uni P \<in> H\<close> \<open>closed (Suc 0) P\<close> by simp
       qed
       then show \<open>?eval x\<close>
-        using Forall by simp
+        using Uni by simp
     next
       assume \<open>Neg x \<in> H\<close> and \<open>closed 0 x\<close>
-      then have \<open>Neg (Forall P) \<in> H\<close>
-        using Forall by simp
+      then have \<open>Neg (Uni P) \<in> H\<close>
+        using Uni by simp
       then have \<open>\<exists>t. closedt 0 t \<and> Neg (P[t/0]) \<in> H\<close>
-        using Forall hin unfolding hintikka_def by blast
+        using Uni hin unfolding hintikka_def by blast
       then obtain t where *: \<open>closedt 0 t \<and> Neg (P[t/0]) \<in> H\<close>
         by blast
       then have \<open>closed 0 (P[t/0])\<close>
-        using Forall \<open>closed 0 x\<close> by simp
+        using Uni \<open>closed 0 x\<close> by simp
 
-      have \<open>(subst P t 0, Forall P) \<in> measure size_form \<longrightarrow>
+      have \<open>(subst P t 0, Uni P) \<in> measure size_form \<longrightarrow>
               (Neg (subst P t 0) \<in> H \<longrightarrow> closed 0 (subst P t 0) \<longrightarrow>
               ?eval (Neg (subst P t 0)))\<close>
-        using Forall wf by blast
+        using Uni wf by blast
       then have \<open>?eval (Neg (P[t/0]))\<close>
-        using Forall * \<open>closed 0 (P[t/0])\<close> by simp
-      then have \<open>\<exists>z. \<not> eval (e\<langle>0:z\<rangle>) HApp (\<lambda>a ts. Pred a (terms_of_hterms ts) \<in> H) P\<close>
+        using Uni * \<open>closed 0 (P[t/0])\<close> by simp
+      then have \<open>\<exists>z. \<not> semantics (e\<langle>0:z\<rangle>) HFun (\<lambda>a ts. Pre a (terms_of_hterms ts) \<in> H) P\<close>
         by auto
       then show \<open>?eval (Neg x)\<close>
-        using Forall by simp
+        using Uni by simp
     qed
   next
-    case (Exists P)
+    case (Exi P)
     then show ?thesis
     proof (intro conjI impI allI)
       assume \<open>x \<in> H\<close> and \<open>closed 0 x\<close>
       then have \<open>\<exists>t. closedt 0 t \<and> (P[t/0]) \<in> H\<close>
-        using Exists hin unfolding hintikka_def by blast
+        using Exi hin unfolding hintikka_def by blast
       then obtain t where *: \<open>closedt 0 t \<and> (P[t/0]) \<in> H\<close>
         by blast
       then have \<open>closed 0 (P[t/0])\<close>
-        using Exists \<open>closed 0 x\<close> by simp
+        using Exi \<open>closed 0 x\<close> by simp
 
-      have \<open>(subst P t 0, Exists P) \<in> measure size_form \<longrightarrow>
+      have \<open>(subst P t 0, Exi P) \<in> measure size_form \<longrightarrow>
               ((subst P t 0) \<in> H \<longrightarrow> closed 0 (subst P t 0) \<longrightarrow>
               ?eval (subst P t 0))\<close>
-        using Exists wf by blast
+        using Exi wf by blast
       then have \<open>?eval (P[t/0])\<close>
-        using Exists * \<open>closed 0 (P[t/0])\<close> by simp
-      then have \<open>\<exists>z. eval (e\<langle>0:z\<rangle>) HApp (\<lambda>a ts. Pred a (terms_of_hterms ts) \<in> H) P\<close>
+        using Exi * \<open>closed 0 (P[t/0])\<close> by simp
+      then have \<open>\<exists>z. semantics (e\<langle>0:z\<rangle>) HFun (\<lambda>a ts. Pre a (terms_of_hterms ts) \<in> H) P\<close>
         by auto
       then show \<open>?eval x\<close>
-        using Exists by simp
+        using Exi by simp
     next
       assume \<open>Neg x \<in> H\<close> and \<open>closed 0 x\<close>
-      have \<open>\<forall>z. \<not> eval (e\<langle>0:z\<rangle>) HApp (\<lambda>a ts. Pred a (terms_of_hterms ts) \<in> H) P\<close>
+      have \<open>\<forall>z. \<not> semantics (e\<langle>0:z\<rangle>) HFun (\<lambda>a ts. Pre a (terms_of_hterms ts) \<in> H) P\<close>
       proof (rule allI)
         fix z
         from \<open>Neg x \<in> H\<close> and \<open>closed 0 x\<close>
-        have \<open>Neg (Exists P) \<in> H\<close> and \<open>closed 0 (Neg (Exists P))\<close>
-          using Exists by simp_all
-        then have *: \<open>\<forall>P t. closedt 0 t \<longrightarrow> Neg (Exists P) \<in> H \<longrightarrow> Neg (P[t/0]) \<in> H\<close>
+        have \<open>Neg (Exi P) \<in> H\<close> and \<open>closed 0 (Neg (Exi P))\<close>
+          using Exi by simp_all
+        then have *: \<open>\<forall>P t. closedt 0 t \<longrightarrow> Neg (Exi P) \<in> H \<longrightarrow> Neg (P[t/0]) \<in> H\<close>
           using hin unfolding hintikka_def by blast
-        from \<open>closed 0 (Neg (Exists P))\<close>
+        from \<open>closed 0 (Neg (Exi P))\<close>
         have \<open>closed (Suc 0) P\<close> by simp
 
-        have \<open>(P[term_of_hterm z/0], Exists P) \<in> measure size_form \<longrightarrow>
+        have \<open>(P[term_of_hterm z/0], Exi P) \<in> measure size_form \<longrightarrow>
               (Neg (P[term_of_hterm z/0]) \<in> H \<longrightarrow> closed 0 (P[term_of_hterm z/0]) \<longrightarrow>
               ?eval (Neg (P[term_of_hterm z/0])))\<close>
-          using Exists wf by blast
-        then show \<open>\<not> eval (e\<langle>0:z\<rangle>) HApp (\<lambda>a ts. Pred a (terms_of_hterms ts) \<in> H) P\<close>
-          using * \<open>Neg (Exists P) \<in> H\<close> \<open>closed (Suc 0) P\<close> by simp
+          using Exi wf by blast
+        then show \<open>\<not> semantics (e\<langle>0:z\<rangle>) HFun (\<lambda>a ts. Pre a (terms_of_hterms ts) \<in> H) P\<close>
+          using * \<open>Neg (Exi P) \<in> H\<close> \<open>closed (Suc 0) P\<close> by simp
       qed
       then show \<open>?eval (Neg x)\<close>
-        using Exists by simp
+        using Exi by simp
     qed
   qed
 qed
@@ -1982,17 +2206,17 @@ that @{term \<open>Extend S C f\<close>} yields Hintikka sets:
 
 lemma Exists_in_extend:
   assumes \<open>extend S C f n \<union> {f n} \<in> C\<close> (is \<open>?S' \<in> C\<close>)
-    and \<open>Exists P = f n\<close>
-  shows \<open>P[(App (SOME k. k \<notin> (\<Union>p \<in> extend S C f n \<union> {f n}. params p)) [])/0] \<in>
+    and \<open>Exi P = f n\<close>
+  shows \<open>P[(Fun (SOME k. k \<notin> (\<Union>p \<in> extend S C f n \<union> {f n}. params p)) [])/0] \<in>
           extend S C f (Suc n)\<close>
     (is \<open>subst P ?t 0 \<in> extend S C f (Suc n)\<close>)
 proof -
-  have \<open>\<exists>p. f n = Exists p\<close>
-    using \<open>Exists P = f n\<close> by metis
+  have \<open>\<exists>p. f n = Exi p\<close>
+    using \<open>Exi P = f n\<close> by metis
   then have \<open>extend S C f (Suc n) = (?S' \<union> {(dest_Exists (f n))[?t/0]})\<close>
     using \<open>?S' \<in> C\<close> by simp
-  also have \<open>\<dots> = (?S' \<union> {(dest_Exists (Exists P))[?t/0]})\<close>
-    using \<open>Exists P = f n\<close> by simp
+  also have \<open>\<dots> = (?S' \<union> {(dest_Exists (Exi P))[?t/0]})\<close>
+    using \<open>Exi P = f n\<close> by simp
   also have \<open>\<dots> = (?S' \<union> {P[?t/0]})\<close>
     by simp
   finally show ?thesis
@@ -2001,20 +2225,20 @@ qed
 
 lemma Neg_Forall_in_extend:
   assumes \<open>extend S C f n \<union> {f n} \<in> C\<close> (is \<open>?S' \<in> C\<close>)
-    and \<open>Neg (Forall P) = f n\<close>
-  shows \<open>Neg (P[(App (SOME k. k \<notin> (\<Union>p \<in> extend S C f n \<union> {f n}. params p)) [])/0])  \<in>
+    and \<open>Neg (Uni P) = f n\<close>
+  shows \<open>Neg (P[(Fun (SOME k. k \<notin> (\<Union>p \<in> extend S C f n \<union> {f n}. params p)) [])/0])  \<in>
           extend S C f (Suc n)\<close>
     (is \<open>Neg (subst P ?t 0) \<in> extend S C f (Suc n)\<close>)
 proof -
-  have \<open>f n \<noteq> Exists P\<close>
-    using \<open>Neg (Forall P) = f n\<close> by auto
+  have \<open>f n \<noteq> Exi P\<close>
+    using \<open>Neg (Uni P) = f n\<close> by auto
 
-  have \<open>\<exists>p. f n = Neg (Forall p)\<close>
-    using \<open>Neg (Forall P) = f n\<close> by metis
+  have \<open>\<exists>p. f n = Neg (Uni p)\<close>
+    using \<open>Neg (Uni P) = f n\<close> by metis
   then have \<open>extend S C f (Suc n) = (?S' \<union> {Neg (dest_Forall (dest_Neg (f n))[?t/0])})\<close>
-    using \<open>?S' \<in> C\<close> \<open>f n \<noteq> Exists P\<close> by auto
-  also have \<open>\<dots> = (?S' \<union> {Neg (dest_Forall (dest_Neg (Neg (Forall P)))[?t/0])})\<close>
-    using \<open>Neg (Forall P) = f n\<close> by simp
+    using \<open>?S' \<in> C\<close> \<open>f n \<noteq> Exi P\<close> by auto
+  also have \<open>\<dots> = (?S' \<union> {Neg (dest_Forall (dest_Neg (Neg (Uni P)))[?t/0])})\<close>
+    using \<open>Neg (Uni P) = f n\<close> by simp
   also have \<open>\<dots> = (?S' \<union> {Neg (P[?t/0])})\<close>
     by simp
   finally show ?thesis
@@ -2041,13 +2265,13 @@ proof (intro allI impI conjI)
     unfolding maximal_def by blast
 
   { fix p ts
-    show \<open>\<not> (Pred p ts \<in> ?H \<and> Neg (Pred p ts) \<in> ?H)\<close>
+    show \<open>\<not> (Pre p ts \<in> ?H \<and> Neg (Pre p ts) \<in> ?H)\<close>
       using \<open>?H \<in> C\<close> altc unfolding alt_consistency_def by fast }
 
-  show \<open>FF \<notin> ?H\<close>
+  show \<open>\<bottom> \<notin> ?H\<close>
     using \<open>?H \<in> C\<close> altc unfolding alt_consistency_def by blast
 
-  show \<open>Neg TT \<notin> ?H\<close>
+  show \<open>Neg \<top> \<notin> ?H\<close>
     using \<open>?H \<in> C\<close> altc unfolding alt_consistency_def by blast
 
   { fix Z
@@ -2058,71 +2282,71 @@ proof (intro allI impI conjI)
       using \<open>maximal ?H C\<close> unfolding maximal_def by fast }
 
   { fix A B
-    assume \<open>And A B \<in> ?H\<close>
+    assume \<open>Con A B \<in> ?H\<close>
     then have \<open>?H \<union> {A, B} \<in> C\<close>
       using \<open>?H \<in> C\<close> altc unfolding alt_consistency_def by fast
     then show \<open>A \<in> ?H\<close> and \<open>B \<in> ?H\<close>
       using \<open>maximal ?H C\<close> unfolding maximal_def by fast+ }
 
   { fix A B
-    assume \<open>Neg (Or A B) \<in> ?H\<close>
+    assume \<open>Neg (Dis A B) \<in> ?H\<close>
     then have \<open>?H \<union> {Neg A, Neg B} \<in> C\<close>
       using \<open>?H \<in> C\<close> altc unfolding alt_consistency_def by fast
     then show \<open>Neg A \<in> ?H\<close> and \<open>Neg B \<in> ?H\<close>
       using \<open>maximal ?H C\<close> unfolding maximal_def by fast+ }
 
   { fix A B
-    assume \<open>Neg (Impl A B) \<in> ?H\<close>
+    assume \<open>Neg (Imp A B) \<in> ?H\<close>
     then have \<open>?H \<union> {A, Neg B} \<in> C\<close>
       using \<open>?H \<in> C\<close> altc unfolding alt_consistency_def by blast
     then show \<open>A \<in> ?H\<close> and \<open>Neg B \<in> ?H\<close>
       using \<open>maximal ?H C\<close> unfolding maximal_def by fast+ }
 
   { fix A B
-    assume \<open>Or A B \<in> ?H\<close>
+    assume \<open>Dis A B \<in> ?H\<close>
     then have \<open>?H \<union> {A} \<in> C \<or> ?H \<union> {B} \<in> C\<close>
       using \<open>?H \<in> C\<close> altc unfolding alt_consistency_def by fast
     then show \<open>A \<in> ?H \<or> B \<in> ?H\<close>
       using \<open>maximal ?H C\<close> unfolding maximal_def by fast }
 
   { fix A B
-    assume \<open>Neg (And A B) \<in> ?H\<close>
+    assume \<open>Neg (Con A B) \<in> ?H\<close>
     then have \<open>?H \<union> {Neg A} \<in> C \<or> ?H \<union> {Neg B} \<in> C\<close>
       using \<open>?H \<in> C\<close> altc unfolding alt_consistency_def by simp
     then show \<open>Neg A \<in> ?H \<or> Neg B \<in> ?H\<close>
       using \<open>maximal ?H C\<close> unfolding maximal_def by fast }
 
   { fix A B
-    assume \<open>Impl A B \<in> ?H\<close>
+    assume \<open>Imp A B \<in> ?H\<close>
     then have \<open>?H \<union> {Neg A} \<in> C \<or> ?H \<union> {B} \<in> C\<close>
       using \<open>?H \<in> C\<close> altc unfolding alt_consistency_def by simp
     then show \<open>Neg A \<in> ?H \<or> B \<in> ?H\<close>
       using \<open>maximal ?H C\<close> unfolding maximal_def by fast }
 
   { fix P and t :: \<open>nat term\<close>
-    assume \<open>Forall P \<in> ?H\<close> and \<open>closedt 0 t\<close>
+    assume \<open>Uni P \<in> ?H\<close> and \<open>closedt 0 t\<close>
     then have \<open>?H \<union> {P[t/0]} \<in> C\<close>
       using \<open>?H \<in> C\<close> altc unfolding alt_consistency_def by blast
     then show \<open>P[t/0] \<in> ?H\<close>
       using \<open>maximal ?H C\<close> unfolding maximal_def by fast }
 
   { fix P and t :: \<open>nat term\<close>
-    assume \<open>Neg (Exists P) \<in> ?H\<close> and \<open>closedt 0 t\<close>
+    assume \<open>Neg (Exi P) \<in> ?H\<close> and \<open>closedt 0 t\<close>
     then have \<open>?H \<union> {Neg (P[t/0])} \<in> C\<close>
       using \<open>?H \<in> C\<close> altc unfolding alt_consistency_def by blast
     then show \<open>Neg (P[t/0]) \<in> ?H\<close>
       using \<open>maximal ?H C\<close> unfolding maximal_def by fast }
 
   { fix P
-    assume \<open>Exists P \<in> ?H\<close>
-    obtain n where *: \<open>Exists P = f n\<close>
+    assume \<open>Exi P \<in> ?H\<close>
+    obtain n where *: \<open>Exi P = f n\<close>
       using surj by blast
 
-    let ?t = \<open>App (SOME k. k \<notin> (\<Union>p \<in> extend S C f n \<union> {f n}. params p)) []\<close>
+    let ?t = \<open>Fun (SOME k. k \<notin> (\<Union>p \<in> extend S C f n \<union> {f n}. params p)) []\<close>
     have \<open>closedt 0 ?t\<close> by simp
 
-    have \<open>Exists P \<in> (\<Union>n. extend S C f n)\<close>
-      using \<open>Exists P \<in> ?H\<close> Extend_def by blast
+    have \<open>Exi P \<in> (\<Union>n. extend S C f n)\<close>
+      using \<open>Exi P \<in> ?H\<close> Extend_def by blast
     then have \<open>extend S C f n \<union> {f n} \<subseteq> (\<Union>n. extend S C f n)\<close>
       using * by (simp add: UN_upper)
     then have \<open>extend S C f n \<union> {f n} \<in> C\<close>
@@ -2136,15 +2360,15 @@ proof (intro allI impI conjI)
       using \<open>closedt 0 ?t\<close> by blast }
 
   { fix P
-    assume \<open>Neg (Forall P) \<in> ?H\<close>
-    obtain n where *: \<open>Neg (Forall P) = f n\<close>
+    assume \<open>Neg (Uni P) \<in> ?H\<close>
+    obtain n where *: \<open>Neg (Uni P) = f n\<close>
       using surj by blast
 
-    let ?t = \<open>App (SOME k. k \<notin> (\<Union>p \<in> extend S C f n \<union> {f n}. params p)) []\<close>
+    let ?t = \<open>Fun (SOME k. k \<notin> (\<Union>p \<in> extend S C f n \<union> {f n}. params p)) []\<close>
     have \<open>closedt 0 ?t\<close> by simp
 
-    have \<open>Neg (Forall P) \<in> (\<Union>n. extend S C f n)\<close>
-      using \<open>Neg (Forall P) \<in> ?H\<close> Extend_def by blast
+    have \<open>Neg (Uni P) \<in> (\<Union>n. extend S C f n)\<close>
+      using \<open>Neg (Uni P) \<in> ?H\<close> Extend_def by blast
     then have \<open>extend S C f n \<union> {f n} \<subseteq> (\<Union>n. extend S C f n)\<close>
       using * by (simp add: UN_upper)
     then have \<open>extend S C f n \<union> {f n} \<in> C\<close>
@@ -2162,8 +2386,8 @@ subsection \<open>Model existence theorem\<close>
 
 text \<open>
 \label{sec:model-existence}
-Since the result of extending @{text S} is a superset of @{text S},
-it follows that each consistent set @{text S} has a Herbrand model:
+Since the result of extending \<open>S\<close> is a superset of \<open>S\<close>,
+it follows that each consistent set \<open>S\<close> has a Herbrand model:
 \<close>
 
 lemma hintikka_Extend_S:
@@ -2199,7 +2423,7 @@ theorem model_existence:
     and \<open>infinite (- (\<Union>p \<in> S. params p))\<close>
     and \<open>p \<in> S\<close>
     and \<open>closed 0 p\<close>
-  shows \<open>eval e HApp (\<lambda>a ts. Pred a (terms_of_hterms ts) \<in> Extend S
+  shows \<open>semantics e HFun (\<lambda>a ts. Pre a (terms_of_hterms ts) \<in> Extend S
         (mk_finite_char (mk_alt_consistency (close C))) from_nat) p\<close>
   using assms hintikka_model hintikka_Extend_S Extend_subset
   by blast
@@ -2210,59 +2434,59 @@ text \<open>
 Thanks to the model existence theorem, we can now show the completeness
 of the natural deduction calculus introduced in \secref{sec:proof-calculus}.
 In order for the model existence theorem to be applicable, we have to prove
-that the set of sets that are consistent with respect to @{text \<open>\<turnstile>\<close>} is a
+that the set of sets that are consistent with respect to \<open>\<turnstile>\<close> is a
 consistency property:
 \<close>
 
 theorem deriv_consistency:
   assumes inf_param: \<open>infinite (UNIV :: 'a set)\<close>
-  shows \<open>consistency {S::('a, 'b) form set. \<exists>G. S = set G \<and> \<not> G \<turnstile> FF}\<close>
+  shows \<open>consistency {S::('a, 'b) form set. \<exists>G. S = set G \<and> \<not> G \<turnstile> \<bottom>}\<close>
   unfolding consistency_def
 proof (intro conjI allI impI notI)
   fix S :: \<open>('a, 'b) form set\<close>
-  assume \<open>S \<in> {set G |G. \<not> G \<turnstile> FF}\<close> (is \<open>S \<in> ?C\<close>)
+  assume \<open>S \<in> {set G |G. \<not> G \<turnstile> \<bottom>}\<close> (is \<open>S \<in> ?C\<close>)
   then obtain G :: \<open>('a, 'b) form list\<close>
-    where *: \<open>S = set G\<close> and \<open>\<not> G \<turnstile> FF\<close>
+    where *: \<open>S = set G\<close> and \<open>\<not> G \<turnstile> \<bottom>\<close>
     by blast
 
   { fix p ts
-    assume \<open>Pred p ts \<in> S \<and> Neg (Pred p ts) \<in> S\<close>
-    then have \<open>G \<turnstile> Pred p ts\<close> and \<open>G \<turnstile> Neg (Pred p ts)\<close>
+    assume \<open>Pre p ts \<in> S \<and> Neg (Pre p ts) \<in> S\<close>
+    then have \<open>G \<turnstile> Pre p ts\<close> and \<open>G \<turnstile> Neg (Pre p ts)\<close>
       using Assum * by blast+
-    then have \<open>G \<turnstile> FF\<close>
+    then have \<open>G \<turnstile> \<bottom>\<close>
       using NegE by blast
     then show False
-      using \<open>\<not> G \<turnstile> FF\<close> by blast }
+      using \<open>\<not> G \<turnstile> \<bottom>\<close> by blast }
 
-  { assume \<open>FF \<in> S\<close>
-    then have \<open>G \<turnstile> FF\<close>
+  { assume \<open>\<bottom> \<in> S\<close>
+    then have \<open>G \<turnstile> \<bottom>\<close>
       using Assum * by blast
     then show False
-      using \<open>\<not> G \<turnstile> FF\<close> by blast }
+      using \<open>\<not> G \<turnstile> \<bottom>\<close> by blast }
 
-  { assume \<open>Neg TT \<in> S\<close>
-    then have \<open>G \<turnstile> Neg TT\<close>
+  { assume \<open>Neg \<top> \<in> S\<close>
+    then have \<open>G \<turnstile> Neg \<top>\<close>
       using Assum * by blast
-    moreover have \<open>G \<turnstile> TT\<close>
+    moreover have \<open>G \<turnstile> \<top>\<close>
       using TTI by blast
-    ultimately have \<open>G \<turnstile> FF\<close>
+    ultimately have \<open>G \<turnstile> \<bottom>\<close>
       using NegE by blast
     then show False
-      using \<open>\<not> G \<turnstile> FF\<close> by blast }
+      using \<open>\<not> G \<turnstile> \<bottom>\<close> by blast }
 
   { fix Z
     assume \<open>Neg (Neg Z) \<in> S\<close>
     then have \<open>G \<turnstile> Neg (Neg Z)\<close>
       using Assum * by blast
 
-    { assume \<open>Z # G \<turnstile> FF\<close>
+    { assume \<open>Z # G \<turnstile> \<bottom>\<close>
       then have \<open>G \<turnstile> Neg Z\<close>
         using NegI by blast
-      then have \<open>G \<turnstile> FF\<close>
+      then have \<open>G \<turnstile> \<bottom>\<close>
         using NegE \<open>G \<turnstile> Neg (Neg Z)\<close> by blast
       then have False
-        using \<open>\<not> G \<turnstile> FF\<close> by blast }
-    then have \<open>\<not> Z # G \<turnstile> FF\<close>
+        using \<open>\<not> G \<turnstile> \<bottom>\<close> by blast }
+    then have \<open>\<not> Z # G \<turnstile> \<bottom>\<close>
       by blast
     moreover have \<open>S \<union> {Z} = set (Z # G)\<close>
       using * by simp
@@ -2270,22 +2494,22 @@ proof (intro conjI allI impI notI)
       by blast }
 
   { fix A B
-    assume \<open>And A B \<in> S\<close>
-    then have \<open>G \<turnstile> And A B\<close>
+    assume \<open>Con A B \<in> S\<close>
+    then have \<open>G \<turnstile> Con A B\<close>
       using Assum * by blast
     then have \<open>G \<turnstile> A\<close> and \<open>G \<turnstile> B\<close>
       using AndE1 AndE2 by blast+
 
-    { assume \<open>A # B # G \<turnstile> FF\<close>
+    { assume \<open>A # B # G \<turnstile> \<bottom>\<close>
       then have \<open>B # G \<turnstile> Neg A\<close>
         using NegI by blast
       then have \<open>G \<turnstile> Neg A\<close>
         using cut \<open>G \<turnstile> B\<close> by blast
-      then have \<open>G \<turnstile> FF\<close>
+      then have \<open>G \<turnstile> \<bottom>\<close>
         using NegE \<open>G \<turnstile> A\<close> by blast
       then have False
-        using \<open>\<not> G \<turnstile> FF\<close> by blast }
-    then have \<open>\<not> A # B # G \<turnstile> FF\<close>
+        using \<open>\<not> G \<turnstile> \<bottom>\<close> by blast }
+    then have \<open>\<not> A # B # G \<turnstile> \<bottom>\<close>
       by blast
     moreover have \<open>S \<union> {A, B} = set (A # B # G)\<close>
       using * by simp
@@ -2293,42 +2517,42 @@ proof (intro conjI allI impI notI)
       by blast }
 
   { fix A B
-    assume \<open>Neg (Or A B) \<in> S\<close>
-    then have \<open>G \<turnstile> Neg (Or A B)\<close>
+    assume \<open>Neg (Dis A B) \<in> S\<close>
+    then have \<open>G \<turnstile> Neg (Dis A B)\<close>
       using Assum * by blast
 
     have \<open>A # Neg B # G \<turnstile> A\<close>
       by (simp add: Assum)
-    then have \<open>A # Neg B # G \<turnstile> Or A B\<close>
+    then have \<open>A # Neg B # G \<turnstile> Dis A B\<close>
       using OrI1 by blast
-    moreover have \<open>A # Neg B # G \<turnstile> Neg (Or A B)\<close>
-      using * \<open>Neg (Or A B) \<in> S\<close> by (simp add: Assum)
-    ultimately have \<open>A # Neg B # G \<turnstile> FF\<close>
-      using NegE \<open>A # Neg B # G \<turnstile> Neg (Or A B)\<close> by blast
+    moreover have \<open>A # Neg B # G \<turnstile> Neg (Dis A B)\<close>
+      using * \<open>Neg (Dis A B) \<in> S\<close> by (simp add: Assum)
+    ultimately have \<open>A # Neg B # G \<turnstile> \<bottom>\<close>
+      using NegE \<open>A # Neg B # G \<turnstile> Neg (Dis A B)\<close> by blast
     then have \<open>Neg B # G \<turnstile> Neg A\<close>
       using NegI by blast
 
     have \<open>B # G \<turnstile> B\<close>
       by (simp add: Assum)
-    then have \<open>B # G \<turnstile> Or A B\<close>
+    then have \<open>B # G \<turnstile> Dis A B\<close>
       using OrI2 by blast
-    moreover have \<open>B # G \<turnstile> Neg (Or A B)\<close>
-      using * \<open>Neg (Or A B) \<in> S\<close> by (simp add: Assum)
-    ultimately have \<open>B # G \<turnstile> FF\<close>
-      using NegE \<open>B # G \<turnstile> Neg (Or A B)\<close> by blast
+    moreover have \<open>B # G \<turnstile> Neg (Dis A B)\<close>
+      using * \<open>Neg (Dis A B) \<in> S\<close> by (simp add: Assum)
+    ultimately have \<open>B # G \<turnstile> \<bottom>\<close>
+      using NegE \<open>B # G \<turnstile> Neg (Dis A B)\<close> by blast
     then have \<open>G \<turnstile> Neg B\<close>
       using NegI by blast
 
-    { assume \<open>Neg A # Neg B # G \<turnstile> FF\<close>
+    { assume \<open>Neg A # Neg B # G \<turnstile> \<bottom>\<close>
       then have \<open>Neg B # G \<turnstile> Neg (Neg A)\<close>
         using NegI by blast
-      then have \<open>Neg B # G \<turnstile> FF\<close>
+      then have \<open>Neg B # G \<turnstile> \<bottom>\<close>
         using NegE \<open>Neg B # G \<turnstile> Neg A\<close> by blast
-      then have \<open>G \<turnstile> FF\<close>
+      then have \<open>G \<turnstile> \<bottom>\<close>
         using cut \<open>G \<turnstile> Neg B\<close> by blast
       then have False
-        using \<open>\<not> G \<turnstile> FF\<close> by blast }
-    then have \<open>\<not> Neg A # Neg B # G \<turnstile> FF\<close>
+        using \<open>\<not> G \<turnstile> \<bottom>\<close> by blast }
+    then have \<open>\<not> Neg A # Neg B # G \<turnstile> \<bottom>\<close>
       by blast
     moreover have \<open>S \<union> {Neg A, Neg B} = set (Neg A # Neg B # G)\<close>
       using * by simp
@@ -2336,47 +2560,47 @@ proof (intro conjI allI impI notI)
       by blast }
 
   { fix A B
-    assume \<open>Neg (Impl A B) \<in> S\<close>
+    assume \<open>Neg (Imp A B) \<in> S\<close>
 
     have \<open>A # Neg A # Neg B # G \<turnstile> A\<close>
       by (simp add: Assum)
     moreover have \<open>A # Neg A # Neg B # G \<turnstile> Neg A\<close>
       by (simp add: Assum)
-    ultimately have \<open>A # Neg A # Neg B # G \<turnstile> FF\<close>
+    ultimately have \<open>A # Neg A # Neg B # G \<turnstile> \<bottom>\<close>
       using NegE by blast
     then have \<open>A # Neg A # Neg B # G \<turnstile> B\<close>
       using FFE by blast
-    then have \<open>Neg A # Neg B # G \<turnstile> Impl A B\<close>
+    then have \<open>Neg A # Neg B # G \<turnstile> Imp A B\<close>
       using ImplI by blast
-    moreover have \<open>Neg A # Neg B # G \<turnstile> Neg (Impl A B)\<close>
-      using * \<open>Neg (Impl A B) \<in> S\<close> by (simp add: Assum)
-    ultimately have \<open>Neg A # Neg B # G \<turnstile> FF\<close>
+    moreover have \<open>Neg A # Neg B # G \<turnstile> Neg (Imp A B)\<close>
+      using * \<open>Neg (Imp A B) \<in> S\<close> by (simp add: Assum)
+    ultimately have \<open>Neg A # Neg B # G \<turnstile> \<bottom>\<close>
       using NegE by blast
     then have \<open>Neg B # G \<turnstile> A\<close>
       using Class by blast
 
     have \<open>A # B # G \<turnstile> B\<close>
       by (simp add: Assum)
-    then have \<open>B # G \<turnstile> Impl A B\<close>
+    then have \<open>B # G \<turnstile> Imp A B\<close>
       using ImplI by blast
-    moreover have \<open>B # G \<turnstile> Neg (Impl A B)\<close>
-      using * \<open>Neg (Impl A B) \<in> S\<close> by (simp add: Assum)
-    ultimately have \<open>B # G \<turnstile> FF\<close>
+    moreover have \<open>B # G \<turnstile> Neg (Imp A B)\<close>
+      using * \<open>Neg (Imp A B) \<in> S\<close> by (simp add: Assum)
+    ultimately have \<open>B # G \<turnstile> \<bottom>\<close>
       using NegE by blast
     then have \<open>G \<turnstile> Neg B\<close>
       using NegI by blast
 
-    { assume \<open>A # Neg B # G \<turnstile> FF\<close>
+    { assume \<open>A # Neg B # G \<turnstile> \<bottom>\<close>
       then have \<open>Neg B # G \<turnstile> Neg A\<close>
         using NegI by blast
-      then have \<open>Neg B # G \<turnstile> FF\<close>
+      then have \<open>Neg B # G \<turnstile> \<bottom>\<close>
         using NegE \<open>Neg B # G \<turnstile> A\<close> by blast
-      then have \<open>G \<turnstile> FF\<close>
+      then have \<open>G \<turnstile> \<bottom>\<close>
         using cut \<open>G \<turnstile> Neg B\<close> by blast
       then have False
-        using \<open>\<not> G \<turnstile> FF\<close>
+        using \<open>\<not> G \<turnstile> \<bottom>\<close>
         by blast }
-    then have \<open>\<not> A # Neg B # G \<turnstile> FF\<close>
+    then have \<open>\<not> A # Neg B # G \<turnstile> \<bottom>\<close>
       by blast
     moreover have \<open>{A, Neg B} \<union> S = set (A # Neg B # G)\<close>
       using * by simp
@@ -2384,33 +2608,33 @@ proof (intro conjI allI impI notI)
       by blast }
 
   { fix A B
-    assume \<open>Or A B \<in> S\<close>
-    then have \<open>G \<turnstile> Or A B\<close>
+    assume \<open>Dis A B \<in> S\<close>
+    then have \<open>G \<turnstile> Dis A B\<close>
       using * Assum by blast
 
-    { assume \<open>(\<forall>G'. set G' = S \<union> {A} \<longrightarrow> G' \<turnstile> FF)\<close>
-        and \<open>(\<forall>G'. set G' = S \<union> {B} \<longrightarrow> G' \<turnstile> FF)\<close>
-      then have \<open>A # G \<turnstile> FF\<close> and \<open>B # G \<turnstile> FF\<close>
+    { assume \<open>(\<forall>G'. set G' = S \<union> {A} \<longrightarrow> G' \<turnstile> \<bottom>)\<close>
+        and \<open>(\<forall>G'. set G' = S \<union> {B} \<longrightarrow> G' \<turnstile> \<bottom>)\<close>
+      then have \<open>A # G \<turnstile> \<bottom>\<close> and \<open>B # G \<turnstile> \<bottom>\<close>
         using * by simp_all
-      then have \<open>G \<turnstile> FF\<close>
-        using OrE \<open>G \<turnstile> Or A B\<close> by blast
+      then have \<open>G \<turnstile> \<bottom>\<close>
+        using OrE \<open>G \<turnstile> Dis A B\<close> by blast
       then have False
-        using \<open>\<not> G \<turnstile> FF\<close> by blast }
+        using \<open>\<not> G \<turnstile> \<bottom>\<close> by blast }
     then show \<open>S \<union> {A} \<in> ?C \<or> S \<union> {B} \<in> ?C\<close>
       by blast }
 
   { fix A B
-    assume \<open>Neg (And A B) \<in> S\<close>
+    assume \<open>Neg (Con A B) \<in> S\<close>
 
-    let ?x = \<open>Or (Neg A) (Neg B)\<close>
+    let ?x = \<open>Dis (Neg A) (Neg B)\<close>
 
     have \<open>B # A # Neg ?x # G \<turnstile> A\<close> and \<open>B # A # Neg ?x # G \<turnstile> B\<close>
       by (simp_all add: Assum)
-    then have \<open>B # A # Neg ?x # G \<turnstile> And A B\<close>
+    then have \<open>B # A # Neg ?x # G \<turnstile> Con A B\<close>
       using AndI by blast
-    moreover have \<open>B # A # Neg ?x # G \<turnstile> Neg (And A B)\<close>
-      using * \<open>Neg (And A B) \<in> S\<close> by (simp add: Assum)
-    ultimately have \<open>B # A # Neg ?x # G \<turnstile> FF\<close>
+    moreover have \<open>B # A # Neg ?x # G \<turnstile> Neg (Con A B)\<close>
+      using * \<open>Neg (Con A B) \<in> S\<close> by (simp add: Assum)
+    ultimately have \<open>B # A # Neg ?x # G \<turnstile> \<bottom>\<close>
       using NegE by blast
     then have \<open>A # Neg ?x # G \<turnstile> Neg B\<close>
       using NegI by blast
@@ -2418,74 +2642,74 @@ proof (intro conjI allI impI notI)
       using OrI2 by blast
     moreover have \<open>A # Neg ?x # G \<turnstile> Neg ?x\<close>
       by (simp add: Assum)
-    ultimately have \<open>A # Neg ?x # G \<turnstile> FF\<close>
+    ultimately have \<open>A # Neg ?x # G \<turnstile> \<bottom>\<close>
       using NegE by blast
     then have \<open>Neg ?x # G \<turnstile> Neg A\<close>
       using NegI by blast
     then have \<open>Neg ?x # G \<turnstile> ?x\<close>
       using OrI1 by blast
-    then have \<open>G \<turnstile> Or (Neg A) (Neg B)\<close>
+    then have \<open>G \<turnstile> Dis (Neg A) (Neg B)\<close>
       using Class' by blast
 
-    { assume \<open>(\<forall>G'. set G' = S \<union> {Neg A} \<longrightarrow> G' \<turnstile> FF)\<close>
-        and \<open>(\<forall>G'. set G' = S \<union> {Neg B} \<longrightarrow> G' \<turnstile> FF)\<close>
-      then have \<open>Neg A # G \<turnstile> FF\<close> and \<open>Neg B # G \<turnstile> FF\<close>
+    { assume \<open>(\<forall>G'. set G' = S \<union> {Neg A} \<longrightarrow> G' \<turnstile> \<bottom>)\<close>
+        and \<open>(\<forall>G'. set G' = S \<union> {Neg B} \<longrightarrow> G' \<turnstile> \<bottom>)\<close>
+      then have \<open>Neg A # G \<turnstile> \<bottom>\<close> and \<open>Neg B # G \<turnstile> \<bottom>\<close>
         using * by simp_all
-      then have \<open>G \<turnstile> FF\<close>
-        using OrE \<open>G \<turnstile> Or (Neg A) (Neg B)\<close> by blast
+      then have \<open>G \<turnstile> \<bottom>\<close>
+        using OrE \<open>G \<turnstile> Dis (Neg A) (Neg B)\<close> by blast
       then have False
-        using \<open>\<not> G \<turnstile> FF\<close> by blast }
+        using \<open>\<not> G \<turnstile> \<bottom>\<close> by blast }
     then show \<open>S \<union> {Neg A} \<in> ?C \<or> S \<union> {Neg B} \<in> ?C\<close>
       by blast }
 
   { fix A B
-    assume \<open>Impl A B \<in> S\<close>
+    assume \<open>Imp A B \<in> S\<close>
 
-    let ?x = \<open>Or (Neg A) B\<close>
+    let ?x = \<open>Dis (Neg A) B\<close>
 
     have \<open>A # Neg ?x # G \<turnstile> A\<close>
       by (simp add: Assum)
-    moreover have \<open>A # Neg ?x # G \<turnstile> Impl A B\<close>
-      using * \<open>Impl A B \<in> S\<close> by (simp add: Assum)
+    moreover have \<open>A # Neg ?x # G \<turnstile> Imp A B\<close>
+      using * \<open>Imp A B \<in> S\<close> by (simp add: Assum)
     ultimately have \<open>A # Neg ?x # G \<turnstile> B\<close>
       using ImplE by blast
     then have \<open>A # Neg ?x # G \<turnstile> ?x\<close>
       using OrI2 by blast
     moreover have \<open>A # Neg ?x # G \<turnstile> Neg ?x\<close>
       by (simp add: Assum)
-    ultimately have \<open>A # Neg ?x # G \<turnstile> FF\<close>
+    ultimately have \<open>A # Neg ?x # G \<turnstile> \<bottom>\<close>
       using NegE by blast
     then have \<open>Neg ?x # G \<turnstile> Neg A\<close>
       using NegI by blast
     then have \<open>Neg ?x # G \<turnstile> ?x\<close>
       using OrI1 by blast
-    then have \<open>G \<turnstile> Or (Neg A) B\<close>
+    then have \<open>G \<turnstile> Dis (Neg A) B\<close>
       using Class' by blast
 
-    { assume \<open>(\<forall>G'. set G' = S \<union> {Neg A} \<longrightarrow> G' \<turnstile> FF)\<close>
-        and \<open>(\<forall>G'. set G' = S \<union> {B} \<longrightarrow> G' \<turnstile> FF)\<close>
-      then have \<open>Neg A # G \<turnstile> FF\<close> and \<open>B # G \<turnstile> FF\<close>
+    { assume \<open>(\<forall>G'. set G' = S \<union> {Neg A} \<longrightarrow> G' \<turnstile> \<bottom>)\<close>
+        and \<open>(\<forall>G'. set G' = S \<union> {B} \<longrightarrow> G' \<turnstile> \<bottom>)\<close>
+      then have \<open>Neg A # G \<turnstile> \<bottom>\<close> and \<open>B # G \<turnstile> \<bottom>\<close>
         using * by simp_all
-      then have \<open>G \<turnstile> FF\<close>
-        using OrE \<open>G \<turnstile> Or (Neg A) B\<close> by blast
+      then have \<open>G \<turnstile> \<bottom>\<close>
+        using OrE \<open>G \<turnstile> Dis (Neg A) B\<close> by blast
       then have False
-        using \<open>\<not> G \<turnstile> FF\<close> by blast }
+        using \<open>\<not> G \<turnstile> \<bottom>\<close> by blast }
     then show \<open>S \<union> {Neg A} \<in> ?C \<or> S \<union> {B} \<in> ?C\<close>
       by blast }
 
   { fix P and t :: \<open>'a term\<close>
-    assume \<open>closedt 0 t\<close> and \<open>Forall P \<in> S\<close>
-    then have \<open>G \<turnstile> Forall P\<close>
+    assume \<open>closedt 0 t\<close> and \<open>Uni P \<in> S\<close>
+    then have \<open>G \<turnstile> Uni P\<close>
       using Assum * by blast
     then have \<open>G \<turnstile> P[t/0]\<close>
       using ForallE by blast
 
-    { assume \<open>P[t/0] # G \<turnstile> FF\<close>
-      then have \<open>G \<turnstile> FF\<close>
+    { assume \<open>P[t/0] # G \<turnstile> \<bottom>\<close>
+      then have \<open>G \<turnstile> \<bottom>\<close>
         using cut \<open>G \<turnstile> P[t/0]\<close> by blast
       then have False
-        using \<open>\<not> G \<turnstile> FF\<close> by blast }
-    then have \<open>\<not> P[t/0] # G \<turnstile> FF\<close>
+        using \<open>\<not> G \<turnstile> \<bottom>\<close> by blast }
+    then have \<open>\<not> P[t/0] # G \<turnstile> \<bottom>\<close>
       by blast
     moreover have \<open>S \<union> {P[t/0]} = set (P[t/0] # G)\<close>
       using * by simp
@@ -2493,28 +2717,28 @@ proof (intro conjI allI impI notI)
       by blast }
 
   { fix P and t :: \<open>'a term\<close>
-    assume \<open>closedt 0 t\<close> and \<open>Neg (Exists P) \<in> S\<close>
-    then have \<open>G \<turnstile> Neg (Exists P)\<close>
+    assume \<open>closedt 0 t\<close> and \<open>Neg (Exi P) \<in> S\<close>
+    then have \<open>G \<turnstile> Neg (Exi P)\<close>
       using Assum * by blast
     then have \<open>P[t/0] \<in> set (P[t/0] # G)\<close>
       by (simp add: Assum)
     then have \<open>P[t/0] # G \<turnstile> P[t/0]\<close>
       using Assum by blast
-    then have \<open>P[t/0] # G \<turnstile> Exists P\<close>
+    then have \<open>P[t/0] # G \<turnstile> Exi P\<close>
       using ExistsI by blast
-    moreover have \<open>P[t/0] # G \<turnstile> Neg (Exists P)\<close>
-      using * \<open>Neg (Exists P) \<in> S\<close> by (simp add: Assum)
-    ultimately have \<open>P[t/0] # G \<turnstile> FF\<close>
+    moreover have \<open>P[t/0] # G \<turnstile> Neg (Exi P)\<close>
+      using * \<open>Neg (Exi P) \<in> S\<close> by (simp add: Assum)
+    ultimately have \<open>P[t/0] # G \<turnstile> \<bottom>\<close>
       using NegE by blast
     then have \<open>G \<turnstile> Neg (P[t/0])\<close>
       using NegI by blast
 
-    { assume \<open>Neg (P[t/0]) # G \<turnstile> FF\<close>
-      then have \<open>G \<turnstile> FF\<close>
+    { assume \<open>Neg (P[t/0]) # G \<turnstile> \<bottom>\<close>
+      then have \<open>G \<turnstile> \<bottom>\<close>
         using cut \<open>G \<turnstile> Neg (P[t/0])\<close> by blast
       then have False
-        using \<open>\<not> G \<turnstile> FF\<close> by blast }
-    then have \<open>\<not> Neg (P[t/0]) # G \<turnstile> FF\<close>
+        using \<open>\<not> G \<turnstile> \<bottom>\<close> by blast }
+    then have \<open>\<not> Neg (P[t/0]) # G \<turnstile> \<bottom>\<close>
       by blast
     moreover have \<open>S \<union> {Neg (P[t/0])} = set (Neg (P[t/0]) # G)\<close>
       using * by simp
@@ -2522,8 +2746,8 @@ proof (intro conjI allI impI notI)
       by blast }
 
   { fix P
-    assume \<open>Exists P \<in> S\<close>
-    then have \<open>G \<turnstile> Exists P\<close>
+    assume \<open>Exi P \<in> S\<close>
+    then have \<open>G \<turnstile> Exi P\<close>
       using * Assum by blast
 
     have \<open>finite ((\<Union>p \<in> set G. params p) \<union> params P)\<close>
@@ -2535,28 +2759,28 @@ proof (intro conjI allI impI notI)
     then obtain x where **: \<open>x \<in> - ((\<Union>p \<in> set G. params p) \<union> params P)\<close>
       using infinite_imp_nonempty by blast
 
-    { assume \<open>P[App x []/0] # G \<turnstile> FF\<close>
+    { assume \<open>P[Fun x []/0] # G \<turnstile> \<bottom>\<close>
       moreover have \<open>list_all (\<lambda>p. x \<notin> params p) G\<close>
         using ** by (simp add: list_all_iff)
       moreover have \<open>x \<notin> params P\<close>
         using ** by simp
-      moreover have \<open>x \<notin> params FF\<close>
+      moreover have \<open>x \<notin> params \<bottom>\<close>
         by simp
-      ultimately have \<open>G \<turnstile> FF\<close>
-        using ExistsE \<open>G \<turnstile> Exists P\<close> by fast
+      ultimately have \<open>G \<turnstile> \<bottom>\<close>
+        using ExistsE \<open>G \<turnstile> Exi P\<close> by fast
       then have False
-        using \<open>\<not> G \<turnstile> FF\<close>
+        using \<open>\<not> G \<turnstile> \<bottom>\<close>
         by blast}
-    then have \<open>\<not> P[App x []/0] # G \<turnstile> FF\<close>
+    then have \<open>\<not> P[Fun x []/0] # G \<turnstile> \<bottom>\<close>
       by blast
-    moreover have \<open>S \<union> {P[App x []/0]} = set (P[App x []/0] # G)\<close>
+    moreover have \<open>S \<union> {P[Fun x []/0]} = set (P[Fun x []/0] # G)\<close>
       using * by simp
-    ultimately show \<open>\<exists>x. S \<union> {P[App x []/0]} \<in> ?C\<close>
+    ultimately show \<open>\<exists>x. S \<union> {P[Fun x []/0]} \<in> ?C\<close>
       by blast }
 
   { fix P
-    assume \<open>Neg (Forall P) \<in> S\<close>
-    then have \<open>G \<turnstile> Neg (Forall P)\<close>
+    assume \<open>Neg (Uni P) \<in> S\<close>
+    then have \<open>G \<turnstile> Neg (Uni P)\<close>
       using * Assum by blast
 
     have \<open>finite ((\<Union>p \<in> set G. params p) \<union> params P)\<close>
@@ -2568,48 +2792,48 @@ proof (intro conjI allI impI notI)
     then obtain x where **: \<open>x \<in> - ((\<Union>p \<in> set G. params p) \<union> params P)\<close>
       using infinite_imp_nonempty by blast
 
-    let ?x = \<open>Neg (Exists (Neg P))\<close>
+    let ?x = \<open>Neg (Exi (Neg P))\<close>
 
-    have \<open>Neg (P[App x []/0]) # ?x # G \<turnstile> Neg P[App x []/0]\<close>
+    have \<open>Neg (P[Fun x []/0]) # ?x # G \<turnstile> Neg P[Fun x []/0]\<close>
       by (simp add: Assum)
-    then have \<open>Neg (P[App x []/0]) # ?x # G \<turnstile> Exists (Neg P)\<close>
+    then have \<open>Neg (P[Fun x []/0]) # ?x # G \<turnstile> Exi (Neg P)\<close>
       using ExistsI by blast
-    moreover have \<open>Neg (P[App x []/0]) # ?x # G \<turnstile> ?x\<close>
+    moreover have \<open>Neg (P[Fun x []/0]) # ?x # G \<turnstile> ?x\<close>
       by (simp add: Assum)
-    ultimately have \<open>Neg (P[App x []/0]) # ?x # G \<turnstile> FF\<close>
+    ultimately have \<open>Neg (P[Fun x []/0]) # ?x # G \<turnstile> \<bottom>\<close>
       using NegE by blast
-    then have \<open>?x # G \<turnstile> P[App x []/0]\<close>
+    then have \<open>?x # G \<turnstile> P[Fun x []/0]\<close>
       using Class by blast
     moreover have \<open>list_all (\<lambda>p. x \<notin> params p) (?x # G)\<close>
       using ** by (simp add: list_all_iff)
     moreover have \<open>x \<notin> params P\<close>
       using ** by simp
-    ultimately have \<open>?x # G \<turnstile> Forall P\<close>
+    ultimately have \<open>?x # G \<turnstile> Uni P\<close>
       using ForallI by fast
-    moreover have \<open>?x # G \<turnstile> Neg (Forall P)\<close>
-      using * \<open>Neg (Forall P) \<in> S\<close> by (simp add: Assum)
-    ultimately have \<open>?x # G \<turnstile> FF\<close>
+    moreover have \<open>?x # G \<turnstile> Neg (Uni P)\<close>
+      using * \<open>Neg (Uni P) \<in> S\<close> by (simp add: Assum)
+    ultimately have \<open>?x # G \<turnstile> \<bottom>\<close>
       using NegE by blast
-    then have \<open>G \<turnstile> Exists (Neg P)\<close>
+    then have \<open>G \<turnstile> Exi (Neg P)\<close>
       using Class by blast
 
-    { assume \<open>Neg (P[App x []/0]) # G \<turnstile> FF\<close>
+    { assume \<open>Neg (P[Fun x []/0]) # G \<turnstile> \<bottom>\<close>
       moreover have \<open>list_all (\<lambda>p. x \<notin> params p) G\<close>
         using ** by (simp add: list_all_iff)
       moreover have \<open>x \<notin> params P\<close>
         using ** by simp
-      moreover have \<open>x \<notin> params FF\<close>
+      moreover have \<open>x \<notin> params \<bottom>\<close>
         by simp
-      ultimately have \<open>G \<turnstile> FF\<close>
-        using ExistsE \<open>G \<turnstile> Exists (Neg P)\<close> by fastforce
+      ultimately have \<open>G \<turnstile> \<bottom>\<close>
+        using ExistsE \<open>G \<turnstile> Exi (Neg P)\<close> by fastforce
       then have False
-        using \<open>\<not> G \<turnstile> FF\<close>
+        using \<open>\<not> G \<turnstile> \<bottom>\<close>
         by blast}
-    then have \<open>\<not> Neg (P[App x []/0]) # G \<turnstile> FF\<close>
+    then have \<open>\<not> Neg (P[Fun x []/0]) # G \<turnstile> \<bottom>\<close>
       by blast
-    moreover have \<open>S \<union> {Neg (P[App x []/0])} = set (Neg (P[App x []/0]) # G)\<close>
+    moreover have \<open>S \<union> {Neg (P[Fun x []/0])} = set (Neg (P[Fun x []/0]) # G)\<close>
       using * by simp
-    ultimately show \<open>\<exists>x. S \<union> {Neg (P[App x []/0])} \<in> ?C\<close>
+    ultimately show \<open>\<exists>x. S \<union> {Neg (P[Fun x []/0])} \<in> ?C\<close>
       by blast }
 qed
 
@@ -2625,12 +2849,12 @@ theorem natded_complete:
   shows \<open>ps \<turnstile> p\<close>
 proof (rule Class, rule ccontr)
   fix e
-  assume \<open>\<not> Neg p # ps \<turnstile> FF\<close>
+  assume \<open>\<not> Neg p # ps \<turnstile> \<bottom>\<close>
 
   let ?S = \<open>set (Neg p # ps)\<close>
-  let ?C = \<open>{set (G :: (nat, nat) form list) | G. \<not> G \<turnstile> FF}\<close>
-  let ?f = HApp
-  let ?g = \<open>(\<lambda>a ts. Pred a (terms_of_hterms ts) \<in> Extend ?S
+  let ?C = \<open>{set (G :: (nat, nat) form list) | G. \<not> G \<turnstile> \<bottom>}\<close>
+  let ?f = HFun
+  let ?g = \<open>(\<lambda>a ts. Pre a (terms_of_hterms ts) \<in> Extend ?S
               (mk_finite_char (mk_alt_consistency (close ?C))) from_nat)\<close>
 
   from \<open>list_all (closed 0) ps\<close>
@@ -2642,20 +2866,20 @@ proof (rule Class, rule ccontr)
     moreover have \<open>consistency ?C\<close>
       using deriv_consistency by blast
     moreover have \<open>?S \<in> ?C\<close>
-      using \<open>\<not> Neg p # ps \<turnstile> FF\<close> by blast
+      using \<open>\<not> Neg p # ps \<turnstile> \<bottom>\<close> by blast
     moreover have \<open>infinite (- (\<Union>p \<in> ?S. params p))\<close>
       by (simp add: Compl_eq_Diff_UNIV)
     moreover note \<open>closed 0 p\<close> \<open>\<forall>p \<in> set ps. closed 0 p\<close> \<open>x \<in> ?S\<close>
     then have \<open>closed 0 x\<close> by auto
-    ultimately have \<open>eval e ?f ?g x\<close>
+    ultimately have \<open>semantics e ?f ?g x\<close>
       using model_existence by blast }
-  then have \<open>list_all (eval e ?f ?g) (Neg p # ps)\<close>
+  then have \<open>list_all (semantics e ?f ?g) (Neg p # ps)\<close>
     by (simp add: list_all_iff)
-  moreover have \<open>eval e ?f ?g (Neg p)\<close>
+  moreover have \<open>semantics e ?f ?g (Neg p)\<close>
     using calculation by simp
-  moreover have \<open>list_all (eval e ?f ?g) ps\<close>
+  moreover have \<open>list_all (semantics e ?f ?g) ps\<close>
     using calculation by simp
-  then have \<open>eval e ?f ?g p\<close>
+  then have \<open>semantics e ?f ?g p\<close>
     using mod unfolding model_def by blast
   ultimately show False by simp
 qed
@@ -2671,38 +2895,38 @@ Herbrand model.
 \<close>
 
 theorem sat_consistency:
-  \<open>consistency {S. infinite (- (\<Union>p \<in> S. params p)) \<and> (\<exists>f. \<forall>(p::('a, 'b)form) \<in> S. eval e f g p)}\<close>
+  \<open>consistency {S. infinite (- (\<Union>p \<in> S. params p)) \<and> (\<exists>f. \<forall>(p::('a, 'b)form) \<in> S. semantics e f g p)}\<close>
   unfolding consistency_def
 proof (intro allI impI conjI)
-  let ?C = \<open>{S. infinite (- (\<Union>p \<in> S. params p)) \<and> (\<exists>f. \<forall>p \<in> S. eval e f g p)}\<close>
+  let ?C = \<open>{S. infinite (- (\<Union>p \<in> S. params p)) \<and> (\<exists>f. \<forall>p \<in> S. semantics e f g p)}\<close>
 
   fix S :: \<open>('a, 'b) form set\<close>
   assume \<open>S \<in> ?C\<close>
   then have inf_params: \<open>infinite (- (\<Union>p \<in> S. params p))\<close>
-    and \<open>\<exists>f. \<forall>p \<in> S. eval e f g p\<close>
+    and \<open>\<exists>f. \<forall>p \<in> S. semantics e f g p\<close>
     by blast+
-  then obtain f where *: \<open>\<forall>x \<in> S. eval e f g x\<close> by blast
+  then obtain f where *: \<open>\<forall>x \<in> S. semantics e f g x\<close> by blast
 
   { fix p ts
-    show \<open>\<not> (Pred p ts \<in> S \<and> Neg (Pred p ts) \<in> S)\<close>
+    show \<open>\<not> (Pre p ts \<in> S \<and> Neg (Pre p ts) \<in> S)\<close>
     proof
-      assume \<open>Pred p ts \<in> S \<and> Neg (Pred p ts) \<in> S\<close>
-      then have \<open>eval e f g (Pred p ts) \<and> eval e f g (Neg (Pred p ts))\<close>
+      assume \<open>Pre p ts \<in> S \<and> Neg (Pre p ts) \<in> S\<close>
+      then have \<open>semantics e f g (Pre p ts) \<and> semantics e f g (Neg (Pre p ts))\<close>
         using * by blast
       then show False by simp
     qed }
 
-  show \<open>FF \<notin> S\<close>
+  show \<open>\<bottom> \<notin> S\<close>
     using * by fastforce
 
-  show \<open>Neg TT \<notin> S\<close>
+  show \<open>Neg \<top> \<notin> S\<close>
     using * by fastforce
 
   { fix Z
     assume \<open>Neg (Neg Z) \<in> S\<close>
-    then have \<open>\<forall>x \<in> S \<union> {Neg (Neg Z)}. eval e f g x\<close>
+    then have \<open>\<forall>x \<in> S \<union> {Neg (Neg Z)}. semantics e f g x\<close>
       using * by blast
-    then have \<open>\<forall>x \<in> S \<union> {Z}. eval e f g x\<close>
+    then have \<open>\<forall>x \<in> S \<union> {Z}. semantics e f g x\<close>
       by simp
     moreover have \<open>infinite (- (\<Union>p \<in> S \<union> {Z}. params p))\<close>
       using inf_params by simp
@@ -2710,10 +2934,10 @@ proof (intro allI impI conjI)
       by blast }
 
   { fix A B
-    assume \<open>And A B \<in> S\<close>
-    then have \<open>\<forall>x \<in> S \<union> {And A B}. eval e f g x\<close>
+    assume \<open>Con A B \<in> S\<close>
+    then have \<open>\<forall>x \<in> S \<union> {Con A B}. semantics e f g x\<close>
       using * by blast
-    then have \<open>\<forall>x \<in> S \<union> {A, B}. eval e f g x\<close>
+    then have \<open>\<forall>x \<in> S \<union> {A, B}. semantics e f g x\<close>
       by simp
     moreover have \<open>infinite (- (\<Union>p \<in> S \<union> {A, B}. params p))\<close>
       using inf_params by simp
@@ -2721,10 +2945,10 @@ proof (intro allI impI conjI)
       by blast }
 
   { fix A B
-    assume \<open>Neg (Or A B) \<in> S\<close>
-    then have \<open>\<forall>x \<in> S \<union> {Neg (Or A B)}. eval e f g x\<close>
+    assume \<open>Neg (Dis A B) \<in> S\<close>
+    then have \<open>\<forall>x \<in> S \<union> {Neg (Dis A B)}. semantics e f g x\<close>
       using * by blast
-    then have \<open>\<forall>x \<in> S \<union> {Neg A, Neg B}. eval e f g x\<close>
+    then have \<open>\<forall>x \<in> S \<union> {Neg A, Neg B}. semantics e f g x\<close>
       by simp
     moreover have \<open>infinite (- (\<Union>p \<in> S \<union> {Neg A, Neg B}. params p))\<close>
       using inf_params by simp
@@ -2732,10 +2956,10 @@ proof (intro allI impI conjI)
       by blast }
 
   { fix A B
-    assume \<open>Neg (Impl A B) \<in> S\<close>
-    then have \<open>\<forall>x \<in> S \<union> {Neg (Impl A B)}. eval e f g x\<close>
+    assume \<open>Neg (Imp A B) \<in> S\<close>
+    then have \<open>\<forall>x \<in> S \<union> {Neg (Imp A B)}. semantics e f g x\<close>
       using * by blast
-    then have \<open>\<forall>x \<in> S \<union> {A, Neg B}. eval e f g x\<close>
+    then have \<open>\<forall>x \<in> S \<union> {A, Neg B}. semantics e f g x\<close>
       by simp
     moreover have \<open>infinite (- (\<Union>p \<in> S \<union> {A, Neg B}. params p))\<close>
       using inf_params by simp
@@ -2743,11 +2967,11 @@ proof (intro allI impI conjI)
       by blast }
 
   { fix A B
-    assume \<open>Or A B \<in> S\<close>
-    then have \<open>\<forall>x \<in> S \<union> {Or A B}. eval e f g x\<close>
+    assume \<open>Dis A B \<in> S\<close>
+    then have \<open>\<forall>x \<in> S \<union> {Dis A B}. semantics e f g x\<close>
       using * by blast
-    then have \<open>(\<forall>x \<in> S \<union> {A}. eval e f g x) \<or>
-               (\<forall>x \<in> S \<union> {B}. eval e f g x)\<close>
+    then have \<open>(\<forall>x \<in> S \<union> {A}. semantics e f g x) \<or>
+               (\<forall>x \<in> S \<union> {B}. semantics e f g x)\<close>
       by simp
     moreover have \<open>infinite (- (\<Union>p \<in> S \<union> {A}. params p))\<close>
       and \<open>infinite (- (\<Union>p \<in> S \<union> {B}. params p))\<close>
@@ -2756,11 +2980,11 @@ proof (intro allI impI conjI)
       by blast }
 
   { fix A B
-    assume \<open>Neg (And A B) \<in> S\<close>
-    then have \<open>\<forall>x \<in> S \<union> {Neg (And A B)}. eval e f g x\<close>
+    assume \<open>Neg (Con A B) \<in> S\<close>
+    then have \<open>\<forall>x \<in> S \<union> {Neg (Con A B)}. semantics e f g x\<close>
       using * by blast
-    then have \<open>(\<forall>x \<in> S \<union> {Neg A}. eval e f g x) \<or>
-               (\<forall>x \<in> S \<union> {Neg B}. eval e f g x)\<close>
+    then have \<open>(\<forall>x \<in> S \<union> {Neg A}. semantics e f g x) \<or>
+               (\<forall>x \<in> S \<union> {Neg B}. semantics e f g x)\<close>
       by simp
     moreover have \<open>infinite (- (\<Union>p \<in> S \<union> {Neg A}. params p))\<close>
       and \<open>infinite (- (\<Union>p \<in> S \<union> {Neg B}. params p))\<close>
@@ -2769,11 +2993,11 @@ proof (intro allI impI conjI)
       by blast }
 
   { fix A B
-    assume \<open>Impl A B \<in> S\<close>
-    then have \<open>\<forall>x \<in> S \<union> {Impl A B}. eval e f g x\<close>
+    assume \<open>Imp A B \<in> S\<close>
+    then have \<open>\<forall>x \<in> S \<union> {Imp A B}. semantics e f g x\<close>
       using * by blast
-    then have \<open>(\<forall>x \<in> S \<union> {Neg A}. eval e f g x) \<or>
-               (\<forall>x \<in> S \<union> {B}. eval e f g x)\<close>
+    then have \<open>(\<forall>x \<in> S \<union> {Neg A}. semantics e f g x) \<or>
+               (\<forall>x \<in> S \<union> {B}. semantics e f g x)\<close>
       by simp
     moreover have \<open>infinite (- (\<Union>p \<in> S \<union> {Neg A}. params p))\<close>
       and \<open>infinite (- (\<Union>p \<in> S \<union> {B}. params p))\<close>
@@ -2782,10 +3006,10 @@ proof (intro allI impI conjI)
       by blast }
 
   { fix P and t :: \<open>'a term\<close>
-    assume \<open>Forall P \<in> S\<close>
-    then have \<open>\<forall>x \<in> S \<union> {Forall P}. eval e f g x\<close>
+    assume \<open>Uni P \<in> S\<close>
+    then have \<open>\<forall>x \<in> S \<union> {Uni P}. semantics e f g x\<close>
       using * by blast
-    then have \<open>\<forall>x \<in> S \<union> {P[t/0]}. eval e f g x\<close>
+    then have \<open>\<forall>x \<in> S \<union> {P[t/0]}. semantics e f g x\<close>
       by simp
     moreover have \<open>infinite (- (\<Union>p \<in> S \<union> {P[t/0]}. params p))\<close>
       using inf_params by simp
@@ -2793,10 +3017,10 @@ proof (intro allI impI conjI)
       by blast }
 
   { fix P and t :: \<open>'a term\<close>
-    assume \<open>Neg (Exists P) \<in> S\<close>
-    then have \<open>\<forall>x \<in> S \<union> {Neg (Exists P)}. eval e f g x\<close>
+    assume \<open>Neg (Exi P) \<in> S\<close>
+    then have \<open>\<forall>x \<in> S \<union> {Neg (Exi P)}. semantics e f g x\<close>
       using * by blast
-    then have \<open>\<forall>x \<in> S \<union> {Neg (P[t/0])}. eval e f g x\<close>
+    then have \<open>\<forall>x \<in> S \<union> {Neg (P[t/0])}. semantics e f g x\<close>
       by simp
     moreover have \<open>infinite (- (\<Union>p \<in> S \<union> {Neg (P[t/0])}. params p))\<close>
       using inf_params by simp
@@ -2804,51 +3028,51 @@ proof (intro allI impI conjI)
       by blast }
 
   { fix P
-    assume \<open>Exists P \<in> S\<close>
-    then have \<open>\<forall>x \<in> S \<union> {Exists P}. eval e f g x\<close>
+    assume \<open>Exi P \<in> S\<close>
+    then have \<open>\<forall>x \<in> S \<union> {Exi P}. semantics e f g x\<close>
       using * by blast
-    then have \<open>eval e f g (Exists P)\<close>
+    then have \<open>semantics e f g (Exi P)\<close>
       by blast
-    then obtain z where \<open>eval (e\<langle>0:z\<rangle>) f g P\<close>
+    then obtain z where \<open>semantics (e\<langle>0:z\<rangle>) f g P\<close>
       by auto
     moreover obtain x where **: \<open>x \<in> - (\<Union>p \<in> S. params p)\<close>
       using inf_params infinite_imp_nonempty by blast
     then have \<open>x \<notin> params P\<close>
-      using \<open>Exists P \<in> S\<close> by auto
-    ultimately have \<open>eval (e\<langle>0:(f(x := \<lambda>y. z)) x []\<rangle>) (f(x := \<lambda>y. z)) g P\<close>
+      using \<open>Exi P \<in> S\<close> by auto
+    ultimately have \<open>semantics (e\<langle>0:(f(x := \<lambda>y. z)) x []\<rangle>) (f(x := \<lambda>y. z)) g P\<close>
       by simp
-    moreover have \<open>\<forall>p \<in> S. eval e (f(x := \<lambda>y. z)) g p\<close>
+    moreover have \<open>\<forall>p \<in> S. semantics e (f(x := \<lambda>y. z)) g p\<close>
       using * ** by simp
-    moreover have \<open>infinite (- (\<Union>p \<in> S \<union> {P[App x []/0]}. params p))\<close>
+    moreover have \<open>infinite (- (\<Union>p \<in> S \<union> {P[Fun x []/0]}. params p))\<close>
       using inf_params by simp
-    ultimately have \<open>S \<union> {P[App x []/0]}  \<in>
-                      {S. infinite (- (\<Union>p \<in> S. params p)) \<and> (\<forall>p \<in> S. eval e (f(x := \<lambda>y. z)) g p)}\<close>
+    ultimately have \<open>S \<union> {P[Fun x []/0]}  \<in>
+                      {S. infinite (- (\<Union>p \<in> S. params p)) \<and> (\<forall>p \<in> S. semantics e (f(x := \<lambda>y. z)) g p)}\<close>
       by simp
-    then show \<open>\<exists>x. S \<union> {P[App x []/0]} \<in> ?C\<close>
+    then show \<open>\<exists>x. S \<union> {P[Fun x []/0]} \<in> ?C\<close>
       by blast }
 
   { fix P
-    assume \<open>Neg (Forall P) \<in> S\<close>
-    then have \<open>\<forall>x \<in> S \<union> {Neg (Forall P)}. eval e f g x\<close>
+    assume \<open>Neg (Uni P) \<in> S\<close>
+    then have \<open>\<forall>x \<in> S \<union> {Neg (Uni P)}. semantics e f g x\<close>
       using * by blast
-    then have \<open>eval e f g (Neg (Forall P))\<close>
+    then have \<open>semantics e f g (Neg (Uni P))\<close>
       by blast
-    then obtain z where \<open>\<not> eval (e\<langle>0:z\<rangle>) f g P\<close>
+    then obtain z where \<open>\<not> semantics (e\<langle>0:z\<rangle>) f g P\<close>
       by auto
     moreover obtain x where **: \<open>x \<in> - (\<Union>p \<in> S. params p)\<close>
       using inf_params infinite_imp_nonempty by blast
     then have \<open>x \<notin> params P\<close>
-      using \<open>Neg (Forall P) \<in> S\<close> by auto
-    ultimately have \<open>\<not> eval (e\<langle>0:(f(x := \<lambda>y. z)) x []\<rangle>) (f(x := \<lambda>y. z)) g P\<close>
+      using \<open>Neg (Uni P) \<in> S\<close> by auto
+    ultimately have \<open>\<not> semantics (e\<langle>0:(f(x := \<lambda>y. z)) x []\<rangle>) (f(x := \<lambda>y. z)) g P\<close>
       by simp
-    moreover have \<open>\<forall>p \<in> S. eval e (f(x := \<lambda>y. z)) g p\<close>
+    moreover have \<open>\<forall>p \<in> S. semantics e (f(x := \<lambda>y. z)) g p\<close>
       using * ** by simp
-    moreover have \<open>infinite (- (\<Union>p \<in> S \<union> {P[App x []/0]}. params p))\<close>
+    moreover have \<open>infinite (- (\<Union>p \<in> S \<union> {P[Fun x []/0]}. params p))\<close>
       using inf_params by simp
-    ultimately have \<open>S \<union> {Neg (P[App x []/0])}  \<in>
-                      {S. infinite (- (\<Union>p \<in> S. params p)) \<and> (\<forall>p \<in> S. eval e (f(x := \<lambda>y. z)) g p)}\<close>
+    ultimately have \<open>S \<union> {Neg (P[Fun x []/0])}  \<in>
+                      {S. infinite (- (\<Union>p \<in> S. params p)) \<and> (\<forall>p \<in> S. semantics e (f(x := \<lambda>y. z)) g p)}\<close>
       by simp
-    then show \<open>\<exists>x. S \<union> {Neg (P[App x []/0])} \<in> ?C\<close>
+    then show \<open>\<exists>x. S \<union> {Neg (P[Fun x []/0])} \<in> ?C\<close>
       by blast }
 qed
 
@@ -2860,8 +3084,8 @@ proof (rule infinite_super)
     by (metis (no_types, lifting))
 next
   have \<open>\<And>m n. Suc (2 * m) \<noteq> 2 * n\<close> by arith
-  then show \<open>range (\<lambda>n::nat. (2::nat) * n + (1::nat))
-    \<subseteq> - (\<Union>p::(nat, 'a) form \<in> psubst (( * ) (2::nat)) ` S. params p)\<close>
+  then show \<open>range (\<lambda>n. 2 * n + 1)
+    \<subseteq> - (\<Union>p::(nat, 'a) form \<in> psubst (\<lambda>n. 2 * n) ` S. params p)\<close>
     by auto
 qed
 
@@ -2870,41 +3094,41 @@ When applying the model existence theorem, there is a technical
 complication. We must make sure that there are infinitely many
 unused parameters. In order to achieve this, we encode parameters
 as natural numbers and multiply each parameter occurring in the
-set @{text S} by @{text 2}.
+set \<open>S\<close> by \<open>2\<close>.
 \<close>
 
 theorem loewenheim_skolem:
-  assumes evalS: \<open>\<forall>p \<in> S. eval e f g p\<close>
-  shows \<open>\<forall>p \<in> S. closed 0 p \<longrightarrow> eval e' (\<lambda>n. HApp (2*n)) (\<lambda>a ts.
-      Pred a (terms_of_hterms ts) \<in> Extend (psubst (\<lambda>n. 2 * n) ` S)
+  assumes evalS: \<open>\<forall>p \<in> S. semantics e f g p\<close>
+  shows \<open>\<forall>p \<in> S. closed 0 p \<longrightarrow> semantics e' (\<lambda>n. HFun (2*n)) (\<lambda>a ts.
+      Pre a (terms_of_hterms ts) \<in> Extend (psubst (\<lambda>n. 2 * n) ` S)
         (mk_finite_char (mk_alt_consistency (close
-          {S. infinite (- (\<Union>p \<in> S. params p)) \<and> (\<exists>f. \<forall>p \<in> S. eval e f g p)}))) from_nat) p\<close>
-    (is \<open>\<forall>_ \<in> _. _ _ _ \<longrightarrow> eval _ _ ?g _\<close>)
+          {S. infinite (- (\<Union>p \<in> S. params p)) \<and> (\<exists>f. \<forall>p \<in> S. semantics e f g p)}))) from_nat) p\<close>
+    (is \<open>\<forall>_ \<in> _. _ _ _ \<longrightarrow> semantics _ _ ?g _\<close>)
   using evalS
 proof (intro ballI impI)
   fix p
 
-  let ?C = \<open>{S. infinite (- (\<Union>p \<in> S. params p)) \<and> (\<exists>f. \<forall>x \<in> S. eval e f g x)}\<close>
+  let ?C = \<open>{S. infinite (- (\<Union>p \<in> S. params p)) \<and> (\<exists>f. \<forall>x \<in> S. semantics e f g x)}\<close>
 
   assume \<open>p \<in> S\<close>
     and \<open>closed 0 p\<close>
-  then have \<open>eval e f g p\<close>
+  then have \<open>semantics e f g p\<close>
     using evalS by blast
-  then have \<open>\<forall>x \<in> S. eval e f g x\<close>
+  then have \<open>\<forall>x \<in> S. semantics e f g x\<close>
     using evalS by blast
-  then have \<open>\<forall>p \<in> psubst (( * ) 2) ` S. eval e (\<lambda>n. f (n div 2)) g p\<close>
+  then have \<open>\<forall>p \<in> psubst (\<lambda>n. 2 * n) ` S. semantics e (\<lambda>n. f (n div 2)) g p\<close>
     by (simp add: psubst_eval)
-  then have \<open>psubst (( * ) 2) ` S \<in> ?C\<close>
+  then have \<open>psubst (\<lambda>n. 2 * n) ` S \<in> ?C\<close>
     using doublep_infinite_params by blast
-  moreover have \<open>psubst (( * ) 2) p \<in> psubst (( * ) 2) ` S\<close>
+  moreover have \<open>psubst (\<lambda>n. 2 * n) p \<in> psubst (\<lambda>n. 2 * n) ` S\<close>
     using \<open>p \<in> S\<close> by blast
-  moreover have \<open>closed 0 (psubst (( * ) 2) p)\<close>
+  moreover have \<open>closed 0 (psubst (\<lambda>n. 2 * n) p)\<close>
     using \<open>closed 0 p\<close> by simp
   moreover have \<open>consistency ?C\<close>
     using sat_consistency by blast
-  ultimately have \<open>eval e' HApp ?g (psubst (( * ) 2) p)\<close>
+  ultimately have \<open>semantics e' HFun ?g (psubst (\<lambda>n. 2 * n) p)\<close>
     using model_existence by blast
-  then show \<open>eval e' (\<lambda>n. HApp (2 * n)) ?g p\<close>
+  then show \<open>semantics e' (\<lambda>n. HFun (2 * n)) ?g p\<close>
     using psubst_eval by blast
 qed
 
@@ -2964,7 +3188,7 @@ next
     using deriv.Class by auto
 next
   case (ImplE G a b)
-  then have \<open>map (psubst f) G \<turnstile> Impl (psubst f a) (psubst f b)\<close>
+  then have \<open>map (psubst f) G \<turnstile> Imp (psubst f a) (psubst f b)\<close>
     and \<open>map (psubst f) G \<turnstile> psubst f a\<close>
     by simp_all
   then show ?case
@@ -2975,7 +3199,7 @@ next
     using deriv.ImplI by auto
 next
   case (OrE G a b c)
-  then have \<open>map (psubst f) G \<turnstile> Or (psubst f a) (psubst f b)\<close>
+  then have \<open>map (psubst f) G \<turnstile> Dis (psubst f a) (psubst f b)\<close>
     and \<open>psubst f a # map (psubst f) G \<turnstile> psubst f c\<close>
     and \<open>psubst f b # map (psubst f) G \<turnstile> psubst f c\<close>
     by simp_all
@@ -3020,13 +3244,13 @@ next
   then have \<open>map (psubst ?f) z = map (psubst f) z\<close>
     using ExistsE by (metis (mono_tags, lifting) Ball_set map_eq_conv psubst_upd)
 
-  have \<open>map (psubst ?f) z \<turnstile> psubst ?f (Exists p)\<close>
+  have \<open>map (psubst ?f) z \<turnstile> psubst ?f (Exi p)\<close>
     using ExistsE by blast
-  then have \<open>map (psubst ?f) z \<turnstile> Exists (psubst ?f p)\<close>
+  then have \<open>map (psubst ?f) z \<turnstile> Exi (psubst ?f p)\<close>
     by simp
-  moreover have \<open>map (psubst ?f) (subst p (App c []) 0 # z) \<turnstile> psubst ?f q\<close>
+  moreover have \<open>map (psubst ?f) (subst p (Fun c []) 0 # z) \<turnstile> psubst ?f q\<close>
     using ExistsE by blast
-  then have \<open>subst (psubst ?f p) (App fresh []) 0 # map (psubst ?f) z \<turnstile> psubst ?f q\<close>
+  then have \<open>subst (psubst ?f p) (Fun fresh []) 0 # map (psubst ?f) z \<turnstile> psubst ?f q\<close>
     by simp
   moreover have \<open>news fresh (map (psubst ?f) (p # q # z))\<close>
     using \<open>new fresh (psubst ?f p)\<close> \<open>new fresh (psubst ?f q)\<close> \<open>news fresh (map (psubst ?f) z)\<close>
@@ -3064,16 +3288,16 @@ next
   then have \<open>map (psubst ?f) z = map (psubst f) z\<close>
     using ForallI by (metis (mono_tags, lifting) Ball_set map_eq_conv psubst_upd)
 
-  have \<open>map (psubst ?f) z \<turnstile> psubst ?f (subst p (App c []) 0)\<close>
+  have \<open>map (psubst ?f) z \<turnstile> psubst ?f (subst p (Fun c []) 0)\<close>
     using ForallI by blast
-  then have \<open>map (psubst ?f) z \<turnstile> subst (psubst ?f p) (App fresh []) 0\<close>
+  then have \<open>map (psubst ?f) z \<turnstile> subst (psubst ?f p) (Fun fresh []) 0\<close>
     by simp
   moreover have \<open>news fresh (map (psubst ?f) (p # z))\<close>
     using \<open>new fresh (psubst ?f p)\<close> \<open>news fresh (map (psubst ?f) z)\<close>
     by simp
   then have \<open>new fresh (psubst ?f p)\<close> \<open>news fresh (map (psubst ?f) z)\<close>
     by simp_all
-  ultimately have \<open>map (psubst ?f) z \<turnstile> Forall (psubst ?f p)\<close>
+  ultimately have \<open>map (psubst ?f) z \<turnstile> Uni (psubst ?f p)\<close>
     using deriv.ForallI by metis
   then show ?case
     using ForallI \<open>map (psubst ?f) z = map (psubst f) z\<close> by simp
@@ -3085,20 +3309,20 @@ primrec
   subc_term :: \<open>'a \<Rightarrow> 'a term \<Rightarrow> 'a term \<Rightarrow> 'a term\<close> and
   subc_list :: \<open>'a \<Rightarrow> 'a term \<Rightarrow> 'a term list \<Rightarrow> 'a term list\<close> where
   \<open>subc_term c s (Var n) = Var n\<close> |
-  \<open>subc_term c s (App i l) = (if i = c then s else App i (subc_list c s l))\<close> |
+  \<open>subc_term c s (Fun i l) = (if i = c then s else Fun i (subc_list c s l))\<close> |
   \<open>subc_list c s [] = []\<close> |
   \<open>subc_list c s (t # l) = subc_term c s t # subc_list c s l\<close>
 
 primrec subc :: \<open>'a \<Rightarrow> 'a term \<Rightarrow> ('a, 'b) form \<Rightarrow> ('a, 'b) form\<close> where
-  \<open>subc c s FF = FF\<close> |
-  \<open>subc c s TT = TT\<close> |
-  \<open>subc c s (Pred i l) = Pred i (subc_list c s l)\<close> |
+  \<open>subc c s \<bottom> = \<bottom>\<close> |
+  \<open>subc c s \<top> = \<top>\<close> |
+  \<open>subc c s (Pre i l) = Pre i (subc_list c s l)\<close> |
   \<open>subc c s (Neg p) = Neg (subc c s p)\<close> |
-  \<open>subc c s (Impl p q) = Impl (subc c s p) (subc c s q)\<close> |
-  \<open>subc c s (Or p q) = Or (subc c s p) (subc c s q)\<close> |
-  \<open>subc c s (And p q) = And (subc c s p) (subc c s q)\<close> |
-  \<open>subc c s (Exists p) = Exists (subc c (liftt s) p)\<close> |
-  \<open>subc c s (Forall p) = Forall (subc c (liftt s) p)\<close>
+  \<open>subc c s (Imp p q) = Imp (subc c s p) (subc c s q)\<close> |
+  \<open>subc c s (Dis p q) = Dis (subc c s p) (subc c s q)\<close> |
+  \<open>subc c s (Con p q) = Con (subc c s p) (subc c s q)\<close> |
+  \<open>subc c s (Exi p) = Exi (subc c (liftt s) p)\<close> |
+  \<open>subc c s (Uni p) = Uni (subc c (liftt s) p)\<close>
 
 primrec subcs :: \<open>'a \<Rightarrow> 'a term \<Rightarrow> ('a, 'b) form list \<Rightarrow> ('a, 'b) form list\<close> where
   \<open>subcs c s [] = []\<close> |
@@ -3126,7 +3350,7 @@ lemma subst_new [simp]: \<open>new_term c s \<Longrightarrow> new c p \<Longrigh
 
 lemma subst_new_all:
   assumes \<open>a \<notin> set cs\<close> \<open>list_all (\<lambda>c. new c p) cs\<close>
-  shows \<open>list_all (\<lambda>c. new c (subst p (App a []) m)) cs\<close>
+  shows \<open>list_all (\<lambda>c. new c (subst p (Fun a []) m)) cs\<close>
   using assms by (induct cs) auto
 
 lemma subc_new' [simp]:
@@ -3239,7 +3463,7 @@ next
   then show ?case
     by simp
 next
-  case (Pred i l)
+  case (Pre i l)
   then show ?case
     using new_subc_put' by fastforce
 next
@@ -3247,33 +3471,33 @@ next
   then show ?case
     by (metis subc.simps(4) subst.simps(7))
 next
-  case (Impl p q)
+  case (Imp p q)
   then show ?case
     by (metis subc.simps(5) subst.simps(6))
 next
-  case (Or p q)
+  case (Dis p q)
   then show ?case
     by (metis subc.simps(6) subst.simps(5))
 next
-  case (And p q)
+  case (Con p q)
   then show ?case
     by (metis subc.simps(7) subst.simps(4))
 next
-  case (Exists p)
-  have \<open>subc c s (subst (Exists p) (subc_term c s t) m) =
-      Exists (subc c (liftt s) (subst p (subc_term c (liftt s) (liftt t)) (Suc m)))\<close>
+  case (Exi p)
+  have \<open>subc c s (subst (Exi p) (subc_term c s t) m) =
+      Exi (subc c (liftt s) (subst p (subc_term c (liftt s) (liftt t)) (Suc m)))\<close>
     by (simp add: lift_subc)
-  also have \<open>\<dots> = Exists (subc c (liftt s) (subst p (liftt t) (Suc m)))\<close>
-    using Exists new_lift(1) by metis
+  also have \<open>\<dots> = Exi (subc c (liftt s) (subst p (liftt t) (Suc m)))\<close>
+    using Exi new_lift(1) by metis
   finally show ?case
     by simp
 next
-  case (Forall p)
-  have \<open>subc c s (subst (Forall p) (subc_term c s t) m) =
-      Forall (subc c (liftt s) (subst p (subc_term c (liftt s) (liftt t)) (Suc m)))\<close>
+  case (Uni p)
+  have \<open>subc c s (subst (Uni p) (subc_term c s t) m) =
+      Uni (subc c (liftt s) (subst p (subc_term c (liftt s) (liftt t)) (Suc m)))\<close>
     by (simp add: lift_subc)
-  also have \<open>\<dots> = Forall (subc c (liftt s) (subst p (liftt t) (Suc m)))\<close>
-    using Forall new_lift(1) by metis
+  also have \<open>\<dots> = Uni (subc c (liftt s) (subst p (liftt t) (Suc m)))\<close>
+    using Uni new_lift(1) by metis
   finally show ?case
     by simp
 qed
@@ -3386,13 +3610,13 @@ next
     then have psubst_s: \<open>psubstt ?f ?s = s\<close>
       using fresh by simp
 
-    have \<open>?f c = c\<close> and \<open>new_term (?f c) (App fresh [])\<close>
+    have \<open>?f c = c\<close> and \<open>new_term (?f c) (Fun fresh [])\<close>
       using False fresh by auto
 
-    have \<open>subcs c (psubstt ?f ?s) z \<turnstile> subc c (psubstt ?f ?s) (Exists p)\<close>
+    have \<open>subcs c (psubstt ?f ?s) z \<turnstile> subc c (psubstt ?f ?s) (Exi p)\<close>
       using ExistsE by blast
     then have exi_p:
-      \<open>subcs c s z \<turnstile> Exists (subc c (liftt (psubstt ?f ?s)) p)\<close>
+      \<open>subcs c s z \<turnstile> Exi (subc c (liftt (psubstt ?f ?s)) p)\<close>
       using psubst_s by simp
 
     have \<open>news d z\<close>
@@ -3406,30 +3630,30 @@ next
     ultimately have psubst_z: \<open>map (psubst ?f) (subcs c ?s z) = subcs c s z\<close>
       using \<open>?f c = c\<close> psubst_s by (simp add: subcs_psubst)
 
-    have \<open>psubst ?f (subc c ?s (subst p (App d []) 0)) =
-        subc (?f c) (psubstt ?f ?s) (psubst ?f (subst p (App d []) 0))\<close>
+    have \<open>psubst ?f (subc c ?s (subst p (Fun d []) 0)) =
+        subc (?f c) (psubstt ?f ?s) (psubst ?f (subst p (Fun d []) 0))\<close>
       using fresh by (simp add: subc_psubst)
-    also have \<open>\<dots> = subc c s (subst (psubst ?f p) (App fresh []) 0)\<close>
+    also have \<open>\<dots> = subc c s (subst (psubst ?f p) (Fun fresh []) 0)\<close>
       using psubst_subst psubst_s \<open>?f c = c\<close> by simp
-    also have \<open>\<dots> = subc c s (subst p (App fresh []) 0)\<close>
+    also have \<open>\<dots> = subc c s (subst p (Fun fresh []) 0)\<close>
       using ExistsE fresh by simp
-    finally have psubst_p: \<open>psubst ?f (subc c ?s (subst p (App d []) 0)) =
-        subst (subc c (liftt s) p) (App fresh []) 0\<close>
-      using subc_sub_0_new \<open>new_term (?f c) (App fresh [])\<close> \<open>?f c = c\<close> by metis
+    finally have psubst_p: \<open>psubst ?f (subc c ?s (subst p (Fun d []) 0)) =
+        subst (subc c (liftt s) p) (Fun fresh []) 0\<close>
+      using subc_sub_0_new \<open>new_term (?f c) (Fun fresh [])\<close> \<open>?f c = c\<close> by metis
 
     have \<open>\<forall>x \<in> params q. x \<noteq> c \<longrightarrow> ?f x \<noteq> ?f c\<close>
       using f by blast
     then have psubst_q: \<open>psubst ?f (subc c ?s q) = subc c s q\<close>
       using ExistsE fresh \<open>?f c = c\<close> psubst_s f by (simp add: subc_psubst)
 
-    have \<open>subcs c ?s (subst p (App d []) 0 # z) \<turnstile> subc c ?s q\<close>
+    have \<open>subcs c ?s (subst p (Fun d []) 0 # z) \<turnstile> subc c ?s q\<close>
       using ExistsE by blast
-    then have \<open>subc c ?s (subst p (App d []) 0) # subcs c ?s z \<turnstile> subc c ?s q\<close>
+    then have \<open>subc c ?s (subst p (Fun d []) 0) # subcs c ?s z \<turnstile> subc c ?s q\<close>
       by simp
-    then have \<open>psubst ?f (subc c ?s (subst p (App d []) 0)) # map (psubst ?f) (subcs c ?s z)
+    then have \<open>psubst ?f (subc c ?s (subst p (Fun d []) 0)) # map (psubst ?f) (subcs c ?s z)
         \<turnstile> psubst ?f (subc c ?s q)\<close>
       using deriv_psubst inf_params by fastforce
-    then have q: \<open>subst (subc c (liftt s) p) (App fresh []) 0 # subcs c s z \<turnstile> subc c s q\<close>
+    then have q: \<open>subst (subc c (liftt s) p) (Fun fresh []) 0 # subcs c s z \<turnstile> subc c s q\<close>
       using psubst_q psubst_z psubst_p by simp
 
     have \<open>new fresh (subc c (liftt s) p)\<close>
@@ -3458,7 +3682,7 @@ next
     using fresh by simp
   have s: \<open>psubstt ?g ?s = s\<close>
     using fresh by simp
-  have p: \<open>psubst ?g (Exists p) = Exists p\<close>
+  have p: \<open>psubst ?g (Exi p) = Exi p\<close>
     using fresh by simp
 
   have \<open>\<forall>x \<in> (\<Union>p \<in> set z. params p). x \<noteq> c \<longrightarrow> ?g x \<noteq> ?g c\<close>
@@ -3477,13 +3701,13 @@ next
   ultimately have \<open>subcs c ?s z \<turnstile> subst (subc c (liftt ?s) p) (subc_term c ?s t) 0\<close>
     using subc_sub_0_new by metis
 
-  then have \<open>subcs c ?s z \<turnstile> subc c ?s (Exists p)\<close>
+  then have \<open>subcs c ?s z \<turnstile> subc c ?s (Exi p)\<close>
     using deriv.ExistsI by simp
-  then have \<open>map (psubst ?g) (subcs c ?s z) \<turnstile> psubst ?g (subc c ?s (Exists p))\<close>
+  then have \<open>map (psubst ?g) (subcs c ?s z) \<turnstile> psubst ?g (subc c ?s (Exi p))\<close>
     using deriv_psubst inf_params by blast
-  moreover have \<open>\<forall>x \<in> params (Exists p). x \<noteq> c \<longrightarrow> ?g x \<noteq> ?g c\<close>
+  moreover have \<open>\<forall>x \<in> params (Exi p). x \<noteq> c \<longrightarrow> ?g x \<noteq> ?g c\<close>
     using fresh by auto
-  ultimately show \<open>subcs c s z \<turnstile> subc c s (Exists p)\<close>
+  ultimately show \<open>subcs c s z \<turnstile> subc c s (Exi p)\<close>
     using c s p z by (simp add: subc_psubst)
 next
   case (ForallE z p t)
@@ -3515,7 +3739,7 @@ next
   have \<open>new_term c ?s\<close>
     using fresh psubst_new_free' by fastforce
 
-  have \<open>subcs c ?s z \<turnstile> Forall (subc c (liftt ?s) p)\<close>
+  have \<open>subcs c ?s z \<turnstile> Uni (subc c (liftt ?s) p)\<close>
     using ForallE by simp
   then have \<open>subcs c ?s z \<turnstile> subst (subc c (liftt ?s) p) (subc_term c ?s t) 0\<close>
     using deriv.ForallE by blast
@@ -3536,7 +3760,7 @@ next
   then show ?case
   proof (cases \<open>c = d\<close>)
     case True
-    then have \<open>z \<turnstile> Forall p\<close>
+    then have \<open>z \<turnstile> Uni p\<close>
       using ForallI deriv.ForallI by fast
     moreover have \<open>new c p\<close> and \<open>news c z\<close>
       using ForallI True by simp_all
@@ -3564,19 +3788,19 @@ next
     then have psubst_s: \<open>psubstt ?f ?s = s\<close>
       using fresh by simp
 
-    have \<open>?f c = c\<close> and \<open>new_term c (App fresh [])\<close>
+    have \<open>?f c = c\<close> and \<open>new_term c (Fun fresh [])\<close>
       using False fresh by auto
 
-    have \<open>psubst ?f (subc c ?s (subst p (App d []) 0)) =
-      subc (?f c) (psubstt ?f ?s) (psubst ?f (subst p (App d []) 0))\<close>
+    have \<open>psubst ?f (subc c ?s (subst p (Fun d []) 0)) =
+      subc (?f c) (psubstt ?f ?s) (psubst ?f (subst p (Fun d []) 0))\<close>
       by (simp add: subc_psubst)
-    also have \<open>\<dots> = subc c s (subst (psubst ?f p) (App fresh []) 0)\<close>
+    also have \<open>\<dots> = subc c s (subst (psubst ?f p) (Fun fresh []) 0)\<close>
       using \<open>?f c = c\<close> psubst_subst psubst_s by simp
-    also have \<open>\<dots> = subc c s (subst p (App fresh []) 0)\<close>
+    also have \<open>\<dots> = subc c s (subst p (Fun fresh []) 0)\<close>
       using ForallI fresh by simp
-    finally have psubst_p: \<open>psubst ?f (subc c ?s (subst p (App d []) 0)) =
-        subst (subc c (liftt s) p) (App fresh []) 0\<close>
-      using subc_sub_0_new \<open>new_term c (App fresh [])\<close> by simp
+    finally have psubst_p: \<open>psubst ?f (subc c ?s (subst p (Fun d []) 0)) =
+        subst (subc c (liftt s) p) (Fun fresh []) 0\<close>
+      using subc_sub_0_new \<open>new_term c (Fun fresh [])\<close> by simp
 
     have \<open>news d z\<close>
       using ForallI by simp
@@ -3589,13 +3813,13 @@ next
     ultimately have psubst_z: \<open>map (psubst ?f) (subcs c ?s z) = subcs c s z\<close>
       using \<open>?f c = c\<close> psubst_s by (simp add: subcs_psubst)
 
-    have \<open>subcs c ?s z \<turnstile> subc c ?s (subst p (App d []) 0)\<close>
+    have \<open>subcs c ?s z \<turnstile> subc c ?s (subst p (Fun d []) 0)\<close>
       using ForallI by blast
-    then have \<open>map (psubst ?f) (subcs c ?s z) \<turnstile> psubst ?f (subc c ?s (subst p (App d []) 0))\<close>
+    then have \<open>map (psubst ?f) (subcs c ?s z) \<turnstile> psubst ?f (subc c ?s (subst p (Fun d []) 0))\<close>
       using deriv_psubst inf_params by blast
-    then have \<open>subcs c s z \<turnstile> psubst ?f (subc c ?s (subst p (App d []) 0))\<close>
+    then have \<open>subcs c s z \<turnstile> psubst ?f (subc c ?s (subst p (Fun d []) 0))\<close>
       using psubst_z by simp
-    then have sub_p: \<open>subcs c s z \<turnstile> subst (subc c (liftt s) p) (App fresh []) 0\<close>
+    then have sub_p: \<open>subcs c s z \<turnstile> subst (subc c (liftt s) p) (Fun fresh []) 0\<close>
       using psubst_p by simp
 
     have \<open>new_term fresh s\<close>
@@ -3606,7 +3830,7 @@ next
       using fresh new_subc by simp
     moreover have \<open>news fresh (subcs c s z)\<close>
       using \<open>news fresh z\<close> \<open>new_term fresh s\<close> news_subcs by fast
-    ultimately show \<open>subcs c s z \<turnstile> subc c s (Forall p)\<close>
+    ultimately show \<open>subcs c s z \<turnstile> subc c s (Uni p)\<close>
       using deriv.ForallI sub_p by simp
   qed
 qed
@@ -3696,12 +3920,12 @@ next
     using ExistsE by simp
   then have \<open>set z \<subseteq> set ?z'\<close>
     using ExistsE psubst_new_subset by (simp add: Ball_set)
-  then have \<open>?z' \<turnstile> Exists p\<close>
+  then have \<open>?z' \<turnstile> Exi p\<close>
     using ExistsE by blast
 
-  moreover have \<open>set (subst p (App c []) 0 # z) \<subseteq> set (subst p (App c []) 0 # ?z')\<close>
+  moreover have \<open>set (subst p (Fun c []) 0 # z) \<subseteq> set (subst p (Fun c []) 0 # ?z')\<close>
     using \<open>set z \<subseteq> set ?z'\<close> by auto
-  then have \<open>subst p (App c []) 0 # ?z' \<turnstile> q\<close>
+  then have \<open>subst p (Fun c []) 0 # ?z' \<turnstile> q\<close>
     using ExistsE by blast
 
   moreover have \<open>news c ?z'\<close>
@@ -3743,7 +3967,7 @@ next
     using ForallI by simp
   then have \<open>set z \<subseteq> set ?z'\<close>
     using ForallI psubst_new_subset by (metis (no_types, lifting) Ball_set UN_iff)
-  then have \<open>?z' \<turnstile> subst p (App c []) 0\<close>
+  then have \<open>?z' \<turnstile> subst p (Fun c []) 0\<close>
     using ForallI by blast
 
   moreover have \<open>\<forall>p \<in> set ?z'. c \<notin> params p\<close>
@@ -3753,16 +3977,16 @@ next
   then have \<open>new c p\<close> \<open>news c ?z'\<close>
     by simp_all
 
-  ultimately have \<open>?z' \<turnstile> Forall p\<close>
+  ultimately have \<open>?z' \<turnstile> Uni p\<close>
     using ForallI deriv.ForallI by fast
 
-  then have \<open>map (psubst (id(fresh := c))) ?z' \<turnstile> psubst (id(fresh := c)) (Forall p)\<close>
+  then have \<open>map (psubst (id(fresh := c))) ?z' \<turnstile> psubst (id(fresh := c)) (Uni p)\<close>
     using deriv_psubst inf_params by blast
   moreover have \<open>map (psubst (id(fresh := c))) ?z' = z'\<close>
     using fresh map_psubst_new_away Ball_set by fastforce
-  moreover have \<open>psubst (id(fresh := c)) (Forall p) = Forall p\<close>
+  moreover have \<open>psubst (id(fresh := c)) (Uni p) = Uni p\<close>
     using fresh ForallI by simp
-  ultimately show \<open>z' \<turnstile> Forall p\<close>
+  ultimately show \<open>z' \<turnstile> Uni p\<close>
     by simp
 qed
 
@@ -3770,21 +3994,21 @@ subsection \<open>Implications and assumptions\<close>
 
 primrec put_imps :: \<open>('a, 'b) form \<Rightarrow> ('a, 'b) form list \<Rightarrow> ('a, 'b) form\<close> where
   \<open>put_imps p [] = p\<close> |
-  \<open>put_imps p (q # z) = Impl q (put_imps p z)\<close>
+  \<open>put_imps p (q # z) = Imp q (put_imps p z)\<close>
 
 lemma semantics_put_imps:
-  \<open>(e,f,g,z \<Turnstile> p) = eval e f g (put_imps p z)\<close>
+  \<open>(e,f,g,z \<Turnstile> p) = semantics e f g (put_imps p z)\<close>
   unfolding model_def by (induct z) auto
 
 lemma shift_imp_assum:
   fixes p :: \<open>('a, 'b) form\<close>
   assumes inf_params: \<open>infinite (UNIV :: 'a set)\<close>
-    and \<open>z \<turnstile> Impl p q\<close>
+    and \<open>z \<turnstile> Imp p q\<close>
   shows \<open>p # z \<turnstile> q\<close>
 proof -
   have \<open>set z \<subseteq> set (p # z)\<close>
     by auto
-  then have \<open>p # z \<turnstile> Impl p q\<close>
+  then have \<open>p # z \<turnstile> Imp p q\<close>
     using assms weaken_assumptions inf_params by blast
   moreover have \<open>p # z \<turnstile> p\<close>
     by (simp add: Assum)
@@ -3800,43 +4024,43 @@ lemma remove_imps:
 subsection \<open>Closure elimination\<close>
 
 lemma subc_sub_closed_var' [simp]:
-  \<open>new_term c t \<Longrightarrow> closedt (Suc m) t \<Longrightarrow> subc_term c (Var m) (substt t (App c []) m) = t\<close>
-  \<open>new_list c l \<Longrightarrow> closedts (Suc m) l \<Longrightarrow> subc_list c (Var m) (substts l (App c []) m) = l\<close>
+  \<open>new_term c t \<Longrightarrow> closedt (Suc m) t \<Longrightarrow> subc_term c (Var m) (substt t (Fun c []) m) = t\<close>
+  \<open>new_list c l \<Longrightarrow> closedts (Suc m) l \<Longrightarrow> subc_list c (Var m) (substts l (Fun c []) m) = l\<close>
   by (induct t and l rule: substt.induct substts.induct) auto
 
 lemma subc_sub_closed_var [simp]: \<open>new c p \<Longrightarrow> closed (Suc m) p \<Longrightarrow>
-    subc c (Var m) (subst p (App c []) m) = p\<close>
+    subc c (Var m) (subst p (Fun c []) m) = p\<close>
   by (induct p arbitrary: m) simp_all
 
 primrec put_unis :: \<open>nat \<Rightarrow> ('a, 'b) form \<Rightarrow> ('a, 'b) form\<close> where
   \<open>put_unis 0 p = p\<close> |
-  \<open>put_unis (Suc m) p = Forall (put_unis m p)\<close>
+  \<open>put_unis (Suc m) p = Uni (put_unis m p)\<close>
 
 lemma sub_put_unis [simp]:
-  \<open>subst (put_unis k p) (App c []) i = put_unis k (subst p (App c []) (i + k))\<close>
+  \<open>subst (put_unis k p) (Fun c []) i = put_unis k (subst p (Fun c []) (i + k))\<close>
   by (induct k arbitrary: i) simp_all
 
 lemma closed_put_unis [simp]: \<open>closed m (put_unis k p) = closed (m + k) p\<close>
   by (induct k arbitrary: m) simp_all
 
-lemma valid_put_unis: \<open>\<forall>(e :: nat \<Rightarrow> 'a) f g. eval e f g p \<Longrightarrow>
-    eval (e :: nat \<Rightarrow> 'a) f g (put_unis m p)\<close>
+lemma valid_put_unis: \<open>\<forall>(e :: nat \<Rightarrow> 'a) f g. semantics e f g p \<Longrightarrow>
+    semantics (e :: nat \<Rightarrow> 'a) f g (put_unis m p)\<close>
   by (induct m arbitrary: e) simp_all
 
 lemma put_unis_collapse: \<open>put_unis m (put_unis n p) = put_unis (m + n) p\<close>
   by (induct m) simp_all
 
 fun consts_for_unis :: \<open>('a, 'b) form \<Rightarrow> 'a list \<Rightarrow> ('a, 'b) form\<close> where
-  \<open>consts_for_unis (Forall p) (c#cs) = consts_for_unis (subst p (App c []) 0) cs\<close> |
+  \<open>consts_for_unis (Uni p) (c#cs) = consts_for_unis (subst p (Fun c []) 0) cs\<close> |
   \<open>consts_for_unis p _ = p\<close>
 
 lemma consts_for_unis: \<open>[] \<turnstile> put_unis (length cs) p \<Longrightarrow>
   [] \<turnstile> consts_for_unis (put_unis (length cs) p) cs\<close>
 proof (induct cs arbitrary: p)
   case (Cons c cs)
-  then have \<open>[] \<turnstile> Forall (put_unis (length cs) p)\<close>
+  then have \<open>[] \<turnstile> Uni (put_unis (length cs) p)\<close>
     by simp
-  then have \<open>[] \<turnstile> subst (put_unis (length cs) p) (App c []) 0\<close>
+  then have \<open>[] \<turnstile> subst (put_unis (length cs) p) (Fun c []) 0\<close>
     using ForallE by blast
   then show ?case
     using Cons by simp
@@ -3869,7 +4093,7 @@ qed
 
 lemma fresh_constants:
   fixes p :: \<open>('a, 'b) form\<close>
-  assumes \<open>infinite (UNIV :: 'a set)\<close> \<open>closed 0 (put_unis m p)\<close>
+  assumes \<open>infinite (UNIV :: 'a set)\<close>
   shows \<open>\<exists>cs. length cs = m \<and> list_all (\<lambda>c. new c p) cs \<and> distinct cs\<close>
 proof (induct m)
   case (Suc m)
@@ -3922,19 +4146,19 @@ next
   then show ?case
     by simp
 next
-  case (Impl p q)
+  case (Imp p q)
   then show ?case
     using closed_max by fastforce
 next
-  case (Or p q)
+  case (Dis p q)
   then show ?case
     using closed_max by fastforce
 next
-  case (And p q)
+  case (Con p q)
   then show ?case
     using closed_max by fastforce
 next
-  case (Exists p)
+  case (Exi p)
   then obtain m where \<open>closed m p\<close>
     by blast
   then have \<open>closed (Suc m) p\<close>
@@ -3942,7 +4166,7 @@ next
   then show ?case
     by auto
 next
-  case (Forall p)
+  case (Uni p)
   then obtain m where \<open>closed m p\<close>
     by blast
   then have \<open>closed (Suc m) p\<close>
@@ -3961,7 +4185,7 @@ lemma remove_unis_sentence:
 proof -
   obtain cs :: \<open>'a list\<close> where \<open>length cs = m\<close>
     and *: \<open>distinct cs\<close> and **: \<open>list_all (\<lambda>c. new c p) cs\<close>
-    using assms fresh_constants inf_params by fastforce
+    using assms finite_compl finite_params fresh_constants inf_params by metis
   then have \<open>[] \<turnstile> consts_for_unis (put_unis (length cs) p) cs\<close>
     using assms consts_for_unis by blast
   then have \<open>[] \<turnstile> vars_for_consts (consts_for_unis (put_unis (length cs) p) cs) cs\<close>
@@ -3981,7 +4205,7 @@ theorem completeness:
 proof -
   let ?p = \<open>put_imps p (rev z)\<close>
 
-  have *: \<open>\<forall>(e :: nat \<Rightarrow> nat hterm) f g. eval e f g ?p\<close>
+  have *: \<open>\<forall>(e :: nat \<Rightarrow> nat hterm) f g. semantics e f g ?p\<close>
     using assms semantics_put_imps unfolding model_def by fastforce
   obtain m where **: \<open>closed 0 (put_unis m ?p)\<close>
     using ex_closure by blast
@@ -3997,11 +4221,11 @@ proof -
     using remove_imps by fastforce
 qed
 
-abbreviation \<open>valid p \<equiv> \<forall>(e :: nat \<Rightarrow> nat hterm) f g. eval e f g p\<close>
+abbreviation \<open>valid p \<equiv> \<forall>(e :: nat \<Rightarrow> nat hterm) f g. semantics e f g p\<close>
 
 proposition
   fixes p :: \<open>(nat, nat) form\<close>
-  shows \<open>valid p \<Longrightarrow> eval e f g p\<close>
+  shows \<open>valid p \<Longrightarrow> semantics e f g p\<close>
   using completeness correctness
   unfolding model_def by (metis list.pred_inject(1))
 
@@ -4014,5 +4238,15 @@ proposition
 corollary \<open>\<forall>e (f::nat \<Rightarrow> nat hterm list \<Rightarrow> nat hterm) (g::nat \<Rightarrow> nat hterm list \<Rightarrow> bool).
     e,f,g,ps \<Turnstile> p \<Longrightarrow> ps \<turnstile> p\<close>
   by (rule completeness)
+
+section \<open>Acknowledgements\<close>
+
+text \<open>
+
+\<^item> Stefan Berghofer:
+First-Order Logic According to Fitting.
+\<^url>\<open>https://www.isa-afp.org/entries/FOL-Fitting.shtml\<close>
+
+\<close>
 
 end

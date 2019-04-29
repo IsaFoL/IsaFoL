@@ -226,7 +226,7 @@ sepref_definition (in -) insert_sort_nth_code
       vmtf_conc\<^sup>k *\<^sub>a (arl_assn uint32_nat_assn)\<^sup>d  \<rightarrow>
        arl_assn uint32_nat_assn\<close>
   unfolding insert_sort_nth_def insert_sort_def insert_sort_inner_nth_def[symmetric]
-    length_u_def[symmetric] one_uint32_nat_def[symmetric]
+    length_uint32_nat_def[symmetric] one_uint32_nat_def[symmetric]
   supply [[goals_limit = 1]]
   supply mset_eq_setD[dest] mset_eq_length[dest]
   by sepref
@@ -603,7 +603,7 @@ sepref_definition isa_vmtf_flush_code
   supply vmtf_en_dequeue_pre_def[simp] vmtf_insert_sort_nth_code_preD[dest] le_uint32_max_le_uint64_max[intro]
   unfolding vmtf_flush_def PR_CONST_def isa_vmtf_flush_int_def zero_uint32_nat_def[symmetric]
     current_stamp_def[symmetric] one_uint32_nat_def[symmetric]
-  apply (rewrite at \<open>\<lambda>(i, vm, h). _ < \<hole>\<close> length_u_def[symmetric])
+  apply (rewrite at \<open>\<lambda>(i, vm, h). _ < \<hole>\<close> length_uint32_nat_def[symmetric])
   apply (rewrite at \<open>length _ + \<hole>\<close> nat_of_uint64_conv_def[symmetric])
   by sepref
 
@@ -617,7 +617,7 @@ sepref_definition isa_vmtf_flush_fast_code
   supply vmtf_en_dequeue_pre_def[simp] vmtf_insert_sort_nth_code_preD[dest] le_uint32_max_le_uint64_max[intro]
   unfolding isa_vmtf_flush_int_def PR_CONST_def vmtf_flush_int_def zero_uint32_nat_def[symmetric]
     current_stamp_def[symmetric] one_uint32_nat_def[symmetric]
-  apply (rewrite at \<open>\<lambda>(i, vm, h). _ < \<hole>\<close> length_u_def[symmetric])
+  apply (rewrite at \<open>\<lambda>(i, vm, h). _ < \<hole>\<close> length_uint32_nat_def[symmetric])
   apply (rewrite at \<open>length _ + \<hole>\<close> nat_of_uint64_conv_def[symmetric])
   by sepref
 
@@ -832,6 +832,22 @@ lemma get_pos_of_level_in_trail_imp_get_pos_of_level_in_trail:
     by (auto simp: trail_pol_no_CS_def dest!: control_stack_length_count_dec)
   subgoal for a aa ab ac ad b ba ae bb
     by (auto simp: trail_pol_no_CS_def control_stack_length_count_dec in_set_take_conv_nth
+        intro!: control_stack_le_length_M control_stack_is_decided
+        dest: control_stack_level_control_stack)
+  done
+
+lemma get_pos_of_level_in_trail_imp_get_pos_of_level_in_trail_CS:
+   \<open>(uncurry get_pos_of_level_in_trail_imp, uncurry get_pos_of_level_in_trail) \<in>
+    [get_pos_of_level_in_trail_pre]\<^sub>f trail_pol \<A> \<times>\<^sub>f nat_rel \<rightarrow> \<langle>nat_rel\<rangle>nres_rel\<close>
+  apply (intro nres_relI frefI)
+  unfolding get_pos_of_level_in_trail_imp_def uncurry_def get_pos_of_level_in_trail_def
+    get_pos_of_level_in_trail_pre_def
+  apply clarify
+  apply (rule ASSERT_leI)
+  subgoal
+    by (auto simp: trail_pol_def dest!: control_stack_length_count_dec)
+  subgoal for a aa ab ac ad b ba ae bb
+    by (auto simp: trail_pol_def control_stack_length_count_dec in_set_take_conv_nth
         intro!: control_stack_le_length_M control_stack_is_decided
         dest: control_stack_level_control_stack)
   done

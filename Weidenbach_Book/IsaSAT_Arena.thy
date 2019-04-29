@@ -154,6 +154,14 @@ definition header_size :: \<open>nat clause_l \<Rightarrow> nat\<close> where
 
 lemmas SHIFTS_def = POS_SHIFT_def STATUS_SHIFT_def ACTIVITY_SHIFT_def LBD_SHIFT_def SIZE_SHIFT_def
 
+lemma (in -) ACTIVITY_SHIFT_hnr:
+  \<open>(uncurry0 (return 3), uncurry0 (RETURN ACTIVITY_SHIFT) ) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
+  by sepref_to_hoare (sep_auto simp: ACTIVITY_SHIFT_def uint64_nat_rel_def br_def)
+lemma (in -) STATUS_SHIFT_hnr:
+  \<open>(uncurry0 (return 4), uncurry0 (RETURN STATUS_SHIFT) ) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
+  by sepref_to_hoare (sep_auto simp: STATUS_SHIFT_def uint64_nat_rel_def br_def)
+
+
 (*TODO is that still used?*)
 lemma arena_shift_distinct:
   \<open>i >  3 \<Longrightarrow> i - SIZE_SHIFT \<noteq> i - LBD_SHIFT\<close>
@@ -1235,20 +1243,24 @@ qed
 
 paragraph \<open>Learning a clause\<close>
 
+definition append_clause_skeleton where
+  \<open>append_clause_skeleton pos st used act lbd C arena =
+    (if is_short_clause C then
+      arena @ (AStatus st used) # AActivity act # ALBD lbd #
+      ASize (length C - 2) # map ALit C
+    else arena @ APos pos # (AStatus st used) # AActivity act #
+      ALBD lbd # ASize (length C - 2) # map ALit C)\<close>
+
 definition append_clause where
   \<open>append_clause b C arena =
-    (if is_short_clause C then
-      arena @ (if b then AStatus IRRED False else AStatus LEARNED True) # AActivity 0 # ALBD (length C - 2) #
-      ASize (length C - 2) # map ALit C
-    else arena @ APos 0 # (if b then AStatus IRRED False else AStatus LEARNED True) # AActivity 0 #
-      ALBD (length C - 2)# ASize (length C - 2) # map ALit C)\<close>
+    append_clause_skeleton 0 (if b then IRRED else LEARNED) False 0 (length C - 2) C arena\<close>
 
 lemma arena_active_clause_append_clause:
   assumes
     \<open>i \<ge> header_size (N \<propto> i)\<close> and
     \<open>i < length arena\<close> and
     \<open>xarena_active_clause (clause_slice arena N i) (the (fmlookup N i))\<close>
-  shows \<open>xarena_active_clause (clause_slice (append_clause b C arena) N i)
+  shows \<open>xarena_active_clause (clause_slice (append_clause_skeleton pos st used act lbd C arena) N i)
      (the (fmlookup N i))\<close>
 proof -
   have \<open>drop (header_size (N \<propto> i)) (clause_slice arena N i) = map ALit (N \<propto> i)\<close> and
@@ -1261,24 +1273,31 @@ proof -
    have \<open>i + length (N \<propto> i) \<le> length arena\<close>
     unfolding xarena_active_clause_alt_def
     by (auto simp add: slice_len_min_If header_size_def is_short_clause_def split: if_splits)
-  then have \<open>clause_slice (append_clause b C arena) N i = clause_slice arena N i\<close>
-    by (auto simp add: append_clause_def)
+  then have \<open>clause_slice (append_clause_skeleton pos st used act lbd C arena) N i =
+    clause_slice arena N i\<close>
+    by (auto simp add: append_clause_skeleton_def)
   then show ?thesis
     using assms by simp
 qed
 
 lemma length_append_clause[simp]:
+  \<open>length (append_clause_skeleton pos st used act lbd C arena) =
+    length arena + length C + header_size C\<close>
   \<open>length (append_clause b C arena) = length arena + length C + header_size C\<close>
-  by (auto simp: append_clause_def header_size_def)
+  by (auto simp: append_clause_skeleton_def header_size_def
+    append_clause_def)
 
-lemma arena_active_clause_append_clause_same: \<open>2 \<le> length C \<Longrightarrow>
+lemma arena_active_clause_append_clause_same: \<open>2 \<le> length C \<Longrightarrow> st \<noteq> DELETED \<Longrightarrow>
+    pos \<le> length C - 2 \<Longrightarrow>
+    b \<longleftrightarrow> (st = IRRED) \<Longrightarrow>
     xarena_active_clause
      (Misc.slice (length arena) (length arena + header_size C + length C)
-       (append_clause b C arena))
-     ((the (fmlookup (fmupd (length arena + header_size C) (C, b) N)
-     (length arena + header_size C))))\<close>
-  unfolding xarena_active_clause_alt_def append_clause_def
-  by (auto simp: header_size_def slice_start0 SHIFTS_def slice_Cons split: if_splits)
+       (append_clause_skeleton pos st used act lbd C arena))
+     (the (fmlookup (fmupd (length arena + header_size C) (C, b) N)
+       (length arena + header_size C)))\<close>
+  unfolding xarena_active_clause_alt_def append_clause_skeleton_def
+  by (cases st)
+   (auto simp: header_size_def slice_start0 SHIFTS_def slice_Cons split: if_splits)
 
 lemma clause_slice_append_clause:
   assumes
@@ -1286,13 +1305,15 @@ lemma clause_slice_append_clause:
     dom: \<open>valid_arena arena N vdom\<close> and
     \<open>arena_dead_clause (dead_clause_slice (arena) N ia)\<close>
   shows
-    \<open>arena_dead_clause (dead_clause_slice (append_clause b C arena) N ia)\<close>
+    \<open>arena_dead_clause (dead_clause_slice (append_clause_skeleton pos st used act lbd C arena) N ia)\<close>
 proof -
   have ia_ge: \<open>ia \<ge> 4\<close> \<open>ia < length arena\<close>
     using dom ia unfolding valid_arena_def
     by auto
-  then have \<open>dead_clause_slice (arena) N ia = dead_clause_slice (append_clause b C arena) N ia\<close>
-    by (auto simp add: extra_information_mark_to_delete_def drop_update_swap append_clause_def
+  then have \<open>dead_clause_slice (arena) N ia =
+      dead_clause_slice (append_clause_skeleton pos st used act lbd C arena) N ia\<close>
+    by (auto simp add: extra_information_mark_to_delete_def drop_update_swap
+      append_clause_skeleton_def
       arena_dead_clause_def swap_lits_def SHIFTS_def swap_def ac_simps
        Misc.slice_def header_size_def split: if_splits)
   then show ?thesis
@@ -1300,12 +1321,15 @@ proof -
 qed
 
 
-lemma valid_arena_append_clause:
-  assumes arena: \<open>valid_arena arena N vdom\<close> and le_C: \<open>length C \<ge> 2\<close>
-  shows \<open>valid_arena (append_clause b C arena) (fmupd (length arena + header_size C) (C, b) N)
+lemma valid_arena_append_clause_skeleton:
+  assumes arena: \<open>valid_arena arena N vdom\<close> and le_C: \<open>length C \<ge> 2\<close> and
+    b: \<open>b \<longleftrightarrow> (st = IRRED)\<close> and st: \<open>st \<noteq> DELETED\<close> and
+    pos: \<open>pos \<le> length C - 2\<close>
+  shows \<open>valid_arena (append_clause_skeleton pos st used act lbd C arena)
+      (fmupd (length arena + header_size C) (C, b) N)
      (insert (length arena + header_size C) vdom)\<close>
 proof -
-  let ?arena = \<open>append_clause b C arena\<close>
+  let ?arena = \<open>append_clause_skeleton pos st used act lbd C arena\<close>
   let ?i= \<open>length arena + header_size C\<close>
   let ?N = \<open>(fmupd (length arena + header_size C) (C, b) N)\<close>
   let ?vdom = \<open>insert (length arena + header_size C) vdom\<close>
@@ -1334,17 +1358,28 @@ proof -
         ia < length ?arena \<and>
         header_size (?N \<propto> ia) \<le> ia \<and>
         xarena_active_clause (clause_slice ?arena ?N ia) (the (fmlookup ?N ia))\<close> for ia
-    using dom'[of ia] le_C arena_active_clause_append_clause_same[of C arena b]
+    using dom'[of ia] le_C arena_active_clause_append_clause_same[of C st pos b arena used]
+      b st pos
     by auto
   moreover have \<open>ia\<in>vdom \<longrightarrow>
-        ia \<notin># dom_m N \<longrightarrow> ia < length (append_clause b C arena) \<and>
-        4 \<le> ia \<and> arena_dead_clause (Misc.slice (ia - 4) ia (append_clause b C arena))\<close> for ia
-    using vdom[of ia] clause_slice_append_clause[of ia N vdom arena b C, OF _ _ arena] le_C
+        ia \<notin># dom_m N \<longrightarrow> ia < length (?arena) \<and>
+        4 \<le> ia \<and> arena_dead_clause (Misc.slice (ia - 4) ia (?arena))\<close> for ia
+    using vdom[of ia] clause_slice_append_clause[of ia N vdom arena pos st used act lbd C, OF _ _ arena]
+      le_C b st
     by auto
   ultimately show ?thesis
     unfolding valid_arena_def
     by auto
 qed
+
+lemma valid_arena_append_clause:
+  assumes arena: \<open>valid_arena arena N vdom\<close> and le_C: \<open>length C \<ge> 2\<close>
+  shows \<open>valid_arena (append_clause b C arena)
+      (fmupd (length arena + header_size C) (C, b) N)
+     (insert (length arena + header_size C) vdom)\<close>
+  using valid_arena_append_clause_skeleton[OF assms(1,2),
+    of b \<open>if b then IRRED else LEARNED\<close>]
+  by (auto simp: append_clause_def)
 
 
 subsubsection \<open>Refinement Relation\<close>
@@ -1421,7 +1456,8 @@ lemma arena_lifting:
     \<open>arena_length arena i > 0\<close> and
     \<open>arena_status arena i = LEARNED \<longleftrightarrow> \<not>irred N i\<close> and
     \<open>arena_status arena i = IRRED \<longleftrightarrow> irred N i\<close> and
-    \<open>arena_status arena i \<noteq> DELETED\<close>
+    \<open>arena_status arena i \<noteq> DELETED\<close> and
+    \<open>Misc.slice i (i + arena_length arena i) arena = map ALit (N \<propto> i)\<close>
 proof -
   have
     dom: \<open>\<And>i. i\<in>#dom_m N \<Longrightarrow>
@@ -1498,7 +1534,8 @@ proof -
   show i_le_arena: \<open>i + length (N \<propto> i) \<le> length arena\<close>
     using arg_cong[OF clause, of length] i_le i_ge
     by (auto simp: arena_lit_def slice_len_min_If)
-  show \<open>is_Pos (arena ! (i - POS_SHIFT))\<close> and \<open>arena_pos arena i \<le> arena_length arena i\<close>
+  show \<open>is_Pos (arena ! (i - POS_SHIFT))\<close> and
+    \<open>arena_pos arena i \<le> arena_length arena i\<close>
   if \<open>is_long_clause (N \<propto> i)\<close>
     using pos ge2 i_le i_ge that unfolding arena_pos_def HH
     by (auto simp: SHIFTS_def slice_nth header_size_def)
@@ -1522,6 +1559,18 @@ proof -
     \<open>arena_status arena i \<noteq> DELETED\<close>
     using learned init unfolding arena_status_def
     by (auto simp: arena_status_def)
+  show
+    \<open>Misc.slice i (i + arena_length arena i) arena = map ALit (N \<propto> i)\<close>
+    apply (subst list_eq_iff_nth_eq, intro conjI allI)
+    subgoal
+      using HH i_le_arena i_le
+      by (auto simp: slice_nth slice_len_min_If)
+    subgoal for j
+      using HH i_le_arena i_le is_lit[of j]
+      by (cases \<open>arena ! (i + j)\<close>)
+       (auto simp: slice_nth slice_len_min_If
+         arena_lit_def)
+    done
 qed
 
 
@@ -2676,6 +2725,177 @@ proof -
 qed
 
 
+paragraph \<open>Divide activity by two\<close>
+
+definition isa_arena_decr_act :: \<open>uint32 list \<Rightarrow> nat \<Rightarrow> uint32 list nres\<close> where
+  \<open>isa_arena_decr_act arena C = do {
+      ASSERT(C - ACTIVITY_SHIFT < length arena \<and> C \<ge> ACTIVITY_SHIFT);
+      let act = arena ! (C - ACTIVITY_SHIFT);
+      RETURN (arena[C - ACTIVITY_SHIFT := (act >> 1)])
+  }\<close>
+
+definition arena_decr_act where
+  \<open>arena_decr_act arena i = arena[i - ACTIVITY_SHIFT :=
+     AActivity (xarena_act (arena!(i - ACTIVITY_SHIFT)) div 2)]\<close>
+
+lemma nat_of_uint32_div:
+  \<open>nat_of_uint32 (a div b) = nat_of_uint32 a div nat_of_uint32 b\<close>
+  by transfer (auto simp: unat_div)
+
+lemma arena_decr_act_conv:
+  assumes
+    valid: \<open>valid_arena arena N x\<close> and
+    j: \<open>j \<in># dom_m N\<close> and
+    a: \<open>(a, arena) \<in> \<langle>uint32_nat_rel O arena_el_rel\<rangle>list_rel\<close>
+  shows
+    \<open>j - ACTIVITY_SHIFT < length arena\<close> (is ?le) and
+    \<open>ACTIVITY_SHIFT \<le> j\<close> (is ?ge) and
+    \<open>(a[j - ACTIVITY_SHIFT := a ! (j - ACTIVITY_SHIFT) >> Suc 0], arena_decr_act arena j)
+       \<in> \<langle>uint32_nat_rel O arena_el_rel\<rangle>list_rel\<close>
+proof -
+  have j_le: \<open>j < length arena\<close> and
+    length: \<open>length (N \<propto> j) = arena_length arena j\<close> and
+    k1:\<open>\<And>k. k < length (N \<propto> j) \<Longrightarrow> N \<propto> j ! k = arena_lit arena (j + k)\<close> and
+    k2:\<open>\<And>k. k < length (N \<propto> j) \<Longrightarrow> is_Lit (arena ! (j+k))\<close> and
+    le: \<open>j + length (N \<propto> j) \<le> length arena\<close>  and
+    j_ge: \<open>header_size (N \<propto> j) \<le> j\<close> and
+    lbd: \<open>is_Act (arena ! (j - ACTIVITY_SHIFT))\<close>
+    using arena_lifting[OF valid j] by auto
+  show le': ?le
+     using le j_ge unfolding length[symmetric] header_size_def
+     by (auto split: if_splits simp: ACTIVITY_SHIFT_def)
+  show ?ge
+    using j_ge by (auto simp: SHIFTS_def header_size_def split: if_splits)
+  have b:
+    \<open>(a ! (j - ACTIVITY_SHIFT),
+         (arena ! (j - ACTIVITY_SHIFT)))
+       \<in> uint32_nat_rel O arena_el_rel\<close>
+    by (rule param_nth[OF _ _ a]) (use j_le in auto)
+  show \<open>(a[j - ACTIVITY_SHIFT := a ! (j - ACTIVITY_SHIFT) >> Suc 0], arena_decr_act arena j)
+      \<in> \<langle>uint32_nat_rel O arena_el_rel\<rangle>list_rel\<close>
+    unfolding arena_decr_act_def
+    by (rule list_rel_update'[OF a])
+      (cases \<open>arena ! (j - ACTIVITY_SHIFT)\<close>;
+      use lbd b in \<open>auto simp add: uint32_nat_rel_def br_def arena_el_rel_def
+        Collect_eq_comp sum_mod_uint32_max_def nat_of_uint32_plus
+	nat_of_uint32_shiftr\<close>)
+qed
+
+lemma isa_arena_decr_act_arena_decr_act:
+  \<open>(uncurry isa_arena_decr_act, uncurry (RETURN oo arena_decr_act)) \<in>
+    [uncurry arena_act_pre]\<^sub>f
+     \<langle>uint32_nat_rel O arena_el_rel\<rangle>list_rel \<times>\<^sub>f nat_rel \<rightarrow>
+    \<langle> \<langle>uint32_nat_rel O arena_el_rel\<rangle>list_rel\<rangle>nres_rel\<close>
+  by (intro frefI nres_relI)
+   (auto simp: isa_arena_decr_act_def arena_act_def arena_get_lbd_conv
+      arena_act_pre_def arena_is_valid_clause_idx_def arena_decr_act_conv
+      list_rel_imp_same_length arena_act_conv
+      intro!: ASSERT_leI)
+
+sepref_definition isa_arena_decr_act_code
+  is \<open>uncurry isa_arena_decr_act\<close>
+  :: \<open>(arl_assn uint32_assn)\<^sup>d *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a (arl_assn uint32_assn)\<close>
+  unfolding isa_arena_decr_act_def ACTIVITY_SHIFT_def fast_minus_def
+  by sepref
+
+lemma isa_arena_decr_act_code[sepref_fr_rules]:
+  \<open>(uncurry isa_arena_decr_act_code, uncurry (RETURN \<circ>\<circ> arena_decr_act))
+     \<in> [uncurry arena_act_pre]\<^sub>a arena_assn\<^sup>d *\<^sub>a nat_assn\<^sup>k \<rightarrow> arena_assn\<close>
+  using isa_arena_decr_act_code.refine[FCOMP isa_arena_decr_act_arena_decr_act]
+  unfolding hr_comp_assoc[symmetric] list_rel_compp status_assn_alt_def uncurry_def
+  by (auto simp add: arl_assn_comp update_lbd_pre_def)
+
+
+sepref_definition isa_arena_decr_act_fast_code
+  is \<open>uncurry isa_arena_decr_act\<close>
+  :: \<open>(arl_assn uint32_assn)\<^sup>d *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a (arl_assn uint32_assn)\<close>
+  unfolding isa_arena_decr_act_def
+  three_uint32_def[symmetric] ACTIVITY_SHIFT_hnr[sepref_fr_rules]
+  by sepref
+
+lemma isa_arena_decr_act_fast_code[sepref_fr_rules]:
+  \<open>(uncurry isa_arena_decr_act_fast_code, uncurry (RETURN \<circ>\<circ> arena_decr_act))
+     \<in> [uncurry arena_act_pre]\<^sub>a arena_assn\<^sup>d *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow> arena_assn\<close>
+  using isa_arena_decr_act_fast_code.refine[FCOMP isa_arena_decr_act_arena_decr_act]
+  unfolding hr_comp_assoc[symmetric] list_rel_compp status_assn_alt_def uncurry_def
+  by (auto simp add: arl_assn_comp update_lbd_pre_def)
+
+lemma length_arena_decr_act[simp]:
+  \<open>length (arena_decr_act arena C) = length arena\<close>
+  by (auto simp: arena_decr_act_def)
+
+lemma valid_arena_arena_decr_act:
+  assumes C: \<open>C \<in># dom_m N\<close> and valid: \<open>valid_arena arena N vdom\<close>
+  shows
+   \<open>valid_arena (arena_decr_act arena C) N vdom\<close>
+proof -
+  let ?arena = \<open>arena_decr_act arena C\<close>
+  have act: \<open>\<forall>i\<in>#dom_m N.
+     i < length (arena) \<and>
+     header_size (N \<propto> i) \<le> i \<and>
+     xarena_active_clause (clause_slice arena N i)
+      (the (fmlookup N i))\<close> and
+    dead: \<open>\<And>i. i \<in> vdom \<Longrightarrow> i \<notin># dom_m N \<Longrightarrow> i < length arena \<and>
+           4 \<le> i \<and> arena_dead_clause (Misc.slice (i - 4) i arena)\<close> and
+    C_ge: \<open>header_size (N \<propto> C) \<le> C\<close> and
+    C_le: \<open>C < length arena\<close> and
+    C_act: \<open>xarena_active_clause (clause_slice arena N C)
+      (the (fmlookup N C))\<close>
+    using assms
+    by (auto simp: valid_arena_def)
+  have
+   [simp]: \<open>clause_slice ?arena N C ! (header_size (N \<propto> C) - LBD_SHIFT) =
+           clause_slice arena N C ! (header_size (N \<propto> C) - LBD_SHIFT)\<close> and
+   [simp]: \<open>clause_slice ?arena N C ! (header_size (N \<propto> C) - STATUS_SHIFT) =
+           clause_slice arena N C ! (header_size (N \<propto> C) - STATUS_SHIFT)\<close> and
+   [simp]: \<open>clause_slice ?arena N C ! (header_size (N \<propto> C) - SIZE_SHIFT) =
+           clause_slice arena N C ! (header_size (N \<propto> C) - SIZE_SHIFT)\<close> and
+   [simp]: \<open>is_long_clause (N \<propto> C) \<Longrightarrow> clause_slice ?arena N C ! (header_size (N \<propto> C) - POS_SHIFT) =
+           clause_slice arena N C ! (header_size (N \<propto> C) - POS_SHIFT)\<close> and
+   [simp]: \<open>length (clause_slice  ?arena N C) = length (clause_slice arena N C)\<close> and
+   [simp]: \<open>is_Act (clause_slice ?arena N C ! (header_size (N \<propto> C) - ACTIVITY_SHIFT))\<close> and
+   [simp]: \<open>Misc.slice C (C + length (N \<propto> C)) ?arena =
+     Misc.slice C (C + length (N \<propto> C)) arena\<close>
+    using C_le C_ge unfolding SHIFTS_def arena_decr_act_def header_size_def
+    by (auto simp: Misc.slice_def drop_update_swap split: if_splits)
+
+  have \<open>xarena_active_clause (clause_slice ?arena N C) (the (fmlookup N C))\<close>
+    using C_act C_le C_ge unfolding xarena_active_clause_alt_def
+    by simp
+
+  then have 1: \<open>xarena_active_clause (clause_slice arena N i) (the (fmlookup N i)) \<Longrightarrow>
+     xarena_active_clause (clause_slice (arena_decr_act arena C) N i) (the (fmlookup N i))\<close>
+    if \<open>i \<in># dom_m N\<close>
+    for i
+    using minimal_difference_between_valid_index[of N arena C i, OF act]
+      minimal_difference_between_valid_index[of N arena i C, OF act] assms
+      that C_ge
+    by (cases \<open>C < i\<close>; cases \<open>C > i\<close>)
+      (auto simp: arena_decr_act_def header_size_def ACTIVITY_SHIFT_def
+      split: if_splits)
+
+  have 2:
+    \<open>arena_dead_clause (Misc.slice (i - 4) i ?arena)\<close>
+    if \<open>i \<in> vdom\<close>\<open>i \<notin># dom_m N\<close>\<open>arena_dead_clause (Misc.slice (i - 4) i arena)\<close>
+    for i
+  proof -
+    have i_ge: \<open>i \<ge> 4\<close> \<open>i < length arena\<close>
+      using that valid unfolding valid_arena_def
+      by auto
+    show ?thesis
+      using dead[of i] that C_le C_ge
+      minimal_difference_between_invalid_index[OF valid, of C i]
+      minimal_difference_between_invalid_index2[OF valid, of C i]
+      by (cases \<open>C < i\<close>; cases \<open>C > i\<close>)
+        (auto simp: arena_decr_act_def header_size_def ACTIVITY_SHIFT_def C
+          split: if_splits)
+  qed
+  show ?thesis
+    using 1 2 valid
+    by (auto simp: valid_arena_def)
+qed
+
+
 paragraph \<open>Mark used\<close>
 
 definition isa_mark_used :: \<open>uint32 list \<Rightarrow> nat \<Rightarrow> uint32 list nres\<close> where
@@ -2775,6 +2995,26 @@ lemma isa_mark_used_code[sepref_fr_rules]:
   \<open>(uncurry isa_mark_used_code, uncurry (RETURN \<circ>\<circ> mark_used))
      \<in> [uncurry arena_act_pre]\<^sub>a arena_assn\<^sup>d *\<^sub>a nat_assn\<^sup>k \<rightarrow> arena_assn\<close>
   using isa_mark_used_code.refine[FCOMP isa_mark_used_mark_used]
+  unfolding hr_comp_assoc[symmetric] list_rel_compp status_assn_alt_def uncurry_def
+  by (auto simp add: arl_assn_comp update_lbd_pre_def)
+
+definition four_uint32 where \<open>four_uint32 = (4 :: uint32)\<close>
+
+lemma four_uint32_hnr:
+  \<open>(uncurry0 (return 4), uncurry0 (RETURN (four_uint32 :: uint32)) ) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint32_assn\<close>
+  by sepref_to_hoare (sep_auto simp: uint32_nat_rel_def br_def four_uint32_def)
+
+sepref_definition isa_mark_used_fast_code
+  is \<open>uncurry isa_mark_used\<close>
+  :: \<open>(arl_assn uint32_assn)\<^sup>d *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a (arl_assn uint32_assn)\<close>
+  supply four_uint32_hnr[sepref_fr_rules] STATUS_SHIFT_hnr[sepref_fr_rules]
+  unfolding isa_mark_used_def four_uint32_def[symmetric]
+  by sepref
+
+lemma isa_mark_used_fast_code[sepref_fr_rules]:
+  \<open>(uncurry isa_mark_used_fast_code, uncurry (RETURN \<circ>\<circ> mark_used))
+     \<in> [uncurry arena_act_pre]\<^sub>a arena_assn\<^sup>d *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow> arena_assn\<close>
+  using isa_mark_used_fast_code.refine[FCOMP isa_mark_used_mark_used]
   unfolding hr_comp_assoc[symmetric] list_rel_compp status_assn_alt_def uncurry_def
   by (auto simp add: arl_assn_comp update_lbd_pre_def)
 
@@ -2958,6 +3198,20 @@ lemma isa_mark_unused_code[sepref_fr_rules]:
   unfolding hr_comp_assoc[symmetric] list_rel_compp status_assn_alt_def uncurry_def
   by (auto simp add: arl_assn_comp update_lbd_pre_def)
 
+sepref_definition isa_mark_unused_fast_code
+  is \<open>uncurry isa_mark_unused\<close>
+  :: \<open>(arl_assn uint32_assn)\<^sup>d *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a (arl_assn uint32_assn)\<close>
+  supply STATUS_SHIFT_hnr[sepref_fr_rules]
+  unfolding isa_mark_unused_def ACTIVITY_SHIFT_def fast_minus_def[symmetric]
+  by sepref
+
+lemma isa_mark_unused_fast_code[sepref_fr_rules]:
+  \<open>(uncurry isa_mark_unused_fast_code, uncurry (RETURN \<circ>\<circ> mark_unused))
+     \<in> [uncurry arena_act_pre]\<^sub>a arena_assn\<^sup>d *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow> arena_assn\<close>
+  using isa_mark_unused_fast_code.refine[FCOMP isa_mark_unused_mark_unused]
+  unfolding hr_comp_assoc[symmetric] list_rel_compp status_assn_alt_def uncurry_def
+  by (auto simp add: arl_assn_comp update_lbd_pre_def)
+
 lemma length_mark_unused[simp]: \<open>length (mark_unused arena C) = length arena\<close>
   by (auto simp: mark_unused_def)
 
@@ -3117,6 +3371,54 @@ lemma isa_marked_as_used_code[sepref_fr_rules]:
   using isa_marked_as_used_code.refine[FCOMP isa_marked_as_used_marked_as_used]
   unfolding hr_comp_assoc[symmetric] list_rel_compp status_assn_alt_def uncurry_def
   by (auto simp add: arl_assn_comp update_lbd_pre_def)
+
+
+sepref_definition (in -) isa_arena_incr_act_fast_code
+  is \<open>uncurry isa_arena_incr_act\<close>
+  :: \<open>(arl_assn uint32_assn)\<^sup>d *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a (arl_assn uint32_assn)\<close>
+  supply ACTIVITY_SHIFT_hnr[sepref_fr_rules]
+  unfolding isa_arena_incr_act_def
+  by sepref
+
+lemma isa_arena_incr_act_fast_code[sepref_fr_rules]:
+  \<open>(uncurry isa_arena_incr_act_fast_code, uncurry (RETURN \<circ>\<circ> arena_incr_act))
+     \<in> [uncurry arena_act_pre]\<^sub>a arena_assn\<^sup>d *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow> arena_assn\<close>
+  using isa_arena_incr_act_fast_code.refine[FCOMP isa_arena_incr_act_arena_incr_act]
+  unfolding hr_comp_assoc[symmetric] list_rel_compp status_assn_alt_def uncurry_def
+  by (auto simp add: arl_assn_comp update_lbd_pre_def)
+
+sepref_definition arena_status_fast_code
+  is \<open>uncurry isa_arena_status\<close>
+  :: \<open>(arl_assn uint32_assn)\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a uint32_assn\<close>
+  supply arena_el_assn_alt_def[symmetric, simp] sum_uint64_assn[sepref_fr_rules]
+    three_uint32_hnr[sepref_fr_rules] STATUS_SHIFT_hnr[sepref_fr_rules]
+  unfolding isa_arena_status_def three_uint32_def[symmetric]
+  by sepref
+
+lemma isa_arena_status_fast_hnr[sepref_fr_rules]:
+  \<open>(uncurry arena_status_fast_code, uncurry (RETURN \<circ>\<circ> arena_status))
+  \<in> [uncurry arena_is_valid_clause_vdom]\<^sub>a
+    arena_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow> status_assn\<close>
+  using arena_status_fast_code.refine[FCOMP isa_arena_status_arena_status]
+  unfolding hr_comp_assoc[symmetric] uncurry_def list_rel_compp status_assn_alt_def
+  by (simp add: arl_assn_comp)
+
+sepref_definition isa_update_pos_fast_code
+  is \<open>uncurry2 isa_update_pos\<close>
+  :: \<open>uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a (arl_assn uint32_assn)\<^sup>d  \<rightarrow>\<^sub>a arl_assn uint32_assn\<close>
+  supply minus_uint32_assn[sepref_fr_rules] POS_SHIFT_uint64_hnr[sepref_fr_rules] minus_uint64_assn[sepref_fr_rules]
+  unfolding isa_update_pos_def  uint32_nat_assn_minus[sepref_fr_rules] two_uint64_nat_def[symmetric]
+  by sepref
+
+lemma isa_update_pos_code_fast_hnr[sepref_fr_rules]:
+  \<open>(uncurry2 isa_update_pos_fast_code, uncurry2 (RETURN ooo arena_update_pos))
+  \<in> [isa_update_pos_pre]\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a arena_assn\<^sup>d \<rightarrow> arena_assn\<close>
+  using isa_update_pos_fast_code.refine[FCOMP isa_update_pos]
+  unfolding hr_comp_assoc[symmetric] list_rel_compp status_assn_alt_def uncurry_def
+  by (auto simp add: arl_assn_comp isa_update_pos_pre_def)
+
+declare isa_update_pos_fast_code.refine[sepref_fr_rules]
+  arena_status_fast_code.refine[sepref_fr_rules]
 
 
 end

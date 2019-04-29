@@ -5,7 +5,7 @@ begin
 
 subsubsection \<open>Level of literals and clauses\<close>
 text \<open>Getting the level of a variable, implies that the list has to be reversed. Here is the
-  function after reversing.\<close>
+  function \<^emph>\<open>after\<close> reversing.\<close>
 
 definition count_decided :: "('v, 'b, 'm) annotated_lit list \<Rightarrow> nat" where
 "count_decided l = length (filter is_decided l)"
@@ -205,6 +205,10 @@ lemma get_all_mark_of_propagated_append[simp]:
   "get_all_mark_of_propagated (A @ B) = get_all_mark_of_propagated A @ get_all_mark_of_propagated B"
   by (induct A rule: ann_lit_list_induct) auto
 
+lemma get_all_mark_of_propagated_tl_proped:
+  \<open>M \<noteq> [] \<Longrightarrow> is_proped (hd M) \<Longrightarrow> get_all_mark_of_propagated (tl M) = tl (get_all_mark_of_propagated M)\<close>
+  by (induction M rule: ann_lit_list_induct) auto
+
 
 subsubsection \<open>Properties about the levels\<close>
 
@@ -212,9 +216,14 @@ lemma atm_lit_of_set_lits_of_l:
   "(\<lambda>l. atm_of (lit_of l)) ` set xs = atm_of ` lits_of_l xs"
   unfolding lits_of_def by auto
 
+text \<open>Before I try yet another time to prove that I can remove the assumption \<^term>\<open>no_dup M\<close>:
+  It does not work. The problem is that \<^term>\<open>get_level M K = Suc i\<close> peaks the first occurrence
+  of the literal \<^term>\<open>K\<close>. This is for example an issue for the trail \<^term>\<open>replicate n (Decided K)\<close>.
+  An explicit counter-example is below.
+\<close>
 lemma le_count_decided_decomp:
-  assumes "no_dup M"
-  shows"i < count_decided M \<longleftrightarrow> (\<exists>c K c'. M = c @ Decided K # c' \<and> get_level M K = Suc i)"
+  assumes \<open>no_dup M\<close>
+  shows \<open>i < count_decided M \<longleftrightarrow> (\<exists>c K c'. M = c @ Decided K # c' \<and> get_level M K = Suc i)\<close>
     (is "?A \<longleftrightarrow> ?B")
 proof
   assume ?B
@@ -226,44 +235,54 @@ next
   assume ?A
   then show ?B
     using \<open>no_dup M\<close>
-    proof (induction M rule: ann_lit_list_induct)
-      case Nil
-      then show ?case by simp
+  proof (induction M rule: ann_lit_list_induct)
+    case Nil
+    then show ?case by simp
+  next
+    case (Decided L M) note IH = this(1) and i = this(2) and n_d = this(3)
+    then have n_d_M: "no_dup M" by simp
+    show ?case
+    proof (cases "i < count_decided M")
+      case True
+      then obtain c K c' where
+	M: "M = c @ Decided K # c'" and lev_K: "get_level M K = Suc i"
+	using IH n_d_M by blast
+      show ?thesis
+	apply (rule exI[of _ "Decided L # c"])
+	apply (rule exI[of _ K])
+	apply (rule exI[of _ c'])
+	using lev_K n_d unfolding M by (auto simp: get_level_def defined_lit_map)
     next
-      case (Decided L M) note IH = this(1) and i = this(2) and n_d = this(3)
-      then have n_d_M: "no_dup M" by simp
+      case False
+      show ?thesis
+	apply (rule exI[of _ "[]"])
+	apply (rule exI[of _ L])
+	apply (rule exI[of _ M])
+	using False i by (auto simp: get_level_def count_decided_def)
+    qed
+    next
+      case (Propagated L mark' M) note i = this(2) and IH = this(1) and n_d = this(3)
+      then obtain c K c' where
+	M: "M = c @ Decided K # c'" and lev_K: "get_level M K = Suc i"
+	by (auto simp: count_decided_def)
       show ?case
-        proof (cases "i < count_decided M")
-          case True
-          then obtain c K c' where
-            M: "M = c @ Decided K # c'" and lev_K: "get_level M K = Suc i"
-            using IH n_d_M by blast
-          show ?thesis
-            apply (rule exI[of _ "Decided L # c"])
-            apply (rule exI[of _ K])
-            apply (rule exI[of _ c'])
-            using lev_K n_d unfolding M by (auto simp: get_level_def defined_lit_map)
-        next
-          case False
-          show ?thesis
-            apply (rule exI[of _ "[]"])
-            apply (rule exI[of _ L])
-            apply (rule exI[of _ M])
-            using False i by (auto simp: get_level_def count_decided_def)
-        qed
-      next
-        case (Propagated L mark' M) note i = this(2) and n_d = this(3) and IH = this(1)
-        then obtain c K c' where
-          M: "M = c @ Decided K # c'" and lev_K: "get_level M K = Suc i"
-          by (auto simp: count_decided_def)
-        show ?case
-          apply (rule exI[of _ "Propagated L mark' # c"])
-          apply (rule exI[of _ "K"])
-          apply (rule exI[of _ "c'"])
-          using lev_K n_d unfolding M by (auto simp: atm_lit_of_set_lits_of_l get_level_def defined_lit_map)
-      qed
+	apply (rule exI[of _ "Propagated L mark' # c"])
+	apply (rule exI[of _ "K"])
+	apply (rule exI[of _ "c'"])
+	using lev_K n_d unfolding M by (auto simp: atm_lit_of_set_lits_of_l get_level_def
+	  defined_lit_map)
+    qed
 qed
 
+text \<open>The counter-example if the assumption \<^term>\<open>no_dup M\<close>.\<close>
+lemma
+  fixes K
+  defines \<open>M \<equiv> replicate 3 (Decided K)\<close>
+  defines \<open>i \<equiv> 1\<close>
+  assumes \<open>i < count_decided M \<longleftrightarrow> (\<exists>c K c'. M = c @ Decided K # c' \<and> get_level M K = Suc i)\<close>
+  shows False
+  using assms(3-) unfolding M_def i_def numeral_3_eq_3
+  by (auto simp: Cons_eq_append_conv)
 
 lemma Suc_count_decided_gt_get_level:
   \<open>get_level M L < Suc (count_decided M)\<close>

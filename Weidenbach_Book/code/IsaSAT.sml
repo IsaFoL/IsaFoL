@@ -70,21 +70,35 @@ fun print_clauses id a [] = ()
       print_clauses (id+1) a xs
     )
 
-fun print_stat (propa, (confl, (dec, (res, (lres, ures))))) =
+fun print_stat (propa, (confl, (dec, (res, (lres, ures))))) end_of_init end_of_processing =
   let
-     val _ = print ("c propagations: " ^ IntInf.toString (Uint64.toInt propa) ^ "\n")
-     val _ = print ("c conflicts: " ^ IntInf.toString (Uint64.toInt confl) ^ "\n")
-     val _ = print ("c decisions: " ^ IntInf.toString (Uint64.toInt dec) ^ "\n")
-     val _ = print ("c reductions: " ^ IntInf.toString (Uint64.toInt res) ^ "\n")
-     val _ = print ("c local restarts: " ^ IntInf.toString (Uint64.toInt lres) ^ "\n")
-     val _ = print ("c literals set at level 0: " ^ IntInf.toString (Uint64.toInt ures) ^ "\n")
+    fun print_timer d t = print ("c " ^ d ^ ": " ^ Time.toString (#usr (#nongc t)) ^ " s (usr) " ^  Time.toString (#sys (#nongc t)) ^ " s (sys)\n");
+    fun print_timer_GC d t = print ("c " ^ d ^ ": " ^ Time.toString (#usr (#gc t)) ^ " s (usr) " ^  Time.toString (#sys (#gc t)) ^ " s (sys)\n");
+    val clock = Time.toSeconds (#usr (#nongc end_of_processing)) + Time.toSeconds (#sys (#nongc end_of_processing));
+    fun print_stat d t =
+        (print ("c " ^ d ^ ": " ^ IntInf.toString (Uint64.toInt t) ^ "\n");
+         if clock <> 0 then print ("c " ^ d ^ " per s: " ^ IntInf.toString (Uint64.toInt t div clock) ^ "\n") else ())
+     val _ = print "c\nc\nc ***** stats *****\n"
+     val _ = print_timer "time init" end_of_init
+     val _ = print_timer "time solving" end_of_processing
+     val _ = print_timer_GC "time GC" end_of_processing
+     val _ = print_stat "propagations" propa
+     val _ = print_stat "conflicts" confl
+     val _ = print_stat "decisions" dec
+     val _ = print_stat "reductions" res
+     val _ = print_stat "local restarts" lres
+     val _ = print_stat "local literals set at level 0" ures
   in
    ()
   end
 fun solver print_modelb print_stats norestart noreduction nounbounded cnf_name = let
+  val timer = Timer.totalCPUTimer ()
   val problem = Dimacs_Parser.parse_dimacs_file_map_to_list cnf_name nat_of_lit;
+  val end_of_init = Timer.checkCPUTimes timer
+  val timer = Timer.totalCPUTimer ()
   val (SAT, stat) = SAT_Solver.isaSAT_code (not norestart, (not noreduction, nounbounded)) problem ();
-  val _ = (if print_stats then print_stat stat else ());
+  val end_of_processing = Timer.checkCPUTimes timer
+  val _ = (if print_stats then print_stat stat end_of_init end_of_processing else ());
   val _ =
         (case SAT of
              NONE => print "s UNSATISFIABLE\n"

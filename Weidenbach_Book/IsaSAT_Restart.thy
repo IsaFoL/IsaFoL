@@ -420,29 +420,114 @@ sepref_definition access_length_heur_fast_code2
 declare access_length_heur_code.refine[sepref_fr_rules]
   access_length_heur_fast_code2.refine[sepref_fr_rules]
 
-sepref_register mark_to_delete_clauses_wl_D_heur
-sepref_definition mark_to_delete_clauses_wl_D_heur_impl
-  is \<open> mark_to_delete_clauses_wl_D_heur\<close>
-  :: \<open>isasat_unbounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_unbounded_assn\<close>
-  unfolding mark_to_delete_clauses_wl_D_heur_def
-    access_vdom_at_def[symmetric] length_avdom_def[symmetric]
-    get_the_propagation_reason_heur_def[symmetric]
-    clause_is_learned_heur_def[symmetric]
-    clause_lbd_heur_def[symmetric]
-    access_length_heur_def[symmetric]
-    short_circuit_conv
+definition marked_as_used_st where
+  \<open>marked_as_used_st T C =
+    marked_as_used (get_clauses_wl_heur T) C\<close>
+
+lemma marked_as_used_st_alt_def:
+  \<open>marked_as_used_st = (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema,
+     ccount, vdom, lcount) C . marked_as_used N' C)\<close>
+  by (intro ext) (auto simp: marked_as_used_st_def)
+
+(*TODO Move*)
+
+sepref_definition isa_marked_as_used_fast_code
+  is \<open>uncurry isa_marked_as_used\<close>
+  :: \<open>(arl_assn uint32_assn)\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  supply op_eq_uint32[sepref_fr_rules] STATUS_SHIFT_hnr[sepref_fr_rules]
+  unfolding isa_marked_as_used_def
+  by sepref
+
+lemma isa_marked_as_used_code[sepref_fr_rules]:
+  \<open>(uncurry isa_marked_as_used_fast_code, uncurry (RETURN \<circ>\<circ> marked_as_used))
+     \<in> [uncurry marked_as_used_pre]\<^sub>a arena_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow> bool_assn\<close>
+  using isa_marked_as_used_fast_code.refine[FCOMP isa_marked_as_used_marked_as_used]
+  unfolding hr_comp_assoc[symmetric] list_rel_compp status_assn_alt_def uncurry_def
+  by (auto simp add: arl_assn_comp update_lbd_pre_def)
+
+(*END Move*)
+sepref_register marked_as_used_st
+sepref_definition marked_as_used_st_code
+  is \<open>uncurry (RETURN oo marked_as_used_st)\<close>
+  :: \<open>[\<lambda>(S, C). marked_as_used_pre (get_clauses_wl_heur S) C]\<^sub>a
+       isasat_unbounded_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> bool_assn\<close>
+  unfolding marked_as_used_st_alt_def isasat_unbounded_assn_def
   supply [[goals_limit = 1]]
   by sepref
 
-(* TODO Move *)
-sepref_definition sort_vdom_heur_fast_code
-  is \<open>sort_vdom_heur\<close>
-  :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
-  supply sort_clauses_by_score_invI[intro]
-  unfolding sort_vdom_heur_def isasat_bounded_assn_def
+sepref_definition marked_as_used_st_fast_code
+  is \<open>uncurry (RETURN oo marked_as_used_st)\<close>
+  :: \<open>[\<lambda>(S, C). marked_as_used_pre (get_clauses_wl_heur S) C]\<^sub>a
+       isasat_bounded_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow> bool_assn\<close>
+  unfolding marked_as_used_st_alt_def isasat_bounded_assn_def
+  supply [[goals_limit = 1]]
   by sepref
 
-declare sort_vdom_heur_fast_code.refine[sepref_fr_rules]
+sepref_definition marked_as_used_st_fast_code2
+  is \<open>uncurry (RETURN oo marked_as_used_st)\<close>
+  :: \<open>[\<lambda>(S, C). marked_as_used_pre (get_clauses_wl_heur S) C]\<^sub>a
+       isasat_bounded_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> bool_assn\<close>
+  unfolding marked_as_used_st_alt_def isasat_bounded_assn_def
+  supply [[goals_limit = 1]]
+  by sepref
+
+declare marked_as_used_st_code.refine[sepref_fr_rules]
+  marked_as_used_st_fast_code.refine[sepref_fr_rules]
+  marked_as_used_st_fast_code2.refine[sepref_fr_rules]
+
+lemma arena_act_pre_mark_used:
+  \<open>arena_act_pre arena C \<Longrightarrow>
+  arena_act_pre (mark_unused arena C) C\<close>
+  unfolding arena_act_pre_def arena_is_valid_clause_idx_def
+  apply clarify
+  apply (rule_tac x=N in exI)
+  apply (rule_tac x=vdom in exI)
+  by (auto simp: arena_act_pre_def
+    simp: valid_arena_mark_unused)
+
+sepref_definition mark_unused_st_code
+  is \<open>uncurry (RETURN oo mark_unused_st_heur)\<close>
+  :: \<open>[\<lambda>(C, S). arena_act_pre (get_clauses_wl_heur S) C]\<^sub>a
+        nat_assn\<^sup>k *\<^sub>a isasat_unbounded_assn\<^sup>d \<rightarrow> isasat_unbounded_assn\<close>
+  unfolding mark_unused_st_heur_def isasat_unbounded_assn_def
+    arena_act_pre_mark_used[intro!]
+  supply [[goals_limit = 1]]
+  by sepref
+
+sepref_register mark_unused_st_heur
+sepref_definition mark_unused_st_fast_code
+  is \<open>uncurry (RETURN oo mark_unused_st_heur)\<close>
+  :: \<open>[\<lambda>(C, S). arena_act_pre (get_clauses_wl_heur S) C]\<^sub>a
+        uint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
+  unfolding mark_unused_st_heur_def isasat_bounded_assn_def
+    arena_act_pre_mark_used[intro!]
+  supply [[goals_limit = 1]]
+  by sepref
+
+sepref_definition mark_unused_st_fast_code2
+  is \<open>uncurry (RETURN oo mark_unused_st_heur)\<close>
+  :: \<open>[\<lambda>(C, S). arena_act_pre (get_clauses_wl_heur S) C]\<^sub>a
+        nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
+  unfolding mark_unused_st_heur_def isasat_bounded_assn_def
+    arena_act_pre_mark_used[intro!]
+  supply [[goals_limit = 1]]
+  by sepref
+
+declare mark_unused_st_code.refine[sepref_fr_rules]
+  mark_unused_st_fast_code.refine[sepref_fr_rules]
+  mark_unused_st_fast_code2.refine[sepref_fr_rules]
+
+
+sepref_register mark_clauses_as_unused_wl_D_heur
+sepref_definition mark_clauses_as_unused_wl_D_heur_code
+  is \<open>uncurry mark_clauses_as_unused_wl_D_heur\<close>
+  :: \<open>nat_assn\<^sup>k *\<^sub>a isasat_unbounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_unbounded_assn\<close>
+  unfolding mark_clauses_as_unused_wl_D_heur_def
+    mark_unused_st_heur_def[symmetric]
+    access_vdom_at_def[symmetric] length_avdom_def[symmetric]
+    arena_act_pre_mark_used[intro!]
+  by sepref
+
 
 sepref_definition clause_not_marked_to_delete_heur_fast_code2
   is \<open>uncurry (RETURN oo clause_not_marked_to_delete_heur)\<close>
@@ -456,6 +541,44 @@ sepref_definition clause_not_marked_to_delete_heur_fast_code2
 declare clause_not_marked_to_delete_heur_fast_code.refine[sepref_fr_rules]
   clause_not_marked_to_delete_heur_fast_code2.refine[sepref_fr_rules]
 
+sepref_definition mark_clauses_as_unused_wl_D_heur_fast_code
+  is \<open>uncurry mark_clauses_as_unused_wl_D_heur\<close>
+  :: \<open>nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding mark_clauses_as_unused_wl_D_heur_def
+    mark_unused_st_heur_def[symmetric]
+    access_vdom_at_def[symmetric] length_avdom_def[symmetric]
+  by sepref
+
+declare mark_clauses_as_unused_wl_D_heur_fast_code.refine[sepref_fr_rules]
+  mark_clauses_as_unused_wl_D_heur_code.refine[sepref_fr_rules]
+
+
+sepref_register mark_to_delete_clauses_wl_D_heur
+sepref_definition mark_to_delete_clauses_wl_D_heur_impl
+  is \<open>mark_to_delete_clauses_wl_D_heur\<close>
+  :: \<open>isasat_unbounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_unbounded_assn\<close>
+  unfolding mark_to_delete_clauses_wl_D_heur_def
+    access_vdom_at_def[symmetric] length_avdom_def[symmetric]
+    get_the_propagation_reason_heur_def[symmetric]
+    clause_is_learned_heur_def[symmetric]
+    clause_lbd_heur_def[symmetric]
+    access_length_heur_def[symmetric]
+    short_circuit_conv
+    marked_as_used_st_def[symmetric]
+  supply [[goals_limit = 1]]
+  by sepref
+
+(* TODO Move *)
+sepref_definition sort_vdom_heur_fast_code
+  is \<open>sort_vdom_heur\<close>
+  :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
+  supply sort_clauses_by_score_invI[intro]
+  unfolding sort_vdom_heur_def isasat_bounded_assn_def
+  by sepref
+
+declare sort_vdom_heur_fast_code.refine[sepref_fr_rules]
+
 sepref_definition access_lit_in_clauses_heur_fast_code2
   is \<open>uncurry2 (RETURN ooo access_lit_in_clauses_heur)\<close>
   :: \<open>[\<lambda>((S, i), j). access_lit_in_clauses_heur_pre ((S, i), j)]\<^sub>a
@@ -463,12 +586,11 @@ sepref_definition access_lit_in_clauses_heur_fast_code2
   supply length_rll_def[simp] [[goals_limit=1]] arena_is_valid_clause_idx_le_uint64_max[intro]
   unfolding isasat_bounded_assn_def access_lit_in_clauses_heur_alt_def
     fmap_rll_def[symmetric] access_lit_in_clauses_heur_pre_def
-    fmap_rll_u64_def[symmetric] arena_is_valid_clause_idx_le_uint64_max2[intro]
+    fmap_rll_u64_def[symmetric] arena_lit_pre_le[intro]
   by sepref
 
 declare access_lit_in_clauses_heur_fast_code.refine[sepref_fr_rules]
   access_lit_in_clauses_heur_fast_code2.refine[sepref_fr_rules]
-
 
 (* END Move *)
 
@@ -477,7 +599,7 @@ lemma mark_to_delete_clauses_wl_D_heur_is_Some_iff:
   by auto
 
 sepref_definition mark_to_delete_clauses_wl_D_heur_fast_impl
-  is \<open> mark_to_delete_clauses_wl_D_heur\<close>
+  is \<open>mark_to_delete_clauses_wl_D_heur\<close>
   :: \<open>[\<lambda>S. True]\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   unfolding mark_to_delete_clauses_wl_D_heur_def
     access_vdom_at_def[symmetric] length_avdom_def[symmetric]
@@ -486,6 +608,7 @@ sepref_definition mark_to_delete_clauses_wl_D_heur_fast_impl
     clause_lbd_heur_def[symmetric]
     access_length_heur_def[symmetric]
     short_circuit_conv mark_to_delete_clauses_wl_D_heur_is_Some_iff
+    marked_as_used_st_def[symmetric]
   supply [[goals_limit = 1]] option.splits[split]
   by sepref
 

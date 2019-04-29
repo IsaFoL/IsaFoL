@@ -12,8 +12,8 @@ TODO.
 
 theory Executable_FO_Ordered_Resolution_Prover
   imports
-    Deterministic_FO_Ordered_Resolution_Prover
-    Executable_Subsumption
+    Functional_Ordered_Resolution_Prover.Deterministic_FO_Ordered_Resolution_Prover
+    Functional_Ordered_Resolution_Prover.Executable_Subsumption
     "HOL-Library.Code_Target_Nat"
     Show.Show_Instances
     IsaFoR_Term_KBO
@@ -160,7 +160,7 @@ end
 definition prover :: "((nat, nat) Term.term literal list \<times> nat) list \<Rightarrow> bool" where
   "prover N = (case deterministic_RP (St0 N 0) of
       None \<Rightarrow> True
-    | Some R \<Rightarrow> if [] \<in> set R then False else True)"
+    | Some R \<Rightarrow> [] \<notin> set R)"
 
 theorem prover_complete_refutation: "prover N \<longleftrightarrow> satisfiable (RP.grounded_N0 N)"
   unfolding prover_def St0_def

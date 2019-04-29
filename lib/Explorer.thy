@@ -381,7 +381,8 @@ fun explore aim st  =
         else cat_lines (generate_text aim context enclosure clauses);
     val message = Active.sendback_markup_properties [] text;
   in
-    (st |> tap (fn _ => Output.information message))
+    (st
+     |> tap (fn _ => Output.information ("Proof outline with cases:\n" ^ message)))
   end
 
 end

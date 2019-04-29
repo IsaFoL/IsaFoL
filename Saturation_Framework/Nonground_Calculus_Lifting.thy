@@ -18,7 +18,7 @@ locale nonground_static_refutational_complete_calculus = grounding_function Bot_
     entails_comp_G ::  \<open>'g set  \<Rightarrow> 'g set  \<Rightarrow> bool\<close> (infix "\<Turnstile>G" 50) and
     Red_Inf_G :: \<open>'g set \<Rightarrow> 'g inference set\<close> and
     Red_F_G :: \<open>'g set \<Rightarrow> 'g set\<close>
-  + assumes Ground_inf_liftable_or_redundant: \<open>\<iota> \<in> Ground.Inf_from (\<G>_set N) \<Longrightarrow> \<iota> \<in> Red_Inf_G (\<G>_set N) \<or> (\<exists>\<kappa>. \<kappa> \<in> Inf_F \<and> set (prems_of \<kappa>) \<subseteq> N \<and> i \<in> \<G>_Inf \<kappa>)\<close>
+  + assumes Ground_inf_liftable_or_redundant: \<open>\<iota> \<in> Ground.Inf_from (\<G>_set N) \<Longrightarrow> \<iota> \<in> Red_Inf_G (\<G>_set N) \<or> (\<exists>\<kappa>. \<kappa> \<in> Non_ground.Inf_from N \<and> \<iota> \<in> \<G>_Inf \<kappa>)\<close>
 begin
 
 fun entails_comp_F :: \<open>'f set \<Rightarrow> 'f set \<Rightarrow> bool\<close> (infix "\<Turnstile>F" 50) where
@@ -140,7 +140,7 @@ proof
         proof -
           assume \<open>\<iota> \<in> Ground.Inf_from (\<G>_set N)\<close>
           then consider (a) \<open>\<iota> \<in> Red_Inf_G (\<G>_set N)\<close>
-                      | (b) \<open>\<exists>\<kappa>. \<kappa> \<in> Inf_F \<and> set (prems_of \<kappa>) \<subseteq> N \<and> \<iota> \<in> \<G>_Inf \<kappa>\<close> 
+                      | (b) \<open>\<exists>\<kappa>. \<kappa> \<in> Non_ground.Inf_from N \<and> \<iota> \<in> \<G>_Inf \<kappa>\<close> 
             using Ground_inf_liftable_or_redundant by auto
           then show \<open>\<iota> \<in> Red_Inf_G (\<G>_set N)\<close>
           proof cases
@@ -148,7 +148,8 @@ proof
             then show ?thesis .
           next
             case b
-            then obtain \<kappa> where \<open>\<kappa> \<in> Inf_F\<close> and \<open>set (prems_of \<kappa>) \<subseteq> N\<close> and \<open>\<iota> \<in> \<G>_Inf \<kappa>\<close> by auto
+            then obtain \<kappa> where \<open>\<kappa> \<in> Inf_F\<close> and \<open>set (prems_of \<kappa>) \<subseteq> N\<close> and \<open>\<iota> \<in> \<G>_Inf \<kappa>\<close>
+              unfolding Non_ground.Inf_from_def by auto
             then show \<open>\<iota> \<in> Red_Inf_G (\<G>_set N)\<close>
               using saturated_nonground unfolding saturated_def Non_ground.Inf_from_def by auto
           qed
