@@ -685,7 +685,7 @@ backtrackg_rule: "
 
 inductive_cases backtrackgE: "backtrackg S T"
 
-inductive decide :: "'st \<Rightarrow> 'st \<Rightarrow> bool" for S :: 'st where
+inductive decide :: "'st \<Rightarrow> 'st \<Rightarrow> bool" for S :: 'st where (* \htmllink{cdcl-decide-def} *)
 decide_rule:
   "conflicting S = None \<Longrightarrow>
   undefined_lit (trail S) L \<Longrightarrow>

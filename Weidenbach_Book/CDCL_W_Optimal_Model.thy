@@ -3794,6 +3794,12 @@ corollary full_ocdcl\<^sub>w_stgy_no_conflicting_clause_from_init_state: (* \htm
   by (auto simp: all_struct_init_state_distinct_iff)
 
 
+lemma wf_ocdcl\<^sub>w:  (* \htmllink{ocdcl-improve-termination} *)
+  \<open>wf {(T, S). cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S)
+     \<and> ocdcl\<^sub>w S T}\<close>
+  by (rule wf_subset[OF wf_cdcl_bnb2]) (auto dest: ocdcl\<^sub>w_cdcl_bnb)
+
+
 subsubsection \<open>Calculus with generalised Improve rule\<close>
 
 text \<open>Now a version with the more general improve rule:\<close>
