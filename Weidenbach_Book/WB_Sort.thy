@@ -38,13 +38,6 @@ lemma Min_atLeastLessThan2[simp]: \<open>{a..<b} \<noteq> {} \<Longrightarrow> M
   using linorder_class.eq_Min_iff[of \<open>{a..<b}\<close> a]
   by auto
 
-(*
-lemma tam: \<open>\<forall> x. x \<le> (2::nat) \<longrightarrow> x \<ge> 2 \<longrightarrow> x = 2\<close>
-  by auto
-
-lemma tamtam: \<open>(\<forall> x. x \<le> (2::nat) \<longrightarrow> x \<ge> 2 \<longrightarrow> x = 2) \<and> (\<forall> y. y \<le> (3::nat) \<longrightarrow> y \<ge> 3 \<longrightarrow> y = 3)\<close>
-  by auto
-*)
 
 lemma partition_between_mset_eq:
   assumes \<open>i < length xs\<close> and \<open>j < length xs\<close> and \<open>j > i\<close>
@@ -127,15 +120,18 @@ proof -
     done
 qed
 
- 
-definition sublist :: \<open>'a list \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a list\<close> where
-\<open>sublist xs i j = [xs!i. i <- upt i (j+1)]\<close>
+fun sublist :: \<open>'a list \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a list\<close> where
+\<open>sublist xs i j = nths xs (set [i..<Suc j])\<close>
 
-lemma sublist_not_empty: \<open>i1 \<le> i2 \<and> xs \<noteq> [] \<Longrightarrow> sublist xs i1 i2 \<noteq> []\<close>
+value \<open>sublist [0,1,2,3::nat] 1 3\<close>
+value \<open>sublist [0::nat] 0 0\<close>
+
+lemma sublist_not_empty: \<open>\<lbrakk>i1 \<le> i2; i2 < length xs; xs \<noteq> []\<rbrakk> \<Longrightarrow> sublist xs i1 i2 \<noteq> []\<close>
+
+
   apply (induction i2)
+   apply auto
   sorry
-
-value \<open>sublist [0,1,2,3::nat] 0 1\<close>
 
 lemma sublist_app: \<open>i1 \<le> i2 \<Longrightarrow> i2 \<le> i3 \<Longrightarrow> sublist xs i1 i3 = sublist xs i1 i2 @ sublist xs (i2+1) i3\<close>
   sorry
@@ -144,7 +140,8 @@ definition sorted_sublist :: \<open>'a::linorder list \<Rightarrow> nat \<Righta
 \<open>sorted_sublist xs i j = sorted (sublist xs i j)\<close>
 
 lemma sorted_sublist_refl: \<open>sorted_sublist xs i i\<close>
-  sorry
+  apply (simp add: sorted_sublist_def)
+  by (simp add: nths_single_if)
 
 lemma sorted_sublist_partition:
   assumes \<open>i1 \<le> i2\<close> and \<open>i2 + 1 \<le> i3\<close> and
@@ -238,7 +235,7 @@ where
     ASSERT(length xs = length xs0);
     pivot \<leftarrow> RETURN (h (xs ! j0));
     (i, xs) \<leftarrow> nfoldli
-      ([i0..<j0 - 1])
+      (rev [i0..<j0 - 1])
       (\<lambda>_. True)
       (\<lambda>j (i, xs). do {
 	      ASSERT(j < length xs \<and> i < length xs \<and> mset xs = mset xs0);
@@ -261,14 +258,14 @@ proof -
     if \<open>(xsa, xsaa) \<in> Id\<close>
     for xsa xsaa
     using that by auto
-  have [refine0]: \<open>(RETURN [i..<j - 1], it_to_sorted_list (\<lambda>_ _. True) (set [i..<j - 1]))
+  have [refine0]: \<open>(RETURN (rev [i..<j - 1]), it_to_sorted_list (\<lambda>_ _. True) (set [i..<j - 1]))
        \<in> {(c, a).
           c \<le> \<Down> {(x, y).
                  list_all2 (\<lambda>x x'. (x, x') \<in> Id) x
                   y}
                a}\<close>
     by (auto simp: it_to_sorted_list_def list.rel_eq
-      intro!: RETURN_RES_refine exI[of _ \<open>[i..<j - Suc 0]\<close>])
+      intro!: RETURN_RES_refine exI[of _ \<open>(rev [i..<j - Suc 0])\<close>])
   have [refine0]: \<open>(\<lambda>j (i, xs). do {
              _ \<leftarrow> ASSERT (j < length xs \<and> i < length xs \<and> mset xs = mset xsa);
              if R (h (xs ! j)) pivot then RETURN (i + 1, swap xs i j)
@@ -349,6 +346,10 @@ sepref_definition partition_between_ref_code
 
 declare partition_between_ref_code.refine[sepref_fr_rules]
 
+
+term partition_between_ref_code
+
+
 definition quicksort_ref :: \<open>_ \<Rightarrow> _ \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a::linorder list \<Rightarrow> 'a list nres\<close> where
 \<open>quicksort_ref R h i0 j0 xs0 = do {
   RECT (\<lambda>f (i,j,xs). do {
@@ -421,65 +422,82 @@ proof -
     apply (rule f; assumption)
     apply (rule f'; assumption)
     done
- qed
+qed
 
-definition quicksort_impl where
+
+definition quicksort_impl :: \<open>nat \<Rightarrow> nat \<Rightarrow> nat list \<Rightarrow> nat list nres\<close> where
   \<open>quicksort_impl = quicksort_ref (<) id\<close>
 
+term quicksort_impl
+(*
+value quicksort_impl
+value \<open>quicksort_impl (0::nat) (3::nat) [0,1,2,3::nat]\<close>
+*)
+
+sepref_register quicksort quicksort_impl
 
 sepref_definition quicksort_code
   is \<open>uncurry2 (quicksort_impl)\<close>
   :: \<open>nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a (arl_assn nat_assn)\<^sup>d \<rightarrow>\<^sub>a
       arl_assn nat_assn\<close>
+  unfolding quicksort_impl_def quicksort_ref_def
   unfolding partition_between_impl_def[symmetric]
-    quicksort_impl_def quicksort_ref_def
   by sepref
 
+declare quicksort_code.refine[sepref_fr_rules]
+
+
 definition full_quicksort where
-  \<open>full_quicksort R h xs = (if xs = [] then RETURN [] else quicksort R h 0 (length xs - 1) xs)\<close>
+  \<open>full_quicksort R h xs = (if List.null xs then RETURN xs else quicksort R h 0 (length xs - 1) xs)\<close>
 
 definition full_quicksort_ref where
   \<open>full_quicksort_ref R h xs =
     (if List.null xs then RETURN xs else quicksort_ref R h 0 (length xs - 1) xs)\<close>
 
+
+definition full_quicksort_impl :: \<open>nat list \<Rightarrow> nat list nres\<close> where
+  \<open>full_quicksort_impl xs = full_quicksort_ref (<) id xs\<close>
+
+
 lemma full_quicksort_ref_full_quicksort:
   \<open>(full_quicksort_ref R h, full_quicksort R h) \<in>
-    \<langle>Id\<rangle>list_rel \<rightarrow>\<^sub>f \<langle> \<langle>Id\<rangle>list_rel\<rangle>nres_rel\<close>
+    \<langle>Id\<rangle>list_rel \<rightarrow>\<^sub>f \<langle>\<langle>Id\<rangle>list_rel\<rangle>nres_rel\<close>
   unfolding full_quicksort_ref_def full_quicksort_def
   by (intro frefI nres_relI)
      (auto intro!: quicksort_ref_quicksort[unfolded Down_id_eq]
        simp: List.null_def)
 
-value "sublist [0::nat,1,2] 0 2"
+lemma tam: \<open>quicksort_impl 0 (length xs - 1) xs = uncurry2 quicksort_impl ((0, length xs - 1), xs)\<close> by auto
 
-lemma sublist_length: \<open>xs \<noteq> [] \<Longrightarrow> xs = sublist xs 0 (length xs - 1)\<close>
-  apply (simp add: sublist_def)
-  sorry
 
-lemma sorted_sublist_sorted [simp]: \<open>xs \<noteq> [] \<Longrightarrow> sorted_sublist xs 0 (length xs - 1) \<Longrightarrow> sorted xs\<close>
+sepref_definition full_quicksort_code
+  is \<open>full_quicksort_impl\<close>
+  :: \<open>(arl_assn nat_assn)\<^sup>d \<rightarrow>\<^sub>a
+      arl_assn nat_assn\<close>
+  unfolding full_quicksort_impl_def full_quicksort_ref_def quicksort_impl_def[symmetric] List.null_def
+  by sepref
+
+
+lemma sorted_sublist_sorted: \<open>xs \<noteq> [] \<Longrightarrow> sorted_sublist xs 0 (length xs - 1) \<Longrightarrow> sorted xs\<close>
   apply (simp add: sorted_sublist_def)
-  apply (rewrite sublist_length)
-  apply auto
   done
 
-lemma sorted_nil: \<open>sorted []\<close>
-  by auto
+lemma sorted_sublist_sorted': \<open>xs \<noteq> [] \<Longrightarrow> mset xs = mset xs' \<Longrightarrow> sorted_sublist xs' 0 (length xs - Suc 0) \<Longrightarrow> sorted xs'\<close>
+  apply (rule sorted_sublist_sorted)
+   apply auto
+  apply (rewrite Multiset.mset_eq_length)
+   apply auto
+  done
 
-lemma full_quicksort':
-  shows \<open>full_quicksort R h xs \<le> \<Down> Id (SPEC(\<lambda>xs'. mset xs = mset xs' \<and> (if xs = [] then xs' = [] else sorted_sublist xs' 0 (length xs' - 1))))\<close>
-  unfolding full_quicksort_def
-  apply (auto intro: quicksort_between_mset_eq [THEN order_trans])
-  sorry
-
-lemma sublist_length': \<open>mset xs = mset xs' \<Longrightarrow> xs' \<noteq> [] \<Longrightarrow> xs = sublist xs 0 (length xs - 1)\<close>
-  sorry
-
+export_code \<open>full_quicksort_code\<close> \<open>nat_of_integer\<close> in SML_imp module_name vTest file "code/quicksort.sml"
 
 lemma full_quicksort:
   shows \<open>full_quicksort R h xs \<le> \<Down> Id (SPEC(\<lambda>xs'. mset xs = mset xs' \<and> sorted xs'))\<close>
+  unfolding full_quicksort_def List.null_def
+  apply (auto split: if_splits)
   apply (rule order_trans)
-   apply (rule full_quicksort')
-  sorry
-    \<comment> \<open>This looks trivial, but I really don't know how this works.\<close>
+   apply (rule quicksort_between_mset_eq)
+     apply (auto simp add: sorted_sublist_sorted')
+  done
 
 end
