@@ -567,7 +567,7 @@ fun blit A_ src si dst di len =
     array_blit src (integer_of_nat
                      si) dst (integer_of_nat di) (integer_of_nat len));
 
-val version : string = "9cd9c273";
+val version : string = "460e98aa";
 
 fun heap_WHILET b f s =
   (fn () =>
@@ -3027,7 +3027,8 @@ fun partition_clause_code x =
       let
         val (a1, a2) = a;
       in
-        (fn () => (a2, plus_nat a1 one_nat))
+        (fn f_ => fn () => f_ ((arl_swap heap_nat a2 a1 bia) ()) ())
+          (fn x_d => (fn () => (x_d, plus_nat a1 one_nat)))
       end
         ()
     end)
