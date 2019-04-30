@@ -26,12 +26,13 @@ definition partition_between :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) 
       	else RETURN (i, xs)
       })
       (i0, xs);
-    RETURN (xs, i+1)
+    ASSERT(i < length xs \<and> j0 < length xs);
+    RETURN (swap xs i j0, i+1)
   }\<close>
 
 lemma Min_atLeastLessThan[simp]: \<open>b > a \<Longrightarrow> Min {a..<b} = a\<close> for a b :: nat
   using linorder_class.eq_Min_iff[of \<open>{a..<b}\<close> a]
-  by (auto simp: )
+  by auto
 
 lemma Min_atLeastLessThan2[simp]: \<open>{a..<b} \<noteq> {} \<Longrightarrow> Min {a..<b} = a\<close> for a b :: nat
   using linorder_class.eq_Min_iff[of \<open>{a..<b}\<close> a]
@@ -115,12 +116,14 @@ proof -
       by (subst card_Diff_singleton)
         (auto dest: finite_subset simp: card_gt_0_iff)
     subgoal by auto
-    subgoal using assms by auto
+    subgoal by (force dest: mset_eq_length)
     subgoal by auto
-    subgoal using assms(3) by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
     \<comment> \<open>I think we need a stronger invariant to prove this.\<close>
-    subgoal by sorry
-    subgoal by sorry
+    subgoal sorry
+    subgoal sorry
     done
 qed
 
@@ -244,7 +247,8 @@ where
       	else RETURN (i, xs)
       })
       (i0, xs);
-    RETURN (xs, i+1)
+    ASSERT(i < length xs \<and> j0 < length xs);
+    RETURN (swap xs i j0, i+1)
   }\<close>
 
 lemma partition_between_ref_partition_between:
@@ -294,6 +298,8 @@ proof -
     apply (refine_vcg choose_pivot3_choose_pivot swap
       LIST_FOREACH_autoref["to_\<Down>"] \<comment> \<open>@Peter: what is the proper way to do that?\<close>
       )
+    subgoal by auto
+    subgoal by auto
     subgoal by auto
     subgoal by auto
     subgoal by auto
