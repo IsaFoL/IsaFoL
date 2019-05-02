@@ -815,6 +815,24 @@ lemma distinct_mset_image_mset:
   apply (subst distinct_mset_mset_distinct)
   ..
 
+lemma distinct_image_mset_not_equal:
+  assumes
+    LL': \<open>L \<noteq> L'\<close> and
+    dist: \<open>distinct_mset (image_mset f M)\<close> and
+    L: \<open>L \<in># M\<close> and
+    L': \<open>L' \<in># M\<close> and
+    fLL'[simp]: \<open>f L = f L'\<close>
+  shows \<open>False\<close>
+proof -
+  obtain M1 where M1: \<open>M = add_mset L M1\<close>
+    using multi_member_split[OF L] by blast
+  obtain M2 where M2: \<open>M1 = add_mset L' M2\<close>
+    using multi_member_split[of L' M1] LL' L' unfolding M1 by (auto simp: add_mset_eq_add_mset)
+  show False
+    using dist unfolding M1 M2 by auto
+qed
+
+
 subsection \<open>Set of Distinct Multisets\<close>
 
 definition distinct_mset_set :: \<open>'a multiset set \<Rightarrow> bool\<close> where

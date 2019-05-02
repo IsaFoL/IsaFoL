@@ -3,6 +3,7 @@ imports
   Entailment_Definition.Partial_Annotated_Herbrand_Interpretation
 begin
 
+
 subsubsection \<open>Level of literals and clauses\<close>
 text \<open>Getting the level of a variable, implies that the list has to be reversed. Here is the
   function \<^emph>\<open>after\<close> reversing.\<close>
@@ -300,5 +301,9 @@ lemma get_maximum_level_remove_non_max_lvl:
   get_maximum_level M (remove1_mset a D) = get_maximum_level M D\<close>
   by (cases \<open>a \<in># D\<close>)
     (auto dest!: multi_member_split simp: get_maximum_level_add_mset)
+
+lemma exists_lit_max_level_in_negate_ann_lits:
+  \<open>negate_ann_lits M \<noteq> {#} \<Longrightarrow> \<exists>L\<in>#negate_ann_lits M. get_level M L = count_decided M\<close>
+  by (cases \<open>M\<close>) (auto simp: negate_ann_lits_def)
 
 end

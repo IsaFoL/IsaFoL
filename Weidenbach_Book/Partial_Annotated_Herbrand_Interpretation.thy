@@ -1279,6 +1279,11 @@ lemma true_clss_restrict:
   by (auto simp: true_clss_def true_cls_def
     dest!: multi_member_split)
 
+lemma total_over_m_atms_incl:
+  assumes \<open>total_over_m M (set_mset N)\<close>
+  shows
+    \<open>x \<in> atms_of_mm N \<Longrightarrow> x \<in> atms_of_s M\<close>
+  by (meson assms contra_subsetD total_over_m_alt_def)
 
 lemma true_clss_restrict_iff:
   assumes \<open>\<not>tautology \<chi>\<close>
@@ -1355,6 +1360,8 @@ lemma pNeg_simple_clss_iff[simp]:
   \<open>pNeg M \<in> simple_clss N \<longleftrightarrow> M \<in> simple_clss N\<close>
   by (auto simp: simple_clss_def)
 
+lemma atms_of_ms_pNeg[simp]: \<open>atms_of_ms (pNeg ` N) = atms_of_ms N\<close>
+  unfolding atms_of_ms_def pNeg_def by (auto simp: image_image atms_of_def)
 
 definition DECO_clause :: \<open>('v, 'a) ann_lits \<Rightarrow> 'v clause\<close> where
   \<open>DECO_clause M = (uminus o lit_of) `# (filter_mset is_decided (mset M))\<close>
@@ -1365,5 +1372,50 @@ lemma
   DECO_clause_cons_Proped[simp]:
     \<open>DECO_clause (Propagated L C # M) = DECO_clause M\<close>
   by (auto simp: DECO_clause_def)
+
+
+lemma no_dup_distinct_mset[intro!]:
+  assumes n_d: \<open>no_dup M\<close>
+  shows \<open>distinct_mset (negate_ann_lits M)\<close>
+  unfolding negate_ann_lits_def no_dup_def
+proof (subst distinct_image_mset_inj)
+  show \<open>inj_on (\<lambda>L. - lit_of L) (set_mset (mset M))\<close>
+    unfolding inj_on_def Ball_def
+  proof (intro allI impI, rule ccontr)
+    fix L L'
+    assume
+      L: \<open>L \<in># mset M\<close> and
+      L': \<open>L' \<in># mset M\<close> and
+      lit: \<open>- lit_of L = - lit_of L'\<close> and
+      LL': \<open>L \<noteq> L'\<close>
+    have \<open>atm_of (lit_of L) = atm_of (lit_of L')\<close>
+      using lit by auto
+    moreover have \<open>atm_of (lit_of L) \<in># (\<lambda>l. atm_of (lit_of l)) `# mset M\<close>
+      using L by auto
+    moreover have \<open>atm_of (lit_of L') \<in># (\<lambda>l. atm_of (lit_of l)) `# mset M\<close>
+      using L' by auto
+    ultimately show False
+      using assms LL' L L' unfolding distinct_mset_mset_distinct[symmetric] mset_map no_dup_def
+      apply - apply (rule distinct_image_mset_not_equal[of L L' \<open>(\<lambda>l. atm_of (lit_of l))\<close>])
+      by auto
+  qed
+next
+  show \<open>distinct_mset (mset M)\<close>
+    using no_dup_imp_distinct[OF n_d] by simp
+qed
+
+lemma in_negate_trial_iff: \<open>L \<in># negate_ann_lits M \<longleftrightarrow> - L \<in> lits_of_l M\<close>
+  unfolding negate_ann_lits_def lits_of_def by (auto simp: uminus_lit_swap)
+
+lemma negate_ann_lits_cons[simp]:
+  \<open>negate_ann_lits (L # M) = add_mset (- lit_of L) (negate_ann_lits M)\<close>
+  by (auto simp: negate_ann_lits_def)
+
+lemma uminus_simple_clss_iff[simp]:
+  \<open>uminus `# M \<in> simple_clss N \<longleftrightarrow>  M \<in> simple_clss N\<close>
+ by (metis pNeg_simple_clss_iff pNeg_def)
+
+lemma pNeg_mono: \<open>C \<subseteq># C' \<Longrightarrow> pNeg C \<subseteq># pNeg C'\<close>
+  by (auto simp: image_mset_subseteq_mono pNeg_def)
 
 end

@@ -52,7 +52,7 @@ provided $D\not\in\{\top,\bot\}$ and $\neg L$ does not occur in $D$.
 
 provided $D$ is of level $k$.
 
-\bigskip
+\bigskip 
 \shortrules{Backtrack}{$(M_1K^{i+1}M_2;N;U;k;D\lor L;O)$}{$(M_1L^{D\vee L};N;U\cup\{D\lor L\};i;
   \top;O)$}
 
@@ -132,71 +132,6 @@ lemma (in -) Neg_atm_of_itself_uminus_iff: \<open>Neg (atm_of xa) \<noteq> - xa 
 
 lemma (in -) Pos_atm_of_itself_uminus_iff: \<open>Pos (atm_of xa) \<noteq> - xa \<longleftrightarrow> is_pos xa\<close>
   by (cases xa)  auto
-
-lemma distinct_image_mset_not_equal:
-  assumes
-    LL': \<open>L \<noteq> L'\<close> and
-    dist: \<open>distinct_mset (f `# M)\<close> and
-    L: \<open>L \<in># M\<close> and
-    L': \<open>L' \<in># M\<close> and
-    fLL'[simp]: \<open>f L = f L'\<close>
-  shows \<open>False\<close>
-proof -
-  obtain M1 where M1: \<open>M = add_mset L M1\<close>
-    using multi_member_split[OF L] by blast
-  obtain M2 where M2: \<open>M1 = add_mset L' M2\<close>
-    using multi_member_split[of L' M1] LL' L' unfolding M1 by (auto simp: add_mset_eq_add_mset)
-  show False
-    using dist unfolding M1 M2 by auto
-qed
-
-lemma no_dup_distinct_mset[intro!]:
-  assumes n_d: \<open>no_dup M\<close>
-  shows \<open>distinct_mset (negate_ann_lits M)\<close>
-  unfolding negate_ann_lits_def no_dup_def
-proof (subst distinct_image_mset_inj)
-  show \<open>inj_on (\<lambda>L. - lit_of L) (set_mset (mset M))\<close>
-    unfolding inj_on_def Ball_def
-  proof (intro allI impI, rule ccontr)
-    fix L L'
-    assume
-      L: \<open>L \<in># mset M\<close> and
-      L': \<open>L' \<in># mset M\<close> and
-      lit: \<open>- lit_of L = - lit_of L'\<close> and
-      LL': \<open>L \<noteq> L'\<close>
-    have \<open>atm_of (lit_of L) = atm_of (lit_of L')\<close>
-      using lit by auto
-    moreover have \<open>atm_of (lit_of L) \<in># (\<lambda>l. atm_of (lit_of l)) `# mset M\<close>
-      using L by auto
-    moreover have \<open>atm_of (lit_of L') \<in># (\<lambda>l. atm_of (lit_of l)) `# mset M\<close>
-      using L' by auto
-    ultimately show False
-      using assms LL' L L' unfolding distinct_mset_mset_distinct[symmetric] mset_map no_dup_def
-      apply - apply (rule distinct_image_mset_not_equal[of L L' \<open>(\<lambda>l. atm_of (lit_of l))\<close>])
-      by auto
-  qed
-next
-  show \<open>distinct_mset (mset M)\<close>
-    using no_dup_imp_distinct[OF n_d] by simp
-qed
-
-lemma in_negate_trial_iff: \<open>L \<in># negate_ann_lits M \<longleftrightarrow> - L \<in> lits_of_l M\<close>
-  unfolding negate_ann_lits_def lits_of_def by (auto simp: uminus_lit_swap)
-
-lemma exists_lit_max_level_in_negate_ann_lits:
-  \<open>negate_ann_lits M \<noteq> {#} \<Longrightarrow> \<exists>L\<in>#negate_ann_lits M. get_level M L = count_decided M\<close>
-  by (cases \<open>M\<close>) (auto simp: negate_ann_lits_def)
-
-lemma negate_ann_lits_cons[simp]:
-  \<open>negate_ann_lits (L # M) = add_mset (- lit_of L) (negate_ann_lits M)\<close>
-  by (auto simp: negate_ann_lits_def)
-
-lemma uminus_simple_clss_iff[simp]:
-  \<open>uminus `# M \<in> simple_clss N \<longleftrightarrow>  M \<in> simple_clss N\<close>
- by (metis pNeg_simple_clss_iff pNeg_def)
-
-lemma pNeg_mono: \<open>C \<subseteq># C' \<Longrightarrow> pNeg C \<subseteq># pNeg C'\<close>
-  by (auto simp: image_mset_subseteq_mono pNeg_def)
 
 definition model_on :: \<open>'v partial_interp \<Rightarrow> 'v clauses \<Rightarrow> bool\<close> where
 \<open>model_on I N \<longleftrightarrow> consistent_interp I \<and> atm_of ` I \<subseteq> atms_of_mm N\<close>
@@ -732,7 +667,6 @@ lemma cdcl_bnb_cdcl_bnb_struct_invs:
 lemma rtranclp_cdcl_bnb_cdcl_bnb_struct_invs:
   \<open>cdcl_bnb\<^sup>*\<^sup>* S T \<Longrightarrow> cdcl_bnb_struct_invs S \<Longrightarrow> cdcl_bnb_struct_invs T\<close>
   by (induction rule: rtranclp_induct) (auto dest: cdcl_bnb_cdcl_bnb_struct_invs)
-
 
 lemma cdcl_bnb_stgy_cdcl_bnb: \<open>cdcl_bnb_stgy S T \<Longrightarrow> cdcl_bnb S T\<close>
   by (auto simp: cdcl_bnb_stgy.simps intro: cdcl_bnb.intros)
@@ -1295,32 +1229,14 @@ lemma abs_state_cons_trail[simp]:
 
 lemma obacktrack_imp_backtrack:
   \<open>obacktrack S T \<Longrightarrow> cdcl\<^sub>W_restart_mset.backtrack (abs_state S) (abs_state T)\<close>
-  apply (auto elim!: obacktrackE simp: cdcl\<^sub>W_restart_mset.backtrack.simps sim_abs_state_simp)
-  apply (rule_tac x=L in exI)
-  apply (rule_tac x=D in exI)
-  apply auto
-  apply (rule_tac x=K in exI)
-  apply (rule_tac x=M1 in exI)
-  apply auto
-  apply (rule_tac x=D' in exI)
-  apply (auto simp: sim_abs_state_simp)
-  done
+  by (elim obacktrackE, rule_tac D=D and L=L and K=K in cdcl\<^sub>W_restart_mset.backtrack.intros)
+    (auto elim!: obacktrackE simp: cdcl\<^sub>W_restart_mset.backtrack.simps sim_abs_state_simp)
 
 lemma backtrack_imp_obacktrack:
   \<open>cdcl\<^sub>W_restart_mset.backtrack (abs_state S) T \<Longrightarrow> Ex (obacktrack S)\<close>
-  apply (auto simp: cdcl\<^sub>W_restart_mset.backtrack.simps obacktrack.simps)
-  apply (rule exI)
-  apply (auto simp: cdcl\<^sub>W_restart_mset.backtrack.simps obacktrack.simps)
-  apply (rule_tac x=L in exI)
-  apply (rule_tac x=D in exI)
-  apply auto
-  apply (rule_tac x=K in exI)
-  apply (rule_tac x=M1 in exI)
-  apply auto
-  apply (rule_tac x=D' in exI)
-  apply (auto simp: sim_abs_state_simp)
-  done
-
+  by (elim cdcl\<^sub>W_restart_mset.backtrackE, rule exI,
+       rule_tac D=D and L=L and K=K in obacktrack.intros)
+    (auto simp: cdcl\<^sub>W_restart_mset.backtrack.simps obacktrack.simps)
 
 lemma cdcl\<^sub>W_same_weight: \<open>cdcl\<^sub>W S U \<Longrightarrow> weight S = weight U\<close>
   by (induction rule: cdcl\<^sub>W.induct)
@@ -1336,7 +1252,7 @@ lemma ocdcl\<^sub>W_o_same_weight: \<open>ocdcl\<^sub>W_o S U \<Longrightarrow> 
         clauses_def conflict.simps cdcl\<^sub>W_o.simps decide.simps cdcl\<^sub>W_bj.simps
         skip.simps resolve.simps obacktrack.simps)
 
-text \<open>This is a proof artefact: it is easier to reasion on \<^term>\<open>improvep\<close> when the set of
+text \<open>This is a proof artefact: it is easier to reason on \<^term>\<open>improvep\<close> when the set of
   initial clauses is fixed (here by \<^term>\<open>N\<close>). The next theorem shows that the conclusion
   is equivalent to not fixing the set of clauses.\<close>
 lemma wf_cdcl_bnb:
@@ -1409,7 +1325,7 @@ next
 qed
 
 text \<open>The following is a slightly more restricted version of the theorem, because it makes it possible
-to ass some specific invariant, which can be useful when the decreasing argument is complicated.
+to add some specific invariant, which can be useful when the proof of the decreasing is complicated.
 \<close>
 lemma wf_cdcl_bnb_with_additional_inv:
   assumes improve: \<open>\<And>S T. improvep S T \<Longrightarrow> P S \<Longrightarrow> init_clss S = N \<Longrightarrow> (\<nu> (weight T), \<nu> (weight S)) \<in> R\<close> and
@@ -1503,32 +1419,16 @@ proof -
     by (auto dest: cdcl_bnb_stgy_cdcl_bnb)
   then show ?thesis
     using assms
-    apply (auto 7 5 simp: cdcl_bnb_stgy.simps conflict_opt.simps ocdcl\<^sub>W_o.simps
+    by (auto 7 5 simp: cdcl_bnb_stgy.simps conflict_opt.simps ocdcl\<^sub>W_o.simps
         cdcl_bnb_bj.simps
-      dest!: conflict_conflict propagate_propagate decide_decide skip_skip resolve_resolve
+      dest: conflict_conflict propagate_propagate decide_decide skip_skip resolve_resolve
         backtrack_backtrack
-      dest!: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy.intros cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_o.intros
+      dest: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy.intros cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_o.intros
       dest: conflicting_clss_update_weight_information_in
         conflict_abs_ex_conflict_no_conflicting
         propagate_abs_ex_propagate_no_conflicting
+      intro: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy.intros(3)
       elim: improveE)
-      apply (rule cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy.intros(3))
-      apply (auto dest:
-        conflict_abs_ex_conflict_no_conflicting
-        propagate_abs_ex_propagate_no_conflicting)
-      apply (rule cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy.intros(3))
-      apply (auto dest:
-        conflict_abs_ex_conflict_no_conflicting
-        propagate_abs_ex_propagate_no_conflicting)
-      apply (rule cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy.intros(3))
-      apply (auto dest:
-        conflict_abs_ex_conflict_no_conflicting
-        propagate_abs_ex_propagate_no_conflicting)
-      apply (rule cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy.intros(3))
-      apply (auto dest:
-        conflict_abs_ex_conflict_no_conflicting
-        propagate_abs_ex_propagate_no_conflicting)
-      done
 qed
 
 lemma rtranclp_cdcl_bnb_stgy_no_conflicting_clss_cdcl\<^sub>W_stgy:
@@ -2418,12 +2318,6 @@ lemma is_improving_conflicting_clss_update_weight_information: \<open>is_improvi
       dest: simple_clssE
       split: enat.splits)
 
-lemma total_over_m_atms_incl:
-  assumes \<open>total_over_m M (set_mset N)\<close>
-  shows
-    \<open>x \<in> atms_of_mm N \<Longrightarrow> x \<in> atms_of_s M\<close>
-  by (meson assms contra_subsetD total_over_m_alt_def)
-
 lemma conflicting_clss_update_weight_information_in2:
   assumes \<open>is_improving M M' S\<close>
   shows \<open>negate_ann_lits M' \<in># conflicting_clss (update_weight_information M' S)\<close>
@@ -2433,9 +2327,6 @@ lemma conflicting_clss_update_weight_information_in2:
       simp: multiset_filter_mono2 simple_clss_def lits_of_def
       negate_ann_lits_pNeg_lit_of image_iff dest: total_over_m_atms_incl
       intro!: true_clss_cls_in too_heavy_clauses_contains_itself)
-
-lemma atms_of_ms_pNeg[simp]: \<open>atms_of_ms (pNeg ` N) = atms_of_ms N\<close>
-  unfolding atms_of_ms_def pNeg_def by (auto simp: image_image atms_of_def)
 
 lemma atms_of_init_clss_conflicting_clss[simp]:
   \<open>atms_of_mm (init_clss S) \<union> atms_of_mm (conflicting_clss S) = atms_of_mm (init_clss S)\<close>
