@@ -126,6 +126,7 @@ We later instantiate it with the optimisation calculus from Weidenbach's book.
 
 
 subsubsection \<open>Helper libraries\<close>
+
 lemma (in -) Neg_atm_of_itself_uminus_iff: \<open>Neg (atm_of xa) \<noteq> - xa \<longleftrightarrow> is_neg xa\<close>
   by (cases xa) auto
 
@@ -259,6 +260,9 @@ lemma uminus_simple_clss_iff[simp]:
 
 lemma pNeg_mono: \<open>C \<subseteq># C' \<Longrightarrow> pNeg C \<subseteq># pNeg C'\<close>
   by (auto simp: image_mset_subseteq_mono pNeg_def)
+
+definition model_on :: \<open>_\<close> where
+\<open>model_on I N \<longleftrightarrow> consistent_interp I \<and> atm_of ` I \<subseteq> atms_of_mm N\<close>
 
 
 subsubsection \<open>CDCL BNB\<close>
@@ -3784,14 +3788,14 @@ corollary full_ocdcl\<^sub>w_stgy_no_conflicting_clause_from_init_state: (* \htm
     dist: \<open>distinct_mset_mset N\<close>
   shows
     \<open>weight T = None \<Longrightarrow> unsatisfiable (set_mset N)\<close> and
-    \<open>weight T \<noteq> None \<Longrightarrow> consistent_interp (set_mset (the (weight T))) \<and>
-       atms_of (the (weight T))  \<subseteq> atms_of_mm N \<and> set_mset (the (weight T)) \<Turnstile>sm N \<and>
+    \<open>weight T \<noteq> None \<Longrightarrow> model_on (set_mset (the (weight T))) N \<and> set_mset (the (weight T)) \<Turnstile>sm N \<and>
        distinct_mset (the (weight T))\<close> and
     \<open>distinct_mset I \<Longrightarrow> consistent_interp (set_mset I) \<Longrightarrow> atms_of I = atms_of_mm N \<Longrightarrow>
       set_mset I \<Turnstile>sm N \<Longrightarrow> Found (\<rho> I) \<ge> \<rho>' (weight T)\<close>
   using full_cdcl_bnb_stgy_no_conflicting_clause_from_init_state[of N T,
     OF full_ocdcl\<^sub>w_stgy_full_cdcl_bnb_stgy[OF st] dist] dist
-  by (auto simp: all_struct_init_state_distinct_iff)
+  by (auto simp: all_struct_init_state_distinct_iff model_on_def
+    dest: multi_member_split)
 
 
 lemma wf_ocdcl\<^sub>w:  (* \htmllink{ocdcl-improve-termination} *)
@@ -3969,14 +3973,14 @@ corollary full_ocdcl\<^sub>w_p_stgy_no_conflicting_clause_from_init_state: (* \h
     dist: \<open>distinct_mset_mset N\<close>
   shows
     \<open>weight T = None \<Longrightarrow> unsatisfiable (set_mset N)\<close> and
-    \<open>weight T \<noteq> None \<Longrightarrow> consistent_interp (set_mset (the (weight T))) \<and>
-       atms_of (the (weight T)) \<subseteq> atms_of_mm N \<and> set_mset (the (weight T)) \<Turnstile>sm N \<and>
+    \<open>weight T \<noteq> None \<Longrightarrow> model_on (set_mset (the (weight T))) N \<and> set_mset (the (weight T)) \<Turnstile>sm N \<and>
        distinct_mset (the (weight T))\<close> and
     \<open>distinct_mset I \<Longrightarrow> consistent_interp (set_mset I) \<Longrightarrow> atms_of I = atms_of_mm N \<Longrightarrow>
       set_mset I \<Turnstile>sm N \<Longrightarrow> Found (\<rho> I) \<ge> \<rho>' (weight T)\<close>
   using full_cdcl_bnb_stgy_no_conflicting_clause_from_init_state[of N T,
     OF full_ocdcl\<^sub>w_p_stgy_full_cdcl_bnb_stgy[OF st] dist] dist
-  by (auto simp: all_struct_init_state_distinct_iff)
+  by (auto simp: all_struct_init_state_distinct_iff model_on_def
+    dest: multi_member_split)
 
 
 lemma cdcl_bnb_stgy_no_smaller_propa:

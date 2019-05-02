@@ -597,14 +597,14 @@ lemma finite_upostp: \<open>finite I  \<Longrightarrow> finite \<Sigma> \<Longri
 
 declare finite_\<Sigma>[simp]
 lemma consistent_interp_unionI:
-  \<open>consistent_interp A \<Longrightarrow> consistent_interp B \<Longrightarrow> (\<And>a. a \<in> A \<Longrightarrow> -a \<notin> B) \<Longrightarrow> (\<And>a. a \<in> B \<Longrightarrow> -a \<notin> A) \<Longrightarrow> 
+  \<open>consistent_interp A \<Longrightarrow> consistent_interp B \<Longrightarrow> (\<And>a. a \<in> A \<Longrightarrow> -a \<notin> B) \<Longrightarrow> (\<And>a. a \<in> B \<Longrightarrow> -a \<notin> A) \<Longrightarrow>
     consistent_interp (A \<union> B)\<close>
   by (auto simp: consistent_interp_def)
 
 lemma consistent_interp_poss: \<open>consistent_interp (Pos ` A)\<close> and
   consistent_interp_negs: \<open>consistent_interp (Neg ` A)\<close>
   by (auto simp: consistent_interp_def)
-  
+
 lemma \<rho>\<^sub>e_upostp_\<rho>:
   assumes [simp]: \<open>finite \<Sigma>\<close> and
     \<open>finite I\<close> and
@@ -691,7 +691,7 @@ lemma distinct_mset_encodes_clause_iff:
 lemma distinct_additional_constraints[simp]:
   \<open>distinct_mset_mset additional_constraints\<close>
   by (auto simp: additional_constraints_def additional_constraint_def
-      distinct_mset_set_def finite_\<Sigma>)
+      distinct_mset_set_def)
 
 lemma distinct_mset_penc:
   \<open>atms_of_mm N \<subseteq> \<Sigma> \<Longrightarrow> distinct_mset_mset (penc N) \<longleftrightarrow> distinct_mset_mset N\<close>
@@ -699,11 +699,11 @@ lemma distinct_mset_penc:
       distinct_mset_encodes_clause_iff)
 
 lemma finite_postp: \<open>finite I \<Longrightarrow> finite (postp I)\<close>
-  by (auto simp: postp_def finite_\<Sigma>)
+  by (auto simp: postp_def)
 
 lemma distinct_mset_filter_mset_set[simp]: \<open>distinct_mset {#a \<in># mset_set A. P a#}\<close>
   by (simp add: distinct_mset_filter distinct_mset_mset_set)
-  
+
 theorem full_encoding_OCDCL_correctness: (* \htmllink{ocdcl-partial-enc-correctness} *)
   assumes
     st: \<open>full enc_weight_opt.cdcl_bnb_stgy (init_state (penc N)) T\<close> and
