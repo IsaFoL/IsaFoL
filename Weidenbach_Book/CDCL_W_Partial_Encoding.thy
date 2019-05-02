@@ -24,18 +24,16 @@ interpretation test: conflict_driven_clause_learning\<^sub>W_optimal_weight wher
   by unfold_locales (auto simp: state\<^sub>W_ops.additional_info_def)
 
 text \<open>
-  We here formalise the encoding from a formula to another formula from which we will run derive the
+  We here formalise the encoding from a formula to another formula from which we will use to derive the
   optimal partial model.
 
-  There are a few difference compared to Dominik Zimmer's current draft:
-  \<^item> We directly work on formula in CNF. So we need more variables and more formulas.
-  \<^item> We use the version of the draft with the additional clause to make sure that a variable is either
-    defined or undefined.
+  While the proofs are still inspired by Dominic Zimmer's upcoming bachelor thesis, we now use the dual
+  rail encoding, which is more elegant that the solution found by Christoph to solve the problem.
 
   The intended meaning is the following:
   \<^item> \<^term>\<open>\<Sigma>\<close> is the set of all variables
-  \<^item> \<^term>\<open>\<Delta>\<Sigma>\<close> is the set of all variables with a non-zero weight: These are the variable that are
-    replaced during preprocessing, but it does not matter if the weight 0.
+  \<^item> \<^term>\<open>\<Delta>\<Sigma>\<close> is the set of all variables with a (possibly non-zero) weight: These are the variable that needs
+    to be replaced during encoding, but it does not matter if the weight 0.
 \<close>
 
 locale optimal_encoding_opt = conflict_driven_clause_learning\<^sub>W_optimal_weight
@@ -128,8 +126,7 @@ lemma size_penc:
       additional_constraint_def size_Union_mset_image_mset)
 
 lemma atms_of_mm_additional_constraints: \<open>finite \<Delta>\<Sigma> \<Longrightarrow>
-   atms_of_mm additional_constraints = replacement_pos ` \<Delta>\<Sigma>
-      \<union> replacement_neg ` \<Delta>\<Sigma>\<close>
+   atms_of_mm additional_constraints = replacement_pos ` \<Delta>\<Sigma> \<union> replacement_neg ` \<Delta>\<Sigma>\<close>
   by (auto simp: additional_constraints_def additional_constraint_def atms_of_ms_def)
 
 lemma atms_of_mm_encode_clause_subset:
@@ -158,15 +155,13 @@ lemma atms_of_mm_penc_subset2: \<open>finite \<Delta>\<Sigma> \<Longrightarrow> 
   by (auto simp: penc_def atms_of_mm_additional_constraints)
 
 theorem card_atms_of_mm_penc:
-  assumes \<open>finite \<Delta>\<Sigma>\<close> and
-    \<open>\<Delta>\<Sigma> \<subseteq> atms_of_mm N\<close>
+  assumes \<open>finite \<Delta>\<Sigma>\<close> and  \<open>\<Delta>\<Sigma> \<subseteq> atms_of_mm N\<close>
   shows \<open>card (atms_of_mm (penc N)) \<le> card (atms_of_mm N - \<Delta>\<Sigma>) + 2 * card \<Delta>\<Sigma>\<close> (is \<open>?A \<le> ?B\<close>)
 proof -
   have \<open>?A = card
      ((atms_of_mm N - \<Delta>\<Sigma>) \<union> replacement_pos ` \<Delta>\<Sigma> \<union>
       replacement_neg ` \<Delta>\<Sigma>)\<close> (is \<open>_ = card (?W \<union> ?X \<union> ?Y)\<close>)
-    using arg_cong[OF atms_of_mm_penc_subset2[of N], of card] assms
-    using card_Un_le
+    using arg_cong[OF atms_of_mm_penc_subset2[of N], of card] assms card_Un_le
     by auto
   also have \<open>... \<le> card (?W \<union> ?X) + card ?Y\<close>
     using card_Un_le[of \<open>?W \<union> ?X\<close> ?Y] by auto
@@ -174,8 +169,7 @@ proof -
     using card_Un_le[of \<open>?W\<close> ?X] by auto
   also have \<open>... \<le>  card (atms_of_mm N - \<Delta>\<Sigma>) + 2 * card \<Delta>\<Sigma>\<close>
     using card_mono[of \<open>atms_of_mm N\<close> \<open>\<Delta>\<Sigma>\<close>] assms
-      card_image_le[of \<Delta>\<Sigma> replacement_pos]
-      card_image_le[of \<Delta>\<Sigma> replacement_neg]
+      card_image_le[of \<Delta>\<Sigma> replacement_pos] card_image_le[of \<Delta>\<Sigma> replacement_neg]
     by auto
   finally show ?thesis .
 qed
@@ -377,8 +371,7 @@ lemma consistent_interp_upostp:
 
 lemma atm_of_upostp_subset2:
   \<open>atm_of ` I \<subseteq> \<Sigma> \<Longrightarrow> replacement_pos ` \<Delta>\<Sigma> \<union>
-    replacement_neg ` \<Delta>\<Sigma> \<union> (\<Sigma> - \<Delta>\<Sigma>) \<subseteq> atm_of ` (upostp I)
-    \<close>
+    replacement_neg ` \<Delta>\<Sigma> \<union> (\<Sigma> - \<Delta>\<Sigma>) \<subseteq> atm_of ` (upostp I)\<close>
   apply (auto simp: upostp_def image_Un image_image)
    apply (metis (mono_tags, lifting) imageI literal.sel(1) mem_Collect_eq)
   apply (metis (mono_tags, lifting) imageI literal.sel(2) mem_Collect_eq)
@@ -689,9 +682,6 @@ lemma distinct_mset_penc:
 
 lemma finite_postp: \<open>finite I \<Longrightarrow> finite (postp I)\<close>
   by (auto simp: postp_def)
-
-lemma distinct_mset_filter_mset_set[simp]: \<open>distinct_mset {#a \<in># mset_set A. P a#}\<close>
-  by (simp add: distinct_mset_filter distinct_mset_mset_set)
 
 theorem full_encoding_OCDCL_correctness: (* \htmllink{ocdcl-partial-enc-correctness} *)
   assumes
@@ -1117,7 +1107,7 @@ lemma [simp]:
 corollary
   assumes
     \<Sigma>: \<open>atms_of_mm N = \<Sigma>\<close> and dist: \<open>distinct_mset_mset N\<close> and
-    \<open>full cdcl_bnb_r_stgy (init_state (penc N)) T \<close>
+    \<open>full cdcl_bnb_r_stgy (init_state (penc N)) T\<close>
   shows
     \<open>full enc_weight_opt.cdcl_bnb_stgy (init_state (penc N)) T\<close>
 proof -

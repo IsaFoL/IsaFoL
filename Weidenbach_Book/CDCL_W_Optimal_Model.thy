@@ -263,8 +263,6 @@ sublocale conflict_driven_clause_learning\<^sub>W where
 
 declare reduce_trail_to_skip_beginning[simp]
 
-
-
 lemma state_eq_weight[state_simp, simp]: \<open>S \<sim> T \<Longrightarrow> weight S = weight T\<close>
   apply (drule state_eq_state)
   apply (subst (asm) state_prop')

@@ -862,6 +862,9 @@ lemma distinct_mset_remdups_mset[simp]: \<open>distinct_mset (remdups_mset S)\<c
 lemma distinct_mset_mset_set: \<open>distinct_mset (mset_set A)\<close>
   unfolding distinct_mset_def count_mset_set_if by (auto simp: not_in_iff)
 
+lemma distinct_mset_filter_mset_set[simp]: \<open>distinct_mset {#a \<in># mset_set A. P a#}\<close>
+  by (simp add: distinct_mset_filter distinct_mset_mset_set)
+
 lemma distinct_mset_set_distinct: \<open>distinct_mset_set (mset ` set Cs) \<longleftrightarrow> (\<forall>c\<in> set Cs. distinct c)\<close>
   unfolding distinct_mset_set_def by auto
 
