@@ -781,7 +781,7 @@ lemma no_step_cdcl_bnb_stgy_empty_conflict2:
   by (rule no_step_cdcl_bnb_stgy_empty_conflict[OF can_always_improve assms])
 
 
-theorem cover_model_correctness:
+theorem cdclcm_correctness: (* \htmllink{cdclcm-correctness}*)
   assumes
     full: \<open>full cdcl_bnb_stgy (init_state N) T\<close> and
     dist: \<open>distinct_mset_mset N\<close>
