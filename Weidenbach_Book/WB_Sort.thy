@@ -121,71 +121,32 @@ proof -
 qed
 
 definition sublist :: \<open>'a list \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a list\<close> where
-\<open>sublist xs i j = nths xs (set [i..<Suc j])\<close>
+\<open>sublist xs i j \<equiv> take (1+j-i) (drop i xs)\<close>
 
 value \<open>sublist [0,1,2,3::nat] 1 3\<close>
 value \<open>sublist [0::nat] 0 0\<close>
 
 lemma sublist_single: \<open>i < length xs \<Longrightarrow> sublist xs i i = [xs!i]\<close>
-  apply (simp add: sublist_def)
-  by (simp add: nths_single_if)
-
-lemma sublist_nth': \<open>\<lbrakk>i1 \<le> i2; i2 < length xs; k < (i2-i1)\<rbrakk> \<Longrightarrow> (nths xs (set [i1..<i2]))!k = xs!(i1+k)\<close>
-  sorry
-
-value \<open>nths [1,2,3::nat] {1,2,3}\<close>
-
-
-lemma nths_cons: \<open>nths (a#xs) is = (if a\<in>is then a # nths xs (nat.pred ` is) else nths xs (nat.pred ` is))\<close>
-  apply (simp add: nths_def)
-   apply (simp add: nths_def[symmetric])
-  apply (induction xs arbitrary \<open>is\<close>)
-  sorry
-
-lemma nths_union: \<open> \<lbrakk> \<forall> i\<in>is. (\<forall> j\<in>js. i<j) \<rbrakk> \<Longrightarrow> (nths xs (is \<union> js) = (nths xs is) @ (nths xs js))\<close>
-  apply (induction xs)
-   apply auto
-   apply (rewrite nths_cons)
-  sorry
+  by (simp add: sublist_def Hash_Map.take_Suc0(2))
 
 lemma insert_eq: \<open>insert a b = b \<union> {a}\<close>
   by auto
 
-lemma nths_nth: \<open>\<lbrakk>i1 \<le> i2; i2 < length xs; k \<le> i2 - i1\<rbrakk> \<Longrightarrow> nths xs {i1..<i2} ! k = xs ! (i1 + k)\<close>
-  sorry
-
-lemma nths_length:  \<open>length (nths xs is) = card is\<close>
-  sorry
-
-lemma upt_card: \<open>card {i..<(j::nat)} = j - i - 1\<close>
-  sorry
-
 lemma sublist_nth: \<open>\<lbrakk>i1 \<le> i2; i2 < length xs; k \<le> (i2-i1)\<rbrakk> \<Longrightarrow> (sublist xs i1 i2)!k = xs!(i1+k)\<close>
-  apply (simp add: sublist_def)
-  apply (rewrite insert_eq)
-  apply (rewrite nths_union)
-   apply auto
-  apply (rewrite Misc.nth_append_first)
-  subgoal
-    apply (rewrite nths_length)
-    apply (rewrite upt_card)
-    apply auto
-  subgoal
-    apply (rewrite nths_nth)
-    by auto
+  by (simp add: sublist_def)
 
-lemma sublist_not_empty: \<open>\<lbrakk>i1 \<le> i2; i2 < length xs; xs \<noteq> []\<rbrakk> \<Longrightarrow> sublist xs i1 i2 \<noteq> []\<close>
-  apply (induction i2)
-   apply auto
-  sorry
+lemma sublist_length: \<open>\<lbrakk>i \<le> j; j < length xs\<rbrakk> \<Longrightarrow> length (sublist xs i j) = 1 + j - i\<close>
+  by (simp add: sublist_def)
 
-lemma nths_upt_part: \<open>\<lbrakk>i1 \<le> i2; i2 \<le> i3\<rbrakk> \<Longrightarrow> nths xs (set [i1..<i2]) @ nths xs (set [i2..<i3]) = nths xs (set [i1..<i3])\<close>
-  sorry
+lemma sublist_not_empty: \<open>\<lbrakk>i \<le> j; j < length xs; xs \<noteq> []\<rbrakk> \<Longrightarrow> sublist xs i j \<noteq> []\<close>
+  apply simp
+  apply (rewrite List.length_greater_0_conv[symmetric])
+  apply (rewrite sublist_length)
+  by auto
 
 lemma sublist_app: \<open>\<lbrakk>i1 \<le> i2; i2 \<le> i3\<rbrakk> \<Longrightarrow> sublist xs i1 i2 @ sublist xs (Suc i2) i3 = sublist xs i1 i3\<close>
   unfolding sublist_def
-  apply (rewrite in \<open>\<hole>=_\<close> nths_upt_part)
-  by auto
+  by (smt Suc_eq_plus1_left Suc_le_mono append.assoc le_SucI le_add_diff_inverse le_trans same_append_eq take_add)
 
 definition sorted_sublist :: \<open>'a::linorder list \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> bool\<close> where
 \<open>sorted_sublist xs i j = sorted (sublist xs i j)\<close>
@@ -529,22 +490,13 @@ sepref_definition full_quicksort_code
   unfolding full_quicksort_impl_def full_quicksort_ref_def quicksort_impl_def[symmetric] List.null_def
   by sepref
 
-lemma tamtam: \<open>set [i..<Suc j] = {i..<Suc j}\<close>
-  apply (rule List.set_upt)
-  done
-
-lemma tamtamtam: \<open>xs \<noteq> [] \<Longrightarrow> Suc (length xs - Suc 0) = length xs\<close>
-  by simp
-
-lemma sublist_length: \<open>xs \<noteq> [] \<Longrightarrow> sublist xs 0 (length xs - Suc 0) = xs\<close>
+lemma sublist_length_eq: \<open>xs \<noteq> [] \<Longrightarrow> sublist xs 0 (length xs - Suc 0) = xs\<close>
   unfolding sublist_def
-  apply (rewrite tamtam)
-  apply (rewrite tamtamtam)
-   by auto
+  by simp
 
 lemma sorted_sublist_sorted: \<open>xs \<noteq> [] \<Longrightarrow> sorted_sublist xs 0 (length xs - 1) \<Longrightarrow> sorted xs\<close>
   apply (simp add: sorted_sublist_def)
-  by (simp add: sublist_length)
+  by (simp add: sublist_length_eq)
 
 lemma sorted_sublist_sorted': \<open>xs \<noteq> [] \<Longrightarrow> mset xs = mset xs' \<Longrightarrow> sorted_sublist xs' 0 (length xs - Suc 0) \<Longrightarrow> sorted xs'\<close>
   apply (rule sorted_sublist_sorted)
