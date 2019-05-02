@@ -5,17 +5,6 @@ begin
 
 subsection \<open>Encoding of partial SAT into total SAT\<close>
 
-definition DECO_clause :: \<open>('v, 'a) ann_lits \<Rightarrow> 'v clause\<close> where
-  \<open>DECO_clause M = (uminus o lit_of) `# (filter_mset is_decided (mset M))\<close>
-
-lemma
-  DECO_clause_cons_Decide[simp]:
-    \<open>DECO_clause (Decided L # M) = add_mset (-L) (DECO_clause M)\<close> and
-  DECO_clause_cons_Proped[simp]:
-    \<open>DECO_clause (Propagated L C # M) = DECO_clause M\<close>
-  by (auto simp: DECO_clause_def)
-
-
 text \<open>As a way to make sure we don't reuse theorems names:\<close>
 interpretation test: conflict_driven_clause_learning\<^sub>W_optimal_weight where
   state_eq = \<open>(=)\<close> and
