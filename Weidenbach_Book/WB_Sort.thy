@@ -6,19 +6,26 @@ begin
 definition choose_pivot :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> 'b) \<Rightarrow> 'a list \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat nres\<close> where
   \<open>choose_pivot _ _ _ i j = SPEC(\<lambda>k. k \<ge> i \<and> k \<le> j)\<close>
 
+definition isPartition :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> 'b list \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> bool\<close> where
+  \<open>isPartition R xs i j k \<equiv> (\<forall> k. k \<le> j \<and> k \<ge> i \<longrightarrow> R (xs!k) (xs!j)) \<and> (\<forall> k. k \<ge> j \<and> k \<le> j \<longrightarrow> R (xs!j) (xs!k))\<close>
+
+definition isPartition_map :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> 'b) \<Rightarrow> 'a list \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> bool\<close> where
+  \<open>isPartition_map R h xs i j k \<equiv> isPartition R (map h xs) i j k\<close>
+
+term FOREACHi
+value \<open>[0..<42]\<close> \<comment> \<open>This does not include \<open>42\<close>.\<close>
 
 definition partition_between :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> 'b) \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a list \<Rightarrow> ('a list \<times> nat) nres\<close> where
   \<open>partition_between R h i0 j0 xs0 = do {
     ASSERT(i0 < length xs0 \<and> j0 < length xs0 \<and> j0 > i0);
     k \<leftarrow> choose_pivot R h xs0 i0 j0; \<comment> \<open>choice of pivot\<close>
-    ASSERT(k < length xs0);
     xs \<leftarrow> RETURN (swap xs0 k j0);
     ASSERT(length xs = length xs0);
     pivot \<leftarrow> RETURN (h (xs ! j0));
     (i, xs) \<leftarrow> FOREACHi
       (\<lambda>js (i, xs). i < length xs \<and> mset xs = mset xs0 \<and> i \<ge> i0 \<and>
 	     i \<le> (j0 - 1) - card js)
-      (set [i0..<j0 - 1])
+      (set [i0..<j0])
       (\<lambda>j (i, xs). do {
 	      ASSERT(j < length xs \<and> i < length xs \<and> mset xs = mset xs0); \<comment> \<open>@maxi Add stronger invariant here\<close>
        	if R (h (xs!j)) pivot
@@ -27,7 +34,7 @@ definition partition_between :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) 
       })
       (i0, xs);
     ASSERT(i < length xs \<and> j0 < length xs);
-    RETURN (swap xs i j0, i+1)
+    RETURN (swap xs i j0, i)
   }\<close>
 
 lemma Min_atLeastLessThan[simp]: \<open>b > a \<Longrightarrow> Min {a..<b} = a\<close> for a b :: nat
@@ -41,9 +48,9 @@ lemma Min_atLeastLessThan2[simp]: \<open>{a..<b} \<noteq> {} \<Longrightarrow> M
 
 lemma partition_between_mset_eq:
   assumes \<open>i < length xs\<close> and \<open>j < length xs\<close> and \<open>j > i\<close>
-  shows \<open>partition_between R h i j xs \<le> SPEC(\<lambda>(xs', j'). mset xs = mset xs' \<and> j' < length xs \<and>
-     j' > i \<and> j' \<le> j \<and>
-    (\<forall> k. j' \<ge> k \<and> k \<ge> i \<longrightarrow> xs'!k \<le> xs'!j') \<and> (\<forall> k. k \<ge> j' \<and> k \<le> j \<longrightarrow> xs'!k \<ge> xs'!j') )\<close>
+  shows \<open>partition_between R h i j xs \<le>
+    SPEC(\<lambda>(xs', p). mset xs = mset xs' \<and>
+                    p < length xs \<and> isPartition_map R h xs' i j p)\<close>
 proof -
   have H: \<open>Suc b \<le> j - card \<sigma>\<close>
     if
@@ -163,7 +170,9 @@ lemma sorted_sublist_partition:
     \<open>\<And> k. k \<ge> i1 \<and> k \<le> i2     \<longrightarrow> xs!k \<le> xs!(i2+1)\<close> and
     \<open>\<And> k. k \<ge> i2 + 1 \<and> k \<le> i3 \<longrightarrow> xs!k \<ge> xs!(i2+1)\<close>
   shows \<open>sorted_sublist xs i1 i3\<close>
-  sorry
+  apply (simp add: sorted_sublist_def)
+  oops
+
 
 \<comment> \<open>The left part is already sorted. The elements are always the same. \<open>i\<close> and \<open>j\<close> are pointers on
     the list, and \<open>i\<le>j\<close>.\<close>
@@ -179,11 +188,11 @@ definition quicksort :: \<open>_ \<Rightarrow> _ \<Rightarrow> nat \<Rightarrow>
 \<open>quicksort R h i0 j0 xs0 = do {
   RECT (\<lambda>f (i, j, xs). do {
       ASSERT(quicksort_inv xs0 i0 (xs, i, j));
-      if i+1 \<ge> j then RETURN xs
+      if j\<le>i then RETURN xs
       else do {
-	      (xs, k) \<leftarrow> partition_between R h i j xs;
-      	xs \<leftarrow> f (i, k-1, xs);
-      	f (k, j, xs)
+	      (xs, p) \<leftarrow> partition_between R h i j xs;
+      	xs \<leftarrow> f (i, p-1, xs);
+      	f (p+1, j, xs)
       }
     })
     (i0, j0, xs0)
@@ -248,7 +257,7 @@ where
     ASSERT(length xs = length xs0);
     pivot \<leftarrow> RETURN (h (xs ! j0));
     (i, xs) \<leftarrow> nfoldli
-      (rev [i0..<j0 - 1])
+      ([i0..<j0])
       (\<lambda>_. True)
       (\<lambda>j (i, xs). do {
 	      ASSERT(j < length xs \<and> i < length xs \<and> mset xs = mset xs0);
@@ -258,7 +267,7 @@ where
       })
       (i0, xs);
     ASSERT(i < length xs \<and> j0 < length xs);
-    RETURN (swap xs i j0, i+1)
+    RETURN (swap xs i j0, i)
   }\<close>
 
 lemma partition_between_ref_partition_between:
@@ -271,14 +280,14 @@ proof -
     if \<open>(xsa, xsaa) \<in> Id\<close>
     for xsa xsaa
     using that by auto
-  have [refine0]: \<open>(RETURN (rev [i..<j - 1]), it_to_sorted_list (\<lambda>_ _. True) (set [i..<j - 1]))
+  have [refine0]: \<open>(RETURN ([i..<j]), it_to_sorted_list (\<lambda>_ _. True) (set [i..<j]))
        \<in> {(c, a).
           c \<le> \<Down> {(x, y).
                  list_all2 (\<lambda>x x'. (x, x') \<in> Id) x
                   y}
                a}\<close>
     by (auto simp: it_to_sorted_list_def list.rel_eq
-      intro!: RETURN_RES_refine exI[of _ \<open>(rev [i..<j - Suc 0])\<close>])
+      intro!: RETURN_RES_refine exI[of _ \<open>([i..<j])\<close>])
   have [refine0]: \<open>(\<lambda>j (i, xs). do {
              _ \<leftarrow> ASSERT (j < length xs \<and> i < length xs \<and> mset xs = mset xsa);
              if R (h (xs ! j)) pivot then RETURN (i + 1, swap xs i j)
@@ -325,12 +334,13 @@ proof -
     done
 qed
 
-
 lemma partition_between_ref_partition_between':
   \<open>(uncurry2 (partition_between_ref R h), uncurry2 (partition_between R h)) \<in>
     nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f \<langle>Id\<rangle>list_rel \<rightarrow>\<^sub>f \<langle>\<langle>Id\<rangle>list_rel \<times>\<^sub>r nat_rel\<rangle>nres_rel\<close>
-  by (intro frefI nres_relI)
-    (auto intro: partition_between_ref_partition_between)
+  (* by (intro frefI nres_relI)
+    (auto intro: partition_between_ref_partition_between) *)
+  oops
+
 
 definition choose_pivot3_impl where
   \<open>choose_pivot3_impl = choose_pivot3 (<) id\<close>
@@ -343,12 +353,13 @@ sepref_definition choose_pivot3_impl_code
 
 declare choose_pivot3_impl_code.refine[sepref_fr_rules]
 
+
 definition partition_between_impl where
   \<open>partition_between_impl = partition_between_ref (<) id\<close>
 
 sepref_register choose_pivot3 partition_between_ref
 
-sepref_definition partition_between_ref_code
+sepref_definition partition_between_code
   is \<open>uncurry2 (partition_between_impl)\<close>
   :: \<open>nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a (arl_assn nat_assn)\<^sup>d \<rightarrow>\<^sub>a
       arl_assn nat_assn *a nat_assn\<close>
@@ -357,8 +368,7 @@ sepref_definition partition_between_ref_code
   unfolding id_def
   by sepref
 
-declare partition_between_ref_code.refine[sepref_fr_rules]
-
+declare partition_between_code.refine[sepref_fr_rules]
 
 term partition_between_ref_code
 
@@ -367,11 +377,11 @@ definition quicksort_ref :: \<open>_ \<Rightarrow> _ \<Rightarrow> nat \<Rightar
 \<open>quicksort_ref R h i0 j0 xs0 = do {
   RECT (\<lambda>f (i,j,xs). do {
       ASSERT(quicksort_inv xs0 i0 (xs, i, j));
-      if i+1 \<ge> j then RETURN xs
+      if j\<le>i then RETURN xs
       else do{
-      	(xs, k) \<leftarrow> partition_between_ref R h i j xs;
-      	xs \<leftarrow> f (i, k-1, xs);
-      	f (k, j, xs)
+      	(xs, p) \<leftarrow> partition_between_ref R h i j xs;
+      	xs \<leftarrow> f (i, p-1, xs);
+      	f (p+1, j, xs)
       }
     })
     (i0, j0, xs0)
@@ -480,9 +490,6 @@ lemma full_quicksort_ref_full_quicksort:
      (auto intro!: quicksort_ref_quicksort[unfolded Down_id_eq]
        simp: List.null_def)
 
-lemma tam: \<open>quicksort_impl 0 (length xs - 1) xs = uncurry2 quicksort_impl ((0, length xs - 1), xs)\<close> by auto
-
-
 sepref_definition full_quicksort_code
   is \<open>full_quicksort_impl\<close>
   :: \<open>(arl_assn nat_assn)\<^sup>d \<rightarrow>\<^sub>a
@@ -505,7 +512,7 @@ lemma sorted_sublist_sorted': \<open>xs \<noteq> [] \<Longrightarrow> mset xs = 
    apply auto
   done
 
-export_code \<open>full_quicksort_code\<close> \<open>nat_of_integer\<close> in SML_imp module_name vTest file "code/quicksort.sml"
+export_code \<open>nat_of_integer\<close> \<open>integer_of_nat\<close> \<open>partition_between_code\<close> \<open>full_quicksort_code\<close> in SML_imp module_name IsaQuicksort file "code/quicksort.sml"
 
 lemma full_quicksort:
   shows \<open>full_quicksort R h xs \<le> \<Down> Id (SPEC(\<lambda>xs'. mset xs = mset xs' \<and> sorted xs'))\<close>
