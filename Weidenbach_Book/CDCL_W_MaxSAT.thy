@@ -325,6 +325,48 @@ proof -
     done
 qed
 
+lemma sum_mset_cong:
+  \<open>(\<And>a. a \<in># A \<Longrightarrow> f a = g a) \<Longrightarrow> (\<Sum>a\<in>#A. f a) = (\<Sum>a\<in>#A. g a)\<close>
+  by (induction A) auto
+
+lemma partial_max_sat_is_weight_sat_distinct: (* \htmllink{ocdcl-maxsat}*)
+  fixes additional_atm :: \<open>'v clause \<Rightarrow> 'v\<close> and
+    \<rho> :: \<open>'v clause \<Rightarrow> nat\<close> and
+    N\<^sub>S :: \<open>'v clauses\<close>
+  defines
+    \<open>\<rho>' \<equiv> (\<lambda>C. sum_mset
+       ((\<lambda>L. if L \<in> Pos ` additional_atm ` set_mset N\<^sub>S
+         then \<rho> (SOME C. L = Pos (additional_atm C) \<and> C \<in># N\<^sub>S)
+         else 0) `# C))\<close>
+  assumes
+    \<open>distinct_mset N\<^sub>S\<close> and \<comment>\<open>This is implicit on paper\<close>
+    add: \<open>\<And>C. C \<in># N\<^sub>S \<Longrightarrow> additional_atm C \<notin> atms_of_mm (N\<^sub>H + N\<^sub>S)\<close>
+    \<open>\<And>C D. C \<in># N\<^sub>S \<Longrightarrow> D \<in># N\<^sub>S \<Longrightarrow> additional_atm C = additional_atm D \<longleftrightarrow> C = D\<close> and
+    w: \<open>weight_sat (N\<^sub>H + (\<lambda>C. add_mset (Pos (additional_atm C)) C) `# N\<^sub>S) \<rho>' (Some I)\<close>
+  shows
+    \<open>partial_max_sat N\<^sub>H N\<^sub>S \<rho> (Some {L \<in> set_mset I. atm_of L \<in> atms_of_mm (N\<^sub>H + N\<^sub>S)})\<close>
+proof -
+  define cl_of where \<open>cl_of L = (SOME C. L = Pos (additional_atm C) \<and> C \<in># N\<^sub>S)\<close> for L
+  have [simp]: \<open>cl_of (Pos (additional_atm xb)) = xb\<close>
+    if \<open>xb \<in># N\<^sub>S\<close> for xb
+    using someI[of \<open>\<lambda>C. additional_atm xb = additional_atm C\<close> xb] add that
+    unfolding cl_of_def
+    by auto
+  have \<rho>': \<open>\<rho>' = (\<lambda>C. \<Sum>L\<in>#C. if L \<in> Pos ` additional_atm ` set_mset N\<^sub>S
+                 then count N\<^sub>S
+                       (SOME C. L = Pos (additional_atm C) \<and> C \<in># N\<^sub>S) *
+                      \<rho> (SOME C. L = Pos (additional_atm C) \<and> C \<in># N\<^sub>S)
+                 else 0)\<close>
+    unfolding cl_of_def[symmetric] \<rho>'_def
+    using assms(2,4) by (auto intro!: ext sum_mset_cong simp: \<rho>'_def not_in_iff dest!: multi_member_split)
+  show ?thesis
+    apply (rule partial_max_sat_is_weight_sat[where additional_atm=additional_atm])
+    subgoal by (rule assms(3))
+    subgoal by (rule assms(4))
+    subgoal unfolding \<rho>'[symmetric] by (rule assms(5))
+    done
+qed
+
 lemma atms_exactly_m_alt_def:
   \<open>atms_exactly_m (set_mset y) N \<longleftrightarrow> atms_of y \<subseteq> atms_of_mm N \<and>
         total_over_m (set_mset y) (set_mset N)\<close>
