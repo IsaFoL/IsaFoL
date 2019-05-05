@@ -52,7 +52,7 @@ proof (induct G arbitrary: f rule: SC.induct)
   case (DeltaForall A n G)
   then consider
     \<open>\<forall>x. semantics e (f(n := \<lambda>w. x)) g (subst A (Fun n []) 0)\<close> |
-    \<open>\<exists>x. \<exists>p \<in> set (Uni A # G). semantics e (f(n := \<lambda>w. x)) g p\<close>
+    \<open>\<exists>x. \<exists>p \<in> set G. semantics e (f(n := \<lambda>w. x)) g p\<close>
     by fastforce
   then show ?case
   proof cases
@@ -65,14 +65,16 @@ proof (induct G arbitrary: f rule: SC.induct)
       by simp
   next
     case 2
+    then have \<open>\<exists>p \<in> set G. semantics e f g p\<close>
+      using \<open>news n (A # G)\<close> using Ball_set insert_iff list.set(2) upd_lemma by metis
     then show ?thesis
-      using \<open>news n (A # G)\<close> by (metis Ball_set list_all_simps(1) params.simps(8) upd_lemma)
+      by simp
   qed
 next
   case (DeltaNegExists A n G)
   then consider
     \<open>\<forall>x. semantics e (f(n := \<lambda>w. x)) g (Neg (subst A (Fun n []) 0))\<close> |
-    \<open>\<exists>x. \<exists>p \<in> set (Neg (Exi A) # G). semantics e (f(n := \<lambda>w. x)) g p\<close>
+    \<open>\<exists>x. \<exists>p \<in> set G. semantics e (f(n := \<lambda>w. x)) g p\<close>
     by fastforce
   then show ?case
   proof cases
@@ -85,8 +87,10 @@ next
       by simp
   next
     case 2
+    then have \<open>\<exists>p \<in> set G. semantics e f g p\<close>
+      using \<open>news n (A # G)\<close> using Ball_set insert_iff list.set(2) upd_lemma by metis
     then show ?thesis
-      using \<open>news n (A # G)\<close> Ball_set list_all_simps(1) params.simps(7,9) upd_lemma by metis
+      by simp
   qed
 qed auto
 
@@ -97,7 +101,7 @@ fun compl :: \<open>('a, 'b) form \<Rightarrow> ('a, 'b) form\<close> where
 | \<open>compl p = Neg p\<close>
 
 lemma compl: \<open>compl p = Neg p \<or> (\<exists>q. compl p = q \<and> p = Neg q)\<close>
-  by (induct p rule: compl.induct) simp_all
+  by (cases p rule: compl.cases) simp_all
 
 lemma new_compl: \<open>new n p \<Longrightarrow> new n (compl p)\<close>
   by (cases p rule: compl.cases) simp_all
@@ -182,7 +186,7 @@ next
     using set_map subset_image_iff by metis
   then show ?case
     using Order SC.Order by blast
-qed (use SC.intros in simp_all)
+qed (simp_all add: SC.intros)
 
 subsection \<open>Completeness\<close>
 

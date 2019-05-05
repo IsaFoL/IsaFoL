@@ -74,14 +74,14 @@ proof (induct G arbitrary: f rule: TC.induct)
     proof cases
       case 1
       then show ?thesis
-        using ** by simp
+        using ** ..
     next
       case 2
       then obtain p where \<open>\<not> semantics e (f(n := \<lambda>w. x)) g p\<close> \<open>p \<in> set G\<close>
         by blast
       then have \<open>\<not> semantics e f g p\<close>
         using \<open>news n (A # G)\<close> by (metis Ball_set set_subset_Cons subsetCE upd_lemma)
-      then show False
+      then show ?thesis
         using * \<open>p \<in> set G\<close> by simp
     qed
   qed
@@ -108,14 +108,14 @@ next
     proof cases
       case 1
       then show ?thesis
-        using ** by simp
+        using ** ..
     next
       case 2
       then obtain p where \<open>\<not> semantics e (f(n := \<lambda>w. x)) g p\<close> \<open>p \<in> set G\<close>
         by blast
       then have \<open>\<not> semantics e f g p\<close>
         using \<open>news n (A # G)\<close> by (metis Ball_set set_subset_Cons subsetCE upd_lemma)
-      then show False
+      then show ?thesis
         using * \<open>p \<in> set G\<close> by simp
     qed
   qed
@@ -219,7 +219,7 @@ proof (intro conjI allI impI notI)
       using * by auto }
 
   { fix P and t :: \<open>'a term\<close>
-    assume \<open>closedt 0 t\<close> and \<open>Uni P \<in> S\<close>
+    assume \<open>Uni P \<in> S\<close>
     then have \<open>\<not> (\<stileturn> subst P t 0 # G)\<close>
       using * GammaForall Order\<open>\<not> (\<stileturn> G)\<close>
       by (metis insert_absorb list.set(2) order_refl)
@@ -229,7 +229,7 @@ proof (intro conjI allI impI notI)
       by blast }
 
   { fix P and t :: \<open>'a term\<close>
-    assume \<open>closedt 0 t\<close> and \<open>Neg (Exi P) \<in> S\<close>
+    assume \<open>Neg (Exi P) \<in> S\<close>
     then have \<open>\<not> (\<stileturn> Neg (subst P t 0) # G)\<close>
       using * GammaNegExists Order \<open>\<not> (\<stileturn> G)\<close>
       by (metis insert_absorb list.set(2) order_refl)
@@ -390,14 +390,10 @@ next
     using DeltaNegForall G by simp
 next
   case (Order G G')
+  then have \<open>set (map (psubst f) G) \<subseteq> set (map (psubst f) G')\<close>
+    by fastforce
   then show ?case
-    using TC.Order
-  proof -
-    have \<open>set (map (psubst f) G) \<subseteq> set (map (psubst f) G')\<close>
-      using Order.hyps(3) by fastforce
-    then show ?thesis
-      using Order.hyps(2) TC.Order by blast
-  qed
+    using Order TC.Order by blast
 qed (auto intro: TC.intros)
 
 lemma subcs_map: \<open>subcs c s G = map (subc c s) G\<close>
