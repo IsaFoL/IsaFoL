@@ -281,7 +281,7 @@ definition incr_lrestart_stat :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_h
   \<open>incr_lrestart_stat = (\<lambda>(M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema,
      res_info, vdom, avdom, lcount). do{
      RETURN (M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, incr_lrestart stats,
-       ema_reinit fast_ema, ema_reinit slow_ema,
+       fast_ema, slow_ema,
        restart_info_restart_done res_info,
        vdom, avdom, lcount)
   })\<close>
@@ -699,7 +699,7 @@ lemma two_uint64[sepref_fr_rules]:
 definition upper_restart_bound_not_reached :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close> where
   \<open>upper_restart_bound_not_reached = (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, (props, decs, confl, restarts, _), fast_ema, slow_ema, ccount,
        vdom, avdom, lcount, opts).
-    lcount < 3000 + 500 * nat_of_uint64 restarts)\<close>
+    lcount < 3000 + 1000 * nat_of_uint64 restarts)\<close>
 
 sepref_register upper_restart_bound_not_reached
 sepref_definition upper_restart_bound_not_reached_impl
@@ -724,7 +724,7 @@ definition (in -) lower_restart_bound_not_reached :: \<open>twl_st_wl_heur \<Rig
   \<open>lower_restart_bound_not_reached = (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl,
         (props, decs, confl, restarts, _), fast_ema, slow_ema, ccount,
        vdom, avdom, lcount, opts).
-     (\<not>opts_reduce opts \<or> (opts_restart opts \<and> (lcount < 2000 + 300 * nat_of_uint64 restarts))))\<close>
+     (\<not>opts_reduce opts \<or> (opts_restart opts \<and> (lcount < 2000 + 1000 * nat_of_uint64 restarts))))\<close>
 
 sepref_register lower_restart_bound_not_reached
 sepref_definition lower_restart_bound_not_reached_impl
@@ -935,12 +935,22 @@ lemma max_restart_decision_lvl_code_hnr[sepref_fr_rules]:
   by sepref_to_hoare (sep_auto simp: br_def uint32_nat_rel_def max_restart_decision_lvl_def
     max_restart_decision_lvl_code_def)
 
+(* TODO Move*)
+
+definition nat_of_uint64_id_conv :: \<open>uint64 \<Rightarrow> nat\<close> where
+\<open>nat_of_uint64_id_conv = nat_of_uint64\<close>
+
+lemma nat_of_uint64_id_conv_hnr[sepref_fr_rules]:
+  \<open>(return o id, RETURN o nat_of_uint64_id_conv) \<in> uint64_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
+  by sepref_to_hoare
+    (sep_auto simp: nat_of_uint64_id_conv_def uint64_nat_rel_def br_def)
+
 definition restart_required_heur :: "twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> bool nres" where
   \<open>restart_required_heur S n = do {
     let opt_red = opts_reduction_st S;
     let opt_res = opts_restart_st S;
     let sema = ema_get_value (get_slow_ema_heur S);
-    let limit = (18 * sema) >> 4;
+    let limit = (11 * sema) >> 4;
        \<comment>\<open>roughly speaking 125/100 with hopefully no overflow (there is currently no division
          on \<^typ>\<open>uint64\<close>\<close>
     let fema = ema_get_value (get_fast_ema_heur S);
@@ -954,17 +964,14 @@ definition restart_required_heur :: "twl_st_wl_heur \<Rightarrow> nat \<Rightarr
        (should_not_reduce \<longrightarrow> limit > fema) \<and> min_reached \<and> can_res \<and>
       level > two_uint32_nat \<and> \<^cancel>\<open>This comment from Marijn Heule seems not to help: 
          \<^term>\<open>level < max_restart_decision_lvl\<close>\<close>
-      nat_of_uint32_conv level > nat_of_uint64 (fema >> 48))}
+      uint64_of_uint32_conv level > nat_of_uint64_id_conv (fema >> 32))}
   \<close>
-
-lemma uint64_max_ge_48: \<open>48 \<le> uint64_max\<close>
-  by (auto simp: uint64_max_def)
 
 
 sepref_definition restart_required_heur_fast_code
   is \<open>uncurry restart_required_heur\<close>
   :: \<open>isasat_bounded_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
-  supply [[goals_limit=1]] uint64_max_ge_48[simp]
+  supply [[goals_limit=1]]
   bit_lshift_uint64_assn[sepref_fr_rules]
   unfolding restart_required_heur_def
   by sepref
@@ -972,7 +979,7 @@ sepref_definition restart_required_heur_fast_code
 sepref_definition restart_required_heur_slow_code
   is \<open>uncurry restart_required_heur\<close>
   :: \<open>isasat_unbounded_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
-  supply [[goals_limit=1]] uint64_max_ge_48[simp]
+  supply [[goals_limit=1]]
   bit_lshift_uint64_assn[sepref_fr_rules]
   unfolding restart_required_heur_def
   by sepref

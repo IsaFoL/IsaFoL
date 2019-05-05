@@ -6,7 +6,7 @@ section \<open>Covering Models\<close>
 
 (*TODO Move*)
 lemma (in -) filter_disj_eq:
-  \<open>{x \<in> A. P x \<or> Q x} = {x \<in> A. P x} \<union> {x \<in> A.  Q x}\<close>
+  \<open>{x \<in> A. P x \<or> Q x} = {x \<in> A. P x} \<union> {x \<in> A. Q x}\<close>
   by auto
 
 
@@ -781,7 +781,7 @@ lemma no_step_cdcl_bnb_stgy_empty_conflict2:
   by (rule no_step_cdcl_bnb_stgy_empty_conflict[OF can_always_improve assms])
 
 
-theorem cover_model_correctness:
+theorem cdclcm_correctness:
   assumes
     full: \<open>full cdcl_bnb_stgy (init_state N) T\<close> and
     dist: \<open>distinct_mset_mset N\<close>
@@ -870,6 +870,61 @@ proof -
       I_N tot_I cons cov unsat
     by (auto simp: abs_state_def cdcl\<^sub>W_restart_mset_state)
 qed
+
+end
+
+
+text \<open>Now we instantiate the previous with \<^term>\<open>\<lambda>_. True\<close>: This means that we aim at making
+all variables that appears at least ones true.\<close>
+
+global_interpretation cover_all_vars: covering_models \<open>\<lambda>_. True\<close>
+  .
+
+context conflict_driven_clause_learning\<^sub>W_covering_models
+begin
+
+interpretation cover_all_vars: conflict_driven_clause_learning\<^sub>W_covering_models where
+    \<rho> = \<open>\<lambda>_::'v. True\<close> and
+    state = state and
+    trail = trail and
+    init_clss = init_clss and
+    learned_clss = learned_clss and
+    conflicting = conflicting and
+    cons_trail = cons_trail and
+    tl_trail = tl_trail and
+    add_learned_cls = add_learned_cls and
+    remove_cls = remove_cls and
+    update_conflicting = update_conflicting and
+    init_state = init_state
+  by standard
+
+lemma
+  \<open>cover_all_vars.model_is_dominated M M' \<longleftrightarrow>
+    filter_mset (\<lambda>L. is_pos L) M \<subseteq># filter_mset (\<lambda>L. is_pos L) M'\<close>
+  unfolding cover_all_vars.model_is_dominated_def
+  by auto
+
+lemma
+  \<open>cover_all_vars.conflicting_clauses N \<M> = 
+    {# C \<in># (mset_set (simple_clss (atms_of_mm N))).
+        (pNeg `
+        {a. a \<in># mset_set (simple_clss (atms_of_mm N)) \<and>
+            (\<exists>M\<in>#\<M>. \<exists>J. a \<subseteq># J \<and> cover_all_vars.model_is_dominated J M) \<and>
+            atms_of a = atms_of_mm N} \<union>
+        set_mset N) \<Turnstile>p C#}\<close>
+  unfolding cover_all_vars.conflicting_clauses_def
+    cover_all_vars.is_dominating_def
+  by auto
+
+theorem cdclcm_correctness_all_vars: (* \htmllink{cdclcm-correctness}*)
+  assumes
+    full: \<open>full cover_all_vars.cdcl_bnb_stgy (init_state N) T\<close> and
+    dist: \<open>distinct_mset_mset N\<close>
+  shows
+    \<open>Pos L \<in> I \<Longrightarrow> L \<in> atms_of_mm N \<Longrightarrow> total_over_m I (set_mset N) \<Longrightarrow> consistent_interp I \<Longrightarrow> I \<Turnstile>m N \<Longrightarrow>
+      \<exists>J \<in># covering T. Pos L \<in># J\<close>
+  using cover_all_vars.cdclcm_correctness[OF assms]
+  by blast
 
 end
 

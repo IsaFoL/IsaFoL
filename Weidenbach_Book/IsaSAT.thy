@@ -2727,6 +2727,12 @@ code_printing constant length_u64_code' \<rightharpoonup> (SML_imp)
 
 code_printing constant arl_get_u \<rightharpoonup> (SML) "(fn/ ()/ =>/ Array.sub/ ((fn/ (a,b)/ =>/ a) ((_)),/ Word32.toInt ((_))))"
 
+definition uint32_of_uint64' where
+  [symmetric, code]: \<open>uint32_of_uint64' = uint32_of_uint64\<close>
+
+code_printing constant uint32_of_uint64' \<rightharpoonup> (SML_imp)
+   "Word32.fromLargeWord (_)"
+
 lemma arl_set_u64_code[code]: \<open>arl_set_u64 a i x =
    Array_upd_u64 i x (fst a) \<bind> (\<lambda>b. return (b, (snd a)))\<close>
   unfolding arl_set_u64_def arl_set_def heap_array_set'_u64_def arl_set'_u64_def

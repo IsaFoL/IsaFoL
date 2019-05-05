@@ -4,7 +4,7 @@ TEX=root
 .PHONY: clean ps pdf dvi holbib clean check clean_snippets
 LATEX_ARGS= --interaction batchmode
 
-all: check $(TEX).pdf
+all: $(TEX).pdf check 
 
 
 check:
@@ -19,14 +19,14 @@ check:
 #snippets/snippets.tex:
 #	isabelle build -d ../formalization Snippets && cp ../formalization/generated/snippets.tex snippets/snippets.tex
 
-snippets/snippets.out.tex: snippets/snippets.tex massage_snippets.sed
-	sed -rf massage_snippets.sed snippets/snippets.tex > snippets/snippets.out.tex
+snippets.out.tex: snippets.tex massage_snippets.sed
+	sed -rf massage_snippets.sed snippets.tex > snippets.out.tex
 
-$(TEX).pdf: *.tex snippets/snippets.out.tex *.bib *.data
+$(TEX).pdf: *.tex snippets.out.tex *.bib *.data.tex
 	latexmk -pdf $(TEX).tex; err=$$?; egrep --color -i 'error|warning|overfull|underfull|undef|^l\.[0-9]' $(TEX).log; grep --color=never "Output written" $(TEX).log; exit $$err
 
 clean:
-	@rm -f *.toc *.aux *.dvi *.log *.lof *.bbl *.blg *.hix *.tid *.tde *~ snippets/*.out.tex
+	@rm -f *.toc *.aux *.dvi *.log *.lof *.bbl *.blg *.hix *.tid *.tde *~ *.out.tex
 
 #clean_snippets: clean
 #	@rm -rf snippets/*.tex
