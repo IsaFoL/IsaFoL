@@ -140,4 +140,4 @@ fun runAllTests () : int list option =
     handle WrongSortingResult xs => SOME xs
 
 (* Main: Execute tests and check that there was no error *)
-val None = runAllTests ();
+val NONE = runAllTests ();
