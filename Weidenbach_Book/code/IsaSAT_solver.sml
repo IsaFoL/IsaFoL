@@ -567,7 +567,7 @@ fun blit A_ src si dst di len =
     array_blit src (integer_of_nat
                      si) dst (integer_of_nat di) (integer_of_nat len));
 
-val version : string = "460e98aa";
+val version : string = "58053fb1";
 
 fun heap_WHILET b f s =
   (fn () =>
@@ -3010,7 +3010,7 @@ fun partition_clause_code x =
       val xb = arl_get heap_nat x_a bia ();
       val x_b = clause_score_extract_code ai xb ();
       val a =
-        imp_for bib (minus_nata bia one_nat)
+        imp_for bib bia
           (fn xe => fn (a1, a2) =>
             (fn f_ => fn () => f_ ((arl_get heap_nat a2 xe) ()) ())
               (fn xc =>
@@ -3028,7 +3028,7 @@ fun partition_clause_code x =
         val (a1, a2) = a;
       in
         (fn f_ => fn () => f_ ((arl_swap heap_nat a2 a1 bia) ()) ())
-          (fn x_d => (fn () => (x_d, plus_nat a1 one_nat)))
+          (fn x_d => (fn () => (x_d, a1)))
       end
         ()
     end)
@@ -3038,7 +3038,7 @@ fun sort_clauses_by_score_code_0 ai x =
   let
     val (a1, (a1a, a2a)) = x;
   in
-    (if less_eq_nat a1a (plus_nat a1 one_nat) then (fn () => a2a)
+    (if less_eq_nat a1a a1 then (fn () => a2a)
       else (fn () =>
              let
                val a = partition_clause_code ai a1 a1a a2a ();
@@ -3050,7 +3050,9 @@ fun sort_clauses_by_score_code_0 ai x =
                    ((sort_clauses_by_score_code_0 ai
                       (a1, (minus_nata a2b one_nat, a1b)))
                    ()) ())
-                   (fn x_d => sort_clauses_by_score_code_0 ai (a2b, (a1a, x_d)))
+                   (fn x_d =>
+                     sort_clauses_by_score_code_0 ai
+                       (plus_nat a2b one_nat, (a1a, x_d)))
                end
                  ()
              end))
