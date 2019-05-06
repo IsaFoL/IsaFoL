@@ -17,11 +17,11 @@ definition partition_between :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) 
     pivot \<leftarrow> RETURN (h (xs ! j0));
     (i, xs) \<leftarrow> FOREACHi
       (\<lambda>js (i, xs). i < length xs \<and> mset xs = mset xs0 \<and> i \<ge> i0 \<and>
-    	 i \<le> (j0 - 1) - card js)
+        i + card js \<le> j0)
       (set [i0..<j0])
       (\<lambda>j (i, xs). do {
-	      ASSERT(j < length xs \<and> i < length xs \<and> mset xs = mset xs0);
-	      if R (h (xs!j)) pivot
+        ASSERT(j < length xs \<and> i < length xs \<and> mset xs = mset xs0);
+        if R (h (xs!j)) pivot
       	then RETURN (i+1, swap xs i j)
       	else RETURN (i, xs)
       })
@@ -38,9 +38,6 @@ lemma Min_atLeastLessThan2[simp]: \<open>{a..<b} \<noteq> {} \<Longrightarrow> M
   using linorder_class.eq_Min_iff[of \<open>{a..<b}\<close> a]
   by auto
 
-(* Maxi: I had to change the specification of \<open>partition_between\<close>. The returned pointer \<open>p\<close> will be
-\<open>i \<le> p \<le> j\<close>. We still have to prove that everything left of p is smaller than \<open>xs!p\<close> and
-everything right of p is greater than \<open>xs!p\<close>. *)
 lemma partition_between_mset_eq:
   assumes \<open>i < length xs\<close> and \<open>j < length xs\<close> and \<open>j > i\<close>
   shows \<open>partition_between R h i j xs \<le> SPEC(\<lambda>(xs', j'). mset xs = mset xs' \<and> j' < length xs \<and>
@@ -78,10 +75,11 @@ proof -
       using f14 f13 f12 f10 f8 assms(3) a2 a1
       by (metis (no_types) Suc_diff_Suc card_atLeastLessThan le_imp_less_Suc nat_diff_split neq0_conv)
   qed
-
+  have K: \<open>b \<le> j - Suc n \<Longrightarrow> n > 0 \<Longrightarrow> Suc n \<le> j \<Longrightarrow>  Suc b \<le> j - n\<close> for b j n
+    by auto
   show ?thesis
     unfolding partition_between_def choose_pivot_def
-    apply (refine_vcg WHILEIT_rule[where R = \<open>measure (\<lambda>(i, j, _). j - i)\<close>])
+    apply (refine_vcg)
     subgoal using assms by auto
     subgoal using assms by auto
     subgoal using assms by auto
@@ -91,29 +89,29 @@ proof -
     subgoal by auto
     subgoal by auto
     subgoal by auto
-    subgoal by auto
-    subgoal by (force dest: mset_eq_length)
+    subgoal using assms
+      by (force dest: mset_eq_length)
     subgoal by (force dest: mset_eq_length)
     subgoal using assms by (auto dest: mset_eq_length)
+    subgoal using assms by (auto dest: mset_eq_length)
+    subgoal using assms apply (auto dest: mset_eq_length)
+       by (metis Suc_lessI \<open>\<And>xa. \<lbrakk>i < length xs \<and> j < length xs \<and> i < j; i \<le> xa \<and> xa \<le> j; xa < length xs; length (swap xs xa j) = length xs\<rbrakk> \<Longrightarrow> finite (set [i..<j])\<close> \<open>\<And>xa. \<lbrakk>i < length xs \<and> j < length xs \<and> i < j; i \<le> xa \<and> xa \<le> j; xa < length xs\<rbrakk> \<Longrightarrow> length (swap xs xa j) = length xs\<close> add_diff_cancel_left' assms(1) card_gt_0_iff diff_add_inverse2 empty_iff infinite_super le_eq_less_or_eq less_imp_diff_less not_less set_upt size_mset zero_less_diff)
+    subgoal by (force dest: mset_eq_length)
+    subgoal by auto
+    subgoal le1 apply (auto dest: mset_eq_length)
+      by (metis add_Suc_right card_Suc_Diff1 finite_atLeastLessThan finite_subset)
     subgoal by (force dest: mset_eq_length)
     subgoal by auto
     subgoal by auto
-    subgoal for x it \<sigma> a b x1 x2
-      apply (subst card_Diff_singleton)
-      using infinite_super apply blast
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal for x it \<sigma> a b x1 x2
-      by (subst card_Diff_singleton)
-        (auto dest: finite_subset simp: card_gt_0_iff)
+    subgoal apply (auto dest: mset_eq_length)
+      by (metis Suc_leD add_Suc_right card_Suc_Diff1 card_atLeastLessThan card_gt_0_iff infinite_super zero_less_diff)
     subgoal by auto
     subgoal by (force dest: mset_eq_length)
     subgoal by auto
     subgoal by auto
     subgoal by auto
     subgoal by auto
-    (* done *) sorry
+    done
 qed (* TODO: fix proofs *)
 
 definition quicksort :: \<open>_ \<Rightarrow> _ \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a::ord list \<Rightarrow> 'a list nres\<close> where
@@ -130,16 +128,14 @@ definition quicksort :: \<open>_ \<Rightarrow> _ \<Rightarrow> nat \<Rightarrow>
     (i, j, xs0)
   }\<close>
 
-(* Maxi: We get a complication here: if \<open>p=j\<close>, then \<open>p+1>j\<close>. The inductive hypothesis gives us nothing about
-this case. Similarly, if \<open>p=i\<close>, then \<open>p-1<i\<close>. Thus, we have to strengthen the correctness statement:
-If \<open>j\<le>i\<close>, we simply return \<open>xs\<close>. (This is currently part of the code, but not part of the specification.) *)
 lemma quicksort_between_mset_eq:
-  assumes \<open>i < length xs\<close> and \<open>j < length xs\<close> and \<open>j \<ge> i\<close>
+  assumes \<open>i < length xs \<or> (i \<ge> length xs \<and> j \<le> i)\<close> and \<open>(j < length xs \<or> (j \<ge> length xs \<and> j \<le> i))\<close>
   shows \<open>quicksort R h i j xs \<le> \<Down> Id (SPEC(\<lambda>xs'. mset xs = mset xs'))\<close>
 proof -
   have wf: \<open>wf (measure (\<lambda>(i, j, xs). Suc j - i))\<close>
     by auto
-  have pre: \<open>(\<lambda>(i, j, xs'). i < length xs \<and> j < length xs \<and> i \<le> j \<and>
+  have pre: \<open>(\<lambda>(i, j, xs'). (i < length xs \<or> (i \<ge> length xs \<and> j \<le> i)) \<and> 
+      (j < length xs \<or> (j \<ge> length xs \<and> j \<le> i)) \<and>
     mset xs = mset xs') (i,j,xs)\<close>
     using assms by auto
   show ?thesis
@@ -163,17 +159,15 @@ proof -
       prefer 2
       apply (rule IH(1)[THEN order_trans])
       subgoal
-        apply (auto dest: mset_eq_length)
-        sorry
+        by (auto dest: mset_eq_length)
       subgoal by auto
       apply (subst (3) Down_id_eq[symmetric])
       apply (rule order.refl)
       apply (rule IH(1)[THEN order_trans])
       subgoal
-        apply (auto dest: mset_eq_length)
-        sorry
+        by (auto dest: mset_eq_length)
       subgoal by auto
-      apply auto
+      subgoal by auto
       done
     done
 qed (* TODO: fix proofs *)
@@ -334,7 +328,6 @@ definition quicksort_ref :: \<open>_ \<Rightarrow> _ \<Rightarrow> nat \<Rightar
     (i, j, xs0)
   }\<close>
 
-(* Maxi: I don't know why this doesn't work. I fixed \<open>f'\<close>, but this doesn't suffice, apparently *)
 lemma quicksort_ref_quicksort:
   \<open>quicksort_ref R f i j xs \<le> \<Down> Id (quicksort R f i j xs)\<close>
 proof -
@@ -387,14 +380,13 @@ proof -
       partition_between_ref_partition_between'[THEN fref_to_Down_curry2])
     subgoal by auto
     subgoal
-      apply auto
-      sorry
+      by auto
     subgoal by auto
     subgoal by auto
     subgoal by auto
     apply (rule f; assumption)
     apply (rule f'; assumption)
-    done 
+    done
  qed
 
 definition quicksort_impl where
