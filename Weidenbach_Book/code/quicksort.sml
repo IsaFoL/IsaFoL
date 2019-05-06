@@ -279,20 +279,12 @@ fun arl_length A_ = (fn (_, a) => (fn () => a));
 
 val zero_nat : nat = Nat (0 : IntInf.int);
 
-fun equal_nat m n = (((integer_of_nat m) : IntInf.int) = (integer_of_nat n));
-
-fun arl_is_empty A_ = (fn (_, n) => (fn () => (equal_nat n zero_nat)));
-
 fun full_quicksort_code x =
-  (fn xi => fn () =>
-    let
-      val xa = arl_is_empty heap_nat xi ();
-    in
-      (if xa then (fn () => xi)
-        else (fn f_ => fn () => f_ ((arl_length heap_nat xi) ()) ())
-               (fn xb => quicksort_code zero_nat (minus_nat xb one_nat) xi))
-        ()
-    end)
+  (fn xi => fn () => let
+                       val xa = arl_length heap_nat xi ();
+                     in
+                       quicksort_code zero_nat (minus_nat xa one_nat) xi ()
+                     end)
     x;
 
 end; (*struct IsaQuicksort*)

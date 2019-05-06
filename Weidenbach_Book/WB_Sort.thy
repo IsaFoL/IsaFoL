@@ -112,7 +112,7 @@ proof -
     subgoal by auto
     subgoal by auto
     done
-qed (* TODO: fix proofs *)
+qed
 
 definition quicksort :: \<open>_ \<Rightarrow> _ \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a::ord list \<Rightarrow> 'a list nres\<close> where
 \<open>quicksort R h i j xs0 = do {
@@ -170,7 +170,7 @@ proof -
       subgoal by auto
       done
     done
-qed (* TODO: fix proofs *)
+qed
 
 text \<open>We use the median of the first, the middle, and the last element.\<close>
 definition choose_pivot3 where
@@ -405,11 +405,11 @@ sepref_definition quicksort_code
 declare quicksort_code.refine[sepref_fr_rules]
 
 definition full_quicksort where
-  \<open>full_quicksort R h xs = (if xs = [] then RETURN [] else quicksort R h 0 (length xs - 1) xs)\<close>
+  \<open>full_quicksort R h xs = quicksort R h 0 (length xs - 1) xs\<close>
 
 definition full_quicksort_ref where
   \<open>full_quicksort_ref R h xs =
-    (if List.null xs then RETURN xs else quicksort_ref R h 0 (length xs - 1) xs)\<close>
+    quicksort_ref R h 0 (length xs - 1) xs\<close>
 
 definition full_quicksort_impl :: \<open>nat list \<Rightarrow> nat list nres\<close> where
   \<open>full_quicksort_impl xs = full_quicksort_ref (<) id xs\<close>
@@ -431,10 +431,14 @@ sepref_definition full_quicksort_code
 
 export_code \<open>nat_of_integer\<close> \<open>integer_of_nat\<close> \<open>partition_between_code\<close> \<open>full_quicksort_code\<close> in SML_imp module_name IsaQuicksort file "code/quicksort.sml"
 
-
 lemma full_quicksort:
   shows \<open>full_quicksort R h xs \<le> \<Down> Id (SPEC(\<lambda>xs'. mset xs = mset xs'))\<close>
   unfolding full_quicksort_def
-  by (auto intro: quicksort_between_mset_eq[THEN order_trans])
+  apply (rule order_trans)
+   prefer 2
+   apply (rule quicksort_between_mset_eq)
+    prefer 3
+    apply auto
+  using diff_Suc_less by blast
 
 end
