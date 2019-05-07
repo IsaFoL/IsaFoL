@@ -11,7 +11,7 @@ definition choose_pivot :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) \<Rig
 definition isPartition :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> 'b list \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> bool\<close> where
   \<open>isPartition R xs lo hi p \<equiv> (\<forall> i. i \<ge> lo \<and> i < p \<longrightarrow> R (xs!i) (xs!p)) \<and> (\<forall> j. j > p \<and> j \<le> hi \<longrightarrow> R (xs!p) (xs!j))\<close>
 
-definition isPartition_map :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> 'b) \<Rightarrow> 'a list \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> bool\<close> where
+abbreviation isPartition_map :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> 'b) \<Rightarrow> 'a list \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> bool\<close> where
   \<open>isPartition_map R h xs i j k \<equiv> isPartition R (map h xs) i j k\<close>
 
  \<comment> \<open>Example: 6 is the pivot element (with index 4); \<open>7\<close> is equal to the length - 1.\<close>
@@ -54,8 +54,8 @@ definition sorted_sublist_wrt :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool)
 definition sorted_sublist :: \<open>'a :: linorder list \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> bool\<close> where
   \<open>sorted_sublist xs lo hi = sorted_sublist_wrt (<) xs lo hi\<close>
 
-definition sorted_sublist_map :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> 'b) \<Rightarrow> 'a list \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> bool\<close> where
-  \<open>sorted_sublist_map R h xs lo hi = sorted_sublist_wrt R (map h xs) lo hi\<close>
+abbreviation sorted_sublist_map :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> 'b) \<Rightarrow> 'a list \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> bool\<close> where
+  \<open>sorted_sublist_map R h xs lo hi \<equiv> sorted_sublist_wrt R (map h xs) lo hi\<close>
 
 lemma sorted_sublist_wrt_refl: \<open>i < length xs \<Longrightarrow> sorted_sublist_wrt R xs i i\<close>
   by (auto simp add: sorted_sublist_wrt_def sublist_single)
@@ -64,8 +64,7 @@ lemma sorted_sublist_refl: \<open>i < length xs \<Longrightarrow> sorted_sublist
   by (auto simp add: sorted_sublist_def sorted_sublist_wrt_refl)
 
 lemma sorted_sublist_map_refl: \<open>i < length xs \<Longrightarrow> sorted_sublist_map R h xs i i\<close>
-  by (auto simp add: sorted_sublist_map_def sorted_sublist_wrt_refl)
-
+  by (auto simp add: sorted_sublist_wrt_refl)
 
 
 (* TODO Move? *)
