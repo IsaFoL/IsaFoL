@@ -15,9 +15,9 @@ abbreviation isPartition_map :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) 
   \<open>isPartition_map R h xs i j k \<equiv> isPartition R (map h xs) i j k\<close>
 
  \<comment> \<open>Example: 6 is the pivot element (with index 4); \<open>7\<close> is equal to the length - 1.\<close>
-lemma \<open>isPartition (<) [0,5,3,4,6,9,8,10::nat] 0 7 4\<close>
+lemma \<open>isPartition (\<le>) [0,5,3,4,6,9,8,10::nat] 0 7 4\<close>
   apply (auto simp add: isPartition_def numeral_eq_Suc Nat.less_Suc_eq)
-  by (smt One_nat_def Suc_diff_Suc diff_is_0_eq le_Suc_eq le_imp_less_Suc nth_Cons')
+  by (simp add: nth_Cons')
 
 
 definition sublist :: \<open>'a list \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a list\<close> where
@@ -67,7 +67,7 @@ lemma sorted_sublist_map_refl: \<open>i < length xs \<Longrightarrow> sorted_sub
   by (auto simp add: sorted_sublist_wrt_refl)
 
 
-(* TODO Move? *)
+(* TODO Move? *) (* TODO: Needed? *)
 lemma Min_atLeastLessThan[simp]: \<open>b > a \<Longrightarrow> Min {a..<b} = a\<close> for a b :: nat
   using linorder_class.eq_Min_iff[of \<open>{a..<b}\<close> a]
   by auto
@@ -82,17 +82,19 @@ text \<open>The main part of the partition function. The pivot is assumed to be 
 exactly the "Lomuto partition scheme" partition function from Wikipedia.\<close>
 definition partition_main :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> 'b) \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a list \<Rightarrow> ('a list \<times> nat) nres\<close> where
   \<open>partition_main R h lo hi xs0 = do {
+    ASSERT(hi < length xs0);
     pivot \<leftarrow> RETURN (h (xs0 ! hi));
     (i,_,xs) \<leftarrow> WHILE\<^sub>T\<^bsup> \<comment> \<open>We loop from \<^term>\<open>j=lo\<close> to \<^term>\<open>j=hi-1\<close>.\<close>
       (\<lambda>(i,j,xs). j < length xs \<and> j \<le> hi \<and> i < length xs \<and> lo \<le> i \<and> i \<le> j \<and> mset xs = mset xs0)\<^esup> \<comment> \<open>TODO: Maxi: Extend invariant here\<close>
       (\<lambda>(i,j,xs). j < hi)
       (\<lambda>(i,j,xs). do {
+        ASSERT(i < length xs \<and> j < length xs);
       	if R (h (xs!j)) pivot
       	then RETURN (i+1, j+1, swap xs i j)
       	else RETURN (i,   j+1, xs)
       })
       (lo, lo, xs0); \<comment> \<open>i and j are both initialized to lo\<close>
-    ASSERT(i < length xs \<and> mset xs = mset xs0);
+    ASSERT(i < length xs \<and> hi < length xs \<and> mset xs = mset xs0);
     RETURN (swap xs i hi, i)
   }\<close>
 
@@ -105,7 +107,8 @@ proof -
     by auto
   show ?thesis
     unfolding partition_main_def choose_pivot_def
-    apply (refine_vcg WHILEIT_rule[where R = \<open>measure(\<lambda>(i,j,xs).hi-j)\<close>])
+    apply (refine_vcg WHILEIT_rule[where R = \<open>measure(\<lambda>(i,j,xs). hi-j)\<close>])
+    subgoal using assms by auto
     subgoal by auto \<comment> \<open>WF\<close>
     using assms by (auto dest: mset_eq_length)
 qed
@@ -118,9 +121,7 @@ definition partition_between :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) 
     ASSERT(k < length xs0);
     xs \<leftarrow> RETURN (swap xs0 k hi); \<comment> \<open>move the pivot to the last position, before we start the actual loop\<close>
     ASSERT(length xs = length xs0);
-    (xs, i) \<leftarrow> partition_main R h lo hi xs;
-    ASSERT(i < length xs \<and> mset xs = mset xs0);
-    RETURN (swap xs i hi, i)
+    partition_main R h lo hi xs
   }\<close>
 
 
@@ -134,9 +135,7 @@ proof -
   show ?thesis
     unfolding partition_between_def choose_pivot_def
     apply (refine_vcg partition_main_correct)
-    using assms apply (auto dest: mset_eq_length)
-    apply (rewrite IICF_List.swap_multiset)
-    by (auto dest: mset_eq_length)
+    using assms by (auto dest: mset_eq_length)
 qed
 
 definition quicksort :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> 'b) \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a list \<Rightarrow> 'a list nres\<close> where
@@ -228,9 +227,7 @@ where
     ASSERT(k < length xs0);
     xs \<leftarrow> RETURN (swap xs0 k hi); \<comment> \<open>move the pivot to the last position, before we start the actual loop\<close>
     ASSERT(length xs = length xs0);
-    (xs, i) \<leftarrow> partition_main R h lo hi xs;
-    ASSERT(i < length xs \<and> hi < length xs);
-    RETURN (swap xs i hi, i)
+    partition_main R h lo hi xs
   }\<close>
 
 
@@ -286,7 +283,7 @@ lemma partition_between_ref_partition_between':
 
 \<comment> \<open>Example instantiation for pivot\<close>
 definition choose_pivot3_impl where
-  \<open>choose_pivot3_impl = choose_pivot3 (<) id\<close>
+  \<open>choose_pivot3_impl = choose_pivot3 (\<le>) id\<close>
 
 sepref_register choose_pivot3
 
@@ -303,7 +300,7 @@ declare choose_pivot3_impl_code.refine[sepref_fr_rules]
 
 \<comment> \<open>Example instantiation for partition_main\<close>
 definition partition_main_impl where
-  \<open>partition_main_impl = partition_main (<) id\<close>
+  \<open>partition_main_impl = partition_main (\<le>) id\<close>
 
 sepref_register partition_main_impl
 
@@ -315,14 +312,13 @@ sepref_definition partition_main_code
   unfolding partition_main_impl_def partition_main_def
   unfolding id_def
   by sepref
-  sorry \<comment> \<open>TODO: Why doesn't this work?\<close>
 
 declare partition_main_code.refine[sepref_fr_rules]
 
 
 \<comment> \<open>Example instantiation for partition\<close>
 definition partition_between_impl where
-  \<open>partition_between_impl = partition_between_ref (<) id\<close>
+  \<open>partition_between_impl = partition_between_ref (\<le>) id\<close>
 
 sepref_register partition_between_ref
 
@@ -417,7 +413,7 @@ proof -
 
 \<comment> \<open>Example implementation\<close>
 definition quicksort_impl where
-  \<open>quicksort_impl = quicksort_ref (<) id\<close>
+  \<open>quicksort_impl = quicksort_ref (\<le>) id\<close>
 
 sepref_register quicksort_impl
 
@@ -429,7 +425,6 @@ sepref_definition quicksort_code
   unfolding partition_between_impl_def[symmetric]
     quicksort_impl_def quicksort_ref_def
   by sepref
-  sorry (* TODO: WHY? I didn't change anything here... *)
 
 declare quicksort_code.refine[sepref_fr_rules]
 
@@ -442,7 +437,7 @@ definition full_quicksort_ref where
     quicksort_ref R h 0 (length xs - 1) xs\<close>
 
 definition full_quicksort_impl :: \<open>nat list \<Rightarrow> nat list nres\<close> where
-  \<open>full_quicksort_impl xs = full_quicksort_ref (<) id xs\<close>
+  \<open>full_quicksort_impl xs = full_quicksort_ref (\<le>) id xs\<close>
 
 lemma full_quicksort_ref_full_quicksort:
   \<open>(full_quicksort_ref R h, full_quicksort R h) \<in>
