@@ -84,8 +84,8 @@ exactly the "Lomuto partition scheme" partition function from Wikipedia.\<close>
 definition partition_main :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> 'b) \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a list \<Rightarrow> ('a list \<times> nat) nres\<close> where
   \<open>partition_main R h lo hi xs0 = do {
     pivot \<leftarrow> RETURN (h (xs0 ! hi));
-    (i,_,xs) \<leftarrow> WHILEI \<comment> \<open>We loop from \<^term>\<open>j=lo\<close> to \<^term>\<open>j=hi-1\<close>.\<close>
-      (\<lambda>(i,j,xs). j < length xs \<and> j \<le> hi \<and> i < length xs \<and> lo \<le> i \<and> i \<le> j \<and> mset xs = mset xs0) \<comment> \<open>TODO: Maxi: Extend invariant here\<close>
+    (i,_,xs) \<leftarrow> WHILE\<^sub>T\<^bsup> \<comment> \<open>We loop from \<^term>\<open>j=lo\<close> to \<^term>\<open>j=hi-1\<close>.\<close>
+      (\<lambda>(i,j,xs). j < length xs \<and> j \<le> hi \<and> i < length xs \<and> lo \<le> i \<and> i \<le> j \<and> mset xs = mset xs0)\<^esup> \<comment> \<open>TODO: Maxi: Extend invariant here\<close>
       (\<lambda>(i,j,xs). j < hi)
       (\<lambda>(i,j,xs). do {
       	if R (h (xs!j)) pivot
@@ -106,7 +106,8 @@ proof -
     by auto
   show ?thesis
     unfolding partition_main_def choose_pivot_def
-    apply (refine_vcg)
+    apply (refine_vcg WHILEIT_rule[where R = \<open>measure(\<lambda>(i,j,xs).hi-j)\<close>])
+    subgoal by auto \<comment> \<open>WF\<close>
     using assms by (auto dest: mset_eq_length)
 qed
 
