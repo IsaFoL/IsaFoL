@@ -3,7 +3,7 @@ theory WB_Sort
     Watched_Literals.WB_More_Refinement
 begin
 
-\<comment> \<open>Every element between \<open>lo\<close> and \<open>hi\<close> can be chosen as pivot element.\<close>
+\<comment> \<open>Every element between \<^term>\<open>lo\<close> and \<^term>\<open>hi\<close> can be chosen as pivot element.\<close>
 definition choose_pivot :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> 'b) \<Rightarrow> 'a list \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat nres\<close> where
   \<open>choose_pivot _ _ _ lo hi = SPEC(\<lambda>k. k \<ge> lo \<and> k \<le> hi)\<close>
 
@@ -18,6 +18,54 @@ definition isPartition_map :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) \<
 lemma \<open>isPartition (<) [0,5,3,4,6,9,8,10::nat] 0 7 4\<close>
   apply (auto simp add: isPartition_def numeral_eq_Suc Nat.less_Suc_eq)
   by (smt One_nat_def Suc_diff_Suc diff_is_0_eq le_Suc_eq le_imp_less_Suc nth_Cons')
+
+
+definition sublist :: \<open>'a list \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a list\<close> where
+\<open>sublist xs i j \<equiv> take (1+j-i) (drop i xs)\<close>
+
+value \<open>sublist [0,1,2,3::nat] 1 3\<close>
+value \<open>sublist [0::nat] 0 0\<close>
+
+lemma sublist_single: \<open>i < length xs \<Longrightarrow> sublist xs i i = [xs!i]\<close>
+  by (simp add: sublist_def Hash_Map.take_Suc0(2))
+
+lemma insert_eq: \<open>insert a b = b \<union> {a}\<close>
+  by auto
+
+lemma sublist_nth: \<open>\<lbrakk>i1 \<le> i2; i2 < length xs; k \<le> (i2-i1)\<rbrakk> \<Longrightarrow> (sublist xs i1 i2)!k = xs!(i1+k)\<close>
+  by (simp add: sublist_def)
+
+lemma sublist_length: \<open>\<lbrakk>i \<le> j; j < length xs\<rbrakk> \<Longrightarrow> length (sublist xs i j) = 1 + j - i\<close>
+  by (simp add: sublist_def)
+
+lemma sublist_not_empty: \<open>\<lbrakk>i \<le> j; j < length xs; xs \<noteq> []\<rbrakk> \<Longrightarrow> sublist xs i j \<noteq> []\<close>
+  apply simp
+  apply (rewrite List.length_greater_0_conv[symmetric])
+  apply (rewrite sublist_length)
+  by auto
+
+lemma sublist_app: \<open>\<lbrakk>i1 \<le> i2; i2 \<le> i3\<rbrakk> \<Longrightarrow> sublist xs i1 i2 @ sublist xs (Suc i2) i3 = sublist xs i1 i3\<close>
+  unfolding sublist_def
+  by (smt Suc_eq_plus1_left Suc_le_mono append.assoc le_SucI le_add_diff_inverse le_trans same_append_eq take_add)
+
+definition sorted_sublist_wrt :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> 'b list \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> bool\<close> where
+  \<open>sorted_sublist_wrt R xs lo hi = sorted_wrt R (sublist xs lo hi)\<close>
+
+definition sorted_sublist :: \<open>'a :: linorder list \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> bool\<close> where
+  \<open>sorted_sublist xs lo hi = sorted_sublist_wrt (<) xs lo hi\<close>
+
+definition sorted_sublist_map :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> 'b) \<Rightarrow> 'a list \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> bool\<close> where
+  \<open>sorted_sublist_map R h xs lo hi = sorted_sublist_wrt R (map h xs) lo hi\<close>
+
+lemma sorted_sublist_wrt_refl: \<open>i < length xs \<Longrightarrow> sorted_sublist_wrt R xs i i\<close>
+  by (auto simp add: sorted_sublist_wrt_def sublist_single)
+
+lemma sorted_sublist_refl: \<open>i < length xs \<Longrightarrow> sorted_sublist xs i i\<close>
+  by (auto simp add: sorted_sublist_def sorted_sublist_wrt_refl)
+
+lemma sorted_sublist_map_refl: \<open>i < length xs \<Longrightarrow> sorted_sublist_map R h xs i i\<close>
+  by (auto simp add: sorted_sublist_map_def sorted_sublist_wrt_refl)
+
 
 definition partition_between :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> 'b) \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a list \<Rightarrow> ('a list \<times> nat) nres\<close> where
   \<open>partition_between R h lo hi xs0 = do {
