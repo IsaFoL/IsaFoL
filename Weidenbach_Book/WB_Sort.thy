@@ -68,22 +68,14 @@ lemma sorted_sublist_map_refl: \<open>i < length xs \<Longrightarrow> sorted_sub
   by (auto simp add: sorted_sublist_wrt_refl)
 
 
-(* TODO Move? *) (* TODO: Needed? *)
-lemma Min_atLeastLessThan[simp]: \<open>b > a \<Longrightarrow> Min {a..<b} = a\<close> for a b :: nat
-  using linorder_class.eq_Min_iff[of \<open>{a..<b}\<close> a]
-  by auto
-
-lemma Min_atLeastLessThan2[simp]: \<open>{a..<b} \<noteq> {} \<Longrightarrow> Min {a..<b} = a\<close> for a b :: nat
-  using linorder_class.eq_Min_iff[of \<open>{a..<b}\<close> a]
-  by auto
-
 definition partition_main_inv :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> 'b) \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a list \<Rightarrow> (nat\<times>nat\<times>'a list) \<Rightarrow> bool\<close> where
   \<open>partition_main_inv R h lo hi xs0 p \<equiv>
     case p of (i,j,xs) \<Rightarrow>
     j < length xs \<and> j \<le> hi \<and> i < length xs \<and> lo \<le> i \<and> i \<le> j \<and> mset xs = mset xs0 \<and>
-    (\<forall>k. k \<ge> lo \<and> k \<le> i \<longrightarrow> R (h (xs0!k)) (h (xs0!hi))) \<and>
-    (\<forall>k. k > i \<and> k < j \<longrightarrow>  R (h (xs0!hi)) (h (xs0!k))) \<and>
-    (\<forall>k. k \<ge> j \<longrightarrow> xs!k = xs0!k)\<close>
+    (\<forall>k. k \<ge> lo \<and> k < i \<longrightarrow> R (h (xs!k)) (h (xs!hi))) \<and> \<comment> \<open>All elements from \<open>lo\<close> to \<open>i-1\<close> are smaller than the pivot\<close>
+    (\<forall>k. k \<ge> i \<and> k < j \<longrightarrow>  R (h (xs!hi)) (h (xs!k))) \<and> \<comment> \<open>All elements from \<open>i\<close> to \<open>j-1\<close> are greater than the pivot\<close>
+    (\<forall>k. k \<ge> j \<and> k \<le> hi \<longrightarrow> xs!k = xs0!k) \<comment> \<open>All elements from \<open>j\<close> to \<open>hi\<close> are unchanged\<close>
+  \<close>
 
 text \<open>The main part of the partition function. The pivot is assumed to be the last element. This is
 exactly the "Lomuto partition scheme" partition function from Wikipedia.\<close>
@@ -91,8 +83,7 @@ definition partition_main :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) \<R
   \<open>partition_main R h lo hi xs0 = do {
     ASSERT(hi < length xs0);
     pivot \<leftarrow> RETURN (h (xs0 ! hi));
-    (i,j,xs) \<leftarrow> WHILE\<^sub>T\<^bsup> \<comment> \<open>We loop from \<^term>\<open>j=lo\<close> to \<^term>\<open>j=hi-1\<close>.\<close>
-      (partition_main_inv R h lo hi xs0)\<^esup>
+    (i,j,xs) \<leftarrow> WHILE\<^sub>T\<^bsup>partition_main_inv R h lo hi xs0\<^esup> \<comment> \<open>We loop from \<^term>\<open>j=lo\<close> to \<^term>\<open>j=hi-1\<close>.\<close>
       (\<lambda>(i,j,xs). j < hi)
       (\<lambda>(i,j,xs). do {
         ASSERT(i < length xs \<and> j < length xs);
@@ -107,14 +98,18 @@ definition partition_main :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) \<R
 
 lemma partition_main_correct:
   assumes \<open>lo < length xs\<close> and \<open>hi < length xs\<close> and \<open>hi > lo\<close> and
-    \<open>\<And> x y z. \<lbrakk>R (h x) (h y); R (h y) (h z)\<rbrakk> \<Longrightarrow> R (h x) (h z)\<close> and \<open>\<And>x y. R (h x) (h y) \<or> R (h y) (h x)\<close> and \<open>\<And>x. R (h x) (h x)\<close> \<comment> \<open>TODO: Which properties do we need?\<close>
+    \<open>\<And> x y z. \<lbrakk>R (h x) (h y); R (h y) (h z)\<rbrakk> \<Longrightarrow> R (h x) (h z)\<close> and \<open>\<And>x y. R (h x) (h y) \<or> R (h y) (h x)\<close> (* and \<open>\<And>x. R (h x) (h x)\<close> *) \<comment> \<open>TODO: Which properties do we need?\<close>
   shows \<open>partition_main R h lo hi xs \<le> SPEC(\<lambda>(xs', p). mset xs = mset xs' \<and> p < length xs \<and>
      p \<ge> lo \<and> p \<le> hi \<and> isPartition_map R h xs' lo hi p)\<close> \<comment> \<open>TODO: Show that \<open>p\<close> is a valid partiton.\<close>
 proof -
   have K: \<open>b \<le> hi - Suc n \<Longrightarrow> n > 0 \<Longrightarrow> Suc n \<le> hi \<Longrightarrow> Suc b \<le> hi - n\<close> for b hi n
     by auto
-  have L: \<open>~ R (h x) (h y) \<Longrightarrow> R (h y) (h x)\<close> for x y
+  have L: \<open>~ R (h x) (h y) \<Longrightarrow> R (h y) (h x)\<close> for x y \<comment> \<open>Corollary of linearity\<close>
     using assms by blast
+  have M: \<open>a < Suc b \<equiv> a = b \<or> a < b\<close> for a b
+    by linarith
+  have N: \<open>(a::nat) \<le> b \<equiv> a = b \<or> a < b\<close> for a b
+    by arith
 
   show ?thesis
     unfolding partition_main_def choose_pivot_def
@@ -122,27 +117,20 @@ proof -
     subgoal using assms by blast \<comment> \<open>We feed our assumption to the assertion\<close>
     subgoal by auto \<comment> \<open>WF\<close>
     subgoal \<comment> \<open>Invariant holds before the first iteration\<close>
-      unfolding partition_main_inv_def apply simp
-      sorry
+      unfolding partition_main_inv_def
+      using assms apply simp by linarith
     subgoal unfolding partition_main_inv_def by simp
     subgoal unfolding partition_main_inv_def by simp
     subgoal
-      unfolding partition_main_inv_def apply (auto dest: mset_eq_length)
-      subgoal
-        apply (auto simp add: Nat.less_Suc_eq_le)
-        using assms sorry \<comment> \<open>I have to sleep now.\<close>
-      subgoal
-        apply (auto simp add: Nat.less_Suc_eq_le)
-        sorry
-      subgoal by (simp add: IICF_List.swap_def)
+      unfolding partition_main_inv_def
+      apply (auto dest: mset_eq_length)
       done
+    subgoal unfolding partition_main_inv_def by (auto dest: mset_eq_length)
     subgoal
       unfolding partition_main_inv_def apply (auto dest: mset_eq_length)
-      sorry
-    subgoal
-      unfolding partition_main_inv_def apply (auto dest: mset_eq_length)
-      sorry
-    subgoal unfolding partition_main_inv_def by simp
+      apply (auto simp add: M) using assms(5) by blast
+
+    subgoal unfolding partition_main_inv_def by simp \<comment> \<open>assertions, etc\<close>
     subgoal unfolding partition_main_inv_def by simp
     subgoal unfolding partition_main_inv_def by (auto dest: mset_eq_length)
     subgoal unfolding partition_main_inv_def by simp
@@ -154,19 +142,7 @@ proof -
     subgoal unfolding partition_main_inv_def by simp
 
     subgoal \<comment> \<open>After the last iteration, we have a partitioning! :-)\<close>
-      unfolding partition_main_inv_def apply (auto simp add: isPartition_def dest: mset_eq_length)
-      subgoal
-        sledgehammer
-        apply auto
-
-        apply (rule assms(4))
-         apply auto
-          sorry
-      subgoal
-        apply (rule assms(4))
-         apply auto
-        sorry
-      done
+      unfolding partition_main_inv_def by (auto simp add: isPartition_wrt_def)
     done
 qed
 
@@ -182,7 +158,7 @@ definition partition_between :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) 
   }\<close>
 
 
-lemma partition_between_mset_eq:
+lemma partition_between_correct:
   assumes \<open>lo < length xs\<close> and \<open>hi < length xs\<close> and \<open>hi > lo\<close> and
   \<open>\<And> x y z. \<lbrakk>R (h x) (h y); R (h y) (h z)\<rbrakk> \<Longrightarrow> R (h x) (h z)\<close> and \<open>\<And>x y. R (h x) (h y) \<or> R (h y) (h x)\<close> and \<open>\<And>x. R (h x) (h x)\<close>
   shows \<open>partition_between R h lo hi xs \<le> SPEC(\<lambda>(xs', p). mset xs = mset xs' \<and> p < length xs \<and>
@@ -282,7 +258,7 @@ proof -
       using IH(2)
       apply (refine_vcg)
       apply ((auto; fail)+)[2]
-      apply (rule partition_between_mset_eq[THEN order_trans])
+      apply (rule partition_between_correct[THEN order_trans])
       subgoal by (auto dest: mset_eq_length)
       subgoal by (auto dest: mset_eq_length)
       subgoal by (auto dest: mset_eq_length)
