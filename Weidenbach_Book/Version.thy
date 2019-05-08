@@ -2,7 +2,7 @@ theory Version
   imports Main
 begin
 
-(*code taken from IsaFoR and adapted*)
+text \<open>This code was taken from IsaFoR and adapted to git. \<close>
 local_setup \<open>
   let
     val version =

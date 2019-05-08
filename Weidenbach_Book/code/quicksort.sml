@@ -161,6 +161,10 @@ fun divide_nat m n = Nat (divide_integer (integer_of_nat m) (integer_of_nat n));
 
 fun max A_ a b = (if less_eq A_ a b then b else a);
 
+fun minus_nat m n =
+  Nat (max ord_integer (0 : IntInf.int)
+        (IntInf.- (integer_of_nat m, integer_of_nat n)));
+
 fun nat_of_integer k = Nat (max ord_integer (0 : IntInf.int) k);
 
 fun plus_nat m n = Nat (IntInf.+ (integer_of_nat m, integer_of_nat n));
@@ -172,19 +176,21 @@ fun arl_get A_ = (fn (a, _) => nth A_ a);
 fun choose_pivot3_impl_code x =
   (fn ai => fn bia => fn bi =>
     let
-      val xa = divide_nat (plus_nat bia bi) (nat_of_integer (2 : IntInf.int));
+      val x_b =
+        plus_nat bia
+          (divide_nat (minus_nat bi bia) (nat_of_integer (2 : IntInf.int)));
     in
       (fn () =>
         let
-          val x_b = arl_get heap_nat ai bia ();
-          val x_d = arl_get heap_nat ai xa ();
-          val x_f = arl_get heap_nat ai bi ();
+          val x_d = arl_get heap_nat ai bia ();
+          val x_f = arl_get heap_nat ai x_b ();
+          val x_h = arl_get heap_nat ai bi ();
         in
-          (if less_nat x_b x_d andalso less_nat x_d x_f orelse
-                less_nat x_f x_d andalso less_nat x_d x_b
-            then xa
-            else (if less_nat x_b x_f andalso less_nat x_f x_d orelse
-                       less_nat x_d x_f andalso less_nat x_f x_b
+          (if less_nat x_d x_f andalso less_nat x_f x_h orelse
+                less_nat x_h x_f andalso less_nat x_f x_d
+            then x_b
+            else (if less_nat x_d x_h andalso less_nat x_h x_f orelse
+                       less_nat x_f x_h andalso less_nat x_h x_d
                    then bi else bia))
         end)
     end)
@@ -245,10 +251,6 @@ fun partition_between_code x =
         ()
     end)
     x;
-
-fun minus_nat m n =
-  Nat (max ord_integer (0 : IntInf.int)
-        (IntInf.- (integer_of_nat m, integer_of_nat n)));
 
 fun quicksort_code_0 x =
   let
