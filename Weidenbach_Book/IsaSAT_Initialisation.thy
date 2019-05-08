@@ -2394,7 +2394,7 @@ sepref_definition (in -) insert_sort_inner_nth_code
   unfolding insert_sort_inner_nth2_def insert_sort_inner_def fast_minus_def[symmetric]
     short_circuit_conv
   supply [[goals_limit = 1]]
-  supply mset_eq_setD[dest] mset_eq_length[dest] insert_sort_inner_nth_code_helper[intro]
+  supply mset_eq_setD[dest] mset_eq_length[dest]
     if_splits[split]
   by sepref
 

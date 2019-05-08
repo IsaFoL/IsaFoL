@@ -177,7 +177,9 @@ definition choose_pivot3 where
   \<open>choose_pivot3 R h xs i (j::nat) = do {
     ASSERT(i < length xs);
     ASSERT(j < length xs);
-    let k = (i + j) div 2;
+    let k' = (j - i) div 2;
+    let k = i + k';
+    ASSERT(k < length xs);
     let start = h (xs ! i);
     let mid = h (xs ! k);
     let end = h (xs ! j);

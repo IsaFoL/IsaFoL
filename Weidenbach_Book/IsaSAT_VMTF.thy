@@ -1,5 +1,5 @@
 theory IsaSAT_VMTF
-imports IsaSAT_Setup
+imports IsaSAT_Setup WB_Sort
 begin
 
 
@@ -188,14 +188,13 @@ sepref_definition vmtf_enqueue_fast_code
 declare vmtf_enqueue_fast_code.refine[sepref_fr_rules]
 
 
-definition insert_sort_inner_nth :: \<open>nat_vmtf_node list \<Rightarrow> nat list \<Rightarrow> nat \<Rightarrow> nat list nres\<close> where
-  \<open>insert_sort_inner_nth ns = insert_sort_inner (<) (\<lambda>remove n. stamp (ns ! (remove ! n)))\<close>
+definition partition_vmtf_nth :: \<open>nat_vmtf_node list \<Rightarrow>  nat \<Rightarrow> nat \<Rightarrow> nat list \<Rightarrow> (nat list \<times> nat) nres\<close> where
+  \<open>partition_vmtf_nth ns = partition_between_ref (<) (\<lambda>n. stamp (ns ! n))\<close>
 
-definition insert_sort_nth :: \<open>nat_vmtf_node list \<times> 'c \<Rightarrow> nat list \<Rightarrow> nat list nres\<close> where
-  \<open>insert_sort_nth = (\<lambda>(ns, _). insert_sort (<) (\<lambda>remove n. stamp (ns ! (remove ! n))))\<close>
+definition quicksort_vmtf_nth :: \<open>nat_vmtf_node list \<times> 'c \<Rightarrow> nat list \<Rightarrow> nat list nres\<close> where
+  \<open>quicksort_vmtf_nth = (\<lambda>(ns, _). full_quicksort_ref (<) (\<lambda>n. stamp (ns ! n)))\<close>
 
-
-lemma (in -) insert_sort_inner_nth_code_helper:
+lemma (in -) partition_vmtf_nth_code_helper:
   assumes \<open>\<forall>x\<in>set ba. x < length a\<close>  and
       \<open>b < length ba\<close> and
      mset: \<open>mset ba = mset a2'\<close>  and
@@ -204,34 +203,56 @@ lemma (in -) insert_sort_inner_nth_code_helper:
   using nth_mem[of b a2'] mset_eq_setD[OF mset] mset_eq_length[OF mset] assms
   by (auto simp del: nth_mem)
 
+(*TODO Move*)
+lemma [sepref_fr_rules]:
+  \<open>(uncurry (return oo (div)), uncurry (RETURN oo (div))) \<in>
+     uint32_nat_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+  by sepref_to_hoare
+   (sep_auto simp: uint32_nat_rel_def br_def nat_of_uint32_div)
 
-sepref_definition insert_sort_inner_nth_code
-   is \<open>uncurry2 insert_sort_inner_nth\<close>
-   :: \<open>[\<lambda>((xs, remove), n). (\<forall>x\<in>#mset remove. x < length xs) \<and> n < length remove \<and>
-        length remove \<le> uint32_max]\<^sub>a
-  (array_assn vmtf_node_assn)\<^sup>k *\<^sub>a (arl_assn uint32_nat_assn)\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>
-  arl_assn uint32_nat_assn\<close>
-  unfolding insert_sort_inner_nth_def insert_sort_inner_def fast_minus_def[symmetric]
-    short_circuit_conv zero_uint32_nat_def[symmetric] one_uint32_nat_def[symmetric]
+lemma partition_vmtf_nth_code_helper2:
+  \<open>       ba < length b \<Longrightarrow>(bia, ba) \<in> uint32_nat_rel \<Longrightarrow> 
+       (aa, (ba - bb) div 2) \<in> uint32_nat_rel \<Longrightarrow>
+       (ab, bb) \<in> uint32_nat_rel \<Longrightarrow> bb + (ba - bb) div 2 \<le> uint_max\<close>
+   apply (auto simp: uint32_nat_rel_def br_def
+     )
+  by (metis Nat.le_diff_conv2 ab_semigroup_add_class.add.commute diff_le_mono div_le_dividend le_trans nat_of_uint32_le_uint32_max)
+
+
+lemma partition_vmtf_nth_code_helper3:
+  \<open>   \<forall>x\<in>set b. x < length a \<Longrightarrow>
+       x'e < length a2' \<Longrightarrow>
+       mset a2' = mset b \<Longrightarrow>
+       a2' ! x'e < length a\<close>
+  using mset_eq_setD nth_mem by blast
+
+(* TODO uint uint32_nat_assn*)
+sepref_definition partition_vmtf_nth_code
+   is \<open>uncurry3 partition_vmtf_nth\<close>
+   :: \<open>[\<lambda>((((ns), _), hi), xs). (\<forall>x\<in>set xs. x < length ns)]\<^sub>a
+  (array_assn vmtf_node_assn)\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a (arl_assn uint32_nat_assn)\<^sup>d \<rightarrow>
+  arl_assn uint32_nat_assn *a nat_assn\<close>
+  unfolding partition_vmtf_nth_def insert_sort_inner_def fast_minus_def[symmetric]
+    partition_between_ref_def choose_pivot3_def
   supply [[goals_limit = 1]]
-  supply mset_eq_setD[dest] mset_eq_length[dest]  insert_sort_inner_nth_code_helper[intro]
-    if_splits[split]
+  supply partition_vmtf_nth_code_helper3[intro]
   by sepref
 
-declare insert_sort_inner_nth_code.refine[sepref_fr_rules]
+declare partition_vmtf_nth_code.refine[sepref_fr_rules]
 
-sepref_definition (in -) insert_sort_nth_code
-   is \<open>uncurry insert_sort_nth\<close>
+sepref_definition (in -) quicksort_vmtf_nth_code
+   is \<open>uncurry quicksort_vmtf_nth\<close>
    :: \<open>[\<lambda>(vm, remove). (\<forall>x\<in>#mset remove. x < length (fst vm)) \<and> length remove \<le> uint32_max]\<^sub>a
       vmtf_conc\<^sup>k *\<^sub>a (arl_assn uint32_nat_assn)\<^sup>d  \<rightarrow>
        arl_assn uint32_nat_assn\<close>
-  unfolding insert_sort_nth_def insert_sort_def insert_sort_inner_nth_def[symmetric]
-    length_uint32_nat_def[symmetric] one_uint32_nat_def[symmetric]
+  unfolding quicksort_vmtf_nth_def insert_sort_def partition_vmtf_nth_def[symmetric]
+    (*length_uint32_nat_def[symmetric] one_uint32_nat_def[symmetric]*)
+    full_quicksort_ref_def quicksort_ref_def List.null_def
   supply [[goals_limit = 1]]
   supply mset_eq_setD[dest] mset_eq_length[dest]
   by sepref
 
-declare insert_sort_nth_code.refine[sepref_fr_rules]
+declare quicksort_vmtf_nth_code.refine[sepref_fr_rules]
 
 definition (in -) isa_vmtf_en_dequeue :: \<open>trail_pol \<Rightarrow> nat \<Rightarrow> vmtf \<Rightarrow> vmtf nres\<close> where
 \<open>isa_vmtf_en_dequeue = (\<lambda>M L vm. isa_vmtf_enqueue M L (vmtf_dequeue L vm))\<close>
@@ -306,19 +327,30 @@ sepref_definition vmtf_en_dequeue_fast_code
 
 declare vmtf_en_dequeue_fast_code.refine[sepref_fr_rules]
 
+lemma insert_sort_reorder_remove:
+  \<open>(full_quicksort_ref R f, reorder_remove vm) \<in> \<langle>Id\<rangle>list_rel \<rightarrow>\<^sub>f \<langle>Id\<rangle> nres_rel\<close>
+proof -
+  show ?thesis
+    apply (intro frefI nres_relI)
+    apply (rule full_quicksort_ref_full_quicksort[THEN fref_to_Down, THEN order_trans])
+    apply fast
+    apply assumption
+    apply (auto 5 5 simp: reorder_remove_def intro: full_quicksort[THEN order_trans])
+    done
+qed
 
-lemma insert_sort_nth_reorder:
-   \<open>(uncurry insert_sort_nth, uncurry reorder_remove) \<in>
+lemma quicksort_vmtf_nth_reorder:
+   \<open>(uncurry quicksort_vmtf_nth, uncurry reorder_remove) \<in>
       Id \<times>\<^sub>r \<langle>Id\<rangle>list_rel \<rightarrow>\<^sub>f \<langle>Id\<rangle> nres_rel\<close>
   using insert_sort_reorder_remove[unfolded fref_def nres_rel_def]
-  by (intro frefI nres_relI) (fastforce simp: insert_sort_nth_def)
+  by (intro frefI nres_relI) (fastforce simp: quicksort_vmtf_nth_def)
 
-lemma insert_sort_nth_code_reorder_remove[sepref_fr_rules]:
-   \<open>(uncurry insert_sort_nth_code, uncurry reorder_remove) \<in>
+lemma quicksort_vmtf_nth_code_reorder_remove[sepref_fr_rules]:
+   \<open>(uncurry quicksort_vmtf_nth_code, uncurry reorder_remove) \<in>
       [\<lambda>((a, _), b). (\<forall>x\<in>set b. x < length a) \<and> length b \<le> uint32_max]\<^sub>a
       vmtf_conc\<^sup>k *\<^sub>a (arl_assn uint32_nat_assn)\<^sup>d \<rightarrow> arl_assn uint32_nat_assn\<close>
       supply [[show_types]]
-  using insert_sort_nth_code.refine[FCOMP insert_sort_nth_reorder]
+  using quicksort_vmtf_nth_code.refine[FCOMP quicksort_vmtf_nth_reorder]
   by auto
 
 lemma atoms_hash_del_op_set_delete:
@@ -370,7 +402,7 @@ sepref_definition vmtf_rescale_code
    is \<open>vmtf_rescale\<close>
    :: \<open>vmtf_conc\<^sup>d \<rightarrow>\<^sub>a vmtf_conc\<close>
   supply [[goals_limit = 1]]
-  supply vmtf_en_dequeue_pre_def[simp] vmtf_insert_sort_nth_code_preD[dest] le_uint32_max_le_uint64_max[intro]
+  supply vmtf_en_dequeue_pre_def[simp] le_uint32_max_le_uint64_max[intro]
   unfolding vmtf_rescale_alt_def zero_uint64_nat_def[symmetric] PR_CONST_def update_stamp.simps
     one_uint64_nat_def[symmetric]
   by sepref
@@ -600,7 +632,6 @@ sepref_definition isa_vmtf_flush_code
    :: \<open>trail_pol_assn\<^sup>k *\<^sub>a (vmtf_conc *a (arl_assn uint32_nat_assn *a atoms_hash_assn))\<^sup>d \<rightarrow>\<^sub>a
         (vmtf_conc *a (arl_assn uint32_nat_assn *a atoms_hash_assn))\<close>
   supply [[goals_limit = 1]]
-  supply vmtf_en_dequeue_pre_def[simp] vmtf_insert_sort_nth_code_preD[dest] le_uint32_max_le_uint64_max[intro]
   unfolding vmtf_flush_def PR_CONST_def isa_vmtf_flush_int_def zero_uint32_nat_def[symmetric]
     current_stamp_def[symmetric] one_uint32_nat_def[symmetric]
   apply (rewrite at \<open>\<lambda>(i, vm, h). _ < \<hole>\<close> length_uint32_nat_def[symmetric])
@@ -614,7 +645,6 @@ sepref_definition isa_vmtf_flush_fast_code
    :: \<open>trail_pol_fast_assn\<^sup>k *\<^sub>a (vmtf_conc *a (arl_assn uint32_nat_assn *a atoms_hash_assn))\<^sup>d \<rightarrow>\<^sub>a
         (vmtf_conc *a (arl_assn uint32_nat_assn *a atoms_hash_assn))\<close>
   supply [[goals_limit = 1]]
-  supply vmtf_en_dequeue_pre_def[simp] vmtf_insert_sort_nth_code_preD[dest] le_uint32_max_le_uint64_max[intro]
   unfolding isa_vmtf_flush_int_def PR_CONST_def vmtf_flush_int_def zero_uint32_nat_def[symmetric]
     current_stamp_def[symmetric] one_uint32_nat_def[symmetric]
   apply (rewrite at \<open>\<lambda>(i, vm, h). _ < \<hole>\<close> length_uint32_nat_def[symmetric])
