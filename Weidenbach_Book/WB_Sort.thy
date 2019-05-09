@@ -291,7 +291,9 @@ definition choose_pivot3 where
   \<open>choose_pivot3 R h xs lo (hi::nat) = do {
     ASSERT(lo < length xs);
     ASSERT(hi < length xs);
-    let k = (lo + hi) div 2;
+    let k' = (hi - lo) div 2;
+    let k = lo + k';
+    ASSERT(k < length xs);
     let start = h (xs ! lo);
     let mid = h (xs ! k);
     let end = h (xs ! hi);
