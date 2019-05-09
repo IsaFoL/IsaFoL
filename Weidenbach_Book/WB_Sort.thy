@@ -3,6 +3,9 @@ theory WB_Sort
     Watched_Literals.WB_More_Refinement
 begin
 
+sledgehammer_params [provers= cvc4 spass z3 e]
+
+
 text \<open>Every element between \<^term>\<open>lo\<close> and \<^term>\<open>hi\<close> can be chosen as pivot element.\<close>
 definition choose_pivot :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> 'b) \<Rightarrow> 'a list \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat nres\<close> where
   \<open>choose_pivot _ _ _ lo hi = SPEC(\<lambda>k. k \<ge> lo \<and> k \<le> hi)\<close>
@@ -98,7 +101,7 @@ definition partition_main :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) \<R
 
 lemma partition_main_correct:
   assumes \<open>lo < length xs\<close> and \<open>hi < length xs\<close> and \<open>hi > lo\<close> and
-    \<open>\<And> x y z. \<lbrakk>R (h x) (h y); R (h y) (h z)\<rbrakk> \<Longrightarrow> R (h x) (h z)\<close> and \<open>\<And>x y. R (h x) (h y) \<or> R (h y) (h x)\<close> (* and \<open>\<And>x. R (h x) (h x)\<close> *) \<comment> \<open>TODO: Which properties do we need?\<close>
+    \<open>\<And> x y z. \<lbrakk>R (h x) (h y); R (h y) (h z)\<rbrakk> \<Longrightarrow> R (h x) (h z)\<close> and \<open>\<And>x y. R (h x) (h y) \<or> R (h y) (h x)\<close>
   shows \<open>partition_main R h lo hi xs \<le> SPEC(\<lambda>(xs', p). mset xs = mset xs' \<and> p < length xs \<and>
      p \<ge> lo \<and> p \<le> hi \<and> isPartition_map R h xs' lo hi p)\<close> \<comment> \<open>TODO: Show that \<open>p\<close> is a valid partiton.\<close>
 proof -
@@ -160,7 +163,7 @@ definition partition_between :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) 
 
 lemma partition_between_correct:
   assumes \<open>lo < length xs\<close> and \<open>hi < length xs\<close> and \<open>hi > lo\<close> and
-  \<open>\<And> x y z. \<lbrakk>R (h x) (h y); R (h y) (h z)\<rbrakk> \<Longrightarrow> R (h x) (h z)\<close> and \<open>\<And>x y. R (h x) (h y) \<or> R (h y) (h x)\<close> and \<open>\<And>x. R (h x) (h x)\<close>
+  \<open>\<And> x y z. \<lbrakk>R (h x) (h y); R (h y) (h z)\<rbrakk> \<Longrightarrow> R (h x) (h z)\<close> and \<open>\<And>x y. R (h x) (h y) \<or> R (h y) (h x)\<close>
   shows \<open>partition_between R h lo hi xs \<le> SPEC(\<lambda>(xs', p). mset xs = mset xs' \<and> p < length xs \<and>
      p \<ge> lo \<and> p \<le> hi \<and> isPartition_map R h xs' lo hi p)\<close> \<comment> \<open>TODO: Maxi: Show that \<open>p\<close> is a valid partiton.\<close>
 proof -
@@ -172,20 +175,6 @@ proof -
     using assms by (auto dest: mset_eq_length)
 qed
 
-(* TODO: Verify! *)
-definition quicksort :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> 'b) \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a list \<Rightarrow> 'a list nres\<close> where
-\<open>quicksort R h lo hi xs0 = do {
-  RECT (\<lambda>f (lo,hi,xs). do {
-      ASSERT(mset xs = mset xs0);
-      if hi\<le>lo then RETURN xs
-      else do{
-	      (xs, p) \<leftarrow> partition_between R h lo hi xs; \<comment> \<open>TODO: We could maybe do this abstract\<close>
-	      xs \<leftarrow> f (lo, p-1, xs);
-        f (p+1, hi, xs)
-      }
-    })
-    (lo, hi, xs0)
-  }\<close>
 
 
 
@@ -195,6 +184,7 @@ lemma sublist_map: \<open>sublist (map f xs) i j = map f (sublist xs i j)\<close
 
 lemma sublist_split: \<open>lo \<le> hi \<Longrightarrow> lo < p \<Longrightarrow> p < hi \<Longrightarrow> hi < length xs \<Longrightarrow> sublist xs lo (p-1) @ xs!p # sublist xs (p+1) hi = sublist xs lo hi\<close>
   unfolding sublist_def
+  sledgehammer
   apply simp
   apply (induction xs arbitrary: lo hi p)
    apply simp
@@ -236,18 +226,73 @@ lemma partition_sort_wrt:
   subgoal apply (auto simp add: sublist_el) sorry
   oops
 
+(* TODO: Verify! *)
+definition quicksort :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> 'b) \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a list \<Rightarrow> 'a list nres\<close> where
+\<open>quicksort R h lo hi xs0 = do {
+  RECT (\<lambda>f (lo,hi,xs). do {
+      if hi\<le>lo then RETURN xs
+      else do{
+	      (xs, p) \<leftarrow> partition_between R h lo hi xs; \<comment> \<open>TODO: We could maybe do this abstract\<close>
+	      xs \<leftarrow> f (lo, p-1, xs);
+        f (p+1, hi, xs)
+      }
+    })
+    (lo, hi, xs0)
+  }\<close>
 
+lemma sublist_le: \<open>hi < lo \<Longrightarrow> sublist xs lo hi = []\<close>
+  by (auto simp add: sublist_def)
+
+lemma nat_le_less_eq: \<open>(a :: nat) \<le> b = (a = b \<or> a < b)\<close>
+  by linarith
+
+lemma sorted_sublist_wrt_le: \<open>hi \<le> lo \<Longrightarrow> hi < length xs \<Longrightarrow> sorted_sublist_wrt R xs lo hi\<close>
+  apply (auto simp add: nat_le_less_eq)
+  unfolding sorted_sublist_wrt_def
+  subgoal apply (rewrite sublist_single) by auto
+  subgoal by (auto simp add: sublist_le)
+  done
+
+lemma sorted_sublist_map_le: \<open>hi \<le> lo \<Longrightarrow> hi < length xs \<Longrightarrow> sorted_sublist_map R h xs lo hi\<close>
+  by (auto simp add: sorted_sublist_wrt_le)
+
+lemma sorted_sublist_map_done:
+  \<open>(\<And> x y z. \<lbrakk>R (h x) (h y); R (h y) (h z)\<rbrakk> \<Longrightarrow> R (h x) (h z)) \<Longrightarrow>
+   (\<And>x y. R (h x) (h y) \<or> R (h y) (h x)) \<Longrightarrow>
+    (* h = id \<Longrightarrow> *)
+    lo' < length xs' \<Longrightarrow> hi < length xs' \<Longrightarrow>
+    hi' \<le> lo' \<Longrightarrow>
+    \<^cancel>\<open>mset xs = mset xs' \<Longrightarrow>\<close>
+    lo \<le> lo' \<Longrightarrow>
+    hi' \<le> hi \<Longrightarrow>
+    sorted_sublist_map R h xs' lo (lo' - 1) \<Longrightarrow>
+    sorted_sublist_map R h xs' (hi' + 1) hi \<Longrightarrow>
+    \<forall>i j. lo \<le> i \<and> i < lo' \<and> lo' \<le> j \<and> j \<le> hi \<longrightarrow> R (h (xs' ! i)) (h (xs' ! j)) \<Longrightarrow>
+    \<forall>i j. hi' < i \<and> i \<le> hi \<and> lo' \<le> j \<and> j \<le> hi \<longrightarrow> R (h (xs' ! j)) (h (xs' ! i)) \<Longrightarrow>
+    sorted_sublist_map R h xs' lo hi\<close>
+  unfolding sorted_sublist_wrt_def
+  apply (rewrite sublist_app[symmetric])
+    apply auto
+  sorry
+                                                 
 lemma quicksort_correct:
-  assumes \<open>lo < length xs \<or> (lo \<ge> length xs \<and> hi \<le> lo)\<close> and \<open>(hi < length xs \<or> (hi \<ge> length xs \<and> hi \<le> lo))\<close> and
-  \<open>\<And> x y z. \<lbrakk>R (h x) (h y); R (h y) (h z)\<rbrakk> \<Longrightarrow> R (h x) (h z)\<close> and \<open>\<And>x y. R (h x) (h y) \<or> R (h y) (h x)\<close> and \<open>\<And>x. R (h x) (h x)\<close>
-  shows \<open>quicksort R h lo hi xs \<le> \<Down> Id (SPEC(\<lambda>xs'. mset xs = mset xs'))\<close> \<comment> \<open>TODO: Maxi: Sortedness\<close>
+  assumes \<open>lo < length xs\<close> and \<open>hi < length xs\<close>
+  \<open>\<And> x y z. \<lbrakk>R (h x) (h y); R (h y) (h z)\<rbrakk> \<Longrightarrow> R (h x) (h z)\<close> and \<open>\<And>x y. R (h x) (h y) \<or> R (h y) (h x)\<close>
+  shows \<open>quicksort R h lo hi xs \<le> \<Down> Id (SPEC(\<lambda>xs'. mset xs = mset xs' \<and> sorted_sublist_map R h xs' lo hi))\<close> \<comment> \<open>TODO: Maxi: Sortedness\<close>
 proof -
   have wf: \<open>wf (measure (\<lambda>(lo, hi, xs). Suc hi - lo))\<close>
     by auto
-  have pre: \<open>(\<lambda>(lo, hi, xs'). (lo < length xs \<or> (lo \<ge> length xs \<and> hi \<le> lo)) \<and> 
-      (hi < length xs \<or> (hi \<ge> length xs \<and> hi \<le> lo)) \<and>
-    mset xs = mset xs') (lo,hi,xs)\<close>
-    using assms by auto
+  have pre: \<open>(\<lambda>(lo', hi', xs').
+              lo < length xs \<and> hi < length xs \<and>
+              mset xs = mset xs' \<and>
+              lo' \<ge> lo \<and> hi' \<le> hi \<and> lo' < length xs \<and> \<comment> \<open>We thus also have \<open>hi' < length xs\<close>\<close>
+              sorted_sublist_map R h xs' lo (lo'-1) \<and> sorted_sublist_map R h xs' (hi'+1) hi \<and>
+              (\<forall> i j. lo \<le> i  \<and> i < lo' \<and> lo' \<le> j  \<and> j \<le> hi \<longrightarrow> R (h (xs'!i)) (h (xs'!j))) \<and> \<comment> \<open>All elements below lo' are smaller than the rest\<close>
+              (\<forall> i j. i > hi' \<and> i \<le> hi  \<and> j  \<ge> lo' \<and> j \<le> hi \<longrightarrow> R (h (xs'!j)) (h (xs'!i))) \<comment> \<open>All elements over hi' are bigger than the rest\<close>
+    ) (lo,hi,xs)\<close>
+      apply (auto)
+      using assms by (auto simp add: sorted_sublist_map_le)
+
   show ?thesis
     unfolding quicksort_def
     apply (rule RECT_rule)
@@ -255,16 +300,22 @@ proof -
       apply (rule wf)
      apply (rule pre)
     subgoal premises IH for f x
-      using IH(2)
       apply (refine_vcg)
-      apply ((auto; fail)+)[2]
-      apply (rule partition_between_correct[THEN order_trans])
+      subgoal using IH(2) by auto \<comment> \<open>Case hi<=lo: mset\<close>
+      subgoal \<comment> \<open>Case hi<=lo: sorted\<close>
+        apply simp
+        using IH(2) apply (auto)
+        apply (rule sorted_sublist_map_done)
+        subgoal using assms by blast \<comment> \<open>transitivity\<close>
+        subgoal using assms by blast \<comment> \<open>linearity\<close>
+        by (auto dest: mset_eq_length)
+
+      apply (rule partition_between_correct[THEN order_trans]) \<comment> \<open>Call to partition\<close>
+      subgoal using IH(2) by (auto dest: mset_eq_length)
+      subgoal using IH(2) by (auto dest: mset_eq_length)
       subgoal by (auto dest: mset_eq_length)
-      subgoal by (auto dest: mset_eq_length)
-      subgoal by (auto dest: mset_eq_length)
-      subgoal by (auto dest: assms(3)) \<comment> \<open>We need to proof transitivity, etc here\<close>
+      subgoal by (rule assms(3)) \<comment> \<open>transitivity\<close>
       subgoal by (rule assms(4)) \<comment> \<open>linearity\<close>
-      subgoal by (rule assms(5)) \<comment> \<open>reflexivity\<close>
       
       apply (rule SPEC_rule)
       apply (subst (5) Down_id_eq[symmetric])
@@ -272,15 +323,36 @@ proof -
       apply (rule bind_refine_spec)
       prefer 2
       apply (rule IH(1)[THEN order_trans])
-      subgoal
-        by (auto dest: mset_eq_length)
-      subgoal by auto
-      apply (subst (3) Down_id_eq[symmetric])
-      apply (rule order.refl)
+      subgoal \<comment> \<open>Show that the precondition holds for the first recursive case\<close>
+        apply (auto dest: mset_eq_length)        
+        subgoal using IH(2) by blast
+        subgoal using IH(2) by blast
+        subgoal using IH(2) leD by auto
+        subgoal using IH(2) by blast
+        subgoal using IH(2) by auto
+        subgoal using IH(2) by blast
+        subgoal sorry (* ! *)
+        subgoal sorry (* ! *)
+        subgoal sorry (* ! *)
+        subgoal sorry (* ! *)
+        done
+
+      apply auto
       apply (rule IH(1)[THEN order_trans])
-      subgoal
-        by (auto dest: mset_eq_length)
-      subgoal by auto
+      subgoal \<comment> \<open>Show that the precondition holds for the second recursive case\<close>
+        apply (auto dest: mset_eq_length)        
+        subgoal using IH(2) by blast
+        subgoal using IH(2) by blast
+        subgoal using IH(2) leD by auto
+        subgoal using IH(2) by blast
+        subgoal using IH(2) leD sorry (* TODO: What if \<open>p>hi'\<close>? *)
+        subgoal sorry (* ! *)
+        subgoal sorry (* ! *)
+        subgoal sorry (* ! *)
+        subgoal sorry (* ! *)
+        done
+
+      subgoal by auto \<comment> \<open>Two technical & easy subgoals\<close>
       subgoal by auto
       done
     done
@@ -542,6 +614,7 @@ sepref_definition full_quicksort_code
 text \<open>Export the code\<close>
 export_code \<open>nat_of_integer\<close> \<open>integer_of_nat\<close> \<open>partition_between_code\<close> \<open>full_quicksort_code\<close> in SML_imp module_name IsaQuicksort file "code/quicksort.sml"
 
+
 text \<open>Final correctness lemma\<close>
 lemma full_quicksort_correct:
   assumes
@@ -553,8 +626,11 @@ lemma full_quicksort_correct:
    apply (rule quicksort_correct[where R=R])
        apply auto
   using assms apply auto
-  subgoal by (meson diff_Suc_less length_greater_0_conv)
-  subgoal by force
+  sledgehammer
+  (* subgoal by (meson diff_Suc_less length_greater_0_conv)
+  subgoal by force *)
   done
+
+
 
 end
