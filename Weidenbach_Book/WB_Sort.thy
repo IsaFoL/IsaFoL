@@ -234,6 +234,7 @@ definition quicksort :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) \<Righta
       else do{
 	      (xs, p) \<leftarrow> partition_between R h lo hi xs; \<comment> \<open>TODO: We could maybe do this abstract\<close>
 	      xs \<leftarrow> f (lo, p-1, xs);
+        if hi\<le>p+1 then RETURN xs else
         f (p+1, hi, xs)
       }
     })
@@ -320,8 +321,8 @@ proof -
       apply (rule SPEC_rule)
       apply (subst (5) Down_id_eq[symmetric])
       apply (case_tac xa, simp only: prod.simps)
-      apply (rule bind_refine_spec)
-      prefer 2
+
+      apply (refine_vcg)
       apply (rule IH(1)[THEN order_trans])
       subgoal \<comment> \<open>Show that the precondition holds for the first recursive case\<close>
         apply (auto dest: mset_eq_length)        
@@ -336,7 +337,6 @@ proof -
         subgoal sorry (* ! *)
         subgoal sorry (* ! *)
         done
-
       apply auto
       apply (rule IH(1)[THEN order_trans])
       subgoal \<comment> \<open>Show that the precondition holds for the second recursive case\<close>
@@ -345,13 +345,12 @@ proof -
         subgoal using IH(2) by blast
         subgoal using IH(2) leD by auto
         subgoal using IH(2) by blast
-        subgoal using IH(2) leD sorry (* TODO: What if \<open>p>hi'\<close>? *)
+        subgoal using IH(2) leD by auto
         subgoal sorry (* ! *)
         subgoal sorry (* ! *)
         subgoal sorry (* ! *)
         subgoal sorry (* ! *)
         done
-
       subgoal by auto \<comment> \<open>Two technical & easy subgoals\<close>
       subgoal by auto
       done
