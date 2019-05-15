@@ -18,10 +18,10 @@ definition isPartition :: \<open>'a :: order list \<Rightarrow> nat \<Rightarrow
   \<open>isPartition xs lo hi p \<equiv> isPartition_wrt (\<le>) xs lo hi p\<close>
 
 abbreviation isPartition_map :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> 'b) \<Rightarrow> 'a list \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> bool\<close> where
-  \<open>isPartition_map R h xs i j k \<equiv> isPartition_wrt R (map h xs) i j k\<close>
+  \<open>isPartition_map R h xs i j k \<equiv> isPartition_wrt (\<lambda>a b. R (h a) (h b)) xs i j k\<close>
 
-lemma isPartition_map_def:
-  \<open>lo \<le> p \<Longrightarrow> p \<le> hi \<Longrightarrow> hi < length xs \<Longrightarrow> isPartition_map R h xs lo hi p = ((\<forall> i. i \<ge> lo \<and> i < p \<longrightarrow> R (h (xs!i)) (h (xs!p))) \<and> (\<forall> j. j > p \<and> j \<le> hi \<longrightarrow> R (h (xs!p)) (h (xs!j))))\<close>
+lemma isPartition_map_def':
+  \<open>lo \<le> p \<Longrightarrow> p \<le> hi \<Longrightarrow> hi < length xs \<Longrightarrow> isPartition_map R h xs lo hi p = isPartition_wrt R (map h xs) lo hi p\<close>
   by (auto simp add: isPartition_wrt_def conjI)
 
 
@@ -43,7 +43,7 @@ lemma sublist_single: \<open>i < length xs \<Longrightarrow> sublist xs i i = [x
 lemma insert_eq: \<open>insert a b = b \<union> {a}\<close>
   by auto
 
-lemma sublist_nth: \<open>\<lbrakk>i1 \<le> i2; i2 < length xs; k \<le> (i2-i1)\<rbrakk> \<Longrightarrow> (sublist xs i1 i2)!k = xs!(i1+k)\<close>
+lemma sublist_nth: \<open>\<lbrakk>lo \<le> hi; hi < length xs; k+lo \<le> hi\<rbrakk> \<Longrightarrow> (sublist xs lo hi)!k = xs!(lo+k)\<close>
   by (simp add: sublist_def)
 
 lemma sublist_length: \<open>\<lbrakk>i \<le> j; j < length xs\<rbrakk> \<Longrightarrow> length (sublist xs i j) = 1 + j - i\<close>
@@ -66,7 +66,12 @@ definition sorted_sublist :: \<open>'a :: linorder list \<Rightarrow> nat \<Righ
   \<open>sorted_sublist xs lo hi = sorted_sublist_wrt (\<le>) xs lo hi\<close>
 
 abbreviation sorted_sublist_map :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> 'b) \<Rightarrow> 'a list \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> bool\<close> where
-  \<open>sorted_sublist_map R h xs lo hi \<equiv> sorted_sublist_wrt R (map h xs) lo hi\<close>
+  \<open>sorted_sublist_map R h xs lo hi \<equiv> sorted_sublist_wrt (\<lambda>a b. R (h a) (h b)) xs lo hi\<close>
+
+lemma sorted_sublist_map_def':
+  \<open>lo < length xs \<Longrightarrow> sorted_sublist_map R h xs lo hi \<equiv> sorted_sublist_wrt R (map h xs) lo hi\<close>
+  apply (simp add: sorted_sublist_wrt_def)
+  by (simp add: drop_map sorted_wrt_map sublist_def take_map)
 
 lemma sorted_sublist_wrt_refl: \<open>i < length xs \<Longrightarrow> sorted_sublist_wrt R xs i i\<close>
   by (auto simp add: sorted_sublist_wrt_def sublist_single)
@@ -217,6 +222,42 @@ lemma sorted_sublist_wrt_le: \<open>hi \<le> lo \<Longrightarrow> hi < length xs
   subgoal by (auto simp add: sublist_lt)
   done
 
+
+
+
+text \<open>Elements in a sorted sublists are actually sorted\<close>
+lemma sorted_sublist_wrt_nth_le:
+  assumes \<open>sorted_sublist_wrt R xs lo hi\<close> and \<open>lo \<le> hi\<close> and \<open>hi < length xs\<close> and
+    \<open>lo \<le> i\<close> and \<open>i < j\<close> and \<open>j \<le> hi\<close>
+  shows \<open>R (xs!i) (xs!j)\<close>
+proof -
+  have A: \<open>lo < length xs\<close> using assms(2) assms(3) by linarith
+  obtain i' where I: \<open>i = lo + i'\<close> using assms(4) le_Suc_ex by auto
+  obtain j' where J: \<open>j = lo + j'\<close> by (meson assms(4) assms(5) dual_order.trans le_iff_add less_imp_le_nat)
+  show ?thesis
+    using assms(1) apply (simp add: sorted_sublist_wrt_def I J)
+    apply (rewrite sublist_nth[symmetric, where k=i', where lo=lo, where hi=hi])
+    using assms apply auto subgoal using I by linarith
+    apply (rewrite sublist_nth[symmetric, where k=j', where lo=lo, where hi=hi])
+    using assms apply auto subgoal using J by linarith
+    apply (rule sorted_wrt_nth_less)
+    apply auto
+    subgoal using I J nat_add_left_cancel_less by blast
+    subgoal apply (simp add: sublist_length) using J by linarith
+    done
+qed
+
+lemma sorted_sublist_map_nth_le:
+  assumes \<open>sorted_sublist_map R h xs lo hi\<close> and \<open>lo \<le> hi\<close> and \<open>hi < length xs\<close> and
+    \<open>lo \<le> i\<close> and \<open>i < j\<close> and \<open>j \<le> hi\<close>
+  shows \<open>R (h (xs!i)) (h (xs!j))\<close>
+proof -
+  show ?thesis
+    using assms by (rule sorted_sublist_wrt_nth_le)
+qed
+
+
+
 lemma sorted_sublist_le: \<open>hi \<le> lo \<Longrightarrow> hi < length xs \<Longrightarrow> sorted_sublist xs lo hi\<close>
   by (auto simp add: sorted_sublist_def sorted_sublist_wrt_le)
 
@@ -227,17 +268,49 @@ lemma sublist_cons: \<open>lo < hi \<Longrightarrow> hi < length xs \<Longrighta
   apply (simp add: sublist_def)
   by (metis Cons_nth_drop_Suc Suc_diff_le le_trans less_imp_le_nat not_le take_Suc_Cons)
 
-lemma sorted_wrt_cons:
-  \<open>lo \<le> hi \<Longrightarrow> hi < length xs \<Longrightarrow> sorted_sublist_wrt R xs (lo+1) hi \<Longrightarrow> (\<forall>j. lo<j\<and>j\<le>hi \<longrightarrow> R (xs!lo) (xs!j)) \<Longrightarrow> sorted_sublist_wrt R xs lo hi\<close>
+lemma sorted_sublist_wrt_cons':
+  \<open>sorted_sublist_wrt R xs (lo+1) hi \<Longrightarrow> lo \<le> hi \<Longrightarrow> hi < length xs \<Longrightarrow> (\<forall>j. lo<j\<and>j\<le>hi \<longrightarrow> R (xs!lo) (xs!j)) \<Longrightarrow> sorted_sublist_wrt R xs lo hi\<close>
   apply (simp add: sorted_sublist_wrt_def)
   apply (auto simp add: nat_le_eq_or_lt)
   subgoal by (simp add: sublist_single)
   apply (auto simp add: sublist_cons sublist_el)
   by (metis Suc_lessI ab_semigroup_add_class.add.commute less_add_Suc1 less_diff_conv)
 
-lemma sorted_map_cons:
-  \<open>lo \<le> hi \<Longrightarrow> hi < length xs \<Longrightarrow> sorted_sublist_map R h xs (lo+1) hi \<Longrightarrow> (\<forall>j. lo<j\<and>j\<le>hi \<longrightarrow> R (h (xs!lo)) (h (xs!j))) \<Longrightarrow> sorted_sublist_map R h xs lo hi\<close>
-  by (simp add: sorted_wrt_cons)
+lemma sorted_sublist_wrt_cons:
+  assumes trans: \<open>(\<And> x y z. \<lbrakk>R x y; R y z\<rbrakk> \<Longrightarrow> R x z)\<close> and
+    \<open>sorted_sublist_wrt R xs (lo+1) hi\<close> and
+    \<open>lo \<le> hi\<close> and \<open>hi < length xs \<close> and \<open>R (xs!lo) (xs!(lo+1))\<close>
+  shows \<open>sorted_sublist_wrt R xs lo hi\<close>
+proof -
+  show ?thesis
+    apply (rule sorted_sublist_wrt_cons') using assms apply auto
+    subgoal premises assms' for j
+    proof -
+      have A: \<open>j=lo+1 \<or> j>lo+1\<close> using assms'(5) by linarith
+      show ?thesis
+        using A proof
+        assume A: \<open>j=lo+1\<close> show ?thesis
+          by (simp add: A assms')
+      next
+        assume A: \<open>j>lo+1\<close> show ?thesis
+          apply (rule trans)
+          apply (rule assms(5))
+          apply (rule sorted_sublist_wrt_nth_le[OF assms(2), where i=\<open>lo+1\<close>, where j=j])
+          subgoal using A assms'(6) by linarith
+          subgoal using assms'(3) less_imp_diff_less by blast
+          subgoal using assms'(5) by auto
+          subgoal using A by linarith
+          subgoal by (simp add: assms'(6))
+          done
+      qed
+    qed
+    done
+qed
+
+lemma sorted_sublist_map_cons:
+  \<open>(\<And> x y z. \<lbrakk>R (h x) (h y); R (h y) (h z)\<rbrakk> \<Longrightarrow> R (h x) (h z)) \<Longrightarrow>
+    sorted_sublist_map R h xs (lo+1) hi \<Longrightarrow> lo \<le> hi \<Longrightarrow> hi < length xs \<Longrightarrow> R (h (xs!lo)) (h (xs!(lo+1))) \<Longrightarrow> sorted_sublist_map R h xs lo hi\<close>
+  by (blast intro: sorted_sublist_wrt_cons)
 
 
 lemma sublist_snoc: \<open>lo < hi \<Longrightarrow> hi < length xs \<Longrightarrow> sublist xs lo hi = sublist xs lo (hi-1) @ [xs!hi]\<close>
@@ -251,32 +324,52 @@ proof -
     by simp
 qed
 
-lemma sorted_wrt_snoc:
-  \<open>lo \<le> hi \<Longrightarrow> hi < length xs \<Longrightarrow> sorted_sublist_wrt R xs lo (hi-1) \<Longrightarrow> (\<forall>j. lo\<le>j\<and>j<hi \<longrightarrow> R (xs!j) (xs!hi)) \<Longrightarrow> sorted_sublist_wrt R xs lo hi\<close>
+lemma sorted_sublist_wrt_snoc':
+  \<open>sorted_sublist_wrt R xs lo (hi-1) \<Longrightarrow> lo \<le> hi \<Longrightarrow> hi < length xs \<Longrightarrow> (\<forall>j. lo\<le>j\<and>j<hi \<longrightarrow> R (xs!j) (xs!hi)) \<Longrightarrow> sorted_sublist_wrt R xs lo hi\<close>
   apply (simp add: sorted_sublist_wrt_def)
   apply (auto simp add: nat_le_eq_or_lt)
   subgoal by (simp add: sublist_single)
   apply (auto simp add: sublist_snoc sublist_el sorted_wrt_append)
   by (metis less_diff_conv linorder_neqE_nat linordered_field_class.sign_simps(2) not_add_less1)
 
-(* TODO? *)
-lemma sorted_wrt_snoc':
-  \<open>(\<And> x y z. \<lbrakk>R x y; R y z\<rbrakk> \<Longrightarrow> R x z) \<Longrightarrow>
-    lo \<le> hi \<Longrightarrow> hi < length xs \<Longrightarrow> sorted_sublist_wrt R xs lo (hi-1) \<Longrightarrow> (R (xs!(hi-1)) (xs!hi)) \<Longrightarrow> sorted_sublist_wrt R xs lo hi\<close>
-  apply (simp add: sorted_sublist_wrt_def)
-  apply (auto simp add: nat_le_eq_or_lt)
-  subgoal by (simp add: sublist_single)
-  apply (auto simp add: sublist_snoc sublist_el sorted_wrt_append)
-  oops
 
-lemma sorted_map_snoc:
-  \<open>lo \<le> hi \<Longrightarrow> hi < length xs \<Longrightarrow> sorted_sublist_map R h xs lo (hi-1) \<Longrightarrow> (\<forall>j. lo\<le>j\<and>j<hi \<longrightarrow> R (h (xs!j)) (h (xs!hi))) \<Longrightarrow> sorted_sublist_map R h xs lo hi\<close>
-  by (simp add: sorted_wrt_snoc)
+lemma sorted_sublist_wrt_snoc:
+  assumes trans: \<open>(\<And> x y z. \<lbrakk>R x y; R y z\<rbrakk> \<Longrightarrow> R x z)\<close> and
+    \<open>sorted_sublist_wrt R xs lo (hi-1)\<close> and
+    \<open>lo \<le> hi\<close> and \<open>hi < length xs\<close> and \<open>(R (xs!(hi-1)) (xs!hi))\<close>
+  shows \<open>sorted_sublist_wrt R xs lo hi\<close>
+proof -
+  show ?thesis
+    apply (rule sorted_sublist_wrt_snoc') using assms apply auto
+    subgoal premises assms' for j
+    proof -
+      have A: \<open>j=hi-1 \<or> j<hi-1\<close> using assms'(6) by linarith
+      show ?thesis
+        using A proof
+        assume A: \<open>j=hi-1\<close> show ?thesis
+          by (simp add: A assms')
+      next
+        assume A: \<open>j<hi-1\<close> show ?thesis
+          apply (rule trans)
+           apply (rule sorted_sublist_wrt_nth_le[OF assms(2), where i=j, where j=\<open>hi-1\<close>])
+               prefer 6
+               apply (rule assms(5))
+              apply auto
+          subgoal using A assms'(5) by linarith
+          subgoal using assms'(3) less_imp_diff_less by blast
+          subgoal using assms'(5) by auto
+          subgoal using A by linarith
+          done
+      qed
+    qed
+    done
+qed
 
-lemma sorted_map_snoc':
+lemma sorted_sublist_map_snoc:
   \<open>(\<And> x y z. \<lbrakk>R (h x) (h y); R (h y) (h z)\<rbrakk> \<Longrightarrow> R (h x) (h z)) \<Longrightarrow>
-    lo \<le> hi \<Longrightarrow> hi < length xs \<Longrightarrow> sorted_sublist_map R h xs lo (hi-1) \<Longrightarrow> (R (h (xs!(hi-1))) (h (xs!hi))) \<Longrightarrow> sorted_sublist_map R h xs lo hi\<close>
-  oops
+    sorted_sublist_map R h xs lo (hi-1) \<Longrightarrow>
+    lo \<le> hi \<Longrightarrow> hi < length xs \<Longrightarrow> (R (h (xs!(hi-1))) (h (xs!hi))) \<Longrightarrow> sorted_sublist_map R h xs lo hi\<close>
+  by (blast intro: sorted_sublist_wrt_snoc)
 
 
 
@@ -328,7 +421,7 @@ lemma merge_sorted_wrt_partitions_between:
   by (simp add: merge_sorted_wrt_partitions_between' isPartition_wrt_trans)
 
 
-(*
+
 lemma merge_sorted_map_partitions_between:
   \<open>(\<And> x y z. \<lbrakk>R (h x) (h y); R (h y) (h z)\<rbrakk> \<Longrightarrow> R (h x) (h z)) \<Longrightarrow>
     lo \<le> hi \<Longrightarrow> hi < length xs \<Longrightarrow> lo < p \<Longrightarrow> p < hi \<Longrightarrow> hi < length xs \<Longrightarrow>
@@ -336,7 +429,6 @@ lemma merge_sorted_map_partitions_between:
     sorted_sublist_map R h xs lo (p-1) \<Longrightarrow> sorted_sublist_map R h xs (p+1) hi \<Longrightarrow>
     sorted_sublist_map R h xs lo hi\<close>
   by (simp add: merge_sorted_wrt_partitions_between' isPartition_map_trans)
-*)
 
   
 
@@ -358,9 +450,9 @@ lemma merge_sorted_wrt_partitions:
         apply (rule sorted_sublist_wrt_refl)
         using assms by auto
       subgoal \<comment> \<open>lo=p<hi\<close>
-        using assms by (simp add: isPartition_def isPartition_wrt_def sorted_wrt_cons)
+        using assms by (simp add: isPartition_def isPartition_wrt_def sorted_sublist_wrt_cons')
       subgoal \<comment> \<open>lo<p=hi\<close>
-        using assms by (simp add: isPartition_def isPartition_wrt_def sorted_wrt_snoc)
+        using assms by (simp add: isPartition_def isPartition_wrt_def sorted_sublist_wrt_snoc')
       subgoal \<comment> \<open>lo<p<hi\<close>
         using assms
         apply (rewrite merge_sorted_wrt_partitions_between'[where p=p])
@@ -375,6 +467,7 @@ theorem merge_sorted_map_partitions:
     isPartition_map R h xs lo hi p \<Longrightarrow>
     sorted_sublist_map R h xs lo (p-1) \<Longrightarrow> sorted_sublist_map R h xs (p+1) hi \<Longrightarrow>
     sorted_sublist_map R h xs lo hi\<close>
+  apply (rule merge_sorted_wrt_partitions) apply auto
   by (simp add: merge_sorted_wrt_partitions isPartition_map_trans)
 
 
@@ -489,33 +582,55 @@ lemma sublist_ext:
 
 lemma sorted_wrt_lower_sublist_still_sorted:
   assumes \<open>sorted_sublist_wrt R xs lo (lo'-1)\<close> and
-          \<open>lo \<le> lo'\<close> and \<open>lo' < length xs\<close> and
-          \<open>(\<forall> i. lo\<le>i\<and>i<lo' \<longrightarrow> xs'!i=xs!i)\<close> and \<open>length xs' = length xs\<close>
+    \<open>lo \<le> lo'\<close> and \<open>lo' < length xs\<close> and
+    \<open>(\<forall> i. lo\<le>i\<and>i<lo' \<longrightarrow> xs'!i=xs!i)\<close> and \<open>length xs' = length xs\<close>
   shows \<open>sorted_sublist_wrt R xs' lo (lo'-1)\<close>
 proof -
   have l: \<open>lo < lo' - 1 \<or> lo \<ge> lo'-1\<close>
     by linarith
-  show ?thesis  
+  show ?thesis
     using l apply auto
     subgoal \<comment> \<open>lo < lo' - 1\<close>
       apply (auto simp add: sorted_sublist_wrt_def)
-      apply (rewrite sublist_ext)
-      using assms sorry
+      apply (rewrite sublist_ext[where xs=xs])
+      using assms by (auto simp add: sorted_sublist_wrt_def)
     subgoal \<comment> \<open>lo >= lo' - 1\<close>
       using assms by (auto simp add: sorted_sublist_wrt_le)
     done
 qed
 
 lemma sorted_map_lower_sublist_still_sorted:
-  assumes \<open>lo \<le> lo'\<close> and \<open>lo' < length xs\<close> and \<open>sorted_sublist_map R h xs lo (lo'-1)\<close> and
-  \<open>(\<forall> i. lo\<le>i\<and>i<lo' \<longrightarrow> xs'!i=xs!i)\<close> and \<open>length xs' = length xs\<close>
+  assumes \<open>sorted_sublist_map R h xs lo (lo'-1)\<close> and
+    \<open>lo \<le> lo'\<close> and \<open>lo' < length xs\<close> and
+    \<open>(\<forall> i. lo\<le>i\<and>i<lo' \<longrightarrow> xs'!i=xs!i)\<close> and \<open>length xs' = length xs\<close>
   shows \<open>sorted_sublist_map R h xs' lo (lo'-1)\<close>
+  using assms by (rule sorted_wrt_lower_sublist_still_sorted)
+
+lemma sorted_wrt_upper_sublist_still_sorted:
+  assumes \<open>sorted_sublist_wrt R xs (hi'+1) hi\<close> and
+    \<open>lo \<le> lo'\<close> and \<open>hi < length xs\<close> and
+    \<open>\<forall> j. hi'<j\<and>j\<le>hi \<longrightarrow> xs'!j=xs!j\<close> and \<open>length xs' = length xs\<close>
+  shows \<open>sorted_sublist_wrt R xs' (hi'+1) hi\<close>
 proof -
+  have l: \<open>hi' + 1 < hi \<or> hi' + 1 \<ge> hi\<close>
+    by linarith
   show ?thesis
-    apply (rule sorted_wrt_lower_sublist_still_sorted)
-    using assms by auto
+    using l apply auto
+    subgoal \<comment> \<open>hi' + 1 < h\<close>
+      apply (auto simp add: sorted_sublist_wrt_def)
+      apply (rewrite sublist_ext[where xs=xs])
+      using assms by (auto simp add: sorted_sublist_wrt_def)
+    subgoal \<comment> \<open>hi' + 1 \<ge> hi\<close>
+      using assms by (auto simp add: sorted_sublist_wrt_le)
+    done
 qed
 
+lemma sorted_map_upper_sublist_still_sorted:
+  assumes \<open>sorted_sublist_map R h xs (hi'+1) hi\<close> and
+    \<open>lo \<le> lo'\<close> and \<open>hi < length xs\<close> and
+    \<open>\<forall> j. hi'<j\<and>j\<le>hi \<longrightarrow> xs'!j=xs!j\<close> and \<open>length xs' = length xs\<close>
+  shows \<open>sorted_sublist_map R h xs' (hi'+1) hi\<close>
+  using assms by (rule sorted_wrt_upper_sublist_still_sorted)
 
 
 
@@ -547,6 +662,7 @@ proof -
   have H: \<open>length xs'' = length xs'\<close> using mset_eq_length part1 by auto
   have I: \<open>lo' < length xs''\<close> by (simp add: G H)
   have J: \<open>hi' < length xs''\<close> using pre3 E H by linarith
+  have K: \<open>hi < length xs'\<close> using E H by auto
 
   have \<open>xs''!p \<in> set (sublist xs'' lo' hi')\<close>
     by (metis E less_le_trans nat_le_eq_or_lt part3 part4 pre3 sublist_el')
@@ -556,20 +672,15 @@ proof -
     text \<open>This holds because the partition function permutes the sublist xs'[lo'..hi'].\<close>
     by (metis E le_less_trans part1 pre2 pre3 size_mset sublist_el')
   then obtain p' where L: \<open>lo'\<le>p'\<close> \<open>p'\<le>hi'\<close> \<open>xs''!p = xs'!p'\<close> by blast
+
   then have L': \<open>lo \<le> p'\<close> \<open>p' \<le> hi\<close>
     using le_trans pre1 apply blast
     using L(2) le_trans pre3 by blast
 
   from part6 have part6': \<open>(\<forall> i. hi'<i\<and>i\<le>hi \<longrightarrow> xs''!i=xs'!i)\<close> using E le_less_trans by blast
-
-  have Bp1: \<open>p = lo' \<or> p = Suc lo'\<close>
-    using if1 part3 by linarith
-  have Bp2: \<open>p = hi' \<or> p = hi' - 1\<close>
-    using if2 part4 by linarith
     
 
   show ?thesis
-    thm merge_sorted_map_partitions
     apply (rule merge_sorted_map_partitions [where p=p])
     subgoal by (rule trans)
     subgoal by (rule A)
@@ -605,32 +716,92 @@ proof -
         apply (rule sorted_wrt_lower_sublist_still_sorted [OF pre5 pre1])
           apply auto
         subgoal by (rule G)
-        subgoal
-          apply (rewrite nth_map) using G mset_eq_length part1 apply fastforce
-          apply (rewrite nth_map) using G mset_eq_length part1 apply fastforce
-          by (simp add: part5)
+        subgoal using part5 by blast
         subgoal by (rule H)
         done
+
+      text \<open>We obtain the position where element \<^term>\<open>xs''!lo'\<close> was stored in \<^term>\<open>xs'\<close>.\<close>
+      have \<open>xs''!lo' \<in> set (sublist xs'' lo' hi')\<close>
+        by (meson J order_mono_setup.refl pre2 sublist_el')
+      then have \<open>xs''!lo' \<in> set (sublist xs' lo' hi')\<close>
+        by (metis part1' set_mset_mset)
+      then have \<open>\<exists> lo''. lo' \<le> lo'' \<and> lo'' \<le> hi' \<and> xs''!lo' = xs'!lo''\<close>
+        using H J pre2 sublist_el' by fastforce
+      then obtain lo'' where M: \<open>lo' \<le> lo''\<close> \<open>lo'' \<le> hi'\<close> \<open>xs''!lo' = xs'!lo''\<close> by blast
+
+      have Bp1: \<open>p = lo' \<or> (p = Suc lo' \<and> lo=lo') \<or> (p = Suc lo' \<and> lo < lo')\<close>
+        using if1 part3 pre1 by linarith
       show ?thesis
-      using Bp1 proof
+      using Bp1 proof (elim disjE)
         assume A:\<open>p = lo'\<close> show ?thesis
           using S by (simp add: A)
       next
-        assume B:\<open>p = Suc lo'\<close> show ?thesis
-          apply (simp add: B)
-          apply (rule sorted_map_snoc)
+        assume A:\<open>p = Suc lo' \<and> lo=lo'\<close> show ?thesis
+          by (simp add: A sorted_sublist_map_refl I)
+      next
+        assume A:\<open>p = Suc lo' \<and> lo < lo'\<close> show ?thesis
+          apply (simp add: A)
+          apply (rule sorted_sublist_map_snoc)
+          subgoal by (rule trans)
+          subgoal by (rule S)
           subgoal by (rule pre1)
           subgoal by (rule I)
-          subgoal by (rule S)
           subgoal
-            using part2 apply (auto simp add: B)
-            sorry (* TODO *)
+            using pre6 apply (auto simp add:)
+            using A M(1) M(2) M(3) part5 pre3 by auto
           done
       qed
     qed
 
-    subgoal \<comment> \<open>dual to the above case\<close>
-      sorry (* TOD *)
+    text \<open>The dual case for the right sublist from \<^term>\<open>p+1\<close> to \<^term>\<open>hi\<close>.\<close>
+    subgoal
+    proof -
+      have S: \<open>sorted_sublist_map R h xs'' (hi'+1) hi\<close>
+        apply (rule sorted_wrt_upper_sublist_still_sorted [OF pre5' pre1])
+          apply auto
+        subgoal by (rule K)
+        subgoal using part6' by blast
+        subgoal by (rule H)
+        done
+
+      text \<open>We obtain the position where element \<^term>\<open>xs''!hi'\<close> was stored in \<^term>\<open>xs'\<close>.\<close>
+      have \<open>xs''!hi' \<in> set (sublist xs'' lo' hi')\<close>
+        by (meson J order_mono_setup.refl pre2 sublist_el')
+      then have \<open>xs''!hi' \<in> set (sublist xs' lo' hi')\<close>
+        by (metis part1' set_mset_mset)
+      then have \<open>\<exists> hi''. lo' \<le> hi'' \<and> hi'' \<le> hi' \<and> xs''!hi' = xs'!hi''\<close>
+        using H J pre2 sublist_el' by fastforce
+      then obtain hi'' where M: \<open>lo' \<le> hi''\<close> \<open>hi'' \<le> hi'\<close> \<open>xs''!hi' = xs'!hi''\<close> by blast
+
+      have Bp2: \<open>p = hi' \<or> (p = hi'-1 \<and> hi=hi') \<or> (p = hi'-1 \<and> hi'=0) \<or> (p = hi'-1 \<and> hi > hi' \<and> hi'>0)\<close>
+        using if2 part4 pre3 by linarith
+
+      show ?thesis
+      using Bp2 proof (elim disjE)
+        assume A:\<open>p = hi'\<close> show ?thesis
+          using S by (simp add: A)
+      next
+        assume A:\<open>p = hi'-1 \<and> hi=hi'\<close> show ?thesis
+          using A J if2 sorted_sublist_wrt_le by blast
+      next
+        assume A:\<open>p = hi'-1 \<and> hi'=0\<close> show ?thesis
+          using A S by auto
+      next
+        assume A:\<open>p = hi'-1 \<and> hi > hi' \<and> hi' > 0\<close> show ?thesis
+          apply (simp add: A)
+          apply (rule sorted_sublist_map_cons)
+          subgoal by (rule trans)
+          subgoal by (rule S)
+          subgoal by (rule pre3)
+          subgoal by (rule E)
+          subgoal
+            using pre7 apply (auto simp add:)
+            using A \<open>\<exists>hi''\<ge>lo'. hi'' \<le> hi' \<and> xs'' ! hi' = xs' ! hi''\<close> part6' by auto
+          done
+      qed
+    qed
+
+    text \<open>All done! :-)\<close>
     done
 qed
 
@@ -676,7 +847,7 @@ proof -
         thm quicksort_correct_case1
         using assms IH(2) apply (auto dest: mset_eq_length)
         apply (rule quicksort_correct_case1 [where lo'=\<open>fst(x)\<close>, where hi'=\<open>fst(snd x)\<close>, where xs'=\<open>snd(snd x)\<close>])
-        apply auto apply (auto dest: mset_eq_length) (* This could be faster... *)
+        apply auto apply (auto dest: mset_eq_length) (* This could be \<^bold>\<open>*MUCH*\<close> faster... *)
         done
 
       text \<open>Case \<^term>\<open>p-1 \<le> lo'\<close> and \<^term>\<open>hi' < p+1\<close> (Only second recursive call)\<close>
@@ -698,7 +869,8 @@ proof -
         subgoal
           apply simp
           apply auto
-          subgoal apply (rewrite sorted_map_lower_sublist_still_sorted) thm sorted_map_lower_sublist_still_sorted
+          subgoal (* apply (rule sorted_map_lower_sublist_still_sorted) *) thm sorted_map_lower_sublist_still_sorted sorry
+          subgoal (* apply (rule sorted_map_lower_sublist_still_sorted) *) thm sorted_map_lower_sublist_still_sorted sorry
           sorry (* TODO *)
         text \<open>Wellfoundness (easy)\<close>
         subgoal by auto
