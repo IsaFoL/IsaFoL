@@ -32,7 +32,7 @@ lemma \<open>isPartition [0,5,3,4,6,9,8,10::nat] 0 7 4\<close>
 
 
 definition sublist :: \<open>'a list \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a list\<close> where
-\<open>sublist xs i j \<equiv> take (1+j-i) (drop i xs)\<close>
+\<open>sublist xs i j \<equiv> take (Suc j - i) (drop i xs)\<close>
 
 value \<open>sublist [0,1,2,3::nat] 1 3\<close>
 value \<open>sublist [0::nat] 0 0\<close>
@@ -54,6 +54,13 @@ lemma sublist_not_empty: \<open>\<lbrakk>i \<le> j; j < length xs; xs \<noteq> [
   apply (rewrite List.length_greater_0_conv[symmetric])
   apply (rewrite sublist_length)
   by auto
+
+
+lemma sublist_swap: \<open>lo \<le> hi \<Longrightarrow> hi < length xs \<Longrightarrow> i+lo \<le> hi \<Longrightarrow> j+lo \<le> hi \<Longrightarrow> sublist (swap xs i j) lo hi = swap (sublist xs lo hi)  (lo+i) (lo+j)\<close>
+  apply (simp add: sublist_def swap_def)
+  nitpick sledgehammer
+  oops
+
 
 lemma sublist_app: \<open>\<lbrakk>i1 \<le> i2; i2 \<le> i3\<rbrakk> \<Longrightarrow> sublist xs i1 i2 @ sublist xs (Suc i2) i3 = sublist xs i1 i3\<close>
   unfolding sublist_def
@@ -83,110 +90,6 @@ lemma sorted_sublist_map_refl: \<open>i < length xs \<Longrightarrow> sorted_sub
   by (auto simp add: sorted_sublist_wrt_refl)
 
 
-definition partition_main_inv :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> 'b) \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a list \<Rightarrow> (nat\<times>nat\<times>'a list) \<Rightarrow> bool\<close> where
-  \<open>partition_main_inv R h lo hi xs0 p \<equiv>
-    case p of (i,j,xs) \<Rightarrow>
-    j < length xs \<and> j \<le> hi \<and> i < length xs \<and> lo \<le> i \<and> i \<le> j \<and> mset xs = mset xs0 \<and>
-    (\<forall>k. k \<ge> lo \<and> k < i \<longrightarrow> R (h (xs!k)) (h (xs!hi))) \<and> \<comment> \<open>All elements from \<open>lo\<close> to \<open>i-1\<close> are smaller than the pivot\<close>
-    (\<forall>k. k \<ge> i \<and> k < j \<longrightarrow>  R (h (xs!hi)) (h (xs!k))) \<and> \<comment> \<open>All elements from \<open>i\<close> to \<open>j-1\<close> are greater than the pivot\<close>
-    (\<forall>k. k \<ge> j \<and> k \<le> hi \<longrightarrow> xs!k = xs0!k) \<comment> \<open>All elements from \<open>j\<close> to \<open>hi\<close> are unchanged\<close>
-  \<close>
-
-text \<open>The main part of the partition function. The pivot is assumed to be the last element. This is
-exactly the "Lomuto partition scheme" partition function from Wikipedia.\<close>
-definition partition_main :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> 'b) \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a list \<Rightarrow> ('a list \<times> nat) nres\<close> where
-  \<open>partition_main R h lo hi xs0 = do {
-    ASSERT(hi < length xs0);
-    pivot \<leftarrow> RETURN (h (xs0 ! hi));
-    (i,j,xs) \<leftarrow> WHILE\<^sub>T\<^bsup>partition_main_inv R h lo hi xs0\<^esup> \<comment> \<open>We loop from \<^term>\<open>j=lo\<close> to \<^term>\<open>j=hi-1\<close>.\<close>
-      (\<lambda>(i,j,xs). j < hi)
-      (\<lambda>(i,j,xs). do {
-        ASSERT(i < length xs \<and> j < length xs);
-      	if R (h (xs!j)) pivot
-      	then RETURN (i+1, j+1, swap xs i j)
-      	else RETURN (i,   j+1, xs)
-      })
-      (lo, lo, xs0); \<comment> \<open>i and j are both initialized to lo\<close>
-    ASSERT(i < length xs \<and> j = hi \<and> lo \<le> i \<and> hi < length xs \<and> mset xs = mset xs0);
-    RETURN (swap xs i hi, i)
-  }\<close>
-
-lemma partition_main_correct:
-  assumes \<open>lo < length xs\<close> and \<open>hi < length xs\<close> and \<open>hi > lo\<close> and
-    \<open>\<And> x y z. \<lbrakk>R (h x) (h y); R (h y) (h z)\<rbrakk> \<Longrightarrow> R (h x) (h z)\<close> and \<open>\<And>x y. R (h x) (h y) \<or> R (h y) (h x)\<close>
-  shows \<open>partition_main R h lo hi xs \<le> SPEC(\<lambda>(xs', p). mset xs = mset xs' \<and>
-     lo \<le> p \<and> p \<le> hi \<and> isPartition_map R h xs' lo hi p)\<close>
-proof -
-  have K: \<open>b \<le> hi - Suc n \<Longrightarrow> n > 0 \<Longrightarrow> Suc n \<le> hi \<Longrightarrow> Suc b \<le> hi - n\<close> for b hi n
-    by auto
-  have L: \<open>~ R (h x) (h y) \<Longrightarrow> R (h y) (h x)\<close> for x y \<comment> \<open>Corollary of linearity\<close>
-    using assms by blast
-  have M: \<open>a < Suc b \<equiv> a = b \<or> a < b\<close> for a b
-    by linarith
-  have N: \<open>(a::nat) \<le> b \<equiv> a = b \<or> a < b\<close> for a b
-    by arith
-
-  show ?thesis
-    unfolding partition_main_def choose_pivot_def
-    apply (refine_vcg WHILEIT_rule[where R = \<open>measure(\<lambda>(i,j,xs). hi-j)\<close>])
-    subgoal using assms by blast \<comment> \<open>We feed our assumption to the assertion\<close>
-    subgoal by auto \<comment> \<open>WF\<close>
-    subgoal \<comment> \<open>Invariant holds before the first iteration\<close>
-      unfolding partition_main_inv_def
-      using assms apply simp by linarith
-    subgoal unfolding partition_main_inv_def by simp
-    subgoal unfolding partition_main_inv_def by simp
-    subgoal
-      unfolding partition_main_inv_def
-      apply (auto dest: mset_eq_length)
-      done
-    subgoal unfolding partition_main_inv_def by (auto dest: mset_eq_length)
-    subgoal
-      unfolding partition_main_inv_def apply (auto dest: mset_eq_length)
-      apply (auto simp add: M) using assms(5) by blast
-
-    subgoal unfolding partition_main_inv_def by simp \<comment> \<open>assertions, etc\<close>
-    subgoal unfolding partition_main_inv_def by simp
-    subgoal unfolding partition_main_inv_def by (auto dest: mset_eq_length)
-    subgoal unfolding partition_main_inv_def by simp
-    subgoal unfolding partition_main_inv_def by (auto dest: mset_eq_length)
-    subgoal unfolding partition_main_inv_def by (auto dest: mset_eq_length)
-    subgoal unfolding partition_main_inv_def by (auto dest: mset_eq_length)
-    subgoal unfolding partition_main_inv_def by simp
-    subgoal unfolding partition_main_inv_def by simp
-
-    subgoal \<comment> \<open>After the last iteration, we have a partitioning! :-)\<close>
-      unfolding partition_main_inv_def by (auto simp add: isPartition_wrt_def)
-    done
-qed
-
-
-definition partition_between :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> 'b) \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a list \<Rightarrow> ('a list \<times> nat) nres\<close> where
-  \<open>partition_between R h lo hi xs0 = do {
-    ASSERT(lo < length xs0 \<and> hi < length xs0 \<and> hi > lo);
-    k \<leftarrow> choose_pivot R h xs0 lo hi; \<comment> \<open>choice of pivot\<close>
-    ASSERT(k < length xs0);
-    xs \<leftarrow> RETURN (swap xs0 k hi); \<comment> \<open>move the pivot to the last position, before we start the actual loop\<close>
-    ASSERT(length xs = length xs0);
-    partition_main R h lo hi xs
-  }\<close>
-
-
-lemma partition_between_correct:
-  assumes \<open>lo < length xs\<close> and \<open>hi < length xs\<close> and \<open>hi > lo\<close> and
-  \<open>\<And> x y z. \<lbrakk>R (h x) (h y); R (h y) (h z)\<rbrakk> \<Longrightarrow> R (h x) (h z)\<close> and \<open>\<And>x y. R (h x) (h y) \<or> R (h y) (h x)\<close>
-  shows \<open>partition_between R h lo hi xs \<le> SPEC(\<lambda>(xs', p). mset xs = mset xs' \<and>
-     lo \<le> p \<and> p \<le> hi \<and> isPartition_map R h xs' lo hi p)\<close> \<comment> \<open>TODO: Maxi: Show that \<open>p\<close> is a valid partiton.\<close>
-proof -
-  have K: \<open>b \<le> hi - Suc n \<Longrightarrow> n > 0 \<Longrightarrow> Suc n \<le> hi \<Longrightarrow> Suc b \<le> hi - n\<close> for b hi n
-    by auto
-  show ?thesis
-    unfolding partition_between_def choose_pivot_def
-    apply (refine_vcg partition_main_correct)
-    using assms by (auto dest: mset_eq_length)
-qed
-
-
 
 
 lemma sublist_map: \<open>sublist (map f xs) i j = map f (sublist xs i j)\<close>
@@ -197,7 +100,10 @@ lemma sublist_map: \<open>sublist (map f xs) i j = map f (sublist xs i j)\<close
 lemma take_set: \<open>j \<le> length xs \<Longrightarrow> x \<in> set (take j xs) \<equiv> (\<exists> k. k < j \<and> xs!k = x)\<close>
   apply (induction xs)
    apply simp
-    by (meson in_set_conv_iff less_le_trans)
+  by (meson in_set_conv_iff less_le_trans)
+
+lemma drop_set: \<open>j \<le> length xs \<Longrightarrow> x \<in> set (drop j xs) \<equiv> (\<exists>k. j\<le>k\<and>k<length xs \<and> xs!k=x)\<close>
+  by (smt Misc.in_set_drop_conv_nth) (* lemma found by sledgehammer *)
 
 lemma sublist_el: \<open>i \<le> j \<Longrightarrow> j < length xs \<Longrightarrow> x \<in> set (sublist xs i j) \<equiv> (\<exists> k. k < Suc j-i \<and> xs!(i+k)=x)\<close>
   apply (simp add: sublist_def)
@@ -471,26 +377,6 @@ theorem merge_sorted_map_partitions:
   by (simp add: merge_sorted_wrt_partitions isPartition_map_trans)
 
 
-text \<open>Our abstract recursive quicksort procedure. We abstract over a partition procedure, but give
-the specification of such a partition function.\<close>
-definition quicksort :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> 'b) \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a list \<Rightarrow> 'a list nres\<close> where
-\<open>quicksort R h lo hi xs0 = do {
-  RECT (\<lambda>f (lo,hi,xs). do {
-      (xs, p) \<leftarrow>
-        SPEC(\<lambda>(xs',p).
-                mset xs' = mset xs \<and> \<comment> \<open>The list is a permutation\<close>
-                mset (sublist xs' lo hi) = mset (sublist xs lo hi) \<and> \<comment> \<open>The sublist is a permutation\<close>
-                isPartition_map R h xs' lo hi p \<and>
-                lo \<le> p \<and> p \<le> hi \<and>
-                (\<forall> i. i<lo \<longrightarrow> xs'!i=xs!i) \<and> (\<forall> i. hi<i\<and>i<length xs' \<longrightarrow> xs'!i=xs!i));
-      \<comment> \<open>Abstract partition function\<close>
-      xs \<leftarrow> (if p-1\<le>lo then RETURN xs else f (lo, p-1, xs));
-      if hi\<le>p+1 then RETURN xs else f (p+1, hi, xs)
-    })
-    (lo, hi, xs0)
-  }\<close>
-
-
 lemma partition_wrt_extend:
   \<open>isPartition_wrt R xs lo' hi' p \<Longrightarrow>
   hi < length xs \<Longrightarrow>
@@ -634,23 +520,160 @@ lemma sorted_map_upper_sublist_still_sorted:
 
 
 
+text \<open>The specification of the partition function\<close>
+definition partition_spec :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> 'b) \<Rightarrow> 'a list \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a list \<Rightarrow> nat \<Rightarrow> bool\<close> where
+  \<open>partition_spec R h xs lo hi xs' p \<equiv>
+    mset xs' = mset xs \<and> \<comment> \<open>The list is a permutation\<close>
+    mset (sublist xs' lo hi) = mset (sublist xs lo hi) \<and> \<comment> \<open>The sublist is a permutation\<close>
+    isPartition_map R h xs' lo hi p \<and> \<comment> \<open>We have a valid partition on the resulting list\<close>
+    lo \<le> p \<and> p \<le> hi \<and> \<comment> \<open>The partition index is in bounds\<close>
+    (\<forall> i. i<lo \<longrightarrow> xs'!i=xs!i) \<and> (\<forall> i. hi<i\<and>i<length xs' \<longrightarrow> xs'!i=xs!i)\<close> \<comment> \<open>Everything else is unchanged.\<close>
+
+
+text \<open>Maybe this part is redundant\<close>
+lemma
+    \<open>mset xs' = mset xs \<and>
+    (\<forall> i. i<lo \<longrightarrow> xs'!i=xs!i) \<and> (\<forall> i. hi<i\<and>i<length xs' \<longrightarrow> xs'!i=xs!i) \<Longrightarrow>
+    mset (sublist xs' lo hi) = mset (sublist xs lo hi)\<close>
+  apply (auto simp add: sublist_def)
+  oops
+
+
+value \<open>take 1 [a,b,c]\<close>
+
+lemma take_eq_set':
+  assumes \<open>k < length xs\<close> and
+    \<open>set xs' = set xs\<close> and
+    \<open>\<forall> j. j < k \<longrightarrow> xs'!j = xs!j\<close>
+    \<open>x \<in> set (take k xs')\<close>
+  shows \<open>x \<in> set (take k xs)\<close>
+  by (metis WB_Sort.take_set assms(1) assms(3) assms(4) in_set_conv_iff less_imp_le_nat)
+
+lemma take_eq_set: 
+  assumes
+    \<open>set xs' = set xs\<close> and \<open>length xs' = length xs\<close> and
+    \<open>\<forall> j. j < k \<longrightarrow> xs'!j = xs!j\<close> and
+    \<open>x \<in> set (take k xs')\<close>
+  shows \<open>x \<in> set (take k xs)\<close>
+proof -
+  consider
+    (a) \<open>k < length xs\<close> |
+    (b) \<open>length xs \<le> k\<close> by linarith
+  then show ?thesis
+  proof cases
+    case a
+    then show ?thesis
+      using assms(1,3,4) by (rule take_eq_set')
+  next
+    case b
+    then show ?thesis
+      using assms by simp
+  qed
+qed
+
+value \<open>drop 4 [a,b,c,d,e,f]\<close>
+
+(* Actually, I only need that \<open>set (sublist xs' lo hi) = set (sublist xs lo hi)\<close> *)
+lemma
+  assumes \<open>lo \<le> hi\<close> and \<open>hi < length xs\<close> and
+    \<open>mset xs' = mset xs\<close> and
+    E1: \<open>\<forall> i. i<lo \<longrightarrow> xs'!i=xs!i\<close> and E2: \<open>\<forall> i. hi<i\<and>i<length xs' \<longrightarrow> xs'!i=xs!i\<close> and
+    A: \<open>x \<in> set (sublist xs' lo hi)\<close>
+  shows \<open>x \<in> set (sublist xs lo hi)\<close>
+proof -
+  have L0: \<open>set xs' = set xs\<close> by (metis assms(3) set_mset_mset)
+  have L1: \<open>length xs' = length xs\<close> by (metis assms(3) size_mset)
+  have L2: \<open>lo < length xs\<close> using assms(1,2) by linarith
+  have L3: \<open>lo < length xs'\<close> using L1 L2 by simp
+
+(*
+  have \<open>\<exists>k. lo\<le>k\<and>k\<le>hi \<and> xs'!k=x\<close>
+    by (metis assms(1) assms(2) assms(3) assms(6) mset_eq_length sublist_el')
+  then obtain k where X: \<open>lo\<le>k\<close> \<open>k\<le>hi\<close> \<open>xs'!k=x\<close> by blast
+  have \<open>\<exists>k'. xs!k'=x\<close>
+    by (metis X(2) X(3) assms(2) assms(3) in_set_conv_nth less_le_trans mset_eq_setD nat_less_le size_mset)
+  then obtain k' where Y: \<open>xs!k'=x\<close> by blast
+*)
+
+  have Z: \<open>set (drop lo xs') = set (drop lo xs)\<close>
+    nitpick
+    sorry
+  
+  then show ?thesis
+    apply (simp add: sublist_def)
+    using Z apply (rule take_eq_set[where xs'=\<open>drop lo xs'\<close>]) apply auto
+    subgoal using L1 by auto
+    subgoal nitpick done
+    subgoal using A by (auto simp add: sublist_def[symmetric])
+    done
+oops
+    
+
+
+
+(*
+  have \<open>\<exists>k''. lo\<le>k''\<and>k''\<le>hi \<and> xs!k''=x\<close>
+  proof
+    assume \<open>\<not> (\<exists>k''. lo\<le>k''\<and>k''\<le>hi \<and> xs!k''=x)\<close>
+    then have \<open>\<forall>k''. lo\<le>k''\<and>k''\<le>hi \<longrightarrow> xs!k''\<noteq>x\<close> by blast
+    then have \<open>\<forall>k''. xs!k''=x \<longrightarrow> \<not>(lo\<le>k''\<and>k''\<le>hi)\<close> by blast
+    then have \<open>\<not> (lo\<le>k'\<and>k'\<le>hi)\<close> using Y by blast
+    
+
+
+  then show ?thesis
+    sorry
+qed
+*)
+
+
+text \<open>Our abstract recursive quicksort procedure. We abstract over a partition procedure.\<close>
+definition quicksort :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> 'b) \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a list \<Rightarrow> 'a list nres\<close> where
+\<open>quicksort R h lo hi xs0 = do {
+  RECT (\<lambda>f (lo,hi,xs). do {
+      (xs, p) \<leftarrow> SPEC(uncurry (partition_spec R h xs lo hi)); \<comment> \<open>Abstract partition function\<close>
+      xs \<leftarrow> (if p-1\<le>lo then RETURN xs else f (lo, p-1, xs));
+      if hi\<le>p+1 then RETURN xs else f (p+1, hi, xs)
+    })
+    (lo, hi, xs0)
+  }\<close>
+
+
+text \<open>The invariant/precondition of the recursive calls of quicksort.\<close>
+
+definition quicksort_inv :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> 'b) \<Rightarrow> 'a list \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a list \<Rightarrow> bool\<close> where
+  \<open>quicksort_inv R h xs lo hi lo' hi' xs' \<equiv>
+    lo \<le> lo' \<and> lo' \<le> hi' \<and> hi' \<le> hi \<and>
+    mset xs = mset xs' \<and>
+    sorted_sublist_map R h xs' lo (lo'-1) \<and> sorted_sublist_map R h xs' (hi'+1) hi \<and>
+    (\<forall> i j. lo \<le> i \<and> i < lo' \<and> lo' \<le> j \<and> j \<le> hi \<longrightarrow> R (h (xs'!i)) (h (xs'!j))) \<and> \<comment> \<open>All elements below lo' are smaller than the rest to the right\<close>
+    (\<forall> i j. i > hi' \<and> i \<le> hi \<and> j  \<ge> lo' \<and> j \<le> hi \<longrightarrow> R (h (xs'!j)) (h (xs'!i)))\<close> \<comment> \<open>All elements over hi' are bigger than the rest to the right\<close>
+
+
 text \<open>The first case for the correctness proof of quicksort: \<^term>\<open>p-1 \<le> lo'\<close> and \<^term>\<open>hi'\<le>p+1\<close>.\<close>
 lemma quicksort_correct_case1:
   assumes
     trans: \<open>\<And>x y z. R (h x) (h y) \<Longrightarrow> R (h y) (h z) \<Longrightarrow> R (h x) (h z)\<close> and
-    pre0: \<open>hi < length xs\<close> and pre1: \<open>lo \<le> lo'\<close> and pre2: \<open>lo' \<le> hi'\<close> and pre3: \<open>hi' \<le> hi\<close> and \<comment> \<open>From the premise...\<close>
+    pre0: \<open>hi < length xs\<close> and
+    pre: \<open>quicksort_inv R h xs lo hi lo' hi' xs'\<close> and
+    if1: \<open>p-1 \<le> lo'\<close> and if2: \<open>hi'\<le>p+1\<close> and \<comment> \<open>From the "if"s\<close>
+    part: \<open>partition_spec R h xs' lo' hi' xs'' p\<close>
+  shows \<open>sorted_sublist_map R h xs'' lo hi\<close>
+proof -
+  text \<open>First, we need to "unfold" the assumptions\<close>
+  have pre1: \<open>lo \<le> lo'\<close> and pre2: \<open>lo' \<le> hi'\<close> and pre3: \<open>hi' \<le> hi\<close> and
     pre4: \<open>mset xs = mset xs'\<close> and
     pre5: \<open>sorted_sublist_map R h xs' lo (lo'-1)\<close> and pre5': \<open>sorted_sublist_map R h xs' (hi'+1) hi\<close> and
     pre6: \<open>(\<forall> i j. lo \<le> i \<and> i < lo' \<and> lo' \<le> j \<and> j \<le> hi \<longrightarrow> R (h (xs'!i)) (h (xs'!j)))\<close> and
-    pre7: \<open>(\<forall> i j. i > hi' \<and> i \<le> hi \<and> j  \<ge> lo' \<and> j \<le> hi \<longrightarrow> R (h (xs'!j)) (h (xs'!i)))\<close> and
-    if1: \<open>p-1 \<le> lo'\<close> and if2: \<open>hi'\<le>p+1\<close> and \<comment> \<open>From the "if"s\<close>
-    part1: \<open>mset xs'' = mset xs'\<close> and \<comment> \<open>The assumptions from the abstract partition function...\<close>
+    pre7: \<open>(\<forall> i j. i > hi' \<and> i \<le> hi \<and> j  \<ge> lo' \<and> j \<le> hi \<longrightarrow> R (h (xs'!j)) (h (xs'!i)))\<close>
+    using pre unfolding quicksort_inv_def by auto
+  have part1: \<open>mset xs'' = mset xs'\<close> and
     part1': \<open>mset (sublist xs'' lo' hi') = mset (sublist xs' lo' hi')\<close> and
     part2: \<open>isPartition_map R h xs'' lo' hi' p\<close> and
     part3: \<open>lo' \<le> p\<close> and part4: \<open>p \<le> hi'\<close> and
     part5: \<open>(\<forall> i. i<lo' \<longrightarrow> xs''!i=xs'!i)\<close> and part6: \<open>(\<forall> i. hi'<i\<and>i<length xs'' \<longrightarrow> xs''!i=xs'!i)\<close>
-  shows \<open>sorted_sublist_map R h xs'' lo hi\<close>
-proof -
+    using part unfolding partition_spec_def by auto
+
   text \<open>A bit arithmetic with sledgehammer\<dots>\<close>
   have A: \<open>lo \<le> hi\<close> using pre1 pre2 pre3 by linarith
   have B: \<open>lo < length xs\<close> using A pre0 by linarith
@@ -678,7 +701,6 @@ proof -
     using L(2) le_trans pre3 by blast
 
   from part6 have part6': \<open>(\<forall> i. hi'<i\<and>i\<le>hi \<longrightarrow> xs''!i=xs'!i)\<close> using E le_less_trans by blast
-    
 
   show ?thesis
     apply (rule merge_sorted_map_partitions [where p=p])
@@ -805,31 +827,25 @@ proof -
     done
 qed
 
-(* TODO:
-- make preconditions into a proposition
-- lemmas that show that the preconditions still hold after a recursive call of quicksort
-- apply lemmas in correctness lemma *)
 
+(* TODO:
+- lemmas that show that the preconditions still hold after a recursive call of quicksort
+- apply lemmas in correctness lemma
+- use \<open>transp\<close> (But what about linearity/conexity?)
+*)
+term transp
 
 lemma quicksort_correct:
   assumes \<open>lo \<le> hi\<close> and \<open>hi < length xs\<close> and
-  \<open>\<And> x y z. \<lbrakk>R (h x) (h y); R (h y) (h z)\<rbrakk> \<Longrightarrow> R (h x) (h z)\<close> and \<open>\<And>x y. R (h x) (h y) \<or> R (h y) (h x)\<close>
+  trans: \<open>\<And> x y z. \<lbrakk>R (h x) (h y); R (h y) (h z)\<rbrakk> \<Longrightarrow> R (h x) (h z)\<close> (* and lin: \<open>\<And>x y. R (h x) (h y) \<or> R (h y) (h x)\<close> *)
   shows \<open>quicksort R h lo hi xs \<le> \<Down> Id (SPEC(\<lambda>xs'. mset xs = mset xs' \<and> sorted_sublist_map R h xs' lo hi))\<close>
 proof -
   have wf: \<open>wf (measure (\<lambda>(lo, hi, xs). Suc hi - lo))\<close>
     by auto
-  have pre: \<open>(\<lambda>(lo', hi', xs').
-              (* let lo' = fst(x) in
-              let hi' = fst(snd x) in
-              let xs' = snd(snd x) in *)
-              lo \<le> lo' \<and> lo' \<le> hi' \<and> hi' \<le> hi \<and>
-              mset xs = mset xs' \<and>
-              sorted_sublist_map R h xs' lo (lo'-1) \<and> sorted_sublist_map R h xs' (hi'+1) hi \<and>
-              (\<forall> i j. lo \<le> i \<and> i < lo' \<and> lo' \<le> j \<and> j \<le> hi \<longrightarrow> R (h (xs'!i)) (h (xs'!j))) \<and> \<comment> \<open>All elements below lo' are smaller than the rest to the right\<close>
-              (\<forall> i j. i > hi' \<and> i \<le> hi \<and> j  \<ge> lo' \<and> j \<le> hi \<longrightarrow> R (h (xs'!j)) (h (xs'!i))) \<comment> \<open>All elements over hi' are bigger than the rest to the right\<close>
-    ) (lo,hi,xs)\<close>
-      apply (auto)
-    using assms by (auto simp add: sorted_sublist_map_le)
+ 
+  have pre: \<open>(\<lambda>(lo',hi',xs'). quicksort_inv R h xs lo hi lo' hi' xs')(lo,hi,xs)\<close>
+    unfolding quicksort_inv_def apply simp
+    by (meson assms(1) assms(2) diff_le_self dual_order.strict_trans2 lessI less_imp_le_nat not_less sorted_sublist_wrt_le)
 
   show ?thesis
     unfolding quicksort_def
@@ -838,19 +854,20 @@ proof -
       apply (rule wf)
      apply (rule pre)
     subgoal premises IH for f x
-      (* TODO: replace x with [lo' h' xs'] *)
       apply (refine_vcg)
-      subgoal using IH(2) by auto
 
-      text \<open>Case \<^term>\<open>p-1 \<le> lo'\<close> and \<^term>\<open>hi' \<le> p+1\<close>\<close>
+      text \<open>Termination case: (p-1 \<le> lo') and (hi' \<le> p+1)\<close>
       subgoal
-        thm quicksort_correct_case1
-        using assms IH(2) apply (auto dest: mset_eq_length)
-        apply (rule quicksort_correct_case1 [where lo'=\<open>fst(x)\<close>, where hi'=\<open>fst(snd x)\<close>, where xs'=\<open>snd(snd x)\<close>])
-        apply auto apply (auto dest: mset_eq_length) (* This could be \<^bold>\<open>*MUCH*\<close> faster... *)
+        using IH(2) by (simp add: quicksort_inv_def partition_spec_def)
+      subgoal apply simp
+        apply (rule quicksort_correct_case1 [where xs=xs and lo'=\<open>fst(x)\<close> and hi'=\<open>fst(snd x)\<close> and xs'=\<open>snd(snd x)\<close>])
+        apply simp_all
+        subgoal by (rule trans)
+        subgoal by (rule assms(2))
+        subgoal using IH(2) by simp
         done
 
-      text \<open>Case \<^term>\<open>p-1 \<le> lo'\<close> and \<^term>\<open>hi' < p+1\<close> (Only second recursive call)\<close>
+      text \<open>Case (p-1 \<le> lo') and (hi' < p+1) (Only second recursive call)\<close>
       subgoal using IH(2) apply (auto dest: mset_eq_length)
         (* apply (subst (2) Down_id_eq[symmetric]) *)
         apply (rule IH(1)[THEN order_trans])
@@ -858,22 +875,18 @@ proof -
         subgoal
           sorry (* TODO *)
         text \<open>Wellfoundness (easy)\<close>
-        subgoal by auto
+        subgoal by (auto simp add: quicksort_inv_def partition_spec_def)
         text \<open>Show that the postcondition holds\<close>
         by auto
 
-      text \<open>Case \<^term>\<open>p-1 < lo'\<close> and \<^term>\<open>hi' < p+1\<close> (Both recursive calls)\<close>
+      text \<open>Case (p-1 < lo') and (hi' < p+1) (Both recursive calls)\<close>
       subgoal using IH(2) apply (auto dest: mset_eq_length)
         apply (rule IH(1)[THEN order_trans])
         text \<open>Show that the premise holds for the first recursive call\<close>
         subgoal
-          apply simp
-          apply auto
-          subgoal (* apply (rule sorted_map_lower_sublist_still_sorted) *) thm sorted_map_lower_sublist_still_sorted sorry
-          subgoal (* apply (rule sorted_map_lower_sublist_still_sorted) *) thm sorted_map_lower_sublist_still_sorted sorry
           sorry (* TODO *)
         text \<open>Wellfoundness (easy)\<close>
-        subgoal by auto
+        subgoal by (auto simp add: quicksort_inv_def partition_spec_def)
         apply auto
         apply (rule IH(1)[THEN order_trans])
         text \<open>Show that the premise holds for the second recursive call\<close>
@@ -886,86 +899,114 @@ proof -
     done
 qed
 
-(*
-      subgoal using IH(2) by auto \<comment> \<open>Case hi<=lo: mset\<close>
-      subgoal \<comment> \<open>Case hi<=lo: sorted\<close>
-        apply simp
-        using IH(2) apply (auto)
-        apply (rule sorted_sublist_map_done)
-        subgoal using assms by blast \<comment> \<open>transitivity\<close>
-        subgoal using assms by blast \<comment> \<open>linearity\<close>
-        by (auto dest: mset_eq_length)
 
-      apply (rule partition_between_correct[THEN order_trans]) \<comment> \<open>Call to partition\<close>
-      subgoal using IH(2) by (auto dest: mset_eq_length)
-      subgoal using IH(2) by (auto dest: mset_eq_length)
-      subgoal by (auto dest: mset_eq_length)
-      subgoal by (rule assms(4)) \<comment> \<open>transitivity\<close>
-      subgoal by (rule assms(5)) \<comment> \<open>linearity\<close>
-      
-      apply (rule SPEC_rule)
-      apply (subst (5) Down_id_eq[symmetric])
-      apply (case_tac xa, simp only: prod.simps)
-
-      apply (refine_vcg)
-
-      subgoal
-        apply (subst Down_id_eq)
-        apply (refine_vcg)
-        subgoal using IH(2) by auto
-        subgoal sorry (* ! *)
-        done
-
-      subgoal
-        apply (rule IH(1)[THEN order_trans])
-        apply (auto dest: mset_eq_length)          
-        subgoal using IH(2) by blast
-        subgoal using IH(2) by blast
-        subgoal using IH(2) leD by auto
-        subgoal using IH(2) by auto
-        subgoal using IH(2) by auto
-        subgoal using IH(2) by simp
-        subgoal sorry (* ! *)
-        subgoal sorry (* ! *)
-        subgoal sorry (* ! *)
-        subgoal sorry (* ! *)
-        done
+(* TODO: Show that our (abstract) partition satisifies the specification *)
 
 
-      apply (rule IH(1)[THEN order_trans])
-      subgoal \<comment> \<open>Show that the precondition holds for the first recursive case\<close>
-        apply (auto dest: mset_eq_length)        
-        subgoal using IH(2) by blast
-        subgoal using IH(2) by blast
-        subgoal using IH(2) leD by auto
-        subgoal using IH(2) by blast
-        subgoal using IH(2) by auto
-        subgoal using IH(2) by blast
-        subgoal sorry (* ! *)
-        subgoal sorry (* ! *)
-        subgoal sorry (* ! *)
-        subgoal sorry (* ! *)
-        done
-      apply auto
-      apply (rule IH(1)[THEN order_trans])
-      subgoal \<comment> \<open>Show that the precondition holds for the second recursive case\<close>
-        apply (auto dest: mset_eq_length)        
-        subgoal using IH(2) by blast
-        subgoal using IH(2) by blast
-        subgoal using IH(2) leD by auto
-        subgoal using IH(2) by blast
-        subgoal using IH(2) leD by auto
-        subgoal sorry (* ! *)
-        subgoal sorry (* ! *)
-        subgoal sorry (* ! *)
-        subgoal sorry (* ! *)
-        done
-      subgoal by auto \<comment> \<open>Two technical & easy subgoals\<close>
-      subgoal by auto
+definition partition_main_inv :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> 'b) \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a list \<Rightarrow> (nat\<times>nat\<times>'a list) \<Rightarrow> bool\<close> where
+  \<open>partition_main_inv R h lo hi xs0 p \<equiv>
+    case p of (i,j,xs) \<Rightarrow>
+    j < length xs \<and> j \<le> hi \<and> i < length xs \<and> lo \<le> i \<and> i \<le> j \<and> mset xs = mset xs0 \<and>
+    (\<forall>k. k \<ge> lo \<and> k < i \<longrightarrow> R (h (xs!k)) (h (xs!hi))) \<and> \<comment> \<open>All elements from \<open>lo\<close> to \<open>i-1\<close> are smaller than the pivot\<close>
+    (\<forall>k. k \<ge> i \<and> k < j \<longrightarrow>  R (h (xs!hi)) (h (xs!k))) \<and> \<comment> \<open>All elements from \<open>i\<close> to \<open>j-1\<close> are greater than the pivot\<close>
+    (\<forall>k. k \<ge> j \<and> k \<le> hi \<longrightarrow> xs!k = xs0!k) \<comment> \<open>All elements from \<open>j\<close> to \<open>hi\<close> are unchanged\<close>
+  \<close>
+
+text \<open>The main part of the partition function. The pivot is assumed to be the last element. This is
+exactly the "Lomuto partition scheme" partition function from Wikipedia.\<close>
+definition partition_main :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> 'b) \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a list \<Rightarrow> ('a list \<times> nat) nres\<close> where
+  \<open>partition_main R h lo hi xs0 = do {
+    ASSERT(hi < length xs0);
+    pivot \<leftarrow> RETURN (h (xs0 ! hi));
+    (i,j,xs) \<leftarrow> WHILE\<^sub>T\<^bsup>partition_main_inv R h lo hi xs0\<^esup> \<comment> \<open>We loop from \<^term>\<open>j=lo\<close> to \<^term>\<open>j=hi-1\<close>.\<close>
+      (\<lambda>(i,j,xs). j < hi)
+      (\<lambda>(i,j,xs). do {
+        ASSERT(i < length xs \<and> j < length xs);
+      	if R (h (xs!j)) pivot
+      	then RETURN (i+1, j+1, swap xs i j)
+      	else RETURN (i,   j+1, xs)
+      })
+      (lo, lo, xs0); \<comment> \<open>i and j are both initialized to lo\<close>
+    ASSERT(i < length xs \<and> j = hi \<and> lo \<le> i \<and> hi < length xs \<and> mset xs = mset xs0);
+    RETURN (swap xs i hi, i)
+  }\<close>
+
+lemma partition_main_correct:
+  assumes \<open>lo < length xs\<close> and \<open>hi < length xs\<close> and \<open>hi > lo\<close> and
+    \<open>\<And> x y z. \<lbrakk>R (h x) (h y); R (h y) (h z)\<rbrakk> \<Longrightarrow> R (h x) (h z)\<close> and \<open>\<And>x y. R (h x) (h y) \<or> R (h y) (h x)\<close>
+  shows \<open>partition_main R h lo hi xs \<le> SPEC(\<lambda>(xs', p). mset xs = mset xs' \<and>
+     lo \<le> p \<and> p \<le> hi \<and> isPartition_map R h xs' lo hi p)\<close>
+proof -
+  have K: \<open>b \<le> hi - Suc n \<Longrightarrow> n > 0 \<Longrightarrow> Suc n \<le> hi \<Longrightarrow> Suc b \<le> hi - n\<close> for b hi n
+    by auto
+  have L: \<open>~ R (h x) (h y) \<Longrightarrow> R (h y) (h x)\<close> for x y \<comment> \<open>Corollary of linearity\<close>
+    using assms by blast
+  have M: \<open>a < Suc b \<equiv> a = b \<or> a < b\<close> for a b
+    by linarith
+  have N: \<open>(a::nat) \<le> b \<equiv> a = b \<or> a < b\<close> for a b
+    by arith
+
+  show ?thesis
+    unfolding partition_main_def choose_pivot_def
+    apply (refine_vcg WHILEIT_rule[where R = \<open>measure(\<lambda>(i,j,xs). hi-j)\<close>])
+    subgoal using assms by blast \<comment> \<open>We feed our assumption to the assertion\<close>
+    subgoal by auto \<comment> \<open>WF\<close>
+    subgoal \<comment> \<open>Invariant holds before the first iteration\<close>
+      unfolding partition_main_inv_def
+      using assms apply simp by linarith
+    subgoal unfolding partition_main_inv_def by simp
+    subgoal unfolding partition_main_inv_def by simp
+    subgoal
+      unfolding partition_main_inv_def
+      apply (auto dest: mset_eq_length)
       done
+    subgoal unfolding partition_main_inv_def by (auto dest: mset_eq_length)
+    subgoal
+      unfolding partition_main_inv_def apply (auto dest: mset_eq_length)
+      apply (auto simp add: M) using assms(5) by blast
+
+    subgoal unfolding partition_main_inv_def by simp \<comment> \<open>assertions, etc\<close>
+    subgoal unfolding partition_main_inv_def by simp
+    subgoal unfolding partition_main_inv_def by (auto dest: mset_eq_length)
+    subgoal unfolding partition_main_inv_def by simp
+    subgoal unfolding partition_main_inv_def by (auto dest: mset_eq_length)
+    subgoal unfolding partition_main_inv_def by (auto dest: mset_eq_length)
+    subgoal unfolding partition_main_inv_def by (auto dest: mset_eq_length)
+    subgoal unfolding partition_main_inv_def by simp
+    subgoal unfolding partition_main_inv_def by simp
+
+    subgoal \<comment> \<open>After the last iteration, we have a partitioning! :-)\<close>
+      unfolding partition_main_inv_def by (auto simp add: isPartition_wrt_def)
     done
 qed
-*)
+
+
+definition partition_between :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> 'b) \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a list \<Rightarrow> ('a list \<times> nat) nres\<close> where
+  \<open>partition_between R h lo hi xs0 = do {
+    ASSERT(lo < length xs0 \<and> hi < length xs0 \<and> hi > lo);
+    k \<leftarrow> choose_pivot R h xs0 lo hi; \<comment> \<open>choice of pivot\<close>
+    ASSERT(k < length xs0);
+    xs \<leftarrow> RETURN (swap xs0 k hi); \<comment> \<open>move the pivot to the last position, before we start the actual loop\<close>
+    ASSERT(length xs = length xs0);
+    partition_main R h lo hi xs
+  }\<close>
+
+
+lemma partition_between_correct:
+  assumes \<open>lo < length xs\<close> and \<open>hi < length xs\<close> and \<open>hi > lo\<close> and
+  \<open>\<And> x y z. \<lbrakk>R (h x) (h y); R (h y) (h z)\<rbrakk> \<Longrightarrow> R (h x) (h z)\<close> and \<open>\<And>x y. R (h x) (h y) \<or> R (h y) (h x)\<close>
+  shows \<open>partition_between R h lo hi xs \<le> SPEC(\<lambda>(xs', p). mset xs = mset xs' \<and>
+     lo \<le> p \<and> p \<le> hi \<and> isPartition_map R h xs' lo hi p)\<close> \<comment> \<open>TODO: Maxi: Show that \<open>p\<close> is a valid partiton.\<close>
+proof -
+  have K: \<open>b \<le> hi - Suc n \<Longrightarrow> n > 0 \<Longrightarrow> Suc n \<le> hi \<Longrightarrow> Suc b \<le> hi - n\<close> for b hi n
+    by auto
+  show ?thesis
+    unfolding partition_between_def choose_pivot_def
+    apply (refine_vcg partition_main_correct)
+    using assms by (auto dest: mset_eq_length)
+qed
+
+
 
 text \<open>We use the median of the first, the middle, and the last element.\<close>
 definition choose_pivot3 where
@@ -1099,6 +1140,9 @@ sepref_definition partition_between_code
 
 declare partition_between_code.refine[sepref_fr_rules]
 
+
+
+(* TODO *)
 
 text \<open>Refined quicksort algorithm: We use the refined partition function.\<close>
 definition quicksort_ref :: \<open>_ \<Rightarrow> _ \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a::ord list \<Rightarrow> 'a list nres\<close> where
