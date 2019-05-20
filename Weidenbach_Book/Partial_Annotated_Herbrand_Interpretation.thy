@@ -1245,7 +1245,7 @@ abbreviation atms_of_mm :: \<open>'a clause multiset \<Rightarrow> 'a set\<close
 \<open>atms_of_mm U \<equiv> atms_of_ms (set_mset U)\<close>
 
 text \<open>Other definition using @{term \<open>Union_mset\<close>}\<close>
-lemma \<open>atms_of_mm U \<equiv> set_mset (\<Union># image_mset (image_mset atm_of) U)\<close>
+lemma atms_of_mm_alt_def: \<open>atms_of_mm U = set_mset (\<Union># (image_mset (image_mset atm_of) U))\<close>
   unfolding atms_of_ms_def by (auto simp: atms_of_def)
 
 abbreviation true_clss_m:: \<open>'a partial_interp \<Rightarrow> 'a clause multiset \<Rightarrow> bool\<close> (infix "\<Turnstile>sm" 50) where

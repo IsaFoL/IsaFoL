@@ -1,4 +1,4 @@
-theory Model_Enumeration
+theory CDCL_Model_Enumeration
 imports Entailment_Definition.Partial_Annotated_Herbrand_Interpretation Weidenbach_Book_Base.Explorer
 begin
 

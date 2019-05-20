@@ -1,8 +1,7 @@
 theory Bits_Natural
   imports
      Refine_Imperative_HOL.IICF
-     "HOL-Word.Bits_Bit"
-     "HOL-Word.Bool_List_Representation"
+     "HOL-Word.More_Word"
 begin
 
 instantiation nat :: bits
