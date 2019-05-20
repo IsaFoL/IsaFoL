@@ -2,6 +2,7 @@ theory Watched_Literals_Watch_List_Domain_Enumeration
   imports Watched_Literals_Watch_List_Enumeration Watched_Literals.Watched_Literals_Watch_List_Domain
 begin
 
+
 no_notation Ref.update ("_ := _" 62)
 
 fun propagate_unit_and_add_wl_D
@@ -51,8 +52,15 @@ lemma in_all_lits_of_mm_in_\<L>\<^sub>a\<^sub>l\<^sub>l:
 lemma all_lits_add_mset:
   \<open>all_lits am (add_mset {#x2#} ap) = {#x2,-x2#} + all_lits am ap\<close>
   by (auto simp: all_lits_def all_lits_of_mm_add_mset all_lits_of_m_add_mset)
-find_theorems literals_are_\<L>\<^sub>i\<^sub>n Propagated
-thm  all_lits_def
+
+lemma is_\<L>\<^sub>a\<^sub>l\<^sub>l_add_mset1:
+  \<open>a \<in># am \<Longrightarrow> is_\<L>\<^sub>a\<^sub>l\<^sub>l (add_mset a am) NU \<longleftrightarrow> is_\<L>\<^sub>a\<^sub>l\<^sub>l am NU\<close>
+  unfolding is_\<L>\<^sub>a\<^sub>l\<^sub>l_def \<L>\<^sub>a\<^sub>l\<^sub>l_def by auto
+
+lemma \<L>\<^sub>a\<^sub>l\<^sub>l_add_mset1:
+  \<open>a \<in># am \<Longrightarrow> set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l (add_mset a am)) = set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l am)\<close>
+  unfolding \<L>\<^sub>a\<^sub>l\<^sub>l_def by auto
+
 lemma negate_mode_bj_unit_wl_D_negate_mode_bj_unit_wl:
   fixes S S' :: \<open>nat twl_st_wl\<close>
   assumes
@@ -61,30 +69,17 @@ lemma negate_mode_bj_unit_wl_D_negate_mode_bj_unit_wl:
     \<open>negate_mode_bj_unit_wl_D S \<le> \<Down> {(S, S''). (S, S'') \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st S) S}
        (negate_mode_bj_unit_wl S')\<close>
   unfolding negate_mode_bj_unit_wl_D_def negate_mode_bj_unit_wl_def
-  using assms
+  using assms SS'
+  apply (cases S')
   apply (refine_vcg find_decomp_target_wl_D_find_decomp_target_wl)
-  apply auto
   apply (auto simp: mset_take_mset_drop_mset' uminus_\<A>\<^sub>i\<^sub>n_iff all_lits_of_mm_add_mset
-     all_lits_of_m_add_mset in_all_lits_of_mm_uminus_iff ASSERT_refine in_all_lits_of_mm_in_\<L>\<^sub>a\<^sub>l\<^sub>l
+        all_lits_of_m_add_mset in_all_lits_of_mm_uminus_iff ASSERT_refine in_all_lits_of_mm_in_\<L>\<^sub>a\<^sub>l\<^sub>l
+        is_\<L>\<^sub>a\<^sub>l\<^sub>l_add_mset1 \<L>\<^sub>a\<^sub>l\<^sub>l_add_mset1 literals_are_\<L>\<^sub>i\<^sub>n_def blits_in_\<L>\<^sub>i\<^sub>n_def all_lits_add_mset
       intro!: is_\<L>\<^sub>a\<^sub>l\<^sub>l_add_mset_already_in[THEN iffD2]  vcg_of_RETURN(1)[OF Pure.reflexive]
-      dest:(* in_all_lits_of_mm_uminusD *))
-      apply ( auto simp add: literals_are_\<L>\<^sub>i\<^sub>n_def blits_in_\<L>\<^sub>i\<^sub>n_def all_lits_add_mset
-        intro!: is_\<L>\<^sub>a\<^sub>l\<^sub>l_add_mset_already_in[THEN iffD2]
-        simp: 
+      simp flip: all_lits_def
+      intro!: is_\<L>\<^sub>a\<^sub>l\<^sub>l_add_mset_already_in[THEN iffD2]
        simp del: is_\<L>\<^sub>a\<^sub>l\<^sub>l_all_lits_st_\<L>\<^sub>a\<^sub>l\<^sub>l literals_are_\<L>\<^sub>i\<^sub>n_set_mset_\<L>\<^sub>a\<^sub>l\<^sub>l)
-       prefer 3
-       supply [[unify_trace_failure]]
-       apply (rule is_\<L>\<^sub>a\<^sub>l\<^sub>l_add_mset_already_in[THEN iffD2])
-       thm is_\<L>\<^sub>a\<^sub>l\<^sub>l_add_mset_already_in[THEN iffD2]
-      prefer 2
-      term all_atms
-      apply (rule vcg_of_RETURN(2)[OF Pure.reflexive])
-      thm vcg_of_RETURN(2)[OF Pure.reflexive]
-      oops
-  apply (auto simp: mset_take_mset_drop_mset' uminus_\<A>\<^sub>i\<^sub>n_iff all_lits_of_mm_add_mset
-     all_lits_of_m_add_mset in_all_lits_of_mm_uminus_iff literals_are_\<L>\<^sub>i\<^sub>n_def blits_in_\<L>\<^sub>i\<^sub>n_def
-      intro!: is_\<L>\<^sub>a\<^sub>l\<^sub>l_add_mset_already_in[THEN iffD2] dest:(* in_all_lits_of_mm_uminusD *))
-  using is_\<L>\<^sub>a\<^sub>l\<^sub>l_def by blast
+  done
 
 definition negate_mode_bj_nonunit_wl_D_inv:: \<open>nat twl_st_wl \<Rightarrow> bool\<close> where
 \<open>negate_mode_bj_nonunit_wl_D_inv S \<longleftrightarrow>
@@ -104,6 +99,11 @@ lemma is_\<L>\<^sub>a\<^sub>l\<^sub>l_add_all_lits_of_m:
   \<open>is_\<L>\<^sub>a\<^sub>l\<^sub>l \<A> (all_lits_of_mm B) \<Longrightarrow> atms_of A \<subseteq> atms_of_mm B \<Longrightarrow> is_\<L>\<^sub>a\<^sub>l\<^sub>l \<A> (all_lits_of_m A + all_lits_of_mm B)\<close>
   unfolding is_\<L>\<^sub>a\<^sub>l\<^sub>l_def
   by (auto simp: in_all_lits_of_m_ain_atms_of_iff in_all_lits_of_mm_ain_atms_of_iff)
+
+lemma all_lits_fmupd_notin:
+  \<open>i' \<notin># dom_m N \<Longrightarrow> all_lits (fmupd i' (D, b) N) NU = all_lits_of_m (mset D) + all_lits N NU\<close>
+  by (auto simp: all_lits_def ran_m_mapsto_upd_notin
+    all_lits_of_mm_add_mset)
 
 lemma literals_are_\<L>\<^sub>i\<^sub>n_propagate_nonunit_and_add_wl:
   assumes
@@ -151,9 +151,10 @@ proof -
     by (cases \<open>DECO_clause_l (get_trail_wl S')\<close>; cases \<open>tl (DECO_clause_l (get_trail_wl S'))\<close>)
       (auto simp: ran_m_mapsto_upd_notin all_lits_of_mm_add_mset blits_in_\<L>\<^sub>i\<^sub>n_def
         in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n DECO_clause_l_DECO_clause[symmetric] Ball_def
-        in_all_lits_of_mm_ain_atms_of_iff all_conj_distrib
+        in_all_lits_of_mm_ain_atms_of_iff all_conj_distrib all_lits_fmupd_notin
         watched_by_alt_def get_unit_clauses_wl_alt_def
-        simp del: DECO_clause_l_DECO_clause)
+        simp del: DECO_clause_l_DECO_clause
+        simp del: is_\<L>\<^sub>a\<^sub>l\<^sub>l_all_lits_st_\<L>\<^sub>a\<^sub>l\<^sub>l literals_are_\<L>\<^sub>i\<^sub>n_set_mset_\<L>\<^sub>a\<^sub>l\<^sub>l)
   ultimately show \<open>literals_are_\<L>\<^sub>i\<^sub>n \<A> ?S\<close>
     unfolding literals_are_\<L>\<^sub>i\<^sub>n_def all_lits_def by blast
 
