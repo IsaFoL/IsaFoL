@@ -152,8 +152,9 @@ proof -
       (auto simp: ran_m_mapsto_upd_notin all_lits_of_mm_add_mset blits_in_\<L>\<^sub>i\<^sub>n_def
         in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n DECO_clause_l_DECO_clause[symmetric] Ball_def
         in_all_lits_of_mm_ain_atms_of_iff all_conj_distrib all_lits_fmupd_notin
-        watched_by_alt_def get_unit_clauses_wl_alt_def
+        watched_by_alt_def get_unit_clauses_wl_alt_def all_lits_of_m_add_mset
         simp del: DECO_clause_l_DECO_clause
+        simp flip: all_lits_def
         simp del: is_\<L>\<^sub>a\<^sub>l\<^sub>l_all_lits_st_\<L>\<^sub>a\<^sub>l\<^sub>l literals_are_\<L>\<^sub>i\<^sub>n_set_mset_\<L>\<^sub>a\<^sub>l\<^sub>l)
   ultimately show \<open>literals_are_\<L>\<^sub>i\<^sub>n \<A> ?S\<close>
     unfolding literals_are_\<L>\<^sub>i\<^sub>n_def all_lits_def by blast
@@ -170,7 +171,7 @@ proof -
     by (cases \<open>DECO_clause_l (get_trail_wl S')\<close>)
       (auto simp: ran_m_mapsto_upd_notin all_lits_of_mm_add_mset blits_in_\<L>\<^sub>i\<^sub>n_def
         in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n DECO_clause_l_DECO_clause[symmetric] Ball_def
-        in_all_lits_of_mm_ain_atms_of_iff all_conj_distrib
+        in_all_lits_of_mm_ain_atms_of_iff all_conj_distrib all_lits_fmupd_notin
         watched_by_alt_def get_unit_clauses_wl_alt_def
         simp del: DECO_clause_l_DECO_clause)
   ultimately show \<open>?eq \<Longrightarrow> literals_are_\<L>\<^sub>i\<^sub>n \<A> ?S'\<close>
@@ -191,12 +192,15 @@ lemma propagate_nonunit_and_add_wl_propagate_nonunit_and_add_wl:
          \<le> \<Down> {(S, S''). (S, S'') \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n \<A> S}
              (propagate_nonunit_and_add_wl K' (DECO_clause_l (get_trail_wl S')) i' T')\<close>
   using assms unfolding propagate_nonunit_and_add_wl_def
-  by refine_vcg
-    (auto simp: ran_m_mapsto_upd_notin all_lits_of_mm_add_mset
+  apply refine_vcg
+  apply  (auto simp: ran_m_mapsto_upd_notin all_lits_of_mm_add_mset
     propagate_nonunit_and_add_wl_pre_def mset_take_mset_drop_mset'
     get_unit_clauses_wl_alt_def
     intro!: is_\<L>\<^sub>a\<^sub>l\<^sub>l_add_all_lits_of_m
-   intro!: literals_are_\<L>\<^sub>i\<^sub>n_propagate_nonunit_and_add_wl)
+    intro!: literals_are_\<L>\<^sub>i\<^sub>n_propagate_nonunit_and_add_wl)
+    supply[[unify_trace_failure]]
+    using literals_are_\<L>\<^sub>i\<^sub>n_propagate_nonunit_and_add_wl(1) apply -
+    apply (rule literals_are_\<L>\<^sub>i\<^sub>n_propagate_nonunit_and_add_wl)
 
 lemma negate_mode_bj_nonunit_wl_D_negate_mode_bj_nonunit_wl:
   fixes S S' :: \<open>nat twl_st_wl\<close>
@@ -252,8 +256,8 @@ fun restart_nonunit_and_add_wl_D
 where
   \<open>restart_nonunit_and_add_wl_D C i (M, N, D, NE, UE, Q, W) = do {
       ASSERT(restart_nonunit_and_add_wl_D_inv C i (M, N, D, NE, UE, Q, W));
-      let W = W(C!0 := W (C!0) @ [(i, C!1)]);
-      let W = W(C!1 := W (C!1) @ [(i, C!0)]);
+      let W = W(C!0 := W (C!0) @ [(i, C!1, length C = 2)]);
+      let W = W(C!1 := W (C!1) @ [(i, C!0, length C = 2)]);
       RETURN (M, fmupd i (C, True) N, None, NE, UE, {#}, W)
   }\<close>
 
@@ -310,7 +314,7 @@ proof -
     apply refine_vcg
     subgoal using TK SS' ij unfolding restart_nonunit_and_add_wl_D_inv_def
       by auto
-    subgoal using TK SS' j literals_are_\<L>\<^sub>i\<^sub>n_propagate_nonunit_and_add_wl[of T S' i]
+    subgoal using TK SS' j literals_are_\<L>\<^sub>i\<^sub>n_propagate_nonunit_and_add_wl[of \<A> T S' i]
       unfolding restart_nonunit_and_add_wl_inv_def
       by (auto simp: ran_m_mapsto_upd_notin all_lits_of_mm_add_mset
        restart_nonunit_and_add_wl_D_inv_def mset_take_mset_drop_mset'
@@ -326,7 +330,7 @@ lemma negate_mode_restart_nonunit_wl_D_negate_mode_restart_nonunit_wl:
     SS': \<open>(S, S') \<in> {(S, S''). (S, S'') \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n \<A> S}\<close>
   shows
     \<open>negate_mode_restart_nonunit_wl_D S \<le>
-      \<Down> {(S, S''). (S, S'') \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n S}
+      \<Down> {(S, S''). (S, S'') \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n \<A> S}
        (negate_mode_restart_nonunit_wl S')\<close>
 proof -
   have fresh: \<open>get_fresh_index_wl (get_clauses_wl T) (get_unit_clauses_wl T) (get_watched_wl T)
@@ -377,6 +381,7 @@ proof -
     subgoal unfolding negate_mode_wl_D_inv_def by blast
     subgoal by auto
     subgoal by auto
+    subgoal by auto
     done
 qed
 
@@ -411,7 +416,7 @@ lemma cdcl_twl_enum_wl_D_cdcl_twl_enum_wl:
     \<open>cdcl_twl_enum_wl_D S \<le> \<Down> bool_rel (cdcl_twl_enum_wl P S')\<close>
   unfolding cdcl_twl_enum_wl_D_def cdcl_twl_enum_wl_def
   apply (refine_vcg cdcl_twl_stgy_prog_wl_D_spec'[unfolded fref_param1, THEN fref_to_Down]
-    negate_mode_wl_D_negate_mode_wl)
+    negate_mode_wl_D_negate_mode_wl[of _ _ \<A>])
   subgoal by fast
   subgoal using SS' by auto
   subgoal unfolding cdcl_twl_enum_inv_wl_D_def by blast
