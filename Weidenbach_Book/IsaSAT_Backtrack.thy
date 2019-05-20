@@ -1676,10 +1676,13 @@ proof -
           (RES ((\<lambda>i. (fmupd i (C, False) N, i)) ` {i. 0 < i \<and> i \<notin># dom_m N}) \<bind>
                    (\<lambda>(N, i). f N i))\<close> (is \<open>?A = ?B\<close>) for f C N
     proof -
+        thm bind_RES
       have \<open>?B \<le> ?A\<close>
-        by (auto intro: ext simp: intro_spec_iff bind_RES)
+        by (force intro: ext complete_lattice_class.Sup_subset_mono
+          simp: intro_spec_iff bind_RES)
       moreover have \<open>?A \<le> ?B\<close>
-        by (auto intro: ext simp: intro_spec_iff bind_RES)
+        by (force intro: ext complete_lattice_class.Sup_subset_mono
+          simp: intro_spec_iff bind_RES)
       ultimately show ?thesis by auto
     qed
 

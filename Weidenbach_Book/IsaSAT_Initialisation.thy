@@ -2737,7 +2737,6 @@ sepref_definition init_state_wl_D'_code_unb
 declare init_state_wl_D'_code.refine[sepref_fr_rules]
   init_state_wl_D'_code_unb.refine[sepref_fr_rules]
 
-
 lemma init_trail_D_ref:
   \<open>(uncurry2 init_trail_D, uncurry2 (RETURN ooo (\<lambda> _ _ _. []))) \<in> [\<lambda>((N, n), m). mset N = \<A>\<^sub>i\<^sub>n \<and>
     distinct N \<and> (\<forall>L\<in>set N. L < n) \<and> m = 2 * n \<and> isasat_input_bounded \<A>\<^sub>i\<^sub>n]\<^sub>f
@@ -2772,54 +2771,28 @@ proof -
     apply clarify
     apply (intro conjI)
     subgoal
-      by (auto simp: zero_uint32_def shiftr1_def
-        nat_shiftr_div2 nat_of_uint32_shiftr in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
-        polarity_atm_def trail_pol_def K atms_of_def
-        phase_saving_def list_rel_mset_rel_def
-        list_rel_def uint32_nat_rel_def br_def list_all2_op_eq_map_right_iff'
-        ann_lits_split_reasons_def
-      list_mset_rel_def Collect_eq_comp)
+      by (auto simp: ann_lits_split_reasons_def
+          list_mset_rel_def Collect_eq_comp list_rel_def
+          list_all2_op_eq_map_right_iff' uint32_nat_rel_def
+          br_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n
+        dest: multi_member_split)
     subgoal
-      by (auto simp: zero_uint32_def shiftr1_def
-        nat_shiftr_div2 nat_of_uint32_shiftr in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
-        polarity_atm_def trail_pol_def K atms_of_def
-        phase_saving_def list_rel_mset_rel_def
-        list_rel_def uint32_nat_rel_def br_def list_all2_op_eq_map_right_iff'
-        ann_lits_split_reasons_def
-      list_mset_rel_def Collect_eq_comp)
+      by auto
     subgoal using K' by (auto simp: polarity_def)
     subgoal
       by (auto simp: zero_uint32_def shiftr1_def
         nat_shiftr_div2 nat_of_uint32_shiftr in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
-        polarity_atm_def trail_pol_def K atms_of_def
-        phase_saving_def list_rel_mset_rel_def
+        polarity_atm_def trail_pol_def K
+        phase_saving_def list_rel_mset_rel_def  atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n
         list_rel_def uint32_nat_rel_def br_def list_all2_op_eq_map_right_iff'
         ann_lits_split_reasons_def
       list_mset_rel_def Collect_eq_comp)
     subgoal
-      by (auto simp: zero_uint32_def shiftr1_def
-        nat_shiftr_div2 nat_of_uint32_shiftr in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
-        polarity_atm_def trail_pol_def K atms_of_def
-        phase_saving_def list_rel_mset_rel_def
-        list_rel_def uint32_nat_rel_def br_def list_all2_op_eq_map_right_iff'
-        ann_lits_split_reasons_def
-      list_mset_rel_def Collect_eq_comp)
+      by auto
     subgoal
-      by (auto simp: zero_uint32_def shiftr1_def
-        nat_shiftr_div2 nat_of_uint32_shiftr in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
-        polarity_atm_def trail_pol_def K atms_of_def
-        phase_saving_def list_rel_mset_rel_def
-        list_rel_def uint32_nat_rel_def br_def list_all2_op_eq_map_right_iff'
-        ann_lits_split_reasons_def
-      list_mset_rel_def Collect_eq_comp)
+      by auto
     subgoal
-      by (auto simp: zero_uint32_def shiftr1_def
-        nat_shiftr_div2 nat_of_uint32_shiftr in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
-        polarity_atm_def trail_pol_def K atms_of_def
-        phase_saving_def list_rel_mset_rel_def
-        list_rel_def uint32_nat_rel_def br_def list_all2_op_eq_map_right_iff'
-        ann_lits_split_reasons_def control_stack.empty
-      list_mset_rel_def Collect_eq_comp)
+      by (auto simp: control_stack.empty)
     subgoal by auto
     done
 qed
