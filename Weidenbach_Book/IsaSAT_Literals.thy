@@ -1054,10 +1054,9 @@ lemma lit_and_ann_of_propagated_hnr[sepref_fr_rules]:
 
 lemma set_mset_all_lits_of_mm_atms_of_ms_iff:
   \<open>set_mset (all_lits_of_mm A) = set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>) \<longleftrightarrow> atms_of_ms (set_mset A) = atms_of (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>)\<close>
-  by (force simp: atms_of_s_def in_all_lits_of_mm_ain_atms_of_iff atms_of_ms_def
-      atms_of_def atm_of_eq_atm_of in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
-      all_lits_of_mm_add_mset all_lits_of_m_add_mset
-      eq_commute[of \<open>set_mset (all_lits_of_mm _)\<close> \<open>set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l _)\<close>]
+  by (force simp add:  atms_of_s_def in_all_lits_of_mm_ain_atms_of_iff atms_of_ms_def
+      atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n atms_of_def atm_of_eq_atm_of uminus_\<A>\<^sub>i\<^sub>n_iff
+       eq_commute[of \<open>set_mset (all_lits_of_mm _)\<close> \<open>set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l _)\<close>]
       dest: multi_member_split)
 
 definition card_max_lvl where

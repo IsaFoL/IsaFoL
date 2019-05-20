@@ -1,5 +1,5 @@
 theory IsaSAT
-  imports IsaSAT_Restart IsaSAT_Initialisation Version
+  imports IsaSAT_Restart IsaSAT_Initialisation Version Watched_Literals_Watch_List_Domain_Enumeration
 begin
 
 subsection \<open>Final code generation\<close>

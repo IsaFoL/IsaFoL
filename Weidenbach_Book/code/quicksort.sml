@@ -41,7 +41,7 @@ end; (* struct Uint32 *)
     fun array_upd_oo f i x a () = 
       (Array.update(a,IntInf.toInt i,x); a) handle Subscript => f () | Overflow => f ()
 
-    
+
 
 structure Bits_Integer : sig
   val set_bit : IntInf.int -> IntInf.int -> bool -> IntInf.int
@@ -133,27 +133,36 @@ fun apsnd f (x, y) = (x, f y);
 
 fun fst (x1, x2) = x1;
 
-fun sgn_integer k =
-  (if ((k : IntInf.int) = (0 : IntInf.int)) then (0 : IntInf.int)
-    else (if IntInf.< (k, (0 : IntInf.int)) then (~1 : IntInf.int)
-           else (1 : IntInf.int)));
-
 fun divmod_integer k l =
   (if ((k : IntInf.int) = (0 : IntInf.int))
     then ((0 : IntInf.int), (0 : IntInf.int))
-    else (if ((l : IntInf.int) = (0 : IntInf.int)) then ((0 : IntInf.int), k)
-           else (apsnd o (fn a => fn b => IntInf.* (a, b)) o sgn_integer) l
-                  (if (((sgn_integer k) : IntInf.int) = (sgn_integer l))
-                    then IntInf.divMod (IntInf.abs k, IntInf.abs l)
-                    else let
-                           val (r, s) =
-                             IntInf.divMod (IntInf.abs k, IntInf.abs l);
-                         in
-                           (if ((s : IntInf.int) = (0 : IntInf.int))
-                             then (IntInf.~ r, (0 : IntInf.int))
-                             else (IntInf.- (IntInf.~ r, (1 : IntInf.int)),
-                                    IntInf.- (IntInf.abs l, s)))
-                         end)));
+    else (if IntInf.< ((0 : IntInf.int), l)
+           then (if IntInf.< ((0 : IntInf.int), k)
+                  then IntInf.divMod (IntInf.abs k, IntInf.abs l)
+                  else let
+                         val (r, s) =
+                           IntInf.divMod (IntInf.abs k, IntInf.abs l);
+                       in
+                         (if ((s : IntInf.int) = (0 : IntInf.int))
+                           then (IntInf.~ r, (0 : IntInf.int))
+                           else (IntInf.- (IntInf.~ r, (1 : IntInf.int)),
+                                  IntInf.- (l, s)))
+                       end)
+           else (if ((l : IntInf.int) = (0 : IntInf.int))
+                  then ((0 : IntInf.int), k)
+                  else apsnd IntInf.~
+                         (if IntInf.< (k, (0 : IntInf.int))
+                           then IntInf.divMod (IntInf.abs k, IntInf.abs l)
+                           else let
+                                  val (r, s) =
+                                    IntInf.divMod (IntInf.abs k, IntInf.abs l);
+                                in
+                                  (if ((s : IntInf.int) = (0 : IntInf.int))
+                                    then (IntInf.~ r, (0 : IntInf.int))
+                                    else (IntInf.- (IntInf.~
+              r, (1 : IntInf.int)),
+   IntInf.- (IntInf.~ l, s)))
+                                end))));
 
 fun divide_integer k l = fst (divmod_integer k l);
 

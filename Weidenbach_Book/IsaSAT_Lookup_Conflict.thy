@@ -126,8 +126,8 @@ next
       using tauto by (metis list.set_intros(1) list.set_intros(2) set_mset_mset tautology_minus)
     moreover have
       \<open>fold (\<lambda>L xs. xs[atm_of L := Some (is_pos L)]) P (xs[atm_of L := Some (is_pos L)]) =
-       fold (\<lambda>L xs. xs[atm_of L := Some (is_pos L)]) P xs [atm_of L := Some (is_pos L)]\<close>
-       using uL_P dist tauto
+       (fold (\<lambda>L xs. xs[atm_of L := Some (is_pos L)]) P xs) [atm_of L := Some (is_pos L)]\<close>
+      using uL_P dist tauto
       apply (induction P arbitrary: xs)
       subgoal by auto
       subgoal for L' P
@@ -375,7 +375,7 @@ lemma mset_as_position_remove:
    mset_as_position (xs[L := None]) (remove1_mset (Pos L) (remove1_mset (Neg L) D))\<close>
 proof (induction rule: mset_as_position.induct)
   case (empty n)
-  then have [simp]: \<open>replicate n None[L := None] = replicate n None\<close>
+  then have [simp]: \<open>(replicate n None)[L := None] = replicate n None\<close>
     using list_update_id[of \<open>replicate n None\<close> L] by auto
   show ?case by (auto intro: mset_as_position.intros)
 next

@@ -2,12 +2,18 @@ theory Watched_Literals_List_Enumeration
   imports Watched_Literals_Algorithm_Enumeration Watched_Literals.Watched_Literals_List
 begin
 
+lemma convert_lits_l_filter_decided_uminus: \<open>(S, S') \<in> convert_lits_l M N \<Longrightarrow>
+   map (\<lambda>x. -lit_of x) (filter is_decided S') = map (\<lambda>x. -lit_of x) (filter is_decided S)\<close>
+  apply (induction S arbitrary: S')
+  subgoal by auto
+  subgoal for L S S'
+    by (cases S') auto
+  done
+
 lemma convert_lits_l_DECO_clause[simp]:
   \<open>(S, S') \<in> convert_lits_l M N \<Longrightarrow> DECO_clause S' = DECO_clause S\<close>
-  by (auto simp: DECO_clause_def uminus_lit_of_image_mset)
-    (auto simp:
-    mset_filter[symmetric] convert_lits_l_filter_decided mset_map[symmetric]
-    simp del: mset_map)
+  by (auto simp: DECO_clause_def uminus_lit_of_image_mset
+    convert_lits_l_filter_decided_uminus simp flip: mset_filter mset_map)
 
 lemma convert_lits_l_TWL_DECO_clause[simp]:
   \<open>(S, S') \<in> convert_lits_l M N \<Longrightarrow> TWL_DECO_clause S' = TWL_DECO_clause S\<close>

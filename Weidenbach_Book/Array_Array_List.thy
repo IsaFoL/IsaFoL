@@ -16,7 +16,7 @@ fun heap_list_all :: "('a \<Rightarrow> 'b \<Rightarrow> assn) \<Rightarrow> 'a 
 
 text \<open>It is often useful to speak about arrays except at one index (e.g., because it is updated).\<close>
 definition heap_list_all_nth:: "('a \<Rightarrow> 'b \<Rightarrow> assn) \<Rightarrow> nat list \<Rightarrow>  'a list \<Rightarrow> 'b list \<Rightarrow> assn" where
-  \<open>heap_list_all_nth R is xs ys = foldr (( * )) (map (\<lambda>i. R (xs ! i) (ys ! i)) is) emp\<close>
+  \<open>heap_list_all_nth R is xs ys = foldr ((*)) (map (\<lambda>i. R (xs ! i) (ys ! i)) is) emp\<close>
 
 lemma heap_list_all_nth_emty[simp]: \<open>heap_list_all_nth R [] xs ys = emp\<close>
   unfolding heap_list_all_nth_def by auto

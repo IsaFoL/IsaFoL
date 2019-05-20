@@ -254,7 +254,7 @@ proof intro_classes
     \<open>inj to_nat\<close>
     by blast
   then have \<open>inj (to_nat o ?to_pair)\<close>
-    using inj' by (blast intro: inj_comp)
+    using inj' by (blast intro: inj_compose)
   then show \<open>\<exists>to_nat :: ('a, 'b) vmtf_node \<Rightarrow> nat. inj to_nat\<close>
     by blast
 qed
@@ -617,13 +617,13 @@ lemma [simp]:
 lemma vdom_m_simps4[simp]:
   \<open>i \<in># dom_m N \<Longrightarrow>
      vdom_m \<A> (W (L1 := W L1 @ [(i, C1)], L2 := W L2 @ [(i, C2)])) N = vdom_m \<A> W N\<close>
- by (force simp: vdom_m_def image_iff dest: multi_member_split split: if_splits)
+ by (auto simp: vdom_m_def image_iff dest: multi_member_split split: if_splits)
 
 text \<open>This is @{thm vdom_m_simps4} if the assumption of distinctness is not present in the context.\<close>
 lemma vdom_m_simps4'[simp]:
   \<open>i \<in># dom_m N \<Longrightarrow>
      vdom_m \<A> (W (L1 := W L1 @ [(i, C1), (i, C2)])) N = vdom_m \<A> W N\<close>
-  by (force simp: vdom_m_def image_iff dest: multi_member_split split: if_splits)
+  by (auto simp: vdom_m_def image_iff dest: multi_member_split split: if_splits)
 
 text \<open>We add a spurious dependency to the parameter of the locale:\<close>
 definition empty_watched :: \<open>nat multiset \<Rightarrow> nat literal \<Rightarrow> (nat \<times> nat literal \<times> bool) list\<close> where

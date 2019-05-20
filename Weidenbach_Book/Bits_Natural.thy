@@ -4,7 +4,7 @@ theory Bits_Natural
      "HOL-Word.More_Word"
 begin
 
-instantiation nat :: bits
+instantiation nat :: bit_comprehension
 begin
 
 definition test_bit_nat :: \<open>nat \<Rightarrow> nat \<Rightarrow> bool\<close> where
@@ -76,7 +76,7 @@ definition shiftl1 :: \<open>nat \<Rightarrow> nat\<close> where
 definition shiftr1 :: \<open>nat \<Rightarrow> nat\<close> where
   \<open>shiftr1 n = n >> 1\<close>
 
-instantiation natural :: bits
+instantiation natural :: bit_comprehension
 begin
 
 context includes natural.lifting begin

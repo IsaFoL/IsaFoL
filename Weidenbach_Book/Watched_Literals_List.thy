@@ -937,7 +937,7 @@ lemma refine_add_invariants:
 lemma clauses_tuple[simp]:
   \<open>cdcl\<^sub>W_restart_mset.clauses (M, {#f x . x \<in># init_clss_l N#} + NE,
      {#f x . x \<in># learned_clss_l N#} + UE, D) = {#f x. x \<in># all_clss_l N#} + NE + UE\<close>
-  by (auto simp: clauses_def simp del: all_clss_l_ran_m)
+  by (auto simp: clauses_def simp flip: image_mset_union)
 
 lemma valid_enqueued_alt_simps[simp]:
   \<open>valid_enqueued S \<longleftrightarrow>
@@ -1677,7 +1677,7 @@ proof -
     S: \<open>S = (M, N, D, NE, UE, WS, Q)\<close>
     by (cases S) auto
   show ?thesis
-    using assms unfolding S by (auto simp add: RES_refine Bex_def twl_st_l_def)
+    using assms unfolding S by (auto simp add: Bex_def twl_st_l_def intro!: RES_refine)
 qed
 
 lemma refine_add_inv:

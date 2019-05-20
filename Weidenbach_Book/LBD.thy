@@ -97,7 +97,7 @@ qed
 definition lbd_write :: \<open>lbd \<Rightarrow> nat \<Rightarrow> bool \<Rightarrow> lbd\<close> where
   \<open>lbd_write = (\<lambda>lbd i b.
     (if i < length_uint32_nat lbd then (lbd[i := b])
-     else (list_grow lbd (i + 1) False[i := b])))\<close>
+     else ((list_grow lbd (i + 1) False)[i := b])))\<close>
 
 
 definition lbd_ref_write :: \<open>lbd_ref \<Rightarrow> nat \<Rightarrow> bool \<Rightarrow> lbd_ref nres\<close>  where
@@ -107,7 +107,7 @@ definition lbd_ref_write :: \<open>lbd_ref \<Rightarrow> nat \<Rightarrow> bool 
        RETURN (lbd[i := b], max i m)
      else do {
         ASSERT(i + 1 \<le> uint_max);
-        RETURN (list_grow lbd (i + one_uint32_nat) False[i := b], max i m)
+        RETURN ((list_grow lbd (i + one_uint32_nat) False)[i := b], max i m)
      })
   })\<close>
 
