@@ -1076,10 +1076,10 @@ next
       apply (metis image_eqI literal.sel(1) literal.sel(2))
       done
     then have atms_tr: \<open>atms_of_mm (encode_clauses N) \<subseteq> atm_of ` (lits_of_l (trail S))\<close>
-      using N \<Sigma> atms_of_mm_encode_clause_subset[of N]
-        atms_of_mm_encode_clause_subset2[of N] finite_\<Sigma> \<Delta>\<Sigma>_\<Sigma>
-      unfolding N \<Sigma> N_\<Sigma>
-      by force
+      using N atms_of_mm_encode_clause_subset[of N]
+        atms_of_mm_encode_clause_subset2[of N, OF finite_\<Sigma>] \<Delta>\<Sigma>_\<Sigma>
+      unfolding N \<Sigma> N_\<Sigma> \<open>{A \<in> \<Delta>\<Sigma>. A \<in> \<Sigma>} = \<Delta>\<Sigma>\<close>
+      by (meson order_trans)
     show False
       by (metis L N N_\<Sigma> atm_lit_of_set_lits_of_l
         atms_tr' defined_lit_map subsetCE undef)
