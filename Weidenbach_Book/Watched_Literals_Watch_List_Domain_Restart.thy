@@ -1531,7 +1531,7 @@ proof -
             uminus_lit_swap clauses_pointed_to_remove1_if)
         apply auto
          apply (rule_tac x=mb in exI)
-         apply (auto dest: multi_member_split[of A]
+         apply (auto dest!:
             simp: clauses_pointed_to_remove1_if
             clauses_pointed_to_remove1_if2
             clauses_pointed_to_remove1_if2_eq)
@@ -1571,9 +1571,9 @@ definition cdcl_GC_clauses_prog_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_s
       (\<lambda>(\<B>, _). \<B> \<noteq> {#})
       (\<lambda>(\<B>, (N, N', WS)). do {
         ASSERT(\<B> \<noteq> {#});
-	      A \<leftarrow> SPEC (\<lambda>A. A \<in># \<B>);
-  	    (N, N', WS) \<leftarrow> cdcl_GC_clauses_prog_single_wl N WS A N';
-	      RETURN (remove1_mset A \<B>, (N, N', WS))
+        A \<leftarrow> SPEC (\<lambda>A. A \<in># \<B>);
+        (N, N', WS) \<leftarrow> cdcl_GC_clauses_prog_single_wl N WS A N';
+        RETURN (remove1_mset A \<B>, (N, N', WS))
       })
       (\<A>, (N0, fmempty, WS));
     RETURN (M, N', D, NE, UE, Q, WS)
@@ -1609,21 +1609,23 @@ proof -
       apply clarify
       apply (rule order_trans,
          rule_tac m=m and \<A>=af in cdcl_GC_clauses_prog_single_wl)
-    subgoal by auto
-    apply (rule RES_rule)
-    apply clarify
-    apply (rule RETURN_rule)
-    apply clarify
-    apply (intro conjI)
-       apply auto[]
-      apply (simp_all add: size_Diff1_less)
-      apply (metis Diff_iff insert_DiffM insert_iff set_mset_add_mset_insert)
-    apply (rule_tac x=m' in exI)
-     apply auto[]
-    done
-  subgoal
-    unfolding cdcl_GC_clauses_prog_wl_inv_def
-    by auto
+      subgoal by auto
+      subgoal
+        apply (rule RES_rule)
+        apply clarify
+        apply (rule RETURN_rule)
+        apply clarify
+        apply (intro conjI)
+            apply (solves auto)
+           apply (solves \<open>auto dest!: multi_member_split\<close>)
+          apply (rule_tac x=m' in exI)
+          apply (solves auto)[]
+         apply (simp_all add: size_Diff1_less)[]
+        done
+      done
+    subgoal
+      unfolding cdcl_GC_clauses_prog_wl_inv_def
+      by auto
   done
 qed
 
