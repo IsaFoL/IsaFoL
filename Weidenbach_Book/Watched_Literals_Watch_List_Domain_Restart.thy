@@ -1454,35 +1454,25 @@ lemma poss_remove_Pos: \<open>A \<notin># \<A> \<Longrightarrow> negs \<A> + pos
 
 lemma cdcl_GC_clauses_prog_single_wl_removed:
   \<open>\<forall>L\<in>set (W (Pos A)). fst L \<notin># dom_m aaa \<Longrightarrow>
-       GC_remap\<^sup>*\<^sup>* (N0, m, N0') (aaa, ma, baa) \<Longrightarrow>
-       \<forall>L\<in>dom ma. L \<notin># dom_m aaa \<Longrightarrow>
-       set_mset (dom_m aaa) \<subseteq> clauses_pointed_to (set_mset (remove1_mset (Pos A) (negs \<A> + poss \<A>))) W \<Longrightarrow>
        \<forall>L\<in>set (W (Neg A)). fst L \<notin># dom_m a \<Longrightarrow>
        GC_remap\<^sup>*\<^sup>* (aaa, ma, baa) (a, mb, b) \<Longrightarrow>
-       \<forall>L\<in>dom mb. L \<notin># dom_m a \<Longrightarrow>
        set_mset (dom_m a) \<subseteq> clauses_pointed_to (set_mset (negs \<A> + poss \<A> - {#Neg A, Pos A#})) W \<Longrightarrow>
        xa \<in># dom_m a \<Longrightarrow>
        xa \<in> clauses_pointed_to (Neg ` set_mset (remove1_mset A \<A>) \<union> Pos ` set_mset (remove1_mset A \<A>))
               (W(Pos A := [], Neg A := []))\<close>
   \<open>\<forall>L\<in>set (W (Neg A)). fst L \<notin># dom_m aaa \<Longrightarrow>
-       GC_remap\<^sup>*\<^sup>* (N0, m, N0') (aaa, ma, baa) \<Longrightarrow>
-       \<forall>L\<in>dom ma. L \<notin># dom_m aaa \<Longrightarrow>
-       set_mset (dom_m aaa)
-       \<subseteq> clauses_pointed_to (set_mset (remove1_mset (Neg A) (negs \<A> + poss \<A>))) W \<Longrightarrow>
        \<forall>L\<in>set (W (Pos A)). fst L \<notin># dom_m a \<Longrightarrow>
        GC_remap\<^sup>*\<^sup>* (aaa, ma, baa) (a, mb, b) \<Longrightarrow>
-       \<forall>L\<in>dom mb. L \<notin># dom_m a \<Longrightarrow>
-       set_mset (dom_m a)
-       \<subseteq> clauses_pointed_to (set_mset (negs \<A> + poss \<A> - {#Pos A, Neg A#})) W \<Longrightarrow>
+       set_mset (dom_m a) \<subseteq> clauses_pointed_to (set_mset (negs \<A> + poss \<A> - {#Pos A, Neg A#})) W \<Longrightarrow>
        xa \<in># dom_m a \<Longrightarrow>
        xa \<in> clauses_pointed_to
               (Neg ` set_mset (remove1_mset A \<A>) \<union> Pos ` set_mset (remove1_mset A \<A>))
               (W(Neg A := [], Pos A := []))\<close>
   supply poss_remove_Pos[simp] negs_remove_Neg[simp]
-  by (cases \<open>A \<in># \<A>\<close> ; (fastforce simp: clauses_pointed_to_def
+  by (case_tac [!] \<open>A \<in># \<A>\<close>)
+    (fastforce simp: clauses_pointed_to_def
       dest!: multi_member_split
-      dest: rtranclp_GC_remap_ran_m_no_lost)+)+
-
+      dest: rtranclp_GC_remap_ran_m_no_lost)+
 
 lemma cdcl_GC_clauses_prog_single_wl:
   fixes A :: \<open>'v\<close> and WS :: \<open>'v literal \<Rightarrow> 'v watched\<close> and
