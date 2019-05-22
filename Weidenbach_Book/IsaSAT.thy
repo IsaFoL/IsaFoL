@@ -2763,6 +2763,40 @@ export_code IsaSAT_code
     nat_of_integer
     uint32_of_nat
     Version.version
-  in SML_imp module_name SAT_Solver file "code/IsaSAT_solver.sml"
+  in SML_imp module_name SAT_Solver file_prefix "IsaSAT_solver"
+
+external_file "code/Unsynchronized.sml"
+external_file "code/IsaSAT.mlb"
+external_file "code/IsaSAT.sml"
+external_file "code/dimacs_parser.sml"
+
+export_generated_files _
+
+compile_generated_files 
+   \<open>code/IsaSAT_solver.ML\<close>
+  external_files
+    \<open>code/IsaSAT.mlb\<close>
+    "code/Unsynchronized.sml"
+    "code/IsaSAT.mlb"
+    "code/IsaSAT.sml"
+    "code/dimacs_parser.sml"
+  where \<open>fn dir =>
+    let
+      val exec = Generated_Files.execute (Path.append dir (Path.basic "code"));
+      val _ = exec \<open>ls\<close> "ls  >> /tmp/test"
+      val _ = exec \<open>rename file\<close> "mv IsaSAT_solver.ML IsaSAT_solver.sml"
+      val _ =
+        exec \<open>Copy files\<close>
+          ("cp IsaSAT_solver.sml " ^
+            ((File.bash_path \<^path>\<open>$ISAFOL\<close>) ^ "/Weidenbach_Book/code/IsaSAT_solver.sml"));
+      val _ =
+        exec \<open>Compilation\<close>
+          (File.bash_path \<^path>\<open>$ISABELLE_MLTON\<close> ^
+            " -default-type int64 IsaSAT.mlb");
+      val _ =
+        exec \<open>Copy binary files\<close>
+          ("cp IsaSAT " ^
+            File.bash_path \<^path>\<open>$ISAFOL\<close> ^ "/Weidenbach_Book/code/");
+    in () end\<close>
 
 end

@@ -143,6 +143,8 @@ session "CDCL" (Weidenbach_Book) = "Sepref_IICF"  +
   document_files
     "root.tex"
     "biblio.bib"
+  export_files (in "code") [1]
+    "CDCL.CDCL_W_Implementation:**"
 
 session "CDCL_Extensions" (Weidenbach_Book) = "CDCL"  +
   description \<open>This sessions contains the extensions of the CDCL calculus.\<close>
@@ -229,7 +231,8 @@ session "IsaSAT" (Weidenbach_Book) = "Watched_Literals"  +
   document_files
     "root.tex"
     "biblio.bib"
-
+  export_files (in "code") [1]
+    "IsaSAT.IsaSAT:**"
 
 session Model_Enumeration (Weidenbach_Book) = Watched_Literals +
   description \<open>This extends the previous version to a very simple 'SMT' solver: we enumerate all models and let an unspecified theoty solver checks if a model is valid or another must be found.\<close>
