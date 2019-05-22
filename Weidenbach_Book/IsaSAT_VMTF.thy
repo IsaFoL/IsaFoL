@@ -1,5 +1,5 @@
 theory IsaSAT_VMTF
-imports IsaSAT_Setup WB_Sort
+imports Watched_Literals.WB_Sort IsaSAT_Setup
 begin
 
 
@@ -379,22 +379,21 @@ lemma current_stamp_hnr[sepref_fr_rules]:
 
 lemma vmtf_rescale_alt_def:
 \<open>vmtf_rescale = (\<lambda>(ns, m, fst_As, lst_As :: nat, next_search). do {
-  (ns, m, _) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>_. True\<^esup>
-     (\<lambda>(ns, n, lst_As). lst_As \<noteq>None)
-     (\<lambda>(ns, n, a). do {
-       ASSERT(a \<noteq> None);
-       ASSERT(n+1 \<le> uint32_max);
-       ASSERT(the a < length ns);
-       let m = the a;
-       let c = ns ! m;
-       let nc = get_next c;
-       let pc = get_prev c;
-       RETURN (ns[m := VMTF_Node n pc nc], n + 1, pc)
-     })
-     (ns, 0, Some lst_As);
-  RETURN ((ns, m, fst_As, lst_As, next_search))
-  })
-\<close>
+    (ns, m, _) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>_. True\<^esup>
+      (\<lambda>(ns, n, lst_As). lst_As \<noteq>None)
+      (\<lambda>(ns, n, a). do {
+         ASSERT(a \<noteq> None);
+         ASSERT(n+1 \<le> uint32_max);
+         ASSERT(the a < length ns);
+         let m = the a;
+         let c = ns ! m;
+         let nc = get_next c;
+         let pc = get_prev c;
+         RETURN (ns[m := VMTF_Node n pc nc], n + 1, pc)
+      })
+      (ns, 0, Some lst_As);
+    RETURN ((ns, m, fst_As, lst_As, next_search))
+  })\<close>
   unfolding update_stamp.simps Let_def vmtf_rescale_def by auto
 
 sepref_register vmtf_rescale

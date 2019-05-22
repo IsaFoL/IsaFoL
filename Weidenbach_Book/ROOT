@@ -184,6 +184,7 @@ session "Watched_Literals" (Weidenbach_Book) = "CDCL"  +
     Watched_Literals_Watch_List_Domain
     Watched_Literals_Watch_List_Initialisation
     CDCL_Conflict_Minimisation
+    WB_Sort
 
   document_files
     "root.tex"

@@ -1,6 +1,5 @@
 theory WB_Sort
-  imports
-    Watched_Literals.WB_More_Refinement
+  imports WB_More_Refinement
 begin
 
 definition choose_pivot :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> 'b) \<Rightarrow> 'a list \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat nres\<close> where
