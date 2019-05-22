@@ -278,6 +278,75 @@ lemma sorted_sublist_map_snoc:
   by (blast intro: sorted_sublist_wrt_snoc)
 
 
+(*      : forall (n : nat) (P : nat -> Prop), P n -> (forall m : nat, n <= m -> P m -> P (S m)) -> forall n0 : nat, n <= n0 -> P n0
+ *)
+
+lemma nat_less_eq_induct:
+  fixes P::\<open>nat\<Rightarrow>bool\<close> and n::\<open>nat\<close>
+  assumes start: \<open>P n\<close>
+    and step: \<open>\<And> m. n \<le> m \<Longrightarrow> P m \<Longrightarrow> P (Suc m)\<close>
+  shows \<open>\<And> m. n \<le> m \<Longrightarrow> P m\<close>
+  using local.step Nat.dec_induct start by blast
+
+lemma nat_less_induct:
+  fixes P::\<open>nat\<Rightarrow>bool\<close> and n::\<open>nat\<close>
+  assumes start: \<open>P (Suc n)\<close>
+    and step: \<open>\<And> m. n < m \<Longrightarrow> P m \<Longrightarrow> P (Suc m)\<close>
+  shows \<open>\<And> m. n < m \<Longrightarrow> P m\<close>
+  by (simp add: assms(1) assms(2) less_eq_Suc_le nat_induct_at_least)
+
+
+lemma
+  assumes \<open>lo' \<le> p-(1::nat)\<close>
+  shows \<open>lo' = p-1 \<or> lo'+1 < p\<close>
+proof -
+  show ?thesis
+    using assms less_diff_conv order.not_eq_order_implies_strict by blast
+qed
+
+
+(* TODO? *)
+lemma snorted_sublist_map_snocs':
+  assumes trans: \<open>(\<And> x y z. \<lbrakk>R x y; R y z\<rbrakk> \<Longrightarrow> R x z)\<close>
+    and \<open>sorted_sublist_wrt R xs lo (lo'-1)\<close>
+    and \<open>lo \<le> lo'\<close> and \<open>lo' \<le> hi\<close>
+    and \<open>lo'+1 < p\<close>
+    and \<open>lo \<le> hi\<close> and \<open>hi < length xs\<close> and \<open>(R (xs!(hi-1)) (xs!p))\<close>
+  shows \<open>sorted_sublist_wrt R xs lo p\<close>
+(*proof (induction rule: nat_less_induct[where n=\<open>lo'+1\<close>])
+  case 1
+  then show ?case
+    apply simp
+    apply (rule sorted_sublist_wrt_snoc)
+    subgoal by (rule trans)
+    subgoal apply simp
+    apply (rule sorted_sublist_wrt_snoc)
+    subgoal by (rule trans)
+    subgoal apply simp
+    apply (rule sorted_sublist_wrt_snoc)
+    subgoal by (rule trans)
+    subgoal apply simp
+      using assms(2) by auto
+    subgoal by (rule assms)
+    subgoal using assms(4) assms(7) dual_order.strict_trans2 by blast
+    subgoal sorry
+    done sorry sorry
+next
+  case (2 m)
+  then show ?case
+    thm assms 2
+    apply (rule sorted_sublist_wrt_snoc)
+    subgoal by (rule trans)
+    subgoal apply simp
+next
+  case 3
+  then show ?case by (rule assms)
+qed
+qed
+*)
+  sorry
+
+
 
 lemma sublist_split: \<open>lo \<le> hi \<Longrightarrow> lo < p \<Longrightarrow> p < hi \<Longrightarrow> hi < length xs \<Longrightarrow> sublist xs lo p @ sublist xs (p+1) hi = sublist xs lo hi\<close>
   apply (auto simp add: sublist_def)
@@ -581,6 +650,7 @@ lemma
     A: \<open>x \<in> set (sublist xs' lo hi)\<close>
   shows \<open>x \<in> set (sublist xs lo hi)\<close>
 proof -
+(*
   have L0: \<open>set xs' = set xs\<close> by (metis assms(3) set_mset_mset)
   have L1: \<open>length xs' = length xs\<close> by (metis assms(3) size_mset)
   have L2: \<open>lo < length xs\<close> using assms(1,2) by linarith
@@ -604,27 +674,9 @@ proof -
     using Z apply (rule take_eq_set[where xs'=\<open>drop lo xs'\<close>]) apply auto
     subgoal using L1 by auto
     subgoal nitpick done
-    subgoal using A by (auto simp add: sublist_def[symmetric])
-    done
+*)
 oops
     
-
-
-
-(*
-  have \<open>\<exists>k''. lo\<le>k''\<and>k''\<le>hi \<and> xs!k''=x\<close>
-  proof
-    assume \<open>\<not> (\<exists>k''. lo\<le>k''\<and>k''\<le>hi \<and> xs!k''=x)\<close>
-    then have \<open>\<forall>k''. lo\<le>k''\<and>k''\<le>hi \<longrightarrow> xs!k''\<noteq>x\<close> by blast
-    then have \<open>\<forall>k''. xs!k''=x \<longrightarrow> \<not>(lo\<le>k''\<and>k''\<le>hi)\<close> by blast
-    then have \<open>\<not> (lo\<le>k'\<and>k'\<le>hi)\<close> using Y by blast
-    
-
-
-  then show ?thesis
-    sorry
-qed
-*)
 
 
 text \<open>Our abstract recursive quicksort procedure. We abstract over a partition procedure.\<close>
@@ -834,7 +886,7 @@ lemma quicksort_correct_case2:
     trans: \<open>\<And>x y z. R (h x) (h y) \<Longrightarrow> R (h y) (h z) \<Longrightarrow> R (h x) (h z)\<close> and
     pre0: \<open>hi < length xs\<close> and
     inv: \<open>quicksort_inv R h xs lo hi lo' hi' xs'\<close> and
-    (* if1: \<open>p-1 \<le> lo'\<close> and *) if2: \<open>hi'>p+1\<close> and \<comment> \<open>From the "if"s\<close>
+    if1: \<open>p-1 \<le> lo'\<close> and if2: \<open>hi'>p+1\<close> and \<comment> \<open>From the "if"s\<close>
     part: \<open>partition_spec R h xs' lo' hi' xs'' p\<close>
   shows \<open>quicksort_inv R h xs lo hi (Suc p) hi' xs''\<close>
 proof -
@@ -876,11 +928,98 @@ proof -
       using inv3 by linarith
     subgoal
       by (simp add: inv4 part1)
+
+    text \<open>Show that \<^term>\<open>lo\<close> to \<^term>\<open>p\<close> is sorted.\<close>
     subgoal
-      sorry (* TODO *)
+    proof -
+      text \<open>inv5 still holds after partition.\<close>
+      have S: \<open>sorted_sublist_map R h xs'' lo (lo'-1)\<close>
+        using inv5 apply (rule sorted_map_lower_sublist_still_sorted)
+        subgoal by (rule inv1)
+        subgoal by (rule G)
+        subgoal using part5 by blast
+        subgoal by (rule H)
+        done
+      have Bp: \<open>lo' = p - 1 \<or> lo' = p\<close>
+        using if1 part3 by linarith
+      then consider (a) \<open>lo' = p-1\<close> |
+                    (b) \<open>lo' = p\<close> by blast
+      then have \<open>sorted_sublist_map R h xs'' lo p\<close>
+      proof cases
+        case (a)
+        then have S: \<open>sorted_sublist_map R h xs'' lo ((p-1)-1)\<close>
+          by (metis S Suc_1 diff_Suc_eq_diff_pred)
+        have S: \<open>sorted_sublist_map R h xs'' lo (p-1)\<close>
+          apply (rule sorted_sublist_map_snoc)
+          subgoal by (rule trans)
+          subgoal by (rule S)
+          subgoal using a inv1 by blast
+          subgoal using I a by blast
+          subgoal
+            sorry (* TODO *)
+          done
+        show ?thesis
+          apply (rule sorted_sublist_map_snoc)
+          subgoal by (rule trans)
+          subgoal by (rule S)
+          subgoal by (simp add: C)
+          subgoal using D E dual_order.strict_trans2 by blast
+          subgoal
+            sorry (* TODO *)
+          done
+      next
+        case (b)
+        then have S: \<open>sorted_sublist_map R h xs'' lo (p-1)\<close>
+          using S by blast
+        show ?thesis
+          apply (rule sorted_sublist_map_snoc)
+          subgoal by (rule trans)
+          subgoal by (rule S)
+          subgoal by (simp add: C)
+          subgoal using D E dual_order.strict_trans2 by blast
+          subgoal
+            sorry (* TODO *)
+          done
+      qed
+
+      text \<open>Simplification: \<^term>\<open>Suc p - 1 = p\<close>\<close>
+      then show ?thesis by simp
+    qed
+
+    text \<open>Show that \<^term>\<open>hi'+1\<close> to \<^term>\<open>hi\<close> is sorted.\<close>
     subgoal
-      sorry (* TODO *)
+    proof -
+      show ?thesis
+        apply (rule sorted_wrt_upper_sublist_still_sorted [OF inv5' inv1])
+        subgoal by (rule K)
+        subgoal using H K part6 by auto
+        subgoal by (rule H)
+        done
+    qed
+
     subgoal
+    proof (intro allI impI, elim conjE)
+      fix i :: nat and j :: nat
+      assume \<open>lo \<le> i\<close> and \<open>i < Suc p\<close> and \<open>Suc p \<le> j\<close> and \<open>j \<le> hi\<close>
+      have \<open>i < lo \<or> i \<ge> lo\<close> by linarith
+      then consider (a) \<open>i < lo\<close> |
+                    (b) \<open>i \<ge> lo\<close> by blast
+      then show \<open>R (h (xs'' ! i)) (h (xs'' ! j))\<close>
+      proof cases
+        case (a)
+        then have \<open>xs'' ! i = xs' ! i\<close>
+          using \<open>lo \<le> i\<close> not_le by blast
+        then show ?thesis
+          sorry
+          (* We need to do more tedious case analyses... *)
+      next
+        case (b)
+        then show ?thesis sorry
+      qed
+    qed
+
+
+
       sorry (* TODO *)
     subgoal
       sorry (* TODO *)
