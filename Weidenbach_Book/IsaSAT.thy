@@ -2772,7 +2772,7 @@ external_file "code/dimacs_parser.sml"
 
 export_generated_files _
 
-compile_generated_files 
+compile_generated_files
    \<open>code/IsaSAT_solver.ML\<close>
   external_files
     \<open>code/IsaSAT.mlb\<close>

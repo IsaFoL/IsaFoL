@@ -568,7 +568,7 @@ where
        (\<lambda>(i :: nat, clvls, zs, lbd, outl). do {
            ASSERT(i < length_uint32_nat D);
            ASSERT(Suc i \<le> uint_max);
-           let lbd = lbd_write lbd (get_level M (D!i)) True;
+           let lbd = lbd_write lbd (get_level M (D!i));
            let outl = outlearned_add M (D!i) zs outl;
            let clvls = clvls_add M (D!i) zs clvls;
            let zs = add_to_lookup_conflict (D!i) zs;
@@ -632,7 +632,7 @@ where
            ASSERT(arena_lit_pre N j);
            ASSERT(get_level_pol_pre (M, arena_lit N j));
 	   ASSERT(get_level_pol M (arena_lit N j) \<le> Suc (uint32_max div 2));
-           let lbd = lbd_write lbd (get_level_pol M (arena_lit N j)) True;
+           let lbd = lbd_write lbd (get_level_pol M (arena_lit N j));
            ASSERT(atm_of (arena_lit N j) < length (snd zs));
            let outl = isa_outlearned_add M (arena_lit N j) zs outl;
            let clvls = isa_clvls_add M (arena_lit N j) zs clvls;
@@ -870,7 +870,7 @@ lemma lookup_conflict_merge'_spec:
      (is \<open>_ \<le>  \<Down> ?Ref ?Spec\<close>)
 proof -
   define lbd_upd where
-     \<open>lbd_upd lbd i \<equiv> lbd_write lbd (get_level M (D!i)) True\<close> for lbd i
+     \<open>lbd_upd lbd i \<equiv> lbd_write lbd (get_level M (D!i))\<close> for lbd i
   let ?D = \<open>drop init D\<close>
   have le_D_le_upper[simp]: \<open>a < length D \<Longrightarrow> Suc (Suc a) \<le> uint_max\<close> for a
     using simple_clss_size_upper_div2[of \<A> \<open>mset D\<close>] assms by (auto simp: uint_max_def)
@@ -4557,7 +4557,7 @@ definition lookup_merge_eq2
     ASSERT(length N = 2);
     let L' = (if N ! 0 = L then N ! 1 else N ! 0);
     ASSERT(get_level M L' \<le> Suc (uint32_max div 2));
-    let lbd = lbd_write lbd (get_level M L') True;
+    let lbd = lbd_write lbd (get_level M L');
     ASSERT(atm_of L' < length (snd zs));
     let outl = outlearned_add M L' zs outl;
     ASSERT(clvls < uint32_max);
@@ -4598,7 +4598,7 @@ lemma lookup_merge_eq2_spec:
      (is \<open>_ \<le>  \<Down> ?Ref ?Spec\<close>)
 proof -
   define lbd_upd where
-     \<open>lbd_upd lbd i \<equiv> lbd_write lbd (get_level M (D!i)) True\<close> for lbd i
+     \<open>lbd_upd lbd i \<equiv> lbd_write lbd (get_level M (D!i))\<close> for lbd i
   let ?D = \<open>remove1 L D\<close>
   have le_D_le_upper[simp]: \<open>a < length D \<Longrightarrow> Suc (Suc a) \<le> uint_max\<close> for a
     using simple_clss_size_upper_div2[of \<A> \<open>mset D\<close>] assms by (auto simp: uint_max_def)
@@ -4685,7 +4685,7 @@ definition isasat_lookup_merge_eq2
     let L' = (if arena_lit N C = L then arena_lit N (C + 1) else arena_lit N C);
     ASSERT(get_level_pol_pre (M, L'));
     ASSERT(get_level_pol M L' \<le> Suc (uint32_max div 2));
-    let lbd = lbd_write lbd (get_level_pol M L') True;
+    let lbd = lbd_write lbd (get_level_pol M L');
     ASSERT(atm_of L' < length (snd zs));
     let outl = isa_outlearned_add M L' zs outl;
     ASSERT(clvls < uint32_max);
