@@ -3033,20 +3033,34 @@ definition iterate_over_\<L>\<^sub>a\<^sub>l\<^sub>l where
 
 lemma
   fixes x :: 'a
-  assumes vmtf: \<open>((ns, m, fst_As, lst_As, next_search), to_remove) \<in> vmtf \<A> M\<close>
-  shows \<open>iterate_over_VMTF (ns, fast_As) I f x \<le> \<Down> Id (iterate_over_\<L>\<^sub>a\<^sub>l\<^sub>l \<A> I f x)\<close>
+  assumes vmtf: \<open>((ns, m, fst_As, lst_As, next_search), to_remove) \<in> vmtf \<A> M\<close> and
+    nempty: \<open>\<A> \<noteq> {#}\<close>
+  shows \<open>iterate_over_VMTF (ns, fst_As) I f x \<le> \<Down> Id (iterate_over_\<L>\<^sub>a\<^sub>l\<^sub>l \<A> I f x)\<close>
 proof -
-thm wf_vmtf_get_next
   obtain xs' ys' where
-    \<open>vmtf_ns (ys' @ xs') m ns\<close>
-    \<open>fst_As = hd (ys' @ xs')\<close>
+    vmtf_ns: \<open>vmtf_ns (ys' @ xs') m ns\<close> and
+    \<open>fst_As = hd (ys' @ xs')\<close> and
     \<open>lst_As = last (ys' @ xs')\<close> and
-    \<open>vmtf_\<L>\<^sub>a\<^sub>l\<^sub>l \<A> M ((set xs', set ys'), to_remove)\<close>
+    vmtf_\<L>: \<open>vmtf_\<L>\<^sub>a\<^sub>l\<^sub>l \<A> M ((set xs', set ys'), to_remove)\<close> and
+    fst_As: \<open>fst_As = hd (ys' @ xs')\<close>
     using vmtf unfolding vmtf_def
     by blast
+  define zs where \<open>zs = ys' @ xs'\<close>
   define is_lasts where
-    \<open>is_lasts \<A> n \<longleftrightarrow> \<A> = mset (drop (length (ys' @ xs') - size \<A>) (ys' @ xs')) \<and>
-         (ys' @ xs') ! (length (ys' @ xs') - size \<A>) = n\<close> for \<A> n
+    \<open>is_lasts \<A> n \<longleftrightarrow> set_mset \<A> = set (drop (length zs - card (set_mset \<A>)) zs) \<and>
+        zs ! (length zs - card (set_mset \<A>)) = n \<and>
+        card (set_mset \<A>) \<le> length zs \<and>
+        n < length ns\<close> for \<A> n
+  have card_\<A>: \<open>card (set_mset \<A>) = length zs\<close>
+    \<open>set_mset \<A> = set zs\<close> and
+    nempty': \<open>zs \<noteq> []\<close>
+    using vmtf_\<L> vmtf_ns_distinct[OF vmtf_ns] nempty
+    unfolding vmtf_\<L>\<^sub>a\<^sub>l\<^sub>l_def eq_commute[of _ \<open>atms_of _\<close>] zs_def
+    by (auto simp: atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n card_Un_disjoint distinct_card)
+  have hd_zs_le: \<open>hd zs < length ns\<close>
+    using vmtf_ns_le_length[OF vmtf_ns, of \<open>hd zs\<close>] nempty'
+    unfolding zs_def[symmetric]
+    by auto
   have iterate_over_VMTF_alt_def:
     \<open>iterate_over_VMTF = (\<lambda>(vm, n) I f x. do {
       let _= \<A>;
@@ -3066,7 +3080,14 @@ thm wf_vmtf_get_next
     unfolding iterate_over_VMTF_alt_def iterate_over_\<L>\<^sub>a\<^sub>l\<^sub>l_def
     apply (refine_vcg WHILEIT_refine[where R = \<open>{((n :: nat, x::'a), (\<A>' :: nat multiset, y)). is_lasts \<A> n \<and> x = y}\<close>])
     subgoal by auto
-    subgoal apply (auto simp: is_lasts_def)
+    subgoal
+      using card_\<A> fst_As nempty hd_conv_nth[OF nempty'] hd_zs_le unfolding zs_def[symmetric]
+      by (auto simp: is_lasts_def)
+    subgoal
+      by (auto simp: is_lasts_def)
+    subgoal by auto
+    subgoal
+      apply (auto simp: is_lasts_def)
   oops
 
 end
