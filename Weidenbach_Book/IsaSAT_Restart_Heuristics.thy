@@ -3002,4 +3002,71 @@ lemma restart_prog_wl_D_heur_restart_prog_wl_D:
   subgoal by fast
   oops
 
+
+definition iterate_over_VMTF where
+  \<open>iterate_over_VMTF = (\<lambda>(vm, n) I f x. do {
+    (_, x) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(n, x). n < length vm \<and> I x\<^esup>
+      (\<lambda>(n, _). get_next (vm ! n) \<noteq> None)
+      (\<lambda>(n, x). do {
+        let A = the (get_next (vm ! n));
+        x \<leftarrow> f A x;
+        RETURN (A, x)
+      })
+      (n, x);
+    RETURN x
+  })\<close>
+
+definition iterate_over_\<L>\<^sub>a\<^sub>l\<^sub>l where
+  \<open>iterate_over_\<L>\<^sub>a\<^sub>l\<^sub>l = (\<lambda>\<A>\<^sub>0 I f x. do {
+    \<A> \<leftarrow> SPEC(\<lambda>\<A>. set_mset \<A> = set_mset \<A>\<^sub>0);
+    (_, x) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(_, x). I x\<^esup>
+      (\<lambda>(\<B>, _). \<B> \<noteq> {#})
+      (\<lambda>(\<B>, x). do {
+        ASSERT(\<B> \<noteq> {#});
+        A \<leftarrow> SPEC (\<lambda>A. A \<in># \<B>);
+        x \<leftarrow> f A x;
+        RETURN (remove1_mset A \<B>, x)
+      })
+      (\<A>, x);
+    RETURN x
+  })\<close>
+
+lemma
+  fixes x :: 'a
+  assumes vmtf: \<open>((ns, m, fst_As, lst_As, next_search), to_remove) \<in> vmtf \<A> M\<close>
+  shows \<open>iterate_over_VMTF (ns, fast_As) I f x \<le> \<Down> Id (iterate_over_\<L>\<^sub>a\<^sub>l\<^sub>l \<A> I f x)\<close>
+proof -
+thm wf_vmtf_get_next
+  obtain xs' ys' where
+    \<open>vmtf_ns (ys' @ xs') m ns\<close>
+    \<open>fst_As = hd (ys' @ xs')\<close>
+    \<open>lst_As = last (ys' @ xs')\<close> and
+    \<open>vmtf_\<L>\<^sub>a\<^sub>l\<^sub>l \<A> M ((set xs', set ys'), to_remove)\<close>
+    using vmtf unfolding vmtf_def
+    by blast
+  define is_lasts where
+    \<open>is_lasts \<A> n \<longleftrightarrow> \<A> = mset (drop (length (ys' @ xs') - size \<A>) (ys' @ xs')) \<and>
+         (ys' @ xs') ! (length (ys' @ xs') - size \<A>) = n\<close> for \<A> n
+  have iterate_over_VMTF_alt_def:
+    \<open>iterate_over_VMTF = (\<lambda>(vm, n) I f x. do {
+      let _= \<A>;
+      (_, x) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(n, x). n < length vm \<and> I x\<^esup>
+        (\<lambda>(n, _). get_next (vm ! n) \<noteq> None)
+        (\<lambda>(n, x). do {
+          let A = the (get_next (vm ! n));
+          x \<leftarrow> f A x;
+          RETURN (A, x)
+        })
+        (n, x);
+      RETURN x
+    })\<close>
+    unfolding iterate_over_VMTF_def
+    by auto
+  show ?thesis
+    unfolding iterate_over_VMTF_alt_def iterate_over_\<L>\<^sub>a\<^sub>l\<^sub>l_def
+    apply (refine_vcg WHILEIT_refine[where R = \<open>{((n :: nat, x::'a), (\<A>' :: nat multiset, y)). is_lasts \<A> n \<and> x = y}\<close>])
+    subgoal by auto
+    subgoal apply (auto simp: is_lasts_def)
+  oops
+
 end
