@@ -472,7 +472,7 @@ lemma partition_map_extend:
 
 
 lemma isPartition_empty:
-  \<open>(\<forall>j. lo < j \<and> j \<le> hi \<longrightarrow> R (xs ! lo) (xs ! j)) \<Longrightarrow>
+  \<open>(\<And> j. \<lbrakk>lo < j; j \<le> hi\<rbrakk> \<Longrightarrow> R (xs ! lo) (xs ! j)) \<Longrightarrow>
   isPartition_wrt R xs lo hi lo\<close>
   by (auto simp add: isPartition_wrt_def)
 
@@ -695,36 +695,40 @@ text \<open>The invariant/precondition of the recursive calls of quicksort.\<clo
 
 definition quicksort_inv :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> 'b) \<Rightarrow> 'a list \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a list \<Rightarrow> bool\<close> where
   \<open>quicksort_inv R h xs lo hi lo' hi' xs' \<equiv>
-    lo \<le> lo' \<and> lo' \<le> hi' \<and> hi' \<le> hi \<and>
-    mset xs = mset xs' \<and>
-    sorted_sublist_map R h xs' lo (lo'-1) \<and> sorted_sublist_map R h xs' (hi'+1) hi \<and>
-    (\<forall> i j. lo \<le> i \<and> i < lo' \<and> lo' \<le> j \<and> j \<le> hi \<longrightarrow> R (h (xs'!i)) (h (xs'!j))) \<and> \<comment> \<open>All elements below lo' are smaller than the rest to the right\<close>
-    (\<forall> i j. i > hi' \<and> i \<le> hi \<and> j  \<ge> lo' \<and> j \<le> hi \<longrightarrow> R (h (xs'!j)) (h (xs'!i)))\<close> \<comment> \<open>All elements over hi' are bigger than the rest to the right\<close>
+    lo \<le> lo' \<and> lo' \<le> hi' \<and> hi' \<le> hi \<and> \<comment> \<open>Indices ok\<close>
+    mset xs = mset xs' \<and> \<comment> \<open>We have a permutation to the original list\<close>
+    sorted_sublist_map R h xs' lo (lo'-1) \<and> sorted_sublist_map R h xs' (hi'+1) hi \<and> \<comment> \<open>The left and right parts are already sorted.\<close>
+    (\<forall> i. lo' \<ge> lo + 1 \<longrightarrow> lo'\<le> i\<and>i\<le>hi' \<longrightarrow> R (h (xs'! (lo'-1))) (h (xs'!i))) \<and> \<comment> \<open>All elements in the sublist are bigger than the biggest element in the left part.\<close>
+    (\<forall> i. hi' + 1 \<le> hi \<longrightarrow> lo'\<le> i\<and>i\<le>hi' \<longrightarrow> R (h (xs'!i)) (h (xs'!(hi'+1))))\<close> \<comment> \<open>All elements in the sublist are smaller than the smallest element in the right part.\<close>
 
 
 text \<open>The first case for the correctness proof of quicksort: \<^term>\<open>p-1 \<le> lo'\<close> and \<^term>\<open>hi'\<le>p+1\<close>.\<close>
 lemma quicksort_correct_case1:
   assumes
     trans: \<open>\<And>x y z. R (h x) (h y) \<Longrightarrow> R (h y) (h z) \<Longrightarrow> R (h x) (h z)\<close> and
+    lin: \<open>\<And>x y. R (h x) (h y) \<or> R (h y) (h x)\<close> and
     pre0: \<open>hi < length xs\<close> and
     inv: \<open>quicksort_inv R h xs lo hi lo' hi' xs'\<close> and
     if1: \<open>p-1 \<le> lo'\<close> and if2: \<open>hi'\<le>p+1\<close> and \<comment> \<open>From the "if"s\<close>
     part: \<open>partition_spec R h xs' lo' hi' xs'' p\<close>
   shows \<open>sorted_sublist_map R h xs'' lo hi\<close>
 proof -
-  text \<open>First, we need to "unfold" the assumptions\<close>
+  text \<open>First, we need to "unfold" the assumptions and convert them to Pure\<close>
   have inv1: \<open>lo \<le> lo'\<close> and inv2: \<open>lo' \<le> hi'\<close> and inv3: \<open>hi' \<le> hi\<close> and
     inv4: \<open>mset xs = mset xs'\<close> and
     inv5: \<open>sorted_sublist_map R h xs' lo (lo'-1)\<close> and inv5': \<open>sorted_sublist_map R h xs' (hi'+1) hi\<close> and
-    inv6: \<open>(\<forall> i j. lo \<le> i \<and> i < lo' \<and> lo' \<le> j \<and> j \<le> hi \<longrightarrow> R (h (xs'!i)) (h (xs'!j)))\<close> and
-    inv7: \<open>(\<forall> i j. i > hi' \<and> i \<le> hi \<and> j  \<ge> lo' \<and> j \<le> hi \<longrightarrow> R (h (xs'!j)) (h (xs'!i)))\<close>
+    inv6: \<open>\<And> i. \<lbrakk>lo' \<ge> lo+1; lo'\<le> i; i\<le>hi'\<rbrakk> \<Longrightarrow> R (h (xs'!(lo'-1))) (h (xs'!i))\<close> and
+    inv7: \<open>\<And> i. \<lbrakk>hi'+1 \<le> hi; lo'\<le> i; i\<le>hi'\<rbrakk> \<Longrightarrow> R (h (xs'!i)) (h (xs'!(hi'+1)))\<close>
     using inv unfolding quicksort_inv_def by auto
   have part1: \<open>mset xs'' = mset xs'\<close> and
     part1': \<open>mset (sublist xs'' lo' hi') = mset (sublist xs' lo' hi')\<close> and
     part2: \<open>isPartition_map R h xs'' lo' hi' p\<close> and
     part3: \<open>lo' \<le> p\<close> and part4: \<open>p \<le> hi'\<close> and
-    part5: \<open>(\<forall> i. i<lo' \<longrightarrow> xs''!i=xs'!i)\<close> and part6: \<open>(\<forall> i. hi'<i\<and>i<length xs'' \<longrightarrow> xs''!i=xs'!i)\<close>
+    part5: \<open>(\<And> i. i<lo' \<Longrightarrow> xs''!i=xs'!i)\<close> and part6: \<open>(\<And> i. \<lbrakk>hi'<i; i<length xs''\<rbrakk> \<Longrightarrow> xs''!i=xs'!i)\<close>
     using part unfolding partition_spec_def by auto
+
+  have refl: \<open>\<And> x. R (h x) (h x)\<close>
+    using lin by blast
 
   text \<open>A bit arithmetic with sledgehammer\<dots>\<close>
   have A: \<open>lo \<le> hi\<close> using inv1 inv2 inv3 by linarith
@@ -739,31 +743,122 @@ proof -
   have J: \<open>hi' < length xs''\<close> using inv3 E H by linarith
   have K: \<open>hi < length xs'\<close> using E H by auto
 
+  from part6 have part6': \<open>(\<And> i. \<lbrakk>hi'<i; i\<le>hi\<rbrakk> \<Longrightarrow> xs''!i=xs'!i)\<close> using E le_less_trans by blast
+
+  text \<open>We obtain the position posP where the pivot element was stored in xs'\<close>
   have \<open>xs''!p \<in> set (sublist xs'' lo' hi')\<close>
     by (metis E less_le_trans nat_le_eq_or_lt part3 part4 inv3 sublist_el')
   then have \<open>xs''!p \<in> set (sublist xs' lo' hi')\<close>
     by (metis part1' set_mset_mset)
-  then have \<open>\<exists> p'. lo'\<le>p' \<and> p'\<le>hi' \<and> xs''!p = xs'!p'\<close>
+  then have \<open>\<exists> posP. lo'\<le>posP \<and> posP\<le>hi' \<and> xs''!p = xs'!posP\<close>
     text \<open>This holds because the partition function permutes the sublist xs'[lo'..hi'].\<close>
     by (metis E le_less_trans part1 inv2 inv3 size_mset sublist_el')
-  then obtain p' where L: \<open>lo'\<le>p'\<close> \<open>p'\<le>hi'\<close> \<open>xs''!p = xs'!p'\<close> by blast
-
-  then have L': \<open>lo \<le> p'\<close> \<open>p' \<le> hi\<close>
+  then obtain posP where PosP: \<open>lo'\<le>posP\<close> \<open>posP\<le>hi'\<close> \<open>xs''!p = xs'!posP\<close> by blast
+  then have PosP': \<open>lo \<le> posP\<close> \<open>posP \<le> hi\<close>
     using le_trans inv1 apply blast
-    using L(2) le_trans inv3 by blast
+    using PosP(2) le_trans inv3 by blast
 
-  from part6 have part6': \<open>(\<forall> i. hi'<i\<and>i\<le>hi \<longrightarrow> xs''!i=xs'!i)\<close> using E le_less_trans by blast
+  text \<open>The lower list is still sorted because it hasn't been changed\<dots>\<close>
+  have lower_list_still_sorted: \<open>sorted_sublist_map R h xs'' lo (lo'-1)\<close>
+  proof -
+    show ?thesis
+      apply (rule sorted_wrt_lower_sublist_still_sorted [OF inv5 inv1])
+      subgoal by (rule G)
+      subgoal using part5 by blast
+      subgoal by (rule H)
+      done
+  qed
 
-  show ?thesis
-    apply (rule merge_sorted_map_partitions [where p=p])
-    subgoal by (rule trans)
-    subgoal by (rule A)
-    subgoal by (rule C)
-    subgoal by (rule D)
-    subgoal by (rule E)
+  text \<open>\<dots> and so is the upper list.\<close>
+  have upper_list_still_sorted: \<open>sorted_sublist_map R h xs'' (hi'+1) hi\<close>
+  proof -
+    show ?thesis
+      apply (rule sorted_wrt_upper_sublist_still_sorted [OF inv5' inv1])
+      subgoal by (rule K)
+      subgoal using part6' by blast
+      subgoal by (rule H)
+      done
+  qed
 
-    text \<open>We have to show that \<^term>\<open>p\<close> is a partition on xs''[lo..hi].\<close>
-    subgoal
+
+  text \<open>Lemma: All elements below lo' are smaller than p.\<close>
+  have L1: \<open>\<And> i. \<lbrakk>lo \<le> i; i < lo'\<rbrakk> \<Longrightarrow> R (h (xs''!i)) (h (xs'' ! p))\<close>
+  proof -
+    fix i :: nat assume \<open>lo \<le> i\<close> and \<open>i < lo'\<close>
+
+    have \<open>lo' \<ge> lo+1\<close>
+      using \<open>i < lo'\<close> \<open>lo \<le> i\<close> by linarith  
+
+    have \<open>i = lo' - 1 \<or> i < lo' - 1\<close>
+      using \<open>i < lo'\<close> by linarith
+    then consider (a) \<open>i = lo' - 1\<close> |
+                  (b) \<open>i < lo' - 1\<close> by blast
+    then have \<open>R (h (xs' ! i)) (h (xs' ! (max lo (lo'-1))))\<close>
+    proof cases
+      case (a)
+      then show ?thesis
+        (* Corner case: we need reflexivity here *)
+        using \<open>lo \<le> i\<close> \<open>i < lo'\<close> by (simp add: max_def refl)
+    next
+      case (b)
+      show ?thesis
+        apply (rule sorted_sublist_wrt_nth_le [where lo=lo and hi=\<open>lo'-1\<close>])
+        subgoal by (rule inv5)
+        subgoal using \<open>i < lo'\<close> \<open>lo \<le> i\<close> by linarith
+        subgoal using G less_imp_diff_less by blast
+        subgoal using \<open>lo \<le> i\<close> by blast
+        subgoal using b \<open>lo \<le> i\<close> \<open>i < lo'\<close> by (simp add: max_def)
+        subgoal using \<open>lo \<le> lo' - 1\<close> by linarith
+        done
+    qed 
+    moreover have \<open>xs'' ! i = xs' ! i\<close>
+      by (simp add: \<open>i < lo'\<close> part5)
+    moreover have \<open>R (h (xs' ! (max lo (lo'-1)))) (h (xs' ! posP))\<close>
+      by (metis PosP(1) PosP(2) \<open>lo + 1 \<le> lo'\<close> add_le_imp_le_diff inv6 max.absorb2)
+    ultimately show \<open>R (h (xs'' ! i)) (h (xs'' ! p))\<close>
+      using PosP(3) local.trans by presburger
+  qed
+
+  text \<open>The dual lemma: All elements above hi' are greater than p.\<close>
+  have L2: \<open>\<And> j. \<lbrakk>hi' < j; j \<le> hi\<rbrakk> \<Longrightarrow> R (h (xs'' ! p)) (h (xs''!j))\<close>
+  proof -
+    fix j :: nat assume \<open>hi' < j\<close> and \<open>j \<le> hi\<close>
+
+    have \<open>j = hi' + 1 \<or> j > hi' + 1\<close>
+      using \<open>hi' < j\<close> by linarith
+    then consider (a) \<open>j = hi' + 1\<close> |
+                  (b) \<open>j > hi' + 1\<close> by blast
+    then have \<open>R (h (xs' ! (min hi (hi'+1)))) (h (xs' ! j))\<close>
+    proof cases
+      case (a)
+      then show ?thesis
+        (* Corner case: we need reflexivity here *)
+        using \<open>hi \<ge> j\<close> \<open>hi' < j\<close> by (simp add: max_def refl)
+    next
+      case (b)
+      show ?thesis
+        apply (rule sorted_sublist_wrt_nth_le [where lo=\<open>hi'+1\<close> and hi=hi])
+        subgoal by (rule inv5')
+        subgoal using \<open>j \<le> hi\<close> b by linarith
+        subgoal by (simp add: K)
+        subgoal using \<open>hi' + 1 \<le> hi\<close> by linarith
+        subgoal using b \<open>hi \<ge> j\<close> \<open>hi' < j\<close> by (simp add: max_def)
+        subgoal by (simp add: \<open>j \<le> hi\<close>)
+        done
+    qed
+    moreover have \<open>xs'' ! j = xs' ! j\<close>
+      by (simp add: \<open>hi' < j\<close> \<open>j \<le> hi\<close> part6')
+    moreover have \<open>R (h (xs' ! posP)) (h (xs' ! (min hi (hi'+1))))\<close>
+      using PosP(1) PosP(2) \<open>hi' < j\<close> \<open>j \<le> hi\<close> inv7 by auto
+    ultimately show \<open>R (h (xs'' ! p)) (h (xs'' ! j))\<close>
+      using PosP(3) local.trans by presburger
+  qed
+
+
+  text \<open>We have to show that \<^term>\<open>p\<close> is a partition on xs''[lo..hi].\<close>
+  have p_still_partition: \<open>isPartition_map R h xs'' lo hi p\<close>
+  proof -
+    show ?thesis
       apply (rule partition_map_extend [where lo'=lo', where hi'=hi'])
       subgoal by (rule part2)
       subgoal by (rule E)
@@ -772,115 +867,104 @@ proof -
       subgoal by (rule inv3)
       subgoal by (rule part3)
       subgoal by (rule part4)
-      subgoal
-        apply (rewrite in \<open>R (h \<hole>) _\<close> part5) subgoal by blast
-        apply (rewrite in \<open>R _ (h \<hole>)\<close> L(3))
-        by (simp add: inv6 L L')
-      subgoal
-        apply (rewrite in \<open>R _ (h \<hole>)\<close> part6') subgoal by blast
-        apply (rewrite in \<open>R (h \<hole>) _\<close> L(3))
-        by (simp add: inv7 L L')
+      subgoal by (rule L1)
+      subgoal by (rule L2)
       done
+  qed
 
-    text \<open>We have to show that \<^term>\<open>xs''\<close> is sorted from \<^term>\<open>lo\<close> to \<^term>\<open>p-1\<close>. Note that by the
-          precondition, \<^term>\<open>xs'\<close> is sorted from \<^term>\<open>lo\<close> to \<^term>\<open>lo'-1\<close>.\<close>
-    subgoal
-    proof -
-      have S: \<open>sorted_sublist_map R h xs'' lo (lo'-1)\<close>
-        apply (rule sorted_wrt_lower_sublist_still_sorted [OF inv5 inv1])
-          apply auto
-        subgoal by (rule G)
-        subgoal using part5 by blast
-        subgoal by (rule H)
-        done
+  text \<open>We have to show that \<^term>\<open>xs''\<close> is sorted from \<^term>\<open>lo\<close> to \<^term>\<open>p-1\<close>. Note that by the
+        precondition, \<^term>\<open>xs'\<close> is sorted from \<^term>\<open>lo\<close> to \<^term>\<open>lo'-1\<close>.\<close>
+  have L3: \<open>sorted_sublist_map R h xs'' lo (p - 1)\<close>
+  proof -
+    text \<open>We obtain the position where element \<^term>\<open>xs''!lo'\<close> was stored in \<^term>\<open>xs'\<close>.\<close>
+    have \<open>xs''!lo' \<in> set (sublist xs'' lo' hi')\<close>
+      by (meson J order_mono_setup.refl inv2 sublist_el')
+    then have \<open>xs''!lo' \<in> set (sublist xs' lo' hi')\<close>
+      by (metis part1' set_mset_mset)
+    then have \<open>\<exists> lo''. lo' \<le> lo'' \<and> lo'' \<le> hi' \<and> xs''!lo' = xs'!lo''\<close>
+      using H J inv2 sublist_el' by fastforce
+    then obtain lo'' where M: \<open>lo' \<le> lo''\<close> \<open>lo'' \<le> hi'\<close> \<open>xs''!lo' = xs'!lo''\<close> by blast
 
-      text \<open>We obtain the position where element \<^term>\<open>xs''!lo'\<close> was stored in \<^term>\<open>xs'\<close>.\<close>
-      have \<open>xs''!lo' \<in> set (sublist xs'' lo' hi')\<close>
-        by (meson J order_mono_setup.refl inv2 sublist_el')
-      then have \<open>xs''!lo' \<in> set (sublist xs' lo' hi')\<close>
-        by (metis part1' set_mset_mset)
-      then have \<open>\<exists> lo''. lo' \<le> lo'' \<and> lo'' \<le> hi' \<and> xs''!lo' = xs'!lo''\<close>
-        using H J inv2 sublist_el' by fastforce
-      then obtain lo'' where M: \<open>lo' \<le> lo''\<close> \<open>lo'' \<le> hi'\<close> \<open>xs''!lo' = xs'!lo''\<close> by blast
-
-      have Bp1: \<open>p = lo' \<or> (p = Suc lo' \<and> lo=lo') \<or> (p = Suc lo' \<and> lo < lo')\<close>
-        using if1 part3 inv1 by linarith
-      show ?thesis
+    have Bp1: \<open>p = lo' \<or> (p = Suc lo' \<and> lo=lo') \<or> (p = Suc lo' \<and> lo < lo')\<close>
+      using if1 part3 inv1 by linarith
+    show ?thesis
       using Bp1 proof (elim disjE)
-        assume A:\<open>p = lo'\<close> show ?thesis
-          using S by (simp add: A)
-      next
-        assume A:\<open>p = Suc lo' \<and> lo=lo'\<close> show ?thesis
-          by (simp add: A sorted_sublist_map_refl I)
-      next
-        assume A:\<open>p = Suc lo' \<and> lo < lo'\<close> show ?thesis
-          apply (simp add: A)
-          apply (rule sorted_sublist_map_snoc)
-          subgoal by (rule trans)
-          subgoal by (rule S)
-          subgoal by (rule inv1)
-          subgoal by (rule I)
-          subgoal
-            using inv6 apply (auto simp add:)
-            using A M(1) M(2) M(3) part5 inv3 by auto
-          done
-      qed
-    qed
-
-    text \<open>The dual case for the right sublist from \<^term>\<open>p+1\<close> to \<^term>\<open>hi\<close>.\<close>
-    subgoal
-    proof -
-      have S: \<open>sorted_sublist_map R h xs'' (hi'+1) hi\<close>
-        apply (rule sorted_wrt_upper_sublist_still_sorted [OF inv5' inv1])
-          apply auto
-        subgoal by (rule K)
-        subgoal using part6' by blast
-        subgoal by (rule H)
+      assume A:\<open>p = lo'\<close> show ?thesis
+        using A lower_list_still_sorted by blast
+    next
+      assume A:\<open>p = Suc lo' \<and> lo=lo'\<close> show ?thesis
+        by (simp add: A sorted_sublist_map_refl I)
+    next
+      assume A:\<open>p = Suc lo' \<and> lo < lo'\<close> show ?thesis
+        apply (simp add: A)
+        apply (rule sorted_sublist_map_snoc)
+        subgoal by (rule trans)
+        subgoal by (rule lower_list_still_sorted)
+        subgoal by (rule inv1)
+        subgoal by (rule I)
+        subgoal using A M(1) M(2) M(3) inv6 max.absorb2 not_less_eq_eq part5 by fastforce
         done
-
-      text \<open>We obtain the position where element \<^term>\<open>xs''!hi'\<close> was stored in \<^term>\<open>xs'\<close>.\<close>
-      have \<open>xs''!hi' \<in> set (sublist xs'' lo' hi')\<close>
-        by (meson J order_mono_setup.refl inv2 sublist_el')
-      then have \<open>xs''!hi' \<in> set (sublist xs' lo' hi')\<close>
-        by (metis part1' set_mset_mset)
-      then have \<open>\<exists> hi''. lo' \<le> hi'' \<and> hi'' \<le> hi' \<and> xs''!hi' = xs'!hi''\<close>
-        using H J inv2 sublist_el' by fastforce
-      then obtain hi'' where M: \<open>lo' \<le> hi''\<close> \<open>hi'' \<le> hi'\<close> \<open>xs''!hi' = xs'!hi''\<close> by blast
-
-      have Bp2: \<open>p = hi' \<or> (p = hi'-1 \<and> hi=hi') \<or> (p = hi'-1 \<and> hi'=0) \<or> (p = hi'-1 \<and> hi > hi' \<and> hi'>0)\<close>
-        using if2 part4 inv3 by linarith
-
-      show ?thesis
-      using Bp2 proof (elim disjE)
-        assume A:\<open>p = hi'\<close> show ?thesis
-          using S by (simp add: A)
-      next
-        assume A:\<open>p = hi'-1 \<and> hi=hi'\<close> show ?thesis
-          using A J if2 sorted_sublist_wrt_le by blast
-      next
-        assume A:\<open>p = hi'-1 \<and> hi'=0\<close> show ?thesis
-          using A S by auto
-      next
-        assume A:\<open>p = hi'-1 \<and> hi > hi' \<and> hi' > 0\<close> show ?thesis
-          apply (simp add: A)
-          apply (rule sorted_sublist_map_cons)
-          subgoal by (rule trans)
-          subgoal by (rule S)
-          subgoal by (rule inv3)
-          subgoal by (rule E)
-          subgoal
-            using inv7 apply (auto simp add:)
-            using A \<open>\<exists>hi''\<ge>lo'. hi'' \<le> hi' \<and> xs'' ! hi' = xs' ! hi''\<close> part6' by auto
-          done
-      qed
     qed
+  qed
 
-    text \<open>All done! :-)\<close>
+  text \<open>The dual case for the right sublist from \<^term>\<open>p+1\<close> to \<^term>\<open>hi\<close>.\<close>
+  have L4: \<open>sorted_sublist_map R h xs'' (p+1) hi\<close>
+  proof -
+    text \<open>We obtain the position where element \<^term>\<open>xs''!hi'\<close> was stored in \<^term>\<open>xs'\<close>.\<close>
+    have \<open>xs''!hi' \<in> set (sublist xs'' lo' hi')\<close>
+      by (meson J order_mono_setup.refl inv2 sublist_el')
+    then have \<open>xs''!hi' \<in> set (sublist xs' lo' hi')\<close>
+      by (metis part1' set_mset_mset)
+    then have \<open>\<exists> hi''. lo' \<le> hi'' \<and> hi'' \<le> hi' \<and> xs''!hi' = xs'!hi''\<close>
+      using H J inv2 sublist_el' by fastforce
+    then obtain hi'' where M: \<open>lo' \<le> hi''\<close> \<open>hi'' \<le> hi'\<close> \<open>xs''!hi' = xs'!hi''\<close> by blast
+
+    have Bp2: \<open>p = hi' \<or> (p = hi'-1 \<and> hi=hi') \<or> (p = hi'-1 \<and> hi'=0) \<or> (p = hi'-1 \<and> hi > hi' \<and> hi'>0)\<close>
+      using if2 part4 inv3 by linarith
+
+    show ?thesis
+      using Bp2 proof (elim disjE)
+      assume A:\<open>p = hi'\<close> show ?thesis
+        using upper_list_still_sorted by (simp add: A)
+    next
+      assume A:\<open>p = hi'-1 \<and> hi=hi'\<close> show ?thesis
+        using A J if2 sorted_sublist_wrt_le by blast
+    next
+      assume A:\<open>p = hi'-1 \<and> hi'=0\<close> show ?thesis
+        using A upper_list_still_sorted by auto
+    next
+      assume A:\<open>p = hi'-1 \<and> hi > hi' \<and> hi' > 0\<close> show ?thesis
+        apply (simp add: A)
+        apply (rule sorted_sublist_map_cons)
+        subgoal by (rule trans)
+        subgoal by (rule upper_list_still_sorted)
+        subgoal by (rule inv3)
+        subgoal by (rule E)
+        subgoal
+          using inv7 apply (auto simp add:)
+          using A \<open>\<exists>hi''\<ge>lo'. hi'' \<le> hi' \<and> xs'' ! hi' = xs' ! hi''\<close> part6' by auto
+        done
+    qed
+  qed
+
+
+  text \<open>We can now show the main thesis\<close>
+  show ?thesis
+    apply (rule merge_sorted_map_partitions [where p=p])
+    subgoal by (rule trans)
+    subgoal by (rule A)
+    subgoal by (rule C)
+    subgoal by (rule D)
+    subgoal by (rule E)
+    subgoal by (rule p_still_partition)
+    subgoal by (rule L3)
+    subgoal by (rule L4)
     done
 qed
 
 
-text \<open>Second part of correctness: We assume that we only called the second recursive call.\<close>
+(* TODO *)
+text \<open>Second part of correctness: We assume that we only invoked the second recursive call.\<close>
 lemma quicksort_correct_case2:
   assumes
     trans: \<open>\<And>x y z. R (h x) (h y) \<Longrightarrow> R (h y) (h z) \<Longrightarrow> R (h x) (h z)\<close> and
@@ -1036,17 +1120,33 @@ qed
 *)
 term transp
 
+
+lemma max_pred[simp]: \<open>max lo (lo - Suc 0) = (lo :: nat)\<close>
+proof (cases lo)
+  case 0
+  then show ?thesis by simp
+next
+  case (Suc nat)
+  then show ?thesis by simp
+qed
+
+
 lemma quicksort_correct:
   assumes \<open>lo \<le> hi\<close> and \<open>hi < length xs\<close> and
-  trans: \<open>\<And> x y z. \<lbrakk>R (h x) (h y); R (h y) (h z)\<rbrakk> \<Longrightarrow> R (h x) (h z)\<close> (* and lin: \<open>\<And>x y. R (h x) (h y) \<or> R (h y) (h x)\<close> *)
+  trans: \<open>\<And> x y z. \<lbrakk>R (h x) (h y); R (h y) (h z)\<rbrakk> \<Longrightarrow> R (h x) (h z)\<close> and lin: \<open>\<And>x y. R (h x) (h y) \<or> R (h y) (h x)\<close>
   shows \<open>quicksort R h lo hi xs \<le> \<Down> Id (SPEC(\<lambda>xs'. mset xs = mset xs' \<and> sorted_sublist_map R h xs' lo hi))\<close>
 proof -
   have wf: \<open>wf (measure (\<lambda>(lo, hi, xs). Suc hi - lo))\<close>
     by auto
  
   have pre: \<open>(\<lambda>(lo',hi',xs'). quicksort_inv R h xs lo hi lo' hi' xs')(lo,hi,xs)\<close>
-    unfolding quicksort_inv_def apply simp
-    by (meson assms(1) assms(2) diff_le_self dual_order.strict_trans2 lessI less_imp_le_nat not_less sorted_sublist_wrt_le)
+    unfolding quicksort_inv_def
+    (* apply (split prod.split) apply (intro allI conjI) *)
+    apply auto
+    subgoal by (simp add: assms(1))
+    subgoal by (meson assms(1) assms(2) diff_le_self dual_order.strict_trans2 sorted_sublist_wrt_le)
+    subgoal by (simp add: assms(2) sorted_sublist_wrt_le)
+    done
 
   show ?thesis
     unfolding quicksort_def
@@ -1064,6 +1164,7 @@ proof -
         apply (rule quicksort_correct_case1 [where xs=xs and lo'=\<open>fst(x)\<close> and hi'=\<open>fst(snd x)\<close> and xs'=\<open>snd(snd x)\<close>])
         apply simp_all
         subgoal by (rule trans)
+        subgoal by (rule lin)
         subgoal by (rule assms(2))
         subgoal using IH(2) by simp
         done
