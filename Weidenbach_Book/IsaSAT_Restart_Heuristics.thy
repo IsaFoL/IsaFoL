@@ -3042,18 +3042,22 @@ proof -
     \<open>fst_As = hd (ys' @ xs')\<close> and
     \<open>lst_As = last (ys' @ xs')\<close> and
     vmtf_\<L>: \<open>vmtf_\<L>\<^sub>a\<^sub>l\<^sub>l \<A> M ((set xs', set ys'), to_remove)\<close> and
-    fst_As: \<open>fst_As = hd (ys' @ xs')\<close>
+    fst_As: \<open>fst_As = hd (ys' @ xs')\<close> and
+    le: \<open>\<forall>L\<in>atms_of (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>). L < length ns\<close>
     using vmtf unfolding vmtf_def
     by blast
   define zs where \<open>zs = ys' @ xs'\<close>
   define is_lasts where
-    \<open>is_lasts \<A> n \<longleftrightarrow> set_mset \<A> = set (drop (length zs - card (set_mset \<A>)) zs) \<and>
-        zs ! (length zs - card (set_mset \<A>)) = n \<and>
+    \<open>is_lasts \<A> n m \<longleftrightarrow> set_mset \<A> = set (drop m zs) \<and>
+        distinct_mset \<A> \<and>
         card (set_mset \<A>) \<le> length zs \<and>
-        n < length ns\<close> for \<A> n
+        card (set_mset \<A>) + m = length zs \<and>
+        (n = option_hd (drop m zs)) \<and>
+        m \<le> length zs\<close> for \<A> and n :: \<open>nat option\<close> and m
   have card_\<A>: \<open>card (set_mset \<A>) = length zs\<close>
     \<open>set_mset \<A> = set zs\<close> and
-    nempty': \<open>zs \<noteq> []\<close>
+    nempty': \<open>zs \<noteq> []\<close> and
+    dist_zs: \<open>distinct zs\<close>
     using vmtf_\<L> vmtf_ns_distinct[OF vmtf_ns] nempty
     unfolding vmtf_\<L>\<^sub>a\<^sub>l\<^sub>l_def eq_commute[of _ \<open>atms_of _\<close>] zs_def
     by (auto simp: atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n card_Un_disjoint distinct_card)
@@ -3061,33 +3065,114 @@ proof -
     using vmtf_ns_le_length[OF vmtf_ns, of \<open>hd zs\<close>] nempty'
     unfolding zs_def[symmetric]
     by auto
-  have iterate_over_VMTF_alt_def:
-    \<open>iterate_over_VMTF = (\<lambda>(vm, n) I f x. do {
-      let _= \<A>;
-      (_, x) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(n, x). n < length vm \<and> I x\<^esup>
-        (\<lambda>(n, _). get_next (vm ! n) \<noteq> None)
-        (\<lambda>(n, x). do {
-          let A = the (get_next (vm ! n));
+  have [refine0]: \<open>
+       (the x1a, A) \<in> nat_rel \<Longrightarrow>
+       x = x2b \<Longrightarrow>
+       f (the x1a) x2b \<le> \<Down> Id (f A x)\<close> for x1a A x x2b
+      by auto
+  define iterate_over_VMTF2 where
+    \<open>iterate_over_VMTF2 \<equiv> (\<lambda>(vm :: (nat, nat) vmtf_node list, n) (I :: 'a \<Rightarrow> bool) f x. do {
+      let _= remdups_mset \<A>;
+      (_, _, x) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(n,m, x). I x\<^esup>
+        (\<lambda>(n, _, _). n \<noteq> None)
+        (\<lambda>(n, m, x). do {
+          ASSERT(n \<noteq> None);
+          let A = the n;
+          ASSERT(A < length ns);
           x \<leftarrow> f A x;
-          RETURN (A, x)
+          RETURN (get_next ((ns ! A)), Suc m, x)
         })
-        (n, x);
+        (n, 0, x);
       RETURN x
     })\<close>
-    unfolding iterate_over_VMTF_def
-    by auto
-  show ?thesis
-    unfolding iterate_over_VMTF_alt_def iterate_over_\<L>\<^sub>a\<^sub>l\<^sub>l_def
-    apply (refine_vcg WHILEIT_refine[where R = \<open>{((n :: nat, x::'a), (\<A>' :: nat multiset, y)). is_lasts \<A> n \<and> x = y}\<close>])
-    subgoal by auto
-    subgoal
-      using card_\<A> fst_As nempty hd_conv_nth[OF nempty'] hd_zs_le unfolding zs_def[symmetric]
+  have nempty_iff: \<open>(x1 \<noteq> None) = (x1b \<noteq> {#})\<close>
+  if
+    \<open>(remdups_mset \<A>, \<A>') \<in> Id\<close> and
+    H: \<open>(x, x') \<in> {((n, m, x), \<A>', y). is_lasts \<A>' n m \<and> x = y}\<close> and
+    \<open>case x of (n, m, xa) \<Rightarrow> I xa\<close> and
+    \<open>case x' of (uu_, x) \<Rightarrow> I x\<close> and
+    st[simp]:
+      \<open>x2 = (x1a, x2a)\<close>
+      \<open>x = (x1, x2)\<close>
+      \<open>x' = (x1b, xb)\<close>
+    for \<A>' x x' x1 x2 x1a x2a x1b xb
+  proof
+    show \<open>x1b \<noteq> {#}\<close> if \<open>x1 \<noteq> None\<close>
+      using that H
       by (auto simp: is_lasts_def)
-    subgoal
+    show \<open>x1 \<noteq> None\<close> if  \<open>x1b \<noteq> {#}\<close>
+      using that H
       by (auto simp: is_lasts_def)
-    subgoal by auto
+  qed
+  have IH: \<open>((get_next (ns ! the x1a), Suc x1b, xa), remove1_mset A x1, xb)
+        \<in> {((n, m, x), \<A>', y). is_lasts \<A>' n m \<and> x = y}\<close>
+     if
+      \<open>(remdups_mset \<A>, \<A>') \<in> Id\<close> and
+      H: \<open>(x, x') \<in> {((n, m, x), \<A>', y). is_lasts \<A>' n m \<and> x = y}\<close> and
+      \<open>case x of (n, uu_, uua_) \<Rightarrow> n \<noteq> None\<close> and
+      nempty: \<open>case x' of (\<B>, uu_) \<Rightarrow> \<B> \<noteq> {#}\<close> and
+      \<open>case x of (n, m, xa) \<Rightarrow> I xa\<close> and
+      \<open>case x' of (uu_, x) \<Rightarrow> I x\<close> and
+      st:
+        \<open>x' = (x1, x2)\<close>
+        \<open>x2a = (x1b, x2b)\<close>
+        \<open>x = (x1a, x2a)\<close>
+        \<open>(xa, xb) \<in> Id\<close> and
+      \<open>x1 \<noteq> {#}\<close> and
+      \<open>x1a \<noteq> None\<close> and
+      A: \<open>(the x1a, A) \<in> nat_rel\<close> and
+      \<open>the x1a < length ns\<close>
+      for \<A>' x x' x1 x2 x1a x2a x1b x2b A xa xb
+  proof -
+    have [simp]: \<open>distinct_mset x1\<close> \<open>x1b < length zs\<close>
+      using H A nempty
+      apply (auto simp: st is_lasts_def simp flip: Cons_nth_drop_Suc)
+      apply (cases \<open>x1b = length zs\<close>)
+      apply auto
+      done
+    then have [simp]: \<open>zs ! x1b \<notin> set (drop (Suc x1b) zs)\<close>
+      by (auto simp: in_set_drop_conv_nth nth_eq_iff_index_eq dist_zs)
+    have [simp]: \<open>length zs - Suc x1b + x1b = length zs \<longleftrightarrow> False\<close>
+      using \<open>x1b < length zs\<close> by presburger
+    have \<open>vmtf_ns (take x1b zs @ zs ! x1b # drop (Suc x1b) zs) m ns\<close>
+      using vmtf_ns
+      by (auto simp: Cons_nth_drop_Suc simp flip: zs_def)
+    from vmtf_ns_last_mid_get_next_option_hd[OF this]
+    show ?thesis 
+      using H A st
+      by (auto simp: st is_lasts_def dist_zs distinct_card distinct_mset_set_mset_remove1_mset
+           simp flip: Cons_nth_drop_Suc)
+  qed
+  have [simp]: \<open>length zs - Suc 0 = length zs \<longleftrightarrow> zs = []\<close>
+    by (cases zs) auto
+  have zs2: \<open>set (xs' @ ys') = set zs\<close>
+    by (auto simp: zs_def)
+  have is_lasts_le:  \<open>is_lasts x1 (Some A) x1b \<Longrightarrow> A < length ns\<close> for x2 xb x1b x1 A
+    using vmtf_\<L> le nth_mem[of \<open>x1b\<close> zs] unfolding is_lasts_def prod.case vmtf_\<L>\<^sub>a\<^sub>l\<^sub>l_def
+      set_append[symmetric]zs_def[symmetric] zs2
+    by (auto simp: eq_commute[of \<open>set zs\<close> \<open>atms_of (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>)\<close>] hd_drop_conv_nth
+      simp del: nth_mem)
+  have  \<open>iterate_over_VMTF2 (ns, Some fst_As) I f x \<le> \<Down> Id (iterate_over_\<L>\<^sub>a\<^sub>l\<^sub>l \<A> I f x)\<close>
+    unfolding iterate_over_VMTF2_def iterate_over_\<L>\<^sub>a\<^sub>l\<^sub>l_def prod.case
+    apply (refine_vcg WHILEIT_refine[where R = \<open>{((n :: nat option, m::nat, x::'a), (\<A>' :: nat multiset, y)). 
+        is_lasts \<A>' n m \<and> x = y}\<close>])
+    subgoal by simp
     subgoal
-      apply (auto simp: is_lasts_def)
-  oops
-
+      using card_\<A> fst_As nempty nempty' hd_conv_nth[OF nempty'] hd_zs_le unfolding zs_def[symmetric]
+        is_lasts_def
+      by (simp_all add:  eq_commute[of \<open>remdups_mset _\<close>])
+    subgoal by auto
+    subgoal for \<A>' x x' x1 x2 x1a x2a x1b xb
+      by (rule nempty_iff)
+    subgoal by auto
+    subgoal for \<A>' x x' x1 x2 x1a x2a x1b xb
+      by (simp add: is_lasts_def in_set_dropI)
+    subgoal for \<A>' x x' x1 x2 x1a x2a x1b xb
+      by (auto simp: is_lasts_le)
+    subgoal by auto
+    subgoal for \<A>' x x' x1 x2 x1a x2a x1b x2b A xa xb
+      by (rule IH)
+    subgoal by auto
+    done
+oops
 end
