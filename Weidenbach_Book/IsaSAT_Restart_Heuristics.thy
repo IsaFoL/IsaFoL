@@ -3004,17 +3004,19 @@ lemma restart_prog_wl_D_heur_restart_prog_wl_D:
 
 
 definition iterate_over_VMTF where
-  \<open>iterate_over_VMTF = (\<lambda>(vm, n) I f x. do {
-    (_, x) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(n, x). n < length vm \<and> I x\<^esup>
-      (\<lambda>(n, _). get_next (vm ! n) \<noteq> None)
-      (\<lambda>(n, x). do {
-        let A = the (get_next (vm ! n));
-        x \<leftarrow> f A x;
-        RETURN (A, x)
-      })
-      (n, x);
-    RETURN x
-  })\<close>
+  \<open>iterate_over_VMTF \<equiv> (\<lambda>(ns :: (nat, nat) vmtf_node list, n) (I :: 'a \<Rightarrow> bool) f x. do {
+      (_, x) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(n, x). I x\<^esup>
+        (\<lambda>(n, _). n \<noteq> None)
+        (\<lambda>(n, x). do {
+          ASSERT(n \<noteq> None);
+          let A = the n;
+          ASSERT(A < length ns);
+          x \<leftarrow> f A x;
+          RETURN (get_next ((ns ! A)), x)
+        })
+        (n, x);
+      RETURN x
+    })\<close>
 
 definition iterate_over_\<L>\<^sub>a\<^sub>l\<^sub>l where
   \<open>iterate_over_\<L>\<^sub>a\<^sub>l\<^sub>l = (\<lambda>\<A>\<^sub>0 I f x. do {
@@ -3031,11 +3033,11 @@ definition iterate_over_\<L>\<^sub>a\<^sub>l\<^sub>l where
     RETURN x
   })\<close>
 
-lemma
+lemma iterate_over_VMTF_iterate_over_\<L>\<^sub>a\<^sub>l\<^sub>l:
   fixes x :: 'a
   assumes vmtf: \<open>((ns, m, fst_As, lst_As, next_search), to_remove) \<in> vmtf \<A> M\<close> and
     nempty: \<open>\<A> \<noteq> {#}\<close>
-  shows \<open>iterate_over_VMTF (ns, fst_As) I f x \<le> \<Down> Id (iterate_over_\<L>\<^sub>a\<^sub>l\<^sub>l \<A> I f x)\<close>
+  shows \<open>iterate_over_VMTF (ns, Some fst_As) I f x \<le> \<Down> Id (iterate_over_\<L>\<^sub>a\<^sub>l\<^sub>l \<A> I f x)\<close>
 proof -
   obtain xs' ys' where
     vmtf_ns: \<open>vmtf_ns (ys' @ xs') m ns\<close> and
@@ -3085,6 +3087,21 @@ proof -
         (n, 0, x);
       RETURN x
     })\<close>
+  have iterate_over_VMTF2_alt_def:
+    \<open>iterate_over_VMTF2 \<equiv> (\<lambda>(vm :: (nat, nat) vmtf_node list, n) (I :: 'a \<Rightarrow> bool) f x. do {
+      (_, _, x) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(n,m, x). I x\<^esup>
+        (\<lambda>(n, _, _). n \<noteq> None)
+        (\<lambda>(n, m, x). do {
+          ASSERT(n \<noteq> None);
+          let A = the n;
+          ASSERT(A < length ns);
+          x \<leftarrow> f A x;
+          RETURN (get_next ((ns ! A)), Suc m, x)
+        })
+        (n, 0, x);
+      RETURN x
+    })\<close>
+    unfolding iterate_over_VMTF2_def by force
   have nempty_iff: \<open>(x1 \<noteq> None) = (x1b \<noteq> {#})\<close>
   if
     \<open>(remdups_mset \<A>, \<A>') \<in> Id\<close> and
@@ -3138,12 +3155,12 @@ proof -
       using vmtf_ns
       by (auto simp: Cons_nth_drop_Suc simp flip: zs_def)
     from vmtf_ns_last_mid_get_next_option_hd[OF this]
-    show ?thesis 
+    show ?thesis
       using H A st
       by (auto simp: st is_lasts_def dist_zs distinct_card distinct_mset_set_mset_remove1_mset
            simp flip: Cons_nth_drop_Suc)
   qed
-  have [simp]: \<open>length zs - Suc 0 = length zs \<longleftrightarrow> zs = []\<close>
+  have WTF[simp]: \<open>length zs - Suc 0 = length zs \<longleftrightarrow> zs = []\<close>
     by (cases zs) auto
   have zs2: \<open>set (xs' @ ys') = set zs\<close>
     by (auto simp: zs_def)
@@ -3154,7 +3171,7 @@ proof -
       simp del: nth_mem)
   have  \<open>iterate_over_VMTF2 (ns, Some fst_As) I f x \<le> \<Down> Id (iterate_over_\<L>\<^sub>a\<^sub>l\<^sub>l \<A> I f x)\<close>
     unfolding iterate_over_VMTF2_def iterate_over_\<L>\<^sub>a\<^sub>l\<^sub>l_def prod.case
-    apply (refine_vcg WHILEIT_refine[where R = \<open>{((n :: nat option, m::nat, x::'a), (\<A>' :: nat multiset, y)). 
+    apply (refine_vcg WHILEIT_refine[where R = \<open>{((n :: nat option, m::nat, x::'a), (\<A>' :: nat multiset, y)).
         is_lasts \<A>' n m \<and> x = y}\<close>])
     subgoal by simp
     subgoal
@@ -3174,5 +3191,12 @@ proof -
       by (rule IH)
     subgoal by auto
     done
-oops
+  moreover have \<open>iterate_over_VMTF (ns, Some fst_As) I f x  \<le> \<Down> Id (iterate_over_VMTF2 (ns, Some fst_As) I f x)\<close>
+    unfolding iterate_over_VMTF2_alt_def iterate_over_VMTF_def prod.case
+    by (refine_vcg WHILEIT_refine[where R = \<open>{((n :: nat option, x::'a), (n' :: nat option, m'::nat, x'::'a)).
+        n = n' \<and> x = x'}\<close>]) auto
+  ultimately show ?thesis
+    by simp
+qed
+
 end
