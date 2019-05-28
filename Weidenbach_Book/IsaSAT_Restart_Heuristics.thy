@@ -3199,4 +3199,139 @@ proof -
     by simp
 qed
 
+
+definition isasat_GC_clauses_prog_copy_wl_entry
+  :: \<open>arena \<Rightarrow> ('v literal \<Rightarrow> 'v watched) \<Rightarrow> 'v literal \<Rightarrow>
+         (arena \<times> _) \<Rightarrow> (arena \<times> (arena \<times> _)) nres\<close>
+where
+\<open>isasat_GC_clauses_prog_copy_wl_entry = (\<lambda>N W A (N', vdm). do {
+    let le = length (W A);
+    (i, N, N', vdm) \<leftarrow> WHILE\<^sub>T
+      (\<lambda>(i, N, N', vdm). i < le)
+      (\<lambda>(i, N, (N', vdm)). do {
+        ASSERT(i < length (W A));
+        let C = fst (W A ! i);
+        ASSERT(arena_is_valid_clause_vdom N C);
+        if arena_status N C \<noteq> DELETED then do {
+          ASSERT(arena_is_valid_clause_idx N C);
+          let D = length N' + (if arena_length N C > 4 then 5 else 4);
+          N' \<leftarrow> fm_mv_clause_to_new_arena C N N';
+	  RETURN (i+1, extra_information_mark_to_delete N C, N', vdm @ [D])
+        } else RETURN (i+1, N, (N', vdm))
+      }) (0, N, (N', vdm));
+    RETURN (N, (N', vdm))
+  })\<close>
+
+lemma isasat_GC_clauses_prog_copy_wl_entry:
+  assumes \<open>valid_arena arena N vdom0\<close> and
+    \<open>valid_arena arena' N' (set vdom)\<close> and
+    vdom: \<open>vdom_m \<A> W N \<subseteq> vdom0\<close> and
+    L: \<open>atm_of A \<in># \<A>\<close> and
+    L'_L: \<open>(A', A) \<in> nat_lit_lit_rel\<close> and
+    W: \<open>(W' , W) \<in> Id\<close>
+  shows \<open>isasat_GC_clauses_prog_copy_wl_entry arena W' A' (arena', vdom)
+     \<le> \<Down> ({(arena, N'). valid_arena arena N' vdom0 \<and> vdom_m \<A> W N' \<subseteq> vdom0 \<and> dom_m N' \<subseteq># dom_m N} \<times>\<^sub>f
+           {((arena, vdom), N). valid_arena arena N (set vdom)})
+         (cdcl_GC_clauses_prog_copy_wl_entry N (W A) A N')\<close>
+     (is \<open>_ \<le> \<Down> (?R\<^sub>1 \<times>\<^sub>f ?R\<^sub>2) _\<close>)
+proof -
+  have A: \<open>A' = A\<close> \<open>W' = W\<close>
+    using L'_L W by auto
+  show ?thesis
+    unfolding isasat_GC_clauses_prog_copy_wl_entry_def cdcl_GC_clauses_prog_copy_wl_entry_def prod.case A
+    apply (refine_vcg WHILET_refine[where R = \<open>nat_rel \<times>\<^sub>r ?R\<^sub>1 \<times>\<^sub>r ?R\<^sub>2\<close>])
+    subgoal using assms by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal for x x' x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d
+      using vdom L
+      unfolding arena_is_valid_clause_vdom_def
+      by (cases A)
+        (force dest!: multi_member_split simp: vdom_m_def \<L>\<^sub>a\<^sub>l\<^sub>l_add_mset)+
+    subgoal
+      using vdom L
+      unfolding arena_is_valid_clause_vdom_def
+      by (subst arena_dom_status_iff)
+        (cases A ; auto dest!: multi_member_split simp: arena_lifting arena_dom_status_iff
+            vdom_m_def \<L>\<^sub>a\<^sub>l\<^sub>l_add_mset; fail)+
+   subgoal
+     unfolding arena_is_valid_clause_idx_def
+     by auto
+   subgoal
+     by (auto dest: arena_lifting)
+   subgoal
+     by (rule order_trans[OF fm_mv_clause_to_new_arena])
+       (auto intro: valid_arena_extra_information_mark_to_delete'
+         simp: header_size_def arena_lifting
+         dest: in_vdom_m_fmdropD)
+   subgoal
+     by auto
+   subgoal
+     by auto
+   done
+ qed
+
+definition isasat_GC_clauses_prog_single_wl
+  :: \<open>arena \<Rightarrow> ('v literal \<Rightarrow> 'v watched) \<Rightarrow> 'v \<Rightarrow>
+         (arena \<times> _) \<Rightarrow> (arena \<times> (arena \<times> _) \<times> ('v literal \<Rightarrow> 'v watched)) nres\<close>
+where
+\<open>isasat_GC_clauses_prog_single_wl = (\<lambda>N WS A N'. do {
+    let L = Pos A; \<^cancel>\<open>use phase saving instead\<close>
+    (N, (N', vdm)) \<leftarrow> isasat_GC_clauses_prog_copy_wl_entry N WS L N';
+    let WS = WS(L := []);
+    (N, N') \<leftarrow> isasat_GC_clauses_prog_copy_wl_entry N WS (-L) (N', vdm);
+    let WS = WS(-L := []);
+    RETURN (N, N', WS)
+  })\<close>
+
+lemma isasat_GC_clauses_prog_single_wl:
+  assumes \<open>valid_arena arena N vdom0\<close> and
+    \<open>valid_arena arena' N' (set vdom)\<close> and
+    vdom: \<open>vdom_m \<A> W N \<subseteq> vdom0\<close> and
+    L: \<open>A \<in># \<A>\<close>
+  shows \<open>isasat_GC_clauses_prog_single_wl arena W A (arena', vdom)
+     \<le> \<Down> ({(arena, N). valid_arena arena N vdom0} \<times>\<^sub>r {((arena, vdom), N). valid_arena arena N (set vdom)}
+     \<times>\<^sub>r {(W, W'). W = W' \<and> vdom_m \<A> W N \<subseteq> vdom0})
+         (cdcl_GC_clauses_prog_single_wl N W A N')\<close>
+     (is \<open>_ \<le> \<Down> (?R\<^sub>1 \<times>\<^sub>r ?R\<^sub>2 \<times>\<^sub>r ?R\<^sub>3) _\<close>)
+proof -
+  have vdom2: \<open>vdom_m \<A> W x1 \<subseteq> vdom0 \<Longrightarrow> vdom_m \<A> (W(L := [])) x1 \<subseteq> vdom0\<close> for x1 L
+    by (force simp: vdom_m_def dest!: multi_member_split)
+  have vdom_m_upd: \<open>x \<in> vdom_m \<A> (W(Pos A := [], Neg A := [])) N \<Longrightarrow> x \<in> vdom_m \<A> W N\<close> for x W A N
+    by (auto simp: image_iff vdom_m_def dest: multi_member_split)
+  have vdom_m3: \<open>dom_m a \<subseteq># dom_m b \<Longrightarrow> dom_m b \<subseteq># dom_m c \<Longrightarrow> x \<in> vdom_m \<A> W a \<Longrightarrow> x \<in> vdom_m \<A> W c\<close> for a b c W x
+    unfolding vdom_m_def by auto
+  have [refine0]: \<open>RETURN (Pos A) \<le> \<Down> Id (RES {Pos A, Neg A})\<close> by auto
+  show ?thesis
+    unfolding isasat_GC_clauses_prog_single_wl_def
+      cdcl_GC_clauses_prog_single_wl_def
+    apply (refine_vcg
+      isasat_GC_clauses_prog_copy_wl_entry)
+    apply (rule assms(1); fail)
+    apply (rule assms(2); fail)
+    apply (rule assms(3); fail)
+    subgoal
+      using L by auto
+    subgoal
+      by auto
+    apply (solves auto)
+    apply (solves auto)
+    apply (rule vdom2; auto)
+    subgoal
+      using L by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal using vdom by (force dest: vdom_m_upd vdom_m3 in_mono)
+    done
+qed
+
+term fm_mv_clause_to_new_arena
+term fmappend
+term cdcl_GC_clauses_prog_copy_wl_entry
+thm cdcl_GC_clauses_prog_copy_wl_entry_def
+term cdcl_GC_clauses_prog_single_wl
+thm cdcl_GC_clauses_prog_single_wl_def
+
+term cdcl_GC_clauses_prog_wl
+thm cdcl_GC_clauses_prog_wl_def
 end
