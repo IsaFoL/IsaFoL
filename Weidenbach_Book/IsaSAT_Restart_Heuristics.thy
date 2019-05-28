@@ -3004,7 +3004,7 @@ lemma restart_prog_wl_D_heur_restart_prog_wl_D:
 
 
 definition iterate_over_VMTF where
-  \<open>iterate_over_VMTF \<equiv> (\<lambda>(ns :: (nat, nat) vmtf_node list, n) (I :: 'a \<Rightarrow> bool) f x. do {
+  \<open>iterate_over_VMTF \<equiv> (\<lambda>f (I :: 'a \<Rightarrow> bool) (ns :: (nat, nat) vmtf_node list, n) x. do {
       (_, x) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(n, x). I x\<^esup>
         (\<lambda>(n, _). n \<noteq> None)
         (\<lambda>(n, x). do {
@@ -3019,7 +3019,7 @@ definition iterate_over_VMTF where
     })\<close>
 
 definition iterate_over_\<L>\<^sub>a\<^sub>l\<^sub>l where
-  \<open>iterate_over_\<L>\<^sub>a\<^sub>l\<^sub>l = (\<lambda>\<A>\<^sub>0 I f x. do {
+  \<open>iterate_over_\<L>\<^sub>a\<^sub>l\<^sub>l = (\<lambda>f \<A>\<^sub>0 I x. do {
     \<A> \<leftarrow> SPEC(\<lambda>\<A>. set_mset \<A> = set_mset \<A>\<^sub>0);
     (_, x) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(_, x). I x\<^esup>
       (\<lambda>(\<B>, _). \<B> \<noteq> {#})
@@ -3037,7 +3037,7 @@ lemma iterate_over_VMTF_iterate_over_\<L>\<^sub>a\<^sub>l\<^sub>l:
   fixes x :: 'a
   assumes vmtf: \<open>((ns, m, fst_As, lst_As, next_search), to_remove) \<in> vmtf \<A> M\<close> and
     nempty: \<open>\<A> \<noteq> {#}\<close>
-  shows \<open>iterate_over_VMTF (ns, Some fst_As) I f x \<le> \<Down> Id (iterate_over_\<L>\<^sub>a\<^sub>l\<^sub>l \<A> I f x)\<close>
+  shows \<open>iterate_over_VMTF f I (ns, Some fst_As) x \<le> \<Down> Id (iterate_over_\<L>\<^sub>a\<^sub>l\<^sub>l f \<A> I x)\<close>
 proof -
   obtain xs' ys' where
     vmtf_ns: \<open>vmtf_ns (ys' @ xs') m ns\<close> and
@@ -3073,7 +3073,7 @@ proof -
        f (the x1a) x2b \<le> \<Down> Id (f A x)\<close> for x1a A x x2b
       by auto
   define iterate_over_VMTF2 where
-    \<open>iterate_over_VMTF2 \<equiv> (\<lambda>(vm :: (nat, nat) vmtf_node list, n) (I :: 'a \<Rightarrow> bool) f x. do {
+    \<open>iterate_over_VMTF2 \<equiv> (\<lambda>f (I :: 'a \<Rightarrow> bool) (vm :: (nat, nat) vmtf_node list, n) x. do {
       let _= remdups_mset \<A>;
       (_, _, x) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(n,m, x). I x\<^esup>
         (\<lambda>(n, _, _). n \<noteq> None)
@@ -3088,7 +3088,7 @@ proof -
       RETURN x
     })\<close>
   have iterate_over_VMTF2_alt_def:
-    \<open>iterate_over_VMTF2 \<equiv> (\<lambda>(vm :: (nat, nat) vmtf_node list, n) (I :: 'a \<Rightarrow> bool) f x. do {
+    \<open>iterate_over_VMTF2 \<equiv> (\<lambda>f (I :: 'a \<Rightarrow> bool) (vm :: (nat, nat) vmtf_node list, n) x. do {
       (_, _, x) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(n,m, x). I x\<^esup>
         (\<lambda>(n, _, _). n \<noteq> None)
         (\<lambda>(n, m, x). do {
@@ -3169,7 +3169,7 @@ proof -
       set_append[symmetric]zs_def[symmetric] zs2
     by (auto simp: eq_commute[of \<open>set zs\<close> \<open>atms_of (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>)\<close>] hd_drop_conv_nth
       simp del: nth_mem)
-  have  \<open>iterate_over_VMTF2 (ns, Some fst_As) I f x \<le> \<Down> Id (iterate_over_\<L>\<^sub>a\<^sub>l\<^sub>l \<A> I f x)\<close>
+  have  \<open>iterate_over_VMTF2 f I (ns, Some fst_As) x \<le> \<Down> Id (iterate_over_\<L>\<^sub>a\<^sub>l\<^sub>l f \<A> I x)\<close>
     unfolding iterate_over_VMTF2_def iterate_over_\<L>\<^sub>a\<^sub>l\<^sub>l_def prod.case
     apply (refine_vcg WHILEIT_refine[where R = \<open>{((n :: nat option, m::nat, x::'a), (\<A>' :: nat multiset, y)).
         is_lasts \<A>' n m \<and> x = y}\<close>])
@@ -3191,7 +3191,7 @@ proof -
       by (rule IH)
     subgoal by auto
     done
-  moreover have \<open>iterate_over_VMTF (ns, Some fst_As) I f x  \<le> \<Down> Id (iterate_over_VMTF2 (ns, Some fst_As) I f x)\<close>
+  moreover have \<open>iterate_over_VMTF f I (ns, Some fst_As) x  \<le> \<Down> Id (iterate_over_VMTF2 f I (ns, Some fst_As) x)\<close>
     unfolding iterate_over_VMTF2_alt_def iterate_over_VMTF_def prod.case
     by (refine_vcg WHILEIT_refine[where R = \<open>{((n :: nat option, x::'a), (n' :: nat option, m'::nat, x'::'a)).
         n = n' \<and> x = x'}\<close>]) auto
@@ -3272,10 +3272,10 @@ proof -
  qed
 
 definition isasat_GC_clauses_prog_single_wl
-  :: \<open>arena \<Rightarrow> ('v literal \<Rightarrow> 'v watched) \<Rightarrow> 'v \<Rightarrow>
-         (arena \<times> _) \<Rightarrow> (arena \<times> (arena \<times> _) \<times> ('v literal \<Rightarrow> 'v watched)) nres\<close>
+  :: \<open>arena \<Rightarrow>  (arena \<times> _) \<Rightarrow> ('v literal \<Rightarrow> 'v watched) \<Rightarrow> 'v \<Rightarrow>
+        (arena \<times> (arena \<times> _) \<times> ('v literal \<Rightarrow> 'v watched)) nres\<close>
 where
-\<open>isasat_GC_clauses_prog_single_wl = (\<lambda>N WS A N'. do {
+\<open>isasat_GC_clauses_prog_single_wl = (\<lambda>N N' WS A. do {
     let L = Pos A; \<^cancel>\<open>use phase saving instead\<close>
     (N, (N', vdm)) \<leftarrow> isasat_GC_clauses_prog_copy_wl_entry N WS L N';
     let WS = WS(L := []);
@@ -3284,32 +3284,44 @@ where
     RETURN (N, N', WS)
   })\<close>
 
+definition isasat_GC_refl :: \<open>_\<close> where
+\<open>isasat_GC_refl \<A> vdom0 = {((arena\<^sub>o, (arena, vdom), W), (N\<^sub>o, N, W')). valid_arena arena\<^sub>o N\<^sub>o vdom0 \<and> valid_arena arena N (set vdom) \<and>
+       W = W' \<and> vdom_m \<A> W N\<^sub>o \<subseteq> vdom0}\<close>
+
 lemma isasat_GC_clauses_prog_single_wl:
-  assumes \<open>valid_arena arena N vdom0\<close> and
+  assumes
+    \<open>(X, X') \<in> isasat_GC_refl \<A> vdom0\<close> and
+    X: \<open>X = (arena, (arena', vdom), W)\<close> \<open>X' = (N, N', W')\<close> and
+    L: \<open>A \<in># \<A>\<close> and
+    st: \<open>(A, A') \<in> Id\<close> and st': \<open>narena = (arena', vdom)\<close>
+  shows \<open>isasat_GC_clauses_prog_single_wl arena narena  W A
+     \<le> \<Down> (isasat_GC_refl \<A> vdom0)
+         (cdcl_GC_clauses_prog_single_wl N W' A' N')\<close>
+     (is \<open>_ \<le> \<Down> ?R _\<close>)
+proof -
+  have H:
+    \<open>valid_arena arena N vdom0\<close>
     \<open>valid_arena arena' N' (set vdom)\<close> and
     vdom: \<open>vdom_m \<A> W N \<subseteq> vdom0\<close> and
-    L: \<open>A \<in># \<A>\<close>
-  shows \<open>isasat_GC_clauses_prog_single_wl arena W A (arena', vdom)
-     \<le> \<Down> ({(arena, N). valid_arena arena N vdom0} \<times>\<^sub>r {((arena, vdom), N). valid_arena arena N (set vdom)}
-     \<times>\<^sub>r {(W, W'). W = W' \<and> vdom_m \<A> W N \<subseteq> vdom0})
-         (cdcl_GC_clauses_prog_single_wl N W A N')\<close>
-     (is \<open>_ \<le> \<Down> (?R\<^sub>1 \<times>\<^sub>r ?R\<^sub>2 \<times>\<^sub>r ?R\<^sub>3) _\<close>)
-proof -
+    L: \<open>A \<in># \<A>\<close> and
+    eq:  \<open>W' = W\<close> \<open>A' = A\<close>
+    using assms X st by (auto simp: isasat_GC_refl_def)
+
   have vdom2: \<open>vdom_m \<A> W x1 \<subseteq> vdom0 \<Longrightarrow> vdom_m \<A> (W(L := [])) x1 \<subseteq> vdom0\<close> for x1 L
     by (force simp: vdom_m_def dest!: multi_member_split)
   have vdom_m_upd: \<open>x \<in> vdom_m \<A> (W(Pos A := [], Neg A := [])) N \<Longrightarrow> x \<in> vdom_m \<A> W N\<close> for x W A N
     by (auto simp: image_iff vdom_m_def dest: multi_member_split)
-  have vdom_m3: \<open>dom_m a \<subseteq># dom_m b \<Longrightarrow> dom_m b \<subseteq># dom_m c \<Longrightarrow> x \<in> vdom_m \<A> W a \<Longrightarrow> x \<in> vdom_m \<A> W c\<close> for a b c W x
+  have vdom_m3: \<open> x \<in> vdom_m \<A> W a \<Longrightarrow> dom_m a \<subseteq># dom_m b \<Longrightarrow> dom_m b \<subseteq># dom_m c \<Longrightarrow>x \<in> vdom_m \<A> W c\<close> for a b c W x
     unfolding vdom_m_def by auto
   have [refine0]: \<open>RETURN (Pos A) \<le> \<Down> Id (RES {Pos A, Neg A})\<close> by auto
   show ?thesis
     unfolding isasat_GC_clauses_prog_single_wl_def
-      cdcl_GC_clauses_prog_single_wl_def
+      cdcl_GC_clauses_prog_single_wl_def eq st' isasat_GC_refl_def
     apply (refine_vcg
       isasat_GC_clauses_prog_copy_wl_entry)
-    apply (rule assms(1); fail)
-    apply (rule assms(2); fail)
-    apply (rule assms(3); fail)
+    apply (rule H(1); fail)
+    apply (rule H(2); fail)
+    apply (rule vdom; fail)
     subgoal
       using L by auto
     subgoal
@@ -3321,17 +3333,83 @@ proof -
       using L by auto
     subgoal by auto
     subgoal by auto
-    subgoal using vdom by (force dest: vdom_m_upd vdom_m3 in_mono)
+    subgoal using vdom by (force dest: vdom_m_upd vdom_m3)
     done
 qed
 
-term fm_mv_clause_to_new_arena
-term fmappend
-term cdcl_GC_clauses_prog_copy_wl_entry
-thm cdcl_GC_clauses_prog_copy_wl_entry_def
-term cdcl_GC_clauses_prog_single_wl
-thm cdcl_GC_clauses_prog_single_wl_def
 
-term cdcl_GC_clauses_prog_wl
-thm cdcl_GC_clauses_prog_wl_def
+definition isasat_GC_clauses_prog_wl where
+  \<open>isasat_GC_clauses_prog_wl \<equiv> (\<lambda>(ns :: (nat, nat) vmtf_node list, n) x. do {
+      (_, x) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(n, x). True\<^esup>
+        (\<lambda>(n, _). n \<noteq> None)
+        (\<lambda>(n, x). do {
+          ASSERT(n \<noteq> None);
+          let A = the n;
+          ASSERT(A < length ns);
+          x \<leftarrow> (\<lambda>(arena\<^sub>o, arena, W). isasat_GC_clauses_prog_single_wl arena\<^sub>o arena W A) x;
+          RETURN (get_next ((ns ! A)), x)
+        })
+        (n, x);
+      RETURN x
+    })\<close>
+
+definition cdcl_GC_clauses_prog_wl2  where
+  \<open>cdcl_GC_clauses_prog_wl2 = (\<lambda>N0 \<A> WS. do {
+    \<A> \<leftarrow> SPEC(\<lambda>\<A>. set_mset \<A> = set_mset \<A>);
+    (_, (N, N', WS)) \<leftarrow> WHILE\<^sub>T\<^bsup>cdcl_GC_clauses_prog_wl_inv \<A> N0\<^esup>
+      (\<lambda>(\<B>, _). \<B> \<noteq> {#})
+      (\<lambda>(\<B>, (N, N', WS)). do {
+        ASSERT(\<B> \<noteq> {#});
+        A \<leftarrow> SPEC (\<lambda>A. A \<in># \<B>);
+        (N, N', WS) \<leftarrow> cdcl_GC_clauses_prog_single_wl N WS A N';
+        RETURN (remove1_mset A \<B>, (N, N', WS))
+      })
+      (\<A>, (N0, fmempty, WS));
+    RETURN (N, N', WS)
+  })\<close>
+
+lemma isasat_GC_clauses_prog_wl:
+  assumes \<open>valid_arena arena\<^sub>o N\<^sub>o vdom0\<close> and
+    \<open>valid_arena arena N (set vdom)\<close> and
+    vdom: \<open>vdom_m \<A> W N\<^sub>o \<subseteq> vdom0\<close> and
+    vmtf: \<open>((ns, m, n, lst_As1, next_search1), to_remove1) \<in> vmtf \<A> M\<close> and
+    nempty: \<open>\<A> \<noteq> {#}\<close>
+ shows
+    \<open>isasat_GC_clauses_prog_wl (ns, Some n) (arena\<^sub>o, ([], []), W)
+        \<le> \<Down> ({((arena\<^sub>o, (arena, vdom), W), (N\<^sub>o, N, W')). valid_arena arena\<^sub>o N\<^sub>o vdom0 \<and> valid_arena arena N (set vdom) \<and>
+       W = W' \<and> vdom_m \<A> W N\<^sub>o \<subseteq> vdom0})
+         (cdcl_GC_clauses_prog_wl2 N\<^sub>o \<A> W)\<close>
+proof -
+  define f where
+    \<open>f A \<equiv> (\<lambda>(arena\<^sub>o, arena, W). isasat_GC_clauses_prog_single_wl arena\<^sub>o arena W A)\<close> for A :: nat
+  have H: \<open>(X, X') \<in> A \<times>\<^sub>r isasat_GC_refl \<A> vdom0 \<Longrightarrow> X = (x1, x2) \<Longrightarrow> x2 = (x3, x4) \<Longrightarrow> x4 = (x5, x6) \<Longrightarrow>
+     X' = (x1', x2') \<Longrightarrow> x2' = (x3', x4') \<Longrightarrow> x4' = (x5', x6') \<Longrightarrow>
+     ((x3, (fst x5, snd x5), x6), (x3', x5', x6')) \<in> isasat_GC_refl \<A> vdom0\<close>
+    for X X' A B x1 x1' x2 x2' x3 x3' x4 x4' x5 x5' x6 x6'
+     supply [[show_types]]
+    by auto
+  have isasat_GC_clauses_prog_wl_alt_def:
+    \<open>isasat_GC_clauses_prog_wl = iterate_over_VMTF f (\<lambda>_. True)\<close>
+    unfolding f_def isasat_GC_clauses_prog_wl_def iterate_over_VMTF_def by (auto intro!: ext)
+  show ?thesis
+    unfolding isasat_GC_clauses_prog_wl_alt_def prod.case f_def[symmetric]
+    apply (rule order_trans[OF iterate_over_VMTF_iterate_over_\<L>\<^sub>a\<^sub>l\<^sub>l[OF vmtf nempty]])
+    unfolding Down_id_eq iterate_over_\<L>\<^sub>a\<^sub>l\<^sub>l_def cdcl_GC_clauses_prog_wl2_def f_def
+    apply (refine_vcg WHILEIT_refine[where R = \<open>Id \<times>\<^sub>r isasat_GC_refl \<A> vdom0\<close>]
+       isasat_GC_clauses_prog_single_wl)
+    subgoal by auto
+    subgoal using assms by (auto simp: valid_arena_empty isasat_GC_refl_def)
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    apply (rule H; assumption; fail)
+    apply (rule refl)+
+    subgoal by (auto simp add: cdcl_GC_clauses_prog_wl_inv_def)
+    subgoal by auto
+    subgoal by auto
+    subgoal by (auto simp: isasat_GC_refl_def)
+    done
+qed
+
 end
