@@ -3426,7 +3426,7 @@ qed
 lemma cdcl_GC_clauses_prog_wl_alt_def:
   \<open>cdcl_GC_clauses_prog_wl = (\<lambda>(M, N0, D, NE, UE, Q, WS). do {
     ASSERT(cdcl_GC_clauses_pre_wl (M, N0, D, NE, UE, Q, WS));
-    (N, N', WS) \<leftarrow> cdcl_GC_clauses_prog_wl2 N0  (all_atms N0 (NE + UE)) WS;
+    (N, N', WS) \<leftarrow> cdcl_GC_clauses_prog_wl2 N0 (all_init_atms N0 NE) WS;
     RETURN (M, N', D, NE, UE, Q, WS)
      })\<close>
  proof -
@@ -3455,15 +3455,9 @@ lemma cdcl_GC_clauses_prog_wl_alt_def:
      apply (subst order_class.eq_iff[of \<open>(_ :: _ nres)\<close>])
      apply (intro conjI)
      subgoal
-       apply (rewrite at \<open>_ \<le> \<hole>\<close> Down_id_eq[symmetric])
-       apply (refine_rcg WHILEIT_refine[where R = Id])
-       apply auto
-       done
+       by (rewrite at \<open>_ \<le> \<hole>\<close> Down_id_eq[symmetric]) (refine_rcg WHILEIT_refine[where R = Id], auto)
      subgoal
-       apply (rewrite at \<open>_ \<le> \<hole>\<close> Down_id_eq[symmetric])
-       apply (refine_rcg WHILEIT_refine[where R = Id])
-       apply auto
-       done
+       by (rewrite at \<open>_ \<le> \<hole>\<close> Down_id_eq[symmetric]) (refine_rcg WHILEIT_refine[where R = Id], auto)
      done
 qed
 
@@ -3475,4 +3469,59 @@ definition isasat_GC_clauses_prog_wl :: \<open>twl_st_wl_heur \<Rightarrow> twl_
        vdom, vdom, lcount, opts)
   })\<close>
 
+lemma
+  \<open>(isasat_GC_clauses_prog_wl,cdcl_GC_clauses_prog_wl) \<in> twl_st_heur_restart \<rightarrow>\<^sub>f \<langle>twl_st_heur_restart\<rangle>nres_rel\<close>
+proof-
+  have [refine0]: \<open>\<And>x1 x1a x1b x1c x1d x1e x2e x1f x1g x1h x1i x1j x1m x1n x1o x1p x2n x2o x1q
+       x1r x1s x1t x1u x1v x1w x1x x1y x1z x1aa x1ab x2ab.
+       ((x1f, x1g, x1h, x1i, x1j, ((x1m, x1n, x1o, x1p, x2n), x2o), x1q, x1r,
+         x1s, x1t, x1u, x1v, x1w, x1x, x1y, x1z, x1aa, x1ab, x2ab),
+        x1, x1a, x1b, x1c, x1d, x1e, x2e)
+       \<in> twl_st_heur_restart \<Longrightarrow>
+       valid_arena x1g x1a (set x1z)\<close>
+     unfolding twl_st_heur_restart_def
+     by simp
+  have [refine0]: \<open>\<And>x1 x1a x1b x1c x1d x1e x2e x1f x1g x1h x1i x1j x1m x1n x1o x1p x2n x2o x1q
+       x1r x1s x1t x1u x1v x1w x1x x1y x1z x1aa x1ab x2ab.
+       ((x1f, x1g, x1h, x1i, x1j, ((x1m, x1n, x1o, x1p, x2n), x2o), x1q, x1r,
+         x1s, x1t, x1u, x1v, x1w, x1x, x1y, x1z, x1aa, x1ab, x2ab),
+        x1, x1a, x1b, x1c, x1d, x1e, x2e)
+       \<in> twl_st_heur_restart \<Longrightarrow>
+       vdom_m (all_init_atms x1a x1c) x2e x1a \<subseteq> set x1z\<close>
+     unfolding twl_st_heur_restart_def
+     by simp
+  have [refine0]: \<open>\<And>x1 x1a x1b x1c x1d x1e x2e x1f x1g x1h x1i x1j x1m x1n x1o x1p x2n x2o x1q
+       x1r x1s x1t x1u x1v x1w x1x x1y x1z x1aa x1ab x2ab.
+       ((x1f, x1g, x1h, x1i, x1j, ((x1m, x1n, x1o, x1p, x2n), x2o), x1q, x1r,
+         x1s, x1t, x1u, x1v, x1w, x1x, x1y, x1z, x1aa, x1ab, x2ab),
+        x1, x1a, x1b, x1c, x1d, x1e, x2e)
+       \<in> twl_st_heur_restart \<Longrightarrow>
+       all_init_atms x1a x1c \<noteq> {#}\<close>
+     unfolding twl_st_heur_restart_def
+     by simp
+  have [refine0]: \<open>\<And>x1 x1a x1b x1c x1d x1e x2e x1f x1g x1h x1i x1j x1m x1n x1o x1p x2n x2o x1q
+       x1r x1s x1t x1u x1v x1w x1x x1y x1z x1aa x1ab x2ab.
+       ((x1f, x1g, x1h, x1i, x1j, ((x1m, x1n, x1o, x1p, x2n), x2o), x1q, x1r,
+         x1s, x1t, x1u, x1v, x1w, x1x, x1y, x1z, x1aa, x1ab, x2ab),
+        x1, x1a, x1b, x1c, x1d, x1e, x2e)
+       \<in> twl_st_heur_restart \<Longrightarrow>
+       ((x1m, x1n, x1o, x1p, x2n), set (fst x2o)) \<in> vmtf (all_init_atms x1a x1c) x1\<close>
+       \<open>\<And>x1 x1a x1b x1c x1d x1e x2e x1f x1g x1h x1i x1j x1m x1n x1o x1p x2n x2o x1q
+       x1r x1s x1t x1u x1v x1w x1x x1y x1z x1aa x1ab x2ab.
+       ((x1f, x1g, x1h, x1i, x1j, ((x1m, x1n, x1o, x1p, x2n), x2o), x1q, x1r,
+         x1s, x1t, x1u, x1v, x1w, x1x, x1y, x1z, x1aa, x1ab, x2ab),
+        x1, x1a, x1b, x1c, x1d, x1e, x2e)
+       \<in> twl_st_heur_restart \<Longrightarrow> (x1j, x2e) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 (all_init_atms x1a x1c))\<close>
+     unfolding twl_st_heur_restart_def isa_vmtf_def distinct_atoms_rel_def distinct_hash_atoms_rel_def
+     by auto
+
+  show ?thesis
+    supply [[goals_limit=1]]
+    unfolding isasat_GC_clauses_prog_wl_def cdcl_GC_clauses_prog_wl_alt_def
+    apply (intro frefI nres_relI)
+    apply (refine_vcg isasat_GC_clauses_prog_wl2[where \<A> = \<open>all_init_atms _ _\<close>]; remove_dummy_vars)
+    subgoal
+      apply (auto simp: twl_st_heur_restart_def)
+  oops
+  
 end

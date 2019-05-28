@@ -1556,7 +1556,7 @@ where
 definition cdcl_GC_clauses_prog_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
   \<open>cdcl_GC_clauses_prog_wl = (\<lambda>(M, N0, D, NE, UE, Q, WS). do {
     ASSERT(cdcl_GC_clauses_pre_wl (M, N0, D, NE, UE, Q, WS));
-    \<A> \<leftarrow> SPEC(\<lambda>\<A>. set_mset \<A> = set_mset (all_atms N0 (NE + UE)));
+    \<A> \<leftarrow> SPEC(\<lambda>\<A>. set_mset \<A> = set_mset (all_init_atms N0 NE));
     (_, (N, N', WS)) \<leftarrow> WHILE\<^sub>T\<^bsup>cdcl_GC_clauses_prog_wl_inv \<A> N0\<^esup>
       (\<lambda>(\<B>, _). \<B> \<noteq> {#})
       (\<lambda>(\<B>, (N, N', WS)). do {
@@ -1574,7 +1574,7 @@ lemma cdcl_GC_clauses_prog_wl:
   assumes \<open>((M, N0, D, NE, UE, Q, WS), S) \<in> state_wl_l None \<and>
     correct_watching'' (M, N0, D, NE, UE, Q, WS) \<and> cdcl_GC_clauses_pre S \<and>
    set_mset (dom_m N0) \<subseteq> clauses_pointed_to
-      (Neg ` set_mset (all_atms N0 (NE+UE)) \<union> Pos ` set_mset (all_atms N0 (NE+UE))) WS\<close>
+      (Neg ` set_mset (all_init_atms N0 NE) \<union> Pos ` set_mset (all_init_atms N0 NE)) WS\<close>
   shows
     \<open>cdcl_GC_clauses_prog_wl (M, N0, D, NE, UE, Q, WS) \<le>
       SPEC(\<lambda>(M, N, D, NE, UE, Q, WS).
