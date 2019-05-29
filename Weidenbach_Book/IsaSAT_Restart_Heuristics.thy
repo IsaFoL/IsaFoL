@@ -3228,10 +3228,11 @@ lemma isasat_GC_clauses_prog_copy_wl_entry:
     vdom: \<open>vdom_m \<A> W N \<subseteq> vdom0\<close> and
     L: \<open>atm_of A \<in># \<A>\<close> and
     L'_L: \<open>(A', A) \<in> nat_lit_lit_rel\<close> and
-    W: \<open>(W' , W) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 \<A>)\<close>
+    W: \<open>(W' , W) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 \<A>)\<close> and
+    \<open>dom_m N' = mset vdom\<close> \<open>distinct vdom\<close>
   shows \<open>isasat_GC_clauses_prog_copy_wl_entry arena W' A' (arena', vdom)
      \<le> \<Down> ({(arena, N'). valid_arena arena N' vdom0 \<and> vdom_m \<A> W N' \<subseteq> vdom0 \<and> dom_m N' \<subseteq># dom_m N} \<times>\<^sub>f
-           {((arena, vdom), N). valid_arena arena N (set vdom)})
+           {((arena, vdom), N). valid_arena arena N (set vdom) \<and> dom_m N = mset vdom \<and> distinct vdom})
          (cdcl_GC_clauses_prog_copy_wl_entry N (W A) A N')\<close>
      (is \<open>_ \<le> \<Down> (?R\<^sub>1 \<times>\<^sub>f ?R\<^sub>2) _\<close>)
 proof -
@@ -3259,12 +3260,12 @@ proof -
      unfolding arena_is_valid_clause_idx_def
      by auto
    subgoal
-     by (auto dest: arena_lifting)
+     by (force dest: arena_lifting(2))
    subgoal
      by (rule order_trans[OF fm_mv_clause_to_new_arena])
        (auto intro: valid_arena_extra_information_mark_to_delete'
-         simp: header_size_def arena_lifting
-         dest: in_vdom_m_fmdropD)
+         simp: header_size_def arena_lifting remove_1_mset_id_iff_notin
+         dest: in_vdom_m_fmdropD arena_lifting(2))
    subgoal
      by auto
    subgoal
@@ -3287,7 +3288,7 @@ where
 
 definition isasat_GC_refl :: \<open>_\<close> where
 \<open>isasat_GC_refl \<A> vdom0 = {((arena\<^sub>o, (arena, vdom), W), (N\<^sub>o, N, W')). valid_arena arena\<^sub>o N\<^sub>o vdom0 \<and> valid_arena arena N (set vdom) \<and>
-       (W, W') \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 \<A>) \<and> vdom_m \<A> W' N\<^sub>o \<subseteq> vdom0}\<close>
+       (W, W') \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 \<A>) \<and> vdom_m \<A> W' N\<^sub>o \<subseteq> vdom0 \<and> dom_m N = mset vdom \<and> distinct vdom}\<close>
 
 lemma isasat_GC_clauses_prog_single_wl:
   assumes
@@ -3306,7 +3307,9 @@ proof -
     vdom: \<open>vdom_m \<A> W' N \<subseteq> vdom0\<close> and
     L: \<open>A \<in># \<A>\<close> and
     eq: \<open>A' = A\<close> and
-    WW': \<open>(W, W') \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 \<A>)\<close>
+    WW': \<open>(W, W') \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 \<A>)\<close> and
+    vdom_dom: \<open>dom_m N' = mset vdom\<close> and
+    dist: \<open>distinct vdom\<close>
     using assms X st by (auto simp: isasat_GC_refl_def)
 
   have vdom2: \<open>vdom_m \<A> W' x1 \<subseteq> vdom0 \<Longrightarrow> vdom_m \<A> (W'(L := [])) x1 \<subseteq> vdom0\<close> for x1 L
@@ -3338,12 +3341,16 @@ proof -
       using L by auto
     subgoal using WW'
       by auto
+    subgoal using vdom_dom by blast
+    subgoal using dist by blast
     apply (solves auto)
     apply (solves auto)
     apply (rule vdom2; auto)
     subgoal
       using L by auto
     subgoal by auto
+    subgoal using WW' by (auto simp: map_fun_rel_def dest!: multi_member_split simp: \<L>\<^sub>a\<^sub>l\<^sub>l_add_mset)
+    subgoal using WW' by (auto simp: map_fun_rel_def dest!: multi_member_split simp: \<L>\<^sub>a\<^sub>l\<^sub>l_add_mset)
     subgoal using WW' by (auto simp: map_fun_rel_def dest!: multi_member_split simp: \<L>\<^sub>a\<^sub>l\<^sub>l_add_mset)
     subgoal using W vdom by (force dest: dest: vdom_m_upd vdom_m3)
     done
@@ -3413,14 +3420,14 @@ lemma isasat_GC_clauses_prog_wl2:
     \<open>isasat_GC_clauses_prog_wl2 (ns, Some n) (arena\<^sub>o, ([], []), W)
         \<le> \<Down> ({((arena\<^sub>o, (arena, vdom), W), (N\<^sub>o', N, W')). valid_arena arena\<^sub>o N\<^sub>o' vdom0 \<and> valid_arena arena N (set vdom) \<and>
        (W, W') \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 \<A>) \<and> vdom_m \<A> W' N\<^sub>o' \<subseteq> vdom0 \<and>
-       cdcl_GC_clauses_prog_wl_inv \<A> N\<^sub>o ({#}, N\<^sub>o', N, W')})
+       cdcl_GC_clauses_prog_wl_inv \<A> N\<^sub>o ({#}, N\<^sub>o', N, W') \<and> dom_m N = mset vdom \<and> distinct vdom})
          (cdcl_GC_clauses_prog_wl2 N\<^sub>o \<A> W')\<close>
 proof -
   define f where
     \<open>f A \<equiv> (\<lambda>(arena\<^sub>o, arena, W). isasat_GC_clauses_prog_single_wl arena\<^sub>o arena W A)\<close> for A :: nat
-  let ?R = \<open> {((\<A>', arena\<^sub>o, (arena, vdom), W), (\<A>'', N\<^sub>o', N, W')). \<A>' = \<A>'' \<and>
+  let ?R = \<open>{((\<A>', arena\<^sub>o, (arena, vdom), W), (\<A>'', N\<^sub>o', N, W')). \<A>' = \<A>'' \<and>
       ((arena\<^sub>o, (arena, vdom), W), (N\<^sub>o', N, W')) \<in> isasat_GC_refl \<A> vdom0}\<close>
-  let ?S = \<open> {((\<A>', arena\<^sub>o, (arena, vdom), W), (\<A>'', N\<^sub>o', N, W')). \<A>' = \<A>'' \<and>
+  let ?S = \<open>{((\<A>', arena\<^sub>o, (arena, vdom), W), (\<A>'', N\<^sub>o', N, W')). \<A>' = \<A>'' \<and>
       ((arena\<^sub>o, (arena, vdom), W), (N\<^sub>o', N, W')) \<in> isasat_GC_refl \<A> vdom0 \<and>
             cdcl_GC_clauses_prog_wl_inv \<A> N\<^sub>o (\<A>'', N\<^sub>o', N, W')}\<close>
   have H: \<open>(X, X') \<in> ?R \<Longrightarrow> X = (x1, x2) \<Longrightarrow> x2 = (x3, x4) \<Longrightarrow> x4 = (x5, x6) \<Longrightarrow>
@@ -3594,6 +3601,23 @@ proof-
        \<in> twl_st_heur_restart \<Longrightarrow> (x1j, x2e) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 (all_init_atms x1a x1c))\<close>
      unfolding twl_st_heur_restart_def isa_vmtf_def distinct_atoms_rel_def distinct_hash_atoms_rel_def
      by auto
+  have H: \<open>x \<in> set x2af\<close>
+    if
+       empty: \<open>\<forall>A\<in>#all_init_atms x1a x1c. x2ad (Pos A) = [] \<and> x2ad (Neg A) = []\<close> and
+      rem: \<open>GC_remap\<^sup>*\<^sup>* (x1a, Map.empty, fmempty) (fmempty, m, x1ad)\<close> and
+      vdom: \<open>x \<in> vdom_m (all_init_atms x1a x1c) x2ad x1ad\<close> and
+      \<open>dom_m x1ad = mset x2af\<close>
+    for m :: \<open>nat \<Rightarrow> nat option\<close> and y :: \<open>nat literal multiset\<close> and x :: \<open>nat\<close> and
+      x1 x1a x1b x1c x1d x1e x2e x1f x1g x1h x1i x1j x1m x1n x1o x1p x2n x2o x1q
+         x1r x1s x1t x1u x1v x1w x1x x1y x1z x1aa x1ab x2ab x1ac x1ad x2ad x1ae
+         x1ag x2af x2ag
+  proof -
+    have \<open>xa \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_init_atms x1a x1c) \<Longrightarrow> x2ad xa = []\<close> for xa
+      using empty by (cases xa) (auto simp: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n)
+    then show ?thesis
+      using vdom \<open>dom_m x1ad = mset x2af\<close>
+      by (auto simp: vdom_m_def)
+  qed
 
   show ?thesis
     supply [[goals_limit=1]]
@@ -3601,12 +3625,10 @@ proof-
     apply (intro frefI nres_relI)
     apply (refine_vcg isasat_GC_clauses_prog_wl2[where \<A> = \<open>all_init_atms _ _\<close>]; remove_dummy_vars)
     subgoal
-      apply (auto simp: twl_st_heur_restart_def
+      by (force simp: twl_st_heur_restart_def
         cdcl_GC_clauses_prog_wl_inv_def
-        )
-        apply (simp_all add: 
-        rtranclp_GC_remap_all_init_atms
+        rtranclp_GC_remap_all_init_atms H
         rtranclp_GC_remap_learned_clss_l)
-        oops
-
+    done
+qed
 end
