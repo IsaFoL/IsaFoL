@@ -1070,8 +1070,8 @@ definition cdcl_GC_clauses_wl_D :: \<open>nat twl_st_wl \<Rightarrow> nat twl_st
 
 lemma cdcl_GC_clauses_wl_D_cdcl_GC_clauses_wl:
   \<open>(cdcl_GC_clauses_wl_D, cdcl_GC_clauses_wl) \<in> {(S::nat twl_st_wl, S').
-       (S, S') \<in> Id \<and>  literals_are_\<L>\<^sub>i\<^sub>n' (all_init_atms_st S) S} \<rightarrow>\<^sub>f \<langle>{(S::nat twl_st_wl, S').
-       (S, S') \<in> Id \<and>  literals_are_\<L>\<^sub>i\<^sub>n' (all_init_atms_st S) S}\<rangle>nres_rel\<close>
+       (S, S') \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n' (all_init_atms_st S) S} \<rightarrow>\<^sub>f \<langle>{(S::nat twl_st_wl, S').
+       (S, S') \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n' (all_init_atms_st S) S}\<rangle>nres_rel\<close>
   unfolding cdcl_GC_clauses_wl_D_def cdcl_GC_clauses_wl_def
   apply (intro frefI nres_relI)
   apply refine_vcg
@@ -1314,7 +1314,7 @@ where
         ASSERT(i < length W);
         let C = fst (W ! i);
         if C \<in># dom_m N then do {
-          D \<leftarrow> SPEC(\<lambda>D. D \<notin># dom_m N');
+          D \<leftarrow> SPEC(\<lambda>D. D \<notin># dom_m N' \<and> D \<noteq> 0);
 	  RETURN (i+1, fmdrop C N, fmupd D (N \<propto> C, irred N C) N')
         } else RETURN (i+1, N, N')
       }) (0, N, N');
@@ -1339,14 +1339,16 @@ lemma cdcl_GC_clauses_prog_copy_wl_entry:
   assumes \<open>
 	  ran m0 \<subseteq> set_mset (dom_m N0') \<and>
 	  (\<forall>L\<in>dom m0. L \<notin># (dom_m N0)) \<and>
-	  set_mset (dom_m N0) \<subseteq> clauses_pointed_to (set_mset \<A>) WS\<close>
+	  set_mset (dom_m N0) \<subseteq> clauses_pointed_to (set_mset \<A>) WS \<and>
+          0 \<notin># dom_m N0'\<close>
   shows
     \<open>cdcl_GC_clauses_prog_copy_wl_entry N0 W A N0' \<le>
       SPEC(\<lambda>(N, N'). (\<exists>m. GC_remap\<^sup>*\<^sup>* (N0, m0, N0') (N, m, N') \<and>
 	  ran m \<subseteq> set_mset (dom_m N') \<and>
 	  (\<forall>L\<in>dom m. L \<notin># (dom_m N)) \<and>
 	  set_mset (dom_m N) \<subseteq> clauses_pointed_to (set_mset (remove1_mset A \<A>)) WS) \<and>
-	  (\<forall>L \<in> set W. fst L \<notin># dom_m N))\<close>
+	  (\<forall>L \<in> set W. fst L \<notin># dom_m N) \<and>
+          0 \<notin># dom_m N')\<close>
 proof -
   have [simp]:
     \<open>x \<in># remove1_mset a (dom_m aaa) \<longleftrightarrow> x \<noteq> a \<and> x \<in># dom_m aaa\<close> for x a aaa
@@ -1362,7 +1364,8 @@ proof -
 	  (\<forall>L\<in>dom m. L \<notin># (dom_m N)) \<and>
 	  set_mset (dom_m N) \<subseteq> clauses_pointed_to (set_mset (remove1_mset A \<A>)) WS \<union>
 	    (fst) ` set (drop i W) \<and>
-	  (\<forall>L \<in> set (take i W). fst L \<notin># dom_m N)\<close> and
+	  (\<forall>L \<in> set (take i W). fst L \<notin># dom_m N) \<and>
+          0 \<notin># dom_m N'\<close> and
 	R = \<open>measure (\<lambda>(i, N, N'). length W -i)\<close>])
     subgoal by auto
     subgoal
@@ -1394,6 +1397,7 @@ proof -
     subgoal by (auto 5 5 simp: GC_remap.simps Cons_nth_drop_Suc[symmetric]
           take_Suc_conv_app_nth
         dest: multi_member_split)
+    subgoal by auto
     subgoal by auto
     subgoal by auto
     subgoal by auto
@@ -1480,7 +1484,8 @@ lemma cdcl_GC_clauses_prog_single_wl:
   assumes \<open>ran m \<subseteq> set_mset (dom_m N0') \<and>
 	  (\<forall>L\<in>dom m. L \<notin># (dom_m N0)) \<and>
 	  set_mset (dom_m N0) \<subseteq>
-	    clauses_pointed_to (set_mset (negs \<A> + poss \<A>)) W\<close>
+	    clauses_pointed_to (set_mset (negs \<A> + poss \<A>)) W \<and>
+          0 \<notin># dom_m N0'\<close>
   shows
     \<open>cdcl_GC_clauses_prog_single_wl N0 W A N0' \<le>
       SPEC(\<lambda>(N, N', WS'). \<exists>m'. GC_remap\<^sup>*\<^sup>* (N0, m, N0') (N, m', N') \<and>
@@ -1490,7 +1495,8 @@ lemma cdcl_GC_clauses_prog_single_wl:
 	  (\<forall>L. L \<noteq> Pos A \<longrightarrow> L \<noteq> Neg A \<longrightarrow> W L = WS' L) \<and>
 	  set_mset (dom_m N) \<subseteq>
 	    clauses_pointed_to
-	      (set_mset (negs (remove1_mset A \<A>) + poss (remove1_mset A \<A>))) WS'
+	      (set_mset (negs (remove1_mset A \<A>) + poss (remove1_mset A \<A>))) WS' \<and>
+          0 \<notin># dom_m N'
 	  )\<close>
 proof -
   have [simp]: \<open>A \<notin># \<A> \<Longrightarrow> negs \<A> + poss \<A> - {#Neg A, Pos A#} =
@@ -1548,6 +1554,7 @@ definition cdcl_GC_clauses_prog_wl_inv
 where
 \<open>cdcl_GC_clauses_prog_wl_inv \<A> N0 = (\<lambda>(\<B>, (N, N', WS)). \<B> \<subseteq># \<A> \<and>
   (\<forall>A \<in> set_mset \<A> - set_mset \<B>. (WS (Pos A) = []) \<and> WS (Neg A) = []) \<and>
+  0 \<notin># dom_m N' \<and>
   (\<exists>m. GC_remap\<^sup>*\<^sup>* (N0, (\<lambda>_. None), fmempty) (N, m, N')\<and>
       ran m \<subseteq> set_mset (dom_m N') \<and>
       (\<forall>L\<in>dom m. L \<notin># dom_m N) \<and>
@@ -1577,9 +1584,9 @@ lemma cdcl_GC_clauses_prog_wl:
       (Neg ` set_mset (all_init_atms N0 NE) \<union> Pos ` set_mset (all_init_atms N0 NE)) WS\<close>
   shows
     \<open>cdcl_GC_clauses_prog_wl (M, N0, D, NE, UE, Q, WS) \<le>
-      SPEC(\<lambda>(M, N, D, NE, UE, Q, WS).
-         \<exists>m. GC_remap\<^sup>*\<^sup>* (N0, (\<lambda>_. None), fmempty) (fmempty, m, N)
-	  )\<close>
+      (SPEC(\<lambda>(M', N', D', NE', UE', Q', WS'). (M', D', NE', UE', Q') = (M, D, NE, UE, Q) \<and>
+         (\<exists>m. GC_remap\<^sup>*\<^sup>* (N0, (\<lambda>_. None), fmempty) (fmempty, m, N')) \<and>
+         0 \<notin># dom_m N'))\<close>
 proof -
   show ?thesis
     supply[[goals_limit=1]]
@@ -1606,8 +1613,9 @@ proof -
         apply (rule RETURN_rule)
         apply clarify
         apply (intro conjI)
-            apply (solves auto)
-           apply (solves \<open>auto dest!: multi_member_split\<close>)
+             apply (solves auto)
+            apply (solves \<open>auto dest!: multi_member_split\<close>)
+           apply (solves auto)
           apply (rule_tac x=m' in exI)
           apply (solves auto)[]
          apply (simp_all add: size_Diff1_less)[]
@@ -1616,7 +1624,35 @@ proof -
     subgoal
       unfolding cdcl_GC_clauses_prog_wl_inv_def
       by auto
+    subgoal
+      unfolding cdcl_GC_clauses_prog_wl_inv_def
+      by auto
+    subgoal
+      unfolding cdcl_GC_clauses_prog_wl_inv_def
+      by auto
   done
+qed
+
+
+lemma cdcl_GC_clauses_prog_wl2:
+  assumes \<open>((M, N0, D, NE, UE, Q, WS), S) \<in> state_wl_l None \<and>
+    correct_watching'' (M, N0, D, NE, UE, Q, WS) \<and> cdcl_GC_clauses_pre S \<and>
+   set_mset (dom_m N0) \<subseteq> clauses_pointed_to
+      (Neg ` set_mset (all_init_atms N0 NE) \<union> Pos ` set_mset (all_init_atms N0 NE)) WS\<close> and
+    \<open>N0 = N0'\<close>
+  shows
+    \<open>cdcl_GC_clauses_prog_wl (M, N0, D, NE, UE, Q, WS) \<le>
+       \<Down> {((M', N', D', NE', UE', Q', WS'), (N, N')). (M', D', NE', UE', Q') = (M, D, NE, UE, Q)}
+      (SPEC(\<lambda>(N'::(nat, 'a literal list \<times> bool) fmap, m).
+         GC_remap\<^sup>*\<^sup>* (N0', (\<lambda>_. None), fmempty) (fmempty, m, N') \<and>
+	  0 \<notin># dom_m N'))\<close>
+proof -
+  show ?thesis
+    unfolding \<open>N0 = N0'\<close>[symmetric]
+    apply (rule order_trans[OF cdcl_GC_clauses_prog_wl[OF assms(1)]])
+    apply (rule RES_refine)
+    apply fastforce
+    done
 qed
 
 end

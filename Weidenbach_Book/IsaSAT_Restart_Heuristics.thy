@@ -3261,6 +3261,7 @@ proof -
      by auto
    subgoal
      by (force dest: arena_lifting(2))
+   subgoal by auto
    subgoal
      by (rule order_trans[OF fm_mv_clause_to_new_arena])
        (auto intro: valid_arena_extra_information_mark_to_delete'
@@ -3556,7 +3557,7 @@ lemma rtranclp_GC_remap_learned_clss_l:
   \<open>GC_remap\<^sup>*\<^sup>* (x1a, Map.empty, fmempty) (fmempty, m, x1ad) \<Longrightarrow> learned_clss_l x1ad = learned_clss_l x1a\<close>
   by (auto dest!: rtranclp_GC_remap_learned_clss_lD[of _ _ _ _ _ _])
 
-lemma
+lemma isasat_GC_clauses_prog_wl:
   \<open>(isasat_GC_clauses_prog_wl, cdcl_GC_clauses_prog_wl) \<in> twl_st_heur_restart \<rightarrow>\<^sub>f \<langle>twl_st_heur_restart\<rangle>nres_rel\<close>
 proof-
   have [refine0]: \<open>\<And>x1 x1a x1b x1c x1d x1e x2e x1f x1g x1h x1i x1j x1m x1n x1o x1p x2n x2o x1q
@@ -3631,4 +3632,59 @@ proof-
         rtranclp_GC_remap_learned_clss_l)
     done
 qed
+
+term isasat_GC_clauses_prog_wl
+
+thm correct_watching.simps
+term rewatch
+
+definition cdcl_GC_clauses_wl_D2 :: \<open>nat twl_st_wl \<Rightarrow> nat twl_st_wl nres\<close> where
+\<open>cdcl_GC_clauses_wl_D2 = (\<lambda>S. do {
+  ASSERT(cdcl_GC_clauses_pre_wl_D S);
+  let b = True;
+  if b then do {
+    (N', _) \<leftarrow> cdcl_GC_clauses_prog_wl S;
+    S \<leftarrow> rewatch_st S;
+    RETURN S
+  }
+  else RETURN S})\<close>
+
+definition isasat_GC_clauses_wl_D :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
+\<open>isasat_GC_clauses_wl_D = (\<lambda>S. do {
+  let b = True;
+  if b then do {
+    S \<leftarrow> isasat_GC_clauses_prog_wl S;
+    S \<leftarrow> rewatch_heur_st S;
+    RETURN S
+  }
+  else RETURN S})\<close>
+
+
+
+lemma
+  \<open>(cdcl_GC_clauses_wl_D2, cdcl_GC_clauses_wl_D)
+    \<in> Id \<rightarrow>\<^sub>f \<langle>Id\<rangle>nres_rel\<close>
+proof -
+  thm cdcl_GC_clauses_prog_wl
+  show ?thesis
+    supply[[goals_limit=1]]
+    unfolding cdcl_GC_clauses_wl_D_def cdcl_GC_clauses_wl_D2_def
+    apply (intro frefI nres_relI)
+    apply clarify
+    apply (refine_vcg cdcl_GC_clauses_prog_wl2)
+    subgoal by fast
+  oops
+oops
+
+lemma
+  \<open>(isasat_GC_clauses_wl_D, cdcl_GC_clauses_wl_D2)
+    \<in> twl_st_heur_restart \<rightarrow>\<^sub>f \<langle>twl_st_heur_restart\<rangle>nres_rel\<close>
+  unfolding isasat_GC_clauses_wl_D_def cdcl_GC_clauses_wl_D2_def
+  apply (intro frefI nres_relI)
+  apply clarify
+  apply (refine_vcg)
+  subgoal by fast
+  subgoal
+oops
+
 end
