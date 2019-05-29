@@ -573,7 +573,6 @@ text \<open>The specification of the partition function\<close>
 definition partition_spec :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> 'b) \<Rightarrow> 'a list \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a list \<Rightarrow> nat \<Rightarrow> bool\<close> where
   \<open>partition_spec R h xs lo hi xs' p \<equiv>
     mset xs' = mset xs \<and> \<comment> \<open>The list is a permutation\<close>
-    mset (sublist xs' lo hi) = mset (sublist xs lo hi) \<and> \<comment> \<open>The sublist is a permutation\<close>
     isPartition_map R h xs' lo hi p \<and> \<comment> \<open>We have a valid partition on the resulting list\<close>
     lo \<le> p \<and> p \<le> hi \<and> \<comment> \<open>The partition index is in bounds\<close>
     (\<forall> i. i<lo \<longrightarrow> xs'!i=xs!i) \<and> (\<forall> i. hi<i\<and>i<length xs' \<longrightarrow> xs'!i=xs!i)\<close> \<comment> \<open>Everything else is unchanged.\<close>
@@ -620,197 +619,7 @@ proof -
   qed
 qed
 
-value \<open>drop 4 [a,b,c,d,e,f]\<close>
-
 (* Actually, I only need that \<open>set (sublist xs' lo hi) = set (sublist xs lo hi)\<close> *)
-lemma
-  assumes \<open>lo \<le> hi\<close> and \<open>hi < length xs\<close> and
-    \<open>mset xs' = mset xs\<close> and
-    E1: \<open>\<forall> i. i<lo \<longrightarrow> xs'!i=xs!i\<close> and E2: \<open>\<forall> i. hi<i\<and>i<length xs' \<longrightarrow> xs'!i=xs!i\<close> and
-    A: \<open>x \<in> set (sublist xs' lo hi)\<close>
-  shows \<open>x \<in> set (sublist xs lo hi)\<close>
-proof -
-(*
-  have L0: \<open>set xs' = set xs\<close> by (metis assms(3) set_mset_mset)
-  have L1: \<open>length xs' = length xs\<close> by (metis assms(3) size_mset)
-  have L2: \<open>lo < length xs\<close> using assms(1,2) by linarith
-  have L3: \<open>lo < length xs'\<close> using L1 L2 by simp
-
-(*
-  have \<open>\<exists>k. lo\<le>k\<and>k\<le>hi \<and> xs'!k=x\<close>
-    by (metis assms(1) assms(2) assms(3) assms(6) mset_eq_length sublist_el')
-  then obtain k where X: \<open>lo\<le>k\<close> \<open>k\<le>hi\<close> \<open>xs'!k=x\<close> by blast
-  have \<open>\<exists>k'. xs!k'=x\<close>
-    by (metis X(2) X(3) assms(2) assms(3) in_set_conv_nth less_le_trans mset_eq_setD nat_less_le size_mset)
-  then obtain k' where Y: \<open>xs!k'=x\<close> by blast
-*)
-
-  have Z: \<open>set (drop lo xs') = set (drop lo xs)\<close>
-    nitpick
-    sorry
-  
-  then show ?thesis
-    apply (simp add: sublist_def)
-    using Z apply (rule take_eq_set[where xs'=\<open>drop lo xs'\<close>]) apply auto
-    subgoal using L1 by auto
-    subgoal nitpick done
-*)
-oops
-    
-
-
-text \<open>Our abstract recursive quicksort procedure. We abstract over a partition procedure.\<close>
-definition quicksort :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> 'b) \<Rightarrow> nat \<times> nat \<times> 'a list \<Rightarrow> 'a list nres\<close> where
-\<open>quicksort R h x0 = do {
-  RECT (\<lambda>f (lo,hi,xs). do {
-      (xs, p) \<leftarrow> SPEC(uncurry (partition_spec R h xs lo hi)); \<comment> \<open>Abstract partition function\<close>
-      xs \<leftarrow> (if p-1\<le>lo then RETURN xs else f (lo, p-1, xs));
-      if hi\<le>p+1 then RETURN xs else f (p+1, hi, xs)
-    })
-    x0
-  }\<close>
-
-text \<open>As premise for quicksor, we only need that the indices are ok.\<close>
-definition quicksort_pre :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> 'b) \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a list \<Rightarrow> bool\<close> where
-  \<open>quicksort_pre R h lo hi xs \<equiv> lo \<le> hi \<and> hi < length xs\<close>
-
-lemma quicksort_preI :
-  \<open>\<lbrakk>lo\<le>hi; hi<length xs\<rbrakk> \<Longrightarrow> quicksort_pre R h lo hi xs\<close>
-  by (auto simp add: quicksort_pre_def)
-
-definition quicksort_post :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> 'b) \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a list \<Rightarrow> 'a list \<Rightarrow> bool\<close> where
-  \<open>quicksort_post R h lo hi xs xs' \<equiv>
-    mset xs' = mset xs \<and>
-    sorted_sublist_map R h xs' lo hi \<and>
-    (\<forall> i. i<lo \<longrightarrow> xs'!i = xs!i) \<and>
-    (\<forall> j. hi<j\<and>j<length xs \<longrightarrow> xs'!j = xs!j)\<close>
-
-text \<open>Convert Pure to HOL\<close>
-lemma quicksort_postI:
-  \<open>\<lbrakk>mset xs' = mset xs; sorted_sublist_map R h xs' lo hi; (\<And> i. \<lbrakk>i<lo\<rbrakk> \<Longrightarrow> xs'!i = xs!i); (\<And> j. \<lbrakk>hi<j; j<length xs\<rbrakk> \<Longrightarrow> xs'!j = xs!j)\<rbrakk> \<Longrightarrow> quicksort_post R h lo hi xs xs'\<close>
-  by (auto simp add: quicksort_post_def)
-
-
-text \<open>The first case for the correctness proof of (abstract) quicksort: We assume that we called the partition function, and we have \<^term>\<open>p-1\<le>lo\<close> and \<^term>\<open>hi\<le>p+1\<close>.\<close>
-lemma quicksort_correct_case1:
-  assumes trans: \<open>\<And> x y z. \<lbrakk>R (h x) (h y); R (h y) (h z)\<rbrakk> \<Longrightarrow> R (h x) (h z)\<close> and lin: \<open>\<And>x y. R (h x) (h y) \<or> R (h y) (h x)\<close>
-    and pre: \<open>quicksort_pre R h lo hi xs\<close>
-    and part: \<open>partition_spec R h xs lo hi xs' p\<close>
-    and ifs: \<open>p-1 \<le> lo\<close> \<open>hi \<le> p+1\<close>
-  shows \<open>quicksort_post R h lo hi xs xs'\<close>
-proof -
-  text \<open>First boilerplate code step: 'unfold' the HOL definitions in the assumptions and convert them to Pure\<close>
-  have pre: \<open>lo \<le> hi\<close> \<open>hi < length xs\<close>
-    using pre by (auto simp add: quicksort_pre_def)
-  have part: \<open>mset xs' = mset xs\<close> \<open>mset (sublist xs' lo hi) = mset (sublist xs lo hi)\<close>
-    \<open>isPartition_map R h xs' lo hi p\<close> \<open>lo \<le> p\<close> \<open>p \<le> hi\<close>     
-    \<open>\<And> i. i<lo \<Longrightarrow> xs'!i=xs!i\<close> \<open>\<And> i. \<lbrakk>hi<i; i<length xs'\<rbrakk> \<Longrightarrow> xs'!i=xs!i\<close>
-    using part by (auto simp add: partition_spec_def)
-
-
-  have sorted_lower: \<open>sorted_sublist_map R h xs' lo (p - Suc 0)\<close>
-  proof -
-    show ?thesis
-      apply (rule sorted_sublist_wrt_le)
-      subgoal using ifs(1) by auto
-      subgoal using ifs(1) mset_eq_length part(1) pre(1) pre(2) by fastforce
-      done
-  qed
-
-  have sorted_upper: \<open>sorted_sublist_map R h xs' (Suc p) hi\<close>
-  proof -
-    show ?thesis
-      apply (rule sorted_sublist_wrt_le)
-      subgoal using ifs(2) by auto
-      subgoal using ifs(1) mset_eq_length part(1) pre(1) pre(2) by fastforce
-      done
-  qed
-
-  have sorted_middle: \<open>sorted_sublist_map R h xs' lo hi\<close>
-  proof -
-    show ?thesis
-      apply (rule merge_sorted_map_partitions[where p=p])
-      subgoal by (rule trans)
-      subgoal by (rule part)
-      subgoal by (rule sorted_lower)
-      subgoal by (rule sorted_upper)
-      subgoal using pre(1) by auto
-      subgoal by (simp add: part(4))
-      subgoal by (simp add: part(5))
-      subgoal by (metis part(1) pre(2) size_mset)
-      done
-  qed
-
-  show ?thesis
-  proof (intro quicksort_postI)
-    show \<open>mset xs' = mset xs\<close>
-      by (simp add: part(1))
-  next
-    show \<open>sorted_sublist_map R h xs' lo hi\<close>
-      by (rule sorted_middle)
-  next
-      show \<open>\<And>i. i < lo \<Longrightarrow> xs' ! i = xs ! i\<close>
-      using part(6) by blast
-  next
-    show \<open>\<And>j. \<lbrakk>hi < j; j < length xs\<rbrakk> \<Longrightarrow> xs' ! j = xs ! j\<close>
-      by (metis part(1) part(7) size_mset)
-  qed
-
-qed
-
-
-text \<open>In the second case, we have to show that the precondition still holds for (p+1, hi, x') after the partition.\<close>
-lemma quicksort_correct_case2:
-  assumes
-        pre: \<open>quicksort_pre R h lo hi xs\<close>
-    and part: \<open>partition_spec R h xs lo hi xs' p\<close>
-    and ifs: \<open>\<not> hi \<le> p + 1\<close>
-  shows \<open>quicksort_pre R h (Suc p) hi xs'\<close>
-proof -
-  text \<open>First boilerplate code step: 'unfold' the HOL definitions in the assumptions and convert them to Pure\<close>
-  have pre: \<open>lo \<le> hi\<close> \<open>hi < length xs\<close>
-    using pre by (auto simp add: quicksort_pre_def)
-  have part: \<open>mset xs' = mset xs\<close> \<open>mset (sublist xs' lo hi) = mset (sublist xs lo hi)\<close>
-    \<open>isPartition_map R h xs' lo hi p\<close> \<open>lo \<le> p\<close> \<open>p \<le> hi\<close>     
-    \<open>\<And> i. i<lo \<Longrightarrow> xs'!i=xs!i\<close> \<open>\<And> i. \<lbrakk>hi<i; i<length xs'\<rbrakk> \<Longrightarrow> xs'!i=xs!i\<close>
-    using part by (auto simp add: partition_spec_def)
-  show ?thesis
-  proof (intro quicksort_preI)
-    show \<open>Suc p \<le> hi\<close>
-      using ifs by linarith
-  next
-    show \<open>hi < length xs'\<close>
-      by (metis part(1) pre(2) size_mset)
-  qed
-qed
-
-
-lemma isPartition_wrt_ext:
-  assumes \<open>isPartition_wrt R xs lo hi p\<close>
-    and \<open>\<And> i. \<lbrakk>lo \<le> i; i < p\<rbrakk> \<Longrightarrow> xs'!i = xs!i\<close>
-    and \<open>\<And> j. \<lbrakk>p < j; j \<le> hi\<rbrakk> \<Longrightarrow> xs'!j = xs!j\<close>
-    and \<open>xs'!p = xs!p\<close>
-    and \<open>lo \<le> p\<close> and \<open>p \<le> hi\<close> and \<open>hi < length xs\<close>
-    and \<open>length xs' = length xs\<close>
-  shows \<open>isPartition_wrt R xs' lo hi p\<close>
-proof -
-  have A: \<open>\<And> i. \<lbrakk>lo \<le> i; i < p\<rbrakk> \<Longrightarrow> R (xs ! i) (xs ! p)\<close> \<open>\<And> j. \<lbrakk>p < j; j \<le> hi\<rbrakk> \<Longrightarrow> R (xs ! p) (xs ! j)\<close>
-    using assms(1) by (auto simp add: isPartition_wrt_def)
-
-  show ?thesis
-  proof(intro isPartition_wrtI)
-    fix i assume \<open>lo \<le>i\<close> \<open>i < p\<close>
-    show \<open>R (xs' ! i) (xs' ! p)\<close>
-      by (simp add: A(1) \<open>i < p\<close> \<open>lo \<le> i\<close> assms(2) assms(4))
-  next
-    fix j assume \<open>p < j\<close> \<open>j \<le> hi\<close>
-    show \<open>R (xs' ! p) (xs' ! j)\<close>
-      by (simp add: A(2) \<open>j \<le> hi\<close> \<open>p < j\<close> assms(3) assms(4))
-  qed
-qed
-
-
-
 lemma mathias:
   assumes
         Perm: \<open>mset xs' = mset xs\<close>
@@ -890,6 +699,176 @@ proof
 qed
 
 
+(*
+lemma partition_spec_set_sublist:
+  assumes \<open>partition_spec R h xs lo hi xs' p\<close>
+    and pre: \<open>lo \<le> hi\<close> \<open>hi < length xs\<close>
+  shows \<open>set (sublist xs' lo hi) = set (sublist xs lo hi)\<close>
+proof -
+  show ?thesis
+    apply (rule mset_sublist_eq)
+    using assms by (auto dest: mset_eq_length simp add: partition_spec_def)
+qed
+*)
+
+
+text \<open>Our abstract recursive quicksort procedure. We abstract over a partition procedure.\<close>
+definition quicksort :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> 'b) \<Rightarrow> nat \<times> nat \<times> 'a list \<Rightarrow> 'a list nres\<close> where
+\<open>quicksort R h x0 = do {
+  RECT (\<lambda>f (lo,hi,xs). do {
+      (xs, p) \<leftarrow> SPEC(uncurry (partition_spec R h xs lo hi)); \<comment> \<open>Abstract partition function\<close>
+      xs \<leftarrow> (if p-1\<le>lo then RETURN xs else f (lo, p-1, xs));
+      if hi\<le>p+1 then RETURN xs else f (p+1, hi, xs)
+    })
+    x0
+  }\<close>
+
+text \<open>As premise for quicksor, we only need that the indices are ok.\<close>
+definition quicksort_pre :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> 'b) \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a list \<Rightarrow> bool\<close> where
+  \<open>quicksort_pre R h lo hi xs \<equiv> lo \<le> hi \<and> hi < length xs\<close>
+
+lemma quicksort_preI :
+  \<open>\<lbrakk>lo\<le>hi; hi<length xs\<rbrakk> \<Longrightarrow> quicksort_pre R h lo hi xs\<close>
+  by (auto simp add: quicksort_pre_def)
+
+definition quicksort_post :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> 'b) \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a list \<Rightarrow> 'a list \<Rightarrow> bool\<close> where
+  \<open>quicksort_post R h lo hi xs xs' \<equiv>
+    mset xs' = mset xs \<and>
+    sorted_sublist_map R h xs' lo hi \<and>
+    (\<forall> i. i<lo \<longrightarrow> xs'!i = xs!i) \<and>
+    (\<forall> j. hi<j\<and>j<length xs \<longrightarrow> xs'!j = xs!j)\<close>
+
+text \<open>Convert Pure to HOL\<close>
+lemma quicksort_postI:
+  \<open>\<lbrakk>mset xs' = mset xs; sorted_sublist_map R h xs' lo hi; (\<And> i. \<lbrakk>i<lo\<rbrakk> \<Longrightarrow> xs'!i = xs!i); (\<And> j. \<lbrakk>hi<j; j<length xs\<rbrakk> \<Longrightarrow> xs'!j = xs!j)\<rbrakk> \<Longrightarrow> quicksort_post R h lo hi xs xs'\<close>
+  by (auto simp add: quicksort_post_def)
+
+
+text \<open>The first case for the correctness proof of (abstract) quicksort: We assume that we called the partition function, and we have \<^term>\<open>p-1\<le>lo\<close> and \<^term>\<open>hi\<le>p+1\<close>.\<close>
+lemma quicksort_correct_case1:
+  assumes trans: \<open>\<And> x y z. \<lbrakk>R (h x) (h y); R (h y) (h z)\<rbrakk> \<Longrightarrow> R (h x) (h z)\<close> and lin: \<open>\<And>x y. R (h x) (h y) \<or> R (h y) (h x)\<close>
+    and pre: \<open>quicksort_pre R h lo hi xs\<close>
+    and part: \<open>partition_spec R h xs lo hi xs' p\<close>
+    and ifs: \<open>p-1 \<le> lo\<close> \<open>hi \<le> p+1\<close>
+  shows \<open>quicksort_post R h lo hi xs xs'\<close>
+proof -
+  text \<open>First boilerplate code step: 'unfold' the HOL definitions in the assumptions and convert them to Pure\<close>
+  have pre: \<open>lo \<le> hi\<close> \<open>hi < length xs\<close>
+    using pre by (auto simp add: quicksort_pre_def)
+(*
+  have part_perm: \<open>set (sublist xs' lo hi) = set (sublist xs lo hi)\<close>
+    using part partition_spec_set_sublist pre(1) pre(2) by blast
+*)
+  have part: \<open>mset xs' = mset xs\<close> True
+    \<open>isPartition_map R h xs' lo hi p\<close> \<open>lo \<le> p\<close> \<open>p \<le> hi\<close>     
+    \<open>\<And> i. i<lo \<Longrightarrow> xs'!i=xs!i\<close> \<open>\<And> i. \<lbrakk>hi<i; i<length xs'\<rbrakk> \<Longrightarrow> xs'!i=xs!i\<close>
+    using part by (auto simp add: partition_spec_def)
+
+
+  have sorted_lower: \<open>sorted_sublist_map R h xs' lo (p - Suc 0)\<close>
+  proof -
+    show ?thesis
+      apply (rule sorted_sublist_wrt_le)
+      subgoal using ifs(1) by auto
+      subgoal using ifs(1) mset_eq_length part(1) pre(1) pre(2) by fastforce
+      done
+  qed
+
+  have sorted_upper: \<open>sorted_sublist_map R h xs' (Suc p) hi\<close>
+  proof -
+    show ?thesis
+      apply (rule sorted_sublist_wrt_le)
+      subgoal using ifs(2) by auto
+      subgoal using ifs(1) mset_eq_length part(1) pre(1) pre(2) by fastforce
+      done
+  qed
+
+  have sorted_middle: \<open>sorted_sublist_map R h xs' lo hi\<close>
+  proof -
+    show ?thesis
+      apply (rule merge_sorted_map_partitions[where p=p])
+      subgoal by (rule trans)
+      subgoal by (rule part)
+      subgoal by (rule sorted_lower)
+      subgoal by (rule sorted_upper)
+      subgoal using pre(1) by auto
+      subgoal by (simp add: part(4))
+      subgoal by (simp add: part(5))
+      subgoal by (metis part(1) pre(2) size_mset)
+      done
+  qed
+
+  show ?thesis
+  proof (intro quicksort_postI)
+    show \<open>mset xs' = mset xs\<close>
+      by (simp add: part(1))
+  next
+    show \<open>sorted_sublist_map R h xs' lo hi\<close>
+      by (rule sorted_middle)
+  next
+      show \<open>\<And>i. i < lo \<Longrightarrow> xs' ! i = xs ! i\<close>
+      using part(6) by blast
+  next
+    show \<open>\<And>j. \<lbrakk>hi < j; j < length xs\<rbrakk> \<Longrightarrow> xs' ! j = xs ! j\<close>
+      by (metis part(1) part(7) size_mset)
+  qed
+
+qed
+
+
+text \<open>In the second case, we have to show that the precondition still holds for (p+1, hi, x') after the partition.\<close>
+lemma quicksort_correct_case2:
+  assumes
+        pre: \<open>quicksort_pre R h lo hi xs\<close>
+    and part: \<open>partition_spec R h xs lo hi xs' p\<close>
+    and ifs: \<open>\<not> hi \<le> p + 1\<close>
+  shows \<open>quicksort_pre R h (Suc p) hi xs'\<close>
+proof -
+  text \<open>First boilerplate code step: 'unfold' the HOL definitions in the assumptions and convert them to Pure\<close>
+  have pre: \<open>lo \<le> hi\<close> \<open>hi < length xs\<close>
+    using pre by (auto simp add: quicksort_pre_def)
+  have part: \<open>mset xs' = mset xs\<close> True
+    \<open>isPartition_map R h xs' lo hi p\<close> \<open>lo \<le> p\<close> \<open>p \<le> hi\<close>     
+    \<open>\<And> i. i<lo \<Longrightarrow> xs'!i=xs!i\<close> \<open>\<And> i. \<lbrakk>hi<i; i<length xs'\<rbrakk> \<Longrightarrow> xs'!i=xs!i\<close>
+    using part by (auto simp add: partition_spec_def)
+  show ?thesis
+  proof (intro quicksort_preI)
+    show \<open>Suc p \<le> hi\<close>
+      using ifs by linarith
+  next
+    show \<open>hi < length xs'\<close>
+      by (metis part(1) pre(2) size_mset)
+  qed
+qed
+
+
+(*
+lemma isPartition_wrt_ext:
+  assumes \<open>isPartition_wrt R xs lo hi p\<close>
+    and \<open>\<And> i. \<lbrakk>lo \<le> i; i < p\<rbrakk> \<Longrightarrow> xs'!i = xs!i\<close>
+    and \<open>\<And> j. \<lbrakk>p < j; j \<le> hi\<rbrakk> \<Longrightarrow> xs'!j = xs!j\<close>
+    and \<open>xs'!p = xs!p\<close>
+    and \<open>lo \<le> p\<close> and \<open>p \<le> hi\<close> and \<open>hi < length xs\<close>
+    and \<open>length xs' = length xs\<close>
+  shows \<open>isPartition_wrt R xs' lo hi p\<close>
+proof -
+  have A: \<open>\<And> i. \<lbrakk>lo \<le> i; i < p\<rbrakk> \<Longrightarrow> R (xs ! i) (xs ! p)\<close> \<open>\<And> j. \<lbrakk>p < j; j \<le> hi\<rbrakk> \<Longrightarrow> R (xs ! p) (xs ! j)\<close>
+    using assms(1) by (auto simp add: isPartition_wrt_def)
+
+  show ?thesis
+  proof(intro isPartition_wrtI)
+    fix i assume \<open>lo \<le>i\<close> \<open>i < p\<close>
+    show \<open>R (xs' ! i) (xs' ! p)\<close>
+      by (simp add: A(1) \<open>i < p\<close> \<open>lo \<le> i\<close> assms(2) assms(4))
+  next
+    fix j assume \<open>p < j\<close> \<open>j \<le> hi\<close>
+    show \<open>R (xs' ! p) (xs' ! j)\<close>
+      by (simp add: A(2) \<open>j \<le> hi\<close> \<open>p < j\<close> assms(3) assms(4))
+  qed
+qed
+*)
+
+
 lemma quicksort_post_set:
   assumes \<open>quicksort_post R h lo hi xs xs'\<close>
     and bounds: \<open>lo \<le> hi\<close> \<open>hi < length xs\<close>
@@ -900,7 +879,6 @@ proof -
   then show ?thesis
     using bounds by (rule mset_sublist_eq, auto)
 qed
-
 
 
 text \<open>In the third case, we have run quicksort recursively on (p+1, hi, xs') after the partition, with hi<=p+1 and p-1<=lo.\<close>
@@ -915,7 +893,7 @@ proof -
   text \<open>First boilerplate code step: 'unfold' the HOL definitions in the assumptions and convert them to Pure\<close>
   have pre: \<open>lo \<le> hi\<close> \<open>hi < length xs\<close>
     using pre by (auto simp add: quicksort_pre_def)
-  have part: \<open>mset xs' = mset xs\<close> \<open>mset (sublist xs' lo hi) = mset (sublist xs lo hi)\<close>
+  have part: \<open>mset xs' = mset xs\<close> True
     \<open>isPartition_map R h xs' lo hi p\<close> \<open>lo \<le> p\<close> \<open>p \<le> hi\<close>     
     \<open>\<And> i. i<lo \<Longrightarrow> xs'!i=xs!i\<close> \<open>\<And> i. \<lbrakk>hi<i; i<length xs'\<rbrakk> \<Longrightarrow> xs'!i=xs!i\<close>
     using part by (auto simp add: partition_spec_def)
@@ -1000,7 +978,7 @@ proof -
   text \<open>First boilerplate code step: 'unfold' the HOL definitions in the assumptions and convert them to Pure\<close>
   have pre: \<open>lo \<le> hi\<close> \<open>hi < length xs\<close>
     using pre by (auto simp add: quicksort_pre_def)
-  have part: \<open>mset xs' = mset xs\<close> \<open>mset (sublist xs' lo hi) = mset (sublist xs lo hi)\<close>
+  have part: \<open>mset xs' = mset xs\<close> True
     \<open>isPartition_map R h xs' lo hi p\<close> \<open>lo \<le> p\<close> \<open>p \<le> hi\<close>     
     \<open>\<And> i. i<lo \<Longrightarrow> xs'!i=xs!i\<close> \<open>\<And> i. \<lbrakk>hi<i; i<length xs'\<rbrakk> \<Longrightarrow> xs'!i=xs!i\<close>
     using part by (auto simp add: partition_spec_def)
@@ -1028,7 +1006,7 @@ proof -
   text \<open>First boilerplate code step: 'unfold' the HOL definitions in the assumptions and convert them to Pure\<close>
   have pre: \<open>lo \<le> hi\<close> \<open>hi < length xs\<close>
     using pre by (auto simp add: quicksort_pre_def)
-  have part: \<open>mset xs' = mset xs\<close> \<open>mset (sublist xs' lo hi) = mset (sublist xs lo hi)\<close>
+  have part: \<open>mset xs' = mset xs\<close> True
     \<open>isPartition_map R h xs' lo hi p\<close> \<open>lo \<le> p\<close> \<open>p \<le> hi\<close>     
     \<open>\<And> i. i<lo \<Longrightarrow> xs'!i=xs!i\<close> \<open>\<And> i. \<lbrakk>hi<i; i<length xs'\<rbrakk> \<Longrightarrow> xs'!i=xs!i\<close>
     using part by (auto simp add: partition_spec_def)
@@ -1121,7 +1099,7 @@ proof -
   text \<open>First boilerplate code step: 'unfold' the HOL definitions in the assumptions and convert them to Pure\<close>
   have pre: \<open>lo \<le> hi\<close> \<open>hi < length xs\<close>
     using pre by (auto simp add: quicksort_pre_def)
-  have part: \<open>mset xs' = mset xs\<close> \<open>mset (sublist xs' lo hi) = mset (sublist xs lo hi)\<close>
+  have part: \<open>mset xs' = mset xs\<close> True
     \<open>isPartition_map R h xs' lo hi p\<close> \<open>lo \<le> p\<close> \<open>p \<le> hi\<close>     
     \<open>\<And> i. i<lo \<Longrightarrow> xs'!i=xs!i\<close> \<open>\<And> i. \<lbrakk>hi<i; i<length xs'\<rbrakk> \<Longrightarrow> xs'!i=xs!i\<close>
     using part by (auto simp add: partition_spec_def)
@@ -1153,7 +1131,7 @@ proof -
   text \<open>First boilerplate code step: 'unfold' the HOL definitions in the assumptions and convert them to Pure\<close>
   have pre: \<open>lo \<le> hi\<close> \<open>hi < length xs\<close>
     using pre by (auto simp add: quicksort_pre_def)
-  have part: \<open>mset xs' = mset xs\<close> \<open>mset (sublist xs' lo hi) = mset (sublist xs lo hi)\<close>
+  have part: \<open>mset xs' = mset xs\<close> True
     \<open>isPartition_map R h xs' lo hi p\<close> \<open>lo \<le> p\<close> \<open>p \<le> hi\<close>     
     \<open>\<And> i. i<lo \<Longrightarrow> xs'!i=xs!i\<close> \<open>\<And> i. \<lbrakk>hi<i; i<length xs'\<rbrakk> \<Longrightarrow> xs'!i=xs!i\<close>
     using part by (auto simp add: partition_spec_def)
