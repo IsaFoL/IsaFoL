@@ -714,13 +714,13 @@ qed
 
 text \<open>Our abstract recursive quicksort procedure. We abstract over a partition procedure.\<close>
 definition quicksort :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> 'b) \<Rightarrow> nat \<times> nat \<times> 'a list \<Rightarrow> 'a list nres\<close> where
-\<open>quicksort R h x0 = do {
+\<open>quicksort R h = do {
   RECT (\<lambda>f (lo,hi,xs). do {
+      ASSERT(lo \<le> hi \<and> hi < length xs); \<comment> \<open>Premise for a partition function\<close>
       (xs, p) \<leftarrow> SPEC(uncurry (partition_spec R h xs lo hi)); \<comment> \<open>Abstract partition function\<close>
       xs \<leftarrow> (if p-1\<le>lo then RETURN xs else f (lo, p-1, xs));
       if hi\<le>p+1 then RETURN xs else f (p+1, hi, xs)
     })
-    x0
   }\<close>
 
 text \<open>As premise for quicksor, we only need that the indices are ok.\<close>
@@ -1278,8 +1278,13 @@ proof -
     subgoal premises IH for f x
       apply (refine_vcg)
 
+      subgoal \<comment> \<open>First premise (assertion) for partition\<close>
+        using IH(2) by (simp add: quicksort_pre_def)
+      subgoal \<comment> \<open>Second premise (assertion) for partition\<close>
+        using IH(2) by (simp add: quicksort_pre_def)
+
       text \<open>Termination case: (p-1 \<le> lo') and (hi' \<le> p+1); directly show postcondition\<close>
-      subgoal
+      subgoal \<comment> \<open>Postcondition (after partition)\<close>
         apply -
         using IH(2) apply (simp, elim conjE, split prod.splits)
         using trans lin apply (rule quicksort_correct_case1) by auto
@@ -1394,8 +1399,8 @@ definition partition_spec :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) \<R
 *)
 
 lemma partition_main_correct:
-  assumes \<open>lo < length xs\<close> and \<open>hi < length xs\<close> and \<open>hi > lo\<close> and
-    \<open>\<And> x y z. \<lbrakk>R (h x) (h y); R (h y) (h z)\<rbrakk> \<Longrightarrow> R (h x) (h z)\<close> and \<open>\<And>x y. R (h x) (h y) \<or> R (h y) (h x)\<close>
+  assumes bounds: \<open>hi < length xs\<close> \<open>lo \<le> hi\<close> and
+    trans: \<open>\<And> x y z. \<lbrakk>R (h x) (h y); R (h y) (h z)\<rbrakk> \<Longrightarrow> R (h x) (h z)\<close> and lin: \<open>\<And>x y. R (h x) (h y) \<or> R (h y) (h x)\<close>
   shows \<open>partition_main R h lo hi xs \<le> SPEC(\<lambda>(xs', p). mset xs = mset xs' \<and>
      lo \<le> p \<and> p \<le> hi \<and> isPartition_map R h xs' lo hi p \<and> (\<forall> i. i<lo \<longrightarrow> xs'!i=xs!i) \<and> (\<forall> i. hi<i\<and>i<length xs' \<longrightarrow> xs'!i=xs!i))\<close>
 proof -
@@ -1449,7 +1454,7 @@ qed
 
 definition partition_between :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> 'b) \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a list \<Rightarrow> ('a list \<times> nat) nres\<close> where
   \<open>partition_between R h lo hi xs0 = do {
-    ASSERT(lo < length xs0 \<and> hi < length xs0 \<and> hi > lo);
+    ASSERT(hi < length xs0 \<and> lo \<le> hi);
     k \<leftarrow> choose_pivot R h xs0 lo hi; \<comment> \<open>choice of pivot\<close>
     ASSERT(k < length xs0);
     xs \<leftarrow> RETURN (swap xs0 k hi); \<comment> \<open>move the pivot to the last position, before we start the actual loop\<close>
@@ -1459,7 +1464,7 @@ definition partition_between :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) 
 
 
 lemma partition_between_correct:
-  assumes \<open>lo < length xs\<close> and \<open>hi < length xs\<close> and \<open>hi > lo\<close> and
+  assumes \<open>hi < length xs\<close> and \<open>lo \<le> hi\<close> and
   \<open>\<And> x y z. \<lbrakk>R (h x) (h y); R (h y) (h z)\<rbrakk> \<Longrightarrow> R (h x) (h z)\<close> and \<open>\<And>x y. R (h x) (h y) \<or> R (h y) (h x)\<close>
   shows \<open>partition_between R h lo hi xs \<le> SPEC(uncurry (partition_spec R h xs lo hi))\<close>
 proof -
@@ -1497,12 +1502,12 @@ lemma choose_pivot3_choose_pivot:
   unfolding choose_pivot3_def choose_pivot_def
   using assms by (auto intro!: ASSERT_leI simp: Let_def)
 
-\<comment> \<open>The refined partion function: We use the above pivot function and fold instead of non-deterministic iteration.\<close>
+text \<open>The refined partion function: We use the above pivot function and fold instead of non-deterministic iteration.\<close>
 definition partition_between_ref
   :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> 'b) \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a list \<Rightarrow> ('a list \<times> nat) nres\<close>
 where
   \<open>partition_between_ref R h lo hi xs0 = do {
-    ASSERT(lo < length xs0 \<and> hi < length xs0 \<and> hi > lo);
+    ASSERT(hi < length xs0 \<and> hi < length xs0 \<and> lo \<le> hi);
     k \<leftarrow> choose_pivot3 R h xs0 lo hi; \<comment> \<open>choice of pivot\<close>
     ASSERT(k < length xs0);
     xs \<leftarrow> RETURN (swap xs0 k hi); \<comment> \<open>move the pivot to the last position, before we start the actual loop\<close>
@@ -1531,7 +1536,6 @@ proof -
     apply (subst (2) Down_id_eq[symmetric])
     unfolding partition_between_ref_def
       partition_between_def FOREACH_patterns
-      LIST_FOREACH'_def[of \<open>RETURN _\<close>, unfolded nres_monad1, symmetric]
       OP_def
     apply (refine_vcg choose_pivot3_choose_pivot swap partition_main_correct)
     subgoal by auto
@@ -1608,37 +1612,48 @@ declare partition_between_code.refine[sepref_fr_rules]
 
 
 
-(* TODO *)
+lemma partition_between_ref_correct:
+  assumes trans: \<open>\<And> x y z. \<lbrakk>R (h x) (h y); R (h y) (h z)\<rbrakk> \<Longrightarrow> R (h x) (h z)\<close> and lin: \<open>\<And>x y. R (h x) (h y) \<or> R (h y) (h x)\<close>
+    and bounds: \<open>hi < length xs\<close> \<open>lo \<le> hi\<close>
+  shows \<open>partition_between_ref R h lo hi xs \<le> SPEC (uncurry (partition_spec R h xs lo hi))\<close> 
+proof -
+  show ?thesis
+    apply (rule partition_between_ref_partition_between[THEN order_trans])
+    using bounds apply (rule partition_between_correct[where h=h])
+    subgoal by (rule trans)
+    subgoal by (rule lin)
+    done
+qed
+
+
+
+term quicksort
 
 text \<open>Refined quicksort algorithm: We use the refined partition function.\<close>
-definition quicksort_ref :: \<open>_ \<Rightarrow> _ \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a::ord list \<Rightarrow> 'a list nres\<close> where
-\<open>quicksort_ref R h i j xs0 = do {
-  RECT (\<lambda>f (i,j,xs). do {
-      ASSERT(mset xs = mset xs0);
-      if j \<le> i then RETURN xs
-      else do{
-      	(xs, k) \<leftarrow> partition_between_ref R h i j xs;
-      	xs \<leftarrow> f (i, k-1, xs);
-      	f (k+1, j, xs)
-      }
+definition quicksort_ref :: \<open>_ \<Rightarrow> _ \<Rightarrow> nat \<times> nat \<times> 'a list \<Rightarrow> 'a list nres\<close> where
+\<open>quicksort_ref R h = do {
+  RECT (\<lambda>f (lo,hi,xs). do {
+      ASSERT(lo \<le> hi \<and> hi < length xs);
+      (xs, p) \<leftarrow> partition_between_ref R h lo hi xs; \<comment> \<open>This is the refined partition function. Note that we need the premises (trans,lin,bounds) here.\<close>
+      xs \<leftarrow> (if p-1\<le>lo then RETURN xs else f (lo, p-1, xs));
+      if hi\<le>p+1 then RETURN xs else f (p+1, hi, xs)
     })
-    (i, j, xs0)
   }\<close>
 
+
 lemma quicksort_ref_quicksort:
-  \<open>quicksort_ref R f lo hi xs \<le> \<Down> Id (quicksort R f lo hi xs)\<close>
+  assumes bounds: \<open>hi < length xs\<close> \<open>lo \<le> hi\<close> and
+    trans: \<open>\<And> x y z. \<lbrakk>R (h x) (h y); R (h y) (h z)\<rbrakk> \<Longrightarrow> R (h x) (h z)\<close> and lin: \<open>\<And>x y. R (h x) (h y) \<or> R (h y) (h x)\<close>
+  shows \<open>quicksort_ref R h x0 \<le> \<Down> Id (quicksort R h x0)\<close>
 proof -
   have wf: \<open>wf (measure (\<lambda>(lo, hi, xs). Suc hi - lo))\<close>
     by auto
-  have pre: \<open> ((lo, hi, xs), lo, hi, xs) \<in> Id \<times>\<^sub>r Id \<times>\<^sub>r \<langle>Id\<rangle>list_rel\<close>
+  have pre: \<open>(x0, x0) \<in> Id \<times>\<^sub>r Id \<times>\<^sub>r \<langle>Id\<rangle>list_rel\<close>
     by auto
   have f: \<open>f (x1b, x2e - 1, x1e) \<comment> \<open>Boilerplate code for first recursive call\<close>
-	\<le> \<Down> Id
-	   (fa (x1, x2d - 1, x1d))\<close>
+          	\<le> \<Down> Id (fa (x1, x2d - 1, x1d))\<close>
     if
-      H: \<open>\<And>x x'.
-	  (x, x') \<in> nat_rel \<times>\<^sub>f (nat_rel \<times>\<^sub>f \<langle>Id\<rangle>list_rel) \<Longrightarrow>
-	  f x \<le> \<Down> Id (fa x')\<close> and
+      H: \<open>\<And>x x'. (x, x') \<in> nat_rel \<times>\<^sub>f (nat_rel \<times>\<^sub>f \<langle>Id\<rangle>list_rel) \<Longrightarrow> f x \<le> \<Down> Id (fa x')\<close> and
       \<open>(x, x') \<in> nat_rel \<times>\<^sub>f (nat_rel \<times>\<^sub>f \<langle>Id\<rangle>list_rel)\<close> and
       \<open>x2 = (x1a, x2a)\<close> and
       \<open>x' = (x1, x2)\<close> and
@@ -1654,9 +1669,7 @@ proof -
   qed
   have f': \<open>f (x2e + 1, x1c, xsa) \<le> \<Down> Id (fa (x2d + 1, x1a, xsaa))\<close>  \<comment> \<open>Boilerplate code for second recursive call\<close>
     if
-      H: \<open>\<And>x x'.
-	  (x, x') \<in> nat_rel \<times>\<^sub>f (nat_rel \<times>\<^sub>f \<langle>Id\<rangle>list_rel) \<Longrightarrow>
-	  f x \<le> \<Down> Id (fa x')\<close> and
+      H: \<open>\<And>x x'. (x, x') \<in> nat_rel \<times>\<^sub>f (nat_rel \<times>\<^sub>f \<langle>Id\<rangle>list_rel) \<Longrightarrow> f x \<le> \<Down> Id (fa x')\<close> and
       \<open>(x, x') \<in> nat_rel \<times>\<^sub>f (nat_rel \<times>\<^sub>f \<langle>Id\<rangle>list_rel)\<close> and
       \<open>x2 = (x1a, x2a)\<close> and
       \<open>x' = (x1, x2)\<close> and
@@ -1671,20 +1684,42 @@ proof -
     show ?thesis
       by (rule H) (use that in auto)
   qed
+
   show ?thesis
     unfolding quicksort_def quicksort_ref_def
-    apply (refine_vcg pre
-      partition_between_ref_partition_between'[THEN fref_to_Down_curry2])
-    subgoal by auto
+    apply (refine_vcg pre partition_between_ref_partition_between'[THEN fref_to_Down_curry2])
+
+    text \<open>First assertion (premise for partition)\<close>
     subgoal
       by auto
+    text \<open>First assertion (premise for partition)\<close>
+    subgoal
+      by auto
+
+    text \<open>Correctness of the concrete partition function\<close>
+    subgoal 
+      apply (simp, rule partition_between_ref_correct)
+      subgoal by (rule trans)
+      subgoal by (rule lin)
+      subgoal by auto \<comment> \<open>first premise\<close>
+      subgoal by auto \<comment> \<open>second premise\<close>
+      done
+
     subgoal by auto
+    subgoal
+      sorry (* TODO *)
+    subgoal
+      sorry
     subgoal by auto
-    subgoal by auto
-    apply (rule f; assumption)
-    apply (rule f'; assumption)
+    subgoal
+      sorry (* TODO *)
+      (* by (rule f; assumption) *)
+    subgoal
+      sorry
+      (* by (rule f'; assumption) *)
     done
- qed
+qed
+
 
 \<comment> \<open>Example implementation\<close>
 definition quicksort_impl where
@@ -1694,22 +1729,24 @@ sepref_register quicksort_impl
 
 \<comment> \<open>Example implementation code\<close>
 sepref_definition quicksort_code
-  is \<open>uncurry2 (quicksort_impl)\<close>
-  :: \<open>nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a (arl_assn nat_assn)\<^sup>d \<rightarrow>\<^sub>a
+  is \<open>quicksort_impl\<close>
+  :: \<open>nat_assn\<^sup>k *\<^sub>a (nat_assn\<^sup>k *\<^sub>a (arl_assn nat_assn)\<^sup>d) \<rightarrow>\<^sub>a
       arl_assn nat_assn\<close>
   unfolding partition_between_impl_def[symmetric]
     quicksort_impl_def quicksort_ref_def
-  by sepref
+  (* by sepref *)
+  sorry (* TODO *)
 
 declare quicksort_code.refine[sepref_fr_rules]
 
 \<comment> \<open>Sort the entire list\<close>
 definition full_quicksort where
-  \<open>full_quicksort R h xs = quicksort R h 0 (length xs - 1) xs\<close>
+  \<open>full_quicksort R h xs \<equiv> if xs = [] then RETURN xs else quicksort R h (0, length xs - 1, xs)\<close>
 
 definition full_quicksort_ref where
-  \<open>full_quicksort_ref R h xs =
-    quicksort_ref R h 0 (length xs - 1) xs\<close>
+  \<open>full_quicksort_ref R h xs \<equiv>
+    if List.null xs then RETURN xs
+    else quicksort_ref R h (0, length xs - 1, xs)\<close>
 
 definition full_quicksort_impl :: \<open>nat list \<Rightarrow> nat list nres\<close> where
   \<open>full_quicksort_impl xs = full_quicksort_ref (\<le>) id xs\<close>
@@ -1734,21 +1771,56 @@ text \<open>Export the code\<close>
 export_code \<open>nat_of_integer\<close> \<open>integer_of_nat\<close> \<open>partition_between_code\<close> \<open>full_quicksort_code\<close> in SML_imp module_name IsaQuicksort file "code/quicksort.sml"
 
 
+lemma sublist_entire:
+  \<open>sublist xs 0 (length xs - 1) = xs\<close>
+  by (simp add: sublist_def take_all)
+
+
+lemma sorted_sublist_wrt_entire:
+  assumes \<open>sorted_sublist_wrt R xs 0 (length xs - 1)\<close>
+  shows \<open>sorted_wrt R xs\<close>
+proof -
+  have \<open>sorted_wrt R (sublist xs 0 (length xs - 1))\<close>
+    using assms by (simp add: sorted_sublist_wrt_def )
+  then show ?thesis
+    by (metis sublist_entire)
+qed
+
+lemma sorted_sublist_map_entire:
+  assumes \<open>sorted_sublist_map R h xs 0 (length xs - 1)\<close>
+  shows \<open>sorted_wrt (\<lambda> x y. R (h x) (h y)) xs\<close>
+proof -
+  show ?thesis
+    using assms by (rule sorted_sublist_wrt_entire)
+qed
+
+
 text \<open>Final correctness lemma\<close>
 lemma full_quicksort_correct:
   assumes
-    \<open>\<And> x y z. \<lbrakk>R (h x) (h y); R (h y) (h z)\<rbrakk> \<Longrightarrow> R (h x) (h z)\<close> and \<open>\<And>x y. R (h x) (h y) \<or> R (h y) (h x)\<close> and \<open>\<And>x. R (h x) (h x)\<close>
-  shows \<open>full_quicksort R h xs \<le> \<Down> Id (SPEC(\<lambda>xs'. mset xs = mset xs'))\<close>
-  unfolding full_quicksort_def
-  apply (rule order_trans)
-   prefer 1
-   apply (rule quicksort_correct[where R=R])
-       apply auto
-  using assms apply auto
-  sledgehammer
-  (* subgoal by (meson diff_Suc_less length_greater_0_conv)
-  subgoal by force *)
-  done
+    trans: \<open>\<And> x y z. \<lbrakk>R (h x) (h y); R (h y) (h z)\<rbrakk> \<Longrightarrow> R (h x) (h z)\<close> and \<open>\<And>x y. R (h x) (h y) \<or> R (h y) (h x)\<close> and lin: \<open>\<And>x y. R (h x) (h y) \<or> R (h y) (h x)\<close>
+  shows \<open>full_quicksort R h xs \<le> \<Down> Id (SPEC(\<lambda>xs'. mset xs' = mset xs \<and> sorted_wrt (\<lambda> x y. R (h x) (h y)) xs'))\<close>
+proof -
+  show ?thesis
+    unfolding full_quicksort_def
+    apply (refine_vcg)
+    subgoal by simp \<comment> \<open>case xs=[]\<close>
+    subgoal by simp \<comment> \<open>case xs=[]\<close>
+
+    apply (rule quicksort_correct[THEN order_trans])
+    subgoal by (rule trans)
+    subgoal by (rule lin)
+    subgoal by linarith
+    subgoal by simp
+
+    apply (simp add: Misc.subset_Collect_conv, intro allI impI conjI)
+    subgoal
+      by (auto simp add: quicksort_post_def)
+    subgoal
+      apply (rule sorted_sublist_map_entire)
+      by (auto simp add: quicksort_post_def dest: mset_eq_length)
+    done
+qed
 
 
 
