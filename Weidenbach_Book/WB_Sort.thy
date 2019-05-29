@@ -819,8 +819,38 @@ lemma mathias:
     and Fix: \<open>\<And> i. i<lo \<Longrightarrow> xs'!i = xs!i\<close> \<open>\<And> j. \<lbrakk>hi<j; j<length xs\<rbrakk> \<Longrightarrow> xs'!j = xs!j\<close>
   shows \<open>\<exists>j. lo\<le>j\<and>j\<le>hi \<and> xs!j = x\<close>
 proof -
-  show ?thesis
-    sorry (* TODO *)
+  define xs1 xs2 xs3 xs1' xs2' xs3' where
+     \<open>xs1 = take lo xs\<close> and
+     \<open>xs2 = take (Suc hi - lo) (drop lo xs)\<close> and
+     \<open>xs3 = drop (Suc hi) xs\<close> and
+     \<open>xs1' = take lo xs'\<close> and
+     \<open>xs2' = take (Suc hi - lo) (drop lo xs')\<close> and
+     \<open>xs3' = drop (Suc hi) xs'\<close>
+  have [simp]: \<open>length xs' = length xs\<close>
+    using Perm by (auto dest: mset_eq_length)
+  have [simp]: \<open>mset xs1 = mset xs1'\<close>
+    using Fix(1) unfolding xs1_def xs1'_def
+    by (metis Perm le_cases mset_eq_length nth_take_lemma take_all)
+  have [simp]: \<open>mset xs3 = mset xs3'\<close>
+    using Fix(2) unfolding xs3_def xs3'_def mset_drop_upto
+    by (auto intro: image_mset_cong2)
+  have \<open>xs = xs1 @ xs2 @ xs3\<close> \<open>xs' = xs1' @ xs2' @ xs3'\<close>
+    using I unfolding xs1_def xs2_def xs3_def xs1'_def xs2'_def xs3'_def
+    by (metis append.assoc append_take_drop_id le_SucI le_add_diff_inverse order_trans take_add)+
+  moreover have \<open>xs ! i = xs2 ! (i - lo)\<close> \<open>i \<ge> length xs1\<close>
+    using I Bounds unfolding xs2_def xs1_def by (auto simp: nth_take min_def)
+  moreover have  \<open>x \<in> set xs2'\<close>
+    using I Bounds unfolding xs2'_def
+    by (auto simp: in_set_take_conv_nth
+       intro!: exI[of _ \<open>i - lo\<close>])
+  ultimately have \<open>x \<in> set xs2\<close>
+    using Perm I by (auto dest: mset_eq_setD)
+  then obtain j where \<open>xs ! (lo + j) = x\<close> \<open>j \<le> hi - lo\<close>
+    unfolding in_set_conv_nth xs2_def
+    by auto
+  then show ?thesis
+    using Bounds I
+    by (auto intro: exI[of _ \<open>lo+j\<close>])
 qed
 
 
