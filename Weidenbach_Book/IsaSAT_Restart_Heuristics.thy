@@ -3020,7 +3020,7 @@ definition iterate_over_VMTF where
 
 definition iterate_over_\<L>\<^sub>a\<^sub>l\<^sub>l where
   \<open>iterate_over_\<L>\<^sub>a\<^sub>l\<^sub>l = (\<lambda>f \<A>\<^sub>0 I x. do {
-    \<A> \<leftarrow> SPEC(\<lambda>\<A>. set_mset \<A> = set_mset \<A>\<^sub>0);
+    \<A> \<leftarrow> SPEC(\<lambda>\<A>. set_mset \<A> = set_mset \<A>\<^sub>0 \<and> distinct_mset \<A>);
     (_, x) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(_, x). I x\<^esup>
       (\<lambda>(\<B>, _). \<B> \<noteq> {#})
       (\<lambda>(\<B>, x). do {
@@ -3074,7 +3074,7 @@ proof -
       by auto
   define iterate_over_VMTF2 where
     \<open>iterate_over_VMTF2 \<equiv> (\<lambda>f (I :: 'a \<Rightarrow> bool) (vm :: (nat, nat) vmtf_node list, n) x. do {
-      let _= remdups_mset \<A>;
+      let _ = remdups_mset \<A>;
       (_, _, x) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(n,m, x). I x\<^esup>
         (\<lambda>(n, _, _). n \<noteq> None)
         (\<lambda>(n, m, x). do {
@@ -3173,6 +3173,7 @@ proof -
     unfolding iterate_over_VMTF2_def iterate_over_\<L>\<^sub>a\<^sub>l\<^sub>l_def prod.case
     apply (refine_vcg WHILEIT_refine[where R = \<open>{((n :: nat option, m::nat, x::'a), (\<A>' :: nat multiset, y)).
         is_lasts \<A>' n m \<and> x = y}\<close>])
+    subgoal by simp
     subgoal by simp
     subgoal
       using card_\<A> fst_As nempty nempty' hd_conv_nth[OF nempty'] hd_zs_le unfolding zs_def[symmetric]
@@ -3378,6 +3379,29 @@ definition cdcl_GC_clauses_prog_wl2  where
     RETURN (N, N', WS)
   })\<close>
 
+
+lemma WHILEIT_refine_with_invariant_and_break:
+  assumes R0: "I' x' \<Longrightarrow> (x,x')\<in>R"
+  assumes IREF: "\<And>x x'. \<lbrakk> (x,x')\<in>R; I' x' \<rbrakk> \<Longrightarrow> I x"
+  assumes COND_REF: "\<And>x x'. \<lbrakk> (x,x')\<in>R; I x; I' x' \<rbrakk> \<Longrightarrow> b x = b' x'"
+  assumes STEP_REF:
+    "\<And>x x'. \<lbrakk> (x,x')\<in>R; b x; b' x'; I x; I' x' \<rbrakk> \<Longrightarrow> f x \<le> \<Down>R (f' x')"
+  shows "WHILEIT I b f x \<le>\<Down>{(x, x'). (x, x') \<in> R \<and> I x \<and>  I' x' \<and> \<not>b' x'} (WHILEIT I' b' f' x')"
+  (is \<open>_ \<le> \<Down>?R' _\<close>)
+    apply (subst (2)WHILEIT_add_post_condition)
+    apply (refine_vcg WHILEIT_refine_genR[where R'=R and R = ?R'])
+    subgoal by (auto intro: assms)[]
+    subgoal by (auto intro: assms)[]
+    subgoal using COND_REF by (auto)
+    subgoal by (auto intro: assms)[]
+    subgoal by (auto intro: assms)[]
+    done
+
+lemma cdcl_GC_clauses_prog_wl_inv_cong_empty:
+  \<open>set_mset \<A> = set_mset \<B> \<Longrightarrow>
+  cdcl_GC_clauses_prog_wl_inv \<A> N ({#}, x) \<Longrightarrow> cdcl_GC_clauses_prog_wl_inv \<B> N ({#}, x)\<close>
+  by (auto simp: cdcl_GC_clauses_prog_wl_inv_def)
+
 lemma isasat_GC_clauses_prog_wl2:
   assumes \<open>valid_arena arena\<^sub>o N\<^sub>o vdom0\<close> and
     \<open>valid_arena arena N (set vdom)\<close> and
@@ -3387,16 +3411,22 @@ lemma isasat_GC_clauses_prog_wl2:
     W_W': \<open>(W, W') \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 \<A>)\<close>
  shows
     \<open>isasat_GC_clauses_prog_wl2 (ns, Some n) (arena\<^sub>o, ([], []), W)
-        \<le> \<Down> ({((arena\<^sub>o, (arena, vdom), W), (N\<^sub>o, N, W')). valid_arena arena\<^sub>o N\<^sub>o vdom0 \<and> valid_arena arena N (set vdom) \<and>
-       (W, W') \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 \<A>) \<and> vdom_m \<A> W' N\<^sub>o \<subseteq> vdom0})
+        \<le> \<Down> ({((arena\<^sub>o, (arena, vdom), W), (N\<^sub>o', N, W')). valid_arena arena\<^sub>o N\<^sub>o' vdom0 \<and> valid_arena arena N (set vdom) \<and>
+       (W, W') \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 \<A>) \<and> vdom_m \<A> W' N\<^sub>o' \<subseteq> vdom0 \<and>
+       cdcl_GC_clauses_prog_wl_inv \<A> N\<^sub>o ({#}, N\<^sub>o', N, W')})
          (cdcl_GC_clauses_prog_wl2 N\<^sub>o \<A> W')\<close>
 proof -
   define f where
     \<open>f A \<equiv> (\<lambda>(arena\<^sub>o, arena, W). isasat_GC_clauses_prog_single_wl arena\<^sub>o arena W A)\<close> for A :: nat
-  have H: \<open>(X, X') \<in> A \<times>\<^sub>r isasat_GC_refl \<A> vdom0 \<Longrightarrow> X = (x1, x2) \<Longrightarrow> x2 = (x3, x4) \<Longrightarrow> x4 = (x5, x6) \<Longrightarrow>
+  let ?R = \<open> {((\<A>', arena\<^sub>o, (arena, vdom), W), (\<A>'', N\<^sub>o', N, W')). \<A>' = \<A>'' \<and>
+      ((arena\<^sub>o, (arena, vdom), W), (N\<^sub>o', N, W')) \<in> isasat_GC_refl \<A> vdom0}\<close>
+  let ?S = \<open> {((\<A>', arena\<^sub>o, (arena, vdom), W), (\<A>'', N\<^sub>o', N, W')). \<A>' = \<A>'' \<and>
+      ((arena\<^sub>o, (arena, vdom), W), (N\<^sub>o', N, W')) \<in> isasat_GC_refl \<A> vdom0 \<and>
+            cdcl_GC_clauses_prog_wl_inv \<A> N\<^sub>o (\<A>'', N\<^sub>o', N, W')}\<close>
+  have H: \<open>(X, X') \<in> ?R \<Longrightarrow> X = (x1, x2) \<Longrightarrow> x2 = (x3, x4) \<Longrightarrow> x4 = (x5, x6) \<Longrightarrow>
      X' = (x1', x2') \<Longrightarrow> x2' = (x3', x4') \<Longrightarrow> x4' = (x5', x6') \<Longrightarrow>
      ((x3, (fst x5, snd x5), x6), (x3', x5', x6')) \<in> isasat_GC_refl \<A> vdom0\<close>
-    for X X' A B x1 x1' x2 x2' x3 x3' x4 x4' x5 x5' x6 x6'
+    for X X' A B x1 x1' x2 x2' x3 x3' x4 x4' x5 x5' x6 x6' x0 x0' x x'
      supply [[show_types]]
     by auto
   have isasat_GC_clauses_prog_wl_alt_def:
@@ -3406,8 +3436,10 @@ proof -
     unfolding isasat_GC_clauses_prog_wl_alt_def prod.case f_def[symmetric]
     apply (rule order_trans[OF iterate_over_VMTF_iterate_over_\<L>\<^sub>a\<^sub>l\<^sub>l[OF vmtf nempty]])
     unfolding Down_id_eq iterate_over_\<L>\<^sub>a\<^sub>l\<^sub>l_def cdcl_GC_clauses_prog_wl2_def f_def
-    apply (refine_vcg WHILEIT_refine[where R = \<open>Id \<times>\<^sub>r isasat_GC_refl \<A> vdom0\<close>]
-       isasat_GC_clauses_prog_single_wl)
+
+    apply (refine_vcg WHILEIT_refine_with_invariant_and_break[where R = ?R]
+            isasat_GC_clauses_prog_single_wl)
+    subgoal by fast
     subgoal using assms by (auto simp: valid_arena_empty isasat_GC_refl_def)
     subgoal by auto
     subgoal by auto
@@ -3418,7 +3450,8 @@ proof -
     subgoal by (auto simp add: cdcl_GC_clauses_prog_wl_inv_def)
     subgoal by auto
     subgoal by auto
-    subgoal by (auto simp: isasat_GC_refl_def)
+    subgoal by (auto simp: isasat_GC_refl_def
+      dest: cdcl_GC_clauses_prog_wl_inv_cong_empty)
     done
 qed
 
@@ -3465,12 +3498,59 @@ definition isasat_GC_clauses_prog_wl :: \<open>twl_st_wl_heur \<Rightarrow> twl_
   \<open>isasat_GC_clauses_prog_wl = (\<lambda>(M', N', D', j, W', ((ns, st, fst_As, lst_As, nxt), to_remove), \<phi>, clvls, cach, lbd, outl, stats,
     fast_ema, slow_ema, ccount,  vdom, avdom, lcount, opts). do {
     (N, (N', vdom), WS) \<leftarrow> isasat_GC_clauses_prog_wl2 (ns, Some fst_As) (N', ([], []), W');
-    RETURN (M', N', D', j, W', ((ns, st, fst_As, lst_As, nxt), to_remove), \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema, ccount,
+    RETURN (M', N', D', j, WS, ((ns, st, fst_As, lst_As, nxt), to_remove), \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema, ccount,
        vdom, vdom, lcount, opts)
   })\<close>
 
+(* TODO Move *)
+lemma init_clss_l_fmdrop_if:
+  \<open>C \<in># dom_m N \<Longrightarrow> init_clss_l (fmdrop C N) = (if irred N C then remove1_mset (the (fmlookup N C)) (init_clss_l N)
+    else init_clss_l N)\<close>
+  by (auto simp: init_clss_l_fmdrop init_clss_l_fmdrop_irrelev)
+
+lemma init_clss_l_fmupd_if:
+  \<open>C' \<notin># dom_m new \<Longrightarrow> init_clss_l (fmupd C' D new) = (if snd D then add_mset D (init_clss_l new) else init_clss_l new)\<close>
+  by (cases D) (auto simp: init_clss_l_mapsto_upd_irrel_notin init_clss_l_mapsto_upd_notin)
+
+lemma learned_clss_l_fmdrop_if:
+  \<open>C \<in># dom_m N \<Longrightarrow> learned_clss_l (fmdrop C N) = (if \<not>irred N C then remove1_mset (the (fmlookup N C)) (learned_clss_l N)
+    else learned_clss_l N)\<close>
+  by (auto simp: learned_clss_l_l_fmdrop learned_clss_l_l_fmdrop_irrelev)
+
+lemma learned_clss_l_fmupd_if:
+  \<open>C' \<notin># dom_m new \<Longrightarrow> learned_clss_l (fmupd C' D new) = (if \<not>snd D then add_mset D (learned_clss_l new) else learned_clss_l new)\<close>
+  by (cases D) (auto simp: learned_clss_l_mapsto_upd_notin_irrelev
+    learned_clss_l_mapsto_upd_notin)
+
+lemma GC_remap_all_init_atmsD:
+  \<open>GC_remap (N, x, m) (N', x', m') \<Longrightarrow> all_init_atms N NE + all_init_atms m NE  = all_init_atms N' NE  + all_init_atms m' NE\<close>
+  by (induction rule: GC_remap.induct[split_format(complete)])
+    (auto simp: all_init_atms_def all_init_lits_def init_clss_l_fmdrop_if
+       init_clss_l_fmupd_if image_mset_remove1_mset_if
+    simp del: all_init_atms_def[symmetric]
+    simp flip: image_mset_union all_lits_of_mm_add_mset all_lits_of_mm_union)
+
+lemma rtranclp_GC_remap_all_init_atmsD:
+  \<open>GC_remap\<^sup>*\<^sup>* (N, x, m) (N', x', m') \<Longrightarrow> all_init_atms N NE + all_init_atms m NE  = all_init_atms N' NE  + all_init_atms m' NE\<close>
+  by (induction rule: rtranclp_induct[of r \<open>(_, _, _)\<close> \<open>(_, _, _)\<close>, split_format(complete), of for r])
+    (auto dest: GC_remap_all_init_atmsD)
+
+lemma rtranclp_GC_remap_all_init_atms:
+  \<open>GC_remap\<^sup>*\<^sup>* (x1a, Map.empty, fmempty) (fmempty, m, x1ad) \<Longrightarrow> all_init_atms x1ad NE = all_init_atms x1a NE\<close>
+  by (auto dest!: rtranclp_GC_remap_all_init_atmsD[of _ _ _ _ _ _ NE])
+
+
+lemma rtranclp_GC_remap_learned_clss_lD:
+  \<open>GC_remap\<^sup>*\<^sup>* (N, x, m) (N', x', m') \<Longrightarrow> learned_clss_l N + learned_clss_l m  = learned_clss_l N'  + learned_clss_l m'\<close>
+  by (induction rule: rtranclp_induct[of r \<open>(_, _, _)\<close> \<open>(_, _, _)\<close>, split_format(complete), of for r])
+    (auto dest: GC_remap_learned_clss_l_old_new)
+
+lemma rtranclp_GC_remap_learned_clss_l:
+  \<open>GC_remap\<^sup>*\<^sup>* (x1a, Map.empty, fmempty) (fmempty, m, x1ad) \<Longrightarrow> learned_clss_l x1ad = learned_clss_l x1a\<close>
+  by (auto dest!: rtranclp_GC_remap_learned_clss_lD[of _ _ _ _ _ _])
+
 lemma
-  \<open>(isasat_GC_clauses_prog_wl,cdcl_GC_clauses_prog_wl) \<in> twl_st_heur_restart \<rightarrow>\<^sub>f \<langle>twl_st_heur_restart\<rangle>nres_rel\<close>
+  \<open>(isasat_GC_clauses_prog_wl, cdcl_GC_clauses_prog_wl) \<in> twl_st_heur_restart \<rightarrow>\<^sub>f \<langle>twl_st_heur_restart\<rangle>nres_rel\<close>
 proof-
   have [refine0]: \<open>\<And>x1 x1a x1b x1c x1d x1e x2e x1f x1g x1h x1i x1j x1m x1n x1o x1p x2n x2o x1q
        x1r x1s x1t x1u x1v x1w x1x x1y x1z x1aa x1ab x2ab.
@@ -3521,7 +3601,12 @@ proof-
     apply (intro frefI nres_relI)
     apply (refine_vcg isasat_GC_clauses_prog_wl2[where \<A> = \<open>all_init_atms _ _\<close>]; remove_dummy_vars)
     subgoal
-      apply (auto simp: twl_st_heur_restart_def)
-  oops
-  
+      apply (auto simp: twl_st_heur_restart_def
+        cdcl_GC_clauses_prog_wl_inv_def
+        )
+        apply (simp_all add: 
+        rtranclp_GC_remap_all_init_atms
+        rtranclp_GC_remap_learned_clss_l)
+        oops
+
 end
