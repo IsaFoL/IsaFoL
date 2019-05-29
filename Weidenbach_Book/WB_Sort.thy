@@ -1359,9 +1359,10 @@ definition partition_main_inv :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool)
   \<open>partition_main_inv R h lo hi xs0 p \<equiv>
     case p of (i,j,xs) \<Rightarrow>
     j < length xs \<and> j \<le> hi \<and> i < length xs \<and> lo \<le> i \<and> i \<le> j \<and> mset xs = mset xs0 \<and>
-    (\<forall>k. k \<ge> lo \<and> k < i \<longrightarrow> R (h (xs!k)) (h (xs!hi))) \<and> \<comment> \<open>All elements from \<open>lo\<close> to \<open>i-1\<close> are smaller than the pivot\<close>
-    (\<forall>k. k \<ge> i \<and> k < j \<longrightarrow>  R (h (xs!hi)) (h (xs!k))) \<and> \<comment> \<open>All elements from \<open>i\<close> to \<open>j-1\<close> are greater than the pivot\<close>
-    (\<forall>k. k \<ge> j \<and> k \<le> hi \<longrightarrow> xs!k = xs0!k) \<comment> \<open>All elements from \<open>j\<close> to \<open>hi\<close> are unchanged\<close>
+    (\<forall>k. k \<ge> lo \<and> k < i \<longrightarrow> R (h (xs!k)) (h (xs!hi))) \<and> \<comment> \<open>All elements from \<^term>\<open>lo\<close> to \<^term>\<open>i-1\<close> are smaller than the pivot\<close>
+    (\<forall>k. k \<ge> i \<and> k < j \<longrightarrow>  R (h (xs!hi)) (h (xs!k))) \<and> \<comment> \<open>All elements from \<^term>\<open>i\<close> to \<^term>\<open>j-1\<close> are greater than the pivot\<close>
+    (\<forall>k. k < lo \<longrightarrow> xs!k = xs0!k) \<and> \<comment> \<open>Everything below \<^term>\<open>lo\<close> is unchanged\<close>
+    (\<forall>k. k \<ge> j \<and> k < length xs \<longrightarrow> xs!k = xs0!k) \<comment> \<open>All elements from \<^term>\<open>j\<close> are unchanged (including everyting above \<^term>\<open>hi\<close>)\<close>
   \<close>
 
 text \<open>The main part of the partition function. The pivot is assumed to be the last element. This is
@@ -1383,11 +1384,20 @@ definition partition_main :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) \<R
     RETURN (swap xs i hi, i)
   }\<close>
 
+(*
+definition partition_spec :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> 'b) \<Rightarrow> 'a list \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a list \<Rightarrow> nat \<Rightarrow> bool\<close> where
+  \<open>partition_spec R h xs lo hi xs' p \<equiv>
+    mset xs' = mset xs \<and> \<comment> \<open>The list is a permutation\<close>
+    isPartition_map R h xs' lo hi p \<and> \<comment> \<open>We have a valid partition on the resulting list\<close>
+    lo \<le> p \<and> p \<le> hi \<and> \<comment> \<open>The partition index is in bounds\<close>
+    (\<forall> i. i<lo \<longrightarrow> xs'!i=xs!i) \<and> (\<forall> i. hi<i\<and>i<length xs' \<longrightarrow> xs'!i=xs!i)\<close> \<comment> \<open>Everything else is unchanged.\<close>
+*)
+
 lemma partition_main_correct:
   assumes \<open>lo < length xs\<close> and \<open>hi < length xs\<close> and \<open>hi > lo\<close> and
     \<open>\<And> x y z. \<lbrakk>R (h x) (h y); R (h y) (h z)\<rbrakk> \<Longrightarrow> R (h x) (h z)\<close> and \<open>\<And>x y. R (h x) (h y) \<or> R (h y) (h x)\<close>
   shows \<open>partition_main R h lo hi xs \<le> SPEC(\<lambda>(xs', p). mset xs = mset xs' \<and>
-     lo \<le> p \<and> p \<le> hi \<and> isPartition_map R h xs' lo hi p)\<close>
+     lo \<le> p \<and> p \<le> hi \<and> isPartition_map R h xs' lo hi p \<and> (\<forall> i. i<lo \<longrightarrow> xs'!i=xs!i) \<and> (\<forall> i. hi<i\<and>i<length xs' \<longrightarrow> xs'!i=xs!i))\<close>
 proof -
   have K: \<open>b \<le> hi - Suc n \<Longrightarrow> n > 0 \<Longrightarrow> Suc n \<le> hi \<Longrightarrow> Suc b \<le> hi - n\<close> for b hi n
     by auto
@@ -1415,7 +1425,7 @@ proof -
     subgoal unfolding partition_main_inv_def by (auto dest: mset_eq_length)
     subgoal
       unfolding partition_main_inv_def apply (auto dest: mset_eq_length)
-      apply (auto simp add: M) using assms(5) by blast
+      by (metis L M mset_eq_length nat_le_eq_or_lt)
 
     subgoal unfolding partition_main_inv_def by simp \<comment> \<open>assertions, etc\<close>
     subgoal unfolding partition_main_inv_def by simp
@@ -1429,6 +1439,10 @@ proof -
 
     subgoal \<comment> \<open>After the last iteration, we have a partitioning! :-)\<close>
       unfolding partition_main_inv_def by (auto simp add: isPartition_wrt_def)
+    subgoal \<comment> \<open>And the lower out-of-bounds parts of the list haven't been changed\<close>
+      unfolding partition_main_inv_def by auto
+    subgoal \<comment> \<open>And the upper out-of-bounds parts of the list haven't been changed\<close>
+      unfolding partition_main_inv_def by auto
     done
 qed
 
@@ -1447,15 +1461,15 @@ definition partition_between :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) 
 lemma partition_between_correct:
   assumes \<open>lo < length xs\<close> and \<open>hi < length xs\<close> and \<open>hi > lo\<close> and
   \<open>\<And> x y z. \<lbrakk>R (h x) (h y); R (h y) (h z)\<rbrakk> \<Longrightarrow> R (h x) (h z)\<close> and \<open>\<And>x y. R (h x) (h y) \<or> R (h y) (h x)\<close>
-  shows \<open>partition_between R h lo hi xs \<le> SPEC(\<lambda>(xs', p). mset xs = mset xs' \<and>
-     lo \<le> p \<and> p \<le> hi \<and> isPartition_map R h xs' lo hi p)\<close> \<comment> \<open>TODO: Maxi: Show that \<open>p\<close> is a valid partiton.\<close>
+  shows \<open>partition_between R h lo hi xs \<le> SPEC(uncurry (partition_spec R h xs lo hi))\<close>
 proof -
   have K: \<open>b \<le> hi - Suc n \<Longrightarrow> n > 0 \<Longrightarrow> Suc n \<le> hi \<Longrightarrow> Suc b \<le> hi - n\<close> for b hi n
     by auto
   show ?thesis
     unfolding partition_between_def choose_pivot_def
     apply (refine_vcg partition_main_correct)
-    using assms by (auto dest: mset_eq_length)
+    using assms apply (auto dest: mset_eq_length simp add: partition_spec_def)
+    by (metis dual_order.strict_trans2 less_imp_not_eq2 mset_eq_length swap_nth)
 qed
 
 
