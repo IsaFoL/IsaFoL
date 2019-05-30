@@ -2233,24 +2233,6 @@ lemma extra_information_mark_to_delete_extract_and_remove:
     intro: valid_arena_extra_information_mark_to_delete')
 *)
 
-lemma all_init_atms_fmdrop_add_mset_unit:
-  \<open>C \<in># dom_m baa \<Longrightarrow> irred baa C \<Longrightarrow>
-    all_init_atms (fmdrop C baa) (add_mset (mset (baa \<propto> C)) da) =
-   all_init_atms baa da\<close>
-  \<open>C \<in># dom_m baa \<Longrightarrow> \<not>irred baa C \<Longrightarrow>
-    all_init_atms (fmdrop C baa) da =
-   all_init_atms baa da\<close>
-  by (auto simp del: all_init_atms_def[symmetric]
-    simp: all_init_atms_def all_init_lits_def
-      init_clss_l_fmdrop_irrelev image_mset_remove1_mset_if)
-
-
-lemma learned_clss_l_l_fmdrop_irrelev: \<open>irred N C \<Longrightarrow>
-  learned_clss_l (fmdrop C N) = learned_clss_l N\<close>
-  using distinct_mset_dom[of N]
-  apply (cases \<open>C \<in># dom_m N\<close>)
-  by (auto simp: ran_m_def image_mset_If_eq_notin[of C _ the] dest!: multi_member_split)
-
 lemma mark_garbage_heur2_remove_and_add_cls_l:
   \<open>(S, T) \<in> twl_st_heur_restart \<Longrightarrow> (C, C') \<in> Id \<Longrightarrow>
     C \<in># dom_m (get_clauses_wl T) \<Longrightarrow>
@@ -3510,52 +3492,6 @@ definition isasat_GC_clauses_prog_wl :: \<open>twl_st_wl_heur \<Rightarrow> twl_
        vdom, vdom, lcount, opts)
   })\<close>
 
-(* TODO Move *)
-lemma init_clss_l_fmdrop_if:
-  \<open>C \<in># dom_m N \<Longrightarrow> init_clss_l (fmdrop C N) = (if irred N C then remove1_mset (the (fmlookup N C)) (init_clss_l N)
-    else init_clss_l N)\<close>
-  by (auto simp: init_clss_l_fmdrop init_clss_l_fmdrop_irrelev)
-
-lemma init_clss_l_fmupd_if:
-  \<open>C' \<notin># dom_m new \<Longrightarrow> init_clss_l (fmupd C' D new) = (if snd D then add_mset D (init_clss_l new) else init_clss_l new)\<close>
-  by (cases D) (auto simp: init_clss_l_mapsto_upd_irrel_notin init_clss_l_mapsto_upd_notin)
-
-lemma learned_clss_l_fmdrop_if:
-  \<open>C \<in># dom_m N \<Longrightarrow> learned_clss_l (fmdrop C N) = (if \<not>irred N C then remove1_mset (the (fmlookup N C)) (learned_clss_l N)
-    else learned_clss_l N)\<close>
-  by (auto simp: learned_clss_l_l_fmdrop learned_clss_l_l_fmdrop_irrelev)
-
-lemma learned_clss_l_fmupd_if:
-  \<open>C' \<notin># dom_m new \<Longrightarrow> learned_clss_l (fmupd C' D new) = (if \<not>snd D then add_mset D (learned_clss_l new) else learned_clss_l new)\<close>
-  by (cases D) (auto simp: learned_clss_l_mapsto_upd_notin_irrelev
-    learned_clss_l_mapsto_upd_notin)
-
-lemma GC_remap_all_init_atmsD:
-  \<open>GC_remap (N, x, m) (N', x', m') \<Longrightarrow> all_init_atms N NE + all_init_atms m NE  = all_init_atms N' NE  + all_init_atms m' NE\<close>
-  by (induction rule: GC_remap.induct[split_format(complete)])
-    (auto simp: all_init_atms_def all_init_lits_def init_clss_l_fmdrop_if
-       init_clss_l_fmupd_if image_mset_remove1_mset_if
-    simp del: all_init_atms_def[symmetric]
-    simp flip: image_mset_union all_lits_of_mm_add_mset all_lits_of_mm_union)
-
-lemma rtranclp_GC_remap_all_init_atmsD:
-  \<open>GC_remap\<^sup>*\<^sup>* (N, x, m) (N', x', m') \<Longrightarrow> all_init_atms N NE + all_init_atms m NE  = all_init_atms N' NE  + all_init_atms m' NE\<close>
-  by (induction rule: rtranclp_induct[of r \<open>(_, _, _)\<close> \<open>(_, _, _)\<close>, split_format(complete), of for r])
-    (auto dest: GC_remap_all_init_atmsD)
-
-lemma rtranclp_GC_remap_all_init_atms:
-  \<open>GC_remap\<^sup>*\<^sup>* (x1a, Map.empty, fmempty) (fmempty, m, x1ad) \<Longrightarrow> all_init_atms x1ad NE = all_init_atms x1a NE\<close>
-  by (auto dest!: rtranclp_GC_remap_all_init_atmsD[of _ _ _ _ _ _ NE])
-
-
-lemma rtranclp_GC_remap_learned_clss_lD:
-  \<open>GC_remap\<^sup>*\<^sup>* (N, x, m) (N', x', m') \<Longrightarrow> learned_clss_l N + learned_clss_l m  = learned_clss_l N'  + learned_clss_l m'\<close>
-  by (induction rule: rtranclp_induct[of r \<open>(_, _, _)\<close> \<open>(_, _, _)\<close>, split_format(complete), of for r])
-    (auto dest: GC_remap_learned_clss_l_old_new)
-
-lemma rtranclp_GC_remap_learned_clss_l:
-  \<open>GC_remap\<^sup>*\<^sup>* (x1a, Map.empty, fmempty) (fmempty, m, x1ad) \<Longrightarrow> learned_clss_l x1ad = learned_clss_l x1a\<close>
-  by (auto dest!: rtranclp_GC_remap_learned_clss_lD[of _ _ _ _ _ _])
 
 lemma isasat_GC_clauses_prog_wl:
   \<open>(isasat_GC_clauses_prog_wl, cdcl_GC_clauses_prog_wl) \<in> twl_st_heur_restart \<rightarrow>\<^sub>f \<langle>twl_st_heur_restart\<rangle>nres_rel\<close>
@@ -3626,17 +3562,12 @@ proof-
     apply (intro frefI nres_relI)
     apply (refine_vcg isasat_GC_clauses_prog_wl2[where \<A> = \<open>all_init_atms _ _\<close>]; remove_dummy_vars)
     subgoal
-      by (force simp: twl_st_heur_restart_def
-        cdcl_GC_clauses_prog_wl_inv_def
-        rtranclp_GC_remap_all_init_atms H
+      by (clarsimp simp add: twl_st_heur_restart_def
+        cdcl_GC_clauses_prog_wl_inv_def H
+        rtranclp_GC_remap_all_init_atms
         rtranclp_GC_remap_learned_clss_l)
     done
 qed
-
-term isasat_GC_clauses_prog_wl
-
-thm correct_watching.simps cdcl_GC_clauses_prog_wl2
-term rewatch
 
 definition cdcl_remap_st :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
 \<open>cdcl_remap_st = (\<lambda>(M, N0, D, NE, UE, Q, WS).
@@ -3671,8 +3602,15 @@ lemma cdcl_GC_clauses_wl_D_alt_def:
     RES_RETURN_RES_RES2 RES_RETURN_RES RES_RES2_RETURN_RES rewatch_spec_def
     intro!: bind_cong_nres)
 
+
+definition isasat_GC_clauses_pre_wl_D :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close> where
+\<open>isasat_GC_clauses_pre_wl_D S \<longleftrightarrow> (
+  \<exists>T. (S, T) \<in> twl_st_heur_restart \<and> cdcl_GC_clauses_pre_wl_D T
+  )\<close>
+
 definition isasat_GC_clauses_wl_D :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
 \<open>isasat_GC_clauses_wl_D = (\<lambda>S. do {
+  ASSERT(isasat_GC_clauses_pre_wl_D S);
   let b = True;
   if b then do {
     S \<leftarrow> isasat_GC_clauses_prog_wl S;
@@ -3682,9 +3620,8 @@ definition isasat_GC_clauses_wl_D :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_
   else RETURN S})\<close>
 
 
-thm cdcl_GC_clauses_prog_wl2
 lemma cdcl_GC_clauses_prog_wl2_st:
-  assumes \<open>(T, S) \<in> state_wl_l None\<close> 
+  assumes \<open>(T, S) \<in> state_wl_l None\<close>
   \<open>correct_watching'' T \<and> cdcl_GC_clauses_pre S \<and>
    set_mset (dom_m (get_clauses_wl T)) \<subseteq> clauses_pointed_to
       (Neg ` set_mset (all_init_atms (get_clauses_wl T) (get_unit_init_clss_wl T)) \<union>
@@ -3695,7 +3632,11 @@ lemma cdcl_GC_clauses_prog_wl2_st:
     \<open>cdcl_GC_clauses_prog_wl T \<le>
        \<Down> {((M', N'', D', NE', UE', Q', WS'), (N, N')).
        (M', D', NE', UE', Q') = (get_trail_wl T, get_conflict_wl T, get_unit_init_clss_wl T,
-           get_unit_learned_clss_wl T, literals_to_update_wl T) \<and> N'' = N}
+           get_unit_learned_clss_wl T, literals_to_update_wl T) \<and> N'' = N \<and>
+           (\<forall>L\<in>#all_init_lits (get_clauses_wl T) (get_unit_init_clss_wl T). WS' L = []) \<and>
+           all_init_lits (get_clauses_wl T) (get_unit_init_clss_wl T) = all_init_lits N NE' \<and>
+           (\<exists>m. GC_remap\<^sup>*\<^sup>* (get_clauses_wl T, Map.empty, fmempty)
+               (fmempty, m, N))}
       (SPEC(\<lambda>(N'::(nat, 'a literal list \<times> bool) fmap, m).
          GC_remap\<^sup>*\<^sup>* (N0', (\<lambda>_. None), fmempty) (fmempty, m, N') \<and>
 	  0 \<notin># dom_m N'))\<close>
@@ -3783,13 +3724,33 @@ proof
       dest!: multi_member_split)
 qed
 
+abbreviation isasat_GC_clauses_rel where
+  \<open>isasat_GC_clauses_rel y \<equiv> {(S, T). (S, T) \<in> twl_st_heur_restart \<and>
+           (\<forall>L\<in>#all_init_lits (get_clauses_wl y) (get_unit_init_clss_wl y). get_watched_wl T L = [])\<and>
+           all_init_lits_st y = all_init_lits (get_clauses_wl y) (get_unit_init_clss_wl y) \<and>
+           get_trail_wl T = get_trail_wl y \<and>
+           get_conflict_wl T = get_conflict_wl y \<and>
+           (\<exists>m. GC_remap\<^sup>*\<^sup>* (get_clauses_wl y, (\<lambda>_. None), fmempty) (fmempty, m, get_clauses_wl T))}\<close>
+
 lemma isasat_GC_clauses_prog_wl_cdcl_remap_st:
-  \<open>(x, y) \<in> twl_st_heur_restart \<Longrightarrow>
-          cdcl_GC_clauses_pre_wl_D y \<Longrightarrow>
-          isasat_GC_clauses_prog_wl x \<le> \<Down> twl_st_heur_restart (cdcl_remap_st y)\<close>
+  assumes
+    \<open>(x, y) \<in> twl_st_heur_restart\<close> and
+    \<open>cdcl_GC_clauses_pre_wl_D y\<close>
+  shows \<open>isasat_GC_clauses_prog_wl x \<le> \<Down> (isasat_GC_clauses_rel y) (cdcl_remap_st y)\<close>
+proof -
+  have H: \<open>isasat_GC_clauses_rel y =
+        twl_st_heur_restart O {(S, T). S = T \<and> (\<forall>L\<in>#all_init_lits_st y. get_watched_wl T L = [])\<and>
+           all_init_lits_st y = all_init_lits (get_clauses_wl y) (get_unit_init_clss_wl y) \<and>
+           get_trail_wl T = get_trail_wl y \<and>
+           get_conflict_wl T = get_conflict_wl y \<and>
+           (\<exists>m. GC_remap\<^sup>*\<^sup>* (get_clauses_wl y, (\<lambda>_. None), fmempty) (fmempty, m, get_clauses_wl T))}\<close>
+    by blast
+  show ?thesis
+    using assms apply -
     apply (rule order_trans[OF isasat_GC_clauses_prog_wl[THEN fref_to_Down]])
     subgoal by fast
     apply assumption
+    unfolding conc_fun_chain[symmetric] H
     apply (rule ref_two_step')
     unfolding cdcl_GC_clauses_pre_wl_D_def cdcl_GC_clauses_pre_wl_def
     apply normalize_goal+
@@ -3799,7 +3760,7 @@ lemma isasat_GC_clauses_prog_wl_cdcl_remap_st:
     apply (rule refl)
     subgoal by (auto simp: cdcl_remap_st_def conc_fun_RES split: prod.splits)
     done
-
+qed
 
 fun correct_watching''' :: \<open>_ \<Rightarrow> 'v twl_st_wl \<Rightarrow> bool\<close> where
   \<open>correct_watching''' \<A> (M, N, D, NE, UE, Q, W) \<longleftrightarrow>
@@ -3884,11 +3845,43 @@ proof -
     done
 qed
 
+inductive_cases GC_remapE: \<open>GC_remap (a, aa, b) (ab, ac, ba)\<close>
+lemma rtranclp_GC_remap_ran_m_remap:
+  \<open>GC_remap\<^sup>*\<^sup>* (old, m, new) (old', m', new')  \<Longrightarrow> C \<in># dom_m old \<Longrightarrow> C \<notin># dom_m old' \<Longrightarrow>
+         m' C \<noteq> None \<and>
+         fmlookup new' (the (m' C)) = fmlookup old C\<close>
+  apply (induction rule: rtranclp_induct[of r \<open>(_, _, _)\<close> \<open>(_, _, _)\<close>, split_format(complete), of for r])
+  subgoal by auto
+  subgoal for a aa b ab ac ba
+    apply (cases \<open>C \<notin># dom_m a\<close>)
+    apply (auto dest: GC_remap_ran_m_remap GC_remap_ran_m_no_rewrite_map
+       GC_remap_ran_m_no_rewrite)
+    apply (metis GC_remap_ran_m_no_rewrite_fmap GC_remap_ran_m_no_rewrite_map in_dom_m_lookup_iff option.sel)
+    using GC_remap_ran_m_remap rtranclp_GC_remap_ran_m_no_rewrite by fastforce
+  done
+
+lemma GC_remap_ran_m_exists_earlier:
+  \<open>GC_remap (old, m, new) (old', m', new')  \<Longrightarrow> C \<in># dom_m new' \<Longrightarrow> C \<notin># dom_m new \<Longrightarrow>
+         \<exists>D. m' D = Some C \<and> D \<in># dom_m old \<and>
+         fmlookup new' C = fmlookup old D\<close>
+  by (induction rule: GC_remap.induct[split_format(complete)]) auto
+
+
+lemma rtranclp_GC_remap_ran_m_exists_earlier:
+  \<open>GC_remap\<^sup>*\<^sup>* (old, m, new) (old', m', new')  \<Longrightarrow> C \<in># dom_m new' \<Longrightarrow> C \<notin># dom_m new \<Longrightarrow>
+         \<exists>D. m' D = Some C \<and> D \<in># dom_m old \<and>
+         fmlookup new' C = fmlookup old D\<close>
+  apply (induction rule: rtranclp_induct[of r \<open>(_, _, _)\<close> \<open>(_, _, _)\<close>, split_format(complete), of for r])
+  apply (auto dest: GC_remap_ran_m_exists_earlier)
+  apply (case_tac \<open>C \<in># dom_m b\<close>)
+  apply (auto elim!: GC_remapE split: if_splits)
+  apply blast
+  using rtranclp_GC_remap_ran_m_no_new_map rtranclp_GC_remap_ran_m_no_rewrite by fastforce
+
 lemma rewatch_heur_st_correct_watching:
   assumes
-    \<open>(S, T) \<in> twl_st_heur_restart\<close> and
-    \<open>\<And>x. x \<in># dom_m (get_clauses_wl T) \<Longrightarrow> distinct (get_clauses_wl T \<propto> x) \<and>
-        2 \<le> length (get_clauses_wl T \<propto> x)\<close>
+    pre: \<open>cdcl_GC_clauses_pre_wl_D y\<close> and
+    \<open>(S, T) \<in> isasat_GC_clauses_rel y\<close>
   shows \<open>rewatch_heur_st S \<le> \<Down> (twl_st_heur_restart)
     (rewatch_spec T)\<close>
 proof -
@@ -3902,15 +3895,58 @@ proof -
        vdom, avdom, lcount, opts)\<close>
     by (cases S) auto
 
-  have valid: \<open>valid_arena N' N (set vdom)\<close> and
+  have
+    valid: \<open>valid_arena N' N (set vdom)\<close> and
     dist: \<open>distinct vdom\<close> and
     dom_m_vdom: \<open>set_mset (dom_m N) \<subseteq> set vdom\<close> and
-    W: \<open>(W', W) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 (all_init_atms N NE))\<close>
+    W: \<open>(W', W) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 (all_init_atms N NE))\<close> and
+    empty: \<open>\<And>L. L \<in># all_init_lits_st y \<Longrightarrow> W L = []\<close>
     using assms by (auto simp: twl_st_heur_restart_def S T)
+  obtain m where
+    m: \<open>GC_remap\<^sup>*\<^sup>* (get_clauses_wl y, Map.empty, fmempty)
+             (fmempty, m, N)\<close>
+    using assms by (auto simp: twl_st_heur_restart_def S T)
+  obtain x xa xb where
+    y_x: \<open>(y, x) \<in> Id\<close> and
+    \<open>literals_are_\<L>\<^sub>i\<^sub>n' (all_init_atms_st y) y\<close> and
+    x_xa: \<open>(x, xa) \<in> state_wl_l None\<close> and
+    \<open>correct_watching'' x\<close> and
+    xa_xb: \<open>(xa, xb) \<in> twl_st_l None\<close> and
+    \<open>twl_list_invs xa\<close> and
+    struct_invs: \<open>twl_struct_invs xb\<close> and
+    \<open>get_conflict_l xa = None\<close> and
+    \<open>clauses_to_update_l xa = {#}\<close> and
+    \<open>count_decided (get_trail_l xa) = 0\<close> and
+    \<open>\<forall>L\<in>set (get_trail_l xa). mark_of L = 0\<close>
+    using pre
+    unfolding cdcl_GC_clauses_pre_wl_D_def cdcl_GC_clauses_pre_wl_def
+      cdcl_GC_clauses_pre_def
+    by blast
+  have [iff]:
+    \<open>distinct_mset (mset (watched_l C) + mset (unwatched_l C)) \<longleftrightarrow> distinct C\<close> for C
+    unfolding mset_append[symmetric]
+    by auto
+
+  have \<open>twl_st_inv xb\<close>
+    using xa_xb struct_invs
+    by (auto simp: twl_struct_invs_def
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def)
+  then have A:
+    \<open>\<And>C. C \<in># dom_m (get_clauses_wl x) \<Longrightarrow> distinct (get_clauses_wl x \<propto> C) \<and> 2 \<le> length (get_clauses_wl x \<propto> C)\<close>
+    using xa_xb x_xa
+    by (cases x; cases \<open>irred (get_clauses_wl x) C\<close>)
+      (auto simp: twl_struct_invs_def twl_st_inv.simps
+        twl_st_l_def state_wl_l_def ran_m_def conj_disj_distribR
+        Collect_disj_eq Collect_conv_if
+      dest!: multi_member_split
+      split: if_splits)
+  have struct_wf:
+    \<open>C \<in># dom_m N \<Longrightarrow> distinct (N \<propto> C) \<and> 2 \<le> length (N \<propto> C)\<close> for C
+    using rtranclp_GC_remap_ran_m_exists_earlier[OF m, of \<open>C\<close>] A y_x
+    by (auto simp: T dest: )
+
   have lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm (all_init_atms N NE) (mset `# ran_mf N)\<close>
     apply (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_mm_def)
-    oops
-    (*
     sorry
   have vd: \<open>vdom_m (all_init_atms N NE) W N \<subseteq> set_mset (dom_m N)\<close>
      sorry
@@ -3922,36 +3958,32 @@ proof -
     apply (rule bind_refine_res)
     prefer 2
     apply (rule order.trans)
-    thm rewatch_heur_rewatch
     apply (rule rewatch_heur_rewatch[OF valid _ dist dom_m_vdom W lits])
     apply (solves simp)
     apply (rule vd)
     apply (rule order_trans[OF ref_two_step'])
-    apply (rule rewatch_correctness)
-    apply (rule empty_watched_def)
-    find_theorems rewatch
-    subgoal
-      using assms
-      by (auto simp: twl_st_heur_parsing_no_WL_def)
+    apply (rule rewatch_correctness[where M=M and N=N and NE=NE and UE=UE and C=D and Q=Q])
+    apply (rule empty[unfolded all_init_lits_def]; assumption)
+    apply (rule struct_wf; assumption)
     apply (subst conc_fun_RES)
-    apply (rule H)
-    apply (auto simp: twl_st_heur_parsing_def twl_st_heur_parsing_no_WL_def all_atms_def[symmetric]
-      intro!: exI[of _ N] exI[of _ D]  exI[of _ M]
-      intro!: RETURN_RES_refine)
-    apply (rule_tac x=W' in exI)
-    apply (auto simp: eq correct_watching_init_correct_watching dist)
-    done
+    apply (rule order.refl)
+    apply (auto simp: rewatch_spec_def RETURN_RES_refine_iff)
+    apply (rule_tac x=W'a in exI)
+    apply auto
+    sorry
 qed
-*)
+
 
 lemma
   \<open>(isasat_GC_clauses_wl_D, cdcl_GC_clauses_wl_D)
     \<in> twl_st_heur_restart \<rightarrow>\<^sub>f \<langle>twl_st_heur_restart\<rangle>nres_rel\<close>
   unfolding isasat_GC_clauses_wl_D_def cdcl_GC_clauses_wl_D_alt_def
   apply (intro frefI nres_relI)
-  apply (refine_vcg isasat_GC_clauses_prog_wl_cdcl_remap_st)
+  apply (refine_vcg isasat_GC_clauses_prog_wl_cdcl_remap_st
+    rewatch_heur_st_correct_watching)
+  subgoal unfolding isasat_GC_clauses_pre_wl_D_def by blast
   subgoal by fast
-  subgoal for x y S T
-oops
+  apply assumption+
+  done
 
 end

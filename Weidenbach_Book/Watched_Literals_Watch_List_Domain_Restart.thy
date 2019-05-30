@@ -1586,7 +1586,7 @@ lemma cdcl_GC_clauses_prog_wl:
     \<open>cdcl_GC_clauses_prog_wl (M, N0, D, NE, UE, Q, WS) \<le>
       (SPEC(\<lambda>(M', N', D', NE', UE', Q', WS'). (M', D', NE', UE', Q') = (M, D, NE, UE, Q) \<and>
          (\<exists>m. GC_remap\<^sup>*\<^sup>* (N0, (\<lambda>_. None), fmempty) (fmempty, m, N')) \<and>
-         0 \<notin># dom_m N'))\<close>
+         0 \<notin># dom_m N' \<and> (\<forall>L \<in># all_init_lits N0 NE. WS' L = [])))\<close>
 proof -
   show ?thesis
     supply[[goals_limit=1]]
@@ -1630,9 +1630,92 @@ proof -
     subgoal
       unfolding cdcl_GC_clauses_prog_wl_inv_def
       by auto
+    subgoal
+      unfolding cdcl_GC_clauses_prog_wl_inv_def
+      by (intro ballI, rename_tac L, case_tac L)
+        (auto simp: in_all_lits_of_mm_ain_atms_of_iff all_init_atms_def
+          simp del: all_init_atms_def[symmetric]
+          dest!: multi_member_split)
   done
 qed
 
+
+
+(* TODO Move *)
+
+lemma all_init_atms_fmdrop_add_mset_unit:
+  \<open>C \<in># dom_m baa \<Longrightarrow> irred baa C \<Longrightarrow>
+    all_init_atms (fmdrop C baa) (add_mset (mset (baa \<propto> C)) da) =
+   all_init_atms baa da\<close>
+  \<open>C \<in># dom_m baa \<Longrightarrow> \<not>irred baa C \<Longrightarrow>
+    all_init_atms (fmdrop C baa) da =
+   all_init_atms baa da\<close>
+  by (auto simp del: all_init_atms_def[symmetric]
+    simp: all_init_atms_def all_init_lits_def
+      init_clss_l_fmdrop_irrelev image_mset_remove1_mset_if)
+
+lemma learned_clss_l_l_fmdrop_irrelev: \<open>irred N C \<Longrightarrow>
+  learned_clss_l (fmdrop C N) = learned_clss_l N\<close>
+  using distinct_mset_dom[of N]
+  apply (cases \<open>C \<in># dom_m N\<close>)
+  by (auto simp: ran_m_def image_mset_If_eq_notin[of C _ the] dest!: multi_member_split)
+
+lemma init_clss_l_fmdrop_if:
+  \<open>C \<in># dom_m N \<Longrightarrow> init_clss_l (fmdrop C N) = (if irred N C then remove1_mset (the (fmlookup N C)) (init_clss_l N)
+    else init_clss_l N)\<close>
+  by (auto simp: init_clss_l_fmdrop init_clss_l_fmdrop_irrelev)
+
+lemma init_clss_l_fmupd_if:
+  \<open>C' \<notin># dom_m new \<Longrightarrow> init_clss_l (fmupd C' D new) = (if snd D then add_mset D (init_clss_l new) else init_clss_l new)\<close>
+  by (cases D) (auto simp: init_clss_l_mapsto_upd_irrel_notin init_clss_l_mapsto_upd_notin)
+
+lemma learned_clss_l_fmdrop_if:
+  \<open>C \<in># dom_m N \<Longrightarrow> learned_clss_l (fmdrop C N) = (if \<not>irred N C then remove1_mset (the (fmlookup N C)) (learned_clss_l N)
+    else learned_clss_l N)\<close>
+  by (auto simp: learned_clss_l_l_fmdrop learned_clss_l_l_fmdrop_irrelev)
+
+lemma learned_clss_l_fmupd_if:
+  \<open>C' \<notin># dom_m new \<Longrightarrow> learned_clss_l (fmupd C' D new) = (if \<not>snd D then add_mset D (learned_clss_l new) else learned_clss_l new)\<close>
+  by (cases D) (auto simp: learned_clss_l_mapsto_upd_notin_irrelev
+    learned_clss_l_mapsto_upd_notin)
+
+lemma GC_remap_all_init_atmsD:
+  \<open>GC_remap (N, x, m) (N', x', m') \<Longrightarrow> all_init_atms N NE + all_init_atms m NE  = all_init_atms N' NE  + all_init_atms m' NE\<close>
+  by (induction rule: GC_remap.induct[split_format(complete)])
+    (auto simp: all_init_atms_def all_init_lits_def init_clss_l_fmdrop_if
+       init_clss_l_fmupd_if image_mset_remove1_mset_if
+    simp del: all_init_atms_def[symmetric]
+    simp flip: image_mset_union all_lits_of_mm_add_mset all_lits_of_mm_union)
+
+lemma rtranclp_GC_remap_all_init_atmsD:
+  \<open>GC_remap\<^sup>*\<^sup>* (N, x, m) (N', x', m') \<Longrightarrow> all_init_atms N NE + all_init_atms m NE  = all_init_atms N' NE  + all_init_atms m' NE\<close>
+  by (induction rule: rtranclp_induct[of r \<open>(_, _, _)\<close> \<open>(_, _, _)\<close>, split_format(complete), of for r])
+    (auto dest: GC_remap_all_init_atmsD)
+
+lemma rtranclp_GC_remap_all_init_atms:
+  \<open>GC_remap\<^sup>*\<^sup>* (x1a, Map.empty, fmempty) (fmempty, m, x1ad) \<Longrightarrow> all_init_atms x1ad NE = all_init_atms x1a NE\<close>
+  by (auto dest!: rtranclp_GC_remap_all_init_atmsD[of _ _ _ _ _ _ NE])
+
+
+lemma rtranclp_GC_remap_learned_clss_lD:
+  \<open>GC_remap\<^sup>*\<^sup>* (N, x, m) (N', x', m') \<Longrightarrow> learned_clss_l N + learned_clss_l m  = learned_clss_l N'  + learned_clss_l m'\<close>
+  by (induction rule: rtranclp_induct[of r \<open>(_, _, _)\<close> \<open>(_, _, _)\<close>, split_format(complete), of for r])
+    (auto dest: GC_remap_learned_clss_l_old_new)
+
+lemma rtranclp_GC_remap_learned_clss_l:
+  \<open>GC_remap\<^sup>*\<^sup>* (x1a, Map.empty, fmempty) (fmempty, m, x1ad) \<Longrightarrow> learned_clss_l x1ad = learned_clss_l x1a\<close>
+  by (auto dest!: rtranclp_GC_remap_learned_clss_lD[of _ _ _ _ _ _])
+
+lemma GC_remap_all_init_lits:
+  \<open>GC_remap (N, m, new) (N', m', new') \<Longrightarrow> all_init_lits N NE + all_init_lits new NE = all_init_lits N' NE + all_init_lits new' NE\<close>
+  by (induction rule: GC_remap.induct[split_format(complete)])
+    (case_tac \<open>irred N C\<close> ; auto simp: all_init_lits_def init_clss_l_fmupd_if image_mset_remove1_mset_if
+    simp flip: all_lits_of_mm_union)
+
+lemma rtranclp_GC_remap_all_init_lits:
+  \<open>GC_remap\<^sup>*\<^sup>* (N, m, new) (N', m', new') \<Longrightarrow> all_init_lits N NE + all_init_lits new NE = all_init_lits N' NE + all_init_lits new' NE\<close>
+  by (induction rule: rtranclp_induct[of r \<open>(_, _, _)\<close> \<open>(_, _, _)\<close>, split_format(complete), of for r])
+    (auto dest: GC_remap_all_init_lits)
 
 lemma cdcl_GC_clauses_prog_wl2:
   assumes \<open>((M, N0, D, NE, UE, Q, WS), S) \<in> state_wl_l None \<and>
@@ -1642,7 +1725,10 @@ lemma cdcl_GC_clauses_prog_wl2:
     \<open>N0 = N0'\<close>
   shows
     \<open>cdcl_GC_clauses_prog_wl (M, N0, D, NE, UE, Q, WS) \<le>
-       \<Down> {((M', N'', D', NE', UE', Q', WS'), (N, N')). (M', D', NE', UE', Q') = (M, D, NE, UE, Q) \<and> N'' = N}
+       \<Down> {((M', N'', D', NE', UE', Q', WS'), (N, N')). (M', D', NE', UE', Q') = (M, D, NE, UE, Q) \<and>
+             N'' = N \<and> (\<forall>L\<in>#all_init_lits N0 NE. WS' L = [])\<and>
+           all_init_lits N0 NE = all_init_lits N NE' \<and>
+           (\<exists>m. GC_remap\<^sup>*\<^sup>* (N0, (\<lambda>_. None), fmempty) (fmempty, m, N))}
       (SPEC(\<lambda>(N'::(nat, 'a literal list \<times> bool) fmap, m).
          GC_remap\<^sup>*\<^sup>* (N0', (\<lambda>_. None), fmempty) (fmempty, m, N') \<and>
 	  0 \<notin># dom_m N'))\<close>
@@ -1651,7 +1737,7 @@ proof -
     unfolding \<open>N0 = N0'\<close>[symmetric]
     apply (rule order_trans[OF cdcl_GC_clauses_prog_wl[OF assms(1)]])
     apply (rule RES_refine)
-    apply fastforce
+    apply (fastforce dest: rtranclp_GC_remap_all_init_lits)
     done
 qed
 
