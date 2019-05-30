@@ -3635,19 +3635,41 @@ qed
 
 term isasat_GC_clauses_prog_wl
 
-thm correct_watching.simps
+thm correct_watching.simps cdcl_GC_clauses_prog_wl2
 term rewatch
 
-definition cdcl_GC_clauses_wl_D2 :: \<open>nat twl_st_wl \<Rightarrow> nat twl_st_wl nres\<close> where
-\<open>cdcl_GC_clauses_wl_D2 = (\<lambda>S. do {
-  ASSERT(cdcl_GC_clauses_pre_wl_D S);
-  let b = True;
-  if b then do {
-    (N', _) \<leftarrow> cdcl_GC_clauses_prog_wl S;
-    S \<leftarrow> rewatch_st S;
-    RETURN S
-  }
-  else RETURN S})\<close>
+definition cdcl_remap_st :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
+\<open>cdcl_remap_st = (\<lambda>(M, N0, D, NE, UE, Q, WS).
+  SPEC (\<lambda>(M', N', D', NE', UE', Q', WS'). (M', D', NE', UE', Q') = (M, D, NE, UE, Q) \<and>
+         (\<exists>m. GC_remap\<^sup>*\<^sup>* (N0, (\<lambda>_. None), fmempty) (fmempty, m, N')) \<and>
+         0 \<notin># dom_m N'))\<close>
+
+definition rewatch_spec :: \<open>nat twl_st_wl \<Rightarrow> nat twl_st_wl nres\<close> where
+\<open>rewatch_spec = (\<lambda>(M, N, D, NE, UE, Q, WS).
+  SPEC (\<lambda>(M', N', D', NE', UE', Q', WS'). (M', N', D', NE', UE', Q') = (M, N, D, NE, UE, Q) \<and>
+     correct_watching' (M, N', D, NE, UE, Q', WS') \<and>
+     blits_in_\<L>\<^sub>i\<^sub>n' (M, N', D, NE, UE, Q', WS')))\<close>
+
+lemma RES_RES7_RETURN_RES:
+   \<open>RES A \<bind> (\<lambda>(a, b, c, d, e, g, h). RES (f a b c d e g h)) = RES (\<Union>((\<lambda>(a, b, c, d, e, g, h). f a b c d e g h) ` A))\<close>
+  by (auto simp:  pw_eq_iff refine_pw_simps uncurry_def Bex_def split: prod.splits)
+
+lemma cdcl_GC_clauses_wl_D_alt_def:
+  \<open>cdcl_GC_clauses_wl_D = (\<lambda>S. do {
+    ASSERT(cdcl_GC_clauses_pre_wl_D S);
+    let b = True;
+    if b then do {
+      S \<leftarrow> cdcl_remap_st S;
+      S \<leftarrow> rewatch_spec S;
+      RETURN S
+    }
+    else RETURN S})\<close>
+  supply [[goals_limit=1]]
+  unfolding cdcl_GC_clauses_wl_D_def
+  by (fastforce intro!: ext simp: RES_RES_RETURN_RES2 cdcl_remap_st_def
+    RES_RES7_RETURN_RES uncurry_def image_iff
+    RES_RETURN_RES_RES2 RES_RETURN_RES RES_RES2_RETURN_RES rewatch_spec_def
+    intro!: bind_cong_nres)
 
 definition isasat_GC_clauses_wl_D :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
 \<open>isasat_GC_clauses_wl_D = (\<lambda>S. do {
@@ -3660,29 +3682,130 @@ definition isasat_GC_clauses_wl_D :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_
   else RETURN S})\<close>
 
 
+thm cdcl_GC_clauses_prog_wl2
+lemma cdcl_GC_clauses_prog_wl2_st:
+  assumes \<open>(T, S) \<in> state_wl_l None\<close> 
+  \<open>correct_watching'' T \<and> cdcl_GC_clauses_pre S \<and>
+   set_mset (dom_m (get_clauses_wl T)) \<subseteq> clauses_pointed_to
+      (Neg ` set_mset (all_init_atms (get_clauses_wl T) (get_unit_init_clss_wl T)) \<union>
+       Pos ` set_mset (all_init_atms (get_clauses_wl T) (get_unit_init_clss_wl T)))
+       (get_watched_wl T)\<close> and
+    \<open>get_clauses_wl T = N0'\<close>
+  shows
+    \<open>cdcl_GC_clauses_prog_wl T \<le>
+       \<Down> {((M', N'', D', NE', UE', Q', WS'), (N, N')).
+       (M', D', NE', UE', Q') = (get_trail_wl T, get_conflict_wl T, get_unit_init_clss_wl T,
+           get_unit_learned_clss_wl T, literals_to_update_wl T) \<and> N'' = N}
+      (SPEC(\<lambda>(N'::(nat, 'a literal list \<times> bool) fmap, m).
+         GC_remap\<^sup>*\<^sup>* (N0', (\<lambda>_. None), fmempty) (fmempty, m, N') \<and>
+	  0 \<notin># dom_m N'))\<close>
+   using cdcl_GC_clauses_prog_wl2[of \<open>get_trail_wl T\<close> \<open>get_clauses_wl T\<close> \<open>get_conflict_wl T\<close>
+     \<open>get_unit_init_clss_wl T\<close> \<open>get_unit_learned_clss_wl T\<close> \<open>literals_to_update_wl T\<close>
+     \<open>get_watched_wl T\<close> S] assms
+   by (cases T) auto
 
-lemma
-  \<open>(cdcl_GC_clauses_wl_D2, cdcl_GC_clauses_wl_D)
-    \<in> Id \<rightarrow>\<^sub>f \<langle>Id\<rangle>nres_rel\<close>
-proof -
-  thm cdcl_GC_clauses_prog_wl
-  show ?thesis
-    supply[[goals_limit=1]]
-    unfolding cdcl_GC_clauses_wl_D_def cdcl_GC_clauses_wl_D2_def
-    apply (intro frefI nres_relI)
-    apply clarify
-    apply (refine_vcg cdcl_GC_clauses_prog_wl2)
+lemma correct_watching''_clauses_pointed_to:
+  assumes
+    xa_xb: \<open>(xa, xb) \<in> state_wl_l None\<close> and
+    corr: \<open>correct_watching'' xa\<close> and
+    pre: \<open>cdcl_GC_clauses_pre xb\<close> and
+    L: \<open>literals_are_\<L>\<^sub>i\<^sub>n'
+      (all_init_atms (get_clauses_wl xa) (get_unit_init_clss_wl xa)) xa\<close>
+  shows \<open>set_mset (dom_m (get_clauses_wl xa))
+         \<subseteq> clauses_pointed_to
+            (Neg `
+             set_mset
+              (all_init_atms (get_clauses_wl xa) (get_unit_init_clss_wl xa)) \<union>
+             Pos `
+             set_mset
+              (all_init_atms (get_clauses_wl xa) (get_unit_init_clss_wl xa)))
+            (get_watched_wl xa)\<close>
+        (is \<open>_ \<subseteq> ?A\<close>)
+proof
+  let ?\<A> = \<open>all_init_atms (get_clauses_wl xa) (get_unit_init_clss_wl xa)\<close>
+  fix C
+  assume C: \<open>C \<in># dom_m (get_clauses_wl xa)\<close>
+  obtain M N D NE UE Q W where
+    xa: \<open>xa = (M, N, D, NE, UE, Q, W)\<close>
+    by (cases xa)
+  obtain x where
+    xb_x: \<open>(xb, x) \<in> twl_st_l None\<close> and
+    \<open>twl_list_invs xb\<close> and
+    struct_invs: \<open>twl_struct_invs x\<close> and
+    \<open>get_conflict_l xb = None\<close> and
+    \<open>clauses_to_update_l xb = {#}\<close> and
+    \<open>count_decided (get_trail_l xb) = 0\<close> and
+    \<open>\<forall>L\<in>set (get_trail_l xb). mark_of L = 0\<close>
+    using pre unfolding cdcl_GC_clauses_pre_def by fast
+  have \<open>twl_st_inv x\<close>
+    using xb_x C struct_invs
+    by (auto simp: twl_struct_invs_def
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def)
+  then have le0: \<open>get_clauses_wl xa \<propto> C \<noteq> []\<close>
+    using xb_x C xa_xb
+    by (cases x; cases \<open>irred N C\<close>)
+      (auto simp: twl_struct_invs_def twl_st_inv.simps
+        twl_st_l_def state_wl_l_def xa ran_m_def conj_disj_distribR
+        Collect_disj_eq Collect_conv_if
+      dest!: multi_member_split)
+  then have le: \<open>N \<propto> C ! 0 \<in> set (watched_l (N \<propto> C))\<close>
+    by (cases \<open>N \<propto> C\<close>) (auto simp: xa)
+  have eq: \<open>set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l (all_init_atms N NE)) =
+        set_mset (all_lits_of_mm (mset `# init_clss_lf N + NE))\<close>
+     by (auto simp del: all_init_atms_def[symmetric]
+        simp: all_init_atms_def xa \<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_all_lits_of_mm[symmetric]
+          all_init_lits_def)
+  have H: \<open>get_clauses_wl xa \<propto> C ! 0 \<in># all_lits_of_mm (mset `# init_clss_lf (get_clauses_wl xa) + get_unit_init_clss_wl xa)\<close>
+    using L C le0 apply -
+    by (subst (asm) literals_are_\<L>\<^sub>i\<^sub>n'_literals_are_\<L>\<^sub>i\<^sub>n_iff[OF xa_xb xb_x struct_invs])
+      (cases \<open>N \<propto> C\<close>; auto simp: literals_are_\<L>\<^sub>i\<^sub>n_def all_lits_def ran_m_def eq
+          all_lits_of_mm_add_mset is_\<L>\<^sub>a\<^sub>l\<^sub>l_def xa all_lits_of_m_add_mset
+        dest!: multi_member_split)
+  moreover {
+    have \<open>{#i \<in># fst `# mset (W (N \<propto> C ! 0)). i \<in># dom_m N#} =
+           add_mset C {#Ca \<in># remove1_mset C (dom_m N). N \<propto> C ! 0 \<in> set (watched_l (N \<propto> Ca))#}\<close>
+      using corr H C le unfolding xa
+      by (auto simp: clauses_pointed_to_def correct_watching''.simps xa
+        simp: all_init_atms_def all_init_lits_def clause_to_update_def
+        simp del: all_init_atms_def[symmetric]
+        dest!: multi_member_split)
+    from arg_cong[OF this, of set_mset] have \<open>C \<in> fst ` set (W (N \<propto> C ! 0))\<close>
+      using corr H C le unfolding xa
+      by (auto simp: clauses_pointed_to_def correct_watching''.simps xa
+        simp: all_init_atms_def all_init_lits_def clause_to_update_def
+        simp del: all_init_atms_def[symmetric]
+        dest!: multi_member_split) }
+  ultimately show \<open>C \<in> ?A\<close>
+    by (cases \<open>N \<propto> C ! 0\<close>)
+      (auto simp: clauses_pointed_to_def correct_watching''.simps xa
+      simp: all_init_atms_def all_init_lits_def clause_to_update_def
+      simp del: all_init_atms_def[symmetric]
+      dest!: multi_member_split)
+qed
+
+lemma isasat_GC_clauses_prog_wl_cdcl_remap_st:
+  \<open>(x, y) \<in> twl_st_heur_restart \<Longrightarrow>
+          cdcl_GC_clauses_pre_wl_D y \<Longrightarrow>
+          isasat_GC_clauses_prog_wl x \<le> \<Down> twl_st_heur_restart (cdcl_remap_st y)\<close>
+    apply (rule order_trans[OF isasat_GC_clauses_prog_wl[THEN fref_to_Down]])
     subgoal by fast
-  oops
-oops
+    apply assumption
+    apply (rule ref_two_step')
+    unfolding cdcl_GC_clauses_pre_wl_D_def cdcl_GC_clauses_pre_wl_def
+    apply normalize_goal+
+    apply (rule order_trans[OF cdcl_GC_clauses_prog_wl2_st])
+    apply (solves auto)
+    subgoal for xa xb by (simp add: correct_watching''_clauses_pointed_to)
+    apply (rule refl)
+    subgoal by (auto simp: cdcl_remap_st_def conc_fun_RES split: prod.splits)
+    done
 
 lemma
-  \<open>(isasat_GC_clauses_wl_D, cdcl_GC_clauses_wl_D2)
+  \<open>(isasat_GC_clauses_wl_D, cdcl_GC_clauses_wl_D)
     \<in> twl_st_heur_restart \<rightarrow>\<^sub>f \<langle>twl_st_heur_restart\<rangle>nres_rel\<close>
-  unfolding isasat_GC_clauses_wl_D_def cdcl_GC_clauses_wl_D2_def
+  unfolding isasat_GC_clauses_wl_D_def cdcl_GC_clauses_wl_D_alt_def
   apply (intro frefI nres_relI)
-  apply clarify
-  apply (refine_vcg)
+  apply (refine_vcg isasat_GC_clauses_prog_wl_cdcl_remap_st)
   subgoal by fast
   subgoal
 oops

@@ -1642,7 +1642,7 @@ lemma cdcl_GC_clauses_prog_wl2:
     \<open>N0 = N0'\<close>
   shows
     \<open>cdcl_GC_clauses_prog_wl (M, N0, D, NE, UE, Q, WS) \<le>
-       \<Down> {((M', N', D', NE', UE', Q', WS'), (N, N')). (M', D', NE', UE', Q') = (M, D, NE, UE, Q)}
+       \<Down> {((M', N'', D', NE', UE', Q', WS'), (N, N')). (M', D', NE', UE', Q') = (M, D, NE, UE, Q) \<and> N'' = N}
       (SPEC(\<lambda>(N'::(nat, 'a literal list \<times> bool) fmap, m).
          GC_remap\<^sup>*\<^sup>* (N0', (\<lambda>_. None), fmempty) (fmempty, m, N') \<and>
 	  0 \<notin># dom_m N'))\<close>
