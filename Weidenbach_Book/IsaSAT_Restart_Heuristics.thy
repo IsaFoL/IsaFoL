@@ -3800,6 +3800,150 @@ lemma isasat_GC_clauses_prog_wl_cdcl_remap_st:
     subgoal by (auto simp: cdcl_remap_st_def conc_fun_RES split: prod.splits)
     done
 
+
+fun correct_watching''' :: \<open>_ \<Rightarrow> 'v twl_st_wl \<Rightarrow> bool\<close> where
+  \<open>correct_watching''' \<A> (M, N, D, NE, UE, Q, W) \<longleftrightarrow>
+    (\<forall>L \<in># all_lits_of_mm \<A>.
+       distinct_watched (W L) \<and>
+       (\<forall>(i, K, b)\<in>#mset (W L).
+             i \<in># dom_m N \<and> K \<in> set (N \<propto> i) \<and> K \<noteq> L) \<and>
+        fst `# mset (W L) = clause_to_update L (M, N, D, NE, UE, {#}, {#}))\<close>
+
+declare correct_watching'''.simps[simp del]
+
+lemma correct_watching'''_add_clause:
+  assumes
+    corr: \<open>correct_watching''' \<A> ((a, aa, CD, ac, ad, Q, b))\<close> and
+    leC: \<open>2 \<le> length C\<close> and
+    i_notin[simp]: \<open>i \<notin># dom_m aa\<close> and
+    dist[iff]: \<open>C ! 0 \<noteq> C ! Suc 0\<close>
+  shows \<open>correct_watching''' \<A>
+          ((a, fmupd i (C, red) aa, CD, ac, ad, Q, b
+            (C ! 0 := b (C ! 0) @ [(i, C ! Suc 0, length C = 2)],
+             C ! Suc 0 := b (C ! Suc 0) @ [(i, C ! 0, length C = 2)])))\<close>
+proof -
+  have [iff]: \<open>C ! Suc 0 \<noteq> C ! 0\<close>
+    using  \<open>C ! 0 \<noteq> C ! Suc 0\<close> by argo
+  have [iff]: \<open>C ! Suc 0 \<in># all_lits_of_m (mset C)\<close> \<open>C ! 0 \<in># all_lits_of_m (mset C)\<close>
+    \<open>C ! Suc 0 \<in> set C\<close> \<open> C ! 0 \<in> set C\<close> \<open>C ! 0 \<in> set (watched_l C)\<close> \<open>C ! Suc 0 \<in> set (watched_l C)\<close>
+    using leC by (force intro!: in_clause_in_all_lits_of_m nth_mem simp: in_set_conv_iff
+        intro: exI[of _ 0] exI[of _ \<open>Suc 0\<close>])+
+  have [dest!]: \<open>\<And>L. L \<noteq> C ! 0 \<Longrightarrow> L \<noteq> C ! Suc 0 \<Longrightarrow> L \<in> set (watched_l C) \<Longrightarrow> False\<close>
+     by (cases C; cases \<open>tl C\<close>; auto)+
+  have i: \<open>i \<notin> fst ` set (b L)\<close> if \<open>L\<in>#all_lits_of_mm \<A>\<close>for L
+    using corr i_notin that unfolding correct_watching'''.simps
+    by force
+  have [iff]: \<open>(i,c, d) \<notin> set (b L)\<close> if \<open>L\<in>#all_lits_of_mm \<A>\<close> for L c d
+    using i[of L, OF that] by (auto simp: image_iff)
+  then show ?thesis
+    using corr
+    by (force simp: correct_watching'''.simps ran_m_mapsto_upd_notin
+        all_lits_of_mm_add_mset all_lits_of_mm_union clause_to_update_mapsto_upd_notin correctly_marked_as_binary.simps
+        split: if_splits)
+qed
+
+lemma rewatch_correctness:
+  assumes empty: \<open>\<And>L. L \<in># all_lits_of_mm \<A> \<Longrightarrow> W L = []\<close> and
+    H[dest]: \<open>\<And>x. x \<in># dom_m N \<Longrightarrow> distinct (N \<propto> x) \<and> length (N \<propto> x) \<ge> 2\<close>
+  shows
+    \<open>rewatch N W \<le> SPEC(\<lambda>W. correct_watching''' \<A> (M, N, C, NE, UE, Q, W))\<close>
+proof -
+  define I where
+    \<open>I \<equiv> \<lambda>(a :: nat list) (b :: nat list) W.
+        correct_watching''' \<A> ((M, fmrestrict_set (set a) N, C, NE, UE, Q, W))\<close>
+  have I0: \<open>set_mset (dom_m N) \<subseteq> set x \<and> distinct x \<Longrightarrow> I [] x W\<close> for x
+    using empty unfolding I_def by (auto simp: correct_watching'''.simps
+       all_blits_are_in_problem_init.simps clause_to_update_def
+       all_lits_of_mm_union)
+
+  show ?thesis
+    unfolding rewatch_def
+    apply (refine_vcg
+      nfoldli_rule[where I = \<open>I\<close>])
+    subgoal by (rule I0)
+    subgoal using assms unfolding I_def by auto
+    subgoal for x xa l1 l2 \<sigma>
+      unfolding I_def
+      apply (cases \<open>the (fmlookup N xa)\<close>)
+      apply auto
+      defer
+       apply (rule correct_watching'''_add_clause)
+          apply (auto simp: dom_m_fmrestrict_set')
+      apply (auto dest!: H simp: nth_eq_iff_index_eq)
+      apply (subst (asm) nth_eq_iff_index_eq)
+      apply simp
+      apply simp
+       apply auto[]
+      by linarith
+    subgoal
+      unfolding I_def
+      by auto
+    subgoal by auto
+    subgoal unfolding I_def
+      by (auto simp: fmlookup_restrict_set_id')
+    done
+qed
+
+lemma rewatch_heur_st_correct_watching:
+  assumes
+    \<open>(S, T) \<in> twl_st_heur_restart\<close> and
+    \<open>\<And>x. x \<in># dom_m (get_clauses_wl T) \<Longrightarrow> distinct (get_clauses_wl T \<propto> x) \<and>
+        2 \<le> length (get_clauses_wl T \<propto> x)\<close>
+  shows \<open>rewatch_heur_st S \<le> \<Down> (twl_st_heur_restart)
+    (rewatch_spec T)\<close>
+proof -
+  obtain M N D NE UE Q W where
+    T: \<open>T = (M, N, D, NE, UE, Q, W)\<close>
+    by (cases T) auto
+
+  obtain M' N' D' j W' vm \<phi> clvls cach lbd outl stats fast_ema slow_ema ccount
+       vdom avdom lcount opts where
+    S: \<open>S = (M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema, ccount,
+       vdom, avdom, lcount, opts)\<close>
+    by (cases S) auto
+
+  have valid: \<open>valid_arena N' N (set vdom)\<close> and
+    dist: \<open>distinct vdom\<close> and
+    dom_m_vdom: \<open>set_mset (dom_m N) \<subseteq> set vdom\<close> and
+    W: \<open>(W', W) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 (all_init_atms N NE))\<close>
+    using assms by (auto simp: twl_st_heur_restart_def S T)
+  have lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm (all_init_atms N NE) (mset `# ran_mf N)\<close>
+    apply (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_mm_def)
+    oops
+    (*
+    sorry
+  have vd: \<open>vdom_m (all_init_atms N NE) W N \<subseteq> set_mset (dom_m N)\<close>
+     sorry
+  show ?thesis
+    supply [[goals_limit=1]]
+    using assms
+    unfolding rewatch_heur_st_def T S
+    apply clarify
+    apply (rule bind_refine_res)
+    prefer 2
+    apply (rule order.trans)
+    thm rewatch_heur_rewatch
+    apply (rule rewatch_heur_rewatch[OF valid _ dist dom_m_vdom W lits])
+    apply (solves simp)
+    apply (rule vd)
+    apply (rule order_trans[OF ref_two_step'])
+    apply (rule rewatch_correctness)
+    apply (rule empty_watched_def)
+    find_theorems rewatch
+    subgoal
+      using assms
+      by (auto simp: twl_st_heur_parsing_no_WL_def)
+    apply (subst conc_fun_RES)
+    apply (rule H)
+    apply (auto simp: twl_st_heur_parsing_def twl_st_heur_parsing_no_WL_def all_atms_def[symmetric]
+      intro!: exI[of _ N] exI[of _ D]  exI[of _ M]
+      intro!: RETURN_RES_refine)
+    apply (rule_tac x=W' in exI)
+    apply (auto simp: eq correct_watching_init_correct_watching dist)
+    done
+qed
+*)
+
 lemma
   \<open>(isasat_GC_clauses_wl_D, cdcl_GC_clauses_wl_D)
     \<in> twl_st_heur_restart \<rightarrow>\<^sub>f \<langle>twl_st_heur_restart\<rangle>nres_rel\<close>
@@ -3807,7 +3951,7 @@ lemma
   apply (intro frefI nres_relI)
   apply (refine_vcg isasat_GC_clauses_prog_wl_cdcl_remap_st)
   subgoal by fast
-  subgoal
+  subgoal for x y S T
 oops
 
 end
