@@ -3040,6 +3040,15 @@ lemma rtranclp_GC_remap_ran_m_no_new_map:
         intro: GC_remap_ran_m_lookup_kept GC_remap_ran_m_no_lost)
   done
 
+lemma rtranclp_GC_remap_learned_clss_lD:
+  \<open>GC_remap\<^sup>*\<^sup>* (N, x, m) (N', x', m') \<Longrightarrow> learned_clss_l N + learned_clss_l m  = learned_clss_l N'  + learned_clss_l m'\<close>
+  by (induction rule: rtranclp_induct[of r \<open>(_, _, _)\<close> \<open>(_, _, _)\<close>, split_format(complete), of for r])
+    (auto dest: GC_remap_learned_clss_l_old_new)
+
+lemma rtranclp_GC_remap_learned_clss_l:
+  \<open>GC_remap\<^sup>*\<^sup>* (x1a, Map.empty, fmempty) (fmempty, m, x1ad) \<Longrightarrow> learned_clss_l x1ad = learned_clss_l x1a\<close>
+  by (auto dest!: rtranclp_GC_remap_learned_clss_lD[of _ _ _ _ _ _])
+
 lemma remap_cons2:
   assumes
       \<open>C' \<notin># dom_m new\<close> and

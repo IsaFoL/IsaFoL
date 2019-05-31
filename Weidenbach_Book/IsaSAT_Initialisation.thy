@@ -2004,6 +2004,14 @@ proof -
     done
 qed
 
+definition rewatch_heur_st
+ :: \<open>twl_st_wl_heur_init_full \<Rightarrow> twl_st_wl_heur_init_full nres\<close>
+where
+\<open>rewatch_heur_st = (\<lambda>(M', N', D', j, W, vm, \<phi>, clvls, cach, lbd, vdom). do {
+  W \<leftarrow> rewatch_heur vdom N' W;
+  RETURN (M', N', D', j, W, vm, \<phi>, clvls, cach, lbd, vdom)
+  })\<close>
+
 lemma rewatch_heur_st_correct_watching:
   assumes
     \<open>(S, T) \<in> twl_st_heur_parsing_no_WL \<A>\<close> and
@@ -2074,6 +2082,34 @@ qed
 
 
 subsubsection \<open>Full Initialisation\<close>
+
+
+definition rewatch_heur_st_fast where
+  \<open>rewatch_heur_st_fast = rewatch_heur_st\<close>
+
+sepref_definition rewatch_heur_st_code
+  is \<open>(rewatch_heur_st)\<close>
+  :: \<open>isasat_init_unbounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_init_unbounded_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding rewatch_heur_st_def PR_CONST_def
+    isasat_init_unbounded_assn_def
+  by sepref
+
+definition rewatch_heur_st_fast_pre where
+  \<open>rewatch_heur_st_fast_pre S =
+     ((\<forall>x \<in> set (get_vdom_heur_init S). x \<le> uint64_max) \<and> length (get_clauses_wl_heur_init S) \<le> uint64_max)\<close>
+
+sepref_definition rewatch_heur_st_fast_code
+  is \<open>(rewatch_heur_st_fast)\<close>
+  :: \<open>[rewatch_heur_st_fast_pre]\<^sub>a
+       isasat_init_assn\<^sup>d \<rightarrow> isasat_init_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding rewatch_heur_st_def PR_CONST_def rewatch_heur_st_fast_pre_def
+    isasat_init_assn_def rewatch_heur_st_fast_def
+  by sepref
+
+declare rewatch_heur_st_code.refine[sepref_fr_rules]
+  rewatch_heur_st_fast_code.refine[sepref_fr_rules]
 
 definition init_dt_wl_heur_full
   :: \<open>_ \<Rightarrow> twl_st_wl_heur_init_full \<Rightarrow> twl_st_wl_heur_init_full nres\<close>

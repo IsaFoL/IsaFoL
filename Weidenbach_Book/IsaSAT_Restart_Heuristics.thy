@@ -934,16 +934,6 @@ lemma max_restart_decision_lvl_code_hnr[sepref_fr_rules]:
   by sepref_to_hoare (sep_auto simp: br_def uint32_nat_rel_def max_restart_decision_lvl_def
     max_restart_decision_lvl_code_def)
 
-(* TODO Move*)
-
-definition nat_of_uint64_id_conv :: \<open>uint64 \<Rightarrow> nat\<close> where
-\<open>nat_of_uint64_id_conv = nat_of_uint64\<close>
-
-lemma nat_of_uint64_id_conv_hnr[sepref_fr_rules]:
-  \<open>(return o id, RETURN o nat_of_uint64_id_conv) \<in> uint64_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
-  by sepref_to_hoare
-    (sep_auto simp: nat_of_uint64_id_conv_def uint64_nat_rel_def br_def)
-
 definition restart_required_heur :: "twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> bool nres" where
   \<open>restart_required_heur S n = do {
     let opt_red = opts_reduction_st S;
@@ -1023,7 +1013,7 @@ lemma [sepref_fr_rules]:
 definition GC_required_heur :: "twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> bool nres" where
   \<open>GC_required_heur S n = do {
     let lres = get_reductions_count S;
-    RETURN (lres AND GC_EVERY = zero_uint64)}
+    RETURN (False \<and> lres AND GC_EVERY = zero_uint64)} \<^cancel>\<open>Temporary measure\<close>
   \<close>
 
 sepref_definition GC_required_heur_fast_code
@@ -2138,21 +2128,6 @@ lemma no_dup_nth_proped_dec_notin:
   apply (auto dest!: split_list simp: nth_append nth_Cons defined_lit_def in_set_conv_nth
     split: if_splits nat.splits)
   by (metis no_dup_no_propa_and_dec nth_mem)
-
-
-(*TODO Move*)
-lemma RES_ASSERT_moveout:
-  "(\<And>a. a \<in> P \<Longrightarrow> Q a) \<Longrightarrow> do {a \<leftarrow> RES P; ASSERT(Q a); (f a)} =
-   do {a\<leftarrow> RES P; (f a)}"
-  apply (subst order_class.eq_iff)
-  apply (rule conjI)
-  subgoal
-    by (refine_rcg bind_refine_RES[where R=Id, unfolded Down_id_eq])
-      auto
-  subgoal
-    by (refine_rcg bind_refine_RES[where R=Id, unfolded Down_id_eq])
-      auto
-  done
 
 lemma remove_all_annot_true_clause_imp_wl_inv_length_cong:
   \<open>remove_all_annot_true_clause_imp_wl_inv S xs T \<Longrightarrow>
@@ -4216,5 +4191,19 @@ proof -
     subgoal by auto
     done
  qed
+
+lemma restart_prog_wl_D_heur_alt_def:
+  \<open>restart_prog_wl_D_heur S n brk = do {
+    b \<leftarrow> restart_required_heur S n;
+    b2 \<leftarrow> GC_required_heur S n;
+    if \<not>brk \<and> b
+    then do {
+       T \<leftarrow> cdcl_twl_restart_wl_heur S;
+       RETURN (T, n+1)
+    }
+    else RETURN (S, n)
+  }\<close>
+  unfolding restart_prog_wl_D_heur_def GC_required_heur_def
+  by auto
 
 end

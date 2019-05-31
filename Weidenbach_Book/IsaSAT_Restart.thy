@@ -654,14 +654,14 @@ sepref_register restart_required_heur cdcl_twl_restart_wl_heur
 sepref_definition restart_wl_D_heur_slow_code
   is \<open>uncurry2 ( restart_prog_wl_D_heur)\<close>
   :: \<open>isasat_unbounded_assn\<^sup>d *\<^sub>a nat_assn\<^sup>k *\<^sub>a bool_assn\<^sup>k \<rightarrow>\<^sub>a isasat_unbounded_assn *a nat_assn\<close>
-  unfolding restart_prog_wl_D_heur_def
+  unfolding restart_prog_wl_D_heur_alt_def \<^cancel>\<open>Temporary measure\<close>
   supply [[goals_limit = 1]]
   by sepref
 
 sepref_definition restart_prog_wl_D_heur_fast_code
-  is \<open>uncurry2 ( restart_prog_wl_D_heur)\<close>
+  is \<open>uncurry2 (restart_prog_wl_D_heur)\<close>
   :: \<open>isasat_bounded_assn\<^sup>d *\<^sub>a nat_assn\<^sup>k *\<^sub>a bool_assn\<^sup>k \<rightarrow>\<^sub>a isasat_bounded_assn *a nat_assn\<close>
-  unfolding restart_prog_wl_D_heur_def
+  unfolding restart_prog_wl_D_heur_alt_def
   supply [[goals_limit = 1]]
   by sepref
 

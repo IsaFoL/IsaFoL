@@ -1727,4 +1727,13 @@ lemma three_uint32_hnr:
   \<open>(uncurry0 (return 3), uncurry0 (RETURN (three_uint32 :: uint32)) ) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint32_assn\<close>
   by sepref_to_hoare (sep_auto simp: uint32_nat_rel_def br_def three_uint32_def)
 
+
+definition nat_of_uint64_id_conv :: \<open>uint64 \<Rightarrow> nat\<close> where
+\<open>nat_of_uint64_id_conv = nat_of_uint64\<close>
+
+lemma nat_of_uint64_id_conv_hnr[sepref_fr_rules]:
+  \<open>(return o id, RETURN o nat_of_uint64_id_conv) \<in> uint64_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
+  by sepref_to_hoare
+    (sep_auto simp: nat_of_uint64_id_conv_def uint64_nat_rel_def br_def)
+
 end

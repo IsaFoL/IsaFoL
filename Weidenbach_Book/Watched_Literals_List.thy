@@ -607,6 +607,7 @@ lemma ran_m_lf_fmdrop:
   by (auto simp: ran_m_def image_mset_If_eq_notin[of C _ \<open>\<lambda>x. fst (the x)\<close>] dest!: multi_member_split
     intro!: image_mset_cong)
 
+
 definition twl_st_l   :: \<open>_ \<Rightarrow> ('v twl_st_l \<times> 'v twl_st) set\<close> where
 \<open>twl_st_l L =
   {((M, N, C, NE, UE, WS, Q),  (M', N', U', C', NE', UE', WS', Q')).
@@ -1003,6 +1004,31 @@ lemma learned_clss_l_mapsto_upd_notin_irrelev: \<open>C \<notin># dom_m N \<Long
 
 lemma clause_twl_clause_of:  \<open>clause (twl_clause_of C) = mset C\<close> for C
     by (cases C; cases \<open>tl C\<close>) auto
+
+lemma learned_clss_l_l_fmdrop_irrelev: \<open>irred N C \<Longrightarrow>
+  learned_clss_l (fmdrop C N) = learned_clss_l N\<close>
+  using distinct_mset_dom[of N]
+  apply (cases \<open>C \<in># dom_m N\<close>)
+  by (auto simp: ran_m_def image_mset_If_eq_notin[of C _ the] dest!: multi_member_split)
+
+lemma init_clss_l_fmdrop_if:
+  \<open>C \<in># dom_m N \<Longrightarrow> init_clss_l (fmdrop C N) = (if irred N C then remove1_mset (the (fmlookup N C)) (init_clss_l N)
+    else init_clss_l N)\<close>
+  by (auto simp: init_clss_l_fmdrop init_clss_l_fmdrop_irrelev)
+
+lemma init_clss_l_fmupd_if:
+  \<open>C' \<notin># dom_m new \<Longrightarrow> init_clss_l (fmupd C' D new) = (if snd D then add_mset D (init_clss_l new) else init_clss_l new)\<close>
+  by (cases D) (auto simp: init_clss_l_mapsto_upd_irrel_notin init_clss_l_mapsto_upd_notin)
+
+lemma learned_clss_l_fmdrop_if:
+  \<open>C \<in># dom_m N \<Longrightarrow> learned_clss_l (fmdrop C N) = (if \<not>irred N C then remove1_mset (the (fmlookup N C)) (learned_clss_l N)
+    else learned_clss_l N)\<close>
+  by (auto simp: learned_clss_l_l_fmdrop learned_clss_l_l_fmdrop_irrelev)
+
+lemma learned_clss_l_fmupd_if:
+  \<open>C' \<notin># dom_m new \<Longrightarrow> learned_clss_l (fmupd C' D new) = (if \<not>snd D then add_mset D (learned_clss_l new) else learned_clss_l new)\<close>
+  by (cases D) (auto simp: learned_clss_l_mapsto_upd_notin_irrelev
+    learned_clss_l_mapsto_upd_notin)
 
 lemma unit_propagation_inner_loop_body_l:
   fixes i C :: nat and S :: \<open>'v twl_st_l\<close> and S' :: \<open>'v twl_st\<close> and L :: \<open>'v literal\<close>
