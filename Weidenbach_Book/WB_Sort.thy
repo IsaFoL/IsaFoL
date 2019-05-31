@@ -1,9 +1,11 @@
+(* Correctness proof contributed by Maximilian Wuttke *)
+
+
 theory WB_Sort
   imports
     Watched_Literals.WB_More_Refinement
 begin
 
-sledgehammer_params [provers= cvc4 spass z3 e]
 
 
 text \<open>Every element between \<^term>\<open>lo\<close> and \<^term>\<open>hi\<close> can be chosen as pivot element.\<close>
@@ -29,7 +31,7 @@ lemma isPartition_map_def':
   by (auto simp add: isPartition_wrt_def conjI)
 
 
-text \<open>Example: 6 is the pivot element (with index 4); \<open>7\<close> is equal to the length - 1.\<close>
+text \<open>Example: 6 is the pivot element (with index 4); \<^term>\<open>7\<close> is equal to the \<^term>\<open>length xs - 1\<close>.\<close>
 lemma \<open>isPartition [0,5,3,4,6,9,8,10::nat] 0 7 4\<close>
   by (auto simp add: isPartition_def isPartition_wrt_def nth_Cons')
 
@@ -38,8 +40,7 @@ lemma \<open>isPartition [0,5,3,4,6,9,8,10::nat] 0 7 4\<close>
 definition sublist :: \<open>'a list \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a list\<close> where
 \<open>sublist xs i j \<equiv> take (Suc j - i) (drop i xs)\<close>
 
-value \<open>sublist [0,1,2,3::nat] 1 3\<close>
-value \<open>sublist [0::nat] 0 0\<close>
+
 
 lemma sublist_single: \<open>i < length xs \<Longrightarrow> sublist xs i i = [xs!i]\<close>
   by (simp add: sublist_def Hash_Map.take_Suc0(2))
@@ -59,11 +60,6 @@ lemma sublist_not_empty: \<open>\<lbrakk>i \<le> j; j < length xs; xs \<noteq> [
   apply (rewrite sublist_length)
   by auto
 
-
-lemma sublist_swap: \<open>lo \<le> hi \<Longrightarrow> hi < length xs \<Longrightarrow> i+lo \<le> hi \<Longrightarrow> j+lo \<le> hi \<Longrightarrow> sublist (swap xs i j) lo hi = swap (sublist xs lo hi)  (lo+i) (lo+j)\<close>
-  apply (simp add: sublist_def swap_def)
-  nitpick sledgehammer
-  oops
 
 
 lemma sublist_app: \<open>\<lbrakk>i1 \<le> i2; i2 \<le> i3\<rbrakk> \<Longrightarrow> sublist xs i1 i2 @ sublist xs (Suc i2) i3 = sublist xs i1 i3\<close>
@@ -578,47 +574,6 @@ definition partition_spec :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) \<R
     (\<forall> i. i<lo \<longrightarrow> xs'!i=xs!i) \<and> (\<forall> i. hi<i\<and>i<length xs' \<longrightarrow> xs'!i=xs!i)\<close> \<comment> \<open>Everything else is unchanged.\<close>
 
 
-text \<open>Maybe this part is redundant\<close>
-lemma
-    \<open>mset xs' = mset xs \<and>
-    (\<forall> i. i<lo \<longrightarrow> xs'!i=xs!i) \<and> (\<forall> i. hi<i\<and>i<length xs' \<longrightarrow> xs'!i=xs!i) \<Longrightarrow>
-    mset (sublist xs' lo hi) = mset (sublist xs lo hi)\<close>
-  apply (auto simp add: sublist_def)
-  oops
-
-
-value \<open>take 1 [a,b,c]\<close>
-
-lemma take_eq_set':
-  assumes \<open>k < length xs\<close> and
-    \<open>set xs' = set xs\<close> and
-    \<open>\<forall> j. j < k \<longrightarrow> xs'!j = xs!j\<close>
-    \<open>x \<in> set (take k xs')\<close>
-  shows \<open>x \<in> set (take k xs)\<close>
-  by (metis WB_Sort.take_set assms(1) assms(3) assms(4) in_set_conv_iff less_imp_le_nat)
-
-lemma take_eq_set: 
-  assumes
-    \<open>set xs' = set xs\<close> and \<open>length xs' = length xs\<close> and
-    \<open>\<forall> j. j < k \<longrightarrow> xs'!j = xs!j\<close> and
-    \<open>x \<in> set (take k xs')\<close>
-  shows \<open>x \<in> set (take k xs)\<close>
-proof -
-  consider
-    (a) \<open>k < length xs\<close> |
-    (b) \<open>length xs \<le> k\<close> by linarith
-  then show ?thesis
-  proof cases
-    case a
-    then show ?thesis
-      using assms(1,3,4) by (rule take_eq_set')
-  next
-    case b
-    then show ?thesis
-      using assms by simp
-  qed
-qed
-
 (* Actually, I only need that \<open>set (sublist xs' lo hi) = set (sublist xs lo hi)\<close> *)
 lemma mathias:
   assumes
@@ -698,18 +653,6 @@ proof
     by (metis assms size_mset)+
 qed
 
-
-(*
-lemma partition_spec_set_sublist:
-  assumes \<open>partition_spec R h xs lo hi xs' p\<close>
-    and pre: \<open>lo \<le> hi\<close> \<open>hi < length xs\<close>
-  shows \<open>set (sublist xs' lo hi) = set (sublist xs lo hi)\<close>
-proof -
-  show ?thesis
-    apply (rule mset_sublist_eq)
-    using assms by (auto dest: mset_eq_length simp add: partition_spec_def)
-qed
-*)
 
 
 text \<open>Our abstract recursive quicksort procedure. We abstract over a partition procedure.\<close>
@@ -812,7 +755,6 @@ proof -
     show \<open>\<And>j. \<lbrakk>hi < j; j < length xs\<rbrakk> \<Longrightarrow> xs' ! j = xs ! j\<close>
       by (metis part(1) part(7) size_mset)
   qed
-
 qed
 
 
@@ -841,32 +783,6 @@ proof -
   qed
 qed
 
-
-(*
-lemma isPartition_wrt_ext:
-  assumes \<open>isPartition_wrt R xs lo hi p\<close>
-    and \<open>\<And> i. \<lbrakk>lo \<le> i; i < p\<rbrakk> \<Longrightarrow> xs'!i = xs!i\<close>
-    and \<open>\<And> j. \<lbrakk>p < j; j \<le> hi\<rbrakk> \<Longrightarrow> xs'!j = xs!j\<close>
-    and \<open>xs'!p = xs!p\<close>
-    and \<open>lo \<le> p\<close> and \<open>p \<le> hi\<close> and \<open>hi < length xs\<close>
-    and \<open>length xs' = length xs\<close>
-  shows \<open>isPartition_wrt R xs' lo hi p\<close>
-proof -
-  have A: \<open>\<And> i. \<lbrakk>lo \<le> i; i < p\<rbrakk> \<Longrightarrow> R (xs ! i) (xs ! p)\<close> \<open>\<And> j. \<lbrakk>p < j; j \<le> hi\<rbrakk> \<Longrightarrow> R (xs ! p) (xs ! j)\<close>
-    using assms(1) by (auto simp add: isPartition_wrt_def)
-
-  show ?thesis
-  proof(intro isPartition_wrtI)
-    fix i assume \<open>lo \<le>i\<close> \<open>i < p\<close>
-    show \<open>R (xs' ! i) (xs' ! p)\<close>
-      by (simp add: A(1) \<open>i < p\<close> \<open>lo \<le> i\<close> assms(2) assms(4))
-  next
-    fix j assume \<open>p < j\<close> \<open>j \<le> hi\<close>
-    show \<open>R (xs' ! p) (xs' ! j)\<close>
-      by (simp add: A(2) \<open>j \<le> hi\<close> \<open>p < j\<close> assms(3) assms(4))
-  qed
-qed
-*)
 
 
 lemma quicksort_post_set:
@@ -1650,6 +1566,7 @@ proof -
     by auto
   have pre: \<open>(x0, x0) \<in> Id \<times>\<^sub>r Id \<times>\<^sub>r \<langle>Id\<rangle>list_rel\<close>
     by auto
+(*
   have f: \<open>f (x1b, x2e - 1, x1e) \<comment> \<open>Boilerplate code for first recursive call\<close>
           	\<le> \<Down> Id (fa (x1, x2d - 1, x1d))\<close>
     if
@@ -1685,6 +1602,40 @@ proof -
       by (rule H) (use that in auto)
   qed
 
+
+  have tam1:
+    \<open>(\<And>x x'.
+        (x, x')
+        \<in> nat_rel \<times>\<^sub>f (nat_rel \<times>\<^sub>f \<langle>Id\<rangle>list_rel) \<Longrightarrow>
+        f x \<le> \<Down> Id (fa x')) \<Longrightarrow>
+    (x, x')
+    \<in> nat_rel \<times>\<^sub>f (nat_rel \<times>\<^sub>f \<langle>Id\<rangle>list_rel) \<Longrightarrow>
+    x2 = (x1a, x2a) \<Longrightarrow>
+    x' = (x1, x2) \<Longrightarrow>
+    x2b = (x1c, x2c) \<Longrightarrow>
+    x = (x1b, x2b) \<Longrightarrow>
+    x1 \<le> x1a \<and> x1a < length x2a \<Longrightarrow>
+    x1b \<le> x1c \<and> x1c < length x2c \<Longrightarrow>
+    (xa, x'a) \<in> Id \<Longrightarrow>
+    x'a
+    \<in> Collect
+        (uncurry (partition_spec R h x2a x1 x1a)) \<Longrightarrow>
+    x'a = (x1d, x2d) \<Longrightarrow>
+    xa = (x1e, x2e) \<Longrightarrow>
+    x2e - 1 \<le> x1b ==>
+    x2d - 1 \<le> x1 \<Longrightarrow>
+  (x1e, x1d) \<in> (\<lambda> f fa x x' x1 x2 x1a x2a x1b x2b x1c x2c xa x'a x1d x2d x1e x2e. Id) f fa x x' x1 x2 x1a x2a x1b x2b x1c x2c xa x'a x1d x2d x1e x2e\<close> for f fa x1e x1d x2 x1a x2a x' x1 x2b x1c x2c x x1b xa x'a x2d x2e
+    by auto
+
+  have tam2:
+    \<open>(same, same) \<in> (\<lambda> f fa x x' x1 x2 x1a x2a x1b x2b x1c x2c xa x'a x1d x2d x1e x2e. Id) f fa x x' x1 x2 x1a x2a x1b x2b x1c x2c xa x'a x1d x2d x1e x2e\<close> for f fa x1e x1d x2 x1a x2a x' x1 x2b x1c x2c x x1b xa x'a x2d x2e same
+    by auto
+*)
+
+  have [refine0]: \<open>(x1e = x1d) \<Longrightarrow> (x1e,x1d) \<in> Id\<close> for x1e x1d :: \<open>'b list\<close>
+    by auto
+
+
   show ?thesis
     unfolding quicksort_def quicksort_ref_def
     apply (refine_vcg pre partition_between_ref_partition_between'[THEN fref_to_Down_curry2])
@@ -1705,37 +1656,25 @@ proof -
       subgoal by auto \<comment> \<open>second premise\<close>
       done
 
-    subgoal by auto
-    subgoal
-      sorry (* TODO *)
-    subgoal
-      sorry
-    subgoal by auto
-    subgoal
-      sorry (* TODO *)
-      (* by (rule f; assumption) *)
-    subgoal
-      sorry
-      (* by (rule f'; assumption) *)
-    done
+    by simp+
 qed
 
 
 \<comment> \<open>Example implementation\<close>
 definition quicksort_impl where
-  \<open>quicksort_impl = quicksort_ref (\<le>) id\<close>
+  \<open>quicksort_impl a b c \<equiv> quicksort_ref (\<le>) id (a,b,c)\<close>
 
 sepref_register quicksort_impl
 
 \<comment> \<open>Example implementation code\<close>
-sepref_definition quicksort_code
-  is \<open>quicksort_impl\<close>
-  :: \<open>nat_assn\<^sup>k *\<^sub>a (nat_assn\<^sup>k *\<^sub>a (arl_assn nat_assn)\<^sup>d) \<rightarrow>\<^sub>a
+sepref_definition
+  quicksort_code
+  is \<open>uncurry2 quicksort_impl\<close>
+  :: \<open>nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a (arl_assn nat_assn)\<^sup>d \<rightarrow>\<^sub>a
       arl_assn nat_assn\<close>
   unfolding partition_between_impl_def[symmetric]
     quicksort_impl_def quicksort_ref_def
-  (* by sepref *)
-  sorry (* TODO *)
+  by sepref
 
 declare quicksort_code.refine[sepref_fr_rules]
 
@@ -1752,12 +1691,18 @@ definition full_quicksort_impl :: \<open>nat list \<Rightarrow> nat list nres\<c
   \<open>full_quicksort_impl xs = full_quicksort_ref (\<le>) id xs\<close>
 
 lemma full_quicksort_ref_full_quicksort:
-  \<open>(full_quicksort_ref R h, full_quicksort R h) \<in>
-    \<langle>Id\<rangle>list_rel \<rightarrow>\<^sub>f \<langle> \<langle>Id\<rangle>list_rel\<rangle>nres_rel\<close>
-  unfolding full_quicksort_ref_def full_quicksort_def
-  by (intro frefI nres_relI)
-     (auto intro!: quicksort_ref_quicksort[unfolded Down_id_eq]
-       simp: List.null_def)
+  assumes trans: \<open>\<And> x y z. \<lbrakk>R (h x) (h y); R (h y) (h z)\<rbrakk> \<Longrightarrow> R (h x) (h z)\<close> and lin: \<open>\<And>x y. R (h x) (h y) \<or> R (h y) (h x)\<close>
+  shows \<open>(full_quicksort_ref R h, full_quicksort R h) \<in>
+          \<langle>Id\<rangle>list_rel \<rightarrow>\<^sub>f \<langle> \<langle>Id\<rangle>list_rel\<rangle>nres_rel\<close>
+proof -
+  show ?thesis
+    unfolding full_quicksort_ref_def full_quicksort_def
+    apply (intro frefI nres_relI)
+    apply (auto intro!: quicksort_ref_quicksort[unfolded Down_id_eq] simp: List.null_def)
+    subgoal by (rule trans)
+    subgoal using lin by blast
+    done
+qed
 
 text \<open>Executable code for the example instance\<close>
 sepref_definition full_quicksort_code
@@ -1773,7 +1718,7 @@ export_code \<open>nat_of_integer\<close> \<open>integer_of_nat\<close> \<open>p
 
 lemma sublist_entire:
   \<open>sublist xs 0 (length xs - 1) = xs\<close>
-  by (simp add: sublist_def take_all)
+  by (simp add: sublist_def)
 
 
 lemma sorted_sublist_wrt_entire:
@@ -1798,7 +1743,7 @@ qed
 text \<open>Final correctness lemma\<close>
 lemma full_quicksort_correct:
   assumes
-    trans: \<open>\<And> x y z. \<lbrakk>R (h x) (h y); R (h y) (h z)\<rbrakk> \<Longrightarrow> R (h x) (h z)\<close> and \<open>\<And>x y. R (h x) (h y) \<or> R (h y) (h x)\<close> and lin: \<open>\<And>x y. R (h x) (h y) \<or> R (h y) (h x)\<close>
+    trans: \<open>\<And> x y z. \<lbrakk>R (h x) (h y); R (h y) (h z)\<rbrakk> \<Longrightarrow> R (h x) (h z)\<close> and lin: \<open>\<And>x y. R (h x) (h y) \<or> R (h y) (h x)\<close>
   shows \<open>full_quicksort R h xs \<le> \<Down> Id (SPEC(\<lambda>xs'. mset xs' = mset xs \<and> sorted_wrt (\<lambda> x y. R (h x) (h y)) xs'))\<close>
 proof -
   show ?thesis
