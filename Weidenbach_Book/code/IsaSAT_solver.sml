@@ -545,7 +545,7 @@ fun blit A_ src si dst di len =
     array_blit src (integer_of_nat
                      si) dst (integer_of_nat di) (integer_of_nat len));
 
-val version : string = "83fa63b5";
+val version : string = "e69d5dac";
 
 fun get_LBD_code x = (fn xi => (fn () => let
    val (_, (_, b)) = xi;
@@ -2365,6 +2365,29 @@ fun restart_required_heur_fast_code x =
     end)
     x;
 
+fun get_reductions_count_fast_code x =
+  (fn xi =>
+    (fn () =>
+      let
+        val (_, (_, (_, (_, (_, (_, (_, (_,
+  (_, (_, (_, ((_, (_, (_, (_, (a1p, _))))), (_, (_, (_, _)))))))))))))))
+          = xi;
+      in
+        a1p
+      end))
+    x;
+
+val gC_EVERY : Uint64.uint64 = Uint64.fromInt (256 : IntInf.int);
+
+fun gC_required_heur_fast_code x =
+  (fn ai => fn _ => fn () =>
+    let
+      val xa = get_reductions_count_fast_code ai ();
+    in
+      false andalso (((Uint64.andb xa gC_EVERY) : Uint64.uint64) = Uint64.zero)
+    end)
+    x;
+
 fun stamp (VMTF_Node (x1, x2, x3)) = x1;
 
 fun find_local_restart_target_level_fast_code x =
@@ -3240,11 +3263,12 @@ fun restart_prog_wl_D_heur_fast_code x =
   (fn ai => fn bia => fn bi => fn () =>
     let
       val xa = restart_required_heur_fast_code ai bia ();
+      val _ = gC_required_heur_fast_code ai bia ();
     in
       (if not bi andalso xa
         then (fn f_ => fn () => f_ ((cdcl_twl_restart_wl_heur_fast_code ai) ())
                ())
-               (fn x_b => (fn () => (x_b, plus_nat bia one_nat)))
+               (fn x_c => (fn () => (x_c, plus_nat bia one_nat)))
         else (fn () => (ai, bia)))
         ()
     end)
@@ -3404,6 +3428,27 @@ fun restart_required_heur_slow_code x =
                 end))
       end
         ()
+    end)
+    x;
+
+fun get_reductions_count_code x =
+  (fn xi =>
+    (fn () =>
+      let
+        val (_, (_, (_, (_, (_, (_, (_, (_,
+  (_, (_, (_, ((_, (_, (_, (_, (a1p, _))))), (_, (_, (_, _)))))))))))))))
+          = xi;
+      in
+        a1p
+      end))
+    x;
+
+fun gC_required_heur_slow_code x =
+  (fn ai => fn _ => fn () =>
+    let
+      val xa = get_reductions_count_code ai ();
+    in
+      false andalso (((Uint64.andb xa gC_EVERY) : Uint64.uint64) = Uint64.zero)
     end)
     x;
 
@@ -3935,10 +3980,11 @@ fun restart_wl_D_heur_slow_code x =
   (fn ai => fn bia => fn bi => fn () =>
     let
       val xa = restart_required_heur_slow_code ai bia ();
+      val _ = gC_required_heur_slow_code ai bia ();
     in
       (if not bi andalso xa
         then (fn f_ => fn () => f_ ((cdcl_twl_restart_wl_heur_code ai) ()) ())
-               (fn x_b => (fn () => (x_b, plus_nat bia one_nat)))
+               (fn x_c => (fn () => (x_c, plus_nat bia one_nat)))
         else (fn () => (ai, bia)))
         ()
     end)
