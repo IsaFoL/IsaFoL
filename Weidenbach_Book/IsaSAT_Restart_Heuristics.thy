@@ -986,6 +986,65 @@ sepref_definition restart_required_heur_slow_code
 declare restart_required_heur_fast_code.refine[sepref_fr_rules]
   restart_required_heur_slow_code.refine[sepref_fr_rules]
 
+fun (in -) get_reductions_count :: \<open>twl_st_wl_heur \<Rightarrow> uint64\<close> where
+  \<open>get_reductions_count (_, _, _, _, _, _, _,_,_,_,_,
+       (_, _, _, _, lres, _), _)
+      = lres\<close>
+
+lemma (in -) get_reduction_count_alt_def:
+   \<open>RETURN o get_reductions_count = (\<lambda>(M, N0, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl,
+       (_, _, _, _, lres, _), fema, sema, _, lcount). RETURN lres)\<close>
+  by auto
+
+
+sepref_definition get_reductions_count_fast_code
+  is \<open>RETURN o get_reductions_count\<close>
+  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a uint64_assn\<close>
+  unfolding get_reduction_count_alt_def isasat_bounded_assn_def
+  by sepref
+
+sepref_definition get_reductions_count_code
+  is \<open>RETURN o get_reductions_count\<close>
+  :: \<open>isasat_unbounded_assn\<^sup>k \<rightarrow>\<^sub>a uint64_assn\<close>
+  unfolding get_reduction_count_alt_def isasat_unbounded_assn_def
+  by sepref
+
+sepref_register get_reductions_count
+declare  get_reductions_count_fast_code.refine[sepref_fr_rules]
+declare  get_reductions_count_code.refine[sepref_fr_rules]
+
+definition GC_EVERY :: uint64 where
+  \<open>GC_EVERY = 256\<close>
+
+lemma [sepref_fr_rules]:
+  \<open>(uncurry0 (return GC_EVERY), uncurry0 (RETURN GC_EVERY)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint64_assn\<close>
+  by sepref_to_hoare (sep_auto simp: GC_EVERY_def)
+
+definition GC_required_heur :: "twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> bool nres" where
+  \<open>GC_required_heur S n = do {
+    let lres = get_reductions_count S;
+    RETURN (lres AND GC_EVERY = zero_uint64)}
+  \<close>
+
+sepref_definition GC_required_heur_fast_code
+  is \<open>uncurry GC_required_heur\<close>
+  :: \<open>isasat_bounded_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  supply [[goals_limit=1]]
+    op_eq_uint64[sepref_fr_rules]
+  unfolding GC_required_heur_def
+  by sepref
+
+sepref_definition GC_required_heur_slow_code
+  is \<open>uncurry GC_required_heur\<close>
+  :: \<open>isasat_unbounded_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  supply [[goals_limit=1]]
+    op_eq_uint64[sepref_fr_rules]
+  unfolding GC_required_heur_def
+  by sepref
+
+declare GC_required_heur_fast_code.refine[sepref_fr_rules]
+  GC_required_heur_slow_code.refine[sepref_fr_rules]
+
 definition mark_to_delete_clauses_wl_D_heur_pre :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close> where
   \<open>mark_to_delete_clauses_wl_D_heur_pre S \<longleftrightarrow>
     (\<exists>S'. (S, S') \<in> twl_st_heur_restart \<and> mark_to_delete_clauses_wl_D_pre S')\<close>
@@ -1797,41 +1856,6 @@ lemma cdcl_twl_restart_wl_heur_cdcl_twl_restart_wl_D_prog:
   subgoal by auto
   done
 
-
-definition restart_prog_wl_D_heur
-  :: "twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> bool \<Rightarrow> (twl_st_wl_heur \<times> nat) nres"
-where
-  \<open>restart_prog_wl_D_heur S n brk = do {
-    b \<leftarrow> restart_required_heur S n;
-    if \<not>brk \<and> b
-    then do {
-       T \<leftarrow> cdcl_twl_restart_wl_heur S;
-       RETURN (T, n+1)
-    }
-    else RETURN (S, n)
-  }\<close>
-
-lemma restart_required_heur_restart_required_wl:
-  \<open>(uncurry restart_required_heur, uncurry restart_required_wl) \<in>
-    twl_st_heur \<times>\<^sub>f nat_rel \<rightarrow>\<^sub>f \<langle>bool_rel\<rangle>nres_rel\<close>
-    unfolding restart_required_heur_def restart_required_wl_def uncurry_def Let_def
-    by (intro frefI nres_relI)
-     (auto simp: twl_st_heur_def get_learned_clss_wl_def)
-
-lemma restart_prog_wl_D_heur_restart_prog_wl_D:
-  \<open>(uncurry2 restart_prog_wl_D_heur, uncurry2 restart_prog_wl_D) \<in>
-    twl_st_heur \<times>\<^sub>f nat_rel \<times>\<^sub>f bool_rel  \<rightarrow>\<^sub>f \<langle>twl_st_heur \<times>\<^sub>f nat_rel\<rangle>nres_rel\<close>
-  unfolding restart_prog_wl_D_heur_def restart_prog_wl_D_def uncurry_def
-  apply (intro frefI nres_relI)
-  apply (refine_rcg
-      restart_required_heur_restart_required_wl[THEN fref_to_Down_curry]
-      cdcl_twl_restart_wl_heur_cdcl_twl_restart_wl_D_prog[THEN fref_to_Down])
-  subgoal by auto
-  subgoal by auto
-  subgoal by auto
-  subgoal by auto
-  subgoal by auto
-  done
 
 definition isasat_replace_annot_in_trail
   :: \<open>nat literal \<Rightarrow> nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close>
@@ -3778,10 +3802,6 @@ proof -
 qed
 
 
-lemma \<L>\<^sub>a\<^sub>l\<^sub>l_all_init_atms_all_init_lits:
-  \<open>set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l (all_init_atms N NE)) = set_mset (all_init_lits N NE)\<close>
-  using is_\<L>\<^sub>a\<^sub>l\<^sub>l_def by blast
-
 lemma rewatch_correctness:
   assumes empty: \<open>\<And>L. L \<in># all_lits_of_mm \<A> \<Longrightarrow> W L = []\<close> and
     H[dest]: \<open>\<And>x. x \<in># dom_m N \<Longrightarrow> distinct (N \<propto> x) \<and> length (N \<propto> x) \<ge> 2\<close>
@@ -4060,11 +4080,75 @@ definition cdcl_twl_full_restart_wl_D_GC_heur_prog where
     RETURN V
   }\<close>
 
+lemma
+    cdcl_twl_full_restart_wl_GC_prog_pre_heur:
+      \<open>cdcl_twl_full_restart_wl_GC_prog_pre T \<Longrightarrow>
+        (S, T) \<in> twl_st_heur \<longleftrightarrow> (S, T) \<in> twl_st_heur_restart\<close> (is \<open>_ \<Longrightarrow> _ ?B\<close>) and
+     cdcl_twl_full_restart_wl_D_GC_prog_post_heur:
+       \<open>cdcl_twl_full_restart_wl_D_GC_prog_post S0 T \<Longrightarrow>
+        (S, T) \<in> twl_st_heur \<longleftrightarrow> (S, T) \<in> twl_st_heur_restart\<close>
+proof -
+  note cong =  trail_pol_cong
+      option_lookup_clause_rel_cong D\<^sub>0_cong isa_vmtf_cong phase_saving_cong
+      cach_refinement_empty_cong vdom_m_cong isasat_input_nempty_cong
+      isasat_input_bounded_cong
 
+  show \<open>cdcl_twl_full_restart_wl_GC_prog_pre T \<Longrightarrow> ?B\<close>
+    supply [[goals_limit=1]]
+    unfolding cdcl_twl_full_restart_wl_GC_prog_pre_def cdcl_twl_full_restart_l_GC_prog_pre_def
+    apply normalize_goal+
+    apply (rule iffI)
+    subgoal for U V
+      using literals_are_\<L>\<^sub>i\<^sub>n'_literals_are_\<L>\<^sub>i\<^sub>n_iff(3)[of T U V]
+        cong[of \<open>all_atms_st T\<close> \<open>all_init_atms_st T\<close>]
+	vdom_m_cong[of \<open>all_atms_st T\<close> \<open>all_init_atms_st T\<close> \<open>get_watched_wl T\<close> \<open>get_clauses_wl T\<close>]
+      apply -
+      apply (simp_all del: isasat_input_nempty_def isasat_input_bounded_def)
+      apply (cases S; cases T)
+      by (simp add: twl_st_heur_def twl_st_heur_restart_def del: isasat_input_nempty_def)
+    subgoal for U V
+      using literals_are_\<L>\<^sub>i\<^sub>n'_literals_are_\<L>\<^sub>i\<^sub>n_iff(3)[of T U V]
+        cong[of \<open>all_init_atms_st T\<close> \<open>all_atms_st T\<close>]
+	vdom_m_cong[of \<open>all_init_atms_st T\<close> \<open>all_atms_st T\<close> \<open>get_watched_wl T\<close> \<open>get_clauses_wl T\<close>]
+      apply -
+      apply (cases S; cases T)
+      by (simp add: twl_st_heur_def twl_st_heur_restart_def del: isasat_input_nempty_def)
+    done
+  show \<open>cdcl_twl_full_restart_wl_D_GC_prog_post S0 T \<Longrightarrow> ?B\<close>
+    supply [[goals_limit=1]]
+    unfolding cdcl_twl_full_restart_wl_D_GC_prog_post_def
+       cdcl_twl_full_restart_wl_GC_prog_post_def
+       cdcl_twl_full_restart_l_GC_prog_pre_def
+    apply normalize_goal+
+    subgoal for S0' T' S0'' U S0'''
+    apply (rule iffI)
+    subgoal
+      using literals_are_\<L>\<^sub>i\<^sub>n'_literals_are_\<L>\<^sub>i\<^sub>n_iff(3)[of T U]
+        cong[of \<open>all_atms_st T\<close> \<open>all_init_atms_st T\<close>]
+	vdom_m_cong[of \<open>all_atms_st T\<close> \<open>all_init_atms_st T\<close> \<open>get_watched_wl T\<close> \<open>get_clauses_wl T\<close>]
+        cdcl_twl_restart_l_invs[of S0'' S0''' U]
+      apply -
+      apply (clarsimp simp del: isasat_input_nempty_def isasat_input_bounded_def)
+      apply (cases S; cases T')
+      apply (simp add: twl_st_heur_def twl_st_heur_restart_def del: isasat_input_nempty_def)
+      using isa_vmtf_cong option_lookup_clause_rel_cong trail_pol_cong by presburger
+    subgoal
+      using literals_are_\<L>\<^sub>i\<^sub>n'_literals_are_\<L>\<^sub>i\<^sub>n_iff(3)[of T U]
+        cong[of \<open>all_init_atms_st T\<close> \<open>all_atms_st T\<close>]
+	vdom_m_cong[of \<open>all_init_atms_st T\<close> \<open>all_atms_st T\<close> \<open>get_watched_wl T\<close> \<open>get_clauses_wl T\<close>]
+        cdcl_twl_restart_l_invs[of S0'' S0''' U]
+      apply -
+      apply (cases S; cases T)
+      by (clarsimp simp add: twl_st_heur_def twl_st_heur_restart_def
+        simp del: isasat_input_nempty_def)
+    done
+    done
+
+qed
 
 lemma cdcl_twl_full_restart_wl_D_GC_heur_prog:
   \<open>(cdcl_twl_full_restart_wl_D_GC_heur_prog, cdcl_twl_full_restart_wl_D_GC_prog) \<in>
-    [\<lambda>y.  get_conflict_wl y = None]\<^sub>f twl_st_heur_restart \<rightarrow> \<langle>twl_st_heur_restart\<rangle>nres_rel\<close>
+    [\<lambda>y.  True]\<^sub>f twl_st_heur \<rightarrow> \<langle>twl_st_heur\<rangle>nres_rel\<close>
   unfolding cdcl_twl_full_restart_wl_D_GC_heur_prog_def
     cdcl_twl_full_restart_wl_D_GC_prog_def
   apply (intro frefI nres_relI)
@@ -4072,9 +4156,65 @@ lemma cdcl_twl_full_restart_wl_D_GC_heur_prog:
     remove_one_annot_true_clause_imp_wl_D_heur_remove_one_annot_true_clause_imp_wl_D[THEN fref_to_Down]
     mark_to_delete_clauses_wl_D_heur_mark_to_delete_clauses_wl2_D[THEN fref_to_Down]
     isasat_GC_clauses_wl_D[THEN fref_to_Down])
-  subgoal by fast
-  subgoal by fast
-  subgoal by fast
+  subgoal for x y
+    by (blast dest: cdcl_twl_full_restart_wl_GC_prog_pre_heur)
+  subgoal
+    unfolding cdcl_twl_full_restart_wl_GC_prog_pre_def
+      cdcl_twl_full_restart_l_GC_prog_pre_def
+    by normalize_goal+ auto
+  subgoal for x y
+    by (blast dest: cdcl_twl_full_restart_wl_D_GC_prog_post_heur)
   done
+
+
+definition restart_prog_wl_D_heur
+  :: "twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> bool \<Rightarrow> (twl_st_wl_heur \<times> nat) nres"
+where
+  \<open>restart_prog_wl_D_heur S n brk = do {
+    b \<leftarrow> restart_required_heur S n;
+    b2 \<leftarrow> GC_required_heur S n;
+    if \<not>brk \<and> b \<and> b2
+    then do {
+       T \<leftarrow> cdcl_twl_full_restart_wl_D_GC_heur_prog S;
+       RETURN (T, n+1)
+    }
+    else if \<not>brk \<and> b
+    then do {
+       T \<leftarrow> cdcl_twl_restart_wl_heur S;
+       RETURN (T, n+1)
+    }
+    else RETURN (S, n)
+  }\<close>
+
+lemma restart_required_heur_restart_required_wl:
+  \<open>(uncurry restart_required_heur, uncurry restart_required_wl) \<in>
+    twl_st_heur \<times>\<^sub>f nat_rel \<rightarrow>\<^sub>f \<langle>bool_rel\<rangle>nres_rel\<close>
+    unfolding restart_required_heur_def restart_required_wl_def uncurry_def Let_def
+    by (intro frefI nres_relI)
+     (auto simp: twl_st_heur_def get_learned_clss_wl_def)
+
+lemma restart_prog_wl_D_heur_restart_prog_wl_D:
+  \<open>(uncurry2 restart_prog_wl_D_heur, uncurry2 restart_prog_wl_D) \<in>
+    twl_st_heur \<times>\<^sub>f nat_rel \<times>\<^sub>f bool_rel  \<rightarrow>\<^sub>f \<langle>twl_st_heur \<times>\<^sub>f nat_rel\<rangle>nres_rel\<close>
+proof -
+  have [refine0]: \<open>GC_required_heur S n \<le> SPEC (\<lambda>_. True)\<close> for S n
+    by (auto simp: GC_required_heur_def)
+  show ?thesis
+    unfolding restart_prog_wl_D_heur_def restart_prog_wl_D_def uncurry_def
+    apply (intro frefI nres_relI)
+    apply (refine_rcg
+        restart_required_heur_restart_required_wl[THEN fref_to_Down_curry]
+        cdcl_twl_restart_wl_heur_cdcl_twl_restart_wl_D_prog[THEN fref_to_Down]
+        cdcl_twl_full_restart_wl_D_GC_heur_prog[THEN fref_to_Down])
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    done
+ qed
 
 end

@@ -47,7 +47,7 @@ definition blits_in_\<L>\<^sub>i\<^sub>n' :: \<open>nat twl_st_wl \<Rightarrow> 
 
 definition literals_are_\<L>\<^sub>i\<^sub>n' :: \<open>nat multiset \<Rightarrow> nat twl_st_wl \<Rightarrow> bool\<close> where
   \<open>literals_are_\<L>\<^sub>i\<^sub>n' \<A> S \<equiv>
-     is_\<L>\<^sub>a\<^sub>l\<^sub>l \<A> (all_lits_of_mm ((\<lambda>C. mset (fst C)) `# init_clss_l (get_clauses_wl S)
+     is_\<L>\<^sub>a\<^sub>l\<^sub>l \<A> (all_lits_of_mm (mset `# init_clss_lf (get_clauses_wl S)
         + get_unit_init_clss_wl S)) \<and>
      blits_in_\<L>\<^sub>i\<^sub>n' S\<close>
 
@@ -839,258 +839,6 @@ lemma cdcl_twl_restart_wl_D_prog_cdcl_twl_restart_wl_prog:
 context twl_restart_ops
 begin
 
-definition restart_prog_wl_D :: "nat twl_st_wl \<Rightarrow> nat \<Rightarrow> bool \<Rightarrow> (nat twl_st_wl \<times> nat) nres" where
-  \<open>restart_prog_wl_D S n brk = do {
-     ASSERT(restart_abs_wl_D_pre S brk);
-     b \<leftarrow> restart_required_wl S n;
-     if b \<and> \<not>brk then do {
-       T \<leftarrow> cdcl_twl_restart_wl_D_prog S;
-       RETURN (T, n + 1)
-     }
-     else
-       RETURN (S, n)
-   }\<close>
-
-
-lemma restart_prog_wl_D_restart_prog_wl:
-  \<open>(uncurry2 restart_prog_wl_D, uncurry2 restart_prog_wl) \<in>
-     {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st S) S} \<times>\<^sub>f nat_rel \<times>\<^sub>f bool_rel \<rightarrow>\<^sub>f
-     \<langle>{(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st S) S} \<times>\<^sub>r nat_rel\<rangle>nres_rel\<close>
-proof -
-  have [refine0]: \<open>restart_required_wl x1c x2b \<le> \<Down> Id (restart_required_wl x1a x2)\<close>
-    if \<open>(x1c, x1a) \<in> Id\<close> \<open>(x2b, x2) \<in> Id\<close>
-    for x1c x1a x2b x2
-    using that by auto
-  have restart_abs_wl_D_pre: \<open>restart_abs_wl_D_pre x1c x2c\<close>
-    if
-      \<open>(x, y) \<in> {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st S) S} \<times>\<^sub>f nat_rel \<times>\<^sub>f bool_rel\<close> and
-      \<open>x1 = (x1a, x2)\<close> and
-      \<open>y = (x1, x2a)\<close> and
-      \<open>x1b = (x1c, x2b)\<close> and
-      \<open>x = (x1b, x2c)\<close> and
-      pre: \<open>restart_abs_wl_pre x1a x2a\<close>
-    for x y x1 x1a x2 x2a x1b x1c x2b x2c
-  proof -
-    have \<open>restart_abs_wl_pre x1a x2c\<close> and lits_T: \<open>literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st x1a) x1a\<close>
-      using pre that
-      unfolding restart_abs_wl_D_pre_def
-      by auto
-    then obtain xa x where
-        S_x: \<open>(x1a, x) \<in> state_wl_l None\<close> and
-        \<open>correct_watching x1a\<close> and
-        x_xa: \<open>(x, xa) \<in> twl_st_l None\<close> and
-        struct: \<open>twl_struct_invs xa\<close> and
-        list: \<open>twl_list_invs x\<close> and
-        \<open>clauses_to_update_l x = {#}\<close> and
-        \<open>twl_stgy_invs xa\<close> and
-        \<open>\<not> x2c \<longrightarrow> get_conflict xa = None\<close>
-      unfolding restart_abs_wl_pre_def restart_abs_l_pre_def restart_prog_pre_def by blast
-
-    show ?thesis
-      using pre that literals_are_\<L>\<^sub>i\<^sub>n'_literals_are_\<L>\<^sub>i\<^sub>n_iff(1,2)[THEN iffD2,
-       OF S_x x_xa struct lits_T]
-      unfolding restart_abs_wl_D_pre_def
-      by auto
-  qed
-
-  show ?thesis
-    unfolding uncurry_def restart_prog_wl_D_def restart_prog_wl_def
-    apply (intro frefI nres_relI)
-    apply (refine_vcg
-      cdcl_twl_restart_wl_D_prog_cdcl_twl_restart_wl_prog[THEN fref_to_Down])
-    subgoal by (rule restart_abs_wl_D_pre)
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    done
-qed
-
-definition cdcl_twl_stgy_restart_abs_wl_D_inv where
-  \<open>cdcl_twl_stgy_restart_abs_wl_D_inv S0 brk T n \<longleftrightarrow>
-    cdcl_twl_stgy_restart_abs_wl_inv S0 brk T n \<and>
-    literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st T) T\<close>
-
-definition cdcl_twl_stgy_restart_prog_wl_D
-  :: "nat twl_st_wl \<Rightarrow> nat twl_st_wl nres"
-where
-  \<open>cdcl_twl_stgy_restart_prog_wl_D S\<^sub>0 =
-  do {
-    (brk, T, _) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(brk, T, n). cdcl_twl_stgy_restart_abs_wl_D_inv S\<^sub>0 brk T n\<^esup>
-      (\<lambda>(brk, _). \<not>brk)
-      (\<lambda>(brk, S, n).
-      do {
-        T \<leftarrow> unit_propagation_outer_loop_wl_D S;
-        (brk, T) \<leftarrow> cdcl_twl_o_prog_wl_D T;
-        (T, n) \<leftarrow> restart_prog_wl_D T n brk;
-        RETURN (brk, T, n)
-      })
-      (False, S\<^sub>0::nat twl_st_wl, 0);
-    RETURN T
-  }\<close>
-
-(*TODO Move and replace*)
-theorem cdcl_twl_o_prog_wl_D_spec':
-  \<open>(cdcl_twl_o_prog_wl_D, cdcl_twl_o_prog_wl) \<in>
-    {(S,S'). (S,S') \<in> Id \<and>literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st S) S} \<rightarrow>\<^sub>f
-    \<langle>bool_rel \<times>\<^sub>r {(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st T) T}\<rangle> nres_rel\<close>
-  apply (intro frefI nres_relI)
-  subgoal for x y
-    apply (rule order_trans)
-    apply (rule cdcl_twl_o_prog_wl_D_spec[of "all_atms_st x" x])
-     apply (auto simp: prod_rel_def intro: conc_fun_R_mono)
-    done
-  done
-
-lemma unit_propagation_outer_loop_wl_D_spec':
-  shows \<open>(unit_propagation_outer_loop_wl_D, unit_propagation_outer_loop_wl) \<in>
-    {(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st T) T} \<rightarrow>\<^sub>f
-     \<langle>{(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st T) T}\<rangle>nres_rel\<close>
-  apply (intro frefI nres_relI)
-  subgoal for x y
-    apply (rule order_trans)
-    apply (rule unit_propagation_outer_loop_wl_D_spec[of "all_atms_st x" x])
-     apply (auto simp: prod_rel_def intro: conc_fun_R_mono)
-    done
-  done
-
-lemma cdcl_twl_stgy_restart_prog_wl_D_cdcl_twl_stgy_restart_prog_wl:
-  \<open>(cdcl_twl_stgy_restart_prog_wl_D, cdcl_twl_stgy_restart_prog_wl) \<in>
-     {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st S) S} \<rightarrow>\<^sub>f
-     \<langle>{(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st S) S}\<rangle>nres_rel\<close>
-  unfolding uncurry_def cdcl_twl_stgy_restart_prog_wl_D_def
-    cdcl_twl_stgy_restart_prog_wl_def
-  apply (intro frefI nres_relI)
-  apply (refine_vcg
-      restart_prog_wl_D_restart_prog_wl[THEN fref_to_Down_curry2]
-      cdcl_twl_o_prog_wl_D_spec'[THEN fref_to_Down]
-      unit_propagation_outer_loop_wl_D_spec'[THEN fref_to_Down]
-      WHILEIT_refine[where R=\<open>bool_rel \<times>\<^sub>r {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st S) S} \<times>\<^sub>r nat_rel\<close>])
-  subgoal by auto
-  subgoal unfolding cdcl_twl_stgy_restart_abs_wl_D_inv_def by auto
-  subgoal by auto
-  subgoal by auto
-  subgoal by auto
-  subgoal by auto
-  subgoal by auto
-  subgoal by auto
-  done
-
-
-
-definition cdcl_twl_stgy_restart_prog_early_wl_D
-  :: "nat twl_st_wl \<Rightarrow> nat twl_st_wl nres"
-where
-  \<open>cdcl_twl_stgy_restart_prog_early_wl_D S\<^sub>0 = do {
-    ebrk \<leftarrow> RES UNIV;
-    (ebrk, brk, T, n) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(_, brk, T, n). cdcl_twl_stgy_restart_abs_wl_D_inv S\<^sub>0 brk T n\<^esup>
-      (\<lambda>(ebrk, brk, _). \<not>brk \<and> \<not>ebrk)
-      (\<lambda>(_, brk, S, n).
-      do {
-        T \<leftarrow> unit_propagation_outer_loop_wl_D S;
-        (brk, T) \<leftarrow> cdcl_twl_o_prog_wl_D T;
-        (T, n) \<leftarrow> restart_prog_wl_D T n brk;
-        ebrk \<leftarrow> RES UNIV;
-        RETURN (ebrk, brk, T, n)
-      })
-      (ebrk, False, S\<^sub>0::nat twl_st_wl, 0);
-    if \<not>brk then do {
-      (brk, T, _) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(brk, T, n). cdcl_twl_stgy_restart_abs_wl_D_inv S\<^sub>0 brk T n\<^esup>
-	(\<lambda>(brk, _). \<not>brk)
-	(\<lambda>(brk, S, n).
-	do {
-	  T \<leftarrow> unit_propagation_outer_loop_wl_D S;
-	  (brk, T) \<leftarrow> cdcl_twl_o_prog_wl_D T;
-	  (T, n) \<leftarrow> restart_prog_wl_D T n brk;
-	  RETURN (brk, T, n)
-	})
-	(False, T::nat twl_st_wl, n);
-      RETURN T
-    }
-    else RETURN T
-  }\<close>
-
-
-lemma cdcl_twl_stgy_restart_prog_early_wl_D_cdcl_twl_stgy_restart_prog_early_wl:
-  \<open>(cdcl_twl_stgy_restart_prog_early_wl_D, cdcl_twl_stgy_restart_prog_early_wl) \<in>
-     {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st S) S} \<rightarrow>\<^sub>f
-     \<langle>{(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st S) S}\<rangle>nres_rel\<close>
-  unfolding uncurry_def cdcl_twl_stgy_restart_prog_early_wl_D_def
-    cdcl_twl_stgy_restart_prog_early_wl_def
-  apply (intro frefI nres_relI)
-  apply (refine_vcg
-      restart_prog_wl_D_restart_prog_wl[THEN fref_to_Down_curry2]
-      cdcl_twl_o_prog_wl_D_spec'[THEN fref_to_Down]
-      unit_propagation_outer_loop_wl_D_spec'[THEN fref_to_Down]
-      WHILEIT_refine[where R=\<open>bool_rel \<times>\<^sub>r bool_rel \<times>\<^sub>r {(S, T). (S, T) \<in> Id \<and>
-         literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st S) S} \<times>\<^sub>r nat_rel\<close>]
-      WHILEIT_refine[where R=\<open>bool_rel \<times>\<^sub>r {(S, T). (S, T) \<in> Id \<and>
-        literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st S) S} \<times>\<^sub>r nat_rel\<close>])
-  subgoal by auto
-  subgoal unfolding  cdcl_twl_stgy_restart_abs_wl_D_inv_def by auto
-  subgoal by auto
-  subgoal by auto
-  subgoal by auto
-  subgoal by auto
-  subgoal by auto
-  subgoal by auto
-  subgoal by auto
-  subgoal unfolding  cdcl_twl_stgy_restart_abs_wl_D_inv_def by auto
-  subgoal by auto
-  subgoal by auto
-  subgoal by auto
-  subgoal by auto
-  subgoal by auto
-  subgoal by auto
-  subgoal by auto
-  done
-
-
-definition cdcl_GC_clauses_pre_wl_D :: \<open>nat twl_st_wl \<Rightarrow> bool\<close> where
-\<open>cdcl_GC_clauses_pre_wl_D S \<longleftrightarrow> (
-  \<exists>T. (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n' (all_init_atms_st S) S \<and>
-    cdcl_GC_clauses_pre_wl T
-  )\<close>
-
-definition cdcl_GC_clauses_wl_D :: \<open>nat twl_st_wl \<Rightarrow> nat twl_st_wl nres\<close> where
-\<open>cdcl_GC_clauses_wl_D = (\<lambda>(M, N, D, NE, UE, WS, Q). do {
-  ASSERT(cdcl_GC_clauses_pre_wl_D (M, N, D, NE, UE, WS, Q));
-  let b = True;
-  if b then do {
-    (N', _) \<leftarrow> SPEC (\<lambda>(N'', m). GC_remap\<^sup>*\<^sup>* (N, Map.empty, fmempty) (fmempty, m, N'') \<and>
-      0 \<notin># dom_m N'');
-    Q \<leftarrow> SPEC(\<lambda>Q. correct_watching' (M, N', D, NE, UE, WS, Q) \<and>
-      blits_in_\<L>\<^sub>i\<^sub>n' (M, N', D, NE, UE, WS, Q));
-    RETURN (M, N', D, NE, UE, WS, Q)
-  }
-  else RETURN (M, N, D, NE, UE, WS, Q)})\<close>
-
-lemma cdcl_GC_clauses_wl_D_cdcl_GC_clauses_wl:
-  \<open>(cdcl_GC_clauses_wl_D, cdcl_GC_clauses_wl) \<in> {(S::nat twl_st_wl, S').
-       (S, S') \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n' (all_init_atms_st S) S} \<rightarrow>\<^sub>f \<langle>{(S::nat twl_st_wl, S').
-       (S, S') \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n' (all_init_atms_st S) S}\<rangle>nres_rel\<close>
-  unfolding cdcl_GC_clauses_wl_D_def cdcl_GC_clauses_wl_def
-  apply (intro frefI nres_relI)
-  apply refine_vcg
-  subgoal unfolding cdcl_GC_clauses_pre_wl_D_def by blast
-  subgoal by (auto simp: state_wl_l_def)
-  subgoal by (auto simp: state_wl_l_def)
-  subgoal by auto
-  subgoal by (auto simp: state_wl_l_def)
-  subgoal by (auto simp: state_wl_l_def literals_are_\<L>\<^sub>i\<^sub>n'_def  is_\<L>\<^sub>a\<^sub>l\<^sub>l_def
-    all_init_atms_def all_init_lits_def
-    dest: rtranclp_GC_remap_init_clss_l_old_new)
-  subgoal by (auto simp: state_wl_l_def)
-  done
-
-definition cdcl_twl_full_restart_wl_D_GC_prog_post :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl \<Rightarrow> bool\<close> where
-\<open>cdcl_twl_full_restart_wl_D_GC_prog_post S T \<longleftrightarrow>
-  (\<exists>S' T'. (S, S') \<in> Id \<and> (T, T') \<in> Id \<and>
-    cdcl_twl_full_restart_wl_GC_prog_post S' T')\<close>
-
 definition mark_to_delete_clauses_wl2_D_inv where
   \<open>mark_to_delete_clauses_wl2_D_inv = (\<lambda>S xs0 (i, T, xs).
        mark_to_delete_clauses_wl2_inv S xs0 (i, T, xs) \<and>
@@ -1262,45 +1010,6 @@ proof -
     subgoal by auto
     done
 qed
-
-definition cdcl_twl_full_restart_wl_D_GC_prog where
-\<open>cdcl_twl_full_restart_wl_D_GC_prog S = do {
-    S' \<leftarrow> cdcl_twl_local_restart_wl_spec0 S;
-    T \<leftarrow> remove_one_annot_true_clause_imp_wl_D S';
-    ASSERT(mark_to_delete_clauses_wl_D_pre T);
-    U \<leftarrow> mark_to_delete_clauses_wl2_D T;
-    V \<leftarrow> cdcl_GC_clauses_wl_D U;
-    ASSERT(cdcl_twl_full_restart_wl_D_GC_prog_post S V);
-    RETURN V
-  }\<close>
-
-
-lemma cdcl_twl_full_restart_wl_D_GC_prog:
-  \<open>(cdcl_twl_full_restart_wl_D_GC_prog, cdcl_twl_full_restart_wl_GC_prog) \<in>
-    {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n' (all_init_atms_st S) S} \<rightarrow>\<^sub>f
-    \<langle>{(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n' (all_init_atms_st S) S}\<rangle>nres_rel\<close>
-  (is \<open>_ \<in> ?R \<rightarrow>\<^sub>f _\<close>)
-proof -
-  have [refine0]: \<open>cdcl_twl_local_restart_wl_spec0 x
-          \<le> \<Down> ?R (cdcl_twl_local_restart_wl_spec0 y)\<close>
-    if \<open>(x, y) \<in> ?R\<close>
-    for x y
-    using that apply (case_tac x; case_tac y)
-    by (auto 5 1 simp: cdcl_twl_local_restart_wl_spec0_def image_iff
-         RES_RES_RETURN_RES2 intro!: RES_refine)
-      (auto simp: literals_are_\<L>\<^sub>i\<^sub>n'_def blits_in_\<L>\<^sub>i\<^sub>n'_def)
-  show ?thesis
-    unfolding cdcl_twl_full_restart_wl_D_GC_prog_def cdcl_twl_full_restart_wl_GC_prog_def
-    apply (intro frefI nres_relI)
-    apply (refine_vcg
-      remove_one_annot_true_clause_imp_wl_D_remove_one_annot_true_clause_imp_wl[THEN fref_to_Down]
-      mark_to_delete_clauses_wl_D_mark_to_delete_clauses_wl2[THEN fref_to_Down]
-      cdcl_GC_clauses_wl_D_cdcl_GC_clauses_wl[THEN fref_to_Down])
-    subgoal unfolding mark_to_delete_clauses_wl_D_pre_def by fast
-    subgoal unfolding cdcl_twl_full_restart_wl_D_GC_prog_post_def by fast
-    done
-qed
-
 
 definition cdcl_GC_clauses_prog_copy_wl_entry
   :: \<open>'v clauses_l \<Rightarrow> 'v watched \<Rightarrow> 'v literal \<Rightarrow>
@@ -1740,6 +1449,374 @@ proof -
     apply (fastforce dest: rtranclp_GC_remap_all_init_lits)
     done
 qed
+
+definition cdcl_twl_stgy_restart_abs_wl_D_inv where
+  \<open>cdcl_twl_stgy_restart_abs_wl_D_inv S0 brk T n \<longleftrightarrow>
+    cdcl_twl_stgy_restart_abs_wl_inv S0 brk T n \<and>
+    literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st T) T\<close>
+
+definition cdcl_GC_clauses_pre_wl_D :: \<open>nat twl_st_wl \<Rightarrow> bool\<close> where
+\<open>cdcl_GC_clauses_pre_wl_D S \<longleftrightarrow> (
+  \<exists>T. (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n' (all_init_atms_st S) S \<and>
+    cdcl_GC_clauses_pre_wl T
+  )\<close>
+
+
+definition cdcl_twl_full_restart_wl_D_GC_prog_post :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl \<Rightarrow> bool\<close> where
+\<open>cdcl_twl_full_restart_wl_D_GC_prog_post S T \<longleftrightarrow>
+  (\<exists>S' T'. (S, S') \<in> Id \<and> (T, T') \<in> Id \<and>
+    cdcl_twl_full_restart_wl_GC_prog_post S' T')\<close>
+
+definition cdcl_GC_clauses_wl_D :: \<open>nat twl_st_wl \<Rightarrow> nat twl_st_wl nres\<close> where
+\<open>cdcl_GC_clauses_wl_D = (\<lambda>(M, N, D, NE, UE, WS, Q). do {
+  ASSERT(cdcl_GC_clauses_pre_wl_D (M, N, D, NE, UE, WS, Q));
+  let b = True;
+  if b then do {
+    (N', _) \<leftarrow> SPEC (\<lambda>(N'', m). GC_remap\<^sup>*\<^sup>* (N, Map.empty, fmempty) (fmempty, m, N'') \<and>
+      0 \<notin># dom_m N'');
+    Q \<leftarrow> SPEC(\<lambda>Q. correct_watching' (M, N', D, NE, UE, WS, Q) \<and>
+      blits_in_\<L>\<^sub>i\<^sub>n' (M, N', D, NE, UE, WS, Q));
+    RETURN (M, N', D, NE, UE, WS, Q)
+  }
+  else RETURN (M, N, D, NE, UE, WS, Q)})\<close>
+
+lemma cdcl_GC_clauses_wl_D_cdcl_GC_clauses_wl:
+  \<open>(cdcl_GC_clauses_wl_D, cdcl_GC_clauses_wl) \<in> {(S::nat twl_st_wl, S').
+       (S, S') \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n' (all_init_atms_st S) S} \<rightarrow>\<^sub>f \<langle>{(S::nat twl_st_wl, S').
+       (S, S') \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n' (all_init_atms_st S) S}\<rangle>nres_rel\<close>
+  unfolding cdcl_GC_clauses_wl_D_def cdcl_GC_clauses_wl_def
+  apply (intro frefI nres_relI)
+  apply refine_vcg
+  subgoal unfolding cdcl_GC_clauses_pre_wl_D_def by blast
+  subgoal by (auto simp: state_wl_l_def)
+  subgoal by (auto simp: state_wl_l_def)
+  subgoal by auto
+  subgoal by (auto simp: state_wl_l_def)
+  subgoal by (auto simp: state_wl_l_def literals_are_\<L>\<^sub>i\<^sub>n'_def  is_\<L>\<^sub>a\<^sub>l\<^sub>l_def
+    all_init_atms_def all_init_lits_def
+    dest: rtranclp_GC_remap_init_clss_l_old_new)
+  subgoal by (auto simp: state_wl_l_def)
+  done
+
+definition cdcl_twl_full_restart_wl_D_GC_prog where
+\<open>cdcl_twl_full_restart_wl_D_GC_prog S = do {
+    ASSERT(cdcl_twl_full_restart_wl_GC_prog_pre S);
+    S' \<leftarrow> cdcl_twl_local_restart_wl_spec0 S;
+    T \<leftarrow> remove_one_annot_true_clause_imp_wl_D S';
+    ASSERT(mark_to_delete_clauses_wl_D_pre T);
+    U \<leftarrow> mark_to_delete_clauses_wl2_D T;
+    V \<leftarrow> cdcl_GC_clauses_wl_D U;
+    ASSERT(cdcl_twl_full_restart_wl_D_GC_prog_post S V);
+    RETURN V
+  }\<close>
+
+lemma \<L>\<^sub>a\<^sub>l\<^sub>l_all_init_atms_all_init_lits:
+  \<open>set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l (all_init_atms N NE)) = set_mset (all_init_lits N NE)\<close>
+  using is_\<L>\<^sub>a\<^sub>l\<^sub>l_def by blast
+
+lemma \<L>\<^sub>a\<^sub>l\<^sub>l_all_atms_all_lits:
+  \<open>set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l (all_atms N NE)) = set_mset (all_lits N NE)\<close>
+  by (simp add: \<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_all_lits_of_mm all_atms_def all_lits_def)
+
+lemma all_lits_alt_def:
+  \<open>all_lits S NUE = all_lits_of_mm (mset `# ran_mf S + NUE)\<close>
+  unfolding all_lits_def
+  by auto
+
+lemma cdcl_twl_full_restart_wl_D_GC_prog:
+  \<open>(cdcl_twl_full_restart_wl_D_GC_prog, cdcl_twl_full_restart_wl_GC_prog) \<in>
+    {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n' (all_init_atms_st S) S} \<rightarrow>\<^sub>f
+    \<langle>{(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n (all_init_atms_st S) S}\<rangle>nres_rel\<close>
+  (is \<open>_ \<in> ?R \<rightarrow>\<^sub>f _\<close>)
+proof -
+  have [refine0]: \<open>cdcl_twl_local_restart_wl_spec0 x
+          \<le> \<Down> ?R (cdcl_twl_local_restart_wl_spec0 y)\<close>
+    if \<open>(x, y) \<in> ?R\<close>
+    for x y
+    using that apply (case_tac x; case_tac y)
+    by (auto 5 1 simp: cdcl_twl_local_restart_wl_spec0_def image_iff
+         RES_RES_RETURN_RES2 intro!: RES_refine)
+      (auto simp: literals_are_\<L>\<^sub>i\<^sub>n'_def blits_in_\<L>\<^sub>i\<^sub>n'_def)
+  show ?thesis
+    unfolding cdcl_twl_full_restart_wl_D_GC_prog_def cdcl_twl_full_restart_wl_GC_prog_def
+    apply (intro frefI nres_relI)
+    apply (refine_vcg
+      remove_one_annot_true_clause_imp_wl_D_remove_one_annot_true_clause_imp_wl[THEN fref_to_Down]
+      mark_to_delete_clauses_wl_D_mark_to_delete_clauses_wl2[THEN fref_to_Down]
+      cdcl_GC_clauses_wl_D_cdcl_GC_clauses_wl[THEN fref_to_Down])
+    subgoal by fast
+    subgoal unfolding mark_to_delete_clauses_wl_D_pre_def by fast
+    subgoal unfolding cdcl_twl_full_restart_wl_D_GC_prog_post_def by fast
+    subgoal unfolding cdcl_twl_full_restart_wl_GC_prog_post_def
+      literals_are_\<L>\<^sub>i\<^sub>n_def literals_are_\<L>\<^sub>i\<^sub>n'_def
+      is_\<L>\<^sub>a\<^sub>l\<^sub>l_def blits_in_\<L>\<^sub>i\<^sub>n_def blits_in_\<L>\<^sub>i\<^sub>n'_def
+      \<L>\<^sub>a\<^sub>l\<^sub>l_all_init_atms_all_init_lits
+      all_atms_def[symmetric]
+      all_init_atms_def[symmetric]
+      all_lits_alt_def[symmetric]
+      all_init_lits_def[symmetric]
+      \<L>\<^sub>a\<^sub>l\<^sub>l_all_atms_all_lits
+      by fastforce
+    done
+qed
+
+definition restart_prog_wl_D :: "nat twl_st_wl \<Rightarrow> nat \<Rightarrow> bool \<Rightarrow> (nat twl_st_wl \<times> nat) nres" where
+  \<open>restart_prog_wl_D S n brk = do {
+     ASSERT(restart_abs_wl_D_pre S brk);
+     b \<leftarrow> restart_required_wl S n;
+     b2 \<leftarrow> SPEC(\<lambda>_. True);
+     if b2 \<and> b \<and> \<not>brk then do {
+       T \<leftarrow> cdcl_twl_full_restart_wl_D_GC_prog S;
+       RETURN (T, n + 1)
+     }
+     else if b \<and> \<not>brk then do {
+       T \<leftarrow> cdcl_twl_restart_wl_D_prog S;
+       RETURN (T, n + 1)
+     }
+     else
+       RETURN (S, n)
+   }\<close>
+
+lemma restart_abs_wl_D_pre_literals_are_\<L>\<^sub>i\<^sub>n':
+  assumes 
+    \<open>(x, y)
+     \<in> {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st S) S} \<times>\<^sub>f
+       nat_rel \<times>\<^sub>f
+       bool_rel\<close> and
+    \<open>x1 = (x1a, x2)\<close> and
+    \<open>y = (x1, x2a)\<close> and
+    \<open>x1b = (x1c, x2b)\<close> and
+    \<open>x = (x1b, x2c)\<close> and
+    pre: \<open>restart_abs_wl_D_pre x1c x2c\<close> and
+    \<open>b2 \<and> b \<and> \<not> x2c\<close> and
+    \<open>b2a \<and> ba \<and> \<not> x2a\<close>
+  shows \<open>(x1c, x1a)
+         \<in> {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n' (all_init_atms_st S) S}\<close>
+proof -
+  have y: \<open>y = ((x1a, x2),  x2a)\<close> and
+    x_y: \<open>x = y\<close> and
+    [simp]: \<open>x1c = x1a\<close>
+    using assms by auto
+  obtain x xa where
+    lits: \<open>literals_are_\<L>\<^sub>i\<^sub>n' (all_init_atms_st x1c) x1c\<close> and
+    x1c_x: \<open>(x1c, x) \<in> state_wl_l None\<close> and
+    \<open>correct_watching x1c\<close> and
+    x_xa: \<open>(x, xa) \<in> twl_st_l None\<close> and
+    \<open>restart_prog_pre xa x2c\<close> and
+    list_invs: \<open>twl_list_invs x\<close> and
+    struct_invs: \<open>twl_struct_invs xa\<close> and
+    \<open>clauses_to_update_l x = {#}\<close>
+    using pre unfolding restart_abs_wl_D_pre_def restart_abs_wl_pre_def
+      restart_abs_l_pre_def restart_prog_pre_def by blast
+  have \<open>set_mset (all_init_atms_st x1a) = set_mset (all_atms_st x1a)\<close>
+    using literals_are_\<L>\<^sub>i\<^sub>n'_literals_are_\<L>\<^sub>i\<^sub>n_iff(3)[OF x1c_x x_xa struct_invs]
+      lits
+    by auto
+  with \<L>\<^sub>a\<^sub>l\<^sub>l_cong[OF this] have \<open>literals_are_\<L>\<^sub>i\<^sub>n' (all_init_atms_st x1a) x1a\<close>
+    using assms(1)
+    unfolding literals_are_\<L>\<^sub>i\<^sub>n'_def literals_are_\<L>\<^sub>i\<^sub>n_def
+    all_init_lits_def[symmetric] y x_y
+    blits_in_\<L>\<^sub>i\<^sub>n_def blits_in_\<L>\<^sub>i\<^sub>n'_def
+    by auto
+  then show ?thesis
+    using x_y by auto
+qed
+
+lemma restart_prog_wl_D_restart_prog_wl:
+  \<open>(uncurry2 restart_prog_wl_D, uncurry2 restart_prog_wl) \<in>
+     {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st S) S} \<times>\<^sub>f nat_rel \<times>\<^sub>f bool_rel \<rightarrow>\<^sub>f
+     \<langle>{(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st S) S} \<times>\<^sub>r nat_rel\<rangle>nres_rel\<close>
+proof -
+  have [refine0]: \<open>restart_required_wl x1c x2b \<le> \<Down> Id (restart_required_wl x1a x2)\<close>
+    if \<open>(x1c, x1a) \<in> Id\<close> \<open>(x2b, x2) \<in> Id\<close>
+    for x1c x1a x2b x2
+    using that by auto
+  have restart_abs_wl_D_pre: \<open>restart_abs_wl_D_pre x1c x2c\<close>
+    if
+      \<open>(x, y) \<in> {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st S) S} \<times>\<^sub>f nat_rel \<times>\<^sub>f bool_rel\<close> and
+      \<open>x1 = (x1a, x2)\<close> and
+      \<open>y = (x1, x2a)\<close> and
+      \<open>x1b = (x1c, x2b)\<close> and
+      \<open>x = (x1b, x2c)\<close> and
+      pre: \<open>restart_abs_wl_pre x1a x2a\<close>
+    for x y x1 x1a x2 x2a x1b x1c x2b x2c
+  proof -
+    have \<open>restart_abs_wl_pre x1a x2c\<close> and lits_T: \<open>literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st x1a) x1a\<close>
+      using pre that
+      unfolding restart_abs_wl_D_pre_def
+      by auto
+    then obtain xa x where
+        S_x: \<open>(x1a, x) \<in> state_wl_l None\<close> and
+        \<open>correct_watching x1a\<close> and
+        x_xa: \<open>(x, xa) \<in> twl_st_l None\<close> and
+        struct: \<open>twl_struct_invs xa\<close> and
+        list: \<open>twl_list_invs x\<close> and
+        \<open>clauses_to_update_l x = {#}\<close> and
+        \<open>twl_stgy_invs xa\<close> and
+        \<open>\<not> x2c \<longrightarrow> get_conflict xa = None\<close>
+      unfolding restart_abs_wl_pre_def restart_abs_l_pre_def restart_prog_pre_def by blast
+
+    show ?thesis
+      using pre that literals_are_\<L>\<^sub>i\<^sub>n'_literals_are_\<L>\<^sub>i\<^sub>n_iff(1,2)[THEN iffD2,
+       OF S_x x_xa struct lits_T]
+      unfolding restart_abs_wl_D_pre_def
+      by auto
+  qed
+
+  show ?thesis
+    unfolding uncurry_def restart_prog_wl_D_def restart_prog_wl_def
+    apply (intro frefI nres_relI)
+    apply (refine_vcg
+      cdcl_twl_restart_wl_D_prog_cdcl_twl_restart_wl_prog[THEN fref_to_Down]
+      cdcl_twl_full_restart_wl_D_GC_prog[THEN fref_to_Down])
+    subgoal by (rule restart_abs_wl_D_pre)
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by (rule restart_abs_wl_D_pre_literals_are_\<L>\<^sub>i\<^sub>n')
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    done
+qed
+
+definition cdcl_twl_stgy_restart_prog_wl_D
+  :: "nat twl_st_wl \<Rightarrow> nat twl_st_wl nres"
+where
+  \<open>cdcl_twl_stgy_restart_prog_wl_D S\<^sub>0 =
+  do {
+    (brk, T, _) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(brk, T, n). cdcl_twl_stgy_restart_abs_wl_D_inv S\<^sub>0 brk T n\<^esup>
+      (\<lambda>(brk, _). \<not>brk)
+      (\<lambda>(brk, S, n).
+      do {
+        T \<leftarrow> unit_propagation_outer_loop_wl_D S;
+        (brk, T) \<leftarrow> cdcl_twl_o_prog_wl_D T;
+        (T, n) \<leftarrow> restart_prog_wl_D T n brk;
+        RETURN (brk, T, n)
+      })
+      (False, S\<^sub>0::nat twl_st_wl, 0);
+    RETURN T
+  }\<close>
+
+(*TODO Move and replace*)
+theorem cdcl_twl_o_prog_wl_D_spec':
+  \<open>(cdcl_twl_o_prog_wl_D, cdcl_twl_o_prog_wl) \<in>
+    {(S,S'). (S,S') \<in> Id \<and>literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st S) S} \<rightarrow>\<^sub>f
+    \<langle>bool_rel \<times>\<^sub>r {(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st T) T}\<rangle> nres_rel\<close>
+  apply (intro frefI nres_relI)
+  subgoal for x y
+    apply (rule order_trans)
+    apply (rule cdcl_twl_o_prog_wl_D_spec[of "all_atms_st x" x])
+     apply (auto simp: prod_rel_def intro: conc_fun_R_mono)
+    done
+  done
+
+lemma unit_propagation_outer_loop_wl_D_spec':
+  shows \<open>(unit_propagation_outer_loop_wl_D, unit_propagation_outer_loop_wl) \<in>
+    {(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st T) T} \<rightarrow>\<^sub>f
+     \<langle>{(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st T) T}\<rangle>nres_rel\<close>
+  apply (intro frefI nres_relI)
+  subgoal for x y
+    apply (rule order_trans)
+    apply (rule unit_propagation_outer_loop_wl_D_spec[of "all_atms_st x" x])
+     apply (auto simp: prod_rel_def intro: conc_fun_R_mono)
+    done
+  done
+
+lemma cdcl_twl_stgy_restart_prog_wl_D_cdcl_twl_stgy_restart_prog_wl:
+  \<open>(cdcl_twl_stgy_restart_prog_wl_D, cdcl_twl_stgy_restart_prog_wl) \<in>
+     {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st S) S} \<rightarrow>\<^sub>f
+     \<langle>{(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st S) S}\<rangle>nres_rel\<close>
+  unfolding uncurry_def cdcl_twl_stgy_restart_prog_wl_D_def
+    cdcl_twl_stgy_restart_prog_wl_def
+  apply (intro frefI nres_relI)
+  apply (refine_vcg
+      restart_prog_wl_D_restart_prog_wl[THEN fref_to_Down_curry2]
+      cdcl_twl_o_prog_wl_D_spec'[THEN fref_to_Down]
+      unit_propagation_outer_loop_wl_D_spec'[THEN fref_to_Down]
+      WHILEIT_refine[where R=\<open>bool_rel \<times>\<^sub>r {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st S) S} \<times>\<^sub>r nat_rel\<close>])
+  subgoal by auto
+  subgoal unfolding cdcl_twl_stgy_restart_abs_wl_D_inv_def by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  done
+
+
+
+definition cdcl_twl_stgy_restart_prog_early_wl_D
+  :: "nat twl_st_wl \<Rightarrow> nat twl_st_wl nres"
+where
+  \<open>cdcl_twl_stgy_restart_prog_early_wl_D S\<^sub>0 = do {
+    ebrk \<leftarrow> RES UNIV;
+    (ebrk, brk, T, n) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(_, brk, T, n). cdcl_twl_stgy_restart_abs_wl_D_inv S\<^sub>0 brk T n\<^esup>
+      (\<lambda>(ebrk, brk, _). \<not>brk \<and> \<not>ebrk)
+      (\<lambda>(_, brk, S, n).
+      do {
+        T \<leftarrow> unit_propagation_outer_loop_wl_D S;
+        (brk, T) \<leftarrow> cdcl_twl_o_prog_wl_D T;
+        (T, n) \<leftarrow> restart_prog_wl_D T n brk;
+        ebrk \<leftarrow> RES UNIV;
+        RETURN (ebrk, brk, T, n)
+      })
+      (ebrk, False, S\<^sub>0::nat twl_st_wl, 0);
+    if \<not>brk then do {
+      (brk, T, _) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(brk, T, n). cdcl_twl_stgy_restart_abs_wl_D_inv S\<^sub>0 brk T n\<^esup>
+	(\<lambda>(brk, _). \<not>brk)
+	(\<lambda>(brk, S, n).
+	do {
+	  T \<leftarrow> unit_propagation_outer_loop_wl_D S;
+	  (brk, T) \<leftarrow> cdcl_twl_o_prog_wl_D T;
+	  (T, n) \<leftarrow> restart_prog_wl_D T n brk;
+	  RETURN (brk, T, n)
+	})
+	(False, T::nat twl_st_wl, n);
+      RETURN T
+    }
+    else RETURN T
+  }\<close>
+
+
+lemma cdcl_twl_stgy_restart_prog_early_wl_D_cdcl_twl_stgy_restart_prog_early_wl:
+  \<open>(cdcl_twl_stgy_restart_prog_early_wl_D, cdcl_twl_stgy_restart_prog_early_wl) \<in>
+     {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st S) S} \<rightarrow>\<^sub>f
+     \<langle>{(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st S) S}\<rangle>nres_rel\<close>
+  unfolding uncurry_def cdcl_twl_stgy_restart_prog_early_wl_D_def
+    cdcl_twl_stgy_restart_prog_early_wl_def
+  apply (intro frefI nres_relI)
+  apply (refine_vcg
+      restart_prog_wl_D_restart_prog_wl[THEN fref_to_Down_curry2]
+      cdcl_twl_o_prog_wl_D_spec'[THEN fref_to_Down]
+      unit_propagation_outer_loop_wl_D_spec'[THEN fref_to_Down]
+      WHILEIT_refine[where R=\<open>bool_rel \<times>\<^sub>r bool_rel \<times>\<^sub>r {(S, T). (S, T) \<in> Id \<and>
+         literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st S) S} \<times>\<^sub>r nat_rel\<close>]
+      WHILEIT_refine[where R=\<open>bool_rel \<times>\<^sub>r {(S, T). (S, T) \<in> Id \<and>
+        literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st S) S} \<times>\<^sub>r nat_rel\<close>])
+  subgoal by auto
+  subgoal unfolding  cdcl_twl_stgy_restart_abs_wl_D_inv_def by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal unfolding  cdcl_twl_stgy_restart_abs_wl_D_inv_def by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  done
+
 
 end
 
