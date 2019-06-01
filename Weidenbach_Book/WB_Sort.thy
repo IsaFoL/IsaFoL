@@ -2,8 +2,7 @@
 
 
 theory WB_Sort
-  imports
-    Watched_Literals.WB_More_Refinement
+  imports WB_More_Refinement
 begin
 
 
@@ -547,7 +546,7 @@ proof -
       apply (auto simp add: sorted_sublist_wrt_def)
       apply (rewrite sublist_ext[where xs=xs])
       using assms by (auto simp add: sorted_sublist_wrt_def)
-    subgoal \<comment> \<open>hi' + 1 \<ge> hi\<close>
+    subgoal \<comment> \<open>\<^term>\<open>hi' + 1 \<ge> hi\<close>\<close>
       using assms by (auto simp add: sorted_sublist_wrt_le)
     done
 qed
@@ -882,7 +881,7 @@ proof -
 qed
 
 
-text \<open>In the 4th case, we have to show that the premise holds for (lo,p-1,xs'), in case \<not>p-1\<le>lo\<close>
+text \<open>In the 4th case, we have to show that the premise holds for \<^term>\<open>(lo,p-1,xs')\<close>, in case \<^term>\<open>\<not>p-1\<le>lo\<close>\<close>
 text \<open>Analogous to case 2.\<close>
 lemma quicksort_correct_case4:
   assumes
@@ -1207,14 +1206,14 @@ proof -
       subgoal
         using IH(2) by (auto simp add: quicksort_pre_def pre_def dest: mset_eq_setD)
 
-      text \<open>Termination case: (p-1 \<le> lo') and (hi' \<le> p+1); directly show postcondition\<close>
+	text \<open>Termination case: \<^term>\<open>(p-1 \<le> lo')\<close> and \<^term>\<open>(hi' \<le> p+1)\<close>; directly show postcondition\<close>
       subgoal unfolding partition_spec_def by (auto dest: mset_eq_setD)
       subgoal \<comment> \<open>Postcondition (after partition)\<close>
         apply -
         using IH(2) unfolding pre_def apply (simp, elim conjE, split prod.splits)
         using trans lin apply (rule quicksort_correct_case1) by auto
 
-      text \<open>Case (p-1 \<le> lo') and (hi' < p+1) (Only second recursive call)\<close>
+      text \<open>Case \<^term>\<open>(p-1 \<le> lo')\<close> and \<^term>\<open>(hi' < p+1)\<close> (Only second recursive call)\<close>
       subgoal
         apply (rule IH(1)[THEN order_trans])
 
@@ -1245,7 +1244,7 @@ proof -
         text \<open>Wellfoundness for first recursive call (easy)\<close>
         subgoal by (auto simp add: quicksort_pre_def partition_spec_def)
 
-        text \<open>Simplify some refinement suff\<dots>\<close>
+        text \<open>Simplify some refinement suff...\<close>
         apply (simp add: Misc.subset_Collect_conv ASSERT_leI, intro allI impI conjI, elim conjE)
         apply (rule ASSERT_leI)
         apply (simp_all add: Misc.subset_Collect_conv ASSERT_leI)
@@ -1505,13 +1504,13 @@ declare choose_pivot3_impl_code.refine[sepref_fr_rules]
 
 
 
-text \<open>Example instantiation for partition_main\<close>
+text \<open>Example instantiation for \<^term>\<open>partition_main\<close>\<close>
 definition partition_main_impl where
   \<open>partition_main_impl = partition_main (\<le>) id\<close>
 
 sepref_register partition_main_impl
 
-text \<open>Example instantiation code for partition_main\<close>
+text \<open>Example instantiation code for \<^term>\<open>partition_main\<close>\<close>
 sepref_definition partition_main_code
   is \<open>uncurry2 (partition_main_impl)\<close>
   :: \<open>nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a (arl_assn nat_assn)\<^sup>d \<rightarrow>\<^sub>a
