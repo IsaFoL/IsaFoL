@@ -159,6 +159,8 @@ fun divide_integer k l = fst (divmod_integer k l);
 
 fun divide_nat m n = Nat (divide_integer (integer_of_nat m) (integer_of_nat n));
 
+fun less_eq_nat m n = IntInf.<= (integer_of_nat m, integer_of_nat n);
+
 fun max A_ a b = (if less_eq A_ a b then b else a);
 
 fun minus_nat m n =
@@ -168,8 +170,6 @@ fun minus_nat m n =
 fun nat_of_integer k = Nat (max ord_integer (0 : IntInf.int) k);
 
 fun plus_nat m n = Nat (IntInf.+ (integer_of_nat m, integer_of_nat n));
-
-fun less_nat m n = IntInf.< (integer_of_nat m, integer_of_nat n);
 
 fun arl_get A_ = (fn (a, _) => nth A_ a);
 
@@ -186,15 +186,27 @@ fun choose_pivot3_impl_code x =
           val x_f = arl_get heap_nat ai x_b ();
           val x_h = arl_get heap_nat ai bi ();
         in
-          (if less_nat x_d x_f andalso less_nat x_f x_h orelse
-                less_nat x_h x_f andalso less_nat x_f x_d
+          (if less_eq_nat x_d x_f andalso less_eq_nat x_f x_h orelse
+                less_eq_nat x_h x_f andalso less_eq_nat x_f x_d
             then x_b
-            else (if less_nat x_d x_h andalso less_nat x_h x_f orelse
-                       less_nat x_f x_h andalso less_nat x_h x_d
+            else (if less_eq_nat x_d x_h andalso less_eq_nat x_h x_f orelse
+                       less_eq_nat x_f x_h andalso less_eq_nat x_h x_d
                    then bi else bia))
         end)
     end)
     x;
+
+fun heap_WHILET b f s =
+  (fn () =>
+    let
+      val bv = b s ();
+    in
+      (if bv then (fn f_ => fn () => f_ ((f s) ()) ()) (heap_WHILET b f)
+        else (fn () => s))
+        ()
+    end);
+
+fun less_nat m n = IntInf.< (integer_of_nat m, integer_of_nat n);
 
 val one_nat : nat = Nat (1 : IntInf.int);
 
@@ -214,41 +226,41 @@ in
   arl_set A_ x_b bi x ()
 end);
 
-fun less_eq_nat m n = IntInf.<= (integer_of_nat m, integer_of_nat n);
-
-fun imp_for i u f s =
-  (if less_eq_nat u i then (fn () => s)
-    else (fn () => let
-                     val x = f i s ();
-                   in
-                     imp_for (plus_nat i one_nat) u f x ()
-                   end));
+fun partition_main_code x =
+  (fn ai => fn bia => fn bi => fn () =>
+    let
+      val xa = arl_get heap_nat bi bia ();
+      val a =
+        heap_WHILET (fn (_, (a1a, _)) => (fn () => (less_nat a1a bia)))
+          (fn (a1, (a1a, a2a)) =>
+            (fn f_ => fn () => f_ ((arl_get heap_nat a2a a1a) ()) ())
+              (fn xaa =>
+                (if less_eq_nat xaa xa
+                  then (fn f_ => fn () => f_ ((arl_swap heap_nat a2a a1 a1a) ())
+                         ())
+                         (fn xb =>
+                           (fn () =>
+                             (plus_nat a1 one_nat, (plus_nat a1a one_nat, xb))))
+                  else (fn () => (a1, (plus_nat a1a one_nat, a2a))))))
+          (ai, (ai, bi)) ();
+    in
+      let
+        val (a1, (_, a2a)) = a;
+      in
+        (fn f_ => fn () => f_ ((arl_swap heap_nat a2a a1 bia) ()) ())
+          (fn x_b => (fn () => (x_b, a1)))
+      end
+        ()
+    end)
+    x;
 
 fun partition_between_code x =
   (fn ai => fn bia => fn bi => fn () =>
     let
       val xa = choose_pivot3_impl_code bi ai bia ();
-      val x_a = arl_swap heap_nat bi xa bia ();
-      val x_b = arl_get heap_nat x_a bia ();
-      val a =
-        imp_for ai bia
-          (fn xe => fn (a1, a2) =>
-            (fn f_ => fn () => f_ ((arl_get heap_nat a2 xe) ()) ())
-              (fn xb =>
-                (if less_nat xb x_b
-                  then (fn f_ => fn () => f_ ((arl_swap heap_nat a2 a1 xe) ())
-                         ())
-                         (fn x_h => (fn () => (plus_nat a1 one_nat, x_h)))
-                  else (fn () => (a1, a2)))))
-          (ai, x_a) ();
+      val xb = arl_swap heap_nat bi xa bia ();
     in
-      let
-        val (a1, a2) = a;
-      in
-        (fn f_ => fn () => f_ ((arl_swap heap_nat a2 a1 bia) ()) ())
-          (fn x_d => (fn () => (x_d, a1)))
-      end
-        ()
+      partition_main_code ai bia xb ()
     end)
     x;
 
@@ -256,22 +268,23 @@ fun quicksort_code_0 x =
   let
     val (a1, (a1a, a2a)) = x;
   in
-    (if less_eq_nat a1a a1 then (fn () => a2a)
-      else (fn () =>
-             let
-               val a = partition_between_code a1 a1a a2a ();
-             in
-               let
-                 val (a1b, a2b) = a;
-               in
-                 (fn f_ => fn () => f_
-                   ((quicksort_code_0 (a1, (minus_nat a2b one_nat, a1b))) ())
-                   ())
-                   (fn x_c =>
-                     quicksort_code_0 (plus_nat a2b one_nat, (a1a, x_c)))
-               end
-                 ()
-             end))
+    (fn () =>
+      let
+        val a = partition_between_code a1 a1a a2a ();
+      in
+        let
+          val (a1b, a2b) = a;
+        in
+          (fn f_ => fn () => f_
+            ((if less_eq_nat (minus_nat a2b one_nat) a1 then (fn () => a1b)
+               else quicksort_code_0 (a1, (minus_nat a2b one_nat, a1b)))
+            ()) ())
+            (fn x_b =>
+              (if less_eq_nat a1a (plus_nat a2b one_nat) then (fn () => x_b)
+                else quicksort_code_0 (plus_nat a2b one_nat, (a1a, x_b))))
+        end
+          ()
+      end)
   end;
 
 fun quicksort_code x =

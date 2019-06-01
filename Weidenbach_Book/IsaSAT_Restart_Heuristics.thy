@@ -1,6 +1,6 @@
 theory IsaSAT_Restart_Heuristics
   imports Watched_Literals_Watch_List_Domain_Restart IsaSAT_Setup IsaSAT_VMTF
-    WB_Sort
+    Watched_Literals.WB_Sort
 begin
 
 text \<open>
@@ -51,13 +51,13 @@ definition twl_st_heur_restart :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl)
 
 
 definition clause_score_ordering where
-  \<open>clause_score_ordering = (\<lambda>(lbd, act) (lbd', act'). lbd < lbd' \<or> (lbd = lbd' \<and> act = act'))\<close>
+  \<open>clause_score_ordering = (\<lambda>(lbd, act) (lbd', act'). lbd < lbd' \<or> (lbd = lbd' \<and> act \<le> act'))\<close>
 
 lemma clause_score_ordering_hnr[sepref_fr_rules]:
   \<open>(uncurry (return oo clause_score_ordering), uncurry (RETURN oo clause_score_ordering)) \<in>
     (uint32_nat_assn *a uint32_nat_assn)\<^sup>k *\<^sub>a (uint32_nat_assn *a uint32_nat_assn)\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
   by sepref_to_hoare (sep_auto simp: clause_score_ordering_def uint32_nat_rel_def br_def
-      nat_of_uint32_less_iff)
+      nat_of_uint32_less_iff nat_of_uint32_le_iff)
 
 lemma unbounded_id: \<open>unbounded (id :: nat \<Rightarrow> nat)\<close>
   by (auto simp: bounded_def) presburger
@@ -800,14 +800,14 @@ lemma sort_clauses_by_score_reorder:
   \<open>quicksort_clauses_by_score arena vdom \<le> SPEC(\<lambda>vdom'. mset vdom = mset vdom')\<close>
   unfolding quicksort_clauses_by_score_def
   by (rule full_quicksort_ref_full_quicksort[THEN fref_to_Down, THEN order_trans])
-    (auto simp add: reorder_remove_def
-     intro: full_quicksort[THEN order_trans])
+    (auto simp add: reorder_remove_def clause_score_ordering_def
+     intro!: full_quicksort_correct[THEN order_trans])
 
 lemma sort_vdom_heur_reorder_vdom_wl:
   \<open>(sort_vdom_heur, reorder_vdom_wl) \<in> twl_st_heur_restart \<rightarrow>\<^sub>f \<langle>twl_st_heur_restart\<rangle>nres_rel\<close>
 proof -
   show ?thesis
-    unfolding  reorder_vdom_wl_def sort_vdom_heur_def
+    unfolding reorder_vdom_wl_def sort_vdom_heur_def
     apply (intro frefI nres_relI)
     apply refine_rcg
     apply (subst assert_bind_spec_conv, intro conjI)
@@ -840,17 +840,36 @@ lemma sort_clauses_by_score_invI:
        mset b = mset a2' \<Longrightarrow> valid_sort_clause_score_pre a a2'\<close>
   using mset_eq_setD unfolding valid_sort_clause_score_pre_def by blast
 
+definition partition_main_clause where
+  \<open>partition_main_clause arena = partition_main clause_score_ordering (clause_score_extract arena)\<close>
+
+sepref_definition (in -) partition_main_clause_code
+  is \<open>uncurry3 partition_main_clause\<close>
+  :: \<open>[\<lambda>(((arena, i), j), vdom). valid_sort_clause_score_pre arena vdom]\<^sub>a
+      arena_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a vdom_assn\<^sup>d \<rightarrow> vdom_assn *a nat_assn\<close>
+  supply insort_inner_clauses_by_score_invI[intro]
+    partition_main_inv_def[simp]
+  unfolding partition_main_clause_def partition_between_ref_def
+    partition_main_def
+  by sepref
+
+sepref_register partition_main_clause_code
+declare partition_main_clause_code.refine[sepref_fr_rules]
 definition partition_clause where
   \<open>partition_clause arena = partition_between_ref clause_score_ordering  (clause_score_extract arena)\<close>
 
+lemma valid_sort_clause_score_pre_swap:
+  \<open>valid_sort_clause_score_pre a b \<Longrightarrow> x < length b \<Longrightarrow>
+       ba < length b \<Longrightarrow> valid_sort_clause_score_pre a (swap b x ba)\<close>
+  by (auto simp: valid_sort_clause_score_pre_def)
 
 sepref_definition (in -) partition_clause_code
   is \<open>uncurry3 partition_clause\<close>
   :: \<open>[\<lambda>(((arena, i), j), vdom). valid_sort_clause_score_pre arena vdom]\<^sub>a
       arena_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a vdom_assn\<^sup>d \<rightarrow> vdom_assn *a nat_assn\<close>
-  supply insort_inner_clauses_by_score_invI[intro]
+  supply insort_inner_clauses_by_score_invI[intro] valid_sort_clause_score_pre_swap[intro]
   unfolding partition_clause_def partition_between_ref_def
-    choose_pivot3_def
+    choose_pivot3_def partition_main_clause_def[symmetric]
   by sepref
 
 declare partition_clause_code.refine[sepref_fr_rules]

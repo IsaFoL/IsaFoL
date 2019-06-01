@@ -1,5 +1,5 @@
 theory IsaSAT_VMTF
-imports IsaSAT_Setup WB_Sort
+imports IsaSAT_Setup Watched_Literals.WB_Sort
 begin
 
 
@@ -188,11 +188,18 @@ sepref_definition vmtf_enqueue_fast_code
 declare vmtf_enqueue_fast_code.refine[sepref_fr_rules]
 
 
-definition partition_vmtf_nth :: \<open>nat_vmtf_node list \<Rightarrow>  nat \<Rightarrow> nat \<Rightarrow> nat list \<Rightarrow> (nat list \<times> nat) nres\<close> where
-  \<open>partition_vmtf_nth ns = partition_between_ref (<) (\<lambda>n. stamp (ns ! n))\<close>
+definition partition_vmtf_nth :: \<open>nat_vmtf_node list  \<Rightarrow>  nat \<Rightarrow> nat \<Rightarrow> nat list \<Rightarrow> (nat list \<times> nat) nres\<close> where
+  \<open>partition_vmtf_nth ns = partition_main (\<le>) (\<lambda>n. stamp (ns ! n))\<close>
+
+definition partition_between_ref_vmtf :: \<open>nat_vmtf_node list \<Rightarrow>  nat \<Rightarrow> nat \<Rightarrow> nat list \<Rightarrow> (nat list \<times> nat) nres\<close> where
+  \<open>partition_between_ref_vmtf ns = partition_between_ref (\<le>) (\<lambda>n. stamp (ns ! n))\<close>
 
 definition quicksort_vmtf_nth :: \<open>nat_vmtf_node list \<times> 'c \<Rightarrow> nat list \<Rightarrow> nat list nres\<close> where
-  \<open>quicksort_vmtf_nth = (\<lambda>(ns, _). full_quicksort_ref (<) (\<lambda>n. stamp (ns ! n)))\<close>
+  \<open>quicksort_vmtf_nth = (\<lambda>(ns, _). full_quicksort_ref (\<le>) (\<lambda>n. stamp (ns ! n)))\<close>
+
+definition quicksort_vmtf_nth_ref:: \<open>nat_vmtf_node list \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat list \<Rightarrow> nat list nres\<close> where
+  \<open>quicksort_vmtf_nth_ref ns a b c = 
+     quicksort_ref (\<le>) (\<lambda>n. stamp (ns ! n)) (a, b, c)\<close>
 
 lemma (in -) partition_vmtf_nth_code_helper:
   assumes \<open>\<forall>x\<in>set ba. x < length a\<close>  and
@@ -211,16 +218,16 @@ lemma [sepref_fr_rules]:
    (sep_auto simp: uint32_nat_rel_def br_def nat_of_uint32_div)
 
 lemma partition_vmtf_nth_code_helper2:
-  \<open>       ba < length b \<Longrightarrow>(bia, ba) \<in> uint32_nat_rel \<Longrightarrow> 
+  \<open>ba < length b \<Longrightarrow>(bia, ba) \<in> uint32_nat_rel \<Longrightarrow> 
        (aa, (ba - bb) div 2) \<in> uint32_nat_rel \<Longrightarrow>
        (ab, bb) \<in> uint32_nat_rel \<Longrightarrow> bb + (ba - bb) div 2 \<le> uint_max\<close>
-   apply (auto simp: uint32_nat_rel_def br_def
-     )
-  by (metis Nat.le_diff_conv2 ab_semigroup_add_class.add.commute diff_le_mono div_le_dividend le_trans nat_of_uint32_le_uint32_max)
+   apply (auto simp: uint32_nat_rel_def br_def)
+  by (metis Nat.le_diff_conv2 ab_semigroup_add_class.add.commute diff_le_mono div_le_dividend
+   le_trans nat_of_uint32_le_uint32_max)
 
 
 lemma partition_vmtf_nth_code_helper3:
-  \<open>   \<forall>x\<in>set b. x < length a \<Longrightarrow>
+  \<open>\<forall>x\<in>set b. x < length a \<Longrightarrow>
        x'e < length a2' \<Longrightarrow>
        mset a2' = mset b \<Longrightarrow>
        a2' ! x'e < length a\<close>
@@ -229,16 +236,53 @@ lemma partition_vmtf_nth_code_helper3:
 (* TODO uint uint32_nat_assn*)
 sepref_definition partition_vmtf_nth_code
    is \<open>uncurry3 partition_vmtf_nth\<close>
-   :: \<open>[\<lambda>((((ns), _), hi), xs). (\<forall>x\<in>set xs. x < length ns)]\<^sub>a
+   :: \<open>[\<lambda>(((ns, _), hi), xs). (\<forall>x\<in>set xs. x < length ns)]\<^sub>a
   (array_assn vmtf_node_assn)\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a (arl_assn uint32_nat_assn)\<^sup>d \<rightarrow>
   arl_assn uint32_nat_assn *a nat_assn\<close>
   unfolding partition_vmtf_nth_def insert_sort_inner_def fast_minus_def[symmetric]
-    partition_between_ref_def choose_pivot3_def
+    partition_main_def choose_pivot3_def
   supply [[goals_limit = 1]]
-  supply partition_vmtf_nth_code_helper3[intro]
+  supply partition_vmtf_nth_code_helper3[intro] partition_main_inv_def[simp]
   by sepref
 
 declare partition_vmtf_nth_code.refine[sepref_fr_rules]
+
+sepref_register partition_between_ref
+
+sepref_definition (in -) partition_between_ref_vmtf_code
+   is \<open>uncurry3 partition_between_ref_vmtf\<close>
+   :: \<open>[\<lambda>(((vm), _), remove). (\<forall>x\<in>#mset remove. x < length (fst vm)) \<and> length remove \<le> uint32_max]\<^sub>a
+      (array_assn vmtf_node_assn)\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a (arl_assn uint32_nat_assn)\<^sup>d  \<rightarrow>
+       arl_assn uint32_nat_assn *a nat_assn\<close>
+  unfolding quicksort_vmtf_nth_def insert_sort_def partition_vmtf_nth_def[symmetric]
+    quicksort_vmtf_nth_ref_def List.null_def quicksort_ref_def
+    length_0_conv[symmetric] length_uint32_nat_def[symmetric]
+    zero_uint32_nat_def[symmetric] partition_between_ref_vmtf_def
+    partition_between_ref_def
+   partition_vmtf_nth_def[symmetric] choose_pivot3_def
+  by sepref
+
+sepref_register partition_between_ref_vmtf quicksort_vmtf_nth_ref
+declare partition_between_ref_vmtf_code.refine[sepref_fr_rules]
+
+sepref_definition (in -) quicksort_vmtf_nth_ref_code
+   is \<open>uncurry3 quicksort_vmtf_nth_ref\<close>
+   :: \<open>[\<lambda>((vm, _), remove). (\<forall>x\<in>#mset remove. x < length (fst vm)) \<and> length remove \<le> uint32_max]\<^sub>a
+      (array_assn vmtf_node_assn)\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a (arl_assn uint32_nat_assn)\<^sup>d  \<rightarrow>
+       arl_assn uint32_nat_assn\<close>
+  unfolding quicksort_vmtf_nth_def insert_sort_def partition_vmtf_nth_def[symmetric]
+    quicksort_vmtf_nth_ref_def List.null_def quicksort_ref_def
+    length_0_conv[symmetric] length_uint32_nat_def[symmetric]
+    zero_uint32_nat_def[symmetric]
+   partition_vmtf_nth_def[symmetric]
+   partition_between_ref_vmtf_def[symmetric]
+   partition_vmtf_nth_def[symmetric]
+  supply [[goals_limit = 1]]
+  supply mset_eq_setD[dest] mset_eq_length[dest]
+    arl_length_hnr[sepref_fr_rules]
+  by sepref
+
+declare quicksort_vmtf_nth_ref_code.refine[sepref_fr_rules]
 
 sepref_definition (in -) quicksort_vmtf_nth_code
    is \<open>uncurry quicksort_vmtf_nth\<close>
@@ -246,10 +290,12 @@ sepref_definition (in -) quicksort_vmtf_nth_code
       vmtf_conc\<^sup>k *\<^sub>a (arl_assn uint32_nat_assn)\<^sup>d  \<rightarrow>
        arl_assn uint32_nat_assn\<close>
   unfolding quicksort_vmtf_nth_def insert_sort_def partition_vmtf_nth_def[symmetric]
-    (*length_uint32_nat_def[symmetric] one_uint32_nat_def[symmetric]*)
-    full_quicksort_ref_def quicksort_ref_def List.null_def
+    full_quicksort_ref_def List.null_def
+    length_0_conv[symmetric]
+    quicksort_vmtf_nth_ref_def[symmetric]
   supply [[goals_limit = 1]]
   supply mset_eq_setD[dest] mset_eq_length[dest]
+    arl_length_hnr[sepref_fr_rules]
   by sepref
 
 declare quicksort_vmtf_nth_code.refine[sepref_fr_rules]
@@ -328,22 +374,31 @@ sepref_definition vmtf_en_dequeue_fast_code
 declare vmtf_en_dequeue_fast_code.refine[sepref_fr_rules]
 
 lemma insert_sort_reorder_remove:
-  \<open>(full_quicksort_ref R f, reorder_remove vm) \<in> \<langle>Id\<rangle>list_rel \<rightarrow>\<^sub>f \<langle>Id\<rangle> nres_rel\<close>
+  assumes trans: \<open>\<And> x y z. \<lbrakk>R (h x) (h y); R (h y) (h z)\<rbrakk> \<Longrightarrow> R (h x) (h z)\<close> and lin: \<open>\<And>x y. R (h x) (h y) \<or> R (h y) (h x)\<close>
+  shows \<open>(full_quicksort_ref R h, reorder_remove vm) \<in> \<langle>Id\<rangle>list_rel \<rightarrow>\<^sub>f \<langle>Id\<rangle> nres_rel\<close>
 proof -
   show ?thesis
     apply (intro frefI nres_relI)
     apply (rule full_quicksort_ref_full_quicksort[THEN fref_to_Down, THEN order_trans])
+    using assms apply fast
+    using assms apply fast
     apply fast
-    apply assumption
-    apply (auto 5 5 simp: reorder_remove_def intro: full_quicksort[THEN order_trans])
+     apply assumption
+    using assms
+    apply (auto 5 5 simp: reorder_remove_def intro!: full_quicksort_correct[THEN order_trans])
     done
 qed
 
 lemma quicksort_vmtf_nth_reorder:
    \<open>(uncurry quicksort_vmtf_nth, uncurry reorder_remove) \<in>
       Id \<times>\<^sub>r \<langle>Id\<rangle>list_rel \<rightarrow>\<^sub>f \<langle>Id\<rangle> nres_rel\<close>
-  using insert_sort_reorder_remove[unfolded fref_def nres_rel_def]
-  by (intro frefI nres_relI) (fastforce simp: quicksort_vmtf_nth_def)
+  apply (intro frefI nres_relI)
+  subgoal for x y
+    using insert_sort_reorder_remove[unfolded fref_def nres_rel_def, of
+     \<open>(\<le>)\<close> \<open>(\<lambda>n. stamp (fst (fst y) ! n) :: nat)\<close> \<open>fst y\<close>]
+    by (cases x, cases y)
+      (fastforce simp: quicksort_vmtf_nth_def uncurry_def)
+  done
 
 lemma quicksort_vmtf_nth_code_reorder_remove[sepref_fr_rules]:
    \<open>(uncurry quicksort_vmtf_nth_code, uncurry reorder_remove) \<in>
