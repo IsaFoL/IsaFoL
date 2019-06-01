@@ -567,7 +567,7 @@ fun blit A_ src si dst di len =
     array_blit src (integer_of_nat
                      si) dst (integer_of_nat di) (integer_of_nat len));
 
-val version : string = "ee9b81f8";
+val version : string = "b6981189";
 
 fun heap_WHILET b f s =
   (fn () =>
@@ -2928,7 +2928,41 @@ fun clause_score_extract_code x =
 
 fun clause_score_ordering (A1_, A2_) B_ =
   (fn (lbd, act) => fn (lbda, acta) =>
-    less A2_ lbd lbda orelse eq A1_ lbd lbda andalso eq B_ act acta);
+    less A2_ lbd lbda orelse eq A1_ lbd lbda andalso less_eq B_ act acta);
+
+fun partition_main_clause_code x =
+  (fn ai => fn bib => fn bia => fn bi => fn () =>
+    let
+      val xa = arl_get heap_nat bi bia ();
+      val xb = clause_score_extract_code ai xa ();
+      val a =
+        heap_WHILET (fn (_, (a1a, _)) => (fn () => (less_nat a1a bia)))
+          (fn (a1, (a1a, a2a)) =>
+            (fn f_ => fn () => f_ ((arl_get heap_nat a2a a1a) ()) ())
+              (fn xaa =>
+                (fn f_ => fn () => f_ ((clause_score_extract_code ai xaa) ())
+                  ())
+                  (fn xab =>
+                    (if clause_score_ordering (equal_uint32, ord_uint32)
+                          ord_uint32 xab xb
+                      then (fn f_ => fn () => f_ ((arl_swap heap_nat a2a a1 a1a)
+                             ()) ())
+                             (fn xc =>
+                               (fn () =>
+                                 (plus_nat a1 one_nat,
+                                   (plus_nat a1a one_nat, xc))))
+                      else (fn () => (a1, (plus_nat a1a one_nat, a2a)))))))
+          (bib, (bib, bi)) ();
+    in
+      let
+        val (a1, (_, a2a)) = a;
+      in
+        (fn f_ => fn () => f_ ((arl_swap heap_nat a2a a1 bia) ()) ())
+          (fn x_b => (fn () => (x_b, a1)))
+      end
+        ()
+    end)
+    x;
 
 fun sgn_integer k =
   (if ((k : IntInf.int) = (0 : IntInf.int)) then (0 : IntInf.int)
@@ -2958,14 +2992,6 @@ fun divide_integer k l = fst (divmod_integer k l);
 
 fun divide_nat m n = Nat (divide_integer (integer_of_nat m) (integer_of_nat n));
 
-fun imp_for i u f s =
-  (if less_eq_nat u i then (fn () => s)
-    else (fn () => let
-                     val x = f i s ();
-                   in
-                     imp_for (plus_nat i one_nat) u f x ()
-                   end));
-
 fun partition_clause_code x =
   (fn ai => fn bib => fn bia => fn bi => fn () =>
     let
@@ -2993,46 +3019,24 @@ fun partition_clause_code x =
                                 (fn x_h =>
                                   (fn () =>
                                     (if clause_score_ordering
-  (equal_uint32, ord_uint32) equal_uint32 x_d x_f andalso
-  clause_score_ordering (equal_uint32, ord_uint32) equal_uint32 x_f x_h orelse
-  clause_score_ordering (equal_uint32, ord_uint32) equal_uint32 x_h x_f andalso
-    clause_score_ordering (equal_uint32, ord_uint32) equal_uint32 x_f x_d
+  (equal_uint32, ord_uint32) ord_uint32 x_d x_f andalso
+  clause_score_ordering (equal_uint32, ord_uint32) ord_uint32 x_f x_h orelse
+  clause_score_ordering (equal_uint32, ord_uint32) ord_uint32 x_h x_f andalso
+    clause_score_ordering (equal_uint32, ord_uint32) ord_uint32 x_f x_d
                                       then x_b
                                       else (if clause_score_ordering
-         (equal_uint32, ord_uint32) equal_uint32 x_d x_h andalso
-         clause_score_ordering (equal_uint32, ord_uint32) equal_uint32 x_h
+         (equal_uint32, ord_uint32) ord_uint32 x_d x_h andalso
+         clause_score_ordering (equal_uint32, ord_uint32) ord_uint32 x_h
            x_f orelse
-         clause_score_ordering (equal_uint32, ord_uint32) equal_uint32 x_f
+         clause_score_ordering (equal_uint32, ord_uint32) ord_uint32 x_f
            x_h andalso
-           clause_score_ordering (equal_uint32, ord_uint32) equal_uint32 x_h x_d
+           clause_score_ordering (equal_uint32, ord_uint32) ord_uint32 x_h x_d
      then bia else bib)))))))))
         end
           ();
-      val x_a = arl_swap heap_nat bi xa bia ();
-      val xb = arl_get heap_nat x_a bia ();
-      val x_b = clause_score_extract_code ai xb ();
-      val a =
-        imp_for bib bia
-          (fn xe => fn (a1, a2) =>
-            (fn f_ => fn () => f_ ((arl_get heap_nat a2 xe) ()) ())
-              (fn xc =>
-                (fn f_ => fn () => f_ ((clause_score_extract_code ai xc) ()) ())
-                  (fn xd =>
-                    (if clause_score_ordering (equal_uint32, ord_uint32)
-                          equal_uint32 xd x_b
-                      then (fn f_ => fn () => f_ ((arl_swap heap_nat a2 a1 xe)
-                             ()) ())
-                             (fn x_h => (fn () => (plus_nat a1 one_nat, x_h)))
-                      else (fn () => (a1, a2))))))
-          (bib, x_a) ();
+      val xb = arl_swap heap_nat bi xa bia ();
     in
-      let
-        val (a1, a2) = a;
-      in
-        (fn f_ => fn () => f_ ((arl_swap heap_nat a2 a1 bia) ()) ())
-          (fn x_d => (fn () => (x_d, a1)))
-      end
-        ()
+      partition_main_clause_code ai bib bia xb ()
     end)
     x;
 
@@ -3040,24 +3044,25 @@ fun sort_clauses_by_score_code_0 ai x =
   let
     val (a1, (a1a, a2a)) = x;
   in
-    (if less_eq_nat a1a a1 then (fn () => a2a)
-      else (fn () =>
-             let
-               val a = partition_clause_code ai a1 a1a a2a ();
-             in
-               let
-                 val (a1b, a2b) = a;
-               in
-                 (fn f_ => fn () => f_
-                   ((sort_clauses_by_score_code_0 ai
+    (fn () =>
+      let
+        val a = partition_clause_code ai a1 a1a a2a ();
+      in
+        let
+          val (a1b, a2b) = a;
+        in
+          (fn f_ => fn () => f_
+            ((if less_eq_nat (minus_nata a2b one_nat) a1 then (fn () => a1b)
+               else sort_clauses_by_score_code_0 ai
                       (a1, (minus_nata a2b one_nat, a1b)))
-                   ()) ())
-                   (fn x_d =>
-                     sort_clauses_by_score_code_0 ai
-                       (plus_nat a2b one_nat, (a1a, x_d)))
-               end
-                 ()
-             end))
+            ()) ())
+            (fn x_c =>
+              (if less_eq_nat a1a (plus_nat a2b one_nat) then (fn () => x_c)
+                else sort_clauses_by_score_code_0 ai
+                       (plus_nat a2b one_nat, (a1a, x_c))))
+        end
+          ()
+      end)
   end;
 
 fun arl_is_empty A_ = (fn (_, n) => (fn () => (equal_nat n zero_nata)));
@@ -5095,6 +5100,14 @@ fun isa_vmtf_mark_to_rescore_code x =
     end)
     x;
 
+fun imp_for i u f s =
+  (if less_eq_nat u i then (fn () => s)
+    else (fn () => let
+                     val x = f i s ();
+                   in
+                     imp_for (plus_nat i one_nat) u f x ()
+                   end));
+
 fun vmtf_mark_to_rescore_clause_fast_code x =
   (fn ai => fn bia => fn bi => fn () =>
     let
@@ -5342,11 +5355,45 @@ end)
 fun partition_vmtf_nth_code x =
   (fn ai => fn bib => fn bia => fn bi => fn () =>
     let
+      val xa = arl_get heap_uint32 bi bia ();
+      val xb = nth_u_code (heap_vmtf_node heap_uint32 heap_uint64) ai xa ();
+      val a =
+        heap_WHILET (fn (_, (a1a, _)) => (fn () => (less_nat a1a bia)))
+          (fn (a1, (a1a, a2a)) =>
+            (fn f_ => fn () => f_ ((arl_get heap_uint32 a2a a1a) ()) ())
+              (fn xaa =>
+                (fn f_ => fn () => f_
+                  ((nth_u_code (heap_vmtf_node heap_uint32 heap_uint64) ai xaa)
+                  ()) ())
+                  (fn xab =>
+                    (if Uint64.less_eq (stamp xab) (stamp xb)
+                      then (fn f_ => fn () => f_
+                             ((arl_swap heap_uint32 a2a a1 a1a) ()) ())
+                             (fn xc =>
+                               (fn () =>
+                                 (plus_nat a1 one_nat,
+                                   (plus_nat a1a one_nat, xc))))
+                      else (fn () => (a1, (plus_nat a1a one_nat, a2a)))))))
+          (bib, (bib, bi)) ();
+    in
+      let
+        val (a1, (_, a2a)) = a;
+      in
+        (fn f_ => fn () => f_ ((arl_swap heap_uint32 a2a a1 bia) ()) ())
+          (fn x_b => (fn () => (x_b, a1)))
+      end
+        ()
+    end)
+    x;
+
+fun partition_between_ref_vmtf_code x =
+  (fn ai => fn bib => fn bia => fn bi => fn () =>
+    let
       val xa =
         let
           val x_b =
             plus_nat bib
-              (divide_nat (fast_minus_nat bia bib)
+              (divide_nat (minus_nata bia bib)
                 (nat_of_integer (2 : IntInf.int)));
         in
           (fn f_ => fn () => f_ ((arl_get heap_uint32 bi bib) ()) ())
@@ -5381,69 +5428,52 @@ fun partition_vmtf_nth_code x =
 val x_h = stamp xf;
                                       in
 (fn () =>
-  (if Uint64.less x_d x_f andalso Uint64.less x_f x_h orelse
-        Uint64.less x_h x_f andalso Uint64.less x_f x_d
+  (if Uint64.less_eq x_d x_f andalso Uint64.less_eq x_f x_h orelse
+        Uint64.less_eq x_h x_f andalso Uint64.less_eq x_f x_d
     then x_b
-    else (if Uint64.less x_d x_h andalso Uint64.less x_h x_f orelse
-               Uint64.less x_f x_h andalso Uint64.less x_h x_d
+    else (if Uint64.less_eq x_d x_h andalso Uint64.less_eq x_h x_f orelse
+               Uint64.less_eq x_f x_h andalso Uint64.less_eq x_h x_d
            then bia else bib)))
                                       end))
                             end))
                   end))
         end
           ();
-      val x_a = arl_swap heap_uint32 bi xa bia ();
-      val xb = arl_get heap_uint32 x_a bia ();
-      val xc = nth_u_code (heap_vmtf_node heap_uint32 heap_uint64) ai xb ();
-      val a =
-        imp_for bib bia
-          (fn xe => fn (a1, a2) =>
-            (fn f_ => fn () => f_ ((arl_get heap_uint32 a2 xe) ()) ())
-              (fn xaa =>
-                (fn f_ => fn () => f_
-                  ((nth_u_code (heap_vmtf_node heap_uint32 heap_uint64) ai xaa)
-                  ()) ())
-                  (fn xab =>
-                    (if Uint64.less (stamp xab) (stamp xc)
-                      then (fn f_ => fn () => f_
-                             ((arl_swap heap_uint32 a2 a1 xe) ()) ())
-                             (fn x_h => (fn () => (plus_nat a1 one_nat, x_h)))
-                      else (fn () => (a1, a2))))))
-          (bib, x_a) ();
+      val xb = arl_swap heap_uint32 bi xa bia ();
     in
-      let
-        val (a1, a2) = a;
-      in
-        (fn f_ => fn () => f_ ((arl_swap heap_uint32 a2 a1 bia) ()) ())
-          (fn x_d => (fn () => (x_d, a1)))
-      end
-        ()
+      partition_vmtf_nth_code ai bib bia xb ()
     end)
     x;
 
-fun quicksort_vmtf_nth_code_0 a1 x =
+fun quicksort_vmtf_nth_ref_code_0 ai x =
   let
-    val (a1a, (a1b, a2b)) = x;
+    val (a1, (a1a, a2a)) = x;
   in
-    (if less_eq_nat a1b a1a then (fn () => a2b)
-      else (fn () =>
-             let
-               val a = partition_vmtf_nth_code a1 a1a a1b a2b ();
-             in
-               let
-                 val (a1c, a2c) = a;
-               in
-                 (fn f_ => fn () => f_
-                   ((quicksort_vmtf_nth_code_0 a1
-                      (a1a, (minus_nata a2c one_nat, a1c)))
-                   ()) ())
-                   (fn x_d =>
-                     quicksort_vmtf_nth_code_0 a1
-                       (plus_nat a2c one_nat, (a1b, x_d)))
-               end
-                 ()
-             end))
+    (fn () =>
+      let
+        val a = partition_between_ref_vmtf_code ai a1 a1a a2a ();
+      in
+        let
+          val (a1b, a2b) = a;
+        in
+          (fn f_ => fn () => f_
+            ((if less_eq_nat (minus_nata a2b one_nat) a1 then (fn () => a1b)
+               else quicksort_vmtf_nth_ref_code_0 ai
+                      (a1, (minus_nata a2b one_nat, a1b)))
+            ()) ())
+            (fn x_b =>
+              (if less_eq_nat a1a (plus_nat a2b one_nat) then (fn () => x_b)
+                else quicksort_vmtf_nth_ref_code_0 ai
+                       (plus_nat a2b one_nat, (a1a, x_b))))
+        end
+          ()
+      end)
   end;
+
+fun quicksort_vmtf_nth_ref_code x =
+  (fn ai => fn bib => fn bia => fn bi =>
+    quicksort_vmtf_nth_ref_code_0 ai (bib, (bia, bi)))
+    x;
 
 fun quicksort_vmtf_nth_code x =
   (fn ai => fn bi =>
@@ -5452,13 +5482,13 @@ fun quicksort_vmtf_nth_code x =
     in
       (fn () =>
         let
-          val xa = arl_is_empty heap_uint32 bi ();
+          val xa = arl_length heap_uint32 bi ();
         in
-          (if xa then (fn () => bi)
+          (if equal_nat xa zero_nata then (fn () => bi)
             else (fn f_ => fn () => f_ ((arl_length heap_uint32 bi) ()) ())
                    (fn xb =>
-                     quicksort_vmtf_nth_code_0 a1
-                       (zero_nata, (minus_nata xb one_nat, bi))))
+                     quicksort_vmtf_nth_ref_code a1 zero_nata
+                       (minus_nata xb one_nat) bi))
             ()
         end)
     end)
