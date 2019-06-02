@@ -1,6 +1,6 @@
 theory Watched_Literals_List_Restart
   imports Watched_Literals.Watched_Literals_List Watched_Literals_Algorithm_Restart
-     Watched_Literals.Array_UInt
+     Watched_Literals.Array_UInt "Weidenbach_Book_Base.Explorer"
 begin
 
 text \<open>
@@ -640,6 +640,12 @@ where
   \<open>restart_abs_l S n brk = do {
      ASSERT(restart_abs_l_pre S brk);
      b \<leftarrow> restart_required_l S n;
+     b2 \<leftarrow> SPEC (\<lambda>(_ ::bool). True);
+     if b \<and> b2 \<and> \<not>brk then do {
+       T \<leftarrow> SPEC(\<lambda>T. cdcl_twl_restart_l S T);
+       RETURN (T, n + 1)
+     }
+     else
      if b \<and> \<not>brk then do {
        T \<leftarrow> SPEC(\<lambda>T. cdcl_twl_restart_l S T);
        RETURN (T, n + 1)
@@ -675,9 +681,14 @@ lemma restart_abs_l_restart_prog:
      unfolding restart_abs_l_pre_def
      by (rule exI[of _ \<open>fst (fst (Snb'))\<close>]) simp
     subgoal by simp
-    subgoal by simp \<comment> \<open>If condition\<close>
+    subgoal by auto  \<comment> \<open>If condition\<close>
     subgoal by simp
     subgoal by simp
+    subgoal unfolding restart_prog_pre_def by meson
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
     subgoal unfolding restart_prog_pre_def by meson
     subgoal by auto
     subgoal by auto
@@ -3029,6 +3040,15 @@ lemma rtranclp_GC_remap_ran_m_no_new_map:
         intro: GC_remap_ran_m_lookup_kept GC_remap_ran_m_no_lost)
   done
 
+lemma rtranclp_GC_remap_learned_clss_lD:
+  \<open>GC_remap\<^sup>*\<^sup>* (N, x, m) (N', x', m') \<Longrightarrow> learned_clss_l N + learned_clss_l m  = learned_clss_l N'  + learned_clss_l m'\<close>
+  by (induction rule: rtranclp_induct[of r \<open>(_, _, _)\<close> \<open>(_, _, _)\<close>, split_format(complete), of for r])
+    (auto dest: GC_remap_learned_clss_l_old_new)
+
+lemma rtranclp_GC_remap_learned_clss_l:
+  \<open>GC_remap\<^sup>*\<^sup>* (x1a, Map.empty, fmempty) (fmempty, m, x1ad) \<Longrightarrow> learned_clss_l x1ad = learned_clss_l x1a\<close>
+  by (auto dest!: rtranclp_GC_remap_learned_clss_lD[of _ _ _ _ _ _])
+
 lemma remap_cons2:
   assumes
       \<open>C' \<notin># dom_m new\<close> and
@@ -3511,8 +3531,17 @@ lemma cdcl_twl_local_restart_l_spec0_cdcl_twl_local_restart_l_spec:
     cdcl_twl_local_restart_l_spec_def
     by refine_vcg (auto simp: RES_RETURN_RES2)
 
+
+definition cdcl_twl_full_restart_l_GC_prog_pre
+  :: \<open>'v twl_st_l \<Rightarrow> bool\<close>
+where
+  \<open>cdcl_twl_full_restart_l_GC_prog_pre S \<longleftrightarrow>
+   (\<exists>T. (S, T) \<in> twl_st_l None \<and> twl_struct_invs T \<and> twl_list_invs S \<and>
+      get_conflict T = None)\<close>
+
 definition cdcl_twl_full_restart_l_GC_prog where
 \<open>cdcl_twl_full_restart_l_GC_prog S = do {
+   ASSERT(cdcl_twl_full_restart_l_GC_prog_pre S);
     S' \<leftarrow> cdcl_twl_local_restart_l_spec0 S;
     T \<leftarrow> remove_one_annot_true_clause_imp S';
     ASSERT(mark_to_delete_clauses_l_pre T);
@@ -3856,6 +3885,9 @@ proof -
     apply (rule alt_def)
     apply refine_rcg
     subgoal
+      using assms unfolding cdcl_twl_full_restart_l_GC_prog_pre_def
+      by fastforce
+    subgoal
       by (rule cdcl_twl_local_restart_l_spec0_cdcl_twl_local_restart_l_spec[THEN order_trans],
         subst (3) Down_id_eq[symmetric],
 	rule order_trans,
@@ -3886,7 +3918,12 @@ where
   \<open>restart_prog_l S n brk = do {
      ASSERT(restart_abs_l_pre S brk);
      b \<leftarrow> restart_required_l S n;
-     if b \<and> \<not>brk then do {
+     b2 \<leftarrow> SPEC(\<lambda>_. True);
+     if b2 \<and> b \<and> \<not>brk then do {
+       T \<leftarrow> cdcl_twl_full_restart_l_GC_prog S;
+       RETURN (T, n + 1)
+     }
+     else if b \<and> \<not>brk then do {
        T \<leftarrow> cdcl_twl_restart_l_prog S;
        RETURN (T, n + 1)
      }
@@ -3904,7 +3941,7 @@ proof -
       \<open>(b, ba) \<in> bool_rel\<close> and
       \<open>b \<in> {b. b \<longrightarrow> f n < size (get_learned_clss_l S)}\<close> and
       \<open>ba \<in> {b. b \<longrightarrow> f n < size (get_learned_clss_l S)}\<close> and
-      brk: \<open>b \<and> \<not> brk\<close>
+      brk: \<open>\<not>brk\<close>
     for b ba S brk n
   proof -
     obtain T where
@@ -3924,13 +3961,37 @@ proof -
          confl upd]
       by (rule conc_trans_additional)
   qed
+  have cdcl_twl_full_restart_l_GC_prog:
+    \<open>cdcl_twl_full_restart_l_GC_prog S \<le> SPEC (cdcl_twl_restart_l S)\<close>
+    if
+      inv: \<open>restart_abs_l_pre S brk\<close> and
+      brk: \<open>ba \<and> b2a \<and> \<not> brk\<close>
+    for ba b2a brk S
+  proof -
+    obtain T where
+      ST: \<open>(S, T) \<in> twl_st_l None\<close> and
+      struct_invs: \<open>twl_struct_invs T\<close> and
+      list_invs: \<open>twl_list_invs S\<close> and
+      upd: \<open>clauses_to_update_l S = {#}\<close> and
+      stgy_invs: \<open>twl_stgy_invs T\<close> and
+      confl: \<open>get_conflict_l S = None\<close>
+      using inv brk unfolding restart_abs_l_pre_def restart_prog_pre_def
+      apply - apply normalize_goal+
+      by (auto simp: twl_st)
+    show ?thesis
+      by (rule cdcl_twl_full_restart_l_GC_prog_cdcl_twl_restart_l[unfolded Down_id_eq, OF ST list_invs
+        struct_invs confl upd stgy_invs])
+  qed
 
   have \<open>restart_prog_l S n brk \<le> \<Down> Id (restart_abs_l S n brk)\<close> for S n brk
     unfolding restart_prog_l_def restart_abs_l_def restart_required_l_def cdcl_twl_restart_l_prog_def
     apply (refine_vcg)
     subgoal by auto
+    subgoal by (rule cdcl_twl_full_restart_l_GC_prog)
+    subgoal by auto
+    subgoal by auto
     subgoal by (rule cdcl_twl_local_restart_l_spec_cdcl_twl_restart_l) auto
-    subgoal by (rule cdcl_twl_full_restart_l_prog)
+    subgoal by (rule cdcl_twl_full_restart_l_prog) auto
     subgoal by auto
     done
   then show ?thesis

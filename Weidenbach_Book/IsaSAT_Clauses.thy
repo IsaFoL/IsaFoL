@@ -886,7 +886,7 @@ proof -
     by auto
 qed
 
-lemma
+lemma fm_mv_clause_to_new_arena:
   assumes \<open>valid_arena old_arena N vd\<close> and
     \<open>valid_arena new_arena N' vd'\<close> and
     \<open>C \<in># dom_m N\<close>

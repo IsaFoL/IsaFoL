@@ -28,6 +28,11 @@ definition watcher_enc where
 definition take_only_lower32 :: \<open>uint64 \<Rightarrow> uint64\<close> where
   [code del]: \<open>take_only_lower32 n = n AND ((1 << 32) - 1)\<close>
 
+
+lemma nat_less_numeral_unfold: fixes n :: nat shows
+  "n < numeral w \<longleftrightarrow> n = pred_numeral w \<or> n < pred_numeral w"
+by(auto simp add: numeral_eq_Suc)
+
 lemma bin_nth2_32_iff: \<open>bin_nth 4294967295 na \<longleftrightarrow> na < 32\<close>
   by (auto simp: bin_nth_Bit1 bin_nth_Bit0 nat_less_numeral_unfold)
 

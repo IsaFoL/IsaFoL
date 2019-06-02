@@ -47,7 +47,7 @@ proof -
     unfolding \<mu>\<^sub>C_def by blast
   also have "\<dots> = (\<Sum>i=0..<1. (L#M)!i * b^ (s +i - length (L#M)))
                  + (\<Sum>i=1..<length (L#M). (L#M)!i * b^ (s +i - length (L#M)))"
-     by (rule sum_add_nat_ivl[symmetric]) simp_all
+     by (rule sum.atLeastLessThan_concat[symmetric]) simp_all
   finally have "\<mu>\<^sub>C s b (L # M)= L * b ^ (s - 1 - length M)
                   + (\<Sum>i=1..<length (L#M). (L#M)!i * b^ (s +i - length (L#M)))"
      by auto
@@ -71,7 +71,7 @@ proof -
     unfolding \<mu>\<^sub>C_def by blast
   moreover then have "\<dots> = (\<Sum>i=0..< length M. (M@M')!i * b^ (s +i - length (M@M')))
                  + (\<Sum>i=length M..<length (M@M'). (M@M')!i * b^ (s +i - length (M@M')))"
-    by (auto intro!: sum_add_nat_ivl[symmetric])
+    by (auto intro!: sum.atLeastLessThan_concat[symmetric])
   moreover
     have "\<forall>i\<in>{0..< length M}. (M@M')!i * b^ (s +i - length (M@M')) = M ! i * b ^ (s - length M'
       + i - length M)"

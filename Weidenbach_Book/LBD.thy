@@ -18,11 +18,11 @@ a hash-table like data structure.
 
 paragraph \<open>Types and relations\<close>
 type_synonym lbd = \<open>bool list\<close>
-type_synonym lbd_ref = \<open>bool list \<times> nat\<close>
-type_synonym lbd_assn = \<open>bool array \<times> uint32\<close>
+type_synonym lbd_ref = \<open>bool list \<times> nat \<times> nat\<close>
+type_synonym lbd_assn = \<open>bool array \<times> uint32 \<times> uint32\<close>
 
 abbreviation lbd_int_assn :: \<open>lbd_ref \<Rightarrow> lbd_assn \<Rightarrow> assn\<close> where
-  \<open>lbd_int_assn \<equiv> array_assn bool_assn *a uint32_nat_assn\<close>
+  \<open>lbd_int_assn \<equiv> array_assn bool_assn *a uint32_nat_assn *a uint32_nat_assn\<close>
 
 text \<open>Beside the actual ``lookup'' table, we also keep the highest level marked so far to unmark
 all levels faster (but we currently don't save the LBD and have to iterate over the data structure).
@@ -31,9 +31,10 @@ because there are much stronger guarantees on the key that there is in a general
 (especially, our numbers are all small).
 \<close>
 definition lbd_ref where
-  \<open>lbd_ref = {((lbd, n), lbd'). lbd = lbd' \<and> n < length lbd \<and>
+  \<open>lbd_ref = {((lbd, n, m), lbd'). lbd = lbd' \<and> n < length lbd \<and>
       (\<forall>k > n. k < length lbd \<longrightarrow> \<not>lbd!k) \<and>
-      length lbd \<le> Suc (Suc (uint_max div 2)) \<and> n < length lbd}\<close>
+      length lbd \<le> Suc (Suc (uint_max div 2)) \<and> n < length lbd \<and>
+      m = length (filter id lbd)}\<close>
 
 definition lbd_assn :: \<open>lbd \<Rightarrow> lbd_assn \<Rightarrow> assn\<close> where
   \<open>lbd_assn \<equiv> hr_comp lbd_int_assn lbd_ref\<close>
@@ -94,20 +95,21 @@ proof -
         intro!: list_all2_appendI)
 qed
 
-definition lbd_write :: \<open>lbd \<Rightarrow> nat \<Rightarrow> bool \<Rightarrow> lbd\<close> where
-  \<open>lbd_write = (\<lambda>lbd i b.
-    (if i < length_uint32_nat lbd then (lbd[i := b])
-     else (list_grow lbd (i + 1) False[i := b])))\<close>
+definition lbd_write :: \<open>lbd \<Rightarrow> nat \<Rightarrow> lbd\<close> where
+  \<open>lbd_write = (\<lambda>lbd i.
+    (if i < length_uint32_nat lbd then (lbd[i := True])
+     else ((list_grow lbd (i + 1) False)[i := True])))\<close>
 
 
-definition lbd_ref_write :: \<open>lbd_ref \<Rightarrow> nat \<Rightarrow> bool \<Rightarrow> lbd_ref nres\<close>  where
-  \<open>lbd_ref_write = (\<lambda>(lbd, m) i b. do {
-    ASSERT(length lbd \<le> uint_max);
+definition lbd_ref_write :: \<open>lbd_ref \<Rightarrow> nat \<Rightarrow> lbd_ref nres\<close>  where
+  \<open>lbd_ref_write = (\<lambda>(lbd, m, n) i. do {
+    ASSERT(length lbd \<le> uint_max \<and> n + 1 \<le> uint_max);
     (if i < length_uint32_nat lbd then
-       RETURN (lbd[i := b], max i m)
+       let n = if lbd ! i then n else n+one_uint32_nat in
+       RETURN (lbd[i := True], max i m, n)
      else do {
         ASSERT(i + 1 \<le> uint_max);
-        RETURN (list_grow lbd (i + one_uint32_nat) False[i := b], max i m)
+        RETURN ((list_grow lbd (i + one_uint32_nat) False)[i := True], max i m, n + one_uint32_nat)
      })
   })\<close>
 
@@ -115,37 +117,42 @@ lemma length_list_grow[simp]:
   \<open>length (list_grow xs n a) = max (length xs) n\<close>
   by (auto simp: list_grow_def)
 
+lemma list_update_append2: \<open>i \<ge> length xs \<Longrightarrow> (xs @ ys)[i := x] = xs @ ys[i - length xs := x]\<close>
+  by (induction xs arbitrary: i) (auto split: nat.splits)
+
 lemma lbd_ref_write_lbd_write:
-  \<open>(uncurry2 (lbd_ref_write), uncurry2 (RETURN ooo lbd_write)) \<in>
-    [\<lambda>((lbd, i), b). i \<le> Suc (uint_max div 2)]\<^sub>f
-     lbd_ref \<times>\<^sub>f nat_rel \<times>\<^sub>f bool_rel \<rightarrow> \<langle>lbd_ref\<rangle>nres_rel\<close>
+  \<open>(uncurry (lbd_ref_write), uncurry (RETURN oo lbd_write)) \<in>
+    [\<lambda>(lbd, i). i \<le> Suc (uint_max div 2)]\<^sub>f
+     lbd_ref \<times>\<^sub>f nat_rel \<rightarrow> \<langle>lbd_ref\<rangle>nres_rel\<close>
   unfolding lbd_ref_write_def lbd_write_def
   by (intro frefI nres_relI)
-     (auto simp: level_in_lbd_ref_def level_in_lbd_def lbd_ref_def list_grow_def
-      nth_append uint_max_def)
+    (auto simp: level_in_lbd_ref_def level_in_lbd_def lbd_ref_def list_grow_def
+        nth_append uint_max_def length_filter_update_true list_update_append2
+        length_filter_update_false
+      intro!: ASSERT_leI le_trans[OF length_filter_le])
 
 sepref_definition lbd_write_code
-  is \<open>uncurry2 lbd_ref_write\<close>
-  :: \<open>lbd_int_assn\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a bool_assn\<^sup>k \<rightarrow>\<^sub>a lbd_int_assn\<close>
+  is \<open>uncurry lbd_ref_write\<close>
+  :: \<open>lbd_int_assn\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a lbd_int_assn\<close>
   unfolding lbd_ref_write_def
   by sepref
 
 lemma lbd_write_hnr_[sepref_fr_rules]:
-  \<open>(uncurry2 lbd_write_code, uncurry2 (RETURN \<circ>\<circ>\<circ> lbd_write))
-    \<in> [\<lambda>((lbd, i), b). i \<le> Suc (uint_max div 2)]\<^sub>a
-      lbd_assn\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a bool_assn\<^sup>k \<rightarrow> lbd_assn\<close>
+  \<open>(uncurry lbd_write_code, uncurry (RETURN \<circ>\<circ> lbd_write))
+    \<in> [\<lambda>(lbd, i). i \<le> Suc (uint_max div 2)]\<^sub>a
+      lbd_assn\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> lbd_assn\<close>
   using lbd_write_code.refine[FCOMP lbd_ref_write_lbd_write]
   unfolding lbd_assn_def .
 
 
 paragraph \<open>Cleaning the marked levels\<close>
 
-definition lbd_emtpy_inv :: \<open>nat \<Rightarrow> lbd_ref \<Rightarrow> bool\<close> where
+definition lbd_emtpy_inv :: \<open>nat \<Rightarrow> bool list \<times> nat \<Rightarrow> bool\<close> where
   \<open>lbd_emtpy_inv m = (\<lambda>(xs, i). i \<le> Suc m \<and> (\<forall>j < i. xs ! j = False) \<and>
     (\<forall>j > m. j < length xs \<longrightarrow> xs ! j = False))\<close>
 
 definition lbd_empty_ref where
-  \<open>lbd_empty_ref = (\<lambda>(xs, m). do {
+  \<open>lbd_empty_ref = (\<lambda>(xs, m, _). do {
     (xs, i) \<leftarrow>
        WHILE\<^sub>T\<^bsup>lbd_emtpy_inv m\<^esup>
          (\<lambda>(xs, i). i \<le> m)
@@ -154,16 +161,16 @@ definition lbd_empty_ref where
             ASSERT(i + one_uint32_nat < uint_max);
             RETURN (xs[i := False], i + one_uint32_nat)})
          (xs, zero_uint32_nat);
-     RETURN (xs, zero_uint32_nat)
+     RETURN (xs, zero_uint32_nat, zero_uint32_nat)
   })\<close>
 
 definition lbd_empty where
    \<open>lbd_empty xs = RETURN (replicate (length xs) False)\<close>
 
 lemma lbd_empty_ref:
-  assumes \<open>((xs, m), xs) \<in> lbd_ref\<close>
+  assumes \<open>((xs, m, n), xs) \<in> lbd_ref\<close>
   shows
-    \<open>lbd_empty_ref (xs, m) \<le> \<Down> lbd_ref (RETURN (replicate (length xs) False))\<close>
+    \<open>lbd_empty_ref (xs, m, n) \<le> \<Down> lbd_ref (RETURN (replicate (length xs) False))\<close>
 proof -
   have m_xs: \<open>m \<le> length xs\<close> and [simp]: \<open>xs \<noteq> []\<close> and le_xs: \<open>length xs \<le> uint_max div 2 + 2\<close>
     using assms by (auto simp: lbd_ref_def)
@@ -197,7 +204,7 @@ proof -
     ultimately show ?thesis
       unfolding lbd_emtpy_inv_def by auto
   qed
-  have lbd_final: \<open>((a, zero_uint32_nat), replicate (length xs) False) \<in> lbd_ref\<close>
+  have lbd_final: \<open>((a, zero_uint32_nat, zero_uint32_nat), replicate (length xs) False) \<in> lbd_ref\<close>
     if
       lbd: \<open>lbd_emtpy_inv m s\<close> and
       I': \<open>case s of (ys, i) \<Rightarrow> length ys = length xs\<close> and
@@ -269,7 +276,7 @@ definition (in -)empty_lbd :: \<open>lbd\<close> where
    \<open>empty_lbd = (replicate 32 False)\<close>
 
 definition empty_lbd_ref :: \<open>lbd_ref\<close> where
-   \<open>empty_lbd_ref = (replicate 32 False, zero_uint32_nat)\<close>
+   \<open>empty_lbd_ref = (replicate 32 False, zero_uint32_nat, zero_uint32_nat)\<close>
 
 lemma empty_lbd_ref_empty_lbd:
   \<open>(uncurry0 (RETURN empty_lbd_ref), uncurry0 (RETURN empty_lbd)) \<in> unit_rel \<rightarrow>\<^sub>f \<langle>lbd_ref\<rangle>nres_rel\<close>
@@ -296,43 +303,19 @@ definition get_LBD :: \<open>lbd \<Rightarrow> nat nres\<close> where
   \<open>get_LBD lbd = SPEC(\<lambda>_. True)\<close>
 
 definition get_LBD_ref :: \<open>lbd_ref \<Rightarrow> nat nres\<close> where
-  \<open>get_LBD_ref = (\<lambda>(xs, m). do {
-    (i, lbd) \<leftarrow>
-       WHILE\<^sub>T\<^bsup>\<lambda>(i, lbd). lbd \<le> i \<and> i \<le> length xs\<^esup>
-         (\<lambda>(i, lbd). i \<le> m)
-         (\<lambda>(i, lbd). do {
-            ASSERT(i < length xs);
-            ASSERT(i + one_uint32_nat < uint_max);
-            ASSERT(lbd + one_uint32_nat < uint_max);
-            let lbd = (if xs!i then lbd + one_uint32_nat else lbd);
-            RETURN (i + one_uint32_nat, lbd)})
-         (zero_uint32_nat, zero_uint32_nat);
-     RETURN lbd
-  })\<close>
+  \<open>get_LBD_ref = (\<lambda>(xs, m, n). RETURN n)\<close>
 
 lemma get_LBD_ref:
  \<open>((lbd, m), lbd') \<in> lbd_ref \<Longrightarrow> get_LBD_ref (lbd, m) \<le> \<Down> nat_rel (get_LBD lbd')\<close>
   unfolding get_LBD_ref_def get_LBD_def
-  apply (refine_vcg
-      WHILEIT_rule[where R=\<open>measure (\<lambda>(i, _). Suc m - i)\<close>])
-  subgoal by auto
-  subgoal by auto
-  subgoal by (auto simp: lbd_ref_def)
-  subgoal by (auto simp: lbd_ref_def)
-  subgoal by (auto simp: lbd_ref_def uint_max_def)
-  subgoal by auto
-  subgoal by auto
-  subgoal by auto
-  subgoal by auto
-  subgoal by auto
-  done
+  by (auto split:prod.splits)
 
 lemma get_LBD_ref_get_LBD:
   \<open>(get_LBD_ref, get_LBD) \<in> lbd_ref \<rightarrow>\<^sub>f \<langle>nat_rel\<rangle>nres_rel\<close>
   apply (intro frefI nres_relI)
   apply clarify
-  subgoal for lbd m lbd'
-    using get_LBD_ref[of lbd m]
+  subgoal for lbd m n lbd'
+    using get_LBD_ref[of lbd]
     by (auto simp: lbd_empty_def lbd_ref_def)
   done
 

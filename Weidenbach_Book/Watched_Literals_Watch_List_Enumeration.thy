@@ -51,8 +51,8 @@ proof -
     unfolding DECO_clause_def image_mset.compositionality[symmetric]
     apply (subst distinct_image_mset_inj)
     subgoal by (auto simp: inj_on_def)
-    subgoal by (auto simp: mset_filter[symmetric]
-      distinct_mset_mset_distinct[symmetric])
+    subgoal by (auto simp flip: mset_filter
+      distinct_mset_mset_distinct simp del: mset_filter)
     done
   ultimately show ?thesis by blast
 qed

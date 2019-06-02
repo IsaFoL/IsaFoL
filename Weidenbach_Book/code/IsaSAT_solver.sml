@@ -136,7 +136,7 @@ end (*struct Uint64*)
     fun array_upd_oo f i x a () = 
       (Array.update(a,IntInf.toInt i,x); a) handle Subscript => f () | Overflow => f ()
 
-    
+
 
 structure Bits_Integer : sig
   val set_bit : IntInf.int -> IntInf.int -> bool -> IntInf.int
@@ -352,77 +352,6 @@ val ord_uint32 =
     less = (fn a => fn b => Word32.< (a, b))}
   : Word32.word ord;
 
-type 'a bit =
-  {bitNOT : 'a -> 'a, bitAND : 'a -> 'a -> 'a, bitOR : 'a -> 'a -> 'a,
-    bitXOR : 'a -> 'a -> 'a};
-val bitNOT = #bitNOT : 'a bit -> 'a -> 'a;
-val bitAND = #bitAND : 'a bit -> 'a -> 'a -> 'a;
-val bitOR = #bitOR : 'a bit -> 'a -> 'a -> 'a;
-val bitXOR = #bitXOR : 'a bit -> 'a -> 'a -> 'a;
-
-val bit_uint64 =
-  {bitNOT = Uint64.notb, bitAND = Uint64.andb, bitOR = Uint64.orb,
-    bitXOR = Uint64.xorb}
-  : Uint64.uint64 bit;
-
-fun nat_of_integer k = Nat (max ord_integer (0 : IntInf.int) k);
-
-datatype num = One | Bit0 of num | Bit1 of num;
-
-fun test_bit_uint64 x n =
-  less_nat n (nat_of_integer (64 : IntInf.int)) andalso
-    Uint64.test_bit x (integer_of_nat n);
-
-fun shiftl_uint64 x n =
-  (if less_nat n (nat_of_integer (64 : IntInf.int))
-    then Uint64.shiftl x (integer_of_nat n) else Uint64.zero);
-
-fun equal_nat m n = (((integer_of_nat m) : IntInf.int) = (integer_of_nat n));
-
-val one_nat : nat = Nat (1 : IntInf.int);
-
-fun uint64_set_bits f w n =
-  (if equal_nat n zero_nata then w
-    else let
-           val na = minus_nata n one_nat;
-         in
-           uint64_set_bits f
-             (Uint64.orb (shiftl_uint64 w one_nat)
-               (if f na then Uint64.one else Uint64.zero))
-             na
-         end);
-
-fun set_bits_uint64 f =
-  uint64_set_bits f Uint64.zero (nat_of_integer (64 : IntInf.int));
-
-fun set_bit_uint64 x n b =
-  (if less_nat n (nat_of_integer (64 : IntInf.int))
-    then Uint64.set_bit x (integer_of_nat n) b else x);
-
-fun shiftr_uint64 x n =
-  (if less_nat n (nat_of_integer (64 : IntInf.int))
-    then Uint64.shiftr x (integer_of_nat n) else Uint64.zero);
-
-fun lsb_uint64 x = test_bit_uint64 x zero_nata;
-
-type 'a bits =
-  {bit_bits : 'a bit, test_bit : 'a -> nat -> bool, lsb : 'a -> bool,
-    set_bit : 'a -> nat -> bool -> 'a, set_bits : (nat -> bool) -> 'a,
-    shiftl : 'a -> nat -> 'a, shiftr : 'a -> nat -> 'a};
-val bit_bits = #bit_bits : 'a bits -> 'a bit;
-val test_bit = #test_bit : 'a bits -> 'a -> nat -> bool;
-val lsb = #lsb : 'a bits -> 'a -> bool;
-val set_bit = #set_bit : 'a bits -> 'a -> nat -> bool -> 'a;
-val set_bits = #set_bits : 'a bits -> (nat -> bool) -> 'a;
-val shiftl = #shiftl : 'a bits -> 'a -> nat -> 'a;
-val shiftr = #shiftr : 'a bits -> 'a -> nat -> 'a;
-
-val bits_uint64 =
-  {bit_bits = bit_uint64, test_bit = test_bit_uint64, lsb = lsb_uint64,
-    set_bit = set_bit_uint64, set_bits = set_bits_uint64,
-    shiftl = shiftl_uint64, shiftr = shiftr_uint64}
-  : Uint64.uint64 bits;
-
 fun typerep_uint64a t = Typerep ("Uint64.uint64", []);
 
 val countable_uint64 = {} : Uint64.uint64 countable;
@@ -442,6 +371,53 @@ val default_uint64a : Uint64.uint64 = Uint64.zero;
 val default_uint64 = {default = default_uint64a} : Uint64.uint64 default;
 
 val minus_uint64 = {minus = Uint64.minus} : Uint64.uint64 minus;
+
+fun nat_of_integer k = Nat (max ord_integer (0 : IntInf.int) k);
+
+datatype num = One | Bit0 of num | Bit1 of num;
+
+fun test_bit_uint64 x n =
+  less_nat n (nat_of_integer (64 : IntInf.int)) andalso
+    Uint64.test_bit x (integer_of_nat n);
+
+fun set_bit_uint64 x n b =
+  (if less_nat n (nat_of_integer (64 : IntInf.int))
+    then Uint64.set_bit x (integer_of_nat n) b else x);
+
+fun shiftr_uint64 x n =
+  (if less_nat n (nat_of_integer (64 : IntInf.int))
+    then Uint64.shiftr x (integer_of_nat n) else Uint64.zero);
+
+fun shiftl_uint64 x n =
+  (if less_nat n (nat_of_integer (64 : IntInf.int))
+    then Uint64.shiftl x (integer_of_nat n) else Uint64.zero);
+
+fun msb_uint64 x = Uint64.test_bit x (63 : IntInf.int);
+
+fun lsb_uint64 x = test_bit_uint64 x zero_nata;
+
+type 'a bit_operations =
+  {bitNOT : 'a -> 'a, bitAND : 'a -> 'a -> 'a, bitOR : 'a -> 'a -> 'a,
+    bitXOR : 'a -> 'a -> 'a, shiftl : 'a -> nat -> 'a, shiftr : 'a -> nat -> 'a,
+    test_bit : 'a -> nat -> bool, lsb : 'a -> bool, msb : 'a -> bool,
+    set_bit : 'a -> nat -> bool -> 'a};
+val bitNOT = #bitNOT : 'a bit_operations -> 'a -> 'a;
+val bitAND = #bitAND : 'a bit_operations -> 'a -> 'a -> 'a;
+val bitOR = #bitOR : 'a bit_operations -> 'a -> 'a -> 'a;
+val bitXOR = #bitXOR : 'a bit_operations -> 'a -> 'a -> 'a;
+val shiftl = #shiftl : 'a bit_operations -> 'a -> nat -> 'a;
+val shiftr = #shiftr : 'a bit_operations -> 'a -> nat -> 'a;
+val test_bit = #test_bit : 'a bit_operations -> 'a -> nat -> bool;
+val lsb = #lsb : 'a bit_operations -> 'a -> bool;
+val msb = #msb : 'a bit_operations -> 'a -> bool;
+val set_bit = #set_bit : 'a bit_operations -> 'a -> nat -> bool -> 'a;
+
+val bit_operations_uint64 =
+  {bitNOT = Uint64.notb, bitAND = Uint64.andb, bitOR = Uint64.orb,
+    bitXOR = Uint64.xorb, shiftl = shiftl_uint64, shiftr = shiftr_uint64,
+    test_bit = test_bit_uint64, lsb = lsb_uint64, msb = msb_uint64,
+    set_bit = set_bit_uint64}
+  : Uint64.uint64 bit_operations;
 
 fun typerep_proda A_ B_ t =
   Typerep ("Product_Type.prod", [typerep A_ Type, typerep B_ Type]);
@@ -510,6 +486,8 @@ fun eq A_ a b = equal A_ a b;
 
 fun plus_nat m n = Nat (IntInf.+ (integer_of_nat m, integer_of_nat n));
 
+val one_nat : nat = Nat (1 : IntInf.int);
+
 fun suc n = plus_nat n one_nat;
 
 fun len A_ a =
@@ -559,7 +537,7 @@ fun integer_of_char (Chara (b0, b1, b2, b3, b4, b5, b6, b7)) =
 
 fun implode cs =
   (String.implode
-    o map (fn k => if 0 <= k andalso k < 128 then (Char.chr o IntInf.toInt) k else raise Fail "Non-ASCII character in literal"))
+    o List.map (fn k => if 0 <= k andalso k < 128 then (Char.chr o IntInf.toInt) k else raise Fail "Non-ASCII character in literal"))
     (map integer_of_char cs);
 
 fun blit A_ src si dst di len =
@@ -567,41 +545,14 @@ fun blit A_ src si dst di len =
     array_blit src (integer_of_nat
                      si) dst (integer_of_nat di) (integer_of_nat len));
 
-val version : string = "b6981189";
+val version : string = "04d2e3bd";
 
-fun heap_WHILET b f s =
-  (fn () =>
-    let
-      val bv = b s ();
-    in
-      (if bv then (fn f_ => fn () => f_ ((f s) ()) ()) (heap_WHILET b f)
-        else (fn () => s))
-        ()
-    end);
-
-fun nth_u_code A_ = (fn a => fn b => (fn () => Array.sub (a, Word32.toInt b)));
-
-fun get_LBD_code x =
-  (fn (a1, a2) => fn () =>
-    let
-      val a =
-        heap_WHILET (fn (a1a, _) => (fn () => (Word32.<= (a1a, a2))))
-          (fn (a1a, a2a) =>
-            (fn f_ => fn () => f_ ((nth_u_code heap_bool a1 a1a) ()) ())
-              (fn xa =>
-                (fn () =>
-                  (Word32.+ (a1a, (Word32.fromInt 1)),
-                    (if xa then Word32.+ (a2a, (Word32.fromInt 1)) else a2a)))))
-          ((Word32.fromInt 0), (Word32.fromInt 0)) ();
-    in
-      let
-        val (_, aa) = a;
-      in
-        (fn () => aa)
-      end
-        ()
-    end)
-    x;
+fun get_LBD_code x = (fn xi => (fn () => let
+   val (_, (_, b)) = xi;
+ in
+   b
+ end))
+                       x;
 
 fun the (SOME x2) = x2;
 
@@ -694,6 +645,8 @@ fun clause_not_marked_to_delete_heur_fast_code x =
 
 fun isa_arena_lit_fast_code x = arl_get_u64 heap_uint32 x;
 
+fun nth_u_code A_ = (fn a => fn b => (fn () => Array.sub (a, Word32.toInt b)));
+
 fun polarity_pol_fast_code x =
   (fn ai => fn bi => let
                        val (_, (a1a, (_, _))) = ai;
@@ -701,6 +654,16 @@ fun polarity_pol_fast_code x =
                        nth_u_code heap_uint32 a1a bi
                      end)
     x;
+
+fun heap_WHILET b f s =
+  (fn () =>
+    let
+      val bv = b s ();
+    in
+      (if bv then (fn f_ => fn () => f_ ((f s) ()) ()) (heap_WHILET b f)
+        else (fn () => s))
+        ()
+    end);
 
 fun is_None a = (case a of NONE => true | SOME _ => false);
 
@@ -829,6 +792,8 @@ fun heap_array_set_u A_ a i x =
 
 fun times_nat m n = Nat (IntInf.* (integer_of_nat m, integer_of_nat n));
 
+fun equal_nat m n = (((integer_of_nat m) : IntInf.int) = (integer_of_nat n));
+
 fun array_grow A_ a s x =
   (fn () =>
     let
@@ -869,27 +834,35 @@ fun nat_of_uint32 x =
   nat_of_integer (IntInf.fromLarge (Word32.toLargeInt x) : IntInf.int);
 
 fun lbd_write_code x =
-  (fn ai => fn bia => fn bi =>
+  (fn ai => fn bi =>
     let
-      val (a1, a2) = ai;
+      val (a1, (a1a, a2a)) = ai;
     in
       (fn () =>
         let
           val xa = length_u_code heap_bool a1 ();
         in
-          (if Word32.< (bia, xa)
-            then (fn f_ => fn () => f_ ((heap_array_set_u heap_bool a1 bia bi)
-                   ()) ())
-                   (fn x_a => (fn () => (x_a, max ord_uint32 bia a2)))
+          (if Word32.< (bi, xa)
+            then (fn f_ => fn () => f_ ((nth_u_code heap_bool a1 bi) ()) ())
+                   (fn xb =>
+                     (fn f_ => fn () => f_
+                       ((heap_array_set_u heap_bool a1 bi true) ()) ())
+                       (fn x_c =>
+                         (fn () =>
+                           (x_c, (max ord_uint32 bi a1a,
+                                   (if xb then a2a
+                                     else Word32.+ (a2a, (Word32.fromInt 1))))))))
             else (fn f_ => fn () => f_
                    ((array_grow heap_bool a1
-                      (nat_of_uint32 (Word32.+ (bia, (Word32.fromInt 1))))
-                      false)
+                      (nat_of_uint32 (Word32.+ (bi, (Word32.fromInt 1)))) false)
                    ()) ())
                    (fn xb =>
                      (fn f_ => fn () => f_
-                       ((heap_array_set_u heap_bool xb bia bi) ()) ())
-                       (fn x_a => (fn () => (x_a, max ord_uint32 bia a2)))))
+                       ((heap_array_set_u heap_bool xb bi true) ()) ())
+                       (fn x_a =>
+                         (fn () =>
+                           (x_a, (max ord_uint32 bi a1a,
+                                   Word32.+ (a2a, (Word32.fromInt 1))))))))
             ()
         end)
     end)
@@ -913,8 +886,7 @@ fun set_lookup_conflict_aa_fast_code x =
                   (fn xa =>
                     (fn f_ => fn () => f_ ((get_level_fast_code ai xa) ()) ())
                       (fn xb =>
-                        (fn f_ => fn () => f_ ((lbd_write_code a1d xb true) ())
-                          ())
+                        (fn f_ => fn () => f_ ((lbd_write_code a1d xb) ()) ())
                           (fn x_a =>
                             (fn f_ => fn () => f_
                               ((isa_arena_lit_fast_code bie a1a) ()) ())
@@ -1731,8 +1703,7 @@ fun set_lookup_conflict_aa_code x =
                   (fn xa =>
                     (fn f_ => fn () => f_ ((get_level_code ai xa) ()) ())
                       (fn xb =>
-                        (fn f_ => fn () => f_ ((lbd_write_code a1d xb true) ())
-                          ())
+                        (fn f_ => fn () => f_ ((lbd_write_code a1d xb) ()) ())
                           (fn x_a =>
                             (fn f_ => fn () => f_ ((isa_arena_lit_code bie a1a)
                               ()) ())
@@ -2394,6 +2365,29 @@ fun restart_required_heur_fast_code x =
     end)
     x;
 
+fun get_reductions_count_fast_code x =
+  (fn xi =>
+    (fn () =>
+      let
+        val (_, (_, (_, (_, (_, (_, (_, (_,
+  (_, (_, (_, ((_, (_, (_, (_, (a1p, _))))), (_, (_, (_, _)))))))))))))))
+          = xi;
+      in
+        a1p
+      end))
+    x;
+
+val gC_EVERY : Uint64.uint64 = Uint64.fromInt (256 : IntInf.int);
+
+fun gC_required_heur_fast_code x =
+  (fn ai => fn _ => fn () =>
+    let
+      val xa = get_reductions_count_fast_code ai ();
+    in
+      false andalso (((Uint64.andb xa gC_EVERY) : Uint64.uint64) = Uint64.zero)
+    end)
+    x;
+
 fun stamp (VMTF_Node (x1, x2, x3)) = x1;
 
 fun find_local_restart_target_level_fast_code x =
@@ -2818,9 +2812,9 @@ fun incr_restart_stat_fast_code x =
       in
         (a1, (a1a, (a1b, (a1c, (a1d, (a1e, (a1f,
      (a1g, (a1h, (a1i, (a1j, (incr_restart a1k,
-                               (ema_reinit (bits_uint64, one_uint64) zero_uint64
-                                  zero_uint64 a1l,
-                                 (ema_reinit (bits_uint64, one_uint64)
+                               (ema_reinit (bit_operations_uint64, one_uint64)
+                                  zero_uint64 zero_uint64 a1l,
+                                 (ema_reinit (bit_operations_uint64, one_uint64)
                                     zero_uint64 zero_uint64 a1m,
                                    (restart_info_restart_done a1n,
                                      (a1o, (a1p, a2p)))))))))))))))))
@@ -2964,29 +2958,38 @@ fun partition_main_clause_code x =
     end)
     x;
 
-fun sgn_integer k =
-  (if ((k : IntInf.int) = (0 : IntInf.int)) then (0 : IntInf.int)
-    else (if IntInf.< (k, (0 : IntInf.int)) then (~1 : IntInf.int)
-           else (1 : IntInf.int)));
-
 fun apsnd f (x, y) = (x, f y);
 
 fun divmod_integer k l =
   (if ((k : IntInf.int) = (0 : IntInf.int))
     then ((0 : IntInf.int), (0 : IntInf.int))
-    else (if ((l : IntInf.int) = (0 : IntInf.int)) then ((0 : IntInf.int), k)
-           else (apsnd o (fn a => fn b => IntInf.* (a, b)) o sgn_integer) l
-                  (if (((sgn_integer k) : IntInf.int) = (sgn_integer l))
-                    then IntInf.divMod (IntInf.abs k, IntInf.abs l)
-                    else let
-                           val (r, s) =
-                             IntInf.divMod (IntInf.abs k, IntInf.abs l);
-                         in
-                           (if ((s : IntInf.int) = (0 : IntInf.int))
-                             then (IntInf.~ r, (0 : IntInf.int))
-                             else (IntInf.- (IntInf.~ r, (1 : IntInf.int)),
-                                    IntInf.- (IntInf.abs l, s)))
-                         end)));
+    else (if IntInf.< ((0 : IntInf.int), l)
+           then (if IntInf.< ((0 : IntInf.int), k)
+                  then IntInf.divMod (IntInf.abs k, IntInf.abs l)
+                  else let
+                         val (r, s) =
+                           IntInf.divMod (IntInf.abs k, IntInf.abs l);
+                       in
+                         (if ((s : IntInf.int) = (0 : IntInf.int))
+                           then (IntInf.~ r, (0 : IntInf.int))
+                           else (IntInf.- (IntInf.~ r, (1 : IntInf.int)),
+                                  IntInf.- (l, s)))
+                       end)
+           else (if ((l : IntInf.int) = (0 : IntInf.int))
+                  then ((0 : IntInf.int), k)
+                  else apsnd IntInf.~
+                         (if IntInf.< (k, (0 : IntInf.int))
+                           then IntInf.divMod (IntInf.abs k, IntInf.abs l)
+                           else let
+                                  val (r, s) =
+                                    IntInf.divMod (IntInf.abs k, IntInf.abs l);
+                                in
+                                  (if ((s : IntInf.int) = (0 : IntInf.int))
+                                    then (IntInf.~ r, (0 : IntInf.int))
+                                    else (IntInf.- (IntInf.~
+              r, (1 : IntInf.int)),
+   IntInf.- (IntInf.~ l, s)))
+                                end))));
 
 fun divide_integer k l = fst (divmod_integer k l);
 
@@ -3265,11 +3268,12 @@ fun restart_prog_wl_D_heur_fast_code x =
   (fn ai => fn bia => fn bi => fn () =>
     let
       val xa = restart_required_heur_fast_code ai bia ();
+      val _ = gC_required_heur_fast_code ai bia ();
     in
       (if not bi andalso xa
         then (fn f_ => fn () => f_ ((cdcl_twl_restart_wl_heur_fast_code ai) ())
                ())
-               (fn x_b => (fn () => (x_b, plus_nat bia one_nat)))
+               (fn x_c => (fn () => (x_c, plus_nat bia one_nat)))
         else (fn () => (ai, bia)))
         ()
     end)
@@ -3429,6 +3433,27 @@ fun restart_required_heur_slow_code x =
                 end))
       end
         ()
+    end)
+    x;
+
+fun get_reductions_count_code x =
+  (fn xi =>
+    (fn () =>
+      let
+        val (_, (_, (_, (_, (_, (_, (_, (_,
+  (_, (_, (_, ((_, (_, (_, (_, (a1p, _))))), (_, (_, (_, _)))))))))))))))
+          = xi;
+      in
+        a1p
+      end))
+    x;
+
+fun gC_required_heur_slow_code x =
+  (fn ai => fn _ => fn () =>
+    let
+      val xa = get_reductions_count_code ai ();
+    in
+      false andalso (((Uint64.andb xa gC_EVERY) : Uint64.uint64) = Uint64.zero)
     end)
     x;
 
@@ -3646,9 +3671,9 @@ fun incr_restart_stat_slow_code x =
       in
         (a1, (a1a, (a1b, (a1c, (a1d, (a1e, (a1f,
      (a1g, (a1h, (a1i, (a1j, (incr_restart a1k,
-                               (ema_reinit (bits_uint64, one_uint64) zero_uint64
-                                  zero_uint64 a1l,
-                                 (ema_reinit (bits_uint64, one_uint64)
+                               (ema_reinit (bit_operations_uint64, one_uint64)
+                                  zero_uint64 zero_uint64 a1l,
+                                 (ema_reinit (bit_operations_uint64, one_uint64)
                                     zero_uint64 zero_uint64 a1m,
                                    (restart_info_restart_done a1n,
                                      (a1o, (a1p, a2p)))))))))))))))))
@@ -3960,10 +3985,11 @@ fun restart_wl_D_heur_slow_code x =
   (fn ai => fn bia => fn bi => fn () =>
     let
       val xa = restart_required_heur_slow_code ai bia ();
+      val _ = gC_required_heur_slow_code ai bia ();
     in
       (if not bi andalso xa
         then (fn f_ => fn () => f_ ((cdcl_twl_restart_wl_heur_code ai) ()) ())
-               (fn x_b => (fn () => (x_b, plus_nat bia one_nat)))
+               (fn x_c => (fn () => (x_c, plus_nat bia one_nat)))
         else (fn () => (ai, bia)))
         ()
     end)
@@ -4030,7 +4056,7 @@ fun isasat_lookup_merge_eq2_fast_code x =
               else isa_arena_lit_fast_code bie bid)
               ();
           val xaa = get_level_fast_code bif xb ();
-          val x_b = lbd_write_code bia xaa true ();
+          val x_b = lbd_write_code bia xaa ();
           val xab = get_level_fast_code bif xb ();
           val xba = is_in_conflict_code a2 xb ();
           val x_d =
@@ -4084,8 +4110,7 @@ fun resolve_merge_conflict_fast_code x =
                   (fn xa =>
                     (fn f_ => fn () => f_ ((get_level_fast_code ai xa) ()) ())
                       (fn xb =>
-                        (fn f_ => fn () => f_ ((lbd_write_code a1d xb true) ())
-                          ())
+                        (fn f_ => fn () => f_ ((lbd_write_code a1d xb) ()) ())
                           (fn x_a =>
                             (fn f_ => fn () => f_
                               ((isa_arena_lit_fast_code bie a1a) ()) ())
@@ -5588,7 +5613,7 @@ fun ema_update_ref x =
     let
       val lbda =
         Uint64.times (uint64_of_uint32 lbd)
-          (ema_bitshifting (bits_uint64, one_uint64));
+          (ema_bitshifting (bit_operations_uint64, one_uint64));
       val valuea =
         (if Uint64.less value lbda
           then Uint64.plus value
@@ -5616,20 +5641,20 @@ fun ema_update_ref x =
     x;
 
 fun lbd_empty_code x =
-  (fn (a1, a2) => fn () =>
+  (fn (a1, (a1a, _)) => fn () =>
     let
       val a =
-        heap_WHILET (fn (_, a2a) => (fn () => (Word32.<= (a2a, a2))))
-          (fn (a1a, a2a) =>
-            (fn f_ => fn () => f_ ((heap_array_set_u heap_bool a1a a2a false)
+        heap_WHILET (fn (_, a2b) => (fn () => (Word32.<= (a2b, a1a))))
+          (fn (a1b, a2b) =>
+            (fn f_ => fn () => f_ ((heap_array_set_u heap_bool a1b a2b false)
               ()) ())
-              (fn x_a => (fn () => (x_a, Word32.+ (a2a, (Word32.fromInt 1))))))
+              (fn x_a => (fn () => (x_a, Word32.+ (a2b, (Word32.fromInt 1))))))
           (a1, (Word32.fromInt 0)) ();
     in
       let
-        val (a1a, _) = a;
+        val (a1b, _) = a;
       in
-        (fn () => (a1a, (Word32.fromInt 0)))
+        (fn () => (a1b, ((Word32.fromInt 0), (Word32.fromInt 0))))
       end
         ()
     end)
@@ -5984,7 +6009,7 @@ fun isasat_lookup_merge_eq2_code x =
               else isa_arena_lit_code bie bid)
               ();
           val xaa = get_level_code bif xb ();
-          val x_b = lbd_write_code bia xaa true ();
+          val x_b = lbd_write_code bia xaa ();
           val xab = get_level_code bif xb ();
           val xba = is_in_conflict_code a2 xb ();
           val x_d =
@@ -6039,8 +6064,7 @@ fun resolve_merge_conflict_code x =
                   (fn xa =>
                     (fn f_ => fn () => f_ ((get_level_code ai xa) ()) ())
                       (fn xb =>
-                        (fn f_ => fn () => f_ ((lbd_write_code a1d xb true) ())
-                          ())
+                        (fn f_ => fn () => f_ ((lbd_write_code a1d xb) ()) ())
                           (fn x_a =>
                             (fn f_ => fn () => f_ ((isa_arena_lit_code bie a1a)
                               ()) ())
@@ -7717,12 +7741,12 @@ fun initialise_VMTF_code x =
     end)
     x;
 
-val empty_lbd_code : (unit -> (bool array * Word32.word)) =
+val empty_lbd_code : (unit -> (bool array * (Word32.word * Word32.word))) =
   (fn () =>
     let
       val x = new heap_bool (nat_of_integer (32 : IntInf.int)) false ();
     in
-      (x, (Word32.fromInt 0))
+      (x, ((Word32.fromInt 0), (Word32.fromInt 0)))
     end);
 
 fun init_state_wl_D_code x =

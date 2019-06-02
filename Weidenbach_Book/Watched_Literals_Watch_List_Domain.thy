@@ -280,10 +280,11 @@ proof -
       literals_are_in_\<L>\<^sub>i\<^sub>n_trail_def cdcl\<^sub>W_restart_mset.no_strange_atm_def
       literals_are_\<L>\<^sub>i\<^sub>n_def all_lits_def all_atms_def
     by (subst (asm) all_clss_l_ran_m[symmetric])
-     (auto simp: twl_st twl_st_l twl_st_wl all_lits_of_mm_union lits_of_def
+     (auto 5 2
+        simp del: all_clss_l_ran_m union_filter_mset_complement
+        simp: twl_st twl_st_l twl_st_wl all_lits_of_mm_union lits_of_def
         convert_lits_l_def image_image in_all_lits_of_mm_ain_atms_of_iff
-        get_unit_clauses_wl_alt_def
-        simp del: all_clss_l_ran_m)
+        get_unit_clauses_wl_alt_def)
 
   {
     assume conf: \<open>get_conflict_wl x2 \<noteq> None\<close>
@@ -499,11 +500,11 @@ lemma literals_are_\<L>\<^sub>i\<^sub>n_all_atms_st:
 lemma blits_in_\<L>\<^sub>i\<^sub>n_keep_watch:
   assumes \<open>blits_in_\<L>\<^sub>i\<^sub>n (a, b, c, d, e, f, g)\<close> and
     w:\<open>w < length (watched_by (a, b, c, d, e, f, g) K)\<close>
-  shows \<open>blits_in_\<L>\<^sub>i\<^sub>n (a, b, c, d, e, f, g (K := g K[j := g K ! w]))\<close>
+  shows \<open>blits_in_\<L>\<^sub>i\<^sub>n (a, b, c, d, e, f, g (K := (g K)[j := g K ! w]))\<close>
 proof -
   let ?S = \<open>(a, b, c, d, e, f, g)\<close>
-  let ?T = \<open>(a, b, c, d, e, f, g (K := g K[j := g K ! w]))\<close>
-  let ?g = \<open>g (K := g K[j := g K ! w])\<close>
+  let ?T = \<open>(a, b, c, d, e, f, g (K := (g K)[j := g K ! w]))\<close>
+  let ?g = \<open>g (K := (g K)[j := g K ! w])\<close>
   have H: \<open>\<And>L i K b. L\<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st ?S) \<Longrightarrow> (i, K, b) \<in>set (g L) \<Longrightarrow>
         K \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st ?S)\<close>
     using assms
@@ -576,10 +577,10 @@ lemma literals_are_\<L>\<^sub>i\<^sub>n_set_conflict_wl:
 lemma blits_in_\<L>\<^sub>i\<^sub>n_keep_watch':
   assumes K': \<open>K' \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st (a, b, c, d, e, f, g))\<close> and
     w:\<open>blits_in_\<L>\<^sub>i\<^sub>n (a, b, c, d, e, f, g)\<close>
-  shows \<open>blits_in_\<L>\<^sub>i\<^sub>n (a, b, c, d, e, f, g (K := g K[j := (i, K', b')]))\<close>
+  shows \<open>blits_in_\<L>\<^sub>i\<^sub>n (a, b, c, d, e, f, g (K := (g K)[j := (i, K', b')]))\<close>
 proof -
   let ?\<A> = \<open>all_atms_st (a, b, c, d, e, f, g)\<close>
-  let ?g = \<open>g (K := g K[j := (i, K', b')])\<close>
+  let ?g = \<open>g (K := (g K)[j := (i, K', b')])\<close>
   have H: \<open>\<And>L i K b'. L\<in>#\<L>\<^sub>a\<^sub>l\<^sub>l ?\<A> \<Longrightarrow> (i, K, b') \<in>set (g L) \<Longrightarrow> K \<in># \<L>\<^sub>a\<^sub>l\<^sub>l ?\<A>\<close>
     using assms
     unfolding blits_in_\<L>\<^sub>i\<^sub>n_def watched_by.simps
@@ -780,8 +781,8 @@ proof -
     for x1 x2 x1a x2a f fa x2a' x3
   proof -
     have [simp]: \<open>blits_in_\<L>\<^sub>i\<^sub>n
-        (set_conflict_wl D (a, b, c, d, e, fb, g(K := g K[j := de]))) \<longleftrightarrow>
-        blits_in_\<L>\<^sub>i\<^sub>n ((a, b, c, d, e, fb, g(K := g K[j := de])))\<close>
+        (set_conflict_wl D (a, b, c, d, e, fb, g(K := (g K)[j := de]))) \<longleftrightarrow>
+        blits_in_\<L>\<^sub>i\<^sub>n ((a, b, c, d, e, fb, g(K := (g K)[j := de])))\<close>
       for a b c d e f g de D
       by (auto simp: blits_in_\<L>\<^sub>i\<^sub>n_def set_conflict_wl_def)
 

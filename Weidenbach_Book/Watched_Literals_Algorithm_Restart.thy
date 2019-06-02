@@ -19,6 +19,12 @@ where
   \<open>restart_prog S n brk = do {
      ASSERT(restart_prog_pre S brk);
      b \<leftarrow> restart_required S n;
+     b2 \<leftarrow> SPEC(\<lambda>_. True);
+     if b2 \<and> b \<and> \<not>brk then do {
+       T \<leftarrow> SPEC(\<lambda>T. cdcl_twl_restart S T);
+       RETURN (T, n + 1)
+     }
+     else
      if b \<and> \<not>brk then do {
        T \<leftarrow> SPEC(\<lambda>T. cdcl_twl_restart S T);
        RETURN (T, n + 1)
@@ -239,7 +245,13 @@ proof -
     subgoal using struct_invs_U stgy_invs_U confl_U unfolding restart_prog_pre_def by fast
     subgoal by (rule struct_invs')
     subgoal by (rule stgy_invs)
-    subgoal by fast
+    subgoal by (rule cdcl_twl_stgy_restart_with_leftovers_after_restart) simp
+    subgoal by (rule res_no_clss_to_upd)
+    subgoal by (rule res_no_confl)
+    subgoal by (auto intro!: struct_invs_S struct_invs_T
+          cdcl_twl_stgy_restart_with_leftovers1_after_restart)
+    subgoal using struct_invs' by blast
+    subgoal using stgy_invs by blast
     subgoal by (rule cdcl_twl_stgy_restart_with_leftovers_after_restart) simp
     subgoal by (rule res_no_clss_to_upd)
     subgoal by (rule res_no_confl)
@@ -460,6 +472,24 @@ proof -
      by (simp add: clss_to_upd_U confl_U rtranclp_twl_restart_after_restart_S_U
         stgy_invs_U struct_invs_U twl_restart_ops.cdcl_twl_stgy_restart_prog_inv_def
 	cdcl_twl_stgy_restart_with_leftovers1_after_restart)
+    subgoal
+      unfolding cdcl_twl_stgy_restart_prog_inv_def
+      apply (intro conjI)
+      subgoal by (rule struct_invs')
+      subgoal by (rule stgy_invs)
+      subgoal unfolding H by fast
+      subgoal by (rule cdcl_twl_stgy_restart_with_leftovers_after_restart) simp_all
+      subgoal by (rule res_no_clss_to_upd)
+      subgoal by (simp add: res_no_confl)
+    done
+    subgoal
+     using cdcl_twl_stgy_restart_with_leftovers1_T_U brk'_eq
+     by (auto simp: twl_restart_after_restart struct_invs_S struct_invs_T
+	cdcl_twl_stgy_restart_with_leftovers_after_restart_T_V struct_invs_U
+	rtranclp_twl_restart_after_restart_brk rtranclp_twl_restart_after_restart_T_U
+	cdcl_twl_stgy_restart_with_leftovers1_after_restart
+	brk'_no_step clss_to_upd_U restart_prog_pre_def rtranclp_twl_restart_after_restart_S_U
+	twl_restart_ops.cdcl_twl_stgy_restart_prog_inv_def)
     subgoal
      using cdcl_twl_stgy_restart_with_leftovers1_T_U brk'_eq
      by (auto simp: twl_restart_after_restart struct_invs_S struct_invs_T

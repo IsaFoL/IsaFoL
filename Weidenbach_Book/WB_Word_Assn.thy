@@ -856,7 +856,7 @@ lemma nat_of_uint32_mult_le:
   by (auto simp: unat_word_ariths uint32_max_def)
 
 lemma uint32_nat_assn_mult:
-  \<open>(uncurry (return oo (( * ))), uncurry (RETURN oo (( * )))) \<in> [\<lambda>(a, b). a * b \<le> uint32_max]\<^sub>a
+  \<open>(uncurry (return oo ((*))), uncurry (RETURN oo ((*)))) \<in> [\<lambda>(a, b). a * b \<le> uint32_max]\<^sub>a
       uint32_nat_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
   by sepref_to_hoare
      (sep_auto simp: uint32_nat_rel_def br_def nat_of_uint32_mult_le)
@@ -993,7 +993,7 @@ lemma uint64_nat_assn_less[sepref_fr_rules]:
       nat_of_uint64_less_iff)
 
 lemma mult_uint64[sepref_fr_rules]:
- \<open>(uncurry (return oo ( * ) ), uncurry (RETURN oo ( * )))
+ \<open>(uncurry (return oo (*) ), uncurry (RETURN oo (*)))
   \<in>  uint64_assn\<^sup>k *\<^sub>a uint64_assn\<^sup>k \<rightarrow>\<^sub>a uint64_assn\<close>
   by sepref_to_hoare sep_auto
 
@@ -1258,12 +1258,8 @@ proof -
     subgoal for L a
       by (auto simp: unat_def uint_or bitOR_nat_def)
     subgoal for L a
-      apply (auto simp: unat_def uint_or bitOR_nat_def eq_nat_nat_iff
+      by (auto simp: unat_def uint_or bitOR_nat_def eq_nat_nat_iff
           word_or_def)
-      apply (subst (asm)eq_nat_nat_iff)
-        apply (auto simp: uint_1 uint_ge_0 uint_or)
-       apply (metis uint_1 uint_ge_0 uint_or)
-      done
     done
   have K: \<open>L mod 2 = 0 \<longleftrightarrow> nat_of_uint64 L mod 2 = 0\<close>
     apply transfer
@@ -1507,7 +1503,7 @@ lemma nat_of_uint64_mult_le:
   by (auto simp: unat_word_ariths uint64_max_def)
 
 lemma uint64_nat_assn_mult:
-  \<open>(uncurry (return oo (( * ))), uncurry (RETURN oo (( * )))) \<in> [\<lambda>(a, b). a * b \<le> uint64_max]\<^sub>a
+  \<open>(uncurry (return oo ((*))), uncurry (RETURN oo ((*)))) \<in> [\<lambda>(a, b). a * b \<le> uint64_max]\<^sub>a
       uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow> uint64_nat_assn\<close>
   by sepref_to_hoare
      (sep_auto simp: uint64_nat_rel_def br_def nat_of_uint64_mult_le)
@@ -1730,5 +1726,14 @@ definition three_uint32 where \<open>three_uint32 = (3 :: uint32)\<close>
 lemma three_uint32_hnr:
   \<open>(uncurry0 (return 3), uncurry0 (RETURN (three_uint32 :: uint32)) ) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint32_assn\<close>
   by sepref_to_hoare (sep_auto simp: uint32_nat_rel_def br_def three_uint32_def)
+
+
+definition nat_of_uint64_id_conv :: \<open>uint64 \<Rightarrow> nat\<close> where
+\<open>nat_of_uint64_id_conv = nat_of_uint64\<close>
+
+lemma nat_of_uint64_id_conv_hnr[sepref_fr_rules]:
+  \<open>(return o id, RETURN o nat_of_uint64_id_conv) \<in> uint64_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
+  by sepref_to_hoare
+    (sep_auto simp: nat_of_uint64_id_conv_def uint64_nat_rel_def br_def)
 
 end

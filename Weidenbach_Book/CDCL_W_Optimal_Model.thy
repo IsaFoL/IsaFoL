@@ -2308,13 +2308,12 @@ lemma too_heavy_clauses_mono:
 lemma is_improving_conflicting_clss_update_weight_information: \<open>is_improving M M' S \<Longrightarrow>
        conflicting_clss S \<subseteq># conflicting_clss (update_weight_information M' S)\<close>
   using too_heavy_clauses_mono[of M' \<open>the (weight S)\<close> \<open>(init_clss S)\<close>]
-    true_clss_cls_subset
   by (cases \<open>weight S\<close>)
-    (auto 7 5 simp: is_improving_int_def conflicting_clss_def conflicting_clauses_def
-      simp: multiset_filter_mono2 le_less true_clss_cls_tautology_iff simple_clss_finite
+    (auto simp: is_improving_int_def conflicting_clss_def conflicting_clauses_def
+      simp: multiset_filter_mono2
       intro!: image_mset_subseteq_mono
-      dest: simple_clssE
-      split: enat.splits)
+      intro: true_clss_cls_subset
+      dest: simple_clssE)
 
 lemma conflicting_clss_update_weight_information_in2:
   assumes \<open>is_improving M M' S\<close>

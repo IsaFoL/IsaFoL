@@ -1118,10 +1118,25 @@ lemma nempty_list_mset_rel_iff: \<open>M \<noteq> {#} \<Longrightarrow>
          (tl xs, remove1_mset (hd xs) M) \<in> list_mset_rel)\<close>
   by (cases xs) (auto simp: list_mset_rel_def br_def dest!: multi_member_split)
 
+lemma Down_id_eq: "\<Down> Id a = a"
+  by auto
+
 lemma Down_itself_via_SPEC:
   assumes \<open>I \<le> SPEC P\<close> and \<open>\<And>x. P x \<Longrightarrow> (x, x) \<in> R\<close>
   shows \<open>I \<le> \<Down> R I\<close>
   using assms by (meson inres_SPEC pw_ref_I)
+lemma RES_ASSERT_moveout:
+  "(\<And>a. a \<in> P \<Longrightarrow> Q a) \<Longrightarrow> do {a \<leftarrow> RES P; ASSERT(Q a); (f a)} =
+   do {a\<leftarrow> RES P; (f a)}"
+  apply (subst order_class.eq_iff)
+  apply (rule conjI)
+  subgoal
+    by (refine_rcg bind_refine_RES[where R=Id, unfolded Down_id_eq])
+      auto
+  subgoal
+    by (refine_rcg bind_refine_RES[where R=Id, unfolded Down_id_eq])
+      auto
+  done
 
 lemma bind_if_inverse:
   \<open>do {
@@ -1541,9 +1556,6 @@ abbreviation uncurry4' where
 
 abbreviation uncurry6' where
   "uncurry6' f \<equiv> uncurry2 (uncurry4' f)"
-
-lemma Down_id_eq: "\<Down> Id a = a"
-  by auto
 
 
 definition find_in_list_between :: \<open>('a \<Rightarrow> bool) \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a list \<Rightarrow> nat option nres\<close> where

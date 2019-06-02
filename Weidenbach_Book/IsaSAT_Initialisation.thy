@@ -2004,155 +2004,6 @@ proof -
     done
 qed
 
-
-subsection \<open>Rewatch\<close>
-
-definition rewatch_heur where
-\<open>rewatch_heur vdom arena W = do {
-  let _ = vdom;
-  nfoldli [0..<length vdom] (\<lambda>_. True)
-   (\<lambda>i W. do {
-      let C = vdom ! i;
-      ASSERT(arena_is_valid_clause_vdom arena C);
-      if arena_status arena C \<noteq> DELETED
-      then do {
-        ASSERT(arena_lit_pre arena C);
-        ASSERT(arena_lit_pre arena (C+1));
-        let L1 = arena_lit arena C;
-        let L2 = arena_lit arena (C + 1);
-        ASSERT(nat_of_lit L1 < length W);
-        ASSERT(arena_is_valid_clause_idx arena C);
-        let b = (arena_length arena C = 2);
-        let W = append_ll W (nat_of_lit L1) (to_watcher C L2 b);
-        ASSERT(nat_of_lit L2 < length W);
-        let W = append_ll W (nat_of_lit L2) (to_watcher C L1 b);
-        RETURN W
-      }
-      else RETURN W
-    })
-   W
-  }\<close>
-
-
-lemma rewatch_heur_rewatch:
-  assumes
-    \<open>valid_arena arena N vdom\<close> and \<open>set xs \<subseteq> vdom\<close> and \<open>distinct xs\<close> and \<open>set_mset (dom_m N) \<subseteq> set xs\<close> and
-    \<open>(W, W') \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 \<A>)\<close> and lall: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm \<A> (mset `# ran_mf N)\<close> and
-    \<open>vdom_m \<A> W' N \<subseteq> set_mset (dom_m N)\<close>
-  shows
-    \<open>rewatch_heur xs arena W \<le> \<Down> ({(W, W'). (W, W') \<in>\<langle>Id\<rangle>map_fun_rel (D\<^sub>0 \<A>) \<and> vdom_m \<A> W' N \<subseteq> set_mset (dom_m N)}) (rewatch N W')\<close>
-proof -
-  have [refine0]: \<open>(xs, xsa) \<in> Id \<Longrightarrow>
-     ([0..<length xs], [0..<length xsa]) \<in> \<langle>{(x, x'). x = x' \<and> xs!x \<in> vdom}\<rangle>list_rel\<close>
-    for xsa
-    using assms unfolding list_rel_def
-    by (auto simp: list_all2_same)
-  show ?thesis
-    unfolding rewatch_heur_def rewatch_def
-    apply (subst (2) nfoldli_nfoldli_list_nth)
-    apply (refine_vcg)
-    subgoal
-      using assms by fast
-    subgoal
-      using assms by fast
-    subgoal
-      using assms by fast
-    subgoal by fast
-    subgoal
-      using assms
-      unfolding arena_is_valid_clause_vdom_def
-      by blast
-    subgoal
-      using assms
-      by (auto simp: arena_dom_status_iff)
-    subgoal for xsa xi x si s
-      using assms
-      unfolding arena_lit_pre_def
-      by (rule_tac j=\<open>xs ! xi\<close> in bex_leI)
-        (auto simp: arena_is_valid_clause_idx_and_access_def
-          intro!: exI[of _ N] exI[of _ vdom])
-    subgoal for xsa xi x si s
-      using assms
-      unfolding arena_lit_pre_def
-      by (rule_tac j=\<open>xs ! xi\<close> in bex_leI)
-        (auto simp: arena_is_valid_clause_idx_and_access_def
-          intro!: exI[of _ N] exI[of _ vdom])
-    subgoal for xsa xi x si s
-      using literals_are_in_\<L>\<^sub>i\<^sub>n_mm_in_\<L>\<^sub>a\<^sub>l\<^sub>l[OF lall, of \<open>xs ! xi\<close> 0] assms
-      by (auto simp: arena_lifting append_ll_def map_fun_rel_def)
-    subgoal for xsa xi x si s
-      using assms
-      unfolding arena_is_valid_clause_idx_and_access_def arena_is_valid_clause_idx_def
-      by (auto simp: arena_is_valid_clause_idx_and_access_def
-          intro!: exI[of _ N] exI[of _ vdom])
-    subgoal for xsa xi x si s
-      using literals_are_in_\<L>\<^sub>i\<^sub>n_mm_in_\<L>\<^sub>a\<^sub>l\<^sub>l[OF lall, of  \<open>xs ! xi\<close> 1] assms
-      by (auto simp: arena_lifting append_ll_def map_fun_rel_def)
-    subgoal for xsa xi x si s
-      using assms
-      by (auto simp: arena_lifting append_ll_def map_fun_rel_def)
-    done
-qed
-
-sepref_register rewatch_heur
-
-sepref_definition rewatch_heur_code
-  is \<open>uncurry2 (rewatch_heur)\<close>
-  :: \<open>vdom_assn\<^sup>k *\<^sub>a arena_assn\<^sup>k *\<^sub>a watchlist_assn\<^sup>d \<rightarrow>\<^sub>a watchlist_assn\<close>
-  supply [[goals_limit=1]]
-  unfolding rewatch_heur_def Let_def two_uint64_nat_def[symmetric] PR_CONST_def
-  by sepref
-
-declare rewatch_heur_code.refine[sepref_fr_rules]
-
-lemma rewatch_heur_alt_def:
-\<open>rewatch_heur vdom arena W = do {
-  let _ = vdom;
-  nfoldli [0..<length vdom] (\<lambda>_. True)
-   (\<lambda>i W. do {
-      let C = vdom ! i;
-      ASSERT(arena_is_valid_clause_vdom arena C);
-      if arena_status arena C \<noteq> DELETED
-      then do {
-        let C = uint64_of_nat_conv C;
-        ASSERT(arena_lit_pre arena C);
-        ASSERT(arena_lit_pre arena (C+1));
-        let L1 = arena_lit arena C;
-        let L2 = arena_lit arena (C + 1);
-        ASSERT(nat_of_lit L1 < length W);
-        ASSERT(arena_is_valid_clause_idx arena C);
-        let b = (arena_length arena C = 2);
-        let W = append_ll W (nat_of_lit L1) (to_watcher C L2 b);
-        ASSERT(nat_of_lit L2 < length W);
-        let W = append_ll W (nat_of_lit L2) (to_watcher C L1 b);
-        RETURN W
-      }
-      else RETURN W
-    })
-   W
-  }\<close>
-  unfolding Let_def uint64_of_nat_conv_def rewatch_heur_def
-  by auto
-
-lemma arena_lit_pre_le_uint64_max:
- \<open>length ba \<le> uint64_max \<Longrightarrow>
-       arena_lit_pre ba a \<Longrightarrow> a \<le> uint64_max\<close>
-  using arena_lifting(10)[of ba _ _]
-  by (fastforce simp: arena_lifting arena_is_valid_clause_idx_def arena_lit_pre_def
-      arena_is_valid_clause_idx_and_access_def)
-
-sepref_definition rewatch_heur_fast_code
-  is \<open>uncurry2 (rewatch_heur)\<close>
-  :: \<open>[\<lambda>((vdom, arena), W). (\<forall>x \<in> set vdom. x \<le> uint64_max) \<and> length arena \<le> uint64_max]\<^sub>a
-        vdom_assn\<^sup>k *\<^sub>a arena_assn\<^sup>k *\<^sub>a watchlist_fast_assn\<^sup>d \<rightarrow> watchlist_fast_assn\<close>
-  supply [[goals_limit=1]] uint64_of_nat_conv_def[simp]
-     arena_lit_pre_le_uint64_max[intro]
-  unfolding rewatch_heur_alt_def Let_def two_uint64_nat_def[symmetric] PR_CONST_def
-    one_uint64_nat_def[symmetric] to_watcher_fast_def[symmetric]
-  by sepref
-
-declare rewatch_heur_fast_code.refine[sepref_fr_rules]
-
 definition rewatch_heur_st
  :: \<open>twl_st_wl_heur_init_full \<Rightarrow> twl_st_wl_heur_init_full nres\<close>
 where
@@ -2160,33 +2011,6 @@ where
   W \<leftarrow> rewatch_heur vdom N' W;
   RETURN (M', N', D', j, W, vm, \<phi>, clvls, cach, lbd, vdom)
   })\<close>
-
-definition rewatch_heur_st_fast where
-  \<open>rewatch_heur_st_fast = rewatch_heur_st\<close>
-
-sepref_definition rewatch_heur_st_code
-  is \<open>(rewatch_heur_st)\<close>
-  :: \<open>isasat_init_unbounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_init_unbounded_assn\<close>
-  supply [[goals_limit=1]]
-  unfolding rewatch_heur_st_def PR_CONST_def
-    isasat_init_unbounded_assn_def
-  by sepref
-
-definition rewatch_heur_st_fast_pre where
-  \<open>rewatch_heur_st_fast_pre S =
-     ((\<forall>x \<in> set (get_vdom_heur_init S). x \<le> uint64_max) \<and> length (get_clauses_wl_heur_init S) \<le> uint64_max)\<close>
-
-sepref_definition rewatch_heur_st_fast_code
-  is \<open>(rewatch_heur_st_fast)\<close>
-  :: \<open>[rewatch_heur_st_fast_pre]\<^sub>a
-       isasat_init_assn\<^sup>d \<rightarrow> isasat_init_assn\<close>
-  supply [[goals_limit=1]]
-  unfolding rewatch_heur_st_def PR_CONST_def rewatch_heur_st_fast_pre_def
-    isasat_init_assn_def rewatch_heur_st_fast_def
-  by sepref
-
-declare rewatch_heur_st_code.refine[sepref_fr_rules]
-  rewatch_heur_st_fast_code.refine[sepref_fr_rules]
 
 lemma rewatch_heur_st_correct_watching:
   assumes
@@ -2256,15 +2080,36 @@ proof -
     done
 qed
 
-definition rewatch_st :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
-  \<open>rewatch_st S = do{
-     (M, N, D, NE, UE, Q, W) \<leftarrow> RETURN S;
-     W \<leftarrow> rewatch N W;
-     RETURN ((M, N, D, NE, UE, Q, W))
-  }\<close>
-
 
 subsubsection \<open>Full Initialisation\<close>
+
+
+definition rewatch_heur_st_fast where
+  \<open>rewatch_heur_st_fast = rewatch_heur_st\<close>
+
+sepref_definition rewatch_heur_st_code
+  is \<open>(rewatch_heur_st)\<close>
+  :: \<open>isasat_init_unbounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_init_unbounded_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding rewatch_heur_st_def PR_CONST_def
+    isasat_init_unbounded_assn_def
+  by sepref
+
+definition rewatch_heur_st_fast_pre where
+  \<open>rewatch_heur_st_fast_pre S =
+     ((\<forall>x \<in> set (get_vdom_heur_init S). x \<le> uint64_max) \<and> length (get_clauses_wl_heur_init S) \<le> uint64_max)\<close>
+
+sepref_definition rewatch_heur_st_fast_code
+  is \<open>(rewatch_heur_st_fast)\<close>
+  :: \<open>[rewatch_heur_st_fast_pre]\<^sub>a
+       isasat_init_assn\<^sup>d \<rightarrow> isasat_init_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding rewatch_heur_st_def PR_CONST_def rewatch_heur_st_fast_pre_def
+    isasat_init_assn_def rewatch_heur_st_fast_def
+  by sepref
+
+declare rewatch_heur_st_code.refine[sepref_fr_rules]
+  rewatch_heur_st_fast_code.refine[sepref_fr_rules]
 
 definition init_dt_wl_heur_full
   :: \<open>_ \<Rightarrow> twl_st_wl_heur_init_full \<Rightarrow> twl_st_wl_heur_init_full nres\<close>
@@ -2737,7 +2582,6 @@ sepref_definition init_state_wl_D'_code_unb
 declare init_state_wl_D'_code.refine[sepref_fr_rules]
   init_state_wl_D'_code_unb.refine[sepref_fr_rules]
 
-
 lemma init_trail_D_ref:
   \<open>(uncurry2 init_trail_D, uncurry2 (RETURN ooo (\<lambda> _ _ _. []))) \<in> [\<lambda>((N, n), m). mset N = \<A>\<^sub>i\<^sub>n \<and>
     distinct N \<and> (\<forall>L\<in>set N. L < n) \<and> m = 2 * n \<and> isasat_input_bounded \<A>\<^sub>i\<^sub>n]\<^sub>f
@@ -2772,54 +2616,28 @@ proof -
     apply clarify
     apply (intro conjI)
     subgoal
-      by (auto simp: zero_uint32_def shiftr1_def
-        nat_shiftr_div2 nat_of_uint32_shiftr in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
-        polarity_atm_def trail_pol_def K atms_of_def
-        phase_saving_def list_rel_mset_rel_def
-        list_rel_def uint32_nat_rel_def br_def list_all2_op_eq_map_right_iff'
-        ann_lits_split_reasons_def
-      list_mset_rel_def Collect_eq_comp)
+      by (auto simp: ann_lits_split_reasons_def
+          list_mset_rel_def Collect_eq_comp list_rel_def
+          list_all2_op_eq_map_right_iff' uint32_nat_rel_def
+          br_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n
+        dest: multi_member_split)
     subgoal
-      by (auto simp: zero_uint32_def shiftr1_def
-        nat_shiftr_div2 nat_of_uint32_shiftr in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
-        polarity_atm_def trail_pol_def K atms_of_def
-        phase_saving_def list_rel_mset_rel_def
-        list_rel_def uint32_nat_rel_def br_def list_all2_op_eq_map_right_iff'
-        ann_lits_split_reasons_def
-      list_mset_rel_def Collect_eq_comp)
+      by auto
     subgoal using K' by (auto simp: polarity_def)
     subgoal
       by (auto simp: zero_uint32_def shiftr1_def
         nat_shiftr_div2 nat_of_uint32_shiftr in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
-        polarity_atm_def trail_pol_def K atms_of_def
-        phase_saving_def list_rel_mset_rel_def
+        polarity_atm_def trail_pol_def K
+        phase_saving_def list_rel_mset_rel_def  atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n
         list_rel_def uint32_nat_rel_def br_def list_all2_op_eq_map_right_iff'
         ann_lits_split_reasons_def
       list_mset_rel_def Collect_eq_comp)
     subgoal
-      by (auto simp: zero_uint32_def shiftr1_def
-        nat_shiftr_div2 nat_of_uint32_shiftr in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
-        polarity_atm_def trail_pol_def K atms_of_def
-        phase_saving_def list_rel_mset_rel_def
-        list_rel_def uint32_nat_rel_def br_def list_all2_op_eq_map_right_iff'
-        ann_lits_split_reasons_def
-      list_mset_rel_def Collect_eq_comp)
+      by auto
     subgoal
-      by (auto simp: zero_uint32_def shiftr1_def
-        nat_shiftr_div2 nat_of_uint32_shiftr in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
-        polarity_atm_def trail_pol_def K atms_of_def
-        phase_saving_def list_rel_mset_rel_def
-        list_rel_def uint32_nat_rel_def br_def list_all2_op_eq_map_right_iff'
-        ann_lits_split_reasons_def
-      list_mset_rel_def Collect_eq_comp)
+      by auto
     subgoal
-      by (auto simp: zero_uint32_def shiftr1_def
-        nat_shiftr_div2 nat_of_uint32_shiftr in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
-        polarity_atm_def trail_pol_def K atms_of_def
-        phase_saving_def list_rel_mset_rel_def
-        list_rel_def uint32_nat_rel_def br_def list_all2_op_eq_map_right_iff'
-        ann_lits_split_reasons_def control_stack.empty
-      list_mset_rel_def Collect_eq_comp)
+      by (auto simp: control_stack.empty)
     subgoal by auto
     done
 qed

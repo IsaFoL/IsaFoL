@@ -923,12 +923,12 @@ lemma rewatch_st_correctness:
      correct_watching_init T)\<close>
   apply (rule SPEC_rule_conjI)
   subgoal
-    using rewatch_correctness[OF assms]
+    using Watched_Literals_Watch_List_Initialisation.rewatch_correctness[OF assms]
     unfolding rewatch_st_def
     apply (cases S, case_tac \<open>rewatch b g\<close>)
     by (auto simp: RES_RETURN_RES)
   subgoal
-    using rewatch_correctness[OF assms]
+    using Watched_Literals_Watch_List_Initialisation.rewatch_correctness[OF assms]
     unfolding rewatch_st_def
     apply (cases S, case_tac \<open>rewatch b g\<close>)
     by (force simp: RES_RETURN_RES)+
@@ -2763,6 +2763,37 @@ export_code IsaSAT_code
     nat_of_integer
     uint32_of_nat
     Version.version
-  in SML_imp module_name SAT_Solver file "code/IsaSAT_solver.sml"
+  in SML_imp module_name SAT_Solver file_prefix "IsaSAT_solver"
+
+external_file \<open>code/Unsynchronized.sml\<close>
+external_file \<open>code/IsaSAT.mlb\<close>
+external_file \<open>code/IsaSAT.sml\<close>
+external_file \<open>code/dimacs_parser.sml\<close>
+
+
+compile_generated_files _ 
+  external_files
+    \<open>code/IsaSAT.mlb\<close>
+    \<open>code/Unsynchronized.sml\<close>
+    \<open>code/IsaSAT.sml\<close>
+    \<open>code/dimacs_parser.sml\<close>
+  where \<open>fn dir =>
+    let
+      val exec = Generated_Files.execute (Path.append dir (Path.basic "code"));
+      val _ = exec \<open>rename file\<close> "mv IsaSAT_solver.ML IsaSAT_solver.sml"
+      val _ =
+        exec \<open>Copy files\<close>
+          ("cp IsaSAT_solver.sml " ^
+            ((File.bash_path \<^path>\<open>$ISAFOL\<close>) ^ "/Weidenbach_Book/code/IsaSAT_solver.sml"));
+      val _ =
+        exec \<open>Compilation\<close>
+          (File.bash_path \<^path>\<open>$ISABELLE_MLTON\<close> ^
+            " -const 'MLton.safe false' -verbose 1 -default-type int64 -output IsaSAT " ^
+            " -codegen native -inline 700 -cc-opt -O3 IsaSAT.mlb");
+      val _ =
+        exec \<open>Copy binary files\<close>
+          ("cp IsaSAT " ^
+            File.bash_path \<^path>\<open>$ISAFOL\<close> ^ "/Weidenbach_Book/code/");
+    in () end\<close>
 
 end

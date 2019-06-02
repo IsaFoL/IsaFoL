@@ -182,10 +182,11 @@ lemma diff_eq_insertD:
 lemma in_set_tlD: \<open>x \<in> set (tl xs) \<Longrightarrow> x \<in> set xs\<close>
   by (cases xs) auto
 
+
 subsection \<open>List Updates\<close>
 
 lemma tl_update_swap:
-  \<open>i \<ge> 1 \<Longrightarrow> tl (N[i := C]) = tl N[i-1 := C]\<close>
+  \<open>i \<ge> 1 \<Longrightarrow> tl (N[i := C]) = (tl N)[i-1 := C]\<close>
   by (auto simp:  drop_Suc[of 0, symmetric, simplified] drop_update_swap)
 
 lemma tl_update_0[simp]: \<open>tl (N[0 := x]) = tl N\<close>
@@ -1743,7 +1744,7 @@ lemma distinct_mset_dom: \<open>distinct_mset (dom_m N)\<close>
   by (simp add: distinct_mset_mset_set dom_m_def)
 
 lemma in_dom_m_lookup_iff: \<open>C \<in># dom_m N' \<longleftrightarrow> fmlookup N' C \<noteq> None\<close>
-  by (auto simp: dom_m_def fmdom.rep_eq)
+  by (auto simp: dom_m_def fmdom.rep_eq fmlookup_dom'_iff)
 
 lemma in_dom_in_ran_m[simp]: \<open>i \<in># dom_m N \<Longrightarrow> the (fmlookup N i) \<in># ran_m N\<close>
   by (auto simp: ran_m_def)

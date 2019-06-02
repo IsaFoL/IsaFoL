@@ -105,8 +105,8 @@ lemma tautology_complete_trail[simp]:
 lemma atms_of_complete_trail:
   \<open>atms_of (lit_of `# mset (complete_trail M)) =
      atms_of (lit_of `# mset M) \<union> (\<Sigma> - \<Delta>\<Sigma>) \<union> replacement_neg ` \<Delta>\<Sigma> \<union> replacement_pos ` \<Delta>\<Sigma>\<close>
-  by (auto simp: complete_trail_def atms_of_def all_clauses_literals
-    image_image image_Un undefined_notin defined_lit_map)
+  by (auto simp add: complete_trail_def all_clauses_literals
+    image_image image_Un atms_of_def defined_lit_map)
 
 fun ocdcl_score_rev :: \<open>('v, 'b) ann_lits \<Rightarrow> ('v, 'b) ann_lits \<Rightarrow> nat\<close> where
   \<open>ocdcl_score_rev _ [] = 0\<close> |

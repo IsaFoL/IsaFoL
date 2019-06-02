@@ -1314,12 +1314,12 @@ definition keep_watch_heur_pre where
 
 
 lemma vdom_m_update_subset':
-  \<open>fst C \<in> vdom_m \<A> bh N \<Longrightarrow> vdom_m \<A> (bh(ap := bh ap[bf := C])) N \<subseteq> vdom_m \<A> bh N\<close>
+  \<open>fst C \<in> vdom_m \<A> bh N \<Longrightarrow> vdom_m \<A> (bh(ap := (bh ap)[bf := C])) N \<subseteq> vdom_m \<A> bh N\<close>
   unfolding vdom_m_def
   by (fastforce split: if_splits elim!: in_set_upd_cases)
 
 lemma vdom_m_update_subset:
-  \<open>bg < length (bh ap) \<Longrightarrow> vdom_m \<A> (bh(ap := bh ap[bf := bh ap ! bg])) N \<subseteq> vdom_m \<A> bh N\<close>
+  \<open>bg < length (bh ap) \<Longrightarrow> vdom_m \<A> (bh(ap := (bh ap)[bf := bh ap ! bg])) N \<subseteq> vdom_m \<A> bh N\<close>
   unfolding vdom_m_def
   by (fastforce split: if_splits elim!: in_set_upd_cases)
 
@@ -1363,7 +1363,7 @@ definition update_blit_wl_heur_pre where
       simp: vdom_m_update_subset)
   subgoal for aa ab ac ad ae be af ag ah bf aj ak al am an bg ao bh ap aq ar bi at bu bv
        cb cc cd ce cf cg ch cj ck cm y x
-    apply (subgoal_tac \<open>vdom_m (all_atms ch (cj + ck)) (cm(K := cm K[cd := (cb, cf, cc)])) ch \<subseteq>
+    apply (subgoal_tac \<open>vdom_m (all_atms ch (cj + ck)) (cm(K := (cm K)[cd := (cb, cf, cc)])) ch \<subseteq>
         vdom_m (all_atms ch (cj + ck)) cm ch\<close>)
     apply fast
     apply (rule vdom_m_update_subset')
@@ -1371,7 +1371,7 @@ definition update_blit_wl_heur_pre where
     done
   subgoal for aa ab ac ad ae be af ag ah bf aj ak al am an bg ao bh ap aq ar bi at bu bv
        ca cb cc cd ce cf cg ch cj ck cm y x
-    apply (subgoal_tac \<open>vdom_m (all_atms ch (cj + ck)) (cm(ca := cm ca[cd := (cb, cf, cc)]))
+    apply (subgoal_tac \<open>vdom_m (all_atms ch (cj + ck)) (cm(ca := (cm ca)[cd := (cb, cf, cc)]))
          ch \<subseteq>
         vdom_m (all_atms ch (cj + ck)) cm ch\<close>)
     apply fast
@@ -1380,7 +1380,7 @@ definition update_blit_wl_heur_pre where
     done
   subgoal for aa ab ac ad ae be af ag ah bf ai aj ak al am an bg ao bh ap aq ar bi at bu
        bv cb cc cd ce cf cg ch ci cj ck cm x
-    apply (subgoal_tac \<open>vdom_m (all_atms ch (cj + ck)) (cm(K := cm K[cd := (cb, cf, cc)])) ch \<subseteq>
+    apply (subgoal_tac \<open>vdom_m (all_atms ch (cj + ck)) (cm(K := (cm K)[cd := (cb, cf, cc)])) ch \<subseteq>
         vdom_m (all_atms ch (cj + ck)) cm ch\<close>)
     apply fast
     apply (rule vdom_m_update_subset')
@@ -1388,7 +1388,7 @@ definition update_blit_wl_heur_pre where
     done
   subgoal for aa ab ac ad ae be af ag ah bf ai aj ak al am an bg ao bh ap aq ar bi at bu
        bv ca cb cc cd ce cf cg ch ci cj ck cm x
-    apply (subgoal_tac \<open>vdom_m (all_atms ch (cj + ck)) (cm(ca := cm ca[cd := (cb, cf, cc)])) ch \<subseteq>
+    apply (subgoal_tac \<open>vdom_m (all_atms ch (cj + ck)) (cm(ca := (cm ca)[cd := (cb, cf, cc)])) ch \<subseteq>
         vdom_m (all_atms ch (cj + ck)) cm ch\<close>)
     apply fast
     apply (rule vdom_m_update_subset')
@@ -1460,7 +1460,7 @@ lemma unit_propagation_inner_loop_body_wl_D_alt_def:
 
 (*TODO Move*)
 lemma in_vdom_m_upd:
-  \<open>x1f \<in> vdom_m \<A> (g(x1e := g x1e[x2 := (x1f, x2f)])) b\<close>
+  \<open>x1f \<in> vdom_m \<A> (g(x1e := (g x1e)[x2 := (x1f, x2f)])) b\<close>
   if \<open>x2 < length (g x1e)\<close> and \<open>x1e \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<close>
   using that
   unfolding vdom_m_def

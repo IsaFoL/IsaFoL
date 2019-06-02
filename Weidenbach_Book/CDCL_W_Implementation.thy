@@ -1234,6 +1234,12 @@ export_code do_all_cdcl\<^sub>W_stgy_nat Pos Neg natural_of_nat nat_of_integer i
   integer_of_int int_of_integer
   in SML
   module_name SAT_Solver
-  file "code/functional_solver.sml"
+  file_prefix "Functional_Solver"
+
+external_file "code/Unsynchronized.sml"
+external_file "code/IsaSAT.mlb"
+external_file "code/IsaSAT.sml"
+external_file "code/IsaSAT_solver.sml"
+external_file "code/dimacs_parser.sml"
 
 end
