@@ -11,8 +11,7 @@
 chapter \<open>FOL-Harrison\<close>
 
 theory FOL_Harrison_Lifting_Truths
-imports
-  "~~/src/HOL/Library/Code_Char"
+imports Main
 begin
 
 section \<open>Module Proven\<close>
@@ -607,11 +606,11 @@ functions
   axiom_existseq axiom_eqrefl axiom_funcong axiom_predcong axiom_iffimp1 axiom_iffimp2
   axiom_impiff axiom_true axiom_not axiom_and axiom_or axiom_exists concl
 
-ML {* open Proven *}
+ML \<open> open Proven \<close>
 
-ML {* val print = writeln (* Should not add newline but only used for testing (see XXX label) *) *}
+ML \<open> val print = writeln (* Should not add newline but only used for testing (see XXX label) *) \<close>
 
-ML {* "format_simple.sml";
+ML \<open> "format_simple.sml";
 
 fun set_margin _ = ();
 
@@ -635,9 +634,9 @@ fun print_int n = print (Int.toString n);
 
 fun open_hvbox _ = ();
 
-*}
+\<close>
 
-ML {* "lib.sml";
+ML \<open> "lib.sml";
 
 (* ========================================================================= *)
 (* Misc library functions to set up a nice environment.                      *)
@@ -1168,9 +1167,9 @@ infix 6 |==> (* For strings *)
 
 fun x |==> y = (x |=> y) str_ord str_hash;
 
-*}
+\<close>
 
-ML {* "intro.sml";
+ML \<open> "intro.sml";
 
 (* ========================================================================= *)
 (* Simple algebraic expression example from the introductory chapter.        *)
@@ -1219,9 +1218,9 @@ fun make_parser pfn s =
   if rest = [] then expr else raise Fail "Unparsed input"
   end;
 
-*}
+\<close>
 
-ML {* "formulas.sml";
+ML \<open> "formulas.sml";
 
 (* ========================================================================= *)
 (* Polymorphic type of formulas with parser and printer.                     *)
@@ -1503,9 +1502,9 @@ fun atom_union ord f fm = setify ord (overatoms (fn h => fn t => f(h)@t) fm []);
 
 fun atom_union_sip f fm = atom_union sip_ord f fm;
 
-*}
+\<close>
 
-ML {* "prop.sml";
+ML \<open> "prop.sml";
 
 (* ========================================================================= *)
 (* Basic stuff for propositional logic: datatype, parsing and printing.      *)
@@ -1517,9 +1516,9 @@ ML {* "prop.sml";
 
 fun list_conj l = if l = [] then Truth else end_itlist mk_and l;
 
-*}
+\<close>
 
-ML {* "fol.sml";
+ML \<open> "fol.sml";
 
 (* ========================================================================= *)
 (* Basic stuff for first order logic.                                        *)
@@ -1812,9 +1811,9 @@ and substq subfn quant x p =
     end
 ;
 
-*}
+\<close>
 
-ML {* "skolem.sml";
+ML \<open> "skolem.sml";
 
 (* ========================================================================= *)
 (* Prenex and Skolem normal forms.                                           *)
@@ -1832,9 +1831,9 @@ fun funcs tm =
 fun functions fm =
   atom_union_sip (fn (Rl(p,a)) => itlist (union_sip o funcs) a []) fm;
 
-*}
+\<close>
 
-ML {* "unif.sml";
+ML \<open> "unif.sml";
 
 (* ========================================================================= *)
 (* Unification for first order terms.                                        *)
@@ -1884,9 +1883,9 @@ fun unify_and_apply eqs =
   map apply eqs
   end;
 
-*}
+\<close>
 
-ML {* "tableaux.sml";
+ML \<open> "tableaux.sml";
 
 (* ========================================================================= *)
 (* Tableaux, seen as an optimized version of a Prawitz-like procedure.       *)
@@ -1898,9 +1897,9 @@ fun deepen f n =
   )
   handle Fail _ => deepen f (n + 1);
 
-*}
+\<close>
 
-ML {* "resolution.sml";
+ML \<open> "resolution.sml";
 
 (* ========================================================================= *)
 (* Resolution.                                                               *)
@@ -1927,9 +1926,9 @@ fun term_match env eqs =
     | _ =>
         raise Fail "term_match";
 
-*}
+\<close>
 
-ML {* "equal.sml";
+ML \<open> "equal.sml";
 
 (* ========================================================================= *)
 (* First order logic with equality.                                          *)
@@ -1944,9 +1943,9 @@ fun dest_eq fm =
 
 fun lhs eq = fst (dest_eq eq) and rhs eq = snd (dest_eq eq);
 
-*}
+\<close>
 
-ML {* "order.sml";
+ML \<open> "order.sml";
 
 (* ========================================================================= *)
 (* Term orderings.                                                           *)
@@ -1957,9 +1956,9 @@ fun termsize tm =
     Var x => 1
   | Fn(f,args) => itlist (fn t => fn n => termsize t + n) args 1;
 
-*}
+\<close>
 
-ML {* "eqelim.sml";
+ML \<open> "eqelim.sml";
 
 (* ========================================================================= *)
 (* Equality elimination including Brand transformation and relatives.        *)
@@ -1976,9 +1975,9 @@ fun replacet rfn tm =
     Fn(f,args) => Fn(f,List.map (replacet rfn) args)
   | _ => tm;
 
-*}
+\<close>
 
-ML {* "lcf.sml";
+ML \<open> "lcf.sml";
 
 fun print_thm_aux th = (
     open_box 0;
@@ -1989,9 +1988,9 @@ fun print_thm_aux th = (
 
 fun print_thm th = (print_thm_aux th; print_flush ())
 
-*}
+\<close>
 
-ML {* "lcfprop.sml";
+ML \<open> "lcfprop.sml";
 
 (* ========================================================================= *)
 (* Propositional reasoning by derived rules atop the LCF core.               *)
@@ -2476,9 +2475,9 @@ fun lcfptab fms lits =
 fun lcftaut p =
   modusponens (axiom_doubleneg p) (lcfptab [negatef p] []);
 
-*}
+\<close>
 
-ML {* "folderived.sml";
+ML \<open> "folderived.sml";
 
 (* ========================================================================= *)
 (* First-order derived rules in the LCF setup.                               *)
@@ -2684,9 +2683,9 @@ fun ispec t fm =
 
 fun spec t th = modusponens (ispec t (concl th)) th;
 
-*}
+\<close>
 
-ML {* "lcffol.sml";
+ML \<open> "lcffol.sml";
 
 (* ========================================================================= *)
 (* First order tableau procedure using LCF setup.                            *)
@@ -2953,9 +2952,9 @@ fun lcffol fm =
   itlist (fn v => spec(Var v)) (rev fvs) th2
   end;
 
-*}
+\<close>
 
-ML {* "tactics.sml";
+ML \<open> "tactics.sml";
 
 (* ========================================================================= *)
 (* Goals, LCF-like tactics and Mizar-like proofs.                            *)
@@ -3471,11 +3470,11 @@ prove (<!("(forall x. p(x) ==> q(x)) ==> (forall x. q(x) ==> p(x)) " ^
    our thesis by ["von", "bis"],
    qed];
 
-*}
+\<close>
 
 section \<open>Main Examples\<close>
 
-ML_val {* (* Hoare's Exercise ewd1062_1 & ewd1062_2 (Harrison has only a proof with tactics) *)
+ML_val \<open> (* Hoare's Exercise ewd1062_1 & ewd1062_2 (Harrison has only a proof with tactics) *)
 
 prove
   (<!("(forall x. x <= x) /\\ " ^
@@ -3497,9 +3496,9 @@ prove
     qed
   ]
 
-*}
+\<close>
 
-ML_val {* (* Pelletier p43 (Harrison has it in a comment but the proof seems not to finish) *)
+ML_val \<open> (* Pelletier p43 (Harrison has it in a comment but the proof seems not to finish) *)
 
 prove
   (<!"(forall x y. Q(x,y) <=> forall z. P(z,x) <=> P(z,y)) ==> forall x y. Q(x,y) <=> Q(y,x)"!>)
@@ -3538,9 +3537,9 @@ prove
     qed
   ]
 
-*}
+\<close>
 
-ML_val {* (* Pelletier p46 (Harrison does not have it) *)
+ML_val \<open> (* Pelletier p46 (Harrison does not have it) *)
 
   prove
     (<!("(forall x. P(x) /\\ (forall y. P(y) /\\ H(y,x) ==> G(y)) ==> G(x)) /\\ " ^
@@ -3564,166 +3563,166 @@ ML_val {* (* Pelletier p46 (Harrison does not have it) *)
       ], qed
     ]
 
-*}
+\<close>
 
 section \<open>Other Examples\<close>
 
 (* Function auto as a basic declarative proof *)
 
-ML {* fun auto s = prove (<!s!>) [our thesis at once, qed] *}
+ML \<open> fun auto s = prove (<!s!>) [our thesis at once, qed] \<close>
 
-ML_val {* auto "A ==> A" *}
+ML_val \<open> auto "A ==> A" \<close>
 
-ML_val {* auto "exists x. D(x) ==> forall x. D(x)" *}
+ML_val \<open> auto "exists x. D(x) ==> forall x. D(x)" \<close>
 
-ML_val {* auto "(forall x. ~R(x) ==> R(f(x))) ==> exists x. R(x) /\\ R(f(f(x)))" *}
+ML_val \<open> auto "(forall x. ~R(x) ==> R(f(x))) ==> exists x. R(x) /\\ R(f(f(x)))" \<close>
 
-ML_val {* (* Harrison p58 (as mentioned in the errata it is not Pelletier p58) *)
+ML_val \<open> (* Harrison p58 (as mentioned in the errata it is not Pelletier p58) *)
 
 auto "forall x. exists v w. forall y z. P(x) /\\ Q(y) ==> (P(v) \\/ R(w)) /\\ (R(z) ==> Q(v))"
 
-*}
+\<close>
 
-ML_val {* (* Pelletier p1 *)
+ML_val \<open> (* Pelletier p1 *)
 
 auto "p ==> q <=> ~q ==> ~p"
 
-*}
+\<close>
 
-ML_val {* (* Pelletier p2 *)
+ML_val \<open> (* Pelletier p2 *)
 
 auto "~ ~p <=> p"
 
-*}
+\<close>
 
-ML_val {* (* Pelletier p3 *)
+ML_val \<open> (* Pelletier p3 *)
 
 auto "~(p ==> q) ==> q ==> p"
 
-*}
+\<close>
 
-ML_val {* (* Pelletier p4 *)
+ML_val \<open> (* Pelletier p4 *)
 
 auto "~p ==> q <=> ~q ==> p"
 
-*}
+\<close>
 
-ML_val {* (* Pelletier p5 *)
+ML_val \<open> (* Pelletier p5 *)
 
 auto "(p \\/ q ==> p \\/ r) ==> p \\/ (q ==> r)"
 
-*}
+\<close>
 
-ML_val {* (* Pelletier p6 *)
+ML_val \<open> (* Pelletier p6 *)
 
 auto "p \\/ ~p"
 
-*}
+\<close>
 
-ML_val {* (* Pelletier p7 *)
+ML_val \<open> (* Pelletier p7 *)
 
 auto "p \\/ ~ ~ ~p"
 
-*}
+\<close>
 
-ML_val {* (* Pelletier p8 *)
+ML_val \<open> (* Pelletier p8 *)
 
 auto "((p ==> q) ==> p) ==> p"
 
-*}
+\<close>
 
-ML_val {* (* Pelletier p9 *)
+ML_val \<open> (* Pelletier p9 *)
 
 auto "(p \\/ q) /\\ (~p \\/ q) /\\ (p \\/ ~q) ==> ~(~q \\/ ~q)"
 
-*}
+\<close>
 
-ML_val {* (* Pelletier p10 *)
+ML_val \<open> (* Pelletier p10 *)
 
 auto "(q ==> r) /\\ (r ==> p /\\ q) /\\ (p ==> q /\\ r) ==> (p <=> q)"
 
-*}
+\<close>
 
-ML_val {* (* Pelletier p11 *)
+ML_val \<open> (* Pelletier p11 *)
 
 auto "p <=> p"
 
-*}
+\<close>
 
-ML_val {* (* Pelletier p12 *)
+ML_val \<open> (* Pelletier p12 *)
 
 auto "((p <=> q) <=> r) <=> (p <=> (q <=> r))"
 
-*}
+\<close>
 
-ML_val {* (* Pelletier p13 *)
+ML_val \<open> (* Pelletier p13 *)
 
 auto "p \\/ q /\\ r <=> (p \\/ q) /\\ (p \\/ r)"
 
-*}
+\<close>
 
-ML_val {* (* Pelletier p14 *)
+ML_val \<open> (* Pelletier p14 *)
 
 auto "(p <=> q) <=> (q \\/ ~p) /\\ (~q \\/ p)"
 
-*}
+\<close>
 
-ML_val {* (* Pelletier p15 *)
+ML_val \<open> (* Pelletier p15 *)
 
 auto "p ==> q <=> ~p \\/ q"
 
-*}
+\<close>
 
-ML_val {* (* Pelletier p16 *)
+ML_val \<open> (* Pelletier p16 *)
 
 auto "(p ==> q) \\/ (q ==> p)"
 
-*}
+\<close>
 
-ML_val {* (* Pelletier p17 *)
+ML_val \<open> (* Pelletier p17 *)
 
 auto "p /\\ (q ==> r) ==> s <=> (~p \\/ q \\/ s) /\\ (~p \\/ ~r \\/ s)"
 
-*}
+\<close>
 
-ML_val {* (* Pelletier p18 *)
+ML_val \<open> (* Pelletier p18 *)
 
 auto "exists y. forall x. P(y) ==> P(x)"
 
-*}
+\<close>
 
-ML_val {* (* Pelletier p19 *)
+ML_val \<open> (* Pelletier p19 *)
 
 auto "exists x. forall y z. (P(y) ==> Q(z)) ==> P(x) ==> Q(x)"
 
-*}
+\<close>
 
-ML_val {* (* Pelletier p20 *)
+ML_val \<open> (* Pelletier p20 *)
 
 auto ("(forall x y. exists z. forall w. P(x) /\\ Q(y) ==> R(z) /\\ U(w)) " ^
       "==> (exists x y. P(x) /\\ Q(y)) ==> (exists z. R(z))")
 
-*}
+\<close>
 
-ML_val {* (* Pelletier p21 *)
+ML_val \<open> (* Pelletier p21 *)
 
 auto "(exists x. P ==> Q(x)) /\\ (exists x. Q(x) ==> P) ==> (exists x. P <=> Q(x))"
 
-*}
+\<close>
 
-ML_val {* (* Pelletier p22 *)
+ML_val \<open> (* Pelletier p22 *)
 
 auto "(forall x. P <=> Q(x)) ==> (P <=> (forall x. Q(x)))"
 
-*}
+\<close>
 
-ML_val {* (* Pelletier p23 *)
+ML_val \<open> (* Pelletier p23 *)
 
 auto "(forall x. P \\/ Q(x)) <=> P \\/ (forall x. Q(x))"
 
-*}
+\<close>
 
-ML_val {* (* Pelletier p24 *)
+ML_val \<open> (* Pelletier p24 *)
 
 auto ("~(exists x. U(x) /\\ Q(x)) /\\ " ^
       "(forall x. P(x) ==> Q(x) \\/ R(x)) /\\ " ^
@@ -3731,9 +3730,9 @@ auto ("~(exists x. U(x) /\\ Q(x)) /\\ " ^
       "(forall x. Q(x) /\\ R(x) ==> U(x)) " ^
       "==> (exists x. P(x) /\\ R(x))")
 
-*}
+\<close>
 
-ML_val {* (* Pelletier p25 *)
+ML_val \<open> (* Pelletier p25 *)
 
 auto ("(exists x. P(x)) /\\ " ^
       "(forall x. U(x) ==> ~G(x) /\\ R(x)) /\\ " ^
@@ -3741,17 +3740,17 @@ auto ("(exists x. P(x)) /\\ " ^
       "((forall x. P(x) ==> Q(x)) \\/ (exists x. Q(x) /\\ P(x))) " ^
       "==> (exists x. Q(x) /\\ P(x))")
 
-*}
+\<close>
 
-ML_val {* (* Pelletier p26 *)
+ML_val \<open> (* Pelletier p26 *)
 
 auto ("((exists x. P(x)) <=> (exists x. Q(x))) /\\ " ^
       "(forall x y. P(x) /\\ Q(y) ==> (R(x) <=> U(y))) " ^
       "==> ((forall x. P(x) ==> R(x)) <=> (forall x. Q(x) ==> U(x)))")
 
-*}
+\<close>
 
-ML_val {* (* Pelletier p27 *)
+ML_val \<open> (* Pelletier p27 *)
 
 auto ("(exists x. P(x) /\\ ~Q(x)) /\\ " ^
       "(forall x. P(x) ==> R(x)) /\\ " ^
@@ -3759,74 +3758,74 @@ auto ("(exists x. P(x) /\\ ~Q(x)) /\\ " ^
       "(exists x. R(x) /\\ ~Q(x)) " ^
       "==> (forall x. V(x) ==> ~R(x)) ==> (forall x. U(x) ==> ~V(x))")
 
-*}
+\<close>
 
-ML_val {* (* Pelletier p28 *)
+ML_val \<open> (* Pelletier p28 *)
 
 auto ("(forall x. P(x) ==> (forall x. Q(x))) /\\ " ^
       "((forall x. Q(x) \\/ R(x)) ==> (exists x. Q(x) /\\ R(x))) /\\ " ^
       "((exists x. R(x)) ==> (forall x. L(x) ==> M(x))) " ^
       "==> (forall x. P(x) /\\ L(x) ==> M(x))")
 
-*}
+\<close>
 
-ML_val {* (* Pelletier p29 *)
+ML_val \<open> (* Pelletier p29 *)
 
 auto ("(exists x. P(x)) /\\ (exists x. G(x)) ==> " ^
       "((forall x. P(x) ==> H(x)) /\\ (forall x. G(x) ==> J(x)) " ^
       "<=> (forall x y. P(x) /\\ G(y) ==> H(x) /\\ J(y)))")
 
-*}
+\<close>
 
-ML_val {* (* Pelletier p30 *)
+ML_val \<open> (* Pelletier p30 *)
 
 auto ("(forall x. P(x) \\/ G(x) ==> ~H(x)) /\\ " ^
       "(forall x. (G(x) ==> ~U(x)) ==> P(x) /\\ H(x)) " ^
       "==> (forall x. U(x))")
 
-*}
+\<close>
 
-ML_val {* (* Pelletier p31 *)
+ML_val \<open> (* Pelletier p31 *)
 
 auto ("~(exists x. P(x) /\\ (G(x) \\/ H(x))) /\\ " ^
       "(exists x. Q(x) /\\ P(x)) /\\ " ^
       "(forall x. ~H(x) ==> J(x)) " ^
       "==> (exists x. Q(x) /\\ J(x))")
 
-*}
+\<close>
 
-ML_val {* (* Pelletier p32 *)
+ML_val \<open> (* Pelletier p32 *)
 
 auto ("(forall x. P(x) /\\ (G(x) \\/ H(x)) ==> Q(x)) /\\ " ^
       "(forall x. Q(x) /\\ H(x) ==> J(x)) /\\ " ^
       "(forall x. R(x) ==> H(x)) " ^
       "==> (forall x. P(x) /\\ R(x) ==> J(x))")
 
-*}
+\<close>
 
-ML_val {* (* Pelletier p33 *)
+ML_val \<open> (* Pelletier p33 *)
 
 auto ("(forall x. P(a) /\\ (P(x) ==> P(b)) ==> P(c)) " ^
       "<=> (forall x. P(a) ==> P(x) \\/ P(c)) /\\ (P(a) ==> P(b) ==> P(c))")
 
-*}
+\<close>
 
-ML_val {* (* Pelletier p35 *)
+ML_val \<open> (* Pelletier p35 *)
 
 auto "exists x y. P(x,y) ==> (forall x y. P(x,y))"
 
-*}
+\<close>
 
-ML_val {* (* Pelletier p36 *)
+ML_val \<open> (* Pelletier p36 *)
 
 auto ("(forall x. exists y. P(x,y)) /\\ " ^
       "(forall x. exists y. G(x,y)) /\\ " ^
       "(forall x y. P(x,y) \\/ G(x,y) ==> (forall z. P(y,z) \\/ G(y,z) ==> H(x,z))) " ^
       "==> (forall x. exists y. H(x,y))")
 
-*}
+\<close>
 
-ML_val {* (* Pelletier p37 *)
+ML_val \<open> (* Pelletier p37 *)
 
 auto ("(forall z. " ^
         "exists w. forall x. exists y. (P(x,z) ==> P(y,w)) /\\ P(y,z) /\\ " ^
@@ -3835,9 +3834,9 @@ auto ("(forall z. " ^
       "((exists x y. Q(x,y)) ==> (forall x. R(x,x))) " ^
       "==> (forall x. exists y. R(x,y))")
 
-*}
+\<close>
 
-ML_val {* (* Pelletier p38 *)
+ML_val \<open> (* Pelletier p38 *)
 
 auto ("(forall x. " ^
         "P(a) /\\ (P(x) ==> (exists y. P(y) /\\ R(x,y))) ==> " ^
@@ -3847,44 +3846,44 @@ auto ("(forall x. " ^
         "(~P(a) \\/ ~(exists y. P(y) /\\ R(x,y)) \\/ " ^
         "(exists z w. P(z) /\\ R(x,w) /\\ R(w,z))))")
 
-*}
+\<close>
 
-ML_val {* (* Pelletier p39 *)
+ML_val \<open> (* Pelletier p39 *)
 
 auto "~(exists x. forall y. P(y,x) <=> ~P(y,y))"
 
-*}
+\<close>
 
-ML_val {* (* Pelletier p40 *)
+ML_val \<open> (* Pelletier p40 *)
 
 auto ("(exists y. forall x. P(x,y) <=> P(x,x)) " ^
       "==> ~(forall x. exists y. forall z. P(z,y) <=> ~P(z,x))")
 
-*}
+\<close>
 
-ML_val {* (* Pelletier p41 *)
+ML_val \<open> (* Pelletier p41 *)
 
 auto ("(forall z. exists y. forall x. P(x,y) <=> P(x,z) /\\ ~P(x,x)) " ^
       "==> ~(exists z. forall x. P(x,z))")
 
-*}
+\<close>
 
-ML_val {* (* Pelletier p42 *)
+ML_val \<open> (* Pelletier p42 *)
 
 auto "~(exists y. forall x. P(x,y) <=> ~(exists z. P(x,z) /\\ P(z,x)))"
 
-*}
+\<close>
 
-ML_val {* (* Pelletier p44 *)
+ML_val \<open> (* Pelletier p44 *)
 
 auto ("(forall x. P(x) ==> (exists y. G(y) /\\ H(x,y)) /\\ " ^
       "(exists y. G(y) /\\ ~H(x,y))) /\\ " ^
       "(exists x. J(x) /\\ (forall y. G(y) ==> H(x,y))) ==> " ^
       "(exists x. J(x) /\\ ~P(x))")
 
-*}
+\<close>
 
-ML_val {* (* Pelletier p45 *)
+ML_val \<open> (* Pelletier p45 *)
 
 auto ("(forall x. " ^
         "P(x) /\\ (forall y. G(y) /\\ H(x,y) ==> J(x,y)) ==> " ^
@@ -3894,9 +3893,9 @@ auto ("(forall x. " ^
         "L(y)) /\\ (forall y. G(y) /\\ H(x,y) ==> J(x,y))) ==> " ^
       "(exists x. P(x) /\\ ~(exists y. G(y) /\\ H(x,y)))")
 
-*}
+\<close>
 
-ML_val {* (* Pelletier p55 *)
+ML_val \<open> (* Pelletier p55 *)
 
 auto ("lives(agatha) /\\ lives(butler) /\\ lives(charles) /\\ " ^
       "(killed(agatha,agatha) \\/ killed(butler,agatha) \\/ " ^
@@ -3911,30 +3910,30 @@ auto ("lives(agatha) /\\ lives(butler) /\\ lives(charles) /\\ " ^
              "~killed(butler,agatha) /\\ " ^
              "~killed(charles,agatha)")
 
-*}
+\<close>
 
-ML_val {* (* Pelletier p57 *)
+ML_val \<open> (* Pelletier p57 *)
 
 auto ("P(f(a,b),f(b,c)) /\\ " ^
       "P(f(b,c),f(a,c)) /\\ " ^
       "(forall x y z. P(x,y) /\\ P(y,z) ==> P(x,z)) " ^
       "==> P(f(a,b),f(a,c))")
 
-*}
+\<close>
 
-ML_val {* (* Pelletier p59 *)
+ML_val \<open> (* Pelletier p59 *)
 
 auto "(forall x. P(x) <=> ~P(f(x))) ==> (exists x. P(x) /\\ ~P(f(x)))"
 
-*}
+\<close>
 
-ML_val {* (* Pelletier p60 *)
+ML_val \<open> (* Pelletier p60 *)
 
 auto "forall x. P(x,f(x)) <=> exists y. (forall z. P(z,y) ==> P(z,f(x))) /\\ P(x,y)"
 
-*}
+\<close>
 
-ML_val {* (* gilmore_3 *)
+ML_val \<open> (* gilmore_3 *)
 
 auto ("exists x. forall y z. " ^
               "((F(y,z) ==> (G(y) ==> H(x))) ==> F(x,x)) /\\ " ^
@@ -3942,42 +3941,42 @@ auto ("exists x. forall y z. " ^
               "F(x,y) " ^
               "==> F(z,z)")
 
-*}
+\<close>
 
-ML_val {* (* gilmore_4 *)
+ML_val \<open> (* gilmore_4 *)
 
 auto ("exists x y. forall z. " ^
               "(F(x,y) ==> F(y,z) /\\ F(z,z)) /\\ " ^
               "(F(x,y) /\\ G(x,y) ==> G(x,z) /\\ G(z,z))")
 
-*}
+\<close>
 
-ML_val {* (* gilmore_5 *)
+ML_val \<open> (* gilmore_5 *)
 
 auto ("(forall x. exists y. F(x,y) \\/ F(y,x)) /\\ " ^
       "(forall x y. F(y,x) ==> F(y,y)) " ^
       "==> exists z. F(z,z)")
 
-*}
+\<close>
 
-ML_val {* (* gilmore_6 *)
+ML_val \<open> (* gilmore_6 *)
 
 auto ("forall x. exists y. " ^
               "(exists u. forall v. F(u,x) ==> G(v,u) /\\ G(u,x)) " ^
               "==> (exists u. forall v. F(u,y) ==> G(v,u) /\\ G(u,y)) \\/ " ^
                         "(forall u v. exists w. G(v,u) \\/ H(w,y,u) ==> G(u,w))")
 
-*}
+\<close>
 
-ML_val {* (* gilmore_7 *)
+ML_val \<open> (* gilmore_7 *)
 
 auto ("(forall x. K(x) ==> exists y. L(y) /\\ (F(x,y) ==> G(x,y))) /\\ " ^
       "(exists z. K(z) /\\ forall u. L(u) ==> F(z,u)) " ^
       "==> exists v w. K(v) /\\ L(w) /\\ G(v,w)")
 
-*}
+\<close>
 
-ML_val {* (* gilmore_8 *)
+ML_val \<open> (* gilmore_8 *)
 
 auto ("exists x. forall y z. " ^
               "((F(y,z) ==> (G(y) ==> (forall u. exists v. H(u,v,x)))) ==> F(x,x)) /\\ " ^
@@ -3985,9 +3984,9 @@ auto ("exists x. forall y z. " ^
               "F(x,y) " ^
               "==> F(z,z)")
 
-*}
+\<close>
 
-ML_val {* (* gilmore_9 *)
+ML_val \<open> (* gilmore_9 *)
 
 auto ("forall x. exists y. forall z. " ^
               "((forall u. exists v. F(y,u,v) /\\ G(y,u) /\\ ~H(y,x)) " ^
@@ -3998,39 +3997,39 @@ auto ("forall x. exists y. forall z. " ^
                   "==> (forall u. exists v. F(y,u,v) /\\ G(y,u) /\\ ~H(y,x)) /\\ " ^
                          "(forall u. exists v. F(z,u,v) /\\ G(y,u) /\\ ~H(z,y)))")
 
-*}
+\<close>
 
-ML_val {* (* davis_putnam_example *)
+ML_val \<open> (* davis_putnam_example *)
 
 auto ("exists x. exists y. forall z. " ^
       "(F(x,y) ==> (F(y,z) /\\ F(z,z))) /\\ " ^
       "((F(x,y) /\\ G(x,y)) ==> (G(x,z) /\\ G(z,z)))")
 
-*}
+\<close>
 
-ML_val {* (* ewd1062_1 *)
+ML_val \<open> (* ewd1062_1 *)
 
 auto ("(forall x. x <= x) /\\ " ^
       "(forall x y z. x <= y /\\ y <= z ==> x <= z) /\\ " ^
       "(forall x y. f(x) <= y <=> x <= g(y)) " ^
       "==> (forall x y. x <= y ==> f(x) <= f(y))")
 
-*}
+\<close>
 
-ML_val {* (* ewd1062_2 *)
+ML_val \<open> (* ewd1062_2 *)
 
 auto ("(forall x. x <= x) /\\ " ^
       "(forall x y z. x <= y /\\ y <= z ==> x <= z) /\\ " ^
       "(forall x y. f(x) <= y <=> x <= g(y)) " ^
       "==> (forall x y. x <= y ==> g(x) <= g(y))")
 
-*}
+\<close>
 
 (*
 
 Non-terminating examples
 
-ML_val {* (* ewd1062 *)
+ML_val \<open> (* ewd1062 *)
 
 auto ("(forall x. x <= x) /\\ " ^
       "(forall x y z. x <= y /\\ y <= z ==> x <= z) /\\ " ^
@@ -4038,24 +4037,24 @@ auto ("(forall x. x <= x) /\\ " ^
       "==> (forall x y. x <= y ==> f(x) <= f(y)) /\\ " ^
           "(forall x y. x <= y ==> g(x) <= g(y))")
 
-*}
+\<close>
 
-ML_val {* (* Pelletier p34 / page 178 Andrews's challenge *)
+ML_val \<open> (* Pelletier p34 / page 178 Andrews's challenge *)
 
 auto ("((exists x. forall y. P(x) <=> P(y)) <=> " ^
     "((exists x. Q(x)) <=> (forall y. Q(y)))) <=> " ^
    "((exists x. forall y. Q(x) <=> Q(y)) <=> " ^
     "((exists x. P(x)) <=> (forall y. P(y))))")
 
-*}
+\<close>
 
-ML_val {* (* Pelletier p43 *)
+ML_val \<open> (* Pelletier p43 *)
 
 auto "(forall x y. Q(x,y) <=> forall z. P(z,x) <=> P(z,y)) ==> forall x y. Q(x,y) <=> Q(y,x)"
 
-*}
+\<close>
 
-ML_val {* (* Pelletier p46 *)
+ML_val \<open> (* Pelletier p46 *)
 
 auto ("(forall x. P(x) /\\ (forall y. P(y) /\\ H(y,x) ==> G(y)) ==> G(x)) /\\ " ^
         "((exists x. P(x) /\\ ~G(x)) ==> " ^
@@ -4063,21 +4062,21 @@ auto ("(forall x. P(x) /\\ (forall y. P(y) /\\ H(y,x) ==> G(y)) ==> G(x)) /\\ " 
         "(forall x y. P(x) /\\ P(y) /\\ H(x,y) ==> ~J(y,x)) ==> " ^
         "(forall x. P(x) ==> G(x))")
 
-*}
+\<close>
 
-ML_val {* (* Pelletier p56 *)
+ML_val \<open> (* Pelletier p56 *)
 
 auto ("(forall x. (exists y. P(y) /\\ x = f(y)) ==> P(x)) <=> (forall x. P(x) ==> P(f(x)))")
 
-*}
+\<close>
 
-ML_val {* (* Correct Pelletier p58 *)
+ML_val \<open> (* Correct Pelletier p58 *)
 
 auto "(forall x y. f(x) = g(y)) ==> (forall x y. f(f(x)) = f(g(y)))"
 
-*}
+\<close>
 
-ML_val {* (* gilmore_1 *)
+ML_val \<open> (* gilmore_1 *)
 
 auto ("exists x. forall y z. " ^
         "((F(y) ==> G(y)) <=> F(x)) /\\ " ^
@@ -4085,14 +4084,14 @@ auto ("exists x. forall y z. " ^
         "(((F(y) ==> G(y)) ==> H(y)) <=> H(x)) " ^
           "==> F(z) /\\ G(z) /\\ H(z)")
 
-*}
+\<close>
 
-ML_val {* (* gilmore_2 has a counterexample *)
+ML_val \<open> (* gilmore_2 has a counterexample *)
 
 auto ("exists x y. forall z. (F(x,z) <=> F(z,y)) /\\ (F(z,y) <=> F(z,z)) /\\ (F(x,y) <=> F(y,x)) " ^
       "==> (F(x,y) <=> F(x,z))")
 
-*}
+\<close>
 
 *)
 
