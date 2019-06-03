@@ -36,6 +36,23 @@ locale clausal_consequence_relation = nonclausal_consequence_relation "{#}" +
     entails_subclause: "C \<subseteq># D \<Longrightarrow> {C} \<Turnstile> {D}"
 begin
 
+lemma entails_weaken_subclause:
+  assumes stronger: "N \<union> {C1 + C2} \<Turnstile> C3"
+  shows "N \<union> {C1} \<Turnstile> C3"
+proof -
+  have "N \<union> {C1} \<Turnstile> {C1}"
+    by (simp add: subset_entailed)
+  moreover have "{C1} \<Turnstile> {C1 + C2}"
+    by (simp add: entails_subclause) 
+  ultimately have "N \<union> {C1} \<Turnstile> {C1 + C2}"
+    using entails_trans by blast
+
+  hence "N \<union> {C1} \<Turnstile> N \<union> {C1 + C2}"
+    by (metis Un_iff bot.extremum entail_iff_each insert_subset subset_entailed)
+  thus "N \<union> {C1} \<Turnstile> C3"
+    using entails_trans stronger by blast
+qed
+
 definition entails_comp_sqcup :: "'a clause set \<Rightarrow> 'a clause set \<Rightarrow> bool" (infix "\<Turnstile>\<^sub>\<squnion>" 50) where
   "M \<Turnstile>\<^sub>\<squnion> CC \<longleftrightarrow> (\<forall>N D. N \<Turnstile> M \<longrightarrow> (\<forall>C \<in> CC. N \<union> {C} \<Turnstile> {D}) \<longrightarrow> N \<Turnstile> {D})"
 
