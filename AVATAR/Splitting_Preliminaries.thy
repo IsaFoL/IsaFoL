@@ -83,7 +83,7 @@ locale abstraction_function = clausal_consequence_relation +
   assumes
     \<alpha>_propos: "\<forall>L \<in> \<alpha> C. is_propos (atm_of L)" and
     \<alpha>s_def: "\<alpha>s N = {L. \<exists>C \<in> N. L \<in> \<alpha> C}" and
-    \<alpha>_literal: "M \<union> {mset_set (\<alpha>s N)} \<Turnstile> {{#L#}} \<Longrightarrow> M \<union> N \<Turnstile> {C}" and
+    \<alpha>_literal: "L \<in> \<alpha> C \<Longrightarrow> M \<union> {mset_set (\<alpha>s N)} \<Turnstile> {{#L#}} \<Longrightarrow> M \<union> N \<Turnstile> {C}" and
     \<alpha>_clause: "M \<union> {mset_set (\<alpha>s N)} \<Turnstile> {C} \<Longrightarrow> M \<union> N \<Turnstile> {C}"
 begin
 
@@ -95,10 +95,11 @@ lemma \<alpha>s_inter_imp_entails:
   shows "{C} \<Turnstile> {D}"
 proof -
   have False (* "{mset_set (\<alpha> C)} \<Turnstile> {{#L#}}" *)
-    by (metis (no_types) \<alpha>s_empty Un_insert_right \<alpha>_clause entails_subclause mset_set.empty nothing_nimplies_bot subset_mset.le_zero_eq sup_bot.right_neutral)
+    by (metis (no_types) \<alpha>s_empty Un_insert_right \<alpha>_clause entails_subclause mset_set.empty
+        nothing_nimplies_bot subset_mset.le_zero_eq sup_bot.right_neutral)
 
 
-  thm \<alpha>_literal[of "{}" "{C}" L D, unfolded \<alpha>s_def, simplified]
+  (* thm \<alpha>_literal[of "{}" "{C}" L D, unfolded \<alpha>s_def, simplified] *)
 qed
 
 end
