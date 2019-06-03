@@ -7,10 +7,20 @@ section \<open>Preliminaries for Abstract Splitting Architecture\<close>
 theory Splitting_Preliminaries
   imports
     Ordered_Resolution_Prover.Clausal_Logic
-    "../Saturation_Framework/Saturation_Framework_Preliminaries"
 begin
 
-locale clausal_consequence_relation = consequence_relation Bot for Bot :: "'a clause set" +
+locale nonclausal_consequence_relation =
+  fixes
+    bot :: 'f and
+    entails :: "'f set \<Rightarrow> 'f set \<Rightarrow> bool" (infix "\<Turnstile>" 50)
+  assumes
+    bot_implies_all: "{bot} \<Turnstile> N1" and
+    subset_entailed: "N2 \<subseteq> N1 \<Longrightarrow> N1 \<Turnstile> N2" and
+    all_formulas_entailed [intro]: "(\<forall>C \<in> N2. N1 \<Turnstile> {C}) \<Longrightarrow> N1 \<Turnstile> N2" and
+    entails_trans [trans]: "N1 \<Turnstile> N2 \<Longrightarrow> N2 \<Turnstile> N3 \<Longrightarrow> N1 \<Turnstile> N3" and
+    nothing_nimplies_bot:  "\<not> {} \<Turnstile> {bot}"
+
+locale clausal_consequence_relation = nonclausal_consequence_relation "{#}" +
   assumes
     entails_excluded_middle: "{} \<Turnstile> {{#Pos a, Neg a#}}" and
     entails_absurd: "{{#Pos a#}, {#Neg a#}} \<Turnstile> {C}" and
