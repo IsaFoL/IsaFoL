@@ -62,11 +62,8 @@ lemma entails_comp_sqcup_trans:
     ncc: "N \<Turnstile>\<^sub>\<squnion> CC"
   shows "M \<Turnstile>\<^sub>\<squnion> CC"
   unfolding entails_comp_sqcup_def
-  apply clarify
-  apply (rename_tac P D)
-  apply (rule ncc[unfolded entails_comp_sqcup_def, rule_format])
-  using entails_trans mn apply blast
-  by blast
+  by (clarify, rule ncc[unfolded entails_comp_sqcup_def, rule_format])
+    (blast intro: entails_trans mn)+
 
 definition is_propos :: "'a \<Rightarrow> bool" where
   "is_propos a \<longleftrightarrow> (\<forall>L \<in> {Pos a, Neg a}. \<forall>C. {{#L#} + C} \<Turnstile>\<^sub>\<squnion> {{#L#}, C})"
@@ -74,11 +71,8 @@ definition is_propos :: "'a \<Rightarrow> bool" where
 lemma is_propos_entails_comp_sqcup_excluded_middle:
   assumes prp: "is_propos a"
   shows "{} \<Turnstile>\<^sub>\<squnion> {{#Pos a#}, {#Neg a#}}"
-  apply (rule entails_comp_sqcup_trans)
-   apply (rule entails_excluded_middle)
   using prp[unfolded is_propos_def, rule_format, of "Pos a" "{#Neg a#}", simplified]
-  by (smt add_mset_commute clausal_consequence_relation.entails_comp_sqcup_trans
-      clausal_consequence_relation_axioms entails_excluded_middle insert_subset order_refl subset_entailed)
+  by (metis (no_types) add_mset_commute entails_comp_sqcup_trans entails_excluded_middle)
 
 end
 
