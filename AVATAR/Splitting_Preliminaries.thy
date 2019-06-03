@@ -76,4 +76,31 @@ lemma is_propos_entails_comp_sqcup_excluded_middle:
 
 end
 
+locale abstraction_function = clausal_consequence_relation +
+  fixes
+    \<alpha> :: "'a clause \<Rightarrow> 'a literal set" and
+    \<alpha>s  :: "'a clause set \<Rightarrow> 'a literal set"
+  assumes
+    \<alpha>_propos: "\<forall>L \<in> \<alpha> C. is_propos (atm_of L)" and
+    \<alpha>s_def: "\<alpha>s N = {L. \<exists>C \<in> N. L \<in> \<alpha> C}" and
+    \<alpha>_literal: "M \<union> {mset_set (\<alpha>s N)} \<Turnstile> {{#L#}} \<Longrightarrow> M \<union> N \<Turnstile> {C}" and
+    \<alpha>_clause: "M \<union> {mset_set (\<alpha>s N)} \<Turnstile> {C} \<Longrightarrow> M \<union> N \<Turnstile> {C}"
+begin
+
+lemma \<alpha>s_empty: "\<alpha>s {} = {}"
+  by (simp add: \<alpha>s_def)
+
+lemma \<alpha>s_inter_imp_entails:
+  assumes in_inter: "L \<in> \<alpha> C \<inter> \<alpha> D"
+  shows "{C} \<Turnstile> {D}"
+proof -
+  have False (* "{mset_set (\<alpha> C)} \<Turnstile> {{#L#}}" *)
+    by (metis (no_types) \<alpha>s_empty Un_insert_right \<alpha>_clause entails_subclause mset_set.empty nothing_nimplies_bot subset_mset.le_zero_eq sup_bot.right_neutral)
+
+
+  thm \<alpha>_literal[of "{}" "{C}" L D, unfolded \<alpha>s_def, simplified]
+qed
+
+end
+
 end
