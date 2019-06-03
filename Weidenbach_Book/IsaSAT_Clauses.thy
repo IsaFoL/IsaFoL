@@ -772,17 +772,29 @@ lemma swap_lits_refine[sepref_fr_rules]:
 
 definition fm_mv_clause_to_new_arena where
  \<open>fm_mv_clause_to_new_arena C old_arena new_arena = do {
-    let st = C - (if arena_length old_arena C \<le> 4 then 4 else 5);
-    let en = C + arena_length old_arena C;
+    ASSERT(arena_is_valid_clause_idx old_arena C);
+    let st = C - (if nat_of_uint64_conv (arena_length old_arena C) \<le> 4 then 4 else 5);
+    let en = C + nat_of_uint64_conv (arena_length old_arena C);
     (i, new_arena) \<leftarrow>
         WHILE\<^sub>T (\<lambda>(i, new_arena). i < en)
           (\<lambda>(i, new_arena). do {
               ASSERT (i < length old_arena);
-              RETURN (i + one_uint64_nat, new_arena @ [old_arena ! i])
+              RETURN (i + 1, new_arena @ [old_arena ! i])
           })
           (st, new_arena);
       RETURN (new_arena)
   }\<close>
+
+sepref_register fm_mv_clause_to_new_arena
+
+sepref_definition fm_mv_clause_to_new_arena_code
+  is \<open>uncurry2 fm_mv_clause_to_new_arena\<close>
+  :: \<open>nat_assn\<^sup>k *\<^sub>a arena_assn\<^sup>k *\<^sub>a arena_assn\<^sup>d \<rightarrow>\<^sub>a arena_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding fm_mv_clause_to_new_arena_def
+  by sepref
+
+declare fm_mv_clause_to_new_arena_code.refine[sepref_fr_rules]
 
 (*TODO Move*)
 lemma slice_append_nth:
@@ -909,12 +921,15 @@ proof -
   show ?thesis
     using assms
     unfolding fm_mv_clause_to_new_arena_def st_def[symmetric]
-      en_def[symmetric] Let_def
+      en_def[symmetric] Let_def nat_of_uint64_conv_def
     apply (refine_vcg
      WHILET_rule[where R = \<open>measure (\<lambda>(i, N). en - i)\<close> and
        I = \<open>\<lambda>(i, new_arena'). i \<le> C + length (N\<propto>C) \<and> i \<ge> st \<and>
          new_arena' = new_arena @
 	   Misc.slice (C - header_size (N\<propto>C)) i old_arena\<close>])
+    subgoal
+      unfolding arena_is_valid_clause_idx_def
+      by auto
     subgoal
       by auto
     subgoal

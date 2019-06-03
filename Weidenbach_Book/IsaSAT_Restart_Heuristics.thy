@@ -2029,8 +2029,9 @@ lemma isasat_replace_annot_in_trail_replace_annot_in_trail_spec:
 definition mark_garbage_heur2 :: \<open>nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur\<close> where
   \<open>mark_garbage_heur2 C = (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema, ccount,
        vdom, avdom, lcount, opts).
+    let st = arena_status N' C = IRRED in
     (M', extra_information_mark_to_delete N' C, D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema, ccount,
-       vdom, avdom, if arena_status N' C = IRRED then lcount else lcount - 1, opts))\<close>
+       vdom, avdom, if st then lcount else lcount - 1, opts))\<close>
 
 definition remove_one_annot_true_clause_one_imp_wl_D_heur
   :: \<open>nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> (nat \<times> twl_st_wl_heur) nres\<close>
@@ -2040,12 +2041,12 @@ where
         L \<leftarrow> isa_trail_nth (get_trail_wl_heur S) i;
 	C \<leftarrow> get_the_propagation_reason_pol (get_trail_wl_heur S) L;
 	RETURN (L, C)};
-      ASSERT(C \<noteq> None);
+      ASSERT(C \<noteq> None \<and> i + 1 \<le> uint32_max);
       if the C = 0 then RETURN (i+1, S)
       else do {
         ASSERT(C \<noteq> None);
         S \<leftarrow> isasat_replace_annot_in_trail L (the C) S;
-	ASSERT(mark_garbage_pre (get_clauses_wl_heur S, the C));
+	ASSERT(mark_garbage_pre (get_clauses_wl_heur S, the C) \<and> arena_is_valid_clause_vdom (get_clauses_wl_heur S) (the C));
         let S = mark_garbage_heur2 (the C) S;
         \<comment> \<open>\<^text>\<open>S \<leftarrow> remove_all_annot_true_clause_imp_wl_D_heur L S;\<close>\<close>
         RETURN (i+1, S)
@@ -2066,6 +2067,7 @@ definition remove_one_annot_true_clause_imp_wl_D_heur_inv
 definition remove_one_annot_true_clause_imp_wl_D_heur :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close>
 where
 \<open>remove_one_annot_true_clause_imp_wl_D_heur = (\<lambda>S. do {
+    ASSERT((isa_length_trail_pre o get_trail_wl_heur) S);
     k \<leftarrow> (if count_decided_st_heur S = 0
       then RETURN (isa_length_trail (get_trail_wl_heur S))
       else get_pos_of_level_in_trail_imp (get_trail_wl_heur S) 0);
@@ -2280,9 +2282,18 @@ lemma remove_one_annot_true_clause_one_imp_wl_D_heur_remove_one_annot_true_claus
   subgoal by auto
   subgoal unfolding remove_one_annot_true_clause_one_imp_wl_D_pre_def
     by auto
+  subgoal unfolding remove_one_annot_true_clause_one_imp_wl_D_pre_def
+     remove_one_annot_true_clause_one_imp_wl_pre_def
+     remove_one_annot_true_clause_one_imp_pre_def
+     by (cases x; cases y)
+       (auto simp: uint32_max_def twl_st_heur_restart_def state_wl_l_def trail_pol_alt_def)
   subgoal by auto
   subgoal by (cases x, cases y) auto
   subgoal by auto
+  subgoal
+    by (cases x, cases y)
+     (fastforce simp: twl_st_heur_restart_def
+       trail_pol_alt_def)+
   subgoal
     by (cases x, cases y)
      (fastforce simp: twl_st_heur_restart_def
@@ -2295,6 +2306,13 @@ lemma remove_one_annot_true_clause_one_imp_wl_D_heur_remove_one_annot_true_claus
     unfolding mark_garbage_pre_def
       arena_is_valid_clause_idx_def
       prod.case
+    apply (rule_tac x = \<open>get_clauses_wl Sa\<close> in exI)
+    apply (rule_tac x = \<open>set (get_vdom S)\<close> in exI)
+    apply (case_tac S, case_tac Sa)
+    apply (auto simp: twl_st_heur_restart_def)
+    done
+  subgoal for p pa S Sa
+    unfolding arena_is_valid_clause_vdom_def
     apply (rule_tac x = \<open>get_clauses_wl Sa\<close> in exI)
     apply (rule_tac x = \<open>set (get_vdom S)\<close> in exI)
     apply (case_tac S, case_tac Sa)
@@ -2606,6 +2624,8 @@ lemma remove_one_annot_true_clause_imp_wl_D_heur_remove_one_annot_true_clause_im
     WHILEIT_refine[where R = \<open>nat_rel \<times>\<^sub>r twl_st_heur_restart\<close>]
     remove_one_annot_true_clause_one_imp_wl_D_heur_remove_one_annot_true_clause_one_imp_wl_D[THEN
       fref_to_Down_curry])
+  subgoal by (auto simp: trail_pol_alt_def isa_length_trail_pre_def
+    twl_st_heur_restart_def)
   subgoal by (auto simp: twl_st_heur_restart_isa_length_trail_get_trail_wl
     twl_st_heur_restart_count_decided_st_alt_def)
   subgoal for x y
@@ -2624,8 +2644,8 @@ lemma remove_one_annot_true_clause_imp_wl_D_heur_remove_one_annot_true_clause_im
     done
     subgoal by auto
     subgoal for x y k k' T T'
-      apply (subst (asm)(11) surjective_pairing)
-      apply (subst (asm)(9) surjective_pairing)
+      apply (subst (asm)(12) surjective_pairing)
+      apply (subst (asm)(10) surjective_pairing)
       unfolding remove_one_annot_true_clause_imp_wl_D_heur_inv_def
         prod_rel_iff
       apply (subst (10) surjective_pairing, subst prod.case)
@@ -2980,6 +3000,7 @@ definition iterate_over_VMTF where
           ASSERT(n \<noteq> None);
           let A = the n;
           ASSERT(A < length ns);
+          ASSERT(A \<le> uint32_max div 2);
           x \<leftarrow> f A x;
           RETURN (get_next ((ns ! A)), x)
         })
@@ -3005,7 +3026,7 @@ definition iterate_over_\<L>\<^sub>a\<^sub>l\<^sub>l where
 lemma iterate_over_VMTF_iterate_over_\<L>\<^sub>a\<^sub>l\<^sub>l:
   fixes x :: 'a
   assumes vmtf: \<open>((ns, m, fst_As, lst_As, next_search), to_remove) \<in> vmtf \<A> M\<close> and
-    nempty: \<open>\<A> \<noteq> {#}\<close>
+    nempty: \<open>\<A> \<noteq> {#}\<close> \<open>isasat_input_bounded \<A>\<close>
   shows \<open>iterate_over_VMTF f I (ns, Some fst_As) x \<le> \<Down> Id (iterate_over_\<L>\<^sub>a\<^sub>l\<^sub>l f \<A> I x)\<close>
 proof -
   obtain xs' ys' where
@@ -3019,12 +3040,12 @@ proof -
     by blast
   define zs where \<open>zs = ys' @ xs'\<close>
   define is_lasts where
-    \<open>is_lasts \<A> n m \<longleftrightarrow> set_mset \<A> = set (drop m zs) \<and>
-        distinct_mset \<A> \<and>
-        card (set_mset \<A>) \<le> length zs \<and>
-        card (set_mset \<A>) + m = length zs \<and>
+    \<open>is_lasts \<B> n m \<longleftrightarrow> set_mset \<B> = set (drop m zs) \<and> set_mset \<B> \<subseteq> set_mset \<A> \<and>
+        distinct_mset \<B> \<and>
+        card (set_mset \<B>) \<le> length zs \<and>
+        card (set_mset \<B>) + m = length zs \<and>
         (n = option_hd (drop m zs)) \<and>
-        m \<le> length zs\<close> for \<A> and n :: \<open>nat option\<close> and m
+        m \<le> length zs\<close> for \<B> and n :: \<open>nat option\<close> and m
   have card_\<A>: \<open>card (set_mset \<A>) = length zs\<close>
     \<open>set_mset \<A> = set zs\<close> and
     nempty': \<open>zs \<noteq> []\<close> and
@@ -3050,6 +3071,7 @@ proof -
           ASSERT(n \<noteq> None);
           let A = the n;
           ASSERT(A < length ns);
+          ASSERT(A \<le> uint32_max div 2);
           x \<leftarrow> f A x;
           RETURN (get_next ((ns ! A)), Suc m, x)
         })
@@ -3064,6 +3086,7 @@ proof -
           ASSERT(n \<noteq> None);
           let A = the n;
           ASSERT(A < length ns);
+          ASSERT(A \<le> uint32_max div 2);
           x \<leftarrow> f A x;
           RETURN (get_next ((ns ! A)), Suc m, x)
         })
@@ -3138,6 +3161,28 @@ proof -
       set_append[symmetric]zs_def[symmetric] zs2
     by (auto simp: eq_commute[of \<open>set zs\<close> \<open>atms_of (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>)\<close>] hd_drop_conv_nth
       simp del: nth_mem)
+  have le_uint_max: \<open>the x1a \<le> uint_max div 2\<close>
+    if 
+      \<open>(remdups_mset \<A>, \<A>') \<in> Id\<close> and
+      \<open>(x, x') \<in> {((n, m, x), \<A>', y). is_lasts \<A>' n m \<and> x = y}\<close> and
+      \<open>case x of (n, uu_, uua_) \<Rightarrow> n \<noteq> None\<close> and
+      \<open>case x' of (\<B>, uu_) \<Rightarrow> \<B> \<noteq> {#}\<close> and
+      \<open>case x of (n, m, xa) \<Rightarrow> I xa\<close> and
+      \<open>case x' of (uu_, x) \<Rightarrow> I x\<close> and
+      \<open>x' = (x1, x2)\<close> and
+      \<open>x2a = (x1b, xb)\<close> and
+      \<open>x = (x1a, x2a)\<close> and
+      \<open>x1 \<noteq> {#}\<close> and
+      \<open>x1a \<noteq> None\<close> and
+      \<open>(the x1a, A) \<in> nat_rel\<close> and
+      \<open>the x1a < length ns\<close>
+    for \<A>' x x' x1 x2 x1a x2a x1b xb A
+  proof -
+    have \<open>the x1a \<in># \<A>\<close>
+      using that by (auto simp: is_lasts_def)
+    then show ?thesis
+      using nempty by (auto dest!: multi_member_split simp: \<L>\<^sub>a\<^sub>l\<^sub>l_add_mset)
+  qed
   have  \<open>iterate_over_VMTF2 f I (ns, Some fst_As) x \<le> \<Down> Id (iterate_over_\<L>\<^sub>a\<^sub>l\<^sub>l f \<A> I x)\<close>
     unfolding iterate_over_VMTF2_def iterate_over_\<L>\<^sub>a\<^sub>l\<^sub>l_def prod.case
     apply (refine_vcg WHILEIT_refine[where R = \<open>{((n :: nat option, m::nat, x::'a), (\<A>' :: nat multiset, y)).
@@ -3156,6 +3201,7 @@ proof -
       by (simp add: is_lasts_def in_set_dropI)
     subgoal for \<A>' x x' x1 x2 x1a x2a x1b xb
       by (auto simp: is_lasts_le)
+    subgoal by (rule le_uint_max)
     subgoal by auto
     subgoal for \<A>' x x' x1 x2 x1a x2a x1b x2b A xa xb
       by (rule IH)
@@ -3174,6 +3220,7 @@ definition isasat_GC_clauses_prog_copy_wl_entry
          (arena \<times> _) \<Rightarrow> (arena \<times> (arena \<times> _)) nres\<close>
 where
 \<open>isasat_GC_clauses_prog_copy_wl_entry = (\<lambda>N W A (N', vdm). do {
+    ASSERT(nat_of_lit A < length W);
     let le = length (W ! nat_of_lit A);
     (i, N, N', vdm) \<leftarrow> WHILE\<^sub>T
       (\<lambda>(i, N, N', vdm). i < le)
@@ -3185,6 +3232,7 @@ where
           ASSERT(arena_is_valid_clause_idx N C);
           let D = length N' + (if arena_length N C > 4 then 5 else 4);
           N' \<leftarrow> fm_mv_clause_to_new_arena C N N';
+          ASSERT(mark_garbage_pre (N, C));
 	  RETURN (i+1, extra_information_mark_to_delete N C, N', vdm @ [D])
         } else RETURN (i+1, N, (N', vdm))
       }) (0, N, (N', vdm));
@@ -3208,9 +3256,12 @@ proof -
   have A: \<open>A' = A\<close> and K[simp]: \<open>W' ! nat_of_lit A = W A\<close>
     using L'_L L W apply auto
     by (cases A) (auto simp: map_fun_rel_def \<L>\<^sub>a\<^sub>l\<^sub>l_add_mset dest!: multi_member_split)
+  have A_le: \<open>nat_of_lit A < length W'\<close>
+    using W L by (cases A; auto simp: map_fun_rel_def  \<L>\<^sub>a\<^sub>l\<^sub>l_add_mset dest!: multi_member_split)
   show ?thesis
     unfolding isasat_GC_clauses_prog_copy_wl_entry_def cdcl_GC_clauses_prog_copy_wl_entry_def prod.case A
     apply (refine_vcg WHILET_refine[where R = \<open>nat_rel \<times>\<^sub>r ?R\<^sub>1 \<times>\<^sub>r ?R\<^sub>2\<close>])
+    subgoal using A_le by auto
     subgoal using assms by auto
     subgoal using W L by auto
     subgoal by auto
@@ -3235,6 +3286,7 @@ proof -
      by (rule order_trans[OF fm_mv_clause_to_new_arena])
        (auto intro: valid_arena_extra_information_mark_to_delete'
          simp: header_size_def arena_lifting remove_1_mset_id_iff_notin
+            mark_garbage_pre_def
          dest: in_vdom_m_fmdropD arena_lifting(2))
    subgoal
      by auto
@@ -3249,6 +3301,8 @@ definition isasat_GC_clauses_prog_single_wl
 where
 \<open>isasat_GC_clauses_prog_single_wl = (\<lambda>N N' WS A. do {
     let L = Pos A; \<^cancel>\<open>use phase saving instead\<close>
+    ASSERT(nat_of_lit L < length WS);
+    ASSERT(nat_of_lit (-L) < length WS);
     (N, (N', vdm)) \<leftarrow> isasat_GC_clauses_prog_copy_wl_entry N WS L N';
     let WS = WS[nat_of_lit L := []];
     (N, N') \<leftarrow> isasat_GC_clauses_prog_copy_wl_entry N WS (-L) (N', vdm);
@@ -3298,12 +3352,16 @@ proof -
     apply (case_tac L)
     apply (auto dest!: multi_member_split)
     done
+  have le: \<open>nat_of_lit (Pos A) < length W\<close> \<open>nat_of_lit (Neg A) < length W\<close>
+    using WW' L by (auto dest!: multi_member_split simp: map_fun_rel_def \<L>\<^sub>a\<^sub>l\<^sub>l_add_mset)
   have [refine0]: \<open>RETURN (Pos A) \<le> \<Down> Id (RES {Pos A, Neg A})\<close> by auto
   show ?thesis
     unfolding isasat_GC_clauses_prog_single_wl_def
       cdcl_GC_clauses_prog_single_wl_def eq st' isasat_GC_refl_def
     apply (refine_vcg
       isasat_GC_clauses_prog_copy_wl_entry)
+    subgoal using le by auto
+    subgoal using le by auto
     apply (rule H(1); fail)
     apply (rule H(2); fail)
     apply (rule vdom; fail)
@@ -3334,6 +3392,7 @@ definition isasat_GC_clauses_prog_wl2 where
           ASSERT(n \<noteq> None);
           let A = the n;
           ASSERT(A < length ns);
+          ASSERT(A \<le> uint32_max div 2);
           x \<leftarrow> (\<lambda>(arena\<^sub>o, arena, W). isasat_GC_clauses_prog_single_wl arena\<^sub>o arena W A) x;
           RETURN (get_next ((ns ! A)), x)
         })
@@ -3385,7 +3444,8 @@ lemma isasat_GC_clauses_prog_wl2:
     vdom: \<open>vdom_m \<A> W' N\<^sub>o \<subseteq> vdom0\<close> and
     vmtf: \<open>((ns, m, n, lst_As1, next_search1), to_remove1) \<in> vmtf \<A> M\<close> and
     nempty: \<open>\<A> \<noteq> {#}\<close> and
-    W_W': \<open>(W, W') \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 \<A>)\<close>
+    W_W': \<open>(W, W') \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 \<A>)\<close> and
+    bounded: \<open>isasat_input_bounded \<A>\<close>
  shows
     \<open>isasat_GC_clauses_prog_wl2 (ns, Some n) (arena\<^sub>o, ([], []), W)
         \<le> \<Down> ({((arena\<^sub>o, (arena, vdom), W), (N\<^sub>o', N, W')). valid_arena arena\<^sub>o N\<^sub>o' vdom0 \<and> valid_arena arena N (set vdom) \<and>
@@ -3411,7 +3471,7 @@ proof -
     unfolding f_def isasat_GC_clauses_prog_wl2_def iterate_over_VMTF_def by (auto intro!: ext)
   show ?thesis
     unfolding isasat_GC_clauses_prog_wl_alt_def prod.case f_def[symmetric]
-    apply (rule order_trans[OF iterate_over_VMTF_iterate_over_\<L>\<^sub>a\<^sub>l\<^sub>l[OF vmtf nempty]])
+    apply (rule order_trans[OF iterate_over_VMTF_iterate_over_\<L>\<^sub>a\<^sub>l\<^sub>l[OF vmtf nempty bounded]])
     unfolding Down_id_eq iterate_over_\<L>\<^sub>a\<^sub>l\<^sub>l_def cdcl_GC_clauses_prog_wl2_def f_def
 
     apply (refine_vcg WHILEIT_refine_with_invariant_and_break[where R = ?R]
@@ -3476,7 +3536,7 @@ definition isasat_GC_clauses_prog_wl :: \<open>twl_st_wl_heur \<Rightarrow> twl_
     fast_ema, slow_ema, ccount,  vdom, avdom, lcount, opts). do {
     (N, (N', vdom), WS) \<leftarrow> isasat_GC_clauses_prog_wl2 (ns, Some fst_As) (N', ([], []), W');
     RETURN (M', N', D', j, WS, ((ns, st, fst_As, lst_As, nxt), to_remove), \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema, ccount,
-       vdom, vdom, lcount, opts)
+       vdom, op_list_copy vdom, lcount, opts) \<^cancel>\<open>TODO: replace copy by proper operations\<close>
   })\<close>
 
 
@@ -3490,6 +3550,15 @@ proof-
         x1, x1a, x1b, x1c, x1d, x1e, x2e)
        \<in> twl_st_heur_restart \<Longrightarrow>
        valid_arena x1g x1a (set x1z)\<close>
+     unfolding twl_st_heur_restart_def
+     by simp
+  have [refine0]: \<open>\<And>x1 x1a x1b x1c x1d x1e x2e x1f x1g x1h x1i x1j x1m x1n x1o x1p x2n x2o x1q
+       x1r x1s x1t x1u x1v x1w x1x x1y x1z x1aa x1ab x2ab.
+       ((x1f, x1g, x1h, x1i, x1j, ((x1m, x1n, x1o, x1p, x2n), x2o), x1q, x1r,
+         x1s, x1t, x1u, x1v, x1w, x1x, x1y, x1z, x1aa, x1ab, x2ab),
+        x1, x1a, x1b, x1c, x1d, x1e, x2e)
+       \<in> twl_st_heur_restart \<Longrightarrow>
+       isasat_input_bounded (all_init_atms x1a x1c)\<close>
      unfolding twl_st_heur_restart_def
      by simp
   have [refine0]: \<open>\<And>x1 x1a x1b x1c x1d x1e x2e x1f x1g x1h x1i x1j x1m x1n x1o x1p x2n x2o x1q
@@ -4142,7 +4211,7 @@ qed
 
 lemma cdcl_twl_full_restart_wl_D_GC_heur_prog:
   \<open>(cdcl_twl_full_restart_wl_D_GC_heur_prog, cdcl_twl_full_restart_wl_D_GC_prog) \<in>
-    [\<lambda>y.  True]\<^sub>f twl_st_heur \<rightarrow> \<langle>twl_st_heur\<rangle>nres_rel\<close>
+    twl_st_heur \<rightarrow>\<^sub>f \<langle>twl_st_heur\<rangle>nres_rel\<close>
   unfolding cdcl_twl_full_restart_wl_D_GC_heur_prog_def
     cdcl_twl_full_restart_wl_D_GC_prog_def
   apply (intro frefI nres_relI)
@@ -4224,5 +4293,313 @@ lemma restart_prog_wl_D_heur_alt_def:
   }\<close>
   unfolding restart_prog_wl_D_heur_def GC_required_heur_def
   by auto
+
+sepref_register isa_trail_nth
+
+definition isasat_trail_nth_st :: \<open>twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> nat literal nres\<close> where
+\<open>isasat_trail_nth_st S i = isa_trail_nth (get_trail_wl_heur S) i\<close>
+
+lemma isasat_trail_nth_st_alt_def:
+  \<open>isasat_trail_nth_st = (\<lambda>(M, _) i.  isa_trail_nth M i)\<close>
+  by (auto simp: isasat_trail_nth_st_def intro!: ext)
+
+sepref_register isasat_trail_nth_st
+
+sepref_definition isasat_trail_nth_st_code
+  is \<open>uncurry isasat_trail_nth_st\<close>
+  :: \<open>isasat_bounded_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a unat_lit_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding isasat_trail_nth_st_alt_def isasat_bounded_assn_def
+  by sepref
+
+
+sepref_definition isasat_trail_nth_st_slow_code
+  is \<open>uncurry isasat_trail_nth_st\<close>
+  :: \<open>isasat_unbounded_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a unat_lit_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding isasat_trail_nth_st_alt_def isasat_unbounded_assn_def
+  by sepref
+
+declare isasat_trail_nth_st_code.refine[sepref_fr_rules]
+  isasat_trail_nth_st_slow_code.refine[sepref_fr_rules]
+
+definition get_the_propagation_reason_pol_st :: \<open>twl_st_wl_heur \<Rightarrow> nat literal \<Rightarrow> nat option nres\<close> where
+\<open>get_the_propagation_reason_pol_st S i = get_the_propagation_reason_pol (get_trail_wl_heur S) i\<close>
+
+lemma get_the_propagation_reason_pol_st_alt_def:
+  \<open>get_the_propagation_reason_pol_st = (\<lambda>(M, _) i.  get_the_propagation_reason_pol M i)\<close>
+  by (auto simp: get_the_propagation_reason_pol_st_def intro!: ext)
+
+sepref_register get_the_propagation_reason_pol_st
+
+sepref_definition get_the_propagation_reason_pol_st_code
+  is \<open>uncurry get_the_propagation_reason_pol_st\<close>
+  :: \<open>isasat_bounded_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow>\<^sub>a option_assn uint64_nat_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding get_the_propagation_reason_pol_st_alt_def isasat_bounded_assn_def
+  by sepref
+
+
+sepref_definition get_the_propagation_reason_pol_st_slow_code
+  is \<open>uncurry get_the_propagation_reason_pol_st\<close>
+  :: \<open>isasat_unbounded_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow>\<^sub>a option_assn nat_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding get_the_propagation_reason_pol_st_alt_def isasat_unbounded_assn_def
+  by sepref
+
+declare get_the_propagation_reason_pol_st_code.refine[sepref_fr_rules]
+  get_the_propagation_reason_pol_st_slow_code.refine[sepref_fr_rules]
+
+sepref_register isasat_replace_annot_in_trail
+sepref_definition isasat_replace_annot_in_trail_code
+  is \<open>uncurry2 isasat_replace_annot_in_trail\<close>
+  :: \<open>unat_lit_assn\<^sup>k *\<^sub>a (uint64_nat_assn)\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding isasat_replace_annot_in_trail_def isasat_bounded_assn_def
+    zero_uint64_nat_def[symmetric]
+  by sepref
+
+
+sepref_definition isasat_replace_annot_in_trail_slow_code
+  is \<open>uncurry2 isasat_replace_annot_in_trail\<close>
+  :: \<open>unat_lit_assn\<^sup>k *\<^sub>a (nat_assn)\<^sup>k *\<^sub>a isasat_unbounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_unbounded_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding isasat_replace_annot_in_trail_def isasat_unbounded_assn_def
+  by sepref
+
+
+(*TODO Move*)
+sepref_definition mark_garbage_fast_code
+  is \<open>uncurry mark_garbage\<close>
+  :: \<open>(arl_assn uint32_assn)\<^sup>d *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a arl_assn uint32_assn\<close>
+  supply STATUS_SHIFT_hnr[sepref_fr_rules]
+  unfolding mark_garbage_def fast_minus_def[symmetric]
+  by sepref
+
+lemma mark_garbage_fast_hnr[sepref_fr_rules]:
+  \<open>(uncurry mark_garbage_fast_code, uncurry (RETURN oo extra_information_mark_to_delete))
+  \<in> [mark_garbage_pre]\<^sub>a  arena_assn\<^sup>d *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow> arena_assn\<close>
+  using mark_garbage_fast_code.refine[FCOMP isa_mark_garbage]
+  unfolding hr_comp_assoc[symmetric] list_rel_compp status_assn_alt_def uncurry_def
+  by (auto simp add: arl_assn_comp update_lbd_pre_def)
+(*END Move*)
+
+sepref_register mark_garbage_heur2
+sepref_definition mark_garbage_heur2_code
+  is \<open>uncurry (RETURN oo mark_garbage_heur2)\<close>
+  :: \<open>[\<lambda>(C, S). mark_garbage_pre (get_clauses_wl_heur S, C) \<and> arena_is_valid_clause_vdom (get_clauses_wl_heur S) C]\<^sub>a
+     uint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding mark_garbage_heur2_def isasat_bounded_assn_def
+    zero_uint64_nat_def[symmetric]
+  by sepref
+
+sepref_definition mark_garbage_heur2_slow_code
+  is \<open>uncurry (RETURN oo mark_garbage_heur2)\<close>
+  :: \<open>[\<lambda>(C, S). mark_garbage_pre (get_clauses_wl_heur S, C) \<and> arena_is_valid_clause_vdom (get_clauses_wl_heur S) C]\<^sub>a
+     nat_assn\<^sup>k *\<^sub>a isasat_unbounded_assn\<^sup>d \<rightarrow> isasat_unbounded_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding mark_garbage_heur2_def isasat_unbounded_assn_def
+    zero_uint64_nat_def[symmetric]
+  by sepref
+
+declare isasat_replace_annot_in_trail_code.refine[sepref_fr_rules]
+  isasat_replace_annot_in_trail_slow_code.refine[sepref_fr_rules]
+  mark_garbage_heur2_code.refine[sepref_fr_rules]
+  mark_garbage_heur2_slow_code.refine[sepref_fr_rules]
+
+sepref_register remove_one_annot_true_clause_one_imp_wl_D_heur
+
+sepref_definition remove_one_annot_true_clause_one_imp_wl_D_heur_code
+  is \<open>uncurry remove_one_annot_true_clause_one_imp_wl_D_heur\<close>
+  :: \<open>uint32_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a uint32_nat_assn *a isasat_bounded_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding remove_one_annot_true_clause_one_imp_wl_D_heur_def zero_uint64_nat_def[symmetric]
+    one_uint32_nat_def[symmetric]
+    isasat_trail_nth_st_def[symmetric] get_the_propagation_reason_pol_st_def[symmetric]
+  by sepref
+
+
+sepref_definition remove_one_annot_true_clause_one_imp_wl_D_heur_slow_code
+  is \<open>uncurry remove_one_annot_true_clause_one_imp_wl_D_heur\<close>
+  :: \<open>uint32_nat_assn\<^sup>k *\<^sub>a isasat_unbounded_assn\<^sup>d \<rightarrow>\<^sub>a uint32_nat_assn *a isasat_unbounded_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding remove_one_annot_true_clause_one_imp_wl_D_heur_def
+    isasat_trail_nth_st_def[symmetric] get_the_propagation_reason_pol_st_def[symmetric]
+    one_uint32_nat_def[symmetric]
+  by sepref
+
+declare remove_one_annot_true_clause_one_imp_wl_D_heur_slow_code.refine[sepref_fr_rules]
+  remove_one_annot_true_clause_one_imp_wl_D_heur_code.refine[sepref_fr_rules]
+
+
+definition isasat_length_trail_st :: \<open>twl_st_wl_heur \<Rightarrow> nat\<close> where
+\<open>isasat_length_trail_st S = isa_length_trail (get_trail_wl_heur S)\<close>
+
+lemma isasat_length_trail_st_alt_def:
+  \<open>isasat_length_trail_st = (\<lambda>(M, _).  isa_length_trail M)\<close>
+  by (auto simp: isasat_length_trail_st_def intro!: ext)
+
+sepref_register isasat_length_trail_st
+
+sepref_definition isasat_length_trail_st_code
+  is \<open>RETURN o isasat_length_trail_st\<close>
+  :: \<open>[isa_length_trail_pre o get_trail_wl_heur]\<^sub>a isasat_bounded_assn\<^sup>k  \<rightarrow> uint32_nat_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding isasat_length_trail_st_alt_def isasat_bounded_assn_def
+  by sepref
+
+
+sepref_definition isasat_length_trail_st_slow_code
+  is \<open>RETURN o  isasat_length_trail_st\<close>
+  :: \<open>[isa_length_trail_pre o get_trail_wl_heur]\<^sub>a isasat_unbounded_assn\<^sup>k  \<rightarrow> uint32_nat_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding isasat_length_trail_st_alt_def isasat_unbounded_assn_def
+  by sepref
+
+declare isasat_length_trail_st_slow_code.refine[sepref_fr_rules]
+  isasat_length_trail_st_code.refine[sepref_fr_rules]
+
+
+definition get_pos_of_level_in_trail_imp_st :: \<open>twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> nat nres\<close> where
+\<open>get_pos_of_level_in_trail_imp_st S = get_pos_of_level_in_trail_imp (get_trail_wl_heur S)\<close>
+
+lemma get_pos_of_level_in_trail_imp_alt_def:
+  \<open>get_pos_of_level_in_trail_imp_st = (\<lambda>(M, _).  get_pos_of_level_in_trail_imp M)\<close>
+  by (auto simp: get_pos_of_level_in_trail_imp_st_def intro!: ext)
+
+sepref_register get_pos_of_level_in_trail_imp_st
+
+sepref_definition get_pos_of_level_in_trail_imp_st_code
+  is \<open>uncurry get_pos_of_level_in_trail_imp_st\<close>
+  :: \<open>isasat_bounded_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k  \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding get_pos_of_level_in_trail_imp_alt_def isasat_bounded_assn_def
+  by sepref
+
+
+sepref_definition get_pos_of_level_in_trail_imp_st_slow_code
+  is \<open>uncurry get_pos_of_level_in_trail_imp_st\<close>
+  :: \<open>isasat_unbounded_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k  \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding get_pos_of_level_in_trail_imp_alt_def isasat_unbounded_assn_def
+  by sepref
+
+declare get_pos_of_level_in_trail_imp_st_slow_code.refine[sepref_fr_rules]
+  get_pos_of_level_in_trail_imp_st_code.refine[sepref_fr_rules]
+
+sepref_register remove_one_annot_true_clause_imp_wl_D_heur
+
+sepref_definition remove_one_annot_true_clause_imp_wl_D_heur_code
+  is \<open>remove_one_annot_true_clause_imp_wl_D_heur\<close>
+  :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding remove_one_annot_true_clause_imp_wl_D_heur_def zero_uint32_nat_def[symmetric]
+    isasat_length_trail_st_def[symmetric] get_pos_of_level_in_trail_imp_st_def[symmetric]
+  by sepref
+
+sepref_definition remove_one_annot_true_clause_imp_wl_D_heur_slow_code
+  is \<open>remove_one_annot_true_clause_imp_wl_D_heur\<close>
+  :: \<open>isasat_unbounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_unbounded_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding remove_one_annot_true_clause_imp_wl_D_heur_def zero_uint32_nat_def[symmetric]
+    isasat_length_trail_st_def[symmetric] get_pos_of_level_in_trail_imp_st_def[symmetric]
+  by sepref
+
+declare remove_one_annot_true_clause_imp_wl_D_heur_code.refine[sepref_fr_rules]
+   remove_one_annot_true_clause_imp_wl_D_heur_slow_code.refine[sepref_fr_rules]
+
+find_theorems 4 uint64_nat_assn
+
+sepref_definition isasat_GC_clauses_prog_copy_wl_entry_code
+  is \<open>uncurry3 isasat_GC_clauses_prog_copy_wl_entry\<close>
+  :: \<open>arena_assn\<^sup>d *\<^sub>a watchlist_fast_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a (arena_assn *a vdom_assn)\<^sup>d \<rightarrow>\<^sub>a
+     (arena_assn *a (arena_assn *a vdom_assn))\<close>
+  supply [[goals_limit=1]] Pos_unat_lit_assn'[sepref_fr_rules] length_ll_def[simp]
+  unfolding isasat_GC_clauses_prog_copy_wl_entry_def nth_rll_def[symmetric]
+    length_ll_def[symmetric]
+  apply (rewrite at \<open>If (\<hole> < _)\<close> four_uint64_nat_def[symmetric])
+  apply (rewrite at \<open>fm_mv_clause_to_new_arena \<hole>\<close> nat_of_uint64_conv_def[symmetric])
+  by sepref
+
+
+lemma shorten_take_ll_0: \<open>shorten_take_ll L 0 W = W[L := []]\<close>
+  by (auto simp: shorten_take_ll_def)
+
+lemma length_shorten_take_ll[simp]: \<open>length (shorten_take_ll a j W) = length W\<close>
+  by (auto simp: shorten_take_ll_def)
+
+sepref_register isasat_GC_clauses_prog_copy_wl_entry
+declare isasat_GC_clauses_prog_copy_wl_entry_code.refine[sepref_fr_rules]
+
+sepref_definition isasat_GC_clauses_prog_single_wl_code
+  is \<open>uncurry3 isasat_GC_clauses_prog_single_wl\<close>
+  :: \<open>[\<lambda>(((_, _), _), A). A \<le> uint32_max div 2]\<^sub>a
+     arena_assn\<^sup>d *\<^sub>a (arena_assn *a vdom_assn)\<^sup>d *\<^sub>a watchlist_fast_assn\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>
+     (arena_assn *a (arena_assn *a vdom_assn) *a watchlist_fast_assn)\<close>
+  supply [[goals_limit=1]] Pos_unat_lit_assn'[sepref_fr_rules]
+  unfolding isasat_GC_clauses_prog_single_wl_def
+    shorten_take_ll_0[symmetric]
+  by sepref
+
+declare isasat_GC_clauses_prog_single_wl_code.refine[sepref_fr_rules]
+
+definition isasat_GC_clauses_prog_wl2' where
+  \<open>isasat_GC_clauses_prog_wl2' ns fst' = (isasat_GC_clauses_prog_wl2 (ns, fst'))\<close>
+
+sepref_register isasat_GC_clauses_prog_wl2
+sepref_definition isasat_GC_clauses_prog_wl2_code
+  is \<open>uncurry2 isasat_GC_clauses_prog_wl2'\<close>
+  :: \<open>(array_assn vmtf_node_assn)\<^sup>k *\<^sub>a (option_assn uint32_nat_assn)\<^sup>k *\<^sub>a 
+     (arena_assn *a (arena_assn *a vdom_assn) *a watchlist_fast_assn)\<^sup>d \<rightarrow>\<^sub>a 
+     (arena_assn *a (arena_assn *a vdom_assn) *a watchlist_fast_assn)\<close>
+  supply [[goals_limit=1]]
+  unfolding isasat_GC_clauses_prog_wl2_def isasat_GC_clauses_prog_wl2'_def
+  by sepref
+
+declare isasat_GC_clauses_prog_wl2_code.refine[sepref_fr_rules]
+
+find_theorems op_arl_empty name:arl
+sepref_register isasat_GC_clauses_prog_wl isasat_GC_clauses_prog_wl2' rewatch_heur_st
+sepref_definition isasat_GC_clauses_prog_wl_code
+  is \<open>isasat_GC_clauses_prog_wl\<close>
+  :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding isasat_GC_clauses_prog_wl_def isasat_bounded_assn_def
+    arl.fold_custom_empty isasat_GC_clauses_prog_wl2'_def[symmetric]
+  by sepref
+
+definition rewatch_heur_st_pre :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close> where
+\<open>rewatch_heur_st_pre S \<longleftrightarrow> (\<forall>i < length (get_vdom S). get_vdom S ! i \<le> uint64_max)\<close>
+
+sepref_definition rewatch_heur_st_code
+  is \<open>rewatch_heur_st\<close>
+  :: \<open>[rewatch_heur_st_pre]\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
+  supply [[goals_limit=1]] append_el_aa_uint32_hnr'[sepref_fr_rules]
+  unfolding isasat_GC_clauses_prog_wl_def isasat_bounded_assn_def
+    rewatch_heur_st_def rewatch_heur_def Let_def two_uint64_nat_def[symmetric]
+    to_watcher_fast_def[symmetric] rewatch_heur_st_pre_def
+  apply (rewrite at \<open>RETURN (append_ll (append_ll _ _ (to_watcher_fast \<hole> _ _)) _ _)\<close> uint64_of_nat_conv_def[symmetric])
+  apply (rewrite at \<open>RETURN (append_ll (append_ll _ _ _) _ (to_watcher_fast \<hole> _ _))\<close> uint64_of_nat_conv_def[symmetric])
+  apply (rewrite at \<open>to_watcher_fast \<hole>\<close> uint64_of_nat_conv_def[symmetric])
+  by sepref
+
+declare isasat_GC_clauses_prog_wl_code.refine[sepref_fr_rules]
+  rewatch_heur_st_code.refine[sepref_fr_rules]
+
+sepref_definition isasat_GC_clauses_wl_D_code
+  is \<open>isasat_GC_clauses_wl_D\<close>
+  :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding isasat_GC_clauses_wl_D_def
+  apply sepref_dbg_keep
+  apply sepref_dbg_trans_keep
+  apply sepref_dbg_trans_step_keep
+  apply sepref_dbg_side_unfold
+  oops
+
+
+term isasat_GC_clauses_wl_D
+term cdcl_twl_full_restart_wl_D_GC_heur_prog
 
 end
