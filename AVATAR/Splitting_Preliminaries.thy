@@ -19,6 +19,15 @@ locale nonclausal_consequence_relation =
     all_formulas_entailed [intro]: "(\<forall>C \<in> N2. N1 \<Turnstile> {C}) \<Longrightarrow> N1 \<Turnstile> N2" and
     entails_trans [trans]: "N1 \<Turnstile> N2 \<Longrightarrow> N2 \<Turnstile> N3 \<Longrightarrow> N1 \<Turnstile> N3" and
     nothing_nimplies_bot:  "\<not> {} \<Turnstile> {bot}"
+begin
+
+lemma entail_iff_each: "N1 \<Turnstile> N2 \<longleftrightarrow> (\<forall>C \<in> N2. N1 \<Turnstile> {C})"
+  by (meson all_formulas_entailed bot.extremum entails_trans insert_subsetI subset_entailed)
+
+lemma entails_bigunion_iff: "N \<Turnstile> (\<Union>i \<in> I. M i) \<longleftrightarrow> (\<forall>i \<in> I. N \<Turnstile> M i)"
+  by (smt UN_iff entail_iff_each)
+
+end
 
 locale clausal_consequence_relation = nonclausal_consequence_relation "{#}" +
   assumes
