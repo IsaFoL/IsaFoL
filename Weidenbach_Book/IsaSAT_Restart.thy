@@ -34,12 +34,13 @@ proof -
     apply (intro frefI nres_relI)
     apply (refine_rcg
         restart_prog_wl_D_heur_restart_prog_wl_D[THEN fref_to_Down_curry2]
-        cdcl_twl_o_prog_wl_D_heur_cdcl_twl_o_prog_wl_D[THEN fref_to_Down]
+        cdcl_twl_o_prog_wl_D_heur_cdcl_twl_o_prog_wl_D2[THEN fref_to_Down]
         cdcl_twl_stgy_prog_wl_D_heur_cdcl_twl_stgy_prog_wl_D[THEN fref_to_Down]
         unit_propagation_outer_loop_wl_D_heur_unit_propagation_outer_loop_wl_D[THEN fref_to_Down]
         WHILEIT_refine[where R = \<open>bool_rel \<times>\<^sub>r twl_st_heur \<times>\<^sub>r nat_rel\<close>])
     subgoal by auto
     subgoal unfolding cdcl_twl_stgy_restart_abs_wl_heur_inv_def by fastforce
+    subgoal by auto
     subgoal by auto
     subgoal by auto
     subgoal by auto
@@ -143,6 +144,11 @@ proof -
         (length (get_clauses_wl_heur x1e))\<close>
     for x1e x1b
     by (auto simp: twl_st_heur'_def)
+  have twl_st_heur''': \<open>(x1e, x1b) \<in> twl_st_heur'' \<D> r \<Longrightarrow>
+    (x1e, x1b)
+    \<in> twl_st_heur''' r\<close>
+    for x1e x1b r \<D>
+    by (auto simp: twl_st_heur'_def)
   have abs_inv: \<open>(x, y) \<in> twl_st_heur \<Longrightarrow>
     (ebrk, ebrka) \<in> {(b, b'). b = b' \<and> b = (\<not> isasat_fast x)} \<Longrightarrow>
     (xb, x'a) \<in> bool_rel \<times>\<^sub>f (twl_st_heur \<times>\<^sub>f nat_rel) \<Longrightarrow>
@@ -163,7 +169,6 @@ proof -
     apply (refine_rcg
         restart_prog_wl_D_heur_restart_prog_wl_D[THEN fref_to_Down_curry2]
         cdcl_twl_o_prog_wl_D_heur_cdcl_twl_o_prog_wl_D[THEN fref_to_Down]
-        cdcl_twl_stgy_prog_wl_D_heur_cdcl_twl_stgy_prog_wl_D[THEN fref_to_Down]
         unit_propagation_outer_loop_wl_D_heur_unit_propagation_outer_loop_wl_D'[THEN fref_to_Down]
         WHILEIT_refine[where R = \<open>bool_rel \<times>\<^sub>r twl_st_heur \<times>\<^sub>r nat_rel\<close>]
         WHILEIT_refine[where R = \<open>{((ebrk, brk, T,n), (ebrk', brk', T', n')).
@@ -180,8 +185,8 @@ proof -
     apply (rule twl_st_heur''; auto; fail)
     subgoal by auto
     subgoal by auto
-    subgoal by auto
-    subgoal by auto
+    apply (rule twl_st_heur'''; assumption)
+    subgoal by (auto simp: isasat_fast_def uint64_max_def uint32_max_def)
     subgoal by auto
     subgoal by auto
     subgoal by auto
@@ -189,7 +194,7 @@ proof -
     subgoal by (rule abs_inv)
     subgoal by auto
     apply (rule twl_st_heur''; auto; fail)
-    subgoal by auto
+    apply (rule twl_st_heur'''; assumption)
     subgoal by auto
     subgoal by auto
     subgoal by auto
@@ -207,7 +212,7 @@ sepref_definition number_clss_to_keep_impl
   by sepref
 
 sepref_definition number_clss_to_keep_fast_impl
-  is \<open> (RETURN o number_clss_to_keep)\<close>
+  is \<open>RETURN o number_clss_to_keep\<close>
   :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
   unfolding number_clss_to_keep_def isasat_bounded_assn_def
   supply [[goals_limit = 1]]
@@ -692,7 +697,6 @@ sepref_definition restart_prog_wl_D_heur_fast_code
 
 declare restart_wl_D_heur_slow_code.refine[sepref_fr_rules]
    restart_prog_wl_D_heur_fast_code.refine[sepref_fr_rules]
-
 
 sepref_definition cdcl_twl_stgy_restart_prog_wl_heur_code
   is \<open>cdcl_twl_stgy_restart_prog_wl_heur\<close>

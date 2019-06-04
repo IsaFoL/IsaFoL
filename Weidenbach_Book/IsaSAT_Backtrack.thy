@@ -850,7 +850,10 @@ lemma lcount_add_clause[simp]: \<open>i \<notin># dom_m N \<Longrightarrow>
   by (simp add: learned_clss_l_mapsto_upd_notin)
 
 lemma backtrack_wl_D_nlit_backtrack_wl_D:
-  \<open>(backtrack_wl_D_nlit_heur, backtrack_wl_D) \<in> twl_st_heur_conflict_ana \<rightarrow>\<^sub>f \<langle>twl_st_heur\<rangle>nres_rel\<close>
+  \<open>(backtrack_wl_D_nlit_heur, backtrack_wl_D) \<in>
+  {(S, T). (S, T) \<in> twl_st_heur_conflict_ana \<and> length (get_clauses_wl_heur S) = r} \<rightarrow>\<^sub>f
+  \<langle>{(S, T). (S, T) \<in> twl_st_heur \<and> length (get_clauses_wl_heur S) \<le> 6 + r + uint32_max div 2}\<rangle>nres_rel\<close>
+  (is \<open>_ \<in> ?R \<rightarrow>\<^sub>f \<langle>?S\<rangle>nres_rel\<close>)
 proof -
   have backtrack_wl_D_nlit_heur_alt_def: \<open>backtrack_wl_D_nlit_heur S\<^sub>0 =
     do {
@@ -876,7 +879,7 @@ proof -
   have inv: \<open>backtrack_wl_D_heur_inv S'\<close>
     if
       \<open>backtrack_wl_D_inv S\<close> and
-      \<open>(S', S) \<in> twl_st_heur_conflict_ana\<close>
+      \<open>(S', S) \<in> ?R\<close>
     for S S'
     using that unfolding backtrack_wl_D_heur_inv_def
     by (cases S; cases S') (blast intro: exI[of _ S'])
@@ -907,7 +910,7 @@ proof -
     (is \<open>_ \<le> \<Down> ?shorter _\<close>)
     if
       inv: \<open>backtrack_wl_D_inv S\<close> and
-      S'_S: \<open>(S', S) \<in> twl_st_heur_conflict_ana\<close>
+      S'_S: \<open>(S', S) \<in> ?R\<close>
     for S S'
   proof -
     obtain M N D NE UE Q W where
@@ -1427,7 +1430,7 @@ proof -
           (find_decomp_wl (lit_of (hd (get_trail_wl S'))) T')\<close>
     (is \<open>_ \<le>  \<Down> ?find_decomp _\<close>)
     if
-      \<open>(S, S') \<in> twl_st_heur_conflict_ana\<close> and
+      \<open>(S, S') \<in> ?R\<close> and
       \<open>backtrack_wl_D_inv S'\<close> and
       \<open>backtrack_wl_D_heur_inv S\<close> and
       TT': \<open>(TnC, T') \<in> ?shorter S' S\<close> and
@@ -1511,7 +1514,7 @@ proof -
           (find_lit_of_max_level_wl U'
             (lit_of (hd (get_trail_wl S'))))\<close>
     if
-      \<open>(S, S') \<in> twl_st_heur_conflict_ana\<close> and
+      \<open>(S, S') \<in> ?R\<close> and
       \<open>backtrack_wl_D_inv S'\<close> and
       \<open>backtrack_wl_D_heur_inv S\<close> and
       \<open>(TnC, T') \<in> ?shorter S' S\<close> and
@@ -1538,7 +1541,7 @@ proof -
         (auto simp: find_lit_of_max_level_wl_def T')
 
     have n_d: \<open>no_dup (get_trail_wl S')\<close>
-      using \<open>(S, S') \<in> twl_st_heur_conflict_ana\<close>
+      using \<open>(S, S') \<in> ?R\<close>
       by (auto simp: twl_st_heur_conflict_ana_def trail_pol_def)
 
     have [simp]: \<open>get_trail_wl S' = get_trail_wl T'\<close>
@@ -1573,9 +1576,9 @@ proof -
       by (auto simp: find_lit_of_max_level_wl_def U' highest_lit_def T')
   qed
   have propagate_bt_wl_D_heur: \<open>propagate_bt_wl_D_heur (lit_of_hd_trail_st_heur S) C U
-      \<le> \<Down> twl_st_heur (propagate_bt_wl_D (lit_of (hd (get_trail_wl S'))) L' U')\<close>
+      \<le> \<Down> ?S (propagate_bt_wl_D (lit_of (hd (get_trail_wl S'))) L' U')\<close>
     if
-      SS': \<open>(S, S') \<in> twl_st_heur_conflict_ana\<close> and
+      SS': \<open>(S, S') \<in> ?R\<close> and
       \<open>backtrack_wl_D_inv S'\<close> and
       \<open>backtrack_wl_D_heur_inv S\<close> and
       \<open>(TnC, T') \<in> ?shorter S' S\<close> and
@@ -1603,8 +1606,9 @@ proof -
       \<open>get_conflict_wl S' \<noteq> None\<close> and
       uM_\<L>\<^sub>a\<^sub>l\<^sub>l: \<open>-lit_of (hd (get_trail_wl S')) \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st S')\<close> and
       lits: \<open>literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st T') T'\<close> and
-      tr_nempty: \<open>get_trail_wl T' \<noteq> []\<close>
-      using \<open>(TnC, T') \<in> ?shorter S' S\<close>  \<open>1 < length C\<close>
+      tr_nempty: \<open>get_trail_wl T' \<noteq> []\<close> and
+      r: \<open>length (get_clauses_wl_heur S) = r\<close> \<open>length (get_clauses_wl_heur T) = r\<close>
+      using \<open>(TnC, T') \<in> ?shorter S' S\<close>  \<open>1 < length C\<close> \<open>(S, S') \<in> ?R\<close>
       by auto
 
     obtain K M2 where
@@ -1613,8 +1617,9 @@ proof -
       lev_K: \<open>get_level (get_trail_wl T') K = Suc (get_maximum_level (get_trail_wl T')
            (remove1_mset (- lit_of (hd (get_trail_wl T')))
              (the (get_conflict_wl T'))))\<close> and
-      decomp: \<open>(Decided K # get_trail_wl U', M2) \<in> set (get_all_ann_decomposition (get_trail_wl T'))\<close>
-      using find_decomp
+      decomp: \<open>(Decided K # get_trail_wl U', M2) \<in> set (get_all_ann_decomposition (get_trail_wl T'))\<close> and
+      r': \<open>length (get_clauses_wl_heur U) = r\<close>
+      using find_decomp r
       by auto
 
     obtain M N NE UE Q W where
@@ -1676,7 +1681,6 @@ proof -
           (RES ((\<lambda>i. (fmupd i (C, False) N, i)) ` {i. 0 < i \<and> i \<notin># dom_m N}) \<bind>
                    (\<lambda>(N, i). f N i))\<close> (is \<open>?A = ?B\<close>) for f C N
     proof -
-        thm bind_RES
       have \<open>?B \<le> ?A\<close>
         by (force intro: ext complete_lattice_class.Sup_subset_mono
           simp: intro_spec_iff bind_RES)
@@ -1745,10 +1749,9 @@ proof -
       unfolding propagate_bt_wl_D_def Let_def cons_trail_Propagated_def
         U U' H get_fresh_index_wl_def prod.case
         propagate_bt_wl_D_heur_def propagate_bt_wl_D_def Let_def rescore_clause_def
-      apply (auto simp: U' RES_RES2_RETURN_RES RES_RETURN_RES \<phi> uminus_\<A>\<^sub>i\<^sub>n_iff
+      by (auto simp: U' RES_RES2_RETURN_RES RES_RETURN_RES \<phi> uminus_\<A>\<^sub>i\<^sub>n_iff
           uncurry_def RES_RES_RETURN_RES
           get_fresh_index_def RES_RETURN_RES2 RES_RES_RETURN_RES2 list_of_mset2_def)
-      done
     have [refine0]: \<open>SPEC (\<lambda>(vm', \<phi>'). vm' \<in> vmtf \<A> M1 \<and> phase_saving \<A> \<phi>')
        \<le> \<Down>{((vm', \<phi>'), ()). vm' \<in> vmtf \<A> M1 \<and> phase_saving \<A> \<phi>'} (RETURN ())\<close> for \<A>
       by (auto intro!: RES_refine simp: RETURN_def)
@@ -1784,7 +1787,7 @@ proof -
       let ?M1' = \<open>cons_trail_Propagated_tr L i M1'\<close>
       let ?M1 = \<open>cons_trail_Propagated L i M1\<close>
 
-      have M1'_M1: \<open> (?M1', ?M1) \<in> trail_pol (all_atms_st U')\<close>
+      have M1'_M1: \<open>(?M1', ?M1) \<in> trail_pol (all_atms_st U')\<close>
         unfolding cons_trail_Propagated_def
         by (rule cons_trail_Propagated_tr2[OF M1'_M1 L undef i])
 
@@ -1839,8 +1842,8 @@ proof -
       using lits
       by (auto simp: T' vdom_m_def literals_are_\<L>\<^sub>i\<^sub>n_def is_\<L>\<^sub>a\<^sub>l\<^sub>l_def U' all_atms_def all_lits_def)
     have [refine0]: \<open>fm_add_new False C arena
-       \<le> \<Down> {((arena, i), (N', i')). valid_arena arena N' (insert i (set vdom)) \<and> i = i' \<and>
-             i \<notin># dom_m N \<and> i \<notin> set vdom}
+       \<le> \<Down> {((arena', i), (N', i')). valid_arena arena' N' (insert i (set vdom)) \<and> i = i' \<and>
+             i \<notin># dom_m N \<and> i \<notin> set vdom \<and> length arena' = length arena + header_size D'' + length D''}
           (SPEC
             (\<lambda>(N', i).
                 N' = fmupd i (D'', False) N \<and>
@@ -1878,7 +1881,7 @@ proof -
         simple_clss_size_upper_div2[OF bounded _ _ tauto]
       by (auto simp: uint32_max_def S' U' all_atms_def[symmetric])
     have tr_SS': \<open>(get_trail_wl_heur S, M) \<in> trail_pol (all_atms_st S')\<close>
-      using \<open>(S, S') \<in> twl_st_heur_conflict_ana\<close> unfolding twl_st_heur_conflict_ana_def
+      using \<open>(S, S') \<in> ?R\<close> unfolding twl_st_heur_conflict_ana_def
       by (auto simp: all_atms_def S')
     have hd_tr_S_M: \<open>lit_of_hd_trail_st_heur S = lit_of_hd_trail M\<close>
       unfolding lit_of_hd_trail_def lit_of_hd_trail_st_heur_def
@@ -1952,6 +1955,8 @@ proof -
         done
     qed
 
+    have arena_le: \<open>length arena + header_size C + length C \<le> 6 + r + uint32_max div 2\<close>
+      using r r' le_C_ge by (auto simp: uint32_max_def header_size_def S' U)
     have vm: \<open>vm \<in> isa_vmtf (all_atms N (NE + UE)) M1 \<Longrightarrow>
        vm \<in> isa_vmtf (all_atms N (NE + UE)) (Propagated (- lit_of (hd M)) x2a # M1)\<close> for x2a vm
       by (cases vm)
@@ -2015,8 +2020,8 @@ proof -
       subgoal
         supply All_atms_rew[simp]
         unfolding twl_st_heur_def
-        using D' C_1_neq_hd vmtf avdom M1'_M1 bounded nempty
-        apply  (auto simp: propagate_bt_wl_D_heur_def twl_st_heur_def
+        using D' C_1_neq_hd vmtf avdom M1'_M1 bounded nempty r arena_le
+        apply (auto simp: propagate_bt_wl_D_heur_def twl_st_heur_def
             Let_def T' U' U rescore_clause_def S' map_fun_rel_def
             list_of_mset2_def vmtf_flush_def RES_RES2_RETURN_RES RES_RETURN_RES \<phi> uminus_\<A>\<^sub>i\<^sub>n_iff
             get_fresh_index_def RES_RETURN_RES2 RES_RES_RETURN_RES2 lit_of_hd_trail_def
@@ -2032,11 +2037,11 @@ proof -
 
   have propagate_unit_bt_wl_D_int: \<open>propagate_unit_bt_wl_D_int
        (lit_of_hd_trail_st_heur S) U
-      \<le> \<Down> twl_st_heur
+      \<le> \<Down> ?S
           (propagate_unit_bt_wl_D
             (lit_of (hd (get_trail_wl S'))) U')\<close>
     if
-      SS': \<open>(S, S') \<in> twl_st_heur_conflict_ana\<close> and
+      SS': \<open>(S, S') \<in> ?R\<close> and
       \<open>backtrack_wl_D_inv S'\<close> and
       \<open>backtrack_wl_D_heur_inv S\<close> and
       \<open>(TnC, T') \<in> ?shorter S' S\<close> and
@@ -2070,8 +2075,9 @@ proof -
       lev_K: \<open>get_level (get_trail_wl T') K = Suc (get_maximum_level (get_trail_wl T')
            (remove1_mset (- lit_of (hd (get_trail_wl T')))
              (the (get_conflict_wl T'))))\<close> and
-      decomp: \<open>(Decided K # get_trail_wl U', M2) \<in> set (get_all_ann_decomposition (get_trail_wl T'))\<close>
-      using find_decomp
+      decomp: \<open>(Decided K # get_trail_wl U', M2) \<in> set (get_all_ann_decomposition (get_trail_wl T'))\<close> and
+      r: \<open>length (get_clauses_wl_heur S) = r\<close>
+      using find_decomp SS'
       by (auto)
 
     obtain M N NE UE Q W where
@@ -2095,8 +2101,9 @@ proof -
       where
         U: \<open>U = (M1', arena, D', Q', W', vm', \<phi>, clvls, cach, lbd, outl, stats, fema, sema, ccount,
            vdom, avdom, lcount, opts)\<close> and
-        avdom: \<open>set avdom \<subseteq> set vdom\<close>
-      using UU' find_decomp by (cases U) (auto simp: U' T' twl_st_heur_bt_def)
+        avdom: \<open>set avdom \<subseteq> set vdom\<close> and
+        r': \<open>length (get_clauses_wl_heur U) = r\<close>
+      using UU' find_decomp r by (cases U) (auto simp: U' T' twl_st_heur_bt_def)
     have
       M'M: \<open>(M1', M1) \<in> trail_pol (all_atms_st U')\<close> and
       W'W: \<open>(W', W) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0  (all_atms_st U'))\<close> and
@@ -2294,7 +2301,7 @@ proof -
 	          intro!: vmtf_consD
 	          simp del: isasat_input_bounded_def isasat_input_nempty_def)
 	    subgoal
-	      using bounded nempty dist_vdom
+	      using bounded nempty dist_vdom r'
 	      by (auto simp: U U' lit_of_hd_trail_st_heur_def RETURN_def
 	          single_of_mset_def vmtf_flush_def twl_st_heur_def lbd_empty_def get_LBD_def
 	          RES_RES2_RETURN_RES RES_RETURN_RES S' uminus_\<A>\<^sub>i\<^sub>n_iff RES_RES_RETURN_RES
@@ -2307,7 +2314,7 @@ proof -
 
   have trail_nempty: \<open>fst (get_trail_wl_heur S) \<noteq> []\<close>
     if
-      \<open>(S, S') \<in> twl_st_heur_conflict_ana\<close> and
+      \<open>(S, S') \<in> ?R\<close> and
       \<open>backtrack_wl_D_inv S'\<close>
     for S S'
   proof -

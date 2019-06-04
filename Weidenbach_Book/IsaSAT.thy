@@ -2771,7 +2771,7 @@ external_file \<open>code/IsaSAT.sml\<close>
 external_file \<open>code/dimacs_parser.sml\<close>
 
 
-compile_generated_files _ 
+compile_generated_files _
   external_files
     \<open>code/IsaSAT.mlb\<close>
     \<open>code/Unsynchronized.sml\<close>

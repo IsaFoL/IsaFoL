@@ -1,5 +1,6 @@
 theory IsaSAT_Restart_Heuristics
-  imports Watched_Literals.WB_Sort IsaSAT.Watched_Literals_Watch_List_Domain_Restart IsaSAT_Setup IsaSAT_VMTF
+imports Watched_Literals.WB_Sort Watched_Literals.Watched_Literals_Watch_List_Domain_Restart
+  IsaSAT_Setup IsaSAT_VMTF
 begin
 
 text \<open>

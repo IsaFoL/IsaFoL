@@ -147,10 +147,15 @@ proof -
 qed
 
 lemma cdcl_twl_o_prog_wl_D_heur_cdcl_twl_o_prog_wl_D:
-  \<open>(cdcl_twl_o_prog_wl_D_heur, cdcl_twl_o_prog_wl_D) \<in> twl_st_heur \<rightarrow>\<^sub>f
-     \<langle>bool_rel \<times>\<^sub>f twl_st_heur\<rangle>nres_rel\<close>
+  \<open>(cdcl_twl_o_prog_wl_D_heur, cdcl_twl_o_prog_wl_D) \<in>
+   {(S, T). (S, T) \<in> twl_st_heur \<and> length (get_clauses_wl_heur S) = r} \<rightarrow>\<^sub>f
+     \<langle>bool_rel \<times>\<^sub>f {(S, T). (S, T) \<in> twl_st_heur \<and>
+        length (get_clauses_wl_heur S) \<le> r + 6 + uint32_max div 2}\<rangle>nres_rel\<close>
 proof -
-  have [refine0]: \<open>(x, y) \<in> twl_st_heur \<Longrightarrow>
+  have H: \<open>(x, y) \<in> {(S, T).
+               (S, T) \<in> twl_st_heur \<and>
+               length (get_clauses_wl_heur S) =
+               length (get_clauses_wl_heur x)} \<Longrightarrow>
            (x, y)
            \<in> {(S, T).
                (S, T) \<in> twl_st_heur_conflict_ana \<and>
@@ -162,13 +167,14 @@ proof -
       get_conflict_wl_is_None
     apply (intro frefI nres_relI)
     apply (refine_vcg
-        decide_wl_or_skip_D_heur_decide_wl_or_skip_D[THEN twl_st_heur'''D_twl_st_heurD_prod,
-             THEN fref_to_Down]
-        skip_and_resolve_loop_wl_D_heur_skip_and_resolve_loop_wl_D[THEN fref_to_Down]
-        backtrack_wl_D_nlit_backtrack_wl_D[THEN fref_to_Down])
+        decide_wl_or_skip_D_heur_decide_wl_or_skip_D[where r=r, THEN fref_to_Down, THEN order_trans]
+        skip_and_resolve_loop_wl_D_heur_skip_and_resolve_loop_wl_D[where r=r, THEN fref_to_Down]
+        backtrack_wl_D_nlit_backtrack_wl_D[where r=r, THEN fref_to_Down])
     subgoal
       by (auto simp: twl_st_heur_state_simp
           get_conflict_wl_is_None_heur_get_conflict_wl_is_None[THEN fref_to_Down_unRET_Id])
+    apply (assumption)
+    subgoal by (rule conc_fun_R_mono) auto
     subgoal by (auto simp: twl_st_heur_state_simp twl_st_heur_count_decided_st_alt_def)
     subgoal by (auto simp: twl_st_heur_state_simp twl_st_heur_twl_st_heur_conflict_ana)
     subgoal by (auto simp: twl_st_heur_state_simp)
@@ -176,6 +182,15 @@ proof -
     subgoal by (auto simp: twl_st_heur_state_simp)
     done
 qed
+
+lemma cdcl_twl_o_prog_wl_D_heur_cdcl_twl_o_prog_wl_D2:
+  \<open>(cdcl_twl_o_prog_wl_D_heur, cdcl_twl_o_prog_wl_D) \<in>
+   {(S, T). (S, T) \<in> twl_st_heur} \<rightarrow>\<^sub>f
+     \<langle>bool_rel \<times>\<^sub>f {(S, T). (S, T) \<in> twl_st_heur}\<rangle>nres_rel\<close>
+  apply (intro frefI nres_relI)
+  apply (rule cdcl_twl_o_prog_wl_D_heur_cdcl_twl_o_prog_wl_D[THEN fref_to_Down, THEN order_trans])
+  apply (auto intro!: conc_fun_R_mono)
+  done
 
 
 paragraph \<open>Combining Together: Full Strategy\<close>
@@ -186,7 +201,7 @@ where
   \<open>cdcl_twl_stgy_prog_wl_D_heur S\<^sub>0 =
   do {
     do {
-      (brk, T) \<leftarrow> WHILE\<^sub>T
+        (brk, T) \<leftarrow> WHILE\<^sub>T
         (\<lambda>(brk, _). \<not>brk)
         (\<lambda>(brk, S).
         do {
@@ -208,16 +223,32 @@ theorem unit_propagation_outer_loop_wl_D_heur_unit_propagation_outer_loop_wl_D:
 
 lemma cdcl_twl_stgy_prog_wl_D_heur_cdcl_twl_stgy_prog_wl_D:
   \<open>(cdcl_twl_stgy_prog_wl_D_heur, cdcl_twl_stgy_prog_wl_D) \<in> twl_st_heur \<rightarrow>\<^sub>f \<langle>twl_st_heur\<rangle>nres_rel\<close>
-  unfolding cdcl_twl_stgy_prog_wl_D_heur_def cdcl_twl_stgy_prog_wl_D_def
-  apply (intro frefI nres_relI)
-  apply (refine_vcg
-      unit_propagation_outer_loop_wl_D_heur_unit_propagation_outer_loop_wl_D[THEN fref_to_Down]
-      cdcl_twl_o_prog_wl_D_heur_cdcl_twl_o_prog_wl_D[THEN fref_to_Down])
-  subgoal by (auto simp: twl_st_heur_state_simp)
-  subgoal by (auto simp: twl_st_heur_state_simp)
-  subgoal by (auto simp: twl_st_heur_state_simp)
-  subgoal by (auto simp: twl_st_heur_state_simp)
-  done
+proof -
+  have H: \<open>(x, y) \<in> {(S, T).
+               (S, T) \<in> twl_st_heur \<and>
+               length (get_clauses_wl_heur S) =
+               length (get_clauses_wl_heur x)} \<Longrightarrow>
+           (x, y)
+           \<in> {(S, T).
+               (S, T) \<in> twl_st_heur_conflict_ana \<and>
+               length (get_clauses_wl_heur S) =
+               length (get_clauses_wl_heur x)}\<close> for x y
+    by (auto simp: twl_st_heur_state_simp twl_st_heur_twl_st_heur_conflict_ana)
+  show ?thesis
+    unfolding cdcl_twl_stgy_prog_wl_D_heur_def cdcl_twl_stgy_prog_wl_D_def
+    apply (intro frefI nres_relI)
+    subgoal for x y
+    apply (refine_vcg
+        unit_propagation_outer_loop_wl_D_heur_unit_propagation_outer_loop_wl_D'[THEN twl_st_heur''D_twl_st_heurD, THEN fref_to_Down]
+        cdcl_twl_o_prog_wl_D_heur_cdcl_twl_o_prog_wl_D2[THEN fref_to_Down])
+    subgoal by (auto simp: twl_st_heur_state_simp)
+    subgoal by (auto simp: twl_st_heur_state_simp twl_st_heur'_def)
+    subgoal by (auto simp: twl_st_heur'_def)
+    subgoal by (auto simp: twl_st_heur_state_simp)
+    subgoal by (auto simp: twl_st_heur_state_simp)
+    done
+    done
+qed
 
 sepref_register cdcl_twl_stgy_prog_wl_D unit_propagation_outer_loop_wl_D_heur
   cdcl_twl_o_prog_wl_D_heur
