@@ -65,8 +65,9 @@ where
         ASSERT(length (get_clauses_wl_heur T) \<le> uint64_max);
         ASSERT(length (get_clauses_wl_heur T) = length (get_clauses_wl_heur S));
         (brk, T) \<leftarrow> cdcl_twl_o_prog_wl_D_heur T;
+        ASSERT(length (get_clauses_wl_heur T) \<le> uint64_max);
         (T, n) \<leftarrow> restart_prog_wl_D_heur T n brk;
-	      ebrk \<leftarrow> RETURN (\<not>isasat_fast T);
+	ebrk \<leftarrow> RETURN (\<not>isasat_fast T);
         RETURN (ebrk, brk, T, n)
       })
       (ebrk, False, S\<^sub>0::twl_st_wl_heur, 0);
@@ -184,6 +185,7 @@ proof -
     subgoal by auto
     subgoal by auto
     subgoal by auto
+    subgoal by auto
     subgoal by (rule abs_inv)
     subgoal by auto
     apply (rule twl_st_heur''; auto; fail)
@@ -198,7 +200,7 @@ qed
 sepref_register number_clss_to_keep
 
 sepref_definition number_clss_to_keep_impl
-  is \<open> (RETURN o number_clss_to_keep)\<close>
+  is \<open>RETURN o number_clss_to_keep\<close>
   :: \<open>isasat_unbounded_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
   unfolding number_clss_to_keep_def isasat_unbounded_assn_def
   supply [[goals_limit = 1]]
@@ -216,14 +218,14 @@ declare number_clss_to_keep_impl.refine[sepref_fr_rules]
 
 sepref_register access_vdom_at
 sepref_definition access_vdom_at_code
-  is \<open>uncurry ( (RETURN oo access_vdom_at))\<close>
+  is \<open>uncurry (RETURN oo access_vdom_at)\<close>
   :: \<open>[uncurry access_vdom_at_pre]\<^sub>a isasat_unbounded_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> nat_assn\<close>
   unfolding access_vdom_at_alt_def access_vdom_at_pre_def isasat_unbounded_assn_def
   supply [[goals_limit = 1]]
   by sepref
 
 sepref_definition access_vdom_at_fast_code
-  is \<open>uncurry ( (RETURN oo access_vdom_at))\<close>
+  is \<open>uncurry (RETURN oo access_vdom_at)\<close>
   :: \<open>[uncurry access_vdom_at_pre]\<^sub>a isasat_bounded_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> nat_assn\<close>
   unfolding access_vdom_at_alt_def access_vdom_at_pre_def isasat_bounded_assn_def
   supply [[goals_limit = 1]]
@@ -243,14 +245,14 @@ lemma length_avdom_alt_def:
 
 sepref_register length_avdom
 sepref_definition length_avdom_code
-  is \<open> (RETURN o length_avdom)\<close>
+  is \<open>RETURN o length_avdom\<close>
   :: \<open>isasat_unbounded_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
   unfolding length_avdom_alt_def access_vdom_at_pre_def isasat_unbounded_assn_def
   supply [[goals_limit = 1]]
   by sepref
 
 sepref_definition length_avdom_fast_code
-  is \<open> (RETURN o length_avdom)\<close>
+  is \<open>RETURN o length_avdom\<close>
   :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
   unfolding length_avdom_alt_def access_vdom_at_pre_def isasat_bounded_assn_def
   supply [[goals_limit = 1]]
@@ -634,7 +636,7 @@ declare cdcl_twl_full_restart_wl_prog_heur_fast_code.refine[sepref_fr_rules]
    cdcl_twl_full_restart_wl_prog_heur_code.refine[sepref_fr_rules]
 
 sepref_definition cdcl_twl_restart_wl_heur_code
-  is \<open> cdcl_twl_restart_wl_heur\<close>
+  is \<open>cdcl_twl_restart_wl_heur\<close>
   :: \<open>isasat_unbounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_unbounded_assn\<close>
   unfolding cdcl_twl_restart_wl_heur_def
   supply [[goals_limit = 1]]
@@ -650,18 +652,41 @@ sepref_definition cdcl_twl_restart_wl_heur_fast_code
 declare cdcl_twl_restart_wl_heur_fast_code.refine[sepref_fr_rules]
    cdcl_twl_restart_wl_heur_code.refine[sepref_fr_rules]
 
+sepref_definition cdcl_twl_full_restart_wl_D_GC_heur_prog_code
+  is \<open>cdcl_twl_full_restart_wl_D_GC_heur_prog\<close>
+  :: \<open>isasat_unbounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_unbounded_assn\<close>
+  unfolding cdcl_twl_full_restart_wl_D_GC_heur_prog_def zero_uint32_nat_def[symmetric]
+  supply [[goals_limit = 1]]
+  by sepref
+
+sepref_definition cdcl_twl_full_restart_wl_D_GC_heur_prog_fast_code
+  is \<open>cdcl_twl_full_restart_wl_D_GC_heur_prog\<close>
+  :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> uint64_max]\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
+  unfolding cdcl_twl_full_restart_wl_D_GC_heur_prog_def zero_uint32_nat_def[symmetric]
+  supply [[goals_limit = 1]]
+  by sepref
+
+declare cdcl_twl_full_restart_wl_D_GC_heur_prog_code.refine[sepref_fr_rules]
+  cdcl_twl_restart_wl_heur_fast_code.refine[sepref_fr_rules]
+    cdcl_twl_full_restart_wl_D_GC_heur_prog_code.refine[sepref_fr_rules]
+  cdcl_twl_full_restart_wl_D_GC_heur_prog_fast_code.refine[sepref_fr_rules]
+
+declare cdcl_twl_restart_wl_heur_fast_code.refine[sepref_fr_rules]
+   cdcl_twl_restart_wl_heur_code.refine[sepref_fr_rules]
+
 sepref_register restart_required_heur cdcl_twl_restart_wl_heur
 sepref_definition restart_wl_D_heur_slow_code
-  is \<open>uncurry2 ( restart_prog_wl_D_heur)\<close>
+  is \<open>uncurry2 restart_prog_wl_D_heur\<close>
   :: \<open>isasat_unbounded_assn\<^sup>d *\<^sub>a nat_assn\<^sup>k *\<^sub>a bool_assn\<^sup>k \<rightarrow>\<^sub>a isasat_unbounded_assn *a nat_assn\<close>
-  unfolding restart_prog_wl_D_heur_alt_def \<^cancel>\<open>Temporary measure\<close>
+  unfolding restart_prog_wl_D_heur_def
   supply [[goals_limit = 1]]
   by sepref
 
 sepref_definition restart_prog_wl_D_heur_fast_code
   is \<open>uncurry2 (restart_prog_wl_D_heur)\<close>
-  :: \<open>isasat_bounded_assn\<^sup>d *\<^sub>a nat_assn\<^sup>k *\<^sub>a bool_assn\<^sup>k \<rightarrow>\<^sub>a isasat_bounded_assn *a nat_assn\<close>
-  unfolding restart_prog_wl_D_heur_alt_def
+  :: \<open>[\<lambda>((S, _), _). length (get_clauses_wl_heur S) \<le> uint64_max]\<^sub>a
+      isasat_bounded_assn\<^sup>d *\<^sub>a nat_assn\<^sup>k *\<^sub>a bool_assn\<^sup>k \<rightarrow> isasat_bounded_assn *a nat_assn\<close>
+  unfolding restart_prog_wl_D_heur_def
   supply [[goals_limit = 1]]
   by sepref
 
@@ -690,7 +715,7 @@ lemma (in -) uint32_max_nat_hnr:
 
 sepref_register isasat_fast
 sepref_definition isasat_fast_code
-  is \<open>RETURN o ( isasat_fast)\<close>
+  is \<open>RETURN o isasat_fast\<close>
   :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
   unfolding isasat_fast_alt_def isasat_bounded_assn_def
   supply [[goals_limit = 1]] uint32_max_nat_hnr[sepref_fr_rules]

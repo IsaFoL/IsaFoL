@@ -638,9 +638,17 @@ qed
 
 lemma valid_arena_in_vdom_le_arena:
   assumes \<open>valid_arena arena N vdom\<close> and \<open>j \<in> vdom\<close>
-  shows \<open>j < length arena\<close>
+  shows \<open>j < length arena\<close> and \<open>j \<ge> 4\<close>
   using assms unfolding valid_arena_def
-  by auto
+  by (cases \<open>j \<in># dom_m N\<close>; auto simp: header_size_def
+    dest!: multi_member_split split: if_splits; fail)+
+
+lemma valid_minimal_difference_between_valid_index:
+  assumes \<open>valid_arena arena N vdom\<close> and
+    \<open>i \<in># dom_m N\<close> and \<open>j \<in># dom_m N\<close> and \<open>j > i\<close>
+  shows \<open>j - i \<ge> length (N\<propto>i) + header_size (N\<propto>j)\<close>
+  by (rule minimal_difference_between_valid_index[OF _ assms(2-4)])
+  (use assms(1) in \<open>auto simp: valid_arena_def\<close>)
 
 
 subsubsection \<open>Updates\<close>

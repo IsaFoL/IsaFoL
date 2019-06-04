@@ -1822,7 +1822,7 @@ proof -
     have [simp]: \<open>length arena + header_size D'' \<notin> set vdom\<close>
       \<open>length arena + header_size D'' \<notin> vdom_m (all_atms_st U') W N\<close>
       \<open>length arena + header_size D'' \<notin># dom_m N\<close> for D''
-      using valid_arena_in_vdom_le_arena[OF valid] vdom
+      using valid_arena_in_vdom_le_arena(1)[OF valid] vdom
       by (auto 5 1 simp: vdom_m_def)
     have add_new_alt_def: \<open>(SPEC
             (\<lambda>(N', i).
