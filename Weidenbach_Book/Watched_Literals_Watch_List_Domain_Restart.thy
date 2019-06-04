@@ -1,5 +1,5 @@
 theory Watched_Literals_Watch_List_Domain_Restart
-  imports Watched_Literals.Watched_Literals_Watch_List_Domain Watched_Literals_Watch_List_Restart
+  imports Watched_Literals_Watch_List_Domain Watched_Literals_Watch_List_Restart
 begin
 
 lemma cdcl_twl_restart_get_all_init_clss:

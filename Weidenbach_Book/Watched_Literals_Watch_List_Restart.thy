@@ -1,5 +1,5 @@
 theory Watched_Literals_Watch_List_Restart
-  imports Watched_Literals_List_Restart Watched_Literals.Watched_Literals_Watch_List
+  imports Watched_Literals_List_Restart Watched_Literals_Watch_List
 begin
 
 text \<open>To ease the proof, we introduce the following ``alternative'' definitions, that only considers

@@ -178,10 +178,15 @@ session "Watched_Literals" (Weidenbach_Book) = "CDCL"  +
     WB_More_Refinement_List
     WB_More_Refinement
     WB_Sort
+    Watched_Literals_Transition_System
     Watched_Literals_Algorithm
+    Watched_Literals_Algorithm_Restart
     Watched_Literals_List
+    Watched_Literals_List_Restart
     Watched_Literals_Watch_List
+    Watched_Literals_Watch_List_Restart
     Watched_Literals_Watch_List_Domain
+    Watched_Literals_Watch_List_Domain_Restart
     Watched_Literals_Watch_List_Initialisation
     CDCL_Conflict_Minimisation
     WB_Sort
@@ -199,7 +204,6 @@ session "IsaSAT" (Weidenbach_Book) = "Watched_Literals"  +
     Watched_Literals
     Show
   theories
-    (*Watched_Literals_Transition_System_Restart*)
     IsaSAT_Literals
     IsaSAT_Trail
     IsaSAT_Setup

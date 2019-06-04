@@ -1,5 +1,5 @@
 theory Watched_Literals_Algorithm_Restart
-  imports Watched_Literals.Watched_Literals_Algorithm Watched_Literals_Transition_System_Restart
+  imports Watched_Literals_Algorithm Watched_Literals_Transition_System_Restart
 begin
 
 context twl_restart_ops
