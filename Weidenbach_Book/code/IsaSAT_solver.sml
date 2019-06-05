@@ -546,7 +546,7 @@ fun blit A_ src si dst di len =
     array_blit src (integer_of_nat
                      si) dst (integer_of_nat di) (integer_of_nat len));
 
-val version : string = "42eb580e";
+val version : string = "2da6c763";
 
 fun get_LBD_code x = (fn xi => (fn () => let
    val (_, (_, b)) = xi;
@@ -2835,7 +2835,7 @@ fun mark_garbage_heur_code2 x =
   (fn ai => fn bia =>
     fn (a1, (a1a, (a1b, (a1c, (a1d, (a1e, (a1f,
     (a1g, (a1h, (a1i, (a1j, (a1k, (a1l, (a1m,
-  (a1n, (a1o, (a1p, (a1q, a2q))))))))))))))))))
+  (a1n, (a1o, (a1p, (a1q, (a1r, a2r)))))))))))))))))))
       =>
     fn () =>
     let
@@ -2846,7 +2846,7 @@ fun mark_garbage_heur_code2 x =
     in
       (a1, (xa, (a1b, (a1c, (a1d, (a1e, (a1f,
   (a1g, (a1h, (a1i, (a1j, (a1k, (a1l, (a1m,
-(a1n, (a1o, (xac, (minus_nata a1q one_nat, a2q))))))))))))))))))
+(a1n, (a1o, (xac, (minus_nata a1q one_nat, (a1r, a2r)))))))))))))))))))
     end)
     x;
 
@@ -3102,15 +3102,6 @@ fun isasat_GC_clauses_prog_wl2_code x =
     end)
     x;
 
-val initial_capacity : nat = nat_of_integer (16 : IntInf.int);
-
-fun arl_empty (A1_, A2_) B_ =
-  (fn () => let
-              val a = new A2_ initial_capacity (default A1_) ();
-            in
-              (a, zero B_)
-            end);
-
 fun take_arl x = (fn i => fn (xs, _) => (xs, i)) x;
 
 fun incr_GC x =
@@ -3122,28 +3113,27 @@ fun isasat_GC_clauses_prog_wl_code x =
   (fn (a1, (a1a, (a1b, (a1c, (a1d, (((a1g, (a1h, (a1i, (a1j, a2j)))), a2f),
                                      (a1k, (a1l,
      (a1m, (a1n, (a1o, (a1p, (a1q, (a1r, (a1s,
-   (a1t, (a1u, (a1v, a2v))))))))))))))))))
+   (a1t, (a1u, (a1v, (a1w, a2w)))))))))))))))))))
      =>
     fn () =>
     let
-      val xa = arl_empty (default_uint32, heap_uint32) zero_nat ();
       val a =
         isasat_GC_clauses_prog_wl2_code a1g (SOME a1i)
-          (a1a, ((xa, (take_arl zero_nata a1t, take_arl zero_nata a1u)), a1d))
+          (a1a, ((a2w, (take_arl zero_nata a1t, take_arl zero_nata a1u)), a1d))
           ();
     in
       let
-        val (_, (a1x, a2x)) = a;
+        val (a1x, (a1y, a2y)) = a;
       in
         (fn () =>
           let
-            val (a1y, (a1z, a2z)) = a1x;
+            val (a1z, (a1aa, a2aa)) = a1y;
           in
-            (a1, (a1y, (a1b, (a1c, (a2x, (((a1g, (a1h, (a1i, (a1j, a2j)))),
+            (a1, (a1z, (a1b, (a1c, (a2y, (((a1g, (a1h, (a1i, (a1j, a2j)))),
     a2f),
    (a1k, (a1l, (a1m, (a1n, (a1o, (incr_GC a1p,
                                    (a1q, (a1r,
-   (a1s, (a1z, (a2z, (a1v, a2v))))))))))))))))))
+   (a1s, (a1aa, (a2aa, (a1v, (a1w, take_arl zero_nata a1x)))))))))))))))))))
           end)
       end
         ()
@@ -3418,29 +3408,17 @@ val minimum_number_between_restarts : Uint64.uint64 =
 
 fun opts_reduce x = (fn (_, (b, _)) => b) x;
 
-fun opts_reduction_st_fast_code x = (fn xi => (fn () => let
-                  val (_, a) = xi;
-                  val (_, aa) = a;
-                  val (_, ab) = aa;
-                  val (_, ac) = ab;
-                  val (_, ad) = ac;
-                  val (_, ae) = ad;
-                  val (_, af) = ae;
-                  val (_, ag) = af;
-                  val (_, ah) = ag;
-                  val (_, ai) = ah;
-                  val (_, aj) = ai;
-                  val (_, ak) = aj;
-                  val (_, al) = ak;
-                  val (_, am) = al;
-                  val (_, an) = am;
-                  val (_, ao) = an;
-                  val (_, ap) = ao;
-                  val (_, aq) = ap;
-                in
-                  opts_reduce aq
-                end))
-                                      x;
+fun opts_reduction_st_fast_code x =
+  (fn xi =>
+    (fn () =>
+      let
+        val (_, (_, (_, (_, (_, (_, (_, (_,
+  (_, (_, (_, (_, (_, (_, (_, (_, (_, (_, (a1r, _)))))))))))))))))))
+          = xi;
+      in
+        opts_reduce a1r
+      end))
+    x;
 
 fun get_slow_ema_heur_fast_code x =
   (fn xi =>
@@ -3480,29 +3458,17 @@ fun get_fast_ema_heur_fast_code x =
 
 fun opts_restart x = (fn (a, _) => a) x;
 
-fun opts_restart_st_fast_code x = (fn xi => (fn () => let
-                val (_, a) = xi;
-                val (_, aa) = a;
-                val (_, ab) = aa;
-                val (_, ac) = ab;
-                val (_, ad) = ac;
-                val (_, ae) = ad;
-                val (_, af) = ae;
-                val (_, ag) = af;
-                val (_, ah) = ag;
-                val (_, ai) = ah;
-                val (_, aj) = ai;
-                val (_, ak) = aj;
-                val (_, al) = ak;
-                val (_, am) = al;
-                val (_, an) = am;
-                val (_, ao) = an;
-                val (_, ap) = ao;
-                val (_, aq) = ap;
-              in
-                opts_restart aq
-              end))
-                                    x;
+fun opts_restart_st_fast_code x =
+  (fn xi =>
+    (fn () =>
+      let
+        val (_, (_, (_, (_, (_, (_, (_, (_,
+  (_, (_, (_, (_, (_, (_, (_, (_, (_, (_, (a1r, _)))))))))))))))))))
+          = xi;
+      in
+        opts_restart a1r
+      end))
+    x;
 
 fun ema_get_value (v, uu) = v;
 
@@ -3670,11 +3636,11 @@ fun lower_restart_bound_not_reached_fast_impl x =
       let
         val (_, (_, (_, (_, (_, (_, (_, (_,
   (_, (_, (_, ((_, (_, (_, (a1o, _)))),
-                (_, (_, (_, (_, (_, (a1u, a2u))))))))))))))))))
+                (_, (_, (_, (_, (_, (a1u, (a1v, _)))))))))))))))))))
           = xi;
       in
-        not (opts_reduce a2u) orelse
-          opts_restart a2u andalso
+        not (opts_reduce a1v) orelse
+          opts_restart a1v andalso
             less_nat a1u
               (plus_nat (nat_of_integer (2000 : IntInf.int))
                 (times_nat (nat_of_integer (1000 : IntInf.int))
@@ -3976,28 +3942,27 @@ fun isasat_GC_clauses_prog_wl_slow_code x =
   (fn (a1, (a1a, (a1b, (a1c, (a1d, (((a1g, (a1h, (a1i, (a1j, a2j)))), a2f),
                                      (a1k, (a1l,
      (a1m, (a1n, (a1o, (a1p, (a1q, (a1r, (a1s,
-   (a1t, (a1u, (a1v, a2v))))))))))))))))))
+   (a1t, (a1u, (a1v, (a1w, a2w)))))))))))))))))))
      =>
     fn () =>
     let
-      val xa = arl_empty (default_uint32, heap_uint32) zero_nat ();
       val a =
         isasat_GC_clauses_prog_wl2_slow_code a1g (SOME a1i)
-          (a1a, ((xa, (take_arl zero_nata a1t, take_arl zero_nata a1u)), a1d))
+          (a1a, ((a2w, (take_arl zero_nata a1t, take_arl zero_nata a1u)), a1d))
           ();
     in
       let
-        val (_, (a1x, a2x)) = a;
+        val (a1x, (a1y, a2y)) = a;
       in
         (fn () =>
           let
-            val (a1y, (a1z, a2z)) = a1x;
+            val (a1z, (a1aa, a2aa)) = a1y;
           in
-            (a1, (a1y, (a1b, (a1c, (a2x, (((a1g, (a1h, (a1i, (a1j, a2j)))),
+            (a1, (a1z, (a1b, (a1c, (a2y, (((a1g, (a1h, (a1i, (a1j, a2j)))),
     a2f),
    (a1k, (a1l, (a1m, (a1n, (a1o, (incr_GC a1p,
                                    (a1q, (a1r,
-   (a1s, (a1z, (a2z, (a1v, a2v))))))))))))))))))
+   (a1s, (a1aa, (a2aa, (a1v, (a1w, take_arl zero_nata a1x)))))))))))))))))))
           end)
       end
         ()
@@ -4277,7 +4242,7 @@ fun mark_garbage_heur_code x =
   (fn ai => fn bia =>
     fn (a1, (a1a, (a1b, (a1c, (a1d, (a1e, (a1f,
     (a1g, (a1h, (a1i, (a1j, (a1k, (a1l, (a1m,
-  (a1n, (a1o, (a1p, (a1q, a2q))))))))))))))))))
+  (a1n, (a1o, (a1p, (a1q, (a1r, a2r)))))))))))))))))))
       =>
     fn () =>
     let
@@ -4288,7 +4253,7 @@ fun mark_garbage_heur_code x =
     in
       (a1, (xa, (a1b, (a1c, (a1d, (a1e, (a1f,
   (a1g, (a1h, (a1i, (a1j, (a1k, (a1l, (a1m,
-(a1n, (a1o, (xac, (minus_nata a1q one_nat, a2q))))))))))))))))))
+(a1n, (a1o, (xac, (minus_nata a1q one_nat, (a1r, a2r)))))))))))))))))))
     end)
     x;
 
@@ -4555,53 +4520,29 @@ fun get_fast_ema_heur_slow_code x =
       end))
     x;
 
-fun opts_reduction_st_code x = (fn xi => (fn () => let
-             val (_, a) = xi;
-             val (_, aa) = a;
-             val (_, ab) = aa;
-             val (_, ac) = ab;
-             val (_, ad) = ac;
-             val (_, ae) = ad;
-             val (_, af) = ae;
-             val (_, ag) = af;
-             val (_, ah) = ag;
-             val (_, ai) = ah;
-             val (_, aj) = ai;
-             val (_, ak) = aj;
-             val (_, al) = ak;
-             val (_, am) = al;
-             val (_, an) = am;
-             val (_, ao) = an;
-             val (_, ap) = ao;
-             val (_, aq) = ap;
-           in
-             opts_reduce aq
-           end))
-                                 x;
+fun opts_reduction_st_code x =
+  (fn xi =>
+    (fn () =>
+      let
+        val (_, (_, (_, (_, (_, (_, (_, (_,
+  (_, (_, (_, (_, (_, (_, (_, (_, (_, (_, (a1r, _)))))))))))))))))))
+          = xi;
+      in
+        opts_reduce a1r
+      end))
+    x;
 
-fun opts_restart_st_code x = (fn xi => (fn () => let
-           val (_, a) = xi;
-           val (_, aa) = a;
-           val (_, ab) = aa;
-           val (_, ac) = ab;
-           val (_, ad) = ac;
-           val (_, ae) = ad;
-           val (_, af) = ae;
-           val (_, ag) = af;
-           val (_, ah) = ag;
-           val (_, ai) = ah;
-           val (_, aj) = ai;
-           val (_, ak) = aj;
-           val (_, al) = ak;
-           val (_, am) = al;
-           val (_, an) = am;
-           val (_, ao) = an;
-           val (_, ap) = ao;
-           val (_, aq) = ap;
-         in
-           opts_restart aq
-         end))
-                               x;
+fun opts_restart_st_code x =
+  (fn xi =>
+    (fn () =>
+      let
+        val (_, (_, (_, (_, (_, (_, (_, (_,
+  (_, (_, (_, (_, (_, (_, (_, (_, (_, (_, (a1r, _)))))))))))))))))))
+          = xi;
+      in
+        opts_restart a1r
+      end))
+    x;
 
 fun restart_required_heur_slow_code x =
   (fn ai => fn bi => fn () =>
@@ -4759,11 +4700,11 @@ fun lower_restart_bound_not_reached_impl x =
       let
         val (_, (_, (_, (_, (_, (_, (_, (_,
   (_, (_, (_, ((_, (_, (_, (a1o, _)))),
-                (_, (_, (_, (_, (_, (a1u, a2u))))))))))))))))))
+                (_, (_, (_, (_, (_, (a1u, (a1v, _)))))))))))))))))))
           = xi;
       in
-        not (opts_reduce a2u) orelse
-          opts_restart a2u andalso
+        not (opts_reduce a1v) orelse
+          opts_restart a1v andalso
             less_nat a1u
               (plus_nat (nat_of_integer (2000 : IntInf.int))
                 (times_nat (nat_of_integer (1000 : IntInf.int))
@@ -5557,6 +5498,15 @@ fun atm_in_conflict_code x =
                                      not (not xa)
                                    end)
     x;
+
+val initial_capacity : nat = nat_of_integer (16 : IntInf.int);
+
+fun arl_empty (A1_, A2_) B_ =
+  (fn () => let
+              val a = new A2_ initial_capacity (default A1_) ();
+            in
+              (a, zero B_)
+            end);
 
 fun level_in_lbd_code x =
   (fn ai => fn (a1, _) => fn () =>
@@ -8380,7 +8330,7 @@ val restart_info_init : Uint64.uint64 * Uint64.uint64 =
 fun ema_init alpha =
   (Uint64.zero,
     (alpha,
-      (shiftl_uint64 Uint64.one (nat_of_integer (32 : IntInf.int)),
+      (ema_bitshifting (bit_operations_uint64, one_uint64),
         (Uint64.zero, Uint64.zero))));
 
 fun finalise_init_code_unb x =
@@ -8394,6 +8344,7 @@ fun finalise_init_code_unb x =
         arl_replicate heap_uint32 (nat_of_integer (160 : IntInf.int))
           (Word32.* (two_uint32, (Word32.fromInt 0))) ();
       val xaa = arl_empty (default_nat, heap_nat) zero_nat ();
+      val xb = arl_empty (default_uint32, heap_uint32) zero_nat ();
     in
       (a1, (a1a, (a1b, (a1c, (a1d, (((a1g, (a1h, (the a1i, (the a1j, a2j)))),
                                       a2f),
@@ -8411,7 +8362,7 @@ fun finalise_init_code_unb x =
                      (ema_init (Uint64.fromInt (128849010 : IntInf.int)),
                        (ema_init (Uint64.fromInt (429450 : IntInf.int)),
                          (restart_info_init,
-                           (a2n, (xaa, (zero_nata, ai))))))))))))))))))
+                           (a2n, (xaa, (zero_nata, (ai, xb)))))))))))))))))))
     end)
     x;
 
@@ -8971,6 +8922,7 @@ fun finalise_init_code x =
         arl_replicate heap_uint32 (nat_of_integer (160 : IntInf.int))
           (Word32.* (two_uint32, (Word32.fromInt 0))) ();
       val xaa = arl_empty (default_nat, heap_nat) zero_nat ();
+      val xb = arl_empty (default_uint32, heap_uint32) zero_nat ();
     in
       (a1, (a1a, (a1b, (a1c, (a1d, (((a1g, (a1h, (the a1i, (the a1j, a2j)))),
                                       a2f),
@@ -8988,7 +8940,7 @@ fun finalise_init_code x =
                      (ema_init (Uint64.fromInt (128849010 : IntInf.int)),
                        (ema_init (Uint64.fromInt (429450 : IntInf.int)),
                          (restart_info_init,
-                           (a2n, (xaa, (zero_nata, ai))))))))))))))))))
+                           (a2n, (xaa, (zero_nata, (ai, xb)))))))))))))))))))
     end)
     x;
 
