@@ -1642,10 +1642,11 @@ proof -
       using \<open>(TnC, T') \<in> ?shorter S' S\<close> \<open>1 < length C\<close> find_decomp
       apply (cases U')
       by (auto simp: find_lit_of_max_level_wl_def T' intro: literals_are_in_\<L>\<^sub>i\<^sub>n_mono)
-    obtain M1' vm' W' \<phi> clvls cach lbd outl stats fema sema ccount avdom vdom lcount arena D' Q' opts
+    obtain M1' vm' W' \<phi> clvls cach lbd outl stats fema sema ccount avdom vdom lcount arena D'
+        Q' opts old_arena
       where
         U: \<open>U = (M1', arena, D', Q', W', vm', \<phi>, clvls, cach, lbd, outl, stats, fema, sema, ccount,
-           vdom, avdom, lcount, opts)\<close>
+           vdom, avdom, lcount, opts, [])\<close>
       using UU' find_decomp by (cases U) (auto simp: U' T' twl_st_heur_bt_def all_atms_def[symmetric])
     have
       M1'_M1: \<open>(M1', M1) \<in> trail_pol (all_atms_st U')\<close> and
@@ -2100,7 +2101,7 @@ proof -
       M1'
       where
         U: \<open>U = (M1', arena, D', Q', W', vm', \<phi>, clvls, cach, lbd, outl, stats, fema, sema, ccount,
-           vdom, avdom, lcount, opts)\<close> and
+           vdom, avdom, lcount, opts, [])\<close> and
         avdom: \<open>set avdom \<subseteq> set vdom\<close> and
         r': \<open>length (get_clauses_wl_heur U) = r\<close>
       using UU' find_decomp r by (cases U) (auto simp: U' T' twl_st_heur_bt_def)

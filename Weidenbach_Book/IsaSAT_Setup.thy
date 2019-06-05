@@ -160,6 +160,7 @@ definition (in -) ema_update_ref :: \<open>uint32 \<Rightarrow> ema \<Rightarrow
        let \<beta> = \<beta> >> 1 in
        let \<beta> = if \<beta> \<le> \<alpha> then \<alpha> else \<beta> in
        (value, \<alpha>, \<beta>, wait, period))\<close>
+     term fold
 
 lemma (in -) ema_update_hnr[sepref_fr_rules]:
   \<open>(uncurry (return oo ema_update_ref), uncurry (RETURN oo ema_update)) \<in>
@@ -169,7 +170,7 @@ lemma (in -) ema_update_hnr[sepref_fr_rules]:
      (sep_auto simp: uint32_nat_rel_def br_def uint64_of_uint32_def Let_def)
 
 definition (in -) ema_init :: \<open>uint64 \<Rightarrow> ema\<close> where
-  \<open>ema_init \<alpha> = (0, \<alpha>, 1 << 32, 0, 0)\<close>
+  \<open>ema_init \<alpha> = (0, \<alpha>, ema_bitshifting, 0, 0)\<close>
 
 fun ema_reinit where
   \<open>ema_reinit (value, \<alpha>, \<beta>, wait, period) = (value, \<alpha>, 1 << 32, 0, 0)\<close>
@@ -186,7 +187,7 @@ lemma ema_get_value_hnr[sepref_fr_rules]:
   by sepref_to_hoare sep_auto
 
 lemma (in -) ema_init_coeff_hnr[sepref_fr_rules]:
-  \<open>((return o ema_init), (RETURN o ema_init)) \<in> uint64_assn\<^sup>k \<rightarrow>\<^sub>a ema_assn\<close>
+  \<open>(return o ema_init, RETURN o ema_init) \<in> uint64_assn\<^sup>k \<rightarrow>\<^sub>a ema_assn\<close>
   by sepref_to_hoare
     (sep_auto simp: ema_init_def uint64_nat_rel_def br_def)
 
@@ -199,7 +200,7 @@ abbreviation ema_fast_init :: ema where
   \<open>ema_fast_init \<equiv> ema_init (128849010)\<close>
 
 abbreviation ema_slow_init :: ema where
-  \<open>ema_slow_init \<equiv> ema_init (429450)\<close>
+  \<open>ema_slow_init \<equiv> ema_init 429450\<close>
 
 
 paragraph \<open>Information related to restarts\<close>
@@ -342,13 +343,13 @@ type_synonym twl_st_wll_trail =
   \<open>trail_pol_assn \<times> isasat_clauses_assn \<times> option_lookup_clause_assn \<times>
     uint32 \<times> watched_wl \<times> vmtf_remove_assn \<times> phase_saver_assn \<times>
     uint32 \<times> minimize_assn \<times> lbd_assn \<times> out_learned_assn \<times> stats \<times> ema \<times> ema \<times> restart_info \<times>
-    vdom_assn \<times> vdom_assn \<times> nat \<times> opts\<close>
+    vdom_assn \<times> vdom_assn \<times> nat \<times> opts \<times> isasat_clauses_assn\<close>
 
 type_synonym twl_st_wll_trail_fast =
   \<open>trail_pol_fast_assn \<times> isasat_clauses_assn \<times> option_lookup_clause_assn \<times>
     uint32 \<times> watched_wl_uint32 \<times> vmtf_remove_assn \<times> phase_saver_assn \<times>
     uint32 \<times> minimize_assn \<times> lbd_assn \<times> out_learned_assn \<times> stats \<times> ema \<times> ema \<times> restart_info \<times>
-    vdom_assn \<times> vdom_assn \<times> nat \<times> opts\<close>
+    vdom_assn \<times> vdom_assn \<times> nat \<times> opts \<times> isasat_clauses_assn\<close>
 
 text \<open>\<^emph>\<open>heur\<close> stands for heuristic.\<close>
 (* TODO rename to isasat *)
@@ -356,7 +357,7 @@ type_synonym twl_st_wl_heur =
   \<open>trail_pol \<times> arena \<times>
     conflict_option_rel \<times> nat \<times> (nat watcher) list list \<times> isa_vmtf_remove_int \<times> bool list \<times>
     nat \<times> conflict_min_cach_l \<times> lbd \<times> out_learned \<times> stats \<times> ema \<times> ema \<times> restart_info \<times>
-    vdom \<times> vdom \<times> nat \<times> opts\<close>
+    vdom \<times> vdom \<times> nat \<times> opts \<times> arena\<close>
 
 fun get_clauses_wl_heur :: \<open>twl_st_wl_heur \<Rightarrow> arena\<close> where
   \<open>get_clauses_wl_heur (M, N, D, _) = N\<close>
@@ -430,7 +431,10 @@ fun get_learned_count :: \<open>twl_st_wl_heur \<Rightarrow> nat\<close> where
   \<open>get_learned_count (_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, lcount, _) = lcount\<close>
 
 fun get_ops :: \<open>twl_st_wl_heur \<Rightarrow> opts\<close> where
-  \<open>get_ops (_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, opts) = opts\<close>
+  \<open>get_ops (_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, opts, _) = opts\<close>
+
+fun get_old_arena :: \<open>twl_st_wl_heur \<Rightarrow> arena\<close> where
+  \<open>get_old_arena (_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, old_arena) = old_arena\<close>
 
 abbreviation phase_saver_conc where
   \<open>phase_saver_conc \<equiv> array_assn bool_assn\<close>
@@ -697,7 +701,7 @@ state. \<^term>\<open>avdom\<close> includes the active clauses.
 definition twl_st_heur :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\<close> where
 \<open>twl_st_heur =
   {((M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema, ccount,
-       vdom, avdom, lcount, opts),
+       vdom, avdom, lcount, opts, old_arena),
      (M, N, D, NE, UE, Q, W)).
     (M', M) \<in> trail_pol (all_atms N (NE + UE)) \<and>
     valid_arena N' N (set vdom) \<and>
@@ -716,7 +720,8 @@ definition twl_st_heur :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\<cl
     set avdom \<subseteq> set vdom \<and>
     distinct vdom \<and>
     isasat_input_bounded (all_atms N (NE + UE)) \<and>
-    isasat_input_nempty (all_atms N (NE + UE))
+    isasat_input_nempty (all_atms N (NE + UE)) \<and>
+    old_arena = []
   }\<close>
 
 lemma twl_st_heur_state_simp:
@@ -743,7 +748,7 @@ definition twl_st_heur_conflict_ana
 where
 \<open>twl_st_heur_conflict_ana =
   {((M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema, ccount, vdom,
-       avdom, lcount, opts),
+       avdom, lcount, opts, old_arena),
       (M, N, D, NE, UE, Q, W)).
     (M', M) \<in> trail_pol (all_atms N (NE + UE)) \<and>
     valid_arena N' N (set vdom) \<and>
@@ -760,7 +765,8 @@ where
     set avdom \<subseteq> set vdom \<and>
     distinct vdom \<and>
     isasat_input_bounded (all_atms N (NE + UE)) \<and>
-    isasat_input_nempty (all_atms N (NE + UE))
+    isasat_input_nempty (all_atms N (NE + UE)) \<and>
+    old_arena = []
   }\<close>
 
 lemma twl_st_heur_twl_st_heur_conflict_ana:
@@ -779,7 +785,8 @@ from the refined state, where the conflict has been removed from the data struct
 separate array.\<close>
 definition twl_st_heur_bt :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\<close> where
 \<open>twl_st_heur_bt =
-  {((M', N', D', Q', W', vm, \<phi>, clvls, cach, lbd, outl, stats, _, _, _, vdom, avdom, lcount, opts),
+  {((M', N', D', Q', W', vm, \<phi>, clvls, cach, lbd, outl, stats, _, _, _, vdom, avdom, lcount, opts,
+       old_arena),
      (M, N, D, NE, UE, Q, W)).
     (M', M) \<in> trail_pol (all_atms N (NE + UE)) \<and>
     valid_arena N' N (set vdom) \<and>
@@ -796,7 +803,8 @@ definition twl_st_heur_bt :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\
     set avdom \<subseteq> set vdom \<and>
     distinct vdom \<and>
     isasat_input_bounded (all_atms N (NE + UE)) \<and>
-    isasat_input_nempty (all_atms N (NE + UE))
+    isasat_input_nempty (all_atms N (NE + UE)) \<and>
+    old_arena = []
   }\<close>
 
 
@@ -818,7 +826,7 @@ definition isasat_unbounded_assn :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_w
   vdom_assn *a
   vdom_assn *a
   nat_assn *a
-  opts_assn\<close>
+  opts_assn *a arena_assn\<close>
 
 definition isasat_bounded_assn :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wll_trail_fast \<Rightarrow> assn\<close> where
 \<open>isasat_bounded_assn =
@@ -838,7 +846,7 @@ definition isasat_bounded_assn :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wll
   vdom_assn *a
   vdom_assn *a
   nat_assn *a
-  opts_assn\<close>
+  opts_assn *a arena_assn\<close>
 
 text \<open>
   The difference between \<^term>\<open>isasat_unbounded_assn\<close> and \<^term>\<open>isasat_bounded_assn\<close> corresponds to the

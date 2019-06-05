@@ -2389,7 +2389,7 @@ definition finalise_init_code :: \<open>opts \<Rightarrow> twl_st_wl_heur_init \
      let lcount = 0;
     RETURN (M', N', D', Q', W', ((ns, m, the fst_As, the lst_As, next_search), to_remove), \<phi>,
        clvls, cach, lbd, take1(replicate 160 (Pos zero_uint32_nat)), init_stats,
-        fema, sema, ccount, vdom, [], lcount, opts)
+        fema, sema, ccount, vdom, [], lcount, opts, [])
      })\<close>
 
 lemma isa_vmtf_init_nemptyD: \<open>((ak, al, am, an, bc), ao, bd)

@@ -27,7 +27,7 @@ declare all_atms_def[symmetric,simp]
 definition twl_st_heur_restart :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\<close> where
 \<open>twl_st_heur_restart =
   {((M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema, ccount,
-       vdom, avdom, lcount, opts),
+       vdom, avdom, lcount, opts, old_arena),
      (M, N, D, NE, UE, Q, W)).
     (M', M) \<in> trail_pol (all_init_atms N NE) \<and>
     valid_arena N' N (set vdom) \<and>
@@ -46,13 +46,13 @@ definition twl_st_heur_restart :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl)
     set avdom \<subseteq> set vdom \<and>
     isasat_input_bounded (all_init_atms N NE) \<and>
     isasat_input_nempty (all_init_atms N NE) \<and>
-    distinct vdom
+    distinct vdom \<and> old_arena = []
   }\<close>
 
 definition twl_st_heur_restart_ana :: \<open>nat \<Rightarrow> (twl_st_wl_heur \<times> nat twl_st_wl) set\<close> where
 \<open>twl_st_heur_restart_ana r =
   {((M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema, ccount,
-       vdom, avdom, lcount, opts),
+       vdom, avdom, lcount, opts, old_arena),
      (M, N, D, NE, UE, Q, W)).
     (M', M) \<in> trail_pol (all_init_atms N NE) \<and>
     valid_arena N' N (set vdom) \<and>
@@ -71,7 +71,7 @@ definition twl_st_heur_restart_ana :: \<open>nat \<Rightarrow> (twl_st_wl_heur \
     set avdom \<subseteq> set vdom \<and>
     isasat_input_bounded (all_init_atms N NE) \<and>
     isasat_input_nempty (all_init_atms N NE) \<and>
-    distinct vdom \<and>
+    distinct vdom \<and> old_arena = [] \<and>
     length N' = r
   }\<close>
 
@@ -754,7 +754,7 @@ declare upper_restart_bound_not_reached_impl.refine[sepref_fr_rules]
 definition (in -) lower_restart_bound_not_reached :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close> where
   \<open>lower_restart_bound_not_reached = (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl,
         (props, decs, confl, restarts, _), fast_ema, slow_ema, ccount,
-       vdom, avdom, lcount, opts).
+       vdom, avdom, lcount, opts, old).
      (\<not>opts_reduce opts \<or> (opts_restart opts \<and> (lcount < 2000 + 1000 * nat_of_uint64 restarts))))\<close>
 
 sepref_register lower_restart_bound_not_reached
@@ -933,7 +933,7 @@ declare sort_vdom_heur_code.refine[sepref_fr_rules]
 
 definition opts_restart_st :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close> where
   \<open>opts_restart_st = (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema, ccount,
-       vdom, avdom, lcount, opts). (opts_restart opts))\<close>
+       vdom, avdom, lcount, opts, _). (opts_restart opts))\<close>
 
 sepref_definition opts_restart_st_code
   is \<open>RETURN o opts_restart_st\<close>
@@ -952,7 +952,7 @@ declare opts_restart_st_code.refine[sepref_fr_rules]
 
 definition opts_reduction_st :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close> where
   \<open>opts_reduction_st = (\<lambda>(M, N0, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl,
-       stats, fema, sema, ccount, vdom, avdom, lcount, opts). (opts_reduce opts))\<close>
+       stats, fema, sema, ccount, vdom, avdom, lcount, opts, _). (opts_reduce opts))\<close>
 
 sepref_definition opts_reduction_st_code
   is \<open>RETURN o opts_reduction_st\<close>
@@ -1227,9 +1227,9 @@ qed
 
 definition mark_garbage_heur :: \<open>nat \<Rightarrow> nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur\<close> where
   \<open>mark_garbage_heur C i = (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema, ccount,
-       vdom, avdom, lcount, opts).
+       vdom, avdom, lcount, opts, old_arena).
     (M', extra_information_mark_to_delete N' C, D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema, ccount,
-       vdom, delete_index_and_swap avdom i, lcount - 1, opts))\<close>
+       vdom, delete_index_and_swap avdom i, lcount - 1, opts, old_arena))\<close>
 
 lemma get_vdom_mark_garbage[simp]:
   \<open>get_vdom (mark_garbage_heur C i S) = get_vdom S\<close>
@@ -3663,9 +3663,9 @@ lemma isasat_GC_clauses_prog_wl2:
     vmtf: \<open>((ns, m, n, lst_As1, next_search1), to_remove1) \<in> vmtf \<A> M\<close> and
     nempty: \<open>\<A> \<noteq> {#}\<close> and
     W_W': \<open>(W, W') \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 \<A>)\<close> and
-    bounded: \<open>isasat_input_bounded \<A>\<close>
+    bounded: \<open>isasat_input_bounded \<A>\<close> and old: \<open>old_arena = []\<close>
  shows
-    \<open>isasat_GC_clauses_prog_wl2 (ns, Some n) (arena\<^sub>o, ([], [], []), W)
+    \<open>isasat_GC_clauses_prog_wl2 (ns, Some n) (arena\<^sub>o, (old_arena, [], []), W)
         \<le> \<Down> ({((arena\<^sub>o, (arena, vdom, avdom), W), (N\<^sub>o', N, W')). valid_arena arena\<^sub>o N\<^sub>o' vdom0 \<and> valid_arena arena N (set vdom) \<and>
        (W, W') \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 \<A>) \<and> vdom_m \<A> W' N\<^sub>o' \<subseteq> vdom0 \<and>
         cdcl_GC_clauses_prog_wl_inv \<A> N\<^sub>o ({#}, N\<^sub>o', N, W') \<and> dom_m N = mset vdom \<and> distinct vdom \<and>
@@ -3689,7 +3689,7 @@ proof -
     \<open>isasat_GC_clauses_prog_wl2 = iterate_over_VMTF f (\<lambda>_. True)\<close>
     unfolding f_def isasat_GC_clauses_prog_wl2_def iterate_over_VMTF_def by (auto intro!: ext)
   show ?thesis
-    unfolding isasat_GC_clauses_prog_wl_alt_def prod.case f_def[symmetric]
+    unfolding isasat_GC_clauses_prog_wl_alt_def prod.case f_def[symmetric] old
     apply (rule order_trans[OF iterate_over_VMTF_iterate_over_\<L>\<^sub>a\<^sub>l\<^sub>l[OF vmtf nempty bounded]])
     unfolding Down_id_eq iterate_over_\<L>\<^sub>a\<^sub>l\<^sub>l_def cdcl_GC_clauses_prog_wl2_def f_def
 
@@ -3752,10 +3752,11 @@ qed
 
 definition isasat_GC_clauses_prog_wl :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
   \<open>isasat_GC_clauses_prog_wl = (\<lambda>(M', N', D', j, W', ((ns, st, fst_As, lst_As, nxt), to_remove), \<phi>, clvls, cach, lbd, outl, stats,
-    fast_ema, slow_ema, ccount,  vdom, avdom, lcount, opts). do {
-    (N, (N', vdom, avdom), WS) \<leftarrow> isasat_GC_clauses_prog_wl2 (ns, Some fst_As) (N', ([], take 0 vdom, take 0 avdom), W');
+    fast_ema, slow_ema, ccount,  vdom, avdom, lcount, opts, old_arena). do {
+    ASSERT(old_arena = []);
+    (N, (N', vdom, avdom), WS) \<leftarrow> isasat_GC_clauses_prog_wl2 (ns, Some fst_As) (N', (old_arena, take 0 vdom, take 0 avdom), W');
     RETURN (M', N', D', j, WS, ((ns, st, fst_As, lst_As, nxt), to_remove), \<phi>, clvls, cach, lbd, outl, incr_GC stats, fast_ema, slow_ema, ccount,
-       vdom, avdom, lcount, opts)
+       vdom, avdom, lcount, opts, take 0 N)
   })\<close>
 
 
@@ -3773,7 +3774,7 @@ proof-
        \<in> ?T \<Longrightarrow>
        valid_arena x1g x1a (set x1z)\<close>
      unfolding twl_st_heur_restart_def
-     by simp
+     by auto
   have [refine0]: \<open>\<And>x1 x1a x1b x1c x1d x1e x2e x1f x1g x1h x1i x1j x1m x1n x1o x1p x2n x2o x1q
        x1r x1s x1t x1u x1v x1w x1x x1y x1z x1aa x1ab x2ab.
        ((x1f, x1g, x1h, x1i, x1j, ((x1m, x1n, x1o, x1p, x2n), x2o), x1q, x1r,
@@ -3782,7 +3783,7 @@ proof-
        \<in> ?T \<Longrightarrow>
        isasat_input_bounded (all_init_atms x1a x1c)\<close>
      unfolding twl_st_heur_restart_def
-     by simp
+     by auto
   have [refine0]: \<open>\<And>x1 x1a x1b x1c x1d x1e x2e x1f x1g x1h x1i x1j x1m x1n x1o x1p x2n x2o x1q
        x1r x1s x1t x1u x1v x1w x1x x1y x1z x1aa x1ab x2ab.
        ((x1f, x1g, x1h, x1i, x1j, ((x1m, x1n, x1o, x1p, x2n), x2o), x1q, x1r,
@@ -3791,7 +3792,7 @@ proof-
        \<in> ?T \<Longrightarrow>
        vdom_m (all_init_atms x1a x1c) x2e x1a \<subseteq> set x1z\<close>
      unfolding twl_st_heur_restart_def
-     by simp
+     by auto
   have [refine0]: \<open>\<And>x1 x1a x1b x1c x1d x1e x2e x1f x1g x1h x1i x1j x1m x1n x1o x1p x2n x2o x1q
        x1r x1s x1t x1u x1v x1w x1x x1y x1z x1aa x1ab x2ab.
        ((x1f, x1g, x1h, x1i, x1j, ((x1m, x1n, x1o, x1p, x2n), x2o), x1q, x1r,
@@ -3800,7 +3801,7 @@ proof-
        \<in> ?T \<Longrightarrow>
        all_init_atms x1a x1c \<noteq> {#}\<close>
      unfolding twl_st_heur_restart_def
-     by simp
+     by auto
   have [refine0]: \<open>\<And>x1 x1a x1b x1c x1d x1e x2e x1f x1g x1h x1i x1j x1m x1n x1o x1p x2n x2o x1q
        x1r x1s x1t x1u x1v x1w x1x x1y x1z x1aa x1ab x2ab.
        ((x1f, x1g, x1h, x1i, x1j, ((x1m, x1n, x1o, x1p, x2n), x2o), x1q, x1r,
@@ -3839,6 +3840,11 @@ proof-
     unfolding isasat_GC_clauses_prog_wl_def cdcl_GC_clauses_prog_wl_alt_def take_0
     apply (intro frefI nres_relI)
     apply (refine_vcg isasat_GC_clauses_prog_wl2[where \<A> = \<open>all_init_atms _ _\<close>]; remove_dummy_vars)
+    subgoal
+      by (clarsimp simp add: twl_st_heur_restart_def
+        cdcl_GC_clauses_prog_wl_inv_def H H'
+        rtranclp_GC_remap_all_init_atms
+        rtranclp_GC_remap_learned_clss_l)
     subgoal
       by (clarsimp simp add: twl_st_heur_restart_def
         cdcl_GC_clauses_prog_wl_inv_def H H'
@@ -4921,7 +4927,7 @@ sepref_definition isasat_GC_clauses_prog_wl_code
   :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
   supply [[goals_limit=1]]
   unfolding isasat_GC_clauses_prog_wl_def isasat_bounded_assn_def
-    arl.fold_custom_empty isasat_GC_clauses_prog_wl2'_def[symmetric]
+     isasat_GC_clauses_prog_wl2'_def[symmetric]
   by sepref
 
 sepref_definition isasat_GC_clauses_prog_wl_slow_code

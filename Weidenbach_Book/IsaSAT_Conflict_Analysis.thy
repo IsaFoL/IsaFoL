@@ -347,7 +347,7 @@ lemma (in -)out_learned_tl_Some_notin:
   by (cases M) (auto simp: out_learned_def get_level_cons_if atm_of_eq_atm_of
       intro!: filter_mset_cong2)
 
-abbreviation twl_st_heur_conflict_ana' where
+abbreviation twl_st_heur_conflict_ana' :: \<open>nat \<Rightarrow> (twl_st_wl_heur \<times> nat twl_st_wl) set\<close> where
   \<open>twl_st_heur_conflict_ana' r \<equiv> {(S, T). (S, T) \<in> twl_st_heur_conflict_ana \<and>
      length (get_clauses_wl_heur S) = r}\<close>
 
@@ -683,7 +683,7 @@ proof -
 			      ((ah, ai, aj, ak, bc), al, bd),
 			     h, fast_minus clvls one_uint32_nat, (am, be), lbd,
 			     outl, (an, ao, ap, aq, ar, bf), (as, at, au, av, bg),
-			     (aw, ax, ay, az, bh), (bi, bj), ra, s, t, u, v, w)
+			     (aw, ax, ay, az, bh), (bi, bj), ra, s, t, u, v)
 			 })
 		    xa)
 		\<le> \<Down> (bool_rel \<times>\<^sub>f twl_st_heur_conflict_ana' r)
@@ -692,10 +692,10 @@ proof -
 		      in (False, tl baa, ca, Some D, ea, fa, ga, ha))))\<close>
     if
       inv: \<open>update_confl_tl_wl_pre ((bk, bl), baa, ca, da, ea, fa, ga, ha)\<close> and
-      rel: \<open>(((a, b), (aa, ab, ac, ad, ae, ba), c, (af, ag, bb), e, f,
+      rel: \<open>(((a, b), ((aa, ab, ac, ad, ae, ba), c, (af, ag, bb), e, f,
 	 ((ah, ai, aj, ak, bc), al, bd), h, i, (am, be), k, l,
 	 (an, ao, ap, aq, ar, bf), (as, at, au, av, bg), (aw, ax, ay, az, bh),
-	 (bi, bj), ra, s, t, u, v, w),
+	 (bi, bj), ra, s, t, u, v)),
 	(bk, bl), baa, ca, da, ea, fa, ga, ha)
        \<in> nat_rel \<times>\<^sub>f nat_lit_lit_rel \<times>\<^sub>f twl_st_heur_conflict_ana' r\<close> and
       \<open>CLS = ((bk, bl), baa, ca, da, ea, fa, ga, ha)\<close> and
@@ -703,14 +703,14 @@ proof -
        ((a, b), (aa, ab, ac, ad, ae, ba), c, (af, ag, bb), e, f,
 	((ah, ai, aj, ak, bc), al, bd), h, i, (am, be), k, l,
 	(an, ao, ap, aq, ar, bf), (as, at, au, av, bg), (aw, ax, ay, az, bh),
-	(bi, bj), ra, s, t, u, v, w)\<close> and
+	(bi, bj), ra, s, t, u, v)\<close> and
       \<open>1 \<le> i\<close> and
       \<open>2 \<noteq> 2 \<longrightarrow>
        curry2 (curry2 (curry2 isa_set_lookup_conflict_aa_pre))
 	(aa, ab, ac, ad, ae, ba) c a (af, ag, bb) i k l\<close> and
       le2: \<open>arena_length c a = 2\<close>
     for a b aa ab ac ad ae ba c af ag bb e f ah ai aj ak bc al bd h i am be k l an
-	 ao ap aq ar bf as at au av bg aw ax ay az bh bi bj ra s t u v w bk bl baa
+	 ao ap aq ar bf as at au av bg aw ax ay az bh bi bj ra s t u v bk bl baa w
 	 ca da ea fa ga ha CLS CLS'
   proof -
     let ?\<A> = \<open>all_atms_st (baa, ca, da, ea, fa, ga, ha)\<close>
@@ -975,7 +975,7 @@ proof -
       rel: \<open>(((a, b), (aa, ab, ac, ad, ae, ba), c, (af, ag, bb), e, f,
 	 ((ah, ai, aj, ak, bc), al, bd), h, i, (am, be), k, l,
 	 (an, ao, ap, aq, ar, bf), (as, at, au, av, bg), (aw, ax, ay, az, bh),
-	 (bi, bj), ra, s, t, u, v, w),
+	 (bi, bj), ra, s, t, u, v),
 	(bk, bl), baa, ca, da, ea, fa, ga, ha)
        \<in> nat_rel \<times>\<^sub>f nat_lit_lit_rel \<times>\<^sub>f twl_st_heur_conflict_ana' r\<close> and
       CLS: \<open>CLS = ((bk, bl), baa, ca, da, ea, fa, ga, ha)\<close> and
@@ -983,9 +983,9 @@ proof -
        ((a, b), (aa, ab, ac, ad, ae, ba), c, (af, ag, bb), e, f,
 	((ah, ai, aj, ak, bc), al, bd), h, i, (am, be), k, l,
 	(an, ao, ap, aq, ar, bf), (as, at, au, av, bg), (aw, ax, ay, az, bh),
-	(bi, bj), ra, s, t, u, v, w)\<close>
+	(bi, bj), ra, s, t, u, v)\<close>
     for a b aa ab ac ad ae ba c af ag bb e f ah ai aj ak bc al bd h i am be k l an
-	 ao ap aq ar bf as at au av bg aw ax ay az bh bi bj ra s t u v w bk bl baa
+	 ao ap aq ar bf as at au av bg aw ax ay az bh bi bj ra s t u v bk bl baa
 	 ca da ea fa ga ha CLS CLS'
   proof -
     let ?\<A> = \<open>all_atms_st (baa, ca, da, ea, fa, ga, ha)\<close>
@@ -1917,6 +1917,5 @@ sepref_definition skip_and_resolve_loop_wl_D_fast
 
 declare skip_and_resolve_loop_wl_D_fast.refine[sepref_fr_rules]
   skip_and_resolve_loop_wl_D.refine[sepref_fr_rules]
-
 
 end
