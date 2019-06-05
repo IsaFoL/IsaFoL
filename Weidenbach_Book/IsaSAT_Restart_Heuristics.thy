@@ -3422,26 +3422,28 @@ qed
 
 definition isasat_GC_clauses_prog_copy_wl_entry
   :: \<open>arena \<Rightarrow> (nat watcher) list list \<Rightarrow> nat literal \<Rightarrow>
-         (arena \<times> _) \<Rightarrow> (arena \<times> (arena \<times> _)) nres\<close>
+         (arena \<times> _ \<times> _) \<Rightarrow> (arena \<times> (arena \<times> _ \<times> _)) nres\<close>
 where
-\<open>isasat_GC_clauses_prog_copy_wl_entry = (\<lambda>N W A (N', vdm). do {
+\<open>isasat_GC_clauses_prog_copy_wl_entry = (\<lambda>N W A (N', vdm, avdm). do {
     ASSERT(nat_of_lit A < length W);
     let le = length (W ! nat_of_lit A);
-    (i, N, N', vdm) \<leftarrow> WHILE\<^sub>T
-      (\<lambda>(i, N, N', vdm). i < le)
-      (\<lambda>(i, N, (N', vdm)). do {
+    (i, N, N', vdm, avdm) \<leftarrow> WHILE\<^sub>T
+      (\<lambda>(i, N, N', vdm, avdm). i < le)
+      (\<lambda>(i, N, (N', vdm, avdm)). do {
         ASSERT(i < length (W ! nat_of_lit A));
         let C = fst (W ! nat_of_lit A ! i);
         ASSERT(arena_is_valid_clause_vdom N C);
-        if arena_status N C \<noteq> DELETED then do {
+        let st = arena_status N C;
+        if st \<noteq> DELETED then do {
           ASSERT(arena_is_valid_clause_idx N C);
           let D = length N' + (if arena_length N C > 4 then 5 else 4);
           N' \<leftarrow> fm_mv_clause_to_new_arena C N N';
           ASSERT(mark_garbage_pre (N, C));
-	  RETURN (i+1, extra_information_mark_to_delete N C, N', vdm @ [D])
-        } else RETURN (i+1, N, (N', vdm))
-      }) (0, N, (N', vdm));
-    RETURN (N, (N', vdm))
+	  RETURN (i+1, extra_information_mark_to_delete N C, N', vdm @ [D],
+             (if st = LEARNED then avdm @ [D] else avdm))
+        } else RETURN (i+1, N, (N', vdm, avdm))
+      }) (0, N, (N', vdm, avdm));
+    RETURN (N, (N', vdm, avdm))
   })\<close>
 
 lemma isasat_GC_clauses_prog_copy_wl_entry:
@@ -3451,12 +3453,13 @@ lemma isasat_GC_clauses_prog_copy_wl_entry:
     L: \<open>atm_of A \<in># \<A>\<close> and
     L'_L: \<open>(A', A) \<in> nat_lit_lit_rel\<close> and
     W: \<open>(W' , W) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 \<A>)\<close> and
-    \<open>dom_m N' = mset vdom\<close> \<open>distinct vdom\<close> amd
-   \<open>arena_is_packed arena' N'\<close>
-  shows \<open>isasat_GC_clauses_prog_copy_wl_entry arena W' A' (arena', vdom)
+    \<open>dom_m N' = mset vdom\<close> \<open>distinct vdom\<close> and
+   \<open>arena_is_packed arena' N'\<close> and
+   avdom: \<open>mset avdom \<subseteq># mset vdom\<close>
+  shows \<open>isasat_GC_clauses_prog_copy_wl_entry arena W' A' (arena', vdom, avdom)
      \<le> \<Down> ({(arena, N'). valid_arena arena N' vdom0 \<and> vdom_m \<A> W N' \<subseteq> vdom0 \<and> dom_m N' \<subseteq># dom_m N} \<times>\<^sub>f
-    {((arena, vdom), N). valid_arena arena N (set vdom) \<and> dom_m N = mset vdom \<and> distinct vdom \<and>
-     arena_is_packed arena N})
+    {((arena, vdom, avdom), N). valid_arena arena N (set vdom) \<and> dom_m N = mset vdom \<and> distinct vdom \<and>
+     arena_is_packed arena N \<and> mset avdom \<subseteq># mset vdom})
          (cdcl_GC_clauses_prog_copy_wl_entry N (W A) A N')\<close>
      (is \<open>_ \<le> \<Down> (?R\<^sub>1 \<times>\<^sub>f ?R\<^sub>2) _\<close>)
 proof -
@@ -3495,7 +3498,7 @@ proof -
          simp: header_size_def arena_lifting remove_1_mset_id_iff_notin
             mark_garbage_pre_def slice_len_min_If
        dest: in_vdom_m_fmdropD arena_lifting(2)
-       intro!: arena_is_packed_append_valid)
+       intro!: arena_is_packed_append_valid subset_mset_trans_add_mset)
    subgoal
      by auto
    subgoal
@@ -3504,31 +3507,31 @@ proof -
  qed
 
 definition isasat_GC_clauses_prog_single_wl
-  :: \<open>arena \<Rightarrow>  (arena \<times> _) \<Rightarrow> (nat watcher) list list \<Rightarrow> nat \<Rightarrow>
-        (arena \<times> (arena \<times> _) \<times> (nat watcher) list list) nres\<close>
+  :: \<open>arena \<Rightarrow>  (arena \<times> _ \<times> _) \<Rightarrow> (nat watcher) list list \<Rightarrow> nat \<Rightarrow>
+        (arena \<times> (arena \<times> _ \<times> _) \<times> (nat watcher) list list) nres\<close>
 where
 \<open>isasat_GC_clauses_prog_single_wl = (\<lambda>N N' WS A. do {
     let L = Pos A; \<^cancel>\<open>use phase saving instead\<close>
     ASSERT(nat_of_lit L < length WS);
     ASSERT(nat_of_lit (-L) < length WS);
-    (N, (N', vdm)) \<leftarrow> isasat_GC_clauses_prog_copy_wl_entry N WS L N';
+    (N, (N', vdom, avdom)) \<leftarrow> isasat_GC_clauses_prog_copy_wl_entry N WS L N';
     let WS = WS[nat_of_lit L := []];
-    (N, N') \<leftarrow> isasat_GC_clauses_prog_copy_wl_entry N WS (-L) (N', vdm);
+    (N, N') \<leftarrow> isasat_GC_clauses_prog_copy_wl_entry N WS (-L) (N', vdom, avdom);
     let WS = WS[nat_of_lit (-L) := []];
     RETURN (N, N', WS)
   })\<close>
 
 definition isasat_GC_refl :: \<open>_\<close> where
-\<open>isasat_GC_refl \<A> vdom0 = {((arena\<^sub>o, (arena, vdom), W), (N\<^sub>o, N, W')). valid_arena arena\<^sub>o N\<^sub>o vdom0 \<and> valid_arena arena N (set vdom) \<and>
+\<open>isasat_GC_refl \<A> vdom0 = {((arena\<^sub>o, (arena, vdom, avdom), W), (N\<^sub>o, N, W')). valid_arena arena\<^sub>o N\<^sub>o vdom0 \<and> valid_arena arena N (set vdom) \<and>
      (W, W') \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 \<A>) \<and> vdom_m \<A> W' N\<^sub>o \<subseteq> vdom0 \<and> dom_m N = mset vdom \<and> distinct vdom \<and>
-    arena_is_packed arena N}\<close>
+    arena_is_packed arena N \<and> mset avdom \<subseteq># mset vdom}\<close>
 
 lemma isasat_GC_clauses_prog_single_wl:
   assumes
     \<open>(X, X') \<in> isasat_GC_refl \<A> vdom0\<close> and
-    X: \<open>X = (arena, (arena', vdom), W)\<close> \<open>X' = (N, N', W')\<close> and
+    X: \<open>X = (arena, (arena', vdom, avdom), W)\<close> \<open>X' = (N, N', W')\<close> and
     L: \<open>A \<in># \<A>\<close> and
-    st: \<open>(A, A') \<in> Id\<close> and st': \<open>narena = (arena', vdom)\<close>
+    st: \<open>(A, A') \<in> Id\<close> and st': \<open>narena = (arena', vdom, avdom)\<close>
   shows \<open>isasat_GC_clauses_prog_single_wl arena narena  W A
      \<le> \<Down> (isasat_GC_refl \<A> vdom0)
          (cdcl_GC_clauses_prog_single_wl N W' A' N')\<close>
@@ -3543,7 +3546,8 @@ proof -
     WW': \<open>(W, W') \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 \<A>)\<close> and
     vdom_dom: \<open>dom_m N' = mset vdom\<close> and
     dist: \<open>distinct vdom\<close> and
-    packed: \<open>arena_is_packed arena' N'\<close>
+    packed: \<open>arena_is_packed arena' N'\<close> and
+    avdom: \<open>mset avdom \<subseteq># mset vdom\<close>
     using assms X st by (auto simp: isasat_GC_refl_def)
 
   have vdom2: \<open>vdom_m \<A> W' x1 \<subseteq> vdom0 \<Longrightarrow> vdom_m \<A> (W'(L := [])) x1 \<subseteq> vdom0\<close> for x1 L
@@ -3582,12 +3586,14 @@ proof -
     subgoal using vdom_dom by blast
     subgoal using dist by blast
     subgoal using packed by blast
+    subgoal using avdom by blast
     apply (solves auto)
     apply (solves auto)
     apply (rule vdom2; auto)
     subgoal
       using L by auto
     subgoal by auto
+    subgoal using WW' by (auto simp: map_fun_rel_def dest!: multi_member_split simp: \<L>\<^sub>a\<^sub>l\<^sub>l_add_mset)
     subgoal using WW' by (auto simp: map_fun_rel_def dest!: multi_member_split simp: \<L>\<^sub>a\<^sub>l\<^sub>l_add_mset)
     subgoal using WW' by (auto simp: map_fun_rel_def dest!: multi_member_split simp: \<L>\<^sub>a\<^sub>l\<^sub>l_add_mset)
     subgoal using WW' by (auto simp: map_fun_rel_def dest!: multi_member_split simp: \<L>\<^sub>a\<^sub>l\<^sub>l_add_mset)
@@ -3659,11 +3665,11 @@ lemma isasat_GC_clauses_prog_wl2:
     W_W': \<open>(W, W') \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 \<A>)\<close> and
     bounded: \<open>isasat_input_bounded \<A>\<close>
  shows
-    \<open>isasat_GC_clauses_prog_wl2 (ns, Some n) (arena\<^sub>o, ([], []), W)
-        \<le> \<Down> ({((arena\<^sub>o, (arena, vdom), W), (N\<^sub>o', N, W')). valid_arena arena\<^sub>o N\<^sub>o' vdom0 \<and> valid_arena arena N (set vdom) \<and>
+    \<open>isasat_GC_clauses_prog_wl2 (ns, Some n) (arena\<^sub>o, ([], [], []), W)
+        \<le> \<Down> ({((arena\<^sub>o, (arena, vdom, avdom), W), (N\<^sub>o', N, W')). valid_arena arena\<^sub>o N\<^sub>o' vdom0 \<and> valid_arena arena N (set vdom) \<and>
        (W, W') \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 \<A>) \<and> vdom_m \<A> W' N\<^sub>o' \<subseteq> vdom0 \<and>
         cdcl_GC_clauses_prog_wl_inv \<A> N\<^sub>o ({#}, N\<^sub>o', N, W') \<and> dom_m N = mset vdom \<and> distinct vdom \<and>
-        arena_is_packed arena N})
+        arena_is_packed arena N \<and> mset avdom \<subseteq># mset vdom})
          (cdcl_GC_clauses_prog_wl2 N\<^sub>o \<A> W')\<close>
 proof -
   define f where
@@ -3675,7 +3681,7 @@ proof -
             cdcl_GC_clauses_prog_wl_inv \<A> N\<^sub>o (\<A>'', N\<^sub>o', N, W')}\<close>
   have H: \<open>(X, X') \<in> ?R \<Longrightarrow> X = (x1, x2) \<Longrightarrow> x2 = (x3, x4) \<Longrightarrow> x4 = (x5, x6) \<Longrightarrow>
      X' = (x1', x2') \<Longrightarrow> x2' = (x3', x4') \<Longrightarrow> x4' = (x5', x6') \<Longrightarrow>
-     ((x3, (fst x5, snd x5), x6), (x3', x5', x6')) \<in> isasat_GC_refl \<A> vdom0\<close>
+     ((x3, (fst x5, fst (snd x5), snd (snd x5)), x6), (x3', x5', x6')) \<in> isasat_GC_refl \<A> vdom0\<close>
     for X X' A B x1 x1' x2 x2' x3 x3' x4 x4' x5 x5' x6 x6' x0 x0' x x'
      supply [[show_types]]
     by auto
@@ -3747,9 +3753,9 @@ qed
 definition isasat_GC_clauses_prog_wl :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
   \<open>isasat_GC_clauses_prog_wl = (\<lambda>(M', N', D', j, W', ((ns, st, fst_As, lst_As, nxt), to_remove), \<phi>, clvls, cach, lbd, outl, stats,
     fast_ema, slow_ema, ccount,  vdom, avdom, lcount, opts). do {
-    (N, (N', vdom), WS) \<leftarrow> isasat_GC_clauses_prog_wl2 (ns, Some fst_As) (N', ([], []), W');
+    (N, (N', vdom, avdom), WS) \<leftarrow> isasat_GC_clauses_prog_wl2 (ns, Some fst_As) (N', ([], take 0 vdom, take 0 avdom), W');
     RETURN (M', N', D', j, WS, ((ns, st, fst_As, lst_As, nxt), to_remove), \<phi>, clvls, cach, lbd, outl, incr_GC stats, fast_ema, slow_ema, ccount,
-       vdom, op_list_copy vdom, lcount, opts) \<^cancel>\<open>TODO: replace copy by proper operations\<close>
+       vdom, avdom, lcount, opts)
   })\<close>
 
 
@@ -3810,11 +3816,10 @@ proof-
        \<in> ?T \<Longrightarrow> (x1j, x2e) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 (all_init_atms x1a x1c))\<close>
      unfolding twl_st_heur_restart_def isa_vmtf_def distinct_atoms_rel_def distinct_hash_atoms_rel_def
      by auto
-  have H: \<open>x \<in> set x2af\<close>
+  have H: \<open>vdom_m (all_init_atms x1a x1c) x2ad x1ad \<subseteq> set x2af\<close>
     if
        empty: \<open>\<forall>A\<in>#all_init_atms x1a x1c. x2ad (Pos A) = [] \<and> x2ad (Neg A) = []\<close> and
       rem: \<open>GC_remap\<^sup>*\<^sup>* (x1a, Map.empty, fmempty) (fmempty, m, x1ad)\<close> and
-      vdom: \<open>x \<in> vdom_m (all_init_atms x1a x1c) x2ad x1ad\<close> and
       \<open>dom_m x1ad = mset x2af\<close>
     for m :: \<open>nat \<Rightarrow> nat option\<close> and y :: \<open>nat literal multiset\<close> and x :: \<open>nat\<close> and
       x1 x1a x1b x1c x1d x1e x2e x1f x1g x1h x1i x1j x1m x1n x1o x1p x2n x2o x1q
@@ -3824,18 +3829,19 @@ proof-
     have \<open>xa \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_init_atms x1a x1c) \<Longrightarrow> x2ad xa = []\<close> for xa
       using empty by (cases xa) (auto simp: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n)
     then show ?thesis
-      using vdom \<open>dom_m x1ad = mset x2af\<close>
+      using \<open>dom_m x1ad = mset x2af\<close>
       by (auto simp: vdom_m_def)
   qed
-
+  have H': \<open>mset x2ag \<subseteq># mset x1ah \<Longrightarrow> x \<in> set x2ag \<Longrightarrow> x \<in> set x1ah\<close> for x2ag x1ah x
+    by (auto dest: mset_eq_setD)
   show ?thesis
     supply [[goals_limit=1]]
-    unfolding isasat_GC_clauses_prog_wl_def cdcl_GC_clauses_prog_wl_alt_def
+    unfolding isasat_GC_clauses_prog_wl_def cdcl_GC_clauses_prog_wl_alt_def take_0
     apply (intro frefI nres_relI)
     apply (refine_vcg isasat_GC_clauses_prog_wl2[where \<A> = \<open>all_init_atms _ _\<close>]; remove_dummy_vars)
     subgoal
       by (clarsimp simp add: twl_st_heur_restart_def
-        cdcl_GC_clauses_prog_wl_inv_def H
+        cdcl_GC_clauses_prog_wl_inv_def H H'
         rtranclp_GC_remap_all_init_atms
         rtranclp_GC_remap_learned_clss_l)
     done
@@ -4829,8 +4835,8 @@ declare remove_one_annot_true_clause_imp_wl_D_heur_code.refine[sepref_fr_rules]
 
 sepref_definition isasat_GC_clauses_prog_copy_wl_entry_code
   is \<open>uncurry3 isasat_GC_clauses_prog_copy_wl_entry\<close>
-  :: \<open>arena_assn\<^sup>d *\<^sub>a watchlist_fast_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a (arena_assn *a vdom_assn)\<^sup>d \<rightarrow>\<^sub>a
-     (arena_assn *a (arena_assn *a vdom_assn))\<close>
+  :: \<open>arena_assn\<^sup>d *\<^sub>a watchlist_fast_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a (arena_assn *a vdom_assn *a vdom_assn)\<^sup>d \<rightarrow>\<^sub>a
+     (arena_assn *a (arena_assn *a vdom_assn *a vdom_assn))\<close>
   supply [[goals_limit=1]] Pos_unat_lit_assn'[sepref_fr_rules] length_ll_def[simp]
   unfolding isasat_GC_clauses_prog_copy_wl_entry_def nth_rll_def[symmetric]
     length_ll_def[symmetric]
@@ -4841,8 +4847,8 @@ sepref_definition isasat_GC_clauses_prog_copy_wl_entry_code
 
 sepref_definition isasat_GC_clauses_prog_copy_wl_entry_slow_code
   is \<open>uncurry3 isasat_GC_clauses_prog_copy_wl_entry\<close>
-  :: \<open>arena_assn\<^sup>d *\<^sub>a watchlist_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a (arena_assn *a vdom_assn)\<^sup>d \<rightarrow>\<^sub>a
-     (arena_assn *a (arena_assn *a vdom_assn))\<close>
+  :: \<open>arena_assn\<^sup>d *\<^sub>a watchlist_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a (arena_assn *a vdom_assn *a vdom_assn)\<^sup>d \<rightarrow>\<^sub>a
+     (arena_assn *a (arena_assn *a vdom_assn *a vdom_assn))\<close>
   supply [[goals_limit=1]] Pos_unat_lit_assn'[sepref_fr_rules] length_ll_def[simp]
   unfolding isasat_GC_clauses_prog_copy_wl_entry_def nth_rll_def[symmetric]
     length_ll_def[symmetric]
@@ -4863,8 +4869,8 @@ declare isasat_GC_clauses_prog_copy_wl_entry_code.refine[sepref_fr_rules]
 sepref_definition isasat_GC_clauses_prog_single_wl_code
   is \<open>uncurry3 isasat_GC_clauses_prog_single_wl\<close>
   :: \<open>[\<lambda>(((_, _), _), A). A \<le> uint32_max div 2]\<^sub>a
-     arena_assn\<^sup>d *\<^sub>a (arena_assn *a vdom_assn)\<^sup>d *\<^sub>a watchlist_fast_assn\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>
-     (arena_assn *a (arena_assn *a vdom_assn) *a watchlist_fast_assn)\<close>
+     arena_assn\<^sup>d *\<^sub>a (arena_assn *a vdom_assn *a vdom_assn)\<^sup>d *\<^sub>a watchlist_fast_assn\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>
+     (arena_assn *a (arena_assn *a vdom_assn *a vdom_assn) *a watchlist_fast_assn)\<close>
   supply [[goals_limit=1]] Pos_unat_lit_assn'[sepref_fr_rules]
   unfolding isasat_GC_clauses_prog_single_wl_def
     shorten_take_ll_0[symmetric]
@@ -4874,8 +4880,8 @@ sepref_definition isasat_GC_clauses_prog_single_wl_code
 sepref_definition isasat_GC_clauses_prog_single_wl_slow_code
   is \<open>uncurry3 isasat_GC_clauses_prog_single_wl\<close>
   :: \<open>[\<lambda>(((_, _), _), A). A \<le> uint32_max div 2]\<^sub>a
-     arena_assn\<^sup>d *\<^sub>a (arena_assn *a vdom_assn)\<^sup>d *\<^sub>a watchlist_assn\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>
-     (arena_assn *a (arena_assn *a vdom_assn) *a watchlist_assn)\<close>
+     arena_assn\<^sup>d *\<^sub>a (arena_assn *a vdom_assn *a vdom_assn)\<^sup>d *\<^sub>a watchlist_assn\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>
+     (arena_assn *a (arena_assn *a vdom_assn *a vdom_assn) *a watchlist_assn)\<close>
   supply [[goals_limit=1]] Pos_unat_lit_assn'[sepref_fr_rules]
   unfolding isasat_GC_clauses_prog_single_wl_def
     shorten_take_ll_0[symmetric]
@@ -4891,8 +4897,8 @@ sepref_register isasat_GC_clauses_prog_wl2
 sepref_definition isasat_GC_clauses_prog_wl2_code
   is \<open>uncurry2 isasat_GC_clauses_prog_wl2'\<close>
   :: \<open>(array_assn vmtf_node_assn)\<^sup>k *\<^sub>a (option_assn uint32_nat_assn)\<^sup>k *\<^sub>a 
-     (arena_assn *a (arena_assn *a vdom_assn) *a watchlist_fast_assn)\<^sup>d \<rightarrow>\<^sub>a 
-     (arena_assn *a (arena_assn *a vdom_assn) *a watchlist_fast_assn)\<close>
+     (arena_assn *a (arena_assn *a vdom_assn *a vdom_assn) *a watchlist_fast_assn)\<^sup>d \<rightarrow>\<^sub>a 
+     (arena_assn *a (arena_assn *a vdom_assn *a vdom_assn) *a watchlist_fast_assn)\<close>
   supply [[goals_limit=1]]
   unfolding isasat_GC_clauses_prog_wl2_def isasat_GC_clauses_prog_wl2'_def
   by sepref
@@ -4900,8 +4906,8 @@ sepref_definition isasat_GC_clauses_prog_wl2_code
 sepref_definition isasat_GC_clauses_prog_wl2_slow_code
   is \<open>uncurry2 isasat_GC_clauses_prog_wl2'\<close>
   :: \<open>(array_assn vmtf_node_assn)\<^sup>k *\<^sub>a (option_assn uint32_nat_assn)\<^sup>k *\<^sub>a 
-     (arena_assn *a (arena_assn *a vdom_assn) *a watchlist_assn)\<^sup>d \<rightarrow>\<^sub>a 
-     (arena_assn *a (arena_assn *a vdom_assn) *a watchlist_assn)\<close>
+     (arena_assn *a (arena_assn *a vdom_assn *a vdom_assn) *a watchlist_assn)\<^sup>d \<rightarrow>\<^sub>a 
+     (arena_assn *a (arena_assn *a vdom_assn *a vdom_assn) *a watchlist_assn)\<close>
   supply [[goals_limit=1]]
   unfolding isasat_GC_clauses_prog_wl2_def isasat_GC_clauses_prog_wl2'_def
   by sepref
