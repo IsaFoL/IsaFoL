@@ -546,7 +546,7 @@ fun blit A_ src si dst di len =
     array_blit src (integer_of_nat
                      si) dst (integer_of_nat di) (integer_of_nat len));
 
-val version : string = "7bdc4d35";
+val version : string = "42eb580e";
 
 fun get_LBD_code x = (fn xi => (fn () => let
    val (_, (_, b)) = xi;
@@ -2967,53 +2967,61 @@ fun fm_mv_clause_to_new_arena_code x =
     x;
 
 fun isasat_GC_clauses_prog_copy_wl_entry_code x =
-  (fn ai => fn bib => fn bia => fn (a1, a2) => fn () =>
+  (fn ai => fn bib => fn bia => fn (a1, (a1a, a2a)) => fn () =>
     let
       val xa = length_aa_u (heap_prod heap_uint64 heap_uint64) bib bia ();
       val a =
-        heap_WHILET (fn (a1a, (_, (_, _))) => (fn () => (less_nat a1a xa)))
-          (fn (a1a, (a1b, (a1c, a2c))) =>
+        heap_WHILET (fn (a1b, (_, (_, (_, _)))) => (fn () => (less_nat a1b xa)))
+          (fn (a1b, (a1c, (a1d, (a1e, a2e)))) =>
             (fn f_ => fn () => f_
-              ((nth_aa_u (heap_prod heap_uint64 heap_uint64) bib bia a1a) ())
+              ((nth_aa_u (heap_prod heap_uint64 heap_uint64) bib bia a1b) ())
               ())
               (fn xb =>
                 let
                   val x_c = fst xb;
                 in
-                  (fn f_ => fn () => f_ ((arena_status_fast_code a1b x_c) ())
+                  (fn f_ => fn () => f_ ((arena_status_fast_code a1c x_c) ())
                     ())
-                    (fn xc =>
-                      (if not ((xc : Word32.word) = (Word32.fromLargeInt (IntInf.toLarge (3 : IntInf.int))))
-                        then (fn f_ => fn () => f_ ((arl_length heap_uint32 a1c)
+                    (fn x_e =>
+                      (if not ((x_e : Word32.word) = (Word32.fromLargeInt (IntInf.toLarge (3 : IntInf.int))))
+                        then (fn f_ => fn () => f_ ((arl_length heap_uint32 a1d)
                                ()) ())
-                               (fn xd =>
+                               (fn xc =>
                                  (fn f_ => fn () => f_
-                                   ((isa_arena_length_fast_code a1b x_c) ()) ())
+                                   ((isa_arena_length_fast_code a1c x_c) ()) ())
                                    (fn xaa =>
-                                     (fn f_ => fn () => f_
-                                       ((fm_mv_clause_to_new_arena_code
-  (nat_of_uint64 x_c) a1b a1c)
-                                       ()) ())
-                                       (fn x_h =>
- (fn f_ => fn () => f_ ((mark_garbage_fast_code a1b x_c) ()) ())
-   (fn xba =>
-     (fn f_ => fn () => f_
-       ((arl_append (default_nat, heap_nat) a2c
-          (plus_nat xd
-            (if Uint64.less (Uint64.fromInt (4 : IntInf.int)) xaa
-              then nat_of_integer (5 : IntInf.int)
-              else nat_of_integer (4 : IntInf.int))))
-       ()) ())
-       (fn xe => (fn () => (plus_nat a1a one_nat, (xba, (x_h, xe)))))))))
+                                     let
+                                       val x_h =
+ plus_nat xc
+   (if Uint64.less (Uint64.fromInt (4 : IntInf.int)) xaa
+     then nat_of_integer (5 : IntInf.int) else nat_of_integer (4 : IntInf.int));
+                                     in
+                                       (fn f_ => fn () => f_
+ ((fm_mv_clause_to_new_arena_code (nat_of_uint64 x_c) a1c a1d) ()) ())
+ (fn x_j =>
+   (fn f_ => fn () => f_ ((mark_garbage_fast_code a1c x_c) ()) ())
+     (fn xd =>
+       (fn f_ => fn () => f_ ((arl_append (default_nat, heap_nat) a1e x_h) ())
+         ())
+         (fn xab =>
+           (fn f_ => fn () => f_
+             ((if ((x_e : Word32.word) = (Word32.fromInt 1))
+                then arl_append (default_nat, heap_nat) a2e x_h
+                else (fn () => a2e))
+             ()) ())
+             (fn xba =>
+               (fn () => (plus_nat a1b one_nat, (xd, (x_j, (xab, xba)))))))))
+                                     end))
                         else (fn () =>
-                               (plus_nat a1a one_nat, (a1b, (a1c, a2c))))))
+                               (plus_nat a1b one_nat,
+                                 (a1c, (a1d, (a1e, a2e)))))))
                 end))
-          (zero_nata, (ai, (a1, a2))) ();
+          (zero_nata, (ai, (a1, (a1a, a2a)))) ();
     in
       let
-        val (_, (a1b, (a1c, a2c))) = a;
+        val (_, (a1c, (a1d, (a1e, a2e)))) = a;
       in
-        (fn () => (a1b, (a1c, a2c)))
+        (fn () => (a1c, (a1d, (a1e, a2e))))
       end
         ()
     end)
@@ -3032,7 +3040,7 @@ fun isasat_GC_clauses_prog_single_wl_code x =
           val a = isasat_GC_clauses_prog_copy_wl_entry_code ai bia xa bib ();
         in
           let
-            val (a1, (a1a, a2a)) = a;
+            val (a1, (a1a, (a1b, a2b))) = a;
           in
             (fn f_ => fn () => f_
               ((shorten_take_aa_u32 heap_nat
@@ -3042,16 +3050,16 @@ fun isasat_GC_clauses_prog_single_wl_code x =
               (fn x_c =>
                 (fn f_ => fn () => f_
                   ((isasat_GC_clauses_prog_copy_wl_entry_code a1 x_c
-                     (uminus_code xa) (a1a, a2a))
+                     (uminus_code xa) (a1a, (a1b, a2b)))
                   ()) ())
-                  (fn (a1b, a2b) =>
+                  (fn (a1c, a2c) =>
                     (fn f_ => fn () => f_
                       ((shorten_take_aa_u32 heap_nat
                          (heap_array
                            (typerep_prod typerep_uint64 typerep_uint64))
                          (uminus_code xa) zero_nata x_c)
                       ()) ())
-                      (fn x_f => (fn () => (a1b, (a2b, x_f))))))
+                      (fn x_f => (fn () => (a1c, (a2c, x_f))))))
           end
             ()
         end)
@@ -3103,27 +3111,7 @@ fun arl_empty (A1_, A2_) B_ =
               (a, zero B_)
             end);
 
-fun array_copy A_ a =
-  (fn () =>
-    let
-      val l = len A_ a ();
-    in
-      (if equal_nat l zero_nata then (fn () => Array.fromList [])
-        else (fn f_ => fn () => f_ ((nth A_ a zero_nata) ()) ())
-               (fn s =>
-                 (fn f_ => fn () => f_ ((new A_ l s) ()) ())
-                   (fn aa =>
-                     (fn f_ => fn () => f_ ((blit A_ a zero_nata aa zero_nata l)
-                       ()) ())
-                       (fn _ => (fn () => aa)))))
-        ()
-    end);
-
-fun arl_copy A_ = (fn (a, n) => fn () => let
-   val aa = array_copy A_ a ();
- in
-   (aa, n)
- end);
+fun take_arl x = (fn i => fn (xs, _) => (xs, i)) x;
 
 fun incr_GC x =
   (fn (propa, (confl, (dec, (res, (lres, (uset, gcs)))))) =>
@@ -3134,27 +3122,29 @@ fun isasat_GC_clauses_prog_wl_code x =
   (fn (a1, (a1a, (a1b, (a1c, (a1d, (((a1g, (a1h, (a1i, (a1j, a2j)))), a2f),
                                      (a1k, (a1l,
      (a1m, (a1n, (a1o, (a1p, (a1q, (a1r, (a1s,
-   (_, (_, (a1v, a2v))))))))))))))))))
+   (a1t, (a1u, (a1v, a2v))))))))))))))))))
      =>
     fn () =>
     let
       val xa = arl_empty (default_uint32, heap_uint32) zero_nat ();
-      val xaa = arl_empty (default_nat, heap_nat) zero_nat ();
       val a =
-        isasat_GC_clauses_prog_wl2_code a1g (SOME a1i) (a1a, ((xa, xaa), a1d))
+        isasat_GC_clauses_prog_wl2_code a1g (SOME a1i)
+          (a1a, ((xa, (take_arl zero_nata a1t, take_arl zero_nata a1u)), a1d))
           ();
     in
       let
-        val (_, ((a1y, a2y), a2x)) = a;
+        val (_, (a1x, a2x)) = a;
       in
-        (fn f_ => fn () => f_ ((arl_copy heap_nat a2y) ()) ())
-          (fn xb =>
-            (fn () =>
-              (a1, (a1y, (a1b, (a1c, (a2x, (((a1g, (a1h, (a1i, (a1j, a2j)))),
-      a2f),
-     (a1k, (a1l, (a1m, (a1n, (a1o, (incr_GC a1p,
-                                     (a1q, (a1r,
-     (a1s, (a2y, (xb, (a1v, a2v))))))))))))))))))))
+        (fn () =>
+          let
+            val (a1y, (a1z, a2z)) = a1x;
+          in
+            (a1, (a1y, (a1b, (a1c, (a2x, (((a1g, (a1h, (a1i, (a1j, a2j)))),
+    a2f),
+   (a1k, (a1l, (a1m, (a1n, (a1o, (incr_GC a1p,
+                                   (a1q, (a1r,
+   (a1s, (a1z, (a2z, (a1v, a2v))))))))))))))))))
+          end)
       end
         ()
     end)
@@ -3269,8 +3259,6 @@ fun empty_Q_fast_code x =
 (restart_info_restart_done a1n, (a1o, a2o))))))))))))))))
     end)
     x;
-
-fun take_arl x = (fn i => fn (xs, _) => (xs, i)) x;
 
 fun trail_conv_back_imp_fast_code x =
   (fn ai => fn bi =>
@@ -3856,51 +3844,59 @@ fun remove_one_annot_true_clause_imp_wl_D_heur_slow_code x =
     x;
 
 fun isasat_GC_clauses_prog_copy_wl_entry_slow_code x =
-  (fn ai => fn bib => fn bia => fn (a1, a2) => fn () =>
+  (fn ai => fn bib => fn bia => fn (a1, (a1a, a2a)) => fn () =>
     let
       val xa = length_aa_u (heap_prod heap_nat heap_uint64) bib bia ();
       val a =
-        heap_WHILET (fn (a1a, (_, (_, _))) => (fn () => (less_nat a1a xa)))
-          (fn (a1a, (a1b, (a1c, a2c))) =>
+        heap_WHILET (fn (a1b, (_, (_, (_, _)))) => (fn () => (less_nat a1b xa)))
+          (fn (a1b, (a1c, (a1d, (a1e, a2e)))) =>
             (fn f_ => fn () => f_
-              ((nth_aa_u (heap_prod heap_nat heap_uint64) bib bia a1a) ()) ())
+              ((nth_aa_u (heap_prod heap_nat heap_uint64) bib bia a1b) ()) ())
               (fn xb =>
                 let
                   val x_c = fst xb;
                 in
-                  (fn f_ => fn () => f_ ((arena_status_code a1b x_c) ()) ())
-                    (fn xc =>
-                      (if not ((xc : Word32.word) = (Word32.fromLargeInt (IntInf.toLarge (3 : IntInf.int))))
-                        then (fn f_ => fn () => f_ ((arl_length heap_uint32 a1c)
+                  (fn f_ => fn () => f_ ((arena_status_code a1c x_c) ()) ())
+                    (fn x_e =>
+                      (if not ((x_e : Word32.word) = (Word32.fromLargeInt (IntInf.toLarge (3 : IntInf.int))))
+                        then (fn f_ => fn () => f_ ((arl_length heap_uint32 a1d)
                                ()) ())
-                               (fn xd =>
+                               (fn xc =>
                                  (fn f_ => fn () => f_
-                                   ((isa_arena_length_code a1b x_c) ()) ())
+                                   ((isa_arena_length_code a1c x_c) ()) ())
                                    (fn xaa =>
-                                     (fn f_ => fn () => f_
-                                       ((fm_mv_clause_to_new_arena_code x_c a1b
-  a1c)
-                                       ()) ())
-                                       (fn x_h =>
- (fn f_ => fn () => f_ ((mark_garbage_code a1b x_c) ()) ())
-   (fn xba =>
-     (fn f_ => fn () => f_
-       ((arl_append (default_nat, heap_nat) a2c
-          (plus_nat xd
-            (if Uint64.less (Uint64.fromInt (4 : IntInf.int)) xaa
-              then nat_of_integer (5 : IntInf.int)
-              else nat_of_integer (4 : IntInf.int))))
-       ()) ())
-       (fn xe => (fn () => (plus_nat a1a one_nat, (xba, (x_h, xe)))))))))
+                                     let
+                                       val x_h =
+ plus_nat xc
+   (if Uint64.less (Uint64.fromInt (4 : IntInf.int)) xaa
+     then nat_of_integer (5 : IntInf.int) else nat_of_integer (4 : IntInf.int));
+                                     in
+                                       (fn f_ => fn () => f_
+ ((fm_mv_clause_to_new_arena_code x_c a1c a1d) ()) ())
+ (fn x_j =>
+   (fn f_ => fn () => f_ ((mark_garbage_code a1c x_c) ()) ())
+     (fn xd =>
+       (fn f_ => fn () => f_ ((arl_append (default_nat, heap_nat) a1e x_h) ())
+         ())
+         (fn xab =>
+           (fn f_ => fn () => f_
+             ((if ((x_e : Word32.word) = (Word32.fromInt 1))
+                then arl_append (default_nat, heap_nat) a2e x_h
+                else (fn () => a2e))
+             ()) ())
+             (fn xba =>
+               (fn () => (plus_nat a1b one_nat, (xd, (x_j, (xab, xba)))))))))
+                                     end))
                         else (fn () =>
-                               (plus_nat a1a one_nat, (a1b, (a1c, a2c))))))
+                               (plus_nat a1b one_nat,
+                                 (a1c, (a1d, (a1e, a2e)))))))
                 end))
-          (zero_nata, (ai, (a1, a2))) ();
+          (zero_nata, (ai, (a1, (a1a, a2a)))) ();
     in
       let
-        val (_, (a1b, (a1c, a2c))) = a;
+        val (_, (a1c, (a1d, (a1e, a2e)))) = a;
       in
-        (fn () => (a1b, (a1c, a2c)))
+        (fn () => (a1c, (a1d, (a1e, a2e))))
       end
         ()
     end)
@@ -3917,7 +3913,7 @@ fun isasat_GC_clauses_prog_single_wl_slow_code x =
             isasat_GC_clauses_prog_copy_wl_entry_slow_code ai bia xa bib ();
         in
           let
-            val (a1, (a1a, a2a)) = a;
+            val (a1, (a1a, (a1b, a2b))) = a;
           in
             (fn f_ => fn () => f_
               ((shorten_take_aa_u32 heap_nat
@@ -3927,15 +3923,15 @@ fun isasat_GC_clauses_prog_single_wl_slow_code x =
               (fn x_c =>
                 (fn f_ => fn () => f_
                   ((isasat_GC_clauses_prog_copy_wl_entry_slow_code a1 x_c
-                     (uminus_code xa) (a1a, a2a))
+                     (uminus_code xa) (a1a, (a1b, a2b)))
                   ()) ())
-                  (fn (a1b, a2b) =>
+                  (fn (a1c, a2c) =>
                     (fn f_ => fn () => f_
                       ((shorten_take_aa_u32 heap_nat
                          (heap_array (typerep_prod typerep_nat typerep_uint64))
                          (uminus_code xa) zero_nata x_c)
                       ()) ())
-                      (fn x_f => (fn () => (a1b, (a2b, x_f))))))
+                      (fn x_f => (fn () => (a1c, (a2c, x_f))))))
           end
             ()
         end)
@@ -3980,27 +3976,29 @@ fun isasat_GC_clauses_prog_wl_slow_code x =
   (fn (a1, (a1a, (a1b, (a1c, (a1d, (((a1g, (a1h, (a1i, (a1j, a2j)))), a2f),
                                      (a1k, (a1l,
      (a1m, (a1n, (a1o, (a1p, (a1q, (a1r, (a1s,
-   (_, (_, (a1v, a2v))))))))))))))))))
+   (a1t, (a1u, (a1v, a2v))))))))))))))))))
      =>
     fn () =>
     let
       val xa = arl_empty (default_uint32, heap_uint32) zero_nat ();
-      val xaa = arl_empty (default_nat, heap_nat) zero_nat ();
       val a =
         isasat_GC_clauses_prog_wl2_slow_code a1g (SOME a1i)
-          (a1a, ((xa, xaa), a1d)) ();
+          (a1a, ((xa, (take_arl zero_nata a1t, take_arl zero_nata a1u)), a1d))
+          ();
     in
       let
-        val (_, ((a1y, a2y), a2x)) = a;
+        val (_, (a1x, a2x)) = a;
       in
-        (fn f_ => fn () => f_ ((arl_copy heap_nat a2y) ()) ())
-          (fn xb =>
-            (fn () =>
-              (a1, (a1y, (a1b, (a1c, (a2x, (((a1g, (a1h, (a1i, (a1j, a2j)))),
-      a2f),
-     (a1k, (a1l, (a1m, (a1n, (a1o, (incr_GC a1p,
-                                     (a1q, (a1r,
-     (a1s, (a2y, (xb, (a1v, a2v))))))))))))))))))))
+        (fn () =>
+          let
+            val (a1y, (a1z, a2z)) = a1x;
+          in
+            (a1, (a1y, (a1b, (a1c, (a2x, (((a1g, (a1h, (a1i, (a1j, a2j)))),
+    a2f),
+   (a1k, (a1l, (a1m, (a1n, (a1o, (incr_GC a1p,
+                                   (a1q, (a1r,
+   (a1s, (a1z, (a2z, (a1v, a2v))))))))))))))))))
+          end)
       end
         ()
     end)
