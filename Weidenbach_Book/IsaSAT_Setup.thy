@@ -37,11 +37,11 @@ NB: the statistics are not proven correct (especially they might
 overflow), there are just there to look for regressions, do some comparisons (e.g., to conclude that
 we are propagating slower than the other solvers), or to test different option combination.
 \<close>
-type_synonym stats = \<open>uint64 \<times> uint64 \<times> uint64 \<times> uint64 \<times> uint64 \<times> uint64\<close>
+type_synonym stats = \<open>uint64 \<times> uint64 \<times> uint64 \<times> uint64 \<times> uint64 \<times> uint64 \<times> uint64\<close>
 
 abbreviation stats_assn where
   \<open>stats_assn \<equiv> uint64_assn *a uint64_assn *a uint64_assn *a uint64_assn *a uint64_assn
-     *a uint64_assn\<close>
+     *a uint64_assn *a uint64_assn\<close>
 
 definition incr_propagation :: \<open>stats \<Rightarrow> stats\<close> where
   \<open>incr_propagation = (\<lambda>(propa, confl, dec). (propa + 1, confl, dec))\<close>
@@ -59,7 +59,10 @@ definition incr_lrestart :: \<open>stats \<Rightarrow> stats\<close> where
   \<open>incr_lrestart = (\<lambda>(propa, confl, dec, res, lres, uset). (propa, confl, dec, res, lres + 1, uset))\<close>
 
 definition incr_uset :: \<open>stats \<Rightarrow> stats\<close> where
-  \<open>incr_uset = (\<lambda>(propa, confl, dec, res, lres, uset). (propa, confl, dec, res, lres, uset + 1))\<close>
+  \<open>incr_uset = (\<lambda>(propa, confl, dec, res, lres, (uset, gcs)). (propa, confl, dec, res, lres, uset + 1, gcs))\<close>
+
+definition incr_GC :: \<open>stats \<Rightarrow> stats\<close> where
+  \<open>incr_GC = (\<lambda>(propa, confl, dec, res, lres, uset, gcs). (propa, confl, dec, res, lres, uset, gcs + 1))\<close>
 
 lemma incr_propagation_hnr[sepref_fr_rules]:
     \<open>(return o incr_propagation, RETURN o incr_propagation) \<in> stats_assn\<^sup>d \<rightarrow>\<^sub>a stats_assn\<close>
@@ -84,6 +87,10 @@ lemma incr_lrestart_hnr[sepref_fr_rules]:
 lemma incr_uset_hnr[sepref_fr_rules]:
     \<open>(return o incr_uset, RETURN o incr_uset) \<in> stats_assn\<^sup>d \<rightarrow>\<^sub>a stats_assn\<close>
   by sepref_to_hoare (sep_auto simp: incr_uset_def)
+
+lemma incr_GC_hnr[sepref_fr_rules]:
+    \<open>(return o incr_GC, RETURN o incr_GC) \<in> stats_assn\<^sup>d \<rightarrow>\<^sub>a stats_assn\<close>
+  by sepref_to_hoare (sep_auto simp: incr_GC_def)
 
 
 paragraph \<open>Moving averages\<close>

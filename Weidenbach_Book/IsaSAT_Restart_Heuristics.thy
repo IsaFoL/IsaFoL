@@ -1029,12 +1029,12 @@ declare restart_required_heur_fast_code.refine[sepref_fr_rules]
 
 fun (in -) get_reductions_count :: \<open>twl_st_wl_heur \<Rightarrow> uint64\<close> where
   \<open>get_reductions_count (_, _, _, _, _, _, _,_,_,_,_,
-       (_, _, _, _, lres, _), _)
+       (_, _, _, lres, _, _), _)
       = lres\<close>
 
 lemma (in -) get_reduction_count_alt_def:
    \<open>RETURN o get_reductions_count = (\<lambda>(M, N0, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl,
-       (_, _, _, _, lres, _), fema, sema, _, lcount). RETURN lres)\<close>
+       (_, _, _, lres, _, _), fema, sema, _, lcount). RETURN lres)\<close>
   by auto
 
 
@@ -1055,7 +1055,7 @@ declare  get_reductions_count_fast_code.refine[sepref_fr_rules]
 declare  get_reductions_count_code.refine[sepref_fr_rules]
 
 definition GC_EVERY :: uint64 where
-  \<open>GC_EVERY = 256\<close>
+  \<open>GC_EVERY = 15\<close> \<comment>\<open>hard-coded limit\<close>
 
 lemma [sepref_fr_rules]:
   \<open>(uncurry0 (return GC_EVERY), uncurry0 (RETURN GC_EVERY)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint64_assn\<close>
@@ -1064,7 +1064,7 @@ lemma [sepref_fr_rules]:
 definition GC_required_heur :: "twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> bool nres" where
   \<open>GC_required_heur S n = do {
     let lres = get_reductions_count S;
-    RETURN (lres AND GC_EVERY = zero_uint64)} \<^cancel>\<open>Temporary measure\<close>
+    RETURN (lres AND GC_EVERY = GC_EVERY)} \<^cancel>\<open>Temporary measure\<close>
   \<close>
 
 sepref_definition GC_required_heur_fast_code
@@ -2608,12 +2608,9 @@ proof -
       apply (case_tac y, cases S)
       apply clarify
       apply (rule RETURN_SPEC_refine)
-      apply (auto simp: upd_def find_decomp_wl0_def
-        intro!: RETURN_SPEC_refine)
-	apply (rule_tac x=bx in exI)
-	using assms
-	apply auto
-	by (auto simp: twl_st_heur_restart_ana_def out_learned_def
+      using assms
+      by (auto simp: upd_def find_decomp_wl0_def
+        intro!: RETURN_SPEC_refine simp: twl_st_heur_restart_ana_def out_learned_def
 	    empty_Q_wl_def
 	  intro: isa_vmtfI isa_length_trail_pre dest: no_dup_appendD)
   qed
@@ -3751,7 +3748,7 @@ definition isasat_GC_clauses_prog_wl :: \<open>twl_st_wl_heur \<Rightarrow> twl_
   \<open>isasat_GC_clauses_prog_wl = (\<lambda>(M', N', D', j, W', ((ns, st, fst_As, lst_As, nxt), to_remove), \<phi>, clvls, cach, lbd, outl, stats,
     fast_ema, slow_ema, ccount,  vdom, avdom, lcount, opts). do {
     (N, (N', vdom), WS) \<leftarrow> isasat_GC_clauses_prog_wl2 (ns, Some fst_As) (N', ([], []), W');
-    RETURN (M', N', D', j, WS, ((ns, st, fst_As, lst_As, nxt), to_remove), \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema, ccount,
+    RETURN (M', N', D', j, WS, ((ns, st, fst_As, lst_As, nxt), to_remove), \<phi>, clvls, cach, lbd, outl, incr_GC stats, fast_ema, slow_ema, ccount,
        vdom, op_list_copy vdom, lcount, opts) \<^cancel>\<open>TODO: replace copy by proper operations\<close>
   })\<close>
 

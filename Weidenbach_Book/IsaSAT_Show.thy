@@ -63,8 +63,8 @@ definition isasat_header :: string where
 text \<open>Printing the information slows down the solver by a huge factor.\<close>
 definition isasat_banner_content where
 \<open>isasat_banner_content =
-''c  conflicts       decisions     restarts         uset
-c        propagations     reductions     Learnt clauses''\<close>
+''c  conflicts       decisions     restarts     uset
+c        propagations     reductions         GC    Learnt clauses ''\<close>
 
 definition isasat_information_banner :: \<open>_ \<Rightarrow> unit nres\<close> where
 \<open>isasat_information_banner _ =
@@ -82,12 +82,12 @@ lemma isasat_information_banner_hnr[sepref_fr_rules]:
 
 definition isasat_current_information :: \<open>stats \<Rightarrow> nat \<Rightarrow> unit\<close> where
 \<open>isasat_current_information =
-   (\<lambda>(propa, confl, decs, frestarts, lrestarts, uset) lcount.
+   (\<lambda>(propa, confl, decs, frestarts, lrestarts, uset, gcs) lcount.
       if confl AND 8191 = 8191 \<comment> \<open>\<^term>\<open>8191 = 8192 - 1\<close>, i.e., we print when all first bits are 1.\<close>
-     then
-        println_string (String.implode (show ''c | '' @ show confl @ show '' | '' @ show propa @
-          show '' | '' @ show decs @ show '' | '' @ show frestarts @ show '' | '' @ show lrestarts
-          @ show '' | '' @ show lcount @ show '' | '' @ show uset))
+     then let c = '' | '' in
+        println_string (String.implode (show ''c | '' @ show confl @ show c @ show propa @
+          show c @ show decs @ show c @ show frestarts @ show c @ show lrestarts
+          @ show c @ show gcs @ show c @ show uset @ show c @ show lcount))
       else ()
       )\<close>
 
