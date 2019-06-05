@@ -185,7 +185,8 @@ structure SAT_Solver : sig
             (Uint64.uint64 *
               (Uint64.uint64 *
                 (Uint64.uint64 *
-                  (Uint64.uint64 * (Uint64.uint64 * Uint64.uint64)))))))
+                  (Uint64.uint64 *
+                    (Uint64.uint64 * (Uint64.uint64 * Uint64.uint64))))))))
 end = struct
 
 datatype typerepa = Typerep of string * typerepa list;
@@ -545,7 +546,7 @@ fun blit A_ src si dst di len =
     array_blit src (integer_of_nat
                      si) dst (integer_of_nat di) (integer_of_nat len));
 
-val version : string = "28ecd3a1";
+val version : string = "7bdc4d35";
 
 fun get_LBD_code x = (fn xi => (fn () => let
    val (_, (_, b)) = xi;
@@ -1048,8 +1049,8 @@ fun is_pos_code l =
   (((Word32.andb (l, (Word32.fromInt 1))) : Word32.word) = (Word32.fromInt 0));
 
 fun incr_uset x =
-  (fn (propa, (confl, (dec, (res, (lres, uset))))) =>
-    (propa, (confl, (dec, (res, (lres, Uint64.plus uset Uint64.one))))))
+  (fn (propa, (confl, (dec, (res, (lres, (uset, gcs)))))) =>
+    (propa, (confl, (dec, (res, (lres, (Uint64.plus uset Uint64.one, gcs)))))))
     x;
 
 fun propagate_lit_wl_bin_fast_code x =
@@ -3124,6 +3125,11 @@ fun arl_copy A_ = (fn (a, n) => fn () => let
    (aa, n)
  end);
 
+fun incr_GC x =
+  (fn (propa, (confl, (dec, (res, (lres, (uset, gcs)))))) =>
+    (propa, (confl, (dec, (res, (lres, (uset, Uint64.plus gcs Uint64.one)))))))
+    x;
+
 fun isasat_GC_clauses_prog_wl_code x =
   (fn (a1, (a1a, (a1b, (a1c, (a1d, (((a1g, (a1h, (a1i, (a1j, a2j)))), a2f),
                                      (a1k, (a1l,
@@ -3146,8 +3152,9 @@ fun isasat_GC_clauses_prog_wl_code x =
             (fn () =>
               (a1, (a1y, (a1b, (a1c, (a2x, (((a1g, (a1h, (a1i, (a1j, a2j)))),
       a2f),
-     (a1k, (a1l, (a1m, (a1n, (a1o, (a1p, (a1q,
-   (a1r, (a1s, (a2y, (xb, (a1v, a2v))))))))))))))))))))
+     (a1k, (a1l, (a1m, (a1n, (a1o, (incr_GC a1p,
+                                     (a1q, (a1r,
+     (a1s, (a2y, (xb, (a1v, a2v))))))))))))))))))))
       end
         ()
     end)
@@ -3561,21 +3568,21 @@ fun get_reductions_count_fast_code x =
     (fn () =>
       let
         val (_, (_, (_, (_, (_, (_, (_, (_,
-  (_, (_, (_, ((_, (_, (_, (_, (a1p, _))))), (_, (_, (_, _)))))))))))))))
+  (_, (_, (_, ((_, (_, (_, (a1o, (_, _))))), (_, (_, (_, _)))))))))))))))
           = xi;
       in
-        a1p
+        a1o
       end))
     x;
 
-val gC_EVERY : Uint64.uint64 = Uint64.fromInt (256 : IntInf.int);
+val gC_EVERY : Uint64.uint64 = Uint64.fromInt (15 : IntInf.int);
 
 fun gC_required_heur_fast_code x =
   (fn ai => fn _ => fn () =>
     let
       val xa = get_reductions_count_fast_code ai ();
     in
-      (((Uint64.andb xa gC_EVERY) : Uint64.uint64) = Uint64.zero)
+      (((Uint64.andb xa gC_EVERY) : Uint64.uint64) = gC_EVERY)
     end)
     x;
 
@@ -3991,8 +3998,9 @@ fun isasat_GC_clauses_prog_wl_slow_code x =
             (fn () =>
               (a1, (a1y, (a1b, (a1c, (a2x, (((a1g, (a1h, (a1i, (a1j, a2j)))),
       a2f),
-     (a1k, (a1l, (a1m, (a1n, (a1o, (a1p, (a1q,
-   (a1r, (a1s, (a2y, (xb, (a1v, a2v))))))))))))))))))))
+     (a1k, (a1l, (a1m, (a1n, (a1o, (incr_GC a1p,
+                                     (a1q, (a1r,
+     (a1s, (a2y, (xb, (a1v, a2v))))))))))))))))))))
       end
         ()
     end)
@@ -4647,10 +4655,10 @@ fun get_reductions_count_code x =
     (fn () =>
       let
         val (_, (_, (_, (_, (_, (_, (_, (_,
-  (_, (_, (_, ((_, (_, (_, (_, (a1p, _))))), (_, (_, (_, _)))))))))))))))
+  (_, (_, (_, ((_, (_, (_, (a1o, (_, _))))), (_, (_, (_, _)))))))))))))))
           = xi;
       in
-        a1p
+        a1o
       end))
     x;
 
@@ -4659,7 +4667,7 @@ fun gC_required_heur_slow_code x =
     let
       val xa = get_reductions_count_code ai ();
     in
-      (((Uint64.andb xa gC_EVERY) : Uint64.uint64) = Uint64.zero)
+      (((Uint64.andb xa gC_EVERY) : Uint64.uint64) = gC_EVERY)
     end)
     x;
 
@@ -5180,71 +5188,46 @@ fun shows_prec_uint64 n m xs = shows_prec_nat n (nat_of_uint64 m) xs;
 fun shows_prec_list A_ p xs = shows_list A_ xs;
 
 fun isasat_current_information x =
-  (fn (propa, (confl, (decs, (frestarts, (lrestarts, uset))))) => fn lcount =>
+  (fn (propa, (confl, (decs, (frestarts, (lrestarts, (uset, gcs)))))) =>
+    fn lcount =>
     (if (((Uint64.andb confl
             (Uint64.fromInt
               (8191 : IntInf.int))) : Uint64.uint64) = (Uint64.fromInt
                  (8191 : IntInf.int)))
-      then ignore (print
-             (implode
-                (shows_prec_list show_char zero_nata
-                   [Chara (true, true, false, false, false, true, true, false),
-                     Chara (false, false, false, false, false, true, false,
-                             false),
-                     Chara (false, false, true, true, true, true, true, false),
-                     Chara (false, false, false, false, false, true, false,
-                             false)]
-                   [] @
-                  shows_prec_uint64 zero_nata confl [] @
-                    shows_prec_list show_char zero_nata
-                      [Chara (false, false, false, false, false, true, false,
+      then let
+             val c =
+               [Chara (false, false, false, false, false, true, false, false),
+                 Chara (false, false, true, true, true, true, true, false),
+                 Chara (false, false, false, false, false, true, false, false)];
+           in
+             ignore (print
+               (implode
+                  (shows_prec_list show_char zero_nata
+                     [Chara (true, true, false, false, false, true, true,
+                              false),
+                       Chara (false, false, false, false, false, true, false,
                                false),
-                        Chara (false, false, true, true, true, true, true,
-                                false),
-                        Chara (false, false, false, false, false, true, false,
-                                false)]
-                      [] @
-                      shows_prec_uint64 zero_nata propa [] @
-                        shows_prec_list show_char zero_nata
-                          [Chara (false, false, false, false, false, true,
-                                   false, false),
-                            Chara (false, false, true, true, true, true, true,
-                                    false),
-                            Chara (false, false, false, false, false, true,
-                                    false, false)]
-                          [] @
-                          shows_prec_uint64 zero_nata decs [] @
-                            shows_prec_list show_char zero_nata
-                              [Chara (false, false, false, false, false, true,
-                                       false, false),
-                                Chara (false, false, true, true, true, true,
-true, false),
-                                Chara (false, false, false, false, false, true,
-false, false)]
-                              [] @
-                              shows_prec_uint64 zero_nata frestarts [] @
-                                shows_prec_list show_char zero_nata
-                                  [Chara (false, false, false, false, false,
-   true, false, false),
-                                    Chara (false, false, true, true, true, true,
-    true, false),
-                                    Chara (false, false, false, false, false,
-    true, false, false)]
-                                  [] @
-                                  shows_prec_uint64 zero_nata lrestarts [] @
-                                    shows_prec_list show_char zero_nata
-                                      [Chara
- (false, false, false, false, false, true, false, false),
-Chara (false, false, true, true, true, true, true, false),
-Chara (false, false, false, false, false, true, false, false)]
-                                      [] @
-                                      shows_prec_nat zero_nata lcount [] @
-shows_prec_list show_char zero_nata
-  [Chara (false, false, false, false, false, true, false, false),
-    Chara (false, false, true, true, true, true, true, false),
-    Chara (false, false, false, false, false, true, false, false)]
-  [] @
-  shows_prec_uint64 zero_nata uset []) ^ "\n"))
+                       Chara (false, false, true, true, true, true, true,
+                               false),
+                       Chara (false, false, false, false, false, true, false,
+                               false)]
+                     [] @
+                    shows_prec_uint64 zero_nata confl [] @
+                      shows_prec_list show_char zero_nata c [] @
+                        shows_prec_uint64 zero_nata propa [] @
+                          shows_prec_list show_char zero_nata c [] @
+                            shows_prec_uint64 zero_nata decs [] @
+                              shows_prec_list show_char zero_nata c [] @
+                                shows_prec_uint64 zero_nata frestarts [] @
+                                  shows_prec_list show_char zero_nata c [] @
+                                    shows_prec_uint64 zero_nata lrestarts [] @
+                                      shows_prec_list show_char zero_nata c [] @
+shows_prec_uint64 zero_nata gcs [] @
+  shows_prec_list show_char zero_nata c [] @
+    shows_prec_uint64 zero_nata uset [] @
+      shows_prec_list show_char zero_nata c [] @
+        shows_prec_nat zero_nata lcount []) ^ "\n"))
+           end
       else ()))
     x;
 
@@ -8425,7 +8408,8 @@ fun finalise_init_code_unb x =
                    ((Uint64.zero,
                       (Uint64.zero,
                         (Uint64.zero,
-                          (Uint64.zero, (Uint64.zero, Uint64.zero))))),
+                          (Uint64.zero,
+                            (Uint64.zero, (Uint64.zero, Uint64.zero)))))),
                      (ema_init (Uint64.fromInt (128849010 : IntInf.int)),
                        (ema_init (Uint64.fromInt (429450 : IntInf.int)),
                          (restart_info_init,
@@ -8698,10 +8682,6 @@ val isasat_banner_content : char list =
     Chara (false, false, false, false, false, true, false, false),
     Chara (false, false, false, false, false, true, false, false),
     Chara (false, false, false, false, false, true, false, false),
-    Chara (false, false, false, false, false, true, false, false),
-    Chara (false, false, false, false, false, true, false, false),
-    Chara (false, false, false, false, false, true, false, false),
-    Chara (false, false, false, false, false, true, false, false),
     Chara (true, false, true, false, true, true, true, false),
     Chara (true, true, false, false, true, true, true, false),
     Chara (true, false, true, false, false, true, true, false),
@@ -8748,6 +8728,16 @@ val isasat_banner_content : char list =
     Chara (false, false, false, false, false, true, false, false),
     Chara (false, false, false, false, false, true, false, false),
     Chara (false, false, false, false, false, true, false, false),
+    Chara (false, false, false, false, false, true, false, false),
+    Chara (false, false, false, false, false, true, false, false),
+    Chara (false, false, false, false, false, true, false, false),
+    Chara (false, false, false, false, false, true, false, false),
+    Chara (true, true, true, false, false, false, true, false),
+    Chara (true, true, false, false, false, false, true, false),
+    Chara (false, false, false, false, false, true, false, false),
+    Chara (false, false, false, false, false, true, false, false),
+    Chara (false, false, false, false, false, true, false, false),
+    Chara (false, false, false, false, false, true, false, false),
     Chara (false, false, true, true, false, false, true, false),
     Chara (true, false, true, false, false, true, true, false),
     Chara (true, false, false, false, false, true, true, false),
@@ -8761,7 +8751,8 @@ val isasat_banner_content : char list =
     Chara (true, false, true, false, true, true, true, false),
     Chara (true, true, false, false, true, true, true, false),
     Chara (true, false, true, false, false, true, true, false),
-    Chara (true, true, false, false, true, true, true, false)];
+    Chara (true, true, false, false, true, true, true, false),
+    Chara (false, false, false, false, false, true, false, false)];
 
 fun isasat_information_banner_code uu =
   (fn () =>
@@ -8994,7 +8985,8 @@ fun finalise_init_code x =
                    ((Uint64.zero,
                       (Uint64.zero,
                         (Uint64.zero,
-                          (Uint64.zero, (Uint64.zero, Uint64.zero))))),
+                          (Uint64.zero,
+                            (Uint64.zero, (Uint64.zero, Uint64.zero)))))),
                      (ema_init (Uint64.fromInt (128849010 : IntInf.int)),
                        (ema_init (Uint64.fromInt (429450 : IntInf.int)),
                          (restart_info_init,
@@ -9031,7 +9023,8 @@ val empty_conflict_code :
       (Uint64.uint64 *
         (Uint64.uint64 *
           (Uint64.uint64 *
-            (Uint64.uint64 * (Uint64.uint64 * Uint64.uint64)))))))
+            (Uint64.uint64 *
+              (Uint64.uint64 * (Uint64.uint64 * Uint64.uint64))))))))
   = (fn () =>
       let
         val x = arl_empty (default_uint32, heap_uint32) zero_nat ();
@@ -9039,7 +9032,8 @@ val empty_conflict_code :
         (SOME x,
           (Uint64.zero,
             (Uint64.zero,
-              (Uint64.zero, (Uint64.zero, (Uint64.zero, Uint64.zero))))))
+              (Uint64.zero,
+                (Uint64.zero, (Uint64.zero, (Uint64.zero, Uint64.zero)))))))
       end);
 
 fun op_list_is_empty x = null x;
@@ -9061,12 +9055,14 @@ val empty_init_code :
       (Uint64.uint64 *
         (Uint64.uint64 *
           (Uint64.uint64 *
-            (Uint64.uint64 * (Uint64.uint64 * Uint64.uint64)))))))
+            (Uint64.uint64 *
+              (Uint64.uint64 * (Uint64.uint64 * Uint64.uint64))))))))
   = (fn () =>
       (NONE,
         (Uint64.zero,
           (Uint64.zero,
-            (Uint64.zero, (Uint64.zero, (Uint64.zero, Uint64.zero)))))));
+            (Uint64.zero,
+              (Uint64.zero, (Uint64.zero, (Uint64.zero, Uint64.zero))))))));
 
 fun get_stats_code x =
   (fn (a, b) =>
