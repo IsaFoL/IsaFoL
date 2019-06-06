@@ -18,33 +18,13 @@ where
           T \<leftarrow> skip_and_resolve_loop_wl_D_heur S;
           ASSERT(length (get_clauses_wl_heur S) = length (get_clauses_wl_heur T));
           U \<leftarrow> backtrack_wl_D_nlit_heur T;
+          U \<leftarrow> isasat_current_status U; \<comment> \<open>Print some information every once in a while\<close>
           RETURN (False, U)
         }
         else RETURN (True, S)
       }
     }
   \<close>
-
-lemma cdcl_twl_o_prog_wl_D_heur_alt_def:
-  \<open>cdcl_twl_o_prog_wl_D_heur S =
-    do {
-      if get_conflict_wl_is_None_heur S
-      then decide_wl_or_skip_D_heur S
-      else do {
-        if count_decided_st_heur S > zero_uint32_nat
-        then do {
-          T \<leftarrow> skip_and_resolve_loop_wl_D_heur S;
-          ASSERT(length (get_clauses_wl_heur S) = length (get_clauses_wl_heur T));
-          U \<leftarrow> backtrack_wl_D_nlit_heur T;
-          _ \<leftarrow> isasat_current_status U; \<comment> \<open>Print some information every once in a while\<close>
-          RETURN (False, U)
-        }
-        else RETURN (True, S)
-      }
-    }
-  \<close>
-  unfolding cdcl_twl_o_prog_wl_D_heur_def isasat_current_status_def
-  by auto
 
 sepref_register get_conflict_wl_is_None decide_wl_or_skip_D_heur skip_and_resolve_loop_wl_D_heur
   backtrack_wl_D_nlit_heur isasat_current_status count_decided_st_heur get_conflict_wl_is_None_heur
@@ -54,7 +34,7 @@ sepref_register cdcl_twl_o_prog_wl_D
 sepref_definition cdcl_twl_o_prog_wl_D_code
   is \<open>cdcl_twl_o_prog_wl_D_heur\<close>
   :: \<open>isasat_unbounded_assn\<^sup>d \<rightarrow>\<^sub>a bool_assn *a isasat_unbounded_assn\<close>
-  unfolding cdcl_twl_o_prog_wl_D_heur_alt_def PR_CONST_def
+  unfolding cdcl_twl_o_prog_wl_D_heur_def PR_CONST_def
   unfolding get_conflict_wl_is_None get_conflict_wl_is_None_heur_alt_def[symmetric]
   supply [[goals_limit = 1]]
   by sepref
@@ -63,7 +43,7 @@ sepref_definition cdcl_twl_o_prog_wl_D_fast_code
   is \<open>cdcl_twl_o_prog_wl_D_heur\<close>
   :: \<open>[isasat_fast]\<^sub>a
       isasat_bounded_assn\<^sup>d \<rightarrow> bool_assn *a isasat_bounded_assn\<close>
-  unfolding cdcl_twl_o_prog_wl_D_heur_alt_def PR_CONST_def
+  unfolding cdcl_twl_o_prog_wl_D_heur_def PR_CONST_def
   unfolding get_conflict_wl_is_None get_conflict_wl_is_None_heur_alt_def[symmetric]
   supply [[goals_limit = 1]] isasat_fast_def[simp]
   by sepref
@@ -169,7 +149,8 @@ proof -
     apply (refine_vcg
         decide_wl_or_skip_D_heur_decide_wl_or_skip_D[where r=r, THEN fref_to_Down, THEN order_trans]
         skip_and_resolve_loop_wl_D_heur_skip_and_resolve_loop_wl_D[where r=r, THEN fref_to_Down]
-        backtrack_wl_D_nlit_backtrack_wl_D[where r=r, THEN fref_to_Down])
+        backtrack_wl_D_nlit_backtrack_wl_D[where r=r, THEN fref_to_Down]
+        isasat_current_status_id[THEN fref_to_Down, THEN order_trans])
     subgoal
       by (auto simp: twl_st_heur_state_simp
           get_conflict_wl_is_None_heur_get_conflict_wl_is_None[THEN fref_to_Down_unRET_Id])
@@ -178,7 +159,8 @@ proof -
     subgoal by (auto simp: twl_st_heur_state_simp twl_st_heur_count_decided_st_alt_def)
     subgoal by (auto simp: twl_st_heur_state_simp twl_st_heur_twl_st_heur_conflict_ana)
     subgoal by (auto simp: twl_st_heur_state_simp)
-    subgoal by (auto simp: twl_st_heur_state_simp)
+    apply assumption
+    subgoal by (auto simp: conc_fun_RES RETURN_def)
     subgoal by (auto simp: twl_st_heur_state_simp)
     done
 qed

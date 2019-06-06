@@ -63,8 +63,9 @@ definition isasat_header :: string where
 text \<open>Printing the information slows down the solver by a huge factor.\<close>
 definition isasat_banner_content where
 \<open>isasat_banner_content =
-''c  conflicts       decisions     restarts     uset
-c        propagations     reductions         GC    Learnt clauses ''\<close>
+''c  conflicts       decisions     restarts   uset    avg_lbd'' @
+''c        propagations     reductions     GC    Learnt ''  @
+''c                                             clauses ''\<close>
 
 definition isasat_information_banner :: \<open>_ \<Rightarrow> unit nres\<close> where
 \<open>isasat_information_banner _ =
@@ -80,35 +81,49 @@ lemma isasat_information_banner_hnr[sepref_fr_rules]:
    R\<^sup>k \<rightarrow>\<^sub>a id_assn\<close>
   by sepref_to_hoare (sep_auto simp: isasat_information_banner_code_def isasat_information_banner_def)
 
-definition isasat_current_information :: \<open>stats \<Rightarrow> nat \<Rightarrow> unit\<close> where
+definition zero_some_stats :: \<open>stats \<Rightarrow> stats\<close> where
+\<open>zero_some_stats = (\<lambda>(propa, confl, decs, frestarts, lrestarts, uset, gcs, lbds).
+     (propa, confl, decs, frestarts, lrestarts, uset, gcs, 0))\<close>
+
+definition isasat_current_information :: \<open>stats \<Rightarrow> nat \<Rightarrow> stats\<close> where
 \<open>isasat_current_information =
-   (\<lambda>(propa, confl, decs, frestarts, lrestarts, uset, gcs) lcount.
-      if confl AND 8191 = 8191 \<comment> \<open>\<^term>\<open>8191 = 8192 - 1\<close>, i.e., we print when all first bits are 1.\<close>
+   (\<lambda>(propa, confl, decs, frestarts, lrestarts, uset, gcs, lbds) lcount.
+     if confl AND 8191 = 8191 \<comment> \<open>\<^term>\<open>8191 = 8192 - 1\<close>, i.e., we print when all first bits are 1.\<close>
      then let c = '' | '' in
-        println_string (String.implode (show ''c | '' @ show confl @ show c @ show propa @
+        let _ = println_string (String.implode (show ''c | '' @ show confl @ show c @ show propa @
           show c @ show decs @ show c @ show frestarts @ show c @ show lrestarts
-          @ show c @ show gcs @ show c @ show uset @ show c @ show lcount))
-      else ()
+          @ show c @ show gcs @ show c @ show uset @ show c @ show lcount @ show c @ show (lbds >> 13))) in
+        zero_some_stats (propa, confl, decs, frestarts, lrestarts, uset, gcs, lbds)
+      else (propa, confl, decs, frestarts, lrestarts, uset, gcs, lbds)
       )\<close>
 
 
-definition print_current_information :: \<open>stats \<Rightarrow> nat \<Rightarrow> unit\<close> where
-\<open>print_current_information _ _ = ()\<close>
+definition print_current_information :: \<open>stats \<Rightarrow> nat \<Rightarrow> stats\<close> where
+\<open>print_current_information = (\<lambda>(propa, confl, decs, frestarts, lrestarts, uset, gcs, lbds) _.
+     if confl AND 8191 = 8191 then (propa, confl, decs, frestarts, lrestarts, uset, gcs, 0)
+     else (propa, confl, decs, frestarts, lrestarts, uset, gcs, lbds))\<close>
+sepref_register print_current_information
 
 lemma print_current_information_hnr[sepref_fr_rules]:
    \<open>(uncurry (return oo isasat_current_information), uncurry (RETURN oo print_current_information)) \<in>
-   stats_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a id_assn\<close>
-  by sepref_to_hoare sep_auto
+   stats_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a stats_assn\<close>
+  by sepref_to_hoare (sep_auto simp: isasat_current_information_def print_current_information_def
+    zero_some_stats_def)
 
-definition isasat_current_status :: \<open>twl_st_wl_heur \<Rightarrow> unit nres\<close> where
+
+definition isasat_current_status :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
 \<open>isasat_current_status =
    (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats,
        fast_ema, slow_ema, ccount, avdom,
-       vdom, lcount, opts). RETURN (print_current_information stats lcount))\<close>
+       vdom, lcount, opts, old_arena).
+     let stats = (print_current_information stats lcount)
+     in RETURN (M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats,
+       fast_ema, slow_ema, ccount, avdom,
+       vdom, lcount, opts, old_arena))\<close>
 
 sepref_definition isasat_current_status_code
   is \<open>isasat_current_status\<close>
-  :: \<open>isasat_unbounded_assn\<^sup>k \<rightarrow>\<^sub>a id_assn\<close>
+  :: \<open>isasat_unbounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_unbounded_assn\<close>
   supply [[goals_limit=1]]
   unfolding isasat_unbounded_assn_def isasat_current_status_def
   by sepref
@@ -117,11 +132,18 @@ declare isasat_current_status_code.refine[sepref_fr_rules]
 
 sepref_definition isasat_current_status_fast_code
   is \<open>isasat_current_status\<close>
-  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a id_assn\<close>
+  :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
   supply [[goals_limit=1]]
   unfolding isasat_bounded_assn_def isasat_current_status_def
   by sepref
 
 declare isasat_current_status_fast_code.refine[sepref_fr_rules]
+
+lemma isasat_current_status_id:
+  \<open>(isasat_current_status, RETURN o id) \<in>
+  {(S, T). (S, T) \<in> twl_st_heur \<and> length (get_clauses_wl_heur S) \<le> r}  \<rightarrow>\<^sub>f
+   \<langle>{(S, T). (S, T) \<in> twl_st_heur \<and> length (get_clauses_wl_heur S) \<le> r}\<rangle>nres_rel\<close>
+  by (intro frefI nres_relI)
+    (auto simp: twl_st_heur_def isasat_current_status_def)
 
 end

@@ -758,7 +758,7 @@ definition propagate_bt_wl_D_heur
       vm \<leftarrow> isa_vmtf_flush_int M vm;
       ASSERT(atm_of L < length \<phi>);
       RETURN (M, N, D, j, W, vm, save_phase (-L) \<phi>, zero_uint32_nat,
-         cach, lbd, outl, stats, ema_update glue fema, ema_update glue sema,
+         cach, lbd, outl, add_lbd (uint64_of_nat glue) stats, ema_update glue fema, ema_update glue sema,
           incr_conflict_count_since_last_restart res_info, vdom @ [nat_of_uint32_conv i],
           avdom @ [nat_of_uint32_conv i],
           Suc lcount, opts)
@@ -1718,7 +1718,7 @@ proof -
           vm \<leftarrow> isa_vmtf_flush_int M vm;
           ASSERT(atm_of L < length \<phi>);
           RETURN (M, N, D, j, W, vm, save_phase (-L) \<phi>, zero_uint32_nat,
-            cach, lbd, outl, stats, ema_update glue fema, ema_update glue sema,
+            cach, lbd, outl, add_lbd (uint64_of_nat glue) stats, ema_update glue fema, ema_update glue sema,
               incr_conflict_count_since_last_restart res_info, vdom @ [nat_of_uint32_conv i],
               avdom @ [nat_of_uint32_conv i], Suc lcount, opts)
       })\<close>
@@ -2352,6 +2352,11 @@ subsubsection \<open>Backtrack with direct extraction of literal if highest leve
 lemma le_uint32_max_div_2_le_uint32_max: \<open>a \<le> uint_max div 2 + 1 \<Longrightarrow> a \<le> uint32_max\<close>
   by (auto simp: uint_max_def uint64_max_def)
 
+lemma uint64_of_uint32_uint64_of_nat[sepref_fr_rules]:
+  \<open>(return o uint64_of_uint32, RETURN o uint64_of_nat) \<in> uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a uint64_assn\<close>
+  by sepref_to_hoare
+   (sep_auto simp: uint32_nat_rel_def br_def uint64_of_uint32_def)
+
 sepref_definition propagate_bt_wl_D_code
   is \<open>uncurry2 propagate_bt_wl_D_heur\<close>
   :: \<open>unat_lit_assn\<^sup>k *\<^sub>a clause_ll_assn\<^sup>d *\<^sub>a isasat_unbounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_unbounded_assn\<close>
@@ -2392,7 +2397,7 @@ lemma propagate_bt_wl_D_heur_alt_def:
       vm \<leftarrow> isa_vmtf_flush_int M vm;
       ASSERT(atm_of L < length \<phi>);
       RETURN (M, N, D, j, W, vm, save_phase (-L) \<phi>, zero_uint32_nat,
-         cach, lbd, outl, stats, ema_update glue fema, ema_update glue sema,
+         cach, lbd, outl, add_lbd (uint64_of_nat glue) stats, ema_update glue fema, ema_update glue sema,
           incr_conflict_count_since_last_restart res_info, vdom @ [nat_of_uint64_conv i],
           avdom @ [nat_of_uint64_conv i],
           Suc lcount, opts)

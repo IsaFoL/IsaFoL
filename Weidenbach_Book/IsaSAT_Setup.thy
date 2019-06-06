@@ -37,11 +37,11 @@ NB: the statistics are not proven correct (especially they might
 overflow), there are just there to look for regressions, do some comparisons (e.g., to conclude that
 we are propagating slower than the other solvers), or to test different option combination.
 \<close>
-type_synonym stats = \<open>uint64 \<times> uint64 \<times> uint64 \<times> uint64 \<times> uint64 \<times> uint64 \<times> uint64\<close>
+type_synonym stats = \<open>uint64 \<times> uint64 \<times> uint64 \<times> uint64 \<times> uint64 \<times> uint64 \<times> uint64 \<times> uint64\<close>
 
-abbreviation stats_assn where
+abbreviation stats_assn :: \<open>stats \<Rightarrow> stats \<Rightarrow> assn\<close> where
   \<open>stats_assn \<equiv> uint64_assn *a uint64_assn *a uint64_assn *a uint64_assn *a uint64_assn
-     *a uint64_assn *a uint64_assn\<close>
+     *a uint64_assn *a uint64_assn *a uint64_assn\<close>
 
 definition incr_propagation :: \<open>stats \<Rightarrow> stats\<close> where
   \<open>incr_propagation = (\<lambda>(propa, confl, dec). (propa + 1, confl, dec))\<close>
@@ -62,7 +62,10 @@ definition incr_uset :: \<open>stats \<Rightarrow> stats\<close> where
   \<open>incr_uset = (\<lambda>(propa, confl, dec, res, lres, (uset, gcs)). (propa, confl, dec, res, lres, uset + 1, gcs))\<close>
 
 definition incr_GC :: \<open>stats \<Rightarrow> stats\<close> where
-  \<open>incr_GC = (\<lambda>(propa, confl, dec, res, lres, uset, gcs). (propa, confl, dec, res, lres, uset, gcs + 1))\<close>
+  \<open>incr_GC = (\<lambda>(propa, confl, dec, res, lres, uset, gcs, lbds). (propa, confl, dec, res, lres, uset, gcs + 1, lbds))\<close>
+
+definition add_lbd :: \<open>uint64 \<Rightarrow> stats \<Rightarrow> stats\<close> where
+  \<open>add_lbd lbd = (\<lambda>(propa, confl, dec, res, lres, uset, gcs, lbds). (propa, confl, dec, res, lres, uset, gcs, lbd + lbds))\<close>
 
 lemma incr_propagation_hnr[sepref_fr_rules]:
     \<open>(return o incr_propagation, RETURN o incr_propagation) \<in> stats_assn\<^sup>d \<rightarrow>\<^sub>a stats_assn\<close>
@@ -91,6 +94,10 @@ lemma incr_uset_hnr[sepref_fr_rules]:
 lemma incr_GC_hnr[sepref_fr_rules]:
     \<open>(return o incr_GC, RETURN o incr_GC) \<in> stats_assn\<^sup>d \<rightarrow>\<^sub>a stats_assn\<close>
   by sepref_to_hoare (sep_auto simp: incr_GC_def)
+
+lemma add_lbd_hnr[sepref_fr_rules]:
+    \<open>(uncurry (return oo add_lbd), uncurry (RETURN oo add_lbd)) \<in> uint64_assn\<^sup>k *\<^sub>a stats_assn\<^sup>d \<rightarrow>\<^sub>a stats_assn\<close>
+  by sepref_to_hoare (sep_auto simp: add_lbd_def)
 
 
 paragraph \<open>Moving averages\<close>
@@ -160,7 +167,6 @@ definition (in -) ema_update_ref :: \<open>uint32 \<Rightarrow> ema \<Rightarrow
        let \<beta> = \<beta> >> 1 in
        let \<beta> = if \<beta> \<le> \<alpha> then \<alpha> else \<beta> in
        (value, \<alpha>, \<beta>, wait, period))\<close>
-     term fold
 
 lemma (in -) ema_update_hnr[sepref_fr_rules]:
   \<open>(uncurry (return oo ema_update_ref), uncurry (RETURN oo ema_update)) \<in>
