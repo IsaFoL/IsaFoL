@@ -63,8 +63,10 @@ definition isasat_header :: string where
 text \<open>Printing the information slows down the solver by a huge factor.\<close>
 definition isasat_banner_content where
 \<open>isasat_banner_content =
-''c  conflicts       decisions     restarts   uset    avg_lbd'' @
-''c        propagations     reductions     GC    Learnt ''  @
+''c  conflicts       decisions     restarts   uset    avg_lbd
+'' @
+''c        propagations     reductions     GC    Learnt
+''  @
 ''c                                             clauses ''\<close>
 
 definition isasat_information_banner :: \<open>_ \<Rightarrow> unit nres\<close> where

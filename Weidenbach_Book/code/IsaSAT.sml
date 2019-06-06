@@ -70,7 +70,7 @@ fun print_clauses id a [] = ()
       print_clauses (id+1) a xs
     )
 
-fun print_stat (propa, (confl, (dec, (res, (lres, (ures, gcs)))))) end_of_init end_of_processing =
+fun print_stat (propa, (confl, (dec, (res, (lres, (ures, (gcs, _))))))) end_of_init end_of_processing =
   let
     fun print_timer d t = print ("c " ^ d ^ ": " ^ Time.toString (#usr (#nongc t)) ^ " s (usr) " ^  Time.toString (#sys (#nongc t)) ^ " s (sys)\n");
     fun print_timer_GC d t = print ("c " ^ d ^ ": " ^ Time.toString (#usr (#gc t)) ^ " s (usr) " ^  Time.toString (#sys (#gc t)) ^ " s (sys)\n");

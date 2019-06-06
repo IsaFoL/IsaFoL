@@ -186,7 +186,8 @@ structure SAT_Solver : sig
               (Uint64.uint64 *
                 (Uint64.uint64 *
                   (Uint64.uint64 *
-                    (Uint64.uint64 * (Uint64.uint64 * Uint64.uint64))))))))
+                    (Uint64.uint64 *
+                      (Uint64.uint64 * (Uint64.uint64 * Uint64.uint64)))))))))
 end = struct
 
 datatype typerepa = Typerep of string * typerepa list;
@@ -546,7 +547,7 @@ fun blit A_ src si dst di len =
     array_blit src (integer_of_nat
                      si) dst (integer_of_nat di) (integer_of_nat len));
 
-val version : string = "2da6c763";
+val version : string = "4d125916";
 
 fun get_LBD_code x = (fn xi => (fn () => let
    val (_, (_, b)) = xi;
@@ -3105,8 +3106,10 @@ fun isasat_GC_clauses_prog_wl2_code x =
 fun take_arl x = (fn i => fn (xs, _) => (xs, i)) x;
 
 fun incr_GC x =
-  (fn (propa, (confl, (dec, (res, (lres, (uset, gcs)))))) =>
-    (propa, (confl, (dec, (res, (lres, (uset, Uint64.plus gcs Uint64.one)))))))
+  (fn (propa, (confl, (dec, (res, (lres, (uset, (gcs, lbds))))))) =>
+    (propa,
+      (confl,
+        (dec, (res, (lres, (uset, (Uint64.plus gcs Uint64.one, lbds))))))))
     x;
 
 fun isasat_GC_clauses_prog_wl_code x =
@@ -5126,8 +5129,14 @@ fun shows_prec_uint64 n m xs = shows_prec_nat n (nat_of_uint64 m) xs;
 
 fun shows_prec_list A_ p xs = shows_list A_ xs;
 
+fun zero_some_stats x =
+  (fn (propa, (confl, (decs, (frestarts, (lrestarts, (uset, (gcs, _))))))) =>
+    (propa,
+      (confl, (decs, (frestarts, (lrestarts, (uset, (gcs, Uint64.zero))))))))
+    x;
+
 fun isasat_current_information x =
-  (fn (propa, (confl, (decs, (frestarts, (lrestarts, (uset, gcs)))))) =>
+  (fn (propa, (confl, (decs, (frestarts, (lrestarts, (uset, (gcs, lbds))))))) =>
     fn lcount =>
     (if (((Uint64.andb confl
             (Uint64.fromInt
@@ -5138,47 +5147,60 @@ fun isasat_current_information x =
                [Chara (false, false, false, false, false, true, false, false),
                  Chara (false, false, true, true, true, true, true, false),
                  Chara (false, false, false, false, false, true, false, false)];
+             val _ =
+               ignore (print
+                 (implode
+                    (shows_prec_list show_char zero_nata
+                       [Chara (true, true, false, false, false, true, true,
+                                false),
+                         Chara (false, false, false, false, false, true, false,
+                                 false),
+                         Chara (false, false, true, true, true, true, true,
+                                 false),
+                         Chara (false, false, false, false, false, true, false,
+                                 false)]
+                       [] @
+                      shows_prec_uint64 zero_nata confl [] @
+                        shows_prec_list show_char zero_nata c [] @
+                          shows_prec_uint64 zero_nata propa [] @
+                            shows_prec_list show_char zero_nata c [] @
+                              shows_prec_uint64 zero_nata decs [] @
+                                shows_prec_list show_char zero_nata c [] @
+                                  shows_prec_uint64 zero_nata frestarts [] @
+                                    shows_prec_list show_char zero_nata c [] @
+                                      shows_prec_uint64 zero_nata lrestarts [] @
+shows_prec_list show_char zero_nata c [] @
+  shows_prec_uint64 zero_nata gcs [] @
+    shows_prec_list show_char zero_nata c [] @
+      shows_prec_uint64 zero_nata uset [] @
+        shows_prec_list show_char zero_nata c [] @
+          shows_prec_nat zero_nata lcount [] @
+            shows_prec_list show_char zero_nata c [] @
+              shows_prec_uint64 zero_nata
+                (shiftr_uint64 lbds (nat_of_integer (13 : IntInf.int)))
+                []) ^ "\n"));
            in
-             ignore (print
-               (implode
-                  (shows_prec_list show_char zero_nata
-                     [Chara (true, true, false, false, false, true, true,
-                              false),
-                       Chara (false, false, false, false, false, true, false,
-                               false),
-                       Chara (false, false, true, true, true, true, true,
-                               false),
-                       Chara (false, false, false, false, false, true, false,
-                               false)]
-                     [] @
-                    shows_prec_uint64 zero_nata confl [] @
-                      shows_prec_list show_char zero_nata c [] @
-                        shows_prec_uint64 zero_nata propa [] @
-                          shows_prec_list show_char zero_nata c [] @
-                            shows_prec_uint64 zero_nata decs [] @
-                              shows_prec_list show_char zero_nata c [] @
-                                shows_prec_uint64 zero_nata frestarts [] @
-                                  shows_prec_list show_char zero_nata c [] @
-                                    shows_prec_uint64 zero_nata lrestarts [] @
-                                      shows_prec_list show_char zero_nata c [] @
-shows_prec_uint64 zero_nata gcs [] @
-  shows_prec_list show_char zero_nata c [] @
-    shows_prec_uint64 zero_nata uset [] @
-      shows_prec_list show_char zero_nata c [] @
-        shows_prec_nat zero_nata lcount []) ^ "\n"))
+             zero_some_stats
+               (propa,
+                 (confl, (decs, (frestarts, (lrestarts, (uset, (gcs, lbds)))))))
            end
-      else ()))
+      else (propa,
+             (confl, (decs, (frestarts, (lrestarts, (uset, (gcs, lbds)))))))))
     x;
 
 fun isasat_current_status_fast_code x =
   (fn xi =>
     (fn () =>
       let
-        val (_, (_, (_, (_, (_, (_, (_, (_,
-  (_, (_, (_, (a1k, (_, (_, (_, (_, (_, (a1q, _))))))))))))))))))
+        val (a1, (a1a, (a1b, (a1c, (a1d, (a1e,
+   (a1f, (a1g, (a1h, (a1i, (a1j, (a1k, (a1l,
+ (a1m, (a1n, (a1o, (a1p, (a1q, (a1r, a2r)))))))))))))))))))
           = xi;
       in
-        isasat_current_information a1k a1q
+        (a1, (a1a, (a1b, (a1c, (a1d, (a1e, (a1f,
+     (a1g, (a1h, (a1i, (a1j, (isasat_current_information a1k a1q,
+                               (a1l, (a1m, (a1n,
+     (a1o, (a1p, (a1q, (a1r, a2r)))))))))))))))))))
       end))
     x;
 
@@ -6541,6 +6563,11 @@ fun vmtf_rescore_fast_code x =
     end)
     x;
 
+fun add_lbd lbd =
+  (fn (propa, (confl, (dec, (res, (lres, (uset, (gcs, lbds))))))) =>
+    (propa,
+      (confl, (dec, (res, (lres, (uset, (gcs, Uint64.plus lbd lbds))))))));
+
 fun propagate_bt_wl_D_fast_code x =
   (fn ai => fn bia =>
     fn (a1, (a1a, (a1b, (_, (a1d, (a1e, (a1f,
@@ -6613,7 +6640,7 @@ fun propagate_bt_wl_D_fast_code x =
                       (fn () =>
                         (x_r, (x_i, (a1b, (x_p,
     (x_m, (x_t, (xb, ((Word32.fromInt 0),
-                       (a1h, (x_o, (a1j, (a1k,
+                       (a1h, (x_o, (a1j, (add_lbd (uint64_of_uint32 x_c) a1k,
    (ema_update_ref x_c a1l,
      (ema_update_ref x_c a1m,
        (incr_conflict_count_since_last_restart a1n,
@@ -6660,7 +6687,7 @@ fun cdcl_twl_o_prog_wl_D_fast_code x =
                           (fn x_c =>
                             (fn f_ => fn () => f_
                               ((isasat_current_status_fast_code x_c) ()) ())
-                              (fn _ => (fn () => (false, x_c)))))
+                              (fn x_d => (fn () => (false, x_d)))))
                else (fn () => (true, xi))))
         ()
     end)
@@ -6983,11 +7010,15 @@ fun isasat_current_status_code x =
   (fn xi =>
     (fn () =>
       let
-        val (_, (_, (_, (_, (_, (_, (_, (_,
-  (_, (_, (_, (a1k, (_, (_, (_, (_, (_, (a1q, _))))))))))))))))))
+        val (a1, (a1a, (a1b, (a1c, (a1d, (a1e,
+   (a1f, (a1g, (a1h, (a1i, (a1j, (a1k, (a1l,
+ (a1m, (a1n, (a1o, (a1p, (a1q, (a1r, a2r)))))))))))))))))))
           = xi;
       in
-        isasat_current_information a1k a1q
+        (a1, (a1a, (a1b, (a1c, (a1d, (a1e, (a1f,
+     (a1g, (a1h, (a1i, (a1j, (isasat_current_information a1k a1q,
+                               (a1l, (a1m, (a1n,
+     (a1o, (a1p, (a1q, (a1r, a2r)))))))))))))))))))
       end))
     x;
 
@@ -7881,7 +7912,7 @@ fun propagate_bt_wl_D_code x =
                       (fn () =>
                         (x_r, (x_i, (a1b, (x_p,
     (x_m, (x_t, (xb, ((Word32.fromInt 0),
-                       (a1h, (x_o, (a1j, (a1k,
+                       (a1h, (x_o, (a1j, (add_lbd (uint64_of_uint32 x_c) a1k,
    (ema_update_ref x_c a1l,
      (ema_update_ref x_c a1m,
        (incr_conflict_count_since_last_restart a1n,
@@ -7926,7 +7957,7 @@ fun cdcl_twl_o_prog_wl_D_code x =
                           (fn x_c =>
                             (fn f_ => fn () => f_
                               ((isasat_current_status_code x_c) ()) ())
-                              (fn _ => (fn () => (false, x_c)))))
+                              (fn x_d => (fn () => (false, x_d)))))
                else (fn () => (true, xi))))
         ()
     end)
@@ -8358,7 +8389,8 @@ fun finalise_init_code_unb x =
                       (Uint64.zero,
                         (Uint64.zero,
                           (Uint64.zero,
-                            (Uint64.zero, (Uint64.zero, Uint64.zero)))))),
+                            (Uint64.zero,
+                              (Uint64.zero, (Uint64.zero, Uint64.zero))))))),
                      (ema_init (Uint64.fromInt (128849010 : IntInf.int)),
                        (ema_init (Uint64.fromInt (429450 : IntInf.int)),
                          (restart_info_init,
@@ -8629,79 +8661,130 @@ val isasat_banner_content : char list =
     Chara (false, false, false, false, false, true, false, false),
     Chara (false, false, false, false, false, true, false, false),
     Chara (false, false, false, false, false, true, false, false),
-    Chara (false, false, false, false, false, true, false, false),
-    Chara (false, false, false, false, false, true, false, false),
     Chara (true, false, true, false, true, true, true, false),
     Chara (true, true, false, false, true, true, true, false),
     Chara (true, false, true, false, false, true, true, false),
     Chara (false, false, true, false, true, true, true, false),
-    Chara (false, true, false, true, false, false, false, false),
-    Chara (true, true, false, false, false, true, true, false),
     Chara (false, false, false, false, false, true, false, false),
     Chara (false, false, false, false, false, true, false, false),
     Chara (false, false, false, false, false, true, false, false),
     Chara (false, false, false, false, false, true, false, false),
-    Chara (false, false, false, false, false, true, false, false),
-    Chara (false, false, false, false, false, true, false, false),
-    Chara (false, false, false, false, false, true, false, false),
-    Chara (false, false, false, false, false, true, false, false),
-    Chara (false, false, false, false, true, true, true, false),
-    Chara (false, true, false, false, true, true, true, false),
-    Chara (true, true, true, true, false, true, true, false),
-    Chara (false, false, false, false, true, true, true, false),
     Chara (true, false, false, false, false, true, true, false),
+    Chara (false, true, true, false, true, true, true, false),
     Chara (true, true, true, false, false, true, true, false),
-    Chara (true, false, false, false, false, true, true, false),
-    Chara (false, false, true, false, true, true, true, false),
-    Chara (true, false, false, true, false, true, true, false),
-    Chara (true, true, true, true, false, true, true, false),
-    Chara (false, true, true, true, false, true, true, false),
-    Chara (true, true, false, false, true, true, true, false),
-    Chara (false, false, false, false, false, true, false, false),
-    Chara (false, false, false, false, false, true, false, false),
-    Chara (false, false, false, false, false, true, false, false),
-    Chara (false, false, false, false, false, true, false, false),
-    Chara (false, false, false, false, false, true, false, false),
-    Chara (false, true, false, false, true, true, true, false),
-    Chara (true, false, true, false, false, true, true, false),
-    Chara (false, false, true, false, false, true, true, false),
-    Chara (true, false, true, false, true, true, true, false),
-    Chara (true, true, false, false, false, true, true, false),
-    Chara (false, false, true, false, true, true, true, false),
-    Chara (true, false, false, true, false, true, true, false),
-    Chara (true, true, true, true, false, true, true, false),
-    Chara (false, true, true, true, false, true, true, false),
-    Chara (true, true, false, false, true, true, true, false),
-    Chara (false, false, false, false, false, true, false, false),
-    Chara (false, false, false, false, false, true, false, false),
-    Chara (false, false, false, false, false, true, false, false),
-    Chara (false, false, false, false, false, true, false, false),
-    Chara (false, false, false, false, false, true, false, false),
-    Chara (false, false, false, false, false, true, false, false),
-    Chara (false, false, false, false, false, true, false, false),
-    Chara (false, false, false, false, false, true, false, false),
-    Chara (false, false, false, false, false, true, false, false),
-    Chara (true, true, true, false, false, false, true, false),
-    Chara (true, true, false, false, false, false, true, false),
-    Chara (false, false, false, false, false, true, false, false),
-    Chara (false, false, false, false, false, true, false, false),
-    Chara (false, false, false, false, false, true, false, false),
-    Chara (false, false, false, false, false, true, false, false),
-    Chara (false, false, true, true, false, false, true, false),
-    Chara (true, false, true, false, false, true, true, false),
-    Chara (true, false, false, false, false, true, true, false),
-    Chara (false, true, false, false, true, true, true, false),
-    Chara (false, true, true, true, false, true, true, false),
-    Chara (false, false, true, false, true, true, true, false),
-    Chara (false, false, false, false, false, true, false, false),
-    Chara (true, true, false, false, false, true, true, false),
+    Chara (true, true, true, true, true, false, true, false),
     Chara (false, false, true, true, false, true, true, false),
-    Chara (true, false, false, false, false, true, true, false),
-    Chara (true, false, true, false, true, true, true, false),
-    Chara (true, true, false, false, true, true, true, false),
-    Chara (true, false, true, false, false, true, true, false),
-    Chara (true, true, false, false, true, true, true, false),
-    Chara (false, false, false, false, false, true, false, false)];
+    Chara (false, true, false, false, false, true, true, false),
+    Chara (false, false, true, false, false, true, true, false),
+    Chara (false, true, false, true, false, false, false, false)] @
+    [Chara (true, true, false, false, false, true, true, false),
+      Chara (false, false, false, false, false, true, false, false),
+      Chara (false, false, false, false, false, true, false, false),
+      Chara (false, false, false, false, false, true, false, false),
+      Chara (false, false, false, false, false, true, false, false),
+      Chara (false, false, false, false, false, true, false, false),
+      Chara (false, false, false, false, false, true, false, false),
+      Chara (false, false, false, false, false, true, false, false),
+      Chara (false, false, false, false, false, true, false, false),
+      Chara (false, false, false, false, true, true, true, false),
+      Chara (false, true, false, false, true, true, true, false),
+      Chara (true, true, true, true, false, true, true, false),
+      Chara (false, false, false, false, true, true, true, false),
+      Chara (true, false, false, false, false, true, true, false),
+      Chara (true, true, true, false, false, true, true, false),
+      Chara (true, false, false, false, false, true, true, false),
+      Chara (false, false, true, false, true, true, true, false),
+      Chara (true, false, false, true, false, true, true, false),
+      Chara (true, true, true, true, false, true, true, false),
+      Chara (false, true, true, true, false, true, true, false),
+      Chara (true, true, false, false, true, true, true, false),
+      Chara (false, false, false, false, false, true, false, false),
+      Chara (false, false, false, false, false, true, false, false),
+      Chara (false, false, false, false, false, true, false, false),
+      Chara (false, false, false, false, false, true, false, false),
+      Chara (false, false, false, false, false, true, false, false),
+      Chara (false, true, false, false, true, true, true, false),
+      Chara (true, false, true, false, false, true, true, false),
+      Chara (false, false, true, false, false, true, true, false),
+      Chara (true, false, true, false, true, true, true, false),
+      Chara (true, true, false, false, false, true, true, false),
+      Chara (false, false, true, false, true, true, true, false),
+      Chara (true, false, false, true, false, true, true, false),
+      Chara (true, true, true, true, false, true, true, false),
+      Chara (false, true, true, true, false, true, true, false),
+      Chara (true, true, false, false, true, true, true, false),
+      Chara (false, false, false, false, false, true, false, false),
+      Chara (false, false, false, false, false, true, false, false),
+      Chara (false, false, false, false, false, true, false, false),
+      Chara (false, false, false, false, false, true, false, false),
+      Chara (false, false, false, false, false, true, false, false),
+      Chara (true, true, true, false, false, false, true, false),
+      Chara (true, true, false, false, false, false, true, false),
+      Chara (false, false, false, false, false, true, false, false),
+      Chara (false, false, false, false, false, true, false, false),
+      Chara (false, false, false, false, false, true, false, false),
+      Chara (false, false, false, false, false, true, false, false),
+      Chara (false, false, true, true, false, false, true, false),
+      Chara (true, false, true, false, false, true, true, false),
+      Chara (true, false, false, false, false, true, true, false),
+      Chara (false, true, false, false, true, true, true, false),
+      Chara (false, true, true, true, false, true, true, false),
+      Chara (false, false, true, false, true, true, true, false),
+      Chara (false, true, false, true, false, false, false, false)] @
+      [Chara (true, true, false, false, false, true, true, false),
+        Chara (false, false, false, false, false, true, false, false),
+        Chara (false, false, false, false, false, true, false, false),
+        Chara (false, false, false, false, false, true, false, false),
+        Chara (false, false, false, false, false, true, false, false),
+        Chara (false, false, false, false, false, true, false, false),
+        Chara (false, false, false, false, false, true, false, false),
+        Chara (false, false, false, false, false, true, false, false),
+        Chara (false, false, false, false, false, true, false, false),
+        Chara (false, false, false, false, false, true, false, false),
+        Chara (false, false, false, false, false, true, false, false),
+        Chara (false, false, false, false, false, true, false, false),
+        Chara (false, false, false, false, false, true, false, false),
+        Chara (false, false, false, false, false, true, false, false),
+        Chara (false, false, false, false, false, true, false, false),
+        Chara (false, false, false, false, false, true, false, false),
+        Chara (false, false, false, false, false, true, false, false),
+        Chara (false, false, false, false, false, true, false, false),
+        Chara (false, false, false, false, false, true, false, false),
+        Chara (false, false, false, false, false, true, false, false),
+        Chara (false, false, false, false, false, true, false, false),
+        Chara (false, false, false, false, false, true, false, false),
+        Chara (false, false, false, false, false, true, false, false),
+        Chara (false, false, false, false, false, true, false, false),
+        Chara (false, false, false, false, false, true, false, false),
+        Chara (false, false, false, false, false, true, false, false),
+        Chara (false, false, false, false, false, true, false, false),
+        Chara (false, false, false, false, false, true, false, false),
+        Chara (false, false, false, false, false, true, false, false),
+        Chara (false, false, false, false, false, true, false, false),
+        Chara (false, false, false, false, false, true, false, false),
+        Chara (false, false, false, false, false, true, false, false),
+        Chara (false, false, false, false, false, true, false, false),
+        Chara (false, false, false, false, false, true, false, false),
+        Chara (false, false, false, false, false, true, false, false),
+        Chara (false, false, false, false, false, true, false, false),
+        Chara (false, false, false, false, false, true, false, false),
+        Chara (false, false, false, false, false, true, false, false),
+        Chara (false, false, false, false, false, true, false, false),
+        Chara (false, false, false, false, false, true, false, false),
+        Chara (false, false, false, false, false, true, false, false),
+        Chara (false, false, false, false, false, true, false, false),
+        Chara (false, false, false, false, false, true, false, false),
+        Chara (false, false, false, false, false, true, false, false),
+        Chara (false, false, false, false, false, true, false, false),
+        Chara (false, false, false, false, false, true, false, false),
+        Chara (true, true, false, false, false, true, true, false),
+        Chara (false, false, true, true, false, true, true, false),
+        Chara (true, false, false, false, false, true, true, false),
+        Chara (true, false, true, false, true, true, true, false),
+        Chara (true, true, false, false, true, true, true, false),
+        Chara (true, false, true, false, false, true, true, false),
+        Chara (true, true, false, false, true, true, true, false),
+        Chara (false, false, false, false, false, true, false, false)];
 
 fun isasat_information_banner_code uu =
   (fn () =>
@@ -8936,7 +9019,8 @@ fun finalise_init_code x =
                       (Uint64.zero,
                         (Uint64.zero,
                           (Uint64.zero,
-                            (Uint64.zero, (Uint64.zero, Uint64.zero)))))),
+                            (Uint64.zero,
+                              (Uint64.zero, (Uint64.zero, Uint64.zero))))))),
                      (ema_init (Uint64.fromInt (128849010 : IntInf.int)),
                        (ema_init (Uint64.fromInt (429450 : IntInf.int)),
                          (restart_info_init,
@@ -8974,7 +9058,8 @@ val empty_conflict_code :
         (Uint64.uint64 *
           (Uint64.uint64 *
             (Uint64.uint64 *
-              (Uint64.uint64 * (Uint64.uint64 * Uint64.uint64))))))))
+              (Uint64.uint64 *
+                (Uint64.uint64 * (Uint64.uint64 * Uint64.uint64)))))))))
   = (fn () =>
       let
         val x = arl_empty (default_uint32, heap_uint32) zero_nat ();
@@ -8983,7 +9068,8 @@ val empty_conflict_code :
           (Uint64.zero,
             (Uint64.zero,
               (Uint64.zero,
-                (Uint64.zero, (Uint64.zero, (Uint64.zero, Uint64.zero)))))))
+                (Uint64.zero,
+                  (Uint64.zero, (Uint64.zero, (Uint64.zero, Uint64.zero))))))))
       end);
 
 fun op_list_is_empty x = null x;
@@ -9006,13 +9092,15 @@ val empty_init_code :
         (Uint64.uint64 *
           (Uint64.uint64 *
             (Uint64.uint64 *
-              (Uint64.uint64 * (Uint64.uint64 * Uint64.uint64))))))))
+              (Uint64.uint64 *
+                (Uint64.uint64 * (Uint64.uint64 * Uint64.uint64)))))))))
   = (fn () =>
       (NONE,
         (Uint64.zero,
           (Uint64.zero,
             (Uint64.zero,
-              (Uint64.zero, (Uint64.zero, (Uint64.zero, Uint64.zero))))))));
+              (Uint64.zero,
+                (Uint64.zero, (Uint64.zero, (Uint64.zero, Uint64.zero)))))))));
 
 fun get_stats_code x =
   (fn (a, b) =>
