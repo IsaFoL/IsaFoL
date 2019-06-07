@@ -878,6 +878,16 @@ lemma nat_and_numerals [simp]:
   supply [[show_types]]
   by (auto simp: bitAND_nat_def Bit_def nat_add_distrib)
 
+lemma nat_of_uint32_div:
+  \<open>nat_of_uint32 (a div b) = nat_of_uint32 a div nat_of_uint32 b\<close>
+  by transfer (auto simp: unat_div)
+
+lemma [sepref_fr_rules]:
+  \<open>(uncurry (return oo (div)), uncurry (RETURN oo (div))) \<in>
+     uint32_nat_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+  by sepref_to_hoare
+   (sep_auto simp: uint32_nat_rel_def br_def nat_of_uint32_div)
+
 
 subsubsection \<open>64-bits\<close>
 

@@ -676,6 +676,14 @@ lemma in_dom_in_vdom[simp]:
   unfolding vdom_m_def
   by (auto dest: multi_member_split)
 
+lemma in_vdom_m_upd:
+  \<open>x1f \<in> vdom_m \<A> (g(x1e := (g x1e)[x2 := (x1f, x2f)])) b\<close>
+  if \<open>x2 < length (g x1e)\<close> and \<open>x1e \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<close>
+  using that
+  unfolding vdom_m_def
+  by (auto dest!: multi_member_split intro!: set_update_memI img_fst)
+
+
 lemma in_vdom_m_fmdropD:
   \<open>x \<in> vdom_m \<A> ga (fmdrop C baa) \<Longrightarrow> x \<in> (vdom_m \<A> ga baa)\<close>
   unfolding vdom_m_def
@@ -698,6 +706,11 @@ lemma isa_vmtfI:
 lemma isa_vmtf_consD:
   \<open>((ns, m, fst_As, lst_As, next_search), remove) \<in> isa_vmtf \<A> M \<Longrightarrow>
      ((ns, m, fst_As, lst_As, next_search), remove) \<in> isa_vmtf \<A> (L # M)\<close>
+  by (auto simp: isa_vmtf_def dest: vmtf_consD)
+
+lemma isa_vmtf_consD2:
+  \<open>f \<in> isa_vmtf \<A> M \<Longrightarrow>
+     f \<in> isa_vmtf \<A> (L # M)\<close>
   by (auto simp: isa_vmtf_def dest: vmtf_consD)
 
 
@@ -1094,41 +1107,10 @@ lemma twl_st_heur_isa_length_trail_get_trail_wl:
   unfolding isa_length_trail_def twl_st_heur_def trail_pol_def
   by (cases S) (auto dest: ann_lits_split_reasons_map_lit_of)
 
-
-lemma atm_of_all_lits_of_mm:
-  \<open>set_mset (atm_of `# all_lits_of_mm bw) = atms_of_mm bw\<close>
-  \<open>atm_of ` set_mset (all_lits_of_mm bw) = atms_of_mm bw\<close>
-  using in_all_lits_of_mm_ain_atms_of_iff apply (auto simp: image_iff)
-  by (metis (full_types) image_eqI literal.sel(1))+
-
-lemma \<L>\<^sub>a\<^sub>l\<^sub>l_union:
-   \<open>set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l (A + B)) = set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l  A) \<union> set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l  B)\<close>
-  by (auto simp: \<L>\<^sub>a\<^sub>l\<^sub>l_def)
-
-lemma \<L>\<^sub>a\<^sub>l\<^sub>l_cong:
-  \<open>set_mset A = set_mset B \<Longrightarrow> set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l A) = set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l B)\<close>
-  by (auto simp: \<L>\<^sub>a\<^sub>l\<^sub>l_def)
-
-lemma lit_eq_Neg_Pos_iff:
-  \<open>x \<noteq> Neg (atm_of x) \<longleftrightarrow> is_pos x\<close>
-  \<open>x \<noteq> Pos (atm_of x) \<longleftrightarrow> is_neg x\<close>
-  \<open>-x \<noteq> Neg (atm_of x) \<longleftrightarrow> is_neg x\<close>
-  \<open>-x \<noteq> Pos (atm_of x) \<longleftrightarrow> is_pos x\<close>
-  \<open>Neg (atm_of x) \<noteq> x \<longleftrightarrow> is_pos x\<close>
-  \<open>Pos (atm_of x) \<noteq> x \<longleftrightarrow> is_neg x\<close>
-  \<open>Neg (atm_of x) \<noteq> -x \<longleftrightarrow> is_neg x\<close>
-  \<open>Pos (atm_of x) \<noteq> -x \<longleftrightarrow> is_pos x\<close>
-  by (cases x; auto; fail)+
-
 lemma trail_pol_cong:
   \<open>set_mset \<A> = set_mset \<B> \<Longrightarrow> L \<in> trail_pol \<A> \<Longrightarrow> L \<in> trail_pol \<B>\<close>
   using \<L>\<^sub>a\<^sub>l\<^sub>l_cong[of \<A> \<B>]
   by (auto simp: trail_pol_def ann_lits_split_reasons_def)
-
-lemma atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_cong:
-  \<open>set_mset \<A> = set_mset \<B> \<Longrightarrow> atms_of (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>) = atms_of (\<L>\<^sub>a\<^sub>l\<^sub>l \<B>)\<close>
-  unfolding \<L>\<^sub>a\<^sub>l\<^sub>l_def
-  by auto
 
 lemma distinct_atoms_rel_cong:
   \<open>set_mset \<A> = set_mset \<B> \<Longrightarrow> L \<in> distinct_atoms_rel \<A> \<Longrightarrow> L \<in> distinct_atoms_rel \<B>\<close>
@@ -1500,5 +1482,28 @@ definition rewatch_st :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<cl
      W \<leftarrow> rewatch N W;
      RETURN ((M, N, D, NE, UE, Q, W))
   }\<close>
+
+
+fun remove_watched_wl :: \<open>'v twl_st_wl \<Rightarrow> _\<close> where
+  \<open>remove_watched_wl (M, N, D, NE, UE, Q, _) = (M, N, D, NE, UE, Q)\<close>
+
+lemma rewatch_st_correctness:
+  assumes \<open>get_watched_wl S = (\<lambda>_. [])\<close> and
+    \<open>\<And>x. x \<in># dom_m (get_clauses_wl S) \<Longrightarrow>
+      distinct ((get_clauses_wl S) \<propto> x) \<and> 2 \<le> length ((get_clauses_wl S) \<propto> x)\<close>
+  shows \<open>rewatch_st S \<le> SPEC (\<lambda>T. remove_watched_wl S = remove_watched_wl T \<and>
+     correct_watching_init T)\<close>
+  apply (rule SPEC_rule_conjI)
+  subgoal
+    using rewatch_correctness[OF assms]
+    unfolding rewatch_st_def
+    apply (cases S, case_tac \<open>rewatch b g\<close>)
+    by (auto simp: RES_RETURN_RES)
+  subgoal
+    using rewatch_correctness[OF assms]
+    unfolding rewatch_st_def
+    apply (cases S, case_tac \<open>rewatch b g\<close>)
+    by (force simp: RES_RETURN_RES)+
+  done
 
 end

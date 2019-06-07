@@ -145,4 +145,9 @@ lemma slice_end:
   \<open>c = length xs \<Longrightarrow> Misc.slice b c xs = drop b xs\<close>
   by (auto simp: Misc.slice_def)
 
+lemma slice_append_nth:
+  \<open>a \<le> b \<Longrightarrow> Suc b \<le> length xs \<Longrightarrow> Misc.slice a (Suc b) xs = Misc.slice a b xs @ [xs ! b]\<close>
+  by (auto simp: Misc.slice_def take_Suc_conv_app_nth
+    Suc_diff_le)
+
 end

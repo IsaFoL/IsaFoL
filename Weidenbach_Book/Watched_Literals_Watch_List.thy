@@ -81,6 +81,9 @@ declare correctly_marked_as_binary.simps[simp del]
 abbreviation distinct_watched :: \<open>'v watched \<Rightarrow> bool\<close> where
   \<open>distinct_watched xs \<equiv> distinct (map (\<lambda>(i, j, k). i) xs)\<close>
 
+lemma distinct_watched_alt_def: \<open>distinct_watched xs = distinct (map fst xs)\<close>
+  by (induction xs; auto)
+
 fun correct_watching_except :: \<open>nat \<Rightarrow> nat \<Rightarrow> 'v literal \<Rightarrow> 'v twl_st_wl \<Rightarrow> bool\<close> where
   \<open>correct_watching_except i j K (M, N, D, NE, UE, Q, W) \<longleftrightarrow>
     (\<forall>L \<in># all_lits_of_mm (mset `# ran_mf N + (NE + UE)).

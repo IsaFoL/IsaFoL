@@ -751,7 +751,7 @@ sepref_definition resolve_lookup_conflict_merge_code
 
 declare resolve_lookup_conflict_merge_code.refine[sepref_fr_rules]
 
-(* TODO Move *)
+
 lemma (in -) arena_is_valid_clause_idx_le_uint64_max:
   \<open>arena_is_valid_clause_idx be bd \<Longrightarrow>
     length be \<le> uint64_max \<Longrightarrow>
@@ -776,7 +776,7 @@ sepref_definition resolve_lookup_conflict_merge_fast_code
   unfolding isa_lookup_conflict_merge_def lookup_conflict_merge_def add_to_lookup_conflict_def
     PR_CONST_def nth_rll_def[symmetric]
     isa_outlearned_add_def isa_clvls_add_def isa_set_lookup_conflict_def
-    isasat_codegen isa_set_lookup_conflict_def
+    isa_set_lookup_conflict_def
     fmap_rll_u_def[symmetric]
     fmap_rll_def[symmetric]
     is_NOTIN_def[symmetric]
@@ -3615,13 +3615,6 @@ lemma isa_lit_redundant_rec_wl_lookup_alt_def:
   unfolding isa_lit_redundant_rec_wl_lookup_def from_ana_ref_id_def Let_def
   by (auto simp: Let_def)
 
-(*TODO Move*)
-lemma valid_arena_nempty:
-  \<open>valid_arena arena N vdom \<Longrightarrow> i \<in># dom_m N \<Longrightarrow> N \<propto> i \<noteq> []\<close>
-  using arena_lifting(19)[of arena N vdom i]
-  arena_lifting(4)[of arena N vdom i]
-  by auto
-
 lemma lit_redundant_rec_wl_lookup_alt_def:
   \<open>lit_redundant_rec_wl_lookup \<A> M NU D cach analysis lbd =
       WHILE\<^sub>T\<^bsup>lit_redundant_rec_wl_inv2 M NU D\<^esup>
@@ -3676,6 +3669,12 @@ lemma lit_redundant_rec_wl_lookup_alt_def:
         })
        (cach, analysis, False)\<close>
   unfolding lit_redundant_rec_wl_lookup_def Let_def by auto
+
+lemma valid_arena_nempty:
+  \<open>valid_arena arena N vdom \<Longrightarrow> i \<in># dom_m N \<Longrightarrow> N \<propto> i \<noteq> []\<close>
+  using arena_lifting(19)[of arena N vdom i]
+  arena_lifting(4)[of arena N vdom i]
+  by auto
 
 lemma isa_lit_redundant_rec_wl_lookup_lit_redundant_rec_wl_lookup:
   \<open>(uncurry5 isa_lit_redundant_rec_wl_lookup, uncurry5 (lit_redundant_rec_wl_lookup \<A>)) \<in>

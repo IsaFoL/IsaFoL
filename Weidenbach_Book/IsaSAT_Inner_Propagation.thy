@@ -1458,17 +1458,6 @@ lemma unit_propagation_inner_loop_body_wl_D_alt_def:
   unfolding unit_propagation_inner_loop_body_wl_D_def let_to_bind_conv[symmetric] Let_def
   by (intro bind_cong_nres case_prod_cong if_cong[OF refl] refl)
 
-(*TODO Move*)
-lemma in_vdom_m_upd:
-  \<open>x1f \<in> vdom_m \<A> (g(x1e := (g x1e)[x2 := (x1f, x2f)])) b\<close>
-  if \<open>x2 < length (g x1e)\<close> and \<open>x1e \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<close>
-  using that
-  unfolding vdom_m_def
-  by (auto dest!: multi_member_split intro!: set_update_memI img_fst)
-
-lemma distinct_watched_alt_def: \<open>distinct_watched xs = distinct (map fst xs)\<close>
-  by (induction xs; auto)
-
 lemma length_watched_le:
   assumes
     prop_inv: \<open>correct_watching x1\<close> and

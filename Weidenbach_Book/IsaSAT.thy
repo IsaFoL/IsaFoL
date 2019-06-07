@@ -910,29 +910,6 @@ lemma init_dt_wl_pre:
   using dist by (auto simp: init_dt_pre_def state_wl_l_init_def state_wl_l_init'_def
      twl_st_l_init_def twl_init_invs)[]
 
-(*TODO Move*)
-
-fun remove_watched_wl :: \<open>'v twl_st_wl \<Rightarrow> _\<close> where
-  \<open>remove_watched_wl (M, N, D, NE, UE, Q, _) = (M, N, D, NE, UE, Q)\<close>
-
-lemma rewatch_st_correctness:
-  assumes \<open>get_watched_wl S = (\<lambda>_. [])\<close> and
-    \<open>\<And>x. x \<in># dom_m (get_clauses_wl S) \<Longrightarrow>
-      distinct ((get_clauses_wl S) \<propto> x) \<and> 2 \<le> length ((get_clauses_wl S) \<propto> x)\<close>
-  shows \<open>rewatch_st S \<le> SPEC (\<lambda>T. remove_watched_wl S = remove_watched_wl T \<and>
-     correct_watching_init T)\<close>
-  apply (rule SPEC_rule_conjI)
-  subgoal
-    using Watched_Literals_Watch_List_Initialisation.rewatch_correctness[OF assms]
-    unfolding rewatch_st_def
-    apply (cases S, case_tac \<open>rewatch b g\<close>)
-    by (auto simp: RES_RETURN_RES)
-  subgoal
-    using Watched_Literals_Watch_List_Initialisation.rewatch_correctness[OF assms]
-    unfolding rewatch_st_def
-    apply (cases S, case_tac \<open>rewatch b g\<close>)
-    by (force simp: RES_RETURN_RES)+
-  done
 
 lemma SAT_wl_SAT_l:
   assumes
@@ -1500,19 +1477,6 @@ lemma IsaSAT_use_fast_mode[sepref_fr_rules]:
    \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
   by sepref_to_hoare sep_auto
 
-(*TODO Move*)
-definition isasat_init_fast_slow :: \<open>twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur_init nres\<close> where
-  \<open>isasat_init_fast_slow =
-    (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, vdom).
-      RETURN (trail_pol_slow_of_fast M', N', D', j, convert_wlists_to_nat_conv W', vm, \<phi>,
-        clvls, cach, lbd, vdom))\<close>
-
-lemma isasat_init_fast_slow_alt_def:
-  \<open>isasat_init_fast_slow S = RETURN S\<close>
-  unfolding isasat_init_fast_slow_def trail_pol_slow_of_fast_alt_def
-    convert_wlists_to_nat_conv_def
-  by auto
-
 definition isasat_fast_init :: \<open>twl_st_wl_heur_init \<Rightarrow> bool\<close> where
   \<open>isasat_fast_init S \<longleftrightarrow> (length (get_clauses_wl_heur_init S) \<le> uint64_max - (uint32_max div 2 + 6))\<close>
 
@@ -1708,10 +1672,6 @@ lemma IsaSAT_heur_alt_def:
     }\<close>
   by (auto simp: IsaSAT_heur_def isasat_init_fast_slow_alt_def cong: if_cong)
 
-(*TODO Move*)
-lemma Collect_eq_comp': \<open> {(x, y). P x y} O {(c, a). c = f a} = {(x, a). P x (f a)}\<close>
-  by auto
-(*End Move*)
 
 lemma rewatch_heur_st_rewatch_st:
   assumes
@@ -1784,23 +1744,6 @@ proof -
         twl_st_heur_parsing_def)
 qed
 
-(*TODO Move*)
-
-lemma vmtf_init_cong:
-  \<open>set_mset \<A> = set_mset \<B> \<Longrightarrow> L \<in> vmtf_init \<A> M \<Longrightarrow> L \<in> vmtf_init \<B> M\<close>
-  using \<L>\<^sub>a\<^sub>l\<^sub>l_cong[of \<A> \<B>] atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_cong[of \<A> \<B>] vmtf_cong[of \<A> \<B>]
-  unfolding vmtf_init_def vmtf_\<L>\<^sub>a\<^sub>l\<^sub>l_def
-  by (auto simp: )
-
-lemma isa_vmtf_init_cong:
-  \<open>set_mset \<A> = set_mset \<B> \<Longrightarrow> L \<in> isa_vmtf_init \<A> M \<Longrightarrow> L \<in> isa_vmtf_init \<B> M\<close>
-  using vmtf_init_cong[of \<A> \<B>]  distinct_atoms_rel_cong[of \<A> \<B>]
-  apply (subst (asm) isa_vmtf_init_def)
-  apply (cases L)
-  by (auto intro!: isa_vmtf_initI)
-
-lemma finite_extract_atms_clss[simp]: \<open>finite (extract_atms_clss CS' {})\<close> for CS'
-  by (auto simp: extract_atms_clss_alt_def)
 
 lemma IsaSAT_heur_IsaSAT:
   \<open>IsaSAT_heur b CS \<le> \<Down>{((M, stats), M'). M = map_option rev M'} (IsaSAT CS)\<close>

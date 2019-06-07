@@ -332,6 +332,35 @@ lemma literals_are_in_\<L>\<^sub>i\<^sub>n_negs_remdups_mset:
     (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff atm_of_eq_atm_of
       dest!: multi_member_split)
 
+lemma \<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_all_lits_of_m:
+   \<open>set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l (atm_of `# all_lits_of_m C)) = set_mset C \<union> uminus ` set_mset C\<close>
+  supply lit_eq_Neg_Pos_iff[iff]
+  by (auto simp: \<L>\<^sub>a\<^sub>l\<^sub>l_def all_lits_of_m_def image_iff dest!: multi_member_split)
+
+lemma atm_of_all_lits_of_mm:
+  \<open>set_mset (atm_of `# all_lits_of_mm bw) = atms_of_mm bw\<close>
+  \<open>atm_of ` set_mset (all_lits_of_mm bw) = atms_of_mm bw\<close>
+  using in_all_lits_of_mm_ain_atms_of_iff apply (auto simp: image_iff)
+  by (metis (full_types) image_eqI literal.sel(1))+
+
+lemma in_set_all_atms_iff:
+  \<open>y \<in># all_atms bu bw \<longleftrightarrow>
+    y \<in> atms_of_mm (mset `# ran_mf bu) \<or> y \<in> atms_of_mm bw\<close>
+  by (auto simp: all_atms_def all_lits_def in_all_lits_of_mm_ain_atms_of_iff
+     atm_of_all_lits_of_mm)
+
+lemma \<L>\<^sub>a\<^sub>l\<^sub>l_union:
+   \<open>set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l (A + B)) = set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l  A) \<union> set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l  B)\<close>
+  by (auto simp: \<L>\<^sub>a\<^sub>l\<^sub>l_def)
+
+lemma \<L>\<^sub>a\<^sub>l\<^sub>l_cong:
+  \<open>set_mset A = set_mset B \<Longrightarrow> set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l A) = set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l B)\<close>
+  by (auto simp: \<L>\<^sub>a\<^sub>l\<^sub>l_def)
+
+lemma atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_cong:
+  \<open>set_mset \<A> = set_mset \<B> \<Longrightarrow> atms_of (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>) = atms_of (\<L>\<^sub>a\<^sub>l\<^sub>l \<B>)\<close>
+  unfolding \<L>\<^sub>a\<^sub>l\<^sub>l_def
+  by auto
 
 definition unit_prop_body_wl_D_inv
   :: \<open>nat twl_st_wl \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat literal \<Rightarrow> bool\<close> where

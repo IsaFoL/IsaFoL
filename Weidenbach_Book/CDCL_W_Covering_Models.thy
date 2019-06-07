@@ -4,12 +4,6 @@ begin
 
 section \<open>Covering Models\<close>
 
-(*TODO Move*)
-lemma (in -) filter_disj_eq:
-  \<open>{x \<in> A. P x \<or> Q x} = {x \<in> A. P x} \<union> {x \<in> A. Q x}\<close>
-  by auto
-
-
 text \<open>I am only interested in the extension of CDCL to find covering mdoels, not in the required
 subsequent extraction of the minimal covering models.\<close>
 

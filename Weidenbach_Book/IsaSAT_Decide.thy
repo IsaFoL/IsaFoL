@@ -138,19 +138,6 @@ lemma vmtf_find_next_undef_upd:
    apply (rule vmtf_find_next_undef_ref[simplified])
   by (auto intro!: RETURN_SPEC_refine simp: image_image defined_atm_def[symmetric])
 
-(*TODO Move*)
-
-lemma \<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_all_lits_of_m:
-   \<open>set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l (atm_of `# all_lits_of_m C)) = set_mset C \<union> uminus ` set_mset C\<close>
-  supply lit_eq_Neg_Pos_iff[iff]
-  by (auto simp: \<L>\<^sub>a\<^sub>l\<^sub>l_def all_lits_of_m_def image_iff dest!: multi_member_split)
-
-lemma in_set_all_atms_iff:
-  \<open>y \<in># all_atms bu bw \<longleftrightarrow>
-    y \<in> atms_of_mm (mset `# ran_mf bu) \<or> y \<in> atms_of_mm bw\<close>
-  by (auto simp: all_atms_def all_lits_def in_all_lits_of_mm_ain_atms_of_iff
-     atm_of_all_lits_of_mm)
-
 lemma find_unassigned_lit_wl_D'_find_unassigned_lit_wl_D:
   \<open>(find_unassigned_lit_wl_D_heur, find_unassigned_lit_wl_D) \<in>
      [find_unassigned_lit_wl_D_heur_pre]\<^sub>f
@@ -457,20 +444,6 @@ where
     | Some L \<Rightarrow> do {T \<leftarrow> decide_lit_wl_heur L S; RETURN (False, T)}
   })
 \<close>
-(*TODO Move*)
-lemma isa_vmtf_consD2:
-  \<open>f \<in> isa_vmtf \<A> M \<Longrightarrow>
-     f \<in> isa_vmtf \<A> (L # M)\<close>
-  by (auto simp: isa_vmtf_def dest: vmtf_consD)
-
-lemma same_in_Id_option_rel:
-  \<open>x = x' \<Longrightarrow> (x, x') \<in> \<langle>Id\<rangle>option_rel\<close>
-  by auto
-
-lemma length_cons_trail_Decided[simp]:
-  \<open>length (cons_trail_Decided L M) = Suc (length M)\<close>
-  by (auto simp: cons_trail_Decided_def)
-(*End Move*)
 
 lemma decide_wl_or_skip_D_heur_decide_wl_or_skip_D:
   \<open>(decide_wl_or_skip_D_heur, decide_wl_or_skip_D) \<in> twl_st_heur''' r \<rightarrow>\<^sub>f \<langle>bool_rel \<times>\<^sub>f twl_st_heur''' r\<rangle> nres_rel\<close>

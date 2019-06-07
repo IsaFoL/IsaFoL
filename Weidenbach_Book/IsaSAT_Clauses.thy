@@ -796,22 +796,6 @@ sepref_definition fm_mv_clause_to_new_arena_code
 
 declare fm_mv_clause_to_new_arena_code.refine[sepref_fr_rules]
 
-(*TODO Move*)
-lemma slice_append_nth:
-  \<open>a \<le> b \<Longrightarrow> Suc b \<le> length xs \<Longrightarrow> Misc.slice a (Suc b) xs = Misc.slice a b xs @ [xs ! b]\<close>
-  by (auto simp: Misc.slice_def take_Suc_conv_app_nth
-    Suc_diff_le)
-
-lemma SHIFTS_alt_def:
-  \<open>POS_SHIFT = Suc (Suc (Suc (Suc (Suc 0))))\<close>
-  \<open>STATUS_SHIFT = Suc (Suc (Suc (Suc 0)))\<close>
-  \<open>ACTIVITY_SHIFT = Suc (Suc (Suc 0))\<close>
-  \<open>LBD_SHIFT = Suc (Suc 0)\<close>
-  \<open>SIZE_SHIFT = Suc 0\<close>
-  by (auto simp: SHIFTS_def)
-
-(*ENd Move*)
-
 lemma valid_arena_append_clause_slice:
   assumes
     \<open>valid_arena old_arena N vd\<close> and

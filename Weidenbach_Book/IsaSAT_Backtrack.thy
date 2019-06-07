@@ -2407,16 +2407,28 @@ lemma propagate_bt_wl_D_heur_alt_def:
 
 sepref_register fm_add_new_fast
 
-(*TODO Move*)
-declare isa_vmtf_flush_fast_code.refine[sepref_fr_rules]
-  (*END Move*)
+context begin
+private lemma propagate_bt_wl_D_fast_code_isasat_fastI: \<open>isasat_fast b \<Longrightarrow>
+       b = (a1', a2') \<Longrightarrow>
+       a2' = (a1'a, a2'a) \<Longrightarrow>
+       a2'a = (a1'b, a2'b) \<Longrightarrow>
+       a2'b = (a1'c, a2'c) \<Longrightarrow>
+       a2'c = (a1'd, a2'd) \<Longrightarrow>
+       a2'd = (a1'e, a2'e) \<Longrightarrow>
+       a2'e = (a1'f, a2'f) \<Longrightarrow>
+       isasat_fast
+        (a1', a1'a, a1'b, a1'c, a1'd, a1'r, a2'r, a1'g, a1'h, a1'i, a1'j, a1'k,
+         a1'l, a1'm, a1'n, a1'o, a1'p, a1'q, a2'q) \<longrightarrow>
+       append_and_length_fast_code_pre ((xe, ba), a1'a) \<Longrightarrow>
+       append_and_length_fast_code_pre ((xe, ba), a1'a)\<close>
+  by (auto simp: isasat_fast_def)
 
 sepref_definition propagate_bt_wl_D_fast_code
   is \<open>uncurry2 propagate_bt_wl_D_heur\<close>
   :: \<open>[\<lambda>((L, C), S). isasat_fast S]\<^sub>a
       unat_lit_assn\<^sup>k *\<^sub>a clause_ll_assn\<^sup>d *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
-  supply [[goals_limit = 1]] uminus_\<A>\<^sub>i\<^sub>n_iff[simp] image_image[simp] append_ll_def[simp]
-    rescore_clause_def[simp] vmtf_flush_def[simp] isasat_fast_def[simp]
+  supply [[goals_limit = 1]] append_ll_def[simp]
+    propagate_bt_wl_D_fast_code_isasat_fastI[intro]
   unfolding propagate_bt_wl_D_heur_alt_def
     isasat_bounded_assn_def cons_trail_Propagated_def[symmetric]
     to_watcher_fast_def[symmetric]
@@ -2429,6 +2441,8 @@ sepref_definition propagate_bt_wl_D_fast_code
 declare
   propagate_bt_wl_D_code.refine[sepref_fr_rules]
   propagate_bt_wl_D_fast_code.refine[sepref_fr_rules]
+
+end
 
 sepref_definition propagate_unit_bt_wl_D_code
   is \<open>uncurry propagate_unit_bt_wl_D_int\<close>
@@ -2508,7 +2522,7 @@ sepref_register find_lit_of_max_level_wl
   propagate_unit_bt_wl_D_int
 sepref_register backtrack_wl_D
 
-lemma (in -) lit_of_hd_trail_st_heur_alt_def:
+lemma lit_of_hd_trail_st_heur_alt_def:
   \<open>lit_of_hd_trail_st_heur = (\<lambda>(M, N, D, Q, W, vm, \<phi>). lit_of_last_trail_pol M)\<close>
   by (auto simp: lit_of_hd_trail_st_heur_def lit_of_hd_trail_def intro!: ext)
 

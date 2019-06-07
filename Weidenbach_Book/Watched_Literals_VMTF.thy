@@ -2378,11 +2378,6 @@ definition vmtf_rescale :: \<open>vmtf \<Rightarrow> vmtf nres\<close> where
   })
 \<close>
 
-(* TODO Move *)
-lemma (in -) list_update_id':
-  \<open>x = xs ! i \<Longrightarrow> xs[i := x] = xs\<close>
-  by auto
-(* End Move *)
 
 lemma vmtf_rescale_vmtf:
   assumes vmtf: \<open>(vm, to_remove) \<in> vmtf \<A> M\<close> and

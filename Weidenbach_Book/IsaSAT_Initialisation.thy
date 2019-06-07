@@ -94,6 +94,18 @@ lemma isa_vmtf_init_consD:
      ((ns, m, fst_As, lst_As, next_search), remove) \<in> isa_vmtf_init \<A> (L # M)\<close>
   by (auto simp: isa_vmtf_init_def vmtf_init_def dest: vmtf_consD)
 
+lemma vmtf_init_cong:
+  \<open>set_mset \<A> = set_mset \<B> \<Longrightarrow> L \<in> vmtf_init \<A> M \<Longrightarrow> L \<in> vmtf_init \<B> M\<close>
+  using \<L>\<^sub>a\<^sub>l\<^sub>l_cong[of \<A> \<B>] atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_cong[of \<A> \<B>] vmtf_cong[of \<A> \<B>]
+  unfolding vmtf_init_def vmtf_\<L>\<^sub>a\<^sub>l\<^sub>l_def
+  by auto
+
+lemma isa_vmtf_init_cong:
+  \<open>set_mset \<A> = set_mset \<B> \<Longrightarrow> L \<in> isa_vmtf_init \<A> M \<Longrightarrow> L \<in> isa_vmtf_init \<B> M\<close>
+  using vmtf_init_cong[of \<A> \<B>] distinct_atoms_rel_cong[of \<A> \<B>]
+  apply (subst (asm) isa_vmtf_init_def)
+  by (cases L) (auto intro!: isa_vmtf_initI)
+
 type_synonym (in -) twl_st_wl_heur_init =
   \<open>trail_pol \<times> arena \<times> conflict_option_rel \<times> nat \<times>
     (nat \<times> nat literal \<times> bool) list list \<times> isa_vmtf_remove_int_option_fst_As \<times> bool list \<times>
@@ -1848,6 +1860,9 @@ lemma extract_atms_clss_alt_def:
     (auto simp: extract_atms_clss_def extract_atms_cls_alt_def
       fold_extract_atms_cls_union_swap)
 
+lemma finite_extract_atms_clss[simp]: \<open>finite (extract_atms_clss CS' {})\<close> for CS'
+  by (auto simp: extract_atms_clss_alt_def)
+
 definition op_extract_list_empty where
   \<open>op_extract_list_empty = {}\<close>
 
@@ -2876,5 +2891,16 @@ lemma init_dt_wl'_init_dt:
       auto
   done
 
+definition isasat_init_fast_slow :: \<open>twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur_init nres\<close> where
+  \<open>isasat_init_fast_slow =
+    (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, vdom).
+      RETURN (trail_pol_slow_of_fast M', N', D', j, convert_wlists_to_nat_conv W', vm, \<phi>,
+        clvls, cach, lbd, vdom))\<close>
+
+lemma isasat_init_fast_slow_alt_def:
+  \<open>isasat_init_fast_slow S = RETURN S\<close>
+  unfolding isasat_init_fast_slow_def trail_pol_slow_of_fast_alt_def
+    convert_wlists_to_nat_conv_def
+  by auto
 
 end

@@ -1068,6 +1068,10 @@ definition cons_trail_Decided_tr_pre where
       atm_of L < length lvls \<and> atm_of L < length reason \<and>
       Suc k \<le> uint_max \<and> length M \<le> uint32_max)\<close>
 
+lemma length_cons_trail_Decided[simp]:
+  \<open>length (cons_trail_Decided L M) = Suc (length M)\<close>
+  by (auto simp: cons_trail_Decided_def)
+
 lemma cons_trail_Decided_tr:
   \<open>(uncurry (RETURN oo cons_trail_Decided_tr), uncurry (RETURN oo cons_trail_Decided)) \<in>
   [\<lambda>(L, M). undefined_lit M L \<and> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>]\<^sub>f Id \<times>\<^sub>f trail_pol \<A> \<rightarrow> \<langle>trail_pol \<A>\<rangle>nres_rel\<close>

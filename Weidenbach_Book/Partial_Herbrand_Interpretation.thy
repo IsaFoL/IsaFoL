@@ -53,6 +53,17 @@ text \<open>We define here entailment by a set of literals. This is an Herbrand 
   Satisfiability is defined by the existence of a total and consistent model.
 \<close>
 
+lemma lit_eq_Neg_Pos_iff:
+  \<open>x \<noteq> Neg (atm_of x) \<longleftrightarrow> is_pos x\<close>
+  \<open>x \<noteq> Pos (atm_of x) \<longleftrightarrow> is_neg x\<close>
+  \<open>-x \<noteq> Neg (atm_of x) \<longleftrightarrow> is_neg x\<close>
+  \<open>-x \<noteq> Pos (atm_of x) \<longleftrightarrow> is_pos x\<close>
+  \<open>Neg (atm_of x) \<noteq> x \<longleftrightarrow> is_pos x\<close>
+  \<open>Pos (atm_of x) \<noteq> x \<longleftrightarrow> is_neg x\<close>
+  \<open>Neg (atm_of x) \<noteq> -x \<longleftrightarrow> is_neg x\<close>
+  \<open>Pos (atm_of x) \<noteq> -x \<longleftrightarrow> is_pos x\<close>
+  by (cases x; auto; fail)+
+
 
 subsection \<open>Clauses\<close>
 

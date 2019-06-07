@@ -1669,6 +1669,18 @@ definition arena_is_valid_clause_vdom :: \<open>arena \<Rightarrow> nat \<Righta
 \<open>arena_is_valid_clause_vdom arena i \<longleftrightarrow>
   (\<exists>N vdom. valid_arena arena N vdom \<and> i \<in> vdom)\<close>
 
+lemma nat_of_uint32_div:
+  \<open>nat_of_uint32 (a div b) = nat_of_uint32 a div nat_of_uint32 b\<close>
+  by transfer (auto simp: unat_div)
+
+lemma SHIFTS_alt_def:
+  \<open>POS_SHIFT = Suc (Suc (Suc (Suc (Suc 0))))\<close>
+  \<open>STATUS_SHIFT = Suc (Suc (Suc (Suc 0)))\<close>
+  \<open>ACTIVITY_SHIFT = Suc (Suc (Suc 0))\<close>
+  \<open>LBD_SHIFT = Suc (Suc 0)\<close>
+  \<open>SIZE_SHIFT = Suc 0\<close>
+  by (auto simp: SHIFTS_def)
+
 
 subsubsection \<open>Code Generation\<close>
 
@@ -2746,9 +2758,6 @@ definition arena_decr_act where
   \<open>arena_decr_act arena i = arena[i - ACTIVITY_SHIFT :=
      AActivity (xarena_act (arena!(i - ACTIVITY_SHIFT)) div 2)]\<close>
 
-lemma nat_of_uint32_div:
-  \<open>nat_of_uint32 (a div b) = nat_of_uint32 a div nat_of_uint32 b\<close>
-  by transfer (auto simp: unat_div)
 
 lemma arena_decr_act_conv:
   assumes

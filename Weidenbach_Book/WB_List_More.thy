@@ -155,6 +155,10 @@ lemma hd_list_update_If:
   \<open>outl' \<noteq> [] \<Longrightarrow> hd (outl'[i := w]) = (if i = 0 then w else hd outl')\<close>
   by (cases outl') (auto split: nat.splits)
 
+lemma list_update_id':
+  \<open>x = xs ! i \<Longrightarrow> xs[i := x] = xs\<close>
+  by auto
+
 
 text \<open>
   This lemma is not general enough to move to Isabelle, but might be interesting in other
@@ -181,6 +185,18 @@ lemma diff_eq_insertD:
 
 lemma in_set_tlD: \<open>x \<in> set (tl xs) \<Longrightarrow> x \<in> set xs\<close>
   by (cases xs) auto
+
+text \<open>This lemmma is only useful if \<^term>\<open>set xs\<close> can be simplified (which also means that this
+  simp-rule should not be used...)\<close>
+lemma (in -) in_list_in_setD: \<open>xs = it @ x # \<sigma> \<Longrightarrow> x \<in> set xs\<close>
+  by auto
+
+lemma Collect_eq_comp': \<open> {(x, y). P x y} O {(c, a). c = f a} = {(x, a). P x (f a)}\<close>
+  by auto
+
+lemma (in -) filter_disj_eq:
+  \<open>{x \<in> A. P x \<or> Q x} = {x \<in> A. P x} \<union> {x \<in> A. Q x}\<close>
+  by auto
 
 
 subsection \<open>List Updates\<close>

@@ -1,5 +1,6 @@
 theory IsaSAT_Watch_List
-  imports IsaSAT_Clauses
+  imports IsaSAT_Literals
+    Watched_Literals.WB_Word_Assn
 begin
 
 text \<open>There is not much to say about watch lists since they are arrays of resizeable arrays,
@@ -222,8 +223,8 @@ lemma to_watcher_code_hnr[sepref_fr_rules]:
       simp: to_watcher_code_def watcher_enc_def OR_132_is_sum nat_of_uint64_uint64_of_uint32
        nat_of_uint32_le_uint32_max)
 
-definition (in -)to_watcher_fast where
- [simp]:  \<open>to_watcher_fast = to_watcher\<close>
+definition to_watcher_fast where
+ [simp]: \<open>to_watcher_fast = to_watcher\<close>
 
 definition to_watcher_fast_code :: \<open>uint64 \<Rightarrow> uint32 \<Rightarrow> bool \<Rightarrow> uint64 \<times> uint64\<close> where
   \<open>to_watcher_fast_code = (\<lambda>a L b. (a, uint64_of_uint32 L OR (if b then 1 << 32 else (0 :: uint64))))\<close>

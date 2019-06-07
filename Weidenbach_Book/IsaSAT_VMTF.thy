@@ -210,13 +210,6 @@ lemma (in -) partition_vmtf_nth_code_helper:
   using nth_mem[of b a2'] mset_eq_setD[OF mset] mset_eq_length[OF mset] assms
   by (auto simp del: nth_mem)
 
-(*TODO Move*)
-lemma [sepref_fr_rules]:
-  \<open>(uncurry (return oo (div)), uncurry (RETURN oo (div))) \<in>
-     uint32_nat_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
-  by sepref_to_hoare
-   (sep_auto simp: uint32_nat_rel_def br_def nat_of_uint32_div)
-
 lemma partition_vmtf_nth_code_helper2:
   \<open>ba < length b \<Longrightarrow>(bia, ba) \<in> uint32_nat_rel \<Longrightarrow> 
        (aa, (ba - bb) div 2) \<in> uint32_nat_rel \<Longrightarrow>
@@ -706,7 +699,7 @@ sepref_definition isa_vmtf_flush_fast_code
   by sepref
 
 declare isa_vmtf_flush_code.refine[sepref_fr_rules]
-
+  isa_vmtf_flush_fast_code.refine[sepref_fr_rules]
 
 definition atms_hash_insert_pre :: \<open>nat \<Rightarrow> nat list \<times> bool list \<Rightarrow> bool\<close> where
 \<open>atms_hash_insert_pre i = (\<lambda>(_, xs). i < length xs)\<close>
@@ -1652,13 +1645,6 @@ lemma isa_vmtf_mark_to_rescore_clause_vmtf_mark_to_rescore_clause:
      auto
   done
 
-
-
-(* TODO Move *)
-text \<open>This lemmma is only useful if \<^term>\<open>set xs\<close> can be simplified (which also means that this
-  simp-rule should not be used...)\<close>
-lemma (in -) in_list_in_setD: \<open>xs = it @ x # \<sigma> \<Longrightarrow> x \<in> set xs\<close>
-  by auto
 
 lemma vmtf_mark_to_rescore_clause_spec:
   \<open>vm \<in> vmtf \<A>  M \<Longrightarrow> valid_arena arena N vdom \<Longrightarrow> C \<in># dom_m N \<Longrightarrow>

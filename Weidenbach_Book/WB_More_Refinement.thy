@@ -1613,4 +1613,8 @@ lemma find_in_list_between_spec:
   subgoal by auto
   done
 
+lemma same_in_Id_option_rel:
+  \<open>x = x' \<Longrightarrow> (x, x') \<in> \<langle>Id\<rangle>option_rel\<close>
+  by auto
+
 end
