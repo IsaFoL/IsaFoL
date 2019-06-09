@@ -979,19 +979,19 @@ sepref_definition (in -) sort_clauses_by_score_fast_code
     List.null_def zero_uint64_nat_def[symmetric]
   by sepref
 
-declare sort_clauses_by_score_code.refine[sepref_fr_rules]
-
 sepref_definition sort_vdom_heur_code
   is \<open>sort_vdom_heur\<close>
   :: \<open>isasat_unbounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_unbounded_assn\<close>
-  supply sort_clauses_by_score_invI[intro]
+  supply sort_clauses_by_score_invI[intro] sort_clauses_by_score_code.refine[sepref_fr_rules]
   unfolding sort_vdom_heur_def isasat_unbounded_assn_def
   by sepref
 
+  (*TODO we need mset avdom \<subseteq># mset vdom to use the first version*)
 sepref_definition sort_vdom_heur_fast_code
   is \<open>sort_vdom_heur\<close>
   :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> uint64_max]\<^sub>aisasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
-  supply sort_clauses_by_score_invI[intro]
+  supply sort_clauses_by_score_invI[intro] sort_clauses_by_score_code.refine[sepref_fr_rules]
+    [[goals_limit=1]]
   unfolding sort_vdom_heur_def isasat_bounded_assn_def
   by sepref
 
