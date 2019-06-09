@@ -29,6 +29,8 @@ ISAFOL_version= $(shell (git log --pretty=format:'%h' -n 1))
 AFP2018=$(ISABELLE2018)/../afp-2018
 AFP2018_version= $(shell (cd $(AFP2018) && hg id --id))
 
+AFP2019=$(ISABELLE2019)/../afp-2019
+AFP2019_version= $(shell (cd $(AFP2019) && hg id --id))
 
 test_vars:
 	echo "Isabelle: $(ISABELLE_version)"
@@ -68,7 +70,7 @@ doc:
 	cp -R $(ISABELLE2018_HOME)/Saturation_Framework $(DESTINATION)/current || :
 	cp -R $(ISABELLE2019_HOME)/Functional_Ordered_Resolution_Prover $(DESTINATION)/current || :
 	find $(DESTINATION)/current -name "*.html" -exec sed -i -e "s|(\* *\\\\htmllink{\(.*\)} *\*)|<a id=\"\1\"></a>|g" {} \;
-	./add_dates.pl --noverbose --unsafe --isabelle="Isabelle2018" --isafol="$(ISAFOL_version)" --html="$(DESTINATION)/current" --afp="$(AFP2018_version)"
+	./add_dates.pl --noverbose --unsafe --isabelle="Isabelle2019" --isafol="$(ISAFOL_version)" --html="$(DESTINATION)/current" --afp="$(AFP2019_version)"
 
 refs:
 	../isafol-private/Other/update_refs.pl  --unsafe
