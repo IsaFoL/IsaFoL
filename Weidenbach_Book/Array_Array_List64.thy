@@ -28,19 +28,19 @@ lemma arrayO_assn_Array_nth[sep_heap_rules]:
 lemma arl64_length[sep_heap_rules]:
   \<open><arl64_assn R b a> arl64_length a< \<lambda>r. arl64_assn R b a * \<up>(nat_of_uint64 r = length b)>\<close>
   by (sep_auto simp: arrayO_except_assn_def arl_length_def arl_assn_def arl64_assn_def
-      eq_commute[of \<open>(_, _)\<close>] is_array_list64_def hr_comp_def length_ll_def array_assn_def
-      is_array_def uint64_nat_rel_def br_def arl64_length_def list_rel_imp_same_length[symmetric]
-      dest: list_all2_lengthD split: prod.splits)
+    eq_commute[of \<open>(_, _)\<close>] is_array_list64_def hr_comp_def length_ll_def array_assn_def
+    is_array_def uint64_nat_rel_def br_def arl64_length_def list_rel_imp_same_length[symmetric]
+    dest: list_all2_lengthD split: prod.splits)
 
 lemma length_aa64_rule[sep_heap_rules]:
-  \<open>b < length xs \<Longrightarrow> (b', b) \<in> uint64_nat_rel \<Longrightarrow> <arrayO_assn (arl64_assn R) xs a> length_aa64 a b'
-   <\<lambda>r. arrayO_assn (arl64_assn R) xs a * \<up> (nat_of_uint64 r = length_ll xs b)>\<^sub>t\<close>
- unfolding length_aa64_def nth_u64_code_def Array.nth'_def
+    \<open>b < length xs \<Longrightarrow> (b', b) \<in> uint64_nat_rel \<Longrightarrow> <arrayO_assn (arl64_assn R) xs a> length_aa64 a b'
+    <\<lambda>r. arrayO_assn (arl64_assn R) xs a * \<up> (nat_of_uint64 r = length_ll xs b)>\<^sub>t\<close>
+  unfolding length_aa64_def nth_u64_code_def Array.nth'_def
   apply (sep_auto simp flip: nat_of_uint64_code simp: br_def uint64_nat_rel_def length_ll_def)
   apply (subst arrayO_except_assn_array0_index[symmetric, of b])
   apply (simp add: nat_of_uint64_code br_def uint64_nat_rel_def)
-   apply (sep_auto simp: arrayO_except_assn_def)
-done
+  apply (sep_auto simp: arrayO_except_assn_def)
+  done
 
 lemma length_aa64_hnr[sepref_fr_rules]: \<open>(uncurry length_aa64, uncurry (RETURN \<circ>\<circ> length_ll)) \<in>
      [\<lambda>(xs, i). i < length xs]\<^sub>a (arrayO_assn (arl64_assn R))\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow> uint64_nat_assn\<close>
@@ -89,7 +89,7 @@ proof -
     using p
     apply sepref_to_hoare
     apply (sep_auto simp: nth_aa64_def length_ll_def nth_ll_def)
-     apply (subst arrayO_except_assn_array0_index[symmetric, of ba])
+    apply (subst arrayO_except_assn_array0_index[symmetric, of ba])
     apply simp
     apply (sep_auto simp: arrayO_except_assn_def arrayO_assn_def arl64_assn_def hr_comp_def list_rel_def
         list_all2_lengthD
@@ -589,7 +589,7 @@ proof -
     apply (rule_tac x=\<open>p[a := (aaa, ba')]\<close> in ent_ex_postI)
     apply (rule_tac x=\<open>take ba l'\<close> in ent_ex_postI)
     apply (sep_auto simp: uint64_nat_rel_def br_def list_rel_imp_same_length
-       nat_of_uint64_le_uint64_max intro!: split: prod.splits)
+      nat_of_uint64_le_uint64_max intro!: split: prod.splits)
     apply (subst (2) heap_list_all_nth_cong[of _ _ b _ p])
     apply auto
     apply sep_auto
@@ -613,9 +613,10 @@ lemma nth_aa_uint_hnr[sepref_fr_rules]:
        [\<lambda>((x, L), L'). L < length x \<and> L' < length (x ! L)]\<^sub>a
        (arrayO_assn (arl64_assn R))\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow> R\<close>
   unfolding nth_aa_u_def
+  apply auto
   by sepref_to_hoare
-    (use assms in \<open>sep_auto simp: uint32_nat_rel_def br_def length_ll_def nth_ll_def
-     nth_rll_def nth_aa64_u_def\<close>)
+  (use assms in \<open>sep_auto simp: uint32_nat_rel_def br_def length_ll_def nth_ll_def
+    nth_rll_def nth_aa64_u_def\<close>)
 
 
 lemma nth_aa64_u_code[code]:

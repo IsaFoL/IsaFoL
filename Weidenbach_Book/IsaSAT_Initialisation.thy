@@ -795,18 +795,6 @@ sepref_definition add_init_cls_code_unb
 
 declare add_init_cls_code.refine[sepref_fr_rules]
    add_init_cls_code_unb.refine[sepref_fr_rules]
-(*
-context
-  fixes
-    x :: \<open>nat literal list \<times> twl_st_wl_heur_init\<close> and
-    y :: \<open>nat literal list \<times> nat twl_st_wl_init\<close>
-  assumes
-    pre: \<open>case y of  (C, S) \<Rightarrow>  2 \<le> length C \<and>
-       literals_are_in_\<L>\<^sub>i\<^sub>n (all_atms_st_init S) (mset C) \<and>
-       distinct C\<close> and
-    xy: \<open>(x, y) \<in> Id \<times>\<^sub>f twl_st_heur_parsing_no_WL (all_atms_st_init S)\<close>
-begin
-*)
 
 context
   fixes \<A> :: \<open>nat multiset\<close> and
@@ -1105,25 +1093,6 @@ sepref_definition already_propagated_unit_cls_conflict_code
   by sepref
 
 declare already_propagated_unit_cls_conflict_code.refine[sepref_fr_rules]
-
-(*
-sepref_thm already_propagated_unit_cls_conflict_fast_code
-  is \<open>uncurry already_propagated_unit_cls_conflict_heur\<close>
-  :: \<open>unat_lit_assn\<^sup>k *\<^sub>a isasat_init_fast_assn\<^sup>d  \<rightarrow>\<^sub>a isasat_init_fast_assn\<close>
-  supply [[goals_limit=1]]
-  unfolding already_propagated_unit_cls_conflict_heur_def isasat_init_fast_assn_def
-  PR_CONST_def cons_trail_Propagated_def[symmetric]
-  apply (rewrite at \<open>(_, \<hole>, _)\<close> lms_fold_custom_empty)+
-  by sepref
-
-concrete_definition (in -) already_propagated_unit_cls_conflict_fast_code
-   uses isasat_input_bounded.already_propagated_unit_cls_conflict_fast_code.refine_raw
-   is \<open>(uncurry ?f, _)\<in>_\<close>
-
-prepare_code_thms (in -) already_propagated_unit_cls_conflict_fast_code_def
-
-lemmas already_propagated_unit_cls_conflict_heur_fast_hnr[sepref_fr_rules] =
-   already_propagated_unit_cls_conflict_fast_code.refine[of \<A>\<^sub>i\<^sub>n, OF isasat_input_bounded_axioms] *)
 
 definition (in -) set_conflict_empty :: \<open>nat clause option \<Rightarrow> nat clause option\<close> where
 \<open>set_conflict_empty _ = Some {#}\<close>

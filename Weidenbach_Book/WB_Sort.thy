@@ -1566,7 +1566,7 @@ definition quicksort_ref :: \<open>_ \<Rightarrow> _ \<Rightarrow> nat \<times> 
   RECT (\<lambda>f (lo,hi,xs). do {
       ASSERT(lo \<le> hi \<and> hi < length xs0 \<and> mset xs = mset xs0);
       (xs, p) \<leftarrow> partition_between_ref R h lo hi xs; \<comment> \<open>This is the refined partition function. Note that we need the premises (trans,lin,bounds) here.\<close>
-      ASSERT(mset xs = mset xs0);
+      ASSERT(mset xs = mset xs0 \<and> p \<ge> lo \<and> p < length xs0);
       xs \<leftarrow> (if p-1\<le>lo then RETURN xs else f (lo, p-1, xs));
       ASSERT(mset xs = mset xs0);
       if hi\<le>p+1 then RETURN xs else f (p+1, hi, xs)
@@ -1611,6 +1611,8 @@ proof -
       done
     subgoal
       by (auto dest: mset_eq_length mset_eq_setD)
+    subgoal by (auto simp: partition_spec_def isPartition_wrt_def)
+    subgoal by (auto simp: partition_spec_def isPartition_wrt_def dest: mset_eq_length)
     subgoal
       by (auto dest: mset_eq_length mset_eq_setD)
     subgoal

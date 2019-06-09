@@ -356,7 +356,9 @@ declare  clause_lbd_heur_code2.refine[sepref_fr_rules]
     clause_lbd_heur_code.refine[sepref_fr_rules]
 
 sepref_register mark_garbage_heur
-sepref_definition mark_garbage_heur_code
+
+
+    sepref_definition mark_garbage_heur_code
   is \<open>uncurry2 (RETURN ooo mark_garbage_heur)\<close>
   :: \<open>[\<lambda>((C, i), S). mark_garbage_pre (get_clauses_wl_heur S, C) \<and> i < length_avdom S]\<^sub>a
        nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a isasat_unbounded_assn\<^sup>d \<rightarrow> isasat_unbounded_assn\<close>
@@ -577,14 +579,8 @@ sepref_definition mark_to_delete_clauses_wl_D_heur_impl
   by sepref
 
 (* TODO Move *)
-sepref_definition sort_vdom_heur_fast_code
-  is \<open>sort_vdom_heur\<close>
-  :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
-  supply sort_clauses_by_score_invI[intro]
-  unfolding sort_vdom_heur_def isasat_bounded_assn_def
-  by sepref
-
 declare sort_vdom_heur_fast_code.refine[sepref_fr_rules]
+  sort_vdom_heur_fast_code.refine[sepref_fr_rules]
 
 sepref_definition access_lit_in_clauses_heur_fast_code2
   is \<open>uncurry2 (RETURN ooo access_lit_in_clauses_heur)\<close>
@@ -607,7 +603,7 @@ lemma mark_to_delete_clauses_wl_D_heur_is_Some_iff:
 
 sepref_definition mark_to_delete_clauses_wl_D_heur_fast_impl
   is \<open>mark_to_delete_clauses_wl_D_heur\<close>
-  :: \<open>[\<lambda>S. True]\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
+  :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> uint64_max]\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   unfolding mark_to_delete_clauses_wl_D_heur_def
     access_vdom_at_def[symmetric] length_avdom_def[symmetric]
     get_the_propagation_reason_heur_def[symmetric]
@@ -624,15 +620,15 @@ declare mark_to_delete_clauses_wl_D_heur_fast_impl.refine[sepref_fr_rules]
 
 sepref_register cdcl_twl_full_restart_wl_prog_heur
 sepref_definition cdcl_twl_full_restart_wl_prog_heur_code
-  is \<open> cdcl_twl_full_restart_wl_prog_heur\<close>
+  is \<open>cdcl_twl_full_restart_wl_prog_heur\<close>
   :: \<open>isasat_unbounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_unbounded_assn\<close>
   unfolding cdcl_twl_full_restart_wl_prog_heur_def
   supply [[goals_limit = 1]]
   by sepref
 
 sepref_definition cdcl_twl_full_restart_wl_prog_heur_fast_code
-  is \<open> cdcl_twl_full_restart_wl_prog_heur\<close>
-  :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
+  is \<open>cdcl_twl_full_restart_wl_prog_heur\<close>
+  :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> uint64_max]\<^sub>a  isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   unfolding cdcl_twl_full_restart_wl_prog_heur_def
   supply [[goals_limit = 1]]
   by sepref
@@ -648,8 +644,8 @@ sepref_definition cdcl_twl_restart_wl_heur_code
   by sepref
 
 sepref_definition cdcl_twl_restart_wl_heur_fast_code
-  is \<open> cdcl_twl_restart_wl_heur\<close>
-  :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
+  is \<open>cdcl_twl_restart_wl_heur\<close>
+  :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> uint64_max]\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   unfolding cdcl_twl_restart_wl_heur_def
   supply [[goals_limit = 1]]
   by sepref

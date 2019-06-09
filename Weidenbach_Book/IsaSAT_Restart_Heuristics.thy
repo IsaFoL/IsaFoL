@@ -822,6 +822,7 @@ definition (in -) sort_vdom_heur :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_w
   \<open>sort_vdom_heur = (\<lambda>(M', arena, D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema, ccount,
        vdom, avdom, lcount). do {
     ASSERT(valid_sort_clause_score_pre arena avdom);
+    ASSERT(length vdom \<le> length arena);
     avdom \<leftarrow> quicksort_clauses_by_score arena avdom;
     RETURN (M', arena, D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema, ccount,
        vdom, avdom, lcount)
@@ -833,6 +834,15 @@ lemma sort_clauses_by_score_reorder:
   by (rule full_quicksort_ref_full_quicksort[THEN fref_to_Down, THEN order_trans])
     (auto simp add: reorder_remove_def clause_score_ordering_def
      intro!: full_quicksort_correct[THEN order_trans])
+
+lemma valid_arena_vdom_subset:
+  assumes \<open>valid_arena arena N (set vdom)\<close> and \<open>distinct vdom\<close>
+  shows \<open>length vdom \<le> length arena\<close>
+proof -
+  have \<open>set vdom \<subseteq> {0 ..< length arena}\<close>
+    using assms by (auto simp: valid_arena_def)
+  from card_mono[OF _ this] show ?thesis using assms by (auto simp: distinct_card)
+qed
 
 lemma sort_vdom_heur_reorder_vdom_wl:
   \<open>(sort_vdom_heur, reorder_vdom_wl) \<in> twl_st_heur_restart_ana r \<rightarrow>\<^sub>f \<langle>twl_st_heur_restart_ana r\<rangle>nres_rel\<close>
@@ -848,6 +858,8 @@ proof -
       by (auto simp: valid_sort_clause_score_pre_def twl_st_heur_restart_ana_def arena_dom_status_iff
         arena_act_pre_def get_clause_LBD_pre_def arena_is_valid_clause_idx_def
         intro!: exI[of _ \<open>get_clauses_wl y\<close>])
+    apply (subst assert_bind_spec_conv, intro conjI)
+    subgoal by (auto simp: twl_st_heur_restart_ana_def valid_arena_vdom_subset)
     subgoal
       apply (rewrite at \<open>_ \<le> \<hole>\<close> Down_id_eq[symmetric])
       apply (rule bind_refine_spec)
@@ -883,9 +895,21 @@ sepref_definition (in -) partition_main_clause_code
   unfolding partition_main_clause_def partition_between_ref_def
     partition_main_def
   by sepref
+find_theorems "mset _ = mset _" length
+sepref_definition (in -) partition_main_clause_fast_code
+  is \<open>uncurry3 partition_main_clause\<close>
+  :: \<open>[\<lambda>(((arena, i), j), vdom). length vdom \<le> uint64_max \<and> valid_sort_clause_score_pre arena vdom]\<^sub>a
+      arena_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a vdom_assn\<^sup>d \<rightarrow> vdom_assn *a uint64_nat_assn\<close>
+  supply insort_inner_clauses_by_score_invI[intro] [[goals_limit=1]]
+    partition_main_inv_def[simp] mset_eq_length[dest]
+  unfolding partition_main_clause_def partition_between_ref_def
+    partition_main_def one_uint64_nat_def[symmetric]
+  by sepref
 
 sepref_register partition_main_clause_code
 declare partition_main_clause_code.refine[sepref_fr_rules]
+   partition_main_clause_fast_code.refine[sepref_fr_rules]
+
 definition partition_clause where
   \<open>partition_clause arena = partition_between_ref clause_score_ordering  (clause_score_extract arena)\<close>
 
@@ -903,7 +927,23 @@ sepref_definition (in -) partition_clause_code
     choose_pivot3_def partition_main_clause_def[symmetric]
   by sepref
 
+
+definition div2 where [simp]: \<open>div2 n = n div 2\<close>
+lemma div2_hnr[sepref_fr_rules]: \<open>(return o (\<lambda>n. n >> 1), RETURN o div2) \<in> uint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
+  by sepref_to_hoare
+    (sep_auto simp: div2_def uint64_nat_rel_def br_def nat_of_uint64_shiftl nat_shiftr_div2)
+
+sepref_definition (in -) partition_clause_fast_code
+  is \<open>uncurry3 partition_clause\<close>
+  :: \<open>[\<lambda>(((arena, i), j), vdom). length vdom \<le> uint64_max \<and> valid_sort_clause_score_pre arena vdom]\<^sub>a
+      arena_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a vdom_assn\<^sup>d \<rightarrow> vdom_assn *a uint64_nat_assn\<close>
+  supply insort_inner_clauses_by_score_invI[intro] valid_sort_clause_score_pre_swap[intro] mset_eq_length[dest]
+  unfolding partition_clause_def partition_between_ref_def div2_def[symmetric]
+    choose_pivot3_def partition_main_clause_def[symmetric]
+  by sepref
+
 declare partition_clause_code.refine[sepref_fr_rules]
+  partition_clause_fast_code.refine[sepref_fr_rules]
 
 sepref_definition (in -) sort_clauses_by_score_code
   is \<open>uncurry quicksort_clauses_by_score\<close>
@@ -917,10 +957,29 @@ sepref_definition (in -) sort_clauses_by_score_code
     partition_clause_def[symmetric]
     List.null_def
   by sepref
+find_theorems name:length name:64
+definition safe_minus where \<open>safe_minus a b = (if b \<ge> a then 0 else a - b)\<close>
 
+lemma minus_uint64_safe:
+   \<open>(uncurry (return oo safe_minus), uncurry (RETURN oo (-))) \<in> uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
+  by sepref_to_hoare
+    (sep_auto simp: safe_minus_def uint64_nat_rel_def br_def nat_of_uint64_le_iff nat_of_uint64_notle_minus)
+
+    find_theorems "nat_of_uint64 (_ - _)"
+sepref_definition (in -) sort_clauses_by_score_fast_code
+  is \<open>uncurry quicksort_clauses_by_score\<close>
+  :: \<open>[\<lambda>(arena, vdom). length vdom \<le> uint64_max \<and> valid_sort_clause_score_pre arena vdom]\<^sub>a
+      arena_assn\<^sup>k *\<^sub>a vdom_assn\<^sup>d \<rightarrow> vdom_assn\<close>
+  supply sort_clauses_by_score_invI[intro] [[goals_limit=1]] mset_eq_length[dest] minus_uint64_safe[sepref_fr_rules]
+  unfolding insert_sort_def
+    quicksort_clauses_by_score_def
+    full_quicksort_ref_def
+    quicksort_ref_def length_uint64_nat_def[symmetric]
+    partition_clause_def[symmetric] one_uint64_nat_def[symmetric]
+    List.null_def zero_uint64_nat_def[symmetric]
+  by sepref
 
 declare sort_clauses_by_score_code.refine[sepref_fr_rules]
-
 
 sepref_definition sort_vdom_heur_code
   is \<open>sort_vdom_heur\<close>
@@ -929,7 +988,15 @@ sepref_definition sort_vdom_heur_code
   unfolding sort_vdom_heur_def isasat_unbounded_assn_def
   by sepref
 
+sepref_definition sort_vdom_heur_fast_code
+  is \<open>sort_vdom_heur\<close>
+  :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> uint64_max]\<^sub>aisasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
+  supply sort_clauses_by_score_invI[intro]
+  unfolding sort_vdom_heur_def isasat_bounded_assn_def
+  by sepref
+
 declare sort_vdom_heur_code.refine[sepref_fr_rules]
+ sort_vdom_heur_fast_code.refine[sepref_fr_rules]
 
 definition opts_restart_st :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close> where
   \<open>opts_restart_st = (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema, ccount,
@@ -1761,6 +1828,8 @@ proof -
       by (auto simp: valid_sort_clause_score_pre_def twl_st_heur_restart_ana_def arena_dom_status_iff
         arena_act_pre_def get_clause_LBD_pre_def arena_is_valid_clause_idx_def
          intro!: exI[of _ \<open>get_clauses_wl T\<close>])
+    subgoal
+     by (auto simp: twl_st_heur_restart_ana_def valid_arena_vdom_subset)
     subgoal
       apply (rewrite at \<open>_ \<le> \<hole>\<close> Down_id_eq[symmetric])
       apply (rule bind_refine_spec)
@@ -2931,6 +3000,7 @@ proof -
       by (auto simp: valid_sort_clause_score_pre_def twl_st_heur_restart_ana_def arena_dom_status_iff
         arena_act_pre_def get_clause_LBD_pre_def arena_is_valid_clause_idx_def
          intro!: exI[of _ \<open>get_clauses_wl T\<close>])
+    subgoal by (auto simp: twl_st_heur_restart_ana_def valid_arena_vdom_subset)
     subgoal
       apply (rewrite at \<open>_ \<le> \<hole>\<close> Down_id_eq[symmetric])
       apply (rule bind_refine_spec)
