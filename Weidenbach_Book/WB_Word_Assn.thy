@@ -414,7 +414,7 @@ lemma nat_of_uint32_uint32_of_nat_id: \<open>n \<le> uint32_max \<Longrightarrow
   by (auto simp: less_upper_bintrunc_id)
 
 lemma shiftr1[sepref_fr_rules]:
-   \<open>(uncurry (return oo ((>>) )), uncurry (RETURN oo (>>))) \<in> uint32_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a
+   \<open>(uncurry (return oo ((>>))), uncurry (RETURN oo (>>))) \<in> uint32_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a
       uint32_assn\<close>
   by sepref_to_hoare (sep_auto simp: shiftr1_def uint32_nat_rel_def br_def)
 

@@ -1999,4 +1999,17 @@ lemma update_aa_u32_i64_hnr[sepref_fr_rules]:
       (arrayO_assn (arl_assn R))\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a R\<^sup>k \<rightarrow> (arrayO_assn (arl_assn R))\<close>
   by sepref_to_hoare (sep_auto simp: assms)
 
+lemma min_uint64_nat_assn:
+  \<open>(uncurry (return oo min), uncurry (RETURN oo min)) \<in> uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
+  by (sepref_to_hoare; sep_auto simp: br_def uint64_nat_rel_def min_def nat_of_uint64_le_iff)
+
+lemma nat_of_uint64_shiftl:  \<open>nat_of_uint64 (xs >> a) = nat_of_uint64 xs >> a\<close>
+  by transfer (auto simp: unat_shiftr nat_shifl_div)
+
+lemma bit_lshift_uint64_nat_assn[sepref_fr_rules]:
+  \<open>(uncurry (return oo (>>)), uncurry (RETURN oo (>>))) \<in>
+    uint64_nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
+  by sepref_to_hoare (sep_auto simp: uint64_nat_rel_def br_def nat_of_uint64_shiftl)
+
 end
+
