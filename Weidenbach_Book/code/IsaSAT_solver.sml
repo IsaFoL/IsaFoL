@@ -214,7 +214,150 @@ val typerep_nat = {typerep = typerep_nata} : nat typerep;
 val heap_nat = {countable_heap = countable_nat, typerep_heap = typerep_nat} :
   nat heap;
 
+fun apsnd f (x, y) = (x, f y);
+
+datatype num = One | Bit0 of num | Bit1 of num;
+
+fun divmod_integer k l =
+  (if ((k : IntInf.int) = (0 : IntInf.int))
+    then ((0 : IntInf.int), (0 : IntInf.int))
+    else (if IntInf.< ((0 : IntInf.int), l)
+           then (if IntInf.< ((0 : IntInf.int), k)
+                  then IntInf.divMod (IntInf.abs k, IntInf.abs l)
+                  else let
+                         val (r, s) =
+                           IntInf.divMod (IntInf.abs k, IntInf.abs l);
+                       in
+                         (if ((s : IntInf.int) = (0 : IntInf.int))
+                           then (IntInf.~ r, (0 : IntInf.int))
+                           else (IntInf.- (IntInf.~ r, (1 : IntInf.int)),
+                                  IntInf.- (l, s)))
+                       end)
+           else (if ((l : IntInf.int) = (0 : IntInf.int))
+                  then ((0 : IntInf.int), k)
+                  else apsnd IntInf.~
+                         (if IntInf.< (k, (0 : IntInf.int))
+                           then IntInf.divMod (IntInf.abs k, IntInf.abs l)
+                           else let
+                                  val (r, s) =
+                                    IntInf.divMod (IntInf.abs k, IntInf.abs l);
+                                in
+                                  (if ((s : IntInf.int) = (0 : IntInf.int))
+                                    then (IntInf.~ r, (0 : IntInf.int))
+                                    else (IntInf.- (IntInf.~
+              r, (1 : IntInf.int)),
+   IntInf.- (IntInf.~ l, s)))
+                                end))));
+
+fun snd (x1, x2) = x2;
+
+fun modulo_integer k l = snd (divmod_integer k l);
+
+fun integer_of_nat (Nat x) = x;
+
+fun modulo_nat m n = Nat (modulo_integer (integer_of_nat m) (integer_of_nat n));
+
+fun fst (x1, x2) = x1;
+
+fun divide_integer k l = fst (divmod_integer k l);
+
+fun divide_nat m n = Nat (divide_integer (integer_of_nat m) (integer_of_nat n));
+
+fun equal_nat m n = (((integer_of_nat m) : IntInf.int) = (integer_of_nat n));
+
+type 'a ord = {less_eq : 'a -> 'a -> bool, less : 'a -> 'a -> bool};
+val less_eq = #less_eq : 'a ord -> 'a -> 'a -> bool;
+val less = #less : 'a ord -> 'a -> 'a -> bool;
+
+fun max A_ a b = (if less_eq A_ a b then b else a);
+
+val ord_integer =
+  {less_eq = (fn a => fn b => IntInf.<= (a, b)),
+    less = (fn a => fn b => IntInf.< (a, b))}
+  : IntInf.int ord;
+
+fun nat_of_integer k = Nat (max ord_integer (0 : IntInf.int) k);
+
 val zero_nata : nat = Nat (0 : IntInf.int);
+
+val one_nat : nat = Nat (1 : IntInf.int);
+
+datatype char = Chara of bool * bool * bool * bool * bool * bool * bool * bool;
+
+fun string_of_digit n =
+  (if equal_nat n zero_nata
+    then [Chara (false, false, false, false, true, true, false, false)]
+    else (if equal_nat n one_nat
+           then [Chara (true, false, false, false, true, true, false, false)]
+           else (if equal_nat n (nat_of_integer (2 : IntInf.int))
+                  then [Chara (false, true, false, false, true, true, false,
+                                false)]
+                  else (if equal_nat n (nat_of_integer (3 : IntInf.int))
+                         then [Chara (true, true, false, false, true, true,
+                                       false, false)]
+                         else (if equal_nat n (nat_of_integer (4 : IntInf.int))
+                                then [Chara
+(false, false, true, false, true, true, false, false)]
+                                else (if equal_nat n
+   (nat_of_integer (5 : IntInf.int))
+                                       then [Chara
+       (true, false, true, false, true, true, false, false)]
+                                       else (if equal_nat n
+          (nat_of_integer (6 : IntInf.int))
+      then [Chara (false, true, true, false, true, true, false, false)]
+      else (if equal_nat n (nat_of_integer (7 : IntInf.int))
+             then [Chara (true, true, true, false, true, true, false, false)]
+             else (if equal_nat n (nat_of_integer (8 : IntInf.int))
+                    then [Chara (false, false, false, true, true, true, false,
+                                  false)]
+                    else [Chara (true, false, false, true, true, true, false,
+                                  false)])))))))));
+
+fun less_nat m n = IntInf.< (integer_of_nat m, integer_of_nat n);
+
+fun shows_string x = (fn a => x @ a);
+
+fun showsp_nat p n =
+  (if less_nat n (nat_of_integer (10 : IntInf.int))
+    then shows_string (string_of_digit n)
+    else showsp_nat p (divide_nat n (nat_of_integer (10 : IntInf.int))) o
+           shows_string
+             (string_of_digit
+               (modulo_nat n (nat_of_integer (10 : IntInf.int)))));
+
+fun shows_prec_nat x = showsp_nat x;
+
+fun shows_sep s sep [] = shows_string []
+  | shows_sep s sep [x] = s x
+  | shows_sep s sep (x :: v :: va) = s x o sep o shows_sep s sep (v :: va);
+
+fun null [] = true
+  | null (x :: xs) = false;
+
+fun shows_list_gen showsx e l s r xs =
+  (if null xs then shows_string e
+    else shows_string l o shows_sep showsx (shows_string s) xs o
+           shows_string r);
+
+fun showsp_list s p xs =
+  shows_list_gen (s zero_nata)
+    [Chara (true, true, false, true, true, false, true, false),
+      Chara (true, false, true, true, true, false, true, false)]
+    [Chara (true, true, false, true, true, false, true, false)]
+    [Chara (false, false, true, true, false, true, false, false),
+      Chara (false, false, false, false, false, true, false, false)]
+    [Chara (true, false, true, true, true, false, true, false)] xs;
+
+fun shows_list_nat x = showsp_list shows_prec_nat zero_nata x;
+
+type 'a show =
+  {shows_prec : nat -> 'a -> char list -> char list,
+    shows_list : 'a list -> char list -> char list};
+val shows_prec = #shows_prec : 'a show -> nat -> 'a -> char list -> char list;
+val shows_list = #shows_list : 'a show -> 'a list -> char list -> char list;
+
+val show_nat = {shows_prec = shows_prec_nat, shows_list = shows_list_nat} :
+  nat show;
 
 type 'a zero = {zero : 'a};
 val zero = #zero : 'a zero -> 'a;
@@ -228,19 +371,6 @@ val default = #default : 'a default -> 'a;
 
 val default_nat = {default = default_nata} : nat default;
 
-fun integer_of_nat (Nat x) = x;
-
-type 'a ord = {less_eq : 'a -> 'a -> bool, less : 'a -> 'a -> bool};
-val less_eq = #less_eq : 'a ord -> 'a -> 'a -> bool;
-val less = #less : 'a ord -> 'a -> 'a -> bool;
-
-fun max A_ a b = (if less_eq A_ a b then b else a);
-
-val ord_integer =
-  {less_eq = (fn a => fn b => IntInf.<= (a, b)),
-    less = (fn a => fn b => IntInf.< (a, b))}
-  : IntInf.int ord;
-
 fun minus_nata m n =
   Nat (max ord_integer (0 : IntInf.int)
         (IntInf.- (integer_of_nat m, integer_of_nat n)));
@@ -251,8 +381,6 @@ val minus = #minus : 'a minus -> 'a -> 'a -> 'a;
 val minus_nat = {minus = minus_nata} : nat minus;
 
 fun less_eq_nat m n = IntInf.<= (integer_of_nat m, integer_of_nat n);
-
-fun less_nat m n = IntInf.< (integer_of_nat m, integer_of_nat n);
 
 val ord_nat = {less_eq = less_eq_nat, less = less_nat} : nat ord;
 
@@ -275,19 +403,9 @@ fun heap_array A_ =
   {countable_heap = countable_array, typerep_heap = typerep_array A_} :
   ('a array) heap;
 
-datatype char = Chara of bool * bool * bool * bool * bool * bool * bool * bool;
-
 fun shows_prec_char p c = (fn a => c :: a);
 
-fun shows_string x = (fn a => x @ a);
-
 fun shows_list_char cs = shows_string cs;
-
-type 'a show =
-  {shows_prec : nat -> 'a -> char list -> char list,
-    shows_list : 'a list -> char list -> char list};
-val shows_prec = #shows_prec : 'a show -> nat -> 'a -> char list -> char list;
-val shows_list = #shows_list : 'a show -> 'a list -> char list -> char list;
 
 val show_char = {shows_prec = shows_prec_char, shows_list = shows_list_char} :
   char show;
@@ -364,6 +482,19 @@ val heap_uint64 =
   {countable_heap = countable_uint64, typerep_heap = typerep_uint64} :
   Uint64.uint64 heap;
 
+fun nat_of_uint64 x = nat_of_integer (Uint64.toInt x);
+
+fun shows_prec_uint64 n m xs = shows_prec_nat n (nat_of_uint64 m) xs;
+
+fun map f [] = []
+  | map f (x21 :: x22) = f x21 :: map f x22;
+
+fun shows_list_uint64 xs ys = shows_list_nat (map nat_of_uint64 xs) ys;
+
+val show_uint64 =
+  {shows_prec = shows_prec_uint64, shows_list = shows_list_uint64} :
+  Uint64.uint64 show;
+
 val one_uint64 = {one = Uint64.one} : Uint64.uint64 one;
 
 val zero_uint64 = {zero = Uint64.zero} : Uint64.uint64 zero;
@@ -376,10 +507,6 @@ val minus_uint64 = {minus = Uint64.minus} : Uint64.uint64 minus;
 
 val ord_uint64 = {less_eq = Uint64.less_eq, less = Uint64.less} :
   Uint64.uint64 ord;
-
-fun nat_of_integer k = Nat (max ord_integer (0 : IntInf.int) k);
-
-datatype num = One | Bit0 of num | Bit1 of num;
 
 fun test_bit_uint64 x n =
   less_nat n (nat_of_integer (64 : IntInf.int)) andalso
@@ -491,8 +618,6 @@ fun eq A_ a b = equal A_ a b;
 
 fun plus_nat m n = Nat (IntInf.+ (integer_of_nat m, integer_of_nat n));
 
-val one_nat : nat = Nat (1 : IntInf.int);
-
 fun suc n = plus_nat n one_nat;
 
 fun len A_ a =
@@ -516,13 +641,7 @@ fun upd A_ i x a =
       a
     end);
 
-fun null [] = true
-  | null (x :: xs) = false;
-
 fun hd (x21 :: x22) = x21;
-
-fun map f [] = []
-  | map f (x21 :: x22) = f x21 :: map f x22;
 
 fun of_bool A_ true = one (one_zero_neq_one A_)
   | of_bool A_ false = zero (zero_zero_neq_one A_);
@@ -550,7 +669,7 @@ fun blit A_ src si dst di len =
     array_blit src (integer_of_nat
                      si) dst (integer_of_nat di) (integer_of_nat len));
 
-val version : string = "deda793f";
+val version : string = "5b4d5483";
 
 fun get_LBD_code x = (fn xi => (fn () => let
    val (_, (_, b)) = xi;
@@ -797,8 +916,6 @@ fun heap_array_set_u A_ a i x =
 
 fun times_nat m n = Nat (IntInf.* (integer_of_nat m, integer_of_nat n));
 
-fun equal_nat m n = (((integer_of_nat m) : IntInf.int) = (integer_of_nat n));
-
 fun array_grow A_ a s x =
   (fn () =>
     let
@@ -974,10 +1091,6 @@ fun array_upd_u64 A_ i x a =
             in
               a
             end);
-
-fun snd (x1, x2) = x2;
-
-fun fst (x1, x2) = x1;
 
 fun arl_set_u64 A_ a i x =
   (fn () => let
@@ -1447,8 +1560,6 @@ fun length_aa_u32_o64 A_ xs i =
     in
       arl_length_o64 A_ x ()
     end);
-
-fun nat_of_uint64 x = nat_of_integer (Uint64.toInt x);
 
 fun cut_watch_list_heur2_fast_code x =
   (fn ai => fn bib => fn bia => fn (a1, (a1a, (a1b, (a1c, (a1d, a2d))))) =>
@@ -2255,7 +2366,7 @@ fun mark_garbage_heur2_code x =
       (a1, (xaa, (a1b, (a1c, (a1d, (a1e, (a1f,
    (a1g, (a1h, (a1i, (a1j, (a1k, (a1l, (a1m,
  (a1n, (a1o, (a1p, ((if ((xa : Word32.word) = (Word32.fromInt 0)) then a1q
-                      else minus_nata a1q one_nat),
+                      else Uint64.minus a1q Uint64.one),
                      a2q))))))))))))))))))
     end)
     x;
@@ -2831,7 +2942,7 @@ fun mark_garbage_heur_code2 x =
     in
       (a1, (xa, (a1b, (a1c, (a1d, (a1e, (a1f,
   (a1g, (a1h, (a1i, (a1j, (a1k, (a1l, (a1m,
-(a1n, (a1o, (xac, (minus_nata a1q one_nat, (a1r, a2r)))))))))))))))))))
+(a1n, (a1o, (xac, (Uint64.minus a1q Uint64.one, (a1r, a2r)))))))))))))))))))
     end)
     x;
 
@@ -3383,7 +3494,7 @@ fun upper_restart_bound_not_reached_fast_impl x =
                 (_, (_, (_, (_, (_, (a1u, _))))))))))))))))))
           = xi;
       in
-        less_nat a1u
+        less_nat (nat_of_uint64 a1u)
           (plus_nat (nat_of_integer (3000 : IntInf.int))
             (times_nat (nat_of_integer (1000 : IntInf.int))
               (nat_of_uint64 a1o)))
@@ -3492,7 +3603,7 @@ fun restart_required_heur_fast_code x =
                              else true) andalso
                             (Uint64.less minimum_number_between_restarts
                                x_j andalso
-                              (less_nat bi x_l andalso
+                              (less_nat bi (nat_of_uint64 x_l) andalso
                                 (Word32.< (two_uint32, x_r) andalso
                                   Uint64.less
                                     (shiftr_uint64 x_h
@@ -3628,7 +3739,7 @@ fun lower_restart_bound_not_reached_fast_impl x =
       in
         not (opts_reduce a1v) orelse
           opts_restart a1v andalso
-            less_nat a1u
+            less_nat (nat_of_uint64 a1u)
               (plus_nat (nat_of_integer (2000 : IntInf.int))
                 (times_nat (nat_of_integer (1000 : IntInf.int))
                   (nat_of_uint64 a1o)))
@@ -4193,43 +4304,6 @@ fun partition_main_clause_code x =
         ()
     end)
     x;
-
-fun apsnd f (x, y) = (x, f y);
-
-fun divmod_integer k l =
-  (if ((k : IntInf.int) = (0 : IntInf.int))
-    then ((0 : IntInf.int), (0 : IntInf.int))
-    else (if IntInf.< ((0 : IntInf.int), l)
-           then (if IntInf.< ((0 : IntInf.int), k)
-                  then IntInf.divMod (IntInf.abs k, IntInf.abs l)
-                  else let
-                         val (r, s) =
-                           IntInf.divMod (IntInf.abs k, IntInf.abs l);
-                       in
-                         (if ((s : IntInf.int) = (0 : IntInf.int))
-                           then (IntInf.~ r, (0 : IntInf.int))
-                           else (IntInf.- (IntInf.~ r, (1 : IntInf.int)),
-                                  IntInf.- (l, s)))
-                       end)
-           else (if ((l : IntInf.int) = (0 : IntInf.int))
-                  then ((0 : IntInf.int), k)
-                  else apsnd IntInf.~
-                         (if IntInf.< (k, (0 : IntInf.int))
-                           then IntInf.divMod (IntInf.abs k, IntInf.abs l)
-                           else let
-                                  val (r, s) =
-                                    IntInf.divMod (IntInf.abs k, IntInf.abs l);
-                                in
-                                  (if ((s : IntInf.int) = (0 : IntInf.int))
-                                    then (IntInf.~ r, (0 : IntInf.int))
-                                    else (IntInf.- (IntInf.~
-              r, (1 : IntInf.int)),
-   IntInf.- (IntInf.~ l, s)))
-                                end))));
-
-fun divide_integer k l = fst (divmod_integer k l);
-
-fun divide_nat m n = Nat (divide_integer (integer_of_nat m) (integer_of_nat n));
 
 fun partition_clause_code x =
   (fn ai => fn bib => fn bia => fn bi => fn () =>
@@ -5224,51 +5298,6 @@ fun skip_and_resolve_loop_wl_D_fast x =
     end)
     x;
 
-fun modulo_integer k l = snd (divmod_integer k l);
-
-fun modulo_nat m n = Nat (modulo_integer (integer_of_nat m) (integer_of_nat n));
-
-fun string_of_digit n =
-  (if equal_nat n zero_nata
-    then [Chara (false, false, false, false, true, true, false, false)]
-    else (if equal_nat n one_nat
-           then [Chara (true, false, false, false, true, true, false, false)]
-           else (if equal_nat n (nat_of_integer (2 : IntInf.int))
-                  then [Chara (false, true, false, false, true, true, false,
-                                false)]
-                  else (if equal_nat n (nat_of_integer (3 : IntInf.int))
-                         then [Chara (true, true, false, false, true, true,
-                                       false, false)]
-                         else (if equal_nat n (nat_of_integer (4 : IntInf.int))
-                                then [Chara
-(false, false, true, false, true, true, false, false)]
-                                else (if equal_nat n
-   (nat_of_integer (5 : IntInf.int))
-                                       then [Chara
-       (true, false, true, false, true, true, false, false)]
-                                       else (if equal_nat n
-          (nat_of_integer (6 : IntInf.int))
-      then [Chara (false, true, true, false, true, true, false, false)]
-      else (if equal_nat n (nat_of_integer (7 : IntInf.int))
-             then [Chara (true, true, true, false, true, true, false, false)]
-             else (if equal_nat n (nat_of_integer (8 : IntInf.int))
-                    then [Chara (false, false, false, true, true, true, false,
-                                  false)]
-                    else [Chara (true, false, false, true, true, true, false,
-                                  false)])))))))));
-
-fun showsp_nat p n =
-  (if less_nat n (nat_of_integer (10 : IntInf.int))
-    then shows_string (string_of_digit n)
-    else showsp_nat p (divide_nat n (nat_of_integer (10 : IntInf.int))) o
-           shows_string
-             (string_of_digit
-               (modulo_nat n (nat_of_integer (10 : IntInf.int)))));
-
-fun shows_prec_nat x = showsp_nat x;
-
-fun shows_prec_uint64 n m xs = shows_prec_nat n (nat_of_uint64 m) xs;
-
 fun shows_prec_list A_ p xs = shows_list A_ xs;
 
 fun zero_some_stats x =
@@ -5277,7 +5306,7 @@ fun zero_some_stats x =
       (confl, (decs, (frestarts, (lrestarts, (uset, (gcs, Uint64.zero))))))))
     x;
 
-fun isasat_current_information x =
+fun isasat_current_information A_ =
   (fn (propa, (confl, (decs, (frestarts, (lrestarts, (uset, (gcs, lbds))))))) =>
     fn lcount =>
     (if (((Uint64.andb confl
@@ -5316,7 +5345,7 @@ shows_prec_list show_char zero_nata c [] @
     shows_prec_list show_char zero_nata c [] @
       shows_prec_uint64 zero_nata uset [] @
         shows_prec_list show_char zero_nata c [] @
-          shows_prec_nat zero_nata lcount [] @
+          shows_prec A_ zero_nata lcount [] @
             shows_prec_list show_char zero_nata c [] @
               shows_prec_uint64 zero_nata
                 (shiftr_uint64 lbds (nat_of_integer (13 : IntInf.int)))
@@ -5327,8 +5356,7 @@ shows_prec_list show_char zero_nata c [] @
                  (confl, (decs, (frestarts, (lrestarts, (uset, (gcs, lbds)))))))
            end
       else (propa,
-             (confl, (decs, (frestarts, (lrestarts, (uset, (gcs, lbds)))))))))
-    x;
+             (confl, (decs, (frestarts, (lrestarts, (uset, (gcs, lbds)))))))));
 
 fun isasat_current_status_fast_code x =
   (fn xi =>
@@ -5340,7 +5368,7 @@ fun isasat_current_status_fast_code x =
           = xi;
       in
         (a1, (a1a, (a1b, (a1c, (a1d, (a1e, (a1f,
-     (a1g, (a1h, (a1i, (a1j, (isasat_current_information a1k a1q,
+     (a1g, (a1h, (a1i, (a1j, (isasat_current_information show_uint64 a1k a1q,
                                (a1l, (a1m, (a1n,
      (a1o, (a1p, (a1q, (a1r, a2r)))))))))))))))))))
       end))
@@ -6712,7 +6740,7 @@ fun propagate_bt_wl_D_fast_code x =
       =>
     fn () =>
     let
-      val xa = nth heap_uint32 bia one_nat ();
+      val xa = nth_u_code heap_uint32 bia (Word32.fromInt 1) ();
       val a = vmtf_rescore_fast_code bia a1 a1e a1f ();
     in
       let
@@ -6720,10 +6748,10 @@ fun propagate_bt_wl_D_fast_code x =
       in
         (fn f_ => fn () => f_ ((get_LBD_code a1i) ()) ())
           (fn x_c =>
-            (fn f_ => fn () => f_ ((len heap_uint32 bia) ()) ())
+            (fn f_ => fn () => f_ ((length_u_code heap_uint32 bia) ()) ())
               (fn xaa =>
                 let
-                  val x_f = equal_nat xaa (nat_of_integer (2 : IntInf.int));
+                  val x_f = ((xaa : Word32.word) = two_uint32);
                 in
                   (fn f_ => fn () => f_
                     ((append_and_length_fast_code false bia a1a) ()) ())
@@ -6780,7 +6808,8 @@ fun propagate_bt_wl_D_fast_code x =
    (ema_update_ref x_c a1l,
      (ema_update_ref x_c a1m,
        (incr_conflict_count_since_last_restart a1n,
-         (xab, (xba, (suc a1q, a2q))))))))))))))))))))))))))))))
+         (xab, (xba, (Uint64.plus a1q Uint64.one,
+                       a2q))))))))))))))))))))))))))))))
                 end))
       end
         ()
@@ -7152,7 +7181,7 @@ fun isasat_current_status_code x =
           = xi;
       in
         (a1, (a1a, (a1b, (a1c, (a1d, (a1e, (a1f,
-     (a1g, (a1h, (a1i, (a1j, (isasat_current_information a1k a1q,
+     (a1g, (a1h, (a1i, (a1j, (isasat_current_information show_nat a1k a1q,
                                (a1l, (a1m, (a1n,
      (a1o, (a1p, (a1q, (a1r, a2r)))))))))))))))))))
       end))
@@ -8052,7 +8081,7 @@ fun propagate_bt_wl_D_code x =
    (ema_update_ref x_c a1l,
      (ema_update_ref x_c a1m,
        (incr_conflict_count_since_last_restart a1n,
-         (xab, (xba, (suc a1q, a2q))))))))))))))))))))))))))))))
+         (xab, (xba, (plus_nat a1q one_nat, a2q))))))))))))))))))))))))))))))
                 end))
       end
         ()
@@ -8252,7 +8281,8 @@ fun convert_wlists_to_nat_code x =
 
 fun isasat_fast_slow_code x =
   (fn (a1, (a1a, (a1b, (a1c, (a1d, (a1e, (a1f,
-   (a1g, (a1h, (a1i, (a1j, (a1k, (a1l, (a1m, (a1n, (a1o, a2o))))))))))))))))
+   (a1g, (a1h, (a1i, (a1j, (a1k, (a1l, (a1m,
+ (a1n, (a1o, (a1p, (a1q, (a1r, a2r)))))))))))))))))))
      =>
     fn () =>
     let
@@ -8260,7 +8290,8 @@ fun isasat_fast_slow_code x =
       val xaa = convert_wlists_to_nat_code a1d ();
     in
       (xa, (a1a, (a1b, (a1c, (xaa, (a1e, (a1f,
-   (a1g, (a1h, (a1i, (a1j, (a1k, (a1l, (a1m, (a1n, (a1o, a2o))))))))))))))))
+   (a1g, (a1h, (a1i, (a1j, (a1k, (a1l, (a1m,
+ (a1n, (a1o, (a1p, (nat_of_uint64 a1q, (a1r, a2r)))))))))))))))))))
     end)
     x;
 
@@ -9160,7 +9191,7 @@ fun finalise_init_code x =
                      (ema_init (Uint64.fromInt (128849010 : IntInf.int)),
                        (ema_init (Uint64.fromInt (429450 : IntInf.int)),
                          (restart_info_init,
-                           (a2n, (xaa, (zero_nata, (ai, xb)))))))))))))))))))
+                           (a2n, (xaa, (Uint64.zero, (ai, xb)))))))))))))))))))
     end)
     x;
 
