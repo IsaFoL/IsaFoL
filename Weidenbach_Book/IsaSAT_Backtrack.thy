@@ -933,7 +933,7 @@ proof -
       \<open>vdom_m (all_atms_st S) W N \<subseteq> set vdom\<close> and
       D': \<open>((b, D'), D) \<in> option_lookup_clause_rel (all_atms_st S)\<close> and
       arena: \<open>valid_arena arena N (set vdom)\<close> and
-      avdom: \<open>set avdom \<subseteq> set vdom\<close> and
+      avdom: \<open>mset avdom \<subseteq># mset vdom\<close> and
       bounded: \<open>isasat_input_bounded (all_atms N (NE + UE))\<close>
       using S'_S unfolding S S' twl_st_heur_conflict_ana_def
       by (auto simp: S all_atms_def[symmetric])
@@ -1662,7 +1662,7 @@ proof -
       vdom_m: \<open>vdom_m (all_atms_st U') W N \<subseteq> set vdom\<close> and
       D': \<open>(D', None) \<in> option_lookup_clause_rel (all_atms_st U')\<close> and
       valid: \<open>valid_arena arena N (set vdom)\<close> and
-      avdom: \<open>set avdom \<subseteq> set vdom\<close> and
+      avdom: \<open>mset avdom \<subseteq># mset vdom\<close> and
       bounded: \<open>isasat_input_bounded (all_atms_st U')\<close> and
       nempty: \<open>isasat_input_nempty (all_atms_st U')\<close> and
       dist_vdom: \<open>distinct vdom\<close>
@@ -2102,7 +2102,7 @@ proof -
       where
         U: \<open>U = (M1', arena, D', Q', W', vm', \<phi>, clvls, cach, lbd, outl, stats, fema, sema, ccount,
            vdom, avdom, lcount, opts, [])\<close> and
-        avdom: \<open>set avdom \<subseteq> set vdom\<close> and
+        avdom: \<open>mset avdom \<subseteq># mset vdom\<close> and
         r': \<open>length (get_clauses_wl_heur U) = r\<close>
       using UU' find_decomp r by (cases U) (auto simp: U' T' twl_st_heur_bt_def)
     have

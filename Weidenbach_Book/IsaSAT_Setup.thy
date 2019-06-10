@@ -736,7 +736,7 @@ definition twl_st_heur :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\<cl
     out_learned M D outl \<and>
     lcount = size (learned_clss_lf N) \<and>
     vdom_m (all_atms N (NE + UE))  W N \<subseteq> set vdom \<and>
-    set avdom \<subseteq> set vdom \<and>
+    mset avdom \<subseteq># mset vdom \<and>
     distinct vdom \<and>
     isasat_input_bounded (all_atms N (NE + UE)) \<and>
     isasat_input_nempty (all_atms N (NE + UE)) \<and>
@@ -781,7 +781,7 @@ where
     out_learned M D outl \<and>
     lcount = size (learned_clss_lf N) \<and>
     vdom_m (all_atms N (NE + UE)) W N \<subseteq> set vdom \<and>
-    set avdom \<subseteq> set vdom \<and>
+    mset avdom \<subseteq># mset vdom \<and>
     distinct vdom \<and>
     isasat_input_bounded (all_atms N (NE + UE)) \<and>
     isasat_input_nempty (all_atms N (NE + UE)) \<and>
@@ -819,7 +819,7 @@ definition twl_st_heur_bt :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\
     out_learned M None outl \<and>
     lcount = size (learned_clss_l N) \<and>
     vdom_m (all_atms N (NE + UE)) W N \<subseteq> set vdom \<and>
-    set avdom \<subseteq> set vdom \<and>
+    mset avdom \<subseteq># mset vdom \<and>
     distinct vdom \<and>
     isasat_input_bounded (all_atms N (NE + UE)) \<and>
     isasat_input_nempty (all_atms N (NE + UE)) \<and>
