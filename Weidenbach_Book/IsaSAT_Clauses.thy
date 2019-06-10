@@ -944,4 +944,93 @@ proof -
     done
 qed
 
+lemma size_learned_clss_dom_m: \<open>size (learned_clss_l N) \<le> size (dom_m N)\<close>
+  unfolding ran_m_def
+  apply (rule order_trans[OF size_filter_mset_lesseq])
+  by (auto simp: ran_m_def)
+
+lemma distinct_sum_mset_sum:
+  \<open>distinct_mset As \<Longrightarrow> (\<Sum>A \<in># As. (f :: 'a \<Rightarrow> nat) A) = (\<Sum>A \<in> set_mset As. f A)\<close>
+  by (subst sum_mset_sum_count)  (auto intro!: sum.cong simp: distinct_mset_def)
+
+lemma distinct_sorted_append: \<open>distinct (xs @ [x]) \<Longrightarrow> sorted (xs @ [x]) \<longleftrightarrow> sorted xs \<and> (\<forall>y \<in> set xs. y < x)\<close>
+  using not_distinct_conv_prefix sorted_append by fastforce
+
+lemma (in linordered_ab_semigroup_add) Max_add_commute2:
+  fixes k
+  assumes "finite S" and "S \<noteq> {}"
+  shows "Max ((\<lambda>x. x + k) ` S) = Max S + k"
+proof -
+  have m: "\<And>x y. max x y + k = max (x+k) (y+k)"
+    by(simp add: max_def antisym add_right_mono)
+  have "(\<lambda>x. x + k) ` S = (\<lambda>y. y + k) ` (S)" by auto
+  have "Max \<dots> = Max ( S) + k"
+    using assms hom_Max_commute [of "\<lambda>y. y+k" "S", OF m, symmetric] by simp
+  then show ?thesis by simp
+qed
+
+lemma valid_arena_ge_length_clauses:
+  assumes \<open>valid_arena arena N vdom\<close>
+  shows \<open>length arena \<ge> (\<Sum>C \<in># dom_m N. length (N \<propto> C) + header_size (N \<propto> C))\<close>
+proof -
+  obtain xs where
+    mset_xs: \<open>mset xs = dom_m N\<close> and sorted: \<open>sorted xs\<close> and dist[simp]: \<open>distinct xs\<close> and set_xs: \<open>set xs = set_mset (dom_m N)\<close>
+    using distinct_mset_dom distinct_mset_mset_distinct mset_sorted_list_of_multiset by fastforce
+  then have 1: \<open>set_mset (mset xs) = set xs\<close> by (meson set_mset_mset)
+
+  have diff: \<open>xs \<noteq> [] \<Longrightarrow> a \<in> set xs \<Longrightarrow> a < last xs \<Longrightarrow> a + length (N \<propto> a) \<le> last xs\<close>  for a
+     using valid_minimal_difference_between_valid_index[OF assms, of a \<open>last xs\<close>]
+     mset_xs[symmetric] sorted  by (cases xs rule: rev_cases; auto simp: sorted_append)
+  have \<open>set xs \<subseteq> set_mset (dom_m N)\<close>
+     using mset_xs[symmetric] by auto
+  then have \<open>(\<Sum>A\<in>set xs. length (N \<propto> A) + header_size (N \<propto> A)) \<le> Max (insert 0 ((\<lambda>A. A + length (N \<propto> A)) ` (set xs)))\<close>
+    (is \<open>?P xs \<le> ?Q xs\<close>)
+     using sorted dist
+  proof (induction xs rule: rev_induct)
+    case Nil
+    then show ?case by auto
+  next
+    case (snoc x xs)
+    then have IH: \<open>(\<Sum>A\<in>set xs. length (N \<propto> A) + header_size (N \<propto> A))
+    \<le> Max (insert 0 ((\<lambda>A. A + length (N \<propto> A)) ` set xs))\<close> and
+      x_dom: \<open>x \<in># dom_m N\<close> and
+      x_max: \<open>\<And>a. a \<in> set xs \<Longrightarrow> x > a\<close> and
+      xs_N: \<open>set xs \<subseteq> set_mset (dom_m N)\<close>
+      by (auto simp: sorted_append order.order_iff_strict dest!: bspec)
+    have x_ge: \<open>header_size (N \<propto> x) \<le> x\<close>
+      using assms \<open>x \<in># dom_m N\<close> arena_lifting(1) by blast
+    have diff: \<open>a \<in> set xs \<Longrightarrow> a + length (N \<propto> a) + header_size (N \<propto> x) \<le> x\<close> 
+       \<open>a \<in> set xs \<Longrightarrow> a + length (N \<propto> a) \<le> x\<close>  for a
+      using valid_minimal_difference_between_valid_index[OF assms, of a x]
+      x_max[of a] xs_N x_dom by auto
+
+    have \<open>?P (xs @ [x]) \<le> ?P xs + length (N \<propto> x) + header_size (N \<propto> x)\<close>
+      using snoc by auto
+    also have \<open>... \<le> ?Q xs + (length (N \<propto> x) + header_size (N \<propto> x))\<close>
+      using IH by auto
+    also have \<open>... \<le> (length (N \<propto> x) + x)\<close>
+      by (subst linordered_ab_semigroup_add_class.Max_add_commute2[symmetric]; auto intro: diff x_ge)
+    also have \<open>... = Max (insert (x + length (N \<propto> x)) ((\<lambda>x. x + length (N \<propto> x)) ` set xs))\<close>
+      by (subst eq_commute)
+        (auto intro!: linorder_class.Max_eqI intro: order_trans[OF diff(2)])
+    finally show ?case by auto
+  qed
+  also have \<open>... \<le> (if xs = [] then 0 else last xs + length (N \<propto> last xs))\<close>
+   using sorted distinct_sorted_append[of \<open>butlast xs\<close> \<open>last xs\<close>] dist
+   by (cases \<open>xs\<close> rule: rev_cases)
+     (auto intro: order_trans[OF diff])
+  also have \<open>... \<le> length arena\<close>
+   using arena_lifting(7)[OF assms, of \<open>last xs\<close> \<open>length (N \<propto> last xs) - 1\<close>] mset_xs[symmetric] assms
+   by (cases \<open>xs\<close> rule: rev_cases) (auto simp: arena_lifting)
+  finally show ?thesis
+    unfolding mset_xs[symmetric]
+    by (subst distinct_sum_mset_sum) auto
+qed
+
+lemma valid_arena_size_dom_m_le_arena: \<open>valid_arena arena N vdom \<Longrightarrow> size (dom_m N) \<le> length arena\<close>
+  using valid_arena_ge_length_clauses[of arena N vdom]
+  ordered_comm_monoid_add_class.sum_mset_mono[of \<open>dom_m N\<close> \<open>\<lambda>_. 1\<close>
+    \<open>\<lambda>C. length (N \<propto> C) + header_size (N \<propto> C)\<close>]
+  by (fastforce simp: header_size_def split: if_splits)
+
 end

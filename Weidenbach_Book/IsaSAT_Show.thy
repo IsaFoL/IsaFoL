@@ -87,7 +87,7 @@ definition zero_some_stats :: \<open>stats \<Rightarrow> stats\<close> where
 \<open>zero_some_stats = (\<lambda>(propa, confl, decs, frestarts, lrestarts, uset, gcs, lbds).
      (propa, confl, decs, frestarts, lrestarts, uset, gcs, 0))\<close>
 
-definition isasat_current_information :: \<open>stats \<Rightarrow> nat \<Rightarrow> stats\<close> where
+definition isasat_current_information :: \<open>stats \<Rightarrow> _ \<Rightarrow> stats\<close> where
 \<open>isasat_current_information =
    (\<lambda>(propa, confl, decs, frestarts, lrestarts, uset, gcs, lbds) lcount.
      if confl AND 8191 = 8191 \<comment> \<open>\<^term>\<open>8191 = 8192 - 1\<close>, i.e., we print when all first bits are 1.\<close>
@@ -100,7 +100,7 @@ definition isasat_current_information :: \<open>stats \<Rightarrow> nat \<Righta
       )\<close>
 
 
-definition print_current_information :: \<open>stats \<Rightarrow> nat \<Rightarrow> stats\<close> where
+definition print_current_information :: \<open>stats \<Rightarrow> _ \<Rightarrow> stats\<close> where
 \<open>print_current_information = (\<lambda>(propa, confl, decs, frestarts, lrestarts, uset, gcs, lbds) _.
      if confl AND 8191 = 8191 then (propa, confl, decs, frestarts, lrestarts, uset, gcs, 0)
      else (propa, confl, decs, frestarts, lrestarts, uset, gcs, lbds))\<close>
@@ -109,6 +109,12 @@ sepref_register print_current_information
 lemma print_current_information_hnr[sepref_fr_rules]:
    \<open>(uncurry (return oo isasat_current_information), uncurry (RETURN oo print_current_information)) \<in>
    stats_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a stats_assn\<close>
+  by sepref_to_hoare (sep_auto simp: isasat_current_information_def print_current_information_def
+    zero_some_stats_def)
+
+lemma print_current_information_fast_hnr[sepref_fr_rules]:
+   \<open>(uncurry (return oo isasat_current_information), uncurry (RETURN oo print_current_information)) \<in>
+   stats_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a stats_assn\<close>
   by sepref_to_hoare (sep_auto simp: isasat_current_information_def print_current_information_def
     zero_some_stats_def)
 

@@ -732,19 +732,21 @@ lemma the_option_lookup_clause_assn:
 
 definition propagate_bt_wl_D_heur
   :: \<open>nat literal \<Rightarrow> nat clause_l \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
-  \<open>propagate_bt_wl_D_heur = (\<lambda>L C (M, N, D, Q, W, vm, \<phi>, y, cach, lbd, outl, stats, fema, sema,
+  \<open>propagate_bt_wl_D_heur = (\<lambda>L C (M, N0, D, Q, W, vm0, \<phi>0, y, cach, lbd, outl, stats, fema, sema,
          res_info, vdom, avdom, lcount, opts). do {
       ASSERT(nat_of_lit (C!1) < length W \<and> nat_of_lit (-L) < length W);
       ASSERT(length C > 1);
       let L' = C!1;
       ASSERT(length C \<le> uint32_max div 2 + 1);
-      (vm, \<phi>) \<leftarrow> isa_vmtf_rescore C M vm \<phi>;
+      (vm, \<phi>) \<leftarrow> isa_vmtf_rescore C M vm0 \<phi>0;
       glue \<leftarrow> get_LBD lbd;
       let b = False;
       let b' = (length C = 2);
-      ASSERT(isasat_fast (M, N, D, Q, W, vm, \<phi>, y, cach, lbd, outl, stats, fema, sema,
-         res_info, vdom, avdom, lcount, opts) \<longrightarrow> append_and_length_fast_code_pre ((b, C), N));
-      (N, i) \<leftarrow> fm_add_new b C N;
+      ASSERT(isasat_fast (M, N0, D, Q, W, vm0, \<phi>0, y, cach, lbd, outl, stats, fema, sema,
+         res_info, vdom, avdom, lcount, opts) \<longrightarrow> append_and_length_fast_code_pre ((b, C), N0));
+      ASSERT(isasat_fast (M, N0, D, Q, W, vm0, \<phi>0, y, cach, lbd, outl, stats, fema, sema,
+         res_info, vdom, avdom, lcount, opts) \<longrightarrow> lcount < uint64_max);
+      (N, i) \<leftarrow> fm_add_new b C N0;
       ASSERT(update_lbd_pre ((i, glue), N));
       let N = update_lbd i glue N;
       let W = W[nat_of_lit (- L) := W ! nat_of_lit (- L) @ [to_watcher i L' b']];
@@ -761,7 +763,7 @@ definition propagate_bt_wl_D_heur
          cach, lbd, outl, add_lbd (uint64_of_nat glue) stats, ema_update glue fema, ema_update glue sema,
           incr_conflict_count_since_last_restart res_info, vdom @ [nat_of_uint32_conv i],
           avdom @ [nat_of_uint32_conv i],
-          Suc lcount, opts)
+          lcount + 1, opts)
     })\<close>
 
 definition (in -) lit_of_hd_trail_st_heur :: \<open>twl_st_wl_heur \<Rightarrow> nat literal\<close> where
@@ -792,6 +794,7 @@ definition propagate_unit_bt_wl_D_int
 
 
 paragraph \<open>Full function\<close>
+
 definition backtrack_wl_D_nlit_heur
   :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close>
   where
@@ -1643,7 +1646,7 @@ proof -
       apply (cases U')
       by (auto simp: find_lit_of_max_level_wl_def T' intro: literals_are_in_\<L>\<^sub>i\<^sub>n_mono)
     obtain M1' vm' W' \<phi> clvls cach lbd outl stats fema sema ccount avdom vdom lcount arena D'
-        Q' opts old_arena
+        Q' opts
       where
         U: \<open>U = (M1', arena, D', Q', W', vm', \<phi>, clvls, cach, lbd, outl, stats, fema, sema, ccount,
            vdom, avdom, lcount, opts, [])\<close>
@@ -1692,19 +1695,21 @@ proof -
     qed
 
     have propagate_bt_wl_D_heur_alt_def:
-      \<open>propagate_bt_wl_D_heur = (\<lambda>L C (M, N, D, Q, W, vm, \<phi>, y, cach, lbd, outl, stats, fema, sema,
+      \<open>propagate_bt_wl_D_heur = (\<lambda>L C (M, N0, D, Q, W, vm0, \<phi>0, y, cach, lbd, outl, stats, fema, sema,
           res_info, vdom, avdom, lcount, opts). do {
           ASSERT(nat_of_lit (C!1) < length W \<and> nat_of_lit (-L) < length W);
           ASSERT(length C > 1);
           let L' = C!1;
           ASSERT (length C \<le> uint32_max div 2 + 1);
-          (vm, \<phi>) \<leftarrow> isa_vmtf_rescore C M vm \<phi>;
+          (vm, \<phi>) \<leftarrow> isa_vmtf_rescore C M vm0 \<phi>0;
           glue \<leftarrow> get_LBD lbd;
           let _ = C;
           let b = False;
-          ASSERT(isasat_fast (M, N, D, Q, W, vm, \<phi>, y, cach, lbd, outl, stats, fema, sema,
-         res_info, vdom, avdom, lcount, opts) \<longrightarrow> append_and_length_fast_code_pre ((b, C), N));
-          (N, i) \<leftarrow> fm_add_new b C N;
+          ASSERT(isasat_fast (M, N0, D, Q, W, vm0, \<phi>0, y, cach, lbd, outl, stats, fema, sema,
+         res_info, vdom, avdom, lcount, opts) \<longrightarrow> append_and_length_fast_code_pre ((b, C), N0));
+          ASSERT(isasat_fast (M, N0, D, Q, W, vm0, \<phi>0, y, cach, lbd, outl, stats, fema, sema,
+             res_info, vdom, avdom, lcount, opts) \<longrightarrow> lcount < uint64_max);
+          (N, i) \<leftarrow> fm_add_new b C N0;
           ASSERT(update_lbd_pre ((i, glue), N));
           let N = update_lbd i glue N;
           let W = W[nat_of_lit (- L) := W ! nat_of_lit (- L) @ [(i, L', length C = 2)]];
@@ -1720,7 +1725,7 @@ proof -
           RETURN (M, N, D, j, W, vm, save_phase (-L) \<phi>, zero_uint32_nat,
             cach, lbd, outl, add_lbd (uint64_of_nat glue) stats, ema_update glue fema, ema_update glue sema,
               incr_conflict_count_since_last_restart res_info, vdom @ [nat_of_uint32_conv i],
-              avdom @ [nat_of_uint32_conv i], Suc lcount, opts)
+              avdom @ [nat_of_uint64_conv i], Suc lcount, opts)
       })\<close>
       unfolding propagate_bt_wl_D_heur_def Let_def
       by auto
@@ -1952,7 +1957,7 @@ proof -
           vdom_m_def[symmetric]
           isasat_input_bounded_def[symmetric]
           isasat_input_nempty_def[symmetric]
-                apply auto
+        apply auto
         done
     qed
 
@@ -1981,6 +1986,11 @@ proof -
       subgoal using le_C_ge .
       subgoal by (auto simp: append_and_length_fast_code_pre_def isasat_fast_def
         uint64_max_def uint32_max_def)
+      subgoal
+        using D' C_1_neq_hd vmtf avdom M1'_M1 size_learned_clss_dom_m[of N] valid_arena_size_dom_m_le_arena[OF valid]
+        by (auto simp: propagate_bt_wl_D_heur_def twl_st_heur_def lit_of_hd_trail_st_heur_def
+            phase_saving_def atms_of_def S' U' lit_of_hd_trail_def all_atms_def[symmetric] isasat_fast_def
+            uint64_max_def uint32_max_def)
       subgoal for x uu x1 x2 vm uua_ glue uub D'' xa x' x1a x2a
         by (auto simp: update_lbd_pre_def arena_is_valid_clause_idx_def)
       subgoal
@@ -2371,19 +2381,21 @@ sepref_definition propagate_bt_wl_D_code
 
 
 lemma propagate_bt_wl_D_heur_alt_def:
-  \<open>propagate_bt_wl_D_heur = (\<lambda>L C (M, N, D, Q, W, vm, \<phi>, y, cach, lbd, outl, stats, fema, sema,
+  \<open>propagate_bt_wl_D_heur = (\<lambda>L C (M, N0, D, Q, W, vm0, \<phi>0, y, cach, lbd, outl, stats, fema, sema,
          res_info, vdom, avdom, lcount, opts). do {
       ASSERT(nat_of_lit (C!1) < length W \<and> nat_of_lit (-L) < length W);
       ASSERT(length C > 1);
       let L' = C!1;
       ASSERT(length C \<le> uint32_max div 2 + 1);
-      (vm, \<phi>) \<leftarrow> isa_vmtf_rescore C M vm \<phi>;
+      (vm, \<phi>) \<leftarrow> isa_vmtf_rescore C M vm0 \<phi>0;
       glue \<leftarrow> get_LBD lbd;
       let b = False;
       let b' = (length C = 2);
-      ASSERT(isasat_fast (M, N, D, Q, W, vm, \<phi>, y, cach, lbd, outl, stats, fema, sema,
-         res_info, vdom, avdom, lcount, opts) \<longrightarrow> append_and_length_fast_code_pre ((b, C), N));
-      (N, i) \<leftarrow> fm_add_new_fast b C N;
+      ASSERT(isasat_fast (M, N0, D, Q, W, vm0, \<phi>0, y, cach, lbd, outl, stats, fema, sema,
+         res_info, vdom, avdom, lcount, opts) \<longrightarrow> append_and_length_fast_code_pre ((b, C), N0));
+      ASSERT(isasat_fast (M, N0, D, Q, W, vm0, \<phi>0, y, cach, lbd, outl, stats, fema, sema,
+         res_info, vdom, avdom, lcount, opts) \<longrightarrow> lcount < uint64_max);
+      (N, i) \<leftarrow> fm_add_new_fast b C N0;
       ASSERT(update_lbd_pre ((i, glue), N));
       let N = update_lbd i glue N;
       let W = W[nat_of_lit (- L) := W ! nat_of_lit (- L) @ [to_watcher_fast (i) L' b']];
@@ -2400,7 +2412,7 @@ lemma propagate_bt_wl_D_heur_alt_def:
          cach, lbd, outl, add_lbd (uint64_of_nat glue) stats, ema_update glue fema, ema_update glue sema,
           incr_conflict_count_since_last_restart res_info, vdom @ [nat_of_uint64_conv i],
           avdom @ [nat_of_uint64_conv i],
-          Suc lcount, opts)
+          lcount + 1, opts)
     })\<close>
   unfolding propagate_bt_wl_D_heur_def uint64_of_nat_conv_def by auto
 
@@ -2408,35 +2420,29 @@ lemma propagate_bt_wl_D_heur_alt_def:
 sepref_register fm_add_new_fast
 
 context begin
-private lemma propagate_bt_wl_D_fast_code_isasat_fastI: \<open>isasat_fast b \<Longrightarrow>
+
+private lemma propagate_bt_wl_D_fast_code_isasat_fastI2: \<open>isasat_fast b \<Longrightarrow>
        b = (a1', a2') \<Longrightarrow>
        a2' = (a1'a, a2'a) \<Longrightarrow>
-       a2'a = (a1'b, a2'b) \<Longrightarrow>
-       a2'b = (a1'c, a2'c) \<Longrightarrow>
-       a2'c = (a1'd, a2'd) \<Longrightarrow>
-       a2'd = (a1'e, a2'e) \<Longrightarrow>
-       a2'e = (a1'f, a2'f) \<Longrightarrow>
-       isasat_fast
-        (a1', a1'a, a1'b, a1'c, a1'd, a1'r, a2'r, a1'g, a1'h, a1'i, a1'j, a1'k,
-         a1'l, a1'm, a1'n, a1'o, a1'p, a1'q, a2'q) \<longrightarrow>
-       append_and_length_fast_code_pre ((xe, ba), a1'a) \<Longrightarrow>
-       append_and_length_fast_code_pre ((xe, ba), a1'a)\<close>
-  by (auto simp: isasat_fast_def)
+       a < length a1'a \<Longrightarrow> a \<le> uint64_max\<close>
+  by (cases b) (auto simp: isasat_fast_def)
 
 sepref_definition propagate_bt_wl_D_fast_code
   is \<open>uncurry2 propagate_bt_wl_D_heur\<close>
   :: \<open>[\<lambda>((L, C), S). isasat_fast S]\<^sub>a
       unat_lit_assn\<^sup>k *\<^sub>a clause_ll_assn\<^sup>d *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
-  supply [[goals_limit = 1]] append_ll_def[simp]
-    propagate_bt_wl_D_fast_code_isasat_fastI[intro]
+  supply [[goals_limit = 1]] append_ll_def[simp] isasat_fast_length_leD[dest]
+    propagate_bt_wl_D_fast_code_isasat_fastI2[intro]
   unfolding propagate_bt_wl_D_heur_alt_def
     isasat_bounded_assn_def cons_trail_Propagated_def[symmetric]
     to_watcher_fast_def[symmetric]
   unfolding delete_index_and_swap_update_def[symmetric] append_update_def[symmetric]
     append_ll_def[symmetric] append_ll_def[symmetric]
-    cons_trail_Propagated_def[symmetric] PR_CONST_def save_phase_def
-  by sepref \<comment>\<open>No one expects this to be fast, right? Anyhow, one iteration of debugging is
-    closer to one full video of any song, than to something reasonable.\<close>
+    cons_trail_Propagated_def[symmetric] PR_CONST_def save_phase_def two_uint32_nat_def[symmetric]
+  apply (rewrite at \<open>let _ = _ ! \<hole> in _\<close> one_uint32_nat_def[symmetric])
+  apply (rewrite at \<open>(_ + \<hole>, _)\<close> one_uint64_nat_def[symmetric])
+  apply (rewrite at \<open>let _ = (\<hole> = two_uint32_nat) in _\<close> length_uint32_nat_def[symmetric])
+  by sepref \<comment>\<open>This call is now unreasonnably slow.\<close>
 
 declare
   propagate_bt_wl_D_code.refine[sepref_fr_rules]

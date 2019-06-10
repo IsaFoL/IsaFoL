@@ -106,6 +106,12 @@ lemma isa_vmtf_init_cong:
   apply (subst (asm) isa_vmtf_init_def)
   by (cases L) (auto intro!: isa_vmtf_initI)
 
+type_synonym vdom_fast = \<open>uint64 list\<close>
+
+type_synonym vdom_fast_assn = \<open>uint64 array_list\<close>
+abbreviation vdom_fast_assn :: \<open>vdom \<Rightarrow> vdom_fast_assn \<Rightarrow> assn\<close> where
+  \<open>vdom_fast_assn \<equiv> arl_assn uint64_nat_assn\<close>
+
 type_synonym (in -) twl_st_wl_heur_init =
   \<open>trail_pol \<times> arena \<times> conflict_option_rel \<times> nat \<times>
     (nat \<times> nat literal \<times> bool) list list \<times> isa_vmtf_remove_int_option_fst_As \<times> bool list \<times>
@@ -2370,7 +2376,7 @@ definition finalise_init_code :: \<open>opts \<Rightarrow> twl_st_wl_heur_init \
      let fema = ema_fast_init;
      let sema = ema_slow_init;
      let ccount = restart_info_init;
-     let lcount = 0;
+     let lcount = zero_uint64_nat;
     RETURN (M', N', D', Q', W', ((ns, m, the fst_As, the lst_As, next_search), to_remove), \<phi>,
        clvls, cach, lbd, take1(replicate 160 (Pos zero_uint32_nat)), init_stats,
         fema, sema, ccount, vdom, [], lcount, opts, [])
@@ -2429,7 +2435,7 @@ sepref_definition finalise_init_code_unb
   supply zero_uin64_hnr[sepref_fr_rules] [[goals_limit=1]]
     Pos_unat_lit_assn'[sepref_fr_rules] uint_max_def[simp] op_arl_replicate_def[simp]
   unfolding finalise_init_code_def isasat_init_unbounded_assn_def isasat_unbounded_assn_def
-    arl.fold_custom_empty arl_fold_custom_replicate two_uint32_def[symmetric]
+    arl.fold_custom_empty arl_fold_custom_replicate two_uint32_def[symmetric] zero_uint64_nat_def
   by sepref
 
 declare finalise_init_code'.refine[sepref_fr_rules]

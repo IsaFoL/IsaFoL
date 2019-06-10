@@ -156,7 +156,7 @@ lemma get_learned_count_alt_def:
 
 sepref_definition get_learned_count_fast_code
   is \<open>RETURN o get_learned_count\<close>
-  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
+  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
   unfolding get_learned_count_alt_def isasat_bounded_assn_def
   by sepref
 
@@ -721,6 +721,7 @@ sepref_definition upper_restart_bound_not_reached_fast_impl
   is \<open>(RETURN o upper_restart_bound_not_reached)\<close>
   :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
   unfolding upper_restart_bound_not_reached_def PR_CONST_def isasat_bounded_assn_def
+  apply (rewrite at \<open>\<hole> < _\<close> nat_of_uint64_conv_def[symmetric])
   supply [[goals_limit = 1]]
   by sepref
 
@@ -747,6 +748,7 @@ sepref_definition lower_restart_bound_not_reached_fast_impl
   :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
   unfolding lower_restart_bound_not_reached_def PR_CONST_def isasat_bounded_assn_def
   supply [[goals_limit = 1]]
+  apply (rewrite at \<open>\<hole> < _\<close> nat_of_uint64_conv_def[symmetric])
   by sepref
 
 declare lower_restart_bound_not_reached_impl.refine[sepref_fr_rules]
@@ -1035,8 +1037,6 @@ definition restart_required_heur :: "twl_st_wl_heur \<Rightarrow> nat \<Rightarr
     let opt_res = opts_restart_st S;
     let sema = ema_get_value (get_slow_ema_heur S);
     let limit = (11 * sema) >> 4;
-       \<comment>\<open>roughly speaking 125/100 with hopefully no overflow (there is currently no division
-         on \<^typ>\<open>uint64\<close>\<close>
     let fema = ema_get_value (get_fast_ema_heur S);
     let ccount = get_conflict_count_since_last_restart_heur S;
     let lcount = get_learned_count S;
@@ -1046,7 +1046,7 @@ definition restart_required_heur :: "twl_st_wl_heur \<Rightarrow> nat \<Rightarr
     let should_not_reduce = (\<not>opt_red \<or> upper_restart_bound_not_reached S);
     RETURN ((opt_res \<or> opt_red) \<and>
        (should_not_reduce \<longrightarrow> limit > fema) \<and> min_reached \<and> can_res \<and>
-      level > two_uint32_nat \<and> \<^cancel>\<open>This comment from Marijn Heule seems not to help: 
+      level > two_uint32_nat \<and> \<^cancel>\<open>This comment from Marijn Heule seems not to help:
          \<^term>\<open>level < max_restart_decision_lvl\<close>\<close>
       uint64_of_uint32_conv level > nat_of_uint64_id_conv (fema >> 32))}
   \<close>
@@ -1058,6 +1058,7 @@ sepref_definition restart_required_heur_fast_code
   supply [[goals_limit=1]]
   bit_lshift_uint64_assn[sepref_fr_rules]
   unfolding restart_required_heur_def
+  apply (rewrite at \<open>let _ = (\<hole> > _) in _\<close> nat_of_uint64_conv_def[symmetric])
   by sepref
 
 sepref_definition restart_required_heur_slow_code
@@ -1567,7 +1568,7 @@ where
           if can_del
           then
             do {
-              ASSERT(mark_garbage_pre (get_clauses_wl_heur T, C));
+              ASSERT(mark_garbage_pre (get_clauses_wl_heur T, C) \<and> get_learned_count T \<ge> 1);
               RETURN (i, mark_garbage_heur C i T)
             }
           else do {
@@ -1669,7 +1670,7 @@ proof -
 	       \<not>marked_as_used (get_clauses_wl_heur T) C;
             if can_del
             then do {
-              ASSERT(mark_garbage_pre (get_clauses_wl_heur T, C));
+              ASSERT(mark_garbage_pre (get_clauses_wl_heur T, C) \<and> get_learned_count T \<ge> 1);
               RETURN (i, mark_garbage_heur C i T)
             }
             else do {
@@ -1858,7 +1859,32 @@ proof -
           dest!: in_set_butlastD in_vdom_m_fmdropD
           elim!: in_set_upd_cases)
   qed
-
+  have get_learned_count_ge: \<open>1 \<le> get_learned_count x2b\<close>
+    if
+      xy: \<open>(x, y) \<in> twl_st_heur_restart_ana r\<close> and
+      \<open>(xa, x')
+       \<in> nat_rel \<times>\<^sub>f
+         {(Sa, T, xs).
+          (Sa, T) \<in> twl_st_heur_restart_ana r \<and> xs = get_avdom Sa}\<close> and
+      \<open>mark_to_delete_clauses_wl_D_inv Sa xs x'\<close> and
+      \<open>x2 = (x1a, x2a)\<close> and
+      \<open>x' = (x1, x2)\<close> and
+      \<open>xa = (x1b, x2b)\<close> and
+      dom: \<open>\<not> x2a ! x1 \<notin># dom_m (get_clauses_wl x1a)\<close> and
+      \<open>can_del
+       \<in> {b. b \<longrightarrow>
+             Propagated (get_clauses_wl x1a \<propto> (x2a ! x1) ! 0) (x2a ! x1)
+             \<notin> set (get_trail_wl x1a) \<and>
+             \<not> irred (get_clauses_wl x1a) (x2a ! x1) \<and>
+             length (get_clauses_wl x1a \<propto> (x2a ! x1)) \<noteq> 2}\<close> and
+      \<open>can_del\<close> for x y S Sa uu xs l la xa x' x1 x2 x1a x2a x1b x2b D can_del
+  proof -
+    have \<open>\<not>irred (get_clauses_wl x1a) (x2a ! x1)\<close> and \<open>(x2b, x1a) \<in> twl_st_heur_restart_ana r\<close>
+      using that by (auto simp: )
+    then show ?thesis
+     using dom by (auto simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def ran_m_def
+       dest!: multi_member_split)
+  qed
   have init:
     \<open>(u, xs) \<in> {(xs, xs'). xs = xs' \<and> xs = get_avdom S} \<Longrightarrow>
     (l, la) \<in> nat_rel \<Longrightarrow>
@@ -1930,6 +1956,8 @@ proof -
         arena_is_valid_clause_vdom_def arena_is_valid_clause_idx_def
       by (rule exI[of _ \<open>get_clauses_wl x1a\<close>], rule exI[of _ \<open>set (get_vdom x2b)\<close>])
         (auto simp: twl_st_heur_restart dest: twl_st_heur_restart_valid_arena)
+    subgoal for x y S Sa uu_ xs l la xa x' x1 x2 x1a x2a x1b x2b D can_del
+        by (rule get_learned_count_ge)
     subgoal
       by (auto intro!: mark_garbage_heur_wl_ana)
     subgoal for x y S Sa _ xs l la xa x' x1 x2 x1a x2a x1b x2b
@@ -2150,12 +2178,13 @@ lemma isasat_replace_annot_in_trail_replace_annot_in_trail_spec:
       simp del: all_init_atms_def[symmetric])
   done
 
-definition mark_garbage_heur2 :: \<open>nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur\<close> where
+definition mark_garbage_heur2 :: \<open>nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
   \<open>mark_garbage_heur2 C = (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema, ccount,
-       vdom, avdom, lcount, opts).
-    let st = arena_status N' C = IRRED in
-    (M', extra_information_mark_to_delete N' C, D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema, ccount,
-       vdom, avdom, if st then lcount else lcount - 1, opts))\<close>
+       vdom, avdom, lcount, opts). do{
+    let st = arena_status N' C = IRRED;
+    ASSERT(\<not>st \<longrightarrow> lcount \<ge> 1);
+    RETURN (M', extra_information_mark_to_delete N' C, D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema, ccount,
+       vdom, avdom, if st then lcount else lcount - 1, opts) })\<close>
 
 definition remove_one_annot_true_clause_one_imp_wl_D_heur
   :: \<open>nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> (nat \<times> twl_st_wl_heur) nres\<close>
@@ -2171,7 +2200,7 @@ where
         ASSERT(C \<noteq> None);
         S \<leftarrow> isasat_replace_annot_in_trail L (the C) S;
 	ASSERT(mark_garbage_pre (get_clauses_wl_heur S, the C) \<and> arena_is_valid_clause_vdom (get_clauses_wl_heur S) (the C));
-        let S = mark_garbage_heur2 (the C) S;
+        S \<leftarrow> mark_garbage_heur2 (the C) S;
         \<comment> \<open>\<^text>\<open>S \<leftarrow> remove_all_annot_true_clause_imp_wl_D_heur L S;\<close>\<close>
         RETURN (i+1, S)
       }
@@ -2370,18 +2399,22 @@ proof -
     done
 qed
 
+
+lemma red_in_dom_number_of_learned_ge1: \<open>C' \<in># dom_m baa \<Longrightarrow> \<not> irred baa C' \<Longrightarrow> Suc 0 \<le> size (learned_clss_l baa)\<close>
+  by (auto simp: ran_m_def dest!: multi_member_split)
+
 lemma mark_garbage_heur2_remove_and_add_cls_l:
   \<open>(S, T) \<in> twl_st_heur_restart_ana r \<Longrightarrow> (C, C') \<in> Id \<Longrightarrow>
     C \<in># dom_m (get_clauses_wl T) \<Longrightarrow>
-    RETURN (mark_garbage_heur2 C S)
+    mark_garbage_heur2 C S
        \<le> \<Down> (twl_st_heur_restart_ana r) (remove_and_add_cls_l C' T)\<close>
   unfolding mark_garbage_heur2_def remove_and_add_cls_l_def
-  by (cases S; cases T)
-    (auto simp: twl_st_heur_restart_def arena_lifting
+  apply (cases S; cases T)
+  by  (auto simp: twl_st_heur_restart_def arena_lifting
       valid_arena_extra_information_mark_to_delete'
       all_init_atms_fmdrop_add_mset_unit learned_clss_l_l_fmdrop
       learned_clss_l_l_fmdrop_irrelev twl_st_heur_restart_ana_def
-      size_Diff_singleton
+      size_Diff_singleton red_in_dom_number_of_learned_ge1 intro!: ASSERT_leI
     dest: in_vdom_m_fmdropD)
 
 lemma remove_one_annot_true_clause_one_imp_wl_D_heur_remove_one_annot_true_clause_one_imp_wl_D:
@@ -2835,7 +2868,7 @@ proof -
 	       \<not>marked_as_used (get_clauses_wl_heur T) C;
             if can_del
             then do {
-              ASSERT(mark_garbage_pre (get_clauses_wl_heur T, C));
+              ASSERT(mark_garbage_pre (get_clauses_wl_heur T, C) \<and> get_learned_count T \<ge> 1);
               RETURN (i, mark_garbage_heur C i T)
             }
             else do {
@@ -3025,6 +3058,31 @@ proof -
           elim!: in_set_upd_cases)
   qed
 
+  have get_learned_count_ge: \<open>1 \<le> get_learned_count x2b\<close>
+    if
+      xy: \<open>(x, y) \<in> twl_st_heur_restart_ana r\<close> and
+      \<open>(xa, x')
+       \<in> nat_rel \<times>\<^sub>f
+         {(Sa, T, xs).
+          (Sa, T) \<in> twl_st_heur_restart_ana r \<and> xs = get_avdom Sa}\<close> and
+      \<open>x2 = (x1a, x2a)\<close> and
+      \<open>x' = (x1, x2)\<close> and
+      \<open>xa = (x1b, x2b)\<close> and
+      dom: \<open>\<not> x2a ! x1 \<notin># dom_m (get_clauses_wl x1a)\<close> and
+      \<open>can_del
+       \<in> {b. b \<longrightarrow>
+             Propagated (get_clauses_wl x1a \<propto> (x2a ! x1) ! 0) (x2a ! x1)
+             \<notin> set (get_trail_wl x1a) \<and>
+             \<not> irred (get_clauses_wl x1a) (x2a ! x1) \<and>
+             length (get_clauses_wl x1a \<propto> (x2a ! x1)) \<noteq> 2}\<close> and
+      \<open>can_del\<close> for x y S Sa uu xs l la xa x' x1 x2 x1a x2a x1b x2b D can_del
+  proof -
+    have \<open>\<not>irred (get_clauses_wl x1a) (x2a ! x1)\<close> and \<open>(x2b, x1a) \<in> twl_st_heur_restart_ana r\<close>
+      using that by (auto simp: )
+    then show ?thesis
+     using dom by (auto simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def ran_m_def
+       dest!: multi_member_split)
+  qed
   have init:
     \<open>(u, xs) \<in> {(xs, xs'). xs = xs' \<and> xs = get_avdom S} \<Longrightarrow>
     (l, la) \<in> nat_rel \<Longrightarrow>
@@ -3096,6 +3154,7 @@ proof -
         arena_is_valid_clause_vdom_def arena_is_valid_clause_idx_def
       by (rule exI[of _ \<open>get_clauses_wl x1a\<close>], rule exI[of _ \<open>set (get_vdom x2b)\<close>])
         (auto simp: twl_st_heur_restart dest: twl_st_heur_restart_valid_arena)
+    subgoal by (rule get_learned_count_ge)
     subgoal
       by (auto intro!: mark_garbage_heur_wl_ana)
     subgoal for x y S Sa _ xs l la xa x' x1 x2 x1a x2a x1b x2b
@@ -3333,83 +3392,6 @@ proof -
     by simp
 qed
 
-lemma distinct_sum_mset_sum:
-  \<open>distinct_mset As \<Longrightarrow> (\<Sum>A \<in># As. (f :: 'a \<Rightarrow> nat) A) = (\<Sum>A \<in> set_mset As. f A)\<close>
-  by (subst sum_mset_sum_count)  (auto intro!: sum.cong simp: distinct_mset_def)
-
-lemma distinct_sorted_append: \<open>distinct (xs @ [x]) \<Longrightarrow> sorted (xs @ [x]) \<longleftrightarrow> sorted xs \<and> (\<forall>y \<in> set xs. y < x)\<close>
-  using not_distinct_conv_prefix sorted_append by fastforce
-
-lemma (in linordered_ab_semigroup_add) Max_add_commute2:
-  fixes k
-  assumes "finite S" and "S \<noteq> {}"
-  shows "Max ((\<lambda>x. x + k) ` S) = Max S + k"
-proof -
-  have m: "\<And>x y. max x y + k = max (x+k) (y+k)"
-    by(simp add: max_def antisym add_right_mono)
-  have "(\<lambda>x. x + k) ` S = (\<lambda>y. y + k) ` (S)" by auto
-  have "Max \<dots> = Max ( S) + k"
-    using assms hom_Max_commute [of "\<lambda>y. y+k" "S", OF m, symmetric] by simp
-  then show ?thesis by simp
-qed
-
-lemma valid_arena_ge_length_clauses:
-  assumes \<open>valid_arena arena N vdom\<close>
-  shows \<open>length arena \<ge> (\<Sum>C \<in># dom_m N. length (N \<propto> C) + header_size (N \<propto> C))\<close>
-proof -
-  obtain xs where
-    mset_xs: \<open>mset xs = dom_m N\<close> and sorted: \<open>sorted xs\<close> and dist[simp]: \<open>distinct xs\<close> and set_xs: \<open>set xs = set_mset (dom_m N)\<close>
-    using distinct_mset_dom distinct_mset_mset_distinct mset_sorted_list_of_multiset by fastforce
-  then have 1: \<open>set_mset (mset xs) = set xs\<close> by (meson set_mset_mset)
-
-  have diff: \<open>xs \<noteq> [] \<Longrightarrow> a \<in> set xs \<Longrightarrow> a < last xs \<Longrightarrow> a + length (N \<propto> a) \<le> last xs\<close>  for a
-     using valid_minimal_difference_between_valid_index[OF assms, of a \<open>last xs\<close>]
-     mset_xs[symmetric] sorted  by (cases xs rule: rev_cases; auto simp: sorted_append)
-  have \<open>set xs \<subseteq> set_mset (dom_m N)\<close>
-     using mset_xs[symmetric] by auto
-  then have \<open>(\<Sum>A\<in>set xs. length (N \<propto> A) + header_size (N \<propto> A)) \<le> Max (insert 0 ((\<lambda>A. A + length (N \<propto> A)) ` (set xs)))\<close>
-    (is \<open>?P xs \<le> ?Q xs\<close>)
-     using sorted dist
-  proof (induction xs rule: rev_induct)
-    case Nil
-    then show ?case by auto
-  next
-    case (snoc x xs)
-    then have IH: \<open>(\<Sum>A\<in>set xs. length (N \<propto> A) + header_size (N \<propto> A))
-    \<le> Max (insert 0 ((\<lambda>A. A + length (N \<propto> A)) ` set xs))\<close> and
-      x_dom: \<open>x \<in># dom_m N\<close> and
-      x_max: \<open>\<And>a. a \<in> set xs \<Longrightarrow> x > a\<close> and
-      xs_N: \<open>set xs \<subseteq> set_mset (dom_m N)\<close>
-      by (auto simp: sorted_append order.order_iff_strict dest!: bspec)
-    have x_ge: \<open>header_size (N \<propto> x) \<le> x\<close>
-      using assms \<open>x \<in># dom_m N\<close> arena_lifting(1) by blast
-    have diff: \<open>a \<in> set xs \<Longrightarrow> a + length (N \<propto> a) + header_size (N \<propto> x) \<le> x\<close> 
-       \<open>a \<in> set xs \<Longrightarrow> a + length (N \<propto> a) \<le> x\<close>  for a
-      using valid_minimal_difference_between_valid_index[OF assms, of a x]
-      x_max[of a] xs_N x_dom by auto
-
-    have \<open>?P (xs @ [x]) \<le> ?P xs + length (N \<propto> x) + header_size (N \<propto> x)\<close>
-      using snoc by auto
-    also have \<open>... \<le> ?Q xs + (length (N \<propto> x) + header_size (N \<propto> x))\<close>
-      using IH by auto
-    also have \<open>... \<le> (length (N \<propto> x) + x)\<close>
-      by (subst linordered_ab_semigroup_add_class.Max_add_commute2[symmetric]; auto intro: diff x_ge)
-    also have \<open>... = Max (insert (x + length (N \<propto> x)) ((\<lambda>x. x + length (N \<propto> x)) ` set xs))\<close>
-      by (subst eq_commute)
-        (auto intro!: linorder_class.Max_eqI intro: order_trans[OF diff(2)])
-    finally show ?case by auto
-  qed
-  also have \<open>... \<le> (if xs = [] then 0 else last xs + length (N \<propto> last xs))\<close>
-   using sorted distinct_sorted_append[of \<open>butlast xs\<close> \<open>last xs\<close>] dist
-   by (cases \<open>xs\<close> rule: rev_cases)
-     (auto intro: order_trans[OF diff])
-  also have \<open>... \<le> length arena\<close>
-   using arena_lifting(7)[OF assms, of \<open>last xs\<close> \<open>length (N \<propto> last xs) - 1\<close>] mset_xs[symmetric] assms
-   by (cases \<open>xs\<close> rule: rev_cases) (auto simp: arena_lifting)
-  finally show ?thesis
-    unfolding mset_xs[symmetric]
-    by (subst distinct_sum_mset_sum) auto
-qed
 
 definition arena_is_packed :: \<open>arena \<Rightarrow> nat clauses_l \<Rightarrow> bool\<close> where
 \<open>arena_is_packed arena N \<longleftrightarrow> length arena = (\<Sum>C \<in># dom_m N. length (N \<propto> C) + header_size (N \<propto> C))\<close>
@@ -4756,16 +4738,16 @@ lemma mark_garbage_fast_hnr[sepref_fr_rules]:
 
 sepref_register mark_garbage_heur2
 sepref_definition mark_garbage_heur2_code
-  is \<open>uncurry (RETURN oo mark_garbage_heur2)\<close>
+  is \<open>uncurry mark_garbage_heur2\<close>
   :: \<open>[\<lambda>(C, S). mark_garbage_pre (get_clauses_wl_heur S, C) \<and> arena_is_valid_clause_vdom (get_clauses_wl_heur S) C]\<^sub>a
      uint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   supply [[goals_limit=1]]
   unfolding mark_garbage_heur2_def isasat_bounded_assn_def
-    zero_uint64_nat_def[symmetric]
+    zero_uint64_nat_def[symmetric] one_uint64_nat_def[symmetric]
   by sepref
 
 sepref_definition mark_garbage_heur2_slow_code
-  is \<open>uncurry (RETURN oo mark_garbage_heur2)\<close>
+  is \<open>uncurry mark_garbage_heur2\<close>
   :: \<open>[\<lambda>(C, S). mark_garbage_pre (get_clauses_wl_heur S, C) \<and> arena_is_valid_clause_vdom (get_clauses_wl_heur S) C]\<^sub>a
      nat_assn\<^sup>k *\<^sub>a isasat_unbounded_assn\<^sup>d \<rightarrow> isasat_unbounded_assn\<close>
   supply [[goals_limit=1]]
@@ -5036,6 +5018,8 @@ sepref_definition isasat_GC_clauses_wl_D_slow_code
 
 declare isasat_GC_clauses_wl_D_code.refine[sepref_fr_rules]
    isasat_GC_clauses_wl_D_slow_code.refine[sepref_fr_rules]
+find_theorems uint_max "uint_max div 2"
 
-
+lemma li_uint32_maxdiv2_le_unit32_max: \<open>a \<le> uint32_max div 2 + 1 \<Longrightarrow> a \<le> uint32_max\<close>
+  by (auto simp: uint32_max_def)
 end

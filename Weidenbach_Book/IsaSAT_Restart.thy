@@ -49,6 +49,9 @@ proof -
     done
 qed
 
+definition fast_number_of_iterations :: \<open>_ \<Rightarrow> bool\<close> where
+\<open>fast_number_of_iterations n \<longleftrightarrow> n < uint64_max >> 1\<close>
+
 definition cdcl_twl_stgy_restart_prog_early_wl_heur
    :: "twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres"
 where
@@ -369,10 +372,11 @@ sepref_register mark_garbage_heur
 
 sepref_definition mark_garbage_heur_code2
   is \<open>uncurry2 (RETURN ooo mark_garbage_heur)\<close>
-  :: \<open>[\<lambda>((C, i), S). mark_garbage_pre (get_clauses_wl_heur S, C) \<and> i < length_avdom S]\<^sub>a
+  :: \<open>[\<lambda>((C, i), S). mark_garbage_pre (get_clauses_wl_heur S, C) \<and> i < length_avdom S \<and>
+         get_learned_count S \<ge> 1]\<^sub>a
        nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   unfolding mark_garbage_heur_def isasat_bounded_assn_def delete_index_and_swap_alt_def
-    length_avdom_def
+    length_avdom_def one_uint64_nat_def[symmetric]
   supply [[goals_limit = 1]]
   by sepref
 
@@ -385,7 +389,7 @@ sepref_definition delete_index_vdom_heur_code
   :: \<open>[\<lambda>(i, S). i < length_avdom S]\<^sub>a
         nat_assn\<^sup>k *\<^sub>a isasat_unbounded_assn\<^sup>d \<rightarrow> isasat_unbounded_assn\<close>
   unfolding delete_index_vdom_heur_def isasat_unbounded_assn_def delete_index_and_swap_alt_def
-    length_avdom_def butlast_nonresizing_def[symmetric]
+    length_avdom_def butlast_nonresizing_def[symmetric] fast_minus_def[symmetric]
   supply [[goals_limit = 1]]
   by sepref
 
@@ -531,6 +535,7 @@ sepref_register mark_clauses_as_unused_wl_D_heur
 sepref_definition mark_clauses_as_unused_wl_D_heur_code
   is \<open>uncurry mark_clauses_as_unused_wl_D_heur\<close>
   :: \<open>nat_assn\<^sup>k *\<^sub>a isasat_unbounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_unbounded_assn\<close>
+  supply [[goals_limit=1]]
   unfolding mark_clauses_as_unused_wl_D_heur_def
     mark_unused_st_heur_def[symmetric]
     access_vdom_at_def[symmetric] length_avdom_def[symmetric]
@@ -567,6 +572,7 @@ sepref_register mark_to_delete_clauses_wl_D_heur
 sepref_definition mark_to_delete_clauses_wl_D_heur_impl
   is \<open>mark_to_delete_clauses_wl_D_heur\<close>
   :: \<open>isasat_unbounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_unbounded_assn\<close>
+  supply if_splits[split]
   unfolding mark_to_delete_clauses_wl_D_heur_def
     access_vdom_at_def[symmetric] length_avdom_def[symmetric]
     get_the_propagation_reason_heur_def[symmetric]
@@ -612,7 +618,7 @@ sepref_definition mark_to_delete_clauses_wl_D_heur_fast_impl
     access_length_heur_def[symmetric]
     short_circuit_conv mark_to_delete_clauses_wl_D_heur_is_Some_iff
     marked_as_used_st_def[symmetric]
-  supply [[goals_limit = 1]] option.splits[split]
+  supply [[goals_limit = 1]] option.splits[split] if_splits[split]
   by sepref
 
 declare mark_to_delete_clauses_wl_D_heur_fast_impl.refine[sepref_fr_rules]

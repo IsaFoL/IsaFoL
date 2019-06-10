@@ -355,7 +355,7 @@ type_synonym twl_st_wll_trail_fast =
   \<open>trail_pol_fast_assn \<times> isasat_clauses_assn \<times> option_lookup_clause_assn \<times>
     uint32 \<times> watched_wl_uint32 \<times> vmtf_remove_assn \<times> phase_saver_assn \<times>
     uint32 \<times> minimize_assn \<times> lbd_assn \<times> out_learned_assn \<times> stats \<times> ema \<times> ema \<times> restart_info \<times>
-    vdom_assn \<times> vdom_assn \<times> nat \<times> opts \<times> isasat_clauses_assn\<close>
+    vdom_assn \<times> vdom_assn \<times> uint64 \<times> opts \<times> isasat_clauses_assn\<close>
 
 text \<open>\<^emph>\<open>heur\<close> stands for heuristic.\<close>
 (* TODO rename to isasat *)
@@ -864,7 +864,7 @@ definition isasat_bounded_assn :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wll
   restart_info_assn *a
   vdom_assn *a
   vdom_assn *a
-  nat_assn *a
+  uint64_nat_assn *a
   opts_assn *a arena_assn\<close>
 
 text \<open>
@@ -879,9 +879,9 @@ lemma isasat_fast_length_leD: \<open>isasat_fast S \<Longrightarrow> length (get
 
 definition isasat_fast_slow :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
   \<open>isasat_fast_slow =
-    (\<lambda>(M', N', D', Q', W', vm, \<phi>, clvls, cach, lbd, outl, stats, fema, sema, ccount, vdom, lcount).
+    (\<lambda>(M', N', D', Q', W', vm, \<phi>, clvls, cach, lbd, outl, stats, fema, sema, ccount, vdom, avdom, lcount, opts, old_arena).
       RETURN (trail_pol_slow_of_fast M', N', D', Q', convert_wlists_to_nat_conv W', vm, \<phi>,
-        clvls, cach, lbd, outl, stats, fema, sema, ccount, vdom, lcount))\<close>
+        clvls, cach, lbd, outl, stats, fema, sema, ccount, vdom, avdom, nat_of_uint64_conv lcount, opts, old_arena))\<close>
 
 sepref_definition isasat_fast_slow_code
   is \<open>isasat_fast_slow\<close>
