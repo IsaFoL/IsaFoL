@@ -374,6 +374,9 @@ val default_uint64 = {default = default_uint64a} : Uint64.uint64 default;
 
 val minus_uint64 = {minus = Uint64.minus} : Uint64.uint64 minus;
 
+val ord_uint64 = {less_eq = Uint64.less_eq, less = Uint64.less} :
+  Uint64.uint64 ord;
+
 fun nat_of_integer k = Nat (max ord_integer (0 : IntInf.int) k);
 
 datatype num = One | Bit0 of num | Bit1 of num;
@@ -547,7 +550,7 @@ fun blit A_ src si dst di len =
     array_blit src (integer_of_nat
                      si) dst (integer_of_nat di) (integer_of_nat len));
 
-val version : string = "4d125916";
+val version : string = "deda793f";
 
 fun get_LBD_code x = (fn xi => (fn () => let
    val (_, (_, b)) = xi;
@@ -2514,6 +2517,195 @@ fun access_lit_in_clauses_heur_fast_code2 x =
                                end)
     x;
 
+fun isa_get_clause_LBD_code x =
+  (fn ai => fn bi =>
+    arl_get heap_uint32 ai
+      (fast_minus_nat bi (nat_of_integer (2 : IntInf.int))))
+    x;
+
+fun isa_arena_act_code x =
+  (fn ai => fn bi =>
+    arl_get heap_uint32 ai
+      (fast_minus_nat bi (nat_of_integer (3 : IntInf.int))))
+    x;
+
+fun clause_score_extract_code x =
+  (fn ai => fn bi => fn () =>
+    let
+      val xa = arena_status_code ai bi ();
+    in
+      (if ((xa : Word32.word) = (Word32.fromLargeInt (IntInf.toLarge (3 : IntInf.int))))
+        then (fn () =>
+               (Word32.fromLargeInt (IntInf.toLarge (4294967295 : IntInf.int)),
+                 (Word32.fromInt 0)))
+        else (fn f_ => fn () => f_ ((isa_get_clause_LBD_code ai bi) ()) ())
+               (fn x_a =>
+                 (fn f_ => fn () => f_ ((isa_arena_act_code ai bi) ()) ())
+                   (fn x_b => (fn () => (x_a, x_b)))))
+        ()
+    end)
+    x;
+
+fun clause_score_ordering (A1_, A2_) B_ =
+  (fn (lbd, act) => fn (lbda, acta) =>
+    less A2_ lbd lbda orelse eq A1_ lbd lbda andalso less_eq B_ act acta);
+
+fun partition_main_clause_fast_code x =
+  (fn ai => fn bib => fn bia => fn bi => fn () =>
+    let
+      val xa = arl_get_u64 heap_nat bi bia ();
+      val xb = clause_score_extract_code ai xa ();
+      val a =
+        heap_WHILET (fn (_, (a1a, _)) => (fn () => (Uint64.less a1a bia)))
+          (fn (a1, (a1a, a2a)) =>
+            (fn f_ => fn () => f_ ((arl_get_u64 heap_nat a2a a1a) ()) ())
+              (fn xaa =>
+                (fn f_ => fn () => f_ ((clause_score_extract_code ai xaa) ())
+                  ())
+                  (fn xab =>
+                    (if clause_score_ordering (equal_uint32, ord_uint32)
+                          ord_uint32 xab xb
+                      then (fn f_ => fn () => f_
+                             ((swap_arl_u64 heap_nat a2a a1 a1a) ()) ())
+                             (fn xc =>
+                               (fn () =>
+                                 (Uint64.plus a1 Uint64.one,
+                                   (Uint64.plus a1a Uint64.one, xc))))
+                      else (fn () =>
+                             (a1, (Uint64.plus a1a Uint64.one, a2a)))))))
+          (bib, (bib, bi)) ();
+    in
+      let
+        val (a1, (_, a2a)) = a;
+      in
+        (fn f_ => fn () => f_ ((swap_arl_u64 heap_nat a2a a1 bia) ()) ())
+          (fn x_b => (fn () => (x_b, a1)))
+      end
+        ()
+    end)
+    x;
+
+fun partition_clause_fast_code x =
+  (fn ai => fn bib => fn bia => fn bi => fn () =>
+    let
+      val xa =
+        let
+          val x_b =
+            Uint64.plus bib (shiftr_uint64 (Uint64.minus bia bib) one_nat);
+        in
+          (fn f_ => fn () => f_ ((arl_get_u64 heap_nat bi bib) ()) ())
+            (fn xa =>
+              (fn f_ => fn () => f_ ((clause_score_extract_code ai xa) ()) ())
+                (fn x_d =>
+                  (fn f_ => fn () => f_ ((arl_get_u64 heap_nat bi x_b) ()) ())
+                    (fn xb =>
+                      (fn f_ => fn () => f_ ((clause_score_extract_code ai xb)
+                        ()) ())
+                        (fn x_f =>
+                          (fn f_ => fn () => f_ ((arl_get_u64 heap_nat bi bia)
+                            ()) ())
+                            (fn xc =>
+                              (fn f_ => fn () => f_
+                                ((clause_score_extract_code ai xc) ()) ())
+                                (fn x_h =>
+                                  (fn () =>
+                                    (if clause_score_ordering
+  (equal_uint32, ord_uint32) ord_uint32 x_d x_f andalso
+  clause_score_ordering (equal_uint32, ord_uint32) ord_uint32 x_f x_h orelse
+  clause_score_ordering (equal_uint32, ord_uint32) ord_uint32 x_h x_f andalso
+    clause_score_ordering (equal_uint32, ord_uint32) ord_uint32 x_f x_d
+                                      then x_b
+                                      else (if clause_score_ordering
+         (equal_uint32, ord_uint32) ord_uint32 x_d x_h andalso
+         clause_score_ordering (equal_uint32, ord_uint32) ord_uint32 x_h
+           x_f orelse
+         clause_score_ordering (equal_uint32, ord_uint32) ord_uint32 x_f
+           x_h andalso
+           clause_score_ordering (equal_uint32, ord_uint32) ord_uint32 x_h x_d
+     then bia else bib)))))))))
+        end
+          ();
+      val xb = swap_arl_u64 heap_nat bi xa bia ();
+    in
+      partition_main_clause_fast_code ai bib bia xb ()
+    end)
+    x;
+
+fun safe_minus (A1_, A2_, A3_) a b =
+  (if less_eq A3_ a b then zero A2_ else minus A1_ a b);
+
+fun sort_clauses_by_score_fast_code_0 ai x =
+  let
+    val (a1, (a1a, a2a)) = x;
+  in
+    (fn () =>
+      let
+        val a = partition_clause_fast_code ai a1 a1a a2a ();
+      in
+        let
+          val (a1b, a2b) = a;
+        in
+          (fn f_ => fn () => f_
+            ((if Uint64.less_eq
+                   (safe_minus (minus_uint64, zero_uint64, ord_uint64) a2b
+                     Uint64.one)
+                   a1
+               then (fn () => a1b)
+               else sort_clauses_by_score_fast_code_0 ai
+                      (a1, (safe_minus (minus_uint64, zero_uint64, ord_uint64)
+                              a2b Uint64.one,
+                             a1b)))
+            ()) ())
+            (fn x_c =>
+              (if Uint64.less_eq a1a (Uint64.plus a2b Uint64.one)
+                then (fn () => x_c)
+                else sort_clauses_by_score_fast_code_0 ai
+                       (Uint64.plus a2b Uint64.one, (a1a, x_c))))
+        end
+          ()
+      end)
+  end;
+
+fun arl_length_u64_code A_ c = (fn () => let
+   val n = arl_length A_ c ();
+ in
+   uint64_of_nat n
+ end);
+
+fun arl_is_empty A_ = (fn (_, n) => (fn () => (equal_nat n zero_nata)));
+
+fun sort_clauses_by_score_fast_code x =
+  (fn ai => fn bi => fn () =>
+    let
+      val xa = arl_is_empty heap_nat bi ();
+    in
+      (if xa then (fn () => bi)
+        else (fn f_ => fn () => f_ ((arl_length_u64_code heap_nat bi) ()) ())
+               (fn xb =>
+                 sort_clauses_by_score_fast_code_0 ai
+                   (Uint64.zero,
+                     (safe_minus (minus_uint64, zero_uint64, ord_uint64) xb
+                        Uint64.one,
+                       bi))))
+        ()
+    end)
+    x;
+
+fun sort_vdom_heur_fast_code x =
+  (fn (a1, (a1a, (a1b, (a1c, (a1d, (a1e, (a1f,
+   (a1g, (a1h, (a1i, (a1j, (a1k, (a1l, (a1m,
+ (a1n, (a1o, (a1p, a2p)))))))))))))))))
+     =>
+    fn () =>
+    let
+      val xa = sort_clauses_by_score_fast_code a1a a1p ();
+    in
+      (a1, (a1a, (a1b, (a1c, (a1d, (a1e, (a1f,
+   (a1g, (a1h, (a1i, (a1j, (a1k, (a1l, (a1m,
+ (a1n, (a1o, (xa, a2p)))))))))))))))))
+    end)
+    x;
+
 fun number_clss_to_keep_fast_impl x =
   (fn xi =>
     (fn () =>
@@ -2573,214 +2765,6 @@ fun clause_is_learned_heur_code2 x =
                 in
                   ((xa : Word32.word) = (Word32.fromInt 1))
                 end)
-    end)
-    x;
-
-fun isa_get_clause_LBD_code x =
-  (fn ai => fn bi =>
-    arl_get heap_uint32 ai
-      (fast_minus_nat bi (nat_of_integer (2 : IntInf.int))))
-    x;
-
-fun isa_arena_act_code x =
-  (fn ai => fn bi =>
-    arl_get heap_uint32 ai
-      (fast_minus_nat bi (nat_of_integer (3 : IntInf.int))))
-    x;
-
-fun clause_score_extract_code x =
-  (fn ai => fn bi => fn () =>
-    let
-      val xa = arena_status_code ai bi ();
-    in
-      (if ((xa : Word32.word) = (Word32.fromLargeInt (IntInf.toLarge (3 : IntInf.int))))
-        then (fn () =>
-               (Word32.fromLargeInt (IntInf.toLarge (4294967295 : IntInf.int)),
-                 (Word32.fromInt 0)))
-        else (fn f_ => fn () => f_ ((isa_get_clause_LBD_code ai bi) ()) ())
-               (fn x_a =>
-                 (fn f_ => fn () => f_ ((isa_arena_act_code ai bi) ()) ())
-                   (fn x_b => (fn () => (x_a, x_b)))))
-        ()
-    end)
-    x;
-
-fun clause_score_ordering (A1_, A2_) B_ =
-  (fn (lbd, act) => fn (lbda, acta) =>
-    less A2_ lbd lbda orelse eq A1_ lbd lbda andalso less_eq B_ act acta);
-
-fun partition_main_clause_code x =
-  (fn ai => fn bib => fn bia => fn bi => fn () =>
-    let
-      val xa = arl_get heap_nat bi bia ();
-      val xb = clause_score_extract_code ai xa ();
-      val a =
-        heap_WHILET (fn (_, (a1a, _)) => (fn () => (less_nat a1a bia)))
-          (fn (a1, (a1a, a2a)) =>
-            (fn f_ => fn () => f_ ((arl_get heap_nat a2a a1a) ()) ())
-              (fn xaa =>
-                (fn f_ => fn () => f_ ((clause_score_extract_code ai xaa) ())
-                  ())
-                  (fn xab =>
-                    (if clause_score_ordering (equal_uint32, ord_uint32)
-                          ord_uint32 xab xb
-                      then (fn f_ => fn () => f_ ((arl_swap heap_nat a2a a1 a1a)
-                             ()) ())
-                             (fn xc =>
-                               (fn () =>
-                                 (plus_nat a1 one_nat,
-                                   (plus_nat a1a one_nat, xc))))
-                      else (fn () => (a1, (plus_nat a1a one_nat, a2a)))))))
-          (bib, (bib, bi)) ();
-    in
-      let
-        val (a1, (_, a2a)) = a;
-      in
-        (fn f_ => fn () => f_ ((arl_swap heap_nat a2a a1 bia) ()) ())
-          (fn x_b => (fn () => (x_b, a1)))
-      end
-        ()
-    end)
-    x;
-
-fun apsnd f (x, y) = (x, f y);
-
-fun divmod_integer k l =
-  (if ((k : IntInf.int) = (0 : IntInf.int))
-    then ((0 : IntInf.int), (0 : IntInf.int))
-    else (if IntInf.< ((0 : IntInf.int), l)
-           then (if IntInf.< ((0 : IntInf.int), k)
-                  then IntInf.divMod (IntInf.abs k, IntInf.abs l)
-                  else let
-                         val (r, s) =
-                           IntInf.divMod (IntInf.abs k, IntInf.abs l);
-                       in
-                         (if ((s : IntInf.int) = (0 : IntInf.int))
-                           then (IntInf.~ r, (0 : IntInf.int))
-                           else (IntInf.- (IntInf.~ r, (1 : IntInf.int)),
-                                  IntInf.- (l, s)))
-                       end)
-           else (if ((l : IntInf.int) = (0 : IntInf.int))
-                  then ((0 : IntInf.int), k)
-                  else apsnd IntInf.~
-                         (if IntInf.< (k, (0 : IntInf.int))
-                           then IntInf.divMod (IntInf.abs k, IntInf.abs l)
-                           else let
-                                  val (r, s) =
-                                    IntInf.divMod (IntInf.abs k, IntInf.abs l);
-                                in
-                                  (if ((s : IntInf.int) = (0 : IntInf.int))
-                                    then (IntInf.~ r, (0 : IntInf.int))
-                                    else (IntInf.- (IntInf.~
-              r, (1 : IntInf.int)),
-   IntInf.- (IntInf.~ l, s)))
-                                end))));
-
-fun divide_integer k l = fst (divmod_integer k l);
-
-fun divide_nat m n = Nat (divide_integer (integer_of_nat m) (integer_of_nat n));
-
-fun partition_clause_code x =
-  (fn ai => fn bib => fn bia => fn bi => fn () =>
-    let
-      val xa =
-        let
-          val x_b =
-            plus_nat bib
-              (divide_nat (minus_nata bia bib)
-                (nat_of_integer (2 : IntInf.int)));
-        in
-          (fn f_ => fn () => f_ ((arl_get heap_nat bi bib) ()) ())
-            (fn xa =>
-              (fn f_ => fn () => f_ ((clause_score_extract_code ai xa) ()) ())
-                (fn x_d =>
-                  (fn f_ => fn () => f_ ((arl_get heap_nat bi x_b) ()) ())
-                    (fn xb =>
-                      (fn f_ => fn () => f_ ((clause_score_extract_code ai xb)
-                        ()) ())
-                        (fn x_f =>
-                          (fn f_ => fn () => f_ ((arl_get heap_nat bi bia) ())
-                            ())
-                            (fn xc =>
-                              (fn f_ => fn () => f_
-                                ((clause_score_extract_code ai xc) ()) ())
-                                (fn x_h =>
-                                  (fn () =>
-                                    (if clause_score_ordering
-  (equal_uint32, ord_uint32) ord_uint32 x_d x_f andalso
-  clause_score_ordering (equal_uint32, ord_uint32) ord_uint32 x_f x_h orelse
-  clause_score_ordering (equal_uint32, ord_uint32) ord_uint32 x_h x_f andalso
-    clause_score_ordering (equal_uint32, ord_uint32) ord_uint32 x_f x_d
-                                      then x_b
-                                      else (if clause_score_ordering
-         (equal_uint32, ord_uint32) ord_uint32 x_d x_h andalso
-         clause_score_ordering (equal_uint32, ord_uint32) ord_uint32 x_h
-           x_f orelse
-         clause_score_ordering (equal_uint32, ord_uint32) ord_uint32 x_f
-           x_h andalso
-           clause_score_ordering (equal_uint32, ord_uint32) ord_uint32 x_h x_d
-     then bia else bib)))))))))
-        end
-          ();
-      val xb = arl_swap heap_nat bi xa bia ();
-    in
-      partition_main_clause_code ai bib bia xb ()
-    end)
-    x;
-
-fun sort_clauses_by_score_code_0 ai x =
-  let
-    val (a1, (a1a, a2a)) = x;
-  in
-    (fn () =>
-      let
-        val a = partition_clause_code ai a1 a1a a2a ();
-      in
-        let
-          val (a1b, a2b) = a;
-        in
-          (fn f_ => fn () => f_
-            ((if less_eq_nat (minus_nata a2b one_nat) a1 then (fn () => a1b)
-               else sort_clauses_by_score_code_0 ai
-                      (a1, (minus_nata a2b one_nat, a1b)))
-            ()) ())
-            (fn x_c =>
-              (if less_eq_nat a1a (plus_nat a2b one_nat) then (fn () => x_c)
-                else sort_clauses_by_score_code_0 ai
-                       (plus_nat a2b one_nat, (a1a, x_c))))
-        end
-          ()
-      end)
-  end;
-
-fun arl_is_empty A_ = (fn (_, n) => (fn () => (equal_nat n zero_nata)));
-
-fun sort_clauses_by_score_code x =
-  (fn ai => fn bi => fn () =>
-    let
-      val xa = arl_is_empty heap_nat bi ();
-    in
-      (if xa then (fn () => bi)
-        else (fn f_ => fn () => f_ ((arl_length heap_nat bi) ()) ())
-               (fn xb =>
-                 sort_clauses_by_score_code_0 ai
-                   (zero_nata, (minus_nata xb one_nat, bi))))
-        ()
-    end)
-    x;
-
-fun sort_vdom_heur_fast_code x =
-  (fn (a1, (a1a, (a1b, (a1c, (a1d, (a1e, (a1f,
-   (a1g, (a1h, (a1i, (a1j, (a1k, (a1l, (a1m,
- (a1n, (a1o, (a1p, a2p)))))))))))))))))
-     =>
-    fn () =>
-    let
-      val xa = sort_clauses_by_score_code a1a a1p ();
-    in
-      (a1, (a1a, (a1b, (a1c, (a1d, (a1e, (a1f,
-   (a1g, (a1h, (a1i, (a1j, (a1k, (a1l, (a1m,
- (a1n, (a1o, (xa, a2p)))))))))))))))))
     end)
     x;
 
@@ -4173,6 +4157,164 @@ fun get_the_propagation_reason_heur_code x =
         = ai;
     in
       get_the_propagation_reason_code a1 bi
+    end)
+    x;
+
+fun partition_main_clause_code x =
+  (fn ai => fn bib => fn bia => fn bi => fn () =>
+    let
+      val xa = arl_get heap_nat bi bia ();
+      val xb = clause_score_extract_code ai xa ();
+      val a =
+        heap_WHILET (fn (_, (a1a, _)) => (fn () => (less_nat a1a bia)))
+          (fn (a1, (a1a, a2a)) =>
+            (fn f_ => fn () => f_ ((arl_get heap_nat a2a a1a) ()) ())
+              (fn xaa =>
+                (fn f_ => fn () => f_ ((clause_score_extract_code ai xaa) ())
+                  ())
+                  (fn xab =>
+                    (if clause_score_ordering (equal_uint32, ord_uint32)
+                          ord_uint32 xab xb
+                      then (fn f_ => fn () => f_ ((arl_swap heap_nat a2a a1 a1a)
+                             ()) ())
+                             (fn xc =>
+                               (fn () =>
+                                 (plus_nat a1 one_nat,
+                                   (plus_nat a1a one_nat, xc))))
+                      else (fn () => (a1, (plus_nat a1a one_nat, a2a)))))))
+          (bib, (bib, bi)) ();
+    in
+      let
+        val (a1, (_, a2a)) = a;
+      in
+        (fn f_ => fn () => f_ ((arl_swap heap_nat a2a a1 bia) ()) ())
+          (fn x_b => (fn () => (x_b, a1)))
+      end
+        ()
+    end)
+    x;
+
+fun apsnd f (x, y) = (x, f y);
+
+fun divmod_integer k l =
+  (if ((k : IntInf.int) = (0 : IntInf.int))
+    then ((0 : IntInf.int), (0 : IntInf.int))
+    else (if IntInf.< ((0 : IntInf.int), l)
+           then (if IntInf.< ((0 : IntInf.int), k)
+                  then IntInf.divMod (IntInf.abs k, IntInf.abs l)
+                  else let
+                         val (r, s) =
+                           IntInf.divMod (IntInf.abs k, IntInf.abs l);
+                       in
+                         (if ((s : IntInf.int) = (0 : IntInf.int))
+                           then (IntInf.~ r, (0 : IntInf.int))
+                           else (IntInf.- (IntInf.~ r, (1 : IntInf.int)),
+                                  IntInf.- (l, s)))
+                       end)
+           else (if ((l : IntInf.int) = (0 : IntInf.int))
+                  then ((0 : IntInf.int), k)
+                  else apsnd IntInf.~
+                         (if IntInf.< (k, (0 : IntInf.int))
+                           then IntInf.divMod (IntInf.abs k, IntInf.abs l)
+                           else let
+                                  val (r, s) =
+                                    IntInf.divMod (IntInf.abs k, IntInf.abs l);
+                                in
+                                  (if ((s : IntInf.int) = (0 : IntInf.int))
+                                    then (IntInf.~ r, (0 : IntInf.int))
+                                    else (IntInf.- (IntInf.~
+              r, (1 : IntInf.int)),
+   IntInf.- (IntInf.~ l, s)))
+                                end))));
+
+fun divide_integer k l = fst (divmod_integer k l);
+
+fun divide_nat m n = Nat (divide_integer (integer_of_nat m) (integer_of_nat n));
+
+fun partition_clause_code x =
+  (fn ai => fn bib => fn bia => fn bi => fn () =>
+    let
+      val xa =
+        let
+          val x_b =
+            plus_nat bib
+              (divide_nat (minus_nata bia bib)
+                (nat_of_integer (2 : IntInf.int)));
+        in
+          (fn f_ => fn () => f_ ((arl_get heap_nat bi bib) ()) ())
+            (fn xa =>
+              (fn f_ => fn () => f_ ((clause_score_extract_code ai xa) ()) ())
+                (fn x_d =>
+                  (fn f_ => fn () => f_ ((arl_get heap_nat bi x_b) ()) ())
+                    (fn xb =>
+                      (fn f_ => fn () => f_ ((clause_score_extract_code ai xb)
+                        ()) ())
+                        (fn x_f =>
+                          (fn f_ => fn () => f_ ((arl_get heap_nat bi bia) ())
+                            ())
+                            (fn xc =>
+                              (fn f_ => fn () => f_
+                                ((clause_score_extract_code ai xc) ()) ())
+                                (fn x_h =>
+                                  (fn () =>
+                                    (if clause_score_ordering
+  (equal_uint32, ord_uint32) ord_uint32 x_d x_f andalso
+  clause_score_ordering (equal_uint32, ord_uint32) ord_uint32 x_f x_h orelse
+  clause_score_ordering (equal_uint32, ord_uint32) ord_uint32 x_h x_f andalso
+    clause_score_ordering (equal_uint32, ord_uint32) ord_uint32 x_f x_d
+                                      then x_b
+                                      else (if clause_score_ordering
+         (equal_uint32, ord_uint32) ord_uint32 x_d x_h andalso
+         clause_score_ordering (equal_uint32, ord_uint32) ord_uint32 x_h
+           x_f orelse
+         clause_score_ordering (equal_uint32, ord_uint32) ord_uint32 x_f
+           x_h andalso
+           clause_score_ordering (equal_uint32, ord_uint32) ord_uint32 x_h x_d
+     then bia else bib)))))))))
+        end
+          ();
+      val xb = arl_swap heap_nat bi xa bia ();
+    in
+      partition_main_clause_code ai bib bia xb ()
+    end)
+    x;
+
+fun sort_clauses_by_score_code_0 ai x =
+  let
+    val (a1, (a1a, a2a)) = x;
+  in
+    (fn () =>
+      let
+        val a = partition_clause_code ai a1 a1a a2a ();
+      in
+        let
+          val (a1b, a2b) = a;
+        in
+          (fn f_ => fn () => f_
+            ((if less_eq_nat (minus_nata a2b one_nat) a1 then (fn () => a1b)
+               else sort_clauses_by_score_code_0 ai
+                      (a1, (minus_nata a2b one_nat, a1b)))
+            ()) ())
+            (fn x_c =>
+              (if less_eq_nat a1a (plus_nat a2b one_nat) then (fn () => x_c)
+                else sort_clauses_by_score_code_0 ai
+                       (plus_nat a2b one_nat, (a1a, x_c))))
+        end
+          ()
+      end)
+  end;
+
+fun sort_clauses_by_score_code x =
+  (fn ai => fn bi => fn () =>
+    let
+      val xa = arl_is_empty heap_nat bi ();
+    in
+      (if xa then (fn () => bi)
+        else (fn f_ => fn () => f_ ((arl_length heap_nat bi) ()) ())
+               (fn xb =>
+                 sort_clauses_by_score_code_0 ai
+                   (zero_nata, (minus_nata xb one_nat, bi))))
+        ()
     end)
     x;
 
@@ -6437,12 +6579,6 @@ fun header_size_fast_code x =
         else Uint64.fromInt (5 : IntInf.int))
     end)
     x;
-
-fun arl_length_u64_code A_ c = (fn () => let
-   val n = arl_length A_ c ();
- in
-   uint64_of_nat n
- end);
 
 fun length_u64_code A_ =
   (fn a => (fn () => Uint64.fromFixedInt (Array.length a)));
