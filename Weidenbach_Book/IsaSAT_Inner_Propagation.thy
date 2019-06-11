@@ -720,6 +720,7 @@ where
      ASSERT(swap_lits_pre C i f N);
      ASSERT(w < length N);
      let N' = swap_lits C i f N;
+     ASSERT(length (W ! nat_of_lit K') < length N);
      let W = W[nat_of_lit K':= W ! (nat_of_lit K') @ [to_watcher C L b]];
      RETURN (j, w+1, (M, N', D, Q, W, vm))
   })\<close>
@@ -729,8 +730,28 @@ definition update_clause_wl_pre where
      L\<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st S) \<and> i < length (get_clauses_wl S \<propto> C) \<and>
      f < length (get_clauses_wl S \<propto> C) \<and>
      L \<noteq> get_clauses_wl S \<propto> C ! f \<and>
+     length (watched_by S (get_clauses_wl S \<propto> C ! f)) < r \<and>
      w < r \<and>
      L = K)\<close>
+
+(*TODO Move*)
+lemma atm_of_all_lits_of_m: \<open>atm_of `# (all_lits_of_m C) = atm_of `# C + atm_of `# C\<close>
+   \<open>atm_of ` set_mset (all_lits_of_m C) = atm_of `set_mset C \<close>
+  by (induction C; auto simp: all_lits_of_m_add_mset)+
+
+lemma update_clause_wl_pre_alt_def:
+  \<open>update_clause_wl_pre K r = (\<lambda>(((((((L, C), b), j), w), i), f), S). C \<in># dom_m(get_clauses_wl S) \<and>
+     L\<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st S) \<and> i < length (get_clauses_wl S \<propto> C) \<and>
+     f < length (get_clauses_wl S \<propto> C) \<and>
+     L \<noteq> get_clauses_wl S \<propto> C ! f \<and>
+     length (watched_by S (get_clauses_wl S \<propto> C ! f)) < r \<and>
+     w < r \<and>
+     get_clauses_wl S \<propto> C ! f \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st S) \<and>
+     L = K)\<close>
+ by (auto intro!: ext simp: update_clause_wl_pre_def all_atms_def all_lits_def
+     in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n ran_m_def
+      dest!: multi_member_split[of _ \<open>dom_m _\<close>] simp: all_lits_of_mm_add_mset atm_of_all_lits_of_m image_Un
+     simp del: all_atms_def[symmetric])
 
 lemma arena_lit_pre:
   \<open>valid_arena NU N vdom \<Longrightarrow> C \<in># dom_m N \<Longrightarrow> i < length (N \<propto> C) \<Longrightarrow> arena_lit_pre NU (C + i)\<close>
@@ -748,7 +769,7 @@ lemma update_clause_wl_heur_update_clause_wl:
    Id \<times>\<^sub>f nat_rel \<times>\<^sub>f bool_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f twl_st_heur_up'' \<D> r s K \<rightarrow>
   \<langle>nat_rel \<times>\<^sub>r nat_rel \<times>\<^sub>r twl_st_heur_up'' \<D> r s K\<rangle>nres_rel\<close>
   unfolding update_clause_wl_heur_def update_clause_wl_def uncurry_def Let_def
-    update_clause_wl_pre_def
+    update_clause_wl_pre_alt_def
   apply (intro frefI nres_relI)
   apply clarify
   apply refine_rcg
@@ -768,6 +789,10 @@ lemma update_clause_wl_heur_update_clause_wl:
     by (auto 0 0 simp: twl_st_heur_def Let_def
       map_fun_rel_def twl_st_heur'_def update_clause_wl_pre_def arena_lifting arena_lit_pre_def
     intro!: ASSERT_refine_left valid_arena_swap_lits)
+  subgoal
+    by (auto 0 0 simp: twl_st_heur_def Let_def
+      map_fun_rel_def twl_st_heur'_def update_clause_wl_pre_alt_def arena_lifting arena_lit_pre_def
+    intro!: ASSERT_refine_left valid_arena_swap_lits dest!: multi_member_split[of \<open>arena_lit _ _\<close>])
   subgoal
     by (auto 0 0 simp: twl_st_heur_def Let_def
       map_fun_rel_def twl_st_heur'_def update_clause_wl_pre_def arena_lifting arena_lit_pre_def
@@ -1513,6 +1538,57 @@ proof -
     by (auto intro!: order_trans[of \<open>length (watched_by x1 x2)\<close> \<open>length (get_vdom x1a)\<close>])
 qed
 
+lemma length_watched_le2:
+  assumes
+    prop_inv: \<open>correct_watching_except i j L x1\<close> and
+    xb_x'a: \<open>(x1a, x1) \<in> twl_st_heur'' \<D>1 r\<close> and
+    x2: \<open>x2 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st x1)\<close> and diff: \<open>L \<noteq> x2\<close>
+  shows \<open>length (watched_by x1 x2) \<le> r - 4\<close>
+proof -
+  from prop_inv diff have dist: \<open>distinct_watched (watched_by x1 x2)\<close>
+    using x2 unfolding all_atms_def all_lits_def
+    by (cases x1; auto simp: \<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_all_lits_of_mm correct_watching_except.simps)
+  then have dist: \<open>distinct_watched (watched_by x1 x2)\<close>
+    using xb_x'a
+    by (cases x1; auto simp: \<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_all_lits_of_mm correct_watching.simps)
+  have dist_vdom: \<open>distinct (get_vdom x1a)\<close>
+    using xb_x'a
+    by (cases x1)
+      (auto simp: twl_st_heur_def twl_st_heur'_def)
+  have x2: \<open>x2 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms (get_clauses_wl x1) (get_unit_clauses_wl x1))\<close>
+    using x2 xb_x'a
+    by auto
+
+  have
+      valid: \<open>valid_arena (get_clauses_wl_heur x1a) (get_clauses_wl x1) (set (get_vdom x1a))\<close>
+    using xb_x'a unfolding all_atms_def all_lits_def
+    by (cases x1)
+     (auto simp: twl_st_heur'_def twl_st_heur_def)
+
+  have \<open>vdom_m (all_atms_st x1) (get_watched_wl x1) (get_clauses_wl x1) \<subseteq> set (get_vdom x1a)\<close>
+    using xb_x'a
+    by (cases x1)
+      (auto simp: twl_st_heur_def twl_st_heur'_def)
+  then have subset: \<open>set (map fst (watched_by x1 x2)) \<subseteq> set (get_vdom x1a)\<close>
+    using x2 unfolding vdom_m_def
+    by (cases x1)
+      (force simp: twl_st_heur'_def twl_st_heur_def
+        dest!: multi_member_split)
+  have watched_incl: \<open>mset (map fst (watched_by x1 x2)) \<subseteq># mset (get_vdom x1a)\<close>
+    by (rule distinct_subseteq_iff[THEN iffD1])
+      (use dist[unfolded distinct_watched_alt_def] dist_vdom subset in
+         \<open>simp_all flip: distinct_mset_mset_distinct\<close>)
+  have vdom_incl: \<open>set (get_vdom x1a) \<subseteq> {4..< length (get_clauses_wl_heur x1a)}\<close>
+    using valid_arena_in_vdom_le_arena[OF valid] arena_dom_status_iff[OF valid] by auto
+
+  have \<open>length (get_vdom x1a) \<le> length (get_clauses_wl_heur x1a) - 4\<close>
+    by (subst distinct_card[OF dist_vdom, symmetric])
+      (use card_mono[OF _ vdom_incl] in auto)
+  then show ?thesis
+    using size_mset_mono[OF watched_incl] xb_x'a
+    by (auto intro!: order_trans[of \<open>length (watched_by x1 x2)\<close> \<open>length (get_vdom x1a)\<close>])
+qed
+
 
 text \<open>The lemmas below are used in the refinement proof of \<^term>\<open>unit_propagation_inner_loop_body_wl_D\<close>.
 None of them makes sense in any other context. However having like below allows to share
@@ -1577,12 +1653,15 @@ private lemma x2d_le: \<open>x2d < length (watched_by_int S L)\<close> and
   x2_x2a: \<open>x2 \<le> x2a\<close> and
   x2a_le: \<open>x2a < length (watched_by T L)\<close> and
   valid: \<open>valid_arena (get_clauses_wl_heur S) (get_clauses_wl T) (set (get_vdom S))\<close>
+  and
+  corr_T: \<open>correct_watching_except x2 x2a L T\<close>
   using pre pre_inv0 st x1b
   unfolding watched_by_app_heur_pre_def prod.simps
   unfolding unit_propagation_inner_loop_wl_loop_D_heur_inv0_def
     twl_st_heur'_def
     unit_propagation_inner_loop_wl_loop_D_pre_def twl_st_heur_def map_fun_rel_def
     unit_propagation_inner_loop_wl_loop_pre_def prod.simps
+    unit_propagation_inner_loop_wl_loop_inv_def apply -
   by (auto simp: state_simp_ST x1b x2b)
 
 
@@ -2473,12 +2552,28 @@ private lemma L_neq_j:
   by (cases \<open>get_clauses_wl T \<propto> x1g\<close>; cases \<open>tl (get_clauses_wl T \<propto> x1g)\<close>)
     auto
 
+  thm corr_T
+find_theorems S T
+find_theorems correct_watching_except keep_watch
+
+private lemma  in_lall: \<open>get_clauses_wl T \<propto> x1g ! j
+     \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms (get_clauses_wl T) (get_unit_clauses_wl T))\<close>
+  using multi_member_split[OF x1g] j_le by (auto simp: all_atms_def all_lits_def ran_m_def
+      all_lits_of_mm_add_mset atm_of_all_lits_of_m in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n image_Un
+   simp del: all_atms_def[symmetric])
+
+private lemma length_le: \<open>length (watched_by T (get_clauses_wl T \<propto> x1g ! j))
+          \<le> length (get_clauses_wl_heur S) - 4\<close>
+  using xy length_watched_le2[OF corr_T, of S \<D> r \<open>(get_clauses_wl T \<propto> x1g ! j)\<close>]
+    L_neq_j in_lall
+   by (simp add: correct_watching_except.simps keep_watch_def)
+
 lemma update_clause_wl_pre_unw: \<open>update_clause_wl_pre K r
      (((((((L, x1f), x1f''), x2), x2a),
         if get_clauses_wl (keep_watch L x2 x2a T) \<propto> x1f ! 0 = L then 0 else 1),
        j),
       V')\<close>
-  using Tx1g_le2 j_le x1b T_x1g_j_neq0 T_x1g_j_neq1 L_neq_j L_K0  x2a_le
+  using Tx1g_le2 j_le x1b T_x1g_j_neq0 T_x1g_j_neq1 L_neq_j L_K0  x2a_le length_le xy
   unfolding update_clause_wl_pre_def st
   by (auto simp: i_alt_def L_K)
 
