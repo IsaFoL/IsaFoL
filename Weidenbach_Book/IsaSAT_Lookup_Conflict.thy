@@ -5,6 +5,7 @@ theory IsaSAT_Lookup_Conflict
     Watched_Literals.CDCL_Conflict_Minimisation
     LBD
     IsaSAT_Clauses
+    IsaSAT_Clauses_SML
     IsaSAT_Watch_List
 begin
 

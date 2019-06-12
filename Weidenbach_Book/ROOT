@@ -204,6 +204,10 @@ session "IsaSAT" (Weidenbach_Book) = "Watched_Literals"  +
     Watched_Literals
     Show
   theories
+    IsaSAT_Arena
+    IsaSAT_Arena_SML
+    IsaSAT_Clauses
+    IsaSAT_Clauses_SML
     IsaSAT_Literals
     IsaSAT_Trail
     IsaSAT_Setup
@@ -223,8 +227,10 @@ session "IsaSAT" (Weidenbach_Book) = "Watched_Literals"  +
 
     IsaSAT_Restart_Heuristics
     IsaSAT_Restart
+    IsaSAT_Restart_SML
 
     IsaSAT
+    IsaSAT_SML
 
   document_files
     "root.tex"
