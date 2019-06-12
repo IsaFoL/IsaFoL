@@ -1,7 +1,8 @@
 theory IsaSAT_Setup
   imports IsaSAT_Clauses IsaSAT_Arena
     Watched_Literals_VMTF IsaSAT_Lookup_Conflict LBD IsaSAT_Watch_List
-    Watched_Literals.Watched_Literals_Watch_List_Initialisation
+    IsaSAT_Lookup_Conflict_SML         Watched_Literals.Watched_Literals_Watch_List_Initialisation
+
 begin
 
 text \<open>TODO Move and make sure to merge in the right order!\<close>

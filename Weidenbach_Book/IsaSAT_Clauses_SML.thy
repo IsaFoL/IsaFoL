@@ -164,6 +164,20 @@ sepref_definition fmap_rll_u32_clss
   supply length_rll_def[simp]
   by sepref
 
+sepref_definition swap_lits_code
+  is \<open>uncurry3 isa_arena_swap\<close>
+  :: \<open>nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a (arl_assn uint32_assn)\<^sup>d  \<rightarrow>\<^sub>a arl_assn uint32_assn\<close>
+  unfolding isa_arena_swap_def
+  by sepref
+
+lemma swap_lits_refine[sepref_fr_rules]:
+  \<open>(uncurry3 swap_lits_code, uncurry3 (RETURN oooo swap_lits))
+  \<in> [uncurry3 swap_lits_pre]\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a arena_assn\<^sup>d \<rightarrow> arena_assn\<close>
+  using swap_lits_code.refine[FCOMP isa_arena_swap]
+  unfolding hr_comp_assoc[symmetric] list_rel_compp status_assn_alt_def uncurry_def
+  by (auto simp add: arl_assn_comp)
+
+
 sepref_definition (in -) swap_lits_fast_code
   is \<open>uncurry3 isa_arena_swap\<close>
   :: \<open>[\<lambda>(((_, _), _), N). length N \<le> uint64_max]\<^sub>a
@@ -171,6 +185,15 @@ sepref_definition (in -) swap_lits_fast_code
          arl_assn uint32_assn\<close>
   unfolding isa_arena_swap_def
   by sepref
+
+
+lemma swap_lits_fast_refine[sepref_fr_rules]:
+  \<open>(uncurry3 swap_lits_fast_code, uncurry3 (RETURN oooo swap_lits))
+  \<in> [\<lambda>(((C, i), j), arena). swap_lits_pre C i j arena \<and> length arena \<le> uint64_max]\<^sub>a
+     uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a arena_assn\<^sup>d \<rightarrow> arena_assn\<close>
+  using swap_lits_fast_code.refine[FCOMP isa_arena_swap]
+  unfolding hr_comp_assoc[symmetric] list_rel_compp status_assn_alt_def uncurry_def
+  by (auto simp add: arl_assn_comp)
 
 declare swap_lits_fast_code.refine[sepref_fr_rules]
 sepref_definition fm_mv_clause_to_new_arena_code

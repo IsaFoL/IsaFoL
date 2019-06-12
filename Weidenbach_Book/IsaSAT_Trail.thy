@@ -404,14 +404,6 @@ definition trail_pol_slow_of_fast :: \<open>trail_pol \<Rightarrow> trail_pol\<c
   \<open>trail_pol_slow_of_fast =
     (\<lambda>(M, val, lvls, reason, k). (M, val, lvls, array_nat_of_uint64_conv reason, k))\<close>
 
-sepref_definition trail_pol_slow_of_fast_code
-  is \<open>RETURN o trail_pol_slow_of_fast\<close>
-  :: \<open>trail_pol_fast_assn\<^sup>d \<rightarrow>\<^sub>a trail_pol_assn\<close>
-  unfolding trail_pol_slow_of_fast_def
-  by sepref
-
-declare trail_pol_slow_of_fast_code.refine[sepref_fr_rules]
-
 definition trail_slow_of_fast :: \<open>(nat, nat) ann_lits \<Rightarrow> (nat, nat) ann_lits\<close> where
   \<open>trail_slow_of_fast = id\<close>
 
@@ -423,15 +415,6 @@ lemma trail_pol_slow_of_fast_alt_def:
   \<open>trail_pol_slow_of_fast M = M\<close>
   by (cases M)
     (auto simp: trail_pol_slow_of_fast_def array_nat_of_uint64_conv_def)
-
-sepref_definition trail_pol_fast_of_slow_code
-  is \<open>RETURN o trail_pol_fast_of_slow\<close>
-  :: \<open>[\<lambda>(M, val, lvls, reason, k). \<forall>i\<in>set reason. i < uint64_max]\<^sub>a
-      trail_pol_assn\<^sup>d \<rightarrow> trail_pol_fast_assn\<close>
-  unfolding trail_pol_fast_of_slow_def
-  by sepref
-
-declare trail_pol_fast_of_slow_code.refine[sepref_fr_rules]
 
 lemma trail_pol_fast_of_slow_trail_fast_of_slow:
   \<open>(RETURN o trail_pol_fast_of_slow, RETURN o trail_fast_of_slow)
@@ -466,29 +449,6 @@ definition get_level_atm_pol_pre where
 definition get_level_atm_pol :: \<open>trail_pol \<Rightarrow> nat \<Rightarrow> nat\<close> where
   \<open>get_level_atm_pol = (\<lambda>(M, xs, lvls, k) L. lvls ! L)\<close>
 
-sepref_definition get_level_atm_code
-  is \<open>uncurry (RETURN oo get_level_atm_pol)\<close>
-  :: \<open>[get_level_atm_pol_pre]\<^sub>a
-  trail_pol_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
-  unfolding get_level_atm_pol_def nat_shiftr_div2[symmetric] nat_of_uint32_shiftr[symmetric]
-    get_level_atm_pol_pre_def nth_u_def[symmetric]
-  supply [[goals_limit = 1]]
-  by sepref
-
-declare get_level_atm_code.refine[sepref_fr_rules]
-
-
-sepref_definition get_level_atm_fast_code
-  is \<open>uncurry (RETURN oo get_level_atm_pol)\<close>
-  :: \<open>[get_level_atm_pol_pre]\<^sub>a
-  trail_pol_fast_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
-  unfolding get_level_atm_pol_def nat_shiftr_div2[symmetric] nat_of_uint32_shiftr[symmetric]
-    nth_u_def[symmetric] get_level_atm_pol_pre_def
-  supply [[goals_limit = 1]]
-  by sepref
-
-declare get_level_atm_fast_code.refine[sepref_fr_rules]
-
 lemma get_level_atm_pol_pre:
   assumes
     \<open>Pos L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<close> and
@@ -517,29 +477,6 @@ lemma get_level_pol_pre:
   by (auto 5 5 simp: comp_PRE_def trail_pol_def unat_lit_rel_def nat_lit_rel_def
     uint32_nat_rel_def br_def get_level_pol_pre_def intro!: ext)
 
-sepref_definition get_level_code
-  is \<open>uncurry (RETURN oo get_level_pol)\<close>
-  :: \<open>[get_level_pol_pre]\<^sub>a
-      trail_pol_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
-  unfolding get_level_get_level_atm nat_shiftr_div2[symmetric] nat_of_uint32_shiftr[symmetric]
-  nth_u_def[symmetric] get_level_pol_pre_def get_level_pol_def
-  supply [[goals_limit = 1]] image_image[simp] in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff[simp]
-    get_level_atm_pol_pre_def[simp]
-  by sepref
-
-declare get_level_code.refine[sepref_fr_rules]
-
-sepref_definition get_level_fast_code
-  is \<open>uncurry (RETURN oo get_level_pol)\<close>
-  :: \<open>[get_level_pol_pre]\<^sub>a
-      trail_pol_fast_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
-  unfolding get_level_get_level_atm nat_shiftr_div2[symmetric] nat_of_uint32_shiftr[symmetric]
-  nth_u_def[symmetric] get_level_pol_pre_def get_level_pol_def
-  supply [[goals_limit = 1]] image_image[simp] in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff[simp]
-    get_level_atm_pol_pre_def[simp]
-  by sepref
-
-declare get_level_fast_code.refine[sepref_fr_rules]
 
 lemma get_level_get_level_pol:
   assumes
@@ -580,24 +517,6 @@ definition (in -) polarity_pol :: \<open>trail_pol \<Rightarrow> nat literal \<R
 definition polarity_pol_pre where
   \<open>polarity_pol_pre = (\<lambda>(M, xs, lvls, k) L. nat_of_lit L < length xs)\<close>
 
-sepref_definition polarity_pol_code
-  is \<open>uncurry (RETURN oo polarity_pol)\<close>
-  :: \<open>[uncurry polarity_pol_pre]\<^sub>a trail_pol_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> tri_bool_assn\<close>
-  unfolding polarity_pol_def option.case_eq_if polarity_pol_pre_def
-  supply [[goals_limit = 1]]
-  by sepref
-
-declare polarity_pol_code.refine[sepref_fr_rules]
-
-sepref_definition polarity_pol_fast_code
-  is \<open>uncurry (RETURN oo polarity_pol)\<close>
-  :: \<open>[uncurry polarity_pol_pre]\<^sub>a trail_pol_fast_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> tri_bool_assn\<close>
-  unfolding polarity_pol_def option.case_eq_if polarity_pol_pre_def
-  supply [[goals_limit = 1]]
-  by sepref
-
-declare polarity_pol_fast_code.refine[sepref_fr_rules]
-
 lemma polarity_pol_polarity:
   \<open>(uncurry (RETURN oo polarity_pol), uncurry (RETURN oo polarity)) \<in>
      [\<lambda>(M, L). L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>]\<^sub>f trail_pol \<A> \<times>\<^sub>f Id \<rightarrow> \<langle>\<langle>bool_rel\<rangle>option_rel\<rangle>nres_rel\<close>
@@ -628,21 +547,6 @@ lemma isa_length_trail_length_u:
   by (intro frefI nres_relI)
     (auto simp: isa_length_trail_def trail_pol_alt_def
     intro!: ASSERT_leI)
-
-sepref_definition isa_length_trail_code
-  is \<open>RETURN o isa_length_trail\<close>
-  :: \<open>[isa_length_trail_pre]\<^sub>a trail_pol_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
-  unfolding isa_length_trail_def isa_length_trail_pre_def
-  by sepref
-
-sepref_definition isa_length_trail_fast_code
-  is \<open>RETURN o isa_length_trail\<close>
-  :: \<open>[isa_length_trail_pre]\<^sub>a trail_pol_fast_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
-  unfolding isa_length_trail_def isa_length_trail_pre_def
-  by sepref
-
-declare isa_length_trail_code.refine[sepref_fr_rules]
-  isa_length_trail_fast_code.refine[sepref_fr_rules]
 
 
 subparagraph \<open>Consing elements\<close>
@@ -755,28 +659,6 @@ definition cons_trail_Propagated_tr_pre where
   \<open>cons_trail_Propagated_tr_pre = (\<lambda>((L, C), (M, xs, lvls, reasons, k)). nat_of_lit L < length xs \<and>
     nat_of_lit (-L) < length xs \<and> atm_of L < length lvls \<and> atm_of L < length reasons)\<close>
 
-sepref_definition cons_trail_Propagated_tr_code
-  is \<open>uncurry2 (RETURN ooo cons_trail_Propagated_tr)\<close>
-  :: \<open>[cons_trail_Propagated_tr_pre]\<^sub>a
-       unat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a trail_pol_assn\<^sup>d \<rightarrow> trail_pol_assn\<close>
-  unfolding cons_trail_Propagated_tr_def cons_trail_Propagated_tr_def
-    SET_TRUE_def[symmetric] SET_FALSE_def[symmetric] cons_trail_Propagated_tr_pre_def
-  supply [[goals_limit = 1]]
-  by sepref
-
-declare cons_trail_Propagated_tr_code.refine[sepref_fr_rules]
-
-sepref_definition cons_trail_Propagated_tr_fast_code
-  is \<open>uncurry2 (RETURN ooo cons_trail_Propagated_tr)\<close>
-  :: \<open>[cons_trail_Propagated_tr_pre]\<^sub>a
-       unat_lit_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a trail_pol_fast_assn\<^sup>d \<rightarrow> trail_pol_fast_assn\<close>
-  unfolding cons_trail_Propagated_tr_def cons_trail_Propagated_tr_def
-    SET_TRUE_def[symmetric] SET_FALSE_def[symmetric] cons_trail_Propagated_tr_pre_def
-  supply [[goals_limit = 1]]
-  by sepref
-
-declare cons_trail_Propagated_tr_fast_code.refine[sepref_fr_rules]
-
 lemma cons_trail_Propagated_tr_pre:
   assumes \<open>(M', M) \<in> trail_pol \<A>\<close> and
     \<open>undefined_lit M L\<close> and
@@ -801,28 +683,6 @@ definition (in -) last_trail_pol :: \<open>trail_pol \<Rightarrow> (nat literal 
   \<open>last_trail_pol = (\<lambda>(M, xs, lvls, reasons, k).
       let r = reasons ! (atm_of (last M)) in
       (last M, if r = DECISION_REASON then None else Some r))\<close>
-
-sepref_definition (in -)last_trail_code
-  is \<open>RETURN o last_trail_pol\<close>
-  :: \<open>[last_trail_pol_pre]\<^sub>a
-       trail_pol_assn\<^sup>k \<rightarrow> unat_lit_assn *a option_assn nat_assn\<close>
-  unfolding last_trail_pol_def nth_u_def[symmetric] last_trail_pol_pre_def
-  supply [[goals_limit = 1]]
-  by sepref
-
-declare last_trail_code.refine[sepref_fr_rules]
-
-sepref_definition (in -)last_trail_fast_code
-  is \<open>RETURN o last_trail_pol\<close>
-  :: \<open>[last_trail_pol_pre]\<^sub>a
-       trail_pol_fast_assn\<^sup>k \<rightarrow> unat_lit_assn *a option_assn uint64_nat_assn\<close>
-  supply DECISION_REASON_uint64[sepref_fr_rules]
-  unfolding last_trail_pol_def nth_u_def[symmetric] zero_uint64_nat_def[symmetric]
-    last_trail_pol_pre_def
-  supply [[goals_limit = 1]]
-  by sepref
-
-declare last_trail_fast_code.refine[sepref_fr_rules]
 
 lemma (in -) nat_ann_lit_rel_alt_def: \<open>nat_ann_lit_rel = (unat_lit_rel \<times>\<^sub>r \<langle>nat_rel\<rangle> option_rel) O
      {((L, C), L').
@@ -857,32 +717,6 @@ definition tl_trailt_tr_pre where
         nat_of_lit(-last M) < length xs  \<and> atm_of (last M) < length lvls \<and>
         atm_of (last M) < length reason \<and>
         (reason ! atm_of (last M) = DECISION_REASON \<longrightarrow> k \<ge> 1 \<and> cs \<noteq> []))\<close>
-
-sepref_definition tl_trail_tr_code
-  is \<open>RETURN o tl_trailt_tr\<close>
-  :: \<open>[tl_trailt_tr_pre]\<^sub>a
-        trail_pol_assn\<^sup>d \<rightarrow> trail_pol_assn\<close>
-  supply if_splits[split] option.splits[split]
-  unfolding tl_trailt_tr_def UNSET_def[symmetric] butlast_nonresizing_def[symmetric]
-    tl_trailt_tr_pre_def
-  apply (rewrite at \<open>_ - one_uint32_nat\<close> fast_minus_def[symmetric])
-  supply [[goals_limit = 1]]
-  by sepref
-
-declare tl_trail_tr_code.refine[sepref_fr_rules]
-
-sepref_definition tl_trail_tr_fast_code
-  is \<open>RETURN o tl_trailt_tr\<close>
-  :: \<open>[tl_trailt_tr_pre]\<^sub>a
-        trail_pol_fast_assn\<^sup>d \<rightarrow> trail_pol_fast_assn\<close>
-  supply if_splits[split] option.splits[split] DECISION_REASON_uint64[sepref_fr_rules]
-  unfolding tl_trailt_tr_def UNSET_def[symmetric] zero_uint64_nat_def[symmetric]
-     butlast_nonresizing_def[symmetric] tl_trailt_tr_pre_def
-  apply (rewrite at \<open>_ - one_uint32_nat\<close> fast_minus_def[symmetric])
-  supply [[goals_limit = 1]]
-  by sepref
-
-declare tl_trail_tr_fast_code.refine[sepref_fr_rules]
 
 lemma ann_lits_split_reasons_map_lit_of:
   \<open>((M, reasons), M') \<in> ann_lits_split_reasons \<A> \<Longrightarrow> M = map lit_of (rev M')\<close>
@@ -964,31 +798,6 @@ definition tl_trail_propedt_tr_pre where
         nat_of_lit(-last M) < length xs  \<and> atm_of (last M) < length lvls \<and>
         atm_of (last M) < length reason)\<close>
 
-sepref_definition tl_trail_proped_tr_code
-  is \<open>RETURN o tl_trail_propedt_tr\<close>
-  :: \<open>[tl_trail_propedt_tr_pre]\<^sub>a
-        trail_pol_assn\<^sup>d \<rightarrow> trail_pol_assn\<close>
-  supply if_splits[split] option.splits[split]
-  unfolding tl_trail_propedt_tr_def UNSET_def[symmetric]
-     butlast_nonresizing_def[symmetric] tl_trail_propedt_tr_pre_def
-  supply [[goals_limit = 1]]
-  by sepref
-
-declare tl_trail_proped_tr_code.refine[sepref_fr_rules]
-
-
-sepref_definition tl_trail_proped_tr_fast_code
-  is \<open>RETURN o tl_trail_propedt_tr\<close>
-  :: \<open>[tl_trail_propedt_tr_pre]\<^sub>a
-        trail_pol_fast_assn\<^sup>d \<rightarrow> trail_pol_fast_assn\<close>
-  supply if_splits[split] option.splits[split]
-  unfolding tl_trail_propedt_tr_def UNSET_def[symmetric]
-    butlast_nonresizing_def[symmetric] tl_trail_propedt_tr_pre_def
-  supply [[goals_limit = 1]]
-  by sepref
-
-declare tl_trail_proped_tr_fast_code.refine[sepref_fr_rules]
-
 lemma tl_trail_propedt_tr_pre:
   assumes \<open>(M', M) \<in> trail_pol \<A>\<close> and
     \<open>M \<noteq> []\<close>
@@ -1035,21 +844,6 @@ lemma lit_of_last_trail_pol_lit_of_last_trail:
      ann_lits_split_reasons_def hd_map rev_map[symmetric]
       intro!: frefI nres_relI)
 
-sepref_definition (in -) lit_of_last_trail_code
-  is \<open>RETURN o lit_of_last_trail_pol\<close>
-  :: \<open>[\<lambda>(M, _). M \<noteq> []]\<^sub>a trail_pol_assn\<^sup>k \<rightarrow> unat_lit_assn\<close>
-  unfolding lit_of_last_trail_pol_def
-  by sepref
-
-sepref_definition (in -) lit_of_last_trail_fast_code
-  is \<open>RETURN o lit_of_last_trail_pol\<close>
-  :: \<open>[\<lambda>(M, _). M \<noteq> []]\<^sub>a trail_pol_fast_assn\<^sup>k \<rightarrow> unat_lit_assn\<close>
-  unfolding lit_of_last_trail_pol_def
-  by sepref
-
-declare lit_of_last_trail_code.refine[sepref_fr_rules]
-declare lit_of_last_trail_fast_code.refine[sepref_fr_rules]
-
 
 subparagraph \<open>Setting a new literal\<close>
 
@@ -1083,29 +877,6 @@ lemma cons_trail_Decided_tr:
       intro: control_stack.cons_dec
       simp del: nat_of_lit.simps)
 
-sepref_definition cons_trail_Decided_tr_code
-  is \<open>uncurry (RETURN oo cons_trail_Decided_tr)\<close>
-  :: \<open>[cons_trail_Decided_tr_pre]\<^sub>a
-       unat_lit_assn\<^sup>k *\<^sub>a trail_pol_assn\<^sup>d \<rightarrow> trail_pol_assn\<close>
-  unfolding cons_trail_Decided_tr_def cons_trail_Decided_tr_def one_uint32_nat_def[symmetric]
-    SET_TRUE_def[symmetric] SET_FALSE_def[symmetric] cons_trail_Decided_tr_pre_def
-  supply [[goals_limit = 1]]
-  by sepref
-
-declare cons_trail_Decided_tr_code.refine[sepref_fr_rules]
-
-sepref_definition cons_trail_Decided_tr_fast_code
-  is \<open>uncurry (RETURN oo cons_trail_Decided_tr)\<close>
-  :: \<open>[cons_trail_Decided_tr_pre]\<^sub>a
-       unat_lit_assn\<^sup>k *\<^sub>a trail_pol_fast_assn\<^sup>d \<rightarrow> trail_pol_fast_assn\<close>
-  unfolding cons_trail_Decided_tr_def cons_trail_Decided_tr_def one_uint32_nat_def[symmetric]
-    SET_TRUE_def[symmetric] SET_FALSE_def[symmetric] cons_trail_Decided_tr_pre_def
-    zero_uint64_nat_def[symmetric]
-  supply [[goals_limit = 1]] DECISION_REASON_uint64[sepref_fr_rules]
-  by sepref
-
-declare cons_trail_Decided_tr_fast_code.refine[sepref_fr_rules]
-
 lemma cons_trail_Decided_tr_pre:
   assumes \<open>(M', M) \<in> trail_pol \<A>\<close> and
     \<open>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<close> and \<open>undefined_lit M L\<close>
@@ -1124,27 +895,6 @@ definition (in -) defined_atm_pol_pre where
 
 definition (in -) defined_atm_pol where
   \<open>defined_atm_pol = (\<lambda>(M, xs, lvls, k) L. \<not>((xs!(two_uint32_nat*L)) = None))\<close>
-
-sepref_definition defined_atm_code
-  is \<open>uncurry (RETURN oo defined_atm_pol)\<close>
-  :: \<open>[uncurry defined_atm_pol_pre]\<^sub>a trail_pol_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> bool_assn\<close>
-  unfolding defined_atm_pol_def UNSET_def[symmetric] tri_bool_eq_def[symmetric]
-    defined_atm_pol_pre_def
-  supply UNSET_def[simp del] uint32_nat_assn_mult[sepref_fr_rules]
-  by sepref
-
-declare defined_atm_code.refine[sepref_fr_rules]
-
-sepref_definition defined_atm_fast_code
-  is \<open>uncurry (RETURN oo defined_atm_pol)\<close>
-  :: \<open>[uncurry defined_atm_pol_pre]\<^sub>a trail_pol_fast_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> bool_assn\<close>
-  unfolding defined_atm_pol_def UNSET_def[symmetric] tri_bool_eq_def[symmetric]
-    defined_atm_pol_pre_def
-  supply UNSET_def[simp del] uint32_nat_assn_mult[sepref_fr_rules]
-  by sepref
-
-declare defined_atm_code.refine[sepref_fr_rules]
-   defined_atm_fast_code.refine[sepref_fr_rules]
 
 lemma undefined_atm_code:
   \<open>(uncurry (RETURN oo defined_atm_pol), uncurry (RETURN oo defined_atm)) \<in>
@@ -1188,23 +938,6 @@ definition get_propagation_reason_pol :: \<open>trail_pol \<Rightarrow> nat lite
       ASSERT(atm_of L < length reasons);
       let r = reasons ! atm_of L;
       RETURN (if r = DECISION_REASON then None else Some r)})\<close>
-
-sepref_definition get_propagation_reason_code
-  is \<open>uncurry get_propagation_reason_pol\<close>
-  :: \<open>trail_pol_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow>\<^sub>a option_assn nat_assn\<close>
-  unfolding get_propagation_reason_pol_def
-  by sepref
-
-sepref_definition get_propagation_reason_fast_code
-  is \<open>uncurry get_propagation_reason_pol\<close>
-  :: \<open>trail_pol_fast_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow>\<^sub>a option_assn uint64_nat_assn\<close>
-  supply DECISION_REASON_uint64[sepref_fr_rules]
-  unfolding get_propagation_reason_pol_def
-   zero_uint64_nat_def[symmetric]
-  by sepref
-
-declare get_propagation_reason_fast_code.refine[sepref_fr_rules]
-  get_propagation_reason_code.refine[sepref_fr_rules]
 
 sepref_register get_propagation_reason
 
@@ -1295,24 +1028,6 @@ proof -
     done
 qed
 
-sepref_definition get_the_propagation_reason_code
-  is \<open>uncurry get_the_propagation_reason_pol\<close>
-  :: \<open>trail_pol_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow>\<^sub>a option_assn nat_assn\<close>
-  unfolding get_the_propagation_reason_pol_def
-    tri_bool_eq_def[symmetric]
-  by sepref
-
-sepref_definition (in -) get_the_propagation_reason_fast_code
-  is \<open>uncurry get_the_propagation_reason_pol\<close>
-  :: \<open>trail_pol_fast_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow>\<^sub>a option_assn uint64_nat_assn\<close>
-  supply DECISION_REASON_uint64[sepref_fr_rules]
-  unfolding get_the_propagation_reason_pol_def
-    tri_bool_eq_def[symmetric]
-  by sepref
-
-declare get_the_propagation_reason_fast_code.refine[sepref_fr_rules]
-  get_the_propagation_reason_code.refine[sepref_fr_rules]
-
 
 paragraph \<open>Direct access to elements in the trail\<close>
 
@@ -1331,21 +1046,6 @@ lemma isa_trail_nth_rev_trail_nth:
   by (intro frefI nres_relI)
     (auto simp: isa_trail_nth_def rev_trail_nth_def trail_pol_def ann_lits_split_reasons_def
     intro!: ASSERT_leI)
-
-sepref_definition isa_trail_nth_code
-  is \<open>uncurry isa_trail_nth\<close>
-  :: \<open>trail_pol_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a unat_lit_assn\<close>
-  unfolding isa_trail_nth_def
-  by sepref
-
-sepref_definition isa_trail_nth_fast_code
-  is \<open>uncurry isa_trail_nth\<close>
-  :: \<open>trail_pol_fast_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a unat_lit_assn\<close>
-  unfolding isa_trail_nth_def
-  by sepref
-
-declare isa_trail_nth_code.refine[sepref_fr_rules]
-  isa_trail_nth_fast_code.refine[sepref_fr_rules]
 
 
 text \<open>We here define a variant of the trail representation, where the the control stack is out of
@@ -1377,26 +1077,6 @@ definition tl_trailt_tr_no_CS_pre where
   \<open>tl_trailt_tr_no_CS_pre = (\<lambda>(M, xs, lvls, reason, k, cs). M \<noteq> [] \<and> nat_of_lit(last M) < length xs \<and>
         nat_of_lit(-last M) < length xs  \<and> atm_of (last M) < length lvls \<and>
         atm_of (last M) < length reason)\<close>
-
-sepref_definition tl_trail_tr_no_CS_code
-  is \<open>RETURN o tl_trailt_tr_no_CS\<close>
-  :: \<open>[tl_trailt_tr_no_CS_pre]\<^sub>a
-        trail_pol_assn\<^sup>d \<rightarrow> trail_pol_assn\<close>
-  supply if_splits[split] option.splits[split]
-  unfolding tl_trailt_tr_no_CS_def UNSET_def[symmetric] tl_trailt_tr_no_CS_pre_def
-    butlast_nonresizing_def[symmetric]
-  supply [[goals_limit = 1]]
-  by sepref
-
-sepref_definition tl_trail_tr_no_CS_fast_code
-  is \<open>RETURN o tl_trailt_tr_no_CS\<close>
-  :: \<open>[tl_trailt_tr_no_CS_pre]\<^sub>a
-        trail_pol_fast_assn\<^sup>d \<rightarrow> trail_pol_fast_assn\<close>
-  supply if_splits[split] option.splits[split]
-  unfolding tl_trailt_tr_no_CS_def UNSET_def[symmetric] tl_trailt_tr_no_CS_pre_def
-    butlast_nonresizing_def[symmetric]
-  supply [[goals_limit = 1]]
-  by sepref
 
 lemma control_stack_take_Suc_count_dec_unstack:
  \<open>control_stack (take (Suc (count_decided M's)) cs) (Decided x1 # M's) \<Longrightarrow>
@@ -1513,23 +1193,6 @@ lemma (in -) take_arl_assn[sepref_fr_rules]:
       split: if_splits)
   done
 
-sepref_definition (in -) trail_conv_back_imp_code
-  is \<open>uncurry trail_conv_back_imp\<close>
-  :: \<open>uint32_nat_assn\<^sup>k *\<^sub>a trail_pol_assn'\<^sup>d \<rightarrow>\<^sub>a trail_pol_assn'\<close>
-  supply [[goals_limit=1]] nat_of_uint32_conv_def[simp]
-  unfolding trail_conv_back_imp_def
-  by sepref
-
-declare trail_conv_back_imp_code.refine[sepref_fr_rules]
-
-sepref_definition (in -) trail_conv_back_imp_fast_code
-  is \<open>uncurry trail_conv_back_imp\<close>
-  :: \<open>uint32_nat_assn\<^sup>k *\<^sub>a trail_pol_fast_assn'\<^sup>d \<rightarrow>\<^sub>a trail_pol_fast_assn'\<close>
-  supply [[goals_limit=1]]
-  unfolding trail_conv_back_imp_def
-  by sepref
-
-declare trail_conv_back_imp_fast_code.refine[sepref_fr_rules]
 
 lemma isa_trail_nth_rev_trail_nth_no_CS:
   \<open>(uncurry isa_trail_nth, uncurry (RETURN oo rev_trail_nth)) \<in>

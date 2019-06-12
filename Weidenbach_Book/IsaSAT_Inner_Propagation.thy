@@ -1,6 +1,6 @@
 theory IsaSAT_Inner_Propagation
   imports IsaSAT_Setup
-     IsaSAT_Clauses
+     IsaSAT_Clauses_SML
 begin
 
 declare all_atms_def[symmetric,simp]
