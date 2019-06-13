@@ -177,6 +177,7 @@ session "Watched_Literals" (Weidenbach_Book) = "CDCL"  +
     WB_Word_Assn
     WB_More_Refinement_List
     WB_More_Refinement
+    WB_More_IICF_SML
     WB_Sort
     Watched_Literals_Transition_System
     Watched_Literals_Algorithm
@@ -210,12 +211,12 @@ session "IsaSAT" (Weidenbach_Book) = "Watched_Literals"  +
     IsaSAT_Clauses_SML
     IsaSAT_Literals
     IsaSAT_Trail
-    IsaSAT_Setup
     Watched_Literals_VMTF
     LBD
     Version
     IsaSAT_Watch_List
     IsaSAT_Setup
+    IsaSAT_Setup_SML
     IsaSAT_Inner_Propagation
     IsaSAT_VMTF
     IsaSAT_Backtrack

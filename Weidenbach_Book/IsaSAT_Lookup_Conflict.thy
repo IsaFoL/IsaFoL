@@ -9,6 +9,7 @@ theory IsaSAT_Lookup_Conflict
     IsaSAT_Watch_List
 begin
 
+hide_const Autoref_Fix_Rel.CONSTRAINT
 no_notation Ref.update ("_ := _" 62)
 
 

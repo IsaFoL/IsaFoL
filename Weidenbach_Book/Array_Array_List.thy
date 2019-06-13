@@ -1,5 +1,5 @@
 theory Array_Array_List
-imports WB_More_Refinement
+imports WB_More_IICF_SML
 begin
 
 subsection \<open>Array of Array Lists\<close>

@@ -4,11 +4,7 @@ theory IsaSAT_Initialisation
 begin
 
 no_notation Ref.update ("_ := _" 62)
-
-lemma isasat_input_ops_\<L>\<^sub>a\<^sub>l\<^sub>l_empty[simp]:
-  \<open>\<L>\<^sub>a\<^sub>l\<^sub>l {#} = {#}\<close>
-  unfolding \<L>\<^sub>a\<^sub>l\<^sub>l_def
-  by auto
+hide_const Autoref_Fix_Rel.CONSTRAINT
 
 section \<open>Code for the initialisation of the Data Structure\<close>
 

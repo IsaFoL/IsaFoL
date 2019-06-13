@@ -1,8 +1,10 @@
 theory IsaSAT_Literals
-  imports Watched_Literals.Watched_Literals_Watch_List_Domain
-     Watched_Literals.Bits_Natural Watched_Literals.WB_Word_Assn
+  imports  Watched_Literals.WB_Word_Assn
+     Watched_Literals.Watched_Literals_Watch_List_Domain
+     Watched_Literals.Bits_Natural
 begin
 
+hide_const Autoref_Fix_Rel.CONSTRAINT
 
 subsubsection \<open>Refinement of the Watched Function\<close>
 

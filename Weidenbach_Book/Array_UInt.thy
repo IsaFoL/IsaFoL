@@ -1,5 +1,5 @@
 theory Array_UInt
-  imports Array_List_Array WB_Word_Assn
+  imports WB_Word_Assn Array_List_Array
 begin
 
 subsection \<open>More about general arrays\<close>
@@ -53,7 +53,8 @@ lemma nth_aa_u[code]:
   by auto
 
 lemma nth_aa_uint_hnr[sepref_fr_rules]:
-  assumes \<open>CONSTRAINT is_pure R\<close>
+  fixes R :: \<open>_ \<Rightarrow> _ \<Rightarrow> assn\<close>
+  assumes \<open>CONSTRAINT Sepref_Basic.is_pure R\<close>
   shows
     \<open>(uncurry2 nth_aa_u, uncurry2 (RETURN ooo nth_rll)) \<in>
        [\<lambda>((x, L), L'). L < length x \<and> L' < length (x ! L)]\<^sub>a

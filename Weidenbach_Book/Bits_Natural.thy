@@ -1,6 +1,8 @@
 theory Bits_Natural
   imports
-     Refine_Imperative_HOL.IICF
+    Refine_Monadic.Refine_Monadic
+    Native_Word.Native_Word_Imperative_HOL
+    Native_Word.Code_Target_Bits_Int Native_Word.Uint32 Native_Word.Uint64
      "HOL-Word.More_Word"
 begin
 

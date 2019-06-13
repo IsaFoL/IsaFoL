@@ -1,5 +1,5 @@
 theory LBD
-  imports IsaSAT_Literals
+  imports Array_UInt IsaSAT_Literals Refine_Imperative_HOL.IICF
 begin
 
 subsubsection \<open>LBD\<close>

@@ -127,8 +127,12 @@ lemma literals_are_in_\<L>\<^sub>i\<^sub>n_trail_uminus_in_lits_of_l_atms:
   using literals_are_in_\<L>\<^sub>i\<^sub>n_trail_uminus_in_lits_of_l[of M a]
   unfolding in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff[symmetric] atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n[symmetric]
   .
-
 end
+
+lemma isasat_input_ops_\<L>\<^sub>a\<^sub>l\<^sub>l_empty[simp]:
+  \<open>\<L>\<^sub>a\<^sub>l\<^sub>l {#} = {#}\<close>
+  unfolding \<L>\<^sub>a\<^sub>l\<^sub>l_def
+  by auto
 
 lemma \<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_all_lits_of_mm: \<open>set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l (atm_of `#  all_lits_of_mm A)) = set_mset (all_lits_of_mm A)\<close>
   apply (auto simp: \<L>\<^sub>a\<^sub>l\<^sub>l_def in_all_lits_of_mm_ain_atms_of_iff)

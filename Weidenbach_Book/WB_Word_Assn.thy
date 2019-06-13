@@ -1,9 +1,9 @@
 theory WB_Word_Assn
 imports
-  "HOL-Word.Word"
+  "HOL-Word.Word" Refine_Imperative_HOL.IICF
   Bits_Natural
-  WB_More_Refinement
-  "Native_Word.Uint64"
+  WB_More_Refinement WB_More_IICF_SML
+  "Native_Word.Uint64" Refine_Imperative_HOL.Sepref_Tool
 begin
 
 subsection \<open>More Setup for Fixed Size Natural Numbers\<close>

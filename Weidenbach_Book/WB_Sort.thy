@@ -2,7 +2,7 @@
 
 
 theory WB_Sort
-  imports WB_More_Refinement
+  imports WB_More_Refinement WB_More_IICF_SML
 begin
 
 
