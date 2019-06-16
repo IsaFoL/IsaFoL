@@ -6,7 +6,6 @@ theory IsaSAT_Setup
     IsaSAT_Clauses IsaSAT_Arena IsaSAT_Watch_List LBD
 begin
 
-hide_fact Sepref_Rules.frefI
 
 text \<open>TODO Move and make sure to merge in the right order!\<close>
 no_notation Ref.update ("_ := _" 62)
@@ -43,9 +42,6 @@ we are propagating slower than the other solvers), or to test different option c
 \<close>
 type_synonym stats = \<open>uint64 \<times> uint64 \<times> uint64 \<times> uint64 \<times> uint64 \<times> uint64 \<times> uint64 \<times> uint64\<close>
 
-abbreviation stats_assn :: \<open>stats \<Rightarrow> stats \<Rightarrow> assn\<close> where
-  \<open>stats_assn \<equiv> uint64_assn *a uint64_assn *a uint64_assn *a uint64_assn *a uint64_assn
-     *a uint64_assn *a uint64_assn *a uint64_assn\<close>
 
 definition incr_propagation :: \<open>stats \<Rightarrow> stats\<close> where
   \<open>incr_propagation = (\<lambda>(propa, confl, dec). (propa + 1, confl, dec))\<close>
@@ -82,13 +78,8 @@ Otherwise, \<^term>\<open>value\<close> is wrongly updated.
 \<close>
 type_synonym ema = \<open>uint64 \<times> uint64 \<times> uint64 \<times> uint64 \<times> uint64\<close>
 
-abbreviation ema_assn :: \<open>ema \<Rightarrow> ema \<Rightarrow> assn\<close> where
-  \<open>ema_assn \<equiv> uint64_assn *a uint64_assn *a uint64_assn *a uint64_assn *a uint64_assn\<close>
-
 definition ema_bitshifting where
   \<open>ema_bitshifting = (1 << 32)\<close>
-
-sepref_register ema_bitshifting
 
 
 definition (in -) ema_update :: \<open>nat \<Rightarrow> ema \<Rightarrow> ema\<close> where
@@ -124,11 +115,6 @@ fun ema_reinit where
 fun ema_get_value :: \<open>ema \<Rightarrow> uint64\<close> where
   \<open>ema_get_value (v, _) = v\<close>
 
-lemma ema_get_value_hnr[sepref_fr_rules]:
-  \<open>(return o ema_get_value, RETURN o ema_get_value) \<in> ema_assn\<^sup>k \<rightarrow>\<^sub>a uint64_assn\<close>
-  by sepref_to_hoare sep_auto
-
-
 text \<open>We use the default values for Cadical: \<^term>\<open>(3 / 10 ^2)\<close> and  \<^term>\<open>(1 / 10 ^ 5)\<close>  in our fixed-point
   version.
 \<close>
@@ -144,9 +130,6 @@ paragraph \<open>Information related to restarts\<close>
 
 type_synonym restart_info = \<open>uint64 \<times> uint64\<close>
 
-abbreviation restart_info_assn where
-  \<open>restart_info_assn \<equiv> uint64_assn *a uint64_assn\<close>
-
 definition incr_conflict_count_since_last_restart :: \<open>restart_info \<Rightarrow> restart_info\<close> where
   \<open>incr_conflict_count_since_last_restart = (\<lambda>(ccount, ema_lvl). (ccount + 1, ema_lvl))\<close>
 
@@ -156,21 +139,13 @@ definition restart_info_update_lvl_avg :: \<open>uint32 \<Rightarrow> restart_in
 definition restart_info_init :: \<open>restart_info\<close> where
   \<open>restart_info_init = (0, 0)\<close>
 
-
 definition restart_info_restart_done :: \<open>restart_info \<Rightarrow> restart_info\<close> where
   \<open>restart_info_restart_done = (\<lambda>(ccount, lvl_avg). (0, lvl_avg))\<close>
-
-lemma restart_info_restart_done_hnr[sepref_fr_rules]:
-  \<open>(return o restart_info_restart_done, RETURN o restart_info_restart_done) \<in>
-     restart_info_assn\<^sup>d \<rightarrow>\<^sub>a restart_info_assn\<close>
-  by sepref_to_hoare (sep_auto simp: restart_info_restart_done_def
-    uint64_nat_rel_def br_def)
 
 
 paragraph \<open>VMTF\<close>
 
 type_synonym vmtf_assn = \<open>(uint32, uint64) vmtf_node array \<times> uint64 \<times> uint32 \<times> uint32 \<times> uint32 option\<close>
-type_synonym vmtf_remove_assn = \<open>vmtf_assn \<times> (uint32 array_list \<times> bool array)\<close>
 
 type_synonym phase_saver_assn = \<open>bool array\<close>
 
@@ -217,25 +192,6 @@ type_synonym minimize_assn = \<open>minimize_status array \<times> uint32 array 
 type_synonym out_learned = \<open>nat clause_l\<close>
 
 type_synonym vdom = \<open>nat list\<close>
-
-abbreviation vdom_assn :: \<open>vdom \<Rightarrow> nat array_list \<Rightarrow> assn\<close> where
-  \<open>vdom_assn \<equiv> arl_assn nat_assn\<close>
-
-type_synonym vdom_assn = \<open>nat array_list\<close>
-
-type_synonym isasat_clauses_assn = \<open>uint32 array_list\<close>
-
-type_synonym twl_st_wll_trail =
-  \<open>trail_pol_assn \<times> isasat_clauses_assn \<times> option_lookup_clause_assn \<times>
-    uint32 \<times> watched_wl \<times> vmtf_remove_assn \<times> phase_saver_assn \<times>
-    uint32 \<times> minimize_assn \<times> lbd_assn \<times> out_learned_assn \<times> stats \<times> ema \<times> ema \<times> restart_info \<times>
-    vdom_assn \<times> vdom_assn \<times> nat \<times> opts \<times> isasat_clauses_assn\<close>
-
-type_synonym twl_st_wll_trail_fast =
-  \<open>trail_pol_fast_assn \<times> isasat_clauses_assn \<times> option_lookup_clause_assn \<times>
-    uint32 \<times> watched_wl_uint32 \<times> vmtf_remove_assn \<times> phase_saver_assn \<times>
-    uint32 \<times> minimize_assn \<times> lbd_assn \<times> out_learned_assn \<times> stats \<times> ema \<times> ema \<times> restart_info \<times>
-    vdom_assn \<times> vdom_assn \<times> uint64 \<times> opts \<times> isasat_clauses_assn\<close>
 
 text \<open>\<^emph>\<open>heur\<close> stands for heuristic.\<close>
 (* TODO rename to isasat *)
@@ -322,16 +278,13 @@ fun get_ops :: \<open>twl_st_wl_heur \<Rightarrow> opts\<close> where
 fun get_old_arena :: \<open>twl_st_wl_heur \<Rightarrow> arena\<close> where
   \<open>get_old_arena (_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, old_arena) = old_arena\<close>
 
-abbreviation phase_saver_conc where
-  \<open>phase_saver_conc \<equiv> array_assn bool_assn\<close>
-
 
 text \<open>Setup to convert a list from \<^typ>\<open>uint64\<close> to \<^typ>\<open>nat\<close>.\<close>
 definition arl_copy_to :: \<open>('a \<Rightarrow> 'b) \<Rightarrow> 'a list \<Rightarrow> 'b list\<close> where
 \<open>arl_copy_to R xs = map R xs\<close>
 
 definition op_map_to
-  :: \<open>('b \<Rightarrow> 'a::default) \<Rightarrow> 'a \<Rightarrow> 'b list \<Rightarrow> 'a list list \<Rightarrow> nat \<Rightarrow> 'a list list nres\<close>
+  :: \<open>('b \<Rightarrow> 'a) \<Rightarrow> 'a \<Rightarrow> 'b list \<Rightarrow> 'a list list \<Rightarrow> nat \<Rightarrow> 'a list list nres\<close>
 where
   \<open>op_map_to R e xs W j = do {
     (_, zs) \<leftarrow>
@@ -381,63 +334,6 @@ lemma convert_single_wl_to_nat:
     (auto simp: convert_single_wl_to_nat_def convert_single_wl_to_nat_conv_def nat_of_uint64_conv_def
       dest: op_map_to_map[of _ _ id])
 
-
-definition convert_wlists_to_nat_conv where
-  \<open>convert_wlists_to_nat_conv = id\<close>
-
-definition convert_wlists_to_nat where
-  \<open>convert_wlists_to_nat = op_map (map (\<lambda>(n, L, b). (nat_of_uint64_conv n, L, b))) []\<close>
-
-lemma convert_wlists_to_nat_alt_def:
-  \<open>convert_wlists_to_nat = op_map id []\<close>
-proof -
-  have [simp]: \<open>(\<lambda>(n, bL). (nat_of_uint64_conv n, bL)) = id\<close>
-    by (auto intro!: ext simp: nat_of_uint64_conv_def)
-  show ?thesis
-    by (auto simp: convert_wlists_to_nat_def)
-qed
-
-lemma convert_single_wl_to_nat_conv_alt_def:
-  \<open>convert_single_wl_to_nat_conv zs i xs i = xs[i := map (\<lambda>(i, y, y'). (nat_of_uint64_conv i, y, y')) (zs ! i)]\<close>
-  unfolding convert_single_wl_to_nat_conv_def
-  by auto
-
-lemma convert_wlists_to_nat_convert_wlists_to_nat_conv:
-  \<open>(convert_wlists_to_nat, RETURN o convert_wlists_to_nat_conv) \<in>
-     \<langle>\<langle>nat_rel \<times>\<^sub>r Id\<rangle>list_rel\<rangle>list_rel \<rightarrow>\<^sub>f
-     \<langle>\<langle>\<langle>nat_rel \<times>\<^sub>r Id\<rangle>list_rel\<rangle>list_rel\<rangle>nres_rel\<close>
-  by (intro WB_More_Refinement.frefI nres_relI)
-    (auto simp: convert_wlists_to_nat_def
-       convert_wlists_to_nat_conv_def
-      intro: order.trans op_map_map)
-
-(* TODO n should also be used in the condition *)
-lemma convert_wlists_to_nat_alt_def2:
-  \<open>convert_wlists_to_nat xs = do {
-    let n = length xs;
-    let zs = init_lrl n;
-    (uu, zs) \<leftarrow>
-      WHILE\<^sub>T\<^bsup>\<lambda>(i, zs).
-                 i \<le> length xs \<and>
-                 take i zs =
-                 map (map (\<lambda>(n, y, y'). (nat_of_uint64_conv n, y, y')))
-                  (take i xs) \<and>
-                 length zs = length xs \<and> (\<forall>k\<ge>i. k < length xs \<longrightarrow> zs ! k = [])\<^esup>
-       (\<lambda>(i, zs). i < length zs)
-       (\<lambda>(i, zs). do {
-          ASSERT (i < length zs);
-          RETURN
-            (i + 1, convert_single_wl_to_nat_conv xs i zs i)
-       })
-       (0, zs);
-    RETURN zs
-  }\<close>
-  unfolding convert_wlists_to_nat_def
-    op_map_def[of \<open>map (\<lambda>(n, y, y'). (nat_of_uint64_conv n, y, y'))\<close> \<open>[]\<close>,
-      unfolded convert_single_wl_to_nat_conv_alt_def[symmetric] init_lrl_def[symmetric]] Let_def
-  by auto
-
-sepref_register init_lrl
 
 
 text \<open>The virtual domain is composed of the addressable (and accessible) elements, i.e.,
@@ -669,26 +565,6 @@ definition isasat_fast :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close> where
 
 lemma isasat_fast_length_leD: \<open>isasat_fast S \<Longrightarrow> length (get_clauses_wl_heur S) \<le> uint64_max\<close>
   by (cases S) (auto simp: isasat_fast_def)
-
-definition isasat_fast_slow :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
-  \<open>isasat_fast_slow =
-    (\<lambda>(M', N', D', Q', W', vm, \<phi>, clvls, cach, lbd, outl, stats, fema, sema, ccount, vdom, avdom, lcount, opts, old_arena).
-      RETURN (trail_pol_slow_of_fast M', N', D', Q', convert_wlists_to_nat_conv W', vm, \<phi>,
-        clvls, cach, lbd, outl, stats, fema, sema, ccount, vdom, avdom, nat_of_uint64_conv lcount, opts, old_arena))\<close>
-
-definition (in -)isasat_fast_slow_wl_D where
-  \<open>isasat_fast_slow_wl_D = id\<close>
-
-lemma isasat_fast_slow_alt_def:
-  \<open>isasat_fast_slow S = RETURN S\<close>
-  by (cases S)
-    (auto simp: isasat_fast_slow_def trail_slow_of_fast_def convert_wlists_to_nat_conv_def
-      trail_pol_slow_of_fast_alt_def)
-
-lemma isasat_fast_slow_isasat_fast_slow_wl_D:
-  \<open>(isasat_fast_slow, RETURN o isasat_fast_slow_wl_D) \<in> twl_st_heur \<rightarrow>\<^sub>f \<langle>twl_st_heur\<rangle>nres_rel\<close>
-  by (intro nres_relI frefI)
-    (auto simp: isasat_fast_slow_alt_def isasat_fast_slow_wl_D_def)
 
 
 subsubsection \<open>Lift Operations to State\<close>
@@ -1077,8 +953,6 @@ proof -
     done
 qed
 
-sepref_register rewatch_heur
-
 lemma rewatch_heur_alt_def:
 \<open>rewatch_heur vdom arena W = do {
   let _ = vdom;
@@ -1161,5 +1035,30 @@ lemma rewatch_st_correctness:
     apply (cases S, case_tac \<open>rewatch b g\<close>)
     by (force simp: RES_RETURN_RES)+
   done
+
+subsection \<open>Fast to slow conversion\<close>
+text \<open>Setup to convert a list from \<^typ>\<open>uint64\<close> to \<^typ>\<open>nat\<close>.\<close>
+definition convert_wlists_to_nat_conv :: \<open>'a list list \<Rightarrow> 'a list list\<close> where
+  \<open>convert_wlists_to_nat_conv = id\<close>
+
+definition isasat_fast_slow :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
+  \<open>isasat_fast_slow =
+    (\<lambda>(M', N', D', Q', W', vm, \<phi>, clvls, cach, lbd, outl, stats, fema, sema, ccount, vdom, avdom, lcount, opts, old_arena).
+      RETURN (trail_pol_slow_of_fast M', N', D', Q', convert_wlists_to_nat_conv W', vm, \<phi>,
+        clvls, cach, lbd, outl, stats, fema, sema, ccount, vdom, avdom, nat_of_uint64_conv lcount, opts, old_arena))\<close>
+
+definition (in -)isasat_fast_slow_wl_D where
+  \<open>isasat_fast_slow_wl_D = id\<close>
+
+lemma isasat_fast_slow_alt_def:
+  \<open>isasat_fast_slow S = RETURN S\<close>
+  by (cases S)
+    (auto simp: isasat_fast_slow_def trail_slow_of_fast_def convert_wlists_to_nat_conv_def
+      trail_pol_slow_of_fast_alt_def)
+
+lemma isasat_fast_slow_isasat_fast_slow_wl_D:
+  \<open>(isasat_fast_slow, RETURN o isasat_fast_slow_wl_D) \<in> twl_st_heur \<rightarrow>\<^sub>f \<langle>twl_st_heur\<rangle>nres_rel\<close>
+  by (intro nres_relI WB_More_Refinement.frefI)
+    (auto simp: isasat_fast_slow_alt_def isasat_fast_slow_wl_D_def)
 
 end

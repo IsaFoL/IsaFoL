@@ -210,7 +210,7 @@ definition empty_lbd_ref :: \<open>lbd_ref\<close> where
    \<open>empty_lbd_ref = (replicate 32 False, zero_uint32_nat, zero_uint32_nat)\<close>
 
 lemma empty_lbd_ref_empty_lbd:
-  \<open>(uncurry0 (RETURN empty_lbd_ref), uncurry0 (RETURN empty_lbd)) \<in> unit_rel \<rightarrow>\<^sub>f \<langle>lbd_ref\<rangle>nres_rel\<close>
+  \<open>(\<lambda>_. (RETURN empty_lbd_ref), \<lambda>_. (RETURN empty_lbd)) \<in> unit_rel \<rightarrow>\<^sub>f \<langle>lbd_ref\<rangle>nres_rel\<close>
   by (intro frefI nres_relI) (auto simp: empty_lbd_def lbd_ref_def empty_lbd_ref_def
       uint_max_def nth_Cons split: nat.splits)
 

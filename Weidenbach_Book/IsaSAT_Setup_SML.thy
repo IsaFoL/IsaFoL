@@ -3,6 +3,19 @@ theory IsaSAT_Setup_SML
     IsaSAT_Clauses_SML IsaSAT_Arena_SML LBD_SML
 begin
 
+abbreviation stats_assn :: \<open>stats \<Rightarrow> stats \<Rightarrow> assn\<close> where
+  \<open>stats_assn \<equiv> uint64_assn *a uint64_assn *a uint64_assn *a uint64_assn *a uint64_assn
+     *a uint64_assn *a uint64_assn *a uint64_assn\<close>
+
+abbreviation ema_assn :: \<open>ema \<Rightarrow> ema \<Rightarrow> assn\<close> where
+  \<open>ema_assn \<equiv> uint64_assn *a uint64_assn *a uint64_assn *a uint64_assn *a uint64_assn\<close>
+
+lemma ema_get_value_hnr[sepref_fr_rules]:
+  \<open>(return o ema_get_value, RETURN o ema_get_value) \<in> ema_assn\<^sup>k \<rightarrow>\<^sub>a uint64_assn\<close>
+  by sepref_to_hoare sep_auto
+
+sepref_register ema_bitshifting
+
 lemma incr_propagation_hnr[sepref_fr_rules]:
     \<open>(return o incr_propagation, RETURN o incr_propagation) \<in> stats_assn\<^sup>d \<rightarrow>\<^sub>a stats_assn\<close>
   by sepref_to_hoare (sep_auto simp: incr_propagation_def)
@@ -77,6 +90,9 @@ lemma (in -) ema_init_coeff_hnr[sepref_fr_rules]:
   by sepref_to_hoare
     (sep_auto simp: ema_init_def uint64_nat_rel_def br_def)
 
+abbreviation restart_info_assn where
+  \<open>restart_info_assn \<equiv> uint64_assn *a uint64_assn\<close>
+
 lemma incr_conflict_count_since_last_restart_hnr[sepref_fr_rules]:
     \<open>(return o incr_conflict_count_since_last_restart, RETURN o incr_conflict_count_since_last_restart)
        \<in> restart_info_assn\<^sup>d \<rightarrow>\<^sub>a restart_info_assn\<close>
@@ -93,6 +109,14 @@ lemma restart_info_init_hnr[sepref_fr_rules]:
        uncurry0 (RETURN restart_info_init))
        \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a restart_info_assn\<close>
   by sepref_to_hoare (sep_auto simp: restart_info_init_def)
+
+lemma restart_info_restart_done_hnr[sepref_fr_rules]:
+  \<open>(return o restart_info_restart_done, RETURN o restart_info_restart_done) \<in>
+     restart_info_assn\<^sup>d \<rightarrow>\<^sub>a restart_info_assn\<close>
+  by sepref_to_hoare (sep_auto simp: restart_info_restart_done_def
+    uint64_nat_rel_def br_def)
+
+type_synonym vmtf_remove_assn = \<open>vmtf_assn \<times> (uint32 array_list \<times> bool array)\<close>
 
 abbreviation (in -)vmtf_node_assn where
 \<open>vmtf_node_assn \<equiv> pure vmtf_node_rel\<close>
@@ -132,8 +156,60 @@ lemma opts_unbounded_mode_hnr[sepref_fr_rules]:
   \<open>(return o opts_unbounded_mode, RETURN o opts_unbounded_mode) \<in> opts_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
   by sepref_to_hoare sep_auto
 
+definition convert_wlists_to_nat where
+  \<open>convert_wlists_to_nat = op_map (map (\<lambda>(n, L, b). (nat_of_uint64_conv n, L, b))) []\<close>
 
-text \<open>Setup to convert a list from \<^typ>\<open>uint64\<close> to \<^typ>\<open>nat\<close>.\<close>
+lemma convert_wlists_to_nat_alt_def:
+  \<open>convert_wlists_to_nat = op_map id []\<close>
+proof -
+  have [simp]: \<open>(\<lambda>(n, bL). (nat_of_uint64_conv n, bL)) = id\<close>
+    by (auto intro!: ext simp: nat_of_uint64_conv_def)
+  show ?thesis
+    by (auto simp: convert_wlists_to_nat_def)
+qed
+
+lemma convert_single_wl_to_nat_conv_alt_def:
+  \<open>convert_single_wl_to_nat_conv zs i xs i = xs[i := map (\<lambda>(i, y, y'). (nat_of_uint64_conv i, y, y')) (zs ! i)]\<close>
+  unfolding convert_single_wl_to_nat_conv_def
+  by auto
+
+lemma convert_wlists_to_nat_convert_wlists_to_nat_conv:
+  \<open>(convert_wlists_to_nat, RETURN o convert_wlists_to_nat_conv) \<in>
+     \<langle>\<langle>nat_rel \<times>\<^sub>r Id \<times>\<^sub>r Id\<rangle>list_rel\<rangle>list_rel \<rightarrow>\<^sub>f
+     \<langle>\<langle>\<langle>nat_rel \<times>\<^sub>r Id \<times>\<^sub>r Id\<rangle>list_rel\<rangle>list_rel\<rangle>nres_rel\<close>
+  by (intro WB_More_Refinement.frefI nres_relI)
+    (auto simp: convert_wlists_to_nat_def
+       convert_wlists_to_nat_conv_def
+      intro: order.trans op_map_map)
+
+(* TODO n should also be used in the condition *)
+lemma convert_wlists_to_nat_alt_def2:
+  \<open>convert_wlists_to_nat xs = do {
+    let n = length xs;
+    let zs = init_lrl n;
+    (uu, zs) \<leftarrow>
+      WHILE\<^sub>T\<^bsup>\<lambda>(i, zs).
+                 i \<le> length xs \<and>
+                 take i zs =
+                 map (map (\<lambda>(n, y, y'). (nat_of_uint64_conv n, y, y')))
+                  (take i xs) \<and>
+                 length zs = length xs \<and> (\<forall>k\<ge>i. k < length xs \<longrightarrow> zs ! k = [])\<^esup>
+       (\<lambda>(i, zs). i < length zs)
+       (\<lambda>(i, zs). do {
+          ASSERT (i < length zs);
+          RETURN
+            (i + 1, convert_single_wl_to_nat_conv xs i zs i)
+       })
+       (0, zs);
+    RETURN zs
+  }\<close>
+  unfolding convert_wlists_to_nat_def
+    op_map_def[of \<open>map (\<lambda>(n, y, y'). (nat_of_uint64_conv n, y, y'))\<close> \<open>[]\<close>,
+      unfolded convert_single_wl_to_nat_conv_alt_def[symmetric] init_lrl_def[symmetric]] Let_def
+  by auto
+
+sepref_register init_lrl
+
 
 sepref_definition convert_single_wl_to_nat_code
   is \<open>uncurry3 convert_single_wl_to_nat\<close>
@@ -175,7 +251,6 @@ sepref_definition convert_wlists_to_nat_code
   unfolding convert_wlists_to_nat_alt_def2
   by sepref
 
-sepref_register init_lrl
 
 lemma convert_wlists_to_nat_conv_hnr[sepref_fr_rules]:
   \<open>(convert_wlists_to_nat_code, RETURN \<circ> convert_wlists_to_nat_conv)
@@ -183,6 +258,28 @@ lemma convert_wlists_to_nat_conv_hnr[sepref_fr_rules]:
       arrayO_assn (arl_assn watcher_assn)\<close>
   using convert_wlists_to_nat_code.refine[FCOMP convert_wlists_to_nat_convert_wlists_to_nat_conv[unfolded convert_fref]]
   by simp
+
+abbreviation vdom_assn :: \<open>vdom \<Rightarrow> nat array_list \<Rightarrow> assn\<close> where
+  \<open>vdom_assn \<equiv> arl_assn nat_assn\<close>
+
+type_synonym vdom_assn = \<open>nat array_list\<close>
+
+type_synonym isasat_clauses_assn = \<open>uint32 array_list\<close>
+
+abbreviation phase_saver_conc where
+  \<open>phase_saver_conc \<equiv> array_assn bool_assn\<close>
+
+type_synonym twl_st_wll_trail =
+  \<open>trail_pol_assn \<times> isasat_clauses_assn \<times> option_lookup_clause_assn \<times>
+    uint32 \<times> watched_wl \<times> vmtf_remove_assn \<times> phase_saver_assn \<times>
+    uint32 \<times> minimize_assn \<times> lbd_assn \<times> out_learned_assn \<times> stats \<times> ema \<times> ema \<times> restart_info \<times>
+    vdom_assn \<times> vdom_assn \<times> nat \<times> opts \<times> isasat_clauses_assn\<close>
+
+type_synonym twl_st_wll_trail_fast =
+  \<open>trail_pol_fast_assn \<times> isasat_clauses_assn \<times> option_lookup_clause_assn \<times>
+    uint32 \<times> watched_wl_uint32 \<times> vmtf_remove_assn \<times> phase_saver_assn \<times>
+    uint32 \<times> minimize_assn \<times> lbd_assn \<times> out_learned_assn \<times> stats \<times> ema \<times> ema \<times> restart_info \<times>
+    vdom_assn \<times> vdom_assn \<times> uint64 \<times> opts \<times> isasat_clauses_assn\<close>
 
 definition isasat_unbounded_assn :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wll_trail \<Rightarrow> assn\<close> where
 \<open>isasat_unbounded_assn =
@@ -328,6 +425,7 @@ sepref_definition access_lit_in_clauses_heur_fast_code
 
 declare access_lit_in_clauses_heur_fast_code.refine[sepref_fr_rules]
 
+sepref_register rewatch_heur
 sepref_definition rewatch_heur_code
   is \<open>uncurry2 (rewatch_heur)\<close>
   :: \<open>vdom_assn\<^sup>k *\<^sub>a arena_assn\<^sup>k *\<^sub>a watchlist_assn\<^sup>d \<rightarrow>\<^sub>a watchlist_assn\<close>

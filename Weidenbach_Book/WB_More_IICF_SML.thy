@@ -7,12 +7,17 @@ no_notation Sepref_Rules.freft ("_ \<rightarrow>\<^sub>f _" [60,60] 60)
 no_notation prod_assn (infixr "\<times>\<^sub>a" 70)
 notation prod_assn (infixr "*a" 70)
 
-hide_const Autoref_Fix_Rel.CONSTRAINT
+hide_const Autoref_Fix_Rel.CONSTRAINT IICF_List_Mset.list_mset_rel
 
 lemma prod_assn_id_assn_destroy:
   fixes R :: \<open>_ \<Rightarrow> _ \<Rightarrow> assn\<close>
   shows \<open>R\<^sup>d *\<^sub>a id_assn\<^sup>d = (R *a id_assn)\<^sup>d\<close>
   by (auto simp: hfprod_def prod_assn_def[abs_def] invalid_assn_def pure_def intro!: ext)
+
+definition list_mset_assn where
+  "list_mset_assn A \<equiv> pure (list_mset_rel O \<langle>the_pure A\<rangle>mset_rel)"
+declare list_mset_assn_def[symmetric,fcomp_norm_unfold]
+lemma [safe_constraint_rules]: "is_pure (list_mset_assn A)" unfolding list_mset_assn_def by simp
 
 lemma
  shows list_mset_assn_add_mset_Nil:
@@ -202,10 +207,6 @@ proof -
         p2rel_def rel2p_def[abs_def] rel_mset_def R list_mset_rel_def list_rel_def)
       using list_all2_reorder_left_invariance by fastforce
   qed
-
-lemma list_rel_mset_rel_imp_same_length: \<open>(a, b) \<in> \<langle>R\<rangle>list_rel_mset_rel \<Longrightarrow> length a = size b\<close>
-  by (auto simp: list_rel_mset_rel_def list_mset_rel_def br_def
-      dest: list_rel_imp_same_length)
 
 
 lemma id_ref: \<open>(return o id, RETURN o id) \<in> R\<^sup>d \<rightarrow>\<^sub>a R\<close>
@@ -607,73 +608,6 @@ lemma norm_return_o[to_hnr_post]:
   "\<And>f. (return \<circ>\<^sub>2\<^sub>0 f)$x$y$z$a$b$c$d$e$g$h$i$j$l$m$n$p$r$s$t$u=
     (return$(f$x$y$z$a$b$c$d$e$g$h$i$j$l$m$n$p$r$s$t$u))"
     by auto
-
-
-lemma nfoldli_cong2:
-  assumes
-    le: \<open>length l = length l'\<close> and
-    \<sigma>: \<open>\<sigma> = \<sigma>'\<close> and
-    c: \<open>c = c'\<close> and
-    H: \<open>\<And>\<sigma> x. x < length l \<Longrightarrow> c' \<sigma> \<Longrightarrow> f (l ! x) \<sigma> = f' (l' ! x) \<sigma>\<close>
-  shows \<open>nfoldli l c f \<sigma> = nfoldli l' c' f' \<sigma>'\<close>
-proof -
-  show ?thesis
-    using le H unfolding c[symmetric] \<sigma>[symmetric]
-  proof (induction l arbitrary: l' \<sigma>)
-    case Nil
-    then show ?case by simp
-  next
-    case (Cons a l l'') note IH=this(1) and le = this(2) and H = this(3)
-    show ?case
-      using le H[of \<open>Suc _\<close>] H[of 0] IH[of \<open>tl l''\<close> \<open>_\<close>]
-      by (cases l'')
-        (auto intro: bind_cong_nres)
-  qed
-qed
-
-lemma nfoldli_nfoldli_list_nth:
-  \<open>nfoldli xs c P a = nfoldli [0..<length xs] c (\<lambda>i. P (xs ! i)) a\<close>
-proof (induction xs arbitrary: a)
-  case Nil
-  then show ?case by auto
-next
-  case (Cons x xs) note IH = this(1)
-  have 1: \<open>[0..<length (x # xs)] = 0 # [1..<length (x#xs)]\<close>
-    by (subst upt_rec)  simp
-  have 2: \<open>[1..<length (x#xs)] = map Suc [0..<length xs]\<close>
-    by (induction xs) auto
-  have AB: \<open>nfoldli [0..<length (x # xs)] c (\<lambda>i. P ((x # xs) ! i)) a =
-      nfoldli (0 # [1..<length (x#xs)]) c (\<lambda>i. P ((x # xs) ! i)) a\<close>
-      (is \<open>?A = ?B\<close>)
-    unfolding 1 ..
-  {
-    assume [simp]: \<open>c a\<close>
-    have \<open>nfoldli (0 # [1..<length (x#xs)]) c (\<lambda>i. P ((x # xs) ! i)) a =
-       do {
-         \<sigma> \<leftarrow> (P x a);
-         nfoldli [1..<length (x#xs)] c (\<lambda>i. P ((x # xs) ! i)) \<sigma>
-        }\<close>
-      by simp
-    moreover have \<open>nfoldli [1..<length (x#xs)] c (\<lambda>i. P ((x # xs) ! i)) \<sigma>  =
-       nfoldli [0..<length xs] c (\<lambda>i. P (xs ! i)) \<sigma>\<close> for \<sigma>
-      unfolding 2
-      by (rule nfoldli_cong2) auto
-    ultimately have \<open>?A = do {
-         \<sigma> \<leftarrow> (P x a);
-         nfoldli [0..<length xs] c (\<lambda>i. P (xs ! i))  \<sigma>
-        }\<close>
-      using AB
-      by (auto intro: bind_cong_nres)
-  }
-  moreover {
-    assume [simp]: \<open>\<not>c a\<close>
-    have \<open>?B = RETURN a\<close>
-      by simp
-  }
-  ultimately show ?case by (auto simp: IH intro: bind_cong_nres)
-qed
-
-
 
 lemma list_rel_update:
   fixes R :: \<open>'a \<Rightarrow> 'b :: {heap}\<Rightarrow> assn\<close>

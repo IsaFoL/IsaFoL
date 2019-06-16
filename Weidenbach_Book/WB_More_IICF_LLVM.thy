@@ -4,7 +4,7 @@ begin
 
 
 paragraph \<open>This is not part of the multiset setup\<close>
-definition "list_mset_rel \<equiv> br mset (\<lambda>_. True)"
+
 definition "list_mset_assn A \<equiv> pure (list_mset_rel O \<langle>the_pure A\<rangle>mset_rel)"
 declare list_mset_assn_def[symmetric,fcomp_norm_unfold]
 lemma [safe_constraint_rules]: "is_pure (list_mset_assn A)" unfolding list_mset_assn_def by simp
@@ -32,13 +32,6 @@ lemma
   unfolding list_mset_assn_def list_mset_rel_def mset_rel_def pure_def p2rel_def
     rel2p_def rel_mset_def br_def
   by (sep_auto simp: Collect_eq_comp pure_true_conv)+
-
-lemma
-  Nil_list_mset_rel_iff:
-    \<open>([], aaa) \<in> list_mset_rel \<longleftrightarrow> aaa = {#}\<close> and
-  empty_list_mset_rel_iff:
-    \<open>(a, {#}) \<in> list_mset_rel \<longleftrightarrow> a = []\<close>
-  by (auto simp: list_mset_rel_def br_def)
 
 lemma Exists_eq_simp[simp]: \<open>(\<exists>x. (P x \<and>* \<up> (x = b)) s) \<longleftrightarrow> P b s\<close>
   apply (auto)
@@ -74,12 +67,6 @@ lemma snd_hnr_pure:
     split_conj_is_pure2 pred_lift_def)
   oops
 
-definition list_rel_mset_rel where list_rel_mset_rel_internal:
-\<open>list_rel_mset_rel \<equiv> \<lambda>R. \<langle>R\<rangle>list_rel O list_mset_rel\<close>
-
-lemma list_rel_mset_rel_def[refine_rel_defs]:
-  \<open>\<langle>R\<rangle>list_rel_mset_rel = \<langle>R\<rangle>list_rel O list_mset_rel\<close>
-  unfolding relAPP_def list_rel_mset_rel_internal ..
 
 lemma list_mset_assn_pure_conv:
   \<open>list_mset_assn (pure R) = pure (\<langle>R\<rangle>list_rel_mset_rel)\<close>
@@ -267,49 +254,6 @@ proof -
         (auto intro: bind_cong_nres)
   qed
 qed
-
-lemma nfoldli_nfoldli_list_nth:
-  \<open>nfoldli xs c P a = nfoldli [0..<length xs] c (\<lambda>i. P (xs ! i)) a\<close>
-proof (induction xs arbitrary: a)
-  case Nil
-  then show ?case by auto
-next
-  case (Cons x xs) note IH = this(1)
-  have 1: \<open>[0..<length (x # xs)] = 0 # [1..<length (x#xs)]\<close>
-    by (subst upt_rec)  simp
-  have 2: \<open>[1..<length (x#xs)] = map Suc [0..<length xs]\<close>
-    by (induction xs) auto
-  have AB: \<open>nfoldli [0..<length (x # xs)] c (\<lambda>i. P ((x # xs) ! i)) a =
-      nfoldli (0 # [1..<length (x#xs)]) c (\<lambda>i. P ((x # xs) ! i)) a\<close>
-      (is \<open>?A = ?B\<close>)
-    unfolding 1 ..
-  {
-    assume [simp]: \<open>c a\<close>
-    have \<open>nfoldli (0 # [1..<length (x#xs)]) c (\<lambda>i. P ((x # xs) ! i)) a =
-       do {
-         \<sigma> \<leftarrow> (P x a);
-         nfoldli [1..<length (x#xs)] c (\<lambda>i. P ((x # xs) ! i)) \<sigma>
-        }\<close>
-      by simp
-    moreover have \<open>nfoldli [1..<length (x#xs)] c (\<lambda>i. P ((x # xs) ! i)) \<sigma>  =
-       nfoldli [0..<length xs] c (\<lambda>i. P (xs ! i)) \<sigma>\<close> for \<sigma>
-      unfolding 2
-      by (rule nfoldli_cong2) auto
-    ultimately have \<open>?A = do {
-         \<sigma> \<leftarrow> (P x a);
-         nfoldli [0..<length xs] c (\<lambda>i. P (xs ! i))  \<sigma>
-        }\<close>
-      using AB
-      by (auto intro: bind_cong_nres)
-  }
-  moreover {
-    assume [simp]: \<open>\<not>c a\<close>
-    have \<open>?B = RETURN a\<close>
-      by simp
-  }
-  ultimately show ?case by (auto simp: IH intro: bind_cong_nres)
-qed
-
 
 (*This is rather different from the SML version*)
 lemma list_rel_update:

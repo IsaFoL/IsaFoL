@@ -210,16 +210,11 @@ lemma quicksort_vmtf_nth_reorder:
 
 lemma atoms_hash_del_op_set_delete:
   \<open>(uncurry (RETURN oo atoms_hash_del),
-    uncurry (RETURN oo op_set_delete)) \<in>
+    uncurry (RETURN oo Set.remove)) \<in>
      nat_rel \<times>\<^sub>r atoms_hash_rel \<A> \<rightarrow>\<^sub>f \<langle>atoms_hash_rel \<A>\<rangle>nres_rel\<close>
   by (intro frefI nres_relI)
     (auto simp: atoms_hash_del_def atoms_hash_rel_def)
 
-sepref_definition atoms_hash_del_code
-  is \<open>uncurry (RETURN oo atoms_hash_del)\<close>
-  :: \<open>[uncurry atoms_hash_del_pre]\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a (array_assn bool_assn)\<^sup>d \<rightarrow> array_assn bool_assn\<close>
-  unfolding atoms_hash_del_def atoms_hash_del_pre_def
-  by sepref
 
 definition current_stamp where
   \<open>current_stamp vm  = fst (snd vm)\<close>
@@ -247,7 +242,6 @@ lemma vmtf_rescale_alt_def:
   })\<close>
   unfolding update_stamp.simps Let_def vmtf_rescale_def by auto
 
-sepref_register vmtf_rescale
 
 definition isa_vmtf_flush_int :: \<open>trail_pol \<Rightarrow> _ \<Rightarrow> _ nres\<close> where
 \<open>isa_vmtf_flush_int  = (\<lambda>M (vm, (to_remove, h)). do {
@@ -464,7 +458,6 @@ proof -
     done
 qed
 
-declare atoms_hash_del_code.refine[sepref_fr_rules]
 
 definition atms_hash_insert_pre :: \<open>nat \<Rightarrow> nat list \<times> bool list \<Rightarrow> bool\<close> where
 \<open>atms_hash_insert_pre i = (\<lambda>(_, xs). i < length xs)\<close>
@@ -487,15 +480,6 @@ lemma atoms_hash_del_op_set_insert:
   by (intro frefI nres_relI)
     (auto simp: atoms_hash_insert_def atoms_hash_rel_def distinct_atoms_rel_alt_def)
 
-sepref_definition (in -) atoms_hash_insert_code
-  is \<open>uncurry (RETURN oo atoms_hash_insert)\<close>
-  :: \<open>[uncurry atms_hash_insert_pre]\<^sub>a
-      uint32_nat_assn\<^sup>k *\<^sub>a (arl_assn uint32_nat_assn *a array_assn bool_assn)\<^sup>d \<rightarrow>
-      arl_assn uint32_nat_assn *a array_assn bool_assn\<close>
-  unfolding atoms_hash_insert_def atms_hash_insert_pre_def
-  by sepref
-
-declare atoms_hash_insert_code.refine[sepref_fr_rules]
 
 definition (in -) atoms_hash_set_member where
 \<open>atoms_hash_set_member i xs =  do {ASSERT(i < length xs); RETURN (xs ! i)}\<close>
@@ -655,22 +639,6 @@ lemma get_pos_of_level_in_trail_imp_get_pos_of_level_in_trail_CS:
         intro!: control_stack_le_length_M control_stack_is_decided
         dest: control_stack_level_control_stack)
   done
-
-sepref_definition (in -) get_pos_of_level_in_trail_imp_fast_code
-  is \<open>uncurry get_pos_of_level_in_trail_imp\<close>
-  :: \<open>trail_pol_fast_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
-  unfolding get_pos_of_level_in_trail_imp_def
-  by sepref
-
-
-sepref_definition (in -) get_pos_of_level_in_trail_imp_code
-  is \<open>uncurry get_pos_of_level_in_trail_imp\<close>
-  :: \<open>trail_pol_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
-  unfolding get_pos_of_level_in_trail_imp_def
-  by sepref
-
-declare get_pos_of_level_in_trail_imp_code.refine[sepref_fr_rules]
-   get_pos_of_level_in_trail_imp_fast_code.refine[sepref_fr_rules]
 
 lemma lit_of_last_trail_pol_lit_of_last_trail_no_CS:
    \<open>(RETURN o lit_of_last_trail_pol, RETURN o lit_of_hd_trail) \<in>
@@ -925,10 +893,6 @@ proof -
   done
 qed
 
-
-declare tl_trail_tr_no_CS_code.refine[sepref_fr_rules] tl_trail_tr_no_CS_fast_code.refine[sepref_fr_rules]
-
-sepref_register find_decomp_wl_imp
 
 abbreviation find_decomp_w_ns_prop where
   \<open>find_decomp_w_ns_prop \<A> \<equiv>
@@ -1242,7 +1206,6 @@ lemma find_decomp_wl_imp_find_decomp_wl':
    (auto simp: find_decomp_w_ns_pre_def simp del: twl_st_of_wl.simps
        intro!: find_decomp_wl_imp_le_find_decomp_wl')
 
-sepref_register find_decomp_w_ns
 
 lemma find_decomp_wl_imp_code_conbine_cond:
   \<open>(\<lambda>((b, a), c). find_decomp_w_ns_pre \<A> ((b, a), c) \<and> a < count_decided b) = (\<lambda>((b, a), c).
@@ -1250,10 +1213,8 @@ lemma find_decomp_wl_imp_code_conbine_cond:
   by (auto intro!: ext simp: find_decomp_w_ns_pre_def)
 
 
-sepref_register rescore_clause vmtf_flush
 
 (* TODO use in vmtf_mark_to_rescore_and_unset *)
-sepref_register vmtf_mark_to_rescore
 
 definition vmtf_mark_to_rescore_clause where
 \<open>vmtf_mark_to_rescore_clause \<A>\<^sub>i\<^sub>n arena C vm = do {
@@ -1400,11 +1361,6 @@ lemma isa_vmtf_mark_to_rescore_also_reasons_vmtf_mark_to_rescore_also_reasons:
   subgoal by auto
   done
 
-
-sepref_register vmtf_mark_to_rescore_clause
-
-sepref_register vmtf_mark_to_rescore_also_reasons get_the_propagation_reason_pol
-
 lemma vmtf_mark_to_rescore':
  \<open>L \<in> atms_of (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>) \<Longrightarrow> vm \<in> vmtf \<A> M \<Longrightarrow> vmtf_mark_to_rescore L vm \<in> vmtf \<A> M\<close>
   by (cases vm) (auto intro: vmtf_mark_to_rescore)
@@ -1467,3 +1423,4 @@ lemma isa_vmtf_find_next_undef_vmtf_find_next_undef:
   done
 
 end
+

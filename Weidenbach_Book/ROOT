@@ -217,20 +217,31 @@ session "IsaSAT" (Weidenbach_Book) = "Watched_Literals"  +
     IsaSAT_Trail
     Watched_Literals_VMTF
     LBD
+    LBD_SML
     Version
     IsaSAT_Watch_List
+    IsaSAT_Watch_List_SML
     IsaSAT_Setup
     IsaSAT_Setup_SML
     IsaSAT_Inner_Propagation
+    IsaSAT_Inner_Propagation_SML
     IsaSAT_VMTF
+    IsaSAT_VMTF_SML
     IsaSAT_Backtrack
+    IsaSAT_Backtrack_SML
     IsaSAT_Initialisation
+    IsaSAT_Initialisation_SML
     IsaSAT_Conflict_Analysis
+    IsaSAT_Conflict_Analysis_SML
     IsaSAT_Propagate_Conflict
+    IsaSAT_Propagate_Conflict_SML
     IsaSAT_Decide
+    IsaSAT_Decide_SML
     IsaSAT_CDCL
+    IsaSAT_CDCL_SML
 
     IsaSAT_Restart_Heuristics
+    IsaSAT_Restart_Heuristics_SML
     IsaSAT_Restart
     IsaSAT_Restart_SML
 

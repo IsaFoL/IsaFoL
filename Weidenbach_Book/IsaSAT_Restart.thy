@@ -205,11 +205,6 @@ proof -
     done
 qed
 
-sepref_register number_clss_to_keep
-
-sepref_register access_vdom_at
-
-
 definition length_avdom :: \<open>twl_st_wl_heur \<Rightarrow> nat\<close> where
   \<open>length_avdom S = length (get_avdom S)\<close>
 
@@ -218,7 +213,6 @@ lemma length_avdom_alt_def:
      ccount, vdom, avdom, lcount). length avdom)\<close>
   by (intro ext) (auto simp: length_avdom_def)
 
-sepref_register length_avdom
 
 definition get_the_propagation_reason_heur
  :: \<open>twl_st_wl_heur \<Rightarrow> nat literal \<Rightarrow> nat option nres\<close>
@@ -240,7 +234,6 @@ lemma clause_is_learned_heur_alt_def:
      ccount, vdom, lcount) C . arena_status N' C = LEARNED)\<close>
   by (intro ext) (auto simp: clause_is_learned_heur_def)
 
-sepref_register clause_is_learned_heur
 
 (* TODO deduplicate arena_lbd = get_clause_LBD *)
 definition clause_lbd_heur :: "twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> nat"
@@ -278,10 +271,5 @@ lemma (in -) isasat_fast_alt_def:
   \<open>RETURN o isasat_fast = (\<lambda>(M, N, _). RETURN (length N \<le> uint64_max - (uint32_max div 2 + 6)))\<close>
   unfolding isasat_fast_def
   by (auto intro!:ext)
-
-lemma (in -) uint32_max_nat_hnr:
-  \<open>(uncurry0 (return uint32_max), uncurry0 (RETURN uint32_max)) \<in>
-     unit_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
-  by sepref_to_hoare sep_auto
 
 end

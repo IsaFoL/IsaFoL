@@ -73,16 +73,6 @@ definition isasat_information_banner :: \<open>_ \<Rightarrow> unit nres\<close>
 \<open>isasat_information_banner _ =
     RETURN (println_string (String.implode (show isasat_banner_content)))\<close>
 
-definition isasat_information_banner_code :: \<open>_ \<Rightarrow> unit Heap\<close> where
-\<open>isasat_information_banner_code _ =
-    return (println_string (String.implode (show isasat_banner_content)))\<close>
-
-sepref_register isasat_information_banner
-lemma isasat_information_banner_hnr[sepref_fr_rules]:
-   \<open>(isasat_information_banner_code, isasat_information_banner) \<in>
-   R\<^sup>k \<rightarrow>\<^sub>a id_assn\<close>
-  by sepref_to_hoare (sep_auto simp: isasat_information_banner_code_def isasat_information_banner_def)
-
 definition zero_some_stats :: \<open>stats \<Rightarrow> stats\<close> where
 \<open>zero_some_stats = (\<lambda>(propa, confl, decs, frestarts, lrestarts, uset, gcs, lbds).
      (propa, confl, decs, frestarts, lrestarts, uset, gcs, 0))\<close>
@@ -104,19 +94,6 @@ definition print_current_information :: \<open>stats \<Rightarrow> _ \<Rightarro
 \<open>print_current_information = (\<lambda>(propa, confl, decs, frestarts, lrestarts, uset, gcs, lbds) _.
      if confl AND 8191 = 8191 then (propa, confl, decs, frestarts, lrestarts, uset, gcs, 0)
      else (propa, confl, decs, frestarts, lrestarts, uset, gcs, lbds))\<close>
-sepref_register print_current_information
-
-lemma print_current_information_hnr[sepref_fr_rules]:
-   \<open>(uncurry (return oo isasat_current_information), uncurry (RETURN oo print_current_information)) \<in>
-   stats_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a stats_assn\<close>
-  by sepref_to_hoare (sep_auto simp: isasat_current_information_def print_current_information_def
-    zero_some_stats_def)
-
-lemma print_current_information_fast_hnr[sepref_fr_rules]:
-   \<open>(uncurry (return oo isasat_current_information), uncurry (RETURN oo print_current_information)) \<in>
-   stats_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a stats_assn\<close>
-  by sepref_to_hoare (sep_auto simp: isasat_current_information_def print_current_information_def
-    zero_some_stats_def)
 
 
 definition isasat_current_status :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
@@ -128,24 +105,6 @@ definition isasat_current_status :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_w
      in RETURN (M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats,
        fast_ema, slow_ema, ccount, avdom,
        vdom, lcount, opts, old_arena))\<close>
-
-sepref_definition isasat_current_status_code
-  is \<open>isasat_current_status\<close>
-  :: \<open>isasat_unbounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_unbounded_assn\<close>
-  supply [[goals_limit=1]]
-  unfolding isasat_unbounded_assn_def isasat_current_status_def
-  by sepref
-
-declare isasat_current_status_code.refine[sepref_fr_rules]
-
-sepref_definition isasat_current_status_fast_code
-  is \<open>isasat_current_status\<close>
-  :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
-  supply [[goals_limit=1]]
-  unfolding isasat_bounded_assn_def isasat_current_status_def
-  by sepref
-
-declare isasat_current_status_fast_code.refine[sepref_fr_rules]
 
 lemma isasat_current_status_id:
   \<open>(isasat_current_status, RETURN o id) \<in>

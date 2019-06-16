@@ -31,7 +31,9 @@ lemma Neg_div2_iff:
 
 text \<open>
   Modeling \<^typ>\<open>nat literal\<close> via the transformation associating \<^term>\<open>2*n\<close> or \<^term>\<open>2*n+1\<close>
-  has some advantages over the transformation to positive or negative integers: 0 is not an issue.\<close>
+  has some advantages over the transformation to positive or negative integers: 0 is not an issue.
+  It is also a bit faster according to Armin Biere.
+\<close>
 fun nat_of_lit :: \<open>nat literal \<Rightarrow> nat\<close> where
   \<open>nat_of_lit (Pos L) = 2*L\<close>
 | \<open>nat_of_lit (Neg L) = 2*L + 1\<close>

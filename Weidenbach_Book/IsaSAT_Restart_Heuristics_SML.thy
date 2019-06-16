@@ -132,6 +132,13 @@ declare incr_lrestart_stat_slow_code.refine[sepref_fr_rules]
   incr_lrestart_stat_fast_code.refine[sepref_fr_rules]
 
 
+sepref_definition find_local_restart_target_level_st_code
+  is \<open>find_local_restart_target_level_st\<close>
+  :: \<open>isasat_unbounded_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+  supply [[goals_limit=1]] length_rev[simp del]
+  unfolding find_local_restart_target_level_st_alt_def isasat_unbounded_assn_def PR_CONST_def
+  by sepref
+
 sepref_definition find_local_restart_target_level_st_fast_code
   is \<open>find_local_restart_target_level_st\<close>
   :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
@@ -236,6 +243,8 @@ declare lower_restart_bound_not_reached_impl.refine[sepref_fr_rules]
   lower_restart_bound_not_reached_fast_impl.refine[sepref_fr_rules]
 
 
+sepref_register clause_score_extract
+
 sepref_definition (in -) clause_score_extract_code
   is \<open>uncurry (RETURN oo clause_score_extract)\<close>
   :: \<open>[uncurry valid_sort_clause_score_pre_at]\<^sub>a
@@ -254,7 +263,7 @@ sepref_definition (in -) partition_main_clause_code
   supply insort_inner_clauses_by_score_invI[intro]
     partition_main_inv_def[simp]
   unfolding partition_main_clause_def partition_between_ref_def
-    partition_main_def
+    partition_main_def WB_More_Refinement_List.swap_def IICF_List.swap_def[symmetric]
   by sepref
 
 sepref_definition (in -) partition_main_clause_fast_code
@@ -265,6 +274,7 @@ sepref_definition (in -) partition_main_clause_fast_code
     partition_main_inv_def[simp] mset_eq_length[dest]
   unfolding partition_main_clause_def partition_between_ref_def
     partition_main_def one_uint64_nat_def[symmetric]
+    WB_More_Refinement_List.swap_def IICF_List.swap_def[symmetric]
   by sepref
 
 sepref_register partition_main_clause_code
@@ -276,9 +286,11 @@ sepref_definition (in -) partition_clause_code
   is \<open>uncurry3 partition_clause\<close>
   :: \<open>[\<lambda>(((arena, i), j), vdom). valid_sort_clause_score_pre arena vdom]\<^sub>a
       arena_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a vdom_assn\<^sup>d \<rightarrow> vdom_assn *a nat_assn\<close>
-  supply insort_inner_clauses_by_score_invI[intro] valid_sort_clause_score_pre_swap[intro]
+  supply insort_inner_clauses_by_score_invI[intro] valid_sort_clause_score_pre_swap[
+    unfolded WB_More_Refinement_List.swap_def IICF_List.swap_def[symmetric], intro]
   unfolding partition_clause_def partition_between_ref_def
     choose_pivot3_def partition_main_clause_def[symmetric]
+    WB_More_Refinement_List.swap_def IICF_List.swap_def[symmetric]
   by sepref
 
 lemma div2_hnr[sepref_fr_rules]: \<open>(return o (\<lambda>n. n >> 1), RETURN o div2) \<in> uint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
@@ -289,9 +301,11 @@ sepref_definition (in -) partition_clause_fast_code
   is \<open>uncurry3 partition_clause\<close>
   :: \<open>[\<lambda>(((arena, i), j), vdom). length vdom \<le> uint64_max \<and> valid_sort_clause_score_pre arena vdom]\<^sub>a
       arena_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a vdom_assn\<^sup>d \<rightarrow> vdom_assn *a uint64_nat_assn\<close>
-  supply insort_inner_clauses_by_score_invI[intro] valid_sort_clause_score_pre_swap[intro] mset_eq_length[dest]
+  supply insort_inner_clauses_by_score_invI[intro] valid_sort_clause_score_pre_swap[
+    unfolded WB_More_Refinement_List.swap_def IICF_List.swap_def[symmetric], intro] mset_eq_length[dest]
   unfolding partition_clause_def partition_between_ref_def div2_def[symmetric]
     choose_pivot3_def partition_main_clause_def[symmetric]
+    WB_More_Refinement_List.swap_def IICF_List.swap_def[symmetric]
   by sepref
 
 declare partition_clause_code.refine[sepref_fr_rules]
@@ -385,6 +399,25 @@ sepref_register opts_reduction_st opts_restart_st
 
 sepref_register max_restart_decision_lvl
 
+lemma minimum_number_between_restarts[sepref_fr_rules]:
+ \<open>(uncurry0 (return minimum_number_between_restarts), uncurry0 (RETURN minimum_number_between_restarts))
+  \<in>  unit_assn\<^sup>k \<rightarrow>\<^sub>a uint64_assn\<close>
+  by sepref_to_hoare sep_auto
+
+lemma max_restart_decision_lvl_code_hnr[sepref_fr_rules]:
+  \<open>(uncurry0 (return max_restart_decision_lvl_code), uncurry0 (RETURN max_restart_decision_lvl)) \<in>
+    unit_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+  by sepref_to_hoare (sep_auto simp: br_def uint32_nat_rel_def max_restart_decision_lvl_def
+    max_restart_decision_lvl_code_def)
+
+lemma [sepref_fr_rules]:
+  \<open>(uncurry0 (return GC_EVERY), uncurry0 (RETURN GC_EVERY)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint64_assn\<close>
+  by sepref_to_hoare (sep_auto simp: GC_EVERY_def)
+
+lemma (in -) MINIMUM_DELETION_LBD_hnr[sepref_fr_rules]:
+ \<open>(uncurry0 (return 3), uncurry0 (RETURN MINIMUM_DELETION_LBD)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+  by sepref_to_hoare (sep_auto simp: MINIMUM_DELETION_LBD_def uint32_nat_rel_def br_def)
+
 
 sepref_definition restart_required_heur_fast_code
   is \<open>uncurry restart_required_heur\<close>
@@ -420,8 +453,8 @@ sepref_definition get_reductions_count_code
   by sepref
 
 sepref_register get_reductions_count
-declare  get_reductions_count_fast_code.refine[sepref_fr_rules]
-declare  get_reductions_count_code.refine[sepref_fr_rules]
+declare get_reductions_count_fast_code.refine[sepref_fr_rules]
+declare get_reductions_count_code.refine[sepref_fr_rules]
 
 
 sepref_definition GC_required_heur_fast_code
@@ -443,31 +476,6 @@ sepref_definition GC_required_heur_slow_code
 declare GC_required_heur_fast_code.refine[sepref_fr_rules]
   GC_required_heur_slow_code.refine[sepref_fr_rules]
 
-sepref_definition find_local_restart_target_level_st_code
-  is \<open>find_local_restart_target_level_st\<close>
-  :: \<open>isasat_unbounded_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
-  supply [[goals_limit=1]] length_rev[simp del]
-  unfolding find_local_restart_target_level_st_alt_def isasat_unbounded_assn_def PR_CONST_def
-  by sepref
-
-lemma minimum_number_between_restarts[sepref_fr_rules]:
- \<open>(uncurry0 (return minimum_number_between_restarts), uncurry0 (RETURN minimum_number_between_restarts))
-  \<in>  unit_assn\<^sup>k \<rightarrow>\<^sub>a uint64_assn\<close>
-  by sepref_to_hoare sep_auto
-
-lemma max_restart_decision_lvl_code_hnr[sepref_fr_rules]:
-  \<open>(uncurry0 (return max_restart_decision_lvl_code), uncurry0 (RETURN max_restart_decision_lvl)) \<in>
-    unit_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
-  by sepref_to_hoare (sep_auto simp: br_def uint32_nat_rel_def max_restart_decision_lvl_def
-    max_restart_decision_lvl_code_def)
-
-lemma [sepref_fr_rules]:
-  \<open>(uncurry0 (return GC_EVERY), uncurry0 (RETURN GC_EVERY)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint64_assn\<close>
-  by sepref_to_hoare (sep_auto simp: GC_EVERY_def)
-
-lemma (in -) MINIMUM_DELETION_LBD_hnr[sepref_fr_rules]:
- \<open>(uncurry0 (return 3), uncurry0 (RETURN MINIMUM_DELETION_LBD)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
-  by sepref_to_hoare (sep_auto simp: MINIMUM_DELETION_LBD_def uint32_nat_rel_def br_def)
 
 
 sepref_register isa_trail_nth
@@ -542,7 +550,7 @@ sepref_definition mark_garbage_fast_code
 lemma mark_garbage_fast_hnr[sepref_fr_rules]:
   \<open>(uncurry mark_garbage_fast_code, uncurry (RETURN oo extra_information_mark_to_delete))
   \<in> [mark_garbage_pre]\<^sub>a  arena_assn\<^sup>d *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow> arena_assn\<close>
-  using mark_garbage_fast_code.refine[FCOMP isa_mark_garbage]
+  using mark_garbage_fast_code.refine[FCOMP isa_mark_garbage[unfolded convert_fref]]
   unfolding hr_comp_assoc[symmetric] list_rel_compp status_assn_alt_def uncurry_def
   by (auto simp add: arl_assn_comp update_lbd_pre_def)
 (*END Move*)
@@ -638,7 +646,7 @@ declare get_pos_of_level_in_trail_imp_st_slow_code.refine[sepref_fr_rules]
 
 sepref_register remove_one_annot_true_clause_imp_wl_D_heur
 
-finition remove_one_annot_true_clause_imp_wl_D_heur_code
+sepref_definition remove_one_annot_true_clause_imp_wl_D_heur_code
   is \<open>remove_one_annot_true_clause_imp_wl_D_heur\<close>
   :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
   supply [[goals_limit=1]]
@@ -683,6 +691,12 @@ sepref_definition isasat_GC_clauses_prog_copy_wl_entry_slow_code
 sepref_register isasat_GC_clauses_prog_copy_wl_entry
 declare isasat_GC_clauses_prog_copy_wl_entry_code.refine[sepref_fr_rules]
   isasat_GC_clauses_prog_copy_wl_entry_slow_code.refine[sepref_fr_rules]
+
+lemma shorten_take_ll_0: \<open>shorten_take_ll L 0 W = W[L := []]\<close>
+  by (auto simp: shorten_take_ll_def)
+
+lemma length_shorten_take_ll[simp]: \<open>length (shorten_take_ll a j W) = length W\<close>
+  by (auto simp: shorten_take_ll_def)
 
 sepref_definition isasat_GC_clauses_prog_single_wl_code
   is \<open>uncurry3 isasat_GC_clauses_prog_single_wl\<close>

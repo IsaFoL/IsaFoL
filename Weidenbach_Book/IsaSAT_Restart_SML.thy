@@ -1,7 +1,17 @@
 theory IsaSAT_Restart_SML
-  imports IsaSAT_Restart
+  imports IsaSAT_Restart IsaSAT_Restart_Heuristics_SML IsaSAT_CDCL_SML
 begin
 
+sepref_register number_clss_to_keep
+
+sepref_register access_vdom_at
+sepref_register length_avdom
+sepref_register clause_is_learned_heur
+
+lemma (in -) uint32_max_nat_hnr:
+  \<open>(uncurry0 (return uint32_max), uncurry0 (RETURN uint32_max)) \<in>
+     unit_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
+  by sepref_to_hoare sep_auto
 
 sepref_definition number_clss_to_keep_impl
   is \<open>RETURN o number_clss_to_keep\<close>
@@ -194,7 +204,8 @@ sepref_definition isa_marked_as_used_fast_code
 lemma isa_marked_as_used_code[sepref_fr_rules]:
   \<open>(uncurry isa_marked_as_used_fast_code, uncurry (RETURN \<circ>\<circ> marked_as_used))
      \<in> [uncurry marked_as_used_pre]\<^sub>a arena_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow> bool_assn\<close>
-  using isa_marked_as_used_fast_code.refine[FCOMP isa_marked_as_used_marked_as_used]
+  using isa_marked_as_used_fast_code.refine[FCOMP
+    isa_marked_as_used_marked_as_used[unfolded convert_fref]]
   unfolding hr_comp_assoc[symmetric] list_rel_compp status_assn_alt_def uncurry_def
   by (auto simp add: arl_assn_comp update_lbd_pre_def)
 

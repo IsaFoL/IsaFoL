@@ -1424,13 +1424,10 @@ definition empty_conflict :: \<open>nat literal list option\<close> where
 
 definition empty_conflict_code :: \<open>(_ list option \<times> stats) nres\<close> where
   \<open>empty_conflict_code = do{
-     let M0 = op_arl_empty;
+     let M0 = [];
      let M1 = Some M0;
      RETURN (M1, (zero_uint64, zero_uint64, zero_uint64, zero_uint64, zero_uint64, zero_uint64, zero_uint64,
         zero_uint64))}\<close>
-
-abbreviation  model_stat_assn where
-  \<open>model_stat_assn \<equiv> option_assn (arl_assn unat_lit_assn) *a stats_assn\<close>
 
 definition empty_init_code :: \<open>_ list option \<times> stats\<close> where
   \<open>empty_init_code = (None, (zero_uint64, zero_uint64, zero_uint64, zero_uint64,
@@ -1440,25 +1437,9 @@ definition empty_init_code :: \<open>_ list option \<times> stats\<close> where
 definition convert_state where
   \<open>convert_state _ S = S\<close>
 
-lemma  convert_state_hnr:
-  \<open>(uncurry (return oo (\<lambda>_ S. S)), uncurry (RETURN oo convert_state))
-   \<in> ghost_assn\<^sup>k *\<^sub>a (isasat_init_assn)\<^sup>d \<rightarrow>\<^sub>a
-     isasat_init_assn\<close>
-  by sepref_to_hoare (sep_auto simp: convert_state_def)
-
-lemma  convert_state_hnr_unb:
-  \<open>(uncurry (return oo (\<lambda>_ S. S)), uncurry (RETURN oo convert_state))
-   \<in> ghost_assn\<^sup>k *\<^sub>a (isasat_init_unbounded_assn)\<^sup>d \<rightarrow>\<^sub>a
-     isasat_init_unbounded_assn\<close>
-  by sepref_to_hoare (sep_auto simp: convert_state_def)
-
 definition IsaSAT_use_fast_mode where
   \<open>IsaSAT_use_fast_mode = True\<close>
 
-lemma IsaSAT_use_fast_mode[sepref_fr_rules]:
-  \<open>(uncurry0 (return IsaSAT_use_fast_mode), uncurry0 (RETURN IsaSAT_use_fast_mode))
-   \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
-  by sepref_to_hoare sep_auto
 
 definition isasat_fast_init :: \<open>twl_st_wl_heur_init \<Rightarrow> bool\<close> where
   \<open>isasat_fast_init S \<longleftrightarrow> (length (get_clauses_wl_heur_init S) \<le> uint64_max - (uint32_max div 2 + 6))\<close>
@@ -1534,7 +1515,7 @@ definition IsaSAT_heur :: \<open>opts \<Rightarrow> nat clause_l list \<Rightarr
     }\<close>
 
 lemma fref_to_Down_unRET_uncurry0_SPEC:
-  assumes \<open>(uncurry0 (f), uncurry0 (RETURN g)) \<in> [P]\<^sub>f unit_rel \<rightarrow> \<langle>B\<rangle>nres_rel\<close> and \<open>P ()\<close>
+  assumes \<open>(\<lambda>_. (f), \<lambda>_. (RETURN g)) \<in> [P]\<^sub>f unit_rel \<rightarrow> \<langle>B\<rangle>nres_rel\<close> and \<open>P ()\<close>
   shows \<open>f \<le> SPEC (\<lambda>c. (c, g) \<in> B)\<close>
 proof -
   have [simp]: \<open>RES (B\<inverse> `` {g}) = SPEC (\<lambda>c. (c, g) \<in> B)\<close>
@@ -2086,7 +2067,7 @@ proof -
     subgoal unfolding convert_state_def by (rule get_conflict_wl_is_None_heur_init)
     subgoal by (simp add: empty_init_code_def)
     subgoal by simp
-    subgoal by (simp add: empty_conflict_code_def op_arl_empty_def)
+    subgoal by (simp add: empty_conflict_code_def)
     subgoal by (simp add: mset_set_empty_iff extract_atms_clss_alt_def)
     subgoal by simp
     subgoal by (rule finalise_init_nempty)
@@ -2113,7 +2094,7 @@ proof -
     subgoal for _ S T U V by (rule get_conflict_wl_is_None_heur_init2)
     subgoal by (simp add: empty_init_code_def)
     subgoal by simp
-    subgoal by (simp add: empty_conflict_code_def op_arl_empty_def)
+    subgoal by (simp add: empty_conflict_code_def)
     subgoal by simp
     subgoal by simp
     subgoal by (simp add: mset_set_empty_iff extract_atms_clss_alt_def)
@@ -2163,54 +2144,9 @@ lemma isasat_fast_init_alt_def:
   \<open>RETURN o isasat_fast_init = (\<lambda>(M, N, _). RETURN (length N \<le> 18446744071562067962))\<close>
   by (auto simp: isasat_fast_init_def uint64_max_def uint32_max_def intro!: ext)
 
-definition get_trail_wl_code :: \<open>twl_st_wll_trail \<Rightarrow> uint32 array_list option \<times> stats\<close> where
-  \<open>get_trail_wl_code = (\<lambda>((M, _), _, _, _, _ ,_ ,_ ,_, _, _, _, stat, _). (Some M, stat))\<close>
-
-definition get_stats_code :: \<open>twl_st_wll_trail \<Rightarrow> uint32 array_list option \<times> stats\<close> where
-  \<open>get_stats_code = (\<lambda>((M, _), _, _, _, _ ,_ ,_ ,_, _, _, _, stat, _). (None, stat))\<close>
-
-
 definition  model_stat_rel where
   \<open>model_stat_rel = {((M', s), M). map_option rev M = M'}\<close>
 
-definition  model_assn where
-  \<open>model_assn = hr_comp model_stat_assn model_stat_rel\<close>
-
-lemma extract_model_of_state_stat_hnr[sepref_fr_rules]:
-  \<open>(return o get_trail_wl_code, RETURN o extract_model_of_state_stat) \<in> isasat_unbounded_assn\<^sup>d \<rightarrow>\<^sub>a
-       model_stat_assn\<close>
-proof -
-  have [simp]: \<open>(\<lambda>a c. \<up> ((c, a) \<in> unat_lit_rel)) = unat_lit_assn\<close>
-    by (auto simp: unat_lit_rel_def pure_def)
-  have [simp]: \<open>id_assn (an, ao, bb) (bs, bt, bu) = (id_assn an bs * id_assn ao bt * id_assn bb bu)\<close>
-    for an ao bb bs bt bu :: uint64
-    by (auto simp: pure_def)
-  show ?thesis
-    by sepref_to_hoare
-      (sep_auto simp: twl_st_heur_def hr_comp_def trail_pol_def isasat_unbounded_assn_def
-        isasat_init_assn_def get_trail_wl_code_def
-        extract_model_of_state_def extract_model_of_state_stat_def
-        dest!: ann_lits_split_reasons_map_lit_of
-        elim!: mod_starE)
-qed
-
-lemma get_stats_code[sepref_fr_rules]:
-  \<open>(return o get_stats_code, RETURN o extract_state_stat) \<in> isasat_unbounded_assn\<^sup>d \<rightarrow>\<^sub>a
-       model_stat_assn\<close>
-proof -
-  have [simp]: \<open>(\<lambda>a c. \<up> ((c, a) \<in> unat_lit_rel)) = unat_lit_assn\<close>
-    by (auto simp: unat_lit_rel_def pure_def)
-  have [simp]: \<open>id_assn (an, ao, bb) (bs, bt, bu) = (id_assn an bs * id_assn ao bt * id_assn bb bu)\<close>
-    for an ao bb bs bt bu :: uint64
-    by (auto simp: pure_def)
-  show ?thesis
-    by sepref_to_hoare
-      (sep_auto simp: twl_st_heur_def hr_comp_def trail_pol_def isasat_unbounded_assn_def
-        isasat_init_assn_def get_trail_wl_code_def get_stats_code_def
-        extract_model_of_state_def extract_model_of_state_stat_def extract_state_stat_def
-        dest!: ann_lits_split_reasons_map_lit_of
-        elim!: mod_starE)
-qed
 
 lemma nat_of_uint32_max:
   \<open>max (nat_of_uint32 a) (nat_of_uint32 b) = nat_of_uint32 (max a b)\<close> for a b
@@ -2219,58 +2155,6 @@ lemma nat_of_uint32_max:
 lemma max_0L_uint32[simp]: \<open>max (0::uint32) a = a\<close>
   by (metis max.cobounded2 max_def uint32_less_than_0)
 
-
-lemma lits_with_max_assn_alt_def: \<open>lits_with_max_assn  = hr_comp (arl_assn uint32_assn *a uint32_assn)
-          (lits_with_max_rel O \<langle>uint32_nat_rel\<rangle>mset_rel)\<close>
-proof -
-  have 1: \<open>arl_assn uint32_nat_assn *a uint32_nat_assn =
-     hr_comp (arl_assn uint32_assn *a uint32_assn) (\<langle>uint32_nat_rel\<rangle>list_rel \<times>\<^sub>r uint32_nat_rel)\<close>
-     unfolding arl_assn_comp' hr_comp_prod_conv
-     by auto
-
-  have [simp]: \<open> Max (insert 0 (nat_of_uint32 ` set aa)) =  nat_of_uint32 (Max (insert 0 (set aa)))\<close>for aa
-    apply (induction aa)
-    subgoal by auto
-    subgoal for a aa
-      by (cases \<open>nat_of_uint32 ` set aa = {}\<close>) (auto simp: nat_of_uint32_max)
-    done
-
-  have 2: \<open>((\<langle>uint32_nat_rel\<rangle>list_rel \<times>\<^sub>f uint32_nat_rel) O lits_with_max_rel) =
-     (lits_with_max_rel O \<langle>uint32_nat_rel\<rangle>mset_rel)\<close>
-    apply (rule; rule)
-    apply (case_tac x)
-    apply (simp only: relcomp.simps)
-    apply normalize_goal+
-    subgoal for yx a b xa xb xc
-       apply (rule exI[of _ a])
-       apply (rule exI[of _ \<open>uint32_of_nat `# mset (fst xb)\<close>])
-       apply (rule exI[of _ \<open>mset (fst xb)\<close>])
-       apply (cases xa)
-       by (auto simp: uint32_nat_rel_def mset_rel_def p2rel_def rel2p_def[abs_def] br_def
-         rel_mset_def lits_with_max_rel_def list_rel_def list_all2_op_eq_map_right_iff')
-    apply (case_tac x)
-    apply (simp only: relcomp.simps)
-    apply normalize_goal+
-    subgoal for yx a b xa xb xc
-       apply (rule exI[of _ a])
-       apply (cases xa)
-       by (auto simp: uint32_nat_rel_def mset_rel_def p2rel_def rel2p_def[abs_def] br_def
-         rel_mset_def lits_with_max_rel_def list_rel_def list_all2_op_eq_map_right_iff')
-    done
-
-  show ?thesis
-    unfolding 1 hr_comp_assoc 2
-    by auto
-qed
-
-lemma init_state_wl_D'_code_isasat: \<open>(hr_comp isasat_init_assn
-   (Id \<times>\<^sub>f
-    (Id \<times>\<^sub>f
-     (Id \<times>\<^sub>f
-      (nat_rel \<times>\<^sub>f
-       (\<langle>\<langle>Id\<rangle>list_rel\<rangle>list_rel \<times>\<^sub>f
-        (Id \<times>\<^sub>f (\<langle>bool_rel\<rangle>list_rel \<times>\<^sub>f (nat_rel \<times>\<^sub>f (Id \<times>\<^sub>f Id)))))))))) = isasat_init_assn\<close>
-  by auto
 
 definition length_get_clauses_wl_heur_init where
   \<open>length_get_clauses_wl_heur_init S = length (get_clauses_wl_heur_init S)\<close>
@@ -2509,31 +2393,6 @@ proof -
         rel2p_def[abs_def] list_all2_op_eq_map_right_iff')
     done
     done
-qed
-
-lemma list_assn_list_mset_rel_clauses_l_assn:
-  \<open>(hr_comp (list_assn (list_assn unat_lit_assn)) (list_mset_rel O \<langle>list_mset_rel\<rangle>mset_rel)) xs xs'
-     = clauses_l_assn xs xs'\<close>
-proof -
-  have ex_remove_xs:
-    \<open>(\<exists>xs. mset xs = mset x \<and> {#literal_of_nat (nat_of_uint32 x). x \<in># mset xs#} = y) \<longleftrightarrow>
-       ({#literal_of_nat (nat_of_uint32 x). x \<in># mset x#} = y)\<close>
-    for x y
-    by auto
-
-  show ?thesis
-    unfolding list_assn_pure_conv list_mset_assn_pure_conv
-     list_rel_mset_rel_def
-    apply (auto simp: hr_comp_def)
-    apply (auto simp: ent_ex_up_swap list_mset_assn_def pure_def)
-    using ex_mset[of \<open>map (\<lambda>x. literal_of_nat (nat_of_uint32 x)) `# mset xs'\<close>]
-    by (auto simp add: list_mset_rel_def br_def mset_rel_def unat_lit_rel_def
-        uint32_nat_rel_def nat_lit_rel_def
-        p2rel_def Collect_eq_comp rel2p_def
-        list_all2_op_eq_map_map_right_iff rel_mset_def rel2p_def[abs_def]
-        list_all2_op_eq_map_right_iff' ex_remove_xs list_rel_def
-        list_all2_op_eq_map_right_iff
-        simp del: literal_of_nat.simps)
 qed
 
 

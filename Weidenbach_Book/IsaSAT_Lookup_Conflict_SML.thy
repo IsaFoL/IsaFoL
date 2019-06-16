@@ -6,8 +6,6 @@ imports
     LBD_SML
 begin
 
-hide_const WB_More_Refinement.uncurry0
-
 sepref_register set_lookup_conflict_aa
 
 abbreviation option_bool_assn where
@@ -360,72 +358,6 @@ sepref_definition set_lookup_conflict_aa_fast_code
 
 declare set_lookup_conflict_aa_fast_code.refine[sepref_fr_rules]
 
-
-lemma isa_set_lookup_conflict:
-  \<open>(uncurry6 isa_set_lookup_conflict_aa, uncurry6 set_conflict_m) \<in>
-    [\<lambda>((((((M, N), i), xs), clvls), lbd), outl). i \<in># dom_m N \<and> xs = None \<and> distinct (N \<propto> i) \<and>
-       literals_are_in_\<L>\<^sub>i\<^sub>n_mm \<A> (mset `# ran_mf N) \<and>
-       \<not>tautology (mset (N \<propto> i)) \<and> clvls = 0 \<and>
-       out_learned M None outl \<and>
-       isasat_input_bounded \<A>]\<^sub>f
-    trail_pol \<A> \<times>\<^sub>f {(arena, N). valid_arena arena N vdom} \<times>\<^sub>f nat_rel \<times>\<^sub>f option_lookup_clause_rel \<A> \<times>\<^sub>f nat_rel \<times>\<^sub>f Id
-         \<times>\<^sub>f Id  \<rightarrow>
-      \<langle>option_lookup_clause_rel \<A> \<times>\<^sub>r nat_rel \<times>\<^sub>r Id \<times>\<^sub>r Id \<rangle>nres_rel\<close>
-proof -
-  have H: \<open>set_lookup_conflict_aa M N i (b, n, xs) clvls lbd outl
-    \<le> \<Down> (option_lookup_clause_rel \<A> \<times>\<^sub>r Id)
-       (set_conflict_m M N i None clvls lbd outl)\<close>
-    if
-      i: \<open>i \<in># dom_m N\<close> and
-      ocr: \<open>((b, n, xs), None) \<in> option_lookup_clause_rel \<A>\<close> and
-     dist: \<open>distinct (N \<propto> i)\<close> and
-     lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm \<A> (mset `# ran_mf N)\<close> and
-     tauto: \<open>\<not>tautology (mset (N \<propto> i))\<close> and
-     \<open>clvls = 0\<close> and
-     out: \<open>out_learned M None outl\<close> and
-     bounded: \<open>isasat_input_bounded \<A>\<close>
-    for b n xs N i M clvls lbd outl
-  proof -
-    have lookup_conflict_merge_normalise:
-        \<open>lookup_conflict_merge 0 M C (b, zs) = lookup_conflict_merge 0 M C (False, zs)\<close>
-      for M C zs
-      unfolding lookup_conflict_merge_def by auto
-    have [simp]: \<open>out_learned M (Some {#}) outl\<close>
-      using out by (cases outl) (auto simp: out_learned_def)
-    have T: \<open>((False, n, xs), Some {#}) \<in> option_lookup_clause_rel \<A>\<close>
-      using ocr unfolding option_lookup_clause_rel_def by auto
-    have \<open>literals_are_in_\<L>\<^sub>i\<^sub>n \<A> (mset (N \<propto> i))\<close>
-      using literals_are_in_\<L>\<^sub>i\<^sub>n_mm_literals_are_in_\<L>\<^sub>i\<^sub>n[OF lits i] .
-    then show ?thesis unfolding set_lookup_conflict_aa_def set_conflict_m_def
-      using lookup_conflict_merge'_spec[of False n xs \<open>{#}\<close> \<A> \<open>N\<propto>i\<close> 0 _ 0 outl lbd] that dist T
-      by (auto simp: lookup_conflict_merge_normalise uint_max_def merge_conflict_m_g_def)
-  qed
-
-  have H: \<open>isa_set_lookup_conflict_aa M' arena i (b, n, xs) clvls lbd outl
-    \<le> \<Down> (option_lookup_clause_rel \<A> \<times>\<^sub>r Id)
-       (set_conflict_m M N i None clvls lbd outl)\<close>
-    if
-      i: \<open>i \<in># dom_m N\<close> and
-     ocr: \<open>((b, n, xs), None) \<in> option_lookup_clause_rel \<A>\<close> and
-     dist: \<open>distinct (N \<propto> i)\<close> and
-     lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm \<A> (mset `# ran_mf N)\<close> and
-     tauto: \<open>\<not>tautology (mset (N \<propto> i))\<close> and
-     \<open>clvls = 0\<close> and
-     out: \<open>out_learned M None outl\<close> and
-     valid: \<open>valid_arena arena N vdom\<close> and
-     M'M: \<open>(M', M) \<in> trail_pol \<A>\<close> and
-     bounded: \<open>isasat_input_bounded \<A>\<close>
-    for b n xs N i M clvls lbd outl arena vdom M'
-    unfolding isa_set_lookup_conflict_aa_def
-    apply (rule order.trans)
-    apply (rule isa_lookup_conflict_merge_lookup_conflict_merge_ext[OF valid i lits ocr M'M bounded])
-    unfolding lookup_conflict_merge_def[symmetric] set_lookup_conflict_aa_def[symmetric]
-      zero_uint32_nat_def[symmetric]
-    by (auto intro: H[OF that(1-7,10)])
-  show ?thesis
-    unfolding lookup_conflict_merge_def uncurry_def
-    by (intro nres_relI WB_More_Refinement.frefI) (auto intro!: H)
-qed
 
 
 sepref_register isa_resolve_merge_conflict_gt2

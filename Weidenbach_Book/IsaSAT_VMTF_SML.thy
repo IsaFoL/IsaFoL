@@ -41,6 +41,48 @@ lemma get_prev_ref[sepref_fr_rules]:
   unfolding option_assn_pure_conv
   by sepref_to_hoare (sep_auto simp: return_cons_rule vmtf_node_rel_def)
 
+sepref_definition atoms_hash_del_code
+  is \<open>uncurry (RETURN oo atoms_hash_del)\<close>
+  :: \<open>[uncurry atoms_hash_del_pre]\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a (array_assn bool_assn)\<^sup>d \<rightarrow> array_assn bool_assn\<close>
+  unfolding atoms_hash_del_def atoms_hash_del_pre_def
+  by sepref
+
+declare atoms_hash_del_code.refine[sepref_fr_rules]
+sepref_definition (in -) atoms_hash_insert_code
+  is \<open>uncurry (RETURN oo atoms_hash_insert)\<close>
+  :: \<open>[uncurry atms_hash_insert_pre]\<^sub>a
+      uint32_nat_assn\<^sup>k *\<^sub>a (arl_assn uint32_nat_assn *a array_assn bool_assn)\<^sup>d \<rightarrow>
+      arl_assn uint32_nat_assn *a array_assn bool_assn\<close>
+  unfolding atoms_hash_insert_def atms_hash_insert_pre_def
+  by sepref
+
+declare atoms_hash_insert_code.refine[sepref_fr_rules]
+
+sepref_definition (in -) get_pos_of_level_in_trail_imp_fast_code
+  is \<open>uncurry get_pos_of_level_in_trail_imp\<close>
+  :: \<open>trail_pol_fast_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+  unfolding get_pos_of_level_in_trail_imp_def
+  by sepref
+
+
+declare tl_trail_tr_no_CS_code.refine[sepref_fr_rules] tl_trail_tr_no_CS_fast_code.refine[sepref_fr_rules]
+
+sepref_register find_decomp_wl_imp
+sepref_register rescore_clause vmtf_flush
+sepref_register vmtf_mark_to_rescore
+sepref_register vmtf_mark_to_rescore_clause
+
+sepref_register vmtf_mark_to_rescore_also_reasons get_the_propagation_reason_pol
+
+sepref_register find_decomp_w_ns
+sepref_definition (in -) get_pos_of_level_in_trail_imp_code
+  is \<open>uncurry get_pos_of_level_in_trail_imp\<close>
+  :: \<open>trail_pol_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+  unfolding get_pos_of_level_in_trail_imp_def
+  by sepref
+
+declare get_pos_of_level_in_trail_imp_code.refine[sepref_fr_rules]
+   get_pos_of_level_in_trail_imp_fast_code.refine[sepref_fr_rules]
 
 lemma update_next_search_ref[sepref_fr_rules]:
   \<open>(uncurry (return oo update_next_search), uncurry (RETURN oo update_next_search)) \<in>
@@ -202,6 +244,7 @@ sepref_definition vmtf_en_dequeue_fast_code
 
 declare vmtf_en_dequeue_fast_code.refine[sepref_fr_rules]
 
+sepref_register vmtf_rescale
 sepref_definition vmtf_rescale_code
    is \<open>vmtf_rescale\<close>
    :: \<open>vmtf_conc\<^sup>d \<rightarrow>\<^sub>a vmtf_conc\<close>

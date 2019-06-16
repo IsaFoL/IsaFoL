@@ -1,7 +1,6 @@
 theory IsaSAT_Trail_SML
 imports IsaSAT_Literals_SML Watched_Literals.Array_UInt IsaSAT_Trail 
 begin
-hide_const WB_More_Refinement.uncurry0
 
 definition tri_bool_assn :: \<open>tri_bool \<Rightarrow> tri_bool_assn \<Rightarrow> assn\<close> where
   \<open>tri_bool_assn = hr_comp uint32_assn tri_bool_ref\<close>
@@ -67,41 +66,6 @@ abbreviation trail_pol_fast_assn :: \<open>trail_pol \<Rightarrow> trail_pol_fas
 paragraph \<open>Code generation\<close>
 
 subparagraph \<open>Conversion between incomplete and complete mode\<close>
-
-definition trail_fast_of_slow :: \<open>(nat, nat) ann_lits \<Rightarrow> (nat, nat) ann_lits\<close> where
-  \<open>trail_fast_of_slow = id\<close>
-
-definition trail_pol_slow_of_fast :: \<open>trail_pol \<Rightarrow> trail_pol\<close> where
-  \<open>trail_pol_slow_of_fast =
-    (\<lambda>(M, val, lvls, reason, k). (M, val, lvls, array_nat_of_uint64_conv reason, k))\<close>
-
-definition trail_slow_of_fast :: \<open>(nat, nat) ann_lits \<Rightarrow> (nat, nat) ann_lits\<close> where
-  \<open>trail_slow_of_fast = id\<close>
-
-definition trail_pol_fast_of_slow :: \<open>trail_pol \<Rightarrow> trail_pol\<close> where
-  \<open>trail_pol_fast_of_slow =
-    (\<lambda>(M, val, lvls, reason, k). (M, val, lvls, array_uint64_of_nat_conv reason, k))\<close>
-
-lemma trail_pol_slow_of_fast_alt_def:
-  \<open>trail_pol_slow_of_fast M = M\<close>
-  by (cases M)
-    (auto simp: trail_pol_slow_of_fast_def array_nat_of_uint64_conv_def)
-
-lemma trail_pol_fast_of_slow_trail_fast_of_slow:
-  \<open>(RETURN o trail_pol_fast_of_slow, RETURN o trail_fast_of_slow)
-    \<in> [\<lambda>M. (\<forall>C L. Propagated L C \<in> set M \<longrightarrow> C < uint64_max)]\<^sub>f
-        trail_pol \<A> \<rightarrow> \<langle>trail_pol \<A>\<rangle> nres_rel\<close>
-  by (intro frefI nres_relI)
-   (auto simp: trail_pol_def trail_pol_fast_of_slow_def array_nat_of_uint64_conv_def
-    trail_fast_of_slow_def array_uint64_of_nat_conv_def)
-
-lemma trail_pol_slow_of_fast_trail_slow_of_fast:
-  \<open>(RETURN o trail_pol_slow_of_fast, RETURN o trail_slow_of_fast)
-    \<in> trail_pol \<A> \<rightarrow>\<^sub>f \<langle>trail_pol \<A>\<rangle> nres_rel\<close>
-  by (intro frefI nres_relI)
-    (auto simp: trail_pol_def trail_pol_fast_of_slow_def array_nat_of_uint64_conv_def
-     trail_fast_of_slow_def array_uint64_of_nat_conv_def trail_slow_of_fast_def
-     trail_pol_slow_of_fast_def)
 
 sepref_definition trail_pol_slow_of_fast_code
   is \<open>RETURN o trail_pol_slow_of_fast\<close>

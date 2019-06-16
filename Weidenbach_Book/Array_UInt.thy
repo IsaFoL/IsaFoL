@@ -7,9 +7,7 @@ hide_const Autoref_Fix_Rel.CONSTRAINT
 lemma convert_fref:
   "WB_More_Refinement.fref = Sepref_Rules.fref"
   "WB_More_Refinement.freft = Sepref_Rules.freft"
-  "WB_More_Refinement.uncurry0 = Sepref_Misc.uncurry0"
-  unfolding  WB_More_Refinement.fref_def Sepref_Rules.fref_def
-    WB_More_Refinement.uncurry0_def Sepref_Misc.uncurry0_def
+  unfolding WB_More_Refinement.fref_def Sepref_Rules.fref_def
   by auto
 
 
@@ -1830,31 +1828,6 @@ qed
 
 subsubsection \<open>Conversion from list of lists of \<^typ>\<open>nat\<close> to list of lists of \<^typ>\<open>uint64\<close> \<close>
 
-definition op_map :: "('b \<Rightarrow> 'a::default) \<Rightarrow> 'a \<Rightarrow> 'b list \<Rightarrow> 'a list nres" where
-  \<open>op_map R e xs = do {
-    let zs = replicate (length xs) e;
-    (_, zs) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(i,zs). i \<le> length xs \<and> take i zs = map R (take i xs) \<and>
-        length zs = length xs \<and> (\<forall>k\<ge>i. k < length xs \<longrightarrow> zs ! k = e)\<^esup>
-      (\<lambda>(i, zs). i < length zs)
-      (\<lambda>(i, zs). do {ASSERT(i < length zs); RETURN (i+1, zs[i := R (xs!i)])})
-      (0, zs);
-    RETURN zs
-  }\<close>
-
-lemma op_map_map: \<open>op_map R e xs \<le> RETURN (map R xs)\<close>
-  unfolding op_map_def Let_def
-  by (refine_vcg WHILEIT_rule[where R=\<open>measure (\<lambda>(i,_). length xs - i)\<close>])
-    (auto simp: last_conv_nth take_Suc_conv_app_nth list_update_append split: nat.splits)
-
-lemma op_map_map_rel:
-  \<open>(op_map R e, RETURN o (map R)) \<in> \<langle>Id\<rangle>list_rel \<rightarrow>\<^sub>f \<langle>\<langle>Id\<rangle>list_rel\<rangle>nres_rel\<close>
-  by (intro frefI nres_relI) (auto simp: op_map_map)
-
-definition array_nat_of_uint64_conv :: \<open>nat list \<Rightarrow> nat list\<close> where
-\<open>array_nat_of_uint64_conv = id\<close>
-
-definition array_nat_of_uint64 :: "nat list \<Rightarrow> nat list nres" where
-\<open>array_nat_of_uint64 xs = op_map nat_of_uint64_conv 0 xs\<close>
 
 sepref_definition array_nat_of_uint64_code
   is array_nat_of_uint64
@@ -1863,23 +1836,12 @@ sepref_definition array_nat_of_uint64_code
   apply (rewrite at \<open>do {let _ = \<hole>; _}\<close> annotate_assn[where A=\<open>array_assn nat_assn\<close>])
   by sepref
 
-lemma array_nat_of_uint64_conv_alt_def:
-  \<open>array_nat_of_uint64_conv = map nat_of_uint64_conv\<close>
-  unfolding nat_of_uint64_conv_def array_nat_of_uint64_conv_def by auto
-
 lemma array_nat_of_uint64_conv_hnr[sepref_fr_rules]:
   \<open>(array_nat_of_uint64_code, (RETURN \<circ> array_nat_of_uint64_conv))
     \<in> (array_assn uint64_nat_assn)\<^sup>k \<rightarrow>\<^sub>a array_assn nat_assn\<close>
   using array_nat_of_uint64_code.refine[unfolded array_nat_of_uint64_def,
     FCOMP op_map_map_rel[unfolded convert_fref]] unfolding array_nat_of_uint64_conv_alt_def
   by simp
-
-
-definition array_uint64_of_nat_conv :: \<open>nat list \<Rightarrow> nat list\<close> where
-\<open>array_uint64_of_nat_conv = id\<close>
-
-definition array_uint64_of_nat :: "nat list \<Rightarrow> nat list nres" where
-\<open>array_uint64_of_nat xs = op_map uint64_of_nat_conv zero_uint64_nat xs\<close>
 
 sepref_definition array_uint64_of_nat_code
   is array_uint64_of_nat

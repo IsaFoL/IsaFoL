@@ -333,7 +333,42 @@ qed
 paragraph \<open>Code generation\<close>
 
 subparagraph \<open>Conversion between incomplete and complete mode\<close>
-text \<open>Only for SML, so see SML file\<close>
+
+definition trail_fast_of_slow :: \<open>(nat, nat) ann_lits \<Rightarrow> (nat, nat) ann_lits\<close> where
+  \<open>trail_fast_of_slow = id\<close>
+
+definition trail_pol_slow_of_fast :: \<open>trail_pol \<Rightarrow> trail_pol\<close> where
+  \<open>trail_pol_slow_of_fast =
+    (\<lambda>(M, val, lvls, reason, k). (M, val, lvls, array_nat_of_uint64_conv reason, k))\<close>
+
+definition trail_slow_of_fast :: \<open>(nat, nat) ann_lits \<Rightarrow> (nat, nat) ann_lits\<close> where
+  \<open>trail_slow_of_fast = id\<close>
+
+definition trail_pol_fast_of_slow :: \<open>trail_pol \<Rightarrow> trail_pol\<close> where
+  \<open>trail_pol_fast_of_slow =
+    (\<lambda>(M, val, lvls, reason, k). (M, val, lvls, array_uint64_of_nat_conv reason, k))\<close>
+
+lemma trail_pol_slow_of_fast_alt_def:
+  \<open>trail_pol_slow_of_fast M = M\<close>
+  by (cases M)
+    (auto simp: trail_pol_slow_of_fast_def array_nat_of_uint64_conv_def)
+
+lemma trail_pol_fast_of_slow_trail_fast_of_slow:
+  \<open>(RETURN o trail_pol_fast_of_slow, RETURN o trail_fast_of_slow)
+    \<in> [\<lambda>M. (\<forall>C L. Propagated L C \<in> set M \<longrightarrow> C < uint64_max)]\<^sub>f
+        trail_pol \<A> \<rightarrow> \<langle>trail_pol \<A>\<rangle> nres_rel\<close>
+  by (intro frefI nres_relI)
+   (auto simp: trail_pol_def trail_pol_fast_of_slow_def array_nat_of_uint64_conv_def
+    trail_fast_of_slow_def array_uint64_of_nat_conv_def)
+
+lemma trail_pol_slow_of_fast_trail_slow_of_fast:
+  \<open>(RETURN o trail_pol_slow_of_fast, RETURN o trail_slow_of_fast)
+    \<in> trail_pol \<A> \<rightarrow>\<^sub>f \<langle>trail_pol \<A>\<rangle> nres_rel\<close>
+  by (intro frefI nres_relI)
+    (auto simp: trail_pol_def trail_pol_fast_of_slow_def array_nat_of_uint64_conv_def
+     trail_fast_of_slow_def array_uint64_of_nat_conv_def trail_slow_of_fast_def
+     trail_pol_slow_of_fast_def)
+
 lemma trail_pol_same_length[simp]: \<open>(M', M) \<in> trail_pol \<A> \<Longrightarrow> length (fst M') = length M\<close>
   by (auto simp: trail_pol_alt_def)
 

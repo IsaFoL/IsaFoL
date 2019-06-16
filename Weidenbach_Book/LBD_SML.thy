@@ -83,7 +83,7 @@ sepref_definition empty_lbd_code
 
 lemma empty_lbd_hnr[sepref_fr_rules]:
   \<open>(Sepref_Misc.uncurry0 empty_lbd_code, Sepref_Misc.uncurry0 (RETURN empty_lbd)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a lbd_assn\<close>
-  using empty_lbd_code.refine[FCOMP empty_lbd_ref_empty_lbd[unfolded convert_fref]]
+  using empty_lbd_code.refine[FCOMP empty_lbd_ref_empty_lbd[unfolded convert_fref uncurry0_def[symmetric]]]
   unfolding lbd_assn_def .
 
 sepref_definition get_LBD_code

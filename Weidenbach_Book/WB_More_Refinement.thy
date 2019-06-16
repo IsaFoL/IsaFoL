@@ -7,6 +7,7 @@ theory WB_More_Refinement
     Automatic_Refinement.Automatic_Refinement
     Automatic_Refinement.Relators
     Refine_Monadic.Refine_While
+    Refine_Monadic.Refine_Foreach
 begin
 (*
   term \<open>a \<rightarrow>\<^sub>f b\<close>
@@ -249,7 +250,6 @@ method match_spec_trans =
 
 subsection \<open>More Notations\<close>
 
-definition uncurry0 where "uncurry0 c \<equiv> \<lambda>_::unit. c"
 abbreviation "uncurry2 f \<equiv> uncurry (uncurry f)"
 abbreviation "curry2 f \<equiv> curry (curry f)"
 abbreviation "uncurry3 f \<equiv> uncurry (uncurry2 f)"
@@ -326,9 +326,6 @@ notation
   comp18 (infixl "\<circ>\<^sub>1\<^sub>8" 55) and
   comp19 (infixl "\<circ>\<^sub>1\<^sub>9" 55) and
   comp20 (infixl "\<circ>\<^sub>2\<^sub>0" 55)
-
-lemma uncurry0[simp]: \<open>uncurry0 f x = f\<close>
-  unfolding uncurry0_def by auto
 
 
 subsection \<open>More Theorems for Refinement\<close>
@@ -1055,5 +1052,91 @@ lemma find_in_list_between_spec:
   subgoal by auto
   subgoal by auto
   done
+
+
+lemma nfoldli_cong2:
+  assumes
+    le: \<open>length l = length l'\<close> and
+    \<sigma>: \<open>\<sigma> = \<sigma>'\<close> and
+    c: \<open>c = c'\<close> and
+    H: \<open>\<And>\<sigma> x. x < length l \<Longrightarrow> c' \<sigma> \<Longrightarrow> f (l ! x) \<sigma> = f' (l' ! x) \<sigma>\<close>
+  shows \<open>nfoldli l c f \<sigma> = nfoldli l' c' f' \<sigma>'\<close>
+proof -
+  show ?thesis
+    using le H unfolding c[symmetric] \<sigma>[symmetric]
+  proof (induction l arbitrary: l' \<sigma>)
+    case Nil
+    then show ?case by simp
+  next
+    case (Cons a l l'') note IH=this(1) and le = this(2) and H = this(3)
+    show ?case
+      using le H[of \<open>Suc _\<close>] H[of 0] IH[of \<open>tl l''\<close> \<open>_\<close>]
+      by (cases l'')
+        (auto intro: bind_cong_nres)
+  qed
+qed
+
+lemma nfoldli_nfoldli_list_nth:
+  \<open>nfoldli xs c P a = nfoldli [0..<length xs] c (\<lambda>i. P (xs ! i)) a\<close>
+proof (induction xs arbitrary: a)
+  case Nil
+  then show ?case by auto
+next
+  case (Cons x xs) note IH = this(1)
+  have 1: \<open>[0..<length (x # xs)] = 0 # [1..<length (x#xs)]\<close>
+    by (subst upt_rec)  simp
+  have 2: \<open>[1..<length (x#xs)] = map Suc [0..<length xs]\<close>
+    by (induction xs) auto
+  have AB: \<open>nfoldli [0..<length (x # xs)] c (\<lambda>i. P ((x # xs) ! i)) a =
+      nfoldli (0 # [1..<length (x#xs)]) c (\<lambda>i. P ((x # xs) ! i)) a\<close>
+      (is \<open>?A = ?B\<close>)
+    unfolding 1 ..
+  {
+    assume [simp]: \<open>c a\<close>
+    have \<open>nfoldli (0 # [1..<length (x#xs)]) c (\<lambda>i. P ((x # xs) ! i)) a =
+       do {
+         \<sigma> \<leftarrow> (P x a);
+         nfoldli [1..<length (x#xs)] c (\<lambda>i. P ((x # xs) ! i)) \<sigma>
+        }\<close>
+      by simp
+    moreover have \<open>nfoldli [1..<length (x#xs)] c (\<lambda>i. P ((x # xs) ! i)) \<sigma>  =
+       nfoldli [0..<length xs] c (\<lambda>i. P (xs ! i)) \<sigma>\<close> for \<sigma>
+      unfolding 2
+      by (rule nfoldli_cong2) auto
+    ultimately have \<open>?A = do {
+         \<sigma> \<leftarrow> (P x a);
+         nfoldli [0..<length xs] c (\<lambda>i. P (xs ! i))  \<sigma>
+        }\<close>
+      using AB
+      by (auto intro: bind_cong_nres)
+  }
+  moreover {
+    assume [simp]: \<open>\<not>c a\<close>
+    have \<open>?B = RETURN a\<close>
+      by simp
+  }
+  ultimately show ?case by (auto simp: IH intro: bind_cong_nres)
+qed
+
+(*TODO kill once shared*)
+definition "list_mset_rel \<equiv> br mset (\<lambda>_. True)"
+
+lemma
+  Nil_list_mset_rel_iff:
+    \<open>([], aaa) \<in> list_mset_rel \<longleftrightarrow> aaa = {#}\<close> and
+  empty_list_mset_rel_iff:
+    \<open>(a, {#}) \<in> list_mset_rel \<longleftrightarrow> a = []\<close>
+  by (auto simp: list_mset_rel_def br_def)
+
+definition list_rel_mset_rel where list_rel_mset_rel_internal:
+\<open>list_rel_mset_rel \<equiv> \<lambda>R. \<langle>R\<rangle>list_rel O list_mset_rel\<close>
+
+lemma list_rel_mset_rel_def[refine_rel_defs]:
+  \<open>\<langle>R\<rangle>list_rel_mset_rel = \<langle>R\<rangle>list_rel O list_mset_rel\<close>
+  unfolding relAPP_def list_rel_mset_rel_internal ..
+
+lemma list_rel_mset_rel_imp_same_length: \<open>(a, b) \<in> \<langle>R\<rangle>list_rel_mset_rel \<Longrightarrow> length a = size b\<close>
+  by (auto simp: list_rel_mset_rel_def list_mset_rel_def br_def
+      dest: list_rel_imp_same_length)
 
 end

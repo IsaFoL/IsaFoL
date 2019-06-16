@@ -531,7 +531,6 @@ definition (in -) clause_score_extract :: \<open>arena \<Rightarrow> nat \<Right
        let act = arena_act arena C in
        (lbd, act)
   )\<close>
-sepref_register clause_score_extract
 
 definition valid_sort_clause_score_pre_at where
   \<open>valid_sort_clause_score_pre_at arena C \<longleftrightarrow>
@@ -4226,13 +4225,6 @@ lemma get_pos_of_level_in_trail_imp_alt_def:
   \<open>get_pos_of_level_in_trail_imp_st = (\<lambda>(M, _).  get_pos_of_level_in_trail_imp M)\<close>
   by (auto simp: get_pos_of_level_in_trail_imp_st_def intro!: ext)
 
-sepref_de
-
-lemma shorten_take_ll_0: \<open>shorten_take_ll L 0 W = W[L := []]\<close>
-  by (auto simp: shorten_take_ll_def)
-
-lemma length_shorten_take_ll[simp]: \<open>length (shorten_take_ll a j W) = length W\<close>
-  by (auto simp: shorten_take_ll_def)
 
 definition rewatch_heur_st_pre :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close> where
 \<open>rewatch_heur_st_pre S \<longleftrightarrow> (\<forall>i < length (get_vdom S). get_vdom S ! i \<le> uint64_max)\<close>
