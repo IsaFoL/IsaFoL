@@ -232,12 +232,13 @@ proof -
             \<open>L \<in># E\<close> and
             \<open>undefined_lit (drop (Suc k) M') L\<close> and
             \<open>E \<in># N'\<close> for L E
-          using that no_propa
+          using that no_propa Sk[symmetric]
           apply (subst (asm)(3) M')
           apply (subst (asm)(2) M')
           apply (subst (asm) M')
           unfolding k_def[symmetric] Dec
-          by (auto simp: k_def dest!: multi_member_split)
+          apply (auto simp: k_def dest!: multi_member_split[of _ N'])
+          by (metis Sk that(1))
 
         have \<open>D \<in># N \<longrightarrow> undefined_lit (trail (?S m)) L \<longrightarrow> L \<in># D \<longrightarrow>
             \<not> (trail (?S m)) \<Turnstile>as CNot (remove1_mset L D)\<close> and
@@ -254,6 +255,8 @@ proof -
           apply (subst (asm) M')
           unfolding k_def[symmetric] Dec
           by (auto simp: k_def dest!: multi_member_split)
+          (metis K M' Sk cdcl\<^sub>W_restart_mset_state(1) drop_append
+            k_def length_take true_annots_append_l)
 
         have H: \<open>D \<in># N + U' \<longrightarrow> \<not> (trail (?S m)) \<Turnstile>as CNot D\<close> for D
           using smaller_confl U'_U unfolding cdcl\<^sub>W_restart_mset.no_smaller_confl_def

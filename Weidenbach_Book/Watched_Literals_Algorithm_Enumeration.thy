@@ -973,27 +973,20 @@ proof -
       subgoal by (rule final)
       done
   qed
-  have H1: \<open>(if count_decided (get_trail Sb) = 0 then P (lits_of_l (get_trail Sb)) else True,
-            fst x' \<noteq> None) \<in> bool_rel\<close>
+  have H1: \<open>(if get_conflict Sb = None
+        then RETURN
+              (if count_decided (get_trail Sb) = 0
+               then P (lits_of_l (get_trail Sb)) else True)
+        else RETURN False)
+       \<le> \<Down> bool_rel (RETURN (fst x' \<noteq> None))\<close>
     if
       \<open>case y of (M, N) \<Rightarrow> M = None\<close> and
       \<open>(Sb, x') \<in> ?Res\<close> and
-      \<open>x' \<in> Collect (full (next_model_filtered P) (None, snd Sa))\<close> and
-      \<open>get_conflict Sb = None\<close>
+      \<open>x' \<in> Collect (full (next_model_filtered P) (None, snd Sa))\<close>
     for x x' Sa Sb S y
     using that (* TODO Proof *)
     by (auto simp: enum_mod_restriction_st_clss_after_def enum_model_st_def
-        enum_mod_restriction_st_clss_def lits_of_def)
-  have H2: \<open>(False, fst x' \<noteq> None) \<in> bool_rel\<close>
-    if
-      \<open>case y of (M, N) \<Rightarrow> M = None\<close> and
-      \<open>(Sb, x') \<in> ?Res\<close> and
-      \<open>x' \<in> Collect (full (next_model_filtered P) (None, snd Sa))\<close> and
-      \<open>get_conflict Sb \<noteq> None\<close>
-    for x x' Sa Sb S y
-    using that
-    by (auto simp: enum_mod_restriction_st_clss_after_def enum_model_st_def
-        enum_mod_restriction_st_clss_def lits_of_def)
+        enum_mod_restriction_st_clss_def lits_of_def split: if_splits)
   show ?thesis
     supply if_splits[split]
     unfolding cdcl_twl_enum_def
@@ -1002,9 +995,8 @@ proof -
     subgoal by auto
     apply (refine_vcg conclusive_run)
     unfolding conc_fun_SPEC
-      apply (rule loop; assumption)
-     apply (rule H1; assumption)
-    apply (rule H2; assumption)
+     apply (rule loop; assumption)
+    apply (rule H1; assumption)
     done
 qed
 
