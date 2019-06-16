@@ -58,51 +58,13 @@ definition SET_TRUE :: \<open>tri_bool\<close> where
 definition tri_bool_ref :: \<open>(tri_bool_assn \<times> tri_bool) set\<close> where
   \<open>tri_bool_ref = {(SET_TRUE_code, SET_TRUE), (UNSET_code, UNSET), (SET_FALSE_code, SET_FALSE)}\<close>
 
-definition tri_bool_assn :: \<open>tri_bool \<Rightarrow> tri_bool_assn \<Rightarrow> assn\<close> where
-  \<open>tri_bool_assn = hr_comp uint32_assn tri_bool_ref\<close>
-
-lemma UNSET_hnr[sepref_fr_rules]:
-  \<open>(uncurry0 (return UNSET_code), uncurry0 (RETURN UNSET)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a tri_bool_assn\<close>
-  by sepref_to_hoare (sep_auto simp: tri_bool_assn_def tri_bool_ref_def pure_def hr_comp_def)
-
 definition (in -) tri_bool_eq :: \<open>tri_bool \<Rightarrow> tri_bool \<Rightarrow> bool\<close> where
   \<open>tri_bool_eq = (=)\<close>
-
-lemma equality_tri_bool_hnr[sepref_fr_rules]:
-  \<open>(uncurry (return oo (=)), uncurry(RETURN oo tri_bool_eq)) \<in>
-      tri_bool_assn\<^sup>k *\<^sub>a tri_bool_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
-  apply sepref_to_hoare
-  using nat_of_uint32_012 nat_of_uint32_3
-  by (sep_auto simp: tri_bool_assn_def tri_bool_ref_def pure_def hr_comp_def
-    tri_bool_eq_def)+
-
-lemma SET_TRUE_hnr[sepref_fr_rules]:
-  \<open>(uncurry0 (return SET_TRUE_code), uncurry0 (RETURN SET_TRUE)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a tri_bool_assn\<close>
-  by sepref_to_hoare (sep_auto simp: tri_bool_assn_def tri_bool_ref_def pure_def hr_comp_def)
-
-lemma SET_FALSE_hnr[sepref_fr_rules]:
-  \<open>(uncurry0 (return SET_FALSE_code), uncurry0 (RETURN SET_FALSE)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a tri_bool_assn\<close>
-  using nat_of_uint32_012 nat_of_uint32_3
-  by sepref_to_hoare (sep_auto simp: tri_bool_assn_def tri_bool_ref_def pure_def hr_comp_def)+
-
-lemma [safe_constraint_rules]:
-  \<open>is_pure tri_bool_assn\<close>
-  unfolding tri_bool_assn_def
-  by auto
 
 paragraph \<open>Types\<close>
 
 type_synonym trail_pol =
    \<open>nat literal list \<times> tri_bool list \<times> nat list \<times> nat list \<times> nat \<times> nat list\<close>
-
-type_synonym trail_pol_assn =
-   \<open>uint32 array_list \<times> tri_bool_assn array \<times> uint32 array \<times> nat array \<times> uint32 \<times>
-      uint32 array_list\<close>
-
-type_synonym trail_pol_fast_assn =
-   \<open>uint32 array_list \<times> tri_bool_assn array \<times> uint32 array \<times>
-     uint64 array \<times> uint32 \<times>
-     uint32 array_list\<close>
 
 definition get_level_atm where
   \<open>get_level_atm M L = get_level M (Pos L)\<close>
@@ -316,14 +278,6 @@ paragraph \<open>Encoding of the reasons\<close>
 definition DECISION_REASON :: nat where
   \<open>DECISION_REASON = 1\<close>
 
-lemma DECISION_REASON_uint64:
-  \<open>(uncurry0 (return 1), uncurry0 (RETURN DECISION_REASON)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
-  by sepref_to_hoare (sep_auto simp: DECISION_REASON_def uint64_nat_rel_def br_def)
-
-lemma DECISION_REASON'[sepref_fr_rules]:
-  \<open>(uncurry0 (return 1), uncurry0 (RETURN DECISION_REASON)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
-  by sepref_to_hoare (sep_auto simp: DECISION_REASON_def uint64_nat_rel_def br_def)
-
 definition ann_lits_split_reasons where
   \<open>ann_lits_split_reasons \<A> = {((M, reasons), M'). M = map lit_of (rev M') \<and>
     (\<forall>L \<in> set M'. is_proped L \<longrightarrow>
@@ -376,61 +330,12 @@ proof -
 	simp del: isasat_input_bounded_def)
 qed
 
-lemma trail_pol_same_length[simp]: \<open>(M', M) \<in> trail_pol \<A> \<Longrightarrow> length (fst M') = length M\<close>
-  by (auto simp: trail_pol_alt_def)
-
-abbreviation trail_pol_assn :: \<open>trail_pol \<Rightarrow> trail_pol_assn \<Rightarrow> assn\<close> where
-  \<open>trail_pol_assn \<equiv>
-    arl_assn unat_lit_assn *a array_assn (tri_bool_assn) *a
-    array_assn uint32_nat_assn *a
-    array_assn (nat_assn) *a uint32_nat_assn *a arl_assn uint32_nat_assn\<close>
-
-abbreviation trail_pol_fast_assn :: \<open>trail_pol \<Rightarrow> trail_pol_fast_assn \<Rightarrow> assn\<close> where
-  \<open>trail_pol_fast_assn \<equiv>
-    arl_assn unat_lit_assn *a array_assn (tri_bool_assn) *a
-    array_assn uint32_nat_assn *a
-    array_assn uint64_nat_assn *a uint32_nat_assn *a
-    arl_assn uint32_nat_assn\<close>
-
-
 paragraph \<open>Code generation\<close>
 
 subparagraph \<open>Conversion between incomplete and complete mode\<close>
-
-definition trail_fast_of_slow :: \<open>(nat, nat) ann_lits \<Rightarrow> (nat, nat) ann_lits\<close> where
-  \<open>trail_fast_of_slow = id\<close>
-
-definition trail_pol_slow_of_fast :: \<open>trail_pol \<Rightarrow> trail_pol\<close> where
-  \<open>trail_pol_slow_of_fast =
-    (\<lambda>(M, val, lvls, reason, k). (M, val, lvls, array_nat_of_uint64_conv reason, k))\<close>
-
-definition trail_slow_of_fast :: \<open>(nat, nat) ann_lits \<Rightarrow> (nat, nat) ann_lits\<close> where
-  \<open>trail_slow_of_fast = id\<close>
-
-definition trail_pol_fast_of_slow :: \<open>trail_pol \<Rightarrow> trail_pol\<close> where
-  \<open>trail_pol_fast_of_slow =
-    (\<lambda>(M, val, lvls, reason, k). (M, val, lvls, array_uint64_of_nat_conv reason, k))\<close>
-
-lemma trail_pol_slow_of_fast_alt_def:
-  \<open>trail_pol_slow_of_fast M = M\<close>
-  by (cases M)
-    (auto simp: trail_pol_slow_of_fast_def array_nat_of_uint64_conv_def)
-
-lemma trail_pol_fast_of_slow_trail_fast_of_slow:
-  \<open>(RETURN o trail_pol_fast_of_slow, RETURN o trail_fast_of_slow)
-    \<in> [\<lambda>M. (\<forall>C L. Propagated L C \<in> set M \<longrightarrow> C < uint64_max)]\<^sub>f
-        trail_pol \<A> \<rightarrow> \<langle>trail_pol \<A>\<rangle> nres_rel\<close>
-  by (intro frefI nres_relI)
-   (auto simp: trail_pol_def trail_pol_fast_of_slow_def array_nat_of_uint64_conv_def
-    trail_fast_of_slow_def array_uint64_of_nat_conv_def)
-
-lemma trail_pol_slow_of_fast_trail_slow_of_fast:
-  \<open>(RETURN o trail_pol_slow_of_fast, RETURN o trail_slow_of_fast)
-    \<in> trail_pol \<A> \<rightarrow>\<^sub>f \<langle>trail_pol \<A>\<rangle> nres_rel\<close>
-  by (intro frefI nres_relI)
-    (auto simp: trail_pol_def trail_pol_fast_of_slow_def array_nat_of_uint64_conv_def
-     trail_fast_of_slow_def array_uint64_of_nat_conv_def trail_slow_of_fast_def
-     trail_pol_slow_of_fast_def)
+text \<open>Only for SML, so see SML file\<close>
+lemma trail_pol_same_length[simp]: \<open>(M', M) \<in> trail_pol \<A> \<Longrightarrow> length (fst M') = length M\<close>
+  by (auto simp: trail_pol_alt_def)
 
 definition counts_maximum_level where
   \<open>counts_maximum_level M C = {i. C \<noteq> None \<longrightarrow> i = card_max_lvl M (the C)}\<close>
@@ -455,7 +360,7 @@ lemma get_level_atm_pol_pre:
     \<open>(M', M) \<in> trail_pol \<A>\<close>
   shows \<open>get_level_atm_pol_pre (M', L)\<close>
   using assms
-  by (auto 5 5 simp: comp_PRE_def trail_pol_def unat_lit_rel_def nat_lit_rel_def
+  by (auto 5 5 simp: trail_pol_def unat_lit_rel_def nat_lit_rel_def
     uint32_nat_rel_def br_def get_level_atm_pol_pre_def intro!: ext)
 
 lemma (in -) get_level_get_level_atm: \<open>get_level M L = get_level_atm M (atm_of L)\<close>
@@ -474,7 +379,7 @@ lemma get_level_pol_pre:
     \<open>(M', M) \<in> trail_pol \<A>\<close>
   shows \<open>get_level_pol_pre (M', L)\<close>
   using assms
-  by (auto 5 5 simp: comp_PRE_def trail_pol_def unat_lit_rel_def nat_lit_rel_def
+  by (auto 5 5 simp: trail_pol_def unat_lit_rel_def nat_lit_rel_def
     uint32_nat_rel_def br_def get_level_pol_pre_def intro!: ext)
 
 
@@ -494,17 +399,6 @@ definition (in -) count_decided_pol where
 lemma count_decided_trail_ref:
   \<open>(RETURN o count_decided_pol, RETURN o count_decided) \<in> trail_pol \<A> \<rightarrow>\<^sub>f \<langle>nat_rel\<rangle>nres_rel\<close>
   by (intro frefI nres_relI) (auto simp: trail_pol_def count_decided_pol_def)
-
-lemma count_decided_trail[sepref_fr_rules]:
-   \<open>(return o count_decided_pol, RETURN o count_decided_pol) \<in> trail_pol_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
-  supply [[goals_limit = 1]]
-  by sepref_to_hoare (sep_auto simp: count_decided_pol_def)
-
-lemma count_decided_trail_fast[sepref_fr_rules]:
-   \<open>(return o count_decided_pol, RETURN o count_decided_pol) \<in> trail_pol_fast_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
-  supply [[goals_limit = 1]]
-  by sepref_to_hoare (sep_auto simp: count_decided_pol_def)
-
 
 
 subparagraph \<open>Polarity\<close>
@@ -666,7 +560,7 @@ lemma cons_trail_Propagated_tr_pre:
     \<open>C \<noteq> DECISION_REASON\<close>
   shows \<open>cons_trail_Propagated_tr_pre ((L, C), M')\<close>
   using assms
-  by (auto simp: comp_PRE_def trail_pol_def ann_lits_split_reasons_def uminus_\<A>\<^sub>i\<^sub>n_iff
+  by (auto simp: trail_pol_def ann_lits_split_reasons_def uminus_\<A>\<^sub>i\<^sub>n_iff
        cons_trail_Propagated_tr_pre_def
     intro!: ext)
 
@@ -691,14 +585,14 @@ lemma (in -) nat_ann_lit_rel_alt_def: \<open>nat_ann_lit_rel = (unat_lit_rel \<t
   apply (rule; rule)
   subgoal for x
     by (cases x; cases \<open>fst x\<close>)
-      (auto simp: nat_ann_lit_rel_def pure_def ann_lit_of_pair_alt_def hr_comp_def
-        ex_assn_pair_split unat_lit_rel_def uint32_nat_rel_def br_def nat_lit_rel_def
+      (auto simp: nat_ann_lit_rel_def ann_lit_of_pair_alt_def
+        unat_lit_rel_def uint32_nat_rel_def br_def nat_lit_rel_def
         Collect_eq_comp case_prod_beta relcomp.simps
         split: if_splits)
   subgoal for x
     by (cases x; cases \<open>fst x\<close>)
-      (auto simp: nat_ann_lit_rel_def pure_def ann_lit_of_pair_alt_def hr_comp_def
-        ex_assn_pair_split unat_lit_rel_def uint32_nat_rel_def br_def nat_lit_rel_def
+      (auto simp: nat_ann_lit_rel_def ann_lit_of_pair_alt_def
+        unat_lit_rel_def uint32_nat_rel_def br_def nat_lit_rel_def
         Collect_eq_comp case_prod_beta relcomp.simps
         split: if_splits)
   done
@@ -779,7 +673,7 @@ proof -
   show ?thesis
     using assms
     by (cases M; cases \<open>hd M\<close>)
-     (auto simp: comp_PRE_def trail_pol_def ann_lits_split_reasons_def uminus_\<A>\<^sub>i\<^sub>n_iff
+     (auto simp: trail_pol_def ann_lits_split_reasons_def uminus_\<A>\<^sub>i\<^sub>n_iff
         rev_map[symmetric] hd_append hd_map  tl_trailt_tr_pre_def simp del: rev_map
         intro!: ext)
 qed
@@ -882,7 +776,7 @@ lemma cons_trail_Decided_tr_pre:
     \<open>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<close> and \<open>undefined_lit M L\<close>
   shows \<open>cons_trail_Decided_tr_pre (L, M')\<close>
   using assms
-  by (auto simp: comp_PRE_def trail_pol_def image_image ann_lits_split_reasons_def uminus_\<A>\<^sub>i\<^sub>n_iff
+  by (auto simp: trail_pol_def image_image ann_lits_split_reasons_def uminus_\<A>\<^sub>i\<^sub>n_iff
          cons_trail_Decided_tr_pre_def
        intro!: ext undefined_lit_count_decided_uint_max length_trail_uint_max)
 
@@ -938,8 +832,6 @@ definition get_propagation_reason_pol :: \<open>trail_pol \<Rightarrow> nat lite
       ASSERT(atm_of L < length reasons);
       let r = reasons ! atm_of L;
       RETURN (if r = DECISION_REASON then None else Some r)})\<close>
-
-sepref_register get_propagation_reason
 
 lemma get_propagation_reason_pol:
   \<open>(uncurry get_propagation_reason_pol, uncurry get_propagation_reason) \<in>
@@ -1095,22 +987,10 @@ proof -
     unfolding trail_pol_def comp_def RETURN_refine_iff trail_pol_no_CS_def Let_def
       tl_trailt_tr_no_CS_def tl_trailt_tr_no_CS_pre_def
     by (cases M; cases \<open>hd M\<close>)
-      (auto simp: comp_PRE_def trail_pol_no_CS_def ann_lits_split_reasons_def uminus_\<A>\<^sub>i\<^sub>n_iff
+      (auto simp: trail_pol_no_CS_def ann_lits_split_reasons_def uminus_\<A>\<^sub>i\<^sub>n_iff
           rev_map[symmetric] hd_append hd_map simp del: rev_map
         intro!: ext)
 qed
-
-abbreviation (in -) trail_pol_assn' :: \<open>trail_pol \<Rightarrow> trail_pol_assn \<Rightarrow> assn\<close> where
-  \<open>trail_pol_assn' \<equiv>
-      arl_assn unat_lit_assn *a array_assn (tri_bool_assn) *a
-      array_assn uint32_nat_assn *a
-      array_assn nat_assn *a uint32_nat_assn *a arl_assn uint32_nat_assn\<close>
-
-abbreviation (in -) trail_pol_fast_assn' :: \<open>trail_pol \<Rightarrow> trail_pol_fast_assn \<Rightarrow> assn\<close> where
-  \<open>trail_pol_fast_assn' \<equiv>
-      arl_assn unat_lit_assn *a array_assn (tri_bool_assn) *a
-      array_assn uint32_nat_assn *a
-      array_assn uint64_nat_assn *a uint32_nat_assn *a arl_assn uint32_nat_assn\<close>
 
 lemma tl_trail_tr_no_CS:
   \<open>((RETURN o tl_trailt_tr_no_CS), (RETURN o tl)) \<in>
@@ -1161,7 +1041,7 @@ definition trail_pol_conv_to_no_CS :: \<open>trail_pol \<Rightarrow> trail_pol\<
 lemma id_trail_conv_to_no_CS:
   \<open>(RETURN o trail_pol_conv_to_no_CS, RETURN o trail_conv_to_no_CS) \<in> trail_pol \<A> \<rightarrow>\<^sub>f \<langle>trail_pol_no_CS \<A>\<rangle>nres_rel\<close>
   by (intro frefI nres_relI)
-    (auto simp: trail_pol_no_CS_def trail_conv_to_no_CS_def hr_comp_def trail_pol_def
+    (auto simp: trail_pol_no_CS_def trail_conv_to_no_CS_def trail_pol_def
       control_stack_length_count_dec trail_pol_conv_to_no_CS_def
       intro: ext)
 
@@ -1176,22 +1056,13 @@ lemma trail_conv_back:
   \<open>(uncurry trail_conv_back_imp, uncurry (RETURN oo trail_conv_back))
       \<in> [\<lambda>(k, M). k = count_decided M]\<^sub>f nat_rel \<times>\<^sub>f trail_pol_no_CS \<A> \<rightarrow> \<langle>trail_pol \<A>\<rangle>nres_rel\<close>
   by (intro frefI nres_relI)
-    (force simp: trail_pol_no_CS_def trail_conv_to_no_CS_def hr_comp_def trail_pol_def
+    (force simp: trail_pol_no_CS_def trail_conv_to_no_CS_def trail_pol_def
       control_stack_length_count_dec trail_conv_back_def trail_conv_back_imp_def
       intro: ext intro!: ASSERT_refine_left
       dest: control_stack_length_count_dec multi_member_split)
 
 definition (in -)take_arl where
   \<open>take_arl = (\<lambda>i (xs, j). (xs, i))\<close>
-
-lemma (in -) take_arl_assn[sepref_fr_rules]:
-  \<open>(uncurry (return oo take_arl), uncurry (RETURN oo take))
-    \<in> [\<lambda>(j, xs). j \<le> length xs]\<^sub>a nat_assn\<^sup>k *\<^sub>a (arl_assn R)\<^sup>d \<rightarrow> arl_assn R\<close>
-  apply sepref_to_hoare
-  apply (sep_auto simp: arl_assn_def hr_comp_def take_arl_def intro!: list_rel_take)
-  apply (sep_auto simp: is_array_list_def list_rel_imp_same_length[symmetric] min_def
-      split: if_splits)
-  done
 
 
 lemma isa_trail_nth_rev_trail_nth_no_CS:

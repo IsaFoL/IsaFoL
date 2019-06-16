@@ -1,5 +1,6 @@
 theory Watched_Literals_List
-  imports Watched_Literals_Algorithm CDCL.DPLL_CDCL_W_Implementation
+  imports WB_More_Refinement_List Watched_Literals_Algorithm CDCL.DPLL_CDCL_W_Implementation
+    Refine_Monadic.Refine_Monadic
 begin
 
 lemma mset_take_mset_drop_mset: \<open>(\<lambda>x. mset (take 2 x) + mset (drop 2 x)) = mset\<close>
@@ -160,7 +161,7 @@ lemma convert_lits_l_append[simp]:
   \<open>length M1 = length M1' \<Longrightarrow>
   (M1 @ M2, M1' @ M2') \<in> convert_lits_l N E \<longleftrightarrow> (M1, M1') \<in> convert_lits_l N E \<and>
            (M2, M2') \<in> convert_lits_l N E \<close>
-  by (auto simp: convert_lits_l_def list_rel_append2 list_rel_pres_length)
+  by (auto simp: convert_lits_l_def list_rel_append2 list_rel_imp_same_length)
 
 lemma convert_lits_l_map_lit_of: \<open>(ay, bq) \<in> convert_lits_l N e \<Longrightarrow> map lit_of ay = map lit_of bq\<close>
   apply (induction ay arbitrary: bq)
@@ -1604,7 +1605,7 @@ proof -
     using imageI[OF WS, of \<open>(\<lambda>j. (L, twl_clause_of (N \<propto> j)))\<close>]
       struct_invs stgy_inv C_N_U WS SS' D_None by auto
   have H': \<open>?B \<le> SPEC (\<lambda>S'. twl_stgy_invs S' \<and> twl_struct_invs S')\<close>
-    using * unfolding conj.left_assoc
+    using *
     by (simp add: weaken_SPEC)
   have \<open>?A
     \<le> \<Down> {(S, S'). ((S, S') \<in> twl_st_l (Some L) \<and> twl_list_invs S) \<and>

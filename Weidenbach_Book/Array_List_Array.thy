@@ -154,9 +154,6 @@ definition nth_raa :: \<open>'a::heap arrayO_raa \<Rightarrow> nat \<Rightarrow>
       y \<leftarrow> Array.nth x j;
       return y}\<close>
 
-definition nth_rll :: "'a list list \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a" where
-  \<open>nth_rll l i j = l ! i ! j\<close>
-
 lemma nth_raa_hnr[sepref_fr_rules]:
   assumes p: \<open>is_pure R\<close>
   shows

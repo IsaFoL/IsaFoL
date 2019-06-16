@@ -29,15 +29,7 @@ lemma nth_clauses_l:
 abbreviation clauses_l_fmat where
   \<open>clauses_l_fmat \<equiv> list_fmap_rel\<close>
 
-abbreviation isasat_clauses_assn where
-  \<open>isasat_clauses_assn \<equiv> arlO_assn clause_ll_assn *a arl_assn (clause_status_assn *a uint32_nat_assn *a uint32_nat_assn)\<close>
-
 type_synonym vdom = \<open>nat set\<close>
-
-definition clauses_ll_assn
-   :: \<open>vdom \<Rightarrow> nat clauses_l \<Rightarrow> uint32 array_list \<Rightarrow> assn\<close>
-where
-  \<open>clauses_ll_assn vdom = hr_comp arena_assn (clauses_l_fmat vdom)\<close>
 
 definition fmap_rll :: "(nat, 'a literal list \<times> bool) fmap \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a literal" where
   [simp]: \<open>fmap_rll l i j = l \<propto> i ! j\<close>
@@ -45,28 +37,8 @@ definition fmap_rll :: "(nat, 'a literal list \<times> bool) fmap \<Rightarrow> 
 definition fmap_rll_u :: "(nat, 'a literal list \<times> bool) fmap \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a literal" where
   [simp]: \<open>fmap_rll_u  = fmap_rll\<close>
 
-lemma nth_raa_hnr':
-  assumes p: \<open>is_pure R\<close>
-  shows
-    \<open>(uncurry2 (\<lambda>(N, _) j k. nth_raa N j k), uncurry2 (RETURN \<circ>\<circ>\<circ> (\<lambda>(N, _) i. Array_List_Array.nth_rll N i))) \<in>
-       [\<lambda>(((l, _),i),j). i < length l \<and> j < length_rll l i]\<^sub>a
-       (arlO_assn (array_assn R) *a GG)\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> R\<close>
-  using assms
-  by sepref_to_hoare sep_auto
-
 definition fmap_rll_u64 :: "(nat, 'a literal list \<times> bool) fmap \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a literal" where
   [simp]: \<open>fmap_rll_u64  = fmap_rll\<close>
-
-lemma nth_raa_i_uint64_hnr':
-  assumes p: \<open>is_pure R\<close>
-  shows
-    \<open>(uncurry2 (\<lambda>(N, _) j. nth_raa_i_u64 N j), uncurry2 (RETURN \<circ>\<circ>\<circ> (\<lambda>(N, _) j. nth_rll N j))) \<in>
-       [\<lambda>(((l, _),i),j). i < length l \<and> j < length_rll l i]\<^sub>a
-       (arlO_assn (array_assn R) *a GG)\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow> R\<close>
-  unfolding nth_raa_i_u64_def
-  supply nth_aa_hnr[to_hnr, sep_heap_rules]
-  using assms
-  by sepref_to_hoare (sep_auto simp: uint64_nat_rel_def br_def)
 
 
 definition fmap_length_rll_u :: "(nat, 'a literal list \<times> bool) fmap \<Rightarrow> nat \<Rightarrow> nat" where
@@ -144,69 +116,15 @@ where
 definition AStatus_IRRED where
   \<open>AStatus_IRRED = AStatus IRRED False\<close>
 
-lemma AStatus_IRRED [sepref_fr_rules]:
-  \<open>(uncurry0 (return 0), uncurry0 (RETURN AStatus_IRRED)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a arena_el_assn\<close>
-  by sepref_to_hoare
-    (sep_auto simp: AStatus_IRRED_def arena_el_rel_def hr_comp_def uint32_nat_rel_def br_def
-      status_rel_def bitfield_rel_def nat_0_AND)
-
 definition AStatus_IRRED2 where
   \<open>AStatus_IRRED2 = AStatus IRRED True\<close>
-
-lemma AStatus_IRRED2 [sepref_fr_rules]:
-  \<open>(uncurry0 (return 0b100), uncurry0 (RETURN AStatus_IRRED2)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a arena_el_assn\<close>
-  by sepref_to_hoare
-    (sep_auto simp: AStatus_IRRED2_def arena_el_rel_def hr_comp_def uint32_nat_rel_def br_def
-      status_rel_def bitfield_rel_def nat_0_AND)
 
 definition AStatus_LEARNED where
   \<open>AStatus_LEARNED = AStatus LEARNED True\<close>
 
-lemma AStatus_LEARNED [sepref_fr_rules]:
-  \<open>(uncurry0 (return 0b101), uncurry0 (RETURN AStatus_LEARNED)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a arena_el_assn\<close>
-  by sepref_to_hoare
-    (sep_auto simp: AStatus_LEARNED_def arena_el_rel_def hr_comp_def uint32_nat_rel_def br_def
-      status_rel_def bitfield_rel_def)
-
 
 definition AStatus_LEARNED2 where
   \<open>AStatus_LEARNED2 = AStatus LEARNED False\<close>
-
-lemma AStatus_LEARNED2 [sepref_fr_rules]:
-  \<open>(uncurry0 (return 0b001), uncurry0 (RETURN AStatus_LEARNED2)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a arena_el_assn\<close>
-  by sepref_to_hoare
-    (sep_auto simp: AStatus_LEARNED2_def arena_el_rel_def hr_comp_def uint32_nat_rel_def br_def
-    status_rel_def bitfield_rel_def)
-
-lemma AActivity_hnr[sepref_fr_rules]:
-  \<open>(return o id, RETURN o AActivity) \<in> uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a arena_el_assn\<close>
-  by sepref_to_hoare
-    (sep_auto simp: AStatus_LEARNED_def arena_el_rel_def hr_comp_def uint32_nat_rel_def br_def
-    status_rel_def)
-
-lemma ALBD_hnr[sepref_fr_rules]:
-  \<open>(return o id, RETURN o ALBD) \<in> uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a arena_el_assn\<close>
-  by sepref_to_hoare
-    (sep_auto simp: AStatus_LEARNED_def arena_el_rel_def hr_comp_def uint32_nat_rel_def br_def
-    status_rel_def)
-
-lemma ASize_hnr[sepref_fr_rules]:
-  \<open>(return o id, RETURN o ASize) \<in> uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a arena_el_assn\<close>
-  by sepref_to_hoare
-    (sep_auto simp: AStatus_LEARNED_def arena_el_rel_def hr_comp_def uint32_nat_rel_def br_def
-    status_rel_def)
-
-lemma APos_hnr[sepref_fr_rules]:
-  \<open>(return o id, RETURN o APos) \<in> uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a arena_el_assn\<close>
-  by sepref_to_hoare
-    (sep_auto simp: arena_el_rel_def hr_comp_def uint32_nat_rel_def br_def
-    status_rel_def)
-
-lemma ALit_hnr[sepref_fr_rules]:
-  \<open>(return o id, RETURN o ALit) \<in> unat_lit_assn\<^sup>k \<rightarrow>\<^sub>a arena_el_assn\<close>
-  apply sepref_to_hoare
-  by sep_auto
-    (sep_auto simp: arena_el_rel_def hr_comp_def uint32_nat_rel_def br_def unat_lit_rel_def)
 
 
 definition (in -)fm_add_new_fast where
@@ -227,13 +145,6 @@ definition (in -)four_uint64_nat where
   [simp]: \<open>four_uint64_nat = (4 :: nat)\<close>
 definition (in -)five_uint64_nat where
   [simp]: \<open>five_uint64_nat = (5 :: nat)\<close>
-lemma (in-)
-  four_uint64_nat_hnr[sepref_fr_rules]:
-    \<open>(uncurry0 (return 4), uncurry0 (RETURN four_uint64_nat)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close> and
-  five_uint64_nat_hnr[sepref_fr_rules]:
-    \<open>(uncurry0 (return 5), uncurry0 (RETURN five_uint64_nat)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
-  by (sepref_to_hoare; sep_auto simp: uint64_nat_rel_def br_def)+
-
 
 definition append_and_length_fast_code_pre where
   \<open>append_and_length_fast_code_pre \<equiv> \<lambda>((b, C), N). length C \<le> uint32_max+2 \<and> length C \<ge> 2 \<and>
@@ -288,8 +199,6 @@ definition fm_mv_clause_to_new_arena where
           (st, new_arena);
       RETURN (new_arena)
   }\<close>
-
-sepref_register fm_mv_clause_to_new_arena
 
 lemma valid_arena_append_clause_slice:
   assumes

@@ -1,6 +1,98 @@
 theory IsaSAT_Clauses_SML
-  imports IsaSAT_Arena_SML IsaSAT_Clauses
+  imports IsaSAT_Clauses IsaSAT_Arena_SML
 begin
+
+abbreviation isasat_clauses_assn where
+  \<open>isasat_clauses_assn \<equiv> arlO_assn clause_ll_assn *a arl_assn (clause_status_assn *a uint32_nat_assn *a uint32_nat_assn)\<close>
+
+lemma AStatus_IRRED [sepref_fr_rules]:
+  \<open>(uncurry0 (return 0), uncurry0 (RETURN AStatus_IRRED)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a arena_el_assn\<close>
+  by sepref_to_hoare
+    (sep_auto simp: AStatus_IRRED_def arena_el_rel_def hr_comp_def uint32_nat_rel_def br_def
+      status_rel_def bitfield_rel_def nat_0_AND)
+
+lemma AStatus_IRRED2 [sepref_fr_rules]:
+  \<open>(uncurry0 (return 0b100), uncurry0 (RETURN AStatus_IRRED2)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a arena_el_assn\<close>
+  by sepref_to_hoare
+    (sep_auto simp: AStatus_IRRED2_def arena_el_rel_def hr_comp_def uint32_nat_rel_def br_def
+      status_rel_def bitfield_rel_def nat_0_AND)
+
+lemma AStatus_LEARNED [sepref_fr_rules]:
+  \<open>(uncurry0 (return 0b101), uncurry0 (RETURN AStatus_LEARNED)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a arena_el_assn\<close>
+  by sepref_to_hoare
+    (sep_auto simp: AStatus_LEARNED_def arena_el_rel_def hr_comp_def uint32_nat_rel_def br_def
+      status_rel_def bitfield_rel_def)
+
+lemma AStatus_LEARNED2 [sepref_fr_rules]:
+  \<open>(uncurry0 (return 0b001), uncurry0 (RETURN AStatus_LEARNED2)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a arena_el_assn\<close>
+  by sepref_to_hoare
+    (sep_auto simp: AStatus_LEARNED2_def arena_el_rel_def hr_comp_def uint32_nat_rel_def br_def
+    status_rel_def bitfield_rel_def)
+
+lemma AActivity_hnr[sepref_fr_rules]:
+  \<open>(return o id, RETURN o AActivity) \<in> uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a arena_el_assn\<close>
+  by sepref_to_hoare
+    (sep_auto simp: AStatus_LEARNED_def arena_el_rel_def hr_comp_def uint32_nat_rel_def br_def
+    status_rel_def)
+
+lemma ALBD_hnr[sepref_fr_rules]:
+  \<open>(return o id, RETURN o ALBD) \<in> uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a arena_el_assn\<close>
+  by sepref_to_hoare
+    (sep_auto simp: AStatus_LEARNED_def arena_el_rel_def hr_comp_def uint32_nat_rel_def br_def
+    status_rel_def)
+
+lemma ASize_hnr[sepref_fr_rules]:
+  \<open>(return o id, RETURN o ASize) \<in> uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a arena_el_assn\<close>
+  by sepref_to_hoare
+    (sep_auto simp: AStatus_LEARNED_def arena_el_rel_def hr_comp_def uint32_nat_rel_def br_def
+    status_rel_def)
+
+lemma APos_hnr[sepref_fr_rules]:
+  \<open>(return o id, RETURN o APos) \<in> uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a arena_el_assn\<close>
+  by sepref_to_hoare
+    (sep_auto simp: arena_el_rel_def hr_comp_def uint32_nat_rel_def br_def
+    status_rel_def)
+
+lemma ALit_hnr[sepref_fr_rules]:
+  \<open>(return o id, RETURN o ALit) \<in> unat_lit_assn\<^sup>k \<rightarrow>\<^sub>a arena_el_assn\<close>
+  apply sepref_to_hoare
+  by sep_auto
+    (sep_auto simp: arena_el_rel_def hr_comp_def uint32_nat_rel_def br_def unat_lit_rel_def)
+lemma (in-)
+  four_uint64_nat_hnr[sepref_fr_rules]:
+    \<open>(uncurry0 (return 4), uncurry0 (RETURN four_uint64_nat)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close> and
+  five_uint64_nat_hnr[sepref_fr_rules]:
+    \<open>(uncurry0 (return 5), uncurry0 (RETURN five_uint64_nat)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
+  by (sepref_to_hoare; sep_auto simp: uint64_nat_rel_def br_def)+
+
+sepref_register fm_mv_clause_to_new_arena
+
+
+definition clauses_ll_assn
+   :: \<open>vdom \<Rightarrow> nat clauses_l \<Rightarrow> uint32 array_list \<Rightarrow> assn\<close>
+where
+  \<open>clauses_ll_assn vdom = hr_comp arena_assn (clauses_l_fmat vdom)\<close>
+
+lemma nth_raa_i_uint64_hnr':
+  assumes p: \<open>is_pure R\<close>
+  shows
+    \<open>(uncurry2 (\<lambda>(N, _) j. nth_raa_i_u64 N j), uncurry2 (RETURN \<circ>\<circ>\<circ> (\<lambda>(N, _) j. nth_rll N j))) \<in>
+       [\<lambda>(((l, _),i),j). i < length l \<and> j < length_rll l i]\<^sub>a
+       (arlO_assn (array_assn R) *a GG)\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow> R\<close>
+  unfolding nth_raa_i_u64_def
+  supply nth_aa_hnr[to_hnr, sep_heap_rules]
+  using assms
+  by sepref_to_hoare (sep_auto simp: uint64_nat_rel_def br_def)
+
+lemma nth_raa_hnr':
+  assumes p: \<open>is_pure R\<close>
+  shows
+    \<open>(uncurry2 (\<lambda>(N, _) j k. nth_raa N j k), uncurry2 (RETURN \<circ>\<circ>\<circ> (\<lambda>(N, _) i. nth_rll N i))) \<in>
+       [\<lambda>(((l, _),i),j). i < length l \<and> j < length_rll l i]\<^sub>a
+       (arlO_assn (array_assn R) *a GG)\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> R\<close>
+  using assms
+  by sepref_to_hoare sep_auto
+
 sepref_definition nth_rll_u32_i64_clauses
   is \<open>uncurry2 (RETURN ooo (\<lambda>(N, _) j. nth_rll N j))\<close>
   :: \<open>[\<lambda>(((xs, _), i), j). i < length xs \<and> j < length (xs !i)]\<^sub>a
@@ -150,14 +242,14 @@ sepref_definition fmap_swap_ll_u64_clss
   by sepref
 
 sepref_definition fmap_rll_u_clss
-  is \<open>uncurry2 (RETURN ooo (\<lambda>(N, _) i. Array_List_Array.nth_rll N i))\<close>
+  is \<open>uncurry2 (RETURN ooo (\<lambda>(N, _) i. nth_rll N i))\<close>
   :: \<open>[\<lambda>(((l, _), i), j). i < length l \<and> j < length_rll l i]\<^sub>a
        isasat_clauses_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k  \<rightarrow>
         unat_lit_assn\<close>
   by sepref
 
 sepref_definition fmap_rll_u32_clss
-  is \<open>uncurry2 (RETURN ooo (\<lambda>(N, _) i. Array_List_Array.nth_rll N i))\<close>
+  is \<open>uncurry2 (RETURN ooo (\<lambda>(N, _) i. nth_rll N i))\<close>
   :: \<open>[\<lambda>(((l, _), i), j). i < length l \<and> j < length_rll l i]\<^sub>a
        isasat_clauses_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k  \<rightarrow>
         unat_lit_assn\<close>
@@ -167,13 +259,13 @@ sepref_definition fmap_rll_u32_clss
 sepref_definition swap_lits_code
   is \<open>uncurry3 isa_arena_swap\<close>
   :: \<open>nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a (arl_assn uint32_assn)\<^sup>d  \<rightarrow>\<^sub>a arl_assn uint32_assn\<close>
-  unfolding isa_arena_swap_def
+  unfolding isa_arena_swap_def WB_More_Refinement_List.swap_def IICF_List.swap_def[symmetric]
   by sepref
 
 lemma swap_lits_refine[sepref_fr_rules]:
   \<open>(uncurry3 swap_lits_code, uncurry3 (RETURN oooo swap_lits))
   \<in> [uncurry3 swap_lits_pre]\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a arena_assn\<^sup>d \<rightarrow> arena_assn\<close>
-  using swap_lits_code.refine[FCOMP isa_arena_swap]
+  using swap_lits_code.refine[FCOMP isa_arena_swap[unfolded convert_fref]]
   unfolding hr_comp_assoc[symmetric] list_rel_compp status_assn_alt_def uncurry_def
   by (auto simp add: arl_assn_comp)
 
@@ -183,7 +275,7 @@ sepref_definition (in -) swap_lits_fast_code
   :: \<open>[\<lambda>(((_, _), _), N). length N \<le> uint64_max]\<^sub>a
       uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a (arl_assn uint32_assn)\<^sup>d  \<rightarrow>
          arl_assn uint32_assn\<close>
-  unfolding isa_arena_swap_def
+  unfolding isa_arena_swap_def WB_More_Refinement_List.swap_def IICF_List.swap_def[symmetric]
   by sepref
 
 
@@ -191,7 +283,7 @@ lemma swap_lits_fast_refine[sepref_fr_rules]:
   \<open>(uncurry3 swap_lits_fast_code, uncurry3 (RETURN oooo swap_lits))
   \<in> [\<lambda>(((C, i), j), arena). swap_lits_pre C i j arena \<and> length arena \<le> uint64_max]\<^sub>a
      uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a arena_assn\<^sup>d \<rightarrow> arena_assn\<close>
-  using swap_lits_fast_code.refine[FCOMP isa_arena_swap]
+  using swap_lits_fast_code.refine[FCOMP isa_arena_swap[unfolded convert_fref]]
   unfolding hr_comp_assoc[symmetric] list_rel_compp status_assn_alt_def uncurry_def
   by (auto simp add: arl_assn_comp)
 

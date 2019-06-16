@@ -1,9 +1,8 @@
 theory Watched_Literals_Algorithm
   imports
-    Watched_Literals_Transition_System
     WB_More_Refinement
+    Watched_Literals_Transition_System
 begin
-
 
 section \<open>First Refinement: Deterministic Rule Application\<close>
 

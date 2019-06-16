@@ -1,5 +1,5 @@
 theory LBD
-  imports Watched_Literals.Array_UInt IsaSAT_Literals Refine_Imperative_HOL.IICF
+  imports Watched_Literals.WB_Word IsaSAT_Literals
 begin
 
 subsubsection \<open>LBD\<close>
@@ -21,9 +21,6 @@ type_synonym lbd = \<open>bool list\<close>
 type_synonym lbd_ref = \<open>bool list \<times> nat \<times> nat\<close>
 type_synonym lbd_assn = \<open>bool array \<times> uint32 \<times> uint32\<close>
 
-abbreviation lbd_int_assn :: \<open>lbd_ref \<Rightarrow> lbd_assn \<Rightarrow> assn\<close> where
-  \<open>lbd_int_assn \<equiv> array_assn bool_assn *a uint32_nat_assn *a uint32_nat_assn\<close>
-
 text \<open>Beside the actual ``lookup'' table, we also keep the highest level marked so far to unmark
 all levels faster (but we currently don't save the LBD and have to iterate over the data structure).
 We also handle growing of the structure by hand instead of using a proper hash-table. We do so,
@@ -35,9 +32,6 @@ definition lbd_ref where
       (\<forall>k > n. k < length lbd \<longrightarrow> \<not>lbd!k) \<and>
       length lbd \<le> Suc (Suc (uint_max div 2)) \<and> n < length lbd \<and>
       m = length (filter id lbd)}\<close>
-
-definition lbd_assn :: \<open>lbd \<Rightarrow> lbd_assn \<Rightarrow> assn\<close> where
-  \<open>lbd_assn \<equiv> hr_comp lbd_int_assn lbd_ref\<close>
 
 
 paragraph \<open>Testing if a level is marked\<close>
@@ -53,51 +47,13 @@ lemma level_in_lbd_ref_level_in_lbd:
     nat_rel \<times>\<^sub>r lbd_ref \<rightarrow>\<^sub>f \<langle>bool_rel\<rangle>nres_rel\<close>
   by (intro frefI nres_relI) (auto simp: level_in_lbd_ref_def level_in_lbd_def lbd_ref_def)
 
-sepref_definition level_in_lbd_code
-  is \<open>uncurry (RETURN oo level_in_lbd_ref)\<close>
-  :: \<open>[\<lambda>(n, (lbd, m)). length lbd \<le> uint_max]\<^sub>a
-       uint32_nat_assn\<^sup>k *\<^sub>a lbd_int_assn\<^sup>k \<rightarrow> bool_assn\<close>
-  unfolding level_in_lbd_ref_def short_circuit_conv
-  by sepref
-
-
-lemma level_in_lbd_hnr[sepref_fr_rules]:
-  \<open>(uncurry level_in_lbd_code, uncurry (RETURN \<circ>\<circ> level_in_lbd)) \<in> uint32_nat_assn\<^sup>k *\<^sub>a
-     lbd_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
-  supply lbd_ref_def[simp] uint_max_def[simp]
-  using level_in_lbd_code.refine[FCOMP level_in_lbd_ref_level_in_lbd]
-  unfolding lbd_assn_def .
-
-
 paragraph \<open>Marking more levels\<close>
 definition list_grow where
   \<open>list_grow xs n x = xs @ replicate (n - length xs) x\<close>
 
-lemma list_grow_array_hnr[sepref_fr_rules]:
-  assumes \<open>CONSTRAINT is_pure R\<close>
-  shows
-    \<open>(uncurry2 (\<lambda>xs u. array_grow xs (nat_of_uint32 u)),
-        uncurry2 (RETURN ooo list_grow)) \<in>
-    [\<lambda>((xs, n), x). n \<ge> length xs]\<^sub>a (array_assn R)\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>d *\<^sub>a R\<^sup>k \<rightarrow>
-       array_assn R\<close>
-proof -
-  obtain R' where [simp]:
-    \<open>R = pure R'\<close>
-    \<open>the_pure R = R'\<close>
-    using assms by (metis CONSTRAINT_D pure_the_pure)
-  have [simp]: \<open>pure R' b bi = \<up>( (bi, b) \<in> R')\<close> for b bi
-    by (auto simp: pure_def)
-  show ?thesis
-    by sepref_to_hoare
-       (sep_auto simp: list_grow_def array_assn_def is_array_def
-          hr_comp_def list_rel_pres_length list_rel_def list_all2_replicate
-         uint32_nat_rel_def br_def
-        intro!: list_all2_appendI)
-qed
-
 definition lbd_write :: \<open>lbd \<Rightarrow> nat \<Rightarrow> lbd\<close> where
   \<open>lbd_write = (\<lambda>lbd i.
-    (if i < length_uint32_nat lbd then (lbd[i := True])
+    (if i < length lbd then (lbd[i := True])
      else ((list_grow lbd (i + 1) False)[i := True])))\<close>
 
 
@@ -130,20 +86,6 @@ lemma lbd_ref_write_lbd_write:
         nth_append uint_max_def length_filter_update_true list_update_append2
         length_filter_update_false
       intro!: ASSERT_leI le_trans[OF length_filter_le])
-
-sepref_definition lbd_write_code
-  is \<open>uncurry lbd_ref_write\<close>
-  :: \<open>lbd_int_assn\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a lbd_int_assn\<close>
-  unfolding lbd_ref_write_def
-  by sepref
-
-lemma lbd_write_hnr_[sepref_fr_rules]:
-  \<open>(uncurry lbd_write_code, uncurry (RETURN \<circ>\<circ> lbd_write))
-    \<in> [\<lambda>(lbd, i). i \<le> Suc (uint_max div 2)]\<^sub>a
-      lbd_assn\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> lbd_assn\<close>
-  using lbd_write_code.refine[FCOMP lbd_ref_write_lbd_write]
-  unfolding lbd_assn_def .
-
 
 paragraph \<open>Cleaning the marked levels\<close>
 
@@ -261,17 +203,6 @@ lemma lbd_empty_ref_lbd_empty:
     by (auto simp: lbd_empty_def lbd_ref_def)
   done
 
-sepref_definition lbd_empty_code
-  is \<open>lbd_empty_ref\<close>
-  :: \<open>lbd_int_assn\<^sup>d  \<rightarrow>\<^sub>a lbd_int_assn\<close>
-  unfolding lbd_empty_ref_def
-  by sepref
-
-lemma lbd_empty_hnr[sepref_fr_rules]:
-  \<open>(lbd_empty_code, lbd_empty) \<in> lbd_assn\<^sup>d \<rightarrow>\<^sub>a lbd_assn\<close>
-  using lbd_empty_code.refine[FCOMP lbd_empty_ref_lbd_empty]
-  unfolding lbd_assn_def .
-
 definition (in -)empty_lbd :: \<open>lbd\<close> where
    \<open>empty_lbd = (replicate 32 False)\<close>
 
@@ -282,18 +213,6 @@ lemma empty_lbd_ref_empty_lbd:
   \<open>(uncurry0 (RETURN empty_lbd_ref), uncurry0 (RETURN empty_lbd)) \<in> unit_rel \<rightarrow>\<^sub>f \<langle>lbd_ref\<rangle>nres_rel\<close>
   by (intro frefI nres_relI) (auto simp: empty_lbd_def lbd_ref_def empty_lbd_ref_def
       uint_max_def nth_Cons split: nat.splits)
-
-sepref_definition empty_lbd_code
-  is \<open>uncurry0 (RETURN empty_lbd_ref)\<close>
-  :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a lbd_int_assn\<close>
-  unfolding empty_lbd_ref_def array_fold_custom_replicate
-  by sepref
-
-lemma empty_lbd_hnr[sepref_fr_rules]:
-  \<open>(uncurry0 empty_lbd_code, uncurry0 (RETURN empty_lbd)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a lbd_assn\<close>
-  using empty_lbd_code.refine[FCOMP empty_lbd_ref_empty_lbd]
-  unfolding lbd_assn_def .
-
 
 paragraph \<open>Extracting the LBD\<close>
 
@@ -318,16 +237,5 @@ lemma get_LBD_ref_get_LBD:
     using get_LBD_ref[of lbd]
     by (auto simp: lbd_empty_def lbd_ref_def)
   done
-
-
-sepref_definition get_LBD_code
-  is \<open>get_LBD_ref\<close>
-  :: \<open>lbd_int_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
-  unfolding get_LBD_ref_def
-  by sepref
-
-lemma get_LBD_hnr[sepref_fr_rules]:
-  \<open>(get_LBD_code, get_LBD) \<in> lbd_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
-  using get_LBD_code.refine[FCOMP get_LBD_ref_get_LBD, unfolded lbd_assn_def[symmetric]] .
 
 end

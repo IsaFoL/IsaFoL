@@ -1,6 +1,17 @@
 theory Array_UInt
-  imports WB_Word_Assn Array_List_Array
+  imports Array_List_Array WB_Word_Assn WB_More_Refinement_List
 begin
+
+hide_const Autoref_Fix_Rel.CONSTRAINT
+
+lemma convert_fref:
+  "WB_More_Refinement.fref = Sepref_Rules.fref"
+  "WB_More_Refinement.freft = Sepref_Rules.freft"
+  "WB_More_Refinement.uncurry0 = Sepref_Misc.uncurry0"
+  unfolding  WB_More_Refinement.fref_def Sepref_Rules.fref_def
+    WB_More_Refinement.uncurry0_def Sepref_Misc.uncurry0_def
+  by auto
+
 
 subsection \<open>More about general arrays\<close>
 
@@ -627,9 +638,6 @@ paragraph \<open>32-bits\<close>
 definition (in -)length_u_code where
   \<open>length_u_code C = do { n \<leftarrow> Array.len C; return (uint32_of_nat n)}\<close>
 
-definition (in -)length_uint32_nat where
-  [simp]: \<open>length_uint32_nat C = length C\<close>
-
 lemma (in -)length_u_hnr[sepref_fr_rules]:
   \<open>(length_u_code, RETURN o length_uint32_nat) \<in> [\<lambda>C. length C \<le> uint32_max]\<^sub>a (array_assn R)\<^sup>k \<rightarrow> uint32_nat_assn\<close>
   supply length_rule[sep_heap_rules]
@@ -653,9 +661,6 @@ lemma length_arl_u_hnr[sepref_fr_rules]:
 
 
 paragraph \<open>64-bits\<close>
-
-definition (in -)length_uint64_nat where
-  [simp]: \<open>length_uint64_nat C = length C\<close>
 
 definition (in -)length_u64_code where
   \<open>length_u64_code C = do { n \<leftarrow> Array.len C; return (uint64_of_nat n)}\<close>
@@ -763,29 +768,6 @@ lemma length_raa_u64_hnr[sepref_fr_rules]:
 
 subsubsection \<open>Delete at index\<close>
 
-fun delete_index_and_swap where
-  \<open>delete_index_and_swap l i = butlast(l[i := last l])\<close>
-
-lemma (in -) delete_index_and_swap_alt_def:
-  \<open>delete_index_and_swap S i =
-    (let x = last S in butlast (S[i := x]))\<close>
-  by auto
-
-lemma mset_tl_delete_index_and_swap:
-  assumes
-    \<open>0 < i\<close> and
-    \<open>i < length outl'\<close>
-  shows \<open>mset (tl (delete_index_and_swap outl' i)) =
-         remove1_mset (outl' ! i) (mset (tl outl'))\<close>
-  using assms
-  by (subst mset_tl)+
-    (auto simp: hd_butlast hd_list_update_If mset_butlast_remove1_mset
-      mset_update last_list_update_to_last ac_simps)
-
-definition delete_index_and_swap_ll where
-  \<open>delete_index_and_swap_ll xs i j =
-     xs[i:= delete_index_and_swap (xs!i) j]\<close>
-
 definition delete_index_and_swap_aa where
   \<open>delete_index_and_swap_aa xs i j = do {
      x \<leftarrow> last_aa xs i;
@@ -877,23 +859,13 @@ proof -
   obtain R' where R: \<open>the_pure R = R'\<close> and R': \<open>R = pure R'\<close>
     using p by fastforce
   show ?thesis
-  apply (sepref_to_hoare)
-  apply (sep_auto simp: swap_u_code_def swap_def nth_u_code_def is_array_def
+    by (sepref_to_hoare)
+     (sep_auto simp: swap_u_code_def swap_def nth_u_code_def is_array_def
       array_assn_def hr_comp_def nth_nat_of_uint32_nth'[symmetric]
       list_rel_imp_same_length uint32_nat_rel_def br_def
       heap_array_set_u_def heap_array_set'_u_def Array.upd'_def
-      nat_of_uint32_code[symmetric] R
-      intro!: list_rel_update[of _ _ R true _ _ \<open>(_, {})\<close>, unfolded R] param_nth
-      )
-    subgoal for bi bia a ai bb aa b
-      using param_nth[of \<open>nat_of_uint32 bi\<close> a \<open>nat_of_uint32 bi\<close> bb R']
-      by (auto simp: R' pure_def)
-    subgoal using p by simp
-    subgoal for bi bia a ai bb aa b
-      using param_nth[of \<open>nat_of_uint32 bia\<close> a \<open>nat_of_uint32 bia\<close> bb R']
-      by (auto simp: R' pure_def)
-    subgoal using p by simp
-    done
+      nat_of_uint32_code[symmetric] R IICF_List.swap_def[symmetric] IICF_List.swap_param
+      intro!: list_rel_update[of _ _ R true _ _ \<open>(_, {})\<close>, unfolded R] param_nth)
 qed
 
 definition swap_u64_code :: "'a ::heap array \<Rightarrow> uint64 \<Rightarrow> uint64 \<Rightarrow> 'a array Heap" where
@@ -915,23 +887,13 @@ proof -
   obtain R' where R: \<open>the_pure R = R'\<close> and R': \<open>R = pure R'\<close>
     using p by fastforce
   show ?thesis
-  apply (sepref_to_hoare)
-  apply (sep_auto simp: swap_u64_code_def swap_def nth_u64_code_def is_array_def
+    by (sepref_to_hoare)
+    (sep_auto simp: swap_u64_code_def swap_def nth_u64_code_def is_array_def
       array_assn_def hr_comp_def nth_nat_of_uint64_nth'[symmetric]
       list_rel_imp_same_length uint64_nat_rel_def br_def
       heap_array_set_u64_def heap_array_set'_u64_def Array.upd'_def
-      nat_of_uint64_code[symmetric] R
-      intro!: list_rel_update[of _ _ R true _ _ \<open>(_, {})\<close>, unfolded R] param_nth
-      )
-    subgoal for bi bia a ai bb aa b
-      using param_nth[of \<open>nat_of_uint64 bi\<close> a \<open>nat_of_uint64 bi\<close> bb R']
-      by (auto simp: R' pure_def)
-    subgoal using p by simp
-    subgoal for bi bia a ai bb aa b
-      using param_nth[of \<open>nat_of_uint64 bia\<close> a \<open>nat_of_uint64 bia\<close> bb R']
-      by (auto simp: R' pure_def)
-    subgoal using p by simp
-    done
+      nat_of_uint64_code[symmetric] R IICF_List.swap_def[symmetric] IICF_List.swap_param
+      intro!: list_rel_update[of _ _ R true _ _ \<open>(_, {})\<close>, unfolded R] param_nth)
 qed
 
 
@@ -1015,11 +977,10 @@ proof -
   show ?thesis
     using assms unfolding R'[symmetric] unfolding RR'
     apply sepref_to_hoare
-
     apply (sep_auto simp: swap_aa_u64_def swap_ll_def arlO_assn_except_def length_rll_def
         length_rll_update_rll nth_raa_i_u64_def uint64_nat_rel_def br_def
         swap_def nth_rll_def list_update_swap swap_u64_code_def nth_u64_code_def Array.nth'_def
-        heap_array_set_u64_def heap_array_set'_u64_def arl_assn_def
+        heap_array_set_u64_def heap_array_set'_u64_def arl_assn_def IICF_List.swap_def
          Array.upd'_def)
     apply (rule H; assumption)
     apply (sep_auto simp: array_assn_def nat_of_uint64_code[symmetric] hr_comp_def is_array_def
@@ -1054,7 +1015,7 @@ proof -
       array_assn_def hr_comp_def nth_nat_of_uint32_nth'[symmetric]
       list_rel_imp_same_length uint32_nat_rel_def br_def arl_assn_def
       heap_array_set_u_def heap_array_set'_u_def Array.upd'_def
-      arl_set'_u_def R R'
+      arl_set'_u_def R R' IICF_List.swap_def[symmetric] IICF_List.swap_param
       nat_of_uint32_code[symmetric] R arl_set_u_def arl_get'_def arl_get_u_def
       intro!: list_rel_update[of _ _ R true _ _ \<open>(_, {})\<close>, unfolded R] param_nth)
 qed
@@ -1910,7 +1871,7 @@ lemma array_nat_of_uint64_conv_hnr[sepref_fr_rules]:
   \<open>(array_nat_of_uint64_code, (RETURN \<circ> array_nat_of_uint64_conv))
     \<in> (array_assn uint64_nat_assn)\<^sup>k \<rightarrow>\<^sub>a array_assn nat_assn\<close>
   using array_nat_of_uint64_code.refine[unfolded array_nat_of_uint64_def,
-    FCOMP op_map_map_rel] unfolding array_nat_of_uint64_conv_alt_def
+    FCOMP op_map_map_rel[unfolded convert_fref]] unfolding array_nat_of_uint64_conv_alt_def
   by simp
 
 
@@ -1938,7 +1899,7 @@ lemma array_uint64_of_nat_conv_hnr[sepref_fr_rules]:
     \<in> [\<lambda>xs. \<forall>a\<in>set xs. a \<le> uint64_max]\<^sub>a
        (array_assn nat_assn)\<^sup>k \<rightarrow> array_assn uint64_nat_assn\<close>
   using array_uint64_of_nat_code.refine[unfolded array_uint64_of_nat_def,
-    FCOMP op_map_map_rel] unfolding array_uint64_of_nat_conv_alt_def
+    FCOMP op_map_map_rel[unfolded convert_fref]] unfolding array_uint64_of_nat_conv_alt_def
   by simp
 
 definition swap_arl_u64 where
@@ -1964,7 +1925,7 @@ lemma swap_arl_u64_hnr[sepref_fr_rules]:
   apply (subst_tac (2) n=\<open>bb\<close> in nth_take[symmetric])
     apply (simp; fail)
   by (sep_auto simp: nat_of_uint64_code[symmetric] uint64_nat_rel_def br_def
-      list_rel_imp_same_length[symmetric] swap_def
+      list_rel_imp_same_length[symmetric] swap_def IICF_List.swap_def
       simp del: nth_take
     intro!: list_rel_update' param_nth)
 

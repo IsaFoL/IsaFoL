@@ -170,15 +170,19 @@ session "Watched_Literals" (Weidenbach_Book) = "CDCL"  +
   options [document = pdf, document_output = "output"]
   sessions
     CDCL
+    Isabelle_LLVM
     "HOL-Eisbach"
   theories [quick_and_dirty = false, document = true]
     Bits_Natural
+    Array_Array_List64
     Array_UInt
+    WB_Word
     WB_Word_Assn
     WB_More_Refinement_List
     WB_More_Refinement
     WB_More_IICF_SML
     WB_Sort
+    WB_Sort_SML
     Watched_Literals_Transition_System
     Watched_Literals_Algorithm
     Watched_Literals_Algorithm_Restart
@@ -190,7 +194,6 @@ session "Watched_Literals" (Weidenbach_Book) = "CDCL"  +
     Watched_Literals_Watch_List_Domain_Restart
     Watched_Literals_Watch_List_Initialisation
     CDCL_Conflict_Minimisation
-    WB_Sort
 
   document_files
     "root.tex"
@@ -203,6 +206,7 @@ session "IsaSAT" (Weidenbach_Book) = "Watched_Literals"  +
     CDCL
     "HOL-Eisbach"
     Watched_Literals
+    Isabelle_LLVM
     Show
   theories
     IsaSAT_Arena

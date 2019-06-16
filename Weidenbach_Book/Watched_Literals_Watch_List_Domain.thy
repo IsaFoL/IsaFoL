@@ -1,10 +1,9 @@
 theory Watched_Literals_Watch_List_Domain
-  imports Watched_Literals_Watch_List Array_UInt
+  imports Watched_Literals_Watch_List
 begin
 
 text \<open>We refine the implementation by adding a \<^emph>\<open>domain\<close> on the literals\<close>
 
-no_notation Ref.update ("_ := _" 62)
 
 
 subsection \<open>State Conversion\<close>
@@ -13,10 +12,6 @@ subsubsection \<open>Functions and Types:\<close>
 
 type_synonym ann_lits_l = \<open>(nat, nat) ann_lits\<close>
 type_synonym clauses_to_update_ll = \<open>nat list\<close>
-type_synonym lit_queue_l = \<open>uint32 list\<close>
-type_synonym nat_trail = \<open>(uint32 \<times> nat option) list\<close>
-type_synonym clause_wl = \<open>uint32 array\<close>
-type_synonym unit_lits_wl = \<open>uint32 list list\<close>
 
 
 subsection \<open>Refinement\<close>
@@ -1607,7 +1602,6 @@ proof -
   qed
   show ?thesis
     unfolding backtrack_wl_D_def backtrack_wl_def find_lit_of_max_level_wl'_def
-      array_of_arl_def
     apply (subst extract_shorter_conflict_wl'_def[symmetric])
     apply (subst find_lit_of_max_level_wl'_def[symmetric])
     supply [[goals_limit=1]]

@@ -1,7 +1,8 @@
 theory IsaSAT_Arena
-imports IsaSAT_Literals
-  Watched_Literals.WB_More_Refinement_List
-  Watched_Literals.WB_Word_Assn
+  imports
+    Watched_Literals.WB_More_Refinement_List
+    Watched_Literals.WB_Word
+    IsaSAT_Literals
 begin
 
 
@@ -103,21 +104,6 @@ instance by standard
 
 end
 
-abbreviation clause_status_assn where
-  \<open>clause_status_assn \<equiv> (id_assn :: clause_status \<Rightarrow> _)\<close>
-
-lemma IRRED_hnr[sepref_fr_rules]:
-  \<open>(uncurry0 (return IRRED), uncurry0 (RETURN IRRED)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a clause_status_assn\<close>
-  by sepref_to_hoare sep_auto
-
-lemma LEARNED_hnr[sepref_fr_rules]:
-  \<open>(uncurry0 (return LEARNED), uncurry0 (RETURN LEARNED)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a clause_status_assn\<close>
-  by sepref_to_hoare sep_auto
-
-lemma DELETED_hnr[sepref_fr_rules]:
-  \<open>(uncurry0 (return DELETED), uncurry0 (RETURN DELETED)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a clause_status_assn\<close>
-  by sepref_to_hoare sep_auto
-
 
 subsubsection \<open>Definition\<close>
 
@@ -153,14 +139,6 @@ definition header_size :: \<open>nat clause_l \<Rightarrow> nat\<close> where
    \<open>header_size C = (if is_short_clause C then 4 else 5)\<close>
 
 lemmas SHIFTS_def = POS_SHIFT_def STATUS_SHIFT_def ACTIVITY_SHIFT_def LBD_SHIFT_def SIZE_SHIFT_def
-
-lemma (in -) ACTIVITY_SHIFT_hnr:
-  \<open>(uncurry0 (return 3), uncurry0 (RETURN ACTIVITY_SHIFT) ) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
-  by sepref_to_hoare (sep_auto simp: ACTIVITY_SHIFT_def uint64_nat_rel_def br_def)
-lemma (in -) STATUS_SHIFT_hnr:
-  \<open>(uncurry0 (return 4), uncurry0 (RETURN STATUS_SHIFT) ) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
-  by sepref_to_hoare (sep_auto simp: STATUS_SHIFT_def uint64_nat_rel_def br_def)
-
 
 (*TODO is that still used?*)
 lemma arena_shift_distinct:
@@ -1413,14 +1391,6 @@ definition arena_el_rel where
 
 lemmas arena_el_rel_def = arena_el_rel_interal_def[unfolded arena_el_relation_def]
 
-abbreviation arena_el_assn :: "arena_el \<Rightarrow> uint32 \<Rightarrow> assn" where
-  \<open>arena_el_assn \<equiv> hr_comp uint32_nat_assn arena_el_rel\<close>
-
-abbreviation arena_assn :: "arena_el list \<Rightarrow> uint32 array_list \<Rightarrow> assn" where
-  \<open>arena_assn \<equiv> arl_assn arena_el_assn\<close>
-
-abbreviation status_assn where
-  \<open>status_assn \<equiv> hr_comp uint32_nat_assn status_rel\<close>
 
 subsubsection \<open>Preconditions and Assertions for the refinement\<close>
 
@@ -1692,25 +1662,6 @@ definition isa_arena_length where
       RETURN (two_uint64 + uint64_of_uint32 ((arena ! (fast_minus i SIZE_SHIFT))))
   }\<close>
 
-lemma [sepref_fr_rules]:
-  \<open>(uncurry0 (return 1), uncurry0 (RETURN SIZE_SHIFT)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
-  by sepref_to_hoare (sep_auto simp: SIZE_SHIFT_def)
-
-lemma [sepref_fr_rules]:
-  \<open>(return o id, RETURN o xarena_length) \<in> [is_Size]\<^sub>a arena_el_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
-  by sepref_to_hoare (sep_auto simp: SIZE_SHIFT_def uint32_nat_rel_def
-    arena_el_rel_def br_def hr_comp_def split: arena_el.splits)
-
-lemma nat_of_uint64_eq_2_iff[simp]: \<open>nat_of_uint64 c = 2 \<longleftrightarrow> c = 2\<close>
-  using word_nat_of_uint64_Rep_inject by fastforce
-
-lemma arena_el_assn_alt_def:
-  \<open>arena_el_assn = hr_comp uint32_assn (uint32_nat_rel O arena_el_rel)\<close>
-  by (auto simp: hr_comp_assoc[symmetric])
-
-lemma arena_el_comp: \<open>hn_val (uint32_nat_rel O arena_el_rel) = hn_ctxt arena_el_assn\<close>
-  by (auto simp: hn_ctxt_def arena_el_assn_alt_def)
-
 lemma arena_length_uint64_conv:
   assumes
     a: \<open>(a, aa) \<in> \<langle>uint32_nat_rel O arena_el_rel\<rangle>list_rel\<close> and
@@ -1754,11 +1705,6 @@ definition isa_arena_lit where
       ASSERT(i < length arena);
       RETURN (arena ! i)
   }\<close>
-
-lemma [sepref_fr_rules]:
-  \<open>(return o id, RETURN o xarena_lit) \<in> [is_Lit]\<^sub>a arena_el_assn\<^sup>k \<rightarrow> unat_lit_assn\<close>
-  by sepref_to_hoare (sep_auto simp: SIZE_SHIFT_def uint32_nat_rel_def unat_lit_rel_def
-    arena_el_rel_def br_def hr_comp_def split: arena_el.splits)
 
 
 lemma arena_length_literal_conv:
@@ -1821,38 +1767,12 @@ lemma isa_arena_lit_arena_lit:
 
 paragraph \<open>Status of the clause\<close>
 
-
-lemma status_assn_hnr_eq[sepref_fr_rules]:
-  \<open>(uncurry (return oo (=)), uncurry (RETURN oo (=))) \<in> status_assn\<^sup>k *\<^sub>a status_assn\<^sup>k \<rightarrow>\<^sub>a
-    bool_assn\<close>
-  by sepref_to_hoare (sep_auto simp: status_rel_def hr_comp_def uint32_nat_rel_def br_def
-    nat_of_uint32_0_iff nat_of_uint32_Suc03_iff nat_of_uint32_013_neq)
-
-lemma IRRED_status_assn[sepref_fr_rules]:
-  \<open>(uncurry0 (return 0), uncurry0 (RETURN IRRED)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a status_assn\<close>
-  by (sepref_to_hoare) (sep_auto simp: status_rel_def hr_comp_def uint32_nat_rel_def br_def)
-
-lemma LEARNED_status_assn[sepref_fr_rules]:
-  \<open>(uncurry0 (return 1), uncurry0 (RETURN LEARNED)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a status_assn\<close>
-  by (sepref_to_hoare) (sep_auto simp: status_rel_def hr_comp_def uint32_nat_rel_def br_def)
-
-lemma DELETED_status_assn[sepref_fr_rules]:
-  \<open>(uncurry0 (return 3), uncurry0 (RETURN DELETED)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a status_assn\<close>
-  by (sepref_to_hoare) (sep_auto simp: status_rel_def hr_comp_def uint32_nat_rel_def br_def
-    nat_of_uint32_Suc03_iff)
-
-
 definition isa_arena_status where
   \<open>isa_arena_status arena i = do {
       ASSERT(i < length arena);
       ASSERT(i \<ge> STATUS_SHIFT);
       RETURN (arena ! (fast_minus i STATUS_SHIFT) AND 0b11)
   }\<close>
-
-
-lemma [sepref_fr_rules]:
-  \<open>(uncurry0 (return 4), uncurry0 (RETURN STATUS_SHIFT)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
-  by sepref_to_hoare (sep_auto simp: STATUS_SHIFT_def)
 
 lemma arena_status_literal_conv:
   assumes
@@ -1900,10 +1820,6 @@ lemma isa_arena_status_arena_status:
         arena_is_valid_clause_vdom_def arena_status_literal_conv
       intro!: ASSERT_refine_left)
 
-lemma status_assn_alt_def:
-  \<open>status_assn = pure (uint32_nat_rel O status_rel)\<close>
-  unfolding hr_comp_pure by simp
-
 paragraph \<open>Swap literals\<close>
 
 definition isa_arena_swap where
@@ -1937,10 +1853,6 @@ definition isa_update_lbd :: \<open>nat \<Rightarrow> uint32 \<Rightarrow> uint3
       ASSERT(C - LBD_SHIFT < length arena \<and> C \<ge> LBD_SHIFT);
       RETURN (arena [C - LBD_SHIFT := lbd])
   }\<close>
-
-lemma [sepref_fr_rules]:
-  \<open>(uncurry0 (return 2), uncurry0 (RETURN LBD_SHIFT)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
-  by sepref_to_hoare (sep_auto simp: LBD_SHIFT_def)
 
 lemma arena_lbd_conv:
   assumes
@@ -1989,11 +1901,7 @@ lemma isa_update_lbd:
         arena_is_valid_clause_vdom_def arena_status_literal_conv
         update_lbd_pre_def
         isa_arena_swap_def swap_lits_def swap_lits_pre_def isa_update_lbd_def
-      intro!: ASSERT_refine_left swap_param)
-
-lemma (in -) LBD_SHIFT_hnr:
-  \<open>(uncurry0 (return 2), uncurry0 (RETURN LBD_SHIFT) ) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
-  by sepref_to_hoare (sep_auto simp: LBD_SHIFT_def uint64_nat_rel_def br_def)
+      intro!: ASSERT_refine_left)
 
 
 paragraph \<open>Get LBD\<close>
@@ -2137,11 +2045,6 @@ lemma isa_get_saved_pos_get_saved_pos:
       list_rel_imp_same_length get_saved_pos_pre_def
       intro!: ASSERT_leI)
 
-
-lemma [sepref_fr_rules]:
-  \<open>(uncurry0 (return 5), uncurry0 (RETURN POS_SHIFT)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
-  by sepref_to_hoare (sep_auto simp: SHIFTS_def)
-
 definition isa_get_saved_pos' :: \<open>uint32 list \<Rightarrow> nat \<Rightarrow> nat nres\<close> where
   \<open>isa_get_saved_pos' arena C = do {
       pos \<leftarrow> isa_get_saved_pos arena C;
@@ -2158,10 +2061,6 @@ lemma isa_get_saved_pos_get_saved_pos':
       arena_is_valid_clause_idx_def arena_get_pos_conv isa_get_saved_pos'_def
       list_rel_imp_same_length get_saved_pos_pre_def
       intro!: ASSERT_leI)
-
-lemma (in -) POS_SHIFT_uint64_hnr:
-  \<open>(uncurry0 (return 5), uncurry0 (RETURN POS_SHIFT)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
-  by sepref_to_hoare (sep_auto simp: POS_SHIFT_def uint64_nat_rel_def br_def)
 
 
 paragraph \<open>Update Saved Position\<close>
@@ -2246,11 +2145,7 @@ lemma isa_update_pos:
         update_lbd_pre_def isa_update_pos_def update_pos_direct_def isa_update_pos_pre_def
         isa_arena_swap_def swap_lits_def swap_lits_pre_def isa_update_lbd_def
         arena_update_pos_conv
-      intro!: ASSERT_refine_left swap_param)
-
-lemma MAX_LENGTH_SHORT_CLAUSE_hnr[sepref_fr_rules]:
-  \<open>(uncurry0 (return 4), uncurry0 (RETURN MAX_LENGTH_SHORT_CLAUSE)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
-  by sepref_to_hoare (sep_auto simp: uint64_nat_rel_def br_def)
+      intro!: ASSERT_refine_left)
 
 
 paragraph \<open>Mark clause as garbage\<close>
@@ -2742,12 +2637,6 @@ lemma isa_mark_used_mark_used:
       arena_act_pre_def arena_is_valid_clause_idx_def arena_incr_act_conv
       list_rel_imp_same_length isa_mark_used_conv
       intro!: ASSERT_leI)
-
-definition four_uint32 where \<open>four_uint32 = (4 :: uint32)\<close>
-
-lemma four_uint32_hnr:
-  \<open>(uncurry0 (return 4), uncurry0 (RETURN (four_uint32 :: uint32)) ) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint32_assn\<close>
-  by sepref_to_hoare (sep_auto simp: uint32_nat_rel_def br_def four_uint32_def)
 
 lemma length_mark_used[simp]: \<open>length (mark_used arena C) = length arena\<close>
   by (auto simp: mark_used_def)

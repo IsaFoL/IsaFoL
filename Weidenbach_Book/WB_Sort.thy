@@ -1,11 +1,7 @@
 (* Correctness proof contributed by Maximilian Wuttke *)
-
-
 theory WB_Sort
-  imports WB_More_Refinement WB_More_IICF_SML
+  imports WB_More_Refinement WB_More_Refinement_List "HOL-Library.Rewrite"
 begin
-
-
 
 text \<open>Every element between \<^term>\<open>lo\<close> and \<^term>\<open>hi\<close> can be chosen as pivot element.\<close>
 definition choose_pivot :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> 'b) \<Rightarrow> 'a list \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat nres\<close> where
@@ -39,10 +35,15 @@ lemma \<open>isPartition [0,5,3,4,6,9,8,10::nat] 0 7 4\<close>
 definition sublist :: \<open>'a list \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a list\<close> where
 \<open>sublist xs i j \<equiv> take (Suc j - i) (drop i xs)\<close>
 
-
+(*take from HashMap *)
+lemma take_Suc0: 
+  "l\<noteq>[] \<Longrightarrow> take (Suc 0) l = [l!0]" 
+  "0 < length l \<Longrightarrow> take (Suc 0) l = [l!0]" 
+  "Suc n \<le> length l \<Longrightarrow> take (Suc 0) l = [l!0]" 
+  by (cases l, auto)+
 
 lemma sublist_single: \<open>i < length xs \<Longrightarrow> sublist xs i i = [xs!i]\<close>
-  by (simp add: sublist_def Hash_Map.take_Suc0(2))
+  by (cases xs) (auto simp add: sublist_def take_Suc0)
 
 lemma insert_eq: \<open>insert a b = b \<union> {a}\<close>
   by auto
@@ -179,7 +180,7 @@ proof -
   proof cases
     case a
     then show ?thesis
-      using assms(2) assms(3) assms(4) assms(5) assms(7) sorted_sublist_wrt_nth_le by blast
+      using assms(2-5,7) sorted_sublist_wrt_nth_le by blast
   next
     case b
     then show ?thesis
@@ -1465,7 +1466,7 @@ proof -
   show ?thesis
     apply (subst (2) Down_id_eq[symmetric])
     unfolding partition_between_ref_def
-      partition_between_def FOREACH_patterns
+      partition_between_def
       OP_def
     apply (refine_vcg choose_pivot3_choose_pivot swap partition_main_correct)
     subgoal by auto
@@ -1490,56 +1491,6 @@ lemma partition_between_ref_partition_between':
 text \<open>Example instantiation for pivot\<close>
 definition choose_pivot3_impl where
   \<open>choose_pivot3_impl = choose_pivot3 (\<le>) id\<close>
-
-sepref_register choose_pivot3
-
-text \<open>Example instantiation code for pivot\<close>
-sepref_definition choose_pivot3_impl_code
-  is \<open>uncurry2 (choose_pivot3_impl)\<close>
-  :: \<open>(arl_assn nat_assn)\<^sup>k  *\<^sub>a  nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k\<rightarrow>\<^sub>a nat_assn\<close>
-  unfolding choose_pivot3_impl_def choose_pivot3_def id_def
-  by sepref
-
-declare choose_pivot3_impl_code.refine[sepref_fr_rules]
-
-
-
-text \<open>Example instantiation for \<^term>\<open>partition_main\<close>\<close>
-definition partition_main_impl where
-  \<open>partition_main_impl = partition_main (\<le>) id\<close>
-
-sepref_register partition_main_impl
-
-text \<open>Example instantiation code for \<^term>\<open>partition_main\<close>\<close>
-sepref_definition partition_main_code
-  is \<open>uncurry2 (partition_main_impl)\<close>
-  :: \<open>nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a (arl_assn nat_assn)\<^sup>d \<rightarrow>\<^sub>a
-      arl_assn nat_assn *a nat_assn\<close>
-  unfolding partition_main_impl_def partition_main_def
-  unfolding id_def
-  by sepref
-
-declare partition_main_code.refine[sepref_fr_rules]
-
-
-text \<open>Example instantiation for partition\<close>
-definition partition_between_impl where
-  \<open>partition_between_impl = partition_between_ref (\<le>) id\<close>
-
-sepref_register partition_between_ref
-
-text \<open>Example instantiation code for partition\<close>
-sepref_definition partition_between_code
-  is \<open>uncurry2 (partition_between_impl)\<close>
-  :: \<open>nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a (arl_assn nat_assn)\<^sup>d \<rightarrow>\<^sub>a
-      arl_assn nat_assn *a nat_assn\<close>
-  unfolding partition_between_ref_def partition_between_impl_def
-    choose_pivot3_impl_def[symmetric] partition_main_impl_def[symmetric]
-  unfolding id_def
-  by sepref
-
-declare partition_between_code.refine[sepref_fr_rules]
-
 
 
 lemma partition_between_ref_correct:
@@ -1625,25 +1576,6 @@ proof -
     by simp+
 qed
 
-
-\<comment> \<open>Example implementation\<close>
-definition quicksort_impl where
-  \<open>quicksort_impl a b c \<equiv> quicksort_ref (\<le>) id (a,b,c)\<close>
-
-sepref_register quicksort_impl
-
-\<comment> \<open>Example implementation code\<close>
-sepref_definition
-  quicksort_code
-  is \<open>uncurry2 quicksort_impl\<close>
-  :: \<open>nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a (arl_assn nat_assn)\<^sup>d \<rightarrow>\<^sub>a
-      arl_assn nat_assn\<close>
-  unfolding partition_between_impl_def[symmetric]
-    quicksort_impl_def quicksort_ref_def
-  by sepref
-
-declare quicksort_code.refine[sepref_fr_rules]
-
 \<comment> \<open>Sort the entire list\<close>
 definition full_quicksort where
   \<open>full_quicksort R h xs \<equiv> if xs = [] then RETURN xs else quicksort R h (0, length xs - 1, xs)\<close>
@@ -1669,17 +1601,6 @@ proof -
     subgoal using lin by blast
     done
 qed
-
-text \<open>Executable code for the example instance\<close>
-sepref_definition full_quicksort_code
-  is \<open>full_quicksort_impl\<close>
-  :: \<open>(arl_assn nat_assn)\<^sup>d \<rightarrow>\<^sub>a
-      arl_assn nat_assn\<close>
-  unfolding full_quicksort_impl_def full_quicksort_ref_def quicksort_impl_def[symmetric] List.null_def
-  by sepref
-
-text \<open>Export the code\<close>
-export_code \<open>nat_of_integer\<close> \<open>integer_of_nat\<close> \<open>partition_between_code\<close> \<open>full_quicksort_code\<close> in SML_imp module_name IsaQuicksort file "code/quicksort.sml"
 
 
 lemma sublist_entire:

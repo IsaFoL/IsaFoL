@@ -1,6 +1,5 @@
 theory IsaSAT_Initialisation
   imports IsaSAT_Setup IsaSAT_VMTF Watched_Literals.Watched_Literals_Watch_List_Initialisation
-        Watched_Literals.Watched_Literals_Watch_List_Initialisation
 begin
 
 no_notation Ref.update ("_ := _" 62)
@@ -14,7 +13,7 @@ text \<open>The initialisation is done in three different steps:
   \<^enum> Then, we go over all clauses and insert them in our memory module. We call this phase \<^emph>\<open>parsing\<close>.
   \<^enum> Finally, we calculate the watch list.
 
-Splitting the second from the third step makes it easier to add preprocessing and more important
+Splitting the SMLsecond from the third step makes it easier to add preprocessing and more important
 to add a bounded mode.
 \<close>
 
@@ -36,17 +35,12 @@ lemma atoms_hash_int_empty_atoms_hash_empty:
       in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff Ball_def
       dest: spec[of _ "Pos _"]\<close>)
 
-sepref_definition (in -) atoms_hash_empty_code
-  is \<open>atoms_hash_int_empty\<close>
-  :: \<open>nat_assn\<^sup>k \<rightarrow>\<^sub>a phase_saver_conc\<close>
-  unfolding atoms_hash_int_empty_def array_fold_custom_replicate
-  by sepref
-
 definition (in -) distinct_atms_empty where
   \<open>distinct_atms_empty _ = {}\<close>
 
 definition (in -) distinct_atms_int_empty where
   \<open>distinct_atms_int_empty n = RETURN ([], replicate n False)\<close>
+
 
 lemma distinct_atms_int_empty_distinct_atms_empty:
   \<open>(distinct_atms_int_empty, RETURN o distinct_atms_empty) \<in>
@@ -54,15 +48,6 @@ lemma distinct_atms_int_empty_distinct_atms_empty:
   apply (intro frefI nres_relI)
   apply (auto simp: distinct_atoms_rel_alt_def distinct_atms_empty_def distinct_atms_int_empty_def)
   by (metis atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n atms_of_def imageE)
-
-sepref_definition distinct_atms_empty_code
-  is \<open>distinct_atms_int_empty\<close>
-  :: \<open>nat_assn\<^sup>k \<rightarrow>\<^sub>a arl_assn uint32_nat_assn *a atoms_hash_assn\<close>
-  unfolding distinct_atms_int_empty_def array_fold_custom_replicate
-    arl.fold_custom_empty
-  by sepref
-
-declare distinct_atms_empty_code.refine[sepref_fr_rules]
 
 type_synonym vmtf_remove_int_option_fst_As = \<open>vmtf_option_fst_As \<times> nat set\<close>
 
@@ -2265,7 +2250,7 @@ proof -
     by auto
   have H: \<open>ba < length aa \<Longrightarrow> insert_sort_inner (\<lambda>x y. y < x) f aa ba \<le> SPEC (\<lambda>m'. mset m' = mset aa)\<close>
     for ba aa f
-    using insert_sort_inner[unfolded fref_def nres_rel_def reorder_remove_def, simplified, rule_format]
+    using insert_sort_inner[unfolded fref_def nres_rel_def reorder_list_def, simplified, rule_format]
     by fast
   have K': \<open>length x2a < uint32_max\<close> if \<open>distinct b\<close> \<open>init_valid_rep x1 (set b)\<close>
     \<open>length x1 < uint_max\<close> \<open>mset x2a = mset b\<close>for x1 x2a b
@@ -2316,7 +2301,7 @@ proof -
           mset_set_set intro: K' dest: mset_eq_length)
     done
   show ?thesis
-    unfolding extract_lits_sorted_def reorder_remove_def K
+    unfolding extract_lits_sorted_def reorder_list_def K
     apply (intro frefI nres_relI)
     apply (refine_vcg H_simple H')
        apply assumption+

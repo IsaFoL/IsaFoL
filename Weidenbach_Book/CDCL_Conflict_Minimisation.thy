@@ -2,8 +2,9 @@ theory CDCL_Conflict_Minimisation
   imports
     Watched_Literals_Watch_List_Domain
     WB_More_Refinement
-    WB_More_Refinement_List
+    WB_More_Refinement_List "List-Index.List_Index" "HOL-Imperative_HOL.Imperative_HOL"
 begin
+
 
 text \<open>We implement the conflict minimisation as presented by Sörensson and Biere
 (``Minimizing Learned Clauses''').

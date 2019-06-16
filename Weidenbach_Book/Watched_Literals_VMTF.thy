@@ -1661,9 +1661,9 @@ definition vmtf_en_dequeue_pre :: \<open>nat multiset \<Rightarrow> ((nat, nat) 
        m+1 \<le> uint64_max \<and>
        Pos L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>)\<close>
 
-lemma (in -) id_reorder_remove:
-   \<open>(RETURN o id, reorder_remove vm) \<in> \<langle>nat_rel\<rangle>list_rel \<rightarrow>\<^sub>f \<langle>\<langle>nat_rel\<rangle>list_rel\<rangle>nres_rel\<close>
-  unfolding reorder_remove_def by (intro frefI nres_relI) auto
+lemma (in -) id_reorder_list:
+   \<open>(RETURN o id, reorder_list vm) \<in> \<langle>nat_rel\<rangle>list_rel \<rightarrow>\<^sub>f \<langle>\<langle>nat_rel\<rangle>list_rel\<rangle>nres_rel\<close>
+  unfolding reorder_list_def by (intro frefI nres_relI) auto
 
 lemma vmtf_vmtf_en_dequeue_pre_to_remove:
   assumes vmtf: \<open>((ns, m, fst_As, lst_As, next_search), to_remove) \<in> vmtf \<A> M\<close> and
@@ -1924,8 +1924,6 @@ proof -
     notin: \<open>vmtf_ns_notin (ys' @ xs') m ns\<close> and
     atm_A: \<open>\<forall>L\<in>atms_of (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>). L < length ns\<close>
     using vmtf unfolding vmtf_def by fast
-  have [simp]: \<open>index xs' (hd xs') = 0\<close> if \<open>xs' \<noteq> []\<close> for xs' :: \<open>'a list\<close>
-    using that by (cases xs') auto
   have no_next_search_all_defined:
     \<open>((ns', m', fst_As', lst_As', None), remove) \<in> vmtf \<A> M \<Longrightarrow> x \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A> \<Longrightarrow> defined_lit M x\<close>
     for x ns' m' fst_As' lst_As' remove
@@ -2694,7 +2692,7 @@ definition vmtf_flush_int :: \<open>nat multiset \<Rightarrow> (nat,nat) ann_lit
 \<open>vmtf_flush_int \<A>\<^sub>i\<^sub>n = (\<lambda>M (vm, (to_remove, h)). do {
     ASSERT(\<forall>x\<in>set to_remove. x < length (fst vm));
     ASSERT(length to_remove \<le> uint32_max);
-    to_remove' \<leftarrow> reorder_remove vm to_remove;
+    to_remove' \<leftarrow> reorder_list vm to_remove;
     ASSERT(length to_remove' \<le> uint32_max);
     vm \<leftarrow> (if length to_remove' + fst (snd vm) \<ge> uint64_max
       then vmtf_rescale vm else RETURN vm);
@@ -2767,17 +2765,17 @@ proof -
 
 
   have [refine0]:
-     \<open>reorder_remove x1 x1a \<le> SPEC (\<lambda>c. (c, ()) \<in>
+     \<open>reorder_list x1 x1a \<le> SPEC (\<lambda>c. (c, ()) \<in>
         {(c, c'). ((c, D), to_remove) \<in> distinct_atoms_rel \<A>\<^sub>i\<^sub>n \<and> to_remove = set c \<and>
            length C = length c})\<close>
-     (is \<open>_ \<le> SPEC(\<lambda>_. _ \<in> ?reorder_remove)\<close>)
+     (is \<open>_ \<le> SPEC(\<lambda>_. _ \<in> ?reorder_list)\<close>)
     if
       \<open>x2 = (x1a, x2a)\<close> and
       \<open>((ns, m, fst_As, lst_As, next_search), C, D) = (x1, x2)\<close>
     for x1 x2 x1a x2a
   proof -
     show ?thesis
-      using that assms by (auto simp: reorder_remove_def distinct_atoms_rel_alt_def
+      using that assms by (auto simp: reorder_list_def distinct_atoms_rel_alt_def
         dest: mset_eq_setD same_mset_distinct_iff mset_eq_length)
   qed
 
@@ -2793,7 +2791,7 @@ proof -
     \<open>((ns, m, fst_As, lst_As, next_search), C, D) = (x1, x2)\<close> and
     \<open>\<forall>x\<in>set x1a. x < length (fst x1)\<close> and
     \<open>length x1a \<le> uint_max\<close> and
-    \<open>(to_remove', uu) \<in> ?reorder_remove\<close> and
+    \<open>(to_remove', uu) \<in> ?reorder_list\<close> and
     \<open>length to_remove' \<le> uint_max\<close>
   for x1 x2 x1a x2a to_remove' uu
   proof -
@@ -2832,7 +2830,7 @@ proof -
       x2: \<open>x2 = (x1a, x2a)\<close> and
       CD: \<open>((ns, m, fst_As, lst_As, next_search), C, D) = (x1', x2)\<close> and
       x1: \<open>(x1, u') \<in> ?rescale to_remove'\<close>
-      \<open>(to_remove', u) \<in> ?reorder_remove\<close>
+      \<open>(to_remove', u) \<in> ?reorder_list\<close>
     for x1 x2 x1a x2a to_remove' u u' x1'
   proof -
     define I where \<open>I \<equiv> \<lambda>(i, vm'::vmtf, h::bool list).
@@ -3004,7 +3002,6 @@ lemma vmtf_change_to_remove_order':
   \<open>(uncurry (vmtf_flush_int \<A>\<^sub>i\<^sub>n), uncurry (vmtf_flush \<A>\<^sub>i\<^sub>n)) \<in>
    [\<lambda>(M, vm). vm \<in> vmtf \<A>\<^sub>i\<^sub>n M \<and> isasat_input_bounded \<A>\<^sub>i\<^sub>n \<and> isasat_input_nempty \<A>\<^sub>i\<^sub>n]\<^sub>f
      Id \<times>\<^sub>r (Id \<times>\<^sub>r distinct_atoms_rel \<A>\<^sub>i\<^sub>n) \<rightarrow> \<langle>(Id \<times>\<^sub>r distinct_atoms_rel \<A>\<^sub>i\<^sub>n)\<rangle> nres_rel\<close>
-  unfolding PR_CONST_def
   by (intro frefI nres_relI)
     (use vmtf_change_to_remove_order in auto)
 

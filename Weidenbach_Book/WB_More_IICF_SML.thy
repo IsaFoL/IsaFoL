@@ -1,9 +1,21 @@
 theory WB_More_IICF_SML
-imports Refine_Imperative_HOL.IICF WB_More_Refinement
+  imports Refine_Imperative_HOL.IICF WB_More_Refinement WB_More_Refinement_List
 begin
 
+no_notation Sepref_Rules.fref ("[_]\<^sub>f _ \<rightarrow> _" [0,60,60] 60)
+no_notation Sepref_Rules.freft ("_ \<rightarrow>\<^sub>f _" [60,60] 60)
+no_notation prod_assn (infixr "\<times>\<^sub>a" 70)
+notation prod_assn (infixr "*a" 70)
+
+hide_const Autoref_Fix_Rel.CONSTRAINT
+
+lemma prod_assn_id_assn_destroy:
+  fixes R :: \<open>_ \<Rightarrow> _ \<Rightarrow> assn\<close>
+  shows \<open>R\<^sup>d *\<^sub>a id_assn\<^sup>d = (R *a id_assn)\<^sup>d\<close>
+  by (auto simp: hfprod_def prod_assn_def[abs_def] invalid_assn_def pure_def intro!: ext)
+
 lemma
-  shows list_mset_assn_add_mset_Nil:
+ shows list_mset_assn_add_mset_Nil:
      \<open>list_mset_assn R (add_mset q Q) [] = false\<close> and
    list_mset_assn_empty_Cons:
     \<open>list_mset_assn R {#} (x # xs) = false\<close>
@@ -266,9 +278,6 @@ definition insert_sort_inner :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) 
 lemma \<open>RETURN [Suc 0, 2, 0] = insert_sort_inner (<) (\<lambda>remove n. remove ! n) [2::nat, 1, 0] 1\<close>
   by (simp add: WHILEIT_unfold insert_sort_inner_def swap_def)
 
-definition reorder_remove :: \<open>'b \<Rightarrow> 'a list \<Rightarrow> 'a list nres\<close> where
-\<open>reorder_remove _ removed = SPEC (\<lambda>removed'. mset removed' = mset removed)\<close>
-
 definition insert_sort :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> ('a list \<Rightarrow> nat \<Rightarrow> 'b) \<Rightarrow> 'a list \<Rightarrow> 'a list nres\<close> where
   \<open>insert_sort R f xs = do {
      (i, ys) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(i, ys). (ys = [] \<or> i \<le> length ys) \<and> mset xs = mset ys\<^esup>
@@ -283,9 +292,9 @@ definition insert_sort :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) \<Righ
   }\<close>
 
 lemma insert_sort_inner:
-   \<open>(uncurry (insert_sort_inner R f), uncurry (\<lambda>m m'. reorder_remove m' m)) \<in>
+   \<open>(uncurry (insert_sort_inner R f), uncurry (\<lambda>m m'. reorder_list m' m)) \<in>
       [\<lambda>(xs, i). i < length xs]\<^sub>f \<langle>Id:: ('a \<times> 'a) set\<rangle>list_rel \<times>\<^sub>r nat_rel \<rightarrow> \<langle>Id\<rangle> nres_rel\<close>
-  unfolding insert_sort_inner_def uncurry_def reorder_remove_def
+  unfolding insert_sort_inner_def uncurry_def reorder_list_def
   apply (intro frefI nres_relI)
   apply clarify
   apply (refine_vcg WHILEIT_rule[where R = \<open>measure (\<lambda>(i, _). i)\<close>])
@@ -303,15 +312,15 @@ lemma insert_sort_inner:
   subgoal by auto
   done
 
-lemma insert_sort_reorder_remove:
-  \<open>(insert_sort R f, reorder_remove vm) \<in> \<langle>Id\<rangle>list_rel \<rightarrow>\<^sub>f \<langle>Id\<rangle> nres_rel\<close>
+lemma insert_sort_reorder_list:
+  \<open>(insert_sort R f, reorder_list vm) \<in> \<langle>Id\<rangle>list_rel \<rightarrow>\<^sub>f \<langle>Id\<rangle> nres_rel\<close>
 proof -
   have H: \<open>ba < length aa \<Longrightarrow> insert_sort_inner R f aa ba \<le> SPEC (\<lambda>m'. mset m' = mset aa)\<close>
     for ba aa
-    using insert_sort_inner[unfolded fref_def nres_rel_def reorder_remove_def, simplified]
+    using insert_sort_inner[unfolded fref_def nres_rel_def reorder_list_def, simplified]
     by fast
   show ?thesis
-    unfolding insert_sort_def reorder_remove_def
+    unfolding insert_sort_def reorder_list_def
     apply (intro frefI nres_relI)
     apply (refine_vcg WHILEIT_rule[where R = \<open>measure (\<lambda>(i, ys). length ys - i)\<close>] H)
     subgoal by auto
@@ -447,5 +456,242 @@ lemma list_assn_map_list_assn: \<open>list_assn g (map f x) xi = list_assn (\<la
   subgoal for a x xi
     by (cases xi) auto
   done
+
+
+lemma hfref_imp2: "(\<And>x y. S x y \<Longrightarrow>\<^sub>t S' x y) \<Longrightarrow> [P]\<^sub>a RR \<rightarrow> S \<subseteq> [P]\<^sub>a RR \<rightarrow> S'"
+    apply clarsimp
+    apply (erule hfref_cons)
+    apply (simp_all add: hrp_imp_def)
+    done
+
+lemma hr_comp_mono_entails: \<open>B \<subseteq> C \<Longrightarrow> hr_comp a B x y \<Longrightarrow>\<^sub>A hr_comp a C x y\<close>
+  unfolding hr_comp_def entails_def
+  by auto
+
+lemma hfref_imp_mono_result:
+  "B \<subseteq> C \<Longrightarrow> [P]\<^sub>a RR \<rightarrow> hr_comp a B \<subseteq> [P]\<^sub>a RR \<rightarrow> hr_comp a C"
+  unfolding hfref_def hn_refine_def
+  apply clarify
+  subgoal for aa b c aaa
+    apply (rule cons_post_rule[of _ _
+          \<open>\<lambda>r. snd RR aaa c * (\<exists>\<^sub>Ax. hr_comp a B x r * \<up> (RETURN x \<le> b aaa)) * true\<close>])
+     apply (solves auto)
+    using hr_comp_mono_entails[of B C a ]
+    apply (auto intro!: ent_ex_preI)
+    apply (rule_tac x=xa in ent_ex_postI)
+    apply (auto intro!: ent_star_mono ac_simps)
+    done
+  done
+
+lemma hfref_imp_mono_result2:
+  "(\<And>x. P L x \<Longrightarrow> B L \<subseteq> C L) \<Longrightarrow> [P L]\<^sub>a RR \<rightarrow> hr_comp a (B L) \<subseteq> [P L]\<^sub>a RR \<rightarrow> hr_comp a (C L)"
+  unfolding hfref_def hn_refine_def
+  apply clarify
+  subgoal for aa b c aaa
+    apply (rule cons_post_rule[of _ _
+          \<open>\<lambda>r. snd RR aaa c * (\<exists>\<^sub>Ax. hr_comp a (B L) x r * \<up> (RETURN x \<le> b aaa)) * true\<close>])
+     apply (solves auto)
+    using hr_comp_mono_entails[of \<open>B L\<close> \<open>C L\<close> a ]
+    apply (auto intro!: ent_ex_preI)
+    apply (rule_tac x=xa in ent_ex_postI)
+    apply (auto intro!: ent_star_mono ac_simps)
+    done
+  done
+
+lemma ex_assn_up_eq2: \<open>(\<exists>\<^sub>Aba. f ba * \<up> (ba = c)) = (f c)\<close>
+  by (simp add: ex_assn_def)
+
+
+lemma ex_assn_pair_split: \<open>(\<exists>\<^sub>Ab. P b) = (\<exists>\<^sub>Aa b. P (a, b))\<close>
+  by (subst ex_assn_def, subst (1) ex_assn_def, auto)+
+
+lemma ex_assn_swap: \<open>(\<exists>\<^sub>Aa b. P a b) = (\<exists>\<^sub>Ab a. P a b)\<close>
+  by (meson ent_ex_postI ent_ex_preI ent_iffI ent_refl)
+
+lemma ent_ex_up_swap: \<open>(\<exists>\<^sub>Aaa. \<up> (P aa)) = (\<up>(\<exists>aa. P aa))\<close>
+  by (smt ent_ex_postI ent_ex_preI ent_iffI ent_pure_pre_iff ent_refl mult.left_neutral)
+
+lemma ex_assn_def_pure_eq_middle3:
+  \<open>(\<exists>\<^sub>Aba b bb. f b ba bb * \<up> (ba = h b bb) * P b ba bb) = (\<exists>\<^sub>Ab bb. f b (h b bb) bb * P b (h b bb) bb)\<close>
+  \<open>(\<exists>\<^sub>Ab ba bb. f b ba bb * \<up> (ba = h b bb) * P b ba bb) = (\<exists>\<^sub>Ab bb. f b (h b bb) bb * P b (h b bb) bb)\<close>
+  \<open>(\<exists>\<^sub>Ab bb ba. f b ba bb * \<up> (ba = h b bb) * P b ba bb) = (\<exists>\<^sub>Ab bb. f b (h b bb) bb * P b (h b bb) bb)\<close>
+  \<open>(\<exists>\<^sub>Aba b bb. f b ba bb * \<up> (ba = h b bb \<and> Q b ba bb)) = (\<exists>\<^sub>Ab bb. f b (h b bb) bb * \<up>(Q b (h b bb) bb))\<close>
+  \<open>(\<exists>\<^sub>Ab ba bb. f b ba bb * \<up> (ba = h b bb \<and> Q b ba bb)) = (\<exists>\<^sub>Ab bb. f b (h b bb) bb * \<up>(Q b (h b bb) bb))\<close>
+  \<open>(\<exists>\<^sub>Ab bb ba. f b ba bb * \<up> (ba = h b bb \<and> Q b ba bb)) = (\<exists>\<^sub>Ab bb. f b (h b bb) bb * \<up>(Q b (h b bb) bb))\<close>
+  by (subst ex_assn_def, subst (3) ex_assn_def, auto)+
+
+lemma ex_assn_def_pure_eq_middle2:
+  \<open>(\<exists>\<^sub>Aba b. f b ba * \<up> (ba = h b) * P b ba) = (\<exists>\<^sub>Ab . f b (h b) * P b (h b))\<close>
+  \<open>(\<exists>\<^sub>Ab ba. f b ba * \<up> (ba = h b) * P b ba) = (\<exists>\<^sub>Ab . f b (h b) * P b (h b))\<close>
+  \<open>(\<exists>\<^sub>Ab ba. f b ba * \<up> (ba = h b \<and> Q b ba)) = (\<exists>\<^sub>Ab. f b (h b) * \<up>(Q b (h b)))\<close>
+  \<open>(\<exists>\<^sub>A ba b. f b ba * \<up> (ba = h b \<and> Q b ba)) = (\<exists>\<^sub>Ab. f b (h b) * \<up>(Q b (h b)))\<close>
+  by (subst ex_assn_def, subst (2) ex_assn_def, auto)+
+
+lemma ex_assn_skip_first2:
+  \<open>(\<exists>\<^sub>Aba bb. f bb * \<up>(P ba bb)) = (\<exists>\<^sub>Abb. f bb * \<up>(\<exists>ba. P ba bb))\<close>
+  \<open>(\<exists>\<^sub>Abb ba. f bb * \<up>(P ba bb)) = (\<exists>\<^sub>Abb. f bb * \<up>(\<exists>ba. P ba bb))\<close>
+  apply (subst ex_assn_swap)
+  by (subst ex_assn_def, subst (2) ex_assn_def, auto)+
+
+lemma fr_refl': \<open>A \<Longrightarrow>\<^sub>A B \<Longrightarrow> C * A \<Longrightarrow>\<^sub>A C * B\<close>
+  unfolding assn_times_comm[of C]
+  by (rule Automation.fr_refl)
+
+lemma hrp_comp_Id2[simp]: \<open>hrp_comp A Id = A\<close>
+  unfolding hrp_comp_def by auto
+
+lemma hn_ctxt_prod_assn_prod:
+  \<open>hn_ctxt (R *a S) (a, b) (a', b') = hn_ctxt R a a' * hn_ctxt S b b'\<close>
+  unfolding hn_ctxt_def
+  by auto
+
+
+lemma hfref_weaken_change_pre:
+  assumes "(f,h) \<in> hfref P R S"
+  assumes "\<And>x. P x \<Longrightarrow> (fst R x, snd R x) = (fst R' x, snd R' x)"
+  assumes "\<And>y x. S y x \<Longrightarrow>\<^sub>t S' y x"
+  shows "(f,h) \<in> hfref P R' S'"
+proof -
+  have \<open>(f,h) \<in> hfref P R' S\<close>
+    using assms
+    by (auto simp: hfref_def)
+  then show ?thesis
+    using hfref_imp2[of S S' P R'] assms(3) by auto
+qed
+
+
+lemma norm_RETURN_o[to_hnr_post]:
+  "\<And>f. (RETURN oooo f)$x$y$z$a = (RETURN$(f$x$y$z$a))"
+  "\<And>f. (RETURN ooooo f)$x$y$z$a$b = (RETURN$(f$x$y$z$a$b))"
+  "\<And>f. (RETURN oooooo f)$x$y$z$a$b$c = (RETURN$(f$x$y$z$a$b$c))"
+  "\<And>f. (RETURN ooooooo f)$x$y$z$a$b$c$d = (RETURN$(f$x$y$z$a$b$c$d))"
+  "\<And>f. (RETURN oooooooo f)$x$y$z$a$b$c$d$e = (RETURN$(f$x$y$z$a$b$c$d$e))"
+  "\<And>f. (RETURN ooooooooo f)$x$y$z$a$b$c$d$e$g = (RETURN$(f$x$y$z$a$b$c$d$e$g))"
+  "\<And>f. (RETURN oooooooooo f)$x$y$z$a$b$c$d$e$g$h= (RETURN$(f$x$y$z$a$b$c$d$e$g$h))"
+  "\<And>f. (RETURN \<circ>\<^sub>1\<^sub>1 f)$x$y$z$a$b$c$d$e$g$h$i= (RETURN$(f$x$y$z$a$b$c$d$e$g$h$i))"
+  "\<And>f. (RETURN \<circ>\<^sub>1\<^sub>2 f)$x$y$z$a$b$c$d$e$g$h$i$j= (RETURN$(f$x$y$z$a$b$c$d$e$g$h$i$j))"
+  "\<And>f. (RETURN \<circ>\<^sub>1\<^sub>3 f)$x$y$z$a$b$c$d$e$g$h$i$j$l= (RETURN$(f$x$y$z$a$b$c$d$e$g$h$i$j$l))"
+  "\<And>f. (RETURN \<circ>\<^sub>1\<^sub>4 f)$x$y$z$a$b$c$d$e$g$h$i$j$l$m= (RETURN$(f$x$y$z$a$b$c$d$e$g$h$i$j$l$m))"
+  "\<And>f. (RETURN \<circ>\<^sub>1\<^sub>5 f)$x$y$z$a$b$c$d$e$g$h$i$j$l$m$n= (RETURN$(f$x$y$z$a$b$c$d$e$g$h$i$j$l$m$n))"
+  "\<And>f. (RETURN \<circ>\<^sub>1\<^sub>6 f)$x$y$z$a$b$c$d$e$g$h$i$j$l$m$n$p= (RETURN$(f$x$y$z$a$b$c$d$e$g$h$i$j$l$m$n$p))"
+  "\<And>f. (RETURN \<circ>\<^sub>1\<^sub>7 f)$x$y$z$a$b$c$d$e$g$h$i$j$l$m$n$p$r=
+    (RETURN$(f$x$y$z$a$b$c$d$e$g$h$i$j$l$m$n$p$r))"
+  "\<And>f. (RETURN \<circ>\<^sub>1\<^sub>8 f)$x$y$z$a$b$c$d$e$g$h$i$j$l$m$n$p$r$s=
+    (RETURN$(f$x$y$z$a$b$c$d$e$g$h$i$j$l$m$n$p$r$s))"
+  "\<And>f. (RETURN \<circ>\<^sub>1\<^sub>9 f)$x$y$z$a$b$c$d$e$g$h$i$j$l$m$n$p$r$s$t=
+    (RETURN$(f$x$y$z$a$b$c$d$e$g$h$i$j$l$m$n$p$r$s$t))"
+  "\<And>f. (RETURN \<circ>\<^sub>2\<^sub>0 f)$x$y$z$a$b$c$d$e$g$h$i$j$l$m$n$p$r$s$t$u=
+    (RETURN$(f$x$y$z$a$b$c$d$e$g$h$i$j$l$m$n$p$r$s$t$u))"
+  by auto
+
+lemma norm_return_o[to_hnr_post]:
+  "\<And>f. (return oooo f)$x$y$z$a = (return$(f$x$y$z$a))"
+  "\<And>f. (return ooooo f)$x$y$z$a$b = (return$(f$x$y$z$a$b))"
+  "\<And>f. (return oooooo f)$x$y$z$a$b$c = (return$(f$x$y$z$a$b$c))"
+  "\<And>f. (return ooooooo f)$x$y$z$a$b$c$d = (return$(f$x$y$z$a$b$c$d))"
+  "\<And>f. (return oooooooo f)$x$y$z$a$b$c$d$e = (return$(f$x$y$z$a$b$c$d$e))"
+  "\<And>f. (return ooooooooo f)$x$y$z$a$b$c$d$e$g = (return$(f$x$y$z$a$b$c$d$e$g))"
+  "\<And>f. (return oooooooooo f)$x$y$z$a$b$c$d$e$g$h= (return$(f$x$y$z$a$b$c$d$e$g$h))"
+  "\<And>f. (return \<circ>\<^sub>1\<^sub>1 f)$x$y$z$a$b$c$d$e$g$h$i= (return$(f$x$y$z$a$b$c$d$e$g$h$i))"
+  "\<And>f. (return \<circ>\<^sub>1\<^sub>2 f)$x$y$z$a$b$c$d$e$g$h$i$j= (return$(f$x$y$z$a$b$c$d$e$g$h$i$j))"
+  "\<And>f. (return \<circ>\<^sub>1\<^sub>3 f)$x$y$z$a$b$c$d$e$g$h$i$j$l= (return$(f$x$y$z$a$b$c$d$e$g$h$i$j$l))"
+  "\<And>f. (return \<circ>\<^sub>1\<^sub>4 f)$x$y$z$a$b$c$d$e$g$h$i$j$l$m= (return$(f$x$y$z$a$b$c$d$e$g$h$i$j$l$m))"
+  "\<And>f. (return \<circ>\<^sub>1\<^sub>5 f)$x$y$z$a$b$c$d$e$g$h$i$j$l$m$n= (return$(f$x$y$z$a$b$c$d$e$g$h$i$j$l$m$n))"
+  "\<And>f. (return \<circ>\<^sub>1\<^sub>6 f)$x$y$z$a$b$c$d$e$g$h$i$j$l$m$n$p= (return$(f$x$y$z$a$b$c$d$e$g$h$i$j$l$m$n$p))"
+  "\<And>f. (return \<circ>\<^sub>1\<^sub>7 f)$x$y$z$a$b$c$d$e$g$h$i$j$l$m$n$p$r=
+    (return$(f$x$y$z$a$b$c$d$e$g$h$i$j$l$m$n$p$r))"
+  "\<And>f. (return \<circ>\<^sub>1\<^sub>8 f)$x$y$z$a$b$c$d$e$g$h$i$j$l$m$n$p$r$s=
+    (return$(f$x$y$z$a$b$c$d$e$g$h$i$j$l$m$n$p$r$s))"
+  "\<And>f. (return \<circ>\<^sub>1\<^sub>9 f)$x$y$z$a$b$c$d$e$g$h$i$j$l$m$n$p$r$s$t=
+    (return$(f$x$y$z$a$b$c$d$e$g$h$i$j$l$m$n$p$r$s$t))"
+  "\<And>f. (return \<circ>\<^sub>2\<^sub>0 f)$x$y$z$a$b$c$d$e$g$h$i$j$l$m$n$p$r$s$t$u=
+    (return$(f$x$y$z$a$b$c$d$e$g$h$i$j$l$m$n$p$r$s$t$u))"
+    by auto
+
+
+lemma nfoldli_cong2:
+  assumes
+    le: \<open>length l = length l'\<close> and
+    \<sigma>: \<open>\<sigma> = \<sigma>'\<close> and
+    c: \<open>c = c'\<close> and
+    H: \<open>\<And>\<sigma> x. x < length l \<Longrightarrow> c' \<sigma> \<Longrightarrow> f (l ! x) \<sigma> = f' (l' ! x) \<sigma>\<close>
+  shows \<open>nfoldli l c f \<sigma> = nfoldli l' c' f' \<sigma>'\<close>
+proof -
+  show ?thesis
+    using le H unfolding c[symmetric] \<sigma>[symmetric]
+  proof (induction l arbitrary: l' \<sigma>)
+    case Nil
+    then show ?case by simp
+  next
+    case (Cons a l l'') note IH=this(1) and le = this(2) and H = this(3)
+    show ?case
+      using le H[of \<open>Suc _\<close>] H[of 0] IH[of \<open>tl l''\<close> \<open>_\<close>]
+      by (cases l'')
+        (auto intro: bind_cong_nres)
+  qed
+qed
+
+lemma nfoldli_nfoldli_list_nth:
+  \<open>nfoldli xs c P a = nfoldli [0..<length xs] c (\<lambda>i. P (xs ! i)) a\<close>
+proof (induction xs arbitrary: a)
+  case Nil
+  then show ?case by auto
+next
+  case (Cons x xs) note IH = this(1)
+  have 1: \<open>[0..<length (x # xs)] = 0 # [1..<length (x#xs)]\<close>
+    by (subst upt_rec)  simp
+  have 2: \<open>[1..<length (x#xs)] = map Suc [0..<length xs]\<close>
+    by (induction xs) auto
+  have AB: \<open>nfoldli [0..<length (x # xs)] c (\<lambda>i. P ((x # xs) ! i)) a =
+      nfoldli (0 # [1..<length (x#xs)]) c (\<lambda>i. P ((x # xs) ! i)) a\<close>
+      (is \<open>?A = ?B\<close>)
+    unfolding 1 ..
+  {
+    assume [simp]: \<open>c a\<close>
+    have \<open>nfoldli (0 # [1..<length (x#xs)]) c (\<lambda>i. P ((x # xs) ! i)) a =
+       do {
+         \<sigma> \<leftarrow> (P x a);
+         nfoldli [1..<length (x#xs)] c (\<lambda>i. P ((x # xs) ! i)) \<sigma>
+        }\<close>
+      by simp
+    moreover have \<open>nfoldli [1..<length (x#xs)] c (\<lambda>i. P ((x # xs) ! i)) \<sigma>  =
+       nfoldli [0..<length xs] c (\<lambda>i. P (xs ! i)) \<sigma>\<close> for \<sigma>
+      unfolding 2
+      by (rule nfoldli_cong2) auto
+    ultimately have \<open>?A = do {
+         \<sigma> \<leftarrow> (P x a);
+         nfoldli [0..<length xs] c (\<lambda>i. P (xs ! i))  \<sigma>
+        }\<close>
+      using AB
+      by (auto intro: bind_cong_nres)
+  }
+  moreover {
+    assume [simp]: \<open>\<not>c a\<close>
+    have \<open>?B = RETURN a\<close>
+      by simp
+  }
+  ultimately show ?case by (auto simp: IH intro: bind_cong_nres)
+qed
+
+
+
+lemma list_rel_update:
+  fixes R :: \<open>'a \<Rightarrow> 'b :: {heap}\<Rightarrow> assn\<close>
+  assumes rel: \<open>(xs, ys) \<in> \<langle>the_pure R\<rangle>list_rel\<close> and
+   h: \<open>h \<Turnstile> A * R b bi\<close> and
+   p: \<open>is_pure R\<close>
+  shows \<open>(list_update xs ba bi, list_update ys ba b) \<in> \<langle>the_pure R\<rangle>list_rel\<close>
+proof -
+  obtain R' where R: \<open>the_pure R = R'\<close> and R': \<open>R = pure R'\<close>
+    using p by fastforce
+  have [simp]: \<open>(bi, b) \<in> the_pure R\<close>
+    using h p by (auto simp: mod_star_conv R R')
+  have \<open>length xs = length ys\<close>
+    using assms list_rel_imp_same_length by blast
+
+  then show ?thesis
+    using rel
+    by (induction xs ys arbitrary: ba rule: list_induct2) (auto split: nat.splits)
+qed
 
 end

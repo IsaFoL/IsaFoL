@@ -1,9 +1,12 @@
 theory IsaSAT_Setup
-  imports IsaSAT_Clauses IsaSAT_Arena
-    Watched_Literals_VMTF IsaSAT_Lookup_Conflict LBD IsaSAT_Watch_List
-    IsaSAT_Lookup_Conflict_SML         Watched_Literals.Watched_Literals_Watch_List_Initialisation
-
+  imports
+    Watched_Literals_VMTF
+    Watched_Literals.Watched_Literals_Watch_List_Initialisation 
+    IsaSAT_Lookup_Conflict 
+    IsaSAT_Clauses IsaSAT_Arena IsaSAT_Watch_List LBD
 begin
+
+hide_fact Sepref_Rules.frefI
 
 text \<open>TODO Move and make sure to merge in the right order!\<close>
 no_notation Ref.update ("_ := _" 62)
@@ -68,38 +71,6 @@ definition incr_GC :: \<open>stats \<Rightarrow> stats\<close> where
 definition add_lbd :: \<open>uint64 \<Rightarrow> stats \<Rightarrow> stats\<close> where
   \<open>add_lbd lbd = (\<lambda>(propa, confl, dec, res, lres, uset, gcs, lbds). (propa, confl, dec, res, lres, uset, gcs, lbd + lbds))\<close>
 
-lemma incr_propagation_hnr[sepref_fr_rules]:
-    \<open>(return o incr_propagation, RETURN o incr_propagation) \<in> stats_assn\<^sup>d \<rightarrow>\<^sub>a stats_assn\<close>
-  by sepref_to_hoare (sep_auto simp: incr_propagation_def)
-
-lemma incr_conflict_hnr[sepref_fr_rules]:
-    \<open>(return o incr_conflict, RETURN o incr_conflict) \<in> stats_assn\<^sup>d \<rightarrow>\<^sub>a stats_assn\<close>
-  by sepref_to_hoare (sep_auto simp: incr_conflict_def)
-
-lemma incr_decision_hnr[sepref_fr_rules]:
-    \<open>(return o incr_decision, RETURN o incr_decision) \<in> stats_assn\<^sup>d \<rightarrow>\<^sub>a stats_assn\<close>
-  by sepref_to_hoare (sep_auto simp: incr_decision_def)
-
-lemma incr_restart_hnr[sepref_fr_rules]:
-    \<open>(return o incr_restart, RETURN o incr_restart) \<in> stats_assn\<^sup>d \<rightarrow>\<^sub>a stats_assn\<close>
-  by sepref_to_hoare (sep_auto simp: incr_restart_def)
-
-lemma incr_lrestart_hnr[sepref_fr_rules]:
-    \<open>(return o incr_lrestart, RETURN o incr_lrestart) \<in> stats_assn\<^sup>d \<rightarrow>\<^sub>a stats_assn\<close>
-  by sepref_to_hoare (sep_auto simp: incr_lrestart_def)
-
-lemma incr_uset_hnr[sepref_fr_rules]:
-    \<open>(return o incr_uset, RETURN o incr_uset) \<in> stats_assn\<^sup>d \<rightarrow>\<^sub>a stats_assn\<close>
-  by sepref_to_hoare (sep_auto simp: incr_uset_def)
-
-lemma incr_GC_hnr[sepref_fr_rules]:
-    \<open>(return o incr_GC, RETURN o incr_GC) \<in> stats_assn\<^sup>d \<rightarrow>\<^sub>a stats_assn\<close>
-  by sepref_to_hoare (sep_auto simp: incr_GC_def)
-
-lemma add_lbd_hnr[sepref_fr_rules]:
-    \<open>(uncurry (return oo add_lbd), uncurry (RETURN oo add_lbd)) \<in> uint64_assn\<^sup>k *\<^sub>a stats_assn\<^sup>d \<rightarrow>\<^sub>a stats_assn\<close>
-  by sepref_to_hoare (sep_auto simp: add_lbd_def)
-
 
 paragraph \<open>Moving averages\<close>
 
@@ -119,31 +90,6 @@ definition ema_bitshifting where
 
 sepref_register ema_bitshifting
 
-lemma ema_bitshifting_hnr[sepref_fr_rules]:
-  \<open>(uncurry0 (return 4294967296), uncurry0 (RETURN ema_bitshifting)) \<in>
-     unit_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
-proof -
-  have [simp]: \<open>Suc 0 << 32 = 4294967296\<close>
-    by eval
-  show ?thesis
-    unfolding ema_bitshifting_def
-    by sepref_to_hoare
-      (sep_auto simp: uint64_nat_rel_def br_def ema_bitshifting_def
-         nat_of_uint64_1_32 uint32_max_def)
-qed
-
-lemma ema_bitshifting_hnr2[sepref_fr_rules]:
-  \<open>(uncurry0 (return 4294967296), uncurry0 (RETURN ema_bitshifting)) \<in>
-     unit_assn\<^sup>k \<rightarrow>\<^sub>a uint64_assn\<close>
-proof -
-  have [simp]: \<open>(1::uint64) << 32 = 4294967296\<close>
-    by eval
-  show ?thesis
-    unfolding ema_bitshifting_def
-    by sepref_to_hoare
-      (sep_auto simp: uint64_nat_rel_def br_def ema_bitshifting_def
-         nat_of_uint64_1_32 uint32_max_def)
-qed
 
 definition (in -) ema_update :: \<open>nat \<Rightarrow> ema \<Rightarrow> ema\<close> where
   \<open>ema_update = (\<lambda>lbd (value, \<alpha>, \<beta>, wait, period).
@@ -169,22 +115,11 @@ definition (in -) ema_update_ref :: \<open>uint32 \<Rightarrow> ema \<Rightarrow
        let \<beta> = if \<beta> \<le> \<alpha> then \<alpha> else \<beta> in
        (value, \<alpha>, \<beta>, wait, period))\<close>
 
-lemma (in -) ema_update_hnr[sepref_fr_rules]:
-  \<open>(uncurry (return oo ema_update_ref), uncurry (RETURN oo ema_update)) \<in>
-      uint32_nat_assn\<^sup>k *\<^sub>a ema_assn\<^sup>k \<rightarrow>\<^sub>a ema_assn\<close>
-  unfolding ema_update_def ema_update_ref_def
-  by sepref_to_hoare
-     (sep_auto simp: uint32_nat_rel_def br_def uint64_of_uint32_def Let_def)
-
 definition (in -) ema_init :: \<open>uint64 \<Rightarrow> ema\<close> where
   \<open>ema_init \<alpha> = (0, \<alpha>, ema_bitshifting, 0, 0)\<close>
 
 fun ema_reinit where
   \<open>ema_reinit (value, \<alpha>, \<beta>, wait, period) = (value, \<alpha>, 1 << 32, 0, 0)\<close>
-
-lemma ema_reinit_hnr[sepref_fr_rules]:
-  \<open>(return o ema_reinit, RETURN o ema_reinit) \<in> ema_assn\<^sup>k \<rightarrow>\<^sub>a ema_assn\<close>
-  by sepref_to_hoare sep_auto
 
 fun ema_get_value :: \<open>ema \<Rightarrow> uint64\<close> where
   \<open>ema_get_value (v, _) = v\<close>
@@ -192,11 +127,6 @@ fun ema_get_value :: \<open>ema \<Rightarrow> uint64\<close> where
 lemma ema_get_value_hnr[sepref_fr_rules]:
   \<open>(return o ema_get_value, RETURN o ema_get_value) \<in> ema_assn\<^sup>k \<rightarrow>\<^sub>a uint64_assn\<close>
   by sepref_to_hoare sep_auto
-
-lemma (in -) ema_init_coeff_hnr[sepref_fr_rules]:
-  \<open>(return o ema_init, RETURN o ema_init) \<in> uint64_assn\<^sup>k \<rightarrow>\<^sub>a ema_assn\<close>
-  by sepref_to_hoare
-    (sep_auto simp: ema_init_def uint64_nat_rel_def br_def)
 
 
 text \<open>We use the default values for Cadical: \<^term>\<open>(3 / 10 ^2)\<close> and  \<^term>\<open>(1 / 10 ^ 5)\<close>  in our fixed-point
@@ -220,28 +150,11 @@ abbreviation restart_info_assn where
 definition incr_conflict_count_since_last_restart :: \<open>restart_info \<Rightarrow> restart_info\<close> where
   \<open>incr_conflict_count_since_last_restart = (\<lambda>(ccount, ema_lvl). (ccount + 1, ema_lvl))\<close>
 
-lemma incr_conflict_count_since_last_restart_hnr[sepref_fr_rules]:
-    \<open>(return o incr_conflict_count_since_last_restart, RETURN o incr_conflict_count_since_last_restart)
-       \<in> restart_info_assn\<^sup>d \<rightarrow>\<^sub>a restart_info_assn\<close>
-  by sepref_to_hoare (sep_auto simp: incr_conflict_count_since_last_restart_def)
-
 definition restart_info_update_lvl_avg :: \<open>uint32 \<Rightarrow> restart_info \<Rightarrow> restart_info\<close> where
   \<open>restart_info_update_lvl_avg = (\<lambda>lvl (ccount, ema_lvl). (ccount, ema_lvl))\<close>
 
-lemma restart_info_update_lvl_avg_hnr[sepref_fr_rules]:
-    \<open>(uncurry (return oo restart_info_update_lvl_avg),
-       uncurry (RETURN oo restart_info_update_lvl_avg))
-       \<in> uint32_assn\<^sup>k *\<^sub>a restart_info_assn\<^sup>d \<rightarrow>\<^sub>a restart_info_assn\<close>
-  by sepref_to_hoare (sep_auto simp: restart_info_update_lvl_avg_def)
-
 definition restart_info_init :: \<open>restart_info\<close> where
   \<open>restart_info_init = (0, 0)\<close>
-
-lemma restart_info_init_hnr[sepref_fr_rules]:
-    \<open>(uncurry0 (return restart_info_init),
-       uncurry0 (RETURN restart_info_init))
-       \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a restart_info_assn\<close>
-  by sepref_to_hoare (sep_auto simp: restart_info_init_def)
 
 
 definition restart_info_restart_done :: \<open>restart_info \<Rightarrow> restart_info\<close> where
@@ -280,35 +193,13 @@ definition (in -) vmtf_node_rel where
    (get_prev a', get_prev a) \<in> \<langle>uint32_nat_rel\<rangle>option_rel \<and>
    (get_next a', get_next a) \<in> \<langle>uint32_nat_rel\<rangle>option_rel}\<close>
 
-abbreviation (in -)vmtf_node_assn where
-\<open>vmtf_node_assn \<equiv> pure vmtf_node_rel\<close>
-
-abbreviation vmtf_conc where
-  \<open>vmtf_conc \<equiv> (array_assn vmtf_node_assn *a uint64_nat_assn *a uint32_nat_assn *a uint32_nat_assn
-    *a option_assn uint32_nat_assn)\<close>
-
-abbreviation atoms_hash_assn :: \<open>bool list \<Rightarrow> bool array \<Rightarrow> assn\<close> where
-  \<open>atoms_hash_assn \<equiv> array_assn bool_assn\<close>
-
-abbreviation distinct_atoms_assn where
-  \<open>distinct_atoms_assn \<equiv> arl_assn uint32_nat_assn *a atoms_hash_assn\<close>
-
 type_synonym (in -) isa_vmtf_remove_int = \<open>vmtf \<times> (nat list \<times> bool list)\<close>
-
-abbreviation vmtf_remove_conc
-  :: \<open>isa_vmtf_remove_int \<Rightarrow> vmtf_remove_assn \<Rightarrow> assn\<close>
-where
-  \<open>vmtf_remove_conc \<equiv> vmtf_conc *a distinct_atoms_assn\<close>
 
 
 paragraph \<open>Options\<close>
 
 type_synonym opts = \<open>bool \<times> bool \<times> bool\<close>
 
-abbreviation opts_assn
-  :: \<open>opts \<Rightarrow> opts \<Rightarrow> assn\<close>
-where
-  \<open>opts_assn \<equiv> bool_assn *a bool_assn *a bool_assn\<close>
 
 definition opts_restart where
   \<open>opts_restart = (\<lambda>(a, b). a)\<close>
@@ -318,18 +209,6 @@ definition opts_reduce where
 
 definition opts_unbounded_mode where
   \<open>opts_unbounded_mode = (\<lambda>(a, b, c). c)\<close>
-
-lemma opts_restart_hnr[sepref_fr_rules]:
-  \<open>(return o opts_restart, RETURN o opts_restart) \<in> opts_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
-  by sepref_to_hoare sep_auto
-
-lemma opts_reduce_hnr[sepref_fr_rules]:
-  \<open>(return o opts_reduce, RETURN o opts_reduce) \<in> opts_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
-  by sepref_to_hoare sep_auto
-
-lemma opts_unbounded_mode_hnr[sepref_fr_rules]:
-  \<open>(return o opts_unbounded_mode, RETURN o opts_unbounded_mode) \<in> opts_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
-  by sepref_to_hoare sep_auto
 
 
 paragraph \<open>Base state\<close>
@@ -487,17 +366,6 @@ definition convert_single_wl_to_nat where
 \<open>convert_single_wl_to_nat W i W' j =
   op_map_to (\<lambda>(i, C). (nat_of_uint64_conv i, C)) (to_watcher 0 (Pos 0) False) (W!i) W' j\<close>
 
-sepref_definition convert_single_wl_to_nat_code
-  is \<open>uncurry3 convert_single_wl_to_nat\<close>
-  :: \<open>[\<lambda>(((W, i), W'), j). i < length W \<and> j < length W']\<^sub>a
-       (arrayO_assn (arl_assn (watcher_fast_assn)))\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a
-       (arrayO_assn (arl_assn (watcher_assn)))\<^sup>d *\<^sub>a nat_assn\<^sup>k \<rightarrow>
-      arrayO_assn (arl_assn (watcher_assn))\<close>
-  supply [[goals_limit=1]]
-  unfolding convert_single_wl_to_nat_def op_map_to_def nth_ll_def[symmetric]
-    length_ll_def[symmetric]
-  by sepref
-
 definition convert_single_wl_to_nat_conv where
 \<open>convert_single_wl_to_nat_conv xs i W' j =
    W'[j :=  map (\<lambda>(i, C). (nat_of_uint64_conv i, C)) (xs!i)]\<close>
@@ -513,15 +381,6 @@ lemma convert_single_wl_to_nat:
     (auto simp: convert_single_wl_to_nat_def convert_single_wl_to_nat_conv_def nat_of_uint64_conv_def
       dest: op_map_to_map[of _ _ id])
 
-lemma convert_single_wl_to_nat_conv_hnr[sepref_fr_rules]:
-  \<open>(uncurry3 convert_single_wl_to_nat_code,
-     uncurry3 (RETURN \<circ>\<circ>\<circ> convert_single_wl_to_nat_conv))
-  \<in> [\<lambda>(((a, b), ba), bb). b < length a \<and> bb < length ba \<and> ba ! bb = []]\<^sub>a
-    (arrayO_assn (arl_assn watcher_fast_assn))\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a
-    (arrayO_assn (arl_assn watcher_assn))\<^sup>d *\<^sub>a nat_assn\<^sup>k \<rightarrow>
-    arrayO_assn (arl_assn watcher_assn)\<close>
-  using convert_single_wl_to_nat_code.refine[FCOMP convert_single_wl_to_nat]
-  by auto
 
 definition convert_wlists_to_nat_conv where
   \<open>convert_wlists_to_nat_conv = id\<close>
@@ -538,23 +397,19 @@ proof -
     by (auto simp: convert_wlists_to_nat_def)
 qed
 
-
-abbreviation (in -) watchers_assn where
-  \<open>watchers_assn \<equiv> arl_assn (watcher_assn)\<close>
-
-abbreviation (in -) watchlist_assn where
-  \<open>watchlist_assn \<equiv> arrayO_assn watchers_assn\<close>
-
-abbreviation (in -) watchers_fast_assn where
-  \<open>watchers_fast_assn \<equiv> arl_assn (watcher_fast_assn)\<close>
-
-abbreviation (in -) watchlist_fast_assn where
-  \<open>watchlist_fast_assn \<equiv> arrayO_assn watchers_fast_assn\<close>
-
 lemma convert_single_wl_to_nat_conv_alt_def:
   \<open>convert_single_wl_to_nat_conv zs i xs i = xs[i := map (\<lambda>(i, y, y'). (nat_of_uint64_conv i, y, y')) (zs ! i)]\<close>
   unfolding convert_single_wl_to_nat_conv_def
   by auto
+
+lemma convert_wlists_to_nat_convert_wlists_to_nat_conv:
+  \<open>(convert_wlists_to_nat, RETURN o convert_wlists_to_nat_conv) \<in>
+     \<langle>\<langle>nat_rel \<times>\<^sub>r Id\<rangle>list_rel\<rangle>list_rel \<rightarrow>\<^sub>f
+     \<langle>\<langle>\<langle>nat_rel \<times>\<^sub>r Id\<rangle>list_rel\<rangle>list_rel\<rangle>nres_rel\<close>
+  by (intro WB_More_Refinement.frefI nres_relI)
+    (auto simp: convert_wlists_to_nat_def
+       convert_wlists_to_nat_conv_def
+      intro: order.trans op_map_map)
 
 (* TODO n should also be used in the condition *)
 lemma convert_wlists_to_nat_alt_def2:
@@ -583,29 +438,6 @@ lemma convert_wlists_to_nat_alt_def2:
   by auto
 
 sepref_register init_lrl
-
-sepref_definition convert_wlists_to_nat_code
-  is \<open>convert_wlists_to_nat\<close>
-  :: \<open>watchlist_fast_assn\<^sup>d \<rightarrow>\<^sub>a watchlist_assn\<close>
-  supply length_a_hnr[sepref_fr_rules]
-  unfolding convert_wlists_to_nat_alt_def2
-  by sepref
-
-lemma convert_wlists_to_nat_convert_wlists_to_nat_conv:
-  \<open>(convert_wlists_to_nat, RETURN o convert_wlists_to_nat_conv) \<in>
-     \<langle>\<langle>nat_rel \<times>\<^sub>r Id\<rangle>list_rel\<rangle>list_rel \<rightarrow>\<^sub>f
-     \<langle>\<langle>\<langle>nat_rel \<times>\<^sub>r Id\<rangle>list_rel\<rangle>list_rel\<rangle>nres_rel\<close>
-  by (intro frefI nres_relI)
-    (auto simp: convert_wlists_to_nat_def nat_of_uint64_conv_def
-       convert_wlists_to_nat_conv_def
-      intro: order.trans op_map_map)
-
-lemma convert_wlists_to_nat_conv_hnr[sepref_fr_rules]:
-  \<open>(convert_wlists_to_nat_code, RETURN \<circ> convert_wlists_to_nat_conv)
-    \<in> (arrayO_assn (arl_assn watcher_fast_assn))\<^sup>d \<rightarrow>\<^sub>a
-      arrayO_assn (arl_assn watcher_assn)\<close>
-  using convert_wlists_to_nat_code.refine[FCOMP convert_wlists_to_nat_convert_wlists_to_nat_conv]
-  by simp
 
 
 text \<open>The virtual domain is composed of the addressable (and accessible) elements, i.e.,
@@ -828,46 +660,6 @@ definition twl_st_heur_bt :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\
   }\<close>
 
 
-definition isasat_unbounded_assn :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wll_trail \<Rightarrow> assn\<close> where
-\<open>isasat_unbounded_assn =
-  trail_pol_assn *a arena_assn *a
-  isasat_conflict_assn *a
-  uint32_nat_assn *a
-  watchlist_assn *a
-  vmtf_remove_conc *a phase_saver_conc *a
-  uint32_nat_assn *a
-  cach_refinement_l_assn *a
-  lbd_assn *a
-  out_learned_assn *a
-  stats_assn *a
-  ema_assn *a
-  ema_assn *a
-  restart_info_assn *a
-  vdom_assn *a
-  vdom_assn *a
-  nat_assn *a
-  opts_assn *a arena_assn\<close>
-
-definition isasat_bounded_assn :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wll_trail_fast \<Rightarrow> assn\<close> where
-\<open>isasat_bounded_assn =
-  trail_pol_fast_assn *a arena_assn *a
-  isasat_conflict_assn *a
-  uint32_nat_assn *a
-  watchlist_fast_assn *a
-  vmtf_remove_conc *a phase_saver_conc *a
-  uint32_nat_assn *a
-  cach_refinement_l_assn *a
-  lbd_assn *a
-  out_learned_assn *a
-  stats_assn *a
-  ema_assn *a
-  ema_assn *a
-  restart_info_assn *a
-  vdom_assn *a
-  vdom_assn *a
-  uint64_nat_assn *a
-  opts_assn *a arena_assn\<close>
-
 text \<open>
   The difference between \<^term>\<open>isasat_unbounded_assn\<close> and \<^term>\<open>isasat_bounded_assn\<close> corresponds to the
   following condition:
@@ -883,15 +675,6 @@ definition isasat_fast_slow :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heu
     (\<lambda>(M', N', D', Q', W', vm, \<phi>, clvls, cach, lbd, outl, stats, fema, sema, ccount, vdom, avdom, lcount, opts, old_arena).
       RETURN (trail_pol_slow_of_fast M', N', D', Q', convert_wlists_to_nat_conv W', vm, \<phi>,
         clvls, cach, lbd, outl, stats, fema, sema, ccount, vdom, avdom, nat_of_uint64_conv lcount, opts, old_arena))\<close>
-
-sepref_definition isasat_fast_slow_code
-  is \<open>isasat_fast_slow\<close>
-  :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_unbounded_assn\<close>
-  supply [[goals_limit=1]]
-  unfolding isasat_bounded_assn_def isasat_unbounded_assn_def isasat_fast_slow_def
-  by sepref
-
-declare isasat_fast_slow_code.refine[sepref_fr_rules]
 
 definition (in -)isasat_fast_slow_wl_D where
   \<open>isasat_fast_slow_wl_D = id\<close>
@@ -919,34 +702,17 @@ definition get_conflict_wl_is_None_heur :: \<open>twl_st_wl_heur \<Rightarrow> b
 lemma get_conflict_wl_is_None_heur_get_conflict_wl_is_None:
   \<open>(RETURN o get_conflict_wl_is_None_heur,  RETURN o get_conflict_wl_is_None) \<in>
     twl_st_heur \<rightarrow>\<^sub>f \<langle>Id\<rangle>nres_rel\<close>
-  apply (intro frefI nres_relI)
+  apply (intro WB_More_Refinement.frefI nres_relI)
   apply (rename_tac x y, case_tac x, case_tac y)
   by (auto simp: twl_st_heur_def get_conflict_wl_is_None_heur_def get_conflict_wl_is_None_def
       option_lookup_clause_rel_def
      split: option.splits)
 
+
 lemma get_conflict_wl_is_None_heur_alt_def:
     \<open>RETURN o get_conflict_wl_is_None_heur = (\<lambda>(M, N, (b, _), Q, W, _). RETURN b)\<close>
   unfolding get_conflict_wl_is_None_heur_def
   by auto
-
-sepref_definition get_conflict_wl_is_None_code
-  is \<open>RETURN o get_conflict_wl_is_None_heur\<close>
-  :: \<open>isasat_unbounded_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
-  unfolding get_conflict_wl_is_None_heur_alt_def isasat_unbounded_assn_def length_ll_def[symmetric]
-  supply [[goals_limit=1]]
-  by sepref
-
-declare get_conflict_wl_is_None_code.refine[sepref_fr_rules]
-
-sepref_definition get_conflict_wl_is_None_fast_code
-  is \<open>RETURN o get_conflict_wl_is_None_heur\<close>
-  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
-  unfolding get_conflict_wl_is_None_heur_alt_def isasat_bounded_assn_def length_ll_def[symmetric]
-  supply [[goals_limit=1]]
-  by sepref
-
-declare get_conflict_wl_is_None_fast_code.refine[sepref_fr_rules]
 
 definition count_decided_st :: \<open>nat twl_st_wl \<Rightarrow> nat\<close> where
   \<open>count_decided_st = (\<lambda>(M, _). count_decided M)\<close>
@@ -954,29 +720,12 @@ definition count_decided_st :: \<open>nat twl_st_wl \<Rightarrow> nat\<close> wh
 definition isa_count_decided_st :: \<open>twl_st_wl_heur \<Rightarrow> nat\<close> where
   \<open>isa_count_decided_st = (\<lambda>(M, _). count_decided_pol M)\<close>
 
-sepref_definition isa_count_decided_st_code
-  is \<open>RETURN o isa_count_decided_st\<close>
-  :: \<open>isasat_unbounded_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
-  supply [[goals_limit=2]]
-  unfolding isa_count_decided_st_def isasat_unbounded_assn_def
-  by sepref
-
-declare isa_count_decided_st_code.refine[sepref_fr_rules]
-
-sepref_definition isa_count_decided_st_fast_code
-  is \<open>RETURN o isa_count_decided_st\<close>
-  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
-  supply [[goals_limit=2]]
-  unfolding isa_count_decided_st_def isasat_bounded_assn_def
-  by sepref
-
-declare isa_count_decided_st_fast_code.refine[sepref_fr_rules]
-
 lemma count_decided_st_count_decided_st:
   \<open>(RETURN o isa_count_decided_st, RETURN o count_decided_st) \<in> twl_st_heur \<rightarrow>\<^sub>f \<langle>nat_rel\<rangle>nres_rel\<close>
-  by (intro frefI nres_relI)
+  by (intro WB_More_Refinement.frefI nres_relI)
      (auto simp: count_decided_st_def twl_st_heur_def isa_count_decided_st_def
        count_decided_trail_ref[THEN fref_to_Down_unRET_Id])
+
 
 lemma count_decided_st_alt_def: \<open>count_decided_st S = count_decided (get_trail_wl S)\<close>
   unfolding count_decided_st_def
@@ -1012,6 +761,7 @@ proof -
    apply (auto simp: all_atms_def; fail)
   by (auto simp: is_in_conflict_st_def atm_in_conflict_def atms_of_def atm_of_eq_atm_of)
 qed
+
 lemma atm_is_in_conflict_st_heur_is_in_conflict_st_ana:
   \<open>(uncurry (RETURN oo atm_is_in_conflict_st_heur), uncurry (RETURN oo is_in_conflict_st)) \<in>
    [\<lambda>(L, S). -L \<notin># the (get_conflict_wl S) \<and> get_conflict_wl S \<noteq> None \<and>
@@ -1053,26 +803,6 @@ lemma polarity_st_heur_pre:
   by (auto simp: twl_st_heur_def polarity_st_heur_pre_def all_atms_def[symmetric]
     intro!: polarity_st_heur_pre_def polarity_pol_pre)
 
-sepref_definition polarity_st_heur_pol
-  is \<open>uncurry (RETURN oo polarity_st_heur)\<close>
-  :: \<open>[polarity_st_heur_pre]\<^sub>a isasat_unbounded_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> tri_bool_assn\<close>
-  unfolding polarity_st_heur_alt_def isasat_unbounded_assn_def polarity_st_pre_def
-    polarity_st_heur_pre_def
-  supply [[goals_limit = 1]]
-  by sepref
-
-declare polarity_st_heur_pol.refine[sepref_fr_rules]
-
-sepref_definition polarity_st_heur_pol_fast
-  is \<open>uncurry (RETURN oo polarity_st_heur)\<close>
-  :: \<open>[polarity_st_heur_pre]\<^sub>a isasat_bounded_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> tri_bool_assn\<close>
-  unfolding polarity_st_heur_alt_def isasat_bounded_assn_def polarity_st_pre_def
-    polarity_st_heur_pre_def
-  supply [[goals_limit = 1]]
-  by sepref
-
-declare polarity_st_heur_pol_fast.refine[sepref_fr_rules]
-
 
 abbreviation nat_lit_lit_rel where
   \<open>nat_lit_lit_rel \<equiv> Id :: (nat literal \<times> _) set\<close>
@@ -1087,14 +817,6 @@ lemma valid_arena_DECISION_REASON:
 
 definition count_decided_st_heur :: \<open>_ \<Rightarrow> _\<close> where
   \<open>count_decided_st_heur = (\<lambda>((_,_,_,_,n, _), _). n)\<close>
-
-lemma count_decided_st_heur[sepref_fr_rules]:
-  \<open>(return o count_decided_st_heur, RETURN o count_decided_st_heur) \<in>
-      isasat_unbounded_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
-  \<open>(return o count_decided_st_heur, RETURN o count_decided_st_heur) \<in>
-      isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
-  unfolding count_decided_st_heur_def isasat_bounded_assn_def isasat_unbounded_assn_def
-  by (sepref_to_hoare; sep_auto)+
 
 lemma twl_st_heur_count_decided_st_alt_def:
   fixes S :: twl_st_wl_heur
@@ -1124,7 +846,7 @@ lemma vmtf_cong:
   \<open>set_mset \<A> = set_mset \<B> \<Longrightarrow> L \<in> vmtf \<A> M \<Longrightarrow> L \<in> vmtf \<B> M\<close>
   using \<L>\<^sub>a\<^sub>l\<^sub>l_cong[of \<A> \<B>] atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_cong[of \<A> \<B>]
   unfolding vmtf_def vmtf_\<L>\<^sub>a\<^sub>l\<^sub>l_def
-  by (auto simp: )
+  by auto
 
 lemma isa_vmtf_cong:
   \<open>set_mset \<A> = set_mset \<B> \<Longrightarrow> L \<in> isa_vmtf \<A> M \<Longrightarrow> L \<in> isa_vmtf \<B> M\<close>
@@ -1197,7 +919,7 @@ lemma clause_not_marked_to_delete_rel:
     uncurry (RETURN oo clause_not_marked_to_delete)) \<in>
     [clause_not_marked_to_delete_pre]\<^sub>f
      twl_st_heur \<times>\<^sub>f nat_rel \<rightarrow> \<langle>bool_rel\<rangle>nres_rel\<close>
-  by (intro frefI nres_relI)
+  by (intro WB_More_Refinement.frefI nres_relI)
     (use arena_dom_status_iff in_dom_in_vdom in
       \<open>auto 5 5 simp: clause_not_marked_to_delete_def twl_st_heur_def
         clause_not_marked_to_delete_heur_def arena_dom_status_iff all_atms_def[symmetric]
@@ -1216,38 +938,12 @@ lemma access_lit_in_clauses_heur_alt_def:
   \<open>access_lit_in_clauses_heur = (\<lambda>(M, N, _) i j. arena_lit N (i + j))\<close>
   by (auto simp: access_lit_in_clauses_heur_def intro!: ext)
 
-
-sepref_definition access_lit_in_clauses_heur_code
-  is \<open>uncurry2 (RETURN ooo access_lit_in_clauses_heur)\<close>
-  :: \<open>[access_lit_in_clauses_heur_pre]\<^sub>a
-      isasat_unbounded_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k  *\<^sub>a nat_assn\<^sup>k \<rightarrow> unat_lit_assn\<close>
-  supply length_rll_def[simp] [[goals_limit=1]]
-  unfolding isasat_unbounded_assn_def access_lit_in_clauses_heur_alt_def
-    fmap_rll_def[symmetric] access_lit_in_clauses_heur_pre_def
-    fmap_rll_u64_def[symmetric]
-  by sepref
-
-declare access_lit_in_clauses_heur_code.refine[sepref_fr_rules]
-
 lemma access_lit_in_clauses_heur_fast_pre:
   \<open>arena_lit_pre (get_clauses_wl_heur a) (ba + b) \<Longrightarrow>
     isasat_fast a \<Longrightarrow> ba + b \<le> uint64_max\<close>
   by (auto simp: arena_lit_pre_def arena_is_valid_clause_idx_and_access_def
       dest!: arena_lifting(10)
       dest!: isasat_fast_length_leD)[]
-
-sepref_definition access_lit_in_clauses_heur_fast_code
-  is \<open>uncurry2 (RETURN ooo access_lit_in_clauses_heur)\<close>
-  :: \<open>[\<lambda>((S, i), j). access_lit_in_clauses_heur_pre ((S, i), j) \<and>
-           length (get_clauses_wl_heur S) \<le> uint64_max]\<^sub>a
-      isasat_bounded_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k  *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow> unat_lit_assn\<close>
-  supply length_rll_def[simp] [[goals_limit=1]] arena_is_valid_clause_idx_le_uint64_max[intro]
-  unfolding isasat_bounded_assn_def access_lit_in_clauses_heur_alt_def
-    fmap_rll_def[symmetric] access_lit_in_clauses_heur_pre_def
-    fmap_rll_u64_def[symmetric] arena_lit_pre_le[intro]
-  by sepref
-
-declare access_lit_in_clauses_heur_fast_code.refine[sepref_fr_rules]
 
 lemma eq_insertD: \<open>A = insert a B \<Longrightarrow> a \<in> A \<and> B \<subseteq> A\<close>
   by auto
@@ -1383,15 +1079,6 @@ qed
 
 sepref_register rewatch_heur
 
-sepref_definition rewatch_heur_code
-  is \<open>uncurry2 (rewatch_heur)\<close>
-  :: \<open>vdom_assn\<^sup>k *\<^sub>a arena_assn\<^sup>k *\<^sub>a watchlist_assn\<^sup>d \<rightarrow>\<^sub>a watchlist_assn\<close>
-  supply [[goals_limit=1]]
-  unfolding rewatch_heur_def Let_def two_uint64_nat_def[symmetric] PR_CONST_def
-  by sepref
-
-declare rewatch_heur_code.refine[sepref_fr_rules]
-
 lemma rewatch_heur_alt_def:
 \<open>rewatch_heur vdom arena W = do {
   let _ = vdom;
@@ -1428,18 +1115,6 @@ lemma arena_lit_pre_le_uint64_max:
   by (fastforce simp: arena_lifting arena_is_valid_clause_idx_def arena_lit_pre_def
       arena_is_valid_clause_idx_and_access_def)
 
-sepref_definition rewatch_heur_fast_code
-  is \<open>uncurry2 (rewatch_heur)\<close>
-  :: \<open>[\<lambda>((vdom, arena), W). (\<forall>x \<in> set vdom. x \<le> uint64_max) \<and> length arena \<le> uint64_max]\<^sub>a
-        vdom_assn\<^sup>k *\<^sub>a arena_assn\<^sup>k *\<^sub>a watchlist_fast_assn\<^sup>d \<rightarrow> watchlist_fast_assn\<close>
-  supply [[goals_limit=1]] uint64_of_nat_conv_def[simp]
-     arena_lit_pre_le_uint64_max[intro]
-  unfolding rewatch_heur_alt_def Let_def two_uint64_nat_def[symmetric] PR_CONST_def
-    one_uint64_nat_def[symmetric] to_watcher_fast_def[symmetric]
-  by sepref
-
-declare rewatch_heur_fast_code.refine[sepref_fr_rules]
-
 definition rewatch_heur_st
  :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close>
 where
@@ -1453,29 +1128,9 @@ where
 definition rewatch_heur_st_fast where
   \<open>rewatch_heur_st_fast = rewatch_heur_st\<close>
 
-sepref_definition rewatch_heur_st_code
-  is \<open>(rewatch_heur_st)\<close>
-  :: \<open>isasat_unbounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_unbounded_assn\<close>
-  supply [[goals_limit=1]]
-  unfolding rewatch_heur_st_def PR_CONST_def
-    isasat_unbounded_assn_def
-  by sepref
-
 definition rewatch_heur_st_fast_pre where
   \<open>rewatch_heur_st_fast_pre S =
      ((\<forall>x \<in> set (get_vdom S). x \<le> uint64_max) \<and> length (get_clauses_wl_heur S) \<le> uint64_max)\<close>
-
-sepref_definition rewatch_heur_st_fast_code
-  is \<open>(rewatch_heur_st_fast)\<close>
-  :: \<open>[rewatch_heur_st_fast_pre]\<^sub>a
-       isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
-  supply [[goals_limit=1]]
-  unfolding rewatch_heur_st_def PR_CONST_def rewatch_heur_st_fast_pre_def
-    isasat_bounded_assn_def rewatch_heur_st_fast_def
-  by sepref
-
-declare rewatch_heur_st_code.refine[sepref_fr_rules]
-  rewatch_heur_st_fast_code.refine[sepref_fr_rules]
 
 definition rewatch_st :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
   \<open>rewatch_st S = do{

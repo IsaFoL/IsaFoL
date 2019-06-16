@@ -61,12 +61,6 @@ lemma twl_st_heur_restartD: \<open>x \<in> twl_st_heur_restart \<Longrightarrow>
 definition clause_score_ordering where
   \<open>clause_score_ordering = (\<lambda>(lbd, act) (lbd', act'). lbd < lbd' \<or> (lbd = lbd' \<and> act \<le> act'))\<close>
 
-lemma clause_score_ordering_hnr[sepref_fr_rules]:
-  \<open>(uncurry (return oo clause_score_ordering), uncurry (RETURN oo clause_score_ordering)) \<in>
-    (uint32_nat_assn *a uint32_nat_assn)\<^sup>k *\<^sub>a (uint32_nat_assn *a uint32_nat_assn)\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
-  by sepref_to_hoare (sep_auto simp: clause_score_ordering_def uint32_nat_rel_def br_def
-      nat_of_uint32_less_iff nat_of_uint32_le_iff)
-
 lemma unbounded_id: \<open>unbounded (id :: nat \<Rightarrow> nat)\<close>
   by (auto simp: bounded_def) presburger
 
@@ -88,41 +82,11 @@ lemma get_slow_ema_heur_alt_def:
        stats, fema, sema, (ccount, _), lcount). RETURN sema)\<close>
   by auto
 
-sepref_definition get_slow_ema_heur_fast_code
-  is \<open>RETURN o get_slow_ema_heur\<close>
-  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a ema_assn\<close>
-  unfolding get_slow_ema_heur_alt_def isasat_bounded_assn_def
-  by sepref
-
-sepref_definition get_slow_ema_heur_slow_code
-  is \<open>RETURN o get_slow_ema_heur\<close>
-  :: \<open>isasat_unbounded_assn\<^sup>k \<rightarrow>\<^sub>a ema_assn\<close>
-  unfolding get_slow_ema_heur_alt_def isasat_unbounded_assn_def
-  by sepref
-
-declare get_slow_ema_heur_fast_code.refine[sepref_fr_rules]
-  get_slow_ema_heur_slow_code.refine[sepref_fr_rules]
-
 
 lemma get_fast_ema_heur_alt_def:
    \<open>RETURN o get_fast_ema_heur = (\<lambda>(M, N0, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl,
        stats, fema, sema, ccount, lcount). RETURN fema)\<close>
   by auto
-
-sepref_definition get_fast_ema_heur_fast_code
-  is \<open>RETURN o get_fast_ema_heur\<close>
-  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a ema_assn\<close>
-  unfolding get_fast_ema_heur_alt_def isasat_bounded_assn_def
-  by sepref
-
-sepref_definition get_fast_ema_heur_slow_code
-  is \<open>RETURN o get_fast_ema_heur\<close>
-  :: \<open>isasat_unbounded_assn\<^sup>k \<rightarrow>\<^sub>a ema_assn\<close>
-  unfolding get_fast_ema_heur_alt_def isasat_unbounded_assn_def
-  by sepref
-
-declare get_fast_ema_heur_slow_code.refine[sepref_fr_rules]
-  get_fast_ema_heur_fast_code.refine[sepref_fr_rules]
 
 
 fun (in -) get_conflict_count_since_last_restart_heur :: \<open>twl_st_wl_heur \<Rightarrow> uint64\<close> where
@@ -134,40 +98,10 @@ lemma (in -) get_counflict_count_heur_alt_def:
        stats, fema, sema, (ccount, _), lcount). RETURN ccount)\<close>
   by auto
 
-sepref_definition get_conflict_count_since_last_restart_heur_fast_code
-  is \<open>RETURN o get_conflict_count_since_last_restart_heur\<close>
-  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a uint64_assn\<close>
-  unfolding get_counflict_count_heur_alt_def isasat_bounded_assn_def
-  by sepref
-
-sepref_definition get_conflict_count_since_last_restart_heur_slow_code
-  is \<open>RETURN o get_conflict_count_since_last_restart_heur\<close>
-  :: \<open>isasat_unbounded_assn\<^sup>k \<rightarrow>\<^sub>a uint64_assn\<close>
-  unfolding get_counflict_count_heur_alt_def isasat_unbounded_assn_def
-  by sepref
-
-declare get_conflict_count_since_last_restart_heur_fast_code.refine[sepref_fr_rules]
-  get_conflict_count_since_last_restart_heur_slow_code.refine[sepref_fr_rules]
-
 lemma get_learned_count_alt_def:
    \<open>RETURN o get_learned_count = (\<lambda>(M, N0, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl,
        stats, fema, sema, ccount, vdom, avdom, lcount, opts). RETURN lcount)\<close>
   by auto
-
-sepref_definition get_learned_count_fast_code
-  is \<open>RETURN o get_learned_count\<close>
-  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
-  unfolding get_learned_count_alt_def isasat_bounded_assn_def
-  by sepref
-
-sepref_definition get_learned_count_slow_code
-  is \<open>RETURN o get_learned_count\<close>
-  :: \<open>isasat_unbounded_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
-  unfolding get_learned_count_alt_def isasat_unbounded_assn_def
-  by sepref
-
-declare get_learned_count_fast_code.refine[sepref_fr_rules]
-  get_learned_count_slow_code.refine[sepref_fr_rules]
 
 definition (in -) find_local_restart_target_level_int_inv where
   \<open>find_local_restart_target_level_int_inv ns cs =
@@ -193,23 +127,6 @@ where
         (False, zero_uint32_nat);
     RETURN i
    })\<close>
-
-sepref_definition find_local_restart_target_level_code
-  is \<open>uncurry find_local_restart_target_level_int\<close>
-  :: \<open>trail_pol_assn\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
-  supply [[goals_limit=1]] length_rev[simp del]
-  unfolding find_local_restart_target_level_int_def find_local_restart_target_level_int_inv_def
-  by sepref
-
-sepref_definition find_local_restart_target_level_fast_code
-  is \<open>uncurry find_local_restart_target_level_int\<close>
-  :: \<open>trail_pol_fast_assn\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
-  supply [[goals_limit=1]] length_rev[simp del]
-  unfolding find_local_restart_target_level_int_def find_local_restart_target_level_int_inv_def
-  by sepref
-
-declare find_local_restart_target_level_code.refine[sepref_fr_rules]
-  find_local_restart_target_level_fast_code.refine[sepref_fr_rules]
 
 definition find_local_restart_target_level where
   \<open>find_local_restart_target_level M _ = SPEC(\<lambda>i. i \<le> count_decided M)\<close>
@@ -266,25 +183,6 @@ definition incr_restart_stat :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_he
        restart_info_restart_done res_info, vdom, avdom, lcount)
   })\<close>
 
-sepref_definition incr_restart_stat_slow_code
-  is \<open>incr_restart_stat\<close>
-  :: \<open>isasat_unbounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_unbounded_assn\<close>
-  supply [[goals_limit=1]]
-  unfolding incr_restart_stat_def isasat_unbounded_assn_def PR_CONST_def
-  by sepref
-
-sepref_register incr_restart_stat
-
-sepref_definition incr_restart_stat_fast_code
-  is \<open>incr_restart_stat\<close>
-  :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
-  supply [[goals_limit=1]]
-  unfolding incr_restart_stat_def isasat_bounded_assn_def PR_CONST_def
-  by sepref
-
-declare incr_restart_stat_slow_code.refine[sepref_fr_rules]
-  incr_restart_stat_fast_code.refine[sepref_fr_rules]
-
 definition incr_lrestart_stat :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
   \<open>incr_lrestart_stat = (\<lambda>(M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema,
      res_info, vdom, avdom, lcount). do{
@@ -293,25 +191,6 @@ definition incr_lrestart_stat :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_h
        restart_info_restart_done res_info,
        vdom, avdom, lcount)
   })\<close>
-
-sepref_definition incr_lrestart_stat_slow_code
-  is \<open>incr_lrestart_stat\<close>
-  :: \<open>isasat_unbounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_unbounded_assn\<close>
-  supply [[goals_limit=1]]
-  unfolding incr_lrestart_stat_def isasat_unbounded_assn_def PR_CONST_def
-  by sepref
-
-sepref_register incr_lrestart_stat
-
-sepref_definition incr_lrestart_stat_fast_code
-  is \<open>incr_lrestart_stat\<close>
-  :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
-  supply [[goals_limit=1]]
-  unfolding incr_lrestart_stat_def isasat_bounded_assn_def PR_CONST_def
-  by sepref
-
-declare incr_lrestart_stat_slow_code.refine[sepref_fr_rules]
-  incr_lrestart_stat_fast_code.refine[sepref_fr_rules]
 
 definition restart_abs_wl_heur_pre  :: \<open>twl_st_wl_heur \<Rightarrow> bool \<Rightarrow> bool\<close> where
   \<open>restart_abs_wl_heur_pre S brk  \<longleftrightarrow> (\<exists>T. (S, T) \<in> twl_st_heur \<and> restart_abs_wl_D_pre T brk)\<close>
@@ -332,23 +211,6 @@ lemma find_local_restart_target_level_st_alt_def:
   apply (case_tac x)
   by (auto simp: find_local_restart_target_level_st_def)
 
-sepref_definition find_local_restart_target_level_st_code
-  is \<open>find_local_restart_target_level_st\<close>
-  :: \<open>isasat_unbounded_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
-  supply [[goals_limit=1]] length_rev[simp del]
-  unfolding find_local_restart_target_level_st_alt_def isasat_unbounded_assn_def PR_CONST_def
-  by sepref
-
-sepref_definition find_local_restart_target_level_st_fast_code
-  is \<open>find_local_restart_target_level_st\<close>
-  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
-  supply [[goals_limit=1]] length_rev[simp del]
-  unfolding find_local_restart_target_level_st_alt_def isasat_bounded_assn_def PR_CONST_def
-  by sepref
-
-declare find_local_restart_target_level_st_code.refine[sepref_fr_rules]
-  find_local_restart_target_level_st_fast_code.refine[sepref_fr_rules]
-
 definition cdcl_twl_local_restart_wl_D_heur
    :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close>
 where
@@ -363,44 +225,6 @@ where
         incr_lrestart_stat S
       }
    })\<close>
-
-
-sepref_definition empty_Q_code
-  is \<open>empty_Q\<close>
-  :: \<open>isasat_unbounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_unbounded_assn\<close>
-  supply [[goals_limit=1]]
-  unfolding empty_Q_def isasat_unbounded_assn_def
-  by sepref
-
-sepref_definition empty_Q_fast_code
-  is \<open>empty_Q\<close>
-  :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
-  supply [[goals_limit=1]]
-  unfolding empty_Q_def isasat_bounded_assn_def
-  by sepref
-
-declare empty_Q_code.refine[sepref_fr_rules]
-  empty_Q_fast_code.refine[sepref_fr_rules]
-
-sepref_register cdcl_twl_local_restart_wl_D_heur
-  empty_Q find_decomp_wl_st_int
-
-sepref_definition cdcl_twl_local_restart_wl_D_heur_code
-  is \<open>cdcl_twl_local_restart_wl_D_heur\<close>
-  :: \<open>isasat_unbounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_unbounded_assn\<close>
-  unfolding cdcl_twl_local_restart_wl_D_heur_def PR_CONST_def
-  supply [[goals_limit = 1]]
-  by sepref
-
-sepref_definition cdcl_twl_local_restart_wl_D_heur_fast_code
-  is \<open>cdcl_twl_local_restart_wl_D_heur\<close>
-  :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
-  unfolding cdcl_twl_local_restart_wl_D_heur_def PR_CONST_def
-  supply [[goals_limit = 1]]
-  by sepref
-
-declare cdcl_twl_local_restart_wl_D_heur_code.refine[sepref_fr_rules]
-  cdcl_twl_local_restart_wl_D_heur_fast_code.refine[sepref_fr_rules]
 
 
 named_theorems twl_st_heur_restart
@@ -682,26 +506,8 @@ where
 definition minimum_number_between_restarts :: \<open>uint64\<close> where
   \<open>minimum_number_between_restarts = 50\<close>
 
-lemma minimum_number_between_restarts[sepref_fr_rules]:
- \<open>(uncurry0 (return minimum_number_between_restarts), uncurry0 (RETURN minimum_number_between_restarts))
-  \<in>  unit_assn\<^sup>k \<rightarrow>\<^sub>a uint64_assn\<close>
-  by sepref_to_hoare sep_auto
-
 definition five_uint64 :: \<open>uint64\<close> where
   \<open>five_uint64 = 5\<close>
-
-lemma five_uint64[sepref_fr_rules]:
- \<open>(uncurry0 (return five_uint64), uncurry0 (RETURN five_uint64))
-  \<in>  unit_assn\<^sup>k \<rightarrow>\<^sub>a uint64_assn\<close>
-  by sepref_to_hoare sep_auto
-
-definition two_uint64 :: \<open>uint64\<close> where
-  \<open>two_uint64 = 2\<close>
-
-lemma two_uint64[sepref_fr_rules]:
- \<open>(uncurry0 (return two_uint64), uncurry0 (RETURN two_uint64))
-  \<in>  unit_assn\<^sup>k \<rightarrow>\<^sub>a uint64_assn\<close>
-  by sepref_to_hoare sep_auto
 
 
 definition upper_restart_bound_not_reached :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close> where
@@ -709,51 +515,11 @@ definition upper_restart_bound_not_reached :: \<open>twl_st_wl_heur \<Rightarrow
        vdom, avdom, lcount, opts).
     lcount < 3000 + 1000 * nat_of_uint64 restarts)\<close>
 
-sepref_register upper_restart_bound_not_reached
-sepref_definition upper_restart_bound_not_reached_impl
-  is \<open>(RETURN o upper_restart_bound_not_reached)\<close>
-  :: \<open>isasat_unbounded_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
-  unfolding upper_restart_bound_not_reached_def PR_CONST_def isasat_unbounded_assn_def
-  supply [[goals_limit = 1]]
-  by sepref
-
-sepref_definition upper_restart_bound_not_reached_fast_impl
-  is \<open>(RETURN o upper_restart_bound_not_reached)\<close>
-  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
-  unfolding upper_restart_bound_not_reached_def PR_CONST_def isasat_bounded_assn_def
-  apply (rewrite at \<open>\<hole> < _\<close> nat_of_uint64_conv_def[symmetric])
-  supply [[goals_limit = 1]]
-  by sepref
-
-declare upper_restart_bound_not_reached_impl.refine[sepref_fr_rules]
-  upper_restart_bound_not_reached_fast_impl.refine[sepref_fr_rules]
-
-
 definition (in -) lower_restart_bound_not_reached :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close> where
   \<open>lower_restart_bound_not_reached = (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl,
         (props, decs, confl, restarts, _), fast_ema, slow_ema, ccount,
        vdom, avdom, lcount, opts, old).
      (\<not>opts_reduce opts \<or> (opts_restart opts \<and> (lcount < 2000 + 1000 * nat_of_uint64 restarts))))\<close>
-
-sepref_register lower_restart_bound_not_reached
-sepref_definition lower_restart_bound_not_reached_impl
-  is \<open>(RETURN o lower_restart_bound_not_reached)\<close>
-  :: \<open>isasat_unbounded_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
-  unfolding lower_restart_bound_not_reached_def PR_CONST_def isasat_unbounded_assn_def
-  supply [[goals_limit = 1]]
-  by sepref
-
-sepref_definition lower_restart_bound_not_reached_fast_impl
-  is \<open>(RETURN o lower_restart_bound_not_reached)\<close>
-  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
-  unfolding lower_restart_bound_not_reached_def PR_CONST_def isasat_bounded_assn_def
-  supply [[goals_limit = 1]]
-  apply (rewrite at \<open>\<hole> < _\<close> nat_of_uint64_conv_def[symmetric])
-  by sepref
-
-declare lower_restart_bound_not_reached_impl.refine[sepref_fr_rules]
-  lower_restart_bound_not_reached_fast_impl.refine[sepref_fr_rules]
-
 
 definition (in -) clause_score_extract :: \<open>arena \<Rightarrow> nat \<Rightarrow> nat \<times> nat\<close> where
   \<open>clause_score_extract arena C = (
@@ -767,22 +533,12 @@ definition (in -) clause_score_extract :: \<open>arena \<Rightarrow> nat \<Right
   )\<close>
 sepref_register clause_score_extract
 
-definition (in -)valid_sort_clause_score_pre_at where
+definition valid_sort_clause_score_pre_at where
   \<open>valid_sort_clause_score_pre_at arena C \<longleftrightarrow>
     (\<exists>i vdom. C = vdom ! i \<and> arena_is_valid_clause_vdom arena (vdom!i) \<and>
           (arena_status arena (vdom!i) \<noteq> DELETED \<longrightarrow>
              (get_clause_LBD_pre arena (vdom!i) \<and> arena_act_pre arena (vdom!i)))
           \<and> i < length vdom)\<close>
-
-sepref_definition (in -) clause_score_extract_code
-  is \<open>uncurry (RETURN oo clause_score_extract)\<close>
-  :: \<open>[uncurry valid_sort_clause_score_pre_at]\<^sub>a
-      arena_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> uint32_nat_assn *a uint32_nat_assn\<close>
-  supply uint32_max_uint32_nat_assn[sepref_fr_rules]
-  unfolding clause_score_extract_def insert_sort_inner_def valid_sort_clause_score_pre_at_def
-  by sepref
-
-declare clause_score_extract_code.refine[sepref_fr_rules]
 
 definition (in -)valid_sort_clause_score_pre where
   \<open>valid_sort_clause_score_pre arena vdom \<longleftrightarrow>
@@ -811,7 +567,7 @@ lemma sort_clauses_by_score_reorder:
   \<open>quicksort_clauses_by_score arena vdom \<le> SPEC(\<lambda>vdom'. mset vdom = mset vdom')\<close>
   unfolding quicksort_clauses_by_score_def
   by (rule full_quicksort_ref_full_quicksort[THEN fref_to_Down, THEN order_trans])
-    (auto simp add: reorder_remove_def clause_score_ordering_def
+    (auto simp add: reorder_list_def clause_score_ordering_def
      intro!: full_quicksort_correct[THEN order_trans])
 
 lemma valid_arena_vdom_subset:
@@ -865,30 +621,6 @@ lemma sort_clauses_by_score_invI:
 definition partition_main_clause where
   \<open>partition_main_clause arena = partition_main clause_score_ordering (clause_score_extract arena)\<close>
 
-sepref_definition (in -) partition_main_clause_code
-  is \<open>uncurry3 partition_main_clause\<close>
-  :: \<open>[\<lambda>(((arena, i), j), vdom). valid_sort_clause_score_pre arena vdom]\<^sub>a
-      arena_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a vdom_assn\<^sup>d \<rightarrow> vdom_assn *a nat_assn\<close>
-  supply insort_inner_clauses_by_score_invI[intro]
-    partition_main_inv_def[simp]
-  unfolding partition_main_clause_def partition_between_ref_def
-    partition_main_def
-  by sepref
-find_theorems "mset _ = mset _" length
-sepref_definition (in -) partition_main_clause_fast_code
-  is \<open>uncurry3 partition_main_clause\<close>
-  :: \<open>[\<lambda>(((arena, i), j), vdom). length vdom \<le> uint64_max \<and> valid_sort_clause_score_pre arena vdom]\<^sub>a
-      arena_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a vdom_assn\<^sup>d \<rightarrow> vdom_assn *a uint64_nat_assn\<close>
-  supply insort_inner_clauses_by_score_invI[intro] [[goals_limit=1]]
-    partition_main_inv_def[simp] mset_eq_length[dest]
-  unfolding partition_main_clause_def partition_between_ref_def
-    partition_main_def one_uint64_nat_def[symmetric]
-  by sepref
-
-sepref_register partition_main_clause_code
-declare partition_main_clause_code.refine[sepref_fr_rules]
-   partition_main_clause_fast_code.refine[sepref_fr_rules]
-
 definition partition_clause where
   \<open>partition_clause arena = partition_between_ref clause_score_ordering  (clause_score_extract arena)\<close>
 
@@ -897,139 +629,23 @@ lemma valid_sort_clause_score_pre_swap:
        ba < length b \<Longrightarrow> valid_sort_clause_score_pre a (swap b x ba)\<close>
   by (auto simp: valid_sort_clause_score_pre_def)
 
-sepref_definition (in -) partition_clause_code
-  is \<open>uncurry3 partition_clause\<close>
-  :: \<open>[\<lambda>(((arena, i), j), vdom). valid_sort_clause_score_pre arena vdom]\<^sub>a
-      arena_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a vdom_assn\<^sup>d \<rightarrow> vdom_assn *a nat_assn\<close>
-  supply insort_inner_clauses_by_score_invI[intro] valid_sort_clause_score_pre_swap[intro]
-  unfolding partition_clause_def partition_between_ref_def
-    choose_pivot3_def partition_main_clause_def[symmetric]
-  by sepref
-
-
 definition div2 where [simp]: \<open>div2 n = n div 2\<close>
-lemma div2_hnr[sepref_fr_rules]: \<open>(return o (\<lambda>n. n >> 1), RETURN o div2) \<in> uint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
-  by sepref_to_hoare
-    (sep_auto simp: div2_def uint64_nat_rel_def br_def nat_of_uint64_shiftl nat_shiftr_div2)
 
-sepref_definition (in -) partition_clause_fast_code
-  is \<open>uncurry3 partition_clause\<close>
-  :: \<open>[\<lambda>(((arena, i), j), vdom). length vdom \<le> uint64_max \<and> valid_sort_clause_score_pre arena vdom]\<^sub>a
-      arena_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a vdom_assn\<^sup>d \<rightarrow> vdom_assn *a uint64_nat_assn\<close>
-  supply insort_inner_clauses_by_score_invI[intro] valid_sort_clause_score_pre_swap[intro] mset_eq_length[dest]
-  unfolding partition_clause_def partition_between_ref_def div2_def[symmetric]
-    choose_pivot3_def partition_main_clause_def[symmetric]
-  by sepref
-
-declare partition_clause_code.refine[sepref_fr_rules]
-  partition_clause_fast_code.refine[sepref_fr_rules]
-
-sepref_definition (in -) sort_clauses_by_score_code
-  is \<open>uncurry quicksort_clauses_by_score\<close>
-  :: \<open>[uncurry valid_sort_clause_score_pre]\<^sub>a
-      arena_assn\<^sup>k *\<^sub>a vdom_assn\<^sup>d \<rightarrow> vdom_assn\<close>
-  supply sort_clauses_by_score_invI[intro]
-  unfolding insert_sort_def
-    quicksort_clauses_by_score_def
-    full_quicksort_ref_def
-    quicksort_ref_def
-    partition_clause_def[symmetric]
-    List.null_def
-  by sepref
-find_theorems name:length name:64
 definition safe_minus where \<open>safe_minus a b = (if b \<ge> a then 0 else a - b)\<close>
-
-lemma minus_uint64_safe:
-   \<open>(uncurry (return oo safe_minus), uncurry (RETURN oo (-))) \<in> uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
-  by sepref_to_hoare
-    (sep_auto simp: safe_minus_def uint64_nat_rel_def br_def nat_of_uint64_le_iff nat_of_uint64_notle_minus)
-
-    find_theorems "nat_of_uint64 (_ - _)"
-sepref_definition (in -) sort_clauses_by_score_fast_code
-  is \<open>uncurry quicksort_clauses_by_score\<close>
-  :: \<open>[\<lambda>(arena, vdom). length vdom \<le> uint64_max \<and> valid_sort_clause_score_pre arena vdom]\<^sub>a
-      arena_assn\<^sup>k *\<^sub>a vdom_assn\<^sup>d \<rightarrow> vdom_assn\<close>
-  supply sort_clauses_by_score_invI[intro] [[goals_limit=1]] mset_eq_length[dest] minus_uint64_safe[sepref_fr_rules]
-  unfolding insert_sort_def
-    quicksort_clauses_by_score_def
-    full_quicksort_ref_def
-    quicksort_ref_def length_uint64_nat_def[symmetric]
-    partition_clause_def[symmetric] one_uint64_nat_def[symmetric]
-    List.null_def zero_uint64_nat_def[symmetric]
-  by sepref
-
-sepref_definition sort_vdom_heur_code
-  is \<open>sort_vdom_heur\<close>
-  :: \<open>isasat_unbounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_unbounded_assn\<close>
-  supply sort_clauses_by_score_invI[intro] sort_clauses_by_score_code.refine[sepref_fr_rules]
-  unfolding sort_vdom_heur_def isasat_unbounded_assn_def
-  by sepref
-
-  (*TODO we need mset avdom \<subseteq># mset vdom to use the first version*)
-sepref_definition sort_vdom_heur_fast_code
-  is \<open>sort_vdom_heur\<close>
-  :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> uint64_max]\<^sub>aisasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
-  supply sort_clauses_by_score_invI[intro] sort_clauses_by_score_fast_code.refine[sepref_fr_rules]
-    [[goals_limit=1]]
-  unfolding sort_vdom_heur_def isasat_bounded_assn_def
-  by sepref
-
-declare sort_vdom_heur_code.refine[sepref_fr_rules]
- sort_vdom_heur_fast_code.refine[sepref_fr_rules]
 
 definition opts_restart_st :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close> where
   \<open>opts_restart_st = (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema, ccount,
        vdom, avdom, lcount, opts, _). (opts_restart opts))\<close>
 
-sepref_definition opts_restart_st_code
-  is \<open>RETURN o opts_restart_st\<close>
-  :: \<open>isasat_unbounded_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
-  unfolding opts_restart_st_def isasat_unbounded_assn_def
-  by sepref
-
-sepref_definition opts_restart_st_fast_code
-  is \<open>RETURN o opts_restart_st\<close>
-  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
-  unfolding opts_restart_st_def isasat_bounded_assn_def
-  by sepref
-
-declare opts_restart_st_code.refine[sepref_fr_rules]
-  opts_restart_st_fast_code.refine[sepref_fr_rules]
-
 definition opts_reduction_st :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close> where
   \<open>opts_reduction_st = (\<lambda>(M, N0, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl,
        stats, fema, sema, ccount, vdom, avdom, lcount, opts, _). (opts_reduce opts))\<close>
-
-sepref_definition opts_reduction_st_code
-  is \<open>RETURN o opts_reduction_st\<close>
-  :: \<open>isasat_unbounded_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
-  unfolding opts_reduction_st_def isasat_unbounded_assn_def
-  by sepref
-
-sepref_definition opts_reduction_st_fast_code
-  is \<open>RETURN o opts_reduction_st\<close>
-  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
-  unfolding opts_reduction_st_def isasat_bounded_assn_def
-  by sepref
-
-declare opts_reduction_st_code.refine[sepref_fr_rules]
-  opts_reduction_st_fast_code.refine[sepref_fr_rules]
-
-sepref_register opts_reduction_st opts_restart_st
 
 definition max_restart_decision_lvl :: nat where
   \<open>max_restart_decision_lvl = 300\<close>
 
 definition max_restart_decision_lvl_code :: uint32 where
   \<open>max_restart_decision_lvl_code = 300\<close>
-
-sepref_register max_restart_decision_lvl
-
-lemma max_restart_decision_lvl_code_hnr[sepref_fr_rules]:
-  \<open>(uncurry0 (return max_restart_decision_lvl_code), uncurry0 (RETURN max_restart_decision_lvl)) \<in>
-    unit_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
-  by sepref_to_hoare (sep_auto simp: br_def uint32_nat_rel_def max_restart_decision_lvl_def
-    max_restart_decision_lvl_code_def)
 
 definition restart_required_heur :: "twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> bool nres" where
   \<open>restart_required_heur S n = do {
@@ -1052,26 +668,6 @@ definition restart_required_heur :: "twl_st_wl_heur \<Rightarrow> nat \<Rightarr
   \<close>
 
 
-sepref_definition restart_required_heur_fast_code
-  is \<open>uncurry restart_required_heur\<close>
-  :: \<open>isasat_bounded_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
-  supply [[goals_limit=1]]
-  bit_lshift_uint64_assn[sepref_fr_rules]
-  unfolding restart_required_heur_def
-  apply (rewrite at \<open>let _ = (\<hole> > _) in _\<close> nat_of_uint64_conv_def[symmetric])
-  by sepref
-
-sepref_definition restart_required_heur_slow_code
-  is \<open>uncurry restart_required_heur\<close>
-  :: \<open>isasat_unbounded_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
-  supply [[goals_limit=1]]
-  bit_lshift_uint64_assn[sepref_fr_rules]
-  unfolding restart_required_heur_def
-  by sepref
-
-declare restart_required_heur_fast_code.refine[sepref_fr_rules]
-  restart_required_heur_slow_code.refine[sepref_fr_rules]
-
 fun (in -) get_reductions_count :: \<open>twl_st_wl_heur \<Rightarrow> uint64\<close> where
   \<open>get_reductions_count (_, _, _, _, _, _, _,_,_,_,_,
        (_, _, _, lres, _, _), _)
@@ -1083,53 +679,14 @@ lemma (in -) get_reduction_count_alt_def:
   by auto
 
 
-sepref_definition get_reductions_count_fast_code
-  is \<open>RETURN o get_reductions_count\<close>
-  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a uint64_assn\<close>
-  unfolding get_reduction_count_alt_def isasat_bounded_assn_def
-  by sepref
-
-sepref_definition get_reductions_count_code
-  is \<open>RETURN o get_reductions_count\<close>
-  :: \<open>isasat_unbounded_assn\<^sup>k \<rightarrow>\<^sub>a uint64_assn\<close>
-  unfolding get_reduction_count_alt_def isasat_unbounded_assn_def
-  by sepref
-
-sepref_register get_reductions_count
-declare  get_reductions_count_fast_code.refine[sepref_fr_rules]
-declare  get_reductions_count_code.refine[sepref_fr_rules]
-
 definition GC_EVERY :: uint64 where
   \<open>GC_EVERY = 15\<close> \<comment>\<open>hard-coded limit\<close>
-
-lemma [sepref_fr_rules]:
-  \<open>(uncurry0 (return GC_EVERY), uncurry0 (RETURN GC_EVERY)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint64_assn\<close>
-  by sepref_to_hoare (sep_auto simp: GC_EVERY_def)
 
 definition GC_required_heur :: "twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> bool nres" where
   \<open>GC_required_heur S n = do {
     let lres = get_reductions_count S;
     RETURN (lres AND GC_EVERY = GC_EVERY)} \<^cancel>\<open>Temporary measure\<close>
   \<close>
-
-sepref_definition GC_required_heur_fast_code
-  is \<open>uncurry GC_required_heur\<close>
-  :: \<open>isasat_bounded_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
-  supply [[goals_limit=1]]
-    op_eq_uint64[sepref_fr_rules]
-  unfolding GC_required_heur_def
-  by sepref
-
-sepref_definition GC_required_heur_slow_code
-  is \<open>uncurry GC_required_heur\<close>
-  :: \<open>isasat_unbounded_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
-  supply [[goals_limit=1]]
-    op_eq_uint64[sepref_fr_rules]
-  unfolding GC_required_heur_def
-  by sepref
-
-declare GC_required_heur_fast_code.refine[sepref_fr_rules]
-  GC_required_heur_slow_code.refine[sepref_fr_rules]
 
 definition mark_to_delete_clauses_wl_D_heur_pre :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close> where
   \<open>mark_to_delete_clauses_wl_D_heur_pre S \<longleftrightarrow>
@@ -1436,10 +993,6 @@ definition access_vdom_at_pre where
   clauses *)
 definition (in -) MINIMUM_DELETION_LBD :: nat where
   \<open>MINIMUM_DELETION_LBD = 3\<close>
-
-lemma (in -) MINIMUM_DELETION_LBD_hnr[sepref_fr_rules]:
- \<open>(uncurry0 (return 3), uncurry0 (RETURN MINIMUM_DELETION_LBD)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
-  by sepref_to_hoare (sep_auto simp: MINIMUM_DELETION_LBD_def uint32_nat_rel_def br_def)
 
 definition delete_index_vdom_heur :: \<open>nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur\<close>where
   \<open>delete_index_vdom_heur = (\<lambda>i (M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema,
@@ -4645,35 +4198,12 @@ proof -
     done
  qed
 
-
-sepref_register isa_trail_nth
-
 definition isasat_trail_nth_st :: \<open>twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> nat literal nres\<close> where
 \<open>isasat_trail_nth_st S i = isa_trail_nth (get_trail_wl_heur S) i\<close>
 
 lemma isasat_trail_nth_st_alt_def:
   \<open>isasat_trail_nth_st = (\<lambda>(M, _) i.  isa_trail_nth M i)\<close>
   by (auto simp: isasat_trail_nth_st_def intro!: ext)
-
-sepref_register isasat_trail_nth_st
-
-sepref_definition isasat_trail_nth_st_code
-  is \<open>uncurry isasat_trail_nth_st\<close>
-  :: \<open>isasat_bounded_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a unat_lit_assn\<close>
-  supply [[goals_limit=1]]
-  unfolding isasat_trail_nth_st_alt_def isasat_bounded_assn_def
-  by sepref
-
-
-sepref_definition isasat_trail_nth_st_slow_code
-  is \<open>uncurry isasat_trail_nth_st\<close>
-  :: \<open>isasat_unbounded_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a unat_lit_assn\<close>
-  supply [[goals_limit=1]]
-  unfolding isasat_trail_nth_st_alt_def isasat_unbounded_assn_def
-  by sepref
-
-declare isasat_trail_nth_st_code.refine[sepref_fr_rules]
-  isasat_trail_nth_st_slow_code.refine[sepref_fr_rules]
 
 definition get_the_propagation_reason_pol_st :: \<open>twl_st_wl_heur \<Rightarrow> nat literal \<Rightarrow> nat option nres\<close> where
 \<open>get_the_propagation_reason_pol_st S i = get_the_propagation_reason_pol (get_trail_wl_heur S) i\<close>
@@ -4682,136 +4212,12 @@ lemma get_the_propagation_reason_pol_st_alt_def:
   \<open>get_the_propagation_reason_pol_st = (\<lambda>(M, _) i.  get_the_propagation_reason_pol M i)\<close>
   by (auto simp: get_the_propagation_reason_pol_st_def intro!: ext)
 
-sepref_register get_the_propagation_reason_pol_st
-
-sepref_definition get_the_propagation_reason_pol_st_code
-  is \<open>uncurry get_the_propagation_reason_pol_st\<close>
-  :: \<open>isasat_bounded_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow>\<^sub>a option_assn uint64_nat_assn\<close>
-  supply [[goals_limit=1]]
-  unfolding get_the_propagation_reason_pol_st_alt_def isasat_bounded_assn_def
-  by sepref
-
-
-sepref_definition get_the_propagation_reason_pol_st_slow_code
-  is \<open>uncurry get_the_propagation_reason_pol_st\<close>
-  :: \<open>isasat_unbounded_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow>\<^sub>a option_assn nat_assn\<close>
-  supply [[goals_limit=1]]
-  unfolding get_the_propagation_reason_pol_st_alt_def isasat_unbounded_assn_def
-  by sepref
-
-declare get_the_propagation_reason_pol_st_code.refine[sepref_fr_rules]
-  get_the_propagation_reason_pol_st_slow_code.refine[sepref_fr_rules]
-
-sepref_register isasat_replace_annot_in_trail
-sepref_definition isasat_replace_annot_in_trail_code
-  is \<open>uncurry2 isasat_replace_annot_in_trail\<close>
-  :: \<open>unat_lit_assn\<^sup>k *\<^sub>a (uint64_nat_assn)\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
-  supply [[goals_limit=1]]
-  unfolding isasat_replace_annot_in_trail_def isasat_bounded_assn_def
-    zero_uint64_nat_def[symmetric]
-  by sepref
-
-
-sepref_definition isasat_replace_annot_in_trail_slow_code
-  is \<open>uncurry2 isasat_replace_annot_in_trail\<close>
-  :: \<open>unat_lit_assn\<^sup>k *\<^sub>a (nat_assn)\<^sup>k *\<^sub>a isasat_unbounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_unbounded_assn\<close>
-  supply [[goals_limit=1]]
-  unfolding isasat_replace_annot_in_trail_def isasat_unbounded_assn_def
-  by sepref
-
-
-(*TODO Move*)
-sepref_definition mark_garbage_fast_code
-  is \<open>uncurry mark_garbage\<close>
-  :: \<open>(arl_assn uint32_assn)\<^sup>d *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a arl_assn uint32_assn\<close>
-  supply STATUS_SHIFT_hnr[sepref_fr_rules]
-  unfolding mark_garbage_def fast_minus_def[symmetric]
-  by sepref
-
-lemma mark_garbage_fast_hnr[sepref_fr_rules]:
-  \<open>(uncurry mark_garbage_fast_code, uncurry (RETURN oo extra_information_mark_to_delete))
-  \<in> [mark_garbage_pre]\<^sub>a  arena_assn\<^sup>d *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow> arena_assn\<close>
-  using mark_garbage_fast_code.refine[FCOMP isa_mark_garbage]
-  unfolding hr_comp_assoc[symmetric] list_rel_compp status_assn_alt_def uncurry_def
-  by (auto simp add: arl_assn_comp update_lbd_pre_def)
-(*END Move*)
-
-sepref_register mark_garbage_heur2
-sepref_definition mark_garbage_heur2_code
-  is \<open>uncurry mark_garbage_heur2\<close>
-  :: \<open>[\<lambda>(C, S). mark_garbage_pre (get_clauses_wl_heur S, C) \<and> arena_is_valid_clause_vdom (get_clauses_wl_heur S) C]\<^sub>a
-     uint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
-  supply [[goals_limit=1]]
-  unfolding mark_garbage_heur2_def isasat_bounded_assn_def
-    zero_uint64_nat_def[symmetric] one_uint64_nat_def[symmetric]
-  by sepref
-
-sepref_definition mark_garbage_heur2_slow_code
-  is \<open>uncurry mark_garbage_heur2\<close>
-  :: \<open>[\<lambda>(C, S). mark_garbage_pre (get_clauses_wl_heur S, C) \<and> arena_is_valid_clause_vdom (get_clauses_wl_heur S) C]\<^sub>a
-     nat_assn\<^sup>k *\<^sub>a isasat_unbounded_assn\<^sup>d \<rightarrow> isasat_unbounded_assn\<close>
-  supply [[goals_limit=1]]
-  unfolding mark_garbage_heur2_def isasat_unbounded_assn_def
-    zero_uint64_nat_def[symmetric]
-  by sepref
-
-declare isasat_replace_annot_in_trail_code.refine[sepref_fr_rules]
-  isasat_replace_annot_in_trail_slow_code.refine[sepref_fr_rules]
-  mark_garbage_heur2_code.refine[sepref_fr_rules]
-  mark_garbage_heur2_slow_code.refine[sepref_fr_rules]
-
-sepref_register remove_one_annot_true_clause_one_imp_wl_D_heur
-
-sepref_definition remove_one_annot_true_clause_one_imp_wl_D_heur_code
-  is \<open>uncurry remove_one_annot_true_clause_one_imp_wl_D_heur\<close>
-  :: \<open>uint32_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a uint32_nat_assn *a isasat_bounded_assn\<close>
-  supply [[goals_limit=1]]
-  unfolding remove_one_annot_true_clause_one_imp_wl_D_heur_def zero_uint64_nat_def[symmetric]
-    one_uint32_nat_def[symmetric]
-    isasat_trail_nth_st_def[symmetric] get_the_propagation_reason_pol_st_def[symmetric]
-  by sepref
-
-
-sepref_definition remove_one_annot_true_clause_one_imp_wl_D_heur_slow_code
-  is \<open>uncurry remove_one_annot_true_clause_one_imp_wl_D_heur\<close>
-  :: \<open>uint32_nat_assn\<^sup>k *\<^sub>a isasat_unbounded_assn\<^sup>d \<rightarrow>\<^sub>a uint32_nat_assn *a isasat_unbounded_assn\<close>
-  supply [[goals_limit=1]]
-  unfolding remove_one_annot_true_clause_one_imp_wl_D_heur_def
-    isasat_trail_nth_st_def[symmetric] get_the_propagation_reason_pol_st_def[symmetric]
-    one_uint32_nat_def[symmetric]
-  by sepref
-
-declare remove_one_annot_true_clause_one_imp_wl_D_heur_slow_code.refine[sepref_fr_rules]
-  remove_one_annot_true_clause_one_imp_wl_D_heur_code.refine[sepref_fr_rules]
-
-
 definition isasat_length_trail_st :: \<open>twl_st_wl_heur \<Rightarrow> nat\<close> where
 \<open>isasat_length_trail_st S = isa_length_trail (get_trail_wl_heur S)\<close>
 
 lemma isasat_length_trail_st_alt_def:
   \<open>isasat_length_trail_st = (\<lambda>(M, _).  isa_length_trail M)\<close>
   by (auto simp: isasat_length_trail_st_def intro!: ext)
-
-sepref_register isasat_length_trail_st
-
-sepref_definition isasat_length_trail_st_code
-  is \<open>RETURN o isasat_length_trail_st\<close>
-  :: \<open>[isa_length_trail_pre o get_trail_wl_heur]\<^sub>a isasat_bounded_assn\<^sup>k  \<rightarrow> uint32_nat_assn\<close>
-  supply [[goals_limit=1]]
-  unfolding isasat_length_trail_st_alt_def isasat_bounded_assn_def
-  by sepref
-
-
-sepref_definition isasat_length_trail_st_slow_code
-  is \<open>RETURN o  isasat_length_trail_st\<close>
-  :: \<open>[isa_length_trail_pre o get_trail_wl_heur]\<^sub>a isasat_unbounded_assn\<^sup>k  \<rightarrow> uint32_nat_assn\<close>
-  supply [[goals_limit=1]]
-  unfolding isasat_length_trail_st_alt_def isasat_unbounded_assn_def
-  by sepref
-
-declare isasat_length_trail_st_slow_code.refine[sepref_fr_rules]
-  isasat_length_trail_st_code.refine[sepref_fr_rules]
-
 
 definition get_pos_of_level_in_trail_imp_st :: \<open>twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> nat nres\<close> where
 \<open>get_pos_of_level_in_trail_imp_st S = get_pos_of_level_in_trail_imp (get_trail_wl_heur S)\<close>
@@ -4820,69 +4226,7 @@ lemma get_pos_of_level_in_trail_imp_alt_def:
   \<open>get_pos_of_level_in_trail_imp_st = (\<lambda>(M, _).  get_pos_of_level_in_trail_imp M)\<close>
   by (auto simp: get_pos_of_level_in_trail_imp_st_def intro!: ext)
 
-sepref_register get_pos_of_level_in_trail_imp_st
-
-sepref_definition get_pos_of_level_in_trail_imp_st_code
-  is \<open>uncurry get_pos_of_level_in_trail_imp_st\<close>
-  :: \<open>isasat_bounded_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k  \<rightarrow>\<^sub>a uint32_nat_assn\<close>
-  supply [[goals_limit=1]]
-  unfolding get_pos_of_level_in_trail_imp_alt_def isasat_bounded_assn_def
-  by sepref
-
-
-sepref_definition get_pos_of_level_in_trail_imp_st_slow_code
-  is \<open>uncurry get_pos_of_level_in_trail_imp_st\<close>
-  :: \<open>isasat_unbounded_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k  \<rightarrow>\<^sub>a uint32_nat_assn\<close>
-  supply [[goals_limit=1]]
-  unfolding get_pos_of_level_in_trail_imp_alt_def isasat_unbounded_assn_def
-  by sepref
-
-declare get_pos_of_level_in_trail_imp_st_slow_code.refine[sepref_fr_rules]
-  get_pos_of_level_in_trail_imp_st_code.refine[sepref_fr_rules]
-
-sepref_register remove_one_annot_true_clause_imp_wl_D_heur
-
-sepref_definition remove_one_annot_true_clause_imp_wl_D_heur_code
-  is \<open>remove_one_annot_true_clause_imp_wl_D_heur\<close>
-  :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
-  supply [[goals_limit=1]]
-  unfolding remove_one_annot_true_clause_imp_wl_D_heur_def zero_uint32_nat_def[symmetric]
-    isasat_length_trail_st_def[symmetric] get_pos_of_level_in_trail_imp_st_def[symmetric]
-  by sepref
-
-sepref_definition remove_one_annot_true_clause_imp_wl_D_heur_slow_code
-  is \<open>remove_one_annot_true_clause_imp_wl_D_heur\<close>
-  :: \<open>isasat_unbounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_unbounded_assn\<close>
-  supply [[goals_limit=1]]
-  unfolding remove_one_annot_true_clause_imp_wl_D_heur_def zero_uint32_nat_def[symmetric]
-    isasat_length_trail_st_def[symmetric] get_pos_of_level_in_trail_imp_st_def[symmetric]
-  by sepref
-
-declare remove_one_annot_true_clause_imp_wl_D_heur_code.refine[sepref_fr_rules]
-   remove_one_annot_true_clause_imp_wl_D_heur_slow_code.refine[sepref_fr_rules]
-
-sepref_definition isasat_GC_clauses_prog_copy_wl_entry_code
-  is \<open>uncurry3 isasat_GC_clauses_prog_copy_wl_entry\<close>
-  :: \<open>arena_assn\<^sup>d *\<^sub>a watchlist_fast_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a (arena_assn *a vdom_assn *a vdom_assn)\<^sup>d \<rightarrow>\<^sub>a
-     (arena_assn *a (arena_assn *a vdom_assn *a vdom_assn))\<close>
-  supply [[goals_limit=1]] Pos_unat_lit_assn'[sepref_fr_rules] length_ll_def[simp]
-  unfolding isasat_GC_clauses_prog_copy_wl_entry_def nth_rll_def[symmetric]
-    length_ll_def[symmetric]
-  apply (rewrite at \<open>If (\<hole> < _)\<close> four_uint64_nat_def[symmetric])
-  apply (rewrite at \<open>fm_mv_clause_to_new_arena \<hole>\<close> nat_of_uint64_conv_def[symmetric])
-  by sepref
-
-
-sepref_definition isasat_GC_clauses_prog_copy_wl_entry_slow_code
-  is \<open>uncurry3 isasat_GC_clauses_prog_copy_wl_entry\<close>
-  :: \<open>arena_assn\<^sup>d *\<^sub>a watchlist_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a (arena_assn *a vdom_assn *a vdom_assn)\<^sup>d \<rightarrow>\<^sub>a
-     (arena_assn *a (arena_assn *a vdom_assn *a vdom_assn))\<close>
-  supply [[goals_limit=1]] Pos_unat_lit_assn'[sepref_fr_rules] length_ll_def[simp]
-  unfolding isasat_GC_clauses_prog_copy_wl_entry_def nth_rll_def[symmetric]
-    length_ll_def[symmetric]
-  apply (rewrite at \<open>If (\<hole> < _)\<close> four_uint64_nat_def[symmetric])
-  by sepref
-
+sepref_de
 
 lemma shorten_take_ll_0: \<open>shorten_take_ll L 0 W = W[L := []]\<close>
   by (auto simp: shorten_take_ll_def)
@@ -4890,104 +4234,8 @@ lemma shorten_take_ll_0: \<open>shorten_take_ll L 0 W = W[L := []]\<close>
 lemma length_shorten_take_ll[simp]: \<open>length (shorten_take_ll a j W) = length W\<close>
   by (auto simp: shorten_take_ll_def)
 
-sepref_register isasat_GC_clauses_prog_copy_wl_entry
-declare isasat_GC_clauses_prog_copy_wl_entry_code.refine[sepref_fr_rules]
-  isasat_GC_clauses_prog_copy_wl_entry_slow_code.refine[sepref_fr_rules]
-
-sepref_definition isasat_GC_clauses_prog_single_wl_code
-  is \<open>uncurry3 isasat_GC_clauses_prog_single_wl\<close>
-  :: \<open>[\<lambda>(((_, _), _), A). A \<le> uint32_max div 2]\<^sub>a
-     arena_assn\<^sup>d *\<^sub>a (arena_assn *a vdom_assn *a vdom_assn)\<^sup>d *\<^sub>a watchlist_fast_assn\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>
-     (arena_assn *a (arena_assn *a vdom_assn *a vdom_assn) *a watchlist_fast_assn)\<close>
-  supply [[goals_limit=1]] Pos_unat_lit_assn'[sepref_fr_rules]
-  unfolding isasat_GC_clauses_prog_single_wl_def
-    shorten_take_ll_0[symmetric]
-  by sepref
-
-
-sepref_definition isasat_GC_clauses_prog_single_wl_slow_code
-  is \<open>uncurry3 isasat_GC_clauses_prog_single_wl\<close>
-  :: \<open>[\<lambda>(((_, _), _), A). A \<le> uint32_max div 2]\<^sub>a
-     arena_assn\<^sup>d *\<^sub>a (arena_assn *a vdom_assn *a vdom_assn)\<^sup>d *\<^sub>a watchlist_assn\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>
-     (arena_assn *a (arena_assn *a vdom_assn *a vdom_assn) *a watchlist_assn)\<close>
-  supply [[goals_limit=1]] Pos_unat_lit_assn'[sepref_fr_rules]
-  unfolding isasat_GC_clauses_prog_single_wl_def
-    shorten_take_ll_0[symmetric]
-  by sepref
-
-declare isasat_GC_clauses_prog_single_wl_code.refine[sepref_fr_rules]
-   isasat_GC_clauses_prog_single_wl_slow_code.refine[sepref_fr_rules]
-
-definition isasat_GC_clauses_prog_wl2' where
-  \<open>isasat_GC_clauses_prog_wl2' ns fst' = (isasat_GC_clauses_prog_wl2 (ns, fst'))\<close>
-
-sepref_register isasat_GC_clauses_prog_wl2
-sepref_definition isasat_GC_clauses_prog_wl2_code
-  is \<open>uncurry2 isasat_GC_clauses_prog_wl2'\<close>
-  :: \<open>(array_assn vmtf_node_assn)\<^sup>k *\<^sub>a (option_assn uint32_nat_assn)\<^sup>k *\<^sub>a 
-     (arena_assn *a (arena_assn *a vdom_assn *a vdom_assn) *a watchlist_fast_assn)\<^sup>d \<rightarrow>\<^sub>a 
-     (arena_assn *a (arena_assn *a vdom_assn *a vdom_assn) *a watchlist_fast_assn)\<close>
-  supply [[goals_limit=1]]
-  unfolding isasat_GC_clauses_prog_wl2_def isasat_GC_clauses_prog_wl2'_def
-  by sepref
-
-sepref_definition isasat_GC_clauses_prog_wl2_slow_code
-  is \<open>uncurry2 isasat_GC_clauses_prog_wl2'\<close>
-  :: \<open>(array_assn vmtf_node_assn)\<^sup>k *\<^sub>a (option_assn uint32_nat_assn)\<^sup>k *\<^sub>a 
-     (arena_assn *a (arena_assn *a vdom_assn *a vdom_assn) *a watchlist_assn)\<^sup>d \<rightarrow>\<^sub>a 
-     (arena_assn *a (arena_assn *a vdom_assn *a vdom_assn) *a watchlist_assn)\<close>
-  supply [[goals_limit=1]]
-  unfolding isasat_GC_clauses_prog_wl2_def isasat_GC_clauses_prog_wl2'_def
-  by sepref
-
-declare isasat_GC_clauses_prog_wl2_code.refine[sepref_fr_rules]
-   isasat_GC_clauses_prog_wl2_slow_code.refine[sepref_fr_rules]
-
-sepref_register isasat_GC_clauses_prog_wl isasat_GC_clauses_prog_wl2' rewatch_heur_st
-sepref_definition isasat_GC_clauses_prog_wl_code
-  is \<open>isasat_GC_clauses_prog_wl\<close>
-  :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
-  supply [[goals_limit=1]]
-  unfolding isasat_GC_clauses_prog_wl_def isasat_bounded_assn_def
-     isasat_GC_clauses_prog_wl2'_def[symmetric]
-  by sepref
-
-sepref_definition isasat_GC_clauses_prog_wl_slow_code
-  is \<open>isasat_GC_clauses_prog_wl\<close>
-  :: \<open>isasat_unbounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_unbounded_assn\<close>
-  supply [[goals_limit=1]]
-  unfolding isasat_GC_clauses_prog_wl_def isasat_unbounded_assn_def
-    arl.fold_custom_empty isasat_GC_clauses_prog_wl2'_def[symmetric]
-  by sepref
-
 definition rewatch_heur_st_pre :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close> where
 \<open>rewatch_heur_st_pre S \<longleftrightarrow> (\<forall>i < length (get_vdom S). get_vdom S ! i \<le> uint64_max)\<close>
-
-sepref_definition rewatch_heur_st_code
-  is \<open>rewatch_heur_st\<close>
-  :: \<open>[rewatch_heur_st_pre]\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
-  supply [[goals_limit=1]] append_el_aa_uint32_hnr'[sepref_fr_rules]
-  unfolding isasat_GC_clauses_prog_wl_def isasat_bounded_assn_def
-    rewatch_heur_st_def rewatch_heur_def Let_def two_uint64_nat_def[symmetric]
-    to_watcher_fast_def[symmetric] rewatch_heur_st_pre_def
-  apply (rewrite at \<open>RETURN (append_ll (append_ll _ _ (to_watcher_fast \<hole> _ _)) _ _)\<close> uint64_of_nat_conv_def[symmetric])
-  apply (rewrite at \<open>RETURN (append_ll (append_ll _ _ _) _ (to_watcher_fast \<hole> _ _))\<close> uint64_of_nat_conv_def[symmetric])
-  apply (rewrite at \<open>to_watcher_fast \<hole>\<close> uint64_of_nat_conv_def[symmetric])
-  by sepref
-
-sepref_definition rewatch_heur_st_slow_code
-  is \<open>rewatch_heur_st\<close>
-  :: \<open>isasat_unbounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_unbounded_assn\<close>
-  supply [[goals_limit=1]] append_el_aa_uint32_hnr'[sepref_fr_rules]
-  unfolding isasat_GC_clauses_prog_wl_def isasat_unbounded_assn_def
-    rewatch_heur_st_def rewatch_heur_def Let_def two_uint64_nat_def[symmetric]
-  by sepref
-
-declare isasat_GC_clauses_prog_wl_code.refine[sepref_fr_rules]
- isasat_GC_clauses_prog_wl_slow_code.refine[sepref_fr_rules]
-  rewatch_heur_st_slow_code.refine[sepref_fr_rules]
-  rewatch_heur_st_code.refine[sepref_fr_rules]
-
 
 lemma isasat_GC_clauses_wl_D_rewatch_pre:
   assumes
@@ -4998,27 +4246,6 @@ lemma isasat_GC_clauses_wl_D_rewatch_pre:
   using assms
   unfolding rewatch_heur_st_pre_def all_set_conv_all_nth
   by auto
-
-sepref_register isasat_GC_clauses_wl_D
-
-sepref_definition isasat_GC_clauses_wl_D_code
-  is \<open>isasat_GC_clauses_wl_D\<close>
-  :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> uint64_max]\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
-  supply [[goals_limit=1]] isasat_GC_clauses_wl_D_rewatch_pre[intro!]
-  unfolding isasat_GC_clauses_wl_D_def
-  by sepref
-
-
-sepref_definition isasat_GC_clauses_wl_D_slow_code
-  is \<open>isasat_GC_clauses_wl_D\<close>
-  :: \<open>isasat_unbounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_unbounded_assn\<close>
-  supply [[goals_limit=1]]
-  unfolding isasat_GC_clauses_wl_D_def
-  by sepref
-
-declare isasat_GC_clauses_wl_D_code.refine[sepref_fr_rules]
-   isasat_GC_clauses_wl_D_slow_code.refine[sepref_fr_rules]
-find_theorems uint_max "uint_max div 2"
 
 lemma li_uint32_maxdiv2_le_unit32_max: \<open>a \<le> uint32_max div 2 + 1 \<Longrightarrow> a \<le> uint32_max\<close>
   by (auto simp: uint32_max_def)

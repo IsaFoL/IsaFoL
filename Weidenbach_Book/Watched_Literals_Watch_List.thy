@@ -1,9 +1,6 @@
 theory Watched_Literals_Watch_List
-  imports Watched_Literals_List Array_UInt Weidenbach_Book_Base.Explorer
+  imports Watched_Literals_List Weidenbach_Book_Base.Explorer
 begin
-
-text \<open>Remove notation that coonflicts with \<^term>\<open>list_update\<close>:\<close>
-no_notation Ref.update ("_ := _" 62)
 
 
 section \<open>Third Refinement: Remembering watched\<close>
@@ -1372,13 +1369,6 @@ subsection \<open>The Functions\<close>
 
 subsubsection \<open>Inner Loop\<close>
 
-lemma int_xor_3_same2:  \<open>a XOR b XOR a = b\<close> for a b :: int
-  by (metis bbw_lcs(3) bin_ops_same(3) int_xor_code(2))
-
-lemma nat_xor_3_same2: \<open>a XOR b XOR a = b\<close> for a b :: nat
-  unfolding bitXOR_nat_def
-  by (auto simp: int_xor_3_same2)
-
 lemma clause_to_update_mapsto_upd_If:
   assumes
     i: \<open>i \<in># dom_m N\<close>
@@ -1668,7 +1658,6 @@ lemma unit_propagation_inner_loop_body_wl_alt_def:
         }
       }
    }\<close>
-
   unfolding unit_propagation_inner_loop_body_wl_def if_not_swap bind_to_let_conv
     SPEC_eq_is_RETURN twl_st_wl
   unfolding Let_def if_not_swap bind_to_let_conv

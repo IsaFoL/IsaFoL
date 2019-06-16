@@ -1,5 +1,5 @@
 theory Watched_Literals_Transition_System
-  imports Refine_Imperative_HOL.IICF CDCL.CDCL_W_Abstract_State
+  imports WB_More_Refinement CDCL.CDCL_W_Abstract_State
     CDCL.CDCL_W_Restart
 begin
 

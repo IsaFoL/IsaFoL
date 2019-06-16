@@ -183,9 +183,6 @@ lemma length_a_hnr[sepref_fr_rules]:
   \<open>(length_a, RETURN o op_list_length) \<in> (arrayO_assn R)\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
   by sepref_to_hoare sep_auto
 
-definition length_ll :: \<open>'a list list \<Rightarrow> nat \<Rightarrow> nat\<close> where
-  \<open>length_ll l i = length (l!i)\<close>
-
 lemma le_length_ll_nemptyD: \<open>b < length_ll a ba \<Longrightarrow> a ! ba \<noteq> []\<close>
   by (auto simp: length_ll_def)
 
@@ -260,9 +257,6 @@ definition append_el_aa :: "('a::{default,heap} array_list) array \<Rightarrow>
   a' \<leftarrow> arl_append j x;
   Array.upd i a' a
   }"
-
-definition append_ll :: "'a list list \<Rightarrow> nat \<Rightarrow> 'a \<Rightarrow> 'a list list" where
-  \<open>append_ll xs i x = list_update xs i (xs ! i @ [x])\<close>
 
 lemma sep_auto_is_stupid:
   fixes R :: \<open>'a \<Rightarrow> 'b::{heap,default} \<Rightarrow> assn\<close>

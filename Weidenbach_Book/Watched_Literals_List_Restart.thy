@@ -1,6 +1,5 @@
 theory Watched_Literals_List_Restart
   imports Watched_Literals_List Watched_Literals_Algorithm_Restart
-     Array_UInt
 begin
 
 text \<open>

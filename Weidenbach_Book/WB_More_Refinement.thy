@@ -1,14 +1,37 @@
 theory WB_More_Refinement
-  imports
+  imports Weidenbach_Book_Base.WB_List_More
     "HOL-Library.Cardinality"
-    Refine_Monadic.Refine_Monadic
-    Weidenbach_Book_Base.WB_List_More
+    "HOL-Library.Rewrite"
     "HOL-Eisbach.Eisbach"
+    Refine_Monadic.Refine_Basic
     Automatic_Refinement.Automatic_Refinement
     Automatic_Refinement.Relators
-    Refine_Imperative_HOL.Sepref_Misc
-    Refine_Imperative_HOL.Sepref_Intf_Util
+    Refine_Monadic.Refine_While
 begin
+(*
+  term \<open>a \<rightarrow>\<^sub>f b\<close>
+no_notation fref ("[_]\<^sub>f _ \<rightarrow> _" [0,60,60] 60)
+no_notation freft ("_ \<rightarrow>\<^sub>f _" [60,60] 60) *)
+
+hide_const Autoref_Fix_Rel.CONSTRAINT
+
+definition fref :: "('c \<Rightarrow> bool) \<Rightarrow> ('a \<times> 'c) set \<Rightarrow> ('b \<times> 'd) set
+           \<Rightarrow> (('a \<Rightarrow> 'b) \<times> ('c \<Rightarrow> 'd)) set"
+    ("[_]\<^sub>f _ \<rightarrow> _" [0,60,60] 60)
+  where "[P]\<^sub>f R \<rightarrow> S \<equiv> {(f,g). \<forall>x y. P y \<and> (x,y)\<in>R \<longrightarrow> (f x, g y)\<in>S}"
+
+abbreviation freft ("_ \<rightarrow>\<^sub>f _" [60,60] 60) where "R \<rightarrow>\<^sub>f S \<equiv> ([\<lambda>_. True]\<^sub>f R \<rightarrow> S)"
+
+lemma frefI[intro?]:
+  assumes "\<And>x y. \<lbrakk>P y; (x,y)\<in>R\<rbrakk> \<Longrightarrow> (f x, g y)\<in>S"
+  shows "(f,g)\<in>fref P R S"
+  using assms
+  unfolding fref_def
+  by auto
+lemma fref_mono: "\<lbrakk> \<And>x. P' x \<Longrightarrow> P x; R' \<subseteq> R; S \<subseteq> S' \<rbrakk>
+    \<Longrightarrow> fref P R S \<subseteq> fref P' R' S'"
+    unfolding fref_def
+    by auto blast
 
 (* taken from IICF*)
 lemma meta_same_imp_rule: "(\<lbrakk>PROP P; PROP P\<rbrakk> \<Longrightarrow> PROP Q) \<equiv> (PROP P \<Longrightarrow> PROP Q)"
@@ -190,6 +213,9 @@ lemma fun_rel_syn_invert:
   \<open>a = a' \<Longrightarrow> b \<subseteq> b' \<Longrightarrow> a \<rightarrow> b \<subseteq> a' \<rightarrow> b'\<close>
   by (auto simp: refine_rel_defs)
 
+lemma fref_param1: "R\<rightarrow>S = fref (\<lambda>_. True) R S"  
+  by (auto simp: fref_def fun_relD)
+
 lemma fref_syn_invert:
   \<open>a = a' \<Longrightarrow> b \<subseteq> b' \<Longrightarrow> a \<rightarrow>\<^sub>f b \<subseteq> a' \<rightarrow>\<^sub>f b'\<close>
   unfolding fref_param1[symmetric]
@@ -223,6 +249,23 @@ method match_spec_trans =
 
 subsection \<open>More Notations\<close>
 
+definition uncurry0 where "uncurry0 c \<equiv> \<lambda>_::unit. c"
+abbreviation "uncurry2 f \<equiv> uncurry (uncurry f)"
+abbreviation "curry2 f \<equiv> curry (curry f)"
+abbreviation "uncurry3 f \<equiv> uncurry (uncurry2 f)"
+abbreviation "curry3 f \<equiv> curry (curry2 f)"
+abbreviation "uncurry4 f \<equiv> uncurry (uncurry3 f)"
+abbreviation "curry4 f \<equiv> curry (curry3 f)"
+abbreviation "uncurry5 f \<equiv> uncurry (uncurry4 f)"
+abbreviation "curry5 f \<equiv> curry (curry4 f)"
+abbreviation "uncurry6 f \<equiv> uncurry (uncurry5 f)"
+abbreviation "curry6 f \<equiv> curry (curry5 f)"
+abbreviation "uncurry7 f \<equiv> uncurry (uncurry6 f)"
+abbreviation "curry7 f \<equiv> curry (curry6 f)"
+abbreviation "uncurry8 f \<equiv> uncurry (uncurry7 f)"
+abbreviation "curry8 f \<equiv> curry (curry7 f)"
+abbreviation "uncurry9 f \<equiv> uncurry (uncurry8 f)"
+abbreviation "curry9 f \<equiv> curry (curry8 f)"
 abbreviation "uncurry10 f \<equiv> uncurry (uncurry9 f)"
 abbreviation "curry10 f \<equiv> curry (curry9 f)"
 abbreviation "uncurry11 f \<equiv> uncurry (uncurry10 f)"
@@ -284,61 +327,11 @@ notation
   comp19 (infixl "\<circ>\<^sub>1\<^sub>9" 55) and
   comp20 (infixl "\<circ>\<^sub>2\<^sub>0" 55)
 
-notation prod_assn (infixr "*a" 90)
-
-lemma norm_RETURN_o[to_hnr_post]:
-  "\<And>f. (RETURN oooo f)$x$y$z$a = (RETURN$(f$x$y$z$a))"
-  "\<And>f. (RETURN ooooo f)$x$y$z$a$b = (RETURN$(f$x$y$z$a$b))"
-  "\<And>f. (RETURN oooooo f)$x$y$z$a$b$c = (RETURN$(f$x$y$z$a$b$c))"
-  "\<And>f. (RETURN ooooooo f)$x$y$z$a$b$c$d = (RETURN$(f$x$y$z$a$b$c$d))"
-  "\<And>f. (RETURN oooooooo f)$x$y$z$a$b$c$d$e = (RETURN$(f$x$y$z$a$b$c$d$e))"
-  "\<And>f. (RETURN ooooooooo f)$x$y$z$a$b$c$d$e$g = (RETURN$(f$x$y$z$a$b$c$d$e$g))"
-  "\<And>f. (RETURN oooooooooo f)$x$y$z$a$b$c$d$e$g$h= (RETURN$(f$x$y$z$a$b$c$d$e$g$h))"
-  "\<And>f. (RETURN \<circ>\<^sub>1\<^sub>1 f)$x$y$z$a$b$c$d$e$g$h$i= (RETURN$(f$x$y$z$a$b$c$d$e$g$h$i))"
-  "\<And>f. (RETURN \<circ>\<^sub>1\<^sub>2 f)$x$y$z$a$b$c$d$e$g$h$i$j= (RETURN$(f$x$y$z$a$b$c$d$e$g$h$i$j))"
-  "\<And>f. (RETURN \<circ>\<^sub>1\<^sub>3 f)$x$y$z$a$b$c$d$e$g$h$i$j$l= (RETURN$(f$x$y$z$a$b$c$d$e$g$h$i$j$l))"
-  "\<And>f. (RETURN \<circ>\<^sub>1\<^sub>4 f)$x$y$z$a$b$c$d$e$g$h$i$j$l$m= (RETURN$(f$x$y$z$a$b$c$d$e$g$h$i$j$l$m))"
-  "\<And>f. (RETURN \<circ>\<^sub>1\<^sub>5 f)$x$y$z$a$b$c$d$e$g$h$i$j$l$m$n= (RETURN$(f$x$y$z$a$b$c$d$e$g$h$i$j$l$m$n))"
-  "\<And>f. (RETURN \<circ>\<^sub>1\<^sub>6 f)$x$y$z$a$b$c$d$e$g$h$i$j$l$m$n$p= (RETURN$(f$x$y$z$a$b$c$d$e$g$h$i$j$l$m$n$p))"
-  "\<And>f. (RETURN \<circ>\<^sub>1\<^sub>7 f)$x$y$z$a$b$c$d$e$g$h$i$j$l$m$n$p$r=
-    (RETURN$(f$x$y$z$a$b$c$d$e$g$h$i$j$l$m$n$p$r))"
-  "\<And>f. (RETURN \<circ>\<^sub>1\<^sub>8 f)$x$y$z$a$b$c$d$e$g$h$i$j$l$m$n$p$r$s=
-    (RETURN$(f$x$y$z$a$b$c$d$e$g$h$i$j$l$m$n$p$r$s))"
-  "\<And>f. (RETURN \<circ>\<^sub>1\<^sub>9 f)$x$y$z$a$b$c$d$e$g$h$i$j$l$m$n$p$r$s$t=
-    (RETURN$(f$x$y$z$a$b$c$d$e$g$h$i$j$l$m$n$p$r$s$t))"
-  "\<And>f. (RETURN \<circ>\<^sub>2\<^sub>0 f)$x$y$z$a$b$c$d$e$g$h$i$j$l$m$n$p$r$s$t$u=
-    (RETURN$(f$x$y$z$a$b$c$d$e$g$h$i$j$l$m$n$p$r$s$t$u))"
-  by auto
-
-lemma norm_return_o[to_hnr_post]:
-  "\<And>f. (return oooo f)$x$y$z$a = (return$(f$x$y$z$a))"
-  "\<And>f. (return ooooo f)$x$y$z$a$b = (return$(f$x$y$z$a$b))"
-  "\<And>f. (return oooooo f)$x$y$z$a$b$c = (return$(f$x$y$z$a$b$c))"
-  "\<And>f. (return ooooooo f)$x$y$z$a$b$c$d = (return$(f$x$y$z$a$b$c$d))"
-  "\<And>f. (return oooooooo f)$x$y$z$a$b$c$d$e = (return$(f$x$y$z$a$b$c$d$e))"
-  "\<And>f. (return ooooooooo f)$x$y$z$a$b$c$d$e$g = (return$(f$x$y$z$a$b$c$d$e$g))"
-  "\<And>f. (return oooooooooo f)$x$y$z$a$b$c$d$e$g$h= (return$(f$x$y$z$a$b$c$d$e$g$h))"
-  "\<And>f. (return \<circ>\<^sub>1\<^sub>1 f)$x$y$z$a$b$c$d$e$g$h$i= (return$(f$x$y$z$a$b$c$d$e$g$h$i))"
-  "\<And>f. (return \<circ>\<^sub>1\<^sub>2 f)$x$y$z$a$b$c$d$e$g$h$i$j= (return$(f$x$y$z$a$b$c$d$e$g$h$i$j))"
-  "\<And>f. (return \<circ>\<^sub>1\<^sub>3 f)$x$y$z$a$b$c$d$e$g$h$i$j$l= (return$(f$x$y$z$a$b$c$d$e$g$h$i$j$l))"
-  "\<And>f. (return \<circ>\<^sub>1\<^sub>4 f)$x$y$z$a$b$c$d$e$g$h$i$j$l$m= (return$(f$x$y$z$a$b$c$d$e$g$h$i$j$l$m))"
-  "\<And>f. (return \<circ>\<^sub>1\<^sub>5 f)$x$y$z$a$b$c$d$e$g$h$i$j$l$m$n= (return$(f$x$y$z$a$b$c$d$e$g$h$i$j$l$m$n))"
-  "\<And>f. (return \<circ>\<^sub>1\<^sub>6 f)$x$y$z$a$b$c$d$e$g$h$i$j$l$m$n$p= (return$(f$x$y$z$a$b$c$d$e$g$h$i$j$l$m$n$p))"
-  "\<And>f. (return \<circ>\<^sub>1\<^sub>7 f)$x$y$z$a$b$c$d$e$g$h$i$j$l$m$n$p$r=
-    (return$(f$x$y$z$a$b$c$d$e$g$h$i$j$l$m$n$p$r))"
-  "\<And>f. (return \<circ>\<^sub>1\<^sub>8 f)$x$y$z$a$b$c$d$e$g$h$i$j$l$m$n$p$r$s=
-    (return$(f$x$y$z$a$b$c$d$e$g$h$i$j$l$m$n$p$r$s))"
-  "\<And>f. (return \<circ>\<^sub>1\<^sub>9 f)$x$y$z$a$b$c$d$e$g$h$i$j$l$m$n$p$r$s$t=
-    (return$(f$x$y$z$a$b$c$d$e$g$h$i$j$l$m$n$p$r$s$t))"
-  "\<And>f. (return \<circ>\<^sub>2\<^sub>0 f)$x$y$z$a$b$c$d$e$g$h$i$j$l$m$n$p$r$s$t$u=
-    (return$(f$x$y$z$a$b$c$d$e$g$h$i$j$l$m$n$p$r$s$t$u))"
-    by auto
+lemma uncurry0[simp]: \<open>uncurry0 f x = f\<close>
+  unfolding uncurry0_def by auto
 
 
 subsection \<open>More Theorems for Refinement\<close>
-
-lemma prod_assn_id_assn_destroy: \<open>R\<^sup>d *\<^sub>a id_assn\<^sup>d = (R *a id_assn)\<^sup>d\<close>
-  by (auto simp: hfprod_def prod_assn_def[abs_def] invalid_assn_def pure_def intro!: ext)
 
 lemma SPEC_add_information: \<open>P \<Longrightarrow> A \<le> SPEC Q \<Longrightarrow> A \<le> SPEC(\<lambda>x. Q x \<and> P)\<close>
   by auto
@@ -363,14 +356,6 @@ lemma (in transfer) transfer_bool[refine_transfer]:
 
 lemma ref_two_step': \<open>A \<le> B \<Longrightarrow> \<Down> R A \<le>  \<Down> R B\<close>
   by (auto intro: ref_two_step)
-
-lemma hrp_comp_Id2[simp]: \<open>hrp_comp A Id = A\<close>
-  unfolding hrp_comp_def by auto
-
-lemma hn_ctxt_prod_assn_prod:
-  \<open>hn_ctxt (R *a S) (a, b) (a', b') = hn_ctxt R a a' * hn_ctxt S b b'\<close>
-  unfolding hn_ctxt_def
-  by auto
 
 lemma RES_RETURN_RES: \<open>RES \<Phi> \<bind> (\<lambda>T. RETURN (f T)) = RES (f ` \<Phi>)\<close>
   by (simp add: bind_RES_RETURN_eq setcompr_eq_image)
@@ -578,8 +563,7 @@ lemma fref_weaken_pre_weaken:
   assumes "(f,h) \<in> fref P' R S"
   assumes \<open>S \<subseteq> S'\<close>
   shows "(f,h) \<in> fref P R S'"
-  using fref_weaken_pre[OF assms(1,2)]
-  using assms(3) fref_cons by blast
+  using assms unfolding fref_def by blast
 
 lemma bind_rule_complete_RES: \<open>(M \<bind> f \<le> RES \<Phi>) = (M \<le> SPEC (\<lambda>x. f x \<le> RES \<Phi>))\<close>
   by (auto simp: pw_le_iff refine_pw_simps)
@@ -748,34 +732,6 @@ lemma fref_to_Down_unRET_uncurry4:
 
 subsubsection \<open>More Simplification Theorems\<close>
 
-lemma ex_assn_swap: \<open>(\<exists>\<^sub>Aa b. P a b) = (\<exists>\<^sub>Ab a. P a b)\<close>
-  by (meson ent_ex_postI ent_ex_preI ent_iffI ent_refl)
-
-lemma ent_ex_up_swap: \<open>(\<exists>\<^sub>Aaa. \<up> (P aa)) = (\<up>(\<exists>aa. P aa))\<close>
-  by (smt ent_ex_postI ent_ex_preI ent_iffI ent_pure_pre_iff ent_refl mult.left_neutral)
-
-lemma ex_assn_def_pure_eq_middle3:
-  \<open>(\<exists>\<^sub>Aba b bb. f b ba bb * \<up> (ba = h b bb) * P b ba bb) = (\<exists>\<^sub>Ab bb. f b (h b bb) bb * P b (h b bb) bb)\<close>
-  \<open>(\<exists>\<^sub>Ab ba bb. f b ba bb * \<up> (ba = h b bb) * P b ba bb) = (\<exists>\<^sub>Ab bb. f b (h b bb) bb * P b (h b bb) bb)\<close>
-  \<open>(\<exists>\<^sub>Ab bb ba. f b ba bb * \<up> (ba = h b bb) * P b ba bb) = (\<exists>\<^sub>Ab bb. f b (h b bb) bb * P b (h b bb) bb)\<close>
-  \<open>(\<exists>\<^sub>Aba b bb. f b ba bb * \<up> (ba = h b bb \<and> Q b ba bb)) = (\<exists>\<^sub>Ab bb. f b (h b bb) bb * \<up>(Q b (h b bb) bb))\<close>
-  \<open>(\<exists>\<^sub>Ab ba bb. f b ba bb * \<up> (ba = h b bb \<and> Q b ba bb)) = (\<exists>\<^sub>Ab bb. f b (h b bb) bb * \<up>(Q b (h b bb) bb))\<close>
-  \<open>(\<exists>\<^sub>Ab bb ba. f b ba bb * \<up> (ba = h b bb \<and> Q b ba bb)) = (\<exists>\<^sub>Ab bb. f b (h b bb) bb * \<up>(Q b (h b bb) bb))\<close>
-  by (subst ex_assn_def, subst (3) ex_assn_def, auto)+
-
-lemma ex_assn_def_pure_eq_middle2:
-  \<open>(\<exists>\<^sub>Aba b. f b ba * \<up> (ba = h b) * P b ba) = (\<exists>\<^sub>Ab . f b (h b) * P b (h b))\<close>
-  \<open>(\<exists>\<^sub>Ab ba. f b ba * \<up> (ba = h b) * P b ba) = (\<exists>\<^sub>Ab . f b (h b) * P b (h b))\<close>
-  \<open>(\<exists>\<^sub>Ab ba. f b ba * \<up> (ba = h b \<and> Q b ba)) = (\<exists>\<^sub>Ab. f b (h b) * \<up>(Q b (h b)))\<close>
-  \<open>(\<exists>\<^sub>A ba b. f b ba * \<up> (ba = h b \<and> Q b ba)) = (\<exists>\<^sub>Ab. f b (h b) * \<up>(Q b (h b)))\<close>
-  by (subst ex_assn_def, subst (2) ex_assn_def, auto)+
-
-lemma ex_assn_skip_first2:
-  \<open>(\<exists>\<^sub>Aba bb. f bb * \<up>(P ba bb)) = (\<exists>\<^sub>Abb. f bb * \<up>(\<exists>ba. P ba bb))\<close>
-  \<open>(\<exists>\<^sub>Abb ba. f bb * \<up>(P ba bb)) = (\<exists>\<^sub>Abb. f bb * \<up>(\<exists>ba. P ba bb))\<close>
-  apply (subst ex_assn_swap)
-  by (subst ex_assn_def, subst (2) ex_assn_def, auto)+
-
 lemma nofail_Down_nofail: \<open>nofail gS \<Longrightarrow> fS \<le> \<Down> R gS \<Longrightarrow> nofail fS\<close>
   using pw_ref_iff by blast
 
@@ -797,10 +753,6 @@ lemma WHILEIT_refine_with_post:
 
 
 subsection \<open>Some Refinement\<close>
-
-lemma fr_refl': \<open>A \<Longrightarrow>\<^sub>A B \<Longrightarrow> C * A \<Longrightarrow>\<^sub>A C * B\<close>
-  unfolding assn_times_comm[of C]
-  by (rule Automation.fr_refl)
 
 lemma Collect_eq_comp: \<open>{(c, a). a = f c} O {(x, y). P x y} = {(c, y). P (f c) y}\<close>
   by auto
@@ -852,12 +804,6 @@ notation prod_rel_syn (infixl "\<times>\<^sub>f" 70)
 lemma diff_add_mset_remove1: \<open>NO_MATCH {#} N \<Longrightarrow> M - add_mset a N = remove1_mset a (M - N)\<close>
   by auto
 
-lemma ex_assn_up_eq2: \<open>(\<exists>\<^sub>Aba. f ba * \<up> (ba = c)) = (f c)\<close>
-  by (simp add: ex_assn_def)
-
-lemma ex_assn_pair_split: \<open>(\<exists>\<^sub>Ab. P b) = (\<exists>\<^sub>Aa b. P (a, b))\<close>
-  by (subst ex_assn_def, subst (1) ex_assn_def, auto)+
-
 
 subsection \<open>List relation\<close>
 
@@ -873,25 +819,6 @@ lemma list_rel_update':
 proof -
   have [simp]: \<open>(bi, b) \<in> R\<close>
     using h by auto
-  have \<open>length xs = length ys\<close>
-    using assms list_rel_imp_same_length by blast
-
-  then show ?thesis
-    using rel
-    by (induction xs ys arbitrary: ba rule: list_induct2) (auto split: nat.splits)
-qed
-
-lemma list_rel_update:
-  fixes R :: \<open>'a \<Rightarrow> 'b :: {heap}\<Rightarrow> assn\<close>
-  assumes rel: \<open>(xs, ys) \<in> \<langle>the_pure R\<rangle>list_rel\<close> and
-   h: \<open>h \<Turnstile> A * R b bi\<close> and
-   p: \<open>is_pure R\<close>
-  shows \<open>(list_update xs ba bi, list_update ys ba b) \<in> \<langle>the_pure R\<rangle>list_rel\<close>
-proof -
-  obtain R' where R: \<open>the_pure R = R'\<close> and R': \<open>R = pure R'\<close>
-    using p by fastforce
-  have [simp]: \<open>(bi, b) \<in> the_pure R\<close>
-    using h p by (auto simp: mod_star_conv R R')
   have \<open>length xs = length ys\<close>
     using assms list_rel_imp_same_length by blast
 
@@ -944,59 +871,6 @@ lemma bind_if_inverse:
   \<close> for H :: \<open>'a nres\<close>
   by auto
 
-lemma hfref_imp2: "(\<And>x y. S x y \<Longrightarrow>\<^sub>t S' x y) \<Longrightarrow> [P]\<^sub>a RR \<rightarrow> S \<subseteq> [P]\<^sub>a RR \<rightarrow> S'"
-    apply clarsimp
-    apply (erule hfref_cons)
-    apply (simp_all add: hrp_imp_def)
-    done
-
-lemma hr_comp_mono_entails: \<open>B \<subseteq> C \<Longrightarrow> hr_comp a B x y \<Longrightarrow>\<^sub>A hr_comp a C x y\<close>
-  unfolding hr_comp_def entails_def
-  by auto
-
-lemma hfref_imp_mono_result:
-  "B \<subseteq> C \<Longrightarrow> [P]\<^sub>a RR \<rightarrow> hr_comp a B \<subseteq> [P]\<^sub>a RR \<rightarrow> hr_comp a C"
-  unfolding hfref_def hn_refine_def
-  apply clarify
-  subgoal for aa b c aaa
-    apply (rule cons_post_rule[of _ _
-          \<open>\<lambda>r. snd RR aaa c * (\<exists>\<^sub>Ax. hr_comp a B x r * \<up> (RETURN x \<le> b aaa)) * true\<close>])
-     apply (solves auto)
-    using hr_comp_mono_entails[of B C a ]
-    apply (auto intro!: ent_ex_preI)
-    apply (rule_tac x=xa in ent_ex_postI)
-    apply (auto intro!: ent_star_mono ac_simps)
-    done
-  done
-
-lemma hfref_imp_mono_result2:
-  "(\<And>x. P L x \<Longrightarrow> B L \<subseteq> C L) \<Longrightarrow> [P L]\<^sub>a RR \<rightarrow> hr_comp a (B L) \<subseteq> [P L]\<^sub>a RR \<rightarrow> hr_comp a (C L)"
-  unfolding hfref_def hn_refine_def
-  apply clarify
-  subgoal for aa b c aaa
-    apply (rule cons_post_rule[of _ _
-          \<open>\<lambda>r. snd RR aaa c * (\<exists>\<^sub>Ax. hr_comp a (B L) x r * \<up> (RETURN x \<le> b aaa)) * true\<close>])
-     apply (solves auto)
-    using hr_comp_mono_entails[of \<open>B L\<close> \<open>C L\<close> a ]
-    apply (auto intro!: ent_ex_preI)
-    apply (rule_tac x=xa in ent_ex_postI)
-    apply (auto intro!: ent_star_mono ac_simps)
-    done
-  done
-
-lemma hfref_weaken_change_pre:
-  assumes "(f,h) \<in> hfref P R S"
-  assumes "\<And>x. P x \<Longrightarrow> (fst R x, snd R x) = (fst R' x, snd R' x)"
-  assumes "\<And>y x. S y x \<Longrightarrow>\<^sub>t S' y x"
-  shows "(f,h) \<in> hfref P R' S'"
-proof -
-  have \<open>(f,h) \<in> hfref P R' S\<close>
-    using assms
-    by (auto simp: hfref_def)
-  then show ?thesis
-    using hfref_imp2[of S S' P R'] assms(3) by auto
-qed
-
 
 subsubsection \<open>Ghost parameters\<close>
 text \<open>
@@ -1023,70 +897,6 @@ lemma case_prod_cong:
 
 lemma if_replace_cond: \<open>(if b then P b else Q b) = (if b then P True else Q False)\<close>
   by auto
-
-lemma nfoldli_cong2:
-  assumes
-    le: \<open>length l = length l'\<close> and
-    \<sigma>: \<open>\<sigma> = \<sigma>'\<close> and
-    c: \<open>c = c'\<close> and
-    H: \<open>\<And>\<sigma> x. x < length l \<Longrightarrow> c' \<sigma> \<Longrightarrow> f (l ! x) \<sigma> = f' (l' ! x) \<sigma>\<close>
-  shows \<open>nfoldli l c f \<sigma> = nfoldli l' c' f' \<sigma>'\<close>
-proof -
-  show ?thesis
-    using le H unfolding c[symmetric] \<sigma>[symmetric]
-  proof (induction l arbitrary: l' \<sigma>)
-    case Nil
-    then show ?case by simp
-  next
-    case (Cons a l l'') note IH=this(1) and le = this(2) and H = this(3)
-    show ?case
-      using le H[of \<open>Suc _\<close>] H[of 0] IH[of \<open>tl l''\<close> \<open>_\<close>]
-      by (cases l'')
-        (auto intro: bind_cong_nres)
-  qed
-qed
-
-lemma nfoldli_nfoldli_list_nth:
-  \<open>nfoldli xs c P a = nfoldli [0..<length xs] c (\<lambda>i. P (xs ! i)) a\<close>
-proof (induction xs arbitrary: a)
-  case Nil
-  then show ?case by auto
-next
-  case (Cons x xs) note IH = this(1)
-  have 1: \<open>[0..<length (x # xs)] = 0 # [1..<length (x#xs)]\<close>
-    by (subst upt_rec)  simp
-  have 2: \<open>[1..<length (x#xs)] = map Suc [0..<length xs]\<close>
-    by (induction xs) auto
-  have AB: \<open>nfoldli [0..<length (x # xs)] c (\<lambda>i. P ((x # xs) ! i)) a =
-      nfoldli (0 # [1..<length (x#xs)]) c (\<lambda>i. P ((x # xs) ! i)) a\<close>
-      (is \<open>?A = ?B\<close>)
-    unfolding 1 ..
-  {
-    assume [simp]: \<open>c a\<close>
-    have \<open>nfoldli (0 # [1..<length (x#xs)]) c (\<lambda>i. P ((x # xs) ! i)) a =
-       do {
-         \<sigma> \<leftarrow> (P x a);
-         nfoldli [1..<length (x#xs)] c (\<lambda>i. P ((x # xs) ! i)) \<sigma>
-        }\<close>
-      by simp
-    moreover have \<open>nfoldli [1..<length (x#xs)] c (\<lambda>i. P ((x # xs) ! i)) \<sigma>  =
-       nfoldli [0..<length xs] c (\<lambda>i. P (xs ! i)) \<sigma>\<close> for \<sigma>
-      unfolding 2
-      by (rule nfoldli_cong2) auto
-    ultimately have \<open>?A = do {
-         \<sigma> \<leftarrow> (P x a);
-         nfoldli [0..<length xs] c (\<lambda>i. P (xs ! i))  \<sigma>
-        }\<close>
-      using AB
-      by (auto intro: bind_cong_nres)
-  }
-  moreover {
-    assume [simp]: \<open>\<not>c a\<close>
-    have \<open>?B = RETURN a\<close>
-      by simp
-  }
-  ultimately show ?case by (auto simp: IH intro: bind_cong_nres)
-qed
 
 
 lemma foldli_cong2:
@@ -1145,6 +955,24 @@ next
   ultimately show ?case by (auto simp: IH)
 qed
 
+lemma RES_RES13_RETURN_RES: \<open>do {
+  (M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema, ccount,
+       vdom, avdom, lcount) \<leftarrow> RES A;
+  RES (f M N D Q W vm \<phi> clvls cach lbd outl stats fast_ema slow_ema ccount
+      vdom avdom lcount)
+} = RES (\<Union>(M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema, ccount,
+       vdom, avdom, lcount)\<in>A. f M N D Q W vm \<phi> clvls cach lbd outl stats fast_ema slow_ema ccount
+      vdom avdom lcount)\<close>
+  by (force simp:  pw_eq_iff refine_pw_simps uncurry_def)
+
+
+lemma RES_SPEC_conv: \<open>RES P = SPEC (\<lambda>v. v \<in> P)\<close>
+  by auto
+
+lemma add_invar_refineI_P: \<open>A \<le> \<Down> {(x,y). R x y} B \<Longrightarrow> (nofail A \<Longrightarrow>A \<le> SPEC P) \<Longrightarrow> A \<le> \<Down> {(x,y). R x y \<and> P x} B\<close>
+  using add_invar_refineI[of \<open>\<lambda>_. A\<close> _  _ \<open>\<lambda>_. B\<close> P, where R=\<open>{(x,y). R x y}\<close> and I=P]
+  by auto
+
 
 lemma (in -)WHILEIT_rule_stronger_inv_RES':
   assumes
@@ -1169,28 +997,63 @@ proof -
   finally show ?thesis .
 qed
 
-lemma RES_RES13_RETURN_RES: \<open>do {
-  (M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema, ccount,
-       vdom, avdom, lcount) \<leftarrow> RES A;
-  RES (f M N D Q W vm \<phi> clvls cach lbd outl stats fast_ema slow_ema ccount
-      vdom avdom lcount)
-} = RES (\<Union>(M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema, ccount,
-       vdom, avdom, lcount)\<in>A. f M N D Q W vm \<phi> clvls cach lbd outl stats fast_ema slow_ema ccount
-      vdom avdom lcount)\<close>
-  by (force simp:  pw_eq_iff refine_pw_simps uncurry_def)
-
-
-lemma RES_SPEC_conv: \<open>RES P = SPEC (\<lambda>v. v \<in> P)\<close>
-  by auto
-
-lemma add_invar_refineI_P: \<open>A \<le> \<Down> {(x,y). R x y} B \<Longrightarrow> (nofail A \<Longrightarrow>A \<le> SPEC P) \<Longrightarrow> A \<le> \<Down> {(x,y). R x y \<and> P x} B\<close>
-  using add_invar_refineI[of \<open>\<lambda>_. A\<close> _  _ \<open>\<lambda>_. B\<close> P, where R=\<open>{(x,y). R x y}\<close> and I=P]
-  by auto
-
-
-
 lemma same_in_Id_option_rel:
   \<open>x = x' \<Longrightarrow> (x, x') \<in> \<langle>Id\<rangle>option_rel\<close>
   by auto
+
+definition find_in_list_between :: \<open>('a \<Rightarrow> bool) \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a list \<Rightarrow> nat option nres\<close> where
+  \<open>find_in_list_between P a b C = do {
+      (x, _) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(found, i). i \<ge> a \<and> i \<le> length C \<and> i \<le> b \<and> (\<forall>j\<in>{a..<i}. \<not>P (C!j)) \<and>
+        (\<forall>j. found = Some j \<longrightarrow> (i = j \<and> P (C ! j) \<and> j < b \<and> j \<ge> a))\<^esup>
+        (\<lambda>(found, i). found = None \<and> i < b)
+        (\<lambda>(_, i). do {
+          ASSERT(i < length C);
+          if P (C!i) then RETURN (Some i, i) else RETURN (None, i+1)
+        })
+        (None, a);
+      RETURN x
+  }\<close>
+
+lemma find_in_list_between_spec:
+  assumes \<open>a \<le> length C\<close> and \<open>b \<le> length C\<close> and \<open>a \<le> b\<close>
+  shows
+    \<open>find_in_list_between P a b C \<le> SPEC(\<lambda>i.
+       (i \<noteq> None \<longrightarrow>  P (C ! the i) \<and> the i \<ge> a \<and> the i < b) \<and>
+       (i = None \<longrightarrow> (\<forall>j. j \<ge> a \<longrightarrow> j < b \<longrightarrow> \<not>P (C!j))))\<close>
+  unfolding find_in_list_between_def
+  apply (refine_vcg WHILEIT_rule[where R = \<open>measure (\<lambda>(f, i). Suc (length C) - (i + (if f = None then 0 else 1)))\<close>])
+  subgoal by auto
+  subgoal by auto
+  subgoal using assms by auto
+  subgoal using assms by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal using assms by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by (auto simp: less_Suc_eq)
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  done
 
 end

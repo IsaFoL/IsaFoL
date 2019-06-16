@@ -1,12 +1,54 @@
 theory WB_More_Refinement_List
-  imports Refine_Imperative_HOL.IICF Weidenbach_Book_Base.WB_List_More
+  imports Weidenbach_Book_Base.WB_List_More Automatic_Refinement.Automatic_Refinement
+    "HOL-Word.More_Word" \<comment> \<open>provides some additional lemmas like @{thm nth_rev}\<close>
+    Refine_Monadic.Refine_Basic
 begin
 
 section \<open>More theorems about list\<close>
 
 text \<open>This should theorem and functions that defined in the Refinement Framework, but not in
 \<^theory>\<open>HOL.List\<close>. There might be moved somewhere eventually in the AFP or so.
-\<close>
+  \<close>
+(* Taken from IICF_List*)
+subsection \<open>Swap two elements of a list, by index\<close>
+
+definition swap where "swap l i j \<equiv> l[i := l!j, j:=l!i]"
+
+lemma swap_nth[simp]: "\<lbrakk>i < length l; j<length l; k<length l\<rbrakk> \<Longrightarrow>
+  swap l i j!k = (
+    if k=i then l!j
+    else if k=j then l!i
+    else l!k
+  )"
+  unfolding swap_def
+  by auto
+
+lemma swap_set[simp]: "\<lbrakk> i < length l; j<length l \<rbrakk> \<Longrightarrow> set (swap l i j) = set l"  
+  unfolding swap_def
+  by auto
+
+lemma swap_multiset[simp]: "\<lbrakk> i < length l; j<length l \<rbrakk> \<Longrightarrow> mset (swap l i j) = mset l"  
+  unfolding swap_def
+  by (auto simp: mset_swap)
+
+
+lemma swap_length[simp]: "length (swap l i j) = length l"  
+  unfolding swap_def
+  by auto
+
+lemma swap_same[simp]: "swap l i i = l"
+  unfolding swap_def by auto
+
+lemma distinct_swap[simp]: 
+  "\<lbrakk>i<length l; j<length l\<rbrakk> \<Longrightarrow> distinct (swap l i j) = distinct l"
+  unfolding swap_def
+  by auto
+
+lemma map_swap: "\<lbrakk>i<length l; j<length l\<rbrakk> 
+  \<Longrightarrow> map f (swap l i j) = swap (map f l) i j"
+  unfolding swap_def 
+  by (auto simp add: map_update)
+
 lemma swap_nth_irrelevant:
   \<open>k \<noteq> i \<Longrightarrow> k \<noteq> j \<Longrightarrow> swap xs i j ! k = xs ! k\<close>
   by (auto simp: swap_def)
@@ -108,6 +150,7 @@ lemma swap_swap: \<open>k < length xs \<Longrightarrow> l < length xs \<Longrigh
   by (cases \<open>k = l\<close>)
     (auto simp: Misc.slice_def swap_def drop_update_swap list_update_swap)
 
+    (*
 lemma in_mset_rel_eq_f_iff:
   \<open>(a, b) \<in> \<langle>{(c, a). a = f c}\<rangle>mset_rel \<longleftrightarrow> b = f `# a\<close>
   using ex_mset[of a]
@@ -117,7 +160,7 @@ lemma in_mset_rel_eq_f_iff:
 
 lemma in_mset_rel_eq_f_iff_set:
   \<open>\<langle>{(c, a). a = f c}\<rangle>mset_rel = {(b, a). a = f `# b}\<close>
-  using in_mset_rel_eq_f_iff[of _ _ f] by blast
+  using in_mset_rel_eq_f_iff[of _ _ f] by blast*)
 
 lemma list_rel_append_single_iff:
   \<open>(xs @ [x], ys @ [y]) \<in> \<langle>R\<rangle>list_rel \<longleftrightarrow>
@@ -149,5 +192,60 @@ lemma slice_append_nth:
   \<open>a \<le> b \<Longrightarrow> Suc b \<le> length xs \<Longrightarrow> Misc.slice a (Suc b) xs = Misc.slice a b xs @ [xs ! b]\<close>
   by (auto simp: Misc.slice_def take_Suc_conv_app_nth
     Suc_diff_le)
+
+lemma take_set: "set (take n l) = { l!i | i. i<n \<and> i<length l }"
+  apply (auto simp add: set_conv_nth)
+  apply (rule_tac x=i in exI)
+  apply auto
+  done
+
+(* Shared Function *)
+
+fun delete_index_and_swap where
+  \<open>delete_index_and_swap l i = butlast(l[i := last l])\<close>
+
+lemma (in -) delete_index_and_swap_alt_def:
+  \<open>delete_index_and_swap S i =
+    (let x = last S in butlast (S[i := x]))\<close>
+  by auto
+
+lemma swap_param[param]: "\<lbrakk> i<length l; j<length l; (l',l)\<in>\<langle>A\<rangle>list_rel; (i',i)\<in>nat_rel; (j',j)\<in>nat_rel\<rbrakk>
+  \<Longrightarrow> (swap l' i' j', swap l i j)\<in>\<langle>A\<rangle>list_rel"
+  unfolding swap_def
+  by parametricity
+
+lemma mset_tl_delete_index_and_swap:
+  assumes
+    \<open>0 < i\<close> and
+    \<open>i < length outl'\<close>
+  shows \<open>mset (tl (delete_index_and_swap outl' i)) =
+         remove1_mset (outl' ! i) (mset (tl outl'))\<close>
+  using assms
+  by (subst mset_tl)+
+    (auto simp: hd_butlast hd_list_update_If mset_butlast_remove1_mset
+      mset_update last_list_update_to_last ac_simps)
+
+definition length_ll :: \<open>'a list list \<Rightarrow> nat \<Rightarrow> nat\<close> where
+  \<open>length_ll l i = length (l!i)\<close>
+
+definition delete_index_and_swap_ll where
+  \<open>delete_index_and_swap_ll xs i j =
+     xs[i:= delete_index_and_swap (xs!i) j]\<close>
+
+
+definition append_ll :: "'a list list \<Rightarrow> nat \<Rightarrow> 'a \<Rightarrow> 'a list list" where
+  \<open>append_ll xs i x = list_update xs i (xs ! i @ [x])\<close>
+
+definition (in -)length_uint32_nat where
+  [simp]: \<open>length_uint32_nat C = length C\<close>
+
+definition (in -)length_uint64_nat where
+  [simp]: \<open>length_uint64_nat C = length C\<close>
+
+definition nth_rll :: "'a list list \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a" where
+  \<open>nth_rll l i j = l ! i ! j\<close>
+
+definition reorder_list :: \<open>'b \<Rightarrow> 'a list \<Rightarrow> 'a list nres\<close> where
+\<open>reorder_list _ removed = SPEC (\<lambda>removed'. mset removed' = mset removed)\<close>
 
 end

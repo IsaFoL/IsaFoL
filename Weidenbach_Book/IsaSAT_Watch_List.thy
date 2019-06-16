@@ -1,6 +1,6 @@
 theory IsaSAT_Watch_List
   imports IsaSAT_Literals
-    Watched_Literals.WB_Word_Assn
+    Watched_Literals.WB_Word
 begin
 
 text \<open>There is not much to say about watch lists since they are arrays of resizeable arrays,
@@ -18,9 +18,6 @@ text \<open>There is not much to say about watch lists since they are arrays of 
   and even worse, was redone each time, leading to a complete performance blow-up (75s on my macbook
   for eq.atree.braun.7.unsat.cnf instead of 7s).
 \<close>
-
-type_synonym watched_wl = \<open>((nat \<times> uint64) array_list) array\<close>
-type_synonym watched_wl_uint32 = \<open>((uint64 \<times> uint64) array_list) array\<close>
 
 definition watcher_enc where
   \<open>watcher_enc = {(n, (L, b)). \<exists>L'. (L', L) \<in> unat_lit_rel \<and>
@@ -80,25 +77,11 @@ lemma watcher_enc_extract_blit:
     nat_of_uint32_le_uint32_max nat_of_uint64_1_32 take_only_lower32_1_32
       take_only_lower32_le_uint32_max_ge_uint32_max)
 
-abbreviation watcher_enc_assn where
-  \<open>watcher_enc_assn \<equiv> pure watcher_enc\<close>
-
-abbreviation watcher_assn where
-  \<open>watcher_assn \<equiv> nat_assn *a watcher_enc_assn\<close>
-
-abbreviation watcher_fast_assn where
-  \<open>watcher_fast_assn \<equiv> uint64_nat_assn *a watcher_enc_assn\<close>
-
 fun blit_of where
   \<open>blit_of (_, (L, _)) = L\<close>
 
 fun blit_of_code where
   \<open>blit_of_code (n, bL) = uint32_of_uint64 (take_only_lower32 bL)\<close>
-
-lemma blit_of_code_hnr:
-  \<open>(return o blit_of_code, RETURN o blit_of) \<in> watcher_assn\<^sup>k \<rightarrow>\<^sub>a unat_lit_assn\<close>
-  by sepref_to_hoare
-    (sep_auto simp: watcher_enc_extract_blit)
 
 fun is_marked_binary where
   \<open>is_marked_binary (_, (_, b)) = b\<close>
@@ -159,34 +142,16 @@ lemma watcher_enc_extract_bool:
   by (cases b)
    (auto dest!: watcher_enc_extract_bool_False watcher_enc_extract_bool_True)
 
-lemma is_marked_binary_code_hnr:
-  \<open>(return o is_marked_binary_code, RETURN o is_marked_binary) \<in> watcher_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
-  by sepref_to_hoare
-    (sep_auto dest: watcher_enc_extract_bool watcher_enc_extract_bool_True)
-
 definition watcher_of :: \<open>nat \<times> (nat literal \<times> bool) \<Rightarrow> _\<close> where
   [simp]: \<open>watcher_of = id\<close>
 
 definition watcher_of_code :: \<open>nat \<times> uint64 \<Rightarrow> nat \<times> (uint32 \<times> bool)\<close> where
   \<open>watcher_of_code = (\<lambda>(a, b). (a, (blit_of_code (a, b), is_marked_binary_code (a, b))))\<close>
 
-lemma watcher_of_code_hnr[sepref_fr_rules]:
-  \<open>(return o watcher_of_code, RETURN o watcher_of) \<in>
-    watcher_assn\<^sup>k \<rightarrow>\<^sub>a (nat_assn *a unat_lit_assn *a bool_assn)\<close>
-  by sepref_to_hoare
-    (sep_auto dest: watcher_enc_extract_bool watcher_enc_extract_bool_True watcher_enc_extract_blit
-      simp: watcher_of_code_def)
-
 
 definition watcher_of_fast_code :: \<open>uint64 \<times> uint64 \<Rightarrow> uint64 \<times> (uint32 \<times> bool)\<close> where
   \<open>watcher_of_fast_code = (\<lambda>(a, b). (a, (blit_of_code (a, b), is_marked_binary_code (a, b))))\<close>
 
-lemma watcher_of_fast_code_hnr[sepref_fr_rules]:
-  \<open>(return o watcher_of_fast_code, RETURN o watcher_of) \<in>
-    watcher_fast_assn\<^sup>k \<rightarrow>\<^sub>a (uint64_nat_assn *a unat_lit_assn *a bool_assn)\<close>
-  by sepref_to_hoare
-    (sep_auto dest: watcher_enc_extract_bool watcher_enc_extract_bool_True watcher_enc_extract_blit
-      simp: watcher_of_fast_code_def)
 
 definition to_watcher :: \<open>nat \<Rightarrow> nat literal \<Rightarrow> bool \<Rightarrow> _\<close> where
   [simp]: \<open>to_watcher n L b = (n, (L, b))\<close>
@@ -215,27 +180,12 @@ lemma OR_132_is_sum:
       split!: if_splits)
   done
 
-lemma to_watcher_code_hnr[sepref_fr_rules]:
-  \<open>(uncurry2 (return ooo to_watcher_code), uncurry2 (RETURN ooo to_watcher)) \<in>
-    nat_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a bool_assn\<^sup>k \<rightarrow>\<^sub>a watcher_assn\<close>
-  by sepref_to_hoare
-    (sep_auto dest: watcher_enc_extract_bool watcher_enc_extract_bool_True watcher_enc_extract_blit
-      simp: to_watcher_code_def watcher_enc_def OR_132_is_sum nat_of_uint64_uint64_of_uint32
-       nat_of_uint32_le_uint32_max)
-
 definition to_watcher_fast where
  [simp]: \<open>to_watcher_fast = to_watcher\<close>
 
 definition to_watcher_fast_code :: \<open>uint64 \<Rightarrow> uint32 \<Rightarrow> bool \<Rightarrow> uint64 \<times> uint64\<close> where
   \<open>to_watcher_fast_code = (\<lambda>a L b. (a, uint64_of_uint32 L OR (if b then 1 << 32 else (0 :: uint64))))\<close>
 
-lemma to_watcher_fast_code_hnr[sepref_fr_rules]:
-  \<open>(uncurry2 (return ooo to_watcher_fast_code), uncurry2 (RETURN ooo to_watcher_fast)) \<in>
-    uint64_nat_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a bool_assn\<^sup>k \<rightarrow>\<^sub>a watcher_fast_assn\<close>
-  by sepref_to_hoare
-    (sep_auto dest: watcher_enc_extract_bool watcher_enc_extract_bool_True watcher_enc_extract_blit
-      simp: to_watcher_fast_code_def watcher_enc_def OR_132_is_sum nat_of_uint64_uint64_of_uint32
-       nat_of_uint32_le_uint32_max)
 
 lemma take_only_lower_code[code]:
   \<open>take_only_lower32 n = n AND 4294967295\<close>
