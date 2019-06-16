@@ -307,7 +307,9 @@ definition arl_get_u64' where
   [symmetric, code]: \<open>arl_get_u64' = arl_get_u64\<close>
 
 code_printing constant arl_get_u64' \<rightharpoonup> (SML)
-  "(fn/ ()/ =>/ Array.sub/ ((fn (a,b) => a) (_),/ Word64.toInt (_)))"
+"(fn/ ()/ =>/ Array.sub/ ((fn (a,b) => a) (_),/ Word64.toInt (_)))"
+
+(*TODO this is a copy paste because of the order of the merge *)
 code_printing code_module "Uint64" \<rightharpoonup> (SML) \<open>(* Test that words can handle numbers between 0 and 63 *)
 val _ = if 6 <= Word.wordSize then () else raise (Fail ("wordSize less than 6"));
 
