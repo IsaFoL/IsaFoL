@@ -42,7 +42,7 @@ HOL:
 
 Weidenbach_Book:
 	$(RUN_ISABELLE2019) build -d '$$AFP' -b Sepref_IICF
-	$(RUN_ISABELLE2019) build -d '$$AFP' -o browser_info -o "document=pdf" -o "document_variants=document:outline=/proof,/ML;userguide" -v -b -D Weidenbach_Book
+	$(RUN_ISABELLE2019) build -d '$$AFP' -d '$$ISABELLE_LLVM' -o browser_info -o "document=pdf" -o "document_variants=document:outline=/proof,/ML;userguide" -v -b -D Weidenbach_Book
 
 Functional_Ordered_Resolution_Prover:
 	$(RUN_ISABELLE2019) build -d '$$ISAFOR' -o browser_info -o "document=pdf" -v -b -D Functional_Ordered_Resolution_Prover
@@ -78,7 +78,7 @@ refs:
 clean:
 # We need the '|| true' since Isabelle can return a non-zero status for cleaning
 # (because we do not rebuild the sesssions probably)
-	$(RUN_ISABELLE2019) build -d '$$AFP' -c -n -D Weidenbach_Book || true
+	$(RUN_ISABELLE2019) build -d '$$AFP' -d '$$ISABELLE_LLVM' -c -n -D Weidenbach_Book || true
 	$(RUN_ISABELLE2019) build -c -n -D FOL_Berghofer || true
 	$(RUN_ISABELLE2019) build -d '$$AFP' -d '$$ISAFOR' -c -n -D Functional_Ordered_Resolution_Prover || true
 	rm -rf $(DESTINATION)/current
