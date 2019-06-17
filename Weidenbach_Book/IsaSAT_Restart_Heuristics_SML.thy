@@ -667,13 +667,15 @@ declare remove_one_annot_true_clause_imp_wl_D_heur_code.refine[sepref_fr_rules]
 
 sepref_definition isasat_GC_clauses_prog_copy_wl_entry_code
   is \<open>uncurry3 isasat_GC_clauses_prog_copy_wl_entry\<close>
-  :: \<open>arena_assn\<^sup>d *\<^sub>a watchlist_fast_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a (arena_assn *a vdom_assn *a vdom_assn)\<^sup>d \<rightarrow>\<^sub>a
+  :: \<open>[\<lambda>(((N, _), _), _). length N \<le> uint64_max]\<^sub>a
+     arena_assn\<^sup>d *\<^sub>a watchlist_fast_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a (arena_assn *a vdom_assn *a vdom_assn)\<^sup>d \<rightarrow>
      (arena_assn *a (arena_assn *a vdom_assn *a vdom_assn))\<close>
   supply [[goals_limit=1]] Pos_unat_lit_assn'[sepref_fr_rules] length_ll_def[simp]
   unfolding isasat_GC_clauses_prog_copy_wl_entry_def nth_rll_def[symmetric]
-    length_ll_def[symmetric]
+    length_ll_def[symmetric] zero_uint64_nat_def[symmetric] one_uint64_nat_def[symmetric]
   apply (rewrite at \<open>If (\<hole> < _)\<close> four_uint64_nat_def[symmetric])
   apply (rewrite at \<open>fm_mv_clause_to_new_arena \<hole>\<close> nat_of_uint64_conv_def[symmetric])
+  apply (rewrite at \<open>let _ = length_ll _ \<hole> in _\<close> uint64_of_uint32_conv_def[symmetric])
   by sepref
 
 
@@ -698,14 +700,17 @@ lemma shorten_take_ll_0: \<open>shorten_take_ll L 0 W = W[L := []]\<close>
 lemma length_shorten_take_ll[simp]: \<open>length (shorten_take_ll a j W) = length W\<close>
   by (auto simp: shorten_take_ll_def)
 
+(*TODO remove conversion to nat*)
 sepref_definition isasat_GC_clauses_prog_single_wl_code
   is \<open>uncurry3 isasat_GC_clauses_prog_single_wl\<close>
-  :: \<open>[\<lambda>(((_, _), _), A). A \<le> uint32_max div 2]\<^sub>a
+  :: \<open>[\<lambda>(((N, _), _), A). A \<le> uint32_max div 2 \<and> length N \<le> uint64_max]\<^sub>a
      arena_assn\<^sup>d *\<^sub>a (arena_assn *a vdom_assn *a vdom_assn)\<^sup>d *\<^sub>a watchlist_fast_assn\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>
      (arena_assn *a (arena_assn *a vdom_assn *a vdom_assn) *a watchlist_fast_assn)\<close>
   supply [[goals_limit=1]] Pos_unat_lit_assn'[sepref_fr_rules]
-  unfolding isasat_GC_clauses_prog_single_wl_def
+  unfolding isasat_GC_clauses_prog_single_wl_def zero_uint64_nat_def[symmetric]
     shorten_take_ll_0[symmetric]
+  apply (rewrite at \<open>let _ = shorten_take_ll \<hole> _ _ in _\<close> nat_of_uint32_conv_def[symmetric])
+  apply (rewrite at \<open>let _ = shorten_take_ll \<hole> _ _ in RETURN _\<close> nat_of_uint32_conv_def[symmetric])
   by sepref
 
 
@@ -728,8 +733,9 @@ definition isasat_GC_clauses_prog_wl2' where
 sepref_register isasat_GC_clauses_prog_wl2
 sepref_definition isasat_GC_clauses_prog_wl2_code
   is \<open>uncurry2 isasat_GC_clauses_prog_wl2'\<close>
-  :: \<open>(array_assn vmtf_node_assn)\<^sup>k *\<^sub>a (option_assn uint32_nat_assn)\<^sup>k *\<^sub>a 
-     (arena_assn *a (arena_assn *a vdom_assn *a vdom_assn) *a watchlist_fast_assn)\<^sup>d \<rightarrow>\<^sub>a 
+  :: \<open>[\<lambda>((_, _), (N, _)). length N \<le> uint64_max]\<^sub>a
+     (array_assn vmtf_node_assn)\<^sup>k *\<^sub>a (option_assn uint32_nat_assn)\<^sup>k *\<^sub>a 
+     (arena_assn *a (arena_assn *a vdom_assn *a vdom_assn) *a watchlist_fast_assn)\<^sup>d \<rightarrow>
      (arena_assn *a (arena_assn *a vdom_assn *a vdom_assn) *a watchlist_fast_assn)\<close>
   supply [[goals_limit=1]]
   unfolding isasat_GC_clauses_prog_wl2_def isasat_GC_clauses_prog_wl2'_def
@@ -737,8 +743,8 @@ sepref_definition isasat_GC_clauses_prog_wl2_code
 
 sepref_definition isasat_GC_clauses_prog_wl2_slow_code
   is \<open>uncurry2 isasat_GC_clauses_prog_wl2'\<close>
-  :: \<open>(array_assn vmtf_node_assn)\<^sup>k *\<^sub>a (option_assn uint32_nat_assn)\<^sup>k *\<^sub>a 
-     (arena_assn *a (arena_assn *a vdom_assn *a vdom_assn) *a watchlist_assn)\<^sup>d \<rightarrow>\<^sub>a 
+  :: \<open>(array_assn vmtf_node_assn)\<^sup>k *\<^sub>a (option_assn uint32_nat_assn)\<^sup>k *\<^sub>a
+     (arena_assn *a (arena_assn *a vdom_assn *a vdom_assn) *a watchlist_assn)\<^sup>d \<rightarrow>\<^sub>a
      (arena_assn *a (arena_assn *a vdom_assn *a vdom_assn) *a watchlist_assn)\<close>
   supply [[goals_limit=1]]
   unfolding isasat_GC_clauses_prog_wl2_def isasat_GC_clauses_prog_wl2'_def
@@ -750,7 +756,7 @@ declare isasat_GC_clauses_prog_wl2_code.refine[sepref_fr_rules]
 sepref_register isasat_GC_clauses_prog_wl isasat_GC_clauses_prog_wl2' rewatch_heur_st
 sepref_definition isasat_GC_clauses_prog_wl_code
   is \<open>isasat_GC_clauses_prog_wl\<close>
-  :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
+  :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> uint64_max]\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   supply [[goals_limit=1]]
   unfolding isasat_GC_clauses_prog_wl_def isasat_bounded_assn_def
      isasat_GC_clauses_prog_wl2'_def[symmetric]
@@ -761,14 +767,14 @@ sepref_definition isasat_GC_clauses_prog_wl_slow_code
   :: \<open>isasat_unbounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_unbounded_assn\<close>
   supply [[goals_limit=1]]
   unfolding isasat_GC_clauses_prog_wl_def isasat_unbounded_assn_def
-    arl.fold_custom_empty isasat_GC_clauses_prog_wl2'_def[symmetric]
+    IICF_Array_List.arl.fold_custom_empty isasat_GC_clauses_prog_wl2'_def[symmetric]
   by sepref
 
 
 sepref_definition rewatch_heur_st_code
   is \<open>rewatch_heur_st\<close>
-  :: \<open>[rewatch_heur_st_pre]\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
-  supply [[goals_limit=1]] append_el_aa_uint32_hnr'[sepref_fr_rules]
+  :: \<open>[\<lambda>S. rewatch_heur_st_pre S \<and> length (get_clauses_wl_heur S) \<le> uint64_max]\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
+  supply [[goals_limit=1]] append_el_aa_uint32_hnr'[sepref_fr_rules] append_ll_def[simp]
   unfolding isasat_GC_clauses_prog_wl_def isasat_bounded_assn_def
     rewatch_heur_st_def rewatch_heur_def Let_def two_uint64_nat_def[symmetric]
     to_watcher_fast_def[symmetric] rewatch_heur_st_pre_def

@@ -24,11 +24,12 @@ sepref_definition (in -) atoms_hash_empty_code
   unfolding atoms_hash_int_empty_def array_fold_custom_replicate
   by sepref
 
+find_theorems replicate arl64_assn
 sepref_definition distinct_atms_empty_code
   is \<open>distinct_atms_int_empty\<close>
   :: \<open>nat_assn\<^sup>k \<rightarrow>\<^sub>a arl_assn uint32_nat_assn *a atoms_hash_assn\<close>
   unfolding distinct_atms_int_empty_def array_fold_custom_replicate
-    arl.fold_custom_empty
+    IICF_Array_List.arl.fold_custom_empty
   by sepref
 
 declare distinct_atms_empty_code.refine[sepref_fr_rules]
@@ -415,7 +416,7 @@ sepref_definition extract_atms_clss_imp_empty_assn
   unfolding extract_atms_clss_imp_empty_rel_def
     array_fold_custom_replicate
   supply [[goals_limit=1]]
-  apply (rewrite at \<open>(_, _, \<hole>)\<close> arl.fold_custom_empty)
+  apply (rewrite at \<open>(_, _, \<hole>)\<close> IICF_Array_List.arl.fold_custom_empty)
   apply (rewrite in \<open>(_, _, \<hole>)\<close> annotate_assn[where A=\<open>arl_assn uint32_nat_assn\<close>])
   apply (rewrite in \<open>(\<hole>, _, _)\<close> zero_uint64_nat_def[symmetric])
   apply (rewrite in \<open>(_, \<hole>, _)\<close> zero_uint32_nat_def[symmetric])
@@ -533,7 +534,7 @@ sepref_definition finalise_init_code'
   supply zero_uin64_hnr[sepref_fr_rules] [[goals_limit=1]]
     Pos_unat_lit_assn'[sepref_fr_rules] uint_max_def[simp] op_arl_replicate_def[simp]
   unfolding finalise_init_code_def isasat_init_assn_def isasat_bounded_assn_def
-    arl.fold_custom_empty arl_fold_custom_replicate two_uint32_def[symmetric]
+    IICF_Array_List.arl.fold_custom_empty arl_fold_custom_replicate two_uint32_def[symmetric]
   by sepref
 
 sepref_definition finalise_init_code_unb
@@ -542,7 +543,7 @@ sepref_definition finalise_init_code_unb
   supply zero_uin64_hnr[sepref_fr_rules] [[goals_limit=1]]
     Pos_unat_lit_assn'[sepref_fr_rules] uint_max_def[simp] op_arl_replicate_def[simp]
   unfolding finalise_init_code_def isasat_init_unbounded_assn_def isasat_unbounded_assn_def
-    arl.fold_custom_empty arl_fold_custom_replicate two_uint32_def[symmetric] zero_uint64_nat_def
+    IICF_Array_List.arl.fold_custom_empty arl_fold_custom_replicate two_uint32_def[symmetric] zero_uint64_nat_def
   by sepref
 
 declare finalise_init_code'.refine[sepref_fr_rules]
@@ -573,9 +574,9 @@ sepref_definition init_trail_D_code
   is \<open>uncurry2 init_trail_D\<close>
   :: \<open>(arl_assn uint32_assn)\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a trail_pol_assn\<close>
   unfolding init_trail_D_def PR_CONST_def
-  apply (rewrite in \<open>let _ = \<hole> in _\<close> arl.fold_custom_empty)
+  apply (rewrite in \<open>let _ = \<hole> in _\<close> IICF_Array_List.arl.fold_custom_empty)
   apply (rewrite in \<open>let _ = \<hole> in _\<close> annotate_assn[where A=\<open>arl_assn unat_lit_assn\<close>])
-  apply (rewrite in \<open>let _ = _; _ = \<hole> in _\<close> arl.fold_custom_empty)
+  apply (rewrite in \<open>let _ = _; _ = \<hole> in _\<close> IICF_Array_List.arl.fold_custom_empty)
   apply (rewrite in \<open>let _ = _; _ = \<hole> in _\<close> annotate_assn[where A=\<open>arl_assn uint32_nat_assn\<close>])
 
   apply (rewrite in \<open>let _ = _;_ = \<hole> in _\<close> annotate_assn[where A=\<open>array_assn (tri_bool_assn)\<close>])
@@ -592,9 +593,9 @@ sepref_definition init_trail_D_fast_code
   is \<open>uncurry2 init_trail_D_fast\<close>
   :: \<open>(arl_assn uint32_assn)\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a trail_pol_fast_assn\<close>
   unfolding init_trail_D_def PR_CONST_def init_trail_D_fast_def
-  apply (rewrite in \<open>let _ = \<hole> in _\<close> arl.fold_custom_empty)
+  apply (rewrite in \<open>let _ = \<hole> in _\<close> IICF_Array_List.arl.fold_custom_empty)
   apply (rewrite in \<open>let _ = \<hole> in _\<close> annotate_assn[where A=\<open>arl_assn unat_lit_assn\<close>])
-  apply (rewrite in \<open>let _ = _; _ = \<hole> in _\<close> arl.fold_custom_empty)
+  apply (rewrite in \<open>let _ = _; _ = \<hole> in _\<close> IICF_Array_List.arl.fold_custom_empty)
   apply (rewrite in \<open>let _ = _; _ = \<hole> in _\<close> annotate_assn[where A=\<open>arl_assn uint32_nat_assn\<close>])
 
   apply (rewrite in \<open>let _ = _;_ = \<hole> in _\<close> annotate_assn[where A=\<open>array_assn (tri_bool_assn)\<close>])
@@ -613,13 +614,13 @@ sepref_definition init_state_wl_D'_code
   is \<open>init_state_wl_D'\<close>
   :: \<open>(arl_assn uint32_assn *a uint32_assn)\<^sup>d \<rightarrow>\<^sub>a isasat_init_assn\<close>
   unfolding init_state_wl_D'_def PR_CONST_def init_trail_D_fast_def[symmetric] isasat_init_assn_def
-  apply (rewrite at \<open>let _ = (_, \<hole>) in _\<close> arl.fold_custom_empty)
+  apply (rewrite at \<open>let _ = (_, \<hole>) in _\<close> IICF_Array_List.arl.fold_custom_empty)
   apply (rewrite at \<open>let _ = \<hole> in _\<close>  init_lrl_def[symmetric])
-  unfolding array_fold_custom_replicate
-  apply (rewrite at \<open>let _ = \<hole> in let _ = (True, _, _) in _\<close> arl.fold_custom_empty)
+  unfolding array_fold_custom_replicate init_lrl64_def[symmetric]
+  apply (rewrite at \<open>let _ = \<hole> in let _ = (True, _, _) in _\<close> IICF_Array_List.arl.fold_custom_empty)
   apply (rewrite at \<open>let _ = \<hole> in _\<close> annotate_assn[where A=\<open>arena_assn\<close>])
-  apply (rewrite at \<open>let _= _; _= \<hole> in _\<close> annotate_assn[where A=\<open>(arrayO_assn (arl_assn watcher_fast_assn))\<close>])
-  apply (rewrite at \<open>let _= \<hole> in RETURN _\<close> arl.fold_custom_empty)
+  apply (rewrite at \<open>let _= _; _= \<hole> in _\<close> annotate_assn[where A=\<open>watchlist_fast_assn\<close>])
+  apply (rewrite at \<open>let _= \<hole> in RETURN _\<close> IICF_Array_List.arl.fold_custom_empty)
   supply [[goals_limit = 1]]
   by sepref
 
@@ -628,18 +629,18 @@ sepref_definition init_state_wl_D'_code_unb
   :: \<open>(arl_assn uint32_assn *a uint32_assn)\<^sup>d \<rightarrow>\<^sub>a trail_pol_assn *a arena_assn *a
     conflict_option_rel_assn *a
     uint32_nat_assn *a
-    (arrayO_assn (arl_assn (watcher_assn))) *a
+    watchlist_assn *a
     vmtf_remove_conc_option_fst_As *a
     phase_saver_conc *a uint32_nat_assn *a
     cach_refinement_l_assn *a lbd_assn *a vdom_assn\<close>
   unfolding init_state_wl_D'_def PR_CONST_def
-  apply (rewrite at \<open>let _ = (_, \<hole>) in _\<close> arl.fold_custom_empty)
+  apply (rewrite at \<open>let _ = (_, \<hole>) in _\<close> IICF_Array_List.arl.fold_custom_empty)
   apply (rewrite at \<open>let _ = \<hole> in _\<close>  init_lrl_def[symmetric])
   unfolding array_fold_custom_replicate
-  apply (rewrite at \<open>let _ = \<hole> in let _ = (True, _, _) in _\<close> arl.fold_custom_empty)
+  apply (rewrite at \<open>let _ = \<hole> in let _ = (True, _, _) in _\<close> IICF_Array_List.arl.fold_custom_empty)
   apply (rewrite at \<open>let _ = \<hole> in _\<close> annotate_assn[where A=\<open>arena_assn\<close>])
-  apply (rewrite at \<open>let _= _; _= \<hole> in _\<close> annotate_assn[where A=\<open>(arrayO_assn (arl_assn watcher_assn))\<close>])
-  apply (rewrite at \<open>let _= \<hole> in RETURN _\<close> arl.fold_custom_empty)
+  apply (rewrite at \<open>let _= _; _= \<hole> in _\<close> annotate_assn[where A=\<open>watchlist_assn\<close>])
+  apply (rewrite at \<open>let _= \<hole> in RETURN _\<close> IICF_Array_List.arl.fold_custom_empty)
   supply [[goals_limit = 1]]
   by sepref
 

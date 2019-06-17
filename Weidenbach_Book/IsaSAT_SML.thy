@@ -152,7 +152,7 @@ sepref_definition  empty_conflict_code'
   is \<open>uncurry0 (empty_conflict_code)\<close>
   :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a model_stat_assn\<close>
   unfolding empty_conflict_code_def
-  apply (rewrite in \<open>let _ =  \<hole> in _\<close> arl.fold_custom_empty)
+  apply (rewrite in \<open>let _ =  \<hole> in _\<close> IICF_Array_List.arl.fold_custom_empty)
   apply (rewrite in \<open>let _ =  \<hole> in _\<close> annotate_assn[where A=\<open>arl_assn unat_lit_assn\<close>])
   by sepref
 

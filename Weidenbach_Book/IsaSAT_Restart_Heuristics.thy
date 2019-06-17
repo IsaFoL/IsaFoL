@@ -3000,6 +3000,7 @@ definition isasat_GC_clauses_prog_copy_wl_entry
 where
 \<open>isasat_GC_clauses_prog_copy_wl_entry = (\<lambda>N W A (N', vdm, avdm). do {
     ASSERT(nat_of_lit A < length W);
+    ASSERT(length (W ! nat_of_lit A) \<le> length N);
     let le = length (W ! nat_of_lit A);
     (i, N, N', vdm, avdm) \<leftarrow> WHILE\<^sub>T
       (\<lambda>(i, N, N', vdm, avdm). i < le)
@@ -3046,6 +3047,7 @@ proof -
     unfolding isasat_GC_clauses_prog_copy_wl_entry_def cdcl_GC_clauses_prog_copy_wl_entry_def prod.case A
     apply (refine_vcg WHILET_refine[where R = \<open>nat_rel \<times>\<^sub>r ?R\<^sub>1 \<times>\<^sub>r ?R\<^sub>2\<close>])
     subgoal using A_le by auto
+    subgoal sorry
     subgoal using assms by auto
     subgoal using W L by auto
     subgoal by auto
@@ -3084,12 +3086,13 @@ definition isasat_GC_clauses_prog_single_wl
   :: \<open>arena \<Rightarrow>  (arena \<times> _ \<times> _) \<Rightarrow> (nat watcher) list list \<Rightarrow> nat \<Rightarrow>
         (arena \<times> (arena \<times> _ \<times> _) \<times> (nat watcher) list list) nres\<close>
 where
-\<open>isasat_GC_clauses_prog_single_wl = (\<lambda>N N' WS A. do {
+\<open>isasat_GC_clauses_prog_single_wl = (\<lambda>N0 N' WS A. do {
     let L = Pos A; \<^cancel>\<open>use phase saving instead\<close>
     ASSERT(nat_of_lit L < length WS);
     ASSERT(nat_of_lit (-L) < length WS);
-    (N, (N', vdom, avdom)) \<leftarrow> isasat_GC_clauses_prog_copy_wl_entry N WS L N';
+    (N, (N', vdom, avdom)) \<leftarrow> isasat_GC_clauses_prog_copy_wl_entry N0 WS L N';
     let WS = WS[nat_of_lit L := []];
+    ASSERT(length N = length N0);
     (N, N') \<leftarrow> isasat_GC_clauses_prog_copy_wl_entry N WS (-L) (N', vdom, avdom);
     let WS = WS[nat_of_lit (-L) := []];
     RETURN (N, N', WS)
@@ -3161,6 +3164,7 @@ proof -
     subgoal using dist by blast
     subgoal using packed by blast
     subgoal using avdom by blast
+    subgoal sorry
     apply (solves auto)
     apply (solves auto)
     apply (rule vdom2; auto)
@@ -3177,8 +3181,8 @@ proof -
 qed
 
 definition isasat_GC_clauses_prog_wl2 where
-  \<open>isasat_GC_clauses_prog_wl2 \<equiv> (\<lambda>(ns :: (nat, nat) vmtf_node list, n) x. do {
-      (_, x) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(n, x). True\<^esup>
+  \<open>isasat_GC_clauses_prog_wl2 \<equiv> (\<lambda>(ns :: (nat, nat) vmtf_node list, n) x0. do {
+      (_, x) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(n, x). length (fst x) = length (fst x0)\<^esup>
         (\<lambda>(n, _). n \<noteq> None)
         (\<lambda>(n, x). do {
           ASSERT(n \<noteq> None);
@@ -3188,7 +3192,7 @@ definition isasat_GC_clauses_prog_wl2 where
           x \<leftarrow> (\<lambda>(arena\<^sub>o, arena, W). isasat_GC_clauses_prog_single_wl arena\<^sub>o arena W A) x;
           RETURN (get_next ((ns ! A)), x)
         })
-        (n, x);
+        (n, x0);
       RETURN x
     })\<close>
 
@@ -3260,8 +3264,9 @@ proof -
      supply [[show_types]]
     by auto
   have isasat_GC_clauses_prog_wl_alt_def:
-    \<open>isasat_GC_clauses_prog_wl2 = iterate_over_VMTF f (\<lambda>_. True)\<close>
-    unfolding f_def isasat_GC_clauses_prog_wl2_def iterate_over_VMTF_def by (auto intro!: ext)
+    \<open>isasat_GC_clauses_prog_wl2 n x0 = iterate_over_VMTF f (\<lambda>x. length (fst x) = length (fst x0)) n x0\<close>
+    for n x0
+    unfolding f_def isasat_GC_clauses_prog_wl2_def iterate_over_VMTF_def by (cases n) (auto intro!: ext)
   show ?thesis
     unfolding isasat_GC_clauses_prog_wl_alt_def prod.case f_def[symmetric] old
     apply (rule order_trans[OF iterate_over_VMTF_iterate_over_\<L>\<^sub>a\<^sub>l\<^sub>l[OF vmtf nempty bounded]])
@@ -3271,7 +3276,7 @@ proof -
             isasat_GC_clauses_prog_single_wl)
     subgoal by fast
     subgoal using assms by (auto simp: valid_arena_empty isasat_GC_refl_def)
-    subgoal by auto
+    subgoal apply auto sorry
     subgoal by auto
     subgoal by auto
     subgoal by auto
@@ -3688,26 +3693,41 @@ proof -
     using empty unfolding I_def by (auto simp: correct_watching'''.simps
        all_blits_are_in_problem_init.simps clause_to_update_def
        all_lits_of_mm_union)
-
+  have le: \<open>length (\<sigma> L) < size (dom_m N)\<close>
+     if \<open>correct_watching''' \<A> (M, fmrestrict_set (set l1) N, C, NE, UE, Q, \<sigma>)\<close> and
+      \<open>set_mset (dom_m N) \<subseteq> set x \<and> distinct x\<close> and
+     \<open>x = l1 @ xa # l2\<close> \<open>xa \<in># dom_m N\<close>
+     for L l1 \<sigma> xa l2 x
+  proof -
+    have 1: \<open>card (set l1) \<le> length l1\<close>
+      by (auto simp: card_length)
+    have \<open>distinct_watched (\<sigma> L)\<close> and \<open>fst ` set (\<sigma> L) \<subseteq> set l1 \<inter> set_mset (dom_m N)\<close>
+      using that apply (auto simp: correct_watching'''.simps dom_m_fmrestrict_set')
+sorry
+    then have \<open>length (map fst (\<sigma> L)) \<le> card (set l1 \<inter> set_mset (dom_m N))\<close>
+      using 1 by (subst distinct_card[symmetric])
+       (auto simp: distinct_watched_alt_def intro!: card_mono intro: order_trans)
+    also have \<open>... < card (set_mset (dom_m N))\<close>
+      using that by (auto intro!: psubset_card_mono)
+    also have \<open>... = size (dom_m N)\<close>
+      by (simp add: distinct_mset_dom distinct_mset_size_eq_card)
+    finally show ?thesis by simp
+  qed
   show ?thesis
     unfolding rewatch_def
     apply (refine_vcg
       nfoldli_rule[where I = \<open>I\<close>])
     subgoal by (rule I0)
     subgoal using assms unfolding I_def by auto
+    subgoal for x xa l1 l2 \<sigma>  using H[of xa] unfolding I_def apply -
+      by (rule, subst (asm)nth_eq_iff_index_eq)
+        linarith+
+    subgoal for x xa l1 l2 \<sigma> unfolding I_def by (rule le)
+    subgoal for x xa l1 l2 \<sigma> unfolding I_def by (drule le[where L = \<open>N \<propto> xa ! 1\<close>]) (auto simp: I_def dest!: le)
     subgoal for x xa l1 l2 \<sigma>
       unfolding I_def
-      apply (cases \<open>the (fmlookup N xa)\<close>)
-      apply auto
-      defer
-       apply (rule correct_watching'''_add_clause)
-          apply (auto simp: dom_m_fmrestrict_set')
-      apply (auto dest!: H simp: nth_eq_iff_index_eq)
-      apply (subst (asm) nth_eq_iff_index_eq)
-      apply simp
-      apply simp
-       apply auto[]
-      by linarith
+      by (cases \<open>the (fmlookup N xa)\<close>)
+       (auto intro!: correct_watching'''_add_clause simp: dom_m_fmrestrict_set')
     subgoal
       unfolding I_def
       by auto
