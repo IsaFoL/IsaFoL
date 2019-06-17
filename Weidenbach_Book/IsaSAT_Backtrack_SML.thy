@@ -119,7 +119,7 @@ sepref_definition propagate_bt_wl_D_fast_code
   :: \<open>[\<lambda>((L, C), S). isasat_fast S]\<^sub>a
       unat_lit_assn\<^sup>k *\<^sub>a clause_ll_assn\<^sup>d *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   supply [[goals_limit = 1]] append_ll_def[simp] isasat_fast_length_leD[dest]
-    propagate_bt_wl_D_fast_code_isasat_fastI2[intro]
+    propagate_bt_wl_D_fast_code_isasat_fastI2[intro] length_ll_def[simp]
   unfolding propagate_bt_wl_D_heur_alt_def
     isasat_bounded_assn_def cons_trail_Propagated_def[symmetric]
     to_watcher_fast_def[symmetric]

@@ -669,9 +669,9 @@ lemma the_option_lookup_clause_assn:
 
 definition propagate_bt_wl_D_heur
   :: \<open>nat literal \<Rightarrow> nat clause_l \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
-  \<open>propagate_bt_wl_D_heur = (\<lambda>L C (M, N0, D, Q, W, vm0, \<phi>0, y, cach, lbd, outl, stats, fema, sema,
+  \<open>propagate_bt_wl_D_heur = (\<lambda>L C (M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, fema, sema,
          res_info, vdom, avdom, lcount, opts). do {
-      ASSERT(nat_of_lit (C!1) < length W \<and> nat_of_lit (-L) < length W);
+      ASSERT(nat_of_lit (C!1) < length W0 \<and> nat_of_lit (-L) < length W0);
       ASSERT(length C > 1);
       let L' = C!1;
       ASSERT(length C \<le> uint32_max div 2 + 1);
@@ -679,14 +679,18 @@ definition propagate_bt_wl_D_heur
       glue \<leftarrow> get_LBD lbd;
       let b = False;
       let b' = (length C = 2);
-      ASSERT(isasat_fast (M, N0, D, Q, W, vm0, \<phi>0, y, cach, lbd, outl, stats, fema, sema,
+      ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, fema, sema,
          res_info, vdom, avdom, lcount, opts) \<longrightarrow> append_and_length_fast_code_pre ((b, C), N0));
-      ASSERT(isasat_fast (M, N0, D, Q, W, vm0, \<phi>0, y, cach, lbd, outl, stats, fema, sema,
+      ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, fema, sema,
          res_info, vdom, avdom, lcount, opts) \<longrightarrow> lcount < uint64_max);
       (N, i) \<leftarrow> fm_add_new b C N0;
       ASSERT(update_lbd_pre ((i, glue), N));
       let N = update_lbd i glue N;
-      let W = W[nat_of_lit (- L) := W ! nat_of_lit (- L) @ [to_watcher i L' b']];
+      ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, fema, sema,
+         res_info, vdom, avdom, lcount, opts) \<longrightarrow> length_ll W0 (nat_of_lit (-L)) < uint64_max);
+      let W = W0[nat_of_lit (- L) := W0 ! nat_of_lit (- L) @ [to_watcher i L' b']];
+      ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, fema, sema,
+         res_info, vdom, avdom, lcount, opts) \<longrightarrow> length_ll W (nat_of_lit L') < uint64_max);
       let W = W[nat_of_lit L' := W!nat_of_lit L' @ [to_watcher i (-L) b']];
       lbd \<leftarrow> lbd_empty lbd;
       ASSERT(isa_length_trail_pre M);
@@ -789,6 +793,61 @@ lemma lcount_add_clause[simp]: \<open>i \<notin># dom_m N \<Longrightarrow>
     size (learned_clss_l (fmupd i (C, False) N)) = Suc (size (learned_clss_l N))\<close>
   by (simp add: learned_clss_l_mapsto_upd_notin)
 
+lemma length_watched_le:
+  assumes
+    prop_inv: \<open>correct_watching x1\<close> and
+    xb_x'a: \<open>(x1a, x1) \<in> twl_st_heur_conflict_ana\<close> and
+    x2: \<open>x2 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st x1)\<close>
+  shows \<open>length (watched_by x1 x2) \<le> length (get_clauses_wl_heur x1a) - 2\<close>
+proof -
+  have \<open>correct_watching x1\<close>
+    using prop_inv unfolding unit_propagation_outer_loop_wl_D_inv_def
+      unit_propagation_outer_loop_wl_inv_def
+    by auto
+  then have dist: \<open>distinct_watched (watched_by x1 x2)\<close>
+    using x2 unfolding all_atms_def all_lits_def
+    by (cases x1; auto simp: \<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_all_lits_of_mm correct_watching.simps)
+  then have dist: \<open>distinct_watched (watched_by x1 x2)\<close>
+    using xb_x'a
+    by (cases x1; auto simp: \<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_all_lits_of_mm correct_watching.simps)
+  have dist_vdom: \<open>distinct (get_vdom x1a)\<close>
+    using xb_x'a
+    by (cases x1)
+      (auto simp: twl_st_heur_conflict_ana_def twl_st_heur'_def)
+  have x2: \<open>x2 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms (get_clauses_wl x1) (get_unit_clauses_wl x1))\<close>
+    using x2 xb_x'a unfolding all_atms_def
+    by auto
+
+  have
+      valid: \<open>valid_arena (get_clauses_wl_heur x1a) (get_clauses_wl x1) (set (get_vdom x1a))\<close>
+    using xb_x'a unfolding all_atms_def all_lits_def
+    by (cases x1)
+     (auto simp: twl_st_heur'_def twl_st_heur_conflict_ana_def)
+
+  have \<open>vdom_m (all_atms_st x1) (get_watched_wl x1) (get_clauses_wl x1) \<subseteq> set (get_vdom x1a)\<close>
+    using xb_x'a
+    by (cases x1)
+      (auto simp: twl_st_heur_conflict_ana_def twl_st_heur'_def all_atms_def[symmetric])
+  then have subset: \<open>set (map fst (watched_by x1 x2)) \<subseteq> set (get_vdom x1a)\<close>
+    using x2 unfolding vdom_m_def
+    by (cases x1)
+      (force simp: twl_st_heur'_def twl_st_heur_def simp flip: all_atms_def
+        dest!: multi_member_split)
+  have watched_incl: \<open>mset (map fst (watched_by x1 x2)) \<subseteq># mset (get_vdom x1a)\<close>
+    by (rule distinct_subseteq_iff[THEN iffD1])
+      (use dist[unfolded distinct_watched_alt_def] dist_vdom subset in
+         \<open>simp_all flip: distinct_mset_mset_distinct\<close>)
+  have vdom_incl: \<open>set (get_vdom x1a) \<subseteq> {4..< length (get_clauses_wl_heur x1a)}\<close>
+    using valid_arena_in_vdom_le_arena[OF valid] arena_dom_status_iff[OF valid] by auto
+
+  have \<open>length (get_vdom x1a) \<le> length (get_clauses_wl_heur x1a) - 4\<close>
+    by (subst distinct_card[OF dist_vdom, symmetric])
+      (use card_mono[OF _ vdom_incl] in auto)
+  then show ?thesis
+    using size_mset_mono[OF watched_incl] xb_x'a
+    by (auto intro!: order_trans[of \<open>length (watched_by x1 x2)\<close> \<open>length (get_vdom x1a)\<close>])
+qed
+
 lemma backtrack_wl_D_nlit_backtrack_wl_D:
   \<open>(backtrack_wl_D_nlit_heur, backtrack_wl_D) \<in>
   {(S, T). (S, T) \<in> twl_st_heur_conflict_ana \<and> length (get_clauses_wl_heur S) = r} \<rightarrow>\<^sub>f
@@ -845,7 +904,8 @@ proof -
               literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st T) T \<and>
               n < count_decided (get_trail_wl T) \<and>
 	            get_trail_wl T \<noteq> [] \<and>
-              \<not> tautology (mset C) }
+              \<not> tautology (mset C) \<and>
+              correct_watching S \<and> length (get_clauses_wl_heur T') = length (get_clauses_wl_heur S')}
            (extract_shorter_conflict_wl S)\<close>
     (is \<open>_ \<le> \<Down> ?shorter _\<close>)
     if
@@ -880,7 +940,7 @@ proof -
     obtain T U where
       \<L>\<^sub>i\<^sub>n :\<open>literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st S) S\<close> and
       S_T: \<open>(S, T) \<in> state_wl_l None\<close> and
-      \<open>correct_watching S\<close> and
+      corr: \<open>correct_watching S\<close> and
       T_U: \<open>(T, U) \<in> twl_st_l None\<close> and
       trail_nempty: \<open>get_trail_l T \<noteq> []\<close> and
       nss: \<open>\<forall>S'. \<not> cdcl\<^sub>W_restart_mset.skip (state\<^sub>W_of U) S'\<close> and
@@ -1264,7 +1324,7 @@ proof -
         by (auto simp: S x2c S')
       ultimately show ?thesis
         using \<L>\<^sub>i\<^sub>n_S x1c_Da Da_None dist_D D_none x1c_D x1c hd_x1c highest uM_\<L>\<^sub>a\<^sub>l\<^sub>l vm' M_\<L>\<^sub>i\<^sub>n
-          max_lvl_le
+          max_lvl_le corr
         by (auto simp: S x2c S')
     qed
     have hd_M'_M: \<open>lit_of_last_trail_pol M' = lit_of (hd M)\<close>
@@ -1547,7 +1607,8 @@ proof -
       uM_\<L>\<^sub>a\<^sub>l\<^sub>l: \<open>-lit_of (hd (get_trail_wl S')) \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st S')\<close> and
       lits: \<open>literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st T') T'\<close> and
       tr_nempty: \<open>get_trail_wl T' \<noteq> []\<close> and
-      r: \<open>length (get_clauses_wl_heur S) = r\<close> \<open>length (get_clauses_wl_heur T) = r\<close>
+      r: \<open>length (get_clauses_wl_heur S) = r\<close> \<open>length (get_clauses_wl_heur T) = r\<close> and
+      corr: \<open>correct_watching S'\<close>
       using \<open>(TnC, T') \<in> ?shorter S' S\<close>  \<open>1 < length C\<close> \<open>(S, S') \<in> ?R\<close>
       by auto
 
@@ -1558,7 +1619,8 @@ proof -
            (remove1_mset (- lit_of (hd (get_trail_wl T')))
              (the (get_conflict_wl T'))))\<close> and
       decomp: \<open>(Decided K # get_trail_wl U', M2) \<in> set (get_all_ann_decomposition (get_trail_wl T'))\<close> and
-      r': \<open>length (get_clauses_wl_heur U) = r\<close>
+      r': \<open>length (get_clauses_wl_heur U) = r\<close> and
+      S_arena: \<open>get_clauses_wl_heur U = get_clauses_wl_heur S\<close>
       using find_decomp r
       by auto
 
@@ -1632,9 +1694,9 @@ proof -
     qed
 
     have propagate_bt_wl_D_heur_alt_def:
-      \<open>propagate_bt_wl_D_heur = (\<lambda>L C (M, N0, D, Q, W, vm0, \<phi>0, y, cach, lbd, outl, stats, fema, sema,
+      \<open>propagate_bt_wl_D_heur = (\<lambda>L C (M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, fema, sema,
           res_info, vdom, avdom, lcount, opts). do {
-          ASSERT(nat_of_lit (C!1) < length W \<and> nat_of_lit (-L) < length W);
+          ASSERT(nat_of_lit (C!1) < length W0 \<and> nat_of_lit (-L) < length W0);
           ASSERT(length C > 1);
           let L' = C!1;
           ASSERT (length C \<le> uint32_max div 2 + 1);
@@ -1642,14 +1704,18 @@ proof -
           glue \<leftarrow> get_LBD lbd;
           let _ = C;
           let b = False;
-          ASSERT(isasat_fast (M, N0, D, Q, W, vm0, \<phi>0, y, cach, lbd, outl, stats, fema, sema,
+          ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, fema, sema,
          res_info, vdom, avdom, lcount, opts) \<longrightarrow> append_and_length_fast_code_pre ((b, C), N0));
-          ASSERT(isasat_fast (M, N0, D, Q, W, vm0, \<phi>0, y, cach, lbd, outl, stats, fema, sema,
+          ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, fema, sema,
              res_info, vdom, avdom, lcount, opts) \<longrightarrow> lcount < uint64_max);
           (N, i) \<leftarrow> fm_add_new b C N0;
           ASSERT(update_lbd_pre ((i, glue), N));
           let N = update_lbd i glue N;
-          let W = W[nat_of_lit (- L) := W ! nat_of_lit (- L) @ [(i, L', length C = 2)]];
+          ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, fema, sema,
+            res_info, vdom, avdom, lcount, opts) \<longrightarrow> length_ll W0 (nat_of_lit (-L)) < uint64_max);
+          let W = W0[nat_of_lit (- L) := W0 ! nat_of_lit (- L) @ [(i, L', length C = 2)]];
+          ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, fema, sema,
+           res_info, vdom, avdom, lcount, opts) \<longrightarrow> length_ll W (nat_of_lit L') < uint64_max);
           let W = W[nat_of_lit L' := W!nat_of_lit L' @ [(i, -L, length C = 2)]];
           lbd \<leftarrow> lbd_empty lbd;
 	         ASSERT(isa_length_trail_pre M);
@@ -1813,10 +1879,12 @@ proof -
 
     have \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (all_atms_st S') (mset C)\<close>
       using incl list_confl_S' literals_are_in_\<L>\<^sub>i\<^sub>n_mono by blast
-    then have \<open>C ! Suc 0 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st S')\<close>
+    then have C_Suc1_in: \<open>C ! Suc 0 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st S')\<close>
       using \<open>1 < length C\<close>
       by (cases C; cases \<open>tl C\<close>) (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset)
-    then have \<open>nat_of_lit (C ! Suc 0) < length W'\<close> \<open>nat_of_lit (- lit_of (hd (get_trail_wl S'))) < length W'\<close>
+    then have \<open>nat_of_lit (C ! Suc 0) < length W'\<close> \<open>nat_of_lit (- lit_of (hd (get_trail_wl S'))) < length W'\<close> and
+     W'_eq:  \<open>W' ! (nat_of_lit (C ! Suc 0)) = W (C! Suc 0)\<close>
+        \<open>W' ! (nat_of_lit (- lit_of (hd (get_trail_wl S')))) = W (- lit_of (hd (get_trail_wl S')))\<close>
       using uM_\<L>\<^sub>a\<^sub>l\<^sub>l W'W unfolding map_fun_rel_def by (auto simp: image_image S' U')
     have le_C_ge: \<open>length C \<le> uint32_max div 2 + 1\<close>
       using clss_size_uint_max[OF bounded, of \<open>mset C\<close>] \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (all_atms_st S') (mset C)\<close> list_confl_S'
@@ -1930,6 +1998,10 @@ proof -
             uint64_max_def uint32_max_def)
       subgoal for x uu x1 x2 vm uua_ glue uub D'' xa x' x1a x2a
         by (auto simp: update_lbd_pre_def arena_is_valid_clause_idx_def)
+      subgoal using length_watched_le[of S' S \<open>-lit_of_hd_trail M\<close>] corr SS' uM_\<L>\<^sub>a\<^sub>l\<^sub>l W'_eq S_arena
+         by (auto simp: isasat_fast_def length_ll_def S' U lit_of_hd_trail_def simp flip: all_atms_def)
+      subgoal using length_watched_le[of S' S \<open>C ! Suc 0\<close>] corr SS' W'_eq S_arena C_1_neq_hd C_Suc1_in
+         by (auto simp: length_ll_def S' U lit_of_hd_trail_def isasat_fast_def simp flip: all_atms_def)
       subgoal
         using M1'_M1 by (rule isa_length_trail_pre)
       subgoal using D' C_1_neq_hd vmtf avdom
@@ -1969,7 +2041,7 @@ proof -
         supply All_atms_rew[simp]
         unfolding twl_st_heur_def
         using D' C_1_neq_hd vmtf avdom M1'_M1 bounded nempty r arena_le
-        apply (auto simp: propagate_bt_wl_D_heur_def twl_st_heur_def
+        apply (auto 0 0 simp: propagate_bt_wl_D_heur_def twl_st_heur_def
             Let_def T' U' U rescore_clause_def S' map_fun_rel_def
             list_of_mset2_def vmtf_flush_def RES_RES2_RETURN_RES RES_RETURN_RES \<phi> uminus_\<A>\<^sub>i\<^sub>n_iff
             get_fresh_index_def RES_RETURN_RES2 RES_RES_RETURN_RES2 lit_of_hd_trail_def
@@ -2301,9 +2373,9 @@ lemma le_uint32_max_div_2_le_uint32_max: \<open>a \<le> uint_max div 2 + 1 \<Lon
 
 
 lemma propagate_bt_wl_D_heur_alt_def:
-  \<open>propagate_bt_wl_D_heur = (\<lambda>L C (M, N0, D, Q, W, vm0, \<phi>0, y, cach, lbd, outl, stats, fema, sema,
+  \<open>propagate_bt_wl_D_heur = (\<lambda>L C (M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, fema, sema,
          res_info, vdom, avdom, lcount, opts). do {
-      ASSERT(nat_of_lit (C!1) < length W \<and> nat_of_lit (-L) < length W);
+      ASSERT(nat_of_lit (C!1) < length W0 \<and> nat_of_lit (-L) < length W0);
       ASSERT(length C > 1);
       let L' = C!1;
       ASSERT(length C \<le> uint32_max div 2 + 1);
@@ -2311,14 +2383,18 @@ lemma propagate_bt_wl_D_heur_alt_def:
       glue \<leftarrow> get_LBD lbd;
       let b = False;
       let b' = (length C = 2);
-      ASSERT(isasat_fast (M, N0, D, Q, W, vm0, \<phi>0, y, cach, lbd, outl, stats, fema, sema,
+      ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, fema, sema,
          res_info, vdom, avdom, lcount, opts) \<longrightarrow> append_and_length_fast_code_pre ((b, C), N0));
-      ASSERT(isasat_fast (M, N0, D, Q, W, vm0, \<phi>0, y, cach, lbd, outl, stats, fema, sema,
+      ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, fema, sema,
          res_info, vdom, avdom, lcount, opts) \<longrightarrow> lcount < uint64_max);
       (N, i) \<leftarrow> fm_add_new_fast b C N0;
       ASSERT(update_lbd_pre ((i, glue), N));
       let N = update_lbd i glue N;
-      let W = W[nat_of_lit (- L) := W ! nat_of_lit (- L) @ [to_watcher_fast (i) L' b']];
+      ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, fema, sema,
+         res_info, vdom, avdom, lcount, opts) \<longrightarrow> length_ll W0 (nat_of_lit (-L)) < uint64_max);
+      let W = W0[nat_of_lit (- L) := W0 ! nat_of_lit (- L) @ [to_watcher_fast (i) L' b']];
+      ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, fema, sema,
+         res_info, vdom, avdom, lcount, opts) \<longrightarrow> length_ll W (nat_of_lit L') < uint64_max);
       let W = W[nat_of_lit L' := W!nat_of_lit L' @ [to_watcher_fast (i) (-L) b']];
       lbd \<leftarrow> lbd_empty lbd;
       ASSERT(isa_length_trail_pre M);

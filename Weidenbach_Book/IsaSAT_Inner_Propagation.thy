@@ -8,18 +8,6 @@ declare all_atms_def[symmetric,simp]
 
 subsection \<open>Propagations Step\<close>
 
-abbreviation twl_st_heur''
-   :: \<open>nat multiset \<Rightarrow> nat \<Rightarrow> (twl_st_wl_heur \<times> nat twl_st_wl) set\<close>
-where
-\<open>twl_st_heur'' \<D> r \<equiv> {(S, T). (S, T) \<in> twl_st_heur' \<D> \<and>
-           length (get_clauses_wl_heur S) = r}\<close>
-
-abbreviation twl_st_heur_up''
-   :: \<open>nat multiset \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat literal \<Rightarrow> (twl_st_wl_heur \<times> nat twl_st_wl) set\<close>
-where
-  \<open>twl_st_heur_up'' \<D> r s L \<equiv> {(S, T). (S, T) \<in> twl_st_heur'' \<D> r \<and>
-     length (watched_by T L) = s}\<close>
-
 lemma unit_prop_body_wl_D_invD:
   fixes S
   defines \<open>\<A> \<equiv> all_atms_st S\<close>
@@ -1458,112 +1446,6 @@ lemma unit_propagation_inner_loop_body_wl_D_alt_def:
    }\<close>
   unfolding unit_propagation_inner_loop_body_wl_D_def let_to_bind_conv[symmetric] Let_def
   by (intro bind_cong_nres case_prod_cong if_cong[OF refl] refl)
-
-lemma length_watched_le:
-  assumes
-    prop_inv: \<open>correct_watching x1\<close> and
-    xb_x'a: \<open>(x1a, x1) \<in> twl_st_heur'' \<D>1 r\<close> and
-    x2: \<open>x2 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st x1)\<close>
-  shows \<open>length (watched_by x1 x2) \<le> r - 4\<close>
-proof -
-  have \<open>correct_watching x1\<close>
-    using prop_inv unfolding unit_propagation_outer_loop_wl_D_inv_def
-      unit_propagation_outer_loop_wl_inv_def
-    by auto
-  then have dist: \<open>distinct_watched (watched_by x1 x2)\<close>
-    using x2 unfolding all_atms_def all_lits_def
-    by (cases x1; auto simp: \<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_all_lits_of_mm correct_watching.simps)
-  then have dist: \<open>distinct_watched (watched_by x1 x2)\<close>
-    using xb_x'a
-    by (cases x1; auto simp: \<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_all_lits_of_mm correct_watching.simps)
-  have dist_vdom: \<open>distinct (get_vdom x1a)\<close>
-    using xb_x'a
-    by (cases x1)
-      (auto simp: twl_st_heur_def twl_st_heur'_def)
-  have x2: \<open>x2 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms (get_clauses_wl x1) (get_unit_clauses_wl x1))\<close>
-    using x2 xb_x'a
-    by auto
-
-  have
-      valid: \<open>valid_arena (get_clauses_wl_heur x1a) (get_clauses_wl x1) (set (get_vdom x1a))\<close>
-    using xb_x'a unfolding all_atms_def all_lits_def
-    by (cases x1)
-     (auto simp: twl_st_heur'_def twl_st_heur_def)
-
-  have \<open>vdom_m (all_atms_st x1) (get_watched_wl x1) (get_clauses_wl x1) \<subseteq> set (get_vdom x1a)\<close>
-    using xb_x'a
-    by (cases x1)
-      (auto simp: twl_st_heur_def twl_st_heur'_def)
-  then have subset: \<open>set (map fst (watched_by x1 x2)) \<subseteq> set (get_vdom x1a)\<close>
-    using x2 unfolding vdom_m_def
-    by (cases x1)
-      (force simp: twl_st_heur'_def twl_st_heur_def
-        dest!: multi_member_split)
-  have watched_incl: \<open>mset (map fst (watched_by x1 x2)) \<subseteq># mset (get_vdom x1a)\<close>
-    by (rule distinct_subseteq_iff[THEN iffD1])
-      (use dist[unfolded distinct_watched_alt_def] dist_vdom subset in
-         \<open>simp_all flip: distinct_mset_mset_distinct\<close>)
-  have vdom_incl: \<open>set (get_vdom x1a) \<subseteq> {4..< length (get_clauses_wl_heur x1a)}\<close>
-    using valid_arena_in_vdom_le_arena[OF valid] arena_dom_status_iff[OF valid] by auto
-
-  have \<open>length (get_vdom x1a) \<le> length (get_clauses_wl_heur x1a) - 4\<close>
-    by (subst distinct_card[OF dist_vdom, symmetric])
-      (use card_mono[OF _ vdom_incl] in auto)
-  then show ?thesis
-    using size_mset_mono[OF watched_incl] xb_x'a
-    by (auto intro!: order_trans[of \<open>length (watched_by x1 x2)\<close> \<open>length (get_vdom x1a)\<close>])
-qed
-
-lemma length_watched_le2:
-  assumes
-    prop_inv: \<open>correct_watching_except i j L x1\<close> and
-    xb_x'a: \<open>(x1a, x1) \<in> twl_st_heur'' \<D>1 r\<close> and
-    x2: \<open>x2 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st x1)\<close> and diff: \<open>L \<noteq> x2\<close>
-  shows \<open>length (watched_by x1 x2) \<le> r - 4\<close>
-proof -
-  from prop_inv diff have dist: \<open>distinct_watched (watched_by x1 x2)\<close>
-    using x2 unfolding all_atms_def all_lits_def
-    by (cases x1; auto simp: \<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_all_lits_of_mm correct_watching_except.simps)
-  then have dist: \<open>distinct_watched (watched_by x1 x2)\<close>
-    using xb_x'a
-    by (cases x1; auto simp: \<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_all_lits_of_mm correct_watching.simps)
-  have dist_vdom: \<open>distinct (get_vdom x1a)\<close>
-    using xb_x'a
-    by (cases x1)
-      (auto simp: twl_st_heur_def twl_st_heur'_def)
-  have x2: \<open>x2 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms (get_clauses_wl x1) (get_unit_clauses_wl x1))\<close>
-    using x2 xb_x'a
-    by auto
-
-  have
-      valid: \<open>valid_arena (get_clauses_wl_heur x1a) (get_clauses_wl x1) (set (get_vdom x1a))\<close>
-    using xb_x'a unfolding all_atms_def all_lits_def
-    by (cases x1)
-     (auto simp: twl_st_heur'_def twl_st_heur_def)
-
-  have \<open>vdom_m (all_atms_st x1) (get_watched_wl x1) (get_clauses_wl x1) \<subseteq> set (get_vdom x1a)\<close>
-    using xb_x'a
-    by (cases x1)
-      (auto simp: twl_st_heur_def twl_st_heur'_def)
-  then have subset: \<open>set (map fst (watched_by x1 x2)) \<subseteq> set (get_vdom x1a)\<close>
-    using x2 unfolding vdom_m_def
-    by (cases x1)
-      (force simp: twl_st_heur'_def twl_st_heur_def
-        dest!: multi_member_split)
-  have watched_incl: \<open>mset (map fst (watched_by x1 x2)) \<subseteq># mset (get_vdom x1a)\<close>
-    by (rule distinct_subseteq_iff[THEN iffD1])
-      (use dist[unfolded distinct_watched_alt_def] dist_vdom subset in
-         \<open>simp_all flip: distinct_mset_mset_distinct\<close>)
-  have vdom_incl: \<open>set (get_vdom x1a) \<subseteq> {4..< length (get_clauses_wl_heur x1a)}\<close>
-    using valid_arena_in_vdom_le_arena[OF valid] arena_dom_status_iff[OF valid] by auto
-
-  have \<open>length (get_vdom x1a) \<le> length (get_clauses_wl_heur x1a) - 4\<close>
-    by (subst distinct_card[OF dist_vdom, symmetric])
-      (use card_mono[OF _ vdom_incl] in auto)
-  then show ?thesis
-    using size_mset_mono[OF watched_incl] xb_x'a
-    by (auto intro!: order_trans[of \<open>length (watched_by x1 x2)\<close> \<open>length (get_vdom x1a)\<close>])
-qed
 
 
 text \<open>The lemmas below are used in the refinement proof of \<^term>\<open>unit_propagation_inner_loop_body_wl_D\<close>.
