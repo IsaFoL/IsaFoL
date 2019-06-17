@@ -211,27 +211,6 @@ lemma convert_wlists_to_nat_alt_def2:
 sepref_register init_lrl
 
 
-sepref_definition convert_single_wl_to_nat_code
-  is \<open>uncurry3 convert_single_wl_to_nat\<close>
-  :: \<open>[\<lambda>(((W, i), W'), j). i < length W \<and> j < length W']\<^sub>a
-       (arrayO_assn (arl_assn (watcher_fast_assn)))\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a
-       (arrayO_assn (arl_assn (watcher_assn)))\<^sup>d *\<^sub>a nat_assn\<^sup>k \<rightarrow>
-      arrayO_assn (arl_assn (watcher_assn))\<close>
-  supply [[goals_limit=1]]
-  unfolding convert_single_wl_to_nat_def op_map_to_def nth_ll_def[symmetric]
-    length_ll_def[symmetric]
-  by sepref
-
-lemma convert_single_wl_to_nat_conv_hnr[sepref_fr_rules]:
-  \<open>(uncurry3 convert_single_wl_to_nat_code,
-     uncurry3 (RETURN \<circ>\<circ>\<circ> convert_single_wl_to_nat_conv))
-  \<in> [\<lambda>(((a, b), ba), bb). b < length a \<and> bb < length ba \<and> ba ! bb = []]\<^sub>a
-    (arrayO_assn (arl_assn watcher_fast_assn))\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a
-    (arrayO_assn (arl_assn watcher_assn))\<^sup>d *\<^sub>a nat_assn\<^sup>k \<rightarrow>
-    arrayO_assn (arl_assn watcher_assn)\<close>
-  using convert_single_wl_to_nat_code.refine[FCOMP convert_single_wl_to_nat[unfolded convert_fref]]
-  by auto
-
 abbreviation (in -) watchers_assn where
   \<open>watchers_assn \<equiv> arl_assn (watcher_assn)\<close>
 
@@ -239,23 +218,45 @@ abbreviation (in -) watchlist_assn where
   \<open>watchlist_assn \<equiv> arrayO_assn watchers_assn\<close>
 
 abbreviation (in -) watchers_fast_assn where
-  \<open>watchers_fast_assn \<equiv> arl_assn (watcher_fast_assn)\<close>
+  \<open>watchers_fast_assn \<equiv> arl64_assn (watcher_fast_assn)\<close>
 
 abbreviation (in -) watchlist_fast_assn where
   \<open>watchlist_fast_assn \<equiv> arrayO_assn watchers_fast_assn\<close>
 
+sepref_definition convert_single_wl_to_nat_code
+  is \<open>uncurry3 convert_single_wl_to_nat\<close>
+  :: \<open>[\<lambda>(((W, i), W'), j). i < length W \<and> j < length W']\<^sub>a
+       (watchlist_fast_assn)\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a
+       (watchlist_assn)\<^sup>d *\<^sub>a nat_assn\<^sup>k \<rightarrow>
+       watchlist_assn\<close>
+  supply [[goals_limit=1]] length_aa64_hnr[sepref_fr_rules] nth_aa64_hnr[sepref_fr_rules]
+    length_ll_def[simp]
+  unfolding convert_single_wl_to_nat_def op_map_to_def nth_ll_def[symmetric]
+    length_ll_def[symmetric]
+  by sepref
+
+sepref_register convert_single_wl_to_nat_conv
+lemma convert_single_wl_to_nat_conv_hnr[sepref_fr_rules]:
+  \<open>(uncurry3 convert_single_wl_to_nat_code,
+     uncurry3 (RETURN \<circ>\<circ>\<circ> convert_single_wl_to_nat_conv))
+  \<in> [\<lambda>(((a, b), ba), bb). b < length a \<and> bb < length ba \<and> ba ! bb = []]\<^sub>a
+    (watchlist_fast_assn)\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a
+    (watchlist_assn)\<^sup>d *\<^sub>a nat_assn\<^sup>k \<rightarrow>
+    watchlist_assn\<close>
+  using convert_single_wl_to_nat_code.refine[FCOMP convert_single_wl_to_nat[unfolded convert_fref]]
+  by auto
+
 sepref_definition convert_wlists_to_nat_code
   is \<open>convert_wlists_to_nat\<close>
   :: \<open>watchlist_fast_assn\<^sup>d \<rightarrow>\<^sub>a watchlist_assn\<close>
-  supply length_a_hnr[sepref_fr_rules]
+  supply length_a_hnr[sepref_fr_rules] [[goals_limit=1]] arrayO_raa_empty_sz_init_lrl[sepref_fr_rules del]
   unfolding convert_wlists_to_nat_alt_def2
   by sepref
 
 
 lemma convert_wlists_to_nat_conv_hnr[sepref_fr_rules]:
   \<open>(convert_wlists_to_nat_code, RETURN \<circ> convert_wlists_to_nat_conv)
-    \<in> (arrayO_assn (arl_assn watcher_fast_assn))\<^sup>d \<rightarrow>\<^sub>a
-      arrayO_assn (arl_assn watcher_assn)\<close>
+    \<in> (watchlist_fast_assn)\<^sup>d \<rightarrow>\<^sub>a watchlist_assn\<close>
   using convert_wlists_to_nat_code.refine[FCOMP convert_wlists_to_nat_convert_wlists_to_nat_conv[unfolded convert_fref]]
   by simp
 
@@ -435,14 +436,19 @@ sepref_definition rewatch_heur_code
 
 declare rewatch_heur_code.refine[sepref_fr_rules]
 
+sepref_register append_ll
 sepref_definition rewatch_heur_fast_code
   is \<open>uncurry2 (rewatch_heur)\<close>
   :: \<open>[\<lambda>((vdom, arena), W). (\<forall>x \<in> set vdom. x \<le> uint64_max) \<and> length arena \<le> uint64_max]\<^sub>a
         vdom_assn\<^sup>k *\<^sub>a arena_assn\<^sup>k *\<^sub>a watchlist_fast_assn\<^sup>d \<rightarrow> watchlist_fast_assn\<close>
   supply [[goals_limit=1]] uint64_of_nat_conv_def[simp]
-     arena_lit_pre_le_uint64_max[intro]
+     arena_lit_pre_le_uint64_max[intro] append_aa64_hnr[sepref_fr_rules]
   unfolding rewatch_heur_alt_def Let_def two_uint64_nat_def[symmetric] PR_CONST_def
     one_uint64_nat_def[symmetric] to_watcher_fast_def[symmetric]
+  apply (rewrite in \<open>append_ll _ (nat_of_lit _)\<close> nat_of_uint32_conv_def[symmetric])
+  apply (rewrite in \<open>append_ll _ (nat_of_lit _)\<close> nat_of_uint32_conv_def[symmetric])
+  apply (rewrite in \<open>append_ll _ (nat_of_lit _)\<close> nat_of_uint32_conv_def[symmetric])
+  apply (rewrite in \<open>append_ll (append_ll _ _ _) (\<hole>)\<close> nat_of_uint32_conv_def[symmetric])
   by sepref
 
 declare rewatch_heur_fast_code.refine[sepref_fr_rules]

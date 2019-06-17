@@ -391,7 +391,10 @@ where
         let L1 = N \<propto> i ! 0;
         let L2 = N \<propto> i ! 1;
         let b = (length (N \<propto> i) = 2);
+        ASSERT(L1 \<noteq> L2);
+        ASSERT(length (W L1) < size (dom_m N));
         let W = W(L1 := W L1 @ [(i, L2, b)]);
+        ASSERT(length (W L2) < size (dom_m N));
         let W = W(L2 := W L2 @ [(i, L1, b)]);
         RETURN W
       }
@@ -412,29 +415,42 @@ proof -
   have I0: \<open>set_mset (dom_m N) \<subseteq> set x \<and> distinct x \<Longrightarrow> I [] x W\<close> for x
     unfolding I_def by (auto simp: correct_watching_init.simps
        all_blits_are_in_problem_init.simps clause_to_update_def)
-
+  have le: \<open>length (\<sigma> L) < size (dom_m N)\<close>
+     if \<open>correct_watching_init (M, fmrestrict_set (set l1) N, C, NE, UE, Q, \<sigma>)\<close> and
+      \<open>set_mset (dom_m N) \<subseteq> set x \<and> distinct x\<close> and
+     \<open>x = l1 @ xa # l2\<close> \<open>xa \<in># dom_m N\<close>
+     for L l1 \<sigma> xa l2 x
+  proof -
+    have 1: \<open>card (set l1) \<le> length l1\<close>
+      by (auto simp: card_length)
+    have \<open>distinct_watched (\<sigma> L)\<close> and \<open>fst ` set (\<sigma> L) \<subseteq> set l1 \<inter> set_mset (dom_m N)\<close>
+      using that by (fastforce simp: correct_watching_init.simps dom_m_fmrestrict_set')+
+    then have \<open>length (map fst (\<sigma> L)) \<le> card (set l1 \<inter> set_mset (dom_m N))\<close>
+      using 1 by (subst distinct_card[symmetric])
+       (auto simp: distinct_watched_alt_def intro!: card_mono intro: order_trans)
+    also have \<open>... < card (set_mset (dom_m N))\<close>
+      using that by (auto intro!: psubset_card_mono)
+    also have \<open>... = size (dom_m N)\<close>
+      by (simp add: distinct_mset_dom distinct_mset_size_eq_card)
+    finally show ?thesis by simp
+  qed
   show ?thesis
     unfolding rewatch_def
     apply (refine_vcg
       nfoldli_rule[where I = \<open>I\<close>])
     subgoal by (rule I0)
     subgoal using assms unfolding I_def by auto
+    subgoal for x xa l1 l2 \<sigma>  using H[of xa] unfolding I_def apply -
+      by (rule, subst (asm)nth_eq_iff_index_eq)
+        linarith+
+    subgoal for x xa l1 l2 \<sigma> unfolding I_def by (rule le)
+    subgoal for x xa l1 l2 \<sigma> unfolding I_def by (drule le[where L = \<open>N \<propto> xa ! 1\<close>]) (auto simp: I_def dest!: le)
     subgoal for x xa l1 l2 \<sigma>
       unfolding I_def
-      apply (cases \<open>the (fmlookup N xa)\<close>)
-      apply auto
-      defer
-       apply (rule correct_watching_init_add_clause)
-          apply (auto simp: dom_m_fmrestrict_set')
-      apply (auto dest!: H simp: nth_eq_iff_index_eq)
-      apply (subst (asm) nth_eq_iff_index_eq)
-      apply simp
-      apply simp
-       apply auto[]
-      by linarith
+      by (cases \<open>the (fmlookup N xa)\<close>)
+        (auto simp: dom_m_fmrestrict_set' intro!: correct_watching_init_add_clause)
     subgoal
-      unfolding I_def
-      by auto
+      unfolding I_def by auto
     subgoal by auto
     subgoal unfolding I_def
       by (auto simp: fmlookup_restrict_set_id')

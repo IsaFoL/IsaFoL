@@ -1,9 +1,9 @@
 theory IsaSAT_Watch_List_SML
-  imports IsaSAT_Watch_List IsaSAT_Literals_SML
+  imports Watched_Literals.Array_Array_List64 IsaSAT_Watch_List IsaSAT_Literals_SML
 begin
 
 type_synonym watched_wl = \<open>((nat \<times> uint64) array_list) array\<close>
-type_synonym watched_wl_uint32 = \<open>((uint64 \<times> uint64) array_list) array\<close>
+type_synonym watched_wl_uint32 = \<open>((uint64 \<times> uint64) array_list64) array\<close>
 
 abbreviation watcher_enc_assn where
   \<open>watcher_enc_assn \<equiv> pure watcher_enc\<close>

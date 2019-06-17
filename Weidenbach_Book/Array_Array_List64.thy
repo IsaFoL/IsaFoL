@@ -1,5 +1,5 @@
 theory Array_Array_List64
-imports Array_Array_List IICF_Array_List64
+  imports Array_Array_List IICF_Array_List64
 begin
 
 subsection \<open>Array of Array Lists of maximum length \<^term>\<open>uint64_max\<close>\<close>
@@ -105,9 +105,6 @@ definition append64_el_aa :: "('a::{default,heap} array_list64) array \<Rightarr
   Array.upd i a' a
   }"
 
-definition append_ll :: "'a list list \<Rightarrow> nat \<Rightarrow> 'a \<Rightarrow> 'a list list" where
-  \<open>append_ll xs i x = list_update xs i (xs ! i @ [x])\<close>
-
 
 declare arrayO_nth_rule[sep_heap_rules]
 
@@ -131,7 +128,7 @@ proof -
        intro!: list_all2_appendI dest!: bbi)
   qed
 
-lemma append_aa_hnr[sepref_fr_rules]:
+lemma append_aa64_hnr[sepref_fr_rules]:
   fixes R ::  \<open>'a \<Rightarrow> 'b :: {heap, default} \<Rightarrow> assn\<close>
   assumes p: \<open>is_pure R\<close>
   shows
@@ -655,5 +652,173 @@ lemma nth_aa64_i32_u64_hnr[sepref_fr_rules]:
   by sepref_to_hoare
     (sep_auto simp: uint32_nat_rel_def br_def uint64_nat_rel_def
       length_rll_def length_ll_def nth_rll_def nth_ll_def)
+
+  (*TODO Sort*)
+definition append64_el_aa32 :: "('a::{default,heap} array_list64) array \<Rightarrow>
+  uint32 \<Rightarrow> 'a \<Rightarrow> ('a array_list64) array Heap"where
+"append64_el_aa32 \<equiv> \<lambda>a i x. do {
+  j \<leftarrow> nth_u_code a i;
+  a' \<leftarrow> arl64_append j x;
+  heap_array_set_u  a i a'
+  }"
+
+lemma append64_aa32_hnr[sepref_fr_rules]:
+  fixes R ::  \<open>'a \<Rightarrow> 'b :: {heap, default} \<Rightarrow> assn\<close>
+  assumes p: \<open>is_pure R\<close>
+  shows
+    \<open>(uncurry2 append64_el_aa32, uncurry2 (RETURN \<circ>\<circ>\<circ> append_ll)) \<in>
+     [\<lambda>((l,i),x). i < length l \<and> length (l ! i) < uint64_max]\<^sub>a (arrayO_assn (arl64_assn R))\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a R\<^sup>k \<rightarrow> (arrayO_assn (arl64_assn R))\<close>
+proof -
+  obtain R' where R: \<open>the_pure R = R'\<close> and R': \<open>R = pure R'\<close>
+    using p by fastforce
+  have [simp]: \<open>(\<exists>\<^sub>Ax. arrayO_assn (arl64_assn R) a ai * R x r * true * \<up> (x = a ! ba ! b)) =
+     (arrayO_assn (arl64_assn R) a ai * R (a ! ba ! b) r * true)\<close> for a ai ba b r
+    by (auto simp: ex_assn_def)
+  show ?thesis \<comment> \<open>TODO tune proof\<close>
+    apply sepref_to_hoare
+    apply (sep_auto simp: append64_el_aa32_def nth_u_code_def Array.nth'_def uint32_nat_rel_def br_def 
+       nat_of_uint32_code[symmetric] heap_array_set'_u_def heap_array_set_u_def Array.upd'_def)
+     apply (simp add: arrayO_except_assn_def)
+     apply (rule sep_auto_is_stupid[OF p])
+    apply simp
+    apply (sep_auto simp: array_assn_def is_array_def append_ll_def)
+    apply (simp add: arrayO_except_assn_array0[symmetric] arrayO_except_assn_def)
+    apply (subst_tac (2) i = \<open>nat_of_uint32 bia\<close> in heap_list_all_nth_remove1)
+     apply (solves \<open>simp\<close>)
+    apply (simp add: array_assn_def is_array_def)
+    apply (rule_tac x=\<open>p[nat_of_uint32 bia := (ab, bb)]\<close> in ent_ex_postI)
+    apply (subst_tac (2)xs'=a and ys'=p in heap_list_all_nth_cong)
+      apply (solves \<open>auto\<close>)+
+    apply sep_auto
+    done
+qed
+
+definition update_aa64_u32 :: "('a::{heap} array_list64) array \<Rightarrow> uint32 \<Rightarrow> uint64 \<Rightarrow> 'a \<Rightarrow> ('a array_list64) array Heap" where
+  \<open>update_aa64_u32 a i j y = update_aa64 a (nat_of_uint32 i) j y\<close>
+
+lemma update_aa_u64_u32_code[code]:
+  \<open>update_aa64_u32 a i j y = do {
+      x \<leftarrow> nth_u_code a i;
+      a' \<leftarrow> arl64_set x j y;
+      Array_upd_u i a' a
+    }\<close>
+  unfolding update_aa64_u32_def update_aa64_def update_aa_def nth_nat_of_uint32_nth' nth_nat_of_uint32_nth'
+    arl_get_u_def[symmetric] nth_u64_code_def Array.nth'_def comp_def Array_upd_u_def nth_u_code_def
+    heap_array_set'_u_def[symmetric] Array_upd_u64_def nat_of_uint64_code[symmetric]
+  by auto
+
+lemma update_aa64_u32_rule[sep_heap_rules]:
+  assumes p: \<open>is_pure R\<close> and \<open>bb < length a\<close> and \<open>ba < length_ll a bb\<close> \<open>(ba', ba) \<in> uint64_nat_rel\<close>  \<open>(bb', bb) \<in> uint32_nat_rel\<close>
+  shows \<open><R b bi * arrayO_assn (arl64_assn R) a ai> update_aa64_u32 ai bb' ba' bi
+      <\<lambda>r. R b bi * (\<exists>\<^sub>Ax. arrayO_assn (arl64_assn R) x r * \<up> (x = update_ll a bb ba b))>\<^sub>t\<close>
+  using assms supply return_sp_rule[sep_heap_rules] upd_rule[sep_heap_rules del]
+  apply (sep_auto simp add: update_aa64_u32_def update_ll_def nth_u_code_def Array.nth'_def
+     nat_of_uint32_code[symmetric] uint32_nat_rel_def br_def)
+  done
+
+lemma update_aa64_u32_hnr[sepref_fr_rules]:
+  assumes \<open>is_pure R\<close>
+  shows \<open>(uncurry3 update_aa64_u32, uncurry3 (RETURN oooo update_ll)) \<in>
+     [\<lambda>(((l,i), j), x). i < length l \<and> j < length_ll l i]\<^sub>a (arrayO_assn (arl64_assn R))\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a R\<^sup>k \<rightarrow> (arrayO_assn (arl64_assn R))\<close>
+  by sepref_to_hoare (sep_auto simp: assms)
+
+definition nth_aa64_u64 where
+  \<open>nth_aa64_u64 xs i j = do {
+      x \<leftarrow> nth_u64_code xs i;
+      y \<leftarrow> arl64_get x j;
+      return y}\<close>
+
+lemma nth_aa64_u64_hnr[sepref_fr_rules]:
+  assumes p: \<open>CONSTRAINT is_pure R\<close>
+  shows
+    \<open>(uncurry2 nth_aa64_u64, uncurry2 (RETURN \<circ>\<circ>\<circ> nth_ll)) \<in>
+       [\<lambda>((l,i),j). i < length l \<and> j < length_ll l i]\<^sub>a
+       (arrayO_assn (arl64_assn R))\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow> R\<close>
+proof -
+  obtain R' where R: \<open>the_pure R = R'\<close> and R': \<open>R = pure R'\<close>
+    using p by fastforce
+  have H: \<open>list_all2 (\<lambda>x x'. (x, x') \<in> the_pure (\<lambda>a c. \<up> ((c, a) \<in> R'))) bc (a ! ba) \<Longrightarrow>
+       b < length (a ! ba) \<Longrightarrow>
+       (bc ! b, a ! ba ! b) \<in> R'\<close> for bc a ba b
+    by (auto simp add: ent_refl_true list_all2_conv_all_nth is_pure_alt_def pure_app_eq[symmetric])
+  show ?thesis
+    using p
+    apply sepref_to_hoare
+    apply (sep_auto simp: nth_aa64_u64_def length_ll_def nth_ll_def nth_u64_def nth_u64_code_def Array.nth'_def
+       nat_of_uint64_code[symmetric] br_def uint64_nat_rel_def)
+    apply (subst arrayO_except_assn_array0_index[symmetric, of \<open>nat_of_uint64 bia\<close>])
+    apply simp
+    apply (sep_auto simp: arrayO_except_assn_def arrayO_assn_def arl64_assn_def hr_comp_def list_rel_def
+        list_all2_lengthD
+      star_aci(3) R R' pure_def H)
+    done
+qed
+
+definition arl64_get_nat :: "'a::heap array_list64 \<Rightarrow> nat \<Rightarrow> 'a Heap" where
+  "arl64_get_nat \<equiv> \<lambda>(a,n) i. Array.nth a i"
+
+lemma arl_get_rule[sep_heap_rules]: "
+  i<length l \<Longrightarrow>
+  <is_array_list64 l a> 
+    arl64_get_nat a i
+  <\<lambda>r. is_array_list64 l a * \<up>(r=l!i)>"
+  supply nth_rule[sep_heap_rules]
+  by (sep_auto simp: is_array_list64_def arl64_get_nat_def is_array_list_def split: prod.split)
+
+lemma arl_get_rule_arl64[sep_heap_rules]: "
+  i<length l \<Longrightarrow>
+  <arl64_assn T l a> 
+    arl64_get_nat a i
+  <\<lambda>r. arl64_assn T l a * \<up>((r, l!i) \<in> the_pure T)>"
+  using param_nth[of i l i _ \<open>the_pure T\<close>]
+  by (sep_auto simp: arl64_assn_def hr_comp_def dest: list_rel_imp_same_length split: prod.split)
+
+definition nth_aa64_nat where
+  \<open>nth_aa64_nat xs i j = do {
+      x \<leftarrow> Array.nth xs i;
+      y \<leftarrow> arl64_get_nat x j;
+      return y}\<close>
+
+lemma nth_aa64_nat_hnr[sepref_fr_rules]:
+  assumes p: \<open>CONSTRAINT is_pure R\<close>
+  shows
+    \<open>(uncurry2 nth_aa64_nat, uncurry2 (RETURN \<circ>\<circ>\<circ> nth_ll)) \<in>
+       [\<lambda>((l,i),j). i < length l \<and> j < length_ll l i]\<^sub>a
+       (arrayO_assn (arl64_assn R))\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> R\<close>
+proof -
+  obtain R' where R: \<open>the_pure R = R'\<close> and R': \<open>R = pure R'\<close>
+    using p by fastforce
+  have [simp]: \<open>the_pure (\<lambda>a c. \<up> ((c, a) \<in> R'))  = R'\<close>
+    unfolding R[symmetric] pure_app_eq[symmetric] by auto
+  show ?thesis
+    using p
+    apply sepref_to_hoare
+    apply (sep_auto simp: nth_aa64_nat_def length_ll_def nth_ll_def)
+    apply (subst arrayO_except_assn_array0_index[symmetric, of ba])
+    apply simp
+    apply (sep_auto simp: arrayO_except_assn_def arrayO_assn_def arl64_assn_def hr_comp_def list_rel_def
+      star_aci(3) R R' pure_def)
+    done
+qed
+
+definition length_aa64_nat :: \<open>('a::heap array_list64) array \<Rightarrow> nat \<Rightarrow> nat Heap\<close> where
+  \<open>length_aa64_nat xs i = do {
+     x \<leftarrow> Array.nth xs i;
+    n \<leftarrow> arl64_length x;
+     return (nat_of_uint64 n)}\<close>
+
+lemma length_aa64_nat_rule[sep_heap_rules]:
+    \<open>b < length xs \<Longrightarrow>  <arrayO_assn (arl64_assn R) xs a> length_aa64_nat a b
+    <\<lambda>r. arrayO_assn (arl64_assn R) xs a * \<up> (r = length_ll xs b)>\<^sub>t\<close>
+  unfolding length_aa64_nat_def nth_u64_code_def Array.nth'_def
+  apply (sep_auto simp flip: nat_of_uint64_code simp: br_def uint64_nat_rel_def length_ll_def)
+  apply (subst arrayO_except_assn_array0_index[symmetric, of b])
+  apply (simp add: nat_of_uint64_code br_def uint64_nat_rel_def)
+  apply (sep_auto simp: arrayO_except_assn_def)
+  done
+
+lemma length_aa64_nat_hnr[sepref_fr_rules]: \<open>(uncurry length_aa64_nat, uncurry (RETURN \<circ>\<circ> length_ll)) \<in>
+     [\<lambda>(xs, i). i < length xs]\<^sub>a (arrayO_assn (arl64_assn R))\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> nat_assn\<close>
+  by sepref_to_hoare (sep_auto simp: uint64_nat_rel_def br_def)
 
 end

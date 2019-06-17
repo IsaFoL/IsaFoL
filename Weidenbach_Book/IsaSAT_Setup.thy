@@ -882,8 +882,11 @@ definition rewatch_heur where
         ASSERT(nat_of_lit L1 < length W);
         ASSERT(arena_is_valid_clause_idx arena C);
         let b = (arena_length arena C = 2);
+        ASSERT(L1 \<noteq> L2);
+        ASSERT(length (W ! (nat_of_lit L1)) < length arena);
         let W = append_ll W (nat_of_lit L1) (to_watcher C L2 b);
         ASSERT(nat_of_lit L2 < length W);
+        ASSERT(length (W ! (nat_of_lit L2)) < length arena);
         let W = append_ll W (nat_of_lit L2) (to_watcher C L1 b);
         RETURN W
       }
@@ -891,7 +894,6 @@ definition rewatch_heur where
     })
    W
   }\<close>
-
 
 lemma rewatch_heur_rewatch:
   assumes
@@ -944,9 +946,15 @@ proof -
       unfolding arena_is_valid_clause_idx_and_access_def arena_is_valid_clause_idx_def
       by (auto simp: arena_is_valid_clause_idx_and_access_def
           intro!: exI[of _ N] exI[of _ vdom])
+    subgoal using assms by (auto simp: arena_lifting)
+    subgoal for xsa xi x si s using valid_arena_size_dom_m_le_arena[OF assms(1)]
+         literals_are_in_\<L>\<^sub>i\<^sub>n_mm_in_\<L>\<^sub>a\<^sub>l\<^sub>l[OF lall, of  \<open>xs ! xi\<close> 0] assms by (auto simp: map_fun_rel_def arena_lifting)
     subgoal for xsa xi x si s
       using literals_are_in_\<L>\<^sub>i\<^sub>n_mm_in_\<L>\<^sub>a\<^sub>l\<^sub>l[OF lall, of  \<open>xs ! xi\<close> 1] assms
       by (auto simp: arena_lifting append_ll_def map_fun_rel_def)
+    subgoal for xsa xi x si s using valid_arena_size_dom_m_le_arena[OF assms(1)]
+         literals_are_in_\<L>\<^sub>i\<^sub>n_mm_in_\<L>\<^sub>a\<^sub>l\<^sub>l[OF lall, of  \<open>xs ! xi\<close> 1] assms
+      by (auto simp: map_fun_rel_def arena_lifting append_ll_def)
     subgoal for xsa xi x si s
       using assms
       by (auto simp: arena_lifting append_ll_def map_fun_rel_def)
@@ -970,8 +978,11 @@ lemma rewatch_heur_alt_def:
         ASSERT(nat_of_lit L1 < length W);
         ASSERT(arena_is_valid_clause_idx arena C);
         let b = (arena_length arena C = 2);
+        ASSERT(L1 \<noteq> L2);
+        ASSERT(length (W ! (nat_of_lit L1)) < length arena);
         let W = append_ll W (nat_of_lit L1) (to_watcher C L2 b);
         ASSERT(nat_of_lit L2 < length W);
+        ASSERT(length (W ! (nat_of_lit L2)) < length arena);
         let W = append_ll W (nat_of_lit L2) (to_watcher C L1 b);
         RETURN W
       }
