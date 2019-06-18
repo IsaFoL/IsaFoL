@@ -304,7 +304,7 @@ begin
 end
 
 
-interpretation arl: list_custom_empty "arl64_assn A" arl64_empty op_arl64_empty
+interpretation arl64: list_custom_empty "arl64_assn A" arl64_empty op_arl64_empty
   apply unfold_locales
   apply (rule arl64_empty_hnr)
   by (auto simp: op_arl64_empty_def)

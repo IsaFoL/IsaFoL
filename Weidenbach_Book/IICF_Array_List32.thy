@@ -2,8 +2,8 @@ theory IICF_Array_List32
 imports
   "Refine_Imperative_HOL.IICF_List"
   Separation_Logic_Imperative_HOL.Array_Blit
-  Watched_Literals.Array_UInt
-  Watched_Literals.WB_Word_Assn
+  Array_UInt
+  WB_Word_Assn
 begin
 
 type_synonym 'a array_list32 = "'a Heap.array \<times> uint32"

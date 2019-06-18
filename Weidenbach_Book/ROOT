@@ -175,6 +175,7 @@ session "Watched_Literals" (Weidenbach_Book) = "CDCL"  +
   theories [quick_and_dirty = false, document = true]
     Bits_Natural
     Array_Array_List64
+    Array_Array_List32
     Array_UInt
     WB_Word
     WB_Word_Assn
