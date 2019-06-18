@@ -635,7 +635,7 @@ sepref_definition lit_redundant_rec_wl_lookup_code
     fmap_rll_def[symmetric]
     butlast_nonresizing_def[symmetric]
     nat_of_uint64_conv_def
-  apply (rewrite at \<open>(_, \<hole>, _)\<close> arl64.fold_custom_empty)+
+  apply (rewrite at \<open>(_, \<hole>, _)\<close> arl.fold_custom_empty)+
   apply (rewrite at \<open>op_arl_empty\<close> annotate_assn[where A=analyse_refinement_assn])
   unfolding nth_rll_def[symmetric] length_rll_def[symmetric]
     fmap_rll_def[symmetric]
@@ -668,7 +668,7 @@ sepref_definition lit_redundant_rec_wl_lookup_fast_code
     fmap_rll_def[symmetric]
     butlast_nonresizing_def[symmetric]
     nat_of_uint64_conv_def
-  apply (rewrite at \<open>(_, \<hole>, _)\<close> arl64.fold_custom_empty)+
+  apply (rewrite at \<open>(_, \<hole>, _)\<close> arl.fold_custom_empty)+
   apply (rewrite at \<open>op_arl_empty\<close> annotate_assn[where A=analyse_refinement_fast_assn])
 
   unfolding nth_rll_def[symmetric] length_rll_def[symmetric]
@@ -712,9 +712,9 @@ sepref_definition literal_redundant_wl_lookup_code
   literals_are_in_\<L>\<^sub>i\<^sub>n_trail_uminus_in_lits_of_l[intro]
   literals_are_in_\<L>\<^sub>i\<^sub>n_trail_uminus_in_lits_of_l_atms[intro]
   unfolding isa_literal_redundant_wl_lookup_def zero_uint32_nat_def[symmetric] PR_CONST_def
-  apply (rewrite at \<open>(_, \<hole>, _)\<close> arl64.fold_custom_empty)+
+  apply (rewrite at \<open>(_, \<hole>, _)\<close> arl.fold_custom_empty)+
   unfolding single_replicate
-  unfolding arl64.fold_custom_empty
+  unfolding arl.fold_custom_empty
   by sepref
 
 declare literal_redundant_wl_lookup_code.refine[sepref_fr_rules]
@@ -729,9 +729,9 @@ sepref_definition literal_redundant_wl_lookup_fast_code
   literals_are_in_\<L>\<^sub>i\<^sub>n_trail_uminus_in_lits_of_l[intro]
   literals_are_in_\<L>\<^sub>i\<^sub>n_trail_uminus_in_lits_of_l_atms[intro]
   unfolding isa_literal_redundant_wl_lookup_def zero_uint32_nat_def[symmetric] PR_CONST_def
-  apply (rewrite at \<open>(_, \<hole>, _)\<close> arl64.fold_custom_empty)+
+  apply (rewrite at \<open>(_, \<hole>, _)\<close> arl.fold_custom_empty)+
   unfolding single_replicate one_uint64_nat_def[symmetric]
-  unfolding arl64.fold_custom_empty
+  unfolding arl.fold_custom_empty
   by sepref
 
 declare literal_redundant_wl_lookup_fast_code.refine[sepref_fr_rules]

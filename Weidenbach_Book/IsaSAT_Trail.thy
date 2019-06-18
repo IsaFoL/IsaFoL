@@ -339,14 +339,14 @@ definition trail_fast_of_slow :: \<open>(nat, nat) ann_lits \<Rightarrow> (nat, 
 
 definition trail_pol_slow_of_fast :: \<open>trail_pol \<Rightarrow> trail_pol\<close> where
   \<open>trail_pol_slow_of_fast =
-    (\<lambda>(M, val, lvls, reason, k). (M, val, lvls, array_nat_of_uint64_conv reason, k))\<close>
+    (\<lambda>(M, val, lvls, reason, k, cs). (M, val, lvls, array_nat_of_uint64_conv reason, k, cs))\<close>
 
 definition trail_slow_of_fast :: \<open>(nat, nat) ann_lits \<Rightarrow> (nat, nat) ann_lits\<close> where
   \<open>trail_slow_of_fast = id\<close>
 
 definition trail_pol_fast_of_slow :: \<open>trail_pol \<Rightarrow> trail_pol\<close> where
   \<open>trail_pol_fast_of_slow =
-    (\<lambda>(M, val, lvls, reason, k). (M, val, lvls, array_uint64_of_nat_conv reason, k))\<close>
+    (\<lambda>(M, val, lvls, reason, k, cs). (M, val, lvls, array_uint64_of_nat_conv reason, k, cs))\<close>
 
 lemma trail_pol_slow_of_fast_alt_def:
   \<open>trail_pol_slow_of_fast M = M\<close>
@@ -586,7 +586,7 @@ qed
 
 definition cons_trail_Propagated_tr_pre where
   \<open>cons_trail_Propagated_tr_pre = (\<lambda>((L, C), (M, xs, lvls, reasons, k)). nat_of_lit L < length xs \<and>
-    nat_of_lit (-L) < length xs \<and> atm_of L < length lvls \<and> atm_of L < length reasons)\<close>
+    nat_of_lit (-L) < length xs \<and> atm_of L < length lvls \<and> atm_of L < length reasons \<and> length M < uint32_max)\<close>
 
 lemma cons_trail_Propagated_tr_pre:
   assumes \<open>(M', M) \<in> trail_pol \<A>\<close> and
@@ -595,7 +595,7 @@ lemma cons_trail_Propagated_tr_pre:
     \<open>C \<noteq> DECISION_REASON\<close>
   shows \<open>cons_trail_Propagated_tr_pre ((L, C), M')\<close>
   using assms
-  by (auto simp: trail_pol_def ann_lits_split_reasons_def uminus_\<A>\<^sub>i\<^sub>n_iff
+  by (auto simp: trail_pol_alt_def ann_lits_split_reasons_def uminus_\<A>\<^sub>i\<^sub>n_iff
        cons_trail_Propagated_tr_pre_def
     intro!: ext)
 
@@ -604,6 +604,7 @@ lemma cons_trail_Propagated_tr2:
   (cons_trail_Propagated_tr L C M', Propagated L C # M) \<in> trail_pol \<A>\<close>
   using cons_trail_Propagated_tr[THEN fref_to_Down_curry2, of \<A> L C M L C M']
   by (auto simp: cons_trail_Propagated_def)
+
 
 definition last_trail_pol_pre where
   \<open>last_trail_pol_pre = (\<lambda>(M, xs, lvls, reasons, k). atm_of (last M) < length reasons \<and> M \<noteq> [])\<close>
@@ -780,16 +781,16 @@ definition cons_trail_Decided :: \<open>nat literal \<Rightarrow> (nat, nat) ann
   \<open>cons_trail_Decided L M' = Decided L # M'\<close>
 
 definition cons_trail_Decided_tr :: \<open>nat literal \<Rightarrow> trail_pol \<Rightarrow> trail_pol\<close> where
-  \<open>cons_trail_Decided_tr = (\<lambda>L (M', xs, lvls, reasons, k, cs).
+  \<open>cons_trail_Decided_tr = (\<lambda>L (M', xs, lvls, reasons, k, cs). do{
     let n = length M' in
-     (M' @ [L], let xs = xs[nat_of_lit L := Some True] in xs[nat_of_lit (-L) := Some False],
-      lvls[atm_of L := k+1], reasons[atm_of L := DECISION_REASON], k+1, cs @ [nat_of_uint32_spec n]))\<close>
+    (M' @ [L], let xs = xs[nat_of_lit L := Some True] in xs[nat_of_lit (-L) := Some False],
+      lvls[atm_of L := k+1], reasons[atm_of L := DECISION_REASON], k+1, cs @ [nat_of_uint32_spec n])})\<close>
 
 definition cons_trail_Decided_tr_pre where
   \<open>cons_trail_Decided_tr_pre =
     (\<lambda>(L, (M, xs, lvls, reason, k, cs)). nat_of_lit L < length xs \<and> nat_of_lit (-L) < length xs \<and>
-      atm_of L < length lvls \<and> atm_of L < length reason \<and>
-      Suc k \<le> uint_max \<and> length M \<le> uint32_max)\<close>
+      atm_of L < length lvls \<and> atm_of L < length reason  \<and> length cs < uint32_max \<and>
+      Suc k \<le> uint_max \<and> length M < uint32_max)\<close>
 
 lemma length_cons_trail_Decided[simp]:
   \<open>length (cons_trail_Decided L M) = Suc (length M)\<close>
@@ -811,8 +812,8 @@ lemma cons_trail_Decided_tr_pre:
     \<open>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<close> and \<open>undefined_lit M L\<close>
   shows \<open>cons_trail_Decided_tr_pre (L, M')\<close>
   using assms
-  by (auto simp: trail_pol_def image_image ann_lits_split_reasons_def uminus_\<A>\<^sub>i\<^sub>n_iff
-         cons_trail_Decided_tr_pre_def
+  by (auto simp: trail_pol_alt_def image_image ann_lits_split_reasons_def uminus_\<A>\<^sub>i\<^sub>n_iff
+         cons_trail_Decided_tr_pre_def control_stack_length_count_dec
        intro!: ext undefined_lit_count_decided_uint_max length_trail_uint_max)
 
 

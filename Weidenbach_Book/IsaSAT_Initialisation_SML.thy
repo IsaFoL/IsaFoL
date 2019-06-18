@@ -574,7 +574,7 @@ sepref_definition init_trail_D_code
   is \<open>uncurry2 init_trail_D\<close>
   :: \<open>(arl_assn uint32_assn)\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a trail_pol_assn\<close>
   unfolding init_trail_D_def PR_CONST_def
-  apply (rewrite in \<open>let _ = \<hole> in _\<close> IICF_Array_List.arl.fold_custom_empty)
+  apply (rewrite in \<open>let _ = \<hole> in _\<close> arl.fold_custom_empty)
   apply (rewrite in \<open>let _ = \<hole> in _\<close> annotate_assn[where A=\<open>arl_assn unat_lit_assn\<close>])
   apply (rewrite in \<open>let _ = _; _ = \<hole> in _\<close> IICF_Array_List.arl.fold_custom_empty)
   apply (rewrite in \<open>let _ = _; _ = \<hole> in _\<close> annotate_assn[where A=\<open>arl_assn uint32_nat_assn\<close>])
@@ -593,10 +593,10 @@ sepref_definition init_trail_D_fast_code
   is \<open>uncurry2 init_trail_D_fast\<close>
   :: \<open>(arl_assn uint32_assn)\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a trail_pol_fast_assn\<close>
   unfolding init_trail_D_def PR_CONST_def init_trail_D_fast_def
-  apply (rewrite in \<open>let _ = \<hole> in _\<close> IICF_Array_List.arl.fold_custom_empty)
-  apply (rewrite in \<open>let _ = \<hole> in _\<close> annotate_assn[where A=\<open>arl_assn unat_lit_assn\<close>])
-  apply (rewrite in \<open>let _ = _; _ = \<hole> in _\<close> IICF_Array_List.arl.fold_custom_empty)
-  apply (rewrite in \<open>let _ = _; _ = \<hole> in _\<close> annotate_assn[where A=\<open>arl_assn uint32_nat_assn\<close>])
+  apply (rewrite in \<open>let _ = \<hole> in _\<close> arl32.fold_custom_empty)
+  apply (rewrite in \<open>let _ = \<hole> in _\<close> annotate_assn[where A=\<open>arl32_assn unat_lit_assn\<close>])
+  apply (rewrite in \<open>let _ = _; _ = \<hole> in _\<close> arl32.fold_custom_empty)
+  apply (rewrite in \<open>let _ = _; _ = \<hole> in _\<close> annotate_assn[where A=\<open>arl32_assn uint32_nat_assn\<close>])
 
   apply (rewrite in \<open>let _ = _;_ = \<hole> in _\<close> annotate_assn[where A=\<open>array_assn (tri_bool_assn)\<close>])
   apply (rewrite in \<open>let _ = _;_ = _;_ = \<hole> in _\<close> annotate_assn[where A=\<open>array_assn uint32_nat_assn\<close>])

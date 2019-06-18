@@ -86,6 +86,7 @@ sepref_definition find_local_restart_target_level_fast_code
   :: \<open>trail_pol_fast_assn\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
   supply [[goals_limit=1]] length_rev[simp del]
   unfolding find_local_restart_target_level_int_def find_local_restart_target_level_int_inv_def
+    length_uint32_nat_def
   by sepref
 
 declare find_local_restart_target_level_code.refine[sepref_fr_rules]
