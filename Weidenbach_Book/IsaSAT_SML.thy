@@ -210,7 +210,7 @@ declare isasat_init_fast_slow_code.refine[sepref_fr_rules]
 sepref_definition IsaSAT_code
   is \<open>uncurry IsaSAT_heur\<close>
   :: \<open>opts_assn\<^sup>d *\<^sub>a (list_assn (list_assn unat_lit_assn))\<^sup>k \<rightarrow>\<^sub>a model_stat_assn\<close>
-  supply [[goals_limit=1]]
+  supply [[goals_limit=1]] isasat_fast_init_def[simp]
   unfolding IsaSAT_heur_def empty_conflict_def[symmetric]
     get_conflict_wl_is_None extract_model_of_state_def[symmetric]
     extract_stats_def[symmetric]

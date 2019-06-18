@@ -3060,6 +3060,7 @@ proof -
     by (cases A) (auto simp: map_fun_rel_def \<L>\<^sub>a\<^sub>l\<^sub>l_add_mset dest!: multi_member_split)
   have A_le: \<open>nat_of_lit A < length W'\<close>
     using W L by (cases A; auto simp: map_fun_rel_def \<L>\<^sub>a\<^sub>l\<^sub>l_add_mset dest!: multi_member_split)
+
   show ?thesis
     unfolding isasat_GC_clauses_prog_copy_wl_entry_def cdcl_GC_clauses_prog_copy_wl_entry_def prod.case A
     apply (refine_vcg WHILET_refine[where R = \<open>nat_rel \<times>\<^sub>r ?R\<^sub>1 \<times>\<^sub>r ?R\<^sub>2\<close>])
@@ -3083,7 +3084,7 @@ proof -
      unfolding arena_is_valid_clause_idx_def
      by auto
    subgoal apply auto sorry
-   subgoal apply auto sorry
+   subgoal using r by auto
    subgoal
      by (force dest: arena_lifting(2))
    subgoal by auto

@@ -1503,10 +1503,11 @@ definition IsaSAT_heur :: \<open>opts \<Rightarrow> nat clause_l list \<Rightarr
            _ \<leftarrow> isasat_information_banner T;
            ASSERT((\<lambda>(M', N', D', Q', W', ((ns, m, fst_As, lst_As, next_search), to_remove), \<phi>, clvls). fst_As \<noteq> None \<and>
              lst_As \<noteq> None) T);
-	         ASSERT(rewatch_heur_st_fast_pre T);
-	         T \<leftarrow> rewatch_heur_st_fast T;
+	   ASSERT(rewatch_heur_st_fast_pre T);
+	   T \<leftarrow> rewatch_heur_st_fast T;
+	   ASSERT(isasat_fast_init T);
            T \<leftarrow> finalise_init_code opts (T::twl_st_wl_heur_init);
-	         ASSERT(isasat_fast T);
+	   ASSERT(isasat_fast T);
            U \<leftarrow> cdcl_twl_stgy_restart_prog_early_wl_heur T;
            RETURN (if get_conflict_wl_is_None_heur U then extract_model_of_state_stat U
              else extract_state_stat U)
@@ -1626,6 +1627,7 @@ lemma IsaSAT_heur_alt_def:
 	      lst_As \<noteq> None) T);
 	    ASSERT(rewatch_heur_st_fast_pre T);
 	    T \<leftarrow> rewatch_heur_st_fast T;
+	    ASSERT(isasat_fast_init T);
 	    T \<leftarrow> finalise_init_code opts (T::twl_st_wl_heur_init);
 	    ASSERT(isasat_fast T);
 	    U \<leftarrow> cdcl_twl_stgy_restart_prog_early_wl_heur T;
@@ -2122,6 +2124,7 @@ proof -
     subgoal for uu ba S T Ta baa uua uub
       by (rule rewatch_heur_st_fast_pre)
     apply (rule rewatch_heur_st_rewatch_st2; assumption)
+    subgoal by (clarsimp simp add: isasat_fast_init_def convert_state_def)
     apply (rule finalise_init_code2; assumption)
     subgoal for uu ba S T Ta baa uua uub Tb Tc Td Te
         by (rule isasat_fast)
@@ -2131,7 +2134,7 @@ proof -
     subgoal by fast
     subgoal by fast
     subgoal premises p for _ ba S T Ta Tb Tc u v
-      using p(33)
+      using p(34)
       by (auto simp: twl_st_heur_def get_conflict_wl_is_None_heur_def
         extract_stats_def extract_state_stat_def
 	option_lookup_clause_rel_def trail_pol_def
