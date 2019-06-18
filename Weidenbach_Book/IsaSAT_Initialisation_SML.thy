@@ -445,6 +445,22 @@ sepref_definition rewatch_heur_st_code
     isasat_init_unbounded_assn_def
   by sepref
 
+sepref_definition rewatch_heur_fast_code
+  is \<open>uncurry2 (rewatch_heur)\<close>
+  :: \<open>[\<lambda>((vdom, arena), W). (\<forall>x \<in> set vdom. x \<le> uint64_max) \<and> length arena \<le> uint64_max]\<^sub>a
+        vdom_assn\<^sup>k *\<^sub>a arena_assn\<^sup>k *\<^sub>a watchlist_fast_assn\<^sup>d \<rightarrow> watchlist_fast_assn\<close>
+  supply [[goals_limit=1]] uint64_of_nat_conv_def[simp]
+     arena_lit_pre_le_uint64_max[intro] append_aa64_hnr[sepref_fr_rules]
+  unfolding rewatch_heur_alt_def Let_def two_uint64_nat_def[symmetric] PR_CONST_def
+    one_uint64_nat_def[symmetric] to_watcher_fast_def[symmetric]
+  apply (rewrite in \<open>append_ll _ (nat_of_lit _)\<close> nat_of_uint32_conv_def[symmetric])
+  apply (rewrite in \<open>append_ll _ (nat_of_lit _)\<close> nat_of_uint32_conv_def[symmetric])
+  apply (rewrite in \<open>append_ll _ (nat_of_lit _)\<close> nat_of_uint32_conv_def[symmetric])
+  apply (rewrite in \<open>append_ll (append_ll _ _ _) (\<hole>)\<close> nat_of_uint32_conv_def[symmetric])
+  by sepref
+
+declare rewatch_heur_fast_code.refine[sepref_fr_rules]
+
 sepref_definition rewatch_heur_st_fast_code
   is \<open>(rewatch_heur_st_fast)\<close>
   :: \<open>[rewatch_heur_st_fast_pre]\<^sub>a
@@ -530,11 +546,17 @@ qed
 
 sepref_definition finalise_init_code'
   is \<open>uncurry finalise_init_code\<close>
-  :: \<open>opts_assn\<^sup>d *\<^sub>a isasat_init_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
+  :: \<open>[\<lambda>(_, S). length (get_clauses_wl_heur_init S) \<le> uint64_max]\<^sub>a
+      opts_assn\<^sup>d *\<^sub>a isasat_init_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   supply zero_uin64_hnr[sepref_fr_rules] [[goals_limit=1]]
     Pos_unat_lit_assn'[sepref_fr_rules] uint_max_def[simp] op_arl_replicate_def[simp]
   unfolding finalise_init_code_def isasat_init_assn_def isasat_bounded_assn_def
-    IICF_Array_List.arl.fold_custom_empty arl_fold_custom_replicate two_uint32_def[symmetric]
+     arl_fold_custom_replicate two_uint32_def[symmetric]
+  apply (rewrite at \<open>(_, \<hole>, _)\<close> arl64_of_arl_def[symmetric])
+  apply (rewrite at \<open>(_, \<hole>, _)\<close> arl.fold_custom_empty)
+  apply (rewrite in \<open>op_arl_empty\<close> annotate_assn[where A=\<open>vdom_assn\<close>])
+  apply (rewrite at \<open>(_, \<hole>)\<close> arl64.fold_custom_empty)
+  apply (rewrite in \<open>op_arl64_empty\<close> annotate_assn[where A=\<open>arena_fast_assn\<close>])
   by sepref
 
 sepref_definition finalise_init_code_unb

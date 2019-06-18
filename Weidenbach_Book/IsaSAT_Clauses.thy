@@ -62,14 +62,14 @@ text \<open>From a performance point of view, appending several time a single el
 than reserving a space that is large enough directly. However, in this case the list of clauses \<^term>\<open>N\<close>
 is so large that there should not be any difference\<close>
 definition fm_add_new where
- \<open>fm_add_new b C N = do {
+ \<open>fm_add_new b C N0 = do {
     let st = (if b then AStatus IRRED False else AStatus LEARNED False);
-    let l = length N;
+    let l = length N0;
     let s = length C - 2;
     let N = (if is_short_clause C then
-          (((N @ [st]) @ [AActivity zero_uint32_nat]) @ [ALBD s]) @ [ASize s]
-          else ((((N @ [APos zero_uint32_nat]) @ [st]) @ [AActivity zero_uint32_nat]) @ [ALBD s]) @ [ASize (s)]);
-    (i, N) \<leftarrow> WHILE\<^sub>T
+          (((N0 @ [st]) @ [AActivity zero_uint32_nat]) @ [ALBD s]) @ [ASize s]
+          else ((((N0 @ [APos zero_uint32_nat]) @ [st]) @ [AActivity zero_uint32_nat]) @ [ALBD s]) @ [ASize (s)]);
+    (i, N) \<leftarrow> WHILE\<^sub>T\<^bsup> \<lambda>(i, N). i < length C \<longrightarrow> length N < header_size C + length N0 + length C\<^esup>
       (\<lambda>(i, N). i < length C)
       (\<lambda>(i, N). do {
         ASSERT(i < length C);
@@ -94,14 +94,17 @@ lemma fm_add_new_append_clause:
   \<open>fm_add_new b C N \<le> RETURN (append_clause b C N, length N + header_size C)\<close>
   unfolding fm_add_new_def
   apply (rewrite at \<open>let _ = length _ in _\<close> Let_def)
-  apply (refine_vcg WHILET_rule[where R = \<open>measure (\<lambda>(i, _). Suc (length C) - i)\<close> and
-    I = \<open>\<lambda>(i, N'). N' = take (length N + header_size C + i) (append_clause b C N) \<and>
+  apply (refine_vcg WHILEIT_rule_stronger_inv[where R = \<open>measure (\<lambda>(i, _). Suc (length C) - i)\<close> and
+    I' = \<open>\<lambda>(i, N'). N' = take (length N + header_size C + i) (append_clause b C N) \<and>
       i \<le> length C\<close>])
   subgoal by auto
   subgoal by (auto simp: append_clause_def header_size_def
     append_clause_skeleton_def split: if_splits)
+  subgoal by (auto simp: append_clause_def header_size_def
+    append_clause_skeleton_def split: if_splits)
   subgoal by simp
   subgoal by simp
+  subgoal by auto
   subgoal by (auto simp: take_Suc_conv_app_nth nth_append_clause)
   subgoal by auto
   subgoal by auto
@@ -152,20 +155,21 @@ definition append_and_length_fast_code_pre where
 
 
 lemma fm_add_new_alt_def:
- \<open>fm_add_new b C N = do {
+ \<open>fm_add_new b C N0 = do {
       let st = (if b then AStatus_IRRED else AStatus_LEARNED2);
-      let l = length_uint64_nat N;
+      let l = length_uint64_nat N0;
       let s = uint32_of_uint64_conv (length_uint64_nat C - two_uint64_nat);
       let N =
         (if is_short_clause C
-          then (((N @ [st]) @ [AActivity zero_uint32_nat]) @ [ALBD s]) @
+          then (((N0 @ [st]) @ [AActivity zero_uint32_nat]) @ [ALBD s]) @
               [ASize s]
-          else ((((N @ [APos zero_uint32_nat]) @ [st]) @
+          else ((((N0 @ [APos zero_uint32_nat]) @ [st]) @
                 [AActivity zero_uint32_nat]) @
                 [ALBD s]) @
               [ASize s]);
       (i, N) \<leftarrow>
-        WHILE\<^sub>T (\<lambda>(i, N). i < length_uint64_nat C)
+        WHILE\<^sub>T\<^bsup> \<lambda>(i, N). i < length C \<longrightarrow> length N < header_size C + length N0 + length C\<^esup>
+          (\<lambda>(i, N). i < length_uint64_nat C)
           (\<lambda>(i, N). do {
                 _ \<leftarrow> ASSERT (i < length C);
                 RETURN (i + one_uint64_nat, N @ [ALit (C ! i)])
@@ -186,17 +190,20 @@ lemma slice_Suc_nth:
   by (metis Cons_nth_drop_Suc Misc.slice_def Suc_diff_Suc take_Suc_Cons)
 
 definition fm_mv_clause_to_new_arena where
- \<open>fm_mv_clause_to_new_arena C old_arena new_arena = do {
+ \<open>fm_mv_clause_to_new_arena C old_arena new_arena0 = do {
     ASSERT(arena_is_valid_clause_idx old_arena C);
+    ASSERT(C \<ge> (if nat_of_uint64_conv (arena_length old_arena C) \<le> 4 then 4 else 5));
     let st = C - (if nat_of_uint64_conv (arena_length old_arena C) \<le> 4 then 4 else 5);
+    ASSERT(C + nat_of_uint64_conv (arena_length old_arena C) \<le> length old_arena);
     let en = C + nat_of_uint64_conv (arena_length old_arena C);
     (i, new_arena) \<leftarrow>
-        WHILE\<^sub>T (\<lambda>(i, new_arena). i < en)
+        WHILE\<^sub>T\<^bsup> \<lambda>(i, new_arena). i < en \<longrightarrow> length new_arena < length new_arena0 + (arena_length old_arena C) + (if nat_of_uint64_conv (arena_length old_arena C) \<le> 4 then 4 else 5) \<^esup>
+          (\<lambda>(i, new_arena). i < en)
           (\<lambda>(i, new_arena). do {
-              ASSERT (i < length old_arena);
+              ASSERT (i < length old_arena \<and> i < en);
               RETURN (i + 1, new_arena @ [old_arena ! i])
           })
-          (st, new_arena);
+          (st, new_arena0);
       RETURN (new_arena)
   }\<close>
 
@@ -311,15 +318,19 @@ proof -
     unfolding fm_mv_clause_to_new_arena_def st_def[symmetric]
       en_def[symmetric] Let_def nat_of_uint64_conv_def
     apply (refine_vcg
-     WHILET_rule[where R = \<open>measure (\<lambda>(i, N). en - i)\<close> and
-       I = \<open>\<lambda>(i, new_arena'). i \<le> C + length (N\<propto>C) \<and> i \<ge> st \<and>
+     WHILEIT_rule_stronger_inv[where R = \<open>measure (\<lambda>(i, N). en - i)\<close> and
+       I' = \<open>\<lambda>(i, new_arena'). i \<le> C + length (N\<propto>C) \<and> i \<ge> st \<and>
          new_arena' = new_arena @
 	   Misc.slice (C - header_size (N\<propto>C)) i old_arena\<close>])
     subgoal
       unfolding arena_is_valid_clause_idx_def
       by auto
+    subgoal using arena_lifting(4)[OF assms(1)] by (auto
+        dest!: arena_lifting(1)[of _ N _ C] simp: header_size_def split: if_splits)
+    subgoal using arena_lifting(10, 4) en_def by auto
     subgoal
       by auto
+    subgoal by auto
     subgoal
       using arena_lifting[OF assms(1,3)]
       by (auto simp: st)
@@ -331,6 +342,9 @@ proof -
     subgoal
       using arena_lifting[OF assms(1,3)]
       by (auto simp: st en_def)
+    subgoal by auto
+    subgoal using arena_lifting[OF assms(1,3)]
+        by (auto simp: slice_len_min_If en_def st_def header_size_def)
     subgoal
       using arena_lifting[OF assms(1,3)]
       by (auto simp: st en_def)

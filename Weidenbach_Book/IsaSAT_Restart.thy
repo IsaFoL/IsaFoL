@@ -59,7 +59,7 @@ where
     ebrk \<leftarrow> RETURN (\<not>isasat_fast S\<^sub>0);
     (ebrk, brk, T, n) \<leftarrow>
      WHILE\<^sub>T\<^bsup>\<lambda>(ebrk, brk, T, n). cdcl_twl_stgy_restart_abs_wl_heur_inv S\<^sub>0 brk T n \<and>
-        (\<not>ebrk \<longrightarrow>isasat_fast T)\<^esup>
+        (\<not>ebrk \<longrightarrow>isasat_fast T) \<and> length (get_clauses_wl_heur T) \<le> uint64_max\<^esup>
       (\<lambda>(ebrk, brk, _). \<not>brk \<and> \<not>ebrk)
       (\<lambda>(ebrk, brk, S, n).
       do {
@@ -75,7 +75,10 @@ where
         RETURN (ebrk, brk, T, n)
       })
       (ebrk, False, S\<^sub>0::twl_st_wl_heur, 0);
+    ASSERT(length (get_clauses_wl_heur T) \<le> uint64_max \<and>
+        get_old_arena T = []);
     if \<not>brk then do {
+       ASSERT(length (get_clauses_wl_heur T) \<le> uint64_max);
        T \<leftarrow> isasat_fast_slow T;
        (brk, T, _) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(brk, T, n). cdcl_twl_stgy_restart_abs_wl_heur_inv S\<^sub>0 brk T n\<^esup>
 	         (\<lambda>(brk, _). \<not>brk)
@@ -94,8 +97,9 @@ where
 
 
 lemma cdcl_twl_stgy_restart_prog_early_wl_heur_cdcl_twl_stgy_restart_prog_early_wl_D:
-  \<open>(cdcl_twl_stgy_restart_prog_early_wl_heur, cdcl_twl_stgy_restart_prog_early_wl_D) \<in>
-    twl_st_heur \<rightarrow>\<^sub>f \<langle>twl_st_heur\<rangle>nres_rel\<close>
+  assumes r: \<open>r \<le> uint64_max\<close>
+  shows \<open>(cdcl_twl_stgy_restart_prog_early_wl_heur, cdcl_twl_stgy_restart_prog_early_wl_D) \<in>
+   twl_st_heur''' r \<rightarrow>\<^sub>f \<langle>twl_st_heur\<rangle>nres_rel\<close>
 proof -
   have cdcl_twl_stgy_restart_prog_early_wl_D_alt_def:
   \<open>cdcl_twl_stgy_restart_prog_early_wl_D S\<^sub>0 = do {
@@ -152,7 +156,7 @@ proof -
     \<in> twl_st_heur''' r\<close>
     for x1e x1b r \<D>
     by (auto simp: twl_st_heur'_def)
-  have abs_inv: \<open>(x, y) \<in> twl_st_heur \<Longrightarrow>
+  have abs_inv: \<open>(x, y) \<in> twl_st_heur''' r \<Longrightarrow>
     (ebrk, ebrka) \<in> {(b, b'). b = b' \<and> b = (\<not> isasat_fast x)} \<Longrightarrow>
     (xb, x'a) \<in> bool_rel \<times>\<^sub>f (twl_st_heur \<times>\<^sub>f nat_rel) \<Longrightarrow>
     case x'a of
@@ -176,14 +180,15 @@ proof -
         WHILEIT_refine[where R = \<open>bool_rel \<times>\<^sub>r twl_st_heur \<times>\<^sub>r nat_rel\<close>]
         WHILEIT_refine[where R = \<open>{((ebrk, brk, T,n), (ebrk', brk', T', n')).
 	    (ebrk = ebrk') \<and> (brk = brk') \<and> (T, T')  \<in> twl_st_heur \<and> n = n' \<and>
-	      (\<not>ebrk \<longrightarrow> isasat_fast T)}\<close>])
-    subgoal by auto
+	      (\<not>ebrk \<longrightarrow> isasat_fast T) \<and> length (get_clauses_wl_heur T) \<le> uint64_max}\<close>])
+    subgoal using r by auto
     subgoal
-      unfolding cdcl_twl_stgy_restart_abs_wl_heur_inv_def by fastforce
+      unfolding cdcl_twl_stgy_restart_abs_wl_heur_inv_def by fast
     subgoal by auto
     subgoal by auto
     subgoal by auto
     subgoal by auto
+    subgoal by fast
     subgoal by auto
     apply (rule twl_st_heur''; auto; fail)
     subgoal by auto
@@ -191,6 +196,7 @@ proof -
     apply (rule twl_st_heur'''; assumption)
     subgoal by (auto simp: isasat_fast_def uint64_max_def uint32_max_def)
     subgoal by auto
+    subgoal apply auto sorry
     subgoal by auto
     subgoal by auto
     subgoal by auto

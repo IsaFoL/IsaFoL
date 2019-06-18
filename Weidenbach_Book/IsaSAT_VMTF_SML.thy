@@ -407,10 +407,30 @@ sepref_definition vmtf_mark_to_rescore_also_reasons_code
 
 declare vmtf_mark_to_rescore_also_reasons_code.refine[sepref_fr_rules]
 
+(*TODO kill and ann an imp_for64*)
+sepref_definition (in-) isa_arena_lit_fast_code2
+  is \<open>uncurry isa_arena_lit\<close>
+  :: \<open>(arl64_assn uint32_assn)\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a uint32_assn\<close>
+  supply arena_el_assn_alt_def[symmetric, simp] sum_uint64_assn[sepref_fr_rules]
+  unfolding isa_arena_lit_def
+  by sepref
+
+declare isa_arena_lit_fast_code.refine
+
+lemma isa_arena_lit_fast_code_refine[sepref_fr_rules]:
+  \<open>(uncurry isa_arena_lit_fast_code2, uncurry (RETURN \<circ>\<circ> arena_lit))
+  \<in> [uncurry arena_lit_pre]\<^sub>a
+    arena_fast_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> unat_lit_assn\<close>
+  using isa_arena_lit_fast_code2.refine[FCOMP isa_arena_lit_arena_lit[unfolded convert_fref]]
+  unfolding hr_comp_assoc[symmetric] uncurry_def list_rel_compp
+  by (simp add: arl64_assn_comp)
+(*ENd Move*)
+thm isa_arena_lit_fast_code_refine
+find_theorems arena_lit arena_fast_assn
 sepref_definition vmtf_mark_to_rescore_clause_fast_code
   is \<open>uncurry2 (isa_vmtf_mark_to_rescore_clause)\<close>
   :: \<open>[\<lambda>((N, _), _). length N \<le> uint64_max]\<^sub>a
-       arena_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>d \<rightarrow> vmtf_remove_conc\<close>
+       arena_fast_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>d \<rightarrow> vmtf_remove_conc\<close>
   supply [[goals_limit=1]] arena_is_valid_clause_idx_le_uint64_max[intro]
   unfolding isa_vmtf_mark_to_rescore_clause_def PR_CONST_def nat_of_uint64_conv_def
   apply (rewrite at \<open>[\<hole>..<_]\<close> nat_of_uint64_conv_def[symmetric])
@@ -422,7 +442,7 @@ declare vmtf_mark_to_rescore_clause_fast_code.refine[sepref_fr_rules]
 sepref_definition vmtf_mark_to_rescore_also_reasons_fast_code
   is \<open>uncurry3 (isa_vmtf_mark_to_rescore_also_reasons)\<close>
   :: \<open>[\<lambda>(((_, N), _), _). length N \<le> uint64_max]\<^sub>a
-      trail_pol_fast_assn\<^sup>k *\<^sub>a arena_assn\<^sup>k *\<^sub>a (arl_assn unat_lit_assn)\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>d \<rightarrow>
+      trail_pol_fast_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a (arl_assn unat_lit_assn)\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>d \<rightarrow>
       vmtf_remove_conc\<close>
   supply image_image[simp] uminus_\<A>\<^sub>i\<^sub>n_iff[iff] in_diffD[dest] option.splits[split]
     in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n[simp]
@@ -432,6 +452,5 @@ sepref_definition vmtf_mark_to_rescore_also_reasons_fast_code
   by sepref
 
 declare vmtf_mark_to_rescore_also_reasons_fast_code.refine[sepref_fr_rules]
-
 
 end

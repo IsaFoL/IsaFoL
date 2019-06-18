@@ -133,6 +133,36 @@ fun apsnd f (x, y) = (x, f y);
 
 fun fst (x1, x2) = x1;
 
+fun arl_get A_ = (fn (a, _) => nth A_ a);
+
+fun arl_set A_ =
+  (fn (a, n) => fn i => fn x => fn () => let
+   val aa = upd A_ i x a ();
+ in
+   (aa, n)
+ end);
+
+fun max A_ a b = (if less_eq A_ a b then b else a);
+
+fun arl_swap A_ =
+  (fn ai => fn bia => fn bi => fn () => let
+  val x = arl_get A_ ai bia ();
+  val x_a = arl_get A_ ai bi ();
+  val x_b = arl_set A_ ai bia x_a ();
+in
+  arl_set A_ x_b bi x ()
+end);
+
+val one_nat : nat = Nat (1 : IntInf.int);
+
+fun less_nat m n = IntInf.< (integer_of_nat m, integer_of_nat n);
+
+fun arl_length A_ = (fn (_, a) => (fn () => a));
+
+fun plus_nat m n = Nat (IntInf.+ (integer_of_nat m, integer_of_nat n));
+
+val zero_nat : nat = Nat (0 : IntInf.int);
+
 fun divmod_integer k l =
   (if ((k : IntInf.int) = (0 : IntInf.int))
     then ((0 : IntInf.int), (0 : IntInf.int))
@@ -170,17 +200,11 @@ fun divide_nat m n = Nat (divide_integer (integer_of_nat m) (integer_of_nat n));
 
 fun less_eq_nat m n = IntInf.<= (integer_of_nat m, integer_of_nat n);
 
-fun max A_ a b = (if less_eq A_ a b then b else a);
-
 fun minus_nat m n =
   Nat (max ord_integer (0 : IntInf.int)
         (IntInf.- (integer_of_nat m, integer_of_nat n)));
 
 fun nat_of_integer k = Nat (max ord_integer (0 : IntInf.int) k);
-
-fun plus_nat m n = Nat (IntInf.+ (integer_of_nat m, integer_of_nat n));
-
-fun arl_get A_ = (fn (a, _) => nth A_ a);
 
 fun choose_pivot3_impl_code x =
   (fn ai => fn bia => fn bi =>
@@ -214,26 +238,6 @@ fun heap_WHILET b f s =
         else (fn () => s))
         ()
     end);
-
-fun less_nat m n = IntInf.< (integer_of_nat m, integer_of_nat n);
-
-val one_nat : nat = Nat (1 : IntInf.int);
-
-fun arl_set A_ =
-  (fn (a, n) => fn i => fn x => fn () => let
-   val aa = upd A_ i x a ();
- in
-   (aa, n)
- end);
-
-fun arl_swap A_ =
-  (fn ai => fn bia => fn bi => fn () => let
-  val x = arl_get A_ ai bia ();
-  val x_a = arl_get A_ ai bi ();
-  val x_b = arl_set A_ ai bia x_a ();
-in
-  arl_set A_ x_b bi x ()
-end);
 
 fun partition_main_code x =
   (fn ai => fn bia => fn bi => fn () =>
@@ -298,10 +302,6 @@ fun quicksort_code_0 x =
 
 fun quicksort_code x =
   (fn ai => fn bia => fn bi => quicksort_code_0 (ai, (bia, bi))) x;
-
-fun arl_length A_ = (fn (_, a) => (fn () => a));
-
-val zero_nat : nat = Nat (0 : IntInf.int);
 
 fun equal_nat m n = (((integer_of_nat m) : IntInf.int) = (integer_of_nat n));
 

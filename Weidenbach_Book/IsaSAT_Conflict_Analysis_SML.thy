@@ -140,6 +140,24 @@ sepref_definition update_confl_tl_wl_code
     two_uint64_nat_def[symmetric]
   by sepref
 
+  find_theorems mark_used arena_assn
+(*TODO Move *)
+
+sepref_definition isa_mark_used_fast_code2
+  is \<open>uncurry isa_mark_used\<close>
+  :: \<open>(arl64_assn uint32_assn)\<^sup>d *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a (arl64_assn uint32_assn)\<close>
+  supply four_uint32_hnr[sepref_fr_rules] STATUS_SHIFT_hnr[sepref_fr_rules]
+  unfolding isa_mark_used_def four_uint32_def[symmetric]
+  by sepref
+
+lemma isa_mark_used_fast_code[sepref_fr_rules]:
+  \<open>(uncurry isa_mark_used_fast_code2, uncurry (RETURN \<circ>\<circ> mark_used))
+     \<in> [uncurry arena_act_pre]\<^sub>a arena_fast_assn\<^sup>d *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow> arena_fast_assn\<close>
+  using isa_mark_used_fast_code2.refine[FCOMP isa_mark_used_mark_used[unfolded convert_fref]]
+  unfolding hr_comp_assoc[symmetric] list_rel_compp status_assn_alt_def uncurry_def
+  by (auto simp add: arl64_assn_comp update_lbd_pre_def)
+(*END Move*)
+thm isa_mark_used_code
 sepref_definition update_confl_tl_wl_fast_code
   is \<open>uncurry2 update_confl_tl_wl_heur\<close>
   :: \<open>[\<lambda>((i, L), S). update_confl_tl_wl_heur_pre ((i, L), S) \<and> isasat_fast S]\<^sub>a

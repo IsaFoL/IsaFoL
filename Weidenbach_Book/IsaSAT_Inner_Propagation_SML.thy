@@ -90,7 +90,7 @@ declare find_unwatched_wl_st_heur_code.refine[sepref_fr_rules]
 sepref_definition isa_find_unwatched_between_fast_code
   is \<open>uncurry4 isa_find_unset_lit\<close>
   :: \<open>[\<lambda>((((M, N), _), _), _). length N \<le> uint64_max]\<^sub>a
-     trail_pol_fast_assn\<^sup>k *\<^sub>a arena_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow>
+     trail_pol_fast_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow>
        option_assn uint64_nat_assn\<close>
   supply [[goals_limit = 1]]
   unfolding isa_find_unset_lit_def isa_find_unwatched_between_def SET_FALSE_def[symmetric]
@@ -110,7 +110,7 @@ sepref_definition find_unwatched_wl_st_heur_fast_code
             length (get_clauses_wl_heur S) \<le> uint64_max)]\<^sub>a
          isasat_bounded_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow> option_assn uint64_nat_assn\<close>
   supply [[goals_limit = 1]]
-    fmap_length_rll_def[simp] fmap_length_rll_u64_def[simp]
+    fmap_length_rll_def[simp]
     uint64_of_uint32_conv_hnr[sepref_fr_rules] isasat_fast_def[simp]
   unfolding isa_find_unwatched_wl_st_heur_def PR_CONST_def
     find_unwatched_def fmap_rll_def[symmetric] isasat_bounded_assn_def
@@ -347,7 +347,7 @@ sepref_definition set_conflict_wl_heur_fast_code
      length (get_clauses_wl_heur S) \<le> uint64_max]\<^sub>a
     uint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   supply [[goals_limit=1]]
-  unfolding set_conflict_wl_heur_def isasat_bounded_assn_def IICF_List_Mset.lms_fold_custom_empty
+  unfolding set_conflict_wl_heur_def isasat_bounded_assn_def
     set_conflict_wl_heur_pre_def PR_CONST_def
   by sepref
 

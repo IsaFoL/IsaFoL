@@ -280,7 +280,7 @@ sepref_definition resolve_lookup_conflict_merge_fast_code
   is \<open>uncurry6 isa_set_lookup_conflict\<close>
   :: \<open>[\<lambda>((((((M, N), i), (_, xs)), _), _), out). i < length N \<and>
          length N \<le> uint64_max]\<^sub>a
-      trail_pol_fast_assn\<^sup>k *\<^sub>a arena_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a conflict_option_rel_assn\<^sup>d *\<^sub>a
+      trail_pol_fast_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a conflict_option_rel_assn\<^sup>d *\<^sub>a
          uint32_nat_assn\<^sup>k *\<^sub>a lbd_assn\<^sup>d *\<^sub>a out_learned_assn\<^sup>d \<rightarrow>
       conflict_option_rel_assn *a uint32_nat_assn *a lbd_assn *a out_learned_assn\<close>
   supply length_rll_def[simp] nth_rll_def[simp] uint_max_def[simp]
@@ -333,7 +333,7 @@ declare set_lookup_conflict_aa_code.refine[sepref_fr_rules]
 sepref_definition set_lookup_conflict_aa_fast_code
   is \<open>uncurry6 isa_set_lookup_conflict_aa\<close>
   :: \<open>[\<lambda>((((((M, N), i), (_, xs)), _), _), _). length N \<le> uint64_max]\<^sub>a
-      trail_pol_fast_assn\<^sup>k *\<^sub>a arena_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a conflict_option_rel_assn\<^sup>d *\<^sub>a
+      trail_pol_fast_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a conflict_option_rel_assn\<^sup>d *\<^sub>a
          uint32_nat_assn\<^sup>k *\<^sub>a lbd_assn\<^sup>d  *\<^sub>a out_learned_assn\<^sup>d \<rightarrow>
       conflict_option_rel_assn *a uint32_nat_assn *a lbd_assn *a out_learned_assn\<close>
   supply length_rll_def[simp] nth_rll_def[simp] uint_max_def[simp]
@@ -392,7 +392,7 @@ sepref_definition resolve_merge_conflict_fast_code
   is \<open>uncurry6 isa_resolve_merge_conflict_gt2\<close>
   :: \<open>[uncurry6 (\<lambda>M N i (b, xs) clvls lbd outl. length N \<le> uint64_max \<and>
          isa_set_lookup_conflict_aa_pre ((((((M, N), i), (b, xs)), clvls), lbd), outl))]\<^sub>a
-      trail_pol_fast_assn\<^sup>k *\<^sub>a arena_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a conflict_option_rel_assn\<^sup>d *\<^sub>a
+      trail_pol_fast_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a conflict_option_rel_assn\<^sup>d *\<^sub>a
          uint32_nat_assn\<^sup>k *\<^sub>a lbd_assn\<^sup>d *\<^sub>a out_learned_assn\<^sup>d \<rightarrow>
       conflict_option_rel_assn *a uint32_nat_assn *a lbd_assn *a out_learned_assn\<close>
   supply length_rll_def[simp] nth_rll_def[simp] uint_max_def[simp]
@@ -511,7 +511,7 @@ sepref_definition isa_mark_failed_lits_stack_code
 sepref_definition isa_mark_failed_lits_stack_fast_code
   is \<open>uncurry2 (isa_mark_failed_lits_stack)\<close>
   :: \<open>[\<lambda>((N, _), _). length N \<le> uint64_max]\<^sub>a
-    arena_assn\<^sup>k *\<^sub>a analyse_refinement_fast_assn\<^sup>d *\<^sub>a cach_refinement_l_assn\<^sup>d \<rightarrow>
+    arena_fast_assn\<^sup>k *\<^sub>a analyse_refinement_fast_assn\<^sup>d *\<^sub>a cach_refinement_l_assn\<^sup>d \<rightarrow>
     cach_refinement_l_assn\<close>
   supply [[goals_limit = 1]] neq_Nil_revE[elim!] image_image[simp] length_rll_def[simp]
     mark_failed_lits_stack_inv_helper1[dest] mark_failed_lits_stack_inv_helper2[dest]
@@ -551,7 +551,7 @@ sepref_definition isa_get_literal_and_remove_of_analyse_wl_fast_code
   is \<open>uncurry (RETURN oo isa_get_literal_and_remove_of_analyse_wl)\<close>
   :: \<open>[\<lambda>(arena, analyse). isa_get_literal_and_remove_of_analyse_wl_pre arena analyse \<and>
          length arena \<le> uint64_max]\<^sub>a
-      arena_assn\<^sup>k *\<^sub>a analyse_refinement_fast_assn\<^sup>d \<rightarrow>
+      arena_fast_assn\<^sup>k *\<^sub>a analyse_refinement_fast_assn\<^sup>d \<rightarrow>
       unat_lit_assn *a analyse_refinement_fast_assn\<close>
   supply [[goals_limit=1]] arena_lit_pre_le2[dest]
   unfolding isa_get_literal_and_remove_of_analyse_wl_pre_def
@@ -565,7 +565,7 @@ declare isa_get_literal_and_remove_of_analyse_wl_fast_code.refine[sepref_fr_rule
 
 sepref_definition ana_lookup_conv_lookup_fast_code
   is \<open>uncurry (RETURN oo ana_lookup_conv_lookup)\<close>
-  :: \<open>[uncurry ana_lookup_conv_lookup_pre]\<^sub>a arena_assn\<^sup>k *\<^sub>a
+  :: \<open>[uncurry ana_lookup_conv_lookup_pre]\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a
     (uint64_nat_assn *a uint32_nat_assn *a bool_assn)\<^sup>k
      \<rightarrow> uint64_nat_assn *a uint64_nat_assn *a uint64_nat_assn *a uint64_nat_assn\<close>
   unfolding ana_lookup_conv_lookup_pre_def ana_lookup_conv_lookup_def
@@ -600,7 +600,7 @@ sepref_definition lit_redundant_reason_stack_wl_lookup_code
 sepref_definition lit_redundant_reason_stack_wl_lookup_fast_code
   is \<open>uncurry2 (RETURN ooo lit_redundant_reason_stack_wl_lookup)\<close>
   :: \<open>[uncurry2 lit_redundant_reason_stack_wl_lookup_pre]\<^sub>a
-      unat_lit_assn\<^sup>k *\<^sub>a arena_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow>
+      unat_lit_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow>
       ana_refinement_fast_assn\<close>
   unfolding lit_redundant_reason_stack_wl_lookup_def lit_redundant_reason_stack_wl_lookup_pre_def
     two_uint64_nat_def[symmetric] zero_uint32_nat_def[symmetric]
@@ -649,7 +649,7 @@ declare lit_redundant_rec_wl_lookup_code.refine[sepref_fr_rules]
 sepref_definition lit_redundant_rec_wl_lookup_fast_code
   is \<open>uncurry5 (isa_lit_redundant_rec_wl_lookup)\<close>
   :: \<open>[\<lambda>(((((M, NU), D), cach), analysis), lbd). length NU \<le> uint64_max]\<^sub>a
-      trail_pol_fast_assn\<^sup>k *\<^sub>a arena_assn\<^sup>k *\<^sub>a (uint32_nat_assn *a array_assn option_bool_assn)\<^sup>k *\<^sub>a
+      trail_pol_fast_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a (uint32_nat_assn *a array_assn option_bool_assn)\<^sup>k *\<^sub>a
         cach_refinement_l_assn\<^sup>d *\<^sub>a analyse_refinement_fast_assn\<^sup>d *\<^sub>a lbd_assn\<^sup>k \<rightarrow>
       cach_refinement_l_assn *a analyse_refinement_fast_assn *a bool_assn\<close>
   supply [[goals_limit = 1]] neq_Nil_revE[elim] image_image[simp]
@@ -722,7 +722,7 @@ declare literal_redundant_wl_lookup_code.refine[sepref_fr_rules]
 sepref_definition literal_redundant_wl_lookup_fast_code
   is \<open>uncurry5 isa_literal_redundant_wl_lookup\<close>
   :: \<open>[\<lambda>(((((M, NU), D), cach), L), lbd). length NU \<le> uint64_max]\<^sub>a
-      trail_pol_fast_assn\<^sup>k *\<^sub>a arena_assn\<^sup>k *\<^sub>a lookup_clause_rel_assn\<^sup>k *\<^sub>a
+      trail_pol_fast_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a lookup_clause_rel_assn\<^sup>k *\<^sub>a
       cach_refinement_l_assn\<^sup>d *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a lbd_assn\<^sup>k \<rightarrow>
       cach_refinement_l_assn *a analyse_refinement_fast_assn *a bool_assn\<close>
   supply [[goals_limit=1]] Pos_unat_lit_assn[sepref_fr_rules] Neg_unat_lit_assn[sepref_fr_rules]
@@ -769,7 +769,7 @@ declare minimize_and_extract_highest_lookup_conflict_code.refine[sepref_fr_rules
 sepref_definition minimize_and_extract_highest_lookup_conflict_fast_code
   is \<open>uncurry5 isa_minimize_and_extract_highest_lookup_conflict\<close>
   :: \<open>[\<lambda>(((((M, NU), D), cach), lbd), outl). length NU \<le> uint64_max]\<^sub>a
-       trail_pol_fast_assn\<^sup>k *\<^sub>a arena_assn\<^sup>k *\<^sub>a lookup_clause_rel_assn\<^sup>d *\<^sub>a
+       trail_pol_fast_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a lookup_clause_rel_assn\<^sup>d *\<^sub>a
         cach_refinement_l_assn\<^sup>d *\<^sub>a lbd_assn\<^sup>k *\<^sub>a out_learned_assn\<^sup>d \<rightarrow>
       lookup_clause_rel_assn *a cach_refinement_l_assn *a out_learned_assn\<close>
   supply [[goals_limit=1]] Pos_unat_lit_assn[sepref_fr_rules] Neg_unat_lit_assn[sepref_fr_rules]
@@ -805,7 +805,7 @@ sepref_definition isasat_lookup_merge_eq2_code
 sepref_definition isasat_lookup_merge_eq2_fast_code
   is \<open>uncurry7 isasat_lookup_merge_eq2\<close>
   :: \<open>[\<lambda>(((((((L, M), NU), _), _), _), _), _). length NU \<le> uint64_max]\<^sub>a
-     unat_lit_assn\<^sup>k *\<^sub>a trail_pol_fast_assn\<^sup>k  *\<^sub>a arena_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a
+     unat_lit_assn\<^sup>k *\<^sub>a trail_pol_fast_assn\<^sup>k  *\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a
        conflict_option_rel_assn\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a lbd_assn\<^sup>d *\<^sub>a out_learned_assn\<^sup>d \<rightarrow>
       conflict_option_rel_assn *a uint32_nat_assn *a lbd_assn *a out_learned_assn\<close>
   supply [[goals_limit = 1]]

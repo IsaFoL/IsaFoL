@@ -2998,9 +2998,9 @@ definition isasat_GC_clauses_prog_copy_wl_entry
   :: \<open>arena \<Rightarrow> (nat watcher) list list \<Rightarrow> nat literal \<Rightarrow>
          (arena \<times> _ \<times> _) \<Rightarrow> (arena \<times> (arena \<times> _ \<times> _)) nres\<close>
 where
-\<open>isasat_GC_clauses_prog_copy_wl_entry = (\<lambda>N W A (N', vdm, avdm). do {
+\<open>isasat_GC_clauses_prog_copy_wl_entry = (\<lambda>N0 W A (N', vdm, avdm). do {
     ASSERT(nat_of_lit A < length W);
-    ASSERT(length (W ! nat_of_lit A) \<le> length N);
+    ASSERT(length (W ! nat_of_lit A) \<le> length N0);
     let le = length (W ! nat_of_lit A);
     (i, N, N', vdm, avdm) \<leftarrow> WHILE\<^sub>T
       (\<lambda>(i, N, N', vdm, avdm). i < le)
@@ -3011,13 +3011,15 @@ where
         let st = arena_status N C;
         if st \<noteq> DELETED then do {
           ASSERT(arena_is_valid_clause_idx N C);
+          ASSERT(length N' + (if arena_length N C > 4 then 5 else 4) + arena_length N C \<le> length N0);
+          ASSERT(length N = length N0);
           let D = length N' + (if arena_length N C > 4 then 5 else 4);
           N' \<leftarrow> fm_mv_clause_to_new_arena C N N';
           ASSERT(mark_garbage_pre (N, C));
 	  RETURN (i+1, extra_information_mark_to_delete N C, N', vdm @ [D],
              (if st = LEARNED then avdm @ [D] else avdm))
         } else RETURN (i+1, N, (N', vdm, avdm))
-      }) (0, N, (N', vdm, avdm));
+      }) (0, N0, (N', vdm, avdm));
     RETURN (N, (N', vdm, avdm))
   })\<close>
 
@@ -3068,6 +3070,8 @@ proof -
    subgoal
      unfolding arena_is_valid_clause_idx_def
      by auto
+   subgoal apply auto sorry
+   subgoal apply auto sorry
    subgoal
      by (force dest: arena_lifting(2))
    subgoal by auto

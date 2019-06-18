@@ -2124,9 +2124,10 @@ proof -
     apply (rule rewatch_heur_st_rewatch_st2; assumption)
     apply (rule finalise_init_code2; assumption)
     subgoal for uu ba S T Ta baa uua uub Tb Tc Td Te
-      by (rule isasat_fast)
-    apply (rule cdcl_twl_stgy_restart_prog_early_wl_heur_cdcl_twl_stgy_restart_prog_early_wl_D[
+        by (rule isasat_fast)
+    apply (rule_tac r1 = \<open>length (get_clauses_wl_heur Td)\<close> in cdcl_twl_stgy_restart_prog_early_wl_heur_cdcl_twl_stgy_restart_prog_early_wl_D[
       THEN fref_to_Down])
+    subgoal by (auto simp: isasat_fast_def)
     subgoal by fast
     subgoal by fast
     subgoal premises p for _ ba S T Ta Tb Tc u v

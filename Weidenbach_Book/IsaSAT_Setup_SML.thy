@@ -2,6 +2,10 @@ theory IsaSAT_Setup_SML
   imports IsaSAT_Setup IsaSAT_Watch_List_SML IsaSAT_Lookup_Conflict_SML
     IsaSAT_Clauses_SML IsaSAT_Arena_SML LBD_SML
 begin
+(*TODO Move*)
+lemma [code]: "uint32_max_uint32 = 4294967295"
+  by (auto simp: uint32_max_uint32_def)
+(*END Move*)
 
 abbreviation stats_assn :: \<open>stats \<Rightarrow> stats \<Rightarrow> assn\<close> where
   \<open>stats_assn \<equiv> uint64_assn *a uint64_assn *a uint64_assn *a uint64_assn *a uint64_assn
@@ -266,6 +270,7 @@ abbreviation vdom_assn :: \<open>vdom \<Rightarrow> nat array_list \<Rightarrow>
 type_synonym vdom_assn = \<open>nat array_list\<close>
 
 type_synonym isasat_clauses_assn = \<open>uint32 array_list\<close>
+type_synonym isasat_clauses_fast_assn = \<open>uint32 array_list64\<close>
 
 abbreviation phase_saver_conc where
   \<open>phase_saver_conc \<equiv> array_assn bool_assn\<close>
@@ -277,10 +282,10 @@ type_synonym twl_st_wll_trail =
     vdom_assn \<times> vdom_assn \<times> nat \<times> opts \<times> isasat_clauses_assn\<close>
 
 type_synonym twl_st_wll_trail_fast =
-  \<open>trail_pol_fast_assn \<times> isasat_clauses_assn \<times> option_lookup_clause_assn \<times>
+  \<open>trail_pol_fast_assn \<times> isasat_clauses_fast_assn \<times> option_lookup_clause_assn \<times>
     uint32 \<times> watched_wl_uint32 \<times> vmtf_remove_assn \<times> phase_saver_assn \<times>
     uint32 \<times> minimize_assn \<times> lbd_assn \<times> out_learned_assn \<times> stats \<times> ema \<times> ema \<times> restart_info \<times>
-    vdom_assn \<times> vdom_assn \<times> uint64 \<times> opts \<times> isasat_clauses_assn\<close>
+    vdom_assn \<times> vdom_assn \<times> uint64 \<times> opts \<times> isasat_clauses_fast_assn\<close>
 
 definition isasat_unbounded_assn :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wll_trail \<Rightarrow> assn\<close> where
 \<open>isasat_unbounded_assn =
@@ -304,7 +309,7 @@ definition isasat_unbounded_assn :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_w
 
 definition isasat_bounded_assn :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wll_trail_fast \<Rightarrow> assn\<close> where
 \<open>isasat_bounded_assn =
-  trail_pol_fast_assn *a arena_assn *a
+  trail_pol_fast_assn *a arena_fast_assn *a
   isasat_conflict_assn *a
   uint32_nat_assn *a
   watchlist_fast_assn *a
@@ -320,13 +325,17 @@ definition isasat_bounded_assn :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wll
   vdom_assn *a
   vdom_assn *a
   uint64_nat_assn *a
-  opts_assn *a arena_assn\<close>
-
+  opts_assn *a arena_fast_assn\<close>
+find_theorems name:arl64 name:arl
 sepref_definition isasat_fast_slow_code
   is \<open>isasat_fast_slow\<close>
-  :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_unbounded_assn\<close>
+  :: \<open>[\<lambda>S. length(get_clauses_wl_heur S) \<le> uint64_max \<and>
+        length (get_old_arena S) \<le> uint64_max]\<^sub>a
+      isasat_bounded_assn\<^sup>d \<rightarrow> isasat_unbounded_assn\<close>
   supply [[goals_limit=1]]
   unfolding isasat_bounded_assn_def isasat_unbounded_assn_def isasat_fast_slow_def
+  apply (rewrite at \<open>(_, \<hole>, _)\<close> arl64_to_arl_conv_def[symmetric])
+  apply (rewrite at \<open>(_, _, nat_of_uint64_conv _, _, \<hole>)\<close> arl64_to_arl_conv_def[symmetric])
   by sepref
 
 declare isasat_fast_slow_code.refine[sepref_fr_rules]
@@ -440,7 +449,7 @@ sepref_register append_ll
 sepref_definition rewatch_heur_fast_code
   is \<open>uncurry2 (rewatch_heur)\<close>
   :: \<open>[\<lambda>((vdom, arena), W). (\<forall>x \<in> set vdom. x \<le> uint64_max) \<and> length arena \<le> uint64_max]\<^sub>a
-        vdom_assn\<^sup>k *\<^sub>a arena_assn\<^sup>k *\<^sub>a watchlist_fast_assn\<^sup>d \<rightarrow> watchlist_fast_assn\<close>
+        vdom_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a watchlist_fast_assn\<^sup>d \<rightarrow> watchlist_fast_assn\<close>
   supply [[goals_limit=1]] uint64_of_nat_conv_def[simp]
      arena_lit_pre_le_uint64_max[intro] append_aa64_hnr[sepref_fr_rules]
   unfolding rewatch_heur_alt_def Let_def two_uint64_nat_def[symmetric] PR_CONST_def
