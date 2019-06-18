@@ -33,7 +33,7 @@ proof -
     unfolding cdcl_twl_stgy_restart_prog_wl_heur_def cdcl_twl_stgy_restart_prog_wl_D_def
     apply (intro frefI nres_relI)
     apply (refine_rcg
-        restart_prog_wl_D_heur_restart_prog_wl_D[THEN fref_to_Down_curry2]
+        restart_prog_wl_D_heur_restart_prog_wl_D2[THEN fref_to_Down_curry2]
         cdcl_twl_o_prog_wl_D_heur_cdcl_twl_o_prog_wl_D2[THEN fref_to_Down]
         cdcl_twl_stgy_prog_wl_D_heur_cdcl_twl_stgy_prog_wl_D[THEN fref_to_Down]
         unit_propagation_outer_loop_wl_D_heur_unit_propagation_outer_loop_wl_D[THEN fref_to_Down]
@@ -78,7 +78,6 @@ where
     ASSERT(length (get_clauses_wl_heur T) \<le> uint64_max \<and>
         get_old_arena T = []);
     if \<not>brk then do {
-       ASSERT(length (get_clauses_wl_heur T) \<le> uint64_max);
        T \<leftarrow> isasat_fast_slow T;
        (brk, T, _) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(brk, T, n). cdcl_twl_stgy_restart_abs_wl_heur_inv S\<^sub>0 brk T n\<^esup>
 	         (\<lambda>(brk, _). \<not>brk)
@@ -156,6 +155,19 @@ proof -
     \<in> twl_st_heur''' r\<close>
     for x1e x1b r \<D>
     by (auto simp: twl_st_heur'_def)
+  have H: \<open>(xb, x'a)
+    \<in> bool_rel \<times>\<^sub>f
+      twl_st_heur'''' (length (get_clauses_wl_heur x1e) + 6 + uint_max div 2) \<Longrightarrow>
+    x'a = (x1f, x2f) \<Longrightarrow>
+    xb = (x1g, x2g) \<Longrightarrow>
+    (x1g, x1f) \<in> bool_rel \<Longrightarrow>
+    (x2e, x2b) \<in> nat_rel \<Longrightarrow>
+    (((x2g, x2e), x1g), (x2f, x2b), x1f)
+    \<in> twl_st_heur''' (length (get_clauses_wl_heur x2g)) \<times>\<^sub>f
+      nat_rel \<times>\<^sub>f
+      bool_rel\<close> for x y ebrk ebrka xa x' x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e T Ta xb
+       x'a x1f x2f x1g x2g
+    by auto
   have abs_inv: \<open>(x, y) \<in> twl_st_heur''' r \<Longrightarrow>
     (ebrk, ebrka) \<in> {(b, b'). b = b' \<and> b = (\<not> isasat_fast x)} \<Longrightarrow>
     (xb, x'a) \<in> bool_rel \<times>\<^sub>f (twl_st_heur \<times>\<^sub>f nat_rel) \<Longrightarrow>
@@ -168,6 +180,13 @@ proof -
    for x y ebrk ebrka xa x' x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d
        x1e x2e T Ta xb x'a x1f x2f x1g x2g
     unfolding cdcl_twl_stgy_restart_abs_wl_heur_inv_def by fastforce
+thm restart_prog_wl_D_heur_restart_prog_wl_D[THEN fref_to_Down_curry2]
+        cdcl_twl_o_prog_wl_D_heur_cdcl_twl_o_prog_wl_D[THEN fref_to_Down]
+        unit_propagation_outer_loop_wl_D_heur_unit_propagation_outer_loop_wl_D'[THEN fref_to_Down]
+        WHILEIT_refine[where R = \<open>bool_rel \<times>\<^sub>r twl_st_heur \<times>\<^sub>r nat_rel\<close>]
+        WHILEIT_refine[where R = \<open>{((ebrk, brk, T,n), (ebrk', brk', T', n')).
+	    (ebrk = ebrk') \<and> (brk = brk') \<and> (T, T')  \<in> twl_st_heur \<and> n = n' \<and>
+	      (\<not>ebrk \<longrightarrow> isasat_fast T) \<and> length (get_clauses_wl_heur T) \<le> uint64_max}\<close>]
   show ?thesis
     supply[[goals_limit=1]] isasat_fast_length_leD[dest] twl_st_heur'_def[simp]
     unfolding cdcl_twl_stgy_restart_prog_early_wl_heur_def
@@ -195,15 +214,20 @@ proof -
     subgoal by auto
     apply (rule twl_st_heur'''; assumption)
     subgoal by (auto simp: isasat_fast_def uint64_max_def uint32_max_def)
+    apply (rule H; assumption?)
     subgoal by auto
-    subgoal apply auto sorry
     subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by (subst (asm)(2) twl_st_heur_def) force
     subgoal by auto
     subgoal by auto
     subgoal by (rule abs_inv)
     subgoal by auto
     apply (rule twl_st_heur''; auto; fail)
     apply (rule twl_st_heur'''; assumption)
+    apply (rule H; assumption?)
+    subgoal by auto
     subgoal by auto
     subgoal by auto
     subgoal by auto

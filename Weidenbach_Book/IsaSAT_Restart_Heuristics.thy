@@ -49,6 +49,16 @@ definition twl_st_heur_restart :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl)
     distinct vdom \<and> old_arena = []
   }\<close>
 
+
+abbreviation twl_st_heur'''' where
+  \<open>twl_st_heur'''' r \<equiv> {(S, T). (S, T) \<in> twl_st_heur \<and> length (get_clauses_wl_heur S) \<le> r}\<close>
+
+abbreviation twl_st_heur_restart''' where
+  \<open>twl_st_heur_restart''' r \<equiv> {(S, T). (S, T) \<in> twl_st_heur_restart \<and> length (get_clauses_wl_heur S) = r}\<close>
+
+abbreviation twl_st_heur_restart'''' where
+  \<open>twl_st_heur_restart'''' r \<equiv> {(S, T). (S, T) \<in> twl_st_heur_restart \<and> length (get_clauses_wl_heur S) \<le> r}\<close>
+
 definition twl_st_heur_restart_ana :: \<open>nat \<Rightarrow> (twl_st_wl_heur \<times> nat twl_st_wl) set\<close> where
 \<open>twl_st_heur_restart_ana r = {(S, T). (S, T) \<in> twl_st_heur_restart \<and> length (get_clauses_wl_heur S) = r}\<close>
 
@@ -273,7 +283,7 @@ lemma trail_pol_no_dup: \<open>(M, M') \<in> trail_pol \<A> \<Longrightarrow> no
 
 lemma cdcl_twl_local_restart_wl_D_heur_cdcl_twl_local_restart_wl_D_spec:
   \<open>(cdcl_twl_local_restart_wl_D_heur, cdcl_twl_local_restart_wl_D_spec) \<in>
-    twl_st_heur \<rightarrow>\<^sub>f \<langle>twl_st_heur\<rangle>nres_rel\<close>
+    twl_st_heur''' r \<rightarrow>\<^sub>f \<langle>twl_st_heur''' r\<rangle>nres_rel\<close>
 proof -
   have K: \<open>( (case S of
                (M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, stats, fema, sema,
@@ -419,6 +429,7 @@ proof -
     subgoal unfolding restart_abs_wl_heur_pre_def by blast
     apply assumption
     subgoal by (auto simp: twl_st_heur_def count_decided_st_heur_def trail_pol_def)
+    subgoal by auto
     apply (rule P)
     apply assumption+
       apply (rule refine_generalise1)
@@ -1533,7 +1544,7 @@ definition cdcl_twl_full_restart_wl_prog_heur where
 
 lemma cdcl_twl_full_restart_wl_prog_heur_cdcl_twl_full_restart_wl_prog_D:
   \<open>(cdcl_twl_full_restart_wl_prog_heur, cdcl_twl_full_restart_wl_prog_D) \<in>
-     twl_st_heur \<rightarrow>\<^sub>f \<langle>twl_st_heur\<rangle>nres_rel\<close>
+     twl_st_heur''' r \<rightarrow>\<^sub>f \<langle>twl_st_heur''' r\<rangle>nres_rel\<close>
   unfolding cdcl_twl_full_restart_wl_prog_heur_def cdcl_twl_full_restart_wl_prog_D_def
   apply (intro frefI nres_relI)
   apply (refine_vcg
@@ -1543,9 +1554,10 @@ lemma cdcl_twl_full_restart_wl_prog_heur_cdcl_twl_full_restart_wl_prog_D:
     by fast
   apply (rule twl_st_heur_restartD)
   subgoal
-    by (subst mark_to_delete_clauses_wl_D_heur_pre_twl_st_heur[symmetric])
+    by (subst mark_to_delete_clauses_wl_D_heur_pre_twl_st_heur[symmetric]) auto
   subgoal
-    by (subst mark_to_delete_clauses_wl_post_twl_st_heur, assumption, rule twl_st_heur_restart_anaD)
+    by (auto simp: mark_to_delete_clauses_wl_post_twl_st_heur twl_st_heur_restart_anaD)
+     (auto simp: twl_st_heur_restart_ana_def)
   done
 
 definition cdcl_twl_restart_wl_heur where
@@ -1558,7 +1570,7 @@ definition cdcl_twl_restart_wl_heur where
 
 lemma cdcl_twl_restart_wl_heur_cdcl_twl_restart_wl_D_prog:
   \<open>(cdcl_twl_restart_wl_heur, cdcl_twl_restart_wl_D_prog) \<in>
-    twl_st_heur \<rightarrow>\<^sub>f \<langle>twl_st_heur\<rangle>nres_rel\<close>
+    twl_st_heur''' r \<rightarrow>\<^sub>f \<langle>twl_st_heur''' r\<rangle>nres_rel\<close>
   unfolding cdcl_twl_restart_wl_D_prog_def cdcl_twl_restart_wl_heur_def
   apply (intro frefI nres_relI)
   apply (refine_rcg
@@ -3682,10 +3694,12 @@ lemma ref_two_step'': \<open>R \<subseteq> R' \<Longrightarrow> A \<le> B \<Long
 
 lemma isasat_GC_clauses_prog_wl_cdcl_remap_st:
   assumes
-    \<open>(x, y) \<in> twl_st_heur_restart\<close> and
+    \<open>(x, y) \<in> twl_st_heur_restart''' r\<close> and
     \<open>cdcl_GC_clauses_pre_wl_D y\<close>
   shows \<open>isasat_GC_clauses_prog_wl x \<le> \<Down> (isasat_GC_clauses_rel y) (cdcl_remap_st y)\<close>
 proof -
+  have xy: \<open>(x, y) \<in> twl_st_heur_restart\<close>
+    using assms(1) by fast
   have H: \<open>isasat_GC_clauses_rel y =
     {(S, T). (S, T) \<in> twl_st_heur_restart \<and> arena_is_packed (get_clauses_wl_heur S) (get_clauses_wl T)} O
     {(S, T). S = T \<and> (\<forall>L\<in>#all_init_lits_st y. get_watched_wl T L = [])\<and>
@@ -3700,7 +3714,7 @@ proof -
     using assms apply -
     apply (rule order_trans[OF isasat_GC_clauses_prog_wl[THEN fref_to_Down]])
     subgoal by fast
-    apply assumption
+    apply (rule xy)
     unfolding conc_fun_chain[symmetric] H
     apply (rule ref_two_step')
     unfolding cdcl_GC_clauses_pre_wl_D_def cdcl_GC_clauses_pre_wl_def
@@ -3857,7 +3871,7 @@ lemma rewatch_heur_st_correct_watching:
   assumes
     pre: \<open>cdcl_GC_clauses_pre_wl_D y\<close> and
     S_T: \<open>(S, T) \<in> isasat_GC_clauses_rel y\<close>
-  shows \<open>rewatch_heur_st S \<le> \<Down> (twl_st_heur_restart)
+  shows \<open>rewatch_heur_st S \<le> \<Down> (twl_st_heur_restart''' (length (get_clauses_wl_heur S)))
     (rewatch_spec T)\<close>
 proof -
   obtain M N D NE UE Q W where
@@ -4088,7 +4102,7 @@ lemma rtranclp_GC_remap_dom_m:
 
 lemma isasat_GC_clauses_rel_packed_le:
   assumes
-    xy: \<open>(x, y) \<in> twl_st_heur_restart\<close> and
+    xy: \<open>(x, y) \<in> twl_st_heur_restart''' r\<close> and
     ST: \<open>(S, T) \<in> isasat_GC_clauses_rel y\<close>
   shows \<open>length (get_clauses_wl_heur S) \<le> length (get_clauses_wl_heur x)\<close> and
      \<open>\<forall>C \<in> set (get_vdom S). C < length (get_clauses_wl_heur x)\<close>
@@ -4126,16 +4140,18 @@ qed
 
 lemma isasat_GC_clauses_wl_D:
   \<open>(isasat_GC_clauses_wl_D, cdcl_GC_clauses_wl_D)
-    \<in> twl_st_heur_restart \<rightarrow>\<^sub>f \<langle>twl_st_heur_restart\<rangle>nres_rel\<close>
+    \<in> twl_st_heur_restart''' r \<rightarrow>\<^sub>f \<langle>twl_st_heur_restart'''' r\<rangle>nres_rel\<close>
   unfolding isasat_GC_clauses_wl_D_def cdcl_GC_clauses_wl_D_alt_def
   apply (intro frefI nres_relI)
-  apply (refine_vcg isasat_GC_clauses_prog_wl_cdcl_remap_st
+  apply (refine_vcg isasat_GC_clauses_prog_wl_cdcl_remap_st[where r=r]
     rewatch_heur_st_correct_watching)
   subgoal unfolding isasat_GC_clauses_pre_wl_D_def by blast
   subgoal by fast
   subgoal by (rule isasat_GC_clauses_rel_packed_le)
   subgoal by (rule isasat_GC_clauses_rel_packed_le(2))
   apply assumption+
+  subgoal by (auto)
+  subgoal by (auto)
   done
 
 
@@ -4161,17 +4177,17 @@ definition cdcl_twl_full_restart_wl_D_GC_heur_prog where
 lemma
     cdcl_twl_full_restart_wl_GC_prog_pre_heur:
       \<open>cdcl_twl_full_restart_wl_GC_prog_pre T \<Longrightarrow>
-        (S, T) \<in> twl_st_heur \<longleftrightarrow> (S, T) \<in> twl_st_heur_restart\<close> (is \<open>_ \<Longrightarrow> _ ?B\<close>) and
+        (S, T) \<in> twl_st_heur''' r \<longleftrightarrow> (S, T) \<in> twl_st_heur_restart_ana r\<close> (is \<open>_ \<Longrightarrow> _ ?A\<close>) and
      cdcl_twl_full_restart_wl_D_GC_prog_post_heur:
        \<open>cdcl_twl_full_restart_wl_D_GC_prog_post S0 T \<Longrightarrow>
-        (S, T) \<in> twl_st_heur \<longleftrightarrow> (S, T) \<in> twl_st_heur_restart\<close>
+        (S, T) \<in> twl_st_heur \<longleftrightarrow> (S, T) \<in> twl_st_heur_restart\<close>  (is \<open>_ \<Longrightarrow> _ ?B\<close>)
 proof -
   note cong =  trail_pol_cong
       option_lookup_clause_rel_cong D\<^sub>0_cong isa_vmtf_cong phase_saving_cong
       cach_refinement_empty_cong vdom_m_cong isasat_input_nempty_cong
       isasat_input_bounded_cong
 
-  show \<open>cdcl_twl_full_restart_wl_GC_prog_pre T \<Longrightarrow> ?B\<close>
+  show \<open>cdcl_twl_full_restart_wl_GC_prog_pre T \<Longrightarrow> ?A\<close>
     supply [[goals_limit=1]]
     unfolding cdcl_twl_full_restart_wl_GC_prog_pre_def cdcl_twl_full_restart_l_GC_prog_pre_def
     apply normalize_goal+
@@ -4183,14 +4199,16 @@ proof -
       apply -
       apply (simp_all del: isasat_input_nempty_def isasat_input_bounded_def)
       apply (cases S; cases T)
-      by (simp add: twl_st_heur_def twl_st_heur_restart_def del: isasat_input_nempty_def)
+      by (simp add: twl_st_heur_def twl_st_heur_restart_ana_def
+        twl_st_heur_restart_def del: isasat_input_nempty_def)
     subgoal for U V
       using literals_are_\<L>\<^sub>i\<^sub>n'_literals_are_\<L>\<^sub>i\<^sub>n_iff(3)[of T U V]
         cong[of \<open>all_init_atms_st T\<close> \<open>all_atms_st T\<close>]
 	vdom_m_cong[of \<open>all_init_atms_st T\<close> \<open>all_atms_st T\<close> \<open>get_watched_wl T\<close> \<open>get_clauses_wl T\<close>]
       apply -
-      apply (cases S; cases T)
-      by (simp add: twl_st_heur_def twl_st_heur_restart_def del: isasat_input_nempty_def)
+      by (cases S; cases T)
+         (simp add: twl_st_heur_def twl_st_heur_restart_ana_def
+        twl_st_heur_restart_def del: isasat_input_nempty_def)
     done
   show \<open>cdcl_twl_full_restart_wl_D_GC_prog_post S0 T \<Longrightarrow> ?B\<close>
     supply [[goals_limit=1]]
@@ -4226,16 +4244,16 @@ qed
 
 lemma cdcl_twl_full_restart_wl_D_GC_heur_prog:
   \<open>(cdcl_twl_full_restart_wl_D_GC_heur_prog, cdcl_twl_full_restart_wl_D_GC_prog) \<in>
-    twl_st_heur \<rightarrow>\<^sub>f \<langle>twl_st_heur\<rangle>nres_rel\<close>
+    twl_st_heur''' r \<rightarrow>\<^sub>f \<langle>twl_st_heur'''' r\<rangle>nres_rel\<close>
   unfolding cdcl_twl_full_restart_wl_D_GC_heur_prog_def
     cdcl_twl_full_restart_wl_D_GC_prog_def
   apply (intro frefI nres_relI)
   apply (refine_rcg cdcl_twl_local_restart_wl_spec0
-    remove_one_annot_true_clause_imp_wl_D_heur_remove_one_annot_true_clause_imp_wl_D[THEN fref_to_Down]
-    mark_to_delete_clauses_wl_D_heur_mark_to_delete_clauses_wl2_D[THEN fref_to_Down]
-    isasat_GC_clauses_wl_D[THEN fref_to_Down])
+    remove_one_annot_true_clause_imp_wl_D_heur_remove_one_annot_true_clause_imp_wl_D[where r=r, THEN fref_to_Down]
+    mark_to_delete_clauses_wl_D_heur_mark_to_delete_clauses_wl2_D[where r=r, THEN fref_to_Down]
+    isasat_GC_clauses_wl_D[where r=r, THEN fref_to_Down])
   apply (subst (asm) cdcl_twl_full_restart_wl_GC_prog_pre_heur, assumption)
-  apply (rule twl_st_heur_restartD, assumption)
+  apply assumption
   subgoal
     unfolding cdcl_twl_full_restart_wl_GC_prog_pre_def
       cdcl_twl_full_restart_l_GC_prog_pre_def
@@ -4243,10 +4261,8 @@ lemma cdcl_twl_full_restart_wl_D_GC_heur_prog:
   subgoal by (auto simp: twl_st_heur_restart_ana_def)
   apply assumption
   subgoal by (auto simp: twl_st_heur_restart_ana_def)
-  apply assumption
   subgoal by (auto simp: twl_st_heur_restart_ana_def)
-  subgoal for x y
-    by (blast dest: twl_st_heur_restart_anaD)
+  subgoal by (auto simp: twl_st_heur_restart_ana_def)
   subgoal for x y
     by (blast dest: cdcl_twl_full_restart_wl_D_GC_prog_post_heur)
   done
@@ -4278,9 +4294,16 @@ lemma restart_required_heur_restart_required_wl:
     by (intro frefI nres_relI)
      (auto simp: twl_st_heur_def get_learned_clss_wl_def)
 
+lemma restart_required_heur_restart_required_wl0:
+  \<open>(uncurry restart_required_heur, uncurry restart_required_wl) \<in>
+    twl_st_heur''' r \<times>\<^sub>f nat_rel \<rightarrow>\<^sub>f \<langle>bool_rel\<rangle>nres_rel\<close>
+    unfolding restart_required_heur_def restart_required_wl_def uncurry_def Let_def
+    by (intro frefI nres_relI)
+     (auto simp: twl_st_heur_def get_learned_clss_wl_def)
+
 lemma restart_prog_wl_D_heur_restart_prog_wl_D:
   \<open>(uncurry2 restart_prog_wl_D_heur, uncurry2 restart_prog_wl_D) \<in>
-    twl_st_heur \<times>\<^sub>f nat_rel \<times>\<^sub>f bool_rel  \<rightarrow>\<^sub>f \<langle>twl_st_heur \<times>\<^sub>f nat_rel\<rangle>nres_rel\<close>
+    twl_st_heur''' r \<times>\<^sub>f nat_rel \<times>\<^sub>f bool_rel  \<rightarrow>\<^sub>f \<langle>twl_st_heur'''' r \<times>\<^sub>f nat_rel\<rangle>nres_rel\<close>
 proof -
   have [refine0]: \<open>GC_required_heur S n \<le> SPEC (\<lambda>_. True)\<close> for S n
     by (auto simp: GC_required_heur_def)
@@ -4288,9 +4311,9 @@ proof -
     unfolding restart_prog_wl_D_heur_def restart_prog_wl_D_def uncurry_def
     apply (intro frefI nres_relI)
     apply (refine_rcg
-        restart_required_heur_restart_required_wl[THEN fref_to_Down_curry]
-        cdcl_twl_restart_wl_heur_cdcl_twl_restart_wl_D_prog[THEN fref_to_Down]
-        cdcl_twl_full_restart_wl_D_GC_heur_prog[THEN fref_to_Down])
+        restart_required_heur_restart_required_wl0[where r=r, THEN fref_to_Down_curry]
+        cdcl_twl_restart_wl_heur_cdcl_twl_restart_wl_D_prog[where r=r, THEN fref_to_Down]
+        cdcl_twl_full_restart_wl_D_GC_heur_prog[where r=r, THEN fref_to_Down])
     subgoal by auto
     subgoal by auto
     subgoal by auto
@@ -4301,6 +4324,17 @@ proof -
     subgoal by auto
     done
  qed
+
+
+lemma restart_prog_wl_D_heur_restart_prog_wl_D2:
+  \<open>(uncurry2 restart_prog_wl_D_heur, uncurry2 restart_prog_wl_D) \<in>
+  twl_st_heur \<times>\<^sub>f nat_rel \<times>\<^sub>f bool_rel  \<rightarrow>\<^sub>f \<langle>twl_st_heur \<times>\<^sub>f nat_rel\<rangle>nres_rel\<close>
+  apply (intro frefI nres_relI)
+  apply (rule_tac r2 = \<open>length(get_clauses_wl_heur (fst (fst x)))\<close> and x'1 = \<open>y\<close> in
+    order_trans[OF restart_prog_wl_D_heur_restart_prog_wl_D[THEN fref_to_Down]])
+  apply fast
+  apply (auto intro!: conc_fun_R_mono)
+  done
 
 definition isasat_trail_nth_st :: \<open>twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> nat literal nres\<close> where
 \<open>isasat_trail_nth_st S i = isa_trail_nth (get_trail_wl_heur S) i\<close>
