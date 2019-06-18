@@ -3801,7 +3801,7 @@ proof -
     subgoal for x xa l1 l2 \<sigma>  using H[of xa] unfolding I_def apply -
       by (rule, subst (asm)nth_eq_iff_index_eq)
         linarith+
-    subgoal for x xa l1 l2 \<sigma> unfolding I_def by (rule le)
+    subgoal for x xa l1 l2 \<sigma> unfolding I_def by (rule le) (auto intro!: nth_mem)
     subgoal for x xa l1 l2 \<sigma> unfolding I_def by (drule le[where L = \<open>N \<propto> xa ! 1\<close>]) (auto simp: I_def dest!: le)
     subgoal for x xa l1 l2 \<sigma>
       unfolding I_def
@@ -4015,13 +4015,15 @@ proof -
     apply (rule rewatch_correctness[where M=M and N=N and NE=NE and UE=UE and C=D and Q=Q])
     apply (rule empty[unfolded all_init_lits_def]; assumption)
     apply (rule struct_wf; assumption)
+    subgoal using lits eq2 by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_mm_def all_init_atms_def all_init_lits_def
+         \<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_all_lits_of_mm
+       simp del: all_init_atms_def[symmetric])
     apply (subst conc_fun_RES)
     apply (rule order.refl)
    apply (fastforce simp: rewatch_spec_def RETURN_RES_refine_iff NUE
       intro: corr2 blit2 st)
     done
 qed
-
 
 lemma GC_remap_dom_m_subset:
   \<open>GC_remap (old, m, new) (old', m', new') \<Longrightarrow> dom_m old' \<subseteq># dom_m old\<close>
