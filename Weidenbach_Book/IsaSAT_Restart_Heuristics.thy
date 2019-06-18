@@ -2062,7 +2062,7 @@ lemma remove_one_annot_true_clause_imp_wl_D_heur_remove_one_annot_true_clause_im
     apply auto
     done
   subgoal by auto
-  subgoal sorry
+  subgoal sor ry
   subgoal by auto
   done
 
@@ -3030,9 +3030,12 @@ lemma isasat_GC_clauses_prog_copy_wl_entry:
     W: \<open>(W' , W) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 \<A>)\<close> and
     \<open>dom_m N' = mset vdom\<close> \<open>distinct vdom\<close> and
    \<open>arena_is_packed arena' N'\<close> and
-   avdom: \<open>mset avdom \<subseteq># mset vdom\<close>
+    avdom: \<open>mset avdom \<subseteq># mset vdom\<close> and
+    r: \<open>length arena = r\<close> and
+    le: \<open>\<forall>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>. length (W L) \<le> length arena\<close>
   shows \<open>isasat_GC_clauses_prog_copy_wl_entry arena W' A' (arena', vdom, avdom)
-     \<le> \<Down> ({(arena, N'). valid_arena arena N' vdom0 \<and> vdom_m \<A> W N' \<subseteq> vdom0 \<and> dom_m N' \<subseteq># dom_m N} \<times>\<^sub>f
+     \<le> \<Down> ({(arena, N'). valid_arena arena N' vdom0 \<and> vdom_m \<A> W N' \<subseteq> vdom0 \<and> dom_m N' \<subseteq># dom_m N \<and>
+             length arena = r} \<times>\<^sub>f
     {((arena, vdom, avdom), N). valid_arena arena N (set vdom) \<and> dom_m N = mset vdom \<and> distinct vdom \<and>
      arena_is_packed arena N \<and> mset avdom \<subseteq># mset vdom})
          (cdcl_GC_clauses_prog_copy_wl_entry N (W A) A N')\<close>
@@ -3047,7 +3050,7 @@ proof -
     unfolding isasat_GC_clauses_prog_copy_wl_entry_def cdcl_GC_clauses_prog_copy_wl_entry_def prod.case A
     apply (refine_vcg WHILET_refine[where R = \<open>nat_rel \<times>\<^sub>r ?R\<^sub>1 \<times>\<^sub>r ?R\<^sub>2\<close>])
     subgoal using A_le by auto
-    subgoal sorry
+    subgoal using le L K by (cases A) (auto dest!: multi_member_split simp: \<L>\<^sub>a\<^sub>l\<^sub>l_add_mset)
     subgoal using assms by auto
     subgoal using W L by auto
     subgoal by auto
@@ -3099,18 +3102,21 @@ where
   })\<close>
 
 definition isasat_GC_refl :: \<open>_\<close> where
-\<open>isasat_GC_refl \<A> vdom0 = {((arena\<^sub>o, (arena, vdom, avdom), W), (N\<^sub>o, N, W')). valid_arena arena\<^sub>o N\<^sub>o vdom0 \<and> valid_arena arena N (set vdom) \<and>
+\<open>isasat_GC_refl \<A> vdom0 arena_old = {((arena\<^sub>o, (arena, vdom, avdom), W), (N\<^sub>o, N, W')). valid_arena arena\<^sub>o N\<^sub>o vdom0 \<and> valid_arena arena N (set vdom) \<and>
      (W, W') \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 \<A>) \<and> vdom_m \<A> W' N\<^sub>o \<subseteq> vdom0 \<and> dom_m N = mset vdom \<and> distinct vdom \<and>
-    arena_is_packed arena N \<and> mset avdom \<subseteq># mset vdom}\<close>
+    arena_is_packed arena N \<and> mset avdom \<subseteq># mset vdom \<and> length arena\<^sub>o = length arena_old \<and>
+    (\<forall>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>. length (W' L) \<le> length arena\<^sub>o)}\<close>
 
 lemma isasat_GC_clauses_prog_single_wl:
   assumes
-    \<open>(X, X') \<in> isasat_GC_refl \<A> vdom0\<close> and
+    \<open>(X, X') \<in> isasat_GC_refl \<A> vdom0 arena0\<close> and
     X: \<open>X = (arena, (arena', vdom, avdom), W)\<close> \<open>X' = (N, N', W')\<close> and
     L: \<open>A \<in># \<A>\<close> and
-    st: \<open>(A, A') \<in> Id\<close> and st': \<open>narena = (arena', vdom, avdom)\<close>
+    st: \<open>(A, A') \<in> Id\<close> and st': \<open>narena = (arena', vdom, avdom)\<close> and
+    ae: \<open>length arena0 = length arena\<close> and
+    le_all: \<open>\<forall>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>. length (W' L) \<le> length arena\<close>
   shows \<open>isasat_GC_clauses_prog_single_wl arena narena  W A
-     \<le> \<Down> (isasat_GC_refl \<A> vdom0)
+     \<le> \<Down> (isasat_GC_refl \<A> vdom0 arena0)
          (cdcl_GC_clauses_prog_single_wl N W' A' N')\<close>
      (is \<open>_ \<le> \<Down> ?R _\<close>)
 proof -
@@ -3150,7 +3156,7 @@ proof -
     unfolding isasat_GC_clauses_prog_single_wl_def
       cdcl_GC_clauses_prog_single_wl_def eq st' isasat_GC_refl_def
     apply (refine_vcg
-      isasat_GC_clauses_prog_copy_wl_entry)
+      isasat_GC_clauses_prog_copy_wl_entry[where r= \<open>length arena\<close>])
     subgoal using le by auto
     subgoal using le by auto
     apply (rule H(1); fail)
@@ -3164,7 +3170,9 @@ proof -
     subgoal using dist by blast
     subgoal using packed by blast
     subgoal using avdom by blast
-    subgoal sorry
+    subgoal by blast
+    subgoal using le_all by auto
+    subgoal by auto
     apply (solves auto)
     apply (solves auto)
     apply (rule vdom2; auto)
@@ -3176,7 +3184,8 @@ proof -
     subgoal using WW' by (auto simp: map_fun_rel_def dest!: multi_member_split simp: \<L>\<^sub>a\<^sub>l\<^sub>l_add_mset)
     subgoal using WW' by (auto simp: map_fun_rel_def dest!: multi_member_split simp: \<L>\<^sub>a\<^sub>l\<^sub>l_add_mset)
     subgoal using WW' by (auto simp: map_fun_rel_def dest!: multi_member_split simp: \<L>\<^sub>a\<^sub>l\<^sub>l_add_mset)
-    subgoal using W vdom by auto (blast dest: vdom_m_upd vdom_m3)
+    subgoal using WW' le_all by (auto simp: map_fun_rel_def dest!: multi_member_split simp: \<L>\<^sub>a\<^sub>l\<^sub>l_add_mset)
+    subgoal using W ae le_all vdom by auto (blast dest: vdom_m_upd vdom_m3)
     done
 qed
 
@@ -3241,25 +3250,25 @@ lemma isasat_GC_clauses_prog_wl2:
     vmtf: \<open>((ns, m, n, lst_As1, next_search1), to_remove1) \<in> vmtf \<A> M\<close> and
     nempty: \<open>\<A> \<noteq> {#}\<close> and
     W_W': \<open>(W, W') \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 \<A>)\<close> and
-    bounded: \<open>isasat_input_bounded \<A>\<close> and old: \<open>old_arena = []\<close>
+    bounded: \<open>isasat_input_bounded \<A>\<close> and old: \<open>old_arena = []\<close> and
+    le_all: \<open>\<forall>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>. length (W' L) \<le> length arena\<^sub>o\<close>
  shows
     \<open>isasat_GC_clauses_prog_wl2 (ns, Some n) (arena\<^sub>o, (old_arena, [], []), W)
-        \<le> \<Down> ({((arena\<^sub>o, (arena, vdom, avdom), W), (N\<^sub>o', N, W')). valid_arena arena\<^sub>o N\<^sub>o' vdom0 \<and> valid_arena arena N (set vdom) \<and>
+        \<le> \<Down> ({((arena\<^sub>o', (arena, vdom, avdom), W), (N\<^sub>o', N, W')). valid_arena arena\<^sub>o' N\<^sub>o' vdom0 \<and>
+                valid_arena arena N (set vdom) \<and>
        (W, W') \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 \<A>) \<and> vdom_m \<A> W' N\<^sub>o' \<subseteq> vdom0 \<and>
         cdcl_GC_clauses_prog_wl_inv \<A> N\<^sub>o ({#}, N\<^sub>o', N, W') \<and> dom_m N = mset vdom \<and> distinct vdom \<and>
-        arena_is_packed arena N \<and> mset avdom \<subseteq># mset vdom})
+        arena_is_packed arena N \<and> mset avdom \<subseteq># mset vdom \<and> length arena\<^sub>o' = length arena\<^sub>o})
          (cdcl_GC_clauses_prog_wl2 N\<^sub>o \<A> W')\<close>
 proof -
   define f where
     \<open>f A \<equiv> (\<lambda>(arena\<^sub>o, arena, W). isasat_GC_clauses_prog_single_wl arena\<^sub>o arena W A)\<close> for A :: nat
-  let ?R = \<open>{((\<A>', arena\<^sub>o, (arena, vdom), W), (\<A>'', N\<^sub>o', N, W')). \<A>' = \<A>'' \<and>
-      ((arena\<^sub>o, (arena, vdom), W), (N\<^sub>o', N, W')) \<in> isasat_GC_refl \<A> vdom0}\<close>
-  let ?S = \<open>{((\<A>', arena\<^sub>o, (arena, vdom), W), (\<A>'', N\<^sub>o', N, W')). \<A>' = \<A>'' \<and>
-      ((arena\<^sub>o, (arena, vdom), W), (N\<^sub>o', N, W')) \<in> isasat_GC_refl \<A> vdom0 \<and>
-            cdcl_GC_clauses_prog_wl_inv \<A> N\<^sub>o (\<A>'', N\<^sub>o', N, W')}\<close>
+  let ?R = \<open>{((\<A>', arena\<^sub>o', (arena, vdom), W), (\<A>'', N\<^sub>o', N, W')). \<A>' = \<A>'' \<and>
+      ((arena\<^sub>o', (arena, vdom), W), (N\<^sub>o', N, W')) \<in> isasat_GC_refl \<A> vdom0 arena\<^sub>o \<and>
+      length arena\<^sub>o' = length arena\<^sub>o}\<close>
   have H: \<open>(X, X') \<in> ?R \<Longrightarrow> X = (x1, x2) \<Longrightarrow> x2 = (x3, x4) \<Longrightarrow> x4 = (x5, x6) \<Longrightarrow>
      X' = (x1', x2') \<Longrightarrow> x2' = (x3', x4') \<Longrightarrow> x4' = (x5', x6') \<Longrightarrow>
-     ((x3, (fst x5, fst (snd x5), snd (snd x5)), x6), (x3', x5', x6')) \<in> isasat_GC_refl \<A> vdom0\<close>
+     ((x3, (fst x5, fst (snd x5), snd (snd x5)), x6), (x3', x5', x6')) \<in> isasat_GC_refl \<A> vdom0 arena\<^sub>o\<close>
     for X X' A B x1 x1' x2 x2' x3 x3' x4 x4' x5 x5' x6 x6' x0 x0' x x'
      supply [[show_types]]
     by auto
@@ -3271,12 +3280,11 @@ proof -
     unfolding isasat_GC_clauses_prog_wl_alt_def prod.case f_def[symmetric] old
     apply (rule order_trans[OF iterate_over_VMTF_iterate_over_\<L>\<^sub>a\<^sub>l\<^sub>l[OF vmtf nempty bounded]])
     unfolding Down_id_eq iterate_over_\<L>\<^sub>a\<^sub>l\<^sub>l_def cdcl_GC_clauses_prog_wl2_def f_def
-
     apply (refine_vcg WHILEIT_refine_with_invariant_and_break[where R = ?R]
             isasat_GC_clauses_prog_single_wl)
     subgoal by fast
     subgoal using assms by (auto simp: valid_arena_empty isasat_GC_refl_def)
-    subgoal apply auto sorry
+    subgoal by auto
     subgoal by auto
     subgoal by auto
     subgoal by auto
@@ -3285,6 +3293,8 @@ proof -
     subgoal by (auto simp add: cdcl_GC_clauses_prog_wl_inv_def)
     subgoal by auto
     subgoal by auto
+    subgoal using le_all by (auto simp: isasat_GC_refl_def split: prod.splits)
+    subgoal by (auto simp: isasat_GC_refl_def)
     subgoal by (auto simp: isasat_GC_refl_def
       dest: cdcl_GC_clauses_prog_wl_inv_cong_empty)
     done
@@ -3338,6 +3348,61 @@ definition isasat_GC_clauses_prog_wl :: \<open>twl_st_wl_heur \<Rightarrow> twl_
        vdom, avdom, lcount, opts, take 0 N)
   })\<close>
 
+lemma length_watched_le'':
+  assumes
+    xb_x'a: \<open>(x1a, x1) \<in> twl_st_heur_restart\<close> and
+    prop_inv: \<open>correct_watching'' x1\<close>
+  shows \<open>\<forall>x2 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_init_atms_st x1). length (watched_by x1 x2) \<le> length (get_clauses_wl_heur x1a)\<close>
+proof
+  fix x2
+  assume x2: \<open>x2 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_init_atms_st x1)\<close>
+  have \<open>correct_watching'' x1\<close>
+    using prop_inv unfolding unit_propagation_outer_loop_wl_D_inv_def
+      unit_propagation_outer_loop_wl_inv_def
+    by auto
+  then have dist: \<open>distinct_watched (watched_by x1 x2)\<close>
+    using x2 unfolding all_init_atms_def all_init_lits_def
+    by (cases x1; auto simp: \<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_all_lits_of_mm correct_watching''.simps)
+  then have dist: \<open>distinct_watched (watched_by x1 x2)\<close>
+    using xb_x'a
+    by (cases x1; auto simp: \<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_all_lits_of_mm correct_watching.simps)
+  have dist_vdom: \<open>distinct (get_vdom x1a)\<close>
+    using xb_x'a
+    by (cases x1)
+      (auto simp: twl_st_heur_restart_def)
+  have x2: \<open>x2 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_init_atms (get_clauses_wl x1) (get_unit_init_clss_wl x1))\<close>
+    using x2 xb_x'a unfolding all_init_atms_def all_init_lits_def
+    by auto
+
+  have
+      valid: \<open>valid_arena (get_clauses_wl_heur x1a) (get_clauses_wl x1) (set (get_vdom x1a))\<close>
+    using xb_x'a unfolding all_atms_def all_lits_def
+    by (cases x1)
+     (auto simp: twl_st_heur_restart_def)
+
+  have \<open>vdom_m (all_init_atms_st x1) (get_watched_wl x1) (get_clauses_wl x1) \<subseteq> set (get_vdom x1a)\<close>
+    using xb_x'a
+    by (cases x1)
+      (auto simp: twl_st_heur_restart_def all_atms_def[symmetric])
+  then have subset: \<open>set (map fst (watched_by x1 x2)) \<subseteq> set (get_vdom x1a)\<close>
+    using x2 unfolding vdom_m_def
+    by (cases x1)
+      (force simp: twl_st_heur_restart_def simp flip: all_init_atms_def
+        dest!: multi_member_split)
+  have watched_incl: \<open>mset (map fst (watched_by x1 x2)) \<subseteq># mset (get_vdom x1a)\<close>
+    by (rule distinct_subseteq_iff[THEN iffD1])
+      (use dist[unfolded distinct_watched_alt_def] dist_vdom subset in
+         \<open>simp_all flip: distinct_mset_mset_distinct\<close>)
+  have vdom_incl: \<open>set (get_vdom x1a) \<subseteq> {4..< length (get_clauses_wl_heur x1a)}\<close>
+    using valid_arena_in_vdom_le_arena[OF valid] arena_dom_status_iff[OF valid] by auto
+
+  have \<open>length (get_vdom x1a) \<le> length (get_clauses_wl_heur x1a)\<close>
+    by (subst distinct_card[OF dist_vdom, symmetric])
+      (use card_mono[OF _ vdom_incl] in auto)
+  then show \<open>length (watched_by x1 x2) \<le> length (get_clauses_wl_heur x1a)\<close>
+    using size_mset_mono[OF watched_incl] xb_x'a
+    by (auto intro!: order_trans[of \<open>length (watched_by x1 x2)\<close> \<open>length (get_vdom x1a)\<close>])
+qed
 
 lemma isasat_GC_clauses_prog_wl:
   \<open>(isasat_GC_clauses_prog_wl, cdcl_GC_clauses_prog_wl) \<in>
@@ -3424,6 +3489,13 @@ proof-
         cdcl_GC_clauses_prog_wl_inv_def H H'
         rtranclp_GC_remap_all_init_atms
         rtranclp_GC_remap_learned_clss_l)
+    subgoal
+      unfolding cdcl_GC_clauses_pre_wl_def
+      by (drule length_watched_le'') 
+        (clarsimp_all simp add: twl_st_heur_restart_def
+          cdcl_GC_clauses_prog_wl_inv_def H H'
+          rtranclp_GC_remap_all_init_atms
+         rtranclp_GC_remap_learned_clss_l)
     subgoal
       by (clarsimp simp add: twl_st_heur_restart_def
         cdcl_GC_clauses_prog_wl_inv_def H H'
@@ -3682,7 +3754,8 @@ qed
 
 lemma rewatch_correctness:
   assumes empty: \<open>\<And>L. L \<in># all_lits_of_mm \<A> \<Longrightarrow> W L = []\<close> and
-    H[dest]: \<open>\<And>x. x \<in># dom_m N \<Longrightarrow> distinct (N \<propto> x) \<and> length (N \<propto> x) \<ge> 2\<close>
+    H[dest]: \<open>\<And>x. x \<in># dom_m N \<Longrightarrow> distinct (N \<propto> x) \<and> length (N \<propto> x) \<ge> 2\<close> and
+    incl: \<open>set_mset (all_lits_of_mm (mset `# ran_mf N)) \<subseteq> set_mset (all_lits_of_mm \<A>)\<close>
   shows
     \<open>rewatch N W \<le> SPEC(\<lambda>W. correct_watching''' \<A> (M, N, C, NE, UE, Q, W))\<close>
 proof -
@@ -3696,14 +3769,20 @@ proof -
   have le: \<open>length (\<sigma> L) < size (dom_m N)\<close>
      if \<open>correct_watching''' \<A> (M, fmrestrict_set (set l1) N, C, NE, UE, Q, \<sigma>)\<close> and
       \<open>set_mset (dom_m N) \<subseteq> set x \<and> distinct x\<close> and
-     \<open>x = l1 @ xa # l2\<close> \<open>xa \<in># dom_m N\<close>
+     \<open>x = l1 @ xa # l2\<close> \<open>xa \<in># dom_m N\<close> \<open>L \<in> set (N \<propto> xa)\<close>
      for L l1 \<sigma> xa l2 x
   proof -
     have 1: \<open>card (set l1) \<le> length l1\<close>
       by (auto simp: card_length)
-    have \<open>distinct_watched (\<sigma> L)\<close> and \<open>fst ` set (\<sigma> L) \<subseteq> set l1 \<inter> set_mset (dom_m N)\<close>
-      using that apply (auto simp: correct_watching'''.simps dom_m_fmrestrict_set')
-sorry
+    have \<open>L \<in># all_lits_of_mm \<A>\<close>
+      using that incl in_clause_in_all_lits_of_m[of L \<open>mset (N \<propto> xa)\<close>]
+      by (auto simp: correct_watching'''.simps dom_m_fmrestrict_set' ran_m_def
+          all_lits_of_mm_add_mset all_lits_of_m_add_mset atm_of_all_lits_of_m
+          in_all_lits_of_mm_ain_atms_of_iff
+        dest!: multi_member_split)
+    then have \<open>distinct_watched (\<sigma> L)\<close> and \<open>fst ` set (\<sigma> L) \<subseteq> set l1 \<inter> set_mset (dom_m N)\<close>
+      using that incl
+      by (auto simp: correct_watching'''.simps dom_m_fmrestrict_set' dest!: multi_member_split)
     then have \<open>length (map fst (\<sigma> L)) \<le> card (set l1 \<inter> set_mset (dom_m N))\<close>
       using 1 by (subst distinct_card[symmetric])
        (auto simp: distinct_watched_alt_def intro!: card_mono intro: order_trans)

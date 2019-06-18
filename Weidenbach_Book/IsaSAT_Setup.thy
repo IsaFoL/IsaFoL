@@ -1191,4 +1191,7 @@ proof -
     by (auto intro!: order_trans[of \<open>length (watched_by x1 x2)\<close> \<open>length (get_vdom x1a)\<close>])
 qed
 
+lemma atm_of_all_lits_of_m: \<open>atm_of `# (all_lits_of_m C) = atm_of `# C + atm_of `# C\<close>
+   \<open>atm_of ` set_mset (all_lits_of_m C) = atm_of `set_mset C \<close>
+  by (induction C; auto simp: all_lits_of_m_add_mset)+
 end

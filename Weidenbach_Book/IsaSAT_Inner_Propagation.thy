@@ -698,11 +698,6 @@ definition update_clause_wl_pre where
      w < r \<and>
      L = K)\<close>
 
-(*TODO Move*)
-lemma atm_of_all_lits_of_m: \<open>atm_of `# (all_lits_of_m C) = atm_of `# C + atm_of `# C\<close>
-   \<open>atm_of ` set_mset (all_lits_of_m C) = atm_of `set_mset C \<close>
-  by (induction C; auto simp: all_lits_of_m_add_mset)+
-
 lemma update_clause_wl_pre_alt_def:
   \<open>update_clause_wl_pre K r = (\<lambda>(((((((L, C), b), j), w), i), f), S). C \<in># dom_m(get_clauses_wl S) \<and>
      L\<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st S) \<and> i < length (get_clauses_wl S \<propto> C) \<and>
