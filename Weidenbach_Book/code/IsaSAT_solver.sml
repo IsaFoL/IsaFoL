@@ -678,7 +678,7 @@ fun blit A_ src si dst di len =
     array_blit src (integer_of_nat
                      si) dst (integer_of_nat di) (integer_of_nat len));
 
-val version : string = "b510459e";
+val version : string = "a66fe6c6";
 
 fun the (SOME x2) = x2;
 
