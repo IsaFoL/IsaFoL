@@ -38,7 +38,7 @@ declare distinct_atms_empty_code.refine[sepref_fr_rules]
 type_synonym (in -)twl_st_wll_trail_init =
   \<open>trail_pol_fast_assn \<times> isasat_clauses_assn \<times> option_lookup_clause_assn \<times>
     uint32 \<times> watched_wl_uint32 \<times> vmtf_remove_assn_option_fst_As \<times> phase_saver_assn \<times>
-    uint32 \<times> minimize_assn \<times> lbd_assn \<times> vdom_assn\<close>
+    uint32 \<times> minimize_assn \<times> lbd_assn \<times> vdom_assn \<times> bool\<close>
 
 definition isasat_init_assn
   :: \<open>twl_st_wl_heur_init \<Rightarrow> twl_st_wll_trail_init \<Rightarrow> assn\<close>
@@ -52,13 +52,14 @@ where
   uint32_nat_assn *a
   cach_refinement_l_assn *a
   lbd_assn *a
-  vdom_assn\<close>
+  vdom_assn *a
+  bool_assn\<close>
 
 
 type_synonym (in -)twl_st_wll_trail_init_unbounded =
   \<open>trail_pol_assn \<times> isasat_clauses_assn \<times> option_lookup_clause_assn \<times>
     uint32 \<times> watched_wl \<times> vmtf_remove_assn_option_fst_As \<times> phase_saver_assn \<times>
-    uint32 \<times> minimize_assn \<times> lbd_assn \<times> vdom_assn\<close>
+    uint32 \<times> minimize_assn \<times> lbd_assn \<times> vdom_assn \<times> bool\<close>
 
 definition isasat_init_unbounded_assn
   :: \<open>twl_st_wl_heur_init \<Rightarrow> twl_st_wll_trail_init_unbounded \<Rightarrow> assn\<close>
@@ -72,7 +73,8 @@ where
   uint32_nat_assn *a
   cach_refinement_l_assn *a
   lbd_assn *a
-  vdom_assn\<close>
+  vdom_assn *a
+  bool_assn\<close>
 
 sepref_definition initialise_VMTF_code
   is \<open>uncurry initialise_VMTF\<close>
@@ -164,10 +166,10 @@ sepref_register fm_add_new
 
 
 sepref_definition add_init_cls_code
-  is \<open>uncurry add_init_cls_heur\<close>
+  is \<open>uncurry add_init_cls_heur_unb\<close>
   :: \<open>(list_assn unat_lit_assn)\<^sup>k *\<^sub>a isasat_init_assn\<^sup>d  \<rightarrow>\<^sub>a isasat_init_assn\<close>
   supply [[goals_limit=1]] append_ll_def[simp]
-  unfolding add_init_cls_heur_def isasat_init_assn_def
+  unfolding add_init_cls_heur_def isasat_init_assn_def add_init_cls_heur_unb_def
   PR_CONST_def cons_trail_Propagated_def[symmetric] nat_of_uint32_conv_def
   unfolding isasat_init_assn_def Array_List_Array.swap_ll_def[symmetric]
     nth_rll_def[symmetric] delete_index_and_swap_update_def[symmetric]
@@ -179,10 +181,10 @@ sepref_definition add_init_cls_code
 
 
 sepref_definition add_init_cls_code_unb
-  is \<open>uncurry add_init_cls_heur\<close>
+  is \<open>uncurry add_init_cls_heur_unb\<close>
   :: \<open>(list_assn unat_lit_assn)\<^sup>k *\<^sub>a isasat_init_unbounded_assn\<^sup>d  \<rightarrow>\<^sub>a isasat_init_unbounded_assn\<close>
   supply [[goals_limit=1]] append_ll_def[simp]
-  unfolding add_init_cls_heur_def isasat_init_unbounded_assn_def
+  unfolding add_init_cls_heur_def isasat_init_unbounded_assn_def add_init_cls_heur_unb_def
   PR_CONST_def cons_trail_Propagated_def[symmetric] nat_of_uint32_conv_def
   unfolding isasat_init_unbounded_assn_def Array_List_Array.swap_ll_def[symmetric]
     nth_rll_def[symmetric] delete_index_and_swap_update_def[symmetric]
@@ -313,7 +315,7 @@ sepref_register init_dt_step_wl
 sepref_register polarity_st_heur_init propagate_unit_cls_heur
 
 sepref_definition init_dt_step_wl_code
-  is \<open>uncurry (init_dt_step_wl_heur)\<close>
+  is \<open>uncurry (init_dt_step_wl_heur_unb)\<close>
   :: \<open>[\<lambda>(C, S). True]\<^sub>a (list_assn unat_lit_assn)\<^sup>d *\<^sub>a isasat_init_assn\<^sup>d \<rightarrow>
        isasat_init_assn\<close>
   supply [[goals_limit=1]]
@@ -321,6 +323,7 @@ sepref_definition init_dt_step_wl_code
   option.splits[split] get_conflict_wl_is_None_heur_init_alt_def[simp]
   tri_bool_eq_def[simp]
   unfolding init_dt_step_wl_heur_def lms_fold_custom_empty PR_CONST_def
+    init_dt_step_wl_heur_unb_def if_True add_init_cls_heur_unb_def[symmetric]
   unfolding watched_app_def[symmetric]
   unfolding nth_rll_def[symmetric]
   unfolding lms_fold_custom_empty swap_ll_def[symmetric]
@@ -333,7 +336,7 @@ sepref_definition init_dt_step_wl_code
   by sepref
 
 sepref_definition init_dt_step_wl_code_unb
-  is \<open>uncurry (init_dt_step_wl_heur)\<close>
+  is \<open>uncurry (init_dt_step_wl_heur_unb)\<close>
   :: \<open>[\<lambda>(C, S). True]\<^sub>a (list_assn unat_lit_assn)\<^sup>d *\<^sub>a isasat_init_unbounded_assn\<^sup>d \<rightarrow>
        isasat_init_unbounded_assn\<close>
   supply [[goals_limit=1]]
@@ -341,6 +344,7 @@ sepref_definition init_dt_step_wl_code_unb
   option.splits[split] get_conflict_wl_is_None_heur_init_alt_def[simp]
   tri_bool_eq_def[simp]
   unfolding init_dt_step_wl_heur_def lms_fold_custom_empty PR_CONST_def
+    add_init_cls_heur_unb_def[symmetric] init_dt_step_wl_heur_unb_def
   unfolding watched_app_def[symmetric]
   unfolding nth_rll_def[symmetric]
   unfolding lms_fold_custom_empty swap_ll_def[symmetric]
@@ -356,7 +360,7 @@ declare init_dt_step_wl_code.refine[sepref_fr_rules]
   init_dt_step_wl_code_unb.refine[sepref_fr_rules]
 
 
-sepref_register init_dt_wl_heur
+sepref_register init_dt_wl_heur_unb
 
 
 abbreviation isasat_atms_ext_rel_assn where
@@ -477,29 +481,32 @@ declare rewatch_heur_st_code.refine[sepref_fr_rules]
 sepref_register rewatch_heur_st init_dt_step_wl_heur
 
 sepref_definition init_dt_wl_heur_code
-  is \<open>uncurry (init_dt_wl_heur)\<close>
+  is \<open>uncurry (init_dt_wl_heur_unb)\<close>
   :: \<open>(list_assn (list_assn unat_lit_assn))\<^sup>k *\<^sub>a isasat_init_assn\<^sup>d \<rightarrow>\<^sub>a isasat_init_assn\<close>
   supply [[goals_limit=1]]
-  unfolding init_dt_wl_heur_def PR_CONST_def
+  unfolding init_dt_wl_heur_def PR_CONST_def init_dt_step_wl_heur_unb_def[symmetric] if_True
+   init_dt_wl_heur_unb_def
   by sepref
 
 sepref_definition init_dt_wl_heur_code_unb
-  is \<open>uncurry (init_dt_wl_heur)\<close>
+  is \<open>uncurry (init_dt_wl_heur_unb)\<close>
   :: \<open>(list_assn (list_assn unat_lit_assn))\<^sup>k *\<^sub>a isasat_init_unbounded_assn\<^sup>d \<rightarrow>\<^sub>a
       isasat_init_unbounded_assn\<close>
   supply [[goals_limit=1]]
-  unfolding init_dt_wl_heur_def PR_CONST_def
+  unfolding init_dt_wl_heur_def PR_CONST_def init_dt_step_wl_heur_unb_def[symmetric] if_True
+   init_dt_wl_heur_unb_def
   by sepref
 
 declare init_dt_wl_heur_code.refine[sepref_fr_rules]
   init_dt_wl_heur_code_unb.refine[sepref_fr_rules]
 
 sepref_definition init_dt_wl_heur_full_code
-  is \<open>uncurry (init_dt_wl_heur_full)\<close>
+  is \<open>uncurry (init_dt_wl_heur_full_unb)\<close>
   :: \<open>(list_assn (list_assn unat_lit_assn))\<^sup>k *\<^sub>a isasat_init_unbounded_assn\<^sup>d \<rightarrow>\<^sub>a
       isasat_init_unbounded_assn\<close>
   supply [[goals_limit=1]]
-  unfolding init_dt_wl_heur_full_def PR_CONST_def
+  unfolding init_dt_wl_heur_full_def PR_CONST_def init_dt_wl_heur_full_unb_def
+    init_dt_wl_heur_unb_def[symmetric]
   by sepref
 
 declare init_dt_wl_heur_full_code.refine[sepref_fr_rules]
@@ -654,7 +661,7 @@ sepref_definition init_state_wl_D'_code_unb
     watchlist_assn *a
     vmtf_remove_conc_option_fst_As *a
     phase_saver_conc *a uint32_nat_assn *a
-    cach_refinement_l_assn *a lbd_assn *a vdom_assn\<close>
+    cach_refinement_l_assn *a lbd_assn *a vdom_assn *a bool_assn\<close>
   unfolding init_state_wl_D'_def PR_CONST_def
   apply (rewrite at \<open>let _ = (_, \<hole>) in _\<close> IICF_Array_List.arl.fold_custom_empty)
   apply (rewrite at \<open>let _ = \<hole> in _\<close>  init_lrl_def[symmetric])

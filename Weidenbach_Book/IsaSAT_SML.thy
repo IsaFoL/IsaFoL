@@ -57,7 +57,7 @@ lemma init_state_wl_D'_code_isasat: \<open>(hr_comp isasat_init_assn
      (Id \<times>\<^sub>f
       (nat_rel \<times>\<^sub>f
        (\<langle>\<langle>Id\<rangle>list_rel\<rangle>list_rel \<times>\<^sub>f
-        (Id \<times>\<^sub>f (\<langle>bool_rel\<rangle>list_rel \<times>\<^sub>f (nat_rel \<times>\<^sub>f (Id \<times>\<^sub>f Id)))))))))) = isasat_init_assn\<close>
+        (Id \<times>\<^sub>f (\<langle>bool_rel\<rangle>list_rel \<times>\<^sub>f (nat_rel \<times>\<^sub>f (Id \<times>\<^sub>f (Id \<times>\<^sub>f Id))))))))))) = isasat_init_assn\<close>
   by auto
 
 lemma list_assn_list_mset_rel_clauses_l_assn:
@@ -206,7 +206,10 @@ sepref_definition isasat_init_fast_slow_code
 
 declare isasat_init_fast_slow_code.refine[sepref_fr_rules]
 
-
+sepref_register init_dt_wl_heur_unb
+  find_theorems hr_comp isasat_init_assn
+thm init_dt_wl_heur_code.refine
+thm init_state_wl_D'_code_def
 sepref_definition IsaSAT_code
   is \<open>uncurry IsaSAT_heur\<close>
   :: \<open>opts_assn\<^sup>d *\<^sub>a (list_assn (list_assn unat_lit_assn))\<^sup>k \<rightarrow>\<^sub>a model_stat_assn\<close>
@@ -215,6 +218,7 @@ sepref_definition IsaSAT_code
     get_conflict_wl_is_None extract_model_of_state_def[symmetric]
     extract_stats_def[symmetric]
     length_get_clauses_wl_heur_init_def[symmetric]
+   init_dt_step_wl_heur_unb_def[symmetric] init_dt_wl_heur_unb_def[symmetric]
   supply get_conflict_wl_is_None_heur_init_def[simp]
   supply id_mset_list_assn_list_mset_assn[sepref_fr_rules] get_conflict_wl_is_None_def[simp]
    option.splits[split]
