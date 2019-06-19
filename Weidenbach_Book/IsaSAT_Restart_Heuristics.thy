@@ -3052,6 +3052,9 @@ definition isasat_GC_refl :: \<open>_\<close> where
     arena_is_packed arena N \<and> mset avdom \<subseteq># mset vdom \<and> length arena\<^sub>o = length arena_old \<and>
     (\<forall>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>. length (W' L) \<le> length arena\<^sub>o) \<and>move_is_packed arena\<^sub>o N\<^sub>o arena N}\<close>
 
+lemma move_is_packed_empty[simp]: \<open>valid_arena arena N vdom \<Longrightarrow> move_is_packed arena N [] fmempty\<close>
+  by (auto simp: move_is_packed_def valid_arena_ge_length_clauses)
+
 lemma move_is_packed_append:
   assumes
     dom: \<open>C \<in># dom_m x1a\<close> and
@@ -3101,6 +3104,13 @@ proof -
     by (auto simp: move_is_packed_def split: if_splits dest!: multi_member_split)
 qed
 
+definition arena_header_size :: \<open>arena \<Rightarrow> nat \<Rightarrow> nat\<close> where
+\<open>arena_header_size arena C = (if arena_length arena C > 4 then 5 else 4)\<close>
+
+lemma valid_arena_header_size:
+  \<open>valid_arena arena N vdom \<Longrightarrow> C \<in># dom_m N \<Longrightarrow> arena_header_size arena C = header_size (N \<propto> C)\<close>
+
+  by (auto simp: arena_header_size_def header_size_def arena_lifting)
 lemma isasat_GC_clauses_prog_copy_wl_entry:
   assumes \<open>valid_arena arena N vdom0\<close> and
     \<open>valid_arena arena' N' (set vdom)\<close> and
@@ -3124,9 +3134,16 @@ proof -
     by (cases A) (auto simp: map_fun_rel_def \<L>\<^sub>a\<^sub>l\<^sub>l_add_mset dest!: multi_member_split)
   have A_le: \<open>nat_of_lit A < length W'\<close>
     using W L by (cases A; auto simp: map_fun_rel_def \<L>\<^sub>a\<^sub>l\<^sub>l_add_mset dest!: multi_member_split)
-
+  have length_slice: \<open>C \<in># dom_m x1a \<Longrightarrow> valid_arena x1c x1a vdom' \<Longrightarrow>
+      length
+     (Misc.slice (C - header_size (x1a \<propto> C))
+       (C + arena_length x1c C) x1c) =
+    arena_length x1c C + header_size (x1a \<propto> C)\<close> for x1c x1a C vdom'
+     using arena_lifting(1-4,10)[of x1c x1a vdom' C]
+    by (auto simp: header_size_def slice_len_min_If min_def split: if_splits)
   show ?thesis
     unfolding isasat_GC_clauses_prog_copy_wl_entry_def cdcl_GC_clauses_prog_copy_wl_entry_def prod.case A
+    arena_header_size_def[symmetric]
     apply (refine_vcg WHILET_refine[where R = \<open>nat_rel \<times>\<^sub>r ?R\<close>])
     subgoal using A_le by (auto simp: isasat_GC_entry_def)
     subgoal using le L K by (cases A) (auto dest!: multi_member_split simp: \<L>\<^sub>a\<^sub>l\<^sub>l_add_mset)
@@ -3148,20 +3165,20 @@ proof -
      unfolding arena_is_valid_clause_idx_def isasat_GC_entry_def
      by auto
    subgoal unfolding isasat_GC_entry_def move_is_packed_def arena_is_packed_def
-       by (auto simp: header_size_def arena_lifting dest!: multi_member_split)
+       by (auto simp: valid_arena_header_size arena_lifting dest!: multi_member_split)
    subgoal using r by (auto simp: isasat_GC_entry_def)
    subgoal
      by (force simp: isasat_GC_entry_def dest: arena_lifting(2))
-   subgoal by auto
+   subgoal by (auto simp: arena_header_size_def)
    subgoal for x x' x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d D
      by (rule order_trans[OF fm_mv_clause_to_new_arena])
-      (auto intro: valid_arena_extra_information_mark_to_delete'
-         simp: header_size_def arena_lifting remove_1_mset_id_iff_notin
-            mark_garbage_pre_def slice_len_min_If isasat_GC_entry_def min_def
-            arena_lifting
+       (auto intro: valid_arena_extra_information_mark_to_delete'
+         simp: arena_lifting remove_1_mset_id_iff_notin
+            mark_garbage_pre_def isasat_GC_entry_def min_def
+            valid_arena_header_size
        dest: in_vdom_m_fmdropD arena_lifting(2)
        intro!: arena_is_packed_append_valid subset_mset_trans_add_mset
-        move_is_packed_append)
+        move_is_packed_append length_slice)
    subgoal
      by auto
    subgoal
