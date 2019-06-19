@@ -680,6 +680,82 @@ proof -
     done
 qed
 
+definition cdcl_twl_stgy_restart_prog_bounded :: "'v twl_st \<Rightarrow> (bool \<times> 'v twl_st) nres" where
+  \<open>cdcl_twl_stgy_restart_prog_bounded S\<^sub>0 =
+  do {
+    ebrk \<leftarrow> RES UNIV;
+    (ebrk, brk, T, n) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(ebrk, brk, T, n). cdcl_twl_stgy_restart_prog_inv S\<^sub>0 brk T n\<^esup>
+      (\<lambda>(ebrk, brk, _). \<not>brk \<and> \<not>ebrk)
+      (\<lambda>(ebrk, brk, S, n).
+      do {
+        T \<leftarrow> unit_propagation_outer_loop S;
+        (brk, T) \<leftarrow> cdcl_twl_o_prog T;
+        (T, n) \<leftarrow> restart_prog T n brk;
+	ebrk \<leftarrow> RES UNIV;
+        RETURN (ebrk, brk, T, n)
+      })
+      (ebrk, False, S\<^sub>0, 0);
+    RETURN (brk, T)
+  }\<close>
+
+lemma (in twl_restart) cdcl_twl_stgy_prog_bounded_spec:
+  assumes \<open>twl_struct_invs S\<close> and \<open>twl_stgy_invs S\<close> and \<open>clauses_to_update S = {#}\<close> and
+    \<open>get_conflict S = None\<close>
+  shows
+    \<open>cdcl_twl_stgy_restart_prog_bounded S \<le> SPEC(\<lambda>(brk, T). \<exists>n. cdcl_twl_stgy_restart_with_leftovers (S, 0) (T, n) \<and>
+        (brk \<longrightarrow> final_twl_state T))\<close>
+    (is \<open>_ \<le> SPEC ?P\<close>)
+proof -
+  have final_prop: \<open>?P (brk, T)\<close>
+    if
+     inv: \<open>case (brk, T, n) of  (brk, T, m) \<Rightarrow> cdcl_twl_stgy_restart_prog_inv S brk T m\<close>
+    for brk T n
+  proof -
+    have
+      \<open>twl_struct_invs T\<close> and
+      \<open>twl_stgy_invs T\<close> and
+      ns: \<open>brk \<longrightarrow> final_twl_state T\<close> and
+      twl_left_overs: \<open>cdcl_twl_stgy_restart_with_leftovers (S, 0) (T, n)\<close> and
+      \<open>clauses_to_update T = {#}\<close>
+      using that unfolding cdcl_twl_stgy_restart_prog_inv_def by auto
+    obtain S' where
+       st: \<open>cdcl_twl_stgy_restart\<^sup>*\<^sup>* (S, 0) (S', n)\<close> and
+       S'_T: \<open>cdcl_twl_stgy\<^sup>*\<^sup>* S' T\<close>
+      using twl_left_overs unfolding cdcl_twl_stgy_restart_with_leftovers_def by auto
+    then show ?thesis
+      using ns unfolding cdcl_twl_stgy_restart_with_leftovers_def prod.case apply -
+      apply (rule_tac x=n in exI)
+      apply (rule conjI)
+      subgoal by (rule_tac x=S' in exI) auto
+      subgoal by auto
+      done
+  qed
+  show ?thesis
+    supply RETURN_as_SPEC_refine[refine2 del]
+    unfolding cdcl_twl_stgy_restart_prog_bounded_def full_def
+    apply (refine_vcg
+        WHILEIT_rule[where
+           R = \<open>{((ebrk, brkT, T, n), (ebrk, brkS, S, m)).
+                     twl_struct_invs S \<and> cdcl_twl_stgy_restart_with_leftovers1 (S, m) (T, n)} \<union>
+                {((ebrkT, brkT, T), (ebrkS, brkS, S)). S = T \<and> (ebrkT \<or> brkT) \<and> (\<not>brkS \<and> \<not>ebrkS)}\<close>];
+        remove_dummy_vars)
+    subgoal by (rule wf_cdcl_twl_stgy_restart_measure_early)
+    subgoal using assms unfolding cdcl_twl_stgy_restart_prog_inv_def
+      by (fast intro: cdcl_twl_stgy_restart_with_leftovers_refl)
+    subgoal unfolding cdcl_twl_stgy_restart_prog_inv_def by fast
+    subgoal unfolding cdcl_twl_stgy_restart_prog_inv_def by fast
+    subgoal unfolding cdcl_twl_stgy_restart_prog_inv_def by fast
+    subgoal unfolding cdcl_twl_stgy_restart_prog_inv_def by fast
+    subgoal unfolding cdcl_twl_stgy_restart_prog_inv_def
+      by (simp add: no_step_cdcl_twl_cp_no_step_cdcl\<^sub>W_cp)
+    subgoal by fast
+    subgoal for ebrk brk T m x ac bc
+      by (rule restart_prog_early_spec)
+    subgoal
+      unfolding cdcl_twl_stgy_restart_prog_inv_def prod.case
+      by (rule final_prop[unfolded prod.case cdcl_twl_stgy_restart_prog_inv_def])
+    done
+qed
 end
 
 end
