@@ -2963,6 +2963,7 @@ definition arena_is_packed :: \<open>arena \<Rightarrow> nat clauses_l \<Rightar
 lemma arena_is_packed_empty[simp]: \<open>arena_is_packed [] fmempty\<close>
   by (auto simp: arena_is_packed_def)
 
+(*TODO Move *)
 lemma sum_mset_cong:
   \<open>(\<And>A. A \<in># M \<Longrightarrow> f A = g A) \<Longrightarrow> (\<Sum> A \<in># M. f A) = (\<Sum> A \<in># M. g A)\<close>
   by (induction M) auto
@@ -2976,7 +2977,7 @@ proof -
     using assms(1) by (auto simp: arena_is_packed_def
      intro!: sum_mset_cong)
 qed
-
+(*END Move*)
 lemma arena_is_packed_append_valid:
   assumes
     in_dom: \<open>fst C \<in># dom_m x1a\<close> and
@@ -3005,6 +3006,11 @@ proof -
   show ?thesis
     by (rule arena_is_packed_append[OF packed]) auto
 qed
+
+definition move_is_packed :: \<open>arena \<Rightarrow> _ \<Rightarrow> arena \<Rightarrow> _ \<Rightarrow> bool\<close> where
+\<open>move_is_packed arena\<^sub>o N\<^sub>o arena N \<longleftrightarrow>
+   ((\<Sum>C\<in>#dom_m N\<^sub>o. length (N\<^sub>o \<propto> C) + header_size (N\<^sub>o \<propto> C)) +
+   (\<Sum>C\<in>#dom_m N. length (N \<propto> C) + header_size (N \<propto> C)) \<le> length arena\<^sub>o)\<close>
 
 definition isasat_GC_clauses_prog_copy_wl_entry
   :: \<open>arena \<Rightarrow> (nat watcher) list list \<Rightarrow> nat literal \<Rightarrow>
@@ -3035,6 +3041,66 @@ where
     RETURN (N, (N', vdm, avdm))
   })\<close>
 
+definition isasat_GC_entry :: \<open>_\<close> where
+\<open>isasat_GC_entry \<A> vdom0 arena_old W'  = {((arena\<^sub>o, (arena, vdom, avdom)), (N\<^sub>o, N)). valid_arena arena\<^sub>o N\<^sub>o vdom0 \<and> valid_arena arena N (set vdom) \<and> vdom_m \<A> W' N\<^sub>o \<subseteq> vdom0 \<and> dom_m N = mset vdom \<and> distinct vdom \<and>
+    arena_is_packed arena N \<and> mset avdom \<subseteq># mset vdom \<and> length arena\<^sub>o = length arena_old \<and>
+    move_is_packed arena\<^sub>o N\<^sub>o arena N}\<close>
+
+definition isasat_GC_refl :: \<open>_\<close> where
+\<open>isasat_GC_refl \<A> vdom0 arena_old = {((arena\<^sub>o, (arena, vdom, avdom), W), (N\<^sub>o, N, W')). valid_arena arena\<^sub>o N\<^sub>o vdom0 \<and> valid_arena arena N (set vdom) \<and>
+     (W, W') \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 \<A>) \<and> vdom_m \<A> W' N\<^sub>o \<subseteq> vdom0 \<and> dom_m N = mset vdom \<and> distinct vdom \<and>
+    arena_is_packed arena N \<and> mset avdom \<subseteq># mset vdom \<and> length arena\<^sub>o = length arena_old \<and>
+    (\<forall>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>. length (W' L) \<le> length arena\<^sub>o) \<and>move_is_packed arena\<^sub>o N\<^sub>o arena N}\<close>
+
+lemma move_is_packed_append:
+  assumes
+    dom: \<open>C \<in># dom_m x1a\<close> and
+    E: \<open>length E = length (x1a \<propto> C) + header_size (x1a \<propto> C)\<close> \<open>(fst E') = (x1a \<propto> C)\<close>
+     \<open>n = header_size (x1a \<propto> C)\<close> and
+    valid: \<open>valid_arena x1d x2a D'\<close> and
+    packed: \<open>move_is_packed x1c x1a x1d x2a\<close>
+  shows \<open>move_is_packed (extra_information_mark_to_delete x1c C)
+          (fmdrop C x1a)
+          (x1d @ E)
+          (fmupd (length x1d + n) E' x2a)\<close>
+proof -
+  have [simp]: \<open>(\<Sum>x\<in>#remove1_mset C
+          (dom_m
+            x1a). length
+                   (fst (the (if x = C then None
+                              else fmlookup x1a x))) +
+                  header_size
+                   (fst (the (if x = C then None
+                              else fmlookup x1a x)))) =
+     (\<Sum>x\<in>#remove1_mset C
+          (dom_m
+            x1a). length
+                   (x1a \<propto> x) +
+                  header_size
+                   (x1a \<propto> x))\<close>
+   by (rule sum_mset_cong)
+    (use distinct_mset_dom[of x1a] in \<open>auto dest!: simp: distinct_mset_remove1_All\<close>)
+  have [simp]: \<open>(length x1d + header_size (x1a \<propto> C)) \<notin># (dom_m x2a)\<close>
+    using valid arena_lifting(2) by blast
+  have [simp]: \<open>(\<Sum>x\<in>#(dom_m x2a). length
+                    (fst (the (if length x1d + header_size (x1a \<propto> C) = x
+                               then Some E'
+                               else fmlookup x2a x))) +
+                   header_size
+                    (fst (the (if length x1d + header_size (x1a \<propto> C) = x
+                               then Some E'
+                               else fmlookup x2a x)))) =
+    (\<Sum>x\<in>#dom_m x2a. length
+                    (x2a \<propto> x) +
+                   header_size
+                    (x2a \<propto> x))\<close>
+   by (rule sum_mset_cong)
+    (use distinct_mset_dom[of x2a] in \<open>auto dest!: simp: distinct_mset_remove1_All\<close>)
+  show ?thesis
+    using packed dom E
+    by (auto simp: move_is_packed_def split: if_splits dest!: multi_member_split)
+qed
+
 lemma isasat_GC_clauses_prog_copy_wl_entry:
   assumes \<open>valid_arena arena N vdom0\<close> and
     \<open>valid_arena arena' N' (set vdom)\<close> and
@@ -3046,14 +3112,12 @@ lemma isasat_GC_clauses_prog_copy_wl_entry:
    \<open>arena_is_packed arena' N'\<close> and
     avdom: \<open>mset avdom \<subseteq># mset vdom\<close> and
     r: \<open>length arena = r\<close> and
-    le: \<open>\<forall>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>. length (W L) \<le> length arena\<close>
+    le: \<open>\<forall>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>. length (W L) \<le> length arena\<close> and
+    packed: \<open>move_is_packed arena N arena' N'\<close>
   shows \<open>isasat_GC_clauses_prog_copy_wl_entry arena W' A' (arena', vdom, avdom)
-     \<le> \<Down> ({(arena, N'). valid_arena arena N' vdom0 \<and> vdom_m \<A> W N' \<subseteq> vdom0 \<and> dom_m N' \<subseteq># dom_m N \<and>
-             length arena = r} \<times>\<^sub>f
-    {((arena, vdom, avdom), N). valid_arena arena N (set vdom) \<and> dom_m N = mset vdom \<and> distinct vdom \<and>
-     arena_is_packed arena N \<and> mset avdom \<subseteq># mset vdom})
+     \<le> \<Down> (isasat_GC_entry \<A> vdom0 arena W)
          (cdcl_GC_clauses_prog_copy_wl_entry N (W A) A N')\<close>
-     (is \<open>_ \<le> \<Down> (?R\<^sub>1 \<times>\<^sub>f ?R\<^sub>2) _\<close>)
+     (is \<open>_ \<le> \<Down> (?R) _\<close>)
 proof -
   have A: \<open>A' = A\<close> and K[simp]: \<open>W' ! nat_of_lit A = W A\<close>
     using L'_L L W apply auto
@@ -3063,38 +3127,41 @@ proof -
 
   show ?thesis
     unfolding isasat_GC_clauses_prog_copy_wl_entry_def cdcl_GC_clauses_prog_copy_wl_entry_def prod.case A
-    apply (refine_vcg WHILET_refine[where R = \<open>nat_rel \<times>\<^sub>r ?R\<^sub>1 \<times>\<^sub>r ?R\<^sub>2\<close>])
-    subgoal using A_le by auto
+    apply (refine_vcg WHILET_refine[where R = \<open>nat_rel \<times>\<^sub>r ?R\<close>])
+    subgoal using A_le by (auto simp: isasat_GC_entry_def)
     subgoal using le L K by (cases A) (auto dest!: multi_member_split simp: \<L>\<^sub>a\<^sub>l\<^sub>l_add_mset)
-    subgoal using assms by auto
+    subgoal using assms by (auto simp: isasat_GC_entry_def)
     subgoal using W L by auto
     subgoal by auto
     subgoal for x x' x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d
       using vdom L
-      unfolding arena_is_valid_clause_vdom_def K
+      unfolding arena_is_valid_clause_vdom_def K isasat_GC_entry_def
       by (cases A)
         (force dest!: multi_member_split simp: vdom_m_def \<L>\<^sub>a\<^sub>l\<^sub>l_add_mset)+
     subgoal
       using vdom L
-      unfolding arena_is_valid_clause_vdom_def K
+      unfolding arena_is_valid_clause_vdom_def K isasat_GC_entry_def
       by (subst arena_dom_status_iff)
         (cases A ; auto dest!: multi_member_split simp: arena_lifting arena_dom_status_iff
             vdom_m_def \<L>\<^sub>a\<^sub>l\<^sub>l_add_mset; fail)+
    subgoal
-     unfolding arena_is_valid_clause_idx_def
+     unfolding arena_is_valid_clause_idx_def isasat_GC_entry_def
      by auto
-   subgoal apply auto sorry
-   subgoal using r by auto
+   subgoal unfolding isasat_GC_entry_def move_is_packed_def arena_is_packed_def
+       by (auto simp: header_size_def arena_lifting dest!: multi_member_split)
+   subgoal using r by (auto simp: isasat_GC_entry_def)
    subgoal
-     by (force dest: arena_lifting(2))
+     by (force simp: isasat_GC_entry_def dest: arena_lifting(2))
    subgoal by auto
    subgoal for x x' x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d D
      by (rule order_trans[OF fm_mv_clause_to_new_arena])
       (auto intro: valid_arena_extra_information_mark_to_delete'
          simp: header_size_def arena_lifting remove_1_mset_id_iff_notin
-            mark_garbage_pre_def slice_len_min_If
+            mark_garbage_pre_def slice_len_min_If isasat_GC_entry_def min_def
+            arena_lifting
        dest: in_vdom_m_fmdropD arena_lifting(2)
-       intro!: arena_is_packed_append_valid subset_mset_trans_add_mset)
+       intro!: arena_is_packed_append_valid subset_mset_trans_add_mset
+        move_is_packed_append)
    subgoal
      by auto
    subgoal
@@ -3118,11 +3185,6 @@ where
     RETURN (N, N', WS)
   })\<close>
 
-definition isasat_GC_refl :: \<open>_\<close> where
-\<open>isasat_GC_refl \<A> vdom0 arena_old = {((arena\<^sub>o, (arena, vdom, avdom), W), (N\<^sub>o, N, W')). valid_arena arena\<^sub>o N\<^sub>o vdom0 \<and> valid_arena arena N (set vdom) \<and>
-     (W, W') \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 \<A>) \<and> vdom_m \<A> W' N\<^sub>o \<subseteq> vdom0 \<and> dom_m N = mset vdom \<and> distinct vdom \<and>
-    arena_is_packed arena N \<and> mset avdom \<subseteq># mset vdom \<and> length arena\<^sub>o = length arena_old \<and>
-    (\<forall>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>. length (W' L) \<le> length arena\<^sub>o)}\<close>
 
 lemma isasat_GC_clauses_prog_single_wl:
   assumes
@@ -3147,7 +3209,9 @@ proof -
     vdom_dom: \<open>dom_m N' = mset vdom\<close> and
     dist: \<open>distinct vdom\<close> and
     packed: \<open>arena_is_packed arena' N'\<close> and
-    avdom: \<open>mset avdom \<subseteq># mset vdom\<close>
+    avdom: \<open>mset avdom \<subseteq># mset vdom\<close> and
+    packed2: \<open>move_is_packed arena N arena' N'\<close> and
+    incl: \<open>vdom_m \<A> W' N \<subseteq> vdom0\<close>
     using assms X st by (auto simp: isasat_GC_refl_def)
 
   have vdom2: \<open>vdom_m \<A> W' x1 \<subseteq> vdom0 \<Longrightarrow> vdom_m \<A> (W'(L := [])) x1 \<subseteq> vdom0\<close> for x1 L
@@ -3169,40 +3233,44 @@ proof -
   have le: \<open>nat_of_lit (Pos A) < length W\<close> \<open>nat_of_lit (Neg A) < length W\<close>
     using WW' L by (auto dest!: multi_member_split simp: map_fun_rel_def \<L>\<^sub>a\<^sub>l\<^sub>l_add_mset)
   have [refine0]: \<open>RETURN (Pos A) \<le> \<Down> Id (RES {Pos A, Neg A})\<close> by auto
+  have vdom_upD:\<open> x \<in> vdom_m \<A> (W'(Pos A := [], Neg A := [])) xd \<Longrightarrow> x \<in>  vdom_m \<A> (\<lambda>a. if a = Pos A then [] else W' a) xd\<close>
+    for W' a A x xd
+    by (auto simp: vdom_m_def)
   show ?thesis
     unfolding isasat_GC_clauses_prog_single_wl_def
       cdcl_GC_clauses_prog_single_wl_def eq st' isasat_GC_refl_def
     apply (refine_vcg
-      isasat_GC_clauses_prog_copy_wl_entry[where r= \<open>length arena\<close>])
+      isasat_GC_clauses_prog_copy_wl_entry[where r= \<open>length arena\<close> and \<A> = \<A>])
     subgoal using le by auto
     subgoal using le by auto
     apply (rule H(1); fail)
     apply (rule H(2); fail)
-    apply (rule vdom; fail)
-    subgoal
-      using L by auto
-    subgoal using WW'
-      by auto
+    subgoal using incl by auto
+    subgoal using L by auto
+    subgoal using WW' by auto
     subgoal using vdom_dom by blast
     subgoal using dist by blast
     subgoal using packed by blast
     subgoal using avdom by blast
     subgoal by blast
     subgoal using le_all by auto
-    subgoal by auto
-    apply (solves auto)
-    apply (solves auto)
+    subgoal using packed2 by auto
+    subgoal using ae by (auto simp: isasat_GC_entry_def)
+    apply (solves \<open>auto simp: isasat_GC_entry_def\<close>)
+    apply (solves \<open>auto simp: isasat_GC_entry_def\<close>)
     apply (rule vdom2; auto)
-    subgoal
-      using L by auto
-    subgoal by auto
+    supply isasat_GC_entry_def[simp]
     subgoal using WW' by (auto simp: map_fun_rel_def dest!: multi_member_split simp: \<L>\<^sub>a\<^sub>l\<^sub>l_add_mset)
-    subgoal using WW' by (auto simp: map_fun_rel_def dest!: multi_member_split simp: \<L>\<^sub>a\<^sub>l\<^sub>l_add_mset)
-    subgoal using WW' by (auto simp: map_fun_rel_def dest!: multi_member_split simp: \<L>\<^sub>a\<^sub>l\<^sub>l_add_mset)
+    subgoal using L by auto
+    subgoal using L by auto
     subgoal using WW' by (auto simp: map_fun_rel_def dest!: multi_member_split simp: \<L>\<^sub>a\<^sub>l\<^sub>l_add_mset)
     subgoal using WW' by (auto simp: map_fun_rel_def dest!: multi_member_split simp: \<L>\<^sub>a\<^sub>l\<^sub>l_add_mset)
     subgoal using WW' le_all by (auto simp: map_fun_rel_def dest!: multi_member_split simp: \<L>\<^sub>a\<^sub>l\<^sub>l_add_mset)
-    subgoal using W ae le_all vdom by auto (blast dest: vdom_m_upd vdom_m3)
+    subgoal using WW' le_all by (auto simp: map_fun_rel_def dest!: multi_member_split simp: \<L>\<^sub>a\<^sub>l\<^sub>l_add_mset)
+    subgoal using WW' le_all by (auto simp: map_fun_rel_def dest!: multi_member_split simp: \<L>\<^sub>a\<^sub>l\<^sub>l_add_mset)
+    subgoal using WW' le_all by (auto simp: map_fun_rel_def dest!: multi_member_split simp: \<L>\<^sub>a\<^sub>l\<^sub>l_add_mset)
+    subgoal using WW' le_all by (auto simp: map_fun_rel_def dest!: multi_member_split simp: \<L>\<^sub>a\<^sub>l\<^sub>l_add_mset)
+    subgoal using W ae le_all vdom by (auto simp: dest!: vdom_upD)
     done
 qed
 
