@@ -170,7 +170,7 @@ sepref_definition add_init_cls_code
   :: \<open>(list_assn unat_lit_assn)\<^sup>k *\<^sub>a isasat_init_assn\<^sup>d  \<rightarrow>\<^sub>a isasat_init_assn\<close>
   supply [[goals_limit=1]] append_ll_def[simp]
   unfolding add_init_cls_heur_def isasat_init_assn_def add_init_cls_heur_unb_def
-  PR_CONST_def cons_trail_Propagated_def[symmetric] nat_of_uint32_conv_def
+  PR_CONST_def cons_trail_Propagated_def[symmetric] nat_of_uint32_conv_def if_True simp_thms
   unfolding isasat_init_assn_def Array_List_Array.swap_ll_def[symmetric]
     nth_rll_def[symmetric] delete_index_and_swap_update_def[symmetric]
     delete_index_and_swap_ll_def[symmetric]
@@ -178,7 +178,6 @@ sepref_definition add_init_cls_code
   apply (rewrite in \<open>let _ = \<hole> in _\<close> op_list_copy_def[symmetric])
   apply (rewrite in \<open>let _ = \<hole> in _\<close> op_array_of_list_def[symmetric])
   by sepref
-
 
 sepref_definition add_init_cls_code_unb
   is \<open>uncurry add_init_cls_heur_unb\<close>
