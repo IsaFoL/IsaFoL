@@ -458,21 +458,14 @@ val numeral_uint32 =
   {one_numeral = one_uint32, semigroup_add_numeral = semigroup_add_uint32} :
   Word32.word numeral;
 
+val minus_uint32 = {minus = (fn a => fn b => Word32.- (a, b))} :
+  Word32.word minus;
+
 type 'a times = {times : 'a -> 'a -> 'a};
 val times = #times : 'a times -> 'a -> 'a -> 'a;
 
-type 'a power = {one_power : 'a one, times_power : 'a times};
-val one_power = #one_power : 'a power -> 'a one;
-val times_power = #times_power : 'a power -> 'a times;
-
 val times_uint32 = {times = (fn a => fn b => Word32.* (a, b))} :
   Word32.word times;
-
-val power_uint32 = {one_power = one_uint32, times_power = times_uint32} :
-  Word32.word power;
-
-val minus_uint32 = {minus = (fn a => fn b => Word32.- (a, b))} :
-  Word32.word minus;
 
 val ord_uint32 =
   {less_eq = (fn a => fn b => Word32.<= (a, b)),
@@ -509,6 +502,10 @@ val zero_uint64 = {zero = Uint64.zero} : Uint64.uint64 zero;
 val default_uint64a : Uint64.uint64 = Uint64.zero;
 
 val default_uint64 = {default = default_uint64a} : Uint64.uint64 default;
+
+type 'a power = {one_power : 'a one, times_power : 'a times};
+val one_power = #one_power : 'a power -> 'a one;
+val times_power = #times_power : 'a power -> 'a times;
 
 val times_uint64 = {times = Uint64.times} : Uint64.uint64 times;
 
@@ -681,7 +678,7 @@ fun blit A_ src si dst di len =
     array_blit src (integer_of_nat
                      si) dst (integer_of_nat di) (integer_of_nat len));
 
-val version : string = "6fc092f3";
+val version : string = "b510459e";
 
 fun the (SOME x2) = x2;
 
@@ -690,9 +687,9 @@ fun fast_minus A_ m n = minus A_ m n;
 val two_uint32 : Word32.word =
   Word32.fromLargeInt (IntInf.toLarge (2 : IntInf.int));
 
-val uint32_maxa : nat = nat_of_integer (4294967295 : IntInf.int);
+val uint64_maxa : nat = nat_of_integer (18446744073709551615 : IntInf.int);
 
-val uint32_max : nat = uint32_maxa;
+val uint64_max : nat = uint64_maxa;
 
 fun arl_get A_ = (fn (a, _) => nth A_ a);
 
@@ -787,23 +784,6 @@ fun take_arl x = (fn i => fn (xs, _) => (xs, i)) x;
 fun arl_get_u64 A_ =
   (fn a => fn b => (fn () => Array.sub ((fn (a,b) => a) a, Word64.toInt b)));
 
-fun heap_array_set_u64a A_ =
-  (fn a => fn b => fn c => (fn () => Array.update (a, (Word64.toInt b), c)));
-
-fun array_upd_u64 A_ i x a =
-  (fn () => let
-              val _ = heap_array_set_u64a A_ a i x ();
-            in
-              a
-            end);
-
-fun arl_set_u64 A_ a i x =
-  (fn () => let
-              val b = array_upd_u64 A_ i x (fst a) ();
-            in
-              (b, snd a)
-            end);
-
 fun arl_length A_ = (fn (_, a) => (fn () => a));
 
 fun length_aa_u A_ xs i =
@@ -892,11 +872,16 @@ fun select_and_remove_from_literals_to_update_wlfast_code x =
     end)
     x;
 
+fun nth_u64_code A_ =
+  (fn a => fn b => (fn () => Array.sub (a, Word64.toInt (b))));
+
+fun arl64_get A_ = (fn (a, _) => nth_u64_code A_ a);
+
 fun arena_status_fast_code x =
   (fn ai => fn bi => fn () =>
     let
       val xa =
-        arl_get_u64 heap_uint32 ai
+        arl64_get heap_uint32 ai
           (fast_minus minus_uint64 bi (Uint64.fromInt (4 : IntInf.int))) ();
     in
       Word32.andb (xa, Word32.fromLargeInt (IntInf.toLarge (3 : IntInf.int)))
@@ -917,7 +902,7 @@ fun clause_not_marked_to_delete_heur_fast_code x =
     end)
     x;
 
-fun isa_arena_lit_fast_code x = arl_get_u64 heap_uint32 x;
+fun isa_arena_lit_fast_code x = arl64_get heap_uint32 x;
 
 fun polarity_pol_fast_code x =
   (fn ai => fn bi => let
@@ -971,11 +956,11 @@ fun isa_find_unwatched_between_fast_code x =
 
 fun uint64_of_uint32 x = (Uint64.fromLarge (Word32.toLarge x));
 
-fun isa_get_saved_pos_fast_code2 x =
+fun isa_get_saved_pos_fast_code x =
   (fn ai => fn bi => fn () =>
     let
       val xa =
-        arl_get_u64 heap_uint32 ai
+        arl64_get heap_uint32 ai
           (Uint64.minus bi (Uint64.fromInt (5 : IntInf.int))) ();
     in
       Uint64.plus (uint64_of_uint32 xa) (Uint64.fromInt (2 : IntInf.int))
@@ -985,7 +970,7 @@ fun isa_get_saved_pos_fast_code2 x =
 fun isa_arena_length_fast_code x =
   (fn ai => fn bi => fn () =>
     let
-      val xa = arl_get_u64 heap_uint32 ai (Uint64.minus bi Uint64.one) ();
+      val xa = arl64_get heap_uint32 ai (Uint64.minus bi Uint64.one) ();
     in
       Uint64.plus (Uint64.fromInt (2 : IntInf.int)) (uint64_of_uint32 xa)
     end)
@@ -1004,8 +989,8 @@ fun find_unwatched_wl_st_heur_fast_code x =
           (if Uint64.less_eq xaa (Uint64.fromInt (4 : IntInf.int))
             then isa_find_unwatched_between_fast_code a1 a1a
                    (Uint64.fromInt (2 : IntInf.int)) xa bi
-            else (fn f_ => fn () => f_ ((isa_get_saved_pos_fast_code2 a1a bi)
-                   ()) ())
+            else (fn f_ => fn () => f_ ((isa_get_saved_pos_fast_code a1a bi) ())
+                   ())
                    (fn x_c =>
                      (fn f_ => fn () => f_
                        ((isa_find_unwatched_between_fast_code a1 a1a x_c xa bi)
@@ -1203,14 +1188,32 @@ fun set_lookup_conflict_aa_fast_code x =
     end)
     x;
 
+fun heap_array_set_u64a A_ =
+  (fn a => fn b => fn c => (fn () => Array.update (a, (Word64.toInt b), c)));
+
+fun heap_array_set_u64 A_ a i x =
+  (fn () => let
+              val _ = heap_array_set_u64a A_ a i x ();
+            in
+              a
+            end);
+
+fun arl64_set A_ =
+  (fn (a, n) => fn i => fn x => fn () =>
+    let
+      val aa = heap_array_set_u64 A_ a i x ();
+    in
+      (aa, n)
+    end);
+
 fun isa_arena_incr_act_fast_code x =
   (fn ai => fn bi => fn () =>
     let
       val xa =
-        arl_get_u64 heap_uint32 ai
+        arl64_get heap_uint32 ai
           (Uint64.minus bi (Uint64.fromInt (3 : IntInf.int))) ();
     in
-      arl_set_u64 heap_uint32 ai
+      arl64_set heap_uint32 ai
         (Uint64.minus bi (Uint64.fromInt (3 : IntInf.int)))
         (Word32.+ (xa, (Word32.fromInt 1))) ()
     end)
@@ -1246,14 +1249,8 @@ fun set_conflict_wl_heur_fast_code x =
     end)
     x;
 
-fun power A_ a n =
-  (if equal_nat n zero_nata then one (one_power A_)
-    else times (times_power A_) a (power A_ a (minus_nata n one_nat)));
-
 val uint32_max_uint32 : Word32.word =
-  Word32.- (power power_uint32
-              (Word32.fromLargeInt (IntInf.toLarge (2 : IntInf.int)))
-              (nat_of_integer (32 : IntInf.int)), (Word32.fromInt 1));
+  Word32.fromLargeInt (IntInf.toLarge (4294967295 : IntInf.int));
 
 fun arl32_append (A1_, A2_) =
   (fn (a, n) => fn x => fn () =>
@@ -1328,11 +1325,6 @@ fun propagate_lit_wl_bin_fast_code x =
     end)
     x;
 
-fun nth_u64_code A_ =
-  (fn a => fn b => (fn () => Array.sub (a, Word64.toInt (b))));
-
-fun arl64_get A_ = (fn (a, _) => nth_u64_code A_ a);
-
 fun nth_aa64 A_ xs i j =
   (fn () =>
     let
@@ -1361,21 +1353,6 @@ fun to_watcher_fast_code x =
             else Uint64.zero)))
     x;
 
-fun heap_array_set_u64 A_ a i x =
-  (fn () => let
-              val _ = heap_array_set_u64a A_ a i x ();
-            in
-              a
-            end);
-
-fun arl64_set A_ =
-  (fn (a, n) => fn i => fn x => fn () =>
-    let
-      val aa = heap_array_set_u64 A_ a i x ();
-    in
-      (aa, n)
-    end);
-
 fun update_aa64_u32 A_ a i j y =
   (fn () =>
     let
@@ -1401,21 +1378,24 @@ fun update_blit_wl_heur_fast_code x =
     end)
     x;
 
-fun swap_arl_u64 A_ =
-  (fn (xs, n) => fn i => fn j => fn () =>
+fun arl64_swap A_ =
+  (fn ai => fn bia => fn bi => fn () =>
     let
-      val ki = nth_u64_code A_ xs i ();
-      val kj = nth_u64_code A_ xs j ();
-      val xsa = heap_array_set_u64 A_ xs i kj ();
-      val xsb = heap_array_set_u64 A_ xsa j ki ();
+      val x = arl64_get A_ ai bia ();
+      val x_a = arl64_get A_ ai bi ();
+      val x_b = arl64_set A_ ai bia x_a ();
     in
-      (xsb, n)
+      arl64_set A_ x_b bi x ()
     end);
 
 fun swap_lits_fast_code x =
   (fn ai => fn bib => fn bia => fn bi =>
-    swap_arl_u64 heap_uint32 bi (Uint64.plus ai bib) (Uint64.plus ai bia))
+    arl64_swap heap_uint32 bi (Uint64.plus ai bib) (Uint64.plus ai bia))
     x;
+
+fun power A_ a n =
+  (if equal_nat n zero_nata then one (one_power A_)
+    else times (times_power A_) a (power A_ a (minus_nata n one_nat)));
 
 val uint64_max_uint64 : Uint64.uint64 =
   Uint64.minus
@@ -1425,6 +1405,13 @@ val uint64_max_uint64 : Uint64.uint64 =
 
 fun length_u64_code A_ =
   (fn a => (fn () => Uint64.fromFixedInt (Array.length a)));
+
+fun array_upd_u64 A_ i x a =
+  (fn () => let
+              val _ = heap_array_set_u64a A_ a i x ();
+            in
+              a
+            end);
 
 fun arl64_append (A1_, A2_) =
   (fn (a, n) => fn x => fn () =>
@@ -1527,8 +1514,7 @@ fun uint32_of_uint64 x = Word32.fromLargeWord x;
 
 fun isa_update_pos_fast_code x =
   (fn ai => fn bia => fn bi =>
-    arl_set_u64 heap_uint32 bi
-      (Uint64.minus ai (Uint64.fromInt (5 : IntInf.int)))
+    arl64_set heap_uint32 bi (Uint64.minus ai (Uint64.fromInt (5 : IntInf.int)))
       (uint32_of_uint64 (Uint64.minus bia (Uint64.fromInt (2 : IntInf.int)))))
     x;
 
@@ -1898,7 +1884,7 @@ fun isa_find_unwatched_between_code x =
     end)
     x;
 
-fun isa_get_saved_pos_fast_code x =
+fun isa_get_saved_pos_code x =
   (fn ai => fn bi => fn () =>
     let
       val xa =
@@ -1935,8 +1921,8 @@ fun find_unwatched_wl_st_heur_code x =
                 (if Uint64.less_eq xaa (Uint64.fromInt (4 : IntInf.int))
                   then isa_find_unwatched_between_code a1 a1a
                          (nat_of_integer (2 : IntInf.int)) xb bi
-                  else (fn f_ => fn () => f_
-                         ((isa_get_saved_pos_fast_code a1a bi) ()) ())
+                  else (fn f_ => fn () => f_ ((isa_get_saved_pos_code a1a bi)
+                         ()) ())
                          (fn xab =>
                            let
                              val x_c = nat_of_uint64 xab;
@@ -2513,7 +2499,7 @@ fun isasat_trail_nth_st_code x =
 
 fun mark_garbage_fast_code x =
   (fn ai => fn bi =>
-    arl_set_u64 heap_uint32 ai
+    arl64_set heap_uint32 ai
       (fast_minus minus_uint64 bi (Uint64.fromInt (4 : IntInf.int)))
       (Word32.fromLargeInt (IntInf.toLarge (3 : IntInf.int))))
     x;
@@ -2610,6 +2596,19 @@ fun remove_one_annot_true_clause_imp_wl_D_heur_code x =
     end)
     x;
 
+fun arl64_get2 A_ = (fn (a, _) => nth A_ a);
+
+fun arena_status_fast_code2 x =
+  (fn ai => fn bi => fn () =>
+    let
+      val xa =
+        arl64_get2 heap_uint32 ai
+          (minus_nata bi (nat_of_integer (4 : IntInf.int))) ();
+    in
+      Word32.andb (xa, Word32.fromLargeInt (IntInf.toLarge (3 : IntInf.int)))
+    end)
+    x;
+
 fun clause_not_marked_to_delete_heur_fast_code2 x =
   (fn ai => fn bi =>
     let
@@ -2617,7 +2616,7 @@ fun clause_not_marked_to_delete_heur_fast_code2 x =
     in
       (fn () =>
         let
-          val xa = arena_status_code a1a bi ();
+          val xa = arena_status_fast_code2 a1a bi ();
         in
           not ((xa : Word32.word) = (Word32.fromLargeInt (IntInf.toLarge (3 : IntInf.int))))
         end)
@@ -2646,27 +2645,35 @@ fun delete_index_vdom_heur_fast_code2 x =
     end)
     x;
 
-fun isa_arena_decr_act_code x =
+fun arl64_set_nat A_ =
+  (fn (a, n) => fn i => fn x => fn () => let
+   val aa = upd A_ i x a ();
+ in
+   (aa, n)
+ end);
+
+fun isa_arena_decr_act_fast_code2 x =
   (fn ai => fn bi => fn () =>
     let
       val xa =
-        arl_get heap_uint32 ai (minus_nata bi (nat_of_integer (3 : IntInf.int)))
-          ();
+        arl64_get2 heap_uint32 ai
+          (minus_nata bi (nat_of_integer (3 : IntInf.int))) ();
     in
-      arl_set heap_uint32 ai (minus_nata bi (nat_of_integer (3 : IntInf.int)))
+      arl64_set_nat heap_uint32 ai
+        (minus_nata bi (nat_of_integer (3 : IntInf.int)))
         (shiftr_uint32 xa one_nat) ()
     end)
     x;
 
-fun isa_mark_unused_code x =
+fun isa_mark_unused_fast_code2 x =
   (fn ai => fn bi => fn () =>
     let
       val xa =
-        arl_get heap_uint32 ai
-          (fast_minus_nat bi (nat_of_integer (4 : IntInf.int))) ();
+        arl64_get2 heap_uint32 ai
+          (minus_nata bi (nat_of_integer (4 : IntInf.int))) ();
     in
-      arl_set heap_uint32 ai
-        (fast_minus_nat bi (nat_of_integer (4 : IntInf.int)))
+      arl64_set_nat heap_uint32 ai
+        (minus_nata bi (nat_of_integer (4 : IntInf.int)))
         (Word32.andb (xa,
           Word32.fromLargeInt (IntInf.toLarge (3 : IntInf.int))))
         ()
@@ -2681,8 +2688,8 @@ fun mark_unused_st_fast_code2 x =
       =>
     fn () =>
     let
-      val xa = isa_mark_unused_code a1a ai ();
-      val xb = isa_arena_decr_act_code xa ai ();
+      val xa = isa_mark_unused_fast_code2 a1a ai ();
+      val xb = isa_arena_decr_act_fast_code2 xa ai ();
     in
       (a1, (xb, (a1b, (a1c, (a1d, (a1e, (a1f,
   (a1g, (a1h, (a1i, (a1j, (a1k, (a1l, (a1m,
@@ -2785,38 +2792,40 @@ fun incr_restart_stat_fast_code x =
       end))
     x;
 
+fun isa_arena_lit_fast_code2 x = arl64_get2 heap_uint32 x;
+
 fun access_lit_in_clauses_heur_fast_code2 x =
   (fn ai => fn bia => fn bi => let
                                  val (_, (a1a, _)) = ai;
                                in
-                                 isa_arena_lit_code a1a (plus_nat bia bi)
+                                 isa_arena_lit_fast_code2 a1a (plus_nat bia bi)
                                end)
     x;
 
-fun isa_get_clause_LBD_code x =
+fun isa_get_clause_LBD_code2 x =
   (fn ai => fn bi =>
-    arl_get heap_uint32 ai
+    arl64_get2 heap_uint32 ai
       (fast_minus_nat bi (nat_of_integer (2 : IntInf.int))))
     x;
 
-fun isa_arena_act_code x =
+fun isa_arena_act_code2 x =
   (fn ai => fn bi =>
-    arl_get heap_uint32 ai
+    arl64_get2 heap_uint32 ai
       (fast_minus_nat bi (nat_of_integer (3 : IntInf.int))))
     x;
 
-fun clause_score_extract_code x =
+fun clause_score_extract_fast_code x =
   (fn ai => fn bi => fn () =>
     let
-      val xa = arena_status_code ai bi ();
+      val xa = arena_status_fast_code2 ai bi ();
     in
       (if ((xa : Word32.word) = (Word32.fromLargeInt (IntInf.toLarge (3 : IntInf.int))))
         then (fn () =>
                (Word32.fromLargeInt (IntInf.toLarge (4294967295 : IntInf.int)),
                  (Word32.fromInt 0)))
-        else (fn f_ => fn () => f_ ((isa_get_clause_LBD_code ai bi) ()) ())
+        else (fn f_ => fn () => f_ ((isa_get_clause_LBD_code2 ai bi) ()) ())
                (fn x_a =>
-                 (fn f_ => fn () => f_ ((isa_arena_act_code ai bi) ()) ())
+                 (fn f_ => fn () => f_ ((isa_arena_act_code2 ai bi) ()) ())
                    (fn x_b => (fn () => (x_a, x_b)))))
         ()
     end)
@@ -2826,18 +2835,29 @@ fun clause_score_ordering (A1_, A2_) B_ =
   (fn (lbd, act) => fn (lbda, acta) =>
     less A2_ lbd lbda orelse eq A1_ lbd lbda andalso less_eq B_ act acta);
 
+fun swap_arl_u64 A_ =
+  (fn (xs, n) => fn i => fn j => fn () =>
+    let
+      val ki = nth_u64_code A_ xs i ();
+      val kj = nth_u64_code A_ xs j ();
+      val xsa = heap_array_set_u64 A_ xs i kj ();
+      val xsb = heap_array_set_u64 A_ xsa j ki ();
+    in
+      (xsb, n)
+    end);
+
 fun partition_main_clause_fast_code x =
   (fn ai => fn bib => fn bia => fn bi => fn () =>
     let
       val xa = arl_get_u64 heap_nat bi bia ();
-      val xb = clause_score_extract_code ai xa ();
+      val xb = clause_score_extract_fast_code ai xa ();
       val a =
         heap_WHILET (fn (_, (a1a, _)) => (fn () => (Uint64.less a1a bia)))
           (fn (a1, (a1a, a2a)) =>
             (fn f_ => fn () => f_ ((arl_get_u64 heap_nat a2a a1a) ()) ())
               (fn xaa =>
-                (fn f_ => fn () => f_ ((clause_score_extract_code ai xaa) ())
-                  ())
+                (fn f_ => fn () => f_ ((clause_score_extract_fast_code ai xaa)
+                  ()) ())
                   (fn xab =>
                     (if clause_score_ordering (equal_uint32, ord_uint32)
                           ord_uint32 xab xb
@@ -2871,18 +2891,19 @@ fun partition_clause_fast_code x =
         in
           (fn f_ => fn () => f_ ((arl_get_u64 heap_nat bi bib) ()) ())
             (fn xa =>
-              (fn f_ => fn () => f_ ((clause_score_extract_code ai xa) ()) ())
+              (fn f_ => fn () => f_ ((clause_score_extract_fast_code ai xa) ())
+                ())
                 (fn x_d =>
                   (fn f_ => fn () => f_ ((arl_get_u64 heap_nat bi x_b) ()) ())
                     (fn xb =>
-                      (fn f_ => fn () => f_ ((clause_score_extract_code ai xb)
-                        ()) ())
+                      (fn f_ => fn () => f_
+                        ((clause_score_extract_fast_code ai xb) ()) ())
                         (fn x_f =>
                           (fn f_ => fn () => f_ ((arl_get_u64 heap_nat bi bia)
                             ()) ())
                             (fn xc =>
                               (fn f_ => fn () => f_
-                                ((clause_score_extract_code ai xc) ()) ())
+                                ((clause_score_extract_fast_code ai xc) ()) ())
                                 (fn x_h =>
                                   (fn () =>
                                     (if clause_score_ordering
@@ -2995,6 +3016,15 @@ fun number_clss_to_keep_fast_impl x =
       end))
     x;
 
+fun isa_arena_length_fast_code2a x =
+  (fn ai => fn bi => fn () =>
+    let
+      val xa = arl64_get2 heap_uint32 ai (minus_nata bi one_nat) ();
+    in
+      Uint64.plus (Uint64.fromInt (2 : IntInf.int)) (uint64_of_uint32 xa)
+    end)
+    x;
+
 fun access_length_heur_fast_code2 x =
   (fn ai => fn bi =>
     let
@@ -3002,16 +3032,16 @@ fun access_length_heur_fast_code2 x =
   (_, (_, (_, (_, (_, (_, (_, (_, _))))))))))))))))
         = ai;
     in
-      isa_arena_length_code a1a bi
+      isa_arena_length_fast_code2a a1a bi
     end)
     x;
 
-fun isa_marked_as_used_code x =
+fun isa_marked_as_used_fast_code2 x =
   (fn ai => fn bi => fn () =>
     let
       val xa =
-        arl_get heap_uint32 ai
-          (fast_minus_nat bi (nat_of_integer (4 : IntInf.int))) ();
+        arl64_get2 heap_uint32 ai
+          (minus_nata bi (nat_of_integer (4 : IntInf.int))) ();
     in
       not (((Word32.andb (xa,
               Word32.fromLargeInt (IntInf.toLarge (4 : IntInf.int)))) : Word32.word) = (Word32.fromInt 0))
@@ -3025,7 +3055,7 @@ fun marked_as_used_st_fast_code2 x =
   (_, (_, (_, (_, (_, (_, (_, (_, _))))))))))))))))
         = ai;
     in
-      isa_marked_as_used_code a1a bi
+      isa_marked_as_used_fast_code2 a1a bi
     end)
     x;
 
@@ -3037,16 +3067,17 @@ fun clause_is_learned_heur_code2 x =
         = ai;
     in
       (fn () => let
-                  val xa = arena_status_code a1a bi ();
+                  val xa = arena_status_fast_code2 a1a bi ();
                 in
                   ((xa : Word32.word) = (Word32.fromInt 1))
                 end)
     end)
     x;
 
-fun mark_garbage_code x =
+fun mark_garbage_fast_code2 x =
   (fn ai => fn bi =>
-    arl_set heap_uint32 ai (fast_minus_nat bi (nat_of_integer (4 : IntInf.int)))
+    arl64_set_nat heap_uint32 ai
+      (fast_minus_nat bi (nat_of_integer (4 : IntInf.int)))
       (Word32.fromLargeInt (IntInf.toLarge (3 : IntInf.int))))
     x;
 
@@ -3100,7 +3131,7 @@ fun mark_garbage_heur_code2 x =
       =>
     fn () =>
     let
-      val xa = mark_garbage_code a1a ai ();
+      val xa = mark_garbage_fast_code2 a1a ai ();
       val xaa = arl_last heap_nat a1p ();
       val xab = arl_set heap_nat a1p bia xaa ();
       val xac = arl_butlast heap_nat xab ();
@@ -3118,7 +3149,7 @@ fun clause_lbd_heur_code2 x =
   (_, (_, (_, (_, (_, (_, (_, (_, _))))))))))))))))
         = ai;
     in
-      isa_get_clause_LBD_code a1a bi
+      isa_get_clause_LBD_code2 a1a bi
     end)
     x;
 
@@ -3195,26 +3226,24 @@ else (fn () => false))
     end)
     x;
 
-fun fm_mv_clause_to_new_arena_code x =
+fun fm_mv_clause_to_new_arena_fast_code x =
   (fn ai => fn bia => fn bi => fn () =>
     let
-      val xa = isa_arena_length_code bia ai ();
-      val xaa = isa_arena_length_code bia ai ();
+      val xa = isa_arena_length_fast_code bia ai ();
+      val xaa = isa_arena_length_fast_code bia ai ();
       val a =
         heap_WHILET
-          (fn (a1, _) =>
-            (fn () => (less_nat a1 (plus_nat ai (nat_of_uint64 xaa)))))
+          (fn (a1, _) => (fn () => (Uint64.less a1 (Uint64.plus ai xaa))))
           (fn (a1, a2) =>
-            (fn f_ => fn () => f_ ((arl_get heap_uint32 bia a1) ()) ())
+            (fn f_ => fn () => f_ ((arl64_get heap_uint32 bia a1) ()) ())
               (fn xb =>
                 (fn f_ => fn () => f_
-                  ((arl_append (default_uint32, heap_uint32) a2 xb) ()) ())
-                  (fn x_f => (fn () => (plus_nat a1 one_nat, x_f)))))
-          (minus_nata ai
-             (if less_eq_nat (nat_of_uint64 xa)
-                   (nat_of_integer (4 : IntInf.int))
-               then nat_of_integer (4 : IntInf.int)
-               else nat_of_integer (5 : IntInf.int)),
+                  ((arl64_append (default_uint32, heap_uint32) a2 xb) ()) ())
+                  (fn x_f => (fn () => (Uint64.plus a1 Uint64.one, x_f)))))
+          (Uint64.minus ai
+             (if Uint64.less_eq xa (Uint64.fromInt (4 : IntInf.int))
+               then Uint64.fromInt (4 : IntInf.int)
+               else Uint64.fromInt (5 : IntInf.int)),
             bi)
           ();
     in
@@ -3269,29 +3298,29 @@ fun isasat_GC_clauses_prog_copy_wl_entry_code x =
                     ())
                     (fn x_e =>
                       (if not ((x_e : Word32.word) = (Word32.fromLargeInt (IntInf.toLarge (3 : IntInf.int))))
-                        then (fn f_ => fn () => f_ ((arl_length heap_uint32 a1d)
-                               ()) ())
+                        then (fn f_ => fn () => f_
+                               ((arl64_length heap_uint32 a1d) ()) ())
                                (fn xc =>
                                  (fn f_ => fn () => f_
                                    ((isa_arena_length_fast_code a1c x_c) ()) ())
                                    (fn xaa =>
                                      let
                                        val x_h =
- plus_nat xc
+ Uint64.plus xc
    (if Uint64.less (Uint64.fromInt (4 : IntInf.int)) xaa
-     then nat_of_integer (5 : IntInf.int) else nat_of_integer (4 : IntInf.int));
+     then Uint64.fromInt (5 : IntInf.int) else Uint64.fromInt (4 : IntInf.int));
                                      in
                                        (fn f_ => fn () => f_
- ((fm_mv_clause_to_new_arena_code (nat_of_uint64 x_c) a1c a1d) ()) ())
+ ((fm_mv_clause_to_new_arena_fast_code x_c a1c a1d) ()) ())
  (fn x_j =>
    (fn f_ => fn () => f_ ((mark_garbage_fast_code a1c x_c) ()) ())
      (fn xd =>
-       (fn f_ => fn () => f_ ((arl_append (default_nat, heap_nat) a1e x_h) ())
-         ())
+       (fn f_ => fn () => f_
+         ((arl_append (default_nat, heap_nat) a1e (nat_of_uint64 x_h)) ()) ())
          (fn xab =>
            (fn f_ => fn () => f_
              ((if ((x_e : Word32.word) = (Word32.fromInt 1))
-                then arl_append (default_nat, heap_nat) a2e x_h
+                then arl_append (default_nat, heap_nat) a2e (nat_of_uint64 x_h)
                 else (fn () => a2e))
              ()) ())
              (fn xba =>
@@ -3397,6 +3426,8 @@ fun isasat_GC_clauses_prog_wl2_code x =
     end)
     x;
 
+fun arl64_take n = (fn (xs, _) => (xs, n));
+
 fun isasat_GC_clauses_prog_wl_code x =
   (fn (a1, (a1a, (a1b, (a1c, (a1d, (((a1g, (a1h, (a1i, (a1j, a2j)))), a2f),
                                      (a1k, (a1l,
@@ -3421,7 +3452,7 @@ fun isasat_GC_clauses_prog_wl_code x =
     a2f),
    (a1k, (a1l, (a1m, (a1n, (a1o, (incr_GC a1p,
                                    (a1q, (a1r,
-   (a1s, (a1aa, (a2aa, (a1v, (a1w, take_arl zero_nata a1x)))))))))))))))))))
+   (a1s, (a1aa, (a2aa, (a1v, (a1w, arl64_take Uint64.zero a1x)))))))))))))))))))
           end)
       end
         ()
@@ -3449,14 +3480,14 @@ fun rewatch_heur_st_codea x =
           (fn xb => fn sigma =>
             (fn f_ => fn () => f_ ((arl_get heap_nat a1o xb) ()) ())
               (fn xc =>
-                (fn f_ => fn () => f_ ((arena_status_code a1a xc) ()) ())
+                (fn f_ => fn () => f_ ((arena_status_fast_code2 a1a xc) ()) ())
                   (fn xd =>
                     (if not ((xd : Word32.word) = (Word32.fromLargeInt (IntInf.toLarge (3 : IntInf.int))))
                       then (fn f_ => fn () => f_ ((arl_get heap_nat a1o xb) ())
                              ())
                              (fn xe =>
                                (fn f_ => fn () => f_
-                                 ((isa_arena_lit_code a1a xe) ()) ())
+                                 ((isa_arena_lit_fast_code2 a1a xe) ()) ())
                                  (fn xf =>
                                    (fn f_ => fn () => f_
                                      ((arl_get heap_nat a1o xb) ()) ())
@@ -3464,12 +3495,12 @@ fun rewatch_heur_st_codea x =
                                        (fn f_ => fn () => f_
  ((arl_get heap_nat a1o xb) ()) ())
  (fn xca =>
-   (fn f_ => fn () => f_ ((isa_arena_lit_code a1a (plus_nat xca one_nat)) ())
-     ())
+   (fn f_ => fn () => f_ ((isa_arena_lit_fast_code2 a1a (plus_nat xca one_nat))
+     ()) ())
      (fn xcb =>
        (fn f_ => fn () => f_ ((arl_get heap_nat a1o xb) ()) ())
          (fn xda =>
-           (fn f_ => fn () => f_ ((isa_arena_length_code a1a xda) ()) ())
+           (fn f_ => fn () => f_ ((isa_arena_length_fast_code2a a1a xda) ()) ())
              (fn xdb =>
                (fn f_ => fn () => f_
                  ((append64_el_aa32
@@ -3484,7 +3515,8 @@ fun rewatch_heur_st_codea x =
                    (fn f_ => fn () => f_ ((arl_get heap_nat a1o xb) ()) ())
                      (fn xg =>
                        (fn f_ => fn () => f_
-                         ((isa_arena_lit_code a1a (plus_nat xg one_nat)) ()) ())
+                         ((isa_arena_lit_fast_code2 a1a (plus_nat xg one_nat))
+                         ()) ())
                          (fn x_d =>
                            (fn f_ => fn () => f_ ((arl_get heap_nat a1o xb) ())
                              ())
@@ -3493,12 +3525,12 @@ fun rewatch_heur_st_codea x =
                                  ()) ())
                                  (fn xab =>
                                    (fn f_ => fn () => f_
-                                     ((isa_arena_lit_code a1a xab) ()) ())
+                                     ((isa_arena_lit_fast_code2 a1a xab) ()) ())
                                      (fn xac =>
                                        (fn f_ => fn () => f_
  ((arl_get heap_nat a1o xb) ()) ())
  (fn xba =>
-   (fn f_ => fn () => f_ ((isa_arena_length_code a1a xba) ()) ())
+   (fn f_ => fn () => f_ ((isa_arena_length_fast_code2a a1a xba) ()) ())
      (fn xbb =>
        append64_el_aa32
          (default_prod default_uint64 default_uint64,
@@ -4012,6 +4044,12 @@ fun isasat_trail_nth_st_slow_code x =
                      end)
     x;
 
+fun mark_garbage_code x =
+  (fn ai => fn bi =>
+    arl_set heap_uint32 ai (fast_minus_nat bi (nat_of_integer (4 : IntInf.int)))
+      (Word32.fromLargeInt (IntInf.toLarge (3 : IntInf.int))))
+    x;
+
 fun mark_garbage_heur2_slow_code x =
   (fn ai =>
     fn (a1, (a1a, (a1b, (a1c, (a1d, (a1e, (a1f,
@@ -4088,6 +4126,38 @@ fun remove_one_annot_true_clause_imp_wl_D_heur_slow_code x =
           (fn (a, b) =>
             remove_one_annot_true_clause_one_imp_wl_D_heur_slow_code a b)
           ((Word32.fromInt 0), xi) ();
+    in
+      let
+        val (_, aa) = a;
+      in
+        (fn () => aa)
+      end
+        ()
+    end)
+    x;
+
+fun fm_mv_clause_to_new_arena_code x =
+  (fn ai => fn bia => fn bi => fn () =>
+    let
+      val xa = isa_arena_length_code bia ai ();
+      val xaa = isa_arena_length_code bia ai ();
+      val a =
+        heap_WHILET
+          (fn (a1, _) =>
+            (fn () => (less_nat a1 (plus_nat ai (nat_of_uint64 xaa)))))
+          (fn (a1, a2) =>
+            (fn f_ => fn () => f_ ((arl_get heap_uint32 bia a1) ()) ())
+              (fn xb =>
+                (fn f_ => fn () => f_
+                  ((arl_append (default_uint32, heap_uint32) a2 xb) ()) ())
+                  (fn x_f => (fn () => (plus_nat a1 one_nat, x_f)))))
+          (minus_nata ai
+             (if less_eq_nat (nat_of_uint64 xa)
+                   (nat_of_integer (4 : IntInf.int))
+               then nat_of_integer (4 : IntInf.int)
+               else nat_of_integer (5 : IntInf.int)),
+            bi)
+          ();
     in
       let
         val (_, aa) = a;
@@ -4383,6 +4453,33 @@ fun delete_index_vdom_heur_code x =
     end)
     x;
 
+fun isa_arena_decr_act_code x =
+  (fn ai => fn bi => fn () =>
+    let
+      val xa =
+        arl_get heap_uint32 ai (minus_nata bi (nat_of_integer (3 : IntInf.int)))
+          ();
+    in
+      arl_set heap_uint32 ai (minus_nata bi (nat_of_integer (3 : IntInf.int)))
+        (shiftr_uint32 xa one_nat) ()
+    end)
+    x;
+
+fun isa_mark_unused_code x =
+  (fn ai => fn bi => fn () =>
+    let
+      val xa =
+        arl_get heap_uint32 ai
+          (fast_minus_nat bi (nat_of_integer (4 : IntInf.int))) ();
+    in
+      arl_set heap_uint32 ai
+        (fast_minus_nat bi (nat_of_integer (4 : IntInf.int)))
+        (Word32.andb (xa,
+          Word32.fromLargeInt (IntInf.toLarge (3 : IntInf.int))))
+        ()
+    end)
+    x;
+
 fun mark_unused_st_code x =
   (fn ai =>
     fn (a1, (a1a, (a1b, (a1c, (a1d, (a1e, (a1f,
@@ -4459,6 +4556,35 @@ fun get_the_propagation_reason_heur_code x =
         = ai;
     in
       get_the_propagation_reason_code a1 bi
+    end)
+    x;
+
+fun isa_get_clause_LBD_code x =
+  (fn ai => fn bi =>
+    arl_get heap_uint32 ai
+      (fast_minus_nat bi (nat_of_integer (2 : IntInf.int))))
+    x;
+
+fun isa_arena_act_code x =
+  (fn ai => fn bi =>
+    arl_get heap_uint32 ai
+      (fast_minus_nat bi (nat_of_integer (3 : IntInf.int))))
+    x;
+
+fun clause_score_extract_code x =
+  (fn ai => fn bi => fn () =>
+    let
+      val xa = arena_status_code ai bi ();
+    in
+      (if ((xa : Word32.word) = (Word32.fromLargeInt (IntInf.toLarge (3 : IntInf.int))))
+        then (fn () =>
+               (Word32.fromLargeInt (IntInf.toLarge (4294967295 : IntInf.int)),
+                 (Word32.fromInt 0)))
+        else (fn f_ => fn () => f_ ((isa_get_clause_LBD_code ai bi) ()) ())
+               (fn x_a =>
+                 (fn f_ => fn () => f_ ((isa_arena_act_code ai bi) ()) ())
+                   (fn x_b => (fn () => (x_a, x_b)))))
+        ()
     end)
     x;
 
@@ -4634,6 +4760,18 @@ fun access_length_heur_code x =
         = ai;
     in
       isa_arena_length_code a1a bi
+    end)
+    x;
+
+fun isa_marked_as_used_code x =
+  (fn ai => fn bi => fn () =>
+    let
+      val xa =
+        arl_get heap_uint32 ai
+          (fast_minus_nat bi (nat_of_integer (4 : IntInf.int))) ();
+    in
+      not (((Word32.andb (xa,
+              Word32.fromLargeInt (IntInf.toLarge (4 : IntInf.int)))) : Word32.word) = (Word32.fromInt 0))
     end)
     x;
 
@@ -5344,6 +5482,20 @@ fun resolve_merge_conflict_fast_code x =
     end)
     x;
 
+fun isa_mark_used_fast_code2 x =
+  (fn ai => fn bi => fn () =>
+    let
+      val xa =
+        arl64_get heap_uint32 ai
+          (Uint64.minus bi (Uint64.fromInt (4 : IntInf.int))) ();
+    in
+      arl64_set heap_uint32 ai
+        (Uint64.minus bi (Uint64.fromInt (4 : IntInf.int)))
+        (Word32.orb (xa, Word32.fromLargeInt (IntInf.toLarge (4 : IntInf.int))))
+        ()
+    end)
+    x;
+
 fun fast_minus_uint32 x = fast_minus minus_uint32 x;
 
 fun conflict_remove1_code x =
@@ -5352,20 +5504,6 @@ fun conflict_remove1_code x =
       val x_a = heap_array_set_u heap_bool a2 (atm_of_code ai) false ();
     in
       (fast_minus_uint32 a1 (Word32.fromInt 1), x_a)
-    end)
-    x;
-
-fun isa_mark_used_fast_code x =
-  (fn ai => fn bi => fn () =>
-    let
-      val xa =
-        arl_get_u64 heap_uint32 ai
-          (Uint64.minus bi (Uint64.fromInt (4 : IntInf.int))) ();
-    in
-      arl_set_u64 heap_uint32 ai
-        (Uint64.minus bi (Uint64.fromInt (4 : IntInf.int)))
-        (Word32.orb (xa, Word32.fromLargeInt (IntInf.toLarge (4 : IntInf.int))))
-        ()
     end)
     x;
 
@@ -5411,7 +5549,7 @@ fun update_confl_tl_wl_fast_code x =
       in
         (fn f_ => fn () => f_ ((conflict_remove1_code bia (a1o, a2o)) ()) ())
           (fn (a1r, a2r) =>
-            (fn f_ => fn () => f_ ((isa_mark_used_fast_code a1a ai) ()) ())
+            (fn f_ => fn () => f_ ((isa_mark_used_fast_code2 a1a ai) ()) ())
               (fn x_e =>
                 (fn f_ => fn () => f_ ((isa_arena_incr_act_fast_code x_e ai) ())
                   ())
@@ -6222,7 +6360,7 @@ fun vmtf_mark_to_rescore_clause_fast_code x =
     in
       imp_for (nat_of_uint64 bia) (nat_of_uint64 (Uint64.plus bia xa))
         (fn xaa => fn sigma =>
-          (fn f_ => fn () => f_ ((isa_arena_lit_code ai xaa) ()) ())
+          (fn f_ => fn () => f_ ((isa_arena_lit_fast_code2 ai xaa) ()) ())
             (fn xb => isa_vmtf_mark_to_rescore_code (atm_of_code xb) sigma))
         bi ()
     end)
@@ -6787,7 +6925,7 @@ fun append_and_length_fast_code x =
     in
       (fn () =>
         let
-          val x_b = arl_length_u64_code heap_uint32 bi ();
+          val x_b = arl64_length heap_uint32 bi ();
           val xaa = length_u64_code heap_uint32 bia ();
         in
           let
@@ -6800,39 +6938,39 @@ fun append_and_length_fast_code x =
                 (fn f_ => fn () => f_
                   ((if xab
                      then (fn f_ => fn () => f_
-                            ((arl_append (default_uint32, heap_uint32) bi xa)
+                            ((arl64_append (default_uint32, heap_uint32) bi xa)
                             ()) ())
                             (fn xb =>
                               (fn f_ => fn () => f_
-                                ((arl_append (default_uint32, heap_uint32) xb
+                                ((arl64_append (default_uint32, heap_uint32) xb
                                    (Word32.fromInt 0))
                                 ()) ())
                                 (fn xc =>
                                   (fn f_ => fn () => f_
-                                    ((arl_append (default_uint32, heap_uint32)
+                                    ((arl64_append (default_uint32, heap_uint32)
                                        xc x_d)
                                     ()) ())
                                     (fn x_g =>
-                                      arl_append (default_uint32, heap_uint32)
+                                      arl64_append (default_uint32, heap_uint32)
 x_g x_d)))
                      else (fn f_ => fn () => f_
-                            ((arl_append (default_uint32, heap_uint32) bi
+                            ((arl64_append (default_uint32, heap_uint32) bi
                                (Word32.fromInt 0))
                             ()) ())
                             (fn xac =>
                               (fn f_ => fn () => f_
-                                ((arl_append (default_uint32, heap_uint32) xac
+                                ((arl64_append (default_uint32, heap_uint32) xac
                                    xa)
                                 ()) ())
                                 (fn xb =>
                                   (fn f_ => fn () => f_
-                                    ((arl_append (default_uint32, heap_uint32)
+                                    ((arl64_append (default_uint32, heap_uint32)
                                        xb (Word32.fromInt 0))
                                     ()) ())
                                     (fn xc =>
                                       (fn f_ => fn () => f_
-((arl_append (default_uint32, heap_uint32) xc x_d) ()) ())
-(fn x_g => arl_append (default_uint32, heap_uint32) x_g x_d)))))
+((arl64_append (default_uint32, heap_uint32) xc x_d) ()) ())
+(fn x_g => arl64_append (default_uint32, heap_uint32) x_g x_d)))))
                   ()) ())
                   (fn x_f =>
                     (fn f_ => fn () => f_
@@ -6846,7 +6984,7 @@ x_g x_d)))
                              ((nth_u64_code heap_uint32 bia a1) ()) ())
                              (fn xb =>
                                (fn f_ => fn () => f_
-                                 ((arl_append (default_uint32, heap_uint32) a2
+                                 ((arl64_append (default_uint32, heap_uint32) a2
                                     xb)
                                  ()) ())
                                  (fn x_j =>
@@ -6866,8 +7004,8 @@ x_g x_d)))
 
 fun isa_update_lbd_fast_code x =
   (fn ai => fn bia => fn bi =>
-    arl_set_u64 heap_uint32 bi
-      (Uint64.minus ai (Uint64.fromInt (2 : IntInf.int))) bia)
+    arl64_set heap_uint32 bi (Uint64.minus ai (Uint64.fromInt (2 : IntInf.int)))
+      bia)
     x;
 
 fun vmtf_rescore_fast_code x =
@@ -8453,6 +8591,8 @@ fun convert_wlists_to_nat_code x =
     end)
     x;
 
+fun arl64_to_arl x = (fn (xs, n) => (xs, nat_of_uint64 n)) x;
+
 fun isasat_fast_slow_code x =
   (fn (a1, (a1a, (a1b, (a1c, (a1d, (a1e, (a1f,
    (a1g, (a1h, (a1i, (a1j, (a1k, (a1l, (a1m,
@@ -8463,21 +8603,19 @@ fun isasat_fast_slow_code x =
       val xa = trail_pol_slow_of_fast_code a1 ();
       val xaa = convert_wlists_to_nat_code a1d ();
     in
-      (xa, (a1a, (a1b, (a1c, (xaa, (a1e, (a1f,
-   (a1g, (a1h, (a1i, (a1j, (a1k, (a1l, (a1m,
- (a1n, (a1o, (a1p, (nat_of_uint64 a1q, (a1r, a2r)))))))))))))))))))
+      (xa, (arl64_to_arl a1a,
+             (a1b, (a1c, (xaa, (a1e, (a1f, (a1g,
+     (a1h, (a1i, (a1j, (a1k, (a1l, (a1m, (a1n,
+   (a1o, (a1p, (nat_of_uint64 a1q, (a1r, arl64_to_arl a2r)))))))))))))))))))
     end)
     x;
 
 fun isasat_fast_code x =
   (fn (_, (a1a, _)) => fn () =>
     let
-      val xa = arl_length heap_uint32 a1a ();
+      val xa = arl64_length heap_uint32 a1a ();
     in
-      less_eq_nat xa
-        (minus_nata (nat_of_integer (18446744073709551615 : IntInf.int))
-          (plus_nat (divide_nat uint32_max (nat_of_integer (2 : IntInf.int)))
-            (nat_of_integer (6 : IntInf.int))))
+      Uint64.less_eq xa (Uint64.fromInt (18446744071562067962 : IntInf.int))
     end)
     x;
 
@@ -8582,6 +8720,17 @@ val extract_atms_clss_imp_empty_assn :
         (x, ((Word32.fromInt 0), xa))
       end);
 
+fun isa_arena_length_fast_code2 x =
+  (fn ai => fn bi => fn () =>
+    let
+      val xa = arl_get_u64 heap_uint32 ai (Uint64.minus bi Uint64.one) ();
+    in
+      Uint64.plus (Uint64.fromInt (2 : IntInf.int)) (uint64_of_uint32 xa)
+    end)
+    x;
+
+fun isa_arena_lit_fast_code2a x = arl_get_u64 heap_uint32 x;
+
 fun append64_el_aa (A1_, A2_) =
   (fn a => fn i => fn x => fn () =>
     let
@@ -8608,7 +8757,8 @@ fun rewatch_heur_fast_code x =
                            ())
                            (fn xd =>
                              (fn f_ => fn () => f_
-                               ((isa_arena_lit_fast_code bia (uint64_of_nat xd))
+                               ((isa_arena_lit_fast_code2a bia
+                                  (uint64_of_nat xd))
                                ()) ())
                                (fn xe =>
                                  (fn f_ => fn () => f_
@@ -8618,13 +8768,13 @@ fun rewatch_heur_fast_code x =
                                        ((arl_get heap_nat ai xaa) ()) ())
                                        (fn xca =>
  (fn f_ => fn () => f_
-   ((isa_arena_lit_fast_code bia (Uint64.plus (uint64_of_nat xca) Uint64.one))
+   ((isa_arena_lit_fast_code2a bia (Uint64.plus (uint64_of_nat xca) Uint64.one))
    ()) ())
    (fn xcb =>
      (fn f_ => fn () => f_ ((arl_get heap_nat ai xaa) ()) ())
        (fn xda =>
          (fn f_ => fn () => f_
-           ((isa_arena_length_fast_code bia (uint64_of_nat xda)) ()) ())
+           ((isa_arena_length_fast_code2 bia (uint64_of_nat xda)) ()) ())
            (fn xdb =>
              (fn f_ => fn () => f_
                ((append64_el_aa
@@ -8639,7 +8789,7 @@ fun rewatch_heur_fast_code x =
                  (fn f_ => fn () => f_ ((arl_get heap_nat ai xaa) ()) ())
                    (fn xf =>
                      (fn f_ => fn () => f_
-                       ((isa_arena_lit_fast_code bia
+                       ((isa_arena_lit_fast_code2a bia
                           (Uint64.plus (uint64_of_nat xf) Uint64.one))
                        ()) ())
                        (fn xg =>
@@ -8650,15 +8800,15 @@ fun rewatch_heur_fast_code x =
                                ()) ())
                                (fn xcc =>
                                  (fn f_ => fn () => f_
-                                   ((isa_arena_lit_fast_code bia
+                                   ((isa_arena_lit_fast_code2a bia
                                       (uint64_of_nat xcc))
                                    ()) ())
                                    (fn xcd =>
                                      (fn f_ => fn () => f_
                                        ((arl_get heap_nat ai xaa) ()) ())
                                        (fn xab =>
- (fn f_ => fn () => f_ ((isa_arena_length_fast_code bia (uint64_of_nat xab)) ())
-   ())
+ (fn f_ => fn () => f_ ((isa_arena_length_fast_code2 bia (uint64_of_nat xab))
+   ()) ())
    (fn xac =>
      append64_el_aa
        (default_prod default_uint64 default_uint64,
@@ -9356,6 +9506,18 @@ fun init_dt_step_wl_code x =
 fun init_dt_wl_heur_code x =
   (fn ai => imp_nfoldli ai (fn _ => (fn () => true)) init_dt_step_wl_code) x;
 
+fun arl64_of_arl_code A_ =
+  (fn (a, n) => fn () =>
+    let
+      val m = len A_ a ();
+    in
+      (if less_nat uint64_max m
+        then (fn f_ => fn () => f_ ((array_shrink A_ a uint64_max) ()) ())
+               (fn aa => (fn () => (aa, uint64_of_nat n)))
+        else (fn () => (a, uint64_of_nat n)))
+        ()
+    end);
+
 fun finalise_init_code x =
   (fn ai =>
     fn (a1, (a1a, (a1b, (a1c, (a1d, (((a1g, (a1h, (a1i, (a1j, a2j)))), a2f),
@@ -9363,26 +9525,27 @@ fun finalise_init_code x =
       =>
     fn () =>
     let
-      val xa =
+      val xa = arl64_of_arl_code heap_uint32 a1a ();
+      val xaa =
         arl_replicate heap_uint32 (nat_of_integer (160 : IntInf.int))
           (Word32.* (two_uint32, (Word32.fromInt 0))) ();
-      val xaa = arl_empty (default_nat, heap_nat) zero_nat ();
-      val xb = arl_empty (default_uint32, heap_uint32) zero_nat ();
+      val xb = arl_empty (default_nat, heap_nat) zero_nat ();
+      val xc = arl64_empty (default_uint32, heap_uint32) zero_uint64 ();
     in
-      (a1, (a1a, (a1b, (a1c, (a1d, (((a1g, (a1h, (the a1i, (the a1j, a2j)))),
-                                      a2f),
-                                     (a1k, (a1l,
-     (a1m, (a1n, (take_arl one_nat xa,
-                   ((Uint64.zero,
-                      (Uint64.zero,
-                        (Uint64.zero,
-                          (Uint64.zero,
-                            (Uint64.zero,
-                              (Uint64.zero, (Uint64.zero, Uint64.zero))))))),
-                     (ema_init (Uint64.fromInt (128849010 : IntInf.int)),
-                       (ema_init (Uint64.fromInt (429450 : IntInf.int)),
-                         (restart_info_init,
-                           (a2n, (xaa, (Uint64.zero, (ai, xb)))))))))))))))))))
+      (a1, (xa, (a1b, (a1c, (a1d, (((a1g, (a1h, (the a1i, (the a1j, a2j)))),
+                                     a2f),
+                                    (a1k, (a1l,
+    (a1m, (a1n, (take_arl one_nat xaa,
+                  ((Uint64.zero,
+                     (Uint64.zero,
+                       (Uint64.zero,
+                         (Uint64.zero,
+                           (Uint64.zero,
+                             (Uint64.zero, (Uint64.zero, Uint64.zero))))))),
+                    (ema_init (Uint64.fromInt (128849010 : IntInf.int)),
+                      (ema_init (Uint64.fromInt (429450 : IntInf.int)),
+                        (restart_info_init,
+                          (a2n, (xb, (Uint64.zero, (ai, xc)))))))))))))))))))
     end)
     x;
 
