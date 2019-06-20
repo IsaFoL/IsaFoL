@@ -1,0 +1,16 @@
+$(SML_LIB)/basis/basis.mlb
+$(SML_LIB)/basis/mlton.mlb 
+$(SML_LIB)/smlnj-lib/Util/smlnj-lib.mlb
+
+local
+    Unsynchronized.sml
+    ann "nonexhaustiveMatch ignore" in
+      IsaSAT_solver_bounded.sml
+    end
+in
+    structure SAT_Solver
+    structure Uint64
+end
+
+dimacs_parser.sml
+IsaSAT_bounded.sml

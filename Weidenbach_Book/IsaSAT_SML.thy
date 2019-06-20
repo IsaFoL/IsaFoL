@@ -85,10 +85,10 @@ proof -
         simp del: literal_of_nat.simps)
 qed
 
-definition get_trail_wl_code :: \<open>twl_st_wll_trail \<Rightarrow> uint32 array_list option \<times> stats\<close> where
+definition get_trail_wl_code :: \<open>_ \<Rightarrow> uint32 array_list option \<times> stats\<close> where
   \<open>get_trail_wl_code = (\<lambda>((M, _), _, _, _, _ ,_ ,_ ,_, _, _, _, stat, _). (Some M, stat))\<close>
 
-definition get_stats_code :: \<open>twl_st_wll_trail \<Rightarrow> uint32 array_list option \<times> stats\<close> where
+definition get_stats_code :: \<open>_ \<Rightarrow> uint32 array_list option \<times> stats\<close> where
   \<open>get_stats_code = (\<lambda>((M, _), _, _, _, _ ,_ ,_ ,_, _, _, _, stat, _). (None, stat))\<close>
 
 
@@ -207,9 +207,7 @@ sepref_definition isasat_init_fast_slow_code
 declare isasat_init_fast_slow_code.refine[sepref_fr_rules]
 
 sepref_register init_dt_wl_heur_unb
-  find_theorems hr_comp isasat_init_assn
-thm init_dt_wl_heur_code.refine
-thm init_state_wl_D'_code_def
+
 sepref_definition IsaSAT_code
   is \<open>uncurry IsaSAT_heur\<close>
   :: \<open>opts_assn\<^sup>d *\<^sub>a (list_assn (list_assn unat_lit_assn))\<^sup>k \<rightarrow>\<^sub>a model_stat_assn\<close>
@@ -236,6 +234,97 @@ theorem IsaSAT_full_correctness:
   unfolding model_assn_def
   apply auto
   done
+
+
+sepref_definition cdcl_twl_stgy_restart_prog_bounded_wl_heur_fast_code
+  is \<open>cdcl_twl_stgy_restart_prog_bounded_wl_heur\<close>
+  :: \<open>[\<lambda>S. isasat_fast S]\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> bool_assn *a isasat_bounded_assn\<close>
+  unfolding cdcl_twl_stgy_restart_prog_bounded_wl_heur_def
+  supply [[goals_limit = 1]] isasat_fast_def[simp]
+  by sepref
+
+declare cdcl_twl_stgy_restart_prog_bounded_wl_heur_fast_code.refine[sepref_fr_rules]
+
+definition get_trail_wl_code_b :: \<open>_ \<Rightarrow> uint32 array_list32 option \<times> stats\<close> where
+  \<open>get_trail_wl_code_b = (\<lambda>((M, _), _, _, _, _ ,_ ,_ ,_, _, _, _, stat, _). (Some M, stat))\<close>
+
+abbreviation  model_stat_fast_assn where
+  \<open>model_stat_fast_assn \<equiv> option_assn (arl32_assn unat_lit_assn) *a stats_assn\<close>
+
+lemma extract_model_of_state_stat_bounded_hnr[sepref_fr_rules]:
+  \<open>(return o get_trail_wl_code_b, RETURN o extract_model_of_state_stat) \<in> isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a
+       model_stat_fast_assn\<close>
+proof -
+  have [simp]: \<open>(\<lambda>a c. \<up> ((c, a) \<in> unat_lit_rel)) = unat_lit_assn\<close>
+    by (auto simp: unat_lit_rel_def pure_def)
+  have [simp]: \<open>id_assn (an, ao, bb) (bs, bt, bu) = (id_assn an bs * id_assn ao bt * id_assn bb bu)\<close>
+    for an ao bb bs bt bu :: uint64
+    by (auto simp: pure_def)
+  show ?thesis
+    by sepref_to_hoare
+      (sep_auto simp: twl_st_heur_def hr_comp_def trail_pol_def isasat_bounded_assn_def
+        get_trail_wl_code_b_def
+        extract_model_of_state_def extract_model_of_state_stat_def
+        dest!: ann_lits_split_reasons_map_lit_of
+        elim!: mod_starE)
+qed
+
+
+sepref_definition  empty_conflict_fast_code'
+  is \<open>uncurry0 (empty_conflict_code)\<close>
+  :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a model_stat_fast_assn\<close>
+  unfolding empty_conflict_code_def
+  apply (rewrite in \<open>let _ =  \<hole> in _\<close> arl32.fold_custom_empty)
+  apply (rewrite in \<open>let _ =  \<hole> in _\<close> annotate_assn[where A=\<open>arl32_assn unat_lit_assn\<close>])
+  by sepref
+
+declare empty_conflict_fast_code'.refine[sepref_fr_rules]
+
+sepref_definition  empty_init_fast_code'
+  is \<open>uncurry0 (RETURN empty_init_code)\<close>
+  :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a model_stat_fast_assn\<close>
+  unfolding empty_init_code_def
+  by sepref
+
+declare empty_init_fast_code'.refine[sepref_fr_rules]
+
+definition get_stats_fast_code :: \<open>_ \<Rightarrow> uint32 array_list32 option \<times> stats\<close> where
+  \<open>get_stats_fast_code = (\<lambda>((M, _), _, _, _, _ ,_ ,_ ,_, _, _, _, stat, _). (None, stat))\<close>
+
+lemma get_stats_b_code[sepref_fr_rules]:
+  \<open>(return o get_stats_fast_code, RETURN o extract_state_stat) \<in> isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a
+       model_stat_fast_assn\<close>
+proof -
+  have [simp]: \<open>(\<lambda>a c. \<up> ((c, a) \<in> unat_lit_rel)) = unat_lit_assn\<close>
+    by (auto simp: unat_lit_rel_def pure_def)
+  have [simp]: \<open>id_assn (an, ao, bb) (bs, bt, bu) = (id_assn an bs * id_assn ao bt * id_assn bb bu)\<close>
+    for an ao bb bs bt bu :: uint64
+    by (auto simp: pure_def)
+  show ?thesis
+    by sepref_to_hoare
+      (sep_auto simp: twl_st_heur_def hr_comp_def trail_pol_def isasat_bounded_assn_def
+        get_trail_wl_code_def get_stats_fast_code_def
+        extract_model_of_state_def extract_model_of_state_stat_def extract_state_stat_def
+        dest!: ann_lits_split_reasons_map_lit_of
+        elim!: mod_starE)
+qed
+
+sepref_definition IsaSAT_bounded_code
+  is \<open>uncurry IsaSAT_bounded_heur\<close>
+  :: \<open>opts_assn\<^sup>d *\<^sub>a (list_assn (list_assn unat_lit_assn))\<^sup>k \<rightarrow>\<^sub>a bool_assn *a model_stat_fast_assn\<close>
+  supply [[goals_limit=1]] isasat_fast_init_def[simp]
+  unfolding IsaSAT_bounded_heur_def empty_conflict_def[symmetric]
+    get_conflict_wl_is_None extract_model_of_state_def[symmetric]
+    extract_stats_def[symmetric]
+    length_get_clauses_wl_heur_init_def[symmetric]
+   init_dt_step_wl_heur_unb_def[symmetric] init_dt_wl_heur_unb_def[symmetric]
+  supply get_conflict_wl_is_None_heur_init_def[simp]
+  supply id_mset_list_assn_list_mset_assn[sepref_fr_rules] get_conflict_wl_is_None_def[simp]
+   option.splits[split]
+   extract_stats_def[simp del]
+  apply (rewrite at \<open>extract_atms_clss _ \<hole>\<close> op_extract_list_empty_def[symmetric])
+  apply (rewrite at \<open>extract_atms_clss _ \<hole>\<close> op_extract_list_empty_def[symmetric])
+  by sepref
 
 
 subsubsection \<open>Code Export\<close>
@@ -450,6 +539,44 @@ compile_generated_files _
       val _ =
         exec \<open>Copy binary files\<close>
           ("cp IsaSAT " ^
+            File.bash_path \<^path>\<open>$ISAFOL\<close> ^ "/Weidenbach_Book/code/");
+    in () end\<close>
+
+
+export_code IsaSAT_bounded_code
+    int_of_integer
+    integer_of_int
+    integer_of_nat
+    nat_of_integer
+    uint32_of_nat
+    Version.version
+  in SML_imp module_name SAT_Solver file_prefix "IsaSAT_solver_bounded"
+
+compile_generated_files _
+  external_files
+    \<open>code/IsaSAT_bounded.mlb\<close>
+    \<open>code/Unsynchronized.sml\<close>
+    \<open>code/IsaSAT_bounded.sml\<close>
+    \<open>code/dimacs_parser.sml\<close>
+  where \<open>fn dir =>
+    let
+      val exec = Generated_Files.execute (Path.append dir (Path.basic "code"));
+      val _ = exec \<open>rename file\<close> "ls > /tmp/test"
+      val _ = exec \<open>rename file\<close> "mv IsaSAT_solver_bounded.ML IsaSAT_solver_bounded.sml"
+      val _ = exec \<open>rename file\<close> "ls > /tmp/test"
+      val _ =
+        exec \<open>Copy files\<close>
+          ("cp IsaSAT_solver_bounded.sml " ^
+  ((File.bash_path \<^path>\<open>$ISAFOL\<close>) ^ "/Weidenbach_Book/code/IsaSAT_solver_bounded.sml"));
+      val _ = exec \<open>rename file\<close> "ls > /tmp/test"
+      val _ =
+        exec \<open>Compilation\<close>
+          (File.bash_path \<^path>\<open>$ISABELLE_MLTON\<close> ^
+            " -const 'MLton.safe false' -verbose 1 -default-type int64 -output IsaSAT_bounded " ^
+            " -codegen native -inline 700 -cc-opt -O3 IsaSAT_bounded.mlb");
+      val _ =
+        exec \<open>Copy binary files\<close>
+          ("cp IsaSAT_bounded " ^
             File.bash_path \<^path>\<open>$ISAFOL\<close> ^ "/Weidenbach_Book/code/");
     in () end\<close>
 

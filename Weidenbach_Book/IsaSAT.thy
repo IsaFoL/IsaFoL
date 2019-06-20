@@ -2399,5 +2399,38 @@ proof -
     done
 qed
 
+definition IsaSAT_bounded_heur :: \<open>opts \<Rightarrow> nat clause_l list \<Rightarrow> (bool \<times> (nat literal list option \<times> stats)) nres\<close> where
+  \<open>IsaSAT_bounded_heur opts CS = do{
+    ASSERT(isasat_input_bounded (mset_set (extract_atms_clss CS {})));
+    ASSERT(\<forall>C\<in>set CS. \<forall>L\<in>set C. nat_of_lit L \<le> uint_max);
+    let \<A>\<^sub>i\<^sub>n' = mset_set (extract_atms_clss CS {});
+    ASSERT(isasat_input_bounded \<A>\<^sub>i\<^sub>n');
+    ASSERT(distinct_mset \<A>\<^sub>i\<^sub>n');
+    let \<A>\<^sub>i\<^sub>n'' = virtual_copy \<A>\<^sub>i\<^sub>n';
+    let b = opts_unbounded_mode opts;
+    S \<leftarrow> init_state_wl_heur \<A>\<^sub>i\<^sub>n';
+    (T::twl_st_wl_heur_init) \<leftarrow> init_dt_wl_heur True CS S;
+    let T = convert_state \<A>\<^sub>i\<^sub>n'' T;
+    if \<not>get_conflict_wl_is_None_heur_init T
+    then RETURN (True, empty_init_code)
+    else if CS = [] then do {stat \<leftarrow> empty_conflict_code; RETURN (True, stat)}
+    else
+    if isasat_fast_init T
+    then do {
+      ASSERT(\<A>\<^sub>i\<^sub>n'' \<noteq> {#});
+      ASSERT(isasat_input_bounded_nempty \<A>\<^sub>i\<^sub>n'');
+      _ \<leftarrow> isasat_information_banner T;
+      ASSERT((\<lambda>(M', N', D', Q', W', ((ns, m, fst_As, lst_As, next_search), to_remove), \<phi>, clvls). fst_As \<noteq> None \<and>
+        lst_As \<noteq> None) T);
+      ASSERT(rewatch_heur_st_fast_pre T);
+      T \<leftarrow> rewatch_heur_st_fast T;
+      ASSERT(isasat_fast_init T);
+      T \<leftarrow> finalise_init_code opts (T::twl_st_wl_heur_init);
+      ASSERT(isasat_fast T);
+      (b, U) \<leftarrow> cdcl_twl_stgy_restart_prog_bounded_wl_heur T;
+      RETURN (b, if get_conflict_wl_is_None_heur U then extract_model_of_state_stat U
+        else extract_state_stat U)
+    } else RETURN (False, empty_init_code)
+  }\<close>
 
 end
