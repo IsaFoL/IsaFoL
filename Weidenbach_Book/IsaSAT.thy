@@ -1537,9 +1537,11 @@ definition IsaSAT_heur :: \<open>opts \<Rightarrow> nat clause_l list \<Rightarr
         (T::twl_st_wl_heur_init) \<leftarrow> init_dt_wl_heur False CS S;
         let failed = is_failed_heur_init T \<or> \<not>isasat_fast_init T;
         if failed then do {
-           S \<leftarrow> init_state_wl_heur \<A>\<^sub>i\<^sub>n';
+          let \<A>\<^sub>i\<^sub>n' = mset_set (extract_atms_clss CS {});
+          S \<leftarrow> init_state_wl_heur \<A>\<^sub>i\<^sub>n';
           (T::twl_st_wl_heur_init) \<leftarrow> init_dt_wl_heur True CS S;
           let T = convert_state \<A>\<^sub>i\<^sub>n'' T;
+          T \<leftarrow> isasat_init_fast_slow T;
           T \<leftarrow> rewatch_heur_st T;
           if \<not>get_conflict_wl_is_None_heur_init T
           then RETURN (empty_init_code)
