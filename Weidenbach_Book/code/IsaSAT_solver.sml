@@ -678,7 +678,7 @@ fun blit A_ src si dst di len =
     array_blit src (integer_of_nat
                      si) dst (integer_of_nat di) (integer_of_nat len));
 
-val version : string = "7fe0808b";
+val version : string = "b1b50d78";
 
 fun the (SOME x2) = x2;
 
@@ -8905,6 +8905,143 @@ fun extract_lits_sorted_code x =
                       end))
     x;
 
+fun set_empty_clause_as_conflict_code x =
+  (fn (a1, (a1a, ((_, (a1d, a2d)), (_, a2e)))) => fn () =>
+    let
+      val xa = isa_length_trail_fast_code a1 ();
+    in
+      (a1, (a1a, ((false, (a1d, a2d)), (xa, a2e))))
+    end)
+    x;
+
+fun set_conflict_unit_code x =
+  (fn ai => fn (_, (_, a2a)) => fn () =>
+    let
+      val xa = heap_array_set_u heap_bool a2a (atm_of_code ai) true ();
+    in
+      (false, ((Word32.fromInt 1), xa))
+    end)
+    x;
+
+fun conflict_propagated_unit_cls_code x =
+  (fn ai => fn (a1, (a1a, (a1b, (_, a2c)))) => fn () =>
+    let
+      val xa = set_conflict_unit_code ai a1b ();
+      val xaa = isa_length_trail_fast_code a1 ();
+    in
+      (a1, (a1a, (xa, (xaa, a2c))))
+    end)
+    x;
+
+fun already_propagated_unit_cls_code x =
+  (fn _ => fn bi => (fn () => let
+                                val (a1, (a1a, (a1b, (a1c, a2c)))) = bi;
+                              in
+                                (a1, (a1a, (a1b, (a1c, a2c))))
+                              end))
+    x;
+
+fun polarity_st_heur_init_code x =
+  (fn ai => fn bi => let
+                       val (a1, _) = ai;
+                     in
+                       polarity_pol_fast_code a1 bi
+                     end)
+    x;
+
+fun add_clause_to_others_code x =
+  (fn _ => fn bi => (fn () => let
+                                val (a1, (a1a, (a1b, (a1c, a2c)))) = bi;
+                              in
+                                (a1, (a1a, (a1b, (a1c, a2c))))
+                              end))
+    x;
+
+fun propagate_unit_cls_code x =
+  (fn ai => fn (a1, (a1a, (a1b, a2b))) => fn () =>
+    let
+      val xa = cons_trail_Propagated_tr_fast_code ai Uint64.zero a1 ();
+    in
+      (xa, (a1a, (a1b, a2b)))
+    end)
+    x;
+
+fun add_init_cls_code_b x =
+  (fn ai =>
+    fn (a1, (a1a, (a1b, (a1c, (a1d, (a1e, (a1f,
+    (a1g, (a1h, (a1i, (a1j, a2j)))))))))))
+      =>
+    fn () =>
+    let
+      val xa = (fn () => Array.fromList ai) ();
+      val xaa = arl_length heap_uint32 a1a ();
+      val xb = len heap_uint32 xa ();
+    in
+      (if false orelse
+            less_eq_nat xaa
+              (plus_nat xb
+                (nat_of_integer (18446744073709551615 : IntInf.int))) andalso
+              not a2j
+        then (fn f_ => fn () => f_ ((append_and_length_code true xa a1a) ()) ())
+               (fn (a1k, a2k) =>
+                 (fn f_ => fn () => f_
+                   ((arl_append (default_nat, heap_nat) a1j a2k) ()) ())
+                   (fn xc =>
+                     (fn () =>
+                       (a1, (a1k, (a1b, (a1c,
+  (a1d, (a1e, (a1f, (a1g, (a1h, (a1i, (xc, a2j))))))))))))))
+        else (fn () =>
+               (a1, (a1a, (a1b, (a1c, (a1d,
+(a1e, (a1f, (a1g, (a1h, (a1i, (a1j, true)))))))))))))
+        ()
+    end)
+    x;
+
+fun list_length_1_code c =
+  (case c of [] => false | [_] => true | _ :: _ :: _ => false);
+
+fun is_Nil a = (case a of [] => true | _ :: _ => false);
+
+fun init_dt_step_wl_code_b x =
+  (fn ai => fn bi => fn () =>
+    let
+      val xa = get_conflict_wl_is_None_init_code bi ();
+    in
+      (if xa
+        then (if is_Nil ai then set_empty_clause_as_conflict_code bi
+               else (if list_length_1_code ai
+                      then let
+                             val x_c = op_list_hd ai;
+                           in
+                             (fn f_ => fn () => f_
+                               ((polarity_st_heur_init_code bi x_c) ()) ())
+                               (fn x_e =>
+                                 (if ((x_e : Word32.word) = uNSET_code)
+                                   then propagate_unit_cls_code x_c bi
+                                   else (if ((x_e : Word32.word) = sET_TRUE_code)
+  then already_propagated_unit_cls_code ai bi
+  else conflict_propagated_unit_cls_code x_c bi)))
+                           end
+                      else add_init_cls_code_b ai bi))
+        else add_clause_to_others_code ai bi)
+        ()
+    end)
+    x;
+
+fun imp_nfoldli (x :: ls) c f s =
+  (fn () =>
+    let
+      val b = c s ();
+    in
+      (if b then (fn f_ => fn () => f_ ((f x s) ()) ()) (imp_nfoldli ls c f)
+        else (fn () => s))
+        ()
+    end)
+  | imp_nfoldli [] c f s = (fn () => s);
+
+fun init_dt_wl_heur_code_b x =
+  (fn ai => imp_nfoldli ai (fn _ => (fn () => true)) init_dt_step_wl_code_b) x;
+
 fun arl_replicate A_ init_cap x =
   let
     val n = max ord_nat init_cap minimum_capacity;
@@ -9173,17 +9310,6 @@ fun nat_lit_lits_init_assn_assn_in x =
         end)
     end)
     x;
-
-fun imp_nfoldli (x :: ls) c f s =
-  (fn () =>
-    let
-      val b = c s ();
-    in
-      (if b then (fn f_ => fn () => f_ ((f x s) ()) ()) (imp_nfoldli ls c f)
-        else (fn () => s))
-        ()
-    end)
-  | imp_nfoldli [] c f s = (fn () => s);
 
 fun extract_atms_cls_imp x =
   (fn ai =>
@@ -9454,67 +9580,6 @@ fun rewatch_heur_st_code x =
     end)
     x;
 
-fun set_empty_clause_as_conflict_code x =
-  (fn (a1, (a1a, ((_, (a1d, a2d)), (_, a2e)))) => fn () =>
-    let
-      val xa = isa_length_trail_fast_code a1 ();
-    in
-      (a1, (a1a, ((false, (a1d, a2d)), (xa, a2e))))
-    end)
-    x;
-
-fun set_conflict_unit_code x =
-  (fn ai => fn (_, (_, a2a)) => fn () =>
-    let
-      val xa = heap_array_set_u heap_bool a2a (atm_of_code ai) true ();
-    in
-      (false, ((Word32.fromInt 1), xa))
-    end)
-    x;
-
-fun conflict_propagated_unit_cls_code x =
-  (fn ai => fn (a1, (a1a, (a1b, (_, a2c)))) => fn () =>
-    let
-      val xa = set_conflict_unit_code ai a1b ();
-      val xaa = isa_length_trail_fast_code a1 ();
-    in
-      (a1, (a1a, (xa, (xaa, a2c))))
-    end)
-    x;
-
-fun already_propagated_unit_cls_code x =
-  (fn _ => fn bi => (fn () => let
-                                val (a1, (a1a, (a1b, (a1c, a2c)))) = bi;
-                              in
-                                (a1, (a1a, (a1b, (a1c, a2c))))
-                              end))
-    x;
-
-fun polarity_st_heur_init_code x =
-  (fn ai => fn bi => let
-                       val (a1, _) = ai;
-                     in
-                       polarity_pol_fast_code a1 bi
-                     end)
-    x;
-
-fun add_clause_to_others_code x =
-  (fn _ => fn bi => (fn () => let
-                                val (a1, (a1a, (a1b, (a1c, a2c)))) = bi;
-                              in
-                                (a1, (a1a, (a1b, (a1c, a2c))))
-                              end))
-    x;
-
-fun propagate_unit_cls_code x =
-  (fn ai => fn (a1, (a1a, (a1b, a2b))) => fn () =>
-    let
-      val xa = cons_trail_Propagated_tr_fast_code ai Uint64.zero a1 ();
-    in
-      (xa, (a1a, (a1b, a2b)))
-    end)
-    x;
-
 fun add_init_cls_code x =
   (fn ai =>
     fn (a1, (a1a, (a1b, (a1c, (a1d, (a1e, (a1f,
@@ -9538,11 +9603,6 @@ fun add_init_cls_code x =
         ()
     end)
     x;
-
-fun list_length_1_code c =
-  (case c of [] => false | [_] => true | _ :: _ :: _ => false);
-
-fun is_Nil a = (case a of [] => true | _ :: _ => false);
 
 fun init_dt_step_wl_code x =
   (fn ai => fn bi => fn () =>
@@ -9627,6 +9687,10 @@ fun isasat_init_fast_slow_code x =
       (xa, (a1a, (a1b, (a1c, (xaa, (a1e, (a1f, (a1g, (a1h, (a1i, a2i))))))))))
     end)
     x;
+
+fun is_failed_heur_init_code
+  (uu, (uv, (uw, (ux, (uy, (uz, (va, (vb, (vc, (vd, (ve, failed))))))))))) =
+  failed;
 
 fun opts_unbounded_mode x = (fn (_, (_, c)) => c) x;
 
@@ -9741,52 +9805,68 @@ fun isaSAT_code x =
                            else get_stats_code x_p)))))))))))))
         else (fn f_ => fn () => f_ ((init_state_wl_D_code xc) ()) ())
                (fn x_f =>
-                 (fn f_ => fn () => f_ ((init_dt_wl_heur_code bi x_f) ()) ())
+                 (fn f_ => fn () => f_ ((init_dt_wl_heur_code_b bi x_f) ()) ())
                    (fn x_g =>
-                     (fn f_ => fn () => f_
-                       ((get_conflict_wl_is_None_init_code x_g) ()) ())
+                     (fn f_ => fn () => f_ ((isasat_fast_init_code x_g) ()) ())
                        (fn xd =>
-                         (if not xd then empty_init_code
-                           else (if op_list_is_empty bi then empty_conflict_code
-                                  else (fn f_ => fn () => f_
- ((isasat_fast_init_code x_g) ()) ())
- (fn xe =>
-   (if not xe
-     then (fn f_ => fn () => f_ ((isasat_information_banner_code x_g) ()) ())
-            (fn _ =>
-              (fn f_ => fn () => f_ ((isasat_init_fast_slow_code x_g) ()) ())
-                (fn x_n =>
-                  (fn f_ => fn () => f_ ((rewatch_heur_st_code x_n) ()) ())
-                    (fn x_o =>
-                      (fn f_ => fn () => f_ ((finalise_init_code_unb ai x_o) ())
-                        ())
-                        (fn x_p =>
-                          (fn f_ => fn () => f_
-                            ((cdcl_twl_stgy_restart_prog_wl_heur_code x_p) ())
-                            ())
-                            (fn x_q =>
-                              (fn f_ => fn () => f_
-                                ((get_conflict_wl_is_None_code x_q) ()) ())
-                                (fn x_r =>
-                                  (fn () =>
-                                    (if x_r then get_trail_wl_code x_q
-                                      else get_stats_code x_q))))))))
+                         (if is_failed_heur_init_code x_g orelse not xd
+                           then (fn f_ => fn () => f_
+                                  (extract_atms_clss_imp_empty_assn ()) ())
+                                  (fn xe =>
+                                    (fn f_ => fn () => f_
+                                      ((extract_atms_clss_imp bi xe) ()) ())
+                                      (fn xf =>
+(fn f_ => fn () => f_ ((extract_lits_sorted_code xf) ()) ())
+  (fn x_j =>
+    (fn f_ => fn () => f_ ((init_state_wl_D_code x_j) ()) ())
+      (fn x_l =>
+        (fn f_ => fn () => f_ ((init_dt_wl_heur_code bi x_l) ()) ())
+          (fn x_m =>
+            (fn f_ => fn () => f_ ((isasat_init_fast_slow_code x_m) ()) ())
+              (fn x_p =>
+                (fn f_ => fn () => f_ ((rewatch_heur_st_code x_p) ()) ())
+                  (fn x_q =>
+                    (fn f_ => fn () => f_
+                      ((get_conflict_wl_is_None_init_code_unb x_q) ()) ())
+                      (fn xg =>
+                        (if not xg then empty_init_code
+                          else (if op_list_is_empty bi then empty_conflict_code
+                                 else (fn f_ => fn () => f_
+((isasat_information_banner_code x_q) ()) ())
+(fn _ =>
+  (fn f_ => fn () => f_ ((finalise_init_code_unb ai x_q) ()) ())
+    (fn x_u =>
+      (fn f_ => fn () => f_ ((cdcl_twl_stgy_restart_prog_wl_heur_code x_u) ())
+        ())
+        (fn x_v =>
+          (fn f_ => fn () => f_ ((get_conflict_wl_is_None_code x_v) ()) ())
+            (fn x_w =>
+              (fn () =>
+                (if x_w then get_trail_wl_code x_v
+                  else get_stats_code x_v))))))))))))))))
+                           else (fn f_ => fn () => f_
+                                  ((get_conflict_wl_is_None_init_code x_g) ())
+                                  ())
+                                  (fn xe =>
+                                    (if not xe then empty_init_code
+                                      else (if op_list_is_empty bi
+     then empty_conflict_code
      else (fn f_ => fn () => f_ ((isasat_information_banner_code x_g) ()) ())
             (fn _ =>
               (fn f_ => fn () => f_ ((rewatch_heur_st_fast_code x_g) ()) ())
-                (fn x_n =>
-                  (fn f_ => fn () => f_ ((finalise_init_code ai x_n) ()) ())
-                    (fn x_o =>
+                (fn x_o =>
+                  (fn f_ => fn () => f_ ((finalise_init_code ai x_o) ()) ())
+                    (fn x_p =>
                       (fn f_ => fn () => f_
-                        ((cdcl_twl_stgy_restart_prog_wl_heur_fast_code x_o) ())
+                        ((cdcl_twl_stgy_restart_prog_wl_heur_fast_code x_p) ())
                         ())
-                        (fn x_p =>
+                        (fn x_q =>
                           (fn f_ => fn () => f_
-                            ((get_conflict_wl_is_None_code x_p) ()) ())
-                            (fn x_q =>
+                            ((get_conflict_wl_is_None_code x_q) ()) ())
+                            (fn x_r =>
                               (fn () =>
-                                (if x_q then get_trail_wl_code x_p
-                                  else get_stats_code x_p)))))))))))))))
+                                (if x_r then get_trail_wl_code x_q
+                                  else get_stats_code x_q)))))))))))))))
         ()
     end)
     x;
