@@ -193,8 +193,23 @@ sepref_definition add_init_cls_code_unb
   apply (rewrite in \<open>let _ = \<hole> in _\<close> op_array_of_list_def[symmetric])
   by sepref
 
+sepref_definition add_init_cls_code_b
+  is \<open>uncurry add_init_cls_heur_b\<close>
+  :: \<open>(list_assn unat_lit_assn)\<^sup>k *\<^sub>a isasat_init_assn\<^sup>d  \<rightarrow>\<^sub>a isasat_init_assn\<close>
+  supply [[goals_limit=1]] append_ll_def[simp]
+  unfolding add_init_cls_heur_def isasat_init_unbounded_assn_def add_init_cls_heur_b_def
+  PR_CONST_def cons_trail_Propagated_def[symmetric] nat_of_uint32_conv_def
+  unfolding isasat_init_assn_def Array_List_Array.swap_ll_def[symmetric]
+    nth_rll_def[symmetric] delete_index_and_swap_update_def[symmetric]
+    delete_index_and_swap_ll_def[symmetric]
+    append_ll_def[symmetric]
+  apply (rewrite in \<open>let _ = \<hole> in _\<close> op_list_copy_def[symmetric])
+  apply (rewrite in \<open>let _ = \<hole> in _\<close> op_array_of_list_def[symmetric])
+  by sepref
+
 declare add_init_cls_code.refine[sepref_fr_rules]
    add_init_cls_code_unb.refine[sepref_fr_rules]
+   add_init_cls_code_b.refine[sepref_fr_rules]
 
 sepref_definition already_propagated_unit_cls_conflict_code
   is \<open>uncurry already_propagated_unit_cls_conflict_heur\<close>
@@ -355,8 +370,30 @@ sepref_definition init_dt_step_wl_code_unb
     tri_bool_eq_def[symmetric]
   by sepref
 
+sepref_definition init_dt_step_wl_code_b
+  is \<open>uncurry (init_dt_step_wl_heur_b)\<close>
+  :: \<open>[\<lambda>(C, S). True]\<^sub>a (list_assn unat_lit_assn)\<^sup>d *\<^sub>a isasat_init_assn\<^sup>d \<rightarrow>
+       isasat_init_assn\<close>
+  supply [[goals_limit=1]]
+  supply polarity_None_undefined_lit[simp] polarity_st_init_def[simp]
+  option.splits[split] get_conflict_wl_is_None_heur_init_alt_def[simp]
+  tri_bool_eq_def[simp]
+  unfolding init_dt_step_wl_heur_def lms_fold_custom_empty PR_CONST_def
+    add_init_cls_heur_b_def[symmetric] init_dt_step_wl_heur_b_def
+  unfolding watched_app_def[symmetric]
+  unfolding nth_rll_def[symmetric]
+  unfolding lms_fold_custom_empty swap_ll_def[symmetric]
+  unfolding
+    cons_trail_Propagated_def[symmetric] get_conflict_wl_is_None_init
+    polarity_st_heur_init_alt_def[symmetric]
+    get_conflict_wl_is_None_heur_init_alt_def[symmetric]
+    SET_TRUE_def[symmetric] SET_FALSE_def[symmetric] UNSET_def[symmetric]
+    tri_bool_eq_def[symmetric]
+  by sepref
+
 declare init_dt_step_wl_code.refine[sepref_fr_rules]
   init_dt_step_wl_code_unb.refine[sepref_fr_rules]
+  init_dt_step_wl_code_b.refine[sepref_fr_rules]
 
 
 sepref_register init_dt_wl_heur_unb
@@ -496,8 +533,18 @@ sepref_definition init_dt_wl_heur_code_unb
    init_dt_wl_heur_unb_def
   by sepref
 
+sepref_definition init_dt_wl_heur_code_b
+  is \<open>uncurry (init_dt_wl_heur_b)\<close>
+  :: \<open>(list_assn (list_assn unat_lit_assn))\<^sup>k *\<^sub>a isasat_init_assn\<^sup>d \<rightarrow>\<^sub>a
+      isasat_init_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding init_dt_wl_heur_def PR_CONST_def init_dt_step_wl_heur_b_def[symmetric] if_True
+   init_dt_wl_heur_b_def
+  by sepref
+
 declare init_dt_wl_heur_code.refine[sepref_fr_rules]
   init_dt_wl_heur_code_unb.refine[sepref_fr_rules]
+  init_dt_wl_heur_code_b.refine[sepref_fr_rules]
 
 sepref_definition init_dt_wl_heur_full_code
   is \<open>uncurry (init_dt_wl_heur_full_unb)\<close>

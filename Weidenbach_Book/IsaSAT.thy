@@ -2409,13 +2409,13 @@ definition IsaSAT_bounded_heur :: \<open>opts \<Rightarrow> nat clause_l list \<
     let \<A>\<^sub>i\<^sub>n'' = virtual_copy \<A>\<^sub>i\<^sub>n';
     let b = opts_unbounded_mode opts;
     S \<leftarrow> init_state_wl_heur \<A>\<^sub>i\<^sub>n';
-    (T::twl_st_wl_heur_init) \<leftarrow> init_dt_wl_heur True CS S;
+    (T::twl_st_wl_heur_init) \<leftarrow> init_dt_wl_heur False CS S;
     let T = convert_state \<A>\<^sub>i\<^sub>n'' T;
     if \<not>get_conflict_wl_is_None_heur_init T
     then RETURN (True, empty_init_code)
     else if CS = [] then do {stat \<leftarrow> empty_conflict_code; RETURN (True, stat)}
     else
-    if isasat_fast_init T
+    if isasat_fast_init T \<and> \<not>is_failed_heur_init T
     then do {
       ASSERT(\<A>\<^sub>i\<^sub>n'' \<noteq> {#});
       ASSERT(isasat_input_bounded_nempty \<A>\<^sub>i\<^sub>n'');

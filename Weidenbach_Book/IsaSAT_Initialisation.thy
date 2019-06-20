@@ -639,6 +639,9 @@ definition add_init_cls_heur
 definition add_init_cls_heur_unb :: \<open>nat clause_l \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur_init nres\<close> where
 \<open>add_init_cls_heur_unb = add_init_cls_heur True\<close>
 
+definition add_init_cls_heur_b :: \<open>nat clause_l \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur_init nres\<close> where
+\<open>add_init_cls_heur_b = add_init_cls_heur False\<close>
+
 lemma length_C_nempty_iff: \<open>length C \<ge> 2 \<longleftrightarrow> C \<noteq> [] \<and> tl C \<noteq> []\<close>
   by (cases C; cases \<open>tl C\<close>) auto
 
@@ -1158,6 +1161,12 @@ definition init_dt_step_wl_heur_unb :: \<open>nat clause_l \<Rightarrow> twl_st_
 
 definition init_dt_wl_heur_unb :: \<open>nat clause_l list \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur_init nres\<close> where
 \<open>init_dt_wl_heur_unb = init_dt_wl_heur True\<close>
+
+definition init_dt_step_wl_heur_b :: \<open>nat clause_l \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> (twl_st_wl_heur_init) nres\<close> where
+\<open>init_dt_step_wl_heur_b = init_dt_step_wl_heur False\<close>
+
+definition init_dt_wl_heur_b :: \<open>nat clause_l list \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur_init nres\<close> where
+\<open>init_dt_wl_heur_b = init_dt_wl_heur False\<close>
 
 
 subsection \<open>Extractions of the atoms in the state\<close>

@@ -309,6 +309,15 @@ proof -
         elim!: mod_starE)
 qed
 
+fun (in -) is_failed_heur_init_code :: \<open>_ \<Rightarrow> bool\<close> where
+  \<open>is_failed_heur_init_code (_, _, _, _, _, _, _, _, _, _, _, failed) = failed\<close>
+
+lemma is_failed_heur_init_code[sepref_fr_rules]:
+  \<open>(return o is_failed_heur_init_code, RETURN o is_failed_heur_init) \<in> isasat_init_assn\<^sup>k \<rightarrow>\<^sub>a
+       bool_assn\<close>
+  by (sepref_to_hoare) (sep_auto simp: isasat_init_assn_def
+        elim!: mod_starE)
+
 sepref_definition IsaSAT_bounded_code
   is \<open>uncurry IsaSAT_bounded_heur\<close>
   :: \<open>opts_assn\<^sup>d *\<^sub>a (list_assn (list_assn unat_lit_assn))\<^sup>k \<rightarrow>\<^sub>a bool_assn *a model_stat_fast_assn\<close>
@@ -317,7 +326,7 @@ sepref_definition IsaSAT_bounded_code
     get_conflict_wl_is_None extract_model_of_state_def[symmetric]
     extract_stats_def[symmetric]
     length_get_clauses_wl_heur_init_def[symmetric]
-   init_dt_step_wl_heur_unb_def[symmetric] init_dt_wl_heur_unb_def[symmetric]
+   init_dt_step_wl_heur_b_def[symmetric] init_dt_wl_heur_b_def[symmetric]
   supply get_conflict_wl_is_None_heur_init_def[simp]
   supply id_mset_list_assn_list_mset_assn[sepref_fr_rules] get_conflict_wl_is_None_def[simp]
    option.splits[split]
