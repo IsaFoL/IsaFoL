@@ -384,6 +384,26 @@ sepref_definition (in -) sort_clauses_by_score_fast_code
     List.null_def zero_uint64_nat_def[symmetric]
   by sepref
 
+
+sepref_register remove_deleted_clauses_from_avdom
+sepref_definition remove_deleted_clauses_from_avdom_fast_code
+  is \<open>uncurry isa_remove_deleted_clauses_from_avdom\<close>
+  :: \<open>arena_fast_assn\<^sup>k *\<^sub>a vdom_assn\<^sup>d \<rightarrow>\<^sub>a vdom_assn\<close>
+  unfolding isa_remove_deleted_clauses_from_avdom_def swap_def[symmetric]
+    WB_More_Refinement_List.swap_def
+  by sepref
+
+
+sepref_definition remove_deleted_clauses_from_avdom_code
+  is \<open>uncurry isa_remove_deleted_clauses_from_avdom\<close>
+  :: \<open>arena_assn\<^sup>k *\<^sub>a vdom_assn\<^sup>d \<rightarrow>\<^sub>a vdom_assn\<close>
+  unfolding isa_remove_deleted_clauses_from_avdom_def swap_def[symmetric]
+    WB_More_Refinement_List.swap_def
+  by sepref
+
+declare remove_deleted_clauses_from_avdom_fast_code.refine[sepref_fr_rules]
+   remove_deleted_clauses_from_avdom_code.refine[sepref_fr_rules]
+
 sepref_definition sort_vdom_heur_code
   is \<open>sort_vdom_heur\<close>
   :: \<open>isasat_unbounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_unbounded_assn\<close>
