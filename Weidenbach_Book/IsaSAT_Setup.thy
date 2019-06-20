@@ -1005,6 +1005,7 @@ definition rewatch_heur_st
 where
 \<open>rewatch_heur_st = (\<lambda>(M, N0, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl,
        stats, fema, sema, t, vdom, avdom, ccount, lcount). do {
+  ASSERT(length vdom \<le> length N0);
   W \<leftarrow> rewatch_heur vdom N0 W;
   RETURN (M, N0, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl,
        stats, fema, sema, t, vdom, avdom, ccount, lcount)

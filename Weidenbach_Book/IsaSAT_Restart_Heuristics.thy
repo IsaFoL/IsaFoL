@@ -612,6 +612,7 @@ lemma remove_deleted_clauses_from_avdom: \<open>remove_deleted_clauses_from_avdo
 
 definition isa_remove_deleted_clauses_from_avdom :: \<open>_\<close> where
 \<open>isa_remove_deleted_clauses_from_avdom arena avdom0 = do {
+  ASSERT(length avdom0 \<le> length arena);
   let n = length avdom0;
   (i, j, avdom) \<leftarrow> WHILE\<^sub>T\<^bsup> \<lambda>(i, j, _). i \<le> j \<and> j \<le> n\<^esup>
     (\<lambda>(i, j, avdom). j < n)
@@ -625,10 +626,11 @@ definition isa_remove_deleted_clauses_from_avdom :: \<open>_\<close> where
 }\<close>
 
 lemma isa_remove_deleted_clauses_from_avdom_remove_deleted_clauses_from_avdom:
-   \<open>valid_arena arena N vdom \<Longrightarrow> set avdom0 \<subseteq> vdom \<Longrightarrow>
+   \<open>valid_arena arena N (set vdom) \<Longrightarrow> mset avdom0 \<subseteq># mset vdom \<Longrightarrow> distinct vdom \<Longrightarrow>
    isa_remove_deleted_clauses_from_avdom arena avdom0 \<le> \<Down> Id (remove_deleted_clauses_from_avdom N avdom0)\<close>
   unfolding isa_remove_deleted_clauses_from_avdom_def remove_deleted_clauses_from_avdom_def Let_def
   apply (refine_vcg WHILEIT_refine[where R= \<open>Id \<times>\<^sub>r Id \<times>\<^sub>r \<langle>Id\<rangle>list_rel\<close>])
+  subgoal by (auto dest!: valid_arena_vdom_le(2) size_mset_mono simp: distinct_card)
   subgoal by auto
   subgoal by auto
   subgoal by auto
@@ -667,15 +669,6 @@ lemma sort_clauses_by_score_reorder:
     (auto simp add: reorder_list_def clause_score_ordering_def
      intro!: full_quicksort_correct[THEN order_trans])
 
-lemma valid_arena_vdom_subset:
-  assumes \<open>valid_arena arena N (set vdom)\<close> and \<open>distinct vdom\<close>
-  shows \<open>length vdom \<le> length arena\<close>
-proof -
-  have \<open>set vdom \<subseteq> {0 ..< length arena}\<close>
-    using assms by (auto simp: valid_arena_def)
-  from card_mono[OF _ this] show ?thesis using assms by (auto simp: distinct_card)
-qed
-
 lemma sort_vdom_heur_reorder_vdom_wl:
   \<open>(sort_vdom_heur, reorder_vdom_wl) \<in> twl_st_heur_restart_ana r \<rightarrow>\<^sub>f \<langle>twl_st_heur_restart_ana r\<rangle>nres_rel\<close>
 proof -
@@ -684,9 +677,12 @@ proof -
     apply (intro frefI nres_relI)
     apply refine_rcg
     apply (rule specify_left)
-    apply (rule_tac N1 = \<open>get_clauses_wl y\<close> and vdom1 = \<open>set (get_vdom x)\<close> in
+    apply (rule_tac N1 = \<open>get_clauses_wl y\<close> and vdom1 = \<open>get_vdom x\<close> in
      order_trans[OF isa_remove_deleted_clauses_from_avdom_remove_deleted_clauses_from_avdom,
-      unfolded Down_id_eq, OF _ _ remove_deleted_clauses_from_avdom])
+      unfolded Down_id_eq, OF _ _ _ remove_deleted_clauses_from_avdom])
+    subgoal for x y x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f x1g x2g x1h x2h
+       x1i x2i x1j x2j x1k x2k x1l x2l x1m x2m x1n x2n x1o x2o x1p x2p
+      by (case_tac y; auto simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def mem_Collect_eq prod.case)
     subgoal for x y x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f x1g x2g x1h x2h
        x1i x2i x1j x2j x1k x2k x1l x2l x1m x2m x1n x2n x1o x2o x1p x2p
       by (case_tac y; auto simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def mem_Collect_eq prod.case)

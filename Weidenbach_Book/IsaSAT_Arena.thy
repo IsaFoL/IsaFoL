@@ -2950,4 +2950,29 @@ lemma isa_marked_as_used_marked_as_used:
       list_rel_imp_same_length isa_marked_as_used_def
       intro!: ASSERT_leI)
 
+lemma valid_arena_vdom_le:
+  assumes \<open>valid_arena arena N ovdm\<close>
+  shows \<open>finite ovdm\<close> and \<open>card ovdm \<le> length arena\<close>
+proof -
+  have incl: \<open>ovdm \<subseteq> {4..< length arena}\<close>
+    apply auto
+    using assms valid_arena_in_vdom_le_arena by blast+
+  from card_mono[OF _ this] show \<open>card ovdm \<le> length arena\<close> by auto
+  have \<open>length arena \<ge> 4 \<or> ovdm = {}\<close>
+    using incl by auto
+  with card_mono[OF _ incl]  have \<open>ovdm \<noteq> {} \<Longrightarrow> card ovdm < length arena\<close>
+    by auto
+  from finite_subset[OF incl] show \<open>finite ovdm\<close> by auto
+qed
+
+
+lemma valid_arena_vdom_subset:
+  assumes \<open>valid_arena arena N (set vdom)\<close> and \<open>distinct vdom\<close>
+  shows \<open>length vdom \<le> length arena\<close>
+proof -
+  have \<open>set vdom \<subseteq> {0 ..< length arena}\<close>
+    using assms by (auto simp: valid_arena_def)
+  from card_mono[OF _ this] show ?thesis using assms by (auto simp: distinct_card)
+qed
+
 end

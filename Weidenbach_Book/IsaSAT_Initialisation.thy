@@ -632,7 +632,8 @@ definition add_init_cls_heur
      ASSERT(length C \<ge> 2);
      if unbdd \<or> (length N \<le> length C + uint64_max \<and> \<not>failed)
      then do {
-        (N, i) \<leftarrow> fm_add_new True C N;
+       ASSERT(length vdom \<le> length N);
+       (N, i) \<leftarrow> fm_add_new True C N;
        RETURN (M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, vdom @ [nat_of_uint32_conv i], failed)
      } else RETURN (M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, vdom, True)})\<close>
 
@@ -903,24 +904,27 @@ proof -
      RES_RES2_RETURN_RES RES_RES_RETURN_RES2 RES_RETURN_RES uncurry_def image_iff
     intro!: ext)
   show ?thesis
-  unfolding add_init_cls_heur_def add_to_clauses_init_wl_alt_def uncurry_def Let_def
-    to_watcher_def id_def
-  apply (intro frefI nres_relI)
-  apply (refine_vcg init_fm_add_new)
-  subgoal
-    by (rule add_init_pre1)
-  subgoal
-    by (rule add_init_pre2)
-  apply (rule lhs_step_If)
-  apply (refine_rcg) apply (rule init_fm_add_new)
-  apply assumption+
-  subgoal by auto
-  subgoal by (rule add_init_cls_final_rel)
-  unfolding RES_RES2_RETURN_RES RETURN_def
-    apply simp
-  subgoal unfolding RETURN_def apply (rule RES_refine)
-    by (auto simp: twl_st_heur_parsing_no_WL_def RETURN_def intro!: RES_refine)
-  done
+    unfolding add_init_cls_heur_def add_to_clauses_init_wl_alt_def uncurry_def Let_def
+      to_watcher_def id_def
+    apply (intro frefI nres_relI)
+    apply (refine_vcg init_fm_add_new)
+    subgoal
+      by (rule add_init_pre1)
+    subgoal
+      by (rule add_init_pre2)
+    apply (rule lhs_step_If)
+    apply (refine_rcg)
+    subgoal unfolding twl_st_heur_parsing_no_WL_def
+        by (force dest!: valid_arena_vdom_le(2) simp: distinct_card)
+    apply (rule init_fm_add_new)
+    apply assumption+
+    subgoal by auto
+    subgoal by (rule add_init_cls_final_rel)
+    unfolding RES_RES2_RETURN_RES RETURN_def
+      apply simp
+    subgoal unfolding RETURN_def apply (rule RES_refine)
+      by (auto simp: twl_st_heur_parsing_no_WL_def RETURN_def intro!: RES_refine)
+    done
 qed
 
 definition already_propagated_unit_cls_conflict
