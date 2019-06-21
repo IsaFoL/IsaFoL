@@ -601,14 +601,11 @@ compile_generated_files _
   where \<open>fn dir =>
     let
       val exec = Generated_Files.execute (Path.append dir (Path.basic "code"));
-      val _ = exec \<open>rename file\<close> "ls > /tmp/test"
       val _ = exec \<open>rename file\<close> "mv IsaSAT_solver_bounded.ML IsaSAT_solver_bounded.sml"
-      val _ = exec \<open>rename file\<close> "ls > /tmp/test"
       val _ =
         exec \<open>Copy files\<close>
           ("cp IsaSAT_solver_bounded.sml " ^
-  ((File.bash_path \<^path>\<open>$ISAFOL\<close>) ^ "/Weidenbach_Book/code/IsaSAT_solver_bounded.sml"));
-      val _ = exec \<open>rename file\<close> "ls > /tmp/test"
+   ((File.bash_path \<^path>\<open>$ISAFOL\<close>) ^ "/Weidenbach_Book/code/IsaSAT_solver_bounded.sml"));
       val _ =
         exec \<open>Compilation\<close>
           (File.bash_path \<^path>\<open>$ISABELLE_MLTON\<close> ^
