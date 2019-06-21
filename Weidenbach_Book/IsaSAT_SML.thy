@@ -174,13 +174,18 @@ sepref_register to_init_state from_init_state get_conflict_wl_is_None_init extra
 
 
 declare
-  init_dt_wl_heur_code.refine[sepref_fr_rules]
   get_stats_code[sepref_fr_rules]
+
+
+lemma isasat_fast_init_alt_def:
+  \<open>RETURN o isasat_fast_init = (\<lambda>(M, N, _). RETURN (length N \<le> isasat_fast_bound))\<close>
+  by (auto simp: isasat_fast_init_def uint64_max_def uint32_max_def isasat_fast_bound_def intro!: ext)
 
 sepref_definition isasat_fast_init_code
   is \<open>RETURN o isasat_fast_init\<close>
   :: \<open>isasat_init_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
-  unfolding isasat_fast_init_alt_def isasat_init_assn_def
+  supply [[goals_limit=1]]
+  unfolding isasat_fast_init_alt_def isasat_init_assn_def isasat_fast_bound_def[symmetric]
   by sepref
 
 declare isasat_fast_init_code.refine[sepref_fr_rules]
@@ -192,16 +197,39 @@ sepref_register
    cdcl_twl_stgy_restart_prog_wl_heur
 
 declare init_state_wl_D'_code.refine[FCOMP init_state_wl_D'[unfolded convert_fref],
-  unfolded lits_with_max_assn_alt_def[symmetric],
+  unfolded lits_with_max_assn_alt_def[symmetric] init_state_wl_heur_fast_def[symmetric],
   unfolded init_state_wl_D'_code_isasat, sepref_fr_rules]
-declare init_state_wl_D'_code.refine[FCOMP init_state_wl_D'[unfolded convert_fref], sepref_fr_rules]
 
+lemma init_state_wl_D'_code_isasat_unb: \<open>(hr_comp isasat_init_unbounded_assn
+   (Id \<times>\<^sub>f
+    (Id \<times>\<^sub>f
+     (Id \<times>\<^sub>f
+      (nat_rel \<times>\<^sub>f
+       (\<langle>\<langle>Id\<rangle>list_rel\<rangle>list_rel \<times>\<^sub>f
+        (Id \<times>\<^sub>f (\<langle>bool_rel\<rangle>list_rel \<times>\<^sub>f (nat_rel \<times>\<^sub>f (Id \<times>\<^sub>f (Id \<times>\<^sub>f Id))))))))))) = isasat_init_unbounded_assn\<close>
+  unfolding isasat_init_unbounded_assn_def  by auto
+
+lemma arena_assn_alt_def: \<open>arl_assn (pure (uint32_nat_rel O arena_el_rel)) = arena_assn\<close>
+  unfolding hr_comp_pure[symmetric] ..
+
+lemma [sepref_fr_rules]: \<open>(init_state_wl_D'_code_unb, init_state_wl_heur)
+\<in> [\<lambda>x. distinct_mset x \<and>
+       (\<forall>L\<in>#\<L>\<^sub>a\<^sub>l\<^sub>l x.
+           nat_of_lit L
+           \<le> uint_max)]\<^sub>a IsaSAT_SML.lits_with_max_assn\<^sup>d \<rightarrow> isasat_init_unbounded_assn\<close>
+  using init_state_wl_D'_code_unb.refine[FCOMP init_state_wl_D'[unfolded convert_fref]]
+  unfolding lits_with_max_assn_alt_def[symmetric] init_state_wl_D'_code_isasat_unb arena_assn_alt_def
+  unfolding isasat_init_unbounded_assn_def
+  by auto
 
 sepref_definition isasat_init_fast_slow_code
   is \<open>isasat_init_fast_slow\<close>
   :: \<open>isasat_init_assn\<^sup>d \<rightarrow>\<^sub>a isasat_init_unbounded_assn\<close>
   supply [[goals_limit=1]]
   unfolding isasat_init_unbounded_assn_def isasat_init_assn_def isasat_init_fast_slow_def
+  apply (rewrite at \<open>(_, _, _, _, _, _, _, _, _, _, \<hole>, _)\<close> arl64_to_arl_conv_def[symmetric])
+  apply (rewrite at \<open>(_, \<hole>, _, _, _, _, _, _, _, _, _, _)\<close> arl64_to_arl_conv_def[symmetric])
+  apply (rewrite in \<open>(_, _, _, _, _, _, _, _, _, _, \<hole>, _)\<close> arl_nat_of_uint64_conv_def[symmetric])
   by sepref
 
 declare isasat_init_fast_slow_code.refine[sepref_fr_rules]
@@ -216,6 +244,8 @@ lemma is_failed_heur_init_code[sepref_fr_rules]:
        bool_assn\<close>
   by (sepref_to_hoare) (sep_auto simp: isasat_init_assn_def
         elim!: mod_starE)
+
+declare init_dt_wl_heur_code_unb.refine[sepref_fr_rules]
 
 sepref_definition IsaSAT_code
   is \<open>uncurry IsaSAT_heur\<close>

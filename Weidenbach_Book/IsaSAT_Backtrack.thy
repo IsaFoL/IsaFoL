@@ -671,6 +671,8 @@ definition propagate_bt_wl_D_heur
   :: \<open>nat literal \<Rightarrow> nat clause_l \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
   \<open>propagate_bt_wl_D_heur = (\<lambda>L C (M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, fema, sema,
          res_info, vdom, avdom, lcount, opts). do {
+      ASSERT(length vdom \<le> length N0);
+      ASSERT(length avdom \<le> length N0);
       ASSERT(nat_of_lit (C!1) < length W0 \<and> nat_of_lit (-L) < length W0);
       ASSERT(length C > 1);
       let L' = C!1;
@@ -1696,6 +1698,8 @@ proof -
     have propagate_bt_wl_D_heur_alt_def:
       \<open>propagate_bt_wl_D_heur = (\<lambda>L C (M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, fema, sema,
           res_info, vdom, avdom, lcount, opts). do {
+          ASSERT(length vdom \<le> length N0);
+          ASSERT(length avdom \<le> length N0);
           ASSERT(nat_of_lit (C!1) < length W0 \<and> nat_of_lit (-L) < length W0);
           ASSERT(length C > 1);
           let L' = C!1;
@@ -1985,6 +1989,8 @@ proof -
       apply (rewrite in \<open>let _ = list_update _ (nat_of_lit _) _ in _\<close> Let_def)
       apply (rewrite in \<open>let _ = False in _\<close> Let_def)
       apply (refine_rcg cons_trail_Propagated_tr[THEN fref_to_Down_unRET_uncurry2, of \<open>all_atms_st U'\<close>])
+      subgoal using valid by (auto dest!: valid_arena_vdom_subset)
+      subgoal  using valid size_mset_mono[OF avdom] by (auto dest!: valid_arena_vdom_subset)
       subgoal using \<open>nat_of_lit (C ! Suc 0) < length W'\<close> by simp
       subgoal using \<open>nat_of_lit (- lit_of (hd (get_trail_wl S'))) < length W'\<close>
         by (simp add: S' lit_of_hd_trail_def)
@@ -2375,6 +2381,8 @@ lemma le_uint32_max_div_2_le_uint32_max: \<open>a \<le> uint_max div 2 + 1 \<Lon
 lemma propagate_bt_wl_D_heur_alt_def:
   \<open>propagate_bt_wl_D_heur = (\<lambda>L C (M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, fema, sema,
          res_info, vdom, avdom, lcount, opts). do {
+      ASSERT(length vdom \<le> length N0);
+      ASSERT(length avdom \<le> length N0);
       ASSERT(nat_of_lit (C!1) < length W0 \<and> nat_of_lit (-L) < length W0);
       ASSERT(length C > 1);
       let L' = C!1;
@@ -2418,6 +2426,12 @@ lemma propagate_bt_wl_D_fast_code_isasat_fastI2: \<open>isasat_fast b \<Longrigh
        a2' = (a1'a, a2'a) \<Longrightarrow>
        a < length a1'a \<Longrightarrow> a \<le> uint64_max\<close>
   by (cases b) (auto simp: isasat_fast_def)
+
+lemma propagate_bt_wl_D_fast_code_isasat_fastI3: \<open>isasat_fast b \<Longrightarrow>
+       b = (a1', a2') \<Longrightarrow>
+       a2' = (a1'a, a2'a) \<Longrightarrow>
+       a \<le> length a1'a \<Longrightarrow> a < uint64_max\<close>
+  by (cases b) (auto simp: isasat_fast_def uint64_max_def uint32_max_def)
 
 lemma lit_of_hd_trail_st_heur_alt_def:
   \<open>lit_of_hd_trail_st_heur = (\<lambda>(M, N, D, Q, W, vm, \<phi>). lit_of_last_trail_pol M)\<close>

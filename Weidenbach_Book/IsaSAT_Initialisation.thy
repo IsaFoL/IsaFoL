@@ -630,7 +630,7 @@ definition add_init_cls_heur
      let C = C;
      ASSERT(length C \<le> uint_max + 2);
      ASSERT(length C \<ge> 2);
-     if unbdd \<or> (length N \<le> length C + uint64_max \<and> \<not>failed)
+     if unbdd \<or> (length N \<le> uint64_max - length C - 5 \<and> \<not>failed)
      then do {
        ASSERT(length vdom \<le> length N);
        (N, i) \<leftarrow> fm_add_new True C N;
@@ -1654,6 +1654,7 @@ definition rewatch_heur_st
  :: \<open>twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur_init nres\<close>
 where
 \<open>rewatch_heur_st = (\<lambda>(M', N', D', j, W, vm, \<phi>, clvls, cach, lbd, vdom, failed). do {
+    ASSERT(length vdom \<le> length N');
     W \<leftarrow> rewatch_heur vdom N' W;
     RETURN (M', N', D', j, W, vm, \<phi>, clvls, cach, lbd, vdom, failed)
   })\<close>
@@ -1704,6 +1705,8 @@ proof -
     using assms
     unfolding rewatch_heur_st_def T S
     apply clarify
+    apply (rule ASSERT_leI)
+    subgoal by (auto dest: valid_arena_vdom_subset simp: twl_st_heur_parsing_no_WL_def)
       apply (rule bind_refine_res)
       prefer 2
       apply (rule order.trans)
@@ -1801,6 +1804,7 @@ proof -
     subgoal using assms by fast
     subgoal using assms by auto
     subgoal by (auto simp: twl_st_heur_parsing_def twl_st_heur_parsing_no_WL_def)
+    subgoal by (auto dest: valid_arena_vdom_subset simp: twl_st_heur_parsing_no_WL_def)
     apply ((rule H; assumption)+)[5]
     subgoal
       by (auto simp: twl_st_heur_parsing_def twl_st_heur_parsing_no_WL_def
@@ -2318,9 +2322,9 @@ lemma init_dt_wl'_init_dt:
 
 definition isasat_init_fast_slow :: \<open>twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur_init nres\<close> where
   \<open>isasat_init_fast_slow =
-    (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, vdom).
+    (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, vdom, failed).
       RETURN (trail_pol_slow_of_fast M', N', D', j, convert_wlists_to_nat_conv W', vm, \<phi>,
-        clvls, cach, lbd, vdom))\<close>
+        clvls, cach, lbd, vdom, failed))\<close>
 
 lemma isasat_init_fast_slow_alt_def:
   \<open>isasat_init_fast_slow S = RETURN S\<close>

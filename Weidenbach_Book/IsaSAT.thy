@@ -1514,8 +1514,7 @@ definition IsaSAT_heur :: \<open>opts \<Rightarrow> nat clause_l list \<Rightarr
     then do {
         S \<leftarrow> init_state_wl_heur \<A>\<^sub>i\<^sub>n';
         (T::twl_st_wl_heur_init) \<leftarrow>  init_dt_wl_heur True CS S;
-	      T \<leftarrow> isasat_init_fast_slow T;
-	      T \<leftarrow> rewatch_heur_st T;
+	T \<leftarrow> rewatch_heur_st T;
         let T = convert_state \<A>\<^sub>i\<^sub>n'' T;
         if \<not>get_conflict_wl_is_None_heur_init T
         then RETURN (empty_init_code)
@@ -1533,7 +1532,7 @@ definition IsaSAT_heur :: \<open>opts \<Rightarrow> nat clause_l list \<Rightarr
          }
     }
     else do {
-        S \<leftarrow> init_state_wl_heur \<A>\<^sub>i\<^sub>n';
+        S \<leftarrow> init_state_wl_heur_fast \<A>\<^sub>i\<^sub>n';
         (T::twl_st_wl_heur_init) \<leftarrow> init_dt_wl_heur False CS S;
         let failed = is_failed_heur_init T \<or> \<not>isasat_fast_init T;
         if failed then do {
@@ -1541,7 +1540,6 @@ definition IsaSAT_heur :: \<open>opts \<Rightarrow> nat clause_l list \<Rightarr
           S \<leftarrow> init_state_wl_heur \<A>\<^sub>i\<^sub>n';
           (T::twl_st_wl_heur_init) \<leftarrow> init_dt_wl_heur True CS S;
           let T = convert_state \<A>\<^sub>i\<^sub>n'' T;
-          T \<leftarrow> isasat_init_fast_slow T;
           T \<leftarrow> rewatch_heur_st T;
           if \<not>get_conflict_wl_is_None_heur_init T
           then RETURN (empty_init_code)
@@ -1709,7 +1707,7 @@ lemma IsaSAT_heur_alt_def:
         }
       }
     }\<close>
-  by (auto simp: IsaSAT_heur_def isasat_init_fast_slow_alt_def convert_state_def isasat_information_banner_def cong: if_cong)
+  by (auto simp: init_state_wl_heur_fast_def IsaSAT_heur_def isasat_init_fast_slow_alt_def convert_state_def isasat_information_banner_def cong: if_cong)
 
 
 lemma rewatch_heur_st_rewatch_st:
@@ -1747,6 +1745,7 @@ proof -
     unfolding rewatch_heur_st_def rewatch_st_def
     apply (simp only: prod.simps from_init_state_def fst_conv nres_monad1 U V)
     apply refine_vcg
+    subgoal by (auto simp: twl_st_heur_parsing_no_WL_def dest: valid_arena_vdom_subset)
     apply (rule rewatch_heur_rewatch[OF valid _ dist _ watched lall])
     subgoal by simp
     subgoal using vdom_N[symmetric] by simp
@@ -2318,10 +2317,6 @@ proof -
     done
 qed
 
-lemma isasat_fast_init_alt_def:
-  \<open>RETURN o isasat_fast_init = (\<lambda>(M, N, _). RETURN (length N \<le> 18446744071562067962))\<close>
-  by (auto simp: isasat_fast_init_def uint64_max_def uint32_max_def intro!: ext)
-
 definition  model_stat_rel where
   \<open>model_stat_rel = {((M', s), M). map_option rev M = M'}\<close>
 
@@ -2582,7 +2577,7 @@ definition IsaSAT_bounded_heur :: \<open>opts \<Rightarrow> nat clause_l list \<
     ASSERT(distinct_mset \<A>\<^sub>i\<^sub>n');
     let \<A>\<^sub>i\<^sub>n'' = virtual_copy \<A>\<^sub>i\<^sub>n';
     let b = opts_unbounded_mode opts;
-    S \<leftarrow> init_state_wl_heur \<A>\<^sub>i\<^sub>n';
+    S \<leftarrow> init_state_wl_heur_fast \<A>\<^sub>i\<^sub>n';
     (T::twl_st_wl_heur_init) \<leftarrow> init_dt_wl_heur False CS S;
     let T = convert_state \<A>\<^sub>i\<^sub>n'' T;
     if \<not>get_conflict_wl_is_None_heur_init T

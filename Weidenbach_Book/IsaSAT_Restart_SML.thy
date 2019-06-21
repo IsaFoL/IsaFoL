@@ -1,52 +1,8 @@
 theory IsaSAT_Restart_SML
   imports IsaSAT_Restart IsaSAT_Restart_Heuristics_SML IsaSAT_CDCL_SML
 begin
-
-sepref_register number_clss_to_keep
-
-sepref_register access_vdom_at
 sepref_register length_avdom
 sepref_register clause_is_learned_heur
-
-lemma (in -) uint32_max_nat_hnr:
-  \<open>(uncurry0 (return uint32_max), uncurry0 (RETURN uint32_max)) \<in>
-     unit_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
-  by sepref_to_hoare sep_auto
-
-sepref_definition number_clss_to_keep_impl
-  is \<open>RETURN o number_clss_to_keep\<close>
-  :: \<open>isasat_unbounded_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
-  unfolding number_clss_to_keep_def isasat_unbounded_assn_def
-  supply [[goals_limit = 1]]
-  by sepref
-
-sepref_definition number_clss_to_keep_fast_impl
-  is \<open>RETURN o number_clss_to_keep\<close>
-  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
-  unfolding number_clss_to_keep_def isasat_bounded_assn_def
-  supply [[goals_limit = 1]]
-  by sepref
-
-declare number_clss_to_keep_impl.refine[sepref_fr_rules]
-   number_clss_to_keep_fast_impl.refine[sepref_fr_rules]
-
-sepref_definition access_vdom_at_code
-  is \<open>uncurry (RETURN oo access_vdom_at)\<close>
-  :: \<open>[uncurry access_vdom_at_pre]\<^sub>a isasat_unbounded_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> nat_assn\<close>
-  unfolding access_vdom_at_alt_def access_vdom_at_pre_def isasat_unbounded_assn_def
-  supply [[goals_limit = 1]]
-  by sepref
-
-sepref_definition access_vdom_at_fast_code
-  is \<open>uncurry (RETURN oo access_vdom_at)\<close>
-  :: \<open>[uncurry access_vdom_at_pre]\<^sub>a isasat_bounded_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> nat_assn\<close>
-  unfolding access_vdom_at_alt_def access_vdom_at_pre_def isasat_bounded_assn_def
-  supply [[goals_limit = 1]]
-  by sepref
-
-
-declare access_vdom_at_fast_code.refine[sepref_fr_rules]
-  access_vdom_at_code.refine[sepref_fr_rules]
 
 sepref_definition length_avdom_code
   is \<open>RETURN o length_avdom\<close>
@@ -57,7 +13,7 @@ sepref_definition length_avdom_code
 
 sepref_definition length_avdom_fast_code
   is \<open>RETURN o length_avdom\<close>
-  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
+  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
   unfolding length_avdom_alt_def access_vdom_at_pre_def isasat_bounded_assn_def
   supply [[goals_limit = 1]]
   by sepref
@@ -96,7 +52,7 @@ sepref_definition clause_is_learned_heur_code
 sepref_definition clause_is_learned_heur_code2
   is \<open>uncurry (RETURN oo ( clause_is_learned_heur))\<close>
   :: \<open>[\<lambda>(S, C). arena_is_valid_clause_vdom (get_clauses_wl_heur S) C]\<^sub>a
-      isasat_bounded_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> bool_assn\<close>
+      isasat_bounded_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow> bool_assn\<close>
   unfolding clause_is_learned_heur_alt_def isasat_bounded_assn_def
   supply [[goals_limit = 1]]
   by sepref
@@ -117,7 +73,7 @@ sepref_definition clause_lbd_heur_code
 sepref_definition clause_lbd_heur_code2
   is \<open>uncurry (RETURN oo clause_lbd_heur)\<close>
   :: \<open>[\<lambda>(S, C). get_clause_LBD_pre (get_clauses_wl_heur S) C]\<^sub>a
-       isasat_bounded_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
+       isasat_bounded_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
   unfolding clause_lbd_heur_alt_def isasat_bounded_assn_def
   supply [[goals_limit = 1]]
   by sepref
@@ -128,7 +84,7 @@ declare  clause_lbd_heur_code2.refine[sepref_fr_rules]
 sepref_register mark_garbage_heur
 
 
-    sepref_definition mark_garbage_heur_code
+sepref_definition mark_garbage_heur_code
   is \<open>uncurry2 (RETURN ooo mark_garbage_heur)\<close>
   :: \<open>[\<lambda>((C, i), S). mark_garbage_pre (get_clauses_wl_heur S, C) \<and> i < length_avdom S]\<^sub>a
        nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a isasat_unbounded_assn\<^sup>d \<rightarrow> isasat_unbounded_assn\<close>
@@ -137,11 +93,42 @@ sepref_register mark_garbage_heur
   supply [[goals_limit = 1]]
   by sepref
 
+
+definition butlast_arl64 :: \<open>'a array_list64 \<Rightarrow> _\<close> where
+  \<open>butlast_arl64 = (\<lambda>(xs, i). (xs, fast_minus i 1))\<close>
+
+lemma butlast_arl_hnr[sepref_fr_rules]:
+  \<open>(return o butlast_arl64, RETURN o op_list_butlast) \<in> [\<lambda>xs. xs \<noteq> []]\<^sub>a (arl64_assn A)\<^sup>d \<rightarrow> arl64_assn A\<close>
+proof -
+  have [simp]: \<open>b \<le> length l' \<Longrightarrow> (take b l', x) \<in> \<langle>the_pure A\<rangle>list_rel \<Longrightarrow>
+     (take (b - Suc 0) l', take (length x - Suc 0) x) \<in> \<langle>the_pure A\<rangle>list_rel\<close>
+    for b l' x
+    using list_rel_take[of \<open>take b l'\<close> x \<open>the_pure A\<close> \<open>b -1\<close>]
+    by (auto simp: list_rel_imp_same_length[symmetric]
+      butlast_conv_take min_def
+      simp del: take_butlast_conv)
+  have [simp]: \<open>x \<noteq> [] \<Longrightarrow>
+       nat_of_uint64 b \<le> length l' \<Longrightarrow>
+       l' \<noteq> [] \<Longrightarrow>
+       length l' \<le> uint64_max \<Longrightarrow>
+       (take (nat_of_uint64 b) l', x) \<in> \<langle>the_pure A\<rangle>list_rel \<Longrightarrow>
+        nat_of_uint64 (b - 1) = nat_of_uint64 b - 1\<close> for x b l'
+     by (metis One_nat_def Suc_leI le_0_eq list_rel_pres_neq_nil 
+         nat_of_uint64_012(3) nat_of_uint64_ge_minus nat_of_uint64_le_iff not_less take_eq_Nil)
+  show ?thesis
+    by sepref_to_hoare
+     (sep_auto simp: butlast_arl64_def arl64_assn_def hr_comp_def is_array_list64_def
+         butlast_conv_take
+        simp del: take_butlast_conv)
+qed
+
+declare butlast_arl_hnr[unfolded op_list_butlast_def butlast_nonresizing_def[symmetric], sepref_fr_rules]
+
 sepref_definition mark_garbage_heur_code2
   is \<open>uncurry2 (RETURN ooo mark_garbage_heur)\<close>
   :: \<open>[\<lambda>((C, i), S). mark_garbage_pre (get_clauses_wl_heur S, C) \<and> i < length_avdom S \<and>
          get_learned_count S \<ge> 1]\<^sub>a
-       nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
+       uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   unfolding mark_garbage_heur_def isasat_bounded_assn_def delete_index_and_swap_alt_def
     length_avdom_def one_uint64_nat_def[symmetric]
   supply [[goals_limit = 1]]
@@ -163,7 +150,7 @@ sepref_definition delete_index_vdom_heur_code
 sepref_definition delete_index_vdom_heur_fast_code2
   is \<open>uncurry (RETURN oo delete_index_vdom_heur)\<close>
   :: \<open>[\<lambda>(i, S). i < length_avdom S]\<^sub>a
-        nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
+        uint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   unfolding delete_index_vdom_heur_def isasat_bounded_assn_def delete_index_and_swap_alt_def
     length_avdom_def butlast_nonresizing_def[symmetric]
   supply [[goals_limit = 1]]
@@ -184,7 +171,7 @@ sepref_definition access_length_heur_code
 sepref_definition access_length_heur_fast_code2
   is \<open>uncurry (RETURN oo access_length_heur)\<close>
   :: \<open>[\<lambda>(S, C). arena_is_valid_clause_idx (get_clauses_wl_heur S) C]\<^sub>a
-       isasat_bounded_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> uint64_nat_assn\<close>
+       isasat_bounded_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow> uint64_nat_assn\<close>
   unfolding access_length_heur_alt_def isasat_bounded_assn_def
   supply [[goals_limit = 1]]
   by sepref
@@ -242,17 +229,8 @@ sepref_definition marked_as_used_st_fast_code
   supply [[goals_limit = 1]]
   by sepref
 
-sepref_definition marked_as_used_st_fast_code2
-  is \<open>uncurry (RETURN oo marked_as_used_st)\<close>
-  :: \<open>[\<lambda>(S, C). marked_as_used_pre (get_clauses_wl_heur S) C]\<^sub>a
-       isasat_bounded_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> bool_assn\<close>
-  unfolding marked_as_used_st_alt_def isasat_bounded_assn_def
-  supply [[goals_limit = 1]]
-  by sepref
-
 declare marked_as_used_st_code.refine[sepref_fr_rules]
   marked_as_used_st_fast_code.refine[sepref_fr_rules]
-  marked_as_used_st_fast_code2.refine[sepref_fr_rules]
 
 lemma arena_act_pre_mark_used:
   \<open>arena_act_pre arena C \<Longrightarrow>
@@ -327,18 +305,8 @@ sepref_definition mark_unused_st_fast_code
   supply [[goals_limit = 1]]
   by sepref
 
-sepref_definition mark_unused_st_fast_code2
-  is \<open>uncurry (RETURN oo mark_unused_st_heur)\<close>
-  :: \<open>[\<lambda>(C, S). arena_act_pre (get_clauses_wl_heur S) C]\<^sub>a
-        nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
-  unfolding mark_unused_st_heur_def isasat_bounded_assn_def
-    arena_act_pre_mark_used[intro!]
-  supply [[goals_limit = 1]]
-  by sepref
-
 declare mark_unused_st_code.refine[sepref_fr_rules]
   mark_unused_st_fast_code.refine[sepref_fr_rules]
-  mark_unused_st_fast_code2.refine[sepref_fr_rules]
 
 
 sepref_register mark_clauses_as_unused_wl_D_heur
@@ -353,24 +321,16 @@ sepref_definition mark_clauses_as_unused_wl_D_heur_code
   by sepref
 
 
-sepref_definition clause_not_marked_to_delete_heur_fast_code2
-  is \<open>uncurry (RETURN oo clause_not_marked_to_delete_heur)\<close>
-  :: \<open>[clause_not_marked_to_delete_heur_pre]\<^sub>a isasat_bounded_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> bool_assn\<close>
-  supply [[goals_limit=1]]
-  unfolding clause_not_marked_to_delete_heur_alt_def isasat_bounded_assn_def
-     clause_not_marked_to_delete_heur_pre_def
-  by sepref
-
 
 declare clause_not_marked_to_delete_heur_fast_code.refine[sepref_fr_rules]
-  clause_not_marked_to_delete_heur_fast_code2.refine[sepref_fr_rules]
 
 sepref_definition mark_clauses_as_unused_wl_D_heur_fast_code
   is \<open>uncurry mark_clauses_as_unused_wl_D_heur\<close>
-  :: \<open>nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
-  supply [[goals_limit=1]]
+  :: \<open>[\<lambda>(_, S). length (get_avdom S) \<le> uint64_max]\<^sub>a
+    uint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
+  supply [[goals_limit=1]] length_avdom_def[simp]
   unfolding mark_clauses_as_unused_wl_D_heur_def
-    mark_unused_st_heur_def[symmetric]
+    mark_unused_st_heur_def[symmetric] one_uint64_nat_def[symmetric]
     access_vdom_at_def[symmetric] length_avdom_def[symmetric]
   by sepref
 
@@ -398,20 +358,11 @@ sepref_definition mark_to_delete_clauses_wl_D_heur_impl
 declare sort_vdom_heur_fast_code.refine[sepref_fr_rules]
   sort_vdom_heur_fast_code.refine[sepref_fr_rules]
 
-sepref_definition access_lit_in_clauses_heur_fast_code2
-  is \<open>uncurry2 (RETURN ooo access_lit_in_clauses_heur)\<close>
-  :: \<open>[\<lambda>((S, i), j). access_lit_in_clauses_heur_pre ((S, i), j)]\<^sub>a
-      isasat_bounded_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k  *\<^sub>a nat_assn\<^sup>k \<rightarrow> unat_lit_assn\<close>
-  supply length_rll_def[simp] [[goals_limit=1]] arena_is_valid_clause_idx_le_uint64_max[intro]
-  unfolding isasat_bounded_assn_def access_lit_in_clauses_heur_alt_def
-    fmap_rll_def[symmetric] access_lit_in_clauses_heur_pre_def
-    fmap_rll_u64_def[symmetric] arena_lit_pre_le[intro]
-  by sepref
-
 declare access_lit_in_clauses_heur_fast_code.refine[sepref_fr_rules]
-  access_lit_in_clauses_heur_fast_code2.refine[sepref_fr_rules]
 
 (* END Move *)
+text \<open>Find a less hack-like solution\<close>
+setup \<open>map_theory_claset (fn ctxt => ctxt delSWrapper "split_all_tac")\<close>
 
 sepref_definition mark_to_delete_clauses_wl_D_heur_fast_impl
   is \<open>mark_to_delete_clauses_wl_D_heur\<close>
@@ -420,11 +371,12 @@ sepref_definition mark_to_delete_clauses_wl_D_heur_fast_impl
     access_vdom_at_def[symmetric] length_avdom_def[symmetric]
     get_the_propagation_reason_heur_def[symmetric]
     clause_is_learned_heur_def[symmetric]
-    clause_lbd_heur_def[symmetric]
-    access_length_heur_def[symmetric]
+    clause_lbd_heur_def[symmetric] nat_of_uint64_conv_def
+    access_length_heur_def[symmetric] zero_uint64_nat_def[symmetric]
     short_circuit_conv mark_to_delete_clauses_wl_D_heur_is_Some_iff
-    marked_as_used_st_def[symmetric]
+    marked_as_used_st_def[symmetric] one_uint64_nat_def[symmetric]
   supply [[goals_limit = 1]] option.splits[split] if_splits[split]
+    length_avdom_def[symmetric, simp] access_vdom_at_def[simp]
   by sepref
 
 declare mark_to_delete_clauses_wl_D_heur_fast_impl.refine[sepref_fr_rules]

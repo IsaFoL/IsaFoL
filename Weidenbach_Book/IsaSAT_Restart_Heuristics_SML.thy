@@ -258,25 +258,25 @@ declare clause_score_extract_code.refine[sepref_fr_rules]
 (*TODO Move*)
 sepref_definition isa_get_clause_LBD_code2
   is \<open>uncurry isa_get_clause_LBD\<close>
-  :: \<open>(arl64_assn uint32_assn)\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a uint32_assn\<close>
-  unfolding isa_get_clause_LBD_def fast_minus_def[symmetric]
+  :: \<open>(arl64_assn uint32_assn)\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a uint32_assn\<close>
+  unfolding isa_get_clause_LBD_def fast_minus_def[symmetric] LBD_SHIFT_hnr[sepref_fr_rules]
   by sepref
 
 lemma isa_get_clause_LBD_code[sepref_fr_rules]:
   \<open>(uncurry isa_get_clause_LBD_code2, uncurry (RETURN \<circ>\<circ> get_clause_LBD))
-     \<in> [uncurry get_clause_LBD_pre]\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
+     \<in> [uncurry get_clause_LBD_pre]\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
   using isa_get_clause_LBD_code2.refine[FCOMP isa_get_clause_LBD_get_clause_LBD[unfolded convert_fref]]
   unfolding hr_comp_assoc[symmetric] list_rel_compp status_assn_alt_def uncurry_def
   by (auto simp add: arl64_assn_comp update_lbd_pre_def)
 sepref_definition isa_arena_act_code2
   is \<open>uncurry isa_arena_act\<close>
-  :: \<open>(arl64_assn uint32_assn)\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a uint32_assn\<close>
-  unfolding isa_arena_act_def ACTIVITY_SHIFT_def fast_minus_def[symmetric]
+  :: \<open>(arl64_assn uint32_assn)\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a uint32_assn\<close>
+  unfolding isa_arena_act_def ACTIVITY_SHIFT_hnr[sepref_fr_rules] fast_minus_def[symmetric]
   by sepref
 
 lemma isa_arena_act_code2[sepref_fr_rules]:
   \<open>(uncurry isa_arena_act_code2, uncurry (RETURN \<circ>\<circ> arena_act))
-     \<in> [uncurry arena_act_pre]\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
+     \<in> [uncurry arena_act_pre]\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
   using isa_arena_act_code2.refine[FCOMP isa_arena_act_arena_act[unfolded convert_fref]]
   unfolding hr_comp_assoc[symmetric] list_rel_compp status_assn_alt_def uncurry_def
   by (auto simp add: arl64_assn_comp update_lbd_pre_def)
@@ -287,7 +287,7 @@ thm isa_arena_act_code
 sepref_definition (in -) clause_score_extract_fast_code
   is \<open>uncurry (RETURN oo clause_score_extract)\<close>
   :: \<open>[uncurry valid_sort_clause_score_pre_at]\<^sub>a
-      arena_fast_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> uint32_nat_assn *a uint32_nat_assn\<close>
+      arena_fast_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow> uint32_nat_assn *a uint32_nat_assn\<close>
   supply uint32_max_uint32_nat_assn[sepref_fr_rules]
   unfolding clause_score_extract_def insert_sort_inner_def valid_sort_clause_score_pre_at_def
   by sepref
@@ -308,7 +308,7 @@ sepref_definition (in -) partition_main_clause_code
 sepref_definition (in -) partition_main_clause_fast_code
   is \<open>uncurry3 partition_main_clause\<close>
   :: \<open>[\<lambda>(((arena, i), j), vdom). length vdom \<le> uint64_max \<and> valid_sort_clause_score_pre arena vdom]\<^sub>a
-      arena_fast_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a vdom_assn\<^sup>d \<rightarrow> vdom_assn *a uint64_nat_assn\<close>
+      arena_fast_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a vdom_fast_assn\<^sup>d \<rightarrow> vdom_fast_assn *a uint64_nat_assn\<close>
   supply insort_inner_clauses_by_score_invI[intro] [[goals_limit=1]]
     partition_main_inv_def[simp] mset_eq_length[dest]
   unfolding partition_main_clause_def partition_between_ref_def
@@ -339,7 +339,7 @@ lemma div2_hnr[sepref_fr_rules]: \<open>(return o (\<lambda>n. n >> 1), RETURN o
 sepref_definition (in -) partition_clause_fast_code
   is \<open>uncurry3 partition_clause\<close>
   :: \<open>[\<lambda>(((arena, i), j), vdom). length vdom \<le> uint64_max \<and> valid_sort_clause_score_pre arena vdom]\<^sub>a
-      arena_fast_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a vdom_assn\<^sup>d \<rightarrow> vdom_assn *a uint64_nat_assn\<close>
+      arena_fast_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a vdom_fast_assn\<^sup>d \<rightarrow> vdom_fast_assn *a uint64_nat_assn\<close>
   supply insort_inner_clauses_by_score_invI[intro] valid_sort_clause_score_pre_swap[
     unfolded WB_More_Refinement_List.swap_def IICF_List.swap_def[symmetric], intro] mset_eq_length[dest]
   unfolding partition_clause_def partition_between_ref_def div2_def[symmetric]
@@ -374,23 +374,31 @@ lemma minus_uint64_safe:
 sepref_definition (in -) sort_clauses_by_score_fast_code
   is \<open>uncurry quicksort_clauses_by_score\<close>
   :: \<open>[\<lambda>(arena, vdom). length vdom \<le> uint64_max \<and> valid_sort_clause_score_pre arena vdom]\<^sub>a
-      arena_fast_assn\<^sup>k *\<^sub>a vdom_assn\<^sup>d \<rightarrow> vdom_assn\<close>
+      arena_fast_assn\<^sup>k *\<^sub>a vdom_fast_assn\<^sup>d \<rightarrow> vdom_fast_assn\<close>
   supply sort_clauses_by_score_invI[intro] [[goals_limit=1]] mset_eq_length[dest] minus_uint64_safe[sepref_fr_rules]
   unfolding insert_sort_def
     quicksort_clauses_by_score_def
     full_quicksort_ref_def
-    quicksort_ref_def length_uint64_nat_def[symmetric]
+    quicksort_ref_def
     partition_clause_def[symmetric] one_uint64_nat_def[symmetric]
     List.null_def zero_uint64_nat_def[symmetric]
   by sepref
 
+(*TODO Move replace*)
+lemma arl64_take[sepref_fr_rules]:
+  \<open>(uncurry (return oo arl64_take), uncurry (RETURN oo take)) \<in>
+    [\<lambda>(n, xs). n \<le> length xs]\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a (arl64_assn R)\<^sup>d \<rightarrow> arl64_assn R\<close>
+  by (sepref_to_hoare)
+    (sep_auto simp: arl64_assn_def arl64_take_def is_array_list64_def hr_comp_def
+      uint64_nat_rel_def br_def list_rel_def list_all2_conv_all_nth)
 
 sepref_register remove_deleted_clauses_from_avdom
 sepref_definition remove_deleted_clauses_from_avdom_fast_code
   is \<open>uncurry isa_remove_deleted_clauses_from_avdom\<close>
-  :: \<open>arena_fast_assn\<^sup>k *\<^sub>a vdom_assn\<^sup>d \<rightarrow>\<^sub>a vdom_assn\<close>
+  :: \<open>[\<lambda>(N, vdom). length vdom \<le> uint64_max]\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a vdom_fast_assn\<^sup>d \<rightarrow> vdom_fast_assn\<close>
+  supply [[goals_limit=1]]
   unfolding isa_remove_deleted_clauses_from_avdom_def swap_def[symmetric]
-    WB_More_Refinement_List.swap_def
+    WB_More_Refinement_List.swap_def zero_uint64_nat_def[symmetric] one_uint64_nat_def[symmetric]
   by sepref
 
 
@@ -753,20 +761,19 @@ sepref_definition remove_one_annot_true_clause_imp_wl_D_heur_slow_code
 declare remove_one_annot_true_clause_imp_wl_D_heur_code.refine[sepref_fr_rules]
    remove_one_annot_true_clause_imp_wl_D_heur_slow_code.refine[sepref_fr_rules]
 
+
 declare fm_mv_clause_to_new_arena_fast_code.refine[sepref_fr_rules]
 sepref_definition isasat_GC_clauses_prog_copy_wl_entry_code
   is \<open>uncurry3 isasat_GC_clauses_prog_copy_wl_entry\<close>
   :: \<open>[\<lambda>(((N, _), _), _). length N \<le> uint64_max]\<^sub>a
      arena_fast_assn\<^sup>d *\<^sub>a watchlist_fast_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a
-         (arena_fast_assn *a vdom_assn *a vdom_assn)\<^sup>d \<rightarrow>
-     (arena_fast_assn *a (arena_fast_assn *a vdom_assn *a vdom_assn))\<close>
+         (arena_fast_assn *a vdom_fast_assn *a vdom_fast_assn)\<^sup>d \<rightarrow>
+     (arena_fast_assn *a (arena_fast_assn *a vdom_fast_assn *a vdom_fast_assn))\<close>
   supply [[goals_limit=1]] Pos_unat_lit_assn'[sepref_fr_rules] length_ll_def[simp] if_splits[split]
   unfolding isasat_GC_clauses_prog_copy_wl_entry_def nth_rll_def[symmetric]
     length_ll_def[symmetric] zero_uint64_nat_def[symmetric] one_uint64_nat_def[symmetric]
     four_uint64_nat_def[symmetric] five_uint64_nat_def[symmetric]
   apply (rewrite at \<open>let _ = length_ll _ \<hole> in _\<close> uint64_of_uint32_conv_def[symmetric])
-  apply (rewrite at \<open>_ @ [\<hole>]\<close> nat_of_uint64_conv_def[symmetric])
-  apply (rewrite at \<open>If _ (_ @ [\<hole>])\<close> nat_of_uint64_conv_def[symmetric])
   by sepref
 
 sepref_definition isasat_GC_clauses_prog_copy_wl_entry_slow_code
@@ -794,8 +801,8 @@ lemma length_shorten_take_ll[simp]: \<open>length (shorten_take_ll a j W) = leng
 sepref_definition isasat_GC_clauses_prog_single_wl_code
   is \<open>uncurry3 isasat_GC_clauses_prog_single_wl\<close>
   :: \<open>[\<lambda>(((N, _), _), A). A \<le> uint32_max div 2 \<and> length N \<le> uint64_max]\<^sub>a
-     arena_fast_assn\<^sup>d *\<^sub>a (arena_fast_assn *a vdom_assn *a vdom_assn)\<^sup>d *\<^sub>a watchlist_fast_assn\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>
-     (arena_fast_assn *a (arena_fast_assn *a vdom_assn *a vdom_assn) *a watchlist_fast_assn)\<close>
+     arena_fast_assn\<^sup>d *\<^sub>a (arena_fast_assn *a vdom_fast_assn *a vdom_fast_assn)\<^sup>d *\<^sub>a watchlist_fast_assn\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>
+     (arena_fast_assn *a (arena_fast_assn *a vdom_fast_assn *a vdom_fast_assn) *a watchlist_fast_assn)\<close>
   supply [[goals_limit=1]] Pos_unat_lit_assn'[sepref_fr_rules]
   unfolding isasat_GC_clauses_prog_single_wl_def zero_uint64_nat_def[symmetric]
     shorten_take_ll_0[symmetric]
@@ -825,8 +832,8 @@ sepref_definition isasat_GC_clauses_prog_wl2_code
   is \<open>uncurry2 isasat_GC_clauses_prog_wl2'\<close>
   :: \<open>[\<lambda>((_, _), (N, _)). length N \<le> uint64_max]\<^sub>a
      (array_assn vmtf_node_assn)\<^sup>k *\<^sub>a (option_assn uint32_nat_assn)\<^sup>k *\<^sub>a 
-     (arena_fast_assn *a (arena_fast_assn *a vdom_assn *a vdom_assn) *a watchlist_fast_assn)\<^sup>d \<rightarrow>
-     (arena_fast_assn *a (arena_fast_assn *a vdom_assn *a vdom_assn) *a watchlist_fast_assn)\<close>
+     (arena_fast_assn *a (arena_fast_assn *a vdom_fast_assn *a vdom_fast_assn) *a watchlist_fast_assn)\<^sup>d \<rightarrow>
+     (arena_fast_assn *a (arena_fast_assn *a vdom_fast_assn *a vdom_fast_assn) *a watchlist_fast_assn)\<close>
   supply [[goals_limit=1]]
   unfolding isasat_GC_clauses_prog_wl2_def isasat_GC_clauses_prog_wl2'_def
   by sepref
@@ -843,14 +850,6 @@ sepref_definition isasat_GC_clauses_prog_wl2_slow_code
 declare isasat_GC_clauses_prog_wl2_code.refine[sepref_fr_rules]
    isasat_GC_clauses_prog_wl2_slow_code.refine[sepref_fr_rules]
 
-(*TODO Move replace*)
-lemma arl64_take[sepref_fr_rules]:
-  \<open>(uncurry (return oo arl64_take), uncurry (RETURN oo take)) \<in>
-    [\<lambda>(n, xs). n \<le> length xs]\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a (arl64_assn R)\<^sup>d \<rightarrow> arl64_assn R\<close>
-  by (sepref_to_hoare)
-    (sep_auto simp: arl64_assn_def arl64_take_def is_array_list64_def hr_comp_def
-      uint64_nat_rel_def br_def list_rel_def list_all2_conv_all_nth)
-
 sepref_register isasat_GC_clauses_prog_wl isasat_GC_clauses_prog_wl2' rewatch_heur_st
 sepref_definition isasat_GC_clauses_prog_wl_code
   is \<open>isasat_GC_clauses_prog_wl\<close>
@@ -859,6 +858,8 @@ sepref_definition isasat_GC_clauses_prog_wl_code
   unfolding isasat_GC_clauses_prog_wl_def isasat_bounded_assn_def
      isasat_GC_clauses_prog_wl2'_def[symmetric]
   apply (rewrite in \<open>(_, _, _, _, _, take \<hole> _)\<close> zero_uint64_nat_def[symmetric])
+  apply (rewrite in \<open>(_, _, take \<hole> _)\<close> zero_uint64_nat_def[symmetric])
+  apply (rewrite in \<open>(_, take \<hole> _, _)\<close> zero_uint64_nat_def[symmetric])
   by sepref
 
 sepref_definition isasat_GC_clauses_prog_wl_slow_code
@@ -886,16 +887,17 @@ lemma isa_arena_length_fast_code2_refine[sepref_fr_rules]:
   unfolding hr_comp_assoc[symmetric] uncurry_def list_rel_compp
   by (simp add: arl64_assn_comp)
 
+lemma rewatch_heur_st_pre_alt_def:
+  \<open>rewatch_heur_st_pre S \<longleftrightarrow> (\<forall>i \<in> set (get_vdom S). i \<le> uint64_max)\<close>
+  by (auto simp: rewatch_heur_st_pre_def all_set_conv_nth)
+find_theorems "\<forall>x < length _. _" "_!_" "\<forall>_ \<in> set _. _"
 sepref_definition rewatch_heur_st_code
   is \<open>rewatch_heur_st\<close>
   :: \<open>[\<lambda>S. rewatch_heur_st_pre S \<and> length (get_clauses_wl_heur S) \<le> uint64_max]\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   supply [[goals_limit=1]] append_el_aa_uint32_hnr'[sepref_fr_rules] append_ll_def[simp]
   unfolding isasat_GC_clauses_prog_wl_def isasat_bounded_assn_def
-    rewatch_heur_st_def rewatch_heur_def Let_def two_uint64_nat_def[symmetric]
-    to_watcher_fast_def[symmetric] rewatch_heur_st_pre_def
-  apply (rewrite at \<open>RETURN (append_ll (append_ll _ _ (to_watcher_fast \<hole> _ _)) _ _)\<close> uint64_of_nat_conv_def[symmetric])
-  apply (rewrite at \<open>RETURN (append_ll (append_ll _ _ _) _ (to_watcher_fast \<hole> _ _))\<close> uint64_of_nat_conv_def[symmetric])
-  apply (rewrite at \<open>to_watcher_fast \<hole>\<close> uint64_of_nat_conv_def[symmetric])
+    rewatch_heur_st_def Let_def two_uint64_nat_def[symmetric]
+    to_watcher_fast_def[symmetric] rewatch_heur_st_pre_alt_def
   by sepref
 
 sepref_definition rewatch_heur_st_slow_code
@@ -931,5 +933,57 @@ sepref_definition isasat_GC_clauses_wl_D_slow_code
 
 declare isasat_GC_clauses_wl_D_code.refine[sepref_fr_rules]
    isasat_GC_clauses_wl_D_slow_code.refine[sepref_fr_rules]
+
+
+sepref_register number_clss_to_keep
+
+sepref_register access_vdom_at
+
+lemma (in -) uint32_max_nat_hnr:
+  \<open>(uncurry0 (return uint32_max), uncurry0 (RETURN uint32_max)) \<in>
+     unit_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
+  by sepref_to_hoare sep_auto
+lemma nat_of_uint64:
+  \<open>(return o id, RETURN o nat_of_uint64) \<in>
+    (uint64_assn)\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
+  by sepref_to_hoare (sep_auto simp: uint64_nat_rel_def br_def
+     nat_of_uint64_def
+    split: option.splits)
+
+sepref_definition number_clss_to_keep_impl
+  is \<open>RETURN o number_clss_to_keep\<close>
+  :: \<open>isasat_unbounded_assn\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
+  unfolding number_clss_to_keep_def isasat_unbounded_assn_def
+  supply [[goals_limit = 1]]  sum_uint64_assn[sepref_fr_rules]
+  by sepref
+
+sepref_definition number_clss_to_keep_fast_impl
+  is \<open>RETURN o number_clss_to_keep\<close>
+  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
+  unfolding number_clss_to_keep_def isasat_bounded_assn_def
+  supply [[goals_limit = 1]] nat_of_uint64[sepref_fr_rules] sum_uint64_assn[sepref_fr_rules]
+  by sepref
+
+declare number_clss_to_keep_impl.refine[sepref_fr_rules]
+   number_clss_to_keep_fast_impl.refine[sepref_fr_rules]
+
+sepref_definition access_vdom_at_code
+  is \<open>uncurry (RETURN oo access_vdom_at)\<close>
+  :: \<open>[uncurry access_vdom_at_pre]\<^sub>a isasat_unbounded_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> nat_assn\<close>
+  unfolding access_vdom_at_alt_def access_vdom_at_pre_def isasat_unbounded_assn_def
+  supply [[goals_limit = 1]]
+  by sepref
+
+sepref_definition access_vdom_at_fast_code
+  is \<open>uncurry (RETURN oo access_vdom_at)\<close>
+  :: \<open>[uncurry access_vdom_at_pre]\<^sub>a isasat_bounded_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow> uint64_nat_assn\<close>
+  unfolding access_vdom_at_alt_def access_vdom_at_pre_def isasat_bounded_assn_def
+  supply [[goals_limit = 1]]
+  by sepref
+
+
+declare access_vdom_at_fast_code.refine[sepref_fr_rules]
+  access_vdom_at_code.refine[sepref_fr_rules]
+
 
 end

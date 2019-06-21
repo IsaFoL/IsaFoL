@@ -871,6 +871,7 @@ definition rewatch_heur where
   let _ = vdom;
   nfoldli [0..<length vdom] (\<lambda>_. True)
    (\<lambda>i W. do {
+      ASSERT(i < length vdom);
       let C = vdom ! i;
       ASSERT(arena_is_valid_clause_vdom arena C);
       if arena_status arena C \<noteq> DELETED
@@ -904,7 +905,7 @@ lemma rewatch_heur_rewatch:
     \<open>rewatch_heur xs arena W \<le> \<Down> ({(W, W'). (W, W') \<in>\<langle>Id\<rangle>map_fun_rel (D\<^sub>0 \<A>) \<and> vdom_m \<A> W' N \<subseteq> set_mset (dom_m N)}) (rewatch N W')\<close>
 proof -
   have [refine0]: \<open>(xs, xsa) \<in> Id \<Longrightarrow>
-     ([0..<length xs], [0..<length xsa]) \<in> \<langle>{(x, x'). x = x' \<and> xs!x \<in> vdom}\<rangle>list_rel\<close>
+     ([0..<length xs], [0..<length xsa]) \<in> \<langle>{(x, x'). x = x' \<and> x < length xsa \<and> xs!x \<in> vdom}\<rangle>list_rel\<close>
     for xsa
     using assms unfolding list_rel_def
     by (auto simp: list_all2_same)
@@ -919,6 +920,7 @@ proof -
     subgoal
       using assms by fast
     subgoal by fast
+    subgoal by auto
     subgoal
       using assms
       unfolding arena_is_valid_clause_vdom_def
@@ -966,6 +968,7 @@ lemma rewatch_heur_alt_def:
   let _ = vdom;
   nfoldli [0..<length vdom] (\<lambda>_. True)
    (\<lambda>i W. do {
+      ASSERT(i < length vdom);
       let C = vdom ! i;
       ASSERT(arena_is_valid_clause_vdom arena C);
       if arena_status arena C \<noteq> DELETED

@@ -6,6 +6,109 @@ begin
 lemma [code]: "uint32_max_uint32 = 4294967295"
   by (auto simp: uint32_max_uint32_def)
 (*END Move*)
+(*TODO Move*)
+
+lemma while_upt_while_direct1:
+  "b \<ge> a \<Longrightarrow> 
+  do {
+    (_,\<sigma>) \<leftarrow> WHILE\<^sub>T (FOREACH_cond c) (\<lambda>x. do {ASSERT (FOREACH_cond c x); FOREACH_body f x}) ([a..<b],\<sigma>);
+    RETURN \<sigma>
+  } \<le> do {
+    (_,\<sigma>) \<leftarrow> WHILE\<^sub>T (\<lambda>(i, x). i < b \<and> c x) (\<lambda>(i, x). do {ASSERT (i < b);  \<sigma>'\<leftarrow>f i x; RETURN (i+1,\<sigma>')
+}) (a,\<sigma>);
+    RETURN \<sigma>
+  }"
+  apply (rewrite at \<open>_ \<le> \<hole>\<close> Down_id_eq[symmetric])
+  apply (refine_vcg WHILET_refine[where R = \<open>{((l, x'), (i::nat, x::'a)). x= x' \<and> i \<le> b \<and> i \<ge> a \<and> l = drop (i-a) [a..<b]}\<close>])
+  subgoal by auto
+  subgoal by (auto simp: FOREACH_cond_def)
+  subgoal by (auto simp: FOREACH_body_def intro!: bind_refine[OF Id_refine])
+  subgoal by auto
+  done
+
+lemma while_upt_while_direct2:
+  "b \<ge> a \<Longrightarrow> 
+  do {
+    (_,\<sigma>) \<leftarrow> WHILE\<^sub>T (FOREACH_cond c) (\<lambda>x. do {ASSERT (FOREACH_cond c x); FOREACH_body f x}) ([a..<b],\<sigma>);
+    RETURN \<sigma>
+  } \<ge> do {
+    (_,\<sigma>) \<leftarrow> WHILE\<^sub>T (\<lambda>(i, x). i < b \<and> c x) (\<lambda>(i, x). do {ASSERT (i < b);  \<sigma>'\<leftarrow>f i x; RETURN (i+1,\<sigma>')
+}) (a,\<sigma>);
+    RETURN \<sigma>
+  }"
+  apply (rewrite at \<open>_ \<le> \<hole>\<close> Down_id_eq[symmetric])
+  apply (refine_vcg WHILET_refine[where R = \<open>{((i::nat, x::'a), (l, x')). x= x' \<and> i \<le> b \<and> i \<ge> a \<and> l = drop (i-a) [a..<b]}\<close>])
+  subgoal by auto
+  subgoal by (auto simp: FOREACH_cond_def)
+  subgoal by (auto simp: FOREACH_body_def intro!: bind_refine[OF Id_refine])
+  subgoal by (auto simp: FOREACH_body_def intro!: bind_refine[OF Id_refine])
+  subgoal by auto
+  done
+
+lemma while_upt_while_direct:
+  "b \<ge> a \<Longrightarrow> 
+  do {
+    (_,\<sigma>) \<leftarrow> WHILE\<^sub>T (FOREACH_cond c) (\<lambda>x. do {ASSERT (FOREACH_cond c x); FOREACH_body f x}) ([a..<b],\<sigma>);
+    RETURN \<sigma>
+  } = do {
+    (_,\<sigma>) \<leftarrow> WHILE\<^sub>T (\<lambda>(i, x). i < b \<and> c x) (\<lambda>(i, x). do {ASSERT (i < b);  \<sigma>'\<leftarrow>f i x; RETURN (i+1,\<sigma>')
+}) (a,\<sigma>);
+    RETURN \<sigma>
+  }"
+  using while_upt_while_direct1[of a b] while_upt_while_direct2[of a b] unfolding order_class.eq_iff by fast
+
+
+lemma while_nfoldli:
+  "do {
+    (_,\<sigma>) \<leftarrow> WHILE\<^sub>T (FOREACH_cond c) (\<lambda>x. do {ASSERT (FOREACH_cond c x); FOREACH_body f x}) (l,\<sigma>);
+    RETURN \<sigma>
+  } \<le> nfoldli l c f \<sigma>"
+  apply (induct l arbitrary: \<sigma>)
+  apply (subst WHILET_unfold)
+  apply (simp add: FOREACH_cond_def)
+
+  apply (subst WHILET_unfold)
+  apply (auto
+    simp: FOREACH_cond_def FOREACH_body_def
+    intro: bind_mono Refine_Basic.bind_mono(1))
+ done
+lemma nfoldli_while: "nfoldli l c f \<sigma>
+          \<le>
+         (WHILE\<^sub>T\<^bsup>I\<^esup>
+           (FOREACH_cond c) (\<lambda>x. do {ASSERT (FOREACH_cond c x); FOREACH_body f x}) (l, \<sigma>) \<bind>
+          (\<lambda>(_, \<sigma>). RETURN \<sigma>))"
+proof (induct l arbitrary: \<sigma>)
+  case Nil thus ?case by (subst WHILEIT_unfold) (auto simp: FOREACH_cond_def)
+next
+  case (Cons x ls)
+  show ?case
+  proof (cases "c \<sigma>")
+    case False thus ?thesis
+      apply (subst WHILEIT_unfold)
+      unfolding FOREACH_cond_def
+      by simp
+  next
+    case [simp]: True
+    from Cons show ?thesis
+      apply (subst WHILEIT_unfold)
+      unfolding FOREACH_cond_def FOREACH_body_def
+      apply clarsimp
+      apply (rule Refine_Basic.bind_mono)
+      apply simp_all
+      done
+  qed
+qed
+
+lemma while_eq_nfoldli: "do {
+    (_,\<sigma>) \<leftarrow> WHILE\<^sub>T (FOREACH_cond c) (\<lambda>x. do {ASSERT (FOREACH_cond c x); FOREACH_body f x}) (l,\<sigma>);
+    RETURN \<sigma>
+  } = nfoldli l c f \<sigma>"
+  apply (rule antisym)
+  apply (rule while_nfoldli)
+  apply (rule order_trans[OF nfoldli_while[where I="\<lambda>_. True"]])
+  apply (simp add: WHILET_def)
+  done
+(*End Move*)
 
 abbreviation stats_assn :: \<open>stats \<Rightarrow> stats \<Rightarrow> assn\<close> where
   \<open>stats_assn \<equiv> uint64_assn *a uint64_assn *a uint64_assn *a uint64_assn *a uint64_assn
@@ -267,7 +370,11 @@ lemma convert_wlists_to_nat_conv_hnr[sepref_fr_rules]:
 abbreviation vdom_assn :: \<open>vdom \<Rightarrow> nat array_list \<Rightarrow> assn\<close> where
   \<open>vdom_assn \<equiv> arl_assn nat_assn\<close>
 
+abbreviation vdom_fast_assn :: \<open>vdom \<Rightarrow> uint64 array_list64 \<Rightarrow> assn\<close> where
+  \<open>vdom_fast_assn \<equiv> arl64_assn uint64_nat_assn\<close>
+
 type_synonym vdom_assn = \<open>nat array_list\<close>
+type_synonym vdom_fast_assn = \<open>uint64 array_list64\<close>
 
 type_synonym isasat_clauses_assn = \<open>uint32 array_list\<close>
 type_synonym isasat_clauses_fast_assn = \<open>uint32 array_list64\<close>
@@ -285,7 +392,7 @@ type_synonym twl_st_wll_trail_fast =
   \<open>trail_pol_fast_assn \<times> isasat_clauses_fast_assn \<times> option_lookup_clause_assn \<times>
     uint32 \<times> watched_wl_uint32 \<times> vmtf_remove_assn \<times> phase_saver_assn \<times>
     uint32 \<times> minimize_assn \<times> lbd_assn \<times> out_learned_assn \<times> stats \<times> ema \<times> ema \<times> restart_info \<times>
-    vdom_assn \<times> vdom_assn \<times> uint64 \<times> opts \<times> isasat_clauses_fast_assn\<close>
+    vdom_fast_assn \<times> vdom_fast_assn \<times> uint64 \<times> opts \<times> isasat_clauses_fast_assn\<close>
 
 definition isasat_unbounded_assn :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wll_trail \<Rightarrow> assn\<close> where
 \<open>isasat_unbounded_assn =
@@ -322,11 +429,33 @@ definition isasat_bounded_assn :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wll
   ema_assn *a
   ema_assn *a
   restart_info_assn *a
-  vdom_assn *a
-  vdom_assn *a
+  vdom_fast_assn *a
+  vdom_fast_assn *a
   uint64_nat_assn *a
   opts_assn *a arena_fast_assn\<close>
-find_theorems name:arl64 name:arl
+
+sepref_definition arl_nat_of_uint64_code
+  is array_nat_of_uint64
+  :: \<open>(arl_assn uint64_nat_assn)\<^sup>k \<rightarrow>\<^sub>a arl_assn nat_assn\<close>
+  unfolding op_map_def array_nat_of_uint64_def arl_fold_custom_replicate
+  apply (rewrite at \<open>do {let _ = \<hole>; _}\<close> annotate_assn[where A=\<open>arl_assn nat_assn\<close>])
+  by sepref
+
+(*TODO Move to Array_Uint *)
+definition arl_nat_of_uint64_conv :: \<open>nat list \<Rightarrow> nat list\<close> where
+\<open>arl_nat_of_uint64_conv S = S\<close>
+
+lemma arl_nat_of_uint64_conv_alt_def:
+  \<open>arl_nat_of_uint64_conv = map nat_of_uint64_conv\<close>
+  unfolding nat_of_uint64_conv_def arl_nat_of_uint64_conv_def by auto
+
+lemma arl_nat_of_uint64_conv_hnr[sepref_fr_rules]:
+  \<open>(arl_nat_of_uint64_code, (RETURN \<circ> arl_nat_of_uint64_conv))
+    \<in> (arl_assn uint64_nat_assn)\<^sup>k \<rightarrow>\<^sub>a arl_assn nat_assn\<close>
+  using arl_nat_of_uint64_code.refine[unfolded array_nat_of_uint64_def,
+    FCOMP op_map_map_rel[unfolded convert_fref]] unfolding arl_nat_of_uint64_conv_alt_def
+  by simp
+(*END Move*)
 sepref_definition isasat_fast_slow_code
   is \<open>isasat_fast_slow\<close>
   :: \<open>[\<lambda>S. length(get_clauses_wl_heur S) \<le> uint64_max \<and>
@@ -336,6 +465,10 @@ sepref_definition isasat_fast_slow_code
   unfolding isasat_bounded_assn_def isasat_unbounded_assn_def isasat_fast_slow_def
   apply (rewrite at \<open>(_, \<hole>, _)\<close> arl64_to_arl_conv_def[symmetric])
   apply (rewrite at \<open>(_, _, nat_of_uint64_conv _, _, \<hole>)\<close> arl64_to_arl_conv_def[symmetric])
+  apply (rewrite at \<open>(_, \<hole>, nat_of_uint64_conv _, _)\<close> arl64_to_arl_conv_def[symmetric])
+  apply (rewrite at \<open>(\<hole>, _, nat_of_uint64_conv _, _)\<close> arl64_to_arl_conv_def[symmetric])
+  apply (rewrite in \<open>(_, \<hole>, nat_of_uint64_conv _, _)\<close> arl_nat_of_uint64_conv_def[symmetric])
+  apply (rewrite in \<open>(\<hole>, _, nat_of_uint64_conv _, _)\<close> arl_nat_of_uint64_conv_def[symmetric])
   by sepref
 
 declare isasat_fast_slow_code.refine[sepref_fr_rules]
@@ -444,21 +577,22 @@ sepref_definition rewatch_heur_code
   by sepref
 
 declare rewatch_heur_code.refine[sepref_fr_rules]
-
-sepref_register append_ll
+find_theorems nfoldli WHILET
 sepref_definition rewatch_heur_fast_code
   is \<open>uncurry2 (rewatch_heur)\<close>
-  :: \<open>[\<lambda>((vdom, arena), W). (\<forall>x \<in> set vdom. x \<le> uint64_max) \<and> length arena \<le> uint64_max]\<^sub>a
-        vdom_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a watchlist_fast_assn\<^sup>d \<rightarrow> watchlist_fast_assn\<close>
+  :: \<open>[\<lambda>((vdom, arena), W). (\<forall>x \<in> set vdom. x \<le> uint64_max) \<and> length arena \<le> uint64_max \<and> length vdom \<le> uint64_max]\<^sub>a
+        vdom_fast_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a watchlist_fast_assn\<^sup>d \<rightarrow> watchlist_fast_assn\<close>
   supply [[goals_limit=1]] uint64_of_nat_conv_def[simp]
      arena_lit_pre_le_uint64_max[intro] append_aa64_hnr[sepref_fr_rules]
   unfolding rewatch_heur_alt_def Let_def two_uint64_nat_def[symmetric] PR_CONST_def
+  unfolding while_eq_nfoldli[symmetric]
+  apply (subst while_upt_while_direct, simp)
+  unfolding zero_uint64_nat_def[symmetric]
     one_uint64_nat_def[symmetric] to_watcher_fast_def[symmetric]
-  apply (rewrite in \<open>append_ll _ (nat_of_lit _)\<close> nat_of_uint32_conv_def[symmetric])
-  apply (rewrite in \<open>append_ll _ (nat_of_lit _)\<close> nat_of_uint32_conv_def[symmetric])
-  apply (rewrite in \<open>append_ll _ (nat_of_lit _)\<close> nat_of_uint32_conv_def[symmetric])
-  apply (rewrite in \<open>append_ll (append_ll _ _ _) (\<hole>)\<close> nat_of_uint32_conv_def[symmetric])
+    FOREACH_cond_def FOREACH_body_def uint64_of_nat_conv_def
   by sepref
+
+sepref_register append_ll
 
 declare rewatch_heur_fast_code.refine[sepref_fr_rules]
 

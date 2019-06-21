@@ -120,9 +120,10 @@ sepref_definition propagate_bt_wl_D_fast_code
       unat_lit_assn\<^sup>k *\<^sub>a clause_ll_assn\<^sup>d *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   supply [[goals_limit = 1]] append_ll_def[simp] isasat_fast_length_leD[dest]
     propagate_bt_wl_D_fast_code_isasat_fastI2[intro] length_ll_def[simp]
+    propagate_bt_wl_D_fast_code_isasat_fastI3[intro]
   unfolding propagate_bt_wl_D_heur_alt_def
     isasat_bounded_assn_def cons_trail_Propagated_def[symmetric]
-    to_watcher_fast_def[symmetric]
+    to_watcher_fast_def[symmetric] nat_of_uint64_conv_def
   unfolding delete_index_and_swap_update_def[symmetric] append_update_def[symmetric]
     append_ll_def[symmetric] append_ll_def[symmetric]
     cons_trail_Propagated_def[symmetric] PR_CONST_def save_phase_def two_uint32_nat_def[symmetric]
