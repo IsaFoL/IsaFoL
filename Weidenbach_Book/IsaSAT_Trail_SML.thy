@@ -1,5 +1,5 @@
 theory IsaSAT_Trail_SML
-imports IsaSAT_Literals_SML Watched_Literals.Array_UInt IsaSAT_Trail 
+imports IsaSAT_Literals_SML Watched_Literals.Array_UInt IsaSAT_Trail
    Watched_Literals.IICF_Array_List32
 begin
 

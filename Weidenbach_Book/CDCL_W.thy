@@ -1601,7 +1601,7 @@ proof (induction rule: propagate.induct)
   case (propagate_rule C L T) note confl = this(1) and C = this(2) and C_L = this(3) and
     tr = this(4) and undef = this(5) and T = this(6)
   have atm_CL: "atms_of C \<subseteq> atms_of_mm (init_clss S)"
-    using C alien unfolding no_strange_atm_def 
+    using C alien unfolding no_strange_atm_def
     by (auto simp: clauses_def dest!: multi_member_split)
   show ?case
     unfolding no_strange_atm_def

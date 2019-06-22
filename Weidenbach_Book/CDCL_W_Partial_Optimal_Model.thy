@@ -111,7 +111,7 @@ lemma atms_of_complete_trail:
 fun ocdcl_score_rev :: \<open>('v, 'b) ann_lits \<Rightarrow> ('v, 'b) ann_lits \<Rightarrow> nat\<close> where
   \<open>ocdcl_score_rev _ [] = 0\<close> |
   \<open>ocdcl_score_rev M' (Propagated K C # M) = ocdcl_score_rev (M' @ [Propagated K C]) M\<close> |
-  \<open>ocdcl_score_rev M' (Decided K # M) = ocdcl_score_rev (M' @ [Decided K]) M + 
+  \<open>ocdcl_score_rev M' (Decided K # M) = ocdcl_score_rev (M' @ [Decided K]) M +
      (if atm_of K \<in> \<Sigma> - \<Delta>\<Sigma> then 1
      else if Decided (base_atm (atm_of K)) \<in> set (map (map_annotated_lit (base_atm o atm_of) id id) M')
          then 2 else 1) * 3^card (base_atm ` atms_of (lit_of `# mset M))\<close>

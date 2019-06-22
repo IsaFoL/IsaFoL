@@ -36,10 +36,10 @@ definition sublist :: \<open>'a list \<Rightarrow> nat \<Rightarrow> nat \<Right
 \<open>sublist xs i j \<equiv> take (Suc j - i) (drop i xs)\<close>
 
 (*take from HashMap *)
-lemma take_Suc0: 
-  "l\<noteq>[] \<Longrightarrow> take (Suc 0) l = [l!0]" 
-  "0 < length l \<Longrightarrow> take (Suc 0) l = [l!0]" 
-  "Suc n \<le> length l \<Longrightarrow> take (Suc 0) l = [l!0]" 
+lemma take_Suc0:
+  "l\<noteq>[] \<Longrightarrow> take (Suc 0) l = [l!0]"
+  "0 < length l \<Longrightarrow> take (Suc 0) l = [l!0]"
+  "Suc n \<le> length l \<Longrightarrow> take (Suc 0) l = [l!0]"
   by (cases l, auto)+
 
 lemma sublist_single: \<open>i < length xs \<Longrightarrow> sublist xs i i = [xs!i]\<close>
@@ -377,7 +377,7 @@ lemma merge_sorted_map_partitions_between:
   by (simp add: merge_sorted_wrt_partitions_between' isPartition_map_trans)
 *)
 
-  
+
 
 
 text \<open>The main theorem to merge sorted lists\<close>
@@ -701,7 +701,7 @@ proof -
     using part partition_spec_set_sublist pre(1) pre(2) by blast
 *)
   have part: \<open>mset xs' = mset xs\<close> True
-    \<open>isPartition_map R h xs' lo hi p\<close> \<open>lo \<le> p\<close> \<open>p \<le> hi\<close>     
+    \<open>isPartition_map R h xs' lo hi p\<close> \<open>lo \<le> p\<close> \<open>p \<le> hi\<close>
     \<open>\<And> i. i<lo \<Longrightarrow> xs'!i=xs!i\<close> \<open>\<And> i. \<lbrakk>hi<i; i<length xs'\<rbrakk> \<Longrightarrow> xs'!i=xs!i\<close>
     using part by (auto simp add: partition_spec_def)
 
@@ -768,7 +768,7 @@ proof -
   have pre: \<open>lo \<le> hi\<close> \<open>hi < length xs\<close> \<open>mset xs = mset xs0\<close>
     using pre by (auto simp add: quicksort_pre_def)
   have part: \<open>mset xs' = mset xs\<close> True
-    \<open>isPartition_map R h xs' lo hi p\<close> \<open>lo \<le> p\<close> \<open>p \<le> hi\<close>     
+    \<open>isPartition_map R h xs' lo hi p\<close> \<open>lo \<le> p\<close> \<open>p \<le> hi\<close>
     \<open>\<And> i. i<lo \<Longrightarrow> xs'!i=xs!i\<close> \<open>\<And> i. \<lbrakk>hi<i; i<length xs'\<rbrakk> \<Longrightarrow> xs'!i=xs!i\<close>
     using part by (auto simp add: partition_spec_def)
   show ?thesis
@@ -810,7 +810,7 @@ proof -
   have pre: \<open>lo \<le> hi\<close> \<open>hi < length xs\<close> \<open>mset xs = mset xs0\<close>
     using pre by (auto simp add: quicksort_pre_def)
   have part: \<open>mset xs' = mset xs\<close> True
-    \<open>isPartition_map R h xs' lo hi p\<close> \<open>lo \<le> p\<close> \<open>p \<le> hi\<close>     
+    \<open>isPartition_map R h xs' lo hi p\<close> \<open>lo \<le> p\<close> \<open>p \<le> hi\<close>
     \<open>\<And> i. i<lo \<Longrightarrow> xs'!i=xs!i\<close> \<open>\<And> i. \<lbrakk>hi<i; i<length xs'\<rbrakk> \<Longrightarrow> xs'!i=xs!i\<close>
     using part by (auto simp add: partition_spec_def)
   have IH1: \<open>mset xs'' = mset xs'\<close> \<open>sorted_sublist_map R h xs'' (Suc p) hi\<close>
@@ -864,7 +864,7 @@ proof -
       subgoal by (metis IH1(1) part(1) pre(2) size_mset)
       done
   qed
-  
+
 
   show ?thesis
   proof (intro quicksort_postI)
@@ -895,7 +895,7 @@ proof -
   have pre: \<open>lo \<le> hi\<close> \<open>hi < length xs\<close> \<open>mset xs0 = mset xs\<close>
     using pre by (auto simp add: quicksort_pre_def)
   have part: \<open>mset xs' = mset xs\<close> True
-    \<open>isPartition_map R h xs' lo hi p\<close> \<open>lo \<le> p\<close> \<open>p \<le> hi\<close>     
+    \<open>isPartition_map R h xs' lo hi p\<close> \<open>lo \<le> p\<close> \<open>p \<le> hi\<close>
     \<open>\<And> i. i<lo \<Longrightarrow> xs'!i=xs!i\<close> \<open>\<And> i. \<lbrakk>hi<i; i<length xs'\<rbrakk> \<Longrightarrow> xs'!i=xs!i\<close>
     using part by (auto simp add: partition_spec_def)
 
@@ -925,7 +925,7 @@ proof -
   have pre: \<open>lo \<le> hi\<close> \<open>hi < length xs\<close>
     using pre by (auto simp add: quicksort_pre_def)
   have part: \<open>mset xs' = mset xs\<close> True
-    \<open>isPartition_map R h xs' lo hi p\<close> \<open>lo \<le> p\<close> \<open>p \<le> hi\<close>     
+    \<open>isPartition_map R h xs' lo hi p\<close> \<open>lo \<le> p\<close> \<open>p \<le> hi\<close>
     \<open>\<And> i. i<lo \<Longrightarrow> xs'!i=xs!i\<close> \<open>\<And> i. \<lbrakk>hi<i; i<length xs'\<rbrakk> \<Longrightarrow> xs'!i=xs!i\<close>
     using part by (auto simp add: partition_spec_def)
   have IH1: \<open>mset xs'' = mset xs'\<close> \<open>sorted_sublist_map R h xs'' lo (p - Suc 0)\<close>
@@ -1018,7 +1018,7 @@ proof -
   have pre: \<open>lo \<le> hi\<close> \<open>hi < length xs\<close> \<open>mset xs0 = mset xs\<close>
     using pre by (auto simp add: quicksort_pre_def)
   have part: \<open>mset xs' = mset xs\<close> True
-    \<open>isPartition_map R h xs' lo hi p\<close> \<open>lo \<le> p\<close> \<open>p \<le> hi\<close>     
+    \<open>isPartition_map R h xs' lo hi p\<close> \<open>lo \<le> p\<close> \<open>p \<le> hi\<close>
     \<open>\<And> i. i<lo \<Longrightarrow> xs'!i=xs!i\<close> \<open>\<And> i. \<lbrakk>hi<i; i<length xs'\<rbrakk> \<Longrightarrow> xs'!i=xs!i\<close>
     using part by (auto simp add: partition_spec_def)
   have IH1: \<open>mset xs'' = mset xs'\<close> \<open>sorted_sublist_map R h xs'' lo (p - Suc 0)\<close>
@@ -1052,7 +1052,7 @@ proof -
   have pre: \<open>lo \<le> hi\<close> \<open>hi < length xs\<close>
     using pre by (auto simp add: quicksort_pre_def)
   have part: \<open>mset xs' = mset xs\<close> True
-    \<open>isPartition_map R h xs' lo hi p\<close> \<open>lo \<le> p\<close> \<open>p \<le> hi\<close>     
+    \<open>isPartition_map R h xs' lo hi p\<close> \<open>lo \<le> p\<close> \<open>p \<le> hi\<close>
     \<open>\<And> i. i<lo \<Longrightarrow> xs'!i=xs!i\<close> \<open>\<And> i. \<lbrakk>hi<i; i<length xs'\<rbrakk> \<Longrightarrow> xs'!i=xs!i\<close>
     using part by (auto simp add: partition_spec_def)
   have IH1: \<open>mset xs'' = mset xs'\<close> \<open>sorted_sublist_map R h xs'' lo (p - Suc 0)\<close>
@@ -1257,7 +1257,7 @@ proof -
 
         apply (rule ASSERT_leI)
         subgoal unfolding quicksort_post_def pre_def post_def by (auto dest: mset_eq_setD)
- 
+
         text \<open>Both recursive calls.\<close>
         subgoal
           apply (rule IH(1)[THEN order_trans])
@@ -1496,7 +1496,7 @@ definition choose_pivot3_impl where
 lemma partition_between_ref_correct:
   assumes trans: \<open>\<And> x y z. \<lbrakk>R (h x) (h y); R (h y) (h z)\<rbrakk> \<Longrightarrow> R (h x) (h z)\<close> and lin: \<open>\<And>x y. R (h x) (h y) \<or> R (h y) (h x)\<close>
     and bounds: \<open>hi < length xs\<close> \<open>lo \<le> hi\<close>
-  shows \<open>partition_between_ref R h lo hi xs \<le> SPEC (uncurry (partition_spec R h xs lo hi))\<close> 
+  shows \<open>partition_between_ref R h lo hi xs \<le> SPEC (uncurry (partition_spec R h xs lo hi))\<close>
 proof -
   show ?thesis
     apply (rule partition_between_ref_partition_between[THEN order_trans])
@@ -1512,7 +1512,7 @@ term quicksort
 
 text \<open>Refined quicksort algorithm: We use the refined partition function.\<close>
 definition quicksort_ref :: \<open>_ \<Rightarrow> _ \<Rightarrow> nat \<times> nat \<times> 'a list \<Rightarrow> 'a list nres\<close> where
-\<open>quicksort_ref R h = (\<lambda>(lo,hi,xs0). 
+\<open>quicksort_ref R h = (\<lambda>(lo,hi,xs0).
   do {
   RECT (\<lambda>f (lo,hi,xs). do {
       ASSERT(lo \<le> hi \<and> hi < length xs0 \<and> mset xs = mset xs0);
@@ -1553,7 +1553,7 @@ proof -
       by (auto dest: mset_eq_length mset_eq_setD)
 
     text \<open>Correctness of the concrete partition function\<close>
-    subgoal 
+    subgoal
       apply (simp, rule partition_between_ref_correct)
       subgoal by (rule trans)
       subgoal by (rule lin)
@@ -1656,7 +1656,7 @@ qed
 
 lemma full_quicksort_correct:
   assumes
-    trans: \<open>\<And>x y z. \<lbrakk>R (h x) (h y); R (h y) (h z)\<rbrakk> \<Longrightarrow> R (h x) (h z)\<close> and 
+    trans: \<open>\<And>x y z. \<lbrakk>R (h x) (h y); R (h y) (h z)\<rbrakk> \<Longrightarrow> R (h x) (h z)\<close> and
     lin: \<open>\<And>x y. R (h x) (h y) \<or> R (h y) (h x)\<close>
   shows \<open>full_quicksort R h xs \<le> \<Down> Id (SPEC(\<lambda>xs'. mset xs' = mset xs))\<close>
   by (rule order_trans[OF full_quicksort_correct_sorted])

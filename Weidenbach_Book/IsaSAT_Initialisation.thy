@@ -127,7 +127,7 @@ where
   {((M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, vdom, failed), ((M, N, D, NE, UE, Q), OC)).
     (unbdd \<longrightarrow> \<not>failed) \<and>
     ((unbdd \<or> \<not>failed) \<longrightarrow>
-     (valid_arena N' N (set vdom) \<and> 
+     (valid_arena N' N (set vdom) \<and>
       set_mset
        (all_lits_of_mm
           ({#mset (fst x). x \<in># ran_m N#} + NE + UE)) \<subseteq> set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>) \<and>

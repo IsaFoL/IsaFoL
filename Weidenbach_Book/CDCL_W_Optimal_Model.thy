@@ -52,7 +52,7 @@ provided $D\not\in\{\top,\bot\}$ and $\neg L$ does not occur in $D$.
 
 provided $D$ is of level $k$.
 
-\bigskip 
+\bigskip
 \shortrules{Backtrack}{$(M_1K^{i+1}M_2;N;U;k;D\lor L;O)$}{$(M_1L^{D\vee L};N;U\cup\{D\lor L\};i;
   \top;O)$}
 

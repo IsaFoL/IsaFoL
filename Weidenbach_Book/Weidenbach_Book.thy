@@ -22,7 +22,7 @@ imports
   CDCL.DPLL_CDCL_W_Implementation
   CDCL.DPLL_W_Implementation
   CDCL.CDCL_W_Implementation
-  
+
   CDCL_Extensions.CDCL_W_Optimal_Model
   CDCL_Extensions.CDCL_W_Partial_Encoding
   CDCL_Extensions.CDCL_W_Partial_Optimal_Model

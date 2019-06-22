@@ -1533,7 +1533,7 @@ definition restart_prog_wl_D :: "nat twl_st_wl \<Rightarrow> nat \<Rightarrow> b
    }\<close>
 
 lemma restart_abs_wl_D_pre_literals_are_\<L>\<^sub>i\<^sub>n':
-  assumes 
+  assumes
     \<open>(x, y)
      \<in> {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st S) S} \<times>\<^sub>f
        nat_rel \<times>\<^sub>f

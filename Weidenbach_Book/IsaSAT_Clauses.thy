@@ -299,7 +299,7 @@ lemma fm_mv_clause_to_new_arena:
     \<open>C \<in># dom_m N\<close>
   shows \<open>fm_mv_clause_to_new_arena C old_arena new_arena \<le>
     SPEC(\<lambda>new_arena'.
-      new_arena' = new_arena @ clause_slice old_arena N C \<and> 
+      new_arena' = new_arena @ clause_slice old_arena N C \<and>
       valid_arena (new_arena @ clause_slice old_arena N C)
         (fmupd (length new_arena + header_size (N \<propto> C)) (N \<propto> C, irred N C) N')
         (insert (length new_arena + header_size (N \<propto> C)) vd'))\<close>
@@ -417,7 +417,7 @@ proof -
       by (auto simp: sorted_append order.order_iff_strict dest!: bspec)
     have x_ge: \<open>header_size (N \<propto> x) \<le> x\<close>
       using assms \<open>x \<in># dom_m N\<close> arena_lifting(1) by blast
-    have diff: \<open>a \<in> set xs \<Longrightarrow> a + length (N \<propto> a) + header_size (N \<propto> x) \<le> x\<close> 
+    have diff: \<open>a \<in> set xs \<Longrightarrow> a + length (N \<propto> a) + header_size (N \<propto> x) \<le> x\<close>
        \<open>a \<in> set xs \<Longrightarrow> a + length (N \<propto> a) \<le> x\<close>  for a
       using valid_minimal_difference_between_valid_index[OF assms, of a x]
       x_max[of a] xs_N x_dom by auto

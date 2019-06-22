@@ -23,30 +23,30 @@ lemma swap_nth[simp]: "\<lbrakk>i < length l; j<length l; k<length l\<rbrakk> \<
   unfolding swap_def
   by auto
 
-lemma swap_set[simp]: "\<lbrakk> i < length l; j<length l \<rbrakk> \<Longrightarrow> set (swap l i j) = set l"  
+lemma swap_set[simp]: "\<lbrakk> i < length l; j<length l \<rbrakk> \<Longrightarrow> set (swap l i j) = set l"
   unfolding swap_def
   by auto
 
-lemma swap_multiset[simp]: "\<lbrakk> i < length l; j<length l \<rbrakk> \<Longrightarrow> mset (swap l i j) = mset l"  
+lemma swap_multiset[simp]: "\<lbrakk> i < length l; j<length l \<rbrakk> \<Longrightarrow> mset (swap l i j) = mset l"
   unfolding swap_def
   by (auto simp: mset_swap)
 
 
-lemma swap_length[simp]: "length (swap l i j) = length l"  
+lemma swap_length[simp]: "length (swap l i j) = length l"
   unfolding swap_def
   by auto
 
 lemma swap_same[simp]: "swap l i i = l"
   unfolding swap_def by auto
 
-lemma distinct_swap[simp]: 
+lemma distinct_swap[simp]:
   "\<lbrakk>i<length l; j<length l\<rbrakk> \<Longrightarrow> distinct (swap l i j) = distinct l"
   unfolding swap_def
   by auto
 
-lemma map_swap: "\<lbrakk>i<length l; j<length l\<rbrakk> 
+lemma map_swap: "\<lbrakk>i<length l; j<length l\<rbrakk>
   \<Longrightarrow> map f (swap l i j) = swap (map f l) i j"
-  unfolding swap_def 
+  unfolding swap_def
   by (auto simp add: map_update)
 
 lemma swap_nth_irrelevant:

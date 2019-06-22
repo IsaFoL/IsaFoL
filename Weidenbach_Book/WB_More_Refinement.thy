@@ -214,7 +214,7 @@ lemma fun_rel_syn_invert:
   \<open>a = a' \<Longrightarrow> b \<subseteq> b' \<Longrightarrow> a \<rightarrow> b \<subseteq> a' \<rightarrow> b'\<close>
   by (auto simp: refine_rel_defs)
 
-lemma fref_param1: "R\<rightarrow>S = fref (\<lambda>_. True) R S"  
+lemma fref_param1: "R\<rightarrow>S = fref (\<lambda>_. True) R S"
   by (auto simp: fref_def fun_relD)
 
 lemma fref_syn_invert:
@@ -1140,7 +1140,7 @@ lemma list_rel_mset_rel_imp_same_length: \<open>(a, b) \<in> \<langle>R\<rangle>
       dest: list_rel_imp_same_length)
 
 lemma while_upt_while_direct1:
-  "b \<ge> a \<Longrightarrow> 
+  "b \<ge> a \<Longrightarrow>
   do {
     (_,\<sigma>) \<leftarrow> WHILE\<^sub>T (FOREACH_cond c) (\<lambda>x. do {ASSERT (FOREACH_cond c x); FOREACH_body f x}) ([a..<b],\<sigma>);
     RETURN \<sigma>
@@ -1158,7 +1158,7 @@ lemma while_upt_while_direct1:
   done
 
 lemma while_upt_while_direct2:
-  "b \<ge> a \<Longrightarrow> 
+  "b \<ge> a \<Longrightarrow>
   do {
     (_,\<sigma>) \<leftarrow> WHILE\<^sub>T (FOREACH_cond c) (\<lambda>x. do {ASSERT (FOREACH_cond c x); FOREACH_body f x}) ([a..<b],\<sigma>);
     RETURN \<sigma>
@@ -1177,7 +1177,7 @@ lemma while_upt_while_direct2:
   done
 
 lemma while_upt_while_direct:
-  "b \<ge> a \<Longrightarrow> 
+  "b \<ge> a \<Longrightarrow>
   do {
     (_,\<sigma>) \<leftarrow> WHILE\<^sub>T (FOREACH_cond c) (\<lambda>x. do {ASSERT (FOREACH_cond c x); FOREACH_body f x}) ([a..<b],\<sigma>);
     RETURN \<sigma>

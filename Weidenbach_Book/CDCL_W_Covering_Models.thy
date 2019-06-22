@@ -899,7 +899,7 @@ lemma
   by auto
 
 lemma
-  \<open>cover_all_vars.conflicting_clauses N \<M> = 
+  \<open>cover_all_vars.conflicting_clauses N \<M> =
     {# C \<in># (mset_set (simple_clss (atms_of_mm N))).
         (pNeg `
         {a. a \<in># mset_set (simple_clss (atms_of_mm N)) \<and>

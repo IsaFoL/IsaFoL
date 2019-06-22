@@ -2289,7 +2289,7 @@ proof -
   proof -
     have \<open>i < length M\<close>
       using rem_one unfolding remove_one_annot_true_clause_one_imp_pre_def T by auto
- 
+
     {
       fix M2 Ca M1
       assume M: \<open>M = M2 @ Propagated L Ca # M1\<close> and \<open>irred N Ca\<close>
@@ -2442,7 +2442,7 @@ proof -
     apply refine_vcg
     subgoal using rem_one_annot_i_T unfolding iT T by simp
     subgoal using proped I le
-      rtranclp_remove_one_annot_true_clause_map_is_decided_trail[of S T, 
+      rtranclp_remove_one_annot_true_clause_map_is_decided_trail[of S T,
         THEN arg_cong, of \<open>\<lambda>xs. (rev xs) ! i\<close>]
       unfolding iT T remove_one_annot_true_clause_imp_inv_def
         remove_one_annot_true_clause_one_imp_pre_def

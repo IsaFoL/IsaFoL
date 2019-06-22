@@ -104,7 +104,7 @@ definition quicksort_vmtf_nth :: \<open>nat_vmtf_node list \<times> 'c \<Rightar
   \<open>quicksort_vmtf_nth = (\<lambda>(ns, _). full_quicksort_ref (\<le>) (\<lambda>n. stamp (ns ! n)))\<close>
 
 definition quicksort_vmtf_nth_ref:: \<open>nat_vmtf_node list \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat list \<Rightarrow> nat list nres\<close> where
-  \<open>quicksort_vmtf_nth_ref ns a b c = 
+  \<open>quicksort_vmtf_nth_ref ns a b c =
      quicksort_ref (\<le>) (\<lambda>n. stamp (ns ! n)) (a, b, c)\<close>
 
 lemma (in -) partition_vmtf_nth_code_helper:
@@ -117,7 +117,7 @@ lemma (in -) partition_vmtf_nth_code_helper:
   by (auto simp del: nth_mem)
 
 lemma partition_vmtf_nth_code_helper2:
-  \<open>ba < length b \<Longrightarrow>(bia, ba) \<in> uint32_nat_rel \<Longrightarrow> 
+  \<open>ba < length b \<Longrightarrow>(bia, ba) \<in> uint32_nat_rel \<Longrightarrow>
        (aa, (ba - bb) div 2) \<in> uint32_nat_rel \<Longrightarrow>
        (ab, bb) \<in> uint32_nat_rel \<Longrightarrow> bb + (ba - bb) div 2 \<le> uint_max\<close>
    apply (auto simp: uint32_nat_rel_def br_def)

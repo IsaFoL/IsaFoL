@@ -678,7 +678,7 @@ proof -
     by (auto simp: ex_assn_def)
   show ?thesis \<comment> \<open>TODO tune proof\<close>
     apply sepref_to_hoare
-    apply (sep_auto simp: append64_el_aa32_def nth_u_code_def Array.nth'_def uint32_nat_rel_def br_def 
+    apply (sep_auto simp: append64_el_aa32_def nth_u_code_def Array.nth'_def uint32_nat_rel_def br_def
        nat_of_uint32_code[symmetric] heap_array_set'_u_def heap_array_set_u_def Array.upd'_def)
      apply (simp add: arrayO_except_assn_def)
      apply (rule sep_auto_is_stupid[OF p])
@@ -761,7 +761,7 @@ definition arl64_get_nat :: "'a::heap array_list64 \<Rightarrow> nat \<Rightarro
 
 lemma arl_get_rule[sep_heap_rules]: "
   i<length l \<Longrightarrow>
-  <is_array_list64 l a> 
+  <is_array_list64 l a>
     arl64_get_nat a i
   <\<lambda>r. is_array_list64 l a * \<up>(r=l!i)>"
   supply nth_rule[sep_heap_rules]
@@ -769,7 +769,7 @@ lemma arl_get_rule[sep_heap_rules]: "
 
 lemma arl_get_rule_arl64[sep_heap_rules]: "
   i<length l \<Longrightarrow>
-  <arl64_assn T l a> 
+  <arl64_assn T l a>
     arl64_get_nat a i
   <\<lambda>r. arl64_assn T l a * \<up>((r, l!i) \<in> the_pure T)>"
   using param_nth[of i l i _ \<open>the_pure T\<close>]

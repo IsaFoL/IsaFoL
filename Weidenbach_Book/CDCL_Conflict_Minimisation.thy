@@ -1029,7 +1029,7 @@ proof -
       using dist .
   qed
   have length_aa_le: \<open>length aa \<le> length M\<close>
-    if 
+    if
       \<open>I' s\<close> and
       \<open>case s of (cach, analyse, b) \<Rightarrow> analyse \<noteq> []\<close> and
       \<open>s = (a, b)\<close> and

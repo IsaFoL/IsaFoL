@@ -831,7 +831,7 @@ sepref_register isasat_GC_clauses_prog_wl2
 sepref_definition isasat_GC_clauses_prog_wl2_code
   is \<open>uncurry2 isasat_GC_clauses_prog_wl2'\<close>
   :: \<open>[\<lambda>((_, _), (N, _)). length N \<le> uint64_max]\<^sub>a
-     (array_assn vmtf_node_assn)\<^sup>k *\<^sub>a (option_assn uint32_nat_assn)\<^sup>k *\<^sub>a 
+     (array_assn vmtf_node_assn)\<^sup>k *\<^sub>a (option_assn uint32_nat_assn)\<^sup>k *\<^sub>a
      (arena_fast_assn *a (arena_fast_assn *a vdom_fast_assn *a vdom_fast_assn) *a watchlist_fast_assn)\<^sup>d \<rightarrow>
      (arena_fast_assn *a (arena_fast_assn *a vdom_fast_assn *a vdom_fast_assn) *a watchlist_fast_assn)\<close>
   supply [[goals_limit=1]]

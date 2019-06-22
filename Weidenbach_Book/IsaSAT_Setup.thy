@@ -1,8 +1,8 @@
 theory IsaSAT_Setup
   imports
     Watched_Literals_VMTF
-    Watched_Literals.Watched_Literals_Watch_List_Initialisation 
-    IsaSAT_Lookup_Conflict 
+    Watched_Literals.Watched_Literals_Watch_List_Initialisation
+    IsaSAT_Lookup_Conflict
     IsaSAT_Clauses IsaSAT_Arena IsaSAT_Watch_List LBD
 begin
 

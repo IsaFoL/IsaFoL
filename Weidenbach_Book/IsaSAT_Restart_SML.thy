@@ -116,7 +116,7 @@ proof -
        length l' \<le> uint64_max \<Longrightarrow>
        (take (nat_of_uint64 b) l', x) \<in> \<langle>the_pure A\<rangle>list_rel \<Longrightarrow>
         nat_of_uint64 (b - 1) = nat_of_uint64 b - 1\<close> for x b l'
-     by (metis One_nat_def Suc_leI le_0_eq list_rel_pres_neq_nil 
+     by (metis One_nat_def Suc_leI le_0_eq list_rel_pres_neq_nil
          nat_of_uint64_012(3) nat_of_uint64_ge_minus nat_of_uint64_le_iff not_less take_eq_Nil)
   show ?thesis
     by sepref_to_hoare
@@ -202,7 +202,7 @@ lemma isa_marked_as_used_code[sepref_fr_rules]:
 sepref_definition isa_marked_as_used_fast_code2
   is \<open>uncurry isa_marked_as_used\<close>
   :: \<open>(arl64_assn uint32_assn)\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
-  supply op_eq_uint32[sepref_fr_rules] 
+  supply op_eq_uint32[sepref_fr_rules]
   unfolding isa_marked_as_used_def STATUS_SHIFT_def
   by sepref
 

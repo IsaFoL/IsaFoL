@@ -2186,7 +2186,7 @@ lemma remove_one_annot_true_clause_imp_wl_D_heur_remove_one_annot_true_clause_im
   unfolding remove_one_annot_true_clause_imp_wl_D_heur_def
     remove_one_annot_true_clause_imp_wl_D_def
   apply (intro frefI nres_relI)
-  apply (refine_vcg WHILEIT_refine[where R = \<open>nat_rel \<times>\<^sub>r {(S, T). (S, T) \<in> twl_st_heur_restart \<and> 
+  apply (refine_vcg WHILEIT_refine[where R = \<open>nat_rel \<times>\<^sub>r {(S, T). (S, T) \<in> twl_st_heur_restart \<and>
      literals_are_\<L>\<^sub>i\<^sub>n' (all_init_atms_st T) T}\<close>])
   subgoal by (auto simp: twl_st_heur_restart_count_decided_st_alt_def
     twl_st_heur_restart_isa_length_trail_get_trail_wl)
@@ -3015,7 +3015,7 @@ proof -
     by (auto simp: eq_commute[of \<open>set zs\<close> \<open>atms_of (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>)\<close>] hd_drop_conv_nth
       simp del: nth_mem)
   have le_uint_max: \<open>the x1a \<le> uint_max div 2\<close>
-    if 
+    if
       \<open>(remdups_mset \<A>, \<A>') \<in> Id\<close> and
       \<open>(x, x') \<in> {((n, m, x), \<A>', y). is_lasts \<A>' n m \<and> x = y}\<close> and
       \<open>case x of (n, uu_, uua_) \<Rightarrow> n \<noteq> None\<close> and
@@ -3710,7 +3710,7 @@ proof-
         rtranclp_GC_remap_learned_clss_l)
     subgoal
       unfolding cdcl_GC_clauses_pre_wl_def
-      by (drule length_watched_le'') 
+      by (drule length_watched_le'')
         (clarsimp_all simp add: twl_st_heur_restart_def
           cdcl_GC_clauses_prog_wl_inv_def H H'
           rtranclp_GC_remap_all_init_atms

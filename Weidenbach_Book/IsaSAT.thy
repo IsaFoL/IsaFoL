@@ -1632,7 +1632,7 @@ lemma all_lits_of_mm_extract_atms_clss:
     (auto simp: extract_atms_clss_alt_def all_lits_of_mm_add_mset
     in_all_lits_of_m_ain_atms_of_iff)
 
- 
+
 lemma IsaSAT_heur_alt_def:
   \<open>IsaSAT_heur opts CS = do{
     ASSERT(isasat_input_bounded (mset_set (extract_atms_clss CS {})));
@@ -1899,7 +1899,7 @@ proof -
     \<in> twl_st_heur_parsing_no_WL (mset_set (extract_atms_clss CS {})) False O
       {(S, T). S = remove_watched T \<and> get_watched_wl (fst T) = (\<lambda>_. [])}  \<Longrightarrow>
       (failed, faileda)
-       \<in> {(b, b').  b = b' \<and> b = (is_failed_heur_init T \<or> \<not> isasat_fast_init T)} \<Longrightarrow> \<not>failed \<Longrightarrow> 
+       \<in> {(b, b').  b = b' \<and> b = (is_failed_heur_init T \<or> \<not> isasat_fast_init T)} \<Longrightarrow> \<not>failed \<Longrightarrow>
     (\<not> get_conflict_wl_is_None_heur_init T) = (get_conflict_wl (fst Ta) \<noteq> None)\<close> for T Ta failed faileda
     by (cases T; cases Ta) (auto simp: twl_st_heur_parsing_no_WL_def
       get_conflict_wl_is_None_heur_init_def
@@ -2085,7 +2085,7 @@ proof -
       failed: \<open>\<not>is_failed_heur_init T\<close>
     for uu ba S T Ta baa uua uub
   proof -
-    have 
+    have
       Ta: \<open>(T, Ta)
      \<in> twl_st_heur_parsing_no_WL (mset_set (extract_atms_clss CS {})) True O
        {(S, T). S = remove_watched T \<and> get_watched_wl (fst T) = (\<lambda>_. [])}\<close>
@@ -2133,7 +2133,7 @@ proof -
     failed: \<open>\<not>is_failed_heur_init T\<close>
     for uu ba S T Ta baa uua uub V W b Tb Tc
   proof -
-    have 
+    have
     Ta: \<open>(T, Ta)
      \<in> twl_st_heur_parsing_no_WL (mset_set (extract_atms_clss CS {})) True O
        {(S, T). S = remove_watched T \<and> get_watched_wl (fst T) = (\<lambda>_. [])}\<close>
