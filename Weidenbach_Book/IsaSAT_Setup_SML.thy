@@ -330,12 +330,6 @@ definition isasat_bounded_assn :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wll
   uint64_nat_assn *a
   opts_assn *a arena_fast_assn\<close>
 
-sepref_definition arl_nat_of_uint64_code
-  is array_nat_of_uint64
-  :: \<open>(arl_assn uint64_nat_assn)\<^sup>k \<rightarrow>\<^sub>a arl_assn nat_assn\<close>
-  unfolding op_map_def array_nat_of_uint64_def arl_fold_custom_replicate
-  apply (rewrite at \<open>do {let _ = \<hole>; _}\<close> annotate_assn[where A=\<open>arl_assn nat_assn\<close>])
-  by sepref
 
 sepref_definition isasat_fast_slow_code
   is \<open>isasat_fast_slow\<close>
