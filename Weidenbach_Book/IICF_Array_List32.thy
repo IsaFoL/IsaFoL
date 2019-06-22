@@ -344,9 +344,48 @@ definition arl32_take where
 
 lemma arl32_take[sepref_fr_rules]:
   \<open>(uncurry (return oo arl32_take), uncurry (RETURN oo take)) \<in>
-    [\<lambda>(n, xs). n < length xs]\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a (arl32_assn R)\<^sup>d \<rightarrow> arl32_assn R\<close>
+    [\<lambda>(n, xs). n \<le> length xs]\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a (arl32_assn R)\<^sup>d \<rightarrow> arl32_assn R\<close>
   by (sepref_to_hoare)
     (sep_auto simp: arl32_assn_def arl32_take_def is_array_list32_def hr_comp_def
       uint32_nat_rel_def br_def list_rel_def list_all2_conv_all_nth)
+
+
+  definition arl32_butlast_nonresizing :: \<open>'a array_list32 \<Rightarrow> 'a array_list32\<close> where
+  \<open>arl32_butlast_nonresizing = (\<lambda>(xs, a). (xs, a - 1))\<close>
+
+lemma butlast32_nonresizing_hnr[sepref_fr_rules]:
+  \<open>(return o arl32_butlast_nonresizing, RETURN o butlast_nonresizing) \<in>
+    [\<lambda>xs. xs \<noteq> []]\<^sub>a (arl32_assn R)\<^sup>d \<rightarrow> arl32_assn R\<close>
+proof -
+  have [simp]: \<open>nat_of_uint32 (b - 1) = nat_of_uint32 b - 1\<close>
+    if
+      \<open>x \<noteq> []\<close> and
+      \<open>(take (nat_of_uint32 b) l', x) \<in> \<langle>the_pure R\<rangle>list_rel\<close>
+    for x :: \<open>'b list\<close> and a :: \<open>'a array\<close> and b :: \<open>uint32\<close> and l' :: \<open>'a list\<close> and aa :: \<open>Heap.heap\<close> and ba :: \<open>nat set\<close>
+  by (metis less_one list_rel_pres_neq_nil nat_of_uint32_012(3) nat_of_uint32_less_iff
+    nat_of_uint32_notle_minus take_eq_Nil that)
+
+  show ?thesis
+    by sepref_to_hoare
+     (sep_auto simp: arl32_butlast_nonresizing_def arl32_assn_def hr_comp_def
+       is_array_list32_def  butlast_take list_rel_imp_same_length nat_of_uint32_ge_minus
+      dest:
+        list_rel_butlast[of \<open>take _ _\<close>]
+      simp flip: nat_of_uint32_le_iff)
+qed
+
+definition arl_nat_of_uint64_conv :: \<open>nat list \<Rightarrow> nat list\<close> where
+\<open>arl_nat_of_uint64_conv S = S\<close>
+
+lemma arl_nat_of_uint64_conv_alt_def:
+  \<open>arl_nat_of_uint64_conv = map nat_of_uint64_conv\<close>
+  unfolding nat_of_uint64_conv_def arl_nat_of_uint64_conv_def by auto
+
+lemma arl_nat_of_uint64_conv_hnr[sepref_fr_rules]:
+  \<open>(arl_nat_of_uint64_code, (RETURN \<circ> arl_nat_of_uint64_conv))
+    \<in> (arl_assn uint64_nat_assn)\<^sup>k \<rightarrow>\<^sub>a arl_assn nat_assn\<close>
+  using arl_nat_of_uint64_code.refine[unfolded array_nat_of_uint64_def,
+    FCOMP op_map_map_rel[unfolded convert_fref]] unfolding arl_nat_of_uint64_conv_alt_def
+  by simp
 
 end

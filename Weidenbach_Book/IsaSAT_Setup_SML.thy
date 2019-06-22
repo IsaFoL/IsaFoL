@@ -2,112 +2,8 @@ theory IsaSAT_Setup_SML
   imports IsaSAT_Setup IsaSAT_Watch_List_SML IsaSAT_Lookup_Conflict_SML
     IsaSAT_Clauses_SML IsaSAT_Arena_SML LBD_SML Watched_Literals.IICF_Array_List32
 begin
+
 (*TODO Move*)
-lemma [code]: "uint32_max_uint32 = 4294967295"
-  by (auto simp: uint32_max_uint32_def)
-(*END Move*)
-(*TODO Move*)
-
-lemma while_upt_while_direct1:
-  "b \<ge> a \<Longrightarrow> 
-  do {
-    (_,\<sigma>) \<leftarrow> WHILE\<^sub>T (FOREACH_cond c) (\<lambda>x. do {ASSERT (FOREACH_cond c x); FOREACH_body f x}) ([a..<b],\<sigma>);
-    RETURN \<sigma>
-  } \<le> do {
-    (_,\<sigma>) \<leftarrow> WHILE\<^sub>T (\<lambda>(i, x). i < b \<and> c x) (\<lambda>(i, x). do {ASSERT (i < b);  \<sigma>'\<leftarrow>f i x; RETURN (i+1,\<sigma>')
-}) (a,\<sigma>);
-    RETURN \<sigma>
-  }"
-  apply (rewrite at \<open>_ \<le> \<hole>\<close> Down_id_eq[symmetric])
-  apply (refine_vcg WHILET_refine[where R = \<open>{((l, x'), (i::nat, x::'a)). x= x' \<and> i \<le> b \<and> i \<ge> a \<and> l = drop (i-a) [a..<b]}\<close>])
-  subgoal by auto
-  subgoal by (auto simp: FOREACH_cond_def)
-  subgoal by (auto simp: FOREACH_body_def intro!: bind_refine[OF Id_refine])
-  subgoal by auto
-  done
-
-lemma while_upt_while_direct2:
-  "b \<ge> a \<Longrightarrow> 
-  do {
-    (_,\<sigma>) \<leftarrow> WHILE\<^sub>T (FOREACH_cond c) (\<lambda>x. do {ASSERT (FOREACH_cond c x); FOREACH_body f x}) ([a..<b],\<sigma>);
-    RETURN \<sigma>
-  } \<ge> do {
-    (_,\<sigma>) \<leftarrow> WHILE\<^sub>T (\<lambda>(i, x). i < b \<and> c x) (\<lambda>(i, x). do {ASSERT (i < b);  \<sigma>'\<leftarrow>f i x; RETURN (i+1,\<sigma>')
-}) (a,\<sigma>);
-    RETURN \<sigma>
-  }"
-  apply (rewrite at \<open>_ \<le> \<hole>\<close> Down_id_eq[symmetric])
-  apply (refine_vcg WHILET_refine[where R = \<open>{((i::nat, x::'a), (l, x')). x= x' \<and> i \<le> b \<and> i \<ge> a \<and> l = drop (i-a) [a..<b]}\<close>])
-  subgoal by auto
-  subgoal by (auto simp: FOREACH_cond_def)
-  subgoal by (auto simp: FOREACH_body_def intro!: bind_refine[OF Id_refine])
-  subgoal by (auto simp: FOREACH_body_def intro!: bind_refine[OF Id_refine])
-  subgoal by auto
-  done
-
-lemma while_upt_while_direct:
-  "b \<ge> a \<Longrightarrow> 
-  do {
-    (_,\<sigma>) \<leftarrow> WHILE\<^sub>T (FOREACH_cond c) (\<lambda>x. do {ASSERT (FOREACH_cond c x); FOREACH_body f x}) ([a..<b],\<sigma>);
-    RETURN \<sigma>
-  } = do {
-    (_,\<sigma>) \<leftarrow> WHILE\<^sub>T (\<lambda>(i, x). i < b \<and> c x) (\<lambda>(i, x). do {ASSERT (i < b);  \<sigma>'\<leftarrow>f i x; RETURN (i+1,\<sigma>')
-}) (a,\<sigma>);
-    RETURN \<sigma>
-  }"
-  using while_upt_while_direct1[of a b] while_upt_while_direct2[of a b] unfolding order_class.eq_iff by fast
-
-
-lemma while_nfoldli:
-  "do {
-    (_,\<sigma>) \<leftarrow> WHILE\<^sub>T (FOREACH_cond c) (\<lambda>x. do {ASSERT (FOREACH_cond c x); FOREACH_body f x}) (l,\<sigma>);
-    RETURN \<sigma>
-  } \<le> nfoldli l c f \<sigma>"
-  apply (induct l arbitrary: \<sigma>)
-  apply (subst WHILET_unfold)
-  apply (simp add: FOREACH_cond_def)
-
-  apply (subst WHILET_unfold)
-  apply (auto
-    simp: FOREACH_cond_def FOREACH_body_def
-    intro: bind_mono Refine_Basic.bind_mono(1))
- done
-lemma nfoldli_while: "nfoldli l c f \<sigma>
-          \<le>
-         (WHILE\<^sub>T\<^bsup>I\<^esup>
-           (FOREACH_cond c) (\<lambda>x. do {ASSERT (FOREACH_cond c x); FOREACH_body f x}) (l, \<sigma>) \<bind>
-          (\<lambda>(_, \<sigma>). RETURN \<sigma>))"
-proof (induct l arbitrary: \<sigma>)
-  case Nil thus ?case by (subst WHILEIT_unfold) (auto simp: FOREACH_cond_def)
-next
-  case (Cons x ls)
-  show ?case
-  proof (cases "c \<sigma>")
-    case False thus ?thesis
-      apply (subst WHILEIT_unfold)
-      unfolding FOREACH_cond_def
-      by simp
-  next
-    case [simp]: True
-    from Cons show ?thesis
-      apply (subst WHILEIT_unfold)
-      unfolding FOREACH_cond_def FOREACH_body_def
-      apply clarsimp
-      apply (rule Refine_Basic.bind_mono)
-      apply simp_all
-      done
-  qed
-qed
-
-lemma while_eq_nfoldli: "do {
-    (_,\<sigma>) \<leftarrow> WHILE\<^sub>T (FOREACH_cond c) (\<lambda>x. do {ASSERT (FOREACH_cond c x); FOREACH_body f x}) (l,\<sigma>);
-    RETURN \<sigma>
-  } = nfoldli l c f \<sigma>"
-  apply (rule antisym)
-  apply (rule while_nfoldli)
-  apply (rule order_trans[OF nfoldli_while[where I="\<lambda>_. True"]])
-  apply (simp add: WHILET_def)
-  done
 (*End Move*)
 
 abbreviation stats_assn :: \<open>stats \<Rightarrow> stats \<Rightarrow> assn\<close> where
@@ -441,21 +337,6 @@ sepref_definition arl_nat_of_uint64_code
   apply (rewrite at \<open>do {let _ = \<hole>; _}\<close> annotate_assn[where A=\<open>arl_assn nat_assn\<close>])
   by sepref
 
-(*TODO Move to Array_Uint *)
-definition arl_nat_of_uint64_conv :: \<open>nat list \<Rightarrow> nat list\<close> where
-\<open>arl_nat_of_uint64_conv S = S\<close>
-
-lemma arl_nat_of_uint64_conv_alt_def:
-  \<open>arl_nat_of_uint64_conv = map nat_of_uint64_conv\<close>
-  unfolding nat_of_uint64_conv_def arl_nat_of_uint64_conv_def by auto
-
-lemma arl_nat_of_uint64_conv_hnr[sepref_fr_rules]:
-  \<open>(arl_nat_of_uint64_code, (RETURN \<circ> arl_nat_of_uint64_conv))
-    \<in> (arl_assn uint64_nat_assn)\<^sup>k \<rightarrow>\<^sub>a arl_assn nat_assn\<close>
-  using arl_nat_of_uint64_code.refine[unfolded array_nat_of_uint64_def,
-    FCOMP op_map_map_rel[unfolded convert_fref]] unfolding arl_nat_of_uint64_conv_alt_def
-  by simp
-(*END Move*)
 sepref_definition isasat_fast_slow_code
   is \<open>isasat_fast_slow\<close>
   :: \<open>[\<lambda>S. length(get_clauses_wl_heur S) \<le> uint64_max \<and>

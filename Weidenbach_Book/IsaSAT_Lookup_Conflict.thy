@@ -1436,6 +1436,7 @@ where
         (\<lambda>(cach, analyse, b). analyse \<noteq> [])
         (\<lambda>(cach, analyse, b). do {
             ASSERT(analyse \<noteq> []);
+            ASSERT(length analyse \<le> length M);
 	    let (C,k, i, len) = ana_lookup_conv NU (last analyse);
             ASSERT(C \<in># dom_m NU);
             ASSERT(length (NU \<propto> C) > k); \<comment> \<open> >= 2 would work too \<close>
@@ -2133,6 +2134,7 @@ proof -
     subgoal by (rule ccmin_lit_redundant_rec_wl_inv2)
     subgoal by (rule ccmin_cond)
     subgoal by (rule ccmin_nempty)
+    subgoal by (auto simp: list_rel_imp_same_length)
     subgoal by (rule ccmin_in_dom)
     subgoal by (rule ccmin_in_dom_le_length)
     subgoal by (rule ccmin_in_trail)
@@ -3011,6 +3013,7 @@ where
         (\<lambda>(cach, analyse, b). analyse \<noteq> [])
         (\<lambda>(cach, analyse, b). do {
             ASSERT(analyse \<noteq> []);
+            ASSERT(length analyse \<le> 1 +  uint32_max div 2);
             ASSERT(arena_is_valid_clause_idx NU (fst (last analyse)));
 	    ASSERT(ana_lookup_conv_lookup_pre NU (from_ana_ref_id (last analyse)));
 	    let (C, k, i, len) = ana_lookup_conv_lookup NU (from_ana_ref_id (last analyse));
@@ -3060,6 +3063,7 @@ lemma isa_lit_redundant_rec_wl_lookup_alt_def:
       (\<lambda>(cach, analyse, b). analyse \<noteq> [])
       (\<lambda>(cach, analyse, b). do {
           ASSERT(analyse \<noteq> []);
+          ASSERT(length analyse \<le> 1 +  uint32_max div 2);
 	  let (C, i, b) = last analyse;
           ASSERT(arena_is_valid_clause_idx NU (fst (last analyse)));
 	  ASSERT(ana_lookup_conv_lookup_pre NU (from_ana_ref_id (last analyse)));
@@ -3117,6 +3121,7 @@ lemma lit_redundant_rec_wl_lookup_alt_def:
         (\<lambda>(cach, analyse, b). analyse \<noteq> [])
         (\<lambda>(cach, analyse, b). do {
             ASSERT(analyse \<noteq> []);
+            ASSERT(length analyse \<le> length M);
 	    let (C, k, i, len) = ana_lookup_conv NU (last analyse);
             ASSERT(C \<in># dom_m NU);
             ASSERT(length (NU \<propto> C) > k); \<comment> \<open> >= 2 would work too \<close>
@@ -3432,6 +3437,7 @@ proof -
     subgoal for x y x1 x1a x1b x1c x1d x2 x2a x2b x2c x2d x1e x1f x1g x1h x1i x2e x2f x2g
        x2h x2i xa x' x1j x2j x1k x2k x1l x2l x1m x2m
         by (auto simp: arena_lifting)
+    subgoal by (auto simp: trail_pol_alt_def)
     subgoal by (auto simp: arena_is_valid_clause_idx_def
       lit_redundant_rec_wl_inv2_def)
     subgoal by (auto simp: ana_lookup_conv_lookup_pre_def)

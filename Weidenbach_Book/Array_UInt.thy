@@ -1935,5 +1935,9 @@ lemma bit_lshift_uint64_nat_assn[sepref_fr_rules]:
     uint64_nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
   by sepref_to_hoare (sep_auto simp: uint64_nat_rel_def br_def nat_of_uint64_shiftl)
 
+lemma [code]: "uint32_max_uint32 = 4294967295"
+  using nat_of_uint32_uint32_max_uint32
+  by (auto simp: uint32_max_uint32_def uint32_max_def)
+
 end
 

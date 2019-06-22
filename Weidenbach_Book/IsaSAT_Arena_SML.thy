@@ -1,38 +1,7 @@
 theory IsaSAT_Arena_SML
   imports IsaSAT_Arena IsaSAT_Literals_SML Watched_Literals.IICF_Array_List64
 begin
-(*TODO Move*)
-definition arl64_of_arl :: \<open>'a list \<Rightarrow> 'a list\<close> where
-  \<open>arl64_of_arl S = S\<close>
 
-definition arl64_of_arl_code :: \<open>'a :: heap array_list \<Rightarrow> 'a array_list64 Heap\<close> where
-  \<open>arl64_of_arl_code = (\<lambda>(a, n). do {
-    m \<leftarrow> Array.len a;
-    if m > uint64_max then do {
-        a \<leftarrow> array_shrink a uint64_max;
-        return (a, (uint64_of_nat n))}
-   else return (a, (uint64_of_nat n))})\<close>
-
-lemma arl64_of_arl[sepref_fr_rules]:
-  \<open>(arl64_of_arl_code, RETURN o arl64_of_arl) \<in> [\<lambda>n. length n \<le> uint64_max]\<^sub>a (arl_assn R)\<^sup>d \<rightarrow> arl64_assn R\<close>
-proof -
-  have [iff]: \<open>take uint64_max l' = [] \<longleftrightarrow> l' = []\<close> \<open>0 < uint64_max\<close> for l'
-    by (auto simp: uint64_max_def)
-  have H: \<open>x2 \<le> length l' \<Longrightarrow>
-       (take x2 l', x) \<in> \<langle>the_pure R\<rangle>list_rel \<Longrightarrow> length x = x2\<close>
-      \<open>x2 \<le> length l' \<Longrightarrow>
-       (take x2 l', x) \<in> \<langle>the_pure R\<rangle>list_rel \<Longrightarrow> take (length x) = take x2\<close> for x x2 l'
-    subgoal H by (auto dest: list_rel_imp_same_length)
-    subgoal using H by blast
-    done
-  show ?thesis
-    by sepref_to_hoare
-      (sep_auto simp: arl_assn_def arl64_assn_def is_array_list_def is_array_list64_def hr_comp_def arl64_of_arl_def
-       arl64_of_arl_code_def nat_of_uint64_code[symmetric] nat_of_uint64_uint64_of_nat_id
-       H min_def
-     split: prod.splits if_splits)
-qed
-(*END Move*)
 
 abbreviation arena_el_assn :: "arena_el \<Rightarrow> uint32 \<Rightarrow> assn" where
   \<open>arena_el_assn \<equiv> hr_comp uint32_nat_assn arena_el_rel\<close>

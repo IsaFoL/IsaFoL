@@ -225,32 +225,6 @@ sepref_definition tl_trail_tr_code
   supply [[goals_limit = 1]]
   by sepref
 
-(*TODO Move*)
-
-  definition arl32_butlast_nonresizing :: \<open>'a array_list32 \<Rightarrow> 'a array_list32\<close> where
-  \<open>arl32_butlast_nonresizing = (\<lambda>(xs, a). (xs, a - 1))\<close>
-
-lemma butlast32_nonresizing_hnr[sepref_fr_rules]:
-  \<open>(return o arl32_butlast_nonresizing, RETURN o butlast_nonresizing) \<in>
-    [\<lambda>xs. xs \<noteq> []]\<^sub>a (arl32_assn R)\<^sup>d \<rightarrow> arl32_assn R\<close>
-proof -
-  have [simp]: \<open>nat_of_uint32 (b - 1) = nat_of_uint32 b - 1\<close>
-    if
-      \<open>x \<noteq> []\<close> and
-      \<open>(take (nat_of_uint32 b) l', x) \<in> \<langle>the_pure R\<rangle>list_rel\<close>
-    for x :: \<open>'b list\<close> and a :: \<open>'a array\<close> and b :: \<open>uint32\<close> and l' :: \<open>'a list\<close> and aa :: \<open>Heap.heap\<close> and ba :: \<open>nat set\<close>
-  by (metis less_one list_rel_pres_neq_nil nat_of_uint32_012(3) nat_of_uint32_less_iff
-    nat_of_uint32_notle_minus take_eq_Nil that)
-
-  show ?thesis
-    by sepref_to_hoare
-     (sep_auto simp: arl32_butlast_nonresizing_def arl32_assn_def hr_comp_def
-       is_array_list32_def  butlast_take list_rel_imp_same_length nat_of_uint32_ge_minus
-      dest:
-        list_rel_butlast[of \<open>take _ _\<close>]
-      simp flip: nat_of_uint32_le_iff)
-qed
-(*END Move *)
 declare tl_trail_tr_code.refine[sepref_fr_rules]
 
 sepref_definition tl_trail_tr_fast_code
@@ -451,15 +425,6 @@ sepref_definition (in -) trail_conv_back_imp_code
   by sepref
 
 declare trail_conv_back_imp_code.refine[sepref_fr_rules]
-
-(*TODO Move and replace*)
-lemma arl32_take[sepref_fr_rules]:
-  \<open>(uncurry (return oo arl32_take), uncurry (RETURN oo take)) \<in>
-    [\<lambda>(n, xs). n \<le> length xs]\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a (arl32_assn R)\<^sup>d \<rightarrow> arl32_assn R\<close>
-  by (sepref_to_hoare)
-    (sep_auto simp: arl32_assn_def arl32_take_def is_array_list32_def hr_comp_def
-      uint32_nat_rel_def br_def list_rel_def list_all2_conv_all_nth)
-(*END Move*)
 
 sepref_definition (in -) trail_conv_back_imp_fast_code
   is \<open>uncurry trail_conv_back_imp\<close>

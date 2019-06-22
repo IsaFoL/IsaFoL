@@ -410,7 +410,7 @@ fun conflict_min_analysis_stack
   :: \<open>('v, 'a) ann_lits \<Rightarrow> 'v clauses \<Rightarrow> 'v clause \<Rightarrow> 'v conflict_min_analyse \<Rightarrow> bool\<close>
 where
   \<open>conflict_min_analysis_stack M NU D [] \<longleftrightarrow> True\<close> |
-  \<open>conflict_min_analysis_stack M NU D ((L, E) # []) \<longleftrightarrow> True\<close> |
+  \<open>conflict_min_analysis_stack M NU D ((L, E) # []) \<longleftrightarrow> -L \<in> lits_of_l M\<close> |
   \<open>conflict_min_analysis_stack M NU D ((L, E) # (L', E') # analyse) \<longleftrightarrow>
      (\<exists>C. set_mset NU \<Turnstile>p add_mset (-L') C \<and>
        (\<forall>K\<in>#C-add_mset L E'. set_mset NU \<Turnstile>p (filter_to_poslev M L' D) + {#-K#} \<or>
@@ -418,6 +418,7 @@ where
        (\<forall>K\<in>#C. index_in_trail M K < index_in_trail M L') \<and>
        E' \<subseteq># C) \<and>
      -L' \<in> lits_of_l M \<and>
+     -L \<in> lits_of_l M \<and>
      index_in_trail M L < index_in_trail M L' \<and>
      conflict_min_analysis_stack M NU D ((L', E') # analyse)\<close>
 
@@ -425,6 +426,29 @@ lemma conflict_min_analysis_stack_change_hd:
   \<open>conflict_min_analysis_stack M NU D ((L, E) # ana) \<Longrightarrow>
      conflict_min_analysis_stack M NU D ((L, E') # ana)\<close>
   by (cases ana, auto)
+
+lemma conflict_min_analysis_stack_sorted:
+  \<open>conflict_min_analysis_stack M NU D analyse \<Longrightarrow>
+    sorted (map (index_in_trail M o fst) analyse)\<close>
+  by (induction rule: conflict_min_analysis_stack.induct)
+    auto
+lemma conflict_min_analysis_stack_sorted_and_distinct:
+  \<open>conflict_min_analysis_stack M NU D analyse \<Longrightarrow>
+    sorted (map (index_in_trail M o fst) analyse) \<and> distinct (map (index_in_trail M o fst) analyse)\<close>
+  by (induction rule: conflict_min_analysis_stack.induct)
+    auto
+
+lemma conflict_min_analysis_stack_distinct_fst:
+  \<open>conflict_min_analysis_stack M NU D analyse \<Longrightarrow> distinct (map fst analyse)\<close>
+  using conflict_min_analysis_stack_sorted_and_distinct[of M NU D analyse]
+  by (auto simp: intro!:  distinct_mapI[of \<open>(index_in_trail M)\<close>])
+
+lemma conflict_min_analysis_stack_neg:
+  \<open>conflict_min_analysis_stack M NU D analyse \<Longrightarrow>
+    M \<Turnstile>as CNot (fst `# mset analyse)\<close>
+  by (induction M NU D analyse rule: conflict_min_analysis_stack.induct)
+    auto
+
 
 fun conflict_min_analysis_stack_hd
   :: \<open>('v, 'a) ann_lits \<Rightarrow> 'v clauses \<Rightarrow> 'v clause \<Rightarrow> 'v conflict_min_analyse \<Rightarrow> bool\<close>
@@ -434,7 +458,6 @@ where
      (\<exists>C. set_mset NU \<Turnstile>p add_mset (-L) C \<and>
      (\<forall>K\<in>#C. index_in_trail M K < index_in_trail M L) \<and> E \<subseteq># C \<and> -L \<in> lits_of_l M \<and>
      (\<forall>K\<in>#C-E. set_mset NU \<Turnstile>p (filter_to_poslev M L D) + {#-K#} \<or> K \<in># filter_to_poslev M L D))\<close>
-
 lemma conflict_min_analysis_stack_tl:
   \<open>conflict_min_analysis_stack M NU D analyse \<Longrightarrow> conflict_min_analysis_stack M NU D (tl analyse)\<close>
   by (cases \<open>(M, NU, D, analyse)\<close> rule: conflict_min_analysis_stack.cases) auto
@@ -458,6 +481,7 @@ where
         (\<lambda>(cach, analyse, b). analyse \<noteq> [])
         (\<lambda>(cach, analyse, b). do {
             ASSERT(analyse \<noteq> []);
+            ASSERT(length analyse \<le> length M);
             ASSERT(-fst (hd analyse) \<in> lits_of_l M);
             if snd (hd analyse) = {#}
             then
@@ -540,7 +564,8 @@ proof -
   let ?f = \<open>\<lambda>analysis. fold_mset (+) D (snd `# mset analysis)\<close>
   define I' where
     \<open>I' = (\<lambda>(cach :: 'v conflict_min_cach, analysis :: 'v conflict_min_analyse, b::bool).
-        lit_redundant_inv M ?N D init_analysis (cach, analysis, b) \<and> M \<Turnstile>as CNot (?f analysis))\<close>
+        lit_redundant_inv M ?N D init_analysis (cach, analysis, b) \<and> M \<Turnstile>as CNot (?f analysis) \<and>
+        distinct (map fst analysis))\<close>
   define R where
     \<open>R = {((cach :: 'v conflict_min_cach, analysis :: 'v conflict_min_analyse, b::bool),
            (cach' :: 'v conflict_min_cach, analysis' :: 'v conflict_min_analyse, b' :: bool)).
@@ -861,7 +886,7 @@ proof -
       using inv_I' unfolding I'_def s ana analysis ana'
       by (cases \<open>L \<in># C\<close>) (auto dest!: multi_member_split)
     then show ?I'
-      using inv_I' \<open>?I\<close> unfolding I'_def s by auto
+      using inv_I' \<open>?I\<close> unfolding I'_def s by (auto simp: analysis ana')
 
     show ?R
       using next_lit
@@ -961,10 +986,10 @@ proof -
       unfolding s ana'[symmetric]
       by (auto simp: analysis ana' conflict_min_analysis_stack_change_hd)
 
-    then have \<open>conflict_min_analysis_stack M ?N D ((L, remove1_mset (-L) E') # ana)\<close>
-      using stack E next_lit NU_E uL_E
+    then have cmas: \<open>conflict_min_analysis_stack M ?N D ((L, remove1_mset (-L) E') # ana)\<close>
+      using stack E next_lit NU_E uL_E uL_M
         filter_to_poslev_mono_entailement_add_mset[of M _ _ \<open>set_mset ?N\<close> _ D]
-        filter_to_poslev_mono[of M ]
+        filter_to_poslev_mono[of M ] uK_M
       unfolding s ana'[symmetric]
       by (auto simp: analysis ana' conflict_min_analysis_stack_change_hd)
     moreover have \<open>conflict_min_analysis_stack_hd M ?N D ((L, remove1_mset (- L) E') # ana)\<close>
@@ -973,9 +998,12 @@ proof -
       using last_analysis unfolding analysis ana' by auto
     ultimately show ?I
       using cach b unfolding lit_redundant_inv_def analysis by auto
-
-    then show ?I'
-      using M_E' inv_I' unfolding I'_def s ana analysis ana' by (auto simp: true_annot_CNot_diff)
+    moreover have \<open>L \<noteq> K\<close>
+       using \<open>conflict_min_analysis_stack M (N + NE + U + UE) D ((L, remove1_mset (- L) E') # ana)\<close>
+       unfolding ana' conflict_min_analysis_stack.simps(3) by blast
+    ultimately show ?I'
+      using M_E' inv_I' conflict_min_analysis_stack_distinct_fst[OF cmas]
+     unfolding I'_def s ana analysis ana' by (auto simp: true_annot_CNot_diff)
 
     have \<open>L \<in># C\<close> and in_trail: \<open>Propagated (- L) (the E) \<in> set M\<close> and EE': \<open>the E = E'\<close>
       using next_lit E by (auto simp: analysis ana' s)
@@ -1000,14 +1028,37 @@ proof -
     show ?dist
       using dist .
   qed
+  have length_aa_le: \<open>length aa \<le> length M\<close>
+    if 
+      \<open>I' s\<close> and
+      \<open>case s of (cach, analyse, b) \<Rightarrow> analyse \<noteq> []\<close> and
+      \<open>s = (a, b)\<close> and
+      \<open>b = (aa, ba)\<close> and
+      \<open>aa \<noteq> []\<close> for s a b aa ba
+  proof -
+    have \<open>M \<Turnstile>as CNot (fst `# mset aa)\<close> and \<open>distinct (map fst aa)\<close> and
+      \<open>conflict_min_analysis_stack M (N + NE + U + UE) D aa\<close>
+      using that by (auto simp: I'_def lit_redundant_inv_def dest: conflict_min_analysis_stack_neg)
+    then have \<open>set (map fst aa) \<subseteq> uminus ` lits_of_l M\<close>
+      by (auto simp: true_annots_true_cls_def_iff_negation_in_model lits_of_def image_image
+          uminus_lit_swap
+         dest!: multi_member_split)
+    from card_mono[OF _ this] have \<open>length (map fst aa) \<le> length M\<close>
+      using \<open>distinct (map fst aa)\<close> distinct_card[of \<open>map fst aa\<close>] n_d
+     by (auto simp: card_image[OF lit_of_inj_on_no_dup[OF n_d]] lits_of_def image_image
+        distinct_card[OF no_dup_imp_distinct])
+    then show \<open>?thesis\<close> by auto
+  qed
+
   show ?thesis
     unfolding lit_redundant_rec_def lit_redundant_rec_spec_def mark_failed_lits_def
       get_literal_and_remove_of_analyse_def get_propagation_reason_def
     apply (refine_vcg WHILET_rule[where R = R and I = I'])
-      \<comment> \<open>Well foundedness\<close>
+      \<comment> \<open>Well-foundness\<close>
     subgoal by (rule wf_R)
     subgoal by (rule init_I')
     subgoal by simp
+    subgoal by (rule length_aa_le)
       \<comment> \<open>Assertion:\<close>
     subgoal by (rule hd_M)
         \<comment> \<open>We finished one stage:\<close>
@@ -1279,6 +1330,7 @@ where
         (\<lambda>(cach, analyse, b). analyse \<noteq> [])
         (\<lambda>(cach, analyse, b). do {
             ASSERT(analyse \<noteq> []);
+            ASSERT(length analyse \<le> length M);
 	    let (C, k, i, ln) = last analyse;
             ASSERT(C \<in># dom_m NU);
             ASSERT(length (NU \<propto> C) > k);
@@ -1694,6 +1746,7 @@ proof -
       \<open>x = (x1b, x2b)\<close>
     for x x' x2e x1b x1 x2 x2b x2d
     using that unfolding mark_failed_lits_wl_def mark_failed_lits_def by auto
+
   have ana: \<open>last analyse = (fst (last analyse), fst (snd (last analyse)),
     fst (snd (snd (last analyse))), snd (snd (snd (last analyse))))\<close> for analyse
       by (cases \<open>last analyse\<close>) auto
@@ -1713,6 +1766,7 @@ proof -
         (auto simp: lit_redundant_rec_wl_inv_def lit_redundant_rec_wl_ref_def)
     subgoal by auto
     subgoal by auto
+    subgoal using M'_def by (auto dest: convert_lits_l_imp_same_length)
     subgoal by (auto simp: lit_redundant_rec_wl_inv_def lit_redundant_rec_wl_ref_def
        elim!: neq_Nil_revE)
     subgoal by (auto simp: lit_redundant_rec_wl_inv_def lit_redundant_rec_wl_ref_def

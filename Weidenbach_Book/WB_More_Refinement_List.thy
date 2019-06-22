@@ -248,4 +248,5 @@ definition nth_rll :: "'a list list \<Rightarrow> nat \<Rightarrow> nat \<Righta
 definition reorder_list :: \<open>'b \<Rightarrow> 'a list \<Rightarrow> 'a list nres\<close> where
 \<open>reorder_list _ removed = SPEC (\<lambda>removed'. mset removed' = mset removed)\<close>
 
+
 end
