@@ -8,6 +8,12 @@ abbreviation (in -) vmtf_conc_option_fst_As where
   \<open>vmtf_conc_option_fst_As \<equiv> (array_assn vmtf_node_assn *a uint64_nat_assn *a
     option_assn uint32_nat_assn *a option_assn uint32_nat_assn *a option_assn uint32_nat_assn)\<close>
 
+type_synonym (in -)vmtf_assn_option_fst_As =
+  \<open>(uint32, uint64) vmtf_node array \<times> uint64 \<times> uint32 option \<times> uint32 option \<times> uint32 option\<close>
+
+type_synonym (in -)vmtf_remove_assn_option_fst_As =
+  \<open>vmtf_assn_option_fst_As \<times> (uint32 array_list32) \<times> bool array\<close>
+
 abbreviation vmtf_remove_conc_option_fst_As
   :: \<open>isa_vmtf_remove_int_option_fst_As \<Rightarrow> vmtf_remove_assn_option_fst_As \<Rightarrow> assn\<close>
 where
@@ -23,9 +29,9 @@ sepref_definition (in -) atoms_hash_empty_code
 find_theorems replicate arl64_assn
 sepref_definition distinct_atms_empty_code
   is \<open>distinct_atms_int_empty\<close>
-  :: \<open>nat_assn\<^sup>k \<rightarrow>\<^sub>a arl_assn uint32_nat_assn *a atoms_hash_assn\<close>
+  :: \<open>nat_assn\<^sup>k \<rightarrow>\<^sub>a arl32_assn uint32_nat_assn *a atoms_hash_assn\<close>
   unfolding distinct_atms_int_empty_def array_fold_custom_replicate
-    IICF_Array_List.arl.fold_custom_empty
+    arl32.fold_custom_empty
   by sepref
 
 declare distinct_atms_empty_code.refine[sepref_fr_rules]

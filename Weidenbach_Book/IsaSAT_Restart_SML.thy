@@ -2,6 +2,9 @@ theory IsaSAT_Restart_SML
   imports IsaSAT_Restart IsaSAT_Restart_Heuristics_SML IsaSAT_CDCL_SML
 begin
 sepref_register length_avdom
+text \<open>Find a less hack-like solution\<close>
+setup \<open>map_theory_claset (fn ctxt => ctxt delSWrapper "split_all_tac")\<close>
+
 sepref_register clause_is_learned_heur
 
 sepref_definition length_avdom_code
@@ -118,7 +121,7 @@ proof -
   show ?thesis
     by sepref_to_hoare
      (sep_auto simp: butlast_arl64_def arl64_assn_def hr_comp_def is_array_list64_def
-         butlast_conv_take
+         butlast_conv_take split: prod.splits
         simp del: take_butlast_conv)
 qed
 
@@ -361,9 +364,6 @@ declare sort_vdom_heur_fast_code.refine[sepref_fr_rules]
 declare access_lit_in_clauses_heur_fast_code.refine[sepref_fr_rules]
 
 (* END Move *)
-text \<open>Find a less hack-like solution\<close>
-setup \<open>map_theory_claset (fn ctxt => ctxt delSWrapper "split_all_tac")\<close>
-
 sepref_definition mark_to_delete_clauses_wl_D_heur_fast_impl
   is \<open>mark_to_delete_clauses_wl_D_heur\<close>
   :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> uint64_max]\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>

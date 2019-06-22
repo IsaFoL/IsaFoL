@@ -2653,7 +2653,7 @@ where
 
 definition atoms_hash_rel :: \<open>nat multiset \<Rightarrow> (bool list \<times> nat set) set\<close> where
   \<open>atoms_hash_rel \<A> = {(C, D). (\<forall>L \<in> D. L < length C) \<and> (\<forall>L < length C. C ! L \<longleftrightarrow> L \<in> D) \<and>
-    (\<forall>L \<in># \<A>. L < length C)}\<close>
+    (\<forall>L \<in># \<A>. L < length C) \<and> D \<subseteq> set_mset \<A>}\<close>
 
 definition distinct_hash_atoms_rel
   :: \<open>nat multiset \<Rightarrow> (('v list \<times> 'v set) \<times> 'v set) set\<close>
@@ -2667,13 +2667,13 @@ where
 
 lemma distinct_atoms_rel_alt_def:
   \<open>distinct_atoms_rel \<A> = {((D', C), D). (\<forall>L \<in> D. L < length C) \<and> (\<forall>L < length C. C ! L \<longleftrightarrow> L \<in> D) \<and>
-    (\<forall>L \<in># \<A>. L < length C) \<and> set D' = D \<and> distinct D'}\<close>
+    (\<forall>L \<in># \<A>. L < length C) \<and> set D' = D \<and> distinct D' \<and> set D' \<subseteq> set_mset \<A>}\<close>
   unfolding distinct_atoms_rel_def atoms_hash_rel_def distinct_hash_atoms_rel_def prod_rel_def
   apply rule
   subgoal
-    by auto
+    by (auto simp: mset_set_set)
   subgoal
-    by auto
+    by (auto simp: mset_set_set)
   done
 
 lemma distinct_atoms_rel_empty_hash_iff:
@@ -2775,7 +2775,7 @@ proof -
     for x1 x2 x1a x2a
   proof -
     show ?thesis
-      using that assms by (auto simp: reorder_list_def distinct_atoms_rel_alt_def
+      using that assms by (force simp: reorder_list_def distinct_atoms_rel_alt_def
         dest: mset_eq_setD same_mset_distinct_iff mset_eq_length)
   qed
 
@@ -2920,7 +2920,7 @@ proof -
         3: \<open>(vmtf_en_dequeue M (to_remove' ! x2) x2aa, set (drop (Suc x2) to_remove'))
          \<in> vmtf \<A>\<^sub>i\<^sub>n M\<close>
         using 3 I' le to_rem that unfolding I'_def distinct_atoms_rel_alt_def atoms_hash_del_def
-        by (auto simp: Cons_nth_drop_Suc[symmetric])
+        by (auto simp: Cons_nth_drop_Suc[symmetric] intro: mset_le_add_mset_decr_left1)
 
       have A: \<open>to_remove' ! x2 \<in> ?x2a'\<close>
         using I I' le dist that x1aa unfolding I_def I'_def

@@ -213,7 +213,7 @@ lemma atoms_hash_del_op_set_delete:
     uncurry (RETURN oo Set.remove)) \<in>
      nat_rel \<times>\<^sub>r atoms_hash_rel \<A> \<rightarrow>\<^sub>f \<langle>atoms_hash_rel \<A>\<rangle>nres_rel\<close>
   by (intro frefI nres_relI)
-    (auto simp: atoms_hash_del_def atoms_hash_rel_def)
+    (force simp: atoms_hash_del_def atoms_hash_rel_def)
 
 
 definition current_stamp where
@@ -249,7 +249,7 @@ definition isa_vmtf_flush_int :: \<open>trail_pol \<Rightarrow> _ \<Rightarrow> 
     ASSERT(length to_remove \<le> uint32_max);
     to_remove' \<leftarrow> reorder_list vm to_remove;
     ASSERT(length to_remove' \<le> uint32_max);
-    vm \<leftarrow> (if length to_remove' + fst (snd vm) \<ge> uint64_max
+    vm \<leftarrow> (if length to_remove' \<ge> uint64_max - fst (snd vm)
       then vmtf_rescale vm else RETURN vm);
     ASSERT(length to_remove' + fst (snd vm) \<le> uint64_max);
     (_, vm, h) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(i, vm', h). i \<le> length to_remove' \<and> fst (snd vm') = i + fst (snd vm) \<and>
@@ -328,7 +328,6 @@ proof -
       \<open>(to_remove', to_remove'a) \<in> Id\<close> and
       \<open>length to_remove'a \<le> uint_max\<close> and
       \<open>length to_remove' \<le> uint_max\<close> and
-      \<open>uint64_max \<le> length to_remove' + fst (snd x1d)\<close> and
       \<open>uint64_max \<le> length to_remove'a + fst (snd x1a)\<close>
     for x y x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e to_remove' to_remove'a
     using that by auto
@@ -350,8 +349,7 @@ proof -
       \<open>length to_remove'a \<le> uint_max\<close> and
       \<open>length to_remove' \<le> uint_max\<close> and
       \<open>(vm, vma) \<in> Id\<close> and
-      \<open>length to_remove'a + fst (snd vma) \<le> uint64_max\<close> and
-      \<open>length to_remove' + fst (snd vm) \<le> uint64_max\<close> and
+      \<open>length to_remove'a + fst (snd vma) \<le> uint64_max\<close>
       \<open>case (0, vma, x2b) of
        (i, vm', h) \<Rightarrow>
 	 i \<le> length to_remove'a \<and>
@@ -378,7 +376,6 @@ proof -
      \<open>length to_remove'a \<le> uint_max\<close> and
      \<open>length to_remove' \<le> uint_max\<close> and
      \<open>length to_remove'a + fst (snd vma) \<le> uint64_max\<close> and
-     \<open>length to_remove' + fst (snd vm) \<le> uint64_max\<close> and
      \<open>case xa of (i, vm, h) \<Rightarrow> i < length to_remove'\<close> and
      \<open>case x' of (i, vm, h) \<Rightarrow> i < length to_remove'a\<close> and
      \<open>case xa of
@@ -460,25 +457,45 @@ qed
 
 
 definition atms_hash_insert_pre :: \<open>nat \<Rightarrow> nat list \<times> bool list \<Rightarrow> bool\<close> where
-\<open>atms_hash_insert_pre i = (\<lambda>(_, xs). i < length xs)\<close>
+\<open>atms_hash_insert_pre i = (\<lambda>(n, xs). i < length xs \<and> (\<not>xs!i \<longrightarrow> length n < uint32_max))\<close>
 
-definition atoms_hash_insert :: \<open>nat \<Rightarrow> nat list \<times> bool list \<Rightarrow> nat list \<times> bool list\<close> where
+definition atoms_hash_insert :: \<open>nat \<Rightarrow> nat list \<times> bool list \<Rightarrow> (nat list \<times> bool list)\<close> where
 \<open>atoms_hash_insert i  = (\<lambda>(n, xs). if xs ! i then (n, xs) else (n @ [i], xs[i := True]))\<close>
 
+lemma bounded_included_le:
+   assumes bounded: \<open>isasat_input_bounded \<A>\<close> and \<open>distinct n\<close> and \<open>set n \<subseteq> set_mset \<A> \<close> shows \<open>length n < uint32_max\<close>
+proof -
+  have lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n \<A> (Pos `# mset n)\<close> and
+    dist: \<open>distinct n\<close>
+    using assms
+    by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_alt_def distinct_atoms_rel_alt_def inj_on_def atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n)
+   have dist: \<open>distinct_mset (Pos `# mset n)\<close>
+    by (subst distinct_image_mset_inj)
+      (use dist in \<open>auto simp: inj_on_def\<close>)
+  have tauto: \<open>\<not> tautology (poss (mset n))\<close>
+    by (auto simp: tautology_decomp)
+
+  show ?thesis
+    using simple_clss_size_upper_div2[OF bounded lits dist tauto]
+    by (auto simp: uint32_max_def)
+qed
+
+
 lemma atms_hash_insert_pre:
-  assumes \<open>L \<in># \<A>\<close> and \<open>(x, x') \<in> distinct_atoms_rel \<A>\<close>
+  assumes \<open>L \<in># \<A>\<close> and \<open>(x, x') \<in> distinct_atoms_rel \<A>\<close> and \<open>isasat_input_bounded \<A>\<close>
   shows \<open>atms_hash_insert_pre L x\<close>
-  using assms
+  using assms bounded_included_le[OF assms(3), of \<open>L # fst x\<close>]
   by (auto simp:  atoms_hash_insert_def atoms_hash_rel_def distinct_atoms_rel_alt_def
      atms_hash_insert_pre_def)
+
 
 lemma atoms_hash_del_op_set_insert:
   \<open>(uncurry (RETURN oo atoms_hash_insert),
     uncurry (RETURN oo insert)) \<in>
-     [\<lambda>(i, xs). i \<in># \<A>\<^sub>i\<^sub>n]\<^sub>f
+     [\<lambda>(i, xs). i \<in># \<A>\<^sub>i\<^sub>n \<and> isasat_input_bounded \<A>]\<^sub>f
      nat_rel \<times>\<^sub>r distinct_atoms_rel \<A>\<^sub>i\<^sub>n \<rightarrow> \<langle>distinct_atoms_rel \<A>\<^sub>i\<^sub>n\<rangle>nres_rel\<close>
   by (intro frefI nres_relI)
-    (auto simp: atoms_hash_insert_def atoms_hash_rel_def distinct_atoms_rel_alt_def)
+    (auto simp: atoms_hash_insert_def atoms_hash_rel_def distinct_atoms_rel_alt_def intro!: ASSERT_leI)
 
 
 definition (in -) atoms_hash_set_member where
@@ -497,7 +514,7 @@ definition isa_vmtf_mark_to_rescore_pre where
 
 lemma isa_vmtf_mark_to_rescore_vmtf_mark_to_rescore:
   \<open>(uncurry (RETURN oo isa_vmtf_mark_to_rescore), uncurry (RETURN oo vmtf_mark_to_rescore)) \<in>
-      [\<lambda>(L, vm). L\<in># \<A>\<^sub>i\<^sub>n]\<^sub>f Id \<times>\<^sub>f (Id \<times>\<^sub>r distinct_atoms_rel \<A>\<^sub>i\<^sub>n) \<rightarrow>
+      [\<lambda>(L, vm). L\<in># \<A>\<^sub>i\<^sub>n \<and> isasat_input_bounded \<A>\<^sub>i\<^sub>n]\<^sub>f Id \<times>\<^sub>f (Id \<times>\<^sub>r distinct_atoms_rel \<A>\<^sub>i\<^sub>n) \<rightarrow>
       \<langle>Id \<times>\<^sub>r distinct_atoms_rel \<A>\<^sub>i\<^sub>n\<rangle>nres_rel\<close>
   unfolding isa_vmtf_mark_to_rescore_def vmtf_mark_to_rescore_def
   by (intro frefI nres_relI)
@@ -1016,8 +1033,8 @@ proof -
 qed
 
 lemma isa_vmtf_rescore_body:
-  \<open>(uncurry3 (isa_vmtf_rescore_body), uncurry3 (vmtf_rescore_body \<A>)) \<in>
-     (Id \<times>\<^sub>f trail_pol \<A> \<times>\<^sub>f (Id \<times>\<^sub>f distinct_atoms_rel \<A>) \<times>\<^sub>f Id) \<rightarrow>\<^sub>f \<langle>Id \<times>\<^sub>r (Id \<times>\<^sub>f distinct_atoms_rel \<A>) \<times>\<^sub>r Id\<rangle> nres_rel\<close>
+  \<open>(uncurry3 (isa_vmtf_rescore_body), uncurry3 (vmtf_rescore_body \<A>)) \<in> [\<lambda>_. isasat_input_bounded \<A>]\<^sub>f
+     (Id \<times>\<^sub>f trail_pol \<A> \<times>\<^sub>f (Id \<times>\<^sub>f distinct_atoms_rel \<A>) \<times>\<^sub>f Id) \<rightarrow> \<langle>Id \<times>\<^sub>r (Id \<times>\<^sub>f distinct_atoms_rel \<A>) \<times>\<^sub>r Id\<rangle> nres_rel\<close>
 proof -
   show ?thesis
     unfolding isa_vmtf_rescore_body_def vmtf_rescore_body_def uncurry_def
@@ -1039,8 +1056,8 @@ proof -
 qed
 
 lemma isa_vmtf_rescore:
-  \<open>(uncurry3 (isa_vmtf_rescore), uncurry3 (vmtf_rescore \<A>)) \<in>
-     (Id \<times>\<^sub>f trail_pol \<A> \<times>\<^sub>f (Id \<times>\<^sub>f distinct_atoms_rel \<A>) \<times>\<^sub>f Id) \<rightarrow>\<^sub>f \<langle>(Id \<times>\<^sub>f distinct_atoms_rel \<A>) \<times>\<^sub>f Id\<rangle> nres_rel\<close>
+  \<open>(uncurry3 (isa_vmtf_rescore), uncurry3 (vmtf_rescore \<A>)) \<in> [\<lambda>_. isasat_input_bounded \<A>]\<^sub>f
+     (Id \<times>\<^sub>f trail_pol \<A> \<times>\<^sub>f (Id \<times>\<^sub>f distinct_atoms_rel \<A>) \<times>\<^sub>f Id) \<rightarrow> \<langle>(Id \<times>\<^sub>f distinct_atoms_rel \<A>) \<times>\<^sub>f Id\<rangle> nres_rel\<close>
 proof -
   show ?thesis
     unfolding isa_vmtf_rescore_def vmtf_rescore_def uncurry_def
@@ -1247,8 +1264,8 @@ definition isa_vmtf_mark_to_rescore_clause where
 thm isa_vmtf_mark_to_rescore_vmtf_mark_to_rescore
 
 lemma isa_vmtf_mark_to_rescore_clause_vmtf_mark_to_rescore_clause:
-  \<open>(uncurry2 isa_vmtf_mark_to_rescore_clause, uncurry2 (vmtf_mark_to_rescore_clause \<A>)) \<in>
-    Id \<times>\<^sub>f nat_rel \<times>\<^sub>f (Id \<times>\<^sub>r distinct_atoms_rel \<A>) \<rightarrow>\<^sub>f \<langle>Id \<times>\<^sub>r distinct_atoms_rel \<A>\<rangle>nres_rel\<close>
+  \<open>(uncurry2 isa_vmtf_mark_to_rescore_clause, uncurry2 (vmtf_mark_to_rescore_clause \<A>)) \<in> [\<lambda>_. isasat_input_bounded \<A>]\<^sub>f
+    Id \<times>\<^sub>f nat_rel \<times>\<^sub>f (Id \<times>\<^sub>r distinct_atoms_rel \<A>) \<rightarrow> \<langle>Id \<times>\<^sub>r distinct_atoms_rel \<A>\<rangle>nres_rel\<close>
   unfolding isa_vmtf_mark_to_rescore_clause_def vmtf_mark_to_rescore_clause_def
     uncurry_def
   apply (intro frefI nres_relI)
@@ -1301,11 +1318,12 @@ lemma vmtf_mark_to_rescore_clause_spec:
 definition vmtf_mark_to_rescore_also_reasons
   :: \<open>nat multiset \<Rightarrow> (nat, nat) ann_lits \<Rightarrow> arena \<Rightarrow> nat literal list \<Rightarrow> _ \<Rightarrow>_\<close> where
 \<open>vmtf_mark_to_rescore_also_reasons \<A> M arena outl vm = do {
+    ASSERT(length outl \<le> uint32_max);
     nfoldli
       ([0..<length outl])
       (\<lambda>_. True)
       (\<lambda>i vm. do {
-        ASSERT(i < length outl);
+        ASSERT(i < length outl); ASSERT(length outl \<le> uint32_max);
         ASSERT(-outl ! i \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>);
         C \<leftarrow> get_the_propagation_reason M (-(outl ! i));
         case C of
@@ -1318,11 +1336,12 @@ definition vmtf_mark_to_rescore_also_reasons
 definition isa_vmtf_mark_to_rescore_also_reasons
   :: \<open>trail_pol \<Rightarrow> arena \<Rightarrow> nat literal list \<Rightarrow> _ \<Rightarrow>_\<close> where
 \<open>isa_vmtf_mark_to_rescore_also_reasons M arena outl vm = do {
+    ASSERT(length outl \<le> uint32_max);
     nfoldli
       ([0..<length outl])
       (\<lambda>_. True)
       (\<lambda>i vm. do {
-        ASSERT(i < length outl);
+        ASSERT(i < length outl); ASSERT(length outl\<le> uint32_max);
         C \<leftarrow> get_the_propagation_reason_pol M (-(outl ! i));
         case C of
           None \<Rightarrow> do {
@@ -1336,13 +1355,15 @@ definition isa_vmtf_mark_to_rescore_also_reasons
 
 lemma isa_vmtf_mark_to_rescore_also_reasons_vmtf_mark_to_rescore_also_reasons:
   \<open>(uncurry3 isa_vmtf_mark_to_rescore_also_reasons, uncurry3 (vmtf_mark_to_rescore_also_reasons \<A>)) \<in>
-    trail_pol \<A> \<times>\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f (Id \<times>\<^sub>r distinct_atoms_rel \<A>) \<rightarrow>\<^sub>f \<langle>Id \<times>\<^sub>r distinct_atoms_rel \<A>\<rangle>nres_rel\<close>
+    [\<lambda>_. isasat_input_bounded \<A>]\<^sub>f
+    trail_pol \<A> \<times>\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f (Id \<times>\<^sub>r distinct_atoms_rel \<A>) \<rightarrow> \<langle>Id \<times>\<^sub>r distinct_atoms_rel \<A>\<rangle>nres_rel\<close>
   unfolding isa_vmtf_mark_to_rescore_also_reasons_def vmtf_mark_to_rescore_also_reasons_def
     uncurry_def
   apply (intro frefI nres_relI)
   apply (refine_rcg nfoldli_refine[where R = \<open>Id \<times>\<^sub>r distinct_atoms_rel \<A>\<close> and S = Id]
     get_the_propagation_reason_pol[of \<A>, THEN fref_to_Down_curry]
      isa_vmtf_mark_to_rescore_clause_vmtf_mark_to_rescore_clause[of \<A>, THEN fref_to_Down_curry2])
+  subgoal by auto
   subgoal by auto
   subgoal by auto
   subgoal by auto
@@ -1366,7 +1387,7 @@ lemma vmtf_mark_to_rescore':
   by (cases vm) (auto intro: vmtf_mark_to_rescore)
 
 lemma vmtf_mark_to_rescore_also_reasons_spec:
-  \<open>vm \<in> vmtf \<A> M \<Longrightarrow> valid_arena arena N vdom \<Longrightarrow>
+  \<open>vm \<in> vmtf \<A> M \<Longrightarrow> valid_arena arena N vdom \<Longrightarrow> length outl \<le> uint32_max \<Longrightarrow>
    (\<forall>L \<in> set outl. L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>) \<Longrightarrow>
    (\<forall>L \<in> set outl. \<forall>C. (Propagated (-L) C \<in> set M \<longrightarrow> C \<noteq> 0 \<longrightarrow> (C \<in># dom_m N \<and>
        (\<forall>C \<in> set [C..<C + arena_length arena C]. arena_lit arena C \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>)))) \<Longrightarrow>

@@ -1357,9 +1357,13 @@ proof -
 
       have outl_Lall: \<open>\<forall>L\<in>set (outl[0 := - lit_of (hd M)]). L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st S)\<close>
         using \<L>\<^sub>i\<^sub>n_S unfolding set_outl_D
-        by (auto simp: S literals_are_in_\<L>\<^sub>i\<^sub>n_def all_lits_of_m_add_mset
+        by (auto simp: S all_lits_of_m_add_mset
             all_atms_def literals_are_in_\<L>\<^sub>i\<^sub>n_def literals_are_in_\<L>\<^sub>i\<^sub>n_in_mset_\<L>\<^sub>a\<^sub>l\<^sub>l
             dest: multi_member_split)
+      have \<open>distinct (outl[0 := - lit_of (hd M)])\<close> using dist_D by(auto simp: S mset_outl_D[symmetric])
+      then have length_outl: \<open>length outl \<le> uint32_max\<close>
+        using bounded tauto_confl \<L>\<^sub>i\<^sub>n_S simple_clss_size_upper_div2[OF bounded, of \<open>mset (outl[0 := - lit_of (hd M)])\<close>]
+        by (auto simp: out_learned_def S  mset_outl_D[symmetric] uint32_max_def simp flip: all_atms_def)
       have lit_annots: \<open>\<forall>L\<in>set (outl[0 := - lit_of (hd M)]).
         \<forall>C. Propagated (- L) C \<in> set M \<longrightarrow>
            C \<noteq> 0 \<longrightarrow>
@@ -1385,10 +1389,11 @@ proof -
             rule isa_vmtf_mark_to_rescore_also_reasons_vmtf_mark_to_rescore_also_reasons[of \<open>all_atms_st S\<close>,
               THEN fref_to_Down_curry3,
               of _ _ _ vm M arena \<open>outl[0 := - lit_of (hd M)]\<close> vm0])
-        subgoal by fast
+        subgoal using bounded S by (auto simp: all_atms_def)
         subgoal using vm arena M'_M vm_vm0 by (auto simp: isa_vmtf_def)[]
         apply (rule order.trans, rule ref_two_step')
-         apply (rule vmtf_mark_to_rescore_also_reasons_spec[OF vm0 arena outl_Lall lit_annots])
+         apply (rule vmtf_mark_to_rescore_also_reasons_spec[OF vm0 arena _ outl_Lall lit_annots])
+        subgoal using length_outl by auto
         by (auto simp: isa_vmtf_def conc_fun_RES S all_atms_def)
     qed
 
@@ -1779,7 +1784,7 @@ proof -
 	       phase_saving (all_atms_st U') \<phi>})\<close>
       apply (rule order.trans)
        apply (rule isa_vmtf_rescore[of \<open>all_atms_st U'\<close>, THEN fref_to_Down_curry3, of _ _ _ _ C M1 vm0 \<phi>])
-      subgoal by fast
+      subgoal using bounded by auto
       subgoal using vm M1'_M1 by auto
       apply (rule order.trans)
        apply (rule ref_two_step')

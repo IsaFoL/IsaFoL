@@ -404,6 +404,6 @@ sepref_register unit_propagation_inner_loop_body_wl_heur
 
 declare unit_propagation_inner_loop_body_wl_heur_code.refine[sepref_fr_rules]
   unit_propagation_inner_loop_body_wl_fast_heur_code.refine[sepref_fr_rules]
-
-
+declare [[show_types]]
+thm unit_propagation_inner_loop_body_wl_fast_heur_code_def
 end

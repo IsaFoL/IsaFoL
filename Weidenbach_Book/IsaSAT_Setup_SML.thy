@@ -1,6 +1,6 @@
 theory IsaSAT_Setup_SML
   imports IsaSAT_Setup IsaSAT_Watch_List_SML IsaSAT_Lookup_Conflict_SML
-    IsaSAT_Clauses_SML IsaSAT_Arena_SML LBD_SML
+    IsaSAT_Clauses_SML IsaSAT_Arena_SML LBD_SML Watched_Literals.IICF_Array_List32
 begin
 (*TODO Move*)
 lemma [code]: "uint32_max_uint32 = 4294967295"
@@ -223,7 +223,7 @@ lemma restart_info_restart_done_hnr[sepref_fr_rules]:
   by sepref_to_hoare (sep_auto simp: restart_info_restart_done_def
     uint64_nat_rel_def br_def)
 
-type_synonym vmtf_remove_assn = \<open>vmtf_assn \<times> (uint32 array_list \<times> bool array)\<close>
+type_synonym vmtf_remove_assn = \<open>vmtf_assn \<times> (uint32 array_list32 \<times> bool array)\<close>
 
 abbreviation (in -)vmtf_node_assn where
 \<open>vmtf_node_assn \<equiv> pure vmtf_node_rel\<close>
@@ -236,7 +236,7 @@ abbreviation atoms_hash_assn :: \<open>bool list \<Rightarrow> bool array \<Righ
   \<open>atoms_hash_assn \<equiv> array_assn bool_assn\<close>
 
 abbreviation distinct_atoms_assn where
-  \<open>distinct_atoms_assn \<equiv> arl_assn uint32_nat_assn *a atoms_hash_assn\<close>
+  \<open>distinct_atoms_assn \<equiv> arl32_assn uint32_nat_assn *a atoms_hash_assn\<close>
 
 abbreviation vmtf_remove_conc
   :: \<open>isa_vmtf_remove_int \<Rightarrow> vmtf_remove_assn \<Rightarrow> assn\<close>

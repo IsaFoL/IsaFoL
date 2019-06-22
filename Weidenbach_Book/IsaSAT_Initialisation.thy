@@ -107,11 +107,6 @@ type_synonym (in -) twl_st_wl_heur_init_full =
     (nat \<times> nat literal \<times> bool) list list \<times> isa_vmtf_remove_int_option_fst_As \<times> bool list \<times>
     nat \<times> conflict_min_cach_l \<times> lbd \<times> vdom \<times> bool\<close>
 
-type_synonym (in -)vmtf_assn_option_fst_As =
-  \<open>(uint32, uint64) vmtf_node array \<times> uint64 \<times> uint32 option \<times> uint32 option \<times> uint32 option\<close>
-
-type_synonym (in -)vmtf_remove_assn_option_fst_As =
-  \<open>vmtf_assn_option_fst_As \<times> (uint32 array \<times> nat) \<times> bool array\<close>
 
 text \<open>The initialisation relation is stricter in the sense that it already includes the relation
 of atom inclusion.

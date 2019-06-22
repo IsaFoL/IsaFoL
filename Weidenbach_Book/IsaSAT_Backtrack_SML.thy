@@ -113,6 +113,9 @@ sepref_definition propagate_bt_wl_D_code
   by sepref \<comment> \<open>slow\<close>
 
 sepref_register fm_add_new_fast
+text \<open>Find a less hack-like solution\<close>
+setup \<open>map_theory_claset (fn ctxt => ctxt delSWrapper "split_all_tac")\<close>
+
 
 sepref_definition propagate_bt_wl_D_fast_code
   is \<open>uncurry2 propagate_bt_wl_D_heur\<close>
@@ -171,33 +174,6 @@ sepref_definition extract_shorter_conflict_list_heur_st_code
 
 declare extract_shorter_conflict_list_heur_st_code.refine[sepref_fr_rules]
 
-
-definition upt_uint64 where
-  \<open>upt_uint64 a b = map uint64_of_nat [nat_of_uint64 a..<nat_of_uint64 b]\<close>
-
-lemma
-  \<open>(uncurry (return oo upt_uint64), uncurry (RETURN oo upt))\<in>
-     [\<lambda>(a, b). a \<le> uint64_max \<and> b \<le> uint64_max]\<^sub>a
-     uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow>
-     list_assn uint64_nat_assn\<close>
-proof -
-  have [simp]: \<open>(\<lambda>a c. \<up> (a = nat_of_uint64 c)) = pure uint64_nat_rel\<close>
-    by (auto intro!: ext simp: uint64_nat_rel_def br_def pure_def)
-  have [simp]: \<open>nat_of_uint64 ai \<le> uint64_max \<Longrightarrow>
-       nat_of_uint64 bi \<le> uint64_max \<Longrightarrow>
-       map (nat_of_uint64 \<circ> uint64_of_nat) [nat_of_uint64 ai..<nat_of_uint64 bi] =
-       map id [nat_of_uint64 ai..<nat_of_uint64 bi]\<close> for ai bi
-    by (rule map_cong)
-      (auto simp: nat_of_uint64_uint64_of_nat_id)
-  show ?thesis
-    apply sepref_to_hoare
-    apply (sep_auto simp: upt_uint64_def uint64_nat_rel_def br_def)
-    apply (sep_auto simp: list_assn_pure_conv)
-    apply (subst eq_commute)
-    by (auto simp: pure_def list_rel_def list_all2_op_eq_map_right_iff)
-qed
-
-text \<open>TODO we need a \<^term>\<open>imp_for_uint64\<close>\<close>
 sepref_definition extract_shorter_conflict_list_heur_st_fast
   is \<open>extract_shorter_conflict_list_heur_st\<close>
   :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> uint64_max]\<^sub>a

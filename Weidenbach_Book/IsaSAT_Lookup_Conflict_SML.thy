@@ -19,6 +19,7 @@ abbreviation (in -) out_learned_assn :: \<open>out_learned \<Rightarrow> out_lea
 
 abbreviation (in -) minimize_status_assn where
   \<open>minimize_status_assn \<equiv> (id_assn :: minimize_status \<Rightarrow> _)\<close>
+
 abbreviation (in -) lookup_clause_rel_assn
   :: \<open>lookup_clause_rel \<Rightarrow> lookup_clause_assn \<Rightarrow> assn\<close>
 where
