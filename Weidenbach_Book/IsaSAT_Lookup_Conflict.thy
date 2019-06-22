@@ -494,6 +494,7 @@ where
            ASSERT(i < length_uint32_nat D);
            ASSERT(Suc i \<le> uint_max);
            let lbd = lbd_write lbd (get_level M (D!i));
+           ASSERT(\<not>is_in_lookup_conflict zs (D!i) \<longrightarrow> length outl < uint32_max);
            let outl = outlearned_add M (D!i) zs outl;
            let clvls = clvls_add M (D!i) zs clvls;
            let zs = add_to_lookup_conflict (D!i) zs;
@@ -559,6 +560,7 @@ where
 	   ASSERT(get_level_pol M (arena_lit N j) \<le> Suc (uint32_max div 2));
            let lbd = lbd_write lbd (get_level_pol M (arena_lit N j));
            ASSERT(atm_of (arena_lit N j) < length (snd zs));
+           ASSERT(\<not>is_in_lookup_conflict zs (arena_lit N j) \<longrightarrow> length outl < uint32_max);
            let outl = isa_outlearned_add M (arena_lit N j) zs outl;
            let clvls = isa_clvls_add M (arena_lit N j) zs clvls;
            let zs = add_to_lookup_conflict (arena_lit N j) zs;
@@ -621,6 +623,11 @@ proof -
       by (auto simp: option_lookup_clause_rel_def lookup_clause_rel_def
         in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff arena_lifting ac_simps get_level_get_level_pol[OF M'M]
         isa_outlearned_add_outlearned_add[OF M'M] isa_clvls_add_clvls_add[OF M'M])
+    subgoal for x x' x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f x1g x2g'
+      using valid i literals_are_in_\<L>\<^sub>i\<^sub>n_mm_in_\<L>\<^sub>a\<^sub>l\<^sub>l[of \<A> N i x1] lits
+      by (auto simp: option_lookup_clause_rel_def lookup_clause_rel_def
+        in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff arena_lifting ac_simps get_level_get_level_pol[OF M'M]
+        isa_outlearned_add_outlearned_add[OF M'M] isa_clvls_add_clvls_add[OF M'M])
     subgoal using bxs by (auto simp: option_lookup_clause_rel_def lookup_clause_rel_def
       in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff get_level_get_level_pol[OF M'M])
     done
@@ -652,7 +659,7 @@ lemma lookup_conflict_merge'_spec:
     dist: \<open>distinct D\<close> and
     lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n \<A> (mset D)\<close> and
     tauto: \<open>\<not>tautology (mset D)\<close> and
-    \<open>literals_are_in_\<L>\<^sub>i\<^sub>n \<A> C\<close> and
+    lits_C: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n \<A> C\<close> and
     \<open>clvls = card_max_lvl M C\<close> and
     CD: \<open>\<And>L. L \<in> set (drop init D) \<Longrightarrow> -L \<notin># C\<close> and
     \<open>Suc init \<le> uint_max\<close> and
@@ -720,6 +727,13 @@ proof -
   have [simp]: \<open>remdups_mset (mset (drop init D) + C) = mset (drop init D) \<union># C\<close>
     apply (rule distinct_mset_rempdups_union_mset[symmetric])
     using dist_C dist by auto
+  have \<open>literals_are_in_\<L>\<^sub>i\<^sub>n \<A> (mset (take (a - init) (drop init D)) \<union># C)\<close> for a
+   using lits_C lits by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_def all_lits_of_m_def
+     dest!: in_set_takeD in_set_dropD)
+  then have size_outl_le: \<open>size (mset (take (a - init) (drop init D)) \<union># C) \<le> Suc uint32_max div 2\<close> if \<open>a \<ge> init\<close> for a
+    using simple_clss_size_upper_div2[OF bounded, of \<open>mset (take (a - init) (drop init D)) \<union># C\<close>]
+       tauto_C'[OF that] \<open>distinct_mset C\<close> dist_D
+    by (auto simp: uint32_max_def)
 
   have
     if_True_I: \<open>I x2 (Suc a, clvls_add M (D ! a) baa aa,
@@ -946,8 +960,23 @@ proof -
   have uL_C_if_L_C: \<open>-L \<notin># C\<close> if \<open>L \<in># C\<close> for L
     using tauto_C that unfolding tautology_decomp' by blast
 
+  have outl_le: \<open>length bc < uint_max\<close>
+    if
+      \<open>I x2 s\<close> and
+      \<open>I' s\<close> and
+      \<open>s = (a, ba)\<close> and
+      \<open>ba = (aa, baa)\<close> and
+      \<open>baa = (ab, bb)\<close> and
+      \<open>bb = (ac, bc)\<close> for x1 x2 s a ba aa baa ab bb ac bc
+  proof -
+    have \<open>mset (tl bc) \<subseteq># (remdups_mset (mset (take (a -init) (drop init D)) + C))\<close> and \<open>init \<le> a\<close>
+      using that by (auto simp: I_def I'_def lookup_conflict_merge'_step_def Let_def out_learned_def)
+    from size_mset_mono[OF this(1)] this(2) show ?thesis using size_outl_le[of a] dist_C dist_D
+      by (auto simp: uint32_max_def distinct_mset_rempdups_union_mset)
+  qed
   show confl: \<open>lookup_conflict_merge init M D (b, n, xs) clvls lbd outl
     \<le> \<Down> ?Ref (merge_conflict_m_g init M D (Some C))\<close>
+    supply [[goals_limit=1]]
     unfolding resolve_lookup_conflict_aa_def lookup_conflict_merge_def
     distinct_mset_rempdups_union_mset[OF dist_D dist_CD] I_def[symmetric] conc_fun_SPEC
     lbd_upd_def[symmetric] Let_def length_uint32_nat_def merge_conflict_m_g_def
@@ -962,6 +991,7 @@ proof -
       by (auto simp add: uint_max_def lookup_conflict_merge'_step_def option_lookup_clause_rel_def)
     subgoal by auto
     subgoal unfolding I_def by fast
+    subgoal for x1 x2 s a ba aa baa ab bb ac bc by (rule outl_le)
     subgoal by (rule if_True_I)
     subgoal by (rule if_true_I')
     subgoal for b' n' s j zs
@@ -3807,6 +3837,7 @@ definition lookup_merge_eq2
     ASSERT(get_level M L' \<le> Suc (uint32_max div 2));
     let lbd = lbd_write lbd (get_level M L');
     ASSERT(atm_of L' < length (snd zs));
+    ASSERT(length outl < uint32_max);
     let outl = outlearned_add M L' zs outl;
     ASSERT(clvls < uint32_max);
     ASSERT(fst zs < uint32_max);
@@ -3832,7 +3863,7 @@ lemma lookup_merge_eq2_spec:
     lits_tr: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail \<A> M\<close> and
     n_d: \<open>no_dup M\<close> and
     tauto: \<open>\<not>tautology (mset D)\<close> and
-    \<open>literals_are_in_\<L>\<^sub>i\<^sub>n \<A> C\<close> and
+    lits_C: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n \<A> C\<close> and
     no_tauto: \<open>\<And>K. K \<in> set (remove1 L D) \<Longrightarrow> - K \<notin># C\<close>
     \<open>clvls = card_max_lvl M C\<close> and
     out: \<open>out_learned M (Some C) outl\<close> and
@@ -3877,7 +3908,10 @@ proof -
   have \<open>distinct_mset C\<close>
     using mset_as_position_distinct_mset[of _ C] o
     unfolding option_lookup_clause_rel_def lookup_clause_rel_def by auto
-
+  have \<open>mset (tl outl) \<subseteq># C\<close>
+     using out by (auto simp: out_learned_def)
+  from size_mset_mono[OF this] have outl_le: \<open>length outl < uint32_max\<close>
+    using simple_clss_size_upper_div2[OF bounded lits_C] dist_C tauto_C by (auto simp: uint32_max_def)
   define L' where \<open>L' \<equiv> if D ! 0 = L then D ! 1 else D ! 0\<close>
   have L'_all: \<open>L' \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<close>
     using lits le2 by (cases D; cases \<open>tl D\<close>)
@@ -3915,6 +3949,7 @@ proof -
     subgoal by (rule le2)
     subgoal using literals_are_in_\<L>\<^sub>i\<^sub>n_trail_get_level_uint_max[OF bounded lits_tr n_d] by blast
     subgoal using atms_le_xs L' by simp
+    subgoal using outl_le .
     subgoal using clvls_uint_max by (auto simp: uint_max_def)
     subgoal using Suc_N_uint_max by auto
     subgoal
@@ -3935,6 +3970,7 @@ definition isasat_lookup_merge_eq2
     ASSERT(get_level_pol M L' \<le> Suc (uint32_max div 2));
     let lbd = lbd_write lbd (get_level_pol M L');
     ASSERT(atm_of L' < length (snd zs));
+    ASSERT(length outl < uint32_max);
     let outl = isa_outlearned_add M L' zs outl;
     ASSERT(clvls < uint32_max);
     ASSERT(fst zs < uint32_max);

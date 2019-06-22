@@ -4,7 +4,7 @@ begin
 
 lemma isa_empty_conflict_and_extract_clause_heur_alt_def:
     \<open>isa_empty_conflict_and_extract_clause_heur M D outl = do {
-     let C = replicate (length outl) (outl!0);
+     let C = replicate (nat_of_uint32_conv (length outl)) (outl!0);
      (D, C, _) \<leftarrow> WHILE\<^sub>T
          (\<lambda>(D, C, i). i < length_uint32_nat outl)
          (\<lambda>(D, C, i). do {
@@ -37,7 +37,8 @@ sepref_definition empty_conflict_and_extract_clause_heur_code
        (bool_assn *a uint32_nat_assn *a array_assn option_bool_assn) *a clause_ll_assn *a uint32_nat_assn\<close>
   supply [[goals_limit=1]] image_image[simp]
   unfolding isa_empty_conflict_and_extract_clause_heur_alt_def
-    array_fold_custom_replicate
+    array_fold_custom_replicate length_uint32_nat_def zero_uint32_nat_def[symmetric]
+    one_uint32_nat_def[symmetric]
   by sepref
 
 declare empty_conflict_and_extract_clause_heur_code.refine[sepref_fr_rules]
@@ -48,8 +49,9 @@ sepref_definition empty_conflict_and_extract_clause_heur_fast_code
       trail_pol_fast_assn\<^sup>k *\<^sub>a lookup_clause_rel_assn\<^sup>d *\<^sub>a out_learned_assn\<^sup>k \<rightarrow>
        (bool_assn *a uint32_nat_assn *a array_assn option_bool_assn) *a clause_ll_assn *a uint32_nat_assn\<close>
   supply [[goals_limit=1]] image_image[simp]
-  unfolding isa_empty_conflict_and_extract_clause_heur_alt_def PR_CONST_def
-    array_fold_custom_replicate
+  unfolding isa_empty_conflict_and_extract_clause_heur_alt_def
+    array_fold_custom_replicate length_uint32_nat_def zero_uint32_nat_def[symmetric]
+    one_uint32_nat_def[symmetric]
   by sepref
 
 declare empty_conflict_and_extract_clause_heur_fast_code.refine[sepref_fr_rules]
@@ -169,7 +171,7 @@ sepref_definition extract_shorter_conflict_list_heur_st_code
   supply [[goals_limit=1]] empty_conflict_and_extract_clause_pre_def[simp]
   unfolding extract_shorter_conflict_list_heur_st_def PR_CONST_def isasat_unbounded_assn_def
   unfolding delete_index_and_swap_update_def[symmetric] append_update_def[symmetric]
-    take1_def[symmetric]
+    one_uint32_nat_def[symmetric] zero_uint32_nat_def[symmetric]
   by sepref
 
 declare extract_shorter_conflict_list_heur_st_code.refine[sepref_fr_rules]
@@ -181,7 +183,7 @@ sepref_definition extract_shorter_conflict_list_heur_st_fast
   supply [[goals_limit=1]] empty_conflict_and_extract_clause_pre_def[simp]
   unfolding extract_shorter_conflict_list_heur_st_def PR_CONST_def isasat_bounded_assn_def
   unfolding delete_index_and_swap_update_def[symmetric] append_update_def[symmetric]
-    take1_def[symmetric]
+    one_uint32_nat_def[symmetric] zero_uint32_nat_def[symmetric]
   by sepref
 
 declare extract_shorter_conflict_list_heur_st_fast.refine[sepref_fr_rules]

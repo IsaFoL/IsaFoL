@@ -11,10 +11,10 @@ sepref_register set_lookup_conflict_aa
 abbreviation option_bool_assn where
   \<open>option_bool_assn \<equiv>  pure option_bool_rel\<close>
 
-type_synonym (in -) out_learned_assn = \<open>uint32 array_list\<close>
+type_synonym (in -) out_learned_assn = \<open>uint32 array_list32\<close>
 
 abbreviation (in -) out_learned_assn :: \<open>out_learned \<Rightarrow> out_learned_assn \<Rightarrow> assn\<close> where
-  \<open>out_learned_assn \<equiv> arl_assn unat_lit_assn\<close>
+  \<open>out_learned_assn \<equiv> arl32_assn unat_lit_assn\<close>
 
 
 abbreviation (in -) minimize_status_assn where
@@ -683,12 +683,39 @@ sepref_definition lit_redundant_rec_wl_lookup_fast_code
   by sepref (* slow *)
 
 declare lit_redundant_rec_wl_lookup_fast_code.refine[sepref_fr_rules]
+(*TODO Move taken from trail*)
 
+  definition arl32_butlast_nonresizing :: \<open>'a array_list32 \<Rightarrow> 'a array_list32\<close> where
+  \<open>arl32_butlast_nonresizing = (\<lambda>(xs, a). (xs, a - 1))\<close>
+
+lemma butlast32_nonresizing_hnr[sepref_fr_rules]:
+  \<open>(return o arl32_butlast_nonresizing, RETURN o butlast_nonresizing) \<in>
+    [\<lambda>xs. xs \<noteq> []]\<^sub>a (arl32_assn R)\<^sup>d \<rightarrow> arl32_assn R\<close>
+proof -
+  have [simp]: \<open>nat_of_uint32 (b - 1) = nat_of_uint32 b - 1\<close>
+    if
+      \<open>x \<noteq> []\<close> and
+      \<open>(take (nat_of_uint32 b) l', x) \<in> \<langle>the_pure R\<rangle>list_rel\<close>
+    for x :: \<open>'b list\<close> and a :: \<open>'a array\<close> and b :: \<open>uint32\<close> and l' :: \<open>'a list\<close> and aa :: \<open>Heap.heap\<close> and ba :: \<open>nat set\<close>
+  by (metis less_one list_rel_pres_neq_nil nat_of_uint32_012(3) nat_of_uint32_less_iff
+    nat_of_uint32_notle_minus take_eq_Nil that)
+
+  show ?thesis
+    by sepref_to_hoare
+     (sep_auto simp: arl32_butlast_nonresizing_def arl32_assn_def hr_comp_def
+       is_array_list32_def  butlast_take list_rel_imp_same_length nat_of_uint32_ge_minus
+      dest:
+        list_rel_butlast[of \<open>take _ _\<close>]
+      simp flip: nat_of_uint32_le_iff)
+qed
+(*END Move *)
+
+find_theorems butlast arl32_assn
 sepref_definition delete_index_and_swap_code
   is \<open>uncurry (RETURN oo delete_index_and_swap)\<close>
   :: \<open>[\<lambda>(xs, i). i < length xs]\<^sub>a
-      (arl_assn unat_lit_assn)\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> arl_assn unat_lit_assn\<close>
-  unfolding delete_index_and_swap.simps
+      (arl32_assn unat_lit_assn)\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> arl32_assn unat_lit_assn\<close>
+  unfolding delete_index_and_swap.simps butlast_nonresizing_def[symmetric]
   by sepref
 
 declare delete_index_and_swap_code.refine[sepref_fr_rules]
@@ -748,7 +775,7 @@ sepref_definition conflict_remove1_code
 
 declare conflict_remove1_code.refine[sepref_fr_rules]
 
-
+find_theorems delete_index_and_swap arl_assn
 sepref_definition minimize_and_extract_highest_lookup_conflict_code
   is \<open>uncurry5 (isa_minimize_and_extract_highest_lookup_conflict)\<close>
   :: \<open>[\<lambda>(((((M, NU), D), cach), lbd), outl). True]\<^sub>a
@@ -762,7 +789,7 @@ sepref_definition minimize_and_extract_highest_lookup_conflict_code
     array_set_hnr_u[sepref_fr_rules]
   unfolding isa_minimize_and_extract_highest_lookup_conflict_def zero_uint32_nat_def[symmetric]
     one_uint32_nat_def[symmetric] PR_CONST_def
-    length_uint32_nat_def[symmetric] minimize_and_extract_highest_lookup_conflict_inv_def
+    minimize_and_extract_highest_lookup_conflict_inv_def
   by sepref
 
 declare minimize_and_extract_highest_lookup_conflict_code.refine[sepref_fr_rules]
@@ -780,7 +807,7 @@ sepref_definition minimize_and_extract_highest_lookup_conflict_fast_code
     array_set_hnr_u[sepref_fr_rules]
   unfolding isa_minimize_and_extract_highest_lookup_conflict_def zero_uint32_nat_def[symmetric]
     one_uint32_nat_def[symmetric] PR_CONST_def
-    length_uint32_nat_def[symmetric] minimize_and_extract_highest_lookup_conflict_inv_def
+    minimize_and_extract_highest_lookup_conflict_inv_def
   by sepref
 
 declare minimize_and_extract_highest_lookup_conflict_fast_code.refine[sepref_fr_rules]

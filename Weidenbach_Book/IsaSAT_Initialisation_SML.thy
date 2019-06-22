@@ -569,6 +569,46 @@ proof -
     using pre ..
 qed
 
+term op_arl32_replicate
+find_theorems op_arl_replicate arl_assn
+(*TODO Move*)
+definition arl32_replicate where
+ "arl32_replicate init_cap x \<equiv> do {
+    let n = max (nat_of_uint32 init_cap) minimum_capacity;
+    a \<leftarrow> Array.new n x;
+    return (a, init_cap)
+  }"
+
+definition [simp]: \<open>op_arl32_replicate = op_list_replicate\<close>
+lemma arl32_fold_custom_replicate:
+  \<open>replicate = op_arl32_replicate\<close>
+  unfolding op_arl32_replicate_def op_list_replicate_def ..
+
+lemma list_replicate_arl32_hnr[sepref_fr_rules]:
+  assumes p: \<open>CONSTRAINT is_pure R\<close>
+  shows \<open>(uncurry arl32_replicate, uncurry (RETURN oo op_arl32_replicate)) \<in> uint32_nat_assn\<^sup>k *\<^sub>a R\<^sup>k \<rightarrow>\<^sub>a arl32_assn R\<close>
+proof -
+  obtain R' where
+     R'[symmetric]: \<open>R' = the_pure R\<close> and
+     R_R': \<open>R = pure R'\<close>
+    using assms by fastforce
+  have [simp]: \<open>pure R' b bi = \<up>((bi, b) \<in> R')\<close> for b bi
+    by (auto simp: pure_def)
+  have [simp]: \<open>min a (max a 16) = a\<close> \<open>16 \<le> uint32_max\<close> for a :: nat
+    by (auto simp: uint32_max_def)
+  show ?thesis
+    using assms unfolding op_arl32_replicate_def
+    by sepref_to_hoare
+      (sep_auto simp: arl32_replicate_def arl32_assn_def hr_comp_def R' R_R' list_rel_def
+        is_array_list32_def minimum_capacity_def uint32_nat_rel_def br_def nat_of_uint32_le_uint32_max
+        intro!: list_all2_replicate)
+qed
+(*END Move*)
+definition INITIAL_OUTL_SIZE :: \<open>nat\<close> where
+[simp]: \<open>INITIAL_OUTL_SIZE = 160\<close>
+lemma [sepref_fr_rules]:
+  \<open>(uncurry0 (return 160), uncurry0 (RETURN INITIAL_OUTL_SIZE)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+  by (sepref_to_hoare) (sep_auto simp: INITIAL_OUTL_SIZE_def uint32_nat_rel_def br_def)
 
 sepref_definition finalise_init_code'
   is \<open>uncurry finalise_init_code\<close>
@@ -577,7 +617,8 @@ sepref_definition finalise_init_code'
   supply zero_uin64_hnr[sepref_fr_rules] [[goals_limit=1]]
     Pos_unat_lit_assn'[sepref_fr_rules] uint_max_def[simp] op_arl_replicate_def[simp]
   unfolding finalise_init_code_def isasat_init_assn_def isasat_bounded_assn_def
-     arl_fold_custom_replicate two_uint32_def[symmetric]
+     arl32_fold_custom_replicate two_uint32_def[symmetric] INITIAL_OUTL_SIZE_def[symmetric]
+     one_uint32_nat_def[symmetric]
   apply (rewrite at \<open>(_, \<hole>, _)\<close> arl64.fold_custom_empty)
   apply (rewrite in \<open>op_arl64_empty\<close> annotate_assn[where A=\<open>vdom_fast_assn\<close>])
   apply (rewrite at \<open>(_, \<hole>)\<close> arl64.fold_custom_empty)
@@ -590,7 +631,12 @@ sepref_definition finalise_init_code_unb
   supply zero_uin64_hnr[sepref_fr_rules] [[goals_limit=1]]
     Pos_unat_lit_assn'[sepref_fr_rules] uint_max_def[simp] op_arl_replicate_def[simp]
   unfolding finalise_init_code_def isasat_init_unbounded_assn_def isasat_unbounded_assn_def
-    IICF_Array_List.arl.fold_custom_empty arl_fold_custom_replicate two_uint32_def[symmetric] zero_uint64_nat_def
+     arl32_fold_custom_replicate two_uint32_def[symmetric] INITIAL_OUTL_SIZE_def[symmetric]
+     one_uint32_nat_def[symmetric] zero_uint64_nat_def
+  apply (rewrite at \<open>(_, \<hole>, _)\<close> arl.fold_custom_empty)
+  apply (rewrite in \<open>op_arl_empty\<close> annotate_assn[where A=\<open>vdom_assn\<close>])
+  apply (rewrite at \<open>(_, \<hole>)\<close> arl.fold_custom_empty)
+  apply (rewrite in \<open>op_arl_empty\<close> annotate_assn[where A=\<open>arena_assn\<close>])
   by sepref
 
 declare finalise_init_code'.refine[sepref_fr_rules]

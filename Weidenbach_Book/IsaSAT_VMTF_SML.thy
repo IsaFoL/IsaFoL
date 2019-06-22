@@ -424,12 +424,12 @@ declare vmtf_mark_to_rescore_clause_code.refine[sepref_fr_rules]
 
 sepref_definition vmtf_mark_to_rescore_also_reasons_code
   is \<open>uncurry3 (isa_vmtf_mark_to_rescore_also_reasons)\<close>
-  :: \<open>trail_pol_assn\<^sup>k *\<^sub>a arena_assn\<^sup>k *\<^sub>a (arl_assn unat_lit_assn)\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>d \<rightarrow>\<^sub>a vmtf_remove_conc\<close>
+  :: \<open>trail_pol_assn\<^sup>k *\<^sub>a arena_assn\<^sup>k *\<^sub>a (arl32_assn unat_lit_assn)\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>d \<rightarrow>\<^sub>a vmtf_remove_conc\<close>
   supply image_image[simp] uminus_\<A>\<^sub>i\<^sub>n_iff[iff] in_diffD[dest] option.splits[split]
     in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n[simp]
   supply [[goals_limit=1]]
   unfolding isa_vmtf_mark_to_rescore_also_reasons_def PR_CONST_def
-  unfolding while_eq_nfoldli[symmetric] length_uint32_nat_def[symmetric]
+  unfolding while_eq_nfoldli[symmetric]
   apply (subst while_upt_while_direct, simp)
   apply (rewrite at \<open>(\<hole>, _)\<close> zero_uint32_nat_def[symmetric])
   unfolding one_uint32_nat_def[symmetric] nres_monad3
@@ -471,7 +471,7 @@ declare vmtf_mark_to_rescore_clause_fast_code.refine[sepref_fr_rules]
 sepref_definition vmtf_mark_to_rescore_also_reasons_fast_code
   is \<open>uncurry3 (isa_vmtf_mark_to_rescore_also_reasons)\<close>
   :: \<open>[\<lambda>(((_, N), _), _). length N \<le> uint64_max]\<^sub>a
-      trail_pol_fast_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a (arl_assn unat_lit_assn)\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>d \<rightarrow>
+      trail_pol_fast_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a (arl32_assn unat_lit_assn)\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>d \<rightarrow>
       vmtf_remove_conc\<close>
   supply image_image[simp] uminus_\<A>\<^sub>i\<^sub>n_iff[iff] in_diffD[dest] option.splits[split]
     in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n[simp]
@@ -481,7 +481,6 @@ sepref_definition vmtf_mark_to_rescore_also_reasons_fast_code
   apply (subst while_upt_while_direct, simp)
   apply (rewrite at \<open>(\<hole>, _)\<close> zero_uint32_nat_def[symmetric])
   unfolding one_uint32_nat_def[symmetric] nres_monad3 zero_uint64_nat_def[symmetric]
-  apply (rewrite at \<open> \<lambda>(_, _). _ < \<hole> \<and> _\<close> length_uint32_nat_def[symmetric])
   by sepref
 
 declare vmtf_mark_to_rescore_also_reasons_fast_code.refine[sepref_fr_rules]
