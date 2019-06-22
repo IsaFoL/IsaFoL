@@ -1286,17 +1286,16 @@ fun propagate_lit_wl_bin_fast_code x =
     end)
     x;
 
-fun nth_aa64 A_ xs i j =
+fun nth_aa64_i32_u64 A_ xs x l =
   (fn () =>
     let
-      val x =
-        nth (heap_prod (heap_array (typerep_heap A_)) heap_uint64) xs i ();
-      val xa = arl64_get A_ x j ();
+      val xa =
+        nth_u_code (heap_prod (heap_array (typerep_heap A_)) heap_uint64) xs x
+          ();
+      val xb = arl64_get A_ xa l ();
     in
-      xa
+      xb
     end);
-
-fun nth_aa64_i32_u64 A_ xs x l = nth_aa64 A_ xs (nat_of_uint32 x) l;
 
 fun watched_by_app_heur_fast_code x =
   (fn ai => fn bia => fn bi =>
