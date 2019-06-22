@@ -2,6 +2,15 @@ theory IsaSAT_SML
   imports  Watched_Literals.WB_Word_Assn IsaSAT Version IsaSAT_Restart_SML IsaSAT_Initialisation_SML
 begin
 
+(*TODO Move*)
+lemma [code]:
+  \<open>nth_aa64_i32_u64 xs x L = do {
+      x \<leftarrow> nth_u_code xs x;
+      arl64_get x L \<bind> return
+    }\<close>
+  unfolding nth_aa64_i32_u64_def nth_aa64_def
+    nth_nat_of_uint32_nth' nth_u_code_def[symmetric] ..
+(*end move*)
 abbreviation  model_stat_assn where
   \<open>model_stat_assn \<equiv> option_assn (arl_assn unat_lit_assn) *a stats_assn\<close>
 
@@ -616,5 +625,6 @@ compile_generated_files _
           ("cp IsaSAT_bounded " ^
             File.bash_path \<^path>\<open>$ISAFOL\<close> ^ "/Weidenbach_Book/code/");
     in () end\<close>
+
 
 end
