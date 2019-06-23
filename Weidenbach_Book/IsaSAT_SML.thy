@@ -1,5 +1,6 @@
 theory IsaSAT_SML
-  imports  Watched_Literals.WB_Word_Assn IsaSAT Version IsaSAT_Restart_SML IsaSAT_Initialisation_SML
+  imports  Watched_Literals.WB_Word_Assn IsaSAT Version IsaSAT_Restart_SML
+    IsaSAT_Initialisation_SML Version
 begin
 
 (*TODO Move*)
