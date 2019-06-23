@@ -707,7 +707,7 @@ sepref_definition init_state_wl_D'_code
   is \<open>init_state_wl_D'\<close>
   :: \<open>(arl_assn uint32_assn *a uint32_assn)\<^sup>d \<rightarrow>\<^sub>a isasat_init_assn\<close>
   unfolding init_state_wl_D'_def PR_CONST_def init_trail_D_fast_def[symmetric] isasat_init_assn_def
-  apply (rewrite at \<open>let _ = (_, \<hole>) in _\<close> IICF_Array_List.arl.fold_custom_empty)
+  apply (rewrite at \<open>let _ = (_, \<hole>) in _\<close> arl32.fold_custom_empty)
   apply (rewrite at \<open>let _ = \<hole> in _\<close>  init_lrl_def[symmetric])
   unfolding array_fold_custom_replicate init_lrl64_def[symmetric]
   apply (rewrite at \<open>let _ = \<hole> in let _ = (True, _, _) in _\<close> arl64.fold_custom_empty)
@@ -727,7 +727,7 @@ sepref_definition init_state_wl_D'_code_unb
     phase_saver_conc *a uint32_nat_assn *a
     cach_refinement_l_assn *a lbd_assn *a vdom_assn *a bool_assn\<close>
   unfolding init_state_wl_D'_def PR_CONST_def
-  apply (rewrite at \<open>let _ = (_, \<hole>) in _\<close> IICF_Array_List.arl.fold_custom_empty)
+  apply (rewrite at \<open>let _ = (_, \<hole>) in _\<close> arl32.fold_custom_empty)
   apply (rewrite at \<open>let _ = \<hole> in _\<close>  init_lrl_def[symmetric])
   unfolding array_fold_custom_replicate
   apply (rewrite at \<open>let _ = \<hole> in let _ = (True, _, _) in _\<close> IICF_Array_List.arl.fold_custom_empty)

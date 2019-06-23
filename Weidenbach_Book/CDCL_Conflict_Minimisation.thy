@@ -434,14 +434,31 @@ lemma conflict_min_analysis_stack_sorted:
     auto
 lemma conflict_min_analysis_stack_sorted_and_distinct:
   \<open>conflict_min_analysis_stack M NU D analyse \<Longrightarrow>
-    sorted (map (index_in_trail M o fst) analyse) \<and> distinct (map (index_in_trail M o fst) analyse)\<close>
+    sorted (map (index_in_trail M o fst) analyse) \<and>
+     distinct (map (index_in_trail M o fst) analyse)\<close>
   by (induction rule: conflict_min_analysis_stack.induct)
     auto
 
 lemma conflict_min_analysis_stack_distinct_fst:
-  \<open>conflict_min_analysis_stack M NU D analyse \<Longrightarrow> distinct (map fst analyse)\<close>
-  using conflict_min_analysis_stack_sorted_and_distinct[of M NU D analyse]
-  by (auto simp: intro!:  distinct_mapI[of \<open>(index_in_trail M)\<close>])
+  assumes \<open>conflict_min_analysis_stack M NU D analyse\<close>
+  shows \<open>distinct (map fst analyse)\<close> and  \<open>distinct (map (atm_of o fst) analyse)\<close>
+proof -
+  have dist: \<open>distinct (map (index_in_trail M \<circ> fst) analyse)\<close>
+    using conflict_min_analysis_stack_sorted_and_distinct[of M NU D analyse, OF assms]
+    by auto
+  then show \<open>distinct (map fst analyse)\<close>
+    by (auto simp: intro!: distinct_mapI[of \<open>(index_in_trail M)\<close>])
+  show \<open>distinct (map (atm_of o fst) analyse)\<close>
+  proof (rule ccontr)
+    assume \<open>\<not>?thesis\<close>
+    from not_distinct_decomp[OF this]
+    obtain xs L ys zs where \<open>map (atm_of o fst) analyse = xs @ L # ys @ L # zs\<close>
+      by auto
+   then show False
+     using dist
+     by (auto simp: map_eq_append_conv atm_of_eq_atm_of Int_Un_distrib image_Un)
+  qed
+qed
 
 lemma conflict_min_analysis_stack_neg:
   \<open>conflict_min_analysis_stack M NU D analyse \<Longrightarrow>
@@ -472,12 +489,18 @@ definition lit_redundant_inv
            conflict_min_analysis_stack M NU D analyse \<and>
            conflict_min_analysis_stack_hd M NU D analyse)\<close>
 
+definition lit_redundant_rec_loop_inv :: \<open>('v, 'v clause) ann_lits \<Rightarrow>
+    'v conflict_min_cach \<times> 'v conflict_min_analyse \<times> bool \<Rightarrow> bool\<close> where
+\<open>lit_redundant_rec_loop_inv M = (\<lambda>(cach, analyse, b).
+    (uminus o fst) `# mset analyse \<subseteq># lit_of `# mset M \<and>
+    (\<forall>L \<in> set analyse. cach (atm_of (fst L)) = SEEN_UNKNOWN))\<close>
+
 definition lit_redundant_rec :: \<open>('v, 'v clause) ann_lits \<Rightarrow> 'v clauses \<Rightarrow> 'v clause \<Rightarrow>
      'v conflict_min_cach \<Rightarrow> 'v conflict_min_analyse \<Rightarrow>
       ('v conflict_min_cach \<times> 'v conflict_min_analyse \<times> bool) nres\<close>
 where
   \<open>lit_redundant_rec M NU D cach analysis =
-      WHILE\<^sub>T
+      WHILE\<^sub>T\<^bsup>lit_redundant_rec_loop_inv M  \<^esup>
         (\<lambda>(cach, analyse, b). analyse \<noteq> [])
         (\<lambda>(cach, analyse, b). do {
             ASSERT(analyse \<noteq> []);
@@ -498,6 +521,7 @@ where
                  RETURN (cach, [], False)
               }
               else do {
+                 ASSERT(cach (atm_of L) = SEEN_UNKNOWN);
                  C \<leftarrow> get_propagation_reason M (-L);
                  case C of
                    Some C \<Rightarrow> do {
@@ -517,6 +541,28 @@ definition lit_redundant_rec_spec where
     SPEC(\<lambda>(cach, analysis, b). (b \<longrightarrow> NU \<Turnstile>pm add_mset (-L) (filter_to_poslev M L D)) \<and>
      conflict_min_analysis_inv M cach NU D)\<close>
 
+lemma WHILEIT_rule_stronger_inv_keepI':
+  assumes
+    \<open>wf R\<close> and
+    \<open>I s\<close> and
+    \<open>I' s\<close> and
+    \<open>\<And>s. I s \<Longrightarrow> I' s \<Longrightarrow> b s \<Longrightarrow> f s \<le> SPEC (\<lambda>s'. I' s')\<close> and
+    \<open>\<And>s. I s \<Longrightarrow> I' s \<Longrightarrow> b s \<Longrightarrow> f s \<le> SPEC (\<lambda>s'. I' s' \<longrightarrow>  (I s' \<and> (s', s) \<in> R))\<close> and
+    \<open>\<And>s. I s \<Longrightarrow> I' s \<Longrightarrow> \<not> b s \<Longrightarrow> \<Phi> s\<close>
+ shows \<open>WHILE\<^sub>T\<^bsup>I\<^esup> b f s \<le> SPEC \<Phi>\<close>
+proof -
+  have A[iff]: \<open>f s \<le> SPEC (\<lambda>v. I' v \<and> I v \<and> (v, s) \<in> R) \<longleftrightarrow> f s \<le>  SPEC (\<lambda>s'. I s' \<and>  I' s' \<and> (s', s) \<in> R)\<close> for s
+    by (rule cong[of \<open> \<lambda>n. f s \<le> n\<close>]) auto
+  then have H: \<open>I s \<Longrightarrow> I' s \<Longrightarrow> b s \<Longrightarrow> f s \<le> SPEC (\<lambda>s'. I s' \<and>  I' s' \<and> (s', s) \<in> R)\<close> for s
+   using SPEC_rule_conjI [OF assms(4,5)[of s]] by auto
+  have \<open>WHILE\<^sub>T\<^bsup>I\<^esup> b f s \<le> WHILE\<^sub>T\<^bsup>\<lambda>s. I s \<and> I' s\<^esup> b f s\<close>
+    by (metis (mono_tags, lifting) WHILEIT_weaken)
+
+  also have \<open>WHILE\<^sub>T\<^bsup>\<lambda>s. I s \<and> I' s\<^esup> b f s \<le> SPEC \<Phi>\<close>
+    by (rule WHILEIT_rule) (use assms H in \<open>auto simp: \<close>)
+  finally show ?thesis .
+qed
+
 lemma lit_redundant_rec_spec:
   fixes L :: \<open>'v literal\<close>
   assumes invs: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (M, N + NE, U + UE, D')\<close>
@@ -525,7 +571,8 @@ lemma lit_redundant_rec_spec:
     in_trail: \<open>Propagated (-L) (add_mset (-L) C) \<in> set M\<close> and
     \<open>conflict_min_analysis_inv M cach (N + NE + U + UE) D\<close> and
     L_D: \<open>L \<in># D\<close> and
-    M_D: \<open>M \<Turnstile>as CNot D\<close>
+    M_D: \<open>M \<Turnstile>as CNot D\<close> and
+    unknown: \<open>cach (atm_of L) = SEEN_UNKNOWN\<close>
   shows
     \<open>lit_redundant_rec M (N + U) D cach init_analysis \<le>
       lit_redundant_rec_spec M (N + U + NE + UE) D L\<close>
@@ -565,7 +612,7 @@ proof -
   define I' where
     \<open>I' = (\<lambda>(cach :: 'v conflict_min_cach, analysis :: 'v conflict_min_analyse, b::bool).
         lit_redundant_inv M ?N D init_analysis (cach, analysis, b) \<and> M \<Turnstile>as CNot (?f analysis) \<and>
-        distinct (map fst analysis))\<close>
+        distinct (map (atm_of o fst) analysis))\<close>
   define R where
     \<open>R = {((cach :: 'v conflict_min_cach, analysis :: 'v conflict_min_analyse, b::bool),
            (cach' :: 'v conflict_min_cach, analysis' :: 'v conflict_min_analyse, b' :: bool)).
@@ -676,9 +723,10 @@ proof -
   have all_removed: \<open>lit_redundant_inv M ?N D init_analysis
        (cach(atm_of (fst (hd analysis)) := SEEN_REMOVABLE), tl analysis, True)\<close> (is ?I) and
      all_removed_I': \<open>I' (cach(atm_of (fst (hd analysis)) := SEEN_REMOVABLE), tl analysis, True)\<close>
-       (is ?I')
+       (is ?I') and
+     all_removed_J: \<open>lit_redundant_rec_loop_inv M (cach(atm_of (fst (hd analysis)) := SEEN_REMOVABLE), tl analysis, True)\<close> (is ?J)
     if
-      inv_I': \<open>I' s\<close>
+      inv_I': \<open>I' s\<close> and inv_J: \<open>lit_redundant_rec_loop_inv M s\<close>
       \<open>case s of (cach, analyse, b) \<Rightarrow> analyse \<noteq> []\<close> and
       s: \<open>s = (cach, s')\<close>
          \<open>s' = (analysis, b)\<close> and
@@ -694,7 +742,8 @@ proof -
       stack: \<open>conflict_min_analysis_stack M ?N D analysis\<close> and
       stack_hd: \<open>conflict_min_analysis_stack_hd M ?N D analysis\<close> and
       last_analysis: \<open>analysis \<noteq> [] \<longrightarrow> fst (last analysis) = fst (hd init_analysis)\<close> and
-      b: \<open>analysis = [] \<longrightarrow> b \<longrightarrow> cach (atm_of (fst (hd init_analysis))) = SEEN_REMOVABLE\<close>
+      b: \<open>analysis = [] \<longrightarrow> b \<longrightarrow> cach (atm_of (fst (hd init_analysis))) = SEEN_REMOVABLE\<close> and
+      dist: \<open>distinct (map (atm_of o fst) analysis)\<close>
       using inv_I' unfolding lit_redundant_inv_def s I'_def by auto
     obtain C where
        NU_C: \<open>?N \<Turnstile>pm add_mset (-L) C\<close> and
@@ -752,10 +801,21 @@ proof -
     have \<open>fst (hd init_analysis) = fst (last (tl analysis))\<close> if \<open>tl analysis \<noteq> []\<close>
       using last_analysis tl_last[symmetric, OF that] that unfolding ana' by auto
     then show ?I
-      using ana' cach' last_analysis stack_hd' unfolding lit_redundant_inv_def
-      by (auto simp: analysis)
-    then show ?I'
+      using ana' cach' last_analysis stack_hd' dist unfolding lit_redundant_inv_def
+      by (cases ana'; auto simp: analysis atm_of_eq_atm_of split: if_splits)
+    then show I': ?I'
       using inv_I' unfolding I'_def s by (auto simp: analysis)
+    have \<open>distinct (map (\<lambda>x. - fst x) (tl analysis))\<close>
+      using dist distinct_mapI[of \<open>atm_of o uminus\<close> \<open>map (uminus o fst) (tl analysis)\<close>]
+       conflict_min_analysis_stack_neg[OF ana'] by (auto simp: comp_def map_tl
+       simp flip: distinct_mset_image_mset)
+    then show ?J
+      using inv_J unfolding lit_redundant_rec_loop_inv_def prod.case s
+      apply (subst distinct_subseteq_iff[symmetric])
+      using conflict_min_analysis_stack_neg[OF ana']  no_dup_distinct[OF n_d] dist
+      by (force simp: comp_def entails_CNot_negate_ann_lits negate_ann_lits_def
+        analysis ana'
+       simp flip: distinct_mset_image_mset)+
   qed
   have all_removed_R:
       \<open>((cach(atm_of (fst (hd analyse)) := SEEN_REMOVABLE), tl analyse, True), s) \<in> R\<close>
@@ -768,9 +828,10 @@ proof -
   have
     seen_removable_inv: \<open>lit_redundant_inv M ?N D init_analysis (cach, ana, False)\<close> (is ?I) and
     seen_removable_I': \<open>I' (cach, ana, False)\<close> (is ?I') and
-    seen_removable_R: \<open>((cach, ana, False), s) \<in> R\<close> (is ?R)
+    seen_removable_R: \<open>((cach, ana, False), s) \<in> R\<close> (is ?R) and
+    seen_removable_J: \<open>lit_redundant_rec_loop_inv M (cach, ana, False)\<close> (is ?J)
     if
-      inv_I': \<open>I' s\<close> and
+      inv_I': \<open>I' s\<close> and inv_J: \<open>lit_redundant_rec_loop_inv M s\<close> and
       cond: \<open>case s of (cach, analyse, b) \<Rightarrow> analyse \<noteq> []\<close> and
       s: \<open>s = (cach, s')\<close> \<open>s' = (analyse, b)\<close> \<open>x = (L, ana)\<close> and
       nemtpy_stack: \<open>analyse \<noteq> []\<close> and
@@ -791,8 +852,9 @@ proof -
       stack: \<open>conflict_min_analysis_stack M ?N D analyse\<close> and
       stack_hd: \<open>conflict_min_analysis_stack_hd M ?N D analyse\<close> and
       last_analysis: \<open>analyse \<noteq> [] \<longrightarrow> fst (last analyse) = fst (hd init_analysis)\<close> and
-      b: \<open>analyse = [] \<longrightarrow> b \<longrightarrow> cach (atm_of (fst (hd init_analysis))) = SEEN_REMOVABLE\<close>
-      using inv_I' unfolding lit_redundant_inv_def s I'_def by auto
+      b: \<open>analyse = [] \<longrightarrow> b \<longrightarrow> cach (atm_of (fst (hd init_analysis))) = SEEN_REMOVABLE\<close> and
+      dist: \<open>distinct (map (atm_of \<circ> fst) analyse)\<close>
+      using inv_I' unfolding lit_redundant_inv_def s I'_def prod.case by auto
 
     have last_analysis': \<open>ana \<noteq> [] \<Longrightarrow> fst (hd init_analysis) = fst (last ana)\<close>
       using last_analysis next_lit unfolding analysis s
@@ -892,14 +954,29 @@ proof -
       using next_lit
       unfolding R_def s by (auto simp: ana' analysis dest!: multi_member_split
           intro: minimize_conflict_support.intros)
+    have \<open>distinct (map (\<lambda>x. - fst x) ana)\<close>
+      using dist distinct_mapI[of \<open>atm_of o uminus\<close> \<open>map (uminus o fst) (tl analyse)\<close>]
+       conflict_min_analysis_stack_neg[OF stack'] by (auto simp: comp_def map_tl
+          analysis ana'
+       simp flip: distinct_mset_image_mset)
+    then show ?J
+      using inv_J unfolding lit_redundant_rec_loop_inv_def prod.case s
+      apply (subst distinct_subseteq_iff[symmetric])
+      using conflict_min_analysis_stack_neg[OF stack'] no_dup_distinct[OF n_d]
+      apply (auto simp: comp_def entails_CNot_negate_ann_lits negate_ann_lits_def
+       simp flip: distinct_mset_image_mset)
+     apply (force simp add: analysis ana ana')
+     done
+
   qed
   have
     failed_I: \<open>lit_redundant_inv M ?N D init_analysis
        (cach', [], False)\<close> (is ?I) and
     failed_I': \<open>I' (cach', [], False)\<close> (is ?I') and
-    failed_R: \<open>((cach', [], False), s) \<in> R\<close> (is ?R)
+    failed_R: \<open>((cach', [], False), s) \<in> R\<close> (is ?R) and
+    failed_J: \<open>lit_redundant_rec_loop_inv M (cach', [], False)\<close> (is ?J)
     if
-      inv_I': \<open>I' s\<close> and
+      inv_I': \<open>I' s\<close> and inv_J: \<open>lit_redundant_rec_loop_inv M s\<close> and
       cond: \<open>case s of (cach, analyse, b) \<Rightarrow> analyse \<noteq> []\<close> and
       s: \<open>s = (cach, s')\<close> \<open>s' = (analyse, b)\<close> and
       nempty: \<open>analyse \<noteq> []\<close> and
@@ -928,15 +1005,18 @@ proof -
       using M_D unfolding I'_def by auto
     show ?R
       using nempty unfolding R_def s by auto
+    show ?J
+      by (auto simp: lit_redundant_rec_loop_inv_def)
   qed
   have is_propagation_inv: \<open>lit_redundant_inv M ?N D init_analysis
        (cach, (L, remove1_mset (-L) E') # ana, False)\<close> (is ?I) and
     is_propagation_I': \<open>I' (cach, (L, remove1_mset (-L) E') # ana, False)\<close> (is ?I') and
     is_propagation_R: \<open>((cach, (L, remove1_mset (-L) E') # ana, False), s) \<in> R\<close> (is ?R) and
     is_propagation_dist: \<open>distinct_mset E'\<close> (is ?dist) and
-    is_propagation_tauto: \<open>\<not>tautology E'\<close> (is ?tauto)
+    is_propagation_tauto: \<open>\<not>tautology E'\<close> (is ?tauto) and
+    is_propagation_J': \<open>lit_redundant_rec_loop_inv M (cach, (L, remove1_mset (-L) E') # ana, False)\<close> (is ?J)
     if
-      inv_I': \<open>I' s\<close> and
+      inv_I': \<open>I' s\<close> and inv_J: \<open>lit_redundant_rec_loop_inv M s\<close> and
       \<open>case s of (cach, analyse, b) \<Rightarrow> analyse \<noteq> []\<close> and
       s: \<open>s = (cach, s')\<close> \<open>s' = (analyse, b)\<close> \<open>x = (L, ana)\<close> and
       nemtpy_stack: \<open>analyse \<noteq> []\<close> and
@@ -949,7 +1029,8 @@ proof -
        (fst (hd analyse),
         remove1_mset L (snd (hd analyse)))\<close> and
       \<open>\<not> (get_level M L = 0 \<or> cach (atm_of L) = SEEN_REMOVABLE \<or> L \<in># D)\<close> and
-      E: \<open>E \<noteq> None \<longrightarrow> Propagated (- L) (the E) \<in> set M\<close> \<open>E = Some E'\<close>
+      E: \<open>E \<noteq> None \<longrightarrow> Propagated (- L) (the E) \<in> set M\<close> \<open>E = Some E'\<close> and
+      st: \<open>cach (atm_of L) = SEEN_UNKNOWN\<close>
     for s cach s' analyse b x L ana E E'
   proof -
     obtain K C ana' where analysis: \<open>analyse = (K, C) # ana'\<close>
@@ -962,7 +1043,8 @@ proof -
       stack: \<open>conflict_min_analysis_stack M ?N D analyse\<close> and
       stack_hd: \<open>conflict_min_analysis_stack_hd M ?N D analyse\<close> and
       last_analysis: \<open>analyse \<noteq> [] \<longrightarrow> fst (last analyse) = fst (hd init_analysis)\<close> and
-      b: \<open>analyse = [] \<longrightarrow> b \<longrightarrow> cach (atm_of (fst (hd init_analysis))) = SEEN_REMOVABLE\<close>
+      b: \<open>analyse = [] \<longrightarrow> b \<longrightarrow> cach (atm_of (fst (hd init_analysis))) = SEEN_REMOVABLE\<close> and
+      dist_ana: \<open>distinct (map (atm_of \<circ> fst) analyse)\<close>
       using inv_I' unfolding lit_redundant_inv_def s I'_def by auto
     have
       NU_E: \<open>?N \<Turnstile>pm add_mset (- L) (remove1_mset (-L) E')\<close> and
@@ -990,7 +1072,7 @@ proof -
       using stack E next_lit NU_E uL_E uL_M
         filter_to_poslev_mono_entailement_add_mset[of M _ _ \<open>set_mset ?N\<close> _ D]
         filter_to_poslev_mono[of M ] uK_M
-      unfolding s ana'[symmetric]
+      unfolding s ana'[symmetric] prod.case
       by (auto simp: analysis ana' conflict_min_analysis_stack_change_hd)
     moreover have \<open>conflict_min_analysis_stack_hd M ?N D ((L, remove1_mset (- L) E') # ana)\<close>
       using NU_E lev_E' uL_M by (auto intro!:exI[of _ \<open>remove1_mset (- L) E'\<close>])
@@ -999,11 +1081,15 @@ proof -
     ultimately show ?I
       using cach b unfolding lit_redundant_inv_def analysis by auto
     moreover have \<open>L \<noteq> K\<close>
-       using \<open>conflict_min_analysis_stack M (N + NE + U + UE) D ((L, remove1_mset (- L) E') # ana)\<close>
+       using cmas
        unfolding ana' conflict_min_analysis_stack.simps(3) by blast
+    moreover have \<open>L \<noteq> -K\<close>
+       using cmas
+       unfolding ana' conflict_min_analysis_stack.simps(3) by auto
     ultimately show ?I'
       using M_E' inv_I' conflict_min_analysis_stack_distinct_fst[OF cmas]
-     unfolding I'_def s ana analysis ana' by (auto simp: true_annot_CNot_diff)
+      unfolding I'_def s ana analysis ana'
+      by (auto simp: true_annot_CNot_diff atm_of_eq_atm_of uminus_lit_swap)
 
     have \<open>L \<in># C\<close> and in_trail: \<open>Propagated (- L) (the E) \<in> set M\<close> and EE': \<open>the E = E'\<close>
       using next_lit E by (auto simp: analysis ana' s)
@@ -1022,6 +1108,22 @@ proof -
     then show ?R
       using nemtpy_stack unfolding s analysis ana' by (auto simp: R_def
           intro: resolve_propa)
+    have \<open>distinct (map (\<lambda>x. - fst x) analyse)\<close>
+      using dist_ana distinct_mapI[of \<open>atm_of o uminus\<close> \<open>map (uminus o fst) analyse\<close>]
+       conflict_min_analysis_stack_neg[OF cmas] unfolding analysis ana'
+       by (auto simp: comp_def map_tl
+          simp flip: distinct_mset_image_mset)
+    then show ?J
+      using inv_J st unfolding lit_redundant_rec_loop_inv_def prod.case s
+      apply (intro conjI)
+      apply (subst distinct_subseteq_iff[symmetric])
+      using conflict_min_analysis_stack_neg[OF cmas] no_dup_distinct[OF n_d] uL_M
+        \<open>L \<noteq> -K\<close> \<open>L \<noteq> K\<close>  conflict_min_analysis_stack_distinct_fst[OF cmas]
+      apply (auto simp: comp_def entails_CNot_negate_ann_lits
+        negate_ann_lits_def lits_of_def uminus_lit_swap
+       simp flip: distinct_mset_image_mset)[3]
+     apply (clarsimp_all simp add: analysis ana')[]
+    using that by (clarsimp_all simp add: analysis ana')[]
 
     show ?tauto
       using tauto .
@@ -1036,15 +1138,19 @@ proof -
       \<open>b = (aa, ba)\<close> and
       \<open>aa \<noteq> []\<close> for s a b aa ba
   proof -
-    have \<open>M \<Turnstile>as CNot (fst `# mset aa)\<close> and \<open>distinct (map fst aa)\<close> and
+    have \<open>M \<Turnstile>as CNot (fst `# mset aa)\<close> and \<open>distinct (map (atm_of o fst) aa)\<close> and
+       \<open>distinct (map fst aa)\<close> and
       \<open>conflict_min_analysis_stack M (N + NE + U + UE) D aa\<close>
-      using that by (auto simp: I'_def lit_redundant_inv_def dest: conflict_min_analysis_stack_neg)
+      using distinct_mapI[of \<open>atm_of\<close> \<open>map fst aa\<close>]
+      using that by (auto simp: I'_def lit_redundant_inv_def
+        dest: conflict_min_analysis_stack_neg)
+
     then have \<open>set (map fst aa) \<subseteq> uminus ` lits_of_l M\<close>
       by (auto simp: true_annots_true_cls_def_iff_negation_in_model lits_of_def image_image
           uminus_lit_swap
          dest!: multi_member_split)
     from card_mono[OF _ this] have \<open>length (map fst aa) \<le> length M\<close>
-      using \<open>distinct (map fst aa)\<close> distinct_card[of \<open>map fst aa\<close>] n_d
+      using \<open>distinct (map (fst) aa)\<close> distinct_card[of \<open>map fst aa\<close>] n_d
      by (auto simp: card_image[OF lit_of_inj_on_no_dup[OF n_d]] lits_of_def image_image
         distinct_card[OF no_dup_imp_distinct])
     then show \<open>?thesis\<close> by auto
@@ -1053,31 +1159,40 @@ proof -
   show ?thesis
     unfolding lit_redundant_rec_def lit_redundant_rec_spec_def mark_failed_lits_def
       get_literal_and_remove_of_analyse_def get_propagation_reason_def
-    apply (refine_vcg WHILET_rule[where R = R and I = I'])
+    apply (refine_vcg WHILEIT_rule_stronger_inv[where R = R and I' = I'])
       \<comment> \<open>Well-foundness\<close>
     subgoal by (rule wf_R)
+    subgoal using assms by (auto simp: lit_redundant_rec_loop_inv_def lits_of_def
+       dest!: multi_member_split)
     subgoal by (rule init_I')
-    subgoal by simp
+    subgoal by auto
     subgoal by (rule length_aa_le)
       \<comment> \<open>Assertion:\<close>
     subgoal by (rule hd_M)
         \<comment> \<open>We finished one stage:\<close>
-    subgoal by (rule all_removed_I')
+    subgoal by (rule all_removed_J) 
+    subgoal by (rule all_removed_I') 
     subgoal by (rule all_removed_R)
       \<comment> \<open>Assertion:\<close>
     subgoal for s cach s' analyse ba
       by (cases \<open>analyse\<close>) (auto simp: I'_def dest!: multi_member_split)
+
         \<comment> \<open>Cached or level 0:\<close>
+    subgoal by (rule seen_removable_J)
     subgoal by (rule seen_removable_I')
     subgoal by (rule seen_removable_R)
         \<comment> \<open>Failed:\<close>
+    subgoal by (rule failed_J)
     subgoal by (rule failed_I')
     subgoal by (rule failed_R)
+    subgoal for s a b aa ba x ab bb xa by (cases \<open>a (atm_of ab)\<close>) auto
+    subgoal by (rule failed_J)
     subgoal by (rule failed_I')
     subgoal by (rule failed_R)
         \<comment> \<open>The literal was propagated:\<close>
-   subgoal by (rule is_propagation_dist)
-   subgoal by (rule is_propagation_tauto)
+    subgoal by (rule is_propagation_dist)
+    subgoal by (rule is_propagation_tauto)
+    subgoal by (rule is_propagation_J')
     subgoal by (rule is_propagation_I')
     subgoal by (rule is_propagation_R)
         \<comment> \<open>End of Loop invariant:\<close>
@@ -1208,7 +1323,9 @@ proof -
       \<le> literal_redundant_spec M (N + U + NE + UE) D L\<close>
     if
       E: \<open>E \<noteq> None \<longrightarrow> Propagated (- L) (the E) \<in> set M\<close> and
-      E': \<open>E = Some E'\<close>
+      E': \<open>E = Some E'\<close> and
+      failed: \<open>\<not> (get_level M L = 0 \<or> cach (atm_of L) = SEEN_REMOVABLE)\<close>
+        \<open>cach (atm_of L) \<noteq> SEEN_FAILED\<close>
     for E E'
   proof -
     have
@@ -1226,6 +1343,7 @@ proof -
       subgoal by (rule inv)
       subgoal using assms by fast
       subgoal by (rule M_D)
+      subgoal using failed by (cases \<open>cach (atm_of L)\<close>) auto
       subgoal unfolding literal_redundant_spec_def[symmetric] by (rule H)
       done
   qed
@@ -1352,6 +1470,7 @@ where
 		RETURN (cach, [], False)
 	      }
 	      else do {
+                ASSERT(cach (atm_of L) = SEEN_UNKNOWN);
 		C' \<leftarrow> get_propagation_reason M (-L);
 		case C' of
 		  Some C' \<Rightarrow> do {
@@ -1750,12 +1869,10 @@ proof -
   have ana: \<open>last analyse = (fst (last analyse), fst (snd (last analyse)),
     fst (snd (snd (last analyse))), snd (snd (snd (last analyse))))\<close> for analyse
       by (cases \<open>last analyse\<close>) auto
-  have wl_inv: \<open>lit_redundant_rec_wl_inv M NU D x'\<close> if \<open>(x', x) \<in> ?R\<close> for x x'
-    using that unfolding lit_redundant_rec_wl_inv_def
-    by (cases x, cases x') auto
+
   show ?thesis
     supply convert_analysis_list_def[simp] hd_rev[simp] last_map[simp] rev_map[symmetric, simp]
-    unfolding lit_redundant_rec_wl_def lit_redundant_rec_def WHILET_def
+    unfolding lit_redundant_rec_wl_def lit_redundant_rec_def
     apply (rewrite at \<open>let _ = _ \<propto> _ in _\<close> Let_def)
     apply (rewrite in \<open>let _ = _ in _\<close> ana)
     apply (rewrite at \<open>let _ = (_, _, _) in _\<close> Let_def)
@@ -1763,7 +1880,7 @@ proof -
     subgoal using bounds_init unfolding analyse'_def by auto
     subgoal for x x'
       by (cases x, cases x')
-        (auto simp: lit_redundant_rec_wl_inv_def lit_redundant_rec_wl_ref_def)
+         (auto simp: lit_redundant_rec_wl_inv_def lit_redundant_rec_wl_ref_def)
     subgoal by auto
     subgoal by auto
     subgoal using M'_def by (auto dest: convert_lits_l_imp_same_length)
@@ -1789,6 +1906,7 @@ proof -
     subgoal by auto
     apply (rule mark_failed_lits_wl; assumption)
     subgoal by (auto simp: lit_redundant_rec_wl_ref_def)
+    subgoal by auto
     apply (rule get_propagation_reason; assumption)
     apply assumption
     apply (rule mark_failed_lits_wl; assumption)

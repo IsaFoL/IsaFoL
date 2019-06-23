@@ -1377,7 +1377,8 @@ definition (in -) conflict_min_cach_set_removable_l
 where
   \<open>conflict_min_cach_set_removable_l = (\<lambda>(cach, sup) L. do {
      ASSERT(L < length cach);
-     RETURN (cach[L := SEEN_REMOVABLE], sup @ [L])
+     ASSERT(length sup \<le> 1 + uint32_max div 2);
+     RETURN (cach[L := SEEN_REMOVABLE], if cach ! L = SEEN_UNKNOWN then sup @ [L] else sup)
    })\<close>
 
 definition (in -) conflict_min_cach :: \<open>nat conflict_min_cach \<Rightarrow> nat \<Rightarrow> minimize_status\<close> where
@@ -1807,7 +1808,7 @@ qed
 lemma ccmin_set_removable:
   assumes
     \<open>x2i \<le> x1i\<close> and
-    \<open>x2f \<le> x1f\<close>
+    \<open>x2f \<le> x1f\<close> and \<open>lit_redundant_rec_wl_inv2 M NU D x\<close>
   shows \<open>((x1b(atm_of (NU \<propto> x1g ! x1h) := SEEN_REMOVABLE), butlast x1c, True),
           x1(atm_of (NU \<propto> x1d ! x1e) := SEEN_REMOVABLE), butlast x1a, True)
          \<in> {((cach, ana, b), cach', ana', b').
@@ -2694,31 +2695,41 @@ where
   \<open>cach_refinement_list \<A>\<^sub>i\<^sub>n = \<langle>Id\<rangle>map_fun_rel {(a, a'). a = a' \<and> a \<in># \<A>\<^sub>i\<^sub>n}\<close>
 
 definition cach_refinement_nonull
-  :: \<open>((minimize_status list \<times> nat list) \<times> minimize_status list) set\<close>
+  :: \<open>nat multiset \<Rightarrow> ((minimize_status list \<times> nat list) \<times> minimize_status list) set\<close>
 where
-  \<open>cach_refinement_nonull = {((cach, support), cach'). cach = cach' \<and>
-       (\<forall>L < length cach. cach ! L \<noteq> SEEN_UNKNOWN \<longrightarrow> L \<in> set support) \<and>
-       (\<forall>L \<in> set support. L < length cach)}\<close>
+  \<open>cach_refinement_nonull \<A> = {((cach, support), cach'). cach = cach' \<and>
+       (\<forall>L < length cach. cach ! L \<noteq> SEEN_UNKNOWN \<longleftrightarrow> L \<in> set support) \<and>
+       (\<forall>L \<in> set support. L < length cach) \<and>
+       distinct support \<and> set support \<subseteq> set_mset \<A>}\<close>
 
 
 definition cach_refinement
   :: \<open>nat multiset \<Rightarrow> ((minimize_status list \<times> nat list) \<times> (nat conflict_min_cach)) set\<close>
 where
-  \<open>cach_refinement \<A>\<^sub>i\<^sub>n = cach_refinement_nonull O cach_refinement_list \<A>\<^sub>i\<^sub>n\<close>
+  \<open>cach_refinement \<A>\<^sub>i\<^sub>n = cach_refinement_nonull \<A>\<^sub>i\<^sub>n O cach_refinement_list \<A>\<^sub>i\<^sub>n\<close>
 
 lemma cach_refinement_alt_def:
   \<open>cach_refinement \<A>\<^sub>i\<^sub>n = {((cach, support), cach').
-       (\<forall>L < length cach. cach ! L \<noteq> SEEN_UNKNOWN \<longrightarrow> L \<in> set support) \<and>
+       (\<forall>L < length cach. cach ! L \<noteq> SEEN_UNKNOWN \<longleftrightarrow> L \<in> set support) \<and>
        (\<forall>L \<in> set support. L < length cach) \<and>
-       (\<forall>L \<in># \<A>\<^sub>i\<^sub>n. L < length cach \<and> cach ! L = cach' L)}\<close>
+       (\<forall>L \<in># \<A>\<^sub>i\<^sub>n. L < length cach \<and> cach ! L = cach' L) \<and>
+       distinct support \<and> set support \<subseteq> set_mset \<A>\<^sub>i\<^sub>n}\<close>
   unfolding cach_refinement_def cach_refinement_nonull_def cach_refinement_list_def
-  by (auto simp: map_fun_rel_def)
+  apply (rule; rule)
+  apply (simp add: map_fun_rel_def split: prod.splits)
+  apply blast
+  apply (simp add: map_fun_rel_def split: prod.splits)
+  apply (rule_tac b=x1a in relcomp.relcompI)
+  apply blast
+  apply blast
+  done
 
 lemma in_cach_refinement_alt_def:
   \<open>((cach, support), cach') \<in> cach_refinement \<A>\<^sub>i\<^sub>n \<longleftrightarrow>
      (cach, cach') \<in> cach_refinement_list \<A>\<^sub>i\<^sub>n \<and>
-     (\<forall>L<length cach. cach ! L \<noteq> SEEN_UNKNOWN \<longrightarrow> L \<in> set support) \<and>
-      (\<forall>L \<in> set support. L < length cach)\<close>
+     (\<forall>L<length cach. cach ! L \<noteq> SEEN_UNKNOWN \<longleftrightarrow> L \<in> set support) \<and>
+     (\<forall>L \<in> set support. L < length cach) \<and>
+     distinct support \<and> set support \<subseteq> set_mset  \<A>\<^sub>i\<^sub>n\<close>
   by (auto simp: cach_refinement_def cach_refinement_nonull_def cach_refinement_list_def)
 
 definition (in -) conflict_min_cach_l :: \<open>conflict_min_cach_l \<Rightarrow> nat \<Rightarrow> minimize_status\<close> where
@@ -2744,8 +2755,8 @@ qed
 lemma nth_conflict_min_cach:
   \<open>(uncurry (RETURN oo conflict_min_cach_l), uncurry (RETURN oo conflict_min_cach)) \<in>
      [\<lambda>(cach, L). L \<in># \<A>\<^sub>i\<^sub>n]\<^sub>f cach_refinement \<A>\<^sub>i\<^sub>n \<times>\<^sub>r nat_rel \<rightarrow> \<langle>minimize_status_rel\<rangle>nres_rel\<close>
-  by (intro frefI nres_relI) (auto simp: cach_refinement_def map_fun_rel_def
-      cach_refinement_nonull_def cach_refinement_list_def conflict_min_cach_l_def)
+  by (intro frefI nres_relI) (auto simp: map_fun_rel_def
+      in_cach_refinement_alt_def cach_refinement_list_def conflict_min_cach_l_def)
 
 definition (in -) conflict_min_cach_set_failed
    :: \<open>nat conflict_min_cach \<Rightarrow> nat \<Rightarrow> nat conflict_min_cach\<close>
@@ -2757,16 +2768,40 @@ definition (in -) conflict_min_cach_set_failed_l
 where
   \<open>conflict_min_cach_set_failed_l = (\<lambda>(cach, sup) L. do {
      ASSERT(L < length cach);
-     RETURN (cach[L := SEEN_FAILED], sup @ [L])
+     ASSERT(length sup \<le> 1 + uint32_max div 2);
+     RETURN (cach[L := SEEN_FAILED], if cach ! L = SEEN_UNKNOWN then sup @ [L] else sup)
    })\<close>
+
+lemma bounded_included_le:
+   assumes bounded: \<open>isasat_input_bounded \<A>\<close> and \<open>distinct n\<close> and \<open>set n \<subseteq> set_mset \<A>\<close>
+   shows \<open>length n \<le> Suc (uint32_max div 2)\<close>
+proof -
+  have lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n \<A> (Pos `# mset n)\<close> and
+    dist: \<open>distinct n\<close>
+    using assms
+    by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_alt_def inj_on_def atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n)
+   have dist: \<open>distinct_mset (Pos `# mset n)\<close>
+    by (subst distinct_image_mset_inj)
+      (use dist in \<open>auto simp: inj_on_def\<close>)
+  have tauto: \<open>\<not> tautology (poss (mset n))\<close>
+    by (auto simp: tautology_decomp)
+
+  show ?thesis
+    using simple_clss_size_upper_div2[OF bounded lits dist tauto]
+    by (auto simp: uint32_max_def)
+qed
 
 lemma conflict_min_cach_set_failed:
   \<open>(uncurry conflict_min_cach_set_failed_l, uncurry (RETURN oo conflict_min_cach_set_failed)) \<in>
-     [\<lambda>(cach, L). L \<in># \<A>\<^sub>i\<^sub>n]\<^sub>f cach_refinement \<A>\<^sub>i\<^sub>n \<times>\<^sub>r nat_rel \<rightarrow> \<langle>cach_refinement \<A>\<^sub>i\<^sub>n\<rangle>nres_rel\<close>
-  by (intro frefI nres_relI)
-     (auto simp: cach_refinement_alt_def map_fun_rel_def cach_refinement_list_def
-      conflict_min_cach_set_failed_l_def)
-
+     [\<lambda>(cach, L). L \<in># \<A>\<^sub>i\<^sub>n \<and> isasat_input_bounded \<A>\<^sub>i\<^sub>n]\<^sub>f cach_refinement \<A>\<^sub>i\<^sub>n \<times>\<^sub>r nat_rel \<rightarrow> \<langle>cach_refinement \<A>\<^sub>i\<^sub>n\<rangle>nres_rel\<close>
+  supply isasat_input_bounded_def[simp del]
+  apply (intro frefI nres_relI) (*TODO Proof*)
+  apply   (auto simp: in_cach_refinement_alt_def map_fun_rel_def cach_refinement_list_def
+        conflict_min_cach_set_failed_l_def cach_refinement_nonull_def
+        all_conj_distrib intro!: ASSERT_leI bounded_included_le[of \<A>\<^sub>i\<^sub>n]
+      dest!: multi_member_split dest: set_mset_mono
+      dest: subset_add_mset_notin_subset_mset)
+  by (fastforce dest: subset_add_mset_notin_subset_mset)+
 
 definition (in -) conflict_min_cach_set_removable
   :: \<open>nat conflict_min_cach \<Rightarrow> nat \<Rightarrow> nat conflict_min_cach\<close>
@@ -2776,10 +2811,15 @@ where
 lemma conflict_min_cach_set_removable:
   \<open>(uncurry conflict_min_cach_set_removable_l,
     uncurry (RETURN oo conflict_min_cach_set_removable)) \<in>
-     [\<lambda>(cach, L). L \<in># \<A>\<^sub>i\<^sub>n]\<^sub>f cach_refinement \<A>\<^sub>i\<^sub>n \<times>\<^sub>r nat_rel \<rightarrow> \<langle>cach_refinement \<A>\<^sub>i\<^sub>n\<rangle>nres_rel\<close>
-  by (intro frefI nres_relI)
-     (auto simp: cach_refinement_alt_def map_fun_rel_def cach_refinement_list_def
-      conflict_min_cach_set_removable_l_def)
+     [\<lambda>(cach, L). L \<in># \<A>\<^sub>i\<^sub>n \<and> isasat_input_bounded \<A>\<^sub>i\<^sub>n]\<^sub>f cach_refinement \<A>\<^sub>i\<^sub>n \<times>\<^sub>r nat_rel \<rightarrow> \<langle>cach_refinement \<A>\<^sub>i\<^sub>n\<rangle>nres_rel\<close>
+  supply isasat_input_bounded_def[simp del]
+  apply (intro frefI nres_relI) (*TODO Proof*)
+  apply   (auto simp: in_cach_refinement_alt_def map_fun_rel_def cach_refinement_list_def
+        conflict_min_cach_set_removable_l_def cach_refinement_nonull_def
+        all_conj_distrib intro!: ASSERT_leI bounded_included_le[of \<A>\<^sub>i\<^sub>n]
+      dest!: multi_member_split dest: set_mset_mono
+      dest: subset_add_mset_notin_subset_mset)
+  by (fastforce dest: subset_add_mset_notin_subset_mset)+
 
 
 definition analyse_refinement_rel where
@@ -2798,7 +2838,6 @@ definition from_ana_ref_id where
 definition from_ana_ref where
   \<open>from_ana_ref = (\<lambda>(a, b). (a, uint32_of_uint64 (take_only_lower32 b), is_marked_binary_code (a, b)))\<close>
 
-(*TODO length analyse < uint32\_max *)
 definition isa_mark_failed_lits_stack where
   \<open>isa_mark_failed_lits_stack NU analyse cach = do {
     let l = length analyse;
@@ -2836,11 +2875,14 @@ lemma mark_failed_lits_stack_inv_helper2: \<open>mark_failed_lits_stack_inv a ba
   by (auto simp del: nth_mem)
 
 lemma isa_mark_failed_lits_stack_isa_mark_failed_lits_stack:
-  \<open>(uncurry2 isa_mark_failed_lits_stack, uncurry2 (mark_failed_lits_stack \<A>\<^sub>i\<^sub>n)) \<in>
+  assumes \<open>isasat_input_bounded \<A>\<^sub>i\<^sub>n\<close>
+  shows \<open>(uncurry2 isa_mark_failed_lits_stack, uncurry2 (mark_failed_lits_stack \<A>\<^sub>i\<^sub>n)) \<in>
      [\<lambda>((N, ana), cach). length ana \<le> 1 +  uint32_max div 2]\<^sub>f
      {(arena, N). valid_arena arena N vdom} \<times>\<^sub>f ana_lookups_rel NU \<times>\<^sub>f cach_refinement \<A>\<^sub>i\<^sub>n \<rightarrow>
      \<langle>cach_refinement \<A>\<^sub>i\<^sub>n\<rangle>nres_rel\<close>
 proof -
+  have subset_mset_add_new: \<open>a \<notin># A \<Longrightarrow> a \<in># B \<Longrightarrow> add_mset a A \<subseteq># B \<longleftrightarrow> A \<subseteq># B\<close> for a A B
+    by (metis insert_DiffM insert_subset_eq_iff subset_add_mset_notin_subset)
   have [refine0]: \<open>((0, x2c), 0, x2a) \<in> nat_rel \<times>\<^sub>f cach_refinement \<A>\<^sub>i\<^sub>n\<close>
     if \<open>(x2c, x2a) \<in> cach_refinement \<A>\<^sub>i\<^sub>n\<close> for x2c x2a
     using that by auto
@@ -2934,10 +2976,12 @@ proof -
       using \<open>?A\<close> cach by (auto simp: cach_refinement_alt_def dest: multi_member_split)
 
     then show ?final
-      using \<open>?le\<close> \<open>?A\<close> cach x1f x2g_u1_le x2g
+      using \<open>?le\<close> \<open>?A\<close> cach x1f x2g_u1_le x2g assms
+     apply -
+     apply (rule conflict_min_cach_set_failed[of \<A>\<^sub>i\<^sub>n, THEN fref_to_Down_curry, THEN order_trans])
       by (cases x2e)
-        (auto simp: conflict_min_cach_set_failed_l_def cach_refinement_alt_def
-        arena_lifting[OF arena])
+        (auto simp:  cach_refinement_alt_def RETURN_def conc_fun_RES
+        arena_lifting[OF arena] subset_mset_add_new)
   qed
 
   show ?thesis
@@ -3182,7 +3226,8 @@ lemma valid_arena_nempty:
   by auto
 
 lemma isa_lit_redundant_rec_wl_lookup_lit_redundant_rec_wl_lookup:
-  \<open>(uncurry5 isa_lit_redundant_rec_wl_lookup, uncurry5 (lit_redundant_rec_wl_lookup \<A>)) \<in>
+  assumes \<open>isasat_input_bounded \<A>\<close>
+  shows \<open>(uncurry5 isa_lit_redundant_rec_wl_lookup, uncurry5 (lit_redundant_rec_wl_lookup \<A>)) \<in>
     [\<lambda>(((((_, N), _), _), _), _).  literals_are_in_\<L>\<^sub>i\<^sub>n_mm \<A> ((mset \<circ> fst) `# ran_m N)]\<^sub>f
     trail_pol \<A> \<times>\<^sub>f {(arena, N). valid_arena arena N vdom} \<times>\<^sub>f lookup_clause_rel \<A> \<times>\<^sub>f
      cach_refinement \<A> \<times>\<^sub>f Id \<times>\<^sub>f Id \<rightarrow>
@@ -3292,7 +3337,8 @@ proof -
     show ?thesis
       unfolding 1
       apply (rule isa_mark_failed_lits_stack_isa_mark_failed_lits_stack[THEN
-	   fref_to_Down_curry2, of x2 x2y0 x1j x2e x2z x1l vdom x2 \<A>, THEN order_trans])
+	   fref_to_Down_curry2, of \<A> x2 x2y0 x1j x2e x2z x1l vdom x2, THEN order_trans])
+      subgoal using assms by fast
       subgoal using that x2z by (auto simp: list_rel_imp_same_length[symmetric]
         isa_get_literal_and_remove_of_analyse_wl_def
         get_literal_and_remove_of_analyse_wl2_def)
@@ -3413,7 +3459,8 @@ proof -
     show ?thesis
       unfolding 1
       apply (rule isa_mark_failed_lits_stack_isa_mark_failed_lits_stack[THEN
-	   fref_to_Down_curry2, of x2 x2y0 x1j x2e x2z x1l vdom x2 \<A>, THEN order_trans])
+	   fref_to_Down_curry2, of  \<A> x2 x2y0 x1j x2e x2z x1l vdom x2, THEN order_trans])
+      subgoal using assms by fast
       subgoal using that x2z by (auto simp: list_rel_imp_same_length[symmetric]
         isa_get_literal_and_remove_of_analyse_wl_def
         get_literal_and_remove_of_analyse_wl2_def)
@@ -3466,10 +3513,10 @@ proof -
       by (rule_tac x = \<open>x1s\<close> in exI; auto simp: valid_arena_nempty)+
     subgoal by (auto simp: arena_lifting arena_is_valid_clause_idx_def nat_of_uint64_conv_def
       lit_redundant_rec_wl_inv_def split: if_splits)
-    subgoal
+    subgoal using assms
       by (auto simp: arena_lifting arena_is_valid_clause_idx_def bind_rule_complete_RES conc_fun_RETURN
            in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n lit_redundant_rec_wl_inv_def lit_redundant_rec_wl_ref_def
-          intro!:  conflict_min_cach_set_removable[of \<A>,THEN fref_to_Down_curry, THEN order_trans]
+          intro!: conflict_min_cach_set_removable[of \<A>,THEN fref_to_Down_curry, THEN order_trans]
 	  dest: List.last_in_set)
 
    subgoal for x y x1 x1a x1b x1c x1d x2 x2a x2b x2c x2d x1e x1f x1g x1h x1i x2e x2f x2g
@@ -3670,7 +3717,8 @@ lemma in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>nD[intro]: \<ope
   using in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n by blast
 
 lemma isa_literal_redundant_wl_lookup_literal_redundant_wl_lookup:
-  \<open>(uncurry5 isa_literal_redundant_wl_lookup, uncurry5 (literal_redundant_wl_lookup \<A>)) \<in>
+  assumes \<open>isasat_input_bounded \<A>\<close>
+  shows \<open>(uncurry5 isa_literal_redundant_wl_lookup, uncurry5 (literal_redundant_wl_lookup \<A>)) \<in>
     [\<lambda>(((((_, N), _), _), _), _). literals_are_in_\<L>\<^sub>i\<^sub>n_mm \<A> ((mset \<circ> fst) `# ran_m N)]\<^sub>f
      trail_pol \<A> \<times>\<^sub>f {(arena, N). valid_arena arena N vdom} \<times>\<^sub>f lookup_clause_rel \<A> \<times>\<^sub>f cach_refinement \<A>
         \<times>\<^sub>f Id  \<times>\<^sub>f Id \<rightarrow>
@@ -3717,6 +3765,7 @@ proof -
 	arena_is_valid_clause_idx_and_access_def arena_is_valid_clause_idx_def
 	simp: valid_arena_nempty
 	intro!: exI[of _ xb])
+    subgoal using assms by auto
     subgoal by auto
     subgoal for x y x1 x1a x1b x1c x1d x2 x2a x2b x2c x2d x1e x1f x1g x1h x1i x2e x2f x2g
        x2h x2i xa x' xb x'a
@@ -3774,7 +3823,8 @@ where
 
 
 lemma isa_minimize_and_extract_highest_lookup_conflict_minimize_and_extract_highest_lookup_conflict:
-  \<open>(uncurry5 isa_minimize_and_extract_highest_lookup_conflict,
+  assumes \<open>isasat_input_bounded \<A>\<close>
+  shows \<open>(uncurry5 isa_minimize_and_extract_highest_lookup_conflict,
     uncurry5 (minimize_and_extract_highest_lookup_conflict \<A>)) \<in>
     [\<lambda>(((((_, N), D), _), _), _). literals_are_in_\<L>\<^sub>i\<^sub>n_mm \<A> ((mset \<circ> fst) `# ran_m N) \<and>
        \<not>tautology D]\<^sub>f
@@ -3816,6 +3866,7 @@ proof -
     subgoal by (auto simp: minimize_and_extract_highest_lookup_conflict_inv_def)
     subgoal by auto
     subgoal by auto
+    subgoal using assms by auto
     subgoal by auto
     subgoal by auto
     subgoal by auto

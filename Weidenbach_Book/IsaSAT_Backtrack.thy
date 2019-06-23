@@ -520,6 +520,7 @@ definition empty_cach_ref_set_inv where
 definition empty_cach_ref_set where
   \<open>empty_cach_ref_set = (\<lambda>(cach0, support). do {
     let n = length support;
+    ASSERT(n \<le> Suc (uint32_max div 2));
     (_, cach) \<leftarrow> WHILE\<^sub>T\<^bsup>empty_cach_ref_set_inv cach0 support\<^esup>
       (\<lambda>(i, cach). i < length support)
       (\<lambda>(i, cach). do {
@@ -533,7 +534,7 @@ definition empty_cach_ref_set where
 
 lemma empty_cach_ref_set_empty_cach_ref:
   \<open>(empty_cach_ref_set, RETURN o empty_cach_ref) \<in>
-    [\<lambda>(cach, supp). (\<forall>L \<in> set supp. L < length cach) \<and>
+    [\<lambda>(cach, supp). (\<forall>L \<in> set supp. L < length cach) \<and> length supp \<le> Suc (uint32_max div 2) \<and>
       (\<forall>L < length cach. cach ! L \<noteq> SEEN_UNKNOWN \<longrightarrow> L \<in> set supp)]\<^sub>f
     Id \<rightarrow> \<langle>Id\<rangle> nres_rel\<close>
 proof -
@@ -623,20 +624,22 @@ proof -
   qed
   show ?thesis
     unfolding empty_cach_ref_set_def empty_cach_ref_def Let_def comp_def
-    by (intro frefI nres_relI) (clarify intro!: H)
+    by (intro frefI nres_relI ASSERT_leI) (clarify intro!: H ASSERT_leI)
+
 qed
 
 
 lemma empty_cach_ref_empty_cach:
-  \<open>(RETURN o empty_cach_ref, RETURN o empty_cach) \<in> cach_refinement \<A> \<rightarrow>\<^sub>f \<langle>cach_refinement \<A>\<rangle> nres_rel\<close>
+  \<open>isasat_input_bounded \<A> \<Longrightarrow> (RETURN o empty_cach_ref, RETURN o empty_cach) \<in> cach_refinement \<A> \<rightarrow>\<^sub>f \<langle>cach_refinement \<A>\<rangle> nres_rel\<close>
   by (intro frefI nres_relI)
     (auto simp: empty_cach_def empty_cach_ref_def cach_refinement_alt_def cach_refinement_list_def
-      map_fun_rel_def)
+      map_fun_rel_def intro: bounded_included_le)
 
 
 definition empty_cach_ref_pre where
   \<open>empty_cach_ref_pre = (\<lambda>(cach :: minimize_status list, supp :: nat list).
          (\<forall>L\<in>set supp. L < length cach) \<and>
+         length supp \<le> Suc (uint_max div 2) \<and>
          (\<forall>L<length cach. cach ! L \<noteq> SEEN_UNKNOWN \<longrightarrow> L \<in> set supp))\<close>
 
 
@@ -1166,6 +1169,7 @@ proof -
           [THEN fref_to_Down_curry5,
             of \<open>all_atms_st S\<close> M N \<open>remove1_mset (-lit_of (hd M)) (the D)\<close> cach' lbd \<open>outl[0 := - lit_of (hd M)]\<close>
             _ _ _ _ _ _ \<open>set vdom\<close>])
+      subgoal using bounded by (auto simp: S all_atms_def)
       subgoal using tauto_confl' pre2 by auto
       subgoal using D' not_none arena S_T uL_D uM_\<L>\<^sub>a\<^sub>l\<^sub>l not_empty D' L_D b cach_empty M'_M unfolding all_atms_def
         by (auto simp: option_lookup_clause_rel_def S state_wl_l_def image_image cach_refinement_empty_def cach'_def
@@ -1256,7 +1260,7 @@ proof -
         done
       have [simp]: \<open>cach_refinement_empty (all_atms N (NE + UE)) (empty_cach_ref x1a)\<close>
         using empty_cach_ref_empty_cach[of \<open>all_atms_st S\<close>, THEN fref_to_Down_unRET, of x1a]
-          mini
+          mini bounded
         by (auto simp add: cach_refinement_empty_def empty_cach_def cach'_def S
             simp flip: all_atms_def)
 
@@ -1412,7 +1416,9 @@ proof -
       subgoal using trail_nempty .
       subgoal using pre2  by (auto simp: S all_atms_def)
       subgoal using uM_\<L>\<^sub>a\<^sub>l\<^sub>l by (auto simp: S all_atms_def)
-      subgoal by (auto simp: empty_cach_ref_pre_def cach_refinement_alt_def)
+      subgoal premises p
+        using bounded p(5,7-) by (auto simp: S empty_cach_ref_pre_def cach_refinement_alt_def
+       intro!: IsaSAT_Lookup_Conflict.bounded_included_le simp: all_atms_def simp del: isasat_input_bounded_def)
       subgoal by auto
       subgoal using bounded pre2
         by (auto dest!: simple_clss_size_upper_div2 simp: uint32_max_def S all_atms_def[symmetric]
@@ -1922,7 +1928,9 @@ proof -
       \<open>phase_saving ((all_atms (fmupd x' (C', b) N) (NE + UE))) =
         phase_saving ((all_atms N (NE + UE)))\<close> (is ?F)
       \<open>cach_refinement_empty ((all_atms (fmupd x' (C', b) N) (NE + UE))) =
-        cach_refinement_empty ((all_atms N (NE + UE)))\<close> (is ?G)
+        cach_refinement_empty ((all_atms N (NE + UE)))\<close> (is ?G) (*cach_refinement_nonull*)
+      \<open>cach_refinement_nonull ((all_atms (fmupd x' (C', b) N) (NE + UE))) =
+        cach_refinement_nonull ((all_atms N (NE + UE)))\<close> (is ?G2)
       \<open>vdom_m ((all_atms (fmupd x' (C', b) N) (NE + UE))) =
         vdom_m ((all_atms N (NE + UE)))\<close> (is ?H)
       \<open>isasat_input_bounded ((all_atms (fmupd x' (C', b) N) (NE + UE))) =
@@ -1945,7 +1953,7 @@ proof -
         set_mset (all_atms N (NE + UE))\<close>
         using A unfolding \<L>\<^sub>a\<^sub>l\<^sub>l_def C by (auto simp: A)
 
-      show ?B and ?C and ?D and ?E and ?F and ?G and ?H and ?I and ?J
+      show ?B and ?C and ?D and ?E and ?F and ?G and ?G2 and ?H and ?I and ?J
         unfolding trail_pol_def A A2 ann_lits_split_reasons_def isasat_input_bounded_def
           isa_vmtf_def vmtf_def distinct_atoms_rel_def vmtf_\<L>\<^sub>a\<^sub>l\<^sub>l_def atms_of_def
           distinct_hash_atoms_rel_def
@@ -1954,7 +1962,7 @@ proof -
           cach_refinement_def
           cach_refinement_list_def vdom_m_def
           isasat_input_bounded_def
-          isasat_input_nempty_def
+          isasat_input_nempty_def cach_refinement_nonull_def
         unfolding trail_pol_def[symmetric] ann_lits_split_reasons_def[symmetric]
           isasat_input_bounded_def[symmetric]
           vmtf_def[symmetric]
@@ -1966,7 +1974,7 @@ proof -
           option_lookup_clause_rel_def[symmetric]
           lookup_clause_rel_def[symmetric]
           phase_saving_def[symmetric] cach_refinement_empty_def[symmetric]
-          cach_refinement_def[symmetric]
+          cach_refinement_def[symmetric] cach_refinement_nonull_def[symmetric]
           cach_refinement_list_def[symmetric]
           vdom_m_def[symmetric]
           isasat_input_bounded_def[symmetric]
@@ -2268,7 +2276,7 @@ proof -
           cach_refinement_def
           cach_refinement_list_def vdom_m_def
           isasat_input_bounded_def
-          isasat_input_nempty_def
+          isasat_input_nempty_def cach_refinement_nonull_def
         unfolding trail_pol_def[symmetric] ann_lits_split_reasons_def[symmetric]
           isasat_input_bounded_def[symmetric]
           vmtf_def[symmetric]
@@ -2283,7 +2291,7 @@ proof -
           cach_refinement_def[symmetric]
           cach_refinement_list_def[symmetric]
           vdom_m_def[symmetric]
-          isasat_input_bounded_def[symmetric]
+          isasat_input_bounded_def[symmetric] cach_refinement_nonull_def[symmetric]
           isasat_input_nempty_def[symmetric]
         apply auto
         done

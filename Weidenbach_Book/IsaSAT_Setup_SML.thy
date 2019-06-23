@@ -5,7 +5,7 @@ begin
 
 (*TODO Move*)
 (*End Move*)
-
+type_synonym minimize_assn = \<open>minimize_status array \<times> uint32 array_list32\<close>
 abbreviation stats_assn :: \<open>stats \<Rightarrow> stats \<Rightarrow> assn\<close> where
   \<open>stats_assn \<equiv> uint64_assn *a uint64_assn *a uint64_assn *a uint64_assn *a uint64_assn
      *a uint64_assn *a uint64_assn *a uint64_assn\<close>

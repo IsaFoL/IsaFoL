@@ -188,7 +188,7 @@ definition opts_unbounded_mode where
 
 paragraph \<open>Base state\<close>
 
-type_synonym minimize_assn = \<open>minimize_status array \<times> uint32 array \<times> nat\<close>
+
 type_synonym out_learned = \<open>nat clause_l\<close>
 
 type_synonym vdom = \<open>nat list\<close>
@@ -750,10 +750,25 @@ lemma phase_saving_cong:
   using  \<L>\<^sub>a\<^sub>l\<^sub>l_cong[of \<A> \<B>] atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_cong[of \<A> \<B>]
   by (auto simp: phase_saving_def)
 
+    (*TODO Move + replace distinct_subseteq_iff*)
+lemma distinct_subseteq_iff2:
+  assumes dist: "distinct_mset M"
+  shows "set_mset M \<subseteq> set_mset N \<longleftrightarrow> M \<subseteq># N"
+proof
+  assume "set_mset M \<subseteq> set_mset N"
+  then show "M \<subseteq># N"
+    using dist by (metis distinct_mset_set_mset_ident mset_set_subset_iff)
+next
+  assume "M \<subseteq># N"
+  then show "set_mset M \<subseteq> set_mset N"
+    by (metis set_mset_mono)
+qed
+
 lemma cach_refinement_empty_cong:
   \<open>set_mset \<A> = set_mset \<B> \<Longrightarrow> cach_refinement_empty \<A> = cach_refinement_empty \<B>\<close>
   using  \<L>\<^sub>a\<^sub>l\<^sub>l_cong[of \<A> \<B>] atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_cong[of \<A> \<B>]
-  by (auto simp: cach_refinement_empty_def cach_refinement_alt_def intro!: ext)
+  by (force simp: cach_refinement_empty_def cach_refinement_alt_def
+    distinct_subseteq_iff2[symmetric] intro!: ext)
 
 lemma vdom_m_cong:
   \<open>set_mset \<A> = set_mset \<B> \<Longrightarrow> vdom_m \<A> x y = vdom_m \<B> x y\<close>

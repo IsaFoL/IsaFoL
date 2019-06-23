@@ -244,7 +244,7 @@ lemma minimize_status_eq_hnr[sepref_fr_rules]:
 
 
 abbreviation (in -) cach_refinement_l_assn where
-  \<open>cach_refinement_l_assn \<equiv> array_assn minimize_status_assn *a arl_assn uint32_nat_assn\<close>
+  \<open>cach_refinement_l_assn \<equiv> array_assn minimize_status_assn *a arl32_assn uint32_nat_assn\<close>
 
 sepref_register conflict_min_cach_l
 sepref_definition (in -) delete_from_lookup_conflict_code
@@ -436,19 +436,39 @@ sepref_definition (in -) conflict_min_cach_l_code
 
 declare conflict_min_cach_l_code.refine[sepref_fr_rules]
 
+lemma conflict_min_cach_set_failed_l_alt_def:
+  \<open>conflict_min_cach_set_failed_l = (\<lambda>(cach, sup) L. do {
+     ASSERT(L < length cach);
+     ASSERT(length sup \<le> 1 + uint32_max div 2);
+     let b = (cach ! L = SEEN_UNKNOWN);
+     RETURN (cach[L := SEEN_FAILED], if b  then sup @ [L] else sup)
+   })\<close>
+  unfolding conflict_min_cach_set_failed_l_def Let_def by auto
+
+lemma le_uint32_max_div2_le_uint32_max: \<open>a2' \<le> Suc (uint_max div 2) \<Longrightarrow> a2' < uint_max\<close>
+  by (auto simp: uint32_max_def)
+
 sepref_definition (in -) conflict_min_cach_set_failed_l_code
   is \<open>uncurry conflict_min_cach_set_failed_l\<close>
   :: \<open>cach_refinement_l_assn\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a cach_refinement_l_assn\<close>
-  supply arl_append_hnr[sepref_fr_rules]
-  unfolding conflict_min_cach_set_failed_l_def
+  supply arl_append_hnr[sepref_fr_rules] le_uint32_max_div2_le_uint32_max[intro]
+  unfolding conflict_min_cach_set_failed_l_alt_def
   by sepref
 
+lemma conflict_min_cach_set_removable_l_alt_def:
+  \<open>conflict_min_cach_set_removable_l = (\<lambda>(cach, sup) L. do {
+     ASSERT(L < length cach);
+     ASSERT(length sup \<le> 1 + uint32_max div 2);
+     let b = (cach ! L = SEEN_UNKNOWN);
+     RETURN (cach[L := SEEN_REMOVABLE], if b then sup @ [L] else sup)
+   })\<close>
+  unfolding conflict_min_cach_set_removable_l_def by auto
 
 sepref_definition (in -) conflict_min_cach_set_removable_l_code
   is \<open>uncurry conflict_min_cach_set_removable_l\<close>
   :: \<open>cach_refinement_l_assn\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a cach_refinement_l_assn\<close>
-  supply arl_append_hnr[sepref_fr_rules]
-  unfolding conflict_min_cach_set_removable_l_def
+  supply arl_append_hnr[sepref_fr_rules] le_uint32_max_div2_le_uint32_max[intro]
+  unfolding conflict_min_cach_set_removable_l_alt_def
   by sepref
 
 declare conflict_min_cach_set_removable_l_code.refine[sepref_fr_rules]
@@ -504,14 +524,14 @@ sepref_definition isa_mark_failed_lits_stack_code
       cach_refinement_l_assn\<close>
   supply [[goals_limit = 1]] neq_Nil_revE[elim!] image_image[simp] length_rll_def[simp]
     mark_failed_lits_stack_inv_helper1[dest] mark_failed_lits_stack_inv_helper2[dest]
-    fmap_length_rll_u_def[simp] isa_mark_failed_lits_stackI[intro]
+    fmap_length_rll_u_def[simp] isa_mark_failed_lits_stackI[intro] le_uint32_max_div2_le_uint32_max[intro]
   unfolding isa_mark_failed_lits_stack_def PR_CONST_def
     conflict_min_cach_set_failed_def[symmetric]
     conflict_min_cach_def[symmetric]
     get_literal_and_remove_of_analyse_wl_def
     nth_rll_def[symmetric]
     fmap_rll_def[symmetric]
-    conflict_min_cach_set_failed_l_def
+    conflict_min_cach_set_failed_l_alt_def
   apply (rewrite at \<open>arena_lit _ (_ + \<hole> - _)\<close> nat_of_uint32_conv_def[symmetric])
   apply (rewrite in \<open>_ + \<hole>\<close> one_uint32_nat_def[symmetric])
   apply (rewrite in \<open>(\<hole>, _)\<close> zero_uint32_nat_def[symmetric])
@@ -526,7 +546,7 @@ sepref_definition isa_mark_failed_lits_stack_fast_code
   supply [[goals_limit = 1]] neq_Nil_revE[elim!] image_image[simp] length_rll_def[simp]
     mark_failed_lits_stack_inv_helper1[dest] mark_failed_lits_stack_inv_helper2[dest]
     fmap_length_rll_u_def[simp] isa_mark_failed_lits_stackI[intro]
-    arena_is_valid_clause_idx_le_uint64_max[intro]
+    arena_is_valid_clause_idx_le_uint64_max[intro] le_uint32_max_div2_le_uint32_max[intro]
   unfolding isa_mark_failed_lits_stack_def PR_CONST_def
     conflict_min_cach_set_failed_def[symmetric]
     conflict_min_cach_def[symmetric]
@@ -534,7 +554,7 @@ sepref_definition isa_mark_failed_lits_stack_fast_code
     nth_rll_def[symmetric]
     fmap_rll_def[symmetric]
     arena_lit_def[symmetric]
-    conflict_min_cach_set_failed_l_def
+    conflict_min_cach_set_failed_l_alt_def
   apply (rewrite at \<open>arena_lit _ (_ + \<hole> - _)\<close> uint64_of_uint32_conv_def[symmetric])
   apply (rewrite in \<open>_ - \<hole>\<close> one_uint64_nat_def[symmetric])
   apply (rewrite in \<open>_ - \<hole>\<close> one_uint64_nat_def[symmetric])

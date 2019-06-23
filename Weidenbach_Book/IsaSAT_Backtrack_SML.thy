@@ -59,8 +59,9 @@ declare empty_conflict_and_extract_clause_heur_fast_code.refine[sepref_fr_rules]
 sepref_definition empty_cach_code
   is \<open>empty_cach_ref_set\<close>
   :: \<open>cach_refinement_l_assn\<^sup>d \<rightarrow>\<^sub>a cach_refinement_l_assn\<close>
-  supply array_replicate_hnr[sepref_fr_rules]
-  unfolding empty_cach_ref_set_def comp_def
+  supply array_replicate_hnr[sepref_fr_rules] uint_max_def[simp]
+  unfolding empty_cach_ref_set_def comp_def zero_uint32_nat_def[symmetric]
+    one_uint32_nat_def[symmetric]
   by sepref
 
 declare empty_cach_code.refine[sepref_fr_rules]
@@ -75,6 +76,7 @@ proof -
     \<in>[comp_PRE Id
      (\<lambda>(cach, supp).
          (\<forall>L\<in>set supp. L < length cach) \<and>
+         length supp \<le> Suc (uint_max div 2) \<and>
          (\<forall>L<length cach. cach ! L \<noteq> SEEN_UNKNOWN \<longrightarrow> L \<in> set supp))
      (\<lambda>x y. True)
      (\<lambda>x. nofail ((RETURN \<circ> empty_cach_ref) x))]\<^sub>a
