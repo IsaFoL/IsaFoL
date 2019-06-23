@@ -2802,6 +2802,7 @@ definition from_ana_ref where
 definition isa_mark_failed_lits_stack where
   \<open>isa_mark_failed_lits_stack NU analyse cach = do {
     let l = length analyse;
+    ASSERT(length analyse \<le> 1 + uint32_max div 2);
     (_, cach) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(_, cach). True\<^esup>
       (\<lambda>(i, cach). i < l)
       (\<lambda>(i, cach). do {
@@ -2836,7 +2837,7 @@ lemma mark_failed_lits_stack_inv_helper2: \<open>mark_failed_lits_stack_inv a ba
 
 lemma isa_mark_failed_lits_stack_isa_mark_failed_lits_stack:
   \<open>(uncurry2 isa_mark_failed_lits_stack, uncurry2 (mark_failed_lits_stack \<A>\<^sub>i\<^sub>n)) \<in>
-     [\<lambda>((N, ana), cach). True]\<^sub>f
+     [\<lambda>((N, ana), cach). length ana \<le> 1 +  uint32_max div 2]\<^sub>f
      {(arena, N). valid_arena arena N vdom} \<times>\<^sub>f ana_lookups_rel NU \<times>\<^sub>f cach_refinement \<A>\<^sub>i\<^sub>n \<rightarrow>
      \<langle>cach_refinement \<A>\<^sub>i\<^sub>n\<rangle>nres_rel\<close>
 proof -
@@ -2857,7 +2858,7 @@ proof -
                    \<in> nat_rel \<times>\<^sub>f cach_refinement \<A>\<^sub>i\<^sub>n))\<close> (is ?final) and
       ge1: \<open>x1g + x2g \<ge> 1\<close>
     if
-      \<open>case y of (x, xa) \<Rightarrow> (case x of (N, ana) \<Rightarrow> \<lambda>cach. True) xa\<close> and
+      \<open>case y of (x, xa) \<Rightarrow> (case x of (N, ana) \<Rightarrow> \<lambda>cach. length ana \<le> 1 +  uint32_max div 2) xa\<close> and
       xy: \<open>(x, y) \<in> {(arena, N). valid_arena arena N vdom} \<times>\<^sub>f ana_lookups_rel NU
          \<times>\<^sub>f cach_refinement \<A>\<^sub>i\<^sub>n\<close> and
       st:
@@ -2945,6 +2946,7 @@ proof -
     apply (rewrite at \<open>let _ = length _ in _\<close> Let_def)
     apply (intro frefI nres_relI)
     apply refine_vcg
+    subgoal by (auto simp: list_rel_imp_same_length)
     subgoal by auto
     subgoal by auto
     subgoal for x y x1 x1a x2 x2a x1b x1c x2b x2c xa x' x1d x2d x1e x2e
@@ -3028,6 +3030,7 @@ where
             else do {
 	      ASSERT (isa_get_literal_and_remove_of_analyse_wl_pre NU analyse);
 	      let (L, analyse) = isa_get_literal_and_remove_of_analyse_wl NU analyse;
+              ASSERT(length analyse \<le> 1 +  uint32_max div 2);
 	      ASSERT(get_level_pol_pre (M, L));
 	      let b = \<not>level_in_lbd (get_level_pol M L) lbd;
 	      ASSERT(atm_in_conflict_lookup_pre (atm_of L) D);
@@ -3084,6 +3087,7 @@ lemma isa_lit_redundant_rec_wl_lookup_alt_def:
           else do {
               ASSERT (isa_get_literal_and_remove_of_analyse_wl_pre NU analyse);
               let (L, analyse) = isa_get_literal_and_remove_of_analyse_wl NU analyse;
+              ASSERT(length analyse \<le> 1+ uint32_max div 2);
               ASSERT(get_level_pol_pre (M, L));
               let b = \<not>level_in_lbd (get_level_pol M L) lbd;
               ASSERT(atm_in_conflict_lookup_pre (atm_of L) D);
@@ -3266,7 +3270,8 @@ proof -
        conflict_min_cach_l x1l (atm_of x1z) = SEEN_FAILED\<close> and
       \<open>\<not> level_in_lbd (get_level x1d x1y) x2d \<or>
        conflict_min_cach x1j (atm_of x1y) = SEEN_FAILED\<close> and
-      inv2: \<open>mark_failed_lits_stack_inv2 x2 x2y x1j\<close>
+      inv2: \<open>mark_failed_lits_stack_inv2 x2 x2y x1j\<close> and
+      \<open>length x1m \<le> 1+ uint32_max div 2\<close>
      for x y x1 x1a x1b x1c x1d x2 x2a x2b x2c x2d x1e x1f x1g x1h x1i x2e x2f x2g
 	 x2h x2i xa x' x1j x2j x1k x2k x1l x2l x1m x2m x1n x2n x1o x2o x1p x2p x1q
 	 x2q x1r x2r x1s x2s x1t x2t x1u x2u x1v x2v x1w x2w x1x x2x x1y x2y x1z
@@ -3288,7 +3293,9 @@ proof -
       unfolding 1
       apply (rule isa_mark_failed_lits_stack_isa_mark_failed_lits_stack[THEN
 	   fref_to_Down_curry2, of x2 x2y0 x1j x2e x2z x1l vdom x2 \<A>, THEN order_trans])
-      subgoal using that by auto
+      subgoal using that x2z by (auto simp: list_rel_imp_same_length[symmetric]
+        isa_get_literal_and_remove_of_analyse_wl_def
+        get_literal_and_remove_of_analyse_wl2_def)
       subgoal using that x2z inv by auto
       apply (rule order_trans)
       apply (rule ref_two_step')
@@ -3348,7 +3355,9 @@ proof -
       \<open>x1n \<in># dom_m x2\<close> and
       \<open>x1o < length (x2 \<propto> x1n)\<close> and
       \<open>x2 \<propto> x1n ! x1o \<in> lits_of_l x1d\<close> and
-      \<open>x2 \<propto> x1n ! x1o \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<close> and    \<open>literals_are_in_\<L>\<^sub>i\<^sub>n \<A> (mset (x2 \<propto> x1n))\<close> and    \<open>length (x2 \<propto> x1n) \<le> Suc (uint_max div 2)\<close> and
+      \<open>x2 \<propto> x1n ! x1o \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<close> and
+      \<open>literals_are_in_\<L>\<^sub>i\<^sub>n \<A> (mset (x2 \<propto> x1n))\<close> and
+      \<open>length (x2 \<propto> x1n) \<le> Suc (uint_max div 2)\<close> and
       \<open>x2p \<le> length (x2 \<propto> x1n)\<close> and
       \<open>arena_is_valid_clause_idx x2e (fst (last x1m))\<close> and
       \<open>x2t = (x1u, x2u)\<close> and
@@ -3382,7 +3391,8 @@ proof -
       \<open>(xb, x'a) \<in> \<langle>nat_rel\<rangle>option_rel\<close> and
       \<open>xb = None\<close> and
       \<open>x'a = None\<close> and
-      inv2: \<open>mark_failed_lits_stack_inv2 x2 x2y x1j\<close>
+      inv2: \<open>mark_failed_lits_stack_inv2 x2 x2y x1j\<close> and
+      \<open>length x1m \<le> 1 + uint_max div 2\<close>
     for x y x1 x1a x1b x1c x1d x2 x2a x2b x2c x2d x1e x1f x1g x1h x1i x2e x2f x2g
        x2h x2i xa x' x1j x2j x1k x2k x1l x2l x1m x2m x1n x2n x1o x2o x1p x2p x1q
        x2q x1r x2r x1s x2s x1t x2t x1u x2u x1v x2v x1w x2w x1x x2x x1y x2y x1z
@@ -3404,7 +3414,9 @@ proof -
       unfolding 1
       apply (rule isa_mark_failed_lits_stack_isa_mark_failed_lits_stack[THEN
 	   fref_to_Down_curry2, of x2 x2y0 x1j x2e x2z x1l vdom x2 \<A>, THEN order_trans])
-      subgoal using that by auto
+      subgoal using that x2z by (auto simp: list_rel_imp_same_length[symmetric]
+        isa_get_literal_and_remove_of_analyse_wl_def
+        get_literal_and_remove_of_analyse_wl2_def)
       subgoal using that x2z inv by auto
       apply (rule order_trans)
       apply (rule ref_two_step')
@@ -3468,6 +3480,7 @@ proof -
 	uint_max_def
         arena_is_valid_clause_idx_and_access_def lit_redundant_rec_wl_ref_def)
         (rule_tac x = x1s in exI; auto simp: uint_max_def; fail)+
+    subgoal by (auto simp: list_rel_imp_same_length)
     subgoal by (auto intro!: get_level_pol_pre
       simp: get_literal_and_remove_of_analyse_wl2_def)
     subgoal by (auto intro!: atm_in_conflict_lookup_pre

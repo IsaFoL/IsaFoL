@@ -40,7 +40,7 @@ definition (in -)ana_refinement_fast_assn where
   \<open>ana_refinement_fast_assn \<equiv> hr_comp (uint64_nat_assn *a uint64_assn) analyse_refinement_rel\<close>
 
 abbreviation (in -)analyse_refinement_assn where
-  \<open>analyse_refinement_assn \<equiv> arl_assn ana_refinement_assn\<close>
+  \<open>analyse_refinement_assn \<equiv> arl32_assn ana_refinement_assn\<close>
 
 (*TODO move*)
 lemma ex_assn_def_pure_eq_start:
@@ -79,7 +79,7 @@ lemma ex_assn_cong:
 
 abbreviation (in -)analyse_refinement_fast_assn where
   \<open>analyse_refinement_fast_assn \<equiv>
-    arl_assn ana_refinement_fast_assn\<close>
+    arl32_assn ana_refinement_fast_assn\<close>
 
 lemma lookup_clause_assn_is_None_lookup_clause_assn_is_None:
  \<open>(return o lookup_clause_assn_is_None, RETURN o lookup_clause_assn_is_None) \<in>
@@ -490,6 +490,13 @@ lemma set_lookup_empty_conflict_to_none_hnr[sepref_fr_rules]:
      lookup_clause_rel_assn\<^sup>d \<rightarrow>\<^sub>a conflict_option_rel_assn\<close>
   by sepref_to_hoare (sep_auto simp: set_lookup_empty_conflict_to_none_def)
 
+lemma isa_mark_failed_lits_stackI:
+  assumes 
+    \<open>length ba \<le> Suc (uint_max div 2)\<close> and
+    \<open>a1' < length ba\<close>
+  shows \<open>Suc a1' \<le> uint_max\<close>
+  using assms by (auto simp: uint32_max_def)
+
 sepref_register to_ana_ref_id
 sepref_definition isa_mark_failed_lits_stack_code
   is \<open>uncurry2 (isa_mark_failed_lits_stack)\<close>
@@ -497,7 +504,7 @@ sepref_definition isa_mark_failed_lits_stack_code
       cach_refinement_l_assn\<close>
   supply [[goals_limit = 1]] neq_Nil_revE[elim!] image_image[simp] length_rll_def[simp]
     mark_failed_lits_stack_inv_helper1[dest] mark_failed_lits_stack_inv_helper2[dest]
-    fmap_length_rll_u_def[simp]
+    fmap_length_rll_u_def[simp] isa_mark_failed_lits_stackI[intro]
   unfolding isa_mark_failed_lits_stack_def PR_CONST_def
     conflict_min_cach_set_failed_def[symmetric]
     conflict_min_cach_def[symmetric]
@@ -506,6 +513,8 @@ sepref_definition isa_mark_failed_lits_stack_code
     fmap_rll_def[symmetric]
     conflict_min_cach_set_failed_l_def
   apply (rewrite at \<open>arena_lit _ (_ + \<hole> - _)\<close> nat_of_uint32_conv_def[symmetric])
+  apply (rewrite in \<open>_ + \<hole>\<close> one_uint32_nat_def[symmetric])
+  apply (rewrite in \<open>(\<hole>, _)\<close> zero_uint32_nat_def[symmetric])
   by sepref
 
 
@@ -516,7 +525,7 @@ sepref_definition isa_mark_failed_lits_stack_fast_code
     cach_refinement_l_assn\<close>
   supply [[goals_limit = 1]] neq_Nil_revE[elim!] image_image[simp] length_rll_def[simp]
     mark_failed_lits_stack_inv_helper1[dest] mark_failed_lits_stack_inv_helper2[dest]
-    fmap_length_rll_u_def[simp]
+    fmap_length_rll_u_def[simp] isa_mark_failed_lits_stackI[intro]
     arena_is_valid_clause_idx_le_uint64_max[intro]
   unfolding isa_mark_failed_lits_stack_def PR_CONST_def
     conflict_min_cach_set_failed_def[symmetric]
@@ -530,12 +539,12 @@ sepref_definition isa_mark_failed_lits_stack_fast_code
   apply (rewrite in \<open>_ - \<hole>\<close> one_uint64_nat_def[symmetric])
   apply (rewrite in \<open>_ - \<hole>\<close> one_uint64_nat_def[symmetric])
   apply (rewrite in \<open>_ - \<hole>\<close> one_uint64_nat_def[symmetric])
-  unfolding
-    fast_minus_def[symmetric]
+  apply (rewrite in \<open>_ + \<hole>\<close> one_uint32_nat_def[symmetric])
+  apply (rewrite in \<open>(\<hole>, _)\<close> zero_uint32_nat_def[symmetric])
   by sepref
 
 declare isa_mark_failed_lits_stack_code.refine[sepref_fr_rules]
-declare isa_mark_failed_lits_stack_fast_code.refine[sepref_fr_rules]
+  isa_mark_failed_lits_stack_fast_code.refine[sepref_fr_rules]
 
 sepref_definition isa_get_literal_and_remove_of_analyse_wl_code
   is \<open>uncurry (RETURN oo isa_get_literal_and_remove_of_analyse_wl)\<close>
@@ -544,8 +553,8 @@ sepref_definition isa_get_literal_and_remove_of_analyse_wl_code
       unat_lit_assn *a analyse_refinement_assn\<close>
   unfolding isa_get_literal_and_remove_of_analyse_wl_pre_def
     isa_get_literal_and_remove_of_analyse_wl_def fast_minus_def[symmetric]
+    one_uint32_nat_def[symmetric]
   apply (rewrite at \<open>arena_lit _ (_ + \<hole>)\<close> nat_of_uint32_conv_def[symmetric])
-  apply (rewrite at \<open>(_ + \<hole>)\<close> one_uint32_nat_def[symmetric])
   by sepref
 
 sepref_definition isa_get_literal_and_remove_of_analyse_wl_fast_code
@@ -557,7 +566,7 @@ sepref_definition isa_get_literal_and_remove_of_analyse_wl_fast_code
   supply [[goals_limit=1]] arena_lit_pre_le2[dest]
   unfolding isa_get_literal_and_remove_of_analyse_wl_pre_def
   isa_get_literal_and_remove_of_analyse_wl_def fast_minus_def[symmetric]
-  apply (rewrite at \<open>_ + \<hole>\<close> one_uint32_nat_def[symmetric])
+  one_uint32_nat_def[symmetric]
   apply (rewrite at \<open>arena_lit _ (_ + \<hole>)\<close> uint64_of_uint32_conv_def[symmetric])
   by sepref
 
@@ -614,7 +623,12 @@ declare lit_redundant_reason_stack_wl_lookup_fast_code.refine[sepref_fr_rules]
 
 declare get_propagation_reason_code.refine[sepref_fr_rules]
 
-(* TODO fst (lst last) \<le> uint_max? *)
+lemma isa_lit_redundant_rec_wl_lookupI:
+  assumes 
+    \<open>length ba \<le> Suc (uint_max div 2)\<close>
+  shows \<open>length ba < uint_max\<close>
+  using assms by (auto simp: uint32_max_def)
+
 sepref_definition lit_redundant_rec_wl_lookup_code
   is \<open>uncurry5 (isa_lit_redundant_rec_wl_lookup)\<close>
   :: \<open>[\<lambda>(((((M, NU), D), cach), analysis), lbd). True]\<^sub>a
@@ -625,8 +639,8 @@ sepref_definition lit_redundant_rec_wl_lookup_code
     literals_are_in_\<L>\<^sub>i\<^sub>n_trail_uminus_in_lits_of_l[intro]
     literals_are_in_\<L>\<^sub>i\<^sub>n_trail_in_lits_of_l_atms[intro] length_rll_def[simp]
     literals_are_in_\<L>\<^sub>i\<^sub>n_trail_uminus_in_lits_of_l_atms[intro] nth_rll_def[simp]
-    fmap_length_rll_u_def[simp]
-    fmap_length_rll_def[simp]
+    fmap_length_rll_u_def[simp] isa_lit_redundant_rec_wl_lookupI[intro]
+    fmap_length_rll_def[simp] isa_mark_failed_lits_stackI[intro]
   unfolding isa_lit_redundant_rec_wl_lookup_def
     conflict_min_cach_set_removable_def[symmetric]
     conflict_min_cach_def[symmetric]
@@ -636,8 +650,8 @@ sepref_definition lit_redundant_rec_wl_lookup_code
     fmap_rll_def[symmetric]
     butlast_nonresizing_def[symmetric]
     nat_of_uint64_conv_def
-  apply (rewrite at \<open>(_, \<hole>, _)\<close> arl.fold_custom_empty)+
-  apply (rewrite at \<open>op_arl_empty\<close> annotate_assn[where A=analyse_refinement_assn])
+  apply (rewrite at \<open>(_, \<hole>, _)\<close> arl32.fold_custom_empty)+
+  apply (rewrite at \<open>op_arl32_empty\<close> annotate_assn[where A=analyse_refinement_assn])
   unfolding nth_rll_def[symmetric] length_rll_def[symmetric]
     fmap_rll_def[symmetric]
     fmap_length_rll_def[symmetric]
@@ -658,8 +672,8 @@ sepref_definition lit_redundant_rec_wl_lookup_fast_code
     literals_are_in_\<L>\<^sub>i\<^sub>n_trail_in_lits_of_l_atms[intro] length_rll_def[simp]
     literals_are_in_\<L>\<^sub>i\<^sub>n_trail_uminus_in_lits_of_l_atms[intro] nth_rll_def[simp]
     fmap_length_rll_u_def[simp]
-    fmap_length_rll_def[simp]
-    arena_lit_pre_le[intro]
+    fmap_length_rll_def[simp]  isa_lit_redundant_rec_wl_lookupI[intro]
+    arena_lit_pre_le[intro]  isa_mark_failed_lits_stackI[intro]
   unfolding isa_lit_redundant_rec_wl_lookup_def
     conflict_min_cach_set_removable_def[symmetric]
     conflict_min_cach_def[symmetric]
@@ -669,8 +683,8 @@ sepref_definition lit_redundant_rec_wl_lookup_fast_code
     fmap_rll_def[symmetric]
     butlast_nonresizing_def[symmetric]
     nat_of_uint64_conv_def
-  apply (rewrite at \<open>(_, \<hole>, _)\<close> arl.fold_custom_empty)+
-  apply (rewrite at \<open>op_arl_empty\<close> annotate_assn[where A=analyse_refinement_fast_assn])
+  apply (rewrite at \<open>(_, \<hole>, _)\<close> arl32.fold_custom_empty)+
+  apply (rewrite at \<open>op_arl32_empty\<close> annotate_assn[where A=analyse_refinement_fast_assn])
 
   unfolding nth_rll_def[symmetric] length_rll_def[symmetric]
     fmap_rll_def[symmetric]
@@ -729,7 +743,7 @@ sepref_definition (in -)lookup_conflict_upd_None_code
 
 declare lookup_conflict_upd_None_code.refine[sepref_fr_rules]
 
-
+lemma uint32_max_ge0:  \<open>0 < uint_max\<close> by (auto simp: uint32_max_def)
 sepref_definition literal_redundant_wl_lookup_code
   is \<open>uncurry5 isa_literal_redundant_wl_lookup\<close>
   :: \<open>[\<lambda>(((((M, NU), D), cach), L), lbd). True]\<^sub>a
@@ -737,12 +751,12 @@ sepref_definition literal_redundant_wl_lookup_code
       cach_refinement_l_assn\<^sup>d *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a lbd_assn\<^sup>k \<rightarrow>
       cach_refinement_l_assn *a analyse_refinement_assn *a bool_assn\<close>
   supply [[goals_limit=1]] Pos_unat_lit_assn[sepref_fr_rules] Neg_unat_lit_assn[sepref_fr_rules]
-  literals_are_in_\<L>\<^sub>i\<^sub>n_trail_uminus_in_lits_of_l[intro]
-  literals_are_in_\<L>\<^sub>i\<^sub>n_trail_uminus_in_lits_of_l_atms[intro]
+  literals_are_in_\<L>\<^sub>i\<^sub>n_trail_uminus_in_lits_of_l[intro] op_arl32_empty_def[simp]
+  literals_are_in_\<L>\<^sub>i\<^sub>n_trail_uminus_in_lits_of_l_atms[intro] uint32_max_ge0[intro!]
   unfolding isa_literal_redundant_wl_lookup_def zero_uint32_nat_def[symmetric] PR_CONST_def
-  apply (rewrite at \<open>(_, \<hole>, _)\<close> arl.fold_custom_empty)+
+  apply (rewrite at \<open>(_, \<hole>, _)\<close> arl32.fold_custom_empty)+
   unfolding single_replicate
-  unfolding arl.fold_custom_empty
+  unfolding arl32.fold_custom_empty
   by sepref
 
 declare literal_redundant_wl_lookup_code.refine[sepref_fr_rules]
@@ -754,12 +768,12 @@ sepref_definition literal_redundant_wl_lookup_fast_code
       cach_refinement_l_assn\<^sup>d *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a lbd_assn\<^sup>k \<rightarrow>
       cach_refinement_l_assn *a analyse_refinement_fast_assn *a bool_assn\<close>
   supply [[goals_limit=1]] Pos_unat_lit_assn[sepref_fr_rules] Neg_unat_lit_assn[sepref_fr_rules]
-  literals_are_in_\<L>\<^sub>i\<^sub>n_trail_uminus_in_lits_of_l[intro]
-  literals_are_in_\<L>\<^sub>i\<^sub>n_trail_uminus_in_lits_of_l_atms[intro]
+  literals_are_in_\<L>\<^sub>i\<^sub>n_trail_uminus_in_lits_of_l[intro] uint32_max_ge0[intro!]
+  literals_are_in_\<L>\<^sub>i\<^sub>n_trail_uminus_in_lits_of_l_atms[intro] op_arl32_empty_def[simp]
   unfolding isa_literal_redundant_wl_lookup_def zero_uint32_nat_def[symmetric] PR_CONST_def
-  apply (rewrite at \<open>(_, \<hole>, _)\<close> arl.fold_custom_empty)+
+  apply (rewrite at \<open>(_, \<hole>, _)\<close> arl32.fold_custom_empty)+
   unfolding single_replicate one_uint64_nat_def[symmetric]
-  unfolding arl.fold_custom_empty
+  unfolding arl32.fold_custom_empty
   by sepref
 
 declare literal_redundant_wl_lookup_fast_code.refine[sepref_fr_rules]
