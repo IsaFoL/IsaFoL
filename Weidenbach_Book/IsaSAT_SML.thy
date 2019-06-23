@@ -10,6 +10,9 @@ lemma [code]:
     }\<close>
   unfolding nth_aa64_i32_u64_def nth_aa64_def
     nth_nat_of_uint32_nth' nth_u_code_def[symmetric] ..
+
+lemma [code]: \<open>uint32_max_uint32 = 4294967295\<close>
+  by (auto simp: uint32_max_uint32_def)
 (*end move*)
 abbreviation  model_stat_assn where
   \<open>model_stat_assn \<equiv> option_assn (arl_assn unat_lit_assn) *a stats_assn\<close>
