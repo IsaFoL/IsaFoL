@@ -678,7 +678,7 @@ fun blit A_ src si dst di len =
     array_blit src (integer_of_nat
                      si) dst (integer_of_nat di) (integer_of_nat len));
 
-val version : string = "032f0706";
+val version : string = "2b081744";
 
 fun the (SOME x2) = x2;
 
@@ -5918,11 +5918,16 @@ fun conflict_min_cach_set_removable_l_code x =
     in
       (fn () =>
         let
-          val xa =
+          val xa = nth_u_code heap_minimize_status a1 bi ();
+          val x_b =
             heap_array_set_u heap_minimize_status a1 bi SEEN_REMOVABLE ();
-          val x_a = arl_append (default_uint32, heap_uint32) a2 bi ();
+          val x_c =
+            (if equal_minimize_status xa SEEN_UNKNOWN
+              then arl32_append (default_uint32, heap_uint32) a2 bi
+              else (fn () => a2))
+              ();
         in
-          (xa, x_a)
+          (x_b, x_c)
         end)
     end)
     x;
@@ -5952,22 +5957,34 @@ fun isa_mark_failed_lits_stack_fast_code x =
                          ()) ())
                          (fn xc =>
                            (fn f_ => fn () => f_
-                             ((heap_array_set_u heap_minimize_status a1c
-                                (atm_of_code xc) SEEN_FAILED)
+                             ((nth_u_code heap_minimize_status a1c
+                                (atm_of_code xc))
                              ()) ())
-                             (fn x_e =>
+                             (fn xd =>
                                (fn f_ => fn () => f_
                                  ((isa_arena_lit_fast_code ai
                                     (Uint64.minus
                                       (Uint64.plus a1a (uint64_of_uint32 a1b))
                                       Uint64.one))
                                  ()) ())
-                                 (fn xd =>
+                                 (fn xaa =>
                                    (fn f_ => fn () => f_
-                                     ((arl_append (default_uint32, heap_uint32)
-a2c (atm_of_code xd))
+                                     ((heap_array_set_u heap_minimize_status a1c
+(atm_of_code xaa) SEEN_FAILED)
                                      ()) ())
-                                     (fn x_f => (fn () => (x_e, x_f))))))
+                                     (fn x_g =>
+                                       (fn f_ => fn () => f_
+ ((if equal_minimize_status xd SEEN_UNKNOWN
+    then (fn f_ => fn () => f_
+           ((isa_arena_lit_fast_code ai
+              (Uint64.minus (Uint64.plus a1a (uint64_of_uint32 a1b))
+                Uint64.one))
+           ()) ())
+           (fn xe =>
+             arl32_append (default_uint32, heap_uint32) a2c (atm_of_code xe))
+    else (fn () => a2c))
+ ()) ())
+ (fn x_h => (fn () => (x_g, x_h)))))))
                      end
                     ()) ())
                     (fn x_e =>
@@ -6420,30 +6437,31 @@ fun vmtf_mark_to_rescore_also_reasons_fast_code x =
     end)
     x;
 
-fun emptied_arla x = (fn (a, _) => (a, zero_nata)) x;
+fun emptied_arl x = (fn (a, _) => (a, (Word32.fromInt 0))) x;
 
 fun empty_cach_code x =
   (fn (a1, a2) => fn () =>
     let
-      val _ = arl_length heap_uint32 a2 ();
+      val _ = arl32_length heap_uint32 a2 ();
       val a =
         heap_WHILET
           (fn (a1a, _) =>
-            (fn f_ => fn () => f_ ((arl_length heap_uint32 a2) ()) ())
-              (fn x_c => (fn () => (less_nat a1a x_c))))
+            (fn f_ => fn () => f_ ((arl32_length heap_uint32 a2) ()) ())
+              (fn x_c => (fn () => (Word32.< (a1a, x_c)))))
           (fn (a1a, a2a) =>
-            (fn f_ => fn () => f_ ((arl_get heap_uint32 a2 a1a) ()) ())
+            (fn f_ => fn () => f_ ((arl32_get heap_uint32 a2 a1a) ()) ())
               (fn xa =>
                 (fn f_ => fn () => f_
                   ((heap_array_set_u heap_minimize_status a2a xa SEEN_UNKNOWN)
                   ()) ())
-                  (fn x_d => (fn () => (plus_nat a1a one_nat, x_d)))))
-          (zero_nata, a1) ();
+                  (fn x_d =>
+                    (fn () => (Word32.+ (a1a, (Word32.fromInt 1)), x_d)))))
+          ((Word32.fromInt 0), a1) ();
     in
       let
         val (_, a2a) = a;
       in
-        (fn () => (a2a, emptied_arla a2))
+        (fn () => (a2a, emptied_arl a2))
       end
         ()
     end)
@@ -6825,8 +6843,6 @@ fun vmtf_rescale_code x =
         ()
     end)
     x;
-
-fun emptied_arl x = (fn (a, _) => (a, (Word32.fromInt 0))) x;
 
 fun current_stamp vm = fst (snd vm);
 
@@ -7711,22 +7727,33 @@ fun isa_mark_failed_lits_stack_code x =
                          ()) ())
                          (fn xc =>
                            (fn f_ => fn () => f_
-                             ((heap_array_set_u heap_minimize_status a1c
-                                (atm_of_code xc) SEEN_FAILED)
+                             ((nth_u_code heap_minimize_status a1c
+                                (atm_of_code xc))
                              ()) ())
-                             (fn x_e =>
+                             (fn xd =>
                                (fn f_ => fn () => f_
                                  ((isa_arena_lit_code ai
                                     (minus_nata
                                       (plus_nat a1a (nat_of_uint32 a1b))
                                       one_nat))
                                  ()) ())
-                                 (fn xd =>
+                                 (fn xaa =>
                                    (fn f_ => fn () => f_
-                                     ((arl_append (default_uint32, heap_uint32)
-a2c (atm_of_code xd))
+                                     ((heap_array_set_u heap_minimize_status a1c
+(atm_of_code xaa) SEEN_FAILED)
                                      ()) ())
-                                     (fn x_f => (fn () => (x_e, x_f))))))
+                                     (fn x_g =>
+                                       (fn f_ => fn () => f_
+ ((if equal_minimize_status xd SEEN_UNKNOWN
+    then (fn f_ => fn () => f_
+           ((isa_arena_lit_code ai
+              (minus_nata (plus_nat a1a (nat_of_uint32 a1b)) one_nat))
+           ()) ())
+           (fn xe =>
+             arl32_append (default_uint32, heap_uint32) a2c (atm_of_code xe))
+    else (fn () => a2c))
+ ()) ())
+ (fn x_h => (fn () => (x_g, x_h)))))))
                      end
                     ()) ())
                     (fn x_e =>
@@ -8949,7 +8976,7 @@ fun init_state_wl_D_code_unb x =
           val x_k = initialise_VMTF_code a1 xa ();
           val x_l = new heap_bool xa false ();
           val xb = new heap_minimize_status xa SEEN_UNKNOWN ();
-          val xba = arl_empty (default_uint32, heap_uint32) zero_nat ();
+          val xba = arl32_empty (default_uint32, heap_uint32) zero_uint32 ();
           val x_p = empty_lbd_code ();
           val x_r = arl_empty (default_nat, heap_nat) zero_nat ();
         in
@@ -9312,7 +9339,7 @@ fun init_state_wl_D_code x =
           val x_k = initialise_VMTF_code a1 xa ();
           val x_l = new heap_bool xa false ();
           val xb = new heap_minimize_status xa SEEN_UNKNOWN ();
-          val xba = arl_empty (default_uint32, heap_uint32) zero_nat ();
+          val xba = arl32_empty (default_uint32, heap_uint32) zero_uint32 ();
           val x_p = empty_lbd_code ();
           val x_r = arl64_empty (default_uint64, heap_uint64) zero_uint64 ();
         in
