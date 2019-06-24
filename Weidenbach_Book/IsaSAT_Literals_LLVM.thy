@@ -2,176 +2,42 @@ theory IsaSAT_Literals_LLVM
   imports WB_More_Word IsaSAT_Literals Watched_Literals.WB_More_IICF_LLVM
 begin
 
-
-(* TODO: Move to larray-impl thy *)
-type_synonym ('x,'l) larray = "'l word \<times> 'x ptr"
-
-
-(* TODO: Move *)
-hide_const (open) Separation_Algebra.pure
-term pure
-
 lemma convert_fref:
   "WB_More_Refinement.fref = Sepref_Rules.frefnd"
   "WB_More_Refinement.freft = Sepref_Rules.freftnd"
   unfolding WB_More_Refinement.fref_def Sepref_Rules.fref_def
   by auto
+
+  
 (* TODO: Move *)
-
-definition unat_rel :: "('a::len word \<times> nat) set" where "unat_rel \<equiv> unat.rel"
-abbreviation "unat_assn \<equiv> pure unat_rel"  
-
-abbreviation (input) "unat_rel' TYPE('a::len) \<equiv> unat_rel :: ('a word \<times> _) set"
-abbreviation (input) "unat_assn' TYPE('a::len) \<equiv> unat_assn :: _ \<Rightarrow> 'a word \<Rightarrow> _"
-
-
-lemma unat_or: "unat (x OR y) = unat x OR unat y"
-  unfolding unat_def
-  by (simp add: uint_or bitOR_nat_def)
-
-lemma unat_and: "unat (x AND y) = unat x AND unat y"
-  unfolding unat_def
-  by (simp add: uint_and bitAND_nat_def)
-  
-lemma unat_xor: "unat (x XOR y) = unat x XOR unat y"
-  unfolding unat_def
-  by (simp add: uint_xor bitXOR_nat_def)
-
-context begin                                             
-
-interpretation llvm_prim_arith_setup .
-
-lemma unat_bin_ops_bitwise:
-  "unat.is_bin_op (\<lambda>_ _ _. True) ll_and (AND) (AND)" 
-  "unat.is_bin_op (\<lambda>_ _ _. True) ll_or (OR) (OR)" 
-  "unat.is_bin_op (\<lambda>_ _ _. True) ll_xor (XOR) (XOR)" 
-  by (all \<open>prove_unat_op simp: unat_and unat_or unat_xor\<close>)
-  
-end
-
-
-
-definition [simp]: "unat_const TYPE('a::len) c \<equiv> (c::nat)"
-context fixes c::nat begin
-  sepref_register "unat_const TYPE('a::len) c" :: "nat"
-end
-
-lemma fold_unat:
-  "0 = unat_const TYPE('a::len) 0"  
-  "1 = unat_const TYPE('a::len) 1"  
-  "numeral n \<equiv> (unat_const TYPE('a::len) (numeral n))"
-  by simp_all
-
-  
-lemma hn_unat_0[sepref_fr_rules]:
-  "hn_refine \<box> (return 0) \<box> (unat_assn' TYPE('a::len)) (RETURN$PR_CONST (unat_const TYPE('a) 0))"
-  apply sepref_to_hoare
-  unfolding unat_rel_def unat.rel_def in_br_conv
-  supply [simp] = snat_invar_0
-  apply vcg
-  done
-  
-lemma hn_unat_1[sepref_fr_rules]:
-  "hn_refine \<box> (return 1) \<box> (unat_assn' TYPE('a::len)) (RETURN$PR_CONST (unat_const TYPE('a) 1))"
-  apply sepref_to_hoare
-  unfolding unat_rel_def unat.rel_def in_br_conv
-  supply [simp] = snat_invar_1
-  apply vcg
-  done
-  
-  
-lemma hn_unat_numeral[sepref_fr_rules]:
-  "\<lbrakk>numeral n \<in> unats LENGTH('a)\<rbrakk> \<Longrightarrow> 
-    hn_refine \<box> (return (numeral n)) \<box> (unat_assn' TYPE('a::len)) (RETURN$(PR_CONST (unat_const TYPE('a) (numeral n))))"
-  apply sepref_to_hoare unfolding unat_rel_def unat.rel_def in_br_conv 
-  apply vcg'
-  by (metis in_unats_conv int_nat_eq of_nat_numeral uint_nonnegative unat_bintrunc unat_def word_of_int_numeral word_uint.Rep_inverse' word_unat.Rep_cases)
-
-(* TODO: Setup for int seems to be missing to! *)  
-sepref_register    
-  and_word: "(AND):: nat \<Rightarrow> _"  
-  or_word: "(OR):: nat \<Rightarrow> _"  
-  xor_word: "(XOR):: nat \<Rightarrow> _"  
-  
-  
-lemma hn_unat_ops[sepref_fr_rules]:
-  "(uncurry ll_add, uncurry (RETURN \<circ>\<circ> (+))) \<in> [\<lambda>(a, b). a + b < max_unat LENGTH('a)]\<^sub>a unat_assn\<^sup>k *\<^sub>a unat_assn\<^sup>k \<rightarrow> unat_assn' TYPE('a::len)"
-  "(uncurry ll_sub, uncurry (RETURN \<circ>\<circ> (-))) \<in> [\<lambda>(a, b). b \<le> a]\<^sub>a unat_assn\<^sup>k *\<^sub>a unat_assn\<^sup>k \<rightarrow> unat_assn"
-  "(uncurry ll_mul, uncurry (RETURN \<circ>\<circ> (*))) \<in> [\<lambda>(a, b). a * b < max_unat LENGTH('a)]\<^sub>a unat_assn\<^sup>k *\<^sub>a unat_assn\<^sup>k \<rightarrow> unat_assn' TYPE('a::len)"
-  "(uncurry ll_udiv, uncurry (RETURN \<circ>\<circ> (div))) \<in> [\<lambda>(a, b). b \<noteq> 0]\<^sub>a unat_assn\<^sup>k *\<^sub>a unat_assn\<^sup>k \<rightarrow> unat_assn"
-  "(uncurry ll_urem, uncurry (RETURN \<circ>\<circ> (mod))) \<in> [\<lambda>(a, b). b \<noteq> 0]\<^sub>a unat_assn\<^sup>k *\<^sub>a unat_assn\<^sup>k \<rightarrow> unat_assn"
-  
-  "(uncurry ll_and, uncurry (RETURN \<circ>\<circ> (AND))) \<in> unat_assn\<^sup>k *\<^sub>a unat_assn\<^sup>k \<rightarrow>\<^sub>a unat_assn"
-  "(uncurry ll_or, uncurry (RETURN \<circ>\<circ> (OR))) \<in> unat_assn\<^sup>k *\<^sub>a unat_assn\<^sup>k \<rightarrow>\<^sub>a unat_assn"
-  "(uncurry ll_xor, uncurry (RETURN \<circ>\<circ> (XOR))) \<in> unat_assn\<^sup>k *\<^sub>a unat_assn\<^sup>k \<rightarrow>\<^sub>a unat_assn"
-  
-  "(uncurry ll_icmp_eq, uncurry (RETURN \<circ>\<circ> (=))) \<in> unat_assn\<^sup>k *\<^sub>a unat_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn"
-  "(uncurry ll_icmp_ne, uncurry (RETURN \<circ>\<circ> (op_neq))) \<in> unat_assn\<^sup>k *\<^sub>a unat_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn"
-  "(uncurry ll_icmp_ule, uncurry (RETURN \<circ>\<circ> (\<le>))) \<in> unat_assn\<^sup>k *\<^sub>a unat_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn"
-  "(uncurry ll_icmp_ult, uncurry (RETURN \<circ>\<circ> (<))) \<in> unat_assn\<^sup>k *\<^sub>a unat_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn"  
-  unfolding op_neq_def
-  
-  using unat_bin_ops[THEN unat.hn_bin_op, folded unat_rel_def]
-    and unat_bin_ops_bitwise[THEN unat.hn_bin_op, folded unat_rel_def]
-    and unat_cmp_ops[THEN unat.hn_cmp_op, folded unat_rel_def bool1_rel_def]
-  by (simp_all add: prod_casesK)
-  
-definition [simp]: "unat_init TYPE('a::len) \<equiv> 0::nat"
-
-lemma is_init_unat[sepref_gen_algo_rules]:
-  "GEN_ALGO (unat_init TYPE('a::len)) (is_init (unat_assn' TYPE('a)))"
-  unfolding GEN_ALGO_def unat_init_def is_init_def
-  unfolding unat_rel_def unat.rel_def
-  by (simp add: in_br_conv)
-  
-lemma is_init_unat0[sepref_gen_algo_rules]: 
-  "GEN_ALGO (unat_const TYPE('a::len2) 0) (is_init (unat_assn' TYPE('a)))"
-  using is_init_unat[where 'a='a]
-  by simp
-  
-  
-subsubsection \<open>Ad-Hoc Method to Annotate Number Constructors\<close>  
-(* TODO: Use same set of cong-=lemmas in all annot-methods, to avoid double-annot *)
-lemma annot_num_const_cong_unat: 
-  "\<And>a b. unat_const a b = unat_const a b" 
-  by simp_all
-  
-lemma unat_const_fold: 
-  "0 = unat_const TYPE('a::len) 0"
-  "1 = unat_const TYPE('a::len) 1"
-  "numeral n = unat_const TYPE('a::len) (numeral n)"
-  by simp_all
-    
-method annot_unat_const for T::"'a::len itself" = 
-  (simp only: unat_const_fold[where 'a='a] cong: annot_num_const_cong annot_num_const_cong_unat)
-
 
 lemma upcast_no_msb[simp]: "LENGTH('small::len) < LENGTH('big::len) \<Longrightarrow> \<not>msb (UCAST('small \<rightarrow> 'big) x)" 
   apply (clarsimp simp: ucast_def msb_word_of_int)
   apply transfer
   using nth_bintr by auto
+  
+  
 context begin
   interpretation llvm_prim_arith_setup .
 
+    
+  definition [llvm_inline]: "unat_snat_upcast TYPE('a::len2) x \<equiv> ll_zext x TYPE('a word)"
+    
+  lemma unat_snat_upcast_rule[vcg_rules]:
+    "llvm_htriple 
+      (\<up>(is_up' UCAST('small \<rightarrow> 'big)) ** \<upharpoonleft>unat.assn n (ni::'small::len word)) 
+      (unat_snat_upcast TYPE('big::len2) ni) 
+      (\<lambda>r. \<upharpoonleft>snat.assn n r)"
+    unfolding unat.assn_def snat.assn_def unat_snat_upcast_def
+    apply vcg'
+    apply (auto simp: snat_invar_def snat_eq_unat(2) unat_ucast_upcast)
+    done
   
-definition [llvm_inline]: "unat_snat_upcast TYPE('a::len2) x \<equiv> ll_zext x TYPE('a word)"
+  context fixes T :: "'a::len2 itself" begin
+    definition [simp]: "unat_snat_upcast_aux \<equiv> let _=TYPE('a) in id::nat\<Rightarrow>nat"
   
-lemma unat_snat_upcast_rule[vcg_rules]:
-  "llvm_htriple 
-    (\<up>(is_up' UCAST('small \<rightarrow> 'big)) ** \<upharpoonleft>unat.assn n (ni::'small::len word)) 
-    (unat_snat_upcast TYPE('big::len2) ni) 
-    (\<lambda>r. \<upharpoonleft>snat.assn n r)"
-  unfolding unat.assn_def snat.assn_def unat_snat_upcast_def
-  apply vcg'
-  apply (auto simp: snat_invar_def snat_eq_unat(2) unat_ucast_upcast)
-  done
-
-context fixes T :: "'a::len2 itself" begin
-  definition [simp]: "unat_snat_upcast_aux \<equiv> let _=TYPE('a) in id::nat\<Rightarrow>nat"
-
-  sepref_decl_op unat_snat_upcast: "unat_snat_upcast_aux" :: "nat_rel \<rightarrow> nat_rel"
-   .
-end  
+    sepref_decl_op unat_snat_upcast: "unat_snat_upcast_aux" :: "nat_rel \<rightarrow> nat_rel" .
+  end  
 
 term mop_unat_snat_upcast
 
@@ -191,8 +57,14 @@ lemma unat_snat_upcast_rl[sepref_fr_rules]:
 
 end
 
-xxx, ctd here: Define unat_snat_cast, with same length, if source is small enough!
 
+term larray_assn
+
+
+(*
+oops
+xxx, ctd here: Define unat_snat_cast, with same length, if source is small enough!
+*)
 
 
 abbreviation "uint32_nat_assn \<equiv> unat_assn' TYPE(32)"

@@ -173,7 +173,6 @@ session "Watched_Literals" (Weidenbach_Book) = "CDCL"  +
     Isabelle_LLVM
     "HOL-Eisbach"
   theories [quick_and_dirty = false, document = true]
-    Bits_Natural
     IICF_Array_List64
     Array_Array_List64
     IICF_Array_List32

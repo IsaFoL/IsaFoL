@@ -6,7 +6,7 @@ theory WB_Word
     WB_More_Refinement 
     "HOL-Imperative_HOL.Heap"
     Collections.HashCode 
-    Bits_Natural
+    "Isabelle_LLVM.Bits_Natural"
     Native_Word.Native_Word_Imperative_HOL
     Native_Word.Code_Target_Bits_Int Native_Word.Uint32 Native_Word.Uint64
 begin

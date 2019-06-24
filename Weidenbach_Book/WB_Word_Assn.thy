@@ -1,6 +1,6 @@
 theory WB_Word_Assn
 imports  Refine_Imperative_HOL.IICF
-  WB_Word Bits_Natural
+  WB_Word Isabelle_LLVM.Bits_Natural
   WB_More_Refinement WB_More_IICF_SML
 begin
 

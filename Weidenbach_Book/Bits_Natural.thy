@@ -1,4 +1,5 @@
-theory Bits_Natural
+*** Obsolete, see Isabelle_LLVM.Bits_Natural ***
+th***eory Bits_Natural
   imports
     Isabelle_LLVM.Refine_Monadic_Thin
     (*Native_Word.Native_Word_Imperative_HOL

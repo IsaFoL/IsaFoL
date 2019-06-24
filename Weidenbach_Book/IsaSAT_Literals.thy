@@ -2,7 +2,7 @@ theory IsaSAT_Literals
   imports Watched_Literals.WB_More_Refinement "HOL-Word.More_Word"
      Watched_Literals.Watched_Literals_Watch_List_Domain
      Entailment_Definition.Partial_Herbrand_Interpretation
-     Watched_Literals.Bits_Natural (*Watched_Literals.WB_Word*)
+     Isabelle_LLVM.Bits_Natural (*Watched_Literals.WB_Word*)
 begin
 
 hide_const Autoref_Fix_Rel.CONSTRAINT

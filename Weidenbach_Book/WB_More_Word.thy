@@ -1,5 +1,5 @@
 theory WB_More_Word
-  imports "HOL-Word.More_Word" Bits_Natural
+  imports "HOL-Word.More_Word" "Isabelle_LLVM.Bits_Natural"
 begin
 
 lemma nat_uint_XOR: \<open>nat (uint (a XOR b)) = nat (uint a) XOR nat (uint b)\<close>
