@@ -1240,6 +1240,7 @@ definition vmtf_mark_to_rescore_clause where
       ([C..<C + nat_of_uint64_conv (arena_length arena C)])
       (\<lambda>_. True)
       (\<lambda>i vm. do {
+        ASSERT(i < length arena);
         ASSERT(arena_lit_pre arena i);
         ASSERT(atm_of (arena_lit arena i) \<in># \<A>\<^sub>i\<^sub>n);
         RETURN (vmtf_mark_to_rescore (atm_of (arena_lit arena i)) vm)
@@ -1254,14 +1255,13 @@ definition isa_vmtf_mark_to_rescore_clause where
       ([C..<C + nat_of_uint64_conv (arena_length arena C)])
       (\<lambda>_. True)
       (\<lambda>i vm. do {
+        ASSERT(i < length arena);
         ASSERT(arena_lit_pre arena i);
         ASSERT(isa_vmtf_mark_to_rescore_pre (atm_of (arena_lit arena i)) vm);
         RETURN (isa_vmtf_mark_to_rescore (atm_of (arena_lit arena i)) vm)
       })
       vm
   }\<close>
-
-thm isa_vmtf_mark_to_rescore_vmtf_mark_to_rescore
 
 lemma isa_vmtf_mark_to_rescore_clause_vmtf_mark_to_rescore_clause:
   \<open>(uncurry2 isa_vmtf_mark_to_rescore_clause, uncurry2 (vmtf_mark_to_rescore_clause \<A>)) \<in> [\<lambda>_. isasat_input_bounded \<A>]\<^sub>f
@@ -1270,6 +1270,7 @@ lemma isa_vmtf_mark_to_rescore_clause_vmtf_mark_to_rescore_clause:
     uncurry_def
   apply (intro frefI nres_relI)
   apply (refine_rcg nfoldli_refine[where R = \<open>Id \<times>\<^sub>r distinct_atoms_rel \<A>\<close> and S = Id])
+  subgoal by auto
   subgoal by auto
   subgoal by auto
   subgoal by auto
@@ -1298,6 +1299,9 @@ lemma vmtf_mark_to_rescore_clause_spec:
     apply (rule exI[of _ vdom])
     apply (fastforce simp: arena_lifting)
     done
+  subgoal for x it \<sigma>
+    using arena_lifting(7)[of arena N vdom C \<open>x - C\<close>]
+    by (auto simp: arena_lifting(1-6) dest!: in_list_in_setD)
   subgoal for x it \<sigma>
     unfolding arena_lit_pre_def arena_is_valid_clause_idx_and_access_def
     apply (rule exI[of _ C])

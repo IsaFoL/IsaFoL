@@ -462,8 +462,9 @@ sepref_definition vmtf_mark_to_rescore_clause_fast_code
        arena_fast_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>d \<rightarrow> vmtf_remove_conc\<close>
   supply [[goals_limit=1]] arena_is_valid_clause_idx_le_uint64_max[intro]
   unfolding isa_vmtf_mark_to_rescore_clause_def PR_CONST_def nat_of_uint64_conv_def
-  apply (rewrite at \<open>[\<hole>..<_]\<close> nat_of_uint64_conv_def[symmetric])
-  apply (rewrite at \<open>[_..<\<hole>]\<close> nat_of_uint64_conv_def[symmetric])
+  unfolding while_eq_nfoldli[symmetric]
+  apply (subst while_upt_while_direct, simp)
+  unfolding one_uint64_nat_def[symmetric] nres_monad3 zero_uint64_nat_def[symmetric]
   by sepref
 
 declare vmtf_mark_to_rescore_clause_fast_code.refine[sepref_fr_rules]
