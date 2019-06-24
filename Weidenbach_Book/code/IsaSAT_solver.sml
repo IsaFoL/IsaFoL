@@ -678,7 +678,7 @@ fun blit A_ src si dst di len =
     array_blit src (integer_of_nat
                      si) dst (integer_of_nat di) (integer_of_nat len));
 
-val version : string = "2b081744";
+val version : string = "76801281";
 
 fun the (SOME x2) = x2;
 
@@ -6378,20 +6378,29 @@ fun isa_vmtf_mark_to_rescore_code x =
     end)
     x;
 
-fun arl64_get2 A_ = (fn (a, _) => nth A_ a);
-
-fun isa_arena_lit_fast_code2 x = arl64_get2 heap_uint32 x;
-
 fun vmtf_mark_to_rescore_clause_fast_code x =
   (fn ai => fn bia => fn bi => fn () =>
     let
-      val xa = isa_arena_length_fast_code ai bia ();
+      val a =
+        heap_WHILET
+          (fn (a1, _) =>
+            (fn f_ => fn () => f_ ((isa_arena_length_fast_code ai bia) ()) ())
+              (fn xa =>
+                (fn () => (Uint64.less a1 (Uint64.plus bia xa) andalso true))))
+          (fn (a1, a2) =>
+            (fn f_ => fn () => f_ ((isa_arena_lit_fast_code ai a1) ()) ())
+              (fn xa =>
+                (fn f_ => fn () => f_
+                  ((isa_vmtf_mark_to_rescore_code (atm_of_code xa) a2) ()) ())
+                  (fn x_a => (fn () => (Uint64.plus a1 Uint64.one, x_a)))))
+          (bia, bi) ();
     in
-      imp_for (nat_of_uint64 bia) (nat_of_uint64 (Uint64.plus bia xa))
-        (fn xaa => fn sigma =>
-          (fn f_ => fn () => f_ ((isa_arena_lit_fast_code2 ai xaa) ()) ())
-            (fn xb => isa_vmtf_mark_to_rescore_code (atm_of_code xb) sigma))
-        bi ()
+      let
+        val (_, aa) = a;
+      in
+        (fn () => aa)
+      end
+        ()
     end)
     x;
 
