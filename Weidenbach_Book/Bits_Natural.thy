@@ -1,8 +1,8 @@
 theory Bits_Natural
   imports
-    Refine_Monadic.Refine_Monadic
-    Native_Word.Native_Word_Imperative_HOL
-    Native_Word.Code_Target_Bits_Int Native_Word.Uint32 Native_Word.Uint64
+    Isabelle_LLVM.Refine_Monadic_Thin
+    (*Native_Word.Native_Word_Imperative_HOL
+    Native_Word.Code_Target_Bits_Int Native_Word.Uint32 Native_Word.Uint64*)
      "HOL-Word.More_Word"
 begin
 
@@ -116,23 +116,6 @@ end
 instance ..
 end
 
-context includes natural.lifting begin
-lemma [code]:
-  "integer_of_natural (m >> n) = (integer_of_natural m) >> n"
-  apply transfer
-  by (smt integer_of_natural.rep_eq msb_int_def msb_shiftr nat_eq_iff2 negative_zle
-      shiftr_int_code shiftr_int_def shiftr_nat_def shiftr_natural.rep_eq
-      type_definition.Rep_inject type_definition_integer)
-
-lemma [code]:
-  "integer_of_natural (m << n) = (integer_of_natural m) << n"
-  apply transfer
-  by (smt integer_of_natural.rep_eq msb_int_def msb_shiftl nat_eq_iff2 negative_zle
-      shiftl_int_code shiftl_int_def shiftl_nat_def shiftl_natural.rep_eq
-      type_definition.Rep_inject type_definition_integer)
-
-end
-
 
 lemma bitXOR_1_if_mod_2: \<open>bitXOR L 1 = (if L mod 2 = 0 then L + 1 else L - 1)\<close> for L :: nat
   apply transfer
@@ -148,14 +131,6 @@ lemma bitAND_1_mod_2: \<open>bitAND L 1 = L mod 2\<close> for L :: nat
   apply (subst int_int_eq[symmetric])
   apply (subst bitAND_nat_def)
   by (auto simp: zmod_int bin_rest_def bin_last_def bitval_bin_last[symmetric])
-
-lemma shiftl_0_uint32[simp]: \<open>n << 0 = n\<close> for n :: uint32
-  by transfer auto
-
-lemma shiftl_Suc_uint32: \<open>n << Suc m = (n << m) << 1\<close> for n :: uint32
-  apply transfer
-  apply transfer
-  by auto
 
 
 lemma nat_set_bit_0: \<open>set_bit x 0 b = nat ((bin_rest (int x)) BIT b)\<close> for x :: nat

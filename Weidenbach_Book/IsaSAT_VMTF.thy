@@ -119,7 +119,7 @@ lemma (in -) partition_vmtf_nth_code_helper:
 lemma partition_vmtf_nth_code_helper2:
   \<open>ba < length b \<Longrightarrow>(bia, ba) \<in> uint32_nat_rel \<Longrightarrow>
        (aa, (ba - bb) div 2) \<in> uint32_nat_rel \<Longrightarrow>
-       (ab, bb) \<in> uint32_nat_rel \<Longrightarrow> bb + (ba - bb) div 2 \<le> uint_max\<close>
+       (ab, bb) \<in> uint32_nat_rel \<Longrightarrow> bb + (ba - bb) div 2 \<le> uint32_max\<close>
    apply (auto simp: uint32_nat_rel_def br_def)
   by (metis Nat.le_diff_conv2 ab_semigroup_add_class.add.commute diff_le_mono div_le_dividend
    le_trans nat_of_uint32_le_uint32_max)
@@ -304,9 +304,9 @@ proof -
       \<open>x2c = (x1d, x2d)\<close> and
       \<open>x = (x1c, x2c)\<close> and
       \<open>\<forall>x\<in>set x1b. x < length (fst x1a)\<close> and
-      \<open>length x1b \<le> uint_max\<close> and
+      \<open>length x1b \<le> uint32_max\<close> and
       \<open>\<forall>x\<in>set x1e. x < length (fst x1d)\<close> and
-      \<open>length x1e \<le> uint_max\<close>
+      \<open>length x1e \<le> uint32_max\<close>
     for x y x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e
     using that by auto
 
@@ -322,12 +322,12 @@ proof -
       \<open>x2c = (x1d, x2d)\<close> and
       \<open>x = (x1c, x2c)\<close> and
       \<open>\<forall>x\<in>set x1b. x < length (fst x1a)\<close> and
-      \<open>length x1b \<le> uint_max\<close> and
+      \<open>length x1b \<le> uint32_max\<close> and
       \<open>\<forall>x\<in>set x1e. x < length (fst x1d)\<close> and
-      \<open>length x1e \<le> uint_max\<close> and
+      \<open>length x1e \<le> uint32_max\<close> and
       \<open>(to_remove', to_remove'a) \<in> Id\<close> and
-      \<open>length to_remove'a \<le> uint_max\<close> and
-      \<open>length to_remove' \<le> uint_max\<close> and
+      \<open>length to_remove'a \<le> uint32_max\<close> and
+      \<open>length to_remove' \<le> uint32_max\<close> and
       \<open>uint64_max \<le> length to_remove'a + fst (snd x1a)\<close>
     for x y x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e to_remove' to_remove'a
     using that by auto
@@ -342,12 +342,12 @@ proof -
       \<open>x2c = (x1d, x2d)\<close> and
       \<open>x = (x1c, x2c)\<close> and
       \<open>\<forall>x\<in>set x1b. x < length (fst x1a)\<close> and
-      \<open>length x1b \<le> uint_max\<close> and
+      \<open>length x1b \<le> uint32_max\<close> and
       \<open>\<forall>x\<in>set x1e. x < length (fst x1d)\<close> and
-      \<open>length x1e \<le> uint_max\<close> and
+      \<open>length x1e \<le> uint32_max\<close> and
       \<open>(to_remove', to_remove'a) \<in> Id\<close> and
-      \<open>length to_remove'a \<le> uint_max\<close> and
-      \<open>length to_remove' \<le> uint_max\<close> and
+      \<open>length to_remove'a \<le> uint32_max\<close> and
+      \<open>length to_remove' \<le> uint32_max\<close> and
       \<open>(vm, vma) \<in> Id\<close> and
       \<open>length to_remove'a + fst (snd vma) \<le> uint64_max\<close>
       \<open>case (0, vma, x2b) of
@@ -370,11 +370,11 @@ proof -
    if
      \<open>(x, y) \<in> trail_pol \<A> \<times>\<^sub>f Id\<close> and
      \<open>\<forall>x\<in>set x1b. x < length (fst x1a)\<close> and
-     \<open>length x1b \<le> uint_max\<close> and
+     \<open>length x1b \<le> uint32_max\<close> and
      \<open>\<forall>x\<in>set x1e. x < length (fst x1d)\<close> and
-     \<open>length x1e \<le> uint_max\<close> and
-     \<open>length to_remove'a \<le> uint_max\<close> and
-     \<open>length to_remove' \<le> uint_max\<close> and
+     \<open>length x1e \<le> uint32_max\<close> and
+     \<open>length to_remove'a \<le> uint32_max\<close> and
+     \<open>length to_remove' \<le> uint32_max\<close> and
      \<open>length to_remove'a + fst (snd vma) \<le> uint64_max\<close> and
      \<open>case xa of (i, vm, h) \<Rightarrow> i < length to_remove'\<close> and
      \<open>case x' of (i, vm, h) \<Rightarrow> i < length to_remove'a\<close> and
@@ -810,8 +810,8 @@ proof -
       \<open>x = (x1b, x2c)\<close> and
       \<open>isa_length_trail_pre (trail_pol_conv_to_no_CS x1c)\<close> and
       \<open>(pos, posa) \<in> nat_rel\<close> and
-      \<open>length (trail_conv_to_no_CS x1a) - posa \<le> uint_max\<close> and
-      \<open>isa_length_trail (trail_pol_conv_to_no_CS x1c) - pos \<le> uint_max\<close> and
+      \<open>length (trail_conv_to_no_CS x1a) - posa \<le> uint32_max\<close> and
+      \<open>isa_length_trail (trail_pol_conv_to_no_CS x1c) - pos \<le> uint32_max\<close> and
       \<open>case (zero_uint32_nat, trail_conv_to_no_CS x1a, x2a) of
        (j, M, vm') \<Rightarrow>
          j \<le> length (trail_conv_to_no_CS x1a) - posa \<and>
@@ -855,8 +855,8 @@ proof -
       \<open>x = (x1b, x2c)\<close> and
       \<open>isa_length_trail_pre (trail_pol_conv_to_no_CS x1c)\<close> and
       \<open>(pos, posa) \<in> nat_rel\<close> and
-      \<open>length (trail_conv_to_no_CS x1a) - posa \<le> uint_max\<close> and
-      \<open>isa_length_trail (trail_pol_conv_to_no_CS x1c) - pos \<le> uint_max\<close> and
+      \<open>length (trail_conv_to_no_CS x1a) - posa \<le> uint32_max\<close> and
+      \<open>isa_length_trail (trail_pol_conv_to_no_CS x1c) - pos \<le> uint32_max\<close> and
       \<open>(xa, x') \<in> nat_rel \<times>\<^sub>f (trail_pol_no_CS \<A> \<times>\<^sub>f (Id \<times>\<^sub>f distinct_atoms_rel \<A>))\<close> and
        \<open>x2d = (x1e, x2e)\<close> and
       \<open>x' = (x1d, x2d)\<close> and
@@ -1081,7 +1081,7 @@ lemma
      (is ?decomp)
 proof -
   have length_M0:  \<open>length M\<^sub>0 \<le> uint32_max div 2 + 1\<close>
-    using length_trail_uint_max_div2[of \<A> M\<^sub>0, OF bounded]
+    using length_trail_uint32_max_div2[of \<A> M\<^sub>0, OF bounded]
       n_d literals_are_in_\<L>\<^sub>i\<^sub>n_trail_in_lits_of_l[of \<A>, OF lits]
     by (auto simp: lits_of_def)
   have 1: \<open>((count_decided x1g, x1g), count_decided x1, x1) \<in> Id\<close>
@@ -1137,7 +1137,7 @@ proof -
     if
       pos: \<open>pos < length M\<^sub>0 \<and> is_decided (rev M\<^sub>0 ! pos) \<and> get_level M\<^sub>0 (lit_of (rev M\<^sub>0 ! pos)) =
          highest + 1\<close> and
-      \<open>length M\<^sub>0 - pos \<le> uint_max\<close> and
+      \<open>length M\<^sub>0 - pos \<le> uint32_max\<close> and
       inv: \<open>case s of (j, M, vm') \<Rightarrow>
          j \<le> length M\<^sub>0 - pos \<and>
          M = drop j M\<^sub>0 \<and>

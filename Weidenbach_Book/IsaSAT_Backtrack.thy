@@ -45,7 +45,7 @@ definition empty_conflict_and_extract_clause_heur ::
            let C = C[i := outl ! i];
            ASSERT(C!i \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A> \<and> C!1 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A> \<and> 1 < length C);
            let C = (if get_level M (C!i) > get_level M (C!one_uint32_nat) then swap C one_uint32_nat i else C);
-           ASSERT(i+1 \<le> uint_max);
+           ASSERT(i+1 \<le> uint32_max);
            RETURN (D, C, i+one_uint32_nat)
          })
         (D, C, one_uint32_nat);
@@ -67,7 +67,7 @@ lemma empty_conflict_and_extract_clause_heur_empty_conflict_and_extract_clause:
     \<open>empty_conflict_and_extract_clause_heur \<A> M D' outl \<le> \<Down> (option_lookup_clause_rel \<A> \<times>\<^sub>r Id \<times>\<^sub>r Id)
         (empty_conflict_and_extract_clause M D outl)\<close>
 proof -
-  have size_out: \<open>size (mset outl) \<le> 1 + uint_max div 2\<close>
+  have size_out: \<open>size (mset outl) \<le> 1 + uint32_max div 2\<close>
     using simple_clss_size_upper_div2[OF bounded lits _ consistent]
       \<open>distinct outl\<close> by auto
   have empty_conflict_and_extract_clause_alt_def:
@@ -113,7 +113,7 @@ proof -
     by (cases outl) auto
   have
     C1_L: \<open>aa[ba := outl ! ba] ! 1 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<close> (is ?A1inL) and
-    ba_le:  \<open>ba + 1 \<le> uint_max\<close> (is ?ba_le) and
+    ba_le:  \<open>ba + 1 \<le> uint32_max\<close> (is ?ba_le) and
     I_rec: \<open>I (lookup_conflict_remove1 (outl ! ba) a,
           if get_level M (aa[ba := outl ! ba] ! one_uint32_nat)
              < get_level M (aa[ba := outl ! ba] ! ba)
@@ -254,7 +254,7 @@ proof -
                 (C[i := outl ! i] ! i \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A> \<and>
                  C[i := outl ! i] ! 1 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A> \<and>
                 1 < length (C[i := outl ! i]));
-           _ \<leftarrow> ASSERT (i + 1 \<le> uint_max);
+           _ \<leftarrow> ASSERT (i + 1 \<le> uint32_max);
            RETURN
             (lookup_conflict_remove1 (outl ! i) D,
              if get_level M (C[i := outl ! i] ! one_uint32_nat)
@@ -413,7 +413,7 @@ definition isa_empty_conflict_and_extract_clause_heur ::
 	   ASSERT(get_level_pol_pre (M, C!one_uint32_nat));
 	   ASSERT(one_uint32_nat < length C);
            let C = (if get_level_pol M (C!i) > get_level_pol M (C!one_uint32_nat) then swap C one_uint32_nat i else C);
-           ASSERT(i+1 \<le> uint_max);
+           ASSERT(i+1 \<le> uint32_max);
            RETURN (D, C, i+one_uint32_nat)
          })
         (D, C, one_uint32_nat);
@@ -504,7 +504,7 @@ definition empty_conflict_and_extract_clause_pre
   :: \<open>(((nat,nat) ann_lits \<times> nat clause) \<times> nat clause_l) \<Rightarrow> bool\<close> where
   \<open>empty_conflict_and_extract_clause_pre =
     (\<lambda>((M, D), outl). D = mset (tl outl)  \<and> outl \<noteq> [] \<and> distinct outl \<and>
-    \<not>tautology (mset outl) \<and> length outl \<le> uint_max)\<close>
+    \<not>tautology (mset outl) \<and> length outl \<le> uint32_max)\<close>
 
 definition (in -) empty_cach_ref where
   \<open>empty_cach_ref = (\<lambda>(cach, support). (replicate (length cach) SEEN_UNKNOWN, []))\<close>
@@ -639,7 +639,7 @@ lemma empty_cach_ref_empty_cach:
 definition empty_cach_ref_pre where
   \<open>empty_cach_ref_pre = (\<lambda>(cach :: minimize_status list, supp :: nat list).
          (\<forall>L\<in>set supp. L < length cach) \<and>
-         length supp \<le> Suc (uint_max div 2) \<and>
+         length supp \<le> Suc (uint32_max div 2) \<and>
          (\<forall>L<length cach. cach ! L \<noteq> SEEN_UNKNOWN \<longrightarrow> L \<in> set supp))\<close>
 
 
@@ -660,7 +660,7 @@ definition extract_shorter_conflict_list_heur_st
      (D, cach, outl) \<leftarrow> isa_minimize_and_extract_highest_lookup_conflict M N D cach lbd outl;
      ASSERT(empty_cach_ref_pre cach);
      let cach = empty_cach_ref cach;
-     ASSERT(outl \<noteq> [] \<and> length outl \<le> uint_max);
+     ASSERT(outl \<noteq> [] \<and> length outl \<le> uint32_max);
      (D, C, n) \<leftarrow> isa_empty_conflict_and_extract_clause_heur M D outl;
      RETURN ((M, N, D, Q', W', vm, \<phi>, clvls, cach, lbd, take 1 outl, stats, ccont, vdom), n, C)
   })\<close>
@@ -1902,7 +1902,7 @@ proof -
         \<open>W' ! (nat_of_lit (- lit_of (hd (get_trail_wl S')))) = W (- lit_of (hd (get_trail_wl S')))\<close>
       using uM_\<L>\<^sub>a\<^sub>l\<^sub>l W'W unfolding map_fun_rel_def by (auto simp: image_image S' U')
     have le_C_ge: \<open>length C \<le> uint32_max div 2 + 1\<close>
-      using clss_size_uint_max[OF bounded, of \<open>mset C\<close>] \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (all_atms_st S') (mset C)\<close> list_confl_S'
+      using clss_size_uint32_max[OF bounded, of \<open>mset C\<close>] \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (all_atms_st S') (mset C)\<close> list_confl_S'
         dist_S' incl size_mset_mono[OF incl] distinct_mset_mono[OF incl]
         simple_clss_size_upper_div2[OF bounded _ _ tauto]
       by (auto simp: uint32_max_def S' U' all_atms_def[symmetric])
@@ -2387,8 +2387,8 @@ qed
 
 subsubsection \<open>Backtrack with direct extraction of literal if highest level\<close>
 
-lemma le_uint32_max_div_2_le_uint32_max: \<open>a \<le> uint_max div 2 + 1 \<Longrightarrow> a \<le> uint32_max\<close>
-  by (auto simp: uint_max_def uint64_max_def)
+lemma le_uint32_max_div_2_le_uint32_max: \<open>a \<le> uint32_max div 2 + 1 \<Longrightarrow> a \<le> uint32_max\<close>
+  by (auto simp: uint32_max_def uint64_max_def)
 
 
 lemma propagate_bt_wl_D_heur_alt_def:

@@ -134,9 +134,9 @@ definition (in -)fm_add_new_fast where
  [simp]: \<open>fm_add_new_fast = fm_add_new\<close>
 
 lemma (in -)append_and_length_code_fast:
-  \<open>length ba \<le> Suc (Suc uint_max) \<Longrightarrow>
+  \<open>length ba \<le> Suc (Suc uint32_max) \<Longrightarrow>
        2 \<le> length ba \<Longrightarrow>
-       length b \<le> uint64_max - (uint_max + 5) \<Longrightarrow>
+       length b \<le> uint64_max - (uint32_max + 5) \<Longrightarrow>
        (aa, header_size ba) \<in> uint64_nat_rel \<Longrightarrow>
        (ab, length b) \<in> uint64_nat_rel \<Longrightarrow>
        length b + header_size ba \<le> uint64_max\<close>

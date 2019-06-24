@@ -229,7 +229,7 @@ lemma [sepref_fr_rules]: \<open>(init_state_wl_D'_code_unb, init_state_wl_heur)
 \<in> [\<lambda>x. distinct_mset x \<and>
        (\<forall>L\<in>#\<L>\<^sub>a\<^sub>l\<^sub>l x.
            nat_of_lit L
-           \<le> uint_max)]\<^sub>a IsaSAT_SML.lits_with_max_assn\<^sup>d \<rightarrow> isasat_init_unbounded_assn\<close>
+           \<le> uint32_max)]\<^sub>a IsaSAT_SML.lits_with_max_assn\<^sup>d \<rightarrow> isasat_init_unbounded_assn\<close>
   using init_state_wl_D'_code_unb.refine[FCOMP init_state_wl_D'[unfolded convert_fref]]
   unfolding lits_with_max_assn_alt_def[symmetric] init_state_wl_D'_code_isasat_unb arena_assn_alt_def
   unfolding isasat_init_unbounded_assn_def
@@ -281,7 +281,7 @@ sepref_definition IsaSAT_code
 theorem IsaSAT_full_correctness:
   \<open>(uncurry IsaSAT_code, uncurry (\<lambda>_. model_if_satisfiable))
      \<in> [\<lambda>(_, a). Multiset.Ball a distinct_mset \<and>
-      (\<forall>C\<in>#a.  \<forall>L\<in>#C. nat_of_lit L  \<le> uint_max)]\<^sub>a opts_assn\<^sup>d *\<^sub>a  clauses_l_assn\<^sup>k \<rightarrow> model_assn\<close>
+      (\<forall>C\<in>#a.  \<forall>L\<in>#C. nat_of_lit L  \<le> uint32_max)]\<^sub>a opts_assn\<^sup>d *\<^sub>a  clauses_l_assn\<^sup>k \<rightarrow> model_assn\<close>
   using IsaSAT_code.refine[FCOMP IsaSAT_heur_model_if_sat'[unfolded convert_fref],
     unfolded list_assn_list_mset_rel_clauses_l_assn]
   unfolding model_assn_def

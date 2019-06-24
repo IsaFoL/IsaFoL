@@ -13,7 +13,7 @@ paragraph \<open>Testing if a level is marked\<close>
 
 sepref_definition level_in_lbd_code
   is \<open>uncurry (RETURN oo level_in_lbd_ref)\<close>
-  :: \<open>[\<lambda>(n, (lbd, m)). length lbd \<le> uint_max]\<^sub>a
+  :: \<open>[\<lambda>(n, (lbd, m)). length lbd \<le> uint32_max]\<^sub>a
        uint32_nat_assn\<^sup>k *\<^sub>a lbd_int_assn\<^sup>k \<rightarrow> bool_assn\<close>
   unfolding level_in_lbd_ref_def short_circuit_conv
   by sepref
@@ -22,7 +22,7 @@ sepref_definition level_in_lbd_code
 lemma level_in_lbd_hnr[sepref_fr_rules]:
   \<open>(uncurry level_in_lbd_code, uncurry (RETURN \<circ>\<circ> level_in_lbd)) \<in> uint32_nat_assn\<^sup>k *\<^sub>a
      lbd_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
-  supply lbd_ref_def[simp] uint_max_def[simp]
+  supply lbd_ref_def[simp] uint32_max_def[simp]
   using level_in_lbd_code.refine[FCOMP level_in_lbd_ref_level_in_lbd[unfolded convert_fref]]
   unfolding lbd_assn_def .
 
@@ -59,7 +59,7 @@ sepref_definition lbd_write_code
 
 lemma lbd_write_hnr_[sepref_fr_rules]:
   \<open>(uncurry lbd_write_code, uncurry (RETURN \<circ>\<circ> lbd_write))
-    \<in> [\<lambda>(lbd, i). i \<le> Suc (uint_max div 2)]\<^sub>a
+    \<in> [\<lambda>(lbd, i). i \<le> Suc (uint32_max div 2)]\<^sub>a
       lbd_assn\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> lbd_assn\<close>
   using lbd_write_code.refine[FCOMP lbd_ref_write_lbd_write[unfolded convert_fref]]
   unfolding lbd_assn_def .

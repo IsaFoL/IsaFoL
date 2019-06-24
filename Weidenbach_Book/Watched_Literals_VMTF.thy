@@ -2453,7 +2453,7 @@ proof -
   have loop_body:  \<open>(case s' of
         (ns, n, a) \<Rightarrow> do {
             ASSERT (a \<noteq> None);
-            ASSERT (n + 1 \<le> uint_max);
+            ASSERT (n + 1 \<le> uint32_max);
             ASSERT(the a < length ns);
             RETURN (update_stamp ns n (the a), n + 1, get_prev (ns ! the a))
           })
@@ -2615,7 +2615,7 @@ proof -
   have H: \<open>WHILE\<^sub>T\<^bsup>\<lambda>_. True\<^esup> (\<lambda>(ns, n, lst_As). lst_As \<noteq> None)
      (\<lambda>(ns, n, a). do {
            _ \<leftarrow> ASSERT (a \<noteq> None);
-           _ \<leftarrow> ASSERT (n + 1 \<le> uint_max);
+           _ \<leftarrow> ASSERT (n + 1 \<le> uint32_max);
            ASSERT(the a < length ns);
            RETURN (update_stamp ns n (the a), n + 1, get_prev (ns ! the a))
          })
@@ -2790,9 +2790,9 @@ proof -
     \<open>x2 = (x1a, x2a)\<close> and
     \<open>((ns, m, fst_As, lst_As, next_search), C, D) = (x1, x2)\<close> and
     \<open>\<forall>x\<in>set x1a. x < length (fst x1)\<close> and
-    \<open>length x1a \<le> uint_max\<close> and
+    \<open>length x1a \<le> uint32_max\<close> and
     \<open>(to_remove', uu) \<in> ?reorder_list\<close> and
-    \<open>length to_remove' \<le> uint_max\<close>
+    \<open>length to_remove' \<le> uint32_max\<close>
   for x1 x2 x1a x2a to_remove' uu
   proof -
     have \<open>vmtf_rescale x1 \<le> ?H\<close>

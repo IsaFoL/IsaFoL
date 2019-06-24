@@ -19,7 +19,7 @@ lemma isa_empty_conflict_and_extract_clause_heur_alt_def:
            let L1 = C!i;
            let L2 = C!one_uint32_nat;
            let C = (if get_level_pol M L1 > get_level_pol M L2 then swap C one_uint32_nat i else C);
-           ASSERT(i+1 \<le> uint_max);
+           ASSERT(i+1 \<le> uint32_max);
            RETURN (D, C, i+one_uint32_nat)
          })
         (D, C, one_uint32_nat);
@@ -32,7 +32,7 @@ lemma isa_empty_conflict_and_extract_clause_heur_alt_def:
 
 sepref_definition empty_conflict_and_extract_clause_heur_code
   is \<open>uncurry2 (isa_empty_conflict_and_extract_clause_heur)\<close>
-  :: \<open>[\<lambda>((M, D), outl). outl \<noteq> [] \<and> length outl \<le> uint_max]\<^sub>a
+  :: \<open>[\<lambda>((M, D), outl). outl \<noteq> [] \<and> length outl \<le> uint32_max]\<^sub>a
       trail_pol_assn\<^sup>k *\<^sub>a lookup_clause_rel_assn\<^sup>d *\<^sub>a out_learned_assn\<^sup>k \<rightarrow>
        (bool_assn *a uint32_nat_assn *a array_assn option_bool_assn) *a clause_ll_assn *a uint32_nat_assn\<close>
   supply [[goals_limit=1]] image_image[simp]
@@ -45,7 +45,7 @@ declare empty_conflict_and_extract_clause_heur_code.refine[sepref_fr_rules]
 
 sepref_definition empty_conflict_and_extract_clause_heur_fast_code
   is \<open>uncurry2 (isa_empty_conflict_and_extract_clause_heur)\<close>
-  :: \<open>[\<lambda>((M, D), outl). outl \<noteq> [] \<and> length outl \<le> uint_max]\<^sub>a
+  :: \<open>[\<lambda>((M, D), outl). outl \<noteq> [] \<and> length outl \<le> uint32_max]\<^sub>a
       trail_pol_fast_assn\<^sup>k *\<^sub>a lookup_clause_rel_assn\<^sup>d *\<^sub>a out_learned_assn\<^sup>k \<rightarrow>
        (bool_assn *a uint32_nat_assn *a array_assn option_bool_assn) *a clause_ll_assn *a uint32_nat_assn\<close>
   supply [[goals_limit=1]] image_image[simp]
@@ -59,7 +59,7 @@ declare empty_conflict_and_extract_clause_heur_fast_code.refine[sepref_fr_rules]
 sepref_definition empty_cach_code
   is \<open>empty_cach_ref_set\<close>
   :: \<open>cach_refinement_l_assn\<^sup>d \<rightarrow>\<^sub>a cach_refinement_l_assn\<close>
-  supply array_replicate_hnr[sepref_fr_rules] uint_max_def[simp]
+  supply array_replicate_hnr[sepref_fr_rules] uint32_max_def[simp]
   unfolding empty_cach_ref_set_def comp_def zero_uint32_nat_def[symmetric]
     one_uint32_nat_def[symmetric]
   by sepref
@@ -76,7 +76,7 @@ proof -
     \<in>[comp_PRE Id
      (\<lambda>(cach, supp).
          (\<forall>L\<in>set supp. L < length cach) \<and>
-         length supp \<le> Suc (uint_max div 2) \<and>
+         length supp \<le> Suc (uint32_max div 2) \<and>
          (\<forall>L<length cach. cach ! L \<noteq> SEEN_UNKNOWN \<longrightarrow> L \<in> set supp))
      (\<lambda>x y. True)
      (\<lambda>x. nofail ((RETURN \<circ> empty_cach_ref) x))]\<^sub>a

@@ -184,7 +184,7 @@ sepref_register fm_add_new_fast
 
 lemma add_init_cls_code_bI:
   assumes
-    \<open>length at \<le> Suc (Suc uint_max)\<close> and
+    \<open>length at \<le> Suc (Suc uint32_max)\<close> and
     \<open>2 \<le> length at\<close> and
     \<open>length a1'j \<le> length a1'a\<close> and
     \<open>length a1'a \<le> uint64_max - length at - 5\<close>
@@ -194,14 +194,14 @@ lemma add_init_cls_code_bI:
 
 lemma add_init_cls_code_bI2:
   assumes
-    \<open>length at \<le> Suc (Suc uint_max)\<close>
+    \<open>length at \<le> Suc (Suc uint32_max)\<close>
   shows \<open>5 \<le> uint64_max - length at\<close>
   using assms unfolding append_and_length_fast_code_pre_def
   by (auto simp: uint64_max_def uint32_max_def)
 
 lemma add_init_clss_codebI:
   assumes
-    \<open>length at \<le> Suc (Suc uint_max)\<close> and
+    \<open>length at \<le> Suc (Suc uint32_max)\<close> and
     \<open>2 \<le> length at\<close> and
     \<open>length a1'j \<le> length a1'a\<close> and
     \<open>length a1'a \<le> uint64_max - (length at + 5)\<close>
@@ -408,7 +408,7 @@ lemma (in -) [sepref_fr_rules]:
   \<in> [\<lambda>L. L \<le> uint32_max div 2]\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
   by (sepref_to_hoare)
    (sep_auto simp: init_next_size_def br_def uint32_nat_rel_def nat_of_uint32_add
-      nat_of_uint32_distrib_mult2 uint_max_def)
+      nat_of_uint32_distrib_mult2 uint32_max_def)
 
 
 sepref_definition nat_lit_lits_init_assn_assn_in
@@ -421,7 +421,7 @@ sepref_definition nat_lit_lits_init_assn_assn_in
 
 lemma [sepref_fr_rules]:
   \<open>(uncurry nat_lit_lits_init_assn_assn_in,  uncurry (RETURN \<circ>\<circ> op_set_insert))
-  \<in> [\<lambda>(a, b). a \<le> uint_max div 2]\<^sub>a
+  \<in> [\<lambda>(a, b). a \<le> uint32_max div 2]\<^sub>a
     uint32_nat_assn\<^sup>k *\<^sub>a nat_lit_list_hm_assn\<^sup>d \<rightarrow> nat_lit_list_hm_assn\<close>
   by (rule nat_lit_lits_init_assn_assn_in.refine[FCOMP add_to_atms_ext_op_set_insert
   [unfolded convert_fref op_set_insert_def[symmetric]]])
@@ -442,7 +442,7 @@ sepref_definition extract_atms_clss_imp
 
 lemma extract_atms_clss_hnr[sepref_fr_rules]:
   \<open>(uncurry extract_atms_clss_imp, uncurry (RETURN \<circ>\<circ> extract_atms_clss))
-    \<in> [\<lambda>(a, b). \<forall>C\<in>set a. \<forall>L\<in>set C. nat_of_lit L \<le> uint_max]\<^sub>a
+    \<in> [\<lambda>(a, b). \<forall>C\<in>set a. \<forall>L\<in>set C. nat_of_lit L \<le> uint32_max]\<^sub>a
       (list_assn (list_assn unat_lit_assn))\<^sup>k *\<^sub>a nat_lit_list_hm_assn\<^sup>d \<rightarrow> nat_lit_list_hm_assn\<close>
   using extract_atms_clss_imp.refine[FCOMP extract_atms_clss_i_extract_atms_clss[unfolded convert_fref]] .
 
@@ -615,7 +615,7 @@ sepref_definition finalise_init_code'
   :: \<open>[\<lambda>(_, S). length (get_clauses_wl_heur_init S) \<le> uint64_max]\<^sub>a
       opts_assn\<^sup>d *\<^sub>a isasat_init_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   supply zero_uin64_hnr[sepref_fr_rules] [[goals_limit=1]]
-    Pos_unat_lit_assn'[sepref_fr_rules] uint_max_def[simp] op_arl_replicate_def[simp]
+    Pos_unat_lit_assn'[sepref_fr_rules] uint32_max_def[simp] op_arl_replicate_def[simp]
   unfolding finalise_init_code_def isasat_init_assn_def isasat_bounded_assn_def
      arl32_fold_custom_replicate two_uint32_def[symmetric] INITIAL_OUTL_SIZE_def[symmetric]
      one_uint32_nat_def[symmetric]
@@ -629,7 +629,7 @@ sepref_definition finalise_init_code_unb
   is \<open>uncurry finalise_init_code\<close>
   :: \<open>opts_assn\<^sup>d *\<^sub>a isasat_init_unbounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_unbounded_assn\<close>
   supply zero_uin64_hnr[sepref_fr_rules] [[goals_limit=1]]
-    Pos_unat_lit_assn'[sepref_fr_rules] uint_max_def[simp] op_arl_replicate_def[simp]
+    Pos_unat_lit_assn'[sepref_fr_rules] uint32_max_def[simp] op_arl_replicate_def[simp]
   unfolding finalise_init_code_def isasat_init_unbounded_assn_def isasat_unbounded_assn_def
      arl32_fold_custom_replicate two_uint32_def[symmetric] INITIAL_OUTL_SIZE_def[symmetric]
      one_uint32_nat_def[symmetric] zero_uint64_nat_def

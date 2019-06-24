@@ -3137,7 +3137,7 @@ definition unit_propagation_outer_loop_wl_D_heur
       S\<^sub>0\<close>
 
 lemma select_and_remove_from_literals_to_update_wl_heur_select_and_remove_from_literals_to_update_wl:
-  \<open>literals_to_update_wl y \<noteq> {#} \<and> length (get_trail_wl y) < uint_max \<Longrightarrow>
+  \<open>literals_to_update_wl y \<noteq> {#} \<and> length (get_trail_wl y) < uint32_max \<Longrightarrow>
   (x, y) \<in> twl_st_heur'' \<D>1 r1 \<Longrightarrow>
   select_and_remove_from_literals_to_update_wl_heur x
       \<le> \<Down>{((S, L), (S', L')). ((S, L), (S', L')) \<in> twl_st_heur'' \<D>1 r1 \<times>\<^sub>f nat_lit_lit_rel \<and>
@@ -3178,7 +3178,7 @@ lemma unit_propagation_outer_loop_wl_D_heur_inv_length_trail_le:
     \<open>unit_propagation_outer_loop_wl_D_inv V\<close> and
     \<open>literals_to_update_wl V \<noteq> {#}\<close> and
     \<open>literals_to_update_wl_heur U < isa_length_trail (get_trail_wl_heur U)\<close>
-   shows \<open>length (get_trail_wl V) < uint_max\<close>
+   shows \<open>length (get_trail_wl V) < uint32_max\<close>
 proof -
   have bounded: \<open>isasat_input_bounded (all_atms_st V)\<close>
     using \<open>(U, V) \<in> twl_st_heur'' \<D> r\<close>

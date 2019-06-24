@@ -30,7 +30,7 @@ because there are much stronger guarantees on the key that there is in a general
 definition lbd_ref where
   \<open>lbd_ref = {((lbd, n, m), lbd'). lbd = lbd' \<and> n < length lbd \<and>
       (\<forall>k > n. k < length lbd \<longrightarrow> \<not>lbd!k) \<and>
-      length lbd \<le> Suc (Suc (uint_max div 2)) \<and> n < length lbd \<and>
+      length lbd \<le> Suc (Suc (uint32_max div 2)) \<and> n < length lbd \<and>
       m = length (filter id lbd)}\<close>
 
 
@@ -59,12 +59,12 @@ definition lbd_write :: \<open>lbd \<Rightarrow> nat \<Rightarrow> lbd\<close> w
 
 definition lbd_ref_write :: \<open>lbd_ref \<Rightarrow> nat \<Rightarrow> lbd_ref nres\<close>  where
   \<open>lbd_ref_write = (\<lambda>(lbd, m, n) i. do {
-    ASSERT(length lbd \<le> uint_max \<and> n + 1 \<le> uint_max);
+    ASSERT(length lbd \<le> uint32_max \<and> n + 1 \<le> uint32_max);
     (if i < length_uint32_nat lbd then
        let n = if lbd ! i then n else n+one_uint32_nat in
        RETURN (lbd[i := True], max i m, n)
      else do {
-        ASSERT(i + 1 \<le> uint_max);
+        ASSERT(i + 1 \<le> uint32_max);
         RETURN ((list_grow lbd (i + one_uint32_nat) False)[i := True], max i m, n + one_uint32_nat)
      })
   })\<close>
@@ -78,12 +78,12 @@ lemma list_update_append2: \<open>i \<ge> length xs \<Longrightarrow> (xs @ ys)[
 
 lemma lbd_ref_write_lbd_write:
   \<open>(uncurry (lbd_ref_write), uncurry (RETURN oo lbd_write)) \<in>
-    [\<lambda>(lbd, i). i \<le> Suc (uint_max div 2)]\<^sub>f
+    [\<lambda>(lbd, i). i \<le> Suc (uint32_max div 2)]\<^sub>f
      lbd_ref \<times>\<^sub>f nat_rel \<rightarrow> \<langle>lbd_ref\<rangle>nres_rel\<close>
   unfolding lbd_ref_write_def lbd_write_def
   by (intro frefI nres_relI)
     (auto simp: level_in_lbd_ref_def level_in_lbd_def lbd_ref_def list_grow_def
-        nth_append uint_max_def length_filter_update_true list_update_append2
+        nth_append uint32_max_def length_filter_update_true list_update_append2
         length_filter_update_false
       intro!: ASSERT_leI le_trans[OF length_filter_le])
 
@@ -100,7 +100,7 @@ definition lbd_empty_ref where
          (\<lambda>(xs, i). i \<le> m)
          (\<lambda>(xs, i). do {
             ASSERT(i < length xs);
-            ASSERT(i + one_uint32_nat < uint_max);
+            ASSERT(i + one_uint32_nat < uint32_max);
             RETURN (xs[i := False], i + one_uint32_nat)})
          (xs, zero_uint32_nat);
      RETURN (xs, zero_uint32_nat, zero_uint32_nat)
@@ -114,7 +114,7 @@ lemma lbd_empty_ref:
   shows
     \<open>lbd_empty_ref (xs, m, n) \<le> \<Down> lbd_ref (RETURN (replicate (length xs) False))\<close>
 proof -
-  have m_xs: \<open>m \<le> length xs\<close> and [simp]: \<open>xs \<noteq> []\<close> and le_xs: \<open>length xs \<le> uint_max div 2 + 2\<close>
+  have m_xs: \<open>m \<le> length xs\<close> and [simp]: \<open>xs \<noteq> []\<close> and le_xs: \<open>length xs \<le> uint32_max div 2 + 2\<close>
     using assms by (auto simp: lbd_ref_def)
   have [iff]: \<open>(\<forall>j. \<not> j < (b :: nat)) \<longleftrightarrow> b = 0\<close> for b
     by auto
@@ -186,7 +186,7 @@ proof -
     subgoal by (rule init)
     subgoal by auto
     subgoal using assms by (auto simp: lbd_ref_def)
-    subgoal using m_xs le_xs by (auto simp: uint_max_def)
+    subgoal using m_xs le_xs by (auto simp: uint32_max_def)
     subgoal by (rule lbd_remove)
     subgoal by auto
     subgoal by auto
@@ -212,7 +212,7 @@ definition empty_lbd_ref :: \<open>lbd_ref\<close> where
 lemma empty_lbd_ref_empty_lbd:
   \<open>(\<lambda>_. (RETURN empty_lbd_ref), \<lambda>_. (RETURN empty_lbd)) \<in> unit_rel \<rightarrow>\<^sub>f \<langle>lbd_ref\<rangle>nres_rel\<close>
   by (intro frefI nres_relI) (auto simp: empty_lbd_def lbd_ref_def empty_lbd_ref_def
-      uint_max_def nth_Cons split: nat.splits)
+      uint32_max_def nth_Cons split: nat.splits)
 
 paragraph \<open>Extracting the LBD\<close>
 

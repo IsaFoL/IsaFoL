@@ -1,6 +1,14 @@
 theory WB_Word
-  imports "HOL-Word.Word" "Native_Word.Uint64" "Native_Word.Uint32" WB_More_Refinement "HOL-Imperative_HOL.Heap"
-    Collections.HashCode Bits_Natural
+  imports 
+    "HOL-Word.Word" 
+    "Native_Word.Uint64" 
+    "Native_Word.Uint32" 
+    WB_More_Refinement 
+    "HOL-Imperative_HOL.Heap"
+    Collections.HashCode 
+    Bits_Natural
+    Native_Word.Native_Word_Imperative_HOL
+    Native_Word.Code_Target_Bits_Int Native_Word.Uint32 Native_Word.Uint64
 begin
 
 lemma less_upper_bintrunc_id: \<open>n < 2 ^b \<Longrightarrow> n \<ge> 0 \<Longrightarrow> bintrunc b n = n\<close>

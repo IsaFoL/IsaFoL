@@ -379,7 +379,7 @@ proof -
       \<open>bq = size (learned_clss_l bu)\<close> and
       \<open>vdom_m (all_atms bu (bw + bx)) bz bu \<subseteq> set bo\<close> and
       \<open>set bp \<subseteq> set bo\<close> and
-      \<open>\<forall>L\<in>#\<L>\<^sub>a\<^sub>l\<^sub>l (all_atms bu (bw + bx)). nat_of_lit L \<le> uint_max\<close> and
+      \<open>\<forall>L\<in>#\<L>\<^sub>a\<^sub>l\<^sub>l (all_atms bu (bw + bx)). nat_of_lit L \<le> uint32_max\<close> and
       \<open>all_atms bu (bw + bx) \<noteq> {#}\<close> and
       bounded: \<open>isasat_input_bounded (all_atms bu (bw + bx))\<close>
       using ST unfolding twl_st_heur_def all_atms_def[symmetric]
@@ -1759,9 +1759,9 @@ proof -
     inA:\<open>\<forall>L\<in>set (ys @ Propagated x2 C # zs). lit_of L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l ?\<A>\<close> and
     cs: \<open>control_stack y (ys @ Propagated x2 C # zs)\<close> and
     \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail ?\<A> (ys @ Propagated x2 C # zs)\<close> and
-    \<open>length (ys @ Propagated x2 C # zs) < uint_max\<close> and
-    \<open>length (ys @ Propagated x2 C # zs) \<le> uint_max div 2 + 1\<close> and
-    \<open>count_decided (ys @ Propagated x2 C # zs) < uint_max\<close> and
+    \<open>length (ys @ Propagated x2 C # zs) < uint32_max\<close> and
+    \<open>length (ys @ Propagated x2 C # zs) \<le> uint32_max div 2 + 1\<close> and
+    \<open>count_decided (ys @ Propagated x2 C # zs) < uint32_max\<close> and
     \<open>length (map lit_of (rev (ys @ Propagated x2 C # zs))) =
      length (ys @ Propagated x2 C # zs)\<close> and
     bounded: \<open>isasat_input_bounded ?\<A>\<close> and
@@ -3014,7 +3014,7 @@ proof -
       set_append[symmetric]zs_def[symmetric] zs2
     by (auto simp: eq_commute[of \<open>set zs\<close> \<open>atms_of (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>)\<close>] hd_drop_conv_nth
       simp del: nth_mem)
-  have le_uint_max: \<open>the x1a \<le> uint_max div 2\<close>
+  have le_uint32_max: \<open>the x1a \<le> uint32_max div 2\<close>
     if
       \<open>(remdups_mset \<A>, \<A>') \<in> Id\<close> and
       \<open>(x, x') \<in> {((n, m, x), \<A>', y). is_lasts \<A>' n m \<and> x = y}\<close> and
@@ -3054,7 +3054,7 @@ proof -
       by (simp add: is_lasts_def in_set_dropI)
     subgoal for \<A>' x x' x1 x2 x1a x2a x1b xb
       by (auto simp: is_lasts_le)
-    subgoal by (rule le_uint_max)
+    subgoal by (rule le_uint32_max)
     subgoal by auto
     subgoal for \<A>' x x' x1 x2 x1a x2a x1b x2b A xa xb
       by (rule IH)

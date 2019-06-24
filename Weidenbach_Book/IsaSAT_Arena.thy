@@ -2092,7 +2092,7 @@ lemma arena_update_pos_conv:
     \<open>j \<ge> POS_SHIFT\<close> (is ?ge)
     \<open>(a[j - POS_SHIFT := uint32_of_nat (pos - 2)], arena_update_pos j pos arena) \<in>
       \<langle>uint32_nat_rel O arena_el_rel\<rangle>list_rel\<close> (is ?unat) and
-    \<open>pos - 2 \<le> uint_max\<close>
+    \<open>pos - 2 \<le> uint32_max\<close>
 proof -
   have j_le: \<open>j < length arena\<close> and
     length: \<open>length (N \<propto> j) = arena_length arena j\<close> and
@@ -2112,7 +2112,7 @@ proof -
          (arena ! (j - SIZE_SHIFT)))
        \<in> uint32_nat_rel O arena_el_rel\<close>
     by (rule param_nth[OF _ _ a]) (use j_le in auto)
-  then show \<open>pos - 2 \<le> uint_max\<close>
+  then show \<open>pos - 2 \<le> uint32_max\<close>
     using b' length is_size pos_le nat_of_uint32_le_uint32_max[of \<open>a ! (j - SIZE_SHIFT)\<close>]
     by (cases \<open>arena ! (j - SIZE_SHIFT)\<close>)
       (auto simp: uint32_nat_rel_def br_def arena_el_rel_def arena_length_def)

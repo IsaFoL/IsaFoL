@@ -136,7 +136,7 @@ sepref_definition is_in_conflict_code
   is \<open>uncurry (RETURN oo is_in_lookup_conflict)\<close>
   :: \<open>[\<lambda>((n, xs), L). atm_of L < length xs]\<^sub>a
        lookup_clause_rel_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> bool_assn\<close>
-  supply length_rll_def[simp] nth_rll_def[simp] uint_max_def[simp]
+  supply length_rll_def[simp] nth_rll_def[simp] uint32_max_def[simp]
     uint32_nat_assn_one[sepref_fr_rules] image_image[simp]
   unfolding is_in_lookup_conflict_def
   by sepref
@@ -259,9 +259,9 @@ sepref_definition resolve_lookup_conflict_merge_code
       trail_pol_assn\<^sup>k *\<^sub>a arena_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a conflict_option_rel_assn\<^sup>d *\<^sub>a
          uint32_nat_assn\<^sup>k *\<^sub>a lbd_assn\<^sup>d *\<^sub>a out_learned_assn\<^sup>d \<rightarrow>
       conflict_option_rel_assn *a uint32_nat_assn *a lbd_assn *a out_learned_assn\<close>
-  supply length_rll_def[simp] nth_rll_def[simp] uint_max_def[simp]
+  supply length_rll_def[simp] nth_rll_def[simp] uint32_max_def[simp]
     uint32_nat_assn_one[sepref_fr_rules] image_image[simp] literals_are_in_\<L>\<^sub>i\<^sub>n_in_\<L>\<^sub>a\<^sub>l\<^sub>l[simp]
-    literals_are_in_\<L>\<^sub>i\<^sub>n_trail_get_level_uint_max[dest]
+    literals_are_in_\<L>\<^sub>i\<^sub>n_trail_get_level_uint32_max[dest]
     Suc_uint32_nat_assn_hnr[sepref_fr_rules] fmap_length_rll_u_def[simp]
   unfolding isa_lookup_conflict_merge_def lookup_conflict_merge_def add_to_lookup_conflict_def
     PR_CONST_def nth_rll_def[symmetric]
@@ -284,9 +284,9 @@ sepref_definition resolve_lookup_conflict_merge_fast_code
       trail_pol_fast_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a conflict_option_rel_assn\<^sup>d *\<^sub>a
          uint32_nat_assn\<^sup>k *\<^sub>a lbd_assn\<^sup>d *\<^sub>a out_learned_assn\<^sup>d \<rightarrow>
       conflict_option_rel_assn *a uint32_nat_assn *a lbd_assn *a out_learned_assn\<close>
-  supply length_rll_def[simp] nth_rll_def[simp] uint_max_def[simp]
+  supply length_rll_def[simp] nth_rll_def[simp] uint32_max_def[simp]
     uint32_nat_assn_one[sepref_fr_rules] image_image[simp] literals_are_in_\<L>\<^sub>i\<^sub>n_in_\<L>\<^sub>a\<^sub>l\<^sub>l[simp]
-    literals_are_in_\<L>\<^sub>i\<^sub>n_trail_get_level_uint_max[dest]
+    literals_are_in_\<L>\<^sub>i\<^sub>n_trail_get_level_uint32_max[dest]
     Suc_uint32_nat_assn_hnr[sepref_fr_rules] fmap_length_rll_u_def[simp]
     arena_is_valid_clause_idx_le_uint64_max[intro]
   unfolding isa_lookup_conflict_merge_def lookup_conflict_merge_def add_to_lookup_conflict_def
@@ -312,9 +312,9 @@ sepref_definition set_lookup_conflict_aa_code
   :: \<open>trail_pol_assn\<^sup>k *\<^sub>a arena_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a conflict_option_rel_assn\<^sup>d *\<^sub>a
          uint32_nat_assn\<^sup>k *\<^sub>a lbd_assn\<^sup>d *\<^sub>a out_learned_assn\<^sup>d \<rightarrow>\<^sub>a
       conflict_option_rel_assn *a uint32_nat_assn *a lbd_assn *a out_learned_assn\<close>
-  supply length_rll_def[simp] nth_rll_def[simp] uint_max_def[simp]
+  supply length_rll_def[simp] nth_rll_def[simp] uint32_max_def[simp]
     image_image[simp] literals_are_in_\<L>\<^sub>i\<^sub>n_in_\<L>\<^sub>a\<^sub>l\<^sub>l[simp]
-    literals_are_in_\<L>\<^sub>i\<^sub>n_trail_get_level_uint_max[dest]
+    literals_are_in_\<L>\<^sub>i\<^sub>n_trail_get_level_uint32_max[dest]
     fmap_length_rll_u_def[simp]
   unfolding set_lookup_conflict_aa_def lookup_conflict_merge_def add_to_lookup_conflict_def
     PR_CONST_def nth_rll_def[symmetric] length_rll_def[symmetric]
@@ -337,9 +337,9 @@ sepref_definition set_lookup_conflict_aa_fast_code
       trail_pol_fast_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a conflict_option_rel_assn\<^sup>d *\<^sub>a
          uint32_nat_assn\<^sup>k *\<^sub>a lbd_assn\<^sup>d  *\<^sub>a out_learned_assn\<^sup>d \<rightarrow>
       conflict_option_rel_assn *a uint32_nat_assn *a lbd_assn *a out_learned_assn\<close>
-  supply length_rll_def[simp] nth_rll_def[simp] uint_max_def[simp]
+  supply length_rll_def[simp] nth_rll_def[simp] uint32_max_def[simp]
     image_image[simp] literals_are_in_\<L>\<^sub>i\<^sub>n_in_\<L>\<^sub>a\<^sub>l\<^sub>l[simp]
-    literals_are_in_\<L>\<^sub>i\<^sub>n_trail_get_level_uint_max[dest]
+    literals_are_in_\<L>\<^sub>i\<^sub>n_trail_get_level_uint32_max[dest]
     fmap_length_rll_u_def[simp]
     arena_is_valid_clause_idx_le_uint64_max[intro]
   unfolding set_lookup_conflict_aa_def lookup_conflict_merge_def add_to_lookup_conflict_def
@@ -369,9 +369,9 @@ sepref_definition resolve_merge_conflict_code
       trail_pol_assn\<^sup>k *\<^sub>a arena_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a conflict_option_rel_assn\<^sup>d *\<^sub>a
          uint32_nat_assn\<^sup>k *\<^sub>a lbd_assn\<^sup>d *\<^sub>a out_learned_assn\<^sup>d \<rightarrow>
       conflict_option_rel_assn *a uint32_nat_assn *a lbd_assn *a out_learned_assn\<close>
-  supply length_rll_def[simp] nth_rll_def[simp] uint_max_def[simp]
+  supply length_rll_def[simp] nth_rll_def[simp] uint32_max_def[simp]
     image_image[simp] literals_are_in_\<L>\<^sub>i\<^sub>n_in_\<L>\<^sub>a\<^sub>l\<^sub>l[simp]
-    literals_are_in_\<L>\<^sub>i\<^sub>n_trail_get_level_uint_max[dest]
+    literals_are_in_\<L>\<^sub>i\<^sub>n_trail_get_level_uint32_max[dest]
     fmap_length_rll_u_def[simp]
   unfolding set_lookup_conflict_aa_def lookup_conflict_merge_def add_to_lookup_conflict_def
     PR_CONST_def nth_rll_def[symmetric] length_rll_def[symmetric]
@@ -396,9 +396,9 @@ sepref_definition resolve_merge_conflict_fast_code
       trail_pol_fast_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a conflict_option_rel_assn\<^sup>d *\<^sub>a
          uint32_nat_assn\<^sup>k *\<^sub>a lbd_assn\<^sup>d *\<^sub>a out_learned_assn\<^sup>d \<rightarrow>
       conflict_option_rel_assn *a uint32_nat_assn *a lbd_assn *a out_learned_assn\<close>
-  supply length_rll_def[simp] nth_rll_def[simp] uint_max_def[simp]
+  supply length_rll_def[simp] nth_rll_def[simp] uint32_max_def[simp]
     image_image[simp] literals_are_in_\<L>\<^sub>i\<^sub>n_in_\<L>\<^sub>a\<^sub>l\<^sub>l[simp]
-    literals_are_in_\<L>\<^sub>i\<^sub>n_trail_get_level_uint_max[dest]
+    literals_are_in_\<L>\<^sub>i\<^sub>n_trail_get_level_uint32_max[dest]
     fmap_length_rll_u_def[simp]
     arena_is_valid_clause_idx_le_uint64_max[intro]
   unfolding set_lookup_conflict_aa_def lookup_conflict_merge_def add_to_lookup_conflict_def
@@ -445,7 +445,7 @@ lemma conflict_min_cach_set_failed_l_alt_def:
    })\<close>
   unfolding conflict_min_cach_set_failed_l_def Let_def by auto
 
-lemma le_uint32_max_div2_le_uint32_max: \<open>a2' \<le> Suc (uint_max div 2) \<Longrightarrow> a2' < uint_max\<close>
+lemma le_uint32_max_div2_le_uint32_max: \<open>a2' \<le> Suc (uint32_max div 2) \<Longrightarrow> a2' < uint32_max\<close>
   by (auto simp: uint32_max_def)
 
 sepref_definition (in -) conflict_min_cach_set_failed_l_code
@@ -512,9 +512,9 @@ lemma set_lookup_empty_conflict_to_none_hnr[sepref_fr_rules]:
 
 lemma isa_mark_failed_lits_stackI:
   assumes 
-    \<open>length ba \<le> Suc (uint_max div 2)\<close> and
+    \<open>length ba \<le> Suc (uint32_max div 2)\<close> and
     \<open>a1' < length ba\<close>
-  shows \<open>Suc a1' \<le> uint_max\<close>
+  shows \<open>Suc a1' \<le> uint32_max\<close>
   using assms by (auto simp: uint32_max_def)
 
 sepref_register to_ana_ref_id
@@ -645,8 +645,8 @@ declare get_propagation_reason_code.refine[sepref_fr_rules]
 
 lemma isa_lit_redundant_rec_wl_lookupI:
   assumes 
-    \<open>length ba \<le> Suc (uint_max div 2)\<close>
-  shows \<open>length ba < uint_max\<close>
+    \<open>length ba \<le> Suc (uint32_max div 2)\<close>
+  shows \<open>length ba < uint32_max\<close>
   using assms by (auto simp: uint32_max_def)
 
 sepref_definition lit_redundant_rec_wl_lookup_code
@@ -763,7 +763,7 @@ sepref_definition (in -)lookup_conflict_upd_None_code
 
 declare lookup_conflict_upd_None_code.refine[sepref_fr_rules]
 
-lemma uint32_max_ge0:  \<open>0 < uint_max\<close> by (auto simp: uint32_max_def)
+lemma uint32_max_ge0:  \<open>0 < uint32_max\<close> by (auto simp: uint32_max_def)
 sepref_definition literal_redundant_wl_lookup_code
   is \<open>uncurry5 isa_literal_redundant_wl_lookup\<close>
   :: \<open>[\<lambda>(((((M, NU), D), cach), L), lbd). True]\<^sub>a
@@ -819,7 +819,7 @@ sepref_definition minimize_and_extract_highest_lookup_conflict_code
   supply [[goals_limit=1]] Pos_unat_lit_assn[sepref_fr_rules] Neg_unat_lit_assn[sepref_fr_rules]
     literals_are_in_\<L>\<^sub>i\<^sub>n_trail_uminus_in_lits_of_l[intro]
     minimize_and_extract_highest_lookup_conflict_inv_def[simp]
-    in_\<L>\<^sub>a\<^sub>l\<^sub>l_less_uint_max'[intro] length_u_hnr[sepref_fr_rules]
+    in_\<L>\<^sub>a\<^sub>l\<^sub>l_less_uint32_max'[intro] length_u_hnr[sepref_fr_rules]
     array_set_hnr_u[sepref_fr_rules]
   unfolding isa_minimize_and_extract_highest_lookup_conflict_def zero_uint32_nat_def[symmetric]
     one_uint32_nat_def[symmetric] PR_CONST_def
@@ -837,7 +837,7 @@ sepref_definition minimize_and_extract_highest_lookup_conflict_fast_code
   supply [[goals_limit=1]] Pos_unat_lit_assn[sepref_fr_rules] Neg_unat_lit_assn[sepref_fr_rules]
     literals_are_in_\<L>\<^sub>i\<^sub>n_trail_uminus_in_lits_of_l[intro]
     minimize_and_extract_highest_lookup_conflict_inv_def[simp]
-    in_\<L>\<^sub>a\<^sub>l\<^sub>l_less_uint_max'[intro] length_u_hnr[sepref_fr_rules]
+    in_\<L>\<^sub>a\<^sub>l\<^sub>l_less_uint32_max'[intro] length_u_hnr[sepref_fr_rules]
     array_set_hnr_u[sepref_fr_rules]
   unfolding isa_minimize_and_extract_highest_lookup_conflict_def zero_uint32_nat_def[symmetric]
     one_uint32_nat_def[symmetric] PR_CONST_def
@@ -857,7 +857,7 @@ sepref_definition isasat_lookup_merge_eq2_code
     is_NOTIN_def[symmetric]
   supply length_rll_def[simp] nth_rll_def[simp]
     image_image[simp] literals_are_in_\<L>\<^sub>i\<^sub>n_in_\<L>\<^sub>a\<^sub>l\<^sub>l[simp]
-    literals_are_in_\<L>\<^sub>i\<^sub>n_trail_get_level_uint_max[dest]
+    literals_are_in_\<L>\<^sub>i\<^sub>n_trail_get_level_uint32_max[dest]
     fmap_length_rll_u_def[simp]
     arena_is_valid_clause_idx_le_uint64_max[intro]
   apply (rewrite in \<open>if _ then _ + \<hole> else _\<close> one_uint32_nat_def[symmetric])
@@ -876,7 +876,7 @@ sepref_definition isasat_lookup_merge_eq2_fast_code
     is_NOTIN_def[symmetric]
   supply length_rll_def[simp] nth_rll_def[simp]
     image_image[simp] literals_are_in_\<L>\<^sub>i\<^sub>n_in_\<L>\<^sub>a\<^sub>l\<^sub>l[simp]
-    literals_are_in_\<L>\<^sub>i\<^sub>n_trail_get_level_uint_max[dest]
+    literals_are_in_\<L>\<^sub>i\<^sub>n_trail_get_level_uint32_max[dest]
     fmap_length_rll_u_def[simp]
     arena_is_valid_clause_idx_le_uint64_max[dest]
     arena_lit_pre_le2[dest]

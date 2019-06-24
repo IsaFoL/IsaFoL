@@ -1237,13 +1237,13 @@ proof -
       apply fast
       using U' by (auto simp: finalise_init_def)
   qed
-  have all_le: \<open>\<forall>C\<in>set CS. \<forall>L\<in>set C. nat_of_lit L \<le> uint_max\<close>
+  have all_le: \<open>\<forall>C\<in>set CS. \<forall>L\<in>set C. nat_of_lit L \<le> uint32_max\<close>
   proof (intro ballI)
     fix C L
     assume \<open>C \<in> set CS\<close> and \<open>L \<in> set C\<close>
     then have \<open>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (mset_set (\<Union>C\<in>set CS. atm_of ` set C))\<close>
       by (auto simp: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n)
-    then show \<open>nat_of_lit L \<le> uint_max\<close>
+    then show \<open>nat_of_lit L \<le> uint32_max\<close>
       using assms by auto
   qed
   have [simp]: \<open>(Tc, fst Td) \<in> state_wl_l None \<Longrightarrow>
@@ -1504,7 +1504,7 @@ definition isasat_fast_init :: \<open>twl_st_wl_heur_init \<Rightarrow> bool\<cl
 definition IsaSAT_heur :: \<open>opts \<Rightarrow> nat clause_l list \<Rightarrow> (nat literal list option \<times> stats) nres\<close> where
   \<open>IsaSAT_heur opts CS = do{
     ASSERT(isasat_input_bounded (mset_set (extract_atms_clss CS {})));
-    ASSERT(\<forall>C\<in>set CS. \<forall>L\<in>set C. nat_of_lit L \<le> uint_max);
+    ASSERT(\<forall>C\<in>set CS. \<forall>L\<in>set C. nat_of_lit L \<le> uint32_max);
     let \<A>\<^sub>i\<^sub>n' = mset_set (extract_atms_clss CS {});
     ASSERT(isasat_input_bounded \<A>\<^sub>i\<^sub>n');
     ASSERT(distinct_mset \<A>\<^sub>i\<^sub>n');
@@ -1636,7 +1636,7 @@ lemma all_lits_of_mm_extract_atms_clss:
 lemma IsaSAT_heur_alt_def:
   \<open>IsaSAT_heur opts CS = do{
     ASSERT(isasat_input_bounded (mset_set (extract_atms_clss CS {})));
-    ASSERT(\<forall>C\<in>set CS. \<forall>L\<in>set C. nat_of_lit L \<le> uint_max);
+    ASSERT(\<forall>C\<in>set CS. \<forall>L\<in>set C. nat_of_lit L \<le> uint32_max);
     let \<A>\<^sub>i\<^sub>n' = mset_set (extract_atms_clss CS {});
     ASSERT(isasat_input_bounded \<A>\<^sub>i\<^sub>n');
     ASSERT(distinct_mset \<A>\<^sub>i\<^sub>n');
@@ -1860,14 +1860,14 @@ proof -
   qed
   have virtual_copy: \<open>(virtual_copy \<A>, ()) \<in> {(\<B>, c). c = () \<and> \<B> = \<A>}\<close> for \<B> \<A>
     by (auto simp: virtual_copy_def)
-  have input_le: \<open>\<forall>C\<in>set CS. \<forall>L\<in>set C. nat_of_lit L \<le> uint_max\<close>
+  have input_le: \<open>\<forall>C\<in>set CS. \<forall>L\<in>set C. nat_of_lit L \<le> uint32_max\<close>
     if \<open>isasat_input_bounded (mset_set (extract_atms_clss CS {}))\<close>
   proof (intro ballI)
     fix C L
     assume \<open>C \<in> set CS\<close> and \<open>L \<in> set C\<close>
     then have \<open>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (mset_set (extract_atms_clss CS {}))\<close>
       by (auto simp: extract_atms_clss_alt_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n)
-    then show \<open>nat_of_lit L \<le> uint_max\<close>
+    then show \<open>nat_of_lit L \<le> uint32_max\<close>
       using that by auto
   qed
   have lits_C: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (mset_set (extract_atms_clss CS {})) (mset C)\<close>
@@ -2525,11 +2525,11 @@ lemma IsaSAT_heur_model_if_sat:
 
 lemma IsaSAT_heur_model_if_sat': \<open>(uncurry IsaSAT_heur, uncurry (\<lambda>_. model_if_satisfiable)) \<in>
    [\<lambda>(_, CS). (\<forall>C \<in># CS. distinct_mset C) \<and>
-     (\<forall>C\<in>#CS. \<forall>L\<in>#C. nat_of_lit L \<le> uint_max)]\<^sub>f
+     (\<forall>C\<in>#CS. \<forall>L\<in>#C. nat_of_lit L \<le> uint32_max)]\<^sub>f
      Id \<times>\<^sub>r list_mset_rel O \<langle>list_mset_rel\<rangle>mset_rel \<rightarrow> \<langle>model_stat_rel\<rangle>nres_rel\<close>
 proof -
   have H: \<open>isasat_input_bounded (mset_set (\<Union>C\<in>set CS. atm_of ` set C))\<close>
-    if CS_p: \<open>\<forall>C\<in>#CS'. \<forall>L\<in>#C. nat_of_lit L \<le> uint_max\<close> and
+    if CS_p: \<open>\<forall>C\<in>#CS'. \<forall>L\<in>#C. nat_of_lit L \<le> uint32_max\<close> and
       \<open>(CS, CS') \<in> list_mset_rel O \<langle>list_mset_rel\<rangle>mset_rel\<close>
     for CS CS'
     unfolding isasat_input_bounded_def
@@ -2539,17 +2539,17 @@ proof -
     then obtain C where
       L: \<open>C\<in>set CS \<and> (L \<in>set C \<or> - L \<in> set C)\<close>
       apply (cases L)
-      apply (auto simp: extract_atms_clss_alt_def uint_max_def nat_of_uint32_uint32_of_nat_id
+      apply (auto simp: extract_atms_clss_alt_def uint32_max_def nat_of_uint32_uint32_of_nat_id
           \<L>\<^sub>a\<^sub>l\<^sub>l_def)+
       apply (metis literal.exhaust_sel)+
       done
-    have \<open>nat_of_lit L \<le> uint_max \<or> nat_of_lit (-L) \<le> uint_max\<close>
+    have \<open>nat_of_lit L \<le> uint32_max \<or> nat_of_lit (-L) \<le> uint32_max\<close>
       using L CS_p that by (auto simp: list_mset_rel_def mset_rel_def br_def
       br_def mset_rel_def p2rel_def rel_mset_def
         rel2p_def[abs_def] list_all2_op_eq_map_right_iff')
-    then show \<open>nat_of_lit L \<le> uint_max\<close>
+    then show \<open>nat_of_lit L \<le> uint32_max\<close>
       using L
-      by (cases L) (auto simp: extract_atms_clss_alt_def uint_max_def)
+      by (cases L) (auto simp: extract_atms_clss_alt_def uint32_max_def)
   qed
   show ?thesis
     apply (intro frefI nres_relI)
@@ -2571,7 +2571,7 @@ qed
 definition IsaSAT_bounded_heur :: \<open>opts \<Rightarrow> nat clause_l list \<Rightarrow> (bool \<times> (nat literal list option \<times> stats)) nres\<close> where
   \<open>IsaSAT_bounded_heur opts CS = do{
     ASSERT(isasat_input_bounded (mset_set (extract_atms_clss CS {})));
-    ASSERT(\<forall>C\<in>set CS. \<forall>L\<in>set C. nat_of_lit L \<le> uint_max);
+    ASSERT(\<forall>C\<in>set CS. \<forall>L\<in>set C. nat_of_lit L \<le> uint32_max);
     let \<A>\<^sub>i\<^sub>n' = mset_set (extract_atms_clss CS {});
     ASSERT(isasat_input_bounded \<A>\<^sub>i\<^sub>n');
     ASSERT(distinct_mset \<A>\<^sub>i\<^sub>n');

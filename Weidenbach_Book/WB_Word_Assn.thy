@@ -4,6 +4,35 @@ imports  Refine_Imperative_HOL.IICF
   WB_More_Refinement WB_More_IICF_SML
 begin
 
+context includes natural.lifting begin
+lemma [code]:
+  "integer_of_natural (m >> n) = (integer_of_natural m) >> n"
+  apply transfer
+  by (smt integer_of_natural.rep_eq msb_int_def msb_shiftr nat_eq_iff2 negative_zle
+      shiftr_int_code shiftr_int_def shiftr_nat_def shiftr_natural.rep_eq
+      type_definition.Rep_inject type_definition_integer)
+
+lemma [code]:
+  "integer_of_natural (m << n) = (integer_of_natural m) << n"
+  apply transfer
+  by (smt integer_of_natural.rep_eq msb_int_def msb_shiftl nat_eq_iff2 negative_zle
+      shiftl_int_code shiftl_int_def shiftl_nat_def shiftl_natural.rep_eq
+      type_definition.Rep_inject type_definition_integer)
+
+end
+
+
+lemma shiftl_0_uint32[simp]: \<open>n << 0 = n\<close> for n :: uint32
+  by transfer auto
+  
+lemma shiftl_Suc_uint32: \<open>n << Suc m = (n << m) << 1\<close> for n :: uint32
+  apply transfer
+  apply transfer
+  by auto
+
+
+
+
 subsection \<open>More Setup for Fixed Size Natural Numbers\<close>
 
 subsubsection \<open>Words\<close>

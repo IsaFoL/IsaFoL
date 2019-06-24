@@ -3,11 +3,7 @@ theory WB_More_Refinement
     "HOL-Library.Cardinality"
     "HOL-Library.Rewrite"
     "HOL-Eisbach.Eisbach"
-    Refine_Monadic.Refine_Basic
-    Automatic_Refinement.Automatic_Refinement
-    Automatic_Refinement.Relators
-    Refine_Monadic.Refine_While
-    Refine_Monadic.Refine_Foreach
+    "Isabelle_LLVM.Refine_Monadic_Thin"
 begin
 (*
   term \<open>a \<rightarrow>\<^sub>f b\<close>
