@@ -1188,19 +1188,47 @@ definition isasat_atms_ext_rel :: \<open>((nat list \<times> nat \<times> nat li
       length xs \<noteq> 0
    }\<close>
 
+
+lemma distinct_length_le_Suc_Max:
+   assumes \<open>distinct (b :: nat list)\<close>
+  shows \<open>length b \<le> Suc (Max (insert 0 (set b)))\<close>
+proof -
+  have \<open>set b \<subseteq> {0 ..< Suc (Max (insert 0 (set b)))}\<close>
+    by (cases \<open>set b = {}\<close>)
+     (auto simp add: le_imp_less_Suc)
+  from card_mono[OF _ this] show ?thesis
+     using distinct_card[OF assms(1)] by auto
+qed
+
+lemma isasat_atms_ext_rel_alt_def:
+  \<open>isasat_atms_ext_rel = {((xs, n, atms), l).
+      init_valid_rep xs l \<and>
+      n = Max (insert 0 l) \<and>
+      length xs < uint_max \<and>
+      (\<forall>s\<in>set xs. s \<le> uint64_max) \<and>
+      finite l \<and>
+      distinct atms \<and>
+      set atms = l \<and>
+      length xs \<noteq> 0 \<and>
+      length atms \<le> Suc n
+   }\<close>
+  by (auto simp: isasat_atms_ext_rel_def distinct_length_le_Suc_Max)
+
+
 definition in_map_atm_of :: \<open>'a \<Rightarrow> 'a list \<Rightarrow> bool\<close> where
   \<open>in_map_atm_of L N \<longleftrightarrow> L \<in> set N\<close>
 
 definition (in -) init_next_size where
   \<open>init_next_size L = 2 * L\<close>
 
-lemma init_next_size: \<open>L \<noteq> 0 \<Longrightarrow> L + 1 \<le> uint_max \<Longrightarrow> L < init_next_size L \<close>
+lemma init_next_size: \<open>L \<noteq> 0 \<Longrightarrow> L + 1 \<le> uint_max \<Longrightarrow> L < init_next_size L\<close>
   by (auto simp: init_next_size_def uint32_max_uint32_def uint_max_def)
 
 definition add_to_atms_ext where
   \<open>add_to_atms_ext = (\<lambda>i (xs, n, atms). do {
     ASSERT(i \<le> uint_max div 2);
     ASSERT(length xs \<le> uint_max);
+    ASSERT(length atms \<le> Suc n);
     let n = max i n;
     (if i < length_uint32_nat xs then do {
        ASSERT(xs!i \<le> uint64_max);
@@ -1343,6 +1371,7 @@ proof -
     apply (refine_vcg lhs_step_If)
     subgoal by auto
     subgoal by auto
+    subgoal unfolding isasat_atms_ext_rel_def[symmetric] isasat_atms_ext_rel_alt_def by auto
     subgoal by auto
     subgoal for x y x1 x2 x1a x2a x1b x2b
       unfolding comp_def
@@ -1997,6 +2026,7 @@ definition init_trail_D_fast where
 
 definition init_state_wl_D' :: \<open>uint32 list \<times> uint32 \<Rightarrow>  (trail_pol \<times> _ \<times> _) nres\<close> where
   \<open>init_state_wl_D' = (\<lambda>(\<A>\<^sub>i\<^sub>n, n). do {
+     ASSERT(Suc (2 * (nat_of_uint32 n)) \<le> uint32_max);
      let n = Suc (nat_of_uint32 n);
      let m = 2 * n;
      M \<leftarrow> init_trail_D \<A>\<^sub>i\<^sub>n n m;
@@ -2212,7 +2242,16 @@ proof -
       lookup_clause_rel_def simp del: replicate_Suc
       intro: mset_as_position.intros)
   qed
-
+  have [simp]:
+     \<open>NO_MATCH 0 a1 \<Longrightarrow> max 0 (Max (insert a1 (set a2))) = max a1 (Max (insert 0 (set a2)))\<close>
+    for a1 :: uint32 and a2
+    by (metis (mono_tags, lifting) List.finite_set Max_insert all_not_in_conv finite_insert insertI1 insert_commute)
+  have le_uint32: \<open>\<forall>L\<in>#\<L>\<^sub>a\<^sub>l\<^sub>l (nat_of_uint32 `# mset a). nat_of_lit L \<le> uint_max \<Longrightarrow>
+    Suc (2 * nat_of_uint32 (Max (insert 0 (set a)))) \<le> uint_max\<close> for a
+    apply (induction a)
+    apply (auto simp: uint32_max_def)
+    apply (auto simp: max_def  \<L>\<^sub>a\<^sub>l\<^sub>l_add_mset)
+    done
   show ?thesis
     apply (intro frefI nres_relI)
     subgoal for x y
@@ -2221,6 +2260,7 @@ proof -
     apply (rewrite in \<open>let _ = 2 * _in _\<close> Let_def)
     apply (cases x; simp only: prod.case)
     apply (refine_rcg init[of y x] initialise_VMTF cach)
+    subgoal for a b by (auto simp: lits_with_max_rel_def intro: le_uint32)
     subgoal by (auto intro!: K[of _ \<A>\<^sub>i\<^sub>n] simp: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n
      lits_with_max_rel_def atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n)
     subgoal by auto

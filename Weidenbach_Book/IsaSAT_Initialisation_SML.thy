@@ -452,7 +452,7 @@ sepref_definition extract_atms_clss_imp_empty_assn
   unfolding extract_atms_clss_imp_empty_rel_def
     array_fold_custom_replicate
   supply [[goals_limit=1]]
-  apply (rewrite at \<open>(_, _, \<hole>)\<close> IICF_Array_List.arl.fold_custom_empty)
+  apply (rewrite at \<open>(_, _, \<hole>)\<close> arl.fold_custom_empty)
   apply (rewrite in \<open>(_, _, \<hole>)\<close> annotate_assn[where A=\<open>arl_assn uint32_nat_assn\<close>])
   apply (rewrite in \<open>(\<hole>, _, _)\<close> zero_uint64_nat_def[symmetric])
   apply (rewrite in \<open>(_, \<hole>, _)\<close> zero_uint32_nat_def[symmetric])
