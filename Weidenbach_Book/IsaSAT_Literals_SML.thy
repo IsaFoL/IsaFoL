@@ -2,6 +2,13 @@ theory IsaSAT_Literals_SML
   imports Watched_Literals.WB_Word_Assn
     Watched_Literals.Array_UInt IsaSAT_Literals
 begin
+hide_const (open) IsaSAT_Literals.uint32_max IsaSAT_Literals.uint64_max
+hide_fact (open) IsaSAT_Literals.uint32_max_def IsaSAT_Literals.uint64_max_def
+
+lemma [simp]: \<open>IsaSAT_Literals.uint32_max = uint32_max\<close>
+    \<open>IsaSAT_Literals.uint64_max = uint64_max\<close>
+  by (auto simp: IsaSAT_Literals.uint32_max_def uint32_max_def
+    IsaSAT_Literals.uint64_max_def uint64_max_def)
 
 text \<open>
   First we instantiate our types with sort heap and default, to have compatibility with code
@@ -344,7 +351,7 @@ lemma Pos_unat_lit_assn:
   \<open>(return o (\<lambda>n. two_uint32 * n), RETURN o Pos) \<in> [\<lambda>L. Pos L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A> \<and> isasat_input_bounded \<A>]\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>
      unat_lit_assn\<close>
   by sepref_to_hoare
-    (sep_auto simp: unat_lit_rel_def nat_lit_rel_def uint32_nat_rel_def br_def Collect_eq_comp
+   (sep_auto simp: unat_lit_rel_def nat_lit_rel_def uint32_nat_rel_def br_def Collect_eq_comp
       nat_of_uint32_distrib_mult2)
 
 lemma Neg_unat_lit_assn:

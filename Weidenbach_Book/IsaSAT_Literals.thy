@@ -113,6 +113,9 @@ subsection \<open>Atoms with bound\<close>
 definition uint32_max :: nat where
   \<open>uint32_max \<equiv> 2^32-1\<close>
 
+definition uint64_max :: nat where
+  \<open>uint64_max \<equiv> 2^64-1\<close>
+
 
 context
   fixes \<A>\<^sub>i\<^sub>n :: \<open>nat multiset\<close>
