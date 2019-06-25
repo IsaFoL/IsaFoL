@@ -7,8 +7,10 @@ lemma convert_fref:
   "WB_More_Refinement.freft = Sepref_Rules.freftnd"
   unfolding WB_More_Refinement.fref_def Sepref_Rules.fref_def
   by auto
-
-  
+ 
+no_notation WB_More_Refinement.fref ("[_]\<^sub>f _ \<rightarrow> _" [0,60,60] 60)
+no_notation WB_More_Refinement.freft ("_ \<rightarrow>\<^sub>f _" [60,60] 60)
+    
 (* TODO: Move *)
 
 lemma upcast_no_msb[simp]: "LENGTH('small::len) < LENGTH('big::len) \<Longrightarrow> \<not>msb (UCAST('small \<rightarrow> 'big) x)" 
@@ -22,6 +24,7 @@ context begin
 
     
   definition [llvm_inline]: "unat_snat_upcast TYPE('a::len2) x \<equiv> ll_zext x TYPE('a word)"
+  definition [llvm_inline]: "snat_unat_downcast TYPE('a::len) x \<equiv> ll_trunc x TYPE('a word)"
     
   lemma unat_snat_upcast_rule[vcg_rules]:
     "llvm_htriple 
@@ -32,34 +35,92 @@ context begin
     apply vcg'
     apply (auto simp: snat_invar_def snat_eq_unat(2) unat_ucast_upcast)
     done
-  
+
+  lemma snat_unat_downcast_rule[vcg_rules]:
+    "llvm_htriple 
+      (\<up>(is_down' UCAST('big \<rightarrow> 'small)) ** \<upharpoonleft>snat.assn n (ni::'big::len2 word) ** \<up>(n<max_unat LENGTH('small))) 
+      (snat_unat_downcast TYPE('small::len) ni) 
+      (\<lambda>r. \<upharpoonleft>unat.assn n r)"
+    unfolding unat.assn_def snat.assn_def snat_unat_downcast_def
+    apply vcg'
+    apply (auto simp: snat_invar_def snat_eq_unat(2) max_unat_def)
+    by (metis ucast_nat_def unat_of_nat_eq)
+    
+      
   context fixes T :: "'a::len2 itself" begin
     definition [simp]: "unat_snat_upcast_aux \<equiv> let _=TYPE('a) in id::nat\<Rightarrow>nat"
   
     sepref_decl_op unat_snat_upcast: "unat_snat_upcast_aux" :: "nat_rel \<rightarrow> nat_rel" .
   end  
 
-term mop_unat_snat_upcast
+  context fixes T :: "'a::len itself" begin
+    definition [simp]: "snat_unat_downcast_aux \<equiv> let _=TYPE('a) in id::nat\<Rightarrow>nat"
+  
+    sepref_decl_op snat_unat_downcast: "snat_unat_downcast_aux" :: "nat_rel \<rightarrow> nat_rel" .
+  end  
 
-lemma in_unat_rel_conv_assn: "\<up>((xi, x) \<in> unat_rel) = \<upharpoonleft>unat.assn x xi"
-  by (auto simp: unat_rel_def unat.assn_is_rel pure_app_eq)
-
-lemma in_snat_rel_conv_assn: "\<up>((xi, x) \<in> snat_rel) = \<upharpoonleft>snat.assn x xi"
-  by (auto simp: snat_rel_def snat.assn_is_rel pure_app_eq)
-
-lemma unat_snat_upcast_rl[sepref_fr_rules]: 
-  "(unat_snat_upcast TYPE('big::len2), PR_CONST (mop_unat_snat_upcast TYPE('big::len2))) \<in> [\<lambda>_. is_up' UCAST('small \<rightarrow> 'big)]\<^sub>a (unat_assn' TYPE('small::len))\<^sup>k \<rightarrow> snat_assn"
-  supply [simp] = in_unat_rel_conv_assn in_snat_rel_conv_assn
-  apply sepref_to_hoare
-  apply simp
-  by vcg'
-
-
+  lemma annot_unat_snat_upcast: "x = op_unat_snat_upcast TYPE('l::len2) x" by simp 
+  lemma annot_snat_unat_downcast: "x = op_snat_unat_downcast TYPE('l::len) x" by simp 
+    
+  
+  lemma in_unat_rel_conv_assn: "\<up>((xi, x) \<in> unat_rel) = \<upharpoonleft>unat.assn x xi"
+    by (auto simp: unat_rel_def unat.assn_is_rel pure_app_eq)
+  
+  lemma in_snat_rel_conv_assn: "\<up>((xi, x) \<in> snat_rel) = \<upharpoonleft>snat.assn x xi"
+    by (auto simp: snat_rel_def snat.assn_is_rel pure_app_eq)
+  
+  context fixes BIG :: "'big::len2" and SMALL :: "'small::len" begin  
+    lemma unat_snat_upcast_refine: 
+      "(unat_snat_upcast TYPE('big::len2), PR_CONST (mop_unat_snat_upcast TYPE('big::len2))) \<in> [\<lambda>_. is_up' UCAST('small \<rightarrow> 'big)]\<^sub>a (unat_assn' TYPE('small::len))\<^sup>k \<rightarrow> snat_assn"
+      supply [simp] = in_unat_rel_conv_assn in_snat_rel_conv_assn
+      apply sepref_to_hoare
+      apply simp
+      by vcg'
+    
+    sepref_decl_impl (ismop) unat_snat_upcast_refine fixes 'big 'small by simp
+    
+    
+    lemma snat_unat_downcast_refine: 
+      "(snat_unat_downcast TYPE('small), PR_CONST (mop_snat_unat_downcast TYPE('small))) 
+        \<in> [\<lambda>x. is_down' UCAST('big \<rightarrow> 'small) \<and> x<max_unat LENGTH('small)]\<^sub>a (snat_assn' TYPE('big))\<^sup>k \<rightarrow> unat_assn"
+      supply [simp] = in_unat_rel_conv_assn in_snat_rel_conv_assn
+      apply sepref_to_hoare
+      apply simp
+      by vcg'
+    
+    sepref_decl_impl (ismop) snat_unat_downcast_refine fixes 'big 'small by simp
+  end
+      
+  definition unat_snat_conv :: "'l::len2 word \<Rightarrow> 'l word llM" 
+    where "unat_snat_conv x \<equiv> return x"  
+    
+  lemma unat_snat_conv_rule[vcg_rules]: 
+    "llvm_htriple (\<upharpoonleft>unat.assn x (xi::'l::len2 word) ** \<up>(x<max_snat LENGTH('l))) (unat_snat_conv xi) (\<lambda>r. \<upharpoonleft>snat.assn x r)"
+    unfolding unat_snat_conv_def unat.assn_def snat.assn_def
+    apply vcg'
+    by (force simp: max_snat_def snat_invar_alt snat_eq_unat(1))
+  
+  sepref_decl_op unat_snat_conv: "id::nat\<Rightarrow>_" :: "nat_rel \<rightarrow> nat_rel" .
+  
+  context fixes T::"'l::len2" begin
+    lemma unat_snat_conv_refine: "(\<lambda>x. x, op_unat_snat_conv) 
+      \<in> [\<lambda>x. x<max_snat LENGTH('l::len2)]\<^sub>f unat_rel' TYPE('l) \<rightarrow> snat_rel' TYPE('l)"
+      by (force 
+        intro!: frefI 
+        simp: snat_rel_def unat_rel_def snat.rel_def unat.rel_def
+        simp: in_br_conv max_snat_def snat_invar_alt
+        simp: snat_eq_unat(1)
+        )
+        
+    thm unat_snat_conv_refine[sepref_param]    
+        
+    sepref_decl_impl unat_snat_conv_refine[sepref_param] fixes 'l by auto
+  end   
+  
+  lemma annot_unat_snat_conv: "x = op_unat_snat_conv x" by simp 
+      
 end
-
-
-term larray_assn
-
+  
 
 (*
 oops

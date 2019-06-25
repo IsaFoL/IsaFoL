@@ -116,6 +116,11 @@ definition uint32_max :: nat where
 definition uint64_max :: nat where
   \<open>uint64_max \<equiv> 2^64-1\<close>
 
+definition sint32_max :: nat where
+  \<open>sint32_max \<equiv> 2^31-1\<close>
+
+definition sint64_max :: nat where
+  \<open>sint64_max \<equiv> 2^63-1\<close>
 
 context
   fixes \<A>\<^sub>i\<^sub>n :: \<open>nat multiset\<close>

@@ -53,9 +53,9 @@ abbreviation "larray32_assn \<equiv> larray_assn' TYPE(32)"
 abbreviation "larray64_assn \<equiv> larray_assn' TYPE(64)"
   
 type_synonym trail_pol_fast_assn =
-   \<open>32 word array_list32 \<times> tri_bool_assn larray32 \<times> 32 word larray32 \<times>
-     64 word larray32 \<times> 32 word \<times>
-     32 word array_list32\<close>
+   \<open>32 word array_list64 \<times> tri_bool_assn larray64 \<times> 32 word larray64 \<times>
+     64 word larray64 \<times> 32 word \<times>
+     32 word array_list64\<close>
 
 sepref_definition DECISION_REASON_uint64 is "uncurry0 (RETURN DECISION_REASON)" 
   :: "unit_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn"
@@ -65,10 +65,10 @@ lemmas [sepref_fr_rules] = DECISION_REASON_uint64.refine
 
 abbreviation trail_pol_fast_assn :: \<open>trail_pol \<Rightarrow> trail_pol_fast_assn \<Rightarrow> assn\<close> where
   \<open>trail_pol_fast_assn \<equiv>
-    arl32_assn unat_lit_assn *a larray32_assn (tri_bool_assn) *a
-    larray32_assn uint32_nat_assn *a
-    larray32_assn uint64_nat_assn *a uint32_nat_assn *a
-    arl32_assn uint32_nat_assn\<close>
+    arl64_assn unat_lit_assn *a larray64_assn (tri_bool_assn) *a
+    larray64_assn uint32_nat_assn *a
+    larray64_assn uint64_nat_assn *a uint32_nat_assn *a
+    arl64_assn uint32_nat_assn\<close>
 
 
 paragraph \<open>Code generation\<close>
@@ -161,90 +161,59 @@ sepref_definition count_decided_pol_impl is "RETURN o count_decided_pol" :: "tra
 
 *)  
 
+lemma is_up'_32_64[simp,intro!]: "is_up' UCAST(32 \<rightarrow> 64)" by (simp add: is_up')
+lemma is_down'_64_32[simp,intro!]: "is_down' UCAST(64 \<rightarrow> 32)"  by (simp add: is_down')
 
-
-sepref_definition get_level_atm_fast_code
+sepref_definition get_level_atm_fast_code [llvm_code]
   is \<open>uncurry (RETURN oo get_level_atm_pol)\<close>
   :: \<open>[get_level_atm_pol_pre]\<^sub>a
   trail_pol_fast_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
   unfolding get_level_atm_pol_def nat_shiftr_div2[symmetric] 
      get_level_atm_pol_pre_def
+  supply [[eta_contract = false, show_abbrevs=false]]   
+  apply (rewrite at "nth _" eta_expand)   
+  apply (rewrite in "nth _ \<hole>" annot_unat_snat_upcast[where 'l="64"])
   supply [[goals_limit = 1]]
-  apply sepref_dbg_keep
-  apply sepref_dbg_trans_keep
-  apply sepref_dbg_trans_step_keep
-  
-  
+  by sepref
 
 declare get_level_atm_fast_code.refine[sepref_fr_rules]
 
-sepref_definition get_level_code
-  is \<open>uncurry (RETURN oo get_level_pol)\<close>
-  :: \<open>[get_level_pol_pre]\<^sub>a
-      trail_pol_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
-  unfolding get_level_get_level_atm nat_shiftr_div2[symmetric] nat_of_uint32_shiftr[symmetric]
-  nth_u_def[symmetric] get_level_pol_pre_def get_level_pol_def
-  supply [[goals_limit = 1]] image_image[simp] in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff[simp]
-    get_level_atm_pol_pre_def[simp]
-  by sepref
 
-declare get_level_code.refine[sepref_fr_rules]
-
-sepref_definition get_level_fast_code
+sepref_definition get_level_fast_code [llvm_code]
   is \<open>uncurry (RETURN oo get_level_pol)\<close>
   :: \<open>[get_level_pol_pre]\<^sub>a
       trail_pol_fast_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
-  unfolding get_level_get_level_atm nat_shiftr_div2[symmetric] nat_of_uint32_shiftr[symmetric]
-  nth_u_def[symmetric] get_level_pol_pre_def get_level_pol_def
+  unfolding get_level_get_level_atm nat_shiftr_div2[symmetric]
+  get_level_pol_pre_def get_level_pol_def
   supply [[goals_limit = 1]] image_image[simp] in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff[simp]
     get_level_atm_pol_pre_def[simp]
   by sepref
 
 declare get_level_fast_code.refine[sepref_fr_rules]
 
-sepref_definition polarity_pol_code
-  is \<open>uncurry (RETURN oo polarity_pol)\<close>
-  :: \<open>[uncurry polarity_pol_pre]\<^sub>a trail_pol_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> tri_bool_assn\<close>
-  unfolding polarity_pol_def option.case_eq_if polarity_pol_pre_def
-  supply [[goals_limit = 1]]
-  by sepref
-
-declare polarity_pol_code.refine[sepref_fr_rules]
-
-sepref_definition polarity_pol_fast_code
+sepref_definition polarity_pol_fast_code [llvm_code]
   is \<open>uncurry (RETURN oo polarity_pol)\<close>
   :: \<open>[uncurry polarity_pol_pre]\<^sub>a trail_pol_fast_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> tri_bool_assn\<close>
   unfolding polarity_pol_def option.case_eq_if polarity_pol_pre_def
   supply [[goals_limit = 1]]
+  apply (rewrite in "nth _ \<hole>" annot_unat_snat_upcast[where 'l="64"])
   by sepref
 
 declare polarity_pol_fast_code.refine[sepref_fr_rules]
 
-sepref_definition isa_length_trail_code
+sepref_definition isa_length_trail_fast_code [llvm_code]
   is \<open>RETURN o isa_length_trail\<close>
-  :: \<open>[isa_length_trail_pre]\<^sub>a trail_pol_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
-  unfolding isa_length_trail_def isa_length_trail_pre_def
-  by sepref
-
-sepref_definition isa_length_trail_fast_code
-  is \<open>RETURN o isa_length_trail\<close>
-  :: \<open>[isa_length_trail_pre]\<^sub>a trail_pol_fast_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
+  :: \<open>[\<lambda>_. True]\<^sub>a trail_pol_fast_assn\<^sup>k \<rightarrow> snat_assn' TYPE(64)\<close>
   unfolding isa_length_trail_def isa_length_trail_pre_def length_uint32_nat_def
   by sepref
 
-declare isa_length_trail_code.refine[sepref_fr_rules]
-  isa_length_trail_fast_code.refine[sepref_fr_rules]
+declare isa_length_trail_fast_code.refine[sepref_fr_rules]
 
-sepref_definition cons_trail_Propagated_tr_code
-  is \<open>uncurry2 (RETURN ooo cons_trail_Propagated_tr)\<close>
-  :: \<open>[cons_trail_Propagated_tr_pre]\<^sub>a
-       unat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a trail_pol_assn\<^sup>d \<rightarrow> trail_pol_assn\<close>
-  unfolding cons_trail_Propagated_tr_def cons_trail_Propagated_tr_def
-    SET_TRUE_def[symmetric] SET_FALSE_def[symmetric] cons_trail_Propagated_tr_pre_def
-  supply [[goals_limit = 1]]
-  by sepref
 
-declare cons_trail_Propagated_tr_code.refine[sepref_fr_rules]
+lemma ins_idx_upcast64: 
+  "l[i:=y] = op_list_set l (op_unat_snat_upcast TYPE(64) i) y"
+  "l!i = op_list_get l (op_unat_snat_upcast TYPE(64) i)" 
+  by simp_all
 
 sepref_definition cons_trail_Propagated_tr_fast_code
   is \<open>uncurry2 (RETURN ooo cons_trail_Propagated_tr)\<close>
@@ -252,21 +221,14 @@ sepref_definition cons_trail_Propagated_tr_fast_code
        unat_lit_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a trail_pol_fast_assn\<^sup>d \<rightarrow> trail_pol_fast_assn\<close>
   unfolding cons_trail_Propagated_tr_def cons_trail_Propagated_tr_def
     SET_TRUE_def[symmetric] SET_FALSE_def[symmetric] cons_trail_Propagated_tr_pre_def
+  unfolding ins_idx_upcast64  
   supply [[goals_limit = 1]]
+  supply [simp] = max_snat_def uint32_max_def
   by sepref
 
 declare cons_trail_Propagated_tr_fast_code.refine[sepref_fr_rules]
 
-sepref_definition (in -)last_trail_code
-  is \<open>RETURN o last_trail_pol\<close>
-  :: \<open>[last_trail_pol_pre]\<^sub>a
-       trail_pol_assn\<^sup>k \<rightarrow> unat_lit_assn *a option_assn nat_assn\<close>
-  unfolding last_trail_pol_def nth_u_def[symmetric] last_trail_pol_pre_def
-  supply [[goals_limit = 1]]
-  by sepref
-
-declare last_trail_code.refine[sepref_fr_rules]
-
+(*
 sepref_definition (in -)last_trail_fast_code
   is \<open>RETURN o last_trail_pol\<close>
   :: \<open>[last_trail_pol_pre]\<^sub>a
@@ -277,45 +239,23 @@ sepref_definition (in -)last_trail_fast_code
   by sepref
 
 declare last_trail_fast_code.refine[sepref_fr_rules]
+*)
 
-sepref_definition tl_trail_tr_code
-  is \<open>RETURN o tl_trailt_tr\<close>
-  :: \<open>[tl_trailt_tr_pre]\<^sub>a
-        trail_pol_assn\<^sup>d \<rightarrow> trail_pol_assn\<close>
-  supply if_splits[split] option.splits[split]
-  unfolding tl_trailt_tr_def UNSET_def[symmetric] butlast_nonresizing_def[symmetric]
-    tl_trailt_tr_pre_def
-  apply (rewrite at \<open>_ - one_uint32_nat\<close> fast_minus_def[symmetric])
-  supply [[goals_limit = 1]]
-  by sepref
-
-declare tl_trail_tr_code.refine[sepref_fr_rules]
 
 sepref_definition tl_trail_tr_fast_code
   is \<open>RETURN o tl_trailt_tr\<close>
   :: \<open>[tl_trailt_tr_pre]\<^sub>a
         trail_pol_fast_assn\<^sup>d \<rightarrow> trail_pol_fast_assn\<close>
   supply if_splits[split] option.splits[split] 
-  unfolding tl_trailt_tr_def UNSET_def[symmetric] zero_uint64_nat_def[symmetric]
-     butlast_nonresizing_def[symmetric] tl_trailt_tr_pre_def
-  apply (rewrite at \<open>_ - one_uint32_nat\<close> fast_minus_def[symmetric])
+  unfolding tl_trailt_tr_def UNSET_def[symmetric] tl_trailt_tr_pre_def
+  unfolding ins_idx_upcast64  
+  apply (annot_unat_const "TYPE(32)")
+  (*apply (rewrite at \<open>_ - one_uint32_nat\<close> fast_minus_def[symmetric])*)
   supply [[goals_limit = 1]]
   by sepref
-
+  
+  
 declare tl_trail_tr_fast_code.refine[sepref_fr_rules]
-
-sepref_definition tl_trail_proped_tr_code
-  is \<open>RETURN o tl_trail_propedt_tr\<close>
-  :: \<open>[tl_trail_propedt_tr_pre]\<^sub>a
-        trail_pol_assn\<^sup>d \<rightarrow> trail_pol_assn\<close>
-  supply if_splits[split] option.splits[split]
-  unfolding tl_trail_propedt_tr_def UNSET_def[symmetric]
-     butlast_nonresizing_def[symmetric] tl_trail_propedt_tr_pre_def
-  supply [[goals_limit = 1]]
-  by sepref
-
-declare tl_trail_proped_tr_code.refine[sepref_fr_rules]
-
 
 sepref_definition tl_trail_proped_tr_fast_code
   is \<open>RETURN o tl_trail_propedt_tr\<close>
@@ -323,17 +263,13 @@ sepref_definition tl_trail_proped_tr_fast_code
         trail_pol_fast_assn\<^sup>d \<rightarrow> trail_pol_fast_assn\<close>
   supply if_splits[split] option.splits[split]
   unfolding tl_trail_propedt_tr_def UNSET_def[symmetric]
-    butlast_nonresizing_def[symmetric] tl_trail_propedt_tr_pre_def
+    tl_trail_propedt_tr_pre_def
+  unfolding ins_idx_upcast64  
+  apply (annot_unat_const "TYPE(32)")
   supply [[goals_limit = 1]]
   by sepref
 
 declare tl_trail_proped_tr_fast_code.refine[sepref_fr_rules]
-
-sepref_definition (in -) lit_of_last_trail_code
-  is \<open>RETURN o lit_of_last_trail_pol\<close>
-  :: \<open>[\<lambda>(M, _). M \<noteq> []]\<^sub>a trail_pol_assn\<^sup>k \<rightarrow> unat_lit_assn\<close>
-  unfolding lit_of_last_trail_pol_def
-  by sepref
 
 sepref_definition (in -) lit_of_last_trail_fast_code
   is \<open>RETURN o lit_of_last_trail_pol\<close>
@@ -341,60 +277,40 @@ sepref_definition (in -) lit_of_last_trail_fast_code
   unfolding lit_of_last_trail_pol_def
   by sepref
 
-declare lit_of_last_trail_code.refine[sepref_fr_rules]
 declare lit_of_last_trail_fast_code.refine[sepref_fr_rules]
-
-sepref_definition cons_trail_Decided_tr_code
-  is \<open>uncurry (RETURN oo cons_trail_Decided_tr)\<close>
-  :: \<open>[cons_trail_Decided_tr_pre]\<^sub>a
-       unat_lit_assn\<^sup>k *\<^sub>a trail_pol_assn\<^sup>d \<rightarrow> trail_pol_assn\<close>
-  unfolding cons_trail_Decided_tr_def cons_trail_Decided_tr_def one_uint32_nat_def[symmetric]
-    SET_TRUE_def[symmetric] SET_FALSE_def[symmetric] cons_trail_Decided_tr_pre_def
-  supply [[goals_limit = 1]]
-  by sepref
-
-declare cons_trail_Decided_tr_code.refine[sepref_fr_rules]
 
 sepref_definition cons_trail_Decided_tr_fast_code
   is \<open>uncurry (RETURN oo cons_trail_Decided_tr)\<close>
   :: \<open>[cons_trail_Decided_tr_pre]\<^sub>a
        unat_lit_assn\<^sup>k *\<^sub>a trail_pol_fast_assn\<^sup>d \<rightarrow> trail_pol_fast_assn\<close>
-  unfolding cons_trail_Decided_tr_def cons_trail_Decided_tr_def one_uint32_nat_def[symmetric]
+  unfolding cons_trail_Decided_tr_def cons_trail_Decided_tr_def
     SET_TRUE_def[symmetric] SET_FALSE_def[symmetric] cons_trail_Decided_tr_pre_def
-    zero_uint64_nat_def[symmetric] nat_of_uint32_spec_def
+  unfolding ins_idx_upcast64  
+  apply (annot_unat_const "TYPE(32)")
+  apply (rewrite at "_@[\<hole>]" in "(_,\<hole>)" annot_snat_unat_downcast[where 'l="32"])
   supply [[goals_limit = 1]]
+  supply [simp] = max_unat_def uint32_max_def max_snat_def
   by sepref
 
 declare cons_trail_Decided_tr_fast_code.refine[sepref_fr_rules]
 
-sepref_definition defined_atm_code
-  is \<open>uncurry (RETURN oo defined_atm_pol)\<close>
-  :: \<open>[uncurry defined_atm_pol_pre]\<^sub>a trail_pol_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> bool_assn\<close>
-  unfolding defined_atm_pol_def UNSET_def[symmetric] tri_bool_eq_def[symmetric]
-    defined_atm_pol_pre_def
-  supply UNSET_def[simp del] uint32_nat_assn_mult[sepref_fr_rules]
-  by sepref
-
-declare defined_atm_code.refine[sepref_fr_rules]
-
 sepref_definition defined_atm_fast_code
   is \<open>uncurry (RETURN oo defined_atm_pol)\<close>
-  :: \<open>[uncurry defined_atm_pol_pre]\<^sub>a trail_pol_fast_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> bool_assn\<close>
+  :: \<open>[uncurry defined_atm_pol_pre]\<^sub>a trail_pol_fast_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> bool1_assn\<close>
   unfolding defined_atm_pol_def UNSET_def[symmetric] tri_bool_eq_def[symmetric]
     defined_atm_pol_pre_def
-  supply UNSET_def[simp del] uint32_nat_assn_mult[sepref_fr_rules]
+  unfolding ins_idx_upcast64  
+  supply [simp] = max_unat_def uint32_max_def max_snat_def
+  apply (annot_unat_const "TYPE(32)")
+  supply UNSET_def[simp del] 
   by sepref
 
-declare defined_atm_code.refine[sepref_fr_rules]
-   defined_atm_fast_code.refine[sepref_fr_rules]
+declare defined_atm_fast_code.refine[sepref_fr_rules]
 
 sepref_register get_propagation_reason
 
-sepref_definition get_propagation_reason_code
-  is \<open>uncurry get_propagation_reason_pol\<close>
-  :: \<open>trail_pol_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow>\<^sub>a option_assn nat_assn\<close>
-  unfolding get_propagation_reason_pol_def
-  by sepref
+
+xxx, decision reason assn, similar to snat_option!
 
 sepref_definition get_propagation_reason_fast_code
   is \<open>uncurry get_propagation_reason_pol\<close>
