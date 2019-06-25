@@ -57,17 +57,17 @@ type_synonym trail_pol_fast_assn =
      64 word larray64 \<times> 32 word \<times>
      32 word array_list64\<close>
 
-sepref_definition DECISION_REASON_uint64 is "uncurry0 (RETURN DECISION_REASON)" 
-  :: "unit_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn"
-  unfolding DECISION_REASON_def apply (annot_unat_const "TYPE(64)") by sepref
-lemmas [sepref_fr_rules] = DECISION_REASON_uint64.refine  
+sepref_definition DECISION_REASON_impl is "uncurry0 (RETURN DECISION_REASON)" 
+  :: "unit_assn\<^sup>k \<rightarrow>\<^sub>a sint64_nat_assn"
+  unfolding DECISION_REASON_def apply (annot_snat_const "TYPE(64)") by sepref
+lemmas [sepref_fr_rules] = DECISION_REASON_impl.refine  
      
 
 abbreviation trail_pol_fast_assn :: \<open>trail_pol \<Rightarrow> trail_pol_fast_assn \<Rightarrow> assn\<close> where
   \<open>trail_pol_fast_assn \<equiv>
     arl64_assn unat_lit_assn *a larray64_assn (tri_bool_assn) *a
     larray64_assn uint32_nat_assn *a
-    larray64_assn uint64_nat_assn *a uint32_nat_assn *a
+    larray64_assn sint64_nat_assn *a uint32_nat_assn *a
     arl64_assn uint32_nat_assn\<close>
 
 
@@ -161,9 +161,6 @@ sepref_definition count_decided_pol_impl is "RETURN o count_decided_pol" :: "tra
 
 *)  
 
-lemma is_up'_32_64[simp,intro!]: "is_up' UCAST(32 \<rightarrow> 64)" by (simp add: is_up')
-lemma is_down'_64_32[simp,intro!]: "is_down' UCAST(64 \<rightarrow> 32)"  by (simp add: is_down')
-
 sepref_definition get_level_atm_fast_code [llvm_code]
   is \<open>uncurry (RETURN oo get_level_atm_pol)\<close>
   :: \<open>[get_level_atm_pol_pre]\<^sub>a
@@ -210,15 +207,10 @@ sepref_definition isa_length_trail_fast_code [llvm_code]
 declare isa_length_trail_fast_code.refine[sepref_fr_rules]
 
 
-lemma ins_idx_upcast64: 
-  "l[i:=y] = op_list_set l (op_unat_snat_upcast TYPE(64) i) y"
-  "l!i = op_list_get l (op_unat_snat_upcast TYPE(64) i)" 
-  by simp_all
-
 sepref_definition cons_trail_Propagated_tr_fast_code
   is \<open>uncurry2 (RETURN ooo cons_trail_Propagated_tr)\<close>
   :: \<open>[cons_trail_Propagated_tr_pre]\<^sub>a
-       unat_lit_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a trail_pol_fast_assn\<^sup>d \<rightarrow> trail_pol_fast_assn\<close>
+       unat_lit_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a trail_pol_fast_assn\<^sup>d \<rightarrow> trail_pol_fast_assn\<close>
   unfolding cons_trail_Propagated_tr_def cons_trail_Propagated_tr_def
     SET_TRUE_def[symmetric] SET_FALSE_def[symmetric] cons_trail_Propagated_tr_pre_def
   unfolding ins_idx_upcast64  

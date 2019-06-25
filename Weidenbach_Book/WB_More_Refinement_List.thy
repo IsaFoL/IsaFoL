@@ -1,5 +1,5 @@
 theory WB_More_Refinement_List
-  imports Weidenbach_Book_Base.WB_List_More Automatic_Refinement.Automatic_Refinement
+  imports Weidenbach_Book_Base.WB_List_More
     "HOL-Word.More_Word" \<comment> \<open>provides some additional lemmas like @{thm nth_rev}\<close>
     Refine_Monadic.Refine_Basic
 begin

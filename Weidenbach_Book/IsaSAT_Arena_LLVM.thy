@@ -1,207 +1,161 @@
-theory IsaSAT_Arena_SML
-  imports Refine_Imperative_HOL.IICF IsaSAT_Arena IsaSAT_Literals_SML Watched_Literals.IICF_Array_List64
-    
+theory IsaSAT_Arena_LLVM
+  imports IsaSAT_Arena IsaSAT_Literals_LLVM
 begin
 no_notation WB_More_Refinement.fref ("[_]\<^sub>f _ \<rightarrow> _" [0,60,60] 60)
 no_notation WB_More_Refinement.freft ("_ \<rightarrow>\<^sub>f _" [60,60] 60)
 
-notation Sepref_Rules.fref ("[_]\<^sub>f _ \<rightarrow> _" [0,60,60] 60)
-notation Sepref_Rules.freft ("_ \<rightarrow>\<^sub>f _" [60,60] 60)
-
-instance clause_status :: heap
-proof standard
-  let ?f = \<open>(\<lambda>x. case x of IRRED \<Rightarrow> (0::nat) | LEARNED \<Rightarrow> 1 | DELETED \<Rightarrow> 2)\<close>
-  have \<open>inj ?f\<close>
-    by (auto simp: inj_def split: clause_status.splits)
-  then show \<open>\<exists>f. inj (f:: clause_status \<Rightarrow> nat)\<close>
-    by blast
-qed
 
 subsubsection \<open>Code Generation\<close>
 
-paragraph \<open>Length\<close>
 
-definition isa_arena_length where
-  \<open>isa_arena_length arena i = do {
-      ASSERT(i \<ge> SIZE_SHIFT \<and> i < length arena);
-      RETURN (two_uint64 + uint64_of_uint32 ((arena ! (fast_minus i SIZE_SHIFT))))
-  }\<close>
+term arena_el_rel
 
-lemma arena_length_uint64_conv:
-  assumes
-    a: \<open>(a, aa) \<in> \<langle>uint32_nat_rel O arena_el_rel\<rangle>list_rel\<close> and
-    ba: \<open>ba \<in># dom_m N\<close> and
-    valid: \<open>valid_arena aa N vdom\<close>
-  shows \<open>Suc (Suc (xarena_length (aa ! (ba - SIZE_SHIFT)))) =
-         nat_of_uint64 (2 + uint64_of_uint32 (a ! (ba - SIZE_SHIFT)))\<close>
-proof -
-  have ba_le: \<open>ba < length aa\<close> and
-    size: \<open>is_Size (aa ! (ba - SIZE_SHIFT))\<close> and
-    length: \<open>length (N \<propto> ba) = arena_length aa ba\<close>
-    using ba valid by (auto simp: arena_lifting)
-  have \<open>(a ! (ba - SIZE_SHIFT), aa ! (ba - SIZE_SHIFT))
-      \<in> uint32_nat_rel O arena_el_rel\<close>
-    by (rule param_nth[OF _ _ a, of \<open>ba - SIZE_SHIFT\<close> \<open>ba - SIZE_SHIFT\<close>])
-      (use ba_le in auto)
-  then have \<open>aa ! (ba - SIZE_SHIFT) = ASize (nat_of_uint32 (a ! (ba - SIZE_SHIFT)))\<close>
-    using size unfolding arena_el_rel_def
-    by (auto split: arena_el.splits simp: uint32_nat_rel_def br_def)
-  moreover have \<open>Suc (Suc (nat_of_uint32 (a ! (ba - SIZE_SHIFT)))) \<le> uint64_max\<close>
-    using nat_of_uint32_le_uint32_max[of \<open>a ! (ba - SIZE_SHIFT)\<close>]
-    by (auto simp: uint64_max_def uint32_max_def)
-  ultimately show ?thesis by (simp add: nat_of_uint64_add nat_of_uint64_uint64_of_uint32)
-qed
+term xarena_length
 
-lemma isa_arena_length_arena_length:
-  \<open>(uncurry (isa_arena_length), uncurry (RETURN oo arena_length)) \<in>
-    [uncurry arena_is_valid_clause_idx]\<^sub>f
-     \<langle>uint32_nat_rel O arena_el_rel\<rangle>list_rel \<times>\<^sub>r nat_rel \<rightarrow> \<langle>uint64_nat_rel\<rangle>nres_rel\<close>
-  unfolding isa_arena_length_def arena_length_def
-  by (intro frefI nres_relI)
-    (auto simp: arena_is_valid_clause_idx_def uint64_nat_rel_def br_def two_uint64_def
-       list_rel_imp_same_length arena_length_uint64_conv arena_lifting
-    intro!: ASSERT_refine_left)
+definition "arena_el_impl_rel \<equiv> unat_rel' TYPE(32) O arena_el_rel"
+lemmas [fcomp_norm_unfold] = arena_el_impl_rel_def[symmetric]
+
+abbreviation "arena_el_impl_assn \<equiv> pure arena_el_impl_rel"
+
+lemma xarena_length_refine1: "(\<lambda>eli. eli, xarena_length) \<in> [is_Size]\<^sub>f arena_el_rel \<rightarrow> nat_rel"
+  by (auto intro!: frefI simp: arena_el_rel_def split: arena_el.splits)
+
+sepref_definition xarena_len_impl is "RETURN o (\<lambda>eli. eli)" :: "uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn"
+  by sepref
+  
+lemmas [sepref_fr_rules] = xarena_len_impl.refine[FCOMP xarena_length_refine1]  
+  
+abbreviation "arena_assn \<equiv> al_assn' TYPE(64) arena_el_impl_assn"
+
+
+lemma arena_lifting': 
+  assumes "arena_is_valid_clause_idx a b"
+  shows "Suc 0 \<le> b"
+  and "b < length a"
+  and "is_Size (a ! (b - Suc 0))"
+  using SIZE_SHIFT_def assms
+  by (auto simp: arena_is_valid_clause_idx_def arena_lifting)
+
+(* TODO: Let monadify-phase do this automatically? trade-of: goal-size vs. lost information *) 
+lemma protected_bind_assoc: "Refine_Basic.bind$(Refine_Basic.bind$m$(\<lambda>\<^sub>2x. f x))$(\<lambda>\<^sub>2y. g y) = Refine_Basic.bind$m$(\<lambda>\<^sub>2x. Refine_Basic.bind$(f x)$(\<lambda>\<^sub>2y. g y))" by simp
+  
+lemma arena_length_impl_bounds_aux1: 
+  "(ac, a) \<in> unat_rel' TYPE(32) \<Longrightarrow> a < 9223372036854775806"
+  by (auto dest!: in_unat_rel_imp_less_max' simp: max_unat_def)
+
+lemma arena_length_alt: 
+  \<open>arena_length arena i = (
+    let l = xarena_length (arena!(i - snat_const TYPE(64) 1)) 
+    in snat_const TYPE(64) 2 + op_unat_snat_upcast TYPE(64) l)\<close>
+  by (simp add: arena_length_def SIZE_SHIFT_def)  
+  
+  
+sepref_definition arena_length_impl 
+  is "uncurry (RETURN oo arena_length)" 
+    :: "[uncurry arena_is_valid_clause_idx]\<^sub>a arena_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> snat_assn' TYPE(64)"
+  unfolding arena_length_alt
+  supply [simp] = max_snat_def max_unat_def arena_length_impl_bounds_aux1
+    and [dest] = arena_lifting'
+  by sepref
+  
 
 
 paragraph \<open>Literal at given position\<close>
 
-definition isa_arena_lit where
-  \<open>isa_arena_lit arena i = do {
-      ASSERT(i < length arena);
-      RETURN (arena ! i)
-  }\<close>
 
+lemma xarena_lit_refine1: "(\<lambda>eli. eli, xarena_lit) \<in> [is_Lit]\<^sub>f arena_el_rel \<rightarrow> nat_lit_rel"
+  by (auto intro!: frefI simp: arena_el_rel_def split: arena_el.splits)
 
-lemma arena_length_literal_conv:
-  assumes
-    valid: \<open>valid_arena arena N x\<close> and
-    j: \<open>j \<in># dom_m N\<close> and
-    ba_le: \<open>ba - j < arena_length arena j\<close> and
-    a: \<open>(a, arena) \<in> \<langle>uint32_nat_rel O arena_el_rel\<rangle>list_rel\<close> and
-    ba_j: \<open>ba \<ge> j\<close>
-  shows
-    \<open>ba < length arena\<close> (is ?le) and
-    \<open>(a ! ba, xarena_lit (arena ! ba)) \<in> unat_lit_rel\<close> (is ?unat)
-proof -
-  have j_le: \<open>j < length arena\<close> and
-    length: \<open>length (N \<propto> j) = arena_length arena j\<close> and
-    k1:\<open>\<And>k. k < length (N \<propto> j) \<Longrightarrow> N \<propto> j ! k = arena_lit arena (j + k)\<close> and
-    k2:\<open>\<And>k. k < length (N \<propto> j) \<Longrightarrow> is_Lit (arena ! (j+k))\<close> and
-    le: \<open>j + length (N \<propto> j) \<le> length arena\<close>  and
-    j_ge: \<open>header_size (N \<propto> j) \<le> j\<close>
-    using arena_lifting[OF valid j] by (auto simp: )
-  show le': ?le
-     using le ba_le j_ge unfolding length[symmetric] header_size_def
-     by (auto split: if_splits)
+sepref_definition xarena_lit_impl is "RETURN o (\<lambda>eli. eli)" :: "uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn"
+  by sepref
 
-  have \<open>(a ! ba, arena ! ba)
-      \<in> uint32_nat_rel O arena_el_rel\<close>
-    by (rule param_nth[OF _ _ a, of \<open>ba\<close> \<open>ba\<close>])
-      (use ba_le le' in auto)
-  then show ?unat
-     using k1[of \<open>ba - j\<close>] k2[of \<open>ba - j\<close>] ba_le length ba_j
-     by (cases \<open>arena ! ba\<close>)
-      (auto simp: arena_el_rel_def unat_lit_rel_def arena_lit_def
-       split: arena_el.splits)
-qed
+lemmas [sepref_fr_rules] = xarena_lit_impl.refine[FCOMP xarena_lit_refine1]  
 
-lemma nat_of_uint32_div:
-  \<open>nat_of_uint32 (a div b) = nat_of_uint32 a div nat_of_uint32 b\<close>
-  by transfer (auto simp: unat_div)
+lemma arena_lit_implI:
+  assumes "arena_lit_pre a b"
+  shows "b < length a" "is_Lit (a ! b)"
+  using assms unfolding arena_lit_pre_def arena_is_valid_clause_idx_and_access_def
+  by (fastforce dest: arena_lifting)+
 
+sepref_register arena_lit xarena_lit
+sepref_definition arena_lit_impl 
+  is "uncurry (RETURN oo arena_lit)" 
+    :: "[uncurry arena_lit_pre]\<^sub>a arena_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> unat_lit_assn"
+  supply [intro] = arena_lit_implI
+  unfolding arena_lit_def
+  by sepref
 
-lemma isa_arena_lit_arena_lit:
-  \<open>(uncurry isa_arena_lit, uncurry (RETURN oo arena_lit)) \<in>
-    [uncurry arena_lit_pre]\<^sub>f
-     \<langle>uint32_nat_rel O arena_el_rel\<rangle>list_rel \<times>\<^sub>r nat_rel \<rightarrow> \<langle>unat_lit_rel\<rangle>nres_rel\<close>
-  unfolding isa_arena_lit_def arena_lit_def
-  by (intro frefI nres_relI)
-    (auto simp: arena_is_valid_clause_idx_def uint64_nat_rel_def br_def two_uint64_def
-        list_rel_imp_same_length arena_length_uint64_conv arena_lifting
-        arena_is_valid_clause_idx_and_access_def arena_length_literal_conv
-        arena_lit_pre_def
-      intro!: ASSERT_refine_left)
 
       
 paragraph \<open>Status of the clause\<close>
 
-definition isa_arena_status where
-  \<open>isa_arena_status arena i = do {
-      ASSERT(i < length arena);
-      ASSERT(i \<ge> STATUS_SHIFT);
-      RETURN (arena ! (fast_minus i STATUS_SHIFT) AND 0b11)
-  }\<close>
+definition "status_impl_rel \<equiv>unat_rel' TYPE(32) O status_rel"
+lemmas [fcomp_norm_unfold] = status_impl_rel_def[symmetric]
+abbreviation "status_impl_assn \<equiv> pure status_impl_rel"
 
-lemma arena_status_literal_conv:
-  assumes
-    valid: \<open>valid_arena arena N x\<close> and
-    j: \<open>j \<in> x\<close> and
-    a: \<open>(a, arena) \<in> \<langle>uint32_nat_rel O arena_el_rel\<rangle>list_rel\<close>
-  shows
-    \<open>j < length arena\<close> (is ?le) and
-    \<open>4 \<le> j\<close> and
-    \<open>j \<ge> STATUS_SHIFT\<close> and
-    \<open> (a ! (j - STATUS_SHIFT) AND 0b11, xarena_status (arena ! (j - STATUS_SHIFT)))
-       \<in> uint32_nat_rel O status_rel\<close> (is ?rel)
-proof -
-  show le: ?le and i4: \<open>4 \<le> j\<close> and  \<open>j \<ge> STATUS_SHIFT\<close>
-    using valid j unfolding valid_arena_def
-    by (cases \<open>j \<in># dom_m N\<close>; auto simp: header_size_def SHIFTS_def split: if_splits; fail)+
-  have [intro]: \<open>\<And>a y. (a, y) \<in> uint32_nat_rel \<Longrightarrow>
-      (a AND 3, y AND 3) \<in> uint32_nat_rel\<close>
-    apply (auto simp: uint32_nat_rel_def br_def nat_of_uint32_ao)
-     by (metis nat_of_uint32_3 nat_of_uint32_ao(1))
-  have [dest]: \<open>(y, AStatus x61 x62) \<in> arena_el_rel \<Longrightarrow> (y AND 3, x61) \<in> status_rel\<close> for y x61 x62
-    by (auto simp: status_rel_def arena_el_rel_def)
-  have \<open>(a ! (j - STATUS_SHIFT), arena ! (j - STATUS_SHIFT)) \<in> uint32_nat_rel O arena_el_rel\<close>
-    by (rule param_nth[OF _ _ a]) (use le in \<open>auto simp: list_rel_imp_same_length\<close>)
-  then have  \<open>(a ! (j - STATUS_SHIFT) AND 0b11, xarena_status (arena ! (j - STATUS_SHIFT))) \<in> uint32_nat_rel O status_rel\<close>
-    using arena_dom_status_iff[OF valid j]
-    by (cases \<open>arena ! (j - STATUS_SHIFT)\<close>)
-      (auto intro!: relcomp.relcompI)
-  then show ?rel
-    using arena_dom_status_iff[OF valid j]
-    by (cases \<open>arena ! (j - STATUS_SHIFT)\<close>)
-      (auto simp: arena_el_rel_def)
-qed
+term arena_el_rel
+lemma xarena_status_refine1: "(\<lambda>eli. eli AND 0b11, xarena_status) \<in> [is_Status]\<^sub>f arena_el_rel \<rightarrow> status_rel"
+  by (auto intro!: frefI simp: arena_el_rel_def is_Status_def split: arena_el.split)
 
+sepref_definition xarena_status_impl is "RETURN o (\<lambda>eli. eli AND 0b11)" :: "uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn"
+  apply (annot_unat_const "TYPE(32)")
+  supply [simp] = max_unat_def
+  by sepref
 
-lemma isa_arena_status_arena_status:
-  \<open>(uncurry isa_arena_status, uncurry (RETURN oo arena_status)) \<in>
-    [uncurry arena_is_valid_clause_vdom]\<^sub>f
-     \<langle>uint32_nat_rel O arena_el_rel\<rangle>list_rel \<times>\<^sub>r nat_rel \<rightarrow> \<langle>uint32_nat_rel O status_rel\<rangle>nres_rel\<close>
-  unfolding isa_arena_status_def arena_status_def
-  by (intro frefI nres_relI)
-   (auto simp: arena_is_valid_clause_idx_def uint64_nat_rel_def br_def two_uint64_def
-        list_rel_imp_same_length arena_length_uint64_conv arena_lifting
-        arena_is_valid_clause_idx_and_access_def arena_length_literal_conv
-        arena_is_valid_clause_vdom_def arena_status_literal_conv
-      intro!: ASSERT_refine_left)
+lemmas [sepref_fr_rules] = xarena_status_impl.refine[FCOMP xarena_status_refine1]  
+
+lemma arena_status_implI:
+  assumes "arena_is_valid_clause_vdom a b"
+  shows "4 \<le> b" "b - 4 < length a" "is_Status (a ! (b-4))"
+  using assms STATUS_SHIFT_def arena_dom_status_iff
+  unfolding arena_is_valid_clause_vdom_def
+  by (auto dest: valid_arena_in_vdom_le_arena)
+
+sepref_register arena_status xarena_status
+sepref_definition arena_status_impl 
+  is "uncurry (RETURN oo arena_status)" 
+    :: "[uncurry arena_is_valid_clause_vdom]\<^sub>a arena_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> status_impl_assn"
+  supply [intro] = arena_status_implI
+  supply [simp] = max_snat_def
+  unfolding arena_status_def STATUS_SHIFT_def
+  apply (annot_snat_const "TYPE(64)")
+  by sepref
+
 
 
 
 
 paragraph \<open>Swap literals\<close>
 
-definition isa_arena_swap where
-  \<open>isa_arena_swap C i j arena = do {
-      ASSERT(C + i < length arena \<and> C + j < length arena);
-      RETURN (swap arena (C+i) (C+j))
-  }\<close>
+(* TODO: Move
+  TODO: Should be generic algorithm!
+*)  
+lemma mop_list_swap_unfold: "mop_list_swap xs i j = do {
+  xi \<leftarrow> mop_list_get xs i;
+  xj \<leftarrow> mop_list_get xs j;
+  xs \<leftarrow> mop_list_set xs i xj;
+  mop_list_set xs j xi
+}"
+  by (auto simp: pw_eq_iff refine_pw_simps swap_def)
 
-lemma isa_arena_swap:
-  \<open>(uncurry3 isa_arena_swap, uncurry3 (RETURN oooo swap_lits)) \<in>
-    [uncurry3 swap_lits_pre]\<^sub>f
-     nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f \<langle>uint32_nat_rel O arena_el_rel\<rangle>list_rel \<rightarrow>
-    \<langle>\<langle>uint32_nat_rel O arena_el_rel\<rangle>list_rel\<rangle>nres_rel\<close>
-  unfolding isa_arena_status_def arena_status_def
-  by (intro frefI nres_relI)
-   (auto simp: arena_is_valid_clause_idx_def uint64_nat_rel_def br_def two_uint64_def
-        list_rel_imp_same_length arena_length_uint64_conv arena_lifting
-        arena_is_valid_clause_idx_and_access_def arena_length_literal_conv
-        arena_is_valid_clause_vdom_def arena_status_literal_conv
-        isa_arena_swap_def swap_lits_def swap_lits_pre_def
-      intro!: ASSERT_refine_left swap_param)
+lemma swap_unfold: "swap xs i j = (let
+  xi = op_list_get xs i;
+  xj = op_list_get xs j;
+  xs = op_list_set xs i xj;
+  xs = op_list_set xs j xi 
+  in xs)"
+  by (auto simp: swap_def)
+
+lemma convert_swap: "WB_More_Refinement_List.swap = IICF_List.swap"
+  unfolding WB_More_Refinement_List.swap_def IICF_List.swap_def ..
+
+sepref_definition swap_lits_impl is "uncurry3 (RETURN oooo swap_lits)"
+  :: "[\<lambda>(((C,i),j),arena). C + i < length arena \<and> C + j < length arena]\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a arena_assn\<^sup>d \<rightarrow> arena_assn"
+  unfolding swap_lits_def convert_swap
+  supply [dest] = rdomp_al_imp_len_bound
+  unfolding swap_unfold
+  by sepref
+  
 
 
 paragraph \<open>Update LBD\<close>

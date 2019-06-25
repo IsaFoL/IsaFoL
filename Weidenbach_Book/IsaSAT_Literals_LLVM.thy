@@ -131,6 +131,19 @@ xxx, ctd here: Define unat_snat_cast, with same length, if source is small enoug
 abbreviation "uint32_nat_assn \<equiv> unat_assn' TYPE(32)"
 abbreviation "uint64_nat_assn \<equiv> unat_assn' TYPE(64)"
 
+abbreviation "sint32_nat_assn \<equiv> snat_assn' TYPE(32)"
+abbreviation "sint64_nat_assn \<equiv> snat_assn' TYPE(64)"
+
+
+lemma is_up'_32_64[simp,intro!]: "is_up' UCAST(32 \<rightarrow> 64)" by (simp add: is_up')
+lemma is_down'_64_32[simp,intro!]: "is_down' UCAST(64 \<rightarrow> 32)"  by (simp add: is_down')
+
+lemma ins_idx_upcast64: 
+  "l[i:=y] = op_list_set l (op_unat_snat_upcast TYPE(64) i) y"
+  "l!i = op_list_get l (op_unat_snat_upcast TYPE(64) i)" 
+  by simp_all
+
+
 
 definition "unat_lit_rel == unat_rel' TYPE(32) O nat_lit_rel"  
 lemmas [fcomp_norm_unfold] = unat_lit_rel_def[symmetric]
