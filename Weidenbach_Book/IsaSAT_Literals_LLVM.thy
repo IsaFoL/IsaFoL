@@ -173,6 +173,19 @@ lemma ins_idx_upcast64:
   "l!i = op_list_get l (op_unat_snat_upcast TYPE(64) i)" 
   by simp_all
 
+type_synonym 'a array_list32 = "('a,32)array_list"
+type_synonym 'a array_list64 = "('a,64)array_list"
+  
+abbreviation "arl32_assn \<equiv> al_assn' TYPE(32)"
+abbreviation "arl64_assn \<equiv> al_assn' TYPE(64)"
+
+
+type_synonym 'a larray32 = "('a,32) larray"
+type_synonym 'a larray64 = "('a,64) larray"
+
+abbreviation "larray32_assn \<equiv> larray_assn' TYPE(32)"
+abbreviation "larray64_assn \<equiv> larray_assn' TYPE(64)"
+  
 
 
 definition "unat_lit_rel == unat_rel' TYPE(32) O nat_lit_rel"  

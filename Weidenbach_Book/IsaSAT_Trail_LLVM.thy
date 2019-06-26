@@ -39,19 +39,6 @@ lemmas [sepref_fr_rules] =
   tri_bool_SET_FALSE_impl.refine[FCOMP tri_bool_SET_FALSE_refine_aux]
   tri_bool_eq_impl.refine[FCOMP tri_bool_eq_refine_aux]
 
-type_synonym 'a array_list32 = "('a,32)array_list"
-type_synonym 'a array_list64 = "('a,64)array_list"
-  
-abbreviation "arl32_assn \<equiv> al_assn' TYPE(32)"
-abbreviation "arl64_assn \<equiv> al_assn' TYPE(64)"
-
-
-type_synonym 'a larray32 = "('a,32) larray"
-type_synonym 'a larray64 = "('a,64) larray"
-
-abbreviation "larray32_assn \<equiv> larray_assn' TYPE(32)"
-abbreviation "larray64_assn \<equiv> larray_assn' TYPE(64)"
-  
 type_synonym trail_pol_fast_assn =
    \<open>32 word array_list64 \<times> tri_bool_assn larray64 \<times> 32 word larray64 \<times>
      64 word larray64 \<times> 32 word \<times>

@@ -151,7 +151,7 @@ definition (in -)five_uint64_nat where
 
 definition append_and_length_fast_code_pre where
   \<open>append_and_length_fast_code_pre \<equiv> \<lambda>((b, C), N). length C \<le> uint32_max+2 \<and> length C \<ge> 2 \<and>
-          length N + length C + 5 \<le> uint64_max\<close>
+          length N + length C + 5 \<le> sint64_max\<close>
 
 
 lemma fm_add_new_alt_def:
