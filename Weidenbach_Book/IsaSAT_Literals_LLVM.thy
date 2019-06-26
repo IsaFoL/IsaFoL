@@ -28,6 +28,7 @@ context begin
     
   definition [llvm_inline]: "snat_snat_upcast TYPE('a::len2) x \<equiv> ll_zext x TYPE('a word)"
   definition [llvm_inline]: "snat_snat_downcast TYPE('a::len) x \<equiv> ll_trunc x TYPE('a word)"
+  
   lemma unat_snat_upcast_rule[vcg_rules]:
     "llvm_htriple 
       (\<up>(is_up' UCAST('small \<rightarrow> 'big)) ** \<upharpoonleft>unat.assn n (ni::'small::len word)) 
@@ -58,6 +59,16 @@ context begin
     apply (auto simp: snat_invar_def snat_eq_unat(2) unat_ucast_upcast)
     done
 
+  lemma snat_snat_downcast_rule[vcg_rules]:
+    "llvm_htriple 
+      (\<up>(is_down' UCAST('big \<rightarrow> 'small)) ** \<upharpoonleft>snat.assn n (ni::'big::len2 word) ** \<up>(n<max_snat LENGTH('small))) 
+      (snat_snat_downcast TYPE('small::len2) ni) 
+      (\<lambda>r. \<upharpoonleft>snat.assn n r)"
+    unfolding snat.assn_def snat_snat_downcast_def
+    apply vcg'
+    apply (clarsimp simp: snat_invar_def max_snat_def)
+    by (metis One_nat_def le_def msb_unat_big snat_eq_unat(1) snat_in_bounds_aux ucast_nat_def unat_of_nat_len)
+    
   context fixes T :: "'a::len2 itself" begin
     definition [simp]: "unat_snat_upcast_aux \<equiv> let _=TYPE('a) in id::nat\<Rightarrow>nat"
   
@@ -75,11 +86,16 @@ context begin
   
     sepref_decl_op snat_snat_upcast: "snat_snat_upcast_aux" :: "nat_rel \<rightarrow> nat_rel" .
 
+    definition [simp]: "snat_snat_downcast_aux \<equiv> let _=TYPE('a) in id::nat\<Rightarrow>nat"
+  
+    sepref_decl_op snat_snat_downcast: "snat_snat_downcast_aux" :: "nat_rel \<rightarrow> nat_rel" .
+    
   end
 
   lemma annot_unat_snat_upcast: "x = op_unat_snat_upcast TYPE('l::len2) x" by simp 
   lemma annot_snat_unat_downcast: "x = op_snat_unat_downcast TYPE('l::len) x" by simp 
   lemma annot_snat_snat_upcast: "x = op_snat_snat_upcast TYPE('l::len2) x" by simp 
+  lemma annot_snat_snat_downcast: "x = op_snat_snat_downcast TYPE('l::len2) x" by simp 
     
   
   lemma in_unat_rel_conv_assn: "\<up>((xi, x) \<in> unat_rel) = \<upharpoonleft>unat.assn x xi"
@@ -119,6 +135,17 @@ context begin
       by vcg'
     
     sepref_decl_impl (ismop) snat_snat_upcast_refine fixes 'big 'small by simp
+    
+    lemma snat_snat_downcast_refine: 
+      "(snat_snat_downcast TYPE('small), PR_CONST (mop_snat_snat_downcast TYPE('small))) 
+        \<in> [\<lambda>x. is_down' UCAST('big \<rightarrow> 'small) \<and> x<max_snat LENGTH('small)]\<^sub>a (snat_assn' TYPE('big))\<^sup>k \<rightarrow> snat_assn"
+      supply [simp] = in_unat_rel_conv_assn in_snat_rel_conv_assn
+      apply sepref_to_hoare
+      apply simp
+      by vcg'
+    
+    sepref_decl_impl (ismop) snat_snat_downcast_refine fixes 'big 'small by simp
+    
   end
 
   definition unat_snat_conv :: "'l::len2 word \<Rightarrow> 'l word llM" 
