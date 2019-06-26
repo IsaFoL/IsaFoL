@@ -1,13 +1,17 @@
 theory LBD_LLVM
   imports LBD IsaSAT_Literals_LLVM
 begin
+(*TODO bundle?*)
+no_notation WB_More_Refinement.fref ("[_]\<^sub>f _ \<rightarrow> _" [0,60,60] 60)
+no_notation WB_More_Refinement.freft ("_ \<rightarrow>\<^sub>f _" [60,60] 60)
 
-type_synonym 'a larray32 = "('a,32) larray"
-type_synonym lbd_assn = \<open>(1 word) larray32 \<times> 32 word \<times> 32 word\<close>
-abbreviation "larray32_assn \<equiv> larray_assn' TYPE(32)"
+type_synonym 'a larray64 = "('a,64) larray"
+type_synonym lbd_assn = \<open>(1 word) larray64 \<times> 32 word \<times> 32 word\<close>
+abbreviation "larray64_assn \<equiv> larray_assn' TYPE(64)"
+(*TODO use 32*)
 
 abbreviation lbd_int_assn :: \<open>lbd_ref \<Rightarrow> lbd_assn \<Rightarrow> assn\<close> where
-  \<open>lbd_int_assn \<equiv> larray32_assn bool1_assn *a uint32_nat_assn *a uint32_nat_assn\<close>
+  \<open>lbd_int_assn \<equiv> larray64_assn bool1_assn *a uint32_nat_assn *a uint32_nat_assn\<close>
 
 definition lbd_assn :: \<open>lbd \<Rightarrow> lbd_assn \<Rightarrow> assn\<close> where
   \<open>lbd_assn \<equiv> hr_comp lbd_int_assn lbd_ref\<close>
@@ -17,68 +21,30 @@ paragraph \<open>Testing if a level is marked\<close>
 
 sepref_definition level_in_lbd_code
   is \<open>uncurry (RETURN oo level_in_lbd_ref)\<close>
-  :: \<open>[\<lambda>(n, (lbd, m)). length lbd \<le> sint32_max]\<^sub>a
-       sint32_nat_assn\<^sup>k *\<^sub>a lbd_int_assn\<^sup>k \<rightarrow> bool_assn\<close>
+  :: \<open>sint32_nat_assn\<^sup>k *\<^sub>a lbd_int_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
   supply [[goals_limit=1]]
   unfolding level_in_lbd_ref_def short_circuit_conv length_uint32_nat_def
-apply sepref_dbg_keep
-  apply sepref_dbg_trans_keep
-  apply sepref_dbg_trans_step_keep
-  apply sepref_dbg_side_unfold
-
+  apply (rewrite in "\<hole> < _" annot_snat_snat_upcast[where 'l="64"])
   by sepref
 
 
 lemma level_in_lbd_hnr[sepref_fr_rules]:
-  \<open>(uncurry level_in_lbd_code, uncurry (RETURN \<circ>\<circ> level_in_lbd)) \<in> uint32_nat_assn\<^sup>k *\<^sub>a
-     lbd_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  \<open>(uncurry level_in_lbd_code, uncurry (RETURN \<circ>\<circ> level_in_lbd)) \<in> sint32_nat_assn\<^sup>k *\<^sub>a
+     lbd_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
   supply lbd_ref_def[simp] uint32_max_def[simp]
   using level_in_lbd_code.refine[FCOMP level_in_lbd_ref_level_in_lbd[unfolded convert_fref]]
-  unfolding 
-  unfolding lbd_assn_def by simp
-
-
-paragraph \<open>Marking more levels\<close>
-
-lemma list_grow_array_hnr[sepref_fr_rules]:
-  assumes \<open>CONSTRAINT is_pure R\<close>
-  shows
-    \<open>(uncurry2 (\<lambda>xs u. array_grow xs (nat_of_uint32 u)),
-        uncurry2 (RETURN ooo list_grow)) \<in>
-    [\<lambda>((xs, n), x). n \<ge> length xs]\<^sub>a (array_assn R)\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>d *\<^sub>a R\<^sup>k \<rightarrow>
-       array_assn R\<close>
-proof -
-  obtain R' where [simp]:
-    \<open>R = pure R'\<close>
-    \<open>the_pure R = R'\<close>
-    using assms by (metis CONSTRAINT_D pure_the_pure)
-  have [simp]: \<open>pure R' b bi = \<up>( (bi, b) \<in> R')\<close> for b bi
-    by (auto simp: pure_def)
-  show ?thesis
-    by sepref_to_hoare
-       (sep_auto simp: list_grow_def array_assn_def is_array_def
-          hr_comp_def list_rel_pres_length list_rel_def list_all2_replicate
-         uint32_nat_rel_def br_def
-        intro!: list_all2_appendI)
-qed
-
-sepref_definition lbd_write_code
-  is \<open>uncurry lbd_ref_write\<close>
-  :: \<open>lbd_int_assn\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a lbd_int_assn\<close>
-  unfolding lbd_ref_write_def
-  by sepref
-
-lemma lbd_write_hnr_[sepref_fr_rules]:
-  \<open>(uncurry lbd_write_code, uncurry (RETURN \<circ>\<circ> lbd_write))
-    \<in> [\<lambda>(lbd, i). i \<le> Suc (uint32_max div 2)]\<^sub>a
-      lbd_assn\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> lbd_assn\<close>
-  using lbd_write_code.refine[FCOMP lbd_ref_write_lbd_write[unfolded convert_fref]]
-  unfolding lbd_assn_def .
+  unfolding lbd_assn_def[symmetric]
+  by simp
 
 sepref_definition lbd_empty_code
   is \<open>lbd_empty_ref\<close>
   :: \<open>lbd_int_assn\<^sup>d  \<rightarrow>\<^sub>a lbd_int_assn\<close>
   unfolding lbd_empty_ref_def
+  supply [[goals_limit=1]] and [simp] = uint32_max_def max_snat_def
+  apply (rewrite at \<open>_ + \<hole>\<close> snat_const_fold[where 'a=64])+
+  apply (rewrite at \<open>(_, \<hole>)\<close> snat_const_fold[where 'a=64])
+  apply (annot_unat_const "TYPE(32)")
+  apply (rewrite in "_ \<le> \<hole>" annot_unat_snat_upcast[where 'l="64"])
   by sepref
 
 lemma lbd_empty_hnr[sepref_fr_rules]:
@@ -89,12 +55,19 @@ lemma lbd_empty_hnr[sepref_fr_rules]:
 sepref_definition empty_lbd_code
   is \<open>uncurry0 (RETURN empty_lbd_ref)\<close>
   :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a lbd_int_assn\<close>
-  unfolding empty_lbd_ref_def array_fold_custom_replicate
+  supply [simp] = uint32_max_def max_snat_def and [[goals_limit=1]]
+  unfolding empty_lbd_ref_def larray_fold_custom_replicate
+  apply (rewrite at \<open>op_larray_custom_replicate \<hole> _\<close> snat_const_fold[where 'a=64])
+  apply (annot_unat_const "TYPE(32)")
   by sepref
+
+lemma empty_lbd_ref_empty_lbd:
+  \<open>(uncurry0 (RETURN empty_lbd_ref), uncurry0 (RETURN empty_lbd)) \<in> unit_rel \<rightarrow>\<^sub>f \<langle>lbd_ref\<rangle>nres_rel\<close>
+  using empty_lbd_ref_empty_lbd unfolding uncurry0_def convert_fref .
 
 lemma empty_lbd_hnr[sepref_fr_rules]:
   \<open>(Sepref_Misc.uncurry0 empty_lbd_code, Sepref_Misc.uncurry0 (RETURN empty_lbd)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a lbd_assn\<close>
-  using empty_lbd_code.refine[FCOMP empty_lbd_ref_empty_lbd[unfolded convert_fref uncurry0_def[symmetric]]]
+using empty_lbd_code.refine[FCOMP empty_lbd_ref_empty_lbd]
   unfolding lbd_assn_def .
 
 sepref_definition get_LBD_code
@@ -107,5 +80,35 @@ lemma get_LBD_hnr[sepref_fr_rules]:
   \<open>(get_LBD_code, get_LBD) \<in> lbd_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
   using get_LBD_code.refine[FCOMP get_LBD_ref_get_LBD[unfolded convert_fref],
      unfolded lbd_assn_def[symmetric]] .
+
+
+paragraph \<open>Marking more levels\<close>
+
+lemmas list_grow_alt = list_grow_def[unfolded op_list_grow_init'_def[symmetric]]
+
+sepref_definition lbd_write_code
+  is \<open>uncurry lbd_ref_write\<close>
+  :: \<open> [\<lambda>(lbd, i). i \<le> Suc (uint32_max div 2)]\<^sub>a
+     lbd_int_assn\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> lbd_int_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding lbd_ref_write_def length_uint32_nat_def list_grow_alt max_def
+    op_list_grow_init'_alt
+  supply [simp] = max_unat_def uint32_max_def max_snat_def
+  apply (rewrite at \<open>_ + \<hole>\<close> unat_const_fold[where 'a=32])
+  apply (rewrite at \<open>_ + \<hole>\<close> unat_const_fold[where 'a=32])
+  apply (rewrite in "If (\<hole> < _)" annot_unat_snat_upcast[where 'l=64])
+  apply (rewrite in "If (_ ! \<hole>)" annot_unat_snat_upcast[where 'l=64])
+  apply (rewrite in "_[ \<hole> := _]" annot_unat_snat_upcast[where 'l=64])
+  apply (rewrite in "op_list_grow_init _ \<hole> _" annot_unat_snat_upcast[where 'l=64])
+  apply (rewrite  at "( _[ \<hole> := _], _, _ + _)" annot_unat_snat_upcast[where 'l=64])
+  apply (annot_unat_const "TYPE(32)")
+  by sepref
+
+lemma lbd_write_hnr_[sepref_fr_rules]:
+  \<open>(uncurry lbd_write_code, uncurry (RETURN \<circ>\<circ> lbd_write))
+    \<in> [\<lambda>(lbd, i). i \<le> Suc (uint32_max div 2)]\<^sub>a
+      lbd_assn\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> lbd_assn\<close>
+  using lbd_write_code.refine[FCOMP lbd_ref_write_lbd_write[unfolded convert_fref]]
+  unfolding lbd_assn_def .
 
 end
