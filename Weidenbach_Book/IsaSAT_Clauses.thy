@@ -67,15 +67,15 @@ definition fm_add_new where
     let l = length N0;
     let s = length C - 2;
     let N = (if is_short_clause C then
-          (((N0 @ [st]) @ [AActivity zero_uint32_nat]) @ [ALBD s]) @ [ASize s]
-          else ((((N0 @ [APos zero_uint32_nat]) @ [st]) @ [AActivity zero_uint32_nat]) @ [ALBD s]) @ [ASize (s)]);
+          (((N0 @ [st]) @ [AActivity 0]) @ [ALBD s]) @ [ASize s]
+          else ((((N0 @ [APos 0]) @ [st]) @ [AActivity 0]) @ [ALBD s]) @ [ASize (s)]);
     (i, N) \<leftarrow> WHILE\<^sub>T\<^bsup> \<lambda>(i, N). i < length C \<longrightarrow> length N < header_size C + length N0 + length C\<^esup>
       (\<lambda>(i, N). i < length C)
       (\<lambda>(i, N). do {
         ASSERT(i < length C);
-        RETURN (i+one_uint64_nat, N @ [ALit (C ! i)])
+        RETURN (i+1, N @ [ALit (C ! i)])
       })
-      (zero_uint64_nat, N);
+      (0, N);
     RETURN (N, l + header_size C)
   }\<close>
 
@@ -157,24 +157,24 @@ definition append_and_length_fast_code_pre where
 lemma fm_add_new_alt_def:
  \<open>fm_add_new b C N0 = do {
       let st = (if b then AStatus_IRRED else AStatus_LEARNED2);
-      let l = length_uint64_nat N0;
-      let s = uint32_of_uint64_conv (length_uint64_nat C - two_uint64_nat);
+      let l = length N0;
+      let s = length C - 2;
       let N =
         (if is_short_clause C
-          then (((N0 @ [st]) @ [AActivity zero_uint32_nat]) @ [ALBD s]) @
+          then (((N0 @ [st]) @ [AActivity 0]) @ [ALBD s]) @
               [ASize s]
-          else ((((N0 @ [APos zero_uint32_nat]) @ [st]) @
-                [AActivity zero_uint32_nat]) @
+          else ((((N0 @ [APos 0]) @ [st]) @
+                [AActivity 0]) @
                 [ALBD s]) @
               [ASize s]);
       (i, N) \<leftarrow>
         WHILE\<^sub>T\<^bsup> \<lambda>(i, N). i < length C \<longrightarrow> length N < header_size C + length N0 + length C\<^esup>
-          (\<lambda>(i, N). i < length_uint64_nat C)
+          (\<lambda>(i, N). i < length C)
           (\<lambda>(i, N). do {
                 _ \<leftarrow> ASSERT (i < length C);
-                RETURN (i + one_uint64_nat, N @ [ALit (C ! i)])
+                RETURN (i + 1, N @ [ALit (C ! i)])
               })
-          (zero_uint64_nat, N);
+          (0, N);
       RETURN (N, l + header_size C)
     }\<close>
   unfolding fm_add_new_def Let_def AStatus_LEARNED2_def AStatus_IRRED2_def
@@ -192,12 +192,12 @@ lemma slice_Suc_nth:
 definition fm_mv_clause_to_new_arena where
  \<open>fm_mv_clause_to_new_arena C old_arena new_arena0 = do {
     ASSERT(arena_is_valid_clause_idx old_arena C);
-    ASSERT(C \<ge> (if nat_of_uint64_conv (arena_length old_arena C) \<le> 4 then 4 else 5));
-    let st = C - (if nat_of_uint64_conv (arena_length old_arena C) \<le> 4 then 4 else 5);
-    ASSERT(C + nat_of_uint64_conv (arena_length old_arena C) \<le> length old_arena);
-    let en = C + nat_of_uint64_conv (arena_length old_arena C);
+    ASSERT(C \<ge> (if  (arena_length old_arena C) \<le> 4 then 4 else 5));
+    let st = C - (if  (arena_length old_arena C) \<le> 4 then 4 else 5);
+    ASSERT(C +  (arena_length old_arena C) \<le> length old_arena);
+    let en = C +  (arena_length old_arena C);
     (i, new_arena) \<leftarrow>
-        WHILE\<^sub>T\<^bsup> \<lambda>(i, new_arena). i < en \<longrightarrow> length new_arena < length new_arena0 + (arena_length old_arena C) + (if nat_of_uint64_conv (arena_length old_arena C) \<le> 4 then 4 else 5) \<^esup>
+        WHILE\<^sub>T\<^bsup> \<lambda>(i, new_arena). i < en \<longrightarrow> length new_arena < length new_arena0 + (arena_length old_arena C) + (if  (arena_length old_arena C) \<le> 4 then 4 else 5) \<^esup>
           (\<lambda>(i, new_arena). i < en)
           (\<lambda>(i, new_arena). do {
               ASSERT (i < length old_arena \<and> i < en);
@@ -316,7 +316,7 @@ proof -
   show ?thesis
     using assms
     unfolding fm_mv_clause_to_new_arena_def st_def[symmetric]
-      en_def[symmetric] Let_def nat_of_uint64_conv_def
+      en_def[symmetric] Let_def
     apply (refine_vcg
      WHILEIT_rule_stronger_inv[where R = \<open>measure (\<lambda>(i, N). en - i)\<close> and
        I' = \<open>\<lambda>(i, new_arena'). i \<le> C + length (N\<propto>C) \<and> i \<ge> st \<and>
