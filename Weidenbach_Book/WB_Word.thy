@@ -613,7 +613,7 @@ lemma nat_of_uint32_mult_le:
   apply transfer
   by (auto simp: unat_word_ariths uint32_max_def)
 
-lemma nat_and_numerals [simp]:
+(*lemma nat_and_numerals [simp]:
   "(numeral (Num.Bit0 x) :: nat) AND (numeral (Num.Bit0 y) :: nat) = (2 :: nat) * (numeral x AND numeral y)"
   "numeral (Num.Bit0 x) AND numeral (Num.Bit1 y) = (2 :: nat) * (numeral x AND numeral y)"
   "numeral (Num.Bit1 x) AND numeral (Num.Bit0 y) = (2 :: nat) * (numeral x AND numeral y)"
@@ -629,7 +629,7 @@ lemma nat_and_numerals [simp]:
   "Suc 0 AND Suc 0 = 1"
   supply [[show_types]]
   by (auto simp: bitAND_nat_def Bit_def nat_add_distrib)
-
+*)
 lemma nat_of_uint32_div:
   \<open>nat_of_uint32 (a div b) = nat_of_uint32 a div nat_of_uint32 b\<close>
   by transfer (auto simp: unat_div)

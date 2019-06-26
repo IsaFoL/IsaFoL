@@ -4,6 +4,27 @@ theory IsaSAT_Arena
     IsaSAT_Literals
 begin
 
+(* TODO: Move to Bits_Natural in Isabelle-LLVM *)
+
+lemma nat_and_numerals [simp]:
+  "(numeral (Num.Bit0 x) :: nat) AND (numeral (Num.Bit0 y) :: nat) = (2 :: nat) * (numeral x AND numeral y)"
+  "numeral (Num.Bit0 x) AND numeral (Num.Bit1 y) = (2 :: nat) * (numeral x AND numeral y)"
+  "numeral (Num.Bit1 x) AND numeral (Num.Bit0 y) = (2 :: nat) * (numeral x AND numeral y)"
+  "numeral (Num.Bit1 x) AND numeral (Num.Bit1 y) = (2 :: nat) * (numeral x AND numeral y)+1"
+  "0 AND n = 0"
+  "n AND 0 = 0"
+  "(1::nat) AND numeral (Num.Bit0 y) = 0"
+  "(1::nat) AND numeral (Num.Bit1 y) = 1"
+  "numeral (Num.Bit0 x) AND (1::nat) = 0"
+  "numeral (Num.Bit1 x) AND (1::nat) = 1"
+  "(Suc 0::nat) AND numeral (Num.Bit0 y) = 0"
+  "(Suc 0::nat) AND numeral (Num.Bit1 y) = 1"
+  "numeral (Num.Bit0 x) AND (Suc 0::nat) = 0"
+  "numeral (Num.Bit1 x) AND (Suc 0::nat) = 1"
+  "Suc 0 AND Suc 0 = 1"
+  for n::nat
+  by (auto simp: bitAND_nat_def Bit_def nat_add_distrib)
+
 
 subsection \<open>The memory representation: Arenas\<close>
 
@@ -289,7 +310,12 @@ definition arena_pos where
 definition arena_lit where
   \<open>arena_lit arena i = xarena_lit (arena!i)\<close>
 
-
+definition "op_incr_mod32 n \<equiv> (n+1 :: nat) mod 2^32"
+  
+definition arena_incr_act where
+  \<open>arena_incr_act arena i = arena[i - ACTIVITY_SHIFT := AActivity (op_incr_mod32 (xarena_act (arena!(i - ACTIVITY_SHIFT))))]\<close>
+  
+  
 subsubsection \<open>Separation properties\<close>
 
 text \<open>The following two lemmas talk about the minimal distance between two clauses in memory. They
@@ -971,6 +997,14 @@ paragraph \<open>Update saved position\<close>
 definition update_pos_direct where
   \<open>update_pos_direct C pos arena = arena[C - POS_SHIFT := APos pos]\<close>
 
+definition arena_update_pos where
+  \<open>arena_update_pos C pos arena = arena[C - POS_SHIFT := APos (pos - 2)]\<close>
+
+lemma arena_update_pos_alt_def:
+  \<open>arena_update_pos C i N = update_pos_direct C (i - 2) N\<close>
+  by (auto simp: arena_update_pos_def update_pos_direct_def)
+  
+  
 lemma clause_slice_update_pos:
   assumes
     i: \<open>i \<in># dom_m N\<close> and
@@ -1664,9 +1698,8 @@ definition get_saved_pos_pre where
       arena_length arena C > MAX_LENGTH_SHORT_CLAUSE\<close>
 
 definition isa_update_pos_pre where
-  \<open>isa_update_pos_pre = (\<lambda>((C, lbd), arena). arena_is_valid_clause_idx arena C \<and> lbd \<ge> 2 \<and>
-      lbd \<le> arena_length arena C \<and> arena_length arena C > MAX_LENGTH_SHORT_CLAUSE \<and>
-      lbd \<ge> 2)\<close>
+  \<open>isa_update_pos_pre = (\<lambda>((C, pos), arena). arena_is_valid_clause_idx arena C \<and> pos \<ge> 2 \<and>
+      pos \<le> arena_length arena C \<and> arena_length arena C > MAX_LENGTH_SHORT_CLAUSE)\<close>
 
 definition mark_garbage_pre where
   \<open>mark_garbage_pre = (\<lambda>(arena, C). arena_is_valid_clause_idx arena C)\<close>
