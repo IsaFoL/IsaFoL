@@ -7,6 +7,25 @@ imports
 begin
 
 sepref_register set_lookup_conflict_aa
+type_synonym lookup_clause_assn = \<open>uint32 \<times> bool array\<close>
+
+type_synonym (in -) option_lookup_clause_assn = \<open>bool \<times> uint32 \<times> bool array\<close>
+
+definition analyse_refinement_rel where
+  \<open>analyse_refinement_rel = nat_rel \<times>\<^sub>f {(n, (L, b)). \<exists>L'. (L', L) \<in> uint32_nat_rel \<and>
+      n = uint64_of_uint32 L' + (if b then 1 << 32 else 0)}\<close>
+
+definition to_ana_ref_id where
+  [simp]: \<open>to_ana_ref_id = (\<lambda>a b c. (a, b, c))\<close>
+
+definition to_ana_ref :: \<open>_ \<Rightarrow> uint32 \<Rightarrow> bool \<Rightarrow> _\<close> where
+  \<open>to_ana_ref = (\<lambda>a c b. (a, uint64_of_uint32 c OR (if b then 1 << 32 else (0 :: uint64))))\<close>
+
+definition from_ana_ref_id where
+  [simp]: \<open>from_ana_ref_id x = x\<close>
+
+definition from_ana_ref where
+  \<open>from_ana_ref = (\<lambda>(a, b). (a, uint32_of_uint64 (take_only_lower32 b), is_marked_binary_code (a, b)))\<close>
 
 abbreviation option_bool_assn where
   \<open>option_bool_assn \<equiv>  pure option_bool_rel\<close>

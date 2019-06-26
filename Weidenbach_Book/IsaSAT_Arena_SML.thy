@@ -1,7 +1,7 @@
 theory IsaSAT_Arena_SML
   imports Refine_Imperative_HOL.IICF IsaSAT_Arena IsaSAT_Literals_SML Watched_Literals.IICF_Array_List64
-    
 begin
+
 no_notation WB_More_Refinement.fref ("[_]\<^sub>f _ \<rightarrow> _" [0,60,60] 60)
 no_notation WB_More_Refinement.freft ("_ \<rightarrow>\<^sub>f _" [60,60] 60)
 
@@ -122,7 +122,6 @@ lemma isa_arena_lit_arena_lit:
         arena_lit_pre_def
       intro!: ASSERT_refine_left)
 
-      
 paragraph \<open>Status of the clause\<close>
 
 definition isa_arena_status where
@@ -179,8 +178,6 @@ lemma isa_arena_status_arena_status:
       intro!: ASSERT_refine_left)
 
 
-
-
 paragraph \<open>Swap literals\<close>
 
 definition isa_arena_swap where
@@ -188,6 +185,10 @@ definition isa_arena_swap where
       ASSERT(C + i < length arena \<and> C + j < length arena);
       RETURN (swap arena (C+i) (C+j))
   }\<close>
+
+lemma convert_swap[simp]: "WB_More_Refinement_List.swap = IICF_List.swap"
+  unfolding swap_def WB_More_Refinement_List.swap_def
+  by auto
 
 lemma isa_arena_swap:
   \<open>(uncurry3 isa_arena_swap, uncurry3 (RETURN oooo swap_lits)) \<in>
