@@ -518,7 +518,8 @@ sepref_definition MAX_LENGTH_SHORT_CLAUSE_impl is "uncurry0 (RETURN MAX_LENGTH_S
   supply [simp] = max_snat_def
   by sepref
 lemmas [sepref_fr_rules] = MAX_LENGTH_SHORT_CLAUSE_impl.refine
-    
+
 
 end
 
+end
