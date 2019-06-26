@@ -1,7 +1,7 @@
 theory LBD_SML
   imports LBD Watched_Literals.WB_Word_Assn IsaSAT_Literals_SML
 begin
-
+type_synonym lbd_assn = \<open>bool array \<times> uint32 \<times> uint32\<close>
 abbreviation lbd_int_assn :: \<open>lbd_ref \<Rightarrow> lbd_assn \<Rightarrow> assn\<close> where
   \<open>lbd_int_assn \<equiv> array_assn bool_assn *a uint32_nat_assn *a uint32_nat_assn\<close>
 
@@ -24,7 +24,8 @@ lemma level_in_lbd_hnr[sepref_fr_rules]:
      lbd_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
   supply lbd_ref_def[simp] uint32_max_def[simp]
   using level_in_lbd_code.refine[FCOMP level_in_lbd_ref_level_in_lbd[unfolded convert_fref]]
-  unfolding lbd_assn_def .
+  unfolding 
+  unfolding lbd_assn_def by simp
 
 
 paragraph \<open>Marking more levels\<close>
