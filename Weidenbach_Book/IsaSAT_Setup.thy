@@ -480,9 +480,9 @@ text \<open>
   following condition:
 \<close>
 definition isasat_fast :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close> where
-  \<open>isasat_fast S \<longleftrightarrow> (length (get_clauses_wl_heur S) \<le> uint64_max - (uint32_max div 2 + 6))\<close>
+  \<open>isasat_fast S \<longleftrightarrow> (length (get_clauses_wl_heur S) \<le> sint64_max - (uint32_max div 2 + 6))\<close>
 
-lemma isasat_fast_length_leD: \<open>isasat_fast S \<Longrightarrow> length (get_clauses_wl_heur S) \<le> uint64_max\<close>
+lemma isasat_fast_length_leD: \<open>isasat_fast S \<Longrightarrow> length (get_clauses_wl_heur S) \<le> sint64_max\<close>
   by (cases S) (auto simp: isasat_fast_def)
 
 
@@ -750,7 +750,7 @@ lemma access_lit_in_clauses_heur_alt_def:
 
 lemma access_lit_in_clauses_heur_fast_pre:
   \<open>arena_lit_pre (get_clauses_wl_heur a) (ba + b) \<Longrightarrow>
-    isasat_fast a \<Longrightarrow> ba + b \<le> uint64_max\<close>
+    isasat_fast a \<Longrightarrow> ba + b \<le> sint64_max\<close>
   by (auto simp: arena_lit_pre_def arena_is_valid_clause_idx_and_access_def
       dest!: arena_lifting(10)
       dest!: isasat_fast_length_leD)[]
@@ -929,9 +929,9 @@ lemma rewatch_heur_alt_def:
   unfolding Let_def rewatch_heur_def
   by auto
 
-lemma arena_lit_pre_le_uint64_max:
- \<open>length ba \<le> uint64_max \<Longrightarrow>
-       arena_lit_pre ba a \<Longrightarrow> a \<le> uint64_max\<close>
+lemma arena_lit_pre_le_sint64_max:
+ \<open>length ba \<le> sint64_max \<Longrightarrow>
+       arena_lit_pre ba a \<Longrightarrow> a \<le> sint64_max\<close>
   using arena_lifting(10)[of ba _ _]
   by (fastforce simp: arena_lifting arena_is_valid_clause_idx_def arena_lit_pre_def
       arena_is_valid_clause_idx_and_access_def)
@@ -952,7 +952,7 @@ definition rewatch_heur_st_fast where
 
 definition rewatch_heur_st_fast_pre where
   \<open>rewatch_heur_st_fast_pre S =
-     ((\<forall>x \<in> set (get_vdom S). x \<le> uint64_max) \<and> length (get_clauses_wl_heur S) \<le> uint64_max)\<close>
+     ((\<forall>x \<in> set (get_vdom S). x \<le> sint64_max) \<and> length (get_clauses_wl_heur S) \<le> sint64_max)\<close>
 
 definition rewatch_st :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
   \<open>rewatch_st S = do{
