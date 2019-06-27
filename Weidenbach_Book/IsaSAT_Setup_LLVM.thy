@@ -385,8 +385,10 @@ declare access_lit_in_clauses_heur_fast_code.refine[sepref_fr_rules]
 
 sepref_register \<open>(=) :: clause_status \<Rightarrow> clause_status \<Rightarrow> _\<close>
 
-term append_ll
-find_theorems "If (\<not>_)"
+
+lemma [def_pat_rules]: "append_ll \<equiv> op_list_list_push_back" 
+  by (rule eq_reflection) (auto simp: append_ll_def fun_eq_iff)
+
 sepref_register rewatch_heur
 term op_neq
 sepref_definition rewatch_heur_fast_code
@@ -403,34 +405,7 @@ sepref_definition rewatch_heur_fast_code
   unfolding if_not_swap
     FOREACH_cond_def FOREACH_body_def 
   apply (annot_snat_const "TYPE(64)")
-apply sepref_dbg_keep
-      apply sepref_dbg_trans_keep
-      apply sepref_dbg_trans_step_keep
-      apply sepref_dbg_side_unfold apply (auto dest!: in_snat_rel_imp_less_max')[]
-oops
-find_theorems "_ \<in> snat_rel \<Longrightarrow> _ < _"
-  apply sepref_dbg_preproc
-  apply sepref_dbg_cons_init
-  apply sepref_dbg_id
-  apply sepref_dbg_id_init
-  apply sepref_dbg_id_step+
-  apply sepref_dbg_monadify
-  apply sepref_dbg_opt_init
-  apply sepref_dbg_trans
-  apply sepref_dbg_opt
-  apply sepref_dbg_cons_solve
-  apply sepref_dbg_cons_solve
-  apply sepref_dbg_constraints
-find_theorems "(=) :: clause_status \<Rightarrow> _ \<Rightarrow> _"
-term DELETED
-apply sepref_dbg_keep
-      apply sepref_dbg_trans_keep
-      apply sepref_dbg_trans_step_keep
-      apply sepref_dbg_side_unfold
-oops
   by sepref
-
-sepref_register append_ll
 
 declare rewatch_heur_fast_code.refine[sepref_fr_rules]
 

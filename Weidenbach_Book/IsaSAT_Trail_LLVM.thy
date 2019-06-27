@@ -180,7 +180,7 @@ sepref_definition polarity_pol_fast_code [llvm_code]
   :: \<open>[uncurry polarity_pol_pre]\<^sub>a trail_pol_fast_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> tri_bool_assn\<close>
   unfolding polarity_pol_def option.case_eq_if polarity_pol_pre_def
   supply [[goals_limit = 1]]
-  apply (rewrite in "nth _ \<hole>" annot_unat_snat_upcast[where 'l="64"])
+  (*apply (rewrite in "nth _ \<hole>" annot_unat_snat_upcast[where 'l="64"])*)
   by sepref
 
 declare polarity_pol_fast_code.refine[sepref_fr_rules]
@@ -200,7 +200,8 @@ sepref_definition cons_trail_Propagated_tr_fast_code
        unat_lit_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a trail_pol_fast_assn\<^sup>d \<rightarrow> trail_pol_fast_assn\<close>
   unfolding cons_trail_Propagated_tr_def cons_trail_Propagated_tr_def
     SET_TRUE_def[symmetric] SET_FALSE_def[symmetric] cons_trail_Propagated_tr_pre_def
-  unfolding ins_idx_upcast64  
+  unfolding ins_idx_upcast64[where i="atm_of _"]  
+  (*unfolding ins_idx_upcast64  *)
   supply [[goals_limit = 1]]
   supply [simp] = max_snat_def uint32_max_def
   by sepref
@@ -227,7 +228,7 @@ sepref_definition tl_trail_tr_fast_code
         trail_pol_fast_assn\<^sup>d \<rightarrow> trail_pol_fast_assn\<close>
   supply if_splits[split] option.splits[split] 
   unfolding tl_trailt_tr_def UNSET_def[symmetric] tl_trailt_tr_pre_def
-  unfolding ins_idx_upcast64  
+  unfolding ins_idx_upcast64[where i="atm_of _"]  
   apply (annot_unat_const "TYPE(32)")
   (*apply (rewrite at \<open>_ - one_uint32_nat\<close> fast_minus_def[symmetric])*)
   supply [[goals_limit = 1]]
@@ -243,7 +244,7 @@ sepref_definition tl_trail_proped_tr_fast_code
   supply if_splits[split] option.splits[split]
   unfolding tl_trail_propedt_tr_def UNSET_def[symmetric]
     tl_trail_propedt_tr_pre_def
-  unfolding ins_idx_upcast64  
+  unfolding ins_idx_upcast64[where i="atm_of _"]  
   apply (annot_unat_const "TYPE(32)")
   supply [[goals_limit = 1]]
   by sepref
@@ -264,7 +265,7 @@ sepref_definition cons_trail_Decided_tr_fast_code
        unat_lit_assn\<^sup>k *\<^sub>a trail_pol_fast_assn\<^sup>d \<rightarrow> trail_pol_fast_assn\<close>
   unfolding cons_trail_Decided_tr_def cons_trail_Decided_tr_def
     SET_TRUE_def[symmetric] SET_FALSE_def[symmetric] cons_trail_Decided_tr_pre_def
-  unfolding ins_idx_upcast64  
+  unfolding ins_idx_upcast64[where i="atm_of _"]  
   apply (annot_unat_const "TYPE(32)")
   apply (rewrite at "_@[\<hole>]" in "(_,\<hole>)" annot_snat_unat_downcast[where 'l="32"])
   supply [[goals_limit = 1]]
@@ -341,7 +342,7 @@ sepref_definition tl_trail_tr_no_CS_fast_code
         trail_pol_fast_assn\<^sup>d \<rightarrow> trail_pol_fast_assn\<close>
   supply if_splits[split] option.splits[split]
   unfolding tl_trailt_tr_no_CS_def UNSET_def[symmetric] tl_trailt_tr_no_CS_pre_def
-  unfolding ins_idx_upcast64  
+  unfolding ins_idx_upcast64[where i="atm_of _"]  
   apply (annot_unat_const "TYPE(32)")
   supply [[goals_limit = 1]]
   by sepref

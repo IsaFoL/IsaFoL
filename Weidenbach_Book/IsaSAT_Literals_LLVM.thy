@@ -72,9 +72,9 @@ sepref_decl_impl atm_of_impl.refine[FCOMP atm_of_refine] .
 lemma nat_of_lit_refine_aux: "((\<lambda>x. x), nat_of_lit) \<in> nat_lit_rel \<rightarrow> nat_rel"
   by (auto simp: nat_lit_rel_def in_br_conv)
 
-sepref_definition nat_of_lit_rel_impl is "RETURN o (\<lambda>x::nat. x)" :: "uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn"
+sepref_definition nat_of_lit_rel_impl is "RETURN o (\<lambda>x::nat. x)" :: "uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a sint64_nat_assn"
+  apply (rewrite annot_unat_snat_upcast[where 'l=64])
   by sepref
-
 lemmas [sepref_fr_rules] = nat_of_lit_rel_impl.refine[FCOMP nat_of_lit_refine_aux]
   
   
