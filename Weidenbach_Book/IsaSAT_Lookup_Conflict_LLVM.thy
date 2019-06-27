@@ -283,14 +283,6 @@ lemma (in -) arena_is_valid_clause_idx_le_uint64_max:
   using arena_lifting(10)[of be _ _ bd]
   by (fastforce simp: arena_lifting arena_is_valid_clause_idx_def)+
 
-    (*TODO PETER?*)
-lemma resolve_lookup_conflict_merge_fast_code_recover:
-   \<open>hn_val snat_rel bd (bid :: 64 word) \<turnstile> hn_invalid snat_assn bd bid\<close>
-  by (simp add: hn_ctxt_def invalid_pure_recover)
-
-lemma [safe_constraint_rules]: \<open>CONSTRAINT is_pure snat_assn\<close>
-  by auto
-
 lemma add_to_lookup_conflict_alt_def:
   \<open>RETURN oo add_to_lookup_conflict = (\<lambda>L (n, xs). RETURN (if xs ! atm_of L = NOTIN then n + 1 else n,
       xs[atm_of L := ISIN (is_pos L)]))\<close>
@@ -308,21 +300,7 @@ sepref_definition add_to_lookup_conflict_impl
   apply (rewrite at \<open>_ + \<hole>\<close> unat_const_fold[where 'a = \<open>32\<close>])
   apply (rewrite in \<open> _ ! \<hole>\<close> annot_unat_snat_upcast[where 'l = \<open>64\<close>])
   apply (rewrite in \<open>list_update _ \<hole>\<close> annot_unat_snat_upcast[where 'l = \<open>64\<close>])
-  apply sepref_dbg_preproc
-  apply sepref_dbg_cons_init
-  apply sepref_dbg_id
-  apply sepref_dbg_monadify
-  apply sepref_dbg_opt_init
-apply sepref_dbg_keep
-apply sepref_dbg_trans_keep
-apply sepref_dbg_trans_step_keep
-apply sepref_dbg_side_unfold
-apply (rule frame_rem1) (*PETER????????????????*)
-  apply sepref_dbg_opt
-  apply sepref_dbg_cons_solve
-  apply sepref_dbg_cons_solve
-  apply sepref_dbg_constraints
-done
+  by sepref
 
 
 declare add_to_lookup_conflict_impl.refine[sepref_fr_rules]
@@ -356,7 +334,7 @@ lemma isa_lookup_conflict_merge_alt_def:
   unfolding isa_lookup_conflict_merge_def Some_lookup_conflict_def
     the_lookup_conflict_def
   by (auto intro!: ext)
-
+  
 sepref_definition resolve_lookup_conflict_merge_fast_code
   is \<open>uncurry6 isa_set_lookup_conflict_aa\<close>
   :: \<open>[\<lambda>((((((M, N), i), (_, xs)), _), _), out).
@@ -379,40 +357,7 @@ sepref_definition resolve_lookup_conflict_merge_fast_code
   apply (rewrite at \<open>RETURN (_ + \<hole>, _ ,_, _)\<close> snat_const_fold[where 'a = \<open>64\<close>])
   apply (rewrite in \<open>If _ \<hole>\<close> unat_const_fold[where 'a = \<open>32\<close>])
   supply [[goals_limit = 1]]
-apply sepref_dbg_keep
-apply sepref_dbg_trans_keep
-apply sepref_dbg_trans_step_keep
-apply (rule resolve_lookup_conflict_merge_fast_code_recover)
-apply sepref_dbg_keep
-apply sepref_dbg_trans_keep
-apply sepref_dbg_trans_step_keep
-apply (rule frame_rem1)
-apply sepref_dbg_trans_step_keep
-apply (rule mk_free_pair)
-apply (rule mk_free_pure)
-apply sepref_dbg_trans_step
-apply sepref_dbg_trans_step_keep
-apply (rule mk_free_invalid)
-apply sepref_dbg_keep
-apply sepref_dbg_trans_keep
-apply sepref_dbg_trans_step_keep
-apply (rule frame_rem1)
-apply sepref_dbg_keep
-apply sepref_dbg_trans_keep
-apply (rule mk_free_pair)
-apply (rule mk_free_pure)
-apply sepref_dbg_trans_step
-apply sepref_dbg_trans_step_keep
-apply (rule mk_free_invalid)
-apply sepref_dbg_keep
-apply sepref_dbg_trans_step
-apply (rule mk_free_invalid)
-apply sepref_dbg_trans_step_keep
- apply fast
-  apply sepref_dbg_trans
-  apply sepref_dbg_cons_solve
-  apply sepref_dbg_constraints
-done
+  by sepref
 
 declare resolve_lookup_conflict_merge_fast_code.refine[sepref_fr_rules]
 

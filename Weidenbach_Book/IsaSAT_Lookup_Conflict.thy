@@ -9,7 +9,6 @@ theory IsaSAT_Lookup_Conflict
 begin
 
 hide_const Autoref_Fix_Rel.CONSTRAINT
-no_notation Ref.update ("_ := _" 62)
 
 
 subsubsection \<open>Clauses Encoded as Positions\<close>
