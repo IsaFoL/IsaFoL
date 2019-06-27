@@ -2,7 +2,7 @@ theory CDCL_Conflict_Minimisation
   imports
     Watched_Literals_Watch_List_Domain
     WB_More_Refinement
-    WB_More_Refinement_List "List-Index.List_Index" "HOL-Imperative_HOL.Imperative_HOL"
+    WB_More_Refinement_List "List-Index.List_Index"
 begin
 
 
@@ -353,15 +353,6 @@ proof -
 qed
 
 datatype minimize_status = SEEN_FAILED | SEEN_REMOVABLE | SEEN_UNKNOWN
-
-instance minimize_status :: heap
-proof standard
-  let ?f = \<open>\<lambda>s. case s of SEEN_FAILED \<Rightarrow> (0 :: nat) | SEEN_REMOVABLE \<Rightarrow> 1 | SEEN_UNKNOWN \<Rightarrow> 2\<close>
-  have \<open>inj ?f\<close>
-    by (auto simp: inj_def split: minimize_status.splits)
-  then show \<open>\<exists>to_nat. inj (to_nat :: minimize_status \<Rightarrow> nat)\<close>
-    by blast
-qed
 
 instantiation minimize_status :: default
 begin
