@@ -205,28 +205,26 @@ sepref_definition VMTF_Node_impl is "uncurry2 (RETURN ooo (\<lambda>a b c. (a,b,
   unfolding vmtf_node2_assn_def by sepref
 
 (* TODO: The below SHOULD work with RETURN o (\<lambda>(a,b,c). a), but this results in id-phase to fail! (probably already preproc-phase is botched! )*)  
-sepref_definition VMTF_stamp_impl is "(\<lambda>(a,b,c). RETURN a)" :: "vmtf_node2_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn"
+sepref_definition VMTF_stamp_impl is "RETURN o (\<lambda>(a,b,c). a)" :: "vmtf_node2_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn"
   unfolding vmtf_node2_assn_def 
   by sepref
   
-sepref_definition VMTF_get_prev_impl is "(\<lambda>(a,b,c). RETURN b)" :: "vmtf_node2_assn\<^sup>k \<rightarrow>\<^sub>a snat_option_assn' TYPE(32)"
+sepref_definition VMTF_get_prev_impl is "RETURN o (\<lambda>(a,b,c). b)" :: "vmtf_node2_assn\<^sup>k \<rightarrow>\<^sub>a snat_option_assn' TYPE(32)"
   unfolding vmtf_node2_assn_def 
   by sepref
       
-sepref_definition VMTF_get_next_impl is "(\<lambda>(a,b,c). RETURN c)" :: "vmtf_node2_assn\<^sup>k \<rightarrow>\<^sub>a snat_option_assn' TYPE(32)"
+sepref_definition VMTF_get_next_impl is "RETURN o (\<lambda>(a,b,c). c)" :: "vmtf_node2_assn\<^sup>k \<rightarrow>\<^sub>a snat_option_assn' TYPE(32)"
   unfolding vmtf_node2_assn_def 
   by sepref
 
-lemma workaround_unfold_return_triple[fcomp_norm_unfold]: "(\<lambda>(a,b,c). RETURN (f a b c)) = RETURN o (\<lambda>(a,b,c). f a b c)" by auto
-  
 (* TODO: This should be done automatically! For all structured ID-relations on hr_comp! *)
 lemma workaround_hrcomp_id_norm[fcomp_norm_unfold]: "hr_comp R (\<langle>nat_rel\<rangle>option_rel) = R" by simp
 
 lemmas [sepref_fr_rules] = 
   VMTF_Node_impl.refine[FCOMP vmtf_Node_refine1]  
-  VMTF_stamp_impl.refine[unfolded workaround_unfold_return_triple,FCOMP vmtf_stamp_refine1]
-  VMTF_get_prev_impl.refine[unfolded workaround_unfold_return_triple,FCOMP vmtf_get_prev_refine1]
-  VMTF_get_next_impl.refine[unfolded workaround_unfold_return_triple,FCOMP vmtf_get_next_refine1]
+  VMTF_stamp_impl.refine[FCOMP vmtf_stamp_refine1]
+  VMTF_get_prev_impl.refine[FCOMP vmtf_get_prev_refine1]
+  VMTF_get_next_impl.refine[FCOMP vmtf_get_next_refine1]
   
 
   
@@ -349,6 +347,7 @@ sepref_definition isa_count_decided_st_fast_code
 
 declare isa_count_decided_st_fast_code.refine[sepref_fr_rules]
 
+
 sepref_definition polarity_st_heur_pol_fast
   is \<open>uncurry (RETURN oo polarity_st_heur)\<close>
   :: \<open>[polarity_st_heur_pre]\<^sub>a isasat_bounded_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> tri_bool_assn\<close>
@@ -363,25 +362,12 @@ declare polarity_st_heur_pol_fast.refine[sepref_fr_rules]
 subsection \<open>More theorems\<close>
 
 
-sepref_definition polarity_st_heur_pol_fast
+sepref_definition count_decided_st_heur_pol_fast
   is \<open>RETURN o count_decided_st_heur\<close>
   :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
   unfolding isasat_bounded_assn_def count_decided_st_heur_def
   supply [[goals_limit = 1]]
   by sepref
-  
-  
-  
-lemma count_decided_st_heur[sepref_fr_rules]:
-  \<open>(return o count_decided_st_heur, RETURN o count_decided_st_heur) \<in>
-      isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
-  unfolding count_decided_st_heur_def isasat_bounded_assn_def
-  apply sepref_to_hoare
-  apply vcg_normalize
-  apply (simp add: sep_algebra_simps pred_lift_extract_simps)
-  find_theorems "llvm_htriple (\<up>_ ** _)"
-  
-  by (sepref_to_hoare; sep_auto)+
 
 sepref_definition access_lit_in_clauses_heur_fast_code
   is \<open>uncurry2 (RETURN ooo access_lit_in_clauses_heur)\<close>
