@@ -286,7 +286,15 @@ sepref_definition defined_atm_fast_code
 
 declare defined_atm_fast_code.refine[sepref_fr_rules]
 
-sepref_register get_propagation_reason
+sepref_register get_propagation_reason_raw_pol
+sepref_definition get_propagation_reason_fast_code
+  is \<open>uncurry get_propagation_reason_raw_pol\<close>
+  :: \<open>trail_pol_fast_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow>\<^sub>a sint64_nat_assn\<close>
+  unfolding get_propagation_reason_raw_pol_def
+  apply (rewrite at "_! \<hole>" annot_unat_snat_upcast[where 'l="64"])
+  by sepref
+
+declare get_propagation_reason_fast_code.refine[sepref_fr_rules]
 
 (*
 sepref_definition get_propagation_reason_fast_code

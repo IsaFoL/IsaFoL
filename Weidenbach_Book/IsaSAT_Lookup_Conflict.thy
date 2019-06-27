@@ -221,6 +221,10 @@ definition ISIN :: \<open>bool \<Rightarrow> bool option\<close> where
 definition is_NOTIN :: \<open>bool option \<Rightarrow> bool\<close> where
   [simp]: \<open>is_NOTIN x \<longleftrightarrow> x = NOTIN\<close>
 
+lemma is_NOTIN_alt_def:
+  \<open>is_NOTIN x \<longleftrightarrow> is_None x\<close>
+  by (auto split: option.splits)
+
 definition option_lookup_clause_rel where
 \<open>option_lookup_clause_rel \<A> = {((b,(n,xs)), C). b = (C = None) \<and>
    (C = None \<longrightarrow> ((n,xs), {#}) \<in> lookup_clause_rel \<A>) \<and>
@@ -568,9 +572,6 @@ where
    })\<close>
 
 
-definition isa_set_lookup_conflict where
-  \<open>isa_set_lookup_conflict = isa_lookup_conflict_merge 0\<close>
-
 lemma isa_lookup_conflict_merge_lookup_conflict_merge_ext:
   assumes valid: \<open>valid_arena arena N vdom\<close> and i: \<open>i \<in># dom_m N\<close> and
     lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm \<A> (mset `# ran_mf N)\<close> and
@@ -629,9 +630,6 @@ proof -
       in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff get_level_get_level_pol[OF M'M])
     done
 qed
-
-abbreviation (in -) minimize_status_rel where
-  \<open>minimize_status_rel \<equiv> Id :: (minimize_status \<times> minimize_status) set\<close>
 
 lemma (in -) arena_is_valid_clause_idx_le_uint64_max:
   \<open>arena_is_valid_clause_idx be bd \<Longrightarrow>
@@ -2750,7 +2748,7 @@ qed
 
 lemma nth_conflict_min_cach:
   \<open>(uncurry (RETURN oo conflict_min_cach_l), uncurry (RETURN oo conflict_min_cach)) \<in>
-     [\<lambda>(cach, L). L \<in># \<A>\<^sub>i\<^sub>n]\<^sub>f cach_refinement \<A>\<^sub>i\<^sub>n \<times>\<^sub>r nat_rel \<rightarrow> \<langle>minimize_status_rel\<rangle>nres_rel\<close>
+     [\<lambda>(cach, L). L \<in># \<A>\<^sub>i\<^sub>n]\<^sub>f cach_refinement \<A>\<^sub>i\<^sub>n \<times>\<^sub>r nat_rel \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
   by (intro frefI nres_relI) (auto simp: map_fun_rel_def
       in_cach_refinement_alt_def cach_refinement_list_def conflict_min_cach_l_def)
 
