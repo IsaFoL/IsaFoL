@@ -599,28 +599,14 @@ lemma arena_lit_pre_le: \<open>
    using arena_lifting(7)[of a _ _] unfolding arena_lit_pre_def arena_is_valid_clause_idx_and_access_def
   by fastforce
 
-lemma isa_lit_redundant_rec_wl_lookup_get_propagation_reason_pol_raw: \<open>do {
+lemma get_propagation_reason_pol_get_propagation_reason_pol_raw: \<open>do {
 		 C \<leftarrow> get_propagation_reason_pol M (-L);
 		 case C of
-		   Some C \<Rightarrow> do {
-		     ASSERT(lit_redundant_reason_stack_wl_lookup_pre (-L) NU C);
-		     RETURN (cach, analyse @ [lit_redundant_reason_stack_wl_lookup (-L) NU C], False)
-		   }
-		 | None \<Rightarrow> do {
-		     cach \<leftarrow> isa_mark_failed_lits_stack NU analyse cach;
-		     RETURN (cach, [], False)
-	       }
-            } = 
-    do {
+		   Some C \<Rightarrow> f C
+		 | None \<Rightarrow> g
+            } = do {
 		 C \<leftarrow> get_propagation_reason_raw_pol M (-L);
-		 if C \<noteq> DECISION_REASON then do {
-		     ASSERT(lit_redundant_reason_stack_wl_lookup_pre (-L) NU C);
-		     RETURN (cach, analyse @ [lit_redundant_reason_stack_wl_lookup (-L) NU C], False)
-		   }
-		 else do {
-		     cach \<leftarrow> isa_mark_failed_lits_stack NU analyse cach;
-		     RETURN (cach, [], False)
-	       }
+		 if C \<noteq> DECISION_REASON then f C else g
             }\<close>
   by (cases M) (auto simp: get_propagation_reason_pol_def get_propagation_reason_raw_pol_def)
 
@@ -647,7 +633,7 @@ sepref_definition lit_redundant_rec_wl_lookup_fast_code
     nth_rll_def[symmetric] PR_CONST_def
     fmap_rll_u_def[symmetric] minimize_status_rel_eq_def[symmetric]
     fmap_rll_def[symmetric] length_0_conv[symmetric]
-  apply (subst isa_lit_redundant_rec_wl_lookup_get_propagation_reason_pol_raw)
+  apply (subst get_propagation_reason_pol_get_propagation_reason_pol_raw)
   apply (rewrite at \<open>(_, \<hole>, _)\<close> al_fold_custom_empty[where 'l=64])+
   apply (rewrite at \<open>get_level_pol _ _ = \<hole>\<close> unat_const_fold[where 'a=32])
   apply (rewrite at \<open>(_, \<hole>, _)\<close> annotate_assn[where A=analyse_refinement_fast_assn])
@@ -660,34 +646,14 @@ sepref_definition lit_redundant_rec_wl_lookup_fast_code
     fmap_rll_def[symmetric]
     fmap_length_rll_def[symmetric]
     fmap_rll_u_def[symmetric]
-
-  apply sepref_dbg_preproc
-  apply sepref_dbg_cons_init
-  apply sepref_dbg_id
-
-  apply sepref_dbg_monadify
-  apply sepref_dbg_opt_init
-apply sepref_dbg_keep
-    apply sepref_dbg_trans_keep
-    apply sepref_dbg_trans_step_keep
-oops term get_propagation_reason_pol
-    apply sepref_dbg_side_unfold apply (auto dest!: arena_lit_pre_le)[]
-
-find_theorems "array_assn minimize_status_assn *a al_assn unat_assn"
-  apply sepref_dbg_trans
-  apply sepref_dbg_opt
-  apply sepref_dbg_cons_solve
-  apply sepref_dbg_cons_solve
-  apply sepref_dbg_constraints
-oops
-  by sepref (* slow *)
+  by sepref (*slow *)
 
 declare lit_redundant_rec_wl_lookup_fast_code.refine[sepref_fr_rules]
 sepref_definition delete_index_and_swap_code
   is \<open>uncurry (RETURN oo delete_index_and_swap)\<close>
   :: \<open>[\<lambda>(xs, i). i < length xs]\<^sub>a
-      (arl32_assn unat_lit_assn)\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> arl32_assn unat_lit_assn\<close>
-  unfolding delete_index_and_swap.simps butlast_nonresizing_def[symmetric]
+      (arl64_assn unat_lit_assn)\<^sup>d *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> arl64_assn unat_lit_assn\<close>
+  unfolding delete_index_and_swap.simps
   by sepref
 
 declare delete_index_and_swap_code.refine[sepref_fr_rules]
@@ -695,8 +661,9 @@ declare delete_index_and_swap_code.refine[sepref_fr_rules]
 sepref_definition (in -)lookup_conflict_upd_None_code
   is \<open>uncurry (RETURN oo lookup_conflict_upd_None)\<close>
   :: \<open>[\<lambda>((n, xs), i). i < length xs \<and> n > 0]\<^sub>a
-     lookup_clause_rel_assn\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> lookup_clause_rel_assn\<close>
-  unfolding lookup_conflict_upd_None_RETURN_def fast_minus_def[symmetric]
+     lookup_clause_rel_assn\<^sup>d *\<^sub>a sint32_nat_assn\<^sup>k \<rightarrow> lookup_clause_rel_assn\<close>
+  unfolding lookup_conflict_upd_None_RETURN_def lookup_clause_rel_assn_def
+  apply (annot_unat_const "TYPE(32)")
   by sepref
 
 declare lookup_conflict_upd_None_code.refine[sepref_fr_rules]
@@ -705,17 +672,21 @@ lemma uint32_max_ge0:  \<open>0 < uint32_max\<close> by (auto simp: uint32_max_d
 
 sepref_definition literal_redundant_wl_lookup_fast_code
   is \<open>uncurry5 isa_literal_redundant_wl_lookup\<close>
-  :: \<open>[\<lambda>(((((M, NU), D), cach), L), lbd). length NU \<le> uint64_max]\<^sub>a
+  :: \<open>[\<lambda>(((((M, NU), D), cach), L), lbd). length NU \<le> sint64_max]\<^sub>a
       trail_pol_fast_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a lookup_clause_rel_assn\<^sup>k *\<^sub>a
       cach_refinement_l_assn\<^sup>d *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a lbd_assn\<^sup>k \<rightarrow>
-      cach_refinement_l_assn *a analyse_refinement_fast_assn *a bool_assn\<close>
-  supply [[goals_limit=1]] Pos_unat_lit_assn[sepref_fr_rules] Neg_unat_lit_assn[sepref_fr_rules]
+      cach_refinement_l_assn *a analyse_refinement_fast_assn *a bool1_assn\<close>
+  supply [[goals_limit=1]]
   literals_are_in_\<L>\<^sub>i\<^sub>n_trail_uminus_in_lits_of_l[intro] uint32_max_ge0[intro!]
-  literals_are_in_\<L>\<^sub>i\<^sub>n_trail_uminus_in_lits_of_l_atms[intro] op_arl32_empty_def[simp]
-  unfolding isa_literal_redundant_wl_lookup_def zero_uint32_nat_def[symmetric] PR_CONST_def
-  apply (rewrite at \<open>(_, \<hole>, _)\<close> arl32.fold_custom_empty)+
-  unfolding single_replicate one_uint64_nat_def[symmetric]
-  unfolding arl32.fold_custom_empty
+  literals_are_in_\<L>\<^sub>i\<^sub>n_trail_uminus_in_lits_of_l_atms[intro]
+  unfolding isa_literal_redundant_wl_lookup_def PR_CONST_def
+    minimize_status_rel_eq_def[symmetric]
+  supply [simp] = uint64_max_def max_unat_def max_snat_def sint64_max_def uint32_max_def
+  apply (rewrite at \<open>(_, \<hole>, _)\<close> al_fold_custom_empty[where 'l=64])+
+  unfolding single_replicate
+  apply (rewrite at \<open>get_level_pol _ _ = \<hole>\<close> unat_const_fold[where 'a=32])
+  unfolding al_fold_custom_empty[where 'l=64]
+  apply (subst get_propagation_reason_pol_get_propagation_reason_pol_raw)
   by sepref
 
 declare literal_redundant_wl_lookup_fast_code.refine[sepref_fr_rules]
@@ -724,54 +695,80 @@ sepref_definition conflict_remove1_code
   is \<open>uncurry (RETURN oo lookup_conflict_remove1)\<close>
   :: \<open>[lookup_conflict_remove1_pre]\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a lookup_clause_rel_assn\<^sup>d \<rightarrow>
      lookup_clause_rel_assn\<close>
-  supply [[goals_limit=2]] one_uint32_nat[sepref_fr_rules]
-  unfolding lookup_conflict_remove1_def one_uint32_nat_def[symmetric] fast_minus_def[symmetric]
-  lookup_conflict_remove1_pre_def
+  supply [[goals_limit=2]]
+  unfolding lookup_conflict_remove1_def lookup_conflict_remove1_pre_def lookup_clause_rel_assn_def
+  apply (rewrite at \<open>list_update _ \<hole> _\<close> annot_unat_snat_upcast[where 'l = 64])
+  apply (annot_unat_const "TYPE(32)")
   by sepref
 
 declare conflict_remove1_code.refine[sepref_fr_rules]
 
 sepref_definition minimize_and_extract_highest_lookup_conflict_fast_code
   is \<open>uncurry5 isa_minimize_and_extract_highest_lookup_conflict\<close>
-  :: \<open>[\<lambda>(((((M, NU), D), cach), lbd), outl). length NU \<le> uint64_max]\<^sub>a
+  :: \<open>[\<lambda>(((((M, NU), D), cach), lbd), outl). length NU \<le> sint64_max]\<^sub>a
        trail_pol_fast_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a lookup_clause_rel_assn\<^sup>d *\<^sub>a
         cach_refinement_l_assn\<^sup>d *\<^sub>a lbd_assn\<^sup>k *\<^sub>a out_learned_assn\<^sup>d \<rightarrow>
       lookup_clause_rel_assn *a cach_refinement_l_assn *a out_learned_assn\<close>
-  supply [[goals_limit=1]] Pos_unat_lit_assn[sepref_fr_rules] Neg_unat_lit_assn[sepref_fr_rules]
+  supply [[goals_limit=1]]
     literals_are_in_\<L>\<^sub>i\<^sub>n_trail_uminus_in_lits_of_l[intro]
     minimize_and_extract_highest_lookup_conflict_inv_def[simp]
-    in_\<L>\<^sub>a\<^sub>l\<^sub>l_less_uint32_max'[intro] length_u_hnr[sepref_fr_rules]
-    array_set_hnr_u[sepref_fr_rules]
-  unfolding isa_minimize_and_extract_highest_lookup_conflict_def zero_uint32_nat_def[symmetric]
-    one_uint32_nat_def[symmetric] PR_CONST_def
+    in_\<L>\<^sub>a\<^sub>l\<^sub>l_less_uint32_max'[intro]
+  supply [simp] = uint64_max_def max_unat_def max_snat_def sint64_max_def uint32_max_def
+  unfolding isa_minimize_and_extract_highest_lookup_conflict_def
+    PR_CONST_def
     minimize_and_extract_highest_lookup_conflict_inv_def
+  apply (rewrite at \<open>(_, \<hole>, _, _)\<close> snat_const_fold[where 'a = 64])
+  apply (annot_snat_const "TYPE(64)")
+
   by sepref
 
 declare minimize_and_extract_highest_lookup_conflict_fast_code.refine[sepref_fr_rules]
 
+(**)
+lemma isasat_lookup_merge_eq2_alt_def:
+  \<open>isasat_lookup_merge_eq2 L M N C = (\<lambda>zs clvls lbd outl. do {
+    let zs = the_lookup_conflict zs;
+    ASSERT(arena_lit_pre N C);
+    ASSERT(arena_lit_pre N (C+1));
+    let L0 = arena_lit N C;
+    let L' = (if L0 = L then arena_lit N (C + 1) else L0);
+    ASSERT(get_level_pol_pre (M, L'));
+    ASSERT(get_level_pol M L' \<le> Suc (uint32_max div 2));
+    let lbd = lbd_write lbd (get_level_pol M L');
+    ASSERT(atm_of L' < length (snd zs));
+    ASSERT(length outl < uint32_max);
+    let outl = isa_outlearned_add M L' zs outl;
+    ASSERT(clvls < uint32_max);
+    ASSERT(fst zs < uint32_max);
+    let clvls = isa_clvls_add M L' zs clvls;
+    let zs = add_to_lookup_conflict L' zs;
+    RETURN(Some_lookup_conflict zs, clvls, lbd, outl)
+  })\<close>
+  by (auto simp: the_lookup_conflict_def Some_lookup_conflict_def Let_def
+     isasat_lookup_merge_eq2_def intro!: ext)
+
 sepref_definition isasat_lookup_merge_eq2_fast_code
   is \<open>uncurry7 isasat_lookup_merge_eq2\<close>
-  :: \<open>[\<lambda>(((((((L, M), NU), _), _), _), _), _). length NU \<le> uint64_max]\<^sub>a
-     unat_lit_assn\<^sup>k *\<^sub>a trail_pol_fast_assn\<^sup>k  *\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a
+  :: \<open>[\<lambda>(((((((L, M), NU), _), _), _), _), _). length NU \<le> sint64_max]\<^sub>a
+     unat_lit_assn\<^sup>k *\<^sub>a trail_pol_fast_assn\<^sup>k  *\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a
        conflict_option_rel_assn\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a lbd_assn\<^sup>d *\<^sub>a out_learned_assn\<^sup>d \<rightarrow>
       conflict_option_rel_assn *a uint32_nat_assn *a lbd_assn *a out_learned_assn\<close>
   supply [[goals_limit = 1]]
-  unfolding isasat_lookup_merge_eq2_def add_to_lookup_conflict_def
+  unfolding isasat_lookup_merge_eq2_alt_def
     isa_outlearned_add_def isa_clvls_add_def
     is_NOTIN_def[symmetric]
-  supply length_rll_def[simp] nth_rll_def[simp]
+  supply [simp] = uint64_max_def max_unat_def max_snat_def sint64_max_def uint32_max_def
+  supply
     image_image[simp] literals_are_in_\<L>\<^sub>i\<^sub>n_in_\<L>\<^sub>a\<^sub>l\<^sub>l[simp]
     literals_are_in_\<L>\<^sub>i\<^sub>n_trail_get_level_uint32_max[dest]
-    fmap_length_rll_u_def[simp]
+    fmap_length_rll_u_def[simp] the_lookup_conflict_def[simp]
     arena_is_valid_clause_idx_le_uint64_max[dest]
-    arena_lit_pre_le2[dest]
-  apply (rewrite in \<open>if _ then _ + \<hole> else _\<close> one_uint32_nat_def[symmetric])
-  apply (rewrite in \<open>if _ then _ + \<hole> else _\<close> one_uint32_nat_def[symmetric])
-  apply (rewrite in \<open>if _ then arena_lit _ (_ + \<hole>) else _\<close> one_uint64_nat_def[symmetric])
+    arena_lit_pre_le2[dest] arena_lit_pre_le[dest]
+  apply (rewrite in \<open>if _ then _ + \<hole> else _\<close> unat_const_fold[where 'a=32])
+  apply (rewrite in \<open>if _ then arena_lit _ (_ + \<hole>) else _\<close> snat_const_fold[where 'a=64])
   by sepref
 
 declare
   isasat_lookup_merge_eq2_fast_code.refine[sepref_fr_rules]
-  isasat_lookup_merge_eq2_code.refine[sepref_fr_rules]
 
 end
