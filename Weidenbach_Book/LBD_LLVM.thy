@@ -7,7 +7,7 @@ no_notation WB_More_Refinement.freft ("_ \<rightarrow>\<^sub>f _" [60,60] 60)
 
 type_synonym 'a larray64 = "('a,64) larray"
 type_synonym lbd_assn = \<open>(1 word) larray64 \<times> 32 word \<times> 32 word\<close>
-abbreviation "larray64_assn \<equiv> larray_assn' TYPE(64)"
+
 (*TODO use 32*)
 
 abbreviation lbd_int_assn :: \<open>lbd_ref \<Rightarrow> lbd_assn \<Rightarrow> assn\<close> where
@@ -21,15 +21,16 @@ paragraph \<open>Testing if a level is marked\<close>
 
 sepref_definition level_in_lbd_code
   is \<open>uncurry (RETURN oo level_in_lbd_ref)\<close>
-  :: \<open>sint32_nat_assn\<^sup>k *\<^sub>a lbd_int_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
+  :: \<open>uint32_nat_assn\<^sup>k *\<^sub>a lbd_int_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
   supply [[goals_limit=1]]
   unfolding level_in_lbd_ref_def short_circuit_conv length_uint32_nat_def
-  apply (rewrite in "\<hole> < _" annot_snat_snat_upcast[where 'l="64"])
+  apply (rewrite in "\<hole> < _" annot_unat_snat_upcast[where 'l="64"])
+  apply (rewrite in "_ ! \<hole>" annot_unat_snat_upcast[where 'l="64"])
   by sepref
 
 
 lemma level_in_lbd_hnr[sepref_fr_rules]:
-  \<open>(uncurry level_in_lbd_code, uncurry (RETURN \<circ>\<circ> level_in_lbd)) \<in> sint32_nat_assn\<^sup>k *\<^sub>a
+  \<open>(uncurry level_in_lbd_code, uncurry (RETURN \<circ>\<circ> level_in_lbd)) \<in> uint32_nat_assn\<^sup>k *\<^sub>a
      lbd_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
   supply lbd_ref_def[simp] uint32_max_def[simp]
   using level_in_lbd_code.refine[FCOMP level_in_lbd_ref_level_in_lbd[unfolded convert_fref]]

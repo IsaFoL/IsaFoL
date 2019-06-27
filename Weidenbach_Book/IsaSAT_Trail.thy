@@ -845,6 +845,12 @@ lemma get_propagation_reason_pol:
       trail_pol_def ann_lits_split_reasons_def lits_of_def assert_bind_spec_conv)
 
 
+definition get_propagation_reason_raw_pol :: \<open>trail_pol \<Rightarrow> nat literal \<Rightarrow> nat nres\<close> where
+  \<open>get_propagation_reason_raw_pol = (\<lambda>(_, _, _, reasons, _) L. do {
+      ASSERT(atm_of L < length reasons);
+      let r = reasons ! atm_of L;
+      RETURN r})\<close>
+
 text \<open>The version \<^term>\<open>get_propagation_reason\<close> can return the reason, but does not have to: it can be
 more suitable for specification (like for the conflict minimisation, where finding the reason is
 not mandatory).
