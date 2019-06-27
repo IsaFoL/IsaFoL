@@ -44,14 +44,14 @@ definition empty_conflict_and_extract_clause_heur ::
            let D = lookup_conflict_remove1 (outl ! i) D;
            let C = C[i := outl ! i];
            ASSERT(C!i \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A> \<and> C!1 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A> \<and> 1 < length C);
-           let C = (if get_level M (C!i) > get_level M (C!one_uint32_nat) then swap C one_uint32_nat i else C);
+           let C = (if get_level M (C!i) > get_level M (C!1) then swap C 1 i else C);
            ASSERT(i+1 \<le> uint32_max);
-           RETURN (D, C, i+one_uint32_nat)
+           RETURN (D, C, i+1)
          })
-        (D, C, one_uint32_nat);
+        (D, C, 1);
      ASSERT(length outl \<noteq> 1 \<longrightarrow> length C > 1);
      ASSERT(length outl \<noteq> 1 \<longrightarrow> C!1 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>);
-     RETURN ((True, D), C, if length outl = 1 then zero_uint32_nat else get_level M (C!1))
+     RETURN ((True, D), C, if length outl = 1 then 0 else get_level M (C!1))
   }\<close>
 
 lemma empty_conflict_and_extract_clause_heur_empty_conflict_and_extract_clause:
@@ -91,7 +91,7 @@ proof -
             (1 < length (take i C) \<longrightarrow>
                  highest_lit M (mset (tl (take i C)))
                   (Some (C ! 1, get_level M (C ! 1))))\<close>
-  have I0: \<open>I (D', replicate (length outl) (outl ! 0), one_uint32_nat)\<close>
+  have I0: \<open>I (D', replicate (length outl) (outl ! 0), 1)\<close>
     using assms by (cases outl) (auto simp: I_def)
 
   have [simp]: \<open>ba \<ge> 1 \<Longrightarrow> mset (tl outl) - mset (take ba outl) = mset ((drop ba outl))\<close>
@@ -103,11 +103,11 @@ proof -
       (auto simp: take_tl drop_Suc[symmetric] remove_1_mset_id_iff_notin dest: in_set_dropD)
   have empty_conflict_and_extract_clause_heur_inv:
     \<open>empty_conflict_and_extract_clause_heur_inv M outl
-     (D', replicate (length outl) (outl ! 0), one_uint32_nat)\<close>
+     (D', replicate (length outl) (outl ! 0), 1)\<close>
     using assms
     unfolding empty_conflict_and_extract_clause_heur_inv_def
     by (cases outl) auto
-  have I0: \<open>I (D', replicate (length outl) (outl ! 0), one_uint32_nat)\<close>
+  have I0: \<open>I (D', replicate (length outl) (outl ! 0), 1)\<close>
     using assms
     unfolding I_def
     by (cases outl) auto
@@ -115,18 +115,18 @@ proof -
     C1_L: \<open>aa[ba := outl ! ba] ! 1 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<close> (is ?A1inL) and
     ba_le:  \<open>ba + 1 \<le> uint32_max\<close> (is ?ba_le) and
     I_rec: \<open>I (lookup_conflict_remove1 (outl ! ba) a,
-          if get_level M (aa[ba := outl ! ba] ! one_uint32_nat)
+          if get_level M (aa[ba := outl ! ba] ! 1)
              < get_level M (aa[ba := outl ! ba] ! ba)
-          then swap (aa[ba := outl ! ba]) one_uint32_nat ba
+          then swap (aa[ba := outl ! ba]) 1 ba
           else aa[ba := outl ! ba],
-          ba + one_uint32_nat)\<close> (is ?I) and
+          ba + 1)\<close> (is ?I) and
     inv: \<open>empty_conflict_and_extract_clause_heur_inv M outl
         (lookup_conflict_remove1 (outl ! ba) a,
-         if get_level M (aa[ba := outl ! ba] ! one_uint32_nat)
+         if get_level M (aa[ba := outl ! ba] ! 1)
             < get_level M (aa[ba := outl ! ba] ! ba)
-         then swap (aa[ba := outl ! ba]) one_uint32_nat ba
+         then swap (aa[ba := outl ! ba]) 1 ba
          else aa[ba := outl ! ba],
-         ba + one_uint32_nat)\<close> (is ?inv)
+         ba + 1)\<close> (is ?inv)
     if
       \<open>empty_conflict_and_extract_clause_heur_inv M outl s\<close> and
       I: \<open>I s\<close> and
@@ -189,28 +189,28 @@ proof -
       using aD ba_le ba_ge1 ba_ge1_aa_ge aa0
       by (auto simp: take_Suc_conv_app_nth)
     moreover have \<open>1 < length
-          (take (ba + one_uint32_nat)
-            (if get_level M (aa[ba := outl ! ba] ! one_uint32_nat)
+          (take (ba + 1)
+            (if get_level M (aa[ba := outl ! ba] ! 1)
                 < get_level M (aa[ba := outl ! ba] ! ba)
-             then swap (aa[ba := outl ! ba]) one_uint32_nat ba
+             then swap (aa[ba := outl ! ba]) 1 ba
              else aa[ba := outl ! ba])) \<longrightarrow>
       highest_lit M
       (mset
-        (tl (take (ba + one_uint32_nat)
-              (if get_level M (aa[ba := outl ! ba] ! one_uint32_nat)
+        (tl (take (ba + 1)
+              (if get_level M (aa[ba := outl ! ba] ! 1)
                   < get_level M (aa[ba := outl ! ba] ! ba)
-               then swap (aa[ba := outl ! ba]) one_uint32_nat ba
+               then swap (aa[ba := outl ! ba]) 1 ba
                else aa[ba := outl ! ba]))))
       (Some
-        ((if get_level M (aa[ba := outl ! ba] ! one_uint32_nat)
+        ((if get_level M (aa[ba := outl ! ba] ! 1)
              < get_level M (aa[ba := outl ! ba] ! ba)
-          then swap (aa[ba := outl ! ba]) one_uint32_nat ba
+          then swap (aa[ba := outl ! ba]) 1 ba
           else aa[ba := outl ! ba]) !
          1,
          get_level M
-          ((if get_level M (aa[ba := outl ! ba] ! one_uint32_nat)
+          ((if get_level M (aa[ba := outl ! ba] ! 1)
                < get_level M (aa[ba := outl ! ba] ! ba)
-            then swap (aa[ba := outl ! ba]) one_uint32_nat ba
+            then swap (aa[ba := outl ! ba]) 1 ba
             else aa[ba := outl ! ba]) !
            1)))\<close>
       using highest ba_le ba_ge1
@@ -221,12 +221,12 @@ proof -
           get_maximum_level_remove_non_max_lvl tl_take_nth_con
           aa2_def[symmetric])
     moreover have \<open>mset
-      (take (ba + one_uint32_nat)
-        (if get_level M (aa[ba := outl ! ba] ! one_uint32_nat)
+      (take (ba + 1)
+        (if get_level M (aa[ba := outl ! ba] ! 1)
             < get_level M (aa[ba := outl ! ba] ! ba)
-          then swap (aa[ba := outl ! ba]) one_uint32_nat ba
+          then swap (aa[ba := outl ! ba]) 1 ba
           else aa[ba := outl ! ba])) =
-      mset (take (ba + one_uint32_nat) outl)\<close>
+      mset (take (ba + 1) outl)\<close>
       using ba_le ba_ge1 ba_ge1_aa_ge aa0
       unfolding mset_aa
       by (cases \<open>ba = 1\<close>)
@@ -257,13 +257,13 @@ proof -
            _ \<leftarrow> ASSERT (i + 1 \<le> uint32_max);
            RETURN
             (lookup_conflict_remove1 (outl ! i) D,
-             if get_level M (C[i := outl ! i] ! one_uint32_nat)
+             if get_level M (C[i := outl ! i] ! 1)
                 < get_level M (C[i := outl ! i] ! i)
-             then swap (C[i := outl ! i]) one_uint32_nat i
+             then swap (C[i := outl ! i]) 1 i
              else C[i := outl ! i],
-             i + one_uint32_nat)
+             i + 1)
          })
-     (D', replicate (length outl) (outl ! 0), one_uint32_nat)
+     (D', replicate (length outl) (outl ! 0), 1)
     \<le> \<Down> {((E, C, n), (E', F')). (E, E') \<in> lookup_clause_rel \<A> \<and> mset C = mset outl \<and>
              C ! 0 = outl ! 0 \<and>
             (1 < length C \<longrightarrow>
@@ -410,24 +410,24 @@ definition isa_empty_conflict_and_extract_clause_heur ::
            let D = lookup_conflict_remove1 (outl ! i) D;
            let C = C[i := outl ! i];
 	   ASSERT(get_level_pol_pre (M, C!i));
-	   ASSERT(get_level_pol_pre (M, C!one_uint32_nat));
-	   ASSERT(one_uint32_nat < length C);
-           let C = (if get_level_pol M (C!i) > get_level_pol M (C!one_uint32_nat) then swap C one_uint32_nat i else C);
+	   ASSERT(get_level_pol_pre (M, C!1));
+	   ASSERT(1 < length C);
+           let C = (if get_level_pol M (C!i) > get_level_pol M (C!1) then swap C 1 i else C);
            ASSERT(i+1 \<le> uint32_max);
-           RETURN (D, C, i+one_uint32_nat)
+           RETURN (D, C, i+1)
          })
-        (D, C, one_uint32_nat);
+        (D, C, 1);
      ASSERT(length outl \<noteq> 1 \<longrightarrow> length C > 1);
      ASSERT(length outl \<noteq> 1 \<longrightarrow>  get_level_pol_pre (M, C!1));
-     RETURN ((True, D), C, if length outl = 1 then zero_uint32_nat else get_level_pol M (C!1))
+     RETURN ((True, D), C, if length outl = 1 then 0 else get_level_pol M (C!1))
   }\<close>
 
 lemma isa_empty_conflict_and_extract_clause_heur_empty_conflict_and_extract_clause_heur:
   \<open>(uncurry2 isa_empty_conflict_and_extract_clause_heur, uncurry2 (empty_conflict_and_extract_clause_heur \<A>)) \<in>
      trail_pol \<A> \<times>\<^sub>f Id \<times>\<^sub>f Id \<rightarrow>\<^sub>f \<langle>Id\<rangle>nres_rel \<close>
 proof -
-  have [refine0]: \<open>((x2b, replicate (length x2c) (x2c ! 0), one_uint32_nat), x2,
-	 replicate (length x2a) (x2a ! 0), one_uint32_nat)
+  have [refine0]: \<open>((x2b, replicate (length x2c) (x2c ! 0), 1), x2,
+	 replicate (length x2a) (x2a ! 0), 1)
 	\<in> Id \<times>\<^sub>f Id \<times>\<^sub>f Id\<close>
     if
       \<open>(x, y) \<in> trail_pol \<A> \<times>\<^sub>f Id \<times>\<^sub>f Id\<close> and    \<open>x1 = (x1a, x2)\<close> and
@@ -687,16 +687,16 @@ definition propagate_bt_wl_D_heur
       ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, fema, sema,
          res_info, vdom, avdom, lcount, opts) \<longrightarrow> append_and_length_fast_code_pre ((b, C), N0));
       ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, fema, sema,
-         res_info, vdom, avdom, lcount, opts) \<longrightarrow> lcount < uint64_max);
+         res_info, vdom, avdom, lcount, opts) \<longrightarrow> lcount < sint64_max);
       (N, i) \<leftarrow> fm_add_new b C N0;
       ASSERT(update_lbd_pre ((i, glue), N));
       let N = update_lbd i glue N;
       ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, fema, sema,
-         res_info, vdom, avdom, lcount, opts) \<longrightarrow> length_ll W0 (nat_of_lit (-L)) < uint64_max);
-      let W = W0[nat_of_lit (- L) := W0 ! nat_of_lit (- L) @ [to_watcher i L' b']];
+         res_info, vdom, avdom, lcount, opts) \<longrightarrow> length_ll W0 (nat_of_lit (-L)) < sint64_max);
+      let W = W0[nat_of_lit (- L) := W0 ! nat_of_lit (- L) @ [(i, L', b')]];
       ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, fema, sema,
-         res_info, vdom, avdom, lcount, opts) \<longrightarrow> length_ll W (nat_of_lit L') < uint64_max);
-      let W = W[nat_of_lit L' := W!nat_of_lit L' @ [to_watcher i (-L) b']];
+         res_info, vdom, avdom, lcount, opts) \<longrightarrow> length_ll W (nat_of_lit L') < sint64_max);
+      let W = W[nat_of_lit L' := W!nat_of_lit L' @ [(i, -L, b')]];
       lbd \<leftarrow> lbd_empty lbd;
       ASSERT(isa_length_trail_pre M);
       let j = isa_length_trail M;
@@ -705,10 +705,10 @@ definition propagate_bt_wl_D_heur
       let M = cons_trail_Propagated_tr (- L) i M;
       vm \<leftarrow> isa_vmtf_flush_int M vm;
       ASSERT(atm_of L < length \<phi>);
-      RETURN (M, N, D, j, W, vm, save_phase (-L) \<phi>, zero_uint32_nat,
-         cach, lbd, outl, add_lbd (uint64_of_nat glue) stats, ema_update glue fema, ema_update glue sema,
-          incr_conflict_count_since_last_restart res_info, vdom @ [nat_of_uint32_conv i],
-          avdom @ [nat_of_uint32_conv i],
+      RETURN (M, N, D, j, W, vm, save_phase (-L) \<phi>, 0,
+         cach, lbd, outl, add_lbd (of_nat glue) stats, ema_update glue fema, ema_update glue sema,
+          incr_conflict_count_since_last_restart res_info, vdom @ [ i],
+          avdom @ [ i],
           lcount + 1, opts)
     })\<close>
 
@@ -1722,15 +1722,15 @@ proof -
           ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, fema, sema,
          res_info, vdom, avdom, lcount, opts) \<longrightarrow> append_and_length_fast_code_pre ((b, C), N0));
           ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, fema, sema,
-             res_info, vdom, avdom, lcount, opts) \<longrightarrow> lcount < uint64_max);
+             res_info, vdom, avdom, lcount, opts) \<longrightarrow> lcount < sint64_max);
           (N, i) \<leftarrow> fm_add_new b C N0;
           ASSERT(update_lbd_pre ((i, glue), N));
           let N = update_lbd i glue N;
           ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, fema, sema,
-            res_info, vdom, avdom, lcount, opts) \<longrightarrow> length_ll W0 (nat_of_lit (-L)) < uint64_max);
+            res_info, vdom, avdom, lcount, opts) \<longrightarrow> length_ll W0 (nat_of_lit (-L)) < sint64_max);
           let W = W0[nat_of_lit (- L) := W0 ! nat_of_lit (- L) @ [(i, L', length C = 2)]];
           ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, fema, sema,
-           res_info, vdom, avdom, lcount, opts) \<longrightarrow> length_ll W (nat_of_lit L') < uint64_max);
+           res_info, vdom, avdom, lcount, opts) \<longrightarrow> length_ll W (nat_of_lit L') < sint64_max);
           let W = W[nat_of_lit L' := W!nat_of_lit L' @ [(i, -L, length C = 2)]];
           lbd \<leftarrow> lbd_empty lbd;
 	         ASSERT(isa_length_trail_pre M);
@@ -1740,10 +1740,10 @@ proof -
           let M = cons_trail_Propagated_tr (- L) i M;
           vm \<leftarrow> isa_vmtf_flush_int M vm;
           ASSERT(atm_of L < length \<phi>);
-          RETURN (M, N, D, j, W, vm, save_phase (-L) \<phi>, zero_uint32_nat,
-            cach, lbd, outl, add_lbd (uint64_of_nat glue) stats, ema_update glue fema, ema_update glue sema,
-              incr_conflict_count_since_last_restart res_info, vdom @ [nat_of_uint32_conv i],
-              avdom @ [nat_of_uint64_conv i], Suc lcount, opts)
+          RETURN (M, N, D, j, W, vm, save_phase (-L) \<phi>, 0,
+            cach, lbd, outl, add_lbd (of_nat glue) stats, ema_update glue fema, ema_update glue sema,
+              incr_conflict_count_since_last_restart res_info, vdom @ [ i],
+              avdom @ [i], Suc lcount, opts)
       })\<close>
       unfolding propagate_bt_wl_D_heur_def Let_def
       by auto
@@ -2009,12 +2009,12 @@ proof -
         by (simp add: S' lit_of_hd_trail_def)
       subgoal using le_C_ge .
       subgoal by (auto simp: append_and_length_fast_code_pre_def isasat_fast_def
-        uint64_max_def uint32_max_def)
+        sint64_max_def uint32_max_def)
       subgoal
         using D' C_1_neq_hd vmtf avdom M1'_M1 size_learned_clss_dom_m[of N] valid_arena_size_dom_m_le_arena[OF valid]
         by (auto simp: propagate_bt_wl_D_heur_def twl_st_heur_def lit_of_hd_trail_st_heur_def
             phase_saving_def atms_of_def S' U' lit_of_hd_trail_def all_atms_def[symmetric] isasat_fast_def
-            uint64_max_def uint32_max_def)
+            sint64_max_def uint32_max_def)
       subgoal for x uu x1 x2 vm uua_ glue uub D'' xa x' x1a x2a
         by (auto simp: update_lbd_pre_def arena_is_valid_clause_idx_def)
       subgoal using length_watched_le[of S' S \<open>-lit_of_hd_trail M\<close>] corr SS' uM_\<L>\<^sub>a\<^sub>l\<^sub>l W'_eq S_arena
@@ -2388,7 +2388,7 @@ qed
 subsubsection \<open>Backtrack with direct extraction of literal if highest level\<close>
 
 lemma le_uint32_max_div_2_le_uint32_max: \<open>a \<le> uint32_max div 2 + 1 \<Longrightarrow> a \<le> uint32_max\<close>
-  by (auto simp: uint32_max_def uint64_max_def)
+  by (auto simp: uint32_max_def sint64_max_def)
 
 
 lemma propagate_bt_wl_D_heur_alt_def:
@@ -2407,16 +2407,16 @@ lemma propagate_bt_wl_D_heur_alt_def:
       ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, fema, sema,
          res_info, vdom, avdom, lcount, opts) \<longrightarrow> append_and_length_fast_code_pre ((b, C), N0));
       ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, fema, sema,
-         res_info, vdom, avdom, lcount, opts) \<longrightarrow> lcount < uint64_max);
+         res_info, vdom, avdom, lcount, opts) \<longrightarrow> lcount < sint64_max);
       (N, i) \<leftarrow> fm_add_new_fast b C N0;
       ASSERT(update_lbd_pre ((i, glue), N));
       let N = update_lbd i glue N;
       ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, fema, sema,
-         res_info, vdom, avdom, lcount, opts) \<longrightarrow> length_ll W0 (nat_of_lit (-L)) < uint64_max);
-      let W = W0[nat_of_lit (- L) := W0 ! nat_of_lit (- L) @ [to_watcher_fast (i) L' b']];
+         res_info, vdom, avdom, lcount, opts) \<longrightarrow> length_ll W0 (nat_of_lit (-L)) < sint64_max);
+      let W = W0[nat_of_lit (- L) := W0 ! nat_of_lit (- L) @ [(i, L', b')]];
       ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, fema, sema,
-         res_info, vdom, avdom, lcount, opts) \<longrightarrow> length_ll W (nat_of_lit L') < uint64_max);
-      let W = W[nat_of_lit L' := W!nat_of_lit L' @ [to_watcher_fast (i) (-L) b']];
+         res_info, vdom, avdom, lcount, opts) \<longrightarrow> length_ll W (nat_of_lit L') < sint64_max);
+      let W = W[nat_of_lit L' := W!nat_of_lit L' @ [(i, -L, b')]];
       lbd \<leftarrow> lbd_empty lbd;
       ASSERT(isa_length_trail_pre M);
       let j = isa_length_trail M;
@@ -2425,26 +2425,26 @@ lemma propagate_bt_wl_D_heur_alt_def:
       let M = cons_trail_Propagated_tr (- L) i M;
       vm \<leftarrow> isa_vmtf_flush_int M vm;
       ASSERT(atm_of L < length \<phi>);
-      RETURN (M, N, D, j, W, vm, save_phase (-L) \<phi>, zero_uint32_nat,
-         cach, lbd, outl, add_lbd (uint64_of_nat glue) stats, ema_update glue fema, ema_update glue sema,
-          incr_conflict_count_since_last_restart res_info, vdom @ [nat_of_uint64_conv i],
-          avdom @ [nat_of_uint64_conv i],
+      RETURN (M, N, D, j, W, vm, save_phase (-L) \<phi>, 0,
+         cach, lbd, outl, add_lbd (of_nat glue) stats, ema_update glue fema, ema_update glue sema,
+          incr_conflict_count_since_last_restart res_info, vdom @ [i],
+          avdom @ [i],
           lcount + 1, opts)
     })\<close>
-  unfolding propagate_bt_wl_D_heur_def uint64_of_nat_conv_def by auto
+  unfolding propagate_bt_wl_D_heur_def Let_def by (auto intro!: ext)
 
 
 lemma propagate_bt_wl_D_fast_code_isasat_fastI2: \<open>isasat_fast b \<Longrightarrow>
        b = (a1', a2') \<Longrightarrow>
        a2' = (a1'a, a2'a) \<Longrightarrow>
-       a < length a1'a \<Longrightarrow> a \<le> uint64_max\<close>
+       a < length a1'a \<Longrightarrow> a \<le> sint64_max\<close>
   by (cases b) (auto simp: isasat_fast_def)
 
 lemma propagate_bt_wl_D_fast_code_isasat_fastI3: \<open>isasat_fast b \<Longrightarrow>
        b = (a1', a2') \<Longrightarrow>
        a2' = (a1'a, a2'a) \<Longrightarrow>
-       a \<le> length a1'a \<Longrightarrow> a < uint64_max\<close>
-  by (cases b) (auto simp: isasat_fast_def uint64_max_def uint32_max_def)
+       a \<le> length a1'a \<Longrightarrow> a < sint64_max\<close>
+  by (cases b) (auto simp: isasat_fast_def sint64_max_def uint32_max_def)
 
 lemma lit_of_hd_trail_st_heur_alt_def:
   \<open>lit_of_hd_trail_st_heur = (\<lambda>(M, N, D, Q, W, vm, \<phi>). lit_of_last_trail_pol M)\<close>

@@ -116,13 +116,6 @@ lemma (in -) partition_vmtf_nth_code_helper:
   using nth_mem[of b a2'] mset_eq_setD[OF mset] mset_eq_length[OF mset] assms
   by (auto simp del: nth_mem)
 
-lemma partition_vmtf_nth_code_helper2:
-  \<open>ba < length b \<Longrightarrow>(bia, ba) \<in> uint32_nat_rel \<Longrightarrow>
-       (aa, (ba - bb) div 2) \<in> uint32_nat_rel \<Longrightarrow>
-       (ab, bb) \<in> uint32_nat_rel \<Longrightarrow> bb + (ba - bb) div 2 \<le> uint32_max\<close>
-   apply (auto simp: uint32_nat_rel_def br_def)
-  by (metis Nat.le_diff_conv2 ab_semigroup_add_class.add.commute diff_le_mono div_le_dividend
-   le_trans nat_of_uint32_le_uint32_max)
 
 
 lemma partition_vmtf_nth_code_helper3:
@@ -661,7 +654,7 @@ lemma lit_of_last_trail_pol_lit_of_last_trail_no_CS:
    \<open>(RETURN o lit_of_last_trail_pol, RETURN o lit_of_hd_trail) \<in>
          [\<lambda>S. S \<noteq> []]\<^sub>f trail_pol_no_CS \<A> \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
   by (auto simp: lit_of_hd_trail_def trail_pol_no_CS_def lit_of_last_trail_pol_def
-     ann_lits_split_reasons_def hd_map rev_map[symmetric]
+     ann_lits_split_reasons_def hd_map rev_map[symmetric] last_rev
       intro!: frefI nres_relI)
 
 lemma size_conflict_int_size_conflict:
@@ -707,9 +700,9 @@ where
             ASSERT(Suc j \<le> uint32_max);
             let L = atm_of (lit_of_hd_trail M);
             ASSERT(L \<in># \<A>);
-            RETURN (j + one_uint32_nat, tl M, vmtf_unset L vm)
+            RETURN (j + 1, tl M, vmtf_unset L vm)
          })
-         (zero_uint32_nat, M\<^sub>0, vm);
+         (0, M\<^sub>0, vm);
     ASSERT(lev = count_decided M);
     let M = trail_conv_back lev M;
     RETURN (M, vm')
@@ -735,9 +728,9 @@ where
             ASSERT(tl_trailt_tr_no_CS_pre M);
             let L = atm_of (lit_of_last_trail_pol M);
             ASSERT(vmtf_unset_pre L vm);
-            RETURN (j + one_uint32_nat, tl_trailt_tr_no_CS M, isa_vmtf_unset L vm)
+            RETURN (j + 1, tl_trailt_tr_no_CS M, isa_vmtf_unset L vm)
          })
-         (zero_uint32_nat, M\<^sub>0, vm);
+         (0, M\<^sub>0, vm);
     M \<leftarrow> trail_conv_back_imp lev M;
     RETURN (M, vm')
   })\<close>
@@ -797,8 +790,8 @@ proof -
   have [intro]: \<open>(M', M) \<in> trail_pol \<A> \<Longrightarrow>  (M', M) \<in> trail_pol_no_CS \<A>\<close> for M' M
     by (auto simp: trail_pol_def trail_pol_no_CS_def control_stack_length_count_dec[symmetric])
 
-  have [refine0]: \<open>((zero_uint32_nat, trail_pol_conv_to_no_CS x1c, x2c),
-        zero_uint32_nat, trail_conv_to_no_CS x1a, x2a)
+  have [refine0]: \<open>((0, trail_pol_conv_to_no_CS x1c, x2c),
+        0, trail_conv_to_no_CS x1a, x2a)
         \<in> nat_rel \<times>\<^sub>r trail_pol_no_CS \<A> \<times>\<^sub>r (Id \<times>\<^sub>r distinct_atoms_rel \<A>)\<close>
     if
       \<open>case y of
@@ -812,7 +805,7 @@ proof -
       \<open>(pos, posa) \<in> nat_rel\<close> and
       \<open>length (trail_conv_to_no_CS x1a) - posa \<le> uint32_max\<close> and
       \<open>isa_length_trail (trail_pol_conv_to_no_CS x1c) - pos \<le> uint32_max\<close> and
-      \<open>case (zero_uint32_nat, trail_conv_to_no_CS x1a, x2a) of
+      \<open>case (0, trail_conv_to_no_CS x1a, x2a) of
        (j, M, vm') \<Rightarrow>
          j \<le> length (trail_conv_to_no_CS x1a) - posa \<and>
          M = drop j (trail_conv_to_no_CS x1a) \<and>
@@ -840,7 +833,7 @@ proof -
   have trail_pol_no_CS_last_hd:
     \<open>((x1h, t), M) \<in> trail_pol_no_CS \<A> \<Longrightarrow> M \<noteq> [] \<Longrightarrow> (last x1h) = lit_of (hd M)\<close>
     for x1h t M
-    by (auto simp: trail_pol_no_CS_def ann_lits_split_reasons_def last_map)
+    by (auto simp: trail_pol_no_CS_def ann_lits_split_reasons_def last_map last_rev)
 
   have trail_conv_back: \<open>trail_conv_back_imp x2b x1g
         \<le> SPEC
@@ -1237,7 +1230,7 @@ definition vmtf_mark_to_rescore_clause where
 \<open>vmtf_mark_to_rescore_clause \<A>\<^sub>i\<^sub>n arena C vm = do {
     ASSERT(arena_is_valid_clause_idx arena C);
     nfoldli
-      ([C..<C + nat_of_uint64_conv (arena_length arena C)])
+      ([C..<C + (arena_length arena C)])
       (\<lambda>_. True)
       (\<lambda>i vm. do {
         ASSERT(i < length arena);
@@ -1252,7 +1245,7 @@ definition isa_vmtf_mark_to_rescore_clause where
 \<open>isa_vmtf_mark_to_rescore_clause arena C vm = do {
     ASSERT(arena_is_valid_clause_idx arena C);
     nfoldli
-      ([C..<C + nat_of_uint64_conv (arena_length arena C)])
+      ([C..<C + (arena_length arena C)])
       (\<lambda>_. True)
       (\<lambda>i vm. do {
         ASSERT(i < length arena);
