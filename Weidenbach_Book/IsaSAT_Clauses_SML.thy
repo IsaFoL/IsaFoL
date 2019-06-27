@@ -226,6 +226,7 @@ sepref_definition (in -)append_and_length_fast_code
        arena_fast_assn *a uint64_nat_assn\<close>
   supply [[goals_limit=1]] le_uint32_max_le_uint64_max[intro] append_and_length_code_fast[intro]
     header_size_def[simp] if_splits[split] header_size_fast_code.refine[sepref_fr_rules]
+    uint64_max_def[simp] sint64_max_def[simp]
   unfolding fm_add_new_def AStatus_IRRED_def[symmetric] append_and_length_fast_code_pre_def
    AStatus_LEARNED_def[symmetric] AStatus_LEARNED2_def[symmetric]
    AStatus_IRRED2_def[symmetric]  four_uint64_nat_def[symmetric]

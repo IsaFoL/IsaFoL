@@ -24,7 +24,6 @@ lemma level_in_lbd_hnr[sepref_fr_rules]:
      lbd_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
   supply lbd_ref_def[simp] uint32_max_def[simp]
   using level_in_lbd_code.refine[FCOMP level_in_lbd_ref_level_in_lbd[unfolded convert_fref]]
-  unfolding 
   unfolding lbd_assn_def by simp
 
 
@@ -55,7 +54,7 @@ qed
 sepref_definition lbd_write_code
   is \<open>uncurry lbd_ref_write\<close>
   :: \<open>lbd_int_assn\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a lbd_int_assn\<close>
-  unfolding lbd_ref_write_def
+  unfolding lbd_ref_write_def one_uint32_nat_def[symmetric]
   by sepref
 
 lemma lbd_write_hnr_[sepref_fr_rules]:
@@ -69,7 +68,10 @@ sepref_definition lbd_empty_code
   is \<open>lbd_empty_ref\<close>
   :: \<open>lbd_int_assn\<^sup>d  \<rightarrow>\<^sub>a lbd_int_assn\<close>
   unfolding lbd_empty_ref_def
+  unfolding lbd_assn_def one_uint32_nat_def[symmetric] zero_uint32_nat_def[symmetric]
   by sepref
+
+
 
 lemma lbd_empty_hnr[sepref_fr_rules]:
   \<open>(lbd_empty_code, lbd_empty) \<in> lbd_assn\<^sup>d \<rightarrow>\<^sub>a lbd_assn\<close>
@@ -79,7 +81,7 @@ lemma lbd_empty_hnr[sepref_fr_rules]:
 sepref_definition empty_lbd_code
   is \<open>uncurry0 (RETURN empty_lbd_ref)\<close>
   :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a lbd_int_assn\<close>
-  unfolding empty_lbd_ref_def array_fold_custom_replicate
+  unfolding empty_lbd_ref_def array_fold_custom_replicate zero_uint32_nat_def[symmetric]
   by sepref
 
 lemma empty_lbd_hnr[sepref_fr_rules]:

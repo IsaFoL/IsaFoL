@@ -4,7 +4,39 @@ imports
     IsaSAT_Trail_SML
     IsaSAT_Clauses_SML
     LBD_SML
+    IsaSAT_Watch_List_SML
+    Watched_Literals.WB_Word_Assn
 begin
+
+lemma minus_uint32_nat_assn[sepref_fr_rules]:
+  \<open>(uncurry (return oo (-)), uncurry (RETURN oo (-))) \<in>
+    [\<lambda>(a, b). a \<ge> b]\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
+  by sepref_to_hoare
+    (sep_auto simp: uint32_nat_rel_def br_def nat_of_uint32_ge_minus
+   nat_of_uint32_le_iff)
+
+
+no_notation WB_More_Refinement.fref ("[_]\<^sub>f _ \<rightarrow> _" [0,60,60] 60)
+no_notation WB_More_Refinement.freft ("_ \<rightarrow>\<^sub>f _" [60,60] 60)
+
+
+abbreviation (in -) minimize_status_rel where
+  \<open>minimize_status_rel \<equiv> Id :: (minimize_status \<times> minimize_status) set\<close>
+
+lemma nth_conflict_min_cach:
+  \<open>(uncurry (RETURN oo conflict_min_cach_l), uncurry (RETURN oo conflict_min_cach)) \<in>
+     [\<lambda>(cach, L). L \<in># \<A>\<^sub>i\<^sub>n]\<^sub>f cach_refinement \<A>\<^sub>i\<^sub>n \<times>\<^sub>r nat_rel \<rightarrow> \<langle>minimize_status_rel\<rangle>nres_rel\<close>
+  by (intro frefI nres_relI) (auto simp: map_fun_rel_def
+      in_cach_refinement_alt_def cach_refinement_list_def conflict_min_cach_l_def)
+
+instance minimize_status :: heap
+proof standard
+  let ?f = \<open>\<lambda>s. case s of SEEN_FAILED \<Rightarrow> (0 :: nat) | SEEN_REMOVABLE \<Rightarrow> 1 | SEEN_UNKNOWN \<Rightarrow> 2\<close>
+  have \<open>inj ?f\<close>
+    by (auto simp: inj_def split: minimize_status.splits)
+  then show \<open>\<exists>to_nat. inj (to_nat :: minimize_status \<Rightarrow> nat)\<close>
+    by blast
+qed
 
 sepref_register set_lookup_conflict_aa
 type_synonym lookup_clause_assn = \<open>uint32 \<times> bool array\<close>
@@ -265,15 +297,17 @@ lemma minimize_status_eq_hnr[sepref_fr_rules]:
 abbreviation (in -) cach_refinement_l_assn where
   \<open>cach_refinement_l_assn \<equiv> array_assn minimize_status_assn *a arl32_assn uint32_nat_assn\<close>
 
+
+
 sepref_register conflict_min_cach_l
 sepref_definition (in -) delete_from_lookup_conflict_code
   is \<open>uncurry delete_from_lookup_conflict\<close>
   :: \<open>unat_lit_assn\<^sup>k *\<^sub>a lookup_clause_rel_assn\<^sup>d \<rightarrow>\<^sub>a lookup_clause_rel_assn\<close>
-  unfolding delete_from_lookup_conflict_def NOTIN_def[symmetric]
+  unfolding delete_from_lookup_conflict_def NOTIN_def[symmetric] one_uint32_nat_def[symmetric]
   by sepref
 
 sepref_definition resolve_lookup_conflict_merge_code
-  is \<open>uncurry6 isa_set_lookup_conflict\<close>
+  is \<open>uncurry6 isa_set_lookup_conflict_aa\<close>
   :: \<open>[\<lambda>((((((M, N), i), (_, xs)), _), _), out). i < length N]\<^sub>a
       trail_pol_assn\<^sup>k *\<^sub>a arena_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a conflict_option_rel_assn\<^sup>d *\<^sub>a
          uint32_nat_assn\<^sup>k *\<^sub>a lbd_assn\<^sup>d *\<^sub>a out_learned_assn\<^sup>d \<rightarrow>
@@ -284,7 +318,7 @@ sepref_definition resolve_lookup_conflict_merge_code
     Suc_uint32_nat_assn_hnr[sepref_fr_rules] fmap_length_rll_u_def[simp]
   unfolding isa_lookup_conflict_merge_def lookup_conflict_merge_def add_to_lookup_conflict_def
     PR_CONST_def nth_rll_def[symmetric]
-    isa_outlearned_add_def isa_clvls_add_def isa_set_lookup_conflict_def
+    isa_outlearned_add_def isa_clvls_add_def isa_set_lookup_conflict_aa_def
     isasat_codegen
     fmap_rll_u_def[symmetric]
     fmap_rll_def[symmetric]
@@ -297,7 +331,7 @@ declare resolve_lookup_conflict_merge_code.refine[sepref_fr_rules]
 
 
 sepref_definition resolve_lookup_conflict_merge_fast_code
-  is \<open>uncurry6 isa_set_lookup_conflict\<close>
+  is \<open>uncurry6 isa_set_lookup_conflict_aa\<close>
   :: \<open>[\<lambda>((((((M, N), i), (_, xs)), _), _), out). i < length N \<and>
          length N \<le> uint64_max]\<^sub>a
       trail_pol_fast_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a conflict_option_rel_assn\<^sup>d *\<^sub>a
@@ -305,19 +339,19 @@ sepref_definition resolve_lookup_conflict_merge_fast_code
       conflict_option_rel_assn *a uint32_nat_assn *a lbd_assn *a out_learned_assn\<close>
   supply length_rll_def[simp] nth_rll_def[simp] uint32_max_def[simp]
     uint32_nat_assn_one[sepref_fr_rules] image_image[simp] literals_are_in_\<L>\<^sub>i\<^sub>n_in_\<L>\<^sub>a\<^sub>l\<^sub>l[simp]
-    literals_are_in_\<L>\<^sub>i\<^sub>n_trail_get_level_uint32_max[dest]
+    literals_are_in_\<L>\<^sub>i\<^sub>n_trail_get_level_uint32_max[dest] uint64_max_def
     Suc_uint32_nat_assn_hnr[sepref_fr_rules] fmap_length_rll_u_def[simp]
-    arena_is_valid_clause_idx_le_uint64_max[intro]
+    arena_is_valid_clause_idx_le_uint64_max[dest]
   unfolding isa_lookup_conflict_merge_def lookup_conflict_merge_def add_to_lookup_conflict_def
     PR_CONST_def nth_rll_def[symmetric]
-    isa_outlearned_add_def isa_clvls_add_def isa_set_lookup_conflict_def
-    isa_set_lookup_conflict_def
+    isa_outlearned_add_def isa_clvls_add_def isa_set_lookup_conflict_aa_def
     fmap_rll_u_def[symmetric]
     fmap_rll_def[symmetric]
     is_NOTIN_def[symmetric]
     zero_uint64_nat_def[symmetric]
   apply (rewrite at \<open>RETURN (\<hole>, _ ,_, _)\<close>  Suc_eq_plus1)
   apply (rewrite at \<open>RETURN (_ + \<hole>, _ ,_, _)\<close> one_uint64_nat_def[symmetric])
+  unfolding one_uint32_nat_def[symmetric]
   supply [[goals_limit = 1]]
   by sepref
 
@@ -359,14 +393,14 @@ sepref_definition set_lookup_conflict_aa_fast_code
   supply length_rll_def[simp] nth_rll_def[simp] uint32_max_def[simp]
     image_image[simp] literals_are_in_\<L>\<^sub>i\<^sub>n_in_\<L>\<^sub>a\<^sub>l\<^sub>l[simp]
     literals_are_in_\<L>\<^sub>i\<^sub>n_trail_get_level_uint32_max[dest]
-    fmap_length_rll_u_def[simp]
-    arena_is_valid_clause_idx_le_uint64_max[intro]
+    fmap_length_rll_u_def[simp] uint64_max_def[simp]
+    arena_is_valid_clause_idx_le_uint64_max[dest]
   unfolding set_lookup_conflict_aa_def lookup_conflict_merge_def add_to_lookup_conflict_def
     PR_CONST_def nth_rll_def[symmetric] length_rll_def[symmetric]
     length_aa_u_def[symmetric] isa_outlearned_add_def isa_clvls_add_def
     isasat_codegen isa_set_lookup_conflict_aa_def isa_lookup_conflict_merge_def
     fmap_rll_u_def[symmetric]
-    fmap_rll_def[symmetric]
+    fmap_rll_def[symmetric] add_0_right
     is_NOTIN_def[symmetric] isa_set_lookup_conflict_aa_pre_def zero_uint64_nat_def[symmetric]
   supply [[goals_limit = 1]]
   apply (rewrite in \<open>_ + 1\<close> one_uint32_nat_def[symmetric])
