@@ -259,8 +259,9 @@ sepref_definition Some_lookup_conflict_impl
 sepref_register Some_lookup_conflict
 declare Some_lookup_conflict_impl.refine[sepref_fr_rules]
 
+type_synonym cach_refinement_l_assn = \<open>8 word ptr \<times> 32 word array_list64\<close>
 
-abbreviation (in -) cach_refinement_l_assn where
+abbreviation (in -) cach_refinement_l_assn :: "_ \<Rightarrow> cach_refinement_l_assn \<Rightarrow> _" where
   \<open>cach_refinement_l_assn \<equiv> array_assn minimize_status_assn *a arl64_assn uint32_nat_assn\<close>
 
 sepref_register conflict_min_cach_l

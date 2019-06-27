@@ -8,7 +8,6 @@ begin
 
 
 text \<open>TODO Move and make sure to merge in the right order!\<close>
-no_notation Ref.update ("_ := _" 62)
 
 
 subsection \<open>Code Generation\<close>
@@ -17,7 +16,7 @@ text \<open>We here define the last step of our refinement: the step with all th
   deterministic code.
 
   After the result of benchmarking, we concluded that the us of \<^typ>\<open>nat\<close> leads to worse performance
-  than using \<^typ>\<open>uint64\<close>. As, however, the later is not complete, we do so with a switch: as long
+  than using \<open>sint64\<close>. As, however, the later is not complete, we do so with a switch: as long
   as it fits, we use the faster (called 'bounded') version. After that we switch to the 'unbounded'
   version (which is still bounded by memory anyhow).
 
@@ -40,7 +39,7 @@ NB: the statistics are not proven correct (especially they might
 overflow), there are just there to look for regressions, do some comparisons (e.g., to conclude that
 we are propagating slower than the other solvers), or to test different option combination.
 \<close>
-type_synonym stats = \<open>uint64 \<times> uint64 \<times> uint64 \<times> uint64 \<times> uint64 \<times> uint64 \<times> uint64 \<times> uint64\<close>
+type_synonym stats = \<open>64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word\<close>
 
 
 definition incr_propagation :: \<open>stats \<Rightarrow> stats\<close> where
@@ -64,7 +63,7 @@ definition incr_uset :: \<open>stats \<Rightarrow> stats\<close> where
 definition incr_GC :: \<open>stats \<Rightarrow> stats\<close> where
   \<open>incr_GC = (\<lambda>(propa, confl, dec, res, lres, uset, gcs, lbds). (propa, confl, dec, res, lres, uset, gcs + 1, lbds))\<close>
 
-definition add_lbd :: \<open>uint64 \<Rightarrow> stats \<Rightarrow> stats\<close> where
+definition add_lbd :: \<open>64 word \<Rightarrow> stats \<Rightarrow> stats\<close> where
   \<open>add_lbd lbd = (\<lambda>(propa, confl, dec, res, lres, uset, gcs, lbds). (propa, confl, dec, res, lres, uset, gcs, lbd + lbds))\<close>
 
 
@@ -76,7 +75,7 @@ calculation (\<^term>\<open>1 :: nat\<close> is \<^term>\<open>(1 :: nat) >> 32\
 Remark that the coefficient \<^term>\<open>\<beta>\<close> already should not take care of the fixed-point conversion of the glue.
 Otherwise, \<^term>\<open>value\<close> is wrongly updated.
 \<close>
-type_synonym ema = \<open>uint64 \<times> uint64 \<times> uint64 \<times> uint64 \<times> uint64\<close>
+type_synonym ema = \<open>64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word\<close>
 
 definition ema_bitshifting where
   \<open>ema_bitshifting = (1 << 32)\<close>
@@ -84,7 +83,7 @@ definition ema_bitshifting where
 
 definition (in -) ema_update :: \<open>nat \<Rightarrow> ema \<Rightarrow> ema\<close> where
   \<open>ema_update = (\<lambda>lbd (value, \<alpha>, \<beta>, wait, period).
-     let lbd = (uint64_of_nat lbd) * ema_bitshifting in
+     let lbd = (of_nat lbd) * ema_bitshifting in
      let value = if lbd > value then value + (\<beta> * (lbd - value) >> 32) else value - (\<beta> * (value - lbd) >> 32) in
      if \<beta> \<le> \<alpha> \<or> wait > 0 then (value, \<alpha>, \<beta>, wait - 1, period)
      else
@@ -94,9 +93,9 @@ definition (in -) ema_update :: \<open>nat \<Rightarrow> ema \<Rightarrow> ema\<
        let \<beta> = if \<beta> \<le> \<alpha> then \<alpha> else \<beta> in
        (value, \<alpha>, \<beta>, wait, period))\<close>
 
-definition (in -) ema_update_ref :: \<open>uint32 \<Rightarrow> ema \<Rightarrow> ema\<close> where
+definition (in -) ema_update_ref :: \<open>32 word \<Rightarrow> ema \<Rightarrow> ema\<close> where
   \<open>ema_update_ref = (\<lambda>lbd (value, \<alpha>, \<beta>, wait, period).
-     let lbd = (uint64_of_uint32 lbd) * ema_bitshifting in
+     let lbd = ucast lbd * ema_bitshifting in
      let value = if lbd > value then value + (\<beta> * (lbd - value) >> 32) else value - (\<beta> * (value - lbd) >> 32) in
      if \<beta> \<le> \<alpha> \<or> wait > 0 then (value, \<alpha>, \<beta>, wait - 1, period)
      else
@@ -106,13 +105,13 @@ definition (in -) ema_update_ref :: \<open>uint32 \<Rightarrow> ema \<Rightarrow
        let \<beta> = if \<beta> \<le> \<alpha> then \<alpha> else \<beta> in
        (value, \<alpha>, \<beta>, wait, period))\<close>
 
-definition (in -) ema_init :: \<open>uint64 \<Rightarrow> ema\<close> where
+definition (in -) ema_init :: \<open>64 word \<Rightarrow> ema\<close> where
   \<open>ema_init \<alpha> = (0, \<alpha>, ema_bitshifting, 0, 0)\<close>
 
 fun ema_reinit where
   \<open>ema_reinit (value, \<alpha>, \<beta>, wait, period) = (value, \<alpha>, 1 << 32, 0, 0)\<close>
 
-fun ema_get_value :: \<open>ema \<Rightarrow> uint64\<close> where
+fun ema_get_value :: \<open>ema \<Rightarrow> 64 word\<close> where
   \<open>ema_get_value (v, _) = v\<close>
 
 text \<open>We use the default values for Cadical: \<^term>\<open>(3 / 10 ^2)\<close> and  \<^term>\<open>(1 / 10 ^ 5)\<close>  in our fixed-point
@@ -128,12 +127,12 @@ abbreviation ema_slow_init :: ema where
 
 paragraph \<open>Information related to restarts\<close>
 
-type_synonym restart_info = \<open>uint64 \<times> uint64\<close>
+type_synonym restart_info = \<open>64 word \<times> 64 word\<close>
 
 definition incr_conflict_count_since_last_restart :: \<open>restart_info \<Rightarrow> restart_info\<close> where
   \<open>incr_conflict_count_since_last_restart = (\<lambda>(ccount, ema_lvl). (ccount + 1, ema_lvl))\<close>
 
-definition restart_info_update_lvl_avg :: \<open>uint32 \<Rightarrow> restart_info \<Rightarrow> restart_info\<close> where
+definition restart_info_update_lvl_avg :: \<open>32 word \<Rightarrow> restart_info \<Rightarrow> restart_info\<close> where
   \<open>restart_info_update_lvl_avg = (\<lambda>lvl (ccount, ema_lvl). (ccount, ema_lvl))\<close>
 
 definition restart_info_init :: \<open>restart_info\<close> where
@@ -145,31 +144,8 @@ definition restart_info_restart_done :: \<open>restart_info \<Rightarrow> restar
 
 paragraph \<open>VMTF\<close>
 
-type_synonym vmtf_assn = \<open>(uint32, uint64) vmtf_node array \<times> uint64 \<times> uint32 \<times> uint32 \<times> uint32 option\<close>
-
-type_synonym phase_saver_assn = \<open>bool array\<close>
-
-instance vmtf_node :: (heap, heap) heap
-proof intro_classes
-  let ?to_pair = \<open>\<lambda>x::('a, 'b) vmtf_node. (stamp x, get_prev x, get_next x)\<close>
-  have inj': \<open>inj ?to_pair\<close>
-    unfolding inj_def by (intro allI) (case_tac x; case_tac y; auto)
-  obtain to_nat :: \<open>'b \<times> 'a option \<times> 'a option \<Rightarrow> nat\<close> where
-    \<open>inj to_nat\<close>
-    by blast
-  then have \<open>inj (to_nat o ?to_pair)\<close>
-    using inj' by (blast intro: inj_compose)
-  then show \<open>\<exists>to_nat :: ('a, 'b) vmtf_node \<Rightarrow> nat. inj to_nat\<close>
-    by blast
-qed
-
-definition (in -) vmtf_node_rel where
-\<open>vmtf_node_rel = {(a', a). (stamp a', stamp a) \<in> uint64_nat_rel \<and>
-   (get_prev a', get_prev a) \<in> \<langle>uint32_nat_rel\<rangle>option_rel \<and>
-   (get_next a', get_next a) \<in> \<langle>uint32_nat_rel\<rangle>option_rel}\<close>
 
 type_synonym (in -) isa_vmtf_remove_int = \<open>vmtf \<times> (nat list \<times> bool list)\<close>
-
 
 paragraph \<open>Options\<close>
 
@@ -177,7 +153,7 @@ type_synonym opts = \<open>bool \<times> bool \<times> bool\<close>
 
 
 definition opts_restart where
-  \<open>opts_restart = (\<lambda>(a, b). a)\<close>
+  \<open>opts_restart = (\<lambda>(a, b, c). a)\<close>
 
 definition opts_reduce where
   \<open>opts_reduce = (\<lambda>(a, b, c). b)\<close>
@@ -277,63 +253,6 @@ fun get_ops :: \<open>twl_st_wl_heur \<Rightarrow> opts\<close> where
 
 fun get_old_arena :: \<open>twl_st_wl_heur \<Rightarrow> arena\<close> where
   \<open>get_old_arena (_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, old_arena) = old_arena\<close>
-
-
-text \<open>Setup to convert a list from \<^typ>\<open>uint64\<close> to \<^typ>\<open>nat\<close>.\<close>
-definition arl_copy_to :: \<open>('a \<Rightarrow> 'b) \<Rightarrow> 'a list \<Rightarrow> 'b list\<close> where
-\<open>arl_copy_to R xs = map R xs\<close>
-
-definition op_map_to
-  :: \<open>('b \<Rightarrow> 'a) \<Rightarrow> 'a \<Rightarrow> 'b list \<Rightarrow> 'a list list \<Rightarrow> nat \<Rightarrow> 'a list list nres\<close>
-where
-  \<open>op_map_to R e xs W j = do {
-    (_, zs) \<leftarrow>
-       WHILE\<^sub>T\<^bsup>\<lambda>(i,W'). i \<le> length xs \<and> W'!j = W!j @ map R (take i xs) \<and>
-         (\<forall>k. k \<noteq> j \<longrightarrow> k < length W \<longrightarrow> W'!k = W!k) \<and> length W' = length W\<^esup>
-      (\<lambda>(i, W'). i < length xs)
-      (\<lambda>(i, W'). do {
-         ASSERT(i < length xs);
-         let x = xs ! i;
-         RETURN (i+1, append_ll W' j (R x))})
-      (0, W);
-    RETURN zs
-     }\<close>
-
-lemma op_map_to_map:
-  \<open>j < length W' \<Longrightarrow> op_map_to R e xs W' j \<le> RETURN (W'[j := W'!j @ map R xs])\<close>
-  unfolding op_map_to_def Let_def
-  apply (refine_vcg WHILEIT_rule[where R=\<open>measure (\<lambda>(i,_). length xs - i)\<close>])
-         apply (auto simp: hd_conv_nth take_Suc_conv_app_nth list_update_append
-      append_ll_def split: nat.splits)
-  by (simp add: list_eq_iff_nth_eq)
-
-lemma op_map_to_map_rel:
-  \<open>(uncurry2 (op_map_to R e), uncurry2 (RETURN ooo (\<lambda>xs W' j. W'[j := W'!j @ map R xs]))) \<in>
-    [\<lambda>((xs, ys), j). j < length ys]\<^sub>f
-    \<langle>Id\<rangle>list_rel \<times>\<^sub>f
-    \<langle>\<langle>Id\<rangle>list_rel\<rangle>list_rel \<times>\<^sub>f nat_rel \<rightarrow>
-    \<langle>\<langle>\<langle>Id\<rangle>list_rel\<rangle>list_rel\<rangle>nres_rel\<close>
-  by (intro frefI nres_relI) (auto simp: op_map_to_map)
-
-definition convert_single_wl_to_nat where
-\<open>convert_single_wl_to_nat W i W' j =
-  op_map_to (\<lambda>(i, C). (nat_of_uint64_conv i, C)) (to_watcher 0 (Pos 0) False) (W!i) W' j\<close>
-
-definition convert_single_wl_to_nat_conv where
-\<open>convert_single_wl_to_nat_conv xs i W' j =
-   W'[j :=  map (\<lambda>(i, C). (nat_of_uint64_conv i, C)) (xs!i)]\<close>
-
-lemma convert_single_wl_to_nat:
-  \<open>(uncurry3 convert_single_wl_to_nat,
-    uncurry3 (RETURN oooo convert_single_wl_to_nat_conv)) \<in>
-   [\<lambda>(((xs, i), ys), j). i < length xs \<and> j < length ys \<and> ys!j = []]\<^sub>f
-   \<langle>\<langle>Id\<rangle>list_rel\<rangle>list_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f
-     \<langle>\<langle>Id\<rangle>list_rel\<rangle>list_rel \<times>\<^sub>f nat_rel \<rightarrow>
-     \<langle>\<langle>\<langle>Id\<rangle>list_rel\<rangle>list_rel\<rangle>nres_rel\<close>
-  by (intro frefI nres_relI)
-    (auto simp: convert_single_wl_to_nat_def convert_single_wl_to_nat_conv_def nat_of_uint64_conv_def
-      dest: op_map_to_map[of _ _ id])
-
 
 
 text \<open>The virtual domain is composed of the addressable (and accessible) elements, i.e.,
@@ -900,10 +819,10 @@ definition rewatch_heur where
         let b = (arena_length arena C = 2);
         ASSERT(L1 \<noteq> L2);
         ASSERT(length (W ! (nat_of_lit L1)) < length arena);
-        let W = append_ll W (nat_of_lit L1) (to_watcher C L2 b);
+        let W = append_ll W (nat_of_lit L1) (C, L2, b);
         ASSERT(nat_of_lit L2 < length W);
         ASSERT(length (W ! (nat_of_lit L2)) < length arena);
-        let W = append_ll W (nat_of_lit L2) (to_watcher C L1 b);
+        let W = append_ll W (nat_of_lit L2) (C, L1, b);
         RETURN W
       }
       else RETURN W
@@ -988,7 +907,6 @@ lemma rewatch_heur_alt_def:
       ASSERT(arena_is_valid_clause_vdom arena C);
       if arena_status arena C \<noteq> DELETED
       then do {
-        let C = uint64_of_nat_conv C;
         ASSERT(arena_lit_pre arena C);
         ASSERT(arena_lit_pre arena (C+1));
         let L1 = arena_lit arena C;
@@ -998,17 +916,17 @@ lemma rewatch_heur_alt_def:
         let b = (arena_length arena C = 2);
         ASSERT(L1 \<noteq> L2);
         ASSERT(length (W ! (nat_of_lit L1)) < length arena);
-        let W = append_ll W (nat_of_lit L1) (to_watcher C L2 b);
+        let W = append_ll W (nat_of_lit L1) (C, L2, b);
         ASSERT(nat_of_lit L2 < length W);
         ASSERT(length (W ! (nat_of_lit L2)) < length arena);
-        let W = append_ll W (nat_of_lit L2) (to_watcher C L1 b);
+        let W = append_ll W (nat_of_lit L2) (C, L1, b);
         RETURN W
       }
       else RETURN W
     })
    W
   }\<close>
-  unfolding Let_def uint64_of_nat_conv_def rewatch_heur_def
+  unfolding Let_def rewatch_heur_def
   by auto
 
 lemma arena_lit_pre_le_uint64_max:
@@ -1067,30 +985,9 @@ lemma rewatch_st_correctness:
   done
 
 subsection \<open>Fast to slow conversion\<close>
-text \<open>Setup to convert a list from \<^typ>\<open>uint64\<close> to \<^typ>\<open>nat\<close>.\<close>
+text \<open>Setup to convert a list from \<^typ>\<open>64 word\<close> to \<^typ>\<open>nat\<close>.\<close>
 definition convert_wlists_to_nat_conv :: \<open>'a list list \<Rightarrow> 'a list list\<close> where
   \<open>convert_wlists_to_nat_conv = id\<close>
-
-definition isasat_fast_slow :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
-  \<open>isasat_fast_slow =
-    (\<lambda>(M', N', D', Q', W', vm, \<phi>, clvls, cach, lbd, outl, stats, fema, sema, ccount, vdom, avdom, lcount, opts, old_arena).
-      RETURN (trail_pol_slow_of_fast M', N', D', Q', convert_wlists_to_nat_conv W', vm, \<phi>,
-        clvls, cach, lbd, outl, stats, fema, sema, ccount, vdom, avdom, nat_of_uint64_conv lcount, opts, old_arena))\<close>
-
-definition (in -)isasat_fast_slow_wl_D where
-  \<open>isasat_fast_slow_wl_D = id\<close>
-
-lemma isasat_fast_slow_alt_def:
-  \<open>isasat_fast_slow S = RETURN S\<close>
-  by (cases S)
-    (auto simp: isasat_fast_slow_def trail_slow_of_fast_def convert_wlists_to_nat_conv_def
-      trail_pol_slow_of_fast_alt_def)
-
-lemma isasat_fast_slow_isasat_fast_slow_wl_D:
-  \<open>(isasat_fast_slow, RETURN o isasat_fast_slow_wl_D) \<in> twl_st_heur \<rightarrow>\<^sub>f \<langle>twl_st_heur\<rangle>nres_rel\<close>
-  by (intro nres_relI WB_More_Refinement.frefI)
-    (auto simp: isasat_fast_slow_alt_def isasat_fast_slow_wl_D_def)
-
 
 abbreviation twl_st_heur''
    :: \<open>nat multiset \<Rightarrow> nat \<Rightarrow> (twl_st_wl_heur \<times> nat twl_st_wl) set\<close>
@@ -1213,4 +1110,5 @@ qed
 lemma atm_of_all_lits_of_m: \<open>atm_of `# (all_lits_of_m C) = atm_of `# C + atm_of `# C\<close>
    \<open>atm_of ` set_mset (all_lits_of_m C) = atm_of `set_mset C \<close>
   by (induction C; auto simp: all_lits_of_m_add_mset)+
+
 end
