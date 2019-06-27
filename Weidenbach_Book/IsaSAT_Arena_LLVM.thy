@@ -9,50 +9,9 @@ no_notation WB_More_Refinement.freft ("_ \<rightarrow>\<^sub>f _" [60,60] 60)
 (* TODO: Let monadify-phase do this automatically? trade-of: goal-size vs. lost information *) 
 lemma protected_bind_assoc: "Refine_Basic.bind$(Refine_Basic.bind$m$(\<lambda>\<^sub>2x. f x))$(\<lambda>\<^sub>2y. g y) = Refine_Basic.bind$m$(\<lambda>\<^sub>2x. Refine_Basic.bind$(f x)$(\<lambda>\<^sub>2y. g y))" by simp
 
-(* TODO: Move to Bits_Natural in Isabelle-LLVM *)
-lemma nat_and_comm: "a AND b = b AND a" for a b :: nat
-  unfolding bitAND_nat_def by (auto simp: int_and_comm)
 
-lemma AND_upper_nat1: "a AND b \<le> a" for a b :: nat
-proof -
-  have "int a AND int b \<le> int a"
-    by (rule AND_upper1) simp
-  thus ?thesis unfolding bitAND_nat_def by linarith
-qed    
-
-lemma AND_upper_nat2: "a AND b \<le> b" for a b :: nat
-  using AND_upper_nat1[of b a] by (simp add: nat_and_comm)
-  
-lemmas AND_upper_nat1' [simp] = order_trans [OF AND_upper_nat1]
-lemmas AND_upper_nat1'' [simp] = order_le_less_trans [OF AND_upper_nat1]
-  
-lemmas AND_upper_nat2' [simp] = order_trans [OF AND_upper_nat2]
-lemmas AND_upper_nat2'' [simp] = order_le_less_trans [OF AND_upper_nat2]
-  
-
-
-
-(* TODO: Move
-  TODO: Should be generic algorithm!
-*)  
-lemma mop_list_swap_unfold: "mop_list_swap xs i j = do {
-  xi \<leftarrow> mop_list_get xs i;
-  xj \<leftarrow> mop_list_get xs j;
-  xs \<leftarrow> mop_list_set xs i xj;
-  mop_list_set xs j xi
-}"
-  by (auto simp: pw_eq_iff refine_pw_simps swap_def)
-
-lemma swap_unfold: "swap xs i j = (let
-  xi = op_list_get xs i;
-  xj = op_list_get xs j;
-  xs = op_list_set xs i xj;
-  xs = op_list_set xs j xi 
-  in xs)"
-  by (auto simp: swap_def)
-
-lemma convert_swap: "WB_More_Refinement_List.swap = IICF_List.swap"
-  unfolding WB_More_Refinement_List.swap_def IICF_List.swap_def ..
+lemma convert_swap: "WB_More_Refinement_List.swap = More_List.swap"
+  unfolding WB_More_Refinement_List.swap_def More_List.swap_def ..
 
 
 subsubsection \<open>Code Generation\<close>
@@ -243,7 +202,7 @@ sepref_definition swap_lits_impl is "uncurry3 (RETURN oooo swap_lits)"
   :: "[\<lambda>(((C,i),j),arena). C + i < length arena \<and> C + j < length arena]\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>d \<rightarrow> arena_fast_assn"
   unfolding swap_lits_def convert_swap
   supply [dest] = rdomp_al_imp_len_bound
-  unfolding swap_unfold
+  unfolding gen_swap
   by sepref
 
 lemmas [sepref_fr_rules] = swap_lits_impl.refine

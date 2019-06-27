@@ -4,27 +4,6 @@ theory IsaSAT_Arena
     IsaSAT_Literals
 begin
 
-(* TODO: Move to Bits_Natural in Isabelle-LLVM *)
-
-lemma nat_and_numerals [simp]:
-  "(numeral (Num.Bit0 x) :: nat) AND (numeral (Num.Bit0 y) :: nat) = (2 :: nat) * (numeral x AND numeral y)"
-  "numeral (Num.Bit0 x) AND numeral (Num.Bit1 y) = (2 :: nat) * (numeral x AND numeral y)"
-  "numeral (Num.Bit1 x) AND numeral (Num.Bit0 y) = (2 :: nat) * (numeral x AND numeral y)"
-  "numeral (Num.Bit1 x) AND numeral (Num.Bit1 y) = (2 :: nat) * (numeral x AND numeral y)+1"
-  "0 AND n = 0"
-  "n AND 0 = 0"
-  "(1::nat) AND numeral (Num.Bit0 y) = 0"
-  "(1::nat) AND numeral (Num.Bit1 y) = 1"
-  "numeral (Num.Bit0 x) AND (1::nat) = 0"
-  "numeral (Num.Bit1 x) AND (1::nat) = 1"
-  "(Suc 0::nat) AND numeral (Num.Bit0 y) = 0"
-  "(Suc 0::nat) AND numeral (Num.Bit1 y) = 1"
-  "numeral (Num.Bit0 x) AND (Suc 0::nat) = 0"
-  "numeral (Num.Bit1 x) AND (Suc 0::nat) = 1"
-  "Suc 0 AND Suc 0 = 1"
-  for n::nat
-  by (auto simp: bitAND_nat_def Bit_def nat_add_distrib)
-
 
 subsection \<open>The memory representation: Arenas\<close>
 
