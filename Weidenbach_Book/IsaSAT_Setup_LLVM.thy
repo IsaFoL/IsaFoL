@@ -204,15 +204,14 @@ and vmtf_get_next_refine1: "(\<lambda>(a,b,c). c, get_next) \<in> vmtf_node1_rel
 sepref_definition VMTF_Node_impl is "uncurry2 (RETURN ooo (\<lambda>a b c. (a,b,c)))" :: "uint64_nat_assn\<^sup>k *\<^sub>a (snat_option_assn' TYPE(32))\<^sup>k *\<^sub>a (snat_option_assn' TYPE(32))\<^sup>k \<rightarrow>\<^sub>a vmtf_node2_assn"
   unfolding vmtf_node2_assn_def by sepref
 
-(* TODO: The below SHOULD work with RETURN o (\<lambda>(a,b,c). a), but this results in id-phase to fail! (probably already preproc-phase is botched! )*)  
 sepref_definition VMTF_stamp_impl is "RETURN o (\<lambda>(a,b,c). a)" :: "vmtf_node2_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn"
   unfolding vmtf_node2_assn_def 
   by sepref
-  
+
 sepref_definition VMTF_get_prev_impl is "RETURN o (\<lambda>(a,b,c). b)" :: "vmtf_node2_assn\<^sup>k \<rightarrow>\<^sub>a snat_option_assn' TYPE(32)"
   unfolding vmtf_node2_assn_def 
   by sepref
-      
+
 sepref_definition VMTF_get_next_impl is "RETURN o (\<lambda>(a,b,c). c)" :: "vmtf_node2_assn\<^sup>k \<rightarrow>\<^sub>a snat_option_assn' TYPE(32)"
   unfolding vmtf_node2_assn_def 
   by sepref

@@ -1,6 +1,5 @@
-** TODO: Continue here
-the**ory IsaSAT_VMTF_SML
-imports Watched_Literals.WB_Sort IsaSAT_VMTF IsaSAT_Setup_
+theory IsaSAT_VMTF_SML
+imports Watched_Literals.WB_Sort IsaSAT_VMTF IsaSAT_Setup_LLVM
 begin
 
 lemma size_conflict_code_refine_raw:
@@ -87,7 +86,7 @@ declare get_pos_of_level_in_trail_imp_code.refine[sepref_fr_rules]
 
 lemma update_next_search_ref[sepref_fr_rules]:
   \<open>(uncurry (return oo update_next_search), uncurry (RETURN oo update_next_search)) \<in>
-      (option_assn uint32_nat_assn)\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>d \<rightarrow>\<^sub>a vmtf_remove_conc\<close>
+      (option_assn uint32_nat_assn)\<^sup>k *\<^sub>a vmtf_remove_assn\<^sup>d \<rightarrow>\<^sub>a vmtf_remove_assn\<close>
   unfolding option_assn_pure_conv
   by sepref_to_hoare (sep_auto simp: update_next_search_def)
 
@@ -140,8 +139,6 @@ sepref_definition vmtf_enqueue_fast_code
 
 declare vmtf_enqueue_fast_code.refine[sepref_fr_rules]
 
-
-(* TODO uint uint32_nat_assn*)
 sepref_definition partition_vmtf_nth_code
    is \<open>uncurry3 partition_vmtf_nth\<close>
    :: \<open>[\<lambda>(((ns, _), hi), xs). (\<forall>x\<in>set xs. x < length ns) \<and> length xs \<le> uint32_max]\<^sub>a
@@ -159,20 +156,12 @@ declare partition_vmtf_nth_code.refine[sepref_fr_rules]
 sepref_register partition_between_ref
 
 (*TODO Move*)
-lemma uint32_nat_assn_minus_fast:
-  \<open>(uncurry (return oo (-)), uncurry (RETURN oo (-))) \<in>
-   [\<lambda>(a, b). a \<ge> b]\<^sub>a  uint32_nat_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
-  by sepref_to_hoare
-    (sep_auto simp: uint32_nat_rel_def nat_of_uint32_le_minus
-      br_def uint32_safe_minus_def nat_of_uint32_notle_minus
-   nat_of_uint32_ge_minus nat_of_uint32_le_iff)
-
 sepref_definition (in -) partition_between_ref_vmtf_code
    is \<open>uncurry3 partition_between_ref_vmtf\<close>
    :: \<open>[\<lambda>(((vm), _), remove). (\<forall>x\<in>#mset remove. x < length (fst vm)) \<and> length remove \<le> uint32_max]\<^sub>a
       (array_assn vmtf_node_assn)\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a (arl32_assn uint32_nat_assn)\<^sup>d  \<rightarrow>
        arl32_assn uint32_nat_assn *a uint32_nat_assn\<close>
-  supply [[goals_limit=1]] uint32_nat_assn_minus_fast[sepref_fr_rules]
+  supply [[goals_limit=1]]
   unfolding quicksort_vmtf_nth_def insert_sort_def partition_vmtf_nth_def[symmetric]
     quicksort_vmtf_nth_ref_def List.null_def quicksort_ref_def
     length_0_conv[symmetric] length_uint32_nat_def[symmetric]
@@ -315,7 +304,7 @@ sepref_register isa_vmtf_mark_to_rescore
 sepref_definition isa_vmtf_mark_to_rescore_code
   is \<open>uncurry (RETURN oo isa_vmtf_mark_to_rescore)\<close>
   :: \<open>[uncurry isa_vmtf_mark_to_rescore_pre]\<^sub>a
-     uint32_nat_assn\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>d \<rightarrow> vmtf_remove_conc\<close>
+     uint32_nat_assn\<^sup>k *\<^sub>a vmtf_remove_assn\<^sup>d \<rightarrow> vmtf_remove_assn\<close>
   supply [[goals_limit=1]] option.splits[split] vmtf_def[simp] in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff[simp]
     neq_NilE[elim!] literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset[simp]
   unfolding isa_vmtf_mark_to_rescore_pre_def isa_vmtf_mark_to_rescore_def
@@ -327,7 +316,7 @@ sepref_register isa_vmtf_unset
 sepref_definition isa_vmtf_unset_code
   is \<open>uncurry (RETURN oo isa_vmtf_unset)\<close>
   :: \<open>[uncurry vmtf_unset_pre]\<^sub>a
-     uint32_nat_assn\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>d \<rightarrow> vmtf_remove_conc\<close>
+     uint32_nat_assn\<^sup>k *\<^sub>a vmtf_remove_assn\<^sup>d \<rightarrow> vmtf_remove_assn\<close>
   supply [[goals_limit=1]] option.splits[split] vmtf_def[simp] in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff[simp]
     neq_NilE[elim!] literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset[simp]
   unfolding isa_vmtf_unset_def vmtf_unset_pre_def
@@ -339,7 +328,7 @@ declare isa_vmtf_unset_code.refine[sepref_fr_rules]
 sepref_definition vmtf_mark_to_rescore_and_unset_code
   is \<open>uncurry (RETURN oo isa_vmtf_mark_to_rescore_and_unset)\<close>
   :: \<open>[isa_vmtf_mark_to_rescore_and_unset_pre]\<^sub>a
-      uint32_nat_assn\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>d \<rightarrow> vmtf_remove_conc\<close>
+      uint32_nat_assn\<^sup>k *\<^sub>a vmtf_remove_assn\<^sup>d \<rightarrow> vmtf_remove_assn\<close>
   supply image_image[simp] uminus_\<A>\<^sub>i\<^sub>n_iff[iff] in_diffD[dest] option.splits[split]
     if_splits[split] isa_vmtf_unset_def[simp]
   supply [[goals_limit=1]]
@@ -350,8 +339,8 @@ sepref_definition vmtf_mark_to_rescore_and_unset_code
 declare vmtf_mark_to_rescore_and_unset_code.refine[sepref_fr_rules]
 sepref_definition find_decomp_wl_imp_code
   is \<open>uncurry2 (isa_find_decomp_wl_imp)\<close>
-  :: \<open>[\<lambda>((M, lev), vm). True]\<^sub>a trail_pol_assn\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>d
-    \<rightarrow> trail_pol_assn *a vmtf_remove_conc\<close>
+  :: \<open>[\<lambda>((M, lev), vm). True]\<^sub>a trail_pol_assn\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a vmtf_remove_assn\<^sup>d
+    \<rightarrow> trail_pol_assn *a vmtf_remove_assn\<close>
   unfolding isa_find_decomp_wl_imp_def get_maximum_level_remove_def[symmetric] PR_CONST_def
     trail_pol_conv_to_no_CS_def
   supply [[goals_limit=1]] literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset[simp] trail_conv_to_no_CS_def[simp]
@@ -364,8 +353,8 @@ declare find_decomp_wl_imp_code.refine[sepref_fr_rules]
 
 sepref_definition find_decomp_wl_imp_fast_code
   is \<open>uncurry2 (isa_find_decomp_wl_imp)\<close>
-  :: \<open>[\<lambda>((M, lev), vm). True]\<^sub>a trail_pol_fast_assn\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>d
-    \<rightarrow> trail_pol_fast_assn *a vmtf_remove_conc\<close>
+  :: \<open>[\<lambda>((M, lev), vm). True]\<^sub>a trail_pol_fast_assn\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a vmtf_remove_assn\<^sup>d
+    \<rightarrow> trail_pol_fast_assn *a vmtf_remove_assn\<close>
   unfolding isa_find_decomp_wl_imp_def get_maximum_level_remove_def[symmetric] PR_CONST_def
     trail_pol_conv_to_no_CS_def
   supply trail_conv_to_no_CS_def[simp] lit_of_hd_trail_def[simp]
@@ -378,16 +367,16 @@ declare find_decomp_wl_imp_fast_code.refine[sepref_fr_rules]
 
 sepref_definition vmtf_rescore_code
   is \<open>uncurry3 isa_vmtf_rescore\<close>
-  :: \<open>(array_assn unat_lit_assn)\<^sup>k *\<^sub>a trail_pol_assn\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>d *\<^sub>a phase_saver_conc\<^sup>d \<rightarrow>\<^sub>a
-       vmtf_remove_conc *a phase_saver_conc\<close>
+  :: \<open>(array_assn unat_lit_assn)\<^sup>k *\<^sub>a trail_pol_assn\<^sup>k *\<^sub>a vmtf_remove_assn\<^sup>d *\<^sub>a phase_saver_conc\<^sup>d \<rightarrow>\<^sub>a
+       vmtf_remove_assn *a phase_saver_conc\<close>
   unfolding isa_vmtf_rescore_body_def[abs_def] PR_CONST_def isa_vmtf_rescore_def
   supply [[goals_limit = 1]] fold_is_None[simp]
   by sepref
 
 sepref_definition vmtf_rescore_fast_code
   is \<open>uncurry3 isa_vmtf_rescore\<close>
-  :: \<open>(array_assn unat_lit_assn)\<^sup>k *\<^sub>a trail_pol_fast_assn\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>d *\<^sub>a phase_saver_conc\<^sup>d \<rightarrow>\<^sub>a
-       vmtf_remove_conc *a phase_saver_conc\<close>
+  :: \<open>(array_assn unat_lit_assn)\<^sup>k *\<^sub>a trail_pol_fast_assn\<^sup>k *\<^sub>a vmtf_remove_assn\<^sup>d *\<^sub>a phase_saver_conc\<^sup>d \<rightarrow>\<^sub>a
+       vmtf_remove_assn *a phase_saver_conc\<close>
   unfolding isa_vmtf_rescore_body_def[abs_def] PR_CONST_def isa_vmtf_rescore_def
   supply [[goals_limit = 1]] fold_is_None[simp]
   by sepref
@@ -416,7 +405,7 @@ sepref_definition find_decomp_wl_imp'_fast_code
 declare find_decomp_wl_imp'_fast_code.refine[sepref_fr_rules]
 sepref_definition vmtf_mark_to_rescore_clause_code
   is \<open>uncurry2 (isa_vmtf_mark_to_rescore_clause)\<close>
-  :: \<open>arena_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>d \<rightarrow>\<^sub>a vmtf_remove_conc\<close>
+  :: \<open>arena_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a vmtf_remove_assn\<^sup>d \<rightarrow>\<^sub>a vmtf_remove_assn\<close>
   supply [[goals_limit=1]]
   unfolding isa_vmtf_mark_to_rescore_clause_def PR_CONST_def
   by sepref
@@ -425,7 +414,7 @@ declare vmtf_mark_to_rescore_clause_code.refine[sepref_fr_rules]
 
 sepref_definition vmtf_mark_to_rescore_also_reasons_code
   is \<open>uncurry3 (isa_vmtf_mark_to_rescore_also_reasons)\<close>
-  :: \<open>trail_pol_assn\<^sup>k *\<^sub>a arena_assn\<^sup>k *\<^sub>a (arl32_assn unat_lit_assn)\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>d \<rightarrow>\<^sub>a vmtf_remove_conc\<close>
+  :: \<open>trail_pol_assn\<^sup>k *\<^sub>a arena_assn\<^sup>k *\<^sub>a (arl32_assn unat_lit_assn)\<^sup>k *\<^sub>a vmtf_remove_assn\<^sup>d \<rightarrow>\<^sub>a vmtf_remove_assn\<close>
   supply image_image[simp] uminus_\<A>\<^sub>i\<^sub>n_iff[iff] in_diffD[dest] option.splits[split]
     in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n[simp]
   supply [[goals_limit=1]]
@@ -460,7 +449,7 @@ lemma isa_arena_lit_fast_code_refine[sepref_fr_rules]:
 sepref_definition vmtf_mark_to_rescore_clause_fast_code
   is \<open>uncurry2 (isa_vmtf_mark_to_rescore_clause)\<close>
   :: \<open>[\<lambda>((N, _), _). length N \<le> uint64_max]\<^sub>a
-       arena_fast_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>d \<rightarrow> vmtf_remove_conc\<close>
+       arena_fast_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a vmtf_remove_assn\<^sup>d \<rightarrow> vmtf_remove_assn\<close>
   supply [[goals_limit=1]] arena_is_valid_clause_idx_le_uint64_max[intro]
   unfolding isa_vmtf_mark_to_rescore_clause_def PR_CONST_def nat_of_uint64_conv_def
   unfolding while_eq_nfoldli[symmetric]
@@ -473,8 +462,8 @@ declare vmtf_mark_to_rescore_clause_fast_code.refine[sepref_fr_rules]
 sepref_definition vmtf_mark_to_rescore_also_reasons_fast_code
   is \<open>uncurry3 (isa_vmtf_mark_to_rescore_also_reasons)\<close>
   :: \<open>[\<lambda>(((_, N), _), _). length N \<le> uint64_max]\<^sub>a
-      trail_pol_fast_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a (arl32_assn unat_lit_assn)\<^sup>k *\<^sub>a vmtf_remove_conc\<^sup>d \<rightarrow>
-      vmtf_remove_conc\<close>
+      trail_pol_fast_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a (arl32_assn unat_lit_assn)\<^sup>k *\<^sub>a vmtf_remove_assn\<^sup>d \<rightarrow>
+      vmtf_remove_assn\<close>
   supply image_image[simp] uminus_\<A>\<^sub>i\<^sub>n_iff[iff] in_diffD[dest] option.splits[split]
     in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n[simp]
   supply [[goals_limit=1]]

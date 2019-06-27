@@ -25,7 +25,7 @@ definition vmtf_enqueue_pre where
      (\<lambda>((M, L),(ns,m,fst_As,lst_As, next_search)). L < length ns \<and>
        (fst_As \<noteq> None \<longrightarrow> the fst_As < length ns) \<and>
        (fst_As \<noteq> None \<longrightarrow> lst_As \<noteq> None) \<and>
-       m+1 \<le> uint64_max)\<close>
+       m+1 \<le> sint64_max)\<close>
 
 definition isa_vmtf_enqueue :: \<open>trail_pol \<Rightarrow> nat \<Rightarrow> vmtf_option_fst_As \<Rightarrow> vmtf nres\<close> where
 \<open>isa_vmtf_enqueue = (\<lambda>M L (ns, m, fst_As, lst_As, next_search). do {
@@ -153,7 +153,7 @@ definition isa_vmtf_en_dequeue_pre :: \<open>(trail_pol \<times> nat) \<times> v
        L < length ns \<and> vmtf_dequeue_pre (L, ns) \<and>
        fst_As < length ns \<and> (get_next (ns ! fst_As) \<noteq> None \<longrightarrow> get_prev (ns ! lst_As) \<noteq> None) \<and>
        (get_next (ns ! fst_As) = None \<longrightarrow> fst_As = lst_As) \<and>
-       m+1 \<le> uint64_max)\<close>
+       m+1 \<le> sint64_max)\<close>
 
 lemma isa_vmtf_en_dequeue_preD:
   assumes \<open>isa_vmtf_en_dequeue_pre ((M, ah), a, aa, ab, ac, b)\<close>
@@ -249,9 +249,9 @@ definition isa_vmtf_flush_int :: \<open>trail_pol \<Rightarrow> _ \<Rightarrow> 
     ASSERT(length to_remove \<le> uint32_max);
     to_remove' \<leftarrow> reorder_list vm to_remove;
     ASSERT(length to_remove' \<le> uint32_max);
-    vm \<leftarrow> (if length to_remove' \<ge> uint64_max - fst (snd vm)
+    vm \<leftarrow> (if length to_remove' \<ge> sint64_max - fst (snd vm)
       then vmtf_rescale vm else RETURN vm);
-    ASSERT(length to_remove' + fst (snd vm) \<le> uint64_max);
+    ASSERT(length to_remove' + fst (snd vm) \<le> sint64_max);
     (_, vm, h) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(i, vm', h). i \<le> length to_remove' \<and> fst (snd vm') = i + fst (snd vm) \<and>
           (i < length to_remove' \<longrightarrow> isa_vmtf_en_dequeue_pre ((M, to_remove'!i), vm'))\<^esup>
       (\<lambda>(i, vm, h). i < length to_remove')
@@ -275,9 +275,9 @@ proof -
       ASSERT(length to_remove \<le> uint32_max);
       to_remove' \<leftarrow> reorder_list vm to_remove;
       ASSERT(length to_remove' \<le> uint32_max);
-      vm \<leftarrow> (if length to_remove' + fst (snd vm) \<ge> uint64_max
+      vm \<leftarrow> (if length to_remove' + fst (snd vm) \<ge> sint64_max
 	then vmtf_rescale vm else RETURN vm);
-      ASSERT(length to_remove' + fst (snd vm) \<le> uint64_max);
+      ASSERT(length to_remove' + fst (snd vm) \<le> sint64_max);
       (_, vm, h) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(i, vm', h). i \<le> length to_remove' \<and> fst (snd vm') = i + fst (snd vm) \<and>
 	    (i < length to_remove' \<longrightarrow> vmtf_en_dequeue_pre \<A>\<^sub>i\<^sub>n ((M, to_remove'!i), vm'))\<^esup>
 	(\<lambda>(i, vm, h). i < length to_remove')
@@ -328,7 +328,7 @@ proof -
       \<open>(to_remove', to_remove'a) \<in> Id\<close> and
       \<open>length to_remove'a \<le> uint32_max\<close> and
       \<open>length to_remove' \<le> uint32_max\<close> and
-      \<open>uint64_max \<le> length to_remove'a + fst (snd x1a)\<close>
+      \<open>sint64_max \<le> length to_remove'a + fst (snd x1a)\<close>
     for x y x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e to_remove' to_remove'a
     using that by auto
 
@@ -349,7 +349,7 @@ proof -
       \<open>length to_remove'a \<le> uint32_max\<close> and
       \<open>length to_remove' \<le> uint32_max\<close> and
       \<open>(vm, vma) \<in> Id\<close> and
-      \<open>length to_remove'a + fst (snd vma) \<le> uint64_max\<close>
+      \<open>length to_remove'a + fst (snd vma) \<le> sint64_max\<close>
       \<open>case (0, vma, x2b) of
        (i, vm', h) \<Rightarrow>
 	 i \<le> length to_remove'a \<and>
@@ -375,7 +375,7 @@ proof -
      \<open>length x1e \<le> uint32_max\<close> and
      \<open>length to_remove'a \<le> uint32_max\<close> and
      \<open>length to_remove' \<le> uint32_max\<close> and
-     \<open>length to_remove'a + fst (snd vma) \<le> uint64_max\<close> and
+     \<open>length to_remove'a + fst (snd vma) \<le> sint64_max\<close> and
      \<open>case xa of (i, vm, h) \<Rightarrow> i < length to_remove'\<close> and
      \<open>case x' of (i, vm, h) \<Rightarrow> i < length to_remove'a\<close> and
      \<open>case xa of
