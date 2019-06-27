@@ -1,6 +1,6 @@
 theory IsaSAT_Setup_LLVM
   imports IsaSAT_Setup IsaSAT_Watch_List_LLVM IsaSAT_Lookup_Conflict_LLVM
-    IsaSAT_Clauses_LLVM LBD_LLVM
+    Watched_Literals.WB_More_Refinement IsaSAT_Clauses_LLVM LBD_LLVM
 begin
 
 find_in_thms of_nat in sepref_fr_rules  
@@ -373,28 +373,61 @@ sepref_definition access_lit_in_clauses_heur_fast_code
   is \<open>uncurry2 (RETURN ooo access_lit_in_clauses_heur)\<close>
   :: \<open>[\<lambda>((S, i), j). access_lit_in_clauses_heur_pre ((S, i), j) \<and>
            length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a
-      isasat_bounded_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k  *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow> unat_lit_assn\<close>
+      isasat_bounded_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k  *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> unat_lit_assn\<close>
   supply [[goals_limit=1]] arena_is_valid_clause_idx_le_uint64_max[intro]
+  supply [simp] = max_snat_def max_sint_def sint64_max_def
   unfolding isasat_bounded_assn_def access_lit_in_clauses_heur_alt_def
     fmap_rll_def[symmetric] access_lit_in_clauses_heur_pre_def
-    fmap_rll_u64_def[symmetric] arena_lit_pre_le[intro]
+    fmap_rll_u64_def[symmetric] arena_lit_pre_le[dest]
   by sepref
 
 declare access_lit_in_clauses_heur_fast_code.refine[sepref_fr_rules]
 
+sepref_register \<open>(=) :: clause_status \<Rightarrow> clause_status \<Rightarrow> _\<close>
+
+term append_ll
+find_theorems "If (\<not>_)"
 sepref_register rewatch_heur
+term op_neq
 sepref_definition rewatch_heur_fast_code
   is \<open>uncurry2 (rewatch_heur)\<close>
-  :: \<open>[\<lambda>((vdom, arena), W). (\<forall>x \<in> set vdom. x \<le> uint64_max) \<and> length arena \<le> uint64_max \<and> length vdom \<le> sint64_max]\<^sub>a
+  :: \<open>[\<lambda>((vdom, arena), W). (\<forall>x \<in> set vdom. x \<le> sint64_max) \<and> length arena \<le> sint64_max \<and> length vdom \<le> sint64_max]\<^sub>a
         vdom_fast_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a watchlist_fast_assn\<^sup>d \<rightarrow> watchlist_fast_assn\<close>
   supply [[goals_limit=1]]
-     arena_lit_pre_le_uint64_max[intro]
-  unfolding rewatch_heur_alt_def Let_def PR_CONST_def
+     arena_lit_pre_le_sint64_max[dest] arena_is_valid_clause_idx_le_uint64_max[dest]
+  supply [simp] = max_snat_def max_sint_def sint64_max_def append_ll_def[simp]
+  supply [dest] = in_snat_rel_imp_less_max' arena_lit_implI(1)
+  unfolding rewatch_heur_alt_def Let_def PR_CONST_def
   unfolding while_eq_nfoldli[symmetric]
   apply (subst while_upt_while_direct, simp)
-  unfolding zero_uint64_nat_def[symmetric]
-    one_uint64_nat_def[symmetric] to_watcher_fast_def[symmetric]
-    FOREACH_cond_def FOREACH_body_def uint64_of_nat_conv_def
+  unfolding if_not_swap
+    FOREACH_cond_def FOREACH_body_def 
+  apply (annot_snat_const "TYPE(64)")
+apply sepref_dbg_keep
+      apply sepref_dbg_trans_keep
+      apply sepref_dbg_trans_step_keep
+      apply sepref_dbg_side_unfold apply (auto dest!: in_snat_rel_imp_less_max')[]
+oops
+find_theorems "_ \<in> snat_rel \<Longrightarrow> _ < _"
+  apply sepref_dbg_preproc
+  apply sepref_dbg_cons_init
+  apply sepref_dbg_id
+  apply sepref_dbg_id_init
+  apply sepref_dbg_id_step+
+  apply sepref_dbg_monadify
+  apply sepref_dbg_opt_init
+  apply sepref_dbg_trans
+  apply sepref_dbg_opt
+  apply sepref_dbg_cons_solve
+  apply sepref_dbg_cons_solve
+  apply sepref_dbg_constraints
+find_theorems "(=) :: clause_status \<Rightarrow> _ \<Rightarrow> _"
+term DELETED
+apply sepref_dbg_keep
+      apply sepref_dbg_trans_keep
+      apply sepref_dbg_trans_step_keep
+      apply sepref_dbg_side_unfold
+oops
   by sepref
 
 sepref_register append_ll
@@ -411,7 +444,6 @@ sepref_definition rewatch_heur_st_fast_code
     isasat_bounded_assn_def rewatch_heur_st_fast_def
   by sepref
 
-declare rewatch_heur_st_code.refine[sepref_fr_rules]
-  rewatch_heur_st_fast_code.refine[sepref_fr_rules]
+declare rewatch_heur_st_fast_code.refine[sepref_fr_rules]
 
 end
