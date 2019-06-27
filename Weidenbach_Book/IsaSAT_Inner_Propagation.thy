@@ -167,9 +167,9 @@ proof -
       convert_lits_l_def is_\<L>\<^sub>a\<^sub>l\<^sub>l_alt_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n
       twl_st_l twl_st_wl twl_st get_unit_clauses_wl_alt_def \<A>_def all_lits_def)
   show \<open>length (get_clauses_wl S \<propto> ?C) \<le> uint64_max\<close> if bounded: \<open>isasat_input_bounded \<A>\<close>
-    using clss_size_uint64_max[of \<A> \<open>mset (get_clauses_wl S \<propto> ?C)\<close>,
+    using clss_size_uint32_max[of \<A> \<open>mset (get_clauses_wl S \<propto> ?C)\<close>,
         OF bounded \<open>literals_are_in_\<L>\<^sub>i\<^sub>n \<A> (mset (get_clauses_wl S \<propto> ?C))\<close>]
-      \<open>distinct (get_clauses_wl S \<propto> ?C)\<close> by auto
+      \<open>distinct (get_clauses_wl S \<propto> ?C)\<close> unfolding uint32_max_def uint64_max_def by auto
   show L_in_watched: \<open>L \<in> set (watched_l (get_clauses_wl S \<propto> ?C))\<close>
     using L_in_watched S_T by auto
 qed
@@ -197,7 +197,7 @@ definition isa_find_unwatched_between
   (x, _) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(found, i). True\<^esup>
     (\<lambda>(found, i). found = None \<and> i < C + b)
     (\<lambda>(_, i). do {
-      ASSERT(i < C + nat_of_uint64_conv (arena_length NU C));
+      ASSERT(i < C + (arena_length NU C));
       ASSERT(i \<ge> C);
       ASSERT(i < C + b);
       ASSERT(arena_lit_pre NU i);
@@ -241,7 +241,7 @@ proof -
       \<open>x' = (x1, x2)\<close> and
       \<open>x = (x1a, x2a)\<close> and
       \<open>x2 < length (N \<propto> C)\<close> and
-      \<open>x2a < C + nat_of_uint64_conv (arena_length arena C)\<close> and
+      \<open>x2a < C + (arena_length arena C)\<close> and
       \<open>C \<le> x2a\<close>
     for x x' x1 x2 x1a x2a
   proof -
@@ -309,12 +309,12 @@ definition isa_find_unwatched
   :: \<open>(nat literal \<Rightarrow> bool) \<Rightarrow> trail_pol \<Rightarrow> arena \<Rightarrow> nat \<Rightarrow> (nat option) nres\<close>
 where
 \<open>isa_find_unwatched P M' arena C = do {
-    let l = nat_of_uint64_conv (arena_length arena C);
+    let l = (arena_length arena C);
     b \<leftarrow> RETURN(arena_length arena C \<le> MAX_LENGTH_SHORT_CLAUSE);
     if b then isa_find_unwatched_between P M' arena 2 l C
     else do {
       ASSERT(get_saved_pos_pre arena C);
-      pos \<leftarrow> RETURN (nat_of_uint64_conv (arena_pos arena C));
+      pos \<leftarrow> RETURN ((arena_pos arena C));
       n \<leftarrow> isa_find_unwatched_between P M' arena pos l C;
       if n = None then isa_find_unwatched_between P M' arena 2 pos C
       else RETURN n
@@ -337,7 +337,7 @@ proof -
     using assms
     by (auto simp: RETURN_RES_refine_iff is_short_clause_def arena_lifting)
   show ?thesis
-    unfolding isa_find_unwatched_def find_unwatched_def nat_of_uint64_conv_def Let_def
+    unfolding isa_find_unwatched_def find_unwatched_def Let_def
     apply (refine_vcg isa_find_unwatched_between_find_in_list_between_spec[of _ _ _ _ _ vdom _ _ _ \<A> _ _ ])
     subgoal by auto
     subgoal using ge2 .
@@ -538,7 +538,7 @@ proof -
       \<open>2 \<le> length (N \<propto> C')\<close> and \<open>literals_are_in_\<L>\<^sub>i\<^sub>n \<A> (mset (N \<propto> C'))\<close> and
       \<open>(M', M) \<in> trail_pol \<A>\<close>
     for arena P N C vdom P' C'  \<A> M' M
-    unfolding isa_find_unwatched_def find_unwatched_def nat_of_uint64_conv_def Let_def
+    unfolding isa_find_unwatched_def find_unwatched_def Let_def
     apply (refine_vcg isa_find_unwatched_between_find_in_list_between_spec[of _ _ _ _ _ vdom])
     using that apply - apply assumption
     using that apply - apply assumption
@@ -657,7 +657,7 @@ definition set_conflict_wl_heur
   :: \<open>nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close>
 where
   \<open>set_conflict_wl_heur = (\<lambda>C (M, N, D, Q, W, vmtf, \<phi>, clvls, cach, lbd, outl, stats, fema, sema). do {
-    let n = zero_uint32_nat;
+    let n = 0;
     ASSERT(curry6 isa_set_lookup_conflict_aa_pre M N C D n lbd outl);
     (D, clvls, lbd, outl) \<leftarrow> isa_set_lookup_conflict_aa M N C D n lbd outl;
     ASSERT(isa_length_trail_pre M);
@@ -685,7 +685,7 @@ where
      ASSERT(w < length N);
      let N' = swap_lits C i f N;
      ASSERT(length (W ! nat_of_lit K') < length N);
-     let W = W[nat_of_lit K':= W ! (nat_of_lit K') @ [to_watcher C L b]];
+     let W = W[nat_of_lit K':= W ! (nat_of_lit K') @ [(C, L, b)]];
      RETURN (j, w+1, (M, N', D, Q, W, vm))
   })\<close>
 
@@ -906,8 +906,8 @@ definition propagate_lit_wl_heur
 where
   \<open>propagate_lit_wl_heur = (\<lambda>L' C i (M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, stats,
     fema, sema). do {
-      ASSERT(swap_lits_pre C 0 (fast_minus 1 i) N);
-      let N' = swap_lits C 0 (fast_minus 1 i) N;
+      ASSERT(swap_lits_pre C 0 (1 - i) N);
+      let N' = swap_lits C 0 (1 - i) N;
       ASSERT(atm_of L' < length \<phi>);
       ASSERT(cons_trail_Propagated_tr_pre ((L', C), M));
       let stats = incr_propagation (if count_decided_pol M = 0 then incr_uset stats else stats);
@@ -1045,7 +1045,7 @@ where
      ASSERT(j < length (W ! nat_of_lit L));
      ASSERT(j < length N);
      ASSERT(w < length N);
-     RETURN (j+1, w+1, (M, N, D, Q, W[nat_of_lit L := (W!nat_of_lit L)[j:=to_watcher C K b]], vm))
+     RETURN (j+1, w+1, (M, N, D, Q, W[nat_of_lit L := (W!nat_of_lit L)[j:= (C, K, b)]], vm))
   })\<close>
 
 definition unit_propagation_inner_loop_wl_loop_D_heur_inv0 where
@@ -1059,7 +1059,7 @@ definition unit_propagation_inner_loop_body_wl_heur
   \<open>unit_propagation_inner_loop_body_wl_heur L j w (S0 :: twl_st_wl_heur) = do {
       ASSERT(unit_propagation_inner_loop_wl_loop_D_heur_inv0 L (j, w, S0));
       ASSERT(watched_by_app_heur_pre ((S0, L), w));
-      let (C, K, b) = watcher_of (watched_by_app_heur S0 L w);
+      let (C, K, b) = (watched_by_app_heur S0 L w);
       S \<leftarrow> keep_watch_heur L j w S0;
       ASSERT(length (get_clauses_wl_heur S) = length (get_clauses_wl_heur S0));
       ASSERT(unit_prop_body_wl_heur_inv S j w L);
@@ -1176,7 +1176,7 @@ proof -
       for x x' y y' z z' a a' b b' c c' d d' vdom \<A>
     by (rule isa_set_lookup_conflict[THEN fref_to_Down_curry6,
       unfolded prod.case, OF that(2,1)])
-  have [refine0]: \<open>isa_set_lookup_conflict_aa x1h x1i x1g x1j zero_uint32_nat x1q x1r
+  have [refine0]: \<open>isa_set_lookup_conflict_aa x1h x1i x1g x1j 0 x1q x1r
         \<le> \<Down> {((C, n, lbd, outl), D). (C, D) \<in> option_lookup_clause_rel (all_atms_st x2) \<and>
 	       n = card_max_lvl x1a (the D) \<and> out_learned x1a D outl}
           (RETURN (Some (mset (x1b \<propto> x1))))\<close>
@@ -1210,7 +1210,7 @@ proof -
   proof -
     show ?thesis
       apply (rule order_trans)
-      apply (rule H[of _ _ _ _ _ _ _ x1a x1b x1g x1c zero_uint32_nat x1q x1r \<open>all_atms_st x2\<close>
+      apply (rule H[of _ _ _ _ _ _ _ x1a x1b x1g x1c 0 x1q x1r \<open>all_atms_st x2\<close>
          \<open>set (get_vdom (snd x))\<close>])
       subgoal
         using that
@@ -1226,7 +1226,7 @@ proof -
       done
   qed
   have isa_set_lookup_conflict_aa_pre:
-   \<open>curry6 isa_set_lookup_conflict_aa_pre x1h x1i x1g x1j zero_uint32_nat x1q x1r\<close>
+   \<open>curry6 isa_set_lookup_conflict_aa_pre x1h x1i x1g x1j 0 x1q x1r\<close>
     if
       \<open>case y of (x, xa) \<Rightarrow> set_conflict_wl'_pre x xa\<close> and
       \<open>(x, y) \<in> nat_rel \<times>\<^sub>f twl_st_heur_up'' \<D> r s K\<close> and
@@ -1265,7 +1265,7 @@ proof -
     supply [[goals_limit=1]]
     apply (intro nres_relI frefI)
     unfolding uncurry_def RES_RETURN_RES4 set_conflict_wl'_alt_def2 set_conflict_wl_heur_def
-    apply (rewrite at \<open>let _ = zero_uint32_nat in _\<close> Let_def)
+    apply (rewrite at \<open>let _ = 0 in _\<close> Let_def)
     apply (refine_vcg)
     subgoal by (rule isa_set_lookup_conflict_aa_pre)
     apply assumption+
@@ -1285,7 +1285,7 @@ proof -
     done
 qed
 
-
+find_theorems valid_arena arena_incr_act
 lemma in_Id_in_Id_option_rel[refine]:
   \<open>(f, f') \<in> Id \<Longrightarrow> (f, f') \<in> \<langle>Id\<rangle> option_rel\<close>
   by auto
@@ -2562,7 +2562,6 @@ proof -
       watched_by_app_heur_def access_lit_in_clauses_heur_def
     unfolding set_conflict_wl'_alt_def[symmetric]
       clause_not_marked_to_delete_def[symmetric]
-      to_watcher_def watcher_of_def id_def
 
     apply (refine_rcg find_unw isa_save_pos)
     subgoal unfolding unit_propagation_inner_loop_wl_loop_D_heur_inv0_def twl_st_heur'_def
@@ -3333,6 +3332,7 @@ lemma case_tri_bool_If:
 
 definition isa_find_unset_lit :: \<open>trail_pol \<Rightarrow> arena \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat option nres\<close> where
   \<open>isa_find_unset_lit M = isa_find_unwatched_between (\<lambda>L. polarity_pol M L \<noteq> Some False) M\<close>
+
 lemma update_clause_wl_heur_pre_le_uint64:
   assumes
     \<open>arena_is_valid_clause_idx_and_access a1'a bf baa\<close> and
