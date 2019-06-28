@@ -79,17 +79,18 @@ lemma case_option_split:
 *)
 
   
-
-
 sepref_definition (in -)ns_vmtf_dequeue_code
    is \<open>uncurry (RETURN oo ns_vmtf_dequeue)\<close>
    :: \<open>[vmtf_dequeue_pre]\<^sub>a
         atom_assn\<^sup>k *\<^sub>a (array_assn vmtf_node_assn)\<^sup>d \<rightarrow> array_assn vmtf_node_assn\<close>
   supply [[goals_limit = 1]]
   supply option.splits[split]
-  unfolding ns_vmtf_dequeue_def vmtf_dequeue_pre_alt_def case_option_split
+  unfolding ns_vmtf_dequeue_def vmtf_dequeue_pre_alt_def case_option_split atom.fold_option
   apply annot_all_atm_idxs
-  by sepref
+  apply sepref_dbg_keep
+  apply sepref_dbg_trans_keep
+  apply sepref_dbg_trans_step_keep
+  apply sepref_dbg_side_keep
   
 
 declare ns_vmtf_dequeue_code.refine[sepref_fr_rules]
@@ -175,20 +176,43 @@ lemma isa_vmtf_en_dequeue_alt_def2:
   Note: Naked int/nat numerals will be rejected by translate, as they need to be type-annotated.
 *)  
 sepref_register 1 0  
+
+sepref_definition atom_eq_impl is "uncurry (RETURN oo (=))" :: "atom_assn\<^sup>d *\<^sub>a atom_assn\<^sup>d \<rightarrow>\<^sub>a bool1_assn"
+  unfolding atom_rel_def
+  by sepref
+
+lemmas [sepref_fr_rules] = atom_eq_impl.refine
   
+method annot_all_atm_idxs = (simp only_main: annot_index_of_atm' cong: if_cong)
+
+
 sepref_definition vmtf_en_dequeue_fast_code
    is \<open>uncurry2 isa_vmtf_en_dequeue\<close>
    :: \<open>[isa_vmtf_en_dequeue_pre]\<^sub>a
         trail_pol_fast_assn\<^sup>k *\<^sub>a atom_assn\<^sup>k *\<^sub>a vmtf_assn\<^sup>d \<rightarrow> vmtf_assn\<close>
   supply [[goals_limit = 3]]
+  supply [split] = option.splits
   supply isa_vmtf_en_dequeue_preD[dest] isa_vmtf_en_dequeue_pre_vmtf_enqueue_pre[dest]
-  unfolding isa_vmtf_en_dequeue_alt_def2 case_option_split eq_Some_iff
-  apply annot_all_atm_idxs
+  unfolding isa_vmtf_en_dequeue_alt_def2 case_option_split eq_Some_iff short_circuit_conv
   
- (*apply (annot_unat_const "TYPE(64)")*)
+  apply (tactic \<open>
+    let 
+      val ctxt = @{context}
+        |> put_simpset HOL_basic_ss
+      val ctxt = ctxt addsimps @{thms annot_index_of_atm'}
+      val ctxt = ctxt addsimprocs [@{simproc NO_MATCH}]
+    in
+      simp_tac ctxt 1
+    end  
+  \<close>)
+  
+ xxx: This annotates too much! 
+  
+ apply (annot_unat_const "TYPE(64)")
 apply sepref_dbg_keep
 apply sepref_dbg_trans_keep
 apply sepref_dbg_trans_step_keep
+apply sepref_dbg_side_keep
 
 find_in_thms "0 " in id_rules
 

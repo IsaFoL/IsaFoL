@@ -38,6 +38,8 @@ sepref_register isa_find_unwatched_wl_st_heur isa_find_unwatched_between isa_fin
 (*TODO dup*)
 sepref_register 0 1
 
+(*lemma "found = None \<longleftrightarrow> is_None (ASSN_ANNOT (snat_option_assn' TYPE(64)) found)"*)
+
 sepref_definition isa_find_unwatched_between_fast_code
   is \<open>uncurry4 isa_find_unset_lit\<close>
   :: \<open>[\<lambda>((((M, N), _), _), _). length N \<le> sint64_max]\<^sub>a
@@ -48,14 +50,10 @@ sepref_definition isa_find_unwatched_between_fast_code
   unfolding isa_find_unset_lit_def isa_find_unwatched_between_def SET_FALSE_def[symmetric]
     PR_CONST_def
   apply (rewrite in \<open>if \<hole> then _ else _\<close>  tri_bool_eq_def[symmetric])
-  apply (rewrite in \<open>If _ (RETURN (\<hole>, _))\<close> annotate_assn[where A = \<open>snat_option_assn' TYPE(64)\<close>])
-apply sepref_dbg_keep
-apply sepref_dbg_trans_keep
-apply sepref_dbg_trans_step
-apply sepref_dbg_trans_step_keep
-apply sepref_dbg_side_unfold apply auto[]
-
-oops
+  apply (annot_snat_const "TYPE (64)")
+  (*apply (rewrite in \<open>WHILEIT _ (\<lambda>(_,_). (\<hole>=_) \<and> _)\<close> annotate_assn[where A = \<open>snat_option_assn' TYPE(64)\<close>])
+  apply (rewrite in \<open>WHILEIT _ _ _ (\<hole>,_)\<close> annotate_assn[where A = \<open>snat_option_assn' TYPE(64)\<close>])
+  *)
   by sepref
 
 declare isa_find_unwatched_between_fast_code.refine[sepref_fr_rules]
