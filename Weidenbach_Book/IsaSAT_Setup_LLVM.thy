@@ -78,6 +78,7 @@ lemma restart_info_params[sepref_import_param]:
   by auto
 
   
+(* TODO: Define vmtf_node_rel, such that sepref sees syntactically an assertion of form "pure ..."*)  
 type_synonym vmtf_node_assn = "(64 word \<times> 32 word \<times> 32 word)"    
 
 definition "vmtf_node1_rel \<equiv> { ((a,b,c),(VMTF_Node a b c)) | a b c. True}"

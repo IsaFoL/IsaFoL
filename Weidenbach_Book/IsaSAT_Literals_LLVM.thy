@@ -2,6 +2,25 @@ theory IsaSAT_Literals_LLVM
   imports WB_More_Word IsaSAT_Literals Watched_Literals.WB_More_IICF_LLVM
 begin
 
+(* TODO: Move. 
+  DUPs in IICF_Impl_Heapmap Undirected_Graph_Impl.hfref_postcondI IICF_MS_Array_List.hfref_bassnI
+*)    
+lemma hfref_bassn_resI:
+  assumes "\<And>xs. \<lbrakk>rdomp (fst As) xs; C xs\<rbrakk> \<Longrightarrow> a xs \<le>\<^sub>n SPEC P"
+  assumes "(c,a)\<in>[C]\<^sub>a As \<rightarrow> R"
+  shows "(c,a)\<in>[C]\<^sub>a As \<rightarrow> b_assn R P"
+  apply rule
+  apply (rule hn_refine_preI)
+  apply (rule hn_refine_cons[rotated])
+  apply (rule hn_refine_augment_res)
+  apply (rule assms(2)[to_hnr, unfolded hn_ctxt_def autoref_tag_defs])
+  apply simp
+  apply (rule assms(1))
+  apply (auto simp: rdomp_def sep_algebra_simps)
+  done
+  
+
+
 lemma convert_fref:
   "WB_More_Refinement.fref = Sepref_Rules.frefnd"
   "WB_More_Refinement.freft = Sepref_Rules.freftnd"
@@ -51,21 +70,97 @@ abbreviation unat_lit_assn :: \<open>nat literal \<Rightarrow> 32 word \<Rightar
 
 subsection \<open>Atom-Of\<close>  
   
-sepref_decl_op atm_of: \<open>atm_of :: nat literal \<Rightarrow> nat\<close> ::
+
+term snatb_rel
+
+type_synonym atom_assn = "32 word"
+
+definition "atom_rel \<equiv> b_rel (unat_rel' TYPE(32)) (\<lambda>x. x<2^31)"
+abbreviation "atom_assn \<equiv> pure atom_rel"
+
+lemma atom_rel_alt: "atom_rel = unat_rel' TYPE(32) O nbn_rel (2^31)"
+  by (auto simp: atom_rel_def)
+
+
+interpretation atom: dflt_pure_option "2^32-1" atom_assn "ll_icmp_eq (2^32-1)"
+  apply unfold_locales
+  subgoal 
+    unfolding atom_rel_def 
+    apply (simp add: pure_def fun_eq_iff pred_lift_extract_simps)
+    apply (auto simp: unat_rel_def unat.rel_def in_br_conv unat_minus_one_word)
+    done
+  subgoal proof goal_cases
+    case 1
+      interpret llvm_prim_arith_setup .
+      show ?case unfolding bool.assn_def by vcg'
+    qed
+  subgoal by simp
+  done  
+
+term atom.option_assn  
+  
+term snat.option_assn  
+  
+(*sepref_decl_op atm_of: \<open>atm_of :: nat literal \<Rightarrow> nat\<close> ::
   \<open>(Id :: (nat literal \<times> _) set) \<rightarrow> (Id :: (nat \<times> _) set)\<close> .
 
 lemma [def_pat_rules]:
   \<open>atm_of \<equiv> op_atm_of\<close>
   by auto
+*)  
 
-lemma atm_of_refine: "(\<lambda>x. x div 2 , op_atm_of) \<in> nat_lit_rel \<rightarrow> nat_rel"  
+lemma atm_of_refine: "(\<lambda>x. x div 2 , atm_of) \<in> nat_lit_rel \<rightarrow> nat_rel"  
   by (auto simp: nat_lit_rel_def in_br_conv)
+
   
 sepref_definition atm_of_impl is "RETURN o (\<lambda>x::nat. x div 2)" 
-  :: "uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn"
+  :: "uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a atom_assn"
+  unfolding atom_rel_def b_assn_pure_conv[symmetric]
+  apply (rule hfref_bassn_resI)
+  subgoal by (auto dest!: in_unat_rel_imp_less_max' simp: max_unat_def) 
   supply [simp] = max_unat_def
   apply (annot_unat_const "TYPE(32)")
   by sepref
+  
+lemmas [sepref_fr_rules] = atm_of_impl.refine[FCOMP atm_of_refine]
+  
+
+lemma Pos_refine_aux: "(\<lambda>x. 2*x,Pos)\<in>nat_rel \<rightarrow> nat_lit_rel"
+  by (auto simp: nat_lit_rel_def in_br_conv split: if_splits)
+  
+lemma Neg_refine_aux: "(\<lambda>x. 2*x + 1,Neg)\<in>nat_rel \<rightarrow> nat_lit_rel"
+  by (auto simp: nat_lit_rel_def in_br_conv split: if_splits)
+
+sepref_definition Pos_impl is "RETURN o (\<lambda>x. 2*x)" :: "atom_assn\<^sup>d \<rightarrow>\<^sub>a uint32_nat_assn"
+  unfolding atom_rel_def
+  apply (annot_unat_const "TYPE(32)")
+  supply [simp] = max_unat_def uint32_max_def
+  by sepref_dbg_keep
+  
+  
+sepref_definition Neg_impl is "RETURN o (\<lambda>x. 2*x+1)" :: "[\<lambda>x. x \<le> uint32_max div 2]\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> uint32_nat_assn"
+  apply (annot_unat_const "TYPE(32)")
+  supply [simp] = max_unat_def uint32_max_def
+  by sepref
+  
+lemmas [sepref_fr_rules] = 
+  Pos_impl.refine[FCOMP Pos_refine_aux]
+  Neg_impl.refine[FCOMP Neg_refine_aux]
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   
 sepref_decl_impl atm_of_impl.refine[FCOMP atm_of_refine] .
 
@@ -109,26 +204,6 @@ sepref_definition is_pos_impl is "RETURN o (\<lambda>x. x AND 1 = 0)" :: "uint32
 lemmas [sepref_fr_rules] = is_pos_impl.refine[FCOMP is_pos_refine_aux]
 
 
-lemma Pos_refine_aux: "(\<lambda>x. 2*x,Pos)\<in>nat_rel \<rightarrow> nat_lit_rel"
-  by (auto simp: nat_lit_rel_def in_br_conv split: if_splits)
-  
-lemma Neg_refine_aux: "(\<lambda>x. 2*x + 1,Neg)\<in>nat_rel \<rightarrow> nat_lit_rel"
-  by (auto simp: nat_lit_rel_def in_br_conv split: if_splits)
-
-sepref_definition Pos_impl is "RETURN o (\<lambda>x. 2*x)" :: "[\<lambda>x. x \<le> uint32_max div 2]\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> uint32_nat_assn"
-  apply (annot_unat_const "TYPE(32)")
-  supply [simp] = max_unat_def uint32_max_def
-  by sepref
-  
-sepref_definition Neg_impl is "RETURN o (\<lambda>x. 2*x+1)" :: "[\<lambda>x. x \<le> uint32_max div 2]\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> uint32_nat_assn"
-  apply (annot_unat_const "TYPE(32)")
-  supply [simp] = max_unat_def uint32_max_def
-  by sepref
-  
-lemmas [sepref_fr_rules] = 
-  Pos_impl.refine[FCOMP Pos_refine_aux]
-  Neg_impl.refine[FCOMP Neg_refine_aux]
-  
   
 
 

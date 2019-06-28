@@ -1,6 +1,7 @@
 theory IsaSAT_VMTF_LLVM
 imports Watched_Literals.WB_Sort IsaSAT_VMTF IsaSAT_Setup_LLVM
 begin
+
  
 (*
 lemma VMTF_Node_ref[sepref_fr_rules]:
@@ -78,8 +79,21 @@ lemma case_option_split:
   \<open>(case a of None \<Rightarrow> x | Some y \<Rightarrow> f y) = 
    (if is_None a then x else let y = the a in f y)\<close>
   by (auto split: option.splits)
-lemma is_pure_snat_option[safe_constraint_rules]: \<open>CONSTRAINT is_pure snat.option_assn\<close>
+(*lemma is_pure_snat_option[safe_constraint_rules]: \<open>CONSTRAINT is_pure snat.option_assn\<close>
   using snat.A_pure snat.option_assn_pure unfolding CONSTRAINT_def by blast
+*)
+
+(*
+
+  TODO: Test whether this setup is safe in general? 
+    E.g., synthesize destructors when side-tac can prove is_pure.
+  
+lemmas [sepref_frame_free_rules] = mk_free_is_pure
+lemmas [simp] = vmtf_node_assn_pure[unfolded CONSTRAINT_def]
+*)
+
+lemmas [sepref_frame_free_rules] = mk_free_is_pure[OF vmtf_node_assn_pure[unfolded CONSTRAINT_def]]  
+  
 
 sepref_definition (in -)ns_vmtf_dequeue_code
    is \<open>uncurry (RETURN oo ns_vmtf_dequeue)\<close>
@@ -91,46 +105,7 @@ sepref_definition (in -)ns_vmtf_dequeue_code
   apply (rewrite at \<open>_ ! \<hole>\<close> annot_unat_snat_upcast[where 'l=64])
   apply (rewrite at \<open>list_update _ \<hole> (VMTF_Node (stamp _) None None)\<close> annot_unat_snat_upcast[where 'l=64])
   apply (rewrite at \<open>VMTF_Node (stamp (_ ! \<hole>)) None None\<close> annot_unat_snat_upcast[where 'l=64])
-(*TODO Peter: why does the safe_constraint_rules above not imply that is works automatically*)
-  apply sepref_dbg_preproc
-  apply sepref_dbg_cons_init
-  apply sepref_dbg_id
-  apply sepref_dbg_monadify
-  apply sepref_dbg_opt_init
-apply sepref_dbg_keep
-apply sepref_dbg_trans_keep
-apply (rule mk_free_is_pure[OF vmtf_node_assn_pure[unfolded CONSTRAINT_def]])
-apply sepref_dbg_keep
-apply sepref_dbg_trans_keep
-apply (rule mk_free_is_pure[OF vmtf_node_assn_pure[unfolded CONSTRAINT_def]])
-apply sepref_dbg_keep
-apply sepref_dbg_trans_keep
-apply sepref_dbg_trans_step_keep
-apply (rule frame_rem1)
-apply sepref_dbg_trans_step
-apply (rule mk_free_is_pure[OF is_pure_snat_option[unfolded CONSTRAINT_def]])
-apply sepref_dbg_trans_step
-apply (rule frame_rem1)
-apply sepref_dbg_trans_step+
-apply (rule mk_free_is_pure[OF vmtf_node_assn_pure[unfolded CONSTRAINT_def]])
-apply sepref_dbg_trans_step+
-apply (rule mk_free_is_pure[OF vmtf_node_assn_pure[unfolded CONSTRAINT_def]])
-apply sepref_dbg_trans_step+
-apply (rule mk_free_is_pure[OF vmtf_node_assn_pure[unfolded CONSTRAINT_def]])
-apply sepref_dbg_trans_step+
-apply (rule mk_free_is_pure[OF vmtf_node_assn_pure[unfolded CONSTRAINT_def]])
-apply sepref_dbg_trans_step+
-apply (rule mk_free_is_pure[OF vmtf_node_assn_pure[unfolded CONSTRAINT_def]])
-apply sepref_dbg_trans_step+
-apply (rule mk_free_is_pure[OF vmtf_node_assn_pure[unfolded CONSTRAINT_def]])
-apply sepref_dbg_trans_step+
-apply (rule mk_free_is_pure[OF vmtf_node_assn_pure[unfolded CONSTRAINT_def]])
-apply sepref_dbg_trans_step+
-  apply sepref_dbg_opt
-  apply sepref_dbg_cons_solve
-  apply sepref_dbg_cons_solve
-  apply sepref_dbg_constraints
-done
+  by sepref
 
 declare ns_vmtf_dequeue_code.refine[sepref_fr_rules]
 
@@ -174,15 +149,64 @@ lemma isa_vmtf_en_dequeue_alt_def:
   apply (auto intro!: ext split: prod.splits simp: Let_def)
   done
 
+lemma isa_vmtf_en_dequeue_alt_def2:
+   \<open>isa_vmtf_en_dequeue = (\<lambda>M L vm.
+   case vm of
+               (ns, m, fst_As, lst_As, next_search) \<Rightarrow>
+                 let fst_As' =
+                       if fst_As = L then get_next (ns ! op_unat_snat_upcast TYPE(64) L) else (Some fst_As);
+                     next_search' =
+                       if next_search = (Some L) then get_next (ns ! op_unat_snat_upcast TYPE(64) L)
+                       else next_search;
+                     lst_As' =
+                       if lst_As = L then get_prev (ns ! op_unat_snat_upcast TYPE(64) L) else (Some lst_As);
+                     ns = ns_vmtf_dequeue L ns;
+                     fst_As = fst_As';
+                     lst_As = lst_As';
+                     next_search = next_search'
+                 in  do {
+              _ \<leftarrow> ASSERT (defined_atm_pol_pre M L);
+              de \<leftarrow> RETURN (defined_atm_pol M L);
+              RETURN
+               (case fst_As of
+                None \<Rightarrow>
+                  (ns[L := VMTF_Node m fst_As None], m + 1, L, L,
+                   if de then None else Some L)
+                | Some fst_As \<Rightarrow>
+                    let fst_As' =
+                          VMTF_Node (stamp (ns ! fst_As)) (Some L)
+                           (get_next (ns ! fst_As))
+                    in (ns[op_unat_snat_upcast TYPE(64) L := VMTF_Node (m + 1) None (Some fst_As),
+                           fst_As := fst_As'],
+                        m + 1, L, the lst_As,
+                        if de then next_search else Some L))
+            })\<close>
+  unfolding isa_vmtf_en_dequeue_def vmtf_dequeue_def isa_vmtf_enqueue_def
+    annot_unat_snat_upcast[symmetric] ASSN_ANNOT_def
+  apply (auto intro!: ext split: prod.splits simp: Let_def)
+  done
+  
+(* TODO: This is a general setup to identify any numeral by id-op (numeral is already in Sepref_Id_Op.thy.)
+  Note: Naked int/nat numerals will be rejected by translate, as they need to be type-annotated.
+*)  
+sepref_register 1 0  
+  
 sepref_definition vmtf_en_dequeue_fast_code
    is \<open>uncurry2 isa_vmtf_en_dequeue\<close>
    :: \<open>[isa_vmtf_en_dequeue_pre]\<^sub>a
         trail_pol_fast_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a vmtf_assn\<^sup>d \<rightarrow> vmtf_assn\<close>
-  supply [[goals_limit = 1]]
+  supply [[goals_limit = 3]]
   supply isa_vmtf_en_dequeue_preD[dest] isa_vmtf_en_dequeue_pre_vmtf_enqueue_pre[dest]
-  unfolding isa_vmtf_en_dequeue_alt_def case_option_split
+  unfolding isa_vmtf_en_dequeue_alt_def2 case_option_split
  eq_Some_iff
+ (*apply (annot_unat_const "TYPE(64)")*)
 apply sepref_dbg_keep
+apply sepref_dbg_trans_keep
+
+find_in_thms "0 " in id_rules
+
+
+oops
 apply sepref_dbg_id_init
 apply sepref_dbg_id_step
 apply sepref_dbg_id_step
@@ -201,6 +225,84 @@ apply sepref_dbg_id_step
 apply sepref_dbg_id_step
 apply sepref_dbg_id_step
 apply sepref_dbg_id_step
+
+apply sepref_dbg_id_step back
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step back
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step back
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step back
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step back
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step back
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step back
+apply sepref_dbg_id_step
+apply sepref_dbg_id_solve
+apply sepref_dbg_id_step back
 apply sepref_dbg_id_step
 apply sepref_dbg_id_step
 apply sepref_dbg_id_step
@@ -229,6 +331,59 @@ apply sepref_dbg_id_step
 apply sepref_dbg_id_step
 apply sepref_dbg_id_step
 apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+apply sepref_dbg_id_step
+
+
+
 apply sepref_dbg_trans_keep
 apply sepref_dbg_trans_step_keep
 apply sepref_dbg_side_unfold
