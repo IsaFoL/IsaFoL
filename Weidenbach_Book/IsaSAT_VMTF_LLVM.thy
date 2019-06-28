@@ -108,21 +108,27 @@ lemma isa_vmtf_en_dequeue_preI:
   assumes "isa_vmtf_en_dequeue_pre ((M,L),(ns, m, fst_As, lst_As, next_search))"  
   shows "fst_As < length ns" "L < length ns" "m < max_snat 64"
     and "get_next (ns!L) = Some i \<longrightarrow> i < length ns"
+    and "fst_As \<noteq> lst_As \<longrightarrow> get_prev (ns ! lst_As) \<noteq> None"
+    and "get_next (ns ! fst_As) \<noteq> None \<longrightarrow> get_prev (ns ! lst_As) \<noteq> None"
   using assms
   unfolding isa_vmtf_en_dequeue_pre_def vmtf_dequeue_pre_def
   apply (auto simp: max_snat_def sint64_max_def)
   done
   
   
+find_theorems "_ \<noteq> None \<longleftrightarrow> _"  
+  
 lemma isa_vmtf_en_dequeue_alt_def2:
-   \<open>isa_vmtf_en_dequeue_pre x \<Longrightarrow> (
-    case x of ((M,L),(ns, m, fst_As, lst_As, next_search)) \<Rightarrow> doN {
+   \<open>isa_vmtf_en_dequeue_pre x \<Longrightarrow> uncurry2 (\<lambda>M L vm.
+    case vm of (ns, m, fst_As, lst_As, next_search) \<Rightarrow> doN {
       ASSERT(L<length ns);
-      fst_As \<leftarrow> (if fst_As = L then RETURN (get_next (ns ! L)) else (RETURN (Some fst_As)));
+      nsL \<leftarrow> mop_list_get ns (index_of_atm L);
+      let fst_As = (if fst_As = L then get_next nsL else (Some fst_As));
       
-      let next_search = (if next_search = (Some L) then get_next (ns ! L)
+      let next_search = (if next_search = (Some L) then get_next nsL
                         else next_search);
-      let lst_As = (if lst_As = L then get_prev (ns ! L) else (Some lst_As));
+      let lst_As = (if lst_As = L then get_prev nsL else (Some lst_As));
+      ASSERT (vmtf_dequeue_pre (L,ns));
       let ns = ns_vmtf_dequeue L ns;
       ASSERT (defined_atm_pol_pre M L);
       let de = (defined_atm_pol M L);
@@ -132,7 +138,7 @@ lemma isa_vmtf_en_dequeue_alt_def2:
           (ns[L := VMTF_Node m fst_As None], m + 1, L, L,
            if de then None else Some L)
       | Some fst_As \<Rightarrow> doN {
-          ASSERT (fst_As < length ns);
+          ASSERT (L < length ns \<and> fst_As < length ns \<and> lst_As \<noteq> None);
           let fst_As' =
                 VMTF_Node (stamp (ns ! fst_As)) (Some L)
                  (get_next (ns ! fst_As));
@@ -142,17 +148,22 @@ lemma isa_vmtf_en_dequeue_alt_def2:
             m + 1, L, the lst_As,
             if de then next_search else Some L)
       }
-    })
+    }) x
   \<le> uncurry2 (isa_vmtf_en_dequeue) x
     \<close>
   unfolding isa_vmtf_en_dequeue_def vmtf_dequeue_def isa_vmtf_enqueue_def
     annot_unat_snat_upcast[symmetric] ASSN_ANNOT_def
-  apply (simp add: Let_def)
+  apply (cases x; simp add: Let_def)
   apply (simp 
     only: pw_le_iff refine_pw_simps 
     split: prod.splits
     )
-  apply (auto split!: if_splits option.splits simp: refine_pw_simps isa_vmtf_en_dequeue_preI)
+  supply isa_vmtf_en_dequeue_preD[simp] (*isa_vmtf_en_dequeue_pre_vmtf_enqueue_pre[dest]*)
+  apply (auto 
+    split!: if_splits option.splits 
+    simp: refine_pw_simps isa_vmtf_en_dequeue_preI dest: isa_vmtf_en_dequeue_preI 
+    simp del: not_None_eq
+    (*dest: isa_vmtf_en_dequeue_preI*))
   done
   
 (* TODO: This is a general setup to identify any numeral by id-op (numeral is already in Sepref_Id_Op.thy.)
@@ -160,34 +171,7 @@ lemma isa_vmtf_en_dequeue_alt_def2:
 *)  
 sepref_register 1 0  
 
-sepref_definition atom_eq_impl is "uncurry (RETURN oo (=))" :: "atom_assn\<^sup>d *\<^sub>a atom_assn\<^sup>d \<rightarrow>\<^sub>a bool1_assn"
-  unfolding atom_rel_def
-  by sepref
 
-lemmas [sepref_fr_rules] = atom_eq_impl.refine
-  
-method annot_all_atm_idxs = (simp only_main: annot_index_of_atm' cong: if_cong)
-
-
-(* TODO: Move and change, such that annot does only annotate in program, not in relations! *)
-lemma hfref_absfun_convI: "CNV g g' \<Longrightarrow> (f,g') \<in> hfref P A R \<Longrightarrow> (f,g) \<in> hfref P A R" by simp
-
-method annot_sint_const for T::"'a::len itself" = 
-  (rule hfref_absfun_convI),
-  (simp only: sint_const_fold[where 'a='a] cong: annot_num_const_cong),
-  (rule CNV_I)
-  
-method annot_snat_const for T::"'a::len2 itself" = 
-  (rule hfref_absfun_convI),
-  (simp only: snat_const_fold[where 'a='a] cong: annot_num_const_cong),
-  (rule CNV_I)
-  
-method annot_unat_const for T::"'a::len itself" = 
-  (rule hfref_absfun_convI),
-  (simp only: unat_const_fold[where 'a='a] cong: annot_num_const_cong),
-  (rule CNV_I)
-
-find_theorems is_None
 
 (* TODO: The current simp-unfold rule for is_None requires option.split to reason about. 
   Not a good idea when goals get big! *)
@@ -200,6 +184,12 @@ lemma vmtf_en_dequeue_fast_codeI:
   unfolding isa_vmtf_en_dequeue_pre_def max_snat_def sint64_max_def
   by auto
   
+  
+schematic_goal mk_free_trail_pol_fast_assn[sepref_frame_free_rules]: "MK_FREE trail_pol_fast_assn ?fr"  
+  unfolding trail_pol_fast_assn_def
+  by sepref_dbg_side (* TODO: Use appropriate tactic! *)
+  
+  
 
 sepref_definition vmtf_en_dequeue_fast_code
    is \<open>uncurry2 isa_vmtf_en_dequeue\<close>
@@ -209,220 +199,15 @@ sepref_definition vmtf_en_dequeue_fast_code
   
   supply [[goals_limit = 1]]
   (*supply [split] = option.splits*)
-  supply [dest] = in_unat_rel_imp_less_max' 
+  (*supply [dest] = in_unat_rel_imp_less_max' *)
   supply [simp] = max_unat_def max_snat_def
   supply [simp] = is_None_unfold'
-  supply isa_vmtf_en_dequeue_preD[dest] isa_vmtf_en_dequeue_pre_vmtf_enqueue_pre[dest]
-  unfolding isa_vmtf_en_dequeue_alt_def2 case_option_split eq_Some_iff short_circuit_conv
-    
-  apply (tactic \<open>
-    let 
-      val ctxt = @{context}
-        |> put_simpset HOL_basic_ss
-      val ctxt = ctxt addsimps @{thms annot_index_of_atm'}
-      val ctxt = ctxt addsimprocs [@{simproc NO_MATCH}]
-    in
-      simp_tac ctxt 1
-    end  
-  \<close>)
-  
- apply (annot_unat_const "TYPE(64)")
- 
- unfolding atom.fold_option
- 
-apply sepref_dbg_keep
-apply sepref_dbg_trans_keep
- apply sepref_dbg_trans_step_keep
-
-subgoal
-  apply sepref_dbg_side_keep
-
-
-find_in_thms "0 " in id_rules
-
-
-oops
-apply sepref_dbg_id_init
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-
-apply sepref_dbg_id_step back
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step back
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step back
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step back
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step back
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step back
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step back
-apply sepref_dbg_id_step
-apply sepref_dbg_id_solve
-apply sepref_dbg_id_step back
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-
-
-
-apply sepref_dbg_trans_keep
-apply sepref_dbg_trans_step_keep
-apply sepref_dbg_side_unfold
-
+  (*supply isa_vmtf_en_dequeue_preD[dest] isa_vmtf_en_dequeue_pre_vmtf_enqueue_pre[dest]*)
+  unfolding isa_vmtf_en_dequeue_alt_def2 case_option_split eq_Some_iff 
+  apply (rewrite in "if \<hole> then get_next _ else _" short_circuit_conv)
+  apply annot_all_atm_idxs    
+  apply (annot_unat_const "TYPE(64)")
+  unfolding atom.fold_option
   by sepref
 
 declare vmtf_en_dequeue_fast_code.refine[sepref_fr_rules]

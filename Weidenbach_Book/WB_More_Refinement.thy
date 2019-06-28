@@ -3,7 +3,7 @@ theory WB_More_Refinement
     "HOL-Library.Cardinality"
     "HOL-Library.Rewrite"
     "HOL-Eisbach.Eisbach"
-    "Isabelle_LLVM.Refine_Monadic_Thin"
+    "Isabelle_LLVM.Sepref_Misc"
 begin
 (*
   term \<open>a \<rightarrow>\<^sub>f b\<close>

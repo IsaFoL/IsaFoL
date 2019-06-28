@@ -2,24 +2,6 @@ theory IsaSAT_Literals_LLVM
   imports WB_More_Word IsaSAT_Literals Watched_Literals.WB_More_IICF_LLVM
 begin
 
-(* TODO: Move. 
-  DUPs in IICF_Impl_Heapmap Undirected_Graph_Impl.hfref_postcondI IICF_MS_Array_List.hfref_bassnI
-*)    
-lemma hfref_bassn_resI:
-  assumes "\<And>xs. \<lbrakk>rdomp (fst As) xs; C xs\<rbrakk> \<Longrightarrow> a xs \<le>\<^sub>n SPEC P"
-  assumes "(c,a)\<in>[C]\<^sub>a As \<rightarrow> R"
-  shows "(c,a)\<in>[C]\<^sub>a As \<rightarrow> b_assn R P"
-  apply rule
-  apply (rule hn_refine_preI)
-  apply (rule hn_refine_cons[rotated])
-  apply (rule hn_refine_augment_res)
-  apply (rule assms(2)[to_hnr, unfolded hn_ctxt_def autoref_tag_defs])
-  apply simp
-  apply (rule assms(1))
-  apply (auto simp: rdomp_def sep_algebra_simps)
-  done
-  
-
 
 lemma convert_fref:
   "WB_More_Refinement.fref = Sepref_Rules.frefnd"
@@ -70,109 +52,6 @@ abbreviation unat_lit_assn :: \<open>nat literal \<Rightarrow> 32 word \<Rightar
 
 subsection \<open>Atom-Of\<close>  
   
-(* TODO: Move *)
-text \<open>Option type via unused implementation value\<close>  
-locale dflt_option_private =   
-  fixes dflt and A :: "'a \<Rightarrow> 'c::llvm_rep \<Rightarrow> assn" and is_dflt
-  assumes UU: "A a dflt = sep_false"
-  assumes CMP: "llvm_htriple \<box> (is_dflt k) (\<lambda>r. \<upharpoonleft>bool.assn (k=dflt) r)"
-begin
-  
-  definition "option_assn a c \<equiv> if c=dflt then \<up>(a=None) else EXS aa. \<up>(a=Some aa) ** A aa c"
-
-  definition None where [simp]: "None \<equiv> Option.None"
-  definition Some where [simp]: "Some \<equiv> Option.Some"
-  definition the where [simp]: "the \<equiv> Option.the"
-  definition is_None where [simp]: "is_None \<equiv> Autoref_Bindings_HOL.is_None"
-  
-  lemmas fold_None = None_def[symmetric]
-  lemmas fold_Some = Some_def[symmetric]
-  lemmas fold_the = the_def[symmetric]
-  lemmas fold_is_None = is_None_def[symmetric]
-  
-  lemma fold_is_None2: 
-    "a = None \<longleftrightarrow> is_None a"
-    "None = a \<longleftrightarrow> is_None a"
-    by (auto simp: is_None_def None_def split: option.split)
-  
-  lemmas fold_option = fold_None fold_Some fold_the fold_is_None fold_is_None2
-  
-  sepref_register None Some the is_None
-  
-    
-  lemma hn_None[sepref_fr_rules]: "(uncurry0 (return dflt), uncurry0 (RETURN None)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a option_assn"  
-    apply sepref_to_hoare unfolding option_assn_def None_def
-    apply vcg'
-    done
-  
-  lemma hn_Some[sepref_fr_rules]: "(return, RETURN o Some) \<in> A\<^sup>d \<rightarrow>\<^sub>a option_assn"  
-    apply sepref_to_hoare
-    subgoal for a c
-      apply (cases "c=dflt")
-      using UU apply simp
-      unfolding option_assn_def Some_def
-      apply vcg
-      done
-    done
-  
-  lemma hn_the[sepref_fr_rules]: "(return, RETURN o the) \<in> [\<lambda>x. x \<noteq> Option.None]\<^sub>a option_assn\<^sup>d \<rightarrow> A"
-    apply sepref_to_hoare
-    unfolding option_assn_def the_def
-    apply clarsimp
-    apply vcg'
-    done
-    
-  lemma hn_is_None[sepref_fr_rules]: "(is_dflt, RETURN o is_None) \<in> option_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn"
-    unfolding bool1_rel_def bool.assn_is_rel[symmetric]
-    apply sepref_to_hoare
-    unfolding option_assn_def is_None_def
-    apply clarsimp
-    supply CMP[vcg_rules]
-    apply vcg'
-    done
-    
-  definition [llvm_inline]: "free_option fr c \<equiv> doM { d\<leftarrow>is_dflt c; llc_if d (return ()) (fr c) }"
-    
-  lemma mk_free_option[sepref_frame_free_rules]:
-    assumes [THEN MK_FREED, vcg_rules]: "MK_FREE A fr"  
-    shows "MK_FREE option_assn (free_option fr)"
-    apply rule
-    unfolding free_option_def option_assn_def
-    apply clarsimp
-    supply CMP[vcg_rules]
-    apply vcg
-    done
-    
-  lemma option_assn_pure[safe_constraint_rules]:
-    assumes "is_pure A" 
-    shows "is_pure option_assn"  
-  proof -
-    from assms obtain P where [simp]: "A = (\<lambda>a c. \<up>(P a c))"
-      unfolding is_pure_def by blast
-  
-    show ?thesis  
-      apply (rule is_pureI[where P'="\<lambda>a c. if c=dflt then a=Option.None else \<exists>aa. a=Option.Some aa \<and> P aa c"])
-      unfolding option_assn_def
-      by (auto simp: sep_algebra_simps pred_lift_extract_simps)
-      
-  qed    
-    
-    
-end    
-
-locale dflt_pure_option_private = dflt_option_private +
-  assumes A_pure[safe_constraint_rules]: "is_pure A"
-begin
-  lemma A_free[sepref_frame_free_rules]: "MK_FREE A (\<lambda>_. return ())"
-    by (rule mk_free_is_pure[OF A_pure])
-
-end  
-
-
-
-
-term snatb_rel
-
 type_synonym atom_assn = "32 word"
 
 definition "atom_rel \<equiv> b_rel (unat_rel' TYPE(32)) (\<lambda>x. x<2^31)"
@@ -180,7 +59,6 @@ abbreviation "atom_assn \<equiv> pure atom_rel"
 
 lemma atom_rel_alt: "atom_rel = unat_rel' TYPE(32) O nbn_rel (2^31)"
   by (auto simp: atom_rel_def)
-
   
 interpretation atom: dflt_pure_option_private "2^32-1" atom_assn "ll_icmp_eq (2^32-1)"
   apply unfold_locales
@@ -197,21 +75,6 @@ interpretation atom: dflt_pure_option_private "2^32-1" atom_assn "ll_icmp_eq (2^
   subgoal by simp
   done  
 
-sepref_definition foo is "uncurry (\<lambda>x y. RETURN (x = atom.None \<and> y = atom.None))" :: "atom.option_assn\<^sup>k *\<^sub>a atom.option_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn"
-  unfolding atom.fold_option
-  by sepref
-
-sepref_definition foo1 is "uncurry (\<lambda>x y. RETURN (x = None \<and> atom.is_None y))" :: "snat.option_assn\<^sup>k *\<^sub>a atom.option_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn"
-  by sepref
-  
-  
-(*sepref_decl_op atm_of: \<open>atm_of :: nat literal \<Rightarrow> nat\<close> ::
-  \<open>(Id :: (nat literal \<times> _) set) \<rightarrow> (Id :: (nat \<times> _) set)\<close> .
-
-lemma [def_pat_rules]:
-  \<open>atm_of \<equiv> op_atm_of\<close>
-  by auto
-*)  
 
 lemma atm_of_refine: "(\<lambda>x. x div 2 , atm_of) \<in> nat_lit_rel \<rightarrow> nat_rel"  
   by (auto simp: nat_lit_rel_def in_br_conv)
@@ -254,6 +117,14 @@ lemmas [sepref_fr_rules] =
   Pos_impl.refine[FCOMP Pos_refine_aux]
   Neg_impl.refine[FCOMP Neg_refine_aux]
 
+sepref_definition atom_eq_impl is "uncurry (RETURN oo (=))" :: "atom_assn\<^sup>d *\<^sub>a atom_assn\<^sup>d \<rightarrow>\<^sub>a bool1_assn"
+  unfolding atom_rel_def
+  by sepref
+
+lemmas [sepref_fr_rules] = atom_eq_impl.refine
+
+  
+  
 definition value_of_atm :: \<open>nat \<Rightarrow> nat\<close> where
 [simp]: \<open>value_of_atm A = A\<close>
 
@@ -292,7 +163,27 @@ lemma annot_index_of_atm: \<open>xs ! x = xs ! index_of_atm x\<close>
 definition index_atm_of where
 [simp]: \<open>index_atm_of L = index_of_atm (atm_of L)\<close>
 
+(* TODO: Use at more places! *)
+context fixes x y :: nat assumes "NO_MATCH (index_of_atm y) x" begin
+  lemmas annot_index_of_atm' = annot_index_of_atm[where x=x]
+end  
 
+method_setup annot_all_atm_idxs = \<open>Scan.succeed (fn ctxt => SIMPLE_METHOD' 
+    let 
+      val ctxt = put_simpset HOL_basic_ss ctxt 
+      val ctxt = ctxt addsimps @{thms annot_index_of_atm'}
+      val ctxt = ctxt addsimprocs [@{simproc NO_MATCH}]
+    in
+      simp_tac ctxt
+    end  
+  )\<close>
+
+lemma annot_index_atm_of[def_pat_rules]:
+  \<open>nth$xs$(atm_of$x) \<equiv> nth$xs$(index_atm_of$x)\<close>
+  \<open>list_update$xs$(atm_of$x)$a \<equiv> list_update$xs$(index_atm_of$x)$a\<close>
+  by auto
+
+  
 sepref_definition index_atm_of_impl 
   is \<open>RETURN o index_atm_of\<close>
   :: \<open>unat_lit_assn\<^sup>d \<rightarrow>\<^sub>a snat_assn' TYPE(64)\<close>
@@ -301,17 +192,6 @@ sepref_definition index_atm_of_impl
 
 declare index_atm_of_impl.refine [sepref_fr_rules]
 
-(* TODO: Move. Use at more places! *)
-context fixes x y :: nat assumes "NO_MATCH (index_of_atm y) x" begin
-  lemmas annot_index_of_atm' = annot_index_of_atm[where x=x]
-end  
-
-method annot_all_atm_idxs = (simp only_main: annot_index_of_atm' cong: if_cong)
-
-lemma annot_index_atm_of[def_pat_rules]:
-  \<open>nth$xs$(atm_of$x) \<equiv> nth$xs$(index_atm_of$x)\<close>
-  \<open>list_update$xs$(atm_of$x)$a \<equiv> list_update$xs$(index_atm_of$x)$a\<close>
-  by auto
 
 
 
