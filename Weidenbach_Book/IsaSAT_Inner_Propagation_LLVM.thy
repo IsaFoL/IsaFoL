@@ -35,111 +35,26 @@ declare watched_by_app_heur_fast_code.refine[sepref_fr_rules]
 sepref_register isa_find_unwatched_wl_st_heur isa_find_unwatched_between isa_find_unset_lit
   polarity_pol
 
+(*TODO dup*)
+sepref_register 0 1
 
-term snat.option_assn
 sepref_definition isa_find_unwatched_between_fast_code
   is \<open>uncurry4 isa_find_unset_lit\<close>
   :: \<open>[\<lambda>((((M, N), _), _), _). length N \<le> sint64_max]\<^sub>a
-     trail_pol_fast_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow>
+     trail_pol_fast_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow>
        snat_option_assn' TYPE(64)\<close>
-  supply [[goals_limit = 1]]
+  supply [[goals_limit = 3]]
+  supply [simp] = max_unat_def max_snat_def sint64_max_def
   unfolding isa_find_unset_lit_def isa_find_unwatched_between_def SET_FALSE_def[symmetric]
     PR_CONST_def
-  apply (rewrite in \<open>if \<hole> then _ else _\<close>  eq_commute)
   apply (rewrite in \<open>if \<hole> then _ else _\<close>  tri_bool_eq_def[symmetric])
+  apply (rewrite in \<open>If _ (RETURN (\<hole>, _))\<close> annotate_assn[where A = \<open>snat_option_assn' TYPE(64)\<close>])
 apply sepref_dbg_keep
-apply sepref_dbg_id_init
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
-apply sepref_dbg_id_step
 apply sepref_dbg_trans_keep
+apply sepref_dbg_trans_step
 apply sepref_dbg_trans_step_keep
-apply sepref_dbg_side_unfold
+apply sepref_dbg_side_unfold apply auto[]
+
 oops
   by sepref
 
