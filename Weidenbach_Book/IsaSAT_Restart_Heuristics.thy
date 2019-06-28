@@ -99,7 +99,7 @@ lemma get_fast_ema_heur_alt_def:
   by auto
 
 
-fun (in -) get_conflict_count_since_last_restart_heur :: \<open>twl_st_wl_heur \<Rightarrow> uint64\<close> where
+fun (in -) get_conflict_count_since_last_restart_heur :: \<open>twl_st_wl_heur \<Rightarrow> 64 word\<close> where
   \<open>get_conflict_count_since_last_restart_heur (_, _, _, _, _, _, _, _, _, _, _, _, _, _, (ccount, _), _)
       = ccount\<close>
 
@@ -132,9 +132,9 @@ where
 	   let L = atm_of (M ! t);
            ASSERT(L < length ns);
            let brk = stamp (ns ! L) < m;
-           RETURN (brk, if brk then i else i+one_uint32_nat)
+           RETURN (brk, if brk then i else i+1)
          })
-        (False, zero_uint32_nat);
+        (False, 0);
     RETURN i
    })\<close>
 
@@ -514,31 +514,31 @@ where
   })\<close>
 
 
-definition minimum_number_between_restarts :: \<open>uint64\<close> where
+definition minimum_number_between_restarts :: \<open>64 word\<close> where
   \<open>minimum_number_between_restarts = 50\<close>
 
-definition five_uint64 :: \<open>uint64\<close> where
+definition five_uint64 :: \<open>64 word\<close> where
   \<open>five_uint64 = 5\<close>
 
 
 definition upper_restart_bound_not_reached :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close> where
   \<open>upper_restart_bound_not_reached = (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, (props, decs, confl, restarts, _), fast_ema, slow_ema, ccount,
        vdom, avdom, lcount, opts).
-    lcount < 3000 + 1000 * nat_of_uint64 restarts)\<close>
+    of_nat lcount < 3000 + 1000 * restarts)\<close>
 
 definition (in -) lower_restart_bound_not_reached :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close> where
   \<open>lower_restart_bound_not_reached = (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl,
         (props, decs, confl, restarts, _), fast_ema, slow_ema, ccount,
        vdom, avdom, lcount, opts, old).
-     (\<not>opts_reduce opts \<or> (opts_restart opts \<and> (lcount < 2000 + 1000 * nat_of_uint64 restarts))))\<close>
+     (\<not>opts_reduce opts \<or> (opts_restart opts \<and> (of_nat lcount < 2000 + 1000 * restarts))))\<close>
 
 definition (in -) clause_score_extract :: \<open>arena \<Rightarrow> nat \<Rightarrow> nat \<times> nat\<close> where
   \<open>clause_score_extract arena C = (
      if arena_status arena C = DELETED
-     then (uint32_max, zero_uint32_nat) \<comment> \<open>deleted elements are the
+     then (uint32_max, 0) \<comment> \<open>deleted elements are the
         largest possible\<close>
      else
-       let lbd = get_clause_LBD arena C in
+       let lbd = arena_lbd arena C in
        let act = arena_act arena C in
        (lbd, act)
   )\<close>
@@ -753,7 +753,7 @@ definition opts_reduction_st :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close>
 definition max_restart_decision_lvl :: nat where
   \<open>max_restart_decision_lvl = 300\<close>
 
-definition max_restart_decision_lvl_code :: uint32 where
+definition max_restart_decision_lvl_code :: \<open>32 word\<close> where
   \<open>max_restart_decision_lvl_code = 300\<close>
 
 definition restart_required_heur :: "twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> bool nres" where
@@ -771,13 +771,13 @@ definition restart_required_heur :: "twl_st_wl_heur \<Rightarrow> nat \<Rightarr
     let should_not_reduce = (\<not>opt_red \<or> upper_restart_bound_not_reached S);
     RETURN ((opt_res \<or> opt_red) \<and>
        (should_not_reduce \<longrightarrow> limit > fema) \<and> min_reached \<and> can_res \<and>
-      level > two_uint32_nat \<and> \<^cancel>\<open>This comment from Marijn Heule seems not to help:
+      of_nat level > (2 :: 64 word) \<and> \<^cancel>\<open>This comment from Marijn Heule seems not to help:
          \<^term>\<open>level < max_restart_decision_lvl\<close>\<close>
-      uint64_of_uint32_conv level > nat_of_uint64_id_conv (fema >> 32))}
+      of_nat level > (fema >> 32))}
   \<close>
 
 
-fun (in -) get_reductions_count :: \<open>twl_st_wl_heur \<Rightarrow> uint64\<close> where
+fun (in -) get_reductions_count :: \<open>twl_st_wl_heur \<Rightarrow> 64 word\<close> where
   \<open>get_reductions_count (_, _, _, _, _, _, _,_,_,_,_,
        (_, _, _, lres, _, _), _)
       = lres\<close>
@@ -788,7 +788,7 @@ lemma (in -) get_reduction_count_alt_def:
   by auto
 
 
-definition GC_EVERY :: uint64 where
+definition GC_EVERY :: \<open>64 word\<close> where
   \<open>GC_EVERY = 15\<close> \<comment>\<open>hard-coded limit\<close>
 
 definition GC_required_heur :: "twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> bool nres" where
@@ -1084,7 +1084,7 @@ definition number_clss_to_keep :: \<open>twl_st_wl_heur \<Rightarrow> nat\<close
   \<open>number_clss_to_keep = (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl,
       (props, decs, confl, restarts, _), fast_ema, slow_ema, ccount,
        vdom, avdom, lcount).
-    nat_of_uint64 (1000 + 150 * restarts))\<close>
+    unat (1000 + 150 * restarts))\<close>
 
 
 definition access_vdom_at :: \<open>twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> nat\<close> where
@@ -1234,7 +1234,7 @@ where
           let can_del = (D \<noteq> Some C) \<and>
 	     arena_lbd (get_clauses_wl_heur T) C > MINIMUM_DELETION_LBD \<and>
              arena_status (get_clauses_wl_heur T) C = LEARNED \<and>
-             arena_length (get_clauses_wl_heur T) C \<noteq> two_uint64_nat \<and>
+             arena_length (get_clauses_wl_heur T) C \<noteq> 2 \<and>
 	     \<not>marked_as_used (get_clauses_wl_heur T) C;
           if can_del
           then
@@ -1307,7 +1307,7 @@ lemma mark_to_delete_clauses_wl_D_heur_alt_def:
             let can_del = (D \<noteq> Some C) \<and>
 	       arena_lbd (get_clauses_wl_heur T) C > MINIMUM_DELETION_LBD \<and>
                arena_status (get_clauses_wl_heur T) C = LEARNED \<and>
-               arena_length (get_clauses_wl_heur T) C \<noteq> two_uint64_nat \<and>
+               arena_length (get_clauses_wl_heur T) C \<noteq> 2 \<and>
 	       \<not>marked_as_used (get_clauses_wl_heur T) C;
             if can_del
             then do {
@@ -1386,7 +1386,7 @@ proof -
         \<le> \<Down> {(D, b). b \<longleftrightarrow> ((D \<noteq> Some (get_avdom x2b ! x1b)) \<and>
                arena_lbd (get_clauses_wl_heur x2b) (get_avdom x2b ! x1b) > MINIMUM_DELETION_LBD \<and>
                arena_status (get_clauses_wl_heur x2b) (get_avdom x2b ! x1b) = LEARNED) \<and>
-               arena_length (get_clauses_wl_heur x2b) (get_avdom x2b ! x1b) \<noteq> two_uint32_nat \<and>
+               arena_length (get_clauses_wl_heur x2b) (get_avdom x2b ! x1b) \<noteq> 2 \<and>
 	       \<not>marked_as_used (get_clauses_wl_heur x2b) (get_avdom x2b ! x1b)}
        (SPEC
            (\<lambda>b. b \<longrightarrow>
@@ -2561,7 +2561,7 @@ proof -
         \<le> \<Down> {(D, b). b \<longleftrightarrow> ((D \<noteq> Some (get_avdom x2b ! x1b)) \<and>
                arena_lbd (get_clauses_wl_heur x2b) (get_avdom x2b ! x1b) > MINIMUM_DELETION_LBD \<and>
                arena_status (get_clauses_wl_heur x2b) (get_avdom x2b ! x1b) = LEARNED) \<and>
-               arena_length (get_clauses_wl_heur x2b) (get_avdom x2b ! x1b) \<noteq> two_uint32_nat \<and>
+               arena_length (get_clauses_wl_heur x2b) (get_avdom x2b ! x1b) \<noteq> 2 \<and>
 	       \<not>marked_as_used (get_clauses_wl_heur x2b) (get_avdom x2b ! x1b)}
        (SPEC
            (\<lambda>b. b \<longrightarrow>
@@ -4571,7 +4571,7 @@ lemma get_pos_of_level_in_trail_imp_alt_def:
 
 
 definition rewatch_heur_st_pre :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close> where
-\<open>rewatch_heur_st_pre S \<longleftrightarrow> (\<forall>i < length (get_vdom S). get_vdom S ! i \<le> uint64_max)\<close>
+\<open>rewatch_heur_st_pre S \<longleftrightarrow> (\<forall>i < length (get_vdom S). get_vdom S ! i \<le> sint64_max)\<close>
 
 lemma isasat_GC_clauses_wl_D_rewatch_pre:
   assumes

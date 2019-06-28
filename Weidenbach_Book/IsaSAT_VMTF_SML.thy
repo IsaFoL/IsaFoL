@@ -1,6 +1,13 @@
 theory IsaSAT_VMTF_SML
 imports Watched_Literals.WB_Sort IsaSAT_VMTF IsaSAT_Setup_SML
 begin
+lemma partition_vmtf_nth_code_helper2:
+  \<open>ba < length b \<Longrightarrow>(bia, ba) \<in> uint32_nat_rel \<Longrightarrow>
+       (aa, (ba - bb) div 2) \<in> uint32_nat_rel \<Longrightarrow>
+       (ab, bb) \<in> uint32_nat_rel \<Longrightarrow> bb + (ba - bb) div 2 \<le> uint32_max\<close>
+   apply (auto simp: uint32_nat_rel_def br_def)
+  by (metis Nat.le_diff_conv2 ab_semigroup_add_class.add.commute diff_le_mono div_le_dividend
+   le_trans nat_of_uint32_le_uint32_max)
 
 lemma size_conflict_code_refine_raw:
   \<open>(return o (\<lambda>(_, n, _). n), RETURN o size_conflict_int) \<in> conflict_option_rel_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>

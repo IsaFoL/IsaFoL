@@ -450,13 +450,15 @@ qed
 
 
 definition atms_hash_insert_pre :: \<open>nat \<Rightarrow> nat list \<times> bool list \<Rightarrow> bool\<close> where
-\<open>atms_hash_insert_pre i = (\<lambda>(n, xs). i < length xs \<and> (\<not>xs!i \<longrightarrow> length n < uint32_max))\<close>
+\<open>atms_hash_insert_pre i = (\<lambda>(n, xs). i < length xs \<and> (\<not>xs!i \<longrightarrow> length n < 2 + uint32_max div 2))\<close>
 
 definition atoms_hash_insert :: \<open>nat \<Rightarrow> nat list \<times> bool list \<Rightarrow> (nat list \<times> bool list)\<close> where
 \<open>atoms_hash_insert i  = (\<lambda>(n, xs). if xs ! i then (n, xs) else (n @ [i], xs[i := True]))\<close>
 
 lemma bounded_included_le:
-   assumes bounded: \<open>isasat_input_bounded \<A>\<close> and \<open>distinct n\<close> and \<open>set n \<subseteq> set_mset \<A> \<close> shows \<open>length n < uint32_max\<close>
+   assumes bounded: \<open>isasat_input_bounded \<A>\<close> and \<open>distinct n\<close> and
+   \<open>set n \<subseteq> set_mset \<A> \<close>
+  shows \<open>length n < uint32_max\<close>  \<open>length n \<le> 1 + uint32_max div 2\<close>
 proof -
   have lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n \<A> (Pos `# mset n)\<close> and
     dist: \<open>distinct n\<close>
@@ -468,7 +470,7 @@ proof -
   have tauto: \<open>\<not> tautology (poss (mset n))\<close>
     by (auto simp: tautology_decomp)
 
-  show ?thesis
+  show \<open>length n < uint32_max\<close>  \<open>length n \<le> 1 + uint32_max div 2\<close>
     using simple_clss_size_upper_div2[OF bounded lits dist tauto]
     by (auto simp: uint32_max_def)
 qed
@@ -557,105 +559,6 @@ definition isa_vmtf_mark_to_rescore_and_unset_pre where
       vmtf_unset_pre L ((ns, m, fst_As, lst_As, next_search), tor) \<and>
       atms_hash_insert_pre L tor)\<close>
 
-definition get_pos_of_level_in_trail where
-  \<open>get_pos_of_level_in_trail M\<^sub>0 lev =
-     SPEC(\<lambda>i. i < length M\<^sub>0 \<and> is_decided (rev M\<^sub>0!i) \<and> get_level M\<^sub>0 (lit_of (rev M\<^sub>0!i)) = lev+1)\<close>
-
-definition (in -) get_pos_of_level_in_trail_imp where
-  \<open>get_pos_of_level_in_trail_imp = (\<lambda>(M', xs, lvls, reasons, k, cs) lev. do {
-      ASSERT(lev < length cs);
-      RETURN (cs ! lev)
-   })\<close>
-
-lemma control_stack_is_decided:
-  \<open>control_stack cs M \<Longrightarrow> c\<in>set cs \<Longrightarrow> is_decided ((rev M)!c)\<close>
-  by (induction arbitrary: c rule: control_stack.induct) (auto simp: nth_append
-      dest: control_stack_le_length_M)
-
-lemma control_stack_distinct:
-  \<open>control_stack cs M \<Longrightarrow> distinct cs\<close>
-  by (induction rule: control_stack.induct) (auto simp: nth_append
-      dest: control_stack_le_length_M)
-
-lemma control_stack_level_control_stack:
-  assumes
-    cs: \<open>control_stack cs M\<close> and
-    n_d: \<open>no_dup M\<close> and
-    i: \<open>i < length cs\<close>
-  shows \<open>get_level M (lit_of (rev M ! (cs ! i))) = Suc i\<close>
-proof -
-  define L where \<open>L = rev M ! (cs ! i)\<close>
-  have csi: \<open>cs ! i < length M\<close>
-    using cs i by (auto intro: control_stack_le_length_M)
-  then have L_M: \<open>L \<in> set M\<close>
-    using nth_mem[of \<open>cs !i\<close> \<open>rev M\<close>] unfolding L_def by (auto simp del: nth_mem)
-  have dec_L: \<open>is_decided L\<close>
-    using control_stack_is_decided[OF cs] i unfolding L_def by auto
-  then have \<open>rev M!(cs ! (get_level M (lit_of L) - 1)) = L\<close>
-    using control_stack_rev_get_lev[OF cs n_d L_M] by auto
-  moreover have \<open>distinct M\<close>
-    using no_dup_distinct[OF n_d] unfolding mset_map[symmetric] distinct_mset_mset_distinct
-    by (rule distinct_mapI)
-
-  moreover have lev0:  \<open>get_level M (lit_of L) \<ge> 1\<close>
-    using split_list[OF L_M] n_d dec_L by (auto simp: get_level_append_if)
-  moreover have \<open>cs ! (get_level M (lit_of (rev M ! (cs ! i))) - Suc 0) < length M\<close>
-    using control_stack_le_length_M[OF cs,
-         of \<open>cs ! (get_level M (lit_of (rev M ! (cs ! i))) - Suc 0)\<close>, OF nth_mem]
-      control_stack_length_count_dec[OF cs] count_decided_ge_get_level[of M
-          \<open>lit_of (rev M ! (cs ! i))\<close>] lev0
-    by (auto simp: L_def)
-  ultimately have \<open>cs ! (get_level M (lit_of L) - 1) = cs ! i\<close>
-    using nth_eq_iff_index_eq[of \<open>rev M\<close>] csi unfolding L_def by auto
-  then have \<open>i = get_level M (lit_of L) - 1\<close>
-    using nth_eq_iff_index_eq[OF control_stack_distinct[OF cs], of i \<open>get_level M (lit_of L) - 1\<close>]
-      i lev0 count_decided_ge_get_level[of M \<open>lit_of (rev M ! (cs ! i))\<close>]
-    control_stack_length_count_dec[OF cs]
-    by (auto simp: L_def)
-  then show ?thesis using lev0 unfolding L_def[symmetric] by auto
-qed
-
-definition get_pos_of_level_in_trail_pre where
-  \<open>get_pos_of_level_in_trail_pre = (\<lambda>(M, lev). lev < count_decided M)\<close>
-
-lemma get_pos_of_level_in_trail_imp_get_pos_of_level_in_trail:
-   \<open>(uncurry get_pos_of_level_in_trail_imp, uncurry get_pos_of_level_in_trail) \<in>
-    [get_pos_of_level_in_trail_pre]\<^sub>f trail_pol_no_CS \<A> \<times>\<^sub>f nat_rel \<rightarrow> \<langle>nat_rel\<rangle>nres_rel\<close>
-  apply (intro nres_relI frefI)
-  unfolding get_pos_of_level_in_trail_imp_def uncurry_def get_pos_of_level_in_trail_def
-    get_pos_of_level_in_trail_pre_def
-  apply clarify
-  apply (rule ASSERT_leI)
-  subgoal
-    by (auto simp: trail_pol_no_CS_def dest!: control_stack_length_count_dec)
-  subgoal for a aa ab ac ad b ba ae bb
-    by (auto simp: trail_pol_no_CS_def control_stack_length_count_dec in_set_take_conv_nth
-        intro!: control_stack_le_length_M control_stack_is_decided
-        dest: control_stack_level_control_stack)
-  done
-
-lemma get_pos_of_level_in_trail_imp_get_pos_of_level_in_trail_CS:
-   \<open>(uncurry get_pos_of_level_in_trail_imp, uncurry get_pos_of_level_in_trail) \<in>
-    [get_pos_of_level_in_trail_pre]\<^sub>f trail_pol \<A> \<times>\<^sub>f nat_rel \<rightarrow> \<langle>nat_rel\<rangle>nres_rel\<close>
-  apply (intro nres_relI frefI)
-  unfolding get_pos_of_level_in_trail_imp_def uncurry_def get_pos_of_level_in_trail_def
-    get_pos_of_level_in_trail_pre_def
-  apply clarify
-  apply (rule ASSERT_leI)
-  subgoal
-    by (auto simp: trail_pol_def dest!: control_stack_length_count_dec)
-  subgoal for a aa ab ac ad b ba ae bb
-    by (auto simp: trail_pol_def control_stack_length_count_dec in_set_take_conv_nth
-        intro!: control_stack_le_length_M control_stack_is_decided
-        dest: control_stack_level_control_stack)
-  done
-
-lemma lit_of_last_trail_pol_lit_of_last_trail_no_CS:
-   \<open>(RETURN o lit_of_last_trail_pol, RETURN o lit_of_hd_trail) \<in>
-         [\<lambda>S. S \<noteq> []]\<^sub>f trail_pol_no_CS \<A> \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
-  by (auto simp: lit_of_hd_trail_def trail_pol_no_CS_def lit_of_last_trail_pol_def
-     ann_lits_split_reasons_def hd_map rev_map[symmetric] last_rev
-      intro!: frefI nres_relI)
 
 lemma size_conflict_int_size_conflict:
   \<open>(RETURN o size_conflict_int, RETURN o size_conflict) \<in> [\<lambda>D. D \<noteq> None]\<^sub>f option_lookup_clause_rel \<A> \<rightarrow>
