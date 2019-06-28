@@ -1,20 +1,8 @@
-theory IsaSAT_VMTF_SML
+theory IsaSAT_VMTF_LLVM
 imports Watched_Literals.WB_Sort IsaSAT_VMTF IsaSAT_Setup_LLVM
 begin
 
-lemma size_conflict_code_refine_raw:
-  \<open>(return o (\<lambda>(_, n, _). n), RETURN o size_conflict_int) \<in> conflict_option_rel_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
-  by sepref_to_hoare  (sep_auto simp: size_conflict_int_def)
-
-concrete_definition (in -) size_conflict_code
-   uses size_conflict_code_refine_raw
-   is \<open>(?f,_)\<in>_\<close>
-
-prepare_code_thms (in -) size_conflict_code_def
-
-
-lemmas size_conflict_code_hnr[sepref_fr_rules] = size_conflict_code.refine
-
+(*
 lemma VMTF_Node_ref[sepref_fr_rules]:
   \<open>(uncurry2 (return ooo VMTF_Node), uncurry2 (RETURN ooo VMTF_Node)) \<in>
     uint64_nat_assn\<^sup>k *\<^sub>a (option_assn uint32_nat_assn)\<^sup>k *\<^sub>a (option_assn uint32_nat_assn)\<^sup>k \<rightarrow>\<^sub>a
@@ -40,32 +28,29 @@ lemma get_prev_ref[sepref_fr_rules]:
    option_assn uint32_nat_assn\<close>
   unfolding option_assn_pure_conv
   by sepref_to_hoare (sep_auto simp: return_cons_rule vmtf_node_rel_def)
+*)
 
 sepref_definition atoms_hash_del_code
   is \<open>uncurry (RETURN oo atoms_hash_del)\<close>
-  :: \<open>[uncurry atoms_hash_del_pre]\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a (array_assn bool_assn)\<^sup>d \<rightarrow> array_assn bool_assn\<close>
+  :: \<open>[uncurry atoms_hash_del_pre]\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a (atoms_hash_assn)\<^sup>d \<rightarrow> atoms_hash_assn\<close>
   unfolding atoms_hash_del_def atoms_hash_del_pre_def
+  apply (rewrite at \<open>list_update _ \<hole>\<close> annot_unat_snat_upcast[where 'l=64])
   by sepref
 
 declare atoms_hash_del_code.refine[sepref_fr_rules]
 sepref_definition (in -) atoms_hash_insert_code
   is \<open>uncurry (RETURN oo atoms_hash_insert)\<close>
   :: \<open>[uncurry atms_hash_insert_pre]\<^sub>a
-      uint32_nat_assn\<^sup>k *\<^sub>a (arl32_assn uint32_nat_assn *a array_assn bool_assn)\<^sup>d \<rightarrow>
-      arl32_assn uint32_nat_assn *a array_assn bool_assn\<close>
+      uint32_nat_assn\<^sup>k *\<^sub>a (distinct_atoms_assn)\<^sup>d \<rightarrow>  distinct_atoms_assn\<close>
   unfolding atoms_hash_insert_def atms_hash_insert_pre_def
+  supply [simp] = uint32_max_def max_snat_def
+  supply [[goals_limit=1]]
+  apply (rewrite at \<open>list_update _ \<hole>\<close> annot_unat_snat_upcast[where 'l=64])
+  apply (rewrite at \<open>_ ! \<hole>\<close> annot_unat_snat_upcast[where 'l=64])
   by sepref
 
 declare atoms_hash_insert_code.refine[sepref_fr_rules]
 
-sepref_definition (in -) get_pos_of_level_in_trail_imp_fast_code
-  is \<open>uncurry get_pos_of_level_in_trail_imp\<close>
-  :: \<open>trail_pol_fast_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
-  unfolding get_pos_of_level_in_trail_imp_def
-  by sepref
-
-
-declare tl_trail_tr_no_CS_code.refine[sepref_fr_rules] tl_trail_tr_no_CS_fast_code.refine[sepref_fr_rules]
 
 sepref_register find_decomp_wl_imp
 sepref_register rescore_clause vmtf_flush
@@ -75,20 +60,26 @@ sepref_register vmtf_mark_to_rescore_clause
 sepref_register vmtf_mark_to_rescore_also_reasons get_the_propagation_reason_pol
 
 sepref_register find_decomp_w_ns
-sepref_definition (in -) get_pos_of_level_in_trail_imp_code
-  is \<open>uncurry get_pos_of_level_in_trail_imp\<close>
-  :: \<open>trail_pol_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
-  unfolding get_pos_of_level_in_trail_imp_def
+
+
+sepref_definition update_next_search_impl
+  is \<open>uncurry (RETURN oo update_next_search)\<close>
+  :: \<open>(snat_option_assn' TYPE(32))\<^sup>k *\<^sub>a vmtf_remove_assn\<^sup>d \<rightarrow>\<^sub>a vmtf_remove_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding update_next_search_def vmtf_remove_assn_def
   by sepref
 
-declare get_pos_of_level_in_trail_imp_code.refine[sepref_fr_rules]
-   get_pos_of_level_in_trail_imp_fast_code.refine[sepref_fr_rules]
+lemma vmtf_node_assn_pure[safe_constraint_rules]: \<open>CONSTRAINT is_pure vmtf_node_assn\<close>
+  unfolding CONSTRAINT_def vmtf_node_assn_def vmtf_node2_assn_def
+    prod_assn_pure_conv
+ by (simp add: hr_comp_is_pure pure_prod snat.option_assn_pure)
 
-lemma update_next_search_ref[sepref_fr_rules]:
-  \<open>(uncurry (return oo update_next_search), uncurry (RETURN oo update_next_search)) \<in>
-      (option_assn uint32_nat_assn)\<^sup>k *\<^sub>a vmtf_remove_assn\<^sup>d \<rightarrow>\<^sub>a vmtf_remove_assn\<close>
-  unfolding option_assn_pure_conv
-  by sepref_to_hoare (sep_auto simp: update_next_search_def)
+lemma case_option_split:
+  \<open>(case a of None \<Rightarrow> x | Some y \<Rightarrow> f y) = 
+   (if is_None a then x else let y = the a in f y)\<close>
+  by (auto split: option.splits)
+lemma is_pure_snat_option[safe_constraint_rules]: \<open>CONSTRAINT is_pure snat.option_assn\<close>
+  using snat.A_pure snat.option_assn_pure unfolding CONSTRAINT_def by blast
 
 sepref_definition (in -)ns_vmtf_dequeue_code
    is \<open>uncurry (RETURN oo ns_vmtf_dequeue)\<close>
@@ -96,8 +87,50 @@ sepref_definition (in -)ns_vmtf_dequeue_code
         uint32_nat_assn\<^sup>k *\<^sub>a (array_assn vmtf_node_assn)\<^sup>d \<rightarrow> array_assn vmtf_node_assn\<close>
   supply [[goals_limit = 1]]
   supply option.splits[split]
-  unfolding ns_vmtf_dequeue_def vmtf_dequeue_pre_alt_def
-  by sepref
+  unfolding ns_vmtf_dequeue_def vmtf_dequeue_pre_alt_def case_option_split
+  apply (rewrite at \<open>_ ! \<hole>\<close> annot_unat_snat_upcast[where 'l=64])
+  apply (rewrite at \<open>list_update _ \<hole> (VMTF_Node (stamp _) None None)\<close> annot_unat_snat_upcast[where 'l=64])
+  apply (rewrite at \<open>VMTF_Node (stamp (_ ! \<hole>)) None None\<close> annot_unat_snat_upcast[where 'l=64])
+
+  apply sepref_dbg_preproc
+  apply sepref_dbg_cons_init
+  apply sepref_dbg_id
+  apply sepref_dbg_monadify
+  apply sepref_dbg_opt_init
+apply sepref_dbg_keep
+apply sepref_dbg_trans_keep
+apply (rule mk_free_is_pure[OF vmtf_node_assn_pure[unfolded CONSTRAINT_def]])
+apply sepref_dbg_keep
+apply sepref_dbg_trans_keep
+apply (rule mk_free_is_pure[OF vmtf_node_assn_pure[unfolded CONSTRAINT_def]])
+apply sepref_dbg_keep
+apply sepref_dbg_trans_keep
+apply sepref_dbg_trans_step_keep
+apply (rule frame_rem1)
+apply sepref_dbg_trans_step
+apply (rule mk_free_is_pure[OF is_pure_snat_option[unfolded CONSTRAINT_def]])
+apply sepref_dbg_trans_step
+apply (rule frame_rem1)
+apply sepref_dbg_trans_step+
+apply (rule mk_free_is_pure[OF vmtf_node_assn_pure[unfolded CONSTRAINT_def]])
+apply sepref_dbg_trans_step+
+apply (rule mk_free_is_pure[OF vmtf_node_assn_pure[unfolded CONSTRAINT_def]])
+apply sepref_dbg_trans_step+
+apply (rule mk_free_is_pure[OF vmtf_node_assn_pure[unfolded CONSTRAINT_def]])
+apply sepref_dbg_trans_step+
+apply (rule mk_free_is_pure[OF vmtf_node_assn_pure[unfolded CONSTRAINT_def]])
+apply sepref_dbg_trans_step+
+apply (rule mk_free_is_pure[OF vmtf_node_assn_pure[unfolded CONSTRAINT_def]])
+apply sepref_dbg_trans_step+
+apply (rule mk_free_is_pure[OF vmtf_node_assn_pure[unfolded CONSTRAINT_def]])
+apply sepref_dbg_trans_step+
+apply (rule mk_free_is_pure[OF vmtf_node_assn_pure[unfolded CONSTRAINT_def]])
+apply sepref_dbg_trans_step+
+  apply sepref_dbg_opt
+  apply sepref_dbg_cons_solve
+  apply sepref_dbg_cons_solve
+  apply sepref_dbg_constraints
+done
 
 declare ns_vmtf_dequeue_code.refine[sepref_fr_rules]
 

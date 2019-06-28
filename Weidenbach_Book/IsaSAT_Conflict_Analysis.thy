@@ -92,7 +92,7 @@ definition maximum_level_removed_eq_count_dec where
 
 definition maximum_level_removed_eq_count_dec_heur where
   \<open>maximum_level_removed_eq_count_dec_heur L S \<longleftrightarrow>
-      get_count_max_lvls_heur S > one_uint32_nat\<close>
+      get_count_max_lvls_heur S > 1\<close>
 
 definition maximum_level_removed_eq_count_dec_pre where
   \<open>maximum_level_removed_eq_count_dec_pre =
@@ -261,7 +261,7 @@ where
       ASSERT(vmtf_unset_pre L' vm);
       ASSERT(tl_trailt_tr_pre M);
       RETURN (False, (tl_trailt_tr M, N, (b, (n, xs)), Q, W, isa_vmtf_unset L' vm,
-          \<phi>, fast_minus clvls one_uint32_nat, cach, lbd, outl, stats))
+          \<phi>, clvls - 1, cach, lbd, outl, stats))
    })\<close>
 
 lemma card_max_lvl_remove1_mset_hd:
@@ -352,7 +352,7 @@ proof -
 			  ASSERT(tl_trailt_tr_pre ba);
                           RETURN
                             (False, tl_trailt_tr ba, c, (bb, n, xs), e, f, isa_vmtf_unset (atm_of b) ivmtf,
-                            h, fast_minus clvls one_uint32_nat, j,
+                            h, clvls - 1, j,
                             lbd, outl, (ah, ai, aj, be), ak, al, am, an, bf)
                         })
                     xa)
@@ -652,7 +652,7 @@ proof -
 			     (bb, n, xs), e, f,
 			     isa_vmtf_unset (atm_of b)
 			      ((ah, ai, aj, ak, bc), al, bd),
-			     h, fast_minus clvls one_uint32_nat, (am, be), lbd,
+			     h, clvls - 1, (am, be), lbd,
 			     outl, (an, ao, ap, aq, ar, bf), (as, at, au, av, bg),
 			     (aw, ax, ay, az, bh), (bi, bj), ra, s, t, u, v)
 			 })

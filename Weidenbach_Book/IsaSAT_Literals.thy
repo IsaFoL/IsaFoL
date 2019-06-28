@@ -300,9 +300,9 @@ proof -
     then have \<open>L \<in> atms_of (\<L>\<^sub>a\<^sub>l\<^sub>l  \<A>\<^sub>i\<^sub>n)\<close>
     using lits by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_def atm_of_lit_in_atms_of
         in_all_lits_of_m_ain_atms_of_iff subset_iff)
-    then have \<open>Pos L \<in># (\<L>\<^sub>a\<^sub>l\<^sub>l  \<A>\<^sub>i\<^sub>n)\<close>
+    then have \<open>Neg L \<in># (\<L>\<^sub>a\<^sub>l\<^sub>l  \<A>\<^sub>i\<^sub>n)\<close>
       using lits by (auto simp: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff)
-    then have \<open>nat_of_lit (Pos L) \<le> uint32_max\<close>
+    then have \<open>nat_of_lit (Neg L) \<le> uint32_max\<close>
       using in_\<L>\<^sub>a\<^sub>l\<^sub>l_less_uint32_max by (auto simp: atm_of_lit_in_atms_of
         in_all_lits_of_m_ain_atms_of_iff subset_iff)
     then have \<open>L \<le> uint32_max div 2\<close>

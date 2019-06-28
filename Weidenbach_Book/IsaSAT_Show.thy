@@ -18,41 +18,6 @@ text \<open>We provide a function to print some information about the state.
 definition println_string :: \<open>String.literal \<Rightarrow> unit\<close> where
   \<open>println_string _ = ()\<close>
 
-instantiation uint64 :: "show"
-begin
-definition shows_prec_uint64 :: \<open>nat \<Rightarrow> uint64 \<Rightarrow> char list \<Rightarrow> char list\<close> where
-  \<open>shows_prec_uint64 n m xs = shows_prec n (nat_of_uint64 m) xs\<close>
-
-definition shows_list_uint64 :: \<open>uint64 list \<Rightarrow> char list \<Rightarrow> char list\<close> where
-  \<open>shows_list_uint64 xs ys = shows_list (map nat_of_uint64 xs) ys\<close>
-instance
-  by standard
-    (auto simp: shows_prec_uint64_def shows_list_uint64_def
-      shows_prec_append shows_list_append)
-end
-
-instantiation uint32 :: "show"
-begin
-definition shows_prec_uint32 :: \<open>nat \<Rightarrow> uint32 \<Rightarrow> char list \<Rightarrow> char list\<close> where
-  \<open>shows_prec_uint32 n m xs = shows_prec n (nat_of_uint32 m) xs\<close>
-
-definition shows_list_uint32 :: \<open>uint32 list \<Rightarrow> char list \<Rightarrow> char list\<close> where
-  \<open>shows_list_uint32 xs ys = shows_list (map nat_of_uint32 xs) ys\<close>
-instance
-  by standard
-    (auto simp: shows_prec_uint32_def shows_list_uint32_def
-      shows_prec_append shows_list_append)
-end
-
-code_printing constant
-  println_string \<rightharpoonup> (SML) "ignore/ (PolyML.print/ ((_) ^ \"\\n\"))"
-
-definition test where
-\<open>test  = println_string\<close>
-
-code_printing constant
-  println_string \<rightharpoonup> (SML)
-
 
 
 subsection \<open>Print Information for IsaSAT\<close>
@@ -81,13 +46,9 @@ definition isasat_current_information :: \<open>stats \<Rightarrow> _ \<Rightarr
 \<open>isasat_current_information =
    (\<lambda>(propa, confl, decs, frestarts, lrestarts, uset, gcs, lbds) lcount.
      if confl AND 8191 = 8191 \<comment> \<open>\<^term>\<open>8191 = 8192 - 1\<close>, i.e., we print when all first bits are 1.\<close>
-     then let c = '' | '' in
-        let _ = println_string (String.implode (show ''c | '' @ show confl @ show c @ show propa @
-          show c @ show decs @ show c @ show frestarts @ show c @ show lrestarts
-          @ show c @ show gcs @ show c @ show uset @ show c @ show lcount @ show c @ show (lbds >> 13))) in
-        zero_some_stats (propa, confl, decs, frestarts, lrestarts, uset, gcs, lbds)
+     then zero_some_stats (propa, confl, decs, frestarts, lrestarts, uset, gcs, lbds)
       else (propa, confl, decs, frestarts, lrestarts, uset, gcs, lbds)
-      )\<close>
+    )\<close>
 
 
 definition print_current_information :: \<open>stats \<Rightarrow> _ \<Rightarrow> stats\<close> where

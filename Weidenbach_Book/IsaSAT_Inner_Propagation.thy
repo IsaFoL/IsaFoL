@@ -29,7 +29,7 @@ lemma unit_prop_body_wl_D_invD:
     \<open>fst (watched_by_app S L w) \<in># dom_m (get_clauses_wl S) \<Longrightarrow> distinct (get_clauses_wl S \<propto> fst (watched_by_app S L w))\<close> and
     \<open>fst (watched_by_app S L w) \<in># dom_m (get_clauses_wl S) \<Longrightarrow> literals_are_in_\<L>\<^sub>i\<^sub>n_trail \<A> (get_trail_wl S)\<close> and
     \<open>fst (watched_by_app S L w) \<in># dom_m (get_clauses_wl S) \<Longrightarrow> isasat_input_bounded \<A> \<Longrightarrow>
-      length (get_clauses_wl S \<propto> fst (watched_by_app S L w)) \<le> uint64_max\<close> and
+      length (get_clauses_wl S \<propto> fst (watched_by_app S L w)) \<le> sint64_max\<close> and
     \<open>fst (watched_by_app S L w) \<in># dom_m (get_clauses_wl S) \<Longrightarrow>
       L \<in> set (watched_l (get_clauses_wl S \<propto> fst (watched_by_app S L w)))\<close>
 proof -
@@ -166,10 +166,10 @@ proof -
       lits_of_def image_image init_clss.simps mset_take_mset_drop_mset'  literals_are_\<L>\<^sub>i\<^sub>n_def
       convert_lits_l_def is_\<L>\<^sub>a\<^sub>l\<^sub>l_alt_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n
       twl_st_l twl_st_wl twl_st get_unit_clauses_wl_alt_def \<A>_def all_lits_def)
-  show \<open>length (get_clauses_wl S \<propto> ?C) \<le> uint64_max\<close> if bounded: \<open>isasat_input_bounded \<A>\<close>
+  show \<open>length (get_clauses_wl S \<propto> ?C) \<le> sint64_max\<close> if bounded: \<open>isasat_input_bounded \<A>\<close>
     using clss_size_uint32_max[of \<A> \<open>mset (get_clauses_wl S \<propto> ?C)\<close>,
         OF bounded \<open>literals_are_in_\<L>\<^sub>i\<^sub>n \<A> (mset (get_clauses_wl S \<propto> ?C))\<close>]
-      \<open>distinct (get_clauses_wl S \<propto> ?C)\<close> unfolding uint32_max_def uint64_max_def by auto
+      \<open>distinct (get_clauses_wl S \<propto> ?C)\<close> unfolding uint32_max_def sint64_max_def by auto
   show L_in_watched: \<open>L \<in> set (watched_l (get_clauses_wl S \<propto> ?C))\<close>
     using L_in_watched S_T by auto
 qed
@@ -1064,7 +1064,7 @@ definition unit_propagation_inner_loop_body_wl_heur
       ASSERT(length (get_clauses_wl_heur S) = length (get_clauses_wl_heur S0));
       ASSERT(unit_prop_body_wl_heur_inv S j w L);
       ASSERT(polarity_st_heur_pre (S, K));
-      ASSERT(length (get_clauses_wl_heur S0) \<le> uint64_max \<longrightarrow> j < uint64_max \<and> w < uint64_max);
+      ASSERT(length (get_clauses_wl_heur S0) \<le> sint64_max \<longrightarrow> j < sint64_max \<and> w < sint64_max);
       let val_K = polarity_st_heur S K;
       if val_K = Some True
       then RETURN (j+1, w+1, S)
@@ -1665,8 +1665,8 @@ qed
 
 
 lemma prop_fast_le:
-  assumes fast: \<open>length (get_clauses_wl_heur S) \<le> uint64_max\<close>
-  shows \<open>x2c < uint64_max\<close> \<open>x2d < uint64_max\<close>
+  assumes fast: \<open>length (get_clauses_wl_heur S) \<le> sint64_max\<close>
+  shows \<open>x2c < sint64_max\<close> \<open>x2d < sint64_max\<close>
 proof -
   obtain x xa where
     Sx: \<open>(S, x) \<in> twl_st_heur\<close> and
@@ -1687,9 +1687,9 @@ proof -
     apply -
     apply normalize_goal+
     by blast
-  show \<open>x2c < uint64_max\<close> \<open>x2d < uint64_max\<close>
+  show \<open>x2c < sint64_max\<close> \<open>x2d < sint64_max\<close>
     using fast le_wb le le'
-    by (auto simp: isasat_fast_def uint64_max_def)
+    by (auto simp: isasat_fast_def sint64_max_def)
 qed
 
 context
@@ -3333,15 +3333,15 @@ lemma case_tri_bool_If:
 definition isa_find_unset_lit :: \<open>trail_pol \<Rightarrow> arena \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat option nres\<close> where
   \<open>isa_find_unset_lit M = isa_find_unwatched_between (\<lambda>L. polarity_pol M L \<noteq> Some False) M\<close>
 
-lemma update_clause_wl_heur_pre_le_uint64:
+lemma update_clause_wl_heur_pre_le_sint64:
   assumes
     \<open>arena_is_valid_clause_idx_and_access a1'a bf baa\<close> and
     \<open>length (get_clauses_wl_heur
       (a1', a1'a, (da, db, dc), a1'c, a1'd, ((eu, ev, ew, ex, ey), ez), fa, fb,
-       fc, fd, fe, (ff, fg, fh, fi), fj, fk, fl, fm, fn)) \<le> uint64_max\<close> and
+       fc, fd, fe, (ff, fg, fh, fi), fj, fk, fl, fm, fn)) \<le> sint64_max\<close> and
     \<open>arena_lit_pre a1'a (bf + baa)\<close>
-  shows \<open>bf + baa \<le> uint64_max\<close>
-       \<open>length a1'a \<le> uint64_max\<close>
+  shows \<open>bf + baa \<le> sint64_max\<close>
+       \<open>length a1'a \<le> sint64_max\<close>
   using assms
   by (auto simp: arena_is_valid_clause_idx_and_access_def isasat_fast_def
     dest!: arena_lifting(10))
