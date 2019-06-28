@@ -65,15 +65,10 @@ sepref_register find_decomp_w_ns
 
 sepref_definition update_next_search_impl
   is \<open>uncurry (RETURN oo update_next_search)\<close>
-  :: \<open>(snat_option_assn' TYPE(32))\<^sup>k *\<^sub>a vmtf_remove_assn\<^sup>d \<rightarrow>\<^sub>a vmtf_remove_assn\<close>
+  :: \<open>(atom.option_assn)\<^sup>k *\<^sub>a vmtf_remove_assn\<^sup>d \<rightarrow>\<^sub>a vmtf_remove_assn\<close>
   supply [[goals_limit=1]]
   unfolding update_next_search_def vmtf_remove_assn_def
   by sepref
-
-lemma vmtf_node_assn_pure[safe_constraint_rules]: \<open>CONSTRAINT is_pure vmtf_node_assn\<close>
-  unfolding CONSTRAINT_def vmtf_node_assn_def vmtf_node2_assn_def
-    prod_assn_pure_conv
- by (simp add: hr_comp_is_pure pure_prod snat.option_assn_pure)
 
 lemma case_option_split:
   \<open>(case a of None \<Rightarrow> x | Some y \<Rightarrow> f y) = 
@@ -83,29 +78,19 @@ lemma case_option_split:
   using snat.A_pure snat.option_assn_pure unfolding CONSTRAINT_def by blast
 *)
 
-(*
-
-  TODO: Test whether this setup is safe in general? 
-    E.g., synthesize destructors when side-tac can prove is_pure.
   
-lemmas [sepref_frame_free_rules] = mk_free_is_pure
-lemmas [simp] = vmtf_node_assn_pure[unfolded CONSTRAINT_def]
-*)
 
-lemmas [sepref_frame_free_rules] = mk_free_is_pure[OF vmtf_node_assn_pure[unfolded CONSTRAINT_def]]  
-  
 
 sepref_definition (in -)ns_vmtf_dequeue_code
    is \<open>uncurry (RETURN oo ns_vmtf_dequeue)\<close>
    :: \<open>[vmtf_dequeue_pre]\<^sub>a
-        uint32_nat_assn\<^sup>k *\<^sub>a (array_assn vmtf_node_assn)\<^sup>d \<rightarrow> array_assn vmtf_node_assn\<close>
+        atom_assn\<^sup>k *\<^sub>a (array_assn vmtf_node_assn)\<^sup>d \<rightarrow> array_assn vmtf_node_assn\<close>
   supply [[goals_limit = 1]]
   supply option.splits[split]
   unfolding ns_vmtf_dequeue_def vmtf_dequeue_pre_alt_def case_option_split
-  apply (rewrite at \<open>_ ! \<hole>\<close> annot_unat_snat_upcast[where 'l=64])
-  apply (rewrite at \<open>list_update _ \<hole> (VMTF_Node (stamp _) None None)\<close> annot_unat_snat_upcast[where 'l=64])
-  apply (rewrite at \<open>VMTF_Node (stamp (_ ! \<hole>)) None None\<close> annot_unat_snat_upcast[where 'l=64])
+  apply annot_all_atm_idxs
   by sepref
+  
 
 declare ns_vmtf_dequeue_code.refine[sepref_fr_rules]
 
@@ -154,12 +139,12 @@ lemma isa_vmtf_en_dequeue_alt_def2:
    case vm of
                (ns, m, fst_As, lst_As, next_search) \<Rightarrow>
                  let fst_As' =
-                       if fst_As = L then get_next (ns ! op_unat_snat_upcast TYPE(64) L) else (Some fst_As);
+                       if fst_As = L then get_next (ns ! L) else (Some fst_As);
                      next_search' =
-                       if next_search = (Some L) then get_next (ns ! op_unat_snat_upcast TYPE(64) L)
+                       if next_search = (Some L) then get_next (ns ! L)
                        else next_search;
                      lst_As' =
-                       if lst_As = L then get_prev (ns ! op_unat_snat_upcast TYPE(64) L) else (Some lst_As);
+                       if lst_As = L then get_prev (ns ! L) else (Some lst_As);
                      ns = ns_vmtf_dequeue L ns;
                      fst_As = fst_As';
                      lst_As = lst_As';
@@ -176,7 +161,7 @@ lemma isa_vmtf_en_dequeue_alt_def2:
                     let fst_As' =
                           VMTF_Node (stamp (ns ! fst_As)) (Some L)
                            (get_next (ns ! fst_As))
-                    in (ns[op_unat_snat_upcast TYPE(64) L := VMTF_Node (m + 1) None (Some fst_As),
+                    in (ns[L := VMTF_Node (m + 1) None (Some fst_As),
                            fst_As := fst_As'],
                         m + 1, L, the lst_As,
                         if de then next_search else Some L))
@@ -194,14 +179,16 @@ sepref_register 1 0
 sepref_definition vmtf_en_dequeue_fast_code
    is \<open>uncurry2 isa_vmtf_en_dequeue\<close>
    :: \<open>[isa_vmtf_en_dequeue_pre]\<^sub>a
-        trail_pol_fast_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a vmtf_assn\<^sup>d \<rightarrow> vmtf_assn\<close>
+        trail_pol_fast_assn\<^sup>k *\<^sub>a atom_assn\<^sup>k *\<^sub>a vmtf_assn\<^sup>d \<rightarrow> vmtf_assn\<close>
   supply [[goals_limit = 3]]
   supply isa_vmtf_en_dequeue_preD[dest] isa_vmtf_en_dequeue_pre_vmtf_enqueue_pre[dest]
-  unfolding isa_vmtf_en_dequeue_alt_def2 case_option_split
- eq_Some_iff
+  unfolding isa_vmtf_en_dequeue_alt_def2 case_option_split eq_Some_iff
+  apply annot_all_atm_idxs
+  
  (*apply (annot_unat_const "TYPE(64)")*)
 apply sepref_dbg_keep
 apply sepref_dbg_trans_keep
+apply sepref_dbg_trans_step_keep
 
 find_in_thms "0 " in id_rules
 

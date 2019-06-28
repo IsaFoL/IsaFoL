@@ -197,10 +197,19 @@ sepref_definition index_atm_of_impl
 
 declare index_atm_of_impl.refine [sepref_fr_rules]
 
-lemma annot_index_atm_of:
-  \<open>xs ! atm_of x = xs ! index_atm_of x\<close>
-  \<open>xs [atm_of x := a] = xs [index_atm_of x := a]\<close>
+(* TODO: Move. Use at more places! *)
+context fixes x y :: nat assumes "NO_MATCH (index_of_atm y) x" begin
+  lemmas annot_index_of_atm' = annot_index_of_atm[where x=x]
+end  
+
+method annot_all_atm_idxs = (simp only_main: annot_index_of_atm' cong: if_cong)
+
+lemma annot_index_atm_of[def_pat_rules]:
+  \<open>nth$xs$(atm_of$x) \<equiv> nth$xs$(index_atm_of$x)\<close>
+  \<open>list_update$xs$(atm_of$x)$a \<equiv> list_update$xs$(index_atm_of$x)$a\<close>
   by auto
+
+
 
 lemma nat_of_lit_refine_aux: "((\<lambda>x. x), nat_of_lit) \<in> nat_lit_rel \<rightarrow> nat_rel"
   by (auto simp: nat_lit_rel_def in_br_conv)

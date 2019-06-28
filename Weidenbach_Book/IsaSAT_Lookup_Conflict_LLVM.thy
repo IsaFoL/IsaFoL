@@ -208,7 +208,6 @@ sepref_definition is_in_conflict_code
   supply [[goals_limit=1]]
   unfolding is_in_lookup_conflict_def is_NOTIN_alt_def[symmetric]
     lookup_clause_rel_assn_def
-  apply (rewrite in "_ ! \<hole>" annot_unat_snat_upcast[where 'l="64"])
   by sepref
 
 declare is_in_conflict_code.refine[sepref_fr_rules]
@@ -262,7 +261,7 @@ declare Some_lookup_conflict_impl.refine[sepref_fr_rules]
 type_synonym cach_refinement_l_assn = \<open>8 word ptr \<times> 32 word array_list64\<close>
 
 definition (in -) cach_refinement_l_assn :: "_ \<Rightarrow> cach_refinement_l_assn \<Rightarrow> _" where
-  \<open>cach_refinement_l_assn \<equiv> array_assn minimize_status_assn *a arl64_assn uint32_nat_assn\<close>
+  \<open>cach_refinement_l_assn \<equiv> array_assn minimize_status_assn *a arl64_assn atom_assn\<close>
 
 sepref_register conflict_min_cach_l
 sepref_definition (in -) delete_from_lookup_conflict_code
@@ -272,7 +271,6 @@ sepref_definition (in -) delete_from_lookup_conflict_code
     conflict_option_rel_assn_def
     lookup_clause_rel_assn_def
   apply (annot_unat_const "TYPE(32)")
-  apply (rewrite in "_ [ \<hole> := _]" annot_unat_snat_upcast[where 'l="64"])
   by sepref
 
 lemma (in -) arena_is_valid_clause_idx_le_uint64_max:
@@ -299,8 +297,6 @@ sepref_definition add_to_lookup_conflict_impl
      is_NOTIN_alt_def[symmetric] fold_is_None NOTIN_def
   supply [simp] = uint32_max_def max_unat_def
   apply (rewrite at \<open>_ + \<hole>\<close> unat_const_fold[where 'a = \<open>32\<close>])
-  apply (rewrite in \<open> _ ! \<hole>\<close> annot_unat_snat_upcast[where 'l = \<open>64\<close>])
-  apply (rewrite in \<open>list_update _ \<hole>\<close> annot_unat_snat_upcast[where 'l = \<open>64\<close>])
   by sepref
 
 
@@ -409,19 +405,19 @@ declare resolve_merge_conflict_fast_code.refine[sepref_fr_rules]
 sepref_definition (in -) atm_in_conflict_code
   is \<open>uncurry (RETURN oo atm_in_conflict_lookup)\<close>
   :: \<open>[uncurry atm_in_conflict_lookup_pre]\<^sub>a
-     uint32_nat_assn\<^sup>k *\<^sub>a lookup_clause_rel_assn\<^sup>k \<rightarrow> bool1_assn\<close>
+     atom_assn\<^sup>k *\<^sub>a lookup_clause_rel_assn\<^sup>k \<rightarrow> bool1_assn\<close>
   unfolding atm_in_conflict_lookup_def atm_in_conflict_lookup_pre_def
      is_NOTIN_alt_def[symmetric] fold_is_None NOTIN_def lookup_clause_rel_assn_def
-  apply (rewrite in \<open> _ ! \<hole>\<close> annot_unat_snat_upcast[where 'l = \<open>64\<close>])
+  apply (rewrite at \<open> _ ! _\<close> annot_index_of_atm)
   by sepref
 
 declare atm_in_conflict_code.refine[sepref_fr_rules]
 sepref_definition (in -) conflict_min_cach_l_code
   is \<open>uncurry (RETURN oo conflict_min_cach_l)\<close>
-  :: \<open>[conflict_min_cach_l_pre]\<^sub>a cach_refinement_l_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> minimize_status_assn\<close>
+  :: \<open>[conflict_min_cach_l_pre]\<^sub>a cach_refinement_l_assn\<^sup>k *\<^sub>a atom_assn\<^sup>k \<rightarrow> minimize_status_assn\<close>
   unfolding conflict_min_cach_l_def conflict_min_cach_l_pre_def cach_refinement_l_assn_def
   apply (rewrite at "nth _" eta_expand)
-  apply (rewrite in \<open> _ ! \<hole>\<close> annot_unat_snat_upcast[where 'l = \<open>64\<close>])
+  apply (rewrite at \<open> _ ! _\<close> annot_index_of_atm)
   by sepref
 
 declare conflict_min_cach_l_code.refine[sepref_fr_rules]
@@ -440,13 +436,14 @@ lemma le_uint32_max_div2_le_uint32_max: \<open>a2' \<le> Suc (uint32_max div 2) 
 
 sepref_definition (in -) conflict_min_cach_set_failed_l_code
   is \<open>uncurry conflict_min_cach_set_failed_l\<close>
-  :: \<open>cach_refinement_l_assn\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a cach_refinement_l_assn\<close>
+  :: \<open>cach_refinement_l_assn\<^sup>d *\<^sub>a atom_assn\<^sup>k \<rightarrow>\<^sub>a cach_refinement_l_assn\<close>
   supply [[goals_limit=1]] le_uint32_max_div2_le_uint32_max[dest]
   supply [simp] = uint64_max_def max_unat_def max_snat_def sint64_max_def uint32_max_def
   unfolding conflict_min_cach_set_failed_l_alt_def
     minimize_status_rel_eq_def[symmetric] cach_refinement_l_assn_def
-  apply (rewrite in \<open> _ ! \<hole>\<close> annot_unat_snat_upcast[where 'l = \<open>64\<close>])
-  apply (rewrite in \<open>list_update _ \<hole>\<close> annot_unat_snat_upcast[where 'l = \<open>64\<close>])
+    
+  apply (rewrite at \<open> _ ! _\<close> annot_index_of_atm)
+  apply (rewrite at \<open>list_update _ _ _\<close> annot_index_of_atm)
   by sepref
 
 declare conflict_min_cach_set_failed_l_code.refine[sepref_fr_rules]
@@ -462,12 +459,12 @@ lemma conflict_min_cach_set_removable_l_alt_def:
 
 sepref_definition (in -) conflict_min_cach_set_removable_l_code
   is \<open>uncurry conflict_min_cach_set_removable_l\<close>
-  :: \<open>cach_refinement_l_assn\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a cach_refinement_l_assn\<close>
+  :: \<open>cach_refinement_l_assn\<^sup>d *\<^sub>a atom_assn\<^sup>k \<rightarrow>\<^sub>a cach_refinement_l_assn\<close>
   supply [simp] = uint64_max_def max_unat_def max_snat_def sint64_max_def uint32_max_def
   unfolding conflict_min_cach_set_removable_l_alt_def
     minimize_status_rel_eq_def[symmetric] cach_refinement_l_assn_def
-  apply (rewrite in \<open> _ ! \<hole>\<close> annot_unat_snat_upcast[where 'l = \<open>64\<close>])
-  apply (rewrite in \<open>list_update _ \<hole>\<close> annot_unat_snat_upcast[where 'l = \<open>64\<close>])
+  apply (rewrite at \<open> _ ! _\<close> annot_index_of_atm)
+  apply (rewrite at \<open>list_update _ _ _\<close> annot_index_of_atm)
   by sepref
 
 declare conflict_min_cach_set_removable_l_code.refine[sepref_fr_rules]
@@ -648,6 +645,7 @@ sepref_definition lit_redundant_rec_wl_lookup_fast_code
     fmap_length_rll_def[symmetric]
     fmap_rll_u_def[symmetric]
   by sepref (*slow *)
+  
 
 declare lit_redundant_rec_wl_lookup_fast_code.refine[sepref_fr_rules]
 sepref_definition delete_index_and_swap_code
@@ -698,7 +696,6 @@ sepref_definition conflict_remove1_code
      lookup_clause_rel_assn\<close>
   supply [[goals_limit=2]]
   unfolding lookup_conflict_remove1_def lookup_conflict_remove1_pre_def lookup_clause_rel_assn_def
-  apply (rewrite at \<open>list_update _ \<hole> _\<close> annot_unat_snat_upcast[where 'l = 64])
   apply (annot_unat_const "TYPE(32)")
   by sepref
 
