@@ -288,5 +288,14 @@ sepref_definition (in -) trail_conv_back_imp_fast_code
 
 declare trail_conv_back_imp_fast_code.refine[sepref_fr_rules]
 
+sepref_definition (in -) get_pos_of_level_in_trail_imp_fast_code
+  is \<open>uncurry get_pos_of_level_in_trail_imp\<close>
+  :: \<open>trail_pol_fast_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+  unfolding get_pos_of_level_in_trail_imp_def trail_pol_fast_assn_def
+  apply (rewrite at \<open>_ ! \<hole>\<close> annot_unat_snat_upcast[where 'l=64])
+  supply [simp] = uint32_max_def max_snat_def
+  by sepref
+
+declare get_pos_of_level_in_trail_imp_fast_code.refine[sepref_fr_rules]
 
 end

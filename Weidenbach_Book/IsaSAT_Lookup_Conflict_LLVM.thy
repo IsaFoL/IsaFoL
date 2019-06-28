@@ -261,7 +261,7 @@ declare Some_lookup_conflict_impl.refine[sepref_fr_rules]
 
 type_synonym cach_refinement_l_assn = \<open>8 word ptr \<times> 32 word array_list64\<close>
 
-abbreviation (in -) cach_refinement_l_assn :: "_ \<Rightarrow> cach_refinement_l_assn \<Rightarrow> _" where
+definition (in -) cach_refinement_l_assn :: "_ \<Rightarrow> cach_refinement_l_assn \<Rightarrow> _" where
   \<open>cach_refinement_l_assn \<equiv> array_assn minimize_status_assn *a arl64_assn uint32_nat_assn\<close>
 
 sepref_register conflict_min_cach_l
@@ -419,8 +419,8 @@ declare atm_in_conflict_code.refine[sepref_fr_rules]
 sepref_definition (in -) conflict_min_cach_l_code
   is \<open>uncurry (RETURN oo conflict_min_cach_l)\<close>
   :: \<open>[conflict_min_cach_l_pre]\<^sub>a cach_refinement_l_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> minimize_status_assn\<close>
-  unfolding conflict_min_cach_l_def conflict_min_cach_l_pre_def
-  apply (rewrite at "nth _" eta_expand) 
+  unfolding conflict_min_cach_l_def conflict_min_cach_l_pre_def cach_refinement_l_assn_def
+  apply (rewrite at "nth _" eta_expand)
   apply (rewrite in \<open> _ ! \<hole>\<close> annot_unat_snat_upcast[where 'l = \<open>64\<close>])
   by sepref
 
@@ -444,7 +444,7 @@ sepref_definition (in -) conflict_min_cach_set_failed_l_code
   supply [[goals_limit=1]] le_uint32_max_div2_le_uint32_max[dest]
   supply [simp] = uint64_max_def max_unat_def max_snat_def sint64_max_def uint32_max_def
   unfolding conflict_min_cach_set_failed_l_alt_def
-    minimize_status_rel_eq_def[symmetric]
+    minimize_status_rel_eq_def[symmetric] cach_refinement_l_assn_def
   apply (rewrite in \<open> _ ! \<hole>\<close> annot_unat_snat_upcast[where 'l = \<open>64\<close>])
   apply (rewrite in \<open>list_update _ \<hole>\<close> annot_unat_snat_upcast[where 'l = \<open>64\<close>])
   by sepref
@@ -465,7 +465,7 @@ sepref_definition (in -) conflict_min_cach_set_removable_l_code
   :: \<open>cach_refinement_l_assn\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a cach_refinement_l_assn\<close>
   supply [simp] = uint64_max_def max_unat_def max_snat_def sint64_max_def uint32_max_def
   unfolding conflict_min_cach_set_removable_l_alt_def
-    minimize_status_rel_eq_def[symmetric]
+    minimize_status_rel_eq_def[symmetric] cach_refinement_l_assn_def
   apply (rewrite in \<open> _ ! \<hole>\<close> annot_unat_snat_upcast[where 'l = \<open>64\<close>])
   apply (rewrite in \<open>list_update _ \<hole>\<close> annot_unat_snat_upcast[where 'l = \<open>64\<close>])
   by sepref

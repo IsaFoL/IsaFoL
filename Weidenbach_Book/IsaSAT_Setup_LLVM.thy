@@ -230,7 +230,7 @@ lemmas [sepref_fr_rules] =
     
 type_synonym vmtf_assn = \<open>vmtf_node_assn ptr \<times> 64 word \<times> 32 word \<times> 32 word \<times> 32 word\<close>  
   
-type_synonym vmtf_remove_assn = \<open>vmtf_assn \<times> (32 word array_list32 \<times> 1 word ptr)\<close>
+type_synonym vmtf_remove_assn = \<open>vmtf_assn \<times> (32 word array_list64 \<times> 1 word ptr)\<close>
 
 
 abbreviation vmtf_assn :: "_ \<Rightarrow> vmtf_assn \<Rightarrow> assn" where
@@ -241,9 +241,9 @@ abbreviation atoms_hash_assn :: \<open>bool list \<Rightarrow> 1 word ptr \<Righ
   \<open>atoms_hash_assn \<equiv> array_assn bool1_assn\<close>
 
 abbreviation distinct_atoms_assn where
-  \<open>distinct_atoms_assn \<equiv> arl32_assn uint32_nat_assn *a atoms_hash_assn\<close>
+  \<open>distinct_atoms_assn \<equiv> arl64_assn uint32_nat_assn *a atoms_hash_assn\<close>
 
-abbreviation vmtf_remove_assn
+definition vmtf_remove_assn
   :: \<open>isa_vmtf_remove_int \<Rightarrow> vmtf_remove_assn \<Rightarrow> assn\<close>
 where
   \<open>vmtf_remove_assn \<equiv> vmtf_assn *a distinct_atoms_assn\<close>
@@ -253,7 +253,7 @@ paragraph \<open>Options\<close>
 
 type_synonym opts_assn = "1 word \<times> 1 word \<times> 1 word"
 
-abbreviation opts_assn
+definition opts_assn
   :: \<open>opts \<Rightarrow> opts_assn \<Rightarrow> assn\<close>
 where
   \<open>opts_assn \<equiv> bool1_assn *a bool1_assn *a bool1_assn\<close>
@@ -263,15 +263,15 @@ lemma workaround_opt_assn: "RETURN o (\<lambda>(a,b,c). f a b c) = (\<lambda>(a,
 sepref_register opts_restart opts_reduce opts_unbounded_mode
   
 sepref_definition opts_restart_impl is "RETURN o opts_restart" :: "opts_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn"  
-  unfolding opts_restart_def workaround_opt_assn
+  unfolding opts_restart_def workaround_opt_assn opts_assn_def
   by sepref
 
 sepref_definition opts_reduce_impl is "RETURN o opts_reduce" :: "opts_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn"  
-  unfolding opts_reduce_def workaround_opt_assn
+  unfolding opts_reduce_def workaround_opt_assn opts_assn_def
   by sepref
 
 sepref_definition opts_unbounded_mode_impl is "RETURN o opts_unbounded_mode" :: "opts_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn"  
-  unfolding opts_unbounded_mode_def workaround_opt_assn
+  unfolding opts_unbounded_mode_def workaround_opt_assn opts_assn_def
   by sepref
   
 lemmas [sepref_fr_rules] = 
@@ -360,11 +360,15 @@ declare polarity_st_heur_pol_fast.refine[sepref_fr_rules]
 
 subsection \<open>More theorems\<close>
 
+(*TODO dup of count_decided_pol*)
+lemma count_decided_st_heur_alt_def:
+   \<open>count_decided_st_heur = (\<lambda>(M, _). count_decided_pol M)\<close>
+  by (auto simp: count_decided_st_heur_def count_decided_pol_def)
 
 sepref_definition count_decided_st_heur_pol_fast
   is \<open>RETURN o count_decided_st_heur\<close>
   :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
-  unfolding isasat_bounded_assn_def count_decided_st_heur_def
+  unfolding isasat_bounded_assn_def count_decided_st_heur_alt_def
   supply [[goals_limit = 1]]
   by sepref
 
@@ -373,11 +377,10 @@ sepref_definition access_lit_in_clauses_heur_fast_code
   :: \<open>[\<lambda>((S, i), j). access_lit_in_clauses_heur_pre ((S, i), j) \<and>
            length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a
       isasat_bounded_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k  *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> unat_lit_assn\<close>
-  supply [[goals_limit=1]] arena_is_valid_clause_idx_le_uint64_max[intro]
+  supply [[goals_limit=1]] arena_lit_pre_le[dest]
   supply [simp] = max_snat_def max_sint_def sint64_max_def
   unfolding isasat_bounded_assn_def access_lit_in_clauses_heur_alt_def
-    fmap_rll_def[symmetric] access_lit_in_clauses_heur_pre_def
-    fmap_rll_u64_def[symmetric] arena_lit_pre_le[dest]
+    access_lit_in_clauses_heur_pre_def
   by sepref
 
 declare access_lit_in_clauses_heur_fast_code.refine[sepref_fr_rules]
