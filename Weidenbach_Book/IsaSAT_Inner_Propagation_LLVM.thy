@@ -58,60 +58,48 @@ sepref_definition isa_find_unwatched_between_fast_code
 
 declare isa_find_unwatched_between_fast_code.refine[sepref_fr_rules]
 
-declare get_saved_pos_code[sepref_fr_rules]
-
 sepref_definition find_unwatched_wl_st_heur_fast_code
   is \<open>uncurry isa_find_unwatched_wl_st_heur\<close>
   :: \<open>[(\<lambda>(S, C). find_unwatched_wl_st_heur_pre (S, C) \<and>
-            length (get_clauses_wl_heur S) \<le> uint64_max)]\<^sub>a
-         isasat_bounded_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow> option_assn uint64_nat_assn\<close>
-  supply [[goals_limit = 1]]
-    fmap_length_rll_def[simp]
-    uint64_of_uint32_conv_hnr[sepref_fr_rules] isasat_fast_def[simp]
+            length (get_clauses_wl_heur S) \<le> sint64_max)]\<^sub>a
+         isasat_bounded_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> snat_option_assn' TYPE(64)\<close>
+  supply [[goals_limit = 1]] isasat_fast_def[simp]
+  supply [simp] = max_snat_def
   unfolding isa_find_unwatched_wl_st_heur_def PR_CONST_def
     find_unwatched_def fmap_rll_def[symmetric] isasat_bounded_assn_def
     length_uint32_nat_def[symmetric] isa_find_unwatched_def
     case_tri_bool_If find_unwatched_wl_st_heur_pre_def
     fmap_rll_u64_def[symmetric]
-    MAX_LENGTH_SHORT_CLAUSE_def[symmetric]
-    two_uint64_nat_def[symmetric]
-    nat_of_uint64_conv_def
-  apply (subst isa_find_unset_lit_def[symmetric])+
+  apply (subst isa_find_unset_lit_def[symmetric])
+  apply (subst isa_find_unset_lit_def[symmetric])
+  apply (subst isa_find_unset_lit_def[symmetric])
+  apply (annot_snat_const "TYPE (64)")
   by sepref
 
 declare find_unwatched_wl_st_heur_fast_code.refine[sepref_fr_rules]
 
 
 sepref_register update_clause_wl_heur
-sepref_definition update_clause_wl_code
-  is \<open>uncurry7 update_clause_wl_heur\<close>
-  :: \<open>[update_clause_wl_code_pre]\<^sub>a
-     unat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a bool_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k
-        *\<^sub>a isasat_unbounded_assn\<^sup>d \<rightarrow> nat_assn *a nat_assn *a isasat_unbounded_assn\<close>
-  supply [[goals_limit=1]] length_rll_def[simp] length_ll_def[simp]
-    update_clause_wl_heur_pre_le_uint64[intro!]
-  unfolding update_clause_wl_heur_def isasat_unbounded_assn_def Array_List_Array.swap_ll_def[symmetric]
-    fmap_rll_def[symmetric] delete_index_and_swap_update_def[symmetric]
-    delete_index_and_swap_ll_def[symmetric] fmap_swap_ll_def[symmetric]
-    append_ll_def[symmetric] update_clause_wl_code_pre_def
-    fmap_rll_u64_def[symmetric]
-    fmap_swap_ll_u64_def[symmetric]
-    fmap_swap_ll_def[symmetric]
-    PR_CONST_def
-  by sepref
+setup \<open>map_theory_claset (fn ctxt => ctxt delSWrapper "split_all_tac")\<close>
 
-declare update_clause_wl_code.refine[sepref_fr_rules]
+lemma arena_lit_pre_le2: \<open>
+       arena_lit_pre a i \<Longrightarrow> length a \<le> sint64_max \<Longrightarrow> i < max_snat 64\<close>
+   using arena_lifting(7)[of a _ _] unfolding arena_lit_pre_def arena_is_valid_clause_idx_and_access_def sint64_max_def max_snat_def
+  by fastforce
+
+lemma sint64_max_le_max_snat64: \<open>a < sint64_max \<Longrightarrow> Suc a < max_snat 64\<close>
+  by (auto simp: max_snat_def sint64_max_def)
 
 sepref_definition update_clause_wl_fast_code
   is \<open>uncurry7 update_clause_wl_heur\<close>
   :: \<open>[\<lambda>(((((((L, C), b), j), w), i), f), S). update_clause_wl_code_pre (((((((L, C), b), j), w), i), f), S) \<and>
-        length (get_clauses_wl_heur S) \<le> uint64_max]\<^sub>a
-     unat_lit_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a bool_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a
-       uint64_nat_assn\<^sup>k
-        *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> uint64_nat_assn *a uint64_nat_assn *a isasat_bounded_assn\<close>
-  supply [[goals_limit=1]] length_rll_def[simp] length_ll_def[simp]
-    update_clause_wl_heur_pre_le_uint64[intro]
-  unfolding update_clause_wl_heur_def isasat_bounded_assn_def Array_List_Array.swap_ll_def[symmetric]
+        length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a
+     unat_lit_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a bool1_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a
+       sint64_nat_assn\<^sup>k
+        *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> sint64_nat_assn *a sint64_nat_assn *a isasat_bounded_assn\<close>
+  supply [[goals_limit=1]]  arena_lit_pre_le2[intro] swap_lits_pre_def[simp]
+    sint64_max_le_max_snat64[intro]
+  unfolding update_clause_wl_heur_def isasat_bounded_assn_def
     fmap_rll_def[symmetric] delete_index_and_swap_update_def[symmetric]
     delete_index_and_swap_ll_def[symmetric] fmap_swap_ll_def[symmetric]
     append_ll_def[symmetric] update_clause_wl_code_pre_def
@@ -119,98 +107,82 @@ sepref_definition update_clause_wl_fast_code
     fmap_swap_ll_u64_def[symmetric]
     fmap_swap_ll_def[symmetric]
     PR_CONST_def
-    to_watcher_fast_def[symmetric]
-    one_uint64_nat_def[symmetric]
+  apply (annot_snat_const "TYPE (64)")
   by sepref
 
 declare update_clause_wl_fast_code.refine[sepref_fr_rules]
 
-sepref_definition propagate_lit_wl_code
-  is \<open>uncurry3 propagate_lit_wl_heur\<close>
-  :: \<open>[propagate_lit_wl_heur_pre]\<^sub>a
-      unat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a isasat_unbounded_assn\<^sup>d \<rightarrow> isasat_unbounded_assn\<close>
-  unfolding PR_CONST_def propagate_lit_wl_heur_def isasat_unbounded_assn_def
-    cons_trail_Propagated_def[symmetric]
-  supply [[goals_limit=1]]length_rll_def[simp] length_ll_def[simp]
-  unfolding update_clause_wl_heur_def isasat_unbounded_assn_def
-    propagate_lit_wl_heur_pre_def fmap_swap_ll_def[symmetric]
-    save_phase_def
-  apply (rewrite at \<open>count_decided_pol _ = \<hole>\<close> zero_uint32_nat_def[symmetric])
-  by sepref
-
-declare propagate_lit_wl_code.refine[sepref_fr_rules]
+lemma standard_constanst[simp, intro!]:
+  \<open>0 < max_snat n\<close>
+  \<open>1 < max_snat 32\<close>
+  \<open>2 < max_snat 32\<close>
+  \<open>3 < max_snat 32\<close>
+  \<open>4 < max_snat 32\<close>
+  \<open>1 < max_snat 64\<close>
+  \<open>2 < max_snat 64\<close>
+  \<open>3 < max_snat 64\<close>
+  \<open>4 < max_snat 64\<close>
+  \<open>1 < max_unat 32\<close>
+  \<open>2 < max_unat 32\<close>
+  \<open>3 < max_unat 32\<close>
+  \<open>4 < max_unat 32\<close>
+  \<open>1 < max_unat 64\<close>
+  \<open>2 < max_unat 64\<close>
+  \<open>3 < max_unat 64\<close>
+  \<open>4 < max_unat 64\<close>
+  by (auto simp: max_snat_def max_unat_def)
 
 sepref_definition propagate_lit_wl_fast_code
   is \<open>uncurry3 propagate_lit_wl_heur\<close>
-  :: \<open>[\<lambda>(((L, C), i), S). propagate_lit_wl_heur_pre(((L, C), i), S) \<and>
-      length (get_clauses_wl_heur S) \<le> uint64_max]\<^sub>a
-      unat_lit_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
-  unfolding PR_CONST_def propagate_lit_wl_heur_def isasat_unbounded_assn_def
+  :: \<open>[\<lambda>(((L, C), i), S). propagate_lit_wl_heur_pre (((L, C), i), S) \<and>
+      length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a
+      unat_lit_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
+  unfolding PR_CONST_def propagate_lit_wl_heur_def
     cons_trail_Propagated_def[symmetric]
-  supply [[goals_limit=1]] length_rll_def[simp] length_ll_def[simp]
+  supply [[goals_limit=1]] swap_lits_pre_def[simp]
   unfolding update_clause_wl_heur_def isasat_bounded_assn_def
     propagate_lit_wl_heur_pre_def fmap_swap_ll_def[symmetric]
     fmap_swap_ll_u64_def[symmetric]
-    zero_uint64_nat_def[symmetric]
-    one_uint64_nat_def[symmetric]
     save_phase_def
-  apply (rewrite at \<open>count_decided_pol _ = \<hole>\<close> zero_uint64_nat_def)
-  apply (rewrite at \<open>count_decided_pol _ = \<hole>\<close> zero_uint32_nat_def[symmetric])
+  apply (rewrite at \<open>count_decided_pol _ = \<hole>\<close> unat_const_fold[where 'a=32])
+  apply (annot_snat_const "TYPE (64)")
   by sepref
 
 declare propagate_lit_wl_fast_code.refine[sepref_fr_rules]
 
 
-sepref_definition propagate_lit_wl_bin_code
-  is \<open>uncurry3 propagate_lit_wl_bin_heur\<close>
-  :: \<open>[propagate_lit_wl_heur_pre]\<^sub>a
-      unat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a isasat_unbounded_assn\<^sup>d \<rightarrow> isasat_unbounded_assn\<close>
-  unfolding PR_CONST_def propagate_lit_wl_heur_def isasat_unbounded_assn_def
-    cons_trail_Propagated_def[symmetric]
-  supply [[goals_limit=1]]length_rll_def[simp] length_ll_def[simp]
-  unfolding update_clause_wl_heur_def isasat_unbounded_assn_def
-    propagate_lit_wl_heur_pre_def fmap_swap_ll_def[symmetric]
-    save_phase_def propagate_lit_wl_bin_heur_def
-  apply (rewrite at \<open>count_decided_pol _ = \<hole>\<close> zero_uint32_nat_def[symmetric])
-  by sepref
-
-declare propagate_lit_wl_bin_code.refine[sepref_fr_rules]
-
 sepref_definition propagate_lit_wl_bin_fast_code
   is \<open>uncurry3 propagate_lit_wl_bin_heur\<close>
   :: \<open>[\<lambda>(((L, C), i), S). propagate_lit_wl_heur_pre(((L, C), i), S) \<and>
-      length (get_clauses_wl_heur S) \<le> uint64_max]\<^sub>a
-      unat_lit_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow>
+      length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a
+      unat_lit_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow>
       isasat_bounded_assn\<close>
-  unfolding PR_CONST_def propagate_lit_wl_heur_def isasat_unbounded_assn_def
+  unfolding PR_CONST_def propagate_lit_wl_heur_def
     cons_trail_Propagated_def[symmetric]
-  supply [[goals_limit=1]] length_rll_def[simp] length_ll_def[simp]
+  supply [[goals_limit=1]]  length_ll_def[simp]
   unfolding update_clause_wl_heur_def isasat_bounded_assn_def
     propagate_lit_wl_heur_pre_def fmap_swap_ll_def[symmetric]
     fmap_swap_ll_u64_def[symmetric]
-    zero_uint64_nat_def[symmetric]
-    one_uint64_nat_def[symmetric]
     save_phase_def propagate_lit_wl_bin_heur_def
-  apply (rewrite at \<open>count_decided_pol _ = \<hole>\<close> zero_uint64_nat_def)
-  apply (rewrite at \<open>count_decided_pol _ = \<hole>\<close> zero_uint32_nat_def[symmetric])
+  apply (rewrite at \<open>count_decided_pol _ = \<hole>\<close> unat_const_fold[where 'a=32])
   by sepref
 
 declare propagate_lit_wl_bin_fast_code.refine[sepref_fr_rules]
 
 
-sepref_definition clause_not_marked_to_delete_heur_code
-  is \<open>uncurry (RETURN oo clause_not_marked_to_delete_heur)\<close>
-  :: \<open>[clause_not_marked_to_delete_heur_pre]\<^sub>a isasat_unbounded_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> bool_assn\<close>
-  supply [[goals_limit=1]]
-  unfolding clause_not_marked_to_delete_heur_alt_def isasat_unbounded_assn_def
-     clause_not_marked_to_delete_heur_pre_def
+sepref_register neq : "(op_neq :: clause_status \<Rightarrow> _ \<Rightarrow> _)" 
+lemma status_neq_refine1: "((\<noteq>),op_neq) \<in> status_rel \<rightarrow> status_rel \<rightarrow> bool_rel"
+  by (auto simp: status_rel_def)
+
+sepref_definition status_neq_impl is "uncurry (RETURN oo (\<noteq>))" 
+  :: "(unat_assn' TYPE(32))\<^sup>k *\<^sub>a (unat_assn' TYPE(32))\<^sup>k \<rightarrow>\<^sub>a bool1_assn"  
   by sepref
 
-declare clause_not_marked_to_delete_heur_code.refine[sepref_fr_rules]
+lemmas [sepref_fr_rules] = status_neq_impl.refine[FCOMP status_neq_refine1]
 
 sepref_definition clause_not_marked_to_delete_heur_fast_code
   is \<open>uncurry (RETURN oo clause_not_marked_to_delete_heur)\<close>
-  :: \<open>[clause_not_marked_to_delete_heur_pre]\<^sub>a isasat_bounded_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow> bool_assn\<close>
+  :: \<open>[clause_not_marked_to_delete_heur_pre]\<^sub>a isasat_bounded_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> bool1_assn\<close>
   supply [[goals_limit=1]]
   unfolding clause_not_marked_to_delete_heur_alt_def isasat_bounded_assn_def
      clause_not_marked_to_delete_heur_pre_def
@@ -218,54 +190,34 @@ sepref_definition clause_not_marked_to_delete_heur_fast_code
 
 declare clause_not_marked_to_delete_heur_fast_code.refine[sepref_fr_rules]
 
-sepref_definition update_blit_wl_heur_code
-  is \<open>uncurry6 update_blit_wl_heur\<close>
-  :: \<open>
-      unat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a bool_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a isasat_unbounded_assn\<^sup>d \<rightarrow>\<^sub>a
-     nat_assn *a nat_assn *a isasat_unbounded_assn\<close>
-  supply [[goals_limit=1]] length_ll_def[simp]
-  unfolding update_blit_wl_heur_def isasat_unbounded_assn_def update_ll_def[symmetric]
-  by sepref
 
-declare update_blit_wl_heur_code.refine[sepref_fr_rules]
-
+find_theorems sint64_max max_snat
 sepref_definition update_blit_wl_heur_fast_code
   is \<open>uncurry6 update_blit_wl_heur\<close>
-  :: \<open>[\<lambda>((((((_, _), _), _), C), i), S). length (get_clauses_wl_heur S) \<le> uint64_max]\<^sub>a
-      unat_lit_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a bool_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a
+  :: \<open>[\<lambda>((((((_, _), _), _), C), i), S). length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a
+      unat_lit_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a bool1_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a
          isasat_bounded_assn\<^sup>d \<rightarrow>
-     uint64_nat_assn *a uint64_nat_assn *a isasat_bounded_assn\<close>
-  supply [[goals_limit=1]] length_ll_def[simp]
-  unfolding update_blit_wl_heur_def isasat_bounded_assn_def update_ll_def[symmetric]
-    to_watcher_fast_def[symmetric] one_uint64_nat_def[symmetric]
+     sint64_nat_assn *a sint64_nat_assn *a isasat_bounded_assn\<close>
+  supply [[goals_limit=1]] sint64_max_le_max_snat64[intro]
+  unfolding update_blit_wl_heur_def isasat_bounded_assn_def append_ll_def[symmetric]
+  apply (annot_snat_const "TYPE (64)")
+apply sepref_dbg_keep
+apply sepref_dbg_trans_keep
+apply sepref_dbg_trans_step_keep
+apply sepref_dbg_side_unfold
+apply sepref_dbg_side_keep
+subgoal
+oops
   by sepref
 
+term op_list_list_pop_back
 declare update_blit_wl_heur_fast_code.refine[sepref_fr_rules]
 
 sepref_register keep_watch_heur
 
-sepref_definition keep_watch_heur_code
-  is \<open>uncurry3 keep_watch_heur\<close>
-  :: \<open>unat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a isasat_unbounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_unbounded_assn\<close>
-  supply [[goals_limit=1]]
-    if_splits[split]
-    length_rll_def[simp] length_ll_def[simp]
-  supply undefined_lit_polarity_st_iff[iff]
-    unit_prop_body_wl_D_find_unwatched_heur_inv_def[simp]
-    update_raa_hnr[sepref_fr_rules]
-  unfolding keep_watch_heur_def length_rll_def[symmetric] PR_CONST_def
-  unfolding fmap_rll_def[symmetric] isasat_unbounded_assn_def
-  unfolding fast_minus_def[symmetric]
-    nth_rll_def[symmetric]
-    SET_FALSE_def[symmetric] SET_TRUE_def[symmetric]
-    update_ll_def[symmetric]
-  by sepref
-
-declare keep_watch_heur_code.refine[sepref_fr_rules]
-
 sepref_definition keep_watch_heur_fast_code
   is \<open>uncurry3 keep_watch_heur\<close>
-  :: \<open>unat_lit_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
+  :: \<open>unat_lit_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
   supply
     [[goals_limit=1]]
     if_splits[split]
@@ -284,24 +236,14 @@ sepref_definition keep_watch_heur_fast_code
 declare keep_watch_heur_fast_code.refine[sepref_fr_rules]
 
 sepref_register isa_set_lookup_conflict_aa set_conflict_wl_heur
-sepref_definition set_conflict_wl_heur_code
-  is \<open>uncurry set_conflict_wl_heur\<close>
-  :: \<open>[set_conflict_wl_heur_pre]\<^sub>a
-    nat_assn\<^sup>k *\<^sub>a isasat_unbounded_assn\<^sup>d \<rightarrow> isasat_unbounded_assn\<close>
-  supply [[goals_limit=1]]
-  unfolding set_conflict_wl_heur_def isasat_unbounded_assn_def
-    set_conflict_wl_heur_pre_def PR_CONST_def
-  by sepref
-
-declare set_conflict_wl_heur_code.refine[sepref_fr_rules]
 
 sepref_register arena_incr_act
 
 sepref_definition set_conflict_wl_heur_fast_code
   is \<open>uncurry set_conflict_wl_heur\<close>
   :: \<open>[\<lambda>(C, S). set_conflict_wl_heur_pre (C, S) \<and>
-     length (get_clauses_wl_heur S) \<le> uint64_max]\<^sub>a
-    uint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
+     length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a
+    sint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   supply [[goals_limit=1]]
   unfolding set_conflict_wl_heur_def isasat_bounded_assn_def
     set_conflict_wl_heur_pre_def PR_CONST_def
@@ -310,33 +252,13 @@ sepref_definition set_conflict_wl_heur_fast_code
 declare set_conflict_wl_heur_fast_code.refine[sepref_fr_rules]
 
 
-text \<open>Find a less hack-like solution\<close>
-setup \<open>map_theory_claset (fn ctxt => ctxt delSWrapper "split_all_tac")\<close>
-
 sepref_register update_blit_wl_heur clause_not_marked_to_delete_heur
-sepref_definition unit_propagation_inner_loop_body_wl_heur_code
-  is \<open>uncurry3 unit_propagation_inner_loop_body_wl_heur\<close>
-  :: \<open>unat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a isasat_unbounded_assn\<^sup>d \<rightarrow>\<^sub>a nat_assn *a nat_assn *a isasat_unbounded_assn\<close>
-  supply
-    [[goals_limit=1]]
-    if_splits[split]
-    length_rll_def[simp]
-  supply undefined_lit_polarity_st_iff[iff]
-    unit_prop_body_wl_D_find_unwatched_heur_inv_def[simp]
-    unit_propagation_inner_loop_wl_loop_D_heur_inv0_def[simp]
-    unit_propagation_inner_loop_wl_loop_D_inv_def[simp]
-    image_image[simp]
-  unfolding unit_propagation_inner_loop_body_wl_heur_def length_rll_def[symmetric] PR_CONST_def
-  unfolding fmap_rll_def[symmetric]
-  unfolding fast_minus_def[symmetric]
-    SET_FALSE_def[symmetric] SET_TRUE_def[symmetric] tri_bool_eq_def[symmetric]
-  by sepref
 
 sepref_definition unit_propagation_inner_loop_body_wl_fast_heur_code
   is \<open>uncurry3 unit_propagation_inner_loop_body_wl_heur\<close>
   :: \<open>[\<lambda>((L, w), S). length (get_clauses_wl_heur S) \<le> uint64_max]\<^sub>a
-      unat_lit_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k  *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow>
-       uint64_nat_assn *a uint64_nat_assn *a isasat_bounded_assn\<close>
+      unat_lit_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k  *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow>
+       sint64_nat_assn *a sint64_nat_assn *a isasat_bounded_assn\<close>
   supply [[goals_limit=1]]
     if_splits[split]
     length_rll_def[simp]
@@ -346,20 +268,12 @@ sepref_definition unit_propagation_inner_loop_body_wl_fast_heur_code
   unfolding fmap_rll_def[symmetric]
   unfolding fast_minus_def[symmetric]
     SET_FALSE_def[symmetric] SET_TRUE_def[symmetric] tri_bool_eq_def[symmetric]
-  apply (rewrite in \<open>access_lit_in_clauses_heur _ _ \<hole>\<close> zero_uint64_nat_def[symmetric])+
-  apply (rewrite in \<open>If _ \<hole> 1\<close> zero_uint64_nat_def[symmetric])
-  apply (rewrite in \<open>If _ zero_uint64_nat \<hole>\<close> one_uint64_nat_def[symmetric])
-  apply (rewrite in \<open>If _ \<hole> 1\<close> zero_uint64_nat_def[symmetric])
-  apply (rewrite in \<open>If _ zero_uint64_nat \<hole>\<close> one_uint64_nat_def[symmetric])
-  apply (rewrite in \<open>fast_minus \<hole> _\<close> one_uint64_nat_def[symmetric])
-  apply (rewrite in \<open>fast_minus \<hole> _\<close> one_uint64_nat_def[symmetric])
-  unfolding one_uint64_nat_def[symmetric]
+  apply (annot_snat_const "TYPE (64)")
   by sepref
 
 sepref_register unit_propagation_inner_loop_body_wl_heur
 
-declare unit_propagation_inner_loop_body_wl_heur_code.refine[sepref_fr_rules]
+declare
   unit_propagation_inner_loop_body_wl_fast_heur_code.refine[sepref_fr_rules]
-declare [[show_types]]
-thm unit_propagation_inner_loop_body_wl_fast_heur_code_def
+
 end
