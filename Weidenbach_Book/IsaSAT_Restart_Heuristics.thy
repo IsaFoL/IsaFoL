@@ -4575,7 +4575,7 @@ definition rewatch_heur_st_pre :: \<open>twl_st_wl_heur \<Rightarrow> bool\<clos
 
 lemma isasat_GC_clauses_wl_D_rewatch_pre:
   assumes
-    \<open>length (get_clauses_wl_heur x) \<le> uint64_max\<close> and
+    \<open>length (get_clauses_wl_heur x) \<le> sint64_max\<close> and
     \<open>length (get_clauses_wl_heur xc) \<le> length (get_clauses_wl_heur x)\<close> and
     \<open>\<forall>i \<in> set (get_vdom xc). i \<le> length (get_clauses_wl_heur x)\<close>
   shows \<open>rewatch_heur_st_pre xc\<close>
