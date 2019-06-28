@@ -87,10 +87,7 @@ sepref_definition (in -)ns_vmtf_dequeue_code
   supply option.splits[split]
   unfolding ns_vmtf_dequeue_def vmtf_dequeue_pre_alt_def case_option_split atom.fold_option
   apply annot_all_atm_idxs
-  apply sepref_dbg_keep
-  apply sepref_dbg_trans_keep
-  apply sepref_dbg_trans_step_keep
-  apply sepref_dbg_side_keep
+  by sepref
   
 
 declare ns_vmtf_dequeue_code.refine[sepref_fr_rules]
@@ -98,78 +95,64 @@ declare ns_vmtf_dequeue_code.refine[sepref_fr_rules]
 sepref_register get_next get_prev stamp
 lemma eq_Some_iff: "x = Some b \<longleftrightarrow> (\<not>is_None x \<and> the x = b)"
   by (cases x) auto
-lemma isa_vmtf_en_dequeue_alt_def:
-   \<open>isa_vmtf_en_dequeue = (\<lambda>M L vm.
-   case vm of
-               (ns, m, fst_As, lst_As, next_search) \<Rightarrow>
-                 let fst_As' =
-                       if fst_As = L then get_next (ns ! op_unat_snat_upcast TYPE(64) L) else ASSN_ANNOT (snat_option_assn' TYPE(64)) (Some fst_As);
-                     next_search' =
-                       if next_search = ASSN_ANNOT (snat_option_assn' TYPE(64))(Some L) then get_next (ns ! op_unat_snat_upcast TYPE(64) L)
-                       else next_search;
-                     lst_As' =
-                       if lst_As = L then get_prev (ns ! op_unat_snat_upcast TYPE(64) L) else ASSN_ANNOT (snat_option_assn' TYPE(64))(Some lst_As);
-                     ns = ns_vmtf_dequeue L ns;
-                     fst_As = fst_As';
-                     lst_As = lst_As';
-                     next_search = next_search'
-                 in  do {
-              _ \<leftarrow> ASSERT (defined_atm_pol_pre M L);
-              de \<leftarrow> RETURN (defined_atm_pol M L);
-              RETURN
-               (case fst_As of
-                None \<Rightarrow>
-                  (ns[L := VMTF_Node m fst_As None], m + 1, L, L,
-                   if de then None else Some L)
-                | Some fst_As \<Rightarrow>
-                    let fst_As' =
-                          VMTF_Node (stamp (ns ! fst_As)) (Some L)
-                           (get_next (ns ! fst_As))
-                    in (ns[op_unat_snat_upcast TYPE(64) L := VMTF_Node (m + 1) None (Some fst_As),
-                           fst_As := fst_As'],
-                        m + 1, L, the lst_As,
-                        if de then next_search else Some L))
-            })\<close>
-  unfolding isa_vmtf_en_dequeue_def vmtf_dequeue_def isa_vmtf_enqueue_def
-    annot_unat_snat_upcast[symmetric] ASSN_ANNOT_def
-  apply (auto intro!: ext split: prod.splits simp: Let_def)
-  done
 
+lemma hfref_refine_with_pre:
+  assumes "\<And>x. P x \<Longrightarrow> g' x \<le> g x"  
+  assumes "(f,g') \<in> [P]\<^sub>a\<^sub>d A \<rightarrow> R"
+  shows "(f,g) \<in> [P]\<^sub>a\<^sub>d A \<rightarrow> R"
+  using assms(2)[THEN hfrefD] assms(1)
+  by (auto intro!: hfrefI intro: hn_refine_ref)
+  
+  
+lemma isa_vmtf_en_dequeue_preI:
+  assumes "isa_vmtf_en_dequeue_pre ((M,L),(ns, m, fst_As, lst_As, next_search))"  
+  shows "fst_As < length ns" "L < length ns" "m < max_snat 64"
+    and "get_next (ns!L) = Some i \<longrightarrow> i < length ns"
+  using assms
+  unfolding isa_vmtf_en_dequeue_pre_def vmtf_dequeue_pre_def
+  apply (auto simp: max_snat_def sint64_max_def)
+  done
+  
+  
 lemma isa_vmtf_en_dequeue_alt_def2:
-   \<open>isa_vmtf_en_dequeue = (\<lambda>M L vm.
-   case vm of
-               (ns, m, fst_As, lst_As, next_search) \<Rightarrow>
-                 let fst_As' =
-                       if fst_As = L then get_next (ns ! L) else (Some fst_As);
-                     next_search' =
-                       if next_search = (Some L) then get_next (ns ! L)
-                       else next_search;
-                     lst_As' =
-                       if lst_As = L then get_prev (ns ! L) else (Some lst_As);
-                     ns = ns_vmtf_dequeue L ns;
-                     fst_As = fst_As';
-                     lst_As = lst_As';
-                     next_search = next_search'
-                 in  do {
-              _ \<leftarrow> ASSERT (defined_atm_pol_pre M L);
-              de \<leftarrow> RETURN (defined_atm_pol M L);
-              RETURN
-               (case fst_As of
-                None \<Rightarrow>
-                  (ns[L := VMTF_Node m fst_As None], m + 1, L, L,
-                   if de then None else Some L)
-                | Some fst_As \<Rightarrow>
-                    let fst_As' =
-                          VMTF_Node (stamp (ns ! fst_As)) (Some L)
-                           (get_next (ns ! fst_As))
-                    in (ns[L := VMTF_Node (m + 1) None (Some fst_As),
-                           fst_As := fst_As'],
-                        m + 1, L, the lst_As,
-                        if de then next_search else Some L))
-            })\<close>
+   \<open>isa_vmtf_en_dequeue_pre x \<Longrightarrow> (
+    case x of ((M,L),(ns, m, fst_As, lst_As, next_search)) \<Rightarrow> doN {
+      ASSERT(L<length ns);
+      fst_As \<leftarrow> (if fst_As = L then RETURN (get_next (ns ! L)) else (RETURN (Some fst_As)));
+      
+      let next_search = (if next_search = (Some L) then get_next (ns ! L)
+                        else next_search);
+      let lst_As = (if lst_As = L then get_prev (ns ! L) else (Some lst_As));
+      let ns = ns_vmtf_dequeue L ns;
+      ASSERT (defined_atm_pol_pre M L);
+      let de = (defined_atm_pol M L);
+      ASSERT (m < max_snat 64);
+      case fst_As of
+        None \<Rightarrow> RETURN
+          (ns[L := VMTF_Node m fst_As None], m + 1, L, L,
+           if de then None else Some L)
+      | Some fst_As \<Rightarrow> doN {
+          ASSERT (fst_As < length ns);
+          let fst_As' =
+                VMTF_Node (stamp (ns ! fst_As)) (Some L)
+                 (get_next (ns ! fst_As));
+          RETURN (
+            ns[L := VMTF_Node (m + 1) None (Some fst_As),
+            fst_As := fst_As'],
+            m + 1, L, the lst_As,
+            if de then next_search else Some L)
+      }
+    })
+  \<le> uncurry2 (isa_vmtf_en_dequeue) x
+    \<close>
   unfolding isa_vmtf_en_dequeue_def vmtf_dequeue_def isa_vmtf_enqueue_def
     annot_unat_snat_upcast[symmetric] ASSN_ANNOT_def
-  apply (auto intro!: ext split: prod.splits simp: Let_def)
+  apply (simp add: Let_def)
+  apply (simp 
+    only: pw_le_iff refine_pw_simps 
+    split: prod.splits
+    )
+  apply (auto split!: if_splits option.splits simp: refine_pw_simps isa_vmtf_en_dequeue_preI)
   done
   
 (* TODO: This is a general setup to identify any numeral by id-op (numeral is already in Sepref_Id_Op.thy.)
@@ -186,15 +169,52 @@ lemmas [sepref_fr_rules] = atom_eq_impl.refine
 method annot_all_atm_idxs = (simp only_main: annot_index_of_atm' cong: if_cong)
 
 
+(* TODO: Move and change, such that annot does only annotate in program, not in relations! *)
+lemma hfref_absfun_convI: "CNV g g' \<Longrightarrow> (f,g') \<in> hfref P A R \<Longrightarrow> (f,g) \<in> hfref P A R" by simp
+
+method annot_sint_const for T::"'a::len itself" = 
+  (rule hfref_absfun_convI),
+  (simp only: sint_const_fold[where 'a='a] cong: annot_num_const_cong),
+  (rule CNV_I)
+  
+method annot_snat_const for T::"'a::len2 itself" = 
+  (rule hfref_absfun_convI),
+  (simp only: snat_const_fold[where 'a='a] cong: annot_num_const_cong),
+  (rule CNV_I)
+  
+method annot_unat_const for T::"'a::len itself" = 
+  (rule hfref_absfun_convI),
+  (simp only: unat_const_fold[where 'a='a] cong: annot_num_const_cong),
+  (rule CNV_I)
+
+find_theorems is_None
+
+(* TODO: The current simp-unfold rule for is_None requires option.split to reason about. 
+  Not a good idea when goals get big! *)
+lemma is_None_unfold': "is_None = (\<lambda>x. x=None)" by (auto simp: fun_eq_iff split: option.splits)
+
+lemma vmtf_en_dequeue_fast_codeI:
+  assumes "isa_vmtf_en_dequeue_pre ((M, L),(ns,m,fst_As, lst_As, next_search))"
+  shows "m < max_snat 64"
+  using assms
+  unfolding isa_vmtf_en_dequeue_pre_def max_snat_def sint64_max_def
+  by auto
+  
+
 sepref_definition vmtf_en_dequeue_fast_code
    is \<open>uncurry2 isa_vmtf_en_dequeue\<close>
    :: \<open>[isa_vmtf_en_dequeue_pre]\<^sub>a
         trail_pol_fast_assn\<^sup>k *\<^sub>a atom_assn\<^sup>k *\<^sub>a vmtf_assn\<^sup>d \<rightarrow> vmtf_assn\<close>
-  supply [[goals_limit = 3]]
-  supply [split] = option.splits
+  apply (rule hfref_refine_with_pre[OF isa_vmtf_en_dequeue_alt_def2], assumption)
+  
+  supply [[goals_limit = 1]]
+  (*supply [split] = option.splits*)
+  supply [dest] = in_unat_rel_imp_less_max' 
+  supply [simp] = max_unat_def max_snat_def
+  supply [simp] = is_None_unfold'
   supply isa_vmtf_en_dequeue_preD[dest] isa_vmtf_en_dequeue_pre_vmtf_enqueue_pre[dest]
   unfolding isa_vmtf_en_dequeue_alt_def2 case_option_split eq_Some_iff short_circuit_conv
-  
+    
   apply (tactic \<open>
     let 
       val ctxt = @{context}
@@ -206,13 +226,17 @@ sepref_definition vmtf_en_dequeue_fast_code
     end  
   \<close>)
   
- xxx: This annotates too much! 
-  
  apply (annot_unat_const "TYPE(64)")
+ 
+ unfolding atom.fold_option
+ 
 apply sepref_dbg_keep
 apply sepref_dbg_trans_keep
-apply sepref_dbg_trans_step_keep
-apply sepref_dbg_side_keep
+ apply sepref_dbg_trans_step_keep
+
+subgoal
+  apply sepref_dbg_side_keep
+
 
 find_in_thms "0 " in id_rules
 
