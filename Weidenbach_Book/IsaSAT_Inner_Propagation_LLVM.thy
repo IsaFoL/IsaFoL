@@ -49,6 +49,7 @@ sepref_definition isa_find_unwatched_between_fast_code
     PR_CONST_def
   apply (rewrite in \<open>if \<hole> then _ else _\<close>  tri_bool_eq_def[symmetric])
   apply (rewrite in \<open>If _ (RETURN (\<hole>, _))\<close> annotate_assn[where A = \<open>snat_option_assn' TYPE(64)\<close>])
+  apply (rewrite at \<open>(\<hole>, _ + _)\<close> in \<open>WHILEIT _ _ _ \<hole>\<close>annotate_assn[where A = \<open>snat_option_assn' TYPE(64)\<close>])
 apply sepref_dbg_keep
 apply sepref_dbg_trans_keep
 apply sepref_dbg_trans_step
