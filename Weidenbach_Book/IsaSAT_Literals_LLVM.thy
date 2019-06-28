@@ -125,14 +125,17 @@ sepref_definition atm_of_impl is "RETURN o (\<lambda>x::nat. x div 2)"
 lemmas [sepref_fr_rules] = atm_of_impl.refine[FCOMP atm_of_refine]
   
 
-lemma Pos_refine_aux: "(\<lambda>x. 2*x,Pos)\<in>nat_rel \<rightarrow> nat_lit_rel"
+definition Pos_rel :: \<open>nat \<Rightarrow> nat\<close> where
+ [simp]: \<open>Pos_rel n = 2 * n\<close>
+
+lemma Pos_refine_aux: "(Pos_rel,Pos)\<in>nat_rel \<rightarrow> nat_lit_rel"
   by (auto simp: nat_lit_rel_def in_br_conv split: if_splits)
   
 lemma Neg_refine_aux: "(\<lambda>x. 2*x + 1,Neg)\<in>nat_rel \<rightarrow> nat_lit_rel"
   by (auto simp: nat_lit_rel_def in_br_conv split: if_splits)
 
-sepref_definition Pos_impl is "RETURN o (\<lambda>x. 2*x)" :: "atom_assn\<^sup>d \<rightarrow>\<^sub>a uint32_nat_assn"
-  unfolding atom_rel_def
+sepref_definition Pos_impl is "RETURN o Pos_rel" :: "atom_assn\<^sup>d \<rightarrow>\<^sub>a uint32_nat_assn"
+  unfolding atom_rel_def Pos_rel_def
   apply (annot_unat_const "TYPE(32)")
   supply [simp] = max_unat_def uint32_max_def
   by sepref_dbg_keep
@@ -146,23 +149,58 @@ sepref_definition Neg_impl is "RETURN o (\<lambda>x. 2*x+1)" :: "[\<lambda>x. x 
 lemmas [sepref_fr_rules] = 
   Pos_impl.refine[FCOMP Pos_refine_aux]
   Neg_impl.refine[FCOMP Neg_refine_aux]
-  
+
+definition value_of_atm :: \<open>nat \<Rightarrow> nat\<close> where
+[simp]: \<open>value_of_atm A = A\<close>
+
+lemma value_of_atm_rel: \<open>(\<lambda>x. x, value_of_atm) \<in> nat_rel \<rightarrow> nat_rel\<close>
+  by (auto)
+
+sepref_definition value_of_atm_impl
+  is \<open>RETURN o (\<lambda>x. x)\<close>
+  :: \<open>atom_assn\<^sup>d \<rightarrow>\<^sub>a unat_assn' TYPE(32)\<close>
+  unfolding value_of_atm_def atom_rel_def
+  by sepref
+
+lemmas [sepref_fr_rules] = value_of_atm_impl.refine[FCOMP value_of_atm_rel]
+
+definition index_of_atm :: \<open>nat \<Rightarrow> nat\<close> where
+[simp]: \<open>index_of_atm A = value_of_atm A\<close>
+
+lemma index_of_atm_rel: \<open>(\<lambda>x. value_of_atm x, index_of_atm) \<in> nat_rel \<rightarrow> nat_rel\<close>
+  by (auto)
 
 
+sepref_definition index_of_atm_impl 
+  is \<open>RETURN o (\<lambda>x. value_of_atm x)\<close>
+  :: \<open>atom_assn\<^sup>d \<rightarrow>\<^sub>a snat_assn' TYPE(64)\<close>
+  unfolding index_of_atm_def
+  apply (rewrite at "_" eta_expand)
+  apply (subst annot_unat_snat_upcast[where 'l=64])
+  by sepref
+
+lemmas [sepref_fr_rules] = index_of_atm_impl.refine[FCOMP index_of_atm_rel]
+
+lemma annot_index_of_atm: \<open>xs ! x = xs ! index_of_atm x\<close>
+   \<open>xs [x := a] = xs [index_of_atm x := a]\<close>
+  by auto
+
+definition index_atm_of where
+[simp]: \<open>index_atm_of L = index_of_atm (atm_of L)\<close>
 
 
+sepref_definition index_atm_of_impl 
+  is \<open>RETURN o index_atm_of\<close>
+  :: \<open>unat_lit_assn\<^sup>d \<rightarrow>\<^sub>a snat_assn' TYPE(64)\<close>
+  unfolding index_atm_of_def
+  by sepref
 
+declare index_atm_of_impl.refine [sepref_fr_rules]
 
-
-
-
-
-
-
-
-
-  
-sepref_decl_impl atm_of_impl.refine[FCOMP atm_of_refine] .
+lemma annot_index_atm_of:
+  \<open>xs ! atm_of x = xs ! index_atm_of x\<close>
+  \<open>xs [atm_of x := a] = xs [index_atm_of x := a]\<close>
+  by auto
 
 lemma nat_of_lit_refine_aux: "((\<lambda>x. x), nat_of_lit) \<in> nat_lit_rel \<rightarrow> nat_rel"
   by (auto simp: nat_lit_rel_def in_br_conv)
@@ -171,8 +209,7 @@ sepref_definition nat_of_lit_rel_impl is "RETURN o (\<lambda>x::nat. x)" :: "uin
   apply (rewrite annot_unat_snat_upcast[where 'l=64])
   by sepref
 lemmas [sepref_fr_rules] = nat_of_lit_rel_impl.refine[FCOMP nat_of_lit_refine_aux]
-  
-  
+
 lemma uminus_refine_aux: "(\<lambda>x. x XOR 1, uminus) \<in> nat_lit_rel \<rightarrow> nat_lit_rel"
   apply (auto simp: nat_lit_rel_def in_br_conv bitXOR_1_if_mod_2[simplified])
   subgoal by linarith
