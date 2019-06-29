@@ -84,7 +84,7 @@ sepref_definition (in -)ns_vmtf_dequeue_code
    :: \<open>[vmtf_dequeue_pre]\<^sub>a
         atom_assn\<^sup>k *\<^sub>a (array_assn vmtf_node_assn)\<^sup>d \<rightarrow> array_assn vmtf_node_assn\<close>
   supply [[goals_limit = 1]]
-  supply option.splits[split]
+  supply option.splits[split] if_splits[split]
   unfolding ns_vmtf_dequeue_def vmtf_dequeue_pre_alt_def case_option_split atom.fold_option
   apply annot_all_atm_idxs
   by sepref
@@ -173,10 +173,6 @@ sepref_register 1 0
 
 
 
-(* TODO: The current simp-unfold rule for is_None requires option.split to reason about. 
-  Not a good idea when goals get big! *)
-lemma is_None_unfold': "is_None = (\<lambda>x. x=None)" by (auto simp: fun_eq_iff split: option.splits)
-
 lemma vmtf_en_dequeue_fast_codeI:
   assumes "isa_vmtf_en_dequeue_pre ((M, L),(ns,m,fst_As, lst_As, next_search))"
   shows "m < max_snat 64"
@@ -187,9 +183,7 @@ lemma vmtf_en_dequeue_fast_codeI:
   
 schematic_goal mk_free_trail_pol_fast_assn[sepref_frame_free_rules]: "MK_FREE trail_pol_fast_assn ?fr"  
   unfolding trail_pol_fast_assn_def
-  by sepref_dbg_side (* TODO: Use appropriate tactic! *)
-  
-  
+  by (rule free_thms sepref_frame_free_rules)+ (* TODO: Write a method for that! *)
 
 sepref_definition vmtf_en_dequeue_fast_code
    is \<open>uncurry2 isa_vmtf_en_dequeue\<close>
@@ -198,11 +192,7 @@ sepref_definition vmtf_en_dequeue_fast_code
   apply (rule hfref_refine_with_pre[OF isa_vmtf_en_dequeue_alt_def2], assumption)
   
   supply [[goals_limit = 1]]
-  (*supply [split] = option.splits*)
-  (*supply [dest] = in_unat_rel_imp_less_max' *)
   supply [simp] = max_unat_def max_snat_def
-  supply [simp] = is_None_unfold'
-  (*supply isa_vmtf_en_dequeue_preD[dest] isa_vmtf_en_dequeue_pre_vmtf_enqueue_pre[dest]*)
   unfolding isa_vmtf_en_dequeue_alt_def2 case_option_split eq_Some_iff 
   apply (rewrite in "if \<hole> then get_next _ else _" short_circuit_conv)
   apply annot_all_atm_idxs    
@@ -215,13 +205,17 @@ declare vmtf_en_dequeue_fast_code.refine[sepref_fr_rules]
 sepref_register vmtf_rescale
 sepref_definition vmtf_rescale_code
    is \<open>vmtf_rescale\<close>
-   :: \<open>vmtf_conc\<^sup>d \<rightarrow>\<^sub>a vmtf_conc\<close>
+   :: \<open>vmtf_assn\<^sup>d \<rightarrow>\<^sub>a vmtf_assn\<close>
   supply [[goals_limit = 1]]
-  supply [simp] = uint32_max_def max_snat_def
+  supply [simp] = uint32_max_def max_snat_def max_unat_def
+  
   supply vmtf_en_dequeue_pre_def[simp]
-  unfolding vmtf_rescale_alt_def PR_CONST_def update_stamp.simps
+  unfolding vmtf_rescale_alt_def update_stamp.simps
+  unfolding atom.fold_option
+  apply (annot_unat_const "TYPE(64)")
+  apply annot_all_atm_idxs    
   by sepref
-
+  
 declare vmtf_rescale_code.refine[sepref_fr_rules]
 
 sepref_definition partition_vmtf_nth_code
