@@ -209,7 +209,7 @@ typ "(32 word, 64) array_list"
   
 type_synonym twl_st_wll_trail_fast =
   \<open>trail_pol_fast_assn \<times> arena_assn \<times> option_lookup_clause_assn \<times>
-    32 word \<times> watched_wl_uint32 \<times> vmtf_remove_assn \<times> phase_saver_assn \<times>
+    64 word \<times> watched_wl_uint32 \<times> vmtf_remove_assn \<times> phase_saver_assn \<times>
     32 word \<times> cach_refinement_l_assn \<times> lbd_assn \<times> out_learned_assn \<times> stats \<times> ema \<times> ema \<times> restart_info \<times>
     vdom_fast_assn \<times> vdom_fast_assn \<times> 64 word \<times> opts_assn \<times> arena_assn\<close>
 
@@ -218,7 +218,7 @@ definition isasat_bounded_assn :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wll
 \<open>isasat_bounded_assn =
   trail_pol_fast_assn *a arena_fast_assn *a
   conflict_option_rel_assn *a
-  uint32_nat_assn *a
+  sint64_nat_assn *a
   watchlist_fast_assn *a
   vmtf_remove_assn *a phase_saver_assn *a
   uint32_nat_assn *a
