@@ -4,7 +4,9 @@ theory WB_More_Refinement
     "HOL-Eisbach.Eisbach"
     "HOL-Library.Rewrite"
     "Automatic_Refinement.Relators"
-    "Refine_Monadic.Refine_Monadic"
+    "Refine_Monadic.Refine_While"
+    "Refine_Monadic.Refine_Foreach"
+    \<comment> \<open>don't import \<open>Refine_Monadic.Monadic\<close>, that imports too much.\<close>
 begin
 thm refine_rel_defs
 term WHILEIT
@@ -508,15 +510,19 @@ lemma fref_to_Down_curry:
 
 context
 begin
-private abbreviation (input) "uncurry2 f \<equiv> uncurry (uncurry f)"
-private abbreviation (input) "uncurry3 f \<equiv> uncurry (uncurry2 f)"
-private abbreviation (input) "uncurry4 f \<equiv> uncurry (uncurry3 f)"
-private abbreviation (input) "uncurry5 f \<equiv> uncurry (uncurry4 f)"
-private abbreviation (input) "uncurry6 f \<equiv> uncurry (uncurry5 f)"
-private abbreviation (input) "uncurry7 f \<equiv> uncurry (uncurry6 f)"
-private abbreviation (input) comp4 (infixl "oooo" 55) where  "f oooo g \<equiv>  \<lambda>x.  f ooo (g x)"
-private abbreviation (input) comp5 (infixl "ooooo" 55) where "f ooooo g \<equiv>  \<lambda>x. f oooo (g x)"
-private abbreviation (input) comp6 (infixl "oooooo" 55) where"f oooooo g \<equiv> \<lambda>x. f ooooo (g x)"
+
+text \<open>This has been moved to theory \<open>Isabelle_LLVM.Sepref_Misc\<close>. However, we cannot import it here
+  due to \<open>Refine_Imperative_HOL.Sepref_Misc\<close>. Therefore, we mark the abbreviations as input only
+  and hope for the best.\<close>
+abbreviation (input) "uncurry2 f \<equiv> uncurry (uncurry f)"
+abbreviation (input) "uncurry3 f \<equiv> uncurry (uncurry2 f)"
+abbreviation (input) "uncurry4 f \<equiv> uncurry (uncurry3 f)"
+abbreviation (input) "uncurry5 f \<equiv> uncurry (uncurry4 f)"
+abbreviation (input) "uncurry6 f \<equiv> uncurry (uncurry5 f)"
+abbreviation (input) "uncurry7 f \<equiv> uncurry (uncurry6 f)"
+abbreviation (input) comp4 (infixl "oooo" 55) where  "f oooo g \<equiv>  \<lambda>x.  f ooo (g x)"
+abbreviation (input) comp5 (infixl "ooooo" 55) where "f ooooo g \<equiv>  \<lambda>x. f oooo (g x)"
+abbreviation (input) comp6 (infixl "oooooo" 55) where"f oooooo g \<equiv> \<lambda>x. f ooooo (g x)"
 
 lemma fref_to_Down_curry2:
   \<open>(uncurry2 f, uncurry2 g) \<in> [P]\<^sub>f A \<rightarrow> \<langle>B\<rangle>nres_rel \<Longrightarrow>
