@@ -218,6 +218,8 @@ sepref_definition vmtf_rescale_code
   
 declare vmtf_rescale_code.refine[sepref_fr_rules]
 
+
+
 sepref_definition partition_vmtf_nth_code
    is \<open>uncurry3 partition_vmtf_nth\<close>
    :: \<open>[\<lambda>(((ns, _), hi), xs). (\<forall>x\<in>set xs. x < length ns) \<and> length xs \<le> uint32_max]\<^sub>a
@@ -225,7 +227,13 @@ sepref_definition partition_vmtf_nth_code
   arl64_assn uint32_nat_assn *a sint64_nat_assn\<close>
   unfolding partition_vmtf_nth_def
     partition_main_def choose_pivot3_def
-    WB_More_Refinement_List.swap_def swap_def[symmetric] gen_swap
+    convert_swap gen_swap
+    
+  apply (rewrite at "stamp (_!\<hole>)" annot_unat_snat_upcast[where 'l=64])  
+  apply (rewrite at "stamp (_!\<hole>)" in "if \<hole> then _ else _" annot_unat_snat_upcast[where 'l=64])  
+  apply (annot_snat_const "TYPE(64)")  
+  find_in_thms stamp in sepref_fr_rules  
+    
   supply [[goals_limit = 1]]
   supply [simp] = max_snat_def uint32_max_def
   supply partition_vmtf_nth_code_helper3[intro] partition_main_inv_def[simp]
@@ -242,14 +250,25 @@ sepref_definition (in -) partition_between_ref_vmtf_code
       (array_assn vmtf_node_assn)\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a (arl64_assn uint32_nat_assn)\<^sup>d  \<rightarrow>
        arl64_assn uint32_nat_assn *a sint64_nat_assn\<close>
   supply [[goals_limit=1]]
-  unfolding quicksort_vmtf_nth_def insert_sort_def partition_vmtf_nth_def[symmetric]
+  unfolding quicksort_vmtf_nth_def (*insert_sort_def*) partition_vmtf_nth_def[symmetric]
     quicksort_vmtf_nth_ref_def List.null_def quicksort_ref_def
-    length_0_conv[symmetric] length_uint32_nat_def[symmetric]
-    zero_uint32_nat_def[symmetric] partition_between_ref_vmtf_def
-    partition_between_ref_def two_uint32_nat_def[symmetric]
+    (*length_0_conv[symmetric] length_uint32_nat_def[symmetric]*)
+    partition_between_ref_vmtf_def
+    partition_between_ref_def 
     partition_vmtf_nth_def[symmetric] choose_pivot3_def
-    WB_More_Refinement_List.swap_def IICF_List.swap_def[symmetric]
-  by sepref
+    convert_swap gen_swap
+  find_theorems "(_,_)\<in>snat_rel"  
+  supply [simp] = max_snat_def 
+  supply [simp] = in_snat_rel_imp_less_max' 
+  apply (annot_snat_const "TYPE(64)")
+  apply sepref_dbg_keep
+  apply sepref_dbg_trans_keep
+  apply sepref_dbg_trans_step_keep
+  apply sepref_dbg_side_keep
+  apply sepref_dbg_trans_keep
+  xxx, ctd here
+  
+  
 
 sepref_register partition_between_ref_vmtf quicksort_vmtf_nth_ref
 declare partition_between_ref_vmtf_code.refine[sepref_fr_rules]

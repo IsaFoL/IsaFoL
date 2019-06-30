@@ -1,7 +1,8 @@
 theory WB_More_Refinement_List
   imports Weidenbach_Book_Base.WB_List_More
     "HOL-Word.More_Word" \<comment> \<open>provides some additional lemmas like @{thm nth_rev}\<close>
-    Refine_Monadic.Refine_Basic
+    Isabelle_LLVM.Refine_Monadic_Thin
+    Isabelle_LLVM.More_List
 begin
 
 section \<open>More theorems about list\<close>
