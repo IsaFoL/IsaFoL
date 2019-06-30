@@ -1,10 +1,13 @@
 theory WB_More_Refinement
   imports Weidenbach_Book_Base.WB_List_More
     "HOL-Library.Cardinality"
-    "HOL-Library.Rewrite"
     "HOL-Eisbach.Eisbach"
-    "Isabelle_LLVM.Sepref_Misc"
+    "HOL-Library.Rewrite"
+    "Automatic_Refinement.Relators"
+    "Refine_Monadic.Refine_Monadic"
 begin
+thm refine_rel_defs
+term WHILEIT
 (*
   term \<open>a \<rightarrow>\<^sub>f b\<close>
 no_notation fref ("[_]\<^sub>f _ \<rightarrow> _" [0,60,60] 60)
@@ -503,6 +506,18 @@ lemma fref_to_Down_curry:
   unfolding fref_def uncurry_def nres_rel_def
   by auto
 
+context
+begin
+private abbreviation (input) "uncurry2 f \<equiv> uncurry (uncurry f)"
+private abbreviation (input) "uncurry3 f \<equiv> uncurry (uncurry2 f)"
+private abbreviation (input) "uncurry4 f \<equiv> uncurry (uncurry3 f)"
+private abbreviation (input) "uncurry5 f \<equiv> uncurry (uncurry4 f)"
+private abbreviation (input) "uncurry6 f \<equiv> uncurry (uncurry5 f)"
+private abbreviation (input) "uncurry7 f \<equiv> uncurry (uncurry6 f)"
+private abbreviation (input) comp4 (infixl "oooo" 55) where  "f oooo g \<equiv>  \<lambda>x.  f ooo (g x)"
+private abbreviation (input) comp5 (infixl "ooooo" 55) where "f ooooo g \<equiv>  \<lambda>x. f oooo (g x)"
+private abbreviation (input) comp6 (infixl "oooooo" 55) where"f oooooo g \<equiv> \<lambda>x. f ooooo (g x)"
+
 lemma fref_to_Down_curry2:
   \<open>(uncurry2 f, uncurry2 g) \<in> [P]\<^sub>f A \<rightarrow> \<langle>B\<rangle>nres_rel \<Longrightarrow>
      (\<And>x x' y y' z z'. P ((x', y'), z') \<Longrightarrow> (((x, y), z), ((x', y'), z')) \<in> A\<Longrightarrow>
@@ -561,6 +576,37 @@ lemma fref_to_Down_explode:
   unfolding fref_def uncurry_def nres_rel_def
   by auto
 
+lemma fref_to_Down_unRET_uncurry2:
+  fixes f :: \<open>'a \<Rightarrow> 'b \<Rightarrow> 'c \<Rightarrow> 'f\<close>
+    and g :: \<open>'a2 \<Rightarrow> 'b2 \<Rightarrow> 'c2 \<Rightarrow> 'g\<close>
+  shows
+    \<open>(uncurry2 (RETURN ooo f), uncurry2 (RETURN ooo g)) \<in> [P]\<^sub>f A \<rightarrow> \<langle>B\<rangle>nres_rel \<Longrightarrow>
+       (\<And>(x :: 'a) x' y y' (z :: 'c) (z' :: 'c2).
+         P ((x', y'), z') \<Longrightarrow> (((x, y), z), ((x', y'), z')) \<in> A \<Longrightarrow>
+         (f x y z, g x' y' z') \<in> B)\<close>
+  unfolding fref_def uncurry_def nres_rel_def
+  by auto
+
+lemma fref_to_Down_unRET_uncurry3:
+  shows
+    \<open>(uncurry3 (RETURN oooo f), uncurry3 (RETURN oooo g)) \<in> [P]\<^sub>f A \<rightarrow> \<langle>B\<rangle>nres_rel \<Longrightarrow>
+       (\<And>(x :: 'a) x' y y' (z :: 'c) (z' :: 'c2) a a'.
+         P (((x', y'), z'), a') \<Longrightarrow> ((((x, y), z), a), (((x', y'), z'), a')) \<in> A \<Longrightarrow>
+         (f x y z a, g x' y' z' a') \<in> B)\<close>
+  unfolding fref_def uncurry_def nres_rel_def
+  by auto
+
+lemma fref_to_Down_unRET_uncurry4:
+  shows
+    \<open>(uncurry4 (RETURN ooooo f), uncurry4 (RETURN ooooo g)) \<in> [P]\<^sub>f A \<rightarrow> \<langle>B\<rangle>nres_rel \<Longrightarrow>
+       (\<And>(x :: 'a) x' y y' (z :: 'c) (z' :: 'c2) a a' b b'.
+         P ((((x', y'), z'), a'), b') \<Longrightarrow> (((((x, y), z), a), b), ((((x', y'), z'), a'), b')) \<in> A \<Longrightarrow>
+         (f x y z a b, g x' y' z' a' b') \<in> B)\<close>
+  unfolding fref_def uncurry_def nres_rel_def
+  by auto
+
+end
+
 lemma fref_to_Down_curry_no_nres_Id:
   \<open>(uncurry (RETURN oo f), uncurry (RETURN oo g)) \<in> [P]\<^sub>f A \<rightarrow> \<langle>Id\<rangle>nres_rel \<Longrightarrow>
      (\<And>x x' y y'. P (x', y') \<Longrightarrow> ((x, y), (x', y')) \<in> A \<Longrightarrow> f x y = g x' y')\<close>
@@ -614,34 +660,6 @@ lemma fref_to_Down_unRET:
   unfolding fref_def uncurry_def nres_rel_def
   by auto
 
-lemma fref_to_Down_unRET_uncurry2:
-  fixes f :: \<open>'a \<Rightarrow> 'b \<Rightarrow> 'c \<Rightarrow> 'f\<close>
-    and g :: \<open>'a2 \<Rightarrow> 'b2 \<Rightarrow> 'c2 \<Rightarrow> 'g\<close>
-  shows
-    \<open>(uncurry2 (RETURN ooo f), uncurry2 (RETURN ooo g)) \<in> [P]\<^sub>f A \<rightarrow> \<langle>B\<rangle>nres_rel \<Longrightarrow>
-       (\<And>(x :: 'a) x' y y' (z :: 'c) (z' :: 'c2).
-         P ((x', y'), z') \<Longrightarrow> (((x, y), z), ((x', y'), z')) \<in> A \<Longrightarrow>
-         (f x y z, g x' y' z') \<in> B)\<close>
-  unfolding fref_def uncurry_def nres_rel_def
-  by auto
-
-lemma fref_to_Down_unRET_uncurry3:
-  shows
-    \<open>(uncurry3 (RETURN oooo f), uncurry3 (RETURN oooo g)) \<in> [P]\<^sub>f A \<rightarrow> \<langle>B\<rangle>nres_rel \<Longrightarrow>
-       (\<And>(x :: 'a) x' y y' (z :: 'c) (z' :: 'c2) a a'.
-         P (((x', y'), z'), a') \<Longrightarrow> ((((x, y), z), a), (((x', y'), z'), a')) \<in> A \<Longrightarrow>
-         (f x y z a, g x' y' z' a') \<in> B)\<close>
-  unfolding fref_def uncurry_def nres_rel_def
-  by auto
-
-lemma fref_to_Down_unRET_uncurry4:
-  shows
-    \<open>(uncurry4 (RETURN ooooo f), uncurry4 (RETURN ooooo g)) \<in> [P]\<^sub>f A \<rightarrow> \<langle>B\<rangle>nres_rel \<Longrightarrow>
-       (\<And>(x :: 'a) x' y y' (z :: 'c) (z' :: 'c2) a a' b b'.
-         P ((((x', y'), z'), a'), b') \<Longrightarrow> (((((x, y), z), a), b), ((((x', y'), z'), a'), b')) \<in> A \<Longrightarrow>
-         (f x y z a b, g x' y' z' a' b') \<in> B)\<close>
-  unfolding fref_def uncurry_def nres_rel_def
-  by auto
 
 
 subsubsection \<open>More Simplification Theorems\<close>

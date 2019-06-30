@@ -1483,7 +1483,7 @@ qed
 
 text \<open>Technical lemma for sepref\<close>
 lemma partition_between_ref_partition_between':
-  \<open>(uncurry2 (partition_between_ref R h), uncurry2 (partition_between R h)) \<in>
+  \<open>(uncurry (uncurry (partition_between_ref R h)), uncurry (uncurry (partition_between R h))) \<in>
     nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f \<langle>Id\<rangle>list_rel \<rightarrow>\<^sub>f \<langle>\<langle>Id\<rangle>list_rel \<times>\<^sub>r nat_rel\<rangle>nres_rel\<close>
   by (intro frefI nres_relI)
     (auto intro: partition_between_ref_partition_between)
