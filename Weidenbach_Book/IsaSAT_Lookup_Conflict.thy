@@ -3318,7 +3318,7 @@ proof -
       subgoal using assms by fast
       subgoal using that x2z by (auto simp: list_rel_imp_same_length[symmetric]
         isa_get_literal_and_remove_of_analyse_wl_def
-        get_literal_and_remove_of_analyse_wl2_def)
+        get_literal_and_remove_of_analyse_wl2_def) (* slow *)
       subgoal using that x2z inv by auto
       apply (rule order_trans)
       apply (rule ref_two_step')
@@ -3973,11 +3973,10 @@ proof -
     by (auto intro!: add_to_lookup_conflict_lookup_clause_rel)
   have [iff]: \<open>is_in_lookup_conflict (n, xs) L' \<longleftrightarrow> L' \<in># C\<close>
     using o mset_as_position_in_iff_nth[of xs C L'] L' no_tauto
-    by (auto simp: is_in_lookup_conflict_def option_lookup_clause_rel_def
+    apply (auto simp: is_in_lookup_conflict_def option_lookup_clause_rel_def
          lookup_clause_rel_def DLL is_pos_neg_not_is_pos
         split: option.splits)
-      (metis (full_types) \<open>- L' \<notin># C\<close> atm_of_uminus is_pos_neg_not_is_pos
-        mset_as_position_in_iff_nth) +
+    by (smt \<open>- L' \<notin># C\<close> atm_of_uminus is_pos_neg_not_is_pos mset_as_position_in_iff_nth option.inject)
   have clvls_add: \<open>clvls_add M L' (n, xs) clvls = card_max_lvl M ({#L'#} \<union># C)\<close>
     by (cases \<open>L' \<in># C\<close>)
       (auto simp: clvls_add_def card_max_lvl_add_mset clvls add_mset_union
