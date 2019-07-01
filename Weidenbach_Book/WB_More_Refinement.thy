@@ -9,6 +9,8 @@ theory WB_More_Refinement
     "Refine_Monadic.Refine_Foreach"
     *)
     \<comment> \<open>don't import \<open>Refine_Monadic.Monadic\<close>, that imports too much.\<close>
+    Isabelle_LLVM.Sepref_Misc
+      \<comment> \<open>TODO: replace by a Isabelle_LLVM.More_Notations to fix WB_More_IICF_SML\<close>
 begin
 thm refine_rel_defs
 term WHILEIT
@@ -510,21 +512,10 @@ lemma fref_to_Down_curry:
   unfolding fref_def uncurry_def nres_rel_def
   by auto
 
-context
-begin
-
 text \<open>This has been moved to theory \<open>Isabelle_LLVM.Sepref_Misc\<close>. However, we cannot import it here
   due to \<open>Refine_Imperative_HOL.Sepref_Misc\<close>. Therefore, we mark the abbreviations as input only
   and hope for the best.\<close>
-abbreviation (input) "uncurry2 f \<equiv> uncurry (uncurry f)"
-abbreviation (input) "uncurry3 f \<equiv> uncurry (uncurry2 f)"
-abbreviation (input) "uncurry4 f \<equiv> uncurry (uncurry3 f)"
-abbreviation (input) "uncurry5 f \<equiv> uncurry (uncurry4 f)"
-abbreviation (input) "uncurry6 f \<equiv> uncurry (uncurry5 f)"
-abbreviation (input) "uncurry7 f \<equiv> uncurry (uncurry6 f)"
-abbreviation (input) comp4 (infixl "oooo" 55) where  "f oooo g \<equiv>  \<lambda>x.  f ooo (g x)"
-abbreviation (input) comp5 (infixl "ooooo" 55) where "f ooooo g \<equiv>  \<lambda>x. f oooo (g x)"
-abbreviation (input) comp6 (infixl "oooooo" 55) where"f oooooo g \<equiv> \<lambda>x. f ooooo (g x)"
+
 
 lemma fref_to_Down_curry2:
   \<open>(uncurry2 f, uncurry2 g) \<in> [P]\<^sub>f A \<rightarrow> \<langle>B\<rangle>nres_rel \<Longrightarrow>
@@ -613,7 +604,6 @@ lemma fref_to_Down_unRET_uncurry4:
   unfolding fref_def uncurry_def nres_rel_def
   by auto
 
-end
 
 lemma fref_to_Down_curry_no_nres_Id:
   \<open>(uncurry (RETURN oo f), uncurry (RETURN oo g)) \<in> [P]\<^sub>f A \<rightarrow> \<langle>Id\<rangle>nres_rel \<Longrightarrow>
