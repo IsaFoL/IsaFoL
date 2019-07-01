@@ -46,7 +46,6 @@ sepref_definition ema_update_impl is "uncurry (RETURN oo ema_update)"
   (* TODO: The let x=y seems to be inlined, making necessary this COPY! Is this behaviour correct? *)
   apply (annot_unat_const "TYPE(64)")
   supply [[goals_limit = 1]]
-  supply [simp] = max_unat_def
   by sepref
 lemmas [sepref_fr_rules] = ema_update_impl.refine
   

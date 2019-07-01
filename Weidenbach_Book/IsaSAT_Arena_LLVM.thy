@@ -189,7 +189,6 @@ sepref_definition arena_status_impl
   is "uncurry (RETURN oo arena_status)" 
     :: "[uncurry arena_is_valid_clause_vdom]\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> status_impl_assn"
   supply [intro] = arena_status_implI
-  supply [simp] = max_snat_def
   unfolding arena_status_def STATUS_SHIFT_def
   apply (annot_snat_const "TYPE(64)")
   by sepref
@@ -222,8 +221,7 @@ sepref_definition arena_lbd_impl
   is "uncurry (RETURN oo arena_lbd)"
     :: "[uncurry get_clause_LBD_pre]\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow>uint32_nat_assn"
   unfolding arena_lbd_def LBD_SHIFT_def
-  supply [simp] = max_snat_def max_unat_def
-    and [dest] = get_clause_LBD_preI
+  supply [dest] = get_clause_LBD_preI
   apply (annot_snat_const "TYPE(64)")
   by sepref
 lemmas [sepref_fr_rules] = arena_lbd_impl.refine
@@ -274,7 +272,7 @@ sepref_definition update_lbd_impl
   is "uncurry2 (RETURN ooo update_lbd)" 
     :: "[update_lbd_pre]\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>d  \<rightarrow> arena_fast_assn"
   unfolding update_lbd_def LBD_SHIFT_def
-  supply [simp] = max_snat_def max_unat_def arena_length_impl_bounds_aux1 update_lbdI
+  supply [simp] = arena_length_impl_bounds_aux1 update_lbdI
     and [dest] = arena_posI
   apply (annot_snat_const "TYPE(64)")
   by sepref
@@ -311,7 +309,7 @@ sepref_definition update_pos_impl
   unfolding arena_update_pos_def POS_SHIFT_def
   apply (annot_snat_const "TYPE(64)")
   apply (rewrite at "APos \<hole>" annot_snat_unat_downcast[where 'l=32])
-  supply [simp] = max_snat_def max_unat_def update_posI and [dest] = update_posI2
+  supply [simp] = max_unat_def update_posI and [dest] = update_posI2
   (*apply (rule hfref_with_rdomI)*)
   by sepref
 lemmas [sepref_fr_rules] = update_pos_impl.refine
@@ -344,7 +342,7 @@ sepref_definition mark_garbage_impl is "uncurry (RETURN oo extra_information_mar
   :: "[mark_garbage_pre]\<^sub>a arena_fast_assn\<^sup>d *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> arena_fast_assn"
   unfolding extra_information_mark_to_delete_def STATUS_SHIFT_def
   apply (annot_snat_const "TYPE(64)")
-  supply [simp] = max_snat_def mark_garbageI
+  supply [simp] = mark_garbageI
   by sepref
 lemmas [sepref_fr_rules] = mark_garbage_impl.refine
   
@@ -364,7 +362,6 @@ sepref_definition arena_act_impl
   is "uncurry (RETURN oo arena_act)" 
     :: "[uncurry arena_act_pre]\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> uint32_nat_assn"
   supply [intro] = arena_act_implI
-  supply [simp] = max_snat_def
   unfolding arena_act_def ACTIVITY_SHIFT_def
   apply (annot_snat_const "TYPE(64)")
   by sepref
@@ -395,7 +392,6 @@ sepref_definition arena_incr_act_impl is "uncurry (RETURN oo arena_incr_act)"
   :: "[uncurry arena_act_pre]\<^sub>a arena_fast_assn\<^sup>d *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> arena_fast_assn"
   unfolding arena_incr_act_def ACTIVITY_SHIFT_def
   supply [intro] = arena_act_implI
-  supply [simp] = max_snat_def
   apply (annot_snat_const "TYPE(64)")
   by sepref
 lemmas [sepref_fr_rules] = arena_incr_act_impl.refine
@@ -405,7 +401,6 @@ sepref_definition arena_decr_act_impl is "uncurry (RETURN oo arena_decr_act)"
   :: "[uncurry arena_act_pre]\<^sub>a arena_fast_assn\<^sup>d *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> arena_fast_assn"
   unfolding arena_decr_act_def ACTIVITY_SHIFT_def
   supply [intro] = arena_act_implI
-  supply [simp] = max_snat_def max_unat_def
   apply (rewrite at "_ div \<hole>"  unat_const_fold[where 'a=32])
   apply (annot_snat_const "TYPE(64)")
   by sepref
@@ -431,7 +426,6 @@ sepref_definition mark_used_impl is "uncurry (RETURN oo mark_used)"
   :: "[uncurry arena_act_pre]\<^sub>a arena_fast_assn\<^sup>d *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> arena_fast_assn"
   unfolding mark_used_def STATUS_SHIFT_def
   supply [intro] = arena_mark_used_implI
-  supply [simp] = max_snat_def max_unat_def
   apply (annot_snat_const "TYPE(64)")
   by sepref
 lemmas [sepref_fr_rules] = mark_used_impl.refine
@@ -441,7 +435,6 @@ sepref_definition mark_unused_impl is "uncurry (RETURN oo mark_unused)"
   :: "[uncurry arena_act_pre]\<^sub>a arena_fast_assn\<^sup>d *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> arena_fast_assn"
   unfolding mark_unused_def STATUS_SHIFT_def
   supply [intro] = arena_mark_used_implI
-  supply [simp] = max_snat_def max_unat_def
   apply (annot_snat_const "TYPE(64)")
   by sepref
 lemmas [sepref_fr_rules] = mark_unused_impl.refine
@@ -464,7 +457,6 @@ sepref_definition marked_as_used_impl
   is "uncurry (RETURN oo marked_as_used)" 
     :: "[uncurry marked_as_used_pre]\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> bool1_assn"
   supply [intro] = arena_marked_as_used_implI
-  supply [simp] = max_snat_def
   unfolding marked_as_used_def STATUS_SHIFT_def
   apply (annot_snat_const "TYPE(64)")
   by sepref
@@ -474,7 +466,6 @@ sepref_register MAX_LENGTH_SHORT_CLAUSE
 sepref_definition MAX_LENGTH_SHORT_CLAUSE_impl is "uncurry0 (RETURN MAX_LENGTH_SHORT_CLAUSE)" :: "unit_assn\<^sup>k \<rightarrow>\<^sub>a sint64_nat_assn"
   unfolding MAX_LENGTH_SHORT_CLAUSE_def
   apply (annot_snat_const "TYPE(64)")
-  supply [simp] = max_snat_def
   by sepref
 lemmas [sepref_fr_rules] = MAX_LENGTH_SHORT_CLAUSE_impl.refine
 

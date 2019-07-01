@@ -3,9 +3,11 @@ theory WB_More_Refinement
     "HOL-Library.Cardinality"
     "HOL-Eisbach.Eisbach"
     "HOL-Library.Rewrite"
-    "Automatic_Refinement.Relators"
+    "Isabelle_LLVM.Refine_Monadic_Thin"
+    (*"Automatic_Refinement.Relators"
     "Refine_Monadic.Refine_While"
     "Refine_Monadic.Refine_Foreach"
+    *)
     \<comment> \<open>don't import \<open>Refine_Monadic.Monadic\<close>, that imports too much.\<close>
 begin
 thm refine_rel_defs

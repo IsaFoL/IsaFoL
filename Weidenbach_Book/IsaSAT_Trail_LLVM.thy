@@ -22,12 +22,10 @@ sepref_definition tri_bool_UNSET_impl is "uncurry0 (RETURN 0)" :: "unit_assn\<^s
 
 sepref_definition tri_bool_SET_TRUE_impl is "uncurry0 (RETURN 2)" :: "unit_assn\<^sup>k \<rightarrow>\<^sub>a unat_assn' TYPE(8)"
   apply (annot_unat_const "TYPE(8)")
-  supply [simp] = max_unat_def
   by sepref
 
 sepref_definition tri_bool_SET_FALSE_impl is "uncurry0 (RETURN 3)" :: "unit_assn\<^sup>k \<rightarrow>\<^sub>a unat_assn' TYPE(8)"
   apply (annot_unat_const "TYPE(8)")
-  supply [simp] = max_unat_def
   by sepref
 
 sepref_definition tri_bool_eq_impl is "uncurry (RETURN oo (=))" :: "(unat_assn' TYPE(8))\<^sup>k *\<^sub>a (unat_assn' TYPE(8))\<^sup>k \<rightarrow>\<^sub>a bool1_assn"

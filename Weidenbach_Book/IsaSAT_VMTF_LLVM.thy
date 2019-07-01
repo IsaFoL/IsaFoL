@@ -2,7 +2,17 @@ theory IsaSAT_VMTF_LLVM
 imports Watched_Literals.WB_Sort IsaSAT_VMTF IsaSAT_Setup_LLVM
 begin
 
- 
+(* TODO: Mathias! Only import the refinement stuff over a single point,
+  and at this point, do all necessary adaptations.
+  
+  Currently, this point is Refine_Monadic_Thin
+
+*)
+(*declare is_None_def[simp del] *)
+
+
+
+
 (*
 lemma VMTF_Node_ref[sepref_fr_rules]:
   \<open>(uncurry2 (return ooo VMTF_Node), uncurry2 (RETURN ooo VMTF_Node)) \<in>
@@ -232,8 +242,6 @@ sepref_definition partition_vmtf_nth_code
   apply (rewrite at "stamp (_!\<hole>)" annot_unat_snat_upcast[where 'l=64])  
   apply (rewrite at "stamp (_!\<hole>)" in "if \<hole> then _ else _" annot_unat_snat_upcast[where 'l=64])  
   apply (annot_snat_const "TYPE(64)")  
-  find_in_thms stamp in sepref_fr_rules  
-    
   supply [[goals_limit = 1]]
   supply [simp] = max_snat_def uint32_max_def
   supply partition_vmtf_nth_code_helper3[intro] partition_main_inv_def[simp]
@@ -243,6 +251,13 @@ declare partition_vmtf_nth_code.refine[sepref_fr_rules]
 
 sepref_register partition_between_ref
 
+lemma partition_between_ref_vmtf_code_aux:
+  "\<lbrakk>(loi,lo)\<in>snat_rel' TYPE(64); (hii,hi)\<in>snat_rel' TYPE(64)\<rbrakk> \<Longrightarrow> lo + (hi - lo) div 2 < max_snat 64"
+  apply (drule in_snat_rel_imp_less_max')+ 
+  by auto
+  
+    
+  
 (*TODO Move*)
 sepref_definition (in -) partition_between_ref_vmtf_code
    is \<open>uncurry3 partition_between_ref_vmtf\<close>
@@ -258,37 +273,31 @@ sepref_definition (in -) partition_between_ref_vmtf_code
     partition_vmtf_nth_def[symmetric] choose_pivot3_def
     convert_swap gen_swap
   find_theorems "(_,_)\<in>snat_rel"  
-  supply [simp] = max_snat_def 
-  supply [simp] = in_snat_rel_imp_less_max' 
+  (*supply [simp] = max_snat_def *)
+  supply [intro] = partition_between_ref_vmtf_code_aux
   apply (annot_snat_const "TYPE(64)")
-  apply sepref_dbg_keep
-  apply sepref_dbg_trans_keep
-  apply sepref_dbg_trans_step_keep
-  apply sepref_dbg_side_keep
-  apply sepref_dbg_trans_keep
-  xxx, ctd here
-  
-  
-
+  apply (rewrite at "_!_" at "stamp (_!\<hole>)" annot_unat_snat_upcast[where 'l=64])+  
+  by sepref  
 sepref_register partition_between_ref_vmtf quicksort_vmtf_nth_ref
 declare partition_between_ref_vmtf_code.refine[sepref_fr_rules]
 
-(*TODO rewrite to avoid the minus*)
+lemma quicksort_vmtf_nth_ref_code_avoid_minus: "p - (1::nat) \<le> lo \<longleftrightarrow> p=0 \<or> p \<le> lo + 1" by auto
 sepref_definition (in -) quicksort_vmtf_nth_ref_code
    is \<open>uncurry3 quicksort_vmtf_nth_ref\<close>
    :: \<open>[\<lambda>((vm, _), remove). (\<forall>x\<in>#mset remove. x < length (fst vm)) \<and> length remove \<le> uint32_max]\<^sub>a
       (array_assn vmtf_node_assn)\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a (arl64_assn uint32_nat_assn)\<^sup>d  \<rightarrow>
        arl64_assn uint32_nat_assn\<close>
-  unfolding quicksort_vmtf_nth_def insert_sort_def partition_vmtf_nth_def[symmetric]
+  unfolding quicksort_vmtf_nth_def partition_vmtf_nth_def[symmetric]
     quicksort_vmtf_nth_ref_def List.null_def quicksort_ref_def
-    length_0_conv[symmetric] length_uint32_nat_def[symmetric]
-    zero_uint32_nat_def[symmetric] one_uint32_nat_def[symmetric]
+    length_0_conv[symmetric] (*length_uint32_nat_def[symmetric]*)
    partition_vmtf_nth_def[symmetric]
    partition_between_ref_vmtf_def[symmetric]
    partition_vmtf_nth_def[symmetric]
+  apply (rewrite quicksort_vmtf_nth_ref_code_avoid_minus)
+  apply (annot_snat_const "TYPE(64)")
   supply [[goals_limit = 1]]
   supply mset_eq_setD[dest] mset_eq_length[dest]
-    arl_length_hnr[sepref_fr_rules] uint32_nat_assn_minus[sepref_fr_rules]
+  supply [dest!] = rdomp_al_imp_len_bound
   by sepref
 
 declare quicksort_vmtf_nth_ref_code.refine[sepref_fr_rules]
@@ -296,15 +305,15 @@ declare quicksort_vmtf_nth_ref_code.refine[sepref_fr_rules]
 sepref_definition (in -) quicksort_vmtf_nth_code
    is \<open>uncurry quicksort_vmtf_nth\<close>
    :: \<open>[\<lambda>(vm, remove). (\<forall>x\<in>#mset remove. x < length (fst vm)) \<and> length remove \<le> uint32_max]\<^sub>a
-      vmtf_conc\<^sup>k *\<^sub>a (arl64_assn uint32_nat_assn)\<^sup>d  \<rightarrow>
+      vmtf_assn\<^sup>k *\<^sub>a (arl64_assn uint32_nat_assn)\<^sup>d  \<rightarrow>
        arl64_assn uint32_nat_assn\<close>
-  unfolding quicksort_vmtf_nth_def insert_sort_def partition_vmtf_nth_def[symmetric]
-    full_quicksort_ref_def List.null_def one_uint32_nat_def[symmetric]
-    length_0_conv[symmetric] zero_uint32_nat_def[symmetric]
+  unfolding quicksort_vmtf_nth_def partition_vmtf_nth_def[symmetric]
+    full_quicksort_ref_def List.null_def 
+    length_0_conv[symmetric] 
     quicksort_vmtf_nth_ref_def[symmetric]
   supply [[goals_limit = 1]]
   supply mset_eq_setD[dest] mset_eq_length[dest]
-    arl_length_hnr[sepref_fr_rules] uint32_nat_assn_minus[sepref_fr_rules]
+  apply (annot_snat_const "TYPE(64)")
   by sepref
 
 declare quicksort_vmtf_nth_code.refine[sepref_fr_rules]
@@ -312,15 +321,19 @@ declare quicksort_vmtf_nth_code.refine[sepref_fr_rules]
 lemma quicksort_vmtf_nth_code_reorder_list[sepref_fr_rules]:
    \<open>(uncurry quicksort_vmtf_nth_code, uncurry reorder_list) \<in>
       [\<lambda>((a, _), b). (\<forall>x\<in>set b. x < length a) \<and> length b \<le> uint32_max]\<^sub>a
-      vmtf_conc\<^sup>k *\<^sub>a (arl64_assn uint32_nat_assn)\<^sup>d \<rightarrow> arl64_assn uint32_nat_assn\<close>
+      vmtf_assn\<^sup>k *\<^sub>a (arl64_assn uint32_nat_assn)\<^sup>d \<rightarrow> arl64_assn uint32_nat_assn\<close>
       supply [[show_types]]
   using quicksort_vmtf_nth_code.refine[FCOMP quicksort_vmtf_nth_reorder[unfolded convert_fref]]
   by auto
 sepref_register isa_vmtf_enqueue
 
+(*
 lemma uint64_nal_rel_le_uint64_max: \<open>(a, b) \<in> uint64_nat_rel \<Longrightarrow> b \<le> uint64_max\<close>
   by (auto simp: uint64_nat_rel_def br_def nat_of_uint64_le_uint64_max)
+*)  
 
+
+xxx, ctd here: We have this definitions already!
 
 (*TODO deduplitacte*)
 text \<open>This functions deletes all elements of a resizable array, without resizing it.\<close>

@@ -3,6 +3,27 @@ theory IsaSAT_Literals_LLVM
 begin
 
 
+(* TODO: Also for max_unat, and move to default simpset of Sepref! *)    
+lemma max_snat_numeral[simp]:
+  "0 < max_snat n"  
+  "1 < max_snat n \<longleftrightarrow> n>1"
+  "numeral x < max_snat n \<longleftrightarrow> (numeral x ::nat) < 2^(n-1)"
+  subgoal by (auto simp: max_snat_def) []
+  subgoal unfolding max_snat_def by (metis nat_neq_iff nat_power_eq_Suc_0_iff nat_zero_less_power_iff not_less_eq numerals(2) power_0 zero_less_Suc zero_less_diff)
+  subgoal by (auto simp: max_snat_def) []
+  done
+
+lemma max_unat_numeral[simp]:
+  "0 < max_unat n"  
+  "1 < max_unat n \<longleftrightarrow> n>0"
+  "numeral x < max_unat n \<longleftrightarrow> (numeral x ::nat) < 2^n"
+  subgoal by (auto simp: max_unat_def) []
+  subgoal unfolding max_unat_def by (metis nat_neq_iff nat_power_eq_Suc_0_iff nat_zero_less_power_iff not_less_eq numerals(2) power_0 zero_less_Suc)
+  subgoal by (auto simp: max_unat_def) []
+  done
+
+
+
 lemma convert_fref:
   "WB_More_Refinement.fref = Sepref_Rules.frefnd"
   "WB_More_Refinement.freft = Sepref_Rules.freftnd"

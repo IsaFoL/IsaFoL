@@ -19,7 +19,6 @@ sepref_definition header_size_code
   :: \<open>clause_ll_assn\<^sup>k \<rightarrow>\<^sub>a sint64_nat_assn\<close>
   unfolding header_size_def
   apply (annot_snat_const "TYPE(64)")
-  supply [simp] = max_snat_def
   by sepref
 declare header_size_code.refine[sepref_fr_rules]
 
