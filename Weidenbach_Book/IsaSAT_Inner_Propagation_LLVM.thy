@@ -221,16 +221,13 @@ sepref_definition keep_watch_heur_fast_code
   supply
     [[goals_limit=1]]
     if_splits[split]
-    length_rll_def[simp] length_ll_def[simp]
   supply undefined_lit_polarity_st_iff[iff]
     unit_prop_body_wl_D_find_unwatched_heur_inv_def[simp]
-    update_raa_hnr[sepref_fr_rules]
-  unfolding keep_watch_heur_def length_rll_def[symmetric] PR_CONST_def
+  unfolding keep_watch_heur_def PR_CONST_def
   unfolding fmap_rll_def[symmetric] isasat_bounded_assn_def
-  unfolding fast_minus_def[symmetric]
+  unfolding 
     nth_rll_def[symmetric]
     SET_FALSE_def[symmetric] SET_TRUE_def[symmetric]
-    update_ll_def[symmetric]
   by sepref
 
 declare keep_watch_heur_fast_code.refine[sepref_fr_rules]
@@ -238,7 +235,7 @@ declare keep_watch_heur_fast_code.refine[sepref_fr_rules]
 sepref_register isa_set_lookup_conflict_aa set_conflict_wl_heur
 
 sepref_register arena_incr_act
-
+term "_ oooo _"
 sepref_definition set_conflict_wl_heur_fast_code
   is \<open>uncurry set_conflict_wl_heur\<close>
   :: \<open>[\<lambda>(C, S). set_conflict_wl_heur_pre (C, S) \<and>
@@ -247,6 +244,7 @@ sepref_definition set_conflict_wl_heur_fast_code
   supply [[goals_limit=1]]
   unfolding set_conflict_wl_heur_def isasat_bounded_assn_def
     set_conflict_wl_heur_pre_def PR_CONST_def
+  apply (annot_unat_const "TYPE (32)")
   by sepref
 
 declare set_conflict_wl_heur_fast_code.refine[sepref_fr_rules]
