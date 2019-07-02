@@ -125,7 +125,6 @@ sepref_definition cons_trail_Propagated_tr_fast_code
   apply (subst (4)annot_index_of_atm)
   (*unfolding ins_idx_upcast64  *)
   supply [[goals_limit = 1]]
-  supply [simp] = max_snat_def uint32_max_def
   by sepref
 
 declare cons_trail_Propagated_tr_fast_code.refine[sepref_fr_rules]
@@ -190,7 +189,6 @@ sepref_definition cons_trail_Decided_tr_fast_code
   apply (annot_unat_const "TYPE(32)")
   apply (rewrite at "_@[\<hole>]" in "(_,\<hole>)" annot_snat_unat_downcast[where 'l="32"])
   supply [[goals_limit = 1]]
-  supply [simp] = max_unat_def uint32_max_def max_snat_def
   by sepref
 
 declare cons_trail_Decided_tr_fast_code.refine[sepref_fr_rules]
@@ -201,7 +199,6 @@ sepref_definition defined_atm_fast_code
   unfolding defined_atm_pol_def UNSET_def[symmetric] tri_bool_eq_def[symmetric]
     defined_atm_pol_pre_def trail_pol_fast_assn_def Pos_rel_def[symmetric]
   unfolding ins_idx_upcast64
-  supply [simp] = max_unat_def uint32_max_def max_snat_def
   supply Pos_impl.refine[sepref_fr_rules]
   supply UNSET_def[simp del]
   by sepref
@@ -291,7 +288,6 @@ sepref_definition (in -) get_pos_of_level_in_trail_imp_fast_code
   :: \<open>trail_pol_fast_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
   unfolding get_pos_of_level_in_trail_imp_def trail_pol_fast_assn_def
   apply (rewrite at \<open>_ ! \<hole>\<close> annot_unat_snat_upcast[where 'l=64])
-  supply [simp] = uint32_max_def max_snat_def
   by sepref
 
 declare get_pos_of_level_in_trail_imp_fast_code.refine[sepref_fr_rules]

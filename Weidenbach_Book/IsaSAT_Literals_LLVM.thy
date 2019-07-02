@@ -2,7 +2,7 @@ theory IsaSAT_Literals_LLVM
   imports WB_More_Word IsaSAT_Literals Watched_Literals.WB_More_IICF_LLVM
 begin
 
-
+(*
 (* TODO: Also for max_unat, and move to default simpset of Sepref! *)    
 lemma max_snat_numeral[simp]:
   "0 < max_snat n"  
@@ -21,7 +21,33 @@ lemma max_unat_numeral[simp]:
   subgoal unfolding max_unat_def by (metis nat_neq_iff nat_power_eq_Suc_0_iff nat_zero_less_power_iff not_less_eq numerals(2) power_0 zero_less_Suc)
   subgoal by (auto simp: max_unat_def) []
   done
+*)
 
+(* TODO: Move! 
+  TODO: General max functions!
+  TODO: Name should be snatN_max
+ 
+*)
+lemma sint64_max_refine[sepref_import_param]: "(0x7FFFFFFFFFFFFFFF, sint64_max)\<in>snat_rel' TYPE(64)"
+  apply (auto simp: snat_rel_def snat.rel_def in_br_conv sint64_max_def snat_invar_def)
+  apply (auto simp: snat_def)
+  done
+
+lemma sint32_max_refine[sepref_import_param]: "(0x7FFFFFFF, sint32_max)\<in>snat_rel' TYPE(32)"
+  apply (auto simp: snat_rel_def snat.rel_def in_br_conv sint32_max_def snat_invar_def)
+  apply (auto simp: snat_def)
+  done
+  
+lemma uint64_max_refine[sepref_import_param]: "(0xFFFFFFFFFFFFFFFF, uint64_max)\<in>unat_rel' TYPE(64)"
+  apply (auto simp: unat_rel_def unat.rel_def in_br_conv uint64_max_def)
+  done
+
+lemma uint32_max_refine[sepref_import_param]: "(0xFFFFFFFF, uint32_max)\<in>unat_rel' TYPE(32)"
+  apply (auto simp: unat_rel_def unat.rel_def in_br_conv uint32_max_def)
+  done
+  
+
+  
 
 
 lemma convert_fref:
@@ -40,6 +66,11 @@ abbreviation "uint64_nat_assn \<equiv> unat_assn' TYPE(64)"
 
 abbreviation "sint32_nat_assn \<equiv> snat_assn' TYPE(32)"
 abbreviation "sint64_nat_assn \<equiv> snat_assn' TYPE(64)"
+
+
+lemmas [sepref_bounds_simps] = 
+  uint32_max_def sint32_max_def
+  uint64_max_def sint64_max_def
 
 
 lemma is_up'_32_64[simp,intro!]: "is_up' UCAST(32 \<rightarrow> 64)" by (simp add: is_up')
@@ -105,8 +136,7 @@ sepref_definition atm_of_impl is "RETURN o (\<lambda>x::nat. x div 2)"
   :: "uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a atom_assn"
   unfolding atom_rel_def b_assn_pure_conv[symmetric]
   apply (rule hfref_bassn_resI)
-  subgoal by (auto dest!: in_unat_rel_imp_less_max' simp: max_unat_def) 
-  supply [simp] = max_unat_def
+  subgoal by sepref_bounds
   apply (annot_unat_const "TYPE(32)")
   by sepref
   
@@ -125,13 +155,11 @@ lemma Neg_refine_aux: "(\<lambda>x. 2*x + 1,Neg)\<in>nat_rel \<rightarrow> nat_l
 sepref_definition Pos_impl is "RETURN o Pos_rel" :: "atom_assn\<^sup>d \<rightarrow>\<^sub>a uint32_nat_assn"
   unfolding atom_rel_def Pos_rel_def
   apply (annot_unat_const "TYPE(32)")
-  supply [simp] = max_unat_def uint32_max_def
-  by sepref_dbg_keep
+  by sepref
   
   
 sepref_definition Neg_impl is "RETURN o (\<lambda>x. 2*x+1)" :: "[\<lambda>x. x \<le> uint32_max div 2]\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> uint32_nat_assn"
   apply (annot_unat_const "TYPE(32)")
-  supply [simp] = max_unat_def uint32_max_def
   by sepref
   
 lemmas [sepref_fr_rules] = 
@@ -231,7 +259,6 @@ lemma uminus_refine_aux: "(\<lambda>x. x XOR 1, uminus) \<in> nat_lit_rel \<righ
   done
 
 sepref_definition uminus_impl is "RETURN o (\<lambda>x::nat. x XOR 1)" :: "uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn"
-  supply [simp] = max_unat_def
   apply (annot_unat_const "TYPE(32)")
   by sepref
 

@@ -251,10 +251,12 @@ declare partition_vmtf_nth_code.refine[sepref_fr_rules]
 
 sepref_register partition_between_ref
 
-lemma partition_between_ref_vmtf_code_aux:
+(*lemma partition_between_ref_vmtf_code_aux:
   "\<lbrakk>(loi,lo)\<in>snat_rel' TYPE(64); (hii,hi)\<in>snat_rel' TYPE(64)\<rbrakk> \<Longrightarrow> lo + (hi - lo) div 2 < max_snat 64"
+  apply sepref_bounds
   apply (drule in_snat_rel_imp_less_max')+ 
   by auto
+*)  
   
     
   
@@ -265,16 +267,12 @@ sepref_definition (in -) partition_between_ref_vmtf_code
       (array_assn vmtf_node_assn)\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a (arl64_assn uint32_nat_assn)\<^sup>d  \<rightarrow>
        arl64_assn uint32_nat_assn *a sint64_nat_assn\<close>
   supply [[goals_limit=1]]
-  unfolding quicksort_vmtf_nth_def (*insert_sort_def*) partition_vmtf_nth_def[symmetric]
+  unfolding quicksort_vmtf_nth_def partition_vmtf_nth_def[symmetric]
     quicksort_vmtf_nth_ref_def List.null_def quicksort_ref_def
-    (*length_0_conv[symmetric] length_uint32_nat_def[symmetric]*)
     partition_between_ref_vmtf_def
     partition_between_ref_def 
     partition_vmtf_nth_def[symmetric] choose_pivot3_def
     convert_swap gen_swap
-  find_theorems "(_,_)\<in>snat_rel"  
-  (*supply [simp] = max_snat_def *)
-  supply [intro] = partition_between_ref_vmtf_code_aux
   apply (annot_snat_const "TYPE(64)")
   apply (rewrite at "_!_" at "stamp (_!\<hole>)" annot_unat_snat_upcast[where 'l=64])+  
   by sepref  
@@ -297,7 +295,6 @@ sepref_definition (in -) quicksort_vmtf_nth_ref_code
   apply (annot_snat_const "TYPE(64)")
   supply [[goals_limit = 1]]
   supply mset_eq_setD[dest] mset_eq_length[dest]
-  supply [dest!] = rdomp_al_imp_len_bound
   by sepref
 
 declare quicksort_vmtf_nth_ref_code.refine[sepref_fr_rules]
@@ -333,8 +330,8 @@ lemma uint64_nal_rel_le_uint64_max: \<open>(a, b) \<in> uint64_nat_rel \<Longrig
 *)  
 
 
-xxx, ctd here: We have this definitions already!
 
+(*
 (*TODO deduplitacte*)
 text \<open>This functions deletes all elements of a resizable array, without resizing it.\<close>
 definition emptied_arl :: \<open>'a array_list32 \<Rightarrow> 'a array_list32\<close> where
@@ -344,33 +341,28 @@ lemma emptied_arl_refine[sepref_fr_rules]:
   \<open>(return o emptied_arl, RETURN o emptied_list) \<in> (arl64_assn R)\<^sup>d \<rightarrow>\<^sub>a arl64_assn R\<close>
   unfolding emptied_arl_def emptied_list_def
   by sepref_to_hoare (sep_auto simp: arl64_assn_def hr_comp_def is_array_list32_def)
+*)  
 
 sepref_register isa_vmtf_en_dequeue
-sepref_definition isa_vmtf_flush_code
-   is \<open>uncurry isa_vmtf_flush_int\<close>
-   :: \<open>trail_pol_assn\<^sup>k *\<^sub>a (vmtf_conc *a (arl64_assn uint32_nat_assn *a atoms_hash_assn))\<^sup>d \<rightarrow>\<^sub>a
-        (vmtf_conc *a (arl64_assn uint32_nat_assn *a atoms_hash_assn))\<close>
-  supply [[goals_limit = 1]] minus_uint64_nat_assn[sepref_fr_rules] uint64_max_uint64_nat_assn[sepref_fr_rules]
-    uint64_nal_rel_le_uint64_max[intro]
-  unfolding vmtf_flush_def PR_CONST_def isa_vmtf_flush_int_def zero_uint32_nat_def[symmetric]
-    current_stamp_def[symmetric] one_uint32_nat_def[symmetric] uint64_max_uint64_def[symmetric]
-  apply (rewrite at \<open>If (\<hole> \<ge> _)\<close> uint64_of_uint32_conv_def[symmetric])
-  apply (rewrite at \<open>length _ + \<hole>\<close> nat_of_uint64_conv_def[symmetric])
-  by sepref
-
-declare isa_vmtf_flush_code.refine[sepref_fr_rules]
 
 sepref_definition isa_vmtf_flush_fast_code
    is \<open>uncurry isa_vmtf_flush_int\<close>
-   :: \<open>trail_pol_fast_assn\<^sup>k *\<^sub>a (vmtf_conc *a (arl64_assn uint32_nat_assn *a atoms_hash_assn))\<^sup>d \<rightarrow>\<^sub>a
-        (vmtf_conc *a (arl64_assn uint32_nat_assn *a atoms_hash_assn))\<close>
-  supply [[goals_limit = 1]] minus_uint64_nat_assn[sepref_fr_rules] uint64_max_uint64_nat_assn[sepref_fr_rules]
-    uint64_nal_rel_le_uint64_max[intro]
-  unfolding vmtf_flush_def PR_CONST_def isa_vmtf_flush_int_def zero_uint32_nat_def[symmetric]
-    current_stamp_def[symmetric] one_uint32_nat_def[symmetric] uint64_max_uint64_def[symmetric]
-  apply (rewrite at \<open>If (\<hole> \<ge> _)\<close> uint64_of_uint32_conv_def[symmetric])
+   :: \<open>trail_pol_fast_assn\<^sup>k *\<^sub>a (vmtf_assn *a (arl64_assn uint32_nat_assn *a atoms_hash_assn))\<^sup>d \<rightarrow>\<^sub>a
+        (vmtf_assn *a (arl64_assn uint32_nat_assn *a atoms_hash_assn))\<close>
+  supply [[goals_limit = 1]] 
+  unfolding vmtf_flush_def PR_CONST_def isa_vmtf_flush_int_def current_stamp_def[symmetric]
+  unfolding current_stamp_alt_def
+  apply (rewrite at \<open>sint64_max\<close> annot_snat_snat_upcast)
   apply (rewrite at \<open>length _ + \<hole>\<close> nat_of_uint64_conv_def[symmetric])
-  by sepref
+  
+(*  apply (rewrite at \<open>If (\<hole> \<ge> _)\<close> uint64_of_uint32_conv_def[symmetric])
+  apply (rewrite at \<open>length _ + \<hole>\<close> nat_of_uint64_conv_def[symmetric])
+*)  
+  apply sepref_dbg_keep
+  apply sepref_dbg_trans_keep
+  apply sepref_dbg_trans_step_keep
+  find_theorems current_stamp
+  
 
 declare isa_vmtf_flush_code.refine[sepref_fr_rules]
   isa_vmtf_flush_fast_code.refine[sepref_fr_rules]
