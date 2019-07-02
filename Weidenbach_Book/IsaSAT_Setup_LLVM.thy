@@ -151,7 +151,7 @@ abbreviation atoms_hash_assn :: \<open>bool list \<Rightarrow> 1 word ptr \<Righ
   \<open>atoms_hash_assn \<equiv> array_assn bool1_assn\<close>
 
 abbreviation distinct_atoms_assn where
-  \<open>distinct_atoms_assn \<equiv> arl64_assn uint32_nat_assn *a atoms_hash_assn\<close>
+  \<open>distinct_atoms_assn \<equiv> arl64_assn atom_assn *a atoms_hash_assn\<close>
 
 definition vmtf_remove_assn
   :: \<open>isa_vmtf_remove_int \<Rightarrow> vmtf_remove_assn \<Rightarrow> assn\<close>

@@ -1,5 +1,5 @@
 theory IsaSAT_Conflict_Analysis_LLVM
-imports IsaSAT_Conflict_Analysis (*IsaSAT_VMTF_LLVM*) IsaSAT_Setup_LLVM
+imports IsaSAT_Conflict_Analysis IsaSAT_VMTF_LLVM IsaSAT_Setup_LLVM
 begin
 
 (*
@@ -70,7 +70,6 @@ sepref_definition is_decided_hd_trail_wl_fast_code
   unfolding is_decided_hd_trail_wl_heur_alt_def isasat_bounded_assn_def
     is_decided_hd_trail_wl_heur_pre_def last_trail_pol_def trail_pol_fast_assn_def
     last_trail_pol_pre_def
-  apply (rewrite in "_ ! \<hole>" annot_unat_snat_upcast[where 'l="64"])
   by sepref
 
 declare
@@ -84,7 +83,6 @@ sepref_definition lit_and_ann_of_propagated_st_heur_fast_code
   supply get_trail_wl_heur_def[simp]
   unfolding lit_and_ann_of_propagated_st_heur_def isasat_bounded_assn_def
     lit_and_ann_of_propagated_st_heur_pre_def trail_pol_fast_assn_def
-  apply (rewrite in "_ ! \<hole>" annot_unat_snat_upcast[where 'l="64"])
   by sepref
 
 declare
@@ -100,7 +98,6 @@ sepref_definition is_UNSET_impl
   is \<open>RETURN o (\<lambda>x. x= 0)\<close>
   :: \<open>(unat_assn' TYPE(8))\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
   apply (annot_unat_const "TYPE(8)")
-  supply [simp] = max_unat_def
   by sepref
 
 (*lemmas [sepref_fr_rules] = is_UNSET_impl.refine[FCOMP tri_bool_is_UNSET_refine_aux]*)
@@ -114,7 +111,6 @@ sepref_definition is_in_option_lookup_conflict_code
         unat_lit_assn\<^sup>k *\<^sub>a conflict_option_rel_assn\<^sup>k \<rightarrow> bool1_assn\<close>
   unfolding is_in_option_lookup_conflict_alt_def is_in_lookup_conflict_def PROTECT_def
      is_NOTIN_alt_def[symmetric] conflict_option_rel_assn_def lookup_clause_rel_assn_def
-  apply (rewrite in "_ ! \<hole>" annot_unat_snat_upcast[where 'l="64"])
   by sepref
 
 sepref_definition atm_is_in_conflict_st_heur_fast_code
@@ -124,22 +120,25 @@ sepref_definition atm_is_in_conflict_st_heur_fast_code
   unfolding atm_is_in_conflict_st_heur_def atm_is_in_conflict_st_heur_pre_def isasat_bounded_assn_def
     atm_in_conflict_lookup_def trail_pol_fast_assn_def NOTIN_def[symmetric]
    is_NOTIN_def[symmetric] conflict_option_rel_assn_def lookup_clause_rel_assn_def
-  apply (rewrite in "_ ! \<hole>" annot_unat_snat_upcast[where 'l="64"])
   by sepref
 
 declare atm_is_in_conflict_st_heur_fast_code.refine[sepref_fr_rules]
 (*END Move*)
 
-
-(* TODO require VMTF 
+find_theorems isa_vmtf_unset
 sepref_definition tl_state_wl_heur_fast_code
   is \<open>RETURN o tl_state_wl_heur\<close>
   :: \<open>[tl_state_wl_heur_pre]\<^sub>a
       isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
-  supply [[goals_limit=1]] if_splits[split] lit_of_last_trail_pol_def[simp]
+  supply [[goals_limit=1]] if_splits[split]
   unfolding tl_state_wl_heur_alt_def[abs_def] isasat_bounded_assn_def get_trail_wl_heur_def[simp]
-    vmtf_unset_def bind_ref_tag_def[simp] short_circuit_conv lit_of_last_trail_pol_def
-  unfolding tl_state_wl_heur_pre_def trail_pol_fast_assn_def
+    vmtf_unset_def bind_ref_tag_def[simp] short_circuit_conv
+  unfolding tl_state_wl_heur_pre_def
+  apply sepref_dbg_keep
+apply sepref_dbg_trans_keep
+apply sepref_dbg_trans_step_keep
+apply sepref_dbg_side_unfold
+oops
   by sepref
 
 declare
@@ -154,7 +153,6 @@ sepref_definition update_confl_tl_wl_fast_code
   supply [[goals_limit=1]] isasat_fast_length_leD[dest]
   unfolding update_confl_tl_wl_heur_def isasat_bounded_assn_def
     update_confl_tl_wl_heur_pre_def PR_CONST_def
-
   by sepref (* slow 200s*)
 
 declare update_confl_tl_wl_code.refine[sepref_fr_rules]

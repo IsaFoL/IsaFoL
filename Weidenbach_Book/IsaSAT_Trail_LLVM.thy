@@ -266,19 +266,13 @@ sepref_definition tl_trail_tr_no_CS_fast_code
 
 declare tl_trail_tr_no_CS_fast_code.refine[sepref_fr_rules]
 
-definition (in -) trail_pol_fast_assn' :: \<open>trail_pol \<Rightarrow> trail_pol_fast_assn \<Rightarrow> assn\<close> where
-  \<open>trail_pol_fast_assn' \<equiv>
-      arl64_assn unat_lit_assn *a larray64_assn (tri_bool_assn) *a
-      larray64_assn uint32_nat_assn *a
-      larray64_assn uint64_nat_assn *a uint32_nat_assn *a arl64_assn uint32_nat_assn\<close>
-
 sepref_definition (in -) trail_conv_back_imp_fast_code
   is \<open>uncurry trail_conv_back_imp\<close>
-  :: \<open>uint32_nat_assn\<^sup>k *\<^sub>a trail_pol_fast_assn'\<^sup>d \<rightarrow>\<^sub>a trail_pol_fast_assn'\<close>
+  :: \<open>uint32_nat_assn\<^sup>k *\<^sub>a trail_pol_fast_assn\<^sup>d \<rightarrow>\<^sub>a trail_pol_fast_assn\<close>
   supply [[goals_limit=1]]
-  unfolding trail_conv_back_imp_def trail_pol_fast_assn'_def
+  unfolding trail_conv_back_imp_def trail_pol_fast_assn_def
   apply (rewrite at "take \<hole>" annot_unat_snat_upcast[where 'l=64])
-  by sepref_dbg_keep
+  by sepref
 
 
 declare trail_conv_back_imp_fast_code.refine[sepref_fr_rules]
@@ -291,5 +285,12 @@ sepref_definition (in -) get_pos_of_level_in_trail_imp_fast_code
   by sepref
 
 declare get_pos_of_level_in_trail_imp_fast_code.refine[sepref_fr_rules]
+sepref_definition (in -) get_the_propagation_reason_fast_code
+  is \<open>uncurry get_the_propagation_reason_pol\<close>
+  :: \<open>trail_pol_fast_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow>\<^sub>a snat_option_assn' TYPE(64)\<close>
+  unfolding get_the_propagation_reason_pol_def trail_pol_fast_assn_def
+    tri_bool_eq_def[symmetric]
+  by sepref
+lemmas [sepref_fr_rules] = get_the_propagation_reason_fast_code.refine
 
 end
