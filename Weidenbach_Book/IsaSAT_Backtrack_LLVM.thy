@@ -27,8 +27,8 @@ lemma isa_empty_conflict_and_extract_clause_heur_alt_def:
      ASSERT(length outl \<noteq> 1 \<longrightarrow>  get_level_pol_pre (M, C!1));
      RETURN ((True, D), C, if length outl = 1 then 0 else get_level_pol M (C!1))
   }\<close>
-  unfolding isa_empty_conflict_and_extract_clause_heur_def WB_More_Refinement_List.swap_def
-    swap_def[symmetric]
+  unfolding isa_empty_conflict_and_extract_clause_heur_def (*WB_More_Refinement_List.swap_def
+    swap_def[symmetric]*)
   by auto
 
 find_theorems swap  array_assn

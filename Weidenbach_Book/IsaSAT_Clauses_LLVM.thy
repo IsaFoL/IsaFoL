@@ -46,9 +46,7 @@ sepref_definition (in -)append_and_length_fast_code
   apply (rewrite at "APos \<hole>" unat_const_fold[where 'a=32])+
   apply (rewrite at "length _ - 2" annot_snat_unat_downcast[where 'l=32])
   
-  supply [simp] = max_snat_def sint64_max_def max_unat_def uint32_max_def
   supply [simp] = fm_add_new_bounds1[simplified]
-  supply [dest!] = rdomp_al_imp_len_bound
   
   apply (annot_snat_const "TYPE(64)")
   by sepref
@@ -62,7 +60,6 @@ sepref_definition fm_mv_clause_to_new_arena_fast_code
          (if arena_length arena\<^sub>o  n \<le> 4 then 4 else 5) \<le> sint64_max]\<^sub>a
        sint64_nat_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>d \<rightarrow> arena_fast_assn\<close>
   supply [[goals_limit=1]] if_splits[split]
-  supply [simp] = max_snat_def sint64_max_def
   unfolding fm_mv_clause_to_new_arena_def 
   apply (annot_snat_const "TYPE(64)")
   by sepref

@@ -41,7 +41,7 @@ sepref_definition lbd_empty_code
   is \<open>lbd_empty_ref\<close>
   :: \<open>lbd_int_assn\<^sup>d  \<rightarrow>\<^sub>a lbd_int_assn\<close>
   unfolding lbd_empty_ref_def
-  supply [[goals_limit=1]] and [simp] = uint32_max_def max_snat_def
+  supply [[goals_limit=1]]
   apply (rewrite at \<open>_ + \<hole>\<close> snat_const_fold[where 'a=64])+
   apply (rewrite at \<open>(_, \<hole>)\<close> snat_const_fold[where 'a=64])
   apply (annot_unat_const "TYPE(32)")
@@ -56,7 +56,7 @@ lemma lbd_empty_hnr[sepref_fr_rules]:
 sepref_definition empty_lbd_code
   is \<open>uncurry0 (RETURN empty_lbd_ref)\<close>
   :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a lbd_int_assn\<close>
-  supply [simp] = uint32_max_def max_snat_def and [[goals_limit=1]]
+  supply [[goals_limit=1]]
   unfolding empty_lbd_ref_def larray_fold_custom_replicate
   apply (rewrite at \<open>op_larray_custom_replicate \<hole> _\<close> snat_const_fold[where 'a=64])
   apply (annot_unat_const "TYPE(32)")
@@ -94,7 +94,6 @@ sepref_definition lbd_write_code
   supply [[goals_limit=1]]
   unfolding lbd_ref_write_def length_uint32_nat_def list_grow_alt max_def
     op_list_grow_init'_alt
-  supply [simp] = max_unat_def uint32_max_def max_snat_def
   apply (rewrite at \<open>_ + \<hole>\<close> unat_const_fold[where 'a=32])
   apply (rewrite at \<open>_ + \<hole>\<close> unat_const_fold[where 'a=32])
   apply (rewrite in "If (\<hole> < _)" annot_unat_snat_upcast[where 'l=64])

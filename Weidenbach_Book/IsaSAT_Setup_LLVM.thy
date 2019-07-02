@@ -288,7 +288,6 @@ sepref_definition access_lit_in_clauses_heur_fast_code
            length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a
       isasat_bounded_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k  *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> unat_lit_assn\<close>
   supply [[goals_limit=1]] arena_lit_pre_le[dest]
-  supply [simp] = max_snat_def max_sint_def sint64_max_def
   unfolding isasat_bounded_assn_def access_lit_in_clauses_heur_alt_def
     access_lit_in_clauses_heur_pre_def
   by sepref (* slow *)
@@ -309,8 +308,8 @@ sepref_definition rewatch_heur_fast_code
         vdom_fast_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a watchlist_fast_assn\<^sup>d \<rightarrow> watchlist_fast_assn\<close>
   supply [[goals_limit=1]]
      arena_lit_pre_le_sint64_max[dest] arena_is_valid_clause_idx_le_uint64_max[dest]
-  supply [simp] = max_snat_def max_sint_def sint64_max_def append_ll_def[simp]
-  supply [dest] = in_snat_rel_imp_less_max' arena_lit_implI(1)
+  supply [simp] = append_ll_def
+  supply [dest] = (*in_snat_rel_boundsD*) arena_lit_implI(1)
   unfolding rewatch_heur_alt_def Let_def PR_CONST_def
   unfolding while_eq_nfoldli[symmetric]
   apply (subst while_upt_while_direct, simp)

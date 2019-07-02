@@ -251,10 +251,12 @@ declare partition_vmtf_nth_code.refine[sepref_fr_rules]
 
 sepref_register partition_between_ref
 
-lemma partition_between_ref_vmtf_code_aux:
+(*lemma partition_between_ref_vmtf_code_aux:
   "\<lbrakk>(loi,lo)\<in>snat_rel' TYPE(64); (hii,hi)\<in>snat_rel' TYPE(64)\<rbrakk> \<Longrightarrow> lo + (hi - lo) div 2 < max_snat 64"
+  apply sepref_bounds
   apply (drule in_snat_rel_imp_less_max')+ 
   by auto
+*)  
   
     
   
@@ -265,16 +267,12 @@ sepref_definition (in -) partition_between_ref_vmtf_code
       (array_assn vmtf_node_assn)\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a (arl64_assn uint32_nat_assn)\<^sup>d  \<rightarrow>
        arl64_assn uint32_nat_assn *a sint64_nat_assn\<close>
   supply [[goals_limit=1]]
-  unfolding quicksort_vmtf_nth_def (*insert_sort_def*) partition_vmtf_nth_def[symmetric]
+  unfolding quicksort_vmtf_nth_def partition_vmtf_nth_def[symmetric]
     quicksort_vmtf_nth_ref_def List.null_def quicksort_ref_def
-    (*length_0_conv[symmetric] length_uint32_nat_def[symmetric]*)
     partition_between_ref_vmtf_def
     partition_between_ref_def 
     partition_vmtf_nth_def[symmetric] choose_pivot3_def
     convert_swap gen_swap
-  find_theorems "(_,_)\<in>snat_rel"  
-  (*supply [simp] = max_snat_def *)
-  supply [intro] = partition_between_ref_vmtf_code_aux
   apply (annot_snat_const "TYPE(64)")
   apply (rewrite at "_!_" at "stamp (_!\<hole>)" annot_unat_snat_upcast[where 'l=64])+  
   by sepref  
@@ -297,7 +295,6 @@ sepref_definition (in -) quicksort_vmtf_nth_ref_code
   apply (annot_snat_const "TYPE(64)")
   supply [[goals_limit = 1]]
   supply mset_eq_setD[dest] mset_eq_length[dest]
-  supply [dest!] = rdomp_al_imp_len_bound
   by sepref
 
 declare quicksort_vmtf_nth_ref_code.refine[sepref_fr_rules]

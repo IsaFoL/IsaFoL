@@ -84,7 +84,6 @@ abbreviation "status_impl_assn \<equiv> pure status_impl_rel"
 lemma xarena_status_refine1: "(\<lambda>eli. eli AND 0b11, xarena_status) \<in> [is_Status]\<^sub>f arena_el_rel \<rightarrow> status_rel" by (auto simp: is_Status_def)
 sepref_definition xarena_status_impl is "RETURN o (\<lambda>eli. eli AND 0b11)" :: "uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn"
   apply (annot_unat_const "TYPE(32)")
-  supply [simp] = max_unat_def
   by sepref
 lemmas [sepref_fr_rules] = xarena_status_impl.refine[FCOMP xarena_status_refine1]  
 
@@ -93,7 +92,6 @@ lemma xarena_used_refine1: "(\<lambda>eli. eli AND 0b100 \<noteq> 0, xarena_used
   
 sepref_definition xarena_used_impl is "RETURN o (\<lambda>eli. eli AND 0b100 \<noteq> 0)" :: "uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn"
   apply (annot_unat_const "TYPE(32)")
-  supply [simp] = max_unat_def
   by sepref
 lemmas [sepref_fr_rules] = xarena_used_impl.refine[FCOMP xarena_used_refine1]  
 
@@ -112,7 +110,7 @@ lemma AStatus_refine1: "(AStatus_impl1, AStatus) \<in> status_rel \<rightarrow> 
   by (auto simp: status_rel_def bitfield_rel_def AStatus_impl1_def split: if_splits)
 sepref_definition AStatus_impl is "uncurry (RETURN oo AStatus_impl1)" :: "uint32_nat_assn\<^sup>k *\<^sub>a bool1_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn"
   unfolding AStatus_impl1_def
-  supply [simp] = max_unat_def and [split] = if_splits
+  supply [split] = if_splits
   by sepref
 lemmas [sepref_fr_rules] = AStatus_impl.refine[FCOMP AStatus_refine1]
 
@@ -136,9 +134,11 @@ lemma arena_lengthI:
   using SIZE_SHIFT_def assms
   by (auto simp: arena_is_valid_clause_idx_def arena_lifting)
   
+(*  
 lemma arena_length_impl_bounds_aux1: 
   "(ac, a) \<in> unat_rel' TYPE(32) \<Longrightarrow> a < 9223372036854775806"
   by (auto dest!: in_unat_rel_imp_less_max' simp: max_unat_def)
+*)  
 
 lemma arena_length_alt: 
   \<open>arena_length arena i = (
@@ -151,8 +151,7 @@ sepref_definition arena_length_impl
   is "uncurry (RETURN oo arena_length)" 
     :: "[uncurry arena_is_valid_clause_idx]\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> snat_assn' TYPE(64)"
   unfolding arena_length_alt
-  supply [simp] = max_snat_def max_unat_def arena_length_impl_bounds_aux1
-    and [dest] = arena_lengthI
+  supply [dest] = arena_lengthI
   by sepref
 lemmas [sepref_fr_rules] = arena_length_impl.refine
 
@@ -200,7 +199,6 @@ sepref_register swap_lits
 sepref_definition swap_lits_impl is "uncurry3 (RETURN oooo swap_lits)"
   :: "[\<lambda>(((C,i),j),arena). C + i < length arena \<and> C + j < length arena]\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>d \<rightarrow> arena_fast_assn"
   unfolding swap_lits_def convert_swap
-  supply [dest] = rdomp_al_imp_len_bound
   unfolding gen_swap
   by sepref
 
@@ -251,8 +249,7 @@ sepref_definition arena_pos_impl
   is "uncurry (RETURN oo arena_pos)" 
     :: "[uncurry get_saved_pos_pre]\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> snat_assn' TYPE(64)"
   unfolding arena_pos_alt
-  supply [simp] = max_snat_def max_unat_def arena_length_impl_bounds_aux1
-    and [dest] = arena_posI
+  supply [dest] = arena_posI
   by sepref
 lemmas [sepref_fr_rules] = arena_pos_impl.refine
 
@@ -272,7 +269,7 @@ sepref_definition update_lbd_impl
   is "uncurry2 (RETURN ooo update_lbd)" 
     :: "[update_lbd_pre]\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>d  \<rightarrow> arena_fast_assn"
   unfolding update_lbd_def LBD_SHIFT_def
-  supply [simp] = arena_length_impl_bounds_aux1 update_lbdI
+  supply [simp] = update_lbdI
     and [dest] = arena_posI
   apply (annot_snat_const "TYPE(64)")
   by sepref
@@ -295,7 +292,7 @@ lemma update_posI:
 lemma update_posI2:
   assumes "isa_update_pos_pre ((b, pos), a)"
   assumes "rdomp (al_assn arena_el_impl_assn) a"
-  shows "pos < 2 + max_unat 32"
+  shows "pos - 2 < max_unat 32"
   using assms POS_SHIFT_def
   unfolding isa_update_pos_pre_def
   apply (auto simp: arena_is_valid_clause_idx_def arena_lifting)
@@ -309,9 +306,10 @@ sepref_definition update_pos_impl
   unfolding arena_update_pos_def POS_SHIFT_def
   apply (annot_snat_const "TYPE(64)")
   apply (rewrite at "APos \<hole>" annot_snat_unat_downcast[where 'l=32])
-  supply [simp] = max_unat_def update_posI and [dest] = update_posI2
-  (*apply (rule hfref_with_rdomI)*)
+  supply [simp] = update_posI and [dest] = update_posI2
   by sepref
+  
+  
 lemmas [sepref_fr_rules] = update_pos_impl.refine
   
 sepref_register IRRED LEARNED DELETED
