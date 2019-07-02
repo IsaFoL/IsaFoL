@@ -23,6 +23,32 @@ lemma max_unat_numeral[simp]:
   done
 *)
 
+(* TODO: Move! 
+  TODO: General max functions!
+  TODO: Name should be snatN_max
+ 
+*)
+lemma sint64_max_refine[sepref_import_param]: "(0x7FFFFFFFFFFFFFFF, sint64_max)\<in>snat_rel' TYPE(64)"
+  apply (auto simp: snat_rel_def snat.rel_def in_br_conv sint64_max_def snat_invar_def)
+  apply (auto simp: snat_def)
+  done
+
+lemma sint32_max_refine[sepref_import_param]: "(0x7FFFFFFF, sint32_max)\<in>snat_rel' TYPE(32)"
+  apply (auto simp: snat_rel_def snat.rel_def in_br_conv sint32_max_def snat_invar_def)
+  apply (auto simp: snat_def)
+  done
+  
+lemma uint64_max_refine[sepref_import_param]: "(0xFFFFFFFFFFFFFFFF, uint64_max)\<in>unat_rel' TYPE(64)"
+  apply (auto simp: unat_rel_def unat.rel_def in_br_conv uint64_max_def)
+  done
+
+lemma uint32_max_refine[sepref_import_param]: "(0xFFFFFFFF, uint32_max)\<in>unat_rel' TYPE(32)"
+  apply (auto simp: unat_rel_def unat.rel_def in_br_conv uint32_max_def)
+  done
+  
+
+  
+
 
 lemma convert_fref:
   "WB_More_Refinement.fref = Sepref_Rules.frefnd"
