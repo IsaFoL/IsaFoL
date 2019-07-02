@@ -190,8 +190,10 @@ sepref_definition clause_not_marked_to_delete_heur_fast_code
 
 declare clause_not_marked_to_delete_heur_fast_code.refine[sepref_fr_rules]
 
+(*TODO Move*)
+lemma op_list_list_upd_alt_def: \<open>op_list_list_upd xss i j x = xss[i := (xss ! i)[j := x]]\<close>
+  unfolding op_list_list_upd_def by auto
 
-find_theorems sint64_max max_snat
 sepref_definition update_blit_wl_heur_fast_code
   is \<open>uncurry6 update_blit_wl_heur\<close>
   :: \<open>[\<lambda>((((((_, _), _), _), C), i), S). length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a
@@ -200,20 +202,16 @@ sepref_definition update_blit_wl_heur_fast_code
      sint64_nat_assn *a sint64_nat_assn *a isasat_bounded_assn\<close>
   supply [[goals_limit=1]] sint64_max_le_max_snat64[intro]
   unfolding update_blit_wl_heur_def isasat_bounded_assn_def append_ll_def[symmetric]
+    op_list_list_upd_alt_def[symmetric]
   apply (annot_snat_const "TYPE (64)")
-apply sepref_dbg_keep
-apply sepref_dbg_trans_keep
-apply sepref_dbg_trans_step_keep
-apply sepref_dbg_side_unfold
-apply sepref_dbg_side_keep
-subgoal
-oops
   by sepref
 
-term op_list_list_pop_back
 declare update_blit_wl_heur_fast_code.refine[sepref_fr_rules]
 
 sepref_register keep_watch_heur
+find_theorems "_ [ _ := take _ _]"
+lemma op_list_list_take_alt_def: \<open>op_list_list_take xss i l = xss[i := take l (xss ! i)]\<close>
+  unfolding op_list_list_take_def by auto
 
 sepref_definition keep_watch_heur_fast_code
   is \<open>uncurry3 keep_watch_heur\<close>
@@ -225,7 +223,8 @@ sepref_definition keep_watch_heur_fast_code
     unit_prop_body_wl_D_find_unwatched_heur_inv_def[simp]
   unfolding keep_watch_heur_def PR_CONST_def
   unfolding fmap_rll_def[symmetric] isasat_bounded_assn_def
-  unfolding 
+  unfolding
+    op_list_list_upd_alt_def[symmetric]
     nth_rll_def[symmetric]
     SET_FALSE_def[symmetric] SET_TRUE_def[symmetric]
   by sepref
@@ -235,7 +234,7 @@ declare keep_watch_heur_fast_code.refine[sepref_fr_rules]
 sepref_register isa_set_lookup_conflict_aa set_conflict_wl_heur
 
 sepref_register arena_incr_act
-term "_ oooo _"
+
 sepref_definition set_conflict_wl_heur_fast_code
   is \<open>uncurry set_conflict_wl_heur\<close>
   :: \<open>[\<lambda>(C, S). set_conflict_wl_heur_pre (C, S) \<and>
@@ -254,17 +253,16 @@ sepref_register update_blit_wl_heur clause_not_marked_to_delete_heur
 
 sepref_definition unit_propagation_inner_loop_body_wl_fast_heur_code
   is \<open>uncurry3 unit_propagation_inner_loop_body_wl_heur\<close>
-  :: \<open>[\<lambda>((L, w), S). length (get_clauses_wl_heur S) \<le> uint64_max]\<^sub>a
+  :: \<open>[\<lambda>((L, w), S). length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a
       unat_lit_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k  *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow>
        sint64_nat_assn *a sint64_nat_assn *a isasat_bounded_assn\<close>
   supply [[goals_limit=1]]
-    if_splits[split]
-    length_rll_def[simp]
+    if_splits[split] sint64_max_le_max_snat64[intro]
   supply undefined_lit_polarity_st_iff[iff]
     unit_prop_body_wl_D_find_unwatched_heur_inv_def[simp]
-  unfolding unit_propagation_inner_loop_body_wl_heur_def length_rll_def[symmetric] PR_CONST_def
+  unfolding unit_propagation_inner_loop_body_wl_heur_def PR_CONST_def
   unfolding fmap_rll_def[symmetric]
-  unfolding fast_minus_def[symmetric]
+  unfolding option.case_eq_if is_None_alt[symmetric]
     SET_FALSE_def[symmetric] SET_TRUE_def[symmetric] tri_bool_eq_def[symmetric]
   apply (annot_snat_const "TYPE (64)")
   by sepref
