@@ -157,10 +157,15 @@ sepref_definition Pos_impl is "RETURN o Pos_rel" :: "atom_assn\<^sup>d \<rightar
   apply (annot_unat_const "TYPE(32)")
   by sepref
   
-  
-sepref_definition Neg_impl is "RETURN o (\<lambda>x. 2*x+1)" :: "[\<lambda>x. x \<le> uint32_max div 2]\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> uint32_nat_assn"
+sepref_definition Neg_impl is "RETURN o (\<lambda>x. 2*x+1)" :: "atom_assn\<^sup>d \<rightarrow>\<^sub>a uint32_nat_assn"
+  unfolding atom_rel_def
   apply (annot_unat_const "TYPE(32)")
   by sepref
+  
+(*sepref_definition Neg_impl is "RETURN o (\<lambda>x. 2*x+1)" :: "[\<lambda>x. x \<le> uint32_max div 2]\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> uint32_nat_assn"
+  apply (annot_unat_const "TYPE(32)")
+  by sepref
+*)  
   
 lemmas [sepref_fr_rules] = 
   Pos_impl.refine[FCOMP Pos_refine_aux]

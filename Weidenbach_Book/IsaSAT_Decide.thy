@@ -308,6 +308,7 @@ definition lit_of_found_atm_D
       case L of
         None \<Rightarrow> RETURN None
       | Some L \<Rightarrow> do {
+          ASSERT (L<length \<phi>);
           if \<phi>!L then RETURN (Some (Pos L)) else RETURN (Some (Neg L))
         }
   })\<close>
@@ -318,9 +319,7 @@ lemma lit_of_found_atm_D_lit_of_found_atm:
    [lit_of_found_atm_D_pre]\<^sub>f Id \<times>\<^sub>f Id \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
   apply (intro frefI nres_relI)
   unfolding lit_of_found_atm_D_def lit_of_found_atm_def
-  by (auto split: option.splits)
-
-
+  by (auto split: option.splits if_splits simp: pw_le_iff refine_pw_simps lit_of_found_atm_D_pre_def)
 
 definition decide_lit_wl_heur :: \<open>nat literal \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
   \<open>decide_lit_wl_heur = (\<lambda>L' (M, N, D, Q, W, vmtf, \<phi>, clvls, cach, lbd, outl, stats, fema, sema). do {
