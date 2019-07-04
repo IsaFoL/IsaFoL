@@ -3885,15 +3885,15 @@ qed
 
 
 definition conflict_clause_minimisation_with_binary_clauses_f1 ::
-  \<open>('v literal \<Rightarrow> 'v watched) \<Rightarrow> 'v clause \<Rightarrow> 'v clause_l \<Rightarrow> ('v clause \<times> 'v clause_l) nres\<close> where
-  \<open>conflict_clause_minimisation_with_binary_clauses_f1 = (\<lambda> W C outl.
+  \<open>_ \<Rightarrow> ('v literal \<Rightarrow> 'v watched) \<Rightarrow> 'v clause \<Rightarrow> 'v clause_l \<Rightarrow> ('v clause \<times> 'v clause_l) nres\<close> where
+  \<open>conflict_clause_minimisation_with_binary_clauses_f1 = (\<lambda> N W C outl.
     do {
       ASSERT(length outl > 0);
       let A = (outl!0);
       C \<leftarrow>
-        (FOREACH\<^bsup>\<lambda> w C. mset outl \<subseteq># C\<^esup>
+        (FOREACH\<^bsup> \<lambda> w C. C \<subseteq># mset outl \<and> mset `# ran_mf N \<Turnstile>pm C \<and> distinct_mset C \<^esup>
         (set (W A)) 
-        (\<lambda> (I, B, b) C.
+        (\<lambda> (i, B, b) C.
           if \<not> b then RETURN (C) else \<comment> \<open>We only consider binary clauses\<close>
           if - B \<in># C then
           RETURN (C - {# -B #}) else \<comment> \<open>Remove \<^term>\<open>- B\<close> from the conflict clause (in \<^typ>\<open>nat literal multiset\<close> representation)\<close>
@@ -3905,7 +3905,7 @@ definition conflict_clause_minimisation_with_binary_clauses_f1 ::
   )
 \<close>
 
-
+(* TODO *)
 definition conflict_clause_minimisation_with_binary_clauses_f2 ::
   \<open>(nat literal \<Rightarrow> nat watched) \<Rightarrow> lookup_clause_rel \<Rightarrow> nat clause_l \<Rightarrow> (lookup_clause_rel \<times> nat clause_l) nres\<close> where
   \<open>conflict_clause_minimisation_with_binary_clauses_f2 = (\<lambda> W (n,xs) outl.
@@ -3915,7 +3915,7 @@ definition conflict_clause_minimisation_with_binary_clauses_f2 ::
       (n, xs) \<leftarrow>
         (FOREACH\<^bsup>\<lambda> w (n, xs). \<forall> L \<in> set outl. xs ! (atm_of L) = Some (is_pos L)\<^esup>
         (set (W A)) 
-        (\<lambda> (I, B, b) (n, xs).
+        (\<lambda> (i, B, b) (n, xs).
           if \<not> b then RETURN (n, xs) else  \<comment> \<open>We only consider binary clauses\<close>
           \<^cancel>\<open>ASSERT (atm_of B < length xs);\<close>
           if xs ! (atm_of B) = Some (\<not> is_pos B) then
@@ -3929,19 +3929,136 @@ definition conflict_clause_minimisation_with_binary_clauses_f2 ::
   )
 \<close>
 
+
 lemma
   assumes \<open>correct_watching (M, N, Some D, NE, UE, Q, W)\<close>
     and \<open>mset outl = D\<close>
     and \<open>mset `# ran_mf N \<Turnstile>pm D\<close>
     and \<open>length outl > 0\<close>
     and \<open>outl ! 0 \<in># all_lits_of_mm (mset `# ran_mf N + (NE + UE))\<close>
-  shows \<open>conflict_clause_minimisation_with_binary_clauses_f1 W D outl \<le>
-      SPEC(\<lambda>(D', outl'). D' \<subseteq># D \<and> mset outl' = D' \<and> mset `# ran_mf N \<Turnstile>pm D')\<close>
+    and \<open>distinct outl\<close> (* NEW! (Needed for the last line) *)
+  shows \<open>conflict_clause_minimisation_with_binary_clauses_f1 N W D outl \<le>
+          SPEC(\<lambda>(D', outl'). D' \<subseteq># D \<and> mset outl' = D' \<and> mset `# ran_mf N \<Turnstile>pm D')\<close>
   using assms
-  oops (* TODO *)
-      
+proof -
+  let ?A = \<open>outl ! 0\<close>
 
 
+  text \<open>Main lemma for correctness of the algorith: If we encounter the binary learned clause (A, B)
+        in the watched list, and the conflict contains -B, then we can remove -B from the conflict.\<close>
+  have tam:
+    \<open>mset `# ran_mf N \<Turnstile>pm remove1_mset (- B) C\<close>
+    if
+      \<open>C \<subseteq># mset outl\<close> \<open>mset `# ran_mf N \<Turnstile>pm C\<close> \<open>- B \<in># C\<close>
+      \<open>(i, B, b) \<in> set (W (outl!0))\<close> \<open>b\<close>
+    for i B C b
+  proof -
+    have \<open>i \<in># dom_m N\<close>
+      using assms(5) that(4) that(5) assms(1) by (auto simp add: correct_watching.simps)
+    then have \<open>B \<in> set (N \<propto> i) \<and> B \<noteq> ?A \<and> correctly_marked_as_binary N (i, B, b)\<close>
+      using assms(5) that(4) assms(1) by (auto simp add: correct_watching.simps)
+    then have \<open>B \<in> set (N \<propto> i)\<close> \<open>B \<noteq> ?A\<close> \<open>correctly_marked_as_binary N (i, B, b)\<close>
+      by auto+
+    then have \<open>length (N \<propto> i) = 2\<close>
+      by (simp add: correctly_marked_as_binary.simps \<open>b\<close>)
+    then have \<open>N \<propto> i = [?A, B]\<close>
+      sorry (* TODO: Is this true? *)
+    then have \<open>mset `# ran_mf N \<Turnstile>pm {# ?A, B #}\<close>
+      sorry (* TODO: Is this true? *)
+
+
+    (* We either have that A or B "holds". *)
+
+    have ?thesis if \<open>mset `# ran_mf N \<Turnstile>pm {# ?A #}\<close>
+    proof -
+      have \<open>?A \<in># C\<close>
+        sorry (* Is this true? *)
+      then show ?thesis
+        sorry (* TODO: Is this true? *)
+    qed
+   
+    then have ?thesis if \<open> (\<lambda>x. mset (fst x)) ` set_mset (ran_m N) \<Turnstile>p {#B#}\<close>
+    proof -
+      have \<open>mset `# ran_mf N \<Turnstile>pm {# B #}\<close> if \<open> (\<lambda>x. mset (fst x)) ` set_mset (ran_m N) \<Turnstile>p {#B#}\<close>
+        using that by simp
+      then show ?thesis
+        by (metis \<open>- B \<in># C\<close> \<open>mset `# ran_mf N \<Turnstile>pm C\<close> conflict_minimize_step insert_DiffM multi_self_add_other_not_self that zero_diff)
+    qed
+
+    show ?thesis
+      sorry (* TODO: We somehow have to make a case distinction here. *)
+
+  qed
+
+
+  have tamtam:
+    \<open>set (filter (\<lambda>l. l \<in> C') outl) = C'\<close>
+    if \<open>C' \<subseteq> set outl\<close>
+    for C' outl
+    using filter_cong that by auto
+  have tamtam:
+    \<open>mset (filter (\<lambda>l. l \<in># C') outl) = C'\<close>
+    if \<open>C' \<subseteq># mset outl\<close> \<open>distinct_mset C'\<close> \<open>distinct outl\<close>
+    for C' outl
+  proof -
+    have A: \<open>C' \<subseteq># mset (filter (\<lambda>l. l \<in># C') outl)\<close>
+      by (metis (mono_tags) filter_id_conv list_of_mset_exi mset_filter multiset_filter_mono set_mset_mset that(1))
+
+    have B: \<open>mset (filter (\<lambda>l. l \<in># C') outl) \<subseteq># C'\<close>
+      by (metis (no_types, lifting) distinct_filter distinct_mset_mset_distinct distinct_subseteq_iff mem_Collect_eq mset_filter set_mset_filter subsetI that(2) that(3))
+
+    show ?thesis
+      using A B by auto
+  qed
+  then have tamtam:
+    \<open>mset (filter (\<lambda>l. l \<in># C') outl) = C'\<close>
+    if \<open>C' \<subseteq># mset outl\<close> \<open>distinct_mset C'\<close>
+    for C'
+    using assms(6) that(1) that(2) by blast
+
+
+  show ?thesis
+    unfolding conflict_clause_minimisation_with_binary_clauses_f1_def
+    apply (refine_vcg)
+    subgoal
+      using assms(4) by blast
+    subgoal
+      by blast
+    subgoal
+      using assms(2) by blast
+    subgoal
+      using assms(3) by blast
+    subgoal
+      using assms(2) assms(6) distinct_mset_mset_distinct by blast
+    subgoal
+      by blast
+    subgoal
+      by blast
+    subgoal
+      by auto
+    subgoal
+      using tam by auto
+    subgoal
+      by (smt Collect_mem_eq subset_Collect_conv tam)
+    subgoal
+      using distinct_mset_minus by blast
+    subgoal
+      by blast
+    subgoal
+      by blast
+    subgoal
+      using distinct_mset_minus by blast
+    subgoal
+      using assms(2) by blast
+    subgoal
+      using tamtam by blast
+    subgoal
+      by blast
+    done
+qed
+
+
+(* TODO: This doesn't type! *)
 lemma
   assumes \<open>(C, D) \<in> lookup_clause_rel (atm_of `# (all_lits_of_mm (mset `# ran_mf N + (NE + UE))))\<close>
     and \<open>mset outl = D\<close>
