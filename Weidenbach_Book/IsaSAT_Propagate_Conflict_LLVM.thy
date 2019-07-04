@@ -133,10 +133,6 @@ sepref_definition select_and_remove_from_literals_to_update_wlfast_code
   apply (annot_snat_const "TYPE (64)")
   by sepref
 
-find_theorems isa_trail_nth
-thm isa_trail_nth_fast_code.refine_raw
-
-
 declare select_and_remove_from_literals_to_update_wlfast_code.refine[sepref_fr_rules]
 
 sepref_definition literals_to_update_wl_literals_to_update_wl_empty_fast_code

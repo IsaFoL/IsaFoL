@@ -1,7 +1,7 @@
 theory IsaSAT_Conflict_Analysis_LLVM
 imports IsaSAT_Conflict_Analysis IsaSAT_VMTF_LLVM IsaSAT_Setup_LLVM
 begin
-
+thm fold_tuple_optimizations
 (*
 lemma mark_of_refine[sepref_fr_rules]:
   \<open>(return o (\<lambda>C. the (snd C)), RETURN o mark_of) \<in>
@@ -239,7 +239,6 @@ sepref_definition update_confl_tl_wl_fast_code
   unfolding fold_tuple_optimizations
   by sepref
 
-(*TODO in previous: conflict_option_rel_assn_def should not be necessary*)
 declare update_confl_tl_wl_fast_code.refine[sepref_fr_rules]
 
 sepref_register skip_and_resolve_loop_wl_D is_in_conflict_st
