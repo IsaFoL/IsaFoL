@@ -290,6 +290,7 @@ sepref_definition access_lit_in_clauses_heur_fast_code
   supply [[goals_limit=1]] arena_lit_pre_le[dest]
   unfolding isasat_bounded_assn_def access_lit_in_clauses_heur_alt_def
     access_lit_in_clauses_heur_pre_def
+  unfolding fold_tuple_optimizations
   by sepref (* slow *)
 
 declare access_lit_in_clauses_heur_fast_code.refine[sepref_fr_rules]
@@ -328,7 +329,8 @@ sepref_definition rewatch_heur_st_fast_code
   supply [[goals_limit=1]]
   unfolding rewatch_heur_st_def PR_CONST_def rewatch_heur_st_fast_pre_def
     isasat_bounded_assn_def rewatch_heur_st_fast_def
-  by sepref (* slow *)
+  unfolding fold_tuple_optimizations
+  by sepref
 
 declare rewatch_heur_st_fast_code.refine[sepref_fr_rules]
 

@@ -125,6 +125,7 @@ sepref_definition cons_trail_Propagated_tr_fast_code
   apply (subst (4)annot_index_of_atm)
   (*unfolding ins_idx_upcast64  *)
   supply [[goals_limit = 1]]
+  unfolding fold_tuple_optimizations
   by sepref
 
 declare cons_trail_Propagated_tr_fast_code.refine[sepref_fr_rules]
@@ -152,6 +153,7 @@ sepref_definition tl_trail_tr_fast_code
   unfolding trail_pol_fast_assn_def
   apply (annot_unat_const "TYPE(32)")
   supply [[goals_limit = 1]]
+  unfolding fold_tuple_optimizations
   by sepref
 
 
@@ -189,6 +191,7 @@ sepref_definition cons_trail_Decided_tr_fast_code
   apply (annot_unat_const "TYPE(32)")
   apply (rewrite at "_@[\<hole>]" in "(_,\<hole>)" annot_snat_unat_downcast[where 'l="32"])
   supply [[goals_limit = 1]]
+  unfolding fold_tuple_optimizations
   by sepref
 
 declare cons_trail_Decided_tr_fast_code.refine[sepref_fr_rules]

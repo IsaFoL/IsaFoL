@@ -352,6 +352,7 @@ sepref_definition resolve_lookup_conflict_merge_fast_code
   apply (rewrite at \<open>RETURN (_ + \<hole>, _ ,_, _)\<close> snat_const_fold[where 'a = \<open>64\<close>])
   apply (rewrite in \<open>If _ \<hole>\<close> unat_const_fold[where 'a = \<open>32\<close>])
   supply [[goals_limit = 1]]
+  unfolding fold_tuple_optimizations
   by sepref
 
 declare resolve_lookup_conflict_merge_fast_code.refine[sepref_fr_rules]
@@ -394,6 +395,7 @@ sepref_definition resolve_merge_conflict_fast_code
   apply (rewrite at \<open>RETURN (_ + \<hole>, _ ,_, _, _)\<close> snat_const_fold[where 'a = \<open>64\<close>])
   apply (rewrite in \<open>If _ \<hole>\<close> unat_const_fold[where 'a = \<open>32\<close>])
   supply [[goals_limit = 1]]
+  unfolding fold_tuple_optimizations
   by sepref
 
 declare resolve_merge_conflict_fast_code.refine[sepref_fr_rules]

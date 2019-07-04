@@ -203,6 +203,7 @@ sepref_definition vmtf_en_dequeue_fast_code
   apply annot_all_atm_idxs    
   apply (annot_unat_const "TYPE(64)")
   unfolding atom.fold_option
+  unfolding fold_tuple_optimizations
   by sepref
 
 declare vmtf_en_dequeue_fast_code.refine[sepref_fr_rules]
@@ -435,6 +436,7 @@ sepref_definition find_decomp_wl_imp'_fast_code
         isasat_bounded_assn\<close>
   unfolding find_decomp_wl_st_int_def PR_CONST_def isasat_bounded_assn_def
   supply [[goals_limit = 1]]
+  unfolding fold_tuple_optimizations
   by sepref
 
 declare find_decomp_wl_imp'_fast_code.refine[sepref_fr_rules]
