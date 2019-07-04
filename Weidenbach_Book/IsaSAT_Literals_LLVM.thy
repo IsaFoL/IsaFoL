@@ -21,7 +21,7 @@ lemma RETURN_comp_5_10_hnr_post[to_hnr_post]:
 
 
 (*  TODO/FIXME: Ad-hoc optimizations for large tuples *)  
-definition [simp]: "case_prod_open \<equiv> case_prod"
+definition [simp,llvm_inline]: "case_prod_open \<equiv> case_prod"
 lemmas fold_case_prod_open = case_prod_open_def[symmetric]
 
 lemma case_prod_open_arity[sepref_monadify_arity]:
@@ -67,21 +67,18 @@ lemmas fold_tuples = tuple4_def[symmetric] tuple7_def[symmetric] tuple13_def[sym
 
 sepref_register tuple4 tuple7 tuple13
 
-sepref_definition "tuple4_impl" is "uncurry3 (RETURN oooo tuple4)" :: 
+sepref_def "tuple4_impl" [llvm_inline] is "uncurry3 (RETURN oooo tuple4)" :: 
   "A1\<^sup>d *\<^sub>a A2\<^sup>d *\<^sub>a A3\<^sup>d *\<^sub>a A4\<^sup>d \<rightarrow>\<^sub>a A1 *a A2 *a A3 *a A4"
   unfolding tuple4_def by sepref
-lemmas [sepref_fr_rules] = tuple4_impl.refine
   
-sepref_definition "tuple7_impl" is "uncurry6 (RETURN ooooooo tuple7)" :: 
+sepref_def "tuple7_impl" [llvm_inline] is "uncurry6 (RETURN ooooooo tuple7)" :: 
   "A1\<^sup>d *\<^sub>a A2\<^sup>d *\<^sub>a A3\<^sup>d *\<^sub>a A4\<^sup>d *\<^sub>a A5\<^sup>d *\<^sub>a A6\<^sup>d *\<^sub>a A7\<^sup>d \<rightarrow>\<^sub>a A1 *a A2 *a A3 *a A4 *a A5 *a A6 *a A7"
   unfolding tuple7_def by sepref
-lemmas [sepref_fr_rules] = tuple7_impl.refine
 
-sepref_definition "tuple13_impl" is "uncurry12 (RETURN o\<^sub>1\<^sub>3 tuple13)" :: 
+sepref_def "tuple13_impl" [llvm_inline] is "uncurry12 (RETURN o\<^sub>1\<^sub>3 tuple13)" :: 
   "A1\<^sup>d *\<^sub>a A2\<^sup>d *\<^sub>a A3\<^sup>d *\<^sub>a A4\<^sup>d *\<^sub>a A5\<^sup>d *\<^sub>a A6\<^sup>d *\<^sub>a A7\<^sup>d *\<^sub>a A8\<^sup>d *\<^sub>a A9\<^sup>d *\<^sub>a A10\<^sup>d *\<^sub>a A11\<^sup>d *\<^sub>a A12\<^sup>d *\<^sub>a A13\<^sup>d 
   \<rightarrow>\<^sub>a A1 *a A2 *a A3 *a A4 *a A5 *a A6 *a A7 *a A8 *a A9 *a A10 *a A11 *a A12 *a A13"
   unfolding tuple13_def by sepref
-lemmas [sepref_fr_rules] = tuple13_impl.refine
 
 lemmas fold_tuple_optimizations = fold_tuples fold_case_prod_open
   
@@ -217,7 +214,7 @@ lemma atm_of_refine: "(\<lambda>x. x div 2 , atm_of) \<in> nat_lit_rel \<rightar
   by (auto simp: nat_lit_rel_def in_br_conv)
 
   
-sepref_definition atm_of_impl is "RETURN o (\<lambda>x::nat. x div 2)" 
+sepref_def atm_of_impl is [] "RETURN o (\<lambda>x::nat. x div 2)" 
   :: "uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a atom_assn"
   unfolding atom_rel_def b_assn_pure_conv[symmetric]
   apply (rule hfref_bassn_resI)
@@ -237,12 +234,12 @@ lemma Pos_refine_aux: "(Pos_rel,Pos)\<in>nat_rel \<rightarrow> nat_lit_rel"
 lemma Neg_refine_aux: "(\<lambda>x. 2*x + 1,Neg)\<in>nat_rel \<rightarrow> nat_lit_rel"
   by (auto simp: nat_lit_rel_def in_br_conv split: if_splits)
 
-sepref_definition Pos_impl is "RETURN o Pos_rel" :: "atom_assn\<^sup>d \<rightarrow>\<^sub>a uint32_nat_assn"
+sepref_def Pos_impl is [] "RETURN o Pos_rel" :: "atom_assn\<^sup>d \<rightarrow>\<^sub>a uint32_nat_assn"
   unfolding atom_rel_def Pos_rel_def
   apply (annot_unat_const "TYPE(32)")
   by sepref
   
-sepref_definition Neg_impl is "RETURN o (\<lambda>x. 2*x+1)" :: "atom_assn\<^sup>d \<rightarrow>\<^sub>a uint32_nat_assn"
+sepref_def Neg_impl is [] "RETURN o (\<lambda>x. 2*x+1)" :: "atom_assn\<^sup>d \<rightarrow>\<^sub>a uint32_nat_assn"
   unfolding atom_rel_def
   apply (annot_unat_const "TYPE(32)")
   by sepref
@@ -256,13 +253,10 @@ lemmas [sepref_fr_rules] =
   Pos_impl.refine[FCOMP Pos_refine_aux]
   Neg_impl.refine[FCOMP Neg_refine_aux]
 
-sepref_definition atom_eq_impl is "uncurry (RETURN oo (=))" :: "atom_assn\<^sup>d *\<^sub>a atom_assn\<^sup>d \<rightarrow>\<^sub>a bool1_assn"
+sepref_def atom_eq_impl is "uncurry (RETURN oo (=))" :: "atom_assn\<^sup>d *\<^sub>a atom_assn\<^sup>d \<rightarrow>\<^sub>a bool1_assn"
   unfolding atom_rel_def
   by sepref
 
-lemmas [sepref_fr_rules] = atom_eq_impl.refine
-
-  
   
 definition value_of_atm :: \<open>nat \<Rightarrow> nat\<close> where
 [simp]: \<open>value_of_atm A = A\<close>
@@ -270,8 +264,8 @@ definition value_of_atm :: \<open>nat \<Rightarrow> nat\<close> where
 lemma value_of_atm_rel: \<open>(\<lambda>x. x, value_of_atm) \<in> nat_rel \<rightarrow> nat_rel\<close>
   by (auto)
 
-sepref_definition value_of_atm_impl
-  is \<open>RETURN o (\<lambda>x. x)\<close>
+sepref_def value_of_atm_impl
+  is [] \<open>RETURN o (\<lambda>x. x)\<close>
   :: \<open>atom_assn\<^sup>d \<rightarrow>\<^sub>a unat_assn' TYPE(32)\<close>
   unfolding value_of_atm_def atom_rel_def
   by sepref
@@ -285,8 +279,8 @@ lemma index_of_atm_rel: \<open>(\<lambda>x. value_of_atm x, index_of_atm) \<in> 
   by (auto)
 
 
-sepref_definition index_of_atm_impl 
-  is \<open>RETURN o (\<lambda>x. value_of_atm x)\<close>
+sepref_def index_of_atm_impl 
+  is [] \<open>RETURN o (\<lambda>x. value_of_atm x)\<close>
   :: \<open>atom_assn\<^sup>d \<rightarrow>\<^sub>a snat_assn' TYPE(64)\<close>
   unfolding index_of_atm_def
   apply (rewrite at "_" eta_expand)
@@ -323,13 +317,11 @@ lemma annot_index_atm_of[def_pat_rules]:
   by auto
 
   
-sepref_definition index_atm_of_impl 
+sepref_def index_atm_of_impl 
   is \<open>RETURN o index_atm_of\<close>
   :: \<open>unat_lit_assn\<^sup>d \<rightarrow>\<^sub>a snat_assn' TYPE(64)\<close>
   unfolding index_atm_of_def
   by sepref
-
-declare index_atm_of_impl.refine [sepref_fr_rules]
 
 
 
@@ -337,7 +329,7 @@ declare index_atm_of_impl.refine [sepref_fr_rules]
 lemma nat_of_lit_refine_aux: "((\<lambda>x. x), nat_of_lit) \<in> nat_lit_rel \<rightarrow> nat_rel"
   by (auto simp: nat_lit_rel_def in_br_conv)
 
-sepref_definition nat_of_lit_rel_impl is "RETURN o (\<lambda>x::nat. x)" :: "uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a sint64_nat_assn"
+sepref_def nat_of_lit_rel_impl is [] "RETURN o (\<lambda>x::nat. x)" :: "uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a sint64_nat_assn"
   apply (rewrite annot_unat_snat_upcast[where 'l=64])
   by sepref
 lemmas [sepref_fr_rules] = nat_of_lit_rel_impl.refine[FCOMP nat_of_lit_refine_aux]
@@ -348,7 +340,7 @@ lemma uminus_refine_aux: "(\<lambda>x. x XOR 1, uminus) \<in> nat_lit_rel \<righ
   subgoal by (metis dvd_minus_mod even_Suc_div_two odd_Suc_minus_one)
   done
 
-sepref_definition uminus_impl is "RETURN o (\<lambda>x::nat. x XOR 1)" :: "uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn"
+sepref_def uminus_impl is [] "RETURN o (\<lambda>x::nat. x XOR 1)" :: "uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn"
   apply (annot_unat_const "TYPE(32)")
   by sepref
 
@@ -357,7 +349,7 @@ lemmas [sepref_fr_rules] = uminus_impl.refine[FCOMP uminus_refine_aux]
 lemma lit_eq_refine_aux: "( (=), (=) ) \<in> nat_lit_rel \<rightarrow> nat_lit_rel \<rightarrow> bool_rel"
   by (auto simp: nat_lit_rel_def in_br_conv split: if_splits; auto?; presburger)
 
-sepref_definition lit_eq_impl is "uncurry (RETURN oo (=))" :: "uint32_nat_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn"
+sepref_def lit_eq_impl is [] "uncurry (RETURN oo (=))" :: "uint32_nat_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn"
   by sepref
 
 lemmas [sepref_fr_rules] = lit_eq_impl.refine[FCOMP lit_eq_refine_aux]
@@ -365,7 +357,7 @@ lemmas [sepref_fr_rules] = lit_eq_impl.refine[FCOMP lit_eq_refine_aux]
 lemma is_pos_refine_aux: "(\<lambda>x. x AND 1 = 0, is_pos) \<in> nat_lit_rel \<rightarrow> bool_rel"
   by (auto simp: nat_lit_rel_def in_br_conv bitAND_1_mod_2[simplified] split: if_splits)
   
-sepref_definition is_pos_impl is "RETURN o (\<lambda>x. x AND 1 = 0)" :: "uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn"
+sepref_def is_pos_impl is [] "RETURN o (\<lambda>x. x AND 1 = 0)" :: "uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn"
   apply (annot_unat_const "TYPE(32)")
   by sepref
   
