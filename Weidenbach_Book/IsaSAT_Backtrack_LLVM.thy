@@ -1,5 +1,5 @@
 theory IsaSAT_Backtrack_LLVM
-  imports IsaSAT_Backtrack (*IsaSAT_VMTF_LLVM*) IsaSAT_Setup_LLVM IsaSAT_Lookup_Conflict_LLVM
+  imports IsaSAT_Backtrack IsaSAT_VMTF_LLVM IsaSAT_Lookup_Conflict_LLVM
 begin
 
 lemma isa_empty_conflict_and_extract_clause_heur_alt_def:
@@ -31,7 +31,6 @@ lemma isa_empty_conflict_and_extract_clause_heur_alt_def:
     swap_def[symmetric]*)
   by auto
 
-find_theorems swap  array_assn
 sepref_definition empty_conflict_and_extract_clause_heur_fast_code
   is \<open>uncurry2 (isa_empty_conflict_and_extract_clause_heur)\<close>
   :: \<open>[\<lambda>((M, D), outl). outl \<noteq> [] \<and> length outl \<le> uint32_max]\<^sub>a
@@ -41,30 +40,29 @@ sepref_definition empty_conflict_and_extract_clause_heur_fast_code
   supply [simp] = max_snat_def uint32_max_def
   unfolding isa_empty_conflict_and_extract_clause_heur_alt_def
     larray_fold_custom_replicate length_uint32_nat_def conflict_option_rel_assn_def
-  unfolding gen_swap
   apply (rewrite at \<open>\<hole>\<close> in \<open>_ !1\<close> snat_const_fold[where 'a=64])+
   apply (rewrite at \<open>\<hole>\<close> in \<open>_ !0\<close> snat_const_fold[where 'a=64])
-  apply (rewrite at \<open>\<hole>\<close> in \<open>op_list_get _ 1\<close> snat_const_fold[where 'a=64])
-  apply (rewrite at \<open>\<hole>\<close> in \<open>op_list_set _ 1\<close> snat_const_fold[where 'a=64])
+  apply (rewrite at \<open>swap _ \<hole> _\<close> snat_const_fold[where 'a=64])
   apply (rewrite at \<open>\<hole>\<close> in \<open>(_, _, _ + 1)\<close> snat_const_fold[where 'a=64])
   apply (rewrite at \<open>\<hole>\<close> in \<open>(_, _, 1)\<close> snat_const_fold[where 'a=64])
   apply (rewrite at \<open>\<hole>\<close> in \<open>If (length _ = \<hole>)\<close> snat_const_fold[where 'a=64])
   apply (annot_unat_const "TYPE(32)")
+  unfolding gen_swap convert_swap
   by sepref
 
 declare empty_conflict_and_extract_clause_heur_fast_code.refine[sepref_fr_rules]
 
 lemma emptied_list_alt_def: \<open>emptied_list xs = take 0 xs\<close>
   by (auto simp: emptied_list_def)
-
+find_theorems SEEN_UNKNOWN
 sepref_definition empty_cach_code
   is \<open>empty_cach_ref_set\<close>
   :: \<open>cach_refinement_l_assn\<^sup>d \<rightarrow>\<^sub>a cach_refinement_l_assn\<close>
   supply [[goals_limit=1]]
   unfolding empty_cach_ref_set_def comp_def cach_refinement_l_assn_def emptied_list_alt_def
-  supply [simp] = max_snat_def uint32_max_def
   apply (annot_snat_const "TYPE(64)")
-  apply (rewrite at \<open>_[\<hole> := SEEN_UNKNOWN]\<close> annot_unat_snat_upcast[where 'l=64])
+  apply (rewrite at \<open>_[\<hole> := SEEN_UNKNOWN]\<close> value_of_atm_def[symmetric])
+  apply (rewrite at \<open>_[\<hole> := SEEN_UNKNOWN]\<close> index_of_atm_def[symmetric])
   by sepref
 
 declare empty_cach_code.refine[sepref_fr_rules]
@@ -108,7 +106,6 @@ sepref_definition propagate_bt_wl_D_fast_code
   is \<open>uncurry2 propagate_bt_wl_D_heur\<close>
   :: \<open>[\<lambda>((L, C), S). isasat_fast S]\<^sub>a
       unat_lit_assn\<^sup>k *\<^sub>a clause_ll_assn\<^sup>d *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
-  supply [simp] = max_snat_def uint32_max_def sint64_max_def
   supply [[goals_limit = 1]] append_ll_def[simp] isasat_fast_length_leD[dest]
     propagate_bt_wl_D_fast_code_isasat_fastI2[intro] length_ll_def[simp]
     propagate_bt_wl_D_fast_code_isasat_fastI3[intro]
@@ -118,13 +115,20 @@ sepref_definition propagate_bt_wl_D_fast_code
     append_ll_def[symmetric] append_ll_def[symmetric]
     cons_trail_Propagated_def[symmetric] PR_CONST_def save_phase_def
   apply (annot_snat_const "TYPE(64)")
+  unfolding fold_tuple_optimizations
 apply sepref_dbg_keep
     apply sepref_dbg_trans_keep
     apply sepref_dbg_trans_step_keep
-    apply sepref_dbg_side_unfold oops
-oops
-  by sepref \<comment>\<open>This call is now unreasonnably slow.\<close>
+supply[[unify_trace_failure]]
+apply (rule vmtf_rescore_fast_code.refine[to_hnr])
 
+
+oops
+    apply sepref_dbg_side_unfold
+apply (rule TrueI) oops
+
+ (* by sepref*) \<comment>\<open>This call is now unreasonnably slow.\<close>
+find_in_thms isa_vmtf_rescore in sepref_fr_rules
 declare
   propagate_bt_wl_D_fast_code.refine[sepref_fr_rules]
 
@@ -134,6 +138,10 @@ sepref_definition propagate_unit_bt_wl_D_fast_code
   supply [[goals_limit = 1]] vmtf_flush_def[simp] image_image[simp] uminus_\<A>\<^sub>i\<^sub>n_iff[simp]
   unfolding propagate_unit_bt_wl_D_int_def cons_trail_Propagated_def[symmetric] isasat_bounded_assn_def
     PR_CONST_def
+  unfolding fold_tuple_optimizations
+apply sepref_dbg_keep
+    apply sepref_dbg_trans_keep
+    apply sepref_dbg_trans_step_keep
   by sepref
 
 declare
@@ -197,6 +205,7 @@ sepref_definition backtrack_wl_D_fast_code
     append_ll_def[symmetric]
     cons_trail_Propagated_def[symmetric]
     size_conflict_wl_def[symmetric]
+  unfolding fold_tuple_optimizations
   by sepref
 
 sepref_definition backtrack_wl_D_code
@@ -209,6 +218,7 @@ sepref_definition backtrack_wl_D_code
     append_ll_def[symmetric]
     cons_trail_Propagated_def[symmetric]
     size_conflict_wl_def[symmetric]
+  unfolding fold_tuple_optimizations
   by sepref
 
 declare backtrack_wl_D_fast_code.refine[sepref_fr_rules]

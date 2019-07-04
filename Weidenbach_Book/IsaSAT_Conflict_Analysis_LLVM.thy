@@ -83,6 +83,7 @@ sepref_definition lit_and_ann_of_propagated_st_heur_fast_code
   supply get_trail_wl_heur_def[simp]
   unfolding lit_and_ann_of_propagated_st_heur_def isasat_bounded_assn_def
     lit_and_ann_of_propagated_st_heur_pre_def trail_pol_fast_assn_def
+  unfolding fold_tuple_optimizations
   by sepref
 
 declare
@@ -120,6 +121,7 @@ sepref_definition atm_is_in_conflict_st_heur_fast_code
   unfolding atm_is_in_conflict_st_heur_def atm_is_in_conflict_st_heur_pre_def isasat_bounded_assn_def
     atm_in_conflict_lookup_def trail_pol_fast_assn_def NOTIN_def[symmetric]
    is_NOTIN_def[symmetric] conflict_option_rel_assn_def lookup_clause_rel_assn_def
+  unfolding fold_tuple_optimizations
   by sepref
 
 declare atm_is_in_conflict_st_heur_fast_code.refine[sepref_fr_rules]
@@ -160,6 +162,7 @@ sepref_definition tl_state_wl_heur_fast_code
   supply [[goals_limit=1]] if_splits[split] tl_state_wl_heurI[simp]
   unfolding tl_state_wl_heur_alt_def[abs_def] isasat_bounded_assn_def get_trail_wl_heur_def
     vmtf_unset_def bind_ref_tag_def short_circuit_conv
+  unfolding fold_tuple_optimizations
   by sepref
 
 declare
@@ -196,7 +199,8 @@ declare extract_valuse_of_lookup_conflict_impl.refine[sepref_fr_rules]
 
 sepref_register isasat_lookup_merge_eq2 update_confl_tl_wl_heur
 lemma update_confl_tl_wl_heur_alt_def:
-  \<open>update_confl_tl_wl_heur = (\<lambda>C L (M, N, bnxs, Q, W, vm, \<phi>, clvls, cach, lbd, outl, stats). do {
+  \<open>update_confl_tl_wl_heur = (\<lambda>C L (M, N, bnxs, Q, W, vm, \<phi>, clvls, cach, lbd, outl, stats, s1, s2, s3, vdom, avdom, lcount, opts,
+       old_arena). do {
       ASSERT (clvls \<ge> 1);
       let L' = atm_of L;
       ASSERT(arena_length N C \<noteq> 2 \<longrightarrow>
@@ -216,42 +220,29 @@ lemma update_confl_tl_wl_heur_alt_def:
       ASSERT(vmtf_unset_pre L' vm);
       ASSERT(tl_trailt_tr_pre M);
       RETURN (False, (tl_trailt_tr M, N, (None_lookup_conflict b nxs), Q, W, isa_vmtf_unset L' vm,
-          \<phi>, clvls - 1, cach, lbd, outl, stats))
+          \<phi>, clvls - 1, cach, lbd, outl, stats,s1, s2, s3, vdom, avdom, lcount, opts,
+       old_arena))
    })\<close>
   unfolding update_confl_tl_wl_heur_def
   by (auto intro!: ext bind_cong simp: None_lookup_conflict_def the_lookup_conflict_def
     extract_valuse_of_lookup_conflict_def Let_def)
 
-
 sepref_definition update_confl_tl_wl_fast_code
   is \<open>uncurry2 update_confl_tl_wl_heur\<close>
   :: \<open>[\<lambda>((i, L), S). update_confl_tl_wl_heur_pre ((i, L), S) \<and> isasat_fast S]\<^sub>a
   sint64_nat_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> bool1_assn *a isasat_bounded_assn\<close>
-  supply [[goals_limit=1]] isasat_fast_length_leD[dest]
+  supply [[goals_limit=1]] isasat_fast_length_leD[intro]
   unfolding update_confl_tl_wl_heur_alt_def isasat_bounded_assn_def
-    update_confl_tl_wl_heur_pre_def PR_CONST_def
+    PR_CONST_def
   apply (rewrite at \<open>If (_ = \<hole>)\<close> snat_const_fold[where 'a=64])
-  apply (annot_unat_const "TYPE (64)")
-apply sepref_dbg_keep
-apply sepref_dbg_trans_keep
-apply sepref_dbg_trans_step_keep
-apply (rule TrueI)
-apply sepref_dbg_side_unfold
-oops
-  by sepref (* slow 200s*)
+  apply (annot_unat_const "TYPE (32)")
+  unfolding fold_tuple_optimizations
+  by sepref
+
 (*TODO in previous: conflict_option_rel_assn_def should not be necessary*)
 declare update_confl_tl_wl_fast_code.refine[sepref_fr_rules]
 
 sepref_register skip_and_resolve_loop_wl_D is_in_conflict_st
-sepref_definition skip_and_resolve_loop_wl_D
-  is \<open>skip_and_resolve_loop_wl_D_heur\<close>
-  :: \<open>isasat_unbounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_unbounded_assn\<close>
-  supply [[goals_limit=1]]
-    skip_and_resolve_loop_wl_DI[intro]
-  unfolding skip_and_resolve_loop_wl_D_heur_def
-  apply (rewrite at \<open>\<not>_ \<and> \<not> _\<close> short_circuit_conv)
-  by sepref
-
 sepref_definition skip_and_resolve_loop_wl_D_fast
   is \<open>skip_and_resolve_loop_wl_D_heur\<close>
   :: \<open>[\<lambda>S. isasat_fast S]\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
@@ -259,10 +250,10 @@ sepref_definition skip_and_resolve_loop_wl_D_fast
     skip_and_resolve_loop_wl_DI[intro]
     isasat_fast_after_skip_and_resolve_loop_wl_D_heur_inv[intro]
   unfolding skip_and_resolve_loop_wl_D_heur_def
+  unfolding fold_tuple_optimizations
   apply (rewrite at \<open>\<not>_ \<and> \<not> _\<close> short_circuit_conv)
   by sepref (* slow *)
 
 declare skip_and_resolve_loop_wl_D_fast.refine[sepref_fr_rules]
-  skip_and_resolve_loop_wl_D.refine[sepref_fr_rules]
 
 end
