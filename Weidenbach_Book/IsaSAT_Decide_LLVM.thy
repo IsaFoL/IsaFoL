@@ -2,6 +2,9 @@ theory IsaSAT_Decide_LLVM
   imports IsaSAT_Decide IsaSAT_VMTF_LLVM IsaSAT_Setup_LLVM
 begin
 
+  
+  
+
 (* Cannot find usage of this
 sepref_definition lit_of_found_atm_D_code
   is \<open>uncurry lit_of_found_atm_D\<close>
@@ -57,13 +60,15 @@ sepref_definition decide_lit_wl_code
   by sepref
 *)
 
+
 sepref_definition decide_lit_wl_fast_code
   is \<open>uncurry decide_lit_wl_heur\<close>
   :: \<open>unat_lit_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
   supply [[goals_limit=1]]
   unfolding decide_lit_wl_heur_def isasat_bounded_assn_def
+  (*supply hn_case_prod'[sepref_comb_rules del]*)
+  unfolding fold_tuple_optimizations
   by sepref
-
 declare decide_lit_wl_fast_code.refine[sepref_fr_rules]
 
 
@@ -222,9 +227,10 @@ sepref_definition decide_wl_or_skip_D_fast_code
   unfolding fold_make_isasat_bounded
   unfolding atom.fold_option
   apply (rewrite in "\<hole> \<rightarrow>\<^sub>a _" isasat_bounded_assn_def)
-  by sepref
+  unfolding fold_tuple_optimizations
+  apply sepref
+  done
   
-
 declare decide_wl_or_skip_D_fast_code.refine[sepref_fr_rules]
 
 end

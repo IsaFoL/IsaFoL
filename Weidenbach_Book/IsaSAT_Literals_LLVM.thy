@@ -2,6 +2,91 @@ theory IsaSAT_Literals_LLVM
   imports WB_More_Word IsaSAT_Literals Watched_Literals.WB_More_IICF_LLVM
 begin
 
+(* TODO: Move
+  TODO:  Write generic postprocessing for that!
+  Maybe just beta contraction of form (\<lambda>x. f x)$x = f$x
+*)
+lemma RETURN_comp_5_10_hnr_post[to_hnr_post]:
+  "(RETURN ooooo f5)$a$b$c$d$e = RETURN$(f5$a$b$c$d$e)"
+  "(RETURN oooooo f6)$a$b$c$d$e$f = RETURN$(f6$a$b$c$d$e$f)"
+  "(RETURN ooooooo f7)$a$b$c$d$e$f$g = RETURN$(f7$a$b$c$d$e$f$g)"
+  "(RETURN oooooooo f8)$a$b$c$d$e$f$g$h = RETURN$(f8$a$b$c$d$e$f$g$h)"
+  "(RETURN ooooooooo f9)$a$b$c$d$e$f$g$h$i = RETURN$(f9$a$b$c$d$e$f$g$h$i)"
+  "(RETURN oooooooooo f10)$a$b$c$d$e$f$g$h$i$j = RETURN$(f10$a$b$c$d$e$f$g$h$i$j)"
+  "(RETURN o\<^sub>1\<^sub>1 f11)$a$b$c$d$e$f$g$h$i$j$k = RETURN$(f11$a$b$c$d$e$f$g$h$i$j$k)"
+  "(RETURN o\<^sub>1\<^sub>2 f12)$a$b$c$d$e$f$g$h$i$j$k$l = RETURN$(f12$a$b$c$d$e$f$g$h$i$j$k$l)"
+  "(RETURN o\<^sub>1\<^sub>3 f13)$a$b$c$d$e$f$g$h$i$j$k$l$m = RETURN$(f13$a$b$c$d$e$f$g$h$i$j$k$l$m)"
+  "(RETURN o\<^sub>1\<^sub>4 f14)$a$b$c$d$e$f$g$h$i$j$k$l$m$n = RETURN$(f14$a$b$c$d$e$f$g$h$i$j$k$l$m$n)"
+  by simp_all
+
+
+(*  TODO/FIXME: Ad-hoc optimizations for large tuples *)  
+definition [simp]: "case_prod_open \<equiv> case_prod"
+lemmas fold_case_prod_open = case_prod_open_def[symmetric]
+
+lemma case_prod_open_arity[sepref_monadify_arity]:
+  "case_prod_open \<equiv> \<lambda>\<^sub>2fp p. SP case_prod_open$(\<lambda>\<^sub>2a b. fp$a$b)$p" 
+  by (simp_all only: SP_def APP_def PROTECT2_def RCALL_def)
+
+lemma case_prod_open_comb[sepref_monadify_comb]:
+  "\<And>fp p. case_prod_open$fp$p \<equiv> Refine_Basic.bind$(EVAL$p)$(\<lambda>\<^sub>2p. (SP case_prod_open$fp$p))"
+  by (simp_all)
+
+lemma case_prod_open_plain_comb[sepref_monadify_comb]:
+  "EVAL$(case_prod_open$(\<lambda>\<^sub>2a b. fp a b)$p) \<equiv> 
+    Refine_Basic.bind$(EVAL$p)$(\<lambda>\<^sub>2p. case_prod_open$(\<lambda>\<^sub>2a b. EVAL$(fp a b))$p)"
+  apply (rule eq_reflection, simp split: list.split prod.split option.split)+
+  done
+
+lemma hn_case_prod_open'[sepref_comb_rules]:
+  assumes FR: "\<Gamma> \<turnstile> hn_ctxt (prod_assn P1 P2) p' p ** \<Gamma>1"
+  assumes Pair: "\<And>a1 a2 a1' a2'. \<lbrakk>p'=(a1',a2')\<rbrakk> 
+    \<Longrightarrow> hn_refine (hn_ctxt P1 a1' a1 ** hn_ctxt P2 a2' a2 ** \<Gamma>1) (f a1 a2) 
+          (\<Gamma>2 a1 a2 a1' a2') R (f' a1' a2')"
+  assumes FR2: "\<And>a1 a2 a1' a2'. \<Gamma>2 a1 a2 a1' a2' \<turnstile> hn_ctxt P1' a1' a1 ** hn_ctxt P2' a2' a2 ** \<Gamma>1'"        
+  shows "hn_refine \<Gamma> (case_prod_open f p) (hn_ctxt (prod_assn P1' P2') p' p ** \<Gamma>1')
+                   R (case_prod_open$(\<lambda>\<^sub>2a b. f' a b)$p')" (is "?G \<Gamma>")
+  unfolding autoref_tag_defs PROTECT2_def
+  apply1 (rule hn_refine_cons_pre[OF FR])
+  apply1 (cases p; cases p'; simp add: prod_assn_pair_conv[THEN prod_assn_ctxt])
+  apply (rule hn_refine_cons[OF _ Pair _ entails_refl])
+  applyS (simp add: hn_ctxt_def)
+  applyS simp using FR2
+  by (simp add: hn_ctxt_def)
+
+      
+lemma ho_prod_open_move[sepref_preproc]: "case_prod_open (\<lambda>a b x. f x a b) = (\<lambda>p x. case_prod_open (f x) p)"
+  by (auto)
+  
+      
+definition "tuple4 a b c d \<equiv> (a,b,c,d)"
+definition "tuple7 a b c d e f g \<equiv> tuple4 a b c (tuple4 d e f g)"
+definition "tuple13 a b c d e f g h i j k l m \<equiv> (tuple7 a b c d e f (tuple7 g h i j k l m))"
+
+lemmas fold_tuples = tuple4_def[symmetric] tuple7_def[symmetric] tuple13_def[symmetric]
+
+sepref_register tuple4 tuple7 tuple13
+
+sepref_definition "tuple4_impl" is "uncurry3 (RETURN oooo tuple4)" :: 
+  "A1\<^sup>d *\<^sub>a A2\<^sup>d *\<^sub>a A3\<^sup>d *\<^sub>a A4\<^sup>d \<rightarrow>\<^sub>a A1 *a A2 *a A3 *a A4"
+  unfolding tuple4_def by sepref
+lemmas [sepref_fr_rules] = tuple4_impl.refine
+  
+sepref_definition "tuple7_impl" is "uncurry6 (RETURN ooooooo tuple7)" :: 
+  "A1\<^sup>d *\<^sub>a A2\<^sup>d *\<^sub>a A3\<^sup>d *\<^sub>a A4\<^sup>d *\<^sub>a A5\<^sup>d *\<^sub>a A6\<^sup>d *\<^sub>a A7\<^sup>d \<rightarrow>\<^sub>a A1 *a A2 *a A3 *a A4 *a A5 *a A6 *a A7"
+  unfolding tuple7_def by sepref
+lemmas [sepref_fr_rules] = tuple7_impl.refine
+
+sepref_definition "tuple13_impl" is "uncurry12 (RETURN o\<^sub>1\<^sub>3 tuple13)" :: 
+  "A1\<^sup>d *\<^sub>a A2\<^sup>d *\<^sub>a A3\<^sup>d *\<^sub>a A4\<^sup>d *\<^sub>a A5\<^sup>d *\<^sub>a A6\<^sup>d *\<^sub>a A7\<^sup>d *\<^sub>a A8\<^sup>d *\<^sub>a A9\<^sup>d *\<^sub>a A10\<^sup>d *\<^sub>a A11\<^sup>d *\<^sub>a A12\<^sup>d *\<^sub>a A13\<^sup>d 
+  \<rightarrow>\<^sub>a A1 *a A2 *a A3 *a A4 *a A5 *a A6 *a A7 *a A8 *a A9 *a A10 *a A11 *a A12 *a A13"
+  unfolding tuple13_def by sepref
+lemmas [sepref_fr_rules] = tuple13_impl.refine
+
+lemmas fold_tuple_optimizations = fold_tuples fold_case_prod_open
+  
+  
+
 (*
 (* TODO: Also for max_unat, and move to default simpset of Sepref! *)    
 lemma max_snat_numeral[simp]:
