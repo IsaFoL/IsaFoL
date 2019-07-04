@@ -38,8 +38,9 @@ sepref_definition unit_propagation_inner_loop_wl_loop_D_fast
   unfolding delete_index_and_swap_update_def[symmetric] append_update_def[symmetric]
     is_None_def[symmetric] get_conflict_wl_is_None_heur_alt_def[symmetric]
     length_ll_fs_def[symmetric]
+  unfolding fold_tuple_optimizations
   supply [[goals_limit=1]] unit_propagation_inner_loop_wl_loop_D_heur_fast[intro] length_ll_fs_heur_def[simp]
-apply (annot_snat_const "TYPE (64)")
+  apply (annot_snat_const "TYPE (64)")
   by sepref
 
 lemma le_uint64_max_minus_4_uint64_max: \<open>a \<le> sint64_max - 4 \<Longrightarrow> Suc a < max_snat 64\<close>
@@ -92,12 +93,12 @@ sepref_definition cut_watch_list_heur2_fast_code
   :: \<open>[\<lambda>(((j, w), L), S). length (watched_by_int S L) \<le> sint64_max-4]\<^sub>a
      sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a
      isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
-  supply [[goals_limit=1]] (* length_ll_def[simp] sint64_max_le_max_snat64[intro]
-    le_uint64_max_minus_4_uint64_max[dest]*) cut_watch_list_heur2I[intro] length_ll_def[simp]
+  supply [[goals_limit=1]] cut_watch_list_heur2I[intro] length_ll_def[simp]
   unfolding cut_watch_list_heur2_alt_def isasat_bounded_assn_def length_ll_def[symmetric]
     nth_rll_def[symmetric]
     op_list_list_take_alt_def[symmetric]
     op_list_list_upd_alt_def[symmetric]
+  unfolding fold_tuple_optimizations
   apply (annot_snat_const "TYPE (64)")
   by sepref
 
@@ -127,6 +128,7 @@ sepref_definition select_and_remove_from_literals_to_update_wlfast_code
   :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn *a unat_lit_assn\<close>
   supply [[goals_limit=1]]
   unfolding select_and_remove_from_literals_to_update_wl_heur_alt_def isasat_bounded_assn_def
+  unfolding fold_tuple_optimizations
   supply [[goals_limit = 1]]
   apply (annot_snat_const "TYPE (64)")
   by sepref
