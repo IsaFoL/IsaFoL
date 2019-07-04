@@ -3883,6 +3883,71 @@ proof -
     done
 qed
 
+
+definition conflict_clause_minimisation_with_binary_clauses_f1 ::
+  \<open>('v literal \<Rightarrow> 'v watched) \<Rightarrow> 'v clause \<Rightarrow> 'v clause_l \<Rightarrow> ('v clause \<times> 'v clause_l) nres\<close> where
+  \<open>conflict_clause_minimisation_with_binary_clauses_f1 = (\<lambda> W C outl.
+    do {
+      ASSERT(length outl > 0);
+      let A = (outl!0);
+      C \<leftarrow>
+        (FOREACH\<^bsup>\<lambda> w C. mset outl \<subseteq># C\<^esup>
+        (set (W A)) 
+        (\<lambda> (I, B, b) C.
+          if \<not> b then RETURN (C) else \<comment> \<open>We only consider binary clauses\<close>
+          if - B \<in># C then
+          RETURN (C - {# -B #}) else \<comment> \<open>Remove \<^term>\<open>- B\<close> from the conflict clause (in \<^typ>\<open>nat literal multiset\<close> representation)\<close>
+          RETURN (C)
+       )
+       C);
+      RETURN (C, filter (\<lambda> l. l \<in># C) outl) \<comment> \<open>Update \<^term>\<open>outl\<close>.\<close>
+    }
+  )
+\<close>
+
+
+definition conflict_clause_minimisation_with_binary_clauses_f2 ::
+  \<open>(nat literal \<Rightarrow> nat watched) \<Rightarrow> lookup_clause_rel \<Rightarrow> nat clause_l \<Rightarrow> (lookup_clause_rel \<times> nat clause_l) nres\<close> where
+  \<open>conflict_clause_minimisation_with_binary_clauses_f2 = (\<lambda> W (n,xs) outl.
+    do {
+      ASSERT(length outl > 0);
+      let A = (outl!0);
+      (n, xs) \<leftarrow>
+        (FOREACH\<^bsup>\<lambda> w (n, xs). \<forall> L \<in> set outl. xs ! (atm_of L) = Some (is_pos L)\<^esup>
+        (set (W A)) 
+        (\<lambda> (I, B, b) (n, xs).
+          if \<not> b then RETURN (n, xs) else  \<comment> \<open>We only consider binary clauses\<close>
+          \<^cancel>\<open>ASSERT (atm_of B < length xs);\<close>
+          if xs ! (atm_of B) = Some (\<not> is_pos B) then
+          RETURN (n-1, xs[atm_of B := None]) else  \<comment> \<open>Remove \<^term>\<open>- B\<close> from the conflict clause (in ``hash set'' representation)\<close>
+          RETURN (n, xs)
+       )
+       (n, xs));
+      \<comment> \<open>assertion for filter\<close>
+      RETURN ((n, xs), filter (\<lambda> l. xs ! (atm_of l) \<noteq> None) outl) \<comment> \<open>Update \<^term>\<open>outl\<close>.\<close>
+    }
+  )
+\<close>
+
+lemma
+  assumes \<open>correct_watching (M, N, Some D, NE, UE, Q, W)\<close>
+    and \<open>mset outl = D\<close>
+    and \<open>mset `# ran_mf N \<Turnstile>pm D\<close>
+    and \<open>length outl > 0\<close>
+    and \<open>outl ! 0 \<in># all_lits_of_mm (mset `# ran_mf N + (NE + UE))\<close>
+  shows \<open>conflict_clause_minimisation_with_binary_clauses_f1 W D outl \<le>
+      SPEC(\<lambda>(D', outl'). D' \<subseteq># D \<and> mset outl' = D' \<and> mset `# ran_mf N \<Turnstile>pm D')\<close>
+  using assms
+  oops (* TODO *)
+      
+
+
+lemma
+  assumes \<open>(C, D) \<in> lookup_clause_rel (atm_of `# (all_lits_of_mm (mset `# ran_mf N + (NE + UE))))\<close>
+    and \<open>mset outl = D\<close>
+  shows \<open>conflict_clause_minimisation_with_binary_clauses_f2 W C outl \<le> \<Down> (lookup_clause_rel \<A> \<times>\<^sub>r \<langle>Id\<rangle> list_rel) (conflict_clause_minimisation_with_binary_clauses_f1 W D outl)\<close>
+
+
 (* TODO Check if the size is actually used anywhere *)
 
 definition set_empty_conflict_to_none where
