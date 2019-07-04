@@ -102,10 +102,13 @@ qed
 
 sepref_register fm_add_new_fast
 
+lemma isasat_fast_length_leD: \<open>isasat_fast S \<Longrightarrow> Suc (length (get_clauses_wl_heur S)) < max_snat 64\<close>
+  by (cases S) (auto simp: isasat_fast_def max_snat_def sint64_max_def)
+
 sepref_definition propagate_bt_wl_D_fast_code
   is \<open>uncurry2 propagate_bt_wl_D_heur\<close>
   :: \<open>[\<lambda>((L, C), S). isasat_fast S]\<^sub>a
-      unat_lit_assn\<^sup>k *\<^sub>a clause_ll_assn\<^sup>d *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
+      unat_lit_assn\<^sup>k *\<^sub>a clause_ll_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   supply [[goals_limit = 1]] append_ll_def[simp] isasat_fast_length_leD[dest]
     propagate_bt_wl_D_fast_code_isasat_fastI2[intro] length_ll_def[simp]
     propagate_bt_wl_D_fast_code_isasat_fastI3[intro]
@@ -114,21 +117,14 @@ sepref_definition propagate_bt_wl_D_fast_code
   unfolding delete_index_and_swap_update_def[symmetric] append_update_def[symmetric]
     append_ll_def[symmetric] append_ll_def[symmetric]
     cons_trail_Propagated_def[symmetric] PR_CONST_def save_phase_def
+  apply (rewrite in \<open>add_lbd (of_nat \<hole>) _\<close> annot_unat_unat_upcast[where 'l=64])
+  apply (rewrite in \<open>(_ + \<hole>, _)\<close> unat_const_fold[where 'a=64])
+  apply (rewrite at \<open>(_ [_ := _], \<hole>, _)\<close> unat_const_fold[where 'a=32])
   apply (annot_snat_const "TYPE(64)")
   unfolding fold_tuple_optimizations
-apply sepref_dbg_keep
-    apply sepref_dbg_trans_keep
-    apply sepref_dbg_trans_step_keep
-supply[[unify_trace_failure]]
-apply (rule vmtf_rescore_fast_code.refine[to_hnr])
+  apply (rewrite in \<open>isasat_fast \<hole>\<close> fold_tuple_optimizations[symmetric])+
+   by sepref  \<comment>\<open>This call is now unreasonnably slow. 30 minutes\<close>
 
-
-oops
-    apply sepref_dbg_side_unfold
-apply (rule TrueI) oops
-
- (* by sepref*) \<comment>\<open>This call is now unreasonnably slow.\<close>
-find_in_thms isa_vmtf_rescore in sepref_fr_rules
 declare
   propagate_bt_wl_D_fast_code.refine[sepref_fr_rules]
 
@@ -139,9 +135,7 @@ sepref_definition propagate_unit_bt_wl_D_fast_code
   unfolding propagate_unit_bt_wl_D_int_def cons_trail_Propagated_def[symmetric] isasat_bounded_assn_def
     PR_CONST_def
   unfolding fold_tuple_optimizations
-apply sepref_dbg_keep
-    apply sepref_dbg_trans_keep
-    apply sepref_dbg_trans_step_keep
+  apply (annot_snat_const "TYPE(64)")
   by sepref
 
 declare
@@ -149,26 +143,21 @@ declare
 
 sepref_register isa_minimize_and_extract_highest_lookup_conflict
   empty_conflict_and_extract_clause_heur
-
-sepref_definition extract_shorter_conflict_list_heur_st_code
-  is \<open>extract_shorter_conflict_list_heur_st\<close>
-  :: \<open>isasat_unbounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_unbounded_assn *a uint32_nat_assn *a clause_ll_assn\<close>
-  supply [[goals_limit=1]] empty_conflict_and_extract_clause_pre_def[simp]
-  unfolding extract_shorter_conflict_list_heur_st_def PR_CONST_def isasat_unbounded_assn_def
-  unfolding delete_index_and_swap_update_def[symmetric] append_update_def[symmetric]
-    1_def[symmetric] 0_def[symmetric]
-  by sepref
-
-declare extract_shorter_conflict_list_heur_st_code.refine[sepref_fr_rules]
-
+find_in_thms vmtf_mark_to_rescore_also_reasons_fast_code in sepref_fr_rules
 sepref_definition extract_shorter_conflict_list_heur_st_fast
   is \<open>extract_shorter_conflict_list_heur_st\<close>
-  :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> uint64_max]\<^sub>a
+  :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a
         isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn *a uint32_nat_assn *a clause_ll_assn\<close>
   supply [[goals_limit=1]] empty_conflict_and_extract_clause_pre_def[simp]
   unfolding extract_shorter_conflict_list_heur_st_def PR_CONST_def isasat_bounded_assn_def
   unfolding delete_index_and_swap_update_def[symmetric] append_update_def[symmetric]
-    1_def[symmetric] 0_def[symmetric]
+    conflict_option_rel_assn_def fold_tuple_optimizations
+  apply (annot_snat_const "TYPE(64)")
+  apply sepref_dbg_keep
+  apply sepref_dbg_trans_keep
+  apply sepref_dbg_trans_step_keep
+  apply sepref_dbg_side_unfold
+oops
   by sepref
 
 declare extract_shorter_conflict_list_heur_st_fast.refine[sepref_fr_rules]

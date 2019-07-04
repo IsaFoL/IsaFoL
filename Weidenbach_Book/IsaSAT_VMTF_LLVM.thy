@@ -467,7 +467,7 @@ declare vmtf_mark_to_rescore_clause_fast_code.refine[sepref_fr_rules]
 
 sepref_definition vmtf_mark_to_rescore_also_reasons_fast_code
   is \<open>uncurry3 (isa_vmtf_mark_to_rescore_also_reasons)\<close>
-  :: \<open>[\<lambda>(((_, N), _), _). length N \<le> uint64_max]\<^sub>a
+  :: \<open>[\<lambda>(((_, N), _), _). length N \<le> sint64_max]\<^sub>a
       trail_pol_fast_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a clause_ll_assn\<^sup>k *\<^sub>a vmtf_remove_assn\<^sup>d \<rightarrow>
       vmtf_remove_assn\<close>
   supply image_image[simp] uminus_\<A>\<^sub>i\<^sub>n_iff[iff] in_diffD[dest] option.splits[split]
