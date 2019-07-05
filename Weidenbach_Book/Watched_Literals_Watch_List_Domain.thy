@@ -1948,49 +1948,90 @@ proof -
     done
 qed
 
-text \<open>The definition is here to be shared later.\<close>
-definition get_propagation_reason :: \<open>('v, 'mark) ann_lits \<Rightarrow> 'v literal \<Rightarrow> 'mark option nres\<close> where
-  \<open>get_propagation_reason M L = SPEC(\<lambda>C. C \<noteq> None \<longrightarrow> Propagated L (the C) \<in> set M)\<close>
 
-definition cdcl_twl_stgy_prog_bounded_wl_D_heur :: \<open>twl_st_wl_heur \<Rightarrow> (bool \<times> twl_st_wl_heur) nres\<close>
+definition cdcl_twl_stgy_prog_early_wl_D :: \<open>nat twl_st_wl \<Rightarrow> (bool \<times> nat twl_st_wl) nres\<close>
 where
-  \<open>cdcl_twl_stgy_prog_bounded_wl_D_heur S\<^sub>0 =
+  \<open>cdcl_twl_stgy_prog_early_wl_D S\<^sub>0 =
   do {
-    b \<leftarrow> RETURN (isasat_fast S\<^sub>0);
-    (b, brk, T) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(b, brk, T). True\<^esup>
+    b \<leftarrow> SPEC (\<lambda>_. True);
+    (b, brk, T) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(b, brk, T). cdcl_twl_stgy_prog_wl_inv S\<^sub>0 (brk, T) \<and>
+          literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st T) T\<^esup>
         (\<lambda>(b, brk, _). b \<and> \<not>brk)
         (\<lambda>(b, brk, S).
         do {
-          ASSERT(isasat_fast S);
-          T \<leftarrow> unit_propagation_outer_loop_wl_D_heur S;
-          ASSERT(isasat_fast T);
-          (brk, T) \<leftarrow> cdcl_twl_o_prog_wl_D_heur T;
-          b \<leftarrow> RETURN (isasat_fast T);
+          ASSERT(b);
+          ASSERT(\<not>brk);
+          T \<leftarrow> unit_propagation_outer_loop_wl_D S;
+          (brk, T) \<leftarrow> cdcl_twl_o_prog_wl_D T;
+          b \<leftarrow> SPEC (\<lambda>_. True);
           RETURN(b, brk, T)
         })
         (b, False, S\<^sub>0);
-    RETURN (b, T)
+    RETURN (brk ,T)
   }\<close>
 
-lemma cdcl_twl_stgy_prog_break_wl_D_spec_final:
+theorem cdcl_twl_stgy_prog_early_wl_D_spec:
+  assumes \<open>literals_are_\<L>\<^sub>i\<^sub>n \<A> S\<close>
+  shows \<open>cdcl_twl_stgy_prog_early_wl_D S \<le> \<Down> (bool_rel \<times>\<^sub>r {(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n \<A> T})
+     (cdcl_twl_stgy_prog_early_wl S)\<close>
+proof -
+  define f where \<open>f \<equiv> SPEC (\<lambda>_::bool. True)\<close>
+  have 1: \<open>((b, False, S), b, False, S) \<in> {((b', brk', T'), b, brk, T). b = b' \<and> brk = brk' \<and>
+        T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n \<A> T}\<close>
+    for b
+    using assms by fast
+  have 1: \<open>((b, False, S), b', False, S) \<in> {((b', brk', T'), b, brk, T). b = b' \<and> brk = brk' \<and>
+        T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n \<A> T}\<close>
+    if \<open>(b, b') \<in> bool_rel\<close>
+    for b b'
+    using assms that by fast
+
+  have 2: \<open>unit_propagation_outer_loop_wl_D S \<le> \<Down> {(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n \<A> T}
+       (unit_propagation_outer_loop_wl T)\<close> if \<open>S = T\<close> \<open>literals_are_\<L>\<^sub>i\<^sub>n \<A> S\<close> for S T
+    using unit_propagation_outer_loop_wl_D_spec[of \<A> S] that by fast
+  have 3: \<open>cdcl_twl_o_prog_wl_D S \<le> \<Down> {((b', T'), b, T). b = b' \<and> T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n \<A> T}
+    (cdcl_twl_o_prog_wl T)\<close> if \<open>S = T\<close> \<open>literals_are_\<L>\<^sub>i\<^sub>n \<A> S\<close> for S T
+    using cdcl_twl_o_prog_wl_D_spec[of \<A> S] that by fast
+  show ?thesis
+    unfolding cdcl_twl_stgy_prog_early_wl_D_def cdcl_twl_stgy_prog_early_wl_def f_def[symmetric]
+    apply (refine_vcg 1 2 3)
+    subgoal by auto
+    subgoal by fast
+    subgoal by fast
+    subgoal by fast
+    subgoal by fast
+    subgoal by fast
+    subgoal by fast
+    subgoal by fast
+    subgoal by fast
+    subgoal by auto
+    subgoal by auto
+    done
+qed
+
+lemma cdcl_twl_stgy_prog_early_wl_D_spec_final:
   assumes
     \<open>cdcl_twl_stgy_prog_wl_D_pre S S'\<close>
   shows
-    \<open>cdcl_twl_stgy_prog_break_wl_D S \<le> \<Down> (state_wl_l None O twl_st_l None) (conclusive_TWL_run S')\<close>
+    \<open>cdcl_twl_stgy_prog_early_wl_D S \<le> \<Down> (bool_rel \<times>\<^sub>r (state_wl_l None O twl_st_l None)) (partial_conclusive_TWL_run S')\<close>
 proof -
   have T: \<open>cdcl_twl_stgy_prog_wl_pre S S' \<and> literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st S) S\<close>
     using assms unfolding cdcl_twl_stgy_prog_wl_D_pre_def by blast
   show ?thesis
-    apply (rule order_trans[OF cdcl_twl_stgy_prog_break_wl_D_spec[of \<open>all_atms_st S\<close>]])
+    apply (rule order_trans[OF cdcl_twl_stgy_prog_early_wl_D_spec[of \<open>all_atms_st S\<close>]])
     subgoal using T by auto
     subgoal
       apply (rule order_trans)
       apply (rule ref_two_step')
-       apply (rule cdcl_twl_stgy_prog_break_wl_spec_final[of _ S'])
+       apply (rule cdcl_twl_stgy_prog_early_wl_spec_final[of _ S'])
       subgoal using T by fast
-      subgoal unfolding conc_fun_chain by (rule conc_fun_R_mono) blast
+      subgoal unfolding conc_fun_chain by (rule conc_fun_R_mono) fastforce
       done
     done
 qed
+
+text \<open>The definition is here to be shared later.\<close>
+definition get_propagation_reason :: \<open>('v, 'mark) ann_lits \<Rightarrow> 'v literal \<Rightarrow> 'mark option nres\<close> where
+  \<open>get_propagation_reason M L = SPEC(\<lambda>C. C \<noteq> None \<longrightarrow> Propagated L (the C) \<in> set M)\<close>
 
 end

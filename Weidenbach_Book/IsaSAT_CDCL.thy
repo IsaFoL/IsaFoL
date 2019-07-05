@@ -229,4 +229,70 @@ where
     else cdcl_twl_stgy_prog_wl_D_heur T
   }\<close>
 
+
+definition cdcl_twl_stgy_prog_bounded_wl_heur :: \<open>twl_st_wl_heur \<Rightarrow> (bool \<times> twl_st_wl_heur) nres\<close>
+where
+  \<open>cdcl_twl_stgy_prog_bounded_wl_heur S\<^sub>0 =
+  do {
+    b \<leftarrow> RETURN (isasat_fast S\<^sub>0);
+    (b, brk, T) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(b, brk, T). True\<^esup>
+        (\<lambda>(b, brk, _). b \<and> \<not>brk)
+        (\<lambda>(b, brk, S).
+        do {
+          ASSERT(isasat_fast S);
+          T \<leftarrow> unit_propagation_outer_loop_wl_D_heur S;
+          ASSERT(isasat_fast T);
+          (brk, T) \<leftarrow> cdcl_twl_o_prog_wl_D_heur T;
+          b \<leftarrow> RETURN (isasat_fast T);
+          RETURN(b, brk, T)
+        })
+        (b, False, S\<^sub>0);
+    RETURN (brk, T)
+  }\<close>
+
+
+lemma cdcl_twl_stgy_restart_prog_early_wl_heur_cdcl_twl_stgy_restart_prog_early_wl_D:
+  assumes r: \<open>r \<le> sint64_max\<close>
+  shows \<open>(cdcl_twl_stgy_prog_bounded_wl_heur, cdcl_twl_stgy_prog_early_wl_D) \<in>
+   twl_st_heur''' r \<rightarrow>\<^sub>f \<langle>bool_rel \<times>\<^sub>r twl_st_heur\<rangle>nres_rel\<close>
+proof -
+  have A[refine0]: \<open>RETURN (isasat_fast x) \<le> \<Down>
+      {(b, b'). b = b' \<and> (b = (isasat_fast x))} (RES UNIV)\<close>
+    for x
+    by (auto intro: RETURN_RES_refine)
+  have twl_st_heur'': \<open>(x1e, x1b) \<in> twl_st_heur \<Longrightarrow>
+    (x1e, x1b)
+    \<in> twl_st_heur''
+        (dom_m (get_clauses_wl x1b))
+        (length (get_clauses_wl_heur x1e))\<close>
+    for x1e x1b
+    by (auto simp: twl_st_heur'_def)
+  have twl_st_heur''': \<open>(x1e, x1b) \<in> twl_st_heur'' \<D> r \<Longrightarrow>
+    (x1e, x1b)
+    \<in> twl_st_heur''' r\<close>
+    for x1e x1b r \<D>
+    by (auto simp: twl_st_heur'_def)
+  have H: \<open>SPEC (\<lambda>_::bool. True) = RES UNIV\<close> by auto
+  show ?thesis
+    supply[[goals_limit=1]] isasat_fast_length_leD[dest] twl_st_heur'_def[simp]
+    unfolding cdcl_twl_stgy_prog_bounded_wl_heur_def
+      cdcl_twl_stgy_prog_early_wl_D_def H
+    apply (intro frefI nres_relI)
+    apply (refine_rcg
+        cdcl_twl_o_prog_wl_D_heur_cdcl_twl_o_prog_wl_D[THEN fref_to_Down]
+        unit_propagation_outer_loop_wl_D_heur_unit_propagation_outer_loop_wl_D'[THEN fref_to_Down]
+        WHILEIT_refine[where R = \<open>{((ebrk, brk, T), (ebrk', brk', T')).
+	    (ebrk = ebrk') \<and> (brk = brk') \<and> (T, T')  \<in> twl_st_heur \<and>
+	      (ebrk \<longrightarrow> isasat_fast T) \<and> length (get_clauses_wl_heur T) \<le> sint64_max}\<close>])
+    subgoal using r by auto
+    subgoal by fast
+    subgoal by auto
+    apply (rule twl_st_heur''; auto; fail)
+    subgoal by (auto simp: isasat_fast_def)
+    apply (rule twl_st_heur'''; assumption)
+    subgoal by (auto simp: isasat_fast_def sint64_max_def uint32_max_def)
+    subgoal by auto
+    done
+qed
+
 end
