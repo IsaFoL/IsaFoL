@@ -122,7 +122,7 @@ sepref_def cons_trail_Propagated_tr_fast_code
 
 
 (*
-sepref_definition (in -)last_trail_fast_code
+sepref_def (in -)last_trail_fast_code
   is \<open>RETURN o last_trail_pol\<close>
   :: \<open>[last_trail_pol_pre]\<^sub>a
        trail_pol_fast_assn\<^sup>k \<rightarrow> unat_lit_assn *a option_assn uint64_nat_assn\<close>

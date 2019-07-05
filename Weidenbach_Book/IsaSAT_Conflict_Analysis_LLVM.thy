@@ -37,7 +37,7 @@ lemma get_count_max_lvls_heur_def:
    \<open>get_count_max_lvls_heur = (\<lambda>(_, _, _, _, _, _, _, clvls, _). clvls)\<close>
   by (auto intro!: ext)
 
-sepref_definition get_count_max_lvls_heur_impl
+sepref_def get_count_max_lvls_heur_impl
   is \<open>RETURN o get_count_max_lvls_heur\<close>
   :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
   unfolding get_count_max_lvls_heur_def isasat_bounded_assn_def
@@ -45,7 +45,7 @@ sepref_definition get_count_max_lvls_heur_impl
 
 lemmas [sepref_fr_rules] = get_count_max_lvls_heur_impl.refine
 
-sepref_definition maximum_level_removed_eq_count_dec_fast_code
+sepref_def maximum_level_removed_eq_count_dec_fast_code
   is \<open>uncurry (RETURN oo maximum_level_removed_eq_count_dec_heur)\<close>
   :: \<open>unat_lit_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
   unfolding maximum_level_removed_eq_count_dec_heur_def
@@ -63,7 +63,7 @@ lemma is_decided_hd_trail_wl_heur_alt_def:
   by (auto simp: is_decided_hd_trail_wl_heur_pre_def last_trail_pol_def
      Let_def intro!: ext split: if_splits)
 
-sepref_definition is_decided_hd_trail_wl_fast_code
+sepref_def is_decided_hd_trail_wl_fast_code
   is \<open>RETURN o is_decided_hd_trail_wl_heur\<close>
   :: \<open>[is_decided_hd_trail_wl_heur_pre]\<^sub>a isasat_bounded_assn\<^sup>k \<rightarrow> bool1_assn\<close>
   supply [[goals_limit=1]]
@@ -75,7 +75,7 @@ sepref_definition is_decided_hd_trail_wl_fast_code
 declare
   is_decided_hd_trail_wl_fast_code.refine[sepref_fr_rules]
 
-sepref_definition lit_and_ann_of_propagated_st_heur_fast_code
+sepref_def lit_and_ann_of_propagated_st_heur_fast_code
   is \<open>RETURN o lit_and_ann_of_propagated_st_heur\<close>
   :: \<open>[lit_and_ann_of_propagated_st_heur_pre]\<^sub>a
        isasat_bounded_assn\<^sup>k \<rightarrow> (unat_lit_assn *a sint64_nat_assn)\<close>
@@ -106,7 +106,7 @@ sepref_definition is_UNSET_impl
 
 (*TODO Move*)
 
-sepref_definition is_in_option_lookup_conflict_code
+sepref_def is_in_option_lookup_conflict_code
   is \<open>uncurry (RETURN oo is_in_option_lookup_conflict)\<close>
   :: \<open>[\<lambda>(L, (c, n, xs)). atm_of L < length xs]\<^sub>a
         unat_lit_assn\<^sup>k *\<^sub>a conflict_option_rel_assn\<^sup>k \<rightarrow> bool1_assn\<close>
@@ -114,7 +114,7 @@ sepref_definition is_in_option_lookup_conflict_code
      is_NOTIN_alt_def[symmetric] conflict_option_rel_assn_def lookup_clause_rel_assn_def
   by sepref
 
-sepref_definition atm_is_in_conflict_st_heur_fast_code
+sepref_def atm_is_in_conflict_st_heur_fast_code
   is \<open>uncurry (RETURN oo atm_is_in_conflict_st_heur)\<close>
   :: \<open>[atm_is_in_conflict_st_heur_pre]\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>k \<rightarrow> bool1_assn\<close>
   supply [[goals_limit=1]]
@@ -129,7 +129,7 @@ declare atm_is_in_conflict_st_heur_fast_code.refine[sepref_fr_rules]
 thm tl_trailt_tr_pre_def
 find_theorems lit_of_last_trail_pol
 thm lit_of_last_trail_fast_code.refine
-sepref_definition (in -) lit_of_last_trail_fast_code
+sepref_def (in -) lit_of_last_trail_fast_code
   is \<open>RETURN o lit_of_last_trail_pol\<close>
   :: \<open>[\<lambda>(M). fst M \<noteq> []]\<^sub>a trail_pol_fast_assn\<^sup>k \<rightarrow> unat_lit_assn\<close>
   unfolding lit_of_last_trail_pol_def trail_pol_fast_assn_def
@@ -155,7 +155,7 @@ lemma tl_state_wl_heur_alt_def:
       lcount, opts, old_arena))\<close>
   by (auto simp: tl_state_wl_heur_def)
 
-sepref_definition tl_state_wl_heur_fast_code
+sepref_def tl_state_wl_heur_fast_code
   is \<open>RETURN o tl_state_wl_heur\<close>
   :: \<open>[tl_state_wl_heur_pre]\<^sub>a
       isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
@@ -172,7 +172,7 @@ definition None_lookup_conflict :: \<open>_ \<Rightarrow> _ \<Rightarrow> confli
 \<open>None_lookup_conflict b xs = (b, xs)\<close>
 
 
-sepref_definition None_lookup_conflict_impl
+sepref_def None_lookup_conflict_impl
   is \<open>uncurry (RETURN oo None_lookup_conflict)\<close>
   :: \<open>bool1_assn\<^sup>k *\<^sub>a lookup_clause_rel_assn\<^sup>d \<rightarrow>\<^sub>a conflict_option_rel_assn\<close>
   unfolding None_lookup_conflict_def conflict_option_rel_assn_def
@@ -187,7 +187,7 @@ definition extract_valuse_of_lookup_conflict :: \<open>conflict_option_rel \<Rig
 \<open>extract_valuse_of_lookup_conflict = (\<lambda>(b, (_, xs)). b)\<close>
 
 
-sepref_definition extract_valuse_of_lookup_conflict_impl
+sepref_def extract_valuse_of_lookup_conflict_impl
   is \<open>RETURN o extract_valuse_of_lookup_conflict\<close>
   :: \<open>conflict_option_rel_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
   unfolding extract_valuse_of_lookup_conflict_def conflict_option_rel_assn_def
@@ -227,7 +227,7 @@ lemma update_confl_tl_wl_heur_alt_def:
   by (auto intro!: ext bind_cong simp: None_lookup_conflict_def the_lookup_conflict_def
     extract_valuse_of_lookup_conflict_def Let_def)
 
-sepref_definition update_confl_tl_wl_fast_code
+sepref_def update_confl_tl_wl_fast_code
   is \<open>uncurry2 update_confl_tl_wl_heur\<close>
   :: \<open>[\<lambda>((i, L), S). update_confl_tl_wl_heur_pre ((i, L), S) \<and> isasat_fast S]\<^sub>a
   sint64_nat_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> bool1_assn *a isasat_bounded_assn\<close>
@@ -242,7 +242,7 @@ sepref_definition update_confl_tl_wl_fast_code
 declare update_confl_tl_wl_fast_code.refine[sepref_fr_rules]
 
 sepref_register skip_and_resolve_loop_wl_D is_in_conflict_st
-sepref_definition skip_and_resolve_loop_wl_D_fast
+sepref_def skip_and_resolve_loop_wl_D_fast
   is \<open>skip_and_resolve_loop_wl_D_heur\<close>
   :: \<open>[\<lambda>S. isasat_fast S]\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   supply [[goals_limit=1]]

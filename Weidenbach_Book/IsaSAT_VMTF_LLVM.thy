@@ -46,7 +46,6 @@ sepref_def atoms_hash_del_code
   apply annot_all_atm_idxs
   by sepref
 
-
 sepref_def atoms_hash_insert_code
   is \<open>uncurry (RETURN oo atoms_hash_insert)\<close>
   :: \<open>[uncurry atms_hash_insert_pre]\<^sub>a

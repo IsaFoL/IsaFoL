@@ -11,8 +11,8 @@ sepref_register get_conflict_wl_is_None decide_wl_or_skip_D_heur skip_and_resolv
 sepref_register cdcl_twl_o_prog_wl_D
 (*TODO Move*)
 declare count_decided_st_heur_pol_fast.refine[sepref_fr_rules]
-thm isasat_current_status_def
-sepref_definition cdcl_twl_o_prog_wl_D_fast_code [llvm_code]
+
+sepref_def cdcl_twl_o_prog_wl_D_fast_code
   is \<open>cdcl_twl_o_prog_wl_D_heur\<close>
   :: \<open>[isasat_fast]\<^sub>a
       isasat_bounded_assn\<^sup>d \<rightarrow> bool1_assn *a isasat_bounded_assn\<close>
@@ -34,7 +34,7 @@ definition length_clauses_heur where
 lemma length_clauses_heur_alt_def: \<open>length_clauses_heur = (\<lambda>(M, N, _). length N)\<close>
   by (auto intro!: ext simp: length_clauses_heur_def)
 
-sepref_definition length_clauses_heur_impl [llvm_code]
+sepref_def length_clauses_heur_impl
   is \<open>RETURN o length_clauses_heur\<close>
   :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a sint64_nat_assn\<close>
   unfolding length_clauses_heur_alt_def isasat_bounded_assn_def
@@ -45,7 +45,7 @@ declare length_clauses_heur_impl.refine [sepref_fr_rules]
 lemma isasat_fast_alt_def: \<open>isasat_fast S = (length_clauses_heur S \<le> 9223372034707292154)\<close>
   by (auto simp: isasat_fast_def sint64_max_def uint32_max_def length_clauses_heur_def)
 
-sepref_definition isasat_fast_impl
+sepref_def isasat_fast_impl
   is \<open>RETURN o isasat_fast\<close>
   :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
   unfolding isasat_fast_alt_def
@@ -54,31 +54,16 @@ sepref_definition isasat_fast_impl
 
 declare isasat_fast_impl.refine[sepref_fr_rules]
 
-definition cdcl_twl_stgy_prog_bounded_wl_D_heur :: \<open>twl_st_wl_heur \<Rightarrow> (bool \<times> twl_st_wl_heur) nres\<close>
-where
-  \<open>cdcl_twl_stgy_prog_bounded_wl_D_heur S\<^sub>0 =
-  do {
-    b \<leftarrow> RETURN (isasat_fast S\<^sub>0);
-    (b, brk, T) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(b, brk, T). True\<^esup>
-        (\<lambda>(b, brk, _). b \<and> \<not>brk)
-        (\<lambda>(b, brk, S).
-        do {
-          ASSERT(isasat_fast S);
-          T \<leftarrow> unit_propagation_outer_loop_wl_D_heur S;
-          ASSERT(isasat_fast T);
-          (brk, T) \<leftarrow> cdcl_twl_o_prog_wl_D_heur T;
-          b \<leftarrow> RETURN (isasat_fast T);
-          RETURN(b, brk, T)
-        })
-        (b, False, S\<^sub>0);
-    RETURN (b, T)
-  }\<close>
 
-sepref_definition cdcl_twl_stgy_prog_wl_D_code [llvm_code]
-  is \<open>cdcl_twl_stgy_prog_bounded_wl_D_heur\<close>
+sepref_def cdcl_twl_stgy_prog_wl_D_code
+  is \<open>cdcl_twl_stgy_prog_bounded_wl_heur\<close>
   :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a bool1_assn *a isasat_bounded_assn\<close>
-  unfolding cdcl_twl_stgy_prog_bounded_wl_D_heur_def PR_CONST_def
+  unfolding cdcl_twl_stgy_prog_bounded_wl_heur_def PR_CONST_def
   supply [[goals_limit = 1]] isasat_fast_length_leD[dest]
   by sepref
+
+declare cdcl_twl_stgy_prog_wl_D_code.refine[sepref_fr_rules]
+
+export_llvm cdcl_twl_stgy_prog_wl_D_code file "code/isasat.ll"
 
 end

@@ -53,7 +53,7 @@ sepref_def empty_conflict_and_extract_clause_heur_fast_code
 
 lemma emptied_list_alt_def: \<open>emptied_list xs = take 0 xs\<close>
   by (auto simp: emptied_list_def)
-find_theorems SEEN_UNKNOWN
+  
 sepref_def empty_cach_code
   is \<open>empty_cach_ref_set\<close>
   :: \<open>cach_refinement_l_assn\<^sup>d \<rightarrow>\<^sub>a cach_refinement_l_assn\<close>

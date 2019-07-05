@@ -398,7 +398,6 @@ sepref_def atm_in_conflict_code
   apply (rewrite at \<open> _ ! _\<close> annot_index_of_atm)
   by sepref
 
-
 sepref_def conflict_min_cach_l_code
   is \<open>uncurry (RETURN oo conflict_min_cach_l)\<close>
   :: \<open>[conflict_min_cach_l_pre]\<^sub>a cach_refinement_l_assn\<^sup>k *\<^sub>a atom_assn\<^sup>k \<rightarrow> minimize_status_assn\<close>

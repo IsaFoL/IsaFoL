@@ -7,7 +7,6 @@ lemma inline_ho[llvm_inline]: "doM { f \<leftarrow> return f; m f } = m f" for f
 
 
 
-
 (* TODO: Move
   TODO:  Write generic postprocessing for that!
   Maybe just beta contraction of form (\<lambda>x. f x)$x = f$x

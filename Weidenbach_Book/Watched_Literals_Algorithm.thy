@@ -1490,4 +1490,66 @@ lemma cdcl_twl_stgy_prog_break_spec:
   subgoal using assms by auto
   done
 
+definition cdcl_twl_stgy_prog_early :: \<open>'v twl_st \<Rightarrow> (bool \<times> 'v twl_st) nres\<close> where
+  \<open>cdcl_twl_stgy_prog_early S\<^sub>0 =
+  do {
+    b \<leftarrow> SPEC(\<lambda>_. True);
+    (b, brk, T) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(b, S). cdcl_twl_stgy_prog_inv S\<^sub>0 S\<^esup>
+        (\<lambda>(b, brk, _). b \<and> \<not>brk)
+        (\<lambda>(_, brk, S). do {
+          T \<leftarrow> unit_propagation_outer_loop S;
+          T \<leftarrow> cdcl_twl_o_prog T;
+          b \<leftarrow> SPEC(\<lambda>_. True);
+          RETURN (b, T)
+        })
+        (b, False, S\<^sub>0);
+    RETURN (brk , T)
+  }
+  \<close>
+
+lemma cdcl_twl_stgy_prog_early_spec:
+  assumes \<open>twl_struct_invs S\<close> and \<open>twl_stgy_invs S\<close> and \<open>clauses_to_update S = {#}\<close> and
+    \<open>get_conflict S = None\<close>
+  shows
+    \<open>cdcl_twl_stgy_prog_early S \<le> partial_conclusive_TWL_run S\<close>
+  unfolding cdcl_twl_stgy_prog_early_def full_def partial_conclusive_TWL_run_def
+  apply (refine_vcg
+       WHILEIT_rule[where
+     R = \<open>{((bT, brkT, T), (bS, brkS, S)). twl_struct_invs S \<and> cdcl_twl_stgy\<^sup>+\<^sup>+ S T} \<union>
+          {((bT, brkT, T), (bS, brkS, S)). S = T \<and> brkT \<and> \<not>brkS}\<close>];
+      remove_dummy_vars)
+  \<comment> \<open>Well foundedness of the relation\<close>
+  subgoal using wf_cdcl_twl_stgy_measure_break .
+
+  \<comment> \<open>initial invariants:\<close>
+  subgoal using assms by simp
+  subgoal using assms by simp
+  subgoal using assms by simp
+  subgoal using assms by simp
+  subgoal using assms by simp
+
+  \<comment> \<open>loop invariants:\<close>
+  subgoal by simp
+  subgoal by simp
+  subgoal by simp
+  subgoal by simp
+  subgoal by (simp add: no_step_cdcl_twl_cp_no_step_cdcl\<^sub>W_cp)
+  subgoal by simp
+  subgoal by simp
+  subgoal by simp
+  subgoal for x a aa ba xa x1a
+    by (rule cdcl_twl_o_final_twl_state[of S a aa ba]) simp_all
+  subgoal for x a aa ba xa x1a
+    by (rule cdcl_twl_o_prog_cdcl_twl_stgy[of S a aa ba xa x1a]) fast+
+  subgoal by simp
+  subgoal for brk0 T U brl V
+    by clarsimp
+
+  \<comment> \<open>Final properties\<close>
+  subgoal for x a aa ba xa xb  \<comment> \<open>termination\<close>
+    using cdcl_twl_stgy_in_measure[of S a aa ba xa] by fast
+  subgoal by simp
+  subgoal by fast
+  done
+
 end

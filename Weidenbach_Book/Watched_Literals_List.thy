@@ -3288,4 +3288,89 @@ lemma cdcl_twl_stgy_prog_break_l_spec_final:
     by (auto intro: conc_fun_R_mono)
   done
 
+
+definition cdcl_twl_stgy_prog_early_l :: \<open>'v twl_st_l \<Rightarrow> (bool \<times> 'v twl_st_l) nres\<close> where
+  \<open>cdcl_twl_stgy_prog_early_l S\<^sub>0 =
+  do {
+    b \<leftarrow> SPEC(\<lambda>_. True);
+    (b, brk, T) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(b, S). cdcl_twl_stgy_prog_l_inv S\<^sub>0 S\<^esup>
+      (\<lambda>(b, brk, _). b \<and> \<not>brk)
+      (\<lambda>(_, brk, S). do {
+        T \<leftarrow> unit_propagation_outer_loop_l S;
+        T \<leftarrow> cdcl_twl_o_prog_l T;
+        b \<leftarrow> SPEC(\<lambda>_. True);
+        RETURN (b, T)
+      })
+      (b, False, S\<^sub>0);
+    RETURN (brk, T)
+  }\<close>
+
+lemma cdcl_twl_stgy_prog_early_l_spec:
+  \<open>(cdcl_twl_stgy_prog_early_l, cdcl_twl_stgy_prog_early) \<in>
+    {(S, S'). (S, S') \<in> twl_st_l None  \<and> twl_list_invs S \<and>
+       clauses_to_update_l S = {#} \<and>
+       twl_struct_invs S' \<and> twl_stgy_invs S'} \<rightarrow>\<^sub>f
+    \<langle>bool_rel \<times>\<^sub>r {(T, T'). (T, T') \<in> {(T, T'). (T, T') \<in> twl_st_l None \<and> twl_list_invs T \<and>
+      twl_struct_invs T' \<and> twl_stgy_invs T'} \<and> True}\<rangle> nres_rel\<close>
+  (is \<open> _ \<in> ?R \<rightarrow>\<^sub>f ?I\<close> is \<open> _ \<in> ?R \<rightarrow>\<^sub>f \<langle>?J\<rangle>nres_rel\<close>)
+proof -
+  have R: \<open>(a, b) \<in> ?R \<Longrightarrow> (bb, bb') \<in> bool_rel \<Longrightarrow>
+    ((bb, False, a), (bb', False, b)) \<in> {((b, brk, S), (b', brk', S')). b = b' \<and> brk = brk' \<and>
+       (S, S') \<in> ?R}\<close>
+    for a b bb bb' by auto
+
+  show ?thesis
+  supply [[goals_limit=1]]
+    unfolding cdcl_twl_stgy_prog_early_l_def cdcl_twl_stgy_prog_early_def cdcl_twl_o_prog_l_spec
+      fref_param1[symmetric] cdcl_twl_stgy_prog_l_inv_def
+    apply (refine_rcg cdcl_twl_o_prog_l_spec[THEN fref_to_Down]
+        unit_propagation_outer_loop_l_spec[THEN fref_to_Down]
+        cdcl_twl_stgy_prog_l_spec[THEN fref_to_Down]; remove_dummy_vars)
+    apply (rule R)
+    subgoal by auto
+    subgoal by auto
+    subgoal for S\<^sub>0 S\<^sub>0' b b' T T'
+      apply (rule exI[of _ S\<^sub>0'])
+      apply (rule exI[of _ \<open>snd (snd T)\<close>])
+      by (auto simp add: case_prod_beta)
+    subgoal
+     by auto
+    subgoal by fastforce
+    subgoal by (auto simp: twl_st_l)
+    subgoal by auto
+    subgoal by auto
+    done
+qed
+
+lemma refine_pair_to_SPEC2:
+  fixes f :: \<open>'s \<Rightarrow>  _ nres\<close> and g :: \<open>'b \<Rightarrow> (_) nres\<close>
+  assumes \<open>(f, g) \<in> {(S, S'). (S, S') \<in> H \<and> R S S'} \<rightarrow>\<^sub>f \<langle>Id \<times>\<^sub>r {(S, S'). (S, S') \<in> H' \<and> P' S}\<rangle>nres_rel\<close>
+    (is \<open>_ \<in> ?R \<rightarrow>\<^sub>f ?I\<close>)
+  assumes \<open>R S S'\<close> and [simp]: \<open>(S, S') \<in> H\<close>
+  shows \<open>f S \<le> \<Down> (Id \<times>\<^sub>r {(S, S'). (S, S') \<in> H' \<and> P' S}) (g S')\<close>
+proof -
+  have \<open>(f S, g S') \<in> ?I\<close>
+    using assms unfolding fref_def nres_rel_def by auto
+  then show ?thesis
+    unfolding nres_rel_def fun_rel_def pw_le_iff pw_conc_inres pw_conc_nofail
+    by auto
+qed
+
+lemma cdcl_twl_stgy_prog_early_l_spec_final:
+  assumes
+    \<open>cdcl_twl_stgy_prog_l_pre S S'\<close>
+  shows
+    \<open>cdcl_twl_stgy_prog_early_l S \<le> \<Down> (bool_rel \<times>\<^sub>r twl_st_l None) (partial_conclusive_TWL_run S')\<close>
+  apply (rule order_trans[OF cdcl_twl_stgy_prog_early_l_spec[THEN refine_pair_to_SPEC2,
+          of S S']])
+  subgoal using assms unfolding cdcl_twl_stgy_prog_l_pre_def by auto
+  subgoal using assms unfolding cdcl_twl_stgy_prog_l_pre_def by auto
+  subgoal
+    apply (rule ref_two_step)
+     prefer 2
+     apply (rule cdcl_twl_stgy_prog_early_spec)
+    using assms unfolding cdcl_twl_stgy_prog_l_pre_def
+    by (auto intro: conc_fun_R_mono)
+  done
+
 end
