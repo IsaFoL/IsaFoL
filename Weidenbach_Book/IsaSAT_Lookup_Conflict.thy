@@ -3885,13 +3885,13 @@ qed
 
 
 definition conflict_clause_minimisation_with_binary_clauses_f1 ::
-  \<open>_ \<Rightarrow> ('v literal \<Rightarrow> 'v watched) \<Rightarrow> 'v clause \<Rightarrow> 'v clause_l \<Rightarrow> ('v clause \<times> 'v clause_l) nres\<close> where
-  \<open>conflict_clause_minimisation_with_binary_clauses_f1 = (\<lambda> N W C outl.
+  \<open>('v literal \<Rightarrow> 'v watched) \<Rightarrow> 'v clause \<Rightarrow> 'v clause_l \<Rightarrow> ('v clause \<times> 'v clause_l) nres\<close> where
+  \<open>conflict_clause_minimisation_with_binary_clauses_f1 = (\<lambda> W C outl.
     do {
       ASSERT(length outl > 0);
       let A = (outl!0);
       C \<leftarrow>
-        (FOREACH\<^bsup> \<lambda> w C. C \<subseteq># mset outl \<and> mset `# ran_mf N \<Turnstile>pm C \<and> distinct_mset C \<^esup>
+        (FOREACH
         (set (W A)) 
         (\<lambda> (i, B, b) C.
           if \<not> b then RETURN (C) else \<comment> \<open>We only consider binary clauses\<close>
@@ -3913,7 +3913,7 @@ definition conflict_clause_minimisation_with_binary_clauses_f2 ::
       ASSERT(length outl > 0);
       let A = (outl!0);
       (n, xs) \<leftarrow>
-        (FOREACH\<^bsup>\<lambda> w (n, xs). \<forall> L \<in> set outl. xs ! (atm_of L) = Some (is_pos L)\<^esup>
+        (FOREACH
         (set (W A)) 
         (\<lambda> (i, B, b) (n, xs).
           if \<not> b then RETURN (n, xs) else  \<comment> \<open>We only consider binary clauses\<close>
@@ -3936,57 +3936,67 @@ lemma
     and \<open>mset `# ran_mf N \<Turnstile>pm D\<close>
     and \<open>length outl > 0\<close>
     and \<open>outl ! 0 \<in># all_lits_of_mm (mset `# ran_mf N + (NE + UE))\<close>
-    and \<open>distinct outl\<close> (* NEW! (Needed for the last line) *)
-  shows \<open>conflict_clause_minimisation_with_binary_clauses_f1 N W D outl \<le>
+    and \<open>distinct outl\<close>
+  shows \<open>conflict_clause_minimisation_with_binary_clauses_f1 W D outl \<le>
           SPEC(\<lambda>(D', outl'). D' \<subseteq># D \<and> mset outl' = D' \<and> mset `# ran_mf N \<Turnstile>pm D')\<close>
   using assms
 proof -
   let ?A = \<open>outl ! 0\<close>
-
+  let ?N = \<open>mset `# ran_mf N\<close>
 
   text \<open>Main lemma for correctness of the algorith: If we encounter the binary learned clause (A, B)
         in the watched list, and the conflict contains -B, then we can remove -B from the conflict.\<close>
   have tam:
-    \<open>mset `# ran_mf N \<Turnstile>pm remove1_mset (- B) C\<close>
+    \<open>?N \<Turnstile>pm remove1_mset (- B) C\<close>
     if
-      \<open>C \<subseteq># mset outl\<close> \<open>mset `# ran_mf N \<Turnstile>pm C\<close> \<open>- B \<in># C\<close>
-      \<open>(i, B, b) \<in> set (W (outl!0))\<close> \<open>b\<close>
+      \<open>C \<subseteq># mset outl\<close> \<open>?N \<Turnstile>pm C\<close> \<open>- B \<in># C\<close>
+      \<open>(i, B, b) \<in> set (W (outl!0))\<close> \<open>b\<close> \<open>distinct_mset C\<close>
     for i B C b
   proof -
+
     have \<open>i \<in># dom_m N\<close>
       using assms(5) that(4) that(5) assms(1) by (auto simp add: correct_watching.simps)
     then have \<open>B \<in> set (N \<propto> i) \<and> B \<noteq> ?A \<and> correctly_marked_as_binary N (i, B, b)\<close>
       using assms(5) that(4) assms(1) by (auto simp add: correct_watching.simps)
-    then have \<open>B \<in> set (N \<propto> i)\<close> \<open>B \<noteq> ?A\<close> \<open>correctly_marked_as_binary N (i, B, b)\<close>
+    then have \<open>B \<in> set (N \<propto> i)\<close> \<open>?A \<noteq> B\<close> \<open>correctly_marked_as_binary N (i, B, b)\<close>
       by auto+
     then have \<open>length (N \<propto> i) = 2\<close>
       by (simp add: correctly_marked_as_binary.simps \<open>b\<close>)
-    then have \<open>N \<propto> i = [?A, B]\<close>
-      sorry (* TODO: Is this true? *)
-    then have \<open>mset `# ran_mf N \<Turnstile>pm {# ?A, B #}\<close>
-      sorry (* TODO: Is this true? *)
+
+(*
+    have L0: \<open>mset (N \<propto> i) = {#?A, B#}\<close>
+      sorry (* TODO: Is this really true? *)
+*)
+
+    have L1: \<open>?N \<Turnstile>pm {#?A, B#}\<close>
+      sorry (* TODO: The learned binary clause "holds". *)
+
+    have L2: \<open>?A \<in># C\<close>
+      sorry (* TODO: Mathias said so. *)
+
+    have L3: \<open>?A \<noteq> - B\<close>
+      sorry (* TODO: The learned binary clause would be equivialent to False otherwise *)
+
+    have L4: \<open>?A \<in># remove1_mset (- B) C\<close>
+      using in_remove1_mset_neq[OF L3] L2 by auto
 
 
-    (* We either have that A or B "holds". *)
+    have \<open>C = add_mset (-B) (remove1_mset (- B) C)\<close>
+      by (metis insert_DiffM that(3))
+    then have Res1: \<open>?N \<Turnstile>pm add_mset (-B) (remove1_mset (- B) C)\<close>
+      using that(2) by auto
 
-    have ?thesis if \<open>mset `# ran_mf N \<Turnstile>pm {# ?A #}\<close>
-    proof -
-      have \<open>?A \<in># C\<close>
-        sorry (* Is this true? *)
-      then show ?thesis
-        sorry (* TODO: Is this true? *)
-    qed
-   
-    then have ?thesis if \<open> (\<lambda>x. mset (fst x)) ` set_mset (ran_m N) \<Turnstile>p {#B#}\<close>
-    proof -
-      have \<open>mset `# ran_mf N \<Turnstile>pm {# B #}\<close> if \<open> (\<lambda>x. mset (fst x)) ` set_mset (ran_m N) \<Turnstile>p {#B#}\<close>
-        using that by simp
-      then show ?thesis
-        by (metis \<open>- B \<in># C\<close> \<open>mset `# ran_mf N \<Turnstile>pm C\<close> conflict_minimize_step insert_DiffM multi_self_add_other_not_self that zero_diff)
-    qed
+    have Res2: \<open>?N \<Turnstile>pm add_mset B {#?A#}\<close>
+      by (metis L1 add_mset_commute)
 
-    show ?thesis
-      sorry (* TODO: We somehow have to make a case distinction here. *)
+    then have Res: \<open>?N \<Turnstile>pm {#?A#} \<union># (remove1_mset (- B) C)\<close>
+      by (metis Res1 subset_mset.sup.commute true_clss_cls_union_mset_true_clss_cls_or_not_true_clss_cls_or)
+
+    have \<open>{#?A#} \<union># (remove1_mset (- B) C) = remove1_mset (- B) C\<close>
+      using L4 insert_DiffM sup_union_left2 by fastforce
+
+    then show ?thesis
+      using Res by auto
 
   qed
 
@@ -4019,7 +4029,7 @@ proof -
 
   show ?thesis
     unfolding conflict_clause_minimisation_with_binary_clauses_f1_def
-    apply (refine_vcg)
+    apply (refine_vcg FOREACH_rule[where I=\<open>\<lambda> w C. C \<subseteq># mset outl \<and> mset `# ran_mf N \<Turnstile>pm C \<and> distinct_mset C\<close>])
     subgoal
       using assms(4) by blast
     subgoal
@@ -4058,7 +4068,6 @@ proof -
 qed
 
 
-(* TODO: This doesn't type! *)
 lemma
   assumes \<open>(C, D) \<in> lookup_clause_rel (atm_of `# (all_lits_of_mm (mset `# ran_mf N + (NE + UE))))\<close>
     and \<open>mset outl = D\<close>
