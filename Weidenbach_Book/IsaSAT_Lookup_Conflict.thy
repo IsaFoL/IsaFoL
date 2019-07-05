@@ -3894,7 +3894,7 @@ definition conflict_clause_minimisation_with_binary_clauses_f1 ::
         (FOREACH
         (set (W A)) 
         (\<lambda> (i, B, b) C.
-          if \<not> b then RETURN (C) else \<comment> \<open>We only consider binary clauses\<close>
+          if \<not> b \<or> B = -A then RETURN (C) else \<comment> \<open>We only consider non-tautological binary clauses\<close>
           if - B \<in># C then
           RETURN (C - {# -B #}) else \<comment> \<open>Remove \<^term>\<open>- B\<close> from the conflict clause (in \<^typ>\<open>nat literal multiset\<close> representation)\<close>
           RETURN (C)
@@ -3916,7 +3916,7 @@ definition conflict_clause_minimisation_with_binary_clauses_f2 ::
         (FOREACH
         (set (W A)) 
         (\<lambda> (i, B, b) (n, xs).
-          if \<not> b then RETURN (n, xs) else  \<comment> \<open>We only consider binary clauses\<close>
+          if \<not> b \<or> B = -A then RETURN (n, xs) else  \<comment> \<open>We only consider binary non-tautological clauses\<close>
           \<^cancel>\<open>ASSERT (atm_of B < length xs);\<close>
           if xs ! (atm_of B) = Some (\<not> is_pos B) then
           RETURN (n-1, xs[atm_of B := None]) else  \<comment> \<open>Remove \<^term>\<open>- B\<close> from the conflict clause (in ``hash set'' representation)\<close>
@@ -3944,41 +3944,35 @@ proof -
   let ?A = \<open>outl ! 0\<close>
   let ?N = \<open>mset `# ran_mf N\<close>
 
-  text \<open>Main lemma for correctness of the algorith: If we encounter the binary learned clause (A, B)
+  text \<open>Main lemma for correctness of the algorithm: If we encounter the binary learned clause (A, B)
         in the watched list, and the conflict contains -B, then we can remove -B from the conflict.\<close>
   have tam:
-    \<open>?N \<Turnstile>pm remove1_mset (- B) C\<close>
+    \<open>?N \<Turnstile>pm remove1_mset (- B) C\<close> \<open>?A \<in># remove1_mset (- B) C\<close>
     if
       \<open>C \<subseteq># mset outl\<close> \<open>?N \<Turnstile>pm C\<close> \<open>- B \<in># C\<close>
       \<open>(i, B, b) \<in> set (W (outl!0))\<close> \<open>b\<close> \<open>distinct_mset C\<close>
+      \<open>?A \<in># C\<close> \<open>B \<noteq> -?A\<close>
     for i B C b
   proof -
 
-    have \<open>i \<in># dom_m N\<close>
+    have \<open>i \<in># dom_m N\<close> and
+      eq: \<open>filter_mset (\<lambda>i. i \<in># dom_m N) (fst `# mset (W ?A)) = clause_to_update ?A (M, N, Some D, NE, UE, {#}, {#})\<close>
       using assms(5) that(4) that(5) assms(1) by (auto simp add: correct_watching.simps)
-    then have \<open>B \<in> set (N \<propto> i) \<and> B \<noteq> ?A \<and> correctly_marked_as_binary N (i, B, b)\<close>
+    then have \<open>B \<in> set (N \<propto> i)\<close> \<open>B \<noteq> ?A\<close> \<open>correctly_marked_as_binary N (i, B, b)\<close>
       using assms(5) that(4) assms(1) by (auto simp add: correct_watching.simps)
-    then have \<open>B \<in> set (N \<propto> i)\<close> \<open>?A \<noteq> B\<close> \<open>correctly_marked_as_binary N (i, B, b)\<close>
-      by auto+
-    then have \<open>length (N \<propto> i) = 2\<close>
+    then have bin: \<open>length (N \<propto> i) = 2\<close>
       by (simp add: correctly_marked_as_binary.simps \<open>b\<close>)
+    moreover have \<open>?A \<in> set (N \<propto> i)\<close>
+      using eq that(4) \<open>i \<in># dom_m N\<close> multi_member_split[of \<open>(i, B, b)\<close> \<open>mset (W ?A)\<close>] bin
+      by (auto simp: clause_to_update_def dest!: union_single_eq_member)
+    ultimately have L0: \<open>mset (N \<propto> i) = {#?A, B#}\<close>
+      using \<open>B \<in> set (N \<propto> i)\<close> \<open>B \<noteq> ?A\<close> by (auto simp: length_list_2)
 
-(*
-    have L0: \<open>mset (N \<propto> i) = {#?A, B#}\<close>
-      sorry (* TODO: Is this really true? *)
-*)
-
-    have L1: \<open>?N \<Turnstile>pm {#?A, B#}\<close>
-      sorry (* TODO: The learned binary clause "holds". *)
-
-    have L2: \<open>?A \<in># C\<close>
-      sorry (* TODO: Mathias said so. *)
-
-    have L3: \<open>?A \<noteq> - B\<close>
-      sorry (* TODO: The learned binary clause would be equivialent to False otherwise *)
+    then have L1: \<open>?N \<Turnstile>pm {#?A, B#}\<close>
+      using \<open>i \<in># dom_m N\<close> by (auto dest!: multi_member_split simp: ran_m_def)
 
     have L4: \<open>?A \<in># remove1_mset (- B) C\<close>
-      using in_remove1_mset_neq[OF L3] L2 by auto
+      by (metis in_remove1_mset_neq that(7) that(8) uminus_of_uminus_id)
 
 
     have \<open>C = add_mset (-B) (remove1_mset (- B) C)\<close>
@@ -3995,8 +3989,8 @@ proof -
     have \<open>{#?A#} \<union># (remove1_mset (- B) C) = remove1_mset (- B) C\<close>
       using L4 insert_DiffM sup_union_left2 by fastforce
 
-    then show ?thesis
-      using Res by auto
+    then show \<open>?N \<Turnstile>pm remove1_mset (- B) C\<close> \<open>?A \<in># remove1_mset (- B) C\<close>
+      using Res L4 by auto
 
   qed
 
@@ -4029,7 +4023,8 @@ proof -
 
   show ?thesis
     unfolding conflict_clause_minimisation_with_binary_clauses_f1_def
-    apply (refine_vcg FOREACH_rule[where I=\<open>\<lambda> w C. C \<subseteq># mset outl \<and> mset `# ran_mf N \<Turnstile>pm C \<and> distinct_mset C\<close>])
+    apply (refine_vcg FOREACH_rule[where I=\<open>\<lambda> w C. C \<subseteq># mset outl \<and> mset `# ran_mf N \<Turnstile>pm C \<and> distinct_mset C
+      \<and> ?A \<in># C\<close>])
     subgoal
       using assms(4) by blast
     subgoal
@@ -4040,6 +4035,7 @@ proof -
       using assms(3) by blast
     subgoal
       using assms(2) assms(6) distinct_mset_mset_distinct by blast
+    subgoal using assms(2) by (cases outl) auto
     subgoal
       by blast
     subgoal
@@ -4047,17 +4043,21 @@ proof -
     subgoal
       by auto
     subgoal
-      using tam by auto
+      by auto
+    subgoal by auto
     subgoal
-      by (smt Collect_mem_eq subset_Collect_conv tam)
+      by (smt Collect_mem_eq subset_Collect_conv tam(1))
     subgoal
       using distinct_mset_minus by blast
+    subgoal by (auto intro!: tam(2))
     subgoal
       by blast
     subgoal
       by blast
     subgoal
       using distinct_mset_minus by blast
+    subgoal
+      using assms(2) by blast
     subgoal
       using assms(2) by blast
     subgoal
@@ -4072,7 +4072,7 @@ lemma
   assumes \<open>(C, D) \<in> lookup_clause_rel (atm_of `# (all_lits_of_mm (mset `# ran_mf N + (NE + UE))))\<close>
     and \<open>mset outl = D\<close>
   shows \<open>conflict_clause_minimisation_with_binary_clauses_f2 W C outl \<le> \<Down> (lookup_clause_rel \<A> \<times>\<^sub>r \<langle>Id\<rangle> list_rel) (conflict_clause_minimisation_with_binary_clauses_f1 W D outl)\<close>
-
+  oops
 
 (* TODO Check if the size is actually used anywhere *)
 
