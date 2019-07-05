@@ -68,7 +68,7 @@ sepref_definition count_decided_pol_impl is "RETURN o count_decided_pol" :: "tra
 lemmas [sepref_fr_rules] = count_decided_pol_impl.refine
 
 
-sepref_definition get_level_atm_fast_code [llvm_code]
+sepref_def get_level_atm_fast_code [llvm_code]
   is \<open>uncurry (RETURN oo get_level_atm_pol)\<close>
   :: \<open>[get_level_atm_pol_pre]\<^sub>a
   trail_pol_fast_assn\<^sup>k *\<^sub>a atom_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
@@ -82,7 +82,7 @@ sepref_definition get_level_atm_fast_code [llvm_code]
 declare get_level_atm_fast_code.refine[sepref_fr_rules]
 
 
-sepref_definition get_level_fast_code [llvm_code]
+sepref_def get_level_fast_code [llvm_code]
   is \<open>uncurry (RETURN oo get_level_pol)\<close>
   :: \<open>[get_level_pol_pre]\<^sub>a
       trail_pol_fast_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
@@ -94,7 +94,7 @@ sepref_definition get_level_fast_code [llvm_code]
 
 declare get_level_fast_code.refine[sepref_fr_rules]
 
-sepref_definition polarity_pol_fast_code [llvm_code]
+sepref_def polarity_pol_fast_code [llvm_code]
   is \<open>uncurry (RETURN oo polarity_pol)\<close>
   :: \<open>[uncurry polarity_pol_pre]\<^sub>a trail_pol_fast_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> tri_bool_assn\<close>
   unfolding polarity_pol_def option.case_eq_if polarity_pol_pre_def
@@ -104,7 +104,7 @@ sepref_definition polarity_pol_fast_code [llvm_code]
 
 declare polarity_pol_fast_code.refine[sepref_fr_rules]
 
-sepref_definition isa_length_trail_fast_code [llvm_code]
+sepref_def isa_length_trail_fast_code [llvm_code]
   is \<open>RETURN o isa_length_trail\<close>
   :: \<open>[\<lambda>_. True]\<^sub>a trail_pol_fast_assn\<^sup>k \<rightarrow> snat_assn' TYPE(64)\<close>
   unfolding isa_length_trail_def isa_length_trail_pre_def length_uint32_nat_def
@@ -114,7 +114,7 @@ sepref_definition isa_length_trail_fast_code [llvm_code]
 declare isa_length_trail_fast_code.refine[sepref_fr_rules]
 
 
-sepref_definition cons_trail_Propagated_tr_fast_code
+sepref_def cons_trail_Propagated_tr_fast_code
   is \<open>uncurry2 (RETURN ooo cons_trail_Propagated_tr)\<close>
   :: \<open>[cons_trail_Propagated_tr_pre]\<^sub>a
        unat_lit_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a trail_pol_fast_assn\<^sup>d \<rightarrow> trail_pol_fast_assn\<close>
@@ -131,7 +131,7 @@ sepref_definition cons_trail_Propagated_tr_fast_code
 declare cons_trail_Propagated_tr_fast_code.refine[sepref_fr_rules]
 
 (*
-sepref_definition (in -)last_trail_fast_code
+sepref_def (in -)last_trail_fast_code
   is \<open>RETURN o last_trail_pol\<close>
   :: \<open>[last_trail_pol_pre]\<^sub>a
        trail_pol_fast_assn\<^sup>k \<rightarrow> unat_lit_assn *a option_assn uint64_nat_assn\<close>
@@ -144,7 +144,7 @@ declare last_trail_fast_code.refine[sepref_fr_rules]
 *)
 
 
-sepref_definition tl_trail_tr_fast_code
+sepref_def tl_trail_tr_fast_code
   is \<open>RETURN o tl_trailt_tr\<close>
   :: \<open>[tl_trailt_tr_pre]\<^sub>a
         trail_pol_fast_assn\<^sup>d \<rightarrow> trail_pol_fast_assn\<close>
@@ -159,7 +159,7 @@ sepref_definition tl_trail_tr_fast_code
 
 declare tl_trail_tr_fast_code.refine[sepref_fr_rules]
 
-sepref_definition tl_trail_proped_tr_fast_code
+sepref_def tl_trail_proped_tr_fast_code
   is \<open>RETURN o tl_trail_propedt_tr\<close>
   :: \<open>[tl_trail_propedt_tr_pre]\<^sub>a
         trail_pol_fast_assn\<^sup>d \<rightarrow> trail_pol_fast_assn\<close>
@@ -173,7 +173,7 @@ sepref_definition tl_trail_proped_tr_fast_code
 
 declare tl_trail_proped_tr_fast_code.refine[sepref_fr_rules]
 
-sepref_definition (in -) lit_of_last_trail_fast_code
+sepref_def (in -) lit_of_last_trail_fast_code
   is \<open>RETURN o lit_of_last_trail_pol\<close>
   :: \<open>[\<lambda>(M, _). M \<noteq> []]\<^sub>a trail_pol_fast_assn\<^sup>k \<rightarrow> unat_lit_assn\<close>
   unfolding lit_of_last_trail_pol_def trail_pol_fast_assn_def
@@ -181,7 +181,7 @@ sepref_definition (in -) lit_of_last_trail_fast_code
 
 declare lit_of_last_trail_fast_code.refine[sepref_fr_rules]
 
-sepref_definition cons_trail_Decided_tr_fast_code
+sepref_def cons_trail_Decided_tr_fast_code
   is \<open>uncurry (RETURN oo cons_trail_Decided_tr)\<close>
   :: \<open>[cons_trail_Decided_tr_pre]\<^sub>a
        unat_lit_assn\<^sup>k *\<^sub>a trail_pol_fast_assn\<^sup>d \<rightarrow> trail_pol_fast_assn\<close>
@@ -196,7 +196,7 @@ sepref_definition cons_trail_Decided_tr_fast_code
 
 declare cons_trail_Decided_tr_fast_code.refine[sepref_fr_rules]
 
-sepref_definition defined_atm_fast_code
+sepref_def defined_atm_fast_code
   is \<open>uncurry (RETURN oo defined_atm_pol)\<close>
   :: \<open>[uncurry defined_atm_pol_pre]\<^sub>a trail_pol_fast_assn\<^sup>k *\<^sub>a atom_assn\<^sup>k \<rightarrow> bool1_assn\<close>
   unfolding defined_atm_pol_def UNSET_def[symmetric] tri_bool_eq_def[symmetric]
@@ -209,7 +209,7 @@ sepref_definition defined_atm_fast_code
 declare defined_atm_fast_code.refine[sepref_fr_rules]
 
 sepref_register get_propagation_reason_raw_pol
-sepref_definition get_propagation_reason_fast_code
+sepref_def get_propagation_reason_fast_code
   is \<open>uncurry get_propagation_reason_raw_pol\<close>
   :: \<open>trail_pol_fast_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow>\<^sub>a sint64_nat_assn\<close>
   unfolding get_propagation_reason_raw_pol_def trail_pol_fast_assn_def
@@ -248,7 +248,7 @@ declare get_the_propagation_reason_fast_code.refine[sepref_fr_rules]
   get_the_propagation_reason_code.refine[sepref_fr_rules]
 *)
 
-sepref_definition isa_trail_nth_fast_code
+sepref_def isa_trail_nth_fast_code
   is \<open>uncurry isa_trail_nth\<close>
   :: \<open>trail_pol_fast_assn\<^sup>k *\<^sub>a sint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a unat_lit_assn\<close>
   unfolding isa_trail_nth_def trail_pol_fast_assn_def
@@ -256,7 +256,7 @@ sepref_definition isa_trail_nth_fast_code
 
 declare isa_trail_nth_fast_code.refine[sepref_fr_rules]
 
-sepref_definition tl_trail_tr_no_CS_fast_code
+sepref_def tl_trail_tr_no_CS_fast_code
   is \<open>RETURN o tl_trailt_tr_no_CS\<close>
   :: \<open>[tl_trailt_tr_no_CS_pre]\<^sub>a
         trail_pol_fast_assn\<^sup>d \<rightarrow> trail_pol_fast_assn\<close>
@@ -269,7 +269,7 @@ sepref_definition tl_trail_tr_no_CS_fast_code
 
 declare tl_trail_tr_no_CS_fast_code.refine[sepref_fr_rules]
 
-sepref_definition (in -) trail_conv_back_imp_fast_code
+sepref_def (in -) trail_conv_back_imp_fast_code
   is \<open>uncurry trail_conv_back_imp\<close>
   :: \<open>uint32_nat_assn\<^sup>k *\<^sub>a trail_pol_fast_assn\<^sup>d \<rightarrow>\<^sub>a trail_pol_fast_assn\<close>
   supply [[goals_limit=1]]
@@ -280,7 +280,7 @@ sepref_definition (in -) trail_conv_back_imp_fast_code
 
 declare trail_conv_back_imp_fast_code.refine[sepref_fr_rules]
 
-sepref_definition (in -) get_pos_of_level_in_trail_imp_fast_code
+sepref_def (in -) get_pos_of_level_in_trail_imp_fast_code
   is \<open>uncurry get_pos_of_level_in_trail_imp\<close>
   :: \<open>trail_pol_fast_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
   unfolding get_pos_of_level_in_trail_imp_def trail_pol_fast_assn_def
@@ -288,7 +288,7 @@ sepref_definition (in -) get_pos_of_level_in_trail_imp_fast_code
   by sepref
 
 declare get_pos_of_level_in_trail_imp_fast_code.refine[sepref_fr_rules]
-sepref_definition (in -) get_the_propagation_reason_fast_code
+sepref_def (in -) get_the_propagation_reason_fast_code
   is \<open>uncurry get_the_propagation_reason_pol\<close>
   :: \<open>trail_pol_fast_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow>\<^sub>a snat_option_assn' TYPE(64)\<close>
   unfolding get_the_propagation_reason_pol_def trail_pol_fast_assn_def

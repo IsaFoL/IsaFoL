@@ -61,7 +61,7 @@ sepref_definition decide_lit_wl_code
 *)
 
 
-sepref_definition decide_lit_wl_fast_code
+sepref_def decide_lit_wl_fast_code
   is \<open>uncurry decide_lit_wl_heur\<close>
   :: \<open>unat_lit_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
   supply [[goals_limit=1]]
@@ -149,7 +149,7 @@ qed
 (* TODO: Move *)
 sepref_register isa_vmtf_find_next_undef  
 
-sepref_definition isa_vmtf_find_next_undef_code is 
+sepref_def isa_vmtf_find_next_undef_code is 
   "uncurry isa_vmtf_find_next_undef" :: "vmtf_remove_assn\<^sup>k *\<^sub>a trail_pol_fast_assn\<^sup>k \<rightarrow>\<^sub>a atom.option_assn"
   unfolding isa_vmtf_find_next_undef_def vmtf_remove_assn_def
   unfolding atom.fold_option
@@ -160,14 +160,14 @@ sepref_definition isa_vmtf_find_next_undef_code is
 lemmas [sepref_fr_rules] = isa_vmtf_find_next_undef_code.refine  
 
 sepref_register update_next_search
-sepref_definition update_next_search_code is 
+sepref_def update_next_search_code is 
   "uncurry (RETURN oo update_next_search)" :: "atom.option_assn\<^sup>k *\<^sub>a vmtf_remove_assn\<^sup>d \<rightarrow>\<^sub>a vmtf_remove_assn"
   unfolding update_next_search_def vmtf_remove_assn_def
   by sepref
 lemmas [sepref_fr_rules] = update_next_search_code.refine
   
 sepref_register isa_vmtf_find_next_undef_upd  
-sepref_definition isa_vmtf_find_next_undef_upd_code is 
+sepref_def isa_vmtf_find_next_undef_upd_code is 
   "uncurry isa_vmtf_find_next_undef_upd" 
     :: "trail_pol_fast_assn\<^sup>d *\<^sub>a vmtf_remove_assn\<^sup>d \<rightarrow>\<^sub>a (trail_pol_fast_assn *a vmtf_remove_assn) *a atom.option_assn"
   unfolding isa_vmtf_find_next_undef_upd_def
@@ -179,7 +179,7 @@ find_consts name: lit name: assn
 find_theorems unat_lit_assn Neg
 
 sepref_register lit_of_atm_D
-sepref_definition lit_of_atm_D_code is "uncurry lit_of_atm_D" :: "(larray32_assn bool1_assn)\<^sup>k *\<^sub>a atom_assn\<^sup>k \<rightarrow>\<^sub>a unat_lit_assn"
+sepref_def lit_of_atm_D_code is "uncurry lit_of_atm_D" :: "(larray32_assn bool1_assn)\<^sup>k *\<^sub>a atom_assn\<^sup>k \<rightarrow>\<^sub>a unat_lit_assn"
   unfolding lit_of_atm_D_def
   apply annot_all_atm_idxs
   by sepref_dbg_keep
@@ -192,7 +192,7 @@ lemma fold_make_isasat_bounded: "Let (M, N, D, WS, Q, vm, \<phi>, clvls) m = mak
   unfolding make_isasat_bounded_def by auto
 
 sepref_register make_isasat_bounded
-sepref_definition make_isasat_bounded_impl is "uncurry7 (make_isasat_bounded)"
+sepref_def make_isasat_bounded_impl is "uncurry7 (make_isasat_bounded)"
   :: "
   trail_pol_fast_assn\<^sup>d *\<^sub>a arena_fast_assn\<^sup>d *\<^sub>a
   conflict_option_rel_assn\<^sup>d *\<^sub>a
@@ -218,7 +218,7 @@ sepref_definition make_isasat_bounded_impl is "uncurry7 (make_isasat_bounded)"
 lemmas [sepref_fr_rules] = make_isasat_bounded_impl.refine  
   
 
-sepref_definition decide_wl_or_skip_D_fast_code
+sepref_def decide_wl_or_skip_D_fast_code
   is \<open>decide_wl_or_skip_D_heur\<close>
   :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a bool1_assn *a isasat_bounded_assn\<close>
   supply [[goals_limit = 1]]

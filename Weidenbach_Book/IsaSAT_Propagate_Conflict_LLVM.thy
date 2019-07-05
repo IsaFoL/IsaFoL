@@ -7,7 +7,7 @@ begin
 lemma length_ll[def_pat_rules]: \<open>length_ll$xs$i \<equiv> op_list_list_llen$xs$i\<close>
   by (auto simp: op_list_list_llen_def length_ll_def)
 
-sepref_definition length_ll_fs_heur_fast_code
+sepref_def length_ll_fs_heur_fast_code
   is \<open>uncurry (RETURN oo length_ll_fs_heur)\<close>
   :: \<open>[\<lambda>(S, L). nat_of_lit L < length (get_watched_wl_heur S)]\<^sub>a
       isasat_bounded_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> sint64_nat_assn\<close>
@@ -28,7 +28,7 @@ lemma unit_propagation_inner_loop_wl_loop_D_heur_fast:
   unfolding unit_propagation_inner_loop_wl_loop_D_heur_inv_def
   by auto
 
-sepref_definition unit_propagation_inner_loop_wl_loop_D_fast
+sepref_def unit_propagation_inner_loop_wl_loop_D_fast
   is \<open>uncurry unit_propagation_inner_loop_wl_loop_D_heur\<close>
   :: \<open>[\<lambda>(L, S). length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a
       unat_lit_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> sint64_nat_assn *a sint64_nat_assn *a isasat_bounded_assn\<close>
@@ -88,7 +88,7 @@ lemma cut_watch_list_heur2I:
        a1'e < length (a2'f ! nat_of_lit baa)\<close>
   by (auto simp: max_snat_def sint64_max_def cut_watch_list_heur2_inv_def length_ll_def)
 
-sepref_definition cut_watch_list_heur2_fast_code
+sepref_def cut_watch_list_heur2_fast_code
   is \<open>uncurry3 cut_watch_list_heur2\<close>
   :: \<open>[\<lambda>(((j, w), L), S). length (watched_by_int S L) \<le> sint64_max-4]\<^sub>a
      sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a
@@ -105,7 +105,7 @@ sepref_definition cut_watch_list_heur2_fast_code
 declare cut_watch_list_heur2_fast_code.refine[sepref_fr_rules]
   unit_propagation_inner_loop_wl_loop_D_fast.refine[sepref_fr_rules]
 
-sepref_definition unit_propagation_inner_loop_wl_D_fast_code
+sepref_def unit_propagation_inner_loop_wl_D_fast_code
   is \<open>uncurry unit_propagation_inner_loop_wl_D_heur\<close>
   :: \<open>[\<lambda>(L, S). length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a
         unat_lit_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
@@ -115,7 +115,7 @@ sepref_definition unit_propagation_inner_loop_wl_D_fast_code
 
 declare unit_propagation_inner_loop_wl_D_fast_code.refine[sepref_fr_rules]
 
-sepref_definition isa_trail_nth_fast_code
+sepref_def isa_trail_nth_fast_code
   is \<open>uncurry isa_trail_nth\<close>
   :: \<open>trail_pol_fast_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a unat_lit_assn\<close>
   unfolding isa_trail_nth_def trail_pol_fast_assn_def
@@ -123,7 +123,7 @@ sepref_definition isa_trail_nth_fast_code
 
 declare isa_trail_nth_fast_code.refine[sepref_fr_rules]
 sepref_register isa_trail_nth
-sepref_definition select_and_remove_from_literals_to_update_wlfast_code
+sepref_def select_and_remove_from_literals_to_update_wlfast_code
   is \<open>select_and_remove_from_literals_to_update_wl_heur\<close>
   :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn *a unat_lit_assn\<close>
   supply [[goals_limit=1]]
@@ -135,7 +135,7 @@ sepref_definition select_and_remove_from_literals_to_update_wlfast_code
 
 declare select_and_remove_from_literals_to_update_wlfast_code.refine[sepref_fr_rules]
 
-sepref_definition literals_to_update_wl_literals_to_update_wl_empty_fast_code
+sepref_def literals_to_update_wl_literals_to_update_wl_empty_fast_code
   is \<open>RETURN o literals_to_update_wl_literals_to_update_wl_empty\<close>
   :: \<open>[\<lambda>S. isa_length_trail_pre (get_trail_wl_heur S)]\<^sub>a isasat_bounded_assn\<^sup>k \<rightarrow> bool1_assn\<close>
   unfolding literals_to_update_wl_literals_to_update_wl_empty_alt_def
@@ -156,7 +156,7 @@ lemma unit_propagation_outer_loop_wl_D_heur_fast:
        length (get_clauses_wl_heur s') \<le> sint64_max\<close>
   by (auto simp: unit_propagation_outer_loop_wl_D_heur_inv_def)
 
-sepref_definition unit_propagation_outer_loop_wl_D_fast_code
+sepref_def unit_propagation_outer_loop_wl_D_fast_code
   is \<open>unit_propagation_outer_loop_wl_D_heur\<close>
   :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   supply [[goals_limit=1]] unit_propagation_outer_loop_wl_D_heur_fast[intro]

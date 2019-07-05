@@ -38,7 +38,7 @@ lemma [sepref_import_param]:
 
 
 
-sepref_definition ema_update_impl is "uncurry (RETURN oo ema_update)"  
+sepref_def ema_update_impl is "uncurry (RETURN oo ema_update)"  
   :: "uint32_nat_assn\<^sup>k *\<^sub>a ema_assn\<^sup>k \<rightarrow>\<^sub>a ema_assn"
   unfolding ema_update_def
   apply (rewrite at \<open>let _ = of_nat \<hole> * _ in _\<close> annot_unat_unat_upcast[where 'l = 64])
@@ -172,15 +172,15 @@ lemma workaround_opt_assn: "RETURN o (\<lambda>(a,b,c). f a b c) = (\<lambda>(a,
 
 sepref_register opts_restart opts_reduce opts_unbounded_mode
   
-sepref_definition opts_restart_impl is "RETURN o opts_restart" :: "opts_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn"  
+sepref_def opts_restart_impl is "RETURN o opts_restart" :: "opts_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn"  
   unfolding opts_restart_def workaround_opt_assn opts_assn_def
   by sepref
 
-sepref_definition opts_reduce_impl is "RETURN o opts_reduce" :: "opts_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn"  
+sepref_def opts_reduce_impl is "RETURN o opts_reduce" :: "opts_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn"  
   unfolding opts_reduce_def workaround_opt_assn opts_assn_def
   by sepref
 
-sepref_definition opts_unbounded_mode_impl is "RETURN o opts_unbounded_mode" :: "opts_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn"  
+sepref_def opts_unbounded_mode_impl is "RETURN o opts_unbounded_mode" :: "opts_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn"  
   unfolding opts_unbounded_mode_def workaround_opt_assn opts_assn_def
   by sepref
   
@@ -237,7 +237,7 @@ definition isasat_bounded_assn :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wll
 subsubsection \<open>Lift Operations to State\<close>
 
 (*TODO proper setup to test if the conflict is none*)
-sepref_definition get_conflict_wl_is_None_fast_code
+sepref_def get_conflict_wl_is_None_fast_code
   is \<open>RETURN o get_conflict_wl_is_None_heur\<close>
   :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
   unfolding get_conflict_wl_is_None_heur_alt_def isasat_bounded_assn_def length_ll_def[symmetric]
@@ -247,7 +247,7 @@ sepref_definition get_conflict_wl_is_None_fast_code
 
 declare get_conflict_wl_is_None_fast_code.refine[sepref_fr_rules]
 
-sepref_definition isa_count_decided_st_fast_code
+sepref_def isa_count_decided_st_fast_code
   is \<open>RETURN o isa_count_decided_st\<close>
   :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
   supply [[goals_limit=2]]
@@ -257,7 +257,7 @@ sepref_definition isa_count_decided_st_fast_code
 declare isa_count_decided_st_fast_code.refine[sepref_fr_rules]
 
 
-sepref_definition polarity_st_heur_pol_fast
+sepref_def polarity_st_heur_pol_fast
   is \<open>uncurry (RETURN oo polarity_st_heur)\<close>
   :: \<open>[polarity_st_heur_pre]\<^sub>a isasat_bounded_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> tri_bool_assn\<close>
   unfolding polarity_st_heur_alt_def isasat_bounded_assn_def polarity_st_pre_def
@@ -275,14 +275,14 @@ lemma count_decided_st_heur_alt_def:
    \<open>count_decided_st_heur = (\<lambda>(M, _). count_decided_pol M)\<close>
   by (auto simp: count_decided_st_heur_def count_decided_pol_def)
 
-sepref_definition count_decided_st_heur_pol_fast
+sepref_def count_decided_st_heur_pol_fast
   is \<open>RETURN o count_decided_st_heur\<close>
   :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
   unfolding isasat_bounded_assn_def count_decided_st_heur_alt_def
   supply [[goals_limit = 1]]
   by sepref
 
-sepref_definition access_lit_in_clauses_heur_fast_code
+sepref_def access_lit_in_clauses_heur_fast_code
   is \<open>uncurry2 (RETURN ooo access_lit_in_clauses_heur)\<close>
   :: \<open>[\<lambda>((S, i), j). access_lit_in_clauses_heur_pre ((S, i), j) \<and>
            length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a
@@ -303,7 +303,7 @@ lemma [def_pat_rules]: "append_ll \<equiv> op_list_list_push_back"
 
 sepref_register rewatch_heur
 term op_neq
-sepref_definition rewatch_heur_fast_code
+sepref_def rewatch_heur_fast_code
   is \<open>uncurry2 (rewatch_heur)\<close>
   :: \<open>[\<lambda>((vdom, arena), W). (\<forall>x \<in> set vdom. x \<le> sint64_max) \<and> length arena \<le> sint64_max \<and> length vdom \<le> sint64_max]\<^sub>a
         vdom_fast_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a watchlist_fast_assn\<^sup>d \<rightarrow> watchlist_fast_assn\<close>
@@ -322,7 +322,7 @@ sepref_definition rewatch_heur_fast_code
 declare rewatch_heur_fast_code.refine[sepref_fr_rules]
 
 
-sepref_definition rewatch_heur_st_fast_code
+sepref_def rewatch_heur_st_fast_code
   is \<open>(rewatch_heur_st_fast)\<close>
   :: \<open>[rewatch_heur_st_fast_pre]\<^sub>a
        isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>

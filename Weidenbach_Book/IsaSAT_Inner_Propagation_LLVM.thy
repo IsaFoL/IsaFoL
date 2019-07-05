@@ -5,7 +5,7 @@ begin
 
 sepref_register isa_save_pos
 
-sepref_definition isa_save_pos_fast_code
+sepref_def isa_save_pos_fast_code
   is \<open>uncurry2 isa_save_pos\<close>
   :: \<open>sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
   supply
@@ -19,7 +19,7 @@ declare isa_save_pos_fast_code.refine[sepref_fr_rules]
 lemma [def_pat_rules]: \<open>nth_rll \<equiv> op_list_list_idx\<close>
  by (auto simp: nth_rll_def intro!: ext eq_reflection)
 
-sepref_definition watched_by_app_heur_fast_code
+sepref_def watched_by_app_heur_fast_code
   is \<open>uncurry2 (RETURN ooo watched_by_app_heur)\<close>
   :: \<open>[watched_by_app_heur_pre]\<^sub>a
         isasat_bounded_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> watcher_fast_assn\<close>
@@ -40,7 +40,7 @@ sepref_register 0 1
 
 (*lemma "found = None \<longleftrightarrow> is_None (ASSN_ANNOT (snat_option_assn' TYPE(64)) found)"*)
 
-sepref_definition isa_find_unwatched_between_fast_code
+sepref_def isa_find_unwatched_between_fast_code
   is \<open>uncurry4 isa_find_unset_lit\<close>
   :: \<open>[\<lambda>((((M, N), _), _), _). length N \<le> sint64_max]\<^sub>a
      trail_pol_fast_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow>
@@ -58,7 +58,7 @@ sepref_definition isa_find_unwatched_between_fast_code
 
 declare isa_find_unwatched_between_fast_code.refine[sepref_fr_rules]
 
-sepref_definition find_unwatched_wl_st_heur_fast_code
+sepref_def find_unwatched_wl_st_heur_fast_code
   is \<open>uncurry isa_find_unwatched_wl_st_heur\<close>
   :: \<open>[(\<lambda>(S, C). find_unwatched_wl_st_heur_pre (S, C) \<and>
             length (get_clauses_wl_heur S) \<le> sint64_max)]\<^sub>a
@@ -90,7 +90,7 @@ lemma arena_lit_pre_le2: \<open>
 lemma sint64_max_le_max_snat64: \<open>a < sint64_max \<Longrightarrow> Suc a < max_snat 64\<close>
   by (auto simp: max_snat_def sint64_max_def)
 
-sepref_definition update_clause_wl_fast_code
+sepref_def update_clause_wl_fast_code
   is \<open>uncurry7 update_clause_wl_heur\<close>
   :: \<open>[\<lambda>(((((((L, C), b), j), w), i), f), S). update_clause_wl_code_pre (((((((L, C), b), j), w), i), f), S) \<and>
         length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a
@@ -132,7 +132,7 @@ lemma standard_constanst[simp, intro!]:
   \<open>4 < max_unat 64\<close>
   by (auto simp: max_snat_def max_unat_def)
 
-sepref_definition propagate_lit_wl_fast_code
+sepref_def propagate_lit_wl_fast_code
   is \<open>uncurry3 propagate_lit_wl_heur\<close>
   :: \<open>[\<lambda>(((L, C), i), S). propagate_lit_wl_heur_pre (((L, C), i), S) \<and>
       length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a
@@ -151,7 +151,7 @@ sepref_definition propagate_lit_wl_fast_code
 declare propagate_lit_wl_fast_code.refine[sepref_fr_rules]
 
 
-sepref_definition propagate_lit_wl_bin_fast_code
+sepref_def propagate_lit_wl_bin_fast_code
   is \<open>uncurry3 propagate_lit_wl_bin_heur\<close>
   :: \<open>[\<lambda>(((L, C), i), S). propagate_lit_wl_heur_pre(((L, C), i), S) \<and>
       length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a
@@ -180,7 +180,7 @@ sepref_definition status_neq_impl is "uncurry (RETURN oo (\<noteq>))"
 
 lemmas [sepref_fr_rules] = status_neq_impl.refine[FCOMP status_neq_refine1]
 
-sepref_definition clause_not_marked_to_delete_heur_fast_code
+sepref_def clause_not_marked_to_delete_heur_fast_code
   is \<open>uncurry (RETURN oo clause_not_marked_to_delete_heur)\<close>
   :: \<open>[clause_not_marked_to_delete_heur_pre]\<^sub>a isasat_bounded_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> bool1_assn\<close>
   supply [[goals_limit=1]]
@@ -194,7 +194,7 @@ declare clause_not_marked_to_delete_heur_fast_code.refine[sepref_fr_rules]
 lemma op_list_list_upd_alt_def: \<open>op_list_list_upd xss i j x = xss[i := (xss ! i)[j := x]]\<close>
   unfolding op_list_list_upd_def by auto
 
-sepref_definition update_blit_wl_heur_fast_code
+sepref_def update_blit_wl_heur_fast_code
   is \<open>uncurry6 update_blit_wl_heur\<close>
   :: \<open>[\<lambda>((((((_, _), _), _), C), i), S). length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a
       unat_lit_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a bool1_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a
@@ -213,7 +213,7 @@ find_theorems "_ [ _ := take _ _]"
 lemma op_list_list_take_alt_def: \<open>op_list_list_take xss i l = xss[i := take l (xss ! i)]\<close>
   unfolding op_list_list_take_def by auto
 
-sepref_definition keep_watch_heur_fast_code
+sepref_def keep_watch_heur_fast_code
   is \<open>uncurry3 keep_watch_heur\<close>
   :: \<open>unat_lit_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
   supply
@@ -235,7 +235,7 @@ sepref_register isa_set_lookup_conflict_aa set_conflict_wl_heur
 
 sepref_register arena_incr_act
 
-sepref_definition set_conflict_wl_heur_fast_code
+sepref_def set_conflict_wl_heur_fast_code
   is \<open>uncurry set_conflict_wl_heur\<close>
   :: \<open>[\<lambda>(C, S). set_conflict_wl_heur_pre (C, S) \<and>
      length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a
@@ -251,7 +251,7 @@ declare set_conflict_wl_heur_fast_code.refine[sepref_fr_rules]
 
 sepref_register update_blit_wl_heur clause_not_marked_to_delete_heur
 
-sepref_definition unit_propagation_inner_loop_body_wl_fast_heur_code
+sepref_def unit_propagation_inner_loop_body_wl_fast_heur_code
   is \<open>uncurry3 unit_propagation_inner_loop_body_wl_heur\<close>
   :: \<open>[\<lambda>((L, w), S). length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a
       unat_lit_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k  *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow>
