@@ -13,7 +13,7 @@ where
       if get_conflict_wl_is_None_heur S
       then decide_wl_or_skip_D_heur S
       else do {
-        if count_decided_st_heur S > zero_uint32_nat
+        if count_decided_st_heur S > 0
         then do {
           T \<leftarrow> skip_and_resolve_loop_wl_D_heur S;
           ASSERT(length (get_clauses_wl_heur S) = length (get_clauses_wl_heur T));
@@ -38,7 +38,7 @@ proof -
     apply (intro conjI impI allI)
     subgoal for x y
       using assms[of \<open>dom_m (get_clauses_wl y)\<close>  \<open>length (get_clauses_wl_heur x)\<close>,
-        unfolded ref_def twl_st_heur'_def nres_rel_def in_pair_collect_simp f,
+        unfolded twl_st_heur'_def nres_rel_def in_pair_collect_simp f,
         rule_format] unfolding f
       apply (simp only: fref_def twl_st_heur'_def nres_rel_def in_pair_collect_simp)
       apply (drule spec[of _ x])
@@ -64,7 +64,7 @@ proof -
     apply (intro conjI impI allI)
     subgoal for x y
       using assms[of \<open>length (get_clauses_wl_heur x)\<close>,
-        unfolded ref_def twl_st_heur'_def nres_rel_def in_pair_collect_simp f,
+        unfolded twl_st_heur'_def nres_rel_def in_pair_collect_simp f,
         rule_format] unfolding f
       apply (simp only: fref_def twl_st_heur'_def nres_rel_def in_pair_collect_simp)
       apply (drule spec[of _ x])
@@ -89,7 +89,7 @@ proof -
     apply (intro conjI impI allI)
     subgoal for x y
       using assms[of \<open>length (get_clauses_wl_heur x)\<close>,
-        unfolded ref_def twl_st_heur'_def nres_rel_def in_pair_collect_simp f,
+        unfolded twl_st_heur'_def nres_rel_def in_pair_collect_simp f,
         rule_format] unfolding f
       apply (simp only: fref_def twl_st_heur'_def nres_rel_def in_pair_collect_simp)
       apply (drule spec[of _ x])
