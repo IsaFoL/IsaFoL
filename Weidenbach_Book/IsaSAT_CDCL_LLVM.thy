@@ -54,25 +54,6 @@ sepref_definition isasat_fast_impl
 
 declare isasat_fast_impl.refine[sepref_fr_rules]
 
-definition cdcl_twl_stgy_prog_bounded_wl_D_heur :: \<open>twl_st_wl_heur \<Rightarrow> (bool \<times> twl_st_wl_heur) nres\<close>
-where
-  \<open>cdcl_twl_stgy_prog_bounded_wl_D_heur S\<^sub>0 =
-  do {
-    b \<leftarrow> RETURN (isasat_fast S\<^sub>0);
-    (b, brk, T) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(b, brk, T). True\<^esup>
-        (\<lambda>(b, brk, _). b \<and> \<not>brk)
-        (\<lambda>(b, brk, S).
-        do {
-          ASSERT(isasat_fast S);
-          T \<leftarrow> unit_propagation_outer_loop_wl_D_heur S;
-          ASSERT(isasat_fast T);
-          (brk, T) \<leftarrow> cdcl_twl_o_prog_wl_D_heur T;
-          b \<leftarrow> RETURN (isasat_fast T);
-          RETURN(b, brk, T)
-        })
-        (b, False, S\<^sub>0);
-    RETURN (b, T)
-  }\<close>
 
 sepref_definition cdcl_twl_stgy_prog_wl_D_code [llvm_code]
   is \<open>cdcl_twl_stgy_prog_bounded_wl_D_heur\<close>
