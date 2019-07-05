@@ -2,6 +2,12 @@ theory IsaSAT_Literals_LLVM
   imports WB_More_Word IsaSAT_Literals Watched_Literals.WB_More_IICF_LLVM
 begin
 
+(* TODO: Move *)
+lemma inline_ho[llvm_inline]: "doM { f \<leftarrow> return f; m f } = m f" for f :: "_ \<Rightarrow> _" by simp
+
+
+
+
 (* TODO: Move
   TODO:  Write generic postprocessing for that!
   Maybe just beta contraction of form (\<lambda>x. f x)$x = f$x

@@ -31,7 +31,7 @@ lemma isa_empty_conflict_and_extract_clause_heur_alt_def:
     swap_def[symmetric]*)
   by auto
 
-sepref_definition empty_conflict_and_extract_clause_heur_fast_code
+sepref_def empty_conflict_and_extract_clause_heur_fast_code
   is \<open>uncurry2 (isa_empty_conflict_and_extract_clause_heur)\<close>
   :: \<open>[\<lambda>((M, D), outl). outl \<noteq> [] \<and> length outl \<le> uint32_max]\<^sub>a
       trail_pol_fast_assn\<^sup>k *\<^sub>a lookup_clause_rel_assn\<^sup>d *\<^sub>a out_learned_assn\<^sup>k \<rightarrow>
@@ -50,12 +50,11 @@ sepref_definition empty_conflict_and_extract_clause_heur_fast_code
   unfolding gen_swap convert_swap
   by sepref
 
-declare empty_conflict_and_extract_clause_heur_fast_code.refine[sepref_fr_rules]
 
 lemma emptied_list_alt_def: \<open>emptied_list xs = take 0 xs\<close>
   by (auto simp: emptied_list_def)
 find_theorems SEEN_UNKNOWN
-sepref_definition empty_cach_code
+sepref_def empty_cach_code
   is \<open>empty_cach_ref_set\<close>
   :: \<open>cach_refinement_l_assn\<^sup>d \<rightarrow>\<^sub>a cach_refinement_l_assn\<close>
   supply [[goals_limit=1]]
@@ -65,7 +64,7 @@ sepref_definition empty_cach_code
   apply (rewrite at \<open>_[\<hole> := SEEN_UNKNOWN]\<close> index_of_atm_def[symmetric])
   by sepref
 
-declare empty_cach_code.refine[sepref_fr_rules]
+
 
 theorem empty_cach_code_empty_cach_ref[sepref_fr_rules]:
   \<open>(empty_cach_code, RETURN \<circ> empty_cach_ref)
@@ -105,7 +104,7 @@ sepref_register fm_add_new_fast
 lemma isasat_fast_length_leD: \<open>isasat_fast S \<Longrightarrow> Suc (length (get_clauses_wl_heur S)) < max_snat 64\<close>
   by (cases S) (auto simp: isasat_fast_def max_snat_def sint64_max_def)
 
-sepref_definition propagate_bt_wl_D_fast_code
+sepref_def propagate_bt_wl_D_fast_code
   is \<open>uncurry2 propagate_bt_wl_D_heur\<close>
   :: \<open>[\<lambda>((L, C), S). isasat_fast S]\<^sub>a
       unat_lit_assn\<^sup>k *\<^sub>a clause_ll_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
@@ -125,10 +124,8 @@ sepref_definition propagate_bt_wl_D_fast_code
   apply (rewrite in \<open>isasat_fast \<hole>\<close> fold_tuple_optimizations[symmetric])+
    by sepref  \<comment>\<open>This call is now unreasonnably slow. 30 minutes\<close>
 
-declare
-  propagate_bt_wl_D_fast_code.refine[sepref_fr_rules]
 
-sepref_definition propagate_unit_bt_wl_D_fast_code
+sepref_def propagate_unit_bt_wl_D_fast_code
   is \<open>uncurry propagate_unit_bt_wl_D_int\<close>
   :: \<open>unat_lit_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
   supply [[goals_limit = 1]] vmtf_flush_def[simp] image_image[simp] uminus_\<A>\<^sub>i\<^sub>n_iff[simp]
@@ -138,8 +135,6 @@ sepref_definition propagate_unit_bt_wl_D_fast_code
   apply (annot_snat_const "TYPE(64)")
   by sepref
 
-declare
-  propagate_unit_bt_wl_D_fast_code.refine[sepref_fr_rules]
 
 lemma extract_shorter_conflict_list_heur_st_alt_def:
     \<open>extract_shorter_conflict_list_heur_st = (\<lambda>(M, N, (bD), Q', W', vm, \<phi>, clvls, cach, lbd, outl,
@@ -165,7 +160,7 @@ lemma extract_shorter_conflict_list_heur_st_alt_def:
 sepref_register isa_minimize_and_extract_highest_lookup_conflict
   empty_conflict_and_extract_clause_heur
 find_in_thms vmtf_mark_to_rescore_also_reasons_fast_code in sepref_fr_rules
-sepref_definition extract_shorter_conflict_list_heur_st_fast
+sepref_def extract_shorter_conflict_list_heur_st_fast
   is \<open>extract_shorter_conflict_list_heur_st\<close>
   :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a
         isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn *a uint32_nat_assn *a clause_ll_assn\<close>
@@ -176,22 +171,19 @@ sepref_definition extract_shorter_conflict_list_heur_st_fast
   apply (annot_snat_const "TYPE(64)")
   by sepref
 
-declare extract_shorter_conflict_list_heur_st_fast.refine[sepref_fr_rules]
 
 sepref_register find_lit_of_max_level_wl
   extract_shorter_conflict_list_heur_st lit_of_hd_trail_st_heur propagate_bt_wl_D_heur
   propagate_unit_bt_wl_D_int
 sepref_register backtrack_wl_D
 
-sepref_definition lit_of_hd_trail_st_heur_fast_code
+sepref_def lit_of_hd_trail_st_heur_fast_code
   is \<open>RETURN o lit_of_hd_trail_st_heur\<close>
   :: \<open>[\<lambda>S. fst (get_trail_wl_heur S) \<noteq> []]\<^sub>a isasat_bounded_assn\<^sup>k \<rightarrow> unat_lit_assn\<close>
   unfolding lit_of_hd_trail_st_heur_alt_def isasat_bounded_assn_def
   by sepref
 
-declare lit_of_hd_trail_st_heur_fast_code.refine[sepref_fr_rules]
-
-sepref_definition backtrack_wl_D_fast_code
+sepref_def backtrack_wl_D_fast_code
   is \<open>backtrack_wl_D_nlit_heur\<close>
   :: \<open>[isasat_fast]\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   supply [[goals_limit=1]]
@@ -205,6 +197,21 @@ sepref_definition backtrack_wl_D_fast_code
   apply (annot_snat_const "TYPE(64)")
   by sepref
 
-declare backtrack_wl_D_fast_code.refine[sepref_fr_rules]
 
+experiment
+begin
+
+  export_llvm
+    empty_conflict_and_extract_clause_heur_fast_code
+    empty_cach_code
+    propagate_bt_wl_D_fast_code
+    propagate_unit_bt_wl_D_fast_code
+    extract_shorter_conflict_list_heur_st_fast
+    lit_of_hd_trail_st_heur_fast_code
+    backtrack_wl_D_fast_code
+  
+
+end  
+  
+  
 end

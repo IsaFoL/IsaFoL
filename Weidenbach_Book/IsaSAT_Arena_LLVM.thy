@@ -454,7 +454,7 @@ sepref_def MAX_LENGTH_SHORT_CLAUSE_impl is "uncurry0 (RETURN MAX_LENGTH_SHORT_CL
 end
 
 
-
+experiment begin
 export_llvm
   arena_length_impl 
   arena_lit_impl 
@@ -473,5 +473,6 @@ export_llvm
   marked_as_used_impl 
   MAX_LENGTH_SHORT_CLAUSE_impl
 
+end
 
 end

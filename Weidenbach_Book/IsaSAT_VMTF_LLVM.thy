@@ -39,15 +39,15 @@ lemma get_prev_ref[sepref_fr_rules]:
   by sepref_to_hoare (sep_auto simp: return_cons_rule vmtf_node_rel_def)
 *)
 
-sepref_definition atoms_hash_del_code
+sepref_def atoms_hash_del_code
   is \<open>uncurry (RETURN oo atoms_hash_del)\<close>
   :: \<open>[uncurry atoms_hash_del_pre]\<^sub>a atom_assn\<^sup>k *\<^sub>a (atoms_hash_assn)\<^sup>d \<rightarrow> atoms_hash_assn\<close>
   unfolding atoms_hash_del_def atoms_hash_del_pre_def
   apply annot_all_atm_idxs
   by sepref
 
-declare atoms_hash_del_code.refine[sepref_fr_rules]
-sepref_definition (in -) atoms_hash_insert_code
+
+sepref_def atoms_hash_insert_code
   is \<open>uncurry (RETURN oo atoms_hash_insert)\<close>
   :: \<open>[uncurry atms_hash_insert_pre]\<^sub>a
       atom_assn\<^sup>k *\<^sub>a (distinct_atoms_assn)\<^sup>d \<rightarrow>  distinct_atoms_assn\<close>
@@ -55,8 +55,6 @@ sepref_definition (in -) atoms_hash_insert_code
   supply [[goals_limit=1]]
   apply annot_all_atm_idxs
   by sepref
-
-declare atoms_hash_insert_code.refine[sepref_fr_rules]
 
 
 sepref_register find_decomp_wl_imp
@@ -69,7 +67,7 @@ sepref_register vmtf_mark_to_rescore_also_reasons get_the_propagation_reason_pol
 sepref_register find_decomp_w_ns
 
 
-sepref_definition update_next_search_impl
+sepref_def update_next_search_impl
   is \<open>uncurry (RETURN oo update_next_search)\<close>
   :: \<open>(atom.option_assn)\<^sup>k *\<^sub>a vmtf_remove_assn\<^sup>d \<rightarrow>\<^sub>a vmtf_remove_assn\<close>
   supply [[goals_limit=1]]
@@ -85,7 +83,7 @@ lemma case_option_split:
 *)
 
   
-sepref_definition (in -)ns_vmtf_dequeue_code
+sepref_def ns_vmtf_dequeue_code
    is \<open>uncurry (RETURN oo ns_vmtf_dequeue)\<close>
    :: \<open>[vmtf_dequeue_pre]\<^sub>a
         atom_assn\<^sup>k *\<^sub>a (array_assn vmtf_node_assn)\<^sup>d \<rightarrow> array_assn vmtf_node_assn\<close>
@@ -95,8 +93,6 @@ sepref_definition (in -)ns_vmtf_dequeue_code
   apply annot_all_atm_idxs
   by sepref
   
-
-declare ns_vmtf_dequeue_code.refine[sepref_fr_rules]
 
 sepref_register get_next get_prev stamp
 lemma eq_Some_iff: "x = Some b \<longleftrightarrow> (\<not>is_None x \<and> the x = b)"
@@ -191,7 +187,7 @@ schematic_goal mk_free_trail_pol_fast_assn[sepref_frame_free_rules]: "MK_FREE tr
   unfolding trail_pol_fast_assn_def
   by (rule free_thms sepref_frame_free_rules)+ (* TODO: Write a method for that! *)
 
-sepref_definition vmtf_en_dequeue_fast_code
+sepref_def vmtf_en_dequeue_fast_code
    is \<open>uncurry2 isa_vmtf_en_dequeue\<close>
    :: \<open>[isa_vmtf_en_dequeue_pre]\<^sub>a
         trail_pol_fast_assn\<^sup>k *\<^sub>a atom_assn\<^sup>k *\<^sub>a vmtf_assn\<^sup>d \<rightarrow> vmtf_assn\<close>
@@ -206,10 +202,9 @@ sepref_definition vmtf_en_dequeue_fast_code
   unfolding fold_tuple_optimizations
   by sepref
 
-declare vmtf_en_dequeue_fast_code.refine[sepref_fr_rules]
 
 sepref_register vmtf_rescale
-sepref_definition vmtf_rescale_code
+sepref_def vmtf_rescale_code
    is \<open>vmtf_rescale\<close>
    :: \<open>vmtf_assn\<^sup>d \<rightarrow>\<^sub>a vmtf_assn\<close>
   supply [[goals_limit = 1]]
@@ -220,11 +215,9 @@ sepref_definition vmtf_rescale_code
   apply annot_all_atm_idxs    
   by sepref
   
-declare vmtf_rescale_code.refine[sepref_fr_rules]
 
 
-
-sepref_definition partition_vmtf_nth_code
+sepref_def partition_vmtf_nth_code
    is \<open>uncurry3 partition_vmtf_nth\<close>
    :: \<open>[\<lambda>(((ns, _), hi), xs). (\<forall>x\<in>set xs. x < length ns) \<and> length xs \<le> uint32_max]\<^sub>a
   (array_assn vmtf_node_assn)\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a (arl64_assn atom_assn)\<^sup>d \<rightarrow>
@@ -242,7 +235,6 @@ sepref_definition partition_vmtf_nth_code
   unfolding index_of_atm_def[symmetric]
   by sepref
 
-declare partition_vmtf_nth_code.refine[sepref_fr_rules]
 
 sepref_register partition_between_ref
 
@@ -256,7 +248,7 @@ sepref_register partition_between_ref
     
   
 (*TODO Move*)
-sepref_definition (in -) partition_between_ref_vmtf_code
+sepref_def partition_between_ref_vmtf_code
    is \<open>uncurry3 partition_between_ref_vmtf\<close>
    :: \<open>[\<lambda>(((vm), _), remove). (\<forall>x\<in>#mset remove. x < length (fst vm)) \<and> length remove \<le> uint32_max]\<^sub>a
       (array_assn vmtf_node_assn)\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a (arl64_assn atom_assn)\<^sup>d  \<rightarrow>
@@ -276,10 +268,9 @@ sepref_definition (in -) partition_between_ref_vmtf_code
   by sepref
 
 sepref_register partition_between_ref_vmtf quicksort_vmtf_nth_ref
-declare partition_between_ref_vmtf_code.refine[sepref_fr_rules]
 
 lemma quicksort_vmtf_nth_ref_code_avoid_minus: "p - (1::nat) \<le> lo \<longleftrightarrow> p=0 \<or> p \<le> lo + 1" by auto
-sepref_definition (in -) quicksort_vmtf_nth_ref_code
+sepref_def quicksort_vmtf_nth_ref_code
    is \<open>uncurry3 quicksort_vmtf_nth_ref\<close>
    :: \<open>[\<lambda>((vm, _), remove). (\<forall>x\<in>#mset remove. x < length (fst vm)) \<and> length remove \<le> uint32_max]\<^sub>a
       (array_assn vmtf_node_assn)\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a (arl64_assn atom_assn)\<^sup>d  \<rightarrow>
@@ -296,9 +287,8 @@ sepref_definition (in -) quicksort_vmtf_nth_ref_code
   supply mset_eq_setD[dest] mset_eq_length[dest]
   by sepref
 
-declare quicksort_vmtf_nth_ref_code.refine[sepref_fr_rules]
 
-sepref_definition (in -) quicksort_vmtf_nth_code
+sepref_def quicksort_vmtf_nth_code
    is \<open>uncurry quicksort_vmtf_nth\<close>
    :: \<open>[\<lambda>(vm, remove). (\<forall>x\<in>#mset remove. x < length (fst vm)) \<and> length remove \<le> uint32_max]\<^sub>a
       vmtf_assn\<^sup>k *\<^sub>a (arl64_assn atom_assn)\<^sup>d  \<rightarrow>
@@ -312,7 +302,6 @@ sepref_definition (in -) quicksort_vmtf_nth_code
   apply (annot_snat_const "TYPE(64)")
   by sepref
 
-declare quicksort_vmtf_nth_code.refine[sepref_fr_rules]
 
 lemma quicksort_vmtf_nth_code_reorder_list[sepref_fr_rules]:
    \<open>(uncurry quicksort_vmtf_nth_code, uncurry reorder_list) \<in>
@@ -330,17 +319,16 @@ lemma uint64_nal_rel_le_uint64_max: \<open>(a, b) \<in> uint64_nat_rel \<Longrig
 lemma emptied_list_alt_def: \<open>emptied_list xs = take 0 xs\<close>
   by (auto simp: emptied_list_def)
 
-sepref_definition current_stamp_impl
+sepref_def current_stamp_impl
   is \<open>RETURN o current_stamp\<close>
   :: \<open>vmtf_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
   unfolding current_stamp_alt_def
   by sepref
 
-lemmas [sepref_fr_rules] = current_stamp_impl.refine
 
 sepref_register isa_vmtf_en_dequeue
 
-sepref_definition isa_vmtf_flush_fast_code
+sepref_def isa_vmtf_flush_fast_code
    is \<open>uncurry isa_vmtf_flush_int\<close>
    :: \<open>trail_pol_fast_assn\<^sup>k *\<^sub>a (vmtf_remove_assn)\<^sup>d \<rightarrow>\<^sub>a
         vmtf_remove_assn\<close>
@@ -356,10 +344,9 @@ sepref_definition isa_vmtf_flush_fast_code
   apply (annot_unat_const "TYPE(64)")
   by sepref
 
-declare isa_vmtf_flush_fast_code.refine[sepref_fr_rules]
 
 sepref_register isa_vmtf_mark_to_rescore
-sepref_definition isa_vmtf_mark_to_rescore_code
+sepref_def isa_vmtf_mark_to_rescore_code
   is \<open>uncurry (RETURN oo isa_vmtf_mark_to_rescore)\<close>
   :: \<open>[uncurry isa_vmtf_mark_to_rescore_pre]\<^sub>a
      atom_assn\<^sup>k *\<^sub>a vmtf_remove_assn\<^sup>d \<rightarrow> vmtf_remove_assn\<close>
@@ -368,10 +355,9 @@ sepref_definition isa_vmtf_mark_to_rescore_code
   unfolding isa_vmtf_mark_to_rescore_pre_def isa_vmtf_mark_to_rescore_def vmtf_remove_assn_def
   by sepref
 
-declare isa_vmtf_mark_to_rescore_code.refine[sepref_fr_rules]
 
 sepref_register isa_vmtf_unset
-sepref_definition isa_vmtf_unset_code
+sepref_def isa_vmtf_unset_code
   is \<open>uncurry (RETURN oo isa_vmtf_unset)\<close>
   :: \<open>[uncurry vmtf_unset_pre]\<^sub>a
      atom_assn\<^sup>k *\<^sub>a vmtf_remove_assn\<^sup>d \<rightarrow> vmtf_remove_assn\<close>
@@ -382,15 +368,13 @@ sepref_definition isa_vmtf_unset_code
   apply annot_all_atm_idxs
   by sepref
 
-lemmas [sepref_fr_rules] = isa_vmtf_mark_to_rescore_code.refine
-   isa_vmtf_unset_code.refine
 
 lemma isa_vmtf_mark_to_rescore_and_unsetI:  \<open>
      atms_hash_insert_pre ak (ad, ba) \<Longrightarrow>
        isa_vmtf_mark_to_rescore_pre ak ((a, aa, ab, ac, Some ak'), ad, ba)\<close>
   by (auto simp: isa_vmtf_mark_to_rescore_pre_def)
 
-sepref_definition vmtf_mark_to_rescore_and_unset_code
+sepref_def vmtf_mark_to_rescore_and_unset_code
   is \<open>uncurry (RETURN oo isa_vmtf_mark_to_rescore_and_unset)\<close>
   :: \<open>[isa_vmtf_mark_to_rescore_and_unset_pre]\<^sub>a
       atom_assn\<^sup>k *\<^sub>a vmtf_remove_assn\<^sup>d \<rightarrow> vmtf_remove_assn\<close>
@@ -401,9 +385,8 @@ sepref_definition vmtf_mark_to_rescore_and_unset_code
     save_phase_def isa_vmtf_mark_to_rescore_and_unset_pre_def
   by sepref
 
-declare vmtf_mark_to_rescore_and_unset_code.refine[sepref_fr_rules]
 
-sepref_definition find_decomp_wl_imp_fast_code
+sepref_def find_decomp_wl_imp_fast_code
   is \<open>uncurry2 (isa_find_decomp_wl_imp)\<close>
   :: \<open>[\<lambda>((M, lev), vm). True]\<^sub>a trail_pol_fast_assn\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a vmtf_remove_assn\<^sup>d
     \<rightarrow> trail_pol_fast_assn *a vmtf_remove_assn\<close>
@@ -416,9 +399,8 @@ sepref_definition find_decomp_wl_imp_fast_code
   apply (annot_snat_const "TYPE(64)")
   by sepref
 
-declare find_decomp_wl_imp_fast_code.refine[sepref_fr_rules]
 
-sepref_definition vmtf_rescore_fast_code
+sepref_def vmtf_rescore_fast_code
   is \<open>uncurry3 isa_vmtf_rescore\<close>
   :: \<open>clause_ll_assn\<^sup>k *\<^sub>a trail_pol_fast_assn\<^sup>k *\<^sub>a vmtf_remove_assn\<^sup>d *\<^sub>a phase_saver_assn\<^sup>d \<rightarrow>\<^sub>a
        vmtf_remove_assn *a phase_saver_assn\<close>
@@ -427,10 +409,8 @@ sepref_definition vmtf_rescore_fast_code
   apply (annot_snat_const "TYPE(64)")
   by sepref
 
-declare
-  vmtf_rescore_fast_code.refine[sepref_fr_rules]
 
-sepref_definition find_decomp_wl_imp'_fast_code
+sepref_def find_decomp_wl_imp'_fast_code
   is \<open>uncurry find_decomp_wl_st_int\<close>
   :: \<open>uint32_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d  \<rightarrow>\<^sub>a
         isasat_bounded_assn\<close>
@@ -438,8 +418,6 @@ sepref_definition find_decomp_wl_imp'_fast_code
   supply [[goals_limit = 1]]
   unfolding fold_tuple_optimizations
   by sepref
-
-declare find_decomp_wl_imp'_fast_code.refine[sepref_fr_rules]
 
 
 lemma (in -) arena_is_valid_clause_idx_le_uint64_max:
@@ -451,7 +429,7 @@ lemma (in -) arena_is_valid_clause_idx_le_uint64_max:
   using arena_lifting(10)[of be _ _ bd] unfolding max_snat_def sint64_max_def
   by (fastforce simp: arena_lifting arena_is_valid_clause_idx_def)+
 
-sepref_definition vmtf_mark_to_rescore_clause_fast_code
+sepref_def vmtf_mark_to_rescore_clause_fast_code
   is \<open>uncurry2 (isa_vmtf_mark_to_rescore_clause)\<close>
   :: \<open>[\<lambda>((N, _), _). length N \<le> sint64_max]\<^sub>a
        arena_fast_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a vmtf_remove_assn\<^sup>d \<rightarrow> vmtf_remove_assn\<close>
@@ -463,9 +441,8 @@ sepref_definition vmtf_mark_to_rescore_clause_fast_code
   apply (annot_snat_const "TYPE(64)")
   by sepref
 
-declare vmtf_mark_to_rescore_clause_fast_code.refine[sepref_fr_rules]
 
-sepref_definition vmtf_mark_to_rescore_also_reasons_fast_code
+sepref_def vmtf_mark_to_rescore_also_reasons_fast_code
   is \<open>uncurry3 (isa_vmtf_mark_to_rescore_also_reasons)\<close>
   :: \<open>[\<lambda>(((_, N), _), _). length N \<le> sint64_max]\<^sub>a
       trail_pol_fast_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a out_learned_assn\<^sup>k *\<^sub>a vmtf_remove_assn\<^sup>d \<rightarrow>
@@ -480,7 +457,31 @@ sepref_definition vmtf_mark_to_rescore_also_reasons_fast_code
   unfolding  nres_monad3 case_option_split
   by sepref
 
-declare vmtf_mark_to_rescore_also_reasons_fast_code.refine[sepref_fr_rules]
+experiment begin
 
+export_llvm
+  ns_vmtf_dequeue_code
+  atoms_hash_del_code
+  atoms_hash_insert_code
+  update_next_search_impl
+  ns_vmtf_dequeue_code
+  vmtf_en_dequeue_fast_code
+  vmtf_rescale_code
+  partition_vmtf_nth_code
+  partition_between_ref_vmtf_code
+  quicksort_vmtf_nth_ref_code
+  quicksort_vmtf_nth_code
+  current_stamp_impl
+  isa_vmtf_flush_fast_code
+  isa_vmtf_mark_to_rescore_code
+  isa_vmtf_unset_code
+  vmtf_mark_to_rescore_and_unset_code
+  find_decomp_wl_imp_fast_code
+  vmtf_rescore_fast_code
+  find_decomp_wl_imp'_fast_code
+  vmtf_mark_to_rescore_clause_fast_code
+  vmtf_mark_to_rescore_also_reasons_fast_code
+  
+end  
 
 end

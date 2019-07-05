@@ -9,18 +9,17 @@ type_synonym 'a larray64 = "('a,64) larray"
 type_synonym lbd_assn = \<open>(1 word) larray64 \<times> 32 word \<times> 32 word\<close>
 
 (*TODO use 32*)
-
 abbreviation lbd_int_assn :: \<open>lbd_ref \<Rightarrow> lbd_assn \<Rightarrow> assn\<close> where
   \<open>lbd_int_assn \<equiv> larray64_assn bool1_assn *a uint32_nat_assn *a uint32_nat_assn\<close>
 
 definition lbd_assn :: \<open>lbd \<Rightarrow> lbd_assn \<Rightarrow> assn\<close> where
   \<open>lbd_assn \<equiv> hr_comp lbd_int_assn lbd_ref\<close>
-
-
+  
+  
 paragraph \<open>Testing if a level is marked\<close>
 
-sepref_definition level_in_lbd_code
-  is \<open>uncurry (RETURN oo level_in_lbd_ref)\<close>
+sepref_def level_in_lbd_code
+  is [] \<open>uncurry (RETURN oo level_in_lbd_ref)\<close>
   :: \<open>uint32_nat_assn\<^sup>k *\<^sub>a lbd_int_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
   supply [[goals_limit=1]]
   unfolding level_in_lbd_ref_def short_circuit_conv length_uint32_nat_def
@@ -37,8 +36,8 @@ lemma level_in_lbd_hnr[sepref_fr_rules]:
   unfolding lbd_assn_def[symmetric]
   by simp
 
-sepref_definition lbd_empty_code
-  is \<open>lbd_empty_ref\<close>
+sepref_def lbd_empty_code
+  is [] \<open>lbd_empty_ref\<close>
   :: \<open>lbd_int_assn\<^sup>d  \<rightarrow>\<^sub>a lbd_int_assn\<close>
   unfolding lbd_empty_ref_def
   supply [[goals_limit=1]]
@@ -53,8 +52,8 @@ lemma lbd_empty_hnr[sepref_fr_rules]:
   using lbd_empty_code.refine[FCOMP lbd_empty_ref_lbd_empty[unfolded convert_fref]]
   unfolding lbd_assn_def .
 
-sepref_definition empty_lbd_code
-  is \<open>uncurry0 (RETURN empty_lbd_ref)\<close>
+sepref_def empty_lbd_code
+  is [] \<open>uncurry0 (RETURN empty_lbd_ref)\<close>
   :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a lbd_int_assn\<close>
   supply [[goals_limit=1]]
   unfolding empty_lbd_ref_def larray_fold_custom_replicate
@@ -71,8 +70,8 @@ lemma empty_lbd_hnr[sepref_fr_rules]:
 using empty_lbd_code.refine[FCOMP empty_lbd_ref_empty_lbd]
   unfolding lbd_assn_def .
 
-sepref_definition get_LBD_code
-  is \<open>get_LBD_ref\<close>
+sepref_def get_LBD_code
+  is [] \<open>get_LBD_ref\<close>
   :: \<open>lbd_int_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
   unfolding get_LBD_ref_def
   by sepref
@@ -87,8 +86,8 @@ paragraph \<open>Marking more levels\<close>
 
 lemmas list_grow_alt = list_grow_def[unfolded op_list_grow_init'_def[symmetric]]
 
-sepref_definition lbd_write_code
-  is \<open>uncurry lbd_ref_write\<close>
+sepref_def lbd_write_code
+  is [] \<open>uncurry lbd_ref_write\<close>
   :: \<open> [\<lambda>(lbd, i). i \<le> Suc (uint32_max div 2)]\<^sub>a
      lbd_int_assn\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> lbd_int_assn\<close>
   supply [[goals_limit=1]]
@@ -111,4 +110,16 @@ lemma lbd_write_hnr_[sepref_fr_rules]:
   using lbd_write_code.refine[FCOMP lbd_ref_write_lbd_write[unfolded convert_fref]]
   unfolding lbd_assn_def .
 
+  
+experiment begin
+  
+export_llvm  
+  level_in_lbd_code
+  lbd_empty_code
+  empty_lbd_code
+  get_LBD_code
+  lbd_write_code
+  
+end
+  
 end
