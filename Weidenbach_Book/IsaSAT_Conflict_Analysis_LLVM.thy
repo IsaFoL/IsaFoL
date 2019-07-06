@@ -255,4 +255,24 @@ sepref_def skip_and_resolve_loop_wl_D_fast
 
 declare skip_and_resolve_loop_wl_D_fast.refine[sepref_fr_rules]
 
+experiment
+begin
+  export_llvm
+    get_count_max_lvls_heur_impl
+    maximum_level_removed_eq_count_dec_fast_code
+    is_decided_hd_trail_wl_fast_code
+    lit_and_ann_of_propagated_st_heur_fast_code
+    is_in_option_lookup_conflict_code
+    atm_is_in_conflict_st_heur_fast_code
+    lit_of_last_trail_fast_code
+    tl_state_wl_heur_fast_code
+    None_lookup_conflict_impl
+    extract_valuse_of_lookup_conflict_impl
+    update_confl_tl_wl_fast_code
+    skip_and_resolve_loop_wl_D_fast
+
+end
+
+
+
 end

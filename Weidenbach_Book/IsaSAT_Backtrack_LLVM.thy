@@ -197,6 +197,8 @@ sepref_def backtrack_wl_D_fast_code
   apply (annot_snat_const "TYPE(64)")
   by sepref
 
+(* TODO: Move *)
+lemmas [llvm_inline] = add_lbd_def
 
 experiment
 begin
