@@ -331,6 +331,12 @@ next
   qed
 qed
 
+lemma mset_as_position_remove':
+  \<open>mset_as_position xs D \<Longrightarrow> atm_of L < length xs \<Longrightarrow>
+   mset_as_position (xs[atm_of L := None]) (remove1_mset L (remove1_mset (- L) D))\<close>
+  by (smt atm_of_uminus cancel_ab_semigroup_add_class.diff_right_commute is_neg_neg_not_is_neg literal.exhaust_sel mset_as_position_remove)
+
+
 definition (in -) delete_from_lookup_conflict
    :: \<open>nat literal \<Rightarrow> lookup_clause_rel \<Rightarrow> lookup_clause_rel nres\<close> where
   \<open>delete_from_lookup_conflict = (\<lambda>L (n, xs). do {
@@ -3884,47 +3890,78 @@ proof -
 qed
 
 
+(* TODO: move *)
+lemma FOREACHi_rule_stronger_inv:
+  assumes FIN: "finite S"
+  assumes I0: "I S s" "I' S s"
+  assumes IP:
+    "\<And>x it \<sigma>. \<lbrakk> x\<in>it; it\<subseteq>S; I it \<sigma>; I' it \<sigma> \<rbrakk> \<Longrightarrow> f x \<sigma> \<le> SPEC (\<lambda>\<sigma>. I (it-{x}) \<sigma> \<and> I' (it-{x}) \<sigma>)"
+  assumes II: "\<And>\<sigma>. \<lbrakk>I {} \<sigma>; I' {} \<sigma>\<rbrakk> \<Longrightarrow> P \<sigma>"
+  shows "FOREACHi I S f s \<le> SPEC P"
+proof -
+  have \<open>FOREACHi I S f s \<le> FOREACH\<^bsup>\<lambda>i s. I i s \<and> I' i s\<^esup> S f s\<close>
+    by (metis (no_types, lifting) FOREACH_patterns(1) FOREACHoci_weaken)
+
+  also have \<open>... \<le> SPEC P\<close>
+    apply (rule FOREACHi_rule)
+    subgoal using assms(1) by auto
+    subgoal using assms(2,3) by auto
+    subgoal using assms(4,5) by (auto intro!: SPEC_rule_conjI)
+    subgoal using assms(4,5) by (auto intro!: SPEC_rule_conjI)
+    done
+  finally show ?thesis .
+qed
+
+
+
+
 definition conflict_clause_minimisation_with_binary_clauses_f1 ::
-  \<open>('v literal \<Rightarrow> 'v watched) \<Rightarrow> 'v clause \<Rightarrow> 'v clause_l \<Rightarrow> ('v clause \<times> 'v clause_l) nres\<close> where
+  \<open>(nat literal \<Rightarrow> nat watched) \<Rightarrow> nat clause \<Rightarrow> nat clause_l \<Rightarrow> (nat clause \<times> nat clause_l) nres\<close> where
   \<open>conflict_clause_minimisation_with_binary_clauses_f1 = (\<lambda> W C outl.
     do {
       ASSERT(length outl > 0);
       let A = (outl!0);
       C \<leftarrow>
-        (FOREACH
+        (FOREACH\<^bsup>\<lambda> w C. C \<subseteq># mset outl \<and> distinct_mset C\<^esup>
         (set (W A)) 
         (\<lambda> (i, B, b) C.
           if \<not> b \<or> B = -A then RETURN (C) else \<comment> \<open>We only consider non-tautological binary clauses\<close>
-          if - B \<in># C then
-          RETURN (C - {# -B #}) else \<comment> \<open>Remove \<^term>\<open>- B\<close> from the conflict clause (in \<^typ>\<open>nat literal multiset\<close> representation)\<close>
-          RETURN (C)
+          do {
+            if - B \<in># C then
+            RETURN (C - {# -B #}) else \<comment> \<open>Remove \<^term>\<open>- B\<close> from the conflict clause (in \<^typ>\<open>nat literal multiset\<close> representation)\<close>
+            RETURN (C)
+          }
        )
        C);
+      ASSERT(C \<subseteq># mset outl);
       RETURN (C, filter (\<lambda> l. l \<in># C) outl) \<comment> \<open>Update \<^term>\<open>outl\<close>.\<close>
     }
   )
 \<close>
 
-(* TODO *)
+
 definition conflict_clause_minimisation_with_binary_clauses_f2 ::
   \<open>(nat literal \<Rightarrow> nat watched) \<Rightarrow> lookup_clause_rel \<Rightarrow> nat clause_l \<Rightarrow> (lookup_clause_rel \<times> nat clause_l) nres\<close> where
-  \<open>conflict_clause_minimisation_with_binary_clauses_f2 = (\<lambda> W (n,xs) outl.
+  \<open>conflict_clause_minimisation_with_binary_clauses_f2 = (\<lambda> W (n0,xs0) outl.
     do {
       ASSERT(length outl > 0);
       let A = (outl!0);
       (n, xs) \<leftarrow>
-        (FOREACH
+        (FOREACH \<^cancel>\<open>\<^bsup> \<lambda> w (n, xs). length xs = length xs0\<^esup>\<close>
         (set (W A)) 
         (\<lambda> (i, B, b) (n, xs).
-          if \<not> b \<or> B = -A then RETURN (n, xs) else  \<comment> \<open>We only consider binary non-tautological clauses\<close>
-          \<^cancel>\<open>ASSERT (atm_of B < length xs);\<close>
-          if xs ! (atm_of B) = Some (\<not> is_pos B) then
-          RETURN (n-1, xs[atm_of B := None]) else  \<comment> \<open>Remove \<^term>\<open>- B\<close> from the conflict clause (in ``hash set'' representation)\<close>
-          RETURN (n, xs)
+          if \<not> b \<or> B = -A then RETURN (n, xs) else  \<comment> \<open>We could actually skip the tautology check here, because we know that there are no tautologies.\<close>
+          do {
+            ASSERT (atm_of B < length xs);
+            if xs ! (atm_of B) = Some (\<not> is_pos B) then
+            RETURN (n-1, xs[atm_of B := None]) else  \<comment> \<open>Remove \<^term>\<open>- B\<close> from the conflict clause (in ``hash set'' representation)\<close>
+            RETURN (n, xs)
+          }
        )
-       (n, xs));
-      \<comment> \<open>assertion for filter\<close>
-      RETURN ((n, xs), filter (\<lambda> l. xs ! (atm_of l) \<noteq> None) outl) \<comment> \<open>Update \<^term>\<open>outl\<close>.\<close>
+       (n0, xs0));
+      ASSERT ((\<forall> l. atm_of l < length xs \<longrightarrow> xs ! (atm_of l) = Some (is_pos l) \<longrightarrow> l \<in> set outl));
+      ASSERT (\<forall>l\<in>set outl. atm_of l < length xs); \<comment> \<open>assertion that may be useful for filter\<close>
+      RETURN ((n, xs), filter (\<lambda> l. xs ! (atm_of l) = Some (is_pos l)) outl) \<comment> \<open>Update \<^term>\<open>outl\<close>.\<close>
     }
   )
 \<close>
@@ -4023,8 +4060,7 @@ proof -
 
   show ?thesis
     unfolding conflict_clause_minimisation_with_binary_clauses_f1_def
-    apply (refine_vcg FOREACH_rule[where I=\<open>\<lambda> w C. C \<subseteq># mset outl \<and> mset `# ran_mf N \<Turnstile>pm C \<and> distinct_mset C
-      \<and> ?A \<in># C\<close>])
+    apply (refine_vcg FOREACHi_rule_stronger_inv[where I'=\<open>\<lambda> w C. ?A \<in># C \<and> mset `# ran_mf N \<Turnstile>pm C\<close>])
     subgoal
       using assms(4) by blast
     subgoal
@@ -4032,10 +4068,11 @@ proof -
     subgoal
       using assms(2) by blast
     subgoal
-      using assms(3) by blast
-    subgoal
       using assms(2) assms(6) distinct_mset_mset_distinct by blast
-    subgoal using assms(2) by (cases outl) auto
+    subgoal
+      using assms(2) by auto
+    subgoal
+      using assms(3) by blast
     subgoal
       by blast
     subgoal
@@ -4046,14 +4083,15 @@ proof -
       by auto
     subgoal by auto
     subgoal
+      using distinct_mset_minus by blast
+    subgoal
+      by (auto intro!: tam(2))
+    subgoal
       by (smt Collect_mem_eq subset_Collect_conv tam(1))
     subgoal
-      using distinct_mset_minus by blast
-    subgoal by (auto intro!: tam(2))
+      using tam(2) by auto
     subgoal
-      by blast
-    subgoal
-      by blast
+      using tam(1) by auto
     subgoal
       using distinct_mset_minus by blast
     subgoal
@@ -4064,15 +4102,148 @@ proof -
       using tamtam by blast
     subgoal
       by blast
+    subgoal by simp
     done
 qed
 
 
+
+lemma filter_eqI:
+  fixes f g :: \<open>'a \<Rightarrow> bool\<close>
+  fixes xs :: \<open>'a list\<close>
+  assumes \<open>\<And> i. i < length xs \<Longrightarrow> f (xs!i) = g (xs!i)\<close>
+  shows \<open>filter f xs = filter g xs\<close>
+  by (metis assms filter_cong in_set_conv_nth)
+
+
 lemma
-  assumes \<open>(C, D) \<in> lookup_clause_rel (atm_of `# (all_lits_of_mm (mset `# ran_mf N + (NE + UE))))\<close>
+  fixes N NE UE W C outl
+  defines \<open>\<A>' \<equiv> (atm_of `# (all_lits_of_mm (mset `# ran_mf N + (NE + UE))))\<close>
+  assumes \<open>(C, D) \<in> lookup_clause_rel \<A>'\<close>
     and \<open>mset outl = D\<close>
-  shows \<open>conflict_clause_minimisation_with_binary_clauses_f2 W C outl \<le> \<Down> (lookup_clause_rel \<A> \<times>\<^sub>r \<langle>Id\<rangle> list_rel) (conflict_clause_minimisation_with_binary_clauses_f1 W D outl)\<close>
-  oops
+  shows \<open>conflict_clause_minimisation_with_binary_clauses_f2 W C outl \<le> \<Down> (lookup_clause_rel \<A>' \<times>\<^sub>r \<langle>Id\<rangle> list_rel) (conflict_clause_minimisation_with_binary_clauses_f1 W D outl)\<close>
+proof -
+  let ?A = \<open>outl ! 0\<close>
+  let ?N = \<open>mset `# ran_mf N\<close>
+
+
+  have L0: \<open>atm_of B < length xs\<close>
+    if \<open>((n, xs), C) \<in> lookup_clause_rel \<A>'\<close>
+        \<open>(i, B, b) \<in> set (W (outl!0))\<close> \<open>b\<close>
+      for n xs i B b C
+  proof -
+    have H: \<open>n = size C\<close> \<open>mset_as_position xs C\<close> \<open>\<forall>L\<in>atms_of (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>'). L < length xs\<close>
+      using lookup_clause_rel_def that(1) by auto
+
+    have \<open>atm_of B \<in> atms_of (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>')\<close>
+      sorry
+
+    then show \<open>atm_of B < length xs\<close>
+      using H(3) by blast
+  qed
+
+
+  have L1: \<open>- B \<in># C\<close>
+     if \<open>((n, xs), C) \<in> lookup_clause_rel \<A>'\<close>
+        \<open>(i, B, b) \<in> set (W (outl!0))\<close> \<open>b\<close> \<open>xs ! (atm_of B) = Some (is_neg B)\<close> \<open>B \<noteq> - ?A\<close> \<open>atm_of B < length xs\<close>
+     for n xs i B b C
+  proof -
+    have \<open>n = size C\<close> \<open>mset_as_position xs C\<close> \<open>\<forall>L\<in>atms_of (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>'). L < length xs\<close>
+      using lookup_clause_rel_def that(1) by auto
+    then show \<open>- B \<in># C\<close>
+      using is_pos_neg_not_is_pos mset_as_position_in_iff_nth that(4) that(6) by auto
+  qed
+
+
+  have L2: \<open>((n-Suc 0, xs[atm_of B := None]), C - {# -B #}) \<in> lookup_clause_rel \<A>'\<close>
+     if \<open>((n, xs), C) \<in> lookup_clause_rel \<A>'\<close>
+        \<open>(i, B, b) \<in> set (W (outl!0))\<close> \<open>b\<close> \<open>xs ! (atm_of B) = Some (is_neg B)\<close> \<open>B \<noteq> - ?A\<close>
+        \<open>atm_of B < length xs\<close> \<open>- B \<in># C\<close> \<open>atm_of B < length xs\<close>
+     for n xs i B b C
+  proof -
+    have H: \<open>n = size C\<close> \<open>mset_as_position xs C\<close> \<open>\<forall>L\<in>atms_of (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>'). L < length xs\<close>
+      using lookup_clause_rel_def that(1) by auto
+
+    have \<open>mset_as_position (xs[atm_of B := None]) (C - {# -B #})\<close>
+      by (metis H(2) atm_of_eq_atm_of diff_single_trivial mset_as_position_in_iff_nth mset_as_position_remove' option.inject that(4) that(6))
+
+    then show ?thesis
+      by (auto simp add: lookup_clause_rel_def H size_Diff_singleton that(7))
+  qed
+
+
+  have L3: \<open>L \<in> set outl\<close>
+     if \<open>((n, xs), C) \<in> lookup_clause_rel \<A>'\<close>
+        \<open>xs ! (atm_of L) = Some (is_pos L)\<close>
+        \<open>atm_of L < length xs\<close>
+        \<open>C \<subseteq># mset outl\<close>
+      for L n xs outl C
+  proof -
+    have \<open>n = size C\<close> \<open>mset_as_position xs C\<close> \<open>\<forall>L\<in>atms_of (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>'). L < length xs\<close>
+      using lookup_clause_rel_def that(1) by auto
+    have \<open>L \<in># C\<close>
+      using \<open>mset_as_position xs C\<close> mset_as_position_in_iff_nth that(2) that(3) by blast
+    then show ?thesis
+      using that(4) by auto
+  qed
+
+
+  have L4: \<open>\<forall>l\<in>set outl. atm_of l < length xs\<close>
+    if \<open>((n, xs), C) \<in> lookup_clause_rel \<A>'\<close>
+    for n xs outl C
+  proof -
+    show ?thesis
+      sorry
+  qed
+
+
+  have L5: \<open>filter (\<lambda>l. xs ! atm_of l = Some (is_pos l)) outl = filter (\<lambda>l. l \<in># C) outl\<close>
+    if \<open>((n, xs), C) \<in> lookup_clause_rel \<A>'\<close> \<open>\<forall>l\<in>set outl. atm_of l < length xs\<close>
+    for n xs outl C
+  proof(intro filter_eqI)
+    have H: \<open>n = size C\<close> \<open>mset_as_position xs C\<close> \<open>\<forall>L\<in>atms_of (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>'). L < length xs\<close>
+      using lookup_clause_rel_def that(1) by auto
+
+    fix i assume I: \<open>i < length outl\<close>
+    show \<open>(xs ! atm_of (outl ! i) = Some (is_pos (outl ! i))) = (outl ! i \<in># C)\<close>
+      using H(2) I mset_as_position_in_iff_nth nth_mem that(2) by blast
+  qed
+
+
+  show ?thesis
+    unfolding conflict_clause_minimisation_with_binary_clauses_f1_def
+              conflict_clause_minimisation_with_binary_clauses_f2_def
+    apply (split prod.splits)
+    apply (intro allI, intro impI)
+    subgoal premises C_def for n xs
+      apply (rule bind_refine[where R=\<open>(lookup_clause_rel \<A>' \<times>\<^sub>r \<langle>Id\<rangle> list_rel)\<close>])
+       apply (rule ASSERT_refine)
+       apply simp
+      subgoal premises _
+        apply (simp add: Let_def)
+        apply (rule bind_refine[where R'=\<open>lookup_clause_rel \<A>'\<close>])
+        subgoal
+          apply (refine_vcg)
+          apply auto
+          subgoal using C_def assms(2) by auto
+          subgoal using L0 by blast
+          subgoal using L1 by blast
+          subgoal using is_pos_neg_not_is_pos lookup_clause_rel_def mset_as_position_nth by fastforce
+          subgoal using L2 by blast
+          done
+        subgoal
+          apply (refine_vcg)
+          subgoal by (auto simp add: L3)
+          subgoal using L4 by fastforce
+          subgoal using L5 by fastforce
+          done
+        done
+      done
+    done
+qed
+
+
+
 
 (* TODO Check if the size is actually used anywhere *)
 
