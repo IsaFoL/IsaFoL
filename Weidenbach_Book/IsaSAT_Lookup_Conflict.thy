@@ -3909,6 +3909,7 @@ proof -
     subgoal using assms(4,5) by (auto intro!: SPEC_rule_conjI)
     subgoal using assms(4,5) by (auto intro!: SPEC_rule_conjI)
     done
+
   finally show ?thesis .
 qed
 
@@ -4099,9 +4100,9 @@ proof -
     subgoal
       using assms(2) by blast
     subgoal
-      using tamtam by blast
+      using assms(2) by blast
     subgoal
-      by blast
+      using tamtam by auto
     subgoal by simp
     done
 qed
@@ -4121,6 +4122,8 @@ lemma
   defines \<open>\<A>' \<equiv> (atm_of `# (all_lits_of_mm (mset `# ran_mf N + (NE + UE))))\<close>
   assumes \<open>(C, D) \<in> lookup_clause_rel \<A>'\<close>
     and \<open>mset outl = D\<close>
+    and \<open>atm_of `# all_lits_of_m (mset outl) \<subseteq># \<A>'\<close>
+    and \<open>blits_in_\<L>\<^sub>i\<^sub>n (M, N, Some D, NE, UE, Q, W)\<close> \<open>outl ! 0 \<in># all_lits_of_mm (mset `# ran_mf N + (NE + UE))\<close>
   shows \<open>conflict_clause_minimisation_with_binary_clauses_f2 W C outl \<le> \<Down> (lookup_clause_rel \<A>' \<times>\<^sub>r \<langle>Id\<rangle> list_rel) (conflict_clause_minimisation_with_binary_clauses_f1 W D outl)\<close>
 proof -
   let ?A = \<open>outl ! 0\<close>
@@ -4136,7 +4139,7 @@ proof -
       using lookup_clause_rel_def that(1) by auto
 
     have \<open>atm_of B \<in> atms_of (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>')\<close>
-      sorry
+      using that(2) assms(5,6) by (fastforce simp add: blits_in_\<L>\<^sub>i\<^sub>n_def \<A>'_def atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n \<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_all_lits_of_mm all_lits_def dest: multi_member_split)
 
     then show \<open>atm_of B < length xs\<close>
       using H(3) by blast
@@ -4188,13 +4191,11 @@ proof -
   qed
 
 
-  have L4: \<open>\<forall>l\<in>set outl. atm_of l < length xs\<close>
-    if \<open>((n, xs), C) \<in> lookup_clause_rel \<A>'\<close>
-    for n xs outl C
-  proof -
-    show ?thesis
-      sorry
-  qed
+  have L4: \<open>atm_of l < length xs\<close>
+    if \<open>l\<in>set outl\<close> \<open>((n, xs), C) \<in> lookup_clause_rel \<A>'\<close> \<open>C \<subseteq># mset outl\<close>
+    for n xs C l
+    using that multi_member_split[of l \<open>mset outl\<close>] assms(4)
+    by (auto simp add: lookup_clause_rel_def atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n all_lits_of_m_add_mset)
 
 
   have L5: \<open>filter (\<lambda>l. xs ! atm_of l = Some (is_pos l)) outl = filter (\<lambda>l. l \<in># C) outl\<close>
@@ -4209,7 +4210,6 @@ proof -
       using H(2) I mset_as_position_in_iff_nth nth_mem that(2) by blast
   qed
 
-
   show ?thesis
     unfolding conflict_clause_minimisation_with_binary_clauses_f1_def
               conflict_clause_minimisation_with_binary_clauses_f2_def
@@ -4220,10 +4220,10 @@ proof -
        apply (rule ASSERT_refine)
        apply simp
       subgoal premises _
-        apply (simp add: Let_def)
+        apply (simp only: Let_def)
         apply (rule bind_refine[where R'=\<open>lookup_clause_rel \<A>'\<close>])
         subgoal
-          apply (refine_vcg)
+          apply (refine_vcg FOREACHi_refine_rcg'[where \<alpha>=id])
           apply auto
           subgoal using C_def assms(2) by auto
           subgoal using L0 by blast
