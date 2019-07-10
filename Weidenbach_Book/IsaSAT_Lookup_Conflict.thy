@@ -3948,10 +3948,10 @@ definition conflict_clause_minimisation_with_binary_clauses_f2 ::
       ASSERT(length outl > 0);
       let A = (outl!0);
       (n, xs) \<leftarrow>
-        (FOREACH \<^cancel>\<open>\<^bsup> \<lambda> w (n, xs). length xs = length xs0\<^esup>\<close>
+        (FOREACH
         (set (W A)) 
         (\<lambda> (i, B, b) (n, xs).
-          if \<not> b \<or> B = -A then RETURN (n, xs) else  \<comment> \<open>We could actually skip the tautology check here, because we know that there are no tautologies.\<close>
+          if \<not> b \<or> B = -A then RETURN (n, xs) else
           do {
             ASSERT (atm_of B < length xs);
             if xs ! (atm_of B) = Some (\<not> is_pos B) then
@@ -3966,6 +3966,8 @@ definition conflict_clause_minimisation_with_binary_clauses_f2 ::
     }
   )
 \<close>
+
+
 
 
 lemma
