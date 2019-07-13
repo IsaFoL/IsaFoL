@@ -660,7 +660,7 @@ definition add_init_cls_heur
      let C = C;
      ASSERT(length C \<le> uint32_max + 2);
      ASSERT(length C \<ge> 2);
-     if unbdd \<or> (length N \<le> uint64_max - length C - 5 \<and> \<not>failed)
+     if unbdd \<or> (length N \<le> sint64_max - length C - 5 \<and> \<not>failed)
      then do {
        ASSERT(length vdom \<le> length N);
        (N, i) \<leftarrow> fm_add_new True C N;
@@ -1047,7 +1047,7 @@ where
         else if list_length_1 C
         then do {
           ASSERT (C \<noteq> []);
-          let L = hd C;
+          let L = C ! 0;
           ASSERT(polarity_pol_pre (get_trail_wl_heur_init S) L);
           let val_L = polarity_pol (get_trail_wl_heur_init S) L;
           if val_L = None
@@ -1132,7 +1132,7 @@ lemma init_dt_step_wl_heur_init_dt_step_wl:
   subgoal by (auto simp: twl_st_heur_parsing_no_WL_def)
   subgoal by (auto simp: twl_st_heur_parsing_no_WL_def   literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset
       split: list.splits)
-  subgoal by (auto simp: twl_st_heur_parsing_no_WL_def)
+  subgoal by (auto simp: twl_st_heur_parsing_no_WL_def hd_conv_nth)
   subgoal for C'S CT C T C' S
     by (subst polarity_pol_polarity[of \<A>, unfolded option_rel_id_simp,
        THEN fref_to_Down_unRET_uncurry_Id,
@@ -1146,7 +1146,7 @@ lemma init_dt_step_wl_heur_init_dt_step_wl:
   subgoal by (simp add:  literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset
       split: list.splits)
   subgoal by (simp add: get_conflict_wl_is_None_init_alt_def)
-  subgoal by simp
+  subgoal by (simp add: hd_conv_nth)
   subgoal
     by (auto simp: twl_st_heur_parsing_no_WL_def map_fun_rel_def literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset
         split: list.splits)
