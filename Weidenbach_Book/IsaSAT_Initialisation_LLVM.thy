@@ -309,6 +309,8 @@ sepref_definition nat_lit_lits_init_assn_assn_in
   apply (annot_unat_const "TYPE(64)")
   by sepref
 
+
+find_theorems nfoldli WHILET
 lemma [sepref_fr_rules]:
   \<open>(uncurry nat_lit_lits_init_assn_assn_in,  uncurry (RETURN \<circ>\<circ> op_set_insert))
   \<in> [\<lambda>(a, b). a \<le> uint32_max div 2]\<^sub>a
@@ -319,14 +321,21 @@ lemma [sepref_fr_rules]:
 sepref_definition extract_atms_cls_imp
   is \<open>uncurry extract_atms_cls_i\<close>
   :: \<open>(clause_ll_assn)\<^sup>k *\<^sub>a nat_lit_list_hm_assn\<^sup>d \<rightarrow>\<^sub>a nat_lit_list_hm_assn\<close>
-  unfolding extract_atms_cls_i_def
+  unfolding extract_atms_cls_i_def 
+  apply (subst nfoldli_by_idx)
+  unfolding nfoldli_upt_by_while
+  apply (annot_snat_const "TYPE(64)")
   by sepref
 
+
+ (*TODO: replace clause_ll_assn by Array_List for this file only (!);
+  then define clauses_ll_assn with Array_of_Array_List;
+  finally change operations s.t. they take (N!i) instead of C as argument.*)
 declare extract_atms_cls_imp.refine[sepref_fr_rules]
 
 sepref_definition extract_atms_clss_imp
   is \<open>uncurry extract_atms_clss_i\<close>
-  :: \<open>(list_assn (list_assn unat_lit_assn))\<^sup>k *\<^sub>a nat_lit_list_hm_assn\<^sup>d \<rightarrow>\<^sub>a nat_lit_list_hm_assn\<close>
+  :: \<open>(clauses_ll_assn)\<^sup>k *\<^sub>a nat_lit_list_hm_assn\<^sup>d \<rightarrow>\<^sub>a nat_lit_list_hm_assn\<close>
   unfolding extract_atms_clss_i_def
   by sepref
 
