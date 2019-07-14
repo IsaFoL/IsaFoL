@@ -1,0 +1,87 @@
+#!/bin/bash
+#
+# Copyright (c) 2019  Maximilian Wuttke
+# Derived from <https://isabelle.in.tum.de/community/Generate_TeX_Snippets>
+#
+# Create a snippets LaTeX file. The snippets file can then be imported into any
+# LaTeX file.  This work flow is a more efficient way to create Isabelle code
+# listings in your LaTeX file than writing your document directly in Isabelle.
+# because you don't have to always wait for Isabelle to build your PDF every
+# time.  If a snippet is not yet compiled, it will be replaced with a
+# placeholder.
+#
+#
+# Usage
+# =====
+#
+# Step 1: Setup
+# ------
+#
+# First of all, create a macro called `DefineSnippet` in document/root.tex.  If
+# this tex file is not the same as the file where you actually want to import
+# the snippets, it may be defined as a "nop" macro, i.g.
+# `\newcommand{\DefineSnippet}[2]{#2}`.  You should also add "build" to the
+# "document_files" section of the session in the ROOT file, to automatically
+# call this script at the end of the build process.  Finally, put the following
+# code in preamble of your LaTeX file that uses the snippets:
+#
+# \usepackage{todonotes} % For placeholders
+# \usepackage{ifthen}
+# \usepackage{isabelle}
+# \usepackage{isabellesym}
+# \newcommand{\DefineSnippet}[2]{%
+#   \expandafter\newcommand\csname snippet--#1\endcsname{%
+#     \begin{quote}
+#       \begin{isabelle}
+#         #2
+#       \end{isabelle}
+#     \end{quote}}} \newcommand{\Snippet}[1]{%
+#   \ifcsname snippet--#1\endcsname{\csname snippet--#1\endcsname}%
+#   \else \missingfigure{Snippet \texttt{\detokenize{#1}} missing} \fi%
+# \input{generated/snippets} % Your snippet file
+#
+# You can create the Isabelle *.sty files using the command
+# `isabelle latex -o # sty`.
+#
+# Finally, create an empty file `generated/snippets.tex`.  This is where your
+# snippets will be written to.
+#
+#
+# Step 2: Adding snippets in the Isabelle source code
+# ------
+#
+# Add snippets in the Isabelle source code like this:
+# text_raw ‹\DefineSnippet{<snippet_name>}{›
+#  ...
+# text_raw ‹}%EndSnippet›
+# The `EndSnippet` comment is important for this scrip.
+#
+# Step 3: Generate snippets file
+# ------
+#
+# Then invoke `isabelle build ...` to build the session and automatically call
+# this script.  The Isabelle build process may take a while.  You don't have to
+# wait for this to finish, just go ahead to Step 4.  The snippet file will
+# eventually be written into `generated/snippets.tex`.
+#
+# Step 4: Add snippets in your LaTeX document
+# -------
+#
+# Then use `\snippet{snippet_name}` to display the snippet called
+# `snippet_name` in your LaTeX document.  If Step 3 is not finished yet,
+# "missing figure" placeholders are generated in your PDF.
+#
+# If you want to add more snippets, just repeat Steps 2-4.
+#
+#
+# Further Reading
+# =====
+#
+# In Chapter 6 of the documentation "sugar: LaTeX Sugar for Isabelle
+# documents", there is another macro that can be used to create snippets.
+# However, you have to add some magic numbers as parameters in the Isabelle
+# source code.  I think that this macro (using the `quote` environment`) works
+# just fine.
+
+find . -type f -name "*.tex" -exec sed -n '/DefineSnippet/,/EndSnippet/p' {} + > ../snippets.tex
+touch ../document.pdf

@@ -1,15 +1,17 @@
 (* Correctness proof contributed by Maximilian Wuttke *)
 theory WB_Sort
-  imports WB_More_Refinement WB_More_Refinement_List "HOL-Library.Rewrite"
+  imports WB_More_Refinement WB_More_Refinement_List "HOL-Library.Rewrite" "HOL-Library.LaTeXsugar"
 begin
 
 text \<open>Every element between \<^term>\<open>lo\<close> and \<^term>\<open>hi\<close> can be chosen as pivot element.\<close>
 definition choose_pivot :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> 'b) \<Rightarrow> 'a list \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat nres\<close> where
   \<open>choose_pivot _ _ _ lo hi = SPEC(\<lambda>k. k \<ge> lo \<and> k \<le> hi)\<close>
 
-text \<open>The element at index \<open>p\<close> partitions the subarray \<open>lo..hi\<close>. This means that every element \<close>
+text \<open>The element at index \<open>p\<close> partitions the subarray \<open>lo..hi\<close>.\<close>
+text_raw \<open>\DefineSnippet{isPartition_wrt}{\<close>
 definition isPartition_wrt :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> 'b list \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> bool\<close> where
   \<open>isPartition_wrt R xs lo hi p \<equiv> (\<forall> i. i \<ge> lo \<and> i < p \<longrightarrow> R (xs!i) (xs!p)) \<and> (\<forall> j. j > p \<and> j \<le> hi \<longrightarrow> R (xs!p) (xs!j))\<close>
+text_raw \<open>}%EndSnippet\<close>
 
 lemma isPartition_wrtI:
   \<open>(\<And> i. \<lbrakk>i \<ge> lo; i < p\<rbrakk> \<Longrightarrow> R (xs!i) (xs!p)) \<Longrightarrow> (\<And> j. \<lbrakk>j > p; j \<le> hi\<rbrakk> \<Longrightarrow> R (xs!p) (xs!j)) \<Longrightarrow> isPartition_wrt R xs lo hi p\<close>
@@ -381,12 +383,14 @@ lemma merge_sorted_map_partitions_between:
 
 
 text \<open>The main theorem to merge sorted lists\<close>
+text_raw \<open>\DefineSnippet{merge_sorted_wrt_partitions}{\<close>
 lemma merge_sorted_wrt_partitions:
   \<open>isPartition_wrt R xs lo hi p \<Longrightarrow>
     sorted_sublist_wrt R xs lo (p - Suc 0) \<Longrightarrow> sorted_sublist_wrt R xs (Suc p) hi \<Longrightarrow>
     lo \<le> hi \<Longrightarrow> lo \<le> p \<Longrightarrow> p \<le> hi \<Longrightarrow> hi < length xs \<Longrightarrow>
     (\<forall>i j. lo \<le> i \<and> i < p \<and> p < j \<and> j \<le> hi \<longrightarrow> R (xs!i) (xs!j)) \<Longrightarrow>
     sorted_sublist_wrt R xs lo hi\<close>
+text_raw \<open>}%EndSnippet\<close>
   subgoal premises assms
   proof -
     have C: \<open>lo=p\<and>p=hi \<or> lo=p\<and>p<hi \<or> lo<p\<and>p=hi \<or> lo<p\<and>p<hi\<close>
@@ -566,12 +570,14 @@ lemma sorted_map_upper_sublist_still_sorted:
 
 
 text \<open>The specification of the partition function\<close>
+text_raw \<open>\DefineSnippet{partition_spec}{\<close>
 definition partition_spec :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> 'b) \<Rightarrow> 'a list \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a list \<Rightarrow> nat \<Rightarrow> bool\<close> where
   \<open>partition_spec R h xs lo hi xs' p \<equiv>
     mset xs' = mset xs \<and> \<comment> \<open>The list is a permutation\<close>
     isPartition_map R h xs' lo hi p \<and> \<comment> \<open>We have a valid partition on the resulting list\<close>
     lo \<le> p \<and> p \<le> hi \<and> \<comment> \<open>The partition index is in bounds\<close>
     (\<forall> i. i<lo \<longrightarrow> xs'!i=xs!i) \<and> (\<forall> i. hi<i\<and>i<length xs' \<longrightarrow> xs'!i=xs!i)\<close> \<comment> \<open>Everything else is unchanged.\<close>
+text_raw \<open>}%EndSnippet\<close>
 
 
 (* Actually, I only need that \<open>set (sublist xs' lo hi) = set (sublist xs lo hi)\<close> *)
@@ -656,6 +662,7 @@ qed
 
 
 text \<open>Our abstract recursive quicksort procedure. We abstract over a partition procedure.\<close>
+text_raw \<open>\DefineSnippet{quicksort}{\<close>
 definition quicksort :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> 'b) \<Rightarrow> nat \<times> nat \<times> 'a list \<Rightarrow> 'a list nres\<close> where
 \<open>quicksort R h = (\<lambda>(lo,hi,xs0). do {
   RECT (\<lambda>f (lo,hi,xs). do {
@@ -667,17 +674,21 @@ definition quicksort :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) \<Righta
       if hi\<le>p+1 then RETURN xs else f (p+1, hi, xs)
     }) (lo,hi,xs0)
   })\<close>
+text_raw \<open>}%EndSnippet\<close>
 
 text \<open>As premise for quicksor, we only need that the indices are ok.\<close>
 definition quicksort_pre :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> 'b) \<Rightarrow> 'a list \<Rightarrow>  nat \<Rightarrow> nat \<Rightarrow> 'a list \<Rightarrow> bool\<close> where
   \<open>quicksort_pre R h xs0 lo hi xs \<equiv> lo \<le> hi \<and> hi < length xs \<and> mset xs = mset xs0\<close>
 
+text_raw \<open>\DefineSnippet{quicksort_post}{\<close>
 definition quicksort_post :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> 'b) \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a list \<Rightarrow> 'a list \<Rightarrow> bool\<close> where
   \<open>quicksort_post R h lo hi xs xs' \<equiv>
     mset xs' = mset xs \<and>
     sorted_sublist_map R h xs' lo hi \<and>
     (\<forall> i. i<lo \<longrightarrow> xs'!i = xs!i) \<and>
     (\<forall> j. hi<j\<and>j<length xs \<longrightarrow> xs'!j = xs!j)\<close>
+text_raw \<open>}%EndSnippet\<close>
+
 
 text \<open>Convert Pure to HOL\<close>
 lemma quicksort_postI:
@@ -1177,10 +1188,12 @@ qed
 
 
 text \<open>We can now show the correctness of the abstract quicksort procedure, using the refinement framework and the above case lemmas.\<close>
+text_raw \<open>\DefineSnippet{quicksort_correct}{\<close>
 lemma quicksort_correct:
   assumes trans: \<open>\<And> x y z. \<lbrakk>R (h x) (h y); R (h y) (h z)\<rbrakk> \<Longrightarrow> R (h x) (h z)\<close> and lin: \<open>\<And>x y. R (h x) (h y) \<or> R (h y) (h x)\<close>
      and Pre: \<open>lo0 \<le> hi0\<close> \<open>hi0 < length xs0\<close>
-  shows \<open>quicksort R h (lo0,hi0,xs0) \<le> \<Down> Id (SPEC(\<lambda>xs. quicksort_post R h lo0 hi0 xs0 xs))\<close>
+   shows \<open>quicksort R h (lo0,hi0,xs0) \<le> \<Down> Id (SPEC(\<lambda>xs. quicksort_post R h lo0 hi0 xs0 xs))\<close>
+text_raw \<open>}%EndSnippet\<close>
 proof -
   have wf: \<open>wf (measure (\<lambda>(lo, hi, xs). Suc hi - lo))\<close>
     by auto
@@ -1290,7 +1303,7 @@ qed
 
 (* TODO: Show that our (abstract) partition satisifies the specification *)
 
-
+text_raw \<open>\DefineSnippet{partition_main_inv}{\<close>
 definition partition_main_inv :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> 'b) \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a list \<Rightarrow> (nat\<times>nat\<times>'a list) \<Rightarrow> bool\<close> where
   \<open>partition_main_inv R h lo hi xs0 p \<equiv>
     case p of (i,j,xs) \<Rightarrow>
@@ -1300,9 +1313,11 @@ definition partition_main_inv :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool)
     (\<forall>k. k < lo \<longrightarrow> xs!k = xs0!k) \<and> \<comment> \<open>Everything below \<^term>\<open>lo\<close> is unchanged\<close>
     (\<forall>k. k \<ge> j \<and> k < length xs \<longrightarrow> xs!k = xs0!k) \<comment> \<open>All elements from \<^term>\<open>j\<close> are unchanged (including everyting above \<^term>\<open>hi\<close>)\<close>
   \<close>
+text_raw \<open>}%EndSnippet\<close>
 
 text \<open>The main part of the partition function. The pivot is assumed to be the last element. This is
 exactly the "Lomuto partition scheme" partition function from Wikipedia.\<close>
+text_raw \<open>\DefineSnippet{partition_main}{\<close>
 definition partition_main :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> 'b) \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a list \<Rightarrow> ('a list \<times> nat) nres\<close> where
   \<open>partition_main R h lo hi xs0 = do {
     ASSERT(hi < length xs0);
@@ -1319,6 +1334,7 @@ definition partition_main :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) \<R
     ASSERT(i < length xs \<and> j = hi \<and> lo \<le> i \<and> hi < length xs \<and> mset xs = mset xs0);
     RETURN (swap xs i hi, i)
   }\<close>
+text_raw \<open>}%EndSnippet\<close>
 
 (*
 definition partition_spec :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> 'b) \<Rightarrow> 'a list \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a list \<Rightarrow> nat \<Rightarrow> bool\<close> where
@@ -1329,11 +1345,13 @@ definition partition_spec :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) \<R
     (\<forall> i. i<lo \<longrightarrow> xs'!i=xs!i) \<and> (\<forall> i. hi<i\<and>i<length xs' \<longrightarrow> xs'!i=xs!i)\<close> \<comment> \<open>Everything else is unchanged.\<close>
 *)
 
+text_raw \<open>\DefineSnippet{partition_main_correct}{\<close>
 lemma partition_main_correct:
   assumes bounds: \<open>hi < length xs\<close> \<open>lo \<le> hi\<close> and
     trans: \<open>\<And> x y z. \<lbrakk>R (h x) (h y); R (h y) (h z)\<rbrakk> \<Longrightarrow> R (h x) (h z)\<close> and lin: \<open>\<And>x y. R (h x) (h y) \<or> R (h y) (h x)\<close>
   shows \<open>partition_main R h lo hi xs \<le> SPEC(\<lambda>(xs', p). mset xs = mset xs' \<and>
      lo \<le> p \<and> p \<le> hi \<and> isPartition_map R h xs' lo hi p \<and> (\<forall> i. i<lo \<longrightarrow> xs'!i=xs!i) \<and> (\<forall> i. hi<i\<and>i<length xs' \<longrightarrow> xs'!i=xs!i))\<close>
+text_raw \<open>}%EndSnippet\<close>
 proof -
   have K: \<open>b \<le> hi - Suc n \<Longrightarrow> n > 0 \<Longrightarrow> Suc n \<le> hi \<Longrightarrow> Suc b \<le> hi - n\<close> for b hi n
     by auto
@@ -1382,7 +1400,7 @@ proof -
     done
 qed
 
-
+text_raw \<open>\DefineSnippet{partition_between}{\<close>
 definition partition_between :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> 'b) \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a list \<Rightarrow> ('a list \<times> nat) nres\<close> where
   \<open>partition_between R h lo hi xs0 = do {
     ASSERT(hi < length xs0 \<and> lo \<le> hi);
@@ -1392,12 +1410,15 @@ definition partition_between :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) 
     ASSERT(length xs = length xs0);
     partition_main R h lo hi xs
   }\<close>
+text_raw \<open>}%EndSnippet\<close>
 
 
+text_raw \<open>\DefineSnippet{partition_between_correct}{\<close>
 lemma partition_between_correct:
   assumes \<open>hi < length xs\<close> and \<open>lo \<le> hi\<close> and
   \<open>\<And> x y z. \<lbrakk>R (h x) (h y); R (h y) (h z)\<rbrakk> \<Longrightarrow> R (h x) (h z)\<close> and \<open>\<And>x y. R (h x) (h y) \<or> R (h y) (h x)\<close>
   shows \<open>partition_between R h lo hi xs \<le> SPEC(uncurry (partition_spec R h xs lo hi))\<close>
+text_raw \<open>}%EndSnippet\<close>
 proof -
   have K: \<open>b \<le> hi - Suc n \<Longrightarrow> n > 0 \<Longrightarrow> Suc n \<le> hi \<Longrightarrow> Suc b \<le> hi - n\<close> for b hi n
     by auto
@@ -1411,6 +1432,7 @@ qed
 
 
 text \<open>We use the median of the first, the middle, and the last element.\<close>
+text_raw \<open>\DefineSnippet{choose_pivot3}{\<close>
 definition choose_pivot3 where
   \<open>choose_pivot3 R h xs lo (hi::nat) = do {
     ASSERT(lo < length xs);
@@ -1425,6 +1447,8 @@ definition choose_pivot3 where
     else if (R start end \<and> R end mid) \<or> (R mid end \<and> R end start) then RETURN hi
     else RETURN lo
 }\<close>
+text_raw \<open>}%EndSnippet\<close>
+
 
 \<comment> \<open>We only have to show that this procedure yields a valid index between \<open>lo\<close> and \<open>hi\<close>.\<close>
 lemma choose_pivot3_choose_pivot:
@@ -1433,6 +1457,7 @@ lemma choose_pivot3_choose_pivot:
   unfolding choose_pivot3_def choose_pivot_def
   using assms by (auto intro!: ASSERT_leI simp: Let_def)
 
+text_raw \<open>\DefineSnippet{partition_between_ref}{\<close>
 text \<open>The refined partion function: We use the above pivot function and fold instead of non-deterministic iteration.\<close>
 definition partition_between_ref
   :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> 'b) \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a list \<Rightarrow> ('a list \<times> nat) nres\<close>
@@ -1445,6 +1470,7 @@ where
     ASSERT(length xs = length xs0);
     partition_main R h lo hi xs
   }\<close>
+text_raw \<open>}%EndSnippet\<close>
 
 
 lemma partition_main_ref':
@@ -1452,8 +1478,10 @@ lemma partition_main_ref':
     \<le> \<Down> ((\<lambda> a b c d. Id) a b c d) (partition_main R h lo hi xs)\<close>
   by auto
 
+text_raw \<open>\DefineSnippet{partition_between_ref_partition_between}{\<close>
 lemma partition_between_ref_partition_between:
   \<open>partition_between_ref R h lo hi xs \<le> (partition_between R h lo hi xs)\<close>
+text_raw \<open>}%EndSnippet\<close>
 proof -
   have swap: \<open>(swap xs k hi, swap xs ka hi) \<in> Id\<close> if \<open>k = ka\<close>
     for k ka
@@ -1510,6 +1538,7 @@ qed
 
 term quicksort
 
+text_raw \<open>\DefineSnippet{quicksort_ref}{\<close>
 text \<open>Refined quicksort algorithm: We use the refined partition function.\<close>
 definition quicksort_ref :: \<open>_ \<Rightarrow> _ \<Rightarrow> nat \<times> nat \<times> 'a list \<Rightarrow> 'a list nres\<close> where
 \<open>quicksort_ref R h = (\<lambda>(lo,hi,xs0).
@@ -1523,12 +1552,15 @@ definition quicksort_ref :: \<open>_ \<Rightarrow> _ \<Rightarrow> nat \<times> 
       if hi\<le>p+1 then RETURN xs else f (p+1, hi, xs)
     }) (lo,hi,xs0)
   })\<close>
+text_raw \<open>}%EndSnippet\<close>
 
 
+text_raw \<open>\DefineSnippet{quicksort_ref_quicksort}{\<close>
 lemma quicksort_ref_quicksort:
   assumes bounds: \<open>hi < length xs\<close> \<open>lo \<le> hi\<close> and
     trans: \<open>\<And> x y z. \<lbrakk>R (h x) (h y); R (h y) (h z)\<rbrakk> \<Longrightarrow> R (h x) (h z)\<close> and lin: \<open>\<And>x y. R (h x) (h y) \<or> R (h y) (h x)\<close>
   shows \<open>quicksort_ref R h x0 \<le> \<Down> Id (quicksort R h x0)\<close>
+text_raw \<open>}%EndSnippet\<close>
 proof -
   have wf: \<open>wf (measure (\<lambda>(lo, hi, xs). Suc hi - lo))\<close>
     by auto
@@ -1576,14 +1608,19 @@ proof -
     by simp+
 qed
 
-\<comment> \<open>Sort the entire list\<close>
+(* TODO: More snippets *)
+
+text_raw \<open>\DefineSnippet{full_quicksort}{\<close>
 definition full_quicksort where
   \<open>full_quicksort R h xs \<equiv> if xs = [] then RETURN xs else quicksort R h (0, length xs - 1, xs)\<close>
+text_raw \<open>}%EndSnippet\<close>
 
+text_raw \<open>\DefineSnippet{full_quicksort_ref}{\<close>
 definition full_quicksort_ref where
   \<open>full_quicksort_ref R h xs \<equiv>
     if List.null xs then RETURN xs
     else quicksort_ref R h (0, length xs - 1, xs)\<close>
+text_raw \<open>}%EndSnippet\<close>
 
 definition full_quicksort_impl :: \<open>nat list \<Rightarrow> nat list nres\<close> where
   \<open>full_quicksort_impl xs = full_quicksort_ref (\<le>) id xs\<close>
@@ -1654,11 +1691,13 @@ proof -
     done
 qed
 
+text_raw \<open>\DefineSnippet{full_quicksort_correct}{\<close>
 lemma full_quicksort_correct:
   assumes
     trans: \<open>\<And>x y z. \<lbrakk>R (h x) (h y); R (h y) (h z)\<rbrakk> \<Longrightarrow> R (h x) (h z)\<close> and
     lin: \<open>\<And>x y. R (h x) (h y) \<or> R (h y) (h x)\<close>
   shows \<open>full_quicksort R h xs \<le> \<Down> Id (SPEC(\<lambda>xs'. mset xs' = mset xs))\<close>
+text_raw \<open>}%EndSnippet\<close>
   by (rule order_trans[OF full_quicksort_correct_sorted])
     (use assms in auto)
 
