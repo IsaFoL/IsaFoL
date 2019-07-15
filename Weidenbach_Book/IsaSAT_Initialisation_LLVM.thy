@@ -1,10 +1,14 @@
-
 theory IsaSAT_Initialisation_LLVM
   imports IsaSAT_Setup_LLVM IsaSAT_VMTF_LLVM Watched_Literals.Watched_Literals_Watch_List_Initialisation
   Watched_Literals.Watched_Literals_Watch_List_Initialisation
     IsaSAT_Initialisation
 begin
 
+
+abbreviation unat_rel32 :: "(32 word \<times> nat) set" where "unat_rel32 \<equiv> unat_rel"
+abbreviation unat_rel64 :: "(64 word \<times> nat) set" where "unat_rel64 \<equiv> unat_rel"
+abbreviation snat_rel32 :: "(32 word \<times> nat) set" where "snat_rel32 \<equiv> snat_rel"
+abbreviation snat_rel64 :: "(64 word \<times> nat) set" where "snat_rel64 \<equiv> snat_rel"
 
 type_synonym (in -)vmtf_assn_option_fst_As =
   \<open>vmtf_node_assn ptr \<times> 64 word \<times> 32 word \<times> 32 word \<times> 32 word\<close>
@@ -90,12 +94,20 @@ sepref_definition propagate_unit_cls_code
 
 declare propagate_unit_cls_code.refine[sepref_fr_rules]
 
+definition already_propagated_unit_cls_heur' where
+  \<open>already_propagated_unit_cls_heur' = (\<lambda>(M, N, D, Q, oth).
+     RETURN (M, N, D, Q, oth))\<close>
+
+lemma already_propagated_unit_cls_heur'_alt:
+  \<open>already_propagated_unit_cls_heur L = already_propagated_unit_cls_heur'\<close>
+  unfolding already_propagated_unit_cls_heur_def already_propagated_unit_cls_heur'_def
+  by auto
 
 sepref_definition already_propagated_unit_cls_code
-  is \<open>uncurry already_propagated_unit_cls_heur\<close>
-  :: \<open>(list_assn unat_lit_assn)\<^sup>k *\<^sub>a isasat_init_assn\<^sup>d  \<rightarrow>\<^sub>a isasat_init_assn\<close>
+  is \<open>already_propagated_unit_cls_heur'\<close>
+  :: \<open>isasat_init_assn\<^sup>d  \<rightarrow>\<^sub>a isasat_init_assn\<close>
   supply [[goals_limit=1]]
-  unfolding already_propagated_unit_cls_heur_def isasat_init_assn_def
+  unfolding already_propagated_unit_cls_heur'_def isasat_init_assn_def
   PR_CONST_def cons_trail_Propagated_def[symmetric]
   by sepref
 
@@ -155,18 +167,53 @@ lemma add_init_clss_codebI:
   shows \<open>length a1'j < uint64_max\<close>
   using assms by (auto simp: uint64_max_def uint32_max_def)
 
+abbreviation clauses_ll_assn where
+  \<open>clauses_ll_assn \<equiv> aal_assn' TYPE(64) TYPE(64) unat_lit_assn\<close>
+
+definition fm_add_new_fast' where
+  \<open>fm_add_new_fast' b C i = fm_add_new_fast b (C!i)\<close>
+
+lemma op_list_list_llen_alt_def: \<open>op_list_list_llen xss i = length (xss ! i)\<close>
+  unfolding op_list_list_llen_def
+  by auto
+
+lemma op_list_list_idx_alt_def: \<open>op_list_list_idx xs i j = xs ! i ! j\<close> 
+  unfolding op_list_list_idx_def ..
+
+sepref_def append_and_length_fast_code
+  is \<open>uncurry3 fm_add_new_fast'\<close>
+  :: \<open>[\<lambda>(((b, C), i), N). i < length C \<and> append_and_length_fast_code_pre ((b, C!i), N)]\<^sub>a
+     bool1_assn\<^sup>k *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a (arena_fast_assn)\<^sup>d \<rightarrow>
+       arena_fast_assn *a sint64_nat_assn\<close>
+  supply [[goals_limit=1]]
+  supply [simp] = fm_add_new_bounds1[simplified]
+  supply [split] = if_splits
+  unfolding fm_add_new_fast_def fm_add_new_def append_and_length_fast_code_pre_def
+    fm_add_new_fast'_def op_list_list_llen_alt_def[symmetric] op_list_list_idx_alt_def[symmetric]
+    is_short_clause_def header_size_def
+  apply (rewrite at "AActivity \<hole>" unat_const_fold[where 'a=32])+
+  apply (rewrite at "APos \<hole>" unat_const_fold[where 'a=32])+
+  apply (rewrite at "op_list_list_llen _ _ - 2" annot_snat_unat_downcast[where 'l=32])
+  apply (annot_snat_const "TYPE(64)")
+  by sepref
+
+sepref_register fm_add_new_fast'
+
 sepref_definition add_init_cls_code_b
-  is \<open>uncurry add_init_cls_heur_b\<close>
-  :: \<open>(clause_ll_assn)\<^sup>k *\<^sub>a isasat_init_assn\<^sup>d  \<rightarrow>\<^sub>a isasat_init_assn\<close>
+  is \<open>uncurry2 add_init_cls_heur_b'\<close>
+  :: \<open>[\<lambda>((xs, i), S). i < length xs]\<^sub>a
+     (clauses_ll_assn)\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a isasat_init_assn\<^sup>d  \<rightarrow> isasat_init_assn\<close>
   supply [[goals_limit=1]] append_ll_def[simp]add_init_clss_codebI[intro]
     add_init_cls_code_bI[intro]  add_init_cls_code_bI2[intro]
   unfolding add_init_cls_heur_def add_init_cls_heur_b_def
   PR_CONST_def cons_trail_Propagated_def[symmetric]
-  Let_def length_uint64_nat_def
+  Let_def length_uint64_nat_def add_init_cls_heur_b'_def
+  op_list_list_llen_alt_def[symmetric] op_list_list_idx_alt_def[symmetric]
   unfolding isasat_init_assn_def
     nth_rll_def[symmetric] delete_index_and_swap_update_def[symmetric]
     delete_index_and_swap_ll_def[symmetric]
     append_ll_def[symmetric] fm_add_new_fast_def[symmetric]
+  fm_add_new_fast'_def[symmetric]
   apply (annot_snat_const "TYPE(64)")
   by sepref
 
@@ -202,11 +249,19 @@ sepref_definition set_empty_clause_as_conflict_code
 
 declare set_empty_clause_as_conflict_code.refine[sepref_fr_rules]
 
+definition (in -) add_clause_to_others_heur'
+   :: \<open>twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur_init nres\<close> where
+  \<open>add_clause_to_others_heur' = (\<lambda> (M, N, D, Q, WS).
+      RETURN (M, N, D, Q, WS))\<close>
+
+lemma add_clause_to_others_heur'_alt: \<open>add_clause_to_others_heur L = add_clause_to_others_heur'\<close>
+  unfolding add_clause_to_others_heur'_def add_clause_to_others_heur_def
+  ..
 sepref_definition add_clause_to_others_code
-  is \<open>uncurry add_clause_to_others_heur\<close>
-  :: \<open>(clause_ll_assn)\<^sup>k *\<^sub>a isasat_init_assn\<^sup>d \<rightarrow>\<^sub>a isasat_init_assn\<close>
+  is \<open>add_clause_to_others_heur'\<close>
+  :: \<open>isasat_init_assn\<^sup>d \<rightarrow>\<^sub>a isasat_init_assn\<close>
   supply [[goals_limit=1]]
-  unfolding add_clause_to_others_heur_def isasat_init_assn_def
+  unfolding add_clause_to_others_heur_def isasat_init_assn_def add_clause_to_others_heur'_def
   by sepref
 
 declare add_clause_to_others_code.refine[sepref_fr_rules]
@@ -241,18 +296,28 @@ sepref_register polarity_st_heur_init propagate_unit_cls_heur
 lemma is_Nil_length: \<open>is_Nil xs \<longleftrightarrow> length xs = 0\<close>
   by (cases xs) auto
 
+definition init_dt_wl_heur_b'
+   :: \<open>nat clause_l list \<Rightarrow> nat \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur_init nres\<close> where
+\<open>init_dt_wl_heur_b' C i = init_dt_step_wl_heur_b (C!i)\<close>
+
+
 sepref_definition init_dt_step_wl_code_b
-  is \<open>uncurry (init_dt_step_wl_heur_b)\<close>
-  :: \<open>[\<lambda>(C, S). True]\<^sub>a (clause_ll_assn)\<^sup>k *\<^sub>a isasat_init_assn\<^sup>d \<rightarrow>
+  is \<open>uncurry2 (init_dt_wl_heur_b')\<close>
+  :: \<open>[\<lambda>((xs, i), S). i < length xs]\<^sub>a (clauses_ll_assn)\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a isasat_init_assn\<^sup>d \<rightarrow>
        isasat_init_assn\<close>
   supply [[goals_limit=1]]
   supply polarity_None_undefined_lit[simp] polarity_st_init_def[simp]
   option.splits[split] get_conflict_wl_is_None_heur_init_alt_def[simp]
   tri_bool_eq_def[simp]
   unfolding init_dt_step_wl_heur_def PR_CONST_def
-    add_init_cls_heur_b_def[symmetric] init_dt_step_wl_heur_b_def
+    init_dt_step_wl_heur_b_def
+    init_dt_wl_heur_b'_def list_length_1_def is_Nil_length
+    op_list_list_llen_alt_def[symmetric] op_list_list_idx_alt_def[symmetric]
+    already_propagated_unit_cls_heur'_alt
+    add_init_cls_heur_b'_def[symmetric] add_clause_to_others_heur'_def[symmetric]
+    add_clause_to_others_heur'_alt
   unfolding watched_app_def[symmetric]
-  unfolding nth_rll_def[symmetric] list_length_1_def
+  unfolding nth_rll_def[symmetric]
   unfolding is_Nil_length
     cons_trail_Propagated_def[symmetric] get_conflict_wl_is_None_init
     polarity_st_heur_init_alt_def[symmetric]
@@ -285,11 +350,6 @@ sepref_def init_next_size_impl
   by sepref
 
 
-abbreviation unat_rel32 :: "(32 word \<times> nat) set" where "unat_rel32 \<equiv> unat_rel"
-abbreviation unat_rel64 :: "(64 word \<times> nat) set" where "unat_rel64 \<equiv> unat_rel"
-abbreviation snat_rel32 :: "(32 word \<times> nat) set" where "snat_rel32 \<equiv> snat_rel"
-abbreviation snat_rel64 :: "(64 word \<times> nat) set" where "snat_rel64 \<equiv> snat_rel"
-
 find_in_thms op_list_grow_init in sepref_fr_rules
 sepref_definition nat_lit_lits_init_assn_assn_in
   is \<open>uncurry add_to_atms_ext\<close>
@@ -318,55 +378,88 @@ lemma [sepref_fr_rules]:
   by (rule nat_lit_lits_init_assn_assn_in.refine[FCOMP add_to_atms_ext_op_set_insert
   [unfolded convert_fref op_set_insert_def[symmetric]]])
 
-sepref_definition extract_atms_cls_imp
-  is \<open>uncurry extract_atms_cls_i\<close>
-  :: \<open>(clause_ll_assn)\<^sup>k *\<^sub>a nat_lit_list_hm_assn\<^sup>d \<rightarrow>\<^sub>a nat_lit_list_hm_assn\<close>
-  unfolding extract_atms_cls_i_def 
-  apply (subst nfoldli_by_idx)
+lemma while_nfoldli:
+  "do {
+    (_,\<sigma>) \<leftarrow> WHILE\<^sub>T (FOREACH_cond c) (\<lambda>x. do {ASSERT (FOREACH_cond c x); FOREACH_body f x}) (l,\<sigma>);
+    RETURN \<sigma>
+  } \<le> nfoldli l c f \<sigma>"
+  apply (induct l arbitrary: \<sigma>)
+  apply (subst WHILET_unfold)
+  apply (simp add: FOREACH_cond_def)
+
+  apply (subst WHILET_unfold)
+  apply (auto
+    simp: FOREACH_cond_def FOREACH_body_def
+    intro: bind_mono Refine_Basic.bind_mono(1))
+ done
+
+
+definition extract_atms_cls_i' where
+  \<open>extract_atms_cls_i' C i = extract_atms_cls_i (C!i)\<close>
+
+(*TODO Move*)
+lemma aal_assn_boundsD':
+  assumes A: "rdomp (aal_assn' TYPE('l::len2) TYPE('ll::len2) A) xss" and \<open>i < length xss\<close>
+  shows "length (xss ! i) < max_snat LENGTH('ll)"
+  using aal_assn_boundsD_aux1[OF A] assms
+  by auto
+
+sepref_def extract_atms_cls_imp
+  is \<open>uncurry2 extract_atms_cls_i'\<close>
+  :: \<open>[\<lambda>((N, i), _). i < length N]\<^sub>a
+      (clauses_ll_assn)\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a nat_lit_list_hm_assn\<^sup>d \<rightarrow> nat_lit_list_hm_assn\<close>
+  supply [dest!] = aal_assn_boundsD'
+  unfolding extract_atms_cls_i_def extract_atms_cls_i'_def
+  apply (subst nfoldli_by_idx[abs_def])
   unfolding nfoldli_upt_by_while
+    op_list_list_llen_alt_def[symmetric] op_list_list_idx_alt_def[symmetric]
   apply (annot_snat_const "TYPE(64)")
   by sepref
 
-
- (*TODO: replace clause_ll_assn by Array_List for this file only (!);
-  then define clauses_ll_assn with Array_of_Array_List;
-  finally change operations s.t. they take (N!i) instead of C as argument.*)
 declare extract_atms_cls_imp.refine[sepref_fr_rules]
 
-sepref_definition extract_atms_clss_imp
+sepref_def extract_atms_clss_imp
   is \<open>uncurry extract_atms_clss_i\<close>
   :: \<open>(clauses_ll_assn)\<^sup>k *\<^sub>a nat_lit_list_hm_assn\<^sup>d \<rightarrow>\<^sub>a nat_lit_list_hm_assn\<close>
+  supply [dest] = aal_assn_boundsD'
   unfolding extract_atms_clss_i_def
+  apply (subst nfoldli_by_idx)
+  unfolding nfoldli_upt_by_while Let_def extract_atms_cls_i'_def[symmetric]
+    op_list_list_llen_alt_def[symmetric] op_list_list_idx_alt_def[symmetric]
+    op_list_list_len_def[symmetric]
+  apply (annot_snat_const "TYPE(64)")
   by sepref
 
 lemma extract_atms_clss_hnr[sepref_fr_rules]:
   \<open>(uncurry extract_atms_clss_imp, uncurry (RETURN \<circ>\<circ> extract_atms_clss))
     \<in> [\<lambda>(a, b). \<forall>C\<in>set a. \<forall>L\<in>set C. nat_of_lit L \<le> uint32_max]\<^sub>a
       (clauses_ll_assn)\<^sup>k *\<^sub>a nat_lit_list_hm_assn\<^sup>d \<rightarrow> nat_lit_list_hm_assn\<close>
-  using extract_atms_clss_imp.refine[FCOMP extract_atms_clss_i_extract_atms_clss[unfolded convert_fref]] .
+  using extract_atms_clss_imp.refine[FCOMP extract_atms_clss_i_extract_atms_clss[unfolded convert_fref]]
+  by simp
 
 sepref_definition extract_atms_clss_imp_empty_assn
   is \<open>uncurry0 extract_atms_clss_imp_empty_rel\<close>
   :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a isasat_atms_ext_rel_assn\<close>
   unfolding extract_atms_clss_imp_empty_rel_def
-    array_fold_custom_replicate
+    larray_fold_custom_replicate
   supply [[goals_limit=1]]
-  apply (rewrite at \<open>(_, _, \<hole>)\<close> arl.fold_custom_empty)
-  apply (rewrite in \<open>(_, _, \<hole>)\<close> annotate_assn[where A=\<open>arl_assn uint32_nat_assn\<close>])
-  apply (rewrite in \<open>(\<hole>, _, _)\<close> zero_uint64_nat_def[symmetric])
-  apply (rewrite in \<open>(_, \<hole>, _)\<close> zero_uint32_nat_def[symmetric])
+  apply (rewrite at \<open>(_, _, \<hole>)\<close> al_fold_custom_empty[where 'l=64])
+  apply (rewrite in \<open>(\<hole>, _, _)\<close> annotate_assn[where A=\<open>larray64_assn uint64_nat_assn\<close>])
+  apply (rewrite in \<open>(\<hole>, _, _)\<close> snat_const_fold[where 'a=64])
+  apply (rewrite in \<open>(_, \<hole>, _)\<close> unat_const_fold[where 'a=32])
+  apply (annot_unat_const "TYPE(64)")
   by sepref
 
 lemma extract_atms_clss_imp_empty_assn[sepref_fr_rules]:
   \<open>(uncurry0 extract_atms_clss_imp_empty_assn, uncurry0 (RETURN op_extract_list_empty))
     \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a nat_lit_list_hm_assn\<close>
-  using extract_atms_clss_imp_empty_assn.refine[FCOMP extract_atms_clss_imp_empty_rel
-    [unfolded convert_fref uncurry0_def[symmetric]]] .
-
-declare atm_of_hnr[sepref_fr_rules]
+  using extract_atms_clss_imp_empty_assn.refine[unfolded uncurry0_def, FCOMP extract_atms_clss_imp_empty_rel
+    [unfolded convert_fref]]
+  unfolding uncurry0_def
+  by simp
 
 lemma extract_atms_clss_imp_empty_rel_alt_def:
-  \<open>extract_atms_clss_imp_empty_rel = (RETURN (op_array_replicate 1024 zero_uint64_nat, 0, []))\<close>
+  \<open>extract_atms_clss_imp_empty_rel = (RETURN (op_larray_custom_replicate 1024 0, 0, []))\<close>
   by (auto simp: extract_atms_clss_imp_empty_rel_def)
 
 
@@ -386,7 +479,7 @@ declare
 
 
 sepref_register rewatch_heur_st init_dt_step_wl_heur
-
+(*
 sepref_definition init_dt_wl_heur_code_b
   is \<open>uncurry (init_dt_wl_heur_b)\<close>
   :: \<open>(clauses_ll_assn)\<^sup>k *\<^sub>a isasat_init_assn\<^sup>d \<rightarrow>\<^sub>a
@@ -398,16 +491,51 @@ sepref_definition init_dt_wl_heur_code_b
 
 declare
   init_dt_wl_heur_code_b.refine[sepref_fr_rules]
+*)
+find_theorems "do {_ \<leftarrow> RETURN _; _}"
+definition extract_lits_sorted' where
+  \<open>extract_lits_sorted' xs n vars = extract_lits_sorted (xs, n, vars)\<close>
 
+lemma extract_lits_sorted_extract_lits_sorted':
+   \<open>extract_lits_sorted = (\<lambda>(xs, n, vars). extract_lits_sorted' xs n vars)\<close>
+  by (auto simp: extract_lits_sorted'_def)
+
+sepref_definition (in -) extract_lits_sorted'_impl
+   is \<open>uncurry2 extract_lits_sorted'\<close>
+   :: \<open>[\<lambda>((xs, n), vars). (\<forall>x\<in>#mset vars. x < length xs)]\<^sub>a
+      (larray64_assn uint64_nat_assn)\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a
+       (arl64_assn atom_assn)\<^sup>d  \<rightarrow>
+       arl64_assn atom_assn *a uint32_nat_assn\<close>
+  unfolding extract_lits_sorted'_def extract_lits_sorted_def nres_monad1
+    prod.case
+  by sepref
+
+lemmas [sepref_fr_rules] = extract_lits_sorted'_impl.refine
 
 sepref_definition (in -) extract_lits_sorted_code
    is \<open>extract_lits_sorted\<close>
    :: \<open>[\<lambda>(xs, n, vars). (\<forall>x\<in>#mset vars. x < length xs)]\<^sub>a
       isasat_atms_ext_rel_assn\<^sup>d  \<rightarrow>
-       arl_assn uint32_nat_assn *a uint32_nat_assn\<close>
-  unfolding extract_lits_sorted_def
+       arl64_assn atom_assn *a uint32_nat_assn\<close>
+  apply (subst extract_lits_sorted_extract_lits_sorted')
   supply [[goals_limit = 1]]
   supply mset_eq_setD[dest] mset_eq_length[dest]
+
+  apply sepref_dbg_preproc
+  apply sepref_dbg_cons_init
+  apply sepref_dbg_id
+  apply sepref_dbg_monadify
+  apply sepref_dbg_opt_init
+  apply sepref_dbg_trans
+  apply sepref_dbg_opt
+  apply sepref_dbg_cons_solve
+  apply sepref_dbg_cons_solve
+  apply sepref_dbg_constraints
+apply sepref_dbg_keep
+apply sepref_dbg_trans_keep
+apply sepref_dbg_trans_step_keep
+apply sepref_dbg_side_unfold
+
   by sepref
 
 declare extract_lits_sorted_code.refine[sepref_fr_rules]
@@ -514,29 +642,9 @@ declare init_aa'_code.refine[sepref_fr_rules]
 
 sepref_register initialise_VMTF
 
-
-sepref_definition init_trail_D_code
-  is \<open>uncurry2 init_trail_D\<close>
-  :: \<open>(arl_assn uint32_assn)\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a trail_pol_assn\<close>
-  unfolding init_trail_D_def PR_CONST_def
-  apply (rewrite in \<open>let _ = \<hole> in _\<close> arl.fold_custom_empty)
-  apply (rewrite in \<open>let _ = \<hole> in _\<close> annotate_assn[where A=\<open>arl_assn unat_lit_assn\<close>])
-  apply (rewrite in \<open>let _ = _; _ = \<hole> in _\<close> IICF_Array_List.arl.fold_custom_empty)
-  apply (rewrite in \<open>let _ = _; _ = \<hole> in _\<close> annotate_assn[where A=\<open>arl_assn uint32_nat_assn\<close>])
-
-  apply (rewrite in \<open>let _ = _;_ = \<hole> in _\<close> annotate_assn[where A=\<open>array_assn (tri_bool_assn)\<close>])
-  apply (rewrite in \<open>let _ = _;_ = _;_ = \<hole> in _\<close> annotate_assn[where A=\<open>array_assn uint32_nat_assn\<close>])
-  apply (rewrite in \<open>let _ = _ in _\<close> array_fold_custom_replicate)
-  apply (rewrite in \<open>let _ = _ in _\<close> array_fold_custom_replicate)
-  apply (rewrite in \<open>let _ = _ in _\<close> array_fold_custom_replicate)
-  supply [[goals_limit = 1]]
-  by sepref
-
-declare init_trail_D_code.refine[sepref_fr_rules]
-
-sepref_definition init_trail_D_fast_code
+sepref_def init_trail_D_fast_code
   is \<open>uncurry2 init_trail_D_fast\<close>
-  :: \<open>(arl_assn uint32_assn)\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a trail_pol_fast_assn\<close>
+  :: \<open>(arl_assn uint32_assn)\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a trail_pol_fast_assn\<close>
   unfolding init_trail_D_def PR_CONST_def init_trail_D_fast_def
   apply (rewrite in \<open>let _ = \<hole> in _\<close> arl32.fold_custom_empty)
   apply (rewrite in \<open>let _ = \<hole> in _\<close> annotate_assn[where A=\<open>arl32_assn unat_lit_assn\<close>])

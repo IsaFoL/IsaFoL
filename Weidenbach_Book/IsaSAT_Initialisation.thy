@@ -673,6 +673,9 @@ definition add_init_cls_heur_unb :: \<open>nat clause_l \<Rightarrow> twl_st_wl_
 definition add_init_cls_heur_b :: \<open>nat clause_l \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur_init nres\<close> where
 \<open>add_init_cls_heur_b = add_init_cls_heur False\<close>
 
+definition add_init_cls_heur_b' :: \<open>nat literal list list \<Rightarrow> nat \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur_init nres\<close> where
+\<open>add_init_cls_heur_b' C i = add_init_cls_heur False (C!i)\<close>
+
 lemma length_C_nempty_iff: \<open>length C \<ge> 2 \<longleftrightarrow> C \<noteq> [] \<and> tl C \<noteq> []\<close>
   by (cases C; cases \<open>tl C\<close>) auto
 
@@ -1794,7 +1797,7 @@ definition rewatch_heur_st_fast where
 
 definition rewatch_heur_st_fast_pre where
   \<open>rewatch_heur_st_fast_pre S =
-     ((\<forall>x \<in> set (get_vdom_heur_init S). x \<le> uint64_max) \<and> length (get_clauses_wl_heur_init S) \<le> uint64_max)\<close>
+     ((\<forall>x \<in> set (get_vdom_heur_init S). x \<le> sint64_max) \<and> length (get_clauses_wl_heur_init S) \<le> sint64_max)\<close>
 
 definition init_dt_wl_heur_full
   :: \<open>bool \<Rightarrow> _ \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur_init nres\<close>
