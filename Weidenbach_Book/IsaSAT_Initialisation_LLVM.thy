@@ -492,13 +492,13 @@ sepref_definition init_dt_wl_heur_code_b
 declare
   init_dt_wl_heur_code_b.refine[sepref_fr_rules]
 *)
-find_theorems "do {_ \<leftarrow> RETURN _; _}"
+
 definition extract_lits_sorted' where
   \<open>extract_lits_sorted' xs n vars = extract_lits_sorted (xs, n, vars)\<close>
 
 lemma extract_lits_sorted_extract_lits_sorted':
-   \<open>extract_lits_sorted = (\<lambda>(xs, n, vars). extract_lits_sorted' xs n vars)\<close>
-  by (auto simp: extract_lits_sorted'_def)
+   \<open>extract_lits_sorted = (\<lambda>(xs, n, vars). do {res \<leftarrow> extract_lits_sorted' xs n vars; mop_free xs; RETURN res})\<close>
+  by (auto simp: extract_lits_sorted'_def mop_free_def intro!: ext)
 
 sepref_definition (in -) extract_lits_sorted'_impl
    is \<open>uncurry2 extract_lits_sorted'\<close>
@@ -512,49 +512,43 @@ sepref_definition (in -) extract_lits_sorted'_impl
 
 lemmas [sepref_fr_rules] = extract_lits_sorted'_impl.refine
 
+
 sepref_definition (in -) extract_lits_sorted_code
    is \<open>extract_lits_sorted\<close>
    :: \<open>[\<lambda>(xs, n, vars). (\<forall>x\<in>#mset vars. x < length xs)]\<^sub>a
       isasat_atms_ext_rel_assn\<^sup>d  \<rightarrow>
        arl64_assn atom_assn *a uint32_nat_assn\<close>
   apply (subst extract_lits_sorted_extract_lits_sorted')
+  unfolding extract_lits_sorted'_def extract_lits_sorted_def nres_monad1
+    prod.case
   supply [[goals_limit = 1]]
   supply mset_eq_setD[dest] mset_eq_length[dest]
-
-  apply sepref_dbg_preproc
-  apply sepref_dbg_cons_init
-  apply sepref_dbg_id
-  apply sepref_dbg_monadify
-  apply sepref_dbg_opt_init
-  apply sepref_dbg_trans
-  apply sepref_dbg_opt
-  apply sepref_dbg_cons_solve
-  apply sepref_dbg_cons_solve
-  apply sepref_dbg_constraints
-apply sepref_dbg_keep
-apply sepref_dbg_trans_keep
-apply sepref_dbg_trans_step_keep
-apply sepref_dbg_side_unfold
-
   by sepref
 
 declare extract_lits_sorted_code.refine[sepref_fr_rules]
 
 
 abbreviation lits_with_max_assn where
-  \<open>lits_with_max_assn \<equiv> hr_comp (arl_assn uint32_nat_assn *a uint32_nat_assn) lits_with_max_rel\<close>
+  \<open>lits_with_max_assn \<equiv> hr_comp (arl64_assn atom_assn *a uint32_nat_assn) lits_with_max_rel\<close>
 
 lemma extract_lits_sorted_hnr[sepref_fr_rules]:
   \<open>(extract_lits_sorted_code, RETURN \<circ> mset_set) \<in> nat_lit_list_hm_assn\<^sup>d \<rightarrow>\<^sub>a lits_with_max_assn\<close>
     (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
 proof -
+  have H: \<open>hrr_comp isasat_atms_ext_rel
+      (\<lambda>_. arl64_assn atom_assn *a unat_assn) (\<lambda>_. lits_with_max_rel) = (\<lambda>_. hr_comp
+      (al_assn atom_assn *a unat_assn) lits_with_max_rel)\<close>
+    by (auto simp: hrr_comp_def intro!: ext)
+  
   have H: \<open>?c
     \<in> [comp_PRE isasat_atms_ext_rel (\<lambda>_. True)
          (\<lambda>_ (xs, n, vars). \<forall>x\<in>#mset vars. x < length xs) (\<lambda>_. True)]\<^sub>a
        hrp_comp (isasat_atms_ext_rel_assn\<^sup>d) isasat_atms_ext_rel \<rightarrow> lits_with_max_assn\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
     using hfref_compI_PRE_aux[OF extract_lits_sorted_code.refine
-    extract_lits_sorted_mset_set[unfolded convert_fref]] .
+      extract_lits_sorted_mset_set[unfolded convert_fref]] unfolding H
+    by auto
+
   have pre: \<open>?pre' x\<close> if \<open>?pre x\<close> for x
     using that by (auto simp: comp_PRE_def isasat_atms_ext_rel_def init_valid_rep_def)
   have im: \<open>?im' = ?im\<close>
@@ -566,97 +560,104 @@ proof -
     using pre ..
 qed
 
-(*TODO Move*)
-definition arl32_replicate where
- "arl32_replicate init_cap x \<equiv> do {
-    let n = max (nat_of_uint32 init_cap) minimum_capacity;
-    a \<leftarrow> Array.new n x;
-    return (a, init_cap)
-  }"
 
-definition [simp]: \<open>op_arl32_replicate = op_list_replicate\<close>
-lemma arl32_fold_custom_replicate:
-  \<open>replicate = op_arl32_replicate\<close>
-  unfolding op_arl32_replicate_def op_list_replicate_def ..
-
-lemma list_replicate_arl32_hnr[sepref_fr_rules]:
-  assumes p: \<open>CONSTRAINT is_pure R\<close>
-  shows \<open>(uncurry arl32_replicate, uncurry (RETURN oo op_arl32_replicate)) \<in> uint32_nat_assn\<^sup>k *\<^sub>a R\<^sup>k \<rightarrow>\<^sub>a arl32_assn R\<close>
-proof -
-  obtain R' where
-     R'[symmetric]: \<open>R' = the_pure R\<close> and
-     R_R': \<open>R = pure R'\<close>
-    using assms by fastforce
-  have [simp]: \<open>pure R' b bi = \<up>((bi, b) \<in> R')\<close> for b bi
-    by (auto simp: pure_def)
-  have [simp]: \<open>min a (max a 16) = a\<close> \<open>16 \<le> uint32_max\<close> for a :: nat
-    by (auto simp: uint32_max_def)
-  show ?thesis
-    using assms unfolding op_arl32_replicate_def
-    by sepref_to_hoare
-      (sep_auto simp: arl32_replicate_def arl32_assn_def hr_comp_def R' R_R' list_rel_def
-        is_array_list32_def minimum_capacity_def uint32_nat_rel_def br_def nat_of_uint32_le_uint32_max
-        intro!: list_all2_replicate)
-qed
-(*END Move*)
 definition INITIAL_OUTL_SIZE :: \<open>nat\<close> where
 [simp]: \<open>INITIAL_OUTL_SIZE = 160\<close>
-lemma [sepref_fr_rules]:
-  \<open>(uncurry0 (return 160), uncurry0 (RETURN INITIAL_OUTL_SIZE)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
-  by (sepref_to_hoare) (sep_auto simp: INITIAL_OUTL_SIZE_def uint32_nat_rel_def br_def)
+
+sepref_def INITIAL_OUTL_SIZE_impl
+  is \<open>uncurry0 (RETURN INITIAL_OUTL_SIZE)\<close>
+  :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a sint64_nat_assn\<close>
+  unfolding INITIAL_OUTL_SIZE_def
+  apply (annot_snat_const "TYPE(64)")
+  by sepref
+
+definition atom_of_value :: \<open>nat \<Rightarrow> nat\<close> where [simp]: \<open>atom_of_value x = x\<close>
+
+lemma atom_of_value_simp_hnr:
+  \<open>(\<exists>x. (\<up>(x = unat xi \<and> P x) \<and>* \<up>(x = unat xi)) s) =
+    (\<exists>x. (\<up>(x = unat xi \<and> P x)) s)\<close>
+  \<open>(\<exists>x. (\<up>(x = unat xi \<and> P x)) s) = (\<up>(P (unat xi))) s\<close>
+  unfolding import_param_3[symmetric]
+  by (auto simp: pred_lift_extract_simps)
+
+
+lemma atom_of_value_hnr[sepref_fr_rules]:
+   \<open>(return o (\<lambda>x. x), RETURN o atom_of_value) \<in> [\<lambda>n. n < 2 ^31]\<^sub>a (uint32_nat_assn)\<^sup>d \<rightarrow> atom_assn\<close>
+  apply sepref_to_hoare
+  apply vcg'
+  apply (auto simp: unat_rel_def atom_rel_def unat.rel_def br_def ENTAILS_def
+    atom_of_value_simp_hnr pure_true_conv Defer_Slot.remove_slot)
+  apply (rule Defer_Slot.remove_slot)
+  done
+
+sepref_register atom_of_value
+thm sepref_gen_algo_rules
+lemma [sepref_gen_algo_rules]: \<open>GEN_ALGO (Pos 0) (is_init unat_lit_assn)\<close>
+  by (auto simp: unat_lit_rel_def is_init_def unat_rel_def unat.rel_def
+    br_def nat_lit_rel_def GEN_ALGO_def)
+
+
+(*TODO very stupid*)
+find_theorems op_list_take
+
+
+find_theorems name:arl name:replicate
+find_theorems op_arl_custom_replicate
 
 sepref_definition finalise_init_code'
   is \<open>uncurry finalise_init_code\<close>
-  :: \<open>[\<lambda>(_, S). length (get_clauses_wl_heur_init S) \<le> uint64_max]\<^sub>a
+  :: \<open>[\<lambda>(_, S). length (get_clauses_wl_heur_init S) \<le> sint64_max]\<^sub>a
       opts_assn\<^sup>d *\<^sub>a isasat_init_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
-  supply zero_uin64_hnr[sepref_fr_rules] [[goals_limit=1]]
-    Pos_unat_lit_assn'[sepref_fr_rules] uint32_max_def[simp] op_arl_replicate_def[simp]
+  supply  [[goals_limit=1]]
   unfolding finalise_init_code_def isasat_init_assn_def isasat_bounded_assn_def
-     arl32_fold_custom_replicate two_uint32_def[symmetric] INITIAL_OUTL_SIZE_def[symmetric]
-     one_uint32_nat_def[symmetric]
-  apply (rewrite at \<open>(_, \<hole>, _)\<close> arl64.fold_custom_empty)
-  apply (rewrite in \<open>op_arl64_empty\<close> annotate_assn[where A=\<open>vdom_fast_assn\<close>])
-  apply (rewrite at \<open>(_, \<hole>)\<close> arl64.fold_custom_empty)
-  apply (rewrite in \<open>op_arl64_empty\<close> annotate_assn[where A=\<open>arena_fast_assn\<close>])
+     INITIAL_OUTL_SIZE_def[symmetric] atom.fold_the vmtf_remove_assn_def
+  apply (rewrite at \<open>Pos \<hole>\<close> unat_const_fold[where 'a=32])
+  apply (rewrite at \<open>Pos \<hole>\<close> atom_of_value_def[symmetric])
+  apply (rewrite at \<open>take \<hole>\<close> snat_const_fold[where 'a=64])
+  apply (annot_unat_const "TYPE(64)")
+  apply (rewrite at \<open>(_, \<hole>, _)\<close> al_fold_custom_empty[where 'l=64])
+  apply (rewrite at \<open>(_, \<hole>)\<close> al_fold_custom_empty[where 'l=64])
+  apply (rewrite in \<open>take _ \<hole>\<close> arl_fold_custom_replicate)
   by sepref
 
 declare finalise_init_code'.refine[sepref_fr_rules]
 
 
-lemma (in -)arrayO_raa_empty_sz_empty_list[sepref_fr_rules]:
-  \<open>(arrayO_raa_empty_sz, RETURN o init_aa) \<in>
-    nat_assn\<^sup>k \<rightarrow>\<^sub>a (arlO_assn clause_ll_assn)\<close>
-  by sepref_to_hoare (sep_auto simp: init_rll_def hr_comp_def clauses_ll_assn_def init_aa_def)
 
-lemma init_aa'_alt_def: \<open>RETURN o init_aa' = (\<lambda>n. RETURN op_arl_empty)\<close>
-  by (auto simp: init_aa'_def op_arl_empty_def)
-
-sepref_definition init_aa'_code
+(*sepref_definition init_aa'_code
   is \<open>RETURN o init_aa'\<close>
   :: \<open>sint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a arl_assn (clause_status_assn *a uint32_nat_assn *a uint32_nat_assn)\<close>
   unfolding init_aa'_alt_def
   by sepref
 
 declare init_aa'_code.refine[sepref_fr_rules]
+*)
 
 
 sepref_register initialise_VMTF
-
+abbreviation snat64_assn :: \<open>nat \<Rightarrow> 64 word \<Rightarrow> _\<close> where \<open>snat64_assn \<equiv> snat_assn\<close>
+abbreviation snat32_assn :: \<open>nat \<Rightarrow> 32 word \<Rightarrow> _\<close> where \<open>snat32_assn \<equiv> snat_assn\<close>
+abbreviation unat64_assn :: \<open>nat \<Rightarrow> 64 word \<Rightarrow> _\<close> where \<open>unat64_assn \<equiv> unat_assn\<close>
+abbreviation unat32_assn :: \<open>nat \<Rightarrow> 32 word \<Rightarrow> _\<close> where \<open>unat32_assn \<equiv> unat_assn\<close>
+find_theorems "[] = _" name:al
+find_theorems "[] = _" name:al
 sepref_def init_trail_D_fast_code
   is \<open>uncurry2 init_trail_D_fast\<close>
-  :: \<open>(arl_assn uint32_assn)\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a trail_pol_fast_assn\<close>
-  unfolding init_trail_D_def PR_CONST_def init_trail_D_fast_def
-  apply (rewrite in \<open>let _ = \<hole> in _\<close> arl32.fold_custom_empty)
-  apply (rewrite in \<open>let _ = \<hole> in _\<close> annotate_assn[where A=\<open>arl32_assn unat_lit_assn\<close>])
-  apply (rewrite in \<open>let _ = _; _ = \<hole> in _\<close> arl32.fold_custom_empty)
-  apply (rewrite in \<open>let _ = _; _ = \<hole> in _\<close> annotate_assn[where A=\<open>arl32_assn uint32_nat_assn\<close>])
+  :: \<open>(arl64_assn atom_assn)\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a trail_pol_fast_assn\<close>
+  unfolding init_trail_D_def PR_CONST_def init_trail_D_fast_def trail_pol_fast_assn_def
+  apply (rewrite in \<open>let _ = \<hole> in _\<close> annotate_assn[where A=\<open>arl64_assn unat_lit_assn\<close>])
+  apply (rewrite in \<open>let _ = \<hole> in _\<close> al_fold_custom_empty[where 'l=64])
+  apply (rewrite in \<open>let _ = _; _ = \<hole> in _\<close> al_fold_custom_empty[where 'l=64])
+  apply (rewrite in \<open>let _ = _; _ = \<hole> in _\<close> annotate_assn[where A=\<open>arl64_assn uint32_nat_assn\<close>])
 
-  apply (rewrite in \<open>let _ = _;_ = \<hole> in _\<close> annotate_assn[where A=\<open>array_assn (tri_bool_assn)\<close>])
-  apply (rewrite in \<open>let _ = _;_ = _;_ = \<hole> in _\<close> annotate_assn[where A=\<open>array_assn uint32_nat_assn\<close>])
-  apply (rewrite in \<open>let _ = _ in _\<close> array_fold_custom_replicate)
-  apply (rewrite in \<open>let _ = _ in _\<close> array_fold_custom_replicate)
-  apply (rewrite in \<open>let _ = _ in _\<close> array_fold_custom_replicate)
-  apply (rewrite in \<open>let _ = op_array_replicate _ \<hole> in _\<close> one_uint64_nat_def[symmetric])
+  apply (rewrite in \<open>let _ = _;_ = \<hole> in _\<close> annotate_assn[where A=\<open>larray64_assn (tri_bool_assn)\<close>])
+  apply (rewrite in \<open>let _ = _;_ = _;_ = \<hole> in _\<close> annotate_assn[where A=\<open>larray64_assn uint32_nat_assn\<close>])
+  apply (rewrite in \<open>let _ = _ in _\<close> larray_fold_custom_replicate)
+  apply (rewrite in \<open>let _ = _ in _\<close> larray_fold_custom_replicate)
+  apply (rewrite in \<open>let _ = _ in _\<close> larray_fold_custom_replicate)
+  apply (rewrite at \<open>(_, \<hole>, _)\<close> unat_const_fold[where 'a=32])
+  apply (rewrite at \<open>(op_larray_custom_replicate _ \<hole>)\<close> unat_const_fold[where 'a=32])
+  apply (annot_snat_const "TYPE(64)")
   supply [[goals_limit = 1]]
   by sepref
 
