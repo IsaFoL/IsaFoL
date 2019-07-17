@@ -612,7 +612,7 @@ sepref_def finalise_init_code'
   apply (annot_unat_const "TYPE(64)")
   apply (rewrite at \<open>(_, \<hole>, _)\<close> al_fold_custom_empty[where 'l=64])
   apply (rewrite at \<open>(_, \<hole>)\<close> al_fold_custom_empty[where 'l=64])
-  apply (rewrite in \<open>take _ \<hole>\<close> arl_fold_custom_replicate)
+  apply (rewrite in \<open>take _ \<hole>\<close> al_fold_custom_replicate)
   by sepref
 
 declare finalise_init_code'.refine[sepref_fr_rules]
