@@ -28,8 +28,8 @@ where
 sepref_register atoms_hash_empty
 sepref_definition (in -) atoms_hash_empty_code
   is \<open>atoms_hash_int_empty\<close>
-  :: \<open>sint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a phase_saver_assn\<close>
-  unfolding atoms_hash_int_empty_def larray_fold_custom_replicate
+:: \<open>sint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a atoms_hash_assn\<close>
+  unfolding atoms_hash_int_empty_def array_fold_custom_replicate
   by sepref
 
 find_theorems replicate arl64_assn
@@ -639,8 +639,7 @@ abbreviation snat64_assn :: \<open>nat \<Rightarrow> 64 word \<Rightarrow> _\<cl
 abbreviation snat32_assn :: \<open>nat \<Rightarrow> 32 word \<Rightarrow> _\<close> where \<open>snat32_assn \<equiv> snat_assn\<close>
 abbreviation unat64_assn :: \<open>nat \<Rightarrow> 64 word \<Rightarrow> _\<close> where \<open>unat64_assn \<equiv> unat_assn\<close>
 abbreviation unat32_assn :: \<open>nat \<Rightarrow> 32 word \<Rightarrow> _\<close> where \<open>unat32_assn \<equiv> unat_assn\<close>
-find_theorems "[] = _" name:al
-find_theorems "[] = _" name:al
+
 sepref_def init_trail_D_fast_code
   is \<open>uncurry2 init_trail_D_fast\<close>
   :: \<open>(arl64_assn atom_assn)\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a trail_pol_fast_assn\<close>
@@ -662,19 +661,37 @@ sepref_def init_trail_D_fast_code
   by sepref
 
 declare init_trail_D_fast_code.refine[sepref_fr_rules]
-
+thm op_ial_empty_sz_def
+thm op_list_list_lempty_def
+find_theorems op_list_list_lempty
+find_theorems op_aal_lempty
+lemma op_list_list_lempty_alt: \<open>op_list_list_lempty x = replicate x []\<close>
+  by auto
 
 sepref_definition init_state_wl_D'_code
   is \<open>init_state_wl_D'\<close>
-  :: \<open>(arl_assn uint32_assn *a uint32_assn)\<^sup>d \<rightarrow>\<^sub>a isasat_init_assn\<close>
+  :: \<open>(arl64_assn atom_assn *a sint64_nat_assn)\<^sup>k \<rightarrow>\<^sub>a isasat_init_assn\<close>
   unfolding init_state_wl_D'_def PR_CONST_def init_trail_D_fast_def[symmetric] isasat_init_assn_def
-  apply (rewrite at \<open>let _ = (_, \<hole>) in _\<close> arl32.fold_custom_empty)
-  apply (rewrite at \<open>let _ = \<hole> in _\<close>  init_lrl_def[symmetric])
-  unfolding array_fold_custom_replicate init_lrl64_def[symmetric]
-  apply (rewrite at \<open>let _ = \<hole> in let _ = (True, _, _) in _\<close> arl64.fold_custom_empty)
-  apply (rewrite at \<open>let _ = \<hole> in _\<close> annotate_assn[where A=\<open>arena_fast_assn\<close>])
+   cach_refinement_l_assn_def Suc_eq_plus1_left conflict_option_rel_assn_def  lookup_clause_rel_assn_def
+  apply (rewrite at \<open>let _ = (_, \<hole>) in _\<close> al_fold_custom_empty[where 'l=64])
+  apply (rewrite at \<open>let _ = (\<hole>,_) in _\<close> annotate_assn[where A= \<open>array_assn minimize_status_assn\<close>])
+  apply (rewrite at \<open>let _ = (_, \<hole>) in _\<close> annotate_assn[where A= \<open>arl64_assn atom_assn\<close>])
+  apply (rewrite in \<open>replicate _ []\<close> aal_fold_custom_empty(1)[where 'l=64 and 'll=64])
   apply (rewrite at \<open>let _= _; _= \<hole> in _\<close> annotate_assn[where A=\<open>watchlist_fast_assn\<close>])
-  apply (rewrite at \<open>let _= \<hole> in RETURN _\<close> arl64.fold_custom_empty)
+  apply (rewrite at \<open>let _= \<hole>; _=_;_=_;_ = _ in RETURN _\<close> annotate_assn[where A=\<open>phase_saver_assn\<close>])
+  apply (rewrite in \<open>let _= \<hole>; _=_;_=_;_ = _ in RETURN _\<close> larray_fold_custom_replicate)
+  apply (rewrite in \<open>let _= (True, _, \<hole>) in  _\<close> array_fold_custom_replicate)
+  unfolding array_fold_custom_replicate
+  apply (rewrite at \<open>let _ = \<hole> in let _ = (True, _, _) in _\<close> al_fold_custom_empty[where 'l=64])
+  apply (rewrite in \<open>let _= (True, \<hole>, _) in _\<close> unat_const_fold[where 'a=32])
+  apply (rewrite at \<open>let _ = \<hole> in _\<close> annotate_assn[where A=\<open>arena_fast_assn\<close>])
+  apply (rewrite at \<open>let _= \<hole> in RETURN _\<close> annotate_assn[where A = \<open>vdom_fast_assn\<close>])
+  apply (rewrite in \<open>let _= \<hole> in RETURN _\<close> al_fold_custom_empty[where 'l=64])
+  apply (rewrite at \<open>(_,\<hole>, _ ,_, _, False)\<close> unat_const_fold[where 'a=32])
+  apply (annot_snat_const "TYPE(64)")
+  apply (rewrite at \<open>RETURN \<hole>\<close> annotate_assn[where A=\<open>isasat_init_assn\<close>, unfolded isasat_init_assn_def
+     conflict_option_rel_assn_def cach_refinement_l_assn_def lookup_clause_rel_assn_def])
+
   supply [[goals_limit = 1]]
   by sepref
 
@@ -684,7 +701,7 @@ declare init_state_wl_D'_code.refine[sepref_fr_rules]
 lemma to_init_state_code_hnr:
   \<open>(return o to_init_state_code, RETURN o id) \<in> isasat_init_assn\<^sup>d \<rightarrow>\<^sub>a isasat_init_assn\<close>
   unfolding to_init_state_code_def
-  by (rule id_ref)
+  by sepref_to_hoare vcg'
 
 abbreviation (in -)lits_with_max_assn_clss where
   \<open>lits_with_max_assn_clss \<equiv> hr_comp lits_with_max_assn (\<langle>nat_rel\<rangle>mset_rel)\<close>

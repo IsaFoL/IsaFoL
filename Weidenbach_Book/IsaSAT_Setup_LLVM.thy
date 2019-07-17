@@ -214,9 +214,9 @@ type_synonym vdom_fast_assn = \<open>64 word array_list64\<close>
 abbreviation vdom_fast_assn :: \<open>vdom \<Rightarrow> vdom_fast_assn \<Rightarrow> assn\<close> where
   \<open>vdom_fast_assn \<equiv> arl64_assn sint64_nat_assn\<close>
 
-type_synonym phase_saver_assn = "1 word larray32"
+type_synonym phase_saver_assn = "1 word larray64"
 abbreviation phase_saver_assn where
-  \<open>phase_saver_assn \<equiv> larray32_assn bool1_assn\<close>
+  \<open>phase_saver_assn \<equiv> larray64_assn bool1_assn\<close>
 
 (* TODO: Move *)
 type_synonym arena_assn = "(32 word, 64) array_list"

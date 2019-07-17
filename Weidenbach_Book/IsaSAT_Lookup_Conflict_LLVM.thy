@@ -23,7 +23,7 @@ declare nat_lit_eq_impl.refine[FCOMP nat_lit_rel, sepref_fr_rules]
 (*End Move*)
 
 sepref_register set_lookup_conflict_aa
-type_synonym lookup_clause_assn = \<open>32 word \<times> (1 word) larray32\<close>
+type_synonym lookup_clause_assn = \<open>32 word \<times> (1 word) ptr\<close>
 
 type_synonym (in -) option_lookup_clause_assn = \<open>1 word \<times> lookup_clause_assn\<close>
 
@@ -151,7 +151,7 @@ lemmas [sepref_fr_rules] = NOTIN_impl.refine[FCOMP NOTIN_rel]
 definition (in -) lookup_clause_rel_assn
   :: \<open>lookup_clause_rel \<Rightarrow> lookup_clause_assn \<Rightarrow> assn\<close>
 where
- \<open>lookup_clause_rel_assn \<equiv> (uint32_nat_assn *a larray32_assn option_bool_impl_assn)\<close>
+ \<open>lookup_clause_rel_assn \<equiv> (uint32_nat_assn *a array_assn option_bool_impl_assn)\<close>
 
 definition (in -)conflict_option_rel_assn
   :: \<open>conflict_option_rel \<Rightarrow> option_lookup_clause_assn \<Rightarrow> assn\<close>

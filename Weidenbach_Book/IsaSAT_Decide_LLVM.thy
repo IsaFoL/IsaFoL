@@ -185,7 +185,7 @@ find_consts name: lit name: assn
 find_theorems unat_lit_assn Neg
 
 sepref_register lit_of_atm_D
-sepref_def lit_of_atm_D_code is "uncurry lit_of_atm_D" :: "(larray32_assn bool1_assn)\<^sup>k *\<^sub>a atom_assn\<^sup>k \<rightarrow>\<^sub>a unat_lit_assn"
+sepref_def lit_of_atm_D_code is "uncurry lit_of_atm_D" :: "(phase_saver_assn)\<^sup>k *\<^sub>a atom_assn\<^sup>k \<rightarrow>\<^sub>a unat_lit_assn"
   unfolding lit_of_atm_D_def
   apply annot_all_atm_idxs
   by sepref_dbg_keep
