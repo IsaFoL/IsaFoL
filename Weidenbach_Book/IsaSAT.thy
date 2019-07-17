@@ -85,12 +85,13 @@ theorem cdcl_twl_stgy_restart_prog_early_wl_D_spec:
   apply auto
   done
 
+(*
 lemma distinct_nat_of_uint32[iff]:
   \<open>distinct_mset (nat_of_uint32 `# A) \<longleftrightarrow> distinct_mset A\<close>
   \<open>distinct (map nat_of_uint32 xs) \<longleftrightarrow> distinct xs\<close>
   using distinct_image_mset_inj[of nat_of_uint32]
   by (auto simp: inj_on_def distinct_map)
-
+*)
 lemma cdcl\<^sub>W_ex_cdcl\<^sub>W_stgy:
   \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W S T \<Longrightarrow> \<exists>U. cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy S U\<close>
   by (meson cdcl\<^sub>W_restart_mset.cdcl\<^sub>W.cases cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy.simps)
@@ -1483,12 +1484,12 @@ definition empty_conflict_code :: \<open>(_ list option \<times> stats) nres\<cl
   \<open>empty_conflict_code = do{
      let M0 = [];
      let M1 = Some M0;
-     RETURN (M1, (zero_uint64, zero_uint64, zero_uint64, zero_uint64, zero_uint64, zero_uint64, zero_uint64,
-        zero_uint64))}\<close>
+     RETURN (M1, (0, 0, 0, 0, 0, 0, 0,
+        0))}\<close>
 
 definition empty_init_code :: \<open>_ list option \<times> stats\<close> where
-  \<open>empty_init_code = (None, (zero_uint64, zero_uint64, zero_uint64, zero_uint64,
-    zero_uint64, zero_uint64, zero_uint64, zero_uint64))\<close>
+  \<open>empty_init_code = (None, (0, 0, 0, 0,
+    0, 0, 0, 0))\<close>
 
 
 definition convert_state where
@@ -1499,7 +1500,7 @@ definition IsaSAT_use_fast_mode where
 
 
 definition isasat_fast_init :: \<open>twl_st_wl_heur_init \<Rightarrow> bool\<close> where
-  \<open>isasat_fast_init S \<longleftrightarrow> (length (get_clauses_wl_heur_init S) \<le> uint64_max - (uint32_max div 2 + 6))\<close>
+  \<open>isasat_fast_init S \<longleftrightarrow> (length (get_clauses_wl_heur_init S) \<le> sint64_max - (uint32_max div 2 + 6))\<close>
 
 definition IsaSAT_heur :: \<open>opts \<Rightarrow> nat clause_l list \<Rightarrow> (nat literal list option \<times> stats) nres\<close> where
   \<open>IsaSAT_heur opts CS = do{
@@ -2204,7 +2205,8 @@ proof -
   proof -
      show ?thesis
        using fast Td Tb
-       by (auto simp: convert_state_def isasat_fast_init_def isasat_fast_def)
+       by (auto simp: convert_state_def isasat_fast_init_def sint64_max_def
+         uint32_max_def uint64_max_def isasat_fast_def)
   qed
   define init_succesfull where \<open>init_succesfull T = RETURN (is_failed_heur_init T \<or> \<not>isasat_fast_init T)\<close> for T
   define init_succesfull2 where \<open>init_succesfull2 = SPEC (\<lambda>_ :: bool. True)\<close>
@@ -2303,7 +2305,7 @@ proof -
     subgoal by (clarsimp simp add: isasat_fast_def isasat_fast_init_def convert_state_def)
     apply (rule_tac r1 = \<open>length (get_clauses_wl_heur Td)\<close> in cdcl_twl_stgy_restart_prog_early_wl_heur_cdcl_twl_stgy_restart_prog_early_wl_D[
       THEN fref_to_Down])
-    subgoal by (auto simp: isasat_fast_def)
+      subgoal by (auto simp: isasat_fast_def sint64_max_def uint64_max_def uint32_max_def)
     subgoal by fast
     subgoal by fast
     subgoal premises p for _ ba S T Ta Tb Tc u v
@@ -2320,14 +2322,14 @@ qed
 definition  model_stat_rel where
   \<open>model_stat_rel = {((M', s), M). map_option rev M = M'}\<close>
 
-
+(*
 lemma nat_of_uint32_max:
   \<open>max (nat_of_uint32 a) (nat_of_uint32 b) = nat_of_uint32 (max a b)\<close> for a b
   by (auto simp: max_def nat_of_uint32_le_iff)
 
 lemma max_0L_uint32[simp]: \<open>max (0::uint32) a = a\<close>
   by (metis max.cobounded2 max_def uint32_less_than_0)
-
+*)
 
 definition length_get_clauses_wl_heur_init where
   \<open>length_get_clauses_wl_heur_init S = length (get_clauses_wl_heur_init S)\<close>
@@ -2539,7 +2541,7 @@ proof -
     then obtain C where
       L: \<open>C\<in>set CS \<and> (L \<in>set C \<or> - L \<in> set C)\<close>
       apply (cases L)
-      apply (auto simp: extract_atms_clss_alt_def uint32_max_def nat_of_uint32_uint32_of_nat_id
+      apply (auto simp: extract_atms_clss_alt_def uint32_max_def
           \<L>\<^sub>a\<^sub>l\<^sub>l_def)+
       apply (metis literal.exhaust_sel)+
       done
@@ -2596,7 +2598,7 @@ definition IsaSAT_bounded_heur :: \<open>opts \<Rightarrow> nat clause_l list \<
       ASSERT(isasat_fast_init T);
       T \<leftarrow> finalise_init_code opts (T::twl_st_wl_heur_init);
       ASSERT(isasat_fast T);
-      (b, U) \<leftarrow> cdcl_twl_stgy_restart_prog_bounded_wl_heur T;
+      (b, U) \<leftarrow> cdcl_twl_stgy_prog_bounded_wl_heur T;
       RETURN (b, if get_conflict_wl_is_None_heur U then extract_model_of_state_stat U
         else extract_state_stat U)
     } else RETURN (False, empty_init_code)

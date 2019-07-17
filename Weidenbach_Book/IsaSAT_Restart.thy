@@ -52,6 +52,9 @@ qed
 definition fast_number_of_iterations :: \<open>_ \<Rightarrow> bool\<close> where
 \<open>fast_number_of_iterations n \<longleftrightarrow> n < uint64_max >> 1\<close>
 
+definition isasat_fast_slow :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
+   [simp]: \<open>isasat_fast_slow S = RETURN S\<close>
+
 definition cdcl_twl_stgy_restart_prog_early_wl_heur
    :: "twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres"
 where
@@ -141,7 +144,7 @@ proof -
     for x1e x1b
   proof -
     show ?thesis
-      unfolding isasat_fast_slow_alt_def by auto
+      unfolding isasat_fast_slow_def by auto
   qed
   have twl_st_heur'': \<open>(x1e, x1b) \<in> twl_st_heur \<Longrightarrow>
     (x1e, x1b)
@@ -213,7 +216,7 @@ thm restart_prog_wl_D_heur_restart_prog_wl_D[THEN fref_to_Down_curry2]
     subgoal by auto
     subgoal by auto
     apply (rule twl_st_heur'''; assumption)
-    subgoal by (auto simp: isasat_fast_def uint64_max_def uint32_max_def)
+    subgoal by (auto simp: isasat_fast_def uint64_max_def sint64_max_def uint32_max_def)
     apply (rule H; assumption?)
     subgoal by auto
     subgoal by auto
@@ -231,7 +234,7 @@ thm restart_prog_wl_D_heur_restart_prog_wl_D[THEN fref_to_Down_curry2]
     subgoal by auto
     subgoal by auto
     subgoal by auto
-    subgoal by (auto simp: isasat_fast_slow_alt_def)
+    subgoal by (auto simp: isasat_fast_slow_def)
     done
 qed
 
@@ -270,11 +273,6 @@ definition clause_lbd_heur :: "twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> na
 where
   \<open>clause_lbd_heur S C = arena_lbd (get_clauses_wl_heur S) C\<close>
 
-lemma clause_lbd_heur_alt_def:
-  \<open>clause_lbd_heur = (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema,
-     ccount, vdom, lcount) C . get_clause_LBD N' C)\<close>
-  by (intro ext) (auto simp: clause_lbd_heur_def get_clause_LBD_def arena_lbd_def)
-
 definition (in -) access_length_heur where
   \<open>access_length_heur S i = arena_length (get_clauses_wl_heur S) i\<close>
 
@@ -294,11 +292,11 @@ lemma marked_as_used_st_alt_def:
   by (intro ext) (auto simp: marked_as_used_st_def)
 
 lemma mark_to_delete_clauses_wl_D_heur_is_Some_iff:
-  \<open>D = Some C \<longleftrightarrow> D \<noteq> None \<and> (nat_of_uint64_conv (the D) = C)\<close>
+  \<open>D = Some C \<longleftrightarrow> D \<noteq> None \<and> ((the D) = C)\<close>
   by auto
 
 lemma (in -) isasat_fast_alt_def:
-  \<open>RETURN o isasat_fast = (\<lambda>(M, N, _). RETURN (length N \<le> uint64_max - (uint32_max div 2 + 6)))\<close>
+  \<open>RETURN o isasat_fast = (\<lambda>(M, N, _). RETURN (length N \<le> sint64_max - (uint32_max div 2 + 6)))\<close>
   unfolding isasat_fast_def
   by (auto intro!:ext)
 
@@ -361,7 +359,7 @@ proof -
     for x1e x1b
   proof -
     show ?thesis
-      unfolding isasat_fast_slow_alt_def by auto
+      unfolding isasat_fast_slow_def by auto
   qed
   have twl_st_heur'': \<open>(x1e, x1b) \<in> twl_st_heur \<Longrightarrow>
     (x1e, x1b)
@@ -425,7 +423,7 @@ proof -
     subgoal by auto
     subgoal by auto
     apply (rule twl_st_heur'''; assumption)
-    subgoal by (auto simp: isasat_fast_def uint64_max_def uint32_max_def)
+    subgoal by (auto simp: isasat_fast_def uint64_max_def uint32_max_def sint64_max_def)
     apply (rule H; assumption?)
     subgoal by auto
     subgoal by auto
