@@ -1467,28 +1467,27 @@ proof -
     using 1 2 by simp
 qed
 
-definition extract_model_of_state_stat :: \<open>twl_st_wl_heur \<Rightarrow> nat literal list option \<times> stats\<close> where
+definition extract_model_of_state_stat :: \<open>twl_st_wl_heur \<Rightarrow> bool \<times> nat literal list \<times> stats\<close> where
   \<open>extract_model_of_state_stat U =
-     (Some (fst (get_trail_wl_heur U)),
+     (False, (fst (get_trail_wl_heur U)),
        (\<lambda>(M, _,  _, _, _ ,_ ,_ ,_, _, _, _, stat, _, _). stat) U)\<close>
 
-definition extract_state_stat :: \<open>twl_st_wl_heur \<Rightarrow> nat literal list option \<times> stats\<close> where
+definition extract_state_stat :: \<open>twl_st_wl_heur \<Rightarrow> bool \<times> nat literal list \<times> stats\<close> where
   \<open>extract_state_stat U =
-     (None,
+     (True, [],
        (\<lambda>(M, _, _, _, _ ,_ ,_ ,_, _, _, _, stat, _, _). stat) U)\<close>
 
 definition empty_conflict :: \<open>nat literal list option\<close> where
   \<open>empty_conflict = Some []\<close>
 
-definition empty_conflict_code :: \<open>(_ list option \<times> stats) nres\<close> where
+definition empty_conflict_code :: \<open>(bool \<times> _ list \<times> stats) nres\<close> where
   \<open>empty_conflict_code = do{
      let M0 = [];
-     let M1 = Some M0;
-     RETURN (M1, (0, 0, 0, 0, 0, 0, 0,
+     RETURN (False, M0, (0, 0, 0, 0, 0, 0, 0,
         0))}\<close>
 
-definition empty_init_code :: \<open>_ list option \<times> stats\<close> where
-  \<open>empty_init_code = (None, (0, 0, 0, 0,
+definition empty_init_code :: \<open>bool \<times> _ list \<times> stats\<close> where
+  \<open>empty_init_code = (True, [], (0, 0, 0, 0,
     0, 0, 0, 0))\<close>
 
 
@@ -1502,7 +1501,7 @@ definition IsaSAT_use_fast_mode where
 definition isasat_fast_init :: \<open>twl_st_wl_heur_init \<Rightarrow> bool\<close> where
   \<open>isasat_fast_init S \<longleftrightarrow> (length (get_clauses_wl_heur_init S) \<le> sint64_max - (uint32_max div 2 + 6))\<close>
 
-definition IsaSAT_heur :: \<open>opts \<Rightarrow> nat clause_l list \<Rightarrow> (nat literal list option \<times> stats) nres\<close> where
+definition IsaSAT_heur :: \<open>opts \<Rightarrow> nat clause_l list \<Rightarrow> (bool \<times> nat literal list \<times> stats) nres\<close> where
   \<open>IsaSAT_heur opts CS = do{
     ASSERT(isasat_input_bounded (mset_set (extract_atms_clss CS {})));
     ASSERT(\<forall>C\<in>set CS. \<forall>L\<in>set C. nat_of_lit L \<le> uint32_max);
@@ -1812,8 +1811,14 @@ proof -
         twl_st_heur_parsing_def)
 qed
 
+abbreviation option_with_bool_rel :: \<open>((bool \<times> 'a) \<times> 'a option) set\<close> where
+  \<open>option_with_bool_rel \<equiv> {((b, s), s').  (b = is_None s') \<and> (\<not>b \<longrightarrow>  s = the s')}\<close>
+
+definition  model_stat_rel :: \<open>((bool \<times> nat literal list \<times> 'a) \<times> nat literal list option) set\<close> where
+  \<open>model_stat_rel = {((b, M', s), M). ((b, rev M'), M) \<in> option_with_bool_rel}\<close>
+
 lemma IsaSAT_heur_IsaSAT:
-  \<open>IsaSAT_heur b CS \<le> \<Down>{((M, stats), M'). M = map_option rev M'} (IsaSAT CS)\<close>
+  \<open>IsaSAT_heur b CS \<le> \<Down>model_stat_rel (IsaSAT CS)\<close>
 proof -
   have init_dt_wl_heur: \<open>init_dt_wl_heur True CS S \<le>
        \<Down>(twl_st_heur_parsing_no_WL \<A> True O {(S, T). S = remove_watched T \<and>
@@ -2232,9 +2237,9 @@ proof -
        RES_RETURN_RES)
     apply (rule rewatch_heur_st_rewatch_st; assumption)
     subgoal unfolding convert_state_def by (rule get_conflict_wl_is_None_heur_init)
-    subgoal by (simp add: empty_init_code_def)
+    subgoal by (auto simp add: empty_init_code_def model_stat_rel_def)
     subgoal by simp
-    subgoal by (simp add: empty_conflict_code_def)
+    subgoal by (auto simp add: empty_conflict_code_def model_stat_rel_def)
     subgoal by (simp add: mset_set_empty_iff extract_atms_clss_alt_def)
     subgoal by simp
     subgoal by (rule finalise_init_nempty)
@@ -2248,7 +2253,7 @@ proof -
         extract_stats_def extract_state_stat_def
 	option_lookup_clause_rel_def trail_pol_def
 	extract_model_of_state_def rev_map
-	extract_model_of_state_stat_def
+	extract_model_of_state_stat_def model_stat_rel_def
 	dest!: ann_lits_split_reasons_map_lit_of)
 
 
@@ -2269,9 +2274,9 @@ proof -
        RES_RETURN_RES)
     apply (rule rewatch_heur_st_rewatch_st; assumption)
     subgoal unfolding convert_state_def by (rule get_conflict_wl_is_None_heur_init)
-    subgoal by (simp add: empty_init_code_def)
+    subgoal by (auto simp add: empty_init_code_def model_stat_rel_def)
     subgoal by simp
-    subgoal by (simp add: empty_conflict_code_def)
+    subgoal by (simp add: empty_conflict_code_def model_stat_rel_def)
     subgoal by (simp add: mset_set_empty_iff extract_atms_clss_alt_def)
     subgoal by simp
     subgoal by (rule finalise_init_nempty)
@@ -2285,12 +2290,12 @@ proof -
         extract_stats_def extract_state_stat_def
 	option_lookup_clause_rel_def trail_pol_def
 	extract_model_of_state_def rev_map
-	extract_model_of_state_stat_def
+	extract_model_of_state_stat_def model_stat_rel_def
 	dest!: ann_lits_split_reasons_map_lit_of)
     subgoal unfolding from_init_state_def convert_state_def by (rule get_conflict_wl_is_None_heur_init3)
-    subgoal by (simp add: empty_init_code_def)
+    subgoal by (simp add: empty_init_code_def model_stat_rel_def)
     subgoal by simp
-    subgoal by (simp add: empty_conflict_code_def)
+    subgoal by (simp add: empty_conflict_code_def model_stat_rel_def)
     subgoal by (simp add: mset_set_empty_iff extract_atms_clss_alt_def)
     subgoal by (simp add: mset_set_empty_iff extract_atms_clss_alt_def)
     subgoal by (rule finalise_init2)
@@ -2314,13 +2319,10 @@ proof -
         extract_stats_def extract_state_stat_def
 	option_lookup_clause_rel_def trail_pol_def
 	extract_model_of_state_def rev_map
-	extract_model_of_state_stat_def
+	extract_model_of_state_stat_def model_stat_rel_def
 	dest!: ann_lits_split_reasons_map_lit_of)
     done
 qed
-
-definition  model_stat_rel where
-  \<open>model_stat_rel = {((M', s), M). map_option rev M = M'}\<close>
 
 (*
 lemma nat_of_uint32_max:
@@ -2570,7 +2572,7 @@ proof -
     done
 qed
 
-definition IsaSAT_bounded_heur :: \<open>opts \<Rightarrow> nat clause_l list \<Rightarrow> (bool \<times> (nat literal list option \<times> stats)) nres\<close> where
+definition IsaSAT_bounded_heur :: \<open>opts \<Rightarrow> nat clause_l list \<Rightarrow> (bool \<times> (bool \<times> nat literal list \<times> stats)) nres\<close> where
   \<open>IsaSAT_bounded_heur opts CS = do{
     ASSERT(isasat_input_bounded (mset_set (extract_atms_clss CS {})));
     ASSERT(\<forall>C\<in>set CS. \<forall>L\<in>set C. nat_of_lit L \<le> uint32_max);

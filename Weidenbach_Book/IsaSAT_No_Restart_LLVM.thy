@@ -87,15 +87,80 @@ proof -
         simp del: literal_of_nat.simps)
 qed
 *)
-definition get_trail_wl_code :: \<open>_ \<Rightarrow> (32 word) array_list64 option \<times> stats\<close> where
-  \<open>get_trail_wl_code = (\<lambda>((M, _), _, _, _, _ ,_ ,_ ,_, _, _, _, stat, _). (Some M, stat))\<close>
-
-definition get_stats_code :: \<open>_ \<Rightarrow> 32 word array_list64 option \<times> stats\<close> where
-  \<open>get_stats_code = (\<lambda>((M, _), _, _, _, _ ,_ ,_ ,_, _, _, _, stat, _). (None, stat))\<close>
-
 
 definition  model_assn where
   \<open>model_assn = hr_comp model_stat_assn model_stat_rel\<close>
+
+lemma extract_model_of_state_stat_alt_def:
+  \<open>RETURN o extract_model_of_state_stat = (\<lambda>((M, M'), N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema, ccount,
+       vdom, avdom, lcount, opts, old_arena).
+     do {mop_free M'; mop_free N'; mop_free D'; mop_free j; mop_free W'; mop_free vm; mop_free \<phi>; mop_free clvls;
+         mop_free cach; mop_free lbd; mop_free outl; mop_free fast_ema; mop_free slow_ema; mop_free ccount;
+         mop_free vdom; mop_free avdom; mop_free opts;
+         mop_free old_arena;
+        RETURN (False, M, stats)})\<close>
+  by (auto simp: extract_model_of_state_stat_def mop_free_def intro!: ext)
+
+schematic_goal mk_free_lookup_clause_rel_assn[sepref_frame_free_rules]: "MK_FREE lookup_clause_rel_assn ?fr"
+  unfolding conflict_option_rel_assn_def lookup_clause_rel_assn_def
+  by (rule free_thms sepref_frame_free_rules)+ (* TODO: Write a method for that! *)
+
+schematic_goal mk_free_trail_pol_fast_assn[sepref_frame_free_rules]: "MK_FREE conflict_option_rel_assn ?fr"  
+  unfolding conflict_option_rel_assn_def
+  by (rule free_thms sepref_frame_free_rules)+ (* TODO: Write a method for that! *)
+
+
+schematic_goal mk_free_vmtf_remove_assn[sepref_frame_free_rules]: "MK_FREE vmtf_remove_assn ?fr"  
+  unfolding vmtf_remove_assn_def
+  by (rule free_thms sepref_frame_free_rules)+ (* TODO: Write a method for that! *)
+(*cach_refinement_l_assn*)
+schematic_goal mk_free_cach_refinement_l_assn[sepref_frame_free_rules]: "MK_FREE cach_refinement_l_assn ?fr"  
+  unfolding cach_refinement_l_assn_def
+  by (rule free_thms sepref_frame_free_rules)+ (* TODO: Write a method for that! *)
+schematic_goal mk_free_lbd_assn[sepref_frame_free_rules]: "MK_FREE lbd_assn ?fr"  
+  unfolding lbd_assn_def
+  by (rule free_thms sepref_frame_free_rules)+ (* TODO: Write a method for that! *)
+schematic_goal mk_free_opts_assn[sepref_frame_free_rules]: "MK_FREE opts_assn ?fr"  
+  unfolding opts_assn_def
+  by (rule free_thms sepref_frame_free_rules)+ (* TODO: Write a method for that! *)
+
+
+  context 
+    fixes l_dummy :: "'l::len2 itself"
+    fixes ll_dummy :: "'ll::len2 itself"
+    fixes L LL AA
+    defines [simp]: "L \<equiv> (LENGTH ('l))"
+    defines [simp]: "LL \<equiv> (LENGTH ('ll))"
+    defines [simp]: "AA \<equiv> raw_aal_assn TYPE('l::len2) TYPE('ll::len2)"
+  begin  
+    private lemma n_unf: "hr_comp AA (\<langle>\<langle>the_pure A\<rangle>list_rel\<rangle>list_rel) = aal_assn A" unfolding aal_assn_def AA_def ..
+
+    context 
+      notes [fcomp_norm_unfold] = n_unf
+    begin
+    
+lemma aal_assn_free[sepref_frame_free_rules]: "MK_FREE AA aal_free"
+  apply rule by vcg
+  sepref_decl_op list_list_free: "\<lambda>_::_ list list. ()" :: "\<langle>\<langle>A\<rangle>list_rel\<rangle>list_rel \<rightarrow> unit_rel" .
+
+lemma hn_aal_free_raw: "(aal_free,RETURN o op_list_list_free) \<in> AA\<^sup>d \<rightarrow>\<^sub>a unit_assn"
+    by sepref_to_hoare vcg
+  
+  sepref_decl_impl aal_free: hn_aal_free_raw
+     .
+
+  lemmas array_mk_free[sepref_frame_free_rules] = hn_MK_FREEI[OF aal_free_hnr]
+end
+end
+term lbd_assn
+thm arl_assn_free
+sepref_def extract_model_of_state_stat
+  is \<open>RETURN o extract_model_of_state_stat\<close>
+  :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a model_stat_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding extract_model_of_state_stat_alt_def isasat_bounded_assn_def
+   trail_pol_fast_assn_def
+  by sepref
 
 lemma extract_model_of_state_stat_hnr[sepref_fr_rules]:
   \<open>(return o get_trail_wl_code, RETURN o extract_model_of_state_stat) \<in> isasat_unbounded_assn\<^sup>d \<rightarrow>\<^sub>a
