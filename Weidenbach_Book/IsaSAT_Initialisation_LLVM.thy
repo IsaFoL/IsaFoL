@@ -26,14 +26,13 @@ where
   \<open>vmtf_remove_conc_option_fst_As \<equiv> vmtf_conc_option_fst_As *a distinct_atoms_assn\<close>
 
 sepref_register atoms_hash_empty
-sepref_definition (in -) atoms_hash_empty_code
+sepref_def (in -) atoms_hash_empty_code
   is \<open>atoms_hash_int_empty\<close>
 :: \<open>sint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a atoms_hash_assn\<close>
   unfolding atoms_hash_int_empty_def array_fold_custom_replicate
   by sepref
 
-find_theorems replicate arl64_assn
-sepref_definition distinct_atms_empty_code
+sepref_def distinct_atms_empty_code
   is \<open>distinct_atms_int_empty\<close>
   :: \<open>sint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a distinct_atoms_assn\<close>
   unfolding distinct_atms_int_empty_def array_fold_custom_replicate
@@ -64,7 +63,7 @@ where
   vdom_fast_assn *a
   bool1_assn\<close>
 
-sepref_definition initialise_VMTF_code
+sepref_def initialise_VMTF_code
   is \<open>uncurry initialise_VMTF\<close>
   :: \<open>[\<lambda>(N, n). True]\<^sub>a (arl64_assn atom_assn)\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> vmtf_remove_conc_option_fst_As\<close>
   unfolding initialise_VMTF_def vmtf_cons_def Suc_eq_plus1 atom.fold_option length_uint32_nat_def
@@ -83,7 +82,7 @@ sepref_definition initialise_VMTF_code
 
 declare initialise_VMTF_code.refine[sepref_fr_rules]
 
-sepref_definition propagate_unit_cls_code
+sepref_def propagate_unit_cls_code
   is \<open>uncurry (propagate_unit_cls_heur)\<close>
   :: \<open>unat_lit_assn\<^sup>k *\<^sub>a isasat_init_assn\<^sup>d \<rightarrow>\<^sub>a isasat_init_assn\<close>
   supply [[goals_limit=1]] DECISION_REASON_def[simp]
@@ -103,7 +102,7 @@ lemma already_propagated_unit_cls_heur'_alt:
   unfolding already_propagated_unit_cls_heur_def already_propagated_unit_cls_heur'_def
   by auto
 
-sepref_definition already_propagated_unit_cls_code
+sepref_def already_propagated_unit_cls_code
   is \<open>already_propagated_unit_cls_heur'\<close>
   :: \<open>isasat_init_assn\<^sup>d  \<rightarrow>\<^sub>a isasat_init_assn\<close>
   supply [[goals_limit=1]]
@@ -114,7 +113,7 @@ sepref_definition already_propagated_unit_cls_code
 declare already_propagated_unit_cls_code.refine[sepref_fr_rules]
 
 
-sepref_definition set_conflict_unit_code
+sepref_def set_conflict_unit_code
   is \<open>uncurry set_conflict_unit_heur\<close>
   :: \<open>[\<lambda>(L, (b, n, xs)). atm_of L < length xs]\<^sub>a
         unat_lit_assn\<^sup>k *\<^sub>a conflict_option_rel_assn\<^sup>d \<rightarrow> conflict_option_rel_assn\<close>
@@ -126,7 +125,7 @@ sepref_definition set_conflict_unit_code
 
 declare set_conflict_unit_code.refine[sepref_fr_rules]
 
-sepref_definition conflict_propagated_unit_cls_code
+sepref_def conflict_propagated_unit_cls_code
   is \<open>uncurry (conflict_propagated_unit_cls_heur)\<close>
   :: \<open>unat_lit_assn\<^sup>k *\<^sub>a isasat_init_assn\<^sup>d  \<rightarrow>\<^sub>a isasat_init_assn\<close>
   supply [[goals_limit=1]]
@@ -199,7 +198,7 @@ sepref_def append_and_length_fast_code
 
 sepref_register fm_add_new_fast'
 
-sepref_definition add_init_cls_code_b
+sepref_def add_init_cls_code_b
   is \<open>uncurry2 add_init_cls_heur_b'\<close>
   :: \<open>[\<lambda>((xs, i), S). i < length xs]\<^sub>a
      (clauses_ll_assn)\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a isasat_init_assn\<^sup>d  \<rightarrow> isasat_init_assn\<close>
@@ -220,7 +219,7 @@ sepref_definition add_init_cls_code_b
 declare
    add_init_cls_code_b.refine[sepref_fr_rules]
 
-sepref_definition already_propagated_unit_cls_conflict_code
+sepref_def already_propagated_unit_cls_conflict_code
   is \<open>uncurry already_propagated_unit_cls_conflict_heur\<close>
   :: \<open>unat_lit_assn\<^sup>k *\<^sub>a isasat_init_assn\<^sup>d  \<rightarrow>\<^sub>a isasat_init_assn\<close>
   supply [[goals_limit=1]]
@@ -230,7 +229,7 @@ sepref_definition already_propagated_unit_cls_conflict_code
 
 declare already_propagated_unit_cls_conflict_code.refine[sepref_fr_rules]
 
-sepref_definition (in -) set_conflict_empty_code
+sepref_def (in -) set_conflict_empty_code
   is \<open>RETURN o lookup_set_conflict_empty\<close>
   :: \<open>conflict_option_rel_assn\<^sup>d  \<rightarrow>\<^sub>a conflict_option_rel_assn\<close>
   supply [[goals_limit=1]]
@@ -239,7 +238,7 @@ sepref_definition (in -) set_conflict_empty_code
 
 declare set_conflict_empty_code.refine[sepref_fr_rules]
 
-sepref_definition set_empty_clause_as_conflict_code
+sepref_def set_empty_clause_as_conflict_code
   is \<open>set_empty_clause_as_conflict_heur\<close>
   :: \<open>isasat_init_assn\<^sup>d \<rightarrow>\<^sub>a isasat_init_assn\<close>
   supply [[goals_limit=1]]
@@ -257,7 +256,7 @@ definition (in -) add_clause_to_others_heur'
 lemma add_clause_to_others_heur'_alt: \<open>add_clause_to_others_heur L = add_clause_to_others_heur'\<close>
   unfolding add_clause_to_others_heur'_def add_clause_to_others_heur_def
   ..
-sepref_definition add_clause_to_others_code
+sepref_def add_clause_to_others_code
   is \<open>add_clause_to_others_heur'\<close>
   :: \<open>isasat_init_assn\<^sup>d \<rightarrow>\<^sub>a isasat_init_assn\<close>
   supply [[goals_limit=1]]
@@ -266,7 +265,7 @@ sepref_definition add_clause_to_others_code
 
 declare add_clause_to_others_code.refine[sepref_fr_rules]
 
-sepref_definition get_conflict_wl_is_None_init_code
+sepref_def get_conflict_wl_is_None_init_code
   is \<open>RETURN o get_conflict_wl_is_None_heur_init\<close>
   :: \<open>isasat_init_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
   unfolding get_conflict_wl_is_None_heur_init_alt_def isasat_init_assn_def length_ll_def[symmetric]
@@ -276,7 +275,7 @@ sepref_definition get_conflict_wl_is_None_init_code
 
 declare get_conflict_wl_is_None_init_code.refine[sepref_fr_rules]
 
-sepref_definition polarity_st_heur_init_code
+sepref_def polarity_st_heur_init_code
   is \<open>uncurry (RETURN oo polarity_st_heur_init)\<close>
   :: \<open>[\<lambda>(S, L). polarity_pol_pre (get_trail_wl_heur_init S) L]\<^sub>a isasat_init_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> tri_bool_assn\<close>
   unfolding polarity_st_heur_init_def isasat_init_assn_def
@@ -296,13 +295,13 @@ sepref_register polarity_st_heur_init propagate_unit_cls_heur
 lemma is_Nil_length: \<open>is_Nil xs \<longleftrightarrow> length xs = 0\<close>
   by (cases xs) auto
 
-definition init_dt_wl_heur_b'
+definition init_dt_step_wl_heur_b'
    :: \<open>nat clause_l list \<Rightarrow> nat \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur_init nres\<close> where
-\<open>init_dt_wl_heur_b' C i = init_dt_step_wl_heur_b (C!i)\<close>
+\<open>init_dt_step_wl_heur_b' C i = init_dt_step_wl_heur_b (C!i)\<close>
 
 
-sepref_definition init_dt_step_wl_code_b
-  is \<open>uncurry2 (init_dt_wl_heur_b')\<close>
+sepref_def init_dt_step_wl_code_b
+  is \<open>uncurry2 (init_dt_step_wl_heur_b')\<close>
   :: \<open>[\<lambda>((xs, i), S). i < length xs]\<^sub>a (clauses_ll_assn)\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a isasat_init_assn\<^sup>d \<rightarrow>
        isasat_init_assn\<close>
   supply [[goals_limit=1]]
@@ -311,7 +310,7 @@ sepref_definition init_dt_step_wl_code_b
   tri_bool_eq_def[simp]
   unfolding init_dt_step_wl_heur_def PR_CONST_def
     init_dt_step_wl_heur_b_def
-    init_dt_wl_heur_b'_def list_length_1_def is_Nil_length
+    init_dt_step_wl_heur_b'_def list_length_1_def is_Nil_length
     op_list_list_llen_alt_def[symmetric] op_list_list_idx_alt_def[symmetric]
     already_propagated_unit_cls_heur'_alt
     add_init_cls_heur_b'_def[symmetric] add_clause_to_others_heur'_def[symmetric]
@@ -351,7 +350,7 @@ sepref_def init_next_size_impl
 
 
 find_in_thms op_list_grow_init in sepref_fr_rules
-sepref_definition nat_lit_lits_init_assn_assn_in
+sepref_def nat_lit_lits_init_assn_assn_in
   is \<open>uncurry add_to_atms_ext\<close>
   :: \<open>atom_assn\<^sup>k *\<^sub>a isasat_atms_ext_rel_assn\<^sup>d \<rightarrow>\<^sub>a isasat_atms_ext_rel_assn\<close>
   supply [[goals_limit=1]]
@@ -437,7 +436,7 @@ lemma extract_atms_clss_hnr[sepref_fr_rules]:
   using extract_atms_clss_imp.refine[FCOMP extract_atms_clss_i_extract_atms_clss[unfolded convert_fref]]
   by simp
 
-sepref_definition extract_atms_clss_imp_empty_assn
+sepref_def extract_atms_clss_imp_empty_assn
   is \<open>uncurry0 extract_atms_clss_imp_empty_rel\<close>
   :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a isasat_atms_ext_rel_assn\<close>
   unfolding extract_atms_clss_imp_empty_rel_def
@@ -465,7 +464,7 @@ lemma extract_atms_clss_imp_empty_rel_alt_def:
 
 subsubsection \<open>Full Initialisation\<close>
 
-sepref_definition rewatch_heur_st_fast_code
+sepref_def rewatch_heur_st_fast_code
   is \<open>(rewatch_heur_st_fast)\<close>
   :: \<open>[rewatch_heur_st_fast_pre]\<^sub>a
        isasat_init_assn\<^sup>d \<rightarrow> isasat_init_assn\<close>
@@ -479,19 +478,23 @@ declare
 
 
 sepref_register rewatch_heur_st init_dt_step_wl_heur
-(*
-sepref_definition init_dt_wl_heur_code_b
+
+sepref_def init_dt_wl_heur_code_b
   is \<open>uncurry (init_dt_wl_heur_b)\<close>
   :: \<open>(clauses_ll_assn)\<^sup>k *\<^sub>a isasat_init_assn\<^sup>d \<rightarrow>\<^sub>a
       isasat_init_assn\<close>
   supply [[goals_limit=1]]
   unfolding init_dt_wl_heur_def PR_CONST_def init_dt_step_wl_heur_b_def[symmetric] if_True
    init_dt_wl_heur_b_def
+  apply (subst nfoldli_by_idx[abs_def])
+  unfolding nfoldli_upt_by_while op_list_list_len_def[symmetric] Let_def
+    init_dt_step_wl_heur_b'_def[symmetric]
+  apply (annot_snat_const "TYPE(64)")
   by sepref
 
 declare
   init_dt_wl_heur_code_b.refine[sepref_fr_rules]
-*)
+
 
 definition extract_lits_sorted' where
   \<open>extract_lits_sorted' xs n vars = extract_lits_sorted (xs, n, vars)\<close>
@@ -500,7 +503,7 @@ lemma extract_lits_sorted_extract_lits_sorted':
    \<open>extract_lits_sorted = (\<lambda>(xs, n, vars). do {res \<leftarrow> extract_lits_sorted' xs n vars; mop_free xs; RETURN res})\<close>
   by (auto simp: extract_lits_sorted'_def mop_free_def intro!: ext)
 
-sepref_definition (in -) extract_lits_sorted'_impl
+sepref_def (in -) extract_lits_sorted'_impl
    is \<open>uncurry2 extract_lits_sorted'\<close>
    :: \<open>[\<lambda>((xs, n), vars). (\<forall>x\<in>#mset vars. x < length xs)]\<^sub>a
       (larray64_assn uint64_nat_assn)\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a
@@ -513,7 +516,7 @@ sepref_definition (in -) extract_lits_sorted'_impl
 lemmas [sepref_fr_rules] = extract_lits_sorted'_impl.refine
 
 
-sepref_definition (in -) extract_lits_sorted_code
+sepref_def (in -) extract_lits_sorted_code
    is \<open>extract_lits_sorted\<close>
    :: \<open>[\<lambda>(xs, n, vars). (\<forall>x\<in>#mset vars. x < length xs)]\<^sub>a
       isasat_atms_ext_rel_assn\<^sup>d  \<rightarrow>
@@ -596,15 +599,7 @@ lemma [sepref_gen_algo_rules]: \<open>GEN_ALGO (Pos 0) (is_init unat_lit_assn)\<
   by (auto simp: unat_lit_rel_def is_init_def unat_rel_def unat.rel_def
     br_def nat_lit_rel_def GEN_ALGO_def)
 
-
-(*TODO very stupid*)
-find_theorems op_list_take
-
-
-find_theorems name:arl name:replicate
-find_theorems op_arl_custom_replicate
-
-sepref_definition finalise_init_code'
+sepref_def finalise_init_code'
   is \<open>uncurry finalise_init_code\<close>
   :: \<open>[\<lambda>(_, S). length (get_clauses_wl_heur_init S) \<le> sint64_max]\<^sub>a
       opts_assn\<^sup>d *\<^sub>a isasat_init_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
@@ -661,14 +656,8 @@ sepref_def init_trail_D_fast_code
   by sepref
 
 declare init_trail_D_fast_code.refine[sepref_fr_rules]
-thm op_ial_empty_sz_def
-thm op_list_list_lempty_def
-find_theorems op_list_list_lempty
-find_theorems op_aal_lempty
-lemma op_list_list_lempty_alt: \<open>op_list_list_lempty x = replicate x []\<close>
-  by auto
 
-sepref_definition init_state_wl_D'_code
+sepref_def init_state_wl_D'_code
   is \<open>init_state_wl_D'\<close>
   :: \<open>(arl64_assn atom_assn *a sint64_nat_assn)\<^sup>k \<rightarrow>\<^sub>a isasat_init_assn\<close>
   unfolding init_state_wl_D'_def PR_CONST_def init_trail_D_fast_def[symmetric] isasat_init_assn_def
@@ -705,5 +694,14 @@ lemma to_init_state_code_hnr:
 
 abbreviation (in -)lits_with_max_assn_clss where
   \<open>lits_with_max_assn_clss \<equiv> hr_comp lits_with_max_assn (\<langle>nat_rel\<rangle>mset_rel)\<close>
+
+
+experiment
+begin
+  export_llvm init_state_wl_D'_code
+    rewatch_heur_st_fast_code
+    init_dt_wl_heur_code_b
+
+end
 
 end
