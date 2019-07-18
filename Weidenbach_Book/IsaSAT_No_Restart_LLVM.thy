@@ -4,52 +4,21 @@ theory IsaSAT_No_Restart_LLVM
 begin
 
 abbreviation  model_stat_assn where
-  \<open>model_stat_assn \<equiv> bool1_assn *a (arl64_assn unat_lit_assn) *a stats_assn\<close>
+  \<open>model_stat_assn \<equiv> bool1_assn *a bool1_assn *a (arl64_assn unat_lit_assn) *a stats_assn\<close>
 
 
 abbreviation lits_with_max_assn where
-  \<open>lits_with_max_assn \<equiv> hr_comp (arl64_assn uint32_nat_assn *a uint32_nat_assn) lits_with_max_rel\<close>
-(*
-lemma lits_with_max_assn_alt_def: \<open>lits_with_max_assn  = hr_comp (arl_assn uint32_assn *a uint32_assn)
-          (lits_with_max_rel O \<langle>uint32_nat_rel\<rangle>IsaSAT_Initialisation.mset_rel)\<close>
+  \<open>lits_with_max_assn \<equiv> hr_comp (arl64_assn atom_assn *a snat64_assn) lits_with_max_rel\<close>
+
+lemma lits_with_max_assn_alt_def: \<open>lits_with_max_assn  = hr_comp (arl64_assn atom_assn *a snat64_assn)
+          (lits_with_max_rel O \<langle>nat_rel\<rangle>IsaSAT_Initialisation.mset_rel)\<close>
 proof -
-  have 1: \<open>arl_assn uint32_nat_assn *a uint32_nat_assn =
-     hr_comp (arl_assn uint32_assn *a uint32_assn) (\<langle>uint32_nat_rel\<rangle>list_rel \<times>\<^sub>r uint32_nat_rel)\<close>
-     unfolding arl_assn_comp' hr_comp_prod_conv
-     by auto
 
-  have [simp]: \<open> Max (insert 0 (nat_of_uint32 ` set aa)) =  nat_of_uint32 (Max (insert 0 (set aa)))\<close>for aa
-    apply (induction aa)
-    subgoal by auto
-    subgoal for a aa
-      by (cases \<open>nat_of_uint32 ` set aa = {}\<close>) (auto simp: nat_of_uint32_max)
-    done
-
-  have 2: \<open>((\<langle>uint32_nat_rel\<rangle>list_rel \<times>\<^sub>f uint32_nat_rel) O lits_with_max_rel) =
-     (lits_with_max_rel O \<langle>uint32_nat_rel\<rangle>IsaSAT_Initialisation.mset_rel)\<close>
-    apply (rule; rule)
-    apply (case_tac x)
-    apply (simp only: relcomp.simps)
-    apply normalize_goal+
-    subgoal for yx a b xa xb xc
-       apply (rule exI[of _ a])
-       apply (rule exI[of _ \<open>uint32_of_nat `# mset (fst xb)\<close>])
-       apply (rule exI[of _ \<open>mset (fst xb)\<close>])
-       apply (cases xa)
-       by (auto simp: uint32_nat_rel_def IsaSAT_Initialisation.mset_rel_def p2rel_def rel2p_def[abs_def] br_def
-         rel_mset_def lits_with_max_rel_def list_rel_def list_all2_op_eq_map_right_iff')
-    apply (case_tac x)
-    apply (simp only: relcomp.simps)
-    apply normalize_goal+
-    subgoal for yx a b xa xb xc
-       apply (rule exI[of _ a])
-       apply (cases xa)
-       by (auto simp: uint32_nat_rel_def IsaSAT_Initialisation.mset_rel_def p2rel_def rel2p_def[abs_def] br_def
-         rel_mset_def lits_with_max_rel_def list_rel_def list_all2_op_eq_map_right_iff')
-    done
-
+  have 1: \<open>(lits_with_max_rel O \<langle>nat_rel\<rangle>IsaSAT_Initialisation.mset_rel) = lits_with_max_rel\<close>
+    by (auto simp: mset_rel_def  p2rel_def rel2p_def[abs_def] br_def
+         rel_mset_def lits_with_max_rel_def list_rel_def list_all2_op_eq_map_right_iff' list.rel_eq)
   show ?thesis
-    unfolding 1 hr_comp_assoc 2
+    unfolding 1
     by auto
 qed
 
@@ -62,6 +31,7 @@ lemma init_state_wl_D'_code_isasat: \<open>(hr_comp isasat_init_assn
         (Id \<times>\<^sub>f (\<langle>bool_rel\<rangle>list_rel \<times>\<^sub>f (nat_rel \<times>\<^sub>f (Id \<times>\<^sub>f (Id \<times>\<^sub>f Id))))))))))) = isasat_init_assn\<close>
   by auto
 
+(*
 lemma list_assn_list_mset_rel_clauses_l_assn:
   \<open>(hr_comp (list_assn (list_assn unat_lit_assn)) (list_mset_rel O \<langle>list_mset_rel\<rangle>IsaSAT_Initialisation.mset_rel)) xs xs'
      = clauses_l_assn xs xs'\<close>
@@ -88,7 +58,7 @@ proof -
 qed
 *)
 
-definition  model_assn where
+definition model_assn where
   \<open>model_assn = hr_comp model_stat_assn model_stat_rel\<close>
 
 lemma extract_model_of_state_stat_alt_def:
@@ -152,8 +122,7 @@ lemma hn_aal_free_raw: "(aal_free,RETURN o op_list_list_free) \<in> AA\<^sup>d \
   lemmas array_mk_free[sepref_frame_free_rules] = hn_MK_FREEI[OF aal_free_hnr]
 end
 end
-term lbd_assn
-thm arl_assn_free
+
 sepref_def extract_model_of_state_stat
   is \<open>RETURN o extract_model_of_state_stat\<close>
   :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a model_stat_assn\<close>
@@ -162,60 +131,47 @@ sepref_def extract_model_of_state_stat
    trail_pol_fast_assn_def
   by sepref
 
-lemma extract_model_of_state_stat_hnr[sepref_fr_rules]:
-  \<open>(return o get_trail_wl_code, RETURN o extract_model_of_state_stat) \<in> isasat_unbounded_assn\<^sup>d \<rightarrow>\<^sub>a
-       model_stat_assn\<close>
-proof -
-  have [simp]: \<open>(\<lambda>a c. \<up> ((c, a) \<in> unat_lit_rel)) = unat_lit_assn\<close>
-    by (auto simp: unat_lit_rel_def pure_def)
-  have [simp]: \<open>id_assn (an, ao, bb) (bs, bt, bu) = (id_assn an bs * id_assn ao bt * id_assn bb bu)\<close>
-    for an ao bb bs bt bu :: uint64
-    by (auto simp: pure_def)
-  show ?thesis
-    by sepref_to_hoare
-qed
+lemmas [sepref_fr_rules] = extract_model_of_state_stat.refine
 
-lemma get_stats_code[sepref_fr_rules]:
-  \<open>(return o get_stats_code, RETURN o extract_state_stat) \<in> isasat_unbounded_assn\<^sup>d \<rightarrow>\<^sub>a
-       model_stat_assn\<close>
-proof -
-  have [simp]: \<open>(\<lambda>a c. \<up> ((c, a) \<in> unat_lit_rel)) = unat_lit_assn\<close>
-    by (auto simp: unat_lit_rel_def pure_def)
-  have [simp]: \<open>id_assn (an, ao, bb) (bs, bt, bu) = (id_assn an bs * id_assn ao bt * id_assn bb bu)\<close>
-    for an ao bb bs bt bu :: uint64
-    by (auto simp: pure_def)
-  show ?thesis
-    by sepref_to_hoare
-      (sep_auto simp: twl_st_heur_def hr_comp_def trail_pol_def isasat_unbounded_assn_def
-        get_trail_wl_code_def get_stats_code_def
-        extract_model_of_state_def extract_model_of_state_stat_def extract_state_stat_def
-        dest!: ann_lits_split_reasons_map_lit_of
-        elim!: mod_starE)
-qed
+lemma extract_state_stat_alt_def:
+  \<open>RETURN o extract_state_stat = (\<lambda>(M, N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema, ccount,
+       vdom, avdom, lcount, opts, old_arena).
+     do {mop_free M; mop_free N'; mop_free D'; mop_free j; mop_free W'; mop_free vm; mop_free \<phi>; mop_free clvls;
+         mop_free cach; mop_free lbd; mop_free outl; mop_free fast_ema; mop_free slow_ema; mop_free ccount;
+         mop_free vdom; mop_free avdom; mop_free opts;
+         mop_free old_arena;
+        RETURN (True, [], stats)})\<close>
+  by (auto simp: extract_state_stat_def mop_free_def intro!: ext)
+
+sepref_def extract_state_stat
+  is \<open>RETURN o extract_state_stat\<close>
+  :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a model_stat_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding extract_state_stat_alt_def isasat_bounded_assn_def
+    al_fold_custom_empty[where 'l=64]
+  by sepref
 
 lemma convert_state_hnr:
   \<open>(uncurry (return oo (\<lambda>_ S. S)), uncurry (RETURN oo convert_state))
    \<in> ghost_assn\<^sup>k *\<^sub>a (isasat_init_assn)\<^sup>d \<rightarrow>\<^sub>a
      isasat_init_assn\<close>
-  by sepref_to_hoare (sep_auto simp: convert_state_def)
+  unfolding convert_state_def
+  by sepref_to_hoare vcg
 
-lemma  convert_state_hnr_unb:
-  \<open>(uncurry (return oo (\<lambda>_ S. S)), uncurry (RETURN oo convert_state))
-   \<in> ghost_assn\<^sup>k *\<^sub>a (isasat_init_unbounded_assn)\<^sup>d \<rightarrow>\<^sub>a
-     isasat_init_unbounded_assn\<close>
-  by sepref_to_hoare (sep_auto simp: convert_state_def)
+sepref_def IsaSAT_use_fast_mode_impl
+  is \<open>uncurry0 (RETURN IsaSAT_use_fast_mode)\<close>
+  :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
+  unfolding IsaSAT_use_fast_mode_def
+  by sepref
 
-lemma IsaSAT_use_fast_mode[sepref_fr_rules]:
-  \<open>(uncurry0 (return IsaSAT_use_fast_mode), uncurry0 (RETURN IsaSAT_use_fast_mode))
-   \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
-  by sepref_to_hoare sep_auto
+lemmas [sepref_fr_rules] = IsaSAT_use_fast_mode_impl.refine extract_state_stat.refine
 
 sepref_definition  empty_conflict_code'
   is \<open>uncurry0 (empty_conflict_code)\<close>
   :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a model_stat_assn\<close>
   unfolding empty_conflict_code_def
-  apply (rewrite in \<open>let _ =  \<hole> in _\<close> IICF_Array_List.arl.fold_custom_empty)
-  apply (rewrite in \<open>let _ =  \<hole> in _\<close> annotate_assn[where A=\<open>arl_assn unat_lit_assn\<close>])
+  apply (rewrite in \<open>let _ =  \<hole> in _\<close> al_fold_custom_empty[where 'l=64])
+  apply (rewrite in \<open>let _ =  \<hole> in _\<close> annotate_assn[where A=\<open>arl64_assn unat_lit_assn\<close>])
   by sepref
 
 declare empty_conflict_code'.refine[sepref_fr_rules]
@@ -223,21 +179,32 @@ declare empty_conflict_code'.refine[sepref_fr_rules]
 sepref_definition  empty_init_code'
   is \<open>uncurry0 (RETURN empty_init_code)\<close>
   :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a model_stat_assn\<close>
-  unfolding empty_init_code_def
+  unfolding empty_init_code_def al_fold_custom_empty[where 'l=64]
+  apply (rewrite in \<open>RETURN (_, \<hole>,_)\<close> annotate_assn[where A=\<open>arl64_assn unat_lit_assn\<close>])
   by sepref
 
 declare empty_init_code'.refine[sepref_fr_rules]
 
 sepref_register init_dt_wl_heur_full
 
-declare extract_model_of_state_stat_hnr[sepref_fr_rules]
 sepref_register to_init_state from_init_state get_conflict_wl_is_None_init extract_stats
   init_dt_wl_heur
 
+definition isasat_fast_bound :: \<open>nat\<close> where
+\<open>isasat_fast_bound = sint64_max - (uint32_max div 2 + 6)\<close>
 
-declare
-  get_stats_code[sepref_fr_rules]
+lemma isasat_fast_bound_alt_def: \<open>isasat_fast_bound = 9223372034707292154\<close>
+  unfolding isasat_fast_bound_def sint64_max_def uint32_max_def
+  by simp
 
+sepref_def isasat_fast_bound_impl
+  is \<open>uncurry0 (RETURN isasat_fast_bound)\<close>
+  :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a sint64_nat_assn\<close>
+  unfolding isasat_fast_bound_alt_def
+  apply (annot_snat_const "TYPE(64)")
+  by sepref
+
+lemmas [sepref_fr_rules] = isasat_fast_bound_impl.refine
 
 lemma isasat_fast_init_alt_def:
   \<open>RETURN o isasat_fast_init = (\<lambda>(M, N, _). RETURN (length N \<le> isasat_fast_bound))\<close>
@@ -245,7 +212,7 @@ lemma isasat_fast_init_alt_def:
 
 sepref_definition isasat_fast_init_code
   is \<open>RETURN o isasat_fast_init\<close>
-  :: \<open>isasat_init_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  :: \<open>isasat_init_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
   supply [[goals_limit=1]]
   unfolding isasat_fast_init_alt_def isasat_init_assn_def isasat_fast_bound_def[symmetric]
   by sepref
@@ -253,67 +220,45 @@ sepref_definition isasat_fast_init_code
 declare isasat_fast_init_code.refine[sepref_fr_rules]
 
 declare convert_state_hnr[sepref_fr_rules]
-  convert_state_hnr_unb[sepref_fr_rules]
 
 sepref_register
    cdcl_twl_stgy_restart_prog_wl_heur
 
-declare init_state_wl_D'_code.refine[FCOMP init_state_wl_D'[unfolded convert_fref],
+thm init_state_wl_D'_code.refine[FCOMP init_state_wl_D'[unfolded convert_fref],
   unfolded lits_with_max_assn_alt_def[symmetric] init_state_wl_heur_fast_def[symmetric],
   unfolded init_state_wl_D'_code_isasat, sepref_fr_rules]
 
-lemma init_state_wl_D'_code_isasat_unb: \<open>(hr_comp isasat_init_unbounded_assn
-   (Id \<times>\<^sub>f
-    (Id \<times>\<^sub>f
-     (Id \<times>\<^sub>f
-      (nat_rel \<times>\<^sub>f
-       (\<langle>\<langle>Id\<rangle>list_rel\<rangle>list_rel \<times>\<^sub>f
-        (Id \<times>\<^sub>f (\<langle>bool_rel\<rangle>list_rel \<times>\<^sub>f (nat_rel \<times>\<^sub>f (Id \<times>\<^sub>f (Id \<times>\<^sub>f Id))))))))))) = isasat_init_unbounded_assn\<close>
-  unfolding isasat_init_unbounded_assn_def  by auto
+thm init_state_wl_D'_code.refine[FCOMP init_state_wl_D'[unfolded convert_fref],
+  unfolded lits_with_max_assn_alt_def[symmetric] ]
 
-lemma arena_assn_alt_def: \<open>arl_assn (pure (uint32_nat_rel O arena_el_rel)) = arena_assn\<close>
-  unfolding hr_comp_pure[symmetric] ..
-
-lemma [sepref_fr_rules]: \<open>(init_state_wl_D'_code_unb, init_state_wl_heur)
+lemma [sepref_fr_rules]: \<open>(init_state_wl_D'_code, init_state_wl_heur_fast)
 \<in> [\<lambda>x. distinct_mset x \<and>
        (\<forall>L\<in>#\<L>\<^sub>a\<^sub>l\<^sub>l x.
            nat_of_lit L
-           \<le> uint32_max)]\<^sub>a IsaSAT_SML.lits_with_max_assn\<^sup>d \<rightarrow> isasat_init_unbounded_assn\<close>
-  using init_state_wl_D'_code_unb.refine[FCOMP init_state_wl_D'[unfolded convert_fref]]
-  unfolding lits_with_max_assn_alt_def[symmetric] init_state_wl_D'_code_isasat_unb arena_assn_alt_def
-  unfolding isasat_init_unbounded_assn_def
+           \<le> uint32_max)]\<^sub>a lits_with_max_assn\<^sup>k \<rightarrow> isasat_init_assn\<close>
+  using init_state_wl_D'_code.refine[FCOMP init_state_wl_D'[unfolded convert_fref]]
+  unfolding lits_with_max_assn_alt_def[symmetric] init_state_wl_D'_code_isasat
+    init_state_wl_heur_fast_def
   by auto
 
-sepref_definition isasat_init_fast_slow_code
-  is \<open>isasat_init_fast_slow\<close>
-  :: \<open>isasat_init_assn\<^sup>d \<rightarrow>\<^sub>a isasat_init_unbounded_assn\<close>
-  supply [[goals_limit=1]]
-  unfolding isasat_init_unbounded_assn_def isasat_init_assn_def isasat_init_fast_slow_def
-  apply (rewrite at \<open>(_, _, _, _, _, _, _, _, _, _, \<hole>, _)\<close> arl64_to_arl_conv_def[symmetric])
-  apply (rewrite at \<open>(_, \<hole>, _, _, _, _, _, _, _, _, _, _)\<close> arl64_to_arl_conv_def[symmetric])
-  apply (rewrite in \<open>(_, _, _, _, _, _, _, _, _, _, \<hole>, _)\<close> arl_nat_of_uint64_conv_def[symmetric])
+
+lemma is_failed_heur_init_alt_def:
+  \<open>is_failed_heur_init = (\<lambda>(_, _, _, _, _, _, _, _, _, _, _, failed). failed)\<close>
+  by (auto)
+
+sepref_def is_failed_heur_init_impl
+  is \<open>RETURN o is_failed_heur_init\<close>
+  :: \<open>isasat_init_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
+  unfolding isasat_init_assn_def is_failed_heur_init_alt_def
   by sepref
 
-declare isasat_init_fast_slow_code.refine[sepref_fr_rules]
-
-sepref_register init_dt_wl_heur_unb
-
-fun (in -) is_failed_heur_init_code :: \<open>_ \<Rightarrow> bool\<close> where
-  \<open>is_failed_heur_init_code (_, _, _, _, _, _, _, _, _, _, _, failed) = failed\<close>
-
-lemma is_failed_heur_init_code[sepref_fr_rules]:
-  \<open>(return o is_failed_heur_init_code, RETURN o is_failed_heur_init) \<in> isasat_init_assn\<^sup>k \<rightarrow>\<^sub>a
-       bool_assn\<close>
-  by (sepref_to_hoare) (sep_auto simp: isasat_init_assn_def
-        elim!: mod_starE)
-
-declare init_dt_wl_heur_code_unb.refine[sepref_fr_rules]
+lemmas [sepref_fr_rules] = is_failed_heur_init_impl.refine
 
 sepref_definition IsaSAT_code
-  is \<open>uncurry IsaSAT_heur\<close>
-  :: \<open>opts_assn\<^sup>d *\<^sub>a (list_assn (list_assn unat_lit_assn))\<^sup>k \<rightarrow>\<^sub>a model_stat_assn\<close>
+  is \<open>uncurry IsaSAT_bounded_heur\<close>
+  :: \<open>opts_assn\<^sup>d *\<^sub>a (clauses_ll_assn)\<^sup>k \<rightarrow>\<^sub>a model_stat_assn\<close>
   supply [[goals_limit=1]] isasat_fast_init_def[simp]
-  unfolding IsaSAT_heur_def empty_conflict_def[symmetric]
+  unfolding IsaSAT_bounded_heur_def empty_conflict_def[symmetric]
     get_conflict_wl_is_None extract_model_of_state_def[symmetric]
     extract_stats_def[symmetric] init_dt_wl_heur_b_def[symmetric]
     length_get_clauses_wl_heur_init_def[symmetric]
