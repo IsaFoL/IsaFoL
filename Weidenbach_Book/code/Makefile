@@ -21,5 +21,8 @@ clean:
 	rm -f IsaSAT IsaSAT_restart
 
 isallvm:
-	llvm-as -disable-output isasat_no_restart.ll
-	$(CLANG) -fsanitize=undefined -fsanitize=address -fno-sanitize-recover=undefined -Wall -Wextra -g isasat.c "lib_isabelle_llvm.c" isasat_no_restart.ll -o isasat_llvm
+#	llvm-as -disable-output isasat_no_restart.ll
+	$(CLANG) -g -fsanitize=undefined -fsanitize=address -fno-sanitize-recover=undefined -Wall -Wextra -g isasat.c "lib_isabelle_llvm.c" isasat_no_restart.ll -o isasat_llvm
+
+isallvm-gdb:
+	$(CLANG) -g -Wall -Wextra -g isasat.c "lib_isabelle_llvm.c" isasat_no_restart.ll -o isasat_llvm

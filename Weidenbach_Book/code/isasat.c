@@ -30,6 +30,9 @@ typedef struct CLAUSE {
 void make_room(CLAUSE *cl) {
   cl->clause = (uint32_t *) realloc(cl->clause, 2*cl->size * sizeof(uint32_t));
   cl->size *= 2;
+  if(cl->clause == NULL) {
+    perr("failled to allocate memory for clause resizing");
+  }
 }
 
 CLAUSE new_clause(void) {
@@ -37,6 +40,9 @@ CLAUSE new_clause(void) {
   cl.clause = (uint32_t *) malloc(16 * sizeof(uint32_t));
   cl.size = 16;
   cl.used = 0;
+  if(cl.clause == NULL) {
+    perr("failled to allocate memory for clause");
+  }
   return cl;
 }
 
@@ -60,7 +66,7 @@ typedef struct CLAUSES {
 CLAUSES new_clauses(int64_t size) {
   CLAUSES clauses;
   clauses.size = size;
-  clauses.clauses = (CLAUSE *) malloc(size * sizeof(CLAUSE));
+  clauses.clauses = (CLAUSE *) malloc((size+1) * sizeof(CLAUSE));
   for (int64_t n = 0; n < size; ++n) {
     clauses.clauses[n] = new_clause();
   }
@@ -172,26 +178,27 @@ typedef struct OPTS {
 } OPTS;
 
 typedef struct STATS {
-  uin64_t s1;
-  uin64_t s2;
-  uin64_t s3;
-  uin64_t s4;
-  uin64_t s5;
-  uin64_t s6;
-  uin64_t s7;
-  uin64_t s8;
+  uint64_t s1;
+  uint64_t s2;
+  uint64_t s3;
+  uint64_t s4;
+  uint64_t s5;
+  uint64_t s6;
+  uint64_t s7;
+  uint64_t s8;
 } STATS;
 
 typedef struct R {
   _Bool finished;
   _Bool sat;
   CLAUSE model;
-  structs STATS;
+  STATS stats;
 } R;
+
 R IsaSAT_No_Restart_LLVM_IsaSAT_code(OPTS,CLAUSES);
 
 int main(void) {
-  inputname = "/home/mfleury/Documents/repos/SPASS/Trunk/SAT/Examples/Easy/np.core.400046.cnf";
+  inputname = "/Users/mfleury/Documents/repos/SPASS/Trunk/SAT/Examples/Easy/np.core.404318.cnf";
   inputfile = fopen (inputname, "r");
 
   if(inputfile == NULL) {
@@ -203,7 +210,8 @@ int main(void) {
 
 
   OPTS opts;
-  (void)IsaSAT_No_Restart_LLVM_IsaSAT_code(opts,);
+  opts.s1 = 1; opts.s2 = 1; opts.s3 = 1;
+  (void)IsaSAT_No_Restart_LLVM_IsaSAT_code(opts,clauses);
   free_clauses(&clauses);
   return 0;
 }
