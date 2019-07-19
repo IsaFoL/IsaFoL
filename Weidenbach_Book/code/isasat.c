@@ -6,6 +6,21 @@
 
 /*the parser is based on the code from lingeling*/
 
+typedef struct CLAUSE {
+  int64_t size;
+  struct {
+    int64_t used;
+    uint32_t* clause;
+  };
+} CLAUSE;
+
+
+typedef struct CLAUSES {
+  int64_t size;
+  CLAUSE* clauses;
+} clauses, CLAUSES;
+
+
 static char * inputname;
 static FILE * inputfile;
 
@@ -21,13 +36,7 @@ static void perr (const char * fmt, ...) {
   exit (1);
 }
 
-typedef struct CLAUSE {
-  int64_t size;
-  int64_t used;
-  uint32_t* clause;
-} clause, CLAUSE;
-
-void make_room(CLAUSE *cl) {
+static void make_room(CLAUSE *cl) {
   cl->clause = (uint32_t *) realloc(cl->clause, 2*cl->size * sizeof(uint32_t));
   cl->size *= 2;
   if(cl->clause == NULL) {
@@ -35,7 +44,7 @@ void make_room(CLAUSE *cl) {
   }
 }
 
-CLAUSE new_clause(void) {
+static CLAUSE new_clause(void) {
   CLAUSE cl;
   cl.clause = (uint32_t *) malloc(16 * sizeof(uint32_t));
   cl.size = 16;
@@ -46,22 +55,17 @@ CLAUSE new_clause(void) {
   return cl;
 }
 
-void append_lit(int32_t lit, CLAUSE * cl) {
+static void append_lit(int32_t lit, CLAUSE * cl) {
   uint32_t ulit = (uint32_t)(lit < 0 ? - 2 * lit +1 : 2 * lit);
   if(cl->used + 1 >= cl->size)
     make_room(cl);
-  cl->used++;
   cl->clause[cl->used] = ulit;
+  cl->used++;
 }
 
-void free_clause (CLAUSE *cl) {
+static void free_clause (CLAUSE *cl) {
   free(cl->clause);
 }
-
-typedef struct CLAUSES {
-  int64_t size;
-  CLAUSE* clauses;
-} clauses, CLAUSES;
 
 CLAUSES new_clauses(int64_t size) {
   CLAUSES clauses;
@@ -197,8 +201,21 @@ typedef struct R {
 
 R IsaSAT_No_Restart_LLVM_IsaSAT_code(OPTS,CLAUSES);
 
+void print_clause(CLAUSE *cl) {
+  for(int i = 0; i < cl->used; ++i) {
+    uint32_t lit = cl->clause[i];
+    printf("%d ", (lit % 2) ? (lit / 2) : - (lit / 2));
+  }
+  printf("0\n");
+}
+
+void print_clauses(CLAUSES *cl) {
+  for(int i = 0; i < cl->size; ++i)
+    print_clause(&cl->clauses[i]);
+}
+
 int main(void) {
-  inputname = "/Users/mfleury/Documents/repos/SPASS/Trunk/SAT/Examples/Easy/np.core.404318.cnf";
+  inputname = "/home/zmaths/Documents/repos/SPASS/Trunk/SAT/Examples/Easy/np.core.404318.cnf";
   inputfile = fopen (inputname, "r");
 
   if(inputfile == NULL) {
@@ -208,7 +225,7 @@ int main(void) {
 
   CLAUSES clauses = parse();
 
-
+  print_clauses(&clauses);
   OPTS opts;
   opts.s1 = 1; opts.s2 = 1; opts.s3 = 1;
   (void)IsaSAT_No_Restart_LLVM_IsaSAT_code(opts,clauses);
