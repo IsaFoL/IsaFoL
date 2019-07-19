@@ -331,10 +331,33 @@ sepref_def IsaSAT_code
   apply (annot_snat_const "TYPE(64)")
   by sepref
 
+definition default_opts where
+  \<open>default_opts = (True, True, True)\<close>
+
+sepref_def default_opts_impl
+  is \<open>uncurry0 (RETURN default_opts)\<close>
+  :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a opts_assn\<close>
+  unfolding opts_assn_def default_opts_def
+  by sepref
+
+definition IsaSAT_bounded_heur_wrapper :: \<open>_ \<Rightarrow> (nat \<times> nat) nres\<close>where
+  \<open>IsaSAT_bounded_heur_wrapper C = do {
+      (b, (b', _)) \<leftarrow> IsaSAT_bounded_heur default_opts C;
+      RETURN ((if b then 0 else 1), (if b' then 1 else 0))
+  }\<close>
+
+sepref_register IsaSAT_bounded_heur default_opts
+sepref_def IsaSAT_code_wrapped
+  is \<open>IsaSAT_bounded_heur_wrapper\<close>
+  :: \<open>(clauses_ll_assn)\<^sup>k \<rightarrow>\<^sub>a sint64_nat_assn *a sint64_nat_assn\<close>
+  unfolding IsaSAT_bounded_heur_wrapper_def
+  apply (annot_snat_const "TYPE(64)")
+  by sepref
+
 experiment
 begin
 
-  export_llvm IsaSAT_code file "code/isasat_no_restart.ll"
+  export_llvm IsaSAT_code_wrapped default_opts_impl IsaSAT_code file "code/isasat_no_restart.ll"
 
 end
 
