@@ -193,13 +193,11 @@ typedef struct STATS {
 } STATS;
 
 typedef struct R {
-  _Bool finished;
-  _Bool sat;
-  CLAUSE model;
-  STATS stats;
+  int64_t finished;
+  int64_t  sat;
 } R;
 
-R IsaSAT_No_Restart_LLVM_IsaSAT_code(OPTS,CLAUSES);
+int64_t IsaSAT_No_Restart_LLVM_IsaSAT_code_wrapped(CLAUSES);
 
 void print_clause(CLAUSE *cl) {
   for(int i = 0; i < cl->used; ++i) {
@@ -214,8 +212,12 @@ void print_clauses(CLAUSES *cl) {
     print_clause(&cl->clauses[i]);
 }
 
-int main(void) {
-  inputname = "/home/zmaths/Documents/repos/SPASS/Trunk/SAT/Examples/Easy/np.core.404318.cnf";
+int main(int argc, char *argv[]) {
+  if(argc != 2) {
+    printf("expected one argument");
+    return 0;
+  }
+  inputname = argv[1];
   inputfile = fopen (inputname, "r");
 
   if(inputfile == NULL) {
@@ -226,9 +228,13 @@ int main(void) {
   CLAUSES clauses = parse();
 
   print_clauses(&clauses);
-  OPTS opts;
-  opts.s1 = 1; opts.s2 = 1; opts.s3 = 1;
-  (void)IsaSAT_No_Restart_LLVM_IsaSAT_code(opts,clauses);
+  int64_t t = IsaSAT_No_Restart_LLVM_IsaSAT_code_wrapped(clauses);
+  if((t & 2) == 0)
+    printf("c UNKNOWN\n");
+  if (t & 1)
+    printf("c SAT\n");
+  else
+    printf("c UNSAT\n");
   free_clauses(&clauses);
   return 0;
 }
