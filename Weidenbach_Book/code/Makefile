@@ -18,9 +18,18 @@ llvm:
 	$(MLTON) -verbose 1 -const 'MLton.safe false' -default-type int64 -output IsaSAT -codegen llvm -inline 700 -cc-opt -fPIC -as-opt --relocation-model=pic -link-opt -fPIC -llvm-llc-opt '--relocation-model=pic -O3' -llvm-opt-opt --relocation-model=pic IsaSAT.mlb
 
 clean:
-	rm -f IsaSAT IsaSAT_restart
+	rm -f IsaSAT IsaSAT_restart *.profdata *.prof *.profraw
 
 isallvm:
+#	llvm-as -disable-output isasat_no_restart.ll
+	$(CLANG) -std=c11 -O3 -Wall -Wextra isasat.c "lib_isabelle_llvm.c" isasat_no_restart.ll -o isasat_llvm
+
+isallvm-prof:
+#	llvm-as -disable-output isasat_no_restart.ll
+	$(CLANG) -std=c11 -O2 -lprofiler -g -fprofile-generate -Wall -Wextra isasat.c "lib_isabelle_llvm.c" isasat_no_restart.ll -o isasat_llvm
+
+
+isallvm-sanit:
 #	llvm-as -disable-output isasat_no_restart.ll
 	$(CLANG) -std=c11 -g -fsanitize=undefined -fsanitize=address -fno-sanitize-recover=undefined -Wall -Wextra -g isasat.c "lib_isabelle_llvm.c" isasat_no_restart.ll -o isasat_llvm
 

@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <stdint.h>
+#include <string.h>
 
 /*the parser is based on the code from lingeling*/
 
@@ -55,6 +56,27 @@ static CLAUSE new_clause(void) {
   return cl;
 }
 
+static CLAUSE new_empty_clause(void) {
+  CLAUSE cl;
+  cl.clause = NULL;
+  cl.size = 0;
+  cl.used = 0;
+  return cl;
+}
+
+
+static CLAUSE copy_clause(CLAUSE *cl0) {
+  CLAUSE cl;
+  cl.clause = (uint32_t *) malloc(cl0->used * sizeof(uint32_t));
+  memcpy(cl.clause, cl0->clause, cl0->used *  sizeof(uint32_t));
+  cl.size = cl0->used;
+  cl.used = cl0->used;
+  if(cl.clause == NULL) {
+    perr("failled to allocate memory for clause");
+  }
+  return cl;
+}
+
 static void append_lit(int32_t lit, CLAUSE * cl) {
   uint32_t ulit = (uint32_t)(lit < 0 ? - 2 * lit +1 : 2 * lit);
   if(cl->used + 1 >= cl->size)
@@ -72,7 +94,7 @@ CLAUSES new_clauses(int64_t size) {
   clauses.size = size;
   clauses.clauses = (CLAUSE *) malloc((size+1) * sizeof(CLAUSE));
   for (int64_t n = 0; n < size; ++n) {
-    clauses.clauses[n] = new_clause();
+    clauses.clauses[n] = new_empty_clause();
   }
   return clauses;
 }
@@ -84,6 +106,18 @@ void free_clauses (CLAUSES *cl) {
   }
   free(cl->clauses);
 
+}
+void print_clause(CLAUSE *cl) {
+  for(int i = 0; i < cl->used; ++i) {
+    uint32_t lit = cl->clause[i];
+    printf("%d ", (lit % 2) ? (lit / 2) : - (lit / 2));
+  }
+  printf("0\n");
+}
+
+void print_clauses(CLAUSES *cl) {
+  for(int i = 0; i < cl->size; ++i)
+    print_clause(&cl->clauses[i]);
 }
 
 static int64_t next (void) {
@@ -126,7 +160,7 @@ HEADER:
   CLAUSES clauses = new_clauses(num_clss);
 
   int64_t clause_num = 0;
-  CLAUSE* cl = &clauses.clauses[0];
+  CLAUSE cl = new_clause();
 
 CLAUSES:
   if (ch == ' ' || ch == '\t' || ch == '\r' || ch == '\n') {
@@ -140,7 +174,11 @@ CLAUSES:
   }
   if (ch == EOF) goto DONE;
   if (ch == '0') {
-    cl = NULL;
+    if(clause_num > num_clss)
+      perr("found too many clauses: clause  number %d, only %d expected", clause_num, num_clss);
+    clauses.clauses[clause_num++] = copy_clause(&cl);
+    cl.used = 0;
+
     ch = next ();
     goto CLAUSES;
   }
@@ -152,11 +190,6 @@ CLAUSES:
 
   if (!isdigit (ch) || ch == 0) perr ("expected literal");
 
-  if (cl == NULL) {
-    if(++clause_num > num_clss)
-      perr("found too many clauses: clause  number %d, only %d expected", clause_num, num_clss);
-    cl = &clauses.clauses[clause_num];
-  }
   lit = ch - '0';
 
   while (isdigit (ch = next ())) lit = 10*lit + ch - '0';
@@ -165,11 +198,11 @@ CLAUSES:
   if(lit < -num_lits || lit > num_lits || lit == 0)
     perr("invalid literal %d, max: %d", lit, num_lits);
 
-  append_lit(lit, cl);
+  append_lit(lit, &cl);
   goto CLAUSES;
 
 DONE:
-  if(clause_num != num_clss - 1)
+  if(clause_num != num_clss)
     perr("found %d clauses, while %d were expected", clause_num, num_clss);
 
   return clauses;
@@ -199,18 +232,6 @@ typedef struct R {
 
 int64_t IsaSAT_No_Restart_LLVM_IsaSAT_code_wrapped(CLAUSES);
 
-void print_clause(CLAUSE *cl) {
-  for(int i = 0; i < cl->used; ++i) {
-    uint32_t lit = cl->clause[i];
-    printf("%d ", (lit % 2) ? (lit / 2) : - (lit / 2));
-  }
-  printf("0\n");
-}
-
-void print_clauses(CLAUSES *cl) {
-  for(int i = 0; i < cl->size; ++i)
-    print_clause(&cl->clauses[i]);
-}
 
 int main(int argc, char *argv[]) {
   if(argc != 2) {
@@ -227,14 +248,14 @@ int main(int argc, char *argv[]) {
 
   CLAUSES clauses = parse();
 
-  print_clauses(&clauses);
+  //print_clauses(&clauses);
   int64_t t = IsaSAT_No_Restart_LLVM_IsaSAT_code_wrapped(clauses);
   if((t & 2) == 0)
     printf("c UNKNOWN\n");
   if (t & 1)
-    printf("c SAT\n");
-  else
     printf("c UNSAT\n");
+  else
+    printf("c SAT\n");
   free_clauses(&clauses);
   return 0;
 }
