@@ -340,16 +340,17 @@ sepref_def default_opts_impl
   unfolding opts_assn_def default_opts_def
   by sepref
 
-definition IsaSAT_bounded_heur_wrapper :: \<open>_ \<Rightarrow> (nat \<times> nat) nres\<close>where
+definition IsaSAT_bounded_heur_wrapper :: \<open>_ \<Rightarrow> (nat) nres\<close>where
   \<open>IsaSAT_bounded_heur_wrapper C = do {
       (b, (b', _)) \<leftarrow> IsaSAT_bounded_heur default_opts C;
-      RETURN ((if b then 0 else 1), (if b' then 1 else 0))
+      RETURN ((if b then 2 else 0) + (if b' then 1 else 0))
   }\<close>
 
 sepref_register IsaSAT_bounded_heur default_opts
 sepref_def IsaSAT_code_wrapped
   is \<open>IsaSAT_bounded_heur_wrapper\<close>
-  :: \<open>(clauses_ll_assn)\<^sup>k \<rightarrow>\<^sub>a sint64_nat_assn *a sint64_nat_assn\<close>
+  :: \<open>(clauses_ll_assn)\<^sup>k \<rightarrow>\<^sub>a sint64_nat_assn\<close>
+  supply [[goals_limit=1]] if_splits[split]
   unfolding IsaSAT_bounded_heur_wrapper_def
   apply (annot_snat_const "TYPE(64)")
   by sepref
