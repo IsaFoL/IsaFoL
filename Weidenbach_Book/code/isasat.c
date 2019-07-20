@@ -78,7 +78,7 @@ static CLAUSE copy_clause(CLAUSE *cl0) {
 }
 
 static void append_lit(int32_t lit, CLAUSE * cl) {
-  uint32_t ulit = (uint32_t)(lit < 0 ? - 2 * lit +1 : 2 * lit);
+  uint32_t ulit = (uint32_t)(lit < 0 ? 2 * (-lit - 1) +1 : 2 * (lit - 1) + 0);
   if(cl->used + 1 >= cl->size)
     make_room(cl);
   cl->clause[cl->used] = ulit;
@@ -110,7 +110,7 @@ void free_clauses (CLAUSES *cl) {
 void print_clause(CLAUSE *cl) {
   for(int i = 0; i < cl->used; ++i) {
     uint32_t lit = cl->clause[i];
-    printf("%d ", (lit % 2) ? (lit / 2) : - (lit / 2));
+    printf("%d ", ((lit % 2 == 0) ? 1 : - 1) * ((lit >>1) + 1));
   }
   printf("0\n");
 }

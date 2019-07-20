@@ -22,11 +22,11 @@ clean:
 
 isallvm:
 #	llvm-as -disable-output isasat_no_restart.ll
-	$(CLANG) -std=c11 -O3 -Wall -Wextra isasat.c "lib_isabelle_llvm.c" isasat_no_restart.ll -o isasat_llvm
+	$(CLANG) -march=native -flto -std=c11 -O3 -Wall -Wextra isasat.c "lib_isabelle_llvm.c" isasat_no_restart.ll -o isasat_llvm
 
 isallvm-prof:
 #	llvm-as -disable-output isasat_no_restart.ll
-	$(CLANG) -std=c11 -O2 -lprofiler -g -fprofile-generate -Wall -Wextra isasat.c "lib_isabelle_llvm.c" isasat_no_restart.ll -o isasat_llvm
+	$(CLANG) -std=c11  -flto -pg -Wall -Wextra isasat.c "lib_isabelle_llvm.c" isasat_no_restart.ll -o isasat_llvm
 
 
 isallvm-sanit:
