@@ -604,7 +604,6 @@ sepref_def lit_redundant_rec_wl_lookup_fast_code
     fmap_rll_u_def[symmetric] minimize_status_rel_eq_def[symmetric]
     fmap_rll_def[symmetric] length_0_conv[symmetric]
   apply (subst get_propagation_reason_pol_get_propagation_reason_pol_raw)
-  apply (rewrite at \<open>(_, \<hole>, _)\<close> al_fold_custom_empty[where 'l=64])+
   apply (rewrite at \<open>get_level_pol _ _ = \<hole>\<close> unat_const_fold[where 'a=32])
   apply (rewrite at \<open>(_, \<hole>, _)\<close> annotate_assn[where A=analyse_refinement_fast_assn])
   apply (annot_snat_const "TYPE(64)")
@@ -617,7 +616,7 @@ sepref_def lit_redundant_rec_wl_lookup_fast_code
     fmap_length_rll_def[symmetric]
     fmap_rll_u_def[symmetric]
   by sepref (*slow *)
-  
+
 
 sepref_def delete_index_and_swap_code
   is \<open>uncurry (RETURN oo delete_index_and_swap)\<close>

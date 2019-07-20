@@ -3063,7 +3063,7 @@ where
 	      else if b \<or> conflict_min_cach_l cach (atm_of L) = SEEN_FAILED
 	      then do {
 		 cach \<leftarrow> isa_mark_failed_lits_stack NU analyse cach;
-		 RETURN (cach, [], False)
+		 RETURN (cach, take 0 analyse, False)
 	      }
 	      else do {
 		 C \<leftarrow> get_propagation_reason_pol M (-L);
@@ -3074,7 +3074,7 @@ where
 		   }
 		 | None \<Rightarrow> do {
 		     cach \<leftarrow> isa_mark_failed_lits_stack NU analyse cach;
-		     RETURN (cach, [], False)
+		     RETURN (cach, take 0 analyse, False)
 	       }
             }
           }
@@ -3137,7 +3137,7 @@ lemma isa_lit_redundant_rec_wl_lookup_alt_def:
         }
       })
       (cach, analysis, False)\<close>
-  unfolding isa_lit_redundant_rec_wl_lookup_def Let_def
+  unfolding isa_lit_redundant_rec_wl_lookup_def Let_def take_0
   by (auto simp: Let_def)
 
 lemma lit_redundant_rec_wl_lookup_alt_def:
