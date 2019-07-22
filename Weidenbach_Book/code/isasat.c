@@ -230,7 +230,36 @@ typedef struct R {
   int64_t  sat;
 } R;
 
-int64_t IsaSAT_No_Restart_LLVM_IsaSAT_code_wrapped(CLAUSES);
+int64_t IsaSAT_No_Restart_LLVM_IsaSAT_code_wrapped2(CLAUSES);
+
+void print_propagations(int64_t props) {
+  printf("c propagations %lld\n", props);
+}
+
+void print_conflicts(int64_t props) {
+  printf("c conflicts %lld\n", props);
+}
+
+void print_decisions(int64_t props) {
+  printf("c decisions %lld\n", props);
+}
+
+void print_reductions(int64_t props) {
+  printf("c reductions %lld\n", props);
+}
+
+void print_local_restarts(int64_t props) {
+  printf("c local_restarts %lld\n", props);
+}
+
+void print_uset(int64_t props) {
+  printf("c uset %lld\n", props);
+}
+
+void print_GCs(int64_t props) {
+  printf("c GCs %lld\n", props);
+}
+
 
 
 int main(int argc, char *argv[]) {
@@ -249,11 +278,11 @@ int main(int argc, char *argv[]) {
   CLAUSES clauses = parse();
 
   //print_clauses(&clauses);
-  int64_t t = IsaSAT_No_Restart_LLVM_IsaSAT_code_wrapped(clauses);
+  int64_t t = IsaSAT_No_Restart_LLVM_IsaSAT_code_wrapped2(clauses);
   if((t & 2) == 0)
     printf("c UNKNOWN\n");
   if (t & 1)
-    printf("c UNSAT\n");
+    printf("c UNSATISFIABLE\n");
   else
     printf("c SAT\n");
   free_clauses(&clauses);
