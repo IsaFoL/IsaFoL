@@ -280,11 +280,11 @@ int main(int argc, char *argv[]) {
   //print_clauses(&clauses);
   int64_t t = IsaSAT_No_Restart_LLVM_IsaSAT_code_wrapped2(clauses);
   if((t & 2) == 0)
-    printf("c UNKNOWN\n");
+    printf("s UNKNOWN\n");
   if (t & 1)
-    printf("c UNSATISFIABLE\n");
+    printf("s UNSATISFIABLE\n");
   else
-    printf("c SAT\n");
+    printf("s SATISFIABLE\n");
   free_clauses(&clauses);
   return 0;
 }
