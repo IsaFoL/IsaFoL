@@ -1661,6 +1661,10 @@ definition arena_lit_pre where
 \<open>arena_lit_pre arena i \<longleftrightarrow>
   (\<exists>j. i \<ge> j \<and> arena_is_valid_clause_idx_and_access arena j (i - j))\<close>
 
+definition arena_lit_pre2 where
+\<open>arena_lit_pre2 arena i j \<longleftrightarrow>
+  (\<exists>N vdom. valid_arena arena N vdom \<and> i \<in># dom_m N \<and> j < length (N \<propto> i))\<close>
+
 definition swap_lits_pre where
   \<open>swap_lits_pre C i j arena \<longleftrightarrow> C + i < length arena \<and> C + j < length arena\<close>
 
@@ -2038,5 +2042,46 @@ qed
 lemma length_arena_incr_act[simp]:
   \<open>length (arena_incr_act arena C) = length arena\<close>
   by (auto simp: arena_incr_act_def)
+
+
+subsection \<open>MOP versions\<close>
+
+definition mop_arena_lit where
+  \<open>mop_arena_lit arena s = do {
+      ASSERT(arena_lit_pre arena s);
+      RETURN (arena_lit arena s)
+  }\<close>
+
+definition mop_arena_lit2 where
+\<open>mop_arena_lit2 arena i j = do {
+  ASSERT(arena_lit_pre arena (i+j));
+  ASSERT(i+j < length arena);
+  let s = i+j;
+  RETURN (arena_lit arena s)
+  }\<close>
+
+
+named_theorems mop_arena_lit \<open>Theorems on mop-forms of arena constants\<close>
+
+lemma mop_arena_lit_itself:
+   \<open>mop_arena_lit arena k' \<le> SPEC( \<lambda>c. (c, N \<propto> i!j) \<in> Id) \<Longrightarrow> mop_arena_lit arena k' \<le> SPEC( \<lambda>c. (c, N \<propto> i!j) \<in> Id)\<close>
+   \<open>mop_arena_lit2 arena i' k' \<le> SPEC( \<lambda>c. (c, N \<propto> i!j) \<in> Id) \<Longrightarrow> mop_arena_lit2 arena i' k' \<le> SPEC( \<lambda>c. (c, N \<propto> i!j) \<in> Id)\<close>
+  .
+
+lemma [mop_arena_lit]:
+  assumes valid: \<open>valid_arena arena N vdom\<close> and
+   i: \<open>i \<in># dom_m N\<close>
+  shows
+    \<open>k = i+j \<Longrightarrow> j < length (N \<propto> i) \<Longrightarrow> mop_arena_lit arena k \<le> SPEC( \<lambda>c. (c, N \<propto> i!j) \<in> Id)\<close>
+    \<open>i=i' \<Longrightarrow> j=j' \<Longrightarrow>j < length (N \<propto> i) \<Longrightarrow> mop_arena_lit2 arena i' j' \<le> SPEC( \<lambda>c. (c, N \<propto> i!j) \<in> Id)\<close>
+  using assms apply (auto simp: arena_lifting mop_arena_lit_def mop_arena_lit2_def Let_def
+    intro!: ASSERT_leI)
+   apply (metis arena_is_valid_clause_idx_and_access_def arena_lifting(4) arena_lit_pre_def diff_add_inverse le_add1)+
+  done
+
+lemma arena_lit_pre2_arena_lit[dest]:
+   \<open>arena_lit_pre2 N i j \<Longrightarrow> arena_lit_pre N (i+j)\<close>
+  by (auto simp: arena_lit_pre_def arena_lit_pre2_def arena_is_valid_clause_idx_and_access_def
+    intro!: exI[of _ i])
 
 end

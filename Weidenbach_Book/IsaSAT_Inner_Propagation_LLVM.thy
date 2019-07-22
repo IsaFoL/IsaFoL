@@ -43,14 +43,10 @@ sepref_def isa_find_unwatched_between_fast_code
      trail_pol_fast_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow>
        snat_option_assn' TYPE(64)\<close>
   supply [[goals_limit = 3]]
-  supply [simp] = max_unat_def max_snat_def sint64_max_def
   unfolding isa_find_unset_lit_def isa_find_unwatched_between_def SET_FALSE_def[symmetric]
     PR_CONST_def
-  apply (rewrite in \<open>if \<hole> then _ else _\<close>  tri_bool_eq_def[symmetric])
+  apply (rewrite in \<open>if \<hole> then _ else _\<close> tri_bool_eq_def[symmetric])
   apply (annot_snat_const "TYPE (64)")
-  (*apply (rewrite in \<open>WHILEIT _ (\<lambda>(_,_). (\<hole>=_) \<and> _)\<close> annotate_assn[where A = \<open>snat_option_assn' TYPE(64)\<close>])
-  apply (rewrite in \<open>WHILEIT _ _ _ (\<hole>,_)\<close> annotate_assn[where A = \<open>snat_option_assn' TYPE(64)\<close>])
-  *)
   by sepref
 
 
@@ -85,6 +81,7 @@ lemma arena_lit_pre_le2: \<open>
 
 lemma sint64_max_le_max_snat64: \<open>a < sint64_max \<Longrightarrow> Suc a < max_snat 64\<close>
   by (auto simp: max_snat_def sint64_max_def)
+find_theorems valid_arena "_ < length _"
 
 sepref_def update_clause_wl_fast_code
   is \<open>uncurry7 update_clause_wl_heur\<close>
@@ -106,28 +103,7 @@ sepref_def update_clause_wl_fast_code
   apply (annot_snat_const "TYPE (64)")
   unfolding fold_tuple_optimizations
   by sepref
-
-
-lemma standard_constanst[simp, intro!]:
-  \<open>0 < max_snat n\<close>
-  \<open>1 < max_snat 32\<close>
-  \<open>2 < max_snat 32\<close>
-  \<open>3 < max_snat 32\<close>
-  \<open>4 < max_snat 32\<close>
-  \<open>1 < max_snat 64\<close>
-  \<open>2 < max_snat 64\<close>
-  \<open>3 < max_snat 64\<close>
-  \<open>4 < max_snat 64\<close>
-  \<open>1 < max_unat 32\<close>
-  \<open>2 < max_unat 32\<close>
-  \<open>3 < max_unat 32\<close>
-  \<open>4 < max_unat 32\<close>
-  \<open>1 < max_unat 64\<close>
-  \<open>2 < max_unat 64\<close>
-  \<open>3 < max_unat 64\<close>
-  \<open>4 < max_unat 64\<close>
-  by (auto simp: max_snat_def max_unat_def)
-
+(*takes 11s*)
 sepref_def propagate_lit_wl_fast_code
   is \<open>uncurry3 propagate_lit_wl_heur\<close>
   :: \<open>[\<lambda>(((L, C), i), S). propagate_lit_wl_heur_pre (((L, C), i), S) \<and>

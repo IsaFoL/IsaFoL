@@ -8,6 +8,7 @@ declare all_atms_def[symmetric,simp]
 
 subsection \<open>Propagations Step\<close>
 
+
 lemma unit_prop_body_wl_D_invD:
   fixes S
   defines \<open>\<A> \<equiv> all_atms_st S\<close>
@@ -201,8 +202,9 @@ definition isa_find_unwatched_between
       ASSERT(i \<ge> C);
       ASSERT(i < C + b);
       ASSERT(arena_lit_pre NU i);
-      ASSERT(polarity_pol_pre M' (arena_lit NU i));
-      if P (arena_lit NU i) then RETURN (Some (i - C), i) else RETURN (None, i+1)
+      L \<leftarrow> mop_arena_lit NU i;
+      ASSERT(polarity_pol_pre M' L);
+      if P L then RETURN (Some (i - C), i) else RETURN (None, i+1)
     })
     (None, C+a);
   RETURN x
@@ -219,6 +221,20 @@ lemma isa_find_unwatched_between_find_in_list_between_spec:
   shows
     \<open>isa_find_unwatched_between P' M' arena a' b' C' \<le> \<Down> Id (find_in_list_between P a b (N \<propto> C))\<close>
 proof -
+  have find_in_list_between_alt:
+      \<open>find_in_list_between P a b C = do {
+          (x, _) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(found, i). i \<ge> a \<and> i \<le> length C \<and> i \<le> b \<and> (\<forall>j\<in>{a..<i}. \<not>P (C!j)) \<and>
+            (\<forall>j. found = Some j \<longrightarrow> (i = j \<and> P (C ! j) \<and> j < b \<and> j \<ge> a))\<^esup>
+            (\<lambda>(found, i). found = None \<and> i < b)
+            (\<lambda>(_, i). do {
+              ASSERT(i < length C);
+              let L = C!i;
+              if P L then RETURN (Some i, i) else RETURN (None, i+1)
+            })
+            (None, a);
+          RETURN x
+      }\<close> for P a b c C
+    by (auto simp: find_in_list_between_def)
   have [refine0]: \<open>((None, x2m + a), None, a) \<in> \<langle>Id\<rangle>option_rel \<times>\<^sub>r {(n', n). n' = x2m + n}\<close>
     for x2m
     by auto
@@ -254,8 +270,8 @@ proof -
   qed
 
   show ?thesis
-    unfolding isa_find_unwatched_between_def find_in_list_between_def eq
-    apply refine_vcg
+    unfolding isa_find_unwatched_between_def find_in_list_between_alt eq
+    apply (refine_vcg mop_arena_lit)
     subgoal using assms by (auto dest!: arena_lifting(10))
     subgoal using assms by (auto dest!: arena_lifting(10))
     subgoal by auto
@@ -264,8 +280,11 @@ proof -
     subgoal using assms by (auto simp: arena_lifting)
     subgoal by auto
     subgoal by (rule arena_lit_pre)
+    apply (rule assms)
+    subgoal using assms by (auto simp: arena_lifting)
+    subgoal using assms by (auto simp: arena_lifting)
     subgoal
-      by (rule polarity_pol_pre[OF M'M]) auto
+       by (rule polarity_pol_pre[OF M'M]) (use assms in \<open>auto simp: arena_lifting\<close>)
     subgoal using assms by (auto simp: arena_lifting)
     subgoal by auto
     subgoal by auto
@@ -680,10 +699,11 @@ definition update_clause_wl_heur
 where
   \<open>update_clause_wl_heur = (\<lambda>(L::nat literal) C b j w i f (M, N, D, Q, W, vm). do {
      ASSERT(arena_lit_pre N (C+f));
-     let K' = arena_lit N (C + f);
+     K' \<leftarrow> mop_arena_lit2 N C f;
      ASSERT(swap_lits_pre C i f N);
      ASSERT(w < length N);
      let N' = swap_lits C i f N;
+     ASSERT(nat_of_lit K' < length W);
      ASSERT(length (W ! nat_of_lit K') < length N);
      let W = W[nat_of_lit K':= W ! (nat_of_lit K') @ [(C, L, b)]];
      RETURN (j, w+1, (M, N', D, Q, W, vm))
@@ -727,7 +747,7 @@ lemma update_clause_wl_heur_update_clause_wl:
    [update_clause_wl_pre K r]\<^sub>f
    Id \<times>\<^sub>f nat_rel \<times>\<^sub>f bool_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f twl_st_heur_up'' \<D> r s K \<rightarrow>
   \<langle>nat_rel \<times>\<^sub>r nat_rel \<times>\<^sub>r twl_st_heur_up'' \<D> r s K\<rangle>nres_rel\<close>
-  unfolding update_clause_wl_heur_def update_clause_wl_def uncurry_def Let_def
+  unfolding update_clause_wl_heur_def update_clause_wl_def uncurry_def
     update_clause_wl_pre_alt_def
   apply (intro frefI nres_relI)
   apply clarify
@@ -738,6 +758,13 @@ lemma update_clause_wl_heur_update_clause_wl:
         arena_is_valid_clause_idx_and_access_def swap_lits_pre_def
       intro!: ASSERT_refine_left valid_arena_swap_lits
       intro!: arena_lit_pre)
+  apply (rule mop_arena_lit_itself)
+  subgoal by (rule mop_arena_lit)
+     (auto 0 0 simp: update_clause_wl_heur_def update_clause_wl_def twl_st_heur_def Let_def
+      map_fun_rel_def twl_st_heur'_def update_clause_wl_pre_def arena_lifting arena_lit_pre_def
+      arena_is_valid_clause_idx_and_access_def swap_lits_pre_def
+    intro!: ASSERT_refine_left valid_arena_swap_lits
+    intro!: bex_leI exI)
   subgoal
     by (auto 0 0 simp: update_clause_wl_heur_def update_clause_wl_def twl_st_heur_def Let_def
       map_fun_rel_def twl_st_heur'_def update_clause_wl_pre_def arena_lifting arena_lit_pre_def
@@ -752,6 +779,10 @@ lemma update_clause_wl_heur_update_clause_wl:
     by (auto 0 0 simp: twl_st_heur_def Let_def
       map_fun_rel_def twl_st_heur'_def update_clause_wl_pre_alt_def arena_lifting arena_lit_pre_def
     intro!: ASSERT_refine_left valid_arena_swap_lits dest!: multi_member_split[of \<open>arena_lit _ _\<close>])
+  subgoal
+    by (auto 0 0 simp: twl_st_heur_def Let_def
+      map_fun_rel_def twl_st_heur'_def update_clause_wl_pre_def arena_lifting arena_lit_pre_def
+    intro!: ASSERT_refine_left valid_arena_swap_lits)
   subgoal
     by (auto 0 0 simp: twl_st_heur_def Let_def
       map_fun_rel_def twl_st_heur'_def update_clause_wl_pre_def arena_lifting arena_lit_pre_def

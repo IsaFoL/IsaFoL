@@ -171,17 +171,19 @@ sepref_def arena_lit_impl
   unfolding arena_lit_def
   by sepref
 
-definition mop_arena_lit where
-  \<open>mop_arena_lit arena s = do {
-      ASSERT(arena_lit_pre arena s);
-      RETURN (arena_lit arena s)
-  }\<close>
-
+sepref_register mop_arena_lit mop_arena_lit2
 sepref_def mop_arena_lit_impl 
   is "uncurry (mop_arena_lit)" 
     :: "arena_fast_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a unat_lit_assn"
   supply [intro] = arena_lit_implI
   unfolding mop_arena_lit_def
+  by sepref
+
+sepref_def mop_arena_lit2_impl 
+  is "uncurry2 (mop_arena_lit2)" 
+    :: "[\<lambda>((N, _), _). length N \<le> sint64_max]\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k  *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> unat_lit_assn"
+  supply [intro] = arena_lit_implI
+  unfolding mop_arena_lit2_def
   by sepref
 
 
