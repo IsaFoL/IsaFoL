@@ -63,6 +63,48 @@ definition all_lits_of_mm :: \<open>'a clauses \<Rightarrow> 'a literal multiset
 lemma all_lits_of_mm_empty[simp]: \<open>all_lits_of_mm {#} = {#}\<close>
   by (auto simp: all_lits_of_mm_def)
 
+
+subsection \<open>Watch List Function\<close>
+
+definition op_watch_list :: \<open>('v literal \<Rightarrow> 'v watched) \<Rightarrow> 'v literal \<Rightarrow> nat \<Rightarrow> 'v watcher\<close> where
+  [simp]: \<open>op_watch_list W K i = W K ! i\<close>
+
+definition mop_watch_list :: \<open>('v literal \<Rightarrow> 'v watched) \<Rightarrow> 'v literal \<Rightarrow> nat \<Rightarrow> 'v watcher nres\<close> where
+  \<open>mop_watch_list W K i = do {
+      ASSERT(i < length (W K));
+      RETURN (W K ! i)
+   }\<close>
+
+definition op_watch_list_append :: \<open>('v literal \<Rightarrow> 'v watched) \<Rightarrow> 'v literal \<Rightarrow> 'v watcher \<Rightarrow> ('v literal \<Rightarrow> 'v watched)\<close> where
+  [simp]: \<open>op_watch_list_append W K x = W (K := W K @ [x])\<close>
+
+definition mop_watch_list_append :: \<open>('v literal \<Rightarrow> 'v watched) \<Rightarrow> 'v literal \<Rightarrow> 'v watcher \<Rightarrow> ('v literal \<Rightarrow> 'v watched) nres\<close> where
+  \<open>mop_watch_list_append W K x = do {
+      RETURN (W (K := W K @ [x]))
+   }\<close>
+
+definition op_watch_list_take :: \<open>('v literal \<Rightarrow> 'v watched) \<Rightarrow> 'v literal \<Rightarrow> nat \<Rightarrow> ('v literal \<Rightarrow> 'v watched)\<close> where
+  [simp]: \<open>op_watch_list_take W K i = W (K := take i (W K))\<close>
+
+definition mop_watch_list_take :: \<open>('v literal \<Rightarrow> 'v watched) \<Rightarrow> 'v literal \<Rightarrow> nat \<Rightarrow> ('v literal \<Rightarrow> 'v watched) nres\<close> where
+  \<open>mop_watch_list_take W K i = do {
+      ASSERT(i \<le> length (W K));
+      RETURN (W (K := take i (W K)))
+   }\<close>
+
+lemma shows
+  op_watch_list:
+    \<open>i < length (W K) \<Longrightarrow> mop_watch_list W K i \<le> SPEC(\<lambda>c. (c, op_watch_list W K i) \<in> Id)\<close> and
+  op_watch_list_append:
+    \<open>mop_watch_list_append W K x \<le> SPEC(\<lambda>c. (c, op_watch_list_append W K x) \<in> Id)\<close> and
+  op_watch_list_take:
+    \<open>i \<le> length (W K) \<Longrightarrow> mop_watch_list_take W K i \<le> SPEC(\<lambda>c. (c, op_watch_list_take W K i) \<in> Id)\<close>
+  by (auto simp: mop_watch_list_def mop_watch_list_append_def mop_watch_list_take_def
+   intro!: ASSERT_leI)
+
+
+subsection \<open>Watch List Invariants\<close>
+
 text \<open>
   We cannot just extract the literals of the clauses: we cannot be sure that atoms appear \<^emph>\<open>both\<close>
   positively and negatively in the clauses. If we could ensure that there are no pure literals, the

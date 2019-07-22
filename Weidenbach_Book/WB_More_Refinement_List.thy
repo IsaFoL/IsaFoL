@@ -250,4 +250,14 @@ definition reorder_list :: \<open>'b \<Rightarrow> 'a list \<Rightarrow> 'a list
 \<open>reorder_list _ removed = SPEC (\<lambda>removed'. mset removed' = mset removed)\<close>
 
 
+definition mop_list_nth :: \<open>'a list \<Rightarrow> nat \<Rightarrow> 'a nres\<close> where
+  \<open>mop_list_nth xs i = do {
+      ASSERT(i < length xs);
+      RETURN (xs!i)
+  }\<close>
+
+lemma mop_list_nth[refine]:
+  \<open>i < length ys \<Longrightarrow> (xs, ys) \<in> \<langle>R\<rangle>list_rel \<Longrightarrow> i = j \<Longrightarrow> mop_list_nth xs i \<le> SPEC(\<lambda>c. (c, ys!j) \<in> R)\<close>
+  by (auto simp: param_nth mop_list_nth_def list_rel_imp_same_length intro!: ASSERT_leI)
+
 end
