@@ -233,31 +233,31 @@ typedef struct R {
 int64_t IsaSAT_No_Restart_LLVM_IsaSAT_code_wrapped2(CLAUSES);
 
 void print_propagations(int64_t props) {
-  printf("c propagations %lld\n", props);
+  printf("c propagations %ld\n", props);
 }
 
 void print_conflicts(int64_t props) {
-  printf("c conflicts %lld\n", props);
+  printf("c conflicts %ld\n", props);
 }
 
 void print_decisions(int64_t props) {
-  printf("c decisions %lld\n", props);
+  printf("c decisions %ld\n", props);
 }
 
 void print_reductions(int64_t props) {
-  printf("c reductions %lld\n", props);
+  printf("c reductions %ld\n", props);
 }
 
 void print_local_restarts(int64_t props) {
-  printf("c local_restarts %lld\n", props);
+  printf("c local_restarts %ld\n", props);
 }
 
 void print_uset(int64_t props) {
-  printf("c uset %lld\n", props);
+  printf("c uset %ld\n", props);
 }
 
 void print_GCs(int64_t props) {
-  printf("c GCs %lld\n", props);
+  printf("c GCs %ld\n", props);
 }
 
 
