@@ -35,13 +35,15 @@
 #       \begin{isabelle}
 #         #2
 #       \end{isabelle}
-#     \end{quote}}} \newcommand{\Snippet}[1]{%
+#     \end{quote}}}
+# \newcommand{\Snippet}[1]{%
 #   \ifcsname snippet--#1\endcsname{\csname snippet--#1\endcsname}%
-#   \else \missingfigure{Snippet \texttt{\detokenize{#1}} missing} \fi%
+#   \else \missingfigure{Snippet \texttt{\detokenize{#1}} missing}%
+#   \fi}
 # \input{generated/snippets} % Your snippet file
 #
 # You can create the Isabelle *.sty files using the command
-# `isabelle latex -o # sty`.
+# `isabelle latex -o sty`.
 #
 # Finally, create an empty file `generated/snippets.tex`.  This is where your
 # snippets will be written to.
@@ -84,4 +86,4 @@
 # just fine.
 
 find . -type f -name "*.tex" -exec sed -n '/DefineSnippet/,/EndSnippet/p' {} + > ../snippets.tex
-touch ../document.pdf
+#touch ../document.pdf

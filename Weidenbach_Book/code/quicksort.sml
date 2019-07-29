@@ -76,7 +76,7 @@ structure IsaQuicksort : sig
   type nat
   val integer_of_nat : nat -> IntInf.int
   val nat_of_integer : IntInf.int -> nat
-  val partition_between_code :
+  val partition_code :
     nat -> nat -> nat array * nat -> (unit -> ((nat array * nat) * nat))
   val full_quicksort_code : nat array * nat -> (unit -> (nat array * nat))
 end = struct
@@ -261,13 +261,13 @@ fun partition_main_code x =
         val (a1, (_, a2a)) = a;
       in
         (fn f_ => fn () => f_ ((arl_swap heap_nat a2a a1 bia) ()) ())
-          (fn x_b => (fn () => (x_b, a1)))
+          (fn x_c => (fn () => (x_c, a1)))
       end
         ()
     end)
     x;
 
-fun partition_between_code x =
+fun partition_code x =
   (fn ai => fn bia => fn bi => fn () =>
     let
       val xa = choose_pivot3_impl_code bi ai bia ();
@@ -283,7 +283,7 @@ fun quicksort_code_0 x =
   in
     (fn () =>
       let
-        val a = partition_between_code a1 a1a a2a ();
+        val a = partition_code a1 a1a a2a ();
       in
         let
           val (a1b, a2b) = a;

@@ -39,22 +39,22 @@ declare partition_main_code.refine[sepref_fr_rules]
 
 
 text \<open>Example instantiation for partition\<close>
-definition partition_between_impl where
-  \<open>partition_between_impl = partition_between_ref (\<le>) id\<close>
+definition partition_impl where
+  \<open>partition_impl = partition_ref (\<le>) id\<close>
 
-sepref_register partition_between_ref
+sepref_register partition_ref
 
 text \<open>Example instantiation code for partition\<close>
-sepref_definition partition_between_code
-  is \<open>uncurry2 (partition_between_impl)\<close>
+sepref_definition partition_code
+  is \<open>uncurry2 (partition_impl)\<close>
   :: \<open>nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a (arl_assn nat_assn)\<^sup>d \<rightarrow>\<^sub>a
       arl_assn nat_assn *a nat_assn\<close>
-  unfolding partition_between_ref_def partition_between_impl_def
+  unfolding partition_ref_def partition_impl_def
     choose_pivot3_impl_def[symmetric] partition_main_impl_def[symmetric]
   unfolding  id_def isasat_codegen
   by sepref
 
-declare partition_between_code.refine[sepref_fr_rules]
+declare partition_code.refine[sepref_fr_rules]
 
 
 \<comment> \<open>Example implementation\<close>
@@ -69,7 +69,7 @@ sepref_definition
   is \<open>uncurry2 quicksort_impl\<close>
   :: \<open>nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a (arl_assn nat_assn)\<^sup>d \<rightarrow>\<^sub>a
       arl_assn nat_assn\<close>
-  unfolding partition_between_impl_def[symmetric]
+  unfolding partition_impl_def[symmetric]
     quicksort_impl_def quicksort_ref_def
   by sepref
 
@@ -84,6 +84,6 @@ sepref_definition full_quicksort_code
   by sepref
 
 text \<open>Export the code\<close>
-export_code \<open>nat_of_integer\<close> \<open>integer_of_nat\<close> \<open>partition_between_code\<close> \<open>full_quicksort_code\<close> in SML_imp module_name IsaQuicksort file "code/quicksort.sml"
+export_code \<open>nat_of_integer\<close> \<open>integer_of_nat\<close> \<open>partition_code\<close> \<open>full_quicksort_code\<close> in SML_imp module_name IsaQuicksort file "code/quicksort.sml"
 
 end

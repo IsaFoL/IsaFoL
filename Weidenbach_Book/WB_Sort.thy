@@ -1,11 +1,11 @@
 (* Correctness proof contributed by Maximilian Wuttke *)
 theory WB_Sort
-  imports WB_More_Refinement WB_More_Refinement_List "HOL-Library.Rewrite" "HOL-Library.LaTeXsugar"
+  imports WB_More_Refinement WB_More_Refinement_List "HOL-Library.LaTeXsugar"
 begin
 
 text \<open>Every element between \<^term>\<open>lo\<close> and \<^term>\<open>hi\<close> can be chosen as pivot element.\<close>
-definition choose_pivot :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> 'b) \<Rightarrow> 'a list \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat nres\<close> where
-  \<open>choose_pivot _ _ _ lo hi = SPEC(\<lambda>k. k \<ge> lo \<and> k \<le> hi)\<close>
+definition choose_pivot_spec :: \<open>nat \<Rightarrow> nat \<Rightarrow> nat nres\<close> where
+  \<open>choose_pivot_spec lo hi = SPEC(\<lambda>k. k \<ge> lo \<and> k \<le> hi)\<close>
 
 text \<open>The element at index \<open>p\<close> partitions the subarray \<open>lo..hi\<close>.\<close>
 text_raw \<open>\DefineSnippet{isPartition_wrt}{\<close>
@@ -698,7 +698,7 @@ lemma quicksort_postI:
 
 text \<open>The first case for the correctness proof of (abstract) quicksort: We assume that we called the partition function, and we have \<^term>\<open>p-1\<le>lo\<close> and \<^term>\<open>hi\<le>p+1\<close>.\<close>
 lemma quicksort_correct_case1:
-  assumes trans: \<open>\<And> x y z. \<lbrakk>R (h x) (h y); R (h y) (h z)\<rbrakk> \<Longrightarrow> R (h x) (h z)\<close> and lin: \<open>\<And>x y. R (h x) (h y) \<or> R (h y) (h x)\<close>
+  assumes trans: \<open>\<And> x y z. \<lbrakk>R (h x) (h y); R (h y) (h z)\<rbrakk> \<Longrightarrow> R (h x) (h z)\<close>
     and pre: \<open>quicksort_pre R h xs0 lo hi xs\<close>
     and part: \<open>partition_spec R h xs lo hi xs' p\<close>
     and ifs: \<open>p-1 \<le> lo\<close> \<open>hi \<le> p+1\<close>
@@ -896,8 +896,7 @@ qed
 text \<open>In the 4th case, we have to show that the premise holds for \<^term>\<open>(lo,p-1,xs')\<close>, in case \<^term>\<open>\<not>p-1\<le>lo\<close>\<close>
 text \<open>Analogous to case 2.\<close>
 lemma quicksort_correct_case4:
-  assumes
-        pre: \<open>quicksort_pre R h xs0 lo hi xs\<close>
+  assumes pre: \<open>quicksort_pre R h xs0 lo hi xs\<close>
     and part: \<open>partition_spec R h xs lo hi xs' p\<close>
     and ifs: \<open>\<not> p - Suc 0 \<le> lo \<close>
   shows \<open>quicksort_pre R h xs0 lo (p-Suc 0) xs'\<close>
@@ -925,7 +924,7 @@ qed
 
 text \<open>In the 5th case, we have run quicksort recursively on (lo, p-1, xs').\<close>
 lemma quicksort_correct_case5:
-  assumes trans: \<open>\<And> x y z. \<lbrakk>R (h x) (h y); R (h y) (h z)\<rbrakk> \<Longrightarrow> R (h x) (h z)\<close> and lin: \<open>\<And>x y. R (h x) (h y) \<or> R (h y) (h x)\<close>
+  assumes trans: \<open>\<And> x y z. \<lbrakk>R (h x) (h y); R (h y) (h z)\<rbrakk> \<Longrightarrow> R (h x) (h z)\<close>
     and pre: \<open>quicksort_pre R h xs0 lo hi xs\<close>
     and part: \<open>partition_spec R h xs lo hi xs' p\<close>
     and ifs:  \<open>\<not> p - Suc 0 \<le> lo\<close> \<open>hi \<le> Suc p\<close>
@@ -1051,7 +1050,7 @@ qed
 
 text \<open>In the 7th (and last) case, we have run quicksort recursively on (lo, p-1, xs'). We show the postcondition on the second call on (p+1, hi, xs'')\<close>
 lemma quicksort_correct_case7:
-  assumes trans: \<open>\<And> x y z. \<lbrakk>R (h x) (h y); R (h y) (h z)\<rbrakk> \<Longrightarrow> R (h x) (h z)\<close> and lin: \<open>\<And>x y. R (h x) (h y) \<or> R (h y) (h x)\<close>
+  assumes trans: \<open>\<And> x y z. \<lbrakk>R (h x) (h y); R (h y) (h z)\<rbrakk> \<Longrightarrow> R (h x) (h z)\<close>
     and pre: \<open>quicksort_pre R h xs0 lo hi xs\<close>
     and part: \<open>partition_spec R h xs lo hi xs' p\<close>
     and ifs:  \<open>\<not> p - Suc 0 \<le> lo\<close> \<open>\<not> hi \<le> Suc p\<close>
@@ -1190,8 +1189,9 @@ qed
 text \<open>We can now show the correctness of the abstract quicksort procedure, using the refinement framework and the above case lemmas.\<close>
 text_raw \<open>\DefineSnippet{quicksort_correct}{\<close>
 lemma quicksort_correct:
-  assumes trans: \<open>\<And> x y z. \<lbrakk>R (h x) (h y); R (h y) (h z)\<rbrakk> \<Longrightarrow> R (h x) (h z)\<close> and lin: \<open>\<And>x y. R (h x) (h y) \<or> R (h y) (h x)\<close>
-     and Pre: \<open>lo0 \<le> hi0\<close> \<open>hi0 < length xs0\<close>
+  assumes trans: \<open>\<And> x y z. \<lbrakk>R (h x) (h y); R (h y) (h z)\<rbrakk> \<Longrightarrow> R (h x) (h z)\<close>
+      and lin: \<open>\<And>x y. R (h x) (h y) \<or> R (h y) (h x)\<close>
+      and Pre: \<open>lo0 \<le> hi0\<close> \<open>hi0 < length xs0\<close>
    shows \<open>quicksort R h (lo0,hi0,xs0) \<le> \<Down> Id (SPEC(\<lambda>xs. quicksort_post R h lo0 hi0 xs0 xs))\<close>
 text_raw \<open>}%EndSnippet\<close>
 proof -
@@ -1225,7 +1225,7 @@ proof -
       subgoal \<comment> \<open>Postcondition (after partition)\<close>
         apply -
         using IH(2) unfolding pre_def apply (simp, elim conjE, split prod.splits)
-        using trans lin apply (rule quicksort_correct_case1) by auto
+        using trans apply (rule quicksort_correct_case1) by auto
 
       text \<open>Case \<^term>\<open>(p-1 \<le> lo')\<close> and \<^term>\<open>(hi' < p+1)\<close> (Only second recursive call)\<close>
       subgoal
@@ -1265,7 +1265,7 @@ proof -
         subgoal unfolding quicksort_post_def pre_def post_def by (auto dest: mset_eq_setD)
         text \<open>Only the first recursive call: show postcondition\<close>
         subgoal
-          using trans lin apply (rule quicksort_correct_case5)
+          using trans apply (rule quicksort_correct_case5)
           using IH(2) unfolding pre_def post_def by auto
 
         apply (rule ASSERT_leI)
@@ -1288,7 +1288,7 @@ proof -
           text \<open>Show that the postcondition holds (after both recursive calls)\<close>
           subgoal
             apply (simp add: Misc.subset_Collect_conv, intro allI impI, elim conjE)
-            using trans lin apply (rule quicksort_correct_case7)
+            using trans apply (rule quicksort_correct_case7)
             using IH(2) unfolding pre_def post_def by auto
           done
         done
@@ -1300,16 +1300,13 @@ proof -
 qed
 
 
-
-(* TODO: Show that our (abstract) partition satisifies the specification *)
-
 text_raw \<open>\DefineSnippet{partition_main_inv}{\<close>
 definition partition_main_inv :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> 'b) \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a list \<Rightarrow> (nat\<times>nat\<times>'a list) \<Rightarrow> bool\<close> where
   \<open>partition_main_inv R h lo hi xs0 p \<equiv>
     case p of (i,j,xs) \<Rightarrow>
     j < length xs \<and> j \<le> hi \<and> i < length xs \<and> lo \<le> i \<and> i \<le> j \<and> mset xs = mset xs0 \<and>
-    (\<forall>k. k \<ge> lo \<and> k < i \<longrightarrow> R (h (xs!k)) (h (xs!hi))) \<and> \<comment> \<open>All elements from \<^term>\<open>lo\<close> to \<^term>\<open>i-1\<close> are smaller than the pivot\<close>
-    (\<forall>k. k \<ge> i \<and> k < j \<longrightarrow>  R (h (xs!hi)) (h (xs!k))) \<and> \<comment> \<open>All elements from \<^term>\<open>i\<close> to \<^term>\<open>j-1\<close> are greater than the pivot\<close>
+    (\<forall>k. k \<ge> lo \<and> k < i \<longrightarrow> R (h (xs!k)) (h (xs!hi))) \<and> \<comment> \<open>All elements from \<^term>\<open>lo\<close> to \<^term>\<open>i-(1::nat)\<close> are smaller than the pivot\<close>
+    (\<forall>k. k \<ge> i \<and> k < j \<longrightarrow>  R (h (xs!hi)) (h (xs!k))) \<and> \<comment> \<open>All elements from \<^term>\<open>i\<close> to \<^term>\<open>j-(1::nat)\<close> are greater than the pivot\<close>
     (\<forall>k. k < lo \<longrightarrow> xs!k = xs0!k) \<and> \<comment> \<open>Everything below \<^term>\<open>lo\<close> is unchanged\<close>
     (\<forall>k. k \<ge> j \<and> k < length xs \<longrightarrow> xs!k = xs0!k) \<comment> \<open>All elements from \<^term>\<open>j\<close> are unchanged (including everyting above \<^term>\<open>hi\<close>)\<close>
   \<close>
@@ -1321,29 +1318,21 @@ text_raw \<open>\DefineSnippet{partition_main}{\<close>
 definition partition_main :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> 'b) \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a list \<Rightarrow> ('a list \<times> nat) nres\<close> where
   \<open>partition_main R h lo hi xs0 = do {
     ASSERT(hi < length xs0);
-    pivot \<leftarrow> RETURN (h (xs0 ! hi));
-    (i,j,xs) \<leftarrow> WHILE\<^sub>T\<^bsup>partition_main_inv R h lo hi xs0\<^esup> \<comment> \<open>We loop from \<^term>\<open>j=lo\<close> to \<^term>\<open>j=hi-1\<close>.\<close>
-      (\<lambda>(i,j,xs). j < hi)
+    let pivot = h (xs0 ! hi);
+    (i,j,xs) \<leftarrow> WHILE\<^sub>T\<^bsup>partition_main_inv R h lo hi xs0\<^esup> \<comment> \<open>We loop from \<^term>\<open>j=lo\<close> to \<^term>\<open>j=hi-(1::nat)\<close>.\<close>
+      (\<lambda>(i,j,xs). j < hi) \<comment> \<open>Condition for repeating the loop.\<close>
       (\<lambda>(i,j,xs). do {
         ASSERT(i < length xs \<and> j < length xs);
       	if R (h (xs!j)) pivot
       	then RETURN (i+1, j+1, swap xs i j)
       	else RETURN (i,   j+1, xs)
       })
-      (lo, lo, xs0); \<comment> \<open>i and j are both initialized to lo\<close>
+      (lo, lo, xs0); \<comment> \<open>\<^term>\<open>i\<close> and \<^term>\<open>j\<close> are both initialized to \<^term>\<open>lo\<close>.\<close>
     ASSERT(i < length xs \<and> j = hi \<and> lo \<le> i \<and> hi < length xs \<and> mset xs = mset xs0);
     RETURN (swap xs i hi, i)
   }\<close>
 text_raw \<open>}%EndSnippet\<close>
 
-(*
-definition partition_spec :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> 'b) \<Rightarrow> 'a list \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a list \<Rightarrow> nat \<Rightarrow> bool\<close> where
-  \<open>partition_spec R h xs lo hi xs' p \<equiv>
-    mset xs' = mset xs \<and> \<comment> \<open>The list is a permutation\<close>
-    isPartition_map R h xs' lo hi p \<and> \<comment> \<open>We have a valid partition on the resulting list\<close>
-    lo \<le> p \<and> p \<le> hi \<and> \<comment> \<open>The partition index is in bounds\<close>
-    (\<forall> i. i<lo \<longrightarrow> xs'!i=xs!i) \<and> (\<forall> i. hi<i\<and>i<length xs' \<longrightarrow> xs'!i=xs!i)\<close> \<comment> \<open>Everything else is unchanged.\<close>
-*)
 
 text_raw \<open>\DefineSnippet{partition_main_correct}{\<close>
 lemma partition_main_correct:
@@ -1363,7 +1352,7 @@ proof -
     by arith
 
   show ?thesis
-    unfolding partition_main_def choose_pivot_def
+    unfolding partition_main_def choose_pivot_spec_def
     apply (refine_vcg WHILEIT_rule[where R = \<open>measure(\<lambda>(i,j,xs). hi-j)\<close>])
     subgoal using assms by blast \<comment> \<open>We feed our assumption to the assertion\<close>
     subgoal by auto \<comment> \<open>WF\<close>
@@ -1400,30 +1389,30 @@ proof -
     done
 qed
 
-text_raw \<open>\DefineSnippet{partition_between}{\<close>
-definition partition_between :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> 'b) \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a list \<Rightarrow> ('a list \<times> nat) nres\<close> where
-  \<open>partition_between R h lo hi xs0 = do {
+text_raw \<open>\DefineSnippet{partition}{\<close>
+definition partition :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> 'b) \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a list \<Rightarrow> ('a list \<times> nat) nres\<close> where
+  \<open>partition R h lo hi xs0 = do {
     ASSERT(hi < length xs0 \<and> lo \<le> hi);
-    k \<leftarrow> choose_pivot R h xs0 lo hi; \<comment> \<open>choice of pivot\<close>
+    k \<leftarrow> choose_pivot_spec lo hi; \<comment> \<open>This just requires \<^term>\<open>k \<ge> lo \<and> k \<le> hi\<close>\<close>
     ASSERT(k < length xs0);
-    xs \<leftarrow> RETURN (swap xs0 k hi); \<comment> \<open>move the pivot to the last position, before we start the actual loop\<close>
+    let xs = (swap xs0 k hi); \<comment> \<open>move the pivot to the last position, before we start the actual loop\<close>
     ASSERT(length xs = length xs0);
     partition_main R h lo hi xs
   }\<close>
 text_raw \<open>}%EndSnippet\<close>
 
 
-text_raw \<open>\DefineSnippet{partition_between_correct}{\<close>
-lemma partition_between_correct:
+text_raw \<open>\DefineSnippet{partition_correct}{\<close>
+lemma partition_correct:
   assumes \<open>hi < length xs\<close> and \<open>lo \<le> hi\<close> and
   \<open>\<And> x y z. \<lbrakk>R (h x) (h y); R (h y) (h z)\<rbrakk> \<Longrightarrow> R (h x) (h z)\<close> and \<open>\<And>x y. R (h x) (h y) \<or> R (h y) (h x)\<close>
-  shows \<open>partition_between R h lo hi xs \<le> SPEC(uncurry (partition_spec R h xs lo hi))\<close>
+  shows \<open>partition R h lo hi xs \<le> SPEC(uncurry (partition_spec R h xs lo hi))\<close>
 text_raw \<open>}%EndSnippet\<close>
 proof -
   have K: \<open>b \<le> hi - Suc n \<Longrightarrow> n > 0 \<Longrightarrow> Suc n \<le> hi \<Longrightarrow> Suc b \<le> hi - n\<close> for b hi n
     by auto
   show ?thesis
-    unfolding partition_between_def choose_pivot_def
+    unfolding partition_def choose_pivot_spec_def
     apply (refine_vcg partition_main_correct)
     using assms apply (auto dest: mset_eq_length simp add: partition_spec_def)
     by (metis dual_order.strict_trans2 less_imp_not_eq2 mset_eq_length swap_nth)
@@ -1450,23 +1439,23 @@ definition choose_pivot3 where
 text_raw \<open>}%EndSnippet\<close>
 
 
-\<comment> \<open>We only have to show that this procedure yields a valid index between \<open>lo\<close> and \<open>hi\<close>.\<close>
-lemma choose_pivot3_choose_pivot:
+text \<open>We only have to show that this procedure yields a valid index between \<open>lo\<close> and \<open>hi\<close>.\<close>
+lemma choose_pivot3_choose_pivot_spec:
   assumes \<open>lo < length xs\<close> \<open>hi < length xs\<close> \<open>hi \<ge> lo\<close>
-  shows \<open>choose_pivot3 R h xs lo hi \<le> \<Down> Id (choose_pivot R h xs lo hi)\<close>
-  unfolding choose_pivot3_def choose_pivot_def
+  shows \<open>choose_pivot3 R h xs lo hi \<le> \<Down> Id (choose_pivot_spec lo hi)\<close>
+  unfolding choose_pivot3_def choose_pivot_spec_def
   using assms by (auto intro!: ASSERT_leI simp: Let_def)
 
-text_raw \<open>\DefineSnippet{partition_between_ref}{\<close>
 text \<open>The refined partion function: We use the above pivot function and fold instead of non-deterministic iteration.\<close>
-definition partition_between_ref
+text_raw \<open>\DefineSnippet{partition_ref}{\<close>
+definition partition_ref
   :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> 'b) \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a list \<Rightarrow> ('a list \<times> nat) nres\<close>
 where
-  \<open>partition_between_ref R h lo hi xs0 = do {
+  \<open>partition_ref R h lo hi xs0 = do {
     ASSERT(hi < length xs0 \<and> hi < length xs0 \<and> lo \<le> hi);
     k \<leftarrow> choose_pivot3 R h xs0 lo hi; \<comment> \<open>choice of pivot\<close>
     ASSERT(k < length xs0);
-    xs \<leftarrow> RETURN (swap xs0 k hi); \<comment> \<open>move the pivot to the last position, before we start the actual loop\<close>
+    let xs = swap xs0 k hi; \<comment> \<open>move the pivot to the last position, before we start the actual loop\<close>
     ASSERT(length xs = length xs0);
     partition_main R h lo hi xs
   }\<close>
@@ -1478,9 +1467,9 @@ lemma partition_main_ref':
     \<le> \<Down> ((\<lambda> a b c d. Id) a b c d) (partition_main R h lo hi xs)\<close>
   by auto
 
-text_raw \<open>\DefineSnippet{partition_between_ref_partition_between}{\<close>
-lemma partition_between_ref_partition_between:
-  \<open>partition_between_ref R h lo hi xs \<le> (partition_between R h lo hi xs)\<close>
+text_raw \<open>\DefineSnippet{partition_ref_partition}{\<close>
+lemma partition_ref_partition:
+  \<open>partition_ref R h lo hi xs \<le> (partition R h lo hi xs)\<close>
 text_raw \<open>}%EndSnippet\<close>
 proof -
   have swap: \<open>(swap xs k hi, swap xs ka hi) \<in> Id\<close> if \<open>k = ka\<close>
@@ -1493,10 +1482,10 @@ proof -
 
   show ?thesis
     apply (subst (2) Down_id_eq[symmetric])
-    unfolding partition_between_ref_def
-      partition_between_def
+    unfolding partition_ref_def
+      partition_def
       OP_def
-    apply (refine_vcg choose_pivot3_choose_pivot swap partition_main_correct)
+    apply (refine_vcg choose_pivot3_choose_pivot_spec swap partition_main_correct)
     subgoal by auto
     subgoal by auto
     subgoal by auto
@@ -1506,29 +1495,29 @@ proof -
     subgoal by auto
     subgoal by auto
     subgoal by auto
-    by (auto intro: Refine_Basic.Id_refine dest: mset_eq_length)
+    done
 qed
 
 text \<open>Technical lemma for sepref\<close>
-lemma partition_between_ref_partition_between':
-  \<open>(uncurry2 (partition_between_ref R h), uncurry2 (partition_between R h)) \<in>
+lemma partition_ref_partition':
+  \<open>(uncurry2 (partition_ref R h), uncurry2 (partition R h)) \<in>
     nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f \<langle>Id\<rangle>list_rel \<rightarrow>\<^sub>f \<langle>\<langle>Id\<rangle>list_rel \<times>\<^sub>r nat_rel\<rangle>nres_rel\<close>
   by (intro frefI nres_relI)
-    (auto intro: partition_between_ref_partition_between)
+    (auto intro: partition_ref_partition)
 
 text \<open>Example instantiation for pivot\<close>
 definition choose_pivot3_impl where
   \<open>choose_pivot3_impl = choose_pivot3 (\<le>) id\<close>
 
 
-lemma partition_between_ref_correct:
+lemma partition_ref_correct:
   assumes trans: \<open>\<And> x y z. \<lbrakk>R (h x) (h y); R (h y) (h z)\<rbrakk> \<Longrightarrow> R (h x) (h z)\<close> and lin: \<open>\<And>x y. R (h x) (h y) \<or> R (h y) (h x)\<close>
     and bounds: \<open>hi < length xs\<close> \<open>lo \<le> hi\<close>
-  shows \<open>partition_between_ref R h lo hi xs \<le> SPEC (uncurry (partition_spec R h xs lo hi))\<close>
+  shows \<open>partition_ref R h lo hi xs \<le> SPEC (uncurry (partition_spec R h xs lo hi))\<close>
 proof -
   show ?thesis
-    apply (rule partition_between_ref_partition_between[THEN order_trans])
-    using bounds apply (rule partition_between_correct[where h=h])
+    apply (rule partition_ref_partition[THEN order_trans])
+    using bounds apply (rule partition_correct[where h=h])
     subgoal by (rule trans)
     subgoal by (rule lin)
     done
@@ -1536,16 +1525,14 @@ qed
 
 
 
-term quicksort
-
-text_raw \<open>\DefineSnippet{quicksort_ref}{\<close>
 text \<open>Refined quicksort algorithm: We use the refined partition function.\<close>
+text_raw \<open>\DefineSnippet{quicksort_ref}{\<close>
 definition quicksort_ref :: \<open>_ \<Rightarrow> _ \<Rightarrow> nat \<times> nat \<times> 'a list \<Rightarrow> 'a list nres\<close> where
 \<open>quicksort_ref R h = (\<lambda>(lo,hi,xs0).
   do {
   RECT (\<lambda>f (lo,hi,xs). do {
       ASSERT(lo \<le> hi \<and> hi < length xs0 \<and> mset xs = mset xs0);
-      (xs, p) \<leftarrow> partition_between_ref R h lo hi xs; \<comment> \<open>This is the refined partition function. Note that we need the premises (trans,lin,bounds) here.\<close>
+      (xs, p) \<leftarrow> partition_ref R h lo hi xs; \<comment> \<open>This is the refined partition function. Note that we need the premises (trans,lin,bounds) here.\<close>
       ASSERT(mset xs = mset xs0 \<and> p \<ge> lo \<and> p < length xs0);
       xs \<leftarrow> (if p-1\<le>lo then RETURN xs else f (lo, p-1, xs));
       ASSERT(mset xs = mset xs0);
@@ -1571,7 +1558,7 @@ proof -
 
   show ?thesis
     unfolding quicksort_def quicksort_ref_def
-    apply (refine_vcg pre partition_between_ref_partition_between'[THEN fref_to_Down_curry2])
+    apply (refine_vcg pre partition_ref_partition'[THEN fref_to_Down_curry2])
 
     text \<open>First assertion (premise for partition)\<close>
     subgoal
@@ -1586,7 +1573,7 @@ proof -
 
     text \<open>Correctness of the concrete partition function\<close>
     subgoal
-      apply (simp, rule partition_between_ref_correct)
+      apply (simp, rule partition_ref_correct)
       subgoal by (rule trans)
       subgoal by (rule lin)
       subgoal by auto \<comment> \<open>first premise\<close>
@@ -1608,7 +1595,6 @@ proof -
     by simp+
 qed
 
-(* TODO: More snippets *)
 
 text_raw \<open>\DefineSnippet{full_quicksort}{\<close>
 definition full_quicksort where
@@ -1693,9 +1679,8 @@ qed
 
 text_raw \<open>\DefineSnippet{full_quicksort_correct}{\<close>
 lemma full_quicksort_correct:
-  assumes
-    trans: \<open>\<And>x y z. \<lbrakk>R (h x) (h y); R (h y) (h z)\<rbrakk> \<Longrightarrow> R (h x) (h z)\<close> and
-    lin: \<open>\<And>x y. R (h x) (h y) \<or> R (h y) (h x)\<close>
+  assumes trans: \<open>\<And>x y z. \<lbrakk>R (h x) (h y); R (h y) (h z)\<rbrakk> \<Longrightarrow> R (h x) (h z)\<close>
+      and lin: \<open>\<And>x y. R (h x) (h y) \<or> R (h y) (h x)\<close>
   shows \<open>full_quicksort R h xs \<le> \<Down> Id (SPEC(\<lambda>xs'. mset xs' = mset xs))\<close>
 text_raw \<open>}%EndSnippet\<close>
   by (rule order_trans[OF full_quicksort_correct_sorted])

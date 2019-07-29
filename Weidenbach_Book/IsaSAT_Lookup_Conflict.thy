@@ -3915,35 +3915,37 @@ qed
 
 
 
-
+text_raw \<open>\DefineSnippet{f1}{\<close>
 definition conflict_clause_minimisation_with_binary_clauses_f1 ::
   \<open>(nat literal \<Rightarrow> nat watched) \<Rightarrow> nat clause \<Rightarrow> nat clause_l \<Rightarrow> (nat clause \<times> nat clause_l) nres\<close> where
-  \<open>conflict_clause_minimisation_with_binary_clauses_f1 = (\<lambda> W C outl.
+  \<open>conflict_clause_minimisation_with_binary_clauses_f1 = (\<lambda>W D outl.
     do {
       ASSERT(length outl > 0);
       let A = (outl!0);
-      C \<leftarrow>
-        (FOREACH\<^bsup>\<lambda> w C. C \<subseteq># mset outl \<and> distinct_mset C\<^esup>
+      D \<leftarrow>
+        (FOREACH\<^bsup>\<lambda>w D. D \<subseteq># mset outl \<and> distinct_mset D\<^esup>
         (set (W A)) 
-        (\<lambda> (i, B, b) C.
-          if \<not> b \<or> B = -A then RETURN (C) else \<comment> \<open>We only consider non-tautological binary clauses\<close>
+        (\<lambda> (i, B, b) D.
+          if \<not> b \<or> B = -A then RETURN (D) else \<comment> \<open>We only consider non-tautological binary clauses\<close>
           do {
-            if - B \<in># C then
-            RETURN (C - {# -B #}) else \<comment> \<open>Remove \<^term>\<open>- B\<close> from the conflict clause (in \<^typ>\<open>nat literal multiset\<close> representation)\<close>
-            RETURN (C)
+            if - B \<in># D then
+            RETURN (D - {# -B #}) else \<comment> \<open>Remove \<^term>\<open>(-B)\<close> from the conflict clause (in \<^typ>\<open>nat literal multiset\<close> representation)\<close>
+            RETURN (D)
           }
        )
-       C);
-      ASSERT(C \<subseteq># mset outl);
-      RETURN (C, filter (\<lambda> l. l \<in># C) outl) \<comment> \<open>Update \<^term>\<open>outl\<close>.\<close>
+       D);
+      ASSERT(D \<subseteq># mset outl);
+      RETURN (D, filter (\<lambda> l. l \<in># D) outl) \<comment> \<open>Update \<^term>\<open>outl\<close>.\<close>
     }
   )
 \<close>
+text_raw \<open>}%EndSnippet\<close>
 
 
+text_raw \<open>\DefineSnippet{f2}{\<close>
 definition conflict_clause_minimisation_with_binary_clauses_f2 ::
   \<open>(nat literal \<Rightarrow> nat watched) \<Rightarrow> lookup_clause_rel \<Rightarrow> nat clause_l \<Rightarrow> (lookup_clause_rel \<times> nat clause_l) nres\<close> where
-  \<open>conflict_clause_minimisation_with_binary_clauses_f2 = (\<lambda> W (n0,xs0) outl.
+  \<open>conflict_clause_minimisation_with_binary_clauses_f2 = (\<lambda>W (n0,xs0) outl.
     do {
       ASSERT(length outl > 0);
       let A = (outl!0);
@@ -3955,30 +3957,31 @@ definition conflict_clause_minimisation_with_binary_clauses_f2 ::
           do {
             ASSERT (atm_of B < length xs);
             if xs ! (atm_of B) = Some (\<not> is_pos B) then
-            RETURN (n-1, xs[atm_of B := None]) else  \<comment> \<open>Remove \<^term>\<open>- B\<close> from the conflict clause (in ``hash set'' representation)\<close>
+            RETURN (n-1, xs[atm_of B := None]) else  \<comment> \<open>Remove \<^term>\<open>(-B)\<close> from the conflict clause (in ``hash set'' representation)\<close>
             RETURN (n, xs)
           }
        )
        (n0, xs0));
       ASSERT ((\<forall> l. atm_of l < length xs \<longrightarrow> xs ! (atm_of l) = Some (is_pos l) \<longrightarrow> l \<in> set outl));
-      ASSERT (\<forall>l\<in>set outl. atm_of l < length xs); \<comment> \<open>assertion that may be useful for filter\<close>
+      ASSERT (\<forall>l\<in>set outl. atm_of l < length xs); \<comment> \<open>assertion that may be useful for \<^term>\<open>filter\<close>.\<close>
       RETURN ((n, xs), filter (\<lambda> l. xs ! (atm_of l) = Some (is_pos l)) outl) \<comment> \<open>Update \<^term>\<open>outl\<close>.\<close>
     }
   )
 \<close>
+text_raw \<open>}%EndSnippet\<close>
 
 
 
 
 lemma
-  assumes \<open>correct_watching (M, N, Some D, NE, UE, Q, W)\<close>
-    and \<open>mset outl = D\<close>
-    and \<open>mset `# ran_mf N \<Turnstile>pm D\<close>
+  assumes \<open>correct_watching (M, N, Some D0, NE, UE, Q, W)\<close>
+    and \<open>mset outl = D0\<close>
+    and \<open>mset `# ran_mf N \<Turnstile>pm D0\<close>
     and \<open>length outl > 0\<close>
     and \<open>outl ! 0 \<in># all_lits_of_mm (mset `# ran_mf N + (NE + UE))\<close>
     and \<open>distinct outl\<close>
-  shows \<open>conflict_clause_minimisation_with_binary_clauses_f1 W D outl \<le>
-          SPEC(\<lambda>(D', outl'). D' \<subseteq># D \<and> mset outl' = D' \<and> mset `# ran_mf N \<Turnstile>pm D')\<close>
+  shows \<open>conflict_clause_minimisation_with_binary_clauses_f1 W D0 outl \<le>
+          SPEC(\<lambda>(D, outl'). D \<subseteq># D0 \<and> mset outl' = D \<and> mset `# ran_mf N \<Turnstile>pm D)\<close>
   using assms
 proof -
   let ?A = \<open>outl ! 0\<close>
@@ -3987,16 +3990,16 @@ proof -
   text \<open>Main lemma for correctness of the algorithm: If we encounter the binary learned clause (A, B)
         in the watched list, and the conflict contains -B, then we can remove -B from the conflict.\<close>
   have tam:
-    \<open>?N \<Turnstile>pm remove1_mset (- B) C\<close> \<open>?A \<in># remove1_mset (- B) C\<close>
+    \<open>?N \<Turnstile>pm remove1_mset (- B) D\<close> \<open>?A \<in># remove1_mset (- B) D\<close>
     if
-      \<open>C \<subseteq># mset outl\<close> \<open>?N \<Turnstile>pm C\<close> \<open>- B \<in># C\<close>
-      \<open>(i, B, b) \<in> set (W (outl!0))\<close> \<open>b\<close> \<open>distinct_mset C\<close>
-      \<open>?A \<in># C\<close> \<open>B \<noteq> -?A\<close>
-    for i B C b
+      \<open>D \<subseteq># mset outl\<close> \<open>?N \<Turnstile>pm D\<close> \<open>- B \<in># D\<close>
+      \<open>(i, B, b) \<in> set (W (outl!0))\<close> \<open>b\<close> \<open>distinct_mset D\<close>
+      \<open>?A \<in># D\<close> \<open>B \<noteq> -?A\<close>
+    for i B D b
   proof -
 
     have \<open>i \<in># dom_m N\<close> and
-      eq: \<open>filter_mset (\<lambda>i. i \<in># dom_m N) (fst `# mset (W ?A)) = clause_to_update ?A (M, N, Some D, NE, UE, {#}, {#})\<close>
+      eq: \<open>filter_mset (\<lambda>i. i \<in># dom_m N) (fst `# mset (W ?A)) = clause_to_update ?A (M, N, Some D0, NE, UE, {#}, {#})\<close>
       using assms(5) that(4) that(5) assms(1) by (auto simp add: correct_watching.simps)
     then have \<open>B \<in> set (N \<propto> i)\<close> \<open>B \<noteq> ?A\<close> \<open>correctly_marked_as_binary N (i, B, b)\<close>
       using assms(5) that(4) assms(1) by (auto simp add: correct_watching.simps)
@@ -4011,59 +4014,59 @@ proof -
     then have L1: \<open>?N \<Turnstile>pm {#?A, B#}\<close>
       using \<open>i \<in># dom_m N\<close> by (auto dest!: multi_member_split simp: ran_m_def)
 
-    have L4: \<open>?A \<in># remove1_mset (- B) C\<close>
+    have L4: \<open>?A \<in># remove1_mset (- B) D\<close>
       by (metis in_remove1_mset_neq that(7) that(8) uminus_of_uminus_id)
 
 
-    have \<open>C = add_mset (-B) (remove1_mset (- B) C)\<close>
+    have \<open>D = add_mset (-B) (remove1_mset (- B) D)\<close>
       by (metis insert_DiffM that(3))
-    then have Res1: \<open>?N \<Turnstile>pm add_mset (-B) (remove1_mset (- B) C)\<close>
+    then have Res1: \<open>?N \<Turnstile>pm add_mset (-B) (remove1_mset (- B) D)\<close>
       using that(2) by auto
 
     have Res2: \<open>?N \<Turnstile>pm add_mset B {#?A#}\<close>
       by (metis L1 add_mset_commute)
 
-    then have Res: \<open>?N \<Turnstile>pm {#?A#} \<union># (remove1_mset (- B) C)\<close>
+    then have Res: \<open>?N \<Turnstile>pm {#?A#} \<union># (remove1_mset (- B) D)\<close>
       by (metis Res1 subset_mset.sup.commute true_clss_cls_union_mset_true_clss_cls_or_not_true_clss_cls_or)
 
-    have \<open>{#?A#} \<union># (remove1_mset (- B) C) = remove1_mset (- B) C\<close>
+    have \<open>{#?A#} \<union># (remove1_mset (- B) D) = remove1_mset (- B) D\<close>
       using L4 insert_DiffM sup_union_left2 by fastforce
 
-    then show \<open>?N \<Turnstile>pm remove1_mset (- B) C\<close> \<open>?A \<in># remove1_mset (- B) C\<close>
+    then show \<open>?N \<Turnstile>pm remove1_mset (- B) D\<close> \<open>?A \<in># remove1_mset (- B) D\<close>
       using Res L4 by auto
 
   qed
 
 
   have tamtam:
-    \<open>set (filter (\<lambda>l. l \<in> C') outl) = C'\<close>
-    if \<open>C' \<subseteq> set outl\<close>
-    for C' outl
+    \<open>set (filter (\<lambda>l. l \<in> D) outl) = D\<close>
+    if \<open>D \<subseteq> set outl\<close>
+    for D outl
     using filter_cong that by auto
   have tamtam:
-    \<open>mset (filter (\<lambda>l. l \<in># C') outl) = C'\<close>
-    if \<open>C' \<subseteq># mset outl\<close> \<open>distinct_mset C'\<close> \<open>distinct outl\<close>
-    for C' outl
+    \<open>mset (filter (\<lambda>l. l \<in># D) outl) = D\<close>
+    if \<open>D \<subseteq># mset outl\<close> \<open>distinct_mset D\<close> \<open>distinct outl\<close>
+    for D outl
   proof -
-    have A: \<open>C' \<subseteq># mset (filter (\<lambda>l. l \<in># C') outl)\<close>
+    have A: \<open>D \<subseteq># mset (filter (\<lambda>l. l \<in># D) outl)\<close>
       by (metis (mono_tags) filter_id_conv list_of_mset_exi mset_filter multiset_filter_mono set_mset_mset that(1))
 
-    have B: \<open>mset (filter (\<lambda>l. l \<in># C') outl) \<subseteq># C'\<close>
+    have B: \<open>mset (filter (\<lambda>l. l \<in># D) outl) \<subseteq># D\<close>
       by (metis (no_types, lifting) distinct_filter distinct_mset_mset_distinct distinct_subseteq_iff mem_Collect_eq mset_filter set_mset_filter subsetI that(2) that(3))
 
     show ?thesis
       using A B by auto
   qed
   then have tamtam:
-    \<open>mset (filter (\<lambda>l. l \<in># C') outl) = C'\<close>
-    if \<open>C' \<subseteq># mset outl\<close> \<open>distinct_mset C'\<close>
-    for C'
+    \<open>mset (filter (\<lambda>l. l \<in># D) outl) = D\<close>
+    if \<open>D \<subseteq># mset outl\<close> \<open>distinct_mset D\<close>
+    for D
     using assms(6) that(1) that(2) by blast
 
 
   show ?thesis
     unfolding conflict_clause_minimisation_with_binary_clauses_f1_def
-    apply (refine_vcg FOREACHi_rule_stronger_inv[where I'=\<open>\<lambda> w C. ?A \<in># C \<and> mset `# ran_mf N \<Turnstile>pm C\<close>])
+    apply (refine_vcg FOREACHi_rule_stronger_inv[where I'=\<open>\<lambda>w D. ?A \<in># D \<and> mset `# ran_mf N \<Turnstile>pm D\<close>])
     subgoal
       using assms(4) by blast
     subgoal
