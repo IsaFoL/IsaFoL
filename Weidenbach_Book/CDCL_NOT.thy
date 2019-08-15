@@ -705,7 +705,7 @@ proof -
   ultimately show ?thesis by linarith
 qed
 
-lemma wf_dpll_bj:
+lemma wf_dpll_bj: (*  \htmllink{wf_dpll_bj} *)
   assumes fin: \<open>finite A\<close>
   shows \<open>wf {(T, S). dpll_bj S T
     \<and> atms_of_mm (clauses\<^sub>N\<^sub>O\<^sub>T S) \<subseteq> atms_of_ms A \<and> atm_of ` lits_of_l (trail S) \<subseteq> atms_of_ms A
@@ -1222,7 +1222,7 @@ proof -
     by (meson \<open>inv S\<close> rtranclp_dpll_bj_sat_iff satisfiable_carac st true_annots_true_cls)
 qed
 
-corollary full_dpll_backjump_final_state_from_init_state:
+corollary full_dpll_backjump_final_state_from_init_state: (* \htmllink{full_dpll_backjump_final_state_from_init_state}*)
   fixes A :: \<open>'v clause set\<close> and S T :: \<open>'st\<close>
   assumes
     full: \<open>full dpll_bj S T\<close> and
@@ -1636,7 +1636,7 @@ proof -
     unfolding cdcl\<^sub>N\<^sub>O\<^sub>T_NOT_all_inv_def by presburger
 qed
 
-lemma infinite_cdcl\<^sub>N\<^sub>O\<^sub>T_exists_learn_and_forget_infinite_chain:
+lemma infinite_cdcl\<^sub>N\<^sub>O\<^sub>T_exists_learn_and_forget_infinite_chain: (* \htmlink{infinite_cdcl_NOT_exists_learn_and_forget_infinite_chain} *)
   assumes
     \<open>\<And>i. cdcl\<^sub>N\<^sub>O\<^sub>T (f i) (f(Suc i))\<close> and
     inv: \<open>cdcl\<^sub>N\<^sub>O\<^sub>T_NOT_all_inv A (f 0)\<close>

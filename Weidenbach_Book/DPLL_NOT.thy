@@ -27,7 +27,7 @@ inductive backtrack :: \<open>('v, unit) ann_lits \<times> 'v clauses
 
 inductive_cases backtrackE[elim]: \<open>backtrack (M, N) (M', N')\<close>
 
-lemma backtrack_is_backjump:
+lemma backtrack_is_backjump: (* \htmllink{backtrack_is_backjump} *)
   fixes M M' :: \<open>('v, unit) ann_lits\<close>
   assumes
     backtrack: \<open>backtrack (M, N) (M', N')\<close> and

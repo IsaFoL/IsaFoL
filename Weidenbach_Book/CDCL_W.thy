@@ -1794,7 +1794,7 @@ next
 qed (auto simp: distinct_cdcl\<^sub>W_state_def distinct_mset_set_def clauses_def
   dest!: in_diffD)
 
-lemma rtanclp_distinct_cdcl\<^sub>W_state_inv:
+lemma rtanclp_distinct_cdcl\<^sub>W_state_inv: (* \htmllink{rtranclp_distinct_cdclW_state_inv} *)
   assumes
     "cdcl\<^sub>W_restart\<^sup>*\<^sup>* S S'" and
     "cdcl\<^sub>W_M_level_inv S" and
@@ -4092,7 +4092,7 @@ qed
 subsubsection \<open>Final States are Conclusive\<close>
 
 text \<open>\cwref{lem:prop:cdclsoundtermStates}{theorem 2.9.9 page 97}\<close>
-lemma full_cdcl\<^sub>W_stgy_final_state_conclusive:
+lemma full_cdcl\<^sub>W_stgy_final_state_conclusive: (* \htmllink{full_cdclW_stgy_final_state_conclusive} *)
   fixes S' :: 'st
   assumes full: "full cdcl\<^sub>W_stgy (init_state N) S'"
   and no_d: "distinct_mset_mset N"

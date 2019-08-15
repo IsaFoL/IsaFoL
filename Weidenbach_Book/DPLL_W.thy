@@ -572,7 +572,7 @@ proof -
   show ?thesis apply (rule wf_lexn) unfolding m by auto
 qed
 
-lemma wf_dpll\<^sub>W:
+lemma wf_dpll\<^sub>W: (* \htmllink{wf_dpllW} *)
   "wf {(S', S). dpll\<^sub>W_all_inv S \<and> dpll\<^sub>W S S'}"
   apply (rule wf_wf_if_measure'[OF wf_lex_less, of _ _
           "\<lambda>S. dpll\<^sub>W_mes (trail S) (card (atms_of_mm (clauses S)))"])
@@ -674,7 +674,7 @@ proof -
     qed
 qed
 
-lemma dpll\<^sub>W_conclusive_state_correct:
+lemma dpll\<^sub>W_conclusive_state_correct: (* \htmllink{dpllW_conclusive_state} *)
   assumes "dpll\<^sub>W\<^sup>*\<^sup>* ([], N) (M, N)" and "conclusive_dpll\<^sub>W_state (M, N)"
   shows "M \<Turnstile>asm N \<longleftrightarrow> satisfiable (set_mset N)" (is "?A \<longleftrightarrow> ?B")
 proof

@@ -599,7 +599,7 @@ lemma rtranclp_incremental_cdcl\<^sub>W_inv:
    using learned_entailed apply simp
   using incremental_cdcl\<^sub>W_inv by blast+
 
-lemma incremental_conclusive_state:
+lemma incremental_conclusive_state: (* \htmllink{incremental_conclusive_state} *)
   assumes
     inc: "incremental_cdcl\<^sub>W S T" and
     inv: "cdcl\<^sub>W_all_struct_inv S" and
