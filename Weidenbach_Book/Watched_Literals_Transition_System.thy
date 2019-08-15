@@ -4772,7 +4772,7 @@ proof -
     done
 qed
 
-lemma cdcl_twl_stgy_twl_struct_invs:
+lemma cdcl_twl_stgy_twl_struct_invs: (*\htmllink{cdcl_twl_stgy_twl_struct_invs} *)
   assumes
     cdcl: \<open>cdcl_twl_stgy S T\<close> and
     twl: \<open>twl_struct_invs S\<close>
@@ -4931,7 +4931,7 @@ proof -
 qed
 
 
-lemma full_cdcl_twl_stgy_cdcl\<^sub>W_stgy:
+lemma full_cdcl_twl_stgy_cdcl\<^sub>W_stgy: (* \htmllink{full_cdcl_twl_stgy_cdclW_stgy} *)
   assumes \<open>full cdcl_twl_stgy S T\<close> and twl: \<open>twl_struct_invs S\<close>
   shows \<open>full cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy (state\<^sub>W_of S) (state\<^sub>W_of T)\<close>
   by (metis (no_types, hide_lams) assms(1) full_def no_step_cdcl_twl_stgy_no_step_cdcl\<^sub>W_stgy

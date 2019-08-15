@@ -278,7 +278,7 @@ sepref_definition IsaSAT_code
   apply (rewrite at \<open>extract_atms_clss _ \<hole>\<close> op_extract_list_empty_def[symmetric])
   by sepref
 
-theorem IsaSAT_full_correctness:
+theorem IsaSAT_full_correctness: (* \htmllink{IsaSAT_full_correctness} *)
   \<open>(uncurry IsaSAT_code, uncurry (\<lambda>_. model_if_satisfiable))
      \<in> [\<lambda>(_, a). Multiset.Ball a distinct_mset \<and>
       (\<forall>C\<in>#a.  \<forall>L\<in>#C. nat_of_lit L  \<le> uint_max)]\<^sub>a opts_assn\<^sup>d *\<^sub>a  clauses_l_assn\<^sup>k \<rightarrow> model_assn\<close>
