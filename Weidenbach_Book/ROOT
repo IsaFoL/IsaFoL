@@ -170,7 +170,6 @@ session "Watched_Literals" (Weidenbach_Book) = "CDCL"  +
   options [document = pdf, document_output = "output"]
   sessions
     CDCL
-    Isabelle_LLVM
     "HOL-Eisbach"
   theories [quick_and_dirty = false, document = true]
     Bits_Natural
@@ -183,7 +182,6 @@ session "Watched_Literals" (Weidenbach_Book) = "CDCL"  +
     WB_More_Refinement_List
     WB_More_Refinement
     WB_More_IICF_SML
-    WB_More_IICF_LLVM
     WB_Sort
     WB_Sort_SML
     Watched_Literals_Transition_System
@@ -209,7 +207,6 @@ session "IsaSAT" (Weidenbach_Book) = "Watched_Literals"  +
     CDCL
     "HOL-Eisbach"
     Watched_Literals
-    Isabelle_LLVM
     Show
   theories
     IsaSAT_Arena
