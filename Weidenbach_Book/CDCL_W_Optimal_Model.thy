@@ -1253,7 +1253,7 @@ lemma ocdcl\<^sub>W_o_same_weight: \<open>ocdcl\<^sub>W_o S U \<Longrightarrow> 
 text \<open>This is a proof artefact: it is easier to reason on \<^term>\<open>improvep\<close> when the set of
   initial clauses is fixed (here by \<^term>\<open>N\<close>). The next theorem shows that the conclusion
   is equivalent to not fixing the set of clauses.\<close>
-lemma wf_cdcl_bnb:
+lemma wf_cdcl_bnb: (* \htmllink{wf_cdcl_bnb} *)
   assumes improve: \<open>\<And>S T. improvep S T \<Longrightarrow> init_clss S = N \<Longrightarrow> (\<nu> (weight T), \<nu> (weight S)) \<in> R\<close> and
     wf_R: \<open>wf R\<close>
   shows \<open>wf {(T, S). cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S) \<and> cdcl_bnb S T \<and>
@@ -1528,7 +1528,7 @@ proof (rule ccontr)
       simp: conflict_is_false_with_level_abs_iff)
 qed
 
-lemma no_step_cdcl_bnb_stgy_empty_conflict:
+lemma no_step_cdcl_bnb_stgy_empty_conflict: (* \htmllink{no_step_cdcl_bnb_stgy_empty_conflict} *)
   assumes
     n_s: \<open>no_step cdcl_bnb S\<close> and
     all_struct: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S)\<close> and
@@ -1563,7 +1563,7 @@ proof (rule ccontr)
     using n_s by (auto simp: cdcl_bnb.simps)
 qed
 
-lemma full_cdcl_bnb_stgy_no_conflicting_clss_unsat:
+lemma full_cdcl_bnb_stgy_no_conflicting_clss_unsat: (* \htmllink{full_cdcl_bnb_stgy_no_conflicting_clss_unsat} *)
   assumes
     full: \<open>full cdcl_bnb_stgy S T\<close> and
     all_struct: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S)\<close> and

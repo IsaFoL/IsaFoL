@@ -38,7 +38,7 @@ lemma dpll\<^sub>W_bj_dpll:
   apply (elim dpll\<^sub>N\<^sub>O\<^sub>T.backjumpE, cases S)
   by (simp add: dpll\<^sub>W.simps dpll_with_backtrack.backtrack.simps)
 
-lemma dpll\<^sub>W_dpll\<^sub>N\<^sub>O\<^sub>T:
+lemma dpll\<^sub>W_dpll\<^sub>N\<^sub>O\<^sub>T: (* \htmllink{dpllW_dpllNOT} *)
   assumes inv: "dpll\<^sub>W_all_inv S"
   shows "dpll\<^sub>N\<^sub>O\<^sub>T.dpll_bj S T \<longleftrightarrow> dpll\<^sub>W S T"
   using assms dpll\<^sub>W_bj_dpll dpll\<^sub>W_dpll\<^sub>W_bj by blast

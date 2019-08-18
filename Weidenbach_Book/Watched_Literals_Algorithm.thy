@@ -75,7 +75,7 @@ definition unit_propagation_inner_loop :: \<open>'v twl_st \<Rightarrow> 'v twl_
   }
 \<close>
 
-lemma unit_propagation_inner_loop_body:
+lemma unit_propagation_inner_loop_body: (* \htmllink{unit_propagation_inner_loop_body} *)
   fixes S :: \<open>'v twl_st\<close>
   assumes
     \<open>clauses_to_update S \<noteq> {#}\<close> and
@@ -1354,7 +1354,7 @@ proof -
   ultimately show ?thesis by auto
 qed
 
-lemma cdcl_twl_stgy_prog_spec:
+lemma cdcl_twl_stgy_prog_spec: (* \htmllink{cdcl_twl_stgy_prog_spec} *)
   assumes \<open>twl_struct_invs S\<close> and \<open>twl_stgy_invs S\<close> and \<open>clauses_to_update S = {#}\<close> and
     \<open>get_conflict S = None\<close>
   shows

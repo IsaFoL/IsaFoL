@@ -182,6 +182,21 @@ GRAT/html
 GRAT/gratchk/code/gratchk
 GRAT/gratgen/debug
 GRAT/gratgen/release
+isasat_llvm
+IsaSAT_bounded
+IsaSAT_llvm
+full_SAT_Trail
+
+## LLVM data
+*.s
+*.bc
+*.ll
+
+## profiling
+vgcore.*
+*.profraw
+cachegrind.*
+perf.*
 
 ## Generated documentation
 html
