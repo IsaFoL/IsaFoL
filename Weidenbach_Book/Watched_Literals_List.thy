@@ -1,6 +1,6 @@
 theory Watched_Literals_List
   imports WB_More_Refinement_List Watched_Literals_Algorithm CDCL.DPLL_CDCL_W_Implementation
-    Watched_Literals_Clauses_Intf
+    Watched_Literals_Clauses
 begin
 
 lemma mset_take_mset_drop_mset: \<open>(\<lambda>x. mset (take 2 x) + mset (drop 2 x)) = mset\<close>
@@ -907,8 +907,11 @@ proof -
              (set_clauses_to_update
                (remove1_mset (L, twl_clause_of C') (clauses_to_update S'))
                S'))\<close>
-    for L' K
+    for L' K L'a
   proof -
+    have [simp]: \<open>L' = L'a\<close> \<open>K = L'\<close> \<open>L'a = (N \<propto> C ! (Suc 0 - i))\<close>
+      using that two_le_length_C unfolding i_def
+      by (auto simp: take_2_if S add_mset_eq_add_mset split: if_splits)
     have [simp]: \<open>mset (swap (N \<propto> C) 0 (Suc 0 - i)) = mset (N \<propto> C)\<close>
       apply (subst swap_multiset)
       using two_le_length_C unfolding i_def
@@ -970,11 +973,10 @@ proof -
       moreover have \<open>La \<in> lits_of_l M\<close>
         using H by (force simp: lits_of_def)
       ultimately show False
-        using L'_undef that SS' uL_M n_d C'_i S watched_C' that(1)
+        using L'_undef that SS' uL_M n_d C'_i S watched_C' two_le_length_C 
         apply (auto simp: S i_def dest: no_dup_consistentD split: if_splits)
-sledgehammer sorry
 	apply (metis in_multiset_nempty member_add_mset no_dup_consistentD  set_mset_mset)
-	by (metis (full_types) in_multiset_nempty member_add_mset no_dup_consistentD set_mset_mset)
+	by (metis (mono_tags) in_multiset_nempty member_add_mset no_dup_consistentD set_mset_mset)
     qed
     have \<open>twl_list_invs
      (Propagated (N \<propto> C ! (Suc 0 - i)) C # M, N(C \<hookrightarrow> swap (N \<propto> C) 0 (Suc 0 - i)),
@@ -1010,9 +1012,9 @@ sledgehammer sorry
       set_conflict_l_def mset_take_mset_drop_mset' S nth_swap_isabelle
       dest!: mset_eq_setD)
     ultimately show ?thesis
-      using SS' WS that by (auto simp: twl_st_l_def image_mset_remove1_mset_if propagate_lit_def
+      using SS' WS by (auto simp: twl_st_l_def image_mset_remove1_mset_if propagate_lit_def
       propagate_lit_l_def mset_take_mset_drop_mset' S learned_unchanged
-      init_unchanged mset_un_watched_swap intro: convert_lit.simps)
+      init_unchanged mset_un_watched_swap intro: convert_lit.intros)
   qed
   have update_clause_rel: \<open>(if polarity
          (get_trail_l
@@ -1030,7 +1032,7 @@ sledgehammer sorry
         (update_clauseS L (twl_clause_of C') (set_clauses_to_update (remove1_mset (L, twl_clause_of C') (clauses_to_update S')) S'))\<close>
     (is \<open>?update_clss \<le> \<Down> _ _\<close>)
   if
-    L': \<open>(get_clauses_l ?S \<propto> C ! (1 - i), L') \<in> Id\<close> and
+    L': \<open>L' \<in> {K. K \<in># clause (twl_clause_of C')}\<close> and
     L'_M: \<open>L' \<notin> lits_of_l
            (get_trail
              (set_clauses_to_update
@@ -1044,8 +1046,14 @@ sledgehammer sorry
                (undefined_lit (get_trail_l ?S) (get_clauses_l ?S \<propto> C ! j) \<or>
                 get_clauses_l ?S \<propto> C ! j \<in> lits_of_l (get_trail_l ?S)) \<and>
                2 \<le> j)}\<close> and
-    K_None: \<open>K \<noteq> None\<close>
-    for L' and K
+    K_None: \<open>K \<noteq> None\<close> and
+   \<open>watched (twl_clause_of C') = {#L, L'a#}\<close>
+   \<open>L'a
+    \<notin> lits_of_l
+       (get_trail
+         (set_clauses_to_update
+           (remove1_mset (L, twl_clause_of C') (clauses_to_update S')) S'))\<close>
+    for L' and K and L'a
   proof -
     obtain K' where [simp]: \<open>K = Some K'\<close>
       using K_None by auto
@@ -1090,7 +1098,7 @@ sledgehammer sorry
         update_clause (TWL_Clause {#?L, ?L'#} (mset ?UW)) ?L (?UW ! ?k')\<close>
          by (auto simp: mset_update)
 
-      have H3:  \<open>{#L, C' ! (Suc 0 - i)#} = mset (watched_l (N \<propto> C))\<close>
+      have H3: \<open>{#L, C' ! (Suc 0 - i)#} = mset (watched_l (N \<propto> C))\<close>
         using K'_2 K'_le \<open>C > 0\<close> C'_i by (auto simp: S take_2_if C_N_U nth_tl i_def)
       have H4: \<open>mset (unwatched_l C') = mset (unwatched_l (N \<propto> C))\<close>
         by (auto simp: S take_2_if C_N_U nth_tl)
@@ -1237,8 +1245,8 @@ sledgehammer sorry
       moreover have \<open>La \<in> lits_of_l M\<close>
         using H by (force simp: lits_of_def)
       ultimately show False
-        using L' L'_M SS' uL_M n_d K'_2 K'_le
-        by (auto simp: S i_def dest: no_dup_consistentD split: if_splits)
+        using L' L'_M SS' uL_M n_d K'_2 K'_le that(2) two_le_length_C arg_cong[OF that(5), of set_mset] that(6)
+        by (auto simp: S i_def polarity_spec' dest: no_dup_consistentD split: if_splits)
     qed
     have A: \<open>?update_clss = do {let x = N \<propto> C ! K';
          if x \<in> lits_of_l (get_trail_l (set_clauses_to_update_l (remove1_mset C (clauses_to_update_l S)) S))
@@ -1309,12 +1317,10 @@ sledgehammer sorry
     subgoal using SS' by (auto simp: Decided_Propagated_in_iff_in_lits_of_l
       polarity_def)
     subgoal by (rule confl_rel)
-    subgoal unfolding i_def[symmetric] op_clauses_at_def  i_def'[symmetric]
-      apply (rule propa_rel; assumption?)
-    apply assumption+
- sorry
+    subgoal for K bL' L' L'a2 unfolding i_def[symmetric] op_clauses_at_def  i_def'[symmetric]
+      by (rule propa_rel; assumption?)
     subgoal by auto
-    subgoal for L' K unfolding i_def[symmetric]  i_def'[symmetric]
+    subgoal for L' K unfolding i_def[symmetric]  i_def'[symmetric] op_clauses_at_def
       by (rule update_clause_rel)
     done
   have D_None: \<open>get_conflict_l S = None\<close>
