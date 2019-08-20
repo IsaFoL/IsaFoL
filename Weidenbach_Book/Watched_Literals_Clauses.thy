@@ -304,4 +304,23 @@ lemma mop_clauses_at:
    Id \<times>\<^sub>f Id \<times>\<^sub>f Id \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
   by (auto simp: mop_clauses_at_def op_clauses_at_def intro!: frefI nres_relI)
 
+definition mop_clauses_swap :: \<open>'v clauses_l \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'v clauses_l nres\<close> where
+\<open>mop_clauses_swap N C i j = do {
+   ASSERT(C \<in># dom_m N);
+   ASSERT(i < length (N \<propto> C));
+   ASSERT(j < length (N \<propto> C));
+   RETURN (N(C \<hookrightarrow> (swap (N \<propto> C) 0 (Suc 0 - i))))
+}\<close>
+
+definition op_clauses_swap :: \<open>'v clauses_l \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'v clauses_l\<close> where
+\<open>op_clauses_swap N C i j = (N(C \<hookrightarrow> (swap (N \<propto> C) 0 (Suc 0 - i))))\<close>
+
+lemma mop_clauses_swap:
+   \<open>(uncurry3 mop_clauses_swap, uncurry3 (RETURN oooo op_clauses_swap)) \<in>
+   [\<lambda>(((N, C), i), j). C \<in># dom_m N \<and> i < length (N \<propto> C) \<and> j < length (N \<propto> C)]\<^sub>f
+   Id \<times>\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f Id \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
+  by (auto simp: mop_clauses_swap_def op_clauses_swap_def intro!: frefI nres_relI)
+
+
+
 end

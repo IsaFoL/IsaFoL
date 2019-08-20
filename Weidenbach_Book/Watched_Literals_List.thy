@@ -666,14 +666,14 @@ definition find_unwatched_l where
 definition set_conflict_l :: \<open>'v clause_l \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l\<close> where
   \<open>set_conflict_l = (\<lambda>C (M, N, D, NE, UE, WS, Q). (M, N, Some (mset C), NE, UE, {#}, {#}))\<close>
 
-definition propagate_lit_l :: \<open>'v literal \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l\<close> where
-  \<open>propagate_lit_l = (\<lambda>L' C i (M, N, D, NE, UE, WS, Q).
-      let N = (if length (N \<propto> C) > 2 then N(C \<hookrightarrow> (swap (N \<propto> C) 0 (Suc 0 - i))) else N) in
-      (Propagated L' C # M, N, D, NE, UE, WS, add_mset (-L') Q))\<close>
+definition propagate_lit_l :: \<open>'v literal \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close> where
+  \<open>propagate_lit_l = (\<lambda>L' C i (M, N, D, NE, UE, WS, Q). do {
+      N \<leftarrow> (if length (N \<propto> C) > 2 then mop_clauses_swap N C 0 (Suc 0 - i) else RETURN N);
+      RETURN (Propagated L' C # M, N, D, NE, UE, WS, add_mset (-L') Q)})\<close>
 
 definition update_clause_l :: \<open>nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close> where
   \<open>update_clause_l = (\<lambda>C i f (M, N, D, NE, UE, WS, Q). do {
-       let N' = N (C \<hookrightarrow> (swap (N\<propto>C) i f));
+       N' \<leftarrow> mop_clauses_swap N C i f;
        RETURN (M, N', D, NE, UE, WS, Q)
   })\<close>
 
@@ -714,7 +714,7 @@ definition unit_propagation_inner_loop_body_l :: \<open>'v literal \<Rightarrow>
               None \<Rightarrow>
                 if val_L' = Some False
                 then RETURN (set_conflict_l (get_clauses_l S \<propto> C) S)
-                else RETURN (propagate_lit_l L' C i S)
+                else propagate_lit_l L' C i S
             | Some f \<Rightarrow> do {
                 ASSERT(f < length (get_clauses_l S \<propto> C));
                 let K = (get_clauses_l S \<propto> C)!f;
@@ -890,11 +890,11 @@ proof -
 
   have propa_rel:
     \<open>(propagate_lit_l K C i
-         (set_clauses_to_update_l (remove1_mset C (clauses_to_update_l S)) S),
-     propagate_lit L' (twl_clause_of C')
+    (set_clauses_to_update_l (remove1_mset C (clauses_to_update_l S)) S)) \<le>
+      \<Down> {(S, S'). (S, S') \<in> twl_st_l (Some L) \<and> twl_list_invs S}
+     (RETURN (propagate_lit L' (twl_clause_of C')
       (set_clauses_to_update
-        (remove1_mset (L, twl_clause_of C') (clauses_to_update S')) S'))
-    \<in> {(S, S'). (S, S') \<in> twl_st_l (Some L) \<and> twl_list_invs S}\<close>
+        (remove1_mset (L, twl_clause_of C') (clauses_to_update S')) S')))\<close>
     if
       \<open>(K, L') \<in> Id\<close> and  \<open>L' \<in> {K. K \<in># remove1_mset L {#L, L'a#}}\<close> and
       \<open>watched (twl_clause_of C') = {#L, L'a#}\<close> and
@@ -1011,10 +1011,19 @@ proof -
       by (auto dest: in_diffD simp: set_conflicting_def
       set_conflict_l_def mset_take_mset_drop_mset' S nth_swap_isabelle
       dest!: mset_eq_setD)
+    moreover have \<open>swap (N \<propto> C) 0 (Suc 0) = swap (N \<propto> C) i (1 -i)\<close>
+       using i_def two_le_length_C by (cases \<open>N \<propto> C\<close>)(auto simp: swap_def)
+   moreover have \<open>i < length (N \<propto> C)\<close>
+       using i_def two_le_length_C by (auto simp: S)
     ultimately show ?thesis
-      using SS' WS by (auto simp: twl_st_l_def image_mset_remove1_mset_if propagate_lit_def
-      propagate_lit_l_def mset_take_mset_drop_mset' S learned_unchanged
-      init_unchanged mset_un_watched_swap intro: convert_lit.intros)
+      using SS' WS C_N_U unfolding propagate_lit_l_def apply (auto simp: S)
+      apply (auto 5 3 simp: twl_st_l_def image_mset_remove1_mset_if propagate_lit_def
+      propagate_lit_l_def mset_take_mset_drop_mset' S learned_unchanged mop_clauses_swap_def
+      init_unchanged mset_un_watched_swap intro: convert_lit.intros intro!: ASSERT_leI)
+      apply (rule convert_lit.intros)
+apply auto
+
+find_theorems i
   qed
   have update_clause_rel: \<open>(if polarity
          (get_trail_l
@@ -1436,42 +1445,6 @@ proof -
   show ?thesis
     using assms unfolding S by (auto simp add: Bex_def twl_st_l_def intro!: RES_refine)
 qed
-
-lemma refine_add_inv:
-  fixes f :: \<open>'a \<Rightarrow> 'a nres\<close> and f' :: \<open>'b \<Rightarrow> 'b nres\<close> and h :: \<open>'b \<Rightarrow> 'a\<close>
-  assumes
-    \<open>(f', f) \<in> {(S, S'). S' = h S \<and> R S} \<rightarrow> \<langle>{(T, T'). T' = h T \<and> P' T}\<rangle> nres_rel\<close>
-    (is \<open>_ \<in> ?R \<rightarrow> \<langle>{(T, T'). ?H T T' \<and> P' T}\<rangle> nres_rel\<close>)
-  assumes
-    \<open>\<And>S. R S \<Longrightarrow> f (h S) \<le> SPEC (\<lambda>T. Q T)\<close>
-  shows
-    \<open>(f', f) \<in> ?R \<rightarrow> \<langle>{(T, T'). ?H T T' \<and> P' T \<and> Q (h T)}\<rangle> nres_rel\<close>
-  using assms unfolding nres_rel_def fun_rel_def pw_le_iff pw_conc_inres pw_conc_nofail
-  by fastforce
-
-lemma refine_add_inv_generalised:
-  fixes f :: \<open>'a \<Rightarrow> 'b nres\<close> and f' :: \<open>'c \<Rightarrow> 'd nres\<close>
-  assumes
-    \<open>(f', f) \<in> A \<rightarrow>\<^sub>f \<langle>B\<rangle> nres_rel\<close>
-  assumes
-    \<open>\<And>S S'. (S, S') \<in> A \<Longrightarrow> f S' \<le> RES C\<close>
-  shows
-    \<open>(f', f) \<in> A \<rightarrow>\<^sub>f \<langle>{(T, T'). (T, T') \<in> B \<and> T' \<in> C}\<rangle> nres_rel\<close>
-  using assms unfolding nres_rel_def fun_rel_def pw_le_iff pw_conc_inres pw_conc_nofail
-   fref_param1[symmetric]
-  by fastforce
-
-lemma refine_add_inv_pair:
-  fixes f :: \<open>'a \<Rightarrow> ('c \<times> 'a) nres\<close> and f' :: \<open>'b \<Rightarrow> ('c \<times> 'b) nres\<close> and h :: \<open>'b \<Rightarrow> 'a\<close>
-  assumes
-    \<open>(f', f) \<in> {(S, S'). S' = h S \<and> R S} \<rightarrow> \<langle>{(S, S'). (fst S' = h' (fst S) \<and>
-    snd S' = h (snd S)) \<and> P' S}\<rangle> nres_rel\<close>  (is \<open>_ \<in> ?R \<rightarrow> \<langle>{(S, S'). ?H S S' \<and> P' S}\<rangle> nres_rel\<close>)
-  assumes
-    \<open>\<And>S. R S \<Longrightarrow> f (h S) \<le> SPEC (\<lambda>T. Q (snd T))\<close>
-  shows
-    \<open>(f', f) \<in> ?R \<rightarrow> \<langle>{(S, S'). ?H S S' \<and> P' S \<and> Q (h (snd S))}\<rangle> nres_rel\<close>
-  using assms unfolding nres_rel_def fun_rel_def pw_le_iff pw_conc_inres pw_conc_nofail
-  by fastforce
 
 lemma clauses_to_update_l_empty_tw_st_of_Some_None[simp]:
   \<open>clauses_to_update_l S = {#} \<Longrightarrow> (S, S')\<in> twl_st_l (Some L) \<longleftrightarrow> (S, S') \<in> twl_st_l None\<close>
