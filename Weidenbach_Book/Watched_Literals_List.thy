@@ -823,7 +823,9 @@ proof -
     using i_def by (cases \<open>twl_clause_of (get_clauses_l S \<propto> C)\<close>) (auto simp: take_2_if)
   have two_le_length_C: \<open>2 \<le> length C'\<close>
     by (metis length_take linorder_not_le min_less_iff_conj numeral_2_eq_2 order_less_irrefl
-        size_add_mset size_eq_0_iff_empty size_mset watched_C')
+    size_add_mset size_eq_0_iff_empty size_mset watched_C')
+  then have i_le_length_C: \<open>i < length C'\<close>
+    by (auto simp: i_def)
   obtain WS' where WS'_def: \<open>?WS = add_mset C WS'\<close>
     using multi_member_split[OF WS] by auto
   then have WS'_def': \<open>WS = add_mset C WS'\<close>
@@ -891,10 +893,12 @@ proof -
   have propa_rel:
     \<open>(propagate_lit_l K C i
     (set_clauses_to_update_l (remove1_mset C (clauses_to_update_l S)) S)) \<le>
-      \<Down> {(S, S'). (S, S') \<in> twl_st_l (Some L) \<and> twl_list_invs S}
-     (RETURN (propagate_lit L' (twl_clause_of C')
-      (set_clauses_to_update
-        (remove1_mset (L, twl_clause_of C') (clauses_to_update S')) S')))\<close>
+      SPEC
+       (\<lambda>c. (c, propagate_lit L' (twl_clause_of C')
+                 (set_clauses_to_update
+                   (remove1_mset (L, twl_clause_of C') (clauses_to_update S'))
+                   S'))
+            \<in> {(S, S'). (S, S') \<in> twl_st_l (Some L) \<and> twl_list_invs S})\<close>
     if
       \<open>(K, L') \<in> Id\<close> and  \<open>L' \<in> {K. K \<in># remove1_mset L {#L, L'a#}}\<close> and
       \<open>watched (twl_clause_of C') = {#L, L'a#}\<close> and
@@ -1017,13 +1021,9 @@ proof -
        using i_def two_le_length_C by (auto simp: S)
     ultimately show ?thesis
       using SS' WS C_N_U unfolding propagate_lit_l_def apply (auto simp: S)
-      apply (auto 5 3 simp: twl_st_l_def image_mset_remove1_mset_if propagate_lit_def
-      propagate_lit_l_def mset_take_mset_drop_mset' S learned_unchanged mop_clauses_swap_def
-      init_unchanged mset_un_watched_swap intro: convert_lit.intros intro!: ASSERT_leI)
-      apply (rule convert_lit.intros)
-apply auto
-
-find_theorems i
+      by (auto simp: twl_st_l_def image_mset_remove1_mset_if propagate_lit_def
+        propagate_lit_l_def mset_take_mset_drop_mset' S learned_unchanged mop_clauses_swap_def
+        init_unchanged mset_un_watched_swap intro: convert_lit.intros intro!: ASSERT_leI)
   qed
   have update_clause_rel: \<open>(if polarity
          (get_trail_l
@@ -1297,10 +1297,12 @@ find_theorems i
       subgoal using L'_M SS' K'_M add_inv list_invs_blit unfolding C' S
         by (auto simp: twl_st_l_def WS'_def')
       subgoal
-        using SS' init_unchanged unfolding i_def[symmetric] get_clauses_l_set_clauses_to_update_l
+        using SS' init_unchanged C_N_U i_le_length_C K'_le
+        unfolding i_def[symmetric] get_clauses_l_set_clauses_to_update_l
         by (auto simp: S update_clause_l_def update_clauseS_def twl_st_l_def WS'_def'
-            RETURN_SPEC_refine RES_RES_RETURN_RES RETURN_def RES_RES2_RETURN_RES H
-            intro!: RES_refine exI[of _ \<open>N \<propto> C ! the K\<close>])
+          RETURN_SPEC_refine RES_RES_RETURN_RES RETURN_def RES_RES2_RETURN_RES H
+          mop_clauses_swap_def
+            intro!: RES_refine exI[of _ \<open>N \<propto> C ! the K\<close>] ASSERT_leI)
       done
   qed
   have H: \<open>?A \<le> \<Down> {(S, S'). (S, S') \<in> twl_st_l (Some L) \<and> twl_list_invs S} ?B\<close>
@@ -1327,7 +1329,7 @@ find_theorems i
       polarity_def)
     subgoal by (rule confl_rel)
     subgoal for K bL' L' L'a2 unfolding i_def[symmetric] op_clauses_at_def  i_def'[symmetric]
-      by (rule propa_rel; assumption?)
+      by (rule propa_rel)
     subgoal by auto
     subgoal for L' K unfolding i_def[symmetric]  i_def'[symmetric] op_clauses_at_def
       by (rule update_clause_rel)

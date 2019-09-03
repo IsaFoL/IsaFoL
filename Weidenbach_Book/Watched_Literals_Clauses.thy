@@ -309,11 +309,11 @@ definition mop_clauses_swap :: \<open>'v clauses_l \<Rightarrow> nat \<Rightarro
    ASSERT(C \<in># dom_m N);
    ASSERT(i < length (N \<propto> C));
    ASSERT(j < length (N \<propto> C));
-   RETURN (N(C \<hookrightarrow> (swap (N \<propto> C) 0 (Suc 0 - i))))
+   RETURN (N(C \<hookrightarrow> (swap (N \<propto> C) i j)))
 }\<close>
 
 definition op_clauses_swap :: \<open>'v clauses_l \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'v clauses_l\<close> where
-\<open>op_clauses_swap N C i j = (N(C \<hookrightarrow> (swap (N \<propto> C) 0 (Suc 0 - i))))\<close>
+\<open>op_clauses_swap N C i j = (N(C \<hookrightarrow> (swap (N \<propto> C) i j)))\<close>
 
 lemma mop_clauses_swap:
    \<open>(uncurry3 mop_clauses_swap, uncurry3 (RETURN oooo op_clauses_swap)) \<in>
@@ -321,6 +321,25 @@ lemma mop_clauses_swap:
    Id \<times>\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f Id \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
   by (auto simp: mop_clauses_swap_def op_clauses_swap_def intro!: frefI nres_relI)
 
+
+lemma mop_clauses_at_itself:
+  \<open>(uncurry2 mop_clauses_at, uncurry2 mop_clauses_at) \<in> Id \<times>\<^sub>f Id \<times>\<^sub>f Id \<rightarrow>\<^sub>f \<langle>Id\<rangle>nres_rel\<close>
+  by (auto intro!: frefI nres_relI)
+
+lemma mop_clauses_at_itself_spec:
+  \<open>((N, C, i), (N', C', i')) \<in> Id \<Longrightarrow>
+     mop_clauses_at N C i \<le> \<Down> {(L, L'). L = L' \<and> L = N \<propto> C ! i} (mop_clauses_at N' C' i')\<close>
+  by (auto intro!: frefI nres_relI ASSERT_refine_right simp: mop_clauses_at_def)
+
+lemma mop_clauses_swap_itself:
+  \<open>(uncurry3 mop_clauses_swap, uncurry3 mop_clauses_swap) \<in> Id \<times>\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f Id \<rightarrow>\<^sub>f \<langle>Id\<rangle>nres_rel\<close>
+  by (auto intro!: frefI nres_relI)
+
+lemma mop_clauses_swap_itself_spec:
+  \<open>((N, C, i, j), (N', C', i', j')) \<in> Id \<Longrightarrow>
+     mop_clauses_swap N C i j \<le> \<Down> {(L, L'). L = L' \<and> L = op_clauses_swap N' C' i' j' \<and> C' \<in># dom_m N} (mop_clauses_swap N' C' i' j')\<close>
+  by (auto intro!: frefI nres_relI ASSERT_refine_right simp: mop_clauses_swap_def
+    op_clauses_swap_def)
 
 
 end
