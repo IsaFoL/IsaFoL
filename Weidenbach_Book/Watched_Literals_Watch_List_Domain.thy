@@ -407,14 +407,15 @@ definition unit_propagation_inner_loop_body_wl_D
             then do {RETURN (j+1, w+1, set_conflict_wl (get_clauses_wl S \<propto> C) S)}
             else do {
               let i = (if ((get_clauses_wl S)\<propto>C) ! 0 = L then 0 else 1);
-              RETURN (j+1, w+1, propagate_lit_wl_bin K C i S)
+              S \<leftarrow> propagate_lit_wl_bin K C i S;
+              RETURN (j+1, w+1, S)
             }
         }  \<comment>\<open>Now the costly operations:\<close>
         else if C \<notin># dom_m (get_clauses_wl S)
         then RETURN (j, w+1, S)
         else do {
           let i = (if ((get_clauses_wl S)\<propto>C) ! 0 = L then 0 else 1);
-          let L' = ((get_clauses_wl S)\<propto>C) ! (1 - i);
+          L' \<leftarrow> mop_clauses_at (get_clauses_wl S) C (1-i);
           let val_L' = polarity (get_trail_wl S) L';
           if val_L' = Some True
           then update_blit_wl L C b j w L' S
@@ -425,7 +426,9 @@ definition unit_propagation_inner_loop_body_wl_D
               None \<Rightarrow> do {
                 if val_L' = Some False
                 then RETURN (j+1, w+1, set_conflict_wl (get_clauses_wl S \<propto> C) S)
-                else RETURN (j+1, w+1, propagate_lit_wl L' C i S)
+                else do {
+                  S \<leftarrow> propagate_lit_wl_bin K C i S;
+                  RETURN (j+1, w+1, S)}
               }
             | Some f \<Rightarrow> do {
                 let K = get_clauses_wl S \<propto> C ! f;
@@ -659,37 +662,32 @@ proof -
     by (auto simp: intro!: RES_refine)
 
   have propagate_lit_wl:
-      \<open>((j+1, w + 1,
-        propagate_lit_wl
+      \<open>(propagate_lit_wl
          (get_clauses_wl S \<propto> x1a ! (1 - (if get_clauses_wl S \<propto> x1a ! 0 = K then 0 else 1)))
          x1a
          (if get_clauses_wl S \<propto> x1a ! 0 = K then 0 else 1)
-          S),
-       j+1, w + 1,
-       propagate_lit_wl
+          S) \<le> \<Down> {(T', T).
+         T = T' \<and>
+         literals_are_\<L>\<^sub>i\<^sub>n \<A> T'}
+       (propagate_lit_wl
         (get_clauses_wl S \<propto> x1 !
          (1 - (if get_clauses_wl S \<propto> x1 ! 0 = K then 0
                else 1)))
        x1
-        (if get_clauses_wl S \<propto> x1 ! 0 = K then 0 else 1) S)
-      \<in> {((j', n', T'), j, n, T).
-         j' = j \<and>
-         n' = n \<and>
-         T = T' \<and>
-         literals_are_\<L>\<^sub>i\<^sub>n \<A> T'}\<close>
+        (if get_clauses_wl S \<propto> x1 ! 0 = K then 0 else 1) S)\<close>
   if \<open>unit_prop_body_wl_D_inv S j w K\<close> and \<open>\<not>x1 \<notin># dom_m (get_clauses_wl S)\<close> and
     \<open>(watched_by S K) ! w = (x1a, x2a)\<close> and
     \<open>(watched_by S K) ! w = (x1, x2)\<close> and
     \<open>literals_are_\<L>\<^sub>i\<^sub>n \<A> S\<close>
   for f f' j S x1 x2 x1a x2a
   unfolding propagate_lit_wl_def S
-  apply clarify
-  apply refine_vcg
+  apply (refine_vcg mop_clauses_swap_itself_spec)
   using that \<A>\<^sub>i\<^sub>n
   by (auto simp: clauses_def unit_prop_body_wl_find_unwatched_inv_def
         mset_take_mset_drop_mset' S unit_prop_body_wl_D_inv_def unit_prop_body_wl_inv_def
         ran_m_mapsto_upd unit_propagation_inner_loop_body_l_inv_def blits_in_\<L>\<^sub>i\<^sub>n_propagate
-        state_wl_l_def image_mset_remove1_mset_if literals_are_\<L>\<^sub>i\<^sub>n_def)
+        state_wl_l_def image_mset_remove1_mset_if literals_are_\<L>\<^sub>i\<^sub>n_def op_clauses_swap_def
+        mop_clauses_swap_def intro!: ASSERT_refine_right)
 
   have update_clause_wl: \<open>update_clause_wl K x1' b' j w
      (if get_clauses_wl S \<propto> x1' ! 0 = K then 0 else 1) n S
@@ -707,12 +705,13 @@ proof -
       \<open>literals_are_\<L>\<^sub>i\<^sub>n \<A> S\<close>
     for n n' f f' S x1 x2 x1' x2' b b'
     unfolding update_clause_wl_def S
-    apply refine_vcg
+    apply (refine_rcg mop_clauses_swap_itself_spec)
     using that \<A>\<^sub>i\<^sub>n
     by (auto simp: clauses_def mset_take_mset_drop_mset unit_prop_body_wl_find_unwatched_inv_def
           mset_take_mset_drop_mset' S unit_prop_body_wl_D_inv_def unit_prop_body_wl_inv_def
           ran_m_clause_upd unit_propagation_inner_loop_body_l_inv_def blits_in_\<L>\<^sub>i\<^sub>n_propagate
-          state_wl_l_def image_mset_remove1_mset_if literals_are_\<L>\<^sub>i\<^sub>n_def)
+          state_wl_l_def image_mset_remove1_mset_if literals_are_\<L>\<^sub>i\<^sub>n_def op_clauses_swap_def)
+
   have H: \<open>watched_by S K ! w = A \<Longrightarrow> watched_by (keep_watch K j w S) K ! w = A\<close>
     for S j w K A x1
     by (cases S; cases \<open>j=w\<close>) (auto simp: keep_watch_def)
@@ -854,11 +853,8 @@ proof -
       by (auto simp: literals_are_\<L>\<^sub>i\<^sub>n_set_conflict_wl unit_propagation_inner_loop_wl_loop_pre_def)
   qed
   have bin_prop:
-    \<open>((j + 1, w + 1,
-        propagate_lit_wl_bin x1c x1b (if get_clauses_wl (keep_watch K j w S) \<propto> x1b ! 0 = K then 0 else 1) (keep_watch K j w S)),
-       j + 1, w + 1,
-       propagate_lit_wl_bin x1a x1 (if get_clauses_wl (keep_watch K j w S) \<propto> x1 ! 0 = K then 0 else 1) (keep_watch K j w S))
-      \<in> {((j', n', T'), j, n, T). j' = j \<and> n' = n \<and> T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n \<A> T'}\<close>
+    \<open>propagate_lit_wl_bin x1c x1b (if get_clauses_wl (keep_watch K j w S) \<propto> x1b ! 0 = K then 0 else 1) (keep_watch K j w S) \<le> \<Down> {(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n \<A> T'}
+       (propagate_lit_wl_bin x1a x1 (if get_clauses_wl (keep_watch K j w S) \<propto> x1 ! 0 = K then 0 else 1) (keep_watch K j w S))\<close>
     if
       \<open>unit_propagation_inner_loop_wl_loop_pre K (j, w, S)\<close> and
       \<open>unit_propagation_inner_loop_wl_loop_D_pre K (j, w, S)\<close> and
@@ -877,7 +873,6 @@ proof -
       \<open>propagate_proper_bin_case K x1a (keep_watch K j w S) x1\<close>
     for x1 x2 x1a x2a x1b x2b x1c x2c
   unfolding propagate_lit_wl_bin_def S propagate_proper_bin_case_def
-  apply clarify
   apply refine_vcg
   using that \<A>\<^sub>i\<^sub>n
   by (simp_all add: unit_prop_body_wl_find_unwatched_inv_def
@@ -888,7 +883,7 @@ proof -
     unfolding unit_propagation_inner_loop_body_wl_D_def find_unwatched_wl_def[symmetric]
     unfolding unit_propagation_inner_loop_body_wl_def
     supply [[goals_limit=1]]
-    apply (refine_rcg find_unwatched f')
+    apply (refine_rcg find_unwatched f' mop_clauses_at_itself[THEN fref_to_Down_curry2])
     subgoal using assms unfolding unit_propagation_inner_loop_wl_loop_D_inv_def
         unit_propagation_inner_loop_wl_loop_D_pre_def unit_propagation_inner_loop_wl_loop_pre_def
       by auto
@@ -903,12 +898,15 @@ proof -
     subgoal by auto
     subgoal
       by (rule bin_set_conflict)
+    apply (rule bin_prop; assumption)
     subgoal for x1 x2 x1a x2a x1b x2b x1c x2c
-      by (rule bin_prop)
+      by simp
     subgoal by simp
     subgoal
       using assms by (auto simp: unit_prop_body_wl_D_inv_clauses_distinct_eq
           unit_propagation_inner_loop_wl_loop_pre_def)
+    subgoal by simp
+    subgoal by simp
     subgoal by simp
     subgoal by (rule update_blit_wl) auto
     subgoal by simp
