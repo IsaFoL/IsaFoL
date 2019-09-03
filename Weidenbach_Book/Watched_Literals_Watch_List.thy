@@ -2794,14 +2794,6 @@ proof -
       \<open>x \<in> {K. K \<in> set (get_clauses_l (fst X2) \<propto> snd X2)}\<close> and
       \<open>polarity (get_trail_wl (keep_watch L j w S)) K \<noteq> Some True\<close> and
       \<open>polarity (get_trail_l (fst X2)) x \<noteq> Some True\<close> and
-      \<open>polarity (get_trail_wl (keep_watch L j w S))
-      (get_clauses_wl (keep_watch L j w S) \<propto> x1 !
-        (1 - (if get_clauses_wl (keep_watch L j w S) \<propto> x1 ! 0 = L then 0 else 1))) \<noteq>
-       Some True\<close> and
-      \<open>polarity (get_trail_l (fst X2))
-        (get_clauses_l (fst X2) \<propto> snd X2 !
-          (1 - (if get_clauses_l (fst X2) \<propto> snd X2 ! 0 = L then 0 else 1))) \<noteq>
-      Some True\<close> and
       fx': \<open>(f, x') \<in> ?find_unw x1\<close> and
       \<open>unit_prop_body_wl_find_unwatched_inv f x1 (keep_watch L j w S)\<close> and
       f: \<open>f = Some xa\<close> and
@@ -3019,12 +3011,12 @@ proof -
       using S_S' w_le j_w SLw confl
       unfolding update_clause_wl_def update_clause_l_def i[symmetric] C'_bl
       by (cases S')
-        (auto simp: Let_def X2 keep_watch_def state_wl_l_def S x2')
+        (auto simp: Let_def X2 keep_watch_def state_wl_l_def S x2'
+          mop_clauses_swap_def drop_map map_update dest: multi_member_split
+          intro!: ASSERT_refine_right)
   qed
   have blit_final_in_dom: \<open>update_blit_wl L x1 x3 j w
-        (get_clauses_wl (keep_watch L j w S) \<propto> x1 !
-          (1 -
-          (if get_clauses_wl (keep_watch L j w S) \<propto> x1 ! 0 = L then 0 else 1)))
+       oth_lit
         (keep_watch L j w S)
         \<le> \<Down> ?unit
           (RETURN (fst X2, if get_conflict_l (fst X2) = None then n else 0))\<close>
@@ -3044,18 +3036,15 @@ proof -
       \<open>(K, x) \<in> Id\<close> and
       \<open>K \<in> Collect ((=) x2)\<close> and
       \<open>x \<in> {K. K \<in> set (get_clauses_l (fst X2) \<propto> snd X2)}\<close> and
-      \<open>polarity (get_trail_wl (keep_watch L j w S)) K \<noteq> Some True\<close> and
-      \<open>polarity (get_trail_l (fst X2)) x \<noteq> Some True\<close> and
-      \<open>polarity (get_trail_wl (keep_watch L j w S))
-        (get_clauses_wl (keep_watch L j w S) \<propto> x1 !
-        (1 -
-          (if get_clauses_wl (keep_watch L j w S) \<propto> x1 ! 0 = L then 0 else 1))) =
-      Some True\<close> and
-      \<open>polarity (get_trail_l (fst X2))
-        (get_clauses_l (fst X2) \<propto> snd X2 !
-        (1 - (if get_clauses_l (fst X2) \<propto> snd X2 ! 0 = L then 0 else 1))) =
-      Some True\<close>
-    for b x1 x2 X2 K x x2' x3
+
+     oth: \<open>(oth_lit, oth_lit') \<in> {(La, L').
+          La = L' \<and>
+          La =
+          get_clauses_wl (keep_watch L j w S) \<propto> x1 !
+          (1 -
+           (if get_clauses_wl (keep_watch L j w S) \<propto> x1 ! 0 = L then 0
+            else 1))}\<close>
+    for b x1 x2 X2 K x x2' x3 oth_lit oth_lit'
   proof -
     have confl: \<open>get_conflict_wl S = None\<close>
       using S_S' loop_inv cond unfolding unit_propagation_inner_loop_l_inv_def prod.case apply -
@@ -3272,7 +3261,7 @@ proof -
         by (auto simp: keep_watch_def L_i nth_eq_iff_index_eq)
     }
     ultimately show ?thesis
-    using j_w w_le
+      using j_w w_le oth
       unfolding i[symmetric]
       by (auto simp: S update_blit_wl_def keep_watch_def)
   qed
@@ -3285,7 +3274,6 @@ proof -
       unit_propagation_inner_loop_body_l_def
     apply (rewrite at "let _ = keep_watch _ _ _ _ in _" Let_def)
     unfolding i_def[symmetric] SLw prod.case
-    apply (rewrite at "let _ = _ in do {_ \<leftarrow> mop_clauses_at _ _ _; _}" Let_def)
     apply (rewrite in \<open>if (\<not>_) then ASSERT _ >>= _ else _\<close> if_not_swap)
     supply RETURN_as_SPEC_refine[refine2 del]
     supply [[goals_limit=50]]
@@ -3309,6 +3297,8 @@ proof -
         Cons_nth_drop_Suc[symmetric] corr_w twl_st_wl)
     subgoal
       using S_S' by auto
+    subgoal
+      using S_S' by auto
     subgoal for b x1 x2 X2 K x
       by (rule blit_final_in_dom)
     apply assumption+
@@ -3319,9 +3309,9 @@ proof -
     subgoal using S_S' by (auto simp: twl_st_wl)
     subgoal for b x1 x2 X2 K x f x'
       by (rule conflict_final)
-    subgoal for b x1 x2 X2 K x
-      by (rule propa_final)
-
+    apply (rule propa_final; assumption)
+    subgoal
+      using S_S' by auto
     subgoal
       using S_S' by auto
     subgoal for b x1 x2 X2 K x f x' xa x'a
