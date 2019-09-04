@@ -323,16 +323,11 @@ lemma get_conflict_wl_set_literals_to_update_wl[twl_st_wl]:
   \<open>get_unit_clauses_wl (set_literals_to_update_wl P S) = get_unit_clauses_wl S\<close>
   by (cases S; auto; fail)+
 
-definition set_conflict_wl :: \<open>'v clause_l \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl\<close> where
-  \<open>set_conflict_wl = (\<lambda>C (M, N, D, NE, UE, Q, W). (M, N, Some (mset C), NE, UE, {#}, W))\<close>
-
-lemma [twl_st_wl]: \<open>get_clauses_wl (set_conflict_wl D S) = get_clauses_wl S\<close>
-  by (cases S) (auto simp: set_conflict_wl_def)
-
-lemma [twl_st_wl]:
-  \<open>get_unit_init_clss_wl (set_conflict_wl D S) = get_unit_init_clss_wl S\<close>
-  \<open>get_unit_clauses_wl (set_conflict_wl D S) = get_unit_clauses_wl S\<close>
-  by (cases S; auto simp: set_conflict_wl_def; fail)+
+definition set_conflict_wl :: \<open>'v clause_l \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
+  \<open>set_conflict_wl = (\<lambda>C (M, N, D, NE, UE, Q, W). do {
+     ASSERT(D = None);
+     RETURN (M, N, Some (mset C), NE, UE, {#}, W)
+    })\<close>
 
 lemma state_wl_l_mark_of_is_decided:
   \<open>(x, y) \<in> state_wl_l b \<Longrightarrow>
@@ -1139,7 +1134,7 @@ definition unit_propagation_inner_loop_body_wl_int :: \<open>'v literal \<Righta
             case f of
               None \<Rightarrow> do {
                 if val_L' = Some False
-                then do {RETURN (j+1, w+1, set_conflict_wl (get_clauses_wl S \<propto> C) S)}
+                then do {S \<leftarrow> set_conflict_wl (get_clauses_wl S \<propto> C) S; RETURN (j+1, w+1, S)}
                 else do {S \<leftarrow> propagate_lit_wl_general L' C i S; RETURN (j+1, w+1, S)}
               }
             | Some f \<Rightarrow> do {
@@ -1174,7 +1169,8 @@ definition unit_propagation_inner_loop_body_wl :: \<open>'v literal \<Rightarrow
         if b then do {
            ASSERT(propagate_proper_bin_case L K S C);
            if val_K = Some False
-           then RETURN (j+1, w+1, set_conflict_wl (get_clauses_wl S \<propto> C) S)
+           then do {S \<leftarrow> set_conflict_wl (get_clauses_wl S \<propto> C) S;
+             RETURN (j+1, w+1, S)}
            else do {  \<comment>\<open>This is non-optimal (memory access: relax invariant!):\<close>
              let i = (if ((get_clauses_wl S)\<propto>C) ! 0 = L then 0 else 1);
              S \<leftarrow> propagate_lit_wl_bin K C i S;
@@ -1194,7 +1190,8 @@ definition unit_propagation_inner_loop_body_wl :: \<open>'v literal \<Rightarrow
             case f of
               None \<Rightarrow> do {
                 if val_L' = Some False
-                then do {RETURN (j+1, w+1, set_conflict_wl (get_clauses_wl S \<propto> C) S)}
+                then do {S \<leftarrow> set_conflict_wl (get_clauses_wl S \<propto> C) S; 
+                   RETURN (j+1, w+1, S)}
                 else do {S \<leftarrow> propagate_lit_wl L' C i S; RETURN (j+1, w+1, S)}
               }
             | Some f \<Rightarrow> do {
@@ -1247,7 +1244,7 @@ lemma unit_propagation_inner_loop_body_wl_int_alt_def:
             case f of
               None \<Rightarrow> do {
                 if val_L' = Some False
-                then do {RETURN (j+1, w+1, set_conflict_wl (get_clauses_wl S' \<propto> C) S')}
+                then do {S' \<leftarrow> set_conflict_wl (get_clauses_wl S' \<propto> C) S'; RETURN (j+1, w+1, S')}
                 else do {S' \<leftarrow> propagate_lit_wl_general L' C i S'; RETURN (j+1, w+1, S')}
               }
             | Some f \<Rightarrow> do {
@@ -1289,7 +1286,7 @@ proof -
               case f of
                 None \<Rightarrow> do {
                   if val_L' = Some False
-                  then do {RETURN (j+1, w+1, set_conflict_wl (get_clauses_wl S \<propto> C) S)}
+                  then do {S \<leftarrow> set_conflict_wl (get_clauses_wl S \<propto> C) S; RETURN (j+1, w+1, S)}
                   else do {S \<leftarrow> propagate_lit_wl_general L' C i S; RETURN (j+1, w+1, S)}
                 }
               | Some f \<Rightarrow> do {
@@ -1325,7 +1322,7 @@ proof -
               case f of
                 None \<Rightarrow> do {
                   if val_L' = Some False
-                  then do {RETURN (j+1, w+1, set_conflict_wl (get_clauses_wl S' \<propto> C) S')}
+                  then do {S' \<leftarrow> set_conflict_wl (get_clauses_wl S' \<propto> C) S'; RETURN (j+1, w+1, S')}
                   else do {S'\<leftarrow>propagate_lit_wl_general L' C i S';RETURN (j+1, w+1, S')}
                 }
               | Some f \<Rightarrow> do {
@@ -1419,8 +1416,8 @@ lemma unit_propagation_inner_loop_body_l_with_skip_alt_def:
              case x of
              None \<Rightarrow>
                if vaa = Some False
-               then let T = set_conflict_l (get_clauses_l (fst X2) \<propto> snd X2) (fst X2)
-                    in RETURN (T, if get_conflict_l T = None then n else 0)
+               then do { T \<leftarrow> set_conflict_l (get_clauses_l (fst X2) \<propto> snd X2) (fst X2);
+                    RETURN (T, if get_conflict_l T = None then n else 0) }
                else do { T \<leftarrow> propagate_lit_l va (snd X2) v (fst X2);
                      RETURN (T, if get_conflict_l T = None then n else 0)}
              | Some a \<Rightarrow> do {
@@ -1558,7 +1555,7 @@ lemma unit_propagation_inner_loop_body_wl_int_alt_def2:
               case f of
                 None \<Rightarrow> do {
                   if val_L' = Some False
-                  then do {RETURN (j+1, w+1, set_conflict_wl (get_clauses_wl S \<propto> C) S)}
+                  then do {S \<leftarrow> set_conflict_wl (get_clauses_wl S \<propto> C) S; RETURN (j+1, w+1, S)}
                   else do {S \<leftarrow> propagate_lit_wl_general L' C i S; RETURN (j+1, w+1, S)}
                 }
               | Some f \<Rightarrow> do {
@@ -1585,7 +1582,7 @@ lemma unit_propagation_inner_loop_body_wl_int_alt_def2:
               case f of
                 None \<Rightarrow> do {
                   if val_L' = Some False
-                  then do {RETURN (j+1, w+1, set_conflict_wl (get_clauses_wl S \<propto> C) S)}
+                  then do {S \<leftarrow> set_conflict_wl (get_clauses_wl S \<propto> C) S; RETURN (j+1, w+1, S)}
                   else do {S \<leftarrow> propagate_lit_wl_general L' C i S; RETURN (j+1, w+1, S)}
                 }
               | Some f \<Rightarrow> do {
@@ -1631,7 +1628,7 @@ lemma unit_propagation_inner_loop_body_wl_alt_def:
                None \<Rightarrow> do {
                  ASSERT(propagate_proper_bin_case L K S C);
                  if val_K = Some False
-                 then RETURN (j+1, w+1, set_conflict_wl (get_clauses_wl S \<propto> C) S)
+                 then do {S \<leftarrow> set_conflict_wl (get_clauses_wl S \<propto> C) S; RETURN (j+1, w+1, S)}
                  else do {
                    S \<leftarrow> propagate_lit_wl_bin K C (if ((get_clauses_wl S)\<propto>C) ! 0 = L then 0 else 1) S;
                    RETURN (j+1, w+1, S)}
@@ -1653,7 +1650,7 @@ lemma unit_propagation_inner_loop_body_wl_alt_def:
             case f of
               None \<Rightarrow> do {
                 if val_L' = Some False
-                then do {RETURN (j+1, w+1, set_conflict_wl (get_clauses_wl S \<propto> C) S)}
+                then do {S \<leftarrow> set_conflict_wl (get_clauses_wl S \<propto> C) S; RETURN (j+1, w+1, S)}
                 else do {S \<leftarrow> propagate_lit_wl L' C i S; RETURN (j+1, w+1, S)}
               }
             | Some f \<Rightarrow> do {
@@ -2137,6 +2134,10 @@ proof -
   have [THEN fref_to_Down_curry2, refine]:
      \<open>(uncurry2 mop_clauses_at, uncurry2 mop_clauses_at) \<in> Id \<times>\<^sub>f Id \<times>\<^sub>f Id \<rightarrow>\<^sub>f \<langle>Id\<rangle>nres_rel\<close>
     by (auto intro!: frefI nres_relI)
+  have [THEN fref_to_Down_curry, refine]:
+     \<open>(uncurry set_conflict_wl, uncurry set_conflict_wl) \<in> Id \<times>\<^sub>f Id \<rightarrow>\<^sub>f \<langle>Id\<rangle>nres_rel\<close>
+    by (auto intro!: frefI nres_relI)
+
   show ?thesis
     unfolding unit_propagation_inner_loop_body_wl_int_alt_def2
        unit_propagation_inner_loop_body_wl_alt_def
@@ -2158,10 +2159,12 @@ proof -
     subgoal by auto
     subgoal for x1 x2 x1a x2a x1b x2b x1c x2c
       unfolding propagate_proper_bin_case_def by auto
+    subgoal by auto
     subgoal
-       by (rule bin_prop_pre)
+      unfolding propagate_proper_bin_case_def by auto
     subgoal for x1 x2 x1a x2a x1b x2b x1c x2c
       by auto
+    subgoal by auto
     subgoal by auto
     subgoal by auto
     subgoal by auto
@@ -2171,6 +2174,8 @@ proof -
             apply (rule find_unwatched_l; assumption)
     subgoal by auto
     apply (rule f''; assumption)
+    subgoal by auto
+    subgoal by auto
     subgoal by auto
     subgoal by auto
     subgoal for x1 x2 x1a x2a x1b x2b x1c x2c f fa x1d x1e x1f x2d x2e x2f
@@ -2559,41 +2564,63 @@ proof -
         corr_w correct_watching_except_correct_watching_except_Suc_notin
         split: if_splits)
 
-  have conflict_final: \<open>((j + 1, w + 1,
-          set_conflict_wl (get_clauses_wl (keep_watch L j w S) \<propto> x1)
-          (keep_watch L j w S)),
-        set_conflict_l (get_clauses_l (fst X2) \<propto> snd X2) (fst X2),
-        if get_conflict_l
-            (set_conflict_l (get_clauses_l (fst X2) \<propto> snd X2) (fst X2)) =
+  have set_conflict_wl: \<open>set_conflict_wl D (keep_watch L j w S) \<le> \<Down>{(T', T).
+        (T', T) \<in> state_wl_l (Some (L, Suc w)) \<and>
+        correct_watching_except (Suc j) (Suc w) L T' \<and>
+        Suc w \<le> length (watched_by T' L) \<and>
+        length (watched_by S L) =  length (watched_by T' L) \<and>
+        Suc j \<le> Suc w \<and>
+        (get_conflict_wl T' = None \<longrightarrow>
+           n = size (filter_mset (\<lambda>(i, _). i \<notin># dom_m (get_clauses_wl T')) (mset (drop (Suc w) (watched_by T' L)))))} (set_conflict_l D' (fst X2))\<close> (is \<open>_  \<le> \<Down> ?unit' _\<close>)
+    if
+      C'_bl: \<open>(C', bL) = (x1, x2')\<close> and
+      x2': \<open>x2' =(x2, x3)\<close> and
+      X2: \<open>(keep_watch L j w S, X2) \<in> ?keep_watch\<close>
+      \<open>(D, D') \<in> Id\<close>
+    for b x1 x2 X2 K x f x' x2' x3 D D'
+  proof -
+    have [simp]: \<open>correct_watching_except a b L (M, N, Some D', NE, UE, W, oth) \<longleftrightarrow>
+        correct_watching_except a b L (M, N, None, NE, UE, W, oth)\<close>
+         \<open>NO_MATCH {#} W \<Longrightarrow> correct_watching_except a b L (M, N, None, NE, UE, W, oth) \<longleftrightarrow>
+        correct_watching_except a b L (M, N, None, NE, UE, {#}, oth)\<close>
+      for a b M N D' NE UE W oth
+      by (simp_all only: correct_watching_except.simps
+        set_conflict_wl_def prod.case clause_to_update_def get_clauses_l.simps)
+    have \<open>get_conflict_wl (keep_watch L j w S) = None\<close>
+      using confl_S by (cases S) (auto simp: keep_watch_def)
+    then have \<open>set_conflict_wl D (keep_watch L j w S) \<le> (SPEC(correct_watching_except (Suc j) (Suc w) L))\<close>
+      using S_S' SLw w_le j_w n that corr_w
+        correct_watching_except_correct_watching_except_Suc_Suc_keep_watch[of j w S L]
+      by (cases \<open>keep_watch L j w S\<close>)
+        (auto intro!: frefI nres_relI simp: set_conflict_wl_def state_wl_l_def
+           keep_watch_state_wl
+            corr_w correct_watching_except_correct_watching_except_Suc_notin
+        intro!: ASSERT_refine_right intro: ASSERT_leI)
+    then show ?thesis
+      using S_S' SLw w_le j_w n that corr_w n
+      by (cases S; cases S')
+        (auto intro!: frefI nres_relI simp: set_conflict_l_def set_conflict_wl_def state_wl_l_def
+           keep_watch_state_wl keep_watch_def drop_map Cons_nth_drop_Suc[symmetric]
+            correct_watching_except_correct_watching_except_Suc_Suc_keep_watch
+            corr_w correct_watching_except_correct_watching_except_Suc_notin
+        intro!: ASSERT_refine_right intro: ASSERT_leI
+        split: if_splits)
+  qed
+  have conflict_final: \<open>((j + 1, w + 1, U),
+        U',
+        if get_conflict_l U' =
             None
         then n else 0)
         \<in> ?unit\<close>
     if
       C'_bl: \<open>(C', bL) = (x1, x2')\<close> and
       x2': \<open>x2' =(x2, x3)\<close> and
-      X2: \<open>(keep_watch L j w S, X2) \<in> ?keep_watch\<close>
-    for b x1 x2 X2 K x f x' x2' x3
+      X2: \<open>(keep_watch L j w S, X2) \<in> ?keep_watch\<close> and
+      U: \<open>(U, U') \<in> ?unit'\<close>
+    for b x1 x2 X2 K x f x' x2' x3 U U'
   proof -
-    have [simp]: \<open>get_conflict_l (set_conflict_l C S) \<noteq> None\<close>
-      \<open>get_conflict_wl (set_conflict_wl C S') = Some (mset C)\<close>
-      \<open>watched_by (set_conflict_wl C S') L = watched_by S' L\<close> for C S S' L
-        apply (cases S; auto simp: set_conflict_l_def; fail)
-       apply (cases S'; auto simp: set_conflict_wl_def; fail)
-      apply (cases S'; auto simp: set_conflict_wl_def; fail)
-      done
-    have [simp]: \<open>correct_watching_except j w L (set_conflict_wl C S) \<longleftrightarrow>
-      correct_watching_except j w L S\<close> for j w L C S
-      apply (cases S)
-      by (simp only: correct_watching_except.simps
-        set_conflict_wl_def prod.case clause_to_update_def get_clauses_l.simps)
-    have \<open>(set_conflict_wl (get_clauses_wl S \<propto> x1) (keep_watch L j w S),
-      set_conflict_l (get_clauses_l (fst X2) \<propto> snd X2) (fst X2))
-      \<in> state_wl_l (Some (L, Suc w))\<close>
-      using S_S' X2 SLw C'_bl by (cases S; cases S') (auto simp: state_wl_l_def
-        set_conflict_wl_def set_conflict_l_def keep_watch_def
-        clauses_to_update_wl.simps)
-    then show ?thesis
-      using S_S' w_le j_w n
+    show ?thesis
+      using S_S' w_le j_w n U
       by (auto simp: keep_watch_state_wl
           correct_watching_except_correct_watching_except_Suc_Suc_keep_watch
           corr_w correct_watching_except_correct_watching_except_Suc_notin
@@ -3307,6 +3334,7 @@ proof -
       by auto
     subgoal by auto
     subgoal using S_S' by (auto simp: twl_st_wl)
+   apply (rule set_conflict_wl; assumption?; solves \<open>use S_S' in auto\<close>)
     subgoal for b x1 x2 X2 K x f x'
       by (rule conflict_final)
     apply (rule propa_final; assumption)
@@ -4806,4 +4834,3 @@ proof -
 qed
 
 end
-

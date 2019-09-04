@@ -663,8 +663,11 @@ definition find_unwatched_l where
       (\<forall>j. found = Some j \<longrightarrow> (j < length C \<and> (undefined_lit M (C!j) \<or> C!j \<in> lits_of_l M) \<and> j \<ge> 2)))\<close>
 
 
-definition set_conflict_l :: \<open>'v clause_l \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l\<close> where
-  \<open>set_conflict_l = (\<lambda>C (M, N, D, NE, UE, WS, Q). (M, N, Some (mset C), NE, UE, {#}, {#}))\<close>
+definition set_conflict_l :: \<open>'v clause_l \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close> where
+  \<open>set_conflict_l = (\<lambda>C (M, N, D, NE, UE, WS, Q). do {
+      ASSERT(D = None);
+      RETURN (M, N, Some (mset C), NE, UE, {#}, {#})
+   })\<close>
 
 definition propagate_lit_l :: \<open>'v literal \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close> where
   \<open>propagate_lit_l = (\<lambda>L' C i (M, N, D, NE, UE, WS, Q). do {
@@ -713,7 +716,7 @@ definition unit_propagation_inner_loop_body_l :: \<open>'v literal \<Rightarrow>
             case f of
               None \<Rightarrow>
                 if val_L' = Some False
-                then RETURN (set_conflict_l (get_clauses_l S \<propto> C) S)
+                then set_conflict_l (get_clauses_l S \<propto> C) S
                 else propagate_lit_l L' C i S
             | Some f \<Rightarrow> do {
                 ASSERT(f < length (get_clauses_l S \<propto> C));
@@ -878,16 +881,20 @@ proof -
     \<in> {(S, S'). (S, S') \<in> twl_st_l (Some L) \<and> twl_list_invs S}\<close>
     using SS' WS
     by (auto simp: twl_st_l_def image_mset_remove1_mset_if)
-  have \<open>twl_list_invs (set_conflict_l (get_clauses_l ?S \<propto> C) ?S)\<close>
-    using add_inv C_N_U unfolding twl_list_invs_def
+  have D_None: \<open>get_conflict_l S = None\<close>
+    using confl SS' by (cases \<open>get_conflict_l S\<close>) (auto simp: S WS'_def')
+
+  have \<open>set_conflict_l (get_clauses_l ?S \<propto> C) ?S \<le> SPEC twl_list_invs\<close>
+    using add_inv C_N_U D_None unfolding twl_list_invs_def
     by (auto dest: in_diffD simp: set_conflicting_def S
-      set_conflict_l_def mset_take_mset_drop_mset')
-  then have confl_rel: \<open>(set_conflict_l (get_clauses_l ?S \<propto> C) ?S,
-     set_conflicting (twl_clause_of C')
-      (set_clauses_to_update
-        (remove1_mset (L, twl_clause_of C') (clauses_to_update S')) S'))
-    \<in> {(S, S'). (S, S') \<in> twl_st_l (Some L) \<and> twl_list_invs S}\<close>
-    using SS' WS by (auto simp: twl_st_l_def image_mset_remove1_mset_if set_conflicting_def
+      set_conflict_l_def mset_take_mset_drop_mset' intro!: ASSERT_leI)
+  then have confl_rel: \<open>set_conflict_l (get_clauses_l ?S \<propto> C) ?S \<le>
+     SPEC(\<lambda>c.
+       (c, set_conflicting (twl_clause_of C')
+       (set_clauses_to_update
+        (remove1_mset (L, twl_clause_of C') (clauses_to_update S')) S')) \<in>
+        {(S, S'). (S, S') \<in> twl_st_l (Some L) \<and> twl_list_invs S})\<close>
+    using SS' WS D_None by (auto simp: twl_st_l_def image_mset_remove1_mset_if set_conflicting_def
       set_conflict_l_def mset_take_mset_drop_mset')
 
   have propa_rel:
@@ -1334,8 +1341,6 @@ proof -
     subgoal for L' K unfolding i_def[symmetric]  i_def'[symmetric] op_clauses_at_def
       by (rule update_clause_rel)
     done
-  have D_None: \<open>get_conflict_l S = None\<close>
-    using confl SS' by (cases \<open>get_conflict_l S\<close>) (auto simp: S WS'_def')
   have *: \<open>unit_propagation_inner_loop_body (C' ! i) (twl_clause_of C')
    (set_clauses_to_update (remove1_mset (C' ! i, twl_clause_of C') (clauses_to_update S')) S')
    \<le> SPEC (\<lambda>S''. twl_struct_invs S'' \<and>
