@@ -669,10 +669,19 @@ definition set_conflict_l :: \<open>'v clause_l \<Rightarrow> 'v twl_st_l \<Righ
       RETURN (M, N, Some (mset C), NE, UE, {#}, {#})
    })\<close>
 
+
+definition cons_trail_propagate_l where
+  \<open>cons_trail_propagate_l L C M = do {
+     ASSERT(undefined_lit M L);
+     RETURN (Propagated L C # M)
+}\<close>
+
 definition propagate_lit_l :: \<open>'v literal \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close> where
   \<open>propagate_lit_l = (\<lambda>L' C i (M, N, D, NE, UE, WS, Q). do {
+      ASSERT(C \<in># dom_m N);
+      M \<leftarrow> cons_trail_propagate_l L' C M;
       N \<leftarrow> (if length (N \<propto> C) > 2 then mop_clauses_swap N C 0 (Suc 0 - i) else RETURN N);
-      RETURN (Propagated L' C # M, N, D, NE, UE, WS, add_mset (-L') Q)})\<close>
+      RETURN (M, N, D, NE, UE, WS, add_mset (-L') Q)})\<close>
 
 definition update_clause_l :: \<open>nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close> where
   \<open>update_clause_l = (\<lambda>C i f (M, N, D, NE, UE, WS, Q). do {
@@ -1024,12 +1033,15 @@ proof -
       dest!: mset_eq_setD)
     moreover have \<open>swap (N \<propto> C) 0 (Suc 0) = swap (N \<propto> C) i (1 -i)\<close>
        using i_def two_le_length_C by (cases \<open>N \<propto> C\<close>)(auto simp: swap_def)
-   moreover have \<open>i < length (N \<propto> C)\<close>
+    moreover have \<open>i < length (N \<propto> C)\<close>
        using i_def two_le_length_C by (auto simp: S)
+    moreover have \<open>undefined_lit M L'\<close>
+      using L'_undef SS' by (auto simp: S Decided_Propagated_in_iff_in_lits_of_l)
     ultimately show ?thesis
       using SS' WS C_N_U unfolding propagate_lit_l_def apply (auto simp: S)
       by (auto simp: twl_st_l_def image_mset_remove1_mset_if propagate_lit_def
-        propagate_lit_l_def mset_take_mset_drop_mset' S learned_unchanged mop_clauses_swap_def
+           propagate_lit_l_def mset_take_mset_drop_mset' S learned_unchanged mop_clauses_swap_def
+           cons_trail_propagate_l_def
         init_unchanged mset_un_watched_swap intro: convert_lit.intros intro!: ASSERT_leI)
   qed
   have update_clause_rel: \<open>(if polarity
@@ -1746,8 +1758,8 @@ fun lit_and_ann_of_propagated where
   \<open>lit_and_ann_of_propagated (Decided _) = undefined\<close>
      \<comment>\<open>we should never call the function in that context\<close>
 
-definition tl_state_l :: \<open>'v twl_st_l \<Rightarrow> 'v twl_st_l\<close> where
-  \<open>tl_state_l = (\<lambda>(M, N, D, NE, UE, WS, Q). (tl M, N, D, NE, UE, WS, Q))\<close>
+definition tl_state_l :: \<open>'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close> where
+  \<open>tl_state_l = (\<lambda>(M, N, D, NE, UE, WS, Q). do {ASSERT(M \<noteq> []); RETURN (tl M, N, D, NE, UE, WS, Q)})\<close>
 
 definition resolve_cls_l' :: \<open>'v twl_st_l \<Rightarrow> nat \<Rightarrow> 'v literal \<Rightarrow> 'v clause\<close> where
 \<open>resolve_cls_l' S C L  =
@@ -1777,7 +1789,7 @@ definition skip_and_resolve_loop_l :: \<open>'v twl_st_l \<Rightarrow> 'v twl_st
             let D' = the (get_conflict_l S);
             let (L, C) = lit_and_ann_of_propagated (hd (get_trail_l S));
             if -L \<notin># D' then
-              do {RETURN (False, tl_state_l S)}
+              do {S \<leftarrow> tl_state_l S; RETURN (False, S)}
             else
               if get_maximum_level (get_trail_l S) (remove1_mset (-L) D') = count_decided (get_trail_l S)
               then
@@ -1797,9 +1809,9 @@ begin
 private lemma skip_and_resolve_l_refines:
   \<open>((brkS), brk'S') \<in> {((brk, S), brk', S'). brk = brk' \<and> (S, S') \<in> twl_st_l None \<and>
        twl_list_invs S \<and> clauses_to_update_l S = {#}} \<Longrightarrow>
-    brkS = (brk, S) \<Longrightarrow> brk'S' = (brk', S') \<Longrightarrow>
-  ((False, tl_state_l S), False, tl_state S') \<in> {((brk, S), brk', S'). brk = brk' \<and>
-       (S, S') \<in> twl_st_l None \<and> twl_list_invs S \<and> clauses_to_update_l S = {#}}\<close>
+    brkS = (brk, S) \<Longrightarrow> brk'S' = (brk', S') \<Longrightarrow> get_trail S' \<noteq> [] \<Longrightarrow>
+  tl_state_l S \<le> SPEC(\<lambda>c. (c, tl_state S') \<in> {(S, S').
+       (S, S') \<in> twl_st_l None \<and> twl_list_invs S \<and> clauses_to_update_l S = {#}})\<close>
   by (cases S; cases \<open>get_trail_l S\<close>)
    (auto simp: twl_list_invs_def twl_st_l_def
       resolve_cls_l_nil_iff tl_state_l_def tl_state_def dest: convert_lits_l_tlD)
@@ -2004,6 +2016,33 @@ lemma clauses_clss_have_level1_notin_unit:
   using clauses_in_unit_clss_have_level0[of T C, OF struct_invs _ LC_T count_dec] assms
   by linarith
 
+lemma skip_and_resolve_loop_alt_def:
+   \<open>skip_and_resolve_loop S\<^sub>0 =
+    do {
+      (_, S) \<leftarrow>
+        WHILE\<^sub>T\<^bsup>skip_and_resolve_loop_inv S\<^sub>0\<^esup>
+        (\<lambda>(uip, S). \<not>uip \<and> \<not>is_decided (hd (get_trail S)))
+        (\<lambda>(_, S).
+          do {
+            ASSERT(get_trail S \<noteq> []);
+            let D' = the (get_conflict S);
+            (L, C) \<leftarrow> SPEC(\<lambda>(L, C). Propagated L C = hd (get_trail S));
+            if -L \<notin># D' then
+              do {let S = tl_state S; RETURN (False, S)}
+            else
+              if get_maximum_level (get_trail S) (remove1_mset (-L) D') = count_decided (get_trail S)
+              then
+                do {RETURN (False, update_confl_tl (Some (cdcl\<^sub>W_restart_mset.resolve_cls L D' C)) S)}
+              else
+                do {RETURN (True, S)}
+          }
+        )
+        (False, S\<^sub>0);
+      RETURN S
+    }
+  \<close>
+  unfolding skip_and_resolve_loop_def Let_def by auto
+
 lemma skip_and_resolve_loop_l_spec:
   \<open>(skip_and_resolve_loop_l, skip_and_resolve_loop) \<in>
     {(S::'v twl_st_l, S'). (S, S') \<in> twl_st_l None \<and> twl_struct_invs S' \<and>
@@ -2094,19 +2133,12 @@ proof -
     unfolding skip_and_resolve_loop_inv_def
     by auto
 
-  have twl_list_invs_tl_state_l: \<open>twl_list_invs S \<Longrightarrow> twl_list_invs (tl_state_l S)\<close>
-    for S :: \<open>'v twl_st_l\<close>
-    by (cases S, cases \<open>get_trail_l S\<close>) (auto simp: tl_state_l_def twl_list_invs_def)
-  have clauses_to_update_l_tl_state: \<open>clauses_to_update_l (tl_state_l S) = clauses_to_update_l S\<close>
-    for S :: \<open>'v twl_st_l\<close>
-    by (cases S, cases \<open>get_trail_l S\<close>) (auto simp: tl_state_l_def)
-
   have H:
     \<open>(skip_and_resolve_loop_l, skip_and_resolve_loop) \<in> ?R \<rightarrow>\<^sub>f
       \<langle>{(T::'v twl_st_l, T'). (T, T') \<in> twl_st_l None \<and> twl_list_invs T \<and>
         clauses_to_update_l T = {#}}\<rangle> nres_rel\<close>
     supply [[goals_limit=1]]
-    unfolding skip_and_resolve_loop_l_def skip_and_resolve_loop_def fref_param1[symmetric]
+    unfolding skip_and_resolve_loop_l_def skip_and_resolve_loop_alt_def fref_param1[symmetric]
     apply (refine_vcg H)
     subgoal by auto \<comment> \<open>conflict is not none\<close>
                    apply (rule get_conflict_l_get_conflict_state_spec)
@@ -2131,8 +2163,9 @@ proof -
     subgoal by auto
     apply assumption+
     subgoal by auto
-    subgoal by (drule skip_and_resolve_l_refines) blast+
-    subgoal by (auto simp: twl_list_invs_tl_state_l)
+    apply (rule skip_and_resolve_l_refines; assumption?; auto; fail)
+    subgoal by auto
+    subgoal by (auto)
     subgoal by (rule skip_and_resolve_skip_refine)
       (auto simp: skip_and_resolve_loop_inv_def)
       \<comment> \<open>annotations are valid\<close>

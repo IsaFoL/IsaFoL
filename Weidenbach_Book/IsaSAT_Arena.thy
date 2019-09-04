@@ -2079,9 +2079,35 @@ lemma [mop_arena_lit]:
    apply (metis arena_is_valid_clause_idx_and_access_def arena_lifting(4) arena_lit_pre_def diff_add_inverse le_add1)+
   done
 
+
+lemma mop_arena_lit2[mop_arena_lit]:
+  assumes valid: \<open>valid_arena arena N vdom\<close> and
+    i: \<open>(C, C') \<in> nat_rel\<close> \<open>(i, i') \<in> nat_rel\<close>
+  shows
+    \<open>mop_arena_lit2 arena C i \<le> \<Down>Id (mop_clauses_at N C' i')\<close>
+  using assms unfolding mop_clauses_swap_def mop_arena_lit2_def mop_clauses_at_def
+  by refine_rcg
+    (auto simp: arena_lifting valid_arena_swap_lits arena_lit_pre_def arena_is_valid_clause_idx_and_access_def
+      intro!: exI[of _ C])
+
 lemma arena_lit_pre2_arena_lit[dest]:
    \<open>arena_lit_pre2 N i j \<Longrightarrow> arena_lit_pre N (i+j)\<close>
   by (auto simp: arena_lit_pre_def arena_lit_pre2_def arena_is_valid_clause_idx_and_access_def
     intro!: exI[of _ i])
+
+definition mop_arena_swap where
+  \<open>mop_arena_swap C i j arena = do {
+      ASSERT(swap_lits_pre C i j arena);
+      RETURN (swap_lits C i j arena)
+  }\<close>
+
+lemma mop_arena_swap[mop_arena_lit]:
+  assumes valid: \<open>valid_arena arena N vdom\<close> and
+    i: \<open>(C, C') \<in> nat_rel\<close> \<open>(i, i') \<in> nat_rel\<close> \<open>(j, j') \<in> nat_rel\<close>
+  shows
+    \<open>mop_arena_swap C i j arena \<le> \<Down>{(N', N). valid_arena N' N vdom} (mop_clauses_swap N C' i' j')\<close>
+  using assms unfolding mop_clauses_swap_def mop_arena_swap_def swap_lits_pre_def
+  by refine_rcg
+    (auto simp: arena_lifting valid_arena_swap_lits)
 
 end

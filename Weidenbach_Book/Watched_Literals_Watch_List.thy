@@ -460,18 +460,23 @@ qed
 
 definition propagate_lit_wl_general :: \<open>'v literal \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
   \<open>propagate_lit_wl_general = (\<lambda>L' C i (M, N,  D, NE, UE, Q, W). do {
+      ASSERT(C \<in># dom_m N);
+      M \<leftarrow> cons_trail_propagate_l L' C M;
       N \<leftarrow> (if length (N \<propto> C) > 2 then mop_clauses_swap N C 0 (Suc 0 - i) else RETURN N);
-      RETURN (Propagated L' C # M, N, D, NE, UE, add_mset (-L') Q, W) })\<close>
+      RETURN (M, N, D, NE, UE, add_mset (-L') Q, W) })\<close>
 
 definition propagate_lit_wl :: \<open>'v literal \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
   \<open>propagate_lit_wl = (\<lambda>L' C i (M, N,  D, NE, UE, Q, W). do {
+      ASSERT(C \<in># dom_m N);
+      M \<leftarrow> cons_trail_propagate_l L' C M;
       N \<leftarrow> mop_clauses_swap N C 0 (Suc 0 - i);
-      RETURN (Propagated L' C # M, N, D, NE, UE, add_mset (-L') Q, W)
+      RETURN (M, N, D, NE, UE, add_mset (-L') Q, W)
    })\<close>
 
 definition propagate_lit_wl_bin :: \<open>'v literal \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
-  \<open>propagate_lit_wl_bin = (\<lambda>L' C i (M, N,  D, NE, UE, Q, W).
-      RETURN (Propagated L' C # M, N, D, NE, UE, add_mset (-L') Q, W))\<close>
+  \<open>propagate_lit_wl_bin = (\<lambda>L' C i (M, N,  D, NE, UE, Q, W). do {
+      M \<leftarrow> cons_trail_propagate_l L' C M;
+      RETURN ( M, N, D, NE, UE, add_mset (-L') Q, W)})\<close>
 
 definition keep_watch where
   \<open>keep_watch = (\<lambda>L i j (M, N,  D, NE, UE, Q, W).
@@ -1471,7 +1476,7 @@ lemma correct_watching_except_correct_watching_except_propagate_lit_wl:
   assumes
     corr: \<open>correct_watching_except j w L S\<close> and
     i_le: \<open>Suc 0 < length (get_clauses_wl S \<propto> C)\<close> and
-    C: \<open>C \<in># dom_m (get_clauses_wl S)\<close>
+    C: \<open>C \<in># dom_m (get_clauses_wl S)\<close> and undef: \<open>undefined_lit (get_trail_wl S) L'\<close>
   shows \<open>propagate_lit_wl_general L' C i S \<le> SPEC(\<lambda>c. correct_watching_except j w L c)\<close>
 proof -
   obtain M N D NE UE Q W where S: \<open>S = (M, N, D, NE, UE, Q, W)\<close> by (cases S)
@@ -1519,8 +1524,9 @@ proof -
     by (cases C')
       (auto simp: correctly_marked_as_binary.simps N'_def)
   have H6: \<open>propagate_lit_wl_general L' C i (M, N, D, NE, UE, Q, W) = RETURN (Propagated L' C # M, N', D, NE, UE, add_mset (- L') Q, W)\<close>
-   using assms \<open>Suc 0 - i < length (N \<propto> C)\<close>
-   by (auto simp: mop_clauses_swap_def S propagate_lit_wl_general_def N'_def)
+   using assms \<open>Suc 0 - i < length (N \<propto> C)\<close> undef
+   by (auto simp: mop_clauses_swap_def S propagate_lit_wl_general_def N'_def
+     cons_trail_propagate_l_def)
   show ?thesis
     using corr unfolding S H6 apply -
     apply (rule RETURN_rule)
@@ -2120,12 +2126,14 @@ proof -
       using that
       by (cases S)
         (auto simp: propagate_lit_wl_def
-        propagate_lit_wl_general_def keep_watch_def)
+          propagate_lit_wl_general_def keep_watch_def)
   qed
-  have prop_bin_prop_gen[THEN fref_to_Down_curry3, refine]: \<open>(uncurry3 propagate_lit_wl_bin, uncurry3 propagate_lit_wl_general) \<in> 
-    [\<lambda>(((L', C), _), S). length (get_clauses_wl S \<propto> C) = 2]\<^sub>f (Id \<times>\<^sub>f nat_rel  \<times>\<^sub>f {_. True}  \<times>\<^sub>f Id) \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
-    by (auto simp: propagate_lit_wl_bin_def propagate_lit_wl_general_def
+  have prop_bin_prop_gen[THEN fref_to_Down_curry3, refine]:
+     \<open>(uncurry3 propagate_lit_wl_bin, uncurry3 propagate_lit_wl_general) \<in> 
+        [\<lambda>(((L', C), _), S). length (get_clauses_wl S \<propto> C) = 2]\<^sub>f (Id \<times>\<^sub>f nat_rel  \<times>\<^sub>f {_. True}  \<times>\<^sub>f Id) \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
+    by (auto simp: propagate_lit_wl_bin_def propagate_lit_wl_general_def  cons_trail_propagate_l_def le_ASSERT_iff
        intro!: frefI nres_relI)
+
   have prop_prop_gen[THEN fref_to_Down_curry3, refine]: \<open>(uncurry3 propagate_lit_wl, uncurry3 propagate_lit_wl_general) \<in> 
     [\<lambda>(((L', C), _), S). length (get_clauses_wl S \<propto> C) > 2]\<^sub>f (Id \<times>\<^sub>f nat_rel  \<times>\<^sub>f nat_rel  \<times>\<^sub>f Id) \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
     by (auto simp: propagate_lit_wl_def propagate_lit_wl_general_def
@@ -2688,9 +2696,9 @@ proof -
       using X2 S_S' SLw j_w w_le multi_member_split[OF x1_dom] unfolding C'
       by (cases S; cases S')
         (auto simp: state_wl_l_def propagate_lit_wl_general_def keep_watch_def
-          propagate_lit_l_def drop_map mop_clauses_swap_def
+          propagate_lit_l_def drop_map mop_clauses_swap_def cons_trail_propagate_l_def
           intro!: ASSERT_refine_right)
-    moreover have \<open>correct_watching_except (Suc j) (Suc w) L (keep_watch L j w S) \<Longrightarrow>
+    moreover have \<open>correct_watching_except (Suc j) (Suc w) L (keep_watch L j w S) \<Longrightarrow> undefined_lit (get_trail_wl S) (get_clauses_wl S \<propto> x1 ! (Suc 0 - i)) \<Longrightarrow>
     propagate_lit_wl_general (get_clauses_wl S \<propto> x1 ! (Suc 0 - i)) x1 i (keep_watch L j w S) \<le> SPEC (correct_watching_except (Suc j) (Suc w) L)\<close>
       apply (rule correct_watching_except_correct_watching_except_propagate_lit_wl)
       using w_le j_w \<open>Suc 0 < length (get_clauses_wl S \<propto> x1)\<close> by auto
@@ -2700,7 +2708,7 @@ proof -
       using w_le n j_w x1_dom that S_S' confl_S
       unfolding i_def[symmetric] i_alt_def[symmetric]
       by (cases X2; cases S; cases S')
-       (auto simp: twl_st_wl simp: propagate_lit_wl_general_def keep_watch_def
+       (auto simp: twl_st_wl simp: propagate_lit_wl_general_def keep_watch_def cons_trail_propagate_l_def
         propagate_lit_l_def mop_clauses_swap_def drop_map state_wl_l_def intro!: ASSERT_refine_right)
   qed
 
@@ -3878,8 +3886,8 @@ qed
 
 subsubsection \<open>Skip or Resolve\<close>
 
-definition tl_state_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl\<close> where
-  \<open>tl_state_wl = (\<lambda>(M, N, D, NE, UE, WS, Q). (tl M, N, D, NE, UE, WS, Q))\<close>
+definition tl_state_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
+  \<open>tl_state_wl = (\<lambda>(M, N, D, NE, UE, WS, Q). do { ASSERT(M \<noteq> []); RETURN (tl M, N, D, NE, UE, WS, Q)})\<close>
 
 definition resolve_cls_wl' :: \<open>'v twl_st_wl \<Rightarrow> nat \<Rightarrow> 'v literal \<Rightarrow> 'v clause\<close> where
 \<open>resolve_cls_wl' S C L  =
@@ -3909,7 +3917,7 @@ definition skip_and_resolve_loop_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_
             let D' = the (get_conflict_wl S);
             let (L, C) = lit_and_ann_of_propagated (hd (get_trail_wl S));
             if -L \<notin># D' then
-              do {RETURN (False, tl_state_wl S)}
+              do {S \<leftarrow> tl_state_wl S; RETURN (False, S)}
             else
               if get_maximum_level (get_trail_wl S) (remove1_mset (-L) D') = count_decided (get_trail_wl S)
               then
@@ -3924,8 +3932,10 @@ definition skip_and_resolve_loop_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_
   \<close>
 
 lemma tl_state_wl_tl_state_l:
-  \<open>(S, S') \<in> state_wl_l None \<Longrightarrow> (tl_state_wl S, tl_state_l S') \<in> state_wl_l None\<close>
-  by (cases S) (auto simp: state_wl_l_def tl_state_wl_def tl_state_l_def)
+  \<open>(S, S') \<in> state_wl_l None \<Longrightarrow> correct_watching S \<Longrightarrow>
+    tl_state_wl S \<le> \<Down>{(S, T). (S, T) \<in> state_wl_l None \<and> correct_watching S} (tl_state_l S')\<close>
+  by (cases S) (auto simp: state_wl_l_def tl_state_wl_def tl_state_l_def
+        assert_bind_spec_conv correct_watching.simps clause_to_update_def intro!: ASSERT_refine_right)
 
 lemma skip_and_resolve_loop_wl_spec:
   \<open>(skip_and_resolve_loop_wl, skip_and_resolve_loop_l)
@@ -3944,8 +3954,6 @@ proof -
     if \<open>(S', S) \<in> state_wl_l None\<close> and \<open>correct_watching S'\<close>
     for S :: \<open>'v twl_st_l\<close> and S' :: \<open>'v twl_st_wl\<close>
     using that by (cases S') (auto simp: state_wl_l_def)
-  have [simp]: \<open>correct_watching (tl_state_wl S) = correct_watching S\<close> for S
-    by (cases S) (auto simp: correct_watching.simps tl_state_wl_def clause_to_update_def)
   have [simp]: \<open>correct_watching  (tl aa, ca, da, ea, fa, ha, h) \<longleftrightarrow>
     correct_watching (aa, ca, None, ea, fa, ha, h)\<close>
     for aa ba ca L da ea fa ha h
@@ -3986,7 +3994,7 @@ proof -
 
   show H: \<open>?s \<in> ?A \<rightarrow> \<langle>{(T', T). (T', T) \<in> state_wl_l None \<and> correct_watching T'}\<rangle>nres_rel\<close>
     unfolding skip_and_resolve_loop_wl_def skip_and_resolve_loop_l_def
-    apply (refine_rcg get_conflict_wl)
+    apply (refine_rcg get_conflict_wl tl_state_wl_tl_state_l)
     subgoal by auto
     subgoal by auto
     subgoal by auto
@@ -3994,7 +4002,9 @@ proof -
     subgoal by auto
     subgoal by auto
     subgoal by (auto intro!: tl_state_wl_tl_state_l)
-    subgoal for S' S b'T' bT b' T' by (cases T') (auto simp: correct_watching.simps)
+    subgoal for S' S b'T' bT b' T' by auto
+    subgoal by auto
+    subgoal by auto
     subgoal by auto
     subgoal by (rule update_confl_tl_wl) assumption+
     subgoal by auto

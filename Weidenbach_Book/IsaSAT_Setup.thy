@@ -748,6 +748,13 @@ lemma access_lit_in_clauses_heur_alt_def:
   \<open>access_lit_in_clauses_heur = (\<lambda>(M, N, _) i j. arena_lit N (i + j))\<close>
   by (auto simp: access_lit_in_clauses_heur_def intro!: ext)
 
+definition (in -) mop_access_lit_in_clauses_heur where
+  \<open>mop_access_lit_in_clauses_heur S i j = mop_arena_lit2 (get_clauses_wl_heur S) i j\<close>
+
+lemma mop_access_lit_in_clauses_heur_alt_def:
+  \<open>mop_access_lit_in_clauses_heur = (\<lambda>(M, N, _) i j. mop_arena_lit2 N i j)\<close>
+  by (auto simp: mop_access_lit_in_clauses_heur_def intro!: ext)
+
 lemma access_lit_in_clauses_heur_fast_pre:
   \<open>arena_lit_pre (get_clauses_wl_heur a) (ba + b) \<Longrightarrow>
     isasat_fast a \<Longrightarrow> ba + b \<le> sint64_max\<close>
