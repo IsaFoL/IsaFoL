@@ -404,7 +404,7 @@ definition unit_propagation_inner_loop_body_wl_D
           if b then do {
             ASSERT(propagate_proper_bin_case L K S C);
             if val_K = Some False
-            then do {RETURN (j+1, w+1, set_conflict_wl (get_clauses_wl S \<propto> C) S)}
+            then do {S \<leftarrow> set_conflict_wl (get_clauses_wl S \<propto> C) S; RETURN (j+1, w+1, S)}
             else do {
               let i = (if ((get_clauses_wl S)\<propto>C) ! 0 = L then 0 else 1);
               S \<leftarrow> propagate_lit_wl_bin K C i S;
@@ -425,7 +425,7 @@ definition unit_propagation_inner_loop_body_wl_D
             case f of
               None \<Rightarrow> do {
                 if val_L' = Some False
-                then RETURN (j+1, w+1, set_conflict_wl (get_clauses_wl S \<propto> C) S)
+                then do{S \<leftarrow> set_conflict_wl (get_clauses_wl S \<propto> C) S; RETURN (j+1, w+1, S)}
                 else do {
                   S \<leftarrow> propagate_lit_wl L' C i S;
                   RETURN (j+1, w+1, S)}
@@ -602,8 +602,8 @@ lemma blits_in_\<L>\<^sub>i\<^sub>n_propagate:
   by (auto split: if_splits)[5]
 
 lemma literals_are_\<L>\<^sub>i\<^sub>n_set_conflict_wl:
-  \<open>literals_are_\<L>\<^sub>i\<^sub>n \<A> (set_conflict_wl D S) \<longleftrightarrow> literals_are_\<L>\<^sub>i\<^sub>n \<A> S\<close>
-  by (cases S; auto simp: blits_in_\<L>\<^sub>i\<^sub>n_def literals_are_\<L>\<^sub>i\<^sub>n_def set_conflict_wl_def)
+  \<open>set_conflict_wl D S \<le> SPEC (literals_are_\<L>\<^sub>i\<^sub>n \<A>) \<longleftrightarrow> literals_are_\<L>\<^sub>i\<^sub>n \<A> S \<and> get_conflict_wl S = None\<close>
+  by (cases S; auto simp: blits_in_\<L>\<^sub>i\<^sub>n_def literals_are_\<L>\<^sub>i\<^sub>n_def set_conflict_wl_def assert_bind_spec_conv)
 
 lemma blits_in_\<L>\<^sub>i\<^sub>n_keep_watch':
   assumes K': \<open>K' \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st (a, b, c, d, e, f, g))\<close> and
@@ -632,8 +632,9 @@ lemma literals_are_\<L>\<^sub>i\<^sub>n_all_atms_stD[dest]:
   unfolding literals_are_\<L>\<^sub>i\<^sub>n_def
   by auto
 
-lemma blits_in_\<L>\<^sub>i\<^sub>n_set_conflict[simp]: \<open>blits_in_\<L>\<^sub>i\<^sub>n (set_conflict_wl D S) = blits_in_\<L>\<^sub>i\<^sub>n S\<close>
-  by (cases S) (auto simp: blits_in_\<L>\<^sub>i\<^sub>n_def set_conflict_wl_def)
+lemma blits_in_\<L>\<^sub>i\<^sub>n_set_conflict:
+  \<open>set_conflict_wl D S \<le> SPEC (blits_in_\<L>\<^sub>i\<^sub>n) \<longleftrightarrow> blits_in_\<L>\<^sub>i\<^sub>n S \<and> get_conflict_wl S = None\<close>
+  by (cases S) (auto simp: blits_in_\<L>\<^sub>i\<^sub>n_def set_conflict_wl_def simp: assert_bind_spec_conv)
 
 lemma unit_propagation_inner_loop_body_wl_D_spec:
   fixes S :: \<open>nat twl_st_wl\<close> and K :: \<open>nat literal\<close> and w :: nat
@@ -805,11 +806,7 @@ proof -
   qed
 
   have set_conflict_rel:
-    \<open>((j + 1, w + 1,
-        set_conflict_wl (get_clauses_wl (keep_watch K j w S) \<propto> x1a) (keep_watch K j w S)),
-       j + 1, w + 1,
-       set_conflict_wl (get_clauses_wl (keep_watch K j w S) \<propto> x1) (keep_watch K j w S))
-      \<in> {((j', n', T'), j, n, T). j' = j \<and> n' = n \<and> T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n \<A> T'}\<close>
+    \<open>set_conflict_wl (get_clauses_wl (keep_watch K j w S) \<propto> x1a) (keep_watch K j w S) \<le> \<Down>{((T'), T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n \<A> T'}(set_conflict_wl (get_clauses_wl (keep_watch K j w S) \<propto> x1) (keep_watch K j w S))\<close>
     if
       pre: \<open>unit_propagation_inner_loop_wl_loop_D_pre K (j, w, S)\<close> and
       x: \<open>watched_by S K ! w = (x1, x2)\<close> and
@@ -820,9 +817,9 @@ proof -
     for x1 x2 x1a x2a f fa x2a' x3
   proof -
     have [simp]: \<open>blits_in_\<L>\<^sub>i\<^sub>n
-        (set_conflict_wl D (a, b, c, d, e, fb, g(K := (g K)[j := de]))) \<longleftrightarrow>
-        blits_in_\<L>\<^sub>i\<^sub>n ((a, b, c, d, e, fb, g(K := (g K)[j := de])))\<close>
-      for a b c d e f g de D
+        ((a, b, Some c, d, e, fb, g(K := (g K)[j := de]))) \<longleftrightarrow>
+        blits_in_\<L>\<^sub>i\<^sub>n ((a, b, None, d, e, {#}, g(K := (g K)[j := de])))\<close>
+      for a b c d e f g de D K fb
       by (auto simp: blits_in_\<L>\<^sub>i\<^sub>n_def set_conflict_wl_def)
 
     have [simp]: \<open>x1a = x1\<close>
@@ -836,15 +833,17 @@ proof -
           unit_propagation_inner_loop_wl_loop_D_pre_def
           dest!: multi_member_split split: if_splits)
     then show ?thesis
-      using assms that by (cases S) (auto simp: keep_watch_def literals_are_\<L>\<^sub>i\<^sub>n_set_conflict_wl
-        literals_are_\<L>\<^sub>i\<^sub>n_def blits_in_\<L>\<^sub>i\<^sub>n_keep_watch')
+      using assms that blits_in_\<L>\<^sub>i\<^sub>n_set_conflict[of L \<open>keep_watch K j w S\<close>]
+     by (cases S) (auto simp: keep_watch_def literals_are_\<L>\<^sub>i\<^sub>n_set_conflict_wl
+        literals_are_\<L>\<^sub>i\<^sub>n_def blits_in_\<L>\<^sub>i\<^sub>n_keep_watch' set_conflict_wl_def intro!: ASSERT_refine_right)
   qed
+
   have bin_set_conflict:
-    \<open>((j + 1, w + 1, set_conflict_wl (get_clauses_wl (keep_watch K j w S) \<propto> x1b) (keep_watch K j w S)), j + 1, w + 1,
-       set_conflict_wl (get_clauses_wl (keep_watch K j w S) \<propto> x1) (keep_watch K j w S))
-      \<in> {((j', n', T'), j, n, T). j' = j \<and> n' = n \<and> T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n \<A> T'}\<close>
+    \<open>set_conflict_wl (get_clauses_wl (keep_watch K j w S) \<propto> x1b) (keep_watch K j w S)
+      \<le> \<Down>{(T', T).  T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n \<A> T'}
+       (set_conflict_wl (get_clauses_wl (keep_watch K j w S) \<propto> x1) (keep_watch K j w S))\<close>
     if
-      \<open>unit_propagation_inner_loop_wl_loop_pre K (j, w, S)\<close> and
+      pre: \<open>unit_propagation_inner_loop_wl_loop_pre K (j, w, S)\<close> and
       \<open>unit_propagation_inner_loop_wl_loop_D_pre K (j, w, S)\<close> and
       \<open>x2 = (x1a, x2a)\<close> and
       \<open>watched_by S K ! w = (x1, x2)\<close> and
@@ -860,9 +859,23 @@ proof -
       \<open>polarity (get_trail_wl (keep_watch K j w S)) x1a = Some False\<close>
     for x1 x2 x1a x2a x1b x2b x1c x2c
   proof -
-    show ?thesis
-      using that assms
-      by (auto simp: literals_are_\<L>\<^sub>i\<^sub>n_set_conflict_wl unit_propagation_inner_loop_wl_loop_pre_def)
+    have [simp]: \<open>blits_in_\<L>\<^sub>i\<^sub>n (a, b, Some c, d, e, fb, g) \<longleftrightarrow>
+        blits_in_\<L>\<^sub>i\<^sub>n (a, b, None, d, e, {#}, g)\<close>
+        \<open>NO_MATCH {#} fb \<Longrightarrow> literals_are_\<L>\<^sub>i\<^sub>n \<A> (a, b, c', d, e, fb, g) \<longleftrightarrow>
+        literals_are_\<L>\<^sub>i\<^sub>n \<A> (a, b, c', d, e, {#}, g)\<close>
+        \<open>literals_are_\<L>\<^sub>i\<^sub>n \<A> (a, b, Some c, d, e, fb, g) \<longleftrightarrow>
+          literals_are_\<L>\<^sub>i\<^sub>n \<A> (a, b, None, d, e, fb, g)\<close>
+      for a b c d e f g de D K fb c'
+      by (auto simp: blits_in_\<L>\<^sub>i\<^sub>n_def set_conflict_wl_def literals_are_\<L>\<^sub>i\<^sub>n_def)
+    have \<open>w < length (watched_by S K)\<close>
+      using pre unfolding unit_propagation_inner_loop_wl_loop_pre_def
+      by auto
+    then show ?thesis
+      using that assms literals_are_\<L>\<^sub>i\<^sub>n_keep_watch[OF \<A>\<^sub>i\<^sub>n, of w K j]
+       blits_in_\<L>\<^sub>i\<^sub>n_set_conflict[of _ \<open>keep_watch K j w S\<close>]
+        literals_are_\<L>\<^sub>i\<^sub>n_set_conflict_wl[of _ \<open>keep_watch K j w S\<close> \<A>]
+      by (cases S)(auto simp: literals_are_\<L>\<^sub>i\<^sub>n_set_conflict_wl unit_propagation_inner_loop_wl_loop_pre_def
+         set_conflict_wl_def keep_watch_def intro!: ASSERT_refine_right)
   qed
   have bin_prop:
     \<open>propagate_lit_wl_bin x1c x1b (if get_clauses_wl (keep_watch K j w S) \<propto> x1b ! 0 = K then 0 else 1) (keep_watch K j w S) \<le> \<Down> {(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n \<A> T'}
@@ -908,8 +921,8 @@ proof -
       using assms by (auto simp: unit_prop_body_wl_D_inv_clauses_distinct_eq
           unit_propagation_inner_loop_wl_loop_pre_def)
     subgoal by auto
-    subgoal
-      by (rule bin_set_conflict)
+    apply (rule bin_set_conflict; assumption)
+    subgoal by fast
     apply (rule bin_prop; assumption)
     subgoal for x1 x2 x1a x2a x1b x2b x1c x2c
       by simp
@@ -928,8 +941,8 @@ proof -
         (auto simp: unit_prop_body_wl_D_inv_clauses_distinct_eq twl_st_wl)
     subgoal by (auto simp: twl_st_wl)
     subgoal by (auto simp: twl_st_wl)
-    subgoal for x1 x2 x1a x2a f fa
-      by (rule set_conflict_rel)
+    apply (rule set_conflict_rel; assumption)
+    subgoal by auto
     apply (rule propagate_lit_wl[OF _ _ H H]; assumption?;
        solves \<open>(simp add: assms literals_are_\<L>\<^sub>i\<^sub>n_keep_watch assms
         unit_propagation_inner_loop_wl_loop_pre_def)\<close>)
