@@ -427,7 +427,7 @@ definition unit_propagation_inner_loop_body_wl_D
                 if val_L' = Some False
                 then RETURN (j+1, w+1, set_conflict_wl (get_clauses_wl S \<propto> C) S)
                 else do {
-                  S \<leftarrow> propagate_lit_wl_bin K C i S;
+                  S \<leftarrow> propagate_lit_wl L' C i S;
                   RETURN (j+1, w+1, S)}
               }
             | Some f \<Rightarrow> do {
@@ -663,23 +663,28 @@ proof -
 
   have propagate_lit_wl:
       \<open>(propagate_lit_wl
-         (get_clauses_wl S \<propto> x1a ! (1 - (if get_clauses_wl S \<propto> x1a ! 0 = K then 0 else 1)))
+         oth_lit
          x1a
          (if get_clauses_wl S \<propto> x1a ! 0 = K then 0 else 1)
           S) \<le> \<Down> {(T', T).
          T = T' \<and>
          literals_are_\<L>\<^sub>i\<^sub>n \<A> T'}
        (propagate_lit_wl
-        (get_clauses_wl S \<propto> x1 !
-         (1 - (if get_clauses_wl S \<propto> x1 ! 0 = K then 0
-               else 1)))
+        oth_lit'
        x1
         (if get_clauses_wl S \<propto> x1 ! 0 = K then 0 else 1) S)\<close>
   if \<open>unit_prop_body_wl_D_inv S j w K\<close> and \<open>\<not>x1 \<notin># dom_m (get_clauses_wl S)\<close> and
     \<open>(watched_by S K) ! w = (x1a, x2a)\<close> and
     \<open>(watched_by S K) ! w = (x1, x2)\<close> and
-    \<open>literals_are_\<L>\<^sub>i\<^sub>n \<A> S\<close>
-  for f f' j S x1 x2 x1a x2a
+    \<open>literals_are_\<L>\<^sub>i\<^sub>n \<A> S\<close>and
+    oth_lit: \<open>(oth_lit, oth_lit') \<in> {(L, L').
+       L = L' \<and>
+       L =
+       get_clauses_wl S \<propto> x1a !
+       (1 -
+        (if get_clauses_wl S \<propto> x1a ! 0 = K then 0
+         else 1))}\<close>
+  for f f' j S x1 x2 x1a x2a oth_lit oth_lit'
   unfolding propagate_lit_wl_def S
   apply (refine_vcg mop_clauses_swap_itself_spec)
   using that \<A>\<^sub>i\<^sub>n
@@ -716,32 +721,39 @@ proof -
     for S j w K A x1
     by (cases S; cases \<open>j=w\<close>) (auto simp: keep_watch_def)
   have update_blit_wl: \<open>update_blit_wl K x1a b' j w
-        (get_clauses_wl (keep_watch K j w S) \<propto> x1a !
-          (1 - (if get_clauses_wl (keep_watch K j w S) \<propto> x1a ! 0 = K then 0 else 1)))
+        oth_lit
         (keep_watch K j w S)
         \<le> \<Down> {((j', n', T'), j, n, T).
             j' = j \<and> n' = n \<and> T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n \<A> T'}
           (update_blit_wl K x1 b j w
-            (get_clauses_wl (keep_watch K j w S) \<propto> x1 !
-              (1 -
-              (if get_clauses_wl (keep_watch K j w S) \<propto> x1 ! 0 = K then 0
-                else 1)))
+            oth_lit'
             (keep_watch K j w S))\<close>
     if
       x: \<open>watched_by S K ! w = (x1, x2)\<close> and
       xa: \<open>watched_by S K ! w = (x1a, x2a)\<close> and
       unit: \<open>unit_prop_body_wl_D_inv (keep_watch K j w S) j w K\<close> and
       x1: \<open>\<not>x1 \<notin># dom_m (get_clauses_wl (keep_watch K j w S))\<close> and
-      bb': \<open>(b, b') \<in> Id\<close>
-    for x1 x2 x1a x2a b b'
+      bb': \<open>(b, b') \<in> Id\<close> and
+      oth_lit: \<open>(oth_lit, oth_lit') \<in> {(L, L').
+       L = L' \<and>
+       L =
+       get_clauses_wl (keep_watch K j w S) \<propto> x1a !
+       (1 -
+        (if get_clauses_wl (keep_watch K j w S) \<propto> x1a ! 0 = K then 0
+         else 1))}\<close>
+    for x1 x2 x1a x2a b b' oth_lit oth_lit'
   proof -
-    have [simp]: \<open>x1a = x1\<close> and x1a: \<open>x1 \<in># dom_m (get_clauses_wl S)\<close>
+    have [simp]: \<open>x1a = x1\<close> and x1a: \<open>x1 \<in># dom_m (get_clauses_wl S)\<close> and [simp]: \<open>oth_lit' = oth_lit\<close> and
+      oth: \<open>oth_lit = get_clauses_wl (keep_watch K j w S) \<propto> x1a !
+       (1 -
+        (if get_clauses_wl (keep_watch K j w S) \<propto> x1a ! 0 = K then 0
+         else 1))\<close>
       \<open>fst (watched_by (keep_watch K j w S) K ! w) \<in># dom_m (get_clauses_wl (keep_watch K j w S))\<close>
-      using x xa x1 unit unfolding unit_prop_body_wl_D_inv_def unit_prop_body_wl_inv_def
+      using x xa x1 unit oth_lit unfolding unit_prop_body_wl_D_inv_def unit_prop_body_wl_inv_def
       by auto
 
     have \<open>get_clauses_wl S \<propto>x1 ! 0 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A> \<and> get_clauses_wl S \<propto> x1 ! Suc 0 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<close>
-      using assms that
+      using assms that oth
         literals_are_in_\<L>\<^sub>i\<^sub>n_nth[of x1 S]
         literals_are_in_\<L>\<^sub>i\<^sub>n_in_\<L>\<^sub>a\<^sub>l\<^sub>l[of \<A> \<open>get_clauses_wl S \<propto> x1\<close> 0]
         literals_are_in_\<L>\<^sub>i\<^sub>n_in_\<L>\<^sub>a\<^sub>l\<^sub>l[of \<A> \<open>get_clauses_wl S \<propto> x1\<close> 1]
@@ -750,7 +762,7 @@ proof -
       apply normalize_goal+
       by (auto simp del:  simp: x1a)
     then show ?thesis
-      using assms unit bb'
+      using assms unit bb' oth
       by (cases S)
         (auto simp: keep_watch_def update_blit_wl_def literals_are_\<L>\<^sub>i\<^sub>n_def
           blits_in_\<L>\<^sub>i\<^sub>n_propagate blits_in_\<L>\<^sub>i\<^sub>n_keep_watch' unit_prop_body_wl_D_inv_def)
@@ -883,7 +895,7 @@ proof -
     unfolding unit_propagation_inner_loop_body_wl_D_def find_unwatched_wl_def[symmetric]
     unfolding unit_propagation_inner_loop_body_wl_def
     supply [[goals_limit=1]]
-    apply (refine_rcg find_unwatched f' mop_clauses_at_itself[THEN fref_to_Down_curry2])
+    apply (refine_rcg find_unwatched f' mop_clauses_at_itself_spec)
     subgoal using assms unfolding unit_propagation_inner_loop_wl_loop_D_inv_def
         unit_propagation_inner_loop_wl_loop_D_pre_def unit_propagation_inner_loop_wl_loop_pre_def
       by auto
@@ -907,7 +919,6 @@ proof -
           unit_propagation_inner_loop_wl_loop_pre_def)
     subgoal by simp
     subgoal by simp
-    subgoal by simp
     subgoal by (rule update_blit_wl) auto
     subgoal by simp
     subgoal
@@ -919,10 +930,10 @@ proof -
     subgoal by (auto simp: twl_st_wl)
     subgoal for x1 x2 x1a x2a f fa
       by (rule set_conflict_rel)
-    subgoal
-      by (rule propagate_lit_wl[OF _ _ H H]; assumption?)
-       (simp add: assms literals_are_\<L>\<^sub>i\<^sub>n_keep_watch assms
-        unit_propagation_inner_loop_wl_loop_pre_def)
+    apply (rule propagate_lit_wl[OF _ _ H H]; assumption?;
+       solves \<open>(simp add: assms literals_are_\<L>\<^sub>i\<^sub>n_keep_watch assms
+        unit_propagation_inner_loop_wl_loop_pre_def)\<close>)
+    subgoal by (auto simp: twl_st_wl)
     subgoal by (auto simp: twl_st_wl)
     subgoal by (rule update_blit_wl') auto
     subgoal by (rule update_clause_wl[OF _ _ _ _ _ _ _ H H]; assumption?) (auto simp: assms
