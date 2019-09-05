@@ -438,7 +438,7 @@ definition unit_propagation_inner_loop_body_wl_D
         else if C \<notin># dom_m (get_clauses_wl S)
         then RETURN (j, w+1, S)
         else do {
-          let i = (if ((get_clauses_wl S)\<propto>C) ! 0 = L then 0 else 1);
+          i \<leftarrow> pos_of_watched (get_clauses_wl S) C L;
           L' \<leftarrow> mop_clauses_at (get_clauses_wl S) C (1-i);
           let val_L' = polarity (get_trail_wl S) L';
           if val_L' = Some True
@@ -455,7 +455,7 @@ definition unit_propagation_inner_loop_body_wl_D
                   RETURN (j+1, w+1, S)}
               }
             | Some f \<Rightarrow> do {
-                let K = get_clauses_wl S \<propto> C ! f;
+                K \<leftarrow> mop_clauses_at (get_clauses_wl S) C f;
                 let val_L' = polarity (get_trail_wl S) K;
                 if val_L' = Some True
                 then update_blit_wl L C b j w K S
@@ -764,17 +764,12 @@ proof -
       oth_lit: \<open>(oth_lit, oth_lit') \<in> {(L, L').
        L = L' \<and>
        L =
-       get_clauses_wl (keep_watch K j w S) \<propto> x1a !
-       (1 -
-        (if get_clauses_wl (keep_watch K j w S) \<propto> x1a ! 0 = K then 0
-         else 1))}\<close>
-    for x1 x2 x1a x2a b b' oth_lit oth_lit'
+       get_clauses_wl (keep_watch K j w S) \<propto> x1a ! (1 - i)}\<close> and
+      \<open>(i, i') \<in> nat_rel\<close>
+    for x1 x2 x1a x2a b b' oth_lit oth_lit' i i'
   proof -
     have [simp]: \<open>x1a = x1\<close> and x1a: \<open>x1 \<in># dom_m (get_clauses_wl S)\<close> and [simp]: \<open>oth_lit' = oth_lit\<close> and
-      oth: \<open>oth_lit = get_clauses_wl (keep_watch K j w S) \<propto> x1a !
-       (1 -
-        (if get_clauses_wl (keep_watch K j w S) \<propto> x1a ! 0 = K then 0
-         else 1))\<close>
+      oth: \<open>oth_lit = get_clauses_wl (keep_watch K j w S) \<propto> x1a ! (1 - i)\<close>
       \<open>fst (watched_by (keep_watch K j w S) K ! w) \<in># dom_m (get_clauses_wl (keep_watch K j w S))\<close>
       using x xa x1 unit oth_lit unfolding unit_prop_body_wl_D_inv_def unit_prop_body_wl_inv_def
       by auto
@@ -790,9 +785,12 @@ proof -
       by (auto simp del:  simp: x1a)
     then show ?thesis
       using assms unit bb' oth
-      by (cases S)
-        (auto simp: keep_watch_def update_blit_wl_def literals_are_\<L>\<^sub>i\<^sub>n_def
-          blits_in_\<L>\<^sub>i\<^sub>n_propagate blits_in_\<L>\<^sub>i\<^sub>n_keep_watch' unit_prop_body_wl_D_inv_def)
+      apply (cases S)
+      apply  (auto simp: keep_watch_def update_blit_wl_def literals_are_\<L>\<^sub>i\<^sub>n_def
+          blits_in_\<L>\<^sub>i\<^sub>n_propagate blits_in_\<L>\<^sub>i\<^sub>n_keep_watch' unit_prop_body_wl_D_inv_def
+          intro!: ASSERT_refine_right)
+apply (rule blits_in_\<L>\<^sub>i\<^sub>n_keep_watch')
+apply auto
   qed
   have update_blit_wl': \<open>update_blit_wl K x1a b' j w (get_clauses_wl (keep_watch K j w S) \<propto> x1a ! x)
         (keep_watch K j w S)
@@ -963,11 +961,19 @@ proof -
             Let_def blits_in_\<L>\<^sub>i\<^sub>n_propagate)
      done
   qed
+
+  have pos_of_watched:
+     \<open>((N, C, K), (N', C', K')) \<in> Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<Longrightarrow>
+     pos_of_watched N C K \<le> \<Down> Id (pos_of_watched N' C' K')\<close>
+     for N N' C C' K K'
+     unfolding pos_of_watched_def
+     by refine_rcg (auto simp:)
+
   show ?thesis
     unfolding unit_propagation_inner_loop_body_wl_D_def find_unwatched_wl_def[symmetric]
     unfolding unit_propagation_inner_loop_body_wl_def
     supply [[goals_limit=1]]
-    apply (refine_rcg find_unwatched f' mop_clauses_at_itself_spec)
+    apply (refine_rcg find_unwatched f' mop_clauses_at_itself_spec pos_of_watched)
     subgoal using assms unfolding unit_propagation_inner_loop_wl_loop_D_inv_def
         unit_propagation_inner_loop_wl_loop_D_pre_def unit_propagation_inner_loop_wl_loop_pre_def
       by auto
@@ -991,7 +997,8 @@ proof -
           unit_propagation_inner_loop_wl_loop_pre_def)
     subgoal by simp
     subgoal by simp
-    subgoal by (rule update_blit_wl) auto
+    subgoal by simp
+    subgoal apply (rule update_blit_wl) apply auto sorry
     subgoal by simp
     subgoal
       using assms
