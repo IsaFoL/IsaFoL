@@ -331,6 +331,12 @@ lemma mop_clauses_at_itself_spec:
      mop_clauses_at N C i \<le> \<Down> {(L, L'). L = L' \<and> L = N \<propto> C ! i} (mop_clauses_at N' C' i')\<close>
   by (auto intro!: frefI nres_relI ASSERT_refine_right simp: mop_clauses_at_def)
 
+lemma mop_clauses_at_itself_spec2:
+  \<open>((N, C, i), (N', C', i')) \<in> Id \<Longrightarrow>
+     mop_clauses_at N C i \<le> \<Down> {(L, L'). L = L' \<and> L = N \<propto> C ! i \<and> C \<in># dom_m N \<and> i < length (N \<propto> C)}
+      (mop_clauses_at N' C' i')\<close>
+  by (auto intro!: frefI nres_relI ASSERT_refine_right simp: mop_clauses_at_def)
+
 lemma mop_clauses_swap_itself:
   \<open>(uncurry3 mop_clauses_swap, uncurry3 mop_clauses_swap) \<in> Id \<times>\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f Id \<rightarrow>\<^sub>f \<langle>Id\<rangle>nres_rel\<close>
   by (auto intro!: frefI nres_relI)
@@ -338,6 +344,13 @@ lemma mop_clauses_swap_itself:
 lemma mop_clauses_swap_itself_spec:
   \<open>((N, C, i, j), (N', C', i', j')) \<in> Id \<Longrightarrow>
      mop_clauses_swap N C i j \<le> \<Down> {(L, L'). L = L' \<and> L = op_clauses_swap N' C' i' j' \<and> C' \<in># dom_m N} (mop_clauses_swap N' C' i' j')\<close>
+  by (auto intro!: frefI nres_relI ASSERT_refine_right simp: mop_clauses_swap_def
+    op_clauses_swap_def)
+
+lemma mop_clauses_swap_itself_spec2:
+  \<open>((N, C, i, j), (N', C', i', j')) \<in> Id \<Longrightarrow>
+     mop_clauses_swap N C i j \<le> \<Down> {(L, L'). L = L' \<and> L = op_clauses_swap N' C' i' j' \<and> C' \<in># dom_m N \<and>
+       i < length (N \<propto> C) \<and> j < length (N \<propto> C)} (mop_clauses_swap N' C' i' j')\<close>
   by (auto intro!: frefI nres_relI ASSERT_refine_right simp: mop_clauses_swap_def
     op_clauses_swap_def)
 

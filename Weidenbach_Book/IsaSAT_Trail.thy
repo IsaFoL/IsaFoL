@@ -519,7 +519,7 @@ lemma cons_trail_Propagated_tr2:
   \<open>(((L, C), M), ((L', C'), M')) \<in> Id \<times>\<^sub>f Id \<times>\<^sub>f trail_pol \<A> \<Longrightarrow> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A> \<Longrightarrow>
       C \<noteq> DECISION_REASON \<Longrightarrow>
   cons_trail_Propagated_tr L C M
-  \<le> \<Down> ({(M'', M'''). (M'', M''') \<in> trail_pol \<A> \<and> M''' = Propagated L C # M'}) (cons_trail_propagate_wl_D L' C' M')\<close>
+  \<le> \<Down> ({(M'', M'''). (M'', M''') \<in> trail_pol \<A> \<and> M''' = Propagated L C # M' \<and> no_dup M'''}) (cons_trail_propagate_wl_D L' C' M')\<close>
   using cons_trail_Propagated_tr[THEN fref_to_Down_curry2, of \<A> L' C' M' L C M]
   unfolding cons_trail_Propagated_tr_def cons_trail_propagate_wl_D_def
   using cons_trail_Propagated_tr_pre[of M M' \<A> L C]
@@ -527,7 +527,7 @@ lemma cons_trail_Propagated_tr2:
   apply refine_vcg
   subgoal by auto
   subgoal
-    by auto
+    by (auto simp: trail_pol_def)
   done
 
 

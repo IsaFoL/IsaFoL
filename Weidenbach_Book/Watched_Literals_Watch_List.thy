@@ -461,6 +461,7 @@ qed
 definition propagate_lit_wl_general :: \<open>'v literal \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
   \<open>propagate_lit_wl_general = (\<lambda>L' C i (M, N,  D, NE, UE, Q, W). do {
       ASSERT(C \<in># dom_m N);
+      ASSERT(D = None);
       M \<leftarrow> cons_trail_propagate_l L' C M;
       N \<leftarrow> (if length (N \<propto> C) > 2 then mop_clauses_swap N C 0 (Suc 0 - i) else RETURN N);
       RETURN (M, N, D, NE, UE, add_mset (-L') Q, W) })\<close>
@@ -468,6 +469,7 @@ definition propagate_lit_wl_general :: \<open>'v literal \<Rightarrow> nat \<Rig
 definition propagate_lit_wl :: \<open>'v literal \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
   \<open>propagate_lit_wl = (\<lambda>L' C i (M, N,  D, NE, UE, Q, W). do {
       ASSERT(C \<in># dom_m N);
+      ASSERT(D = None);
       M \<leftarrow> cons_trail_propagate_l L' C M;
       N \<leftarrow> mop_clauses_swap N C 0 (Suc 0 - i);
       RETURN (M, N, D, NE, UE, add_mset (-L') Q, W)
@@ -475,12 +477,20 @@ definition propagate_lit_wl :: \<open>'v literal \<Rightarrow> nat \<Rightarrow>
 
 definition propagate_lit_wl_bin :: \<open>'v literal \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
   \<open>propagate_lit_wl_bin = (\<lambda>L' C i (M, N,  D, NE, UE, Q, W). do {
+      ASSERT(D = None);
       M \<leftarrow> cons_trail_propagate_l L' C M;
-      RETURN ( M, N, D, NE, UE, add_mset (-L') Q, W)})\<close>
+      RETURN (M, N, D, NE, UE, add_mset (-L') Q, W)})\<close>
 
-definition keep_watch where
+definition keep_watch :: \<open>'v literal \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl\<close> where
   \<open>keep_watch = (\<lambda>L i j (M, N,  D, NE, UE, Q, W).
       (M, N,  D, NE, UE, Q, W(L := (W L)[i := W L ! j])))\<close>
+
+definition mop_keep_watch :: \<open>'v literal \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
+  \<open>mop_keep_watch = (\<lambda>L i j S. do {
+    ASSERT(i < length (watched_by S L));
+    ASSERT(j < length (watched_by S L));
+    RETURN (keep_watch L i j S)
+  })\<close>
 
 lemma length_watched_by_keep_watch[twl_st_wl]:
   \<open>length (watched_by (keep_watch L i j S) K) = length (watched_by S K)\<close>
@@ -498,7 +508,9 @@ lemma watched_by_keep_watch_eq[twl_st_wl, simp]:
 definition update_clause_wl :: \<open>'v literal \<Rightarrow> nat \<Rightarrow> bool \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'v twl_st_wl \<Rightarrow>
     (nat \<times> nat \<times> 'v twl_st_wl) nres\<close> where
   \<open>update_clause_wl = (\<lambda>(L::'v literal) C b j w i f (M, N,  D, NE, UE, Q, W). do {
-     let K' = (N\<propto>C) ! f;
+     ASSERT(L \<in># all_lits_of_mm (mset `# ran_mf N + (NE + UE)));
+     K' \<leftarrow> mop_clauses_at N C f;
+     ASSERT(K' \<in># all_lits_of_mm (mset `# ran_mf N + (NE + UE)) \<and> L \<noteq> K');
      N' \<leftarrow> mop_clauses_swap N C i f;
      RETURN (j, w+1, (M, N', D, NE, UE, Q, W(K' := W K' @ [(C, L, b)])))
   })\<close>
@@ -1115,12 +1127,18 @@ definition unit_propagation_inner_loop_wl_loop_pre where
      w < length (watched_by S L) \<and> j \<le> w \<and>
      unit_propagation_inner_loop_wl_loop_inv L (j, w, S))\<close>
 
+definition mop_watched_by :: \<open>'v twl_st_wl \<Rightarrow> 'v literal \<Rightarrow> nat \<Rightarrow> _ nres\<close> where
+\<open>mop_watched_by S L w = do {
+  ASSERT(w < length (watched_by S L));
+  RETURN ((watched_by S L) ! w)
+}\<close>
+
 text \<open>It was too hard to align the programi unto a refinable form directly.\<close>
 definition unit_propagation_inner_loop_body_wl_int :: \<open>'v literal \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'v twl_st_wl \<Rightarrow>
     (nat \<times> nat \<times> 'v twl_st_wl) nres\<close> where
   \<open>unit_propagation_inner_loop_body_wl_int L j w S = do {
       ASSERT(unit_propagation_inner_loop_wl_loop_pre L (j, w, S));
-      let (C, K, b) = (watched_by S L) ! w;
+      let (C, K, b) = watched_by S L ! w;
       let S = keep_watch L j w S;
       ASSERT(unit_prop_body_wl_inv S j w L);
       let val_K = polarity (get_trail_wl S) K;
@@ -1479,7 +1497,8 @@ lemma correct_watching_except_correct_watching_except_propagate_lit_wl:
   assumes
     corr: \<open>correct_watching_except j w L S\<close> and
     i_le: \<open>Suc 0 < length (get_clauses_wl S \<propto> C)\<close> and
-    C: \<open>C \<in># dom_m (get_clauses_wl S)\<close> and undef: \<open>undefined_lit (get_trail_wl S) L'\<close>
+    C: \<open>C \<in># dom_m (get_clauses_wl S)\<close> and undef: \<open>undefined_lit (get_trail_wl S) L'\<close> and
+    confl: \<open>get_conflict_wl S = None\<close>
   shows \<open>propagate_lit_wl_general L' C i S \<le> SPEC(\<lambda>c. correct_watching_except j w L c)\<close>
 proof -
   obtain M N D NE UE Q W where S: \<open>S = (M, N, D, NE, UE, Q, W)\<close> by (cases S)
@@ -1527,9 +1546,10 @@ proof -
     by (cases C')
       (auto simp: correctly_marked_as_binary.simps N'_def)
   have H6: \<open>propagate_lit_wl_general L' C i (M, N, D, NE, UE, Q, W) = RETURN (Propagated L' C # M, N', D, NE, UE, add_mset (- L') Q, W)\<close>
-   using assms \<open>Suc 0 - i < length (N \<propto> C)\<close> undef
+   using assms \<open>Suc 0 - i < length (N \<propto> C)\<close> undef confl
    by (auto simp: mop_clauses_swap_def S propagate_lit_wl_general_def N'_def
      cons_trail_propagate_l_def)
+
   show ?thesis
     using corr unfolding S H6 apply -
     apply (rule RETURN_rule)
@@ -2712,7 +2732,7 @@ proof -
       \<open>(propagate_lit_wl_general (get_clauses_wl S \<propto> x1 ! (Suc 0 - i)) x1 i (keep_watch L j w S)
      \<le> \<Down> (state_wl_l (Some (L, Suc w)))
          (propagate_lit_l (get_clauses_l (fst X2) \<propto> snd X2 ! (Suc 0 - i)) (snd X2) i (fst X2)))\<close>
-      using X2 S_S' SLw j_w w_le multi_member_split[OF x1_dom] unfolding C'
+      using X2 S_S' SLw j_w w_le multi_member_split[OF x1_dom] confl_S unfolding C'
       by (cases S; cases S')
         (auto simp: state_wl_l_def propagate_lit_wl_general_def keep_watch_def
           propagate_lit_l_def drop_map mop_clauses_swap_def cons_trail_propagate_l_def
@@ -2720,7 +2740,7 @@ proof -
     moreover have \<open>correct_watching_except (Suc j) (Suc w) L (keep_watch L j w S) \<Longrightarrow> undefined_lit (get_trail_wl S) (get_clauses_wl S \<propto> x1 ! (Suc 0 - i)) \<Longrightarrow>
     propagate_lit_wl_general (get_clauses_wl S \<propto> x1 ! (Suc 0 - i)) x1 i (keep_watch L j w S) \<le> SPEC (correct_watching_except (Suc j) (Suc w) L)\<close>
       apply (rule correct_watching_except_correct_watching_except_propagate_lit_wl)
-      using w_le j_w \<open>Suc 0 < length (get_clauses_wl S \<propto> x1)\<close> by auto
+      using w_le j_w \<open>Suc 0 < length (get_clauses_wl S \<propto> x1)\<close> confl_S by auto
     moreover have \<open>correct_watching_except (Suc j) (Suc w) L (keep_watch L j w S)\<close>
       by (simp add: corr_w correct_watching_except_correct_watching_except_Suc_Suc_keep_watch j_w w_le)
     ultimately show ?thesis
@@ -3076,11 +3096,15 @@ proof -
       subgoal using distinct_N_x1 i_le fx' xa i_le unfolding L_i x'
         by (auto simp: S nth_eq_iff_index_eq i_def)
       done
+    moreover have \<open>N \<propto> x1 ! xa \<in># all_lits_of_mm ({#mset (fst x). x \<in># ran_m N#} + (NE + UE))\<close>
+      using dom xa f fx'
+      by (auto dest!: multi_member_split[of x1] simp: ran_m_def S all_lits_of_mm_add_mset
+        in_clause_in_all_lits_of_m)
     ultimately show ?thesis
-      using S_S' w_le j_w SLw confl k
-      unfolding update_clause_wl_def update_clause_l_def i[symmetric] C'_bl
+      using S_S' w_le j_w SLw confl k alien_L' unit_T
+      unfolding update_clause_wl_def update_clause_l_def i[symmetric] C'_bl T_def[symmetric]
       by (cases S')
-        (auto simp: Let_def X2 keep_watch_def state_wl_l_def S x2'
+        (auto simp: Let_def X2 keep_watch_def state_wl_l_def S x2' mop_clauses_at_def
           mop_clauses_swap_def drop_map map_update dest: multi_member_split
           intro!: ASSERT_refine_right)
   qed
@@ -3330,7 +3354,7 @@ proof -
         by (auto simp: L_i keep_watch_def nth_eq_iff_index_eq)
     }
     ultimately show ?thesis
-      using j_w w_le oth i alien_L' unit_T
+      using j_w w_le oth i alien_L' unit_T N_x1_in_L
       unfolding i[symmetric] T_def[symmetric]
       by (auto simp: S update_blit_wl_def keep_watch_def)
   qed
@@ -3338,8 +3362,7 @@ proof -
      \<open>((N, C, K), (N', C', K')) \<in> Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<and> N = get_clauses_wl S \<and> C = fst (watched_by S L ! w) \<and> K = L \<Longrightarrow>
      pos_of_watched N C K \<le> \<Down> ?pos_of_watched (pos_of_watched N' C' K')\<close>
      for N N' C C' K K'
-     unfolding pos_of_watched_def
-     by refine_rcg (auto simp: i_def)
+     unfolding pos_of_watched_def     by refine_rcg (auto simp: i_def)
 
   show 1: ?propa
     (is \<open>_ \<le> \<Down> ?unit _\<close>)

@@ -2052,7 +2052,7 @@ definition mop_arena_lit where
       RETURN (arena_lit arena s)
   }\<close>
 
-definition mop_arena_lit2 where
+definition mop_arena_lit2 :: \<open>arena \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat literal nres\<close> where
 \<open>mop_arena_lit2 arena i j = do {
   ASSERT(arena_lit_pre arena (i+j));
   ASSERT(i+j < length arena);
@@ -2089,6 +2089,20 @@ lemma mop_arena_lit2[mop_arena_lit]:
   by refine_rcg
     (auto simp: arena_lifting valid_arena_swap_lits arena_lit_pre_def arena_is_valid_clause_idx_and_access_def
       intro!: exI[of _ C])
+
+definition mop_arena_lit2' :: \<open>nat set \<Rightarrow> arena \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat literal nres\<close> where
+\<open>mop_arena_lit2' vdom = mop_arena_lit2\<close>
+
+
+
+lemma mop_arena_lit2'[mop_arena_lit]:
+  assumes valid: \<open>valid_arena arena N vdom\<close> and
+    i: \<open>(C, C') \<in> nat_rel\<close> \<open>(i, i') \<in> nat_rel\<close>
+  shows
+    \<open>mop_arena_lit2' vdom arena C i \<le> \<Down>Id (mop_clauses_at N C' i')\<close>
+  using mop_arena_lit2[OF assms]
+  unfolding mop_arena_lit2'_def
+  .
 
 lemma arena_lit_pre2_arena_lit[dest]:
    \<open>arena_lit_pre2 N i j \<Longrightarrow> arena_lit_pre N (i+j)\<close>

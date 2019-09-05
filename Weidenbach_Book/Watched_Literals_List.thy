@@ -709,7 +709,7 @@ where
 
 definition pos_of_watched :: \<open>'v clauses_l \<Rightarrow> nat \<Rightarrow> 'v literal \<Rightarrow> nat nres\<close> where
   \<open>pos_of_watched N C L = do {
-     ASSERT(length (N \<propto> C) > 0);
+     ASSERT(length (N \<propto> C) > 0 \<and> C \<in># dom_m N);
      RETURN (if (N \<propto> C) ! 0 = L then 0 else 1)
   }\<close>
 
