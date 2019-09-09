@@ -657,16 +657,23 @@ lemma polarity_spec':
       no_dup_cannot_not_lit_and_uminus
       split: option.splits\<close>)
 
+definition mop_polarity_l :: \<open>'v twl_st_l \<Rightarrow> 'v literal \<Rightarrow> bool option nres\<close> where
+\<open>mop_polarity_l S L = do {
+    ASSERT(L \<in># all_lits_of_mm (mset `# ran_mf (get_clauses_l S)));
+    ASSERT(no_dup (get_trail_l S));
+    RETURN(polarity (get_trail_l S) L)
+}\<close>
+
 definition find_unwatched_l where
   \<open>find_unwatched_l M C = SPEC (\<lambda>(found).
       (found = None \<longleftrightarrow> (\<forall>L\<in>set (unwatched_l C). -L \<in> lits_of_l M)) \<and>
       (\<forall>j. found = Some j \<longrightarrow> (j < length C \<and> (undefined_lit M (C!j) \<or> C!j \<in> lits_of_l M) \<and> j \<ge> 2)))\<close>
 
 
-definition set_conflict_l :: \<open>'v clause_l \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close> where
+definition set_conflict_l :: \<open>nat \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close> where
   \<open>set_conflict_l = (\<lambda>C (M, N, D, NE, UE, WS, Q). do {
-      ASSERT(D = None);
-      RETURN (M, N, Some (mset C), NE, UE, {#}, {#})
+      ASSERT(D = None \<and> C \<in># dom_m N);
+      RETURN (M, N, Some (mset (N \<propto> C)), NE, UE, {#}, {#})
    })\<close>
 
 
@@ -718,12 +725,12 @@ definition unit_propagation_inner_loop_body_l :: \<open>'v literal \<Rightarrow>
   \<open>unit_propagation_inner_loop_body_l L C S = do {
       ASSERT(unit_propagation_inner_loop_body_l_inv L C S);
       K \<leftarrow> SPEC(\<lambda>K. K \<in> set (get_clauses_l S \<propto> C));
-      let val_K = polarity (get_trail_l S) K;
+      val_K \<leftarrow> mop_polarity_l S K;
       if val_K = Some True then RETURN S
       else do {
         i \<leftarrow> pos_of_watched (get_clauses_l S) C L;
         L' \<leftarrow> mop_clauses_at (get_clauses_l S) C (1 - i);
-        let val_L' = polarity (get_trail_l S) L';
+        val_L' \<leftarrow> mop_polarity_l S L';
         if val_L' = Some True
         then RETURN S
         else do {
@@ -731,12 +738,12 @@ definition unit_propagation_inner_loop_body_l :: \<open>'v literal \<Rightarrow>
             case f of
               None \<Rightarrow>
                 if val_L' = Some False
-                then set_conflict_l (get_clauses_l S \<propto> C) S
+                then set_conflict_l C S
                 else propagate_lit_l L' C i S
             | Some f \<Rightarrow> do {
                 ASSERT(f < length (get_clauses_l S \<propto> C));
                 K \<leftarrow> mop_clauses_at (get_clauses_l S) C f;
-                let val_K = polarity (get_trail_l S) K;
+                val_K \<leftarrow> mop_polarity_l S K;
                 if val_K = Some True then
                   RETURN S
                 else
@@ -899,17 +906,17 @@ proof -
   have D_None: \<open>get_conflict_l S = None\<close>
     using confl SS' by (cases \<open>get_conflict_l S\<close>) (auto simp: S WS'_def')
 
-  have \<open>set_conflict_l (get_clauses_l ?S \<propto> C) ?S \<le> SPEC twl_list_invs\<close>
+  have \<open>set_conflict_l C ?S \<le> SPEC twl_list_invs\<close>
     using add_inv C_N_U D_None unfolding twl_list_invs_def
     by (auto dest: in_diffD simp: set_conflicting_def S
       set_conflict_l_def mset_take_mset_drop_mset' intro!: ASSERT_leI)
-  then have confl_rel: \<open>set_conflict_l (get_clauses_l ?S \<propto> C) ?S \<le>
+  then have confl_rel: \<open>set_conflict_l C ?S \<le>
      SPEC(\<lambda>c.
        (c, set_conflicting (twl_clause_of C')
        (set_clauses_to_update
         (remove1_mset (L, twl_clause_of C') (clauses_to_update S')) S')) \<in>
         {(S, S'). (S, S') \<in> twl_st_l (Some L) \<and> twl_list_invs S})\<close>
-    using SS' WS D_None by (auto simp: twl_st_l_def image_mset_remove1_mset_if set_conflicting_def
+    using SS' WS D_None C_N_U by (auto simp: twl_st_l_def image_mset_remove1_mset_if set_conflicting_def
       set_conflict_l_def mset_take_mset_drop_mset')
 
   have propa_rel:
@@ -1057,12 +1064,9 @@ proof -
              (set_clauses_to_update_l (remove1_mset C (clauses_to_update_l S))
                S))
            C (the K);
-     (if polarity
-         (get_trail_l
-           (set_clauses_to_update_l
-             (remove1_mset C (clauses_to_update_l S)) S))
-         K' =
-        Some True
+     val_K\<leftarrow>  mop_polarity_l 
+        (set_clauses_to_update_l (remove1_mset C (clauses_to_update_l S)) S) K'; 
+     (if val_K = Some True
      then RETURN (set_clauses_to_update_l (remove1_mset C (clauses_to_update_l S)) S)
      else update_clause_l C j (the K) (set_clauses_to_update_l (remove1_mset C (clauses_to_update_l S)) S))}
     \<le> \<Down> {(S, S'). (S, S') \<in> twl_st_l (Some L) \<and> twl_list_invs S}
@@ -1293,8 +1297,11 @@ proof -
         then RETURN (set_clauses_to_update_l (remove1_mset C (clauses_to_update_l S)) S)
         else update_clause_l C i
               (the K) (set_clauses_to_update_l (remove1_mset C (clauses_to_update_l S)) S)}\<close>
-      using C_N_U K'_le unfolding i_def
-      by (auto simp add: S i_def polarity_def mop_clauses_at_def dest: in_lits_of_l_defined_litD)
+      using C_N_U K'_le n_d unfolding i_def
+      by (auto simp add: S i_def polarity_def mop_clauses_at_def mop_polarity_l_def
+            ran_m_def all_lits_of_mm_add_mset in_clause_in_all_lits_of_m dest!: multi_member_split[of C]
+         dest: in_lits_of_l_defined_litD)
+
     have alt_defs: \<open>C' = N \<propto> C\<close>
       unfolding C' S by auto
     have list_invs_blit: \<open>twl_list_invs (M, N, D, NE, UE, WS', Q)\<close>
@@ -1334,7 +1341,7 @@ proof -
         unfolding i_def[symmetric] get_clauses_l_set_clauses_to_update_l
         by (auto simp: S update_clause_l_def update_clauseS_def twl_st_l_def WS'_def'
           RETURN_SPEC_refine RES_RES_RETURN_RES RETURN_def RES_RES2_RETURN_RES H
-          mop_clauses_swap_def op_clauses_at_def
+          mop_clauses_swap_def op_clauses_at_def 
             intro!: RES_refine exI[of _ \<open>N \<propto> C ! the K\<close>] ASSERT_leI)
       done
   qed
@@ -1342,13 +1349,15 @@ proof -
     \<open>unit_propagation_inner_loop_body = (\<lambda>L C S. do {
       do {
         bL' \<leftarrow> SPEC (\<lambda>K. K \<in># clause C);
-        if bL' \<in> lits_of_l (get_trail S)
+        let val_bl' = bL' \<in> lits_of_l (get_trail S);
+        if val_bl'
         then RETURN S
         else do {
           i \<leftarrow> RETURN i;
           L' \<leftarrow> SPEC (\<lambda>K. K \<in># watched C - {#L#});
           ASSERT (watched C = {#L, L'#});
-          if L' \<in> lits_of_l (get_trail S)
+          let val_L' = L' \<in> lits_of_l (get_trail S);
+          if val_L'
           then RETURN S
           else
             if \<forall>L \<in># unwatched C. -L \<in> lits_of_l (get_trail S)
@@ -1372,27 +1381,55 @@ proof -
     unfolding pos_of_watched_def
     by (auto simp: S unit_propagation_inner_loop_body_l_inv_def i_def
        intro!: ASSERT_leI)
+
+  define pol_spec where \<open>pol_spec bL' = {(b, b'). (b = None \<longrightarrow> \<not>b') \<and> (b = Some True \<longleftrightarrow> b') \<and> (b = Some False \<longleftrightarrow> -bL'
+          \<in> lits_of_l 
+           (get_trail 
+            (set_clauses_to_update 
+             (remove1_mset (L, twl_clause_of C') 
+              (clauses_to_update S'))
+             S')))}\<close> for bL'
+  have [refine]: \<open>unit_propagation_inner_loop_body_l_inv L C
+     (set_clauses_to_update_l (remove1_mset C (clauses_to_update_l S)) S) \<Longrightarrow> 
+   (K, bL') \<in> Id \<Longrightarrow>
+    bL' \<in> { K. K\<in># clause (twl_clause_of C')} \<Longrightarrow>
+   mop_polarity_l 
+    (set_clauses_to_update_l (remove1_mset C (clauses_to_update_l S)) S)
+    K
+    \<le> SPEC 
+     (\<lambda> c. (c, bL'
+          \<in> lits_of_l 
+           (get_trail 
+            (set_clauses_to_update 
+             (remove1_mset (L, twl_clause_of C') 
+              (clauses_to_update S'))
+             S'))) 
+        \<in> pol_spec bL')\<close> for bL' K
+     using assms n_d L C_N_U consistent unfolding pol_spec_def
+     by (auto simp: mop_polarity_l_def polarity_def ran_m_def all_lits_of_mm_add_mset
+         true_annot_iff_decided_or_true_lit dest!: in_set_takeD in_set_dropD
+       dest!: multi_member_split[of C \<open>dom_m (get_clauses_l S)\<close>]
+       intro!: ASSERT_leI intro!: in_clause_in_all_lits_of_m)
+
   have H: \<open>?A \<le> \<Down> {(S, S'). (S, S') \<in> twl_st_l (Some L) \<and> twl_list_invs S} ?B\<close>
     unfolding unit_propagation_inner_loop_body_l_def unit_propagation_inner_loop_body_alt_def
       option.case_eq_if find_unwatched_l_def op_clauses_at_def[symmetric]
-    apply (rewrite at \<open>let _ =  polarity _ _ in _\<close> Let_def)+
     apply (refine_vcg pos_of_watched
-        bind_refine_spec[where M' = \<open>RETURN (polarity _ _)\<close>, OF _ polarity_spec]
         case_prod_bind[of _ \<open>If _ _\<close>]; remove_dummy_vars)
     subgoal by (rule pre_inv)
     subgoal unfolding C' clause_twl_clause_of by auto
-    subgoal using SS' by (auto simp: polarity_def Decided_Propagated_in_iff_in_lits_of_l)
+    subgoal using SS' by (auto simp: pol_spec_def)
     subgoal by (rule upd_rel)
     subgoal
       by (rule mop_clauses_at[THEN fref_to_Down_curry2, unfolded comp_def, THEN order_trans])
         (use mset_watched_C pre_inv in \<open>auto simp: i_def op_clauses_at_def C_N_U
           unit_propagation_inner_loop_body_l_inv_def\<close>)
+    subgoal by auto
     subgoal for L'
-      using assms by (auto simp: polarity_def Decided_Propagated_in_iff_in_lits_of_l)
+      using assms by (auto simp: pol_spec_def)
     subgoal by (rule upd_rel)
     subgoal using SS' by auto
-    subgoal using SS' by (auto simp: Decided_Propagated_in_iff_in_lits_of_l
-      polarity_def)
+    subgoal using SS' by (auto simp: pol_spec_def)
     subgoal by (rule confl_rel)
     subgoal for K bL' j j' L' L'a2 unfolding i_def[symmetric] op_clauses_at_def  i_def'[symmetric]
       by (rule propa_rel)
