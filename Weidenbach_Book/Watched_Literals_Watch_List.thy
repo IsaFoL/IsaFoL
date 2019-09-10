@@ -1265,6 +1265,7 @@ lemma unit_propagation_inner_loop_body_wl_int_alt_def:
  \<open>unit_propagation_inner_loop_body_wl_int L j w S = do {
       ASSERT(unit_propagation_inner_loop_wl_loop_pre L (j, w, S));
       (C, K, b) \<leftarrow> mop_watched_by_at S L w;
+      let _ = (C \<notin># dom_m (get_clauses_wl S));
       S \<leftarrow> mop_keep_watch L j w S;
       let b' = (C \<notin># dom_m (get_clauses_wl S));
       if b' then do {
@@ -1313,8 +1314,8 @@ proof -
   have E: \<open>unit_propagation_inner_loop_body_wl_int L j w S = do {
       ASSERT(unit_propagation_inner_loop_wl_loop_pre L (j, w, S));
       (C, K, b) \<leftarrow> mop_watched_by_at S L w;
-      S' \<leftarrow> mop_keep_watch L j w S;
-      let b' = (C \<notin># dom_m (get_clauses_wl S'));
+      S'\<leftarrow> mop_keep_watch L j w S;
+      let b' = C \<notin># dom_m (get_clauses_wl S');
       if b' then do {
         ASSERT(unit_prop_body_wl_inv S' j w L);
         let K = K;
@@ -1389,21 +1390,19 @@ proof -
   (is \<open>_ = do {
       ASSERT(unit_propagation_inner_loop_wl_loop_pre L (j, w, S));
       (C, K, b) \<leftarrow> mop_watched_by_at S L w;
-       S'\<leftarrow> mop_keep_watch L j w S; 
+      S' \<leftarrow> mop_keep_watch L j w S;
       let b' = (C \<notin># dom_m (get_clauses_wl S'));
-      if b' then do {
+      if b' then
         ?P S' C K b b'
-      }
-      else do {
+      else 
         ?Q S' C K b b'
-      }
     }\<close>)
     unfolding unit_propagation_inner_loop_body_wl_int_def if_not_swap bind_to_let_conv
       SPEC_eq_is_RETURN twl_st_wl
     unfolding Let_def if_not_swap bind_to_let_conv
       SPEC_eq_is_RETURN twl_st_wl
     apply (subst if_cancel)
-    apply (intro bind_cong_nres case_prod_cong if_cong[OF refl] refl)
+    apply (intro bind_cong case_prod_cong if_cong[OF refl] refl if_cong)
     done
   show ?thesis
     unfolding E
@@ -1447,7 +1446,10 @@ lemma unit_propagation_inner_loop_body_l_with_skip_alt_def:
   \<open>unit_propagation_inner_loop_body_l_with_skip L (S', n) = do {
       ASSERT (clauses_to_update_l S' \<noteq> {#} \<or> 0 < n);
       ASSERT (unit_propagation_inner_loop_l_inv L (S', n));
+      let _ = ();
       b \<leftarrow> SPEC (\<lambda>b. (b \<longrightarrow> 0 < n) \<and> (\<not> b \<longrightarrow> clauses_to_update_l S' \<noteq> {#}));
+      let S' = S';
+      let b = b;
       if \<not> b
       then do {
         ASSERT (clauses_to_update_l S' \<noteq> {#});
@@ -1505,10 +1507,14 @@ proof -
          (case x of None \<Rightarrow> do{T \<leftarrow> g; f T} | Some a \<Rightarrow> do{T \<leftarrow> g' a; f T}) \<close> for g g' f T b x
     by (cases x) auto
   show ?thesis
+    apply (subst Let_def)
+    apply (subst Let_def)
+    apply (subst Let_def)
+    apply (subst Let_def)
     unfolding unit_propagation_inner_loop_body_l_with_skip_def prod.case
       unit_propagation_inner_loop_body_l_def remove_pairs
     unfolding H1 H2 H3 H4 bind_to_let_conv
-    by (intro bind_cong[OF refl] if_cong refl option.case_cong)
+    by (intro bind_cong[OF refl] if_cong refl option.case_cong) auto
 qed
 
 lemma keep_watch_st_wl[twl_st_wl]:
@@ -1949,6 +1955,17 @@ proof -
     subgoal by auto
     done
 qed
+
+lemma twl_struct_invs_no_alien_in_trail:
+  assumes \<open>twl_struct_invs S\<close>
+  shows \<open>L \<in> lits_of_l (get_trail S) \<Longrightarrow> L \<in># all_lits_of_mm (clause `# get_clauses S + unit_clss S)\<close>
+  using assms apply (cases S)
+  apply (auto simp: twl_struct_invs_def
+    cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+    cdcl\<^sub>W_restart_mset.no_strange_atm_def trail.simps
+    init_clss.simps learned_clss.simps
+    in_all_lits_of_mm_ain_atms_of_iff)
+  done
 
 lemma
   fixes S :: \<open>'v twl_st_wl\<close> and S' :: \<open>'v twl_st_l\<close> and L :: \<open>'v literal\<close> and w :: nat
@@ -3078,7 +3095,21 @@ proof -
      \<open>((N, C, K), (N', C', K')) \<in> Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<and> N = get_clauses_wl S \<and> C = fst (watched_by S L ! w) \<and> K = L \<Longrightarrow>
      pos_of_watched N C K \<le> \<Down> ?pos_of_watched (pos_of_watched N' C' K')\<close>
      for N N' C C' K K'
-     unfolding pos_of_watched_def     by refine_rcg (auto simp: i_def)
+     unfolding pos_of_watched_def by refine_rcg (auto simp: i_def)
+  have [refine]: \<open>mop_watched_by_at S L w \<le> \<Down> {(Slw, _). Slw = watched_by S L ! w} (RETURN ())\<close>
+    if 
+      \<open>clauses_to_update_l S' \<noteq> {#} \<or> 0 < n\<close> and
+      \<open>unit_propagation_inner_loop_l_inv L (S', n)\<close> and
+      \<open>unit_propagation_inner_loop_wl_loop_pre L (j, w, S)\<close>
+    using assms that
+    unfolding mop_watched_by_at_def unit_propagation_inner_loop_l_inv_def 
+       prod.case apply -
+    apply normalize_goal+
+    subgoal for T
+       using  twl_struct_invs_no_alien_in_trail[of T \<open>-L\<close>] apply -
+      by refine_vcg  (auto simp: in_all_lits_of_mm_uminus_iff
+         mset_take_mset_drop_mset' get_unit_clauses_wl_alt_def)
+    done
 
   show 1: ?propa
     (is \<open>_ \<le> \<Down> ?unit _\<close>)
@@ -3086,16 +3117,18 @@ proof -
     unfolding unit_propagation_inner_loop_body_wl_int_alt_def
       i_def[symmetric] i_def'[symmetric] unit_propagation_inner_loop_body_l_with_skip_alt_def
       unit_propagation_inner_loop_body_l_def
-    apply (rewrite at "let _ = keep_watch _ _ _ _ in _" Let_def)
     unfolding i_def[symmetric] SLw prod.case
     apply (rewrite in \<open>if (\<not>_) then ASSERT _ >>= _ else _\<close> if_not_swap)
+find_theorems keep_watch S
     supply RETURN_as_SPEC_refine[refine2 del]
     supply [[goals_limit=50]]
     apply (refine_rcg val f f' keep_watch find_unwatched_l
        mop_clauses_at_itself_spec pos_of_watched)
     subgoal using inner_loop_inv w_le j_w
       unfolding unit_propagation_inner_loop_wl_loop_pre_def by auto
-    subgoal using assms by auto
+    subgoal
+explore_have find_theorems n dom_m
+ using assms by auto
     subgoal using w_le unfolding unit_prop_body_wl_inv_def by auto
     subgoal using w_le j_w unfolding unit_prop_body_wl_inv_def by auto
     subgoal by (rule blit_final)
