@@ -18,20 +18,6 @@ subsection \<open>Refinement\<close>
 
 subsubsection \<open>Set of all literals of the problem\<close>
 
-definition all_lits :: \<open>('a, 'v literal list \<times> 'b) fmap \<Rightarrow> 'v literal multiset multiset \<Rightarrow>
-   'v literal multiset\<close> where
-  \<open>all_lits S NUE = all_lits_of_mm ((\<lambda>C. mset (fst C)) `# ran_m S + NUE)\<close>
-
-abbreviation all_lits_st :: \<open>'v twl_st_wl \<Rightarrow> 'v literal multiset\<close> where
-  \<open>all_lits_st S \<equiv> all_lits (get_clauses_wl S) (get_unit_clauses_wl S)\<close>
-
-definition all_atms :: \<open>_ \<Rightarrow> _ \<Rightarrow> 'v multiset\<close> where
-  \<open>all_atms N NUE = atm_of `# all_lits N NUE\<close>
-
-abbreviation all_atms_st :: \<open>'v twl_st_wl \<Rightarrow> 'v multiset\<close> where
-  \<open>all_atms_st S \<equiv> atm_of `# all_lits_st S\<close>
-
-
 text \<open>We start in a context where we have an initial set of atoms. We later extend the locale to
   include a bound on the largest atom (in order to generate more efficient code).
 \<close>
@@ -137,11 +123,6 @@ lemma \<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_all_lits_of_mm: \<open>set_mset (\<L>\
 lemma all_lits_of_all_atms_of: \<open>K \<in># all_lits N NUE \<longleftrightarrow> K \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms N NUE)\<close>
   by (simp add: \<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_all_lits_of_mm all_atms_def all_lits_def)
 
-
-
-definition blits_in_\<L>\<^sub>i\<^sub>n :: \<open>nat twl_st_wl \<Rightarrow> bool\<close> where
-  \<open>blits_in_\<L>\<^sub>i\<^sub>n S \<longleftrightarrow>
-    (\<forall>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st S). \<forall>(i, K, b) \<in> set (watched_by S L). K \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st S))\<close>
 
 
 definition literals_are_\<L>\<^sub>i\<^sub>n :: \<open>nat multiset \<Rightarrow> nat twl_st_wl \<Rightarrow> bool\<close> where
