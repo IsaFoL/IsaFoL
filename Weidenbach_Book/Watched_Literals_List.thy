@@ -664,10 +664,13 @@ definition mop_polarity_l :: \<open>'v twl_st_l \<Rightarrow> 'v literal \<Right
     RETURN(polarity (get_trail_l S) L)
 }\<close>
 
-definition find_unwatched_l where
-  \<open>find_unwatched_l M C = SPEC (\<lambda>(found).
-      (found = None \<longleftrightarrow> (\<forall>L\<in>set (unwatched_l C). -L \<in> lits_of_l M)) \<and>
-      (\<forall>j. found = Some j \<longrightarrow> (j < length C \<and> (undefined_lit M (C!j) \<or> C!j \<in> lits_of_l M) \<and> j \<ge> 2)))\<close>
+definition find_unwatched_l :: \<open>('v, _) ann_lits \<Rightarrow> _ \<Rightarrow> nat \<Rightarrow> nat option nres\<close> where
+  \<open>find_unwatched_l M N C = do {
+    ASSERT(C \<in># dom_m N \<and> length (N \<propto> C) \<ge> 2);
+    SPEC (\<lambda>(found).
+      (found = None \<longleftrightarrow> (\<forall>L\<in>set (unwatched_l (N \<propto> C)). -L \<in> lits_of_l M)) \<and>
+      (\<forall>j. found = Some j \<longrightarrow> (j < length (N \<propto> C) \<and> (undefined_lit M (N \<propto> C!j) \<or> N \<propto> C!j \<in> lits_of_l M) \<and> j \<ge> 2)))
+   }\<close>
 
 
 definition set_conflict_l :: \<open>nat \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close> where
@@ -734,7 +737,7 @@ definition unit_propagation_inner_loop_body_l :: \<open>'v literal \<Rightarrow>
         if val_L' = Some True
         then RETURN S
         else do {
-            f \<leftarrow> find_unwatched_l (get_trail_l S) (get_clauses_l S \<propto> C);
+            f \<leftarrow> find_unwatched_l (get_trail_l S) (get_clauses_l S) C;
             case f of
               None \<Rightarrow>
                 if val_L' = Some False
@@ -1414,6 +1417,7 @@ proof -
   have H: \<open>?A \<le> \<Down> {(S, S'). (S, S') \<in> twl_st_l (Some L) \<and> twl_list_invs S} ?B\<close>
     unfolding unit_propagation_inner_loop_body_l_def unit_propagation_inner_loop_body_alt_def
       option.case_eq_if find_unwatched_l_def op_clauses_at_def[symmetric]
+      nres_monad3
     apply (refine_vcg pos_of_watched
         case_prod_bind[of _ \<open>If _ _\<close>]; remove_dummy_vars)
     subgoal by (rule pre_inv)
@@ -1428,6 +1432,8 @@ proof -
     subgoal for L'
       using assms by (auto simp: pol_spec_def)
     subgoal by (rule upd_rel)
+    subgoal using SS' C_N_U by auto
+    subgoal using SS' C_N_U two_le_length_C by auto
     subgoal using SS' by auto
     subgoal using SS' by (auto simp: pol_spec_def)
     subgoal by (rule confl_rel)
