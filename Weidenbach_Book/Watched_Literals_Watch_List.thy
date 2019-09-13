@@ -190,12 +190,12 @@ lemma correct_watching_except_alt_def:
        (L = K \<longrightarrow>
          distinct_watched (take i (W L) @ drop j (W L)) \<and>
          ((\<forall>(i, K, b)\<in>#mset (take i (W L) @ drop j (W L)). i \<in># dom_m N \<longrightarrow> K \<in> set (N \<propto> i) \<and>
-             K \<noteq> L \<and> L \<in> set (N \<propto> i) \<and> length (N \<propto> i) \<ge> 2 \<and> correctly_marked_as_binary N (i, K, b)) \<and>
+             K \<noteq> L \<and> L \<in> set (watched_l (N \<propto> i)) \<and> length (N \<propto> i) \<ge> 2 \<and> correctly_marked_as_binary N (i, K, b)) \<and>
           (\<forall>(i, K, b)\<in>#mset (take i (W L) @ drop j (W L)). b \<longrightarrow> i \<in># dom_m N) \<and>
          filter_mset (\<lambda>i. i \<in># dom_m N) (fst `# mset (take i (W L) @ drop j (W L))) = clause_to_update L (M, N, D, NE, UE, {#}, {#}))) \<and>
        (L \<noteq> K \<longrightarrow>
          distinct_watched (W L) \<and>
-         ((\<forall>(i, K, b)\<in>#mset (W L). i \<in># dom_m N \<longrightarrow> K \<in> set (N \<propto> i) \<and> K \<noteq> L \<and> L \<in> set (N \<propto> i) \<and> length (N \<propto> i) \<ge> 2 \<and> correctly_marked_as_binary N (i, K, b)) \<and>
+         ((\<forall>(i, K, b)\<in>#mset (W L). i \<in># dom_m N \<longrightarrow> K \<in> set (N \<propto> i) \<and> K \<noteq> L \<and> L \<in> set (watched_l(N \<propto> i)) \<and> length (N \<propto> i) \<ge> 2 \<and> correctly_marked_as_binary N (i, K, b)) \<and>
           (\<forall>(i, K, b)\<in>#mset (W L). b \<longrightarrow> i \<in># dom_m N) \<and>
          filter_mset (\<lambda>i. i \<in># dom_m N) (fst `# mset (W L)) = clause_to_update L (M, N, D, NE, UE, {#}, {#}))))\<close>
 proof -
@@ -204,12 +204,12 @@ proof -
        (L = K \<longrightarrow>
          distinct_watched (take i (W L) @ drop j (W L)) \<and>
          ((\<forall>(i, K, b)\<in>#mset (take i (W L) @ drop j (W L)). i \<in># dom_m N \<longrightarrow> K \<in> set (N \<propto> i) \<and>
-             K \<noteq> L \<and> L \<in> set (N \<propto> i) \<and> correctly_marked_as_binary N (i, K, b)) \<and>
+             K \<noteq> L \<and> L \<in> set (watched_l (N \<propto> i)) \<and> correctly_marked_as_binary N (i, K, b)) \<and>
           (\<forall>(i, K, b)\<in>#mset (take i (W L) @ drop j (W L)). b \<longrightarrow> i \<in># dom_m N) \<and>
          filter_mset (\<lambda>i. i \<in># dom_m N) (fst `# mset (take i (W L) @ drop j (W L))) = clause_to_update L (M, N, D, NE, UE, {#}, {#}))) \<and>
        (L \<noteq> K \<longrightarrow>
          distinct_watched (W L) \<and>
-         ((\<forall>(i, K, b)\<in>#mset (W L). i \<in># dom_m N \<longrightarrow> K \<in> set (N \<propto> i) \<and> K \<noteq> L \<and> L \<in> set (N \<propto> i) \<and> correctly_marked_as_binary N (i, K, b)) \<and>
+         ((\<forall>(i, K, b)\<in>#mset (W L). i \<in># dom_m N \<longrightarrow> K \<in> set (N \<propto> i) \<and> K \<noteq> L \<and> L \<in> set (watched_l (N \<propto> i)) \<and> correctly_marked_as_binary N (i, K, b)) \<and>
           (\<forall>(i, K, b)\<in>#mset (W L). b \<longrightarrow> i \<in># dom_m N) \<and>
          filter_mset (\<lambda>i. i \<in># dom_m N) (fst `# mset (W L)) = clause_to_update L (M, N, D, NE, UE, {#}, {#}))))\<close>
       unfolding correct_watching_except.simps
@@ -243,9 +243,9 @@ proof -
           simp: in_set_conv_decomp[of \<open>(_, _, _)\<close> \<open>take _ _\<close>] in_set_conv_decomp[of  \<open>(_, _, _)\<close> \<open>drop _ _\<close>])[]
         done
      done
-  have H: \<open>(K \<in> set (N \<propto> i) \<and>  K \<noteq> L \<and> L \<in> set (N \<propto> i) \<and> P) \<longleftrightarrow>
-       (K \<in> set (N \<propto> i) \<and> K \<noteq> L \<and> L \<in> set (N \<propto> i) \<and> length (N \<propto> i) \<ge> 2 \<and> P)\<close> for i K P L
-    using length_ge2I[of K L] by auto
+  have H: \<open>(K \<in> set (N \<propto> i) \<and>  K \<noteq> L \<and> L \<in> set (watched_l (N \<propto> i)) \<and> P) \<longleftrightarrow>
+       (K \<in> set (N \<propto> i) \<and> K \<noteq> L \<and> L \<in> set (watched_l (N \<propto> i)) \<and> length (N \<propto> i) \<ge> 2 \<and> P)\<close> for i K P L
+    using length_ge2I[of K L] by (auto dest: in_set_takeD)
    show ?thesis
       unfolding 1 H[symmetric] ..
 qed
@@ -288,12 +288,12 @@ lemma correct_watching_except_alt_def2:
        (L = K \<longrightarrow>
          distinct_watched (take i (watched_by S L) @ drop j (watched_by S L)) \<and>
          ((\<forall>(i, K, b)\<in>#mset (take i (watched_by S L) @ drop j (watched_by S L)). i \<in># dom_m (get_clauses_wl S) \<longrightarrow> K \<in> set (get_clauses_wl S \<propto> i) \<and>
-             K \<noteq> L \<and> L \<in> set (get_clauses_wl S \<propto> i) \<and> length (get_clauses_wl S \<propto> i) \<ge> 2 \<and> correctly_marked_as_binary (get_clauses_wl S) (i, K, b)) \<and>
+             K \<noteq> L \<and> L \<in> set (watched_l (get_clauses_wl S \<propto> i)) \<and> length (get_clauses_wl S \<propto> i) \<ge> 2 \<and> correctly_marked_as_binary (get_clauses_wl S) (i, K, b)) \<and>
           (\<forall>(i, K, b)\<in>#mset (take i (watched_by S L) @ drop j (watched_by S L)). b \<longrightarrow> i \<in># dom_m (get_clauses_wl S)) \<and>
          filter_mset (\<lambda>i. i \<in># dom_m (get_clauses_wl S)) (fst `# mset (take i (watched_by S L) @ drop j (watched_by S L))) = clause_to_update_wl L S)) \<and>
        (L \<noteq> K \<longrightarrow>
          distinct_watched (watched_by S L) \<and>
-         ((\<forall>(i, K, b)\<in>#mset (watched_by S L). i \<in># dom_m (get_clauses_wl S) \<longrightarrow> K \<in> set (get_clauses_wl S \<propto> i) \<and> K \<noteq> L \<and> L \<in> set (get_clauses_wl S \<propto> i) \<and> length (get_clauses_wl S \<propto> i) \<ge> 2 \<and> correctly_marked_as_binary (get_clauses_wl S) (i, K, b)) \<and>
+         ((\<forall>(i, K, b)\<in>#mset (watched_by S L). i \<in># dom_m (get_clauses_wl S) \<longrightarrow> K \<in> set (get_clauses_wl S \<propto> i) \<and> K \<noteq> L \<and> L \<in> set (watched_l (get_clauses_wl S \<propto> i)) \<and> length (get_clauses_wl S \<propto> i) \<ge> 2 \<and> correctly_marked_as_binary (get_clauses_wl S) (i, K, b)) \<and>
           (\<forall>(i, K, b)\<in>#mset (watched_by S L). b \<longrightarrow> i \<in># dom_m (get_clauses_wl S)) \<and>
          filter_mset (\<lambda>i. i \<in># dom_m (get_clauses_wl S)) (fst `# mset (watched_by S L)) = clause_to_update_wl L S)))\<close>
   by (cases S; hypsubst)
@@ -1920,29 +1920,41 @@ proof -
     by refine_rcg auto
 
   have bin_find_unwatched: \<open>RETURN None
-      \<le> \<Down> ({(b,b'). (b, b') \<in> \<langle>Id\<rangle>option_rel \<and> b = None})
-         (find_unwatched_l (get_trail_wl Saa) (get_clauses_wl Saa) x1)\<close>
-    (is \<open>_ \<le> \<Down> ?bin_unw _\<close>)
-  if
-    \<open>unit_propagation_inner_loop_wl_loop_pre L (j, w, S)\<close> and
-    \<open>(x, x') \<in> R_SLW\<close> and
-    \<open>(Sa, Saa)
-     \<in>{(T, T').(T, T') \<in> Id \<and> get_clauses_wl T = get_clauses_wl S}\<close> and
-    \<open>(val_K, val_Ka)
-     \<in>{(v, v'). v = v' \<and> v = polarity (get_trail_wl Sa) x1c}\<close>and
-    \<open>\<not> x1 \<notin># dom_m (get_clauses_wl Saa)\<close> and
-    \<open>val_K \<noteq> Some True\<close> and
-    \<open>val_Ka \<noteq> Some True\<close> and
-    \<open>x2 =(x1a, x2a)\<close> and
-    \<open>x' =(x1, x2)\<close> and
-    \<open>x2b =(x1c, x2c)\<close> and
-    \<open>x =(x1b, x2b)\<close> and
-    \<open>x2c\<close> and
-    \<open>x2a\<close>
-   for x x' x1 x2 x1a x2a x1b x2b x1c x2c Sa Saa val_K val_Ka i L' val_L'
-   using that
-   unfolding find_unwatched_l_def
-   by (auto simp: RETURN_RES_refine_iff)
+        \<le> \<Down> ({(b,b'). (b, b') \<in> \<langle>Id\<rangle>option_rel \<and> b = None})
+           (find_unwatched_l (get_trail_wl Saa) (get_clauses_wl Saa) x1)\<close>
+      (is \<open>_ \<le> \<Down> ?bin_unw _\<close>)
+    if 
+      \<open>unit_propagation_inner_loop_wl_loop_pre L (j, w, S)\<close> and
+      \<open>unit_propagation_inner_loop_wl_loop_pre L (j, w, S)\<close> and
+      \<open>(x, x') \<in> R_SLW\<close> and
+      \<open>x2 =(x1a, x2a)\<close> and
+      \<open>x' =(x1, x2)\<close> and
+      \<open>x2b =(x1c, x2c)\<close> and
+      \<open>x =(x1b, x2b)\<close> and
+      \<open>(Sa, Saa)
+       \<in>{(T, T').(T, T') \<in> Id \<and> get_clauses_wl T = get_clauses_wl S}\<close> and
+      \<open>(val_K, val_Ka)
+       \<in>{(v, v'). v = v' \<and> v = polarity (get_trail_wl Sa) x1c}\<close> and
+      \<open>val_K \<noteq> Some True\<close> and
+      \<open>val_Ka \<noteq> Some True\<close> and
+      \<open>x2c\<close> and
+      \<open>x2a\<close> and
+      \<open>\<not> False\<close> and
+      \<open>\<not> x1 \<notin># dom_m (get_clauses_wl Saa)\<close> and
+      \<open>unit_prop_body_wl_inv Saa j w L\<close> and
+      \<open>(if get_clauses_wl Sa \<propto> x1b ! 0 = L then 0 else 1, i)
+       \<in>{(K', K).
+          K = K' \<and>
+          K = (if get_clauses_wl Sa \<propto> x1b ! 0 = L then 0 else 1)}\<close> and
+      \<open>(x1c, L') \<in>{(K, K'). K = K' \<and> x1c = K'}\<close> and
+      \<open>(val_K, val_L') \<in>\<langle>bool_rel\<rangle>option_rel\<close> and
+      \<open>\<not> False\<close> and
+      \<open>val_L' \<noteq> Some True\<close>
+     for x x' x1 x2 x1a x2a x1b x2b x1c x2c Sa Saa val_K val_Ka i L' val_L'
+     using that
+     unfolding find_unwatched_l_def
+     by (auto simp: RETURN_RES_refine_iff length_list_2)
+
 
   have bin_unw_Id: \<open>x \<in> ?bin_unw \<Longrightarrow> x \<in> \<langle>Id\<rangle>option_rel\<close> for x
     by auto
@@ -2044,6 +2056,11 @@ lemma twl_struct_invs_no_alien_in_trail:
 lemma nres_add_unrelated:
    \<open>P \<le> \<Down> {(S, S'). R1 S} Q \<Longrightarrow> P \<le> \<Down> {(S, S'). R2 S S'} Q \<Longrightarrow> P \<le> \<Down>{(S, S'). R1 S \<and> R2 S S'} Q\<close> for P R1 R2 Q
   by (simp add: pw_ref_iff)
+
+lemma nres_add_unrelated2:
+   \<open>P \<le> SPEC R1 \<Longrightarrow> P \<le> \<Down> {(S, S'). R2 S S'} Q \<Longrightarrow> P \<le> \<Down>{(S, S'). R1 S \<and> R2 S S'} Q\<close> for P R1 R2 Q
+  using nres_add_unrelated[of P R1 Q R2]
+  by (auto simp add: pw_ref_iff dest: inres_SPEC)
 
 lemma
   fixes S :: \<open>'v twl_st_wl\<close> and S' :: \<open>'v twl_st_l\<close> and L :: \<open>'v literal\<close> and w :: nat
@@ -3244,6 +3261,16 @@ proof -
   qed
 
 
+  have f: \<open>((M, N, C), (M', N', C')) \<in> Id \<Longrightarrow> find_unwatched_l M N C
+      \<le> \<Down> {(found, found'). found = found' \<and>
+             (found = None \<longleftrightarrow> (\<forall>L\<in>set (unwatched_l (N \<propto> C)). -L \<in> lits_of_l M)) \<and>
+             (\<forall>j. found = Some j \<longrightarrow> (j < length (N \<propto> C) \<and> (undefined_lit M ((N \<propto> C)!j) \<or> (N \<propto> C)!j \<in> lits_of_l M) \<and> j \<ge> 2)) \<and> distinct (N \<propto> C)
+           }
+            (find_unwatched_l M' N' C')\<close> 
+    (is \<open>_ \<Longrightarrow> _ \<le> \<Down> ?find _\<close>) for M M' N N' C C'
+    using S_S' unfolding find_unwatched_l_def
+    by refine_rcg (auto intro!: RES_refine)
+
   have update_blit_wl: \<open>update_blit_wl L x1 x2a j w L' Sa
         \<le> \<Down>?unit
            (RETURN(fst X2, if get_conflict_l (fst X2) = None then n else 0))\<close>
@@ -3461,7 +3488,7 @@ proof -
       \<open>(val_L', vaaa) \<in> Id\<close> and
       \<open>val_L' \<noteq> Some True\<close> and
       \<open>vaaa \<noteq> Some True\<close> and
-      \<open>(f, x'a) \<in>\<langle>nat_rel\<rangle>option_rel\<close> and
+      \<open>(f, x'a) \<in> ?find (get_trail_wl Sa) (get_clauses_wl Sa) x1\<close> and
       \<open>unit_prop_body_wl_find_unwatched_inv f x1 Sa\<close> and
       \<open>f = None\<close> and
       \<open>x'a = None\<close> and
@@ -3537,7 +3564,7 @@ proof -
       \<open>(val_L', vaaa) \<in> Id\<close> and
       \<open>val_L' \<noteq> Some True\<close> and
       \<open>vaaa \<noteq> Some True\<close> and
-      \<open>(f, x'a) \<in>\<langle>nat_rel\<rangle>option_rel\<close> and
+      \<open>(f, x'a) \<in> ?find (get_trail_wl Sa) (get_clauses_wl Sa) x1\<close> and
       \<open>unit_prop_body_wl_find_unwatched_inv f x1 Sa\<close> and
       \<open>f = None\<close> and
       \<open>x'a = None\<close> and
@@ -3645,6 +3672,263 @@ proof -
       done
   qed
 
+  have update_blit: \<open>update_blit_wl L x1 x2a j w Ka Sa
+        \<le> \<Down>?unit
+           (RETURN(fst X2, if get_conflict_l (fst X2) = None then n else 0))\<close>
+    if 
+      cond: \<open>clauses_to_update_l S' \<noteq> {#} \<or> 0 < n\<close> and
+      loop_inv: \<open>unit_propagation_inner_loop_l_inv L (S', n)\<close> and
+      \<open>unit_propagation_inner_loop_wl_loop_pre L (j, w, S)\<close> and
+      \<open>inres (mop_watched_by_at S L w) x'\<close> and
+      x': \<open>(x', ()) \<in> ?Slw\<close>
+        \<open>x2 =(x1a, x2a)\<close>
+        \<open>x' =(x1, x2)\<close> and
+      \<open>(x1 \<notin># dom_m (get_clauses_wl S), b) \<in> bool_rel\<close> and
+      \<open>inres (mop_keep_watch L j w S) Sa\<close> and
+      Sa: \<open>(Sa, S') \<in>{(T, T'). T = keep_watch L j w S \<and> T' = S'}\<close> and
+      dom: \<open>\<not> x1 \<notin># dom_m (get_clauses_wl Sa)\<close> and
+      \<open>\<not> b\<close> and
+      \<open>clauses_to_update_l S' \<noteq> {#}\<close> and
+     X2: \<open>(Sa, X2)
+       \<in>{(T, T', C).
+          (T, T') \<in> state_wl_l (Some(L, Suc w)) \<and>
+          C = C' \<and>
+          T' =
+          set_clauses_to_update_l (remove1_mset C (clauses_to_update_l S'))
+           S'}\<close> and
+      \<open>unit_propagation_inner_loop_body_l_inv L (snd X2) (fst X2)\<close> and
+      \<open>(K, x) \<in> Id\<close> and
+      \<open>K \<in> Collect ((=) x1a)\<close> and
+      \<open>x \<in>{K. K \<in> set (get_clauses_l (fst X2) \<propto> snd X2)}\<close> and
+      \<open>(val_K, v) \<in> Id\<close> and
+      \<open>val_K \<noteq> Some True\<close> and
+      \<open>v \<noteq> Some True\<close> and
+      \<open>unit_prop_body_wl_inv Sa j w L\<close> and
+      \<open>(ia, va) \<in>{(j, j'). j = j' \<and> j < 2 \<and> j = i}\<close> and
+      \<open>(L', vaa)
+       \<in>{(L, L'). L = L' \<and> L = get_clauses_wl Sa \<propto> x1 ! (1 - ia)}\<close> and
+      \<open>(val_L', vaaa) \<in> Id\<close> and
+      \<open>val_L' \<noteq> Some True\<close> and
+      \<open>vaaa \<noteq> Some True\<close> and
+      fx': \<open>(f, x'a) \<in> ?find (get_trail_wl Sa) (get_clauses_wl Sa) x1\<close> 
+        \<open>f = Some xa\<close>
+        \<open>x'a = Some x'b\<close> and
+      \<open>unit_prop_body_wl_find_unwatched_inv f x1 Sa\<close> and
+      \<open>(xa, x'b) \<in> nat_rel\<close> and
+      \<open>x'b < length (get_clauses_l (fst X2) \<propto> snd X2)\<close> and
+      Ka: \<open>(Ka, Kb) \<in>{(L, L'). L = L' \<and> L = get_clauses_wl Sa \<propto> x1 ! xa}\<close> and
+      \<open>(val_L'a, val_Ka) \<in> Id\<close> and
+      \<open>val_L'a = Some True\<close> and
+      \<open>val_Ka = Some True\<close>
+   for x' x1 x2 x1a x2a b Sa X2 K x val_K v ia va L' vaa val_L' vaaa f x'a xa
+       x'b Ka Kb val_L'a val_Ka
+  proof -
+    have confl: \<open>get_conflict_wl S = None\<close>
+      using S_S' loop_inv cond unfolding unit_propagation_inner_loop_l_inv_def prod.case apply -
+      by normalize_goal+ auto
+
+    have unit_T: \<open>unit_propagation_inner_loop_body_l_inv L C' T\<close>
+      using that by (auto simp: remove_one_lit_from_wq_def)
+
+    have \<open>correct_watching_except (Suc j) (Suc w) L (keep_watch L j w S)\<close>
+      by (simp add: corr_w correct_watching_except_correct_watching_except_Suc_Suc_keep_watch
+          j_w w_le)
+    moreover have \<open>correct_watching_except (Suc j) (Suc w) L
+       (a, b, None, d, e, f, ga(L := (ga L)[j := (x1, b \<propto> x1 ! xa, x2a)]))\<close>
+      if
+        corr: \<open>correct_watching_except (Suc j) (Suc w) L
+      (a, b, None, d, e, f, ga(L := (ga L)[j := (x1, x1a, x2a)]))\<close> and
+        \<open>ga L ! w = (x1, x1a, x2a)\<close> and
+        S[simp]: \<open>S = (a, b, None, d, e, f, ga)\<close> and
+        \<open>X2 = (set_clauses_to_update_l (remove1_mset x1 (clauses_to_update_l S')) S', x1)\<close> and
+        \<open>(a, b, None, d, e,
+      {#i \<in># mset (drop (Suc w) (map fst ((ga L)[j := (x1, x1a, x2a)]))). i \<in># dom_m b#}, f) =
+      set_clauses_to_update_l (remove1_mset x1 (clauses_to_update_l S')) S'\<close>
+      for a :: \<open>('v literal, 'v literal,nat) annotated_lit list\<close> and
+        b :: \<open>(nat, 'v literal list \<times>  bool) fmap\<close> and
+        d :: \<open>'v literal multiset multiset\<close> and
+        e :: \<open>'v literal multiset multiset\<close> and
+        f :: \<open>'v literal multiset\<close> and
+        ga :: \<open>'v literal \<Rightarrow> (nat \<times> 'v literal \<times> bool) list\<close>
+    proof -
+      have \<open>b \<propto> x1 ! xa \<in># all_lits_of_mm (mset `# ran_mf b + (d + e))\<close>
+        using dom fx' Sa by (auto simp: ran_m_def all_lits_of_mm_add_mset x' f twl_st_wl
+            dest!: multi_member_split
+            intro!: in_clause_in_all_lits_of_m)
+      moreover have \<open>b \<propto> x1 ! xa \<in> set (b \<propto> x1)\<close>
+        using dom fx' Sa by (auto simp: ran_m_def all_lits_of_mm_add_mset x' f twl_st_wl
+            dest!: multi_member_split
+            intro!: in_clause_in_all_lits_of_m)
+
+      moreover have \<open>b \<propto> x1 ! xa \<noteq> L\<close>
+        using X2 L_def[OF unit_T] S_S' SLw fx' x' that Sa
+        by (auto simp: polarity_def split: if_splits)
+      moreover have \<open>correctly_marked_as_binary b (x1, b \<propto> x1 ! xa, x2a)\<close>
+        using correctly_marked_as_binary unit_T dom Sa SLw
+        by (auto simp: correctly_marked_as_binary.simps  \<open>ga L ! w = (x1, x1a, x2a)\<close>)
+      ultimately show ?thesis
+        by (rule correct_watching_except_update_blit[OF corr])
+    qed
+    moreover have in_all: \<open>get_clauses_wl S \<propto> x1 ! xa
+               \<in># all_lits_of_mm (mset `# ran_mf (get_clauses_wl S) + get_unit_clauses_wl S)\<close>
+      using dom fx' Sa unfolding x'
+      by (auto dest!: multi_member_split[of x1]
+        simp: ran_m_def all_lits_of_mm_add_mset all_lits_of_mm_union
+          in_clause_in_all_lits_of_m)
+    moreover have w: \<open>watched_by S L ! w = (x1, x1a, x2a)\<close>
+      using x' by auto
+    ultimately have u: \<open>update_blit_wl L x1 x2a j w Ka Sa
+    \<le> SPEC(\<lambda>(i, j, T'). correct_watching_except i j L T')\<close>
+      using X2 confl Sa SLw alien_L' unit_T Ka unfolding T_def[symmetric]
+        update_blit_wl_def
+      apply (cases S; cases Sa, hypsubst) apply simp
+      apply  (auto simp: keep_watch_def state_wl_l_def
+           intro!: ASSERT_leI)
+      done
+    have \<open>get_conflict_wl S = None\<close>
+      using S_S' loop_inv cond unfolding unit_propagation_inner_loop_l_inv_def prod.case apply -
+      by normalize_goal+ auto
+    moreover have \<open>n = size {#(i, _) \<in># mset (drop (Suc w) (watched_by S L)). i \<notin># dom_m (get_clauses_wl S)#}\<close>
+      using n dom X2 w_le S_S' SLw Sa
+      by (auto simp: Cons_nth_drop_Suc[symmetric] w)
+    ultimately have \<open>update_blit_wl L x1 x2a j w Ka Sa
+    \<le> \<Down>{((i, j, T'), T, n).
+         (T', T) \<in> state_wl_l (Some(L, j)) \<and>
+         j \<le> length (watched_by T' L) \<and>
+         length (watched_by S L) = length (watched_by T' L) \<and>
+         i \<le> j \<and>
+         (get_conflict_wl T' = None \<longrightarrow>
+          n =
+          size
+           {#(i, _)\<in># mset (drop j (watched_by T' L)).
+            i \<notin># dom_m (get_clauses_wl T')#}) \<and>
+         (get_conflict_wl T' \<noteq> None \<longrightarrow> n = 0)}
+       (RETURN(fst X2, if get_conflict_l (fst X2) = None then n else 0))\<close>
+      using j_w w_le S_S' X2 alien_L' unit_T in_all Sa in_all Ka unfolding T_def[symmetric]
+      by (cases S)
+        (auto simp: update_blit_wl_def keep_watch_def state_wl_l_def drop_map w
+           intro!: ASSERT_leI)
+
+    then show ?thesis
+      apply (rule nres_add_unrelated2[OF u _, THEN order_trans])
+      apply (rule conc_fun_R_mono)
+      apply fastforce
+      done
+  qed
+
+  have find_is_nat_rel: \<open>x \<in> ?find a b c \<Longrightarrow> x \<in> \<langle>nat_rel\<rangle>option_rel\<close> for x a b c
+    by auto
+  have update_clause_wl: \<open>update_clause_wl L x1 x2a j w ia xa Sa
+        \<le> \<Down>?unit
+           (do{
+              T \<leftarrow> update_clause_l (snd X2) va x'b (fst X2);
+              RETURN(T, if get_conflict_l T = None then n else 0)
+            })\<close>
+    if 
+      \<open>clauses_to_update_l S' \<noteq> {#} \<or> 0 < n\<close> and
+      \<open>unit_propagation_inner_loop_l_inv L (S', n)\<close> and
+      \<open>unit_propagation_inner_loop_wl_loop_pre L (j, w, S)\<close> and
+      \<open>inres (mop_watched_by_at S L w) x'\<close> and
+      x': \<open>(x', ())
+       \<in> ?Slw\<close> and
+      [simp]: \<open>x2 =(x1a, x2a)\<close> \<open>x' =(x1, x2)\<close> and
+      \<open>(x1 \<notin># dom_m (get_clauses_wl S), b) \<in> bool_rel\<close> and
+      \<open>inres (mop_keep_watch L j w S) Sa\<close> and
+      Sa: \<open>(Sa, S') \<in>{(T, T'). T = keep_watch L j w S \<and> T' = S'}\<close> and
+      dom: \<open>\<not> x1 \<notin># dom_m (get_clauses_wl Sa)\<close> and
+      \<open>\<not> b\<close> and
+      \<open>clauses_to_update_l S' \<noteq> {#}\<close> and
+      X2: \<open>(Sa, X2)
+       \<in>{(T, T', C).
+          (T, T') \<in> state_wl_l (Some(L, Suc w)) \<and>
+          C = C' \<and>
+          T' =
+          set_clauses_to_update_l (remove1_mset C (clauses_to_update_l S'))
+           S'}\<close> and
+      \<open>unit_propagation_inner_loop_body_l_inv L (snd X2) (fst X2)\<close> and
+      \<open>(K, x) \<in> Id\<close> and
+      \<open>K \<in> Collect ((=) x1a)\<close> and
+      \<open>x \<in>{K. K \<in> set (get_clauses_l (fst X2) \<propto> snd X2)}\<close> and
+      \<open>(val_K, v) \<in> Id\<close> and
+      \<open>val_K \<noteq> Some True\<close> and
+      \<open>v \<noteq> Some True\<close> and
+      wl_inv: \<open>unit_prop_body_wl_inv Sa j w L\<close> and
+      i: \<open>(ia, va) \<in>{(j, j'). j = j' \<and> j < 2 \<and> j = i}\<close> and
+      L': \<open>(L', vaa)
+       \<in>{(L, L'). L = L' \<and> L = get_clauses_wl Sa \<propto> x1 ! (1 - ia)}\<close> and
+      \<open>(val_L', vaaa) \<in> Id\<close> and
+      \<open>val_L' \<noteq> Some True\<close> and
+      \<open>vaaa \<noteq> Some True\<close> and
+      fx': \<open>(f, x'a) \<in> ?find (get_trail_wl Sa) (get_clauses_wl Sa) x1\<close> and
+      \<open>unit_prop_body_wl_find_unwatched_inv f x1 Sa\<close> and
+      [simp]: \<open>f = Some xa\<close> \<open>x'a = Some x'b\<close> and
+      \<open>(xa, x'b) \<in> nat_rel\<close> and
+      \<open>x'b < length (get_clauses_l (fst X2) \<propto> snd X2)\<close> and
+      Ka: \<open>(Ka, Kb) \<in>{(L, L'). L = L' \<and> L = get_clauses_wl Sa \<propto> x1 ! xa}\<close> and
+      \<open>(val_L'a, val_Ka) \<in> Id\<close> and
+      \<open>val_L'a \<noteq> Some True\<close> and
+      \<open>val_Ka \<noteq> Some True\<close>
+    for x' x1 x2 x1a x2a b Sa X2 K x val_K v ia va L' vaa val_L' vaaa f x'a xa
+       x'b Ka Kb val_L'a val_Ka
+  proof -
+    have [simp]: \<open>xa = x'b\<close> \<open>Ka = Kb\<close> \<open>Kb = get_clauses_wl Sa \<propto> x1 ! xa\<close> \<open>ia = va\<close>
+       using fx' Ka i by auto
+    have update_clause_l_alt_def:
+      \<open>update_clause_l = (\<lambda>C i f (M, N, D, NE, UE, WS, Q). do {
+           K \<leftarrow> RETURN (op_clauses_at N C f);
+           N' \<leftarrow> mop_clauses_swap N C i f;
+           RETURN (M, N', D, NE, UE, WS, Q)
+      })\<close>
+      unfolding update_clause_l_def by auto
+    have unit_T: \<open>unit_propagation_inner_loop_body_l_inv L C' T\<close>
+      using that by (auto simp: remove_one_lit_from_wq_def)
+    have w: \<open>watched_by S L ! w = (x1, x1a, x2a)\<close>
+      using x' by auto
+    have alien_K: \<open>Ka \<in># all_lits_st Sa\<close>
+      using Sa dom fx' unfolding all_lits_def
+      by (cases S; cases Sa)
+        (auto simp: keep_watch_def ran_m_def all_lits_of_mm_add_mset
+        intro!: in_clause_in_all_lits_of_m
+        dest!: multi_member_split)
+    have L_in_watched: \<open>L \<in> set (watched_l (get_clauses_wl Sa \<propto> x1))\<close>
+      using corr_w alien_L'[OF unit_T] Sa X2 w_le w dom by (cases S)
+        (clarsimp simp: correct_watching_except_alt_def keep_watch_def
+          simp flip: Cons_nth_drop_Suc
+          dest!: multi_member_split)
+    then have LKa: \<open>L \<noteq> Ka\<close>
+       using fx' Ka by (auto simp: in_set_conv_nth nth_eq_iff_index_eq)
+    have L: \<open>get_clauses_wl Sa \<propto> x1 ! i = L\<close>  \<open>get_clauses_wl Sa \<propto> x1 ! (Suc 0 - i) \<noteq> L\<close>
+       \<open>get_clauses_wl Sa \<propto> x1 ! (Suc 0 - i) \<noteq> Ka\<close>
+      using i Sa w L_in_watched fx' Ka unfolding i_def
+      by (auto simp: in_set_conv_nth nth_eq_iff_index_eq)
+    have corr: \<open>correct_watching_except (Suc j) (Suc w) L Sa\<close>
+      using wl_inv dom w Sa unfolding unit_prop_body_wl_inv_def by auto
+    show ?thesis
+      supply RETURN_as_SPEC_refine[refine2 del]
+      unfolding update_clause_l_alt_def update_clause_wl_def
+      apply (cases X2; cases \<open>fst X2\<close>; cases Sa; hypsubst; unfold fst_conv; hypsubst;
+        unfold prod.case snd_conv nres_monad3)
+      apply (refine_rcg mop_clauses_at_op_clauses_at_spec2
+         mop_clauses_swap_itself_spec2)
+      subgoal using alien_L'[OF unit_T] Sa X2 by (cases S; auto simp: keep_watch_def)
+      subgoal using dom Sa X2 w S_S' by (cases S; cases S'; auto simp: state_wl_l_def keep_watch_def)
+      subgoal using fx' Sa S_S' X2 w dom by (cases S; cases S'; auto simp: state_wl_l_def keep_watch_def)
+      subgoal using fx' Sa S_S' X2 w by (cases S; cases S'; auto simp: state_wl_l_def keep_watch_def)
+      subgoal using fx' Sa S_S' X2 w alien_K by (cases S; cases S'; auto simp: state_wl_l_def keep_watch_def all_lits_def)
+      subgoal using LKa Ka by (auto simp: state_wl_l_def keep_watch_def)
+      subgoal using fx' Sa S_S' X2 w by (cases S; cases S'; auto simp: state_wl_l_def keep_watch_def)
+ 
+      subgoal
+        using Sa S_S' X2 w w_le j_w n corr LKa i L_in_watched Ka L fx'
+        by (cases S; cases S')
+          (auto simp: state_wl_l_def keep_watch_def op_clauses_swap_def
+          simp flip: Cons_nth_drop_Suc dest: in_set_takeD
+          intro!: correct_watching_except_correct_watching_except_update_clause)
+      done
+  qed
+
+
+
   show 1: ?propa
     (is \<open>_ \<le> \<Down> ?unit _\<close>)
     supply trail_keep_w[simp] [[goals_limit=1]]
@@ -3655,8 +3939,7 @@ proof -
     apply (rewrite in \<open>if (\<not>_) then ASSERT _ >>= _ else _\<close> if_not_swap)
     supply RETURN_as_SPEC_refine[refine2 del]
     supply [[goals_limit=1]]
-    apply (refine_rcg (*val f f' find_unwatched_l*)
-       find_unwatched_l_itself[THEN fref_to_Down_curry2]
+    apply (refine_rcg f (*val f f' find_unwatched_l*)
        mop_polarity_wl_mop_polarity_l[where b = \<open>Some(L, Suc w)\<close>, THEN fref_to_Down_curry]
        mop_clauses_at_itself_spec pos_of_watched)
     subgoal using inner_loop_inv w_le j_w
@@ -3709,10 +3992,9 @@ proof -
    subgoal by simp \<comment> \<open>polarity\<close>
    subgoal for x' x1 x2 x1a x2a b Sa X2 K x val_K v ia va L' vaa val_L' vaaa
        by (rule update_blit_wl)
-   subgoal by fast
    subgoal using S_S' by (auto simp: eq_commute[of _ \<open>_ ! w\<close>])
    subgoal unfolding unit_prop_body_wl_find_unwatched_inv_def by fast
-   apply assumption
+   apply (rule find_is_nat_rel; assumption)
    subgoal by auto
    apply (rule set_conflict_wl; assumption)
    subgoal for x' x1 x2 x1a x2a b Sa X2 K x val_K v ia va L' vaa val_L' vaaa f x'a
@@ -3724,12 +4006,12 @@ proof -
   subgoal by fast
   subgoal by auto
   subgoal by simp \<comment> \<open>polarity\<close>
-  subgoal
-     sorry
-  subgoal
-     sorry
+  subgoal for x' x1 x2 x1a x2a b Sa X2 K x val_K v ia va L' vaa val_L' vaaa f x'a xa
+       x'b Ka Kb val_L'a val_Ka
+    by (rule update_blit)
+  subgoal by (rule update_clause_wl)
   done
-  
+
   have [simp]: \<open>add_mset a (remove1_mset a M) = M \<longleftrightarrow> a \<in># M\<close> for a M
     by (metis ab_semigroup_add_class.add.commute add.left_neutral multi_self_add_other_not_self
        remove1_mset_eqE union_mset_add_mset_left)

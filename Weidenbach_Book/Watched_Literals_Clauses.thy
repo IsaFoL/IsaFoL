@@ -337,6 +337,13 @@ lemma mop_clauses_at_itself_spec2:
       (mop_clauses_at N' C' i')\<close>
   by (auto intro!: frefI nres_relI ASSERT_refine_right simp: mop_clauses_at_def)
 
+lemma mop_clauses_at_op_clauses_at_spec2:
+  \<open>((N, C, i), (N', C', i')) \<in> Id \<Longrightarrow> C \<in># dom_m N \<and> i < length (N \<propto> C) \<Longrightarrow>
+     mop_clauses_at N C i \<le> \<Down> {(L, L'). L = L' \<and> L = N \<propto> C ! i}
+      (RETURN (op_clauses_at N' C' i'))\<close>
+  by (auto intro!: frefI nres_relI ASSERT_refine_right
+   simp: mop_clauses_at_def op_clauses_at_def)
+
 lemma mop_clauses_swap_itself:
   \<open>(uncurry3 mop_clauses_swap, uncurry3 mop_clauses_swap) \<in> Id \<times>\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f Id \<rightarrow>\<^sub>f \<langle>Id\<rangle>nres_rel\<close>
   by (auto intro!: frefI nres_relI)

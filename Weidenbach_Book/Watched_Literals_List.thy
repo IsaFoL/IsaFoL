@@ -666,7 +666,7 @@ definition mop_polarity_l :: \<open>'v twl_st_l \<Rightarrow> 'v literal \<Right
 
 definition find_unwatched_l :: \<open>('v, _) ann_lits \<Rightarrow> _ \<Rightarrow> nat \<Rightarrow> nat option nres\<close> where
   \<open>find_unwatched_l M N C = do {
-    ASSERT(C \<in># dom_m N \<and> length (N \<propto> C) \<ge> 2);
+    ASSERT(C \<in># dom_m N \<and> length (N \<propto> C) \<ge> 2 \<and> distinct (N \<propto> C));
     SPEC (\<lambda>(found).
       (found = None \<longleftrightarrow> (\<forall>L\<in>set (unwatched_l (N \<propto> C)). -L \<in> lits_of_l M)) \<and>
       (\<forall>j. found = Some j \<longrightarrow> (j < length (N \<propto> C) \<and> (undefined_lit M (N \<propto> C!j) \<or> N \<propto> C!j \<in> lits_of_l M) \<and> j \<ge> 2)))
@@ -819,8 +819,13 @@ proof -
     w_q_inv: \<open>clauses_to_update_inv S'\<close> and
     dist: \<open>distinct_queued S'\<close> and
     no_dup: \<open>no_duplicate_queued S'\<close> and
-    confl: \<open>get_conflict S' \<noteq> None \<Longrightarrow> clauses_to_update S' = {#} \<and> literals_to_update S' = {#}\<close>
+    confl: \<open>get_conflict S' \<noteq> None \<Longrightarrow> clauses_to_update S' = {#} \<and> literals_to_update S' = {#}\<close> and
+    st_inv: \<open>twl_st_inv S'\<close>
     using struct_invs unfolding twl_struct_invs_def by fast+
+  have dist_C: \<open>distinct (get_clauses_l S \<propto> C)\<close>
+    using cdcl_inv SS' C_N_U unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+      cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_alt_def
+    by (auto simp: ran_m_def dest!: multi_member_split)
   have n_d: \<open>no_dup ?M\<close> and confl_inv: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting (state\<^sub>W_of S')\<close>
     using cdcl_inv SS' unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
       cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
@@ -1434,6 +1439,7 @@ proof -
     subgoal by (rule upd_rel)
     subgoal using SS' C_N_U by auto
     subgoal using SS' C_N_U two_le_length_C by auto
+    subgoal using SS' C_N_U dist_C by auto
     subgoal using SS' by auto
     subgoal using SS' by (auto simp: pol_spec_def)
     subgoal by (rule confl_rel)
