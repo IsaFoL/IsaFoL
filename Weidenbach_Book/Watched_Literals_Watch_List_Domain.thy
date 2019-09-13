@@ -538,41 +538,12 @@ lemma literals_are_\<L>\<^sub>i\<^sub>n_all_atms_st:
   \<open>blits_in_\<L>\<^sub>i\<^sub>n S \<Longrightarrow> literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st S) S\<close>
   unfolding literals_are_\<L>\<^sub>i\<^sub>n_def
   by auto
-
-lemma blits_in_\<L>\<^sub>i\<^sub>n_keep_watch:
-  assumes \<open>blits_in_\<L>\<^sub>i\<^sub>n (a, b, c, d, e, f, g)\<close> and
-    w:\<open>w < length (watched_by (a, b, c, d, e, f, g) K)\<close>
-  shows \<open>blits_in_\<L>\<^sub>i\<^sub>n (a, b, c, d, e, f, g (K := (g K)[j := g K ! w]))\<close>
-proof -
-  let ?S = \<open>(a, b, c, d, e, f, g)\<close>
-  let ?T = \<open>(a, b, c, d, e, f, g (K := (g K)[j := g K ! w]))\<close>
-  let ?g = \<open>g (K := (g K)[j := g K ! w])\<close>
-  have H: \<open>\<And>L i K b. L\<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st ?S) \<Longrightarrow> (i, K, b) \<in>set (g L) \<Longrightarrow>
-        K \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st ?S)\<close>
-    using assms
-    unfolding blits_in_\<L>\<^sub>i\<^sub>n_def watched_by.simps
-    by blast
-  have \<open> L\<in>#\<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st ?S) \<Longrightarrow> (i, K', b') \<in>set (?g L) \<Longrightarrow>
-        K' \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st ?S)\<close> for L i K' b'
-    using H[of L i K'] H[of L \<open>fst (g K ! w)\<close> \<open>fst (snd (g K ! w))\<close>]
-      nth_mem[OF w]
-    unfolding blits_in_\<L>\<^sub>i\<^sub>n_def watched_by.simps
-    by (cases \<open>j < length (g K)\<close>; cases \<open>g K ! w\<close>)
-      (auto split: if_splits elim!: in_set_upd_cases)
-  moreover have \<open>all_atms_st ?S = all_atms_st ?T\<close>
-    by (auto simp: all_lits_def all_atms_def)
-  ultimately show ?thesis
-    unfolding blits_in_\<L>\<^sub>i\<^sub>n_def watched_by.simps
-    by force
-qed
-
 text \<open>We mark as safe intro rule, since we will always be in a case where the equivalence holds,
   although in general the equivalence does not hold.\<close>
 lemma literals_are_\<L>\<^sub>i\<^sub>n_keep_watch[twl_st_wl, simp, intro!]:
   \<open>literals_are_\<L>\<^sub>i\<^sub>n \<A> S \<Longrightarrow> w < length (watched_by S K) \<Longrightarrow> literals_are_\<L>\<^sub>i\<^sub>n \<A> (keep_watch K j w S)\<close>
   by (cases S) (auto simp: keep_watch_def literals_are_\<L>\<^sub>i\<^sub>n_def
       blits_in_\<L>\<^sub>i\<^sub>n_keep_watch all_lits_def all_atms_def)
-
 lemma all_lits_update_swap[simp]:
   \<open>x1 \<in># dom_m x1aa \<Longrightarrow> n < length (x1aa \<propto> x1) \<Longrightarrow>n' < length (x1aa \<propto> x1) \<Longrightarrow>
      all_lits (x1aa(x1 \<hookrightarrow> swap (x1aa \<propto> x1) n n')) = all_lits x1aa\<close>
@@ -615,28 +586,6 @@ lemma blits_in_\<L>\<^sub>i\<^sub>n_propagate:
 lemma literals_are_\<L>\<^sub>i\<^sub>n_set_conflict_wl:
   \<open>set_conflict_wl D S \<le> SPEC (literals_are_\<L>\<^sub>i\<^sub>n \<A>) \<longleftrightarrow> literals_are_\<L>\<^sub>i\<^sub>n \<A> S \<and> get_conflict_wl S = None\<close>
   by (cases S; auto simp: blits_in_\<L>\<^sub>i\<^sub>n_def literals_are_\<L>\<^sub>i\<^sub>n_def set_conflict_wl_def assert_bind_spec_conv)
-
-lemma blits_in_\<L>\<^sub>i\<^sub>n_keep_watch':
-  assumes K': \<open>K' \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st (a, b, c, d, e, f, g))\<close> and
-    w:\<open>blits_in_\<L>\<^sub>i\<^sub>n (a, b, c, d, e, f, g)\<close>
-  shows \<open>blits_in_\<L>\<^sub>i\<^sub>n (a, b, c, d, e, f, g (K := (g K)[j := (i, K', b')]))\<close>
-proof -
-  let ?\<A> = \<open>all_atms_st (a, b, c, d, e, f, g)\<close>
-  let ?g = \<open>g (K := (g K)[j := (i, K', b')])\<close>
-  have H: \<open>\<And>L i K b'. L\<in>#\<L>\<^sub>a\<^sub>l\<^sub>l ?\<A> \<Longrightarrow> (i, K, b') \<in>set (g L) \<Longrightarrow> K \<in># \<L>\<^sub>a\<^sub>l\<^sub>l ?\<A>\<close>
-    using assms
-    unfolding blits_in_\<L>\<^sub>i\<^sub>n_def watched_by.simps
-    by blast
-  have \<open> L\<in>#\<L>\<^sub>a\<^sub>l\<^sub>l ?\<A> \<Longrightarrow> (i, K', b') \<in>set (?g L) \<Longrightarrow> K' \<in># \<L>\<^sub>a\<^sub>l\<^sub>l ?\<A>\<close> for L i K' b'
-    using H[of L i K'] K'
-    unfolding blits_in_\<L>\<^sub>i\<^sub>n_def watched_by.simps
-    by (cases \<open>j < length (g K)\<close>; cases \<open>g K ! w\<close>)
-      (auto split: if_splits elim!: in_set_upd_cases)
-
-  then show ?thesis
-    unfolding blits_in_\<L>\<^sub>i\<^sub>n_def watched_by.simps
-    by force
-qed
 
 lemma literals_are_\<L>\<^sub>i\<^sub>n_all_atms_stD[dest]:
   \<open>literals_are_\<L>\<^sub>i\<^sub>n \<A> S \<Longrightarrow> literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st S) S\<close>
