@@ -424,6 +424,24 @@ lemma state_wl_l_mark_of_is_proped:
 text \<open>We here also update the list of watched clauses \<^term>\<open>WL\<close>.\<close>
 declare twl_st_wl[simp]
 
+
+
+fun equality_except_conflict_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl \<Rightarrow> bool\<close> where
+\<open>equality_except_conflict_wl (M, N, D, NE, UE, WS, Q) (M', N', D', NE', UE', WS', Q') \<longleftrightarrow>
+    M = M' \<and> N = N' \<and> NE = NE' \<and> UE = UE' \<and> WS = WS' \<and> Q = Q'\<close>
+
+fun equality_except_trail_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl \<Rightarrow> bool\<close> where
+\<open>equality_except_trail_wl (M, N, D, NE, UE, WS, Q) (M', N', D', NE', UE', WS', Q') \<longleftrightarrow>
+    N = N' \<and> D = D' \<and> NE = NE' \<and> UE = UE' \<and> WS = WS' \<and> Q = Q'\<close>
+
+lemma equality_except_conflict_wl_get_clauses_wl:
+  \<open>equality_except_conflict_wl S Y \<Longrightarrow> get_clauses_wl S = get_clauses_wl Y\<close>
+  by (cases S; cases Y) (auto simp:)
+lemma equality_except_trail_wl_get_clauses_wl:
+ \<open>equality_except_trail_wl S Y\<Longrightarrow> get_clauses_wl S = get_clauses_wl Y\<close>
+  by (cases S; cases Y) (auto simp:)
+
+
 definition unit_prop_body_wl_inv where
 \<open>unit_prop_body_wl_inv T j i L \<longleftrightarrow> (i < length (watched_by T L) \<and> j \<le> i \<and>
    (fst (watched_by T L ! i) \<in># dom_m (get_clauses_wl T) \<longrightarrow>
@@ -2023,6 +2041,10 @@ lemma twl_struct_invs_no_alien_in_trail:
     in_all_lits_of_mm_ain_atms_of_iff)
   done
 
+lemma nres_add_unrelated:
+   \<open>P \<le> \<Down> {(S, S'). R1 S} Q \<Longrightarrow> P \<le> \<Down> {(S, S'). R2 S S'} Q \<Longrightarrow> P \<le> \<Down>{(S, S'). R1 S \<and> R2 S S'} Q\<close> for P R1 R2 Q
+  by (simp add: pw_ref_iff)
+
 lemma
   fixes S :: \<open>'v twl_st_wl\<close> and S' :: \<open>'v twl_st_l\<close> and L :: \<open>'v literal\<close> and w :: nat
   defines [simp]: \<open>C' \<equiv> fst (watched_by S L ! w)\<close>
@@ -3510,7 +3532,7 @@ proof -
       \<open>v \<noteq> Some True\<close> and
       \<open>unit_prop_body_wl_inv Sa j w L\<close> and
       i: \<open>(ia, va) \<in>{(j, j'). j = j' \<and> j < 2 \<and> j = i}\<close> and
-      \<open>(L', vaa)
+      L': \<open>(L', vaa)
        \<in>{(L, L'). L = L' \<and> L = get_clauses_wl Sa \<propto> x1 ! (1 - ia)}\<close> and
       \<open>(val_L', vaaa) \<in> Id\<close> and
       \<open>val_L' \<noteq> Some True\<close> and
@@ -3546,7 +3568,12 @@ proof -
       done
     have [simp]: \<open>get_conflict_l (fst X2) = get_conflict_wl S\<close>
       using X2 S_S' by auto
-find_theorems \<open>do {_\<leftarrow> If _ (_ :: _ nres) _; _}\<close>
+
+    have eq: \<open>a = b \<and> a = get_clauses_wl S \<Longrightarrow> (a, b) \<in> {(a, b). a = b \<and> b = get_clauses_wl S}\<close>
+      for a b
+      by auto
+    have ignored: \<open>P \<le> SPEC P' \<Longrightarrow> P \<le> \<Down> {(S, S'). P' S} (RETURN Q)\<close> for P P' Q
+      by (auto simp: conc_fun_RES RETURN_def)
     have
       \<open>(propagate_lit_wl_general (get_clauses_wl S \<propto> x1 ! (Suc 0 - i)) x1 i (keep_watch L j w S)
      \<le> \<Down> (state_wl_l (Some (L, Suc w)))
@@ -3556,13 +3583,34 @@ find_theorems \<open>do {_\<leftarrow> If _ (_ :: _ nres) _; _}\<close>
         (auto simp: state_wl_l_def propagate_lit_wl_general_def keep_watch_def
           propagate_lit_l_def drop_map mop_clauses_swap_def cons_trail_propagate_l_def
           intro!: ASSERT_refine_right)
-    moreover have \<open>correct_watching_except (Suc j) (Suc w) L (keep_watch L j w S) \<Longrightarrow> undefined_lit (get_trail_wl S) (get_clauses_wl S \<propto> x1 ! (Suc 0 - i)) \<Longrightarrow>
-    propagate_lit_wl_general (get_clauses_wl S \<propto> x1 ! (Suc 0 - i)) x1 i (keep_watch L j w S) \<le> SPEC (correct_watching_except (Suc j) (Suc w) L)\<close>
-      apply (rule correct_watching_except_correct_watching_except_propagate_lit_wl)
-      using w_le j_w \<open>Suc 0 < length (get_clauses_wl S \<propto> x1)\<close> confl_S by auto
-    moreover have \<open>correct_watching_except (Suc j) (Suc w) L (keep_watch L j w S)\<close>
+    have \<open>correct_watching_except (Suc j) (Suc w) L (keep_watch L j w S)\<close>
       by (simp add: corr_w correct_watching_except_correct_watching_except_Suc_Suc_keep_watch j_w w_le)
-    ultimately show ?thesis
+    then have \<open>propagate_lit_wl_general L' x1 ia Sa
+       \<le> \<Down> {(S, S'). (correct_watching_except (Suc j) (Suc w) L S)} 
+          (propagate_lit_l vaa (snd X2) va (fst X2))\<close>
+      using X2 Sa
+      apply (cases X2, cases \<open>fst X2\<close>, hypsubst)
+      unfolding propagate_lit_l_def cons_trail_propagate_l_def nres_monad3
+        mop_clauses_swap_def If_bind_distrib apply -
+      apply (clarsimp; intro conjI impI ASSERT_refine_right ignored;
+         (rule correct_watching_except_correct_watching_except_propagate_lit_wl)?)
+      using w_le j_w \<open>Suc 0 < length (get_clauses_wl S \<propto> x1)\<close> confl_S i S_S' L'
+      by (cases S; auto simp: keep_watch_def state_wl_l_def; fail)+
+    moreover have \<open>propagate_lit_wl_general L' x1 ia Sa
+    \<le> \<Down>{(U, U').
+         ((Suc j, Suc w, U), U', if get_conflict_l U' = None then n else 0)
+         \<in>{((i, j, T'), T, n).
+           (T', T) \<in> state_wl_l (Some (L, Suc w)) \<and>
+            j \<le> length (watched_by T' L) \<and>
+            length (watched_by S L) = length (watched_by T' L) \<and>
+            i \<le> j \<and>
+            (get_conflict_wl T' = None \<longrightarrow>
+             n =
+             size
+              {#(i, _)\<in># mset (drop j (watched_by T' L)).
+               i \<notin># dom_m (get_clauses_wl T')#}) \<and>
+            (get_conflict_wl T' \<noteq> None \<longrightarrow> n = 0)}}
+       (propagate_lit_l vaa (snd X2) va (fst X2))\<close>
       using w_le n j_w x1_dom that S_S' confl_S i_le2 x
       unfolding i'_def[symmetric] i_alt_def[symmetric] propagate_lit_wl_general_def
          propagate_lit_l_def If_bind_distrib
@@ -3574,12 +3622,28 @@ find_theorems \<open>do {_\<leftarrow> If _ (_ :: _ nres) _; _}\<close>
       subgoal by (auto simp: state_wl_l_def)
       subgoal by (auto simp: state_wl_l_def)
       apply (rule mop_clauses_swap_itself_spec2)
-      subgoal by (auto simp: state_wl_l_def) find_theorems get_conflict_l  j w
-      subgoal apply (cases X2; cases S; cases S')
-       apply (auto simp: twl_st_wl simp: op_clauses_swap_def
-        propagate_lit_l_def mop_clauses_swap_def drop_map state_wl_l_def intro!: ASSERT_refine_right)
-  qed 
-find_theorems cons_trail_propagate_l
+      subgoal by (auto simp: state_wl_l_def)
+      subgoal by (cases X2; cases S; cases S')
+         (auto simp: twl_st_wl simp: op_clauses_swap_def keep_watch_def
+             propagate_lit_l_def mop_clauses_swap_def drop_map state_wl_l_def
+           intro!: ASSERT_refine_right)
+      apply (rule eq)
+      subgoal by (cases X2; cases S; cases S')
+         (auto simp: twl_st_wl simp: op_clauses_swap_def keep_watch_def
+             propagate_lit_l_def mop_clauses_swap_def drop_map state_wl_l_def
+           intro!: ASSERT_refine_right)
+      subgoal by (cases X2; cases S; cases S')
+         (auto simp: twl_st_wl simp: op_clauses_swap_def keep_watch_def
+             propagate_lit_l_def mop_clauses_swap_def drop_map state_wl_l_def
+           intro!: ASSERT_refine_right
+           simp flip: Cons_nth_drop_Suc)
+      done
+    ultimately show ?thesis
+      apply (rule nres_add_unrelated[THEN order_trans])
+      apply (rule conc_fun_R_mono)
+      apply fastforce
+      done
+  qed
 
   show 1: ?propa
     (is \<open>_ \<le> \<Down> ?unit _\<close>)
@@ -4531,22 +4595,6 @@ proof -
     by auto
   qed
 qed
-
-
-fun equality_except_conflict_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl \<Rightarrow> bool\<close> where
-\<open>equality_except_conflict_wl (M, N, D, NE, UE, WS, Q) (M', N', D', NE', UE', WS', Q') \<longleftrightarrow>
-    M = M' \<and> N = N' \<and> NE = NE' \<and> UE = UE' \<and> WS = WS' \<and> Q = Q'\<close>
-
-fun equality_except_trail_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl \<Rightarrow> bool\<close> where
-\<open>equality_except_trail_wl (M, N, D, NE, UE, WS, Q) (M', N', D', NE', UE', WS', Q') \<longleftrightarrow>
-    N = N' \<and> D = D' \<and> NE = NE' \<and> UE = UE' \<and> WS = WS' \<and> Q = Q'\<close>
-
-lemma equality_except_conflict_wl_get_clauses_wl:
-  \<open>equality_except_conflict_wl S Y \<Longrightarrow> get_clauses_wl S = get_clauses_wl Y\<close>
-  by (cases S; cases Y) (auto simp:)
-lemma equality_except_trail_wl_get_clauses_wl:
- \<open>equality_except_trail_wl S Y\<Longrightarrow> get_clauses_wl S = get_clauses_wl Y\<close>
-  by (cases S; cases Y) (auto simp:)
 
 lemma backtrack_wl_spec:
   \<open>(backtrack_wl, backtrack_l)
