@@ -4117,16 +4117,21 @@ proof -
   qed
 qed
 
+lemma all_lits_fmupd_new[simp]:
+   \<open>i \<notin># dom_m NU \<Longrightarrow> all_lits (fmupd i C NU) NUE = all_lits_of_m (mset (fst C)) + all_lits NU NUE\<close>
+  unfolding all_lits_def by (auto simp: ran_m_mapsto_upd_notin all_lits_of_mm_add_mset)
+
+
 lemma backtrack_wl_spec:
   \<open>(backtrack_wl, backtrack_l)
     \<in> {(T'::'v twl_st_wl, T).
           (T', T) \<in> state_wl_l None \<and>
-          correct_watching T' \<and>
+          correct_watching T' \<and> blits_in_\<L>\<^sub>i\<^sub>n T' \<and>
           get_conflict_wl T' \<noteq> None \<and>
           get_conflict_wl T' \<noteq> Some {#}} \<rightarrow>
         \<langle>{(T', T).
           (T', T) \<in> state_wl_l None \<and>
-          correct_watching T'}\<rangle>nres_rel\<close>
+          correct_watching T' \<and> blits_in_\<L>\<^sub>i\<^sub>n T'}\<rangle>nres_rel\<close>
   (is \<open>?bt \<in> ?A \<rightarrow> \<langle>?B\<rangle>nres_rel\<close>)
 proof -
   have extract_shorter_conflict_wl: \<open>extract_shorter_conflict_wl S'
@@ -4181,7 +4186,7 @@ proof -
     apply (auto simp: twl_struct_invs_def)
     done
   have propagate_bt_wl: \<open>propagate_bt_wl (lit_of (hd (get_trail_wl S'))) L' U'
-    \<le> \<Down> {(T', T). (T', T) \<in> state_wl_l None \<and> correct_watching T'}
+    \<le> \<Down> {(T', T). (T', T) \<in> state_wl_l None \<and> correct_watching T' \<and> blits_in_\<L>\<^sub>i\<^sub>n T'}
         (propagate_bt_l (lit_of (hd (get_trail_l S))) L U)\<close>
     (is \<open>_ \<le> \<Down> ?propa _\<close>)
     if SS': \<open>(S', S) \<in> ?A\<close> and
@@ -4209,8 +4214,8 @@ proof -
       by (cases U) (auto simp: state_wl_l_def)
     have MS: \<open>MS \<noteq> []\<close>
       using bt unfolding backtrack_wl_inv_def backtrack_l_inv_def S' by (auto simp: state_wl_l_def)
-    have \<open>correct_watching S'\<close>
-      using SS' by fast
+    have \<open>correct_watching S'\<close> and blits: \<open>blits_in_\<L>\<^sub>i\<^sub>n S'\<close>
+      using SS' by fast+
     then have corr: \<open>correct_watching (MU, NS, None, NES, UES, {#K'#}, W)\<close>
        unfolding S' correct_watching.simps clause_to_update_def get_clauses_l.simps
        by simp
@@ -4258,11 +4263,26 @@ proof -
        if \<open>N = N'\<close> for N N' NUE W
       unfolding that get_fresh_index_def get_fresh_index_wl_def
       by (auto intro: RES_refine)
+    have ggg: \<open>\<forall>L\<in>#DS. atm_of L \<in> atms_of_mm (mset `# ran_mf NS + (NES + UES))\<close>
+            \<open>atm_of K' \<in> atms_of_mm (mset `# ran_mf NS + (NES + UES))\<close>
+            \<open>atm_of L' \<in> atms_of_mm (mset `# ran_mf NS + NES)\<close>
+        using atm_confl atm_K' atm_L' unfolding image_mset_union all_clss_lf_ran_m[symmetric] all_lits_def
+        by (auto simp: in_all_lits_of_mm_ain_atms_of_iff)
+    then have all_lits_upd[simp]: \<open>i \<notin># dom_m NS \<Longrightarrow> set_mset (all_lits (fmupd i (E, b) NS) (NES + UES)) =
+      set_mset (all_lits NS (NES + UES))\<close> if \<open>set E \<subseteq> set_mset (DT + {#K', -K', L', -L'#})\<close> for i E b
+      using  that \<open>DT \<subseteq># DS\<close>
+      by (auto simp: all_lits_def all_lits_of_mm_add_mset in_all_lits_of_mm_ain_atms_of_iff atm_of_eq_atm_of
+         ran_m_mapsto_upd_notin all_lits_of_mm_add_mset in_all_lits_of_m_ain_atms_of_iff atms_of_def
+       dest!: multi_member_split[of _ DT] multi_member_split[of _ DS] mset_subset_eq_insertD set_mp[OF that])
+
+    have H: \<open>-K' \<in># all_lits NS (NES + UES)\<close>  \<open>-L' \<in># all_lits NS (NES + UES)\<close>  \<open>L' \<in># all_lits NS (NES + UES)\<close>
+       using \<open>atm_of K' \<in> atms_of_mm (mset `# ran_mf NS + (NES + UES))\<close> \<open>atm_of L' \<in> atms_of_mm (mset `# ran_mf NS + NES)\<close>
+       by (auto simp: in_all_lits_of_mm_ain_atms_of_iff all_lits_def)
     have [refine0]: \<open>SPEC (\<lambda>D'. the D = mset D') \<le> \<Down> {(D', E'). D' = E' \<and> the D = mset D'}
         (SPEC (\<lambda>D'. the E = mset D'))\<close>
       if \<open>D = E\<close> for D E
       using that by (auto intro!: RES_refine)
-    show ?thesis
+    show ?thesis supply [[goals_limit=1]]
       unfolding propagate_bt_wl_def propagate_bt_l_def S' T' U' U st_l_of_wl.simps get_trail_wl.simps
       list_of_mset_def K'_def[symmetric] Let_def
       apply (refine_vcg fresh; remove_dummy_vars)
@@ -4282,12 +4302,17 @@ proof -
         subgoal by auto
         apply (rule corr)
         done
+      subgoal using blits atm_confl H apply (auto simp: S' blits_in_\<L>\<^sub>i\<^sub>n_def simp del: all_lits_fmupd_new)
+           apply (subst all_lits_upd; auto  simp del: all_lits_fmupd_new; fail)+
+           apply (subst all_lits_upd, auto  simp del: all_lits_fmupd_new)
+           apply (subst (asm) all_lits_upd; auto  simp del: all_lits_fmupd_new)
+           done
       done
   qed
 
   have propagate_unit_bt_wl: \<open>(propagate_unit_bt_wl (lit_of (hd (get_trail_wl S'))) U',
      propagate_unit_bt_l (lit_of (hd (get_trail_l S))) U)
-    \<in> {(T', T). (T', T) \<in> state_wl_l None \<and> correct_watching T'} \<close>
+    \<in> {(T', T). (T', T) \<in> state_wl_l None \<and> correct_watching T' \<and> blits_in_\<L>\<^sub>i\<^sub>n T'} \<close>
     (is \<open>(_, _) \<in> ?propagate_unit_bt_wl _\<close>)
     if
      SS': \<open>(S', S) \<in> ?A\<close> and
@@ -4333,13 +4358,14 @@ proof -
     then have K': \<open>set_mset (all_lits_of_mm (mset `# ran_mf NS + (NES + add_mset (the (Some DT)) UES))) =
       set_mset (all_lits_of_mm (mset `# ran_mf NS + (NES + UES)))\<close>
       by (auto simp: ac_simps)
-    have \<open>correct_watching S'\<close>
-      using SS' by fast
+    have \<open>correct_watching S'\<close> and blits:  \<open>blits_in_\<L>\<^sub>i\<^sub>n S'\<close>
+      using SS' by fast+
     then have corr: \<open>correct_watching (Propagated (- lit_of (hd MS)) 0 # MU, NS, None, NES,
       add_mset (the (Some DT)) UES, unmark (hd MS), W)\<close>
       unfolding S' correct_watching.simps clause_to_update_def get_clauses_l.simps K
-        K' .
-
+        K' by fast
+    have [simp]: \<open>set_mset (all_lits NS (add_mset DT (NES + UES))) = set_mset (all_lits NS (NES + UES))\<close>
+      using K' unfolding all_lits_def by auto
     show ?thesis
       unfolding propagate_unit_bt_wl_def propagate_unit_bt_l_def S' T' U U'
         st_l_of_wl.simps get_trail_wl.simps list_of_mset_def
@@ -4347,6 +4373,7 @@ proof -
       apply (refine_rcg)
       subgoal using SS' by (auto simp: S' state_wl_l_def)
       subgoal by (rule corr)
+      subgoal using blits by (auto simp: S' blits_in_\<L>\<^sub>i\<^sub>n_def)
       done
   qed
   show ?thesis
@@ -4392,15 +4419,17 @@ definition cdcl_twl_o_prog_wl :: \<open>'v twl_st_wl \<Rightarrow> (bool \<times
     }
   \<close>
 
+lemma [simp]: \<open>blits_in_\<L>\<^sub>i\<^sub>n (decide_lit_wl L S) \<longleftrightarrow> blits_in_\<L>\<^sub>i\<^sub>n S\<close>
+  by (cases S) (auto simp: decide_lit_wl_def blits_in_\<L>\<^sub>i\<^sub>n_def)
 
 lemma cdcl_twl_o_prog_wl_spec:
   \<open>(cdcl_twl_o_prog_wl, cdcl_twl_o_prog_l) \<in> {(S::'v twl_st_wl, S'::'v twl_st_l).
      (S, S') \<in> state_wl_l None \<and>
-     correct_watching S} \<rightarrow>\<^sub>f
+        correct_watching S \<and> blits_in_\<L>\<^sub>i\<^sub>n S} \<rightarrow>\<^sub>f
    \<langle>{((brk::bool, T::'v twl_st_wl), brk'::bool, T'::'v twl_st_l).
      (T, T') \<in> state_wl_l None \<and>
      brk = brk' \<and>
-     correct_watching T}\<rangle>nres_rel\<close>
+     correct_watching T \<and> blits_in_\<L>\<^sub>i\<^sub>n T}\<rangle>nres_rel\<close>
    (is \<open>?o \<in> ?A \<rightarrow>\<^sub>f \<langle>?B\<rangle> nres_rel\<close>)
 proof -
   have find_unassigned_lit_wl: \<open>find_unassigned_lit_wl S \<le> \<Down> Id (find_unassigned_lit_l S')\<close>
@@ -4420,7 +4449,7 @@ proof -
    \<langle>{((brk::bool, T::'v twl_st_wl), brk'::bool, T'::'v twl_st_l).
      (T, T') \<in> state_wl_l None \<and>
      brk = brk' \<and>
-     correct_watching T}\<rangle>nres_rel\<close>
+     correct_watching T \<and> blits_in_\<L>\<^sub>i\<^sub>n T}\<rangle>nres_rel\<close>
     unfolding cdcl_twl_o_prog_wl_def cdcl_twl_o_prog_l_def decide_wl_or_skip_def
       decide_l_or_skip_def fref_param1[symmetric]
     apply (refine_vcg skip_and_resolve_loop_wl_spec["to_\<Down>"] backtrack_wl_spec["to_\<Down>"]
@@ -4468,14 +4497,14 @@ definition cdcl_twl_stgy_prog_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_
 theorem cdcl_twl_stgy_prog_wl_spec:
   \<open>(cdcl_twl_stgy_prog_wl, cdcl_twl_stgy_prog_l) \<in> {(S::'v twl_st_wl, S').
        (S, S') \<in> state_wl_l None \<and>
-       correct_watching S} \<rightarrow>
+       correct_watching S \<and> blits_in_\<L>\<^sub>i\<^sub>n S} \<rightarrow>
     \<langle>state_wl_l None\<rangle>nres_rel\<close>
    (is \<open>?o \<in> ?A \<rightarrow> \<langle>?B\<rangle> nres_rel\<close>)
 proof -
   have H: \<open>((False, S'), False, S) \<in> {((brk', T'), (brk, T)). (T', T) \<in> state_wl_l None \<and> brk' = brk \<and>
-       correct_watching T'}\<close>
+       correct_watching T' \<and> blits_in_\<L>\<^sub>i\<^sub>n T'}\<close>
     if \<open>(S', S) \<in> state_wl_l None\<close> and
-       \<open>correct_watching S'\<close>
+       \<open>correct_watching S'\<close> \<open>blits_in_\<L>\<^sub>i\<^sub>n S'\<close>
     for S' :: \<open>'v twl_st_wl\<close> and S :: \<open>'v twl_st_l\<close>
     using that by auto
 
@@ -4484,6 +4513,7 @@ proof -
     apply (refine_rcg H unit_propagation_outer_loop_wl_spec[THEN fref_to_Down]
       cdcl_twl_o_prog_wl_spec[THEN fref_to_Down])
     subgoal for S' S by (cases S') auto
+    subgoal by auto
     subgoal by auto
     subgoal unfolding cdcl_twl_stgy_prog_wl_inv_def by blast
     subgoal by auto
@@ -4496,15 +4526,15 @@ qed
 
 theorem cdcl_twl_stgy_prog_wl_spec':
   \<open>(cdcl_twl_stgy_prog_wl, cdcl_twl_stgy_prog_l) \<in> {(S::'v twl_st_wl, S').
-       (S, S') \<in> state_wl_l None \<and> correct_watching S} \<rightarrow>
+       (S, S') \<in> state_wl_l None \<and> correct_watching S \<and> blits_in_\<L>\<^sub>i\<^sub>n S} \<rightarrow>
     \<langle>{(S::'v twl_st_wl, S').
-       (S, S') \<in> state_wl_l None \<and> correct_watching S}\<rangle>nres_rel\<close>
+       (S, S') \<in> state_wl_l None \<and> correct_watching S \<and> blits_in_\<L>\<^sub>i\<^sub>n S}\<rangle>nres_rel\<close>
    (is \<open>?o \<in> ?A \<rightarrow> \<langle>?B\<rangle> nres_rel\<close>)
 proof -
   have H: \<open>((False, S'), False, S) \<in> {((brk', T'), (brk, T)). (T', T) \<in> state_wl_l None \<and> brk' = brk \<and>
-       correct_watching T'}\<close>
+       correct_watching T' \<and> blits_in_\<L>\<^sub>i\<^sub>n T'}\<close>
     if \<open>(S', S) \<in> state_wl_l None\<close> and
-       \<open>correct_watching S'\<close>
+       \<open>correct_watching S'\<close> \<open>blits_in_\<L>\<^sub>i\<^sub>n S'\<close>
     for S' :: \<open>'v twl_st_wl\<close> and S :: \<open>'v twl_st_l\<close>
     using that by auto
     thm unit_propagation_outer_loop_wl_spec[THEN fref_to_Down]
@@ -4513,6 +4543,7 @@ proof -
     apply (refine_rcg H unit_propagation_outer_loop_wl_spec[THEN fref_to_Down]
       cdcl_twl_o_prog_wl_spec[THEN fref_to_Down])
     subgoal for S' S by (cases S') auto
+    subgoal by auto
     subgoal by auto
     subgoal unfolding cdcl_twl_stgy_prog_wl_inv_def by blast
     subgoal by auto
@@ -4525,7 +4556,7 @@ qed
 
 definition cdcl_twl_stgy_prog_wl_pre where
   \<open>cdcl_twl_stgy_prog_wl_pre S U \<longleftrightarrow>
-    (\<exists>T. (S, T) \<in> state_wl_l None \<and> cdcl_twl_stgy_prog_l_pre T U \<and> correct_watching S)\<close>
+    (\<exists>T. (S, T) \<in> state_wl_l None \<and> cdcl_twl_stgy_prog_l_pre T U \<and> correct_watching S \<and> blits_in_\<L>\<^sub>i\<^sub>n S)\<close>
 
 lemma cdcl_twl_stgy_prog_wl_spec_final:
   assumes
@@ -4533,7 +4564,7 @@ lemma cdcl_twl_stgy_prog_wl_spec_final:
   shows
     \<open>cdcl_twl_stgy_prog_wl S \<le> \<Down> (state_wl_l None O twl_st_l None) (conclusive_TWL_run S')\<close>
 proof -
-  obtain T where T: \<open>(S, T) \<in> state_wl_l None\<close> \<open>cdcl_twl_stgy_prog_l_pre T S'\<close> \<open>correct_watching S\<close>
+  obtain T where T: \<open>(S, T) \<in> state_wl_l None\<close> \<open>cdcl_twl_stgy_prog_l_pre T S'\<close> \<open>correct_watching S\<close> \<open>blits_in_\<L>\<^sub>i\<^sub>n S\<close>
     using assms unfolding cdcl_twl_stgy_prog_wl_pre_def by blast
   show ?thesis
     apply (rule order_trans[OF cdcl_twl_stgy_prog_wl_spec["to_\<Down>", of S T]])
@@ -4568,16 +4599,16 @@ definition cdcl_twl_stgy_prog_break_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v t
 
 theorem cdcl_twl_stgy_prog_break_wl_spec':
   \<open>(cdcl_twl_stgy_prog_break_wl, cdcl_twl_stgy_prog_break_l) \<in> {(S::'v twl_st_wl, S').
-       (S, S') \<in> state_wl_l None \<and> correct_watching S} \<rightarrow>\<^sub>f
-    \<langle>{(S::'v twl_st_wl, S'). (S, S') \<in> state_wl_l None \<and> correct_watching S}\<rangle>nres_rel\<close>
+       (S, S') \<in> state_wl_l None \<and> correct_watching S \<and> blits_in_\<L>\<^sub>i\<^sub>n S} \<rightarrow>\<^sub>f
+    \<langle>{(S::'v twl_st_wl, S'). (S, S') \<in> state_wl_l None \<and> correct_watching S \<and> blits_in_\<L>\<^sub>i\<^sub>n S}\<rangle>nres_rel\<close>
    (is \<open>?o \<in> ?A \<rightarrow>\<^sub>f \<langle>?B\<rangle> nres_rel\<close>)
 proof -
   have H: \<open>((b', False, S'), b, False, S) \<in> {((b', brk', T'), (b, brk, T)).
       (T', T) \<in> state_wl_l None \<and> brk' = brk \<and> b' = b \<and>
-       correct_watching T'}\<close>
+       correct_watching T' \<and> blits_in_\<L>\<^sub>i\<^sub>n T'}\<close>
     if \<open>(S', S) \<in> state_wl_l None\<close> and
        \<open>correct_watching S'\<close> and
-       \<open>(b', b) \<in> bool_rel\<close>
+       \<open>(b', b) \<in> bool_rel\<close> \<open>blits_in_\<L>\<^sub>i\<^sub>n S'\<close>
     for S' :: \<open>'v twl_st_wl\<close> and S :: \<open>'v twl_st_l\<close> and b' b :: bool
     using that by auto
   show ?thesis
@@ -4586,6 +4617,7 @@ proof -
       cdcl_twl_o_prog_wl_spec[THEN fref_to_Down]
       cdcl_twl_stgy_prog_wl_spec'[unfolded fref_param1, THEN fref_to_Down])
     subgoal for S' S by (cases S') auto
+    subgoal by auto
     subgoal by auto
     subgoal unfolding cdcl_twl_stgy_prog_wl_inv_def by blast
     subgoal by auto
@@ -4604,7 +4636,7 @@ qed
 theorem cdcl_twl_stgy_prog_break_wl_spec:
   \<open>(cdcl_twl_stgy_prog_break_wl, cdcl_twl_stgy_prog_break_l) \<in> {(S::'v twl_st_wl, S').
        (S, S') \<in> state_wl_l None \<and>
-       correct_watching S} \<rightarrow>\<^sub>f
+       correct_watching S \<and> blits_in_\<L>\<^sub>i\<^sub>n S} \<rightarrow>\<^sub>f
     \<langle>state_wl_l None\<rangle>nres_rel\<close>
    (is \<open>?o \<in> ?A \<rightarrow>\<^sub>f \<langle>?B\<rangle> nres_rel\<close>)
   using cdcl_twl_stgy_prog_break_wl_spec'
@@ -4621,7 +4653,7 @@ lemma cdcl_twl_stgy_prog_break_wl_spec_final:
   shows
     \<open>cdcl_twl_stgy_prog_break_wl S \<le> \<Down> (state_wl_l None O twl_st_l None) (conclusive_TWL_run S')\<close>
 proof -
-  obtain T where T: \<open>(S, T) \<in> state_wl_l None\<close> \<open>cdcl_twl_stgy_prog_l_pre T S'\<close> \<open>correct_watching S\<close>
+  obtain T where T: \<open>(S, T) \<in> state_wl_l None\<close> \<open>cdcl_twl_stgy_prog_l_pre T S'\<close> \<open>correct_watching S\<close> \<open>blits_in_\<L>\<^sub>i\<^sub>n S\<close>
     using assms unfolding cdcl_twl_stgy_prog_wl_pre_def by blast
   show ?thesis
     apply (rule order_trans[OF cdcl_twl_stgy_prog_break_wl_spec[unfolded fref_param1[symmetric], "to_\<Down>", of S T]])
@@ -4655,16 +4687,16 @@ definition cdcl_twl_stgy_prog_early_wl :: \<open>'v twl_st_wl \<Rightarrow> (boo
 
 theorem cdcl_twl_stgy_prog_early_wl_spec':
   \<open>(cdcl_twl_stgy_prog_early_wl, cdcl_twl_stgy_prog_early_l) \<in> {(S::'v twl_st_wl, S').
-       (S, S') \<in> state_wl_l None \<and> correct_watching S} \<rightarrow>\<^sub>f
-    \<langle>bool_rel \<times>\<^sub>r {(S::'v twl_st_wl, S'). (S, S') \<in> state_wl_l None \<and> correct_watching S}\<rangle>nres_rel\<close>
+       (S, S') \<in> state_wl_l None \<and> correct_watching S \<and> blits_in_\<L>\<^sub>i\<^sub>n S} \<rightarrow>\<^sub>f
+    \<langle>bool_rel \<times>\<^sub>r {(S::'v twl_st_wl, S'). (S, S') \<in> state_wl_l None \<and> correct_watching S \<and> blits_in_\<L>\<^sub>i\<^sub>n S}\<rangle>nres_rel\<close>
    (is \<open>?o \<in> ?A \<rightarrow>\<^sub>f \<langle>?B\<rangle> nres_rel\<close>)
 proof -
   have H: \<open>((b', False, S'), b, False, S) \<in> {((b', brk', T'), (b, brk, T)).
       (T', T) \<in> state_wl_l None \<and> brk' = brk \<and> b' = b \<and>
-       correct_watching T'}\<close>
+       correct_watching T' \<and> blits_in_\<L>\<^sub>i\<^sub>n T'}\<close>
     if \<open>(S', S) \<in> state_wl_l None\<close> and
        \<open>correct_watching S'\<close> and
-       \<open>(b', b) \<in> bool_rel\<close>
+       \<open>(b', b) \<in> bool_rel\<close> \<open>blits_in_\<L>\<^sub>i\<^sub>n S'\<close>
     for S' :: \<open>'v twl_st_wl\<close> and S :: \<open>'v twl_st_l\<close> and b' b :: bool
     using that by auto
   show ?thesis
@@ -4673,6 +4705,7 @@ proof -
       cdcl_twl_o_prog_wl_spec[THEN fref_to_Down]
       cdcl_twl_stgy_prog_wl_spec'[unfolded fref_param1, THEN fref_to_Down])
     subgoal for S' S by (cases S') auto
+    subgoal by auto
     subgoal by auto
     subgoal unfolding cdcl_twl_stgy_prog_wl_inv_def by blast
     subgoal by auto
@@ -4688,7 +4721,7 @@ qed
 theorem cdcl_twl_stgy_prog_early_wl_spec:
   \<open>(cdcl_twl_stgy_prog_early_wl, cdcl_twl_stgy_prog_early_l) \<in> {(S::'v twl_st_wl, S').
        (S, S') \<in> state_wl_l None \<and>
-       correct_watching S} \<rightarrow>\<^sub>f
+       correct_watching S \<and> blits_in_\<L>\<^sub>i\<^sub>n S} \<rightarrow>\<^sub>f
     \<langle>bool_rel \<times>\<^sub>r state_wl_l None\<rangle>nres_rel\<close>
    (is \<open>?o \<in> ?A \<rightarrow>\<^sub>f \<langle>?B\<rangle> nres_rel\<close>)
   using cdcl_twl_stgy_prog_early_wl_spec'
@@ -4705,7 +4738,7 @@ lemma cdcl_twl_stgy_prog_early_wl_spec_final:
   shows
     \<open>cdcl_twl_stgy_prog_early_wl S \<le> \<Down> (bool_rel \<times>\<^sub>r (state_wl_l None O twl_st_l None)) (partial_conclusive_TWL_run S')\<close>
 proof -
-  obtain T where T: \<open>(S, T) \<in> state_wl_l None\<close> \<open>cdcl_twl_stgy_prog_l_pre T S'\<close> \<open>correct_watching S\<close>
+  obtain T where T: \<open>(S, T) \<in> state_wl_l None\<close> \<open>cdcl_twl_stgy_prog_l_pre T S'\<close> \<open>correct_watching S\<close> \<open>blits_in_\<L>\<^sub>i\<^sub>n S\<close>
     using assms unfolding cdcl_twl_stgy_prog_wl_pre_def by blast
   have H: \<open>{((a, b), a', b'). (a, a') \<in> bool_rel \<and> (b, b') \<in> state_wl_l None} O
        (bool_rel \<times>\<^sub>f twl_st_l None) = bool_rel \<times>\<^sub>r  state_wl_l None O twl_st_l None\<close>
