@@ -375,6 +375,15 @@ proof -
     by force
 qed
 
+
+lemma blits_in_\<L>\<^sub>i\<^sub>n_keep_watch'':
+  assumes K': \<open>K' \<in># all_lits_st (a, b, c, d, e, f, g)\<close> \<open>L' \<in># all_lits_st (a, b, c, d, e, f, g)\<close> and
+    w:\<open> blits_in_\<L>\<^sub>i\<^sub>n (a, b, c, d, e, f, g)\<close>
+  shows \<open>blits_in_\<L>\<^sub>i\<^sub>n (a, b, c, d, e, f, g (K := (g K)[j := (i, K', b')], L := g L @ [(i', L', b'')]))\<close>
+  using assms
+  unfolding blits_in_\<L>\<^sub>i\<^sub>n_def
+  by (auto split: if_splits elim!: in_set_upd_cases)
+
 (*
 lemma literals_are_\<L>\<^sub>i\<^sub>n_set_conflict_wl:
   \<open>set_conflict_wl D S \<le> SPEC (literals_are_\<L>\<^sub>i\<^sub>n \<A>) \<longleftrightarrow> literals_are_\<L>\<^sub>i\<^sub>n \<A> S \<and> get_conflict_wl S = None\<close>
@@ -3124,23 +3133,23 @@ proof -
       subgoal using LKa Ka by (auto simp: state_wl_l_def keep_watch_def)
       subgoal using fx' Sa S_S' X2 w by (cases S; cases S'; auto simp: state_wl_l_def keep_watch_def)
  
-      subgoal
+      subgoal supply [[goals_limit=1]]
         using Sa S_S' X2 w w_le j_w n corr LKa i L_in_watched Ka L fx' blit_in_lit alien_L'[OF unit_T]
-           alien_K confl unfolding all_lits_def[symmetric] all_lits_alt_def[symmetric]
+           alien_K confl x' unfolding all_lits_def[symmetric] all_lits_alt_def[symmetric]
         apply (cases S; cases S')
-apply (clarsimp simp add: state_wl_l_def  keep_watch_def op_clauses_swap_def  blits_in_\<L>\<^sub>i\<^sub>n_keep_watch'
+        apply (clarsimp simp add: state_wl_l_def  keep_watch_def op_clauses_swap_def  blits_in_\<L>\<^sub>i\<^sub>n_keep_watch'
               blits_in_\<L>\<^sub>i\<^sub>n_propagate correct_watching_except_correct_watching_except_update_clause
           simp flip: Cons_nth_drop_Suc
-          intro!: )
-apply (intro conjI correct_watching_except_correct_watching_except_update_clause)
-apply (clarsimp intro!: correct_watching_except_correct_watching_except_update_clause)[]
-         apply (auto simp: state_wl_l_def keep_watch_def op_clauses_swap_def  blits_in_\<L>\<^sub>i\<^sub>n_keep_watch'
+          intro!: blits_in_\<L>\<^sub>i\<^sub>n_keep_watch'')
+        apply (intro conjI correct_watching_except_correct_watching_except_update_clause
+          blits_in_\<L>\<^sub>i\<^sub>n_keep_watch'')
+        apply (clarsimp intro!: correct_watching_except_correct_watching_except_update_clause)[]
+        apply (auto simp: state_wl_l_def keep_watch_def op_clauses_swap_def  blits_in_\<L>\<^sub>i\<^sub>n_keep_watch'
               blits_in_\<L>\<^sub>i\<^sub>n_propagate all_lits_def
           simp flip: Cons_nth_drop_Suc  dest: in_set_takeD
-          intro!: correct_watching_except_correct_watching_except_update_clause)
-apply (subst blits_in_\<L>\<^sub>i\<^sub>n_propagate blits_in_\<L>\<^sub>i\<^sub>n_keep_watch')
-using blits_in_\<L>\<^sub>i\<^sub>n_propagate (5)[]
- sorry
+          intro!: correct_watching_except_correct_watching_except_update_clause
+               blits_in_\<L>\<^sub>i\<^sub>n_keep_watch'')
+         done
       done
   qed
 
@@ -3292,6 +3301,11 @@ definition unit_propagation_inner_loop_wl_loop
       (0, 0, S\<^sub>0)
   }\<close>
 
+lemma blits_in_\<L>\<^sub>i\<^sub>n_cut_watch:
+  assumes corr: \<open>blits_in_\<L>\<^sub>i\<^sub>n (a, b, c, d, e, f, g)\<close>
+  shows \<open>blits_in_\<L>\<^sub>i\<^sub>n (a, b, c, d, e, f, g(L := take j (g L) @ drop w (g L)))\<close>
+  using assms by (auto simp: blits_in_\<L>\<^sub>i\<^sub>n_def dest!: in_set_takeD in_set_dropD)
+
 lemma correct_watching_except_correct_watching_cut_watch:
   assumes corr: \<open>correct_watching_except j w L (a, b, c, d, e, f, g)\<close>
   shows \<open>correct_watching (a, b, c, d, e, f, g(L := take j (g L) @ drop w (g L)))\<close>
@@ -3406,7 +3420,7 @@ proof -
       following function:\<close>
     let ?R' = \<open>{((i, j, T'), (T, n)).
         (T', T) \<in> state_wl_l (Some (L, j)) \<and>
-        correct_watching_except i j L T' \<and>
+        correct_watching_except i j L T' \<and> blits_in_\<L>\<^sub>i\<^sub>n T' \<and>
         j \<le> length (watched_by T' L) \<and>
         length (watched_by S L) = length (watched_by T' L) \<and>
         i \<le> j \<and>
@@ -3506,13 +3520,13 @@ proof -
         apply (rule unit_propagation_inner_loop_body_wl_spec[of _ \<open>fst Tn\<close>])
         apply (simp only: prod.case in_pair_collect_simp)
         apply normalize_goal+
-        by (auto simp del: twl_st_of_wl.simps)
+        by (auto simp del: twl_st_of_wl.simps intro!: conc_fun_R_mono)
       subgoal by auto
       subgoal by auto
       subgoal by auto
       subgoal for n i'w'T' Tn i' w'T' j L' w' T'
         apply (cases T')
-        by (auto simp: state_wl_l_def cut_watch_list_def
+        by (auto simp: state_wl_l_def cut_watch_list_def intro: blits_in_\<L>\<^sub>i\<^sub>n_cut_watch
           dest!: correct_watching_except_correct_watching_cut_watch)
       done
   }
@@ -3534,7 +3548,7 @@ definition select_and_remove_from_literals_to_update_wl :: \<open>'v twl_st_wl \
 definition unit_propagation_outer_loop_wl_inv where
   \<open>unit_propagation_outer_loop_wl_inv S \<longleftrightarrow>
     (\<exists>S'. (S, S') \<in> state_wl_l None \<and>
-      correct_watching S \<and>
+      correct_watching S \<and> blits_in_\<L>\<^sub>i\<^sub>n S \<and>
       unit_propagation_outer_loop_l_inv S')\<close>
 
 definition unit_propagation_outer_loop_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
@@ -3550,20 +3564,22 @@ definition unit_propagation_outer_loop_wl :: \<open>'v twl_st_wl \<Rightarrow> '
       (S\<^sub>0 :: 'v twl_st_wl)
 \<close>
 
+lemma blits_in_\<L>\<^sub>i\<^sub>n_simps[simp]: \<open>blits_in_\<L>\<^sub>i\<^sub>n (set_literals_to_update_wl C  xa) \<longleftrightarrow> blits_in_\<L>\<^sub>i\<^sub>n xa\<close>
+  by (cases xa; auto simp: blits_in_\<L>\<^sub>i\<^sub>n_def)
 
 lemma unit_propagation_outer_loop_wl_spec:
   \<open>(unit_propagation_outer_loop_wl, unit_propagation_outer_loop_l)
  \<in> {(T'::'v twl_st_wl, T).
        (T', T) \<in> state_wl_l None \<and>
-       correct_watching T'} \<rightarrow>\<^sub>f
+       correct_watching T' \<and> blits_in_\<L>\<^sub>i\<^sub>n T'} \<rightarrow>\<^sub>f
     \<langle>{(T', T).
        (T', T) \<in> state_wl_l None \<and>
-       correct_watching T'}\<rangle>nres_rel\<close>
+       correct_watching T' \<and> blits_in_\<L>\<^sub>i\<^sub>n T'}\<rangle>nres_rel\<close>
   (is \<open>?u \<in> ?A \<rightarrow>\<^sub>f \<langle>?B\<rangle> nres_rel\<close>)
 proof -
   have inv: \<open>unit_propagation_outer_loop_wl_inv T'\<close>
   if
-    \<open>(T', T) \<in> {(T', T). (T', T) \<in> state_wl_l None \<and> correct_watching T'}\<close> and
+    \<open>(T', T) \<in> {(T', T). (T', T) \<in> state_wl_l None \<and> correct_watching T' \<and> blits_in_\<L>\<^sub>i\<^sub>n T'}\<close> and
     \<open>unit_propagation_outer_loop_l_inv T\<close>
     for T T'
   unfolding unit_propagation_outer_loop_wl_inv_def
@@ -3709,7 +3725,7 @@ definition find_unassigned_lit_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v litera
 definition decide_wl_or_skip_pre where
 \<open>decide_wl_or_skip_pre S \<longleftrightarrow>
   (\<exists>S'. (S, S') \<in> state_wl_l None \<and>
-   decide_l_or_skip_pre S'
+   decide_l_or_skip_pre S' \<and> blits_in_\<L>\<^sub>i\<^sub>n S
   )\<close>
 
 definition decide_lit_wl :: \<open>'v literal \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl\<close> where
@@ -3731,11 +3747,11 @@ lemma decide_wl_or_skip_spec:
   \<open>(decide_wl_or_skip, decide_l_or_skip)
     \<in> {(T':: 'v twl_st_wl, T).
           (T', T) \<in> state_wl_l None \<and>
-          correct_watching T' \<and>
+          correct_watching T' \<and> blits_in_\<L>\<^sub>i\<^sub>n T' \<and>
           get_conflict_wl T' = None} \<rightarrow>
         \<langle>{((b', T'), (b, T)). b' = b \<and>
          (T', T) \<in> state_wl_l None \<and>
-          correct_watching T'}\<rangle>nres_rel\<close>
+          correct_watching T' \<and> blits_in_\<L>\<^sub>i\<^sub>n T'}\<rangle>nres_rel\<close>
 proof -
   have find_unassigned_lit_wl: \<open>find_unassigned_lit_wl S'
     \<le> \<Down> Id
@@ -3756,7 +3772,7 @@ proof -
     subgoal by auto
     subgoal for S S'
       by (cases S) (auto simp: correct_watching.simps clause_to_update_def
-          decide_lit_l_def decide_lit_wl_def state_wl_l_def)
+          decide_lit_l_def decide_lit_wl_def state_wl_l_def blits_in_\<L>\<^sub>i\<^sub>n_def)
     done
 qed
 
@@ -3809,26 +3825,26 @@ definition skip_and_resolve_loop_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_
   \<close>
 
 lemma tl_state_wl_tl_state_l:
-  \<open>(S, S') \<in> state_wl_l None \<Longrightarrow> correct_watching S \<Longrightarrow>
-    tl_state_wl S \<le> \<Down>{(S, T). (S, T) \<in> state_wl_l None \<and> correct_watching S} (tl_state_l S')\<close>
-  by (cases S) (auto simp: state_wl_l_def tl_state_wl_def tl_state_l_def
+  \<open>(S, S') \<in> state_wl_l None \<Longrightarrow> correct_watching S \<Longrightarrow>  blits_in_\<L>\<^sub>i\<^sub>n S \<Longrightarrow>
+    tl_state_wl S \<le> \<Down>{(S, T). (S, T) \<in> state_wl_l None \<and> correct_watching S \<and> blits_in_\<L>\<^sub>i\<^sub>n S} (tl_state_l S')\<close>
+  by (cases S) (auto simp: state_wl_l_def tl_state_wl_def tl_state_l_def blits_in_\<L>\<^sub>i\<^sub>n_def
         assert_bind_spec_conv correct_watching.simps clause_to_update_def intro!: ASSERT_refine_right)
 
 lemma skip_and_resolve_loop_wl_spec:
   \<open>(skip_and_resolve_loop_wl, skip_and_resolve_loop_l)
     \<in> {(T'::'v twl_st_wl, T).
          (T', T) \<in> state_wl_l None \<and>
-          correct_watching T' \<and>
+          correct_watching T' \<and> blits_in_\<L>\<^sub>i\<^sub>n T' \<and>
           0 < count_decided (get_trail_wl T')} \<rightarrow>
       \<langle>{(T', T).
          (T', T) \<in> state_wl_l None \<and>
-          correct_watching T'}\<rangle>nres_rel\<close>
+          correct_watching T' \<and> blits_in_\<L>\<^sub>i\<^sub>n T'}\<rangle>nres_rel\<close>
   (is \<open>?s \<in> ?A \<rightarrow> \<langle>?B\<rangle>nres_rel\<close>)
 proof -
   have get_conflict_wl: \<open>((False, S'), False, S)
-    \<in> Id \<times>\<^sub>r {(T', T). (T', T) \<in> state_wl_l None \<and> correct_watching T'}\<close>
+    \<in> Id \<times>\<^sub>r {(T', T). (T', T) \<in> state_wl_l None \<and> correct_watching T' \<and> blits_in_\<L>\<^sub>i\<^sub>n T'}\<close>
     (is \<open>_ \<in> ?B\<close>)
-    if \<open>(S', S) \<in> state_wl_l None\<close> and \<open>correct_watching S'\<close>
+    if \<open>(S', S) \<in> state_wl_l None\<close> and \<open>correct_watching S'\<close> and \<open>blits_in_\<L>\<^sub>i\<^sub>n S'\<close>
     for S :: \<open>'v twl_st_l\<close> and S' :: \<open>'v twl_st_wl\<close>
     using that by (cases S') (auto simp: state_wl_l_def)
   have [simp]: \<open>correct_watching  (tl aa, ca, da, ea, fa, ha, h) \<longleftrightarrow>
@@ -3840,16 +3856,16 @@ proof -
     for aa ba ca L da ea fa ha h
     by (auto simp: correct_watching.simps tl_state_wl_def clause_to_update_def)
   have update_confl_tl_wl: \<open>
-    (brkT, brkT') \<in> bool_rel \<times>\<^sub>f {(T', T). (T', T) \<in> state_wl_l None \<and> correct_watching T'} \<Longrightarrow>
+    (brkT, brkT') \<in> bool_rel \<times>\<^sub>f {(T', T). (T', T) \<in> state_wl_l None \<and> correct_watching T' \<and> blits_in_\<L>\<^sub>i\<^sub>n T'} \<Longrightarrow>
     case brkT' of (brk, S) \<Rightarrow> skip_and_resolve_loop_inv_l S' brk S \<Longrightarrow>
     brkT' = (brk', T') \<Longrightarrow>
     brkT = (brk, T) \<Longrightarrow>
     lit_and_ann_of_propagated (hd (get_trail_l T')) = (L', C') \<Longrightarrow>
     lit_and_ann_of_propagated (hd (get_trail_wl T)) = (L, C) \<Longrightarrow>
     (update_confl_tl_wl C L T, update_confl_tl_l C' L' T') \<in> bool_rel \<times>\<^sub>f {(T', T).
-         (T', T) \<in> state_wl_l None \<and> correct_watching T'}\<close>
+         (T', T) \<in> state_wl_l None \<and> correct_watching T' \<and> blits_in_\<L>\<^sub>i\<^sub>n T'}\<close>
     for T' brkT brk brkT' brk' T C C' L L' S'
-    unfolding update_confl_tl_wl_def update_confl_tl_l_def resolve_cls_wl'_def resolve_cls_l'_def
+    unfolding update_confl_tl_wl_def update_confl_tl_l_def resolve_cls_wl'_def resolve_cls_l'_def blits_in_\<L>\<^sub>i\<^sub>n_def
     by (cases T; cases T')
      (auto simp: Let_def state_wl_l_def)
   have inv: \<open>skip_and_resolve_loop_wl_inv S' b' T'\<close>
@@ -3869,9 +3885,10 @@ proof -
       using that by (auto simp: bT b'T')
   qed
 
-  show H: \<open>?s \<in> ?A \<rightarrow> \<langle>{(T', T). (T', T) \<in> state_wl_l None \<and> correct_watching T'}\<rangle>nres_rel\<close>
+  show H: \<open>?s \<in> ?A \<rightarrow> \<langle>{(T', T). (T', T) \<in> state_wl_l None \<and> correct_watching T' \<and> blits_in_\<L>\<^sub>i\<^sub>n T'}\<rangle>nres_rel\<close>
     unfolding skip_and_resolve_loop_wl_def skip_and_resolve_loop_l_def
     apply (refine_rcg get_conflict_wl tl_state_wl_tl_state_l)
+    subgoal by auto
     subgoal by auto
     subgoal by auto
     subgoal by auto
@@ -3880,6 +3897,8 @@ proof -
     subgoal by auto
     subgoal by (auto intro!: tl_state_wl_tl_state_l)
     subgoal for S' S b'T' bT b' T' by auto
+    subgoal by auto
+    subgoal by auto
     subgoal by auto
     subgoal by auto
     subgoal by auto
