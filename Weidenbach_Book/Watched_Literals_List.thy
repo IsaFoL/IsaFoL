@@ -689,6 +689,7 @@ definition cons_trail_propagate_l where
 definition propagate_lit_l :: \<open>'v literal \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close> where
   \<open>propagate_lit_l = (\<lambda>L' C i (M, N, D, NE, UE, WS, Q). do {
       ASSERT(C \<in># dom_m N);
+      ASSERT(L' \<in># all_lits_of_mm (mset `# ran_mf N + (NE + UE)));
       M \<leftarrow> cons_trail_propagate_l L' C M;
       N \<leftarrow> (if length (N \<propto> C) > 2 then mop_clauses_swap N C 0 (Suc 0 - i) else RETURN N);
       RETURN (M, N, D, NE, UE, WS, add_mset (-L') Q)})\<close>
@@ -1059,6 +1060,11 @@ proof -
        using i_def two_le_length_C by (auto simp: S)
     moreover have \<open>undefined_lit M L'\<close>
       using L'_undef SS' by (auto simp: S Decided_Propagated_in_iff_in_lits_of_l)
+    moreover have \<open>N \<propto> C ! (Suc 0 - i)
+                   \<in># all_lits_of_mm
+                       ({#mset (fst x). x \<in># ran_m N#} + (NE + UE))\<close>
+     using C_N_U two_le_length_C by (auto simp: S ran_m_def all_lits_of_mm_add_mset i_def
+       intro!: in_clause_in_all_lits_of_m nth_mem dest!: multi_member_split)
     ultimately show ?thesis
       using SS' WS C_N_U unfolding propagate_lit_l_def apply (auto simp: S)
       by (auto simp: twl_st_l_def image_mset_remove1_mset_if propagate_lit_def

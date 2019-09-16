@@ -274,6 +274,10 @@ lemma in_all_lits_minus_iff: \<open>-L \<in># all_lits N NUE \<longleftrightarro
 lemma all_lits_of_all_atms_of: \<open>K \<in># all_lits N NUE \<longleftrightarrow> K \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms N NUE)\<close>
   by (simp add: \<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_all_lits_of_mm all_atms_def all_lits_def)
 
+lemma \<L>\<^sub>a\<^sub>l\<^sub>l_all_atms_all_lits: \<open>set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l (all_atms N NE)) = set_mset (all_lits N NE)\<close>
+  unfolding all_atms_def \<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_all_lits_of_mm all_lits_def ..
+
+
 definition blits_in_\<L>\<^sub>i\<^sub>n :: \<open>'v twl_st_wl \<Rightarrow> bool\<close> where
   \<open>blits_in_\<L>\<^sub>i\<^sub>n S == (\<forall>L \<in># all_lits_st S. \<forall>(i, K, b) \<in> set (watched_by S L). K \<in># all_lits_st S)\<close>
 
@@ -356,8 +360,8 @@ lemma all_lits_swap[simp]:
   \<open>x1 \<in># dom_m x1aa \<Longrightarrow> n < length (x1aa \<propto> x1) \<Longrightarrow> n' < length (x1aa \<propto> x1) \<Longrightarrow>
    all_lits
             (x1aa(x1 \<hookrightarrow> swap (x1aa \<propto> x1) n n'))
-            (x1c + x1d) =
-  all_lits x1aa (x1c + x1d)\<close>
+            (x1cx1d) =
+  all_lits x1aa (x1cx1d)\<close>
   using distinct_mset_dom[of x1aa]
   apply (auto simp: ran_m_def all_lits_def dest!: multi_member_split)
   apply (subst image_mset_cong[of _ \<open>%x. mset
@@ -771,6 +775,7 @@ definition propagate_lit_wl_general :: \<open>'v literal \<Rightarrow> nat \<Rig
   \<open>propagate_lit_wl_general = (\<lambda>L' C i (M, N,  D, NE, UE, Q, W). do {
       ASSERT(C \<in># dom_m N);
       ASSERT(D = None);
+      ASSERT(L' \<in># all_lits_of_mm (mset `# ran_mf N + (NE + UE)));
       M \<leftarrow> cons_trail_propagate_l L' C M;
       N \<leftarrow> (if length (N \<propto> C) > 2 then mop_clauses_swap N C 0 (Suc 0 - i) else RETURN N);
       RETURN (M, N, D, NE, UE, add_mset (-L') Q, W) })\<close>
@@ -779,6 +784,7 @@ definition propagate_lit_wl :: \<open>'v literal \<Rightarrow> nat \<Rightarrow>
   \<open>propagate_lit_wl = (\<lambda>L' C i (M, N,  D, NE, UE, Q, W). do {
       ASSERT(C \<in># dom_m N);
       ASSERT(D = None);
+      ASSERT(L' \<in># all_lits_of_mm (mset `# ran_mf N + (NE + UE)));
       M \<leftarrow> cons_trail_propagate_l L' C M;
       N \<leftarrow> mop_clauses_swap N C 0 (Suc 0 - i);
       RETURN (M, N, D, NE, UE, add_mset (-L') Q, W)
@@ -787,6 +793,8 @@ definition propagate_lit_wl :: \<open>'v literal \<Rightarrow> nat \<Rightarrow>
 definition propagate_lit_wl_bin :: \<open>'v literal \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
   \<open>propagate_lit_wl_bin = (\<lambda>L' C i (M, N,  D, NE, UE, Q, W). do {
       ASSERT(D = None);
+      ASSERT(C \<in># dom_m N);
+      ASSERT(L' \<in># all_lits_of_mm (mset `# ran_mf N + (NE + UE)));
       M \<leftarrow> cons_trail_propagate_l L' C M;
       RETURN (M, N, D, NE, UE, add_mset (-L') Q, W)})\<close>
 
@@ -1825,7 +1833,8 @@ lemma correct_watching_except_correct_watching_except_propagate_lit_wl:
     corr: \<open>correct_watching_except j w L S\<close> and
     i_le: \<open>Suc 0 < length (get_clauses_wl S \<propto> C)\<close> and
     C: \<open>C \<in># dom_m (get_clauses_wl S)\<close> and undef: \<open>undefined_lit (get_trail_wl S) L'\<close> and
-    confl: \<open>get_conflict_wl S = None\<close>
+    confl: \<open>get_conflict_wl S = None\<close> and
+    lit: \<open>L' \<in># all_lits_of_mm (mset `# ran_mf (get_clauses_wl S) + get_unit_clauses_wl S)\<close>
   shows \<open>propagate_lit_wl_general L' C i S \<le> SPEC(\<lambda>c. correct_watching_except j w L c)\<close>
 proof -
   obtain M N D NE UE Q W where S: \<open>S = (M, N, D, NE, UE, Q, W)\<close> by (cases S)
@@ -1873,12 +1882,12 @@ proof -
     by (cases C')
       (auto simp: correctly_marked_as_binary.simps N'_def)
   have H6: \<open>propagate_lit_wl_general L' C i (M, N, D, NE, UE, Q, W) = RETURN (Propagated L' C # M, N', D, NE, UE, add_mset (- L') Q, W)\<close>
-   using assms \<open>Suc 0 - i < length (N \<propto> C)\<close> undef confl
+   using assms \<open>Suc 0 - i < length (N \<propto> C)\<close> undef confl lit
    by (auto simp: mop_clauses_swap_def S propagate_lit_wl_general_def N'_def
      cons_trail_propagate_l_def)
 
   show ?thesis
-    using corr unfolding S H6 apply -
+    using corr lit unfolding S H6 apply -
     apply (rule RETURN_rule)
     unfolding S prod.simps Let_def correct_watching_except.simps
       H1 H2 H3 H4 H5 clause_to_update_def get_clauses_l.simps H5
@@ -2960,6 +2969,7 @@ proof -
            )
       subgoal by (cases S) (auto simp: keep_watch_def)
       subgoal by (cases S) (auto simp: keep_watch_def)
+      subgoal by (cases S) (auto simp: keep_watch_def state_wl_l_def)
       subgoal by fast
       subgoal by (auto simp: state_wl_l_def)
       subgoal by (auto simp: state_wl_l_def)

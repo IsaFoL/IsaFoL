@@ -2128,6 +2128,6 @@ definition mop_arena_pos :: \<open>arena \<Rightarrow> nat \<Rightarrow> nat nre
 \<open>mop_arena_pos arena C = do {
    ASSERT(get_saved_pos_pre arena C);
    RETURN (arena_pos arena C)
-} \<close>
+}\<close>
 
 end
