@@ -1,6 +1,6 @@
 theory IsaSAT_Literals
   imports Watched_Literals.WB_More_Refinement "HOL-Word.More_Word"
-     Watched_Literals.Watched_Literals_Watch_List_Domain
+     Watched_Literals.Watched_Literals_Watch_List
      Entailment_Definition.Partial_Herbrand_Interpretation
      Isabelle_LLVM.Bits_Natural (*Watched_Literals.WB_Word*)
 begin

@@ -2124,4 +2124,10 @@ lemma mop_arena_swap[mop_arena_lit]:
   by refine_rcg
     (auto simp: arena_lifting valid_arena_swap_lits)
 
+definition mop_arena_pos :: \<open>arena \<Rightarrow> nat \<Rightarrow> nat nres\<close> where
+\<open>mop_arena_pos arena C = do {
+   ASSERT(get_saved_pos_pre arena C);
+   RETURN (arena_pos arena C)
+} \<close>
+
 end

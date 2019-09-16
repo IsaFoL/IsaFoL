@@ -144,7 +144,6 @@ definition restart_info_restart_done :: \<open>restart_info \<Rightarrow> restar
 
 paragraph \<open>VMTF\<close>
 
-
 type_synonym (in -) isa_vmtf_remove_int = \<open>vmtf \<times> (nat list \<times> bool list)\<close>
 
 paragraph \<open>Options\<close>
@@ -170,6 +169,7 @@ type_synonym out_learned = \<open>nat clause_l\<close>
 type_synonym vdom = \<open>nat list\<close>
 
 text \<open>\<^emph>\<open>heur\<close> stands for heuristic.\<close>
+
 (* TODO rename to isasat *)
 type_synonym twl_st_wl_heur =
   \<open>trail_pol \<times> arena \<times>
@@ -1015,12 +1015,8 @@ lemma length_watched_le:
     x2: \<open>x2 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st x1)\<close>
   shows \<open>length (watched_by x1 x2) \<le> r - 4\<close>
 proof -
-  have \<open>correct_watching x1\<close>
-    using prop_inv unfolding unit_propagation_outer_loop_wl_D_inv_def
-      unit_propagation_outer_loop_wl_inv_def
-    by auto
-  then have dist: \<open>distinct_watched (watched_by x1 x2)\<close>
-    using x2 unfolding all_atms_def all_lits_def
+  have dist: \<open>distinct_watched (watched_by x1 x2)\<close>
+    using prop_inv x2 unfolding all_atms_def all_lits_def
     by (cases x1; auto simp: \<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_all_lits_of_mm correct_watching.simps)
   then have dist: \<open>distinct_watched (watched_by x1 x2)\<close>
     using xb_x'a

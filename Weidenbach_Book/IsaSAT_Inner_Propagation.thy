@@ -8,11 +8,11 @@ declare all_atms_def[symmetric,simp]
 
 subsection \<open>Propagations Step\<close>
 
-
+(*
 lemma unit_prop_body_wl_D_invD:
   fixes S
   defines \<open>\<A> \<equiv> all_atms_st S\<close>
-  assumes \<open>unit_prop_body_wl_D_inv S j w L\<close>
+  assumes \<open>unit_prop_body_wl_inv S j w L\<close>
   shows
     \<open>w < length (watched_by S L)\<close> and
     \<open>j \<le> w\<close> and
@@ -36,11 +36,14 @@ lemma unit_prop_body_wl_D_invD:
 proof -
   let ?C = \<open>fst (watched_by_app S L w)\<close>
   show \<open>w < length (watched_by S L)\<close> and \<open>j \<le> w\<close>
-    using assms unfolding unit_prop_body_wl_D_inv_def unit_prop_body_wl_inv_def watched_by_app_def
+    using assms unfolding unit_prop_body_wl_inv_def unit_prop_body_wl_inv_def watched_by_app_def
       unit_propagation_inner_loop_body_l_inv_def by fast+
   have \<open>blits_in_\<L>\<^sub>i\<^sub>n S\<close> and \<open>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<close>
-    using assms unfolding unit_prop_body_wl_D_inv_def unit_prop_body_wl_inv_def watched_by_app_def
-      unit_propagation_inner_loop_body_l_inv_def literals_are_\<L>\<^sub>i\<^sub>n_def by fast+
+    using assms unfolding unit_prop_body_wl_inv_def unit_prop_body_wl_inv_def watched_by_app_def
+      unit_propagation_inner_loop_body_l_inv_def literals_are_\<L>\<^sub>i\<^sub>n_def \<A>_def
+      all_lits_of_all_atms_of
+     by fast+
+find_theorems "\<L>\<^sub>a\<^sub>l\<^sub>l (all_atms _ _)" all_lits
   then show \<open>fst (snd (watched_by_app S L w)) \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<close>
     using \<open>w < length (watched_by S L)\<close> and \<open>j \<le> w\<close> nth_mem[of \<open>w\<close> \<open>watched_by S L\<close>]
     unfolding blits_in_\<L>\<^sub>i\<^sub>n_def
@@ -48,7 +51,6 @@ proof -
       simp del: nth_mem)
   assume C_dom: \<open>fst (watched_by_app S L w) \<in># dom_m (get_clauses_wl S)\<close>
   obtain T T' where
-    lits: \<open>literals_are_\<L>\<^sub>i\<^sub>n \<A> S\<close> and
     \<open>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<close> and
     S_T: \<open>(S, T) \<in> state_wl_l (Some (L, w))\<close> and
     \<open>L \<in># all_lits_of_mm
@@ -56,8 +58,7 @@ proof -
     T_T': \<open>(set_clauses_to_update_l
        (clauses_to_update_l (remove_one_lit_from_wq (?C) T) +
         {#?C#})
-       (remove_one_lit_from_wq (?C) T),
-      T')
+       (remove_one_lit_from_wq (?C) T), T')
      \<in> twl_st_l (Some L)\<close> and
     \<open>correct_watching_except j w L S\<close> and
     struct: \<open>twl_struct_invs T'\<close> and
@@ -81,18 +82,15 @@ proof -
         (get_clauses_l (remove_one_lit_from_wq (?C) T) \<propto>
          (?C))\<close> and
     ui_le: \<open>1 - (if get_clauses_l (remove_one_lit_from_wq (?C) T) \<propto>
-             (?C) !
-             0 =
+             (?C) ! 0 =
              L
           then 0 else 1)
      < length
-        (get_clauses_l (remove_one_lit_from_wq (?C) T) \<propto>
-         (?C))\<close> and
+        (get_clauses_l (remove_one_lit_from_wq (?C) T) \<propto> (?C))\<close> and
     L_in_watched: \<open>L \<in> set (watched_l
-               (get_clauses_l (remove_one_lit_from_wq (?C) T) \<propto>
-                (?C)))\<close> and
+               (get_clauses_l (remove_one_lit_from_wq (?C) T) \<propto> (?C)))\<close> and
     \<open>get_conflict_l (remove_one_lit_from_wq (?C) T) = None\<close>
-    using assms C_dom unfolding unit_prop_body_wl_D_inv_def unit_prop_body_wl_inv_alt_def
+    using assms C_dom unfolding unit_prop_body_wl_inv_def unit_prop_body_wl_inv_alt_def
       watched_by_app_def unit_propagation_inner_loop_body_l_inv_def
     apply - apply normalize_goal+
     by blast
@@ -174,16 +172,7 @@ proof -
   show L_in_watched: \<open>L \<in> set (watched_l (get_clauses_wl S \<propto> ?C))\<close>
     using L_in_watched S_T by auto
 qed
-
-
-definition (in -) find_unwatched_wl_st  :: \<open>nat twl_st_wl \<Rightarrow> nat \<Rightarrow> nat option nres\<close> where
-\<open>find_unwatched_wl_st = (\<lambda>(M, N, D, NE, UE, Q, W) i. do {
-    find_unwatched_l M (N \<propto> i)
-  })\<close>
-
-lemma find_unwatched_l_find_unwatched_wl_s:
-  \<open>find_unwatched_l (get_trail_wl S) (get_clauses_wl S \<propto> C) = find_unwatched_wl_st S C\<close>
-  by (cases S) (auto simp: find_unwatched_wl_st_def)
+*)
 
 definition find_non_false_literal_between where
   \<open>find_non_false_literal_between M a b C =
@@ -298,15 +287,16 @@ definition isa_find_non_false_literal_between where
      isa_find_unwatched_between (\<lambda>L. polarity_pol M L \<noteq> Some False) M arena a b C\<close>
 
 definition find_unwatched
-  :: \<open>(nat literal \<Rightarrow> bool) \<Rightarrow> nat clause_l \<Rightarrow> (nat option) nres\<close> where
-\<open>find_unwatched M C = do {
+  :: \<open>(nat literal \<Rightarrow> bool) \<Rightarrow> (nat, nat literal list \<times> bool) fmap \<Rightarrow> nat \<Rightarrow> (nat option) nres\<close> where
+\<open>find_unwatched M N C = do {
+    ASSERT(C \<in># dom_m N);
     b \<leftarrow> SPEC(\<lambda>b::bool. True); \<comment> \<open>non-deterministic between full iteration (used in minisat),
       or starting in the middle (use in cadical)\<close>
-    if b then find_in_list_between M 2 (length C) C
+    if b then find_in_list_between M 2 (length (N \<propto> C)) (N \<propto> C)
     else do {
-      pos \<leftarrow> SPEC (\<lambda>i. i \<le> length C \<and> i \<ge> 2);
-      n \<leftarrow> find_in_list_between M pos (length C) C;
-      if n = None then find_in_list_between M 2 pos C
+      pos \<leftarrow> SPEC (\<lambda>i. i \<le> length (N \<propto> C) \<and> i \<ge> 2);
+      n \<leftarrow> find_in_list_between M pos (length (N \<propto> C)) (N \<propto> C);
+      if n = None then find_in_list_between M 2 pos (N \<propto> C)
       else RETURN n
     }
   }
@@ -319,7 +309,7 @@ definition find_unwatched_wl_st_heur_pre where
 definition find_unwatched_wl_st'
   :: \<open>nat twl_st_wl \<Rightarrow> nat \<Rightarrow> nat option nres\<close> where
 \<open>find_unwatched_wl_st' = (\<lambda>(M, N, D, Q, W, vm, \<phi>) i. do {
-    find_unwatched (\<lambda>L. polarity M L \<noteq> Some False) (N \<propto> i)
+    find_unwatched (\<lambda>L. polarity M L \<noteq> Some False) N i
   })\<close>
 
 
@@ -345,12 +335,11 @@ lemma isa_find_unwatched_find_unwatched:
   assumes valid: \<open>valid_arena arena N vdom\<close> and
     \<open>literals_are_in_\<L>\<^sub>i\<^sub>n \<A> (mset (N \<propto> C))\<close> and
     ge2: \<open>2 \<le> length (N \<propto> C)\<close> and
-    C: \<open>C \<in># dom_m N\<close> and
     M'M: \<open>(M', M) \<in> trail_pol \<A>\<close>
-  shows \<open>isa_find_unwatched P M' arena C \<le> \<Down> Id (find_unwatched P (N \<propto> C))\<close>
+  shows \<open>isa_find_unwatched P M' arena C \<le> \<Down> Id (find_unwatched P N C)\<close>
 proof -
   have [refine0]:
-    \<open>RETURN(arena_length arena C \<le> MAX_LENGTH_SHORT_CLAUSE) \<le>
+    \<open>C \<in># dom_m N \<Longrightarrow> RETURN(arena_length arena C \<le> MAX_LENGTH_SHORT_CLAUSE) \<le>
       \<Down> {(b,b'). b = b' \<and> (b \<longleftrightarrow> is_short_clause (N\<propto>C))}
         (SPEC (\<lambda>_. True))\<close>
     using assms
@@ -363,33 +352,30 @@ proof -
     subgoal by auto
     subgoal using ge2 .
     subgoal using valid .
-    subgoal using C .
-    subgoal using assms by auto
+    subgoal by fast
     subgoal using assms by (auto simp: arena_lifting)
     subgoal using assms by auto
-    subgoal using assms arena_lifting[OF valid C] by auto
+    subgoal using assms by (auto simp: arena_lifting)
     apply (rule M'M)
     subgoal using assms by auto
     subgoal using assms unfolding get_saved_pos_pre_def arena_is_valid_clause_idx_def
       by (auto simp: arena_lifting)
-    subgoal using assms arena_lifting[OF valid C] by auto
+    subgoal using assms arena_lifting[OF valid] by auto
     subgoal by (auto simp: arena_pos_def)
-    subgoal using assms arena_lifting[OF valid C] by auto
+    subgoal using assms arena_lifting[OF valid] by auto
     subgoal using assms by auto
-    subgoal using assms arena_lifting[OF valid C] by auto
+    subgoal using assms arena_lifting[OF valid] by auto
+    subgoal using assms by auto
     subgoal using assms by auto
     subgoal using assms by (auto simp: arena_lifting)
     subgoal using assms by auto
-    subgoal using assms arena_lifting[OF valid C] by auto
-    subgoal using assms by auto
-    subgoal using assms arena_lifting[OF valid C] by auto
+    subgoal using assms arena_lifting[OF valid] by auto
     apply (rule M'M)
     subgoal using assms by auto
     subgoal using assms by auto
     subgoal using assms by auto
-    subgoal using assms arena_lifting[OF valid C] by auto
+    subgoal using assms arena_lifting[OF valid] by auto
     subgoal by (auto simp: arena_pos_def)
-    subgoal using assms by auto
     subgoal using assms by auto
     subgoal using assms by auto
     subgoal using assms by auto
@@ -409,16 +395,16 @@ definition isa_find_unwatched_wl_st_heur
 
 
 lemma find_unwatched:
-  assumes n_d: \<open>no_dup M\<close> and \<open>length C \<ge> 2\<close> and \<open>literals_are_in_\<L>\<^sub>i\<^sub>n \<A> (mset C)\<close>
-  shows \<open>find_unwatched (\<lambda>L. polarity M L \<noteq> Some False) C \<le> \<Down> Id (find_unwatched_l M C)\<close>
+  assumes n_d: \<open>no_dup M\<close> and \<open>length (N \<propto> C) \<ge> 2\<close> and \<open>literals_are_in_\<L>\<^sub>i\<^sub>n \<A> (mset (N \<propto> C))\<close>
+  shows \<open>find_unwatched (\<lambda>L. polarity M L \<noteq> Some False) N C \<le> \<Down> Id (find_unwatched_l M N C)\<close>
 proof -
-  have [refine0]: \<open>find_in_list_between (\<lambda>L. polarity M L \<noteq> Some False) 2 (length C) C
+  have [refine0]: \<open>find_in_list_between (\<lambda>L. polarity M L \<noteq> Some False) 2 (length (N \<propto> C)) (N \<propto> C)
         \<le> SPEC
           (\<lambda>found.
-              (found = None) = (\<forall>L\<in>set (unwatched_l C). - L \<in> lits_of_l M) \<and>
+              (found = None) = (\<forall>L\<in>set (unwatched_l (N \<propto> C) ). - L \<in> lits_of_l M) \<and>
               (\<forall>j. found = Some j \<longrightarrow>
-                    j < length C \<and>
-                    (undefined_lit M (C ! j) \<or> C ! j \<in> lits_of_l M) \<and> 2 \<le> j))\<close>
+                    j < length (N \<propto> C) \<and>
+                    (undefined_lit M ((N \<propto> C) ! j) \<or> (N \<propto> C) ! j \<in> lits_of_l M) \<and> 2 \<le> j))\<close>
   proof -
     show ?thesis
       apply (rule order_trans)
@@ -432,21 +418,21 @@ proof -
           Decided_Propagated_in_iff_in_lits_of_l split: if_splits dest: no_dup_consistentD)
       done
   qed
-  have [refine0]: \<open>find_in_list_between (\<lambda>L. polarity M L \<noteq> Some False) xa (length C) C
+  have [refine0]: \<open>find_in_list_between (\<lambda>L. polarity M L \<noteq> Some False) xa (length (N \<propto> C)) (N \<propto> C)
         \<le> SPEC
           (\<lambda>n. (if n = None
-                then find_in_list_between (\<lambda>L. polarity M L \<noteq> Some False) 2 xa C
+                then find_in_list_between (\<lambda>L. polarity M L \<noteq> Some False) 2 xa (N \<propto> C)
                 else RETURN n)
                 \<le> SPEC
                   (\<lambda>found.
                       (found = None) =
-                      (\<forall>L\<in>set (unwatched_l C). - L \<in> lits_of_l M) \<and>
+                      (\<forall>L\<in>set (unwatched_l (N \<propto> C)). - L \<in> lits_of_l M) \<and>
                       (\<forall>j. found = Some j \<longrightarrow>
-                            j < length C \<and>
-                            (undefined_lit M (C ! j) \<or> C ! j \<in> lits_of_l M) \<and>
+                            j < length (N \<propto> C) \<and>
+                            (undefined_lit M ((N \<propto> C) ! j) \<or> (N \<propto> C) ! j \<in> lits_of_l M) \<and>
                             2 \<le> j)))\<close>
     if
-      \<open>xa \<le> length C \<and> 2 \<le> xa\<close>
+      \<open>xa \<le> length (N \<propto> C) \<and> 2 \<le> xa\<close>
     for xa
   proof -
     show ?thesis
@@ -510,13 +496,13 @@ proof -
     apply (refine_vcg)
     subgoal by blast
     subgoal by blast
+    subgoal by blast
     done
 qed
 
 definition find_unwatched_wl_st_pre where
   \<open>find_unwatched_wl_st_pre =  (\<lambda>(S, i).
-    i \<in># dom_m (get_clauses_wl S) \<and>
-    literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st S) S \<and> 2 \<le> length (get_clauses_wl S \<propto> i) \<and>
+    i \<in># dom_m (get_clauses_wl S) \<and> 2 \<le> length (get_clauses_wl S \<propto> i) \<and>
     literals_are_in_\<L>\<^sub>i\<^sub>n (all_atms_st S) (mset (get_clauses_wl S \<propto> i))
     )\<close>
 
@@ -550,15 +536,15 @@ proof -
     for arena N vdom C
     using that arena_lifting[OF valid C] by (auto simp: RETURN_RES_refine_iff is_short_clause_def)
 
-  have H: \<open>isa_find_unwatched P M' arena C \<le> \<Down> Id (find_unwatched P' (N \<propto> C'))\<close>
+  have H: \<open>isa_find_unwatched P M' arena C \<le> \<Down> Id (find_unwatched P' N C')\<close>
     if \<open>valid_arena arena N vdom\<close> and \<open>C \<in># dom_m N\<close> and
       \<open>\<And>L. L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A> \<Longrightarrow> P L = P' L\<close> and
       \<open>C = C'\<close> and
       \<open>2 \<le> length (N \<propto> C')\<close> and \<open>literals_are_in_\<L>\<^sub>i\<^sub>n \<A> (mset (N \<propto> C'))\<close> and
       \<open>(M', M) \<in> trail_pol \<A>\<close>
     for arena P N C vdom P' C'  \<A> M' M
-    unfolding isa_find_unwatched_def find_unwatched_def Let_def
-    apply (refine_vcg isa_find_unwatched_between_find_in_list_between_spec[of _ _ _ _ _ vdom])
+    unfolding isa_find_unwatched_def find_unwatched_def Let_def supply [[goals_limit=1]]
+    apply (refine_vcg isa_find_unwatched_between_find_in_list_between_spec[of _ _ _ _ _ vdom, where \<A>=\<A>])
     using that apply - apply assumption
     using that apply - apply assumption
     subgoal by auto
@@ -572,7 +558,6 @@ proof -
     subgoal using that by (auto simp: arena_lifting)
     apply assumption
     apply assumption
-    subgoal using that by (auto simp: arena_lifting)
     subgoal using that by (auto simp: arena_lifting get_saved_pos_pre_def
        arena_is_valid_clause_idx_def)
     using that apply - apply assumption
@@ -598,10 +583,8 @@ proof -
     subgoal using that by (auto simp: arena_lifting)
     subgoal using that by (auto simp: arena_lifting)
     subgoal using that by (auto simp: arena_lifting)
-    subgoal using that by (auto simp: arena_lifting)
     apply assumption
     apply assumption
-    subgoal using that by (auto simp: arena_lifting)
     done
 
   show ?thesis

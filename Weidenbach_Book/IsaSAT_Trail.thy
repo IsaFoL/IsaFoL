@@ -493,10 +493,10 @@ lemma cons_trail_Propagated_tr_pre:
 
 
 lemma cons_trail_Propagated_tr:
-  \<open>(uncurry2 (cons_trail_Propagated_tr), uncurry2 (cons_trail_propagate_wl_D)) \<in>
+  \<open>(uncurry2 (cons_trail_Propagated_tr), uncurry2 (cons_trail_propagate_l)) \<in>
    [\<lambda>((L, C), M). L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A> \<and> C \<noteq> DECISION_REASON]\<^sub>f
     Id \<times>\<^sub>f nat_rel \<times>\<^sub>f trail_pol \<A> \<rightarrow> \<langle>trail_pol \<A>\<rangle>nres_rel\<close>
-  unfolding cons_trail_Propagated_tr_def cons_trail_propagate_wl_D_def
+  unfolding cons_trail_Propagated_tr_def cons_trail_propagate_l_def
   apply (intro frefI nres_relI)
   subgoal for x y
   using cons_trail_Propagated_tr_pre[of \<open>snd (x)\<close> \<open>snd (y)\<close> \<A> \<open>fst (fst y)\<close> \<open>snd (fst y)\<close>]
@@ -505,7 +505,7 @@ lemma cons_trail_Propagated_tr:
   subgoal by auto
   subgoal
     by (cases \<open>fst (fst y)\<close>)
-      (auto simp add: trail_pol_def polarity_def cons_trail_propagate_wl_D_def uminus_lit_swap
+      (auto simp add: trail_pol_def polarity_def uminus_lit_swap
         cons_trail_Propagated_tr_def Decided_Propagated_in_iff_in_lits_of_l nth_list_update'
         ann_lits_split_reasons_def atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n
         uminus_\<A>\<^sub>i\<^sub>n_iff atm_of_eq_atm_of
@@ -519,9 +519,10 @@ lemma cons_trail_Propagated_tr2:
   \<open>(((L, C), M), ((L', C'), M')) \<in> Id \<times>\<^sub>f Id \<times>\<^sub>f trail_pol \<A> \<Longrightarrow> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A> \<Longrightarrow>
       C \<noteq> DECISION_REASON \<Longrightarrow>
   cons_trail_Propagated_tr L C M
-  \<le> \<Down> ({(M'', M'''). (M'', M''') \<in> trail_pol \<A> \<and> M''' = Propagated L C # M' \<and> no_dup M'''}) (cons_trail_propagate_wl_D L' C' M')\<close>
+  \<le> \<Down> ({(M'', M'''). (M'', M''') \<in> trail_pol \<A> \<and> M''' = Propagated L C # M' \<and> no_dup M'''})
+      (cons_trail_propagate_l L' C' M')\<close>
   using cons_trail_Propagated_tr[THEN fref_to_Down_curry2, of \<A> L' C' M' L C M]
-  unfolding cons_trail_Propagated_tr_def cons_trail_propagate_wl_D_def
+  unfolding cons_trail_Propagated_tr_def cons_trail_propagate_l_def
   using cons_trail_Propagated_tr_pre[of M M' \<A> L C]
   unfolding uncurry_def
   apply refine_vcg
