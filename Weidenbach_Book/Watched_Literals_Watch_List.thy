@@ -790,13 +790,17 @@ definition propagate_lit_wl :: \<open>'v literal \<Rightarrow> nat \<Rightarrow>
       RETURN (M, N, D, NE, UE, add_mset (-L') Q, W)
    })\<close>
 
-definition propagate_lit_wl_bin :: \<open>'v literal \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
-  \<open>propagate_lit_wl_bin = (\<lambda>L' C i (M, N,  D, NE, UE, Q, W). do {
+definition propagate_lit_wl_bin :: \<open>'v literal \<Rightarrow> nat \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
+  \<open>propagate_lit_wl_bin = (\<lambda>L' C (M, N,  D, NE, UE, Q, W). do {
       ASSERT(D = None);
       ASSERT(C \<in># dom_m N);
       ASSERT(L' \<in># all_lits_of_mm (mset `# ran_mf N + (NE + UE)));
       M \<leftarrow> cons_trail_propagate_l L' C M;
       RETURN (M, N, D, NE, UE, add_mset (-L') Q, W)})\<close>
+
+definition propagate_lit_wl_bin' ::\<open> 'v literal \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close>
+   where
+\<open>propagate_lit_wl_bin' L' C i = propagate_lit_wl_bin L' C\<close>
 
 definition keep_watch :: \<open>'v literal \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl\<close> where
   \<open>keep_watch = (\<lambda>L i j (M, N,  D, NE, UE, Q, W).
@@ -804,6 +808,7 @@ definition keep_watch :: \<open>'v literal \<Rightarrow> nat \<Rightarrow> nat \
 
 definition mop_keep_watch :: \<open>'v literal \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
   \<open>mop_keep_watch = (\<lambda>L i j S. do {
+    ASSERT(L \<in># all_lits_st S);
     ASSERT(i < length (watched_by S L));
     ASSERT(j < length (watched_by S L));
     RETURN (keep_watch L i j S)
@@ -825,6 +830,7 @@ lemma watched_by_keep_watch_eq[twl_st_wl, simp]:
 definition update_clause_wl :: \<open>'v literal \<Rightarrow> nat \<Rightarrow> bool \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'v twl_st_wl \<Rightarrow>
     (nat \<times> nat \<times> 'v twl_st_wl) nres\<close> where
   \<open>update_clause_wl = (\<lambda>(L::'v literal) C b j w i f (M, N,  D, NE, UE, Q, W). do {
+     ASSERT(C \<in># dom_m N);
      ASSERT(L \<in># all_lits_of_mm (mset `# ran_mf N + (NE + UE)));
      K' \<leftarrow> mop_clauses_at N C f;
      ASSERT(K' \<in># all_lits_of_mm (mset `# ran_mf N + (NE + UE)) \<and> L \<noteq> K');
@@ -838,6 +844,9 @@ definition update_blit_wl :: \<open>'v literal \<Rightarrow> nat \<Rightarrow> b
   \<open>update_blit_wl = (\<lambda>(L::'v literal) C b j w K (M, N,  D, NE, UE, Q, W). do {
      ASSERT(L \<in># all_lits_of_mm (mset `# ran_mf N + (NE + UE)));
      ASSERT(K \<in># all_lits_of_mm (mset `# ran_mf N + (NE + UE)));
+     ASSERT(j < length (W L));
+     ASSERT(w < length (W L));
+     ASSERT(C \<in># dom_m N);
      RETURN (j+1, w+1, (M, N, D, NE, UE, Q, W(L := (W L)[j:=(C, K, b)])))
   })\<close>
 
@@ -1524,9 +1533,8 @@ definition unit_propagation_inner_loop_body_wl :: \<open>'v literal \<Rightarrow
            if val_K = Some False
            then do {S \<leftarrow> set_conflict_wl C S;
              RETURN (j+1, w+1, S)}
-           else do {  \<comment>\<open>This is non-optimal (memory access: relax invariant!):\<close>
-             let i = (if ((get_clauses_wl S)\<propto>C) ! 0 = L then 0 else 1);
-             S \<leftarrow> propagate_lit_wl_bin K C i S;
+           else do {
+             S \<leftarrow> propagate_lit_wl_bin K C S;
              RETURN (j+1, w+1, S)}
         }  \<comment>\<open>Now the costly operations:\<close>
         else if C \<notin># dom_m (get_clauses_wl S)
@@ -1995,7 +2003,7 @@ lemma unit_propagation_inner_loop_body_wl_alt_def:
                  if val_K = Some False
                  then do {S \<leftarrow> set_conflict_wl C S; RETURN (j+1, w+1, S)}
                  else do {
-                   S \<leftarrow> propagate_lit_wl_bin K C (if ((get_clauses_wl S)\<propto>C) ! 0 = L then 0 else 1) S;
+                   S \<leftarrow> propagate_lit_wl_bin' K C (if ((get_clauses_wl S)\<propto>C) ! 0 = L then 0 else 1) S;
                    RETURN (j+1, w+1, S)}
                }
              | _ \<Rightarrow> RETURN (j, w+1, S)
@@ -2031,7 +2039,7 @@ lemma unit_propagation_inner_loop_body_wl_alt_def:
       }
    }\<close>
   unfolding unit_propagation_inner_loop_body_wl_def if_not_swap bind_to_let_conv
-    SPEC_eq_is_RETURN twl_st_wl
+    SPEC_eq_is_RETURN twl_st_wl propagate_lit_wl_bin'_def
   unfolding Let_def if_not_swap bind_to_let_conv
     SPEC_eq_is_RETURN twl_st_wl if_False
   apply (intro bind_cong_nres case_prod_cong if_cong[OF refl] refl option.case_cong)
@@ -2185,9 +2193,9 @@ proof -
   have bin_unw_Id: \<open>x \<in> ?bin_unw \<Longrightarrow> x \<in> \<langle>Id\<rangle>option_rel\<close> for x
     by auto
   have prop_bin_prop_gen[THEN fref_to_Down_curry3, refine]:
-     \<open>(uncurry3 propagate_lit_wl_bin, uncurry3 propagate_lit_wl_general) \<in> 
+     \<open>(uncurry3 propagate_lit_wl_bin', uncurry3 propagate_lit_wl_general) \<in> 
         [\<lambda>(((L', C), _), S). length (get_clauses_wl S \<propto> C) = 2]\<^sub>f (Id \<times>\<^sub>f nat_rel  \<times>\<^sub>f {_. True}  \<times>\<^sub>f Id) \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
-    by (auto simp: propagate_lit_wl_bin_def propagate_lit_wl_general_def  cons_trail_propagate_l_def le_ASSERT_iff
+    by (auto simp: propagate_lit_wl_bin'_def propagate_lit_wl_general_def  cons_trail_propagate_l_def le_ASSERT_iff propagate_lit_wl_bin_def
        intro!: frefI nres_relI)
 
   have prop_prop_gen[THEN fref_to_Down_curry3, refine]: \<open>(uncurry3 propagate_lit_wl, uncurry3 propagate_lit_wl_general) \<in> 
@@ -2517,7 +2525,7 @@ proof -
     done
   have [refine]:
      \<open>mop_keep_watch L j w S \<le> \<Down> {(T, T'). T = keep_watch L j w S \<and> T' = S'} (RETURN S')\<close>
-    using j_w w_le unfolding mop_keep_watch_def
+    using j_w w_le alien_L' unfolding mop_keep_watch_def all_lits_def
     by refine_rcg auto
 
   have keep_watch: \<open>RETURN Sa
@@ -2731,7 +2739,7 @@ proof -
         by (auto simp: L_i keep_watch_def nth_eq_iff_index_eq S)
     }
     ultimately show ?thesis
-      using j_w w_le i alien_L' unit_T N_x1_in_L L' N_x1_in_L blit_in_lit
+      using j_w w_le i alien_L' dom unit_T N_x1_in_L L' N_x1_in_L blit_in_lit
       unfolding i[symmetric] T_def[symmetric]
       by (auto simp: S update_blit_wl_def keep_watch_def all_lits_def
         intro!: ASSERT_leI blits_in_\<L>\<^sub>i\<^sub>n_keep_watch'
@@ -3104,7 +3112,7 @@ proof -
       using x' by auto
     ultimately have u: \<open>update_blit_wl L x1 x2a j w Ka Sa
     \<le> SPEC(\<lambda>(i, j, T'). correct_watching_except i j L T')\<close>
-      using X2 confl Sa SLw alien_L' unit_T Ka unfolding T_def[symmetric]
+      using X2 confl Sa SLw alien_L' unit_T Ka dom  j_w w_le unfolding T_def[symmetric]
         update_blit_wl_def
       apply (cases S; cases Sa, hypsubst) apply simp
       apply  (auto simp: keep_watch_def state_wl_l_def
@@ -3112,7 +3120,7 @@ proof -
       done
     have b: \<open>update_blit_wl L x1 x2a j w Ka Sa
     \<le> SPEC(\<lambda>(i, j, T'). blits_in_\<L>\<^sub>i\<^sub>n T')\<close>
-      using X2 confl Sa SLw alien_L' in_all unit_T Ka blit_in_lit unfolding T_def[symmetric]
+      using X2 confl Sa SLw alien_L' in_all unit_T Ka blit_in_lit j_w w_le dom unfolding T_def[symmetric]
         update_blit_wl_def
       apply (cases S; cases Sa, hypsubst) apply simp
       apply  (auto simp: keep_watch_def state_wl_l_def blits_in_\<L>\<^sub>i\<^sub>n_keep_watch'
@@ -3138,7 +3146,7 @@ proof -
             i \<notin># dom_m (get_clauses_wl T')#}) \<and>
          (get_conflict_wl T' \<noteq> None \<longrightarrow> n = 0)}
        (RETURN(fst X2, if get_conflict_l (fst X2) = None then n else 0))\<close>
-      using j_w w_le S_S' X2 alien_L' unit_T in_all Sa in_all Ka unfolding T_def[symmetric]
+      using j_w w_le S_S' X2 alien_L' unit_T in_all Sa in_all Ka dom unfolding T_def[symmetric]
       by (cases S)
         (auto simp: update_blit_wl_def keep_watch_def state_wl_l_def drop_map w
            intro!: ASSERT_leI)
@@ -3248,10 +3256,10 @@ proof -
         unfold prod.case snd_conv nres_monad3)
       apply (refine_rcg mop_clauses_at_op_clauses_at_spec2
          mop_clauses_swap_itself_spec2)
+      subgoal using alien_L' Sa X2 dom by (cases S; auto simp: keep_watch_def)
       subgoal using alien_L' Sa X2 by (cases S; auto simp: keep_watch_def)
       subgoal using dom Sa X2 w S_S' by (cases S; cases S'; auto simp: state_wl_l_def keep_watch_def)
       subgoal using fx' Sa S_S' X2 w dom by (cases S; cases S'; auto simp: state_wl_l_def keep_watch_def)
-      subgoal using fx' Sa S_S' X2 w by (cases S; cases S'; auto simp: state_wl_l_def keep_watch_def)
       subgoal using fx' Sa S_S' X2 w alien_K by (cases S; cases S'; auto simp: state_wl_l_def keep_watch_def all_lits_def)
       subgoal using LKa Ka by (auto simp: state_wl_l_def keep_watch_def)
       subgoal using fx' Sa S_S' X2 w by (cases S; cases S'; auto simp: state_wl_l_def keep_watch_def)
@@ -4865,7 +4873,7 @@ proof -
   obtain T where T: \<open>(S, T) \<in> state_wl_l None\<close> \<open>cdcl_twl_stgy_prog_l_pre T S'\<close> \<open>correct_watching S\<close> \<open>blits_in_\<L>\<^sub>i\<^sub>n S\<close>
     using assms unfolding cdcl_twl_stgy_prog_wl_pre_def by blast
   have H: \<open>{((a, b), a', b'). (a, a') \<in> bool_rel \<and> (b, b') \<in> state_wl_l None} O
-       (bool_rel \<times>\<^sub>f twl_st_l None) = bool_rel \<times>\<^sub>r  state_wl_l None O twl_st_l None\<close>
+       (bool_rel \<times>\<^sub>f twl_st_l None) = bool_rel \<times>\<^sub>r state_wl_l None O twl_st_l None\<close>
     by fastforce
   show ?thesis
     apply (rule order_trans[OF cdcl_twl_stgy_prog_early_wl_spec[unfolded fref_param1[symmetric], "to_\<Down>", of S T]])

@@ -5,6 +5,7 @@ begin
 
 lemma mset_take_mset_drop_mset: \<open>(\<lambda>x. mset (take 2 x) + mset (drop 2 x)) = mset\<close>
   unfolding mset_append[symmetric] append_take_drop_id ..
+
 lemma mset_take_mset_drop_mset': \<open>mset (take 2 x) + mset (drop 2 x) = mset x\<close>
   unfolding mset_append[symmetric] append_take_drop_id ..
 

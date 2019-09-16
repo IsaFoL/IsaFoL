@@ -577,27 +577,30 @@ proof -
   by (auto simp: is_in_conflict_st_def atm_in_conflict_def atms_of_def atm_of_eq_atm_of)
 qed
 
-definition polarity_st_heur
- :: \<open>twl_st_wl_heur \<Rightarrow> nat literal \<Rightarrow> bool option\<close>
-where
-  \<open>polarity_st_heur S =
-    polarity_pol (get_trail_wl_heur S)\<close>
 
-definition polarity_st_pre where
+definition (in -) mop_polarity_pol :: \<open>trail_pol \<Rightarrow> nat literal \<Rightarrow> bool option nres\<close> where
+  \<open>mop_polarity_pol = (\<lambda>M L. do {
+    ASSERT(polarity_pol_pre M L);
+    RETURN (polarity_pol M L)
+  })\<close>
+
+definition polarity_st_pre :: \<open>nat twl_st_wl \<times> nat literal \<Rightarrow> bool\<close> where
 \<open>polarity_st_pre \<equiv> \<lambda>(S, L). L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st S)\<close>
 
-lemma polarity_st_heur_alt_def:
-  \<open>polarity_st_heur = (\<lambda>(M, _). polarity_pol M)\<close>
-  by (auto simp: polarity_st_heur_def)
+definition mop_polarity_st_heur :: \<open>twl_st_wl_heur \<Rightarrow> nat literal \<Rightarrow> bool option nres\<close> where
+\<open>mop_polarity_st_heur S L = do {
+  mop_polarity_pol (get_trail_wl_heur S) L
+}\<close>
 
-definition polarity_st_heur_pre where
-\<open>polarity_st_heur_pre \<equiv> \<lambda>(S, L). polarity_pol_pre (get_trail_wl_heur S) L\<close>
-
-lemma polarity_st_heur_pre:
-  \<open>(S', S) \<in> twl_st_heur \<Longrightarrow> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st S) \<Longrightarrow> polarity_st_heur_pre (S', L)\<close>
-  by (auto simp: twl_st_heur_def polarity_st_heur_pre_def all_atms_def[symmetric]
-    intro!: polarity_st_heur_pre_def polarity_pol_pre)
-
+lemma mop_polarity_st_heur_mop_polarity_wl:
+   \<open>(uncurry mop_polarity_st_heur, uncurry mop_polarity_wl) \<in>
+   [\<lambda>_. True]\<^sub>f twl_st_heur \<times>\<^sub>r Id \<rightarrow> \<langle>\<langle>bool_rel\<rangle>option_rel\<rangle>nres_rel\<close>
+  unfolding mop_polarity_wl_def mop_polarity_st_heur_def uncurry_def mop_polarity_pol_def
+  apply (intro frefI nres_relI)
+  apply (refine_rcg polarity_pol_polarity[of \<open>all_atms _ _\<close>, THEN fref_to_Down_unRET_uncurry])
+  apply (auto simp: twl_st_heur_def \<L>\<^sub>a\<^sub>l\<^sub>l_all_atms_all_lits
+    intro!: polarity_pol_pre simp flip: all_atms_def)
+  done
 
 abbreviation nat_lit_lit_rel where
   \<open>nat_lit_lit_rel \<equiv> Id :: (nat literal \<times> _) set\<close>
