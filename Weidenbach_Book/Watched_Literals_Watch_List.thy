@@ -266,7 +266,12 @@ definition all_atms :: \<open>_ \<Rightarrow> _ \<Rightarrow> 'v multiset\<close
   \<open>all_atms N NUE = atm_of `# all_lits N NUE\<close>
 
 abbreviation all_atms_st :: \<open>'v twl_st_wl \<Rightarrow> 'v multiset\<close> where
-  \<open>all_atms_st S \<equiv> atm_of `# all_lits_st S\<close>
+  \<open>all_atms_st S \<equiv> all_atms (get_clauses_wl S) (get_unit_clauses_wl S)\<close>
+
+lemma all_atms_st_alt_def: \<open>all_atms_st S = atm_of `# all_lits_st S\<close>
+  by (auto simp: all_atms_def)
+
+lemmas all_atms_st_alt_def_sym[simp] =  all_atms_st_alt_def[symmetric]
 
 lemma in_all_lits_minus_iff: \<open>-L \<in># all_lits N NUE \<longleftrightarrow> L \<in># all_lits N NUE\<close>
   unfolding all_lits_def in_all_lits_of_mm_uminus_iff ..
@@ -307,7 +312,7 @@ lemma literals_are_\<L>\<^sub>i\<^sub>n_set_mset_\<L>\<^sub>a\<^sub>l\<^sub>l[si
   using in_all_lits_of_mm_ain_atms_of_iff
   unfolding set_mset_set_mset_eq_iff is_\<L>\<^sub>a\<^sub>l\<^sub>l_def Ball_def in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
     in_all_lits_of_mm_ain_atms_of_iff atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n literals_are_\<L>\<^sub>i\<^sub>n_def
-  by (auto simp: in_all_lits_of_mm_ain_atms_of_iff)
+  by (auto simp: in_all_lits_of_mm_ain_atms_of_iff all_atms_def simp del: all_atms_st_alt_def_sym)
 
 lemma is_\<L>\<^sub>a\<^sub>l\<^sub>l_all_lits_st_\<L>\<^sub>a\<^sub>l\<^sub>l[simp]:
   \<open>is_\<L>\<^sub>a\<^sub>l\<^sub>l \<A> (all_lits_st S) \<Longrightarrow>
@@ -557,9 +562,13 @@ lemma get_conflict_wl_set_literals_to_update_wl[twl_st_wl]:
   \<open>get_unit_clauses_wl (set_literals_to_update_wl P S) = get_unit_clauses_wl S\<close>
   by (cases S; auto; fail)+
 
+definition set_conflict_wl_pre :: \<open>nat \<Rightarrow> 'v twl_st_wl \<Rightarrow> bool\<close> where
+\<open>set_conflict_wl_pre C S \<longleftrightarrow>
+   (\<exists>S' b. (S, S') \<in> state_wl_l b \<and> set_conflict_l_pre C S' \<and> blits_in_\<L>\<^sub>i\<^sub>n S)\<close>
+
 definition set_conflict_wl :: \<open>nat \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
   \<open>set_conflict_wl = (\<lambda>C (M, N, D, NE, UE, Q, W). do {
-     ASSERT(D = None \<and> C \<in># dom_m N);
+     ASSERT(set_conflict_wl_pre C (M, N, D, NE, UE, Q, W));
      RETURN (M, N, Some (mset (N \<propto> C)), NE, UE, {#}, W)
     })\<close>
 
@@ -2755,17 +2764,16 @@ proof -
       \<open>unit_propagation_inner_loop_l_inv L (S', n)\<close> and
       \<open>unit_propagation_inner_loop_wl_loop_pre L (j, w, S)\<close> and
       \<open>inres (mop_watched_by_at S L w) x'\<close> and
-      \<open>(x', ())
-       \<in> ?Slw\<close> and
-      \<open>x2 =(x1a, x2a)\<close> and
-      \<open>x' =(x1, x2)\<close> and
+      x': \<open>(x', ())  \<in> ?Slw\<close>
+        \<open>x2 =(x1a, x2a)\<close>
+        \<open>x' =(x1, x2)\<close> and
       \<open>(x1 \<notin># dom_m (get_clauses_wl S), b) \<in> bool_rel\<close> and
       \<open>inres (mop_keep_watch L j w S) Sa\<close> and
-      \<open>(Sa, S') \<in>{(T, T'). T = keep_watch L j w S \<and> T' = S'}\<close> and
+      Sa: \<open>(Sa, S') \<in>{(T, T'). T = keep_watch L j w S \<and> T' = S'}\<close> and
       \<open>\<not> x1 \<notin># dom_m (get_clauses_wl Sa)\<close> and
       \<open>\<not> b\<close> and
       \<open>clauses_to_update_l S' \<noteq> {#}\<close> and
-      \<open>(Sa, X2)
+      X2: \<open>(Sa, X2)
        \<in>{(T, T', C).
           (T, T') \<in> state_wl_l (Some(L, Suc w)) \<and>
           C = C' \<and>
@@ -2801,14 +2809,14 @@ proof -
       for a b M N D' NE UE W oth
       by (simp_all only: correct_watching_except.simps
         set_conflict_wl_def prod.case clause_to_update_def get_clauses_l.simps)
-    moreover have [simp]: \<open>NO_MATCH None d \<Longrightarrow> blits_in_\<L>\<^sub>i\<^sub>n(x1b, x1aa, d, x1c, x1d, x2e, g) \<longleftrightarrow>
+     have [simp]: \<open>NO_MATCH None d \<Longrightarrow> blits_in_\<L>\<^sub>i\<^sub>n(x1b, x1aa, d, x1c, x1d, x2e, g) \<longleftrightarrow>
         blits_in_\<L>\<^sub>i\<^sub>n(x1b, x1aa, None, x1c, x1d, x2e, g)\<close> and
        [simp]: \<open>NO_MATCH {#} x2e \<Longrightarrow> blits_in_\<L>\<^sub>i\<^sub>n(x1b, x1aa, None, x1c, x1d, x2e, g) \<longleftrightarrow>
         blits_in_\<L>\<^sub>i\<^sub>n(x1b, x1aa, None, x1c, x1d, {#}, g)\<close> for x1b x1aa x1c x1d x2e g d
         unfolding blits_in_\<L>\<^sub>i\<^sub>n_def by auto
     have \<open>get_conflict_wl (keep_watch L j w S) = None\<close>
       using confl_S by (cases S) (auto simp: keep_watch_def)
-    then have \<open>D \<in># dom_m (get_clauses_wl (keep_watch L j w S)) \<Longrightarrow>
+      then have \<open>set_conflict_wl_pre D (keep_watch L j w S) \<Longrightarrow>
         set_conflict_wl D (keep_watch L j w S) \<le> (SPEC(correct_watching_except (Suc j) (Suc w) L))\<close> for D
       using S_S' SLw w_le j_w n that corr_w
         correct_watching_except_correct_watching_except_Suc_Suc_keep_watch[of j w S L]
@@ -2824,9 +2832,15 @@ proof -
         intro!: in_clause_in_all_lits_of_m nth_mem
         dest!: multi_member_split[of x1])
     ultimately show ?thesis
-      using S_S' SLw w_le j_w n that corr_w n blit_in_lit unfolding set_conflict_wl_def set_conflict_l_def
-      apply (cases S; cases S')
-      apply (refine_rcg; hypsubst+)
+      using S_S' Sa X2 SLw w_le j_w n corr_w n blit_in_lit x' unfolding set_conflict_wl_def set_conflict_l_def
+      apply (cases S; cases S'; cases X2; cases \<open>watched_by S L ! w\<close>)
+      apply (refine_rcg)
+      subgoal premises p for a ba c d e fa g aa baa ca da ea faa ga x1b x2b x1aa x2aa x1ba x2ba x1c
+       x2c x1d x2d x1e x2e x1f x2f x1g x2g x1h x2h x1i x2i x1j x2j x1k x2k unfolding set_conflict_wl_pre_def
+       using p apply - by (rule exI[of _ \<open>fst X2\<close>], rule exI[of _ \<open>Some(L, Suc w)\<close>])
+         (auto simp add: keep_watch_def eq_commute [of _ \<open>_ ! w\<close>] all_lits_def
+           intro!: blits_in_\<L>\<^sub>i\<^sub>n_keep_watch' blits_in_\<L>\<^sub>i\<^sub>n_propagate)
+      using that
       by 
         (auto intro!: frefI nres_relI simp: set_conflict_l_def set_conflict_wl_def state_wl_l_def
            keep_watch_state_wl keep_watch_def drop_map Cons_nth_drop_Suc[symmetric]
@@ -3287,17 +3301,16 @@ proof -
   have in_watched_keepD: \<open>x \<in> set (watched_by (keep_watch L j w S) L') \<Longrightarrow> x \<in> set (watched_by S L')\<close>
      for x L'
     using j_w w_le by (cases S) (clarsimp simp: keep_watch_def elim!: in_set_upd_cases split: if_splits)
-find_theorems blits_in_\<L>\<^sub>i\<^sub>n keep_watch
+
   show 1: ?propa
     (is \<open>_ \<le> \<Down> ?unit _\<close>)
-    supply trail_keep_w[simp] [[goals_limit=1]]
+    supply trail_keep_w[simp]
     unfolding unit_propagation_inner_loop_body_wl_int_alt_def
       i_def[symmetric] i_def'[symmetric] unit_propagation_inner_loop_body_l_with_skip_alt_def
       unit_propagation_inner_loop_body_l_def
     unfolding i_def[symmetric] SLw prod.case
     apply (rewrite in \<open>if (\<not>_) then ASSERT _ >>= _ else _\<close> if_not_swap)
     supply RETURN_as_SPEC_refine[refine2 del]
-    supply [[goals_limit=1]]
     apply (refine_rcg f (*val f f' find_unwatched_l*)
        mop_polarity_wl_mop_polarity_l[where b = \<open>Some(L, Suc w)\<close>, THEN fref_to_Down_curry]
        mop_clauses_at_itself_spec pos_of_watched)

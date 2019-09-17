@@ -960,7 +960,7 @@ lemma propagate_lit_wl_heur_propagate_lit_wl:
       intro!: ASSERT_refine_left cons_trail_Propagated_tr2 cons_trail_Propagated_tr_pre
       dest: multi_member_split valid_arena_DECISION_REASON)
   subgoal
-   by  (auto simp: twl_st_heur_def twl_st_heur'_def all_lits_def \<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_all_lits_of_mm)
+   by  (auto simp: twl_st_heur_def twl_st_heur'_def all_lits_def \<L>\<^sub>a\<^sub>l\<^sub>l_all_atms_all_lits)
   subgoal by (auto 4 3 simp: twl_st_heur_def propagate_lit_wl_heur_def propagate_lit_wl_def
         isa_vmtf_consD twl_st_heur'_def propagate_lit_wl_pre_def swap_lits_pre_def
         valid_arena_swap_lits arena_lifting phase_saving_def atms_of_def save_phase_def
@@ -1161,12 +1161,9 @@ definition unit_propagation_inner_loop_body_wl_heur
    where
   \<open>unit_propagation_inner_loop_body_wl_heur L j w (S0 :: twl_st_wl_heur) = do {
       ASSERT(unit_propagation_inner_loop_wl_loop_D_heur_inv0 L (j, w, S0));
-      ASSERT(watched_by_app_heur_pre ((S0, L), w));
-      let (C, K, b) = (watched_by_app_heur S0 L w);
+      (C, K, b) \<leftarrow> mop_watched_by_app_heur S0 L w;
       S \<leftarrow> keep_watch_heur L j w S0;
       ASSERT(length (get_clauses_wl_heur S) = length (get_clauses_wl_heur S0));
-      ASSERT(unit_prop_body_wl_heur_inv S j w L);
-      ASSERT(length (get_clauses_wl_heur S0) \<le> sint64_max \<longrightarrow> j < sint64_max \<and> w < sint64_max);
       val_K \<leftarrow> mop_polarity_st_heur S K;
       if val_K = Some True
       then RETURN (j+1, w+1, S)
@@ -1174,7 +1171,6 @@ definition unit_propagation_inner_loop_body_wl_heur
         if b then do {
            if val_K = Some False
            then do {
-             ASSERT(set_conflict_wl_heur_pre (C, S));
              S \<leftarrow> set_conflict_wl_heur C S;
              RETURN (j+1, w+1, S)}
            else do {
@@ -1204,7 +1200,6 @@ definition unit_propagation_inner_loop_body_wl_heur
 		None \<Rightarrow> do {
 		  if val_L' = Some False
 		  then do {
-		    ASSERT(set_conflict_wl_heur_pre (C, S));
 		    S \<leftarrow> set_conflict_wl_heur C S;
 		    RETURN (j+1, w+1, S)}
 		  else do {
@@ -1242,17 +1237,69 @@ definition set_conflict_wl'_pre where
     distinct (get_clauses_wl S \<propto> i) \<and>
     literals_are_in_\<L>\<^sub>i\<^sub>n_trail (all_atms_st S) (get_trail_wl S)\<close>
 
+lemma literals_are_in_\<L>\<^sub>i\<^sub>n_mm_clauses[simp]: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm (all_atms_st S) (mset `# ran_mf (get_clauses_wl S))\<close>
+   \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm (all_atms_st S) ((\<lambda>x. mset (fst x)) `# ran_m (get_clauses_wl S))\<close>
+  apply (auto simp: \<L>\<^sub>a\<^sub>l\<^sub>l_all_atms_all_lits literals_are_in_\<L>\<^sub>i\<^sub>n_mm_def)
+  apply (auto simp: all_lits_def all_lits_of_mm_union)
+  done
+
 lemma set_conflict_wl_alt_def:
   \<open>set_conflict_wl = (\<lambda>C (M, N, D, NE, UE, Q, W). do {
-     ASSERT(D = None \<and> C \<in># dom_m N);
+     ASSERT(set_conflict_wl_pre C (M, N, D, NE, UE, Q, W));
      let D = Some (mset (N \<propto> C));
      RETURN (M, N, D, NE, UE, {#}, W)
     })\<close>
   unfolding set_conflict_wl_def Let_def by auto
 
+(* TODO Kill rhs*)
+lemma [simp,iff]: \<open>literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st S) S \<longleftrightarrow> blits_in_\<L>\<^sub>i\<^sub>n S\<close>
+  unfolding literals_are_\<L>\<^sub>i\<^sub>n_def is_\<L>\<^sub>a\<^sub>l\<^sub>l_def \<L>\<^sub>a\<^sub>l\<^sub>l_all_atms_all_lits
+  by auto
+
+lemma set_conflict_wl_pre_set_conflict_wl'_pre:
+  assumes \<open>set_conflict_wl_pre C S\<close>
+  shows \<open>set_conflict_wl'_pre C S\<close>
+proof -
+  obtain S' T b b'  where
+    SS': \<open>(S, S') \<in> state_wl_l b\<close> and
+    \<open>blits_in_\<L>\<^sub>i\<^sub>n S\<close> and
+    confl: \<open>get_conflict_l  S'= None\<close> and
+    dom: \<open>C \<in># dom_m (get_clauses_l S')\<close> and
+    tauto: \<open>\<not> tautology (mset (get_clauses_l S' \<propto> C))\<close> and
+    dist: \<open>distinct (get_clauses_l S' \<propto> C)\<close> and
+    \<open>get_trail_l S' \<Turnstile>as CNot (mset (get_clauses_l S'  \<propto> C))\<close> and
+    T: \<open>(set_clauses_to_update_l (clauses_to_update_l S' + {#C#}) S', T)
+     \<in> twl_st_l b'\<close> and
+    struct: \<open>twl_struct_invs T\<close> and
+    \<open>twl_stgy_invs T\<close>
+    using assms
+    unfolding set_conflict_wl_pre_def set_conflict_l_pre_def apply -
+    by blast
+  have
+    alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of T)\<close>
+   using struct unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+   by fast+
+
+  have lits_trail: \<open>atm_of ` lits_of_l (get_trail T) \<subseteq> atms_of_mm (clause `# get_clauses T + unit_clss T)\<close>
+    using alien unfolding cdcl\<^sub>W_restart_mset.no_strange_atm_def
+    by (cases T) (auto
+        simp del: all_clss_l_ran_m union_filter_mset_complement
+        simp: twl_st twl_st_l twl_st_wl all_lits_of_mm_union lits_of_def
+        convert_lits_l_def image_image in_all_lits_of_mm_ain_atms_of_iff
+        get_unit_clauses_wl_alt_def image_subset_iff)
+  moreover have \<open>atms_of_mm (clause `# get_clauses T + unit_clss T) = set_mset (all_atms_st S)\<close>
+     using SS' T unfolding all_atms_st_alt_def all_lits_def
+     by (auto simp: mset_take_mset_drop_mset' twl_st_l atm_of_all_lits_of_mm)
+
+  ultimately show ?thesis
+     using SS'  T dom tauto dist confl unfolding set_conflict_wl'_pre_def
+     by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_trail_atm_of twl_st_l
+       mset_take_mset_drop_mset' simp del: all_atms_def[symmetric])
+qed
+
 lemma set_conflict_wl_heur_set_conflict_wl':
   \<open>(uncurry set_conflict_wl_heur, uncurry (set_conflict_wl)) \<in>
-    [uncurry set_conflict_wl'_pre]\<^sub>f
+    [\<lambda>_. True]\<^sub>f
     nat_rel \<times>\<^sub>r twl_st_heur_up'' \<D> r s K \<rightarrow> \<langle>twl_st_heur_up'' \<D> r s K\<rangle>nres_rel\<close>
 proof -
   have H:
@@ -1314,7 +1361,7 @@ proof -
         using that
         by (auto simp: twl_st_heur'_def twl_st_heur_def)
       subgoal
-        using that
+        using that apply auto
         by (auto 0 0 simp add: RETURN_def conc_fun_RES set_conflict_m_def twl_st_heur'_def
           twl_st_heur_def set_conflict_wl'_pre_def)
       subgoal
@@ -1365,8 +1412,9 @@ proof -
     unfolding uncurry_def RES_RETURN_RES4 set_conflict_wl_alt_def  set_conflict_wl_heur_def
     apply (rewrite at \<open>let _ = 0 in _\<close> Let_def)
     apply (refine_vcg)
-    subgoal by (rule isa_set_lookup_conflict_aa_pre)
+    subgoal by (rule isa_set_lookup_conflict_aa_pre) (auto dest!: set_conflict_wl_pre_set_conflict_wl'_pre)
     apply assumption+
+    subgoal by (auto dest!: set_conflict_wl_pre_set_conflict_wl'_pre)
     subgoal for x y
       unfolding arena_act_pre_def arena_is_valid_clause_idx_def
       by (rule isa_length_trail_pre)
@@ -1374,11 +1422,11 @@ proof -
     subgoal for x y
        unfolding arena_act_pre_def arena_is_valid_clause_idx_def
        by (rule exI[of _ \<open>get_clauses_wl (snd y)\<close>], rule exI[of _ \<open>set (get_vdom (snd x))\<close>])
-         (auto simp: twl_st_heur'_def twl_st_heur_def set_conflict_wl'_pre_def)
+         (auto simp: twl_st_heur'_def twl_st_heur_def set_conflict_wl'_pre_def  dest!: set_conflict_wl_pre_set_conflict_wl'_pre)
     subgoal
       by (subst isa_length_trail_length_u[THEN fref_to_Down_unRET_Id])
        (auto simp: twl_st_heur'_def twl_st_heur_def counts_maximum_level_def
-        set_conflict_wl'_pre_def all_atms_def[symmetric]
+        set_conflict_wl'_pre_def all_atms_def[symmetric]  dest!: set_conflict_wl_pre_set_conflict_wl'_pre
 	intro!: valid_arena_arena_incr_act valid_arena_mark_used)
     done
 qed
@@ -1562,6 +1610,248 @@ lemma unit_propagation_inner_loop_body_wl_D_alt_def:
   unfolding unit_propagation_inner_loop_body_wl_D_def let_to_bind_conv[symmetric] Let_def
   by (intro bind_cong_nres case_prod_cong if_cong[OF refl] refl)
 *)
+
+lemma mop_access_lit_in_clauses_heur:
+  \<open>(S, T) \<in> twl_st_heur \<Longrightarrow> (i, i') \<in> Id \<Longrightarrow> (j, j') \<in> Id \<Longrightarrow> mop_access_lit_in_clauses_heur S i j
+    \<le> \<Down> Id
+       (mop_clauses_at (get_clauses_wl T) i' j')\<close>
+  unfolding mop_access_lit_in_clauses_heur_def
+  by (rule mop_arena_lit2[where vdom=\<open>set (get_vdom S)\<close>])
+   (auto simp: twl_st_heur_def intro!: mop_arena_lit2)
+
+lemma unit_propagation_inner_loop_body_wl_heur_unit_propagation_inner_loop_body_wl_D:
+  \<open>(uncurry3 unit_propagation_inner_loop_body_wl_heur,
+    uncurry3 unit_propagation_inner_loop_body_wl)
+    \<in> [\<lambda>(((L, i), j), S). length (watched_by S L) \<le> r - 4 \<and> L = K \<and>
+        length (watched_by S L) = s]\<^sub>f
+      nat_lit_lit_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f twl_st_heur_up'' \<D> r s K \<rightarrow>
+     \<langle>nat_rel \<times>\<^sub>r nat_rel \<times>\<^sub>r twl_st_heur_up'' \<D> r s K\<rangle>nres_rel\<close>
+proof -
+(*
+  have [simp]: \<open>unit_prop_body_wl_D_inv T i C L \<Longrightarrow> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st T)\<close> for T i L C
+    unfolding unit_prop_body_wl_D_inv_def image_image by auto
+  have pol_undef: \<open>polarity M L \<noteq> Some True \<Longrightarrow> polarity M L \<noteq> Some False \<Longrightarrow> defined_lit M L \<Longrightarrow>
+     False\<close>
+    for M :: \<open>(nat, nat) ann_lits\<close> and L :: \<open>nat literal\<close>
+    by (auto simp: polarity_def split: if_splits)
+  have 1: \<open>RETURN (w + 1, f S') = do {S \<leftarrow> RETURN (f S'); RETURN (w + 1, S)}\<close>
+    for w :: nat and S' and f
+    by auto
+  have keep_watch_skip: \<open>((x2d + 1, U), x2a + 1, keep_watch L x2 x2a T)
+      \<in> nat_rel \<times>\<^sub>f twl_st_heur_up'' \<D> r s K\<close>
+    if \<open>(x2d + 1, x2a + 1) \<in> nat_rel\<close> and
+      \<open>(U, keep_watch L x2 x2a T) \<in> twl_st_heur_up'' \<D> r s K\<close>
+    for x2d U x2a x2 L T
+    using that
+    by auto
+
+  have isa_find_unwatched_wl_st_heur_find_unwatched_wl_st:
+     \<open>isa_find_unwatched_wl_st_heur x' y'
+        \<le> \<Down> Id (IsaSAT_Inner_Propagation.find_unwatched_wl_st x y)\<close>
+    if
+      find_unw: \<open>find_unwatched_wl_st_pre (x, y)\<close> and
+      xy: \<open>((x', y'), x, y) \<in> twl_st_heur \<times>\<^sub>f nat_rel\<close> and
+      lits: \<open>literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st x) x\<close>
+      for x y x' y'
+  proof -
+    have n_d: \<open>no_dup (get_trail_wl x)\<close>
+      using xy unfolding twl_st_heur_def
+      by auto
+    have lits_xy: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (all_atms_st x) (mset (get_clauses_wl x \<propto> y))\<close>
+      apply (rule literals_are_in_\<L>\<^sub>i\<^sub>n_nth)
+      subgoal
+        using find_unw unfolding find_unwatched_wl_st_pre_def prod.simps
+        by auto
+      subgoal using lits .
+      done
+
+    have K: \<open>find_unwatched_wl_st' x y \<le> IsaSAT_Inner_Propagation.find_unwatched_wl_st x y\<close>
+      unfolding find_unwatched_wl_st'_def IsaSAT_Inner_Propagation.find_unwatched_wl_st_def
+      apply (cases x)
+      apply clarify
+      apply (rule order_trans)
+      apply (rule find_unwatched[of _ _ \<open>all_atms_st x\<close>])
+      subgoal
+        using n_d by simp
+      subgoal
+        using find_unw unfolding find_unwatched_wl_st_pre_def prod.simps
+        by auto
+      subgoal
+        using lits_xy by simp
+      subgoal by auto
+      done
+    show ?thesis
+      apply (rule order_trans)
+        apply (rule find_unwatched_wl_st_heur_find_unwatched_wl_s[THEN fref_to_Down_curry,
+          OF that(1,2)])
+      by (simp add: K)
+  qed
+
+  have set_conflict_wl'_rel:
+   \<open>(V, set_conflict_wl' x1f (keep_watch L x2 x2a T)) \<in> twl_st_heur_up'' \<D> r s K \<Longrightarrow>
+     (x2d, x2a) \<in> nat_rel \<Longrightarrow>
+    ((x2d + 1, V), x2a + 1, set_conflict_wl' x1f (keep_watch L x2 x2a T))
+    \<in> nat_rel \<times>\<^sub>f twl_st_heur_up'' \<D> r s K\<close>
+    for V x1f L x2 x2a T x2d
+    by auto
+
+  have propagate_lit_wl_heur_final_rel: \<open>(Sa, Sb) \<in> twl_st_heur_up'' \<D> r s K \<Longrightarrow>
+    (x2d, x2a) \<in> nat_rel \<Longrightarrow>
+    ((x2d + 1, Sa), x2a + 1, Sb) \<in> nat_rel \<times>\<^sub>r twl_st_heur_up'' \<D> r s K\<close>
+    for V x1f L x2 x2a T x2d U x1g L' Sa Sb
+    by auto
+
+  note find_unw = find_unwatched_wl_st_heur_find_unwatched_wl_s[THEN fref_to_Down_curry]
+      set_conflict_wl_heur_set_conflict_wl'[of \<D> r K s, THEN fref_to_Down_curry, unfolded comp_def]
+      propagate_lit_wl_heur_propagate_lit_wl[of \<D> r K s, THEN fref_to_Down_curry3, unfolded comp_def]
+      propagate_lit_wl_bin_heur_propagate_lit_wl_bin
+        [of \<D> r K s, THEN fref_to_Down_curry3, unfolded comp_def]
+      update_clause_wl_heur_update_clause_wl[of K r \<D> s, THEN fref_to_Down_curry7]
+      keep_watch_heur_keep_watch'[of _ _ _ _ _ _ _ _ \<D> r K s]
+      update_blit_wl_heur_update_blit_wl[of r \<D> K s, THEN fref_to_Down_curry6]
+      clause_not_marked_to_delete_rel[THEN fref_to_Down_curry]
+      keep_watch_skip
+      isa_find_unwatched_wl_st_heur_find_unwatched_wl_st
+      propagate_lit_wl_heur_final_rel
+*)
+  note [refine] = mop_watched_by_app_heur_mop_watched_by_at''[of \<D> r K s, THEN fref_to_Down_curry2]
+      keep_watch_heur_keep_watch'[of _ _ _ _ _ _ _ _ \<D> r K s]
+     mop_polarity_st_heur_mop_polarity_wl''[of \<D> r K s, THEN fref_to_Down_curry, unfolded comp_def]
+      set_conflict_wl_heur_set_conflict_wl'[of \<D> r K s, THEN fref_to_Down_curry, unfolded comp_def]
+  show ?thesis
+    supply [[goals_limit=1]] twl_st_heur'_def[simp]
+    supply RETURN_as_SPEC_refine[refine2 del]
+    apply (intro frefI nres_relI)
+    unfolding unit_propagation_inner_loop_body_wl_heur_def
+      unit_propagation_inner_loop_body_wl_def
+      uncurry_def
+      watched_by_app_heur_def access_lit_in_clauses_heur_def
+
+    apply (refine_rcg (*find_unw isa_save_pos mop_access_lit_in_clauses_heur pos_of_watched_heur*))
+    subgoal unfolding unit_propagation_inner_loop_wl_loop_D_heur_inv0_def twl_st_heur'_def
+      unit_propagation_inner_loop_wl_loop_pre_def
+      by fastforce
+    subgoal by fast
+    subgoal by simp
+    subgoal by simp
+    subgoal by simp
+    subgoal by fast
+    subgoal by simp
+    subgoal by simp
+    subgoal by simp
+    subgoal by simp
+    subgoal by simp
+
+
+find_theorems mop_polarity_st_heur mop_polarity_wl
+
+oops
+    subgoal for x y x1 x1a x1b x2 x2a x2b x1c x1d x1e x2c x2d
+      by (rule watched_by_app_heur_pre)
+    subgoal by (rule keep_watch_heur_pre)
+    subgoal by (auto simp del: keep_watch_st_wl simp: twl_st_heur_state_simp)
+    subgoal by auto
+    subgoal unfolding unit_prop_body_wl_heur_inv_def by fastforce
+    subgoal
+      by (rule in_D0)
+    subgoal by (rule prop_fast_le(1))
+    subgoal by (rule prop_fast_le(2))
+    subgoal
+      by (rule polarity_eq)
+    subgoal
+      by simp
+    subgoal
+      by simp
+    subgoal
+      by simp
+    subgoal
+      by (rule bin_last_eq)
+    subgoal by (rule bin_polarity_eq)
+    subgoal
+      by (rule bin_set_conflict_wl_heur_pre)
+    subgoal by (rule bin_set_conflict_wl'_pre)
+    subgoal by (rule bin_conflict_rel)
+    subgoal by simp
+    subgoal by simp
+    subgoal by (rule bin_access_lit_in_clauses_heur_pre)
+    subgoal
+      by (rule bin_propagate_lit_wl_heur_pre)
+    subgoal by (rule bin_propagate_lit_wl_pre)
+    subgoal by (rule bin_final_rel)
+    subgoal by simp
+    subgoal by simp
+    subgoal
+      by (rule clause_not_marked_to_delete_heur_pre)
+    subgoal
+      by (rule clause_not_marked_to_delete_heur_clause_not_marked_to_delete_iff)
+    subgoal by auto
+    subgoal
+      by (rule access_lit_in_clauses_heur_pre0)
+    apply assumption
+    subgoal apply auto sorry
+    subgoal
+      by (rule access_lit_in_clauses_heur_pre1i)
+    subgoal
+      by simp
+    subgoal
+      apply auto sorry
+    subgoal apply auto sorry oops
+      by (rule polarity_st_pre1i)
+    subgoal
+      by (rule polarity_other_watched_lit)
+    subgoal
+      by (rule update_blit_wl_heur_pre)
+    subgoal
+      by (rule update_blit_wl_rel)
+    subgoal
+      by (rule find_unwatched_wl_st_heur_pre)
+    subgoal
+      by (rule find_unwatched_wl_st_pre)
+    subgoal
+      by (rule isa_find_unwatched_wl_st_heur_pre)
+    subgoal
+      by (rule isa_find_unwatched_wl_st_heur_lits)
+    subgoal
+      by (rule unit_prop_body_wl_D_find_unwatched_heur_inv)
+    subgoal
+      by (rule pol_other_lit_false)
+    subgoal
+      by (rule set_conflict_wl_heur_pre)
+    subgoal
+      by (rule unc_set_conflict_wl'_pre)
+    subgoal
+      by (rule set_conflict_keep_watch_rel)
+    subgoal
+      by (rule x2da_eq)
+    subgoal
+      by (rule set_conflict_keep_watch_rel2)
+    subgoal by (rule propagate_lit_wl_heur_pre)
+    subgoal by (rule propagate_lit_wl_pre)
+    subgoal by (rule propagate_lit_wl_rel)
+    subgoal
+      by (rule x2da_eq)
+    subgoal
+      by force
+                        apply assumption+
+    subgoal by simp
+    subgoal by (rule access_lit_in_clauses_heur_pre3)
+    subgoal
+      by (rule polarity_st_pre_unwatched)
+    subgoal
+      by (rule polarity_eq_unwatched)
+    subgoal
+      by (rule update_blit_wl_heur_pre_unw)
+    subgoal
+      by (rule update_blit_unw_rel)
+    subgoal
+      by (rule update_clause_wl_code_pre_unw)
+    subgoal
+      by (rule update_clause_wl_pre_unw)
+    subgoal
+      by (rule update_watched_unw_rel)
+    done
+qed
+
 
 text \<open>The lemmas below are used in the refinement proof of \<^term>\<open>unit_propagation_inner_loop_body_wl_D\<close>.
 None of them makes sense in any other context. However having like below allows to share

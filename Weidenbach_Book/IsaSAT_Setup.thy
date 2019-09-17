@@ -205,6 +205,12 @@ definition watched_by_app_heur_pre where
 definition (in -) watched_by_app_heur :: \<open>twl_st_wl_heur \<Rightarrow> nat literal \<Rightarrow> nat \<Rightarrow> nat watcher\<close> where
   \<open>watched_by_app_heur S L K = watched_by_int S L ! K\<close>
 
+definition (in -) mop_watched_by_app_heur :: \<open>twl_st_wl_heur \<Rightarrow> nat literal \<Rightarrow> nat \<Rightarrow> nat watcher nres\<close> where
+  \<open>mop_watched_by_app_heur S L K = do {
+     ASSERT(K < length (watched_by_int S L));
+     ASSERT(nat_of_lit L < length (get_watched_wl_heur S));
+     RETURN (watched_by_int S L ! K)}\<close>
+
 lemma watched_by_app_heur_alt_def:
   \<open>watched_by_app_heur = (\<lambda>(M, N, D, Q, W, _) L K. W ! nat_of_lit L ! K)\<close>
   by (auto simp: watched_by_app_heur_def intro!: ext)
@@ -399,7 +405,7 @@ lemma twl_st_heur_state_simp:
        watched_by_int S C = watched_by S' C\<close> and
      \<open>literals_to_update_wl S' =
          uminus `# lit_of `# mset (drop (literals_to_update_wl_heur S) (rev (get_trail_wl S')))\<close>
-  using assms unfolding twl_st_heur_def by (auto simp: map_fun_rel_def all_atms_def)
+  using assms unfolding twl_st_heur_def by (auto simp: map_fun_rel_def)
 
 abbreviation twl_st_heur'''
    :: \<open>nat \<Rightarrow> (twl_st_wl_heur \<times> nat twl_st_wl) set\<close>
@@ -445,7 +451,7 @@ lemma twl_st_heur_ana_state_simp:
   shows
     \<open>(get_trail_wl_heur S, get_trail_wl S') \<in> trail_pol (all_atms_st S')\<close> and
     \<open>C \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st S') \<Longrightarrow> watched_by_int S C = watched_by S' C\<close>
-  using assms unfolding twl_st_heur_conflict_ana_def by (auto simp: map_fun_rel_def all_atms_def)
+  using assms unfolding twl_st_heur_conflict_ana_def by (auto simp: map_fun_rel_def)
 
 text \<open>This relations decouples the conflict that has been minimised and appears abstractly
 from the refined state, where the conflict has been removed from the data structure to a
@@ -553,7 +559,7 @@ proof -
   apply (subst atm_in_conflict_lookup_atm_in_conflict[THEN fref_to_Down_unRET_uncurry_Id])
   unfolding prod.simps prod_rel_iff
     apply (rule 1; assumption)
-   apply (auto simp: all_atms_def; fail)
+   apply (auto; fail)
   by (auto simp: is_in_conflict_st_def atm_in_conflict_def atms_of_def atm_of_eq_atm_of)
 qed
 
@@ -573,34 +579,10 @@ proof -
   apply (subst atm_in_conflict_lookup_atm_in_conflict[THEN fref_to_Down_unRET_uncurry_Id])
   unfolding prod.simps prod_rel_iff
     apply (rule 1; assumption)
-   apply (auto simp: all_atms_def; fail)
+   apply (auto; fail)
   by (auto simp: is_in_conflict_st_def atm_in_conflict_def atms_of_def atm_of_eq_atm_of)
 qed
 
-
-definition (in -) mop_polarity_pol :: \<open>trail_pol \<Rightarrow> nat literal \<Rightarrow> bool option nres\<close> where
-  \<open>mop_polarity_pol = (\<lambda>M L. do {
-    ASSERT(polarity_pol_pre M L);
-    RETURN (polarity_pol M L)
-  })\<close>
-
-definition polarity_st_pre :: \<open>nat twl_st_wl \<times> nat literal \<Rightarrow> bool\<close> where
-\<open>polarity_st_pre \<equiv> \<lambda>(S, L). L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st S)\<close>
-
-definition mop_polarity_st_heur :: \<open>twl_st_wl_heur \<Rightarrow> nat literal \<Rightarrow> bool option nres\<close> where
-\<open>mop_polarity_st_heur S L = do {
-  mop_polarity_pol (get_trail_wl_heur S) L
-}\<close>
-
-lemma mop_polarity_st_heur_mop_polarity_wl:
-   \<open>(uncurry mop_polarity_st_heur, uncurry mop_polarity_wl) \<in>
-   [\<lambda>_. True]\<^sub>f twl_st_heur \<times>\<^sub>r Id \<rightarrow> \<langle>\<langle>bool_rel\<rangle>option_rel\<rangle>nres_rel\<close>
-  unfolding mop_polarity_wl_def mop_polarity_st_heur_def uncurry_def mop_polarity_pol_def
-  apply (intro frefI nres_relI)
-  apply (refine_rcg polarity_pol_polarity[of \<open>all_atms _ _\<close>, THEN fref_to_Down_unRET_uncurry])
-  apply (auto simp: twl_st_heur_def \<L>\<^sub>a\<^sub>l\<^sub>l_all_atms_all_lits
-    intro!: polarity_pol_pre simp flip: all_atms_def)
-  done
 
 abbreviation nat_lit_lit_rel where
   \<open>nat_lit_lit_rel \<equiv> Id :: (nat literal \<times> _) set\<close>
@@ -735,7 +717,7 @@ lemma clause_not_marked_to_delete_rel:
   by (intro WB_More_Refinement.frefI nres_relI)
     (use arena_dom_status_iff in_dom_in_vdom in
       \<open>auto 5 5 simp: clause_not_marked_to_delete_def twl_st_heur_def
-        clause_not_marked_to_delete_heur_def arena_dom_status_iff all_atms_def[symmetric]
+        clause_not_marked_to_delete_heur_def arena_dom_status_iff
         clause_not_marked_to_delete_pre_def\<close>)
 
 
@@ -800,6 +782,7 @@ proof
            all_lits_of_mm_add_mset all_lits_of_m_add_mset
 	  \<L>\<^sub>a\<^sub>l\<^sub>l_add_mset
 	  eq_commute[of \<open>_ # _\<close>] atm_of_eq_atm_of
+        simp flip: all_atms_def
 	dest!: multi_member_split eq_insertD
 	dest!:  arg_cong[of \<open>filter_mset _ _\<close> \<open>add_mset _ _\<close> set_mset])
 qed
@@ -1041,11 +1024,11 @@ proof -
   have \<open>vdom_m (all_atms_st x1) (get_watched_wl x1) (get_clauses_wl x1) \<subseteq> set (get_vdom x1a)\<close>
     using xb_x'a
     by (cases x1)
-      (auto simp: twl_st_heur_def twl_st_heur'_def all_atms_def[symmetric])
+      (auto simp: twl_st_heur_def twl_st_heur'_def)
   then have subset: \<open>set (map fst (watched_by x1 x2)) \<subseteq> set (get_vdom x1a)\<close>
     using x2 unfolding vdom_m_def
     by (cases x1)
-      (force simp: twl_st_heur'_def twl_st_heur_def simp flip: all_atms_def
+      (force simp: twl_st_heur'_def twl_st_heur_def
         dest!: multi_member_split)
   have watched_incl: \<open>mset (map fst (watched_by x1 x2)) \<subseteq># mset (get_vdom x1a)\<close>
     by (rule distinct_subseteq_iff[THEN iffD1])
@@ -1116,5 +1099,54 @@ qed
 lemma atm_of_all_lits_of_m: \<open>atm_of `# (all_lits_of_m C) = atm_of `# C + atm_of `# C\<close>
    \<open>atm_of ` set_mset (all_lits_of_m C) = atm_of `set_mset C \<close>
   by (induction C; auto simp: all_lits_of_m_add_mset)+
+
+
+(* TODO Move in this buffer *)
+lemma mop_watched_by_app_heur_mop_watched_by_at:
+   \<open>(uncurry2 mop_watched_by_app_heur, uncurry2 mop_watched_by_at) \<in>
+    twl_st_heur \<times>\<^sub>f nat_lit_lit_rel \<times>\<^sub>f nat_rel \<rightarrow>\<^sub>f \<langle>Id\<rangle>nres_rel\<close>
+  unfolding mop_watched_by_app_heur_def mop_watched_by_at_def uncurry_def all_lits_def[symmetric] all_lits_alt_def[symmetric]
+  by (intro frefI nres_relI, refine_rcg)
+    (auto simp: twl_st_heur_def \<L>\<^sub>a\<^sub>l\<^sub>l_all_atms_all_lits map_fun_rel_def)
+term \<open>twl_st_heur_up'' \<D> r s K\<close>
+
+lemma mop_watched_by_app_heur_mop_watched_by_at'':
+   \<open>(uncurry2 mop_watched_by_app_heur, uncurry2 mop_watched_by_at) \<in>
+    twl_st_heur_up'' \<D> r s K \<times>\<^sub>f nat_lit_lit_rel \<times>\<^sub>f nat_rel \<rightarrow>\<^sub>f \<langle>Id\<rangle>nres_rel\<close>
+  by (rule fref_mono[THEN set_mp, OF _ _ _ mop_watched_by_app_heur_mop_watched_by_at])
+    (auto simp: \<L>\<^sub>a\<^sub>l\<^sub>l_all_atms_all_lits twl_st_heur'_def map_fun_rel_def)
+
+
+
+definition (in -) mop_polarity_pol :: \<open>trail_pol \<Rightarrow> nat literal \<Rightarrow> bool option nres\<close> where
+  \<open>mop_polarity_pol = (\<lambda>M L. do {
+    ASSERT(polarity_pol_pre M L);
+    RETURN (polarity_pol M L)
+  })\<close>
+
+definition polarity_st_pre :: \<open>nat twl_st_wl \<times> nat literal \<Rightarrow> bool\<close> where
+\<open>polarity_st_pre \<equiv> \<lambda>(S, L). L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st S)\<close>
+
+definition mop_polarity_st_heur :: \<open>twl_st_wl_heur \<Rightarrow> nat literal \<Rightarrow> bool option nres\<close> where
+\<open>mop_polarity_st_heur S L = do {
+  mop_polarity_pol (get_trail_wl_heur S) L
+}\<close>
+
+lemma mop_polarity_st_heur_mop_polarity_wl:
+   \<open>(uncurry mop_polarity_st_heur, uncurry mop_polarity_wl) \<in>
+   [\<lambda>_. True]\<^sub>f twl_st_heur \<times>\<^sub>r Id \<rightarrow> \<langle>\<langle>bool_rel\<rangle>option_rel\<rangle>nres_rel\<close>
+  unfolding mop_polarity_wl_def mop_polarity_st_heur_def uncurry_def mop_polarity_pol_def
+  apply (intro frefI nres_relI)
+  apply (refine_rcg polarity_pol_polarity[of \<open>all_atms _ _\<close>, THEN fref_to_Down_unRET_uncurry])
+  apply (auto simp: twl_st_heur_def \<L>\<^sub>a\<^sub>l\<^sub>l_all_atms_all_lits
+    intro!: polarity_pol_pre simp flip: all_atms_def)
+  done
+
+lemma mop_polarity_st_heur_mop_polarity_wl'':
+   \<open>(uncurry mop_polarity_st_heur, uncurry mop_polarity_wl) \<in>
+   [\<lambda>_. True]\<^sub>f twl_st_heur_up'' \<D> r s K \<times>\<^sub>r Id \<rightarrow> \<langle>\<langle>bool_rel\<rangle>option_rel\<rangle>nres_rel\<close>
+  by (rule fref_mono[THEN set_mp, OF _ _ _ mop_polarity_st_heur_mop_polarity_wl])
+    (auto simp: \<L>\<^sub>a\<^sub>l\<^sub>l_all_atms_all_lits twl_st_heur'_def map_fun_rel_def)
+
 
 end

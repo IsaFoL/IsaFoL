@@ -42,7 +42,7 @@ definition unit_propagation_inner_loop_body :: \<open>'v literal \<Rightarrow> '
           if \<forall>L \<in># unwatched C. -L \<in> lits_of_l (get_trail S)
           then
             if -L' \<in> lits_of_l (get_trail S)
-            then do {RETURN (set_conflicting C S)}
+            then do {ASSERT(get_trail S \<Turnstile>as CNot (clause C)); RETURN (set_conflicting C S)}
             else do {RETURN (propagate_lit L' C S)}
           else do {
             update_clauseS L C S
@@ -95,13 +95,15 @@ proof -
     S: \<open>S = (M, N, U, D, NE, UE, WS, Q)\<close>
     by (cases S) auto
 
-  have \<open>C \<in># N + U\<close> and struct: \<open>struct_wf_twl_cls C\<close> and L_C: \<open>L \<in># watched C\<close>
+  have \<open>C \<in># N + U\<close> and struct: \<open>struct_wf_twl_cls C\<close> and L_C: \<open>L \<in># watched C\<close> and uL_M: \<open>-L \<in> lits_of_l M\<close>
     using inv multi_member_split[OF x_WS]
     unfolding twl_struct_invs_def twl_st_inv.simps S
     by force+
   show ?fail
+    using uL_M
     unfolding unit_propagation_inner_loop_body_def Let_def S
-    by (cases C) (use struct L_C in \<open>auto simp: refine_pw_simps S size_2_iff update_clauseS_def\<close>)
+    by (cases C) (use struct L_C in \<open>auto simp: refine_pw_simps S size_2_iff update_clauseS_def true_annots_true_cls_def_iff_negation_in_model\<close>)
+
   note [[goals_limit=15]]
   show ?spec
     using assms unfolding unit_propagation_inner_loop_body_def update_clause.simps
@@ -204,11 +206,16 @@ proof -
             using D WS_WS' cdcl S by auto
           show \<open>(?T, S) \<in> measure (size \<circ> clauses_to_update)\<close>
             by (simp add: S WS'_def[symmetric] WS_WS' set_conflicting_def)
+
+          show \<open>get_trail (set_clauses_to_update (remove1_mset (L, C) (clauses_to_update S))
+             S) \<Turnstile>as CNot (clause C)\<close>
+             using unwatched uL' watched L' uL_M by (cases C; auto simp: true_annots_true_cls_def_iff_negation_in_model S)
+
         }
 
 
         { \<comment> \<open>if \<^term>\<open>-L' \<in> lits_of_l M \<close> else\<close>
-          let ?S = \<open>(M, N, U, D, NE, UE, WS, Q)\<close>
+             let ?S = \<open>(M, N, U, D, NE, UE, WS, Q)\<close>
           let ?T' = \<open>(Propagated L' (clause C) # M, N, U, None, NE, UE, WS', add_mset (- L') Q)\<close>
           let ?S' = \<open>(M, N, U, None, NE, UE, add_mset (L, C) WS', Q)\<close>
           let ?T = \<open>propagate_lit L' C (set_clauses_to_update (remove1_mset (L, C) (clauses_to_update S)) S)\<close>

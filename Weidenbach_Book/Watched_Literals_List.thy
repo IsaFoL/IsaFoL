@@ -673,10 +673,15 @@ definition find_unwatched_l :: \<open>('v, _) ann_lits \<Rightarrow> _ \<Rightar
       (\<forall>j. found = Some j \<longrightarrow> (j < length (N \<propto> C) \<and> (undefined_lit M (N \<propto> C!j) \<or> N \<propto> C!j \<in> lits_of_l M) \<and> j \<ge> 2)))
    }\<close>
 
+definition set_conflict_l_pre :: \<open>nat \<Rightarrow> 'v twl_st_l \<Rightarrow> bool\<close> where
+\<open>set_conflict_l_pre C S \<longleftrightarrow>
+  get_conflict_l S = None \<and> C \<in># dom_m (get_clauses_l S) \<and> \<not>tautology (mset (get_clauses_l S \<propto> C)) \<and> distinct (get_clauses_l S \<propto> C) \<and>
+  get_trail_l S \<Turnstile>as CNot (mset (get_clauses_l S \<propto> C)) \<and>
+  (\<exists>S' b. (set_clauses_to_update_l (clauses_to_update_l S + {#C#}) S, S') \<in> twl_st_l b \<and> twl_struct_invs S' \<and> twl_stgy_invs S')\<close>
 
 definition set_conflict_l :: \<open>nat \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close> where
   \<open>set_conflict_l = (\<lambda>C (M, N, D, NE, UE, WS, Q). do {
-      ASSERT(D = None \<and> C \<in># dom_m N);
+      ASSERT(set_conflict_l_pre C (M, N, D, NE, UE, WS, Q));
       RETURN (M, N, Some (mset (N \<propto> C)), NE, UE, {#}, {#})
    })\<close>
 
@@ -915,9 +920,20 @@ proof -
     by (auto simp: twl_st_l_def image_mset_remove1_mset_if)
   have D_None: \<open>get_conflict_l S = None\<close>
     using confl SS' by (cases \<open>get_conflict_l S\<close>) (auto simp: S WS'_def')
+  have [simp]: \<open>twl_st_inv S' \<Longrightarrow> twl_st_inv (set_conflicting C' (set_clauses_to_update (remove1_mset LC (clauses_to_update S')) S'))\<close> for S' C' LC
+     by (cases S') (auto simp: twl_st_inv.simps set_conflicting_def)
 
-  have \<open>set_conflict_l C ?S \<le> SPEC twl_list_invs\<close>
-    using add_inv C_N_U D_None unfolding twl_list_invs_def
+  have pre: \<open>set_conflict_l_pre C (M, N, None, NE, UE, remove1_mset C WS, Q)\<close> if \<open>M \<Turnstile>as CNot (mset (N \<propto> C))\<close>
+     using pre_inv C_N_U dist_C that
+     unfolding set_conflict_l_pre_def unit_propagation_inner_loop_body_l_inv_def apply -
+     apply normalize_goal+
+     apply (intro conjI)
+     apply (auto simp: S true_annots_true_cls dest: consistent_CNot_not_tautology distinct_consistent_interp)[5]
+     apply (rule_tac x=x in exI, rule_tac x = \<open>Some L\<close> in exI)
+     apply (simp add: S)
+     done
+  have \<open>set_conflict_l C ?S \<le> SPEC twl_list_invs\<close> if \<open>M \<Turnstile>as CNot (mset (N \<propto> C))\<close>
+    using add_inv C_N_U D_None pre that unfolding twl_list_invs_def
     by (auto dest: in_diffD simp: set_conflicting_def S
       set_conflict_l_def mset_take_mset_drop_mset' intro!: ASSERT_leI)
   then have confl_rel: \<open>set_conflict_l C ?S \<le>
@@ -925,8 +941,11 @@ proof -
        (c, set_conflicting (twl_clause_of C')
        (set_clauses_to_update
         (remove1_mset (L, twl_clause_of C') (clauses_to_update S')) S')) \<in>
-        {(S, S'). (S, S') \<in> twl_st_l (Some L) \<and> twl_list_invs S})\<close>
-    using SS' WS D_None C_N_U by (auto simp: twl_st_l_def image_mset_remove1_mset_if set_conflicting_def
+        {(S, S'). (S, S') \<in> twl_st_l (Some L) \<and> twl_list_invs S})\<close>  if \<open>get_trail
+     (set_clauses_to_update
+       (remove1_mset (L, twl_clause_of C') (clauses_to_update S')) S') \<Turnstile>as
+    CNot (clause (twl_clause_of C'))\<close>
+    using SS' WS D_None C_N_U pre that by (auto simp: twl_st_l_def image_mset_remove1_mset_if set_conflicting_def S
       set_conflict_l_def mset_take_mset_drop_mset')
 
   have propa_rel:
@@ -1378,7 +1397,7 @@ proof -
             if \<forall>L \<in># unwatched C. -L \<in> lits_of_l (get_trail S)
             then
               if -L' \<in> lits_of_l (get_trail S)
-              then do {RETURN (set_conflicting C S)}
+              then do {ASSERT (get_trail S \<Turnstile>as CNot (clause C)); RETURN (set_conflicting C S)}
               else do {RETURN (propagate_lit L' C S)}
             else do {
               update_clauseS L C S
