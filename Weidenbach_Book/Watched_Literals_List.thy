@@ -21,6 +21,16 @@ proof -
     unfolding 1
     by (rule inj_image_mset_eq_iff) (auto simp: inj_on_def)
 qed
+lemma twl_struct_invs_no_alien_in_trail:
+  assumes \<open>twl_struct_invs S\<close>
+  shows \<open>L \<in> lits_of_l (get_trail S) \<Longrightarrow> L \<in># all_lits_of_mm (clause `# get_clauses S + unit_clss S)\<close>
+  using assms apply (cases S)
+  apply (auto simp: twl_struct_invs_def
+    cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+    cdcl\<^sub>W_restart_mset.no_strange_atm_def trail.simps
+    init_clss.simps learned_clss.simps
+    in_all_lits_of_mm_ain_atms_of_iff)
+  done
 
 
 section \<open>Second Refinement: Lists as Clause\<close>
@@ -667,7 +677,7 @@ definition mop_polarity_l :: \<open>'v twl_st_l \<Rightarrow> 'v literal \<Right
 
 definition find_unwatched_l :: \<open>('v, _) ann_lits \<Rightarrow> _ \<Rightarrow> nat \<Rightarrow> nat option nres\<close> where
   \<open>find_unwatched_l M N C = do {
-    ASSERT(C \<in># dom_m N \<and> length (N \<propto> C) \<ge> 2 \<and> distinct (N \<propto> C));
+    ASSERT(C \<in># dom_m N \<and> length (N \<propto> C) \<ge> 2 \<and> distinct (N \<propto> C) \<and> no_dup M);
     SPEC (\<lambda>(found).
       (found = None \<longleftrightarrow> (\<forall>L\<in>set (unwatched_l (N \<propto> C)). -L \<in> lits_of_l M)) \<and>
       (\<forall>j. found = Some j \<longrightarrow> (j < length (N \<propto> C) \<and> (undefined_lit M (N \<propto> C!j) \<or> N \<propto> C!j \<in> lits_of_l M) \<and> j \<ge> 2)))
@@ -1466,6 +1476,7 @@ proof -
     subgoal using SS' C_N_U by auto
     subgoal using SS' C_N_U two_le_length_C by auto
     subgoal using SS' C_N_U dist_C by auto
+    subgoal using SS' C_N_U dist_C n_d by auto
     subgoal using SS' by auto
     subgoal using SS' by (auto simp: pol_spec_def)
     subgoal by (rule confl_rel)
@@ -1565,6 +1576,7 @@ definition unit_propagation_inner_loop_body_l_with_skip where
 
 definition unit_propagation_inner_loop_l :: \<open>'v literal \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close> where
   \<open>unit_propagation_inner_loop_l L S\<^sub>0 = do {
+    ASSERT(L \<in># all_lits_of_mm (mset `# ran_mf (get_clauses_l S\<^sub>0) + get_unit_clauses_l S\<^sub>0));
     n \<leftarrow> SPEC(\<lambda>_::nat. True);
     (S, n) \<leftarrow> WHILE\<^sub>T\<^bsup>unit_propagation_inner_loop_l_inv L\<^esup>
       (\<lambda>(S, n). clauses_to_update_l S \<noteq> {#} \<or> n > 0)
@@ -1638,6 +1650,8 @@ proof -
           unit_propagation_inner_loop_body_l_unit_propagation_inner_loop_body[THEN fref_to_Down_curry2]
         SPEC_remove;
         remove_dummy_vars)
+      subgoal for x1 x2 using twl_struct_invs_no_alien_in_trail[of S' \<open>-x1\<close>] by (auto simp add: in_all_lits_of_mm_uminus_iff twl_st_l
+       mset_take_mset_drop_mset')
       subgoal by simp
       subgoal for x1 x2 n na x x' unfolding unit_propagation_inner_loop_l_inv_def
         apply (case_tac x; case_tac x')

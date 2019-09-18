@@ -419,7 +419,9 @@ lemma twl_st_heur_state_simp:
      twl_st_heur_state_simp_watched: \<open>C \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st S') \<Longrightarrow>
        watched_by_int S C = watched_by S' C\<close> and
      \<open>literals_to_update_wl S' =
-         uminus `# lit_of `# mset (drop (literals_to_update_wl_heur S) (rev (get_trail_wl S')))\<close>
+         uminus `# lit_of `# mset (drop (literals_to_update_wl_heur S) (rev (get_trail_wl S')))\<close> and
+     twl_st_heur_state_simp_watched2: \<open>C \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st S') \<Longrightarrow>
+       nat_of_lit C < length(get_watched_wl_heur S)\<close>
   using assms unfolding twl_st_heur_def by (auto simp: map_fun_rel_def)
 
 abbreviation twl_st_heur'''
@@ -1007,7 +1009,7 @@ abbreviation twl_st_heur_up''
    :: \<open>nat multiset \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat literal \<Rightarrow> (twl_st_wl_heur \<times> nat twl_st_wl) set\<close>
 where
   \<open>twl_st_heur_up'' \<D> r s L \<equiv> {(S, T). (S, T) \<in> twl_st_heur'' \<D> r \<and>
-     length (watched_by T L) = s}\<close>
+     length (watched_by T L) = s \<and> s < r}\<close>
 
 lemma length_watched_le:
   assumes
