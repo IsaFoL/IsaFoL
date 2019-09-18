@@ -683,17 +683,13 @@ where
   })\<close>
 
 definition update_clause_wl_pre where
-  \<open>update_clause_wl_pre K r = (\<lambda>(((((((L, C), b), j), w), i), f), S). C \<in># dom_m(get_clauses_wl S) \<and>
-     L\<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st S) \<and>
-     L \<noteq> get_clauses_wl S \<propto> C ! f \<and>
+  \<open>update_clause_wl_pre K r = (\<lambda>(((((((L, C), b), j), w), i), f), S).
      length (watched_by S (get_clauses_wl S \<propto> C ! f)) < r \<and>
      w < r \<and>
      L = K)\<close>
 
 lemma update_clause_wl_pre_alt_def:
-  \<open>update_clause_wl_pre K r = (\<lambda>(((((((L, C), b), j), w), i), f), S). C \<in># dom_m(get_clauses_wl S) \<and>
-     L\<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st S) \<and>
-     L \<noteq> get_clauses_wl S \<propto> C ! f \<and>
+  \<open>update_clause_wl_pre K r = (\<lambda>(((((((L, C), b), j), w), i), f), S).
      length (watched_by S (get_clauses_wl S \<propto> C ! f)) < r \<and>
      w < r \<and>
      L = K)\<close>
@@ -723,15 +719,25 @@ lemma mop_arena_swap[mop_arena_lit]:
   by refine_rcg
     (auto simp: arena_lifting valid_arena_swap_lits op_clauses_swap_def)
 
+lemma update_clause_wl_alt_def:
+  \<open>update_clause_wl = (\<lambda>(L::'v literal) C b j w i f (M, N,  D, NE, UE, Q, W). do {
+     ASSERT(C \<in># dom_m N);
+     ASSERT(L \<in># all_lits_st (M, N,  D, NE, UE, Q, W));
+     K' \<leftarrow> mop_clauses_at N C f;
+     ASSERT(K' \<in>#  all_lits_st (M, N,  D, NE, UE, Q, W) \<and> L \<noteq> K');
+     N' \<leftarrow> mop_clauses_swap N C i f;
+     RETURN (j, w+1, (M, N', D, NE, UE, Q, W(K' := W K' @ [(C, L, b)])))
+  })\<close>
+  unfolding update_clause_wl_def by (auto intro!: ext simp: all_lits_def)
+
 lemma update_clause_wl_heur_update_clause_wl:
   \<open>(uncurry7 update_clause_wl_heur, uncurry7 (update_clause_wl)) \<in>
    [update_clause_wl_pre K r]\<^sub>f
    Id \<times>\<^sub>f nat_rel \<times>\<^sub>f bool_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f twl_st_heur_up'' \<D> r s K \<rightarrow>
   \<langle>nat_rel \<times>\<^sub>r nat_rel \<times>\<^sub>r twl_st_heur_up'' \<D> r s K\<rangle>nres_rel\<close>
-  unfolding update_clause_wl_heur_def update_clause_wl_def uncurry_def
-    update_clause_wl_pre_alt_def all_lits_of_all_atms_of all_lits_def[symmetric]
-  apply (intro frefI nres_relI)
-  apply clarify
+  unfolding update_clause_wl_heur_def update_clause_wl_alt_def uncurry_def
+    update_clause_wl_pre_alt_def all_lits_of_all_atms_of all_lits_of_all_atms_of
+  apply (intro frefI nres_relI, case_tac x, case_tac y)
   apply (refine_rcg)
   apply (rule mop_arena_lit2')
   subgoal by  (auto 0 0 simp: update_clause_wl_heur_def update_clause_wl_def twl_st_heur_def Let_def
@@ -747,7 +753,7 @@ lemma update_clause_wl_heur_update_clause_wl:
       arena_is_valid_clause_idx_and_access_def swap_lits_pre_def
     intro!: ASSERT_refine_left valid_arena_swap_lits
     intro!: bex_leI exI)
-  apply (rule_tac vdom= \<open>set (by)\<close> in mop_arena_swap)
+  apply (rule_tac vdom= \<open>set (p)\<close> in mop_arena_swap)
   subgoal
     by (auto 0 0 simp: twl_st_heur_def Let_def
       map_fun_rel_def twl_st_heur'_def update_clause_wl_pre_alt_def arena_lifting arena_lit_pre_def
@@ -770,10 +776,10 @@ lemma update_clause_wl_heur_update_clause_wl:
     dest: multi_member_split simp flip: all_lits_def
     intro!: ASSERT_refine_left valid_arena_swap_lits)
   subgoal
-    by (auto simp: twl_st_heur_def Let_def all_lits_of_all_atms_of
-      map_fun_rel_def twl_st_heur'_def update_clause_wl_pre_def arena_lifting arena_lit_pre_def
-     op_clauses_swap_def simp flip: all_lits_def
-    intro!: ASSERT_refine_left valid_arena_swap_lits)
+    by 
+     (clarsimp simp: twl_st_heur_def Let_def
+      map_fun_rel_def twl_st_heur'_def update_clause_wl_pre_def
+      op_clauses_swap_def)
   done
 
 definition (in -) access_lit_in_clauses where
@@ -1174,8 +1180,6 @@ definition unit_propagation_inner_loop_body_wl_heur
              S \<leftarrow> set_conflict_wl_heur C S;
              RETURN (j+1, w+1, S)}
            else do {
-             ASSERT(access_lit_in_clauses_heur_pre ((S, C), 0));
-             ASSERT(propagate_lit_wl_heur_pre ((K, C), S));
              S \<leftarrow> propagate_lit_wl_bin_heur K C S;
              RETURN (j+1, w+1, S)}
         }
@@ -1185,17 +1189,13 @@ definition unit_propagation_inner_loop_body_wl_heur
 	  if \<not>clause_not_marked_to_delete_heur S C
 	  then RETURN (j, w+1, S)
 	  else do {
-	    ASSERT(access_lit_in_clauses_heur_pre ((S, C), 0));
 	    i \<leftarrow> pos_of_watched_heur S C L;
-	    ASSERT(access_lit_in_clauses_heur_pre ((S, C), 1 - i));
 	    L' \<leftarrow> mop_access_lit_in_clauses_heur S C (1 - i);
 	    val_L' \<leftarrow> mop_polarity_st_heur S L';
 	    if val_L' = Some True
 	    then update_blit_wl_heur L C b j w L' S
 	    else do {
-	      ASSERT(find_unwatched_wl_st_heur_pre (S, C));
 	      f \<leftarrow> isa_find_unwatched_wl_st_heur S C;
-	      ASSERT (unit_prop_body_wl_D_find_unwatched_heur_inv f C S);
 	      case f of
 		None \<Rightarrow> do {
 		  if val_L' = Some False
@@ -1210,8 +1210,7 @@ definition unit_propagation_inner_loop_body_wl_heur
 	      | Some f \<Rightarrow> do {
 		  S \<leftarrow> isa_save_pos C f S;
 		  ASSERT(length (get_clauses_wl_heur S) = length (get_clauses_wl_heur S0));
-		  ASSERT(access_lit_in_clauses_heur_pre ((S, C), f));
-		  let K = access_lit_in_clauses_heur S C f;
+		  K \<leftarrow> mop_access_lit_in_clauses_heur S C f;
 		  val_L' \<leftarrow> mop_polarity_st_heur S K;
 		  if val_L' = Some True
 		  then update_blit_wl_heur L C b j w K S
@@ -1718,6 +1717,8 @@ proof -
       keep_watch_heur_keep_watch'[of _ _ _ _ _ _ _ _ \<D> r K s]
      mop_polarity_st_heur_mop_polarity_wl''[of \<D> r K s, THEN fref_to_Down_curry, unfolded comp_def]
       set_conflict_wl_heur_set_conflict_wl'[of \<D> r K s, THEN fref_to_Down_curry, unfolded comp_def]
+      propagate_lit_wl_bin_heur_propagate_lit_wl_bin
+        [of \<D> r K s, THEN fref_to_Down_curry2, unfolded comp_def]
   show ?thesis
     supply [[goals_limit=1]] twl_st_heur'_def[simp]
     supply RETURN_as_SPEC_refine[refine2 del]
@@ -1741,9 +1742,15 @@ proof -
     subgoal by simp
     subgoal by simp
     subgoal by simp
+    subgoal by fast
+    subgoal by simp
+    subgoal by simp
+    subgoal by fast
+    subgoal by simp
+    subgoal by simp
 
-
-find_theorems mop_polarity_st_heur mop_polarity_wl
+thm clause_not_marked_to_delete_heur_pre_def
+find_theorems propagate_lit_wl_bin_heur propagate_lit_wl_bin
 
 oops
     subgoal for x y x1 x1a x1b x2 x2a x2b x1c x1d x1e x2c x2d

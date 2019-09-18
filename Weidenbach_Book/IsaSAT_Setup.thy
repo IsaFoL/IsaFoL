@@ -142,6 +142,21 @@ definition restart_info_restart_done :: \<open>restart_info \<Rightarrow> restar
   \<open>restart_info_restart_done = (\<lambda>(ccount, lvl_avg). (0, lvl_avg))\<close>
 
 
+paragraph \<open>Combining heuristics into a single component\<close>
+
+type_synonym restart_heuristics = \<open>ema \<times> ema \<times> restart_info\<close>
+
+fun fast_ema_of :: \<open>restart_heuristics \<Rightarrow> ema\<close> where
+  \<open>fast_ema_of (fast_ema, slow_ema, restart_info) = fast_ema\<close>
+
+fun slow_ema_of :: \<open>restart_heuristics \<Rightarrow> ema\<close> where
+  \<open>slow_ema_of (fast_ema, slow_ema, restart_info) = slow_ema\<close>
+
+fun restart_info_of :: \<open>restart_heuristics \<Rightarrow> restart_info\<close> where
+  \<open>restart_info_of (fast_ema, slow_ema, restart_info) = restart_info\<close>
+
+
+
 paragraph \<open>VMTF\<close>
 
 type_synonym (in -) isa_vmtf_remove_int = \<open>vmtf \<times> (nat list \<times> bool list)\<close>
@@ -174,7 +189,7 @@ text \<open>\<^emph>\<open>heur\<close> stands for heuristic.\<close>
 type_synonym twl_st_wl_heur =
   \<open>trail_pol \<times> arena \<times>
     conflict_option_rel \<times> nat \<times> (nat watcher) list list \<times> isa_vmtf_remove_int \<times> bool list \<times>
-    nat \<times> conflict_min_cach_l \<times> lbd \<times> out_learned \<times> stats \<times> ema \<times> ema \<times> restart_info \<times>
+    nat \<times> conflict_min_cach_l \<times> lbd \<times> out_learned \<times> stats \<times> restart_heuristics \<times>
     vdom \<times> vdom \<times> nat \<times> opts \<times> arena\<close>
 
 fun get_clauses_wl_heur :: \<open>twl_st_wl_heur \<Rightarrow> arena\<close> where
@@ -237,28 +252,28 @@ fun get_outlearned_heur :: \<open>twl_st_wl_heur \<Rightarrow> out_learned\<clos
   \<open>get_outlearned_heur (_, _, _, _, _, _, _, _, _, _, out, _) = out\<close>
 
 fun get_fast_ema_heur :: \<open>twl_st_wl_heur \<Rightarrow> ema\<close> where
-  \<open>get_fast_ema_heur (_, _, _, _, _, _, _, _, _, _, _, _, fast_ema, _) = fast_ema\<close>
+  \<open>get_fast_ema_heur (_, _, _, _, _, _, _, _, _, _, _, _, heur, _) = fast_ema_of heur\<close>
 
 fun get_slow_ema_heur :: \<open>twl_st_wl_heur \<Rightarrow> ema\<close> where
-  \<open>get_slow_ema_heur (_, _, _, _, _, _, _, _, _, _, _, _, _, slow_ema, _) = slow_ema\<close>
+  \<open>get_slow_ema_heur (_, _, _, _, _, _, _, _, _, _, _, _, heur, _) = slow_ema_of heur\<close>
 
 fun get_conflict_count_heur :: \<open>twl_st_wl_heur \<Rightarrow> restart_info\<close> where
-  \<open>get_conflict_count_heur (_, _, _, _, _, _, _, _, _, _, _, _, _, _, ccount, _) = ccount\<close>
+  \<open>get_conflict_count_heur (_, _, _, _, _, _, _, _, _, _, _, _, heur, _) = restart_info_of heur\<close>
 
 fun get_vdom :: \<open>twl_st_wl_heur \<Rightarrow> nat list\<close> where
-  \<open>get_vdom (_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, vdom, _) = vdom\<close>
+  \<open>get_vdom (_, _, _, _, _, _, _, _, _, _, _, _, _, vdom, _) = vdom\<close>
 
 fun get_avdom :: \<open>twl_st_wl_heur \<Rightarrow> nat list\<close> where
-  \<open>get_avdom (_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, vdom, _) = vdom\<close>
+  \<open>get_avdom (_, _, _, _, _, _, _, _, _, _, _, _, _, _, vdom, _) = vdom\<close>
 
 fun get_learned_count :: \<open>twl_st_wl_heur \<Rightarrow> nat\<close> where
-  \<open>get_learned_count (_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, lcount, _) = lcount\<close>
+  \<open>get_learned_count (_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, lcount, _) = lcount\<close>
 
 fun get_ops :: \<open>twl_st_wl_heur \<Rightarrow> opts\<close> where
-  \<open>get_ops (_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, opts, _) = opts\<close>
+  \<open>get_ops (_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, opts, _) = opts\<close>
 
 fun get_old_arena :: \<open>twl_st_wl_heur \<Rightarrow> arena\<close> where
-  \<open>get_old_arena (_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, old_arena) = old_arena\<close>
+  \<open>get_old_arena (_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, old_arena) = old_arena\<close>
 
 
 text \<open>The virtual domain is composed of the addressable (and accessible) elements, i.e.,
@@ -373,7 +388,7 @@ state. \<^term>\<open>avdom\<close> includes the active clauses.
 \<close>
 definition twl_st_heur :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\<close> where
 \<open>twl_st_heur =
-  {((M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema, ccount,
+  {((M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, heur,
        vdom, avdom, lcount, opts, old_arena),
      (M, N, D, NE, UE, Q, W)).
     (M', M) \<in> trail_pol (all_atms N (NE + UE)) \<and>
@@ -420,7 +435,7 @@ definition twl_st_heur_conflict_ana
   :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\<close>
 where
 \<open>twl_st_heur_conflict_ana =
-  {((M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema, ccount, vdom,
+  {((M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, heur, vdom,
        avdom, lcount, opts, old_arena),
       (M, N, D, NE, UE, Q, W)).
     (M', M) \<in> trail_pol (all_atms N (NE + UE)) \<and>
@@ -458,7 +473,7 @@ from the refined state, where the conflict has been removed from the data struct
 separate array.\<close>
 definition twl_st_heur_bt :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\<close> where
 \<open>twl_st_heur_bt =
-  {((M', N', D', Q', W', vm, \<phi>, clvls, cach, lbd, outl, stats, _, _, _, vdom, avdom, lcount, opts,
+  {((M', N', D', Q', W', vm, \<phi>, clvls, cach, lbd, outl, stats, heur, vdom, avdom, lcount, opts,
        old_arena),
      (M, N, D, NE, UE, Q, W)).
     (M', M) \<in> trail_pol (all_atms N (NE + UE)) \<and>
@@ -503,8 +518,8 @@ definition get_conflict_wl_is_None_heur :: \<open>twl_st_wl_heur \<Rightarrow> b
 lemma get_conflict_wl_is_None_heur_get_conflict_wl_is_None:
   \<open>(RETURN o get_conflict_wl_is_None_heur,  RETURN o get_conflict_wl_is_None) \<in>
     twl_st_heur \<rightarrow>\<^sub>f \<langle>Id\<rangle>nres_rel\<close>
-  apply (intro WB_More_Refinement.frefI nres_relI)
-  apply (rename_tac x y, case_tac x, case_tac y)
+  unfolding get_conflict_wl_is_None_heur_def get_conflict_wl_is_None_def comp_def
+  apply (intro WB_More_Refinement.frefI nres_relI) apply refine_rcg
   by (auto simp: twl_st_heur_def get_conflict_wl_is_None_heur_def get_conflict_wl_is_None_def
       option_lookup_clause_rel_def
      split: option.splits)
@@ -552,9 +567,9 @@ proof -
   have 1: \<open>aaa \<in># \<L>\<^sub>a\<^sub>l\<^sub>l A \<Longrightarrow> atm_of aaa  \<in> atms_of (\<L>\<^sub>a\<^sub>l\<^sub>l A)\<close> for aaa A
     by (auto simp: atms_of_def)
   show ?thesis
-  unfolding atm_is_in_conflict_st_heur_def twl_st_heur_def option_lookup_clause_rel_def
+  unfolding atm_is_in_conflict_st_heur_def twl_st_heur_def option_lookup_clause_rel_def uncurry_def comp_def
   apply (intro frefI nres_relI)
-  apply (case_tac x, case_tac y)
+  apply refine_rcg
   apply clarsimp
   apply (subst atm_in_conflict_lookup_atm_in_conflict[THEN fref_to_Down_unRET_uncurry_Id])
   unfolding prod.simps prod_rel_iff
@@ -933,11 +948,11 @@ definition rewatch_heur_st
  :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close>
 where
 \<open>rewatch_heur_st = (\<lambda>(M, N0, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl,
-       stats, fema, sema, t, vdom, avdom, ccount, lcount). do {
+       stats, heur, vdom, avdom, ccount, lcount). do {
   ASSERT(length vdom \<le> length N0);
   W \<leftarrow> rewatch_heur vdom N0 W;
   RETURN (M, N0, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl,
-       stats, fema, sema, t, vdom, avdom, ccount, lcount)
+       stats, heur, vdom, avdom, ccount, lcount)
   })\<close>
 
 definition rewatch_heur_st_fast where
@@ -1108,7 +1123,6 @@ lemma mop_watched_by_app_heur_mop_watched_by_at:
   unfolding mop_watched_by_app_heur_def mop_watched_by_at_def uncurry_def all_lits_def[symmetric] all_lits_alt_def[symmetric]
   by (intro frefI nres_relI, refine_rcg)
     (auto simp: twl_st_heur_def \<L>\<^sub>a\<^sub>l\<^sub>l_all_atms_all_lits map_fun_rel_def)
-term \<open>twl_st_heur_up'' \<D> r s K\<close>
 
 lemma mop_watched_by_app_heur_mop_watched_by_at'':
    \<open>(uncurry2 mop_watched_by_app_heur, uncurry2 mop_watched_by_at) \<in>
