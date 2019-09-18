@@ -1546,6 +1546,14 @@ definition update_blit_wl_heur_pre where
     done
   done
 
+(*TODO Move*)
+lemma fref_to_Down_unRET_Id_uncurry:
+  \<open>(uncurry (RETURN oo f), uncurry (RETURN oo g)) \<in> [P]\<^sub>f A \<rightarrow> \<langle>Id\<rangle>nres_rel \<Longrightarrow>
+     (\<And>x x' y y'. P (x', y') \<Longrightarrow> ((x, y), (x', y')) \<in> A \<Longrightarrow> f x y = (g x' y'))\<close>
+  unfolding fref_def uncurry_def nres_rel_def
+  by auto
+
+
 (*
 lemma unit_propagation_inner_loop_body_wl_D_alt_def:
   \<open>unit_propagation_inner_loop_body_wl_D L j w S = do {
@@ -1713,19 +1721,31 @@ proof -
       isa_find_unwatched_wl_st_heur_find_unwatched_wl_st
       propagate_lit_wl_heur_final_rel
 *)
+  have [refine]: \<open>clause_not_marked_to_delete_heur_pre (S', C')\<close>
+     if \<open>is_nondeleted_clause_pre C L S\<close> and \<open>((C', S'), (C, S)) \<in> nat_rel \<times>\<^sub>r twl_st_heur\<close> for C C' S S' L
+    unfolding clause_not_marked_to_delete_heur_pre_def prod.case arena_is_valid_clause_vdom_def
+      by (rule exI[of _ \<open>get_clauses_wl S\<close>], rule exI[of _ \<open>set (get_vdom S')\<close>])
+        (use that in \<open>force simp: is_nondeleted_clause_pre_def twl_st_heur_def vdom_m_def
+        \<L>\<^sub>a\<^sub>l\<^sub>l_all_atms_all_lits dest!: multi_member_split[of L]\<close>)
+
   note [refine] = mop_watched_by_app_heur_mop_watched_by_at''[of \<D> r K s, THEN fref_to_Down_curry2]
       keep_watch_heur_keep_watch'[of _ _ _ _ _ _ _ _ \<D> r K s]
      mop_polarity_st_heur_mop_polarity_wl''[of \<D> r K s, THEN fref_to_Down_curry, unfolded comp_def]
       set_conflict_wl_heur_set_conflict_wl'[of \<D> r K s, THEN fref_to_Down_curry, unfolded comp_def]
       propagate_lit_wl_bin_heur_propagate_lit_wl_bin
         [of \<D> r K s, THEN fref_to_Down_curry2, unfolded comp_def]
+  have [simp]: \<open>is_nondeleted_clause_pre x1f x1b Sa \<Longrightarrow>
+    clause_not_marked_to_delete_pre (Sa, x1f)\<close> for x1f x1b Sa
+    unfolding is_nondeleted_clause_pre_def clause_not_marked_to_delete_pre_def vdom_m_def
+      \<L>\<^sub>a\<^sub>l\<^sub>l_all_atms_all_lits by (cases Sa; auto dest!: multi_member_split)
+
   show ?thesis
     supply [[goals_limit=1]] twl_st_heur'_def[simp]
     supply RETURN_as_SPEC_refine[refine2 del]
     apply (intro frefI nres_relI)
     unfolding unit_propagation_inner_loop_body_wl_heur_def
       unit_propagation_inner_loop_body_wl_def
-      uncurry_def
+      uncurry_def  clause_not_marked_to_delete_def[symmetric]
       watched_by_app_heur_def access_lit_in_clauses_heur_def
 
     apply (refine_rcg (*find_unw isa_save_pos mop_access_lit_in_clauses_heur pos_of_watched_heur*))
@@ -1748,9 +1768,16 @@ proof -
     subgoal by fast
     subgoal by simp
     subgoal by simp
-
+    apply assumption
+    subgoal by auto
+    subgoal
+       unfolding Not_eq_iff
+       by (rule clause_not_marked_to_delete_rel[THEN fref_to_Down_unRET_Id_uncurry])
+        (simp_all add: clause_not_marked_to_delete_rel[THEN fref_to_Down_unRET_Id_uncurry])
+    subgoal by auto
+find_theorems "(\<not> _) = (\<not> _)"
 thm clause_not_marked_to_delete_heur_pre_def
-find_theorems propagate_lit_wl_bin_heur propagate_lit_wl_bin
+find_theorems arena_is_valid_clause_vdom twl_st_heur
 
 oops
     subgoal for x y x1 x1a x1b x2 x2a x2b x1c x1d x1e x2c x2d

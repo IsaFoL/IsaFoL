@@ -1480,13 +1480,17 @@ lemma mop_polarity_wl_mop_polarity_l:
   unfolding mop_polarity_l_def mop_polarity_wl_def uncurry_def
   by (intro frefI nres_relI, refine_rcg) (auto simp: state_wl_l_def all_lits_def all_lits_of_mm_union)
 
-text \<open>It was too hard to align the programi unto a refinable form directly.\<close>
+definition is_nondeleted_clause_pre :: \<open>nat \<Rightarrow> 'v literal \<Rightarrow> 'v twl_st_wl \<Rightarrow> bool\<close> where
+\<open>is_nondeleted_clause_pre C L S \<longleftrightarrow> C \<in> fst ` set (watched_by S L) \<and> L \<in># all_lits_st S\<close>
+
+text \<open>It was too hard to align the program unto a refinable form directly.\<close>
 definition unit_propagation_inner_loop_body_wl_int :: \<open>'v literal \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'v twl_st_wl \<Rightarrow>
     (nat \<times> nat \<times> 'v twl_st_wl) nres\<close> where
   \<open>unit_propagation_inner_loop_body_wl_int L j w S = do {
       ASSERT(unit_propagation_inner_loop_wl_loop_pre L (j, w, S));
       (C, K, b) \<leftarrow> mop_watched_by_at S L w;
       S \<leftarrow> mop_keep_watch L j w S;
+      ASSERT(is_nondeleted_clause_pre C L S);
       val_K \<leftarrow> mop_polarity_wl S K;
       if val_K = Some True
       then RETURN (j+1, w+1, S)
@@ -1533,6 +1537,7 @@ definition unit_propagation_inner_loop_body_wl :: \<open>'v literal \<Rightarrow
       ASSERT(unit_propagation_inner_loop_wl_loop_pre L (j, w, S));
       (C, K, b) \<leftarrow> mop_watched_by_at S L w;
       S \<leftarrow> mop_keep_watch L j w S;
+      ASSERT(is_nondeleted_clause_pre C L S);
       val_K \<leftarrow> mop_polarity_wl S K;
       if val_K = Some True
       then RETURN (j+1, w+1, S)
@@ -1587,6 +1592,7 @@ lemma unit_propagation_inner_loop_body_wl_int_alt_def:
       (C, K, b) \<leftarrow> mop_watched_by_at S L w;
       let _ = (C \<notin># dom_m (get_clauses_wl S));
       S \<leftarrow> mop_keep_watch L j w S;
+      ASSERT(is_nondeleted_clause_pre C L S);
       let b' = (C \<notin># dom_m (get_clauses_wl S));
       if b' then do {
         let K = K;
@@ -1635,6 +1641,7 @@ proof -
       ASSERT(unit_propagation_inner_loop_wl_loop_pre L (j, w, S));
       (C, K, b) \<leftarrow> mop_watched_by_at S L w;
       S'\<leftarrow> mop_keep_watch L j w S;
+      ASSERT(is_nondeleted_clause_pre C L S');
       let b' = C \<notin># dom_m (get_clauses_wl S');
       if b' then do {
         let K = K;
@@ -1711,6 +1718,7 @@ proof -
       ASSERT(unit_propagation_inner_loop_wl_loop_pre L (j, w, S));
       (C, K, b) \<leftarrow> mop_watched_by_at S L w;
       S'\<leftarrow> mop_keep_watch L j w S;
+      ASSERT(is_nondeleted_clause_pre C L S');
       let b' = (C \<notin># dom_m (get_clauses_wl S'));
       if b' then
         ?P S' C K b b'
@@ -1917,6 +1925,7 @@ lemma unit_propagation_inner_loop_body_wl_int_alt_def2:
       ASSERT(unit_propagation_inner_loop_wl_loop_pre L (j, w, S));
       (C, K, b) \<leftarrow> mop_watched_by_at S L w;
       S \<leftarrow> mop_keep_watch L j w S;
+      ASSERT(is_nondeleted_clause_pre C L S);
       val_K \<leftarrow> mop_polarity_wl S K;
       if val_K = Some True
       then RETURN (j+1, w+1, S)
@@ -1992,6 +2001,7 @@ lemma unit_propagation_inner_loop_body_wl_alt_def:
       ASSERT(unit_propagation_inner_loop_wl_loop_pre L (j, w, S));
       (C, K, b) \<leftarrow> mop_watched_by_at S L w;
       S \<leftarrow> mop_keep_watch L j w S;
+      ASSERT(is_nondeleted_clause_pre C L S);
       val_K \<leftarrow> mop_polarity_wl S K;
       if val_K = Some True
       then RETURN (j+1, w+1, S)
@@ -2234,6 +2244,7 @@ proof -
       find_unwatched_l_itself[THEN fref_to_Down_curry2])
     subgoal for SLw SLw' C x2a bin bL C' x2b bin'  bL'
       by auto
+    subgoal by auto
     subgoal by auto
     subgoal by auto
     subgoal by auto
@@ -3302,6 +3313,29 @@ proof -
      for x L'
     using j_w w_le by (cases S) (clarsimp simp: keep_watch_def elim!: in_set_upd_cases split: if_splits)
 
+  have is_nondeleted_clause_pre: \<open>is_nondeleted_clause_pre x1 L Sa\<close>
+    if 
+      \<open>clauses_to_update_l S' \<noteq> {#} \<or> 0 < n\<close> and
+      \<open>unit_propagation_inner_loop_l_inv L (S', n)\<close> and
+      \<open>unit_propagation_inner_loop_wl_loop_pre L (j, w, S)\<close> and
+      \<open>inres (mop_watched_by_at S L w) x'\<close> and
+      x': \<open>(x', ()) \<in> ?Slw\<close> and
+      [simp]: \<open>x2 = (x1a, x2a)\<close>
+        \<open>x' = (x1, x2)\<close> and
+      \<open>(x1 \<notin># dom_m (get_clauses_wl S), b) \<in> bool_rel\<close> and
+      \<open>inres (mop_keep_watch L j w S) Sa\<close> and
+      Sa: \<open>(Sa, S') \<in> {(T, T'). T = keep_watch L j w S \<and> T' = S'}\<close>
+     for x' x1 x2 x1a x2a b Sa
+  proof -
+    have \<open>watched_by Sa L ! w = x'\<close> \<open>w < length (watched_by Sa L)\<close>
+      using that using j_w w_le by auto
+    then have  \<open>x' \<in> set (watched_by Sa L)\<close>
+      using j_w w_le by force
+    then show ?thesis using j_w w_le x' alien_L' Sa by (auto simp: is_nondeleted_clause_pre_def eq_commute[of \<open>(_, _)\<close> \<open>_ ! w\<close>]
+       simp flip: all_lits_def)
+  qed
+
+
   show 1: ?propa
     (is \<open>_ \<le> \<Down> ?unit _\<close>)
     supply trail_keep_w[simp]
@@ -3322,6 +3356,7 @@ proof -
        (auto simp: n state_wl_l_def unit_propagation_inner_loop_wl_loop_pre_def
            unit_propagation_inner_loop_l_inv_def twl_st_l_def
          simp flip: Cons_nth_drop_Suc)
+    subgoal by (rule is_nondeleted_clause_pre)
     subgoal by simp
     subgoal for x' x1 x2 x1a x2a b Sa
       using assms j_w w_le n_d blit_in_lit unfolding unit_prop_body_wl_inv_def mop_polarity_wl_def
