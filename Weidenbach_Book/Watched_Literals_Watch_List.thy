@@ -3579,14 +3579,14 @@ lemma unit_propagation_inner_loop_wl_loop_alt_def:
 
 definition cut_watch_list :: \<open>nat \<Rightarrow> nat \<Rightarrow> 'v literal \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
   \<open>cut_watch_list j w L =(\<lambda>(M, N, D, NE, UE, Q, W). do {
-      ASSERT(j \<le> w \<and> j \<le> length (W L) \<and> w \<le> length (W L));
+      ASSERT(j \<le> w \<and> j \<le> length (W L) \<and> w \<le> length (W L) \<and> L \<in># all_lits_st (M, N, D, NE, UE, Q, W));
       RETURN (M, N, D, NE, UE, Q, W(L := take j (W L) @ drop w (W L)))
     })\<close>
 
 definition unit_propagation_inner_loop_wl :: \<open>'v literal \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
   \<open>unit_propagation_inner_loop_wl L S\<^sub>0 = do {
      (j, w, S) \<leftarrow> unit_propagation_inner_loop_wl_loop L S\<^sub>0;
-     ASSERT(j \<le> w \<and> w \<le> length (watched_by S L));
+     ASSERT(j \<le> w \<and> w \<le> length (watched_by S L) \<and> L \<in># all_lits_st S);
      cut_watch_list j w L S
   }\<close>
 
@@ -3676,6 +3676,15 @@ proof -
     have remaining: \<open>RETURN (if get_conflict_wl S = None then remaining_nondom_wl 0 L S else 0) \<le> SPEC (\<lambda>_. True)\<close>
       by auto
 
+    have [intro]: \<open>unit_propagation_inner_loop_wl_loop_inv L
+         (j, w, T) \<Longrightarrow> L \<in># all_lits_st T\<close> for j w T
+       unfolding unit_propagation_inner_loop_wl_loop_inv_def
+          unit_propagation_inner_loop_l_inv_def prod.case
+       apply normalize_goal+
+       apply (drule twl_struct_invs_no_alien_in_trail[of _ \<open>-L\<close>])
+       apply (simp_all only: in_all_lits_of_mm_uminus_iff twl_st_wl twl_st_l twl_st
+          all_lits_def multiset.map_comp comp_def clause_twl_clause_of)
+      done
     have unit_propagation_inner_loop_l_alt_def: \<open>unit_propagation_inner_loop_l L S' = do {
         ASSERT(L \<in># all_lits_of_mm (mset `# ran_mf (get_clauses_l S') + get_unit_clauses_l S'));
         n \<leftarrow> SPEC (\<lambda>_::nat. True);
@@ -3690,7 +3699,7 @@ proof -
       (j, w, S) \<leftarrow> WHILE\<^sub>T\<^bsup>unit_propagation_inner_loop_wl_loop_inv L\<^esup>
          (\<lambda>(j, w, T). w < length (watched_by S L)  \<and> get_conflict_wl T = None)
          (\<lambda>(j, x, y). unit_propagation_inner_loop_body_wl L j x y) (0, 0, S);
-      ASSERT (j \<le> w \<and> w \<le> length (watched_by S L));
+      ASSERT (j \<le> w \<and> w \<le> length (watched_by S L) \<and> L \<in># all_lits_st S);
       cut_watch_list j w L S}\<close>
       unfolding unit_propagation_inner_loop_wl_loop_alt_def unit_propagation_inner_loop_wl_def
       by auto
@@ -3704,7 +3713,8 @@ proof -
             R' = \<open>?R'\<close> and
             R = \<open>{((i, j, T'), (T, n)). ((i, j, T'), (T, n)) \<in> ?R' \<and> i \<le> j \<and>
                 length (watched_by S L) =  length (watched_by T' L) \<and>
-               (j \<ge> length (watched_by T' L) \<or> get_conflict_wl T' \<noteq> None)}\<close>]
+               (j \<ge> length (watched_by T' L) \<or> get_conflict_wl T' \<noteq> None) \<and>
+               unit_propagation_inner_loop_wl_loop_inv L (i, j, T')}\<close>]
           remaining)
       subgoal using SS' by (auto simp: all_lits_def)
       subgoal using corr_w SS' by (auto simp: correct_watching_correct_watching_except00)
@@ -3716,13 +3726,15 @@ proof -
         apply (rule unit_propagation_inner_loop_body_wl_spec[of _ \<open>fst Tn\<close>])
         apply (simp only: prod.case in_pair_collect_simp)
         apply normalize_goal+
-        by (auto simp del: twl_st_of_wl.simps intro!: conc_fun_R_mono)
+        apply (auto simp del: twl_st_of_wl.simps intro!: conc_fun_R_mono)
+        done
+      subgoal by auto
       subgoal by auto
       subgoal by auto
       subgoal by auto
       subgoal for n i'w'T' Tn i' w'T' j L' w' T'
         apply (cases T')
-        by (auto simp: state_wl_l_def cut_watch_list_def intro: blits_in_\<L>\<^sub>i\<^sub>n_cut_watch
+        by (auto simp: state_wl_l_def cut_watch_list_def all_lits_def intro: blits_in_\<L>\<^sub>i\<^sub>n_cut_watch
           dest!: correct_watching_except_correct_watching_cut_watch)
       done
   }

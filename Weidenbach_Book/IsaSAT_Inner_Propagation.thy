@@ -1896,9 +1896,10 @@ lemma vdom_m_cut_watch_listD:
 
 lemma cut_watch_list_heur_cut_watch_list_heur:
   \<open>(uncurry3 cut_watch_list_heur, uncurry3 cut_watch_list) \<in>
-  [\<lambda>(((j, w), L), S). L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st S) \<and> j \<le> length (watched_by S L)]\<^sub>f
+  [\<lambda>(((j, w), L), S). True]\<^sub>f
     nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_lit_lit_rel \<times>\<^sub>f twl_st_heur'' \<D> r \<rightarrow> \<langle>twl_st_heur'' \<D> r\<rangle>nres_rel\<close>
-    unfolding cut_watch_list_heur_def cut_watch_list_def uncurry_def
+  unfolding cut_watch_list_heur_def cut_watch_list_def uncurry_def
+    \<L>\<^sub>a\<^sub>l\<^sub>l_all_atms_all_lits[symmetric]
   apply (intro frefI nres_relI)
   apply refine_vcg
   subgoal
@@ -1925,12 +1926,11 @@ definition unit_propagation_inner_loop_wl_D_heur
   \<open>unit_propagation_inner_loop_wl_D_heur L S\<^sub>0 = do {
      (j, w, S) \<leftarrow> unit_propagation_inner_loop_wl_loop_D_heur L S\<^sub>0;
      ASSERT(length (watched_by_int S L) \<le> length (get_clauses_wl_heur S\<^sub>0) - 4);
-     S \<leftarrow> cut_watch_list_heur2 j w L S;
-     RETURN S
+     cut_watch_list_heur2 j w L S
   }\<close>
 
 lemma unit_propagation_inner_loop_wl_D_heur_unit_propagation_inner_loop_wl_D:
-  \<open>(uncurry unit_propagation_inner_loop_wl_D_heur, uncurry unit_propagation_inner_loop_wl_D) \<in>
+  \<open>(uncurry unit_propagation_inner_loop_wl_D_heur, uncurry unit_propagation_inner_loop_wl) \<in>
     [\<lambda>(L, S). length(watched_by S L) \<le> r-4]\<^sub>f
     nat_lit_lit_rel \<times>\<^sub>f twl_st_heur'' \<D> r \<rightarrow> \<langle>twl_st_heur'' \<D> r\<rangle> nres_rel\<close>
 proof -
@@ -1943,11 +1943,11 @@ proof -
       \<open>y = (x1, x2)\<close> and
       \<open>x = (x1a, x2a)\<close> and
       \<open>(x1, x2) = (x1b, x2b)\<close>
-    for x y x1 x2 x1a x2a x1b x2b
+    for x y x1 x2 x1a x2a x1b x2b r
       using that by auto
   show ?thesis
     unfolding unit_propagation_inner_loop_wl_D_heur_def
-      unit_propagation_inner_loop_wl_D_def uncurry_def
+      unit_propagation_inner_loop_wl_def uncurry_def
       apply (intro frefI nres_relI)
     apply (refine_vcg cut_watch_list_heur_cut_watch_list_heur[of \<D> r, THEN fref_to_Down_curry3]
 	unit_propagation_inner_loop_wl_loop_D_heur_unit_propagation_inner_loop_wl_loop_D[of r _ _ \<D>,
@@ -1957,8 +1957,10 @@ proof -
     apply (rule eq; assumption)
     apply (rule length_eq; assumption)
     subgoal by auto
-    subgoal by auto
     subgoal by (auto simp: twl_st_heur'_def twl_st_heur_state_simp_watched)
+    subgoal
+      by (auto simp: twl_st_heur'_def twl_st_heur_state_simp_watched
+       simp flip: \<L>\<^sub>a\<^sub>l\<^sub>l_all_atms_all_lits)
     apply (rule order.trans)
     apply (rule cut_watch_list_heur2_cut_watch_list_heur)
     apply (subst Down_id_eq)
@@ -1983,7 +1985,7 @@ definition unit_propagation_outer_loop_wl_D_heur_inv
 where
   \<open>unit_propagation_outer_loop_wl_D_heur_inv S\<^sub>0 S' \<longleftrightarrow>
      (\<exists>S\<^sub>0' S. (S\<^sub>0, S\<^sub>0') \<in> twl_st_heur \<and> (S', S) \<in> twl_st_heur \<and>
-       unit_propagation_outer_loop_wl_D_inv S \<and>
+       unit_propagation_outer_loop_wl_inv S \<and>
        dom_m (get_clauses_wl S) = dom_m (get_clauses_wl S\<^sub>0') \<and>
        length (get_clauses_wl_heur S') = length (get_clauses_wl_heur S\<^sub>0) \<and>
        isa_length_trail_pre (get_trail_wl_heur S'))\<close>
@@ -2002,7 +2004,7 @@ definition unit_propagation_outer_loop_wl_D_heur
       S\<^sub>0\<close>
 
 lemma select_and_remove_from_literals_to_update_wl_heur_select_and_remove_from_literals_to_update_wl:
-  \<open>literals_to_update_wl y \<noteq> {#} \<and> length (get_trail_wl y) < uint32_max \<Longrightarrow>
+  \<open>literals_to_update_wl y \<noteq> {#} \<Longrightarrow>
   (x, y) \<in> twl_st_heur'' \<D>1 r1 \<Longrightarrow>
   select_and_remove_from_literals_to_update_wl_heur x
       \<le> \<Down>{((S, L), (S', L')). ((S, L), (S', L')) \<in> twl_st_heur'' \<D>1 r1 \<times>\<^sub>f nat_lit_lit_rel \<and>
@@ -2017,7 +2019,7 @@ lemma select_and_remove_from_literals_to_update_wl_heur_select_and_remove_from_l
     by (subst trail_pol_same_length[of \<open>get_trail_wl_heur x\<close> \<open>get_trail_wl y\<close> \<open>all_atms_st y\<close>])
      (auto simp: twl_st_heur_def twl_st_heur'_def RETURN_RES_refine_iff)
   subgoal
-    by (auto simp: twl_st_heur_def twl_st_heur'_def RETURN_RES_refine_iff)
+    by (auto simp: twl_st_heur_def twl_st_heur'_def RETURN_RES_refine_iff trail_pol_alt_def)
   subgoal
     apply (subst (asm) trail_pol_same_length[of \<open>get_trail_wl_heur x\<close> \<open>get_trail_wl y\<close> \<open>all_atms_st y\<close>])
     apply (auto simp: twl_st_heur_def twl_st_heur'_def; fail)[]
@@ -2033,66 +2035,29 @@ lemma select_and_remove_from_literals_to_update_wl_heur_select_and_remove_from_l
     done
   done
 
-lemma unit_propagation_outer_loop_wl_D_heur_inv_length_trail_le:
-  assumes
-    \<open>(S, T) \<in> twl_st_heur'' \<D> r\<close>
-    \<open>(U, V) \<in> twl_st_heur'' \<D> r\<close> and
-    \<open>literals_to_update_wl_heur U < isa_length_trail (get_trail_wl_heur U)\<close> and
-    \<open>literals_to_update_wl V \<noteq> {#}\<close> and
-    \<open>unit_propagation_outer_loop_wl_D_heur_inv S U\<close> and
-    \<open>unit_propagation_outer_loop_wl_D_inv V\<close> and
-    \<open>literals_to_update_wl V \<noteq> {#}\<close> and
-    \<open>literals_to_update_wl_heur U < isa_length_trail (get_trail_wl_heur U)\<close>
-   shows \<open>length (get_trail_wl V) < uint32_max\<close>
-proof -
-  have bounded: \<open>isasat_input_bounded (all_atms_st V)\<close>
-    using \<open>(U, V) \<in> twl_st_heur'' \<D> r\<close>
-    unfolding twl_st_heur'_def twl_st_heur_def
-    by (auto simp del: isasat_input_bounded_def)
-
-  obtain T U b b' where
-    VT: \<open>(V, T) \<in> state_wl_l b\<close> and
-    struct: \<open>twl_struct_invs U\<close> and
-    TU: \<open>(T, U) \<in> twl_st_l b'\<close> and
-    trail: \<open>literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st V) V\<close>
-    using assms
-    unfolding unit_propagation_outer_loop_wl_D_inv_def unit_propagation_outer_loop_wl_D_heur_inv_def
-    unit_propagation_outer_loop_wl_inv_def
-    unit_propagation_outer_loop_l_inv_def apply -
-    apply normalize_goal+
-    by blast
-  then have \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail (all_atms_st V) (get_trail_wl V)\<close>
-    by (rule literals_are_\<L>\<^sub>i\<^sub>n_literals_are_\<L>\<^sub>i\<^sub>n_trail)
-  moreover have \<open>no_dup (get_trail_wl V)\<close>
-    using VT TU struct
-    unfolding twl_struct_invs_def
-      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
-    by (simp add: twl_st)
-  ultimately show ?thesis
-    using literals_are_in_\<L>\<^sub>i\<^sub>n_trail_length_le_uint32_max[of \<open>all_atms_st V\<close> \<open>get_trail_wl V\<close>, OF bounded]
-    by (auto simp: uint32_max_def)
-qed
-
 lemma outer_loop_length_watched_le_length_arena:
   assumes
     xa_x': \<open>(xa, x') \<in> twl_st_heur'' \<D> r\<close> and
     prop_heur_inv: \<open>unit_propagation_outer_loop_wl_D_heur_inv x xa\<close> and
-    prop_inv: \<open>unit_propagation_outer_loop_wl_D_inv x'\<close> and
+    prop_inv: \<open>unit_propagation_outer_loop_wl_inv x'\<close> and
     xb_x'a: \<open>(xb, x'a) \<in> {((S, L), (S', L')). ((S, L), (S', L')) \<in> twl_st_heur'' \<D>1 r \<times>\<^sub>f nat_lit_lit_rel \<and>
             S' = set_literals_to_update_wl (literals_to_update_wl x' - {#L#}) x' \<and>
             get_clauses_wl_heur S = get_clauses_wl_heur xa}\<close> and
     st: \<open>x'a = (x1, x2)\<close>
       \<open>xb = (x1a, x2a)\<close> and
-    x2: \<open>x2 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st x')\<close> and
+    x2: \<open>x2 \<in># all_lits_st x1\<close> and
     st': \<open>(x2, x1) = (x1b, x2b)\<close>
   shows \<open>length (watched_by x2b x1b) \<le> r-4\<close>
 proof -
   have \<open>correct_watching x'\<close>
-    using prop_inv unfolding unit_propagation_outer_loop_wl_D_inv_def
+    using prop_inv unfolding unit_propagation_outer_loop_wl_inv_def
       unit_propagation_outer_loop_wl_inv_def
     by auto
-  then have dist: \<open>distinct_watched (watched_by x' x2)\<close>
-    using x2 unfolding all_atms_def all_lits_def
+  moreover have \<open>x2 \<in># all_lits_st x'\<close>
+    using x2 assms unfolding all_atms_def all_lits_def
+    by (auto simp: \<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_all_lits_of_mm correct_watching.simps)
+  ultimately have dist: \<open>distinct_watched (watched_by x' x2)\<close>
+    using x2 xb_x'a unfolding all_atms_def all_lits_def
     by (cases x'; auto simp: \<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_all_lits_of_mm correct_watching.simps)
   then have dist: \<open>distinct_watched (watched_by x1 x2)\<close>
     using xb_x'a unfolding st
@@ -2102,7 +2067,7 @@ proof -
     by (cases x')
       (auto simp: twl_st_heur_def twl_st_heur'_def st)
   have x2: \<open>x2 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms (get_clauses_wl x1) (get_unit_clauses_wl x1))\<close>
-    using x2 xb_x'a unfolding st
+    using x2 xb_x'a unfolding st \<L>\<^sub>a\<^sub>l\<^sub>l_all_atms_all_lits
     by auto
 
   have
@@ -2136,10 +2101,10 @@ proof -
 qed
 
 theorem unit_propagation_outer_loop_wl_D_heur_unit_propagation_outer_loop_wl_D':
-  \<open>(unit_propagation_outer_loop_wl_D_heur, unit_propagation_outer_loop_wl_D) \<in>
+  \<open>(unit_propagation_outer_loop_wl_D_heur, unit_propagation_outer_loop_wl) \<in>
     twl_st_heur'' \<D> r \<rightarrow>\<^sub>f \<langle>twl_st_heur'' \<D> r\<rangle> nres_rel\<close>
   unfolding unit_propagation_outer_loop_wl_D_heur_def
-    unit_propagation_outer_loop_wl_D_def
+    unit_propagation_outer_loop_wl_def all_lits_alt_def[symmetric]
   apply (intro frefI nres_relI)
   apply (refine_vcg
       unit_propagation_inner_loop_wl_D_heur_unit_propagation_inner_loop_wl_D[of r \<D>, THEN fref_to_Down_curry]
@@ -2154,7 +2119,6 @@ theorem unit_propagation_outer_loop_wl_D_heur_unit_propagation_outer_loop_wl_D':
   subgoal for _ _ x y
     by (subst isa_length_trail_length_u[THEN fref_to_Down_unRET_Id, of _ \<open>get_trail_wl y\<close> \<open>all_atms_st y\<close>])
       (auto simp: twl_st_heur_def twl_st_heur'_def)
-  subgoal by (rule unit_propagation_outer_loop_wl_D_heur_inv_length_trail_le)
   subgoal by (auto simp: twl_st_heur'_def)
   subgoal for x y xa x' xb x'a x1 x2 x1a x2a x1b x2b
     by (rule_tac x=x and xa=xa and \<D>=\<D> in outer_loop_length_watched_le_length_arena)

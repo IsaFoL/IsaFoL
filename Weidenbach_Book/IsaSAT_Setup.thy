@@ -1009,7 +1009,7 @@ abbreviation twl_st_heur_up''
    :: \<open>nat multiset \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat literal \<Rightarrow> (twl_st_wl_heur \<times> nat twl_st_wl) set\<close>
 where
   \<open>twl_st_heur_up'' \<D> r s L \<equiv> {(S, T). (S, T) \<in> twl_st_heur'' \<D> r \<and>
-     length (watched_by T L) = s \<and> s < r}\<close>
+     length (watched_by T L) = s \<and> s \<le> r}\<close>
 
 lemma length_watched_le:
   assumes
