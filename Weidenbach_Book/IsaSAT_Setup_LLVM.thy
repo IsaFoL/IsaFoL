@@ -226,9 +226,13 @@ typ "(32 word, 64) array_list"
 type_synonym twl_st_wll_trail_fast =
   \<open>trail_pol_fast_assn \<times> arena_assn \<times> option_lookup_clause_assn \<times>
     64 word \<times> watched_wl_uint32 \<times> vmtf_remove_assn \<times> phase_saver_assn \<times>
-    32 word \<times> cach_refinement_l_assn \<times> lbd_assn \<times> out_learned_assn \<times> stats \<times> ema \<times> ema \<times> restart_info \<times>
+    32 word \<times> cach_refinement_l_assn \<times> lbd_assn \<times> out_learned_assn \<times> stats \<times> (ema \<times> ema \<times> restart_info) \<times>
     vdom_fast_assn \<times> vdom_fast_assn \<times> 64 word \<times> opts_assn \<times> arena_assn\<close>
 
+definition heuristic_assn where
+  \<open>heuristic_assn = ema_assn *a
+  ema_assn *a
+  restart_info_assn\<close>
 
 definition isasat_bounded_assn :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wll_trail_fast \<Rightarrow> assn\<close> where
 \<open>isasat_bounded_assn =
@@ -242,9 +246,7 @@ definition isasat_bounded_assn :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wll
   lbd_assn *a
   out_learned_assn *a
   stats_assn *a
-  ema_assn *a
-  ema_assn *a
-  restart_info_assn *a
+  heuristic_assn *a
   vdom_fast_assn *a
   vdom_fast_assn *a
   uint64_nat_assn *a
@@ -270,12 +272,18 @@ sepref_def isa_count_decided_st_fast_code
   unfolding isa_count_decided_st_def isasat_bounded_assn_def
   by sepref
 
+sepref_def polarity_pol_fast
+  is \<open>uncurry (mop_polarity_pol)\<close>
+  :: \<open>trail_pol_fast_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow>\<^sub>a tri_bool_assn\<close>
+  unfolding mop_polarity_pol_def trail_pol_fast_assn_def
+    polarity_pol_def polarity_pol_pre_def
+  by sepref
 
 sepref_def polarity_st_heur_pol_fast
-  is \<open>uncurry (RETURN oo polarity_st_heur)\<close>
-  :: \<open>[polarity_st_heur_pre]\<^sub>a isasat_bounded_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow> tri_bool_assn\<close>
-  unfolding polarity_st_heur_alt_def isasat_bounded_assn_def polarity_st_pre_def
-    polarity_st_heur_pre_def
+  is \<open>uncurry (mop_polarity_st_heur)\<close>
+  :: \<open>isasat_bounded_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow>\<^sub>a tri_bool_assn\<close>
+  unfolding mop_polarity_st_heur_alt_def isasat_bounded_assn_def polarity_st_pre_def
+    mop_polarity_st_heur_alt_def
   supply [[goals_limit = 1]]
   by sepref
 
@@ -312,8 +320,22 @@ sepref_register \<open>(=) :: clause_status \<Rightarrow> clause_status \<Righta
 lemma [def_pat_rules]: "append_ll \<equiv> op_list_list_push_back" 
   by (rule eq_reflection) (auto simp: append_ll_def fun_eq_iff)
 
-sepref_register rewatch_heur
-term op_neq
+sepref_register rewatch_heur mop_append_ll mop_arena_length
+
+sepref_def mop_append_ll_impl
+  is \<open>uncurry2 mop_append_ll\<close>
+  :: \<open>[\<lambda>((W, i), _). length (W ! (nat_of_lit i)) < sint64_max]\<^sub>a 
+    watchlist_fast_assn\<^sup>d *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a watcher_fast_assn\<^sup>k \<rightarrow> watchlist_fast_assn\<close>
+  unfolding mop_append_ll_def
+  by sepref
+
+
+sepref_def mop_arena_length_impl
+  is \<open>uncurry mop_arena_length\<close>
+  :: \<open>arena_fast_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a sint64_nat_assn\<close>
+  unfolding mop_arena_length_def
+  by sepref
+
 sepref_def rewatch_heur_fast_code
   is \<open>uncurry2 (rewatch_heur)\<close>
   :: \<open>[\<lambda>((vdom, arena), W). (\<forall>x \<in> set vdom. x \<le> sint64_max) \<and> length arena \<le> sint64_max \<and> length vdom \<le> sint64_max]\<^sub>a
@@ -321,14 +343,14 @@ sepref_def rewatch_heur_fast_code
   supply [[goals_limit=1]]
      arena_lit_pre_le_sint64_max[dest] arena_is_valid_clause_idx_le_uint64_max[dest]
   supply [simp] = append_ll_def
-  supply [dest] = (*in_snat_rel_boundsD*) arena_lit_implI(1)
+  supply [dest] = arena_lit_implI(1)
   unfolding rewatch_heur_alt_def Let_def PR_CONST_def
   unfolding while_eq_nfoldli[symmetric]
   apply (subst while_upt_while_direct, simp)
   unfolding if_not_swap
     FOREACH_cond_def FOREACH_body_def 
   apply (annot_snat_const "TYPE(64)")
-  by sepref
+  by sepref (*13s before mopping*)
 
 
 sepref_def rewatch_heur_st_fast_code

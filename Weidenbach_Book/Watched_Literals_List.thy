@@ -706,6 +706,7 @@ definition propagate_lit_l :: \<open>'v literal \<Rightarrow> nat \<Rightarrow> 
   \<open>propagate_lit_l = (\<lambda>L' C i (M, N, D, NE, UE, WS, Q). do {
       ASSERT(C \<in># dom_m N);
       ASSERT(L' \<in># all_lits_of_mm (mset `# ran_mf N + (NE + UE)));
+      ASSERT(i \<le> 1);
       M \<leftarrow> cons_trail_propagate_l L' C M;
       N \<leftarrow> (if length (N \<propto> C) > 2 then mop_clauses_swap N C 0 (Suc 0 - i) else RETURN N);
       RETURN (M, N, D, NE, UE, WS, add_mset (-L') Q)})\<close>
@@ -1086,7 +1087,7 @@ proof -
       dest!: mset_eq_setD)
     moreover have \<open>swap (N \<propto> C) 0 (Suc 0) = swap (N \<propto> C) i (1 -i)\<close>
        using i_def two_le_length_C by (cases \<open>N \<propto> C\<close>)(auto simp: swap_def)
-    moreover have \<open>i < length (N \<propto> C)\<close>
+    moreover have \<open>i < length (N \<propto> C)\<close> \<open>i \<le> 1\<close>
        using i_def two_le_length_C by (auto simp: S)
     moreover have \<open>undefined_lit M L'\<close>
       using L'_undef SS' by (auto simp: S Decided_Propagated_in_iff_in_lits_of_l)

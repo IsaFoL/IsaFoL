@@ -810,6 +810,12 @@ subsection \<open>Rewatch\<close>
 
 subsection \<open>Rewatch\<close>
 
+definition mop_append_ll :: "'a list list \<Rightarrow> nat literal \<Rightarrow> 'a \<Rightarrow> 'a list list nres" where
+  \<open>mop_append_ll xs i x = do {
+     ASSERT(nat_of_lit i < length xs);
+     RETURN (append_ll xs (nat_of_lit i) x)
+  }\<close>
+
 definition rewatch_heur where
 \<open>rewatch_heur vdom arena W = do {
   let _ = vdom;
@@ -820,19 +826,14 @@ definition rewatch_heur where
       ASSERT(arena_is_valid_clause_vdom arena C);
       if arena_status arena C \<noteq> DELETED
       then do {
-        ASSERT(arena_lit_pre arena C);
-        ASSERT(arena_lit_pre arena (C+1));
-        let L1 = arena_lit arena C;
-        let L2 = arena_lit arena (C + 1);
-        ASSERT(nat_of_lit L1 < length W);
-        ASSERT(arena_is_valid_clause_idx arena C);
-        let b = (arena_length arena C = 2);
-        ASSERT(L1 \<noteq> L2);
+        L1 \<leftarrow> mop_arena_lit2 arena C 0;
+        L2 \<leftarrow> mop_arena_lit2 arena C 1;
+        n \<leftarrow> mop_arena_length arena C;
+        let b = (n = 2);
         ASSERT(length (W ! (nat_of_lit L1)) < length arena);
-        let W = append_ll W (nat_of_lit L1) (C, L2, b);
-        ASSERT(nat_of_lit L2 < length W);
+        W \<leftarrow> mop_append_ll W L1 (C, L2, b);
         ASSERT(length (W ! (nat_of_lit L2)) < length arena);
-        let W = append_ll W (nat_of_lit L2) (C, L1, b);
+        W \<leftarrow> mop_append_ll W L2 (C, L1, b);
         RETURN W
       }
       else RETURN W
@@ -840,9 +841,16 @@ definition rewatch_heur where
    W
   }\<close>
 
+lemma mop_append_ll:
+   \<open>(uncurry2 mop_append_ll, uncurry2 (RETURN ooo (\<lambda>W i x. W(i := W i @ [x])))) \<in>
+    [\<lambda>((W, i), x). i \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>]\<^sub>f \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 \<A>) \<times>\<^sub>f Id \<times>\<^sub>f Id \<rightarrow> \<langle>\<langle>Id\<rangle>map_fun_rel (D\<^sub>0 \<A>)\<rangle>nres_rel\<close>
+  unfolding uncurry_def mop_append_ll_def
+  by (intro frefI nres_relI) 
+    (auto intro!: ASSERT_leI simp: map_fun_rel_def append_ll_def)
+
 lemma rewatch_heur_rewatch:
   assumes
-    \<open>valid_arena arena N vdom\<close> and \<open>set xs \<subseteq> vdom\<close> and \<open>distinct xs\<close> and \<open>set_mset (dom_m N) \<subseteq> set xs\<close> and
+    valid: \<open>valid_arena arena N vdom\<close> and \<open>set xs \<subseteq> vdom\<close> and \<open>distinct xs\<close> and \<open>set_mset (dom_m N) \<subseteq> set xs\<close> and
     \<open>(W, W') \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 \<A>)\<close> and lall: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm \<A> (mset `# ran_mf N)\<close> and
     \<open>vdom_m \<A> W' N \<subseteq> set_mset (dom_m N)\<close>
   shows
@@ -856,7 +864,8 @@ proof -
   show ?thesis
     unfolding rewatch_heur_def rewatch_def
     apply (subst (2) nfoldli_nfoldli_list_nth)
-    apply (refine_vcg)
+    apply (refine_vcg mop_arena_lit[OF valid] mop_append_ll[of \<A>, THEN fref_to_Down_curry2, unfolded comp_def]
+       mop_arena_length[of vdom, THEN fref_to_Down_curry, unfolded comp_def])
     subgoal
       using assms by fast
     subgoal
@@ -874,33 +883,35 @@ proof -
       by (auto simp: arena_dom_status_iff)
     subgoal for xsa xi x si s
       using assms
-      unfolding arena_lit_pre_def
-      by (rule_tac j=\<open>xs ! xi\<close> in bex_leI)
-        (auto simp: arena_is_valid_clause_idx_and_access_def
-          intro!: exI[of _ N] exI[of _ vdom])
+      by auto
+    subgoal by simp
+    subgoal by linarith
     subgoal for xsa xi x si s
       using assms
       unfolding arena_lit_pre_def
-      by (rule_tac j=\<open>xs ! xi\<close> in bex_leI)
-        (auto simp: arena_is_valid_clause_idx_and_access_def
-          intro!: exI[of _ N] exI[of _ vdom])
-    subgoal for xsa xi x si s
-      using literals_are_in_\<L>\<^sub>i\<^sub>n_mm_in_\<L>\<^sub>a\<^sub>l\<^sub>l[OF lall, of \<open>xs ! xi\<close> 0] assms
-      by (auto simp: arena_lifting append_ll_def map_fun_rel_def)
+      by (auto)
+    subgoal by simp
+    subgoal by simp
+    subgoal by simp
     subgoal for xsa xi x si s
       using assms
       unfolding arena_is_valid_clause_idx_and_access_def arena_is_valid_clause_idx_def
       by (auto simp: arena_is_valid_clause_idx_and_access_def
           intro!: exI[of _ N] exI[of _ vdom])
-    subgoal using assms by (auto simp: arena_lifting)
     subgoal for xsa xi x si s using valid_arena_size_dom_m_le_arena[OF assms(1)]
          literals_are_in_\<L>\<^sub>i\<^sub>n_mm_in_\<L>\<^sub>a\<^sub>l\<^sub>l[OF lall, of  \<open>xs ! xi\<close> 0] assms by (auto simp: map_fun_rel_def arena_lifting)
+    subgoal for xsa xi x si s using valid_arena_size_dom_m_le_arena[OF assms(1)]
+         literals_are_in_\<L>\<^sub>i\<^sub>n_mm_in_\<L>\<^sub>a\<^sub>l\<^sub>l[OF lall, of  \<open>xs ! xi\<close> 0] assms by (auto simp: map_fun_rel_def arena_lifting)
+    subgoal using assms by (simp add: arena_lifting)
+    subgoal for xsa xi x si s
+      using literals_are_in_\<L>\<^sub>i\<^sub>n_mm_in_\<L>\<^sub>a\<^sub>l\<^sub>l[OF lall, of  \<open>xs ! xi\<close> 1] assms valid_arena_size_dom_m_le_arena[OF assms(1)]
+      by (auto simp: arena_lifting append_ll_def map_fun_rel_def)
     subgoal for xsa xi x si s
       using literals_are_in_\<L>\<^sub>i\<^sub>n_mm_in_\<L>\<^sub>a\<^sub>l\<^sub>l[OF lall, of  \<open>xs ! xi\<close> 1] assms
       by (auto simp: arena_lifting append_ll_def map_fun_rel_def)
-    subgoal for xsa xi x si s using valid_arena_size_dom_m_le_arena[OF assms(1)]
-         literals_are_in_\<L>\<^sub>i\<^sub>n_mm_in_\<L>\<^sub>a\<^sub>l\<^sub>l[OF lall, of  \<open>xs ! xi\<close> 1] assms
-      by (auto simp: map_fun_rel_def arena_lifting append_ll_def)
+    subgoal for xsa xi x si s
+      using assms
+      by (auto simp: arena_lifting append_ll_def map_fun_rel_def)
     subgoal for xsa xi x si s
       using assms
       by (auto simp: arena_lifting append_ll_def map_fun_rel_def)
@@ -917,19 +928,14 @@ lemma rewatch_heur_alt_def:
       ASSERT(arena_is_valid_clause_vdom arena C);
       if arena_status arena C \<noteq> DELETED
       then do {
-        ASSERT(arena_lit_pre arena C);
-        ASSERT(arena_lit_pre arena (C+1));
-        let L1 = arena_lit arena C;
-        let L2 = arena_lit arena (C + 1);
-        ASSERT(nat_of_lit L1 < length W);
-        ASSERT(arena_is_valid_clause_idx arena C);
-        let b = (arena_length arena C = 2);
-        ASSERT(L1 \<noteq> L2);
+        L1 \<leftarrow> mop_arena_lit2 arena C 0;
+        L2 \<leftarrow> mop_arena_lit2 arena C 1;
+        n \<leftarrow> mop_arena_length arena C;
+        let b = (n = 2);
         ASSERT(length (W ! (nat_of_lit L1)) < length arena);
-        let W = append_ll W (nat_of_lit L1) (C, L2, b);
-        ASSERT(nat_of_lit L2 < length W);
+        W \<leftarrow> mop_append_ll W L1 (C, L2, b);
         ASSERT(length (W ! (nat_of_lit L2)) < length arena);
-        let W = append_ll W (nat_of_lit L2) (C, L1, b);
+        W \<leftarrow> mop_append_ll W L2 (C, L1, b);
         RETURN W
       }
       else RETURN W
@@ -1147,6 +1153,11 @@ definition mop_polarity_st_heur :: \<open>twl_st_wl_heur \<Rightarrow> nat liter
 \<open>mop_polarity_st_heur S L = do {
   mop_polarity_pol (get_trail_wl_heur S) L
 }\<close>
+
+lemma mop_polarity_st_heur_alt_def: \<open>mop_polarity_st_heur = (\<lambda>(M, _) L. do {
+  mop_polarity_pol M L
+})\<close>
+  by (auto simp: mop_polarity_st_heur_def intro!: ext)
 
 lemma mop_polarity_st_heur_mop_polarity_wl:
    \<open>(uncurry mop_polarity_st_heur, uncurry mop_polarity_wl) \<in>

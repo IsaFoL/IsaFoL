@@ -785,6 +785,7 @@ definition propagate_lit_wl_general :: \<open>'v literal \<Rightarrow> nat \<Rig
       ASSERT(C \<in># dom_m N);
       ASSERT(D = None);
       ASSERT(L' \<in># all_lits_of_mm (mset `# ran_mf N + (NE + UE)));
+      ASSERT(i \<le> 1);
       M \<leftarrow> cons_trail_propagate_l L' C M;
       N \<leftarrow> (if length (N \<propto> C) > 2 then mop_clauses_swap N C 0 (Suc 0 - i) else RETURN N);
       RETURN (M, N, D, NE, UE, add_mset (-L') Q, W) })\<close>
@@ -794,6 +795,7 @@ definition propagate_lit_wl :: \<open>'v literal \<Rightarrow> nat \<Rightarrow>
       ASSERT(C \<in># dom_m N);
       ASSERT(D = None);
       ASSERT(L' \<in># all_lits_of_mm (mset `# ran_mf N + (NE + UE)));
+      ASSERT(i \<le> 1);
       M \<leftarrow> cons_trail_propagate_l L' C M;
       N \<leftarrow> mop_clauses_swap N C 0 (Suc 0 - i);
       RETURN (M, N, D, NE, UE, add_mset (-L') Q, W)
@@ -839,7 +841,7 @@ lemma watched_by_keep_watch_eq[twl_st_wl, simp]:
 definition update_clause_wl :: \<open>'v literal \<Rightarrow> nat \<Rightarrow> bool \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'v twl_st_wl \<Rightarrow>
     (nat \<times> nat \<times> 'v twl_st_wl) nres\<close> where
   \<open>update_clause_wl = (\<lambda>(L::'v literal) C b j w i f (M, N,  D, NE, UE, Q, W). do {
-     ASSERT(C \<in># dom_m N \<and> j \<le> w \<and> w < length (W L));
+     ASSERT(C \<in># dom_m N \<and> j \<le> w \<and> w < length (W L) \<and> correct_watching_except (Suc j) (Suc w) L (M, N,  D, NE, UE, Q, W));
      ASSERT(L \<in># all_lits_of_mm (mset `# ran_mf N + (NE + UE)));
      K' \<leftarrow> mop_clauses_at N C f;
      ASSERT(K' \<in># all_lits_of_mm (mset `# ran_mf N + (NE + UE)) \<and> L \<noteq> K');
@@ -1500,6 +1502,7 @@ definition unit_propagation_inner_loop_body_wl_int :: \<open>'v literal \<Righta
         else do {
           ASSERT(unit_prop_body_wl_inv S j w L);
           i \<leftarrow> pos_of_watched (get_clauses_wl S) C L;
+          ASSERT(i \<le> 1);
           L' \<leftarrow> mop_clauses_at (get_clauses_wl S) C (1-i);
           val_L' \<leftarrow> mop_polarity_wl S L';
           if val_L' = Some True
@@ -1557,6 +1560,7 @@ definition unit_propagation_inner_loop_body_wl :: \<open>'v literal \<Rightarrow
         else do {
           ASSERT(unit_prop_body_wl_inv S j w L);
           i \<leftarrow> pos_of_watched (get_clauses_wl S) C L;
+          ASSERT(i \<le> 1);
           L' \<leftarrow> mop_clauses_at (get_clauses_wl S) C (1-i);
           val_L' \<leftarrow> mop_polarity_wl S L';
           if val_L' = Some True
@@ -1613,6 +1617,7 @@ lemma unit_propagation_inner_loop_body_wl_int_alt_def:
         else do { \<comment>\<open>Now the costly operations:\<close>
           ASSERT(unit_prop_body_wl_inv S j w L);
           i \<leftarrow> pos_of_watched (get_clauses_wl S) C L;
+          ASSERT(i \<le> 1);
           L' \<leftarrow> mop_clauses_at (get_clauses_wl S) C (1-i);
           val_L' \<leftarrow> mop_polarity_wl S L';
           if val_L' = Some True
@@ -1657,6 +1662,7 @@ proof -
           else do {
             ASSERT(unit_prop_body_wl_inv S' j w L);
             i \<leftarrow> pos_of_watched (get_clauses_wl S') C L;
+            ASSERT(i \<le> 1);
             L' \<leftarrow> mop_clauses_at (get_clauses_wl S') C (1-i);
             val_L' \<leftarrow> mop_polarity_wl S' L';
             if val_L' = Some True
@@ -1693,6 +1699,7 @@ proof -
           else do {
             ASSERT(unit_prop_body_wl_inv S' j w L);
             i \<leftarrow> pos_of_watched (get_clauses_wl S') C L;
+            ASSERT(i \<le> 1);
             L' \<leftarrow> mop_clauses_at (get_clauses_wl S') C (1-i);
             val_L' \<leftarrow> mop_polarity_wl S' L';
             if val_L' = Some True
@@ -1864,7 +1871,8 @@ lemma correct_watching_except_correct_watching_except_propagate_lit_wl:
     i_le: \<open>Suc 0 < length (get_clauses_wl S \<propto> C)\<close> and
     C: \<open>C \<in># dom_m (get_clauses_wl S)\<close> and undef: \<open>undefined_lit (get_trail_wl S) L'\<close> and
     confl: \<open>get_conflict_wl S = None\<close> and
-    lit: \<open>L' \<in># all_lits_of_mm (mset `# ran_mf (get_clauses_wl S) + get_unit_clauses_wl S)\<close>
+    lit: \<open>L' \<in># all_lits_of_mm (mset `# ran_mf (get_clauses_wl S) + get_unit_clauses_wl S)\<close> and
+     i: \<open>i \<le> 1\<close>
   shows \<open>propagate_lit_wl_general L' C i S \<le> SPEC(\<lambda>c. correct_watching_except j w L c)\<close>
 proof -
   obtain M N D NE UE Q W where S: \<open>S = (M, N, D, NE, UE, Q, W)\<close> by (cases S)
@@ -3011,6 +3019,7 @@ proof -
       subgoal by fast
       subgoal by (auto simp: state_wl_l_def)
       subgoal by (auto simp: state_wl_l_def)
+      subgoal by (auto simp: state_wl_l_def)
       apply (rule mop_clauses_swap_itself_spec2)
       subgoal by (auto simp: state_wl_l_def)
       subgoal by (cases X2; cases S; cases S')
@@ -3289,6 +3298,7 @@ proof -
       subgoal using alien_L' Sa X2 dom by (cases S; auto simp: keep_watch_def)
       subgoal using alien_L' Sa X2 j_w w_le dom by (cases S; auto simp: keep_watch_def)
       subgoal using alien_L' Sa X2 j_w w_le dom by (cases S; auto simp: keep_watch_def)
+      subgoal using alien_L' Sa X2 j_w w_le dom corr by (cases S; auto simp: keep_watch_def)
       subgoal using alien_L' Sa X2 by (cases S; auto simp: keep_watch_def)
       subgoal using dom Sa X2 w S_S' by (cases S; cases S'; auto simp: state_wl_l_def keep_watch_def)
       subgoal using fx' Sa S_S' X2 w dom by (cases S; cases S'; auto simp: state_wl_l_def keep_watch_def)

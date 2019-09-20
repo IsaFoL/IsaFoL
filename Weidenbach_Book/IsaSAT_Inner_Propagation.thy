@@ -683,6 +683,7 @@ where
      ASSERT(w < length N);
      N' \<leftarrow> mop_arena_swap C i f N;
      ASSERT(nat_of_lit K' < length W);
+     ASSERT(length (W ! (nat_of_lit K')) < length N);
      let W = W[nat_of_lit K':= W ! (nat_of_lit K') @ [(C, L, b)]];
      RETURN (j, w+1, (M, N', D, Q, W, vm))
   })\<close>
@@ -713,7 +714,7 @@ lemma mop_arena_swap[mop_arena_lit]:
 
 lemma update_clause_wl_alt_def:
   \<open>update_clause_wl = (\<lambda>(L::'v literal) C b j w i f (M, N,  D, NE, UE, Q, W). do {
-     ASSERT(C \<in># dom_m N \<and> j \<le> w \<and> w < length (W L));
+     ASSERT(C \<in># dom_m N \<and> j \<le> w \<and> w < length (W L) \<and> correct_watching_except (Suc j) (Suc w) L (M, N,  D, NE, UE, Q, W));
      ASSERT(L \<in># all_lits_st (M, N,  D, NE, UE, Q, W));
      K' \<leftarrow> mop_clauses_at N C f;
      ASSERT(K' \<in>#  all_lits_st (M, N,  D, NE, UE, Q, W) \<and> L \<noteq> K');
@@ -721,6 +722,7 @@ lemma update_clause_wl_alt_def:
      RETURN (j, w+1, (M, N', D, NE, UE, Q, W(K' := W K' @ [(C, L, b)])))
   })\<close>
   unfolding update_clause_wl_def by (auto intro!: ext simp: all_lits_def)
+
 
 lemma update_clause_wl_heur_update_clause_wl:
   \<open>(uncurry7 update_clause_wl_heur, uncurry7 (update_clause_wl)) \<in>
@@ -767,6 +769,15 @@ lemma update_clause_wl_heur_update_clause_wl:
       map_fun_rel_def twl_st_heur'_def update_clause_wl_pre_def arena_lifting arena_lit_pre_def
     dest: multi_member_split simp flip: all_lits_def
     intro!: ASSERT_refine_left valid_arena_swap_lits)
+  subgoal for x y a b c d e f g h i j k l m n p q ra sa t aa ba ca da ea fa ga ha x1
+       x1a x1b x1c x1d x1e x1f x2 x2a x2b x2c x2d x2e x2f x1g x2g x1h x2h
+       x1i x2i x1j x2j x1k x2k x1l x2l x1m x1n x1o x1p x1q x1r x1s x2m x2n
+       x2o x2p x2q x2r x2s x1t x2t x1u x2u x1v x2v x1w x2w x1x x2x K' K'a N'
+       N'a
+  supply[[goals_limit=1]]
+     by (auto dest!: length_watched_le2[of _ _ _ _ x2s \<D> r K'a])
+   (simp_all add: twl_st_heur'_def twl_st_heur_def map_fun_rel_def)
+
   subgoal
     by 
      (clarsimp simp: twl_st_heur_def Let_def
@@ -794,6 +805,7 @@ definition propagate_lit_wl_heur
 where
   \<open>propagate_lit_wl_heur = (\<lambda>L' C i (M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, stats,
     fema, sema). do {
+      ASSERT(i \<le> 1);
       M \<leftarrow> cons_trail_Propagated_tr L' C M;
       N' \<leftarrow> mop_arena_swap C 0 (1 - i) N;
       ASSERT(atm_of L' < length \<phi>);
@@ -825,6 +837,7 @@ lemma propagate_lit_wl_heur_propagate_lit_wl:
   unfolding propagate_lit_wl_heur_def propagate_lit_wl_def Let_def
   apply (intro frefI nres_relI) unfolding uncurry_def
   apply (refine_rcg)
+  subgoal by auto
   apply (rule_tac \<A> = \<open>all_atms_st (snd y)\<close> in cons_trail_Propagated_tr2)
   subgoal by (auto 4 3 simp: twl_st_heur_def propagate_lit_wl_heur_def propagate_lit_wl_def
         isa_vmtf_consD twl_st_heur'_def propagate_lit_wl_pre_def swap_lits_pre_def

@@ -390,7 +390,8 @@ where
         ASSERT(length (N \<propto> i) \<ge> 2);
         let L1 = N \<propto> i ! 0;
         let L2 = N \<propto> i ! 1;
-        let b = (length (N \<propto> i) = 2);
+        let n = length (N \<propto> i);
+        let b = (n = 2);
         ASSERT(L1 \<noteq> L2);
         ASSERT(length (W L1) < size (dom_m N));
         let W = W(L1 := W L1 @ [(i, L2, b)]);
@@ -436,6 +437,7 @@ proof -
   qed
   show ?thesis
     unfolding rewatch_def
+    apply (subst (3) Let_def)
     apply (refine_vcg
       nfoldli_rule[where I = \<open>I\<close>])
     subgoal by (rule I0)

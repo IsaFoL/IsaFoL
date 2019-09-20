@@ -107,12 +107,11 @@ sepref_def isa_length_trail_fast_code
 
 
 sepref_def cons_trail_Propagated_tr_fast_code
-  is \<open>uncurry2 (RETURN ooo cons_trail_Propagated_tr)\<close>
-  :: \<open>[cons_trail_Propagated_tr_pre]\<^sub>a
-       unat_lit_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a trail_pol_fast_assn\<^sup>d \<rightarrow> trail_pol_fast_assn\<close>
+  is \<open>uncurry2 (cons_trail_Propagated_tr)\<close>
+  :: \<open>unat_lit_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a trail_pol_fast_assn\<^sup>d \<rightarrow>\<^sub>a trail_pol_fast_assn\<close>
   unfolding cons_trail_Propagated_tr_def cons_trail_Propagated_tr_def
     SET_TRUE_def[symmetric] SET_FALSE_def[symmetric] cons_trail_Propagated_tr_pre_def
-  unfolding trail_pol_fast_assn_def
+  unfolding trail_pol_fast_assn_def prod.case
   apply (subst (3)annot_index_of_atm)
   apply (subst (4)annot_index_of_atm)
   (*unfolding ins_idx_upcast64  *)
