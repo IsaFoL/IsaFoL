@@ -65,8 +65,7 @@ sepref_def swap_lits_impl is "uncurry3 mop_arena_swap"
 
 sepref_def find_unwatched_wl_st_heur_fast_code
   is \<open>uncurry isa_find_unwatched_wl_st_heur\<close>
-  :: \<open>[(\<lambda>(S, C). find_unwatched_wl_st_heur_pre (S, C) \<and>
-            length (get_clauses_wl_heur S) \<le> sint64_max)]\<^sub>a
+  :: \<open>[(\<lambda>(S, C). length (get_clauses_wl_heur S) \<le> sint64_max)]\<^sub>a
          isasat_bounded_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> snat_option_assn' TYPE(64)\<close>
   supply [[goals_limit = 1]] isasat_fast_def[simp]
   unfolding isa_find_unwatched_wl_st_heur_def PR_CONST_def
@@ -275,11 +274,6 @@ sepref_def unit_propagation_inner_loop_body_wl_fast_heur_code
   unfolding option.case_eq_if is_None_alt[symmetric]
     SET_FALSE_def[symmetric] SET_TRUE_def[symmetric] tri_bool_eq_def[symmetric]
   apply (annot_snat_const "TYPE (64)")
-apply sepref_dbg_keep
-    apply sepref_dbg_trans_keep
-    apply sepref_dbg_trans_step_keep
-    apply sepref_dbg_side_keep
-oops
   by sepref
 
 sepref_register unit_propagation_inner_loop_body_wl_heur

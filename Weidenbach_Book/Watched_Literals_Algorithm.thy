@@ -780,14 +780,14 @@ definition reduce_trail_bt :: \<open>'v literal \<Rightarrow> 'v twl_st \<Righta
         RETURN (M1, N, U, D', NE, UE, WS, Q)
   })\<close>
 
-definition propagate_bt :: \<open>'v literal \<Rightarrow> 'v literal \<Rightarrow> 'v twl_st \<Rightarrow> 'v twl_st\<close> where
+definition propagate_bt :: \<open>'v literal \<Rightarrow> 'v literal \<Rightarrow> 'v twl_st \<Rightarrow> 'v twl_st nres\<close> where
   \<open>propagate_bt = (\<lambda>L L' (M, N, U, D, NE, UE, WS, Q).
-    (Propagated (-L) (the D) # M, N, add_mset (TWL_Clause {#-L, L'#} (the D - {#-L, L'#})) U, None,
+    RETURN (Propagated (-L) (the D) # M, N, add_mset (TWL_Clause {#-L, L'#} (the D - {#-L, L'#})) U, None,
       NE, UE, WS, {#L#}))\<close>
 
-definition propagate_unit_bt :: \<open>'v literal \<Rightarrow> 'v twl_st \<Rightarrow> 'v twl_st\<close> where
+definition propagate_unit_bt :: \<open>'v literal \<Rightarrow> 'v twl_st \<Rightarrow> 'v twl_st nres\<close> where
   \<open>propagate_unit_bt = (\<lambda>L (M, N, U, D, NE, UE, WS, Q).
-    (Propagated (-L) (the D) # M, N, U, None, NE, add_mset (the D) UE, WS, {#L#}))\<close>
+    RETURN (Propagated (-L) (the D) # M, N, U, None, NE, add_mset (the D) UE, WS, {#L#}))\<close>
 
 definition backtrack_inv where
   \<open>backtrack_inv S \<longleftrightarrow> get_trail S \<noteq> [] \<and> get_conflict S \<noteq> Some {#}\<close>
@@ -804,10 +804,10 @@ definition backtrack :: \<open>'v twl_st \<Rightarrow> 'v twl_st nres\<close> wh
       then do {
         L' \<leftarrow> SPEC(\<lambda>L'. L' \<in># the (get_conflict S) - {#-L#} \<and> L \<noteq> -L' \<and>
           get_level (get_trail S) L' = get_maximum_level (get_trail S) (the (get_conflict S) - {#-L#}));
-        RETURN (propagate_bt L L' S)
+        propagate_bt L L' S
       }
       else do {
-        RETURN (propagate_unit_bt L S)
+        propagate_unit_bt L S
       }
     }
   \<close>
@@ -1008,7 +1008,7 @@ proof -
         apply (rename_tac L D'')
         apply (case_tac D'')
         by simp_all
-      have \<open>cdcl_twl_o (M, N, U, D, NE, UE, WS, Q) ?T'\<close>
+      have cdcl: \<open>cdcl_twl_o (M, N, U, D, NE, UE, WS, Q) ?T'\<close>
         unfolding Q WS option.sel list.sel
         apply (subst D_Some_the)
         apply (rule cdcl_twl_o.backtrack_nonunit_clause[of \<open>-lit_of (hd M)\<close> _ K' M1 M2 _ _ i])
@@ -1025,25 +1025,25 @@ proof -
         subgoal using K_D by (auto dest: in_diffD)
         subgoal using lev_K lev_M_M1 K_D by (simp add: i_def max_M1_M1_D)
         done
-    then show cdcl: \<open>cdcl_twl_o ?S (propagate_bt (lit_of (hd (get_trail ?S))) K ?U)\<close>
-      unfolding WS Q by (auto simp: propagate_bt_def)
-
-      show \<open>get_conflict (propagate_bt (lit_of (hd (get_trail ?S))) K ?U) = None\<close>
-        by (auto simp: propagate_bt_def)
-
-      show \<open>twl_struct_invs (propagate_bt (lit_of (hd (get_trail ?S))) K ?U)\<close>
-        using S cdcl cdcl_twl_o_twl_struct_invs twl_struct by (auto simp: propagate_bt_def)
-      show \<open>twl_stgy_invs (propagate_bt (lit_of (hd (get_trail ?S))) K ?U)\<close>
-        using S cdcl cdcl_twl_o_twl_stgy_invs twl_struct twl_stgy by blast
-      show \<open>clauses_to_update (propagate_bt (lit_of (hd (get_trail ?S))) K ?U) = {#}\<close>
+    moreover have \<open>get_conflict ?T' = None \<and> clauses_to_update ?T' = {#} \<and> literals_to_update ?T' \<noteq> {#}\<close>
+      unfolding WS Q
+        using S cdcl_twl_o_twl_struct_invs twl_struct by (auto simp: propagate_bt_def)
+    moreover have \<open>(\<forall>S'. \<not> cdcl_twl_o ?T' S')\<close> by (auto simp: cdcl_twl_o.simps)
+    moreover have \<open>twl_struct_invs ?T'\<close>
+        using S cdcl cdcl_twl_o_twl_struct_invs[OF cdcl] twl_struct twl_stgy by auto
+    moreover have \<open>twl_stgy_invs ?T'\<close>
+        using S cdcl cdcl_twl_o_twl_stgy_invs[OF cdcl] twl_struct twl_stgy by auto
+    moreover have \<open>clauses_to_update ?T' = {#}\<close>
         using WS by (auto simp: propagate_bt_def)
 
-      show False if \<open>cdcl_twl_o (propagate_bt (lit_of (hd (get_trail ?S))) K ?U) (an, ao, ap, aq, ar, as, at, b)\<close>
+    moreover have False if \<open>cdcl_twl_o ?T' (an, ao, ap, aq, ar, as, at, b)\<close>
         for an ao ap aq ar as at b
         using that by (auto simp: cdcl_twl_o.simps propagate_bt_def)
-
-      show False if \<open>literals_to_update (propagate_bt (lit_of (hd (get_trail ?S))) K ?U) = {#}\<close>
-        using that by (auto simp: propagate_bt_def)
+    ultimately show cdcl: \<open>propagate_bt (lit_of (hd (get_trail ?S))) K ?U
+                                \<le> SPEC
+                                   (\<lambda>T. cdcl_twl_o ?S T \<and>  get_conflict T = None \<and> (\<forall>S'. \<not> cdcl_twl_o T S') \<and>
+              twl_struct_invs T \<and> twl_stgy_invs T \<and> clauses_to_update T = {#} \<and> literals_to_update T \<noteq> {#})\<close>
+      unfolding propagate_bt_def by auto
 
     }
 
@@ -1058,8 +1058,8 @@ proof -
 
       have i_0: \<open>i = 0\<close>
         using i_def by (auto simp: D')
-
-      have \<open>cdcl_twl_o (M, N, U, D, NE, UE, WS, Q) ?T'\<close>
+ 
+      have cdcl: \<open>cdcl_twl_o (M, N, U, D, NE, UE, WS, Q) ?T'\<close>
         unfolding D' option.sel WS Q apply (subst D_Some_the)
         apply (rule cdcl_twl_o.backtrack_unit_clause[of _ \<open>the D\<close> K' M1 M2 _ D' i])
         subgoal using D'_D D' by auto
@@ -1072,31 +1072,27 @@ proof -
         subgoal using D'_D .
         subgoal using N_U_NE_UE_D' .
         done
-      then show cdcl: \<open>cdcl_twl_o (M, N, U, D, NE, UE, WS, Q)
-             (propagate_unit_bt (lit_of (hd (get_trail ?S))) ?U)\<close>
-        by (auto simp add: propagate_unit_bt_def)
-      show \<open>get_conflict (propagate_unit_bt (lit_of (hd (get_trail ?S))) ?U) = None\<close>
+      moreover have \<open>get_conflict ?T' = None\<close>
         by (auto simp add: propagate_unit_bt_def)
 
-      show \<open>twl_struct_invs (propagate_unit_bt (lit_of (hd (get_trail ?S))) ?U)\<close>
+      moreover have \<open>twl_struct_invs ?T'\<close>
         using S cdcl cdcl_twl_o_twl_struct_invs twl_struct by blast
 
-      show \<open>twl_stgy_invs (propagate_unit_bt (lit_of (hd (get_trail ?S))) ?U)\<close>
+      moreover have \<open>twl_stgy_invs ?T'\<close>
         using S cdcl cdcl_twl_o_twl_stgy_invs twl_struct twl_stgy by blast
-      show \<open>clauses_to_update (propagate_unit_bt (lit_of (hd (get_trail ?S))) ?U) = {#}\<close>
+      moreover have \<open>clauses_to_update ?T' = {#}\<close>
         using WS by (auto simp add: propagate_unit_bt_def)
-      show False if \<open>literals_to_update (propagate_unit_bt (lit_of (hd (get_trail ?S))) ?U) = {#}\<close>
-        using that by (auto simp add: propagate_unit_bt_def)
-      fix an ao ap aq ar as at b
-      show False if \<open>cdcl_twl_o (propagate_unit_bt (lit_of (hd (get_trail ?S))) ?U) (an, ao, ap, aq, ar, as, at, b) \<close>
-        using that by (auto simp: cdcl_twl_o.simps propagate_unit_bt_def)
+    moreover have \<open>(\<forall>S'. \<not> cdcl_twl_o ?T' S')\<close> by (auto simp: cdcl_twl_o.simps)
+      ultimately show cdcl: \<open>propagate_unit_bt (lit_of (hd (get_trail ?S))) ?U
+                                \<le> SPEC
+                                   (\<lambda>T. cdcl_twl_o ?S T \<and>  get_conflict T = None \<and> (\<forall>S'. \<not> cdcl_twl_o T S') \<and>
+              twl_struct_invs T \<and> twl_stgy_invs T \<and> clauses_to_update T = {#} \<and> literals_to_update T \<noteq> {#})\<close>
+      unfolding propagate_unit_bt_def by auto
     }
   qed
   then show ?fail
     using nofail_simps(2) pwD1 by blast
-qed
-
-declare backtrack_spec[THEN order_trans, refine_vcg]
+qed declare backtrack_spec[THEN order_trans, refine_vcg]
 
 
 subsubsection \<open>Full loop\<close>

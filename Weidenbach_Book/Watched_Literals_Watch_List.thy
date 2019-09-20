@@ -1949,6 +1949,7 @@ lemma unit_propagation_inner_loop_body_wl_int_alt_def2:
           else do {
             ASSERT(unit_prop_body_wl_inv S j w L);
             i \<leftarrow> pos_of_watched (get_clauses_wl S) C L;
+            ASSERT(i \<le> 1);
             L' \<leftarrow> mop_clauses_at (get_clauses_wl S) C (1-i);
             val_L' \<leftarrow> mop_polarity_wl S L';
             if val_L' = Some True
@@ -1978,6 +1979,7 @@ lemma unit_propagation_inner_loop_body_wl_int_alt_def2:
           else do {
             ASSERT(unit_prop_body_wl_inv S j w L);
             i \<leftarrow> pos_of_watched (get_clauses_wl S) C L;
+            ASSERT(i \<le> 1);
             L' \<leftarrow> mop_clauses_at (get_clauses_wl S) C (1-i);
             val_L' \<leftarrow> mop_polarity_wl S L';
             if val_L' = Some True
@@ -2048,6 +2050,7 @@ lemma unit_propagation_inner_loop_body_wl_alt_def:
         else do {
           ASSERT(unit_prop_body_wl_inv S j w L);
           i \<leftarrow> pos_of_watched (get_clauses_wl S) C L;
+          ASSERT(i \<le> 1);
           L' \<leftarrow> mop_clauses_at (get_clauses_wl S) C (1-i);
           val_L' \<leftarrow> mop_polarity_wl S L';
           if val_L' = Some True
@@ -2279,6 +2282,7 @@ proof -
     apply (rule bin_unw_Id; assumption)
     subgoal
       unfolding propagate_proper_bin_case_def by (auto simp: length_list_2)
+    subgoal by auto
     subgoal by auto
     subgoal by auto
     subgoal by auto
@@ -3413,6 +3417,7 @@ proof -
      subgoal using S_S' by (auto simp: eq_commute[of _ \<open>_ ! w\<close>])
      subgoal by simp
      subgoal using S_S' by (auto simp: eq_commute[of _ \<open>_ ! w\<close>])
+     subgoal using S_S' by (auto simp: eq_commute[of _ \<open>_ ! w\<close>])
      subgoal by fast
      subgoal using S_S' by (auto simp: eq_commute[of _ \<open>_ ! w\<close>])
      subgoal by simp \<comment> \<open>polarity\<close>
@@ -3930,9 +3935,9 @@ qed
 
 subsubsection \<open>Decide or Skip\<close>
 
-definition find_unassigned_lit_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v literal option nres\<close> where
+definition find_unassigned_lit_wl :: \<open>'v twl_st_wl \<Rightarrow> ('v twl_st_wl \<times> 'v literal option) nres\<close> where
   \<open>find_unassigned_lit_wl = (\<lambda>(M, N, D, NE, UE, WS, Q).
-     SPEC (\<lambda>L.
+     SPEC (\<lambda>(S, L). S = (M, N, D, NE, UE, WS, Q) \<and>
          (L \<noteq> None \<longrightarrow>
             undefined_lit M (the L) \<and>
             atm_of (the L) \<in> atms_of_mm (clause `# twl_clause_of `# init_clss_lf N + NE)) \<and>
@@ -3954,7 +3959,7 @@ definition decide_lit_wl :: \<open>'v literal \<Rightarrow> 'v twl_st_wl \<Right
 definition decide_wl_or_skip :: \<open>'v twl_st_wl \<Rightarrow> (bool \<times> 'v twl_st_wl) nres\<close> where
   \<open>decide_wl_or_skip S = (do {
     ASSERT(decide_wl_or_skip_pre S);
-    L \<leftarrow> find_unassigned_lit_wl S;
+    (S, L) \<leftarrow> find_unassigned_lit_wl S;
     case L of
       None \<Rightarrow> RETURN (True, S)
     | Some L \<Rightarrow> RETURN (False, decide_lit_wl L S)
@@ -3972,13 +3977,13 @@ lemma decide_wl_or_skip_spec:
           correct_watching T' \<and> blits_in_\<L>\<^sub>i\<^sub>n T'}\<rangle>nres_rel\<close>
 proof -
   have find_unassigned_lit_wl: \<open>find_unassigned_lit_wl S'
-    \<le> \<Down> Id
+    \<le> \<Down> {((T, L), L'). T = S' \<and> L = L'}
         (find_unassigned_lit_l S)\<close>
     if \<open>(S', S) \<in> state_wl_l None\<close>
     for S :: \<open>'v twl_st_l\<close> and S' :: \<open>'v twl_st_wl\<close>
     using that
     by (cases S') (auto simp: find_unassigned_lit_wl_def find_unassigned_lit_l_def
-        mset_take_mset_drop_mset' state_wl_l_def)
+        mset_take_mset_drop_mset' state_wl_l_def intro!: RES_refine)
   have option: \<open>(x, x') \<in> \<langle>Id\<rangle>option_rel\<close> if \<open>x = x'\<close> for x x'
     using that by (auto)
   show ?thesis
@@ -4149,7 +4154,7 @@ lemmas extract_shorter_conflict_wl_def = extract_shorter_conflict_wl.simps
 
 
 definition backtrack_wl_inv where
-  \<open>backtrack_wl_inv S \<longleftrightarrow> (\<exists>S'. (S, S') \<in> state_wl_l None \<and> backtrack_l_inv S' \<and> correct_watching S)
+  \<open>backtrack_wl_inv S \<longleftrightarrow> (\<exists>S'. (S, S') \<in> state_wl_l None \<and> backtrack_l_inv S' \<and> correct_watching S \<and> blits_in_\<L>\<^sub>i\<^sub>n S)
   \<close>
 
 text \<open>Rougly: we get a fresh index that has not yet been used.\<close>
@@ -4162,14 +4167,16 @@ definition propagate_bt_wl :: \<open>'v literal \<Rightarrow> 'v literal \<Right
     D'' \<leftarrow> list_of_mset (the D);
     i \<leftarrow> get_fresh_index_wl N (NE + UE) W;
     let b = (length ([-L, L'] @ (remove1 (-L) (remove1 L' D''))) = 2);
-    RETURN (Propagated (-L) i # M,
+    M \<leftarrow> cons_trail_propagate_l (-L) i M;
+    RETURN (M,
         fmupd i ([-L, L'] @ (remove1 (-L) (remove1 L' D'')), False) N,
           None, NE, UE, {#L#}, W(-L:= W (-L) @ [(i, L', b)], L':= W L' @ [(i, -L, b)]))
       })\<close>
 
-definition propagate_unit_bt_wl :: \<open>'v literal \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl\<close> where
-  \<open>propagate_unit_bt_wl = (\<lambda>L (M, N, D, NE, UE, Q, W).
-    (Propagated (-L) 0 # M, N, None, NE, add_mset (the D) UE, {#L#}, W))\<close>
+definition propagate_unit_bt_wl :: \<open>'v literal \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
+  \<open>propagate_unit_bt_wl = (\<lambda>L (M, N, D, NE, UE, Q, W). do {
+    M \<leftarrow> cons_trail_propagate_l (-L) 0 M;
+    RETURN (Propagated (-L) 0 # M, N, None, NE, add_mset (the D) UE, {#L#}, W)})\<close>
 
 definition backtrack_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
   \<open>backtrack_wl S =
@@ -4185,7 +4192,7 @@ definition backtrack_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<
         propagate_bt_wl L L' S
       }
       else do {
-        RETURN (propagate_unit_bt_wl L S)
+        propagate_unit_bt_wl L S
      }
   }\<close>
 
@@ -4650,12 +4657,7 @@ lemma cdcl_twl_o_prog_wl_spec:
      correct_watching T \<and> blits_in_\<L>\<^sub>i\<^sub>n T}\<rangle>nres_rel\<close>
    (is \<open>?o \<in> ?A \<rightarrow>\<^sub>f \<langle>?B\<rangle> nres_rel\<close>)
 proof -
-  have find_unassigned_lit_wl: \<open>find_unassigned_lit_wl S \<le> \<Down> Id (find_unassigned_lit_l S')\<close>
-    if \<open>(S, S') \<in> state_wl_l None\<close>
-    for S :: \<open>'v twl_st_wl\<close> and S' :: \<open>'v twl_st_l\<close>
-    unfolding find_unassigned_lit_wl_def find_unassigned_lit_l_def
-    using that
-    by (cases S; cases S') (auto simp: state_wl_l_def)
+
   have [iff]: \<open>correct_watching (decide_lit_wl L S) \<longleftrightarrow> correct_watching S\<close> for L S
     by (cases S; auto simp: decide_lit_wl_def correct_watching.simps clause_to_update_def)
   have [iff]: \<open>(decide_lit_wl L S, decide_lit_l L S') \<in> state_wl_l None\<close>
@@ -4663,28 +4665,37 @@ proof -
     for L S S'
     using that by (cases S; auto simp: decide_lit_wl_def decide_lit_l_def state_wl_l_def)
   have option_id: \<open>x = x' \<Longrightarrow> (x,x') \<in> \<langle>Id\<rangle>option_rel\<close> for x x' by auto
+  have damn_you_are_stupid_isabelle: \<open>(a, a')
+       \<in> {(S, S').
+          (S, S') \<in> state_wl_l None \<and>
+          correct_watching S \<and> blits_in_\<L>\<^sub>i\<^sub>n S} \<Longrightarrow>
+       get_conflict_l a' = None \<Longrightarrow>
+       (a, a')
+       \<in> {(T', T).
+          (T', T) \<in> state_wl_l None \<and>
+          correct_watching T' \<and>
+          blits_in_\<L>\<^sub>i\<^sub>n T' \<and> get_conflict_wl T' = None}\<close> for a a'
+   by auto
   show cdcl_o: \<open>?o \<in> ?A \<rightarrow>\<^sub>f
    \<langle>{((brk::bool, T::'v twl_st_wl), brk'::bool, T'::'v twl_st_l).
      (T, T') \<in> state_wl_l None \<and>
      brk = brk' \<and>
      correct_watching T \<and> blits_in_\<L>\<^sub>i\<^sub>n T}\<rangle>nres_rel\<close>
-    unfolding cdcl_twl_o_prog_wl_def cdcl_twl_o_prog_l_def decide_wl_or_skip_def
-      decide_l_or_skip_def fref_param1[symmetric]
+    unfolding cdcl_twl_o_prog_wl_def cdcl_twl_o_prog_l_def
+      fref_param1[symmetric]
     apply (refine_vcg skip_and_resolve_loop_wl_spec["to_\<Down>"] backtrack_wl_spec["to_\<Down>"]
-      find_unassigned_lit_wl option_id)
+      decide_wl_or_skip_spec["to_\<Down>", THEN order_trans]
+      option_id)
     subgoal unfolding cdcl_twl_o_prog_wl_pre_def by blast
     subgoal by auto
-    subgoal unfolding decide_wl_or_skip_pre_def by blast
-    subgoal by (auto simp:)
+    apply (rule damn_you_are_stupid_isabelle; assumption)
+    subgoal by (auto intro!: conc_fun_R_mono)
     subgoal unfolding decide_wl_or_skip_pre_def by auto
     subgoal by auto
     subgoal by (auto simp: )
     subgoal by auto
     subgoal by auto
     subgoal by auto
-    subgoal by auto
-    subgoal by (auto simp: )
-    subgoal by (auto simp: )
     subgoal by auto
     done
 qed

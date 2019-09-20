@@ -16,6 +16,13 @@ sepref_def length_ll_fs_heur_fast_code
   supply [[goals_limit=1]]
   by sepref
 
+sepref_def mop_length_watched_by_int_impl [llvm_inline]
+  is \<open>uncurry mop_length_watched_by_int\<close>
+  :: \<open>isasat_bounded_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow>\<^sub>a sint64_nat_assn\<close>
+  unfolding mop_length_watched_by_int_alt_def isasat_bounded_assn_def
+    length_ll_def[symmetric]
+  supply [[goals_limit=1]]
+  by sepref
 
 sepref_register unit_propagation_inner_loop_body_wl_heur
 

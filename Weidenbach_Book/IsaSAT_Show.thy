@@ -60,11 +60,11 @@ definition print_current_information :: \<open>stats \<Rightarrow> _ \<Rightarro
 definition isasat_current_status :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
 \<open>isasat_current_status =
    (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats,
-       fast_ema, slow_ema, ccount, avdom,
+       heur, avdom,
        vdom, lcount, opts, old_arena).
      let stats = (print_current_information stats lcount)
      in RETURN (M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats,
-       fast_ema, slow_ema, ccount, avdom,
+       heur, avdom,
        vdom, lcount, opts, old_arena))\<close>
 
 lemma isasat_current_status_id:
