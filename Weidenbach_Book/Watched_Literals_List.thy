@@ -706,6 +706,7 @@ definition propagate_lit_l :: \<open>'v literal \<Rightarrow> nat \<Rightarrow> 
   \<open>propagate_lit_l = (\<lambda>L' C i (M, N, D, NE, UE, WS, Q). do {
       ASSERT(C \<in># dom_m N);
       ASSERT(L' \<in># all_lits_of_mm (mset `# ran_mf N + (NE + UE)));
+      ASSERT(i \<le> 1);
       M \<leftarrow> cons_trail_propagate_l L' C M;
       N \<leftarrow> (if length (N \<propto> C) > 2 then mop_clauses_swap N C 0 (Suc 0 - i) else RETURN N);
       RETURN (M, N, D, NE, UE, WS, add_mset (-L') Q)})\<close>
@@ -1086,7 +1087,7 @@ proof -
       dest!: mset_eq_setD)
     moreover have \<open>swap (N \<propto> C) 0 (Suc 0) = swap (N \<propto> C) i (1 -i)\<close>
        using i_def two_le_length_C by (cases \<open>N \<propto> C\<close>)(auto simp: swap_def)
-    moreover have \<open>i < length (N \<propto> C)\<close>
+    moreover have \<open>i < length (N \<propto> C)\<close> \<open>i \<le> 1\<close>
        using i_def two_le_length_C by (auto simp: S)
     moreover have \<open>undefined_lit M L'\<close>
       using L'_undef SS' by (auto simp: S Decided_Propagated_in_iff_in_lits_of_l)
@@ -2399,16 +2400,20 @@ definition get_fresh_index :: \<open>'v clauses_l \<Rightarrow> nat nres\<close>
 
 definition propagate_bt_l :: \<open>'v literal \<Rightarrow> 'v literal \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close> where
   \<open>propagate_bt_l = (\<lambda>L L' (M, N, D, NE, UE, WS, Q). do {
+    ASSERT(L \<in># all_lits_of_mm (mset `# ran_mf N + (NE + UE)));
     D'' \<leftarrow> list_of_mset (the D);
     i \<leftarrow> get_fresh_index N;
-    RETURN (Propagated (-L) i # M,
+    M \<leftarrow> cons_trail_propagate_l (-L) i M;
+    RETURN (M,
         fmupd i ([-L, L'] @ (remove1 (-L) (remove1 L' D'')), False) N,
           None, NE, UE, WS, {#L#})
       })\<close>
 
-definition propagate_unit_bt_l :: \<open>'v literal \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l\<close> where
-  \<open>propagate_unit_bt_l = (\<lambda>L (M, N, D, NE, UE, WS, Q).
-    (Propagated (-L) 0 # M, N, None, NE, add_mset (the D) UE, WS, {#L#}))\<close>
+definition propagate_unit_bt_l :: \<open>'v literal \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close> where
+  \<open>propagate_unit_bt_l = (\<lambda>L (M, N, D, NE, UE, WS, Q). do {
+    ASSERT(L \<in># all_lits_of_mm (mset `# ran_mf N + (NE + UE)));
+    M \<leftarrow> cons_trail_propagate_l (-L) 0 M;
+    RETURN (M, N, None, NE, add_mset (the D) UE, WS, {#L#})})\<close>
 
 definition backtrack_l :: \<open>'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close> where
   \<open>backtrack_l S =
@@ -2424,7 +2429,7 @@ definition backtrack_l :: \<open>'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<clo
         propagate_bt_l L L' S
       }
       else do {
-        RETURN (propagate_unit_bt_l L S)
+        propagate_unit_bt_l L S
      }
   }\<close>
 
@@ -2542,8 +2547,8 @@ proof -
 
   have propagate_bt:
     \<open>propagate_bt_l (lit_of (hd (get_trail_l S))) L U
-    \<le> SPEC (\<lambda>c. (c, propagate_bt (lit_of (hd (get_trail S'))) L' U') \<in>
-        {(T, T'). (T, T') \<in> twl_st_l None \<and> clauses_to_update_l T = {#} \<and> twl_list_invs T})\<close>
+    \<le> \<Down>{(T, T'). (T, T') \<in> twl_st_l None \<and> clauses_to_update_l T = {#} \<and> twl_list_invs T}
+       (propagate_bt (lit_of (hd (get_trail S'))) L' U')\<close>
     if
       SS': \<open>(S, S') \<in> ?R\<close> and
       bt_inv: \<open>backtrack_l_inv S\<close> and
@@ -2633,10 +2638,23 @@ proof -
       done
     have [simp]: \<open>Ex Not\<close>
       by auto
+
+    have propagate_bt_alt_def:
+      \<open>propagate_bt = (\<lambda>L L' (M, N, U, D, NE, UE, WS, Q). do {
+        let D' = D;
+        let M = Propagated (-L) (the D) # M ;
+        RETURN (M, N, add_mset (TWL_Clause {#-L, L'#} (the D - {#-L, L'#})) U, None,
+          NE, UE, WS, {#L#})})\<close>
+      unfolding propagate_bt_def Let_def by auto
+    have \<open>lit_of (hd (get_trail_l S))
+      \<in># all_lits_of_mm (mset `# ran_mf NS + (NES + UES))\<close>
+     sledgehammer sorry
     show ?thesis
-      unfolding propagate_bt_l_def list_of_mset_def propagate_bt_def U RES_RETURN_RES
-        get_fresh_index_def RES_RES_RETURN_RES
-      apply clarify
+      unfolding propagate_bt_l_def list_of_mset_def propagate_bt_alt_def U RES_RETURN_RES
+        get_fresh_index_def RES_RES_RETURN_RES assert_bind_spec_conv prod.case
+      apply refine_rcg
+      subgoal sorry
+      subgoal sorry
       apply (rule RES_rule)
       apply (subst in_pair_collect_simp)
       apply (intro conjI)

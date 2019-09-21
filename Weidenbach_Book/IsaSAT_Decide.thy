@@ -92,7 +92,7 @@ lemma vmtf_find_next_undef_upd:
   by (auto intro!: RETURN_SPEC_refine simp: image_image defined_atm_def[symmetric])
 
 lemma find_unassigned_lit_wl_D'_find_unassigned_lit_wl_D:
-  \<open>(find_unassigned_lit_wl_D_heur, find_unassigned_lit_wl_D) \<in>
+  \<open>(find_unassigned_lit_wl_D_heur, find_unassigned_lit_wl) \<in>
      [find_unassigned_lit_wl_D_heur_pre]\<^sub>f
     twl_st_heur''' r \<rightarrow> \<langle>{((T, L), (T', L')). (T, T') \<in> twl_st_heur''' r  \<and> L = L' \<and>
          (L \<noteq> None \<longrightarrow> undefined_lit (get_trail_wl T') (the L) \<and> the L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st T')) \<and>
@@ -149,7 +149,7 @@ proof -
   qed
 
   have [dest]: \<open>(S, T) \<in> twl_st_heur \<Longrightarrow> \<phi> = get_phase_saver_heur S \<Longrightarrow> phase_saving (all_atms_st T) \<phi>\<close> for S T \<phi>
-    by (auto simp: twl_st_heur_def all_atms_def)
+    by (auto simp: twl_st_heur_def)
   define unassigned_atm where
     \<open>unassigned_atm S L \<equiv> \<exists> M N D NE UE WS Q.
          S = (M, N, D, NE, UE, WS, Q) \<and>
@@ -159,16 +159,32 @@ proof -
          (L = None \<longrightarrow> (\<nexists>L'. undefined_lit M L' \<and>
             atm_of L' \<in> atms_of_mm (clause `# twl_clause_of `# init_clss_lf N + NE)))\<close>
     for L :: \<open>nat literal option\<close> and S :: \<open>nat twl_st_wl\<close>
+
+  have eq: \<open>(\<And>x. P x = Q x) \<Longrightarrow> (\<exists> x. P x) = (\<exists> x. Q x)\<close> for P Q
+   by auto
+  have unassigned_atm_alt_def:  \<open>unassigned_atm S L \<longleftrightarrow> (\<exists> M N D NE UE WS Q.
+         S = (M, N, D, NE, UE, WS, Q) \<and>
+         (L \<noteq> None \<longrightarrow>
+            undefined_lit M (the L) \<and>
+            atm_of (the L) \<in> atms_of_mm (clause `# twl_clause_of `# init_clss_lf N + NE)) \<and>
+         (L = None \<longrightarrow> (\<nexists>L'. undefined_lit M L' \<and>
+            atm_of L' \<in> atms_of_mm (clause `# twl_clause_of `# init_clss_lf N + NE))))\<close> for S L
+    unfolding unassigned_atm_def apply (intro eq ext)
+    by (auto simp: unassigned_atm_def intro!: eq simp: in_all_lits_of_mm_ain_atms_of_iff 
+      mset_take_mset_drop_mset' atms_of_ms_def \<L>\<^sub>a\<^sub>l\<^sub>l_all_atms_all_lits all_lits_def dest: multi_member_split)
+   
+find_theorems all_lits_of_mm atm_of
   have find_unassigned_lit_wl_D_alt_def:
-   \<open>find_unassigned_lit_wl_D S = do {
-     L \<leftarrow>  SPEC(unassigned_atm S);
+   \<open>find_unassigned_lit_wl S = do {
+     L \<leftarrow> SPEC(unassigned_atm S);
      L \<leftarrow> RES {L, map_option uminus L};
      SPEC(\<lambda>((M, N, D, NE, UE, WS, Q), L').
          S = (M, N, D, NE, UE, WS, Q) \<and> L = L')
    }\<close> for S
-   unfolding find_unassigned_lit_wl_D_def RES_RES_RETURN_RES unassigned_atm_def
+   unfolding find_unassigned_lit_wl_def RES_RES_RETURN_RES unassigned_atm_alt_def
     RES_RES_RETURN_RES
-    by (cases S) (auto simp: mset_take_mset_drop_mset' uminus_\<A>\<^sub>i\<^sub>n_iff)
+    by (cases S)
+      (auto simp: mset_take_mset_drop_mset' uminus_\<A>\<^sub>i\<^sub>n_iff)
 
   have isa_vmtf_find_next_undef_upd:
     \<open>isa_vmtf_find_next_undef_upd (a, aa, ab, ac, ad, b)
@@ -184,8 +200,7 @@ proof -
       pre: \<open>find_unassigned_lit_wl_D_heur_pre (bt, bu, bv, bw, bx, by, bz)\<close> and
       T: \<open>(((a, aa, ab, ac, ad, b), ae, (af, ag, ba), ah, ai,
 	 ((aj, ak, al, am, bb), an, bc), ao, ap, (aq, bd), ar, as,
-	 (at, au, av, aw, be), (ax, ay, az, bf, bg), (bh, bi, bj, bk, bl),
-	 (bm, bn), bo, bp, bq, br, bs),
+	 (at, au, av, aw, be), heur, bo, bp, bq, br, bs),
 	bt, bu, bv, bw, bx, by, bz)
        \<in> twl_st_heur\<close> and
       \<open>r =
@@ -193,11 +208,10 @@ proof -
 	(get_clauses_wl_heur
 	  ((a, aa, ab, ac, ad, b), ae, (af, ag, ba), ah, ai,
 	   ((aj, ak, al, am, bb), an, bc), ao, ap, (aq, bd), ar, as,
-	   (at, au, av, aw, be), (ax, ay, az, bf, bg), (bh, bi, bj, bk, bl),
-	   (bm, bn), bo, bp, bq, br, bs))\<close>
+	   (at, au, av, aw, be), heur, bo, bp, bq, br, bs))\<close>
      for a aa ab ac ad b ae af ag ba ah ai aj ak al am bb an bc ao ap aq bd ar as at
 	 au av aw be ax ay az bf bg bh bi bj bk bl bm bn bo bp bq br bs bt bu bv
-	 bw bx "by" bz
+	 bw bx "by" bz heur
   proof -
     let ?\<A> = \<open>all_atms_st (bt, bu, bv, bw, bx, by, bz)\<close>
     have pol:
@@ -257,8 +271,7 @@ proof -
       \<open>find_unassigned_lit_wl_D_heur_pre (bt, bu, bv, bw, bx, by, bz)\<close> and
       \<open>(((a, aa, ab, ac, ad, b), ae, (af, ag, ba), ah, ai,
 	 ((aj, ak, al, am, bb), an, bc), ao, ap, (aq, bd), ar, as,
-	 (at, au, av, aw, be), (ax, ay, az, bf, bg), (bh, bi, bj, bk, bl),
-	 (bm, bn), bo, bp, bq, br, bs),
+	 (at, au, av, aw, be), heur, bo, bp, bq, br, bs),
 	bt, bu, bv, bw, bx, by, bz)
        \<in> twl_st_heur\<close> and
       \<open>r =
@@ -266,14 +279,13 @@ proof -
 	(get_clauses_wl_heur
 	  ((a, aa, ab, ac, ad, b), ae, (af, ag, ba), ah, ai,
 	   ((aj, ak, al, am, bb), an, bc), ao, ap, (aq, bd), ar, as,
-	   (at, au, av, aw, be), (ax, ay, az, bf, bg), (bh, bi, bj, bk, bl),
-	   (bm, bn), bo, bp, bq, br, bs))\<close> and
+	   (at, au, av, aw, be), heur, bo, bp, bq, br, bs))\<close> and
       \<open>(x, L) \<in> ?find bt bu bv bw bx by bz\<close> and
       \<open>x1 = (x1a, x2)\<close> and
       \<open>x = (x1, x2a)\<close>
      for a aa ab ac ad b ae af ag ba ah ai aj ak al am bb an bc ao ap aq bd ar as at
        au av aw be ax ay az bf bg bh bi bj bk bl bm bn bo bp bq br bs bt bu bv
-       bw bx "by" bz x L x1 x1a x2 x2a
+       bw bx "by" bz x L x1 x1a x2 x2a heur
   proof -
     show ?thesis
       using that unfolding lit_of_found_atm_def
@@ -342,7 +354,7 @@ where
 \<close>
 
 lemma decide_wl_or_skip_D_heur_decide_wl_or_skip_D:
-  \<open>(decide_wl_or_skip_D_heur, decide_wl_or_skip_D) \<in> twl_st_heur''' r \<rightarrow>\<^sub>f \<langle>bool_rel \<times>\<^sub>f twl_st_heur''' r\<rangle> nres_rel\<close>
+  \<open>(decide_wl_or_skip_D_heur, decide_wl_or_skip) \<in> twl_st_heur''' r \<rightarrow>\<^sub>f \<langle>bool_rel \<times>\<^sub>f twl_st_heur''' r\<rangle> nres_rel\<close>
 proof -
   have [simp]:
     \<open>rev (cons_trail_Decided L M) = rev M @ [Decided L]\<close>
@@ -359,7 +371,6 @@ proof -
 			\<in> bool_rel \<times>\<^sub>f twl_st_heur''' r))\<close>
     if
       \<open>(x, y) \<in> twl_st_heur''' r\<close> and
-      \<open>decide_wl_or_skip_pre y \<and> literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st y) y\<close> and
       \<open>(xa, x')
        \<in> {((T, L), T', L').
 	  (T, T') \<in> twl_st_heur''' r \<and>
@@ -383,12 +394,12 @@ proof -
       apply refine_vcg
       subgoal
         by (rule isa_length_trail_pre[of _ \<open>get_trail_wl x1\<close> \<open>all_atms_st x1\<close>])
-	  (use that(3) in \<open>auto simp: twl_st_heur_def st all_atms_def[symmetric]\<close>)
+	  (use that(2) in \<open>auto simp: twl_st_heur_def st all_atms_def[symmetric]\<close>)
       subgoal
         by (rule cons_trail_Decided_tr_pre[of _ \<open>get_trail_wl x1\<close> \<open>all_atms_st x1\<close>])
-	  (use that(3) in \<open>auto simp: twl_st_heur_def st all_atms_def[symmetric]\<close>)
+	  (use that(2) in \<open>auto simp: twl_st_heur_def st all_atms_def[symmetric]\<close>)
       subgoal
-        using that(2,3) unfolding cons_trail_Decided_def[symmetric] st
+        using that(2) unfolding cons_trail_Decided_def[symmetric] st
         by (auto simp add: twl_st_heur_def all_atms_def[symmetric]
 	   isa_length_trail_length_u[THEN fref_to_Down_unRET_Id] out_learned_def
 	  intro!: cons_trail_Decided_tr[THEN fref_to_Down_unRET_uncurry]
@@ -398,7 +409,7 @@ proof -
 
   show ?thesis
     supply [[goals_limit=1]]
-    unfolding decide_wl_or_skip_D_heur_def decide_wl_or_skip_D_def decide_wl_or_skip_D_pre_def
+    unfolding decide_wl_or_skip_D_heur_def decide_wl_or_skip_def decide_wl_or_skip_pre_def
      decide_l_or_skip_pre_def twl_st_of_wl.simps[symmetric]
     apply (intro nres_relI frefI same_in_Id_option_rel)
     apply (refine_vcg find_unassigned_lit_wl_D'_find_unassigned_lit_wl_D[of r, THEN fref_to_Down])

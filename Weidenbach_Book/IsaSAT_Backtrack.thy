@@ -487,7 +487,7 @@ definition empty_lookup_conflict_and_highest
         RETURN ((M, N, D, NE, UE, WS, Q), n)})\<close>
 
 definition backtrack_wl_D_heur_inv where
-  \<open>backtrack_wl_D_heur_inv S \<longleftrightarrow> (\<exists>S'. (S, S') \<in> twl_st_heur_conflict_ana \<and> backtrack_wl_D_inv S')\<close>
+  \<open>backtrack_wl_D_heur_inv S \<longleftrightarrow> (\<exists>S'. (S, S') \<in> twl_st_heur_conflict_ana \<and> backtrack_wl_inv S')\<close>
 
 definition extract_shorter_conflict_heur where
   \<open>extract_shorter_conflict_heur = (\<lambda>M NU NUE C outl. do {
@@ -672,8 +672,8 @@ lemma the_option_lookup_clause_assn:
 
 definition propagate_bt_wl_D_heur
   :: \<open>nat literal \<Rightarrow> nat clause_l \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
-  \<open>propagate_bt_wl_D_heur = (\<lambda>L C (M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, fema, sema,
-         res_info, vdom, avdom, lcount, opts). do {
+  \<open>propagate_bt_wl_D_heur = (\<lambda>L C (M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, (fema, sema,
+         res_info), vdom, avdom, lcount, opts). do {
       ASSERT(length vdom \<le> length N0);
       ASSERT(length avdom \<le> length N0);
       ASSERT(nat_of_lit (C!1) < length W0 \<and> nat_of_lit (-L) < length W0);
@@ -684,30 +684,30 @@ definition propagate_bt_wl_D_heur
       glue \<leftarrow> get_LBD lbd;
       let b = False;
       let b' = (length C = 2);
-      ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, fema, sema,
-         res_info, vdom, avdom, lcount, opts) \<longrightarrow> append_and_length_fast_code_pre ((b, C), N0));
-      ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, fema, sema,
-         res_info, vdom, avdom, lcount, opts) \<longrightarrow> lcount < sint64_max);
+      ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, (fema, sema,
+         res_info), vdom, avdom, lcount, opts) \<longrightarrow> append_and_length_fast_code_pre ((b, C), N0));
+      ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, (fema, sema,
+         res_info), vdom, avdom, lcount, opts) \<longrightarrow> lcount < sint64_max);
       (N, i) \<leftarrow> fm_add_new b C N0;
       ASSERT(update_lbd_pre ((i, glue), N));
       let N = update_lbd i glue N;
-      ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, fema, sema,
-         res_info, vdom, avdom, lcount, opts) \<longrightarrow> length_ll W0 (nat_of_lit (-L)) < sint64_max);
+      ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, (fema, sema,
+         res_info), vdom, avdom, lcount, opts) \<longrightarrow> length_ll W0 (nat_of_lit (-L)) < sint64_max);
       let W = W0[nat_of_lit (- L) := W0 ! nat_of_lit (- L) @ [(i, L', b')]];
-      ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, fema, sema,
-         res_info, vdom, avdom, lcount, opts) \<longrightarrow> length_ll W (nat_of_lit L') < sint64_max);
+      ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, (fema, sema,
+         res_info), vdom, avdom, lcount, opts) \<longrightarrow> length_ll W (nat_of_lit L') < sint64_max);
       let W = W[nat_of_lit L' := W!nat_of_lit L' @ [(i, -L, b')]];
       lbd \<leftarrow> lbd_empty lbd;
       ASSERT(isa_length_trail_pre M);
       let j = isa_length_trail M;
       ASSERT(i \<noteq> DECISION_REASON);
       ASSERT(cons_trail_Propagated_tr_pre ((-L, i), M));
-      let M = cons_trail_Propagated_tr (- L) i M;
+      M \<leftarrow> cons_trail_Propagated_tr (- L) i M;
       vm \<leftarrow> isa_vmtf_flush_int M vm;
       ASSERT(atm_of L < length \<phi>);
       RETURN (M, N, D, j, W, vm, save_phase (-L) \<phi>, 0,
-         cach, lbd, outl, add_lbd (of_nat glue) stats, ema_update glue fema, ema_update glue sema,
-          incr_conflict_count_since_last_restart res_info, vdom @ [ i],
+         cach, lbd, outl, add_lbd (of_nat glue) stats, (ema_update glue fema, ema_update glue sema,
+          incr_conflict_count_since_last_restart res_info), vdom @ [ i],
           avdom @ [ i],
           lcount + 1, opts)
     })\<close>
@@ -724,7 +724,7 @@ definition propagate_unit_bt_wl_D_int
   :: \<open>nat literal \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close>
   where
     \<open>propagate_unit_bt_wl_D_int = (\<lambda>L (M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, stats,
-      fema, sema, res_info, vdom). do {
+      (fema, sema, res_info), vdom). do {
       vm \<leftarrow> isa_vmtf_flush_int M vm;
       glue \<leftarrow> get_LBD lbd;
       lbd \<leftarrow> lbd_empty lbd;
@@ -732,11 +732,11 @@ definition propagate_unit_bt_wl_D_int
       let j = isa_length_trail M;
       ASSERT(0 \<noteq> DECISION_REASON);
       ASSERT(cons_trail_Propagated_tr_pre ((- L, 0::nat), M));
-      let M = cons_trail_Propagated_tr (- L) 0 M;
+      M \<leftarrow> cons_trail_Propagated_tr (- L) 0 M;
       let stats = incr_uset stats;
       RETURN (M, N, D, j, W, vm, \<phi>, clvls, cach, lbd, outl, stats,
-        ema_update glue fema, ema_update glue sema,
-        incr_conflict_count_since_last_restart res_info, vdom)})\<close>
+        (ema_update glue fema, ema_update glue sema,
+        incr_conflict_count_since_last_restart res_info), vdom)})\<close>
 
 
 paragraph \<open>Full function\<close>
@@ -806,7 +806,7 @@ lemma length_watched_le:
   shows \<open>length (watched_by x1 x2) \<le> length (get_clauses_wl_heur x1a) - 2\<close>
 proof -
   have \<open>correct_watching x1\<close>
-    using prop_inv unfolding unit_propagation_outer_loop_wl_D_inv_def
+    using prop_inv unfolding unit_propagation_outer_loop_wl_inv_def
       unit_propagation_outer_loop_wl_inv_def
     by auto
   then have dist: \<open>distinct_watched (watched_by x1 x2)\<close>
@@ -853,8 +853,17 @@ proof -
     by (auto intro!: order_trans[of \<open>length (watched_by x1 x2)\<close> \<open>length (get_vdom x1a)\<close>])
 qed
 
+definition (in -) list_of_mset2
+  :: \<open>nat literal \<Rightarrow> nat literal \<Rightarrow> nat clause \<Rightarrow> nat clause_l nres\<close>
+where
+  \<open>list_of_mset2 L L' D =
+    SPEC (\<lambda>E. mset E = D \<and> E!0 = L \<and> E!1 = L' \<and> length E \<ge> 2)\<close>
+
+definition single_of_mset where
+  \<open>single_of_mset D = SPEC(\<lambda>L. D = mset [L])\<close>
+
 lemma backtrack_wl_D_nlit_backtrack_wl_D:
-  \<open>(backtrack_wl_D_nlit_heur, backtrack_wl_D) \<in>
+  \<open>(backtrack_wl_D_nlit_heur, backtrack_wl) \<in>
   {(S, T). (S, T) \<in> twl_st_heur_conflict_ana \<and> length (get_clauses_wl_heur S) = r} \<rightarrow>\<^sub>f
   \<langle>{(S, T). (S, T) \<in> twl_st_heur \<and> length (get_clauses_wl_heur S) \<le> 6 + r + uint32_max div 2}\<rangle>nres_rel\<close>
   (is \<open>_ \<in> ?R \<rightarrow>\<^sub>f \<langle>?S\<rangle>nres_rel\<close>)
@@ -882,7 +891,7 @@ proof -
     by auto
   have inv: \<open>backtrack_wl_D_heur_inv S'\<close>
     if
-      \<open>backtrack_wl_D_inv S\<close> and
+      \<open>backtrack_wl_inv S\<close> and
       \<open>(S', S) \<in> ?R\<close>
     for S S'
     using that unfolding backtrack_wl_D_heur_inv_def
@@ -914,15 +923,15 @@ proof -
            (extract_shorter_conflict_wl S)\<close>
     (is \<open>_ \<le> \<Down> ?shorter _\<close>)
     if
-      inv: \<open>backtrack_wl_D_inv S\<close> and
+      inv: \<open>backtrack_wl_inv S\<close> and
       S'_S: \<open>(S', S) \<in> ?R\<close>
     for S S'
   proof -
     obtain M N D NE UE Q W where
       S: \<open>S = (M, N, D, NE, UE, Q, W)\<close>
       by (cases S)
-    obtain M' W' vm \<phi> clvls cach lbd outl stats cc cc2 cc3 avdom vdom lcount D' arena b Q' opts where
-      S': \<open>S' = (M', arena, (b, D'), Q', W', vm, \<phi>, clvls, cach, lbd, outl, stats, cc, cc2, cc3, vdom,
+    obtain M' W' vm \<phi> clvls cach lbd outl stats heur avdom vdom lcount D' arena b Q' opts where
+      S': \<open>S' = (M', arena, (b, D'), Q', W', vm, \<phi>, clvls, cach, lbd, outl, stats, heur, vdom,
         avdom, lcount, opts)\<close>
       using S'_S by (cases S') (auto simp: twl_st_heur_conflict_ana_def S)
     have
@@ -955,7 +964,7 @@ proof -
       stgy_invs: \<open>twl_stgy_invs U\<close> and
       list_invs: \<open>twl_list_invs T\<close> and
       not_empty: \<open>get_conflict_l T \<noteq> Some {#}\<close>
-      using inv unfolding backtrack_wl_D_inv_def backtrack_wl_inv_def backtrack_l_inv_def
+      using inv unfolding backtrack_wl_inv_def backtrack_wl_inv_def backtrack_l_inv_def
       apply -
       apply normalize_goal+
       by blast
@@ -1235,7 +1244,7 @@ proof -
     qed
 
     have final: \<open>(((M', arena, x1b, Q', W', vm', \<phi>, clvls, empty_cach_ref x1a, lbd, take 1 x2a,
-            stats, cc, cc2, cc3, vdom, avdom, lcount, opts),
+            stats, heur, vdom, avdom, lcount, opts),
             x2c, x1c),
           M, N, Da, NE, UE, Q, W)
           \<in> ?shorter\<close>
@@ -1312,7 +1321,7 @@ proof -
         \<open>get_maximum_level M (remove1_mset (- lit_of (hd M)) (the Da)) < count_decided M\<close>
         using get_maximum_level_mono[OF Da_D', of M] by auto
       have \<open>((M', arena, x1b, Q', W', vm', \<phi>, clvls, empty_cach_ref x1a, lbd, take (Suc 0) x2a,
-          stats, cc, cc2, cc3, vdom, avdom, lcount, opts),
+          stats, heur, vdom, avdom, lcount, opts),
         del_conflict_wl (M, N, Da, NE, UE, Q, W))
         \<in> twl_st_heur_bt\<close>
         using S'_S x1b_None cach out vm' unfolding twl_st_heur_bt_def
@@ -1330,8 +1339,8 @@ proof -
         by (auto simp: S x2c S')
       ultimately show ?thesis
         using \<L>\<^sub>i\<^sub>n_S x1c_Da Da_None dist_D D_none x1c_D x1c hd_x1c highest uM_\<L>\<^sub>a\<^sub>l\<^sub>l vm' M_\<L>\<^sub>i\<^sub>n
-          max_lvl_le corr
-        by (auto simp: S x2c S')
+          max_lvl_le corr trail_nempty unfolding literals_are_\<L>\<^sub>i\<^sub>n_def
+        by (simp add:  S x2c S')
     qed
     have hd_M'_M: \<open>lit_of_last_trail_pol M' = lit_of (hd M)\<close>
       by (subst lit_of_last_trail_pol_lit_of_last_trail[THEN fref_to_Down_unRET_Id, of M M'])
@@ -1444,7 +1453,7 @@ proof -
     (is \<open>_ \<le>  \<Down> ?find_decomp _\<close>)
     if
       \<open>(S, S') \<in> ?R\<close> and
-      \<open>backtrack_wl_D_inv S'\<close> and
+      \<open>backtrack_wl_inv S'\<close> and
       \<open>backtrack_wl_D_heur_inv S\<close> and
       TT': \<open>(TnC, T') \<in> ?shorter S' S\<close> and
       [simp]: \<open>nC = (n, C)\<close> and
@@ -1660,7 +1669,7 @@ proof -
     obtain M1' vm' W' \<phi> clvls cach lbd outl stats fema sema ccount avdom vdom lcount arena D'
         Q' opts
       where
-        U: \<open>U = (M1', arena, D', Q', W', vm', \<phi>, clvls, cach, lbd, outl, stats, fema, sema, ccount,
+        U: \<open>U = (M1', arena, D', Q', W', vm', \<phi>, clvls, cach, lbd, outl, stats, (fema, sema, ccount),
            vdom, avdom, lcount, opts, [])\<close>
       using UU' find_decomp by (cases U) (auto simp: U' T' twl_st_heur_bt_def all_atms_def[symmetric])
     have
@@ -1707,8 +1716,8 @@ proof -
     qed
 
     have propagate_bt_wl_D_heur_alt_def:
-      \<open>propagate_bt_wl_D_heur = (\<lambda>L C (M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, fema, sema,
-          res_info, vdom, avdom, lcount, opts). do {
+      \<open>propagate_bt_wl_D_heur = (\<lambda>L C (M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, (fema, sema,
+          res_info), vdom, avdom, lcount, opts). do {
           ASSERT(length vdom \<le> length N0);
           ASSERT(length avdom \<le> length N0);
           ASSERT(nat_of_lit (C!1) < length W0 \<and> nat_of_lit (-L) < length W0);
@@ -1719,36 +1728,36 @@ proof -
           glue \<leftarrow> get_LBD lbd;
           let _ = C;
           let b = False;
-          ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, fema, sema,
-         res_info, vdom, avdom, lcount, opts) \<longrightarrow> append_and_length_fast_code_pre ((b, C), N0));
-          ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, fema, sema,
-             res_info, vdom, avdom, lcount, opts) \<longrightarrow> lcount < sint64_max);
+          ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, (fema, sema,
+         res_info), vdom, avdom, lcount, opts) \<longrightarrow> append_and_length_fast_code_pre ((b, C), N0));
+          ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, (fema, sema,
+             res_info), vdom, avdom, lcount, opts) \<longrightarrow> lcount < sint64_max);
           (N, i) \<leftarrow> fm_add_new b C N0;
           ASSERT(update_lbd_pre ((i, glue), N));
           let N = update_lbd i glue N;
-          ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, fema, sema,
-            res_info, vdom, avdom, lcount, opts) \<longrightarrow> length_ll W0 (nat_of_lit (-L)) < sint64_max);
+          ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, (fema, sema,
+            res_info), vdom, avdom, lcount, opts) \<longrightarrow> length_ll W0 (nat_of_lit (-L)) < sint64_max);
           let W = W0[nat_of_lit (- L) := W0 ! nat_of_lit (- L) @ [(i, L', length C = 2)]];
-          ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, fema, sema,
-           res_info, vdom, avdom, lcount, opts) \<longrightarrow> length_ll W (nat_of_lit L') < sint64_max);
+          ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, (fema, sema,
+           res_info), vdom, avdom, lcount, opts) \<longrightarrow> length_ll W (nat_of_lit L') < sint64_max);
           let W = W[nat_of_lit L' := W!nat_of_lit L' @ [(i, -L, length C = 2)]];
           lbd \<leftarrow> lbd_empty lbd;
 	         ASSERT(isa_length_trail_pre M);
           let j = isa_length_trail M;
           ASSERT(i \<noteq> DECISION_REASON);
           ASSERT(cons_trail_Propagated_tr_pre ((-L, i), M));
-          let M = cons_trail_Propagated_tr (- L) i M;
+          M \<leftarrow> cons_trail_Propagated_tr (- L) i M;
           vm \<leftarrow> isa_vmtf_flush_int M vm;
           ASSERT(atm_of L < length \<phi>);
           RETURN (M, N, D, j, W, vm, save_phase (-L) \<phi>, 0,
-            cach, lbd, outl, add_lbd (of_nat glue) stats, ema_update glue fema, ema_update glue sema,
-              incr_conflict_count_since_last_restart res_info, vdom @ [ i],
+            cach, lbd, outl, add_lbd (of_nat glue) stats, (ema_update glue fema, ema_update glue sema,
+              incr_conflict_count_since_last_restart res_info), vdom @ [ i],
               avdom @ [i], Suc lcount, opts)
       })\<close>
       unfolding propagate_bt_wl_D_heur_def Let_def
       by auto
     have propagate_bt_wl_D_alt_def:
-      \<open>propagate_bt_wl_D (lit_of (hd (get_trail_wl S'))) L' U' = do {
+      \<open>propagate_bt_wl (lit_of (hd (get_trail_wl S'))) L' U' = do {
             _ \<leftarrow> RETURN (); \<^cancel>\<open>phase saving\<close>
             _ \<leftarrow> RETURN (); \<^cancel>\<open>LBD\<close>
             D'' \<leftarrow>
@@ -1761,7 +1770,7 @@ proof -
                           i \<notin> fst ` set (W L)));
             _ \<leftarrow> RETURN (); \<^cancel>\<open>lbd empty\<close>
             _ \<leftarrow> RETURN (); \<^cancel>\<open>lbd empty\<close>
-	          M2 \<leftarrow> RETURN (cons_trail_Propagated (- lit_of (hd (get_trail_wl S'))) i M1);
+	     M2 \<leftarrow> RETURN (Propagated (- lit_of (hd (get_trail_wl S'))) i # M1);
             _ \<leftarrow> RETURN (); \<^cancel>\<open>vmtf_flush\<close>
             RETURN
               (M2,
@@ -1770,9 +1779,9 @@ proof -
                    W (- lit_of (hd (get_trail_wl S'))) @ [(i, L', length D'' = 2)],
                   L' := W L' @ [(i, - lit_of (hd (get_trail_wl S')), length D'' = 2)]))
           }\<close>
-      unfolding propagate_bt_wl_D_def Let_def cons_trail_Propagated_def
+      unfolding propagate_bt_wl_def Let_def
         U U' H get_fresh_index_wl_def prod.case
-        propagate_bt_wl_D_heur_def propagate_bt_wl_D_def Let_def rescore_clause_def
+        propagate_bt_wl_def Let_def rescore_clause_def
       by (auto simp: U' RES_RES2_RETURN_RES RES_RETURN_RES \<phi> uminus_\<A>\<^sub>i\<^sub>n_iff
           uncurry_def RES_RES_RETURN_RES
           get_fresh_index_def RES_RETURN_RES2 RES_RES_RETURN_RES2 list_of_mset2_def)
@@ -1799,9 +1808,9 @@ proof -
       subgoal using vm M1'_M1 by auto
       subgoal by (auto simp: rescore_clause_def conc_fun_RES intro!: isa_vmtfI)
       done
-
+(*
     have [refine0]: \<open>isa_vmtf_flush_int (cons_trail_Propagated_tr L i M1') vm \<le>
-         SPEC(\<lambda>c. (c, ()) \<in> {(vm', _). vm' \<in> isa_vmtf (all_atms_st U') (cons_trail_Propagated L i M1)})\<close>
+         SPEC(\<lambda>c. (c, ()) \<in> {(vm', _). vm' \<in> isa_vmtf (all_atms_st U') (Propagated L i # M1)})\<close>
       if vm: \<open>vm \<in> isa_vmtf (all_atms_st U') M1\<close> and
       	L: \<open>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st U')\<close> and
       	undef: \<open>undefined_lit M1 L\<close> and
@@ -1833,7 +1842,7 @@ proof -
       	subgoal by (auto simp: vmtf_flush_def conc_fun_RES RETURN_def intro: isa_vmtfI)
       	done
     qed
-
+*)
     have [refine0]: \<open>(isa_length_trail M1', ()) \<in> {(j, _). j = length M1}\<close>
       by (subst isa_length_trail_length_u[THEN fref_to_Down_unRET_Id, OF _ M1'_M1]) auto
     have [refine0]: \<open>get_LBD lbd \<le> \<Down> {(_, _). True}(RETURN ())\<close>
@@ -1886,12 +1895,12 @@ proof -
       by (auto simp: lbd_empty_def)
     have [of _ _ \<open>all_atms_st U'\<close>, refine0]: \<open>undefined_lit M L \<and> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A> \<and> C \<noteq> DECISION_REASON \<Longrightarrow>
        (((L', C'), M'), (L, C), M) \<in> nat_lit_lit_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f trail_pol \<A> \<Longrightarrow>
-       RETURN (cons_trail_Propagated_tr L' C' M')
+       cons_trail_Propagated_tr L' C' M'
          \<le> \<Down> {(M0, M0''). (M0, M0'') \<in> trail_pol \<A> \<and> M0'' = Propagated L C' # M}
-	     (RETURN (cons_trail_Propagated L C M))\<close> for C C' :: nat and L and L' and M M' \<A>
+	     (RETURN (Propagated L C # M))\<close> for C C' :: nat and L and L' and M M' \<A>
       using cons_trail_Propagated_tr[of \<A>, THEN fref_to_Down_curry2, of L C M L' C' M']
-      by (auto simp: cons_trail_Propagated_def)
-
+      apply (auto simp: cons_trail_Propagated_tr_def)
+find_theorems cons_trail_Propagated_tr
     have \<open>literals_are_in_\<L>\<^sub>i\<^sub>n (all_atms_st S') (mset C)\<close>
       using incl list_confl_S' literals_are_in_\<L>\<^sub>i\<^sub>n_mono by blast
     then have C_Suc1_in: \<open>C ! Suc 0 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st S')\<close>

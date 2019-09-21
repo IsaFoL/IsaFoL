@@ -2130,4 +2130,19 @@ definition mop_arena_pos :: \<open>arena \<Rightarrow> nat \<Rightarrow> nat nre
    RETURN (arena_pos arena C)
 }\<close>
 
+definition mop_arena_length :: \<open>arena_el list \<Rightarrow> nat \<Rightarrow> nat nres\<close> where
+\<open>mop_arena_length arena C = do {
+  ASSERT(arena_is_valid_clause_idx arena C);
+  RETURN (arena_length arena C)
+}\<close>
+
+
+lemma mop_arena_length:
+   \<open>(uncurry mop_arena_length, uncurry (RETURN oo (\<lambda>N c. length (N \<propto> c)))) \<in>
+    [\<lambda>(N, i). i \<in># dom_m N]\<^sub>f {(N, N'). valid_arena N N' vdom} \<times>\<^sub>f nat_rel \<rightarrow> \<langle>nat_rel\<rangle>nres_rel\<close>
+  unfolding mop_arena_length_def
+  by (intro frefI nres_relI)
+    (auto 5 3 intro!: ASSERT_leI simp: map_fun_rel_def append_ll_def arena_is_valid_clause_idx_def
+        arena_lifting)
+
 end
