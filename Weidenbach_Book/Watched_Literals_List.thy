@@ -21,6 +21,7 @@ proof -
     unfolding 1
     by (rule inj_image_mset_eq_iff) (auto simp: inj_on_def)
 qed
+
 lemma twl_struct_invs_no_alien_in_trail:
   assumes \<open>twl_struct_invs S\<close>
   shows \<open>L \<in> lits_of_l (get_trail S) \<Longrightarrow> L \<in># all_lits_of_mm (clause `# get_clauses S + unit_clss S)\<close>
@@ -711,8 +712,17 @@ definition propagate_lit_l :: \<open>'v literal \<Rightarrow> nat \<Rightarrow> 
       N \<leftarrow> (if length (N \<propto> C) > 2 then mop_clauses_swap N C 0 (Suc 0 - i) else RETURN N);
       RETURN (M, N, D, NE, UE, WS, add_mset (-L') Q)})\<close>
 
+thm update_clauseS_pre_def
+
+definition update_clause_l_pre :: \<open>nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'v twl_st_l \<Rightarrow> bool\<close> where
+  \<open>update_clause_l_pre C i f S \<longleftrightarrow>
+    (\<exists>S' L. (S, S') \<in> twl_st_l (Some L) \<and> C \<in># dom_m (get_clauses_l S) \<and>
+     i < length (get_clauses_l S \<propto> C) \<and> f < length (get_clauses_l S \<propto> C) \<and>
+    update_clauseS_pre (get_clauses_l S \<propto> C ! i) (twl_clause_of (get_clauses_l S \<propto> C))  S')\<close>
+
 definition update_clause_l :: \<open>nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close> where
   \<open>update_clause_l = (\<lambda>C i f (M, N, D, NE, UE, WS, Q). do {
+       ASSERT(update_clause_l_pre C i f (M, N, D, NE, UE, WS, Q));
        N' \<leftarrow> mop_clauses_swap N C i f;
        RETURN (M, N', D, NE, UE, WS, Q)
   })\<close>
@@ -747,7 +757,8 @@ definition unit_propagation_inner_loop_body_l :: \<open>'v literal \<Rightarrow>
       ASSERT(unit_propagation_inner_loop_body_l_inv L C S);
       K \<leftarrow> SPEC(\<lambda>K. K \<in> set (get_clauses_l S \<propto> C));
       val_K \<leftarrow> mop_polarity_l S K;
-      if val_K = Some True then RETURN S
+      if val_K = Some True
+      then RETURN S
       else do {
         i \<leftarrow> pos_of_watched (get_clauses_l S) C L;
         L' \<leftarrow> mop_clauses_at (get_clauses_l S) C (1 - i);
@@ -948,26 +959,30 @@ proof -
     by (auto dest: in_diffD simp: set_conflicting_def S
       set_conflict_l_def mset_take_mset_drop_mset' intro!: ASSERT_leI)
   then have confl_rel: \<open>set_conflict_l C ?S \<le>
-     SPEC(\<lambda>c.
-       (c, set_conflicting (twl_clause_of C')
-       (set_clauses_to_update
-        (remove1_mset (L, twl_clause_of C') (clauses_to_update S')) S')) \<in>
-        {(S, S'). (S, S') \<in> twl_st_l (Some L) \<and> twl_list_invs S})\<close>  if \<open>get_trail
-     (set_clauses_to_update
-       (remove1_mset (L, twl_clause_of C') (clauses_to_update S')) S') \<Turnstile>as
-    CNot (clause (twl_clause_of C'))\<close>
-    using SS' WS D_None C_N_U pre that by (auto simp: twl_st_l_def image_mset_remove1_mset_if set_conflicting_def S
-      set_conflict_l_def mset_take_mset_drop_mset')
+     \<Down> {(S, S').
+          (S, S') \<in> twl_st_l (Some L) \<and> twl_list_invs S}
+        (mop_set_conflicting (twl_clause_of C')
+          (set_clauses_to_update
+            (remove1_mset (L, twl_clause_of C')
+              (clauses_to_update S'))
+            S'))\<close>
+    using SS' WS D_None C_N_U pre
+    by (auto simp: twl_st_l_def image_mset_remove1_mset_if set_conflicting_def S Let_def
+      set_conflict_l_def mset_take_mset_drop_mset' mop_set_conflicting_def set_conflict_pre_def
+      intro!: ASSERT_leI ASSERT_refine_right)
 
   have propa_rel:
-    \<open>(propagate_lit_l K C j
-    (set_clauses_to_update_l (remove1_mset C (clauses_to_update_l S)) S)) \<le>
-      SPEC
-       (\<lambda>c. (c, propagate_lit L' (twl_clause_of C')
-                 (set_clauses_to_update
-                   (remove1_mset (L, twl_clause_of C') (clauses_to_update S'))
-                   S'))
-            \<in> {(S, S'). (S, S') \<in> twl_st_l (Some L) \<and> twl_list_invs S})\<close>
+    \<open>propagate_lit_l K C j
+     (set_clauses_to_update_l
+       (remove1_mset C (clauses_to_update_l S)) S)
+    \<le> \<Down> {(S, S').
+          (S, S') \<in> twl_st_l (Some L) \<and>
+          twl_list_invs S}
+        (mop_propagate_lit L' (twl_clause_of C')
+          (set_clauses_to_update
+            (remove1_mset (L, twl_clause_of C')
+              (clauses_to_update S'))
+            S'))\<close>
     if
       \<open>(K, L') \<in> Id\<close> and  \<open>L' \<in> {K. K \<in># remove1_mset L {#L, L'a#}}\<close> and
       \<open>watched (twl_clause_of C') = {#L, L'a#}\<close> and
@@ -980,7 +995,7 @@ proof -
              (set_clauses_to_update
                (remove1_mset (L, twl_clause_of C') (clauses_to_update S'))
                S'))\<close> and
-     \<open>(j, j') \<in> {(j, j'). j = i \<and> j' = i}\<close>
+     \<open>(j, j') \<in> {(j, j'). j = i \<and> j' = i \<and> i < 2}\<close>
     for L' K L'a j j'
   proof -
     have [simp]: \<open>L' = L'a\<close> \<open>K = L'\<close> \<open>L'a = (N \<propto> C ! (Suc 0 - i))\<close> \<open>j = i\<close>
@@ -1049,8 +1064,8 @@ proof -
       ultimately show False
         using L'_undef that SS' uL_M n_d C'_i S watched_C' two_le_length_C 
         apply (auto simp: S i_def dest: no_dup_consistentD split: if_splits)
-	apply (metis in_multiset_nempty member_add_mset no_dup_consistentD  set_mset_mset)
-	by (metis (mono_tags) in_multiset_nempty member_add_mset no_dup_consistentD set_mset_mset)
+	      apply (metis in_multiset_nempty member_add_mset no_dup_consistentD  set_mset_mset)
+	      by (metis (mono_tags) in_multiset_nempty member_add_mset no_dup_consistentD set_mset_mset)
     qed
     have \<open>twl_list_invs
      (Propagated (N \<propto> C ! (Suc 0 - i)) C # M, N(C \<hookrightarrow> swap (N \<propto> C) 0 (Suc 0 - i)),
@@ -1096,12 +1111,18 @@ proof -
                        ({#mset (fst x). x \<in># ran_m N#} + (NE + UE))\<close>
      using C_N_U two_le_length_C by (auto simp: S ran_m_def all_lits_of_mm_add_mset i_def
        intro!: in_clause_in_all_lits_of_m nth_mem dest!: multi_member_split)
+   moreover have \<open>add_mset L (add_mset (N \<propto> C ! (Suc 0 - i)) (mset (unwatched_l (N \<propto> C)))) =
+       mset (N \<propto> C)\<close>
+     apply (subst (4) append_take_drop_id[of 2, symmetric])
+     using that unfolding mset_append
+     by (auto simp: S)
     ultimately show ?thesis
-      using SS' WS C_N_U unfolding propagate_lit_l_def apply (auto simp: S)
+      using SS' WS C_N_U that unfolding propagate_lit_l_def apply (auto simp: S)
       by (auto simp: twl_st_l_def image_mset_remove1_mset_if propagate_lit_def
            propagate_lit_l_def mset_take_mset_drop_mset' S learned_unchanged mop_clauses_swap_def
-           cons_trail_propagate_l_def
-        init_unchanged mset_un_watched_swap intro: convert_lit.intros intro!: ASSERT_leI)
+           cons_trail_propagate_l_def mop_propagate_lit_def
+        init_unchanged mset_un_watched_swap intro: convert_lit.intros
+        intro!: ASSERT_leI ASSERT_refine_right)
   qed
   have update_clause_rel: \<open>do {
       K' \<leftarrow> mop_clauses_at
@@ -1109,7 +1130,7 @@ proof -
              (set_clauses_to_update_l (remove1_mset C (clauses_to_update_l S))
                S))
            C (the K);
-     val_K\<leftarrow>  mop_polarity_l 
+     val_K\<leftarrow> mop_polarity_l 
         (set_clauses_to_update_l (remove1_mset C (clauses_to_update_l S)) S) K'; 
      (if val_K = Some True
      then RETURN (set_clauses_to_update_l (remove1_mset C (clauses_to_update_l S)) S)
@@ -1139,7 +1160,7 @@ proof -
        (get_trail
          (set_clauses_to_update
            (remove1_mset (L, twl_clause_of C') (clauses_to_update S')) S'))\<close>
-    \<open>(j, j') \<in> {(j, j'). j = i \<and> j' = i}\<close>
+    \<open>(j, j') \<in> {(j, j'). j = i \<and> j' = i \<and> i < 2}\<close>
     for L' and K and L'a and j j'
   proof -
     have [simp]: \<open>j = i\<close>
@@ -1381,48 +1402,52 @@ proof -
       subgoal using L'_M SS' K'_M unfolding C' S by (auto simp: twl_st_l_def)
       subgoal using L'_M SS' K'_M add_inv list_invs_blit unfolding C' S
         by (auto simp: twl_st_l_def WS'_def')
-      subgoal
-        using SS' init_unchanged C_N_U i_le_length_C K'_le
+      subgoal for a b c d e f g h x Ka
+        using SS' init_unchanged C_N_U i_le_length_C K'_le C'_i
         unfolding i_def[symmetric] get_clauses_l_set_clauses_to_update_l
+        unfolding update_clause_l_pre_def
         by (auto simp: S update_clause_l_def update_clauseS_def twl_st_l_def WS'_def'
           RETURN_SPEC_refine RES_RES_RETURN_RES RETURN_def RES_RES2_RETURN_RES H
-          mop_clauses_swap_def op_clauses_at_def 
-            intro!: RES_refine exI[of _ \<open>N \<propto> C ! the K\<close>] ASSERT_leI)
+          mop_clauses_swap_def op_clauses_at_def WS'_def' update_clause_l_pre_def
+            intro!: RES_refine exI[of _ \<open>N \<propto> C ! the K\<close>] ASSERT_leI 
+              exI[of _ \<open>set_clauses_to_update (remove1_mset (L, twl_clause_of (N \<propto> C))
+                (clauses_to_update S')) S'\<close>] exI[of _ L] image_mset_cong)
       done
   qed
   have unit_propagation_inner_loop_body_alt_def:
     \<open>unit_propagation_inner_loop_body = (\<lambda>L C S. do {
-      do {
-        bL' \<leftarrow> SPEC (\<lambda>K. K \<in># clause C);
-        let val_bl' = bL' \<in> lits_of_l (get_trail S);
-        if val_bl'
+    do {
+      bL' \<leftarrow> SPEC (\<lambda>K. K \<in># clause C);
+      let b = (bL' \<in> lits_of_l (get_trail S));
+      if b
+      then RETURN S
+      else do {
+        i \<leftarrow> RETURN i;
+        L' \<leftarrow> SPEC (\<lambda>K. K \<in># watched C - {#L#});
+        ASSERT (watched C = {#L, L'#});
+        let val_L' = L' \<in> lits_of_l (get_trail S);
+        if val_L'
         then RETURN S
-        else do {
-          i \<leftarrow> RETURN i;
-          L' \<leftarrow> SPEC (\<lambda>K. K \<in># watched C - {#L#});
-          ASSERT (watched C = {#L, L'#});
-          let val_L' = L' \<in> lits_of_l (get_trail S);
-          if val_L'
-          then RETURN S
-          else
-            if \<forall>L \<in># unwatched C. -L \<in> lits_of_l (get_trail S)
-            then
-              if -L' \<in> lits_of_l (get_trail S)
-              then do {ASSERT (get_trail S \<Turnstile>as CNot (clause C)); RETURN (set_conflicting C S)}
-              else do {RETURN (propagate_lit L' C S)}
-            else do {
-              update_clauseS L C S
-            }
-        }
+        else
+          if \<forall>L \<in># unwatched C. -L \<in> lits_of_l (get_trail S)
+          then
+            if -L' \<in> lits_of_l (get_trail S)
+            then do {mop_set_conflicting C S}
+            else do {mop_propagate_lit L' C S}
+          else do {
+            update_clauseS L C S
+          }
       }
-    })
-   \<close> unfolding unit_propagation_inner_loop_body_def bind_to_let_conv Let_def by (auto intro!: ext simp: )
+    }
+    })\<close>
+    unfolding unit_propagation_inner_loop_body_def bind_to_let_conv Let_def
+    by (auto intro!: ext simp: )
   have pos_of_watched: \<open>unit_propagation_inner_loop_body_l_inv L C
      (set_clauses_to_update_l (remove1_mset C (clauses_to_update_l S)) S) \<Longrightarrow> pos_of_watched
         (get_clauses_l
           (set_clauses_to_update_l (remove1_mset C (clauses_to_update_l S)) S))
         C L
-       \<le> SPEC (\<lambda>c. (c, i) \<in> {(j, j'). j = i \<and> j' = i})\<close>
+       \<le> SPEC (\<lambda>c. (c, i) \<in> {(j, j'). j = i \<and> j' = i \<and> i < 2})\<close>
     unfolding pos_of_watched_def
     by (auto simp: S unit_propagation_inner_loop_body_l_inv_def i_def
        intro!: ASSERT_leI)
@@ -1481,7 +1506,7 @@ proof -
     subgoal using SS' by auto
     subgoal using SS' by (auto simp: pol_spec_def)
     subgoal by (rule confl_rel)
-    subgoal for K bL' j j' L' L'a2 unfolding i_def[symmetric] op_clauses_at_def  i_def'[symmetric]
+    subgoal for K bL' j j' L' L'a2 L'a3 unfolding i_def[symmetric] op_clauses_at_def  i_def'[symmetric]
       by (rule propa_rel)
     subgoal by auto
     subgoal for L' K unfolding i_def[symmetric]  i_def'[symmetric] op_clauses_at_def Let_def
@@ -1827,13 +1852,18 @@ lemma unit_propagation_outer_loop_l_spec:
 proof -
   have H:
     \<open>select_and_remove_from_literals_to_update x
-       \<le> \<Down> {((S', L'), L). L = L' \<and>  S' = set_clauses_to_update_l (clause_to_update L x)
-              (set_literals_to_update_l (remove1_mset L (literals_to_update_l x)) x)}
-           (SPEC (\<lambda>L. L \<in># literals_to_update x'))\<close>
+       \<le> \<Down> {((S', L'), (L, S)). L = L' \<and>  S' = set_clauses_to_update_l (clause_to_update L x)
+              (set_literals_to_update_l (remove1_mset L (literals_to_update_l x)) x) \<and>
+             L' \<in># literals_to_update_l x \<and>
+             S = set_clauses_to_update {#(L, C)|C \<in># get_clauses x'. L \<in># watched C#}
+           (set_literals_to_update (literals_to_update x' - {#L#}) x')}
+           (mop_pop_literal_to_update x')\<close>
      if \<open>(x, x') \<in> twl_st_l None\<close> for x :: \<open>'v twl_st_l\<close> and x' :: \<open>'v twl_st\<close>
-    using that unfolding select_and_remove_from_literals_to_update_def
+    using that unfolding select_and_remove_from_literals_to_update_def mop_pop_literal_to_update_def
+      Let_def RES_RETURN_RES
     apply (cases x; cases x')
-    unfolding conc_fun_def by (clarsimp simp add: twl_st_l_def conc_fun_def)
+    apply refine_rcg
+    by (clarsimp simp add: twl_st_l_def intro!: RES_refine)
   have H': \<open>unit_propagation_outer_loop_l_inv T \<Longrightarrow>
     x2 \<in># literals_to_update_l T \<Longrightarrow> - x2 \<in> lits_of_l (get_trail_l T)\<close>
     for S S' T T' L L' C x2

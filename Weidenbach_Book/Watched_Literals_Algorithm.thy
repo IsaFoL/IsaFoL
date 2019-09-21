@@ -36,10 +36,13 @@ definition mop_propagate_lit :: \<open>'v literal \<Rightarrow> 'v twl_cls \<Rig
       RETURN (propagate_lit L' C S)})\<close>
 
 definition update_clauseS_pre  :: \<open>'v literal \<Rightarrow> 'v twl_cls \<Rightarrow> 'v twl_st \<Rightarrow> bool\<close> where
-  \<open>update_clauseS_pre L C S \<longleftrightarrow>  twl_struct_invs S \<and> twl_stgy_invs S\<close>
+  \<open>update_clauseS_pre L C S \<longleftrightarrow>
+   (let S = (set_clauses_to_update (add_mset (L, C) (clauses_to_update S)) S) in
+     L \<in># watched C \<and> C \<in># get_clauses S \<and> twl_struct_invs S \<and> twl_stgy_invs S)\<close>
 
 definition update_clauseS :: \<open>'v literal \<Rightarrow> 'v twl_cls \<Rightarrow> 'v twl_st \<Rightarrow> 'v twl_st nres\<close> where
   \<open>update_clauseS = (\<lambda>L C (M, N, U, D, NE, UE, WS, Q). do {
+        ASSERT(update_clauseS_pre L C (M, N, U, D, NE, UE, WS, Q));
         K \<leftarrow> SPEC (\<lambda>L. L \<in># unwatched C \<and> -L \<notin> lits_of_l M);
         if K \<in> lits_of_l M
         then RETURN (M, N, U, D, NE, UE, WS, Q)
@@ -124,13 +127,14 @@ proof -
     unfolding twl_struct_invs_def twl_st_inv.simps S
     by force+
   show ?fail
-    using uL_M x_WS inv inv_s
+    using uL_M x_WS inv inv_s \<open>C \<in># N + U\<close>
     unfolding unit_propagation_inner_loop_body_def Let_def S
     by (cases C)
       (use struct L_C in \<open>auto simp: refine_pw_simps S size_2_iff update_clauseS_def
        true_annots_true_cls_def_iff_negation_in_model mop_set_conflicting_def Let_def
        set_conflict_pre_def mop_propagate_lit_def propagate_lit_pre_def
-    intro!: exI[of _ L] exI[of _ C]\<close>)
+       update_clauseS_pre_def
+      intro!: exI[of _ L] exI[of _ C]\<close>)
 
   note [[goals_limit=15]]
   show ?spec
@@ -293,6 +297,9 @@ proof -
           apply clarify
         proof refine_vcg
           fix x xa a b
+          show \<open>update_clauseS_pre L C (M, N, U, D, NE, UE, remove1_mset (L, C) WS, Q)\<close>
+            using assms L_C \<open>C \<in># N + U\<close> unfolding update_clauseS_pre_def S Let_def
+            by auto
           assume K: \<open>x \<in># unwatched C \<and> - x \<notin> lits_of_l M\<close>
           have uL: \<open>- L \<in> lits_of_l M\<close>
             using inv unfolding twl_struct_invs_def S WS_WS' by auto
@@ -346,7 +353,7 @@ proof -
             using D WS_WS' cdcl by auto
           show \<open>(?T, S) \<in> measure (size \<circ> clauses_to_update)\<close>
             by (simp add: WS'_def[symmetric] WS_WS' S)
-
+         
         qed
         moreover assume \<open>\<not>?upd\<close>
         ultimately show \<open>- La \<in>
@@ -1277,7 +1284,7 @@ proof -
     moreover have False if \<open>cdcl_twl_o ?T' (an, ao, ap, aq, ar, as, at, b)\<close>
         for an ao ap aq ar as at b
         using that by (auto simp: cdcl_twl_o.simps propagate_bt_def)
-    ultimately show cdcl: 
+    ultimately show cdcl:
        \<open>cdcl_twl_o ?S (propagate_bt (lit_of (hd (get_trail ?S))) K ?U)\<close>
        \<open>get_conflict (propagate_bt (lit_of (hd (get_trail ?S))) K ?U) = None\<close>
        \<open>twl_struct_invs (propagate_bt (lit_of (hd (get_trail ?S))) K ?U)\<close>
@@ -1299,7 +1306,7 @@ proof -
 
       have i_0: \<open>i = 0\<close>
         using i_def by (auto simp: D')
- 
+
       have cdcl: \<open>cdcl_twl_o (M, N, U, D, NE, UE, WS, Q) ?T'\<close>
         unfolding D' option.sel WS Q apply (subst D_Some_the)
         apply (rule cdcl_twl_o.backtrack_unit_clause[of _ \<open>the D\<close> K' M1 M2 _ D' i])
@@ -1323,7 +1330,7 @@ proof -
         using S cdcl cdcl_twl_o_twl_stgy_invs twl_struct twl_stgy by blast
       moreover have \<open>clauses_to_update ?T' = {#}\<close>
         using WS by (auto simp add: propagate_unit_bt_def)
-      ultimately show cdcl: 
+      ultimately show cdcl:
        \<open>cdcl_twl_o ?S (propagate_unit_bt (lit_of (hd (get_trail ?S))) ?U)\<close>
        \<open>get_conflict (propagate_unit_bt (lit_of (hd (get_trail ?S))) ?U) = None\<close>
        \<open>twl_struct_invs (propagate_unit_bt (lit_of (hd (get_trail ?S))) ?U)\<close>
