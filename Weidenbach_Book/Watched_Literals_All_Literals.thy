@@ -55,6 +55,10 @@ lemma all_lits_of_m_mono:
   \<open>D \<subseteq># D' \<Longrightarrow> all_lits_of_m D \<subseteq># all_lits_of_m D'\<close>
   by (auto elim!: mset_le_addE simp: all_lits_of_m_union)
 
+lemma all_lits_of_m_diffD: \<open>x \<in># all_lits_of_m (D - D') \<Longrightarrow> x \<in># all_lits_of_m D\<close>
+  by (auto simp: all_lits_of_m_def dest: in_diffD)
+  
+
 lemma in_all_lits_of_mm_uminusD: \<open>x2 \<in># all_lits_of_mm N \<Longrightarrow> -x2 \<in># all_lits_of_mm N\<close>
   by (auto simp: all_lits_of_mm_def)
 

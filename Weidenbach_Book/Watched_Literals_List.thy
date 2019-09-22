@@ -2139,7 +2139,8 @@ definition mop_hd_trail_l :: \<open>'v twl_st_l \<Rightarrow> ('v literal \<time
 
 definition mop_lit_notin_conflict_l :: \<open>'v literal \<Rightarrow> 'v twl_st_l \<Rightarrow> bool nres\<close> where
   \<open>mop_lit_notin_conflict_l L S = do {
-    ASSERT(get_conflict_l S \<noteq> None \<and> -L \<notin># the (get_conflict_l S));
+    ASSERT(get_conflict_l S \<noteq> None \<and> -L \<notin># the (get_conflict_l S) \<and>
+         L \<in># all_lits_of_mm (mset `# ran_mf (get_clauses_l S) + get_unit_clauses_l S));
     RETURN (L \<notin># the (get_conflict_l S))
   }\<close>
 
@@ -2394,6 +2395,8 @@ proof -
     subgoal
       by auto
     subgoal
+      by (auto simp: mset_take_mset_drop_mset')
+    subgoal
       by auto
     done
 
@@ -2586,15 +2589,22 @@ definition backtrack_l_inv where
   \<open>backtrack_l_inv S \<longleftrightarrow>
     (\<exists>S'. (S, S') \<in> twl_st_l None \<and>
       backtrack_inv S' \<and>
-      twl_list_invs S)
+      twl_list_invs S \<and>
+      literals_to_update_l S = {#})
   \<close>
 
 definition get_fresh_index :: \<open>'v clauses_l \<Rightarrow> nat nres\<close> where
 \<open>get_fresh_index N = SPEC(\<lambda>i. i > 0 \<and> i \<notin># dom_m N)\<close>
 
+definition propagate_bt_l_pre where
+  \<open>propagate_bt_l_pre L L' S \<longleftrightarrow>
+    (\<exists>S'. (S, S') \<in> twl_st_l None \<and> propagate_bt_pre L L' S')\<close>
+
 definition propagate_bt_l :: \<open>'v literal \<Rightarrow> 'v literal \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close> where
   \<open>propagate_bt_l = (\<lambda>L L' (M, N, D, NE, UE, WS, Q). do {
+    ASSERT(propagate_bt_l_pre L L' (M, N, D, NE, UE, WS, Q));
     ASSERT(L \<in># all_lits_of_mm (mset `# ran_mf N + (NE + UE)));
+    ASSERT(L' \<in># all_lits_of_mm (mset `# ran_mf N + (NE + UE)));
     D'' \<leftarrow> list_of_mset (the D);
     i \<leftarrow> get_fresh_index N;
     M \<leftarrow> cons_trail_propagate_l (-L) i M;
@@ -2603,9 +2613,14 @@ definition propagate_bt_l :: \<open>'v literal \<Rightarrow> 'v literal \<Righta
           None, NE, UE, WS, {#L#})
       })\<close>
 
+definition propagate_unit_bt_l_pre where
+  \<open>propagate_unit_bt_l_pre L S \<longleftrightarrow>
+     (\<exists>S'. (S, S') \<in> twl_st_l None \<and> propagate_unit_bt_pre L S')\<close>
+
 definition propagate_unit_bt_l :: \<open>'v literal \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close> where
   \<open>propagate_unit_bt_l = (\<lambda>L (M, N, D, NE, UE, WS, Q). do {
     ASSERT(L \<in># all_lits_of_mm (mset `# ran_mf N + (NE + UE)));
+    ASSERT(propagate_unit_bt_l_pre L (M, N, D, NE, UE, WS, Q));
     M \<leftarrow> cons_trail_propagate_l (-L) 0 M;
     RETURN (M, N, None, NE, add_mset (the D) UE, WS, {#L#})})\<close>
 
@@ -2735,6 +2750,9 @@ proof -
      mop_propagate_bt_def list_of_mset_def
      get_fresh_index_def cons_trail_propagate_l_def
     apply refine_vcg
+    subgoal unfolding propagate_bt_l_pre_def by fast
+    subgoal by (auto simp: propagate_bt_pre_def twl_st_l_def
+       mset_take_mset_drop_mset' simp flip: image_mset_union)
     subgoal by (auto simp: propagate_bt_pre_def twl_st_l_def
        mset_take_mset_drop_mset' simp flip: image_mset_union)
     subgoal by (auto simp: propagate_bt_pre_def twl_st_l_def
@@ -2760,6 +2778,8 @@ proof -
     unfolding propagate_unit_bt_l_def
      mop_propagate_unit_bt_def cons_trail_propagate_l_def
     apply refine_vcg
+    subgoal by (auto simp: propagate_unit_bt_pre_def twl_st_l_def
+       mset_take_mset_drop_mset' simp flip: image_mset_union)
     subgoal by (auto simp: propagate_unit_bt_pre_def twl_st_l_def
        mset_take_mset_drop_mset' simp flip: image_mset_union)
     subgoal by (auto simp: propagate_unit_bt_pre_def twl_st_l_def

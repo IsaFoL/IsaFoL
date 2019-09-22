@@ -714,7 +714,8 @@ definition mop_update_confl_tl :: \<open>'v literal \<Rightarrow> 'v clause \<Ri
 
 definition mop_lit_notin_conflict :: \<open>'v literal \<Rightarrow> 'v twl_st \<Rightarrow> bool nres\<close> where
   \<open>mop_lit_notin_conflict L S = do {
-    ASSERT(get_conflict S \<noteq> None \<and> -L \<notin># the (get_conflict S));
+    ASSERT(get_conflict S \<noteq> None \<and> -L \<notin># the (get_conflict S)\<and>
+         L \<in># all_lits_of_mm (clauses (get_clauses S) + unit_clss S));
     RETURN (L \<notin># the (get_conflict S))
   }\<close>
 
@@ -837,7 +838,8 @@ proof (refine_vcg WHILEIT_rule[where R = \<open>measure (\<lambda>(brk, S). Suc 
      by (auto simp: T D)
 
   have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting (state\<^sub>W_of T)\<close> and
-       \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv (state\<^sub>W_of T)\<close>
+       \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv (state\<^sub>W_of T)\<close> and
+       alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of T)\<close>
     using twl D D' M unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
     by fast+
   then have \<open>M \<Turnstile>as CNot D'\<close> and n_d: \<open>no_dup M\<close> and
@@ -848,6 +850,11 @@ proof (refine_vcg WHILEIT_rule[where R = \<open>measure (\<lambda>(brk, S). Suc 
     by (auto simp add: cdcl\<^sub>W_restart_mset_state T D)
   then show \<open>- (- L) \<notin># the (get_conflict T)\<close>
     using M by (auto simp: T D dest!: multi_member_split uminus_lits_of_l_definedD)
+  show alien_L: \<open>- L  \<in># all_lits_of_mm (clauses (get_clauses T) + unit_clss T)\<close>
+    using alien M
+    by (cases T)
+      (auto simp: cdcl\<^sub>W_restart_mset.no_strange_atm_def
+        cdcl\<^sub>W_restart_mset_state in_all_lits_of_mm_ain_atms_of_iff)
 
   { \<comment> \<open>skip\<close>
     assume LD: \<open>- L \<notin># the (get_conflict T)\<close>
@@ -1038,7 +1045,11 @@ definition propagate_bt_pre :: \<open>'v literal \<Rightarrow> 'v literal \<Righ
     L \<noteq> -L' \<and>
     get_level (M) L' = get_maximum_level (M) (D - {#-L#}) \<and>
     undefined_lit M L \<and>
-    L \<in># all_lits_of_mm (clauses (N + U) + (NE + UE)))\<close>
+    L \<in># all_lits_of_mm (clauses (N + U) + (NE + UE)) \<and>
+    L' \<in># all_lits_of_mm (clauses (N + U) + (NE + UE)) \<and>
+    (set_mset (all_lits_of_m D) \<subseteq>
+       set_mset (all_lits_of_mm
+              (clauses (N + U) + (NE + UE)))))\<close>
 
 definition propagate_bt :: \<open>'v literal \<Rightarrow> 'v literal \<Rightarrow> 'v twl_st \<Rightarrow> 'v twl_st\<close> where
   \<open>propagate_bt = (\<lambda>L L' (M, N, U, D, NE, UE, WS, Q). do {
@@ -1173,7 +1184,7 @@ proof -
       S: \<open>S = (M, N, U, D, NE, UE, WS, Q)\<close>
     show \<open>extract_shorter_conflict_pre (M, N, U, D, NE, UE, WS, Q)\<close>
       using assms trail unfolding S extract_shorter_conflict_pre_def by auto
-  have \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of S)\<close> and
+  have alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of S)\<close> and
     \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv (state\<^sub>W_of S)\<close>
     using inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def by fast+
   then have alien_L: \<open>lit_of (hd M) \<in># all_lits_of_mm (clauses N + clauses U + (NE + UE))\<close>
@@ -1307,7 +1318,7 @@ proof -
       K_D: \<open>K \<in># remove1_mset (- lit_of (hd ?MS)) (the (get_conflict ?U))\<close> and
       lev_K: \<open>get_level (get_trail ?U) K = get_maximum_level (get_trail ?U)
           (remove1_mset (- lit_of (hd (get_trail ?S))) (the (get_conflict ?U)))\<close>
-      have \<open>lit_of (hd M) \<noteq> - K\<close>
+      have neq: \<open>lit_of (hd M) \<noteq> - K\<close>
         using dist K_D D'_D L_D' distinct_mset_mono[OF D'_D]
         by (auto simp: S conflicting.simps M distinct_mset_remove1_All)
       moreover have \<open>undefined_lit M1 (lit_of (hd (get_trail ?S)))\<close>
@@ -1318,6 +1329,18 @@ proof -
         done
       moreover have \<open>lit_of (hd (get_trail ?S)) \<in># all_lits_of_mm (clauses (N + U) + (NE + UE))\<close>
         using alien_L by (auto simp: M)
+      moreover have \<open>K \<in># all_lits_of_mm (clauses N + clauses U + (NE + UE))\<close>
+        using alien  neq  mset_subset_eqD[OF D'_D in_diffD[OF K_D,
+            unfolded get_conflict.simps option.sel]] assms(1)
+        unfolding cdcl\<^sub>W_restart_mset.no_strange_atm_def
+        by (auto simp: S cdcl\<^sub>W_restart_mset_state in_all_lits_of_mm_ain_atms_of_iff
+          dest!: multi_member_split)
+      moreover have \<open>set_mset (all_lits_of_m D') \<subseteq>
+         set_mset (all_lits_of_mm   (clauses (N + U) + (NE + UE)))\<close>
+        using alien assms(1) atms_of_subset_mset_mono[OF D'_D]
+        unfolding cdcl\<^sub>W_restart_mset.no_strange_atm_def
+        by (fastforce simp: S cdcl\<^sub>W_restart_mset_state in_all_lits_of_mm_ain_atms_of_iff
+             in_all_lits_of_m_ain_atms_of_iff)
       ultimately show \<open>propagate_bt_pre (lit_of (hd (get_trail ?S))) K ?U\<close>
         using \<open>the D \<noteq> {#}\<close> assms D'_D D'_empty L'_D K_D uL'_D lev_K
            get_all_ann_decomposition_exists_prepend[OF decomp] uL_D
@@ -1458,7 +1481,7 @@ proof -
         apply auto
         done
       then show \<open>propagate_unit_bt_pre (lit_of (hd (get_trail ?S))) ?U\<close>
-        using \<open>the D \<noteq> {#}\<close> assms D'_D D'_empty L'_D uL'_D alien_L
+        using \<open>the D \<noteq> {#}\<close> assms D'_D D'_empty L'_D uL'_D alien_L cdcl
            get_all_ann_decomposition_exists_prepend[OF decomp] uL_D
         unfolding propagate_unit_bt_pre_def S
         by (auto simp: L_D' D' intro!: exI[of _ \<open>take (length M - length M1) M\<close>]
