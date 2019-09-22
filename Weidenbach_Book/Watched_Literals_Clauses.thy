@@ -1,5 +1,5 @@
 theory Watched_Literals_Clauses
-imports WB_More_Refinement_List  Watched_Literals_Algorithm
+imports WB_More_Refinement_List Watched_Literals_Transition_System
 begin
 
 type_synonym 'v clause_l = \<open>'v literal list\<close>
@@ -361,68 +361,5 @@ lemma mop_clauses_swap_itself_spec2:
   by (auto intro!: frefI nres_relI ASSERT_refine_right simp: mop_clauses_swap_def
     op_clauses_swap_def)
 
-
-definition all_lits_of_mm :: \<open>'a clauses \<Rightarrow> 'a literal multiset\<close> where
-\<open>all_lits_of_mm Ls = Pos `# (atm_of `# (\<Union># Ls)) + Neg `# (atm_of `# (\<Union># Ls))\<close>
-
-lemma all_lits_of_mm_empty[simp]: \<open>all_lits_of_mm {#} = {#}\<close>
-  by (auto simp: all_lits_of_mm_def)
-lemma in_all_lits_of_mm_ain_atms_of_iff:
-  \<open>L \<in># all_lits_of_mm N \<longleftrightarrow> atm_of L \<in> atms_of_mm N\<close>
-  by (cases L) (auto simp: all_lits_of_mm_def atms_of_ms_def atms_of_def)
-
-lemma all_lits_of_mm_union:
-  \<open>all_lits_of_mm (M + N) = all_lits_of_mm M + all_lits_of_mm N\<close>
-  unfolding all_lits_of_mm_def by auto
-
-definition all_lits_of_m :: \<open>'a clause \<Rightarrow> 'a literal multiset\<close> where
-  \<open>all_lits_of_m Ls = Pos `# (atm_of `# Ls) + Neg `# (atm_of `# Ls)\<close>
-
-lemma all_lits_of_m_empty[simp]: \<open>all_lits_of_m {#} = {#}\<close>
-  by (auto simp: all_lits_of_m_def)
-
-lemma all_lits_of_m_empty_iff[iff]: \<open>all_lits_of_m A = {#} \<longleftrightarrow> A = {#}\<close>
-  by (cases A) (auto simp: all_lits_of_m_def)
-
-lemma in_all_lits_of_m_ain_atms_of_iff: \<open>L \<in># all_lits_of_m N \<longleftrightarrow> atm_of L \<in> atms_of N\<close>
-  by (cases L) (auto simp: all_lits_of_m_def atms_of_ms_def atms_of_def)
-
-lemma in_clause_in_all_lits_of_m: \<open>x \<in># C \<Longrightarrow> x \<in># all_lits_of_m C\<close>
-  using atm_of_lit_in_atms_of in_all_lits_of_m_ain_atms_of_iff by blast
-
-lemma all_lits_of_mm_add_mset:
-  \<open>all_lits_of_mm (add_mset C N) = (all_lits_of_m C) + (all_lits_of_mm N)\<close>
-  by (auto simp: all_lits_of_mm_def all_lits_of_m_def)
-
-lemma all_lits_of_m_add_mset:
-  \<open>all_lits_of_m (add_mset L C) = add_mset L (add_mset (-L) (all_lits_of_m C))\<close>
-  by (cases L) (auto simp: all_lits_of_m_def)
-
-lemma all_lits_of_m_union:
-  \<open>all_lits_of_m (A + B) = all_lits_of_m A + all_lits_of_m B\<close>
-  by (auto simp: all_lits_of_m_def)
-
-lemma all_lits_of_m_mono:
-  \<open>D \<subseteq># D' \<Longrightarrow> all_lits_of_m D \<subseteq># all_lits_of_m D'\<close>
-  by (auto elim!: mset_le_addE simp: all_lits_of_m_union)
-
-lemma in_all_lits_of_mm_uminusD: \<open>x2 \<in># all_lits_of_mm N \<Longrightarrow> -x2 \<in># all_lits_of_mm N\<close>
-  by (auto simp: all_lits_of_mm_def)
-
-lemma in_all_lits_of_mm_uminus_iff: \<open>-x2 \<in># all_lits_of_mm N \<longleftrightarrow> x2 \<in># all_lits_of_mm N\<close>
-  by (cases x2) (auto simp: all_lits_of_mm_def)
-
-lemma all_lits_of_mm_diffD:
-  \<open>L \<in># all_lits_of_mm (A - B) \<Longrightarrow> L \<in># all_lits_of_mm A\<close>
-  apply (induction A arbitrary: B)
-  subgoal by auto
-  subgoal for a A' B
-    by (cases \<open>a \<in># B\<close>)
-      (fastforce dest!: multi_member_split[of a B] simp: all_lits_of_mm_add_mset)+
-  done
-
-lemma all_lits_of_mm_mono:
-  \<open>set_mset A \<subseteq> set_mset B \<Longrightarrow> set_mset (all_lits_of_mm A) \<subseteq> set_mset (all_lits_of_mm B)\<close>
-  by (auto simp: all_lits_of_mm_def)
 
 end
