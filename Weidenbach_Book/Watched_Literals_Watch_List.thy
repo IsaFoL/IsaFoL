@@ -1529,7 +1529,6 @@ definition unit_propagation_inner_loop_body_wl_int :: \<open>'v literal \<Righta
       }
    }\<close>
 
-
 definition propagate_proper_bin_case where
   \<open>propagate_proper_bin_case L L' S C \<longleftrightarrow>
     C \<in># dom_m (get_clauses_wl S) \<and> length ((get_clauses_wl S)\<propto>C) = 2 \<and>
@@ -1780,81 +1779,6 @@ proof -
   then show ?thesis
     unfolding clause_to_update_def
     by auto
-qed
-
-lemma unit_propagation_inner_loop_body_l_with_skip_alt_def:
-  \<open>unit_propagation_inner_loop_body_l_with_skip L (S', n) = do {
-      ASSERT (clauses_to_update_l S' \<noteq> {#} \<or> 0 < n);
-      ASSERT (unit_propagation_inner_loop_l_inv L (S', n));
-      let _ = ();
-      b \<leftarrow> SPEC (\<lambda>b. (b \<longrightarrow> 0 < n) \<and> (\<not> b \<longrightarrow> clauses_to_update_l S' \<noteq> {#}));
-      let S' = S';
-      let b = b;
-      if \<not> b
-      then do {
-        ASSERT (clauses_to_update_l S' \<noteq> {#});
-        X2 \<leftarrow> select_from_clauses_to_update S';
-        ASSERT (unit_propagation_inner_loop_body_l_inv L (snd X2) (fst X2));
-        x \<leftarrow> SPEC (\<lambda>K. K \<in> set (get_clauses_l (fst X2) \<propto> snd X2));
-        v \<leftarrow> mop_polarity_l (fst X2) x;
-        if v = Some True then let T = fst X2 in RETURN (T, if get_conflict_l T = None then n else 0)
-        else do {
-          v \<leftarrow> pos_of_watched (get_clauses_l (fst X2)) (snd X2) L;
-          va \<leftarrow> mop_clauses_at (get_clauses_l (fst X2)) (snd X2) (1 - v);
-          vaa \<leftarrow> mop_polarity_l (fst X2) va;
-          if vaa = Some True
-	  then let T = fst X2 in RETURN (T, if get_conflict_l T = None then n else 0)
-          else do {
-             x \<leftarrow> find_unwatched_l (get_trail_l (fst X2)) (get_clauses_l (fst X2)) (snd X2);
-             case x of
-             None \<Rightarrow>
-               if vaa = Some False
-               then do { T \<leftarrow> set_conflict_l (snd X2) (fst X2);
-                    RETURN (T, if get_conflict_l T = None then n else 0) }
-               else do { T \<leftarrow> propagate_lit_l va (snd X2) v (fst X2);
-                     RETURN (T, if get_conflict_l T = None then n else 0)}
-             | Some a \<Rightarrow> do {
-                   x \<leftarrow> ASSERT (a < length (get_clauses_l (fst X2) \<propto> snd X2));
-                   K \<leftarrow> mop_clauses_at (get_clauses_l (fst X2)) (snd X2) a;
-                   val_K \<leftarrow> mop_polarity_l (fst X2) K;
-                   if val_K = Some True
-                   then let T = fst X2 in RETURN (T, if get_conflict_l T = None then n else 0)
-                   else do {
-                          T \<leftarrow> update_clause_l (snd X2) v a (fst X2);
-                          RETURN (T, if get_conflict_l T = None then n else 0)
-                        }
-                 }
-            }
-        }
-      }
-      else RETURN (S', n - 1)
-    }\<close>
-proof -
-  have remove_pairs: \<open>do {(x2, x2') \<leftarrow> (b0 :: _ nres); F x2 x2'} =
-        do {X2 \<leftarrow> b0; F (fst X2) (snd X2)}\<close> for T a0 b0 a b c f t F
-    by (meson case_prod_unfold)
-
-  have H1: \<open>do {T \<leftarrow> do {x \<leftarrow> a ; b x}; RETURN (f T)} =
-        do {x \<leftarrow> a; T \<leftarrow> b x; RETURN (f T)}\<close> for T a0 b0 a b c f t
-    by auto
-  have H2: \<open>do{T \<leftarrow> let v = val in g v; (f T :: _ nres)} =
-         do{let v = val; T \<leftarrow> g v; f T} \<close> for g f T val
-    by auto
-  have H3: \<open>do{T \<leftarrow> if b then g else g'; (f T :: _ nres)} =
-         (if b then do{T \<leftarrow> g; f T} else do{T \<leftarrow> g'; f T}) \<close> for g g' f T b
-    by auto
-  have H4: \<open>do{T \<leftarrow> case x of None \<Rightarrow> g | Some a \<Rightarrow> g' a; (f T :: _ nres)} =
-         (case x of None \<Rightarrow> do{T \<leftarrow> g; f T} | Some a \<Rightarrow> do{T \<leftarrow> g' a; f T}) \<close> for g g' f T b x
-    by (cases x) auto
-  show ?thesis
-    apply (subst Let_def)
-    apply (subst Let_def)
-    apply (subst Let_def)
-    apply (subst Let_def)
-    unfolding unit_propagation_inner_loop_body_l_with_skip_def prod.case
-      unit_propagation_inner_loop_body_l_def remove_pairs
-    unfolding H1 H2 H3 H4 bind_to_let_conv
-    by (intro bind_cong[OF refl] if_cong refl option.case_cong) auto
 qed
 
 lemma keep_watch_st_wl[twl_st_wl]:
@@ -2342,6 +2266,83 @@ lemma blits_in_\<L>\<^sub>i\<^sub>n_keep_watch2: \<open>w < length (watched_by S
   using nth_mem[of w \<open>(watched_by S L)\<close>]
   by (auto elim!: in_set_upd_cases simp: eq_commute[of _ \<open>_ ! w\<close>] simp del: nth_mem
      dest!: multi_member_split)
+
+
+lemma unit_propagation_inner_loop_body_l_with_skip_alt_def:
+  \<open>unit_propagation_inner_loop_body_l_with_skip L (S', n) = do {
+      ASSERT (clauses_to_update_l S' \<noteq> {#} \<or> 0 < n);
+      ASSERT (unit_propagation_inner_loop_l_inv L (S', n));
+      let _ = ();
+      b \<leftarrow> SPEC (\<lambda>b. (b \<longrightarrow> 0 < n) \<and> (\<not> b \<longrightarrow> clauses_to_update_l S' \<noteq> {#}));
+      let S' = S';
+      let b = b;
+      if \<not> b
+      then do {
+        ASSERT (clauses_to_update_l S' \<noteq> {#});
+        X2 \<leftarrow> select_from_clauses_to_update S';
+        ASSERT (unit_propagation_inner_loop_body_l_inv L (snd X2) (fst X2));
+        x \<leftarrow> SPEC (\<lambda>K. K \<in> set (get_clauses_l (fst X2) \<propto> snd X2));
+        v \<leftarrow> mop_polarity_l (fst X2) x;
+        if v = Some True then let T = fst X2 in RETURN (T, if get_conflict_l T = None then n else 0)
+        else do {
+          v \<leftarrow> pos_of_watched (get_clauses_l (fst X2)) (snd X2) L;
+          va \<leftarrow> mop_clauses_at (get_clauses_l (fst X2)) (snd X2) (1 - v);
+          vaa \<leftarrow> mop_polarity_l (fst X2) va;
+          if vaa = Some True
+         then let T = fst X2 in RETURN (T, if get_conflict_l T = None then n else 0)
+          else do {
+             x \<leftarrow> find_unwatched_l (get_trail_l (fst X2)) (get_clauses_l (fst X2)) (snd X2);
+             case x of
+             None \<Rightarrow>
+               if vaa = Some False
+               then do { T \<leftarrow> set_conflict_l (snd X2) (fst X2);
+                    RETURN (T, if get_conflict_l T = None then n else 0) }
+               else do { T \<leftarrow> propagate_lit_l va (snd X2) v (fst X2);
+                     RETURN (T, if get_conflict_l T = None then n else 0)}
+             | Some a \<Rightarrow> do {
+                   x \<leftarrow> ASSERT (a < length (get_clauses_l (fst X2) \<propto> snd X2));
+                   K \<leftarrow> mop_clauses_at (get_clauses_l (fst X2)) (snd X2) a;
+                   val_K \<leftarrow> mop_polarity_l (fst X2) K;
+                   if val_K = Some True
+                   then let T = fst X2 in RETURN (T, if get_conflict_l T = None then n else 0)
+                   else do {
+                          T \<leftarrow> update_clause_l (snd X2) v a (fst X2);
+                          RETURN (T, if get_conflict_l T = None then n else 0)
+                        }
+                 }
+            }
+        }
+      }
+      else RETURN (S', n - 1)
+    }\<close>
+proof -
+  have remove_pairs: \<open>do {(x2, x2') \<leftarrow> (b0 :: _ nres); F x2 x2'} =
+        do {X2 \<leftarrow> b0; F (fst X2) (snd X2)}\<close> for T a0 b0 a b c f t F
+    by (meson case_prod_unfold)
+
+  have H1: \<open>do {T \<leftarrow> do {x \<leftarrow> a ; b x}; RETURN (f T)} =
+        do {x \<leftarrow> a; T \<leftarrow> b x; RETURN (f T)}\<close> for T a0 b0 a b c f t
+    by auto
+  have H2: \<open>do{T \<leftarrow> let v = val in g v; (f T :: _ nres)} =
+         do{let v = val; T \<leftarrow> g v; f T} \<close> for g f T val
+    by auto
+  have H3: \<open>do{T \<leftarrow> if b then g else g'; (f T :: _ nres)} =
+         (if b then do{T \<leftarrow> g; f T} else do{T \<leftarrow> g'; f T}) \<close> for g g' f T b
+    by auto
+  have H4: \<open>do{T \<leftarrow> case x of None \<Rightarrow> g | Some a \<Rightarrow> g' a; (f T :: _ nres)} =
+         (case x of None \<Rightarrow> do{T \<leftarrow> g; f T} | Some a \<Rightarrow> do{T \<leftarrow> g' a; f T}) \<close> for g g' f T b x
+    by (cases x) auto
+  show ?thesis
+    apply (subst Let_def)
+    apply (subst Let_def)
+    apply (subst Let_def)
+    apply (subst Let_def)
+    unfolding unit_propagation_inner_loop_body_l_with_skip_def prod.case
+      unit_propagation_inner_loop_body_l_def remove_pairs
+    unfolding H1 H2 H3 H4 bind_to_let_conv
+    by (intro bind_cong[OF refl] if_cong refl option.case_cong) auto
+qed
+
 
 lemma
   fixes S :: \<open>'v twl_st_wl\<close> and S' :: \<open>'v twl_st_l\<close> and L :: \<open>'v literal\<close> and w :: nat
@@ -3260,6 +3261,7 @@ proof -
        using fx' Ka i by auto
     have update_clause_l_alt_def:
       \<open>update_clause_l = (\<lambda>C i f (M, N, D, NE, UE, WS, Q). do {
+           ASSERT (update_clause_l_pre  C i f (M, N, D, NE, UE, WS, Q));
            K \<leftarrow> RETURN (op_clauses_at N C f);
            N' \<leftarrow> mop_clauses_swap N C i f;
            RETURN (M, N', D, NE, UE, WS, Q)
