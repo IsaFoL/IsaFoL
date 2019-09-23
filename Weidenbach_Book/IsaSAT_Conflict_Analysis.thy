@@ -241,13 +241,11 @@ definition (in -) get_max_lvl_st :: \<open>nat twl_st_wl \<Rightarrow> nat liter
   \<open>get_max_lvl_st S L = get_maximum_level_remove (get_trail_wl S) (the (get_conflict_wl S)) L\<close>
 
 definition update_confl_tl_wl_heur
-  :: \<open>nat \<Rightarrow> nat literal \<Rightarrow> twl_st_wl_heur \<Rightarrow> (bool \<times> twl_st_wl_heur) nres\<close>
+  :: \<open>nat literal \<Rightarrow> nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> (bool \<times> twl_st_wl_heur) nres\<close>
 where
-  \<open>update_confl_tl_wl_heur = (\<lambda>C L (M, N, (b, (n, xs)), Q, W, vm, \<phi>, clvls, cach, lbd, outl, stats). do {
+  \<open>update_confl_tl_wl_heur = (\<lambda>L C (M, N, (b, (n, xs)), Q, W, vm, \<phi>, clvls, cach, lbd, outl, stats). do {
       ASSERT (clvls \<ge> 1);
       let L' = atm_of L;
-      ASSERT(arena_length N C \<noteq> 2 \<longrightarrow>
-        curry6 isa_set_lookup_conflict_aa_pre M N C (b, (n, xs)) clvls lbd outl);
       ASSERT(arena_is_valid_clause_idx N C);
       ((b, (n, xs)), clvls, lbd, outl) \<leftarrow>
         if arena_length N C = 2 then isasat_lookup_merge_eq2 L M N C (b, (n, xs)) clvls lbd outl
@@ -277,8 +275,8 @@ lemma update_confl_tl_wl_heur_state_helper:
 lemma (in -) not_ge_Suc0: \<open>\<not>Suc 0 \<le> n \<longleftrightarrow> n = 0\<close> (* WTF *)
   by auto
 
-definition update_confl_tl_wl_pre where
-  \<open>update_confl_tl_wl_pre = (\<lambda>((C, L), S).
+definition update_confl_tl_wl_pre' :: \<open>((nat literal \<times> nat) \<times> nat twl_st_wl) \<Rightarrow> bool\<close> where
+  \<open>update_confl_tl_wl_pre' = (\<lambda>((L, C), S).
       C \<in># dom_m (get_clauses_wl S) \<and>
       get_conflict_wl S \<noteq> None \<and> get_trail_wl S \<noteq> [] \<and>
       - L \<in># the (get_conflict_wl S) \<and>
@@ -303,6 +301,22 @@ definition update_confl_tl_wl_pre where
       literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st S) S \<and>
       literals_are_in_\<L>\<^sub>i\<^sub>n_trail (all_atms_st S) (get_trail_wl S)
     )\<close>
+
+lemma
+   assumes \<open>update_confl_tl_wl_pre L C S\<close>
+   shows \<open>update_confl_tl_wl_pre' ((L, C), S)\<close>
+proof -
+
+  show ?thesis using assms
+    unfolding update_confl_tl_wl_pre_def update_confl_tl_wl_pre'_def
+    update_confl_tl_l_pre_def update_confl_tl_pre_def
+    prod.case apply -
+    apply normalize_goal+
+    apply (simp flip: all_lits_def  add: mset_take_mset_drop_mset' \<L>\<^sub>a\<^sub>l\<^sub>l_all_atms_all_lits)
+oops
+find_theorems \<L>\<^sub>a\<^sub>l\<^sub>l all_lits
+
+
 
 lemma (in -)out_learned_add_mset_highest_level:
    \<open>L = lit_of (hd M) \<Longrightarrow> out_learned M (Some (add_mset (- L) A)) outl \<longleftrightarrow>
@@ -329,31 +343,52 @@ lemma literals_are_in_\<L>\<^sub>i\<^sub>n_mm_all_atms_self[simp]:
     all_atms_def all_lits_def in_all_lits_of_mm_ain_atms_of_iff)
 
 lemma update_confl_tl_wl_heur_update_confl_tl_wl:
-  \<open>(uncurry2 (update_confl_tl_wl_heur), uncurry2 (RETURN ooo update_confl_tl_wl)) \<in>
-  [update_confl_tl_wl_pre]\<^sub>f
-   nat_rel \<times>\<^sub>f Id \<times>\<^sub>f twl_st_heur_conflict_ana' r \<rightarrow> \<langle>bool_rel \<times>\<^sub>f twl_st_heur_conflict_ana' r\<rangle>nres_rel\<close>
+  \<open>(uncurry2 (update_confl_tl_wl_heur), uncurry2 mop_update_confl_tl_wl) \<in>
+  [\<lambda>_. True]\<^sub>f
+   Id \<times>\<^sub>f nat_rel \<times>\<^sub>f twl_st_heur_conflict_ana' r \<rightarrow> \<langle>bool_rel \<times>\<^sub>f twl_st_heur_conflict_ana' r\<rangle>nres_rel\<close>
 proof -
 
-  have H: \<open>isa_resolve_merge_conflict_gt2 ba c a (aa, ab, bb) i k ag
+ show ?thesis
+    supply [[goals_limit = 2]]
+    supply RETURN_as_SPEC_refine[refine2 del]
+    apply (intro frefI nres_relI)
+    subgoal for CLS' CLS
+      unfolding uncurry_def update_confl_tl_wl_heur_def comp_def
+        update_confl_tl_wl_def mop_update_confl_tl_wl_def
+      apply (refine_rcg lhs_step_If specify_left; remove_dummy_vars)
+      subgoal
+        by (auto simp: twl_st_heur_conflict_ana_def update_confl_tl_wl_pre_def
+            RES_RETURN_RES RETURN_def counts_maximum_level_def)
+      subgoal for x1a x2 x1b x1c x1d x1e x1f x1g x2g x1i x2h x1j x1k x1m x1n x2m x1o x1p
+       x1q x1r x1s x1t x1u x1v x2v
+       unfollding update_confl_tl_wl_pre_def
+explore_have
+        by (rule isa_set_lookup_conflict_aa_pre)
+      subgoal by (rule valid)
+      subgoal by (rule isasat_lookup_merge_eq2)
+      subgoal by (rule H)
+      done
+    done
+  have H: \<open>isa_resolve_merge_conflict_gt2 ba c b (aa, ab, bb) i k ag
         \<le> SPEC
           (\<lambda>x. (case x of
                 (x, xa) \<Rightarrow>
                   (case x of
                     (bb, n, xs) \<Rightarrow>
                       \<lambda>(clvls, lbd, outl). do {
-                          _ \<leftarrow> ASSERT (curry lookup_conflict_remove1_pre b (n, xs) \<and>
+                          _ \<leftarrow> ASSERT (curry lookup_conflict_remove1_pre a (n, xs) \<and>
                              1 \<le> clvls);
-                          let (n, xs) = lookup_conflict_remove1 b (n, xs);
-                          ASSERT (arena_act_pre c a);
-                          let c = mark_used c a;
-                          ASSERT (arena_act_pre c a);
-                          let c = arena_incr_act c a;
-                          ASSERT(vmtf_unset_pre (atm_of b) ivmtf);
+                          let (n, xs) = lookup_conflict_remove1 a (n, xs);
+                          ASSERT (arena_act_pre c b);
+                          let c = mark_used c b;
+                          ASSERT (arena_act_pre c b);
+                          let c = arena_incr_act c b;
+                          ASSERT(vmtf_unset_pre (atm_of a) ivmtf);
 			  ASSERT(tl_trailt_tr_pre ba);
                           RETURN
-                            (False, tl_trailt_tr ba, c, (bb, n, xs), e, f, isa_vmtf_unset (atm_of b) ivmtf,
+                            (False, tl_trailt_tr ba, c, (bb, n, xs), e, f, isa_vmtf_unset (atm_of a) ivmtf,
                             h, clvls - 1, j,
-                            lbd, outl, (ah, ai, aj, be), ak, al, am, an, bf)
+                            lbd, outl, (ah, ai, aj, be), ak, an, bf)
                         })
                     xa)
                 \<le> \<Down> (bool_rel \<times>\<^sub>f twl_st_heur_conflict_ana' r)
@@ -361,15 +396,15 @@ proof -
                     (let D = resolve_cls_wl' (baa, ca, da, ea, fa, ga, ha) ao bg
                       in (False, tl baa, ca, Some D, ea, fa, ga, ha))))\<close>
     if
-      inv: \<open>update_confl_tl_wl_pre ((ao, bg), baa, ca, da, ea, fa, ga, ha)\<close> and
+      inv: \<open>update_confl_tl_wl_pre ((bg, ao), baa, ca, da, ea, fa, ga, ha)\<close> and
       rel: \<open>(((a, b), ba, c, (aa, ab, bb), e, f, ivmtf, h, i, j,
-        k, ag, (ah, ai, aj, be), ak, al, am, an, bf),
-        (ao, bg), baa, ca, da, ea, fa, ga, ha)
-      \<in> nat_rel \<times>\<^sub>f nat_lit_lit_rel \<times>\<^sub>f twl_st_heur_conflict_ana' r\<close> and
+        k, ag, (ah, ai, aj, be), ak, an, bf),
+        (bg, ao), baa, ca, da, ea, fa, ga, ha)
+      \<in> nat_lit_lit_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f twl_st_heur_conflict_ana' r\<close> and
       CLS[simp]: \<open>CLS = ((ao, bg), baa, ca, da, ea, fa, ga, ha)\<close> and
       \<open>CLS' = ((a, b), ba, c, (aa, ab, bb), e, f, ivmtf, h, i, j, k,
-        ag, (ah, ai, aj, be), ak, al, am, an, bf)\<close> and
-      le2: \<open>arena_length c a \<noteq> 2\<close>
+        ag, (ah, ai, aj, be), ak, an, bf)\<close> and
+      le2: \<open>arena_length c ao \<noteq> 2\<close>
     for a b ba c aa ab bb e f ac ad ae af bc bd h i j k ag ah ai aj be ak al am an
        bf ao bg baa ca da ea fa ga ha CLS CLS' ivmtf
   proof -
@@ -418,8 +453,8 @@ proof -
       using rel unfolding twl_st_heur_conflict_ana_def
       by auto
     have
-      [simp]: \<open>a = ao\<close> and
-      [simp]: \<open>b = bg\<close> and
+      [simp]: \<open>a = bg\<close> and
+      [simp]: \<open>b = ao\<close> and
       n_d: \<open>no_dup baa\<close> and
       arena: \<open>valid_arena c ca (set an)\<close> and
       ocr: \<open>((aa, ab, bb), da) \<in> option_lookup_clause_rel ?\<A>\<close> and
@@ -494,7 +529,7 @@ proof -
       using uL_D proped L_M nempty uL_NC
       by (cases \<open>ca \<propto> ao\<close>) (auto simp: resolve_cls_wl'_def split: if_splits)
     ultimately have [simp]: \<open>- bg \<notin># remove1_mset (- bg) (the da \<union># mset (tl (ca \<propto> ao)))\<close>
-      by (metis \<open>a = ao\<close> diff_single_trivial in_multiset_in_set multi_drop_mem_not_eq
+      by (metis \<open>a = bg\<close> diff_single_trivial in_multiset_in_set multi_drop_mem_not_eq
             remove1_mset_union_distrib)
     have [simp]: \<open>bg \<notin># the da \<union># mset (ca \<propto> ao) - {#bg, - bg#}\<close>
        \<open>-bg \<notin># the da \<union># mset (ca \<propto> ao) - {#bg, - bg#}\<close>
@@ -529,7 +564,7 @@ proof -
         simp: tautology_add_mset sup_union_left2 sup_union_left1
 	  add_mset_eq_add_mset
         dest!: in_set_takeD multi_member_split)
-    have \<open>vmtf_unset_pre (atm_of b) ivmtf\<close>
+    have \<open>vmtf_unset_pre (atm_of a) ivmtf\<close>
       if \<open>ivmtf \<in> isa_vmtf ?\<A> baa\<close>
       apply (rule vmtf_unset_pre'[OF that])
       using  that bg_\<A>
@@ -607,9 +642,9 @@ proof -
     moreover have \<open>tl_trailt_tr_pre ba\<close>
       by (rule tl_trailt_tr_pre[OF _ trail])
         (use nempty in auto)
-    moreover have \<open>arena_act_pre c a\<close>
+    moreover have \<open>arena_act_pre c b\<close>
       using arena ao by (auto simp: arena_act_pre_def arena_is_valid_clause_idx_def)
-    moreover have \<open>valid_arena (mark_used c a) ca (set an)\<close>
+    moreover have \<open>valid_arena (mark_used c b) ca (set an)\<close>
       using arena ao by (auto intro: valid_arena_mark_used)
     ultimately show ?thesis
        using rel inv
@@ -659,19 +694,19 @@ proof -
 		    xa)
 		\<le> \<Down> (bool_rel \<times>\<^sub>f twl_st_heur_conflict_ana' r)
 		   (RETURN
-		     (let D = resolve_cls_wl' (baa, ca, da, ea, fa, ga, ha) bk bl
+		     (let D = resolve_cls_wl' (baa, ca, da, ea, fa, ga, ha) bl bk
 		      in (False, tl baa, ca, Some D, ea, fa, ga, ha))))\<close>
     if
       inv: \<open>update_confl_tl_wl_pre ((bk, bl), baa, ca, da, ea, fa, ga, ha)\<close> and
-      rel: \<open>(((a, b), ((aa, ab, ac, ad, ae, ba), c, (af, ag, bb), e, f,
+      rel: \<open>(((b, a), ((aa, ab, ac, ad, ae, ba), c, (af, ag, bb), e, f,
 	 ((ah, ai, aj, ak, bc), al, bd), h, i, (am, be), k, l,
 	 (an, ao, ap, aq, ar, bf), (as, at, au, av, bg), (aw, ax, ay, az, bh),
 	 (bi, bj), ra, s, t, u, v)),
-	(bk, bl), baa, ca, da, ea, fa, ga, ha)
-       \<in> nat_rel \<times>\<^sub>f nat_lit_lit_rel \<times>\<^sub>f twl_st_heur_conflict_ana' r\<close> and
-      \<open>CLS = ((bk, bl), baa, ca, da, ea, fa, ga, ha)\<close> and
+	(bl, bk), baa, ca, da, ea, fa, ga, ha)
+       \<in> nat_lit_lit_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f twl_st_heur_conflict_ana' r\<close> and
+      \<open>CLS = ((bl, bk), baa, ca, da, ea, fa, ga, ha)\<close> and
       \<open>CLS' =
-       ((a, b), (aa, ab, ac, ad, ae, ba), c, (af, ag, bb), e, f,
+       ((b, a), (aa, ab, ac, ad, ae, ba), c, (af, ag, bb), e, f,
 	((ah, ai, aj, ak, bc), al, bd), h, i, (am, be), k, l,
 	(an, ao, ap, aq, ar, bf), (as, at, au, av, bg), (aw, ax, ay, az, bh),
 	(bi, bj), ra, s, t, u, v)\<close> and

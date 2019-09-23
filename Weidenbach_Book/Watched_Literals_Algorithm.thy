@@ -701,7 +701,9 @@ definition update_confl_tl_pre :: \<open>'v literal \<Rightarrow> 'v clause \<Ri
           get_trail S \<noteq> [] \<and>
           get_conflict S \<noteq> Some {#} \<and>
           L \<in># D \<and>
-          -L \<in># the (get_conflict S)\<close>
+          -L \<in># the (get_conflict S) \<and>
+          hd (get_trail S) = Propagated L D \<and>
+          L \<in># all_lits_of_mm (clauses (get_clauses S) + unit_clss S)\<close>
 
 definition update_confl_tl :: \<open>'v literal \<Rightarrow> 'v clause \<Rightarrow> 'v twl_st \<Rightarrow> (bool \<times> 'v twl_st)\<close> where
   \<open>update_confl_tl = (\<lambda>L C (M, N, U, D, NE, UE, WS, Q).
@@ -936,10 +938,10 @@ proof (refine_vcg WHILEIT_rule[where R = \<open>measure (\<lambda>(brk, S). Suc 
         by (auto simp: trail.simps conflicting.simps)
     moreover have \<open>update_confl_tl_pre L C T\<close>
       using WS Q D D' mop_maximum_level_removed_pre twl_stgy_T twl twl_stgy_S M LD count_dec
-        confl_proped[of \<open>[]\<close> L C \<open>M'\<close>]
+        confl_proped[of \<open>[]\<close> L C \<open>M'\<close>] alien_L
       unfolding skip_and_resolve_loop_inv_def
       by (auto simp add: cdcl\<^sub>W_restart_mset.skip.simps cdcl\<^sub>W_restart_mset.resolve.simps
-          cdcl\<^sub>W_restart_mset_state update_confl_tl_def T update_confl_tl_pre_def)
+          cdcl\<^sub>W_restart_mset_state update_confl_tl_def T update_confl_tl_pre_def in_all_lits_of_mm_uminus_iff)
     ultimately show  \<open>mop_update_confl_tl L C T \<le> ?R brk T\<close>
       using WS Q D D' mop_maximum_level_removed_pre M count_dec unfolding skip_and_resolve_loop_inv_def
       by (auto simp add: cdcl\<^sub>W_restart_mset.skip.simps cdcl\<^sub>W_restart_mset.resolve.simps
@@ -1100,7 +1102,8 @@ definition mop_lit_hd_trail :: \<open>'v twl_st \<Rightarrow> ('v literal) nres\
 
 definition backtrack_inv where
   \<open>backtrack_inv S \<longleftrightarrow> twl_struct_invs S \<and> twl_stgy_invs S \<and> get_trail S \<noteq> [] \<and>
-    get_conflict S \<noteq> Some {#}\<close>
+    get_conflict S \<noteq> None \<and> get_conflict S \<noteq> Some {#} \<and> -lit_of (hd (get_trail S)) \<in># the (get_conflict S) \<and>
+    no_step cdcl\<^sub>W_restart_mset.skip (state\<^sub>W_of S) \<and> no_step cdcl\<^sub>W_restart_mset.resolve (state\<^sub>W_of S)\<close>
 
 definition find_lit_of_max_level where
    \<open>find_lit_of_max_level =  (\<lambda>S L. do {
@@ -1159,7 +1162,14 @@ proof -
   then have trail: \<open>get_trail S \<noteq> []\<close>
     using confl unfolding true_annots_true_cls_def_iff_negation_in_model
     by (cases S) (auto simp: cdcl\<^sub>W_restart_mset_state)
-
+   have all_struct:
+      \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state\<^sub>W_of S)\<close>
+      using twl_struct
+      by (auto simp: twl_struct_invs_def)
+    then have uL_D: \<open>- lit_of (hd (get_trail S)) \<in># the (get_conflict S)\<close>
+      using cdcl\<^sub>W_restart_mset.no_step_skip_hd_in_conflicting[of
+          \<open>state\<^sub>W_of S\<close>] ns_s ns_r confl twl_stgy
+      by (auto simp: twl_st twl_stgy_invs_def)
 
   show ?spec
     unfolding backtrack_def extract_shorter_conflict_def reduce_trail_bt_def
@@ -1167,7 +1177,7 @@ proof -
      find_lit_of_max_level_def
   proof (refine_vcg; remove_dummy_vars; clarify?)
     show \<open>backtrack_inv S\<close>
-      using trail confl assms unfolding backtrack_inv_def by fast
+      using uL_D trail confl assms unfolding backtrack_inv_def by fast
     show \<open>mop_lit_hd_trail_pre S\<close>
       using trail confl assms unfolding mop_lit_hd_trail_pre_def
       by auto

@@ -664,12 +664,14 @@ fun equality_except_trail_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl \
     N = N' \<and> D = D' \<and> NE = NE' \<and> UE = UE' \<and> WS = WS' \<and> Q = Q'\<close>
 
 lemma equality_except_conflict_wl_get_clauses_wl:
-  \<open>equality_except_conflict_wl S Y \<Longrightarrow> get_clauses_wl S = get_clauses_wl Y\<close>
-  by (cases S; cases Y) (auto simp:)
-
-lemma equality_except_trail_wl_get_clauses_wl:
- \<open>equality_except_trail_wl S Y\<Longrightarrow> get_clauses_wl S = get_clauses_wl Y\<close>
-  by (cases S; cases Y) (auto simp:)
+    \<open>equality_except_conflict_wl S Y \<Longrightarrow> get_clauses_wl S = get_clauses_wl Y\<close> and
+  equality_except_conflict_wl_get_trail_wl:
+    \<open>equality_except_conflict_wl S Y \<Longrightarrow> get_trail_wl S = get_trail_wl Y\<close> and
+  equality_except_trail_wl_get_conflict_wl:
+    \<open>equality_except_trail_wl S Y \<Longrightarrow> get_conflict_wl S = get_conflict_wl Y\<close> and
+  equality_except_trail_wl_get_clauses_wl:
+    \<open>equality_except_trail_wl S Y\<Longrightarrow> get_clauses_wl S = get_clauses_wl Y\<close>
+ by (cases S; cases Y; solves auto)+
 
 
 definition unit_prop_body_wl_inv where
@@ -4270,6 +4272,12 @@ definition get_fresh_index_wl :: \<open>'v clauses_l \<Rightarrow> _ \<Rightarro
 \<open>get_fresh_index_wl N NUE W = SPEC(\<lambda>i. i > 0 \<and> i \<notin># dom_m N \<and>
    (\<forall>L \<in># all_lits_of_mm (mset `# ran_mf N + NUE) . i \<notin> fst ` set (W L)))\<close>
 
+definition (in -) list_of_mset2
+  :: \<open>'v literal \<Rightarrow> 'v literal \<Rightarrow> 'v clause \<Rightarrow> 'v clause_l nres\<close>
+where
+  \<open>list_of_mset2 L L' D =
+    SPEC (\<lambda>E. mset E = D \<and> E!0 = L \<and> E!1 = L' \<and> length E \<ge> 2)
+\<close>
 definition propagate_bt_wl_pre where
   \<open>propagate_bt_wl_pre L L' S \<longleftrightarrow>
    (\<exists>S'. (S, S') \<in> state_wl_l None \<and> propagate_bt_l_pre L L' S')\<close>
@@ -4277,7 +4285,7 @@ definition propagate_bt_wl_pre where
 definition propagate_bt_wl :: \<open>'v literal \<Rightarrow> 'v literal \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
   \<open>propagate_bt_wl = (\<lambda>L L' (M, N, D, NE, UE, Q, W). do {
     ASSERT(propagate_bt_wl_pre L L' (M, N, D, NE, UE, Q, W));
-    D'' \<leftarrow> list_of_mset (the D);
+    D'' \<leftarrow> list_of_mset2 (-L) L' (the D);
     i \<leftarrow> get_fresh_index_wl N (NE + UE) W;
     let b = (length ([-L, L'] @ (remove1 (-L) (remove1 L' D''))) = 2);
     M \<leftarrow> cons_trail_propagate_l (-L) i M;
@@ -4286,8 +4294,14 @@ definition propagate_bt_wl :: \<open>'v literal \<Rightarrow> 'v literal \<Right
           None, NE, UE, {#L#}, W(-L:= W (-L) @ [(i, L', b)], L':= W L' @ [(i, -L, b)]))
       })\<close>
 
+definition propagate_unit_bt_wl_pre where
+  \<open>propagate_unit_bt_wl_pre L S \<longleftrightarrow>
+    (\<exists>S'. (S, S') \<in> state_wl_l None \<and> propagate_unit_bt_l_pre L S')\<close>
+
 definition propagate_unit_bt_wl :: \<open>'v literal \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
   \<open>propagate_unit_bt_wl = (\<lambda>L (M, N, D, NE, UE, Q, W). do {
+    ASSERT(L \<in># all_lits_of_mm (mset `# ran_mf N + (NE + UE)));
+    ASSERT(propagate_unit_bt_wl_pre L (M, N, D, NE, UE, Q, W));
     M \<leftarrow> cons_trail_propagate_l (-L) 0 M;
     RETURN (M, N, None, NE, add_mset (the D) UE, {#L#}, W)})\<close>
 
@@ -4697,218 +4711,7 @@ proof -
     apply normalize_goal+
     apply (auto simp: twl_struct_invs_def)
     done
-(*
-  have propagate_bt_wl: \<open>propagate_bt_wl (lit_of (hd (get_trail_wl S'))) L' U'
-    \<le> \<Down> {(T', T). (T', T) \<in> state_wl_l None \<and> correct_watching T' \<and> blits_in_\<L>\<^sub>i\<^sub>n T'}
-        (propagate_bt_l (lit_of (hd (get_trail_l S))) L U)\<close>
-    (is \<open>_ \<le> \<Down> ?propa _\<close>)
-    if SS': \<open>(S', S) \<in> ?A\<close> and
-     UU': \<open>(U', U) \<in> ?find T'\<close> and
-     LL': \<open>(L', L) \<in> ?find_lit U' (lit_of (hd (get_trail_wl S')))\<close> and
-     TT': \<open>(T', T) \<in> ?extract S'\<close> and
-     bt: \<open>backtrack_wl_inv S'\<close>
-    for S' S T T' L L' U U'
-  proof -
-    note empty = empty[OF bt]
-    define K' where \<open>K' = lit_of (hd (get_trail_l S))\<close>
-    obtain MS NS DS NES UES W where
-      S': \<open>S' = (MS, NS, Some DS, NES, UES, {#}, W)\<close>
-      using SS' empty by (cases S'; cases \<open>get_conflict_wl S'\<close>) auto
-    then obtain DT where
-      T': \<open>T' = (MS, NS, Some DT, NES, UES, {#}, W)\<close> and
-      \<open>DT \<subseteq># DS\<close>
-      using TT' by (cases T'; cases \<open>get_conflict_wl T'\<close>) auto
-    then obtain MU MU' where
-      U': \<open>U' = (MU, NS, Some DT, NES, UES, {#}, W)\<close> and
-      MU: \<open>MS = MU' @ MU\<close> and
-      U'U: \<open>(U', U) \<in> state_wl_l None\<close>
-      using UU' by (cases U') auto
-    then have U: \<open>U = (MU, NS, Some DT, NES, UES, {#}, {#})\<close>
-      by (cases U) (auto simp: state_wl_l_def)
-    have MS: \<open>MS \<noteq> []\<close>
-      using bt unfolding backtrack_wl_inv_def backtrack_l_inv_def backtrack_inv_def S'
-      by (auto simp: state_wl_l_def twl_st_l_def)
-    have \<open>correct_watching S'\<close> and blits: \<open>blits_in_\<L>\<^sub>i\<^sub>n S'\<close>
-      using SS' by fast+
-    then have corr: \<open>correct_watching (MU, NS, None, NES, UES, {#K'#}, W)\<close>
-       unfolding S' correct_watching.simps clause_to_update_def get_clauses_l.simps
-       by simp
-    have K_hd[simp]: \<open>lit_of (hd MS) = K'\<close>
-      using SS' unfolding K'_def by (auto simp: S')
-    have [simp]: \<open>L = L'\<close>
-      using LL' by auto
-    have trail_no_alien:
-       \<open>atm_of ` lits_of_l (get_trail_wl S')
-           \<subseteq> atms_of_ms
-              ((\<lambda>x. mset (fst x)) `
-               {a. a \<in># ran_m (get_clauses_wl S') \<and> snd a}) \<union>
-             atms_of_mm (get_unit_init_clss_wl S')\<close> and
-       no_alien: \<open>atms_of DS \<subseteq> atms_of_ms
-                  ((\<lambda>x. mset (fst x)) `
-                   {a. a \<in># ran_m (get_clauses_wl S') \<and> snd a}) \<union>
-                 atms_of_mm (get_unit_init_clss_wl S')\<close> and
-       dist: \<open>distinct_mset DS\<close>
-      using SS' bt unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-        backtrack_wl_inv_def backtrack_l_inv_def cdcl\<^sub>W_restart_mset.no_strange_atm_def
-        cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def backtrack_inv_def
-      apply -
-      apply normalize_goal+
-      apply (simp add: twl_st twl_st_l twl_st_wl)
-      apply normalize_goal+
-      apply (simp add: twl_st twl_st_l twl_st_wl S')
-      apply normalize_goal+
-      apply (simp add: twl_st twl_st_l twl_st_wl S')
-      done
-    moreover have \<open>L' \<in># DS\<close>
-      using LL' TT'  by (auto simp: T' S' U' mset_take_mset_drop_mset)
-    ultimately have
-       atm_L': \<open>atm_of L' \<in> atms_of_mm (mset `# init_clss_lf NS + NES)\<close> and
-       atm_confl: \<open>\<forall>L\<in>#DS. atm_of L \<in> atms_of_mm (mset `# init_clss_lf NS + NES)\<close>
-      by (auto simp: cdcl\<^sub>W_restart_mset.no_strange_atm_def cdcl\<^sub>W_restart_mset_state S'
-          mset_take_mset_drop_mset dest!: atm_of_lit_in_atms_of)
-    have atm_K': \<open>atm_of K' \<in> atms_of_mm (mset `# init_clss_lf NS + NES)\<close>
-      using trail_no_alien K_hd MS
-      by (cases MS) (auto simp: S'
-          mset_take_mset_drop_mset simp del:  K_hd dest!: atm_of_lit_in_atms_of)
-    have dist: \<open>distinct_mset DT\<close>
-      using \<open>DT \<subseteq># DS\<close> dist by (rule distinct_mset_mono)
-    have fresh: \<open>get_fresh_index_wl N (NUE) W \<le>
-      \<Down> {(i, i'). i = i' \<and> i \<notin># dom_m N \<and>  (\<forall>L \<in># all_lits_of_mm (mset `# ran_mf N + NUE). i \<notin> fst ` set (W L))} (get_fresh_index N')\<close>
-       if \<open>N = N'\<close> for N N' NUE W
-      unfolding that get_fresh_index_def get_fresh_index_wl_def
-      by (auto intro: RES_refine)
-    have ggg: \<open>\<forall>L\<in>#DS. atm_of L \<in> atms_of_mm (mset `# ran_mf NS + (NES + UES))\<close>
-            \<open>atm_of K' \<in> atms_of_mm (mset `# ran_mf NS + (NES + UES))\<close>
-            \<open>atm_of L' \<in> atms_of_mm (mset `# ran_mf NS + NES)\<close>
-        using atm_confl atm_K' atm_L' unfolding image_mset_union all_clss_lf_ran_m[symmetric] all_lits_def
-        by (auto simp: in_all_lits_of_mm_ain_atms_of_iff)
-    then have all_lits_upd[simp]: \<open>i \<notin># dom_m NS \<Longrightarrow> set_mset (all_lits (fmupd i (E, b) NS) (NES + UES)) =
-      set_mset (all_lits NS (NES + UES))\<close> if \<open>set E \<subseteq> set_mset (DT + {#K', -K', L', -L'#})\<close> for i E b
-      using  that \<open>DT \<subseteq># DS\<close>
-      by (auto simp: all_lits_def all_lits_of_mm_add_mset in_all_lits_of_mm_ain_atms_of_iff atm_of_eq_atm_of
-         ran_m_mapsto_upd_notin all_lits_of_mm_add_mset in_all_lits_of_m_ain_atms_of_iff atms_of_def
-       dest!: multi_member_split[of _ DT] multi_member_split[of _ DS] mset_subset_eq_insertD set_mp[OF that])
 
-    have H: \<open>-K' \<in># all_lits NS (NES + UES)\<close>  \<open>-L' \<in># all_lits NS (NES + UES)\<close>  \<open>L' \<in># all_lits NS (NES + UES)\<close>
-       using \<open>atm_of K' \<in> atms_of_mm (mset `# ran_mf NS + (NES + UES))\<close> \<open>atm_of L' \<in> atms_of_mm (mset `# ran_mf NS + NES)\<close>
-       by (auto simp: in_all_lits_of_mm_ain_atms_of_iff all_lits_def)
-    have [refine0]: \<open>SPEC (\<lambda>D'. the D = mset D') \<le> \<Down> {(D', E'). D' = E' \<and> the D = mset D'}
-        (SPEC (\<lambda>D'. the E = mset D'))\<close>
-      if \<open>D = E\<close> for D E
-      using that by (auto intro!: RES_refine)
-    have cons_trail_propagate_l: \<open>cons_trail_propagate_l (- K') i MU
-       \<le> \<Down>{(M, M'). M = M' \<and> M' = Propagated (-K') i # MU}
-           (cons_trail_propagate_l
-             (- K') ia MU)\<close>
-      if \<open>i = ia\<close> for i ia
-      using that unfolding cons_trail_propagate_l_def by refine_rcg auto
-    show ?thesis supply [[goals_limit=1]]
-      unfolding propagate_bt_wl_def propagate_bt_l_def S' T' U' U st_l_of_wl.simps get_trail_wl.simps
-      list_of_mset_def K'_def[symmetric] Let_def K_hd
-      apply (refine_vcg fresh; remove_dummy_vars)
-      subgoal
-        unfolding propagate_bt_wl_pre_def 
-      apply (rule cons_trail_propagate_l)
-      subgoal by auto
-      apply (subst in_pair_collect_simp)
-      apply (intro conjI)
-      subgoal using SS' by (auto simp: corr state_wl_l_def S')
-      subgoal
-        apply simp
-        apply (subst correct_watching_learn)
-        subgoal using atm_K' unfolding all_clss_lf_ran_m[symmetric] image_mset_union by auto
-        subgoal using atm_L' unfolding all_clss_lf_ran_m[symmetric] image_mset_union by auto
-        subgoal using atm_confl TT'  unfolding all_clss_lf_ran_m[symmetric] image_mset_union
-          by (fastforce simp: S' T' dest!: in_atms_of_minusD)
-        subgoal by auto
-        subgoal by auto
-        subgoal using dist LL' by (auto simp: U' S' distinct_mset_remove1_All)
-        subgoal by auto
-        apply (rule corr)
-        done
-      subgoal using blits atm_confl H apply (auto simp: S' blits_in_\<L>\<^sub>i\<^sub>n_def simp del: all_lits_fmupd_new)
-           apply (subst all_lits_upd; auto  simp del: all_lits_fmupd_new; fail)+
-           apply (subst all_lits_upd, auto  simp del: all_lits_fmupd_new)
-           apply (subst (asm) all_lits_upd; auto  simp del: all_lits_fmupd_new)
-           done
-      done
-  qed
-*)
-(*
-  have propagate_unit_bt_wl: \<open>
-     propagate_unit_bt_wl (lit_of (hd (get_trail_wl S'))) U'
-    \<le> \<Down>{(T', T). (T', T) \<in> state_wl_l None \<and> correct_watching T' \<and> blits_in_\<L>\<^sub>i\<^sub>n T'} 
-       (propagate_unit_bt_l (lit_of (hd (get_trail_l S))) U)\<close>
-    (is \<open>_ \<le> \<Down>?propagate_unit_bt_wl _\<close>)
-    if
-     SS': \<open>(S', S) \<in> ?A\<close> and
-     TT': \<open>(T', T) \<in> ?extract S'\<close> and
-     UU': \<open>(U', U) \<in> ?find T'\<close> and
-     bt: \<open>backtrack_wl_inv S'\<close>
-    for S' S T T' L L' U U' K'
-  proof -
-    obtain MS NS DS NES UES W where
-      S': \<open>S' = (MS, NS, Some DS, NES, UES, {#}, W)\<close>
-      using SS' UU' empty[OF bt] by (cases S'; cases \<open>get_conflict_wl S'\<close>) auto
-    then obtain DT where
-      T': \<open>T' = (MS, NS, Some DT, NES, UES, {#}, W)\<close> and
-      DT_DS: \<open>DT \<subseteq># DS\<close>
-      using TT' by (cases T'; cases \<open>get_conflict_wl T'\<close>) auto
-    have T: \<open>T = (MS, NS, Some DT, NES, UES, {#}, {#})\<close>
-      using TT' by (auto simp: S' T' state_wl_l_def)
-    obtain MU MU' where
-      U': \<open>U' = (MU, NS, Some DT, NES, UES, {#}, W)\<close> and
-      MU: \<open>MS = MU' @ MU\<close> and
-      U: \<open>(U', U) \<in> state_wl_l None\<close>
-      using UU' T' by (cases U') auto
-    have U: \<open>U = (MU, NS, Some DT, NES, UES, {#}, {#})\<close>
-      using UU' by (auto simp: U' state_wl_l_def)
-    obtain S1 S2 where
-      S1: \<open>(S', S1) \<in> state_wl_l None\<close> and
-      S2: \<open>(S1, S2) \<in> twl_st_l None\<close> and
-      struct_invs: \<open>twl_struct_invs S2\<close>
-      using bt unfolding backtrack_wl_inv_def backtrack_l_inv_def
-        backtrack_inv_def
-      by blast
-    have \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of S2)\<close>
-      using struct_invs unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-      by fast
-    then have K: \<open>set_mset (all_lits_of_mm (mset `# ran_mf NS + NES + add_mset (the (Some DT)) UES)) =
-      set_mset (all_lits_of_mm (mset `# ran_mf NS + (NES + UES)))\<close>
-      apply (subst all_clss_lf_ran_m[symmetric])+
-      apply (subst image_mset_union)+
-      using S1 S2 atms_of_subset_mset_mono[OF DT_DS]
-      by (fastforce simp: all_lits_of_mm_union all_lits_of_mm_add_mset state_wl_l_def
-        twl_st_l_def S' cdcl\<^sub>W_restart_mset.no_strange_atm_def cdcl\<^sub>W_restart_mset_state
-        mset_take_mset_drop_mset' in_all_lits_of_mm_ain_atms_of_iff
-        in_all_lits_of_m_ain_atms_of_iff)
-    then have K': \<open>set_mset (all_lits_of_mm (mset `# ran_mf NS + (NES + add_mset (the (Some DT)) UES))) =
-      set_mset (all_lits_of_mm (mset `# ran_mf NS + (NES + UES)))\<close>
-      by (auto simp: ac_simps)
-    have \<open>correct_watching S'\<close> and blits:  \<open>blits_in_\<L>\<^sub>i\<^sub>n S'\<close>
-      using SS' by fast+
-    then have corr: \<open>correct_watching (Propagated (- lit_of (hd MS)) 0 # MU, NS, None, NES,
-      add_mset (the (Some DT)) UES, unmark (hd MS), W)\<close>
-      unfolding S' correct_watching.simps clause_to_update_def get_clauses_l.simps K
-        K' by fast
-    have [simp]: \<open>set_mset (all_lits NS (add_mset DT (NES + UES))) = set_mset (all_lits NS (NES + UES))\<close>
-      using K' unfolding all_lits_def by auto
-    have cons_trail_propagate_l: \<open>cons_trail_propagate_l (- lit_of (hd MS)) 0 MU
-       \<le> \<Down>{(M, M'). M = M' \<and> M' = Propagated (- lit_of (hd MS)) 0 # MU}
-           (cons_trail_propagate_l
-             (- lit_of (hd (get_trail_l S))) 0 MU)\<close>
-      using that SS' unfolding cons_trail_propagate_l_def
-       by refine_rcg (auto simp: S')
-    show ?thesis
-      unfolding propagate_unit_bt_wl_def propagate_unit_bt_l_def S' T' U U'
-        st_l_of_wl.simps get_trail_wl.simps list_of_mset_def
-      apply clarify
-      apply (refine_rcg cons_trail_propagate_l)
-      subgoal using blits corr SS' by (auto simp: S' blits_in_\<L>\<^sub>i\<^sub>n_def
-        state_wl_l_def)
-      done
-  qed
-*)
   have [refine]: \<open>(S, S') \<in> {(T', T).
         (T', T) \<in> state_wl_l None \<and>
         correct_watching T' \<and>
@@ -4973,12 +4776,12 @@ proof -
           (T', T) \<in> state_wl_l None \<and>
           correct_watching T' \<and> blits_in_\<L>\<^sub>i\<^sub>n T'}
         (propagate_bt_l La L'a Sc)\<close> for a a' L La S Sa Sb Sc L' L'a
-    unfolding propagate_bt_wl_def propagate_bt_l_def Let_def list_of_mset_def
+    unfolding propagate_bt_wl_def propagate_bt_l_def Let_def list_of_mset2_def list_of_mset_def
     apply (cases Sc; hypsubst)
     unfolding prod.case
     apply (refine_rcg fresh)
     subgoal unfolding propagate_bt_wl_pre_def by fast
-    subgoal by (auto simp: state_wl_l_def)
+    subgoal by (auto simp: propagate_bt_wl_pre_def state_wl_l_def)
     subgoal by (auto simp: state_wl_l_def)
     apply (rule cons_trail_propagate_l)
     subgoal by (auto simp: state_wl_l_def)
@@ -5041,6 +4844,8 @@ proof -
     apply (cases Sc; hypsubst)
     unfolding prod.case
     apply (refine_rcg fresh)
+    subgoal by (auto simp: state_wl_l_def)
+    subgoal using propagate_unit_bt_wl_pre_def by blast
     apply (rule cons_trail_propagate_l)
     subgoal by (auto simp: state_wl_l_def)
     subgoal by (auto simp: state_wl_l_def)

@@ -2117,9 +2117,9 @@ definition update_confl_tl_l :: \<open>'v literal \<Rightarrow> nat \<Rightarrow
         (False, (tl M, N, Some D, NE, UE, WS, Q)))\<close>
 
 definition update_confl_tl_l_pre :: \<open>'v literal \<Rightarrow> nat \<Rightarrow> 'v twl_st_l \<Rightarrow> bool\<close> where
-\<open>update_confl_tl_l_pre L C S \<longleftrightarrow> 
+\<open>update_confl_tl_l_pre L C S \<longleftrightarrow>
    (\<exists>S'. (S, S') \<in> twl_st_l None \<and> update_confl_tl_pre L (mset (get_clauses_l S \<propto> C)) S' \<and>
-      twl_list_invs S)\<close>
+      twl_list_invs S \<and> C \<in># dom_m (get_clauses_l S) \<and> get_trail_l S \<noteq> [] \<and> hd (get_trail_l S) = Propagated L C \<and> C > 0)\<close>
 
 definition mop_update_confl_tl_l :: \<open>'v literal \<Rightarrow> nat \<Rightarrow> 'v twl_st_l \<Rightarrow> (bool \<times> 'v twl_st_l) nres\<close> where
   \<open>mop_update_confl_tl_l = (\<lambda>L C S. do {
@@ -2354,7 +2354,8 @@ proof -
 
   have mop_hd_trail_l:
     \<open>mop_hd_trail_l S \<le> \<Down>{((L, C), (L', C')). L = L' \<and>
-           C' = mset (get_clauses_l S \<propto> C)} (mop_hd_trail S')\<close>
+           C' = mset (get_clauses_l S \<propto> C) \<and> C \<in># dom_m (get_clauses_l S) \<and> get_trail_l S \<noteq> [] \<and>
+          hd (get_trail_l S) = Propagated L C \<and> C > 0} (mop_hd_trail S')\<close>
     (is \<open>_ \<le> \<Down> ?hd _\<close>)
     if \<open>(brkS, brkS') \<in> bool_rel \<times>\<^sub>f ?R'\<close> and
      \<open>case brkS of (brk, S) \<Rightarrow> skip_and_resolve_loop_inv_l S\<^sub>0 brk S\<close> and
@@ -2370,6 +2371,7 @@ proof -
       by (rule exI[of _ S']) auto
     subgoal
       apply (rule RES_refine)
+      using mark_ge_0[of S S' brkS brkS']
       apply (cases \<open>get_trail S'\<close>; cases \<open>get_trail_l S\<close>;
         cases \<open>hd (get_trail S')\<close>)
       by (auto simp: mop_hd_trail_pre_def twl_st_l_def
@@ -2458,14 +2460,14 @@ proof -
     apply refine_rcg
     subgoal
       unfolding update_confl_tl_l_pre_def
-      by (rule exI[of _ \<open>S'\<close>]) auto
+      by (rule exI[of _ \<open>S'\<close>]) (auto simp: twl_struct_invs_def)
     subgoal
       by (cases S; cases S'; cases \<open>get_trail_l S\<close>; cases \<open>get_trail S'\<close>)
         (auto simp: update_confl_tl_l_def update_confl_tl_def twl_st_l_def
          convert_lits_l_tlD mop_tl_state_pre_def twl_list_invs_def resolve_cls_l'_def)
     done
 
-  term mop_update_confl_tl_l
+
   have H:
     \<open>(skip_and_resolve_loop_l, skip_and_resolve_loop) \<in> ?R \<rightarrow>\<^sub>f
       \<langle>{(T::'v twl_st_l, T'). (T, T') \<in> twl_st_l None \<and> twl_list_invs T \<and>
@@ -2780,8 +2782,9 @@ proof -
     apply refine_vcg
     subgoal by (auto simp: propagate_unit_bt_pre_def twl_st_l_def
        mset_take_mset_drop_mset' simp flip: image_mset_union)
-    subgoal by (auto simp: propagate_unit_bt_pre_def twl_st_l_def
-       mset_take_mset_drop_mset' simp flip: image_mset_union)
+    subgoal
+      unfolding propagate_unit_bt_l_pre_def
+      by blast
     subgoal by (auto simp: propagate_unit_bt_pre_def twl_st_l_def
        mset_take_mset_drop_mset' simp flip: image_mset_union)
     subgoal by (auto simp: twl_list_invs_def propagate_unit_bt_def twl_st_l_def

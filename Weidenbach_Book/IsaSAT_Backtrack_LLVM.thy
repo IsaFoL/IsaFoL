@@ -159,7 +159,7 @@ definition "set_len_trail' \<equiv> \<lambda>(M, N, D, Q, rest). doN {
 
 definition "cons_trail_Propagated' \<equiv> \<lambda>L i (M,rest). doN {
   ASSERT(cons_trail_Propagated_tr_pre ((-L, i), M));
-  let M = cons_trail_Propagated_tr (- L) i M;
+  M \<leftarrow> cons_trail_Propagated_tr (- L) i M;
   RETURN (M,rest)
 }"
 
@@ -180,39 +180,35 @@ definition "upd_stats' \<equiv> \<lambda>glue (M, N, D, Q, W, vm, \<phi>, y, cac
   RETURN (M, N, D, Q, W, vm, \<phi>, y, cach, lbd, outl, stats, rest)
 }"
 
-definition "upd_ema' \<equiv> \<lambda>glue (M, N, D, Q, W, vm, \<phi>, y, cach, lbd, outl, stats, fema, sema, rest). doN {
+definition "upd_ema' \<equiv> \<lambda>glue (M, N, D, Q, W, vm, \<phi>, y, cach, lbd, outl, stats, (fema, sema, ccount), rest). doN {
   let fema = ema_update glue fema;
   let sema = ema_update glue sema;
-  RETURN (M, N, D, Q, W, vm, \<phi>, y, cach, lbd, outl, stats, fema, sema, rest)
+  RETURN (M, N, D, Q, W, vm, \<phi>, y, cach, lbd, outl, stats, (fema, sema, ccount), rest)
 }"
 
-definition "upd_res_info' \<equiv> \<lambda>(M, N, D, Q, W, vm, \<phi>, y, cach, lbd, outl, stats, fema, sema,
-      res_info,rest). doN {
+definition "upd_res_info' \<equiv> \<lambda>(M, N, D, Q, W, vm, \<phi>, y, cach, lbd, outl, stats, (fema, sema,
+      res_info),rest). doN {
         let res_info = incr_conflict_count_since_last_restart res_info;
-        RETURN (M, N, D, Q, W, vm, \<phi>, y, cach, lbd, outl, stats, fema, sema,
-      res_info,rest)
+        RETURN (M, N, D, Q, W, vm, \<phi>, y, cach, lbd, outl, stats, (fema, sema,
+      res_info),rest)
       }"
 
-definition "upd_dom' \<equiv> \<lambda>i (M, N, D, Q, W, vm, \<phi>, y, cach, lbd, outl, stats, fema, sema,
-      res_info, vdom, avdom, rest). doN {
+definition "upd_dom' \<equiv> \<lambda>i (M, N, D, Q, W, vm, \<phi>, y, cach, lbd, outl, stats, heur, vdom, avdom, rest). doN {
         ASSERT (length vdom + 1 < max_snat 64);
         vdom \<leftarrow> mop_list_append vdom i;
         ASSERT (length avdom + 1 < max_snat 64);
         avdom \<leftarrow> mop_list_append avdom i;
-        RETURN (M, N, D, Q, W, vm, \<phi>, y, cach, lbd, outl, stats, fema, sema,
-      res_info, vdom, avdom, rest)
+        RETURN (M, N, D, Q, W, vm, \<phi>, y, cach, lbd, outl, stats, heur, vdom, avdom, rest)
       }"      
 
-definition "incr_lcount' \<equiv> \<lambda>(M, N, D, Q, W, vm, \<phi>, y, cach, lbd, outl, stats, fema, sema,
-  res_info, vdom, avdom, lcount, opts). doN {
+definition "incr_lcount' \<equiv> \<lambda>(M, N, D, Q, W, vm, \<phi>, y, cach, lbd, outl, stats, heur, vdom, avdom, lcount, opts). doN {
     ASSERT (lcount + 1 < max_snat 64);
     let lcount = lcount + 1;
-    RETURN (M, N, D, Q, W, vm, \<phi>, 0, cach, lbd, outl, stats, fema, sema,
-     res_info, vdom, avdom, lcount, opts)
+    RETURN (M, N, D, Q, W, vm, \<phi>, 0, cach, lbd, outl, stats,heur, vdom, avdom, lcount, opts)
   }"      
             
-definition "upd_etc' \<equiv> \<lambda>i glue (M, N, D, Q, W, vm, \<phi>, y, cach, lbd, outl, stats, fema, sema,
-         res_info, vdom, avdom, lcount, opts). doN {
+definition "upd_etc' \<equiv> \<lambda>i glue (M, N, D, Q, W, vm, \<phi>, y, cach, lbd, outl, stats, (fema, sema,
+         res_info), vdom, avdom, lcount, opts). doN {
       let stats = add_lbd (of_nat glue) stats;
       let fema = ema_update glue fema;
       let sema = ema_update glue sema;
@@ -224,8 +220,8 @@ definition "upd_etc' \<equiv> \<lambda>i glue (M, N, D, Q, W, vm, \<phi>, y, cac
       ASSERT (lcount + 1 < max_snat 64);
       let lcount = lcount + 1;
       RETURN (M, N, D, Q, W, vm, \<phi>, 0,
-         cach, lbd, outl, stats, fema, sema,
-          res_info, vdom,
+         cach, lbd, outl, stats, (fema, sema,
+          res_info), vdom,
           avdom,
           lcount, opts)
     }
@@ -279,9 +275,9 @@ lemma propagate_bt_wl_D_heur_alt_def':
     obtain
       M N0 D Q W0 vm0 \<phi>0 y cach lbd outl stats fema sema res_info vdom avdom
       lcount opts
-      where S: "s=(M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, fema, sema, res_info, vdom, avdom,
+      where S: "s=(M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, (fema, sema, res_info), vdom, avdom,
       lcount, opts)"
-    by (cases s)  
+    by (cases s)  auto
     
     thm mop_list_list_push_back_def
     have U1: "doN {xs \<leftarrow> mop_list_list_push_back xs i x; m xs} = doN {
@@ -346,19 +342,21 @@ sepref_def empty_lbd'_impl is "empty_lbd'" :: "isasat_bounded_assn\<^sup>d \<rig
   unfolding isasat_bounded_assn_def fold_tuple_optimizations
   by sepref
 
-sepref_register set_len_trail'
+sepref_register set_len_trail' cons_trail_Propagated_tr
 sepref_def set_len_trail'_impl is "set_len_trail'" :: "isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn"
   unfolding set_len_trail'_def 
   unfolding isasat_bounded_assn_def fold_tuple_optimizations
   by sepref
 
+
 sepref_register cons_trail_Propagated'
 sepref_def cons_trail_Propagated'_impl is "uncurry2 cons_trail_Propagated'"
-  :: "unat_lit_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn"  
+  :: "unat_lit_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn"
+  supply [[goals_limit=1]] 
   unfolding cons_trail_Propagated'_def
   unfolding isasat_bounded_assn_def fold_tuple_optimizations
   by sepref
-  
+
 sepref_register isa_vmtf_flush_int'
 sepref_def isa_vmtf_flush_int'_impl is "isa_vmtf_flush_int'" :: "isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn"
   unfolding isa_vmtf_flush_int'_def 
@@ -380,11 +378,17 @@ sepref_def upd_stats'_impl is "uncurry upd_stats'" :: "uint32_nat_assn\<^sup>k *
   unfolding isasat_bounded_assn_def fold_tuple_optimizations
   apply (rewrite in \<open>add_lbd (of_nat \<hole>) _\<close> annot_unat_unat_upcast[where 'l=64])
   by sepref
+(*
 
 sepref_def upd_ema'_impl is "uncurry upd_ema'" :: "uint32_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn"
   unfolding upd_ema'_def 
   unfolding isasat_bounded_assn_def fold_tuple_optimizations
-  by sepref
+apply sepref_dbg_keep
+apply sepref_dbg_trans_keep
+apply sepref_dbg_trans_step_keep
+apply sepref_dbg_side_unfold
+oops
+
   
 sepref_def upd_res_info'_impl is "upd_res_info'" :: "isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn"
   unfolding upd_res_info'_def 
@@ -420,8 +424,8 @@ sepref_def propagate_bt_wl_D_fast_code
   subgoal by auto    
   supply [[goals_limit = 1]]
   by sepref  
-  
-
+  *)
+term heuristic_assn
 sepref_def propagate_bt_wl_D_fast_codeXX
   is \<open>uncurry2 propagate_bt_wl_D_heur\<close>
   :: \<open>[\<lambda>((L, C), S). isasat_fast S]\<^sub>a
@@ -431,10 +435,10 @@ sepref_def propagate_bt_wl_D_fast_codeXX
     propagate_bt_wl_D_fast_code_isasat_fastI2[intro] length_ll_def[simp]
     propagate_bt_wl_D_fast_code_isasat_fastI3[intro]
   unfolding propagate_bt_wl_D_heur_alt_def
-    isasat_bounded_assn_def cons_trail_Propagated_def[symmetric]
+    isasat_bounded_assn_def heuristic_assn_def
   unfolding delete_index_and_swap_update_def[symmetric] append_update_def[symmetric]
     append_ll_def[symmetric] append_ll_def[symmetric]
-    cons_trail_Propagated_def[symmetric] PR_CONST_def save_phase_def
+    PR_CONST_def save_phase_def
   apply (rewrite in \<open>add_lbd (of_nat \<hole>) _\<close> annot_unat_unat_upcast[where 'l=64])
   apply (rewrite in \<open>(_ + \<hole>, _)\<close> unat_const_fold[where 'a=64])
   apply (rewrite at \<open>(_ [_ := _], \<hole>, _)\<close> unat_const_fold[where 'a=32])
@@ -448,8 +452,8 @@ sepref_def propagate_unit_bt_wl_D_fast_code
   is \<open>uncurry propagate_unit_bt_wl_D_int\<close>
   :: \<open>unat_lit_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
   supply [[goals_limit = 1]] vmtf_flush_def[simp] image_image[simp] uminus_\<A>\<^sub>i\<^sub>n_iff[simp]
-  unfolding propagate_unit_bt_wl_D_int_def cons_trail_Propagated_def[symmetric] isasat_bounded_assn_def
-    PR_CONST_def
+  unfolding propagate_unit_bt_wl_D_int_def isasat_bounded_assn_def
+    PR_CONST_def heuristic_assn_def
   unfolding fold_tuple_optimizations
   apply (annot_snat_const "TYPE(64)")
   by sepref
@@ -478,7 +482,7 @@ lemma extract_shorter_conflict_list_heur_st_alt_def:
 
 sepref_register isa_minimize_and_extract_highest_lookup_conflict
   empty_conflict_and_extract_clause_heur
-find_in_thms vmtf_mark_to_rescore_also_reasons_fast_code in sepref_fr_rules
+
 sepref_def extract_shorter_conflict_list_heur_st_fast
   is \<open>extract_shorter_conflict_list_heur_st\<close>
   :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a
@@ -494,11 +498,11 @@ sepref_def extract_shorter_conflict_list_heur_st_fast
 sepref_register find_lit_of_max_level_wl
   extract_shorter_conflict_list_heur_st lit_of_hd_trail_st_heur propagate_bt_wl_D_heur
   propagate_unit_bt_wl_D_int
-sepref_register backtrack_wl_D
+sepref_register backtrack_wl
 
 sepref_def lit_of_hd_trail_st_heur_fast_code
-  is \<open>RETURN o lit_of_hd_trail_st_heur\<close>
-  :: \<open>[\<lambda>S. fst (get_trail_wl_heur S) \<noteq> []]\<^sub>a isasat_bounded_assn\<^sup>k \<rightarrow> unat_lit_assn\<close>
+  is \<open>lit_of_hd_trail_st_heur\<close>
+  :: \<open>[\<lambda>S. True]\<^sub>a isasat_bounded_assn\<^sup>k \<rightarrow> unat_lit_assn\<close>
   unfolding lit_of_hd_trail_st_heur_alt_def isasat_bounded_assn_def
   by sepref
 
@@ -510,7 +514,6 @@ sepref_def backtrack_wl_D_fast_code
   unfolding backtrack_wl_D_nlit_heur_def PR_CONST_def
   unfolding delete_index_and_swap_update_def[symmetric] append_update_def[symmetric]
     append_ll_def[symmetric]
-    cons_trail_Propagated_def[symmetric]
     size_conflict_wl_def[symmetric]
   unfolding fold_tuple_optimizations
   apply (annot_snat_const "TYPE(64)")
@@ -525,7 +528,7 @@ begin
   export_llvm
     empty_conflict_and_extract_clause_heur_fast_code
     empty_cach_code
-    propagate_bt_wl_D_fast_code
+    propagate_bt_wl_D_fast_codeXX
     propagate_unit_bt_wl_D_fast_code
     extract_shorter_conflict_list_heur_st_fast
     lit_of_hd_trail_st_heur_fast_code
