@@ -279,6 +279,20 @@ lemma
   by (intro ext, rule get_maximum_level_cong)
     (use assms in auto)
 
+lemma list_of_l_convert_map_lit_of:
+  assumes \<open>(M, M') \<in> convert_lits_l N E\<close>
+  shows
+      \<open>map lit_of M' = map lit_of M\<close>
+  using assms
+  apply (induction M arbitrary: M' rule: ann_lit_list_induct)
+  subgoal by auto
+  subgoal for L M M'
+    by (cases M')
+      (auto simp: convert_lits_l_def p2rel_def)
+  subgoal for L C M M'
+    by (cases M') (auto simp: convert_lits_l_def p2rel_def)
+  done
+
 lemma list_of_l_convert_lits_l[simp]:
   assumes \<open>(M, M') \<in> convert_lits_l N E\<close>
   shows

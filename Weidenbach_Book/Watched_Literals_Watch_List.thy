@@ -4031,7 +4031,7 @@ definition update_confl_tl_wl :: \<open>'v literal \<Rightarrow> nat \<Rightarro
 definition update_confl_tl_wl_pre :: \<open>'v literal \<Rightarrow> nat \<Rightarrow> 'v twl_st_wl \<Rightarrow> bool\<close> where
   \<open>update_confl_tl_wl_pre L C S \<longleftrightarrow>
     (\<exists>S'. (S, S') \<in> state_wl_l None \<and> update_confl_tl_l_pre L C S' \<and>
-     correct_watching S)\<close>
+     correct_watching S \<and> blits_in_\<L>\<^sub>i\<^sub>n S)\<close>
 
 definition mop_update_confl_tl_wl :: \<open>'v literal \<Rightarrow> nat \<Rightarrow> 'v twl_st_wl \<Rightarrow> (bool \<times> 'v twl_st_wl) nres\<close> where
   \<open>mop_update_confl_tl_wl = (\<lambda>L C S. do {
