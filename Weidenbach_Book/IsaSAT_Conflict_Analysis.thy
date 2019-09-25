@@ -399,9 +399,10 @@ proof -
 
   have SC_0: \<open>length (get_clauses_wl S \<propto> C) > 2 \<Longrightarrow> L \<notin> set (tl (get_clauses_wl S \<propto> C)) \<and> get_clauses_wl S \<propto> C ! 0 = L\<close>
      \<open>L \<in> set (watched_l (get_clauses_wl S \<propto> C))\<close>
+      \<open>L \<in># mset (get_clauses_wl S \<propto> C)\<close>
     using list_invs Sx hd nempty C_0 dist L_C
     by (cases \<open>get_trail_wl S\<close>; cases \<open>get_clauses_wl S \<propto> C\<close>;
-      auto simp: twl_list_invs_def all_conj_distrib)+
+      auto simp: twl_list_invs_def all_conj_distrib dest: in_set_takeD)+
 
   have CNot_C:  \<open>\<not>tautology (mset (get_clauses_wl S \<propto> C))\<close>
     using CNot_C' Sx hd nempty C_0 dist multi_member_split[OF L_C] dist
@@ -410,7 +411,23 @@ proof -
     unfolding true_annots_true_cls_def_iff_negation_in_model
     apply (auto simp: tautology_add_mset dest: arg_cong[of \<open>mset _\<close> _ set_mset])
     by (metis member_add_mset set_mset_mset)
+  have stupid: "K \<in># removeAll_mset L D \<longleftrightarrow> K \<noteq> L \<and> K \<in># D" for K L D
+     by auto
 
+
+  have \<open>K \<in># remove1_mset L (mset (get_clauses_wl S \<propto> C)) \<Longrightarrow> - K \<notin># the (get_conflict_wl S)\<close> for K
+    apply (subst (asm) distinct_mset_remove1_All)
+    subgoal using dist by auto
+    apply (subst (asm)stupid)
+    apply (rule conjE, assumption)
+   apply (drule multi_member_split)
+    using 1 uL_D CNot_C dist 2[unfolded in_multiset_in_set[symmetric]] dist_C
+      consistent_CNot_not_tautology[OF distinct_consistent_interp[OF n_d]
+           CNot_D[unfolded true_annots_true_cls]]  \<open>L \<in># mset (get_clauses_wl S \<propto> C)\<close>
+     by (auto dest!: multi_member_split[of \<open>-L\<close>] multi_member_split in_set_takeD
+       simp: tautology_add_mset add_mset_eq_add_mset uminus_lit_swap diff_union_swap2
+       simp del: set_mset_mset in_multiset_in_set
+         distinct_mset_mset_distinct simp flip: distinct_mset_mset_distinct)
   show ?thesis
     using Sx x_xa C C_0 confl nempty uL_D L blits 1 2 card_max dist_C dist SC_0
         consistent_CNot_not_tautology[OF distinct_consistent_interp[OF n_d]
@@ -516,8 +533,39 @@ note [[goals_limit=1]]
      subgoal by (auto simp: twl_st_heur_conflict_ana_def)
      subgoal by (auto simp: twl_st_heur_conflict_ana_def)
      subgoal by (auto simp: twl_st_heur_conflict_ana_def)
-     subgoal thm lookup_merge_eq2_spec
-
+     subgoal unfolding Down_id_eq
+      apply (rule lookup_merge_eq2_spec[where M = x1a and C = \<open>the x1c\<close> and
+      \<A> = \<open>all_atms_st (x1a, x1b, x1c, x1d, x1e, x1f, x2f)\<close>, THEN order_trans])
+      subgoal by (auto dest!: update_confl_tl_wl_pre_update_confl_tl_wl_pre'
+         simp: update_confl_tl_wl_pre'_def twl_st_heur_conflict_ana_def)
+      subgoal by (auto dest!: update_confl_tl_wl_pre_update_confl_tl_wl_pre'
+         simp: update_confl_tl_wl_pre'_def twl_st_heur_conflict_ana_def)
+      subgoal by (auto dest!: update_confl_tl_wl_pre_update_confl_tl_wl_pre'
+         simp: update_confl_tl_wl_pre'_def intro!: literals_are_in_\<L>\<^sub>i\<^sub>n_mm_literals_are_in_\<L>\<^sub>i\<^sub>n)
+      subgoal by (auto dest!: update_confl_tl_wl_pre_update_confl_tl_wl_pre'
+         simp: update_confl_tl_wl_pre'_def twl_st_heur_conflict_ana_def)
+      subgoal by (auto dest!: update_confl_tl_wl_pre_update_confl_tl_wl_pre'
+         simp: update_confl_tl_wl_pre'_def twl_st_heur_conflict_ana_def)
+      subgoal by (auto dest!: update_confl_tl_wl_pre_update_confl_tl_wl_pre'
+         simp: update_confl_tl_wl_pre'_def twl_st_heur_conflict_ana_def)
+      subgoal by (auto dest!: update_confl_tl_wl_pre_update_confl_tl_wl_pre'
+         simp: update_confl_tl_wl_pre'_def twl_st_heur_conflict_ana_def)
+      subgoal apply (auto dest!: update_confl_tl_wl_pre_update_confl_tl_wl_pre' multi_member_split
+         simp: update_confl_tl_wl_pre'_def twl_st_heur_conflict_ana_def arena_lifting
+          tautology_add_mset) sorry
+      subgoal by (auto dest!: update_confl_tl_wl_pre_update_confl_tl_wl_pre'
+         simp: update_confl_tl_wl_pre'_def twl_st_heur_conflict_ana_def counts_maximum_level_def)
+      subgoal by (auto dest!: update_confl_tl_wl_pre_update_confl_tl_wl_pre'
+         simp: update_confl_tl_wl_pre'_def twl_st_heur_conflict_ana_def)
+      subgoal by (auto dest!: update_confl_tl_wl_pre_update_confl_tl_wl_pre'
+         simp: update_confl_tl_wl_pre'_def twl_st_heur_conflict_ana_def)
+      subgoal by (auto dest!: update_confl_tl_wl_pre_update_confl_tl_wl_pre'
+         simp: update_confl_tl_wl_pre'_def arena_lifting twl_st_heur_conflict_ana_def)
+      subgoal by (auto dest!: update_confl_tl_wl_pre_update_confl_tl_wl_pre'
+         simp: update_confl_tl_wl_pre'_def arena_lifting twl_st_heur_conflict_ana_def)
+      subgoal apply (auto simp: merge_conflict_m_eq2_def conc_fun_SPEC intro!: ASSERT_leI)
+      thm lookup_merge_eq2_spec
+find_theorems "\<Down>Id _ = _ "
      
 
 sorry find_theorems lookup_merge_eq2

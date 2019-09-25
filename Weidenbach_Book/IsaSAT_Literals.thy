@@ -122,7 +122,7 @@ definition sint32_max :: nat where
 definition sint64_max :: nat where
   \<open>sint64_max \<equiv> 2^63-1\<close>
 
-  
+
 context
   fixes \<A>\<^sub>i\<^sub>n :: \<open>nat multiset\<close>
 begin
