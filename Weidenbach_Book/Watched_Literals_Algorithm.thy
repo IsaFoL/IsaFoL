@@ -740,7 +740,7 @@ definition mop_hd_trail_pre :: \<open>'v twl_st \<Rightarrow> bool\<close> where
 \<open>mop_hd_trail_pre S \<longleftrightarrow> twl_struct_invs S \<and> twl_stgy_invs S \<and>
       clauses_to_update S = {#} \<and> literals_to_update S = {#} \<and>
       get_conflict S \<noteq> None \<and>
-      get_trail S \<noteq> [] \<and>
+      get_trail S \<noteq> [] \<and> is_proped (hd (get_trail S)) \<and>
       get_conflict S \<noteq> Some {#}\<close>
 
 definition mop_hd_trail :: \<open>'v twl_st \<Rightarrow> ('v literal \<times> 'v clause) nres\<close> where

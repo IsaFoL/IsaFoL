@@ -121,25 +121,24 @@ definition lit_and_ann_of_propagated_st :: \<open>nat twl_st_wl \<Rightarrow> na
   \<open>lit_and_ann_of_propagated_st S = lit_and_ann_of_propagated (hd (get_trail_wl S))\<close>
 
 definition lit_and_ann_of_propagated_st_heur
-   :: \<open>twl_st_wl_heur \<Rightarrow> nat literal \<times> nat\<close>
+   :: \<open>twl_st_wl_heur \<Rightarrow> (nat literal \<times> nat) nres\<close>
 where
-  \<open>lit_and_ann_of_propagated_st_heur = (\<lambda>((M, _, _, reasons, _), _). (last M, reasons ! (atm_of (last M))))\<close>
+  \<open>lit_and_ann_of_propagated_st_heur = (\<lambda>((M, _, _, reasons, _), _). do {
+     ASSERT(M \<noteq> [] \<and> atm_of (last M) < length reasons);
+     RETURN (last M, reasons ! (atm_of (last M)))})\<close>
 
 lemma lit_and_ann_of_propagated_st_heur_lit_and_ann_of_propagated_st:
-   \<open>(RETURN o lit_and_ann_of_propagated_st_heur, RETURN o lit_and_ann_of_propagated_st) \<in>
-   [\<lambda>S. is_proped (hd (get_trail_wl S)) \<and> get_trail_wl S \<noteq> []]\<^sub>f twl_st_heur_conflict_ana \<rightarrow> \<langle>Id \<times>\<^sub>f Id\<rangle>nres_rel\<close>
+   \<open>(lit_and_ann_of_propagated_st_heur, mop_hd_trail_wl) \<in>
+   [\<lambda>S. True]\<^sub>f twl_st_heur_conflict_ana \<rightarrow> \<langle>Id \<times>\<^sub>f Id\<rangle>nres_rel\<close>
   apply (intro frefI nres_relI)
-  by (rename_tac x y; case_tac x; case_tac y; case_tac \<open>hd (fst y)\<close>; case_tac \<open>fst y\<close>;
-     case_tac \<open>fst (fst x)\<close> rule: rev_cases)
-   (auto simp: twl_st_heur_conflict_ana_def lit_and_ann_of_propagated_st_heur_def
-      lit_and_ann_of_propagated_st_def trail_pol_def ann_lits_split_reasons_def)
-
-lemma twl_st_heur_conflict_ana_lit_and_ann_of_propagated_st_heur_lit_and_ann_of_propagated_st:
-  \<open>(x, y) \<in> twl_st_heur_conflict_ana \<Longrightarrow> is_proped (hd (get_trail_wl y)) \<Longrightarrow> get_trail_wl y \<noteq> [] \<Longrightarrow>
-    lit_and_ann_of_propagated_st_heur x = lit_and_ann_of_propagated_st y\<close>
-  using lit_and_ann_of_propagated_st_heur_lit_and_ann_of_propagated_st[THEN fref_to_Down_unRET,
-    of y x]
-  by auto
+  unfolding lit_and_ann_of_propagated_st_heur_def mop_hd_trail_wl_def
+  apply refine_rcg
+  apply (auto simp: twl_st_heur_conflict_ana_def mop_hd_trail_wl_def mop_hd_trail_wl_pre_def
+     mop_hd_trail_l_pre_def twl_st_l_def state_wl_l_def mop_hd_trail_pre_def last_rev hd_map
+      lit_and_ann_of_propagated_st_def trail_pol_alt_def ann_lits_split_reasons_def
+    intro!: ASSERT_leI ASSERT_refine_right simp flip: rev_map elim: is_propedE)
+  apply (auto elim!: is_propedE)
+  done
 
 definition tl_state_wl_heur_pre :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close> where
   \<open>tl_state_wl_heur_pre =
@@ -802,7 +801,7 @@ where
               if maximum_level_removed_eq_count_dec_heur (-L) S
               then do {
                 ASSERT(update_confl_tl_wl_heur_pre ((C, L), S));
-                update_confl_tl_wl_heur C L S}
+                update_confl_tl_wl_heur L C S}
               else
                 RETURN (True, S)
           }
