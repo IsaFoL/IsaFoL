@@ -4008,7 +4008,7 @@ subsubsection \<open>Skip or Resolve\<close>
 
 
 definition mop_tl_state_wl_pre :: \<open>'v twl_st_wl \<Rightarrow> bool\<close> where
-\<open>mop_tl_state_wl_pre S \<longleftrightarrow>  
+\<open>mop_tl_state_wl_pre S \<longleftrightarrow>
    (\<exists>S'. (S, S') \<in> state_wl_l None \<and> correct_watching S \<and> mop_tl_state_l_pre S')\<close>
 
 definition tl_state_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl\<close> where

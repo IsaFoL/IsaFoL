@@ -2159,7 +2159,7 @@ definition mop_lit_notin_conflict_l :: \<open>'v literal \<Rightarrow> 'v twl_st
   }\<close>
 
 definition mop_tl_state_l_pre :: \<open>'v twl_st_l \<Rightarrow> bool\<close> where
-\<open>mop_tl_state_l_pre S \<longleftrightarrow>  
+\<open>mop_tl_state_l_pre S \<longleftrightarrow>
    (\<exists>S'. (S, S') \<in> twl_st_l None \<and> mop_tl_state_pre S' \<and>
       twl_list_invs S)\<close>
 
@@ -2169,7 +2169,7 @@ definition mop_tl_state_l :: \<open>'v twl_st_l \<Rightarrow> (bool \<times> 'v 
     RETURN(False, tl_state_l S)})\<close>
 
 definition mop_maximum_level_removed_l_pre :: \<open>'v literal \<Rightarrow> 'v twl_st_l \<Rightarrow> bool\<close> where
-\<open>mop_maximum_level_removed_l_pre L S \<longleftrightarrow> 
+\<open>mop_maximum_level_removed_l_pre L S \<longleftrightarrow>
    (\<exists>S'. (S, S') \<in> twl_st_l None \<and> mop_maximum_level_removed_pre L S' \<and>
       twl_list_invs S)\<close>
 

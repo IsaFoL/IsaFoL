@@ -90,30 +90,36 @@ definition maximum_level_removed_eq_count_dec where
       get_maximum_level_remove (get_trail_wl S) (the (get_conflict_wl S)) L =
        count_decided (get_trail_wl S)\<close>
 
-definition maximum_level_removed_eq_count_dec_heur where
-  \<open>maximum_level_removed_eq_count_dec_heur L S \<longleftrightarrow>
-      get_count_max_lvls_heur S > 1\<close>
-
 definition maximum_level_removed_eq_count_dec_pre where
   \<open>maximum_level_removed_eq_count_dec_pre =
      (\<lambda>(L, S). L = -lit_of (hd (get_trail_wl S)) \<and> L \<in># the (get_conflict_wl S) \<and>
       get_conflict_wl S \<noteq> None \<and> get_trail_wl S \<noteq> [] \<and> count_decided (get_trail_wl S) \<ge> 1)\<close>
 
+definition maximum_level_removed_eq_count_dec_heur where
+  \<open>maximum_level_removed_eq_count_dec_heur L S =
+      RETURN (get_count_max_lvls_heur S > 1)\<close>
+
 lemma maximum_level_removed_eq_count_dec_heur_maximum_level_removed_eq_count_dec:
-  \<open>(uncurry (RETURN oo maximum_level_removed_eq_count_dec_heur),
-      uncurry (RETURN oo maximum_level_removed_eq_count_dec)) \<in>
-   [maximum_level_removed_eq_count_dec_pre]\<^sub>f
+  \<open>(uncurry (maximum_level_removed_eq_count_dec_heur),
+      uncurry (mop_maximum_level_removed_wl)) \<in>
+   [\<lambda>_. True]\<^sub>f
     Id \<times>\<^sub>r twl_st_heur_conflict_ana \<rightarrow> \<langle>bool_rel\<rangle>nres_rel\<close>
+  unfolding maximum_level_removed_eq_count_dec_heur_def mop_maximum_level_removed_wl_def
+    uncurry_def
   apply (intro frefI nres_relI)
   subgoal for x y
+    apply refine_rcg
     using get_maximum_level_remove_count_max_lvls[of \<open>fst x\<close> \<open>get_trail_wl (snd y)\<close>
       \<open>the (get_conflict_wl (snd y))\<close>]
-    by (cases x)
-       (auto simp: count_decided_st_def counts_maximum_level_def twl_st_heur_conflict_ana_def
+   apply (cases x)
+   apply (auto simp: count_decided_st_def counts_maximum_level_def twl_st_heur_conflict_ana_def
      maximum_level_removed_eq_count_dec_heur_def maximum_level_removed_eq_count_dec_def
-     maximum_level_removed_eq_count_dec_pre_def)
+     maximum_level_removed_eq_count_dec_pre_def mop_maximum_level_removed_wl_pre_def
+    mop_maximum_level_removed_l_pre_def mop_maximum_level_removed_pre_def state_wl_l_def
+    twl_st_l_def)
+sorry
   done
-
+find_theorems card_max_lvl get_maximum_level
 lemma get_trail_wl_heur_def: \<open>get_trail_wl_heur = (\<lambda>(M, S). M)\<close>
   by (intro ext, rename_tac S, case_tac S) auto
 
@@ -149,15 +155,21 @@ definition tl_state_wl_heur_pre :: \<open>twl_st_wl_heur \<Rightarrow> bool\<clo
          atm_of (last (fst M)) < length A \<and>
          (next_search \<noteq> None \<longrightarrow>  the next_search < length A))\<close>
 
-definition tl_state_wl_heur :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur\<close> where
-  \<open>tl_state_wl_heur = (\<lambda>(M, N, D, WS, Q, vmtf, \<phi>, clvls).
-       (tl_trailt_tr M, N, D, WS, Q, isa_vmtf_unset (atm_of (lit_of_last_trail_pol M)) vmtf, \<phi>, clvls))\<close>
+definition tl_state_wl_heur :: \<open>twl_st_wl_heur \<Rightarrow> (bool \<times> twl_st_wl_heur) nres\<close> where
+  \<open>tl_state_wl_heur = (\<lambda>(M, N, D, WS, Q, vmtf, \<phi>, clvls). do {
+       ASSERT(tl_state_wl_heur_pre (M, N, D, WS, Q, vmtf, \<phi>, clvls));
+       RETURN (False, (tl_trailt_tr M, N, D, WS, Q, isa_vmtf_unset (atm_of (lit_of_last_trail_pol M)) vmtf, \<phi>, clvls))
+  })\<close>
 
 lemma tl_state_wl_heur_alt_def:
-    \<open>tl_state_wl_heur = (\<lambda>(M, N, D, WS, Q, vmtf, \<phi>, clvls).
-      (let L = lit_of_last_trail_pol M in
-       (tl_trailt_tr M, N, D, WS, Q, isa_vmtf_unset (atm_of L) vmtf, \<phi>, clvls)))\<close>
-  by (auto simp: tl_state_wl_heur_def Let_def)
+    \<open>tl_state_wl_heur = (\<lambda>(M, N, D, WS, Q, vmtf, \<phi>, clvls). do {
+       ASSERT(tl_state_wl_heur_pre (M, N, D, WS, Q, vmtf, \<phi>, clvls));
+       let L = lit_of_last_trail_pol M;
+       RETURN (False, (tl_trailt_tr M, N, D, WS, Q, isa_vmtf_unset (atm_of L) vmtf, \<phi>, clvls))
+    })\<close>
+  by (auto simp: tl_state_wl_heur_def Let_def intro!: ext)
+
+
 
 
 lemma card_max_lvl_Cons:
@@ -207,22 +219,67 @@ lemma tl_state_out_learned:
   by (cases a)  (auto simp: out_learned_def get_level_cons_if atm_of_eq_atm_of
       intro!: filter_mset_cong)
 
+lemma mop_tl_state_wl_pre_tl_state_wl_heur_pre:
+  \<open>(x, y) \<in> twl_st_heur_conflict_ana \<Longrightarrow> mop_tl_state_wl_pre y \<Longrightarrow> tl_state_wl_heur_pre x\<close>
+  using tl_trailt_tr_pre[of \<open>get_trail_wl y\<close> \<open>get_trail_wl_heur x\<close> \<open>all_atms_st y\<close>]
+  unfolding mop_tl_state_wl_pre_def tl_state_wl_heur_pre_def mop_tl_state_l_pre_def
+    mop_tl_state_pre_def tl_state_wl_heur_pre_def 
+  apply (auto simp: twl_st_heur_conflict_ana_def state_wl_l_def twl_st_l_def trail_pol_alt_def
+      rev_map[symmetric] last_rev hd_map
+    intro!: vmtf_unset_pre'[where M = \<open>get_trail_wl y\<close>])
+  apply (auto simp: neq_Nil_conv literals_are_in_\<L>\<^sub>i\<^sub>n_trail_Cons phase_saving_def isa_vmtf_def
+      vmtf_def
+    dest!: multi_member_split)
+  done
+
+lemma mop_tl_state_wl_pre_simps:
+  \<open>mop_tl_state_wl_pre ([], ax, ay, az, bga, bh, bi) \<longleftrightarrow> False\<close>
+  \<open>mop_tl_state_wl_pre (xa, ax, ay, az, bga, bh, bi) \<Longrightarrow> lit_of (hd xa) \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms ax (az + bga))\<close>
+  \<open>mop_tl_state_wl_pre (xa, ax, ay, az, bga, bh, bi) \<Longrightarrow> lit_of (hd xa) \<notin># the ay\<close>
+  \<open>mop_tl_state_wl_pre (xa, ax, ay, az, bga, bh, bi) \<Longrightarrow> -lit_of (hd xa) \<notin># the ay\<close>
+  \<open>mop_tl_state_wl_pre (xa, ax, Some ay', az, bga, bh, bi) \<Longrightarrow> lit_of (hd xa) \<notin># ay'\<close>
+  \<open>mop_tl_state_wl_pre (xa, ax, Some ay', az, bga, bh, bi) \<Longrightarrow> -lit_of (hd xa) \<notin># ay'\<close>
+  \<open>mop_tl_state_wl_pre (xa, ax, ay, az, bga, bh, bi) \<Longrightarrow> is_proped (hd xa)\<close>
+  \<open>mop_tl_state_wl_pre (xa, ax, ay, az, bga, bh, bi) \<Longrightarrow> count_decided xa > 0\<close>
+  unfolding mop_tl_state_wl_pre_def tl_state_wl_heur_pre_def mop_tl_state_l_pre_def
+    mop_tl_state_pre_def tl_state_wl_heur_pre_def 
+  apply (auto simp: twl_st_heur_conflict_ana_def state_wl_l_def twl_st_l_def trail_pol_alt_def
+      all_lits_def
+      rev_map[symmetric] last_rev hd_map mset_take_mset_drop_mset' \<L>\<^sub>a\<^sub>l\<^sub>l_all_atms_all_lits
+    simp flip: image_mset_union)
+  done
+
+abbreviation twl_st_heur_conflict_ana' :: \<open>nat \<Rightarrow> (twl_st_wl_heur \<times> nat twl_st_wl) set\<close> where
+  \<open>twl_st_heur_conflict_ana' r \<equiv> {(S, T). (S, T) \<in> twl_st_heur_conflict_ana \<and>
+     length (get_clauses_wl_heur S) = r}\<close>
+
 lemma tl_state_wl_heur_tl_state_wl:
-   \<open>(RETURN o tl_state_wl_heur, RETURN o tl_state_wl) \<in>
-   [tl_state_wl_pre]\<^sub>f twl_st_heur_conflict_ana \<rightarrow> \<langle>twl_st_heur_conflict_ana\<rangle>nres_rel\<close>
+   \<open>(tl_state_wl_heur, mop_tl_state_wl) \<in>
+   [\<lambda>_. True]\<^sub>f twl_st_heur_conflict_ana' r \<rightarrow> \<langle>bool_rel \<times>\<^sub>f twl_st_heur_conflict_ana' r\<rangle>nres_rel\<close>
+  supply [[goals_limit=1]]
+  unfolding tl_state_wl_heur_def mop_tl_state_wl_def
   apply (intro frefI nres_relI)
-  apply (auto simp: twl_st_heur_conflict_ana_def tl_state_wl_heur_def tl_state_wl_def vmtf_unset_vmtf_tl
-       in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff phase_saving_def counts_maximum_level_def
-       card_max_lvl_tl tl_state_wl_pre_def tl_state_out_learned neq_Nil_conv
-       literals_are_in_\<L>\<^sub>i\<^sub>n_trail_Cons all_atms_def[symmetric] card_max_lvl_Cons
-     dest: no_dup_tlD
-     intro!: tl_trail_tr[THEN fref_to_Down_unRET] isa_vmtf_tl_isa_vmtf
-     simp: lit_of_last_trail_pol_lit_of_last_trail[THEN fref_to_Down_unRET_Id]
-     intro: tl_state_out_learned[THEN iffD2, of \<open>Cons _ _\<close>, simplified])
+  apply refine_vcg
+  subgoal for x y a b aa ba ab bb ac bc ad bd ae be af bf
+    using mop_tl_state_wl_pre_tl_state_wl_heur_pre[of x y] by simp
+  subgoal
+    apply (auto simp: twl_st_heur_conflict_ana_def tl_state_wl_heur_def tl_state_wl_def vmtf_unset_vmtf_tl
+         mop_tl_state_wl_pre_simps lit_of_last_trail_pol_lit_of_last_trail[THEN fref_to_Down_unRET_Id]
+         card_max_lvl_tl tl_state_out_learned
+      dest: no_dup_tlD
+      intro!: tl_trail_tr[THEN fref_to_Down_unRET] isa_vmtf_tl_isa_vmtf)
   apply (subst lit_of_last_trail_pol_lit_of_last_trail[THEN fref_to_Down_unRET_Id])
-  apply (auto simp: lit_of_hd_trail_def)[3]
-  apply (subst lit_of_last_trail_pol_lit_of_last_trail[THEN fref_to_Down_unRET_Id])
-  apply (auto simp: lit_of_hd_trail_def)[3]
+  apply (auto simp: lit_of_hd_trail_def mop_tl_state_wl_pre_simps counts_maximum_level_def)
+  apply (subst card_max_lvl_tl)
+    apply (auto simp: mop_tl_state_wl_pre_simps lookup_clause_rel_not_tautolgy lookup_clause_rel_distinct_mset
+      option_lookup_clause_rel_def)
+  apply (subst tl_state_out_learned)
+    apply (auto simp: mop_tl_state_wl_pre_simps lookup_clause_rel_not_tautolgy lookup_clause_rel_distinct_mset
+      option_lookup_clause_rel_def)
+  apply (subst tl_state_out_learned)
+    apply (auto simp: mop_tl_state_wl_pre_simps lookup_clause_rel_not_tautolgy lookup_clause_rel_distinct_mset
+      option_lookup_clause_rel_def)
+  done
   done
 
 lemma arena_act_pre_mark_used:
@@ -533,10 +590,6 @@ lemma (in -)out_learned_tl_Some_notin:
   by (cases M) (auto simp: out_learned_def get_level_cons_if atm_of_eq_atm_of
       intro!: filter_mset_cong2)
 
-abbreviation twl_st_heur_conflict_ana' :: \<open>nat \<Rightarrow> (twl_st_wl_heur \<times> nat twl_st_wl) set\<close> where
-  \<open>twl_st_heur_conflict_ana' r \<equiv> {(S, T). (S, T) \<in> twl_st_heur_conflict_ana \<and>
-     length (get_clauses_wl_heur S) = r}\<close>
-
 (*TODO*)
 lemma literals_are_in_\<L>\<^sub>i\<^sub>n_mm_all_atms_self[simp]:
   \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm (all_atms ca NUE) {#mset (fst x). x \<in># ran_m ca#}\<close>
@@ -790,17 +843,13 @@ where
         (\<lambda>(brk, S).
           do {
             ASSERT(\<not>brk \<and> \<not>is_decided_hd_trail_wl_heur S);
-	    ASSERT(lit_and_ann_of_propagated_st_heur_pre S);
-            let (L, C) = lit_and_ann_of_propagated_st_heur S;
-            ASSERT(atm_is_in_conflict_st_heur_pre (-L, S));
-            if \<not>atm_is_in_conflict_st_heur (-L) S then
-              do {
-	      ASSERT (tl_state_wl_heur_pre S);
-	      RETURN (False, tl_state_wl_heur S)}
+            (L, C) \<leftarrow> lit_and_ann_of_propagated_st_heur S;
+            b \<leftarrow> atm_is_in_conflict_st_heur (-L) S;
+            if b then
+	      tl_state_wl_heur S
             else
               if maximum_level_removed_eq_count_dec_heur (-L) S
               then do {
-                ASSERT(update_confl_tl_wl_heur_pre ((C, L), S));
                 update_confl_tl_wl_heur L C S}
               else
                 RETURN (True, S)
@@ -810,6 +859,70 @@ where
       RETURN S
     }
   \<close>
+
+
+
+lemma atm_is_in_conflict_st_heur_is_in_conflict_st:
+  \<open>(uncurry (atm_is_in_conflict_st_heur), uncurry (mop_lit_notin_conflict_wl)) \<in>
+   [\<lambda>(L, S). True]\<^sub>f
+   Id \<times>\<^sub>r twl_st_heur_conflict_ana \<rightarrow> \<langle>Id\<rangle> nres_rel\<close>
+proof -
+  have 1: \<open>aaa \<in># \<L>\<^sub>a\<^sub>l\<^sub>l A \<Longrightarrow> atm_of aaa  \<in> atms_of (\<L>\<^sub>a\<^sub>l\<^sub>l A)\<close> for aaa A
+    by (auto simp: atms_of_def)
+  show ?thesis
+  unfolding atm_is_in_conflict_st_heur_def twl_st_heur_def option_lookup_clause_rel_def uncurry_def comp_def
+    mop_lit_notin_conflict_wl_def twl_st_heur_conflict_ana_def
+  apply (intro frefI nres_relI)
+  apply refine_rcg
+  apply clarsimp
+  subgoal
+     apply (rule atm_in_conflict_lookup_pre)
+     unfolding \<L>\<^sub>a\<^sub>l\<^sub>l_all_atms_all_lits[symmetric]
+     apply assumption+
+     done
+  subgoal for x y x1 x2 x1a x2a x1b x2b x1c x2c x1d x1e x2d x2e
+    apply (subst atm_in_conflict_lookup_atm_in_conflict[THEN fref_to_Down_unRET_uncurry_Id, of \<open>all_atms_st x2\<close>  \<open>atm_of x1\<close> \<open>the (get_conflict_wl (snd y))\<close>])
+    apply (simp add: \<L>\<^sub>a\<^sub>l\<^sub>l_all_atms_all_lits atms_of_def)[]
+    apply (auto simp add: \<L>\<^sub>a\<^sub>l\<^sub>l_all_atms_all_lits atms_of_def option_lookup_clause_rel_def)[]
+    apply (simp add: atm_in_conflict_def atm_of_in_atms_of_iff)
+    done
+  done
+qed
+
+lemma skip_and_resolve_loop_wl_D_heur_skip_and_resolve_loop_wl_D:
+  \<open>(skip_and_resolve_loop_wl_D_heur, skip_and_resolve_loop_wl)
+    \<in> twl_st_heur_conflict_ana' r \<rightarrow>\<^sub>f \<langle>twl_st_heur_conflict_ana' r\<rangle>nres_rel\<close>
+proof -
+  have H[refine0]: \<open>(x, y) \<in> twl_st_heur_conflict_ana \<Longrightarrow>
+           ((False, x), False, y)
+           \<in> bool_rel \<times>\<^sub>f
+              twl_st_heur_conflict_ana' (length (get_clauses_wl_heur x))\<close> for x y
+    by auto
+
+  show ?thesis
+    supply [[goals_limit=1]]
+    unfolding skip_and_resolve_loop_wl_D_heur_def skip_and_resolve_loop_wl_def
+    apply (intro frefI nres_relI)
+    apply (refine_vcg
+        update_confl_tl_wl_heur_update_confl_tl_wl[THEN fref_to_Down_curry2, unfolded comp_def]
+        maximum_level_removed_eq_count_dec_heur_maximum_level_removed_eq_count_dec
+          [THEN fref_to_Down_curry] lit_and_ann_of_propagated_st_heur_lit_and_ann_of_propagated_st[THEN fref_to_Down]
+       tl_state_wl_heur_tl_state_wl[THEN fref_to_Down]
+       atm_is_in_conflict_st_heur_is_in_conflict_st[THEN fref_to_Down_curry])
+   subgoal by fast
+   subgoal unfolding skip_and_resolve_loop_wl_D_heur_inv_def sorry
+   subgoal sorry
+   subgoal by auto
+   subgoal by auto
+   subgoal by auto
+   subgoal by auto
+   subgoal by auto
+   subgoal by auto
+   done
+qed
+thm tl_state_wl_heur_tl_state_wl[THEN fref_to_Down]
+find_theorems twl_st_heur_conflict_ana twl_st_heur
+
 
 context
   fixes x y xa x' x1 x2 x1b x2b r

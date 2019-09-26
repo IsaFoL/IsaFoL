@@ -686,7 +686,11 @@ definition mop_tl_state_pre :: \<open>'v twl_st \<Rightarrow> bool\<close> where
           get_conflict S \<noteq> None \<and>
           count_decided (get_trail S) \<noteq> 0 \<and>
           get_trail S \<noteq> [] \<and>
-          get_conflict S \<noteq> Some {#}\<close>
+          get_conflict S \<noteq> Some {#} \<and>
+          is_proped (hd (get_trail S)) \<and>
+          lit_of (hd (get_trail S)) \<in># all_lits_of_mm (clauses (get_clauses S) + unit_clss S) \<and>
+          lit_of (hd (get_trail S)) \<notin># the (get_conflict S) \<and>
+          -lit_of (hd (get_trail S)) \<notin># the (get_conflict S)\<close>
 
 definition mop_tl_state :: \<open>'v twl_st \<Rightarrow> (bool \<times> 'v twl_st) nres\<close> where
   \<open>mop_tl_state = (\<lambda>S. do {
@@ -728,7 +732,8 @@ definition mop_maximum_level_removed_pre :: \<open>'v literal \<Rightarrow> 'v t
           count_decided (get_trail S) \<noteq> 0 \<and>
           get_trail S \<noteq> [] \<and>
           get_conflict S \<noteq> Some {#} \<and>
-          -L \<in># the (get_conflict S)\<close>
+          -L \<in># the (get_conflict S) \<and>
+          L = lit_of (hd (get_trail S))\<close>
 
 definition mop_maximum_level_removed :: \<open>'v literal \<Rightarrow> 'v twl_st \<Rightarrow> bool nres\<close> where
 \<open>mop_maximum_level_removed L S = do {
@@ -858,6 +863,10 @@ proof (refine_vcg WHILEIT_rule[where R = \<open>measure (\<lambda>(brk, S). Suc 
       (auto simp: cdcl\<^sub>W_restart_mset.no_strange_atm_def
         cdcl\<^sub>W_restart_mset_state in_all_lits_of_mm_ain_atms_of_iff)
 
+  have LD': \<open>L \<notin># D'\<close>
+    using \<open>M \<Turnstile>as CNot D'\<close> M n_d
+    by (auto dest!: multi_member_split dest: uminus_lits_of_l_definedD simp: T)
+
   { \<comment> \<open>skip\<close>
     assume LD: \<open>- L \<notin># the (get_conflict T)\<close>
     let ?T = \<open>snd (tl_state T)\<close>
@@ -874,12 +883,15 @@ proof (refine_vcg WHILEIT_rule[where R = \<open>measure (\<lambda>(brk, S). Suc 
       using twl_T D D' unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
         cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
       by (auto simp: cdcl\<^sub>W_restart_mset_state T tl_state_def)
+    moreover have \<open>- lit_of (hd M)  \<in># all_lits_of_mm (clauses (get_clauses T) + unit_clss T)\<close> \<open>is_proped (hd M)\<close>
+       \<open>- lit_of (hd M) \<notin># the (get_conflict T)\<close>  \<open>lit_of (hd M) \<notin># the (get_conflict T)\<close>
+      using M alien_L LD LD' D
+      by (auto intro!: ASSERT_leI simp: T tl_state_def in_all_lits_of_mm_uminus_iff)
     ultimately show \<open>mop_tl_state T \<le> ?R brk T\<close>
-      using WS Q D D' twl_stgy_S twl unfolding skip_and_resolve_loop_inv_def mop_tl_state_pre_def mop_tl_state_def
-      by (auto intro!: ASSERT_leI simp: T tl_state_def)
-
-
+      using WS Q D D' twl_stgy_S twl alien_L LD unfolding skip_and_resolve_loop_inv_def mop_tl_state_pre_def mop_tl_state_def
+      by (auto intro!: ASSERT_leI simp: T tl_state_def in_all_lits_of_mm_uminus_iff)
   }
+
   { \<comment> \<open>resolve\<close>
     assume
       LD: \<open>\<not>- L \<notin># the (get_conflict T)\<close>
