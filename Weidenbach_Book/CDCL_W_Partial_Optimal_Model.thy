@@ -108,6 +108,80 @@ lemma atms_of_complete_trail:
   by (auto simp add: complete_trail_def all_clauses_literals
     image_image image_Un atms_of_def defined_lit_map)
 
+fun remove_dup_information :: \<open>('v, _) ann_lits \<Rightarrow> ('v, _) ann_lits\<close> where
+  \<open>remove_dup_information [] = []\<close> |
+  \<open>remove_dup_information (Decided K # M) = Decided K # remove_dup_information M\<close> |
+  \<open>remove_dup_information (Propagated L C # M) =
+    (if atm_of L \<in> \<Sigma> - \<Delta>\<Sigma> then Propagated L C # remove_dup_information M
+     else if defined_lit M (Pos (replacement_pos (base_atm (atm_of L)))) \<or> defined_lit M (Pos (replacement_neg (base_atm (atm_of L))))
+     then remove_dup_information M else Propagated L C # remove_dup_information M)\<close>
+
+lemma length_complete_trail[simp]: \<open>length (complete_trail []) = length all_clauses_literals\<close>
+  unfolding complete_trail_def
+  by auto
+
+lemma distinct_count_list_if: \<open>distinct xs \<Longrightarrow> count_list xs x = (if x \<in> set xs then 1 else 0)\<close>
+  by (induction xs) auto
+
+
+lemma isabelle_should_do_that_automatically: \<open>Suc (a - Suc 0) = a \<longleftrightarrow> a \<ge> 1\<close>
+  by auto
+
+lemma length_complete_trail_Cons:
+  \<open>no_dup (K # M) \<Longrightarrow> length (complete_trail (K # M)) = (if atm_of (lit_of K) \<in> set all_clauses_literals then 0 else 1) + length (complete_trail M)\<close>
+  unfolding complete_trail_def apply auto
+  apply (subst conj_commute)
+  apply (auto simp: complete_trail_def length_removeAll_count_list distinct_count_list_if 
+    all_clauses_literals(2) isabelle_should_do_that_automatically simp flip: filter_filter removeAll_filter_not_eq)
+  by (meson defined_lit_Pos_atm_iff filter_empty_conv le_0_eq length_0_conv not_less_eq_eq)
+
+lemma length_complete_trail_eq:
+  \<open>no_dup M \<Longrightarrow> atm_of ` (lits_of_l M) \<subseteq> set all_clauses_literals \<Longrightarrow> length (complete_trail M) = length all_clauses_literals\<close>
+  by (induction M rule: ann_lit_list_induct) (auto simp: length_complete_trail_Cons)
+
+lemma in_set_all_clauses_literals_simp[simp]:
+  \<open>atm_of L \<in> \<Sigma> - \<Delta>\<Sigma> \<Longrightarrow> atm_of L \<in> set all_clauses_literals\<close>
+  \<open>K \<in> \<Delta>\<Sigma> \<Longrightarrow> replacement_pos K \<in> set all_clauses_literals\<close>
+  \<open>K \<in> \<Delta>\<Sigma> \<Longrightarrow> replacement_neg K \<in> set all_clauses_literals\<close>
+  by (auto simp: all_clauses_literals)
+
+lemma atm_of_remove_dup_information:
+  \<open>atm_of ` (lits_of_l M) \<subseteq> set all_clauses_literals \<Longrightarrow> atm_of ` (lits_of_l (remove_dup_information M)) \<subseteq> set all_clauses_literals\<close>
+  apply (induction M rule: ann_lit_list_induct)
+  apply (auto simp: Decided_Propagated_in_iff_in_lits_of_l lits_of_def image_image)
+  done
+
+lemma remove_dup_information_subset: \<open>mset (remove_dup_information M) \<subseteq># mset M\<close>
+  apply (induction M rule: ann_lit_list_induct) apply auto
+  apply (metis add_mset_remove_trivial diff_subset_eq_self subset_mset.dual_order.trans)+
+  done
+
+(*TODO Move*)
+lemma no_dup_subsetD: \<open>no_dup M \<Longrightarrow> mset M' \<subseteq># mset M \<Longrightarrow> no_dup M'\<close>
+  unfolding no_dup_def distinct_mset_mset_distinct[symmetric] mset_map
+  apply (drule image_mset_subseteq_mono[of _ _ \<open>atm_of o lit_of\<close>])
+  apply (drule distinct_mset_mono)
+  apply auto
+  done
+
+lemma no_dup_remove_dup_information:
+  \<open>no_dup M \<Longrightarrow> no_dup (remove_dup_information M)\<close>
+  using no_dup_subsetD[OF _ remove_dup_information_subset] by blast
+
+lemma atm_of_complete_trail:
+  \<open>atm_of ` (lits_of_l M) \<subseteq> set all_clauses_literals \<Longrightarrow> atm_of ` (lits_of_l (complete_trail M)) = set all_clauses_literals\<close>
+  unfolding complete_trail_def by (auto simp: lits_of_def image_image image_Un defined_lit_map)
+
+lemma atm_of_complete_trail_remove_dup_information:
+  \<open>no_dup M \<Longrightarrow> atm_of ` (lits_of_l M) \<subseteq> set all_clauses_literals \<Longrightarrow> atm_of ` (lits_of_l (complete_trail (remove_dup_information M))) = set all_clauses_literals\<close>
+  by (simp_all add: atm_of_complete_trail atm_of_remove_dup_information)
+
+text \<open>TODO:
+  \<^item> complete_trail is doing the wrong thing (or it should be done before @{term \<open>remove_dup_information\<close>}).
+  \<^item> is the measure really the simplest thing we can do?
+\<close>
+
+
 fun ocdcl_score_rev :: \<open>('v, 'b) ann_lits \<Rightarrow> ('v, 'b) ann_lits \<Rightarrow> nat\<close> where
   \<open>ocdcl_score_rev _ [] = 0\<close> |
   \<open>ocdcl_score_rev M' (Propagated K C # M) = ocdcl_score_rev (M' @ [Propagated K C]) M\<close> |
