@@ -29,11 +29,16 @@ lemma correct_watching'_correct_watching'': \<open>correct_watching' S \<Longrig
 
 declare correct_watching'.simps[simp del] correct_watching''.simps[simp del]
 
+definition blits_in_\<L>\<^sub>i\<^sub>n' :: \<open>'v twl_st_wl \<Rightarrow> bool\<close> where
+  \<open>blits_in_\<L>\<^sub>i\<^sub>n' S == (\<forall>L \<in># all_lits_of_mm (mset `# init_clss_lf (get_clauses_wl S) + get_unit_clauses_wl S).
+      \<forall>(i, K, b) \<in> set (watched_by S L). K \<in># all_lits_of_mm (mset `# init_clss_lf (get_clauses_wl S) + get_unit_clauses_wl S))\<close>
+
+
 definition remove_all_annot_true_clause_imp_wl_inv
   :: \<open>'v twl_st_wl \<Rightarrow> _ \<Rightarrow> nat \<times> 'v twl_st_wl \<Rightarrow> bool\<close>
 where
   \<open>remove_all_annot_true_clause_imp_wl_inv S xs = (\<lambda>(i, T).
-     correct_watching'' S \<and> correct_watching'' T \<and>
+     correct_watching'' S \<and> correct_watching'' T \<and> blits_in_\<L>\<^sub>i\<^sub>n' S \<and> blits_in_\<L>\<^sub>i\<^sub>n' T \<and>
      (\<exists>S' T'. (S, S') \<in> state_wl_l None \<and> (T, T') \<in> state_wl_l None \<and>
         remove_all_annot_true_clause_imp_inv S' xs (i, T')))\<close>
 
@@ -84,8 +89,10 @@ lemma correct_watching_fmdrop:
     irred: \<open>\<not> irred N C\<close> and
     C: \<open>C \<in># dom_m N\<close> and
     \<open>correct_watching' (M', N, D, NE, UE, Q, W)\<close> and
-    C2: \<open>length (N \<propto> C) \<noteq> 2\<close>
-  shows \<open>correct_watching' (M, fmdrop C N, D, NE, UE, Q, W)\<close>
+    C2: \<open>length (N \<propto> C) \<noteq> 2\<close> and
+    blit: \<open>blits_in_\<L>\<^sub>i\<^sub>n' (M', N, D, NE, UE, Q, W)\<close>
+  shows \<open>correct_watching' (M, fmdrop C N, D, NE, UE, Q, W)\<close> and
+     \<open>blits_in_\<L>\<^sub>i\<^sub>n'  (M, fmdrop C N, D, NE, UE, Q, W)\<close>
 proof -
   have
     Hdist: \<open>\<And>L i K b. L\<in>#all_lits_of_mm (mset `# init_clss_lf N + NE) \<Longrightarrow>
@@ -118,7 +125,7 @@ proof -
     removeAll_mset C (filter_mset (\<lambda>i. i \<in># dom_m N) A)\<close> for A
     by (induction A)
       (auto simp: distinct_mset_remove1_All distinct_mset_dom)
-  show ?thesis
+  show  \<open>correct_watching' (M, fmdrop C N, D, NE, UE, Q, W)\<close>
     unfolding correct_watching'.simps clause_to_update_def
     apply (intro conjI impI ballI)
     subgoal for L using Hdist[of L] distinct_mset_dom[of N]
@@ -151,14 +158,18 @@ proof -
         distinct_mset_remove1_All filter_mset_neq_cond 2 H2 dest: all_lits_of_mm_diffD
         dest: multi_member_split)
     done
+  show \<open>blits_in_\<L>\<^sub>i\<^sub>n'  (M, fmdrop C N, D, NE, UE, Q, W)\<close>
+     using assms by (auto simp: blits_in_\<L>\<^sub>i\<^sub>n'_def)
 qed
 
 lemma correct_watching''_fmdrop:
   assumes
     irred: \<open>\<not> irred N C\<close> and
     C: \<open>C \<in># dom_m N\<close> and
-    \<open>correct_watching'' (M', N, D, NE, UE, Q, W)\<close>
-  shows \<open>correct_watching'' (M, fmdrop C N, D, NE, UE, Q, W)\<close>
+    \<open>correct_watching'' (M', N, D, NE, UE, Q, W)\<close> and
+    \<open>blits_in_\<L>\<^sub>i\<^sub>n'  (M', N, D, NE, UE, Q, W)\<close>
+  shows \<open>correct_watching'' (M, fmdrop C N, D, NE, UE, Q, W)\<close>and
+    \<open>blits_in_\<L>\<^sub>i\<^sub>n'  (M, fmdrop C N, D, NE, UE, Q, W)\<close>
 proof -
   have
     Hdist: \<open>\<And>L i K b. L\<in>#all_lits_of_mm (mset `# init_clss_lf N + NE) \<Longrightarrow>
@@ -188,7 +199,7 @@ proof -
     removeAll_mset C (filter_mset (\<lambda>i. i \<in># dom_m N) A)\<close> for A
     by (induction A)
       (auto simp: distinct_mset_remove1_All distinct_mset_dom)
-  show ?thesis
+  show  \<open>correct_watching'' (M, fmdrop C N, D, NE, UE, Q, W)\<close>
     unfolding correct_watching''.simps clause_to_update_def
     apply (intro conjI impI ballI)
     subgoal for L using Hdist[of L] distinct_mset_dom[of N]
@@ -212,14 +223,18 @@ proof -
         distinct_mset_remove1_All filter_mset_neq_cond 2 H2 dest: all_lits_of_mm_diffD
         dest: multi_member_split)
     done
+  show \<open>blits_in_\<L>\<^sub>i\<^sub>n'  (M, fmdrop C N, D, NE, UE, Q, W)\<close>
+    using assms by (auto simp: blits_in_\<L>\<^sub>i\<^sub>n'_def)
 qed
 
 lemma correct_watching''_fmdrop':
   assumes
     irred: \<open>irred N C\<close> and
     C: \<open>C \<in># dom_m N\<close> and
-    \<open>correct_watching'' (M', N, D, NE, UE, Q, W)\<close>
-  shows \<open>correct_watching'' (M, fmdrop C N, D, add_mset (mset (N \<propto> C)) NE, UE, Q, W)\<close>
+    \<open>correct_watching'' (M', N, D, NE, UE, Q, W)\<close>and
+    \<open>blits_in_\<L>\<^sub>i\<^sub>n' (M', N, D, NE, UE, Q, W)\<close>
+  shows \<open>correct_watching'' (M, fmdrop C N, D, add_mset (mset (N \<propto> C)) NE, UE, Q, W)\<close> and
+    \<open>blits_in_\<L>\<^sub>i\<^sub>n' (M, fmdrop C N, D, add_mset (mset (N \<propto> C)) NE, UE, Q, W)\<close>
 proof -
   have
     Hdist: \<open>\<And>L. L\<in>#all_lits_of_mm (mset `# init_clss_lf N + NE) \<Longrightarrow>
@@ -250,7 +265,7 @@ proof -
     removeAll_mset C (filter_mset (\<lambda>i. i \<in># dom_m N) A)\<close> for A
     by (induction A)
       (auto simp: distinct_mset_remove1_All distinct_mset_dom)
-  show ?thesis
+  show \<open>correct_watching'' (M, fmdrop C N, D, add_mset (mset (N \<propto> C)) NE, UE, Q, W)\<close>
     unfolding correct_watching''.simps clause_to_update_def
     apply (intro conjI impI ballI)
     subgoal for L
@@ -274,6 +289,11 @@ proof -
         distinct_mset_remove1_All filter_mset_neq_cond 2 H2 dest: all_lits_of_mm_diffD
         dest: multi_member_split)
     done
+  have \<open>(N \<propto> C) \<in># (init_clss_lf N)\<close>
+    using assms by (auto simp: ran_m_def)
+  then show \<open>blits_in_\<L>\<^sub>i\<^sub>n' (M, fmdrop C N, D, add_mset (mset (N \<propto> C)) NE, UE, Q, W)\<close>
+    using distinct_mset_dom[of N]
+    using assms by (auto simp: blits_in_\<L>\<^sub>i\<^sub>n'_def image_mset_remove1_mset_if)
 qed
 
 
@@ -281,8 +301,10 @@ lemma correct_watching''_fmdrop'':
   assumes
     irred: \<open>\<not>irred N C\<close> and
     C: \<open>C \<in># dom_m N\<close> and
-    \<open>correct_watching'' (M', N, D, NE, UE, Q, W)\<close>
-  shows \<open>correct_watching'' (M, fmdrop C N, D, NE, add_mset (mset (N \<propto> C)) UE, Q, W)\<close>
+    \<open>correct_watching'' (M', N, D, NE, UE, Q, W)\<close> and
+    \<open>blits_in_\<L>\<^sub>i\<^sub>n' (M', N, D, NE, UE, Q, W)\<close>
+  shows \<open>correct_watching'' (M, fmdrop C N, D, NE, add_mset (mset (N \<propto> C)) UE, Q, W)\<close> and
+    \<open>blits_in_\<L>\<^sub>i\<^sub>n' (M, fmdrop C N, D, NE, add_mset (mset (N \<propto> C)) UE, Q, W)\<close>
 proof -
   have
     Hdist: \<open>\<And>L. L\<in>#all_lits_of_mm (mset `# init_clss_lf N + NE) \<Longrightarrow>
@@ -313,7 +335,7 @@ proof -
     removeAll_mset C (filter_mset (\<lambda>i. i \<in># dom_m N) A)\<close> for A
     by (induction A)
       (auto simp: distinct_mset_remove1_All distinct_mset_dom)
-  show ?thesis
+  show  \<open>correct_watching'' (M, fmdrop C N, D, NE, add_mset (mset (N \<propto> C)) UE, Q, W)\<close>
     unfolding correct_watching''.simps clause_to_update_def
     apply (intro conjI impI ballI)
     subgoal for L
@@ -337,13 +359,18 @@ proof -
         distinct_mset_remove1_All filter_mset_neq_cond 2 H2 dest: all_lits_of_mm_diffD
         dest: multi_member_split)
     done
+  have \<open>(N \<propto> C) \<in># (learned_clss_lf N)\<close>
+    using assms by (auto simp: ran_m_def)
+  then show \<open>blits_in_\<L>\<^sub>i\<^sub>n' (M, fmdrop C N, D, NE, add_mset (mset (N \<propto> C)) UE, Q, W)\<close>
+    using distinct_mset_dom[of N]
+    using assms by (auto simp: blits_in_\<L>\<^sub>i\<^sub>n'_def image_mset_remove1_mset_if)
 qed
 
 definition remove_one_annot_true_clause_one_imp_wl_pre where
   \<open>remove_one_annot_true_clause_one_imp_wl_pre i T \<longleftrightarrow>
      (\<exists>T'. (T, T') \<in> state_wl_l None \<and>
        remove_one_annot_true_clause_one_imp_pre i T' \<and>
-       correct_watching'' T)\<close>
+       correct_watching'' T \<and> blits_in_\<L>\<^sub>i\<^sub>n' T)\<close>
 
 definition remove_one_annot_true_clause_one_imp_wl
   :: \<open>nat \<Rightarrow> 'v twl_st_wl \<Rightarrow> (nat \<times> 'v twl_st_wl) nres\<close>
@@ -365,8 +392,8 @@ where
 
 lemma remove_one_annot_true_clause_one_imp_wl_remove_one_annot_true_clause_one_imp:
     \<open>(uncurry remove_one_annot_true_clause_one_imp_wl, uncurry remove_one_annot_true_clause_one_imp)
-    \<in> nat_rel \<times>\<^sub>f  {(S, T). (S, T) \<in> state_wl_l None \<and> correct_watching'' S} \<rightarrow>\<^sub>f
-      \<langle>nat_rel \<times>\<^sub>f {(S, T). (S, T) \<in> state_wl_l None \<and> correct_watching'' S}\<rangle>nres_rel\<close>
+    \<in> nat_rel \<times>\<^sub>f  {(S, T). (S, T) \<in> state_wl_l None \<and> correct_watching'' S \<and> blits_in_\<L>\<^sub>i\<^sub>n' S} \<rightarrow>\<^sub>f
+      \<langle>nat_rel \<times>\<^sub>f {(S, T). (S, T) \<in> state_wl_l None \<and> correct_watching'' S \<and> blits_in_\<L>\<^sub>i\<^sub>n' S}\<rangle>nres_rel\<close>
     (is \<open>_ \<in> _ \<times>\<^sub>f ?A \<rightarrow>\<^sub>f _\<close>)
 proof -
   have [refine0]: \<open>replace_annot_l L C S \<le>
@@ -374,7 +401,7 @@ proof -
     if \<open>(L, L') \<in> Id\<close> and \<open>(S, T') \<in> ?A\<close> and \<open>(C, C') \<in> Id\<close> for L L' S T' C C'
     using that by (cases S; cases T')
       (fastforce simp: replace_annot_l_def state_wl_l_def
-          correct_watching''.simps clause_to_update_def
+          correct_watching''.simps clause_to_update_def blits_in_\<L>\<^sub>i\<^sub>n'_def
         intro: RES_refine)
   have [refine0]: \<open>remove_and_add_cls_l C S \<le>\<Down> ?A (remove_and_add_cls_l C' S')\<close>
     if \<open>(C, C') \<in> Id\<close> and \<open>(S, S') \<in> ?A\<close> and
@@ -411,7 +438,8 @@ qed
 definition remove_one_annot_true_clause_imp_wl_inv where
   \<open>remove_one_annot_true_clause_imp_wl_inv S = (\<lambda>(i, T).
      (\<exists>S' T'. (S, S') \<in> state_wl_l None \<and> (T, T') \<in> state_wl_l None \<and>
-       correct_watching'' S \<and> correct_watching'' T \<and>
+       correct_watching'' S \<and> correct_watching'' T \<and> blits_in_\<L>\<^sub>i\<^sub>n' S \<and>
+       blits_in_\<L>\<^sub>i\<^sub>n' T \<and>
        remove_one_annot_true_clause_imp_inv S' (i, T')))\<close>
 
 definition remove_one_annot_true_clause_imp_wl :: \<open>'v twl_st_wl \<Rightarrow> ('v twl_st_wl) nres\<close>
@@ -429,8 +457,8 @@ where
 
 lemma remove_one_annot_true_clause_imp_wl_remove_one_annot_true_clause_imp:
   \<open>(remove_one_annot_true_clause_imp_wl, remove_one_annot_true_clause_imp)
-    \<in> {(S, T). (S, T) \<in> state_wl_l None \<and> correct_watching'' S} \<rightarrow>\<^sub>f
-      \<langle>{(S, T). (S, T) \<in> state_wl_l None \<and> correct_watching'' S}\<rangle>nres_rel\<close>
+    \<in> {(S, T). (S, T) \<in> state_wl_l None \<and> correct_watching'' S \<and> blits_in_\<L>\<^sub>i\<^sub>n' S} \<rightarrow>\<^sub>f
+      \<langle>{(S, T). (S, T) \<in> state_wl_l None \<and> correct_watching'' S \<and> blits_in_\<L>\<^sub>i\<^sub>n' S}\<rangle>nres_rel\<close>
 proof -
   show ?thesis
     unfolding remove_one_annot_true_clause_imp_wl_def remove_one_annot_true_clause_imp_def
@@ -438,7 +466,7 @@ proof -
     apply (intro frefI nres_relI)
     apply (refine_vcg
       WHILEIT_refine[where
-         R = \<open>nat_rel \<times>\<^sub>f {(S, T).  (S, T) \<in> state_wl_l None \<and> correct_watching'' S}\<close>]
+         R = \<open>nat_rel \<times>\<^sub>f {(S, T).  (S, T) \<in> state_wl_l None \<and> correct_watching'' S \<and> blits_in_\<L>\<^sub>i\<^sub>n' S}\<close>]
       remove_one_annot_true_clause_one_imp_wl_remove_one_annot_true_clause_one_imp[THEN fref_to_Down_curry])
     subgoal by force
     subgoal by auto
@@ -447,9 +475,9 @@ proof -
       apply (subst case_prod_beta)
       apply (rule_tac x=\<open>y\<close> in exI)
       apply (rule_tac x=\<open>snd x'\<close> in exI)
-      apply (subst (asm)(17) surjective_pairing)
-      apply (subst (asm)(22) surjective_pairing)
-      unfolding prod_rel_iff by auto
+      apply (subst (asm)(18) surjective_pairing)
+      apply (subst (asm)(23) surjective_pairing)
+      unfolding prod_rel_iff by simp
     subgoal by auto
     subgoal by auto
     subgoal by auto
@@ -503,8 +531,8 @@ definition mark_to_delete_clauses_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl
 
 lemma mark_to_delete_clauses_wl_mark_to_delete_clauses_l:
   \<open>(mark_to_delete_clauses_wl, mark_to_delete_clauses_l)
-    \<in> {(S, T).  (S, T) \<in> state_wl_l None \<and> correct_watching' S} \<rightarrow>\<^sub>f
-      \<langle>{(S, T).  (S, T) \<in> state_wl_l None \<and> correct_watching' S}\<rangle>nres_rel\<close>
+    \<in> {(S, T).  (S, T) \<in> state_wl_l None \<and> correct_watching' S \<and> blits_in_\<L>\<^sub>i\<^sub>n S} \<rightarrow>\<^sub>f
+      \<langle>{(S, T).  (S, T) \<in> state_wl_l None \<and> correct_watching' S \<and> blits_in_\<L>\<^sub>i\<^sub>n S}\<rangle>nres_rel\<close>
 proof -
   have [refine0]: \<open>collect_valid_indices_wl S  \<le> \<Down> Id  (collect_valid_indices S')\<close>
     if \<open>(S, S') \<in> {(S, T).  (S, T) \<in> state_wl_l None \<and> correct_watching' S \<and>
@@ -522,7 +550,7 @@ proof -
     apply (refine_vcg
       WHILEIT_refine[where
          R = \<open>{((i, S, xs), (j, T, ys)). i = j \<and> (S, T) \<in> state_wl_l None \<and> correct_watching' S \<and>
-             xs = ys}\<close>]
+             xs = ys \<and> blits_in_\<L>\<^sub>i\<^sub>n' S}\<close>]
       remove_one_annot_true_clause_one_imp_wl_remove_one_annot_true_clause_one_imp[THEN fref_to_Down_curry])
     subgoal unfolding mark_to_delete_clauses_wl_pre_def by blast
     subgoal by auto
@@ -655,10 +683,10 @@ qed
 
 lemma cdcl_twl_full_restart_wl_prog_final_rel':
   assumes
-    S_Sa: \<open>(S, Sa) \<in> {(S, T). (S, T) \<in> state_wl_l None \<and> correct_watching S}\<close> and
+    S_Sa: \<open>(S, Sa) \<in> {(S, T). (S, T) \<in> state_wl_l None \<and> correct_watching S \<and> blits_in_\<L>\<^sub>i\<^sub>n S}\<close> and
     pre_Sa: \<open>mark_to_delete_clauses_l_pre Sa\<close> and
     pre_S: \<open>mark_to_delete_clauses_wl_pre S\<close> and
-    T_Ta: \<open>(T, Ta) \<in> {(S, T). (S, T) \<in> state_wl_l None \<and> correct_watching' S}\<close> and
+    T_Ta: \<open>(T, Ta) \<in> {(S, T). (S, T) \<in> state_wl_l None \<and> correct_watching' S \<and> blits_in_\<L>\<^sub>i\<^sub>n S}\<close> and
     pre_l: \<open>mark_to_delete_clauses_l_post Sa Ta\<close>
   shows \<open>mark_to_delete_clauses_wl_post S T\<close>
 proof -
@@ -727,8 +755,8 @@ qed
 
 lemma cdcl_twl_full_restart_wl_prog_cdcl_full_twl_restart_l_prog:
   \<open>(cdcl_twl_full_restart_wl_prog, cdcl_twl_full_restart_l_prog)
-    \<in> {(S, T). (S, T) \<in> state_wl_l None \<and> correct_watching S} \<rightarrow>\<^sub>f
-      \<langle>{(S, T). (S, T) \<in> state_wl_l None \<and> correct_watching S}\<rangle>nres_rel\<close>
+    \<in> {(S, T). (S, T) \<in> state_wl_l None \<and> correct_watching S \<and> blits_in_\<L>\<^sub>i\<^sub>n S} \<rightarrow>\<^sub>f
+      \<langle>{(S, T). (S, T) \<in> state_wl_l None \<and> correct_watching S \<and> blits_in_\<L>\<^sub>i\<^sub>n S}\<rangle>nres_rel\<close>
   unfolding cdcl_twl_full_restart_wl_prog_def cdcl_twl_full_restart_l_prog_def
     rewatch_clauses_def
   apply (intro frefI nres_relI)
@@ -752,12 +780,12 @@ definition (in -) cdcl_twl_local_restart_wl_spec :: \<open>'v twl_st_wl \<Righta
 
 lemma cdcl_twl_local_restart_wl_spec_cdcl_twl_local_restart_l_spec:
   \<open>(cdcl_twl_local_restart_wl_spec, cdcl_twl_local_restart_l_spec)
-    \<in> {(S, T). (S, T) \<in> state_wl_l None \<and> correct_watching S} \<rightarrow>\<^sub>f
-      \<langle>{(S, T). (S, T) \<in> state_wl_l None \<and> correct_watching S}\<rangle>nres_rel\<close>
+    \<in> {(S, T). (S, T) \<in> state_wl_l None \<and> correct_watching S \<and> blits_in_\<L>\<^sub>i\<^sub>n S} \<rightarrow>\<^sub>f
+      \<langle>{(S, T). (S, T) \<in> state_wl_l None \<and> correct_watching S \<and> blits_in_\<L>\<^sub>i\<^sub>n S}\<rangle>nres_rel\<close>
 proof -
   have [refine0]:
     \<open>\<And>x y x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f x1g x2g x1h x2h x1i x2i x1j x2j x1k x2k.
-        (x, y) \<in> {(S, T). (S, T) \<in> state_wl_l None \<and> correct_watching S} \<Longrightarrow>
+        (x, y) \<in> {(S, T). (S, T) \<in> state_wl_l None \<and> correct_watching S \<and> blits_in_\<L>\<^sub>i\<^sub>n S} \<Longrightarrow>
         x2d = (x1e, x2e) \<Longrightarrow>
         x2c = (x1d, x2d) \<Longrightarrow>
         x2b = (x1c, x2c) \<Longrightarrow>
@@ -781,7 +809,8 @@ proof -
     apply (intro frefI nres_relI)
     apply (refine_vcg)
     apply assumption+
-    subgoal by (auto simp: state_wl_l_def correct_watching.simps clause_to_update_def)
+    subgoal by (auto simp: state_wl_l_def correct_watching.simps clause_to_update_def
+      blits_in_\<L>\<^sub>i\<^sub>n_def)
     done
 qed
 
@@ -793,8 +822,8 @@ definition cdcl_twl_restart_wl_prog where
 
 lemma cdcl_twl_restart_wl_prog_cdcl_twl_restart_l_prog:
   \<open>(cdcl_twl_restart_wl_prog, cdcl_twl_restart_l_prog)
-    \<in> {(S, T). (S, T) \<in> state_wl_l None \<and> correct_watching S} \<rightarrow>\<^sub>f
-      \<langle>{(S, T). (S, T) \<in> state_wl_l None \<and> correct_watching S}\<rangle>nres_rel\<close>
+    \<in> {(S, T). (S, T) \<in> state_wl_l None \<and> correct_watching S \<and> blits_in_\<L>\<^sub>i\<^sub>n S} \<rightarrow>\<^sub>f
+      \<langle>{(S, T). (S, T) \<in> state_wl_l None \<and> correct_watching S \<and> blits_in_\<L>\<^sub>i\<^sub>n S}\<rangle>nres_rel\<close>
   unfolding cdcl_twl_restart_wl_prog_def cdcl_twl_restart_l_prog_def
     rewatch_clauses_def
   apply (intro frefI nres_relI)
@@ -1071,8 +1100,8 @@ where
 
 lemma cdcl_twl_full_restart_wl_prog_cdcl_twl_restart_l_prog:
   \<open>(uncurry2 restart_prog_wl, uncurry2 restart_prog_l)
-    \<in> {(S, T).  (S, T) \<in> state_wl_l None \<and> correct_watching S} \<times>\<^sub>f nat_rel \<times>\<^sub>f bool_rel \<rightarrow>\<^sub>f
-      \<langle>{(S, T).  (S, T) \<in> state_wl_l None \<and> correct_watching S} \<times>\<^sub>f nat_rel\<rangle>nres_rel\<close>
+    \<in> {(S, T).  (S, T) \<in> state_wl_l None \<and> correct_watching S \<and> blits_in_\<L>\<^sub>i\<^sub>n S} \<times>\<^sub>f nat_rel \<times>\<^sub>f bool_rel \<rightarrow>\<^sub>f
+      \<langle>{(S, T).  (S, T) \<in> state_wl_l None \<and> correct_watching S \<and> blits_in_\<L>\<^sub>i\<^sub>n S} \<times>\<^sub>f nat_rel\<rangle>nres_rel\<close>
     (is \<open>_ \<in> ?R \<times>\<^sub>f _ \<times>\<^sub>f _ \<rightarrow>\<^sub>f \<langle>?R'\<rangle>nres_rel\<close>)
 proof -
   have [refine0]: \<open>restart_required_wl a b \<le> \<Down> Id (restart_required_l a' b')\<close>
@@ -1122,8 +1151,8 @@ where
 
 lemma cdcl_twl_stgy_restart_prog_wl_cdcl_twl_stgy_restart_prog_l:
   \<open>(cdcl_twl_stgy_restart_prog_wl, cdcl_twl_stgy_restart_prog_l)
-    \<in> {(S, T).  (S, T) \<in> state_wl_l None \<and> correct_watching S} \<rightarrow>\<^sub>f
-      \<langle>{(S, T).  (S, T) \<in> state_wl_l None \<and> correct_watching S}\<rangle>nres_rel\<close>
+    \<in> {(S, T).  (S, T) \<in> state_wl_l None \<and> correct_watching S \<and> blits_in_\<L>\<^sub>i\<^sub>n S} \<rightarrow>\<^sub>f
+      \<langle>{(S, T).  (S, T) \<in> state_wl_l None \<and> correct_watching S \<and> blits_in_\<L>\<^sub>i\<^sub>n S}\<rangle>nres_rel\<close>
   (is \<open>_ \<in> ?R \<rightarrow>\<^sub>f \<langle>?S\<rangle>nres_rel\<close>)
 proof -
   have [refine0]:
@@ -1133,15 +1162,15 @@ proof -
     unfolding cdcl_twl_stgy_restart_prog_wl_def cdcl_twl_stgy_restart_prog_l_def
     apply (intro frefI nres_relI)
     apply (refine_rcg WHILEIT_refine[where
-      R=\<open>{(S, T).  (S, T) \<in> state_wl_l None \<and>  correct_watching S}\<close>]
+      R=\<open>{(S, T).  (S, T) \<in> state_wl_l None \<and> correct_watching S \<and> blits_in_\<L>\<^sub>i\<^sub>n S}\<close>]
       unit_propagation_outer_loop_wl_spec[THEN fref_to_Down]
       cdcl_twl_full_restart_wl_prog_cdcl_twl_restart_l_prog[THEN fref_to_Down_curry2]
       cdcl_twl_o_prog_wl_spec[THEN fref_to_Down])
     subgoal unfolding cdcl_twl_stgy_restart_abs_wl_inv_def by fastforce
     subgoal by auto
     subgoal by auto
-    subgoal by (auto simp: correct_watching_correct_watching)
     subgoal by auto
+    subgoal apply (auto simp: correct_watching_correct_watching)
     subgoal by auto
     done
 qed

@@ -3,63 +3,6 @@ theory IsaSAT_Decide_LLVM
 begin
 
 
-
-(* Cannot find usage of this
-sepref_definition lit_of_found_atm_D_code
-  is \<open>uncurry lit_of_found_atm_D\<close>
-  :: \<open>[lit_of_found_atm_D_pre]\<^sub>a
-      (array_assn bool_assn)\<^sup>k *\<^sub>a (option_assn uint32_nat_assn)\<^sup>d \<rightarrow>
-          option_assn unat_lit_assn\<close>
-  supply [[goals_limit=1]]
-  supply not_is_None_not_None[simp] Pos_unat_lit_assn'[sepref_fr_rules]
-    Neg_unat_lit_assn'[sepref_fr_rules]
-  unfolding lit_of_found_atm_D_def PR_CONST_def lit_of_found_atm_D_pre_def
-  by sepref
-
-declare lit_of_found_atm_D_code.refine[sepref_fr_rules]
-*)
-(* Cannot find usage of this
-lemma lit_of_found_atm_hnr[sepref_fr_rules]:
-  \<open>(uncurry lit_of_found_atm_D_code, uncurry lit_of_found_atm)
-   \<in> [lit_of_found_atm_D_pre]\<^sub>a
-     phase_saver_assn\<^sup>k *\<^sub>a (option_assn uint32_nat_assn)\<^sup>d \<rightarrow>
-     option_assn unat_lit_assn\<close>
-  using lit_of_found_atm_D_code.refine[FCOMP lit_of_found_atm_D_lit_of_found_atm[unfolded convert_fref]] by simp
-*)
-(*sepref_register find_undefined_atm*)
-
-(*
-sepref_definition find_unassigned_lit_wl_D_code
-  is \<open>find_unassigned_lit_wl_D_heur\<close>
-  :: \<open>isasat_unbounded_assn\<^sup>d \<rightarrow>\<^sub>a (isasat_unbounded_assn *a option_assn unat_lit_assn)\<close>
-  supply [[goals_limit=1]]
-  unfolding find_unassigned_lit_wl_D_heur_def isasat_unbounded_assn_def PR_CONST_def
-  by sepref
-*)  
-
-(* will inline
-sepref_definition find_unassigned_lit_wl_D_fast_code
-  is \<open>find_unassigned_lit_wl_D_heur\<close>
-  :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a (isasat_bounded_assn *a option_assn unat_lit_assn)\<close>
-  supply [[goals_limit=1]]
-  unfolding find_unassigned_lit_wl_D_heur_def isasat_bounded_assn_def PR_CONST_def
-  by sepref
-
-declare find_unassigned_lit_wl_D_code.refine[sepref_fr_rules]
-  find_unassigned_lit_wl_D_fast_code.refine[sepref_fr_rules]
-*)
-
-(*
-sepref_definition decide_lit_wl_code
-  is \<open>uncurry decide_lit_wl_heur\<close>
-  :: \<open>unat_lit_assn\<^sup>k *\<^sub>a isasat_unbounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_unbounded_assn\<close>
-  supply [[goals_limit=1]]
-  unfolding decide_lit_wl_heur_def isasat_unbounded_assn_def PR_CONST_def
-    cons_trail_Decided_def[symmetric]
-  by sepref
-*)
-
-
 sepref_def decide_lit_wl_fast_code
   is \<open>uncurry decide_lit_wl_heur\<close>
   :: \<open>unat_lit_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
@@ -81,19 +24,13 @@ sepref_def decide_lit_wl_fast_code
   
 
   
-sepref_register decide_wl_or_skip_D find_unassigned_lit_wl_D_heur decide_lit_wl_heur
-
-find_theorems lit_of_found_atm
-
-find_theorems "\<langle>Id\<rangle>nres_rel = Id"
+sepref_register find_unassigned_lit_wl_D_heur decide_lit_wl_heur
 
 lemma lit_of_found_atm_D_refine: "
   \<lbrakk>lit_of_found_atm_D_pre (\<phi>, a); (\<phi>,\<phi>')\<in>Id; (a,a')\<in>Id\<rbrakk> \<Longrightarrow> lit_of_found_atm_D \<phi> a \<le>\<Down>Id (lit_of_found_atm \<phi>' a')"
   using lit_of_found_atm_D_lit_of_found_atm unfolding convert_fref
   by (auto dest!: frefD nres_relD)
-  
-thm decide_wl_or_skip_D_heur_def[unfolded find_unassigned_lit_wl_D_heur_def, no_vars]  
-  
+
 definition "decide_wl_or_skip_D_heur1 S \<equiv> doN {
   (S, L) \<leftarrow> case S of (M, N, D, WS, Q, vm, \<phi>, clvls) \<Rightarrow> do {
                           ((M, vm), L) \<leftarrow> isa_vmtf_find_next_undef_upd M vm;
@@ -208,9 +145,7 @@ sepref_def make_isasat_bounded_impl is "uncurry7 (make_isasat_bounded)"
   lbd_assn *a
   out_learned_assn *a
   stats_assn *a
-  ema_assn *a
-  ema_assn *a
-  restart_info_assn *a
+  heuristic_assn *a
   vdom_fast_assn *a
   vdom_fast_assn *a
   uint64_nat_assn *a

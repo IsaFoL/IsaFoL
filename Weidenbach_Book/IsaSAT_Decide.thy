@@ -415,7 +415,7 @@ proof -
     apply (refine_vcg find_unassigned_lit_wl_D'_find_unassigned_lit_wl_D[of r, THEN fref_to_Down])
     subgoal
       unfolding decide_wl_or_skip_pre_def find_unassigned_lit_wl_D_heur_pre_def
-	decide_wl_or_skip_pre_def decide_l_or_skip_pre_def
+	decide_wl_or_skip_pre_def decide_l_or_skip_pre_def decide_or_skip_pre_def
        apply normalize_goal+
        apply (rule_tac x = xa in exI)
        apply (rule_tac x = xb in exI)

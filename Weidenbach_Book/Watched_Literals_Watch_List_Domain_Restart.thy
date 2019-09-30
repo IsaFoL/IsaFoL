@@ -1,5 +1,5 @@
 theory Watched_Literals_Watch_List_Domain_Restart
-  imports Watched_Literals_Watch_List_Domain Watched_Literals_Watch_List_Restart
+  imports Watched_Literals_Watch_List Watched_Literals_Watch_List_Restart
 begin
 
 lemma cdcl_twl_restart_get_all_init_clss:
@@ -1647,8 +1647,8 @@ where
       (\<lambda>(brk, _). \<not>brk)
       (\<lambda>(brk, S, n).
       do {
-        T \<leftarrow> unit_propagation_outer_loop_wl_D S;
-        (brk, T) \<leftarrow> cdcl_twl_o_prog_wl_D T;
+        T \<leftarrow> unit_propagation_outer_loop_wl S;
+        (brk, T) \<leftarrow> cdcl_twl_o_prog_wl T;
         (T, n) \<leftarrow> restart_prog_wl_D T n brk;
         RETURN (brk, T, n)
       })
@@ -1656,27 +1656,27 @@ where
     RETURN T
   }\<close>
 
-(*TODO Move and replace*)
+(*TODO Move and replace
 theorem cdcl_twl_o_prog_wl_D_spec':
-  \<open>(cdcl_twl_o_prog_wl_D, cdcl_twl_o_prog_wl) \<in>
+  \<open>(cdcl_twl_o_prog_wl, cdcl_twl_o_prog_wl) \<in>
     {(S,S'). (S,S') \<in> Id \<and>literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st S) S} \<rightarrow>\<^sub>f
     \<langle>bool_rel \<times>\<^sub>r {(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st T) T}\<rangle> nres_rel\<close>
   apply (intro frefI nres_relI)
   subgoal for x y
     apply (rule order_trans)
-    apply (rule cdcl_twl_o_prog_wl_D_spec[of "all_atms_st x" x])
+    apply (rule cdcl_twl_o_prog_wl_spec[THEN fref_to_Down, of x])
      apply (auto simp: prod_rel_def intro: conc_fun_R_mono)
     done
   done
 
 lemma unit_propagation_outer_loop_wl_D_spec':
-  shows \<open>(unit_propagation_outer_loop_wl_D, unit_propagation_outer_loop_wl) \<in>
+  shows \<open>(unit_propagation_outer_loop_wl, unit_propagation_outer_loop_wl) \<in>
     {(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st T) T} \<rightarrow>\<^sub>f
      \<langle>{(T', T). T = T' \<and> literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st T) T}\<rangle>nres_rel\<close>
   apply (intro frefI nres_relI)
   subgoal for x y
     apply (rule order_trans)
-    apply (rule unit_propagation_outer_loop_wl_D_spec[of "all_atms_st x" x])
+    apply (rule unit_propagation_outer_loop_wl_spec[of x])
      apply (auto simp: prod_rel_def intro: conc_fun_R_mono)
     done
   done
@@ -1702,7 +1702,7 @@ lemma cdcl_twl_stgy_restart_prog_wl_D_cdcl_twl_stgy_restart_prog_wl:
   subgoal by auto
   subgoal by auto
   done
-
+*)
 
 
 definition cdcl_twl_stgy_restart_prog_early_wl_D
@@ -1714,8 +1714,8 @@ where
       (\<lambda>(ebrk, brk, _). \<not>brk \<and> \<not>ebrk)
       (\<lambda>(_, brk, S, n).
       do {
-        T \<leftarrow> unit_propagation_outer_loop_wl_D S;
-        (brk, T) \<leftarrow> cdcl_twl_o_prog_wl_D T;
+        T \<leftarrow> unit_propagation_outer_loop_wl S;
+        (brk, T) \<leftarrow> cdcl_twl_o_prog_wl T;
         (T, n) \<leftarrow> restart_prog_wl_D T n brk;
         ebrk \<leftarrow> RES UNIV;
         RETURN (ebrk, brk, T, n)
@@ -1726,8 +1726,8 @@ where
 	(\<lambda>(brk, _). \<not>brk)
 	(\<lambda>(brk, S, n).
 	do {
-	  T \<leftarrow> unit_propagation_outer_loop_wl_D S;
-	  (brk, T) \<leftarrow> cdcl_twl_o_prog_wl_D T;
+	  T \<leftarrow> unit_propagation_outer_loop_wl S;
+	  (brk, T) \<leftarrow> cdcl_twl_o_prog_wl T;
 	  (T, n) \<leftarrow> restart_prog_wl_D T n brk;
 	  RETURN (brk, T, n)
 	})
@@ -1747,8 +1747,6 @@ lemma cdcl_twl_stgy_restart_prog_early_wl_D_cdcl_twl_stgy_restart_prog_early_wl:
   apply (intro frefI nres_relI)
   apply (refine_vcg
       restart_prog_wl_D_restart_prog_wl[THEN fref_to_Down_curry2]
-      cdcl_twl_o_prog_wl_D_spec'[THEN fref_to_Down]
-      unit_propagation_outer_loop_wl_D_spec'[THEN fref_to_Down]
       WHILEIT_refine[where R=\<open>bool_rel \<times>\<^sub>r bool_rel \<times>\<^sub>r {(S, T). (S, T) \<in> Id \<and>
          literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st S) S} \<times>\<^sub>r nat_rel\<close>]
       WHILEIT_refine[where R=\<open>bool_rel \<times>\<^sub>r {(S, T). (S, T) \<in> Id \<and>
@@ -1781,8 +1779,8 @@ where
       (\<lambda>(ebrk, brk, _). \<not>brk \<and> \<not>ebrk)
       (\<lambda>(_, brk, S, n).
       do {
-        T \<leftarrow> unit_propagation_outer_loop_wl_D S;
-        (brk, T) \<leftarrow> cdcl_twl_o_prog_wl_D T;
+        T \<leftarrow> unit_propagation_outer_loop_wl S;
+        (brk, T) \<leftarrow> cdcl_twl_o_prog_wl T;
         (T, n) \<leftarrow> restart_prog_wl_D T n brk;
         ebrk \<leftarrow> RES UNIV;
         RETURN (ebrk, brk, T, n)

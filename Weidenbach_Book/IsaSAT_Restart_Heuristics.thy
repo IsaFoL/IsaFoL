@@ -26,7 +26,7 @@ declare all_atms_def[symmetric,simp]
 
 definition twl_st_heur_restart :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\<close> where
 \<open>twl_st_heur_restart =
-  {((M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema, ccount,
+  {((M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, (fast_ema, slow_ema, ccount),
        vdom, avdom, lcount, opts, old_arena),
      (M, N, D, NE, UE, Q, W)).
     (M', M) \<in> trail_pol (all_init_atms N NE) \<and>
@@ -89,13 +89,13 @@ text \<open>
 
 lemma get_slow_ema_heur_alt_def:
    \<open>RETURN o get_slow_ema_heur = (\<lambda>(M, N0, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl,
-       stats, fema, sema, (ccount, _), lcount). RETURN sema)\<close>
+       stats, (fema, sema, (ccount, _)), lcount). RETURN sema)\<close>
   by auto
 
 
 lemma get_fast_ema_heur_alt_def:
    \<open>RETURN o get_fast_ema_heur = (\<lambda>(M, N0, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl,
-       stats, fema, sema, ccount, lcount). RETURN fema)\<close>
+       stats, (fema, sema, ccount), lcount). RETURN fema)\<close>
   by auto
 
 
