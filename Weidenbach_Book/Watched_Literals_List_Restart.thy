@@ -3373,6 +3373,7 @@ qed
 
 definition (in -) cdcl_twl_local_restart_l_spec :: \<open>'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close> where
   \<open>cdcl_twl_local_restart_l_spec = (\<lambda>(M, N, D, NE, UE, W, Q). do {
+      ASSERT(restart_abs_l_pre (M, N, D, NE, UE, W, Q) False);
       (M, Q) \<leftarrow> SPEC(\<lambda>(M', Q'). (\<exists>K M2. (Decided K # M', M2) \<in> set (get_all_ann_decomposition M) \<and>
             Q' = {#}) \<or> (M' = M \<and> Q' = Q));
       RETURN (M, N, D, NE, UE, W, Q)
@@ -3510,14 +3511,17 @@ proof -
     apply (subst S)
     unfolding cdcl_twl_local_restart_l_spec_def prod.case RES_RETURN_RES2 less_eq_nres.simps
       uncurry_def
-    apply clarify
+    apply (rule ASSERT_leI)
+    using assms[unfolded S] apply assumption
+    apply clarsimp
     apply (rule restart)
-    apply assumption
+    apply simp
     done
 qed
 
 definition (in -) cdcl_twl_local_restart_l_spec0 :: \<open>'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close> where
   \<open>cdcl_twl_local_restart_l_spec0 = (\<lambda>(M, N, D, NE, UE, W, Q). do {
+      ASSERT(restart_abs_l_pre (M, N, D, NE, UE, W, Q) False);
       (M, Q) \<leftarrow> SPEC(\<lambda>(M', Q'). (\<exists>K M2. (Decided K # M', M2) \<in> set (get_all_ann_decomposition M) \<and>
             Q' = {#} \<and> count_decided M' = 0) \<or> (M' = M \<and> Q' = Q \<and> count_decided M' = 0));
       RETURN (M, N, D, NE, UE, W, Q)

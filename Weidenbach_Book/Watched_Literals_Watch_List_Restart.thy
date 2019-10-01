@@ -30,8 +30,11 @@ lemma correct_watching'_correct_watching'': \<open>correct_watching' S \<Longrig
 declare correct_watching'.simps[simp del] correct_watching''.simps[simp del]
 
 definition blits_in_\<L>\<^sub>i\<^sub>n' :: \<open>'v twl_st_wl \<Rightarrow> bool\<close> where
-  \<open>blits_in_\<L>\<^sub>i\<^sub>n' S == (\<forall>L \<in># all_lits_of_mm (mset `# init_clss_lf (get_clauses_wl S) + get_unit_clauses_wl S).
-      \<forall>(i, K, b) \<in> set (watched_by S L). K \<in># all_lits_of_mm (mset `# init_clss_lf (get_clauses_wl S) + get_unit_clauses_wl S))\<close>
+  \<open>blits_in_\<L>\<^sub>i\<^sub>n' S \<longleftrightarrow>
+    set_mset (all_lits_of_mm (mset `# learned_clss_lf (get_clauses_wl S) + get_unit_learned_clss_wl S)) \<subseteq>
+      set_mset (all_lits_of_mm (mset `# init_clss_lf (get_clauses_wl S) + get_unit_init_clss_wl S)) \<and>
+    (\<forall>L \<in># all_lits_of_mm (mset `# init_clss_lf (get_clauses_wl S) + get_unit_init_clss_wl S).
+      \<forall>(i, K, b) \<in> set (watched_by S L). K \<in># all_lits_of_mm (mset `# init_clss_lf (get_clauses_wl S) + get_unit_init_clss_wl S))\<close>
 
 
 definition remove_all_annot_true_clause_imp_wl_inv
@@ -159,7 +162,8 @@ proof -
         dest: multi_member_split)
     done
   show \<open>blits_in_\<L>\<^sub>i\<^sub>n'  (M, fmdrop C N, D, NE, UE, Q, W)\<close>
-     using assms by (auto simp: blits_in_\<L>\<^sub>i\<^sub>n'_def)
+     using assms by (auto simp: blits_in_\<L>\<^sub>i\<^sub>n'_def image_mset_remove1_mset_if
+       dest: multi_member_split all_lits_of_mm_diffD)
 qed
 
 lemma correct_watching''_fmdrop:
@@ -224,7 +228,8 @@ proof -
         dest: multi_member_split)
     done
   show \<open>blits_in_\<L>\<^sub>i\<^sub>n'  (M, fmdrop C N, D, NE, UE, Q, W)\<close>
-    using assms by (auto simp: blits_in_\<L>\<^sub>i\<^sub>n'_def)
+    using assms by (auto simp: blits_in_\<L>\<^sub>i\<^sub>n'_def image_mset_remove1_mset_if
+       dest: multi_member_split all_lits_of_mm_diffD)
 qed
 
 lemma correct_watching''_fmdrop':
@@ -289,11 +294,13 @@ proof -
         distinct_mset_remove1_All filter_mset_neq_cond 2 H2 dest: all_lits_of_mm_diffD
         dest: multi_member_split)
     done
-  have \<open>(N \<propto> C) \<in># (init_clss_lf N)\<close>
-    using assms by (auto simp: ran_m_def)
-  then show \<open>blits_in_\<L>\<^sub>i\<^sub>n' (M, fmdrop C N, D, add_mset (mset (N \<propto> C)) NE, UE, Q, W)\<close>
+  have \<open>(N \<propto> C, irred N C) \<in># (init_clss_l N)\<close>
+    using assms by (auto simp: ran_m_def dest!: multi_member_split) (metis prod.collapse) 
+  from multi_member_split[OF this] show \<open>blits_in_\<L>\<^sub>i\<^sub>n' (M, fmdrop C N, D, add_mset (mset (N \<propto> C)) NE, UE, Q, W)\<close>
     using distinct_mset_dom[of N]
-    using assms by (auto simp: blits_in_\<L>\<^sub>i\<^sub>n'_def image_mset_remove1_mset_if)
+    using assms by (auto simp: blits_in_\<L>\<^sub>i\<^sub>n'_def image_mset_remove1_mset_if all_lits_of_mm_add_mset
+          all_lits_of_mm_union
+       dest: multi_member_split all_lits_of_mm_diffD)
 qed
 
 
@@ -359,11 +366,14 @@ proof -
         distinct_mset_remove1_All filter_mset_neq_cond 2 H2 dest: all_lits_of_mm_diffD
         dest: multi_member_split)
     done
-  have \<open>(N \<propto> C) \<in># (learned_clss_lf N)\<close>
-    using assms by (auto simp: ran_m_def)
-  then show \<open>blits_in_\<L>\<^sub>i\<^sub>n' (M, fmdrop C N, D, NE, add_mset (mset (N \<propto> C)) UE, Q, W)\<close>
+
+  have \<open>(N \<propto> C, irred N C) \<in># (learned_clss_l N)\<close>
+    using assms by (auto simp: ran_m_def dest!: multi_member_split) (metis prod.collapse) 
+  from multi_member_split[OF this] show \<open>blits_in_\<L>\<^sub>i\<^sub>n' (M, fmdrop C N, D, NE, add_mset (mset (N \<propto> C)) UE, Q, W)\<close>
     using distinct_mset_dom[of N]
-    using assms by (auto simp: blits_in_\<L>\<^sub>i\<^sub>n'_def image_mset_remove1_mset_if)
+    using assms by (fastforce simp: blits_in_\<L>\<^sub>i\<^sub>n'_def image_mset_remove1_mset_if all_lits_of_mm_add_mset
+          all_lits_of_mm_union
+       dest: multi_member_split all_lits_of_mm_diffD)
 qed
 
 definition remove_one_annot_true_clause_one_imp_wl_pre where
@@ -493,12 +503,12 @@ where
   \<open>mark_to_delete_clauses_wl_inv = (\<lambda>S xs0 (i, T, xs).
      \<exists>S' T'. (S, S') \<in> state_wl_l None \<and> (T, T') \<in> state_wl_l None \<and>
       mark_to_delete_clauses_l_inv S' xs0 (i, T', xs) \<and>
-      correct_watching' S)\<close>
+      correct_watching' S\<and> blits_in_\<L>\<^sub>i\<^sub>n' S \<and> blits_in_\<L>\<^sub>i\<^sub>n' T)\<close>
 
 definition mark_to_delete_clauses_wl_pre :: \<open>'v twl_st_wl \<Rightarrow> bool\<close>
 where
   \<open>mark_to_delete_clauses_wl_pre S \<longleftrightarrow>
-   (\<exists>T. (S, T) \<in> state_wl_l None \<and> mark_to_delete_clauses_l_pre T)\<close>
+   (\<exists>T. (S, T) \<in> state_wl_l None \<and> mark_to_delete_clauses_l_pre T \<and> blits_in_\<L>\<^sub>i\<^sub>n' S)\<close>
 
 definition mark_garbage_wl:: \<open>nat \<Rightarrow>  'v twl_st_wl \<Rightarrow> 'v twl_st_wl\<close>  where
   \<open>mark_garbage_wl = (\<lambda>C (M, N0, D, NE, UE, WS, Q). (M, fmdrop C N0, D, NE, UE, WS, Q))\<close>
@@ -531,8 +541,8 @@ definition mark_to_delete_clauses_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl
 
 lemma mark_to_delete_clauses_wl_mark_to_delete_clauses_l:
   \<open>(mark_to_delete_clauses_wl, mark_to_delete_clauses_l)
-    \<in> {(S, T).  (S, T) \<in> state_wl_l None \<and> correct_watching' S \<and> blits_in_\<L>\<^sub>i\<^sub>n S} \<rightarrow>\<^sub>f
-      \<langle>{(S, T).  (S, T) \<in> state_wl_l None \<and> correct_watching' S \<and> blits_in_\<L>\<^sub>i\<^sub>n S}\<rangle>nres_rel\<close>
+    \<in> {(S, T).  (S, T) \<in> state_wl_l None \<and> correct_watching' S \<and> blits_in_\<L>\<^sub>i\<^sub>n' S} \<rightarrow>\<^sub>f
+      \<langle>{(S, T).  (S, T) \<in> state_wl_l None \<and> correct_watching' S \<and> blits_in_\<L>\<^sub>i\<^sub>n' S}\<rangle>nres_rel\<close>
 proof -
   have [refine0]: \<open>collect_valid_indices_wl S  \<le> \<Down> Id  (collect_valid_indices S')\<close>
     if \<open>(S, S') \<in> {(S, T).  (S, T) \<in> state_wl_l None \<and> correct_watching' S \<and>
@@ -587,8 +597,8 @@ definition rewatch_clauses :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl nre
 
 definition mark_to_delete_clauses_wl_post where
   \<open>mark_to_delete_clauses_wl_post S T \<longleftrightarrow>
-     (\<exists>S' T'. (S, S') \<in> state_wl_l None \<and> (T, T') \<in> state_wl_l None \<and>
-       mark_to_delete_clauses_l_post S' T' \<and> correct_watching S  \<and>
+     (\<exists>S' T'. (S, S') \<in> state_wl_l None \<and> (T, T') \<in> state_wl_l None \<and> blits_in_\<L>\<^sub>i\<^sub>n S \<and>
+       mark_to_delete_clauses_l_post S' T' \<and> correct_watching S \<and> blits_in_\<L>\<^sub>i\<^sub>n T \<and>
        correct_watching T)\<close>
 
 definition cdcl_twl_full_restart_wl_prog :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
@@ -613,10 +623,10 @@ lemma (in -) [twl_st_l, simp]:
 
 lemma cdcl_twl_full_restart_wl_prog_final_rel:
   assumes
-    S_Sa: \<open>(S, Sa) \<in> {(S, T). (S, T) \<in> state_wl_l None \<and> correct_watching' S}\<close> and
+    S_Sa: \<open>(S, Sa) \<in> {(S, T). (S, T) \<in> state_wl_l None \<and> correct_watching' S \<and> blits_in_\<L>\<^sub>i\<^sub>n S}\<close> and
     pre_Sa: \<open>mark_to_delete_clauses_l_pre Sa\<close> and
     pre_S: \<open>mark_to_delete_clauses_wl_pre S\<close> and
-    T_Ta: \<open>(T, Ta) \<in> {(S, T). (S, T) \<in> state_wl_l None \<and> correct_watching' S}\<close> and
+    T_Ta: \<open>(T, Ta) \<in> {(S, T). (S, T) \<in> state_wl_l None \<and> correct_watching' S \<and> blits_in_\<L>\<^sub>i\<^sub>n' S}\<close> and
     pre_l: \<open>mark_to_delete_clauses_l_post Sa Ta\<close>
   shows \<open>mark_to_delete_clauses_wl_post S T\<close>
 proof -
@@ -631,6 +641,8 @@ proof -
     unfolding mark_to_delete_clauses_l_post_def by blast
 
   have corr_S: \<open>correct_watching' S\<close> and corr_T: \<open>correct_watching' T\<close> and
+    blits_S: \<open>blits_in_\<L>\<^sub>i\<^sub>n S\<close> and
+    blits_T: \<open>blits_in_\<L>\<^sub>i\<^sub>n' T\<close> and
     S_Sa: \<open>(S, Sa) \<in> state_wl_l None\<close> and
     T_Ta: \<open>(T, Ta) \<in> state_wl_l None\<close>
     using S_Sa T_Ta by auto
@@ -662,7 +674,7 @@ proof -
   have \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of y)\<close>
     using struct unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
     by auto
-  then have \<open>set_mset (all_lits_of_mm (mset `# init_clss_lf (get_clauses_wl T) + get_unit_init_clss_wl T)) =
+  then have eq: \<open>set_mset (all_lits_of_mm (mset `# init_clss_lf (get_clauses_wl T) + get_unit_init_clss_wl T)) =
     set_mset (all_lits_of_mm (mset `# ran_mf (get_clauses_wl T) + get_unit_clauses_wl T))\<close>
     apply (subst all_clss_lf_ran_m[symmetric])
     using T_Ta Ta_y
@@ -675,8 +687,12 @@ proof -
     by (cases T; simp only: correct_watching'.simps correct_watching.simps)
       simp
 
-  show ?thesis
-    using S_Sa T_Ta corr_T' corr_S' pre_l
+  have \<open>blits_in_\<L>\<^sub>i\<^sub>n T\<close>
+    using blits_T eq
+    unfolding blits_in_\<L>\<^sub>i\<^sub>n_def blits_in_\<L>\<^sub>i\<^sub>n'_def all_lits_def
+    by (auto dest: multi_member_split)
+  then show ?thesis
+    using S_Sa T_Ta corr_T' corr_S' pre_l blits_S
     unfolding mark_to_delete_clauses_wl_post_def
     by blast
 qed
@@ -686,7 +702,7 @@ lemma cdcl_twl_full_restart_wl_prog_final_rel':
     S_Sa: \<open>(S, Sa) \<in> {(S, T). (S, T) \<in> state_wl_l None \<and> correct_watching S \<and> blits_in_\<L>\<^sub>i\<^sub>n S}\<close> and
     pre_Sa: \<open>mark_to_delete_clauses_l_pre Sa\<close> and
     pre_S: \<open>mark_to_delete_clauses_wl_pre S\<close> and
-    T_Ta: \<open>(T, Ta) \<in> {(S, T). (S, T) \<in> state_wl_l None \<and> correct_watching' S \<and> blits_in_\<L>\<^sub>i\<^sub>n S}\<close> and
+    T_Ta: \<open>(T, Ta) \<in> {(S, T). (S, T) \<in> state_wl_l None \<and> correct_watching' S \<and> blits_in_\<L>\<^sub>i\<^sub>n' S}\<close> and
     pre_l: \<open>mark_to_delete_clauses_l_post Sa Ta\<close>
   shows \<open>mark_to_delete_clauses_wl_post S T\<close>
 proof -
@@ -701,6 +717,8 @@ proof -
     unfolding mark_to_delete_clauses_l_post_def by blast
 
   have corr_S: \<open>correct_watching S\<close> and corr_T: \<open>correct_watching' T\<close> and
+    blits_T: \<open>blits_in_\<L>\<^sub>i\<^sub>n' T\<close> and
+    blits_S: \<open>blits_in_\<L>\<^sub>i\<^sub>n S\<close> and
     S_Sa: \<open>(S, Sa) \<in> state_wl_l None\<close> and
     T_Ta: \<open>(T, Ta) \<in> state_wl_l None\<close>
     using S_Sa T_Ta by auto
@@ -733,7 +751,7 @@ proof -
   have \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of y)\<close>
     using struct unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
     by auto
-  then have \<open>set_mset (all_lits_of_mm (mset `# init_clss_lf (get_clauses_wl T) + get_unit_init_clss_wl T)) =
+  then have eq: \<open>set_mset (all_lits_of_mm (mset `# init_clss_lf (get_clauses_wl T) + get_unit_init_clss_wl T)) =
     set_mset (all_lits_of_mm (mset `# ran_mf (get_clauses_wl T) + get_unit_clauses_wl T))\<close>
     apply (subst all_clss_lf_ran_m[symmetric])
     using T_Ta Ta_y
@@ -746,12 +764,77 @@ proof -
     by (cases T; simp only: correct_watching'.simps correct_watching.simps)
       simp
 
-  show ?thesis
-    using S_Sa T_Ta corr_T' corr_S' pre_l
+  have \<open>blits_in_\<L>\<^sub>i\<^sub>n T\<close>
+    using blits_T eq
+    unfolding blits_in_\<L>\<^sub>i\<^sub>n_def blits_in_\<L>\<^sub>i\<^sub>n'_def all_lits_def
+    by (auto dest: multi_member_split)
+  then show ?thesis
+    using S_Sa T_Ta corr_T' corr_S' pre_l blits_S
     unfolding mark_to_delete_clauses_wl_post_def
     by blast
 qed
 
+
+lemma mark_to_delete_clauses_l_pre_blits_in_\<L>\<^sub>i\<^sub>n':
+  assumes
+    S_Sa: \<open>(S, Sa) \<in> {(S, T). (S, T) \<in> state_wl_l None \<and> correct_watching S \<and> blits_in_\<L>\<^sub>i\<^sub>n S}\<close> and
+    pre_Sa: \<open>mark_to_delete_clauses_l_pre Sa\<close>
+  shows \<open>blits_in_\<L>\<^sub>i\<^sub>n' S\<close>
+proof -
+  obtain x where
+    Sa_x: \<open>(Sa, x) \<in> twl_st_l None\<close> and
+    list_invs: \<open>twl_list_invs Sa\<close> and
+    struct: \<open>twl_struct_invs x\<close>
+    using pre_Sa
+    unfolding mark_to_delete_clauses_l_pre_def by blast
+
+  have corr_S: \<open>correct_watching S\<close> and
+    blits_S: \<open>blits_in_\<L>\<^sub>i\<^sub>n S\<close> and
+    S_Sa: \<open>(S, Sa) \<in> state_wl_l None\<close>
+    using S_Sa by auto
+  have corr_S: \<open>correct_watching' S\<close>
+    using correct_watching_correct_watching[OF corr_S] .
+  have \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of x)\<close>
+    using struct unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+    by auto
+  then have \<open>set_mset (all_lits_of_mm (mset `# init_clss_lf (get_clauses_wl S) + get_unit_init_clss_wl S)) =
+    set_mset (all_lits_of_mm (mset `# ran_mf (get_clauses_wl S) + get_unit_clauses_wl S))\<close>
+    apply (subst all_clss_lf_ran_m[symmetric])
+    using Sa_x S_Sa
+    unfolding image_mset_union cdcl\<^sub>W_restart_mset.no_strange_atm_def all_lits_of_mm_union
+    by (auto simp: in_all_lits_of_mm_ain_atms_of_iff get_learned_clss_l_def
+      twl_st get_unit_clauses_wl_alt_def)
+
+  then have corr_S': \<open>correct_watching S\<close>
+    using corr_S
+    by (cases S; simp only: correct_watching'.simps correct_watching.simps)
+      simp
+ 
+  have alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of x)\<close>
+    using struct unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+    by auto
+  then have eq: \<open>set_mset (all_lits_of_mm (mset `# init_clss_lf (get_clauses_wl S) + get_unit_init_clss_wl S)) =
+    set_mset (all_lits_of_mm (mset `# ran_mf (get_clauses_wl S) + get_unit_clauses_wl S))\<close>
+    apply (subst all_clss_lf_ran_m[symmetric])
+    using Sa_x S_Sa
+    unfolding image_mset_union cdcl\<^sub>W_restart_mset.no_strange_atm_def all_lits_of_mm_union
+    by (auto simp: in_all_lits_of_mm_ain_atms_of_iff get_learned_clss_l_def
+      twl_st get_unit_clauses_wl_alt_def)
+  moreover have eq: \<open>set_mset (all_lits_of_mm (mset `# learned_clss_lf (get_clauses_wl S) + get_unit_learned_clss_wl S)) \<subseteq>
+    set_mset (all_lits_of_mm (mset `# init_clss_lf (get_clauses_wl S) + get_unit_init_clss_wl S))\<close>
+    using Sa_x S_Sa alien
+    unfolding image_mset_union cdcl\<^sub>W_restart_mset.no_strange_atm_def all_lits_of_mm_union
+    by (auto simp: in_all_lits_of_mm_ain_atms_of_iff get_learned_clss_l_def
+      twl_st get_unit_clauses_wl_alt_def)
+  ultimately have \<open>blits_in_\<L>\<^sub>i\<^sub>n' S\<close>
+    using blits_S eq
+    unfolding blits_in_\<L>\<^sub>i\<^sub>n_def blits_in_\<L>\<^sub>i\<^sub>n'_def all_lits_def
+    by (auto dest: multi_member_split)
+  then show ?thesis
+    using S_Sa corr_S' blits_S
+    unfolding mark_to_delete_clauses_wl_post_def
+    by blast
+qed
 
 lemma cdcl_twl_full_restart_wl_prog_cdcl_full_twl_restart_l_prog:
   \<open>(cdcl_twl_full_restart_wl_prog, cdcl_twl_full_restart_l_prog)
@@ -764,15 +847,21 @@ lemma cdcl_twl_full_restart_wl_prog_cdcl_full_twl_restart_l_prog:
      mark_to_delete_clauses_wl_mark_to_delete_clauses_l[THEN fref_to_Down]
      remove_one_annot_true_clause_imp_wl_remove_one_annot_true_clause_imp[THEN fref_to_Down])
   subgoal unfolding mark_to_delete_clauses_wl_pre_def
-   by (blast intro: correct_watching_correct_watching)
+   by (blast intro: correct_watching_correct_watching mark_to_delete_clauses_l_pre_blits_in_\<L>\<^sub>i\<^sub>n')
   subgoal unfolding mark_to_delete_clauses_wl_pre_def by (blast intro: correct_watching_correct_watching)
   subgoal
     by (rule cdcl_twl_full_restart_wl_prog_final_rel')
   subgoal by (auto simp: state_wl_l_def mark_to_delete_clauses_wl_post_def)
   done
 
+definition (in -) restart_abs_wl_pre :: \<open>'v twl_st_wl \<Rightarrow> bool \<Rightarrow> bool\<close> where
+  \<open>restart_abs_wl_pre S brk \<longleftrightarrow>
+    (\<exists>S'. (S, S') \<in> state_wl_l None \<and> restart_abs_l_pre S' brk
+      \<and> correct_watching S \<and> blits_in_\<L>\<^sub>i\<^sub>n S)\<close>
+
 definition (in -) cdcl_twl_local_restart_wl_spec :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
   \<open>cdcl_twl_local_restart_wl_spec = (\<lambda>(M, N, D, NE, UE, Q, W). do {
+      ASSERT(restart_abs_wl_pre (M, N, D, NE, UE, Q, W) False);
       (M, Q) \<leftarrow> SPEC(\<lambda>(M', Q'). (\<exists>K M2. (Decided K # M', M2) \<in> set (get_all_ann_decomposition M) \<and>
             Q' = {#}) \<or> (M' = M \<and> Q' = Q));
       RETURN (M, N, D, NE, UE, Q, W)
@@ -808,6 +897,7 @@ proof -
       rewatch_clauses_def
     apply (intro frefI nres_relI)
     apply (refine_vcg)
+    subgoal unfolding restart_abs_wl_pre_def by fast
     apply assumption+
     subgoal by (auto simp: state_wl_l_def correct_watching.simps clause_to_update_def
       blits_in_\<L>\<^sub>i\<^sub>n_def)
@@ -831,11 +921,6 @@ lemma cdcl_twl_restart_wl_prog_cdcl_twl_restart_l_prog:
       cdcl_twl_full_restart_wl_prog_cdcl_full_twl_restart_l_prog[THEN fref_to_Down])
   subgoal by auto
   done
-
-definition (in -) restart_abs_wl_pre :: \<open>'v twl_st_wl \<Rightarrow> bool \<Rightarrow> bool\<close> where
-  \<open>restart_abs_wl_pre S brk \<longleftrightarrow>
-    (\<exists>S'. (S, S') \<in> state_wl_l None \<and> restart_abs_l_pre S' brk
-      \<and> correct_watching S)\<close>
 
 
 context twl_restart_ops
@@ -872,15 +957,16 @@ definition cdcl_GC_clauses_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl 
   if b then do {
     (N', _) \<leftarrow> SPEC (\<lambda>(N'', m). GC_remap\<^sup>*\<^sup>* (N, Map.empty, fmempty) (fmempty, m, N'') \<and>
       0 \<notin># dom_m N'');
-    Q \<leftarrow> SPEC(\<lambda>Q. correct_watching' (M, N', D, NE, UE, WS, Q));
+    Q \<leftarrow> SPEC(\<lambda>Q. correct_watching' (M, N', D, NE, UE, WS, Q)\<and> blits_in_\<L>\<^sub>i\<^sub>n' (M, N', D, NE, UE, WS, Q));
     RETURN (M, N', D, NE, UE, WS, Q)
   }
   else RETURN (M, N, D, NE, UE, WS, Q)})\<close>
 
+
 lemma cdcl_GC_clauses_wl_cdcl_GC_clauses:
   \<open>(cdcl_GC_clauses_wl, cdcl_GC_clauses) \<in> {(S::'v twl_st_wl, S').
        (S, S') \<in> state_wl_l None \<and> correct_watching'' S} \<rightarrow>\<^sub>f \<langle>{(S::'v twl_st_wl, S').
-       (S, S') \<in> state_wl_l None \<and> correct_watching' S}\<rangle>nres_rel\<close>
+       (S, S') \<in> state_wl_l None \<and> correct_watching' S \<and> blits_in_\<L>\<^sub>i\<^sub>n' S}\<rangle>nres_rel\<close>
   unfolding cdcl_GC_clauses_wl_def cdcl_GC_clauses_def
   apply (intro frefI nres_relI)
   apply refine_vcg
@@ -888,7 +974,9 @@ lemma cdcl_GC_clauses_wl_cdcl_GC_clauses:
   subgoal by (auto simp: state_wl_l_def)
   subgoal by (auto simp: state_wl_l_def)
   subgoal by auto
-  subgoal by (auto simp: state_wl_l_def)
+  subgoal for x y x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f x1g x2g x1h
+       x2h x1i x2i x1j x2j x1k x2k b xa x' x1l x2l x1m x2m Q
+    by (auto simp: state_wl_l_def blits_in_\<L>\<^sub>i\<^sub>n'_def dest: multi_member_split)
   subgoal by auto
   done
 
@@ -900,8 +988,14 @@ definition cdcl_twl_full_restart_wl_GC_prog_post :: \<open>'v twl_st_wl \<Righta
     set_mset (all_lits_of_mm (mset `# init_clss_lf (get_clauses_wl T)+ get_unit_init_clss_wl T)) =
     set_mset (all_lits_of_mm (mset `# ran_mf (get_clauses_wl T)+ get_unit_clauses_wl T)))\<close>
 
+definition (in -) restart_abs_wl_pre2 :: \<open>'v twl_st_wl \<Rightarrow> bool \<Rightarrow> bool\<close> where
+  \<open>restart_abs_wl_pre2 S brk \<longleftrightarrow>
+    (\<exists>S'. (S, S') \<in> state_wl_l None \<and> restart_abs_l_pre S' brk
+      \<and> correct_watching'' S \<and> blits_in_\<L>\<^sub>i\<^sub>n' S)\<close>
+
 definition (in -) cdcl_twl_local_restart_wl_spec0 :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
   \<open>cdcl_twl_local_restart_wl_spec0 = (\<lambda>(M, N, D, NE, UE, Q, W). do {
+      ASSERT(restart_abs_wl_pre2 (M, N, D, NE, UE, Q, W) False);
       (M, Q) \<leftarrow> SPEC(\<lambda>(M', Q'). (\<exists>K M2. (Decided K # M', M2) \<in> set (get_all_ann_decomposition M) \<and>
             Q' = {#} \<and> count_decided M' = 0) \<or> (M' = M \<and> Q' = Q \<and> count_decided M' = 0));
       RETURN (M, N, D, NE, UE, Q, W)
@@ -945,8 +1039,8 @@ definition mark_to_delete_clauses_wl2 :: \<open>'v twl_st_wl \<Rightarrow> 'v tw
 
 lemma mark_to_delete_clauses_wl_mark_to_delete_clauses_l2:
   \<open>(mark_to_delete_clauses_wl2, mark_to_delete_clauses_l)
-    \<in> {(S, T). (S, T) \<in> state_wl_l None \<and> correct_watching'' S} \<rightarrow>\<^sub>f
-      \<langle>{(S, T). (S, T) \<in> state_wl_l None \<and> correct_watching'' S}\<rangle>nres_rel\<close>
+    \<in> {(S, T). (S, T) \<in> state_wl_l None \<and> correct_watching'' S \<and> blits_in_\<L>\<^sub>i\<^sub>n' S} \<rightarrow>\<^sub>f
+      \<langle>{(S, T). (S, T) \<in> state_wl_l None \<and> correct_watching'' S \<and> blits_in_\<L>\<^sub>i\<^sub>n' S}\<rangle>nres_rel\<close>
 proof -
   have [refine0]: \<open>collect_valid_indices_wl S  \<le> \<Down> Id (collect_valid_indices S')\<close>
     if \<open>(S, S') \<in> {(S, T).  (S, T) \<in> state_wl_l None \<and> correct_watching'' S \<and>
@@ -964,7 +1058,7 @@ proof -
     apply (refine_vcg
       WHILEIT_refine[where
          R = \<open>{((i, S, xs), (j, T, ys)). i = j \<and> (S, T) \<in> state_wl_l None \<and> correct_watching'' S \<and>
-             xs = ys}\<close>]
+             xs = ys \<and> blits_in_\<L>\<^sub>i\<^sub>n' S}\<close>]
       remove_one_annot_true_clause_one_imp_wl_remove_one_annot_true_clause_one_imp[THEN fref_to_Down_curry])
     subgoal unfolding mark_to_delete_clauses_wl_pre_def by blast
     subgoal by auto
@@ -990,7 +1084,7 @@ definition cdcl_twl_full_restart_wl_GC_prog_pre
   :: \<open>'v twl_st_wl \<Rightarrow> bool\<close>
 where
   \<open>cdcl_twl_full_restart_wl_GC_prog_pre S \<longleftrightarrow>
-   (\<exists>T. (S, T) \<in> state_wl_l None \<and> correct_watching' S \<and> cdcl_twl_full_restart_l_GC_prog_pre T)\<close>
+   (\<exists>T. (S, T) \<in> state_wl_l None \<and> correct_watching' S \<and> blits_in_\<L>\<^sub>i\<^sub>n' S \<and> cdcl_twl_full_restart_l_GC_prog_pre T)\<close>
 
 definition cdcl_twl_full_restart_wl_GC_prog where
 \<open>cdcl_twl_full_restart_wl_GC_prog S = do {
@@ -1004,22 +1098,28 @@ definition cdcl_twl_full_restart_wl_GC_prog where
     RETURN V
   }\<close>
 
+lemma blits_in_\<L>\<^sub>i\<^sub>n'_restart_wl_spec0:
+  \<open>blits_in_\<L>\<^sub>i\<^sub>n' (a, b, c, d, e, f', g) \<Longrightarrow> blits_in_\<L>\<^sub>i\<^sub>n' (ah, b, c, d, e, {#}, g)\<close>
+  by (auto simp: blits_in_\<L>\<^sub>i\<^sub>n'_def)
+
 lemma cdcl_twl_local_restart_wl_spec0_cdcl_twl_local_restart_l_spec0:
-  \<open>(x, y) \<in> {(S, S'). (S, S') \<in> state_wl_l None \<and> correct_watching'' S} \<Longrightarrow>
+  \<open>(x, y) \<in> {(S, S'). (S, S') \<in> state_wl_l None \<and> correct_watching'' S \<and> blits_in_\<L>\<^sub>i\<^sub>n' S} \<Longrightarrow>
           cdcl_twl_local_restart_wl_spec0 x
-          \<le> \<Down> {(S, S'). (S, S') \<in> state_wl_l None \<and> correct_watching'' S}
+          \<le> \<Down> {(S, S'). (S, S') \<in> state_wl_l None \<and> correct_watching'' S \<and> blits_in_\<L>\<^sub>i\<^sub>n' S}
 	    (cdcl_twl_local_restart_l_spec0 y)\<close>
-  by (cases x; cases y)
-   (auto simp: cdcl_twl_local_restart_wl_spec0_def cdcl_twl_local_restart_l_spec0_def
-    state_wl_l_def image_iff correct_watching''.simps clause_to_update_def
-    conc_fun_RES RES_RETURN_RES2)
+  unfolding cdcl_twl_local_restart_wl_spec0_def cdcl_twl_local_restart_l_spec0_def curry_def
+  apply refine_vcg
+  subgoal unfolding restart_abs_wl_pre2_def by (rule exI[of _ y]) fast
+  by (auto simp:
+      state_wl_l_def image_iff correct_watching''.simps clause_to_update_def
+      conc_fun_RES RES_RETURN_RES2 blits_in_\<L>\<^sub>i\<^sub>n'_restart_wl_spec0)
 
 lemma cdcl_twl_full_restart_wl_GC_prog_post_correct_watching:
   assumes
     pre: \<open>cdcl_twl_full_restart_l_GC_prog_pre y\<close> and
     y_Va: \<open>cdcl_twl_restart_l y Va\<close>
-    \<open>(V, Va) \<in> {(S, S'). (S, S') \<in> state_wl_l None \<and> correct_watching' S}\<close>
-  shows \<open>(V, Va) \<in> {(S, S'). (S, S') \<in> state_wl_l None \<and> correct_watching S}\<close> and
+    \<open>(V, Va) \<in> {(S, S'). (S, S') \<in> state_wl_l None \<and> correct_watching' S \<and> blits_in_\<L>\<^sub>i\<^sub>n' S}\<close>
+  shows \<open>(V, Va) \<in> {(S, S'). (S, S') \<in> state_wl_l None \<and> correct_watching S \<and> blits_in_\<L>\<^sub>i\<^sub>n S}\<close> and
     \<open>set_mset (all_lits_of_mm (mset `# init_clss_lf (get_clauses_wl V)+ get_unit_init_clss_wl V)) =
     set_mset (all_lits_of_mm (mset `# ran_mf (get_clauses_wl V)+ get_unit_clauses_wl V))\<close>
 proof -
@@ -1036,7 +1136,7 @@ proof -
   then have \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of V')\<close>
     unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
     by blast
-  then show \<open>set_mset (all_lits_of_mm (mset `# init_clss_lf (get_clauses_wl V)+ get_unit_init_clss_wl V)) =
+  then show eq: \<open>set_mset (all_lits_of_mm (mset `# init_clss_lf (get_clauses_wl V)+ get_unit_init_clss_wl V)) =
     set_mset (all_lits_of_mm (mset `# ran_mf (get_clauses_wl V)+ get_unit_clauses_wl V))\<close>
     using assms(3) Va_V'
     apply (cases V; cases V')
@@ -1050,16 +1150,19 @@ proof -
         dest!: multi_member_split)
     done
   then have \<open>correct_watching' V \<Longrightarrow>  correct_watching V\<close>
-   by (cases V)
-        (auto simp: correct_watching.simps correct_watching'.simps)
-  then show\<open>(V, Va) \<in> {(S, S'). (S, S') \<in> state_wl_l None \<and> correct_watching S}\<close>
+    by (cases V) (auto simp: correct_watching.simps correct_watching'.simps)
+  moreover
+    have \<open>blits_in_\<L>\<^sub>i\<^sub>n' V \<Longrightarrow> blits_in_\<L>\<^sub>i\<^sub>n V\<close>
+    using eq by (cases V)
+      (clarsimp simp: blits_in_\<L>\<^sub>i\<^sub>n_def blits_in_\<L>\<^sub>i\<^sub>n'_def all_lits_def)
+  ultimately show \<open>(V, Va) \<in> {(S, S'). (S, S') \<in> state_wl_l None \<and> correct_watching S \<and> blits_in_\<L>\<^sub>i\<^sub>n S}\<close>
     using assms by (auto simp: cdcl_twl_full_restart_wl_GC_prog_post_def)
 qed
 
 lemma cdcl_twl_full_restart_wl_GC_prog:
   \<open>(cdcl_twl_full_restart_wl_GC_prog, cdcl_twl_full_restart_l_GC_prog) \<in> {(S::'v twl_st_wl, S').
-       (S, S') \<in> state_wl_l None \<and> correct_watching' S} \<rightarrow>\<^sub>f \<langle>{(S::'v twl_st_wl, S').
-       (S, S') \<in> state_wl_l None \<and> correct_watching S}\<rangle>nres_rel\<close>
+       (S, S') \<in> state_wl_l None \<and> correct_watching' S \<and> blits_in_\<L>\<^sub>i\<^sub>n' S} \<rightarrow>\<^sub>f \<langle>{(S::'v twl_st_wl, S').
+       (S, S') \<in> state_wl_l None \<and> correct_watching S \<and> blits_in_\<L>\<^sub>i\<^sub>n S}\<rangle>nres_rel\<close>
   unfolding cdcl_twl_full_restart_wl_GC_prog_def cdcl_twl_full_restart_l_GC_prog_def
   apply (intro frefI nres_relI)
   apply (refine_vcg
@@ -1070,6 +1173,7 @@ lemma cdcl_twl_full_restart_wl_GC_prog:
   subgoal unfolding cdcl_twl_full_restart_wl_GC_prog_pre_def by blast
   subgoal by (auto dest: correct_watching'_correct_watching'')
   subgoal unfolding mark_to_delete_clauses_wl_pre_def by fast
+  subgoal by fast
   subgoal for x y S S' T Ta U Ua V Va
     using cdcl_twl_full_restart_wl_GC_prog_post_correct_watching[of y Va V]
     unfolding cdcl_twl_full_restart_wl_GC_prog_post_def
@@ -1098,6 +1202,47 @@ where
        RETURN (S, n)
    }\<close>
 
+lemma restart_abs_wl_pre_blits_in_\<L>\<^sub>i\<^sub>n:
+  assumes pre: \<open>restart_abs_wl_pre x1c b\<close> and
+    \<open>blits_in_\<L>\<^sub>i\<^sub>n x1c\<close>
+  shows \<open>blits_in_\<L>\<^sub>i\<^sub>n' x1c\<close>
+proof -
+
+  obtain y x where
+    y_x: \<open>(y, x) \<in> twl_st_l None\<close> and
+    x1c_y: \<open>(x1c, y) \<in> state_wl_l None\<close> and
+    struct_invs: \<open>twl_struct_invs x\<close> and
+    list_invs: \<open>twl_list_invs y\<close>
+    using pre unfolding restart_abs_wl_pre_def restart_abs_l_pre_def
+      restart_prog_pre_def apply - apply normalize_goal+
+    by blast
+  then have alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of x)\<close>
+    unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+    by blast
+  then have eq: \<open>set_mset (all_lits_of_mm (mset `# init_clss_lf (get_clauses_wl x1c)+ get_unit_init_clss_wl x1c)) =
+    set_mset (all_lits_of_mm (mset `# ran_mf (get_clauses_wl x1c)+ get_unit_clauses_wl x1c))\<close>
+    using y_x x1c_y
+    apply (cases x1c; cases y; cases x)
+    apply (auto simp: state_wl_l_def cdcl\<^sub>W_restart_mset.no_strange_atm_def
+      twl_st_l_def cdcl\<^sub>W_restart_mset_state image_image mset_take_mset_drop_mset'
+      in_all_lits_of_mm_ain_atms_of_iff atms_of_ms_def atms_of_def atm_of_eq_atm_of
+      conj_disj_distribR Collect_disj_eq ex_disj_distrib
+      split: if_splits
+      dest!: multi_member_split[of _ \<open>ran_m _\<close>])
+      apply (auto dest!: split_list
+        dest!: multi_member_split)
+    done
+  moreover have eq: \<open>set_mset (all_lits_of_mm (mset `# learned_clss_lf (get_clauses_wl x1c) + get_unit_learned_clss_wl x1c)) \<subseteq>
+    set_mset (all_lits_of_mm (mset `# init_clss_lf (get_clauses_wl x1c) + get_unit_init_clss_wl x1c))\<close>
+    using y_x x1c_y alien
+    unfolding image_mset_union cdcl\<^sub>W_restart_mset.no_strange_atm_def all_lits_of_mm_union
+    by (auto simp: in_all_lits_of_mm_ain_atms_of_iff get_learned_clss_l_def
+      twl_st get_unit_clauses_wl_alt_def)
+  ultimately show \<open>blits_in_\<L>\<^sub>i\<^sub>n' x1c\<close>
+    using eq assms by (cases x1c)
+      (clarsimp simp: blits_in_\<L>\<^sub>i\<^sub>n_def blits_in_\<L>\<^sub>i\<^sub>n'_def all_lits_def)
+qed
+
 lemma cdcl_twl_full_restart_wl_prog_cdcl_twl_restart_l_prog:
   \<open>(uncurry2 restart_prog_wl, uncurry2 restart_prog_l)
     \<in> {(S, T).  (S, T) \<in> state_wl_l None \<and> correct_watching S \<and> blits_in_\<L>\<^sub>i\<^sub>n S} \<times>\<^sub>f nat_rel \<times>\<^sub>f bool_rel \<rightarrow>\<^sub>f
@@ -1119,7 +1264,7 @@ proof -
     subgoal by auto
     subgoal by auto
     subgoal by auto
-    subgoal by (auto simp: correct_watching_correct_watching)
+    subgoal by (auto simp: correct_watching_correct_watching restart_abs_wl_pre_blits_in_\<L>\<^sub>i\<^sub>n)
     subgoal by auto
     subgoal by auto
     subgoal
@@ -1170,7 +1315,7 @@ proof -
     subgoal by auto
     subgoal by auto
     subgoal by auto
-    subgoal apply (auto simp: correct_watching_correct_watching)
+    subgoal by (auto simp: correct_watching_correct_watching)
     subgoal by auto
     done
 qed
@@ -1211,8 +1356,8 @@ where
 
 lemma cdcl_twl_stgy_restart_prog_early_wl_cdcl_twl_stgy_restart_prog_early_l:
   \<open>(cdcl_twl_stgy_restart_prog_early_wl, cdcl_twl_stgy_restart_prog_early_l)
-    \<in> {(S, T).  (S, T) \<in> state_wl_l None \<and> correct_watching S} \<rightarrow>\<^sub>f
-      \<langle>{(S, T).  (S, T) \<in> state_wl_l None \<and> correct_watching S}\<rangle>nres_rel\<close>
+    \<in> {(S, T).  (S, T) \<in> state_wl_l None \<and> correct_watching S \<and> blits_in_\<L>\<^sub>i\<^sub>n S} \<rightarrow>\<^sub>f
+      \<langle>{(S, T).  (S, T) \<in> state_wl_l None \<and> correct_watching S \<and> blits_in_\<L>\<^sub>i\<^sub>n S}\<rangle>nres_rel\<close>
   (is \<open>_ \<in> ?R \<rightarrow>\<^sub>f \<langle>?S\<rangle>nres_rel\<close>)
 proof -
   show ?thesis
@@ -1244,7 +1389,7 @@ qed
 
 theorem cdcl_twl_stgy_restart_prog_wl_spec:
   \<open>(cdcl_twl_stgy_restart_prog_wl, cdcl_twl_stgy_restart_prog_l) \<in> {(S::'v twl_st_wl, S').
-       (S, S') \<in> state_wl_l None \<and> correct_watching S} \<rightarrow> \<langle>state_wl_l None\<rangle>nres_rel\<close>
+       (S, S') \<in> state_wl_l None \<and> correct_watching S \<and> blits_in_\<L>\<^sub>i\<^sub>n S} \<rightarrow> \<langle>state_wl_l None\<rangle>nres_rel\<close>
    (is \<open>?o \<in> ?A \<rightarrow> \<langle>?B\<rangle> nres_rel\<close>)
   using cdcl_twl_stgy_restart_prog_wl_cdcl_twl_stgy_restart_prog_l[where 'a='v]
   unfolding fref_param1 apply -
@@ -1253,7 +1398,7 @@ theorem cdcl_twl_stgy_restart_prog_wl_spec:
 
 theorem cdcl_twl_stgy_restart_prog_early_wl_spec:
   \<open>(cdcl_twl_stgy_restart_prog_early_wl, cdcl_twl_stgy_restart_prog_early_l) \<in> {(S::'v twl_st_wl, S').
-       (S, S') \<in> state_wl_l None \<and> correct_watching S} \<rightarrow> \<langle>state_wl_l None\<rangle>nres_rel\<close>
+       (S, S') \<in> state_wl_l None \<and> correct_watching S \<and> blits_in_\<L>\<^sub>i\<^sub>n S} \<rightarrow> \<langle>state_wl_l None\<rangle>nres_rel\<close>
    (is \<open>?o \<in> ?A \<rightarrow> \<langle>?B\<rangle> nres_rel\<close>)
   using cdcl_twl_stgy_restart_prog_early_wl_cdcl_twl_stgy_restart_prog_early_l[where 'a='v]
   unfolding fref_param1 apply -
@@ -1282,8 +1427,8 @@ where
 
 lemma cdcl_twl_stgy_restart_prog_bounded_wl_cdcl_twl_stgy_restart_prog_bounded_l:
   \<open>(cdcl_twl_stgy_restart_prog_bounded_wl, cdcl_twl_stgy_restart_prog_bounded_l)
-    \<in> {(S, T).  (S, T) \<in> state_wl_l None \<and> correct_watching S} \<rightarrow>\<^sub>f
-      \<langle>bool_rel \<times>\<^sub>r {(S, T).  (S, T) \<in> state_wl_l None \<and> correct_watching S}\<rangle>nres_rel\<close>
+    \<in> {(S, T).  (S, T) \<in> state_wl_l None \<and> correct_watching S \<and> blits_in_\<L>\<^sub>i\<^sub>n S} \<rightarrow>\<^sub>f
+      \<langle>bool_rel \<times>\<^sub>r {(S, T).  (S, T) \<in> state_wl_l None \<and> correct_watching S \<and> blits_in_\<L>\<^sub>i\<^sub>n S}\<rangle>nres_rel\<close>
   (is \<open>_ \<in> ?R \<rightarrow>\<^sub>f \<langle>?S\<rangle>nres_rel\<close>)
 proof -
   show ?thesis
@@ -1306,7 +1451,7 @@ qed
 
 theorem cdcl_twl_stgy_restart_prog_bounded_wl_spec:
   \<open>(cdcl_twl_stgy_restart_prog_bounded_wl, cdcl_twl_stgy_restart_prog_bounded_l) \<in> {(S::'v twl_st_wl, S').
-       (S, S') \<in> state_wl_l None \<and> correct_watching S} \<rightarrow> \<langle>bool_rel \<times>\<^sub>r state_wl_l None\<rangle>nres_rel\<close>
+       (S, S') \<in> state_wl_l None \<and> correct_watching S \<and> blits_in_\<L>\<^sub>i\<^sub>n S} \<rightarrow> \<langle>bool_rel \<times>\<^sub>r state_wl_l None\<rangle>nres_rel\<close>
    (is \<open>?o \<in> ?A \<rightarrow> \<langle>?B\<rangle> nres_rel\<close>)
   using cdcl_twl_stgy_restart_prog_bounded_wl_cdcl_twl_stgy_restart_prog_bounded_l[where 'a='v]
   unfolding fref_param1 apply -
