@@ -181,7 +181,7 @@ proof -
     using le[of 0] apply (cases \<open>n = 0\<close>)
     by (auto dest!: lexn_length simp: all_set_conv_all_nth eq_commute[of _ m])
 qed
- 
+
 lemma (in conflict_driven_clause_learning\<^sub>W_optimal_weight)
    conflict_opt_state_eq_compatible:
   \<open>conflict_opt S T \<Longrightarrow> S \<sim> S' \<Longrightarrow> T \<sim> T' \<Longrightarrow> conflict_opt S' T'\<close>
@@ -220,6 +220,11 @@ lemma base_atm_simps3[simp]:
   apply (auto simp: base_atm_def)
   by (metis (mono_tags, lifting) tfl_some)
 
+lemma base_atm_simps4[simp]:
+  \<open>L \<in> \<Delta>\<Sigma> \<Longrightarrow> base_atm (replacement_pos L) = L\<close>
+  \<open>L \<in> \<Delta>\<Sigma> \<Longrightarrow> base_atm (replacement_neg L) = L\<close>
+  by (auto simp: base_atm_def)
+
 fun normalize_lit :: \<open>'v literal \<Rightarrow> 'v literal\<close> where
   \<open>normalize_lit (Pos L) =
     (if L \<in> replacement_neg ` \<Delta>\<Sigma> then Neg (replacement_pos (SOME K. (K \<in> \<Delta>\<Sigma> \<and> L = replacement_neg K)))
@@ -238,6 +243,10 @@ lemma normalize_lit[simp]:
   \<open>L \<in> \<Delta>\<Sigma> \<Longrightarrow> normalize_lit (Pos (replacement_neg L)) = Neg (replacement_pos L)\<close>
   \<open>L \<in> \<Delta>\<Sigma> \<Longrightarrow> normalize_lit (Neg (replacement_neg L)) = Pos (replacement_pos L)\<close>
   by auto
+
+
+
+
 
 definition all_clauses_literals :: \<open>'v list\<close> where
   \<open>all_clauses_literals = (SOME xs. mset xs = mset_set ((\<Sigma> - \<Delta>\<Sigma>) \<union> replacement_neg ` \<Delta>\<Sigma> \<union> replacement_pos ` \<Delta>\<Sigma>))\<close>
@@ -1169,130 +1178,6 @@ lemma full_cdcl_dpll_bnb_r_stgy_full_cdcl_bnb_r_stgy:
 end
 
 
-text \<open>TODO: \<^term>\<open>Pos (replacement_pos A) \<notin># C\<close> should be \<^term>\<open>Pos (replacement_pos A) \<notin># C\<close>
-  but only for learned clauses.\<close>
-definition additional_lit_notin :: \<open>'st \<Rightarrow> bool\<close> where
-  \<open>additional_lit_notin S \<longleftrightarrow>
-    ((\<forall>A\<in>\<Delta>\<Sigma>. Decided (Neg (replacement_pos A)) \<notin> set (trail S)) \<and>
-     (\<forall>A\<in>\<Delta>\<Sigma>. Decided (Neg (replacement_neg A)) \<notin> set (trail S)) \<and>
-     (\<forall>A\<in>\<Delta>\<Sigma>. \<forall>C \<in># clauses S. Pos (replacement_pos A) \<notin># C) \<and>
-     (\<forall>A\<in>\<Delta>\<Sigma>. \<forall>C \<in># clauses S. Pos (replacement_neg A) \<notin># C) \<and>
-     (\<forall>A\<in>\<Delta>\<Sigma>. conflicting S \<noteq> None \<longrightarrow> Pos (replacement_pos A) \<notin># the (conflicting S)) \<and>
-     (\<forall>A\<in>\<Delta>\<Sigma>. conflicting S \<noteq> None \<longrightarrow> Pos (replacement_neg A) \<notin># the (conflicting S)))\<close>
-
-(*TODO Move*)
-lemma backtrack_split_reduce_trail_to[simp]:
-  \<open>backtrack_split (trail S) = (M2, Decided K # M1) \<Longrightarrow> trail (reduce_trail_to M1 S) = M1\<close>
-  using get_all_ann_decomposition_backtrack_split get_all_ann_decomposition_decomp reduce_trail_to_trail_tl_trail_decomp by blast
-
-lemma backtrack_split_trailD:
-  \<open>backtrack_split (trail S) = (M2, Decided K # M1) \<Longrightarrow> trail S = M2 @ Decided K # M1\<close>
-  by (metis backtrack_split_list_eq fst_conv snd_conv)
-
-lemma cdcl_dpll_bnb_r_stgy_reasons_in_clauses:
-  \<open>cdcl_dpll_bnb_r_stgy S T \<Longrightarrow> reasons_in_clauses S \<Longrightarrow> reasons_in_clauses T\<close>
-  by (auto 5 5 simp: cdcl_dpll_bnb_r_stgy.simps reasons_in_clauses_def ocdcl\<^sub>W_o_r.simps
-      enc_weight_opt.cdcl_bnb_bj.simps neq_Nil_conv
-    elim!: rulesE enc_weight_opt.improveE conflict_opt0E odecideE
-      simple_backtrack_conflict_optE enc_weight_opt.obacktrackE
-    dest!: backtrack_split_trailD get_all_ann_decomposition_exists_prepend)
-
-lemma rtranclp_cdcl_dpll_bnb_r_stgy_reasons_in_clauses:
-  \<open>cdcl_dpll_bnb_r_stgy\<^sup>*\<^sup>* S T \<Longrightarrow> reasons_in_clauses S \<Longrightarrow> reasons_in_clauses T\<close>
-  by (induction rule: rtranclp_induct)
-    (auto simp: cdcl_dpll_bnb_r_stgy_reasons_in_clauses)
-
-
-lemma cdcl_dpll_bnb_r_stgy_additional_lit_notin:
-  assumes \<open>cdcl_dpll_bnb_r_stgy S T\<close> and \<open>additional_lit_notin S\<close> and
-    struct: \<open>reasons_in_clauses S\<close>
-  shows \<open>additional_lit_notin T\<close>
-  using assms(1,2)
-  apply (cases)
-  subgoal
-    by (auto simp: additional_lit_notin_def elim!: rulesE)
-  subgoal
-    by (auto simp: additional_lit_notin_def elim!: rulesE)
-  subgoal
-    by (auto simp: additional_lit_notin_def elim!: rulesE enc_weight_opt.improveE)
-  subgoal
-    by (clarsimp simp: additional_lit_notin_def
-      elim!: rulesE conflict_opt0E)
-  subgoal
-    apply (clarsimp simp: additional_lit_notin_def
-      elim!: rulesE odecideE simple_backtrack_conflict_optE is_decided_ex_Decided
-      dest: backtrack_split_trailD)
-      apply (auto dest: backtrack_split_trailD
-        simp: DECO_clause_def uminus_lit_swap
-	  eq_commute[of \<open>Pos _\<close>]
-      elim: is_decided_ex_Decided)
-    done
-  subgoal
-    apply (cases rule: ocdcl\<^sub>W_o_r.cases, assumption)
-    subgoal
-      by (auto simp: additional_lit_notin_def
-        elim!: rulesE odecideE)
-    subgoal
-      apply (cases rule: enc_weight_opt.cdcl_bnb_bj.cases, assumption)
-      subgoal
-        by (auto elim!: rulesE odecideE  enc_weight_opt.obacktrackE
-	   simp: additional_lit_notin_def)
-      subgoal
-        using struct unfolding reasons_in_clauses_def
-	by (cases \<open>trail S\<close>)
-          (auto elim!: rulesE odecideE  enc_weight_opt.obacktrackE
-	   dest!: in_diffD
-	   simp: additional_lit_notin_def)
-      subgoal
-        by (auto elim!: rulesE odecideE  enc_weight_opt.obacktrackE
-	   simp: additional_lit_notin_def mset_subset_eq_exists_conv)
-      done
-    done
-  done
-
-definition additional_lit_notin_both :: \<open>'st \<Rightarrow> bool\<close> where
-  \<open>additional_lit_notin_both S \<longleftrightarrow>
-     (\<forall>A\<in>\<Delta>\<Sigma>. \<forall>C \<in># learned_clss S. Neg (replacement_pos A) \<in># C \<longrightarrow> Neg (replacement_neg A) \<in># C \<longrightarrow> False)\<close>
-
-lemma replace_pos_neg_not_both_decided:
-  assumes
-    struct: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (enc_weight_opt.abs_state S)\<close> and
-    smaller_propa: \<open>no_smaller_propa S\<close> and
-    dec0: \<open>Decided (Pos (A\<^sup>\<mapsto>\<^sup>0)) \<in> set (trail S)\<close> and
-    dec1: \<open>Decided (Pos (A\<^sup>\<mapsto>\<^sup>1)) \<in> set (trail S)\<close> and
-    add: \<open>additional_constraints \<subseteq># init_clss S\<close> and
-    [simp]: \<open>A \<in> \<Delta>\<Sigma>\<close>
-  shows False
-proof -
-  have add: \<open>additional_constraint A \<subseteq># init_clss S\<close>
-    using add multi_member_split[of A \<open>mset_set \<Delta>\<Sigma>\<close>] by (auto simp: additional_constraints_def
-      subset_mset.dual_order.trans)
-  have n_d: \<open>no_dup (trail S)\<close>
-    using struct unfolding  cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
-    by auto
-  have H: \<open>\<And>M K M' D L.
-     trail S = M' @ Decided K # M \<Longrightarrow>
-     D + {#L#} \<in># additional_constraint A \<Longrightarrow> undefined_lit M L \<Longrightarrow> \<not> M \<Turnstile>as CNot D\<close>
-    using smaller_propa add unfolding no_smaller_propa_def clauses_def by auto
-  consider
-    M1 M2 M3 where \<open>trail S = M3 @ Decided (Pos (A\<^sup>\<mapsto>\<^sup>0)) # M2 @ Decided (Pos (A\<^sup>\<mapsto>\<^sup>1)) # M1\<close> |
-    M1 M2 M3 where \<open>trail S = M3 @ Decided (Pos (A\<^sup>\<mapsto>\<^sup>1)) # M2 @ Decided (Pos (A\<^sup>\<mapsto>\<^sup>0)) # M1\<close>
-    using in_set_conv_decomp[THEN iffD1, OF dec0] dec1 by (auto 5 5 dest: in_set_conv_decomp[THEN iffD1])
-  then show ?thesis
-  proof cases
-    case (1 M1 M2 M3)
-    then show ?thesis
-      using H[of \<open> M3\<close> \<open>Pos (A\<^sup>\<mapsto>\<^sup>0)\<close> \<open>M2 @ Decided (Pos (A\<^sup>\<mapsto>\<^sup>1)) # M1\<close> \<open>{#Neg (A\<^sup>\<mapsto>\<^sup>1)#}\<close> \<open>Neg (A\<^sup>\<mapsto>\<^sup>0)\<close>] n_d
-      by (auto simp: additional_constraint_def defined_lit_map)
-  next
-    case 2
-    then show ?thesis
-      using H[of \<open>M3\<close> \<open>Pos (A\<^sup>\<mapsto>\<^sup>1)\<close> \<open>M2 @ Decided (Pos (A\<^sup>\<mapsto>\<^sup>0)) # M1\<close> \<open>{#Neg (A\<^sup>\<mapsto>\<^sup>0)#}\<close> \<open>Neg (A\<^sup>\<mapsto>\<^sup>1)\<close>] n_d
-      by (auto simp: additional_constraint_def defined_lit_map)
-  qed
-qed
-
 lemma replace_pos_neg_not_both_decided_highest_lvl:
   assumes
     struct: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (enc_weight_opt.abs_state S)\<close> and
@@ -1392,104 +1277,6 @@ proof (rule ccontr)
     by (auto simp: additional_constraint_def M3)
 qed
 
-lemma cdcl_dpll_bnb_r_stgy_additional_lit_notin_both:
-  assumes \<open>cdcl_dpll_bnb_r_stgy S T\<close> and
-    struct: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (enc_weight_opt.abs_state S)\<close> and
-    smaller_propa: \<open>no_smaller_propa S\<close> and
-    smaller_confl: \<open>no_smaller_confl S\<close> and
-    notin: \<open>additional_lit_notin S\<close> and
-    reasons: \<open>reasons_in_clauses S\<close> and
-    notin_both: \<open>additional_lit_notin_both S\<close> and
-    add: \<open>additional_constraints \<subseteq># init_clss S\<close>
-  shows \<open>additional_lit_notin_both T\<close>
-  using assms(1)
-proof cases
-  case cdcl_dpll_bnb_r_conflict
-  then show ?thesis using notin_both by (auto elim!: rulesE simp: additional_lit_notin_both_def)
-next
-  case cdcl_dpll_bnb_r_propagate
-  then show ?thesis using notin_both by (auto elim!: rulesE simp: additional_lit_notin_both_def)
-next
-  case cdcl_dpll_bnb_r_improve
-  then show ?thesis using notin_both by (auto elim!: enc_weight_opt.improveE simp: additional_lit_notin_both_def)
-next
-  case cdcl_dpll_bnb_r_conflict_opt0
-  then show ?thesis using notin_both by (auto elim!: conflict_opt0E simp: additional_lit_notin_both_def)
-next
-  case cdcl_dpll_bnb_r_simple_backtrack_conflict_opt
-  then show ?thesis
-    using notin_both notin replace_pos_neg_not_both_decided[of S, OF struct smaller_propa _ _ add]
-    by (fastforce elim!: simple_backtrack_conflict_optE
-      simp: additional_lit_notin_both_def additional_lit_notin_def DECO_clause_def
-        eq_commute[of \<open>Neg _\<close>] uminus_lit_swap additional_constraints_def
-      elim!: is_decided_ex_Decided)
-next
-  case cdcl_dpll_bnb_r_other'
-  then show ?thesis
-  proof cases
-    case decide
-    then show ?thesis using notin_both by (auto elim!: odecideE simp: additional_lit_notin_both_def)
-  next
-    case bj
-    then show ?thesis
-    proof cases
-      case skip
-      then show ?thesis using notin_both by (auto elim!: rulesE simp: additional_lit_notin_both_def)
-    next
-      case resolve
-      then show ?thesis using notin_both by (auto elim!: rulesE simp: additional_lit_notin_both_def)
-    next
-      case backtrack
-      then obtain M1 M2 :: \<open>('v, 'v clause) ann_lits\<close> and K L :: \<open>'v literal\<close> and
-          D D' :: \<open>'v clause\<close> where
-	confl: \<open>conflicting S = Some (add_mset L D)\<close> and
-	decomp: \<open>(Decided K # M1, M2) \<in> set (get_all_ann_decomposition (trail S))\<close> and
-	max: \<open>get_maximum_level (trail S) (add_mset L D') = local.backtrack_lvl S\<close> and
-	lev_L: \<open>get_level (trail S) L = local.backtrack_lvl S\<close> and
-	max_le: \<open>get_level (trail S) K = Suc (get_maximum_level (trail S) D')\<close> and
-	D'_D: \<open>D' \<subseteq># D\<close> and
-	\<open>set_mset (clauses S) \<union> set_mset (enc_weight_opt.conflicting_clss S) \<Turnstile>p
-	 add_mset L D'\<close> and
-	T: \<open>T \<sim>
-	   cons_trail (Propagated L (add_mset L D'))
-	    (reduce_trail_to M1
-	      (add_learned_cls (add_mset L D') (update_conflicting None S)))\<close>
-        by (auto simp: enc_weight_opt.obacktrack.simps)
-      have
-        tr_D: \<open>trail S \<Turnstile>as CNot (add_mset L D)\<close> and
-        \<open>distinct_mset (add_mset L D)\<close> and
-	n_d: \<open>no_dup (trail S)\<close>
-        using struct confl
-	unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-	  cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
-	  cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def
-	  cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
-	by auto
-      have tr_D': \<open>trail S \<Turnstile>as CNot (add_mset L D')\<close>
-        using tr_D D'_D by (auto simp: true_annots_true_cls_def_iff_negation_in_model)
-      define D'' where \<open>D'' \<equiv> add_mset L D'\<close>
-      then have D'_D'': \<open>D' = remove1_mset L D''\<close> \<open>L \<in># D''\<close>
-        by auto
-      have \<open>get_level (trail S) K \<le> count_decided (trail S)\<close>
-        using decomp n_d
-	by (auto dest!: get_all_ann_decomposition_exists_prepend
-	  dest: defined_lit_no_dupD in_lits_of_l_defined_litD)
-      then have False if
-         \<open>A \<in> \<Delta>\<Sigma>\<close> \<open>Neg (A\<^sup>\<mapsto>\<^sup>1) \<in># add_mset L D'\<close>\<open>Neg (A\<^sup>\<mapsto>\<^sup>0) \<in># add_mset L D'\<close> for A
-        using tr_D' that(1,3) multi_member_split[OF that(2)]  multi_member_split[OF that(3)]
-         replace_pos_neg_not_both_decided_highest_lvl[OF struct smaller_propa smaller_confl
-        _ _ add, of A] tr_D' notin_both max_le lev_L
-	count_decided_ge_get_maximum_level[of \<open>trail S\<close> \<open>D'\<close>]
-	unfolding D''_def[symmetric] unfolding D'_D''
-	by (auto dest!: simp: add_mset_eq_add_mset get_maximum_level_add_mset
-	  get_level_Neg_Pos max_def remove1_mset_add_mset_If split: if_splits)
-      then show ?thesis
-        using T notin_both
-        by (auto simp: additional_lit_notin_both_def
-	  dest!: enc_weight_opt.obacktrackE)
-    qed
-  qed
-qed
 
 lemma cdcl_dpll_bnb_r_stgy_clauses_mono:
   \<open>cdcl_dpll_bnb_r_stgy S T \<Longrightarrow> clauses S \<subseteq># clauses T\<close>
@@ -1515,88 +1302,6 @@ lemma rtranclp_cdcl_dpll_bnb_r_stgy_init_clss_eq:
   \<open>cdcl_dpll_bnb_r_stgy\<^sup>*\<^sup>* S T \<Longrightarrow> init_clss S = init_clss T\<close>
   by (induction rule: rtranclp_induct) (auto dest!: cdcl_dpll_bnb_r_stgy_init_clss_eq)
 
-
-context
-  fixes S :: 'st
-  assumes S_\<Sigma>: \<open>atms_of_mm (init_clss S) = \<Sigma> - \<Delta>\<Sigma> \<union> replacement_pos ` \<Delta>\<Sigma> \<union> replacement_neg ` \<Delta>\<Sigma>\<close>
-begin
-
-lemma rtranclp_cdcl_dpll_bnb_r_stgy_additional_lit_notin_both:
-  assumes \<open>cdcl_dpll_bnb_r_stgy\<^sup>*\<^sup>* S T\<close> and
-    struct: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (enc_weight_opt.abs_state S)\<close> and
-    smaller_propa: \<open>no_smaller_propa S\<close> and
-    smaller_confl: \<open>cdcl_bnb_stgy_inv S\<close> and
-    notin: \<open>additional_lit_notin S\<close> and
-    reasons: \<open>reasons_in_clauses S\<close> and
-    notin_both: \<open>additional_lit_notin_both S\<close> and
-    add: \<open>additional_constraints \<subseteq># init_clss S\<close> and
-    confl_false_lev: \<open>conflict_is_false_with_level S\<close>
-  shows \<open>additional_lit_notin T \<and> additional_lit_notin_both T\<close>
-  using assms(1)
-proof (induction rule: rtranclp_induct)
-  case base
-  then show ?case using assms by auto
-next
-  case (step T U) note st = this(1) and step = this(2) and IH = this(3)
-  have st': \<open>cdcl_bnb_r_stgy\<^sup>*\<^sup>* S T\<close>
-    using rtranclp_cdcl_dpll_bnb_r_stgy_cdcl_bnb_r[OF S_\<Sigma> st struct] .
-  have st'': \<open>enc_weight_opt.cdcl_bnb_stgy\<^sup>*\<^sup>* S T\<close>
-    using rtranclp_cdcl_bnb_r_stgy_cdcl_bnb_stgy[OF S_\<Sigma> st'] .
-  from rtranclp_cdcl_bnb_r_stgy_cdcl_bnb_r[OF st'] have st': \<open>cdcl_bnb_r\<^sup>*\<^sup>* S T\<close> .
-  have stgy_inv: \<open>cdcl_bnb_stgy_inv T\<close>
-    using enc_weight_opt.rtranclp_cdcl_bnb_stgy_stgy_inv[OF st'' struct smaller_confl] .
-  have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (enc_weight_opt.abs_state T)\<close>
-    using rtranclp_cdcl_bnb_r_all_struct_inv[OF S_\<Sigma> st' struct] .
-  moreover have \<open>no_smaller_propa T\<close>
-    using enc_weight_opt.rtranclp_cdcl_bnb_stgy_no_smaller_propa[OF st'' struct smaller_propa] .
-  moreover have \<open>no_smaller_confl T\<close>
-    using stgy_inv unfolding cdcl_bnb_stgy_inv_def by blast
-  moreover have \<open>reasons_in_clauses T\<close>
-    using rtranclp_cdcl_dpll_bnb_r_stgy_reasons_in_clauses[OF st reasons] .
-  moreover have \<open>additional_constraints \<subseteq># init_clss T\<close>
-    using rtranclp_cdcl_dpll_bnb_r_stgy_init_clss_eq[OF st] add by auto
-  ultimately show ?case
-    using cdcl_dpll_bnb_r_stgy_additional_lit_notin_both[of T U] step IH
-      cdcl_dpll_bnb_r_stgy_additional_lit_notin[of T U]
-    by auto
-qed
-
-end
-
-lemma rtranclp_cdcl_dpll_bnb_r_stgy_additional_lit_notin_both_init_state:
-  assumes \<open>cdcl_dpll_bnb_r_stgy\<^sup>*\<^sup>* (init_state (penc N)) T\<close> and
-    atm: \<open>atms_of_mm N = \<Sigma>\<close> \<open>\<Delta>\<Sigma> \<subseteq> atms_of_mm N\<close> and
-    [simp]: \<open>distinct_mset_mset (penc N)\<close>
-  shows \<open>additional_lit_notin T \<and> additional_lit_notin_both T\<close>
-  apply (rule rtranclp_cdcl_dpll_bnb_r_stgy_additional_lit_notin_both[of \<open>init_state (penc N)\<close>])
-  subgoal
-    using atm atms_of_mm_penc_subset2[of N]
-    by auto
-  subgoal
-    using assms(1) .
-  subgoal
-    by (auto simp: all_struct_init_state_distinct_iff)
-  subgoal
-    by (auto simp: no_smaller_propa_def)
-  subgoal
-    by (auto simp: enc_weight_opt.cdcl_bnb_stgy_inv_def
-      conflict_is_false_with_level_def)
-  subgoal
-    apply (auto simp: additional_lit_notin_def)
-(*    sorry
-  subgoal
-    by (auto simp: reasons_in_clauses_def)
-  subgoal
-    by (auto simp: additional_lit_notin_both_def penc_def encode_clauses_def
-      additional_constraints_def additional_constraint_def)
-  subgoal
-    by (auto simp: additional_lit_notin_both_def penc_def encode_clauses_def
-      additional_constraints_def additional_constraint_def)
-  subgoal
-    by (auto simp: conflict_is_false_with_level_def)
-  done
-*)
-oops
 
 context
   fixes S :: 'st and N :: \<open>'v clauses\<close>
@@ -1660,7 +1365,7 @@ proof -
     unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
       cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
     by auto
-    have H: \<open>\<And>M K M' D L.
+  have H: \<open>\<And>M K M' D L.
         trail S = M' @ Decided K # M \<Longrightarrow>
         D + {#L#} \<in># additional_constraint A \<Longrightarrow> undefined_lit M L \<Longrightarrow> \<not> M \<Turnstile>as CNot D\<close> and
       H': \<open>\<And>M K M' D L.
@@ -1684,6 +1389,89 @@ proof -
   qed
 qed
 
+end
+
+
+definition all_new_literals :: \<open>'v list\<close> where
+  \<open>all_new_literals = (SOME xs. mset xs = mset_set (replacement_neg ` \<Delta>\<Sigma> \<union> replacement_pos ` \<Delta>\<Sigma>))\<close>
+
+
+lemma set_all_new_literals[simp]:
+  \<open>set all_new_literals = (replacement_neg ` \<Delta>\<Sigma> \<union> replacement_pos ` \<Delta>\<Sigma>)\<close>
+  using finite_\<Sigma> apply (simp add: all_new_literals_def)
+  apply (metis (mono_tags) ex_mset finite_Un finite_\<Sigma> finite_imageI finite_set_mset_mset_set set_mset_mset someI)
+  done
+definition opposite_var where
+  \<open>opposite_var L = (if L \<in> replacement_pos ` \<Delta>\<Sigma> then replacement_neg (base_atm L) else replacement_pos (base_atm L))\<close>
+
+text \<open>This function is basically resolving the clause with all the additional clauses \<^term>\<open>{#Neg (replacement_pos L), Neg (replacement_neg L)#}\<close>.\<close>
+fun resolve_with_all_new_literals :: \<open>'v clause \<Rightarrow> 'v list \<Rightarrow> 'v clause\<close> where
+  \<open>resolve_with_all_new_literals C [] = C\<close> |
+  \<open>resolve_with_all_new_literals C (L # Ls) =
+     remdups_mset (resolve_with_all_new_literals (if Pos L \<in># C then add_mset (Neg (opposite_var L)) (removeAll_mset (Pos L) C) else C) Ls)\<close>
+
+abbreviation normalize2 where
+  \<open>normalize2 C \<equiv> resolve_with_all_new_literals C all_new_literals\<close>
+
+
+lemma Neg_in_normalize2[simp]: \<open>Neg L \<in># C \<Longrightarrow> Neg L \<in># resolve_with_all_new_literals C xs\<close>
+  by (induction arbitrary: C rule: resolve_with_all_new_literals.induct) auto
+
+lemma Pos_in_normalize2D[dest]: \<open>Pos L \<in># resolve_with_all_new_literals C xs \<Longrightarrow> Pos L \<in># C\<close>
+  by (induction arbitrary: C rule: resolve_with_all_new_literals.induct) (force split: if_splits)+
+
+lemma opposite_var_involutive[simp]:
+  \<open>L \<in> (replacement_neg ` \<Delta>\<Sigma> \<union> replacement_pos ` \<Delta>\<Sigma>) \<Longrightarrow> opposite_var (opposite_var L) = L\<close>
+  by (auto simp: opposite_var_def)
+
+
+lemma opposite_var_replacement_if[simp]:
+  \<open>L \<in> (replacement_neg ` \<Delta>\<Sigma> \<union> replacement_pos ` \<Delta>\<Sigma>) \<Longrightarrow> A \<in> \<Delta>\<Sigma> \<Longrightarrow>
+   opposite_var L = replacement_pos A \<longleftrightarrow> L = replacement_neg A\<close>
+  \<open>L \<in> (replacement_neg ` \<Delta>\<Sigma> \<union> replacement_pos ` \<Delta>\<Sigma>) \<Longrightarrow> A \<in> \<Delta>\<Sigma> \<Longrightarrow>
+   opposite_var L = replacement_neg A \<longleftrightarrow> L = replacement_pos A\<close>
+  by (auto simp: opposite_var_def)
+
+lemma Neg_in_resolve_with_all_new_literals_Pos_notin:
+   \<open>L \<in> (replacement_neg ` \<Delta>\<Sigma> \<union> replacement_pos ` \<Delta>\<Sigma>) \<Longrightarrow> set xs \<subseteq> (replacement_neg ` \<Delta>\<Sigma> \<union> replacement_pos ` \<Delta>\<Sigma>) \<Longrightarrow>
+      Pos (opposite_var L) \<notin># C \<Longrightarrow> Neg L \<in># resolve_with_all_new_literals C xs \<longleftrightarrow> Neg L \<in># C\<close>
+  apply (induction arbitrary: C rule: resolve_with_all_new_literals.induct)
+  apply clarsimp+
+  subgoal premises p
+    using p(2-)
+    apply (auto simp del: Neg_in_normalize2 simp: eq_commute[of _ \<open>opposite_var _\<close>])
+    using opposite_var_replacement_if(1) apply fastforce
+    by (simp add: opposite_var_def)
+  done
+
+lemma Pos_in_normalize2_Neg_notin[simp]:
+   \<open>L \<in> (replacement_neg ` \<Delta>\<Sigma> \<union> replacement_pos ` \<Delta>\<Sigma>) \<Longrightarrow>
+      Pos (opposite_var L) \<notin># C \<Longrightarrow> Neg L \<in># normalize2 C \<longleftrightarrow> Neg L \<in># C\<close>
+   by (rule Neg_in_resolve_with_all_new_literals_Pos_notin) (auto)
+
+lemma all_negation_deleted:
+  \<open>L \<in> set all_new_literals \<Longrightarrow> Pos L \<notin># normalize2 C\<close>
+  apply (induction arbitrary: C rule: resolve_with_all_new_literals.induct)
+  subgoal by auto
+  subgoal by (auto split: if_splits)
+  done
+
+lemma Pos_in_resolve_with_all_new_literals_iff_already_in_or_negation_in:
+  \<open>L \<in> set all_new_literals \<Longrightarrow>set xs \<subseteq> (replacement_neg ` \<Delta>\<Sigma> \<union> replacement_pos ` \<Delta>\<Sigma>) \<Longrightarrow> Neg L \<in># resolve_with_all_new_literals C xs\<Longrightarrow>
+    Neg L \<in># C \<or> Pos (opposite_var L) \<in># C\<close>
+  apply (induction arbitrary: C rule: resolve_with_all_new_literals.induct)
+  subgoal by auto
+  subgoal premises p for C La Ls Ca
+    using p
+    by (auto split: if_splits dest: simp: Neg_in_resolve_with_all_new_literals_Pos_notin)
+  done
+
+lemma Pos_in_normalize2_iff_already_in_or_negation_in:
+  \<open>L \<in> set all_new_literals \<Longrightarrow>  Neg L \<in># normalize2 C \<Longrightarrow>
+    Neg L \<in># C \<or> Pos (opposite_var L) \<in># C\<close>
+  using Pos_in_resolve_with_all_new_literals_iff_already_in_or_negation_in[of L \<open>all_new_literals\<close> C]
+  by auto
+
 lemma
   assumes
     \<open>enc_weight_opt.cdcl_bnb_stgy S T\<close> and
@@ -1691,7 +1479,7 @@ lemma
     dist: \<open>distinct_mset (normalize_clause `# learned_clss S)\<close> and
     smaller_propa: \<open>no_smaller_propa S\<close> and
     smaller_confl: \<open>cdcl_bnb_stgy_inv S\<close>
-  shows \<open>distinct_mset (normalize_clause `# learned_clss T)\<close>
+  shows \<open>distinct_mset (remdups_mset (normalize2 `# learned_clss T))\<close>
   using assms(1)
 proof (cases)
   case cdcl_bnb_conflict
@@ -1751,27 +1539,9 @@ next
       have tr_D': \<open>trail S \<Turnstile>as CNot (add_mset L D')\<close>
         using D'_D tr_D
 	by (auto simp: true_annots_true_cls_def_iff_negation_in_model)
-      have \<open>normalize_lit L2 \<in> lits_of_l (trail S) \<longleftrightarrow> L2 \<in> lits_of_l (trail S)\<close>
-        if \<open>L2 \<in># D'\<close>
-	for L2
-      proof -
-        have \<open>get_level (trail S) L2 < backtrack_lvl S\<close>
-	  using multi_member_split[OF that(1)] tr_D lev_K
-	    count_decided_ge_get_level[of \<open>trail S\<close> K]
-	  by (auto simp: get_maximum_level_add_mset max_def
-	    split: if_splits)
-	moreover have \<open>-L2 \<in> lits_of_l (trail S)\<close>
-	  using tr_D that D'_D
-	  by (auto dest!: multi_member_split
-	    simp: subset_mset.le_iff_add)
-	ultimately show ?thesis
-	  using replacement_pos_neg_defined_same_lvl[OF struct _ _ smaller_propa
-	      smaller_confl]
-	    replacement_pos_neg_defined_same_lvl'[OF struct _ _ smaller_propa
-	    smaller_confl]
-	  apply (cases L2)
-	  apply (auto simp: get_level_Neg_Pos)
-	  prefer 2
+      have \<open>trail S \<Turnstile>as CNot D' \<Longrightarrow> trail S \<Turnstile>as CNot (normalize2 D')\<close>
+        if \<open>get_maximum_level (trail S) D' < backtrack_lvl S\<close>
+        for D' (*by induction on all the literals*)
 	oops
 	find_theorems get_level Pos Neg
 (*
