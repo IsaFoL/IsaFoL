@@ -3,30 +3,6 @@ imports Watched_Literals.WB_Sort Watched_Literals.Watched_Literals_Watch_List_Re
   IsaSAT_Setup IsaSAT_VMTF
 begin
 
-lemma cdcl_twl_restart_get_all_init_clss:
-  assumes \<open>cdcl_twl_restart S T\<close>
-  shows \<open>get_all_init_clss T = get_all_init_clss S\<close>
-  using assms by (induction rule: cdcl_twl_restart.induct) auto
-
-lemma rtranclp_cdcl_twl_restart_get_all_init_clss:
-  assumes \<open>cdcl_twl_restart\<^sup>*\<^sup>* S T\<close>
-  shows \<open>get_all_init_clss T = get_all_init_clss S\<close>
-  using assms by (induction rule: rtranclp_induct) (auto simp: cdcl_twl_restart_get_all_init_clss)
-
-
-text \<open>As we have a specialised version of \<^term>\<open>correct_watching\<close>, we defined a special version for
-the inclusion of the domain:\<close>
-
-definition all_init_lits :: \<open>(nat, 'v literal list \<times> bool) fmap \<Rightarrow> 'v literal multiset multiset \<Rightarrow>
-   'v literal multiset\<close> where
-  \<open>all_init_lits S NUE = all_lits_of_mm ((\<lambda>C. mset C) `# init_clss_lf S + NUE)\<close>
-
-abbreviation all_init_lits_st :: \<open>'v twl_st_wl \<Rightarrow> 'v literal multiset\<close> where
-  \<open>all_init_lits_st S \<equiv> all_init_lits (get_clauses_wl S) (get_unit_init_clss_wl S)\<close>
-
-definition all_init_atms :: \<open>_ \<Rightarrow> _ \<Rightarrow> 'v multiset\<close> where
-  \<open>all_init_atms N NUE = atm_of `# all_init_lits N NUE\<close>
-
 declare all_init_atms_def[symmetric, simp]
 
 lemma all_init_atms_alt_def:
@@ -38,9 +14,6 @@ lemma all_init_atms_alt_def:
     dest!: multi_member_split[of \<open>(_, _)\<close> \<open>ran_m N\<close>]
     dest: multi_member_split atm_of_lit_in_atms_of
     simp del: set_image_mset)
-
-abbreviation all_init_atms_st :: \<open>'v twl_st_wl \<Rightarrow> 'v multiset\<close> where
-  \<open>all_init_atms_st S \<equiv> atm_of `# all_init_lits_st S\<close>
 
 text \<open>
   This is a list of comments (how does it work for glucose and cadical) to prepare the future
@@ -919,8 +892,7 @@ proof -
       apply (rule exI[of _ V])
       apply (simp_all del: isasat_input_nempty_def isasat_input_bounded_def)
       apply (cases S; cases T)
-      apply (simp add: twl_st_heur_def twl_st_heur_restart_def del: isasat_input_nempty_def)
-      sorry
+      by (simp add: twl_st_heur_def twl_st_heur_restart_def del: isasat_input_nempty_def)
     apply normalize_goal+
     subgoal for T U V
       using literals_are_\<L>\<^sub>i\<^sub>n'_literals_are_\<L>\<^sub>i\<^sub>n_iff(3)[of T U V]
@@ -936,10 +908,10 @@ proof -
       apply (cases S; cases T)
       by (simp add: twl_st_heur_def twl_st_heur_restart_def del: isasat_input_nempty_def)
     done
-  show \<open>mark_to_delete_clauses_wl_D_pre T \<Longrightarrow> ?B\<close>
+  show \<open>mark_to_delete_clauses_wl_pre T \<Longrightarrow> ?B\<close>
     supply [[goals_limit=1]]
     unfolding mark_to_delete_clauses_wl_D_heur_pre_def mark_to_delete_clauses_wl_pre_def
-      mark_to_delete_clauses_l_pre_def mark_to_delete_clauses_wl_D_pre_def
+      mark_to_delete_clauses_l_pre_def mark_to_delete_clauses_wl_pre_def
     apply normalize_goal+
     apply (rule iffI)
     subgoal for U V
@@ -984,9 +956,10 @@ proof -
 qed
 
 definition mark_garbage_heur :: \<open>nat \<Rightarrow> nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur\<close> where
-  \<open>mark_garbage_heur C i = (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema, ccount,
+  \<open>mark_garbage_heur C i = (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, (fast_ema, slow_ema, ccount),
        vdom, avdom, lcount, opts, old_arena).
-    (M', extra_information_mark_to_delete N' C, D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema, ccount,
+    (M', extra_information_mark_to_delete N' C, D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats,
+      (fast_ema, slow_ema, ccount),
        vdom, delete_index_and_swap avdom i, lcount - 1, opts, old_arena))\<close>
 
 lemma get_vdom_mark_garbage[simp]:
@@ -1033,9 +1006,9 @@ lemma mark_garbage_heur_wl_ana:
 
 definition mark_unused_st_heur :: \<open>nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur\<close> where
   \<open>mark_unused_st_heur C = (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl,
-      stats, fast_ema, slow_ema, ccount, vdom, avdom, lcount, opts).
+      stats, heur, vdom, avdom, lcount, opts).
     (M', arena_decr_act (mark_unused N' C) C, D', j, W', vm, \<phi>, clvls, cach,
-      lbd, outl, stats, fast_ema, slow_ema, ccount,
+      lbd, outl, stats, heur,
       vdom, avdom, lcount, opts))\<close>
 
 lemma mark_unused_st_heur_simp[simp]:
@@ -1138,8 +1111,7 @@ definition access_vdom_at :: \<open>twl_st_wl_heur \<Rightarrow> nat \<Rightarro
   \<open>access_vdom_at S i = get_avdom S ! i\<close>
 
 lemma access_vdom_at_alt_def:
-  \<open>access_vdom_at = (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema,
-     ccount, vdom, avdom, lcount) i. avdom ! i)\<close>
+  \<open>access_vdom_at = (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, heur, vdom, avdom, lcount) i. avdom ! i)\<close>
   by (intro ext) (auto simp: access_vdom_at_def)
 
 definition access_vdom_at_pre where
@@ -1151,10 +1123,8 @@ definition (in -) MINIMUM_DELETION_LBD :: nat where
   \<open>MINIMUM_DELETION_LBD = 3\<close>
 
 definition delete_index_vdom_heur :: \<open>nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur\<close>where
-  \<open>delete_index_vdom_heur = (\<lambda>i (M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema,
-     ccount, vdom, avdom, lcount).
-     (M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema,
-       ccount, vdom, delete_index_and_swap avdom i, lcount))\<close>
+  \<open>delete_index_vdom_heur = (\<lambda>i (M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, heur, vdom, avdom, lcount).
+     (M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, heur, vdom, delete_index_and_swap avdom i, lcount))\<close>
 
 lemma in_set_delete_index_and_swapD:
   \<open>x \<in> set (delete_index_and_swap xs i) \<Longrightarrow> x \<in> set xs\<close>
@@ -1314,7 +1284,7 @@ lemma \<L>\<^sub>a\<^sub>l\<^sub>l_mono:
   by (auto simp: \<L>\<^sub>a\<^sub>l\<^sub>l_def)
 
 lemma \<L>\<^sub>a\<^sub>l\<^sub>l_init_all:
-  \<open>L  \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_init_atms_st x1a) \<Longrightarrow> L  \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st x1a)\<close>
+  \<open>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_init_atms_st x1a) \<Longrightarrow> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st x1a)\<close>
   apply (rule \<L>\<^sub>a\<^sub>l\<^sub>l_mono)
   defer
   apply assumption

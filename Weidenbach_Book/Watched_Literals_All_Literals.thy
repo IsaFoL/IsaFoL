@@ -83,7 +83,7 @@ text \<open>We start in a context where we have an initial set of atoms. We late
   include a bound on the largest atom (in order to generate more efficient code).
 \<close>
 context
-  fixes \<A>\<^sub>i\<^sub>n :: \<open>nat multiset\<close>
+  fixes \<A>\<^sub>i\<^sub>n :: \<open>'v multiset\<close>
 begin
 
 text \<open>This is the \<^emph>\<open>completion\<close> of \<^term>\<open>\<A>\<^sub>i\<^sub>n\<close>, containing the positive and the negation of every
@@ -93,10 +93,10 @@ definition \<L>\<^sub>a\<^sub>l\<^sub>l where \<open>\<L>\<^sub>a\<^sub>l\<^sub>
 lemma atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n: \<open>atms_of \<L>\<^sub>a\<^sub>l\<^sub>l = set_mset \<A>\<^sub>i\<^sub>n\<close>
   unfolding \<L>\<^sub>a\<^sub>l\<^sub>l_def by (auto simp: atms_of_def image_Un image_image)
 
-definition is_\<L>\<^sub>a\<^sub>l\<^sub>l :: \<open>nat literal multiset \<Rightarrow> bool\<close> where
+definition is_\<L>\<^sub>a\<^sub>l\<^sub>l :: \<open>'v literal multiset \<Rightarrow> bool\<close> where
   \<open>is_\<L>\<^sub>a\<^sub>l\<^sub>l S \<longleftrightarrow> set_mset \<L>\<^sub>a\<^sub>l\<^sub>l = set_mset S\<close>
 
-definition literals_are_in_\<L>\<^sub>i\<^sub>n :: \<open>nat clause \<Rightarrow> bool\<close> where
+definition literals_are_in_\<L>\<^sub>i\<^sub>n :: \<open>'v clause \<Rightarrow> bool\<close> where
   \<open>literals_are_in_\<L>\<^sub>i\<^sub>n C \<longleftrightarrow> set_mset (all_lits_of_m C) \<subseteq> set_mset \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
 
 lemma literals_are_in_\<L>\<^sub>i\<^sub>n_empty[simp]: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n {#}\<close>
@@ -138,7 +138,7 @@ lemma literals_are_in_\<L>\<^sub>i\<^sub>n_remdups[simp]:
 lemma uminus_\<A>\<^sub>i\<^sub>n_iff: \<open>- L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<longleftrightarrow> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
   by (simp add: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff)
 
-definition literals_are_in_\<L>\<^sub>i\<^sub>n_mm :: \<open>nat clauses \<Rightarrow> bool\<close> where
+definition literals_are_in_\<L>\<^sub>i\<^sub>n_mm :: \<open>'v clauses \<Rightarrow> bool\<close> where
   \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm C \<longleftrightarrow> set_mset (all_lits_of_mm C) \<subseteq> set_mset \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
 
 lemma literals_are_in_\<L>\<^sub>i\<^sub>n_mm_add_msetD:
@@ -153,7 +153,7 @@ lemma literals_are_in_\<L>\<^sub>i\<^sub>n_mm_add_mset:
   unfolding literals_are_in_\<L>\<^sub>i\<^sub>n_mm_def  literals_are_in_\<L>\<^sub>i\<^sub>n_def
   by (auto simp: all_lits_of_mm_add_mset)
 
-definition literals_are_in_\<L>\<^sub>i\<^sub>n_trail :: \<open>(nat, 'mark) ann_lits \<Rightarrow> bool\<close> where
+definition literals_are_in_\<L>\<^sub>i\<^sub>n_trail :: \<open>('v, 'mark) ann_lits \<Rightarrow> bool\<close> where
   \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail M \<longleftrightarrow> set_mset (lit_of `# mset M) \<subseteq> set_mset \<L>\<^sub>a\<^sub>l\<^sub>l\<close>
 
 lemma literals_are_in_\<L>\<^sub>i\<^sub>n_trail_in_lits_of_l:
@@ -304,9 +304,15 @@ lemma atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_cong:
   unfolding \<L>\<^sub>a\<^sub>l\<^sub>l_def
   by auto
 
+lemma is_\<L>\<^sub>a\<^sub>l\<^sub>l_cong:
+  \<open>set_mset \<A> = set_mset \<B> \<Longrightarrow> is_\<L>\<^sub>a\<^sub>l\<^sub>l \<A> =  is_\<L>\<^sub>a\<^sub>l\<^sub>l \<B>\<close>
+  unfolding \<L>\<^sub>a\<^sub>l\<^sub>l_def is_\<L>\<^sub>a\<^sub>l\<^sub>l_def
+  by auto
+
 
 text \<open>The definition is here to be shared later.\<close>
 definition get_propagation_reason :: \<open>('v, 'mark) ann_lits \<Rightarrow> 'v literal \<Rightarrow> 'mark option nres\<close> where
   \<open>get_propagation_reason M L = SPEC(\<lambda>C. C \<noteq> None \<longrightarrow> Propagated L (the C) \<in> set M)\<close>
+
 
 end
