@@ -1350,12 +1350,12 @@ lemma mark_to_delete_clauses_wl_D_heur_mark_to_delete_clauses_wl_D:
      twl_st_heur_restart_ana r \<rightarrow>\<^sub>f \<langle>twl_st_heur_restart_ana r\<rangle>nres_rel\<close>
 proof -
   have mark_to_delete_clauses_wl_D_alt_def:
-    \<open>mark_to_delete_clauses_wl_D  = (\<lambda>S0. do {
-      ASSERT(mark_to_delete_clauses_wl_D_pre S0);
+    \<open>mark_to_delete_clauses_wl  = (\<lambda>S0. do {
+      ASSERT(mark_to_delete_clauses_wl_pre S0);
       S \<leftarrow> reorder_vdom_wl S0;
       xs \<leftarrow> collect_valid_indices_wl S;
       l \<leftarrow> SPEC(\<lambda>_::nat. True);
-      (_, S, _) \<leftarrow> WHILE\<^sub>T\<^bsup>mark_to_delete_clauses_wl_D_inv S xs\<^esup>
+      (_, S, _) \<leftarrow> WHILE\<^sub>T\<^bsup>mark_to_delete_clauses_wl_inv S xs\<^esup>
         (\<lambda>(i, T, xs). i < length xs)
         (\<lambda>(i, T, xs). do {
           if(xs!i \<notin># dom_m (get_clauses_wl T)) then RETURN (i, T, delete_index_and_swap xs i)
@@ -1376,7 +1376,7 @@ proof -
         (l, S, xs);
       RETURN S
     })\<close>
-    unfolding mark_to_delete_clauses_wl_D_def reorder_vdom_wl_def
+    unfolding mark_to_delete_clauses_wl_def reorder_vdom_wl_def
     by (auto intro!: ext)
   have mono: \<open>g = g' \<Longrightarrow> do {f; g} = do {f; g'}\<close>
      \<open>(\<And>x. h x = h' x) \<Longrightarrow> do {x \<leftarrow> f; h x} = do {x \<leftarrow> f; h' x}\<close> for f f' :: \<open>_ nres\<close> and g g' and h h'
@@ -1897,11 +1897,11 @@ lemma isasat_replace_annot_in_trail_replace_annot_in_trail_spec:
   done
 
 definition mark_garbage_heur2 :: \<open>nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
-  \<open>mark_garbage_heur2 C = (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema, ccount,
+  \<open>mark_garbage_heur2 C = (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, heur,
        vdom, avdom, lcount, opts). do{
     let st = arena_status N' C = IRRED;
     ASSERT(\<not>st \<longrightarrow> lcount \<ge> 1);
-    RETURN (M', extra_information_mark_to_delete N' C, D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema, ccount,
+    RETURN (M', extra_information_mark_to_delete N' C, D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, heur,
        vdom, avdom, if st then lcount else lcount - 1, opts) })\<close>
 
 definition remove_one_annot_true_clause_one_imp_wl_D_heur
