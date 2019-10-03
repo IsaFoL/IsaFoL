@@ -790,6 +790,10 @@ proof -
       by (auto simp: state_wl_l_def correct_watching_fmdrop mark_garbage_wl_def
           mark_garbage_l_def
         split: prod.splits)
+    subgoal
+      by (auto simp: state_wl_l_def correct_watching_fmdrop mark_garbage_wl_def
+          mark_garbage_l_def
+        split: prod.splits)
     subgoal by (auto simp: state_wl_l_def)
     subgoal by auto
     done
