@@ -76,6 +76,177 @@ definition literals_are_\<L>\<^sub>i\<^sub>n' :: \<open>'v twl_st_wl \<Rightarro
       set_mset (all_lits_of_mm (mset `# init_clss_lf (get_clauses_wl S) + get_unit_init_clss_wl S)) \<and>
      blits_in_\<L>\<^sub>i\<^sub>n' S\<close>
 
+abbreviation all_init_atms_st :: \<open>'v twl_st_wl \<Rightarrow> 'v multiset\<close> where
+  \<open>all_init_atms_st S \<equiv> all_init_atms (get_clauses_wl S) (get_unit_init_clss_wl S)\<close>
+
+lemma \<L>\<^sub>a\<^sub>l\<^sub>l_all_init_atms:
+  \<open>set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l (all_init_atms N NU)) = set_mset (all_init_lits N NU)\<close>
+  \<open>set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l (all_init_atms_st S)) = set_mset (all_init_lits_st S)\<close>
+  by (simp_all add: \<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_all_lits_of_mm all_init_atms_def all_init_lits_def)
+
+lemma literals_are_\<L>\<^sub>i\<^sub>n_cong:
+  \<open>set_mset \<A> = set_mset \<B> \<Longrightarrow> literals_are_\<L>\<^sub>i\<^sub>n \<A> S = literals_are_\<L>\<^sub>i\<^sub>n \<B> S\<close>
+  using \<L>\<^sub>a\<^sub>l\<^sub>l_cong[of \<A> \<B>]
+  unfolding literals_are_\<L>\<^sub>i\<^sub>n_def blits_in_\<L>\<^sub>i\<^sub>n_def is_\<L>\<^sub>a\<^sub>l\<^sub>l_def
+  by auto
+
+lemma literals_are_\<L>\<^sub>i\<^sub>n'_literals_are_\<L>\<^sub>i\<^sub>n_iff:
+  assumes
+    Sx: \<open>(S, x) \<in> state_wl_l None\<close> and
+    x_xa: \<open>(x, xa) \<in> twl_st_l None\<close> and
+    struct_invs: \<open>twl_struct_invs xa\<close>
+  shows
+    \<open>literals_are_\<L>\<^sub>i\<^sub>n' S \<longleftrightarrow> literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st S) S\<close> (is ?A)
+    \<open>literals_are_\<L>\<^sub>i\<^sub>n' S \<longleftrightarrow> literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st S) S\<close> (is ?B)
+    \<open>set_mset (all_init_atms_st S) = set_mset (all_atms_st S)\<close> (is ?C)
+proof -
+  have \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of xa)\<close>
+    using struct_invs unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+    by fast+
+  then have \<open>\<And>L. L \<in> atm_of ` lits_of_l (get_trail_wl S) \<Longrightarrow> L \<in> atms_of_ms
+      ((\<lambda>x. mset (fst x)) ` {a. a \<in># ran_m (get_clauses_wl S) \<and> snd a}) \<union>
+      atms_of_mm (get_unit_init_clss_wl S)\<close> and
+    alien_learned: \<open>atms_of_mm (learned_clss (state\<^sub>W_of xa))
+      \<subseteq> atms_of_mm (init_clss (state\<^sub>W_of xa))\<close>
+    using Sx x_xa unfolding cdcl\<^sub>W_restart_mset.no_strange_atm_def
+    by (auto simp add: twl_st twl_st_l twl_st_wl)
+  have all_init_lits_alt_def: \<open>all_lits_of_mm
+       ({#mset (fst C). C \<in># init_clss_l (get_clauses_wl S)#} +
+        get_unit_init_clss_wl S) = all_init_lits_st S\<close>
+    by (auto simp: all_init_lits_def)
+
+  have H: \<open>set_mset
+     (all_lits_of_mm
+       ({#mset (fst C). C \<in># init_clss_l (get_clauses_wl S)#} +
+        get_unit_init_clss_wl S)) = set_mset
+     (all_lits_of_mm
+       ({#mset (fst C). C \<in># ran_m (get_clauses_wl S)#} +
+        get_unit_clauses_wl S))\<close>
+    apply (subst (2) all_clss_l_ran_m[symmetric])
+    using alien_learned Sx x_xa
+    unfolding image_mset_union all_lits_of_mm_union
+    by (auto simp: in_all_lits_of_mm_ain_atms_of_iff get_unit_clauses_wl_alt_def
+      twl_st twl_st_l twl_st_wl get_learned_clss_wl_def)
+  show A: \<open>literals_are_\<L>\<^sub>i\<^sub>n' S \<longleftrightarrow> literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st S) S\<close> for \<A>
+  proof -
+    have sub: \<open>set_mset
+      (all_lits_of_mm
+        (mset `# learned_clss_lf (get_clauses_wl S) +
+         get_unit_learned_clss_wl S))
+     \<subseteq> set_mset (all_init_lits_st S) \<longleftrightarrow>
+     is_\<L>\<^sub>a\<^sub>l\<^sub>l (all_init_atms_st S) (all_lits_st S)\<close>
+     unfolding is_\<L>\<^sub>a\<^sub>l\<^sub>l_def all_lits_def all_lits_def
+     apply (subst (2) all_clss_l_ran_m[symmetric])
+     unfolding image_mset_union get_unit_clauses_wl_alt_def  \<L>\<^sub>a\<^sub>l\<^sub>l_all_init_atms
+     by (auto simp: all_lits_of_mm_union all_init_lits_def)
+
+    have 1: \<open>set_mset (all_init_lits_st S) = set_mset (all_lits_st S)\<close>
+      by (metis H all_init_lits_alt_def all_lits_def)
+    then show ?thesis
+      unfolding literals_are_\<L>\<^sub>i\<^sub>n'_def
+	literals_are_\<L>\<^sub>i\<^sub>n_def blits_in_\<L>\<^sub>i\<^sub>n_def blits_in_\<L>\<^sub>i\<^sub>n'_def sub
+	all_init_lits_def[symmetric] all_lits_def[symmetric]
+        is_\<L>\<^sub>a\<^sub>l\<^sub>l_def[symmetric] all_init_atms_def[symmetric]
+      by (simp add: \<L>\<^sub>a\<^sub>l\<^sub>l_all_atms_all_lits \<L>\<^sub>a\<^sub>l\<^sub>l_all_init_atms(2) is_\<L>\<^sub>a\<^sub>l\<^sub>l_def)
+   qed
+
+  show C: ?C
+    unfolding cdcl\<^sub>W_restart_mset.no_strange_atm_def literals_are_\<L>\<^sub>i\<^sub>n'_def
+      literals_are_\<L>\<^sub>i\<^sub>n_def blits_in_\<L>\<^sub>i\<^sub>n_def blits_in_\<L>\<^sub>i\<^sub>n'_def all_atms_def all_init_atms_def
+      all_init_lits_def all_lits_def all_init_lits_alt_def
+    by (auto simp: H)
+
+  show ?B
+    apply (subst A)
+    ..
+qed
+
+
+lemma GC_remap_all_init_atmsD:
+  \<open>GC_remap (N, x, m) (N', x', m') \<Longrightarrow> all_init_atms N NE + all_init_atms m NE  = all_init_atms N' NE  + all_init_atms m' NE\<close>
+  by (induction rule: GC_remap.induct[split_format(complete)])
+    (auto simp: all_init_atms_def all_init_lits_def init_clss_l_fmdrop_if
+       init_clss_l_fmupd_if image_mset_remove1_mset_if
+    simp del: all_init_atms_def[symmetric]
+    simp flip: image_mset_union all_lits_of_mm_add_mset all_lits_of_mm_union)
+
+lemma rtranclp_GC_remap_all_init_atmsD:
+  \<open>GC_remap\<^sup>*\<^sup>* (N, x, m) (N', x', m') \<Longrightarrow> all_init_atms N NE + all_init_atms m NE  = all_init_atms N' NE  + all_init_atms m' NE\<close>
+  by (induction rule: rtranclp_induct[of r \<open>(_, _, _)\<close> \<open>(_, _, _)\<close>, split_format(complete), of for r])
+    (auto dest: GC_remap_all_init_atmsD)
+
+lemma rtranclp_GC_remap_all_init_atms:
+  \<open>GC_remap\<^sup>*\<^sup>* (x1a, Map.empty, fmempty) (fmempty, m, x1ad) \<Longrightarrow> all_init_atms x1ad NE = all_init_atms x1a NE\<close>
+  by (auto dest!: rtranclp_GC_remap_all_init_atmsD[of _ _ _ _ _ _ NE])
+
+lemma GC_remap_all_init_lits:
+  \<open>GC_remap (N, m, new) (N', m', new') \<Longrightarrow> all_init_lits N NE + all_init_lits new NE = all_init_lits N' NE + all_init_lits new' NE\<close>
+  by (induction rule: GC_remap.induct[split_format(complete)])
+    (case_tac \<open>irred N C\<close> ; auto simp: all_init_lits_def init_clss_l_fmupd_if image_mset_remove1_mset_if
+    simp flip: all_lits_of_mm_union)
+
+lemma rtranclp_GC_remap_all_init_lits:
+  \<open>GC_remap\<^sup>*\<^sup>* (N, m, new) (N', m', new') \<Longrightarrow> all_init_lits N NE + all_init_lits new NE = all_init_lits N' NE + all_init_lits new' NE\<close>
+  by (induction rule: rtranclp_induct[of r \<open>(_, _, _)\<close> \<open>(_, _, _)\<close>, split_format(complete), of for r])
+    (auto dest: GC_remap_all_init_lits)
+
+lemma cdcl_twl_restart_is_\<L>\<^sub>a\<^sub>l\<^sub>l:
+  assumes
+    ST: \<open>cdcl_twl_restart\<^sup>*\<^sup>* S T\<close> and
+    struct_invs_S: \<open>twl_struct_invs S\<close> and
+    L: \<open>is_\<L>\<^sub>a\<^sub>l\<^sub>l \<A> (all_lits_of_mm (clauses (get_clauses S) + unit_clss S))\<close>
+  shows  \<open>is_\<L>\<^sub>a\<^sub>l\<^sub>l \<A> (all_lits_of_mm (clauses (get_clauses T) + unit_clss T))\<close>
+proof -
+  have \<open>twl_struct_invs T\<close>
+    using rtranclp_cdcl_twl_restart_twl_struct_invs[OF ST struct_invs_S] .
+  then have \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of T)\<close>
+    unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+    by fast+
+  then have \<open>?thesis \<longleftrightarrow> is_\<L>\<^sub>a\<^sub>l\<^sub>l \<A> (all_lits_of_mm (get_all_init_clss T))\<close>
+    unfolding cdcl\<^sub>W_restart_mset.no_strange_atm_def is_\<L>\<^sub>a\<^sub>l\<^sub>l_alt_def
+    by (cases T)
+      (auto simp: cdcl\<^sub>W_restart_mset_state)
+  moreover have \<open>get_all_init_clss T = get_all_init_clss S\<close>
+    using rtranclp_cdcl_twl_restart_get_all_init_clss[OF ST] .
+  moreover {
+    have \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of S)\<close>
+      using struct_invs_S
+      unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+      by fast+
+    then have \<open>is_\<L>\<^sub>a\<^sub>l\<^sub>l \<A> (all_lits_of_mm (get_all_init_clss S))\<close>
+      using L
+      unfolding cdcl\<^sub>W_restart_mset.no_strange_atm_def is_\<L>\<^sub>a\<^sub>l\<^sub>l_alt_def
+      by (cases S)
+        (auto simp: cdcl\<^sub>W_restart_mset_state)
+  }
+  ultimately show ?thesis
+    by argo
+qed
+
+
+lemma cdcl_twl_restart_is_\<L>\<^sub>a\<^sub>l\<^sub>l':
+  assumes
+    ST: \<open>cdcl_twl_restart\<^sup>*\<^sup>* S T\<close> and
+    struct_invs_S: \<open>twl_struct_invs S\<close> and
+    L: \<open>is_\<L>\<^sub>a\<^sub>l\<^sub>l \<A> (all_lits_of_mm (get_all_init_clss S))\<close>
+  shows  \<open>is_\<L>\<^sub>a\<^sub>l\<^sub>l \<A> (all_lits_of_mm (get_all_init_clss T))\<close>
+proof -
+  have \<open>twl_struct_invs T\<close>
+    using rtranclp_cdcl_twl_restart_twl_struct_invs[OF ST struct_invs_S] .
+  then have \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of T)\<close>
+    unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+    by fast+
+  then have \<open>?thesis \<longleftrightarrow> is_\<L>\<^sub>a\<^sub>l\<^sub>l \<A> (all_lits_of_mm (get_all_init_clss T))\<close>
+    unfolding cdcl\<^sub>W_restart_mset.no_strange_atm_def is_\<L>\<^sub>a\<^sub>l\<^sub>l_alt_def
+    by (cases T)
+      (auto simp: cdcl\<^sub>W_restart_mset_state)
+  moreover have \<open>get_all_init_clss T = get_all_init_clss S\<close>
+    using rtranclp_cdcl_twl_restart_get_all_init_clss[OF ST] .
+  then show ?thesis
+    using L
+    by argo
+qed
+
 definition remove_all_annot_true_clause_imp_wl_inv
   :: \<open>'v twl_st_wl \<Rightarrow> _ \<Rightarrow> nat \<times> 'v twl_st_wl \<Rightarrow> bool\<close>
 where
@@ -409,7 +580,7 @@ proof -
     done
 
   have \<open>(N \<propto> C, irred N C) \<in># (learned_clss_l N)\<close>
-    using assms by (auto simp: ran_m_def dest!: multi_member_split) (metis prod.collapse) 
+    using assms by (auto simp: ran_m_def dest!: multi_member_split) (metis prod.collapse)
   from multi_member_split[OF this] show \<open>literals_are_\<L>\<^sub>i\<^sub>n' (M, fmdrop C N, D, NE, add_mset (mset (N \<propto> C)) UE, Q, W)\<close>
     using distinct_mset_dom[of N]
     using assms by (fastforce simp: blits_in_\<L>\<^sub>i\<^sub>n'_def image_mset_remove1_mset_if all_lits_of_mm_add_mset
@@ -545,7 +716,7 @@ where
      \<exists>S' T'. (S, S') \<in> state_wl_l None \<and> (T, T') \<in> state_wl_l None \<and>
       mark_to_delete_clauses_l_inv S' xs0 (i, T', xs) \<and>
       correct_watching' S\<and> literals_are_\<L>\<^sub>i\<^sub>n' S \<and> literals_are_\<L>\<^sub>i\<^sub>n' T)\<close>
-
+thm TrueIm
 definition mark_to_delete_clauses_wl_pre :: \<open>'v twl_st_wl \<Rightarrow> bool\<close>
 where
   \<open>mark_to_delete_clauses_wl_pre S \<longleftrightarrow>
@@ -565,6 +736,7 @@ definition mark_to_delete_clauses_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl
         if(xs!i \<notin># dom_m (get_clauses_wl T)) then RETURN (i, T, delete_index_and_swap xs i)
         else do {
           ASSERT(0 < length (get_clauses_wl T\<propto>(xs!i)));
+	  ASSERT (get_clauses_wl T \<propto> (xs ! i) ! 0 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_init_atms_st T));
           can_del \<leftarrow> SPEC(\<lambda>b. b \<longrightarrow>
              (Propagated (get_clauses_wl T\<propto>(xs!i)!0) (xs!i) \<notin> set (get_trail_wl T)) \<and>
               \<not>irred (get_clauses_wl T) (xs!i) \<and> length (get_clauses_wl T \<propto> (xs!i)) \<noteq> 2);
@@ -1507,175 +1679,5 @@ theorem cdcl_twl_stgy_restart_prog_bounded_wl_spec:
 
 end
 
-abbreviation all_init_atms_st :: \<open>'v twl_st_wl \<Rightarrow> 'v multiset\<close> where
-  \<open>all_init_atms_st S \<equiv> all_init_atms (get_clauses_wl S) (get_unit_init_clss_wl S)\<close>
-
-lemma \<L>\<^sub>a\<^sub>l\<^sub>l_all_init_atms:
-  \<open>set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l (all_init_atms N NU)) = set_mset (all_init_lits N NU)\<close>
-  \<open>set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l (all_init_atms_st S)) = set_mset (all_init_lits_st S)\<close>
-  by (simp_all add: \<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_all_lits_of_mm all_init_atms_def all_init_lits_def)
-
-lemma literals_are_\<L>\<^sub>i\<^sub>n_cong:
-  \<open>set_mset \<A> = set_mset \<B> \<Longrightarrow> literals_are_\<L>\<^sub>i\<^sub>n \<A> S = literals_are_\<L>\<^sub>i\<^sub>n \<B> S\<close>
-  using \<L>\<^sub>a\<^sub>l\<^sub>l_cong[of \<A> \<B>]
-  unfolding literals_are_\<L>\<^sub>i\<^sub>n_def blits_in_\<L>\<^sub>i\<^sub>n_def is_\<L>\<^sub>a\<^sub>l\<^sub>l_def
-  by auto
-
-lemma literals_are_\<L>\<^sub>i\<^sub>n'_literals_are_\<L>\<^sub>i\<^sub>n_iff:
-  assumes
-    Sx: \<open>(S, x) \<in> state_wl_l None\<close> and
-    x_xa: \<open>(x, xa) \<in> twl_st_l None\<close> and
-    struct_invs: \<open>twl_struct_invs xa\<close>
-  shows
-    \<open>literals_are_\<L>\<^sub>i\<^sub>n' S \<longleftrightarrow> literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st S) S\<close> (is ?A)
-    \<open>literals_are_\<L>\<^sub>i\<^sub>n' S \<longleftrightarrow> literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st S) S\<close> (is ?B)
-    \<open>set_mset (all_init_atms_st S) = set_mset (all_atms_st S)\<close> (is ?C)
-proof -
-  have \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of xa)\<close>
-    using struct_invs unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-    by fast+
-  then have \<open>\<And>L. L \<in> atm_of ` lits_of_l (get_trail_wl S) \<Longrightarrow> L \<in> atms_of_ms
-      ((\<lambda>x. mset (fst x)) ` {a. a \<in># ran_m (get_clauses_wl S) \<and> snd a}) \<union>
-      atms_of_mm (get_unit_init_clss_wl S)\<close> and
-    alien_learned: \<open>atms_of_mm (learned_clss (state\<^sub>W_of xa))
-      \<subseteq> atms_of_mm (init_clss (state\<^sub>W_of xa))\<close>
-    using Sx x_xa unfolding cdcl\<^sub>W_restart_mset.no_strange_atm_def
-    by (auto simp add: twl_st twl_st_l twl_st_wl)
-  have all_init_lits_alt_def: \<open>all_lits_of_mm
-       ({#mset (fst C). C \<in># init_clss_l (get_clauses_wl S)#} +
-        get_unit_init_clss_wl S) = all_init_lits_st S\<close>
-    by (auto simp: all_init_lits_def)
-
-  have H: \<open>set_mset
-     (all_lits_of_mm
-       ({#mset (fst C). C \<in># init_clss_l (get_clauses_wl S)#} +
-        get_unit_init_clss_wl S)) = set_mset
-     (all_lits_of_mm
-       ({#mset (fst C). C \<in># ran_m (get_clauses_wl S)#} +
-        get_unit_clauses_wl S))\<close>
-    apply (subst (2) all_clss_l_ran_m[symmetric])
-    using alien_learned Sx x_xa
-    unfolding image_mset_union all_lits_of_mm_union
-    by (auto simp: in_all_lits_of_mm_ain_atms_of_iff get_unit_clauses_wl_alt_def
-      twl_st twl_st_l twl_st_wl get_learned_clss_wl_def)
-  show A: \<open>literals_are_\<L>\<^sub>i\<^sub>n' S \<longleftrightarrow> literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st S) S\<close> for \<A>
-  proof -
-    have sub: \<open>set_mset
-      (all_lits_of_mm
-        (mset `# learned_clss_lf (get_clauses_wl S) +
-         get_unit_learned_clss_wl S))
-     \<subseteq> set_mset (all_init_lits_st S) \<longleftrightarrow>
-     is_\<L>\<^sub>a\<^sub>l\<^sub>l (all_init_atms_st S) (all_lits_st S)\<close>
-     unfolding is_\<L>\<^sub>a\<^sub>l\<^sub>l_def all_lits_def all_lits_def
-     apply (subst (2) all_clss_l_ran_m[symmetric])
-     unfolding image_mset_union get_unit_clauses_wl_alt_def  \<L>\<^sub>a\<^sub>l\<^sub>l_all_init_atms
-     by (auto simp: all_lits_of_mm_union all_init_lits_def)
-
-    have 1: \<open>set_mset (all_init_lits_st S) = set_mset (all_lits_st S)\<close>
-      by (metis H all_init_lits_alt_def all_lits_def)
-    then show ?thesis
-      unfolding literals_are_\<L>\<^sub>i\<^sub>n'_def
-	literals_are_\<L>\<^sub>i\<^sub>n_def blits_in_\<L>\<^sub>i\<^sub>n_def blits_in_\<L>\<^sub>i\<^sub>n'_def sub
-	all_init_lits_def[symmetric] all_lits_def[symmetric]
-        is_\<L>\<^sub>a\<^sub>l\<^sub>l_def[symmetric] all_init_atms_def[symmetric]
-      by (simp add: \<L>\<^sub>a\<^sub>l\<^sub>l_all_atms_all_lits \<L>\<^sub>a\<^sub>l\<^sub>l_all_init_atms(2) is_\<L>\<^sub>a\<^sub>l\<^sub>l_def)
-   qed
-
-  show C: ?C
-    unfolding cdcl\<^sub>W_restart_mset.no_strange_atm_def literals_are_\<L>\<^sub>i\<^sub>n'_def
-      literals_are_\<L>\<^sub>i\<^sub>n_def blits_in_\<L>\<^sub>i\<^sub>n_def blits_in_\<L>\<^sub>i\<^sub>n'_def all_atms_def all_init_atms_def
-      all_init_lits_def all_lits_def all_init_lits_alt_def
-    by (auto simp: H)
-
-  show ?B
-    apply (subst A)
-    ..
-qed
-
-
-lemma GC_remap_all_init_atmsD:
-  \<open>GC_remap (N, x, m) (N', x', m') \<Longrightarrow> all_init_atms N NE + all_init_atms m NE  = all_init_atms N' NE  + all_init_atms m' NE\<close>
-  by (induction rule: GC_remap.induct[split_format(complete)])
-    (auto simp: all_init_atms_def all_init_lits_def init_clss_l_fmdrop_if
-       init_clss_l_fmupd_if image_mset_remove1_mset_if
-    simp del: all_init_atms_def[symmetric]
-    simp flip: image_mset_union all_lits_of_mm_add_mset all_lits_of_mm_union)
-
-lemma rtranclp_GC_remap_all_init_atmsD:
-  \<open>GC_remap\<^sup>*\<^sup>* (N, x, m) (N', x', m') \<Longrightarrow> all_init_atms N NE + all_init_atms m NE  = all_init_atms N' NE  + all_init_atms m' NE\<close>
-  by (induction rule: rtranclp_induct[of r \<open>(_, _, _)\<close> \<open>(_, _, _)\<close>, split_format(complete), of for r])
-    (auto dest: GC_remap_all_init_atmsD)
-
-lemma rtranclp_GC_remap_all_init_atms:
-  \<open>GC_remap\<^sup>*\<^sup>* (x1a, Map.empty, fmempty) (fmempty, m, x1ad) \<Longrightarrow> all_init_atms x1ad NE = all_init_atms x1a NE\<close>
-  by (auto dest!: rtranclp_GC_remap_all_init_atmsD[of _ _ _ _ _ _ NE])
-
-lemma GC_remap_all_init_lits:
-  \<open>GC_remap (N, m, new) (N', m', new') \<Longrightarrow> all_init_lits N NE + all_init_lits new NE = all_init_lits N' NE + all_init_lits new' NE\<close>
-  by (induction rule: GC_remap.induct[split_format(complete)])
-    (case_tac \<open>irred N C\<close> ; auto simp: all_init_lits_def init_clss_l_fmupd_if image_mset_remove1_mset_if
-    simp flip: all_lits_of_mm_union)
-
-lemma rtranclp_GC_remap_all_init_lits:
-  \<open>GC_remap\<^sup>*\<^sup>* (N, m, new) (N', m', new') \<Longrightarrow> all_init_lits N NE + all_init_lits new NE = all_init_lits N' NE + all_init_lits new' NE\<close>
-  by (induction rule: rtranclp_induct[of r \<open>(_, _, _)\<close> \<open>(_, _, _)\<close>, split_format(complete), of for r])
-    (auto dest: GC_remap_all_init_lits)
-
-lemma cdcl_twl_restart_is_\<L>\<^sub>a\<^sub>l\<^sub>l:
-  assumes
-    ST: \<open>cdcl_twl_restart\<^sup>*\<^sup>* S T\<close> and
-    struct_invs_S: \<open>twl_struct_invs S\<close> and
-    L: \<open>is_\<L>\<^sub>a\<^sub>l\<^sub>l \<A> (all_lits_of_mm (clauses (get_clauses S) + unit_clss S))\<close>
-  shows  \<open>is_\<L>\<^sub>a\<^sub>l\<^sub>l \<A> (all_lits_of_mm (clauses (get_clauses T) + unit_clss T))\<close>
-proof -
-  have \<open>twl_struct_invs T\<close>
-    using rtranclp_cdcl_twl_restart_twl_struct_invs[OF ST struct_invs_S] .
-  then have \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of T)\<close>
-    unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-    by fast+
-  then have \<open>?thesis \<longleftrightarrow> is_\<L>\<^sub>a\<^sub>l\<^sub>l \<A> (all_lits_of_mm (get_all_init_clss T))\<close>
-    unfolding cdcl\<^sub>W_restart_mset.no_strange_atm_def is_\<L>\<^sub>a\<^sub>l\<^sub>l_alt_def
-    by (cases T)
-      (auto simp: cdcl\<^sub>W_restart_mset_state)
-  moreover have \<open>get_all_init_clss T = get_all_init_clss S\<close>
-    using rtranclp_cdcl_twl_restart_get_all_init_clss[OF ST] .
-  moreover {
-    have \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of S)\<close>
-      using struct_invs_S
-      unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-      by fast+
-    then have \<open>is_\<L>\<^sub>a\<^sub>l\<^sub>l \<A> (all_lits_of_mm (get_all_init_clss S))\<close>
-      using L
-      unfolding cdcl\<^sub>W_restart_mset.no_strange_atm_def is_\<L>\<^sub>a\<^sub>l\<^sub>l_alt_def
-      by (cases S)
-        (auto simp: cdcl\<^sub>W_restart_mset_state)
-  }
-  ultimately show ?thesis
-    by argo
-qed
-
-
-lemma cdcl_twl_restart_is_\<L>\<^sub>a\<^sub>l\<^sub>l':
-  assumes
-    ST: \<open>cdcl_twl_restart\<^sup>*\<^sup>* S T\<close> and
-    struct_invs_S: \<open>twl_struct_invs S\<close> and
-    L: \<open>is_\<L>\<^sub>a\<^sub>l\<^sub>l \<A> (all_lits_of_mm (get_all_init_clss S))\<close>
-  shows  \<open>is_\<L>\<^sub>a\<^sub>l\<^sub>l \<A> (all_lits_of_mm (get_all_init_clss T))\<close>
-proof -
-  have \<open>twl_struct_invs T\<close>
-    using rtranclp_cdcl_twl_restart_twl_struct_invs[OF ST struct_invs_S] .
-  then have \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of T)\<close>
-    unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-    by fast+
-  then have \<open>?thesis \<longleftrightarrow> is_\<L>\<^sub>a\<^sub>l\<^sub>l \<A> (all_lits_of_mm (get_all_init_clss T))\<close>
-    unfolding cdcl\<^sub>W_restart_mset.no_strange_atm_def is_\<L>\<^sub>a\<^sub>l\<^sub>l_alt_def
-    by (cases T)
-      (auto simp: cdcl\<^sub>W_restart_mset_state)
-  moreover have \<open>get_all_init_clss T = get_all_init_clss S\<close>
-    using rtranclp_cdcl_twl_restart_get_all_init_clss[OF ST] .
-  then show ?thesis
-    using L
-    by argo
-qed
 
 end
