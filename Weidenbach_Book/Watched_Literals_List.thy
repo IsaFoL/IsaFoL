@@ -73,17 +73,14 @@ fun get_unit_clauses_l :: \<open>'v twl_st_l \<Rightarrow> 'v clauses\<close> wh
 fun get_unit_init_clauses_l :: \<open>'v twl_st_l \<Rightarrow> 'v clauses\<close> where
 \<open>get_unit_init_clauses_l (M, N, D, NE, UE, WS, Q) = NE\<close>
 
-fun get_unit_learned_clauses_l :: \<open>'v twl_st_l \<Rightarrow> 'v clauses\<close> where
-\<open>get_unit_learned_clauses_l (M, N, D, NE, UE, WS, Q) = UE\<close>
+fun get_unit_learned_clss_l :: \<open>'v twl_st_l \<Rightarrow> 'v clauses\<close> where
+\<open>get_unit_learned_clss_l (M, N, D, NE, UE, WS, Q) = UE\<close>
 
 fun get_init_clauses :: \<open>'v twl_st \<Rightarrow> 'v twl_clss\<close> where
   \<open>get_init_clauses (M, N, U, D, NE, UE, WS, Q) = N\<close>
 
 fun get_unit_init_clauses :: \<open>'v twl_st_l \<Rightarrow> 'v clauses\<close> where
   \<open>get_unit_init_clauses (M, N, D, NE, UE, WS, Q) = NE\<close>
-
-fun get_unit_learned_clss :: \<open>'v twl_st_l \<Rightarrow> 'v clauses\<close> where
-  \<open>get_unit_learned_clss (M, N, D, NE, UE, WS, Q) = UE\<close>
 
 definition get_learned_clss_l :: \<open>'v twl_st_l \<Rightarrow> 'v clause_l multiset\<close> where
   \<open>get_learned_clss_l S = learned_clss_lf (get_clauses_l S)\<close>
@@ -101,7 +98,7 @@ lemma state_decomp_to_state:
 lemma state_decomp_to_state_l:
   \<open>(case S of (M, N, D, NE, UE, WS, Q) \<Rightarrow> P M N D NE UE WS Q) =
      P (get_trail_l S) (get_clauses_l S) (get_conflict_l S)
-        (get_unit_init_clauses_l S) (get_unit_learned_clauses_l S)
+        (get_unit_init_clauses_l S) (get_unit_learned_clss_l S)
         (clauses_to_update_l S)
         (literals_to_update_l S)\<close>
   by (cases S) auto
@@ -484,7 +481,7 @@ lemma clss_state\<^sub>W_of[twl_st]:
   \<open>init_clss (state\<^sub>W_of R) = mset `# (init_clss_lf (get_clauses_l S)) +
      get_unit_init_clauses_l S\<close>
   \<open>learned_clss (state\<^sub>W_of R) = mset `# (learned_clss_lf (get_clauses_l S)) +
-     get_unit_learned_clauses_l S\<close>
+     get_unit_learned_clss_l S\<close>
  using assms
  by (cases S; cases L; auto simp: init_clss.simps learned_clss.simps twl_st_l_def
    mset_take_mset_drop_mset'; fail)+
@@ -521,7 +518,8 @@ lemma [twl_st_l]:
 
 lemma (in -) [twl_st_l]:
  \<open>(S, T)\<in>twl_st_l b \<Longrightarrow> get_all_init_clss T = mset `# init_clss_lf (get_clauses_l S) + get_unit_init_clauses S\<close>
-  by (cases S; cases T; cases b) (auto simp: twl_st_l_def mset_take_mset_drop_mset')
+ \<open>(S, T)\<in>twl_st_l b \<Longrightarrow> get_all_learned_clss T = mset `# learned_clss_lf (get_clauses_l S) + get_unit_learned_clss_l S\<close>
+  by (cases S; cases T; cases b; auto simp: twl_st_l_def mset_take_mset_drop_mset'; fail)+
 
 
 lemma [twl_st_l]:
@@ -570,11 +568,11 @@ lemma [twl_st_l]:
   by (cases S; auto; fail)+
 
 lemma [twl_st_l]:
-  \<open>get_unit_learned_clauses_l (set_clauses_to_update_l Cs S) = get_unit_learned_clauses_l S\<close>
+  \<open>get_unit_learned_clss_l (set_clauses_to_update_l Cs S) = get_unit_learned_clss_l S\<close>
   by (cases S) auto
 
 lemma [twl_st_l]:
-  \<open>get_unit_learned_clauses_l (remove_one_lit_from_wq L S) = get_unit_learned_clauses_l S\<close>
+  \<open>get_unit_learned_clss_l (remove_one_lit_from_wq L S) = get_unit_learned_clss_l S\<close>
   by (cases S) auto
 lemma literals_to_update_l_remove_one_lit_from_wq[simp]:
   \<open>literals_to_update_l (remove_one_lit_from_wq L T) = literals_to_update_l T\<close>
@@ -587,12 +585,14 @@ lemma clauses_to_update_l_remove_one_lit_from_wq[simp]:
 declare twl_st_l[simp]
 
 lemma unit_init_clauses_get_unit_init_clauses_l[twl_st_l]:
-  \<open>(S, T) \<in> twl_st_l L \<Longrightarrow> unit_init_clauses T = get_unit_init_clauses_l S\<close>
+    \<open>(S, T) \<in> twl_st_l L \<Longrightarrow> unit_init_clauses T = get_unit_init_clauses_l S\<close> and
+  get_init_learned_clss_get_init_learned_clss_l[twl_st_l]:
+    \<open>(S, T) \<in> twl_st_l L \<Longrightarrow> get_init_learned_clss T = get_unit_learned_clss_l S\<close>
   by (cases S) (auto simp: twl_st_l_def init_clss.simps)
 
 lemma clauses_state_to_l[twl_st_l]: \<open>(S, S') \<in> twl_st_l L \<Longrightarrow>
   cdcl\<^sub>W_restart_mset.clauses (state\<^sub>W_of S') = mset `# ran_mf (get_clauses_l S) +
-     get_unit_init_clauses_l S + get_unit_learned_clauses_l S\<close>
+     get_unit_init_clauses_l S + get_unit_learned_clss_l S\<close>
   apply (subst all_clss_l_ran_m[symmetric])
   unfolding image_mset_union
   by (cases S) (auto simp: twl_st_l_def init_clss.simps mset_take_mset_drop_mset' clauses_def)
@@ -658,7 +658,7 @@ lemma equality_except_conflict_l_alt_def:
  \<open>equality_except_conflict_l S T \<longleftrightarrow>
    get_trail_l S = get_trail_l T \<and> get_clauses_l S = get_clauses_l T \<and>
       get_unit_init_clauses_l S = get_unit_init_clauses_l T \<and>
-      get_unit_learned_clauses_l S = get_unit_learned_clauses_l T \<and>
+      get_unit_learned_clss_l S = get_unit_learned_clss_l T \<and>
       literals_to_update_l S = literals_to_update_l T \<and>
       clauses_to_update_l S = clauses_to_update_l T\<close>
   by (cases S, cases T) auto

@@ -2047,7 +2047,7 @@ proof -
       by (auto dest: no_dup_same_annotD)
     let ?U' = \<open>(M, N, D, NE, UE, WS, Q)\<close>
     have V: \<open>V = (M, get_clauses_l V, D, get_unit_init_clauses_l V,
-      get_unit_learned_clauses_l V, WS, Q)\<close>
+      get_unit_learned_clss_l V, WS, Q)\<close>
       using confl upd lits_upd tr clss_upd confl_V unfolding U
       by (cases V) auto
     let ?V = \<open>(M, N, D, NE, UE, WS, Q)\<close>
@@ -3942,8 +3942,8 @@ proof -
     if
       inv: \<open>restart_abs_l_pre S brk\<close> and
       \<open>(b, ba) \<in> bool_rel\<close> and
-      \<open>b \<in> {b. b \<longrightarrow> f n < size (get_learned_clss_l S)}\<close> and
-      \<open>ba \<in> {b. b \<longrightarrow> f n < size (get_learned_clss_l S)}\<close> and
+      \<open>b \<in> {b. b \<longrightarrow> f n < size ( S)}\<close> and
+      \<open>ba \<in> {b. b \<longrightarrow> f n < size ( S)}\<close> and
       brk: \<open>\<not>brk\<close>
     for b ba S brk n
   proof -

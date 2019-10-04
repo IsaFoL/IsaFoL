@@ -531,9 +531,9 @@ lemma [twl_st_wl]:
     \<open>L \<noteq> None \<Longrightarrow> get_conflict_wl S = None \<Longrightarrow> clauses_to_update_l T =
        clauses_to_update_wl S (fst (the L)) (snd (the L))\<close> and
     \<open>literals_to_update_l T = literals_to_update_wl S\<close>
-    \<open>get_unit_learned_clauses_l T = get_unit_learned_clss_wl S\<close>
+    \<open>get_unit_learned_clss_l T = get_unit_learned_clss_wl S\<close>
     \<open>get_unit_init_clauses_l T = get_unit_init_clss_wl S\<close>
-    \<open>get_unit_learned_clauses_l T = get_unit_learned_clss_wl S\<close>
+    \<open>get_unit_learned_clss_l T = get_unit_learned_clss_wl S\<close>
     \<open>get_unit_clauses_l T = get_unit_clauses_wl S\<close>
   using assms unfolding state_wl_l_def all_clss_lf_ran_m[symmetric]
   by (cases S; cases T; cases L; auto split: option.splits simp: trail.simps; fail)+

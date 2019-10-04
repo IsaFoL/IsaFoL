@@ -125,8 +125,9 @@ proof -
     apply (subst (2) all_clss_l_ran_m[symmetric])
     using alien_learned Sx x_xa
     unfolding image_mset_union all_lits_of_mm_union
-    by (auto simp: in_all_lits_of_mm_ain_atms_of_iff get_unit_clauses_wl_alt_def
+    by (auto simp : in_all_lits_of_mm_ain_atms_of_iff get_unit_clauses_wl_alt_def
       twl_st twl_st_l twl_st_wl get_learned_clss_wl_def)
+
   show A: \<open>literals_are_\<L>\<^sub>i\<^sub>n' S \<longleftrightarrow> literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st S) S\<close> for \<A>
   proof -
     have sub: \<open>set_mset
@@ -716,7 +717,7 @@ where
      \<exists>S' T'. (S, S') \<in> state_wl_l None \<and> (T, T') \<in> state_wl_l None \<and>
       mark_to_delete_clauses_l_inv S' xs0 (i, T', xs) \<and>
       correct_watching' S\<and> literals_are_\<L>\<^sub>i\<^sub>n' S \<and> literals_are_\<L>\<^sub>i\<^sub>n' T)\<close>
-thm TrueIm
+
 definition mark_to_delete_clauses_wl_pre :: \<open>'v twl_st_wl \<Rightarrow> bool\<close>
 where
   \<open>mark_to_delete_clauses_wl_pre S \<longleftrightarrow>
@@ -752,6 +753,24 @@ definition mark_to_delete_clauses_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl
     RETURN S
   })\<close>
 
+lemma mark_to_delete_clauses_wl_invD1:
+  assumes \<open>mark_to_delete_clauses_wl_inv S xs (i, T, ys)\<close> and
+    \<open>C \<in># dom_m (get_clauses_wl T)\<close> and
+    \<open>0 < length (get_clauses_wl T \<propto> C)\<close>
+  shows
+    \<open>get_clauses_wl T \<propto> C ! 0 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_init_atms_st T)\<close>
+proof -
+  have \<open>literals_are_\<L>\<^sub>i\<^sub>n' T\<close>
+    using assms unfolding mark_to_delete_clauses_wl_inv_def by blast
+  then have \<open>get_clauses_wl T \<propto> C ! 0 \<in># all_init_lits_st T\<close>
+    using assms(2,3) by (auto dest!: multi_member_split
+      simp: ran_m_def all_init_lits_def all_lits_of_mm_add_mset
+        in_clause_in_all_lits_of_m literals_are_\<L>\<^sub>i\<^sub>n'_def
+        in_clause_in_all_lits_of_m subsetD)
+  then show \<open>?thesis\<close>
+    by (simp add: \<L>\<^sub>a\<^sub>l\<^sub>l_all_init_atms(1))
+qed
+
 lemma mark_to_delete_clauses_wl_mark_to_delete_clauses_l:
   \<open>(mark_to_delete_clauses_wl, mark_to_delete_clauses_l)
     \<in> {(S, T).  (S, T) \<in> state_wl_l None \<and> correct_watching' S \<and> literals_are_\<L>\<^sub>i\<^sub>n' S} \<rightarrow>\<^sub>f
@@ -783,13 +802,11 @@ proof -
     subgoal by (force simp: state_wl_l_def)
     subgoal by auto
     subgoal by (force simp: state_wl_l_def)
+    subgoal for x y xs xsa l to_keep xa x' x1 x2 x1a x2a x1b x2b x1c x2c
+      by (auto simp: mark_to_delete_clauses_wl_invD1)
     subgoal by (auto simp: state_wl_l_def can_delete_def)
     subgoal by auto
     subgoal by (force simp: state_wl_l_def)
-    subgoal
-      by (auto simp: state_wl_l_def correct_watching_fmdrop mark_garbage_wl_def
-          mark_garbage_l_def
-        split: prod.splits)
     subgoal
       by (auto simp: state_wl_l_def correct_watching_fmdrop mark_garbage_wl_def
           mark_garbage_l_def
@@ -835,7 +852,7 @@ lemma correct_watching_correct_watching: \<open>correct_watching S \<Longrightar
   by auto
 
 lemma (in -) [twl_st_l, simp]:
- \<open>(Sa, x) \<in> twl_st_l None \<Longrightarrow> get_all_learned_clss x =  mset `# (get_learned_clss_l Sa) + get_unit_learned_clauses_l Sa\<close>
+ \<open>(Sa, x) \<in> twl_st_l None \<Longrightarrow> get_all_learned_clss x =  mset `# (get_learned_clss_l Sa) + get_unit_learned_clss_l Sa\<close>
   by (cases Sa; cases x) (auto simp: twl_st_l_def get_learned_clss_l_def mset_take_mset_drop_mset')
 
 lemma cdcl_twl_full_restart_wl_prog_final_rel:
