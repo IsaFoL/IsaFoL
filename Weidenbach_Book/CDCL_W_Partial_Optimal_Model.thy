@@ -1,11 +1,13 @@
 theory CDCL_W_Partial_Optimal_Model
   imports CDCL_W_Partial_Encoding
 begin
+lemma isabelle_should_do_that_automatically: \<open>Suc (a - Suc 0) = a \<longleftrightarrow> a \<ge> 1\<close>
+  by auto
 
 
 lemma zip_cong:
-  \<open>(\<And>i. i < min (length xs) (length ys) \<Longrightarrow> (xs ! i, ys ! i) = (xs' ! i, ys' ! i)) \<Longrightarrow> length xs = length xs' \<Longrightarrow>
-     length ys = length ys' \<Longrightarrow> zip xs ys = zip xs' ys'\<close>
+  \<open>(\<And>i. i < min (length xs) (length ys) \<Longrightarrow> (xs ! i, ys ! i) = (xs' ! i, ys' ! i)) \<Longrightarrow>
+     length xs = length xs' \<Longrightarrow> length ys = length ys' \<Longrightarrow> zip xs ys = zip xs' ys'\<close>
 proof (induction xs arbitrary: xs' ys' ys)
   case Nil
   then show ?case by auto
@@ -32,8 +34,9 @@ thm IH
 qed
 
 lemma zip_cong2:
-  \<open>(\<And>i. i < min (length xs) (length ys) \<Longrightarrow> (xs ! i, ys ! i) = (xs' ! i, ys' ! i)) \<Longrightarrow> length xs = length xs' \<Longrightarrow>
-     length ys \<le> length ys' \<Longrightarrow> length ys \<ge> length xs \<Longrightarrow> zip xs ys = zip xs' ys'\<close>
+  \<open>(\<And>i. i < min (length xs) (length ys) \<Longrightarrow> (xs ! i, ys ! i) = (xs' ! i, ys' ! i)) \<Longrightarrow>
+     length xs = length xs' \<Longrightarrow> length ys \<le> length ys' \<Longrightarrow> length ys \<ge> length xs \<Longrightarrow>
+     zip xs ys = zip xs' ys'\<close>
 proof (induction xs arbitrary: xs' ys' ys)
   case Nil
   then show ?case by auto
@@ -98,8 +101,10 @@ proof -
   have Cons: \<open>r (x # xs) = (x, k^(Suc (length xs))) # (r xs)\<close> for x xs
    unfolding r_def
    apply (subst upt')
-   apply (clarsimp simp add: upt'' comp_def nth_append Suc_diff_le simp flip: zip_map2 intro!: zip_cong2)
-   apply (clarsimp simp add: upt'' comp_def nth_append Suc_diff_le simp flip: zip_map2 intro!: zip_cong2)
+   apply (clarsimp simp add: upt'' comp_def nth_append Suc_diff_le simp flip: zip_map2
+     intro!: zip_cong2)
+   apply (clarsimp simp add: upt'' comp_def nth_append Suc_diff_le simp flip: zip_map2
+     intro!: zip_cong2)
    done
 
   have [simp]: \<open>s (ab # xs) = fst ab * snd ab + s xs\<close> for ab xs
@@ -145,16 +150,20 @@ proof -
        apply (rule le2)
        unfolding all_set_conv_all_nth
        using p by (simp add: nth_tl)
-     then have \<open>ab * (k * k ^ length (tl ys)) + s (r (tl ys)) < ab * (k * k ^ length (tl ys)) + (k * k ^ length (tl ys))\<close> for ab
+     then have \<open>ab * (k * k ^ length (tl ys)) + s (r (tl ys)) <
+               ab * (k * k ^ length (tl ys)) + (k * k ^ length (tl ys))\<close> for ab
        by auto
      also have \<open>\<dots> ab  \<le> (ab + 1) * (k * k ^ length (tl ys))\<close> for ab
        by auto
-     finally have less: \<open>ab < ac \<Longrightarrow> ab * (k * k ^ length (tl ys)) + s (r (tl ys)) < ac * (k * k ^ length (tl ys))\<close> for ab ac
+     finally have less: \<open>ab < ac \<Longrightarrow> ab * (k * k ^ length (tl ys)) + s (r (tl ys)) <
+                                    ac * (k * k ^ length (tl ys))\<close> for ab ac
      proof -
-       assume a1: "\<And>ab. ab * (k * k ^ length (tl ys)) + s (r (tl ys)) < (ab + 1) * (k * k ^ length (tl ys))"
+       assume a1: "\<And>ab. ab * (k * k ^ length (tl ys)) + s (r (tl ys)) <
+                   (ab + 1) * (k * k ^ length (tl ys))"
        assume "ab < ac"
        then have "\<not> ac * (k * k ^ length (tl ys)) < (ab + 1) * (k * k ^ length (tl ys))"
-         by (metis (no_types) One_nat_def Suc_leI add.right_neutral add_Suc_right mult_less_cancel2 not_less)
+         by (metis (no_types) One_nat_def Suc_leI add.right_neutral add_Suc_right
+            mult_less_cancel2 not_less)
        then show ?thesis
          using a1 by (meson le_less_trans not_less)
      qed
@@ -251,6 +260,26 @@ lemma normalize_lit[simp]:
 definition all_clauses_literals :: \<open>'v list\<close> where
   \<open>all_clauses_literals = (SOME xs. mset xs = mset_set ((\<Sigma> - \<Delta>\<Sigma>) \<union> replacement_neg ` \<Delta>\<Sigma> \<union> replacement_pos ` \<Delta>\<Sigma>))\<close>
 
+datatype (in -) 'c search_depth =
+  sd_is_zero: SD_ZERO (the_search_depth: 'c) |
+  sd_is_one: SD_ONE (the_search_depth: 'c) |
+  sd_is_two: SD_TWO (the_search_depth: 'c)
+
+abbreviation (in -) un_hide_sd :: \<open>'a search_depth list \<Rightarrow> 'a list\<close> where
+  \<open>un_hide_sd \<equiv> map the_search_depth\<close>
+
+definition opposite_var where
+  \<open>opposite_var L = (if L \<in> replacement_pos ` \<Delta>\<Sigma> then replacement_neg (base_atm L) else replacement_pos (base_atm L))\<close>
+
+
+lemma opposite_var_replacement_if[simp]:
+  \<open>L \<in> (replacement_neg ` \<Delta>\<Sigma> \<union> replacement_pos ` \<Delta>\<Sigma>) \<Longrightarrow> A \<in> \<Delta>\<Sigma> \<Longrightarrow>
+   opposite_var L = replacement_pos A \<longleftrightarrow> L = replacement_neg A\<close>
+  \<open>L \<in> (replacement_neg ` \<Delta>\<Sigma> \<union> replacement_pos ` \<Delta>\<Sigma>) \<Longrightarrow> A \<in> \<Delta>\<Sigma> \<Longrightarrow>
+   opposite_var L = replacement_neg A \<longleftrightarrow> L = replacement_pos A\<close>
+  \<open>A \<in> \<Delta>\<Sigma> \<Longrightarrow> opposite_var (replacement_pos A) = replacement_neg A\<close>
+  \<open>A \<in> \<Delta>\<Sigma> \<Longrightarrow> opposite_var (replacement_neg A) = replacement_pos A\<close>
+  by (auto simp: opposite_var_def)
 
 context
   assumes [simp]: \<open>finite \<Sigma>\<close>
@@ -276,8 +305,177 @@ proof -
     by simp
 qed
 
+definition sorted_unadded_literals :: \<open>('v, 'v clause) ann_lits \<Rightarrow> 'v list\<close> where
+\<open>sorted_unadded_literals M =
+  (let
+    M0 = filter (\<lambda>L. undefined_lit M (Pos L) \<and> L \<in> \<Sigma>) all_clauses_literals;
+    M1 = filter (\<lambda>L. undefined_lit M (Pos L) \<and> L \<notin> \<Sigma> \<and> undefined_lit M (Pos (opposite_var L)))
+      all_clauses_literals;
+    M2 = filter (\<lambda>L. undefined_lit M (Pos L) \<and> L \<notin> \<Sigma> \<and> defined_lit M (Pos (opposite_var L)))
+      all_clauses_literals
+  in
+    M0 @ M1 @ M2)\<close>
+
 definition complete_trail :: \<open>('v, 'v clause) ann_lits \<Rightarrow> ('v, 'v clause) ann_lits\<close> where
-\<open>complete_trail M = M @ map (Decided o Pos) (filter (\<lambda>L. undefined_lit M (Pos L)) all_clauses_literals)\<close>
+\<open>complete_trail M =
+  (map (Decided o Pos) (sorted_unadded_literals M) @ M)\<close>
+
+lemma in_sorted_unadded_literals_undefD:
+  \<open>atm_of (lit_of l) \<in> set (sorted_unadded_literals M) \<Longrightarrow> l \<notin> set M\<close>
+  \<open>atm_of (l') \<in> set (sorted_unadded_literals M) \<Longrightarrow> undefined_lit M l'\<close>
+  \<open>xa \<in> set (sorted_unadded_literals M) \<Longrightarrow> lit_of x = Neg xa \<Longrightarrow>  x \<notin> set M\<close> and
+  set_sorted_unadded_literals[simp]:
+  \<open>set (sorted_unadded_literals M) = Set.filter (\<lambda>L. undefined_lit M (Pos L)) (set all_clauses_literals)\<close>
+  by (auto simp: sorted_unadded_literals_def undefined_notin  all_clauses_literals(1,2)
+    defined_lit_Neg_Pos_iff)
+
+lemma length_sorted_unadded_literals_empty[simp]:
+  \<open>length (sorted_unadded_literals []) = length all_clauses_literals\<close>
+  by (auto simp: sorted_unadded_literals_def sum_length_filter_compl)
+
+
+lemma sorted_unadded_literals_Cons_notin_all_clauses_literals[simp]:
+  assumes
+    \<open>atm_of (lit_of K) \<notin> set all_clauses_literals\<close>
+  shows
+    \<open>sorted_unadded_literals (K # M) = sorted_unadded_literals M\<close>
+proof -
+  have [simp]:
+    \<open>filter (\<lambda>L. atm_of (lit_of K) \<noteq> L \<and> undefined_lit M (Pos L) \<and> L \<in> \<Sigma>) all_clauses_literals =
+     filter (\<lambda>L. undefined_lit M (Pos L) \<and> L \<in> \<Sigma>) all_clauses_literals\<close>
+   using assms
+   by (auto simp: sorted_unadded_literals_def undefined_notin all_clauses_literals(1,2)
+    defined_lit_Neg_Pos_iff all_clauses_literals(3) intro!: ext filter_cong)
+
+  have [simp]:
+    \<open>filter (\<lambda>L. atm_of (lit_of K) \<noteq> L \<and>
+          undefined_lit M (Pos L) \<and>
+          L \<notin> \<Sigma> \<and> undefined_lit (K # M) (Pos (opposite_var L))) all_clauses_literals =
+     filter (\<lambda>L. undefined_lit M (Pos L) \<and> L \<notin> \<Sigma> \<and> undefined_lit M (Pos (opposite_var L)))
+       all_clauses_literals\<close>
+   using assms
+   by (auto simp: sorted_unadded_literals_def undefined_notin all_clauses_literals(1,2)
+      defined_lit_Neg_Pos_iff all_clauses_literals(3) defined_lit_cons
+    intro!: ext filter_cong)
+  have [simp]: \<open>filter
+     (\<lambda>L. atm_of (lit_of K) \<noteq> L \<and>
+          undefined_lit M (Pos L) \<and>
+          L \<notin> \<Sigma> \<and>
+          atm_of (lit_of K) \<noteq> opposite_var L \<and>
+          undefined_lit M (Pos (opposite_var L)))
+     all_clauses_literals =
+    filter
+     (\<lambda>L. undefined_lit M (Pos L) \<and>
+          L \<notin> \<Sigma> \<and> undefined_lit M (Pos (opposite_var L)))
+     all_clauses_literals\<close>
+   using assms
+   by (auto simp: sorted_unadded_literals_def undefined_notin all_clauses_literals(1,2)
+      defined_lit_Neg_Pos_iff all_clauses_literals(3) defined_lit_cons
+    intro!: ext filter_cong)
+  have [simp]: \<open>filter
+     (\<lambda>L. atm_of (lit_of K) \<noteq> L \<and>
+          undefined_lit M (Pos L) \<and>
+          L \<notin> \<Sigma> \<and> defined_lit (K # M) (Pos (opposite_var L)))
+     all_clauses_literals =
+    filter
+     (\<lambda>L. undefined_lit M (Pos L) \<and>
+          L \<notin> \<Sigma> \<and> defined_lit M (Pos (opposite_var L)))
+     all_clauses_literals\<close>
+   using assms
+   by (auto simp: sorted_unadded_literals_def undefined_notin all_clauses_literals(1,2)
+      defined_lit_Neg_Pos_iff all_clauses_literals(3) defined_lit_cons
+    intro!: ext filter_cong)
+  show ?thesis
+    by (auto simp: sorted_unadded_literals_def undefined_notin all_clauses_literals(1,2)
+      defined_lit_Neg_Pos_iff all_clauses_literals(3))
+qed
+
+lemma sorted_unadded_literals_cong:
+  assumes \<open>\<And>L. L \<in> set all_clauses_literals \<Longrightarrow> defined_lit M (Pos L) = defined_lit M' (Pos L)\<close>
+  shows \<open>sorted_unadded_literals M = sorted_unadded_literals M'\<close>
+proof -
+  have [simp]:
+    \<open>filter (\<lambda>L. undefined_lit M (Pos L) \<and> L \<in> \<Sigma>) all_clauses_literals =
+     filter (\<lambda>L. undefined_lit M' (Pos L) \<and> L \<in> \<Sigma>) all_clauses_literals\<close>
+   using assms
+   by (auto simp: sorted_unadded_literals_def undefined_notin all_clauses_literals(1,2)
+    defined_lit_Neg_Pos_iff all_clauses_literals(3) intro!: ext filter_cong)
+
+  have [simp]:
+    \<open>filter (\<lambda>L.
+          undefined_lit M (Pos L) \<and>
+          L \<notin> \<Sigma> \<and> undefined_lit M (Pos (opposite_var L))) all_clauses_literals =
+     filter (\<lambda>L. undefined_lit M' (Pos L) \<and> L \<notin> \<Sigma> \<and> undefined_lit M' (Pos (opposite_var L)))
+       all_clauses_literals\<close>
+   using assms
+   by (auto simp: sorted_unadded_literals_def undefined_notin all_clauses_literals(1,2)
+      defined_lit_Neg_Pos_iff all_clauses_literals(3) defined_lit_cons
+    intro!: ext filter_cong)
+  have [simp]: \<open>filter
+     (\<lambda>L. undefined_lit M (Pos L) \<and>
+          L \<notin> \<Sigma> \<and>
+          undefined_lit M (Pos (opposite_var L)))
+     all_clauses_literals =
+    filter
+     (\<lambda>L. undefined_lit M' (Pos L) \<and>
+          L \<notin> \<Sigma> \<and> undefined_lit M' (Pos (opposite_var L)))
+     all_clauses_literals\<close>
+   using assms
+   by (auto simp: sorted_unadded_literals_def undefined_notin all_clauses_literals(1,2)
+      defined_lit_Neg_Pos_iff all_clauses_literals(3) defined_lit_cons
+    intro!: ext filter_cong)
+  have [simp]: \<open>filter
+     (\<lambda>L. undefined_lit M (Pos L) \<and>
+          L \<notin> \<Sigma> \<and> defined_lit M (Pos (opposite_var L)))
+     all_clauses_literals =
+    filter
+     (\<lambda>L. undefined_lit M' (Pos L) \<and>
+          L \<notin> \<Sigma> \<and> defined_lit M' (Pos (opposite_var L)))
+     all_clauses_literals\<close>
+   using assms
+   by (auto simp: sorted_unadded_literals_def undefined_notin all_clauses_literals(1,2)
+      defined_lit_Neg_Pos_iff all_clauses_literals(3) defined_lit_cons
+    intro!: ext filter_cong)
+  show ?thesis
+    by (auto simp: sorted_unadded_literals_def undefined_notin all_clauses_literals(1,2)
+      defined_lit_Neg_Pos_iff all_clauses_literals(3))
+qed
+
+lemma sorted_unadded_literals_Cons_already_set[simp]:
+  assumes
+    \<open>defined_lit M (lit_of K)\<close>
+  shows
+    \<open>sorted_unadded_literals (K # M) = sorted_unadded_literals M\<close>
+  by (rule sorted_unadded_literals_cong)
+    (use assms in \<open>auto simp: defined_lit_cons\<close>)
+
+
+lemma distinct_sorted_unadded_literals[simp]:
+  \<open>distinct (sorted_unadded_literals M)\<close>
+  by (auto simp: sorted_unadded_literals_def all_clauses_literals(1,2))
+
+
+lemma Collect_req_remove1:
+  \<open>{a \<in> A. a \<noteq> b \<and> P a} = (if P b then Set.remove b {a \<in> A. P a} else {a \<in> A. P a})\<close> and
+  Collect_req_remove2:
+  \<open>{a \<in> A. b \<noteq> a \<and> P a} = (if P b then Set.remove b {a \<in> A. P a} else {a \<in> A. P a})\<close>
+  by auto
+
+lemma card_remove:
+  \<open>card (Set.remove a A) = (if a \<in> A then card A - 1 else card A)\<close>
+  apply (auto simp: Set.remove_def)
+  by (metis Diff_empty One_nat_def card_Diff_insert card_infinite empty_iff
+    finite_Diff_insert gr_implies_not0 neq0_conv zero_less_diff)
+
+lemma sorted_unadded_literals_cons_in_undef[simp]:
+  \<open>undefined_lit M (lit_of K) \<Longrightarrow>
+             atm_of (lit_of K) \<in> set all_clauses_literals \<Longrightarrow>
+             Suc (length (sorted_unadded_literals (K # M))) =
+             length (sorted_unadded_literals M)\<close>
+  by (auto simp flip: distinct_card simp: Set.filter_def Collect_req_remove2
+    card_remove isabelle_should_do_that_automatically
+    card_gt_0_iff simp flip: less_eq_Suc_le)
+
 
 lemma no_dup_complete_trail[simp]:
   \<open>no_dup (complete_trail M) \<longleftrightarrow> no_dup M\<close>
@@ -296,35 +494,48 @@ lemma atms_of_complete_trail:
   by (auto simp add: complete_trail_def all_clauses_literals
     image_image image_Un atms_of_def defined_lit_map)
 
-fun remove_dup_information :: \<open>('v, _) ann_lits \<Rightarrow> ('v, _) ann_lits\<close> where
-  \<open>remove_dup_information [] = []\<close> |
-  \<open>remove_dup_information (Decided K # M) = Decided K # remove_dup_information M\<close> |
-  \<open>remove_dup_information (Propagated L C # M) =
-    (if atm_of L \<in> \<Sigma> - \<Delta>\<Sigma> then Propagated L C # remove_dup_information M
-     else if defined_lit M (Pos (replacement_pos (base_atm (atm_of L)))) \<or> defined_lit M (Pos (replacement_neg (base_atm (atm_of L))))
-     then remove_dup_information M else Propagated L C # remove_dup_information M)\<close>
+fun depth_lit_of :: \<open>('v,_) ann_lit \<Rightarrow> ('v, _) ann_lit search_depth\<close> where
+  \<open>depth_lit_of (Decided L) = SD_ONE (Decided L)\<close> |
+  \<open>depth_lit_of (Propagated L C) = SD_ZERO (Propagated L C)\<close>
+
+fun depth_lit_of_additional_snd :: \<open>('v,_) ann_lit \<Rightarrow> ('v, _) ann_lit search_depth list\<close> where
+  \<open>depth_lit_of_additional_snd (Decided L) = [SD_TWO (Decided L)]\<close> |
+  \<open>depth_lit_of_additional_snd (Propagated L C) = []\<close>
+
+fun remove_dup_information_raw :: \<open>('v, _) ann_lits \<Rightarrow> ('v, _) ann_lit search_depth list\<close> where
+  \<open>remove_dup_information_raw [] = []\<close> |
+  \<open>remove_dup_information_raw (L # M) =
+     (if atm_of (lit_of L) \<in> \<Sigma> - \<Delta>\<Sigma> then depth_lit_of L # remove_dup_information_raw M
+     else if defined_lit M (Pos (opposite_var (base_atm (atm_of (lit_of L)))))
+     then depth_lit_of_additional_snd L @ remove_dup_information_raw M
+     else if Decided (Pos (opposite_var (atm_of (lit_of L)))) \<in> set M
+     then remove_dup_information_raw M
+     else depth_lit_of L # remove_dup_information_raw M)\<close>
+
+definition remove_dup_information where
+  \<open>remove_dup_information xs = un_hide_sd (remove_dup_information_raw xs)\<close>
+
+lemma [simp]: \<open>the_search_depth (depth_lit_of L) = L\<close>
+  by (cases L) auto
 
 lemma length_complete_trail[simp]: \<open>length (complete_trail []) = length all_clauses_literals\<close>
   unfolding complete_trail_def
-  by auto
+  by (auto simp: sum_length_filter_compl)
 
 lemma distinct_count_list_if: \<open>distinct xs \<Longrightarrow> count_list xs x = (if x \<in> set xs then 1 else 0)\<close>
   by (induction xs) auto
 
 
-lemma isabelle_should_do_that_automatically: \<open>Suc (a - Suc 0) = a \<longleftrightarrow> a \<ge> 1\<close>
-  by auto
-
 lemma length_complete_trail_Cons:
-  \<open>no_dup (K # M) \<Longrightarrow> length (complete_trail (K # M)) = (if atm_of (lit_of K) \<in> set all_clauses_literals then 0 else 1) + length (complete_trail M)\<close>
-  unfolding complete_trail_def apply auto
-  apply (subst conj_commute)
-  apply (auto simp: complete_trail_def length_removeAll_count_list distinct_count_list_if 
-    all_clauses_literals(2) isabelle_should_do_that_automatically simp flip: filter_filter removeAll_filter_not_eq)
-  by (meson defined_lit_Pos_atm_iff filter_empty_conv le_0_eq length_0_conv not_less_eq_eq)
+  \<open>no_dup (K # M) \<Longrightarrow>
+    length (complete_trail (K # M)) =
+      (if atm_of (lit_of K) \<in> set all_clauses_literals then 0 else 1) + length (complete_trail M)\<close>
+  unfolding complete_trail_def by auto
+
 
 lemma length_complete_trail_eq:
-  \<open>no_dup M \<Longrightarrow> atm_of ` (lits_of_l M) \<subseteq> set all_clauses_literals \<Longrightarrow> length (complete_trail M) = length all_clauses_literals\<close>
+  \<open>no_dup M \<Longrightarrow> atm_of ` (lits_of_l M) \<subseteq> set all_clauses_literals \<Longrightarrow>
+  length (complete_trail M) = length all_clauses_literals\<close>
   by (induction M rule: ann_lit_list_induct) (auto simp: length_complete_trail_Cons)
 
 lemma in_set_all_clauses_literals_simp[simp]:
@@ -333,13 +544,21 @@ lemma in_set_all_clauses_literals_simp[simp]:
   \<open>K \<in> \<Delta>\<Sigma> \<Longrightarrow> replacement_neg K \<in> set all_clauses_literals\<close>
   by (auto simp: all_clauses_literals)
 
+lemma [simp]:
+  \<open>remove_dup_information [] = []\<close>
+  by (auto simp: remove_dup_information_def)
+
 lemma atm_of_remove_dup_information:
-  \<open>atm_of ` (lits_of_l M) \<subseteq> set all_clauses_literals \<Longrightarrow> atm_of ` (lits_of_l (remove_dup_information M)) \<subseteq> set all_clauses_literals\<close>
+  \<open>atm_of ` (lits_of_l M) \<subseteq> set all_clauses_literals \<Longrightarrow>
+    atm_of ` (lits_of_l (remove_dup_information M)) \<subseteq> set all_clauses_literals\<close>
+    unfolding remove_dup_information_def
   apply (induction M rule: ann_lit_list_induct)
   apply (auto simp: Decided_Propagated_in_iff_in_lits_of_l lits_of_def image_image)
   done
 
+(*
 lemma remove_dup_information_subset: \<open>mset (remove_dup_information M) \<subseteq># mset M\<close>
+  unfolding remove_dup_information_def
   apply (induction M rule: ann_lit_list_induct) apply auto
   apply (metis add_mset_remove_trivial diff_subset_eq_self subset_mset.dual_order.trans)+
   done
@@ -357,18 +576,89 @@ lemma no_dup_remove_dup_information:
   using no_dup_subsetD[OF _ remove_dup_information_subset] by blast
 
 lemma atm_of_complete_trail:
-  \<open>atm_of ` (lits_of_l M) \<subseteq> set all_clauses_literals \<Longrightarrow> atm_of ` (lits_of_l (complete_trail M)) = set all_clauses_literals\<close>
+  \<open>atm_of ` (lits_of_l M) \<subseteq> set all_clauses_literals \<Longrightarrow>
+   atm_of ` (lits_of_l (complete_trail M)) = set all_clauses_literals\<close>
   unfolding complete_trail_def by (auto simp: lits_of_def image_image image_Un defined_lit_map)
 
+definition ocdcl_trail_inv where
+  \<open>ocdcl_trail_inv M \<longleftrightarrow> no_dup M \<and>
+    atm_of ` (lits_of_l M) \<subseteq> \<Sigma> \<union> replacement_pos ` \<Delta>\<Sigma> \<union> replacement_neg ` \<Delta>\<Sigma> \<and>
+    (\<forall>P. P \<in> replacement_pos ` \<Delta>\<Sigma> \<union> replacement_neg ` \<Delta>\<Sigma> \<longrightarrow>
+       Decided (Neg P) \<notin> set M) \<and>
+    (\<forall>P. P \<in> replacement_pos ` \<Delta>\<Sigma> \<union> replacement_neg ` \<Delta>\<Sigma> \<longrightarrow>
+       Decided (Pos P) \<in> set M \<longrightarrow> Decided (Pos (opposite_var P)) \<notin> set M)\<close>
+
+
+lemma ocdcl_trail_inv_tlD:
+  \<open>ocdcl_trail_inv (L # M) \<Longrightarrow> ocdcl_trail_inv M\<close>
+  by (auto simp: ocdcl_trail_inv_def)
+
+lemma ocdcl_trail_inv_Cons1[simp]:
+  \<open>atm_of (lit_of L) \<in> \<Sigma> \<Longrightarrow> ocdcl_trail_inv (L # M) \<longleftrightarrow> undefined_lit M (lit_of L) \<and> ocdcl_trail_inv M\<close>
+  by (auto simp: ocdcl_trail_inv_def)
+
+lemma ocdcl_trail_inv_Cons2:
+  \<open>atm_of (lit_of L) \<in> replacement_pos ` \<Delta>\<Sigma> \<union> replacement_neg ` \<Delta>\<Sigma>  \<Longrightarrow>
+  ocdcl_trail_inv (L # M) \<Longrightarrow>
+    undefined_lit M (lit_of L) \<and> (is_decided L \<longrightarrow> is_pos (lit_of L) \<and> Decided (Pos (opposite_var (atm_of (lit_of L)))) \<notin> set M) \<and> ocdcl_trail_inv M\<close>
+  by (cases L; cases \<open>lit_of L\<close>; auto simp: ocdcl_trail_inv_def)
+
+lemma ocdcl_trail_inv_ConsE:
+  \<open>ocdcl_trail_inv (L # M) \<Longrightarrow> atm_of (lit_of L) \<in> \<Sigma> \<union> replacement_pos ` \<Delta>\<Sigma> \<union> replacement_neg ` \<Delta>\<Sigma> \<Longrightarrow> 
+    (atm_of (lit_of L) \<in> replacement_pos ` \<Delta>\<Sigma> \<union> replacement_neg ` \<Delta>\<Sigma>  \<Longrightarrow>
+       undefined_lit M (lit_of L) \<Longrightarrow>
+       (is_decided L \<longrightarrow> is_pos (lit_of L) \<and>
+          Decided (Pos (opposite_var (atm_of (lit_of L)))) \<notin> set M) \<Longrightarrow>
+       ocdcl_trail_inv M \<Longrightarrow> P) \<Longrightarrow>
+    (atm_of (lit_of L) \<in> \<Sigma> \<Longrightarrow> undefined_lit M (lit_of L) \<Longrightarrow>
+       ocdcl_trail_inv M \<Longrightarrow> P)
+    \<Longrightarrow> P\<close>
+  using ocdcl_trail_inv_Cons2 ocdcl_trail_inv_Cons1 by blast
+
+lemma
+  \<open>P \<in> replacement_pos ` \<Delta>\<Sigma> \<union> replacement_neg ` \<Delta>\<Sigma> \<Longrightarrow> ocdcl_trail_inv M \<Longrightarrow>
+  defined_lit (remove_dup_information M) (Pos P) \<Longrightarrow>
+    undefined_lit (remove_dup_information M) (Pos (opposite_var P))\<close>
+  unfolding remove_dup_information_def
+  apply (induction M arbitrary: P rule: ann_lit_list_induct)
+  apply (auto simp: defined_lit_cons split: 
+     dest: elim!: )
+thm TrueI
+subgoal
+apply (auto elim!: ocdcl_trail_inv_ConsE)
+  sorry
 lemma atm_of_complete_trail_remove_dup_information:
-  \<open>no_dup M \<Longrightarrow> atm_of ` (lits_of_l M) \<subseteq> set all_clauses_literals \<Longrightarrow> atm_of ` (lits_of_l (complete_trail (remove_dup_information M))) = set all_clauses_literals\<close>
+  \<open>no_dup M \<Longrightarrow> atm_of ` (lits_of_l M) \<subseteq> set all_clauses_literals \<Longrightarrow>
+  atm_of ` (lits_of_l (complete_trail (remove_dup_information M))) = set all_clauses_literals\<close>
   by (simp_all add: atm_of_complete_trail atm_of_remove_dup_information)
 
 text \<open>TODO:
-  \<^item> complete_trail is doing the wrong thing (or it should be done before @{term \<open>remove_dup_information\<close>}).
+  \<^item> complete_trail is doing the wrong thing (or it should be done before
+    @{term \<open>remove_dup_information\<close>}).
   \<^item> is the measure really the simplest thing we can do?
 \<close>
 
+
+fun ocdcl_score_rev :: \<open>('v, _) ann_lits \<Rightarrow> nat list\<close> where
+  \<open>ocdcl_score_rev  [] = []\<close> |
+  \<open>ocdcl_score_rev (Propagated K C # M) =
+     (if defined_lit M (Pos (opposite_var (atm_of K)))
+         then 1 else 0) #
+     ocdcl_score_rev M\<close> |
+  \<open>ocdcl_score_rev (Decided K # M) =
+     (if atm_of K \<in> \<Sigma> - \<Delta>\<Sigma> then 1
+     else if defined_lit M (Pos (opposite_var (atm_of K)))
+         then 2 else 1) #  ocdcl_score_rev M\<close>
+
+
+definition ocdcl_mu where
+  \<open>ocdcl_mu M = rev (ocdcl_score_rev (complete_trail M))\<close>
+
+lemma ocdcl_score_rev_in_0_3:
+  \<open>x \<in> set (ocdcl_score_rev M) \<Longrightarrow> x \<in> {0..<3}\<close>
+  by (induction M rule: ann_lit_list_induct) auto
+
+lemma \<open>no_dup M \<Longrightarrow> length (ocdcl_score_rev M) \<le> length M\<close>
 
 fun ocdcl_score_rev :: \<open>('v, 'b) ann_lits \<Rightarrow> ('v, 'b) ann_lits \<Rightarrow> nat\<close> where
   \<open>ocdcl_score_rev _ [] = 0\<close> |
@@ -432,7 +722,7 @@ lemma
     apply (auto simp: card_insert_if atm_of_eq_atm_of lits_of_def image_image
       atms_of_def image_Un dest!: split_list[of _ M'a])
   oops
-
+*)
 end
 
 
@@ -1401,8 +1691,6 @@ lemma set_all_new_literals[simp]:
   using finite_\<Sigma> apply (simp add: all_new_literals_def)
   apply (metis (mono_tags) ex_mset finite_Un finite_\<Sigma> finite_imageI finite_set_mset_mset_set set_mset_mset someI)
   done
-definition opposite_var where
-  \<open>opposite_var L = (if L \<in> replacement_pos ` \<Delta>\<Sigma> then replacement_neg (base_atm L) else replacement_pos (base_atm L))\<close>
 
 text \<open>This function is basically resolving the clause with all the additional clauses \<^term>\<open>{#Neg (replacement_pos L), Neg (replacement_neg L)#}\<close>.\<close>
 fun resolve_with_all_new_literals :: \<open>'v clause \<Rightarrow> 'v list \<Rightarrow> 'v clause\<close> where
@@ -1424,14 +1712,6 @@ lemma opposite_var_involutive[simp]:
   \<open>L \<in> (replacement_neg ` \<Delta>\<Sigma> \<union> replacement_pos ` \<Delta>\<Sigma>) \<Longrightarrow> opposite_var (opposite_var L) = L\<close>
   by (auto simp: opposite_var_def)
 
-
-lemma opposite_var_replacement_if[simp]:
-  \<open>L \<in> (replacement_neg ` \<Delta>\<Sigma> \<union> replacement_pos ` \<Delta>\<Sigma>) \<Longrightarrow> A \<in> \<Delta>\<Sigma> \<Longrightarrow>
-   opposite_var L = replacement_pos A \<longleftrightarrow> L = replacement_neg A\<close>
-  \<open>L \<in> (replacement_neg ` \<Delta>\<Sigma> \<union> replacement_pos ` \<Delta>\<Sigma>) \<Longrightarrow> A \<in> \<Delta>\<Sigma> \<Longrightarrow>
-   opposite_var L = replacement_neg A \<longleftrightarrow> L = replacement_pos A\<close>
-  by (auto simp: opposite_var_def)
-
 lemma Neg_in_resolve_with_all_new_literals_Pos_notin:
    \<open>L \<in> (replacement_neg ` \<Delta>\<Sigma> \<union> replacement_pos ` \<Delta>\<Sigma>) \<Longrightarrow> set xs \<subseteq> (replacement_neg ` \<Delta>\<Sigma> \<union> replacement_pos ` \<Delta>\<Sigma>) \<Longrightarrow>
       Pos (opposite_var L) \<notin># C \<Longrightarrow> Neg L \<in># resolve_with_all_new_literals C xs \<longleftrightarrow> Neg L \<in># C\<close>
@@ -1439,9 +1719,7 @@ lemma Neg_in_resolve_with_all_new_literals_Pos_notin:
   apply clarsimp+
   subgoal premises p
     using p(2-)
-    apply (auto simp del: Neg_in_normalize2 simp: eq_commute[of _ \<open>opposite_var _\<close>])
-    using opposite_var_replacement_if(1) apply fastforce
-    by (simp add: opposite_var_def)
+    by (auto simp del: Neg_in_normalize2 simp: eq_commute[of _ \<open>opposite_var _\<close>])
   done
 
 lemma Pos_in_normalize2_Neg_notin[simp]:
@@ -1472,6 +1750,10 @@ lemma Pos_in_normalize2_iff_already_in_or_negation_in:
   using Pos_in_resolve_with_all_new_literals_iff_already_in_or_negation_in[of L \<open>all_new_literals\<close> C]
   by auto
 
+
+text \<open>This proof makes it hard to measure progress because I currently do not see a way to
+distinguish between \<^term>\<open>add_mset (replacement_pos A) C\<close> and  \<^term>\<open>add_mset (replacement_pos A)
+  (add_mset (replacement_neg A) C)\<close>. \<close>
 lemma
   assumes
     \<open>enc_weight_opt.cdcl_bnb_stgy S T\<close> and
@@ -1586,8 +1868,6 @@ next
   qed
 qed
 *)
-
-end
 
 end
 
