@@ -1743,19 +1743,57 @@ definition remove_one_annot_true_clause_one_imp_pre where
            (\<exists>S'. (T, S') \<in> twl_st_l None \<and> twl_struct_invs S') \<and>
            get_conflict_l T = None \<and> clauses_to_update_l T = {#})\<close>
 
+definition replace_annot_l_pre :: \<open>'v literal \<Rightarrow> nat \<Rightarrow> 'v twl_st_l \<Rightarrow> bool\<close> where
+\<open>replace_annot_l_pre L C S \<longleftrightarrow>
+   Propagated L C \<in> set (get_trail_l S) \<and> C > 0 \<and>
+   (\<exists>i. remove_one_annot_true_clause_one_imp_pre i S)\<close>
+
+lemma replace_annot_l_pre_alt_def:
+  \<open>replace_annot_l_pre L C S \<longleftrightarrow>
+   (Propagated L C \<in> set (get_trail_l S) \<and> C > 0 \<and>
+   (\<exists>i. remove_one_annot_true_clause_one_imp_pre i S)) \<and>
+   L \<in># all_lits_of_mm (mset `# init_clss_lf (get_clauses_l S) + get_unit_init_clauses_l S)\<close>
+   (is \<open>?A \<longleftrightarrow> ?B\<close>)
+proof -
+  have \<open>L \<in># all_lits_of_mm (mset `# init_clss_lf (get_clauses_l S) + get_unit_init_clauses_l S)\<close>
+    if pre: \<open>replace_annot_l_pre L C S\<close> and LC: \<open>Propagated L C \<in> set (get_trail_l S)\<close>
+  proof -
+    obtain T where
+      ST: \<open>(S, T) \<in> twl_st_l None\<close> and
+      struct: \<open>twl_struct_invs T\<close> and
+      \<open>get_conflict_l S = None\<close>
+      using pre unfolding replace_annot_l_pre_def
+        remove_one_annot_true_clause_one_imp_pre_def
+      by fast
+    have \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of T)\<close>
+      using struct unfolding twl_struct_invs_def
+        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+      by fast
+    then show \<open>?thesis\<close>
+      using ST LC unfolding cdcl\<^sub>W_restart_mset.no_strange_atm_def
+      by (auto simp: twl_st twl_st_l in_all_lits_of_mm_ain_atms_of_iff
+         lits_of_def image_image)
+  qed
+  then show \<open>?thesis\<close>
+    by (auto simp: replace_annot_l_pre_def)
+qed
+
 definition replace_annot_l where
   \<open>replace_annot_l L C =
     (\<lambda>(M, N, D, NE, UE, Q, W). do {
+      ASSERT(replace_annot_l_pre L C (M, N, D, NE, UE, Q, W));
       RES {(M', N, D, NE, UE, Q, W)| M'.
        (\<exists>M2 M1 C. M = M2 @ Propagated L C # M1 \<and> M' = M2 @ Propagated L 0 # M1)}
    })\<close>
 
 definition remove_and_add_cls_l where
   \<open>remove_and_add_cls_l C =
-    (\<lambda>(M, N, D, NE, UE, Q, W).
-      RETURN (M, fmdrop C N, D,
+    (\<lambda>(M, N, D, NE, UE, Q, W). do {
+       ASSERT(C \<in># dom_m N);
+        RETURN (M, fmdrop C N, D,
          (if irred N C then add_mset (mset (N\<propto>C)) else id) NE,
-	 (if \<not>irred N C then add_mset (mset (N\<propto>C)) else id) UE, Q, W))\<close>
+	 (if \<not>irred N C then add_mset (mset (N\<propto>C)) else id) UE, Q, W)
+    })\<close>
 
 text \<open>The following progrom removes all clauses that are annotations. However, this is not compatible
 with binary clauses, since we want to make sure that they should not been deleted.
@@ -2427,11 +2465,14 @@ proof -
     moreover have \<open>C = Ca\<close> if \<open>M = M2 @ Propagated L Ca # M1\<close> for M1 M2 Ca
       using LC_T n_d
       by (auto simp: T that dest!: in_set_definedD)
+    moreover have \<open>replace_annot_l_pre L C (M, N, D, NE, UE, WS, Q)\<close>
+      using LC_T that unfolding replace_annot_l_pre_def
+      by (auto simp: T)
     ultimately show ?thesis
       using dom cond
       by (auto simp: remove_and_add_cls_l_def
         replace_annot_l_def T iT
-	intro!: RETURN_le_RES_no_return)
+	intro!: RETURN_le_RES_no_return ASSERT_leI)
   qed
 
   have rev_set: \<open>rev (get_trail_l T) ! i \<in> set (get_trail_l T)\<close>

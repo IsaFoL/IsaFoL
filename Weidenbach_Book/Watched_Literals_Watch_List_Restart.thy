@@ -595,6 +595,50 @@ definition remove_one_annot_true_clause_one_imp_wl_pre where
        remove_one_annot_true_clause_one_imp_pre i T' \<and>
        correct_watching'' T \<and> literals_are_\<L>\<^sub>i\<^sub>n' T)\<close>
 
+definition replace_annot_wl_pre :: \<open>'v literal \<Rightarrow> nat \<Rightarrow> 'v twl_st_wl \<Rightarrow> bool\<close> where
+\<open>replace_annot_wl_pre L C S \<longleftrightarrow>
+  (\<exists>S'. (S, S') \<in> state_wl_l None \<and> L \<in># all_init_lits_st S \<and>
+    replace_annot_l_pre L C S' \<and> literals_are_\<L>\<^sub>i\<^sub>n' S \<and>
+    correct_watching'' S)\<close>
+
+definition replace_annot_wl :: \<open>'v literal \<Rightarrow> nat \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
+  \<open>replace_annot_wl L C =
+    (\<lambda>(M, N, D, NE, UE, Q, W). do {
+      ASSERT(replace_annot_wl_pre L C (M, N, D, NE, UE, Q, W));
+      RES {(M', N, D, NE, UE, Q, W)| M'.
+       (\<exists>M2 M1 C. M = M2 @ Propagated L C # M1 \<and> M' = M2 @ Propagated L 0 # M1)}
+   })\<close>
+
+lemma replace_annot_l_pre_replace_annot_wl_pre: \<open>(((L, C), S), (L', C'), S')
+    \<in> Id \<times>\<^sub>f nat_rel \<times>\<^sub>f
+      {(S, T).
+       (S, T) \<in> state_wl_l None \<and>
+       correct_watching'' S \<and> literals_are_\<L>\<^sub>i\<^sub>n' S} \<Longrightarrow>
+    replace_annot_l_pre L' C' S' \<Longrightarrow>
+    replace_annot_wl_pre L C S\<close>
+    unfolding replace_annot_wl_pre_def replace_annot_l_pre_alt_def
+    unfolding replace_annot_l_pre_def[symmetric]
+    by (rule exI[of _ \<open>S'\<close>])
+      (auto simp add: all_init_lits_def)
+
+lemma replace_annot_wl_replace_annot_l:
+  \<open>(uncurry2 replace_annot_wl, uncurry2 replace_annot_l) \<in>
+    Id \<times>\<^sub>f nat_rel \<times>\<^sub>f {(S, T). (S, T) \<in> state_wl_l None \<and> correct_watching'' S \<and>
+        literals_are_\<L>\<^sub>i\<^sub>n' S} \<rightarrow>\<^sub>f
+    \<langle>{(S, T). (S, T) \<in> state_wl_l None \<and> correct_watching'' S \<and>
+        literals_are_\<L>\<^sub>i\<^sub>n' S}\<rangle>nres_rel\<close>
+    unfolding replace_annot_wl_def replace_annot_l_def uncurry_def
+    apply (intro frefI nres_relI)
+    apply clarify
+    apply refine_rcg
+    subgoal for a b aa ab ac ad ae af ba ag bb ah ai aj ak al am bc
+      by (force intro!: replace_annot_l_pre_replace_annot_wl_pre)
+    subgoal
+      by (rule RES_refine)
+        (fastforce simp: state_wl_l_def literals_are_\<L>\<^sub>i\<^sub>n'_def
+          correct_watching''.simps clause_to_update_def blits_in_\<L>\<^sub>i\<^sub>n'_def)
+    done
+
 definition remove_one_annot_true_clause_one_imp_wl
   :: \<open>nat \<Rightarrow> 'v twl_st_wl \<Rightarrow> (nat \<times> 'v twl_st_wl) nres\<close>
 where
@@ -607,8 +651,7 @@ where
       if C = 0 then RETURN (i+1, S)
       else do {
         ASSERT(C \<in># dom_m (get_clauses_wl S));
-	S \<leftarrow> replace_annot_l L C S;
-        ASSERT(C \<in># dom_m (get_clauses_wl S));
+	S \<leftarrow> replace_annot_wl L C S;
 	S \<leftarrow> remove_and_add_cls_l C S;
         \<comment> \<open>\<^text>\<open>S \<leftarrow> remove_all_annot_true_clause_imp_wl L S;\<close>\<close>
         RETURN (i+1, S)
@@ -651,16 +694,9 @@ lemma remove_one_annot_true_clause_one_imp_wl_remove_one_annot_true_clause_one_i
       \<langle>nat_rel \<times>\<^sub>f {(S, T). (S, T) \<in> state_wl_l None \<and> correct_watching'' S \<and> literals_are_\<L>\<^sub>i\<^sub>n' S}\<rangle>nres_rel\<close>
     (is \<open>_ \<in> _ \<times>\<^sub>f ?A \<rightarrow>\<^sub>f _\<close>)
 proof -
-  have [refine0]: \<open>replace_annot_l L C S \<le>
-     \<Down> {(S', T'). (S', T') \<in> ?A \<and> get_clauses_wl S' = get_clauses_wl S} (replace_annot_l L' C' T')\<close>
-    if \<open>(L, L') \<in> Id\<close> and \<open>(S, T') \<in> ?A\<close> and \<open>(C, C') \<in> Id\<close> for L L' S T' C C'
-    using that by (cases S; cases T')
-      (fastforce simp: replace_annot_l_def state_wl_l_def literals_are_\<L>\<^sub>i\<^sub>n'_def
-          correct_watching''.simps clause_to_update_def blits_in_\<L>\<^sub>i\<^sub>n'_def
-        intro: RES_refine)
+
   have [refine0]: \<open>remove_and_add_cls_l C S \<le>\<Down> ?A (remove_and_add_cls_l C' S')\<close>
-    if \<open>(C, C') \<in> Id\<close> and \<open>(S, S') \<in> ?A\<close> and
-      \<open>C \<in># dom_m (get_clauses_wl S)\<close>
+    if \<open>(C, C') \<in> Id\<close> and \<open>(S, S') \<in> ?A\<close>
       for C C' S S'
     using that unfolding remove_and_add_cls_l_def
     by refine_rcg
@@ -671,7 +707,7 @@ proof -
     unfolding remove_one_annot_true_clause_one_imp_wl_def remove_one_annot_true_clause_one_imp_def
       uncurry_def
     apply (intro frefI nres_relI)
-    apply (refine_vcg)
+    apply (refine_vcg replace_annot_wl_replace_annot_l[THEN fref_to_Down_curry2])
     subgoal for x y unfolding remove_one_annot_true_clause_one_imp_wl_pre_def
       by (rule exI[of _ \<open>snd y\<close>]) auto
     subgoal by (simp add: state_wl_l_def)
@@ -693,10 +729,6 @@ proof -
     subgoal by (simp add: state_wl_l_def)
     subgoal by simp
     subgoal by (simp add: state_wl_l_def)
-    subgoal by (simp add: state_wl_l_def)
-    subgoal by (simp add: state_wl_l_def)
-    subgoal by (auto 5 5 simp add: state_wl_l_def)
-    subgoal by (auto simp add: state_wl_l_def)
     done
 qed
 
@@ -1287,8 +1319,10 @@ where
   \<open>mark_to_delete_clauses_wl2_inv = (\<lambda>S xs0 (i, T, xs).
      \<exists>S' T'. (S, S') \<in> state_wl_l None \<and> (T, T') \<in> state_wl_l None \<and>
       mark_to_delete_clauses_l_inv S' xs0 (i, T', xs) \<and>
-      correct_watching'' S)\<close>
+      correct_watching'' S \<and> literals_are_\<L>\<^sub>i\<^sub>n' S \<and> literals_are_\<L>\<^sub>i\<^sub>n' T)\<close>
 
+
+(*TODO What is exactly the difference with mark_to_delete_clauses_wl?*)
 definition mark_to_delete_clauses_wl2 :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
 \<open>mark_to_delete_clauses_wl2  = (\<lambda>S. do {
     ASSERT(mark_to_delete_clauses_wl_pre S);
@@ -1300,6 +1334,7 @@ definition mark_to_delete_clauses_wl2 :: \<open>'v twl_st_wl \<Rightarrow> 'v tw
         if(xs!i \<notin># dom_m (get_clauses_wl T)) then RETURN (i, T, delete_index_and_swap xs i)
         else do {
           ASSERT(0 < length (get_clauses_wl T\<propto>(xs!i)));
+	  ASSERT (get_clauses_wl T \<propto> (xs ! i) ! 0 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_init_atms_st T));
           can_del \<leftarrow> SPEC(\<lambda>b. b \<longrightarrow>
              (Propagated (get_clauses_wl T\<propto>(xs!i)!0) (xs!i) \<notin> set (get_trail_wl T)) \<and>
               \<not>irred (get_clauses_wl T) (xs!i) \<and> length (get_clauses_wl T \<propto> (xs!i)) \<noteq> 2);
@@ -1315,6 +1350,23 @@ definition mark_to_delete_clauses_wl2 :: \<open>'v twl_st_wl \<Rightarrow> 'v tw
     RETURN S
   })\<close>
 
+lemma mark_to_delete_clauses_wl2_invD1:
+  assumes \<open>mark_to_delete_clauses_wl2_inv S xs (i, T, ys)\<close> and
+    \<open>C \<in># dom_m (get_clauses_wl T)\<close> and
+    \<open>0 < length (get_clauses_wl T \<propto> C)\<close>
+  shows
+    \<open>get_clauses_wl T \<propto> C ! 0 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_init_atms_st T)\<close>
+proof -
+  have \<open>literals_are_\<L>\<^sub>i\<^sub>n' T\<close>
+    using assms unfolding mark_to_delete_clauses_wl2_inv_def by blast
+  then have \<open>get_clauses_wl T \<propto> C ! 0 \<in># all_init_lits_st T\<close>
+    using assms(2,3) by (auto dest!: multi_member_split
+      simp: ran_m_def all_init_lits_def all_lits_of_mm_add_mset
+        in_clause_in_all_lits_of_m literals_are_\<L>\<^sub>i\<^sub>n'_def
+        in_clause_in_all_lits_of_m subsetD)
+  then show \<open>?thesis\<close>
+    by (simp add: \<L>\<^sub>a\<^sub>l\<^sub>l_all_init_atms(1))
+qed
 
 lemma mark_to_delete_clauses_wl_mark_to_delete_clauses_l2:
   \<open>(mark_to_delete_clauses_wl2, mark_to_delete_clauses_l)
@@ -1347,6 +1399,8 @@ proof -
     subgoal by (force simp: state_wl_l_def)
     subgoal by auto
     subgoal by (force simp: state_wl_l_def)
+    subgoal for x y xs xsa l to_keep xa x' x1 x2 x1a x2a x1b x2b x1c x2c
+      by (auto simp: mark_to_delete_clauses_wl2_invD1)
     subgoal by (auto simp: state_wl_l_def can_delete_def)
     subgoal by auto
     subgoal by (force simp: state_wl_l_def)

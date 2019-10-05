@@ -1867,22 +1867,30 @@ qed
 lemmas trail_pol_replace_annot_in_trail_spec2 =
   trail_pol_replace_annot_in_trail_spec[of \<open>- _\<close>, simplified]
 
+lemma \<L>\<^sub>a\<^sub>l\<^sub>l_ball_all:
+  \<open>(\<forall>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms N NUE). P L) = (\<forall>L \<in># all_lits N NUE. P L)\<close>
+  \<open>(\<forall>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_init_atms N NUE). P L) = (\<forall>L \<in># all_init_lits N NUE. P L)\<close>
+  by (simp_all add: \<L>\<^sub>a\<^sub>l\<^sub>l_all_atms_all_lits  \<L>\<^sub>a\<^sub>l\<^sub>l_all_init_atms)
+
+
 lemma isasat_replace_annot_in_trail_replace_annot_in_trail_spec:
-  \<open>Propagated L' C' \<in> set (get_trail_wl S') \<and> atm_of L' \<in># all_init_atms_st S' \<Longrightarrow>
-  (((L, C), S), ((L', C'), S')) \<in> Id \<times>\<^sub>f Id \<times>\<^sub>f twl_st_heur_restart_ana r \<Longrightarrow> 
+  \<open>(((L, C), S), ((L', C'), S')) \<in> Id \<times>\<^sub>f Id \<times>\<^sub>f twl_st_heur_restart_ana r \<Longrightarrow>
   isasat_replace_annot_in_trail L C S \<le>
-    \<Down>{(U, U'). (U, U') \<in> twl_st_heur_restart_ana r}
-    (replace_annot_l L' C' S')\<close>
-  unfolding isasat_replace_annot_in_trail_def replace_annot_l_def
+    \<Down>{(U, U'). (U, U') \<in> twl_st_heur_restart_ana r \<and>
+       get_clauses_wl_heur U = get_clauses_wl_heur S \<and>
+       get_vdom U = get_vdom S \<and>
+       equality_except_trail_wl U' S'}
+    (replace_annot_wl L' C' S')\<close>
+  unfolding isasat_replace_annot_in_trail_def replace_annot_wl_def
     uncurry_def
   apply refine_rcg
   subgoal
-    using in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n
-    by (auto simp: trail_pol_alt_def ann_lits_split_reasons_def
-      twl_st_heur_restart_def twl_st_heur_restart_ana_def)
+    by (auto simp: trail_pol_alt_def ann_lits_split_reasons_def \<L>\<^sub>a\<^sub>l\<^sub>l_ball_all
+      twl_st_heur_restart_def twl_st_heur_restart_ana_def replace_annot_wl_pre_def)
   subgoal for x y x1 x1a x2 x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f
       x2f x1g x2g x1h x1i
       x2h x2i
+    unfolding replace_annot_wl_pre_def replace_annot_l_pre_def
     apply (clarify dest!: split_list[of \<open>Propagated _ _\<close>])
     apply (rule RETURN_SPEC_refine)
     apply (rule_tac x = \<open>(ys @ Propagated L 0 # zs, x1, x2, x1b,
@@ -1892,10 +1900,12 @@ lemma isasat_replace_annot_in_trail_replace_annot_in_trail_spec:
     apply (rule_tac x = \<open>ys @ Propagated L 0 # zs\<close> in exI)
     apply (intro conjI)
     apply blast
-    by (auto intro!: trail_pol_replace_annot_in_trail_spec
+    apply (cases x2i; auto intro!: trail_pol_replace_annot_in_trail_spec
         trail_pol_replace_annot_in_trail_spec2
-      simp: atm_of_eq_atm_of all_init_atms_def
-      simp del: all_init_atms_def[symmetric])
+      simp: atm_of_eq_atm_of all_init_atms_def replace_annot_wl_pre_def
+        \<L>\<^sub>a\<^sub>l\<^sub>l_ball_all replace_annot_l_pre_def state_wl_l_def
+      simp del: all_init_atms_def[symmetric])+
+    done
   done
 
 definition mark_garbage_heur2 :: \<open>nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
@@ -2121,30 +2131,28 @@ qed
 lemma red_in_dom_number_of_learned_ge1: \<open>C' \<in># dom_m baa \<Longrightarrow> \<not> irred baa C' \<Longrightarrow> Suc 0 \<le> size (learned_clss_l baa)\<close>
   by (auto simp: ran_m_def dest!: multi_member_split)
 
-lemma all_init_atms_fmdrop_add_mset_unit:
-  \<open>C \<in># dom_m baa \<Longrightarrow> irred baa C \<Longrightarrow>
-    all_init_atms (fmdrop C baa) (add_mset (mset (baa \<propto> C)) da) =
-   all_init_atms baa da\<close>
-  \<open>C \<in># dom_m baa \<Longrightarrow> \<not>irred baa C \<Longrightarrow>
-    all_init_atms (fmdrop C baa) da =
-   all_init_atms baa da\<close>
-  by (auto simp del: all_init_atms_def[symmetric]
-    simp: all_init_atms_def all_init_lits_def
-      init_clss_l_fmdrop_irrelev image_mset_remove1_mset_if)
-
 lemma mark_garbage_heur2_remove_and_add_cls_l:
   \<open>(S, T) \<in> twl_st_heur_restart_ana r \<Longrightarrow> (C, C') \<in> Id \<Longrightarrow>
-    C \<in># dom_m (get_clauses_wl T) \<Longrightarrow>
     mark_garbage_heur2 C S
        \<le> \<Down> (twl_st_heur_restart_ana r) (remove_and_add_cls_l C' T)\<close>
-  unfolding mark_garbage_heur2_def remove_and_add_cls_l_def
+  unfolding mark_garbage_heur2_def remove_and_add_cls_l_def Let_def
   apply (cases S; cases T)
-  by  (auto simp: twl_st_heur_restart_def arena_lifting
+  apply refine_rcg
+  subgoal
+    by  (auto simp: twl_st_heur_restart_def arena_lifting
+      valid_arena_extra_information_mark_to_delete'
+      all_init_atms_fmdrop_add_mset_unit learned_clss_l_l_fmdrop
+      learned_clss_l_l_fmdrop_irrelev twl_st_heur_restart_ana_def ASSERT_refine_left
+      size_Diff_singleton red_in_dom_number_of_learned_ge1 intro!: ASSERT_leI
+    dest: in_vdom_m_fmdropD)
+  subgoal
+    by  (auto simp: twl_st_heur_restart_def arena_lifting
       valid_arena_extra_information_mark_to_delete'
       all_init_atms_fmdrop_add_mset_unit learned_clss_l_l_fmdrop
       learned_clss_l_l_fmdrop_irrelev twl_st_heur_restart_ana_def
-      size_Diff_singleton red_in_dom_number_of_learned_ge1 intro!: ASSERT_leI
+      size_Diff_singleton red_in_dom_number_of_learned_ge1
     dest: in_vdom_m_fmdropD)
+  done
 
 lemma remove_one_annot_true_clause_one_imp_wl_pre_fst_le_uint32:
   assumes \<open>(x, y) \<in> nat_rel \<times>\<^sub>f twl_st_heur_restart_ana r\<close> and
@@ -2193,34 +2201,29 @@ lemma remove_one_annot_true_clause_one_imp_wl_D_heur_remove_one_annot_true_claus
        trail_pol_alt_def)+
   subgoal by auto
   subgoal for p pa
-    by (cases pa)
+    by (cases pa; cases p; cases x; cases y)
       (auto simp: all_init_atms_def simp del: all_init_atms_def[symmetric])
-  subgoal
-    by (cases x, cases y)
-     (fastforce simp: twl_st_heur_restart_def
-       trail_pol_alt_def)+
+
   subgoal for p pa S Sa
     unfolding mark_garbage_pre_def
       arena_is_valid_clause_idx_def
       prod.case
     apply (rule_tac x = \<open>get_clauses_wl Sa\<close> in exI)
     apply (rule_tac x = \<open>set (get_vdom S)\<close> in exI)
-    apply (case_tac S, case_tac Sa)
+    apply (case_tac S, case_tac Sa; cases y)
     apply (auto simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def)
     done
   subgoal for p pa S Sa
     unfolding arena_is_valid_clause_vdom_def
     apply (rule_tac x = \<open>get_clauses_wl Sa\<close> in exI)
     apply (rule_tac x = \<open>set (get_vdom S)\<close> in exI)
-    apply (case_tac S, case_tac Sa)
+    apply (case_tac S, case_tac Sa; cases y)
     apply (auto simp: twl_st_heur_restart_def twl_st_heur_restart_ana_def)
     done
   subgoal
     by auto
   subgoal
     by auto
-  subgoal
-    by fastforce
   subgoal
     by (cases x, cases y) fastforce
   done
@@ -2755,7 +2758,6 @@ proof -
      \<in> nat_rel \<times>\<^sub>f {(Sa, T, xs). (Sa, T) \<in> twl_st_heur_restart_ana r \<and> xs = get_avdom Sa}\<close> and
       \<open>case xa of (i, S) \<Rightarrow> i < length (get_avdom S)\<close> and
       \<open>case x' of (i, T, xs) \<Rightarrow> i < length xs\<close> and
-      \<open>mark_to_delete_clauses_wl2_D_inv Sa xs x'\<close> and
       st:
       \<open>x2 = (x1a, x2a)\<close>
       \<open>x' = (x1, x2)\<close>
@@ -2886,7 +2888,8 @@ proof -
         (auto simp: twl_st_heur_restart dest: twl_st_heur_restart_valid_arena)
     subgoal
       by (auto intro!: mark_unused_st_heur_ana)
-    subgoal by (auto simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def dest!: valid_arena_vdom_subset size_mset_mono)
+    subgoal by (auto simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def
+      dest!: valid_arena_vdom_subset size_mset_mono)
     subgoal
       by (auto simp:)
     done
@@ -3607,10 +3610,10 @@ qed
 
 definition isasat_GC_clauses_prog_wl :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
   \<open>isasat_GC_clauses_prog_wl = (\<lambda>(M', N', D', j, W', ((ns, st, fst_As, lst_As, nxt), to_remove), \<phi>, clvls, cach, lbd, outl, stats,
-    fast_ema, slow_ema, ccount,  vdom, avdom, lcount, opts, old_arena). do {
+    heur,  vdom, avdom, lcount, opts, old_arena). do {
     ASSERT(old_arena = []);
     (N, (N', vdom, avdom), WS) \<leftarrow> isasat_GC_clauses_prog_wl2 (ns, Some fst_As) (N', (old_arena, take 0 vdom, take 0 avdom), W');
-    RETURN (M', N', D', j, WS, ((ns, st, fst_As, lst_As, nxt), to_remove), \<phi>, clvls, cach, lbd, outl, incr_GC stats, fast_ema, slow_ema, ccount,
+    RETURN (M', N', D', j, WS, ((ns, st, fst_As, lst_As, nxt), to_remove), \<phi>, clvls, cach, lbd, outl, incr_GC stats, heur,
        vdom, avdom, lcount, opts, take 0 N)
   })\<close>
 
@@ -3623,7 +3626,7 @@ proof
   fix x2
   assume x2: \<open>x2 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_init_atms_st x1)\<close>
   have \<open>correct_watching'' x1\<close>
-    using prop_inv unfolding unit_propagation_outer_loop_wl_D_inv_def
+    using prop_inv unfolding unit_propagation_outer_loop_wl_inv_def
       unit_propagation_outer_loop_wl_inv_def
     by auto
   then have dist: \<open>distinct_watched (watched_by x1 x2)\<close>
@@ -3679,7 +3682,7 @@ proof-
   have [refine0]: \<open>\<And>x1 x1a x1b x1c x1d x1e x2e x1f x1g x1h x1i x1j x1m x1n x1o x1p x2n x2o x1q
        x1r x1s x1t x1u x1v x1w x1x x1y x1z x1aa x1ab x2ab.
        ((x1f, x1g, x1h, x1i, x1j, ((x1m, x1n, x1o, x1p, x2n), x2o), x1q, x1r,
-         x1s, x1t, x1u, x1v, x1w, x1x, x1y, x1z, x1aa, x1ab, x2ab),
+         x1s, x1t, x1w, x1x, x1y, x1z, x1aa, x1ab, x2ab),
         x1, x1a, x1b, x1c, x1d, x1e, x2e)
        \<in> ?T \<Longrightarrow>
        valid_arena x1g x1a (set x1z)\<close>
@@ -3688,7 +3691,7 @@ proof-
   have [refine0]: \<open>\<And>x1 x1a x1b x1c x1d x1e x2e x1f x1g x1h x1i x1j x1m x1n x1o x1p x2n x2o x1q
        x1r x1s x1t x1u x1v x1w x1x x1y x1z x1aa x1ab x2ab.
        ((x1f, x1g, x1h, x1i, x1j, ((x1m, x1n, x1o, x1p, x2n), x2o), x1q, x1r,
-         x1s, x1t, x1u, x1v, x1w, x1x, x1y, x1z, x1aa, x1ab, x2ab),
+         x1s, x1t, x1w, x1x, x1y, x1z, x1aa, x1ab, x2ab),
         x1, x1a, x1b, x1c, x1d, x1e, x2e)
        \<in> ?T \<Longrightarrow>
        isasat_input_bounded (all_init_atms x1a x1c)\<close>
@@ -3697,7 +3700,7 @@ proof-
   have [refine0]: \<open>\<And>x1 x1a x1b x1c x1d x1e x2e x1f x1g x1h x1i x1j x1m x1n x1o x1p x2n x2o x1q
        x1r x1s x1t x1u x1v x1w x1x x1y x1z x1aa x1ab x2ab.
        ((x1f, x1g, x1h, x1i, x1j, ((x1m, x1n, x1o, x1p, x2n), x2o), x1q, x1r,
-         x1s, x1t, x1u, x1v, x1w, x1x, x1y, x1z, x1aa, x1ab, x2ab),
+         x1s, x1t, x1w, x1x, x1y, x1z, x1aa, x1ab, x2ab),
         x1, x1a, x1b, x1c, x1d, x1e, x2e)
        \<in> ?T \<Longrightarrow>
        vdom_m (all_init_atms x1a x1c) x2e x1a \<subseteq> set x1z\<close>
@@ -3706,7 +3709,7 @@ proof-
   have [refine0]: \<open>\<And>x1 x1a x1b x1c x1d x1e x2e x1f x1g x1h x1i x1j x1m x1n x1o x1p x2n x2o x1q
        x1r x1s x1t x1u x1v x1w x1x x1y x1z x1aa x1ab x2ab.
        ((x1f, x1g, x1h, x1i, x1j, ((x1m, x1n, x1o, x1p, x2n), x2o), x1q, x1r,
-         x1s, x1t, x1u, x1v, x1w, x1x, x1y, x1z, x1aa, x1ab, x2ab),
+         x1s, x1t, x1w, x1x, x1y, x1z, x1aa, x1ab, x2ab),
         x1, x1a, x1b, x1c, x1d, x1e, x2e)
        \<in> ?T \<Longrightarrow>
        all_init_atms x1a x1c \<noteq> {#}\<close>
@@ -3715,14 +3718,14 @@ proof-
   have [refine0]: \<open>\<And>x1 x1a x1b x1c x1d x1e x2e x1f x1g x1h x1i x1j x1m x1n x1o x1p x2n x2o x1q
        x1r x1s x1t x1u x1v x1w x1x x1y x1z x1aa x1ab x2ab.
        ((x1f, x1g, x1h, x1i, x1j, ((x1m, x1n, x1o, x1p, x2n), x2o), x1q, x1r,
-         x1s, x1t, x1u, x1v, x1w, x1x, x1y, x1z, x1aa, x1ab, x2ab),
+         x1s, x1t, x1w, x1x, x1y, x1z, x1aa, x1ab, x2ab),
         x1, x1a, x1b, x1c, x1d, x1e, x2e)
        \<in> ?T \<Longrightarrow>
        ((x1m, x1n, x1o, x1p, x2n), set (fst x2o)) \<in> vmtf (all_init_atms x1a x1c) x1\<close>
        \<open>\<And>x1 x1a x1b x1c x1d x1e x2e x1f x1g x1h x1i x1j x1m x1n x1o x1p x2n x2o x1q
        x1r x1s x1t x1u x1v x1w x1x x1y x1z x1aa x1ab x2ab.
        ((x1f, x1g, x1h, x1i, x1j, ((x1m, x1n, x1o, x1p, x2n), x2o), x1q, x1r,
-         x1s, x1t, x1u, x1v, x1w, x1x, x1y, x1z, x1aa, x1ab, x2ab),
+         x1s, x1t, x1w, x1x, x1y, x1z, x1aa, x1ab, x2ab),
         x1, x1a, x1b, x1c, x1d, x1e, x2e)
        \<in> ?T \<Longrightarrow> (x1j, x2e) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 (all_init_atms x1a x1c))\<close>
      unfolding twl_st_heur_restart_def isa_vmtf_def distinct_atoms_rel_def distinct_hash_atoms_rel_def
@@ -3787,7 +3790,7 @@ lemma RES_RES7_RETURN_RES:
   by (auto simp:  pw_eq_iff refine_pw_simps uncurry_def Bex_def split: prod.splits)
 
 lemma cdcl_GC_clauses_wl_D_alt_def:
-  \<open>cdcl_GC_clauses_wl_D = (\<lambda>S. do {
+  \<open>cdcl_GC_clauses_wl = (\<lambda>S. do {
     ASSERT(cdcl_GC_clauses_pre_wl_D S);
     let b = True;
     if b then do {
@@ -3797,10 +3800,11 @@ lemma cdcl_GC_clauses_wl_D_alt_def:
     }
     else RETURN S})\<close>
   supply [[goals_limit=1]]
-  unfolding cdcl_GC_clauses_wl_D_def
+  unfolding cdcl_GC_clauses_wl_def
   by (fastforce intro!: ext simp: RES_RES_RETURN_RES2 cdcl_remap_st_def
-    RES_RES7_RETURN_RES uncurry_def image_iff
+    RES_RES7_RETURN_RES uncurry_def image_iff cdcl_remap_st_def
     RES_RETURN_RES_RES2 RES_RETURN_RES RES_RES2_RETURN_RES rewatch_spec_def
+    rewatch_spec_def
     intro!: bind_cong_nres)
 
 
@@ -3854,8 +3858,7 @@ lemma correct_watching''_clauses_pointed_to:
     xa_xb: \<open>(xa, xb) \<in> state_wl_l None\<close> and
     corr: \<open>correct_watching'' xa\<close> and
     pre: \<open>cdcl_GC_clauses_pre xb\<close> and
-    L: \<open>literals_are_\<L>\<^sub>i\<^sub>n'
-      (all_init_atms (get_clauses_wl xa) (get_unit_init_clss_wl xa)) xa\<close>
+    L: \<open>literals_are_\<L>\<^sub>i\<^sub>n' xa\<close>
   shows \<open>set_mset (dom_m (get_clauses_wl xa))
          \<subseteq> clauses_pointed_to
             (Neg `
@@ -4130,7 +4133,7 @@ proof -
 
   obtain M' N' D' j W' vm \<phi> clvls cach lbd outl stats fast_ema slow_ema ccount
        vdom avdom lcount opts where
-    S: \<open>S = (M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema, ccount,
+    S: \<open>S = (M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, (fast_ema, slow_ema, ccount),
        vdom, avdom, lcount, opts)\<close>
     by (cases S) auto
 
@@ -4150,7 +4153,7 @@ proof -
     using assms by (auto simp: twl_st_heur_restart_def S T)
   obtain x xa xb where
     y_x: \<open>(y, x) \<in> Id\<close> \<open>x = y\<close> and
-    lits_y: \<open>literals_are_\<L>\<^sub>i\<^sub>n' (all_init_atms_st y) y\<close> and
+    lits_y: \<open>literals_are_\<L>\<^sub>i\<^sub>n' y\<close> and
     x_xa: \<open>(x, xa) \<in> state_wl_l None\<close> and
     \<open>correct_watching'' x\<close> and
     xa_xb: \<open>(xa, xb) \<in> twl_st_l None\<close> and
