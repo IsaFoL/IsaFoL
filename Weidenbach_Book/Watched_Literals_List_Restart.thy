@@ -1745,9 +1745,10 @@ definition remove_one_annot_true_clause_one_imp_pre where
 
 definition replace_annot_l where
   \<open>replace_annot_l L C =
-    (\<lambda>(M, N, D, NE, UE, Q, W).
+    (\<lambda>(M, N, D, NE, UE, Q, W). do {
       RES {(M', N, D, NE, UE, Q, W)| M'.
-       (\<exists>M2 M1 C. M = M2 @ Propagated L C # M1 \<and> M' = M2 @ Propagated L 0 # M1)})\<close>
+       (\<exists>M2 M1 C. M = M2 @ Propagated L C # M1 \<and> M' = M2 @ Propagated L 0 # M1)}
+   })\<close>
 
 definition remove_and_add_cls_l where
   \<open>remove_and_add_cls_l C =
