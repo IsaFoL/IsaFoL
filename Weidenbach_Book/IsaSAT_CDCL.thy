@@ -102,7 +102,7 @@ proof -
 qed
 
 lemma cdcl_twl_o_prog_wl_D_heur_cdcl_twl_o_prog_wl_D:
-  \<open>(cdcl_twl_o_prog_wl_D_heur, cdcl_twl_o_prog_wl_D) \<in>
+  \<open>(cdcl_twl_o_prog_wl_D_heur, cdcl_twl_o_prog_wl) \<in>
    {(S, T). (S, T) \<in> twl_st_heur \<and> length (get_clauses_wl_heur S) = r} \<rightarrow>\<^sub>f
      \<langle>bool_rel \<times>\<^sub>f {(S, T). (S, T) \<in> twl_st_heur \<and>
         length (get_clauses_wl_heur S) \<le> r + 6 + uint32_max div 2}\<rangle>nres_rel\<close>
@@ -118,7 +118,7 @@ proof -
                length (get_clauses_wl_heur x)}\<close> for x y
     by (auto simp: twl_st_heur_state_simp twl_st_heur_twl_st_heur_conflict_ana)
   show ?thesis
-    unfolding cdcl_twl_o_prog_wl_D_heur_def cdcl_twl_o_prog_wl_D_def
+    unfolding cdcl_twl_o_prog_wl_D_heur_def cdcl_twl_o_prog_wl_def
       get_conflict_wl_is_None
     apply (intro frefI nres_relI)
     apply (refine_vcg
@@ -141,7 +141,7 @@ proof -
 qed
 
 lemma cdcl_twl_o_prog_wl_D_heur_cdcl_twl_o_prog_wl_D2:
-  \<open>(cdcl_twl_o_prog_wl_D_heur, cdcl_twl_o_prog_wl_D) \<in>
+  \<open>(cdcl_twl_o_prog_wl_D_heur, cdcl_twl_o_prog_wl) \<in>
    {(S, T). (S, T) \<in> twl_st_heur} \<rightarrow>\<^sub>f
      \<langle>bool_rel \<times>\<^sub>f {(S, T). (S, T) \<in> twl_st_heur}\<rangle>nres_rel\<close>
   apply (intro frefI nres_relI)
@@ -172,14 +172,14 @@ where
   \<close>
 
 theorem unit_propagation_outer_loop_wl_D_heur_unit_propagation_outer_loop_wl_D:
-  \<open>(unit_propagation_outer_loop_wl_D_heur, unit_propagation_outer_loop_wl_D) \<in>
+  \<open>(unit_propagation_outer_loop_wl_D_heur, unit_propagation_outer_loop_wl) \<in>
     twl_st_heur \<rightarrow>\<^sub>f \<langle>twl_st_heur\<rangle> nres_rel\<close>
   using twl_st_heur''D_twl_st_heurD[OF
      unit_propagation_outer_loop_wl_D_heur_unit_propagation_outer_loop_wl_D']
   .
 
 lemma cdcl_twl_stgy_prog_wl_D_heur_cdcl_twl_stgy_prog_wl_D:
-  \<open>(cdcl_twl_stgy_prog_wl_D_heur, cdcl_twl_stgy_prog_wl_D) \<in> twl_st_heur \<rightarrow>\<^sub>f \<langle>twl_st_heur\<rangle>nres_rel\<close>
+  \<open>(cdcl_twl_stgy_prog_wl_D_heur, cdcl_twl_stgy_prog_wl) \<in> twl_st_heur \<rightarrow>\<^sub>f \<langle>twl_st_heur\<rangle>nres_rel\<close>
 proof -
   have H: \<open>(x, y) \<in> {(S, T).
                (S, T) \<in> twl_st_heur \<and>
@@ -192,7 +192,7 @@ proof -
                length (get_clauses_wl_heur x)}\<close> for x y
     by (auto simp: twl_st_heur_state_simp twl_st_heur_twl_st_heur_conflict_ana)
   show ?thesis
-    unfolding cdcl_twl_stgy_prog_wl_D_heur_def cdcl_twl_stgy_prog_wl_D_def
+    unfolding cdcl_twl_stgy_prog_wl_D_heur_def cdcl_twl_stgy_prog_wl_def
     apply (intro frefI nres_relI)
     subgoal for x y
     apply (refine_vcg
@@ -253,7 +253,7 @@ where
 
 lemma cdcl_twl_stgy_restart_prog_early_wl_heur_cdcl_twl_stgy_restart_prog_early_wl_D:
   assumes r: \<open>r \<le> sint64_max\<close>
-  shows \<open>(cdcl_twl_stgy_prog_bounded_wl_heur, cdcl_twl_stgy_prog_early_wl_D) \<in>
+  shows \<open>(cdcl_twl_stgy_prog_bounded_wl_heur, cdcl_twl_stgy_prog_early_wl) \<in>
    twl_st_heur''' r \<rightarrow>\<^sub>f \<langle>bool_rel \<times>\<^sub>r twl_st_heur\<rangle>nres_rel\<close>
 proof -
   have A[refine0]: \<open>RETURN (isasat_fast x) \<le> \<Down>
@@ -276,7 +276,7 @@ proof -
   show ?thesis
     supply[[goals_limit=1]] isasat_fast_length_leD[dest] twl_st_heur'_def[simp]
     unfolding cdcl_twl_stgy_prog_bounded_wl_heur_def
-      cdcl_twl_stgy_prog_early_wl_D_def H
+      cdcl_twl_stgy_prog_early_wl_def H
     apply (intro frefI nres_relI)
     apply (refine_rcg
         cdcl_twl_o_prog_wl_D_heur_cdcl_twl_o_prog_wl_D[THEN fref_to_Down]

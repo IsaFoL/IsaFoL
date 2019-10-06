@@ -26,11 +26,11 @@ where
 
 
 lemma cdcl_twl_stgy_restart_prog_wl_heur_cdcl_twl_stgy_restart_prog_wl_D:
-  \<open>(cdcl_twl_stgy_restart_prog_wl_heur, cdcl_twl_stgy_restart_prog_wl_D) \<in>
+  \<open>(cdcl_twl_stgy_restart_prog_wl_heur, cdcl_twl_stgy_restart_prog_wl) \<in>
     twl_st_heur \<rightarrow>\<^sub>f \<langle>twl_st_heur\<rangle>nres_rel\<close>
 proof -
   show ?thesis
-    unfolding cdcl_twl_stgy_restart_prog_wl_heur_def cdcl_twl_stgy_restart_prog_wl_D_def
+    unfolding cdcl_twl_stgy_restart_prog_wl_heur_def cdcl_twl_stgy_restart_prog_wl_def
     apply (intro frefI nres_relI)
     apply (refine_rcg
         restart_prog_wl_D_heur_restart_prog_wl_D2[THEN fref_to_Down_curry2]
@@ -100,32 +100,32 @@ where
 
 lemma cdcl_twl_stgy_restart_prog_early_wl_heur_cdcl_twl_stgy_restart_prog_early_wl_D:
   assumes r: \<open>r \<le> uint64_max\<close>
-  shows \<open>(cdcl_twl_stgy_restart_prog_early_wl_heur, cdcl_twl_stgy_restart_prog_early_wl_D) \<in>
+  shows \<open>(cdcl_twl_stgy_restart_prog_early_wl_heur, cdcl_twl_stgy_restart_prog_early_wl) \<in>
    twl_st_heur''' r \<rightarrow>\<^sub>f \<langle>twl_st_heur\<rangle>nres_rel\<close>
 proof -
-  have cdcl_twl_stgy_restart_prog_early_wl_D_alt_def:
-  \<open>cdcl_twl_stgy_restart_prog_early_wl_D S\<^sub>0 = do {
+  have cdcl_twl_stgy_restart_prog_early_wl_alt_def:
+  \<open>cdcl_twl_stgy_restart_prog_early_wl S\<^sub>0 = do {
       ebrk \<leftarrow> RES UNIV;
-      (ebrk, brk, T, n) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(_, brk, T, n). cdcl_twl_stgy_restart_abs_wl_D_inv S\<^sub>0 brk T n\<^esup>
+      (ebrk, brk, T, n) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(_, brk, T, n). cdcl_twl_stgy_restart_abs_wl_inv S\<^sub>0 brk T n\<^esup>
 	        (\<lambda>(ebrk, brk, _). \<not>brk \<and> \<not>ebrk)
 	        (\<lambda>(_, brk, S, n).
 	        do {
-	          T \<leftarrow> unit_propagation_outer_loop_wl_D S;
-	          (brk, T) \<leftarrow> cdcl_twl_o_prog_wl_D T;
-	          (T, n) \<leftarrow> restart_prog_wl_D T n brk;
+	          T \<leftarrow> unit_propagation_outer_loop_wl S;
+	          (brk, T) \<leftarrow> cdcl_twl_o_prog_wl T;
+	          (T, n) \<leftarrow> restart_prog_wl T n brk;
 	          ebrk \<leftarrow> RES UNIV;
 	          RETURN (ebrk, brk, T, n)
 	        })
 	        (ebrk, False, S\<^sub>0::nat twl_st_wl, 0);
       if \<not>brk then do {
         T \<leftarrow> RETURN T;
-	(brk, T, _) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(brk, T, n). cdcl_twl_stgy_restart_abs_wl_D_inv S\<^sub>0 brk T n\<^esup>
+	(brk, T, _) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(brk, T, n). cdcl_twl_stgy_restart_abs_wl_inv S\<^sub>0 brk T n\<^esup>
 	  (\<lambda>(brk, _). \<not>brk)
 	  (\<lambda>(brk, S, n).
 	  do {
-	    T \<leftarrow> unit_propagation_outer_loop_wl_D S;
-	    (brk, T) \<leftarrow> cdcl_twl_o_prog_wl_D T;
-	    (T, n) \<leftarrow> restart_prog_wl_D T n brk;
+	    T \<leftarrow> unit_propagation_outer_loop_wl S;
+	    (brk, T) \<leftarrow> cdcl_twl_o_prog_wl T;
+	    (T, n) \<leftarrow> restart_prog_wl T n brk;
 	    RETURN (brk, T, n)
 	  })
 	  (False, T::nat twl_st_wl, n);
@@ -133,7 +133,7 @@ proof -
       }
       else RETURN T
     }\<close> for S\<^sub>0
-    unfolding cdcl_twl_stgy_restart_prog_early_wl_D_def nres_monad1 by auto
+    unfolding cdcl_twl_stgy_restart_prog_early_wl_def nres_monad1 by auto
   have [refine0]: \<open>RETURN (\<not>isasat_fast x) \<le> \<Down>
       {(b, b'). b = b' \<and> (b = (\<not>isasat_fast x))} (RES UNIV)\<close>
     for x
@@ -176,24 +176,18 @@ proof -
     (xb, x'a) \<in> bool_rel \<times>\<^sub>f (twl_st_heur \<times>\<^sub>f nat_rel) \<Longrightarrow>
     case x'a of
     (brk, xa, xb) \<Rightarrow>
-      cdcl_twl_stgy_restart_abs_wl_D_inv y brk xa xb \<Longrightarrow>
+      cdcl_twl_stgy_restart_abs_wl_inv y brk xa xb \<Longrightarrow>
     x2f = (x1g, x2g) \<Longrightarrow>
     xb = (x1f, x2f) \<Longrightarrow>
     cdcl_twl_stgy_restart_abs_wl_heur_inv x x1f x1g x2g\<close>
    for x y ebrk ebrka xa x' x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d
        x1e x2e T Ta xb x'a x1f x2f x1g x2g
     unfolding cdcl_twl_stgy_restart_abs_wl_heur_inv_def by fastforce
-thm restart_prog_wl_D_heur_restart_prog_wl_D[THEN fref_to_Down_curry2]
-        cdcl_twl_o_prog_wl_D_heur_cdcl_twl_o_prog_wl_D[THEN fref_to_Down]
-        unit_propagation_outer_loop_wl_D_heur_unit_propagation_outer_loop_wl_D'[THEN fref_to_Down]
-        WHILEIT_refine[where R = \<open>bool_rel \<times>\<^sub>r twl_st_heur \<times>\<^sub>r nat_rel\<close>]
-        WHILEIT_refine[where R = \<open>{((ebrk, brk, T,n), (ebrk', brk', T', n')).
-	    (ebrk = ebrk') \<and> (brk = brk') \<and> (T, T')  \<in> twl_st_heur \<and> n = n' \<and>
-	      (\<not>ebrk \<longrightarrow> isasat_fast T) \<and> length (get_clauses_wl_heur T) \<le> uint64_max}\<close>]
+
   show ?thesis
     supply[[goals_limit=1]] isasat_fast_length_leD[dest] twl_st_heur'_def[simp]
     unfolding cdcl_twl_stgy_restart_prog_early_wl_heur_def
-      cdcl_twl_stgy_restart_prog_early_wl_D_alt_def
+      cdcl_twl_stgy_restart_prog_early_wl_alt_def
     apply (intro frefI nres_relI)
     apply (refine_rcg
         restart_prog_wl_D_heur_restart_prog_wl_D[THEN fref_to_Down_curry2]
@@ -242,8 +236,8 @@ definition length_avdom :: \<open>twl_st_wl_heur \<Rightarrow> nat\<close> where
   \<open>length_avdom S = length (get_avdom S)\<close>
 
 lemma length_avdom_alt_def:
-  \<open>length_avdom = (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema,
-     ccount, vdom, avdom, lcount). length avdom)\<close>
+  \<open>length_avdom = (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, (fast_ema, slow_ema,
+     ccount), vdom, avdom, lcount). length avdom)\<close>
   by (intro ext) (auto simp: length_avdom_def)
 
 
@@ -253,8 +247,8 @@ where
   \<open>get_the_propagation_reason_heur S = get_the_propagation_reason_pol (get_trail_wl_heur S)\<close>
 
 lemma get_the_propagation_reason_heur_alt_def:
-  \<open>get_the_propagation_reason_heur = (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema,
-     ccount, vdom, lcount) L . get_the_propagation_reason_pol M' L)\<close>
+  \<open>get_the_propagation_reason_heur = (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, (fast_ema, slow_ema,
+     ccount), vdom, lcount) L . get_the_propagation_reason_pol M' L)\<close>
   by (intro ext) (auto simp: get_the_propagation_reason_heur_def)
 
 
@@ -263,8 +257,8 @@ where
   \<open>clause_is_learned_heur S C \<longleftrightarrow> arena_status (get_clauses_wl_heur S) C = LEARNED\<close>
 
 lemma clause_is_learned_heur_alt_def:
-  \<open>clause_is_learned_heur = (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema,
-     ccount, vdom, lcount) C . arena_status N' C = LEARNED)\<close>
+  \<open>clause_is_learned_heur = (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, (fast_ema, slow_ema,
+     ccount), vdom, lcount) C . arena_status N' C = LEARNED)\<close>
   by (intro ext) (auto simp: clause_is_learned_heur_def)
 
 
@@ -277,8 +271,8 @@ definition (in -) access_length_heur where
   \<open>access_length_heur S i = arena_length (get_clauses_wl_heur S) i\<close>
 
 lemma access_length_heur_alt_def:
-  \<open>access_length_heur = (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema,
-     ccount, vdom, lcount) C . arena_length N' C)\<close>
+  \<open>access_length_heur = (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, heur, vdom, lcount) C.
+     arena_length N' C)\<close>
   by (intro ext) (auto simp: access_length_heur_def arena_lbd_def)
 
 
@@ -287,8 +281,8 @@ definition marked_as_used_st where
     marked_as_used (get_clauses_wl_heur T) C\<close>
 
 lemma marked_as_used_st_alt_def:
-  \<open>marked_as_used_st = (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema,
-     ccount, vdom, lcount) C . marked_as_used N' C)\<close>
+  \<open>marked_as_used_st = (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, heur, vdom, lcount) C.
+     marked_as_used N' C)\<close>
   by (intro ext) (auto simp: marked_as_used_st_def)
 
 lemma mark_to_delete_clauses_wl_D_heur_is_Some_iff:
@@ -329,26 +323,26 @@ where
 
 lemma cdcl_twl_stgy_restart_prog_bounded_wl_heur_cdcl_twl_stgy_restart_prog_bounded_wl_D:
   assumes r: \<open>r \<le> uint64_max\<close>
-  shows \<open>(cdcl_twl_stgy_restart_prog_bounded_wl_heur, cdcl_twl_stgy_restart_prog_bounded_wl_D) \<in>
+  shows \<open>(cdcl_twl_stgy_restart_prog_bounded_wl_heur, cdcl_twl_stgy_restart_prog_bounded_wl) \<in>
    twl_st_heur''' r \<rightarrow>\<^sub>f \<langle>bool_rel \<times>\<^sub>r twl_st_heur\<rangle>nres_rel\<close>
 proof -
-  have cdcl_twl_stgy_restart_prog_bounded_wl_D_alt_def:
-  \<open>cdcl_twl_stgy_restart_prog_bounded_wl_D S\<^sub>0 = do {
+  have cdcl_twl_stgy_restart_prog_bounded_wl_alt_def:
+  \<open>cdcl_twl_stgy_restart_prog_bounded_wl S\<^sub>0 = do {
       ebrk \<leftarrow> RES UNIV;
-      (ebrk, brk, T, n) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(_, brk, T, n). cdcl_twl_stgy_restart_abs_wl_D_inv S\<^sub>0 brk T n\<^esup>
+      (ebrk, brk, T, n) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(_, brk, T, n). cdcl_twl_stgy_restart_abs_wl_inv S\<^sub>0 brk T n\<^esup>
 	        (\<lambda>(ebrk, brk, _). \<not>brk \<and> \<not>ebrk)
 	        (\<lambda>(_, brk, S, n).
 	        do {
-	          T \<leftarrow> unit_propagation_outer_loop_wl_D S;
-	          (brk, T) \<leftarrow> cdcl_twl_o_prog_wl_D T;
-	          (T, n) \<leftarrow> restart_prog_wl_D T n brk;
+	          T \<leftarrow> unit_propagation_outer_loop_wl S;
+	          (brk, T) \<leftarrow> cdcl_twl_o_prog_wl T;
+	          (T, n) \<leftarrow> restart_prog_wl T n brk;
 	          ebrk \<leftarrow> RES UNIV;
 	          RETURN (ebrk, brk, T, n)
 	        })
 	        (ebrk, False, S\<^sub>0::nat twl_st_wl, 0);
       RETURN (brk, T)
     }\<close> for S\<^sub>0
-    unfolding cdcl_twl_stgy_restart_prog_bounded_wl_D_def nres_monad1 by auto
+    unfolding cdcl_twl_stgy_restart_prog_bounded_wl_def nres_monad1 by auto
   have [refine0]: \<open>RETURN (\<not>isasat_fast x) \<le> \<Down>
       {(b, b'). b = b' \<and> (b = (\<not>isasat_fast x))} (RES UNIV)\<close>
     for x
@@ -391,7 +385,7 @@ proof -
     (xb, x'a) \<in> bool_rel \<times>\<^sub>f (twl_st_heur \<times>\<^sub>f nat_rel) \<Longrightarrow>
     case x'a of
     (brk, xa, xb) \<Rightarrow>
-      cdcl_twl_stgy_restart_abs_wl_D_inv y brk xa xb \<Longrightarrow>
+      cdcl_twl_stgy_restart_abs_wl_inv y brk xa xb \<Longrightarrow>
     x2f = (x1g, x2g) \<Longrightarrow>
     xb = (x1f, x2f) \<Longrightarrow>
     cdcl_twl_stgy_restart_abs_wl_heur_inv x x1f x1g x2g\<close>
@@ -401,7 +395,7 @@ proof -
   show ?thesis
     supply[[goals_limit=1]] isasat_fast_length_leD[dest] twl_st_heur'_def[simp]
     unfolding cdcl_twl_stgy_restart_prog_bounded_wl_heur_def
-      cdcl_twl_stgy_restart_prog_bounded_wl_D_alt_def
+      cdcl_twl_stgy_restart_prog_bounded_wl_alt_def
     apply (intro frefI nres_relI)
     apply (refine_rcg
         restart_prog_wl_D_heur_restart_prog_wl_D[THEN fref_to_Down_curry2]
