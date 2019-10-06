@@ -5,7 +5,7 @@ begin
 definition cdcl_twl_stgy_restart_abs_wl_heur_inv where
   \<open>cdcl_twl_stgy_restart_abs_wl_heur_inv S\<^sub>0 brk T n \<longleftrightarrow>
     (\<exists>S\<^sub>0' T'. (S\<^sub>0, S\<^sub>0') \<in> twl_st_heur \<and> (T, T') \<in> twl_st_heur \<and>
-      cdcl_twl_stgy_restart_abs_wl_D_inv S\<^sub>0' brk T' n)\<close>
+      cdcl_twl_stgy_restart_abs_wl_inv S\<^sub>0' brk T' n)\<close>
 
 definition cdcl_twl_stgy_restart_prog_wl_heur
    :: "twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres"

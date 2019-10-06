@@ -165,7 +165,7 @@ proof -
       by (cases \<open>ba > 1\<close>)
         (auto simp: mset_aa dest: in_set_takeD)
     then show ?A1inL
-      using literals_are_in_\<L>\<^sub>i\<^sub>n_in_mset_\<L>\<^sub>a\<^sub>l\<^sub>l lits by auto
+      using literals_are_in_\<L>\<^sub>i\<^sub>n_in_mset_\<L>\<^sub>a\<^sub>l\<^sub>l[OF lits, of \<open>aa[ba := outl ! ba] ! 1\<close>] by auto
 
     define aa2 where \<open>aa2 \<equiv> tl (tl (take ba aa))\<close>
     have tl_take_nth_con:  \<open>tl (take ba aa) = aa ! Suc 0 # aa2\<close> if \<open>ba > Suc 0\<close>
@@ -176,7 +176,7 @@ proof -
       using consistent ba_le nth_mem
       by (force simp: tautology_decomp' uminus_lit_swap)
     have outl_ba__L: \<open>outl ! ba \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<close>
-      using lits ba_le literals_are_in_\<L>\<^sub>i\<^sub>n_in_mset_\<L>\<^sub>a\<^sub>l\<^sub>l by auto
+      using ba_le literals_are_in_\<L>\<^sub>i\<^sub>n_in_mset_\<L>\<^sub>a\<^sub>l\<^sub>l[OF lits, of \<open>outl ! ba\<close>] by auto
     have \<open>(lookup_conflict_remove1 (outl ! ba) a,
         remove1_mset (outl ! ba)  (D -(mset (take ba outl)))) \<in> lookup_clause_rel \<A>\<close>
       by (rule lookup_conflict_remove1[THEN fref_to_Down_unRET_uncurry])
@@ -379,7 +379,7 @@ proof -
       by (cases \<open>x2b > 1\<close>)
         (auto simp: mset_aa dest: in_set_takeD)
     then show ?thesis
-      using literals_are_in_\<L>\<^sub>i\<^sub>n_in_mset_\<L>\<^sub>a\<^sub>l\<^sub>l lits by auto
+      using literals_are_in_\<L>\<^sub>i\<^sub>n_in_mset_\<L>\<^sub>a\<^sub>l\<^sub>l[OF lits, of \<open>x1b ! 1\<close>] by auto
   qed
 
   show ?thesis

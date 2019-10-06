@@ -98,7 +98,8 @@ lemma literals_are_\<L>\<^sub>i\<^sub>n'_literals_are_\<L>\<^sub>i\<^sub>n_iff:
   shows
     \<open>literals_are_\<L>\<^sub>i\<^sub>n' S \<longleftrightarrow> literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st S) S\<close> (is ?A)
     \<open>literals_are_\<L>\<^sub>i\<^sub>n' S \<longleftrightarrow> literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st S) S\<close> (is ?B)
-    \<open>set_mset (all_init_atms_st S) = set_mset (all_atms_st S)\<close> (is ?C)
+    \<open>set_mset (all_init_atms_st S) = set_mset (all_atms_st S)\<close> (is ?C) and
+    \<open>set_mset (all_init_lits_st S) = set_mset (all_lits_st S)\<close> (is ?D)
 proof -
   have \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of xa)\<close>
     using struct_invs unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
@@ -160,6 +161,8 @@ proof -
   show ?B
     apply (subst A)
     ..
+  show ?D
+    by (metis H all_init_lits_alt_def all_lits_def)
 qed
 
 
@@ -1258,6 +1261,7 @@ definition cdcl_GC_clauses_pre_wl :: \<open>'v twl_st_wl \<Rightarrow> bool\<clo
 \<open>cdcl_GC_clauses_pre_wl S \<longleftrightarrow> (
   \<exists>T. (S, T) \<in> state_wl_l None \<and>
     correct_watching'' S \<and>
+    literals_are_\<L>\<^sub>i\<^sub>n' S \<and>
     cdcl_GC_clauses_pre T
   )\<close>
 
@@ -1273,10 +1277,9 @@ definition cdcl_GC_clauses_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl 
   }
   else RETURN (M, N, D, NE, UE, WS, Q)})\<close>
 
-
 lemma cdcl_GC_clauses_wl_cdcl_GC_clauses:
   \<open>(cdcl_GC_clauses_wl, cdcl_GC_clauses) \<in> {(S::'v twl_st_wl, S').
-       (S, S') \<in> state_wl_l None \<and> correct_watching'' S} \<rightarrow>\<^sub>f \<langle>{(S::'v twl_st_wl, S').
+       (S, S') \<in> state_wl_l None \<and> correct_watching'' S \<and> literals_are_\<L>\<^sub>i\<^sub>n' S} \<rightarrow>\<^sub>f \<langle>{(S::'v twl_st_wl, S').
        (S, S') \<in> state_wl_l None \<and> correct_watching' S \<and> literals_are_\<L>\<^sub>i\<^sub>n' S}\<rangle>nres_rel\<close>
   unfolding cdcl_GC_clauses_wl_def cdcl_GC_clauses_def
   apply (intro frefI nres_relI)
@@ -1508,7 +1511,6 @@ lemma cdcl_twl_full_restart_wl_GC_prog:
   subgoal unfolding cdcl_twl_full_restart_wl_GC_prog_pre_def by blast
   subgoal by (auto dest: correct_watching'_correct_watching'')
   subgoal unfolding mark_to_delete_clauses_wl_pre_def by fast
-  subgoal by fast
   subgoal for x y S S' T Ta U Ua V Va
     using cdcl_twl_full_restart_wl_GC_prog_post_correct_watching[of y Va V]
     unfolding cdcl_twl_full_restart_wl_GC_prog_post_def
@@ -2072,6 +2074,7 @@ definition cdcl_GC_clauses_prog_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_s
 lemma cdcl_GC_clauses_prog_wl:
   assumes \<open>((M, N0, D, NE, UE, Q, WS), S) \<in> state_wl_l None \<and>
     correct_watching'' (M, N0, D, NE, UE, Q, WS) \<and> cdcl_GC_clauses_pre S \<and>
+    literals_are_\<L>\<^sub>i\<^sub>n' (M, N0, D, NE, UE, Q, WS) \<and> 
    set_mset (dom_m N0) \<subseteq> clauses_pointed_to
       (Neg ` set_mset (all_init_atms N0 NE) \<union> Pos ` set_mset (all_init_atms N0 NE)) WS\<close>
   shows
@@ -2149,6 +2152,7 @@ lemma all_init_atms_fmdrop_add_mset_unit:
 lemma cdcl_GC_clauses_prog_wl2:
   assumes \<open>((M, N0, D, NE, UE, Q, WS), S) \<in> state_wl_l None \<and>
     correct_watching'' (M, N0, D, NE, UE, Q, WS) \<and> cdcl_GC_clauses_pre S \<and>
+    literals_are_\<L>\<^sub>i\<^sub>n' (M, N0, D, NE, UE, Q, WS) \<and>
    set_mset (dom_m N0) \<subseteq> clauses_pointed_to
       (Neg ` set_mset (all_init_atms N0 NE) \<union> Pos ` set_mset (all_init_atms N0 NE)) WS\<close> and
     \<open>N0 = N0'\<close>

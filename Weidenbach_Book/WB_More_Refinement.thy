@@ -1208,5 +1208,41 @@ lemma while_eq_nfoldli: "do {
   apply (rule order_trans[OF nfoldli_while[where I="\<lambda>_. True"]])
   apply (simp add: WHILET_def)
   done
+lemma RES_RETURN_RES5:
+   \<open>SPEC \<Phi> \<bind> (\<lambda>(T1, T2, T3, T4, T5). RETURN (f T1 T2 T3 T4 T5)) =
+    RES ((\<lambda>(a, b, c, d, e). f a b c d e) ` {T. \<Phi> T})\<close>
+  using RES_RETURN_RES[of \<open>Collect \<Phi>\<close> \<open>\<lambda>(a, b, c, d, e). f a b c d e\<close>]
+  apply (subst (asm)(2) split_prod_bound)
+  apply (subst (asm)(3) split_prod_bound)
+  apply (subst (asm)(4) split_prod_bound)
+  apply (subst (asm)(5) split_prod_bound)
+  by simp
+
+lemma RES_RETURN_RES6:
+   \<open>SPEC \<Phi> \<bind> (\<lambda>(T1, T2, T3, T4, T5, T6). RETURN (f T1 T2 T3 T4 T5 T6)) =
+    RES ((\<lambda>(a, b, c, d, e, f'). f a b c d e f') ` {T. \<Phi> T})\<close>
+  using RES_RETURN_RES[of \<open>Collect \<Phi>\<close> \<open>\<lambda>(a, b, c, d, e, f'). f a b c d e f'\<close>]
+  apply (subst (asm)(2) split_prod_bound)
+  apply (subst (asm)(3) split_prod_bound)
+  apply (subst (asm)(4) split_prod_bound)
+  apply (subst (asm)(5) split_prod_bound)
+  apply (subst (asm)(6) split_prod_bound)
+  by simp
+
+lemma RES_RETURN_RES7:
+   \<open>SPEC \<Phi> \<bind> (\<lambda>(T1, T2, T3, T4, T5, T6, T7). RETURN (f T1 T2 T3 T4 T5 T6 T7)) =
+    RES ((\<lambda>(a, b, c, d, e, f', g). f a b c d e f' g) ` {T. \<Phi> T})\<close>
+  using RES_RETURN_RES[of \<open>Collect \<Phi>\<close> \<open>\<lambda>(a, b, c, d, e, f', g). f a b c d e f' g\<close>]
+  apply (subst (asm)(2) split_prod_bound)
+  apply (subst (asm)(3) split_prod_bound)
+  apply (subst (asm)(4) split_prod_bound)
+  apply (subst (asm)(5) split_prod_bound)
+  apply (subst (asm)(6) split_prod_bound)
+  apply (subst (asm)(7) split_prod_bound)
+  by simp
+
+lemma RES_RES7_RETURN_RES:
+   \<open>RES A \<bind> (\<lambda>(a, b, c, d, e, g, h). RES (f a b c d e g h)) = RES (\<Union>((\<lambda>(a, b, c, d, e, g, h). f a b c d e g h) ` A))\<close>
+  by (auto simp:  pw_eq_iff refine_pw_simps uncurry_def Bex_def split: prod.splits)
 
 end

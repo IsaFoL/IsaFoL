@@ -3,6 +3,7 @@ theory Watched_Literals_Watch_List_Domain_Restart
 begin
 
 
+
 lemma cdcl_twl_restart_get_all_init_clss:
   assumes \<open>cdcl_twl_restart S T\<close>
   shows \<open>get_all_init_clss T = get_all_init_clss S\<close>
@@ -352,7 +353,7 @@ where
       if C = 0 then RETURN (i+1, S)
       else do {
         ASSERT(C \<in># dom_m (get_clauses_wl S));
-	T \<leftarrow> replace_annot_l L C S;
+	T \<leftarrow> replace_annot_wl L C S;
 	ASSERT(get_clauses_wl S = get_clauses_wl T);
 	T \<leftarrow> remove_and_add_cls_l C T;
         \<comment> \<open>\<^text>\<open>S \<leftarrow> remove_all_annot_true_clause_imp_wl L S;\<close>\<close>
@@ -408,8 +409,9 @@ lemma remove_one_annot_true_clause_one_imp_wl_D_remove_one_annot_true_clause_one
      \<langle>nat_rel \<times>\<^sub>f {(S, T). (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n' (all_init_atms_st S) S}\<rangle>nres_rel\<close>
     (is \<open>_ \<in> _ \<times>\<^sub>f ?A \<rightarrow>\<^sub>f _\<close>)
 proof -
-  have [refine0]: \<open>replace_annot_l L C S \<le>
-     \<Down> {(S', T'). (S', T') \<in> ?A \<and> get_clauses_wl S' = get_clauses_wl S} (replace_annot_l L' C' T')\<close>
+  have [refine0]: \<open>replace_annot_wl L C S \<le>
+     \<Down>{(S', T'). (S', T') \<in> ?A \<and> get_clauses_wl S' = get_clauses_wl S}
+      (replace_annot_l L' C' T')\<close>
     if \<open>(L, L') \<in> Id\<close> and \<open>(S, T') \<in> ?A\<close> and \<open>(C, C') \<in> Id\<close> for L L' S T' C C'
     using that
     by (cases S; cases T')
@@ -1466,6 +1468,9 @@ definition cdcl_twl_full_restart_wl_D_GC_prog where
     RETURN V
   }\<close>
 
+lemma \<L>\<^sub>a\<^sub>l\<^sub>l_all_init_atms_all_init_lits:
+  \<open>set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l (all_init_atms N NE)) = set_mset (all_init_lits N NE)\<close>
+  using is_\<L>\<^sub>a\<^sub>l\<^sub>l_def by blast
 lemma \<L>\<^sub>a\<^sub>l\<^sub>l_all_init_atms_all_init_lits:
   \<open>set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l (all_init_atms N NE)) = set_mset (all_init_lits N NE)\<close>
   using is_\<L>\<^sub>a\<^sub>l\<^sub>l_def by blast
