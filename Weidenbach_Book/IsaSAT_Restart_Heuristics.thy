@@ -494,29 +494,29 @@ definition remove_all_annot_true_clause_imp_wl_D_heur
   :: \<open>nat literal \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close>
 where
 \<open>remove_all_annot_true_clause_imp_wl_D_heur = (\<lambda>L (M, N0, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl,
-       stats, (fast_ema, slow_ema, ccount), vdom, avdom, lcount, opts). do {
+       stats, heur, vdom, avdom, lcount, opts). do {
     ASSERT(remove_all_annot_true_clause_imp_wl_D_heur_pre L (M, N0, D, Q, W, vm, \<phi>, clvls,
-       cach, lbd, outl, stats, (fast_ema, slow_ema, ccount),
+       cach, lbd, outl, stats, heur,
        vdom, avdom, lcount, opts));
     let xs = W!(nat_of_lit L);
     (_, lcount', N) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(i, j, N).
         remove_all_annot_true_clause_imp_wl_D_heur_inv
            (M, N0, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, stats,
-	  (fast_ema, slow_ema, ccount), vdom, avdom, lcount, opts) xs
+	  heur, vdom, avdom, lcount, opts) xs
            (i, M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, stats,
-	  (fast_ema, slow_ema, ccount), vdom, avdom, j, opts)\<^esup>
+	  heur, vdom, avdom, j, opts)\<^esup>
       (\<lambda>(i, j, N). i < length xs)
       (\<lambda>(i, j, N). do {
         ASSERT(i < length xs);
         if clause_not_marked_to_delete_heur (M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, stats,
-	  (fast_ema, slow_ema, ccount), vdom, avdom, lcount, opts) i
+	  heur, vdom, avdom, lcount, opts) i
         then do {
           (j, N) \<leftarrow> remove_all_annot_true_clause_one_imp_heur (fst (xs!i), j, N);
           ASSERT(remove_all_annot_true_clause_imp_wl_D_heur_inv
              (M, N0, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, stats,
-	       (fast_ema, slow_ema, ccount), vdom, avdom, lcount, opts) xs
+	       heur, vdom, avdom, lcount, opts) xs
              (i, M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, stats,
-	       (fast_ema, slow_ema, ccount), vdom, avdom, j, opts));
+	       heur, vdom, avdom, j, opts));
           RETURN (i+1, j, N)
         }
         else
@@ -524,7 +524,7 @@ where
       })
       (0, lcount, N0);
     RETURN (M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, stats,
-	  (fast_ema, slow_ema, ccount), vdom, avdom, lcount', opts)
+	  heur, vdom, avdom, lcount', opts)
   })\<close>
 
 
@@ -537,13 +537,13 @@ definition five_uint64 :: \<open>64 word\<close> where
 
 definition upper_restart_bound_not_reached :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close> where
   \<open>upper_restart_bound_not_reached = (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, (props, decs, confl, restarts, _),
-      (fast_ema, slow_ema, ccount),
+      heur,
        vdom, avdom, lcount, opts).
     of_nat lcount < 3000 + 1000 * restarts)\<close>
 
 definition (in -) lower_restart_bound_not_reached :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close> where
   \<open>lower_restart_bound_not_reached = (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl,
-        (props, decs, confl, restarts, _), (fast_ema, slow_ema, ccount),
+        (props, decs, confl, restarts, _), heur,
        vdom, avdom, lcount, opts, old).
      (\<not>opts_reduce opts \<or> (opts_restart opts \<and> (of_nat lcount < 2000 + 1000 * restarts))))\<close>
 
@@ -758,12 +758,12 @@ definition div2 where [simp]: \<open>div2 n = n div 2\<close>
 definition safe_minus where \<open>safe_minus a b = (if b \<ge> a then 0 else a - b)\<close>
 
 definition opts_restart_st :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close> where
-  \<open>opts_restart_st = (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, (fast_ema, slow_ema, ccount),
+  \<open>opts_restart_st = (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, heur,
        vdom, avdom, lcount, opts, _). (opts_restart opts))\<close>
 
 definition opts_reduction_st :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close> where
   \<open>opts_reduction_st = (\<lambda>(M, N0, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl,
-       stats, (fema, sema, ccount), vdom, avdom, lcount, opts, _). (opts_reduce opts))\<close>
+       stats, heur, vdom, avdom, lcount, opts, _). (opts_reduce opts))\<close>
 
 definition max_restart_decision_lvl :: nat where
   \<open>max_restart_decision_lvl = 300\<close>
@@ -799,7 +799,7 @@ fun (in -) get_reductions_count :: \<open>twl_st_wl_heur \<Rightarrow> 64 word\<
 
 lemma (in -) get_reduction_count_alt_def:
    \<open>RETURN o get_reductions_count = (\<lambda>(M, N0, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl,
-       (_, _, _, lres, _, _), (fema, sema, _), lcount). RETURN lres)\<close>
+       (_, _, _, lres, _, _), heur, lcount). RETURN lres)\<close>
   by auto
 
 
@@ -954,10 +954,10 @@ proof -
 qed
 
 definition mark_garbage_heur :: \<open>nat \<Rightarrow> nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur\<close> where
-  \<open>mark_garbage_heur C i = (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, (fast_ema, slow_ema, ccount),
+  \<open>mark_garbage_heur C i = (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, heur,
        vdom, avdom, lcount, opts, old_arena).
     (M', extra_information_mark_to_delete N' C, D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats,
-      (fast_ema, slow_ema, ccount),
+      heur,
        vdom, delete_index_and_swap avdom i, lcount - 1, opts, old_arena))\<close>
 
 lemma get_vdom_mark_garbage[simp]:
@@ -1100,7 +1100,7 @@ qed
 
 definition number_clss_to_keep :: \<open>twl_st_wl_heur \<Rightarrow> nat\<close> where
   \<open>number_clss_to_keep = (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl,
-      (props, decs, confl, restarts, _), fast_ema, slow_ema, ccount,
+      (props, decs, confl, restarts, _), heur,
        vdom, avdom, lcount).
     unat (1000 + 150 * restarts))\<close>
 
@@ -1175,7 +1175,7 @@ lemma mark_clauses_as_unused_wl_D_heur:
   assumes \<open>(S, T) \<in> twl_st_heur_restart_ana r\<close>
   shows \<open>mark_clauses_as_unused_wl_D_heur i S \<le> \<Down> (twl_st_heur_restart_ana r) (SPEC ( (=) T))\<close>
 proof -
-  have 1: \<open> \<Down> (twl_st_heur_restart_ana r) (SPEC ( (=) T)) = do {
+  have 1: \<open> \<Down> (twl_st_heur_restart_ana r) (SPEC ((=) T)) = do {
       (i, T) \<leftarrow> SPEC (\<lambda>(i::nat, T'). (T', T) \<in> twl_st_heur_restart_ana r);
       RETURN T
     }\<close>
