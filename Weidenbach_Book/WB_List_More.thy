@@ -199,6 +199,64 @@ lemma (in -) filter_disj_eq:
   by auto
 
 
+lemma zip_cong:
+  \<open>(\<And>i. i < min (length xs) (length ys) \<Longrightarrow> (xs ! i, ys ! i) = (xs' ! i, ys' ! i)) \<Longrightarrow>
+     length xs = length xs' \<Longrightarrow> length ys = length ys' \<Longrightarrow> zip xs ys = zip xs' ys'\<close>
+proof (induction xs arbitrary: xs' ys' ys)
+  case Nil
+  then show ?case by auto
+next
+  case (Cons x xs xs' ys' ys) note IH = this(1) and eq = this(2) and p = this(3-)
+thm IH
+  have \<open>zip xs (tl ys) = zip (tl xs') (tl ys')\<close> for i
+    apply (rule IH)
+    subgoal for i
+      using p eq[of \<open>Suc i\<close>] by (auto simp: nth_tl)
+    subgoal using p by auto
+    subgoal using p by auto
+    done
+  moreover have \<open>hd xs' = x\<close> \<open>hd ys = hd ys'\<close> if \<open>ys \<noteq> []\<close>
+    using eq[of 0] that p[symmetric] apply (auto simp: hd_conv_nth)
+    apply (subst hd_conv_nth)
+    apply auto
+    apply (subst hd_conv_nth)
+    apply auto
+    done
+  ultimately show ?case
+    using p by (cases xs'; cases ys'; cases ys)
+      auto
+qed
+
+lemma zip_cong2:
+  \<open>(\<And>i. i < min (length xs) (length ys) \<Longrightarrow> (xs ! i, ys ! i) = (xs' ! i, ys' ! i)) \<Longrightarrow>
+     length xs = length xs' \<Longrightarrow> length ys \<le> length ys' \<Longrightarrow> length ys \<ge> length xs \<Longrightarrow>
+     zip xs ys = zip xs' ys'\<close>
+proof (induction xs arbitrary: xs' ys' ys)
+  case Nil
+  then show ?case by auto
+next
+  case (Cons x xs xs' ys' ys) note IH = this(1) and eq = this(2) and p = this(3-)
+  have \<open>zip xs (tl ys) = zip (tl xs') (tl ys')\<close> for i
+    apply (rule IH)
+    subgoal for i
+      using p eq[of \<open>Suc i\<close>] by (auto simp: nth_tl)
+    subgoal using p by auto
+    subgoal using p by auto
+    subgoal using p by auto
+    done
+  moreover have \<open>hd xs' = x\<close> \<open>hd ys = hd ys'\<close> if \<open>ys \<noteq> []\<close>
+    using eq[of 0] that p apply (auto simp: hd_conv_nth)
+    apply (subst hd_conv_nth)
+    apply auto
+    apply (subst hd_conv_nth)
+    apply auto
+    done
+  ultimately show ?case
+    using p by (cases xs'; cases ys'; cases ys)
+      auto
+qed
+
+
 subsection \<open>List Updates\<close>
 
 lemma tl_update_swap:
@@ -1973,5 +2031,18 @@ lemma mset_fset_empty_iff: \<open>mset_fset a = {#} \<longleftrightarrow> a = fe
 lemma dom_m_empty_iff[iff]:
   \<open>dom_m NU = {#} \<longleftrightarrow> NU = fmempty\<close>
   by (cases NU) (auto simp: dom_m_def mset_fset_empty_iff mset_set.insert_remove)
+
+
+
+lemma nat_power_div_base:
+  fixes k :: nat
+  assumes "0 < m" "0 < k"
+  shows "k ^ m div k = (k::nat) ^ (m - Suc 0)"
+proof -
+  have eq: "k ^ m = k ^ ((m - Suc 0) + Suc 0)"
+    by (simp add: assms)
+  show ?thesis
+    using assms by (simp only: power_add eq) auto
+qed
 
 end
