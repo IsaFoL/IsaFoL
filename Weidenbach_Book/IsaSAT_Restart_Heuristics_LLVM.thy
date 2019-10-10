@@ -261,7 +261,7 @@ sepref_register get_reductions_count
 
 sepref_def GC_required_heur_fast_code
   is \<open>uncurry GC_required_heur\<close>
-  :: \<open>isasat_bounded_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
+  :: \<open>isasat_bounded_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
   supply [[goals_limit=1]]
   unfolding GC_required_heur_def GC_EVERY_def
   by sepref

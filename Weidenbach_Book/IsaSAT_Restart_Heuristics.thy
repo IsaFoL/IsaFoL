@@ -1262,7 +1262,7 @@ definition mop_arena_status where
 
 definition mop_marked_as_used where
   \<open>mop_marked_as_used arena C = do {
-    ASSERT(arena_is_valid_clause_vdom arena C);
+    ASSERT(marked_as_used_pre arena C);
     RETURN(marked_as_used arena C)
   }\<close>
 
@@ -1387,7 +1387,7 @@ lemma mark_to_delete_clauses_wl_D_heur_alt_def:
                                (arena_is_valid_clause_vdom
                                  (get_clauses_wl_heur T) (get_avdom T ! i));
                           x \<leftarrow> ASSERT
-                               (arena_is_valid_clause_vdom
+                               (marked_as_used_pre
                                  (get_clauses_wl_heur T) (get_avdom T ! i));
                           let can_del = (D \<noteq> Some (get_avdom T ! i) \<and>
                              MINIMUM_DELETION_LBD
@@ -1831,6 +1831,10 @@ proof -
         (auto simp: twl_st_heur_restart arena_dom_status_iff
           dest: twl_st_heur_restart_valid_arena twl_st_heur_restart_get_avdom_nth_get_vdom)
     subgoal
+      unfolding marked_as_used_pre_def
+      by (auto simp: twl_st_heur_restart reason_rel_def)
+    subgoal
+      unfolding marked_as_used_pre_def
       by (auto simp: twl_st_heur_restart reason_rel_def)
     subgoal
       by (auto simp: twl_st_heur_restart)
@@ -1857,7 +1861,7 @@ proof -
       by (auto intro!: mark_unused_st_heur_ana)
     subgoal by (auto simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def dest!: valid_arena_vdom_subset size_mset_mono)
     subgoal
-      by (auto simp:)
+      by auto
     done
 qed
 
@@ -3100,6 +3104,9 @@ proof -
         (auto simp: twl_st_heur_restart arena_dom_status_iff
           dest: twl_st_heur_restart_valid_arena twl_st_heur_restart_get_avdom_nth_get_vdom)
     subgoal
+      unfolding marked_as_used_pre_def
+      by (auto simp: twl_st_heur_restart reason_rel_def)
+    subgoal
       by (auto simp: twl_st_heur_restart reason_rel_def)
     subgoal
       by (auto simp: twl_st_heur_restart)
@@ -3126,7 +3133,7 @@ proof -
       by (auto intro!: mark_unused_st_heur_ana)
     subgoal by (auto simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def dest!: valid_arena_vdom_subset size_mset_mono)
     subgoal
-      by (auto simp:)
+      by auto
     done
 qed
 

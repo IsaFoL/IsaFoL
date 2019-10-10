@@ -61,30 +61,6 @@ lemma cdcl_twl_stgy_restart_restart_prog_early_spec: \<open>twl_struct_invs S \<
   apply (rule cdcl_twl_stgy_prog_early_spec; assumption?)
   unfolding conclusive_TWL_run_def twl_restart_def
   by auto
-
-
-theorem cdcl_twl_stgy_restart_prog_wl_D_spec:
-  assumes \<open>literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st S) S\<close>
-  shows \<open>cdcl_twl_stgy_restart_prog_wl_D S \<le> \<Down>Id (cdcl_twl_stgy_restart_prog_wl S)\<close>
-  apply (rule cdcl_twl_stgy_restart_prog_wl_D_cdcl_twl_stgy_restart_prog_wl[
-    THEN fref_to_Down, of S S, THEN order_trans])
-    apply fast
-  using assms apply (auto intro: conc_fun_R_mono)[]
-  apply (rule conc_fun_R_mono)
-  apply auto
-  done
-
-theorem cdcl_twl_stgy_restart_prog_early_wl_D_spec:
-  assumes \<open>literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st S) S\<close>
-  shows \<open>cdcl_twl_stgy_restart_prog_early_wl_D S \<le> \<Down>Id (cdcl_twl_stgy_restart_prog_early_wl S)\<close>
-  apply (rule cdcl_twl_stgy_restart_prog_early_wl_D_cdcl_twl_stgy_restart_prog_early_wl[
-    THEN fref_to_Down, THEN order_trans])
-  apply fast
-  using assms apply auto[]
-  apply (rule conc_fun_R_mono)
-  apply auto
-  done
-
 (*
 lemma distinct_nat_of_uint32[iff]:
   \<open>distinct_mset (nat_of_uint32 `# A) \<longleftrightarrow> distinct_mset A\<close>
@@ -427,14 +403,14 @@ proof -
 	clss_in_clss: \<open>set (get_all_mark_of_propagated MW) \<subseteq> set_mset ?CS\<close>
 	using struct_invs unfolding twl_struct_invs_def twl_struct_invs_init_def
 	    cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
-	    cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def st cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_alt_def
+	    cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_alt_def
 	    clauses_def MW_def clss to_init_state0_def init_state0_def CS_clss[symmetric]
         by ((cases T; auto)+)[3]
 
       have count_dec': \<open>\<forall>L\<in>set MW. \<not>is_decided L\<close>
-	using count_dec unfolding st MW_def twl_st_init by auto
+	using count_dec unfolding MW_def twl_st_init by auto
       have st_W: \<open>state\<^sub>W_of (fst T) = (MW, ?CS, {#}, None)\<close>
-        using clss st learned confl oth
+        using clss learned confl oth
         by (cases T) (auto simp: state_wl_l_init_def state_wl_l_def twl_st_l_init_def
             mset_take_mset_drop_mset mset_take_mset_drop_mset' clauses_def MW_def
             added_only_watched_def state_wl_l_init'_def
@@ -791,7 +767,7 @@ definition SAT_wl :: \<open>nat clause_l list \<Rightarrow> nat twl_st_wl nres\<
 	  ASSERT(isasat_input_bounded_nempty (mset_set \<A>\<^sub>i\<^sub>n'));
 	  ASSERT(mset `# ran_mf (get_clauses_wl T) + get_unit_clauses_wl T = mset `# mset CS);
 	  ASSERT(learned_clss_l (get_clauses_wl T) = {#});
-	  cdcl_twl_stgy_restart_prog_wl_D (finalise_init T)
+	  cdcl_twl_stgy_restart_prog_wl (finalise_init T)
         }
     }
     else do {
@@ -811,7 +787,7 @@ definition SAT_wl :: \<open>nat clause_l list \<Rightarrow> nat twl_st_wl nres\<
             ASSERT(isasat_input_bounded_nempty (mset_set \<A>\<^sub>i\<^sub>n'));
             ASSERT(mset `# ran_mf (get_clauses_wl T) + get_unit_clauses_wl T = mset `# mset CS);
             ASSERT(learned_clss_l (get_clauses_wl T) = {#});
-            cdcl_twl_stgy_restart_prog_wl_D (finalise_init T)
+            cdcl_twl_stgy_restart_prog_wl (finalise_init T)
           }
         } else do {
           if get_conflict_wl T \<noteq> None
@@ -823,7 +799,7 @@ definition SAT_wl :: \<open>nat clause_l list \<Rightarrow> nat twl_st_wl nres\<
             ASSERT(mset `# ran_mf (get_clauses_wl T) + get_unit_clauses_wl T = mset `# mset CS);
             ASSERT(learned_clss_l (get_clauses_wl T) = {#});
             T \<leftarrow> rewatch_st (finalise_init T);
-            cdcl_twl_stgy_restart_prog_early_wl_D T
+            cdcl_twl_stgy_restart_prog_early_wl T
           }
         }
      }

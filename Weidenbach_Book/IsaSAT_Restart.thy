@@ -301,7 +301,7 @@ where
     ebrk \<leftarrow> RETURN (\<not>isasat_fast S\<^sub>0);
     (ebrk, brk, T, n) \<leftarrow>
      WHILE\<^sub>T\<^bsup>\<lambda>(ebrk, brk, T, n). cdcl_twl_stgy_restart_abs_wl_heur_inv S\<^sub>0 brk T n \<and>
-        (\<not>ebrk \<longrightarrow>isasat_fast T) \<and> length (get_clauses_wl_heur T) \<le> uint64_max\<^esup>
+        (\<not>ebrk \<longrightarrow>isasat_fast T \<and> n < uint64_max) \<and> length (get_clauses_wl_heur T) \<le> uint64_max\<^esup>
       (\<lambda>(ebrk, brk, _). \<not>brk \<and> \<not>ebrk)
       (\<lambda>(ebrk, brk, S, n).
       do {
@@ -313,7 +313,7 @@ where
         (brk, T) \<leftarrow> cdcl_twl_o_prog_wl_D_heur T;
         ASSERT(length (get_clauses_wl_heur T) \<le> uint64_max);
         (T, n) \<leftarrow> restart_prog_wl_D_heur T n brk;
-	ebrk \<leftarrow> RETURN (\<not>isasat_fast T);
+	ebrk \<leftarrow> RETURN (\<not>(isasat_fast T \<and> n < uint64_max));
         RETURN (ebrk, brk, T, n)
       })
       (ebrk, False, S\<^sub>0::twl_st_wl_heur, 0);
@@ -343,10 +343,12 @@ proof -
       RETURN (brk, T)
     }\<close> for S\<^sub>0
     unfolding cdcl_twl_stgy_restart_prog_bounded_wl_def nres_monad1 by auto
-  have [refine0]: \<open>RETURN (\<not>isasat_fast x) \<le> \<Down>
-      {(b, b'). b = b' \<and> (b = (\<not>isasat_fast x))} (RES UNIV)\<close>
-    for x
-    by (auto intro: RETURN_RES_refine)
+  have [refine0]: \<open>RETURN (\<not>(isasat_fast x \<and> n < uint64_max)) \<le> \<Down>
+      {(b, b'). b = b' \<and> (b = (\<not>(isasat_fast x \<and> n < uint64_max)))} (RES UNIV)\<close>
+       \<open>RETURN (\<not>isasat_fast x) \<le> \<Down>
+      {(b, b'). b = b' \<and> (b = (\<not>(isasat_fast x \<and> 0 < uint64_max)))} (RES UNIV)\<close>
+    for x n
+    by (auto intro: RETURN_RES_refine simp: uint64_max_def)
   have [refine0]: \<open>isasat_fast_slow x1e
       \<le> \<Down> {(S, S'). S = x1e \<and> S' = x1b}
 	   (RETURN x1b)\<close>
@@ -381,7 +383,7 @@ proof -
        x'a x1f x2f x1g x2g
     by auto
   have abs_inv: \<open>(x, y) \<in> twl_st_heur''' r \<Longrightarrow>
-    (ebrk, ebrka) \<in> {(b, b'). b = b' \<and> b = (\<not> isasat_fast x)} \<Longrightarrow>
+    (ebrk, ebrka) \<in> {(b, b'). b = b' \<and> b = (\<not> isasat_fast x \<and> x2g < uint64_max)} \<Longrightarrow>
     (xb, x'a) \<in> bool_rel \<times>\<^sub>f (twl_st_heur \<times>\<^sub>f nat_rel) \<Longrightarrow>
     case x'a of
     (brk, xa, xb) \<Rightarrow>
@@ -403,8 +405,8 @@ proof -
         unit_propagation_outer_loop_wl_D_heur_unit_propagation_outer_loop_wl_D'[THEN fref_to_Down]
         WHILEIT_refine[where R = \<open>{((ebrk, brk, T,n), (ebrk', brk', T', n')).
 	    (ebrk = ebrk') \<and> (brk = brk') \<and> (T, T')  \<in> twl_st_heur \<and> n = n' \<and>
-	      (\<not>ebrk \<longrightarrow> isasat_fast T) \<and> length (get_clauses_wl_heur T) \<le> uint64_max}\<close>])
-    subgoal using r by auto
+	      (\<not>ebrk \<longrightarrow> isasat_fast T \<and> n < uint64_max) \<and> length (get_clauses_wl_heur T) \<le> uint64_max}\<close>])
+    subgoal using r by (auto simp: uint64_max_def)
     subgoal
       unfolding cdcl_twl_stgy_restart_abs_wl_heur_inv_def by fast
     subgoal by auto
@@ -412,6 +414,7 @@ proof -
     subgoal by auto
     subgoal by auto
     subgoal by fast
+    subgoal by auto
     subgoal by auto
     apply (rule twl_st_heur''; auto; fail)
     subgoal by auto

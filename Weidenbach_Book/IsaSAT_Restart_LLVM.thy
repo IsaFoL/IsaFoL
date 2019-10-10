@@ -159,6 +159,7 @@ sepref_def MINIMUM_DELETION_LBD_impl
   apply (annot_unat_const "TYPE(32)")
   by sepref
 
+(*TODO Move*)
 lemma mop_clause_not_marked_to_delete_heur_alt_def:
   \<open>mop_clause_not_marked_to_delete_heur = (\<lambda>(M, arena, D, oth) C. do {
     ASSERT(clause_not_marked_to_delete_heur_pre ((M, arena, D, oth), C));
@@ -179,8 +180,7 @@ lemma mop_mark_garbage_heur_alt_def:
   \<open>mop_mark_garbage_heur C i = (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, heur,
        vdom, avdom, lcount, opts, old_arena). do {
     ASSERT(mark_garbage_pre (get_clauses_wl_heur (M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, heur,
-       vdom, avdom, lcount, opts, old_arena), C) \<and> get_learned_count (M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, heur,
-       vdom, avdom, lcount, opts, old_arena) \<ge> 1 \<and> i < length avdom);
+       vdom, avdom, lcount, opts, old_arena), C) \<and> lcount \<ge> 1 \<and> i < length avdom);
     RETURN (M', extra_information_mark_to_delete N' C, D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats,
       heur,
        vdom, delete_index_and_swap avdom i, lcount - 1, opts, old_arena)
@@ -188,44 +188,115 @@ lemma mop_mark_garbage_heur_alt_def:
   unfolding mop_mark_garbage_heur_def mark_garbage_heur_def
   by (auto intro!: ext)
 
+
+sepref_def delete_index_and_swap_code2
+  is \<open>uncurry (RETURN oo delete_index_and_swap)\<close>
+  :: \<open>[\<lambda>(xs, i). i < length xs]\<^sub>a
+      vdom_fast_assn\<^sup>d *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> vdom_fast_assn\<close>
+  unfolding delete_index_and_swap.simps
+  by sepref
+
+sepref_register delete_index_and_swap
 sepref_def mop_mark_garbage_heur_impj
   is \<open>uncurry2 mop_mark_garbage_heur\<close>
-  :: \<open>[\<lambda>((C, i), S). length (get_clauses_wl_heur S) < sint64_max]\<^sub>a
+  :: \<open>[\<lambda>((C, i), S). length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a
       sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   supply [[goals_limit=1]]
   unfolding mop_mark_garbage_heur_alt_def
     clause_not_marked_to_delete_heur_pre_def prod.case isasat_bounded_assn_def
   apply (annot_unat_const "TYPE(64)")
-  apply sepref_dbg_keep
-  apply sepref_dbg_trans_keep
-  apply sepref_dbg_trans_step_keep
-  apply sepref_dbg_side_unfold
-oops
   by sepref
-(*mop_mark_garbage_heur mop_mark_unused_st_heur mop_arena_lbd 
-  mop_arena_status mop_marked_as_used*)
-
-lemma mop_mark_unused_st_heur_alt_def:
-  \<open>mop_mark_unused_st_heur C = (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, heur,
-       vdom, avdom, lcount, opts, old_arena). do {
-    ASSERT(mark_garbage_pre (get_clauses_wl_heur (M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, heur,
-       vdom, avdom, lcount, opts, old_arena), C) \<and> get_learned_count (M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, heur,
-       vdom, avdom, lcount, opts, old_arena) \<ge> 1);
-    RETURN (M', mop_mark_unused_st_heur N' C, D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats,
-      heur,
-       vdom, delete_index_and_swap avdom i, lcount - 1, opts, old_arena)
-   })\<close>
-  unfolding mop_mark_garbage_heur_def mark_garbage_heur_def
-  by (auto intro!: ext)
 
 sepref_def mop_mark_unused_st_heur_impl
-  is \<open>uncurry2 mop_mark_unused_st_heur\<close>
-  :: \<open>[\<lambda>(C, S). length (get_clauses_wl_heur S) < sint64_max]\<^sub>a
-      sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
-  unfolding mop_mark_garbage_heur_alt_def
-    clause_not_marked_to_delete_heur_pre_def prod.case isasat_bounded_assn_def
+  is \<open>uncurry mop_mark_unused_st_heur\<close>
+  :: \<open> sint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
+  unfolding mop_mark_unused_st_heur_def
   by sepref
 
+
+definition mop_arena_lbd_st where
+  \<open>mop_arena_lbd_st S =
+    mop_arena_lbd (get_clauses_wl_heur S)\<close>
+
+lemma mop_arena_lbd_st_alt_def:
+  \<open>mop_arena_lbd_st = (\<lambda>(M', arena, D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, heur,
+       vdom, avdom, lcount, opts, old_arena) C. do {
+       ASSERT(get_clause_LBD_pre arena C);
+      RETURN(arena_lbd arena C)
+   })\<close>
+  unfolding mop_arena_lbd_st_def mop_arena_lbd_def
+  by (auto intro!: ext)
+
+sepref_def mop_arena_lbd_st_impl
+  is \<open>uncurry mop_arena_lbd_st\<close>
+  :: \<open>isasat_bounded_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding mop_arena_lbd_st_alt_def isasat_bounded_assn_def
+  by sepref
+
+
+definition mop_arena_status_st where
+  \<open>mop_arena_status_st S =
+    mop_arena_status (get_clauses_wl_heur S)\<close>
+
+lemma mop_arena_status_st_alt_def:
+  \<open>mop_arena_status_st = (\<lambda>(M', arena, D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, heur,
+       vdom, avdom, lcount, opts, old_arena) C. do {
+       ASSERT(arena_is_valid_clause_vdom arena C);
+      RETURN(arena_status arena C)
+   })\<close>
+  unfolding mop_arena_status_st_def mop_arena_status_def
+  by (auto intro!: ext)
+
+sepref_def mop_arena_status_st_impl
+  is \<open>uncurry mop_arena_status_st\<close>
+  :: \<open>isasat_bounded_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a status_impl_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding mop_arena_status_st_alt_def isasat_bounded_assn_def
+  by sepref
+
+
+definition mop_marked_as_used_st where
+  \<open>mop_marked_as_used_st S =
+    mop_marked_as_used (get_clauses_wl_heur S)\<close>
+
+lemma mop_marked_as_used_st_alt_def:
+  \<open>mop_marked_as_used_st = (\<lambda>(M', arena, D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, heur,
+       vdom, avdom, lcount, opts, old_arena) C. do {
+       ASSERT(marked_as_used_pre arena C);
+      RETURN(marked_as_used arena C)
+   })\<close>
+  unfolding mop_marked_as_used_st_def mop_marked_as_used_def
+  by (auto intro!: ext)
+
+sepref_def mop_marked_as_used_st_impl
+  is \<open>uncurry mop_marked_as_used_st\<close>
+  :: \<open>isasat_bounded_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding mop_marked_as_used_st_alt_def isasat_bounded_assn_def
+  by sepref
+
+definition mop_arena_length_st where
+  \<open>mop_arena_length_st S =
+    mop_arena_length (get_clauses_wl_heur S)\<close>
+
+lemma mop_arena_length_st_alt_def:
+  \<open>mop_arena_length_st = (\<lambda>(M', arena, D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, heur,
+       vdom, avdom, lcount, opts, old_arena) C. do {
+      ASSERT(arena_is_valid_clause_idx arena C);
+      RETURN (arena_length arena C)
+   })\<close>
+  unfolding mop_arena_length_st_def mop_arena_length_def
+  by (auto intro!: ext)
+
+sepref_def mop_arena_length_st_impl
+  is \<open>uncurry mop_arena_length_st\<close>
+  :: \<open>isasat_bounded_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a sint64_nat_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding mop_arena_length_st_alt_def isasat_bounded_assn_def
+  by sepref
+(*END Move*)
+find_theorems name:arena_length name:st
 sepref_def mark_to_delete_clauses_wl_D_heur_fast_impl
   is \<open>mark_to_delete_clauses_wl_D_heur\<close>
   :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
@@ -238,14 +309,13 @@ sepref_def mark_to_delete_clauses_wl_D_heur_fast_impl
     short_circuit_conv mark_to_delete_clauses_wl_D_heur_is_Some_iff
     marked_as_used_st_def[symmetric] if_conn(4)
     fold_tuple_optimizations
+    mop_arena_lbd_st_def[symmetric]
+    mop_marked_as_used_st_def[symmetric]
+    mop_arena_status_st_def[symmetric]
+    mop_arena_length_st_def[symmetric]
   supply [[goals_limit = 1]]
     length_avdom_def[symmetric, simp] access_vdom_at_def[simp]
   apply (annot_snat_const "TYPE(64)")
-  apply sepref_dbg_keep
-  apply sepref_dbg_trans_keep
-  apply sepref_dbg_trans_step_keep
-  apply sepref_dbg_side_unfold
-oops
   by sepref
 
 sepref_register cdcl_twl_full_restart_wl_prog_heur
@@ -254,13 +324,6 @@ sepref_def cdcl_twl_full_restart_wl_prog_heur_fast_code
   is \<open>cdcl_twl_full_restart_wl_prog_heur\<close>
   :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a  isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   unfolding cdcl_twl_full_restart_wl_prog_heur_def
-  supply [[goals_limit = 1]]
-  by sepref
-
-sepref_definition cdcl_twl_restart_wl_heur_code
-  is \<open>cdcl_twl_restart_wl_heur\<close>
-  :: \<open>isasat_unbounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_unbounded_assn\<close>
-  unfolding cdcl_twl_restart_wl_heur_def
   supply [[goals_limit = 1]]
   by sepref
 
@@ -275,45 +338,54 @@ sepref_def cdcl_twl_restart_wl_heur_fast_code
 sepref_def cdcl_twl_full_restart_wl_D_GC_heur_prog_fast_code
   is \<open>cdcl_twl_full_restart_wl_D_GC_heur_prog\<close>
   :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
-  unfolding cdcl_twl_full_restart_wl_D_GC_heur_prog_def zero_uint32_nat_def[symmetric]
   supply [[goals_limit = 1]]
+  unfolding cdcl_twl_full_restart_wl_D_GC_heur_prog_def
+  apply (annot_unat_const "TYPE(32)")
   by sepref
 
 sepref_register restart_required_heur cdcl_twl_restart_wl_heur
 
 sepref_def restart_prog_wl_D_heur_fast_code
   is \<open>uncurry2 (restart_prog_wl_D_heur)\<close>
-  :: \<open>[\<lambda>((S, _), _). length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a
-      isasat_bounded_assn\<^sup>d *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a bool_assn\<^sup>k \<rightarrow> isasat_bounded_assn *a sint64_nat_assn\<close>
+  :: \<open>[\<lambda>((S, n), _). length (get_clauses_wl_heur S) \<le> sint64_max \<and> n < uint64_max]\<^sub>a
+      isasat_bounded_assn\<^sup>d *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a bool1_assn\<^sup>k \<rightarrow> isasat_bounded_assn *a uint64_nat_assn\<close>
   unfolding restart_prog_wl_D_heur_def
   supply [[goals_limit = 1]]
+  apply (annot_unat_const "TYPE(64)")
   by sepref
 
 definition isasat_fast_bound where
   \<open>isasat_fast_bound = uint64_max - (uint32_max div 2 + 6)\<close>
 
-lemma isasat_fast_bound[sepref_fr_rules]:
-   \<open>(uncurry0 (return 18446744071562067962), uncurry0 (RETURN isasat_fast_bound)) \<in>
-   unit_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
-  by sepref_to_hoare (sep_auto simp: uint64_nat_rel_def br_def isasat_fast_bound_def
+lemma isasat_fast_bound_alt_def:
+  \<open>isasat_fast_bound = 18446744071562067962\<close>
+  by (auto simp: br_def isasat_fast_bound_def
      uint64_max_def uint32_max_def)
+
 
 sepref_register isasat_fast
 sepref_def isasat_fast_code
   is \<open>RETURN o isasat_fast\<close>
-  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
-  unfolding isasat_fast_alt_def isasat_bounded_assn_def isasat_fast_bound_def[symmetric]
-  supply [[goals_limit = 1]] uint32_max_nat_hnr[sepref_fr_rules]
+  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
+  unfolding isasat_fast_alt_def isasat_fast_bound_def[symmetric]
+  isasat_fast_bound_alt_def
+  supply [[goals_limit = 1]]
+  apply (annot_snat_const "TYPE(64)")
   by sepref
 
-declare isasat_fast_code.refine[sepref_fr_rules]
 
 
 sepref_def cdcl_twl_stgy_restart_prog_wl_heur_fast_code
-  is \<open>cdcl_twl_stgy_restart_prog_early_wl_heur\<close>
-  :: \<open>[\<lambda>S. isasat_fast S]\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_unbounded_assn\<close>
-  unfolding cdcl_twl_stgy_restart_prog_early_wl_heur_def
+  is \<open>cdcl_twl_stgy_restart_prog_bounded_wl_heur\<close>
+  :: \<open>[\<lambda>S. isasat_fast S]\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> bool1_assn *a isasat_bounded_assn\<close>
+  unfolding cdcl_twl_stgy_restart_prog_bounded_wl_heur_def
   supply [[goals_limit = 1]] isasat_fast_def[simp]
+  apply (annot_unat_const "TYPE(64)")
+  apply sepref_dbg_keep
+  apply sepref_dbg_trans_keep
+  apply sepref_dbg_trans_step_keep
+  apply sepref_dbg_side_unfold
+oops
   by sepref
 
 declare cdcl_twl_stgy_restart_prog_wl_heur_fast_code.refine[sepref_fr_rules]
