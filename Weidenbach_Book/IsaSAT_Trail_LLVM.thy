@@ -230,10 +230,11 @@ sepref_definition (in -) get_the_propagation_reason_fast_code
 declare get_the_propagation_reason_fast_code.refine[sepref_fr_rules]
   get_the_propagation_reason_code.refine[sepref_fr_rules]
 *)
+sepref_register isa_trail_nth
 
 sepref_def isa_trail_nth_fast_code
   is \<open>uncurry isa_trail_nth\<close>
-  :: \<open>trail_pol_fast_assn\<^sup>k *\<^sub>a sint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a unat_lit_assn\<close>
+  :: \<open>trail_pol_fast_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a unat_lit_assn\<close>
   unfolding isa_trail_nth_def trail_pol_fast_assn_def
   by sepref
 

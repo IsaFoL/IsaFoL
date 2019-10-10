@@ -668,14 +668,14 @@ lemma isa_remove_deleted_clauses_from_avdom_remove_deleted_clauses_from_avdom:
   done
 
 definition (in -) sort_vdom_heur :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
-  \<open>sort_vdom_heur = (\<lambda>(M', arena, D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, (fast_ema, slow_ema, ccount),
+  \<open>sort_vdom_heur = (\<lambda>(M', arena, D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, heur,
        vdom, avdom, lcount). do {
     ASSERT(length avdom \<le> length arena);
     avdom \<leftarrow> isa_remove_deleted_clauses_from_avdom arena avdom;
     ASSERT(valid_sort_clause_score_pre arena avdom);
     ASSERT(length avdom \<le> length arena);
     avdom \<leftarrow> quicksort_clauses_by_score arena avdom;
-    RETURN (M', arena, D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, (fast_ema, slow_ema, ccount),
+    RETURN (M', arena, D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, heur,
        vdom, avdom, lcount)
     })\<close>
 
@@ -701,13 +701,13 @@ proof -
      order_trans[OF isa_remove_deleted_clauses_from_avdom_remove_deleted_clauses_from_avdom,
       unfolded Down_id_eq, OF _ _ _ remove_deleted_clauses_from_avdom])
     subgoal for x y x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f x1g x2g x1h x2h
-       x1i x2i x1j x2j x1k x2k x1l x2l x1m x2m x1n x2n x1o x2o x1p x2p
+       x1i x2i x1j x2l x1m x2m x1n x2n x1o x2o x1p x2p
       by (case_tac y; auto simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def mem_Collect_eq prod.case)
     subgoal for x y x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f x1g x2g x1h x2h
-       x1i x2i x1j x2j x1k x2k x1l x2l x1m x2m x1n x2n x1o x2o x1p x2p
+       x1i x2i x1j x2j x1k x2k x1l x2l x1m x2m x1n x2n
       by (case_tac y; auto simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def mem_Collect_eq prod.case)
     subgoal for x y x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f x1g x2g x1h x2h
-       x1i x2i x1j x2j x1k x2k x1l x2l x1m x2m x1n x2n x1o x2o x1p x2p
+       x1i x2i x1j x2j x1k x2k x1l x2l x1m x2m x1n x2n
       by (case_tac y; auto simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def mem_Collect_eq prod.case)
     apply (subst assert_bind_spec_conv, intro conjI)
     subgoal for x y
@@ -786,7 +786,7 @@ definition restart_required_heur :: "twl_st_wl_heur \<Rightarrow> nat \<Rightarr
     let should_not_reduce = (\<not>opt_red \<or> upper_restart_bound_not_reached S);
     RETURN ((opt_res \<or> opt_red) \<and>
        (should_not_reduce \<longrightarrow> limit > fema) \<and> min_reached \<and> can_res \<and>
-      of_nat level > (2 :: 64 word) \<and> \<^cancel>\<open>This comment from Marijn Heule seems not to help:
+      level > 2 \<and> \<^cancel>\<open>This comment from Marijn Heule seems not to help:
          \<^term>\<open>level < max_restart_decision_lvl\<close>\<close>
       of_nat level > (fema >> 32))}
   \<close>
@@ -1098,12 +1098,21 @@ proof -
         split: prod.splits)
 qed
 
-definition number_clss_to_keep :: \<open>twl_st_wl_heur \<Rightarrow> nat\<close> where
+definition number_clss_to_keep :: \<open>twl_st_wl_heur \<Rightarrow> nat nres\<close> where
   \<open>number_clss_to_keep = (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl,
       (props, decs, confl, restarts, _), heur,
        vdom, avdom, lcount).
-    unat (1000 + 150 * restarts))\<close>
+    RES UNIV)\<close>
 
+definition number_clss_to_keep_impl :: \<open>twl_st_wl_heur \<Rightarrow> nat nres\<close> where
+  \<open>number_clss_to_keep_impl = (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl,
+      (props, decs, confl, restarts, _), heur,
+       vdom, avdom, lcount).
+    let n = unat (1000 + 150 * restarts) in RETURN (if n \<ge> sint64_max then sint64_max else n))\<close>
+
+lemma number_clss_to_keep_impl_number_clss_to_keep:
+  \<open>(number_clss_to_keep_impl, number_clss_to_keep) \<in> Id \<rightarrow>\<^sub>f \<langle>nat_rel\<rangle>nres_rel\<close>
+  by (auto simp: number_clss_to_keep_impl_def number_clss_to_keep_def Let_def intro!: frefI nres_relI)
 
 definition access_vdom_at :: \<open>twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> nat\<close> where
   \<open>access_vdom_at S i = get_avdom S ! i\<close>
@@ -1224,7 +1233,7 @@ where
 \<open>mark_to_delete_clauses_wl_D_heur  = (\<lambda>S0. do {
     ASSERT(mark_to_delete_clauses_wl_D_heur_pre S0);
     S \<leftarrow> sort_vdom_heur S0;
-    let l = number_clss_to_keep S;
+    l \<leftarrow> number_clss_to_keep S;
     ASSERT(length (get_avdom S) \<le> length (get_clauses_wl_heur S0));
     (i, T) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>_. True\<^esup>
       (\<lambda>(i, S). i < length (get_avdom S))
@@ -1302,7 +1311,7 @@ lemma mark_to_delete_clauses_wl_D_heur_alt_def:
       ASSERT(mark_to_delete_clauses_wl_D_heur_pre S0);
       S \<leftarrow> sort_vdom_heur S0;
       _ \<leftarrow> RETURN (get_avdom S);
-      l \<leftarrow> RETURN (number_clss_to_keep S);
+      l \<leftarrow> number_clss_to_keep S;
       ASSERT(length (get_avdom S) \<le> length(get_clauses_wl_heur S0));
       (i, T) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>_. True\<^esup>
         (\<lambda>(i, S). i < length (get_avdom S))
@@ -1499,13 +1508,13 @@ proof -
      order_trans[OF isa_remove_deleted_clauses_from_avdom_remove_deleted_clauses_from_avdom,
       unfolded Down_id_eq, OF _ _ _ remove_deleted_clauses_from_avdom])
     subgoal for x y x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f x1g x2g x1h x2h
-       x1i x2i x1j x2j x1k x2k x1l x2l x1m x2m x1n x2n x1o x2o
+       x1i x2i x1j x2j x1k x2k x1l x2l x1m x2m
       by (case_tac T; auto simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def mem_Collect_eq prod.case)
     subgoal for x y x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f x1g x2g x1h x2h
-       x1i x2i x1j x2j x1k x2k x1l x2l x1m x2m x1n x2n x1o x2o
+       x1i x2i x1j x2j x1k x2k x1l x2l x1m x2m
       by (case_tac T; auto simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def mem_Collect_eq prod.case)
     subgoal for x y x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f x1g x2g x1h x2h
-       x1i x2i x1j x2j x1k x2k x1l x2l x1m x2m x1n x2n x1o x2o
+       x1i x2i x1j x2j x1k x2k x1l x2l x1m x2m
       by (case_tac T; auto simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def mem_Collect_eq prod.case)
     apply (subst assert_bind_spec_conv, intro conjI)
     subgoal for x y
@@ -1619,6 +1628,7 @@ proof -
       unfolding mark_to_delete_clauses_wl_D_heur_pre_def by fast
     subgoal by auto
     subgoal by auto
+    subgoal for x y S T unfolding number_clss_to_keep_def by (cases S) (auto)
     subgoal by (auto simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def
        dest!: valid_arena_vdom_subset size_mset_mono)
     apply (rule init; solves auto)
@@ -1922,7 +1932,7 @@ where
         L \<leftarrow> isa_trail_nth (get_trail_wl_heur S) i;
 	C \<leftarrow> get_the_propagation_reason_pol (get_trail_wl_heur S) L;
 	RETURN (L, C)};
-      ASSERT(C \<noteq> None \<and> i + 1 \<le> uint32_max);
+      ASSERT(C \<noteq> None \<and> i + 1 \<le> Suc (uint32_max div 2));
       if the C = 0 then RETURN (i+1, S)
       else do {
         ASSERT(C \<noteq> None);
@@ -2155,7 +2165,7 @@ lemma mark_garbage_heur2_remove_and_add_cls_l:
 lemma remove_one_annot_true_clause_one_imp_wl_pre_fst_le_uint32:
   assumes \<open>(x, y) \<in> nat_rel \<times>\<^sub>f twl_st_heur_restart_ana r\<close> and
     \<open>remove_one_annot_true_clause_one_imp_wl_pre (fst y) (snd y)\<close>
-  shows \<open>fst x + 1 \<le> uint32_max\<close>
+  shows \<open>fst x + 1 \<le> Suc (uint32_max div 2)\<close>
 proof -
   have [simp]: \<open>fst y = fst x\<close>
     using assms by (cases x, cases y) auto
@@ -2636,26 +2646,24 @@ proof -
         dest: twl_st_heur_restart_same_annotD imageI[of _ _ lit_of]
           dest!: twl_st_heur_restart_anaD)
   qed
-  have \<open>((M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, (fast_ema,
-            slow_ema, ccount), vdom, avdom', lcount),
+  have \<open>((M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, heur, vdom, avdom', lcount),
            S')
           \<in> twl_st_heur_restart \<Longrightarrow>
-    ((M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, (fast_ema,
-            slow_ema, ccount), vdom, avdom, lcount),
+    ((M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, heur, vdom, avdom, lcount),
            S')
           \<in> twl_st_heur_restart\<close>
     if \<open>mset avdom \<subseteq># mset avdom'\<close>
     for M' N' D' j W' vm \<phi> clvls cach lbd outl stats fast_ema slow_ema
-      ccount vdom lcount S' avdom' avdom
+      ccount vdom lcount S' avdom' avdom heur
     using that unfolding twl_st_heur_restart_def twl_st_heur_restart_ana_def
     by auto
   then have mark_to_delete_clauses_wl_D_heur_pre_vdom':
     \<open>mark_to_delete_clauses_wl_D_heur_pre (M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats,
-       (fast_ema, slow_ema, ccount), vdom, avdom', lcount) \<Longrightarrow>
+       heur, vdom, avdom', lcount) \<Longrightarrow>
       mark_to_delete_clauses_wl_D_heur_pre (M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats,
-        (fast_ema, slow_ema, ccount), vdom, avdom, lcount)\<close>
+        heur, vdom, avdom, lcount)\<close>
     if \<open>mset avdom \<subseteq># mset avdom'\<close>
-    for M' N' D' j W' vm \<phi> clvls cach lbd outl stats fast_ema slow_ema avdom avdom'
+    for M' N' D' j W' vm \<phi> clvls cach lbd outl stats fast_ema slow_ema avdom avdom' heur
       ccount vdom lcount
     using that twl_st_heur_restart_anaD
     unfolding mark_to_delete_clauses_wl_D_heur_pre_def
@@ -2674,13 +2682,13 @@ proof -
      order_trans[OF isa_remove_deleted_clauses_from_avdom_remove_deleted_clauses_from_avdom,
       unfolded Down_id_eq, OF _ _ _ remove_deleted_clauses_from_avdom])
     subgoal for x y x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f x1g x2g x1h x2h
-       x1i x2i x1j x2j x1k x2k x1l x2l x1m x2m x1n x2n x1o x2o
+       x1i x2i x1j x2j x1k x2k x1l x2l x1m x2m
       by (case_tac T; auto simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def mem_Collect_eq prod.case)
     subgoal for x y x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f x1g x2g x1h x2h
-       x1i x2i x1j x2j x1k x2k x1l x2l x1m x2m x1n x2n x1o x2o
+       x1i x2i x1j x2j x1k x2k x1l x2l x1m x2m
       by (case_tac T; auto simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def mem_Collect_eq prod.case)
     subgoal for x y x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f x1g x2g x1h x2h
-       x1i x2i x1j x2j x1k x2k x1l x2l x1m x2m x1n x2n x1o x2o
+       x1i x2i x1j x2j x1k x2k x1l x2l x1m x2m
       by (case_tac T; auto simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def mem_Collect_eq prod.case)
     apply (subst assert_bind_spec_conv, intro conjI)
     subgoal for x y
@@ -4598,7 +4606,7 @@ definition get_pos_of_level_in_trail_imp_st :: \<open>twl_st_wl_heur \<Rightarro
 \<open>get_pos_of_level_in_trail_imp_st S = get_pos_of_level_in_trail_imp (get_trail_wl_heur S)\<close>
 
 lemma get_pos_of_level_in_trail_imp_alt_def:
-  \<open>get_pos_of_level_in_trail_imp_st = (\<lambda>(M, _).  get_pos_of_level_in_trail_imp M)\<close>
+  \<open>get_pos_of_level_in_trail_imp_st = (\<lambda>(M, _) L.  do {k \<leftarrow> get_pos_of_level_in_trail_imp M L; RETURN k})\<close>
   by (auto simp: get_pos_of_level_in_trail_imp_st_def intro!: ext)
 
 

@@ -118,14 +118,6 @@ sepref_def unit_propagation_inner_loop_wl_D_fast_code
   by sepref
 
 
-sepref_def isa_trail_nth_fast_code
-  is \<open>uncurry isa_trail_nth\<close>
-  :: \<open>trail_pol_fast_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a unat_lit_assn\<close>
-  unfolding isa_trail_nth_def trail_pol_fast_assn_def
-  by sepref
-
-
-sepref_register isa_trail_nth
 sepref_def select_and_remove_from_literals_to_update_wlfast_code
   is \<open>select_and_remove_from_literals_to_update_wl_heur\<close>
   :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn *a unat_lit_assn\<close>
