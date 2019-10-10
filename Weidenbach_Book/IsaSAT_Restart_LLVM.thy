@@ -152,6 +152,80 @@ sepref_def mark_clauses_as_unused_wl_D_heur_fast_code
 
 sepref_register mark_to_delete_clauses_wl_D_heur
 
+sepref_def MINIMUM_DELETION_LBD_impl
+  is \<open>uncurry0 (RETURN MINIMUM_DELETION_LBD)\<close>
+  :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+  unfolding MINIMUM_DELETION_LBD_def
+  apply (annot_unat_const "TYPE(32)")
+  by sepref
+
+lemma mop_clause_not_marked_to_delete_heur_alt_def:
+  \<open>mop_clause_not_marked_to_delete_heur = (\<lambda>(M, arena, D, oth) C. do {
+    ASSERT(clause_not_marked_to_delete_heur_pre ((M, arena, D, oth), C));
+     RETURN (arena_status arena C \<noteq> DELETED)
+   })\<close>
+  unfolding clause_not_marked_to_delete_heur_def mop_clause_not_marked_to_delete_heur_def
+  by (auto intro!: ext)
+
+sepref_def mop_clause_not_marked_to_delete_heur_impl
+  is \<open>uncurry mop_clause_not_marked_to_delete_heur\<close>
+  :: \<open>isasat_bounded_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
+  unfolding mop_clause_not_marked_to_delete_heur_alt_def
+    clause_not_marked_to_delete_heur_pre_def  prod.case isasat_bounded_assn_def
+  by sepref
+
+
+lemma mop_mark_garbage_heur_alt_def:
+  \<open>mop_mark_garbage_heur C i = (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, heur,
+       vdom, avdom, lcount, opts, old_arena). do {
+    ASSERT(mark_garbage_pre (get_clauses_wl_heur (M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, heur,
+       vdom, avdom, lcount, opts, old_arena), C) \<and> get_learned_count (M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, heur,
+       vdom, avdom, lcount, opts, old_arena) \<ge> 1 \<and> i < length avdom);
+    RETURN (M', extra_information_mark_to_delete N' C, D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats,
+      heur,
+       vdom, delete_index_and_swap avdom i, lcount - 1, opts, old_arena)
+   })\<close>
+  unfolding mop_mark_garbage_heur_def mark_garbage_heur_def
+  by (auto intro!: ext)
+
+sepref_def mop_mark_garbage_heur_impj
+  is \<open>uncurry2 mop_mark_garbage_heur\<close>
+  :: \<open>[\<lambda>((C, i), S). length (get_clauses_wl_heur S) < sint64_max]\<^sub>a
+      sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding mop_mark_garbage_heur_alt_def
+    clause_not_marked_to_delete_heur_pre_def prod.case isasat_bounded_assn_def
+  apply (annot_unat_const "TYPE(64)")
+  apply sepref_dbg_keep
+  apply sepref_dbg_trans_keep
+  apply sepref_dbg_trans_step_keep
+  apply sepref_dbg_side_unfold
+oops
+  by sepref
+(*mop_mark_garbage_heur mop_mark_unused_st_heur mop_arena_lbd 
+  mop_arena_status mop_marked_as_used*)
+
+lemma mop_mark_unused_st_heur_alt_def:
+  \<open>mop_mark_unused_st_heur C = (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, heur,
+       vdom, avdom, lcount, opts, old_arena). do {
+    ASSERT(mark_garbage_pre (get_clauses_wl_heur (M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, heur,
+       vdom, avdom, lcount, opts, old_arena), C) \<and> get_learned_count (M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, heur,
+       vdom, avdom, lcount, opts, old_arena) \<ge> 1);
+    RETURN (M', mop_mark_unused_st_heur N' C, D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats,
+      heur,
+       vdom, delete_index_and_swap avdom i, lcount - 1, opts, old_arena)
+   })\<close>
+  unfolding mop_mark_garbage_heur_def mark_garbage_heur_def
+  by (auto intro!: ext)
+
+sepref_def mop_mark_unused_st_heur_impl
+  is \<open>uncurry2 mop_mark_unused_st_heur\<close>
+  :: \<open>[\<lambda>(C, S). length (get_clauses_wl_heur S) < sint64_max]\<^sub>a
+      sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
+  unfolding mop_mark_garbage_heur_alt_def
+    clause_not_marked_to_delete_heur_pre_def prod.case isasat_bounded_assn_def
+  by sepref
+
 sepref_def mark_to_delete_clauses_wl_D_heur_fast_impl
   is \<open>mark_to_delete_clauses_wl_D_heur\<close>
   :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
@@ -163,7 +237,8 @@ sepref_def mark_to_delete_clauses_wl_D_heur_fast_impl
     access_length_heur_def[symmetric]
     short_circuit_conv mark_to_delete_clauses_wl_D_heur_is_Some_iff
     marked_as_used_st_def[symmetric] if_conn(4)
-  supply [[goals_limit = 1]] option.splits[split] if_splits[split]
+    fold_tuple_optimizations
+  supply [[goals_limit = 1]]
     length_avdom_def[symmetric, simp] access_vdom_at_def[simp]
   apply (annot_snat_const "TYPE(64)")
   apply sepref_dbg_keep
@@ -195,9 +270,6 @@ sepref_def cdcl_twl_restart_wl_heur_fast_code
   unfolding cdcl_twl_restart_wl_heur_def
   supply [[goals_limit = 1]]
   by sepref
-
-declare cdcl_twl_restart_wl_heur_fast_code.refine[sepref_fr_rules]
-   cdcl_twl_restart_wl_heur_code.refine[sepref_fr_rules]
 
 
 sepref_def cdcl_twl_full_restart_wl_D_GC_heur_prog_fast_code

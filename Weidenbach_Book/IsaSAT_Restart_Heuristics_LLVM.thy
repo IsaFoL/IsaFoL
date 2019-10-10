@@ -497,12 +497,24 @@ proof -
 qed
 
 sepref_def number_clss_to_keep_fast_code
-  is \<open>RETURN o number_clss_to_keep_impl\<close>
+  is \<open>number_clss_to_keep_impl\<close>
   :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a sint64_nat_assn\<close>
   supply [[goals_limit = 1]]
   unfolding number_clss_to_keep_impl_def isasat_bounded_assn_def
+    fold_tuple_optimizations
+  apply (rewrite at "If _ _ \<hole>" annot_unat_snat_conv)
+  apply (rewrite at "If (\<hole> \<le>_)" annot_snat_unat_conv)
   by sepref
 
+lemma number_clss_to_keep_impl_number_clss_to_keep:
+  \<open>(number_clss_to_keep_impl, number_clss_to_keep) \<in> Sepref_Rules.freft Id (\<lambda>_. \<langle>nat_rel\<rangle>nres_rel)\<close>
+  by (auto simp: number_clss_to_keep_impl_def number_clss_to_keep_def Let_def intro!: frefI nres_relI)
+
+lemma number_clss_to_keep_fast_code_refine[sepref_fr_rules]:
+  \<open>(number_clss_to_keep_fast_code, number_clss_to_keep) \<in> (isasat_bounded_assn)\<^sup>k \<rightarrow>\<^sub>a snat_assn\<close>
+  using hfcomp[OF number_clss_to_keep_fast_code.refine
+    number_clss_to_keep_impl_number_clss_to_keep, simplified]
+  by auto
 
 sepref_def access_vdom_at_fast_code
   is \<open>uncurry (RETURN oo access_vdom_at)\<close>

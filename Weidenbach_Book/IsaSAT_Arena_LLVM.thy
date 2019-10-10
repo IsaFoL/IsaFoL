@@ -183,6 +183,7 @@ sepref_def mop_arena_lit2_impl
   is "uncurry2 (mop_arena_lit2)" 
     :: "[\<lambda>((N, _), _). length N \<le> sint64_max]\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k  *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> unat_lit_assn"
   supply [intro] = arena_lit_implI
+  supply [dest] = arena_lit_pre_le_lengthD
   unfolding mop_arena_lit2_def
   by sepref
 

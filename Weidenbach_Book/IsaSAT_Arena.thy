@@ -2052,10 +2052,13 @@ definition mop_arena_lit where
       RETURN (arena_lit arena s)
   }\<close>
 
+lemma arena_lit_pre_le_lengthD: \<open>arena_lit_pre arena C \<Longrightarrow> C < length arena\<close>
+  apply (auto simp: arena_lit_pre_def arena_is_valid_clause_idx_and_access_def)
+  using arena_lifting(7) nat_le_iff_add by auto
+
 definition mop_arena_lit2 :: \<open>arena \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat literal nres\<close> where
 \<open>mop_arena_lit2 arena i j = do {
   ASSERT(arena_lit_pre arena (i+j));
-  ASSERT(i+j < length arena);
   let s = i+j;
   RETURN (arena_lit arena s)
   }\<close>
