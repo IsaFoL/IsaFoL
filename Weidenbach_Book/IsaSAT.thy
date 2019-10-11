@@ -133,7 +133,7 @@ definition init_dt_spec0 :: \<open>'v clause_l list \<Rightarrow> 'v twl_st_init
 subsubsection \<open>Refinements of the Whole SAT Solver\<close>
 
 text \<open>
-  We do no add the refinement steps in separate files, since the form is very specific
+  We do not add the refinement steps in separate files, since the form is very specific
   to the SAT solver we want to generate (and needs to be updated if it changes).
 \<close>
 definition  SAT0 :: \<open>nat clause_l list \<Rightarrow> nat twl_st nres\<close> where
@@ -1027,14 +1027,13 @@ proof -
      apply (rule ref_two_step')
      apply (rule Watched_Literals_Watch_List_Initialisation.init_dt_wl_full_init_dt_wl_spec_full)
      subgoal by (rule init_dt_wl_pre)
-     using  is_\<L>\<^sub>a\<^sub>l\<^sub>l_all_atms_st_all_lits_st[of ]
      by (auto simp: conc_fun_RES init_dt_wl_spec_full_def correct_watching_init_correct_watching
-       finalise_init_def literals_are_\<L>\<^sub>i\<^sub>n_def)
+       finalise_init_def literals_are_\<L>\<^sub>i\<^sub>n_def is_\<L>\<^sub>a\<^sub>l\<^sub>l_def \<L>\<^sub>a\<^sub>l\<^sub>l_all_atms_all_lits)
 
     ultimately show ?thesis
       by (rule add_invar_refineI_P)
   qed
-  have cdcl_twl_stgy_restart_prog_wl_D: \<open>cdcl_twl_stgy_restart_prog_wl_D (finalise_init U)
+  have cdcl_twl_stgy_restart_prog_wl_D: \<open>cdcl_twl_stgy_restart_prog_wl (finalise_init U)
 	\<le> \<Down> {(T, T'). (T, T') \<in> state_wl_l None}
 	   (cdcl_twl_stgy_restart_prog_l (fst U'))\<close>
     if
@@ -1061,9 +1060,7 @@ proof -
     have lits: \<open>literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st (finalise_init U)) (finalise_init U)\<close>
       using UU' by (auto simp: finalise_init_def)
     show ?thesis
-      apply (rule cdcl_twl_stgy_restart_prog_wl_D_spec[OF lits, THEN order_trans])
-      apply (subst Down_id_eq, subst 1)
-      apply (rule cdcl_twl_stgy_restart_prog_wl_spec[unfolded fref_param1, THEN fref_to_Down])
+      apply (rule cdcl_twl_stgy_restart_prog_wl_spec[unfolded fref_param1, THEN fref_to_Down, THEN order_trans])
       apply fast
       using UU' by (auto simp: finalise_init_def)
   qed
@@ -1185,10 +1182,10 @@ proof -
       done
   qed
 
-  have cdcl_twl_stgy_restart_prog_wl_D2: \<open>cdcl_twl_stgy_restart_prog_wl_D U'
+  have cdcl_twl_stgy_restart_prog_wl_D2: \<open>cdcl_twl_stgy_restart_prog_wl U'
 	\<le> \<Down> {(T, T'). (T, T') \<in> state_wl_l None}
 	   (cdcl_twl_stgy_restart_prog_l (fst T'))\<close> (is ?A) and
-     cdcl_twl_stgy_restart_prog_early_wl_D2: \<open>cdcl_twl_stgy_restart_prog_early_wl_D U'
+     cdcl_twl_stgy_restart_prog_early_wl_D2: \<open>cdcl_twl_stgy_restart_prog_early_wl U'
       \<le> \<Down> {(T, T'). (T, T') \<in> state_wl_l None}
          (cdcl_twl_stgy_restart_prog_early_l (fst T'))\<close> (is ?B)
 
@@ -1199,18 +1196,13 @@ proof -
     have 1: \<open> {(T, T'). (T, T') \<in> state_wl_l None} = state_wl_l None\<close>
       by auto
     have lits: \<open>literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st (U')) (U')\<close>
-      apply (rule literals_are_\<L>\<^sub>i\<^sub>n_all_atms_st)
       using U' by (auto simp: finalise_init_def correct_watching.simps)
     show ?A
-      apply (rule cdcl_twl_stgy_restart_prog_wl_D_spec[OF lits, THEN order_trans])
-      apply (subst Down_id_eq, subst 1)
-      apply (rule cdcl_twl_stgy_restart_prog_wl_spec[unfolded fref_param1, THEN fref_to_Down])
+      apply (rule cdcl_twl_stgy_restart_prog_wl_spec[unfolded fref_param1, THEN fref_to_Down, THEN order_trans])
       apply fast
       using U' by (auto simp: finalise_init_def)
     show ?B
-      apply (rule cdcl_twl_stgy_restart_prog_early_wl_D_spec[OF lits, THEN order_trans])
-      apply (subst Down_id_eq, subst 1)
-      apply (rule cdcl_twl_stgy_restart_prog_early_wl_spec[unfolded fref_param1, THEN fref_to_Down])
+      apply (rule cdcl_twl_stgy_restart_prog_early_wl_spec[unfolded fref_param1, THEN fref_to_Down, THEN order_trans])
       apply fast
       using U' by (auto simp: finalise_init_def)
   qed
@@ -1322,7 +1314,7 @@ lemma IsaSAT_alt_def:
            ASSERT(mset `# ran_mf (get_clauses_wl T) + get_unit_clauses_wl T = mset `# mset CS);
            ASSERT(learned_clss_l (get_clauses_wl T) = {#});
 	   T \<leftarrow> RETURN (finalise_init T);
-           S \<leftarrow> cdcl_twl_stgy_restart_prog_wl_D (T);
+           S \<leftarrow> cdcl_twl_stgy_restart_prog_wl (T);
            RETURN (if get_conflict_wl S = None then extract_model_of_state S else extract_stats S)
         }
     }
@@ -1343,7 +1335,7 @@ lemma IsaSAT_alt_def:
             ASSERT(mset `# ran_mf (get_clauses_wl T) + get_unit_clauses_wl T = mset `# mset CS);
             ASSERT(learned_clss_l (get_clauses_wl T) = {#});
             let T = finalise_init T;
-            S \<leftarrow> cdcl_twl_stgy_restart_prog_wl_D T;
+            S \<leftarrow> cdcl_twl_stgy_restart_prog_wl T;
             RETURN (if get_conflict_wl S = None then extract_model_of_state S else extract_stats S)
           }
         } else do {
@@ -1358,7 +1350,7 @@ lemma IsaSAT_alt_def:
             ASSERT(learned_clss_l (get_clauses_wl T) = {#});
             T \<leftarrow> rewatch_st T;
 	    T \<leftarrow> RETURN (finalise_init T);
-            S \<leftarrow> cdcl_twl_stgy_restart_prog_early_wl_D T;
+            S \<leftarrow> cdcl_twl_stgy_restart_prog_early_wl T;
             RETURN (if get_conflict_wl S = None then extract_model_of_state S else extract_stats S)
           }
         }
@@ -2576,7 +2568,7 @@ definition IsaSAT_bounded_heur :: \<open>opts \<Rightarrow> nat clause_l list \<
       ASSERT(isasat_fast_init T);
       T \<leftarrow> finalise_init_code opts (T::twl_st_wl_heur_init);
       ASSERT(isasat_fast T);
-      (b, U) \<leftarrow> cdcl_twl_stgy_prog_bounded_wl_heur T;
+      (b, U) \<leftarrow> cdcl_twl_stgy_restart_prog_bounded_wl_heur T;
       RETURN (b, if get_conflict_wl_is_None_heur U then extract_model_of_state_stat U
         else extract_state_stat U)
     } else RETURN (False, empty_init_code)

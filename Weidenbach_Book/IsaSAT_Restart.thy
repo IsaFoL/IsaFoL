@@ -301,17 +301,18 @@ where
     ebrk \<leftarrow> RETURN (\<not>isasat_fast S\<^sub>0);
     (ebrk, brk, T, n) \<leftarrow>
      WHILE\<^sub>T\<^bsup>\<lambda>(ebrk, brk, T, n). cdcl_twl_stgy_restart_abs_wl_heur_inv S\<^sub>0 brk T n \<and>
-        (\<not>ebrk \<longrightarrow>isasat_fast T \<and> n < uint64_max) \<and> length (get_clauses_wl_heur T) \<le> uint64_max\<^esup>
+        (\<not>ebrk \<longrightarrow>isasat_fast T \<and> n < uint64_max) \<and>
+        (\<not>ebrk \<longrightarrow>length (get_clauses_wl_heur T) \<le> sint64_max)\<^esup>
       (\<lambda>(ebrk, brk, _). \<not>brk \<and> \<not>ebrk)
       (\<lambda>(ebrk, brk, S, n).
       do {
         ASSERT(\<not>brk \<and> \<not>ebrk);
-        ASSERT(length (get_clauses_wl_heur S) \<le> uint64_max);
+        ASSERT(length (get_clauses_wl_heur S) \<le> sint64_max);
         T \<leftarrow> unit_propagation_outer_loop_wl_D_heur S;
-        ASSERT(length (get_clauses_wl_heur T) \<le> uint64_max);
+        ASSERT(length (get_clauses_wl_heur T) \<le> sint64_max);
         ASSERT(length (get_clauses_wl_heur T) = length (get_clauses_wl_heur S));
         (brk, T) \<leftarrow> cdcl_twl_o_prog_wl_D_heur T;
-        ASSERT(length (get_clauses_wl_heur T) \<le> uint64_max);
+        ASSERT(length (get_clauses_wl_heur T) \<le> sint64_max);
         (T, n) \<leftarrow> restart_prog_wl_D_heur T n brk;
 	ebrk \<leftarrow> RETURN (\<not>(isasat_fast T \<and> n < uint64_max));
         RETURN (ebrk, brk, T, n)
@@ -405,13 +406,14 @@ proof -
         unit_propagation_outer_loop_wl_D_heur_unit_propagation_outer_loop_wl_D'[THEN fref_to_Down]
         WHILEIT_refine[where R = \<open>{((ebrk, brk, T,n), (ebrk', brk', T', n')).
 	    (ebrk = ebrk') \<and> (brk = brk') \<and> (T, T')  \<in> twl_st_heur \<and> n = n' \<and>
-	      (\<not>ebrk \<longrightarrow> isasat_fast T \<and> n < uint64_max) \<and> length (get_clauses_wl_heur T) \<le> uint64_max}\<close>])
-    subgoal using r by (auto simp: uint64_max_def)
+	      (\<not>ebrk \<longrightarrow> isasat_fast T \<and> n < uint64_max) \<and>
+              (\<not>ebrk \<longrightarrow> length (get_clauses_wl_heur T) \<le> sint64_max)}\<close>])
+    subgoal using r by (auto simp: sint64_max_def isasat_fast_def uint32_max_def)
     subgoal
       unfolding cdcl_twl_stgy_restart_abs_wl_heur_inv_def by fast
     subgoal by auto
     subgoal by auto
-    subgoal by auto
+    subgoal by (auto simp: sint64_max_def isasat_fast_def uint32_max_def)
     subgoal by auto
     subgoal by fast
     subgoal by auto

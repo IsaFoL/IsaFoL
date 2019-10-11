@@ -373,21 +373,14 @@ sepref_def isasat_fast_code
   apply (annot_snat_const "TYPE(64)")
   by sepref
 
-
-
+sepref_register cdcl_twl_stgy_restart_prog_bounded_wl_heur
 sepref_def cdcl_twl_stgy_restart_prog_wl_heur_fast_code
   is \<open>cdcl_twl_stgy_restart_prog_bounded_wl_heur\<close>
   :: \<open>[\<lambda>S. isasat_fast S]\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> bool1_assn *a isasat_bounded_assn\<close>
   unfolding cdcl_twl_stgy_restart_prog_bounded_wl_heur_def
   supply [[goals_limit = 1]] isasat_fast_def[simp]
   apply (annot_unat_const "TYPE(64)")
-  apply sepref_dbg_keep
-  apply sepref_dbg_trans_keep
-  apply sepref_dbg_trans_step_keep
-  apply sepref_dbg_side_unfold
-oops
   by sepref
 
-declare cdcl_twl_stgy_restart_prog_wl_heur_fast_code.refine[sepref_fr_rules]
 
 end
