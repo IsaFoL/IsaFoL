@@ -171,6 +171,7 @@ session "Watched_Literals" (Weidenbach_Book) = "CDCL"  +
   sessions
     CDCL
     "HOL-Eisbach"
+    Isabelle_LLVM
   theories [quick_and_dirty = false, document = true]
     IICF_Array_List64
     Array_Array_List64
@@ -205,6 +206,7 @@ session "IsaSAT" (Weidenbach_Book) = "Watched_Literals"  +
     "HOL-Eisbach"
     Watched_Literals
     Show
+    Isabelle_LLVM
   theories
     IsaSAT_Arena
     IsaSAT_Arena_SML
