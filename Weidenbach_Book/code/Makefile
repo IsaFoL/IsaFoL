@@ -1,7 +1,7 @@
 MLTON = mlton
 CLANG = clang
 
-CFLAGS = -march=native -flto -std=c11 -Wall -Wextra 
+CFLAGS = -flto -std=c11 -Wall -Wextra 
 
 all: isasat
 
