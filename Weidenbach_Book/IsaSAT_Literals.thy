@@ -1,6 +1,6 @@
 theory IsaSAT_Literals
   imports Watched_Literals.WB_More_Refinement "HOL-Word.More_Word"
-     Watched_Literals.Watched_Literals_Watch_List_Domain
+     Watched_Literals.Watched_Literals_Watch_List
      Entailment_Definition.Partial_Herbrand_Interpretation
      Isabelle_LLVM.Bits_Natural (*Watched_Literals.WB_Word*)
 begin
@@ -122,7 +122,7 @@ definition sint32_max :: nat where
 definition sint64_max :: nat where
   \<open>sint64_max \<equiv> 2^63-1\<close>
 
-  
+
 context
   fixes \<A>\<^sub>i\<^sub>n :: \<open>nat multiset\<close>
 begin

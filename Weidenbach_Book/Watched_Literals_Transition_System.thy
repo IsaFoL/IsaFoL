@@ -535,7 +535,7 @@ proof -
         uK'_M: \<open>-K'' \<in> lits_of_l M\<close>
         using lazy W uL L'M unfolding C MM' by auto
       then have uK'_M1: \<open>- K'' \<in> lits_of_l M1\<close>
-        using uK'_M unfolding M apply (auto simp: get_level_append_if
+        using uK'_M unfolding  M apply (auto simp: get_level_append_if
             split: if_splits)
         using M' MM' n_d uL count_decided_ge_get_level[of M1 L]
         by (auto dest: defined_lit_no_dupD in_lits_of_l_defined_litD

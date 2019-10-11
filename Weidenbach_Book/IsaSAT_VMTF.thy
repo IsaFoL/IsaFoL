@@ -31,32 +31,33 @@ definition isa_vmtf_enqueue :: \<open>trail_pol \<Rightarrow> nat \<Rightarrow> 
 \<open>isa_vmtf_enqueue = (\<lambda>M L (ns, m, fst_As, lst_As, next_search). do {
   ASSERT(defined_atm_pol_pre M L);
   de \<leftarrow> RETURN (defined_atm_pol M L);
-  RETURN (case fst_As of
-    None \<Rightarrow>(ns[L := VMTF_Node m fst_As None], m+1, L, L,
-            (if de then None else Some L))
-  | Some fst_As \<Rightarrow>
-     let fst_As' = VMTF_Node (stamp (ns!fst_As)) (Some L) (get_next (ns!fst_As)) in
-      (ns[L := VMTF_Node (m+1) None (Some fst_As), fst_As := fst_As'],
-          m+1, L, the lst_As, (if de then next_search else Some L)))})\<close>
+  case fst_As of
+    None \<Rightarrow>RETURN ( (ns[L := VMTF_Node m fst_As None], m+1, L, L,
+            (if de then None else Some L)))
+  | Some fst_As \<Rightarrow> do {
+      let fst_As' = VMTF_Node (stamp (ns!fst_As)) (Some L) (get_next (ns!fst_As));
+      RETURN (ns[L := VMTF_Node (m+1) None (Some fst_As), fst_As := fst_As'],
+          m+1, L, the lst_As, (if de then next_search else Some L))
+   }})\<close>
 
 lemma vmtf_enqueue_alt_def:
   \<open>RETURN ooo vmtf_enqueue = (\<lambda>M L (ns, m, fst_As, lst_As, next_search). do {
     let de = defined_lit M (Pos L);
-    RETURN (case fst_As of
-      None \<Rightarrow> (ns[L := VMTF_Node m fst_As None], m+1, L, L,
+    case fst_As of
+      None \<Rightarrow> RETURN (ns[L := VMTF_Node m fst_As None], m+1, L, L,
 	   (if de then None else Some L))
     | Some fst_As \<Rightarrow>
        let fst_As' = VMTF_Node (stamp (ns!fst_As)) (Some L) (get_next (ns!fst_As)) in
-	(ns[L := VMTF_Node (m+1) None (Some fst_As), fst_As := fst_As'],
-	    m+1, L, the lst_As, (if de then next_search else Some L)))})\<close>
+       RETURN (ns[L := VMTF_Node (m+1) None (Some fst_As), fst_As := fst_As'],
+	    m+1, L, the lst_As, (if de then next_search else Some L))})\<close>
   unfolding vmtf_enqueue_def Let_def
-  by (auto intro!: ext)
+  by (auto intro!: ext split: option.splits)
 
 lemma isa_vmtf_enqueue:
   \<open>(uncurry2 isa_vmtf_enqueue, uncurry2 (RETURN ooo vmtf_enqueue)) \<in>
      [\<lambda>((M, L), _). L \<in># \<A>]\<^sub>f (trail_pol \<A>) \<times>\<^sub>f nat_rel \<times>\<^sub>f Id \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
 proof -
-  have defined_atm_pol: \<open>(defined_atm_pol x1g x2f, defined_lit x1a (Pos x2))	\<in> Id\<close>
+  have defined_atm_pol: \<open>(defined_atm_pol x1g x2f, defined_lit x1a (Pos x2)) \<in> Id\<close>
     if
       \<open>case y of (x, xa) \<Rightarrow> (case x of (M, L) \<Rightarrow> \<lambda>_. L \<in># \<A>) xa\<close> and
       \<open>(x, y) \<in> trail_pol \<A> \<times>\<^sub>f nat_rel \<times>\<^sub>f Id\<close> and    \<open>x1 = (x1a, x2)\<close> and
@@ -88,9 +89,12 @@ proof -
     apply (refine_rcg)
     subgoal by (rule defined_atm_pol_pre) auto
     apply (rule defined_atm_pol; assumption)
+    apply (rule same_in_Id_option_rel)
     subgoal for x y x1 x1a x2 x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x1g x2f x2g x1h x2h
 	 x1i x2i x1j x2j x1k x2k
       by auto
+    subgoal by auto
+    subgoal by auto
     done
 qed
 

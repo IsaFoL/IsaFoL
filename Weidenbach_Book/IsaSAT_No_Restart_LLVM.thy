@@ -1,6 +1,7 @@
 theory IsaSAT_No_Restart_LLVM
   imports  Version IsaSAT_CDCL_LLVM
     IsaSAT_Initialisation_LLVM Version IsaSAT
+    IsaSAT_Restart_LLVM
 begin
 
 abbreviation  model_stat_assn where
@@ -79,13 +80,16 @@ definition model_assn where
   \<open>model_assn = hr_comp model_stat_assn model_stat_rel\<close>
 
 lemma extract_model_of_state_stat_alt_def:
-  \<open>RETURN o extract_model_of_state_stat = (\<lambda>((M, M'), N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema, ccount,
-       vdom, avdom, lcount, opts, old_arena).
-     do {mop_free M'; mop_free N'; mop_free D'; mop_free j; mop_free W'; mop_free vm; mop_free \<phi>; mop_free clvls;
-         mop_free cach; mop_free lbd; mop_free outl; mop_free fast_ema; mop_free slow_ema; mop_free ccount;
+  \<open>RETURN o extract_model_of_state_stat = (\<lambda>((M, M'), N', D', j, W', vm, \<phi>, clvls, cach, lbd,
+    outl, stats,
+    heur, vdom, avdom, lcount, opts, old_arena).
+     do {mop_free M'; mop_free N'; mop_free D'; mop_free j; mop_free W'; mop_free vm; mop_free \<phi>;
+         mop_free clvls;
+         mop_free cach; mop_free lbd; mop_free outl; mop_free heur;
          mop_free vdom; mop_free avdom; mop_free opts;
          mop_free old_arena;
-        RETURN (False, M, stats)})\<close>
+        RETURN (False, M, stats)
+     })\<close>
   by (auto simp: extract_model_of_state_stat_def mop_free_def intro!: ext)
 
 schematic_goal mk_free_lookup_clause_rel_assn[sepref_frame_free_rules]: "MK_FREE lookup_clause_rel_assn ?fr"
@@ -101,14 +105,21 @@ schematic_goal mk_free_vmtf_remove_assn[sepref_frame_free_rules]: "MK_FREE vmtf_
   unfolding vmtf_remove_assn_def
   by (rule free_thms sepref_frame_free_rules)+ (* TODO: Write a method for that! *)
 (*cach_refinement_l_assn*)
+
 schematic_goal mk_free_cach_refinement_l_assn[sepref_frame_free_rules]: "MK_FREE cach_refinement_l_assn ?fr"  
   unfolding cach_refinement_l_assn_def
   by (rule free_thms sepref_frame_free_rules)+ (* TODO: Write a method for that! *)
+
 schematic_goal mk_free_lbd_assn[sepref_frame_free_rules]: "MK_FREE lbd_assn ?fr"  
   unfolding lbd_assn_def
   by (rule free_thms sepref_frame_free_rules)+ (* TODO: Write a method for that! *)
+
 schematic_goal mk_free_opts_assn[sepref_frame_free_rules]: "MK_FREE opts_assn ?fr"  
   unfolding opts_assn_def
+  by (rule free_thms sepref_frame_free_rules)+ (* TODO: Write a method for that! *)
+
+schematic_goal mk_free_heuristic_assn[sepref_frame_free_rules]: "MK_FREE heuristic_assn ?fr"
+  unfolding heuristic_assn_def
   by (rule free_thms sepref_frame_free_rules)+ (* TODO: Write a method for that! *)
 
 
@@ -155,10 +166,12 @@ sepref_def extract_model_of_state_stat
 lemmas [sepref_fr_rules] = extract_model_of_state_stat.refine
 
 lemma extract_state_stat_alt_def:
-  \<open>RETURN o extract_state_stat = (\<lambda>(M, N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, fast_ema, slow_ema, ccount,
+  \<open>RETURN o extract_state_stat = (\<lambda>(M, N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats,
+       heur,
        vdom, avdom, lcount, opts, old_arena).
-     do {mop_free M; mop_free N'; mop_free D'; mop_free j; mop_free W'; mop_free vm; mop_free \<phi>; mop_free clvls;
-         mop_free cach; mop_free lbd; mop_free outl; mop_free fast_ema; mop_free slow_ema; mop_free ccount;
+     do {mop_free M; mop_free N'; mop_free D'; mop_free j; mop_free W'; mop_free vm;
+         mop_free \<phi>; mop_free clvls;
+         mop_free cach; mop_free lbd; mop_free outl; mop_free heur;
          mop_free vdom; mop_free avdom; mop_free opts;
          mop_free old_arena;
         RETURN (True, [], stats)})\<close>

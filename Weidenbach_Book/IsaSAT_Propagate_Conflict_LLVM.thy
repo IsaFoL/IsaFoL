@@ -16,6 +16,13 @@ sepref_def length_ll_fs_heur_fast_code
   supply [[goals_limit=1]]
   by sepref
 
+sepref_def mop_length_watched_by_int_impl [llvm_inline]
+  is \<open>uncurry mop_length_watched_by_int\<close>
+  :: \<open>isasat_bounded_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow>\<^sub>a sint64_nat_assn\<close>
+  unfolding mop_length_watched_by_int_alt_def isasat_bounded_assn_def
+    length_ll_def[symmetric]
+  supply [[goals_limit=1]]
+  by sepref
 
 sepref_register unit_propagation_inner_loop_body_wl_heur
 
@@ -111,14 +118,6 @@ sepref_def unit_propagation_inner_loop_wl_D_fast_code
   by sepref
 
 
-sepref_def isa_trail_nth_fast_code
-  is \<open>uncurry isa_trail_nth\<close>
-  :: \<open>trail_pol_fast_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a unat_lit_assn\<close>
-  unfolding isa_trail_nth_def trail_pol_fast_assn_def
-  by sepref
-
-
-sepref_register isa_trail_nth
 sepref_def select_and_remove_from_literals_to_update_wlfast_code
   is \<open>select_and_remove_from_literals_to_update_wl_heur\<close>
   :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn *a unat_lit_assn\<close>
@@ -170,8 +169,6 @@ export_llvm
   select_and_remove_from_literals_to_update_wlfast_code
   literals_to_update_wl_literals_to_update_wl_empty_fast_code
   unit_propagation_outer_loop_wl_D_fast_code
- 
-
 
 end
 

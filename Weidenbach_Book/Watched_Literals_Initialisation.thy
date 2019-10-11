@@ -239,10 +239,12 @@ fun add_empty_conflict_init_l :: \<open>'v twl_st_l_init \<Rightarrow> 'v twl_st
        ((M, N, Some {#}, NE, UE, WS, {#}), add_mset {#} OC)\<close>
 
 
-fun propagate_unit_init_l :: \<open>'v literal \<Rightarrow> 'v twl_st_l_init \<Rightarrow> 'v twl_st_l_init\<close> where
+fun propagate_unit_init_l :: \<open>'v literal \<Rightarrow> 'v twl_st_l_init \<Rightarrow> ('v twl_st_l_init) nres\<close> where
   propagate_unit_init_l_def[simp del]:
-   \<open>propagate_unit_init_l L ((M, N, D, NE, UE, WS, Q), OC) =
-       ((Propagated L 0 # M, N, D, add_mset {#L#} NE, UE, WS, add_mset (-L) Q), OC)\<close>
+   \<open>propagate_unit_init_l L ((M, N, D, NE, UE, WS, Q), OC) = do {
+       M \<leftarrow> cons_trail_propagate_l L 0 M;
+       RETURN ((M, N, D, add_mset {#L#} NE, UE, WS, add_mset (-L) Q), OC)
+     }\<close>
 
 
 fun already_propagated_unit_init_l :: \<open>'v clause \<Rightarrow> 'v twl_st_l_init \<Rightarrow> 'v twl_st_l_init\<close> where
@@ -280,7 +282,7 @@ definition init_dt_step :: \<open>'v clause_l \<Rightarrow> 'v twl_st_l_init \<R
     then
       let L = hd C in
       if undefined_lit (get_trail_l_init S) L
-      then RETURN (propagate_unit_init_l L S)
+      then propagate_unit_init_l L S
       else if L \<in> lits_of_l (get_trail_l_init S)
       then RETURN (already_propagated_unit_init_l (mset C) S)
       else RETURN (set_conflict_init_l C S)
@@ -808,19 +810,6 @@ lemma (in -) twl_stgy_invs_backtrack_lvl_0:
       cdcl\<^sub>W_restart_mset.no_smaller_confl_def cdcl\<^sub>W_restart_mset_state
       cdcl\<^sub>W_restart_mset.conflict_non_zero_unless_level_0_def)
 
-lemma [twl_st_l_init]:
-  \<open>clauses_to_update_l_init (propagate_unit_init_l L S) =  clauses_to_update_l_init S\<close>
-  \<open>get_trail_l_init (propagate_unit_init_l L S) = Propagated L 0 # get_trail_l_init S\<close>
-  \<open>literals_to_update_l_init (propagate_unit_init_l L S) =
-     add_mset (-L) (literals_to_update_l_init S)\<close>
-  \<open>get_conflict_l_init (propagate_unit_init_l L S) = get_conflict_l_init S\<close>
-  \<open>clauses_to_update_l_init (propagate_unit_init_l L S) = clauses_to_update_l_init S\<close>
-  \<open>other_clauses_l_init (propagate_unit_init_l L S) = other_clauses_l_init S\<close>
-  \<open>get_clauses_l_init (propagate_unit_init_l L S) = get_clauses_l_init S\<close>
-  \<open>get_learned_unit_clauses_l_init (propagate_unit_init_l L S) = get_learned_unit_clauses_l_init S\<close>
-  \<open>get_unit_clauses_l_init (propagate_unit_init_l L S) = add_mset {#L#} (get_unit_clauses_l_init S)\<close>
-  by (cases S; auto simp: propagate_unit_init_l_def; fail)+
-
 lemma init_dt_pre_propagate_unit_init:
   assumes
     hd_C: \<open>undefined_lit (get_trail_l_init S) L\<close> and
@@ -828,8 +817,8 @@ lemma init_dt_pre_propagate_unit_init:
     lev: \<open>count_decided (get_trail_l_init S) = 0\<close> and
     confl: \<open>get_conflict_l_init S = None\<close>
   shows
-    \<open>init_dt_pre CS (propagate_unit_init_l L S)\<close> (is ?pre) and
-    \<open>init_dt_spec [[L]] S (propagate_unit_init_l L S)\<close> (is ?spec)
+    \<open>propagate_unit_init_l L S \<le> SPEC(init_dt_pre CS)\<close> (is ?pre) and
+    \<open>propagate_unit_init_l L S \<le> SPEC(init_dt_spec [[L]] S)\<close> (is ?spec)
 proof -
   obtain T where
     SOC_T: \<open>(S, T) \<in> twl_st_l_init\<close> and
@@ -849,10 +838,11 @@ proof -
   obtain M N D NE UE Q U OC where
     S: \<open>S = ((M, N, U, D, NE, UE, Q), OC)\<close>
     by (cases S) auto
-  have [simp]: \<open>(propagate_unit_init_l L S, propagate_unit_init L T)
-        \<in> twl_st_l_init\<close>
-    using SOC_T by (cases S) (auto simp: twl_st_l_init_def propagate_unit_init_l_def
-        convert_lit.simps convert_lits_l_extend_mono)
+  have 1: \<open>propagate_unit_init_l L S \<le> SPEC( \<lambda>S'. (S', propagate_unit_init L T)
+        \<in> twl_st_l_init)\<close>
+    using SOC_T assms by (auto simp: twl_st_l_init_def propagate_unit_init_l_def
+        convert_lit.simps cons_trail_propagate_l_def S convert_lits_l_extend_mono
+        intro!: ASSERT_refine_right ASSERT_leI)
   have dec': \<open>\<forall>s\<in>set (get_trail_init T). \<not> is_decided s\<close>
     using SOC_T dec by (subst twl_st_l_init_no_decision_iff)
   have [simp]: \<open>twl_stgy_invs (fst (propagate_unit_init L T))\<close>
@@ -860,7 +850,7 @@ proof -
     using lev SOC_T
     by (cases S) (auto simp: cdcl\<^sub>W_restart_mset_state clauses_def twl_st_l_init_def)
   note clauses_to_update_inv.simps[simp del] valid_enqueued_alt_simps[simp del]
-  have [simp]: \<open>twl_struct_invs_init (propagate_unit_init L T)\<close>
+  have 2: \<open>twl_struct_invs_init (propagate_unit_init L T)\<close>
     apply (rule twl_struct_invs_init_propagate_unit_init)
     subgoal
       using inv hd_C lev SOC_T dec' confl in_literals_to_update WS
@@ -881,19 +871,27 @@ proof -
       using inv hd_C lev SOC_T dec' confl in_literals_to_update WS
       by (auto simp: twl_st_init twl_st_l_init count_decided_0_iff uminus_lit_of_image_mset)
     done
-  have [simp]: \<open>twl_list_invs (fst (propagate_unit_init_l L S))\<close>
-    using add_inv
-    by (auto simp: S twl_list_invs_def propagate_unit_init_l_def)
+  have 3: \<open>propagate_unit_init_l L S \<le> SPEC(\<lambda>S. twl_list_invs (fst (S)))\<close>
+    using add_inv assms
+    by (auto simp: S twl_list_invs_def propagate_unit_init_l_def cons_trail_propagate_l_def
+       intro!: ASSERT_leI)
   show ?pre
-    unfolding init_dt_pre_def
+    using assms 3 2 1
+    unfolding init_dt_pre_def cons_trail_propagate_l_def
+    propagate_unit_init_l_def S
+    apply (simp only: S get_trail_l_init.simps not_False_eq_True assert.ASSERT_simps
+      nres_monad3 nres_monad1 nres_order_simps mem_Collect_eq)
     apply (rule exI[of _ \<open>propagate_unit_init L T\<close>])
     using dist WS dec in_literals_to_update OC'_empty confl
     by (auto simp: twl_st_init twl_st_l_init)
   show ?spec
-    unfolding init_dt_spec_def
+    using assms 1 2 3
+    unfolding init_dt_spec_def cons_trail_propagate_l_def propagate_unit_init_l_def S
+    apply (simp only: S get_trail_l_init.simps not_False_eq_True assert.ASSERT_simps
+      nres_monad3 nres_monad1 nres_order_simps mem_Collect_eq)
     apply (rule exI[of _ \<open>propagate_unit_init L T\<close>])
     using dist WS dec in_literals_to_update OC'_empty confl
-    by (auto simp: twl_st_init twl_st_l_init)
+    by (auto simp: twl_st_init twl_st_l_init S)
 qed
 
 lemma [twl_st_l_init]:

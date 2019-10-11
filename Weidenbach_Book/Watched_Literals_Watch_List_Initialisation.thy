@@ -32,10 +32,11 @@ fun add_empty_conflict_init_wl :: \<open>'v twl_st_wl_init \<Rightarrow> 'v twl_
    \<open>add_empty_conflict_init_wl ((M, N, D, NE, UE, Q), OC) =
        ((M, N, Some {#}, NE, UE, {#}), add_mset {#} OC)\<close>
 
-fun propagate_unit_init_wl :: \<open>'v literal \<Rightarrow> 'v twl_st_wl_init \<Rightarrow> 'v twl_st_wl_init\<close> where
+fun propagate_unit_init_wl :: \<open>'v literal \<Rightarrow> 'v twl_st_wl_init \<Rightarrow> ('v twl_st_wl_init) nres\<close> where
   propagate_unit_init_wl_def[simp del]:
-   \<open>propagate_unit_init_wl L ((M, N, D, NE, UE, Q), OC) =
-       ((Propagated L 0 # M, N, D, add_mset {#L#} NE, UE, add_mset (-L) Q), OC)\<close>
+   \<open>propagate_unit_init_wl L ((M, N, D, NE, UE, Q), OC) = do {
+     M \<leftarrow> cons_trail_propagate_l L 0 M;
+     RETURN ((M, N, D, add_mset {#L#} NE, UE, add_mset (-L) Q), OC)}\<close>
 
 
 fun already_propagated_unit_init_wl :: \<open>'v clause \<Rightarrow> 'v twl_st_wl_init \<Rightarrow> 'v twl_st_wl_init\<close> where
@@ -69,7 +70,7 @@ definition init_dt_step_wl :: \<open>'v clause_l \<Rightarrow> 'v twl_st_wl_init
     then
       let L = hd C in
       if undefined_lit (get_trail_init_wl S) L
-      then RETURN (propagate_unit_init_wl L S)
+      then propagate_unit_init_wl L S
       else if L \<in> lits_of_l (get_trail_init_wl S)
       then RETURN (already_propagated_unit_init_wl (mset C) S)
       else RETURN (set_conflict_init_wl L S)
@@ -139,13 +140,23 @@ proof -
          all_blits_are_in_problem_init.simps state_wl_l_init'_def
         state_wl_l_init_def state_wl_l_def correct_watching.simps clause_to_update_def)
     done
+  have [refine]: \<open>ab = ac \<Longrightarrow> cons_trail_propagate_l (hd C) 0 ab
+       \<le> \<Down> Id
+          (cons_trail_propagate_l (hd C) 0 ac)\<close>
+   for C ab ac
+   by auto
   have propa_unit:
-    \<open>(propagate_unit_init_wl (hd C) S, propagate_unit_init_l (hd C) S') \<in> ?A\<close>
-    using S_S' apply (cases S; cases S')
+    \<open>propagate_unit_init_wl (hd C) S \<le> \<Down> ?A (propagate_unit_init_l (hd C) S')\<close>
+    using S_S' apply (cases S; cases S'; cases \<open>fst S\<close>; cases \<open>fst S'\<close>; hypsubst)
+    unfolding propagate_unit_init_wl_def propagate_unit_init_l_def fst_conv
+    apply hypsubst
+    unfolding propagate_unit_init_wl_def propagate_unit_init_l_def
+    apply refine_rcg
     apply (auto simp: propagate_unit_init_l_def propagate_unit_init_wl_def  state_wl_l_init'_def
-        state_wl_l_init_def state_wl_l_def clause_to_update_def
+        state_wl_l_init_def state_wl_l_def clause_to_update_def cons_trail_propagate_l_def
         all_lits_of_mm_add_mset all_lits_of_m_add_mset all_lits_of_mm_union)
     done
+
   have already_propa:
     \<open>(already_propagated_unit_init_wl (mset C) S, already_propagated_unit_init_l (mset C) S') \<in> ?A\<close>
     using S_S'
@@ -390,7 +401,8 @@ where
         ASSERT(length (N \<propto> i) \<ge> 2);
         let L1 = N \<propto> i ! 0;
         let L2 = N \<propto> i ! 1;
-        let b = (length (N \<propto> i) = 2);
+        let n = length (N \<propto> i);
+        let b = (n = 2);
         ASSERT(L1 \<noteq> L2);
         ASSERT(length (W L1) < size (dom_m N));
         let W = W(L1 := W L1 @ [(i, L2, b)]);
@@ -436,6 +448,7 @@ proof -
   qed
   show ?thesis
     unfolding rewatch_def
+    apply (subst (3) Let_def)
     apply (refine_vcg
       nfoldli_rule[where I = \<open>I\<close>])
     subgoal by (rule I0)

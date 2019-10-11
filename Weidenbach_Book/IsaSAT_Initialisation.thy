@@ -488,8 +488,8 @@ definition propagate_unit_cls_heur
  :: \<open>nat literal \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur_init nres\<close>
 where
   \<open>propagate_unit_cls_heur = (\<lambda>L (M, N, D, Q). do {
-     ASSERT(cons_trail_Propagated_tr_pre ((L, 0 :: nat), M));
-     RETURN (cons_trail_Propagated_tr L 0 M, N, D, Q)})\<close>
+     M \<leftarrow> cons_trail_Propagated_tr L 0 M;
+     RETURN (M, N, D, Q)})\<close>
 
 fun get_unit_clauses_init_wl :: \<open>'v twl_st_wl_init \<Rightarrow> 'v clauses\<close> where
   \<open>get_unit_clauses_init_wl ((M, N, D, NE, UE, Q), OC) = NE + UE\<close>
@@ -508,39 +508,19 @@ lemma DECISION_REASON0[simp]: \<open>DECISION_REASON \<noteq> 0\<close>
   by (auto simp: DECISION_REASON_def)
 
 lemma propagate_unit_cls_heur_propagate_unit_cls:
-  \<open>(uncurry propagate_unit_cls_heur, uncurry (RETURN oo propagate_unit_init_wl)) \<in>
+  \<open>(uncurry propagate_unit_cls_heur, uncurry (propagate_unit_init_wl)) \<in>
    [\<lambda>(L, S). undefined_lit (get_trail_init_wl S) L \<and> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>]\<^sub>f
     Id \<times>\<^sub>r twl_st_heur_parsing_no_WL \<A> unbdd \<rightarrow> \<langle>twl_st_heur_parsing_no_WL \<A> unbdd\<rangle> nres_rel\<close>
   unfolding  twl_st_heur_parsing_no_WL_def propagate_unit_cls_heur_def propagate_unit_init_wl_def
+    nres_monad3
   apply (intro frefI nres_relI)
-  apply (clarsimp simp add: propagate_unit_init_wl.simps cons_trail_Propagated_def[symmetric] comp_def
+  apply (clarsimp simp add: propagate_unit_init_wl.simps cons_trail_Propagated_tr_def[symmetric] comp_def
     curry_def all_atms_def[symmetric] intro!: ASSERT_leI)
-  apply (rule ASSERT_leI)
-  subgoal for aa ab ac ad ae b af ag ah ba ai aj ak al am an bb ao bc ap aq ar bd as be
-       at au av aw ax ay bg
-    by (rule cons_trail_Propagated_tr_pre[of _ _ \<A>])
-      (auto simp: DECISION_REASON_def dest: \<L>\<^sub>a\<^sub>l\<^sub>l_cong)
-  apply (rule RETURN_refine)
-  apply (subst in_pair_collect_simp)
-  apply (simp only: prod.simps)
-  apply (intro conjI)
-  subgoal by fast
-  subgoal by (auto simp: all_lits_of_mm_add_mset all_lits_of_m_add_mset uminus_\<A>\<^sub>i\<^sub>n_iff)
-  subgoal by (auto simp: all_lits_of_mm_add_mset all_lits_of_m_add_mset uminus_\<A>\<^sub>i\<^sub>n_iff)
-  subgoal
-    unfolding DECISION_REASON_def
-    by (auto intro!: cons_trail_Propagated_tr[of \<A>, THEN fref_to_Down_unRET_uncurry2]
-      dest: \<L>\<^sub>a\<^sub>l\<^sub>l_cong)
-  subgoal by fast
-  supply cons_trail_Propagated_def[simp]
+  apply (refine_rcg cons_trail_Propagated_tr2[where \<A> = \<A>])
   subgoal by auto
   subgoal by auto
-  subgoal by (auto intro!: isa_vmtf_init_consD)
-  subgoal by fast
-  subgoal by auto
-  subgoal by fast
-  subgoal by (auto simp: all_lits_of_mm_add_mset all_lits_of_m_add_mset uminus_\<A>\<^sub>i\<^sub>n_iff)
-  subgoal by auto
+  subgoal by  (auto intro!: isa_vmtf_init_consD
+    simp: all_lits_of_mm_add_mset all_lits_of_m_add_mset uminus_\<A>\<^sub>i\<^sub>n_iff)
   done
 
 definition already_propagated_unit_cls
@@ -1993,7 +1973,7 @@ definition finalise_init_code :: \<open>opts \<Rightarrow> twl_st_wl_heur_init \
      let lcount = 0;
     RETURN (M', N', D', Q', W', ((ns, m, the fst_As, the lst_As, next_search), to_remove), \<phi>,
        clvls, cach, lbd, take 1(replicate 160 (Pos 0)), init_stats,
-        fema, sema, ccount, vdom, [], lcount, opts, [])
+        (fema, sema, ccount), vdom, [], lcount, opts, [])
      })\<close>
 
 lemma isa_vmtf_init_nemptyD: \<open>((ak, al, am, an, bc), ao, bd)
@@ -2013,24 +1993,27 @@ lemma finalise_init_finalise_init_full:
   ((ops', T), ops, S) \<in> Id \<times>\<^sub>f twl_st_heur_post_parsing_wl True \<Longrightarrow>
   finalise_init_code ops' T \<le> \<Down> {(S', T'). (S', T') \<in> twl_st_heur \<and>
     get_clauses_wl_heur_init T = get_clauses_wl_heur S'} (RETURN (finalise_init S))\<close>
-  by (auto 5 5 simp: finalise_init_def twl_st_heur_def twl_st_heur_parsing_no_WL_def
+  apply (cases S; cases T)
+  apply (simp add: finalise_init_code_def)
+  apply (auto simp: finalise_init_def twl_st_heur_def twl_st_heur_parsing_no_WL_def
     twl_st_heur_parsing_no_WL_wl_def
       finalise_init_code_def out_learned_def all_atms_def
       twl_st_heur_post_parsing_wl_def
       intro!: ASSERT_leI intro!: isa_vmtf_init_isa_vmtf
       dest: isa_vmtf_init_nemptyD)
+  done
 
 lemma finalise_init_finalise_init:
   \<open>(uncurry finalise_init_code, uncurry (RETURN oo (\<lambda>_. finalise_init))) \<in>
    [\<lambda>(_, S::nat twl_st_wl). get_conflict_wl S = None \<and> all_atms_st S \<noteq> {#} \<and>
       size (learned_clss_l (get_clauses_wl S)) = 0]\<^sub>f Id \<times>\<^sub>r
       twl_st_heur_post_parsing_wl True \<rightarrow> \<langle>twl_st_heur\<rangle>nres_rel\<close>
-  by (intro frefI nres_relI)
-    (auto 5 5 simp: finalise_init_def twl_st_heur_def twl_st_heur_parsing_no_WL_def twl_st_heur_parsing_no_WL_wl_def
-      finalise_init_code_def out_learned_def all_atms_def
-      twl_st_heur_post_parsing_wl_def
-      intro!: ASSERT_leI intro!: isa_vmtf_init_isa_vmtf
-      dest: isa_vmtf_init_nemptyD)
+  apply (intro frefI nres_relI)
+  subgoal for x y
+    using finalise_init_finalise_init_full[of \<open>snd y\<close> \<open>fst x\<close> \<open>snd x\<close> \<open>fst y\<close>]
+    by (cases x; cases y)
+      (auto intro: "weaken_\<Down>'")
+  done
 
 definition (in -) init_rll :: \<open>nat \<Rightarrow> (nat, 'v clause_l \<times> bool) fmap\<close> where
   \<open>init_rll n = fmempty\<close>

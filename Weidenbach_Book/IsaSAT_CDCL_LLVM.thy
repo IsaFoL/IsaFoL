@@ -8,10 +8,6 @@ begin
 sepref_register get_conflict_wl_is_None decide_wl_or_skip_D_heur skip_and_resolve_loop_wl_D_heur
   backtrack_wl_D_nlit_heur isasat_current_status count_decided_st_heur get_conflict_wl_is_None_heur
 
-sepref_register cdcl_twl_o_prog_wl_D
-(*TODO Move*)
-declare count_decided_st_heur_pol_fast.refine[sepref_fr_rules]
-
 sepref_def cdcl_twl_o_prog_wl_D_fast_code
   is \<open>cdcl_twl_o_prog_wl_D_heur\<close>
   :: \<open>[isasat_fast]\<^sub>a
@@ -25,7 +21,7 @@ sepref_def cdcl_twl_o_prog_wl_D_fast_code
 declare
   cdcl_twl_o_prog_wl_D_fast_code.refine[sepref_fr_rules]
 
-sepref_register cdcl_twl_stgy_prog_wl_D unit_propagation_outer_loop_wl_D_heur
+sepref_register unit_propagation_outer_loop_wl_D_heur
   cdcl_twl_o_prog_wl_D_heur
 
 definition length_clauses_heur where

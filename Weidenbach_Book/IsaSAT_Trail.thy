@@ -464,13 +464,15 @@ lemma isa_length_trail_length_u:
 
 subparagraph \<open>Consing elements\<close>
 
-definition cons_trail_Propagated :: \<open>nat literal \<Rightarrow> nat \<Rightarrow> (nat, nat) ann_lits \<Rightarrow> (nat, nat) ann_lits\<close> where
-  \<open>cons_trail_Propagated L C M' = Propagated L C # M'\<close>
+definition cons_trail_Propagated_tr_pre where
+  \<open>cons_trail_Propagated_tr_pre = (\<lambda>((L, C), (M, xs, lvls, reasons, k)). nat_of_lit L < length xs \<and>
+    nat_of_lit (-L) < length xs \<and> atm_of L < length lvls \<and> atm_of L < length reasons \<and> length M < uint32_max)\<close>
 
-definition cons_trail_Propagated_tr :: \<open>nat literal \<Rightarrow> nat \<Rightarrow> trail_pol \<Rightarrow> trail_pol\<close> where
-  \<open>cons_trail_Propagated_tr = (\<lambda>L C (M', xs, lvls, reasons, k, cs).
-     (M' @ [L], let xs = xs[nat_of_lit L := SET_TRUE] in xs[nat_of_lit (-L) := SET_FALSE],
-      lvls[atm_of L := k], reasons[atm_of L:= C], k, cs))\<close>
+definition cons_trail_Propagated_tr :: \<open>nat literal \<Rightarrow> nat \<Rightarrow> trail_pol \<Rightarrow> trail_pol nres\<close> where
+  \<open>cons_trail_Propagated_tr = (\<lambda>L C (M', xs, lvls, reasons, k, cs). do {
+     ASSERT(cons_trail_Propagated_tr_pre ((L, C), (M', xs, lvls, reasons, k, cs)));
+     RETURN (M' @ [L], let xs = xs[nat_of_lit L := SET_TRUE] in xs[nat_of_lit (-L) := SET_FALSE],
+      lvls[atm_of L := k], reasons[atm_of L:= C], k, cs)})\<close>
 
 lemma in_list_pos_neg_notD: \<open>Pos (atm_of (lit_of La)) \<notin> lits_of_l bc \<Longrightarrow>
        Neg (atm_of (lit_of La)) \<notin> lits_of_l bc \<Longrightarrow>
@@ -478,16 +480,57 @@ lemma in_list_pos_neg_notD: \<open>Pos (atm_of (lit_of La)) \<notin> lits_of_l b
   by (metis Neg_atm_of_iff Pos_atm_of_iff lits_of_def rev_image_eqI)
 
 
+lemma cons_trail_Propagated_tr_pre:
+  assumes \<open>(M', M) \<in> trail_pol \<A>\<close> and
+    \<open>undefined_lit M L\<close> and
+    \<open>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<close> and
+    \<open>C \<noteq> DECISION_REASON\<close>
+  shows \<open>cons_trail_Propagated_tr_pre ((L, C), M')\<close>
+  using assms
+  by (auto simp: trail_pol_alt_def ann_lits_split_reasons_def uminus_\<A>\<^sub>i\<^sub>n_iff
+       cons_trail_Propagated_tr_pre_def
+    intro!: ext)
+
+
 lemma cons_trail_Propagated_tr:
-  \<open>(uncurry2 (RETURN ooo cons_trail_Propagated_tr), uncurry2 (RETURN ooo cons_trail_Propagated)) \<in>
-  [\<lambda>((L, C), M). undefined_lit M L \<and> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A> \<and> C \<noteq> DECISION_REASON]\<^sub>f
+  \<open>(uncurry2 (cons_trail_Propagated_tr), uncurry2 (cons_trail_propagate_l)) \<in>
+   [\<lambda>((L, C), M). L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A> \<and> C \<noteq> DECISION_REASON]\<^sub>f
     Id \<times>\<^sub>f nat_rel \<times>\<^sub>f trail_pol \<A> \<rightarrow> \<langle>trail_pol \<A>\<rangle>nres_rel\<close>
-  by (intro frefI nres_relI, rename_tac x y, case_tac \<open>fst (fst x)\<close>)
-     (auto simp add: trail_pol_def polarity_def cons_trail_Propagated_def uminus_lit_swap
+  unfolding cons_trail_Propagated_tr_def cons_trail_propagate_l_def
+  apply (intro frefI nres_relI)
+  subgoal for x y
+  using cons_trail_Propagated_tr_pre[of \<open>snd (x)\<close> \<open>snd (y)\<close> \<A> \<open>fst (fst y)\<close> \<open>snd (fst y)\<close>]
+  unfolding uncurry_def
+  apply refine_vcg
+  subgoal by auto
+  subgoal
+    by (cases \<open>fst (fst y)\<close>)
+      (auto simp add: trail_pol_def polarity_def uminus_lit_swap
         cons_trail_Propagated_tr_def Decided_Propagated_in_iff_in_lits_of_l nth_list_update'
         ann_lits_split_reasons_def atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n
-        dest!: in_list_pos_neg_notD multi_member_split dest: pos_lit_in_atms_of neg_lit_in_atms_of
-         simp del: nat_of_lit.simps)
+        uminus_\<A>\<^sub>i\<^sub>n_iff atm_of_eq_atm_of
+      intro!: ASSERT_refine_right
+      dest!: in_list_pos_neg_notD dest: pos_lit_in_atms_of neg_lit_in_atms_of dest!: multi_member_split
+      simp del: nat_of_lit.simps)
+  done
+  done
+
+lemma cons_trail_Propagated_tr2:
+  \<open>(((L, C), M), ((L', C'), M')) \<in> Id \<times>\<^sub>f Id \<times>\<^sub>f trail_pol \<A> \<Longrightarrow> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A> \<Longrightarrow>
+      C \<noteq> DECISION_REASON \<Longrightarrow>
+  cons_trail_Propagated_tr L C M
+  \<le> \<Down> ({(M'', M'''). (M'', M''') \<in> trail_pol \<A> \<and> M''' = Propagated L C # M' \<and> no_dup M'''})
+      (cons_trail_propagate_l L' C' M')\<close>
+  using cons_trail_Propagated_tr[THEN fref_to_Down_curry2, of \<A> L' C' M' L C M]
+  unfolding cons_trail_Propagated_tr_def cons_trail_propagate_l_def
+  using cons_trail_Propagated_tr_pre[of M M' \<A> L C]
+  unfolding uncurry_def
+  apply refine_vcg
+  subgoal by auto
+  subgoal
+    by (auto simp: trail_pol_def)
+  done
+
 
 lemma undefined_lit_count_decided_uint32_max:
   assumes
@@ -567,27 +610,6 @@ proof -
   with 2 show ?thesis
     by (auto simp: uint32_max_def)
 qed
-
-definition cons_trail_Propagated_tr_pre where
-  \<open>cons_trail_Propagated_tr_pre = (\<lambda>((L, C), (M, xs, lvls, reasons, k)). nat_of_lit L < length xs \<and>
-    nat_of_lit (-L) < length xs \<and> atm_of L < length lvls \<and> atm_of L < length reasons \<and> length M < uint32_max)\<close>
-
-lemma cons_trail_Propagated_tr_pre:
-  assumes \<open>(M', M) \<in> trail_pol \<A>\<close> and
-    \<open>undefined_lit M L\<close> and
-    \<open>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<close> and
-    \<open>C \<noteq> DECISION_REASON\<close>
-  shows \<open>cons_trail_Propagated_tr_pre ((L, C), M')\<close>
-  using assms
-  by (auto simp: trail_pol_alt_def ann_lits_split_reasons_def uminus_\<A>\<^sub>i\<^sub>n_iff
-       cons_trail_Propagated_tr_pre_def
-    intro!: ext)
-
-lemma cons_trail_Propagated_tr2:
-  \<open>(M', M) \<in> trail_pol \<A> \<Longrightarrow> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A> \<Longrightarrow> undefined_lit M L \<Longrightarrow> C \<noteq> DECISION_REASON \<Longrightarrow>
-  (cons_trail_Propagated_tr L C M', Propagated L C # M) \<in> trail_pol \<A>\<close>
-  using cons_trail_Propagated_tr[THEN fref_to_Down_curry2, of \<A> L C M L C M']
-  by (auto simp: cons_trail_Propagated_def)
 
 
 definition last_trail_pol_pre where

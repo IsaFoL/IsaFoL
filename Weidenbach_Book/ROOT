@@ -190,8 +190,6 @@ session "Watched_Literals" (Weidenbach_Book) = "CDCL"  +
     Watched_Literals_List_Restart
     Watched_Literals_Watch_List
     Watched_Literals_Watch_List_Restart
-    Watched_Literals_Watch_List_Domain
-    Watched_Literals_Watch_List_Domain_Restart
     Watched_Literals_Watch_List_Initialisation
     CDCL_Conflict_Minimisation
 

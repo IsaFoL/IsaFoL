@@ -33,9 +33,8 @@ lemma unit_propagation_inner_loop_wl_loop_D_heur_fast:
 
 lemma unit_propagation_inner_loop_wl_loop_D_heur_alt_def:
   \<open>unit_propagation_inner_loop_wl_loop_D_heur L S\<^sub>0 = do {
-    ASSERT (nat_of_lit L < length (get_watched_wl_heur S\<^sub>0));
-     ASSERT (length (watched_by_int S\<^sub>0 L) \<le> length (get_clauses_wl_heur S\<^sub>0));
-    let n = length (watched_by_int S\<^sub>0 L);
+    ASSERT (length (watched_by_int S\<^sub>0 L) \<le> length (get_clauses_wl_heur S\<^sub>0));
+    n \<leftarrow> mop_length_watched_by_int S\<^sub>0 L;
     let b = (0, 0, S\<^sub>0);
     WHILE\<^sub>T\<^bsup>unit_propagation_inner_loop_wl_loop_D_heur_inv S\<^sub>0 L\<^esup>
       (\<lambda>(j, w, S). w < n \<and> get_conflict_wl_is_None_heur S)
@@ -45,7 +44,6 @@ lemma unit_propagation_inner_loop_wl_loop_D_heur_alt_def:
       b
   }\<close>
   unfolding unit_propagation_inner_loop_wl_loop_D_heur_def Let_def ..
-
 
 
 paragraph \<open>Unit propagation, Outer Loop\<close>

@@ -107,12 +107,11 @@ sepref_def isa_length_trail_fast_code
 
 
 sepref_def cons_trail_Propagated_tr_fast_code
-  is \<open>uncurry2 (RETURN ooo cons_trail_Propagated_tr)\<close>
-  :: \<open>[cons_trail_Propagated_tr_pre]\<^sub>a
-       unat_lit_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a trail_pol_fast_assn\<^sup>d \<rightarrow> trail_pol_fast_assn\<close>
+  is \<open>uncurry2 (cons_trail_Propagated_tr)\<close>
+  :: \<open>unat_lit_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a trail_pol_fast_assn\<^sup>d \<rightarrow>\<^sub>a trail_pol_fast_assn\<close>
   unfolding cons_trail_Propagated_tr_def cons_trail_Propagated_tr_def
     SET_TRUE_def[symmetric] SET_FALSE_def[symmetric] cons_trail_Propagated_tr_pre_def
-  unfolding trail_pol_fast_assn_def
+  unfolding trail_pol_fast_assn_def prod.case
   apply (subst (3)annot_index_of_atm)
   apply (subst (4)annot_index_of_atm)
   (*unfolding ins_idx_upcast64  *)
@@ -231,10 +230,11 @@ sepref_definition (in -) get_the_propagation_reason_fast_code
 declare get_the_propagation_reason_fast_code.refine[sepref_fr_rules]
   get_the_propagation_reason_code.refine[sepref_fr_rules]
 *)
+sepref_register isa_trail_nth
 
 sepref_def isa_trail_nth_fast_code
   is \<open>uncurry isa_trail_nth\<close>
-  :: \<open>trail_pol_fast_assn\<^sup>k *\<^sub>a sint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a unat_lit_assn\<close>
+  :: \<open>trail_pol_fast_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a unat_lit_assn\<close>
   unfolding isa_trail_nth_def trail_pol_fast_assn_def
   by sepref
 

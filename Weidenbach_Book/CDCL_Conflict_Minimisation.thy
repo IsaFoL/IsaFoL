@@ -1,6 +1,6 @@
 theory CDCL_Conflict_Minimisation
   imports
-    Watched_Literals_Watch_List_Domain
+    Watched_Literals_Watch_List
     WB_More_Refinement
     WB_More_Refinement_List "List-Index.List_Index"
 begin
@@ -2186,7 +2186,10 @@ proof -
       have [iff]: \<open>(\<forall>a b. (a, b) \<notin> set analyse) \<longleftrightarrow> False\<close>
         using i by (cases analyse) auto
       show ?thesis
-        unfolding in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff[symmetric] atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n[symmetric]
+        unfolding in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff[symmetric]
+        apply (subst atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n[symmetric])
+        unfolding atms_of_def
+        apply (rule imageI)
         apply (rule literals_are_in_\<L>\<^sub>i\<^sub>n_mm_in_\<L>\<^sub>a\<^sub>l\<^sub>l)
         using NU_\<L>\<^sub>i\<^sub>n that nth_mem[of i analyse]
         by (auto simp: mark_failed_lits_stack_inv_def I_def)

@@ -331,6 +331,13 @@ next
   qed
 qed
 
+lemma mset_as_position_remove2:
+  \<open>mset_as_position xs D \<Longrightarrow> atm_of L < length xs \<Longrightarrow>
+   mset_as_position (xs[atm_of L := None]) (D - {#L, -L#})\<close>
+  using mset_as_position_remove[of xs D \<open>atm_of (-L)\<close>]
+  by (smt add_mset_commute add_mset_diff_bothsides atm_of_uminus insert_DiffM
+   literal.exhaust_sel minus_notin_trivial2 remove_1_mset_id_iff_notin uminus_not_id')
+
 definition (in -) delete_from_lookup_conflict
    :: \<open>nat literal \<Rightarrow> lookup_clause_rel \<Rightarrow> lookup_clause_rel nres\<close> where
   \<open>delete_from_lookup_conflict = (\<lambda>L (n, xs). do {
