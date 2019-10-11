@@ -375,7 +375,7 @@ begin
 
 end
 
-
+thm IsaSAT_heur_model_if_sat'
 theorem IsaSAT_full_correctness:
   \<open>(uncurry IsaSAT_code, uncurry (\<lambda>_. model_if_satisfiable))
      \<in> [\<lambda>(_, a). Multiset.Ball a distinct_mset \<and>
