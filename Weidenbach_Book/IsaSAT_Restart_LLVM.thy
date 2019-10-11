@@ -383,4 +383,24 @@ sepref_def cdcl_twl_stgy_restart_prog_wl_heur_fast_code
   by sepref
 
 
+experiment
+begin
+   export_llvm opts_reduction_st_fast_code
+    opts_restart_st_fast_code
+    get_conflict_count_since_last_restart_heur_fast_code
+    get_fast_ema_heur_fast_code
+    get_slow_ema_heur_fast_code
+    get_learned_count_fast_code
+    count_decided_st_heur_pol_fast
+    upper_restart_bound_not_reached_fast_impl
+    minimum_number_between_restarts_impl
+  export_llvm restart_required_heur_fast_code
+  export_llvm cdcl_twl_full_restart_wl_D_GC_heur_prog_fast_code
+  export_llvm cdcl_twl_restart_wl_heur_fast_code
+  export_llvm cdcl_twl_full_restart_wl_prog_heur_fast_code
+  export_llvm cdcl_twl_local_restart_wl_D_heur_fast_code
+
+
+end
+
 end

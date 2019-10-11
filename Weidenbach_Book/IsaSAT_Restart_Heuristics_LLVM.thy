@@ -238,16 +238,49 @@ sepref_def GC_EVERY_impl
   unfolding GC_EVERY_def
   by sepref
 
+
+lemma emag_get_value_alt_def:
+  \<open>ema_get_value = (\<lambda>(a, b, c, d). a)\<close>
+  by auto
+sepref_def ema_get_value_impl
+  is \<open>RETURN o ema_get_value\<close>
+  :: \<open>ema_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
+  unfolding emag_get_value_alt_def
+  by sepref
+
+lemma restart_required_heur_alt_def:
+  \<open>restart_required_heur S n = do {
+    let opt_red = opts_reduction_st S;
+    let opt_res = opts_restart_st S;
+    let sema = get_slow_ema_heur S;
+    sema \<leftarrow> RETURN (ema_get_value sema);
+    let limit = (11 * sema) >> 4;
+    let fema = (get_fast_ema_heur S);
+    fema \<leftarrow> RETURN (ema_get_value fema);
+    let ccount = get_conflict_count_since_last_restart_heur S;
+    let lcount = get_learned_count S;
+    let can_res = (lcount > n);
+    let min_reached = (ccount > minimum_number_between_restarts);
+    let level = count_decided_st_heur S;
+    let should_not_reduce = (\<not>opt_red \<or> upper_restart_bound_not_reached S);
+    RETURN ((opt_res \<or> opt_red) \<and>
+       (should_not_reduce \<longrightarrow> limit > fema) \<and> min_reached \<and> can_res \<and>
+      level > 2 \<and> \<^cancel>\<open>This comment from Marijn Heule seems not to help:
+         \<^term>\<open>level < max_restart_decision_lvl\<close>\<close>
+      of_nat level > (fema >> 32))}
+  \<close>
+  by (auto simp: restart_required_heur_def bind_to_let_conv Let_def)
+
+sepref_register ema_get_value get_fast_ema_heur get_slow_ema_heur
 sepref_def restart_required_heur_fast_code
   is \<open>uncurry restart_required_heur\<close>
   :: \<open>isasat_bounded_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
   supply [[goals_limit=1]]
-  unfolding restart_required_heur_def
+  unfolding restart_required_heur_alt_def
   apply (rewrite in \<open>\<hole> < _\<close> unat_const_fold(3)[where 'a=32])
   apply (rewrite in \<open>(_ >> 32) < \<hole>\<close> annot_unat_unat_upcast[where 'l=64])
   apply (annot_snat_const "TYPE(64)")
   by sepref
-
 
 sepref_def get_reductions_count_fast_code
   is \<open>RETURN o get_reductions_count\<close>
@@ -522,5 +555,13 @@ sepref_def access_vdom_at_fast_code
   unfolding access_vdom_at_alt_def access_vdom_at_pre_def isasat_bounded_assn_def
   supply [[goals_limit = 1]]
   by sepref
+
+
+experiment
+begin
+  export_llvm restart_required_heur_fast_code
+    access_vdom_at_fast_code
+    isasat_GC_clauses_wl_D_code
+end
 
 end
