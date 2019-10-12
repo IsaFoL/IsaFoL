@@ -375,12 +375,17 @@ begin
 
 end
 
+definition model_assn_bounded where
+  \<open>model_bounded_assn =
+   hr_comp (bool_assn *a model_assn)
+   {((b, m), (b', m')). b=b' \<and> (b \<longrightarrow> (m,m') \<in> model_stat_rel)}\<close>
+
 thm IsaSAT_heur_model_if_sat'
 theorem IsaSAT_full_correctness:
-  \<open>(uncurry IsaSAT_code, uncurry (\<lambda>_. model_if_satisfiable))
+  \<open>(uncurry IsaSAT_code, uncurry (\<lambda>_. model_if_satisfiable_bounded))
      \<in> [\<lambda>(_, a). Multiset.Ball a distinct_mset \<and>
-      (\<forall>C\<in>#a.  \<forall>L\<in>#C. nat_of_lit L  \<le> uint32_max)]\<^sub>a opts_assn\<^sup>d *\<^sub>a  clauses_l_assn\<^sup>k \<rightarrow> model_assn\<close>
-  using IsaSAT_code.refine[FCOMP IsaSAT_heur_model_if_sat'[unfolded convert_fref],
+      (\<forall>C\<in>#a.  \<forall>L\<in>#C. nat_of_lit L  \<le> uint32_max)]\<^sub>a opts_assn\<^sup>d *\<^sub>a  clauses_l_assn\<^sup>k \<rightarrow> model_assn_bounded\<close>
+  using IsaSAT_bounded_code.refine[FCOMP IsaSAT_bounded_heur_model_if_sat'[unfolded convert_fref],
     unfolded list_assn_list_mset_rel_clauses_l_assn]
   unfolding model_assn_def
   apply auto

@@ -24,7 +24,7 @@ clean:
 
 isallvm:
 #	llvm-as -disable-output isasat_no_restart.ll
-	$(CLANG) $(CFLAGS) -flto -O3 isasat.c "lib_isabelle_llvm.c" isasat_no_restart.ll isasat_no_restart_wrapper.ll -o isasat_llvm
+	$(CLANG) $(CFLAGS) -flto -O3 isasat.c "lib_isabelle_llvm.c"  isasat_wrapper.ll isasat_restart.ll -o isasat_llvm
 
 isallvm-prof:
 #	llvm-as -disable-output isasat_no_restart.ll

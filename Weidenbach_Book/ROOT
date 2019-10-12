@@ -179,9 +179,10 @@ session "Watched_Literals" (Weidenbach_Book) = "CDCL"  +
     Array_UInt
     WB_Word
     WB_Word_Assn
-    WB_More_Refinement_List
     WB_More_Refinement
+    WB_More_Refinement_List
     WB_More_IICF_SML
+    WB_More_IICF_LLVM
     WB_Sort
     WB_Sort_SML
     Watched_Literals_Transition_System

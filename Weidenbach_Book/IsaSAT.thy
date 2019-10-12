@@ -3199,7 +3199,7 @@ proof -
 
   have conflict_during_init:
     \<open>((True, ([], fmempty, None, {#}, {#}, {#}, \<lambda>_. undefined)), (True, fst init_state_l))
-       \<in> {((b, T), b', T'). b = b' \<and> b \<longrightarrow> (T, T') \<in> state_wl_l None}\<close>
+       \<in> {((b, T), b', T'). b = b' \<and> (b \<longrightarrow> (T, T') \<in> state_wl_l None)}\<close>
     by (auto simp: init_state_l_def state_wl_l_def)
 
   have init_init_dt: \<open>RETURN (from_init_state T)
@@ -3461,6 +3461,44 @@ proof -
         by auto
     qed
   qed
+  have H: \<open>
+    \<exists>s'\<in>{(b, M).
+         b \<longrightarrow>
+         (if satisfiable (set_mset CS) then M \<noteq> None \<and> set (the M) \<Turnstile>sm CS
+          else M = None)}.
+       (s, s') \<in> {((b, S), b', T). b = b' \<and> (b \<longrightarrow> S = T)}\<close>
+     if \<open>Multiset.Ball CS' distinct_mset\<close>
+      \<open>CS = CS'\<close> and
+      \<open>s \<in> uncurry
+         (\<lambda>b T. (b, if conflicting T = None then Some (map lit_of (trail T))
+                    else None)) `
+        (if \<not> xb then {(xb, xa)}
+         else {(b, U). b \<longrightarrow> conclusive_CDCL_run CS' xa U})\<close> and
+      \<open>xa \<in> {T. T = init_state CS'}\<close>
+    for CS CS' :: \<open>nat literal multiset multiset\<close> and s and xa and xb :: bool
+ proof -
+   obtain b T where
+     s: \<open>s = (b, T)\<close> by (cases s)
+   have
+     \<open>\<not>xb \<longrightarrow> \<not>b\<close> and
+     b: \<open>b \<longrightarrow> T \<in>  (\<lambda>T. if conflicting T = None then Some (map lit_of (trail T)) else None) `
+  Collect (conclusive_CDCL_run CS (init_state CS))\<close>
+     using that(3,4)
+     by (force simp add: image_iff s that split: if_splits)+
+
+   show ?thesis
+   proof (cases b)
+     case True
+     then have T: \<open>T \<in>  (\<lambda>T. if conflicting T = None then Some (map lit_of (trail T)) else None) `
+       Collect (conclusive_CDCL_run CS (init_state CS))\<close>
+       using b by fast
+     show ?thesis
+       using H[OF that(1,2) T]
+       by (rule_tac x = \<open>s\<close> in bexI)
+         (auto simp add: s True that)
+    qed (auto simp: s)
+  qed
+
   have if_RES: \<open>(if xb then RETURN x
         else RES P) = (RES (if xb then {x} else P))\<close> for x xb P
     by (auto simp: RETURN_def)
@@ -3473,8 +3511,7 @@ proof -
       unfolding RES_RETURN_RES RES_RES_RETURN_RES2 if_RES
       apply (rule RES_refine)
       unfolding pair_in_Id_conv bex_triv_one_point1 bex_triv_one_point2
-      using H
-      by blast
+      using H by presburger
     done
 qed
 
@@ -3746,11 +3783,11 @@ proof -
      atm_of_eq_atm_of)
   have init_state_wl_heur: \<open>isasat_input_bounded \<A> \<Longrightarrow>
       init_state_wl_heur \<A> \<le> SPEC (\<lambda>c. (c, init_state_wl) \<in>
-        {(S, S'). (S, S') \<in> twl_st_heur_parsing_no_WL_wl \<A> True})\<close> for \<A>
-    apply (rule init_state_wl_heur_init_state_wl[THEN fref_to_Down_unRET_uncurry0_SPEC,
-      of \<A>, THEN order_trans])
-    apply (auto)
-    done
+        {(S, S'). (S, S') \<in> twl_st_heur_parsing_no_WL_wl \<A> True \<and>
+         inres (init_state_wl_heur \<A>) S})\<close> for \<A>
+    by (rule init_state_wl_heur_init_state_wl[THEN fref_to_Down_unRET_uncurry0_SPEC,
+      of \<A>, THEN strengthen_SPEC, THEN order_trans])
+      auto
 
   have get_conflict_wl_is_None_heur_init: \<open> (Tb, Tc)
     \<in> ({(S,T). (S, T) \<in> twl_st_heur_parsing (mset_set (extract_atms_clss CS {})) True \<and>
@@ -4116,12 +4153,11 @@ proof -
 *)
     apply (rule init_dt_wl_heur_b[of \<open>mset_set (extract_atms_clss CS {})\<close>])
     subgoal by (auto simp: lits_C)
-    subgoal apply(auto simp: twl_st_heur_parsing_no_WL_wl_def
+    subgoal by(auto simp: twl_st_heur_parsing_no_WL_wl_def
        twl_st_heur_parsing_no_WL_def to_init_state_def
        init_state_wl_def init_state_wl_heur_def
        inres_def RES_RES_RETURN_RES
        RES_RETURN_RES)
-       sorry
     subgoal by auto
     subgoal by (simp add: empty_conflict_code_def model_stat_rel_def
       empty_init_code_def)
@@ -4142,9 +4178,9 @@ proof -
     apply (rule finalise_init_code2; assumption?)
     subgoal by clarsimp
     subgoal by (clarsimp simp add: isasat_fast_def isasat_fast_init_def convert_state_def)
-    subgoal apply (clarsimp simp add: isasat_fast_def isasat_fast_init_def convert_state_def) sorry
+    subgoal by (clarsimp simp add: isasat_fast_def isasat_fast_init_def convert_state_def)
     subgoal by clarsimp
-    subgoal sorry
+    subgoal by (clarsimp simp add: isasat_fast_def isasat_fast_init_def convert_state_def)
     apply (rule_tac r1 = \<open>length (get_clauses_wl_heur Td)\<close> in
       cdcl_twl_stgy_restart_prog_bounded_wl_heur_cdcl_twl_stgy_restart_prog_bounded_wl_D[THEN fref_to_Down])
     subgoal by (simp add: isasat_fast_def sint64_max_def uint32_max_def

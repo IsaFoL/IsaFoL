@@ -230,7 +230,7 @@ typedef struct R {
   int64_t  sat;
 } R;
 
-int64_t IsaSAT_No_Restart_LLVM_IsaSAT_code_wrapped2(CLAUSES);
+int64_t IsaSAT_LLVM_IsaSAT_code_wrapped2(CLAUSES);
 
 void print_propagations(int64_t props) {
   printf("c propagations %ld\n", props);
@@ -278,7 +278,7 @@ int main(int argc, char *argv[]) {
   CLAUSES clauses = parse();
 
   //print_clauses(&clauses);
-  int64_t t = IsaSAT_No_Restart_LLVM_IsaSAT_code_wrapped2(clauses);
+  int64_t t = IsaSAT_LLVM_IsaSAT_code_wrapped2(clauses);
   if((t & 2) == 0)
     printf("s UNKNOWN\n");
   if (t & 1)
