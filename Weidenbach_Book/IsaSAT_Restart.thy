@@ -232,58 +232,23 @@ proof -
     done
 qed
 
-definition length_avdom :: \<open>twl_st_wl_heur \<Rightarrow> nat\<close> where
-  \<open>length_avdom S = length (get_avdom S)\<close>
-
-lemma length_avdom_alt_def:
-  \<open>length_avdom = (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, (fast_ema, slow_ema,
-     ccount), vdom, avdom, lcount). length avdom)\<close>
-  by (intro ext) (auto simp: length_avdom_def)
-
-
-definition get_the_propagation_reason_heur
- :: \<open>twl_st_wl_heur \<Rightarrow> nat literal \<Rightarrow> nat option nres\<close>
-where
-  \<open>get_the_propagation_reason_heur S = get_the_propagation_reason_pol (get_trail_wl_heur S)\<close>
-
-lemma get_the_propagation_reason_heur_alt_def:
-  \<open>get_the_propagation_reason_heur = (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, (fast_ema, slow_ema,
-     ccount), vdom, lcount) L . get_the_propagation_reason_pol M' L)\<close>
-  by (intro ext) (auto simp: get_the_propagation_reason_heur_def)
-
-
-definition clause_is_learned_heur :: "twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> bool"
-where
-  \<open>clause_is_learned_heur S C \<longleftrightarrow> arena_status (get_clauses_wl_heur S) C = LEARNED\<close>
-
-lemma clause_is_learned_heur_alt_def:
-  \<open>clause_is_learned_heur = (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, (fast_ema, slow_ema,
-     ccount), vdom, lcount) C . arena_status N' C = LEARNED)\<close>
-  by (intro ext) (auto simp: clause_is_learned_heur_def)
-
-
-(* TODO deduplicate arena_lbd = get_clause_LBD *)
-definition clause_lbd_heur :: "twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> nat"
-where
-  \<open>clause_lbd_heur S C = arena_lbd (get_clauses_wl_heur S) C\<close>
-
-definition (in -) access_length_heur where
-  \<open>access_length_heur S i = arena_length (get_clauses_wl_heur S) i\<close>
-
-lemma access_length_heur_alt_def:
-  \<open>access_length_heur = (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, heur, vdom, lcount) C.
-     arena_length N' C)\<close>
-  by (intro ext) (auto simp: access_length_heur_def arena_lbd_def)
-
-
-definition marked_as_used_st where
-  \<open>marked_as_used_st T C =
-    marked_as_used (get_clauses_wl_heur T) C\<close>
-
-lemma marked_as_used_st_alt_def:
-  \<open>marked_as_used_st = (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, heur, vdom, lcount) C.
-     marked_as_used N' C)\<close>
-  by (intro ext) (auto simp: marked_as_used_st_def)
+lemma mark_unused_st_heur:
+  assumes
+    \<open>(S, T) \<in> twl_st_heur_restart\<close> and
+    \<open>C \<in># dom_m (get_clauses_wl T)\<close>
+  shows \<open>(mark_unused_st_heur C S, T) \<in> twl_st_heur_restart\<close>
+  using assms
+  apply (cases S; cases T)
+   apply (simp add: twl_st_heur_restart_def mark_unused_st_heur_def
+	all_init_atms_def[symmetric])
+  apply (auto simp: twl_st_heur_restart_def mark_garbage_heur_def mark_garbage_wl_def
+         learned_clss_l_l_fmdrop size_remove1_mset_If
+     simp: all_init_atms_def all_init_lits_def
+     simp del: all_init_atms_def[symmetric]
+     intro!: valid_arena_mark_unused valid_arena_arena_decr_act
+     dest!: in_set_butlastD in_vdom_m_fmdropD
+     elim!: in_set_upd_cases)
+  done
 
 lemma mark_to_delete_clauses_wl_D_heur_is_Some_iff:
   \<open>D = Some C \<longleftrightarrow> D \<noteq> None \<and> ((the D) = C)\<close>

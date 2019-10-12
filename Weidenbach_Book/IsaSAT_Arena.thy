@@ -2148,4 +2148,22 @@ lemma mop_arena_length:
     (auto 5 3 intro!: ASSERT_leI simp: map_fun_rel_def append_ll_def arena_is_valid_clause_idx_def
         arena_lifting)
 
+definition mop_arena_lbd where
+  \<open>mop_arena_lbd arena C = do {
+    ASSERT(get_clause_LBD_pre arena C);
+    RETURN(arena_lbd arena C)
+  }\<close>
+
+definition mop_arena_status where
+  \<open>mop_arena_status arena C = do {
+    ASSERT(arena_is_valid_clause_vdom arena C);
+    RETURN(arena_status arena C)
+  }\<close>
+
+definition mop_marked_as_used where
+  \<open>mop_marked_as_used arena C = do {
+    ASSERT(marked_as_used_pre arena C);
+    RETURN(marked_as_used arena C)
+  }\<close>
+
 end

@@ -1171,4 +1171,203 @@ lemma [simp,iff]: \<open>literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st S) S \<l
   unfolding literals_are_\<L>\<^sub>i\<^sub>n_def is_\<L>\<^sub>a\<^sub>l\<^sub>l_def \<L>\<^sub>a\<^sub>l\<^sub>l_all_atms_all_lits
   by auto
 
+
+definition length_avdom :: \<open>twl_st_wl_heur \<Rightarrow> nat\<close> where
+  \<open>length_avdom S = length (get_avdom S)\<close>
+
+lemma length_avdom_alt_def:
+  \<open>length_avdom = (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, heur,
+    vdom, avdom, lcount). length avdom)\<close>
+  by (intro ext) (auto simp: length_avdom_def)
+
+
+definition clause_is_learned_heur :: "twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> bool"
+where
+  \<open>clause_is_learned_heur S C \<longleftrightarrow> arena_status (get_clauses_wl_heur S) C = LEARNED\<close>
+
+lemma clause_is_learned_heur_alt_def:
+  \<open>clause_is_learned_heur = (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats,
+     heur, vdom, lcount) C . arena_status N' C = LEARNED)\<close>
+  by (intro ext) (auto simp: clause_is_learned_heur_def)
+
+definition get_the_propagation_reason_heur
+ :: \<open>twl_st_wl_heur \<Rightarrow> nat literal \<Rightarrow> nat option nres\<close>
+where
+  \<open>get_the_propagation_reason_heur S = get_the_propagation_reason_pol (get_trail_wl_heur S)\<close>
+
+lemma get_the_propagation_reason_heur_alt_def:
+  \<open>get_the_propagation_reason_heur = (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats,
+     heur, vdom, lcount) L . get_the_propagation_reason_pol M' L)\<close>
+  by (intro ext) (auto simp: get_the_propagation_reason_heur_def)
+
+
+
+(* TODO deduplicate arena_lbd = get_clause_LBD *)
+definition clause_lbd_heur :: "twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> nat"
+where
+  \<open>clause_lbd_heur S C = arena_lbd (get_clauses_wl_heur S) C\<close>
+
+definition (in -) access_length_heur where
+  \<open>access_length_heur S i = arena_length (get_clauses_wl_heur S) i\<close>
+
+lemma access_length_heur_alt_def:
+  \<open>access_length_heur = (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, heur, vdom,
+    lcount) C. arena_length N' C)\<close>
+  by (intro ext) (auto simp: access_length_heur_def arena_lbd_def)
+
+
+definition marked_as_used_st where
+  \<open>marked_as_used_st T C =
+    marked_as_used (get_clauses_wl_heur T) C\<close>
+
+lemma marked_as_used_st_alt_def:
+  \<open>marked_as_used_st = (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, heur, vdom,
+      lcount) C.
+     marked_as_used N' C)\<close>
+  by (intro ext) (auto simp: marked_as_used_st_def)
+
+
+definition access_vdom_at :: \<open>twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> nat\<close> where
+  \<open>access_vdom_at S i = get_avdom S ! i\<close>
+
+lemma access_vdom_at_alt_def:
+  \<open>access_vdom_at = (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, heur, vdom, avdom, lcount) i. avdom ! i)\<close>
+  by (intro ext) (auto simp: access_vdom_at_def)
+
+definition access_vdom_at_pre where
+  \<open>access_vdom_at_pre S i \<longleftrightarrow> i < length (get_avdom S)\<close>
+
+
+definition mark_garbage_heur :: \<open>nat \<Rightarrow> nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur\<close> where
+  \<open>mark_garbage_heur C i = (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, heur,
+       vdom, avdom, lcount, opts, old_arena).
+    (M', extra_information_mark_to_delete N' C, D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, heur,
+       vdom, delete_index_and_swap avdom i, lcount - 1, opts, old_arena))\<close>
+
+definition mark_garbage_heur2 :: \<open>nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
+  \<open>mark_garbage_heur2 C = (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, heur,
+       vdom, avdom, lcount, opts). do{
+    let st = arena_status N' C = IRRED;
+    ASSERT(\<not>st \<longrightarrow> lcount \<ge> 1);
+    RETURN (M', extra_information_mark_to_delete N' C, D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, heur,
+       vdom, avdom, if st then lcount else lcount - 1, opts) })\<close>
+
+definition delete_index_vdom_heur :: \<open>nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur\<close>where
+  \<open>delete_index_vdom_heur = (\<lambda>i (M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, heur, vdom, avdom, lcount).
+     (M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, heur, vdom, delete_index_and_swap avdom i, lcount))\<close>
+
+lemma arena_act_pre_mark_used:
+  \<open>arena_act_pre arena C \<Longrightarrow>
+  arena_act_pre (mark_unused arena C) C\<close>
+  unfolding arena_act_pre_def arena_is_valid_clause_idx_def
+  apply clarify
+  apply (rule_tac x=N in exI)
+  apply (rule_tac x=vdom in exI)
+  by (auto simp: arena_act_pre_def
+    simp: valid_arena_mark_unused)
+
+definition mop_mark_garbage_heur :: \<open>nat \<Rightarrow> nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
+  \<open>mop_mark_garbage_heur C i = (\<lambda>S. do {
+    ASSERT(mark_garbage_pre (get_clauses_wl_heur S, C) \<and> get_learned_count S \<ge> 1 \<and> i < length (get_avdom S));
+    RETURN (mark_garbage_heur C i S)
+  })\<close>
+
+definition mark_unused_st_heur :: \<open>nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur\<close> where
+  \<open>mark_unused_st_heur C = (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl,
+      stats, heur, vdom, avdom, lcount, opts).
+    (M', arena_decr_act (mark_unused N' C) C, D', j, W', vm, \<phi>, clvls, cach,
+      lbd, outl, stats, heur,
+      vdom, avdom, lcount, opts))\<close>
+
+
+definition mop_mark_unused_st_heur :: \<open>nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
+  \<open>mop_mark_unused_st_heur C T = do {
+     ASSERT(arena_act_pre (get_clauses_wl_heur T) C);
+     RETURN (mark_unused_st_heur C T)
+  }\<close>
+
+lemma mop_mark_garbage_heur_alt_def:
+  \<open>mop_mark_garbage_heur C i = (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, heur,
+       vdom, avdom, lcount, opts, old_arena). do {
+    ASSERT(mark_garbage_pre (get_clauses_wl_heur (M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, heur,
+       vdom, avdom, lcount, opts, old_arena), C) \<and> lcount \<ge> 1 \<and> i < length avdom);
+    RETURN (M', extra_information_mark_to_delete N' C, D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats,
+      heur,
+       vdom, delete_index_and_swap avdom i, lcount - 1, opts, old_arena)
+   })\<close>
+  unfolding mop_mark_garbage_heur_def mark_garbage_heur_def
+  by (auto intro!: ext)
+
+lemma mark_unused_st_heur_simp[simp]:
+  \<open>get_avdom (mark_unused_st_heur C T) = get_avdom T\<close>
+  \<open>get_vdom (mark_unused_st_heur C T) = get_vdom T\<close>
+  by (cases T; auto simp: mark_unused_st_heur_def; fail)+
+
+
+lemma get_slow_ema_heur_alt_def:
+   \<open>RETURN o get_slow_ema_heur = (\<lambda>(M, N0, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl,
+       stats, (fema, sema,  _), lcount). RETURN sema)\<close>
+  by auto
+
+
+lemma get_fast_ema_heur_alt_def:
+   \<open>RETURN o get_fast_ema_heur = (\<lambda>(M, N0, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl,
+       stats, (fema, sema, ccount), lcount). RETURN fema)\<close>
+  by auto
+
+
+fun (in -) get_conflict_count_since_last_restart_heur :: \<open>twl_st_wl_heur \<Rightarrow> 64 word\<close> where
+  \<open>get_conflict_count_since_last_restart_heur (_, _, _, _, _, _, _, _, _, _, _, _, (_, _, (ccount, _)), _)
+      = ccount\<close>
+
+lemma (in -) get_counflict_count_heur_alt_def:
+   \<open>RETURN o get_conflict_count_since_last_restart_heur = (\<lambda>(M, N0, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl,
+       stats, (_, _, (ccount, _)), lcount). RETURN ccount)\<close>
+  by auto
+
+lemma get_learned_count_alt_def:
+   \<open>RETURN o get_learned_count = (\<lambda>(M, N0, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl,
+       stats, _, vdom, avdom, lcount, opts). RETURN lcount)\<close>
+  by auto
+
+definition incr_restart_stat :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
+  \<open>incr_restart_stat = (\<lambda>(M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, stats, (fast_ema, slow_ema,
+       res_info), vdom, avdom, lcount). do{
+     RETURN (M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, incr_restart stats,
+       (ema_reinit fast_ema, ema_reinit slow_ema,
+       restart_info_restart_done res_info), vdom, avdom, lcount)
+  })\<close>
+
+definition incr_lrestart_stat :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
+  \<open>incr_lrestart_stat = (\<lambda>(M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, stats, (fast_ema, slow_ema,
+     res_info), vdom, avdom, lcount). do{
+     RETURN (M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, incr_lrestart stats,
+       (fast_ema, slow_ema, restart_info_restart_done res_info),
+       vdom, avdom, lcount)
+  })\<close>
+
+
+definition opts_restart_st :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close> where
+  \<open>opts_restart_st = (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, heur,
+       vdom, avdom, lcount, opts, _). (opts_restart opts))\<close>
+
+definition opts_reduction_st :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close> where
+  \<open>opts_reduction_st = (\<lambda>(M, N0, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl,
+       stats, heur, vdom, avdom, lcount, opts, _). (opts_reduce opts))\<close>
+
+definition isasat_length_trail_st :: \<open>twl_st_wl_heur \<Rightarrow> nat\<close> where
+\<open>isasat_length_trail_st S = isa_length_trail (get_trail_wl_heur S)\<close>
+
+lemma isasat_length_trail_st_alt_def:
+  \<open>isasat_length_trail_st = (\<lambda>(M, _). isa_length_trail M)\<close>
+  by (auto simp: isasat_length_trail_st_def intro!: ext)
+
+
+definition get_pos_of_level_in_trail_imp_st :: \<open>twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> nat nres\<close> where
+\<open>get_pos_of_level_in_trail_imp_st S = get_pos_of_level_in_trail_imp (get_trail_wl_heur S)\<close>
+
+lemma get_pos_of_level_in_trail_imp_alt_def:
+  \<open>get_pos_of_level_in_trail_imp_st = (\<lambda>(M, _) L.  do {k \<leftarrow> get_pos_of_level_in_trail_imp M L; RETURN k})\<close>
+  by (auto simp: get_pos_of_level_in_trail_imp_st_def intro!: ext)
+
 end

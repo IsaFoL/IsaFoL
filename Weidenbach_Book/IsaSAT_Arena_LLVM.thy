@@ -470,6 +470,11 @@ sepref_def MAX_LENGTH_SHORT_CLAUSE_impl is "uncurry0 (RETURN MAX_LENGTH_SHORT_CL
 
 end
 
+sepref_def mop_arena_length_impl
+  is \<open>uncurry mop_arena_length\<close>
+  :: \<open>arena_fast_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a sint64_nat_assn\<close>
+  unfolding mop_arena_length_def
+  by sepref
 
 experiment begin
 export_llvm

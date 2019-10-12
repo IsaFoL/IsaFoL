@@ -147,25 +147,6 @@ sepref_def propagate_lit_wl_bin_fast_code
   unfolding fold_tuple_optimizations
   by sepref
 
-
-sepref_register neq : "(op_neq :: clause_status \<Rightarrow> _ \<Rightarrow> _)" 
-lemma status_neq_refine1: "((\<noteq>),op_neq) \<in> status_rel \<rightarrow> status_rel \<rightarrow> bool_rel"
-  by (auto simp: status_rel_def)
-
-sepref_def status_neq_impl is [] "uncurry (RETURN oo (\<noteq>))" 
-  :: "(unat_assn' TYPE(32))\<^sup>k *\<^sub>a (unat_assn' TYPE(32))\<^sup>k \<rightarrow>\<^sub>a bool1_assn"  
-  by sepref
-
-lemmas [sepref_fr_rules] = status_neq_impl.refine[FCOMP status_neq_refine1]
-
-sepref_def clause_not_marked_to_delete_heur_fast_code
-  is \<open>uncurry (RETURN oo clause_not_marked_to_delete_heur)\<close>
-  :: \<open>[clause_not_marked_to_delete_heur_pre]\<^sub>a isasat_bounded_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> bool1_assn\<close>
-  supply [[goals_limit=1]]
-  unfolding clause_not_marked_to_delete_heur_alt_def isasat_bounded_assn_def
-     clause_not_marked_to_delete_heur_pre_def
-  by sepref
-
 (*TODO Move*)
 lemma op_list_list_upd_alt_def: \<open>op_list_list_upd xss i j x = xss[i := (xss ! i)[j := x]]\<close>
   unfolding op_list_list_upd_def by auto

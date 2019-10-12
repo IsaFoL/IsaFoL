@@ -51,13 +51,7 @@ sepref_def ema_update_impl is "uncurry (RETURN oo ema_update)"
   apply (annot_unat_const "TYPE(64)")
   supply [[goals_limit = 1]]
   by sepref
-  
-find_theorems "PR_CONST" numeral 
-  
-find_in_thms "PR_CONST _ :: _ word" in sepref_fr_rules  
-  
-    
-  
+
 lemma [sepref_import_param]:
   "(incr_propagation,incr_propagation) \<in> stats_rel \<rightarrow> stats_rel" 
   "(incr_conflict,incr_conflict) \<in> stats_rel \<rightarrow> stats_rel" 
@@ -330,12 +324,6 @@ sepref_def mop_append_ll_impl
   by sepref
 
 
-sepref_def mop_arena_length_impl
-  is \<open>uncurry mop_arena_length\<close>
-  :: \<open>arena_fast_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a sint64_nat_assn\<close>
-  unfolding mop_arena_length_def
-  by sepref
-
 sepref_def rewatch_heur_fast_code
   is \<open>uncurry2 (rewatch_heur)\<close>
   :: \<open>[\<lambda>((vdom, arena), W). (\<forall>x \<in> set vdom. x \<le> sint64_max) \<and> length arena \<le> sint64_max \<and> length vdom \<le> sint64_max]\<^sub>a
@@ -350,7 +338,7 @@ sepref_def rewatch_heur_fast_code
   unfolding if_not_swap
     FOREACH_cond_def FOREACH_body_def 
   apply (annot_snat_const "TYPE(64)")
-  by sepref (*13s before mopping*)
+  by sepref
 
 
 sepref_def rewatch_heur_st_fast_code
@@ -362,6 +350,228 @@ sepref_def rewatch_heur_st_fast_code
     isasat_bounded_assn_def rewatch_heur_st_fast_def
   unfolding fold_tuple_optimizations
   by sepref
+
+
+sepref_register length_avdom
+
+sepref_def length_avdom_fast_code
+  is \<open>RETURN o length_avdom\<close>
+  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a sint64_nat_assn\<close>
+  unfolding length_avdom_alt_def isasat_bounded_assn_def
+  supply [[goals_limit = 1]]
+  by sepref
+
+sepref_register get_the_propagation_reason_heur
+
+sepref_def get_the_propagation_reason_heur_fast_code
+  is \<open>uncurry get_the_propagation_reason_heur\<close>
+  :: \<open>isasat_bounded_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow>\<^sub>a snat_option_assn' TYPE(64)\<close>
+  unfolding get_the_propagation_reason_heur_alt_def
+     isasat_bounded_assn_def
+  supply [[goals_limit = 1]]
+  by sepref
+
+
+sepref_def clause_is_learned_heur_code2
+  is \<open>uncurry (RETURN oo clause_is_learned_heur)\<close>
+  :: \<open>[\<lambda>(S, C). arena_is_valid_clause_vdom (get_clauses_wl_heur S) C]\<^sub>a
+      isasat_bounded_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> bool1_assn\<close>
+  supply [[goals_limit = 1]]
+  unfolding clause_is_learned_heur_alt_def isasat_bounded_assn_def
+  by sepref
+
+sepref_register clause_lbd_heur
+
+
+lemma clause_lbd_heur_alt_def:
+  \<open>clause_lbd_heur = (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, heur, vdom, lcount) C.
+     arena_lbd N' C)\<close>
+  by (intro ext) (auto simp: clause_lbd_heur_def)
+
+sepref_def clause_lbd_heur_code2
+  is \<open>uncurry (RETURN oo clause_lbd_heur)\<close>
+  :: \<open>[\<lambda>(S, C). get_clause_LBD_pre (get_clauses_wl_heur S) C]\<^sub>a
+       isasat_bounded_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
+  unfolding isasat_bounded_assn_def clause_lbd_heur_alt_def
+  supply [[goals_limit = 1]]
+  by sepref
+
+
+
+sepref_register mark_garbage_heur
+
+
+sepref_def mark_garbage_heur_code2
+  is \<open>uncurry2 (RETURN ooo mark_garbage_heur)\<close>
+  :: \<open>[\<lambda>((C, i), S). mark_garbage_pre (get_clauses_wl_heur S, C) \<and> i < length_avdom S \<and>
+         get_learned_count S \<ge> 1]\<^sub>a
+       sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
+  supply [[goals_limit = 1]]
+  unfolding mark_garbage_heur_def isasat_bounded_assn_def delete_index_and_swap_alt_def
+    length_avdom_def fold_tuple_optimizations
+  apply (annot_unat_const "TYPE(64)")
+  by sepref
+
+sepref_register delete_index_vdom_heur
+
+
+sepref_def delete_index_vdom_heur_fast_code2
+  is \<open>uncurry (RETURN oo delete_index_vdom_heur)\<close>
+  :: \<open>[\<lambda>(i, S). i < length_avdom S]\<^sub>a
+        sint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
+  supply [[goals_limit = 1]]
+  unfolding delete_index_vdom_heur_def isasat_bounded_assn_def delete_index_and_swap_alt_def
+    length_avdom_def fold_tuple_optimizations
+  by sepref
+
+sepref_register access_length_heur
+
+sepref_def access_length_heur_fast_code2
+  is \<open>uncurry (RETURN oo access_length_heur)\<close>
+  :: \<open>[\<lambda>(S, C). arena_is_valid_clause_idx (get_clauses_wl_heur S) C]\<^sub>a
+       isasat_bounded_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> sint64_nat_assn\<close>
+  supply [[goals_limit = 1]]
+  unfolding access_length_heur_alt_def isasat_bounded_assn_def fold_tuple_optimizations
+  by sepref
+
+sepref_register marked_as_used_st
+
+sepref_def marked_as_used_st_fast_code
+  is \<open>uncurry (RETURN oo marked_as_used_st)\<close>
+  :: \<open>[\<lambda>(S, C). marked_as_used_pre (get_clauses_wl_heur S) C]\<^sub>a
+       isasat_bounded_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> bool1_assn\<close>
+  supply [[goals_limit = 1]]
+  unfolding marked_as_used_st_alt_def isasat_bounded_assn_def fold_tuple_optimizations
+  by sepref
+
+
+sepref_register mark_unused_st_heur
+sepref_def mark_unused_st_fast_code
+  is \<open>uncurry (RETURN oo mark_unused_st_heur)\<close>
+  :: \<open>[\<lambda>(C, S). arena_act_pre (get_clauses_wl_heur S) C]\<^sub>a
+        sint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
+  unfolding mark_unused_st_heur_def isasat_bounded_assn_def
+    arena_act_pre_mark_used[intro!]
+  supply [[goals_limit = 1]]
+  by sepref
+
+
+sepref_def get_slow_ema_heur_fast_code
+  is \<open>RETURN o get_slow_ema_heur\<close>
+  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a ema_assn\<close>
+  unfolding get_slow_ema_heur_alt_def isasat_bounded_assn_def heuristic_assn_def
+  by sepref
+
+sepref_def get_fast_ema_heur_fast_code
+  is \<open>RETURN o get_fast_ema_heur\<close>
+  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a ema_assn\<close>
+  unfolding get_fast_ema_heur_alt_def isasat_bounded_assn_def heuristic_assn_def
+  by sepref
+
+sepref_def get_conflict_count_since_last_restart_heur_fast_code
+  is \<open>RETURN o get_conflict_count_since_last_restart_heur\<close>
+  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a word64_assn\<close>
+  unfolding get_counflict_count_heur_alt_def isasat_bounded_assn_def heuristic_assn_def
+  by sepref
+
+sepref_def get_learned_count_fast_code
+  is \<open>RETURN o get_learned_count\<close>
+  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
+  unfolding get_learned_count_alt_def isasat_bounded_assn_def
+  by sepref
+
+sepref_register incr_restart_stat
+
+sepref_def incr_restart_stat_fast_code
+  is \<open>incr_restart_stat\<close>
+  :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding incr_restart_stat_def isasat_bounded_assn_def PR_CONST_def
+    heuristic_assn_def fold_tuple_optimizations
+  by sepref
+
+sepref_register incr_lrestart_stat
+
+sepref_def incr_lrestart_stat_fast_code
+  is \<open>incr_lrestart_stat\<close>
+  :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding incr_lrestart_stat_def isasat_bounded_assn_def PR_CONST_def
+    heuristic_assn_def fold_tuple_optimizations
+  by sepref
+
+
+sepref_def opts_restart_st_fast_code
+  is \<open>RETURN o opts_restart_st\<close>
+  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
+  unfolding opts_restart_st_def isasat_bounded_assn_def
+  by sepref
+
+
+sepref_def opts_reduction_st_fast_code
+  is \<open>RETURN o opts_reduction_st\<close>
+  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
+  unfolding opts_reduction_st_def isasat_bounded_assn_def
+  by sepref
+
+sepref_register opts_reduction_st opts_restart_st
+
+
+lemma emag_get_value_alt_def:
+  \<open>ema_get_value = (\<lambda>(a, b, c, d). a)\<close>
+  by auto
+sepref_def ema_get_value_impl
+  is \<open>RETURN o ema_get_value\<close>
+  :: \<open>ema_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
+  unfolding emag_get_value_alt_def
+  by sepref
+
+
+sepref_register isasat_length_trail_st
+
+sepref_def isasat_length_trail_st_code
+  is \<open>RETURN o isasat_length_trail_st\<close>
+  :: \<open>[isa_length_trail_pre o get_trail_wl_heur]\<^sub>a isasat_bounded_assn\<^sup>k  \<rightarrow> sint64_nat_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding isasat_length_trail_st_alt_def isasat_bounded_assn_def
+  by sepref
+
+sepref_register get_pos_of_level_in_trail_imp_st
+
+sepref_def get_pos_of_level_in_trail_imp_st_code
+  is \<open>uncurry get_pos_of_level_in_trail_imp_st\<close>
+  :: \<open>isasat_bounded_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k  \<rightarrow>\<^sub>a sint64_nat_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding get_pos_of_level_in_trail_imp_alt_def isasat_bounded_assn_def
+  apply (rewrite in "_" eta_expand[where f = RETURN])
+  apply (rewrite in "RETURN \<hole>" annot_unat_snat_upcast[where 'l=64])
+  by sepref
+
+
+
+sepref_register neq : "(op_neq :: clause_status \<Rightarrow> _ \<Rightarrow> _)" 
+lemma status_neq_refine1: "((\<noteq>),op_neq) \<in> status_rel \<rightarrow> status_rel \<rightarrow> bool_rel"
+  by (auto simp: status_rel_def)
+
+sepref_def status_neq_impl is [] "uncurry (RETURN oo (\<noteq>))" 
+  :: "(unat_assn' TYPE(32))\<^sup>k *\<^sub>a (unat_assn' TYPE(32))\<^sup>k \<rightarrow>\<^sub>a bool1_assn"  
+  by sepref
+
+lemmas [sepref_fr_rules] = status_neq_impl.refine[FCOMP status_neq_refine1]
+
+lemma clause_not_marked_to_delete_heur_alt_def:
+  \<open>RETURN oo clause_not_marked_to_delete_heur = (\<lambda>(M, arena, D, oth) C.
+      RETURN (arena_status arena C \<noteq> DELETED))\<close>
+  unfolding clause_not_marked_to_delete_heur_def by (auto intro!: ext)
+
+sepref_def clause_not_marked_to_delete_heur_fast_code
+  is \<open>uncurry (RETURN oo clause_not_marked_to_delete_heur)\<close>
+  :: \<open>[clause_not_marked_to_delete_heur_pre]\<^sub>a isasat_bounded_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> bool1_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding clause_not_marked_to_delete_heur_alt_def isasat_bounded_assn_def
+     clause_not_marked_to_delete_heur_pre_def
+  by sepref
+
 
 experiment begin
 
@@ -381,7 +591,7 @@ export_llvm
   access_lit_in_clauses_heur_fast_code
   rewatch_heur_fast_code
   rewatch_heur_st_fast_code
- 
-end  
-  
+
+end
+
 end

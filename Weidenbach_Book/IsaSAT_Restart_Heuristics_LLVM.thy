@@ -10,31 +10,6 @@ sepref_def clause_score_ordering
   unfolding clause_score_ordering_def
   by sepref
 
-sepref_def get_slow_ema_heur_fast_code
-  is \<open>RETURN o get_slow_ema_heur\<close>
-  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a ema_assn\<close>
-  unfolding get_slow_ema_heur_alt_def isasat_bounded_assn_def heuristic_assn_def
-  by sepref
-
-sepref_def get_fast_ema_heur_fast_code
-  is \<open>RETURN o get_fast_ema_heur\<close>
-  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a ema_assn\<close>
-  unfolding get_fast_ema_heur_alt_def isasat_bounded_assn_def heuristic_assn_def
-  by sepref
-
-sepref_def get_conflict_count_since_last_restart_heur_fast_code
-  is \<open>RETURN o get_conflict_count_since_last_restart_heur\<close>
-  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a word64_assn\<close>
-  unfolding get_counflict_count_heur_alt_def isasat_bounded_assn_def heuristic_assn_def
-  by sepref
-
-sepref_def get_learned_count_fast_code
-  is \<open>RETURN o get_learned_count\<close>
-  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
-  unfolding get_learned_count_alt_def isasat_bounded_assn_def
-  by sepref
-
-
 sepref_def find_local_restart_target_level_fast_code
   is \<open>uncurry find_local_restart_target_level_int\<close>
   :: \<open>trail_pol_fast_assn\<^sup>k *\<^sub>a vmtf_remove_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
@@ -48,26 +23,6 @@ sepref_def find_local_restart_target_level_fast_code
    apply (rewrite in "(\<hole> < length _)" annot_unat_snat_upcast[where 'l=64])
   by sepref
 
-
-sepref_register incr_restart_stat
-
-sepref_def incr_restart_stat_fast_code
-  is \<open>incr_restart_stat\<close>
-  :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
-  supply [[goals_limit=1]]
-  unfolding incr_restart_stat_def isasat_bounded_assn_def PR_CONST_def
-    heuristic_assn_def fold_tuple_optimizations
-  by sepref
-
-sepref_register incr_lrestart_stat
-
-sepref_def incr_lrestart_stat_fast_code
-  is \<open>incr_lrestart_stat\<close>
-  :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
-  supply [[goals_limit=1]]
-  unfolding incr_lrestart_stat_def isasat_bounded_assn_def PR_CONST_def
-    heuristic_assn_def fold_tuple_optimizations
-  by sepref
 
 sepref_def find_local_restart_target_level_st_fast_code
   is \<open>find_local_restart_target_level_st\<close>
@@ -200,22 +155,6 @@ sepref_def sort_vdom_heur_fast_code
   unfolding sort_vdom_heur_def isasat_bounded_assn_def
   by sepref
 
-sepref_def opts_restart_st_fast_code
-  is \<open>RETURN o opts_restart_st\<close>
-  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
-  unfolding opts_restart_st_def isasat_bounded_assn_def
-  by sepref
-
-
-sepref_def opts_reduction_st_fast_code
-  is \<open>RETURN o opts_reduction_st\<close>
-  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
-  unfolding opts_reduction_st_def isasat_bounded_assn_def
-  by sepref
-
-sepref_register opts_reduction_st opts_restart_st
-
-
 sepref_register max_restart_decision_lvl
 
 sepref_def minimum_number_between_restarts_impl
@@ -238,15 +177,6 @@ sepref_def GC_EVERY_impl
   unfolding GC_EVERY_def
   by sepref
 
-
-lemma emag_get_value_alt_def:
-  \<open>ema_get_value = (\<lambda>(a, b, c, d). a)\<close>
-  by auto
-sepref_def ema_get_value_impl
-  is \<open>RETURN o ema_get_value\<close>
-  :: \<open>ema_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
-  unfolding emag_get_value_alt_def
-  by sepref
 
 lemma restart_required_heur_alt_def:
   \<open>restart_required_heur S n = do {
@@ -354,26 +284,15 @@ sepref_def remove_one_annot_true_clause_one_imp_wl_D_heur_code
   apply (rewrite in \<open>_ = \<hole>\<close> snat_const_fold(1)[where 'a=64])
   apply (annot_snat_const "TYPE(64)")
   by sepref
+sepref_register mark_clauses_as_unused_wl_D_heur
 
-sepref_register isasat_length_trail_st
-
-sepref_def isasat_length_trail_st_code
-  is \<open>RETURN o isasat_length_trail_st\<close>
-  :: \<open>[isa_length_trail_pre o get_trail_wl_heur]\<^sub>a isasat_bounded_assn\<^sup>k  \<rightarrow> sint64_nat_assn\<close>
-  supply [[goals_limit=1]]
-  unfolding isasat_length_trail_st_alt_def isasat_bounded_assn_def
+sepref_def access_vdom_at_fast_code
+  is \<open>uncurry (RETURN oo access_vdom_at)\<close>
+  :: \<open>[uncurry access_vdom_at_pre]\<^sub>a isasat_bounded_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> sint64_nat_assn\<close>
+  unfolding access_vdom_at_alt_def access_vdom_at_pre_def isasat_bounded_assn_def
+  supply [[goals_limit = 1]]
   by sepref
 
-sepref_register get_pos_of_level_in_trail_imp_st
-
-sepref_def get_pos_of_level_in_trail_imp_st_code
-  is \<open>uncurry get_pos_of_level_in_trail_imp_st\<close>
-  :: \<open>isasat_bounded_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k  \<rightarrow>\<^sub>a sint64_nat_assn\<close>
-  supply [[goals_limit=1]]
-  unfolding get_pos_of_level_in_trail_imp_alt_def isasat_bounded_assn_def
-  apply (rewrite in "_" eta_expand[where f = RETURN])
-  apply (rewrite in "RETURN \<hole>" annot_unat_snat_upcast[where 'l=64])
-  by sepref
 
 sepref_register remove_one_annot_true_clause_imp_wl_D_heur
 
@@ -549,13 +468,17 @@ lemma number_clss_to_keep_fast_code_refine[sepref_fr_rules]:
     number_clss_to_keep_impl_number_clss_to_keep, simplified]
   by auto
 
-sepref_def access_vdom_at_fast_code
-  is \<open>uncurry (RETURN oo access_vdom_at)\<close>
-  :: \<open>[uncurry access_vdom_at_pre]\<^sub>a isasat_bounded_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> sint64_nat_assn\<close>
-  unfolding access_vdom_at_alt_def access_vdom_at_pre_def isasat_bounded_assn_def
-  supply [[goals_limit = 1]]
-  by sepref
 
+sepref_def mark_clauses_as_unused_wl_D_heur_fast_code
+  is \<open>uncurry mark_clauses_as_unused_wl_D_heur\<close>
+  :: \<open>[\<lambda>(_, S). length (get_avdom S) \<le> sint64_max]\<^sub>a
+    sint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
+  supply [[goals_limit=1]] length_avdom_def[simp]
+  unfolding mark_clauses_as_unused_wl_D_heur_def
+    mark_unused_st_heur_def[symmetric]
+    access_vdom_at_def[symmetric] length_avdom_def[symmetric]
+  apply (annot_snat_const "TYPE(64)")
+  by sepref
 
 experiment
 begin
