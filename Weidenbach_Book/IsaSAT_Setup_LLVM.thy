@@ -259,6 +259,22 @@ definition isasat_bounded_assn :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wll
   opts_assn *a arena_fast_assn\<close>
 
 
+sepref_register NORMAL_PHASE QUIET_PHASE DEFAULT_INIT_PHASE
+
+sepref_def NORMAL_PHASE_impl
+  is \<open>uncurry0 (RETURN NORMAL_PHASE)\<close>
+  :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
+  unfolding NORMAL_PHASE_def
+  by sepref
+
+sepref_def QUIET_PHASE_impl
+  is \<open>uncurry0 (RETURN QUIET_PHASE)\<close>
+  :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
+  unfolding QUIET_PHASE_def
+  by sepref
+
+
+
 subsubsection \<open>Lift Operations to State\<close>
 
 (*TODO proper setup to test if the conflict is none*)
@@ -652,20 +668,6 @@ sepref_def mop_arena_length_st_impl
   supply [[goals_limit=1]]
   unfolding mop_arena_length_st_alt_def isasat_bounded_assn_def
   by sepref
-
-
-sepref_def NORMAL_PHASE_impl
-  is \<open>uncurry0 (RETURN NORMAL_PHASE)\<close>
-  :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
-  unfolding NORMAL_PHASE_def
-  by sepref
-
-sepref_def QUIET_PHASE_impl
-  is \<open>uncurry0 (RETURN QUIET_PHASE)\<close>
-  :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
-  unfolding QUIET_PHASE_def
-  by sepref
-
 
 experiment begin
 
