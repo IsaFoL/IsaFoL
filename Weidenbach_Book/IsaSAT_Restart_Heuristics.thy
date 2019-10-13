@@ -1137,15 +1137,6 @@ proof -
     done
 qed
 
-
-definition mop_clause_not_marked_to_delete_heur :: \<open>_ \<Rightarrow> nat \<Rightarrow> bool nres\<close>
-where
-  \<open>mop_clause_not_marked_to_delete_heur S C = do {
-    ASSERT(clause_not_marked_to_delete_heur_pre (S, C));
-    RETURN (clause_not_marked_to_delete_heur S C)
-  }\<close>
-
-
 definition mark_to_delete_clauses_wl_D_heur
   :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close>
 where

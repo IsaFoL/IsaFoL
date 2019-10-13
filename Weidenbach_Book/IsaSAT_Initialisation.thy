@@ -40,12 +40,6 @@ proof -
   finally show ?thesis .
 qed
 
-(*TODO Move*)
-lemma fold_eq_nfoldli:
-  "RETURN (fold f l s) = nfoldli l (\<lambda>_. True) (\<lambda>x s. RETURN (f x s)) s"
-  apply (induction l arbitrary: s) apply (auto) done
-
-(*End Move*)
 
 hide_const Autoref_Fix_Rel.CONSTRAINT
 

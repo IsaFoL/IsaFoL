@@ -2,19 +2,6 @@ theory Watched_Literals_Watch_List
   imports Watched_Literals_List Watched_Literals_All_Literals Weidenbach_Book_Base.Explorer
 begin
 
-(*TODO Move*)
-lemma refine_itself0:
-    \<open>(X, X) \<in> Id \<rightarrow>\<^sub>f \<langle>Id\<rangle>nres_rel\<close> and
-  refine_itself1:
-    \<open>(uncurry X1, uncurry X1) \<in> Id \<times>\<^sub>f Id \<rightarrow>\<^sub>f \<langle>Id\<rangle>nres_rel\<close> and
-  refine_itself2:
-    \<open>(uncurry2 X2, uncurry2 X2) \<in> Id \<times>\<^sub>f Id \<times>\<^sub>f Id \<rightarrow>\<^sub>f \<langle>Id\<rangle>nres_rel\<close> and
-  refine_itself3:
-    \<open>(uncurry3 X3, uncurry3 X3) \<in> Id \<times>\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f Id \<rightarrow>\<^sub>f \<langle>Id\<rangle>nres_rel\<close>and
-  refine_itself4:
-    \<open>(uncurry4 X4, uncurry4 X4) \<in> Id \<times>\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f Id \<rightarrow>\<^sub>f \<langle>Id\<rangle>nres_rel\<close>
-  by (intro frefI nres_relI; auto; fail)+
-
 
 section \<open>Third Refinement: Remembering watched\<close>
 

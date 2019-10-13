@@ -12,8 +12,7 @@ theory WB_More_Refinement
     Isabelle_LLVM.Sepref_Misc
       \<comment> \<open>TODO: replace by a Isabelle_LLVM.More_Notations to fix WB_More_IICF_SML\<close>
 begin
-thm refine_rel_defs
-term WHILEIT
+
 (*
   term \<open>a \<rightarrow>\<^sub>f b\<close>
 no_notation fref ("[_]\<^sub>f _ \<rightarrow> _" [0,60,60] 60)
@@ -249,7 +248,8 @@ lemma weaken_SPEC2: \<open>m' \<le> SPEC \<Phi> \<Longrightarrow> m = m' \<Longr
 
 method match_spec_trans =
   (match conclusion in \<open>f \<le> SPEC R\<close> for f :: \<open>'a nres\<close> and R :: \<open>'a \<Rightarrow> bool\<close> \<Rightarrow>
-    \<open>print_term f; match premises in I: \<open>_ \<Longrightarrow> _ \<Longrightarrow> f' \<le> SPEC R'\<close> for f' :: \<open>'a nres\<close> and R' :: \<open>'a \<Rightarrow> bool\<close>
+    \<open>print_term f; match premises in I: \<open>_ \<Longrightarrow> _ \<Longrightarrow> f' \<le> SPEC R'\<close> for f' :: \<open>'a nres\<close> and
+         R' :: \<open>'a \<Rightarrow> bool\<close>
        \<Rightarrow> \<open>print_term f'; rule weaken_SPEC2[of f' R' f R]\<close>\<close>)
 
 
@@ -352,7 +352,9 @@ proof -
       apply (subst flatf_ord.fixp_unfold)
        apply (solves \<open>simp\<close>)
       ..
-    also have \<open>\<dots> = WHILEI_body (\<bind>) RETURN (\<lambda>x'. I' x' \<and> (b' x' \<longrightarrow> f x' = FAIL \<or> f x' \<le> SPEC I')) b' f (WHILEI_body (\<bind>) RETURN I' b' f (flatf_gfp (WHILEI_body (\<bind>) RETURN I' b' f))) x'\<close>
+    also have \<open>\<dots> = WHILEI_body (\<bind>)
+        RETURN (\<lambda>x'. I' x' \<and> (b' x' \<longrightarrow> f x' = FAIL \<or> f x' \<le> SPEC I')) b' f
+        (WHILEI_body (\<bind>) RETURN I' b' f (flatf_gfp (WHILEI_body (\<bind>) RETURN I' b' f))) x'\<close>
       apply (subst (1) WHILEI_body_def, subst (1) WHILEI_body_def)
       apply (subst (2) WHILEI_body_def, subst (2) WHILEI_body_def)
       apply simp_all
@@ -360,7 +362,9 @@ proof -
        apply (auto simp: RES_RETURN_RES nofail_def[symmetric] pw_RES_bind_choose
           split: if_splits)
       done
-    also have \<open>\<dots> =  WHILEI_body (\<bind>) RETURN (\<lambda>x'. I' x' \<and> (b' x' \<longrightarrow> f x' = FAIL \<or> f x' \<le> SPEC I')) b' f ((flatf_gfp (WHILEI_body (\<bind>) RETURN I' b' f))) x'\<close>
+    also have \<open>\<dots> =  WHILEI_body (\<bind>)
+      RETURN (\<lambda>x'. I' x' \<and> (b' x' \<longrightarrow> f x' = FAIL \<or> f x' \<le> SPEC I')) b' f
+      ((flatf_gfp (WHILEI_body (\<bind>) RETURN I' b' f))) x'\<close>
       apply (subst (2) flatf_ord.fixp_unfold)
        apply (solves \<open>simp\<close>)
       ..
@@ -565,7 +569,7 @@ lemma fref_to_Down_curry6:
 lemma fref_to_Down_curry7:
   \<open>(uncurry7 f, uncurry7 g) \<in> [P]\<^sub>f A \<rightarrow> \<langle>B\<rangle>nres_rel \<Longrightarrow>
      (\<And>x x' y y' z z' a a' b b' c c' d d' e e'. P (((((((x', y'), z'), a'), b'), c'), d'), e') \<Longrightarrow>
-        ((((((((x, y), z), a), b), c), d), e), (((((((x', y'), z'), a'), b'), c'), d'), e')) \<in> A \<Longrightarrow>
+       ((((((((x, y), z), a), b), c), d), e), (((((((x', y'), z'), a'), b'), c'), d'), e')) \<in> A \<Longrightarrow>
          f x y z a b c d e \<le> \<Down> B (g x' y' z' a' b' c' d' e'))\<close>
   unfolding fref_def uncurry_def nres_rel_def by auto
 
@@ -818,7 +822,8 @@ definition virtual_copy_rel where
   \<open>virtual_copy_rel = {(c, b). c = ()}\<close>
 
 
-lemma bind_cong_nres: \<open>(\<And>x. g x = g' x) \<Longrightarrow> (do {a \<leftarrow> f :: 'a nres;  g a}) = (do {a \<leftarrow> f :: 'a nres;  g' a})\<close>
+lemma bind_cong_nres: \<open>(\<And>x. g x = g' x) \<Longrightarrow> (do {a \<leftarrow> f :: 'a nres;  g a}) =
+  (do {a \<leftarrow> f :: 'a nres;  g' a})\<close>
   by auto
 
 lemma case_prod_cong:
@@ -899,7 +904,8 @@ lemma RES_RES13_RETURN_RES: \<open>do {
 lemma RES_SPEC_conv: \<open>RES P = SPEC (\<lambda>v. v \<in> P)\<close>
   by auto
 
-lemma add_invar_refineI_P: \<open>A \<le> \<Down> {(x,y). R x y} B \<Longrightarrow> (nofail A \<Longrightarrow>A \<le> SPEC P) \<Longrightarrow> A \<le> \<Down> {(x,y). R x y \<and> P x} B\<close>
+lemma add_invar_refineI_P: \<open>A \<le> \<Down> {(x,y). R x y} B \<Longrightarrow> (nofail A \<Longrightarrow>A \<le> SPEC P) \<Longrightarrow>
+  A \<le> \<Down> {(x,y). R x y \<and> P x} B\<close>
   using add_invar_refineI[of \<open>\<lambda>_. A\<close> _  _ \<open>\<lambda>_. B\<close> P, where R=\<open>{(x,y). R x y}\<close> and I=P]
   by auto
 
@@ -987,7 +993,8 @@ lemma find_in_list_between_spec:
        (i \<noteq> None \<longrightarrow>  P (C ! the i) \<and> the i \<ge> a \<and> the i < b) \<and>
        (i = None \<longrightarrow> (\<forall>j. j \<ge> a \<longrightarrow> j < b \<longrightarrow> \<not>P (C!j))))\<close>
   unfolding find_in_list_between_def
-  apply (refine_vcg WHILEIT_rule[where R = \<open>measure (\<lambda>(f, i). Suc (length C) - (i + (if f = None then 0 else 1)))\<close>])
+  apply (refine_vcg WHILEIT_rule[where R = \<open>measure (\<lambda>(f, i). Suc (length C) -
+    (i + (if f = None then 0 else 1)))\<close>])
   subgoal by auto
   subgoal by auto
   subgoal using assms by auto
@@ -1111,7 +1118,8 @@ lemma list_rel_mset_rel_imp_same_length: \<open>(a, b) \<in> \<langle>R\<rangle>
 lemma while_upt_while_direct1:
   "b \<ge> a \<Longrightarrow>
   do {
-    (_,\<sigma>) \<leftarrow> WHILE\<^sub>T (FOREACH_cond c) (\<lambda>x. do {ASSERT (FOREACH_cond c x); FOREACH_body f x}) ([a..<b],\<sigma>);
+    (_,\<sigma>) \<leftarrow> WHILE\<^sub>T (FOREACH_cond c) (\<lambda>x. do {ASSERT (FOREACH_cond c x); FOREACH_body f x})
+      ([a..<b],\<sigma>);
     RETURN \<sigma>
   } \<le> do {
     (_,\<sigma>) \<leftarrow> WHILE\<^sub>T (\<lambda>(i, x). i < b \<and> c x) (\<lambda>(i, x). do {ASSERT (i < b);  \<sigma>'\<leftarrow>f i x; RETURN (i+1,\<sigma>')
@@ -1119,7 +1127,8 @@ lemma while_upt_while_direct1:
     RETURN \<sigma>
   }"
   apply (rewrite at \<open>_ \<le> \<hole>\<close> Down_id_eq[symmetric])
-  apply (refine_vcg WHILET_refine[where R = \<open>{((l, x'), (i::nat, x::'a)). x= x' \<and> i \<le> b \<and> i \<ge> a \<and> l = drop (i-a) [a..<b]}\<close>])
+  apply (refine_vcg WHILET_refine[where R = \<open>{((l, x'), (i::nat, x::'a)). x= x' \<and> i \<le> b \<and> i \<ge> a \<and>
+     l = drop (i-a) [a..<b]}\<close>])
   subgoal by auto
   subgoal by (auto simp: FOREACH_cond_def)
   subgoal by (auto simp: FOREACH_body_def intro!: bind_refine[OF Id_refine])
@@ -1129,7 +1138,8 @@ lemma while_upt_while_direct1:
 lemma while_upt_while_direct2:
   "b \<ge> a \<Longrightarrow>
   do {
-    (_,\<sigma>) \<leftarrow> WHILE\<^sub>T (FOREACH_cond c) (\<lambda>x. do {ASSERT (FOREACH_cond c x); FOREACH_body f x}) ([a..<b],\<sigma>);
+    (_,\<sigma>) \<leftarrow> WHILE\<^sub>T (FOREACH_cond c) (\<lambda>x. do {ASSERT (FOREACH_cond c x); FOREACH_body f x})
+      ([a..<b],\<sigma>);
     RETURN \<sigma>
   } \<ge> do {
     (_,\<sigma>) \<leftarrow> WHILE\<^sub>T (\<lambda>(i, x). i < b \<and> c x) (\<lambda>(i, x). do {ASSERT (i < b);  \<sigma>'\<leftarrow>f i x; RETURN (i+1,\<sigma>')
@@ -1137,7 +1147,8 @@ lemma while_upt_while_direct2:
     RETURN \<sigma>
   }"
   apply (rewrite at \<open>_ \<le> \<hole>\<close> Down_id_eq[symmetric])
-  apply (refine_vcg WHILET_refine[where R = \<open>{((i::nat, x::'a), (l, x')). x= x' \<and> i \<le> b \<and> i \<ge> a \<and> l = drop (i-a) [a..<b]}\<close>])
+  apply (refine_vcg WHILET_refine[where R = \<open>{((i::nat, x::'a), (l, x')). x= x' \<and> i \<le> b \<and> i \<ge> a \<and>
+    l = drop (i-a) [a..<b]}\<close>])
   subgoal by auto
   subgoal by (auto simp: FOREACH_cond_def)
   subgoal by (auto simp: FOREACH_body_def intro!: bind_refine[OF Id_refine])
@@ -1148,14 +1159,16 @@ lemma while_upt_while_direct2:
 lemma while_upt_while_direct:
   "b \<ge> a \<Longrightarrow>
   do {
-    (_,\<sigma>) \<leftarrow> WHILE\<^sub>T (FOREACH_cond c) (\<lambda>x. do {ASSERT (FOREACH_cond c x); FOREACH_body f x}) ([a..<b],\<sigma>);
+    (_,\<sigma>) \<leftarrow> WHILE\<^sub>T (FOREACH_cond c) (\<lambda>x. do {ASSERT (FOREACH_cond c x); FOREACH_body f x})
+      ([a..<b],\<sigma>);
     RETURN \<sigma>
   } = do {
     (_,\<sigma>) \<leftarrow> WHILE\<^sub>T (\<lambda>(i, x). i < b \<and> c x) (\<lambda>(i, x). do {ASSERT (i < b);  \<sigma>'\<leftarrow>f i x; RETURN (i+1,\<sigma>')
 }) (a,\<sigma>);
     RETURN \<sigma>
   }"
-  using while_upt_while_direct1[of a b] while_upt_while_direct2[of a b] unfolding order_class.eq_iff by fast
+  using while_upt_while_direct1[of a b] while_upt_while_direct2[of a b]
+  unfolding order_class.eq_iff by fast
 
 
 lemma while_nfoldli:
@@ -1242,7 +1255,26 @@ lemma RES_RETURN_RES7:
   by simp
 
 lemma RES_RES7_RETURN_RES:
-   \<open>RES A \<bind> (\<lambda>(a, b, c, d, e, g, h). RES (f a b c d e g h)) = RES (\<Union>((\<lambda>(a, b, c, d, e, g, h). f a b c d e g h) ` A))\<close>
-  by (auto simp:  pw_eq_iff refine_pw_simps uncurry_def Bex_def split: prod.splits)
+   \<open>RES A \<bind> (\<lambda>(a, b, c, d, e, g, h). RES (f a b c d e g h)) =
+   RES (\<Union>((\<lambda>(a, b, c, d, e, g, h). f a b c d e g h) ` A))\<close>
+  by (auto simp:  pw_eq_iff refine_pw_simps uncurry_def Bex_def
+    split: prod.splits)
+
+lemma refine_itself0:
+    \<open>(X, X) \<in> Id \<rightarrow>\<^sub>f \<langle>Id\<rangle>nres_rel\<close> and
+  refine_itself1:
+    \<open>(uncurry X1, uncurry X1) \<in> Id \<times>\<^sub>f Id \<rightarrow>\<^sub>f \<langle>Id\<rangle>nres_rel\<close> and
+  refine_itself2:
+    \<open>(uncurry2 X2, uncurry2 X2) \<in> Id \<times>\<^sub>f Id \<times>\<^sub>f Id \<rightarrow>\<^sub>f \<langle>Id\<rangle>nres_rel\<close> and
+  refine_itself3:
+    \<open>(uncurry3 X3, uncurry3 X3) \<in> Id \<times>\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f Id \<rightarrow>\<^sub>f \<langle>Id\<rangle>nres_rel\<close>and
+  refine_itself4:
+    \<open>(uncurry4 X4, uncurry4 X4) \<in> Id \<times>\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f Id \<rightarrow>\<^sub>f \<langle>Id\<rangle>nres_rel\<close>
+  by (intro frefI nres_relI; auto; fail)+
+
+lemma fold_eq_nfoldli:
+  "RETURN (fold f l s) = nfoldli l (\<lambda>_. True) (\<lambda>x s. RETURN (f x s)) s"
+  by (induction l arbitrary: s) auto
+
 
 end

@@ -6,26 +6,18 @@ theory IsaSAT_Setup
     IsaSAT_Clauses IsaSAT_Arena IsaSAT_Watch_List LBD
 begin
 
-
-text \<open>TODO Move and make sure to merge in the right order!\<close>
-
-
 subsection \<open>Code Generation\<close>
 
 text \<open>We here define the last step of our refinement: the step with all the heuristics and fully
   deterministic code.
 
-  After the result of benchmarking, we concluded that the us of \<^typ>\<open>nat\<close> leads to worse performance
+  After the result of benchmarking, we concluded that the use of \<^typ>\<open>nat\<close> leads to worse performance
   than using \<open>sint64\<close>. As, however, the later is not complete, we do so with a switch: as long
   as it fits, we use the faster (called 'bounded') version. After that we switch to the 'unbounded'
-  version (which is still bounded by memory anyhow).
+  version (which is still bounded by memory anyhow) if we generate Standard ML code.
 
-  We do keep some natural numbers:
-  \<^enum> to iterate over the watch list. Our invariant are currently not strong enough to prove that
-    we do not need that.
-  \<^enum> to keep the indices of all clauses. This mostly simplifies the code if we add inprocessing:
-    We can be sure to never have to switch mode in the middle of an operation (which would nearly
-    impossible to do).
+  We have successfully killed all natural numbers when generating LLVM. However, the LLVM binding
+  does not have a binding to GMP integers.
 \<close>
 
 subsubsection \<open>Types and Refinement Relations\<close>
@@ -320,7 +312,7 @@ lemma vdom_m_empty_watched[simp]:
   \<open>vdom_m \<A> (empty_watched \<A>') N = set_mset (dom_m N)\<close>
   by (auto simp: vdom_m_def empty_watched_def)
 
-text \<open>The following rule makes the previous not applicable. Therefore, we do not mark this lemma as
+text \<open>The following rule makes the previous one not applicable. Therefore, we do not mark this lemma as
 simp.\<close>
 lemma vdom_m_simps5:
   \<open>i \<notin># dom_m N \<Longrightarrow> vdom_m \<A> W (fmupd i C N) = insert i (vdom_m \<A> W N)\<close>
@@ -755,12 +747,16 @@ lemma access_lit_in_clauses_heur_fast_pre:
       dest!: arena_lifting(10)
       dest!: isasat_fast_length_leD)[]
 
+(*TODO Move*)
 lemma eq_insertD: \<open>A = insert a B \<Longrightarrow> a \<in> A \<and> B \<subseteq> A\<close>
   by auto
 
 lemma \<L>\<^sub>a\<^sub>l\<^sub>l_add_mset:
   \<open>set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l (add_mset L C)) = insert (Pos L) (insert (Neg L) (set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l C)))\<close>
   by (auto simp: \<L>\<^sub>a\<^sub>l\<^sub>l_def)
+
+(*END Move*)
+
 
 lemma correct_watching_dom_watched:
   assumes \<open>correct_watching S\<close> and \<open>\<And>C. C \<in># ran_mf (get_clauses_wl S) \<Longrightarrow> C \<noteq> []\<close>
@@ -801,12 +797,6 @@ subsection \<open>Rewatch\<close>
 
 subsection \<open>Rewatch\<close>
 
-definition mop_append_ll :: "'a list list \<Rightarrow> nat literal \<Rightarrow> 'a \<Rightarrow> 'a list list nres" where
-  \<open>mop_append_ll xs i x = do {
-     ASSERT(nat_of_lit i < length xs);
-     RETURN (append_ll xs (nat_of_lit i) x)
-  }\<close>
-
 definition rewatch_heur where
 \<open>rewatch_heur vdom arena W = do {
   let _ = vdom;
@@ -831,13 +821,6 @@ definition rewatch_heur where
     })
    W
   }\<close>
-
-lemma mop_append_ll:
-   \<open>(uncurry2 mop_append_ll, uncurry2 (RETURN ooo (\<lambda>W i x. W(i := W i @ [x])))) \<in>
-    [\<lambda>((W, i), x). i \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>]\<^sub>f \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 \<A>) \<times>\<^sub>f Id \<times>\<^sub>f Id \<rightarrow> \<langle>\<langle>Id\<rangle>map_fun_rel (D\<^sub>0 \<A>)\<rangle>nres_rel\<close>
-  unfolding uncurry_def mop_append_ll_def
-  by (intro frefI nres_relI) 
-    (auto intro!: ASSERT_leI simp: map_fun_rel_def append_ll_def)
 
 lemma rewatch_heur_rewatch:
   assumes
@@ -886,19 +869,26 @@ proof -
     subgoal by simp
     subgoal for xsa xi x si s
       using assms
-      unfolding arena_is_valid_clause_idx_and_access_def arena_is_valid_clause_idx_def
+      unfolding arena_is_valid_clause_idx_and_access_def
+        arena_is_valid_clause_idx_def
       by (auto simp: arena_is_valid_clause_idx_and_access_def
           intro!: exI[of _ N] exI[of _ vdom])
-    subgoal for xsa xi x si s using valid_arena_size_dom_m_le_arena[OF assms(1)]
-         literals_are_in_\<L>\<^sub>i\<^sub>n_mm_in_\<L>\<^sub>a\<^sub>l\<^sub>l[OF lall, of  \<open>xs ! xi\<close> 0] assms by (auto simp: map_fun_rel_def arena_lifting)
-    subgoal for xsa xi x si s using valid_arena_size_dom_m_le_arena[OF assms(1)]
-         literals_are_in_\<L>\<^sub>i\<^sub>n_mm_in_\<L>\<^sub>a\<^sub>l\<^sub>l[OF lall, of  \<open>xs ! xi\<close> 0] assms by (auto simp: map_fun_rel_def arena_lifting)
+    subgoal for xsa xi x si s
+      using valid_arena_size_dom_m_le_arena[OF assms(1)] assms
+         literals_are_in_\<L>\<^sub>i\<^sub>n_mm_in_\<L>\<^sub>a\<^sub>l\<^sub>l[OF lall, of  \<open>xs ! xi\<close> 0]
+      by (auto simp: map_fun_rel_def arena_lifting)
+    subgoal for xsa xi x si s
+      using valid_arena_size_dom_m_le_arena[OF assms(1)] assms
+         literals_are_in_\<L>\<^sub>i\<^sub>n_mm_in_\<L>\<^sub>a\<^sub>l\<^sub>l[OF lall, of  \<open>xs ! xi\<close> 0]
+      by (auto simp: map_fun_rel_def arena_lifting)
     subgoal using assms by (simp add: arena_lifting)
     subgoal for xsa xi x si s
-      using literals_are_in_\<L>\<^sub>i\<^sub>n_mm_in_\<L>\<^sub>a\<^sub>l\<^sub>l[OF lall, of  \<open>xs ! xi\<close> 1] assms valid_arena_size_dom_m_le_arena[OF assms(1)]
+      using literals_are_in_\<L>\<^sub>i\<^sub>n_mm_in_\<L>\<^sub>a\<^sub>l\<^sub>l[OF lall, of  \<open>xs ! xi\<close> 1]
+      assms valid_arena_size_dom_m_le_arena[OF assms(1)]
       by (auto simp: arena_lifting append_ll_def map_fun_rel_def)
     subgoal for xsa xi x si s
-      using literals_are_in_\<L>\<^sub>i\<^sub>n_mm_in_\<L>\<^sub>a\<^sub>l\<^sub>l[OF lall, of  \<open>xs ! xi\<close> 1] assms
+      using literals_are_in_\<L>\<^sub>i\<^sub>n_mm_in_\<L>\<^sub>a\<^sub>l\<^sub>l[OF lall, of  \<open>xs ! xi\<close> 1]
+        assms
       by (auto simp: arena_lifting append_ll_def map_fun_rel_def)
     subgoal for xsa xi x si s
       using assms
@@ -1130,24 +1120,23 @@ lemma mop_watched_by_app_heur_mop_watched_by_at'':
     (auto simp: \<L>\<^sub>a\<^sub>l\<^sub>l_all_atms_all_lits twl_st_heur'_def map_fun_rel_def)
 
 
-
-definition (in -) mop_polarity_pol :: \<open>trail_pol \<Rightarrow> nat literal \<Rightarrow> bool option nres\<close> where
+definition mop_polarity_pol :: \<open>trail_pol \<Rightarrow> nat literal \<Rightarrow> bool option nres\<close> where
   \<open>mop_polarity_pol = (\<lambda>M L. do {
     ASSERT(polarity_pol_pre M L);
     RETURN (polarity_pol M L)
   })\<close>
 
 definition polarity_st_pre :: \<open>nat twl_st_wl \<times> nat literal \<Rightarrow> bool\<close> where
-\<open>polarity_st_pre \<equiv> \<lambda>(S, L). L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st S)\<close>
+  \<open>polarity_st_pre \<equiv> \<lambda>(S, L). L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st S)\<close>
 
 definition mop_polarity_st_heur :: \<open>twl_st_wl_heur \<Rightarrow> nat literal \<Rightarrow> bool option nres\<close> where
 \<open>mop_polarity_st_heur S L = do {
-  mop_polarity_pol (get_trail_wl_heur S) L
-}\<close>
+    mop_polarity_pol (get_trail_wl_heur S) L
+  }\<close>
 
 lemma mop_polarity_st_heur_alt_def: \<open>mop_polarity_st_heur = (\<lambda>(M, _) L. do {
-  mop_polarity_pol M L
-})\<close>
+    mop_polarity_pol M L
+  })\<close>
   by (auto simp: mop_polarity_st_heur_def intro!: ext)
 
 lemma mop_polarity_st_heur_mop_polarity_wl:
@@ -1289,10 +1278,10 @@ definition mop_mark_unused_st_heur :: \<open>nat \<Rightarrow> twl_st_wl_heur \<
 lemma mop_mark_garbage_heur_alt_def:
   \<open>mop_mark_garbage_heur C i = (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, heur,
        vdom, avdom, lcount, opts, old_arena). do {
-    ASSERT(mark_garbage_pre (get_clauses_wl_heur (M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, heur,
-       vdom, avdom, lcount, opts, old_arena), C) \<and> lcount \<ge> 1 \<and> i < length avdom);
-    RETURN (M', extra_information_mark_to_delete N' C, D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats,
-      heur,
+    ASSERT(mark_garbage_pre (get_clauses_wl_heur (M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl,
+       stats, heur, vdom, avdom, lcount, opts, old_arena), C) \<and> lcount \<ge> 1 \<and> i < length avdom);
+    RETURN (M', extra_information_mark_to_delete N' C, D', j, W', vm, \<phi>, clvls, cach, lbd, outl,
+      stats, heur,
        vdom, delete_index_and_swap avdom i, lcount - 1, opts, old_arena)
    })\<close>
   unfolding mop_mark_garbage_heur_def mark_garbage_heur_def
@@ -1316,13 +1305,14 @@ lemma get_fast_ema_heur_alt_def:
   by auto
 
 
-fun (in -) get_conflict_count_since_last_restart_heur :: \<open>twl_st_wl_heur \<Rightarrow> 64 word\<close> where
-  \<open>get_conflict_count_since_last_restart_heur (_, _, _, _, _, _, _, _, _, _, _, _, (_, _, (ccount, _)), _)
+fun get_conflict_count_since_last_restart_heur :: \<open>twl_st_wl_heur \<Rightarrow> 64 word\<close> where
+  \<open>get_conflict_count_since_last_restart_heur (_, _, _, _, _, _, _, _, _, _, _, _,
+    (_, _, (ccount, _)), _)
       = ccount\<close>
 
 lemma (in -) get_counflict_count_heur_alt_def:
-   \<open>RETURN o get_conflict_count_since_last_restart_heur = (\<lambda>(M, N0, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl,
-       stats, (_, _, (ccount, _)), lcount). RETURN ccount)\<close>
+   \<open>RETURN o get_conflict_count_since_last_restart_heur = (\<lambda>(M, N0, D, Q, W, vm, \<phi>, clvls, cach, lbd,
+       outl, stats, (_, _, (ccount, _)), lcount). RETURN ccount)\<close>
   by auto
 
 lemma get_learned_count_alt_def:
@@ -1356,7 +1346,7 @@ definition opts_reduction_st :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close>
        stats, heur, vdom, avdom, lcount, opts, _). (opts_reduce opts))\<close>
 
 definition isasat_length_trail_st :: \<open>twl_st_wl_heur \<Rightarrow> nat\<close> where
-\<open>isasat_length_trail_st S = isa_length_trail (get_trail_wl_heur S)\<close>
+  \<open>isasat_length_trail_st S = isa_length_trail (get_trail_wl_heur S)\<close>
 
 lemma isasat_length_trail_st_alt_def:
   \<open>isasat_length_trail_st = (\<lambda>(M, _). isa_length_trail M)\<close>
@@ -1369,5 +1359,66 @@ definition get_pos_of_level_in_trail_imp_st :: \<open>twl_st_wl_heur \<Rightarro
 lemma get_pos_of_level_in_trail_imp_alt_def:
   \<open>get_pos_of_level_in_trail_imp_st = (\<lambda>(M, _) L.  do {k \<leftarrow> get_pos_of_level_in_trail_imp M L; RETURN k})\<close>
   by (auto simp: get_pos_of_level_in_trail_imp_st_def intro!: ext)
+
+
+definition mop_clause_not_marked_to_delete_heur :: \<open>_ \<Rightarrow> nat \<Rightarrow> bool nres\<close>
+where
+  \<open>mop_clause_not_marked_to_delete_heur S C = do {
+    ASSERT(clause_not_marked_to_delete_heur_pre (S, C));
+    RETURN (clause_not_marked_to_delete_heur S C)
+  }\<close>
+
+definition mop_arena_lbd_st where
+  \<open>mop_arena_lbd_st S =
+    mop_arena_lbd (get_clauses_wl_heur S)\<close>
+
+lemma mop_arena_lbd_st_alt_def:
+  \<open>mop_arena_lbd_st = (\<lambda>(M', arena, D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, heur,
+       vdom, avdom, lcount, opts, old_arena) C. do {
+       ASSERT(get_clause_LBD_pre arena C);
+      RETURN(arena_lbd arena C)
+   })\<close>
+  unfolding mop_arena_lbd_st_def mop_arena_lbd_def
+  by (auto intro!: ext)
+
+definition mop_arena_status_st where
+  \<open>mop_arena_status_st S =
+    mop_arena_status (get_clauses_wl_heur S)\<close>
+
+lemma mop_arena_status_st_alt_def:
+  \<open>mop_arena_status_st = (\<lambda>(M', arena, D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, heur,
+       vdom, avdom, lcount, opts, old_arena) C. do {
+       ASSERT(arena_is_valid_clause_vdom arena C);
+      RETURN(arena_status arena C)
+   })\<close>
+  unfolding mop_arena_status_st_def mop_arena_status_def
+  by (auto intro!: ext)
+
+
+definition mop_marked_as_used_st where
+  \<open>mop_marked_as_used_st S =
+    mop_marked_as_used (get_clauses_wl_heur S)\<close>
+
+lemma mop_marked_as_used_st_alt_def:
+  \<open>mop_marked_as_used_st = (\<lambda>(M', arena, D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, heur,
+       vdom, avdom, lcount, opts, old_arena) C. do {
+       ASSERT(marked_as_used_pre arena C);
+      RETURN(marked_as_used arena C)
+   })\<close>
+  unfolding mop_marked_as_used_st_def mop_marked_as_used_def
+  by (auto intro!: ext)
+
+definition mop_arena_length_st where
+  \<open>mop_arena_length_st S =
+    mop_arena_length (get_clauses_wl_heur S)\<close>
+
+lemma mop_arena_length_st_alt_def:
+  \<open>mop_arena_length_st = (\<lambda>(M', arena, D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, heur,
+       vdom, avdom, lcount, opts, old_arena) C. do {
+      ASSERT(arena_is_valid_clause_idx arena C);
+      RETURN (arena_length arena C)
+   })\<close>
+  unfolding mop_arena_length_st_def mop_arena_length_def
+  by (auto intro!: ext)
 
 end
