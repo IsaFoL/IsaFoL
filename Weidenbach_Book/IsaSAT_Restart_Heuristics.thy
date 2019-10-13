@@ -737,7 +737,34 @@ definition max_restart_decision_lvl :: nat where
 definition max_restart_decision_lvl_code :: \<open>32 word\<close> where
   \<open>max_restart_decision_lvl_code = 300\<close>
 
-definition restart_required_heur :: "twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> bool nres" where
+definition GC_EVERY :: \<open>64 word\<close> where
+  \<open>GC_EVERY = 15\<close> \<comment>\<open>hard-coded limit\<close>
+
+fun (in -) get_reductions_count :: \<open>twl_st_wl_heur \<Rightarrow> 64 word\<close> where
+  \<open>get_reductions_count (_, _, _, _, _, _, _,_,_,_,_,
+       (_, _, _, lres, _, _), _)
+      = lres\<close>
+
+definition GC_required_heur :: "twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> bool nres" where
+  \<open>GC_required_heur S n = do {
+    let lres = get_reductions_count S;
+    RETURN (lres AND GC_EVERY = GC_EVERY)} \<^cancel>\<open>Temporary measure\<close>
+  \<close>
+
+
+definition FLAG_no_restart :: \<open>8 word\<close> where
+  \<open>FLAG_no_restart = 0\<close>
+
+definition FLAG_restart :: \<open>8 word\<close> where
+  \<open>FLAG_restart = 1\<close>
+
+definition FLAG_GC_restart :: \<open>8 word\<close> where
+  \<open>FLAG_GC_restart = 2\<close>
+
+definition restart_flag_rel :: \<open>(8 word \<times> restart_type) set\<close> where
+  \<open>restart_flag_rel = {(FLAG_no_restart, NO_RESTART), (FLAG_restart, RESTART), (FLAG_GC_restart, GC)}\<close>
+
+definition restart_required_heur :: "twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> 8 word nres" where
   \<open>restart_required_heur S n = do {
     let opt_red = opts_reduction_st S;
     let opt_res = opts_restart_st S;
@@ -750,33 +777,26 @@ definition restart_required_heur :: "twl_st_wl_heur \<Rightarrow> nat \<Rightarr
     let min_reached = (ccount > minimum_number_between_restarts);
     let level = count_decided_st_heur S;
     let should_not_reduce = (\<not>opt_red \<or> upper_restart_bound_not_reached S);
-    RETURN ((opt_res \<or> opt_red) \<and>
+    let should_reduce = ((opt_res \<or> opt_red) \<and>
        (should_not_reduce \<longrightarrow> limit > fema) \<and> min_reached \<and> can_res \<and>
       level > 2 \<and> \<^cancel>\<open>This comment from Marijn Heule seems not to help:
          \<^term>\<open>level < max_restart_decision_lvl\<close>\<close>
-      of_nat level > (fema >> 32))}
+      of_nat level > (fema >> 32));
+    GC_required \<leftarrow> GC_required_heur S n;
+    if should_reduce
+    then if GC_required
+      then RETURN FLAG_GC_restart
+      else RETURN FLAG_restart
+    else RETURN FLAG_no_restart
+   }
   \<close>
 
-
-fun (in -) get_reductions_count :: \<open>twl_st_wl_heur \<Rightarrow> 64 word\<close> where
-  \<open>get_reductions_count (_, _, _, _, _, _, _,_,_,_,_,
-       (_, _, _, lres, _, _), _)
-      = lres\<close>
 
 lemma (in -) get_reduction_count_alt_def:
    \<open>RETURN o get_reductions_count = (\<lambda>(M, N0, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl,
        (_, _, _, lres, _, _), heur, lcount). RETURN lres)\<close>
   by auto
 
-
-definition GC_EVERY :: \<open>64 word\<close> where
-  \<open>GC_EVERY = 15\<close> \<comment>\<open>hard-coded limit\<close>
-
-definition GC_required_heur :: "twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> bool nres" where
-  \<open>GC_required_heur S n = do {
-    let lres = get_reductions_count S;
-    RETURN (lres AND GC_EVERY = GC_EVERY)} \<^cancel>\<open>Temporary measure\<close>
-  \<close>
 
 definition mark_to_delete_clauses_wl_D_heur_pre :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close> where
   \<open>mark_to_delete_clauses_wl_D_heur_pre S \<longleftrightarrow>
@@ -4656,13 +4676,12 @@ definition restart_prog_wl_D_heur
 where
   \<open>restart_prog_wl_D_heur S n brk = do {
     b \<leftarrow> restart_required_heur S n;
-    b2 \<leftarrow> GC_required_heur S n;
-    if \<not>brk \<and> b \<and> b2
+    if \<not>brk \<and> b = FLAG_GC_restart
     then do {
        T \<leftarrow> cdcl_twl_full_restart_wl_D_GC_heur_prog S;
        RETURN (T, n+1)
     }
-    else if \<not>brk \<and> b
+    else if \<not>brk \<and> b = FLAG_restart
     then do {
        T \<leftarrow> cdcl_twl_restart_wl_heur S;
        RETURN (T, n+1)
@@ -4672,17 +4691,21 @@ where
 
 lemma restart_required_heur_restart_required_wl:
   \<open>(uncurry restart_required_heur, uncurry restart_required_wl) \<in>
-    twl_st_heur \<times>\<^sub>f nat_rel \<rightarrow>\<^sub>f \<langle>bool_rel\<rangle>nres_rel\<close>
+    twl_st_heur \<times>\<^sub>f nat_rel \<rightarrow>\<^sub>f \<langle>restart_flag_rel\<rangle>nres_rel\<close>
     unfolding restart_required_heur_def restart_required_wl_def uncurry_def Let_def
+      restart_flag_rel_def FLAG_GC_restart_def FLAG_restart_def FLAG_no_restart_def
+      GC_required_heur_def
     by (intro frefI nres_relI)
-     (auto simp: twl_st_heur_def get_learned_clss_wl_def)
+      (auto simp: twl_st_heur_def get_learned_clss_wl_def RETURN_RES_refine_iff)
 
 lemma restart_required_heur_restart_required_wl0:
   \<open>(uncurry restart_required_heur, uncurry restart_required_wl) \<in>
-    twl_st_heur''' r \<times>\<^sub>f nat_rel \<rightarrow>\<^sub>f \<langle>bool_rel\<rangle>nres_rel\<close>
+    twl_st_heur''' r \<times>\<^sub>f nat_rel \<rightarrow>\<^sub>f \<langle>restart_flag_rel\<rangle>nres_rel\<close>
     unfolding restart_required_heur_def restart_required_wl_def uncurry_def Let_def
+      restart_flag_rel_def  FLAG_GC_restart_def FLAG_restart_def FLAG_no_restart_def
+      GC_required_heur_def
     by (intro frefI nres_relI)
-     (auto simp: twl_st_heur_def get_learned_clss_wl_def)
+     (auto simp: twl_st_heur_def get_learned_clss_wl_def RETURN_RES_refine_iff)
 
 lemma restart_prog_wl_D_heur_restart_prog_wl_D:
   \<open>(uncurry2 restart_prog_wl_D_heur, uncurry2 restart_prog_wl) \<in>
@@ -4698,10 +4721,12 @@ proof -
         cdcl_twl_restart_wl_heur_cdcl_twl_restart_wl_D_prog[where r=r, THEN fref_to_Down]
         cdcl_twl_full_restart_wl_D_GC_heur_prog[where r=r, THEN fref_to_Down])
     subgoal by auto
+    subgoal by (auto simp: restart_flag_rel_def FLAG_GC_restart_def FLAG_restart_def
+      FLAG_no_restart_def)
     subgoal by auto
     subgoal by auto
-    subgoal by auto
-    subgoal by auto
+    subgoal by (auto simp: restart_flag_rel_def FLAG_GC_restart_def FLAG_restart_def
+      FLAG_no_restart_def)
     subgoal by auto
     subgoal by auto
     subgoal by auto

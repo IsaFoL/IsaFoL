@@ -113,6 +113,13 @@ thm mop_list_list_push_back_def
 
 thm isasat_fast_length_leD
 
+sepref_register update_heuristics
+sepref_def update_heuristics_impl
+  is [llvm_inline,sepref_fr_rules] \<open>uncurry (RETURN oo update_heuristics)\<close>
+  :: \<open>uint32_nat_assn\<^sup>k *\<^sub>a heuristic_assn\<^sup>d \<rightarrow>\<^sub>a heuristic_assn\<close>
+  unfolding update_heuristics_def heuristic_assn_def
+  by sepref
+
 
 definition "rescore' \<equiv> \<lambda>C (M, N, D, Q, W, vm, \<phi>, rest). doN {
     (vm, \<phi>) \<leftarrow> isa_vmtf_rescore C M vm \<phi>;
@@ -180,17 +187,9 @@ definition "upd_stats' \<equiv> \<lambda>glue (M, N, D, Q, W, vm, \<phi>, y, cac
   RETURN (M, N, D, Q, W, vm, \<phi>, y, cach, lbd, outl, stats, rest)
 }"
 
-definition "upd_ema' \<equiv> \<lambda>glue (M, N, D, Q, W, vm, \<phi>, y, cach, lbd, outl, stats, (fema, sema, ccount), rest). doN {
-  let fema = ema_update glue fema;
-  let sema = ema_update glue sema;
-  RETURN (M, N, D, Q, W, vm, \<phi>, y, cach, lbd, outl, stats, (fema, sema, ccount), rest)
-}"
-
-definition "upd_res_info' \<equiv> \<lambda>(M, N, D, Q, W, vm, \<phi>, y, cach, lbd, outl, stats, (fema, sema,
-      res_info),rest). doN {
-        let res_info = incr_conflict_count_since_last_restart res_info;
-        RETURN (M, N, D, Q, W, vm, \<phi>, y, cach, lbd, outl, stats, (fema, sema,
-      res_info),rest)
+definition "upd_res_info' \<equiv> \<lambda>glue (M, N, D, Q, W, vm, \<phi>, y, cach, lbd, outl, stats, heur,rest). doN {
+        let heur = update_heuristics glue heur;
+        RETURN (M, N, D, Q, W, vm, \<phi>, y, cach, lbd, outl, stats, heur,rest)
       }"
 
 definition "upd_dom' \<equiv> \<lambda>i (M, N, D, Q, W, vm, \<phi>, y, cach, lbd, outl, stats, heur, vdom, avdom, rest). doN {
@@ -199,20 +198,18 @@ definition "upd_dom' \<equiv> \<lambda>i (M, N, D, Q, W, vm, \<phi>, y, cach, lb
         ASSERT (length avdom + 1 < max_snat 64);
         avdom \<leftarrow> mop_list_append avdom i;
         RETURN (M, N, D, Q, W, vm, \<phi>, y, cach, lbd, outl, stats, heur, vdom, avdom, rest)
-      }"      
+      }"
 
 definition "incr_lcount' \<equiv> \<lambda>(M, N, D, Q, W, vm, \<phi>, y, cach, lbd, outl, stats, heur, vdom, avdom, lcount, opts). doN {
     ASSERT (lcount + 1 < max_snat 64);
     let lcount = lcount + 1;
     RETURN (M, N, D, Q, W, vm, \<phi>, 0, cach, lbd, outl, stats,heur, vdom, avdom, lcount, opts)
-  }"      
-            
-definition "upd_etc' \<equiv> \<lambda>i glue (M, N, D, Q, W, vm, \<phi>, y, cach, lbd, outl, stats, (fema, sema,
-         res_info), vdom, avdom, lcount, opts). doN {
+  }"
+
+definition "upd_etc' \<equiv> \<lambda>i glue (M, N, D, Q, W, vm, \<phi>, y, cach, lbd, outl, stats, heur,
+         vdom, avdom, lcount, opts). doN {
       let stats = add_lbd (of_nat glue) stats;
-      let fema = ema_update glue fema;
-      let sema = ema_update glue sema;
-      let res_info = incr_conflict_count_since_last_restart res_info;
+      let heur = update_heuristics glue heur;
       ASSERT (length vdom + 1 < max_snat 64);
       ASSERT (length avdom + 1 < max_snat 64);
       vdom \<leftarrow> mop_list_append vdom i;
@@ -220,8 +217,7 @@ definition "upd_etc' \<equiv> \<lambda>i glue (M, N, D, Q, W, vm, \<phi>, y, cac
       ASSERT (lcount + 1 < max_snat 64);
       let lcount = lcount + 1;
       RETURN (M, N, D, Q, W, vm, \<phi>, 0,
-         cach, lbd, outl, stats, (fema, sema,
-          res_info), vdom,
+         cach, lbd, outl, stats, heur, vdom,
           avdom,
           lcount, opts)
     }
@@ -229,14 +225,13 @@ definition "upd_etc' \<equiv> \<lambda>i glue (M, N, D, Q, W, vm, \<phi>, y, cac
 
 lemma upd_etc'_alt: "upd_etc' = (\<lambda>i glue S. doN {
       S \<leftarrow> upd_stats' glue S;
-      S \<leftarrow> upd_ema' glue S;
-      S \<leftarrow> upd_res_info' S;
+      S \<leftarrow> upd_res_info' glue S;
       S \<leftarrow> upd_dom' i S;
       S \<leftarrow> incr_lcount' S;
       RETURN S
     })"
   unfolding upd_etc'_def
-  unfolding upd_stats'_def upd_ema'_def upd_res_info'_def upd_dom'_def incr_lcount'_def
+  unfolding upd_stats'_def upd_res_info'_def upd_dom'_def incr_lcount'_def
   apply (auto split!: prod.split simp: fun_eq_iff)
   done
   
@@ -273,9 +268,9 @@ lemma propagate_bt_wl_D_heur_alt_def':
   proof -
     obtain l c s where LCS: "lcs=((l,c),s)" by (cases lcs) fast
     obtain
-      M N0 D Q W0 vm0 \<phi>0 y cach lbd outl stats fema sema res_info vdom avdom
+      M N0 D Q W0 vm0 \<phi>0 y cach lbd outl stats heur vdom avdom
       lcount opts
-      where S: "s=(M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, (fema, sema, res_info), vdom, avdom,
+      where S: "s=(M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, heur, vdom, avdom,
       lcount, opts)"
     by (cases s)  auto
     
@@ -371,61 +366,25 @@ sepref_def save_phase'_def is "uncurry save_phase'" :: "unat_lit_assn\<^sup>k *\
 
   
 
-sepref_register upd_stats' upd_ema' upd_res_info' upd_dom' incr_lcount'
+sepref_register upd_stats' upd_res_info' upd_dom' incr_lcount'
     
 sepref_def upd_stats'_impl is "uncurry upd_stats'" :: "uint32_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn"
   unfolding upd_stats'_def 
   unfolding isasat_bounded_assn_def fold_tuple_optimizations
   apply (rewrite in \<open>add_lbd (of_nat \<hole>) _\<close> annot_unat_unat_upcast[where 'l=64])
   by sepref
-(*
 
-sepref_def upd_ema'_impl is "uncurry upd_ema'" :: "uint32_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn"
-  unfolding upd_ema'_def 
-  unfolding isasat_bounded_assn_def fold_tuple_optimizations
-apply sepref_dbg_keep
-apply sepref_dbg_trans_keep
-apply sepref_dbg_trans_step_keep
-apply sepref_dbg_side_unfold
-oops
-
-  
-sepref_def upd_res_info'_impl is "upd_res_info'" :: "isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn"
-  unfolding upd_res_info'_def 
-  unfolding isasat_bounded_assn_def fold_tuple_optimizations
+sepref_def propagate_unit_bt_wl_D_fast_code
+  is \<open>uncurry propagate_unit_bt_wl_D_int\<close>
+  :: \<open>unat_lit_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
+  supply [[goals_limit = 1]] vmtf_flush_def[simp] image_image[simp] uminus_\<A>\<^sub>i\<^sub>n_iff[simp]
+  unfolding propagate_unit_bt_wl_D_int_def isasat_bounded_assn_def
+    PR_CONST_def
+  unfolding fold_tuple_optimizations
+  apply (annot_snat_const "TYPE(64)")
   by sepref
 
-sepref_def upd_dom'_impl is "uncurry upd_dom'" :: "sint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn"
-  unfolding upd_dom'_def 
-  unfolding isasat_bounded_assn_def fold_tuple_optimizations
-  by sepref
 
-sepref_def incr_lcount'_impl is "incr_lcount'" :: "isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn"
-  unfolding incr_lcount'_def 
-  unfolding isasat_bounded_assn_def fold_tuple_optimizations
-  supply [[goals_limit = 1]]
-  apply (rewrite at "0" fold_unat[where 'a=32])
-  apply (annot_unat_const "TYPE(64)")
-  by sepref  
-      
-    
-sepref_register upd_etc'    
-sepref_def upd_etc'_impl is "uncurry2 upd_etc'" 
-  :: "sint64_nat_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn"  
-  unfolding upd_etc'_alt
-  by sepref
-  
-        
-sepref_def propagate_bt_wl_D_fast_code
-  is \<open>uncurry2 propagate_bt_wl_D_heur\<close>
-  :: \<open>[\<lambda>((L, C), S). isasat_fast S]\<^sub>a
-      unat_lit_assn\<^sup>k *\<^sub>a clause_ll_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
-  apply (rule hfref_refine_with_pre[OF propagate_bt_wl_D_heur_alt_def'])
-  subgoal by auto    
-  supply [[goals_limit = 1]]
-  by sepref  
-  *)
-term heuristic_assn
 sepref_def propagate_bt_wl_D_fast_codeXX
   is \<open>uncurry2 propagate_bt_wl_D_heur\<close>
   :: \<open>[\<lambda>((L, C), S). isasat_fast S]\<^sub>a
@@ -435,7 +394,7 @@ sepref_def propagate_bt_wl_D_fast_codeXX
     propagate_bt_wl_D_fast_code_isasat_fastI2[intro] length_ll_def[simp]
     propagate_bt_wl_D_fast_code_isasat_fastI3[intro]
   unfolding propagate_bt_wl_D_heur_alt_def
-    isasat_bounded_assn_def heuristic_assn_def
+    isasat_bounded_assn_def
   unfolding delete_index_and_swap_update_def[symmetric] append_update_def[symmetric]
     append_ll_def[symmetric] append_ll_def[symmetric]
     PR_CONST_def save_phase_def
@@ -445,19 +404,7 @@ sepref_def propagate_bt_wl_D_fast_codeXX
   apply (annot_snat_const "TYPE(64)")
   unfolding fold_tuple_optimizations
   apply (rewrite in \<open>isasat_fast \<hole>\<close> fold_tuple_optimizations[symmetric])+
-  apply sepref
-  done
-  
-sepref_def propagate_unit_bt_wl_D_fast_code
-  is \<open>uncurry propagate_unit_bt_wl_D_int\<close>
-  :: \<open>unat_lit_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
-  supply [[goals_limit = 1]] vmtf_flush_def[simp] image_image[simp] uminus_\<A>\<^sub>i\<^sub>n_iff[simp]
-  unfolding propagate_unit_bt_wl_D_int_def isasat_bounded_assn_def
-    PR_CONST_def heuristic_assn_def
-  unfolding fold_tuple_optimizations
-  apply (annot_snat_const "TYPE(64)")
   by sepref
-
 
 lemma extract_shorter_conflict_list_heur_st_alt_def:
     \<open>extract_shorter_conflict_list_heur_st = (\<lambda>(M, N, (bD), Q', W', vm, \<phi>, clvls, cach, lbd, outl,
@@ -533,9 +480,8 @@ begin
     extract_shorter_conflict_list_heur_st_fast
     lit_of_hd_trail_st_heur_fast_code
     backtrack_wl_D_fast_code
-  
 
-end  
-  
-  
+end
+
+
 end

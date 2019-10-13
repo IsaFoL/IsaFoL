@@ -76,10 +76,10 @@ lemmas [llvm_inline] =
   incr_GC_def
 
 
-abbreviation (input) "restart_info_rel \<equiv> word64_rel \<times>\<^sub>r word64_rel"
+abbreviation (input) "restart_info_rel \<equiv> word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel"
 
 abbreviation (input) restart_info_assn where
-  \<open>restart_info_assn \<equiv> word64_assn *a word64_assn\<close>
+  \<open>restart_info_assn \<equiv> word64_assn *a word64_assn *a word64_assn *a word64_assn\<close>
 
 lemma restart_info_params[sepref_import_param]:
   "(incr_conflict_count_since_last_restart,incr_conflict_count_since_last_restart) \<in>
@@ -651,6 +651,19 @@ sepref_def mop_arena_length_st_impl
   :: \<open>isasat_bounded_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a sint64_nat_assn\<close>
   supply [[goals_limit=1]]
   unfolding mop_arena_length_st_alt_def isasat_bounded_assn_def
+  by sepref
+
+
+sepref_def NORMAL_PHASE_impl
+  is \<open>uncurry0 (RETURN NORMAL_PHASE)\<close>
+  :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
+  unfolding NORMAL_PHASE_def
+  by sepref
+
+sepref_def QUIET_PHASE_impl
+  is \<open>uncurry0 (RETURN QUIET_PHASE)\<close>
+  :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
+  unfolding QUIET_PHASE_def
   by sepref
 
 

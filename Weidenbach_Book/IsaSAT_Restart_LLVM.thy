@@ -112,11 +112,11 @@ begin
     count_decided_st_heur_pol_fast
     upper_restart_bound_not_reached_fast_impl
     minimum_number_between_restarts_impl
-  export_llvm restart_required_heur_fast_code
-  export_llvm cdcl_twl_full_restart_wl_D_GC_heur_prog_fast_code
-  export_llvm cdcl_twl_restart_wl_heur_fast_code
-  export_llvm cdcl_twl_full_restart_wl_prog_heur_fast_code
-  export_llvm cdcl_twl_local_restart_wl_D_heur_fast_code
+    restart_required_heur_fast_code
+    cdcl_twl_full_restart_wl_D_GC_heur_prog_fast_code
+    cdcl_twl_restart_wl_heur_fast_code
+    cdcl_twl_full_restart_wl_prog_heur_fast_code
+    cdcl_twl_local_restart_wl_D_heur_fast_code
 
 
 end

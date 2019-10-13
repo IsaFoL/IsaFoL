@@ -1237,11 +1237,16 @@ lemma cdcl_twl_restart_wl_prog_cdcl_twl_restart_l_prog:
   done
 
 
+datatype restart_type =
+  NO_RESTART |
+  GC |
+  RESTART
+
 context twl_restart_ops
 begin
 
-definition (in twl_restart_ops) restart_required_wl  :: \<open>'v twl_st_wl \<Rightarrow> nat \<Rightarrow> bool nres\<close> where
-\<open>restart_required_wl S n = SPEC (\<lambda>b. b \<longrightarrow> f n < size (get_learned_clss_wl S))\<close>
+definition (in twl_restart_ops) restart_required_wl  :: \<open>'v twl_st_wl \<Rightarrow> nat \<Rightarrow> restart_type nres\<close> where
+\<open>restart_required_wl S n = SPEC (\<lambda>b. b \<noteq> NO_RESTART \<longrightarrow> f n < size (get_learned_clss_wl S))\<close>
 
 definition (in twl_restart_ops) cdcl_twl_stgy_restart_abs_wl_inv
    :: \<open>'v twl_st_wl \<Rightarrow> bool \<Rightarrow> 'v twl_st_wl \<Rightarrow> nat \<Rightarrow> bool\<close> where
@@ -1526,18 +1531,36 @@ where
   \<open>restart_prog_wl S n brk = do {
      ASSERT(restart_abs_wl_pre S brk);
      b \<leftarrow> restart_required_wl S n;
-     b2 \<leftarrow> SPEC(\<lambda>_. True);
-     if b2 \<and> b \<and> \<not>brk then do {
+     if b = GC \<and> \<not>brk then do {
        T \<leftarrow> cdcl_twl_full_restart_wl_GC_prog S;
        RETURN (T, n + 1)
      }
-     else if b \<and> \<not>brk then do {
+     else if b = RESTART \<and> \<not>brk then do {
        T \<leftarrow> cdcl_twl_restart_wl_prog S;
        RETURN (T, n + 1)
      }
      else
        RETURN (S, n)
    }\<close>
+
+lemma restart_prog_wl_alt_def:
+ \<open>restart_prog_wl S n brk = do {
+     ASSERT(restart_abs_wl_pre S brk);
+     b \<leftarrow> restart_required_wl S n;
+     let _ = (b = GC);
+     if b = GC \<and> \<not>brk then do {
+       T \<leftarrow> cdcl_twl_full_restart_wl_GC_prog S;
+       RETURN (T, n + 1)
+     }
+     else if b = RESTART \<and> \<not>brk then do {
+       T \<leftarrow> cdcl_twl_restart_wl_prog S;
+       RETURN (T, n + 1)
+     }
+     else
+       RETURN (S, n)
+   }\<close>
+  unfolding restart_prog_wl_def
+  by auto
 
 lemma restart_abs_wl_pre_blits_in_\<L>\<^sub>i\<^sub>n:
   assumes pre: \<open>restart_abs_wl_pre x1c b\<close> and
@@ -1587,12 +1610,13 @@ lemma cdcl_twl_full_restart_wl_prog_cdcl_twl_restart_l_prog:
       \<langle>{(S, T).  (S, T) \<in> state_wl_l None \<and> correct_watching S \<and> blits_in_\<L>\<^sub>i\<^sub>n S} \<times>\<^sub>f nat_rel\<rangle>nres_rel\<close>
     (is \<open>_ \<in> ?R \<times>\<^sub>f _ \<times>\<^sub>f _ \<rightarrow>\<^sub>f \<langle>?R'\<rangle>nres_rel\<close>)
 proof -
-  have [refine0]: \<open>restart_required_wl a b \<le> \<Down> Id (restart_required_l a' b')\<close>
+  have [refine0]: \<open>restart_required_wl a b \<le> \<Down> {(b, b'). b' \<longleftrightarrow> (b \<noteq> NO_RESTART)} (restart_required_l a' b')\<close>
     if \<open>(a, a') \<in> ?R\<close> and \<open>(b, b') \<in> nat_rel\<close> for a a' b b'
-    using that unfolding restart_required_wl_def restart_required_l_def
-    by (auto simp: twl_st_l)
+    using that unfolding restart_required_wl_def restart_required_l_def apply -
+    by (rule RES_refine, rule_tac x= \<open>s \<noteq> NO_RESTART\<close> in bexI)
+      (auto simp: twl_st_l)
   show ?thesis
-    unfolding uncurry_def restart_prog_wl_def restart_prog_l_def rewatch_clauses_def
+    unfolding uncurry_def restart_prog_wl_alt_def restart_prog_l_def rewatch_clauses_def
     apply (intro frefI nres_relI)
     apply (refine_rcg
       cdcl_twl_restart_wl_prog_cdcl_twl_restart_l_prog[THEN fref_to_Down]
@@ -1602,9 +1626,10 @@ proof -
     subgoal by auto
     subgoal by auto
     subgoal by auto
+    subgoal by auto
     subgoal by (auto simp: correct_watching_correct_watching restart_abs_wl_pre_blits_in_\<L>\<^sub>i\<^sub>n)
     subgoal by auto
-    subgoal by auto
+    subgoal for x y x1 x1a x2 x2a x1b x1c x2b x2c b ba b2 by (cases b; auto)
     subgoal
       by auto
     subgoal by auto

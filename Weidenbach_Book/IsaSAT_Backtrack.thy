@@ -670,10 +670,14 @@ lemma the_option_lookup_clause_assn:
   by (intro frefI nres_relI)
     (auto simp: option_lookup_clause_rel_def)
 
+definition update_heuristics where
+  \<open>update_heuristics = (\<lambda>glue (fema, sema, res_info).
+     (ema_update glue fema, ema_update glue sema,
+          incr_conflict_count_since_last_restart res_info))\<close>
+
 definition propagate_bt_wl_D_heur
   :: \<open>nat literal \<Rightarrow> nat clause_l \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
-  \<open>propagate_bt_wl_D_heur = (\<lambda>L C (M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, (fema, sema,
-         res_info), vdom, avdom, lcount, opts). do {
+  \<open>propagate_bt_wl_D_heur = (\<lambda>L C (M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, heur, vdom, avdom, lcount, opts). do {
       ASSERT(length vdom \<le> length N0);
       ASSERT(length avdom \<le> length N0);
       ASSERT(nat_of_lit (C!1) < length W0 \<and> nat_of_lit (-L) < length W0);
@@ -684,18 +688,18 @@ definition propagate_bt_wl_D_heur
       glue \<leftarrow> get_LBD lbd;
       let b = False;
       let b' = (length C = 2);
-      ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, (fema, sema,
-         res_info), vdom, avdom, lcount, opts) \<longrightarrow> append_and_length_fast_code_pre ((b, C), N0));
-      ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, (fema, sema,
-         res_info), vdom, avdom, lcount, opts) \<longrightarrow> lcount < sint64_max);
+      ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, heur,
+        vdom, avdom, lcount, opts) \<longrightarrow> append_and_length_fast_code_pre ((b, C), N0));
+      ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, heur,
+        vdom, avdom, lcount, opts) \<longrightarrow> lcount < sint64_max);
       (N, i) \<leftarrow> fm_add_new b C N0;
       ASSERT(update_lbd_pre ((i, glue), N));
       let N = update_lbd i glue N;
-      ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, (fema, sema,
-         res_info), vdom, avdom, lcount, opts) \<longrightarrow> length_ll W0 (nat_of_lit (-L)) < sint64_max);
+      ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, heur,
+         vdom, avdom, lcount, opts) \<longrightarrow> length_ll W0 (nat_of_lit (-L)) < sint64_max);
       let W = W0[nat_of_lit (- L) := W0 ! nat_of_lit (- L) @ [(i, L', b')]];
-      ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, (fema, sema,
-         res_info), vdom, avdom, lcount, opts) \<longrightarrow> length_ll W (nat_of_lit L') < sint64_max);
+      ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, heur,
+         vdom, avdom, lcount, opts) \<longrightarrow> length_ll W (nat_of_lit L') < sint64_max);
       let W = W[nat_of_lit L' := W!nat_of_lit L' @ [(i, -L, b')]];
       lbd \<leftarrow> lbd_empty lbd;
       ASSERT(isa_length_trail_pre M);
@@ -706,8 +710,7 @@ definition propagate_bt_wl_D_heur
       vm \<leftarrow> isa_vmtf_flush_int M vm;
       ASSERT(atm_of L < length \<phi>);
       RETURN (M, N, D, j, W, vm, save_phase (-L) \<phi>, 0,
-         cach, lbd, outl, add_lbd (of_nat glue) stats, (ema_update glue fema, ema_update glue sema,
-          incr_conflict_count_since_last_restart res_info), vdom @ [ i],
+         cach, lbd, outl, add_lbd (of_nat glue) stats, update_heuristics glue heur, vdom @ [ i],
           avdom @ [ i],
           lcount + 1, opts)
     })\<close>
@@ -724,7 +727,7 @@ definition propagate_unit_bt_wl_D_int
   :: \<open>nat literal \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close>
   where
     \<open>propagate_unit_bt_wl_D_int = (\<lambda>L (M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, stats,
-      (fema, sema, res_info), vdom). do {
+        heur, vdom). do {
       vm \<leftarrow> isa_vmtf_flush_int M vm;
       glue \<leftarrow> get_LBD lbd;
       lbd \<leftarrow> lbd_empty lbd;
@@ -735,8 +738,7 @@ definition propagate_unit_bt_wl_D_int
       M \<leftarrow> cons_trail_Propagated_tr (- L) 0 M;
       let stats = incr_uset stats;
       RETURN (M, N, D, j, W, vm, \<phi>, clvls, cach, lbd, outl, stats,
-        (ema_update glue fema, ema_update glue sema,
-        incr_conflict_count_since_last_restart res_info), vdom)})\<close>
+        (update_heuristics glue heur), vdom)})\<close>
 
 
 paragraph \<open>Full function\<close>
@@ -1734,8 +1736,8 @@ proof -
     qed
 
     have propagate_bt_wl_D_heur_alt_def:
-      \<open>propagate_bt_wl_D_heur = (\<lambda>L C (M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, (fema, sema,
-          res_info), vdom, avdom, lcount, opts). do {
+      \<open>propagate_bt_wl_D_heur = (\<lambda>L C (M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, heur,
+           vdom, avdom, lcount, opts). do {
           ASSERT(length vdom \<le> length N0);
           ASSERT(length avdom \<le> length N0);
           ASSERT(nat_of_lit (C!1) < length W0 \<and> nat_of_lit (-L) < length W0);
@@ -1746,18 +1748,18 @@ proof -
           glue \<leftarrow> get_LBD lbd;
           let _ = C;
           let b = False;
-          ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, (fema, sema,
-         res_info), vdom, avdom, lcount, opts) \<longrightarrow> append_and_length_fast_code_pre ((b, C), N0));
-          ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, (fema, sema,
-             res_info), vdom, avdom, lcount, opts) \<longrightarrow> lcount < sint64_max);
+          ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, heur,
+            vdom, avdom, lcount, opts) \<longrightarrow> append_and_length_fast_code_pre ((b, C), N0));
+          ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, heur,
+             vdom, avdom, lcount, opts) \<longrightarrow> lcount < sint64_max);
           (N, i) \<leftarrow> fm_add_new b C N0;
           ASSERT(update_lbd_pre ((i, glue), N));
           let N = update_lbd i glue N;
-          ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, (fema, sema,
-            res_info), vdom, avdom, lcount, opts) \<longrightarrow> length_ll W0 (nat_of_lit (-L)) < sint64_max);
+          ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, heur,
+            vdom, avdom, lcount, opts) \<longrightarrow> length_ll W0 (nat_of_lit (-L)) < sint64_max);
           let W = W0[nat_of_lit (- L) := W0 ! nat_of_lit (- L) @ [(i, L', length C = 2)]];
-          ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, (fema, sema,
-           res_info), vdom, avdom, lcount, opts) \<longrightarrow> length_ll W (nat_of_lit L') < sint64_max);
+          ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, heur,
+            vdom, avdom, lcount, opts) \<longrightarrow> length_ll W (nat_of_lit L') < sint64_max);
           let W = W[nat_of_lit L' := W!nat_of_lit L' @ [(i, -L, length C = 2)]];
           lbd \<leftarrow> lbd_empty lbd;
 	         ASSERT(isa_length_trail_pre M);
@@ -1768,8 +1770,7 @@ proof -
           vm \<leftarrow> isa_vmtf_flush_int M vm;
           ASSERT(atm_of L < length \<phi>);
           RETURN (M, N, D, j, W, vm, save_phase (-L) \<phi>, 0,
-            cach, lbd, outl, add_lbd (of_nat glue) stats, (ema_update glue fema, ema_update glue sema,
-              incr_conflict_count_since_last_restart res_info), vdom @ [ i],
+            cach, lbd, outl, add_lbd (of_nat glue) stats, update_heuristics glue heur, vdom @ [ i],
               avdom @ [i], Suc lcount, opts)
       })\<close>
       unfolding propagate_bt_wl_D_heur_def Let_def
@@ -2419,8 +2420,8 @@ lemma le_uint32_max_div_2_le_uint32_max: \<open>a \<le> uint32_max div 2 + 1 \<L
 
 
 lemma propagate_bt_wl_D_heur_alt_def:
-  \<open>propagate_bt_wl_D_heur = (\<lambda>L C (M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, (fema, sema,
-         res_info), vdom, avdom, lcount, opts). do {
+  \<open>propagate_bt_wl_D_heur = (\<lambda>L C (M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, heur,
+         vdom, avdom, lcount, opts). do {
       ASSERT(length vdom \<le> length N0);
       ASSERT(length avdom \<le> length N0);
       ASSERT(nat_of_lit (C!1) < length W0 \<and> nat_of_lit (-L) < length W0);
@@ -2431,18 +2432,18 @@ lemma propagate_bt_wl_D_heur_alt_def:
       glue \<leftarrow> get_LBD lbd;
       let b = False;
       let b' = (length C = 2);
-      ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, (fema, sema,
-         res_info), vdom, avdom, lcount, opts) \<longrightarrow> append_and_length_fast_code_pre ((b, C), N0));
-      ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, (fema, sema,
-         res_info), vdom, avdom, lcount, opts) \<longrightarrow> lcount < sint64_max);
+      ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, heur,
+         vdom, avdom, lcount, opts) \<longrightarrow> append_and_length_fast_code_pre ((b, C), N0));
+      ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, heur,
+         vdom, avdom, lcount, opts) \<longrightarrow> lcount < sint64_max);
       (N, i) \<leftarrow> fm_add_new_fast b C N0;
       ASSERT(update_lbd_pre ((i, glue), N));
       let N = update_lbd i glue N;
-      ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, (fema, sema,
-         res_info), vdom, avdom, lcount, opts) \<longrightarrow> length_ll W0 (nat_of_lit (-L)) < sint64_max);
+      ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, heur,
+         vdom, avdom, lcount, opts) \<longrightarrow> length_ll W0 (nat_of_lit (-L)) < sint64_max);
       let W = W0[nat_of_lit (- L) := W0 ! nat_of_lit (- L) @ [(i, L', b')]];
-      ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, (fema, sema,
-         res_info), vdom, avdom, lcount, opts) \<longrightarrow> length_ll W (nat_of_lit L') < sint64_max);
+      ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, heur,
+         vdom, avdom, lcount, opts) \<longrightarrow> length_ll W (nat_of_lit L') < sint64_max);
       let W = W[nat_of_lit L' := W!nat_of_lit L' @ [(i, -L, b')]];
       lbd \<leftarrow> lbd_empty lbd;
       ASSERT(isa_length_trail_pre M);
@@ -2453,8 +2454,7 @@ lemma propagate_bt_wl_D_heur_alt_def:
       vm \<leftarrow> isa_vmtf_flush_int M vm;
       ASSERT(atm_of L < length \<phi>);
       RETURN (M, N, D, j, W, vm, save_phase (-L) \<phi>, 0,
-         cach, lbd, outl, add_lbd (of_nat glue) stats, (ema_update glue fema, ema_update glue sema,
-          incr_conflict_count_since_last_restart res_info), vdom @ [i],
+         cach, lbd, outl, add_lbd (of_nat glue) stats, update_heuristics glue heur, vdom @ [i],
           avdom @ [i],
           lcount + 1, opts)
     })\<close>

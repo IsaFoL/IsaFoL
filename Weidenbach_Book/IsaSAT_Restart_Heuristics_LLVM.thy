@@ -3,6 +3,23 @@ theory IsaSAT_Restart_Heuristics_LLVM
      IsaSAT_VMTF_LLVM
 begin
 
+sepref_def FLAG_restart_impl
+  is \<open>uncurry0 (RETURN FLAG_restart)\<close>
+  :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
+  unfolding FLAG_restart_def
+  by sepref
+
+sepref_def FLAG_no_restart_impl
+  is \<open>uncurry0 (RETURN FLAG_no_restart)\<close>
+  :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
+  unfolding FLAG_no_restart_def
+  by sepref
+
+sepref_def FLAG_GC_restart_impl
+  is \<open>uncurry0 (RETURN FLAG_GC_restart)\<close>
+  :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
+  unfolding FLAG_GC_restart_def
+  by sepref
 
 sepref_def clause_score_ordering
   is \<open>uncurry (RETURN oo clause_score_ordering)\<close>
@@ -178,40 +195,6 @@ sepref_def GC_EVERY_impl
   by sepref
 
 
-lemma restart_required_heur_alt_def:
-  \<open>restart_required_heur S n = do {
-    let opt_red = opts_reduction_st S;
-    let opt_res = opts_restart_st S;
-    let sema = get_slow_ema_heur S;
-    sema \<leftarrow> RETURN (ema_get_value sema);
-    let limit = (11 * sema) >> 4;
-    let fema = (get_fast_ema_heur S);
-    fema \<leftarrow> RETURN (ema_get_value fema);
-    let ccount = get_conflict_count_since_last_restart_heur S;
-    let lcount = get_learned_count S;
-    let can_res = (lcount > n);
-    let min_reached = (ccount > minimum_number_between_restarts);
-    let level = count_decided_st_heur S;
-    let should_not_reduce = (\<not>opt_red \<or> upper_restart_bound_not_reached S);
-    RETURN ((opt_res \<or> opt_red) \<and>
-       (should_not_reduce \<longrightarrow> limit > fema) \<and> min_reached \<and> can_res \<and>
-      level > 2 \<and> \<^cancel>\<open>This comment from Marijn Heule seems not to help:
-         \<^term>\<open>level < max_restart_decision_lvl\<close>\<close>
-      of_nat level > (fema >> 32))}
-  \<close>
-  by (auto simp: restart_required_heur_def bind_to_let_conv Let_def)
-
-sepref_register ema_get_value get_fast_ema_heur get_slow_ema_heur
-sepref_def restart_required_heur_fast_code
-  is \<open>uncurry restart_required_heur\<close>
-  :: \<open>isasat_bounded_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
-  supply [[goals_limit=1]]
-  unfolding restart_required_heur_alt_def
-  apply (rewrite in \<open>\<hole> < _\<close> unat_const_fold(3)[where 'a=32])
-  apply (rewrite in \<open>(_ >> 32) < \<hole>\<close> annot_unat_unat_upcast[where 'l=64])
-  apply (annot_snat_const "TYPE(64)")
-  by sepref
-
 sepref_def get_reductions_count_fast_code
   is \<open>RETURN o get_reductions_count\<close>
   :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
@@ -227,6 +210,47 @@ sepref_def GC_required_heur_fast_code
   :: \<open>isasat_bounded_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
   supply [[goals_limit=1]]
   unfolding GC_required_heur_def GC_EVERY_def
+  by sepref
+
+
+lemma restart_required_heur_alt_def:
+  \<open>restart_required_heur S n = do {
+    let opt_red = opts_reduction_st S;
+    let opt_res = opts_restart_st S;
+    let sema = get_slow_ema_heur S;
+    sema \<leftarrow> RETURN (ema_get_value sema);
+    let limit = (11 * sema) >> 4;
+    let fema = (get_fast_ema_heur S);
+    fema \<leftarrow> RETURN (ema_get_value fema);
+    let ccount = get_conflict_count_since_last_restart_heur S;
+    let lcount = get_learned_count S;
+    let can_res = (lcount > n);
+    let min_reached = (ccount > minimum_number_between_restarts);
+    let level = count_decided_st_heur S;
+    let should_not_reduce = (\<not>opt_red \<or> upper_restart_bound_not_reached S);
+    let should_reduce = ((opt_res \<or> opt_red) \<and>
+       (should_not_reduce \<longrightarrow> limit > fema) \<and> min_reached \<and> can_res \<and>
+      level > 2 \<and> \<^cancel>\<open>This comment from Marijn Heule seems not to help:
+         \<^term>\<open>level < max_restart_decision_lvl\<close>\<close>
+      of_nat level > (fema >> 32));
+    GC_required \<leftarrow> GC_required_heur S n;
+    if should_reduce
+    then if GC_required
+      then RETURN FLAG_GC_restart
+      else RETURN FLAG_restart
+    else RETURN FLAG_no_restart
+  }\<close>
+  by (auto simp: restart_required_heur_def bind_to_let_conv Let_def)
+
+sepref_register ema_get_value get_fast_ema_heur get_slow_ema_heur
+sepref_def restart_required_heur_fast_code
+  is \<open>uncurry restart_required_heur\<close>
+  :: \<open>isasat_bounded_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding restart_required_heur_alt_def
+  apply (rewrite in \<open>\<hole> < _\<close> unat_const_fold(3)[where 'a=32])
+  apply (rewrite in \<open>(_ >> 32) < \<hole>\<close> annot_unat_unat_upcast[where 'l=64])
+  apply (annot_snat_const "TYPE(64)")
   by sepref
 
 sepref_register isa_trail_nth isasat_trail_nth_st

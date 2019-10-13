@@ -119,16 +119,27 @@ abbreviation ema_slow_init :: ema where
 
 paragraph \<open>Information related to restarts\<close>
 
-type_synonym restart_info = \<open>64 word \<times> 64 word\<close>
+definition NORMAL_PHASE :: \<open>64 word\<close> where
+  \<open>NORMAL_PHASE = 1\<close>
+
+definition QUIET_PHASE :: \<open>64 word\<close> where
+  \<open>QUIET_PHASE = 3\<close>
+
+definition DEFAULT_INIT_PHASE :: \<open>64 word\<close> where
+  \<open>DEFAULT_INIT_PHASE = 10000\<close>
+
+
+type_synonym restart_info = \<open>64 word \<times> 64 word \<times> 64 word \<times> 64 word\<close>
 
 definition incr_conflict_count_since_last_restart :: \<open>restart_info \<Rightarrow> restart_info\<close> where
-  \<open>incr_conflict_count_since_last_restart = (\<lambda>(ccount, ema_lvl). (ccount + 1, ema_lvl))\<close>
+  \<open>incr_conflict_count_since_last_restart = (\<lambda>(ccount, ema_lvl, restart_phase, end_of_phase).
+    (ccount + 1, ema_lvl, restart_phase, end_of_phase))\<close>
 
 definition restart_info_update_lvl_avg :: \<open>32 word \<Rightarrow> restart_info \<Rightarrow> restart_info\<close> where
   \<open>restart_info_update_lvl_avg = (\<lambda>lvl (ccount, ema_lvl). (ccount, ema_lvl))\<close>
 
 definition restart_info_init :: \<open>restart_info\<close> where
-  \<open>restart_info_init = (0, 0)\<close>
+  \<open>restart_info_init = (0, 0, NORMAL_PHASE, DEFAULT_INIT_PHASE)\<close>
 
 definition restart_info_restart_done :: \<open>restart_info \<Rightarrow> restart_info\<close> where
   \<open>restart_info_restart_done = (\<lambda>(ccount, lvl_avg). (0, lvl_avg))\<close>
@@ -147,6 +158,14 @@ fun slow_ema_of :: \<open>restart_heuristics \<Rightarrow> ema\<close> where
 fun restart_info_of :: \<open>restart_heuristics \<Rightarrow> restart_info\<close> where
   \<open>restart_info_of (fast_ema, slow_ema, restart_info) = restart_info\<close>
 
+fun current_restart_phase :: \<open>restart_heuristics \<Rightarrow> 64 word\<close> where
+  \<open>current_restart_phase (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase, end_of_phase)) =
+    restart_phase\<close>
+
+
+fun incr_restart_phase :: \<open>restart_heuristics \<Rightarrow> restart_heuristics\<close> where
+  \<open>incr_restart_phase (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase, end_of_phase)) =
+    (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase XOR 1, end_of_phase))\<close>
 
 
 paragraph \<open>VMTF\<close>
