@@ -1320,11 +1320,15 @@ lemma get_learned_count_alt_def:
        stats, _, vdom, avdom, lcount, opts). RETURN lcount)\<close>
   by auto
 
+text \<open>
+  I also played with \<^term>\<open>ema_reinit fast_ema\<close> and  \<^term>\<open>ema_reinit slow_ema\<close>. Currently removed,
+  to test the performance, I remove it.
+\<close>
 definition incr_restart_stat :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
   \<open>incr_restart_stat = (\<lambda>(M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, stats, (fast_ema, slow_ema,
        res_info), vdom, avdom, lcount). do{
      RETURN (M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, incr_restart stats,
-       (ema_reinit fast_ema, ema_reinit slow_ema,
+       (fast_ema, slow_ema,
        restart_info_restart_done res_info), vdom, avdom, lcount)
   })\<close>
 
