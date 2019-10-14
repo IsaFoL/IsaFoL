@@ -1,0 +1,8 @@
+session PAC_Checker = HOL +
+   description \<open>PAC proof checker\<close>
+   sessions
+     "HOL-Library"
+     "HOL-Algebra"
+     "Polynomials"
+   theories
+     PAC_Specification
