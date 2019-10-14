@@ -21,6 +21,79 @@ sepref_def FLAG_GC_restart_impl
   unfolding FLAG_GC_restart_def
   by sepref
 
+lemma current_restart_phase_alt_def:
+  \<open>current_restart_phase = (\<lambda>(fast_ema, slow_ema,
+    (ccount, ema_lvl, restart_phase, end_of_phase)).
+    restart_phase)\<close>
+  by auto
+sepref_def current_restart_phase_impl
+  is \<open>RETURN o current_restart_phase\<close>
+  :: \<open>heuristic_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
+  unfolding current_restart_phase_alt_def heuristic_assn_def
+  by sepref
+
+sepref_def get_restart_phase_imp
+  is \<open>(RETURN o get_restart_phase)\<close>
+  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
+  unfolding get_restart_phase_def isasat_bounded_assn_def
+  by sepref
+
+sepref_def end_of_restart_phase_impl
+  is \<open>RETURN o end_of_restart_phase\<close>
+  :: \<open>heuristic_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
+  unfolding end_of_restart_phase_def heuristic_assn_def
+  by sepref
+
+sepref_def end_of_restart_phase_st_impl
+  is \<open>RETURN o end_of_restart_phase_st\<close>
+  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
+  unfolding end_of_restart_phase_st_def isasat_bounded_assn_def
+  by sepref
+
+
+lemma incr_restart_phase_end_alt_def:
+  \<open>incr_restart_phase_end = (\<lambda>(fast_ema, slow_ema,
+    (ccount, ema_lvl, restart_phase, end_of_phase)).
+     (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase, 10 * end_of_phase)))\<close>
+  by auto
+
+sepref_def incr_restart_phase_end_impl
+  is \<open>RETURN o incr_restart_phase_end\<close>
+  :: \<open>heuristic_assn\<^sup>d \<rightarrow>\<^sub>a heuristic_assn\<close>
+  unfolding heuristic_assn_def incr_restart_phase_end_alt_def
+  by sepref
+
+
+lemma incr_restart_phase_alt_def:
+  \<open>incr_restart_phase = (\<lambda>(fast_ema, slow_ema,
+    (ccount, ema_lvl, restart_phase, end_of_phase)).
+     (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase XOR 1, end_of_phase)))\<close>
+  by auto
+  
+sepref_def incr_restart_phase_impl
+  is \<open>RETURN o incr_restart_phase\<close>
+  :: \<open>heuristic_assn\<^sup>d \<rightarrow>\<^sub>a heuristic_assn\<close>
+  unfolding heuristic_assn_def incr_restart_phase_alt_def
+  by sepref
+
+sepref_register incr_restart_phase incr_restart_phase_end
+  update_restart_phases update_all_phases
+
+sepref_def update_restart_phases_impl
+  is \<open>update_restart_phases\<close>
+  :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
+  unfolding update_restart_phases_def isasat_bounded_assn_def
+    fold_tuple_optimizations
+  by sepref
+
+sepref_def update_all_phases_impl
+  is \<open>uncurry update_all_phases\<close>
+  :: \<open>isasat_bounded_assn\<^sup>d *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a
+     isasat_bounded_assn *a uint64_nat_assn\<close>
+  unfolding update_all_phases_def
+    fold_tuple_optimizations
+  by sepref
+
 sepref_def clause_score_ordering
   is \<open>uncurry (RETURN oo clause_score_ordering)\<close>
   :: \<open>(uint32_nat_assn *a uint32_nat_assn)\<^sup>k *\<^sub>a (uint32_nat_assn *a uint32_nat_assn)\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
@@ -213,41 +286,12 @@ sepref_def GC_required_heur_fast_code
   by sepref
 
 
-lemma restart_required_heur_alt_def:
-  \<open>restart_required_heur S n = do {
-    let opt_red = opts_reduction_st S;
-    let opt_res = opts_restart_st S;
-    let sema = get_slow_ema_heur S;
-    sema \<leftarrow> RETURN (ema_get_value sema);
-    let limit = (11 * sema) >> 4;
-    let fema = (get_fast_ema_heur S);
-    fema \<leftarrow> RETURN (ema_get_value fema);
-    let ccount = get_conflict_count_since_last_restart_heur S;
-    let lcount = get_learned_count S;
-    let can_res = (lcount > n);
-    let min_reached = (ccount > minimum_number_between_restarts);
-    let level = count_decided_st_heur S;
-    let should_not_reduce = (\<not>opt_red \<or> upper_restart_bound_not_reached S);
-    let should_reduce = ((opt_res \<or> opt_red) \<and>
-       (should_not_reduce \<longrightarrow> limit > fema) \<and> min_reached \<and> can_res \<and>
-      level > 2 \<and> \<^cancel>\<open>This comment from Marijn Heule seems not to help:
-         \<^term>\<open>level < max_restart_decision_lvl\<close>\<close>
-      of_nat level > (fema >> 32));
-    GC_required \<leftarrow> GC_required_heur S n;
-    if should_reduce
-    then if GC_required
-      then RETURN FLAG_GC_restart
-      else RETURN FLAG_restart
-    else RETURN FLAG_no_restart
-  }\<close>
-  by (auto simp: restart_required_heur_def bind_to_let_conv Let_def)
-
 sepref_register ema_get_value get_fast_ema_heur get_slow_ema_heur
 sepref_def restart_required_heur_fast_code
   is \<open>uncurry restart_required_heur\<close>
   :: \<open>isasat_bounded_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
   supply [[goals_limit=1]]
-  unfolding restart_required_heur_alt_def
+  unfolding restart_required_heur_def
   apply (rewrite in \<open>\<hole> < _\<close> unat_const_fold(3)[where 'a=32])
   apply (rewrite in \<open>(_ >> 32) < \<hole>\<close> annot_unat_unat_upcast[where 'l=64])
   apply (annot_snat_const "TYPE(64)")

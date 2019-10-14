@@ -745,6 +745,10 @@ fun (in -) get_reductions_count :: \<open>twl_st_wl_heur \<Rightarrow> 64 word\<
        (_, _, _, lres, _, _), _)
       = lres\<close>
 
+definition get_restart_phase :: \<open>twl_st_wl_heur \<Rightarrow> 64 word\<close> where
+  \<open>get_restart_phase = (\<lambda>(_, _, _, _, _, _, _, _, _, _, _, _, heur, _).
+     current_restart_phase heur)\<close>
+
 definition GC_required_heur :: "twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> bool nres" where
   \<open>GC_required_heur S n = do {
     let lres = get_reductions_count S;
@@ -768,26 +772,38 @@ definition restart_required_heur :: "twl_st_wl_heur \<Rightarrow> nat \<Rightarr
   \<open>restart_required_heur S n = do {
     let opt_red = opts_reduction_st S;
     let opt_res = opts_restart_st S;
-    let sema = ema_get_value (get_slow_ema_heur S);
-    let limit = (11 * sema) >> 4;
-    let fema = ema_get_value (get_fast_ema_heur S);
-    let ccount = get_conflict_count_since_last_restart_heur S;
+    let curr_phase = get_restart_phase S;
     let lcount = get_learned_count S;
     let can_res = (lcount > n);
-    let min_reached = (ccount > minimum_number_between_restarts);
-    let level = count_decided_st_heur S;
-    let should_not_reduce = (\<not>opt_red \<or> upper_restart_bound_not_reached S);
-    let should_reduce = ((opt_res \<or> opt_red) \<and>
-       (should_not_reduce \<longrightarrow> limit > fema) \<and> min_reached \<and> can_res \<and>
-      level > 2 \<and> \<^cancel>\<open>This comment from Marijn Heule seems not to help:
-         \<^term>\<open>level < max_restart_decision_lvl\<close>\<close>
-      of_nat level > (fema >> 32));
-    GC_required \<leftarrow> GC_required_heur S n;
-    if should_reduce
-    then if GC_required
+
+    if \<not>can_res then RETURN FLAG_no_restart
+    else if curr_phase = QUIET_PHASE
+    then do {
+      GC_required \<leftarrow> GC_required_heur S n;
+      if GC_required
       then RETURN FLAG_GC_restart
-      else RETURN FLAG_restart
-    else RETURN FLAG_no_restart
+      else RETURN FLAG_no_restart
+    }
+    else do {
+      let sema = ema_get_value (get_slow_ema_heur S);
+      let limit = (shiftr (11 * sema) (4::nat));
+      let fema = ema_get_value (get_fast_ema_heur S);
+      let ccount = get_conflict_count_since_last_restart_heur S;
+      let min_reached = (ccount > minimum_number_between_restarts);
+      let level = count_decided_st_heur S;
+      let should_not_reduce = (\<not>opt_red \<or> upper_restart_bound_not_reached S);
+      let should_reduce = ((opt_res \<or> opt_red) \<and>
+         (should_not_reduce \<longrightarrow> limit > fema) \<and> min_reached \<and> can_res \<and>
+        level > 2 \<and> \<^cancel>\<open>This comment from Marijn Heule seems not to help:
+           \<^term>\<open>level < max_restart_decision_lvl\<close>\<close>
+        of_nat level > (shiftr fema 32));
+      GC_required \<leftarrow> GC_required_heur S n;
+      if should_reduce
+      then if GC_required
+        then RETURN FLAG_GC_restart
+        else RETURN FLAG_restart
+      else RETURN FLAG_no_restart
+     }
    }
   \<close>
 
@@ -4671,6 +4687,37 @@ lemma cdcl_twl_full_restart_wl_D_GC_heur_prog:
   done
 
 
+definition end_of_restart_phase :: \<open>restart_heuristics \<Rightarrow> 64 word\<close> where
+  \<open>end_of_restart_phase = (\<lambda>(_, _, (restart_phase,_ ,_ , end_of_phase)).
+    end_of_phase)\<close>
+
+definition end_of_restart_phase_st :: \<open>twl_st_wl_heur \<Rightarrow> 64 word\<close> where
+  \<open>end_of_restart_phase_st = (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, heur,
+       vdom, avdom, lcount, opts, old_arena).
+      end_of_restart_phase heur)\<close>
+
+fun incr_restart_phase_end :: \<open>restart_heuristics \<Rightarrow> restart_heuristics\<close> where
+  \<open>incr_restart_phase_end (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase, end_of_phase)) =
+    (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase, 10 * end_of_phase))\<close>
+
+definition update_restart_phases :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
+  \<open>update_restart_phases = (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, heur,
+       vdom, avdom, lcount, opts, old_arena). do {
+     heur \<leftarrow> RETURN (incr_restart_phase heur);
+     heur \<leftarrow> RETURN (incr_restart_phase_end heur);
+     RETURN (M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, heur,
+         vdom, avdom, lcount, opts, old_arena)
+  })\<close>
+
+definition update_all_phases :: \<open>twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> (twl_st_wl_heur \<times> nat) nres\<close> where
+  \<open>update_all_phases = (\<lambda>S n. do {
+     let lcount = get_learned_count S;
+     end_of_restart_phase \<leftarrow> RETURN (end_of_restart_phase_st S);
+     S \<leftarrow> (if end_of_restart_phase > of_nat lcount then update_restart_phases S else RETURN S);
+     RETURN (S, n)
+  })\<close>
+
+
 definition restart_prog_wl_D_heur
   :: "twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> bool \<Rightarrow> (twl_st_wl_heur \<times> nat) nres"
 where
@@ -4686,7 +4733,7 @@ where
        T \<leftarrow> cdcl_twl_restart_wl_heur S;
        RETURN (T, n+1)
     }
-    else RETURN (S, n)
+    else update_all_phases S n
   }\<close>
 
 lemma restart_required_heur_restart_required_wl:
@@ -4707,6 +4754,14 @@ lemma restart_required_heur_restart_required_wl0:
     by (intro frefI nres_relI)
      (auto simp: twl_st_heur_def get_learned_clss_wl_def RETURN_RES_refine_iff)
 
+lemma update_all_phases_Pair:
+  \<open>(uncurry update_all_phases, uncurry (RETURN oo Pair)) \<in>
+    twl_st_heur'''' r \<times>\<^sub>f nat_rel \<rightarrow>\<^sub>f \<langle>twl_st_heur'''' r \<times>\<^sub>f nat_rel\<rangle>nres_rel\<close>
+  unfolding update_all_phases_def
+    update_restart_phases_def
+  by (intro frefI nres_relI)
+    (auto simp: twl_st_heur'_def twl_st_heur_def)
+
 lemma restart_prog_wl_D_heur_restart_prog_wl_D:
   \<open>(uncurry2 restart_prog_wl_D_heur, uncurry2 restart_prog_wl) \<in>
     twl_st_heur''' r \<times>\<^sub>f nat_rel \<times>\<^sub>f bool_rel  \<rightarrow>\<^sub>f \<langle>twl_st_heur'''' r \<times>\<^sub>f nat_rel\<rangle>nres_rel\<close>
@@ -4714,12 +4769,14 @@ proof -
   have [refine0]: \<open>GC_required_heur S n \<le> SPEC (\<lambda>_. True)\<close> for S n
     by (auto simp: GC_required_heur_def)
   show ?thesis
+   supply RETURN_as_SPEC_refine[refine2 del]
     unfolding restart_prog_wl_D_heur_def restart_prog_wl_def uncurry_def
     apply (intro frefI nres_relI)
     apply (refine_rcg
         restart_required_heur_restart_required_wl0[where r=r, THEN fref_to_Down_curry]
         cdcl_twl_restart_wl_heur_cdcl_twl_restart_wl_D_prog[where r=r, THEN fref_to_Down]
-        cdcl_twl_full_restart_wl_D_GC_heur_prog[where r=r, THEN fref_to_Down])
+        cdcl_twl_full_restart_wl_D_GC_heur_prog[where r=r, THEN fref_to_Down]
+        update_all_phases_Pair[where r=r, THEN fref_to_Down_curry, unfolded comp_def])
     subgoal by auto
     subgoal by (auto simp: restart_flag_rel_def FLAG_GC_restart_def FLAG_restart_def
       FLAG_no_restart_def)
@@ -4729,7 +4786,8 @@ proof -
       FLAG_no_restart_def)
     subgoal by auto
     subgoal by auto
-    subgoal by auto
+    subgoal
+      by auto
     done
  qed
 
