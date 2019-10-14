@@ -26,6 +26,7 @@ lemma current_restart_phase_alt_def:
     (ccount, ema_lvl, restart_phase, end_of_phase)).
     restart_phase)\<close>
   by auto
+
 sepref_def current_restart_phase_impl
   is \<open>RETURN o current_restart_phase\<close>
   :: \<open>heuristic_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
@@ -54,7 +55,7 @@ sepref_def end_of_restart_phase_st_impl
 lemma incr_restart_phase_end_alt_def:
   \<open>incr_restart_phase_end = (\<lambda>(fast_ema, slow_ema,
     (ccount, ema_lvl, restart_phase, end_of_phase)).
-     (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase, 10 * end_of_phase)))\<close>
+     (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase, 10 * end_of_phase + 1)))\<close>
   by auto
 
 sepref_def incr_restart_phase_end_impl
@@ -69,7 +70,7 @@ lemma incr_restart_phase_alt_def:
     (ccount, ema_lvl, restart_phase, end_of_phase)).
      (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase XOR 1, end_of_phase)))\<close>
   by auto
-  
+
 sepref_def incr_restart_phase_impl
   is \<open>RETURN o incr_restart_phase\<close>
   :: \<open>heuristic_assn\<^sup>d \<rightarrow>\<^sub>a heuristic_assn\<close>

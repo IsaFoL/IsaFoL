@@ -120,10 +120,10 @@ abbreviation ema_slow_init :: ema where
 paragraph \<open>Information related to restarts\<close>
 
 definition NORMAL_PHASE :: \<open>64 word\<close> where
-  \<open>NORMAL_PHASE = 1\<close>
+  \<open>NORMAL_PHASE = 0\<close>
 
 definition QUIET_PHASE :: \<open>64 word\<close> where
-  \<open>QUIET_PHASE = 3\<close>
+  \<open>QUIET_PHASE = 1\<close>
 
 definition DEFAULT_INIT_PHASE :: \<open>64 word\<close> where
   \<open>DEFAULT_INIT_PHASE = 10000\<close>

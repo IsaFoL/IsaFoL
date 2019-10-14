@@ -776,11 +776,12 @@ definition restart_required_heur :: "twl_st_wl_heur \<Rightarrow> nat \<Rightarr
     let lcount = get_learned_count S;
     let can_res = (lcount > n);
 
-    if \<not>can_res then RETURN FLAG_no_restart
+    if \<not>can_res \<or> \<not>opt_res \<or> \<not>opt_red then RETURN FLAG_no_restart
     else if curr_phase = QUIET_PHASE
     then do {
       GC_required \<leftarrow> GC_required_heur S n;
-      if GC_required
+      let upper = upper_restart_bound_not_reached S;
+      if (opt_res \<or> opt_red) \<and> \<not>upper
       then RETURN FLAG_GC_restart
       else RETURN FLAG_no_restart
     }
@@ -804,8 +805,7 @@ definition restart_required_heur :: "twl_st_wl_heur \<Rightarrow> nat \<Rightarr
         else RETURN FLAG_restart
       else RETURN FLAG_no_restart
      }
-   }
-  \<close>
+   }\<close>
 
 
 lemma (in -) get_reduction_count_alt_def:
@@ -4696,9 +4696,10 @@ definition end_of_restart_phase_st :: \<open>twl_st_wl_heur \<Rightarrow> 64 wor
        vdom, avdom, lcount, opts, old_arena).
       end_of_restart_phase heur)\<close>
 
+text \<open>Using \<^term>\<open>a + 1\<close> ensures that we do not get stuck with 0.\<close>
 fun incr_restart_phase_end :: \<open>restart_heuristics \<Rightarrow> restart_heuristics\<close> where
   \<open>incr_restart_phase_end (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase, end_of_phase)) =
-    (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase, 10 * end_of_phase))\<close>
+    (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase, 10 * end_of_phase + 1))\<close>
 
 definition update_restart_phases :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
   \<open>update_restart_phases = (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, heur,
@@ -4713,7 +4714,7 @@ definition update_all_phases :: \<open>twl_st_wl_heur \<Rightarrow> nat \<Righta
   \<open>update_all_phases = (\<lambda>S n. do {
      let lcount = get_learned_count S;
      end_of_restart_phase \<leftarrow> RETURN (end_of_restart_phase_st S);
-     S \<leftarrow> (if end_of_restart_phase > of_nat lcount then update_restart_phases S else RETURN S);
+     S \<leftarrow> (if end_of_restart_phase > of_nat lcount then RETURN S else update_restart_phases S);
      RETURN (S, n)
   })\<close>
 

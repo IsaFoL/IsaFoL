@@ -15,13 +15,32 @@ lemma isasat_current_information_alt_def:
       )\<close>
   unfolding isasat_current_information_def by auto
 
-sepref_register print_current_information
+sepref_register print_current_information print_c print_uint64
 
+sepref_def print_c_impl
+  is \<open>RETURN o print_c\<close>
+  :: \<open>word_assn\<^sup>k \<rightarrow>\<^sub>a unit_assn\<close>
+  unfolding print_c_def
+  by sepref
+
+sepref_def print_uint64_impl
+  is \<open>RETURN o print_uint64\<close>
+  :: \<open>word_assn\<^sup>k \<rightarrow>\<^sub>a unit_assn\<close>
+  unfolding print_uint64_def
+  by sepref
+
+
+sepref_def zero_some_stats_impl
+  is \<open>RETURN o zero_some_stats\<close>
+  :: \<open>stats_assn\<^sup>d \<rightarrow>\<^sub>a stats_assn\<close>
+  unfolding zero_some_stats_def
+  by sepref
 
 sepref_def isasat_current_information_impl [llvm_code]
   is \<open>uncurry (RETURN oo print_current_information)\<close>
   :: \<open>stats_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a stats_assn\<close>
-  unfolding print_current_information_def
+  unfolding print_current_information_isasat_current
+    isasat_current_information_def
   by sepref
 
 declare isasat_current_information_impl.refine[sepref_fr_rules]
