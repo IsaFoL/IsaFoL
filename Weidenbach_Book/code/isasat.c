@@ -230,7 +230,7 @@ typedef struct R {
   int64_t  sat;
 } R;
 
-int64_t IsaSAT_LLVM_IsaSAT_code_wrapped2(CLAUSES);
+int64_t IsaSAT_No_Restart_LLVM_IsaSAT_code_wrapped2(CLAUSES);
 
 void print_propagations(int64_t props) {
   printf("c propagations %ld\n", props);
@@ -260,7 +260,25 @@ void print_GCs(int64_t props) {
   printf("c GCs %ld\n", props);
 }
 
+void print_phase(int8_t phase) {
+  if(phase == 1)
+    printf("c phase: QUIET\n");
+  else
+    printf("c phase: RESTART\n");
+}
 
+/*
+declare void @IsaSAT_Show_LLVM_print_c_impl(i64)
+declare void @IsaSAT_Show_LLVM_print_uint64_impl(i64)
+declare void @print_phase(i64)
+*/
+void IsaSAT_Show_LLVM_print_c_impl() {
+  printf("\nc ");
+}
+
+void IsaSAT_Show_LLVM_print_uint64_impl(int64_t p) {
+  printf(" %ld ", p);
+}
 
 int main(int argc, char *argv[]) {
   if(argc != 2) {
@@ -278,7 +296,7 @@ int main(int argc, char *argv[]) {
   CLAUSES clauses = parse();
 
   //print_clauses(&clauses);
-  int64_t t = IsaSAT_LLVM_IsaSAT_code_wrapped2(clauses);
+  int64_t t = IsaSAT_No_Restart_LLVM_IsaSAT_code_wrapped2(clauses);
   if((t & 2) == 0)
     printf("s UNKNOWN\n");
   if (t & 1)

@@ -408,6 +408,12 @@ define i32 @IsaSAT_Literals_LLVM_Pos_impl(i32 %x) {
     ret i32 %x1
 }
 
+define void @IsaSAT_Show_LLVM_print_c_impl(i64 %x) {
+
+  start:
+    ret void
+}
+
 define { i64, { i64, i64* } } @LLVM_DS_Array_List_arl_resize(i64 %c, { i64, { i64, i64* } } %al) {
 
   start:
@@ -897,6 +903,12 @@ define i1 @IsaSAT_Setup_LLVM_status_neq_impl(i32 %x, i32 %x1) {
     ret i1 %x2
 }
 
+define void @IsaSAT_Show_LLVM_print_uint64_impl(i64 %x) {
+
+  start:
+    ret void
+}
+
 define { { i64, { i32, i32 } }*, { i64, { i32, { i32, i32 } } } } @IsaSAT_VMTF_LLVM_vmtf_rescale_code({ { i64, { i32, i32 } }*, { i64, { i32, { i32, i32 } } } } %x) {
 
   start:
@@ -1288,6 +1300,40 @@ define i1 @IsaSAT_Lookup_Conflict_LLVM_Some_impl(i1 %x) {
 
   start:
     ret i1 1
+}
+
+define { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } } @IsaSAT_Show_LLVM_zero_some_stats_impl({ i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } } %x) {
+
+  start:
+    %a1 = extractvalue { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } } %x, 0
+    %b = extractvalue { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } } %x, 1
+    %a1a = extractvalue { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } %b, 0
+    %ba = extractvalue { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } %b, 1
+    %a1b = extractvalue { i64, { i64, { i64, { i64, { i64, i64 } } } } } %ba, 0
+    %bb = extractvalue { i64, { i64, { i64, { i64, { i64, i64 } } } } } %ba, 1
+    %a1c = extractvalue { i64, { i64, { i64, { i64, i64 } } } } %bb, 0
+    %bc = extractvalue { i64, { i64, { i64, { i64, i64 } } } } %bb, 1
+    %a1d = extractvalue { i64, { i64, { i64, i64 } } } %bc, 0
+    %bd = extractvalue { i64, { i64, { i64, i64 } } } %bc, 1
+    %a1e = extractvalue { i64, { i64, i64 } } %bd, 0
+    %be = extractvalue { i64, { i64, i64 } } %bd, 1
+    %a1f = extractvalue { i64, i64 } %be, 0
+    %a2f = extractvalue { i64, i64 } %be, 1
+    %x1 = insertvalue { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } } zeroinitializer, i64 %a1, 0
+    %xa = insertvalue { i64, i64 } zeroinitializer, i64 %a1f, 0
+    %tmpba = insertvalue { i64, i64 } %xa, i64 0, 1
+    %xb = insertvalue { i64, { i64, i64 } } zeroinitializer, i64 %a1e, 0
+    %tmpca = insertvalue { i64, { i64, i64 } } %xb, { i64, i64 } %tmpba, 1
+    %xc = insertvalue { i64, { i64, { i64, i64 } } } zeroinitializer, i64 %a1d, 0
+    %tmpda = insertvalue { i64, { i64, { i64, i64 } } } %xc, { i64, { i64, i64 } } %tmpca, 1
+    %xd = insertvalue { i64, { i64, { i64, { i64, i64 } } } } zeroinitializer, i64 %a1c, 0
+    %tmpea = insertvalue { i64, { i64, { i64, { i64, i64 } } } } %xd, { i64, { i64, { i64, i64 } } } %tmpda, 1
+    %xe = insertvalue { i64, { i64, { i64, { i64, { i64, i64 } } } } } zeroinitializer, i64 %a1b, 0
+    %tmpfa = insertvalue { i64, { i64, { i64, { i64, { i64, i64 } } } } } %xe, { i64, { i64, { i64, { i64, i64 } } } } %tmpea, 1
+    %xf = insertvalue { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } zeroinitializer, i64 %a1a, 0
+    %x2 = insertvalue { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } %xf, { i64, { i64, { i64, { i64, { i64, i64 } } } } } %tmpfa, 1
+    %x3 = insertvalue { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } } %x1, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } %x2, 1
+    ret { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } } %x3
 }
 
 define i32 @IsaSAT_Trail_LLVM_get_level_fast_code({ { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } } %x, i32 %x1) {
@@ -2550,7 +2596,7 @@ define { i64, { i64, i32* } } @IsaSAT_VMTF_LLVM_quicksort_vmtf_nth_ref_code({ i6
     %tmpa = insertvalue { i64, { i64, { i64, i32* } } } %x4, { i64, { i64, i32* } } %x3, 1
     %xa = insertvalue { i64, { i64, { i64, { i64, i32* } } } } zeroinitializer, i64 %x1, 0
     %x5 = insertvalue { i64, { i64, { i64, { i64, i32* } } } } %xa, { i64, { i64, { i64, i32* } } } %tmpa, 1
-    %x6 = call { i64, { i64, i32* } } @IsaSAT_CDCL_LLVM_quicksort_vmtf_nth_ref_code_f_09686572 ({ i64, { i32, i32 } }* %x, { i64, { i64, { i64, { i64, i32* } } } } %x5)
+    %x6 = call { i64, { i64, i32* } } @IsaSAT_CDCL_LLVM_quicksort_vmtf_nth_ref_code_f_09557828 ({ i64, { i32, i32 } }* %x, { i64, { i64, { i64, { i64, i32* } } } } %x5)
     ret { i64, { i64, i32* } } %x6
 }
 
@@ -3590,37 +3636,46 @@ define { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } } @IsaSA
     br i1 %xfa, label %then, label %else
 
   then:
-    %xga = insertvalue { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } } zeroinitializer, i64 %a1, 0
-    %xh = insertvalue { i64, i64 } zeroinitializer, i64 %a1f, 0
-    %tmpc = insertvalue { i64, i64 } %xh, i64 0, 1
-    %xi = insertvalue { i64, { i64, i64 } } zeroinitializer, i64 %a1e, 0
-    %tmpd = insertvalue { i64, { i64, i64 } } %xi, { i64, i64 } %tmpc, 1
-    %xj = insertvalue { i64, { i64, { i64, i64 } } } zeroinitializer, i64 %a1d, 0
-    %tmpe = insertvalue { i64, { i64, { i64, i64 } } } %xj, { i64, { i64, i64 } } %tmpd, 1
-    %xk = insertvalue { i64, { i64, { i64, { i64, i64 } } } } zeroinitializer, i64 %a1c, 0
-    %tmpf = insertvalue { i64, { i64, { i64, { i64, i64 } } } } %xk, { i64, { i64, { i64, i64 } } } %tmpe, 1
-    %xl = insertvalue { i64, { i64, { i64, { i64, { i64, i64 } } } } } zeroinitializer, i64 %a1b, 0
-    %tmpg = insertvalue { i64, { i64, { i64, { i64, { i64, i64 } } } } } %xl, { i64, { i64, { i64, { i64, i64 } } } } %tmpf, 1
-    %xm = insertvalue { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } zeroinitializer, i64 %a1a, 0
-    %x3 = insertvalue { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } %xm, { i64, { i64, { i64, { i64, { i64, i64 } } } } } %tmpg, 1
-    %x4 = insertvalue { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } } %xga, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } %x3, 1
+    call void @IsaSAT_Show_LLVM_print_c_impl (i64 %a1)
+    call void @IsaSAT_Show_LLVM_print_uint64_impl (i64 %a1)
+    call void @IsaSAT_Show_LLVM_print_uint64_impl (i64 %a1a)
+    call void @IsaSAT_Show_LLVM_print_uint64_impl (i64 %a1c)
+    call void @IsaSAT_Show_LLVM_print_uint64_impl (i64 %a1d)
+    call void @IsaSAT_Show_LLVM_print_uint64_impl (i64 %a1e)
+    call void @IsaSAT_Show_LLVM_print_uint64_impl (i64 %a1f)
+    call void @IsaSAT_Show_LLVM_print_uint64_impl (i64 %a2f)
+    %xo = insertvalue { i64, i64 } zeroinitializer, i64 %a1f, 0
+    %tmpa = insertvalue { i64, i64 } %xo, i64 %a2f, 1
+    %xp = insertvalue { i64, { i64, i64 } } zeroinitializer, i64 %a1e, 0
+    %tmpb = insertvalue { i64, { i64, i64 } } %xp, { i64, i64 } %tmpa, 1
+    %xq = insertvalue { i64, { i64, { i64, i64 } } } zeroinitializer, i64 %a1d, 0
+    %tmpc = insertvalue { i64, { i64, { i64, i64 } } } %xq, { i64, { i64, i64 } } %tmpb, 1
+    %xr = insertvalue { i64, { i64, { i64, { i64, i64 } } } } zeroinitializer, i64 %a1c, 0
+    %tmpd = insertvalue { i64, { i64, { i64, { i64, i64 } } } } %xr, { i64, { i64, { i64, i64 } } } %tmpc, 1
+    %xs = insertvalue { i64, { i64, { i64, { i64, { i64, i64 } } } } } zeroinitializer, i64 %a1b, 0
+    %tmpe = insertvalue { i64, { i64, { i64, { i64, { i64, i64 } } } } } %xs, { i64, { i64, { i64, { i64, i64 } } } } %tmpd, 1
+    %xt = insertvalue { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } zeroinitializer, i64 %a1a, 0
+    %tmpf = insertvalue { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } %xt, { i64, { i64, { i64, { i64, { i64, i64 } } } } } %tmpe, 1
+    %xu = insertvalue { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } } zeroinitializer, i64 %a1, 0
+    %x3 = insertvalue { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } } %xu, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } %tmpf, 1
+    %x4 = call { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } } @IsaSAT_Show_LLVM_zero_some_stats_impl ({ i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } } %x3)
     br label %ctd_if
 
   else:
-    %xga1 = insertvalue { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } } zeroinitializer, i64 %a1, 0
-    %xh1 = insertvalue { i64, i64 } zeroinitializer, i64 %a1f, 0
-    %tmpb = insertvalue { i64, i64 } %xh1, i64 %a2f, 1
-    %xi1 = insertvalue { i64, { i64, i64 } } zeroinitializer, i64 %a1e, 0
-    %tmpc1 = insertvalue { i64, { i64, i64 } } %xi1, { i64, i64 } %tmpb, 1
-    %xj1 = insertvalue { i64, { i64, { i64, i64 } } } zeroinitializer, i64 %a1d, 0
-    %tmpd1 = insertvalue { i64, { i64, { i64, i64 } } } %xj1, { i64, { i64, i64 } } %tmpc1, 1
-    %xk1 = insertvalue { i64, { i64, { i64, { i64, i64 } } } } zeroinitializer, i64 %a1c, 0
-    %tmpe1 = insertvalue { i64, { i64, { i64, { i64, i64 } } } } %xk1, { i64, { i64, { i64, i64 } } } %tmpd1, 1
-    %xl1 = insertvalue { i64, { i64, { i64, { i64, { i64, i64 } } } } } zeroinitializer, i64 %a1b, 0
-    %tmpf1 = insertvalue { i64, { i64, { i64, { i64, { i64, i64 } } } } } %xl1, { i64, { i64, { i64, { i64, i64 } } } } %tmpe1, 1
-    %xm1 = insertvalue { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } zeroinitializer, i64 %a1a, 0
-    %x5 = insertvalue { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } %xm1, { i64, { i64, { i64, { i64, { i64, i64 } } } } } %tmpf1, 1
-    %x6 = insertvalue { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } } %xga1, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } %x5, 1
+    %xga = insertvalue { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } } zeroinitializer, i64 %a1, 0
+    %xh = insertvalue { i64, i64 } zeroinitializer, i64 %a1f, 0
+    %tmpb1 = insertvalue { i64, i64 } %xh, i64 %a2f, 1
+    %xi = insertvalue { i64, { i64, i64 } } zeroinitializer, i64 %a1e, 0
+    %tmpc1 = insertvalue { i64, { i64, i64 } } %xi, { i64, i64 } %tmpb1, 1
+    %xj = insertvalue { i64, { i64, { i64, i64 } } } zeroinitializer, i64 %a1d, 0
+    %tmpd1 = insertvalue { i64, { i64, { i64, i64 } } } %xj, { i64, { i64, i64 } } %tmpc1, 1
+    %xk = insertvalue { i64, { i64, { i64, { i64, i64 } } } } zeroinitializer, i64 %a1c, 0
+    %tmpe1 = insertvalue { i64, { i64, { i64, { i64, i64 } } } } %xk, { i64, { i64, { i64, i64 } } } %tmpd1, 1
+    %xl = insertvalue { i64, { i64, { i64, { i64, { i64, i64 } } } } } zeroinitializer, i64 %a1b, 0
+    %tmpf1 = insertvalue { i64, { i64, { i64, { i64, { i64, i64 } } } } } %xl, { i64, { i64, { i64, { i64, i64 } } } } %tmpe1, 1
+    %xm = insertvalue { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } zeroinitializer, i64 %a1a, 0
+    %x5 = insertvalue { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } %xm, { i64, { i64, { i64, { i64, { i64, i64 } } } } } %tmpf1, 1
+    %x6 = insertvalue { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } } %xga, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } %x5, 1
     br label %ctd_if
 
   ctd_if:
@@ -4732,7 +4787,7 @@ define i32 @IsaSAT_Backtrack_LLVM_lit_of_hd_trail_st_heur_fast_code({ { { i64, {
     ret i32 %x6
 }
 
-define { i64, { i64, i32* } } @IsaSAT_CDCL_LLVM_quicksort_vmtf_nth_ref_code_f_09686572({ i64, { i32, i32 } }* %ai, { i64, { i64, { i64, { i64, i32* } } } } %x) {
+define { i64, { i64, i32* } } @IsaSAT_CDCL_LLVM_quicksort_vmtf_nth_ref_code_f_09557828({ i64, { i32, i32 } }* %ai, { i64, { i64, { i64, { i64, i32* } } } } %x) {
 
   start:
     %a1 = extractvalue { i64, { i64, { i64, { i64, i32* } } } } %x, 0
@@ -4757,7 +4812,7 @@ define { i64, { i64, i32* } } @IsaSAT_CDCL_LLVM_quicksort_vmtf_nth_ref_code_f_09
     %tmpac = insertvalue { i64, { i64, { i64, i32* } } } %xh, { i64, { i64, i32* } } %a1b, 1
     %xi = insertvalue { i64, { i64, { i64, { i64, i32* } } } } zeroinitializer, i64 %a1, 0
     %x1 = insertvalue { i64, { i64, { i64, { i64, i32* } } } } %xi, { i64, { i64, { i64, i32* } } } %tmpac, 1
-    %x2 = call { i64, { i64, i32* } } @IsaSAT_CDCL_LLVM_quicksort_vmtf_nth_ref_code_f_09686572 ({ i64, { i32, i32 } }* %ai, { i64, { i64, { i64, { i64, i32* } } } } %x1)
+    %x2 = call { i64, { i64, i32* } } @IsaSAT_CDCL_LLVM_quicksort_vmtf_nth_ref_code_f_09557828 ({ i64, { i32, i32 } }* %ai, { i64, { i64, { i64, { i64, i32* } } } } %x1)
     br label %ctd_if
 
   ctd_if:
@@ -4775,7 +4830,7 @@ define { i64, { i64, i32* } } @IsaSAT_CDCL_LLVM_quicksort_vmtf_nth_ref_code_f_09
     %tmpac1 = insertvalue { i64, { i64, { i64, i32* } } } %xk, { i64, { i64, i32* } } %xg, 1
     %xl = insertvalue { i64, { i64, { i64, { i64, i32* } } } } zeroinitializer, i64 %xja, 0
     %x3 = insertvalue { i64, { i64, { i64, { i64, i32* } } } } %xl, { i64, { i64, { i64, i32* } } } %tmpac1, 1
-    %x4 = call { i64, { i64, i32* } } @IsaSAT_CDCL_LLVM_quicksort_vmtf_nth_ref_code_f_09686572 ({ i64, { i32, i32 } }* %ai, { i64, { i64, { i64, { i64, i32* } } } } %x3)
+    %x4 = call { i64, { i64, i32* } } @IsaSAT_CDCL_LLVM_quicksort_vmtf_nth_ref_code_f_09557828 ({ i64, { i32, i32 } }* %ai, { i64, { i64, { i64, { i64, i32* } } } } %x3)
     br label %ctd_ifa
 
   ctd_ifa:
