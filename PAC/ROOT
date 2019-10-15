@@ -4,6 +4,7 @@ session PAC_Checker = HOL +
      "HOL-Library"
      "HOL-Algebra"
      "Polynomials"
+     Weidenbach_Book_Base
    theories
      PAC_Specification
      PAC_Polynoms

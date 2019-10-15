@@ -1,5 +1,6 @@
 theory PAC_Polynoms
   imports PAC_Specification
+    Weidenbach_Book_Base.WB_List_More
 begin
 
 
@@ -9,12 +10,12 @@ lemma poly_embed_EX:
      (auto intro!: infinite_UNIV_listI)
 
 type_synonym list_polynom =
-  \<open>(string set * nat) list\<close>
+  \<open>(string multiset * nat) list\<close>
 
-abbreviation  (in -)vars :: \<open>list_polynom \<Rightarrow> string set list\<close> where
+abbreviation  (in -)vars :: \<open>list_polynom \<Rightarrow> string multiset list\<close> where
   \<open>vars p \<equiv> map fst p\<close>
 
-abbreviation vars2 :: \<open>list_polynom \<Rightarrow> string set set\<close> where
+abbreviation vars2 :: \<open>list_polynom \<Rightarrow> string multiset set\<close> where
   \<open>vars2 p \<equiv> fst ` set p\<close>
 
 
@@ -101,7 +102,7 @@ definition normalize_poly where
 
 
 context
-  fixes R :: \<open>string set \<Rightarrow> string set \<Rightarrow> bool\<close>
+  fixes R :: \<open>string multiset \<Rightarrow> string multiset \<Rightarrow> bool\<close>
 begin
 
 fun add_poly :: \<open>list_polynom \<Rightarrow> list_polynom \<Rightarrow> list_polynom\<close> where
@@ -153,10 +154,8 @@ lemma normalized_poly_add_poly:
   subgoal for x n xs y m ys
     apply (auto simp: Const_add algebra_simps notin_vars_notin_add_polyD2
       dest: antisympD)
-      apply (smt antisympD fst_conv image_iff insert_iff list.set(2) notin_vars_notin_add_polyD)
-      apply (smt antisympD fst_conv image_iff insert_iff list.set(2) notin_vars_notin_add_polyD)
-      apply (smt fst_conv image_iff insert_iff list.set(2) notin_vars_notin_add_polyD)
-      apply (smt fst_conv image_iff insert_iff list.set(2) notin_vars_notin_add_polyD)
+    apply (smt antisympD fst_conv image_iff insert_iff list.set(2) notin_vars_notin_add_polyD)
+    apply (smt antisympD fst_conv image_iff insert_iff list.set(2) notin_vars_notin_add_polyD)
     done
   done
 
@@ -171,13 +170,21 @@ lemma normalized_poly_normalize_poly:
   by (auto simp: normalize_poly_def normalized_poly_def
     distinct_remove_empty_coeffs)
 
-text \<open>TODO: multisets are more meaningfull here! The union is the wrong operator\<close>
+text \<open>
+  The following function implements a very trivial multiplication. The result
+  is not normalised. Therefore, we have the non-\<^text>\<open>raw\<close> version that also
+  partially normalise the resulting polynoms, but not fully (as this would require
+  to sort the list).
+\<close>
 fun mult_poly_raw :: \<open>list_polynom \<Rightarrow> list_polynom \<Rightarrow> list_polynom\<close> where
   \<open>mult_poly_raw [] p = []\<close> |
   \<open>mult_poly_raw p [] = []\<close> |
   \<open>mult_poly_raw ((xs, m) # p) q =
-     map (\<lambda>(ys, n). (xs \<union> ys, n * m)) q @
+     map (\<lambda>(ys, n). (xs + ys, n * m)) q @
      mult_poly_raw p q\<close>
+
+definition mult_poly :: \<open>list_polynom \<Rightarrow> list_polynom \<Rightarrow> list_polynom\<close> where
+  \<open>mult_poly xs ys = normalize_poly (mult_poly_raw xs ys)\<close>
 
 
 locale poly_embed =
@@ -185,15 +192,59 @@ locale poly_embed =
   assumes \<open>bij \<phi>\<close>
 begin
 
+definition poly_of_vars where
+  \<open>poly_of_vars xs = fold_mset (\<lambda>a b. Const (\<phi> a) * b) 0 xs\<close>
+
+lemma poly_of_vars_simps[simp]:
+  \<open>poly_of_vars (add_mset x xs) = Const (\<Phi> x) * (poly_of_vars xs)\<close>
+  \<open>poly_of_vars (xs + ys) = poly_of_vars xs * (poly_of_vars ys)\<close>
+proof -
+  interpret comp_fun_commute \<open>(\<lambda>a b. b * Const (\<phi> a))\<close>
+    by standard
+      (auto simp: algebra_simps)
+  show
+    \<open>poly_of_vars (add_mset x xs) = Const (\<Phi> x) * (poly_of_vars xs)\<close>
+    by (auto simp: comp_fun_commute.fold_mset_add_mset
+      poly_of_vars_def comp_fun_commute_axioms fold_mset_fusion mult.assoc
+      ac_simps)
+  show
+    \<open>poly_of_vars (xs + ys) = poly_of_vars xs * (poly_of_vars ys)\<close>
+    apply (auto simp: comp_fun_commute.fold_mset_add_mset
+      poly_of_vars_def mult.assoc ac_simps)
+    by (smt comp_fun_commute_axioms fold_mset_fusion mult.commute mult_zero_right)
+qed
+
 fun polynom_of_list :: \<open>list_polynom \<Rightarrow> _ mpoly\<close> where
   \<open>polynom_of_list [] = 0\<close> |
   \<open>polynom_of_list ((xs, n) # p) =
-     Const n * (Finite_Set.fold (\<lambda>a b. Const (\<phi> a) * b) 0 xs) + polynom_of_list p\<close>
+     Const n * poly_of_vars xs + polynom_of_list p\<close>
 
 lemma polynom_of_list_append[simp]:
   \<open>polynom_of_list (xs @ ys) = polynom_of_list xs + polynom_of_list ys\<close>
   by (induction xs arbitrary: ys)
     (auto simp: ac_simps)
+
+lemma polynom_of_list_Cons[simp]:
+  \<open>polynom_of_list (x # ys) = Const (snd x) * poly_of_vars (fst x) + polynom_of_list ys\<close>
+  by (cases x)
+    (auto simp: ac_simps)
+
+lemma polynom_of_list_cong:
+  \<open>mset xs = mset ys \<Longrightarrow> polynom_of_list xs = polynom_of_list ys\<close>
+proof (induction xs arbitrary: ys)
+  case Nil
+  then show \<open>?case\<close> by auto
+next
+  case (Cons x xs) note IH = this(1) and eq = this(2)
+  have \<open>x \<in> set ys\<close>
+    using eq mset_eq_setD by fastforce
+  then obtain ys1 ys2 where
+    ys: \<open>ys = ys1 @ x # ys2\<close>
+    by (auto dest: split_list)
+  show ?case
+    using IH[of \<open>ys1 @ ys2\<close>] eq
+    by (auto simp: ys algebra_simps)
+qed
 
 lemma polynom_of_list_merge_coeffs[simp]:
   \<open>polynom_of_list (merge_coeffs xs) = polynom_of_list xs\<close>
@@ -216,8 +267,48 @@ lemma polynom_of_list_add_poly[simp]:
     by (auto simp: Const_add algebra_simps)
   done
 
-end
+
+lemma polynom_of_list_map_mult:
+  \<open>polynom_of_list (map (\<lambda>(ys, n). (ys + x, f n)) va) =
+     poly_of_vars x *
+     polynom_of_list (map (\<lambda>(ys, n). (ys, f n)) va)\<close>
+  by (induction va)
+   (auto simp: Const_add algebra_simps)
+
+lemma polynom_of_list_map_mult2:
+  \<open>polynom_of_list (map (\<lambda>(ys, n). (ys, n * m)) va) =
+     Const m *
+     polynom_of_list (map (\<lambda>(ys, n). (ys, n)) va)\<close>
+  by (induction va)
+    (auto simp: Const_add algebra_simps Const_mult)
+
+
+lemma polynom_of_list_mult_poly_raw[simp]:
+  \<open>polynom_of_list (mult_poly_raw xs ys) = polynom_of_list xs * polynom_of_list ys\<close>
+  apply (induction xs ys rule: mult_poly_raw.induct)
+  subgoal
+    by auto
+  subgoal
+    by auto
+  subgoal for x m xs ys
+    by (cases ys)
+     (auto simp: Const_add algebra_simps
+       polynom_of_list_map_mult polynom_of_list_map_mult2
+      Const_mult)
+  done
+
+
+lemma polynom_of_list_normalize_poly[simp]:
+  \<open>polynom_of_list (normalize_poly xs) = polynom_of_list xs\<close>
+  by (auto simp: normalize_poly_def)
+
+
+lemma polynom_of_list_mult_poly[simp]:
+  \<open>polynom_of_list (mult_poly xs ys) = polynom_of_list xs * polynom_of_list ys\<close>
+  by (auto simp: mult_poly_def)
+
 
 end
 
 end
+
