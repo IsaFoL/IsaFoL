@@ -76,24 +76,5 @@ lemma rtranclp_PAC_Format_subset_ideal:
       dest: ideal.span_subset_spanI)
   by (meson ideal.span_subset_spanI ideal.span_superset le_sup_iff subsetD)
 
-lemma poly_embed_EX:
-  \<open>\<exists>\<phi>. bij (\<phi> :: string list \<Rightarrow> nat)\<close>
-  by (rule countableE_infinite[of \<open>UNIV :: string list set\<close>])
-     (auto intro!: infinite_UNIV_listI)
-
-locale poly_embed =
-  fixes \<phi> :: \<open>string \<Rightarrow> nat\<close>
-  assumes \<open>bij \<phi>\<close>
-begin
-
-type_synonym polynom_list =
-  \<open>(string list * nat) list\<close>
-
-fun polynom_of_list :: \<open>polynom_list \<Rightarrow> _ mpoly\<close> where
-  \<open>polynom_of_list [] = 0\<close> |
-  \<open>polynom_of_list ((xs, n) # p) =
-     Const n * (fold (\<lambda>a b. Const (\<phi> a) * b) xs 0) + polynom_of_list p\<close>
-
-end
 
 end

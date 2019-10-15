@@ -6,3 +6,4 @@ session PAC_Checker = HOL +
      "Polynomials"
    theories
      PAC_Specification
+     PAC_Polynoms
