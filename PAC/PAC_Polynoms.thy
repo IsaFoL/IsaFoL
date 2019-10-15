@@ -23,6 +23,11 @@ lemma Const_add:
   by transfer
    (simp add: Const\<^sub>0_def single_add)
 
+lemma Const_mult:
+  \<open>Const (a * b) = Const a * Const b\<close>
+  by transfer
+     (simp add: Const\<^sub>0_def times_monomial_monomial)
+
 lemma Const0[simp]:
   \<open>Const 0 = 0\<close>
   by transfer (simp add: Const\<^sub>0_def)
@@ -95,35 +100,6 @@ definition normalize_poly where
   \<open>normalize_poly p = remove_empty_coeffs (merge_coeffs p)\<close>
 
 
-
-locale poly_embed =
-  fixes \<phi> :: \<open>string \<Rightarrow> nat\<close>
-  assumes \<open>bij \<phi>\<close>
-begin
-
-fun polynom_of_list :: \<open>list_polynom \<Rightarrow> _ mpoly\<close> where
-  \<open>polynom_of_list [] = 0\<close> |
-  \<open>polynom_of_list ((xs, n) # p) =
-     Const n * (Finite_Set.fold (\<lambda>a b. Const (\<phi> a) * b) 0 xs) + polynom_of_list p\<close>
-
-lemma polynom_of_list_merge_coeffs[simp]:
-  \<open>polynom_of_list (merge_coeffs xs) = polynom_of_list xs\<close>
-  by (induction xs rule: merge_coeffs.induct)
-    (auto simp: Const_add algebra_simps)
-
-lemma polynom_of_list_remove_empty_coeffs[simp]:
-  \<open>polynom_of_list (remove_empty_coeffs xs) = polynom_of_list xs\<close>
-  by (induction xs)
-    (auto simp: Const_add algebra_simps)
-
-lemma normalized_poly_normalize_poly:
-  assumes \<open>sorted_wrt R (map fst xs)\<close> and \<open>transp R\<close> \<open>antisymp R\<close>
-  shows \<open>normalized_poly (normalize_poly xs)\<close>
-  using distinct_merge_coeffs[OF assms]
-  remove_empty_coeffs_notin_0[]
-  by (auto simp: normalize_poly_def normalized_poly_def
-    distinct_remove_empty_coeffs)
-
 context
   fixes R :: \<open>string set \<Rightarrow> string set \<Rightarrow> bool\<close>
 begin
@@ -139,17 +115,6 @@ fun add_poly :: \<open>list_polynom \<Rightarrow> list_polynom \<Rightarrow> lis
 lemma add_poly_simps[simp]:
   \<open>add_poly p [] = p\<close>
   by (cases p) auto
-
-lemma polynom_of_list_add_poly[simp]:
-  \<open>polynom_of_list (add_poly xs ys) = polynom_of_list xs + polynom_of_list ys\<close>
-  apply (induction xs ys rule: add_poly.induct)
-  subgoal
-    by auto
-  subgoal
-    by auto
-  subgoal for x xs y ys
-    by (auto simp: Const_add algebra_simps)
-  done
 
 lemma notin_vars_notin_add_polyD:
   \<open>x \<notin> vars2 xs \<Longrightarrow>  x \<notin> vars2 ys \<Longrightarrow> x \<notin> vars2 (add_poly xs ys)\<close>
@@ -173,6 +138,7 @@ lemma notin_vars_notin_add_polyD2:
     by (auto simp: Const_add algebra_simps)
   done
 
+
 lemma normalized_poly_add_poly:
   assumes \<open>sorted_wrt R (map fst xs)\<close> and \<open>transp R\<close> \<open>antisymp R\<close>
      \<open>sorted_wrt R (map fst ys)\<close>
@@ -192,6 +158,62 @@ lemma normalized_poly_add_poly:
       apply (smt fst_conv image_iff insert_iff list.set(2) notin_vars_notin_add_polyD)
       apply (smt fst_conv image_iff insert_iff list.set(2) notin_vars_notin_add_polyD)
     done
+  done
+
+end
+
+
+lemma normalized_poly_normalize_poly:
+  assumes \<open>sorted_wrt R (map fst xs)\<close> and \<open>transp R\<close> \<open>antisymp R\<close>
+  shows \<open>normalized_poly (normalize_poly xs)\<close>
+  using distinct_merge_coeffs[OF assms]
+  remove_empty_coeffs_notin_0[]
+  by (auto simp: normalize_poly_def normalized_poly_def
+    distinct_remove_empty_coeffs)
+
+text \<open>TODO: multisets are more meaningfull here! The union is the wrong operator\<close>
+fun mult_poly_raw :: \<open>list_polynom \<Rightarrow> list_polynom \<Rightarrow> list_polynom\<close> where
+  \<open>mult_poly_raw [] p = []\<close> |
+  \<open>mult_poly_raw p [] = []\<close> |
+  \<open>mult_poly_raw ((xs, m) # p) q =
+     map (\<lambda>(ys, n). (xs \<union> ys, n * m)) q @
+     mult_poly_raw p q\<close>
+
+
+locale poly_embed =
+  fixes \<phi> :: \<open>string \<Rightarrow> nat\<close>
+  assumes \<open>bij \<phi>\<close>
+begin
+
+fun polynom_of_list :: \<open>list_polynom \<Rightarrow> _ mpoly\<close> where
+  \<open>polynom_of_list [] = 0\<close> |
+  \<open>polynom_of_list ((xs, n) # p) =
+     Const n * (Finite_Set.fold (\<lambda>a b. Const (\<phi> a) * b) 0 xs) + polynom_of_list p\<close>
+
+lemma polynom_of_list_append[simp]:
+  \<open>polynom_of_list (xs @ ys) = polynom_of_list xs + polynom_of_list ys\<close>
+  by (induction xs arbitrary: ys)
+    (auto simp: ac_simps)
+
+lemma polynom_of_list_merge_coeffs[simp]:
+  \<open>polynom_of_list (merge_coeffs xs) = polynom_of_list xs\<close>
+  by (induction xs rule: merge_coeffs.induct)
+    (auto simp: Const_add algebra_simps)
+
+lemma polynom_of_list_remove_empty_coeffs[simp]:
+  \<open>polynom_of_list (remove_empty_coeffs xs) = polynom_of_list xs\<close>
+  by (induction xs)
+    (auto simp: Const_add algebra_simps)
+
+lemma polynom_of_list_add_poly[simp]:
+  \<open>polynom_of_list (add_poly R xs ys) = polynom_of_list xs + polynom_of_list ys\<close>
+  apply (induction xs ys rule: add_poly.induct[of _ R])
+  subgoal
+    by auto
+  subgoal
+    by auto
+  subgoal for x m xs y n ys
+    by (auto simp: Const_add algebra_simps)
   done
 
 end
