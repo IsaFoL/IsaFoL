@@ -10,7 +10,7 @@ lemma poly_embed_EX:
      (auto intro!: infinite_UNIV_listI)
 
 type_synonym list_polynom =
-  \<open>(string multiset * nat) list\<close>
+  \<open>(string multiset * int) list\<close>
 
 abbreviation  (in -)vars :: \<open>list_polynom \<Rightarrow> string multiset list\<close> where
   \<open>vars p \<equiv> map fst p\<close>
@@ -119,7 +119,7 @@ fun add_poly :: \<open>list_polynom \<Rightarrow> list_polynom \<Rightarrow> lis
   \<open>add_poly [] p = p\<close> |
   \<open>add_poly p [] = p\<close> |
   \<open>add_poly ((xs, n) # p) ((ys, m) # q) =
-    (if xs = ys then (xs, n + m) # add_poly p q
+    (if xs = ys then if n + m = 0 then add_poly p q else (xs, n + m) # add_poly p q
     else if R xs ys then (xs, n) # add_poly p ((ys, m) # q)
     else (ys, m) # add_poly ((xs, n) # p) q)\<close>
 
@@ -166,6 +166,8 @@ lemma normalized_poly_add_poly:
       dest: antisympD)
     apply (smt antisympD fst_conv image_iff insert_iff list.set(2) notin_vars_notin_add_polyD)
     apply (smt antisympD fst_conv image_iff insert_iff list.set(2) notin_vars_notin_add_polyD)
+    apply (smt antisympD fst_conv image_iff insert_iff list.set(2) notin_vars_notin_add_polyD)
+    apply (smt antisympD fst_conv image_iff insert_iff list.set(2) notin_vars_notin_add_polyD)
     done
   done
 
@@ -199,47 +201,55 @@ definition mult_poly :: \<open>list_polynom \<Rightarrow> list_polynom \<Rightar
 definition remove_powers :: \<open>list_polynom \<Rightarrow> list_polynom\<close> where
   \<open>remove_powers xs = map (\<lambda>(a, b). (remdups_mset a, b)) xs\<close>
 
+instance mpoly :: (comm_semiring_1) comm_semiring_1
+  by standard
+
+lemma [simp]: \<open>Const\<^sub>0 0 = 0\<close>
+  \<open>MPoly 0 = 0\<close>
+  supply [[show_sorts]]
+  by (auto simp: Const\<^sub>0_def zero_mpoly_def)
+
 locale poly_embed =
   fixes \<phi> :: \<open>string \<Rightarrow> nat\<close>
   assumes \<open>bij \<phi>\<close>
 begin
 
-definition poly_of_vars :: "char list multiset \<Rightarrow> (nat \<Rightarrow>\<^sub>0 nat) \<Rightarrow>\<^sub>0 int" where
-  \<open>poly_of_vars xs = fold_mset (\<lambda>a b. Var\<^sub>0 (\<phi> a) * b) 0 xs\<close>
+definition poly_of_vars :: "char list multiset \<Rightarrow> ('a :: {comm_semiring_1}) mpoly" where
+  \<open>poly_of_vars xs = fold_mset (\<lambda>a b. Var (\<phi> a) * b) (0 :: 'a mpoly) xs\<close>
 
+term MPoly
 lemma poly_of_vars_simps[simp]:
-  \<open>poly_of_vars (add_mset x xs) = Var\<^sub>0 (\<phi> x) * (poly_of_vars xs)\<close>
-  \<open>poly_of_vars (xs + ys) = poly_of_vars xs * (poly_of_vars ys)\<close>
+  shows
+    \<open>poly_of_vars (add_mset x xs) = Var (\<phi> x) * (poly_of_vars xs :: ('a :: {comm_semiring_1}) mpoly)\<close> (is ?A) and
+    \<open>poly_of_vars (xs + ys) = poly_of_vars xs * (poly_of_vars ys :: ('a :: {comm_semiring_1}) mpoly)\<close> (is ?B)
 proof -
-  interpret comp_fun_commute \<open>(\<lambda>a b. b * Var\<^sub>0 (\<phi> a))\<close>
+  interpret comp_fun_commute \<open>(\<lambda>a b. (b :: 'a :: {comm_semiring_1} mpoly) * Var (\<phi> a))\<close>
     by standard
-      (auto simp: algebra_simps
-         Var\<^sub>0_def times_monomial_monomial intro!: ext)
-
-  show
-    \<open>poly_of_vars (add_mset x xs) = Var\<^sub>0 (\<phi> x) * (poly_of_vars xs)\<close>
+      (auto simp: algebra_simps ac_simps
+         Var_def times_monomial_monomial intro!: ext)
+  note [[show_types]]
+  show ?A
     by (auto simp: comp_fun_commute.fold_mset_add_mset
       poly_of_vars_def comp_fun_commute_axioms fold_mset_fusion mult.assoc
       ac_simps)
-  show
-    \<open>poly_of_vars (xs + ys) = poly_of_vars xs * (poly_of_vars ys)\<close>
+  show ?B
     apply (auto simp: comp_fun_commute.fold_mset_add_mset
       poly_of_vars_def mult.assoc ac_simps)
     by (smt comp_fun_commute_axioms fold_mset_fusion mult.commute mult_zero_right)
 qed
 
 fun polynom_of_list :: \<open>list_polynom \<Rightarrow> _\<close> where
-  \<open>polynom_of_list [] = Const\<^sub>0 0\<close> |
+  \<open>polynom_of_list [] = Const 0\<close> |
   \<open>polynom_of_list ((xs, n) # p) =
-     Const\<^sub>0 n * poly_of_vars xs + polynom_of_list p\<close>
+     Const n * poly_of_vars xs + polynom_of_list p\<close>
 
 lemma polynom_of_list_append[simp]:
   \<open>polynom_of_list (xs @ ys) = polynom_of_list xs + polynom_of_list ys\<close>
   by (induction xs arbitrary: ys)
-    (auto simp: ac_simps Const\<^sub>0_def)
+    (auto simp: ac_simps Const_def)
 
 lemma polynom_of_list_Cons[simp]:
-  \<open>polynom_of_list (x # ys) = Const\<^sub>0 (snd x) * poly_of_vars (fst x) + polynom_of_list ys\<close>
+  \<open>polynom_of_list (x # ys) = Const (snd x) * poly_of_vars (fst x) + polynom_of_list ys\<close>
   by (cases x)
     (auto simp: ac_simps)
 
@@ -263,14 +273,17 @@ qed
 lemma polynom_of_list_merge_coeffs[simp]:
   \<open>polynom_of_list (merge_coeffs xs) = polynom_of_list xs\<close>
   by (induction xs rule: merge_coeffs.induct)
-    (auto simp: Const\<^sub>0_add algebra_simps)
+    (auto simp: Const_add algebra_simps)
 
 lemma polynom_of_list_remove_empty_coeffs[simp]:
   \<open>polynom_of_list (remove_empty_coeffs xs) = polynom_of_list xs\<close>
   by (induction xs)
-    (auto simp: Const\<^sub>0_add Const\<^sub>0_def algebra_simps)
+    (auto simp: Const_add Const_def algebra_simps)
 
-lemmas [simp] = Const\<^sub>0_zero
+lemma (in -) Const_uminus[simp]:
+  \<open>Const (-n) = - Const n\<close>
+  by transfer
+    (auto simp: Const\<^sub>0_def monomial_uminus)
 
 lemma polynom_of_list_add_poly[simp]:
   \<open>polynom_of_list (add_poly R xs ys) = polynom_of_list xs + polynom_of_list ys\<close>
@@ -280,7 +293,7 @@ lemma polynom_of_list_add_poly[simp]:
   subgoal
     by auto
   subgoal for x m xs y n ys
-    by (auto simp: Const\<^sub>0_add algebra_simps)
+    by (auto simp: Const_add algebra_simps group_add_class.add_eq_0_iff2)
   done
 
 
@@ -293,10 +306,10 @@ lemma polynom_of_list_map_mult:
 
 lemma polynom_of_list_map_mult2:
   \<open>polynom_of_list (map (\<lambda>(ys, n). (ys, n * m)) va) =
-     Const\<^sub>0 m *
+     Const m *
      polynom_of_list (map (\<lambda>(ys, n). (ys, n)) va)\<close>
   by (induction va)
-    (auto simp: Const\<^sub>0_add algebra_simps Const\<^sub>0_mult)
+    (auto simp: Const_add algebra_simps Const_mult)
 
 
 lemma polynom_of_list_mult_poly_raw[simp]:
@@ -308,9 +321,9 @@ lemma polynom_of_list_mult_poly_raw[simp]:
     by auto
   subgoal for x m xs ys
     by (cases ys)
-     (auto simp: Const\<^sub>0_add algebra_simps
+     (auto simp: Const_add algebra_simps
        polynom_of_list_map_mult polynom_of_list_map_mult2
-      Const\<^sub>0_mult)
+      Const_mult)
   done
 
 
@@ -334,7 +347,7 @@ lemma (in -) ideal_mult_right_in2:
 
 
 lemma (in -) X2_X_polynom_bool_mult_in:
-  \<open>Var\<^sub>0 (x1) * (Var\<^sub>0 (x1) * p) -  Var\<^sub>0 (x1) * p \<in> More_Modules.ideal polynom_bool\<close>
+  \<open>Var (x1) * (Var (x1) * p) -  Var (x1) * p \<in> More_Modules.ideal polynom_bool\<close>
   using ideal_mult_right_in[OF  X2_X_in_pac_ideal[of x1 \<open>{}\<close>], of p]
   by (auto simp: right_diff_distrib ac_simps power2_eq_square)
 
@@ -347,11 +360,11 @@ proof (induction xs)
 next
   case (Cons x xs)
   have H1: \<open>x1 \<in># x2 \<Longrightarrow>
-       Var\<^sub>0 (\<phi> x1) * poly_of_vars x2 - p \<in> More_Modules.ideal polynom_bool \<longleftrightarrow>
+       Var (\<phi> x1) * poly_of_vars x2 - p \<in> More_Modules.ideal polynom_bool \<longleftrightarrow>
        poly_of_vars x2 - p \<in> More_Modules.ideal polynom_bool
        \<close> for x1 x2 p
     apply (subst (2) ideal.span_add_eq[symmetric,
-      of \<open>Var\<^sub>0 (\<phi> x1) * poly_of_vars x2 - poly_of_vars x2\<close>])
+      of \<open>Var (\<phi> x1) * poly_of_vars x2 - poly_of_vars x2\<close>])
     apply (drule multi_member_split)
     apply (auto simp: X2_X_polynom_bool_mult_in)
     done
@@ -361,7 +374,7 @@ next
     apply (auto simp: remove_powers_def ideal.span_zero H1)
     apply (metis ideal.span_scale right_diff_distrib)
     done
-  from ideal_mult_right_in2[OF this, of \<open>Const\<^sub>0 (snd x)\<close> \<open>fst x\<close>]
+  from ideal_mult_right_in2[OF this, of \<open>Const (snd x)\<close> \<open>fst x\<close>]
   show ?case
     using Cons
     apply (cases x)

@@ -4,9 +4,9 @@ theory PAC_Specification
   "HOL-Library.Countable_Set"
 begin
 
-type_synonym int_poly = \<open>((nat \<Rightarrow>\<^sub>0 nat) \<Rightarrow>\<^sub>0 int)\<close>
+type_synonym int_poly = \<open>int mpoly\<close>
 definition polynom_bool :: \<open>int_poly set\<close> where
-  \<open>polynom_bool = (\<lambda>c. Var\<^sub>0 c ^ 2 - Var\<^sub>0 c) ` UNIV\<close>
+  \<open>polynom_bool = (\<lambda>c. Var c ^ 2 - Var c) ` UNIV\<close>
 
 term \<open>ideal (A \<union> polynom_bool)\<close>
 
@@ -20,12 +20,12 @@ lemma
   by (metis assms ideal.span_scale semiring_normalization_rules(7))
 
 lemma X2_X_in_pac_ideal:
-  \<open>Var\<^sub>0 c ^ 2 - Var\<^sub>0 c \<in> pac_ideal A\<close>
+  \<open>Var c ^ 2 - Var c \<in> pac_ideal A\<close>
   unfolding polynom_bool_def
   by (auto intro: ideal.span_base)
 
 lemma pac_ideal_Xsq2_iff:
-  \<open>Var\<^sub>0 c ^ 2 \<in> pac_ideal A \<longleftrightarrow> Var\<^sub>0 c \<in> pac_ideal A\<close>
+  \<open>Var c ^ 2 \<in> pac_ideal A \<longleftrightarrow> Var c \<in> pac_ideal A\<close>
   apply (subst (2) ideal.span_add_eq[symmetric, OF X2_X_in_pac_ideal[of c]])
   apply auto
   done
@@ -53,9 +53,22 @@ del:
    \<open>p \<in> A \<Longrightarrow> PAC_Format A (A - {p})\<close>
 
 lemma diff_in_polynom_bool_pac_idealI:
-  \<open>p - p' \<in> ideal polynom_bool \<Longrightarrow> p \<in> pac_ideal A \<Longrightarrow>  p' \<in> pac_ideal A\<close>
-  by (smt ideal.eq_span_insert_eq ideal.span_subset_spanI ideal.span_superset
-    insert_subset le_sup_iff subsetD)
+   assumes a1: "p \<in> pac_ideal A"
+   assumes a2: "p - p' \<in> More_Modules.ideal polynom_bool"
+   shows \<open>p' \<in> pac_ideal A\<close>
+ proof -
+   have "insert p polynom_bool \<subseteq> pac_ideal A"
+     using a1 by (meson ideal.span_superset insert_subset le_sup_iff)
+   then show ?thesis
+     using a2 by (metis (no_types) ideal.eq_span_insert_eq ideal.span_subset_spanI ideal.span_superset insert_subset subsetD)
+qed
+
+lemma diff_in_polynom_bool_pac_idealI2:
+   assumes a1: "p \<in> A"
+   assumes a2: "p - p' \<in> More_Modules.ideal polynom_bool"
+   shows \<open>p' \<in> pac_ideal A\<close>
+   using diff_in_polynom_bool_pac_idealI[OF _ assms(2), of A] assms(1)
+   by (auto simp: ideal.span_base)
 
 lemma pac_ideal_alt_def:
   \<open>pac_ideal A = ideal (A \<union> ideal polynom_bool)\<close>
@@ -65,12 +78,13 @@ lemma PAC_Format_subset_ideal:
   \<open>PAC_Format A B \<Longrightarrow> B \<subseteq> pac_ideal A\<close>
   apply (induction rule:PAC_Format.induct)
   subgoal
-    by (auto simp: ideal.span_add_eq ideal.span_base pac_ideal_alt_def
-        ac_simps
+    apply (auto simp: ideal.span_add_eq ideal.span_base pac_ideal_alt_def
       intro: diff_in_polynom_bool_pac_idealI[unfolded pac_ideal_alt_def])
+   by (metis cancel_comm_monoid_add_class.diff_cancel diff_in_polynom_bool_pac_idealI
+     diff_in_polynom_bool_pac_idealI2 ideal.span_add ideal.span_zero pac_ideal_alt_def)
   subgoal for p q p'
     using  diff_in_polynom_bool_pac_idealI[unfolded pac_ideal_alt_def,
-      of \<open>p * q\<close> p' A]
+      of \<open>p * q\<close> A p']
     apply (auto simp: ideal.span_add_eq ideal.span_base pac_ideal_alt_def
         ac_simps
       intro: diff_in_polynom_bool_pac_idealI[unfolded pac_ideal_alt_def])
