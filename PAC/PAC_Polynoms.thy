@@ -24,8 +24,18 @@ lemma Const_add:
   by transfer
    (simp add: Const\<^sub>0_def single_add)
 
+lemma Const\<^sub>0_add:
+  \<open>Const\<^sub>0 (a + b) = Const\<^sub>0 a + Const\<^sub>0 b\<close>
+  by transfer
+   (simp add: Const\<^sub>0_def single_add)
+
 lemma Const_mult:
   \<open>Const (a * b) = Const a * Const b\<close>
+  by transfer
+     (simp add: Const\<^sub>0_def times_monomial_monomial)
+
+lemma Const\<^sub>0_mult:
+  \<open>Const\<^sub>0 (a * b) = Const\<^sub>0 a * Const\<^sub>0 b\<close>
   by transfer
      (simp add: Const\<^sub>0_def times_monomial_monomial)
 
@@ -186,24 +196,28 @@ fun mult_poly_raw :: \<open>list_polynom \<Rightarrow> list_polynom \<Rightarrow
 definition mult_poly :: \<open>list_polynom \<Rightarrow> list_polynom \<Rightarrow> list_polynom\<close> where
   \<open>mult_poly xs ys = normalize_poly (mult_poly_raw xs ys)\<close>
 
+definition remove_powers :: \<open>list_polynom \<Rightarrow> list_polynom\<close> where
+  \<open>remove_powers xs = map (\<lambda>(a, b). (remdups_mset a, b)) xs\<close>
 
 locale poly_embed =
   fixes \<phi> :: \<open>string \<Rightarrow> nat\<close>
   assumes \<open>bij \<phi>\<close>
 begin
 
-definition poly_of_vars where
-  \<open>poly_of_vars xs = fold_mset (\<lambda>a b. Const (\<phi> a) * b) 0 xs\<close>
+definition poly_of_vars :: "char list multiset \<Rightarrow> (nat \<Rightarrow>\<^sub>0 nat) \<Rightarrow>\<^sub>0 int" where
+  \<open>poly_of_vars xs = fold_mset (\<lambda>a b. Var\<^sub>0 (\<phi> a) * b) 0 xs\<close>
 
 lemma poly_of_vars_simps[simp]:
-  \<open>poly_of_vars (add_mset x xs) = Const (\<Phi> x) * (poly_of_vars xs)\<close>
+  \<open>poly_of_vars (add_mset x xs) = Var\<^sub>0 (\<phi> x) * (poly_of_vars xs)\<close>
   \<open>poly_of_vars (xs + ys) = poly_of_vars xs * (poly_of_vars ys)\<close>
 proof -
-  interpret comp_fun_commute \<open>(\<lambda>a b. b * Const (\<phi> a))\<close>
+  interpret comp_fun_commute \<open>(\<lambda>a b. b * Var\<^sub>0 (\<phi> a))\<close>
     by standard
-      (auto simp: algebra_simps)
+      (auto simp: algebra_simps
+         Var\<^sub>0_def times_monomial_monomial intro!: ext)
+
   show
-    \<open>poly_of_vars (add_mset x xs) = Const (\<Phi> x) * (poly_of_vars xs)\<close>
+    \<open>poly_of_vars (add_mset x xs) = Var\<^sub>0 (\<phi> x) * (poly_of_vars xs)\<close>
     by (auto simp: comp_fun_commute.fold_mset_add_mset
       poly_of_vars_def comp_fun_commute_axioms fold_mset_fusion mult.assoc
       ac_simps)
@@ -214,18 +228,18 @@ proof -
     by (smt comp_fun_commute_axioms fold_mset_fusion mult.commute mult_zero_right)
 qed
 
-fun polynom_of_list :: \<open>list_polynom \<Rightarrow> _ mpoly\<close> where
-  \<open>polynom_of_list [] = 0\<close> |
+fun polynom_of_list :: \<open>list_polynom \<Rightarrow> _\<close> where
+  \<open>polynom_of_list [] = Const\<^sub>0 0\<close> |
   \<open>polynom_of_list ((xs, n) # p) =
-     Const n * poly_of_vars xs + polynom_of_list p\<close>
+     Const\<^sub>0 n * poly_of_vars xs + polynom_of_list p\<close>
 
 lemma polynom_of_list_append[simp]:
   \<open>polynom_of_list (xs @ ys) = polynom_of_list xs + polynom_of_list ys\<close>
   by (induction xs arbitrary: ys)
-    (auto simp: ac_simps)
+    (auto simp: ac_simps Const\<^sub>0_def)
 
 lemma polynom_of_list_Cons[simp]:
-  \<open>polynom_of_list (x # ys) = Const (snd x) * poly_of_vars (fst x) + polynom_of_list ys\<close>
+  \<open>polynom_of_list (x # ys) = Const\<^sub>0 (snd x) * poly_of_vars (fst x) + polynom_of_list ys\<close>
   by (cases x)
     (auto simp: ac_simps)
 
@@ -249,12 +263,14 @@ qed
 lemma polynom_of_list_merge_coeffs[simp]:
   \<open>polynom_of_list (merge_coeffs xs) = polynom_of_list xs\<close>
   by (induction xs rule: merge_coeffs.induct)
-    (auto simp: Const_add algebra_simps)
+    (auto simp: Const\<^sub>0_add algebra_simps)
 
 lemma polynom_of_list_remove_empty_coeffs[simp]:
   \<open>polynom_of_list (remove_empty_coeffs xs) = polynom_of_list xs\<close>
   by (induction xs)
-    (auto simp: Const_add algebra_simps)
+    (auto simp: Const\<^sub>0_add Const\<^sub>0_def algebra_simps)
+
+lemmas [simp] = Const\<^sub>0_zero
 
 lemma polynom_of_list_add_poly[simp]:
   \<open>polynom_of_list (add_poly R xs ys) = polynom_of_list xs + polynom_of_list ys\<close>
@@ -264,7 +280,7 @@ lemma polynom_of_list_add_poly[simp]:
   subgoal
     by auto
   subgoal for x m xs y n ys
-    by (auto simp: Const_add algebra_simps)
+    by (auto simp: Const\<^sub>0_add algebra_simps)
   done
 
 
@@ -277,10 +293,10 @@ lemma polynom_of_list_map_mult:
 
 lemma polynom_of_list_map_mult2:
   \<open>polynom_of_list (map (\<lambda>(ys, n). (ys, n * m)) va) =
-     Const m *
+     Const\<^sub>0 m *
      polynom_of_list (map (\<lambda>(ys, n). (ys, n)) va)\<close>
   by (induction va)
-    (auto simp: Const_add algebra_simps Const_mult)
+    (auto simp: Const\<^sub>0_add algebra_simps Const\<^sub>0_mult)
 
 
 lemma polynom_of_list_mult_poly_raw[simp]:
@@ -292,9 +308,9 @@ lemma polynom_of_list_mult_poly_raw[simp]:
     by auto
   subgoal for x m xs ys
     by (cases ys)
-     (auto simp: Const_add algebra_simps
+     (auto simp: Const\<^sub>0_add algebra_simps
        polynom_of_list_map_mult polynom_of_list_map_mult2
-      Const_mult)
+      Const\<^sub>0_mult)
   done
 
 
@@ -307,6 +323,52 @@ lemma polynom_of_list_mult_poly[simp]:
   \<open>polynom_of_list (mult_poly xs ys) = polynom_of_list xs * polynom_of_list ys\<close>
   by (auto simp: mult_poly_def)
 
+
+lemma (in -) ideal_mult_right_in:
+  \<open>a \<in> ideal A \<Longrightarrow> a * b \<in> More_Modules.ideal A\<close>
+  by (metis ideal.span_scale linordered_field_class.sign_simps(5))
+
+lemma (in -) ideal_mult_right_in2:
+  \<open>a \<in> ideal A \<Longrightarrow> b * a \<in> More_Modules.ideal A\<close>
+  by (metis ideal.span_scale linordered_field_class.sign_simps(5))
+
+
+lemma (in -) X2_X_polynom_bool_mult_in:
+  \<open>Var\<^sub>0 (x1) * (Var\<^sub>0 (x1) * p) -  Var\<^sub>0 (x1) * p \<in> More_Modules.ideal polynom_bool\<close>
+  using ideal_mult_right_in[OF  X2_X_in_pac_ideal[of x1 \<open>{}\<close>], of p]
+  by (auto simp: right_diff_distrib ac_simps power2_eq_square)
+
+
+lemma polynom_of_list_remove_powers_polynom_bool:
+  \<open>(polynom_of_list xs) - polynom_of_list (remove_powers xs) \<in> ideal polynom_bool\<close>
+proof (induction xs)
+  case Nil
+  then show \<open>?case\<close> by (auto simp: remove_powers_def ideal.span_zero)
+next
+  case (Cons x xs)
+  have H1: \<open>x1 \<in># x2 \<Longrightarrow>
+       Var\<^sub>0 (\<phi> x1) * poly_of_vars x2 - p \<in> More_Modules.ideal polynom_bool \<longleftrightarrow>
+       poly_of_vars x2 - p \<in> More_Modules.ideal polynom_bool
+       \<close> for x1 x2 p
+    apply (subst (2) ideal.span_add_eq[symmetric,
+      of \<open>Var\<^sub>0 (\<phi> x1) * poly_of_vars x2 - poly_of_vars x2\<close>])
+    apply (drule multi_member_split)
+    apply (auto simp: X2_X_polynom_bool_mult_in)
+    done
+
+  have \<open>poly_of_vars (x) - poly_of_vars (remdups_mset (x)) \<in> ideal polynom_bool\<close> for x
+    apply (induction x)
+    apply (auto simp: remove_powers_def ideal.span_zero H1)
+    apply (metis ideal.span_scale right_diff_distrib)
+    done
+  from ideal_mult_right_in2[OF this, of \<open>Const\<^sub>0 (snd x)\<close> \<open>fst x\<close>]
+  show ?case
+    using Cons
+    apply (cases x)
+    apply (auto simp: remove_powers_def right_diff_distrib
+      ideal.span_diff ideal.span_add ac_simps)
+   by (metis (no_types, lifting) add.commute add_diff_add ideal.span_add_eq)
+qed
 
 end
 

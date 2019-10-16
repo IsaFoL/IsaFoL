@@ -38,32 +38,49 @@ text \<open>The PAC format contains three kind of steps:
 To model the simplification that happens, we add the \<^term>\<open>p - p' \<in> polynom_bool\<close>
 stating that \<^term>\<open>p\<close> and  \<^term>\<open>p'\<close> are equivalent.
 \<close>
-inductive PAC_Format :: \<open>int_poly set \<Rightarrow> int_poly set \<Rightarrow> bool\<close> where
+inductive PAC_Format :: \<open>int_poly set \<Rightarrow> int_poly set \<Rightarrow> bool\<close> for A :: \<open>int_poly set\<close> where
 add:
   \<open>PAC_Format A (insert p' A)\<close>
 if
    \<open>p \<in> A\<close> \<open>q \<in> A\<close>
-   \<open>p+q - p' \<in> polynom_bool\<close> |
+   \<open>p+q - p' \<in> ideal polynom_bool\<close> |
 mult:
   \<open>PAC_Format A (insert p' A)\<close>
 if
    \<open>p \<in> A\<close>
-   \<open>p*q - p' \<in> polynom_bool\<close> |
+   \<open>p*q - p' \<in> ideal polynom_bool\<close> |
 del:
    \<open>p \<in> A \<Longrightarrow> PAC_Format A (A - {p})\<close>
 
 lemma diff_in_polynom_bool_pac_idealI:
-  \<open>p - p' \<in> polynom_bool \<Longrightarrow> p \<in> pac_ideal A \<Longrightarrow>  p' \<in> pac_ideal A\<close>
-  by (smt Un_insert_right add_diff_cancel group_eq_aux ideal.span_diff ideal.span_superset
-      insertCI mk_disjoint_insert subsetD)
+  \<open>p - p' \<in> ideal polynom_bool \<Longrightarrow> p \<in> pac_ideal A \<Longrightarrow>  p' \<in> pac_ideal A\<close>
+  by (smt ideal.eq_span_insert_eq ideal.span_subset_spanI ideal.span_superset
+    insert_subset le_sup_iff subsetD)
+
+lemma pac_ideal_alt_def:
+  \<open>pac_ideal A = ideal (A \<union> ideal polynom_bool)\<close>
+  by (meson ideal.span_eq ideal.span_mono ideal.span_superset le_sup_iff subset_trans sup_ge2)
 
 lemma PAC_Format_subset_ideal:
   \<open>PAC_Format A B \<Longrightarrow> B \<subseteq> pac_ideal A\<close>
   apply (induction rule:PAC_Format.induct)
-    apply (auto simp: ideal.span_add_eq ideal.span_base
-      intro: diff_in_polynom_bool_pac_idealI)
-  by (smt diff_in_polynom_bool_pac_idealI ideal.span_scale ideal.span_superset le_sup_iff
-      semiring_normalization_rules(7) subsetD)
+  subgoal
+    by (auto simp: ideal.span_add_eq ideal.span_base pac_ideal_alt_def
+        ac_simps
+      intro: diff_in_polynom_bool_pac_idealI[unfolded pac_ideal_alt_def])
+  subgoal for p q p'
+    using  diff_in_polynom_bool_pac_idealI[unfolded pac_ideal_alt_def,
+      of \<open>p * q\<close> p' A]
+    apply (auto simp: ideal.span_add_eq ideal.span_base pac_ideal_alt_def
+        ac_simps
+      intro: diff_in_polynom_bool_pac_idealI[unfolded pac_ideal_alt_def])
+    by (metis UnCI diff_in_polynom_bool_pac_idealI ideal.span_base ideal.span_scale
+       pac_ideal_alt_def semiring_normalization_rules(7))
+  subgoal
+    by (auto simp: ideal.span_add_eq ideal.span_base pac_ideal_alt_def
+        ac_simps
+      intro: diff_in_polynom_bool_pac_idealI[unfolded pac_ideal_alt_def])
+  done
 
 text \<open>
   In general, if deletions are disallowed, then the stronger \<^term>\<open>B = pac_ideal A\<close> holds.
