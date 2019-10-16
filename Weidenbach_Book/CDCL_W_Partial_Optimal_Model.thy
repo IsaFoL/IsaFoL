@@ -638,9 +638,6 @@ next
   case cdcl_bnb_other'
   then show ?thesis
   proof cases
-    case decide
-    then show ?thesis by (auto elim!: rulesE)
-  next
     case bj
     then show ?thesis
     proof cases

@@ -382,10 +382,8 @@ proof -
   have Cons: \<open>r (x # xs) = (x, k^(Suc (length xs))) # (r xs)\<close> for x xs
    unfolding r_def
    apply (subst upt')
-   apply (clarsimp simp add: upt'' comp_def nth_append Suc_diff_le simp flip: zip_map2
-     intro!: zip_cong2)
-   apply (clarsimp simp add: upt'' comp_def nth_append Suc_diff_le simp flip: zip_map2
-     intro!: zip_cong2)
+   apply (clarsimp simp add: upt'' comp_def nth_append Suc_diff_le simp flip: zip_map2)
+   apply (clarsimp simp add: upt'' comp_def nth_append Suc_diff_le simp flip: zip_map2)
    done
 
   have [simp]: \<open>s (ab # xs) = fst ab * snd ab + s xs\<close> for ab xs
