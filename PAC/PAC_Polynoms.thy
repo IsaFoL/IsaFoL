@@ -78,7 +78,7 @@ definition mult_poly_by_monom :: \<open>string multiset * int \<Rightarrow> mset
 
 definition mult_poly_raw :: \<open>mset_polynom \<Rightarrow> mset_polynom \<Rightarrow> mset_polynom\<close> where
   \<open>mult_poly_raw p q =
-    (fold_mset (\<lambda>y. (+) (mult_poly_by_monom y q)) {#} p)\<close>
+    (sum_mset ((\<lambda>y. (mult_poly_by_monom y q)) `# p))\<close>
 
 
 definition remove_powers :: \<open>mset_polynom \<Rightarrow> mset_polynom\<close> where
