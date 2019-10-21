@@ -21,6 +21,7 @@ locale consequence_relation =
     Bot :: "'f set" and
     entails :: "'f set \<Rightarrow> 'f set \<Rightarrow> bool" (infix "\<Turnstile>" 50)
   assumes
+    bot_not_empty: "Bot \<noteq> {}" and
     bot_implies_all: "B \<in> Bot \<Longrightarrow> {B} \<Turnstile> N1" and
     subset_entailed: "N2 \<subseteq> N1 \<Longrightarrow> N1 \<Turnstile> N2" and
     all_formulas_entailed: "(\<forall>C \<in> N2. N1 \<Turnstile> {C}) \<Longrightarrow> N1 \<Turnstile> N2" and
@@ -36,6 +37,12 @@ lemma entail_union: "N \<Turnstile> N1 \<and> N \<Turnstile> N2 \<longleftrighta
   apply (subst (3) entail_set_all_formulas)
   by auto
 
+lemma entail_unions: "\<forall>i \<in> {0..n::nat}. N \<Turnstile> Ni i \<longleftrightarrow> N \<Turnstile> UNION {0..n} Ni"
+  apply (subst entail_set_all_formulas)
+  apply (subst (2) entail_set_all_formulas)
+  using Complete_Lattices.UN_ball_bex_simps(2)[of Ni "{0..n}" "\<lambda>C. N \<Turnstile> {C}", symmetric] 
+  sorry
+  
 end
 
 datatype 'f inference =
