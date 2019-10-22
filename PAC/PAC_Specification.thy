@@ -1,14 +1,10 @@
 theory PAC_Specification
-  imports "HOL-Library.Poly_Mapping" "HOL-Algebra.Polynomials" "Polynomials.MPoly_Type_Class"
-  "HOL-Algebra.Module"
-  "HOL-Library.Countable_Set"
+  imports PAC_More_Poly
 begin
 
 type_synonym int_poly = \<open>int mpoly\<close>
 definition polynom_bool :: \<open>int_poly set\<close> where
   \<open>polynom_bool = (\<lambda>c. Var c ^ 2 - Var c) ` UNIV\<close>
-
-term \<open>ideal (A \<union> polynom_bool)\<close>
 
 abbreviation pac_ideal where
   \<open>pac_ideal A \<equiv> ideal (A \<union> polynom_bool)\<close>
@@ -88,7 +84,7 @@ lemma PAC_Format_subset_ideal:
     apply (auto simp: ideal.span_add_eq ideal.span_base pac_ideal_alt_def
         ac_simps
       intro: diff_in_polynom_bool_pac_idealI[unfolded pac_ideal_alt_def])
-    by (metis UnCI diff_in_polynom_bool_pac_idealI ideal.span_base ideal.span_scale
+    by (metis UnCI ideal.span_base ideal.span_scale
        pac_ideal_alt_def semiring_normalization_rules(7))
   subgoal
     by (auto simp: ideal.span_add_eq ideal.span_base pac_ideal_alt_def
@@ -106,6 +102,15 @@ lemma rtranclp_PAC_Format_subset_ideal:
   apply (auto 5 3 intro: ideal.span_base dest!: PAC_Format_subset_ideal
       dest: ideal.span_subset_spanI)
   by (meson ideal.span_subset_spanI ideal.span_superset le_sup_iff subsetD)
+
+
+lemma ideal_mult_right_in:
+  \<open>a \<in> ideal A \<Longrightarrow> a * b \<in> More_Modules.ideal A\<close>
+  by (metis ideal.span_scale linordered_field_class.sign_simps(5))
+
+lemma ideal_mult_right_in2:
+  \<open>a \<in> ideal A \<Longrightarrow> b * a \<in> More_Modules.ideal A\<close>
+  by (metis ideal.span_scale)
 
 
 end

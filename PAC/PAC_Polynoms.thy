@@ -4,25 +4,6 @@ theory PAC_Polynoms
 begin
 
 
-lemma Const\<^sub>0_add:
-  \<open>Const\<^sub>0 (a + b) = Const\<^sub>0 a + Const\<^sub>0 b\<close>
-  by transfer
-   (simp add: Const\<^sub>0_def single_add)
-
-lemma Const_mult:
-  \<open>Const (a * b) = Const a * Const b\<close>
-  by transfer
-     (simp add: Const\<^sub>0_def times_monomial_monomial)
-
-lemma Const\<^sub>0_mult:
-  \<open>Const\<^sub>0 (a * b) = Const\<^sub>0 a * Const\<^sub>0 b\<close>
-  by transfer
-     (simp add: Const\<^sub>0_def times_monomial_monomial)
-
-lemma Const0[simp]:
-  \<open>Const 0 = 0\<close>
-  by transfer (simp add: Const\<^sub>0_def)
-
 lemma poly_embed_EX:
   \<open>\<exists>\<phi>. bij (\<phi> :: string list \<Rightarrow> nat)\<close>
   by (rule countableE_infinite[of \<open>UNIV :: string list set\<close>])
@@ -31,11 +12,6 @@ lemma poly_embed_EX:
 text \<open>Using a multiset instead of a list has some advantage from an abstract point of view.\<close>
 type_synonym mset_polynom =
   \<open>(string multiset * int) multiset\<close>
-
-lemma Const_add:
-  \<open>Const (a + b) = Const a + Const b\<close>
-  by transfer
-   (simp add: Const\<^sub>0_def single_add)
 
 definition normalized_poly :: \<open>mset_polynom \<Rightarrow> bool\<close> where
   \<open>normalized_poly p \<longleftrightarrow>
@@ -47,30 +23,10 @@ lemma normalized_poly_simps[simp]:
     t \<notin># p \<and> normalized_poly p\<close>
   by (auto simp: normalized_poly_def)
 
-
-(*
-
-*)
-
-instance mpoly :: (comm_semiring_1) comm_semiring_1
-  by standard
-
-lemma [simp]: \<open>Const\<^sub>0 0 = 0\<close>
-  \<open>MPoly 0 = 0\<close>
-  supply [[show_sorts]]
-  by (auto simp: Const\<^sub>0_def zero_mpoly_def)
-
-context
-  fixes R :: \<open>string multiset \<Rightarrow> string multiset \<Rightarrow> bool\<close>
-begin
-
-text \<open>
-  The following function implements a very trivial multiplication. The result
-  is not normalised. Therefore, we have the non-\<^text>\<open>raw\<close> version that also
-  partially normalise the resulting polynoms, but not fully (as this would require
-  to sort the list).
-\<close>
-
+lemma normalized_poly_mono:
+  \<open>normalized_poly B \<Longrightarrow> A \<subseteq># B \<Longrightarrow> normalized_poly A\<close>
+  unfolding normalized_poly_def
+  by (auto dest: distinct_mset_mono)
 
 definition mult_poly_by_monom :: \<open>string multiset * int \<Rightarrow> mset_polynom \<Rightarrow> mset_polynom\<close> where
   \<open>mult_poly_by_monom  = (\<lambda>ys q. image_mset (\<lambda>xs. (fst xs + fst ys, snd ys * snd xs)) q)\<close>
@@ -83,16 +39,49 @@ definition mult_poly_raw :: \<open>mset_polynom \<Rightarrow> mset_polynom \<Rig
 
 definition remove_powers :: \<open>mset_polynom \<Rightarrow> mset_polynom\<close> where
   \<open>remove_powers xs =  image_mset (apfst remdups_mset) xs\<close>
-end
 
-lemma (in -) Const_uminus[simp]:
-  \<open>Const (-n) = - Const n\<close>
-  by transfer
-    (auto simp: Const\<^sub>0_def monomial_uminus)
+
+definition all_vars_mset :: \<open>mset_polynom \<Rightarrow> string multiset\<close> where
+  \<open>all_vars_mset p = \<Union># (fst `# p)\<close>
+
+abbreviation all_vars :: \<open>mset_polynom \<Rightarrow> string set\<close> where
+  \<open>all_vars p \<equiv> set_mset (all_vars_mset p)\<close>
+
+definition add_to_coefficient :: \<open>_ \<Rightarrow> mset_polynom \<Rightarrow> mset_polynom\<close>  where
+  \<open>add_to_coefficient = ((\<lambda>(a, n) b. {#(a', _) \<in># b. a' \<noteq> a#} +
+             {#(a, n + sum_mset (snd `# {#(a', _) \<in># b. a' = a#}))#}))\<close>
+
+definition normalize_poly :: \<open>mset_polynom \<Rightarrow> mset_polynom\<close> where
+  \<open>normalize_poly p = fold_mset add_to_coefficient {#} p\<close>
+
+lemma add_to_coefficient_simps:
+  \<open>add_to_coefficient (a, n) b = {#(a', _) \<in># b. a' \<noteq> a#} +
+             {#(a, n + sum_mset (snd `# {#(a', _) \<in># b. a' = a#}))#}\<close>
+  by (auto simp: add_to_coefficient_def)
+
+interpretation comp_fun_commute \<open>add_to_coefficient\<close>
+  unfolding add_to_coefficient_def
+  apply standard
+  apply (auto intro!: ext simp: filter_filter_mset ac_simps)
+  apply (subst add_mset_commute)
+  apply (auto intro!: arg_cong[where f = sum_mset]
+    arg_cong[where f = \<open>image_mset snd\<close>]
+    filter_mset_cong arg_cong2[where f=add_mset])
+  done
+
+lemma normalized_poly_normalize_poly[simp]:
+  \<open>normalized_poly (normalize_poly p)\<close>
+  unfolding normalize_poly_def
+  apply (induction p)
+  subgoal by auto
+  subgoal for x p
+    by (cases x)
+     (auto simp: add_to_coefficient_simps
+      intro: normalized_poly_mono)
+  done
 
 locale poly_embed =
   fixes \<phi> :: \<open>string \<Rightarrow> nat\<close>
-  assumes \<open>bij \<phi>\<close>
 begin
 
 definition poly_of_vars :: "string multiset \<Rightarrow> ('a :: {comm_semiring_1}) mpoly" where
@@ -109,12 +98,10 @@ proof -
          Var_def times_monomial_monomial intro!: ext)
   note [[show_types]]
   show ?A
-    by (auto simp: comp_fun_commute.fold_mset_add_mset
-      poly_of_vars_def comp_fun_commute_axioms fold_mset_fusion mult.assoc
+    by (auto simp: poly_of_vars_def comp_fun_commute_axioms fold_mset_fusion
       ac_simps)
   show ?B
-    apply (auto simp: comp_fun_commute.fold_mset_add_mset
-      poly_of_vars_def mult.assoc ac_simps)
+    apply (auto simp: poly_of_vars_def ac_simps)
     by (smt comp_fun_commute_axioms fold_mset_fusion mult.commute mult_zero_right)
 qed
 
@@ -185,14 +172,6 @@ lemma polynom_of_mset_mult_poly_raw[simp]:
   by (induction xs arbitrary: ys)
    (auto simp: Const_mult algebra_simps)
 
-lemma ideal_mult_right_in:
-  \<open>a \<in> ideal A \<Longrightarrow> a * b \<in> More_Modules.ideal A\<close>
-  by (metis ideal.span_scale linordered_field_class.sign_simps(5))
-
-lemma ideal_mult_right_in2:
-  \<open>a \<in> ideal A \<Longrightarrow> b * a \<in> More_Modules.ideal A\<close>
-  by (metis ideal.span_scale linordered_field_class.sign_simps(5))
-
 
 lemma X2_X_polynom_bool_mult_in:
   \<open>Var (x1) * (Var (x1) * p) -  Var (x1) * p \<in> More_Modules.ideal polynom_bool\<close>
@@ -235,5 +214,30 @@ qed
 
 end
 
+text \<open>It would be nice to have the property in the other direction too, but this requires a deep
+dive into the definitions of polynomials.\<close>
+locale poly_embed_bij = poly_embed +
+  fixes V N
+  assumes \<phi>_bij: \<open>bij_betw \<phi> V N\<close>
+begin
+
+definition \<phi>' :: \<open>nat \<Rightarrow> string\<close> where
+  \<open>\<phi>' = the_inv_into V \<phi>\<close>
+
+lemma \<phi>'_\<phi>[simp]:
+  \<open>x \<in> V \<Longrightarrow> \<phi>' (\<phi> x) = x\<close>
+  using \<phi>_bij unfolding \<phi>'_def
+  by (meson bij_betw_imp_inj_on the_inv_into_f_f)
+
+lemma \<phi>_\<phi>'[simp]:
+  \<open>x \<in> N \<Longrightarrow> \<phi> (\<phi>' x) = x\<close>
+  using \<phi>_bij unfolding \<phi>'_def
+  by (meson f_the_inv_into_f_bij_betw)
+
+lemma (in -)coeff_MPoly_monomila[simp]:
+  \<open>Const (MPoly_Type.coeff (MPoly (monomial a m)) m) = Const a\<close>
+  by (metis MPoly_Type.coeff_def lookup_single_eq monom.abs_eq monom.rep_eq)
+
+end
 end
 
