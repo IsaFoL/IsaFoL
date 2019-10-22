@@ -37,12 +37,11 @@ lemma entail_union: "N \<Turnstile> N1 \<and> N \<Turnstile> N2 \<longleftrighta
   apply (subst (3) entail_set_all_formulas)
   by auto
 
-lemma entail_unions: "\<forall>i \<in> {0..n::nat}. N \<Turnstile> Ni i \<longleftrightarrow> N \<Turnstile> UNION {0..n} Ni"
+lemma entail_unions: "(\<forall>i \<in> {0..n::nat}. N \<Turnstile> Ni i) \<longleftrightarrow> N \<Turnstile> UNION {0..n} Ni"
   apply (subst entail_set_all_formulas)
   apply (subst (2) entail_set_all_formulas)
-  using Complete_Lattices.UN_ball_bex_simps(2)[of Ni "{0..n}" "\<lambda>C. N \<Turnstile> {C}", symmetric] 
-  sorry
-  
+  apply (rule Complete_Lattices.UN_ball_bex_simps(2)[of Ni "{0..n}" "\<lambda>C. N \<Turnstile> {C}", symmetric]) 
+  done
 end
 
 datatype 'f inference =
