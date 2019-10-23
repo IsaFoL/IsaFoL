@@ -66,7 +66,7 @@ locale sound_inference_system = inference_system + consequence_relation +
   assumes
     soundness: \<open>\<iota> \<in> Inf \<Longrightarrow> set (prems_of \<iota>) \<Turnstile> {concl_of \<iota>}\<close>
 
-locale calculus = inference_system Inf + consequence_relation Bot entails
+locale calculus_with_red_crit = inference_system Inf + consequence_relation Bot entails
   for
     Bot :: "'f set" and
     Inf :: \<open>'f inference set\<close> and
@@ -100,7 +100,7 @@ proof -
   then have "\<iota> \<in> Red_Inf ((N \<union> Red_F N) - (Red_F N - N))" using Red_Inf_of_Red_F_subset i_in_Red
     by (meson Diff_subset subsetCE subset_trans)
   then show ?thesis by (metis Diff_cancel Diff_subset Un_Diff Un_Diff_cancel contra_subsetD 
-    calculus.Red_Inf_of_subset calculus_axioms sup_bot.right_neutral)
+    calculus_with_red_crit.Red_Inf_of_subset calculus_with_red_crit_axioms sup_bot.right_neutral)
 qed
 
 definition saturated :: "'f set \<Rightarrow> bool" where
@@ -122,17 +122,13 @@ proof -
   then show ?thesis unfolding saturated_def by auto
 qed
 
-
 end
 
-locale static_refutational_complete_calculus = calculus +
+locale static_refutational_complete_calculus = calculus_with_red_crit +
   assumes static_refutational_complete: "B \<in> Bot \<Longrightarrow> saturated N \<Longrightarrow> N \<Turnstile> {B} \<Longrightarrow> \<exists>B'\<in>Bot. B' \<in> N"
 
-context calculus
+context calculus_with_red_crit
 begin
-
-inductive "derive" :: "'f set \<Rightarrow> 'f set \<Rightarrow> bool" (infix "\<Longrightarrow>\<^sub>P\<^sub>P" 50) where
-  unsat_preserving_derive: "(\<And>B. B \<in> Bot \<Longrightarrow> N |\<approx> {B} \<Longrightarrow> M |\<approx> {B}) \<Longrightarrow> M - N \<subseteq> Red_F N \<Longrightarrow> M \<Longrightarrow>\<^sub>P\<^sub>P N"
 
 definition Sup_Red_Inf_llist :: "'f set llist \<Rightarrow> 'f inference set" where
   "Sup_Red_Inf_llist D = (\<Union>i \<in> {i. enat i < llength D}. Red_Inf (lnth D i))"
@@ -142,6 +138,15 @@ lemma Sup_Red_Inf_unit: "Sup_Red_Inf_llist (LCons X LNil) = Red_Inf X"
 
 definition fair :: "'f set llist \<Rightarrow> bool" where
   "fair D \<equiv> Inf_from (Liminf_llist D) \<subseteq> Sup_Red_Inf_llist D"
+  
+(* TODO: TrRed is a temporary notation because \<rhd> is apparently not parsed by Isabelle*)
+inductive "derive" :: "'f set \<Rightarrow> 'f set \<Rightarrow> bool" (infix "TrRed" 50) where
+  derive: "M - N \<subseteq> Red_F N \<Longrightarrow> M TrRed N"
+
+end
+
+context calculus_with_red_crit
+begin
 
 text \<open>TODO: replace in \<^theory>\<open>Ordered_Resolution_Prover.Lazy_List_Liminf\<close>.\<close>
 lemma (in-) elem_Sup_llist_imp_Sup_upto_llist':
@@ -177,7 +182,7 @@ qed
 
 text \<open>lemma 2 from the technical report\<close>
 lemma Red_in_Sup: 
-  assumes deriv: "chain (\<Longrightarrow>\<^sub>P\<^sub>P) D"
+  assumes deriv: "chain (TrRed) D"
   shows "Sup_llist D - Liminf_llist D \<subseteq> Red_F (Sup_llist D)"
 proof
   fix C
@@ -187,7 +192,7 @@ proof
     assume 
       in_ith_elem: "C \<in> lnth D i - lnth D (Suc i)" and
       i: "enat (Suc i) < llength D"
-    have "lnth D i \<Longrightarrow>\<^sub>P\<^sub>P lnth D (Suc i)" using i deriv in_ith_elem chain_lnth_rel by auto
+    have "lnth D i TrRed lnth D (Suc i)" using i deriv in_ith_elem chain_lnth_rel by auto
     then have "C \<in> Red_F (lnth D (Suc i))" using in_ith_elem derive.cases by blast
     then have "C \<in> Red_F (Sup_llist D)" using Red_F_of_subset 
       by (meson contra_subsetD i lnth_subset_Sup_llist)
@@ -197,7 +202,7 @@ qed
 
 text \<open>lemma 3 from the technical report 1/2\<close>
 lemma Red_Inf_subset_Liminf: 
-  assumes deriv: \<open>chain (\<Longrightarrow>\<^sub>P\<^sub>P) D\<close> and
+  assumes deriv: \<open>chain (TrRed) D\<close> and
     i: \<open>enat i < llength D\<close>
   shows \<open>Red_Inf (lnth D i) \<subseteq> Red_Inf (Liminf_llist D)\<close>
 proof -
@@ -214,7 +219,7 @@ qed
 
 text \<open>lemma 3 from the technical report 2/2\<close>
 lemma Red_F_subset_Liminf:
- assumes deriv: \<open>chain (\<Longrightarrow>\<^sub>P\<^sub>P) D\<close> and
+ assumes deriv: \<open>chain (TrRed) D\<close> and
     i: \<open>enat i < llength D\<close>
   shows \<open>Red_F (lnth D i) \<subseteq> Red_F (Liminf_llist D)\<close>
 proof -
@@ -233,7 +238,7 @@ qed
 text \<open>lemma 4 from the technical report\<close>
 lemma i_in_Liminf_or_Red_F:
   assumes 
-    deriv: \<open>chain (\<Longrightarrow>\<^sub>P\<^sub>P) D\<close> and
+    deriv: \<open>chain (TrRed) D\<close> and
     i: \<open>enat i < llength D\<close>
   shows \<open>lnth D i \<subseteq> Red_F (Liminf_llist D) \<union> Liminf_llist D\<close>
 proof (rule,rule)
@@ -251,7 +256,7 @@ qed
 text \<open>lemma 5 from the technical report\<close>
 lemma fair_implies_Liminf_saturated:
   assumes 
-    deriv: \<open>chain (\<Longrightarrow>\<^sub>P\<^sub>P) D\<close> and
+    deriv: \<open>chain (TrRed) D\<close> and
     fair: \<open>fair D\<close>
   shows \<open>Inf_from (Liminf_llist D) \<subseteq> Red_Inf (Liminf_llist D)\<close>
 proof
@@ -266,14 +271,13 @@ qed
 
 end
 
-locale dynamic_refutational_complete_calculus = calculus +
+locale dynamic_refutational_complete_calculus = calculus_with_red_crit +
   assumes
-    dynamic_refutational_complete: "B \<in> Bot \<Longrightarrow> \<not> lnull D \<Longrightarrow> chain (\<Longrightarrow>\<^sub>P\<^sub>P) D \<Longrightarrow> fair D 
+    dynamic_refutational_complete: "B \<in> Bot \<Longrightarrow> \<not> lnull D \<Longrightarrow> chain (TrRed) D \<Longrightarrow> fair D 
       \<Longrightarrow> lnth D 0 \<Turnstile> {B} \<Longrightarrow> \<exists>i \<in> {i. enat i < llength D}. \<exists>B'\<in>Bot. B' \<in> lnth D i"
 begin
 
-text \<open>not in the technical report but obvious. Added to get the full equivalence between the static
-     and dynamic locals\<close>
+text \<open>lemma 7 from the technical report\<close>
 sublocale static_refutational_complete_calculus
 proof
   fix B N
@@ -283,7 +287,7 @@ proof
     refut_N: "N \<Turnstile> {B}"
   define D where "D = LCons N LNil"
   have[simp]: \<open>\<not> lnull D\<close> by (auto simp: D_def)
-  have deriv_D: \<open>chain (\<Longrightarrow>\<^sub>P\<^sub>P) D\<close> by (simp add: chain.chain_singleton D_def)
+  have deriv_D: \<open>chain (TrRed) D\<close> by (simp add: chain.chain_singleton D_def)
   have liminf_is_N: "Liminf_llist D = N" by (simp add: D_def Liminf_llist_LCons)
   have head_D: "N = lnth D 0" by (simp add: D_def)
   have "Sup_Red_Inf_llist D = Red_Inf N" by (simp add: D_def Sup_Red_Inf_unit)
@@ -308,7 +312,7 @@ proof
   fix B D
   assume
     bot_elem: \<open>B \<in> Bot\<close> and
-    deriv: \<open>chain (\<Longrightarrow>\<^sub>P\<^sub>P) D\<close> and
+    deriv: \<open>chain (TrRed) D\<close> and
     fair: \<open>fair D\<close> and
     unsat: \<open>(lnth D 0) \<Turnstile> {B}\<close> and
     non_empty: \<open>\<not> lnull D\<close>
@@ -326,14 +330,14 @@ proof
       using deriv fair fair_implies_Liminf_saturated unfolding saturated_def by auto
 
    then have \<open>\<exists>B'\<in>Bot. B' \<in> (Liminf_llist D)\<close> 
-      using bot_elem static_refutational_complete Liminf_entails_Bot by auto
-    then show \<open>\<exists>i\<in>{i. enat i < llength D}. \<exists>B'\<in>Bot. B' \<in> lnth D i\<close>
-      unfolding Liminf_llist_def by auto
-  qed
+     using bot_elem static_refutational_complete Liminf_entails_Bot by auto
+   then show \<open>\<exists>i\<in>{i. enat i < llength D}. \<exists>B'\<in>Bot. B' \<in> lnth D i\<close>
+     unfolding Liminf_llist_def by auto
+qed
 
 subsection \<open>Grounding Function\<close>
 
-locale grounding_function = Non_ground: sound_inference_system Bot_F entails_sound_F Inf_F + Ground: calculus Bot_G entails_sound_G Inf_G entails_comp_G Red_Inf_G Red_F_G
+locale grounding_function = Non_ground: sound_inference_system Bot_F entails_sound_F Inf_F + Ground: redundancy_criterion Bot_G entails_sound_G Inf_G entails_comp_G Red_Inf_G Red_F_G
   for
     Bot_F :: \<open>'f set\<close> and
     entails_sound_F ::  \<open>'f set \<Rightarrow> 'f set \<Rightarrow> bool\<close> (infix "|\<approx>F" 50) and
