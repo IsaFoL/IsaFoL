@@ -49,6 +49,40 @@ lemma entail_all_bot: "(\<exists>B \<in> Bot. N \<Turnstile> {B}) \<Longrightarr
 
 end
 
+locale consequence_relation_family =
+  fixes
+    Bot :: "'f set" and
+    Q :: "'q set" and
+    entails_q :: "'q \<Rightarrow> ('f set \<Rightarrow> 'f set \<Rightarrow> bool)"
+  assumes
+    Bot_not_empty: "Bot \<noteq> {}" and
+    q_cons_rel: "q \<in> Q \<Longrightarrow> consequence_relation Bot (entails_q q)"
+begin
+
+definition entails_Q :: "'f set \<Rightarrow> 'f set \<Rightarrow> bool" (infix "\<Turnstile>Q" 50) where
+  "(N1 \<Turnstile>Q N2) = (\<forall>q \<in> Q. entails_q q N1 N2)"
+
+paragraph \<open>Lemma 19 from the technical report\<close>
+lemma "consequence_relation Bot entails_Q"
+  unfolding consequence_relation_def
+proof (intro conjI)
+  show \<open>Bot \<noteq> {}\<close> using Bot_not_empty .
+next
+  show "\<forall>B N. B \<in> Bot \<longrightarrow> {B} \<Turnstile>Q N"
+    unfolding entails_Q_def by (metis consequence_relation_def q_cons_rel)
+next
+  show "\<forall>N2 N1. N2 \<subseteq> N1 \<longrightarrow> N1 \<Turnstile>Q N2"
+    unfolding entails_Q_def by (metis consequence_relation_def q_cons_rel)
+next
+  show "\<forall>N2 N1. (\<forall>C\<in>N2. N1 \<Turnstile>Q {C}) \<longrightarrow> N1 \<Turnstile>Q N2"
+    unfolding entails_Q_def by (metis consequence_relation_def q_cons_rel)
+next
+  show "\<forall>N1 N2 N3. N1 \<Turnstile>Q N2 \<longrightarrow> N2 \<Turnstile>Q N3 \<longrightarrow> N1 \<Turnstile>Q N3"
+    unfolding entails_Q_def by (metis consequence_relation_def q_cons_rel)
+qed
+
+end
+
 datatype 'f inference =
   Infer (prems_of: "'f list") (concl_of: "'f")
 
@@ -140,8 +174,8 @@ definition fair :: "'f set llist \<Rightarrow> bool" where
   "fair D \<equiv> Inf_from (Liminf_llist D) \<subseteq> Sup_Red_Inf_llist D"
   
 (* TODO: TrRed is a temporary notation because \<rhd> is apparently not parsed by Isabelle*)
-inductive "derive" :: "'f set \<Rightarrow> 'f set \<Rightarrow> bool" (infix "TrRed" 50) where
-  derive: "M - N \<subseteq> Red_F N \<Longrightarrow> M TrRed N"
+inductive "derive" :: "'f set \<Rightarrow> 'f set \<Rightarrow> bool" (infix "\<rhd>Red" 50) where
+  derive: "M - N \<subseteq> Red_F N \<Longrightarrow> M \<rhd>Red N"
 
 end
 
@@ -182,7 +216,7 @@ qed
 
 text \<open>lemma 2 from the technical report\<close>
 lemma Red_in_Sup: 
-  assumes deriv: "chain (TrRed) D"
+  assumes deriv: "chain (\<rhd>Red) D"
   shows "Sup_llist D - Liminf_llist D \<subseteq> Red_F (Sup_llist D)"
 proof
   fix C
@@ -192,7 +226,7 @@ proof
     assume 
       in_ith_elem: "C \<in> lnth D i - lnth D (Suc i)" and
       i: "enat (Suc i) < llength D"
-    have "lnth D i TrRed lnth D (Suc i)" using i deriv in_ith_elem chain_lnth_rel by auto
+    have "lnth D i \<rhd>Red lnth D (Suc i)" using i deriv in_ith_elem chain_lnth_rel by auto
     then have "C \<in> Red_F (lnth D (Suc i))" using in_ith_elem derive.cases by blast
     then have "C \<in> Red_F (Sup_llist D)" using Red_F_of_subset 
       by (meson contra_subsetD i lnth_subset_Sup_llist)
@@ -202,7 +236,7 @@ qed
 
 text \<open>lemma 3 from the technical report 1/2\<close>
 lemma Red_Inf_subset_Liminf: 
-  assumes deriv: \<open>chain (TrRed) D\<close> and
+  assumes deriv: \<open>chain (\<rhd>Red) D\<close> and
     i: \<open>enat i < llength D\<close>
   shows \<open>Red_Inf (lnth D i) \<subseteq> Red_Inf (Liminf_llist D)\<close>
 proof -
@@ -219,7 +253,7 @@ qed
 
 text \<open>lemma 3 from the technical report 2/2\<close>
 lemma Red_F_subset_Liminf:
- assumes deriv: \<open>chain (TrRed) D\<close> and
+ assumes deriv: \<open>chain (\<rhd>Red) D\<close> and
     i: \<open>enat i < llength D\<close>
   shows \<open>Red_F (lnth D i) \<subseteq> Red_F (Liminf_llist D)\<close>
 proof -
@@ -238,7 +272,7 @@ qed
 text \<open>lemma 4 from the technical report\<close>
 lemma i_in_Liminf_or_Red_F:
   assumes 
-    deriv: \<open>chain (TrRed) D\<close> and
+    deriv: \<open>chain (\<rhd>Red) D\<close> and
     i: \<open>enat i < llength D\<close>
   shows \<open>lnth D i \<subseteq> Red_F (Liminf_llist D) \<union> Liminf_llist D\<close>
 proof (rule,rule)
@@ -256,7 +290,7 @@ qed
 text \<open>lemma 5 from the technical report\<close>
 lemma fair_implies_Liminf_saturated:
   assumes 
-    deriv: \<open>chain (TrRed) D\<close> and
+    deriv: \<open>chain (\<rhd>Red) D\<close> and
     fair: \<open>fair D\<close>
   shows \<open>Inf_from (Liminf_llist D) \<subseteq> Red_Inf (Liminf_llist D)\<close>
 proof
@@ -273,7 +307,7 @@ end
 
 locale dynamic_refutational_complete_calculus = calculus_with_red_crit +
   assumes
-    dynamic_refutational_complete: "B \<in> Bot \<Longrightarrow> \<not> lnull D \<Longrightarrow> chain (TrRed) D \<Longrightarrow> fair D 
+    dynamic_refutational_complete: "B \<in> Bot \<Longrightarrow> \<not> lnull D \<Longrightarrow> chain (\<rhd>Red) D \<Longrightarrow> fair D 
       \<Longrightarrow> lnth D 0 \<Turnstile> {B} \<Longrightarrow> \<exists>i \<in> {i. enat i < llength D}. \<exists>B'\<in>Bot. B' \<in> lnth D i"
 begin
 
@@ -287,7 +321,7 @@ proof
     refut_N: "N \<Turnstile> {B}"
   define D where "D = LCons N LNil"
   have[simp]: \<open>\<not> lnull D\<close> by (auto simp: D_def)
-  have deriv_D: \<open>chain (TrRed) D\<close> by (simp add: chain.chain_singleton D_def)
+  have deriv_D: \<open>chain (\<rhd>Red) D\<close> by (simp add: chain.chain_singleton D_def)
   have liminf_is_N: "Liminf_llist D = N" by (simp add: D_def Liminf_llist_LCons)
   have head_D: "N = lnth D 0" by (simp add: D_def)
   have "Sup_Red_Inf_llist D = Red_Inf N" by (simp add: D_def Sup_Red_Inf_unit)
@@ -312,7 +346,7 @@ proof
   fix B D
   assume
     bot_elem: \<open>B \<in> Bot\<close> and
-    deriv: \<open>chain (TrRed) D\<close> and
+    deriv: \<open>chain (\<rhd>Red) D\<close> and
     fair: \<open>fair D\<close> and
     unsat: \<open>(lnth D 0) \<Turnstile> {B}\<close> and
     non_empty: \<open>\<not> lnull D\<close>
