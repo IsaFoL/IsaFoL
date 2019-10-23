@@ -37,21 +37,24 @@ lemma entail_union: "N \<Turnstile> N1 \<and> N \<Turnstile> N2 \<longleftrighta
   apply (subst (3) entail_set_all_formulas)
   by auto
 
-lemma entail_unions: "(\<forall>i \<in> {0..n::nat}. N \<Turnstile> Ni i) \<longleftrightarrow> N \<Turnstile> UNION {0..n} Ni"
+lemma entail_unions: "(\<forall>i \<in> I. N \<Turnstile> Ni i) \<longleftrightarrow> N \<Turnstile> UNION I Ni"
   apply (subst entail_set_all_formulas)
   apply (subst (2) entail_set_all_formulas)
-  apply (rule Complete_Lattices.UN_ball_bex_simps(2)[of Ni "{0..n}" "\<lambda>C. N \<Turnstile> {C}", symmetric]) 
+  apply (rule Complete_Lattices.UN_ball_bex_simps(2)[of Ni I "\<lambda>C. N \<Turnstile> {C}", symmetric]) 
   done
+
+
+lemma entail_all_bot: "(\<exists>B \<in> Bot. N \<Turnstile> {B}) \<Longrightarrow> (\<forall>B' \<in> Bot. N \<Turnstile> {B'})"
+  using bot_implies_all entails_trans by blast
+
 end
 
 datatype 'f inference =
   Infer (prems_of: "'f list") (concl_of: "'f")
 
-locale sound_inference_system = consequence_relation +
+locale inference_system =
   fixes
     Inf :: \<open>'f inference set\<close>
-  assumes
-    soundness: \<open>\<iota> \<in> Inf \<Longrightarrow> set (prems_of \<iota>) \<Turnstile> {concl_of \<iota>}\<close>
 begin
 
 definition Inf_from :: "'f set  \<Rightarrow> 'f inference set" where
@@ -59,12 +62,15 @@ definition Inf_from :: "'f set  \<Rightarrow> 'f inference set" where
 
 end
 
-locale calculus = sound_inference_system Bot entails_sound Inf + consequence_relation Bot entails_comp
+locale sound_inference_system = inference_system + consequence_relation +
+  assumes
+    soundness: \<open>\<iota> \<in> Inf \<Longrightarrow> set (prems_of \<iota>) \<Turnstile> {concl_of \<iota>}\<close>
+
+locale calculus = inference_system Inf + consequence_relation Bot entails
   for
     Bot :: "'f set" and
-    entails_sound :: "'f set \<Rightarrow> 'f set \<Rightarrow> bool" (infix "|\<approx>" 50) and
     Inf :: \<open>'f inference set\<close> and
-    entails_comp :: "'f set \<Rightarrow> 'f set \<Rightarrow> bool" (infix "\<Turnstile>" 50)
+    entails :: "'f set \<Rightarrow> 'f set \<Rightarrow> bool" (infix "\<Turnstile>" 50)
   + fixes 
     Red_Inf :: "'f set \<Rightarrow> 'f inference set" and
     Red_F :: "'f set \<Rightarrow> 'f set"
