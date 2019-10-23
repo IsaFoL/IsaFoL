@@ -239,5 +239,6 @@ lemma (in -)coeff_MPoly_monomila[simp]:
   by (metis MPoly_Type.coeff_def lookup_single_eq monom.abs_eq monom.rep_eq)
 
 end
+
 end
 
