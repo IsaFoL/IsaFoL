@@ -11,12 +11,12 @@ Supervisors:
 ## References ##
 
 Klaus Frovin Jørgensen, Patrick Blackburn, Thomas Bolander and Torben Braüner.  
-Synthetic Completeness Proofs for Seligman-style  
-Tableau Systems. Advances in Modal Logic 11:302-321 2016.
+Synthetic Completeness Proofs for Seligman-style Tableau Systems.  
+Advances in Modal Logic 11:302-321 2016.
 
 Patrick Blackburn, Thomas Bolander, Torben Braüner and Klaus Frovin Jørgensen.  
 Completeness and Termination for a Seligman-style Tableau System.  
-Journal of Logic and Computation 27(1):81-107, 2017.
+Journal of Logic and Computation 27(1):81-107 2017.
 
 ## Author ##
 
