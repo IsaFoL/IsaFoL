@@ -55,6 +55,7 @@ locale consequence_relation_family =
     Q :: "'q set" and
     entails_q :: "'q \<Rightarrow> ('f set \<Rightarrow> 'f set \<Rightarrow> bool)"
   assumes
+    Q_not_empty: "Q \<noteq> {}" and
     Bot_not_empty: "Bot \<noteq> {}" and
     q_cons_rel: "q \<in> Q \<Longrightarrow> consequence_relation Bot (entails_q q)"
 begin
@@ -63,7 +64,7 @@ definition entails_Q :: "'f set \<Rightarrow> 'f set \<Rightarrow> bool" (infix 
   "(N1 \<Turnstile>Q N2) = (\<forall>q \<in> Q. entails_q q N1 N2)"
 
 paragraph \<open>Lemma 19 from the technical report\<close>
-lemma "consequence_relation Bot entails_Q"
+lemma cons_rel_family_is_cons_rel: "consequence_relation Bot entails_Q"
   unfolding consequence_relation_def
 proof (intro conjI)
   show \<open>Bot \<noteq> {}\<close> using Bot_not_empty .
@@ -155,6 +156,91 @@ proof -
   finally have "Inf_from (N - Red_F N) \<subseteq> Red_Inf (N - Red_F N)" by auto
   then show ?thesis unfolding saturated_def by auto
 qed
+
+end
+
+locale calculus_with_red_crit_family = inference_system Inf + consequence_relation_family Bot Q entails_q
+  for
+    Bot :: "'f set" and
+    Inf :: \<open>'f inference set\<close> and
+    Q :: "'q set" and
+    entails_q :: "'q \<Rightarrow> ('f set \<Rightarrow> 'f set \<Rightarrow> bool)"
+  + fixes
+    Red_Inf_q :: "'q \<Rightarrow> ('f set \<Rightarrow> 'f inference set)" and
+    Red_F_q :: "'q \<Rightarrow> ('f set \<Rightarrow> 'f set)"
+  assumes
+    all_red_crit: "q \<in> Q \<Longrightarrow> calculus_with_red_crit Bot Inf (entails_q q) (Red_Inf_q q) (Red_F_q q)"
+begin
+
+definition Red_Inf_Q :: "'f set \<Rightarrow> 'f inference set" where
+  "Red_Inf_Q N = \<Inter> {X N |X. X \<in> (Red_Inf_q ` Q)}"
+
+definition Red_F_Q :: "'f set \<Rightarrow> 'f set" where
+  "Red_F_Q N = \<Inter> {X N |X. X \<in> (Red_F_q ` Q)}"
+
+lemma inter_red_crit: "calculus_with_red_crit Bot Inf entails_Q Red_Inf_Q Red_F_Q"
+  unfolding calculus_with_red_crit_def calculus_with_red_crit_axioms_def
+proof (intro conjI)
+  show "consequence_relation Bot entails_Q"
+    using cons_rel_family_is_cons_rel .
+next
+  show "\<forall>N. Red_Inf_Q N \<subseteq> Inf"
+    unfolding Red_Inf_Q_def
+  proof
+    fix N
+    show "\<Inter> {X N |X. X \<in> Red_Inf_q ` Q} \<subseteq> Inf"
+    proof (intro Inter_subset)
+      fix Red_Infs
+      assume one_red_inf: "Red_Infs \<in> {X N |X. X \<in> Red_Inf_q ` Q}"
+      show "Red_Infs \<subseteq> Inf" using one_red_inf
+      proof
+        assume "\<exists>Red_Inf_qi. Red_Infs = Red_Inf_qi N \<and> Red_Inf_qi \<in> Red_Inf_q ` Q"
+        then obtain Red_Inf_qi where
+          red_infs_def: "Red_Infs = Red_Inf_qi N" and red_inf_qi_in: "Red_Inf_qi \<in> Red_Inf_q ` Q"
+          by blast
+        obtain qi where red_inf_qi_def: "Red_Inf_qi = Red_Inf_q qi" and qi_in: "qi \<in> Q"
+          using red_inf_qi_in by blast
+        show "Red_Infs \<subseteq> Inf"
+          using all_red_crit[OF qi_in] calculus_with_red_crit.Red_Inf_to_Inf red_inf_qi_def
+          red_infs_def by blast
+      qed
+    next
+      show "{X N |X. X \<in> Red_Inf_q ` Q} \<noteq> {}" using Q_not_empty by blast
+    qed
+  qed
+next
+  show "\<forall>B N. B \<in> Bot \<longrightarrow> N \<Turnstile>Q {B} \<longrightarrow> N - Red_F_Q N \<Turnstile>Q {B}"
+  proof (intro allI impI)
+    fix B N
+    assume
+      B_in: "B \<in> Bot" and
+      N_unsat: "N \<Turnstile>Q {B}"
+    show "N - Red_F_Q N \<Turnstile>Q {B}" unfolding entails_Q_def Red_F_Q_def 
+    proof
+      fix qi
+      assume qi_in: "qi \<in> Q"
+      define entails_qi (infix "\<Turnstile>qi" 50) where "entails_qi = entails_q qi"
+      have cons_rel_qi: "consequence_relation Bot entails_qi"
+        unfolding entails_qi_def using all_red_crit[OF qi_in] calculus_with_red_crit.axioms(1) by blast
+      define Red_F_qi where "Red_F_qi = Red_F_q qi"
+      have red_qi_in_Q: "Red_F_Q N \<subseteq> Red_F_qi N"
+        unfolding Red_F_Q_def Red_F_qi_def using image_iff qi_in by blast
+      then have "N - (Red_F_qi N) \<subseteq> N - (Red_F_Q N)" by blast
+      then have entails_1: "(N - Red_F_Q N) \<Turnstile>qi (N - Red_F_qi N)"
+        using all_red_crit[OF qi_in]
+        unfolding calculus_with_red_crit_def consequence_relation_def entails_qi_def by metis
+      have N_unsat_qi: "N \<Turnstile>qi {B}" using qi_in N_unsat unfolding entails_qi_def entails_Q_def by simp
+      then have N_unsat_qi: "(N - Red_F_qi N) \<Turnstile>qi {B}"
+        using all_red_crit[OF qi_in] Red_F_qi_def calculus_with_red_crit.Red_F_Bot[OF _ B_in] entails_qi_def
+        by fastforce
+      show "(N - \<Inter> {X N |X. X \<in> Red_F_q ` Q}) \<Turnstile>qi {B}"
+        using consequence_relation.entails_trans[OF cons_rel_qi entails_1 N_unsat_qi]
+        unfolding Red_F_Q_def .
+    qed
+  qed
+next
+  oops
+
 
 end
 
