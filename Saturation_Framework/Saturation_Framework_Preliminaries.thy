@@ -318,7 +318,7 @@ next
   qed
 qed
 
-paragraph \<open>Lemma 20 from the technical report\<close>
+paragraph \<open>Lemma 21 from the technical report\<close>
 lemma "calculus_with_red_crit.saturated Inf Red_Inf_Q N \<longleftrightarrow>
   (\<forall>qi \<in> Q. calculus_with_red_crit.saturated Inf (Red_Inf_q qi) N)" for N
 proof
