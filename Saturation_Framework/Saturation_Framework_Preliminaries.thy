@@ -318,6 +318,44 @@ next
   qed
 qed
 
+paragraph \<open>Lemma 20 from the technical report\<close>
+lemma "calculus_with_red_crit.saturated Inf Red_Inf_Q N \<longleftrightarrow>
+  (\<forall>qi \<in> Q. calculus_with_red_crit.saturated Inf (Red_Inf_q qi) N)" for N
+proof
+  fix N
+  assume inter_sat: "calculus_with_red_crit.saturated Inf Red_Inf_Q N"
+  show "\<forall>qi \<in> Q. calculus_with_red_crit.saturated Inf (Red_Inf_q qi) N"
+  proof
+    fix qi
+    assume qi_in: "qi \<in> Q"
+    interpret inter: calculus_with_red_crit Bot Inf entails_Q Red_Inf_Q Red_F_Q by (rule inter_red_crit)
+    interpret one: calculus_with_red_crit Bot Inf "entails_q qi" "Red_Inf_q qi" "Red_F_q qi"
+      by (rule all_red_crit[OF qi_in])
+    show "one.saturated N"
+      using qi_in inter_sat unfolding one.saturated_def inter.saturated_def Red_Inf_Q_def by blast
+  qed
+next
+  fix N
+  assume all_sat: "\<forall>qi \<in> Q. calculus_with_red_crit.saturated Inf (Red_Inf_q qi) N"
+  interpret inter: calculus_with_red_crit Bot Inf entails_Q Red_Inf_Q Red_F_Q by (rule inter_red_crit)
+  show "inter.saturated N" unfolding inter.saturated_def Red_Inf_Q_def 
+  proof
+    fix x
+    assume x_in: "x \<in> Inf_from N"
+    have "\<forall>Red_Inf_qi \<in> Red_Inf_q ` Q. x \<in> Red_Inf_qi N" 
+    proof
+      fix Red_Inf_qi
+      assume red_inf_in: "Red_Inf_qi \<in> Red_Inf_q ` Q"
+      then obtain qi where red_inf_qi_def: "Red_Inf_qi = Red_Inf_q qi" and qi_in: "qi \<in> Q" by blast
+      interpret one: calculus_with_red_crit Bot Inf "entails_q qi" "Red_Inf_q qi" "Red_F_q qi"
+        by (rule all_red_crit[OF qi_in])
+      have "one.saturated N" using all_sat qi_in red_inf_qi_def by blast
+      then show "x \<in> Red_Inf_qi N" unfolding one.saturated_def using x_in red_inf_qi_def by blast
+    qed
+    then show "x \<in> \<Inter> {X N |X. X \<in> Red_Inf_q ` Q}" by blast
+  qed
+qed
+
 end
 
 locale static_refutational_complete_calculus = calculus_with_red_crit +
