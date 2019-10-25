@@ -178,6 +178,7 @@ definition Red_Inf_Q :: "'f set \<Rightarrow> 'f inference set" where
 definition Red_F_Q :: "'f set \<Rightarrow> 'f set" where
   "Red_F_Q N = \<Inter> {X N |X. X \<in> (Red_F_q ` Q)}"
 
+paragraph \<open>Lemma 20 from the technical report\<close>
 lemma inter_red_crit: "calculus_with_red_crit Bot Inf entails_Q Red_Inf_Q Red_F_Q"
   unfolding calculus_with_red_crit_def calculus_with_red_crit_axioms_def
 proof (intro conjI)
@@ -239,8 +240,83 @@ next
     qed
   qed
 next
-  oops
-
+  show "\<forall>N1 N2. N1 \<subseteq> N2 \<longrightarrow> Red_F_Q N1 \<subseteq> Red_F_Q N2"
+  proof (intro allI impI)
+    fix N1 :: "'f set"
+    and N2 :: "'f set"
+    assume
+      N1_in_N2: "N1 \<subseteq> N2"
+    show "Red_F_Q N1 \<subseteq> Red_F_Q N2"
+    proof
+      fix x
+      assume x_in: "x \<in> Red_F_Q N1"
+      then have "\<forall>qi \<in> Q. x \<in> Red_F_q qi N1" unfolding Red_F_Q_def by blast
+      then have "\<forall>qi \<in> Q. x \<in> Red_F_q qi N2"
+        using N1_in_N2 all_red_crit calculus_with_red_crit.axioms(2) calculus_with_red_crit.Red_F_of_subset by blast
+      then show "x \<in> Red_F_Q N2" unfolding Red_F_Q_def by blast
+    qed
+  qed
+next
+  show "\<forall>N1 N2. N1 \<subseteq> N2 \<longrightarrow> Red_Inf_Q N1 \<subseteq> Red_Inf_Q N2"
+  proof (intro allI impI)
+    fix N1 :: "'f set"
+    and N2 :: "'f set"
+    assume
+      N1_in_N2: "N1 \<subseteq> N2"
+    show "Red_Inf_Q N1 \<subseteq> Red_Inf_Q N2"
+    proof
+      fix x
+      assume x_in: "x \<in> Red_Inf_Q N1"
+      then have "\<forall>qi \<in> Q. x \<in> Red_Inf_q qi N1" unfolding Red_Inf_Q_def by blast
+      then have "\<forall>qi \<in> Q. x \<in> Red_Inf_q qi N2"
+        using N1_in_N2 all_red_crit calculus_with_red_crit.axioms(2) calculus_with_red_crit.Red_Inf_of_subset by blast
+      then show "x \<in> Red_Inf_Q N2" unfolding Red_Inf_Q_def by blast
+    qed
+  qed
+next
+  show "\<forall>N2 N1. N2 \<subseteq> Red_F_Q N1 \<longrightarrow> Red_F_Q N1 \<subseteq> Red_F_Q (N1 - N2)"
+  proof (intro allI impI)
+    fix N2 N1
+    assume N2_in_Red_N1: "N2 \<subseteq> Red_F_Q N1"
+    show "Red_F_Q N1 \<subseteq> Red_F_Q (N1 - N2)"
+    proof
+      fix x
+      assume x_in: "x \<in> Red_F_Q N1"
+      then have "\<forall>qi \<in> Q. x \<in> Red_F_q qi N1" unfolding Red_F_Q_def by blast
+      moreover have "\<forall>qi \<in> Q. N2 \<subseteq> Red_F_q qi N1" using N2_in_Red_N1 unfolding Red_F_Q_def by blast
+      ultimately have "\<forall>qi \<in> Q. x \<in> Red_F_q qi (N1 - N2)"
+        using all_red_crit calculus_with_red_crit.axioms(2) calculus_with_red_crit.Red_F_of_Red_F_subset by blast
+      then show "x \<in> Red_F_Q (N1 - N2)" unfolding Red_F_Q_def by blast
+    qed
+  qed
+next
+  show "\<forall>N2 N1. N2 \<subseteq> Red_F_Q N1 \<longrightarrow> Red_Inf_Q N1 \<subseteq> Red_Inf_Q (N1 - N2)"
+  proof (intro allI impI)
+    fix N2 N1
+    assume N2_in_Red_N1: "N2 \<subseteq> Red_F_Q N1"
+    show "Red_Inf_Q N1 \<subseteq> Red_Inf_Q (N1 - N2)"
+    proof
+      fix x
+      assume x_in: "x \<in> Red_Inf_Q N1"
+      then have "\<forall>qi \<in> Q. x \<in> Red_Inf_q qi N1" unfolding Red_Inf_Q_def by blast
+      moreover have "\<forall>qi \<in> Q. N2 \<subseteq> Red_F_q qi N1" using N2_in_Red_N1 unfolding Red_F_Q_def by blast
+      ultimately have "\<forall>qi \<in> Q. x \<in> Red_Inf_q qi (N1 - N2)"
+        using all_red_crit calculus_with_red_crit.axioms(2) calculus_with_red_crit.Red_Inf_of_Red_F_subset by blast
+      then show "x \<in> Red_Inf_Q (N1 - N2)" unfolding Red_Inf_Q_def by blast
+    qed
+  qed
+next
+  show "\<forall>\<iota> N. \<iota> \<in> Inf \<longrightarrow> concl_of \<iota> \<in> N \<longrightarrow> \<iota> \<in> Red_Inf_Q N"
+  proof (intro allI impI)
+    fix \<iota> N
+    assume
+      i_in: "\<iota> \<in> Inf" and
+      concl_in: "concl_of \<iota> \<in> N"
+    then have "\<forall>qi \<in> Q. \<iota> \<in> Red_Inf_q qi N"
+      using all_red_crit calculus_with_red_crit.axioms(2) calculus_with_red_crit.Red_Inf_of_Inf_to_N by blast
+    then show "\<iota> \<in> Red_Inf_Q N" unfolding Red_Inf_Q_def by blast
+  qed
+qed
 
 end
 
