@@ -10,25 +10,27 @@ lemma poly_embed_EX:
      (auto intro!: infinite_UNIV_listI)
 
 text \<open>Using a multiset instead of a list has some advantage from an abstract point of view.\<close>
+type_synonym term_poly = \<open>string multiset\<close>
 type_synonym mset_polynom =
-  \<open>(string multiset * int) multiset\<close>
+  \<open>(term_poly * int) multiset\<close>
 
 definition normalized_poly :: \<open>mset_polynom \<Rightarrow> bool\<close> where
   \<open>normalized_poly p \<longleftrightarrow>
-     distinct_mset p\<close>
+     distinct_mset (fst `# p) \<and>
+     0 \<notin># snd `# p\<close>
 
 lemma normalized_poly_simps[simp]:
   \<open>normalized_poly {#}\<close>
-  \<open>normalized_poly (add_mset t p) \<longleftrightarrow>
-    t \<notin># p \<and> normalized_poly p\<close>
+  \<open>normalized_poly (add_mset t p) \<longleftrightarrow> snd t \<noteq> 0 \<and>
+    fst t \<notin># fst `# p \<and> normalized_poly p\<close>
   by (auto simp: normalized_poly_def)
 
 lemma normalized_poly_mono:
   \<open>normalized_poly B \<Longrightarrow> A \<subseteq># B \<Longrightarrow> normalized_poly A\<close>
   unfolding normalized_poly_def
-  by (auto dest: distinct_mset_mono)
+  by (auto intro: distinct_mset_mono image_mset_subseteq_mono)
 
-definition mult_poly_by_monom :: \<open>string multiset * int \<Rightarrow> mset_polynom \<Rightarrow> mset_polynom\<close> where
+definition mult_poly_by_monom :: \<open>term_poly * int \<Rightarrow> mset_polynom \<Rightarrow> mset_polynom\<close> where
   \<open>mult_poly_by_monom  = (\<lambda>ys q. image_mset (\<lambda>xs. (fst xs + fst ys, snd ys * snd xs)) q)\<close>
 
 
@@ -48,26 +50,38 @@ abbreviation all_vars :: \<open>mset_polynom \<Rightarrow> string set\<close> wh
   \<open>all_vars p \<equiv> set_mset (all_vars_mset p)\<close>
 
 definition add_to_coefficient :: \<open>_ \<Rightarrow> mset_polynom \<Rightarrow> mset_polynom\<close>  where
-  \<open>add_to_coefficient = ((\<lambda>(a, n) b. {#(a', _) \<in># b. a' \<noteq> a#} +
-             {#(a, n + sum_mset (snd `# {#(a', _) \<in># b. a' = a#}))#}))\<close>
+  \<open>add_to_coefficient = (\<lambda>(a, n) b. {#(a', _) \<in># b. a' \<noteq> a#} +
+             (if n + sum_mset (snd `# {#(a', _) \<in># b. a' = a#}) = 0 then {#}
+               else {#(a, n + sum_mset (snd `# {#(a', _) \<in># b. a' = a#}))#}))\<close>
 
 definition normalize_poly :: \<open>mset_polynom \<Rightarrow> mset_polynom\<close> where
   \<open>normalize_poly p = fold_mset add_to_coefficient {#} p\<close>
 
 lemma add_to_coefficient_simps:
-  \<open>add_to_coefficient (a, n) b = {#(a', _) \<in># b. a' \<noteq> a#} +
+  \<open>n + sum_mset (snd `# {#(a', _) \<in># b. a' = a#}) \<noteq> 0 \<Longrightarrow>
+    add_to_coefficient (a, n) b = {#(a', _) \<in># b. a' \<noteq> a#} +
              {#(a, n + sum_mset (snd `# {#(a', _) \<in># b. a' = a#}))#}\<close>
+  \<open>n + sum_mset (snd `# {#(a', _) \<in># b. a' = a#}) = 0 \<Longrightarrow>
+    add_to_coefficient (a, n) b = {#(a', _) \<in># b. a' \<noteq> a#}\<close> and
+  add_to_coefficient_simps_If:
+  \<open>add_to_coefficient (a, n) b = {#(a', _) \<in># b. a' \<noteq> a#} +
+             (if n + sum_mset (snd `# {#(a', _) \<in># b. a' = a#}) = 0 then {#}
+               else {#(a, n + sum_mset (snd `# {#(a', _) \<in># b. a' = a#}))#})\<close>
   by (auto simp: add_to_coefficient_def)
 
 interpretation comp_fun_commute \<open>add_to_coefficient\<close>
-  unfolding add_to_coefficient_def
-  apply standard
-  apply (auto intro!: ext simp: filter_filter_mset ac_simps)
-  apply (subst add_mset_commute)
-  apply (auto intro!: arg_cong[where f = sum_mset]
-    arg_cong[where f = \<open>image_mset snd\<close>]
-    filter_mset_cong arg_cong2[where f=add_mset])
-  done
+proof -
+  have [simp]:
+    \<open>a \<noteq> aa \<Longrightarrow>
+    ((case x of (a', _) \<Rightarrow> a' \<noteq> aa) \<and> (case x of (a', _) \<Rightarrow> a' = a)) \<longleftrightarrow>
+    (case x of (a', _) \<Rightarrow> a' = a)\<close> for a' aa a x
+    by auto
+  show \<open>comp_fun_commute add_to_coefficient\<close>
+    unfolding add_to_coefficient_def
+    by standard
+      (auto intro!: ext simp: filter_filter_mset ac_simps add_eq_0_iff
+      intro: filter_mset_cong)
+qed
 
 lemma normalized_poly_normalize_poly[simp]:
   \<open>normalized_poly (normalize_poly p)\<close>
@@ -76,7 +90,7 @@ lemma normalized_poly_normalize_poly[simp]:
   subgoal by auto
   subgoal for x p
     by (cases x)
-     (auto simp: add_to_coefficient_simps
+      (auto simp: add_to_coefficient_simps_If
       intro: normalized_poly_mono)
   done
 
@@ -84,7 +98,7 @@ locale poly_embed =
   fixes \<phi> :: \<open>string \<Rightarrow> nat\<close>
 begin
 
-definition poly_of_vars :: "string multiset \<Rightarrow> ('a :: {comm_semiring_1}) mpoly" where
+definition poly_of_vars :: "term_poly \<Rightarrow> ('a :: {comm_semiring_1}) mpoly" where
   \<open>poly_of_vars xs = fold_mset (\<lambda>a b. Var (\<phi> a) * b) (0 :: 'a mpoly) xs\<close>
 
 lemma poly_of_vars_simps[simp]:

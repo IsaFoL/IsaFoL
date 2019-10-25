@@ -1,8 +1,27 @@
 theory PAC_Polynoms_List
   imports PAC_Polynoms
 begin
+
 type_synonym list_polynom =
-  \<open>(string multiset * int) list\<close>
+  \<open>(term_poly * int) list\<close>
+
+type_synonym list_polynom_order =
+  \<open>term_poly \<Rightarrow> term_poly \<Rightarrow> bool\<close>
+
+definition normalized_poly_l :: \<open>list_polynom_order \<Rightarrow> list_polynom \<Rightarrow> bool\<close> where
+  \<open>normalized_poly_l R xs \<longleftrightarrow>
+    normalized_poly (mset xs) \<and>
+    sorted_wrt R (map fst xs)\<close>
+
+lemma normalized_poly_l_simps[simp]:
+  \<open>normalized_poly_l R []\<close>
+  \<open>normalized_poly_l R ((y, n) # p) \<longleftrightarrow>
+    normalized_poly_l R p \<and>
+    n \<noteq> 0 \<and>
+    y \<notin>  fst ` set p \<and>
+    (\<forall>x \<in> set p. R y (fst x))\<close>
+  unfolding normalized_poly_l_def normalized_poly_def
+  by auto
 
 fun merge_coeffs :: \<open>list_polynom \<Rightarrow> list_polynom\<close> where
   \<open>merge_coeffs [] = []\<close> |
@@ -13,19 +32,19 @@ fun merge_coeffs :: \<open>list_polynom \<Rightarrow> list_polynom\<close> where
     else (xs, n) # merge_coeffs ((ys, m) # p))\<close>
 
 
-abbreviation  (in -)vars_l :: \<open>list_polynom \<Rightarrow> string multiset list\<close> where
-  \<open>vars_l p \<equiv> map fst p\<close>
-  
-abbreviation  (in -)vars2 :: \<open>list_polynom \<Rightarrow> string multiset set\<close> where
-  \<open>vars2 p \<equiv> fst `set p\<close>
+abbreviation  (in -)mononoms_l :: \<open>list_polynom \<Rightarrow> term_poly list\<close> where
+  \<open>mononoms_l p \<equiv> map fst p\<close>
+
+abbreviation  (in -)mononoms :: \<open>list_polynom \<Rightarrow> term_poly set\<close> where
+  \<open>mononoms p \<equiv> fst `set p\<close>
 
 lemma fst_normalize_polynom_subset:
-  \<open>vars2 (merge_coeffs p) \<subseteq> vars2 p\<close>
+  \<open>mononoms (merge_coeffs p) \<subseteq> mononoms p\<close>
   by (induction p rule: merge_coeffs.induct)  auto
 
 
 lemma fst_normalize_polynom_Cons_subset[simp]:
-  \<open>vars2 (merge_coeffs p) = vars2 p\<close>
+  \<open>mononoms (merge_coeffs p) = mononoms p\<close>
   apply (induction p rule: merge_coeffs.induct)
   subgoal
     by auto
@@ -58,15 +77,80 @@ lemma in_set_remove_empty_coeffsD:
   by (induction xs) auto
 
 lemma distinct_remove_empty_coeffs:
-  \<open>distinct (vars_l xs) \<Longrightarrow> distinct (vars_l (remove_empty_coeffs xs))\<close>
+  \<open>distinct (mononoms_l xs) \<Longrightarrow> distinct (mononoms_l (remove_empty_coeffs xs))\<close>
   by (induction xs) (auto dest!: in_set_remove_empty_coeffsD)
 
 definition normalize_poly where
   \<open>normalize_poly p = remove_empty_coeffs (merge_coeffs p)\<close>
 
-context poly_embed
+
+context
+  fixes R :: \<open>list_polynom_order\<close>
 begin
 
+fun add_poly :: \<open>list_polynom \<Rightarrow> list_polynom \<Rightarrow> list_polynom nres\<close> where
+  \<open>add_poly [] p = RETURN p\<close> |
+  \<open>add_poly p [] = p\<close> |
+  \<open>add_poly ((xs, n) # p) ((ys, m) # q) =
+    (if xs = ys then if n + m = 0 then add_poly p q else (xs, n + m) # add_poly p q
+    else if R xs ys then (xs, n) # add_poly p ((ys, m) # q)
+    else (ys, m) # add_poly ((xs, n) # p) q)\<close>
+
+lemma add_poly_simps[simp]:
+  \<open>add_poly p [] = p\<close>
+  by (cases p) auto
+
+lemma notin_mononoms_notin_add_polyD:
+  \<open>x \<notin> mononoms xs \<Longrightarrow>  x \<notin> mononoms ys \<Longrightarrow> x \<notin> mononoms (add_poly xs ys)\<close>
+  apply (induction xs ys rule: add_poly.induct)
+  subgoal
+    by auto
+  subgoal
+    by auto
+  subgoal for x xs y ys
+    by (auto simp: Const_add algebra_simps)
+  done
+
+
+lemma notin_mononoms_notin_add_polyD2:
+  \<open>x \<notin> mononoms xs \<Longrightarrow>  x \<notin> mononoms ys \<Longrightarrow> (x, a) \<notin> set (add_poly xs ys)\<close>
+  apply (induction xs ys rule: add_poly.induct)
+  subgoal
+    by (auto simp: image_iff)
+  subgoal
+    by (auto simp: image_iff)
+  subgoal for x xs y ys
+    by (auto simp: Const_add algebra_simps)
+  done
+
+lemma in_set_add_poly_in_mononoms_eitherE:
+  \<open>(x, a) \<in>  set (add_poly xs ys) \<Longrightarrow> (x \<in> mononoms xs \<Longrightarrow> P) \<Longrightarrow> (x \<in> mononoms ys \<Longrightarrow> P) \<Longrightarrow> P\<close>
+  using notin_mononoms_notin_add_polyD2 by blast
+
+lemma total_onD:
+  \<open>total_on R' A \<Longrightarrow> (\<not>R' x y) \<Longrightarrow> x \<in> A \<Longrightarrow> y \<in> A \<Longrightarrow> x \<noteq> y \<Longrightarrow> R' y x\<close>
+  unfolding total_on_def
+  by (auto simp: total_on_def)
+
+
+lemma normalized_poly_l_add_poly:
+  \<open>transp R \<Longrightarrow> antisymp R \<Longrightarrow> total_on R UNIV \<Longrightarrow> normalized_poly_l R p \<Longrightarrow> normalized_poly_l R q \<Longrightarrow>
+    normalized_poly_l R (add_poly p q)\<close>
+  apply (induction p q rule: add_poly.induct)
+  subgoal
+    by auto
+  subgoal
+    by auto
+  subgoal for xs n p ys m q
+    by auto 
+     ((auto elim!: in_set_add_poly_in_mononoms_eitherE dest: antisympD transpD
+        dest!: total_onD)+)
+  done
+end
+
+
+context poly_embed
+begin
 
 fun polynom_of_list :: \<open>list_polynom \<Rightarrow> _\<close> where
   \<open>polynom_of_list [] = Const 0\<close> |
@@ -94,46 +178,6 @@ lemma polynom_of_list_remove_empty_coeffs[simp]:
   by (induction xs)
     (auto simp: Const_add Const_def algebra_simps)
 
-
-context
-  fixes R :: \<open>string multiset \<Rightarrow> string multiset \<Rightarrow> bool\<close>
-begin
-
-fun add_poly :: \<open>list_polynom \<Rightarrow> list_polynom \<Rightarrow> list_polynom\<close> where
-  \<open>add_poly [] p = p\<close> |
-  \<open>add_poly p [] = p\<close> |
-  \<open>add_poly ((xs, n) # p) ((ys, m) # q) =
-    (if xs = ys then if n + m = 0 then add_poly p q else (xs, n + m) # add_poly p q
-    else if R xs ys then (xs, n) # add_poly p ((ys, m) # q)
-    else (ys, m) # add_poly ((xs, n) # p) q)\<close>
-
-lemma add_poly_simps[simp]:
-  \<open>add_poly p [] = p\<close>
-  by (cases p) auto
-
-lemma notin_vars_notin_add_polyD:
-  \<open>x \<notin> vars2 xs \<Longrightarrow>  x \<notin> vars2 ys \<Longrightarrow> x \<notin> vars2 (add_poly xs ys)\<close>
-  apply (induction xs ys rule: add_poly.induct)
-  subgoal
-    by auto
-  subgoal
-    by auto
-  subgoal for x xs y ys
-    by (auto simp: Const_add algebra_simps)
-  done
-
-
-lemma notin_vars_notin_add_polyD2:
-  \<open>x \<notin> vars2 xs \<Longrightarrow>  x \<notin> vars2 ys \<Longrightarrow> (x, a) \<notin> set (add_poly xs ys)\<close>
-  apply (induction xs ys rule: add_poly.induct)
-  subgoal
-    by (auto simp: image_iff)
-  subgoal
-    by (auto simp: image_iff)
-  subgoal for x xs y ys
-    by (auto simp: Const_add algebra_simps)
-  done
-end
 
 
 lemma polynom_of_list_add_poly[simp]:
@@ -207,5 +251,6 @@ lemma polynom_of_list_mult_poly[simp]:
     polynom_of_list_mult_mult_poly_raw_l
   ..
 
+end
 
 end
