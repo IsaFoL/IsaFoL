@@ -125,7 +125,7 @@ theorem tableau_soundness:
   \<open>tableauproof ps p \<Longrightarrow> list_all (semantics e f g) ps \<Longrightarrow> semantics e f g p\<close>
   using TC_soundness unfolding tableauproof_def list_all_def by fastforce
 
-subsection \<open>Completeness\<close>
+subsection \<open>Completeness for Closed Formulas\<close>
 
 theorem infinite_nonempty: \<open>infinite A \<Longrightarrow> \<exists>x. x \<in> A\<close>
   by (simp add: ex_in_conv infinite_imp_nonempty)
@@ -136,7 +136,7 @@ theorem TCd_consistency:
   unfolding consistency_def
 proof (intro conjI allI impI notI)
   fix S :: \<open>('a, 'b) form set\<close>
-  assume \<open>S \<in> {set G |G. \<not> (\<stileturn> G)}\<close> (is \<open>S \<in> ?C\<close>)
+  assume \<open>S \<in> {set G | G. \<not> (\<stileturn> G)}\<close> (is \<open>S \<in> ?C\<close>)
   then obtain G :: \<open>('a, 'b) form list\<close>
     where *: \<open>S = set G\<close> and \<open>\<not> (\<stileturn> G)\<close>
     by blast
@@ -812,6 +812,8 @@ qed
 lemma sub_consts_Neg: \<open>sub_consts cs (Neg p) = Neg (sub_consts cs p)\<close>
   by (induct cs arbitrary: p) simp_all
 
+subsection \<open>Completeness\<close>
+
 theorem tableau_completeness:
   fixes G :: \<open>(nat, nat) form list\<close>
   assumes \<open>\<forall>(e :: nat \<Rightarrow> nat hterm) f g. list_all (semantics e f g) G \<longrightarrow> semantics e f g p\<close>
@@ -848,15 +850,5 @@ corollary
   assumes \<open>\<forall>(e :: nat \<Rightarrow> nat hterm) f g. semantics e f g p\<close>
   shows \<open>\<stileturn> [Neg p]\<close>
   using assms tableau_completeness unfolding tableauproof_def by simp
-
-subsection \<open>Acknowledgements\<close>
-
-text \<open>
-
-\<^item> Mordechai (Moti) Ben-Ari:
-Mathematical Logic for Computer Science.
-\<^url>\<open>https://www.springer.com/gp/book/9781447141280\<close>
-
-\<close>
 
 end

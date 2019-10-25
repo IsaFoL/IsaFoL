@@ -113,7 +113,7 @@ abbreviation herbrand_valid ("\<then> _" 0) where
   \<open>(\<then> p :: (nat, nat) form) \<equiv> \<forall>(e :: _ \<Rightarrow> nat hterm) f g. semantics e f g p\<close>
 
 theorem complete_sound: \<open>\<then> p \<Longrightarrow> \<tturnstile> [p]\<close> \<open>\<tturnstile> [q] \<Longrightarrow> semantics e f g q\<close>
-  by (use sc_completeness x0 list.map(1) in metis) (use sc_soundness x0 in fastforce)
+  by (use SC_completeness x0 list.map(1) in metis) (use SC_soundness x0 in fastforce)
 
 corollary \<open>(\<then> p) \<longleftrightarrow> (\<tturnstile> [p])\<close>
   using complete_sound by fast
