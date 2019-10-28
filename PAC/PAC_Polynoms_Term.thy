@@ -26,9 +26,9 @@ definition term_poly_list_rel :: \<open>(term_poly_list \<times> term_poly) set\
      ys = mset xs \<and>
      sorted_wrt (rel2p (lexord less_than_char)) xs}\<close>
 
-definition poly_list_rel :: \<open>_ \<Rightarrow> (_ \<times> mset_polynom) set\<close> where
+definition poly_list_rel :: \<open>_ \<Rightarrow> (('a \<times> int) list \<times> mset_polynom) set\<close> where
   \<open>poly_list_rel R = {(xs, ys).
-     (xs, ys) \<in> \<langle>R\<rangle>list_rel O list_mset_rel}\<close>
+     (xs, ys) \<in> \<langle>R \<times>\<^sub>r int_rel\<rangle>list_rel O list_mset_rel}\<close>
 
 definition sorted_poly_list_rel_wrt :: \<open>('a \<Rightarrow> 'a \<Rightarrow> bool)
      \<Rightarrow> ('a \<times> string multiset) set \<Rightarrow> (('a \<times> int) list \<times> mset_polynom) set\<close> where
@@ -39,8 +39,14 @@ definition sorted_poly_list_rel_wrt :: \<open>('a \<Rightarrow> 'a \<Rightarrow>
 abbreviation sorted_poly_list_rel where
   \<open>sorted_poly_list_rel R \<equiv> sorted_poly_list_rel_wrt R term_poly_list_rel\<close>
 
+abbreviation sorted_poly_rel where
+  \<open>sorted_poly_rel \<equiv> sorted_poly_list_rel (rel2p (lexord (lexord less_than_char)))\<close>
+
+abbreviation unsorted_poly_rel where
+  \<open>unsorted_poly_rel \<equiv> poly_list_rel term_poly_list_rel\<close>
+
 lemma sorted_poly_list_rel_empty_l[simp]:
-  \<open>([], s') \<in> sorted_poly_list_rel S \<longleftrightarrow> s' = {#}\<close>
+  \<open>([], s') \<in> sorted_poly_list_rel_wrt S T \<longleftrightarrow> s' = {#}\<close>
   by (cases s')
     (auto simp: sorted_poly_list_rel_wrt_def list_mset_rel_def br_def)
 
@@ -205,8 +211,8 @@ lemma total_on_lexord_less_than_char_linear:
    done
 
 lemma add_poly_l'_add_poly_p:
-  assumes \<open>(pq, pq') \<in> sorted_poly_list_rel (rel2p (lexord (lexord less_than_char))) \<times>\<^sub>r sorted_poly_list_rel (rel2p (lexord (lexord less_than_char)))\<close>
-  shows \<open>\<exists>r. (add_poly_l' pq, r) \<in> sorted_poly_list_rel (rel2p (lexord (lexord less_than_char))) \<and>
+  assumes \<open>(pq, pq') \<in> sorted_poly_rel \<times>\<^sub>r sorted_poly_rel\<close>
+  shows \<open>\<exists>r. (add_poly_l' pq, r) \<in> sorted_poly_rel \<and>
                         add_poly_p\<^sup>*\<^sup>* (fst pq', snd pq', {#}) ({#}, {#}, r)\<close>
   supply [[goals_limit=1]]
   using assms
@@ -266,39 +272,74 @@ lemma add_poly_l'_add_poly_p:
 
 lemma add_poly_l_add_poly:
   \<open>add_poly_l x = RETURN (add_poly_l' x)\<close>
-proof -
-  show ?thesis
-    unfolding add_poly_l_def
-    apply (induction x rule: add_poly_l'.induct)
-    subgoal
-      apply (subst RECT_unfold)
-      apply refine_mono
-      apply (simp split: list.split)
-      done
-    subgoal
-      apply (subst RECT_unfold)
-      apply refine_mono
-      apply (simp split: list.split)
-      done
-    subgoal
-      apply (subst RECT_unfold)
-      apply refine_mono
-      apply (simp split: list.split)
-      done
-    done
-qed
-
+  unfolding add_poly_l_def
+  by (induction x rule: add_poly_l'.induct)
+    (solves \<open>subst RECT_unfold, refine_mono, simp split: list.split\<close>)+
 
 lemma add_poly_l_spec:
   \<open>(add_poly_l, uncurry (\<lambda>p q. SPEC(\<lambda>r. add_poly_p\<^sup>*\<^sup>* (p, q, {#}) ({#}, {#}, r)))) \<in>
-    sorted_poly_list_rel (rel2p (lexord (lexord less_than_char))) \<times>\<^sub>r
-       sorted_poly_list_rel (rel2p (lexord (lexord less_than_char))) \<rightarrow>\<^sub>f
-    \<langle>sorted_poly_list_rel (rel2p (lexord (lexord less_than_char)))\<rangle>nres_rel\<close>
+    sorted_poly_rel \<times>\<^sub>r sorted_poly_rel \<rightarrow>\<^sub>f \<langle>sorted_poly_rel\<rangle>nres_rel\<close>
   unfolding add_poly_l_add_poly
   apply (intro nres_relI frefI)
   apply (drule add_poly_l'_add_poly_p)
   apply (auto simp: conc_fun_RES)
   done
+
+definition sort_poly_spec :: \<open>llist_polynom \<Rightarrow> llist_polynom nres\<close> where
+\<open>sort_poly_spec p =
+  SPEC(\<lambda>p'. mset p = mset p' \<and> sorted_wrt (rel2p (lexord (lexord less_than_char))) (map fst p'))\<close>
+
+lemma sort_poly_spec_id:
+  assumes \<open>(p, p') \<in> unsorted_poly_rel\<close>
+  shows \<open>sort_poly_spec p \<le> \<Down> (sorted_poly_rel) (RETURN p')\<close>
+proof -
+  obtain y where
+    py: \<open>(p, y) \<in> \<langle>term_poly_list_rel \<times>\<^sub>r int_rel\<rangle>list_rel\<close> and
+    p'_y: \<open>p' = mset y\<close>
+    using assms
+    unfolding sort_poly_spec_def poly_list_rel_def sorted_poly_list_rel_wrt_def
+    by (auto simp: list_mset_rel_def br_def Collect_eq_comp')
+  then have [simp]: \<open>length y = length p\<close>
+    by (auto simp: list_rel_def list_all2_conv_all_nth)
+  have H: \<open>(x, p')
+        \<in> \<langle>term_poly_list_rel \<times>\<^sub>r int_rel\<rangle>list_rel O list_mset_rel\<close>
+     if px: \<open>mset p = mset x\<close> and \<open>sorted_wrt (rel2p (lexord (lexord less_than_char))) (map fst x)\<close>
+     for x :: \<open>llist_polynom\<close>
+  proof -
+    obtain f where
+      f: \<open>bij_betw f {..<length x} {..<length p}\<close> and
+      [simp]: \<open>\<And>i. i<length x \<Longrightarrow> x ! i = p ! (f i)\<close>
+      using px apply - apply (subst (asm)(2) eq_commute)  unfolding mset_eq_perm
+      by (auto dest!: permutation_Ex_bij)
+    let ?y = \<open>map (\<lambda>i. y ! f i) [0 ..< length x]\<close>
+    have \<open>i < length y \<Longrightarrow> (p ! f i, y ! f i) \<in> term_poly_list_rel \<times>\<^sub>r int_rel\<close> for i
+      using list_all2_nthD[of _ p y
+         \<open>f i\<close>, OF py[unfolded list_rel_def mem_Collect_eq prod.case]]
+         mset_eq_length[OF px] f
+      by (auto simp: list_rel_def list_all2_conv_all_nth bij_betw_def)
+    then have \<open>(x, ?y) \<in> \<langle>term_poly_list_rel \<times>\<^sub>r int_rel\<rangle>list_rel\<close> and
+      xy: \<open>length x = length y\<close>
+      using py list_all2_nthD[of \<open>rel2p (term_poly_list_rel \<times>\<^sub>r int_rel)\<close> p y
+         \<open>f i\<close> for i, simplified] mset_eq_length[OF px]
+      by (auto simp: list_rel_def list_all2_conv_all_nth)
+    moreover {
+      have f: \<open>mset_set {0..<length x} = f `# mset_set {0..<length x}\<close>
+        using f mset_eq_length[OF px]
+        by (auto simp: bij_betw_def lessThan_atLeast0 image_mset_mset_set)
+      have \<open>mset y = {#y ! f x. x \<in># mset_set {0..<length x}#}\<close>
+        by (subst drop_0[symmetric], subst mset_drop_upto, subst xy[symmetric], subst f)
+          auto
+      then have \<open>(?y, p') \<in> list_mset_rel\<close>
+        by (auto simp: list_mset_rel_def br_def p'_y)
+       }
+    ultimately show ?thesis
+      by (auto intro!: relcompI[of _ ?y])
+  qed
+  show ?thesis
+    unfolding sort_poly_spec_def poly_list_rel_def sorted_poly_list_rel_wrt_def
+    by refine_rcg (auto intro: H)
+qed
+
 
 instantiation char :: linorder
 begin
