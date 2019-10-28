@@ -364,34 +364,22 @@ locale static_refutational_complete_calculus = calculus_with_red_crit +
 context calculus_with_red_crit_family
 begin
 
-(* /!\ negated goal never used in the proof, the hypotheses are contradictory! *)
 paragraph \<open>Lemma 22 from the technical report\<close>
 lemma
-  "\<forall>N. (calculus_with_red_crit.saturated Inf Red_Inf_Q N \<and> (\<forall>B \<in> Bot. B \<notin> N)) \<longrightarrow>  (\<exists>B \<in> Bot. \<exists>qi \<in> Q. entails_q qi N {B})
+  "\<forall>N. (calculus_with_red_crit.saturated Inf Red_Inf_Q N \<and> (\<forall>B \<in> Bot. B \<notin> N)) \<longrightarrow>  (\<exists>B \<in> Bot. \<exists>qi \<in> Q. \<not> entails_q qi N {B})
     \<Longrightarrow> static_refutational_complete_calculus Bot Inf entails_Q Red_Inf_Q Red_F_Q"
 proof (rule ccontr)
   assume
-    N_saturated: "\<forall>N. (calculus_with_red_crit.saturated Inf Red_Inf_Q N \<and> (\<forall>B \<in> Bot. B \<notin> N)) \<longrightarrow>  (\<exists>B \<in> Bot. \<exists>qi \<in> Q. entails_q qi N {B})" and
+    N_saturated: "\<forall>N. (calculus_with_red_crit.saturated Inf Red_Inf_Q N \<and> (\<forall>B \<in> Bot. B \<notin> N)) \<longrightarrow>  (\<exists>B \<in> Bot. \<exists>qi \<in> Q. \<not> entails_q qi N {B})" and
     no_stat_ref_comp: "\<not> static_refutational_complete_calculus Bot Inf (\<Turnstile>Q) Red_Inf_Q Red_F_Q"
-  obtain B'' where b_in: "B'' \<in> Bot" using Bot_not_empty by blast
-  show "False" sorry
-qed
-
-lemma contradictory_hypothese:
-  "\<forall>N. (calculus_with_red_crit.saturated Inf Red_Inf_Q N \<and> (\<forall>B \<in> Bot. B \<notin> N) \<and> (\<exists>qi \<in> Q. (\<exists>B' \<in> Bot. \<not> entails_q qi N {B'})))
-    \<Longrightarrow> False"
-proof -
-  assume
-    N_saturated: "\<forall>N. (calculus_with_red_crit.saturated Inf Red_Inf_Q N \<and>
-      (\<forall>B \<in> Bot. B \<notin> N) \<and> (\<exists>qi \<in> Q. (\<exists>B' \<in> Bot. \<not> entails_q qi N {B'})))"
-  obtain B'' where b_in: "B'' \<in> Bot" using Bot_not_empty by blast
-  then obtain N1 where N1_saturated: "calculus_with_red_crit.saturated Inf Red_Inf_Q N1" and
-    N1_unsat: "N1 \<Turnstile>Q {B''}" and b_not_in: "B'' \<notin> N1"
-    using N_saturated by blast
-  have all_qi: "\<forall>q \<in> Q. entails_q q N1 {B''}" using N1_unsat unfolding entails_Q_def .
-  obtain qi where qi_in: "qi \<in> Q" and "\<not> entails_q qi N1 {B''}"
-    using N_saturated N1_saturated b_in b_not_in by meson
-  then show "False" using all_qi by simp
+  obtain N1 B1 where B1_in: "B1 \<in> Bot" and N1_saturated: "calculus_with_red_crit.saturated Inf Red_Inf_Q N1" and
+    N1_unsat: "N1 \<Turnstile>Q {B1}" and no_B_in_N1: "\<forall>B \<in> Bot. B \<notin> N1"
+    using no_stat_ref_comp by (metis inter_red_crit static_refutational_complete_calculus.intro
+      static_refutational_complete_calculus_axioms.intro)
+  obtain B2 qi where no_qi:"\<not> entails_q qi N1 {B2}" and qi_in: "qi \<in> Q" using N_saturated N1_saturated no_B_in_N1 by blast
+  have "N1 \<Turnstile>Q {B2}" using N1_unsat B1_in cons_rel_family_is_cons_rel unfolding consequence_relation_def by metis
+  then have "entails_q qi N1 {B2}" unfolding entails_Q_def using qi_in by blast
+  then show "False" using no_qi by simp
 qed
 
 end
