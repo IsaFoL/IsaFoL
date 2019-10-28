@@ -361,8 +361,45 @@ end
 locale static_refutational_complete_calculus = calculus_with_red_crit +
   assumes static_refutational_complete: "B \<in> Bot \<Longrightarrow> saturated N \<Longrightarrow> N \<Turnstile> {B} \<Longrightarrow> \<exists>B'\<in>Bot. B' \<in> N"
 
+context calculus_with_red_crit_family
+begin
+
+(* /!\ negated goal never used in the proof, the hypotheses are contradictory! *)
+paragraph \<open>Lemma 22 from the technical report\<close>
+lemma
+  "\<forall>N. (calculus_with_red_crit.saturated Inf Red_Inf_Q N \<and> (\<forall>B \<in> Bot. B \<notin> N)) \<longrightarrow>  (\<exists>B \<in> Bot. \<exists>qi \<in> Q. entails_q qi N {B})
+    \<Longrightarrow> static_refutational_complete_calculus Bot Inf entails_Q Red_Inf_Q Red_F_Q"
+proof (rule ccontr)
+  assume
+    N_saturated: "\<forall>N. (calculus_with_red_crit.saturated Inf Red_Inf_Q N \<and> (\<forall>B \<in> Bot. B \<notin> N)) \<longrightarrow>  (\<exists>B \<in> Bot. \<exists>qi \<in> Q. entails_q qi N {B})" and
+    no_stat_ref_comp: "\<not> static_refutational_complete_calculus Bot Inf (\<Turnstile>Q) Red_Inf_Q Red_F_Q"
+  obtain B'' where b_in: "B'' \<in> Bot" using Bot_not_empty by blast
+  show "False" sorry
+qed
+
+lemma contradictory_hypothese:
+  "\<forall>N. (calculus_with_red_crit.saturated Inf Red_Inf_Q N \<and> (\<forall>B \<in> Bot. B \<notin> N) \<and> (\<exists>qi \<in> Q. (\<exists>B' \<in> Bot. \<not> entails_q qi N {B'})))
+    \<Longrightarrow> False"
+proof -
+  assume
+    N_saturated: "\<forall>N. (calculus_with_red_crit.saturated Inf Red_Inf_Q N \<and>
+      (\<forall>B \<in> Bot. B \<notin> N) \<and> (\<exists>qi \<in> Q. (\<exists>B' \<in> Bot. \<not> entails_q qi N {B'})))"
+  obtain B'' where b_in: "B'' \<in> Bot" using Bot_not_empty by blast
+  then obtain N1 where N1_saturated: "calculus_with_red_crit.saturated Inf Red_Inf_Q N1" and
+    N1_unsat: "N1 \<Turnstile>Q {B''}" and b_not_in: "B'' \<notin> N1"
+    using N_saturated by blast
+  have all_qi: "\<forall>q \<in> Q. entails_q q N1 {B''}" using N1_unsat unfolding entails_Q_def .
+  obtain qi where qi_in: "qi \<in> Q" and "\<not> entails_q qi N1 {B''}"
+    using N_saturated N1_saturated b_in b_not_in by meson
+  then show "False" using all_qi by simp
+qed
+
+end
+
 context calculus_with_red_crit
 begin
+
+
 
 definition Sup_Red_Inf_llist :: "'f set llist \<Rightarrow> 'f inference set" where
   "Sup_Red_Inf_llist D = (\<Union>i \<in> {i. enat i < llength D}. Red_Inf (lnth D i))"
@@ -373,7 +410,6 @@ lemma Sup_Red_Inf_unit: "Sup_Red_Inf_llist (LCons X LNil) = Red_Inf X"
 definition fair :: "'f set llist \<Rightarrow> bool" where
   "fair D \<equiv> Inf_from (Liminf_llist D) \<subseteq> Sup_Red_Inf_llist D"
   
-(* TODO: TrRed is a temporary notation because \<rhd> is apparently not parsed by Isabelle*)
 inductive "derive" :: "'f set \<Rightarrow> 'f set \<Rightarrow> bool" (infix "\<rhd>Red" 50) where
   derive: "M - N \<subseteq> Red_F N \<Longrightarrow> M \<rhd>Red N"
 
