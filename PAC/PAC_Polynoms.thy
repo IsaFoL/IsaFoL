@@ -1,6 +1,7 @@
 theory PAC_Polynoms
   imports PAC_Specification
     Weidenbach_Book_Base.WB_List_More
+    Weidenbach_Book_Base.Wellfounded_More
 begin
 
 
@@ -93,6 +94,59 @@ lemma normalized_poly_normalize_poly[simp]:
       (auto simp: add_to_coefficient_simps_If
       intro: normalized_poly_mono)
   done
+
+
+inductive add_poly_p :: \<open>mset_polynom \<times> mset_polynom \<times> mset_polynom \<Rightarrow> mset_polynom \<times> mset_polynom \<times> mset_polynom \<Rightarrow> bool\<close> where
+add_new_coeff_r:
+    \<open>add_poly_p (p, add_mset x q, r) (p, q, add_mset x r)\<close> |
+add_new_coeff_l:
+    \<open>add_poly_p (add_mset x p, q, r) (p, q, add_mset x r)\<close> |
+add_same_coeff_l:
+    \<open>add_poly_p (add_mset (x, n) p, q, add_mset (x, m) r) (p, q, add_mset (x, n + m) r)\<close> |
+add_same_coeff_r:
+    \<open>add_poly_p (p, add_mset (x, n) q, add_mset (x, m) r) (p, q, add_mset (x, n + m) r)\<close> |
+rem_0_coeff:
+    \<open>add_poly_p (p, q, add_mset (x, 0) r) (p, q, r)\<close>
+
+
+lemmas add_poly_p_induct =
+  add_poly_p.induct[split_format(complete)]
+
+lemma add_poly_p_empty_l:
+  \<open>add_poly_p\<^sup>*\<^sup>* (p, q, r) ({#}, q, p + r)\<close>
+  apply (induction p arbitrary: r)
+  subgoal by auto
+  subgoal
+    by (metis (no_types, lifting) add_new_coeff_l r_into_rtranclp
+      rtranclp_trans union_mset_add_mset_left union_mset_add_mset_right)
+  done
+
+lemma add_poly_p_empty_r:
+  \<open>add_poly_p\<^sup>*\<^sup>* (p, q, r) (p, {#}, q + r)\<close>
+  apply (induction q arbitrary: r)
+  subgoal by auto
+  subgoal
+    by (metis (no_types, lifting) add_new_coeff_r r_into_rtranclp
+      rtranclp_trans union_mset_add_mset_left union_mset_add_mset_right)
+  done
+
+lemma add_poly_p_sym:
+  \<open>add_poly_p (p, q, r)  (p', q', r') \<longleftrightarrow> add_poly_p (q, p, r) (q', p', r')\<close>
+  apply (rule iffI)
+  subgoal
+    by (cases rule: add_poly_p.cases, assumption)
+      (auto intro: add_poly_p.intros)
+  subgoal
+    by (cases rule: add_poly_p.cases, assumption)
+      (auto intro: add_poly_p.intros)
+  done
+
+lemma wf_add_poly_p:
+  \<open>wf {(x, y). add_poly_p y x}\<close>
+  by (rule wf_if_measure_in_wf[where R = \<open>lexn less_than 3\<close> and
+     \<nu> = \<open>\<lambda>(a,b,c). [size a , size b, size c]\<close>])
+   (auto simp: add_poly_p.simps lexn3_conv wf_lexn)
+
 
 locale poly_embed =
   fixes \<phi> :: \<open>string \<Rightarrow> nat\<close>
@@ -226,7 +280,39 @@ next
     done
 qed
 
+lemma add_poly_p_polynom_of_mset:
+  \<open>add_poly_p (p, q, r) (p', q', r') \<Longrightarrow>
+    polynom_of_mset r + (polynom_of_mset p + polynom_of_mset q) =
+    polynom_of_mset r' + (polynom_of_mset p' + polynom_of_mset q')\<close>
+  apply (induction rule: add_poly_p_induct)
+  subgoal
+    by auto
+  subgoal
+    by auto
+  subgoal
+    by (auto simp: algebra_simps Const_add)
+  subgoal
+    by (auto simp: algebra_simps Const_add)
+  subgoal
+    by (auto simp: algebra_simps Const_add)
+  done
+
+lemma rtranclp_add_poly_p_polynom_of_mset:
+  \<open>add_poly_p\<^sup>*\<^sup>* (p, q, r) (p', q', r') \<Longrightarrow>
+    polynom_of_mset r + (polynom_of_mset p + polynom_of_mset q) =
+    polynom_of_mset r' + (polynom_of_mset p' + polynom_of_mset q')\<close>
+  by (induction rule: rtranclp_induct[of add_poly_p \<open>(_, _, _)\<close> \<open>(_, _, _)\<close>, split_format(complete), of for r])
+    (auto dest: add_poly_p_polynom_of_mset)
+
+
+lemma rtranclp_add_poly_p_polynom_of_mset_full:
+  \<open>add_poly_p\<^sup>*\<^sup>* (p, q, {#}) ({#}, {#}, r') \<Longrightarrow>
+    polynom_of_mset r' = (polynom_of_mset p + polynom_of_mset q)\<close>
+  by (drule rtranclp_add_poly_p_polynom_of_mset)
+    (auto simp: ac_simps add_eq_0_iff)
+
 end
+
 
 text \<open>It would be nice to have the property in the other direction too, but this requires a deep
 dive into the definitions of polynomials.\<close>

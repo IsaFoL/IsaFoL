@@ -1,4 +1,4 @@
-session PAC_Checker = HOL +
+session PAC_Checker = "Refine_Imperative_HOL" +
    description \<open>PAC proof checker\<close>
    sessions
      "HOL-Library"

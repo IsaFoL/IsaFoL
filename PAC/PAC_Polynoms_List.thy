@@ -83,13 +83,12 @@ lemma distinct_remove_empty_coeffs:
 definition normalize_poly where
   \<open>normalize_poly p = remove_empty_coeffs (merge_coeffs p)\<close>
 
-
 context
   fixes R :: \<open>list_polynom_order\<close>
 begin
 
-fun add_poly :: \<open>list_polynom \<Rightarrow> list_polynom \<Rightarrow> list_polynom nres\<close> where
-  \<open>add_poly [] p = RETURN p\<close> |
+fun add_poly :: \<open>list_polynom \<Rightarrow> list_polynom \<Rightarrow> list_polynom\<close> where
+  \<open>add_poly [] p = p\<close> |
   \<open>add_poly p [] = p\<close> |
   \<open>add_poly ((xs, n) # p) ((ys, m) # q) =
     (if xs = ys then if n + m = 0 then add_poly p q else (xs, n + m) # add_poly p q
@@ -178,18 +177,6 @@ lemma polynom_of_list_remove_empty_coeffs[simp]:
   by (induction xs)
     (auto simp: Const_add Const_def algebra_simps)
 
-
-
-lemma polynom_of_list_add_poly[simp]:
-  \<open>polynom_of_list (add_poly R xs ys) = polynom_of_list xs + polynom_of_list ys\<close>
-  apply (induction xs ys rule: add_poly.induct[of _ R])
-  subgoal
-    by auto
-  subgoal
-    by auto
-  subgoal for x m xs y n ys
-    by (auto simp: Const_add algebra_simps group_add_class.add_eq_0_iff2)
-  done
 
 
 lemma polynom_of_list_map_mult:
