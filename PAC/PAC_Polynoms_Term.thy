@@ -70,7 +70,7 @@ definition add_poly_l :: \<open>llist_polynom \<times> llist_polynom \<Rightarro
             (if xs = ys then if n + m = 0 then add_poly_l (p, q) else
                do {
                  pq \<leftarrow> add_poly_l (p, q);
-                 RETURN ((xs, n + m) # q)
+                 RETURN ((xs, n + m) # pq)
              }
             else if (xs, ys) \<in> lexord (lexord less_than_char)
               then do {
@@ -263,42 +263,42 @@ lemma add_poly_l'_add_poly_p:
    done
   done
 
-lemma
-  \<open>(add_poly_l, (\<lambda>x. case x of (p, q) \<Rightarrow> SPEC(\<lambda>r'. \<exists>r. (r', r) \<in> sorted_poly_list_rel S \<and> add_poly_p\<^sup>*\<^sup>* (p, q, {#}) ({#}, {#}, r)))) \<in>
-    sorted_poly_list_rel S \<times>\<^sub>r sorted_poly_list_rel S \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
-  supply [[goals_limit=1]]
-  unfolding add_poly_l_def
-  apply (intro fun_relI nres_relI)
-  subgoal for pq pq'
-    apply (rule RECT_rule[where V = \<open>measure (\<lambda>(p, q). size p + size q)\<close> and pre = \<open>\<lambda>(s, t).
-       True\<close>])
-    subgoal by refine_mono
-    subgoal by auto
+
+lemma add_poly_l_add_poly:
+  \<open>add_poly_l x = RETURN (add_poly_l' x)\<close>
+proof -
+  show ?thesis
+    unfolding add_poly_l_def
+    apply (induction x rule: add_poly_l'.induct)
     subgoal
-      by auto
-    subgoal premises p for f x
-      using p(1)
-      apply (auto split: list.splits prod.splits)
-      apply (rule RETURN_SPEC_refine)
-      apply (rule_tac x = \<open>{#}\<close> in exI)
-      apply auto[]
+      apply (subst RECT_unfold)
+      apply refine_mono
+      apply (simp split: list.split)
+      done
+    subgoal
+      apply (subst RECT_unfold)
+      apply refine_mono
+      apply (simp split: list.split)
+      done
+    subgoal
+      apply (subst RECT_unfold)
+      apply refine_mono
+      apply (simp split: list.split)
+      done
+    done
+qed
 
-oops
-find_theorems "RETURN _ \<le> \<Down> _ (RES _)"
 
-fun add_poly_l :: \<open>llist_polynom \<Rightarrow> llist_polynom \<Rightarrow> llist_polynom\<close> where
-  \<open>add_poly_l [] p = p\<close> |
-  \<open>add_poly_l p [] = p\<close> |
-  \<open>add_poly_l ((xs, n) # p) ((ys, m) # q) =
-    (if xs = ys then if n + m = 0 then add_poly_l p q else (xs, n + m) # add_poly_l p q
-    else if (xs, ys) \<in> lexord (lexord less_than_char) then (xs, n) # add_poly_l p ((ys, m) # q)
-    else (ys, m) # add_poly_l ((xs, n) # p) q)\<close>
-
-term \<open>(\<lambda>p q. SPEC(\<lambda>r. add_poly_p\<^sup>*\<^sup>* (p, q, {#}) ({#}, {#}, r)))\<close>
-lemma
-  \<open>((RETURN oo add_poly_l), (\<lambda>p q. SPEC(\<lambda>r. add_poly_p\<^sup>*\<^sup>* (p, q, {#}) ({#}, {#}, r)))) \<in>
-    sorted_poly_list_rel S \<rightarrow> sorted_poly_list_rel S \<rightarrow> \<langle>sorted_poly_list_rel S\<rangle>nres_rel\<close>
-  apply (intro fun_relI nres_relIsl)
+lemma add_poly_l_spec:
+  \<open>(add_poly_l, uncurry (\<lambda>p q. SPEC(\<lambda>r. add_poly_p\<^sup>*\<^sup>* (p, q, {#}) ({#}, {#}, r)))) \<in>
+    sorted_poly_list_rel (rel2p (lexord (lexord less_than_char))) \<times>\<^sub>r
+       sorted_poly_list_rel (rel2p (lexord (lexord less_than_char))) \<rightarrow>\<^sub>f
+    \<langle>sorted_poly_list_rel (rel2p (lexord (lexord less_than_char)))\<rangle>nres_rel\<close>
+  unfolding add_poly_l_add_poly
+  apply (intro nres_relI frefI)
+  apply (drule add_poly_l'_add_poly_p)
+  apply (auto simp: conc_fun_RES)
+  done
 
 instantiation char :: linorder
 begin
