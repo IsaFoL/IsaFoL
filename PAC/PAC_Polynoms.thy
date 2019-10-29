@@ -37,7 +37,7 @@ definition mult_poly_by_monom :: \<open>term_poly * int \<Rightarrow> mset_polyn
 
 definition mult_poly_raw :: \<open>mset_polynom \<Rightarrow> mset_polynom \<Rightarrow> mset_polynom\<close> where
   \<open>mult_poly_raw p q =
-    (sum_mset ((\<lambda>y. (mult_poly_by_monom y q)) `# p))\<close>
+    (sum_mset ((\<lambda>y. mult_poly_by_monom y q) `# p))\<close>
 
 
 definition remove_powers :: \<open>mset_polynom \<Rightarrow> mset_polynom\<close> where
@@ -147,6 +147,23 @@ lemma wf_add_poly_p:
      \<nu> = \<open>\<lambda>(a,b,c). [size a , size b, size c]\<close>])
    (auto simp: add_poly_p.simps lexn3_conv wf_lexn)
 
+lemma mult_poly_by_monom_simps[simp]:
+  \<open>mult_poly_by_monom t {#} = {#}\<close>
+  \<open>mult_poly_by_monom t (ps + qs) =  mult_poly_by_monom t ps + mult_poly_by_monom t qs\<close>
+  \<open>mult_poly_by_monom a (add_mset p ps) = add_mset (fst a + fst p, snd a * snd p) (mult_poly_by_monom a ps)\<close>
+proof -
+  interpret comp_fun_commute \<open>(\<lambda>xs. add_mset (xs + t))\<close> for t
+    by standard auto
+  show
+    \<open>mult_poly_by_monom t (ps + qs) =  mult_poly_by_monom t ps + mult_poly_by_monom t qs\<close> for t
+    by (induction ps)
+      (auto simp: mult_poly_by_monom_def)
+  show
+    \<open>mult_poly_by_monom a (add_mset p ps) = add_mset (fst a + fst p, snd a * snd p) (mult_poly_by_monom a ps)\<close>
+    \<open>mult_poly_by_monom t {#} = {#}\<close>for t
+    by (auto simp: mult_poly_by_monom_def)
+qed
+
 
 locale poly_embed =
   fixes \<phi> :: \<open>string \<Rightarrow> nat\<close>
@@ -206,27 +223,6 @@ lemma polynom_of_mset_Cons[simp]:
 lemma polynom_of_mset_empty[simp]:
   \<open>polynom_of_mset {#} = 0\<close>
   by (auto simp: polynom_of_mset_def)
-
-interpretation comp_fun_commute \<open>(\<lambda>y. (+) (mult_poly_by_monom y ys))\<close>
-  by standard auto
-
-lemma mult_poly_by_monom_simps[simp]:
-  \<open>mult_poly_by_monom t {#} = {#}\<close>
-  \<open>mult_poly_by_monom t (ps + qs) =  mult_poly_by_monom t ps + mult_poly_by_monom t qs\<close>
-  \<open>mult_poly_by_monom a (add_mset p ps) = add_mset (fst a + fst p, snd a * snd p) (mult_poly_by_monom a ps)\<close>
-proof -
-  interpret comp_fun_commute \<open>(\<lambda>xs. add_mset (xs + t))\<close> for t
-    by standard auto
-  show
-    \<open>mult_poly_by_monom t (ps + qs) =  mult_poly_by_monom t ps + mult_poly_by_monom t qs\<close> for t
-    by (induction ps)
-      (auto simp: mult_poly_by_monom_def)
-  show
-    \<open>mult_poly_by_monom a (add_mset p ps) = add_mset (fst a + fst p, snd a * snd p) (mult_poly_by_monom a ps)\<close>
-    \<open>mult_poly_by_monom t {#} = {#}\<close>for t
-    by (auto simp: mult_poly_by_monom_def)
-qed
-
 
 lemma polynom_of_mset_mult_poly_by_monom[simp]:
   \<open>polynom_of_mset (mult_poly_by_monom x ys) =

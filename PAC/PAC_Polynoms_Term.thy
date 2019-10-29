@@ -21,9 +21,22 @@ lemma trans_less_than_char[simp]:
     \<open>antisym less_than_char\<close>
   by (auto simp: less_than_char_def trans_def irrefl_def antisym_def)
 
+abbreviation var_order_rel :: \<open>(string \<times> string) set\<close> where
+  \<open>var_order_rel \<equiv> lexord less_than_char\<close>
+
+abbreviation var_order :: \<open>string \<Rightarrow> string \<Rightarrow> bool\<close> where
+  \<open>var_order \<equiv> rel2p var_order_rel\<close>
+
+abbreviation term_order_rel :: \<open>(term_poly_list \<times> term_poly_list) set\<close> where
+  \<open>term_order_rel \<equiv> lexord (lexord less_than_char)\<close>
+
+abbreviation term_order :: \<open>term_poly_list \<Rightarrow> term_poly_list \<Rightarrow> bool\<close> where
+  \<open>term_order \<equiv> rel2p term_order_rel\<close>
+
 definition term_poly_list_rel :: \<open>(term_poly_list \<times> term_poly) set\<close> where
   \<open>term_poly_list_rel = {(xs, ys).
      ys = mset xs \<and>
+     distinct xs \<and>
      sorted_wrt (rel2p (lexord less_than_char)) xs}\<close>
 
 definition poly_list_rel :: \<open>_ \<Rightarrow> (('a \<times> int) list \<times> mset_polynom) set\<close> where
@@ -90,7 +103,8 @@ definition add_poly_l :: \<open>llist_polynom \<times> llist_polynom \<Rightarro
 
 lemma sorted_poly_list_rel_ConsD:
   \<open>((ys, n) # p, a) \<in> sorted_poly_list_rel S \<Longrightarrow> (p, remove1_mset (mset ys, n) a) \<in> sorted_poly_list_rel S \<and>
-    (mset ys, n) \<in># a \<and> (\<forall>x \<in> set p. S ys (fst x)) \<and> sorted_wrt (rel2p (lexord less_than_char)) ys\<close>
+    (mset ys, n) \<in># a \<and> (\<forall>x \<in> set p. S ys (fst x)) \<and> sorted_wrt (rel2p (lexord less_than_char)) ys \<and>
+    distinct ys\<close>
   unfolding sorted_poly_list_rel_wrt_def prod.case mem_Collect_eq
     list_rel_def
   apply (clarsimp)
@@ -104,11 +118,14 @@ lemma sorted_poly_list_rel_ConsD:
   apply (auto simp: term_poly_list_rel_def)
   apply (case_tac \<open>lead_coeff y\<close>; case_tac y)
   apply (auto simp: term_poly_list_rel_def)
+  apply (case_tac \<open>lead_coeff y\<close>; case_tac y)
+  apply (auto simp: term_poly_list_rel_def)
   done
 
 lemma sorted_poly_list_rel_Cons_iff:
   \<open>((ys, n) # p, a) \<in> sorted_poly_list_rel S \<longleftrightarrow> (p, remove1_mset (mset ys, n) a) \<in> sorted_poly_list_rel S \<and>
-    (mset ys, n) \<in># a \<and> (\<forall>x \<in> set p. S ys (fst x)) \<and> sorted_wrt (rel2p (lexord less_than_char)) ys\<close>
+    (mset ys, n) \<in># a \<and> (\<forall>x \<in> set p. S ys (fst x)) \<and> sorted_wrt (rel2p (lexord less_than_char)) ys \<and>
+    distinct ys\<close>
   apply (rule iffI)
   subgoal
     by (auto dest: sorted_poly_list_rel_ConsD)
@@ -339,6 +356,96 @@ proof -
     unfolding sort_poly_spec_def poly_list_rel_def sorted_poly_list_rel_wrt_def
     by refine_rcg (auto intro: H)
 qed
+
+
+definition mult_poly_raw_l_spec where
+  \<open>mult_poly_raw_l_spec p q = map (apfst remdups_mset) (mult_poly_raw_l p q)\<close>
+
+fun mult_monoms :: \<open>term_poly_list \<Rightarrow> term_poly_list \<Rightarrow> term_poly_list\<close> where
+  \<open>mult_monoms p [] = p\<close> |
+  \<open>mult_monoms [] p = p\<close> |
+  \<open>mult_monoms (x # p) (y # q) =
+    (if x = y then x # mult_monoms p q
+    else if (x, y) \<in> var_order_rel then x # mult_monoms p (y # q)
+      else y # mult_monoms (x # p) q)\<close>
+
+lemma term_poly_list_rel_empty_iff[simp]:
+  \<open>([], q') \<in> term_poly_list_rel \<longleftrightarrow> q' = {#}\<close>
+  by (auto simp: term_poly_list_rel_def)
+
+lemma term_poly_list_rel_Cons_iff:
+  \<open>(y # p, p') \<in> term_poly_list_rel \<longleftrightarrow>
+    (p, remove1_mset y p') \<in> term_poly_list_rel \<and>
+    y \<in># p' \<and> y \<notin> set p \<and> y \<notin># remove1_mset y p' \<and>
+    (\<forall>x\<in>#mset p. (y, x) \<in> var_order_rel)\<close>
+  apply (auto simp: term_poly_list_rel_def rel2p_def dest!: multi_member_split)
+  by (metis list.set_intros(1) list_of_mset_exi mset.simps(2) mset_eq_setD)
+
+lemma var_order_rel_antisym[simp]:
+  \<open>(y, y) \<notin> var_order_rel\<close>
+  by (simp add: less_than_char_def lexord_irreflexive)
+
+lemma term_poly_list_rel_remdups_mset:
+  \<open>(p, p') \<in> term_poly_list_rel \<Longrightarrow>
+    (p, remdups_mset p') \<in> term_poly_list_rel\<close>
+  by (auto simp: term_poly_list_rel_def distinct_mset_remdups_mset_id simp flip: distinct_mset_mset_distinct)
+
+lemma var_notin_notin_mult_monomsD:
+  \<open>y \<in> set (mult_monoms p q) \<Longrightarrow> y \<in> set p \<or> y \<in> set q\<close>
+  by (induction p q arbitrary: p' q' rule: mult_monoms.induct) (auto split: if_splits)
+
+lemma term_poly_list_rel_set_mset:
+  \<open>(p, q) \<in> term_poly_list_rel \<Longrightarrow> set p = set_mset q\<close>
+  by (auto simp: term_poly_list_rel_def)
+
+lemma mult_monoms_spec:
+  \<open>(mult_monoms, (\<lambda>a b. remdups_mset (a + b))) \<in> term_poly_list_rel \<rightarrow> term_poly_list_rel \<rightarrow> term_poly_list_rel\<close>
+  apply (intro fun_relI)
+  apply (rename_tac p p' q q')
+  subgoal for p p' q q'
+    apply (induction p q arbitrary: p' q' rule: mult_monoms.induct)
+    subgoal by (auto simp: term_poly_list_rel_Cons_iff rel2p_def term_poly_list_rel_remdups_mset)
+    subgoal for x p p' q'
+      by (auto simp: term_poly_list_rel_Cons_iff rel2p_def term_poly_list_rel_remdups_mset
+      dest!: multi_member_split[of _ q'])
+    subgoal premises p for x p y q p' q'
+      apply (cases \<open>x = y\<close>)
+      subgoal
+        using p(1)[of \<open>remove1_mset y p'\<close> \<open>remove1_mset y q'\<close>] p(4-)
+        apply (auto simp: term_poly_list_rel_Cons_iff rel2p_def
+          dest!: var_notin_notin_mult_monomsD
+          dest!: multi_member_split)
+       by (metis set_mset_remdups_mset union_iff union_single_eq_member)
+     apply (cases \<open>(x, y) \<in> var_order_rel\<close>)
+     subgoal
+        using p(2)[of \<open>remove1_mset x p'\<close> \<open>q'\<close>] p(4-)
+        apply (auto simp: term_poly_list_rel_Cons_iff rel2p_def
+            term_poly_list_rel_set_mset rel2p_def
+          dest!: multi_member_split[of _ p'] multi_member_split[of _ q']
+            var_notin_notin_mult_monomsD
+          split: if_splits)
+       apply (meson lexord_cons_cons list.inject total_on_lexord_less_than_char_linear)
+       apply (meson lexord_cons_cons list.inject total_on_lexord_less_than_char_linear)
+       apply (meson lexord_cons_cons list.inject total_on_lexord_less_than_char_linear)
+       using lexord_trans trans_less_than_char var_order_rel_antisym apply blast
+       using lexord_trans trans_less_than_char var_order_rel_antisym apply blast
+       using lexord_trans trans_less_than_char var_order_rel_antisym apply blast
+       using lexord_trans trans_less_than_char var_order_rel_antisym apply blast
+       using lexord_trans trans_less_than_char var_order_rel_antisym apply blast
+       done
+     subgoal
+        using p(3)[of \<open>p'\<close> \<open>remove1_mset y q'\<close>] p(4-)
+        apply (auto simp: term_poly_list_rel_Cons_iff rel2p_def
+            term_poly_list_rel_set_mset rel2p_def
+          dest!: multi_member_split[of _ p'] multi_member_split[of _ q']
+            var_notin_notin_mult_monomsD
+          split: if_splits)
+       using lexord_trans trans_less_than_char var_order_rel_antisym apply blast
+       apply (meson lexord_cons_cons list.inject total_on_lexord_less_than_char_linear)
+       by (meson less_than_char_linear lexord_linear lexord_trans trans_less_than_char)
+       done
+    done
+  done
 
 
 instantiation char :: linorder

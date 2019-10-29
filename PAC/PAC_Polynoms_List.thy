@@ -147,6 +147,22 @@ lemma normalized_poly_l_add_poly:
   done
 end
 
+fun mult_poly_raw_l :: \<open>list_polynom \<Rightarrow> list_polynom \<Rightarrow> list_polynom\<close> where
+  \<open>mult_poly_raw_l [] p = []\<close> |
+  \<open>mult_poly_raw_l p [] = []\<close> |
+  \<open>mult_poly_raw_l ((xs, m) # p) q =
+     map (\<lambda>(ys, n). (xs + ys, n * m)) q @
+     mult_poly_raw_l p q\<close>
+
+definition mult_poly_l :: \<open>list_polynom \<Rightarrow> list_polynom \<Rightarrow> list_polynom\<close> where
+  \<open>mult_poly_l xs ys = normalize_poly (mult_poly_raw_l xs ys)\<close>
+
+lemma mult_poly_raw_l_mult_poly_raw:
+  \<open>mset (mult_poly_raw_l p q) = mult_poly_raw (mset p) (mset q)\<close>
+  by (induction p q rule: mult_poly_raw_l.induct)
+    (auto simp: mult_poly_raw_def algebra_simps mult_poly_by_monom_def
+    intro!: image_mset_cong)
+
 
 context poly_embed
 begin
@@ -192,22 +208,6 @@ lemma polynom_of_list_map_mult2:
      polynom_of_list (map (\<lambda>(ys, n). (ys, n)) va)\<close>
   by (induction va)
     (auto simp: Const_add algebra_simps Const_mult)
-
-fun mult_poly_raw_l :: \<open>list_polynom \<Rightarrow> list_polynom \<Rightarrow> list_polynom\<close> where
-  \<open>mult_poly_raw_l [] p = []\<close> |
-  \<open>mult_poly_raw_l p [] = []\<close> |
-  \<open>mult_poly_raw_l ((xs, m) # p) q =
-     map (\<lambda>(ys, n). (xs + ys, n * m)) q @
-     mult_poly_raw_l p q\<close>
-
-definition mult_poly_l :: \<open>list_polynom \<Rightarrow> list_polynom \<Rightarrow> list_polynom\<close> where
-  \<open>mult_poly_l xs ys = normalize_poly (mult_poly_raw_l xs ys)\<close>
-
-lemma mult_poly_raw_l_mult_poly_raw:
-  \<open>mset (mult_poly_raw_l p q) = mult_poly_raw (mset p) (mset q)\<close>
-  by (induction p q rule: mult_poly_raw_l.induct)
-    (auto simp: mult_poly_raw_def algebra_simps mult_poly_by_monom_def
-    intro!: image_mset_cong)
 
 lemma polynom_of_list_mult_mult_poly_raw_l[simp]:
   \<open>polynom_of_list (mult_poly_raw_l xs ys) = polynom_of_list xs * polynom_of_list ys\<close>
