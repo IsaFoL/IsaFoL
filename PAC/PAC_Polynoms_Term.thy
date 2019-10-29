@@ -366,7 +366,7 @@ fun mult_monoms :: \<open>term_poly_list \<Rightarrow> term_poly_list \<Rightarr
   \<open>mult_monoms [] p = p\<close> |
   \<open>mult_monoms (x # p) (y # q) =
     (if x = y then x # mult_monoms p q
-    else if (x, y) \<in> var_order_rel then x # mult_monoms p (y # q)
+     else if (x, y) \<in> var_order_rel then x # mult_monoms p (y # q)
       else y # mult_monoms (x # p) q)\<close>
 
 lemma term_poly_list_rel_empty_iff[simp]:
@@ -446,6 +446,62 @@ lemma mult_monoms_spec:
        done
     done
   done
+
+definition mult_monomials :: \<open>_\<close> where
+  \<open>mult_monomials = (\<lambda>(x, a) (y, b). (mult_monoms x y, a * b))\<close>
+
+definition mult_poly_raw :: \<open>llist_polynom \<Rightarrow> llist_polynom \<Rightarrow> llist_polynom\<close> where
+  \<open>mult_poly_raw p q = foldl (\<lambda>b x. map (mult_monomials x) q @ b) [] p\<close>
+
+inductive mult_poly_p :: \<open>mset_polynom \<Rightarrow> mset_polynom \<times> mset_polynom \<Rightarrow> mset_polynom \<times> mset_polynom \<Rightarrow> bool\<close>
+  for q :: mset_polynom where
+mult_step:
+    \<open>mult_poly_p q (add_mset (xs, n) p, r) (p, (\<lambda>(ys, n). (remdups_mset (xs + ys), n * m)) `# q + r)\<close>
+
+
+lemmas mult_poly_p_induct = mult_poly_p.induct[split_format(complete)]
+
+
+context poly_embed
+begin
+
+lemma polynom_of_mset_mult_map:
+  \<open>polynom_of_mset
+     {#case x of (ys, n) \<Rightarrow> (remdups_mset (ys + xs), n * m). x \<in># q#} -
+    Const n * (poly_of_vars xs * polynom_of_mset q)
+    \<in> More_Modules.ideal polynom_bool\<close>
+proof (induction q)
+  case empty
+  then show ?case by (auto simp: algebra_simps ideal.span_zero)
+next
+  case (add x q)
+  show ?case
+    by (metis (no_types) add.IH add.left_neutral fold_mset_empty image_mset_add_mset mult_zero_left mult_zero_right
+      poly_embed.poly_of_vars_def poly_embed.poly_of_vars_simps(2) poly_embed.polynom_of_mset_Cons)
+qed
+
+lemma mult_poly_p_mult_ideal:
+  \<open>mult_poly_p q (p, r) (p', r') \<Longrightarrow>
+     (polynom_of_mset p' * polynom_of_mset q + polynom_of_mset r') - (polynom_of_mset p * polynom_of_mset q + polynom_of_mset r)
+       \<in> ideal polynom_bool\<close>
+proof (induction rule: mult_poly_p_induct)
+  case (mult_step xs n p r m)
+  show ?case
+    by (auto simp: algebra_simps polynom_of_mset_mult_map)
+qed
+
+lemma rtranclp_mult_poly_p_mult_ideal:
+  \<open>(mult_poly_p q)\<^sup>*\<^sup>* (p, r) (p', r') \<Longrightarrow>
+     (polynom_of_mset p' * polynom_of_mset q + polynom_of_mset r') - (polynom_of_mset p * polynom_of_mset q + polynom_of_mset r)
+       \<in> ideal polynom_bool\<close>
+  apply (induction \<open>(p', q')\<close> rule: rtranclp_induct[of \<open>mult_poly_p q\<close> \<open>(p, r)\<close> \<open>(p', q')\<close> for p' q'])
+  apply (auto dest: mult_poly_p_mult_ideal)
+proof (induction rule: mult_poly_p_induct)
+  case (mult_step xs n p r m)
+  show ?case
+    by (auto simp: algebra_simps polynom_of_mset_mult_map)
+qed
+
 
 
 instantiation char :: linorder
