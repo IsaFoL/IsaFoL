@@ -593,23 +593,22 @@ proof
      unfolding Liminf_llist_def by auto
 qed
 
-subsection \<open>Grounding Function\<close>
+subsection \<open>standard lifting\<close>
 
-locale grounding_function = Non_ground: sound_inference_system Bot_F entails_sound_F Inf_F + Ground: redundancy_criterion Bot_G entails_sound_G Inf_G entails_comp_G Red_Inf_G Red_F_G
+locale standard_lifting = Non_ground: inference_system Inf_F + Ground: calculus_with_red_crit Bot_G Inf_G entails_G Red_Inf_G Red_F_G
   for
     Bot_F :: \<open>'f set\<close> and
-    entails_sound_F ::  \<open>'f set \<Rightarrow> 'f set \<Rightarrow> bool\<close> (infix "|\<approx>F" 50) and
     Inf_F :: \<open>'f inference set\<close> and
     Bot_G :: \<open>'g set\<close> and
-    entails_sound_G ::  \<open>'g set  \<Rightarrow> 'g set  \<Rightarrow> bool\<close> (infix "|\<approx>G" 50) and
     Inf_G ::  \<open>'g inference set\<close> and
-    entails_comp_G ::  \<open>'g set  \<Rightarrow> 'g set  \<Rightarrow> bool\<close> (infix "\<Turnstile>G" 50) and
+    entails_G ::  \<open>'g set  \<Rightarrow> 'g set  \<Rightarrow> bool\<close> (infix "\<Turnstile>G" 50) and
     Red_Inf_G :: \<open>'g set \<Rightarrow> 'g inference set\<close> and
     Red_F_G :: \<open>'g set \<Rightarrow> 'g set\<close>
   + fixes
     \<G>_F :: \<open>'f \<Rightarrow> 'g set\<close> and
     \<G>_Inf :: \<open>'f inference \<Rightarrow> 'g inference set\<close>
   assumes
+    Bot_F_not_empty: "Bot_F \<noteq> {}" and
     Bot_map_not_empty: \<open>B \<in> Bot_F \<Longrightarrow> \<G>_F B \<noteq> {}\<close> and
     Bot_map: \<open>B \<in> Bot_F \<Longrightarrow> \<G>_F B \<subseteq> Bot_G\<close> and
     Bot_cond: \<open>\<G>_F C \<inter> Bot_G \<noteq> {} \<longrightarrow> C \<in> Bot_F\<close> and
@@ -637,10 +636,12 @@ proof -
   then show ?thesis using r_trans Ground.entails_trans[of sB "{B}"] by auto
 qed
 
-text \<open>lemma 8 in the technical report\<close>
+text \<open>lemma 25 in the technical report\<close>
 sublocale lifted_consequence_relation: consequence_relation  
   where Bot=Bot_F and entails=entails_\<G>
 proof
+  show "Bot_F \<noteq> {}" using Bot_F_not_empty .
+next
   show \<open>B\<in>Bot_F \<Longrightarrow> {B} \<Turnstile>\<G> N\<close> for B N 
   proof -
     assume \<open>B \<in> Bot_F\<close>
