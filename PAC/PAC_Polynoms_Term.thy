@@ -456,7 +456,7 @@ definition mult_poly_raw :: \<open>llist_polynom \<Rightarrow> llist_polynom \<R
 inductive mult_poly_p :: \<open>mset_polynom \<Rightarrow> mset_polynom \<times> mset_polynom \<Rightarrow> mset_polynom \<times> mset_polynom \<Rightarrow> bool\<close>
   for q :: mset_polynom where
 mult_step:
-    \<open>mult_poly_p q (add_mset (xs, n) p, r) (p, (\<lambda>(ys, n). (remdups_mset (xs + ys), n * m)) `# q + r)\<close>
+    \<open>mult_poly_p q (add_mset (xs, n) p, r) (p, (\<lambda>(ys, m). (remdups_mset (xs + ys), n * m)) `# q + r)\<close>
 
 
 lemmas mult_poly_p_induct = mult_poly_p.induct[split_format(complete)]
@@ -485,7 +485,7 @@ lemma mult_poly_p_mult_ideal:
      (polynom_of_mset p' * polynom_of_mset q + polynom_of_mset r') - (polynom_of_mset p * polynom_of_mset q + polynom_of_mset r)
        \<in> ideal polynom_bool\<close>
 proof (induction rule: mult_poly_p_induct)
-  case (mult_step xs n p r m)
+  case (mult_step xs n p r)
   show ?case
     by (auto simp: algebra_simps polynom_of_mset_mult_map)
 qed
@@ -494,15 +494,142 @@ lemma rtranclp_mult_poly_p_mult_ideal:
   \<open>(mult_poly_p q)\<^sup>*\<^sup>* (p, r) (p', r') \<Longrightarrow>
      (polynom_of_mset p' * polynom_of_mset q + polynom_of_mset r') - (polynom_of_mset p * polynom_of_mset q + polynom_of_mset r)
        \<in> ideal polynom_bool\<close>
-  apply (induction \<open>(p', q')\<close> rule: rtranclp_induct[of \<open>mult_poly_p q\<close> \<open>(p, r)\<close> \<open>(p', q')\<close> for p' q'])
-  apply (auto dest: mult_poly_p_mult_ideal)
-proof (induction rule: mult_poly_p_induct)
-  case (mult_step xs n p r m)
-  show ?case
-    by (auto simp: algebra_simps polynom_of_mset_mult_map)
+  apply (induction p' r' rule: rtranclp_induct[of \<open>mult_poly_p q\<close> \<open>(p, r)\<close> \<open>(p', q')\<close> for p' q', split_format(complete)])
+  subgoal
+    by (auto simp: ideal.span_zero)
+  subgoal for a b aa ba
+    apply (drule mult_poly_p_mult_ideal)
+    apply (drule ideal.span_add)
+    apply assumption
+    apply (auto simp: group_add_class.diff_add_eq_diff_diff_swap
+      add.assoc add.inverse_distrib_swap ac_simps
+      simp flip: ab_group_add_class.ab_diff_conv_add_uminus)
+    by (metis (no_types, hide_lams) ab_group_add_class.ab_diff_conv_add_uminus
+      ab_semigroup_add_class.add.commute add.assoc add.inverse_distrib_swap)
+  done
+end
+
+lemma foldl_append_empty:
+  \<open>NO_MATCH [] xs \<Longrightarrow> foldl (\<lambda>b x. f x @ b) xs p = foldl (\<lambda>b x. f x @ b) [] p @ xs\<close>
+  apply (induction p arbitrary: xs)
+  apply simp
+  by (metis (mono_tags, lifting) NO_MATCH_def append.assoc append_self_conv foldl_Cons) 
+  
+
+lemma poly_list_rel_empty_iff[simp]:
+  \<open>([], r) \<in> poly_list_rel R \<longleftrightarrow> r = {#}\<close>
+  by (auto simp: poly_list_rel_def list_mset_rel_def br_def)
+
+lemma mult_poly_raw_simp[simp]:
+  \<open>mult_poly_raw [] q = []\<close>
+  \<open>mult_poly_raw (x # p) q = mult_poly_raw p q @ map (mult_monomials x) q\<close>
+  subgoal by (auto simp: mult_poly_raw_def)
+  subgoal
+    by (induction p)
+      (auto simp: mult_poly_raw_def foldl_append_empty)
+  done
+
+lemma sorted_poly_list_relD:
+  \<open>(q, q') \<in> sorted_poly_list_rel R \<Longrightarrow> q' = (\<lambda>(a, b). (mset a, b)) `# mset q\<close>
+  apply (induction q arbitrary: q')
+  apply (auto simp: sorted_poly_list_rel_wrt_def list_mset_rel_def br_def
+    list_rel_split_right_iff)
+  apply (subst (asm)(2) term_poly_list_rel_def)
+  apply auto
+  done
+
+lemma list_all2_in_set_ExD:
+  \<open>list_all2 R p q \<Longrightarrow> x \<in> set p \<Longrightarrow> \<exists>y \<in> set q. R x y\<close>
+  by (induction p q rule: list_all2_induct)
+    auto
+
+inductive_cases mult_poly_p_elim: \<open>mult_poly_p q (A, r) (B, r')\<close>
+
+lemma mult_poly_p_add_mset_same:
+  \<open>(mult_poly_p q')\<^sup>*\<^sup>* (A, r) (B, r') \<Longrightarrow> (mult_poly_p q')\<^sup>*\<^sup>* (add_mset x A, r) (add_mset x B, r')\<close>
+  apply (induction rule: rtranclp_induct[of \<open>mult_poly_p q'\<close> \<open>(p, r)\<close> \<open>(p', q'')\<close> for p' q'', split_format(complete)])
+  apply (auto elim!: mult_poly_p_elim intro: mult_poly_p.intros)
+  by (smt add_mset_commute mult_step rtranclp.rtrancl_into_rtrancl)
+
+lemma mult_poly_raw_mult_poly_p:
+  assumes \<open>(p, p') \<in> sorted_poly_rel\<close> and \<open>(q, q') \<in> sorted_poly_rel\<close>
+  shows \<open>\<exists>r. (mult_poly_raw p q, r) \<in> unsorted_poly_rel \<and> (mult_poly_p q')\<^sup>*\<^sup>* (p', {#}) ({#}, r)\<close>
+proof -
+  have H: \<open>(q, q') \<in> sorted_poly_list_rel term_order \<Longrightarrow> n < length q \<Longrightarrow>
+    distinct aa \<Longrightarrow> sorted_wrt var_order aa \<Longrightarrow>
+    (mult_monoms aa (fst (q ! n)),
+           mset (mult_monoms aa (fst (q ! n))))
+          \<in> term_poly_list_rel\<close> for aa n
+    using mult_monoms_spec[unfolded fun_rel_def, simplified] apply -
+    apply (drule bspec[of _ _ \<open>(aa, (mset aa))\<close>])
+    apply (auto simp: term_poly_list_rel_def)[]
+    unfolding prod.case sorted_poly_list_rel_wrt_def
+    apply clarsimp
+    subgoal for y
+      apply (drule bspec[of _ _ \<open>(fst (q ! n), mset (fst (q ! n)))\<close>])
+      apply (cases \<open>q ! n\<close>; cases \<open>y ! n\<close>)
+      using param_nth[of n y n q \<open>term_poly_list_rel \<times>\<^sub>r int_rel\<close>]
+      by (auto simp: list_rel_imp_same_length term_poly_list_rel_def)
+    done
+
+  have H': \<open>(q, q') \<in> sorted_poly_list_rel term_order \<Longrightarrow>
+    distinct aa \<Longrightarrow> sorted_wrt var_order aa \<Longrightarrow>
+     (ab, ba) \<in> set q \<Longrightarrow>
+       remdups_mset (mset aa + mset ab) = mset (mult_monoms aa ab)\<close> for aa n ab ba
+    using mult_monoms_spec[unfolded fun_rel_def, simplified] apply -
+    apply (drule bspec[of _ _ \<open>(aa, (mset aa))\<close>])
+    apply (auto simp: term_poly_list_rel_def)[]
+    unfolding prod.case sorted_poly_list_rel_wrt_def
+    apply clarsimp
+    subgoal for y
+      apply (drule bspec[of _ _ \<open>(ab, mset ab)\<close>])
+      apply (auto simp: list_rel_imp_same_length term_poly_list_rel_def list_rel_def
+        dest: list_all2_in_set_ExD)
+    done
+    done
+
+  have  H: \<open>(q, q') \<in> sorted_poly_list_rel term_order \<Longrightarrow>
+       a = (aa, b) \<Longrightarrow>
+       (pq, r) \<in> unsorted_poly_rel \<Longrightarrow>
+       p' = add_mset (mset aa, b) A \<Longrightarrow>
+       \<forall>x\<in>set p. term_order aa (fst x) \<Longrightarrow>
+       sorted_wrt var_order aa \<Longrightarrow>
+       distinct aa \<Longrightarrow>
+       (pq @
+        map (mult_monomials (aa, b)) q,
+        {#case x of (ys, n) \<Rightarrow> (remdups_mset (mset aa + ys), n * b)
+        . x \<in># q'#} +
+        r)
+       \<in> unsorted_poly_rel\<close> for a p p' pq aa b r
+   apply (auto simp: poly_list_rel_def)
+   apply (rule_tac b = \<open>y @ map (\<lambda>(a,b). (mset a, b)) (map (mult_monomials (aa, b)) q)\<close> in relcompI)
+   apply (auto simp: list_rel_def list_all2_append list_all2_lengthD H
+     list_mset_rel_def br_def mult_monomials_def case_prod_beta intro!: list_all2_all_nthI
+     simp: sorted_poly_list_relD)
+     apply (subst sorted_poly_list_relD[of q q' term_order])
+     apply (auto simp: case_prod_beta H' intro!: image_mset_cong)
+   done
+
+  show ?thesis
+    using assms
+    apply (induction p arbitrary: p')
+    subgoal
+      by auto
+    subgoal premises p for a p p'
+      using p(1)[of \<open>remove1_mset (mset (fst a), snd a) p'\<close>] p(2-)
+      apply (cases a)
+      apply (auto simp: sorted_poly_list_rel_Cons_iff
+        dest!: multi_member_split)
+      apply (rule_tac x = \<open>(\<lambda>(ys, n). (remdups_mset (mset (fst a) + ys), n * snd a)) `# q' + r\<close> in exI)
+      apply (auto intro: mult_poly_p.intros intro!: H)
+      apply (rule rtranclp_trans)
+      apply (rule mult_poly_p_add_mset_same)
+      apply assumption
+      apply (rule converse_rtranclp_into_rtranclp)
+      apply (auto intro!: mult_poly_p.intros simp: ac_simps)
+      done
+    done
 qed
-
-
 
 instantiation char :: linorder
 begin
