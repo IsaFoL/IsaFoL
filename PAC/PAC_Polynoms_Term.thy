@@ -507,14 +507,20 @@ lemma rtranclp_mult_poly_p_mult_ideal:
     by (metis (no_types, hide_lams) ab_group_add_class.ab_diff_conv_add_uminus
       ab_semigroup_add_class.add.commute add.assoc add.inverse_distrib_swap)
   done
+
+lemma rtranclp_mult_poly_p_mult_ideal_final:
+  \<open>(mult_poly_p q)\<^sup>*\<^sup>* (p, {#}) ({#}, r) \<Longrightarrow>
+    (polynom_of_mset r) - (polynom_of_mset p * polynom_of_mset q)
+       \<in> ideal polynom_bool\<close>
+  by (drule rtranclp_mult_poly_p_mult_ideal) auto
 end
 
 lemma foldl_append_empty:
   \<open>NO_MATCH [] xs \<Longrightarrow> foldl (\<lambda>b x. f x @ b) xs p = foldl (\<lambda>b x. f x @ b) [] p @ xs\<close>
   apply (induction p arbitrary: xs)
   apply simp
-  by (metis (mono_tags, lifting) NO_MATCH_def append.assoc append_self_conv foldl_Cons) 
-  
+  by (metis (mono_tags, lifting) NO_MATCH_def append.assoc append_self_conv foldl_Cons)
+
 
 lemma poly_list_rel_empty_iff[simp]:
   \<open>([], r) \<in> poly_list_rel R \<longleftrightarrow> r = {#}\<close>
