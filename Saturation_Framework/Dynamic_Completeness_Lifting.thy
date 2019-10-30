@@ -2,20 +2,16 @@
     Author:      Sophie Tourret <stourret at mpi-inf.mpg.de>, 2018
 *)
 
-section \<open>Lifting Static Completeness to Dynamic Completeness\<close>
+section \<open>Adding a family of well-founded orderings to the standard lifting\<close>
 
-subsection \<open>Basic Lifting\<close>
-
+(* TODO: rename file and theory to something that reflects its content better *)
 theory Dynamic_Completeness_Lifting
   imports
     Saturation_Framework_Preliminaries
     Well_Quasi_Orders.Minimal_Elements
 begin
 
-subsection \<open>Adding a Well-founded Relation\<close>
-
-locale redundancy_criterion_lifting = standard_lifting Bot_F Inf_F Bot_G Inf_G entails_G Red_Inf_G Red_F_G
-  + minimal_element Prec_F UNIV
+locale lifting_with_wf_ordering_family = standard_lifting Bot_F Inf_F Bot_G Inf_G entails_G Red_Inf_G Red_F_G
   for
     Bot_F :: \<open>'f set\<close> and
     Inf_F :: \<open>'f inference set\<close> and
@@ -23,55 +19,64 @@ locale redundancy_criterion_lifting = standard_lifting Bot_F Inf_F Bot_G Inf_G e
     entails_G :: \<open>'g set \<Rightarrow> 'g set \<Rightarrow> bool\<close> (infix "\<Turnstile>G" 50) and
     Inf_G :: \<open>'g inference set\<close> and
     Red_Inf_G :: \<open>'g set \<Rightarrow> 'g inference set\<close> and
-    Red_F_G :: \<open>'g set \<Rightarrow> 'g set\<close> and
-    Prec_F :: \<open>'f \<Rightarrow> 'f \<Rightarrow> bool\<close> (infix "\<sqsubset>" 50)
+    Red_F_G :: \<open>'g set \<Rightarrow> 'g set\<close>
+  + fixes
+    Prec_F_g :: \<open>'g \<Rightarrow> 'f \<Rightarrow> 'f \<Rightarrow> bool\<close>
+  assumes
+    all_wf: "minimal_element (Prec_F_g g) UNIV"
 begin
 
 definition Red_Inf_\<G> :: "'f set \<Rightarrow> 'f inference set" where
   \<open>Red_Inf_\<G> N = {\<iota> \<in> Inf_F. \<G>_Inf \<iota> \<subseteq> Red_Inf_G (\<G>_set N)}\<close>
 
 definition Red_F_\<G> :: "'f set \<Rightarrow> 'f set" where
-  \<open>Red_F_\<G> N = {C. \<forall>D \<in> \<G>_F C. D \<in> Red_F_G (\<G>_set N) \<or> (\<exists>E \<in> N. E \<sqsubset> C \<and> D \<in> \<G>_F E)}\<close>
+  \<open>Red_F_\<G> N = {C. \<forall>D \<in> \<G>_F C. D \<in> Red_F_G (\<G>_set N) \<or> (\<exists>E \<in> N. Prec_F_g D E C \<and> D \<in> \<G>_F E)}\<close>
 
 lemma Prec_trans: 
   assumes 
-    \<open>A \<sqsubset> B\<close> and
-    \<open>B \<sqsubset> C\<close>
+    \<open>Prec_F_g D A B\<close> and
+    \<open>Prec_F_g D B C\<close>
   shows
-    \<open>A \<sqsubset> C\<close>
-  using po assms unfolding po_on_def transp_on_def by blast
+    \<open>Prec_F_g D A C\<close>
+  using minimal_element.po assms unfolding po_on_def transp_on_def by (smt UNIV_I all_wf)
 
-text \<open>lemma 9 in the technical report\<close>
+lemma prop_nested_in_set: "D \<in> P C \<Longrightarrow> C \<in> {C. \<forall>D \<in> P C. A D \<or> B C D} \<Longrightarrow> A D \<or> B C D"
+  by blast
+
+text \<open>lemma 31 in the technical report\<close>
 lemma Red_F_\<G>_equiv_def: 
-  \<open>Red_F_\<G> N = {C. \<forall>D \<in> \<G>_F C. D \<in> Red_F_G (\<G>_set N) \<or> (\<exists>E \<in> (N - Red_F_\<G> N). E \<sqsubset> C \<and> D \<in> \<G>_F E)}\<close>
+  \<open>Red_F_\<G> N = {C. \<forall>Di \<in> \<G>_F C. Di \<in> Red_F_G (\<G>_set N) \<or> (\<exists>E \<in> (N - Red_F_\<G> N). Prec_F_g Di E C \<and> Di \<in> \<G>_F E)}\<close>
 proof (rule;clarsimp)
   fix C D
   assume 
     C_in: \<open>C \<in> Red_F_\<G> N\<close> and
     D_in: \<open>D \<in> \<G>_F C\<close> and
-    not_sec_case: \<open>\<forall>E \<in> N - Red_F_\<G> N. E \<sqsubset> C \<longrightarrow> D \<notin> \<G>_F E\<close>
-  have neg_not_sec_case: \<open>\<not> (\<exists>E\<in>N - Red_F_\<G> N. E \<sqsubset> C \<and> D \<in> \<G>_F E)\<close> using not_sec_case by clarsimp 
-  have unfol_C_D: \<open>D \<in> Red_F_G (\<G>_set N) \<or> (\<exists>E\<in>N. E \<sqsubset> C \<and> D \<in> \<G>_F E)\<close> 
-    using C_in D_in unfolding Red_F_\<G>_def by auto
+    not_sec_case: \<open>\<forall>E \<in> N - Red_F_\<G> N. Prec_F_g D E C \<longrightarrow> D \<notin> \<G>_F E\<close>
+  have C_in_unfolded: "C \<in> {C. \<forall>Di \<in> \<G>_F C. Di \<in> Red_F_G (\<G>_set N) \<or> (\<exists>E\<in>N. Prec_F_g Di E C \<and> Di \<in> \<G>_F E)}"
+    using C_in unfolding Red_F_\<G>_def .
+  have neg_not_sec_case: \<open>\<not> (\<exists>E\<in>N - Red_F_\<G> N. Prec_F_g D E C \<and> D \<in> \<G>_F E)\<close> using not_sec_case by clarsimp 
+  have unfol_C_D: \<open>D \<in> Red_F_G (\<G>_set N) \<or> (\<exists>E\<in>N. Prec_F_g D E C \<and> D \<in> \<G>_F E)\<close> 
+    using prop_nested_in_set[of D \<G>_F C "\<lambda>x. x \<in> Red_F_G (\<Union> (\<G>_F ` N))"
+      "\<lambda>x y. \<exists>E \<in> N. Prec_F_g y E x \<and> y \<in> \<G>_F E", OF D_in C_in_unfolded] by blast
   show \<open>D \<in> Red_F_G (\<G>_set N)\<close> 
   proof (rule ccontr)
     assume contrad: \<open>D \<notin> Red_F_G (\<G>_set N)\<close>
-    have non_empty: \<open>\<exists>E\<in>N. E \<sqsubset> C \<and> D \<in> \<G>_F E\<close> using contrad unfol_C_D by auto
-    define B where \<open>B = {E \<in> N. E \<sqsubset> C \<and> D \<in> \<G>_F E}\<close>
+    have non_empty: \<open>\<exists>E\<in>N. Prec_F_g D E C \<and> D \<in> \<G>_F E\<close> using contrad unfol_C_D by auto
+    define B where \<open>B = {E \<in> N. Prec_F_g D E C \<and> D \<in> \<G>_F E}\<close>
     then have B_non_empty: \<open>B \<noteq> {}\<close> using non_empty by auto
-    obtain F where F: \<open>F = min_elt B\<close> by auto
+    interpret minimal_element "Prec_F_g D" UNIV using all_wf[of D] .
+    obtain F :: 'f where F: \<open>F = min_elt B\<close> by auto
     then have D_in_F: \<open>D \<in> \<G>_F F\<close> unfolding B_def using non_empty
-      by (smt Sup_UNIV Sup_upper UNIV_I contra_subsetD empty_iff empty_subsetI mem_Collect_eq 
-          min_elt_mem unfol_C_D)
-    have F_prec: \<open>F \<sqsubset> C\<close> using F min_elt_mem[of B, OF _ B_non_empty] unfolding B_def by auto
+      by (smt Sup_UNIV Sup_upper UNIV_I contra_subsetD empty_iff empty_subsetI mem_Collect_eq min_elt_mem unfol_C_D) 
+    have F_prec: \<open>Prec_F_g D F C\<close> using F min_elt_mem[of B, OF _ B_non_empty] unfolding B_def by auto
     have F_not_in: \<open>F \<notin> Red_F_\<G> N\<close>
     proof
       assume F_in: \<open>F \<in> Red_F_\<G> N\<close>
-      have unfol_F_D: \<open>D \<in> Red_F_G (\<G>_set N) \<or> (\<exists>G\<in>N. G \<sqsubset> F \<and> D \<in> \<G>_F G)\<close>
+      have unfol_F_D: \<open>D \<in> Red_F_G (\<G>_set N) \<or> (\<exists>G\<in>N. Prec_F_g D G F \<and> D \<in> \<G>_F G)\<close>
         using F_in D_in_F unfolding Red_F_\<G>_def by auto
-      then have \<open>\<exists>G\<in>N. G \<sqsubset> F \<and> D \<in> \<G>_F G\<close> using contrad D_in unfolding Red_F_\<G>_def by auto
-      then obtain G where G_in: \<open>G \<in> N\<close> and G_prec: \<open>G \<sqsubset> F\<close> and G_map: \<open>D \<in> \<G>_F G\<close> by auto
-      have \<open>G \<sqsubset> C\<close> using G_prec F_prec Prec_trans by blast
+      then have \<open>\<exists>G\<in>N. Prec_F_g D G F \<and> D \<in> \<G>_F G\<close> using contrad D_in unfolding Red_F_\<G>_def by auto
+      then obtain G where G_in: \<open>G \<in> N\<close> and G_prec: \<open>Prec_F_g D G F\<close> and G_map: \<open>D \<in> \<G>_F G\<close> by auto
+      have \<open>Prec_F_g D G C\<close> using G_prec F_prec Prec_trans by blast
       then have \<open>G \<in> B\<close> unfolding B_def using G_in G_map by auto
       then show \<open>False\<close> using F G_prec min_elt_minimal[of B G, OF _ B_non_empty] by auto
     qed
@@ -82,7 +87,7 @@ proof (rule;clarsimp)
   qed
 next
   fix C
-  assume only_if: \<open>\<forall>D\<in>\<G>_F C. D \<in> Red_F_G (\<G>_set N) \<or> (\<exists>E\<in>N - Red_F_\<G> N. E \<sqsubset> C \<and> D \<in> \<G>_F E)\<close>
+  assume only_if: \<open>\<forall>D\<in>\<G>_F C. D \<in> Red_F_G (\<G>_set N) \<or> (\<exists>E\<in>N - Red_F_\<G> N. Prec_F_g D E C \<and> D \<in> \<G>_F E)\<close>
   show \<open>C \<in> Red_F_\<G> N\<close> unfolding Red_F_\<G>_def using only_if by auto
 qed
 

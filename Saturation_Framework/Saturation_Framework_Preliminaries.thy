@@ -669,5 +669,5 @@ next
 qed
 
 end
-
+(* TODO: split content of this file between several ones by topic: base, family of redundancy criteria, standard lifting ... *)
 end
