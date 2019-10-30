@@ -41,13 +41,15 @@ definition term_poly_list_rel :: \<open>(term_poly_list \<times> term_poly) set\
 
 definition poly_list_rel :: \<open>_ \<Rightarrow> (('a \<times> int) list \<times> mset_polynom) set\<close> where
   \<open>poly_list_rel R = {(xs, ys).
-     (xs, ys) \<in> \<langle>R \<times>\<^sub>r int_rel\<rangle>list_rel O list_mset_rel}\<close>
+     (xs, ys) \<in> \<langle>R \<times>\<^sub>r int_rel\<rangle>list_rel O list_mset_rel \<and>
+     0 \<notin># snd `# ys}\<close>
 
 definition sorted_poly_list_rel_wrt :: \<open>('a \<Rightarrow> 'a \<Rightarrow> bool)
      \<Rightarrow> ('a \<times> string multiset) set \<Rightarrow> (('a \<times> int) list \<times> mset_polynom) set\<close> where
   \<open>sorted_poly_list_rel_wrt S R = {(xs, ys).
      (xs, ys) \<in> \<langle>R \<times>\<^sub>r int_rel\<rangle>list_rel O list_mset_rel \<and>
-     sorted_wrt S (map fst xs)}\<close>
+     sorted_wrt S (map fst xs) \<and>
+     0 \<notin># snd `# ys}\<close>
 
 abbreviation sorted_poly_list_rel where
   \<open>sorted_poly_list_rel R \<equiv> sorted_poly_list_rel_wrt R term_poly_list_rel\<close>
@@ -101,10 +103,22 @@ definition add_poly_l :: \<open>llist_polynom \<times> llist_polynom \<Rightarro
                  RETURN ((ys, m) # pq)
             }))\<close>
 
+definition nonzero_coeffs where
+  \<open>nonzero_coeffs a \<longleftrightarrow> 0 \<notin># snd `# a\<close>
+
+lemma nonzero_coeffs_simps[simp]:
+  \<open>nonzero_coeffs {#}\<close>
+  \<open>nonzero_coeffs (add_mset (xs, n) a) \<longleftrightarrow> nonzero_coeffs a \<and> n \<noteq> 0\<close>
+  by (auto simp: nonzero_coeffs_def)
+
+lemma nonzero_coeffsD:
+  \<open>nonzero_coeffs a \<Longrightarrow> (x, n) \<in># a \<Longrightarrow> n \<noteq> 0\<close>
+  by (auto simp: nonzero_coeffs_def)
+  
 lemma sorted_poly_list_rel_ConsD:
   \<open>((ys, n) # p, a) \<in> sorted_poly_list_rel S \<Longrightarrow> (p, remove1_mset (mset ys, n) a) \<in> sorted_poly_list_rel S \<and>
     (mset ys, n) \<in># a \<and> (\<forall>x \<in> set p. S ys (fst x)) \<and> sorted_wrt (rel2p (lexord less_than_char)) ys \<and>
-    distinct ys\<close>
+    distinct ys \<and> n \<noteq> 0 \<and> nonzero_coeffs a\<close>
   unfolding sorted_poly_list_rel_wrt_def prod.case mem_Collect_eq
     list_rel_def
   apply (clarsimp)
@@ -120,12 +134,16 @@ lemma sorted_poly_list_rel_ConsD:
   apply (auto simp: term_poly_list_rel_def)
   apply (case_tac \<open>lead_coeff y\<close>; case_tac y)
   apply (auto simp: term_poly_list_rel_def)
+  apply (case_tac \<open>lead_coeff y\<close>; case_tac y)
+  apply (auto simp: term_poly_list_rel_def)
+  apply (case_tac \<open>lead_coeff y\<close>; case_tac y)
+  apply (auto simp: term_poly_list_rel_def nonzero_coeffs_def)
   done
 
 lemma sorted_poly_list_rel_Cons_iff:
   \<open>((ys, n) # p, a) \<in> sorted_poly_list_rel S \<longleftrightarrow> (p, remove1_mset (mset ys, n) a) \<in> sorted_poly_list_rel S \<and>
     (mset ys, n) \<in># a \<and> (\<forall>x \<in> set p. S ys (fst x)) \<and> sorted_wrt (rel2p (lexord less_than_char)) ys \<and>
-    distinct ys\<close>
+    distinct ys \<and> n \<noteq> 0 \<and> nonzero_coeffs a\<close>
   apply (rule iffI)
   subgoal
     by (auto dest: sorted_poly_list_rel_ConsD)
@@ -133,9 +151,11 @@ lemma sorted_poly_list_rel_Cons_iff:
     unfolding sorted_poly_list_rel_wrt_def prod.case mem_Collect_eq
       list_rel_def
     apply (clarsimp)
+    apply (intro conjI)
     apply (rule_tac b = \<open>(mset ys, n) # y\<close> in relcompI)
     by (auto simp: sorted_poly_list_rel_wrt_def list_mset_rel_def br_def
-        term_poly_list_rel_def
+        term_poly_list_rel_def add_mset_eq_add_mset eq_commute[of _ \<open>mset _\<close>]
+        nonzero_coeffs_def
       dest!: multi_member_split)
     done
 
@@ -227,6 +247,12 @@ lemma total_on_lexord_less_than_char_linear:
    apply (auto simp: antisym_def)
    done
 
+lemma sorted_poly_list_rel_nonzeroD:
+  \<open>(p, r) \<in> sorted_poly_list_rel term_order \<Longrightarrow>
+       nonzero_coeffs (r)\<close>
+  by (auto simp: sorted_poly_list_rel_wrt_def nonzero_coeffs_def)
+
+
 lemma add_poly_l'_add_poly_p:
   assumes \<open>(pq, pq') \<in> sorted_poly_rel \<times>\<^sub>r sorted_poly_rel\<close>
   shows \<open>\<exists>r. (add_poly_l' pq, r) \<in> sorted_poly_rel \<and>
@@ -254,7 +280,7 @@ lemma add_poly_l'_add_poly_p:
         using p(2)[of \<open>(remove1_mset (mset xs, n) (fst pq'), remove1_mset (mset ys, m)  (snd pq'))\<close>] p(5-)
         apply (auto dest!: sorted_poly_list_rel_ConsD multi_member_split)
         apply (rule_tac x = \<open>add_mset (mset ys, n + m) r\<close> in exI)
-        apply (fastforce dest!: monoms_add_poly_l'D simp: sorted_poly_list_rel_Cons_iff rel2p_def
+        apply (fastforce dest!: monoms_add_poly_l'D simp: sorted_poly_list_rel_Cons_iff rel2p_def sorted_poly_list_rel_nonzeroD
           intro: add_poly_p_add_mset_comb2)
         done
      done
@@ -268,7 +294,8 @@ lemma add_poly_l'_add_poly_p:
         apply (auto intro: lexord_trans add_poly_p_add_mset_comb  simp: lexord_transI)
         apply (rule lexord_trans)
         apply assumption
-        apply (auto intro: lexord_trans add_poly_p_add_mset_comb simp: lexord_transI)
+        apply (auto intro: lexord_trans add_poly_p_add_mset_comb simp: lexord_transI
+          sorted_poly_list_rel_nonzeroD)
         done
       subgoal
         using p(4)[of \<open>(fst pq', remove1_mset (mset ys, m) (snd pq'))\<close>] p(5-)
@@ -280,7 +307,8 @@ lemma add_poly_l'_add_poly_p:
           total_on_lexord_less_than_char_linear)
         apply (rule lexord_trans)
         apply assumption
-        apply (auto intro: lexord_trans add_poly_p_add_mset_comb3 simp: lexord_transI)
+        apply (auto intro: lexord_trans add_poly_p_add_mset_comb3 simp: lexord_transI
+          sorted_poly_list_rel_nonzeroD)
         done
       done
    done
@@ -312,7 +340,8 @@ lemma sort_poly_spec_id:
 proof -
   obtain y where
     py: \<open>(p, y) \<in> \<langle>term_poly_list_rel \<times>\<^sub>r int_rel\<rangle>list_rel\<close> and
-    p'_y: \<open>p' = mset y\<close>
+    p'_y: \<open>p' = mset y\<close> and
+    zero: \<open>0 \<notin># snd `# p'\<close>
     using assms
     unfolding sort_poly_spec_def poly_list_rel_def sorted_poly_list_rel_wrt_def
     by (auto simp: list_mset_rel_def br_def Collect_eq_comp')
@@ -348,11 +377,12 @@ proof -
           auto
       then have \<open>(?y, p') \<in> list_mset_rel\<close>
         by (auto simp: list_mset_rel_def br_def p'_y)
-       }
+    }
     ultimately show ?thesis
       by (auto intro!: relcompI[of _ ?y])
   qed
   show ?thesis
+    using zero
     unfolding sort_poly_spec_def poly_list_rel_def sorted_poly_list_rel_wrt_def
     by refine_rcg (auto intro: H)
 qed
@@ -476,7 +506,7 @@ lemma sorted_poly_list_relD:
   apply (auto simp: sorted_poly_list_rel_wrt_def list_mset_rel_def br_def
     list_rel_split_right_iff)
   apply (subst (asm)(2) term_poly_list_rel_def)
-  apply auto
+  apply (simp add: relcomp.relcompI)
   done
 
 lemma list_all2_in_set_ExD:
@@ -535,7 +565,8 @@ proof -
        p' = add_mset (mset aa, b) A \<Longrightarrow>
        \<forall>x\<in>set p. term_order aa (fst x) \<Longrightarrow>
        sorted_wrt var_order aa \<Longrightarrow>
-       distinct aa \<Longrightarrow>
+       distinct aa \<Longrightarrow> b\<noteq> 0 \<Longrightarrow>
+       (\<And>aaa. (aaa, 0) \<notin># q') \<Longrightarrow>
        (pq @
         map (mult_monomials (aa, b)) q,
         {#case x of (ys, n) \<Rightarrow> (remdups_mset (mset aa + ys), n * b)
@@ -562,7 +593,7 @@ proof -
       apply (auto simp: sorted_poly_list_rel_Cons_iff
         dest!: multi_member_split)
       apply (rule_tac x = \<open>(\<lambda>(ys, n). (remdups_mset (mset (fst a) + ys), n * snd a)) `# q' + r\<close> in exI)
-      apply (auto intro: mult_poly_p.intros intro!: H)
+      apply (auto intro: mult_poly_p.intros intro!: H dest: sorted_poly_list_rel_nonzeroD nonzero_coeffsD)
       apply (rule rtranclp_trans)
       apply (rule mult_poly_p_add_mset_same)
       apply assumption
@@ -571,6 +602,101 @@ proof -
       done
     done
 qed
+
+fun merge_coeffs :: \<open>llist_polynom \<Rightarrow> llist_polynom\<close> where
+  \<open>merge_coeffs [] = []\<close> |
+  \<open>merge_coeffs [(xs, n)] = [(xs, n)]\<close> |
+  \<open>merge_coeffs ((xs, n) # (ys, m) # p) =
+    (if xs = ys
+    then if n + m \<noteq> 0 then merge_coeffs ((xs, n + m) # p) else merge_coeffs p
+    else (xs, n) # merge_coeffs ((ys, m) # p))\<close>
+
+abbreviation  (in -)mononoms :: \<open>llist_polynom \<Rightarrow> term_poly_list set\<close> where
+  \<open>mononoms p \<equiv> fst `set p\<close>
+
+
+lemma fst_normalize_polynom_subset:
+  \<open>mononoms (merge_coeffs p) \<subseteq> mononoms p\<close>
+  by (induction p rule: merge_coeffs.induct)  auto
+
+
+lemma fst_normalize_polynom_subsetD:
+  \<open>(a, b) \<in> set (merge_coeffs p) \<Longrightarrow> a \<in> mononoms p\<close>
+  apply (induction p rule: merge_coeffs.induct)
+  subgoal
+    by auto
+  subgoal
+    by auto
+  subgoal
+    by (auto split: if_splits)
+  done
+
+lemma distinct_merge_coeffs:
+  assumes \<open>sorted_wrt R (map fst xs)\<close> and \<open>transp R\<close> \<open>antisymp R\<close>
+  shows \<open>distinct (map fst (merge_coeffs xs))\<close>
+  using assms
+  by (induction xs rule: merge_coeffs.induct)
+    (auto 5 4 dest: antisympD dest!: fst_normalize_polynom_subsetD)
+
+lemma in_set_merge_coeffsD:
+  \<open>(a, b) \<in> set (merge_coeffs p) \<Longrightarrow>\<exists>b. (a, b) \<in> set p\<close>
+  by  (auto dest!: fst_normalize_polynom_subsetD)
+
+lemma rtranclp_normalize_poly_add_mset:
+  \<open>normalize_poly_p\<^sup>*\<^sup>* A r \<Longrightarrow> normalize_poly_p\<^sup>*\<^sup>* (add_mset x A) (add_mset x r)\<close>
+  by (induction rule: rtranclp_induct)
+    (auto dest: normalize_poly_p.keep_coeff[of _ _ x])
+
+lemma nonzero_coeffs_diff:
+  \<open>nonzero_coeffs A \<Longrightarrow> nonzero_coeffs (A - B)\<close>
+  by (auto simp: nonzero_coeffs_def dest: in_diffD)
+
+
+context poly_embed
+begin
+
+  lemma merge_coeffs_is_normalize_poly_p:
+    \<open>(xs, ys) \<in> sorted_poly_rel \<Longrightarrow> \<exists>r. (merge_coeffs xs, r) \<in> sorted_poly_rel \<and> normalize_poly_p\<^sup>*\<^sup>* ys r\<close>
+    apply (induction xs arbitrary: ys rule: merge_coeffs.induct)
+    subgoal by auto
+    subgoal
+      by auto
+    subgoal premises p for xs n ys m p ysa
+      apply (cases \<open>xs = ys\<close>, cases \<open>m+n \<noteq> 0\<close>)
+      subgoal
+        using p(1)[of \<open>add_mset (mset ys, m+n) ysa - {#(mset ys, m), (mset ys, n)#}\<close>] p(4-)
+        apply (auto simp: sorted_poly_list_rel_Cons_iff ac_simps add_mset_commute
+          remove1_mset_add_mset_If nonzero_coeffs_diff)
+        apply (rule_tac x = \<open>r\<close> in exI)
+        using normalize_poly_p.merge_dup_coeff[of \<open>ysa -  {#(mset ys, m), (mset ys, n)#}\<close> \<open>ysa -  {#(mset ys, m), (mset ys, n)#}\<close> \<open>mset ys\<close> m n]
+        apply (auto intro: normalize_poly_p.intros add_mset_commute add_mset_commute converse_rtranclp_into_rtranclp dest!: multi_member_split
+          simp del: normalize_poly_p.merge_dup_coeff)
+        by (metis add_mset_commute converse_rtranclp_into_rtranclp)
+     subgoal
+        using p(2)[of \<open>ysa - {#(mset ys, m), (mset ys, n)#}\<close>] p(4-)
+        apply (auto simp: sorted_poly_list_rel_Cons_iff ac_simps add_mset_commute
+          remove1_mset_add_mset_If nonzero_coeffs_diff)
+        apply (rule_tac x = \<open>r\<close> in exI)
+        using normalize_poly_p.rem_0_coeff[of \<open>add_mset (mset ys, m +n) ysa -  {#(mset ys, m), (mset ys, n)#}\<close> \<open>add_mset (mset ys, m +n) ysa -  {#(mset ys, m), (mset ys, n)#}\<close> \<open>mset ys\<close>]
+        using normalize_poly_p.merge_dup_coeff[of \<open>ysa -  {#(mset ys, m), (mset ys, n)#}\<close> \<open>ysa -  {#(mset ys, m), (mset ys, n)#}\<close> \<open>mset ys\<close> m n]
+        apply (auto intro: normalize_poly_p.intros add_mset_commute add_mset_commute converse_rtranclp_into_rtranclp dest!: multi_member_split
+          simp del: normalize_poly_p.rem_0_coeff)
+        by (metis (no_types, hide_lams) add_mset_diff_bothsides converse_rtranclp_into_rtranclp diff_union_swap2 diff_zero
+          normalize_poly_p.rem_0_coeff p(4) same sorted_poly_list_rel_Cons_iff)
+     subgoal
+        using p(3)[of \<open>add_mset (mset ys, m) ysa - {#(mset xs, n), (mset ys, m)#}\<close>] p(4-)
+      apply (auto simp: sorted_poly_list_rel_Cons_iff ac_simps add_mset_commute
+        remove1_mset_add_mset_If)
+      apply (rule_tac x = \<open>add_mset (mset xs, n) r\<close> in exI)
+      apply (auto dest!: in_set_merge_coeffsD)
+      apply (auto intro: normalize_poly_p.intros rtranclp_normalize_poly_add_mset dest!: multi_member_split
+        dest: sorted_poly_list_rel_nonzeroD)
+      done
+    done
+  done
+
+end
+
 
 definition less_eq_char :: \<open>char \<Rightarrow> char \<Rightarrow> bool\<close> where
     \<open>less_eq_char c d = (((of_char c) :: nat) \<le> of_char d)\<close>

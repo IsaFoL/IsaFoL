@@ -34,19 +34,19 @@ text \<open>The PAC format contains three kind of steps:
 To model the simplification that happens, we add the \<^term>\<open>p - p' \<in> polynom_bool\<close>
 stating that \<^term>\<open>p\<close> and  \<^term>\<open>p'\<close> are equivalent.
 \<close>
-inductive PAC_Format :: \<open>int_poly set \<Rightarrow> int_poly set \<Rightarrow> bool\<close> for A :: \<open>int_poly set\<close> where
+inductive PAC_Format :: \<open>int_poly multiset \<Rightarrow> int_poly multiset \<Rightarrow> bool\<close> for A :: \<open>int_poly multiset\<close> where
 add:
-  \<open>PAC_Format A (insert p' A)\<close>
+  \<open>PAC_Format A (add_mset p' A)\<close>
 if
-   \<open>p \<in> A\<close> \<open>q \<in> A\<close>
+   \<open>p \<in># A\<close> \<open>q \<in># A\<close>
    \<open>p+q - p' \<in> ideal polynom_bool\<close> |
 mult:
-  \<open>PAC_Format A (insert p' A)\<close>
+  \<open>PAC_Format A (add_mset p' A)\<close>
 if
-   \<open>p \<in> A\<close>
+   \<open>p \<in># A\<close>
    \<open>p*q - p' \<in> ideal polynom_bool\<close> |
 del:
-   \<open>p \<in> A \<Longrightarrow> PAC_Format A (A - {p})\<close>
+   \<open>p \<in># A \<Longrightarrow> PAC_Format A (A - {#p#})\<close>
 
 lemma diff_in_polynom_bool_pac_idealI:
    assumes a1: "p \<in> pac_ideal A"
@@ -71,7 +71,7 @@ lemma pac_ideal_alt_def:
   by (meson ideal.span_eq ideal.span_mono ideal.span_superset le_sup_iff subset_trans sup_ge2)
 
 lemma PAC_Format_subset_ideal:
-  \<open>PAC_Format A B \<Longrightarrow> B \<subseteq> pac_ideal A\<close>
+  \<open>PAC_Format A B \<Longrightarrow> set_mset B \<subseteq> pac_ideal (set_mset A)\<close>
   apply (induction rule:PAC_Format.induct)
   subgoal
     apply (auto simp: ideal.span_add_eq ideal.span_base pac_ideal_alt_def
@@ -80,15 +80,15 @@ lemma PAC_Format_subset_ideal:
      diff_in_polynom_bool_pac_idealI2 ideal.span_add ideal.span_zero pac_ideal_alt_def)
   subgoal for p q p'
     using  diff_in_polynom_bool_pac_idealI[unfolded pac_ideal_alt_def,
-      of \<open>p * q\<close> A p']
+      of \<open>p * q\<close> \<open>set_mset A\<close> p']
     apply (auto simp: ideal.span_add_eq ideal.span_base pac_ideal_alt_def
-        ac_simps
+        ac_simps dest!: multi_member_split
       intro: diff_in_polynom_bool_pac_idealI[unfolded pac_ideal_alt_def])
-    by (metis UnCI ideal.span_base ideal.span_scale
-       pac_ideal_alt_def semiring_normalization_rules(7))
+    by (metis Un_commute cancel_comm_monoid_add_class.diff_cancel ideal.span_breakdown_eq
+      ideal.span_zero mult.commute pac_ideal_alt_def)
   subgoal
     by (auto simp: ideal.span_add_eq ideal.span_base pac_ideal_alt_def
-        ac_simps
+        ac_simps dest!: multi_member_split
       intro: diff_in_polynom_bool_pac_idealI[unfolded pac_ideal_alt_def])
   done
 
@@ -97,7 +97,7 @@ text \<open>
 \<close>
 
 lemma rtranclp_PAC_Format_subset_ideal:
-  \<open>rtranclp PAC_Format A B \<Longrightarrow> B \<subseteq> pac_ideal A\<close>
+  \<open>rtranclp PAC_Format A B \<Longrightarrow> set_mset B \<subseteq> pac_ideal (set_mset A)\<close>
   apply (induction rule:rtranclp_induct)
   apply (auto 5 3 intro: ideal.span_base dest!: PAC_Format_subset_ideal
       dest: ideal.span_subset_spanI)

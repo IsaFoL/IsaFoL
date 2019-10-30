@@ -173,10 +173,14 @@ mult_step:
 lemmas mult_poly_p_induct = mult_poly_p.induct[split_format(complete)]
 
 inductive normalize_poly_p :: \<open>mset_polynom \<Rightarrow> mset_polynom \<Rightarrow> bool\<close>where
-rem_0_coeff:
-    \<open>normalize_poly_p (add_mset (xs, 0) p) p\<close> |
-merge_dup_coeff:
-    \<open>normalize_poly_p (add_mset (xs, m) (add_mset (xs, n) p)) (add_mset (xs, m + n) p)\<close>
+rem_0_coeff[simp, intro]:
+    \<open>normalize_poly_p p q \<Longrightarrow> normalize_poly_p (add_mset (xs, 0) p) q\<close> |
+merge_dup_coeff[simp, intro]:
+    \<open>normalize_poly_p p q \<Longrightarrow> normalize_poly_p (add_mset (xs, m) (add_mset (xs, n) p)) (add_mset (xs, m + n) q)\<close> |
+same[simp, intro]:
+    \<open>normalize_poly_p p p\<close> |
+keep_coeff[simp, intro]:
+    \<open>normalize_poly_p p q \<Longrightarrow> normalize_poly_p (add_mset x p) (add_mset x q)\<close>
 
 
 locale poly_embed =
