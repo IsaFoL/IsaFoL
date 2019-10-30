@@ -30,7 +30,7 @@ lemma Shift: \<open>\<turnstile> rotate1 G \<Longrightarrow> \<turnstile> G\<clo
 lemma Swap: \<open>\<turnstile> B # A # G \<Longrightarrow> \<turnstile> A # B # G\<close>
   by (simp add: Order insert_commute)
 
-lemma \<open>\<turnstile> [Neg (Pre ''A'' []) , Pre ''A'' []]\<close>
+lemma \<open>\<turnstile> [Neg (Pre ''A'' []), Pre ''A'' []]\<close>
   by (rule Shift, simp) (rule Basic)
 
 lemma \<open>\<turnstile> [Con (Pre ''A'' []) (Pre ''B'' []), Neg (Con (Pre ''B'' []) (Pre ''A'' []))]\<close>
@@ -206,15 +206,5 @@ corollary
   assumes \<open>\<forall>(e :: nat \<Rightarrow> nat hterm) f g. semantics e f g p\<close>
   shows \<open>\<turnstile> [p]\<close>
   using assms SC_completeness list.map(1) by metis
-
-subsection \<open>Acknowledgements\<close>
-
-text \<open>
-
-\<^item> Mordechai (Moti) Ben-Ari:
-Mathematical Logic for Computer Science.
-\<^url>\<open>https://www.springer.com/gp/book/9781447141280\<close>
-
-\<close>
 
 end
