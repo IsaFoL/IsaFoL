@@ -2,78 +2,81 @@
     Author:      Sophie Tourret <stourret at mpi-inf.mpg.de>, 2018
 *)
 
-section \<open>Lifting Static Completeness to Dynamic Completeness\<close>
+section \<open>Adding a family of well-founded orderings to the standard lifting\<close>
 
-subsection \<open>Basic Lifting\<close>
-
+(* TODO: rename file and theory to something that reflects its content better *)
 theory Dynamic_Completeness_Lifting
   imports
     Saturation_Framework_Preliminaries
     Well_Quasi_Orders.Minimal_Elements
 begin
 
-subsection \<open>Adding a Well-founded Relation\<close>
-
-locale redundancy_criterion_lifting = grounding_function Bot_F entails_sound_F Inf_F Bot_G entails_sound_G Inf_G entails_comp_G Red_Inf_G Red_F_G
-  + minimal_element Prec_F UNIV
+locale lifting_with_wf_ordering_family = standard_lifting Bot_F Inf_F Bot_G Inf_G entails_G Red_Inf_G Red_F_G
   for
     Bot_F :: \<open>'f set\<close> and
-    entails_sound_F :: \<open>'f set \<Rightarrow> 'f set \<Rightarrow> bool\<close> (infix "|\<approx>F" 50) and
     Inf_F :: \<open>'f inference set\<close> and
     Bot_G :: \<open>'g set\<close> and
-    entails_sound_G :: \<open>'g set \<Rightarrow> 'g set \<Rightarrow> bool\<close> (infix "|\<approx>G" 50) and
-    entails_comp_G :: \<open>'g set \<Rightarrow> 'g set \<Rightarrow> bool\<close> (infix "\<Turnstile>G" 50) and
+    entails_G :: \<open>'g set \<Rightarrow> 'g set \<Rightarrow> bool\<close> (infix "\<Turnstile>G" 50) and
     Inf_G :: \<open>'g inference set\<close> and
     Red_Inf_G :: \<open>'g set \<Rightarrow> 'g inference set\<close> and
-    Red_F_G :: \<open>'g set \<Rightarrow> 'g set\<close> and
-    Prec_F :: \<open>'f \<Rightarrow> 'f \<Rightarrow> bool\<close> (infix "\<sqsubset>" 50)
+    Red_F_G :: \<open>'g set \<Rightarrow> 'g set\<close>
+  + fixes
+    Prec_F_g :: \<open>'g \<Rightarrow> 'f \<Rightarrow> 'f \<Rightarrow> bool\<close>
+  assumes
+    all_wf: "minimal_element (Prec_F_g g) UNIV"
 begin
 
 definition Red_Inf_\<G> :: "'f set \<Rightarrow> 'f inference set" where
   \<open>Red_Inf_\<G> N = {\<iota> \<in> Inf_F. \<G>_Inf \<iota> \<subseteq> Red_Inf_G (\<G>_set N)}\<close>
 
 definition Red_F_\<G> :: "'f set \<Rightarrow> 'f set" where
-  \<open>Red_F_\<G> N = {C. \<forall>D \<in> \<G>_F C. D \<in> Red_F_G (\<G>_set N) \<or> (\<exists>E \<in> N. E \<sqsubset> C \<and> D \<in> \<G>_F E)}\<close>
+  \<open>Red_F_\<G> N = {C. \<forall>D \<in> \<G>_F C. D \<in> Red_F_G (\<G>_set N) \<or> (\<exists>E \<in> N. Prec_F_g D E C \<and> D \<in> \<G>_F E)}\<close>
 
 lemma Prec_trans: 
   assumes 
-    \<open>A \<sqsubset> B\<close> and
-    \<open>B \<sqsubset> C\<close>
+    \<open>Prec_F_g D A B\<close> and
+    \<open>Prec_F_g D B C\<close>
   shows
-    \<open>A \<sqsubset> C\<close>
-  using po assms unfolding po_on_def transp_on_def by blast
+    \<open>Prec_F_g D A C\<close>
+  using minimal_element.po assms unfolding po_on_def transp_on_def by (smt UNIV_I all_wf)
 
-text \<open>lemma 9 in the technical report\<close>
+lemma prop_nested_in_set: "D \<in> P C \<Longrightarrow> C \<in> {C. \<forall>D \<in> P C. A D \<or> B C D} \<Longrightarrow> A D \<or> B C D"
+  by blast
+
+text \<open>lemma 31 in the technical report\<close>
 lemma Red_F_\<G>_equiv_def: 
-  \<open>Red_F_\<G> N = {C. \<forall>D \<in> \<G>_F C. D \<in> Red_F_G (\<G>_set N) \<or> (\<exists>E \<in> (N - Red_F_\<G> N). E \<sqsubset> C \<and> D \<in> \<G>_F E)}\<close>
+  \<open>Red_F_\<G> N = {C. \<forall>Di \<in> \<G>_F C. Di \<in> Red_F_G (\<G>_set N) \<or> (\<exists>E \<in> (N - Red_F_\<G> N). Prec_F_g Di E C \<and> Di \<in> \<G>_F E)}\<close>
 proof (rule;clarsimp)
   fix C D
   assume 
     C_in: \<open>C \<in> Red_F_\<G> N\<close> and
     D_in: \<open>D \<in> \<G>_F C\<close> and
-    not_sec_case: \<open>\<forall>E \<in> N - Red_F_\<G> N. E \<sqsubset> C \<longrightarrow> D \<notin> \<G>_F E\<close>
-  have neg_not_sec_case: \<open>\<not> (\<exists>E\<in>N - Red_F_\<G> N. E \<sqsubset> C \<and> D \<in> \<G>_F E)\<close> using not_sec_case by clarsimp 
-  have unfol_C_D: \<open>D \<in> Red_F_G (\<G>_set N) \<or> (\<exists>E\<in>N. E \<sqsubset> C \<and> D \<in> \<G>_F E)\<close> 
-    using C_in D_in unfolding Red_F_\<G>_def by auto
+    not_sec_case: \<open>\<forall>E \<in> N - Red_F_\<G> N. Prec_F_g D E C \<longrightarrow> D \<notin> \<G>_F E\<close>
+  have C_in_unfolded: "C \<in> {C. \<forall>Di \<in> \<G>_F C. Di \<in> Red_F_G (\<G>_set N) \<or> (\<exists>E\<in>N. Prec_F_g Di E C \<and> Di \<in> \<G>_F E)}"
+    using C_in unfolding Red_F_\<G>_def .
+  have neg_not_sec_case: \<open>\<not> (\<exists>E\<in>N - Red_F_\<G> N. Prec_F_g D E C \<and> D \<in> \<G>_F E)\<close> using not_sec_case by clarsimp 
+  have unfol_C_D: \<open>D \<in> Red_F_G (\<G>_set N) \<or> (\<exists>E\<in>N. Prec_F_g D E C \<and> D \<in> \<G>_F E)\<close> 
+    using prop_nested_in_set[of D \<G>_F C "\<lambda>x. x \<in> Red_F_G (\<Union> (\<G>_F ` N))"
+      "\<lambda>x y. \<exists>E \<in> N. Prec_F_g y E x \<and> y \<in> \<G>_F E", OF D_in C_in_unfolded] by blast
   show \<open>D \<in> Red_F_G (\<G>_set N)\<close> 
   proof (rule ccontr)
     assume contrad: \<open>D \<notin> Red_F_G (\<G>_set N)\<close>
-    have non_empty: \<open>\<exists>E\<in>N. E \<sqsubset> C \<and> D \<in> \<G>_F E\<close> using contrad unfol_C_D by auto
-    define B where \<open>B = {E \<in> N. E \<sqsubset> C \<and> D \<in> \<G>_F E}\<close>
+    have non_empty: \<open>\<exists>E\<in>N. Prec_F_g D E C \<and> D \<in> \<G>_F E\<close> using contrad unfol_C_D by auto
+    define B where \<open>B = {E \<in> N. Prec_F_g D E C \<and> D \<in> \<G>_F E}\<close>
     then have B_non_empty: \<open>B \<noteq> {}\<close> using non_empty by auto
-    obtain F where F: \<open>F = min_elt B\<close> by auto
+    interpret minimal_element "Prec_F_g D" UNIV using all_wf[of D] .
+    obtain F :: 'f where F: \<open>F = min_elt B\<close> by auto
     then have D_in_F: \<open>D \<in> \<G>_F F\<close> unfolding B_def using non_empty
-      by (smt Sup_UNIV Sup_upper UNIV_I contra_subsetD empty_iff empty_subsetI mem_Collect_eq 
-          min_elt_mem unfol_C_D)
-    have F_prec: \<open>F \<sqsubset> C\<close> using F min_elt_mem[of B, OF _ B_non_empty] unfolding B_def by auto
+      by (smt Sup_UNIV Sup_upper UNIV_I contra_subsetD empty_iff empty_subsetI mem_Collect_eq min_elt_mem unfol_C_D) 
+    have F_prec: \<open>Prec_F_g D F C\<close> using F min_elt_mem[of B, OF _ B_non_empty] unfolding B_def by auto
     have F_not_in: \<open>F \<notin> Red_F_\<G> N\<close>
     proof
       assume F_in: \<open>F \<in> Red_F_\<G> N\<close>
-      have unfol_F_D: \<open>D \<in> Red_F_G (\<G>_set N) \<or> (\<exists>G\<in>N. G \<sqsubset> F \<and> D \<in> \<G>_F G)\<close>
+      have unfol_F_D: \<open>D \<in> Red_F_G (\<G>_set N) \<or> (\<exists>G\<in>N. Prec_F_g D G F \<and> D \<in> \<G>_F G)\<close>
         using F_in D_in_F unfolding Red_F_\<G>_def by auto
-      then have \<open>\<exists>G\<in>N. G \<sqsubset> F \<and> D \<in> \<G>_F G\<close> using contrad D_in unfolding Red_F_\<G>_def by auto
-      then obtain G where G_in: \<open>G \<in> N\<close> and G_prec: \<open>G \<sqsubset> F\<close> and G_map: \<open>D \<in> \<G>_F G\<close> by auto
-      have \<open>G \<sqsubset> C\<close> using G_prec F_prec Prec_trans by blast
+      then have \<open>\<exists>G\<in>N. Prec_F_g D G F \<and> D \<in> \<G>_F G\<close> using contrad D_in unfolding Red_F_\<G>_def by auto
+      then obtain G where G_in: \<open>G \<in> N\<close> and G_prec: \<open>Prec_F_g D G F\<close> and G_map: \<open>D \<in> \<G>_F G\<close> by auto
+      have \<open>Prec_F_g D G C\<close> using G_prec F_prec Prec_trans by blast
       then have \<open>G \<in> B\<close> unfolding B_def using G_in G_map by auto
       then show \<open>False\<close> using F G_prec min_elt_minimal[of B G, OF _ B_non_empty] by auto
     qed
@@ -84,7 +87,7 @@ proof (rule;clarsimp)
   qed
 next
   fix C
-  assume only_if: \<open>\<forall>D\<in>\<G>_F C. D \<in> Red_F_G (\<G>_set N) \<or> (\<exists>E\<in>N - Red_F_\<G> N. E \<sqsubset> C \<and> D \<in> \<G>_F E)\<close>
+  assume only_if: \<open>\<forall>D\<in>\<G>_F C. D \<in> Red_F_G (\<G>_set N) \<or> (\<exists>E\<in>N - Red_F_\<G> N. Prec_F_g D E C \<and> D \<in> \<G>_F E)\<close>
   show \<open>C \<in> Red_F_\<G> N\<close> unfolding Red_F_\<G>_def using only_if by auto
 qed
 
@@ -203,7 +206,7 @@ proof
         have "(\<forall>F Fa f. \<not> F \<subseteq> Fa \<or> (f::'f) \<notin> F \<or> f \<in> Fa) = (\<forall>F Fa f. \<not> F \<subseteq> Fa \<or> (f::'f) \<notin> F \<or> f \<in> Fa)"
           by blast
         then have "N - Red_F_\<G> N \<subseteq> N - N'" using \<open>N' \<subseteq> Red_F_\<G> N\<close> by blast  then show ?thesis
-          by (meson \<G>_subset \<open>\<forall>\<iota>'\<in>\<G>_Inf \<iota>. \<iota>' \<in> Red_Inf_G (\<G>_set (N - Red_F_\<G> N))\<close> calculus.Red_Inf_of_subset grounding_function_axioms grounding_function_def subsetCE)
+          by (meson \<G>_subset \<open>\<forall>\<iota>'\<in>\<G>_Inf \<iota>. \<iota>' \<in> Red_Inf_G (\<G>_set (N - Red_F_\<G> N))\<close> calculus_with_red_crit.Red_Inf_of_subset standard_lifting_axioms standard_lifting_def subsetCE)
       qed
   then show \<open>\<iota> \<in> Red_Inf_\<G> (N - N')\<close> unfolding Red_Inf_\<G>_def using i_in by blast
 qed
@@ -223,9 +226,9 @@ proof -
 qed
 
 text \<open>theorem 16 in the technical report\<close>
-sublocale lifted_calculus: calculus 
+sublocale lifted_calculus_with_red_crit: calculus_with_red_crit 
   where
-    Bot = Bot_F and entails_sound = entails_sound_F and Inf = Inf_F and entails_comp = entails_\<G> and
+    Bot = Bot_F and Inf = Inf_F and entails = entails_\<G> and
     Red_Inf = Red_Inf_\<G> and Red_F = Red_F_\<G>
 proof
   fix B N N' \<iota>
@@ -244,17 +247,15 @@ end
 definition Empty_Order :: \<open>'f \<Rightarrow> 'f \<Rightarrow> bool\<close> where
   "Empty_Order C1 C2 \<equiv> False" 
 
-locale lifting_equivalence_with_empty_order = any_order_lifting: redundancy_criterion_lifting \<G>_F \<G>_Inf Bot_F entails_sound_F Inf_F Bot_G entails_sound_G entails_comp_G Inf_G Red_Inf_G Red_F_G Prec_F + empty_order_lifting: redundancy_criterion_lifting \<G>_F \<G>_Inf Bot_F entails_sound_F Inf_F Bot_G entails_sound_G entails_comp_G Inf_G Red_Inf_G Red_F_G Empty_Order
+locale lifting_equivalence_with_empty_order = any_order_lifting: redundancy_criterion_lifting \<G>_F \<G>_Inf Bot_F Inf_F Bot_G entails_G Inf_G Red_Inf_G Red_F_G Prec_F + empty_order_lifting: redundancy_criterion_lifting \<G>_F \<G>_Inf Bot_F Inf_F Bot_G entails_G Inf_G Red_Inf_G Red_F_G Empty_Order
   for
     \<G>_F :: \<open>'f \<Rightarrow> 'g set\<close> and
     \<G>_Inf :: \<open>'f inference \<Rightarrow> 'g inference set\<close> and
     Bot_F :: \<open>'f set\<close> and
-    entails_sound_F :: \<open>'f set \<Rightarrow> 'f set \<Rightarrow> bool\<close> (infix "|\<approx>F" 50) and
     Inf_F :: \<open>'f inference set\<close> and
     Bot_G :: \<open>'g set\<close> and
-    entails_sound_G :: \<open>'g set \<Rightarrow> 'g set \<Rightarrow> bool\<close> (infix "|\<approx>G" 50) and
     Inf_G :: \<open>'g inference set\<close> and
-    entails_comp_G :: \<open>'g set \<Rightarrow> 'g set \<Rightarrow> bool\<close> (infix "\<Turnstile>G" 50) and
+    entails_G :: \<open>'g set \<Rightarrow> 'g set \<Rightarrow> bool\<close> (infix "\<Turnstile>G" 50) and
     Red_Inf_G :: \<open>'g set \<Rightarrow> 'g inference set\<close> and
     Red_F_G :: \<open>'g set \<Rightarrow> 'g set\<close> and
     Prec_F :: \<open>'f \<Rightarrow> 'f \<Rightarrow> bool\<close> (infix "\<sqsubset>" 50)
@@ -269,25 +270,26 @@ context lifting_equivalence_with_empty_order
 begin
 
 text "lemma 17 from the technical report"
-lemma "any_order_lifting.lifted_calculus.saturated N = empty_order_lifting.lifted_calculus.saturated N" by standard
+lemma "any_order_lifting.lifted_calculus_with_red_crit.saturated N = empty_order_lifting.lifted_calculus_with_red_crit.saturated N" by standard
 
 text "lemma 18 from the technical report" (*TODO: check with Mathias that the first any_order_lifting.entails_\<G> is OK*)
-lemma static_empty_order_equiv_static: "static_refutational_complete_calculus Bot_F entails_sound_F Inf_F any_order_lifting.entails_\<G> empty_order_lifting.Red_Inf_\<G> empty_order_lifting.Red_F_\<G> = static_refutational_complete_calculus Bot_F entails_sound_F Inf_F any_order_lifting.entails_\<G> any_order_lifting.Red_Inf_\<G> any_order_lifting.Red_F_\<G>"
-  unfolding static_refutational_complete_calculus_def by (rule iffI) (standard,(standard)[],simp)+
+lemma static_empty_order_equiv_static: "static_refutational_complete_calculus Bot_F Inf_F any_order_lifting.entails_\<G> empty_order_lifting.Red_Inf_\<G> empty_order_lifting.Red_F_\<G> = static_refutational_complete_calculus Bot_F Inf_F any_order_lifting.entails_\<G> any_order_lifting.Red_Inf_\<G> any_order_lifting.Red_F_\<G>"
+  unfolding static_refutational_complete_calculus_def
+  by (rule iffI) (standard,(standard)[],simp)+
    
 text "theorem 19 from the technical report"
-theorem "static_refutational_complete_calculus Bot_F entails_sound_F Inf_F any_order_lifting.entails_\<G> empty_order_lifting.Red_Inf_\<G> empty_order_lifting.Red_F_\<G> = dynamic_refutational_complete_calculus Bot_F entails_sound_F Inf_F any_order_lifting.entails_\<G> any_order_lifting.Red_Inf_\<G> any_order_lifting.Red_F_\<G> " (is "?static=?dynamic")
+theorem "static_refutational_complete_calculus Bot_F Inf_F any_order_lifting.entails_\<G> empty_order_lifting.Red_Inf_\<G> empty_order_lifting.Red_F_\<G> = dynamic_refutational_complete_calculus Bot_F Inf_F any_order_lifting.entails_\<G> any_order_lifting.Red_Inf_\<G> any_order_lifting.Red_F_\<G> " (is "?static=?dynamic")
 proof
   assume ?static
-  then have static_general: "static_refutational_complete_calculus Bot_F entails_sound_F Inf_F any_order_lifting.entails_\<G> any_order_lifting.Red_Inf_\<G> any_order_lifting.Red_F_\<G>" (is "?static_gen") using static_empty_order_equiv_static by simp
-  interpret static_refutational_complete_calculus Bot_F entails_sound_F Inf_F any_order_lifting.entails_\<G> any_order_lifting.Red_Inf_\<G> any_order_lifting.Red_F_\<G>
+  then have static_general: "static_refutational_complete_calculus Bot_F Inf_F any_order_lifting.entails_\<G> any_order_lifting.Red_Inf_\<G> any_order_lifting.Red_F_\<G>" (is "?static_gen") using static_empty_order_equiv_static by simp
+  interpret static_refutational_complete_calculus Bot_F Inf_F any_order_lifting.entails_\<G> any_order_lifting.Red_Inf_\<G> any_order_lifting.Red_F_\<G>
     using static_general .
   show "?dynamic" by standard 
 next
   assume dynamic_gen: ?dynamic
-  interpret dynamic_refutational_complete_calculus Bot_F entails_sound_F Inf_F any_order_lifting.entails_\<G> any_order_lifting.Red_Inf_\<G> any_order_lifting.Red_F_\<G>
+  interpret dynamic_refutational_complete_calculus Bot_F Inf_F any_order_lifting.entails_\<G> any_order_lifting.Red_Inf_\<G> any_order_lifting.Red_F_\<G>
     using dynamic_gen .
-  have "static_refutational_complete_calculus Bot_F entails_sound_F Inf_F any_order_lifting.entails_\<G> any_order_lifting.Red_Inf_\<G> any_order_lifting.Red_F_\<G>"
+  have "static_refutational_complete_calculus Bot_F Inf_F any_order_lifting.entails_\<G> any_order_lifting.Red_Inf_\<G> any_order_lifting.Red_F_\<G>"
     by standard
   then show "?static" using static_empty_order_equiv_static by simp
 qed
@@ -296,16 +298,14 @@ end
 
 subsection \<open>Adding labels\<close>
 
-locale labeled_redundancy_criterion_lifting = redundancy_criterion_lifting \<G>_F \<G>_Inf Bot_F entails_sound_F Inf_F Bot_G entails_sound_G entails_comp_G Inf_G Red_Inf_G Red_F_G Prec_F
+locale labeled_redundancy_criterion_lifting = redundancy_criterion_lifting \<G>_F \<G>_Inf Bot_F Inf_F Bot_G entails_G Inf_G Red_Inf_G Red_F_G Prec_F
   for
     \<G>_F :: "'f \<Rightarrow> 'g set" and
     \<G>_Inf :: "'f inference \<Rightarrow> 'g inference set" and
     Bot_F :: "'f set" and
-    entails_sound_F :: "'f set \<Rightarrow> 'f set \<Rightarrow> bool"  (infix "|\<approx>F" 50) and
     Inf_F :: "'f inference set" and
     Bot_G :: "'g set" and
-    entails_sound_G :: "'g set \<Rightarrow> 'g set \<Rightarrow> bool"  (infix "|\<approx>G" 50) and
-    entails_comp_G :: "'g set \<Rightarrow> 'g set \<Rightarrow> bool"  (infix "\<Turnstile>G" 50) and
+    entails_G :: "'g set \<Rightarrow> 'g set \<Rightarrow> bool"  (infix "\<Turnstile>G" 50) and
     Inf_G :: "'g inference set" and
     Red_Inf_G :: "'g set \<Rightarrow> 'g inference set" and
     Red_F_G :: "'g set \<Rightarrow> 'g set" and
@@ -327,22 +327,20 @@ definition \<G>_F_L :: \<open>('f \<times> 'l) \<Rightarrow> 'g set\<close> wher
 
 definition \<G>_Inf_L :: \<open>('f \<times> 'l) inference \<Rightarrow> 'g inference set\<close> where \<open>\<G>_Inf_L \<iota>\<^sub>F\<^sub>L = \<G>_Inf (to_F \<iota>\<^sub>F\<^sub>L)\<close>
 
-definition entails_sound_FL :: \<open>('f \<times> 'l) set \<Rightarrow> ('f \<times> 'l) set \<Rightarrow> bool\<close> (infix "|\<approx>FL" 50) where \<open>CL1 |\<approx>FL
-CL2 \<equiv> fst ` CL1 |\<approx>F fst ` CL2\<close>
+(* definition entails_sound_FL :: \<open>('f \<times> 'l) set \<Rightarrow> ('f \<times> 'l) set \<Rightarrow> bool\<close> (infix "|\<approx>FL" 50) where \<open>CL1 |\<approx>FL
+CL2 \<equiv> fst ` CL1 |\<approx>F fst ` CL2\<close> *)
 
 text \<open>Lemma 20 from the technical report\<close>
-sublocale labeled_grounding_function: grounding_function
+sublocale labeled_standard_lifting: standard_lifting
   where
     Bot_F = Bot_FL and
-    entails_sound_F = entails_sound_FL and
     Inf_F = Inf_FL and
     \<G>_F = \<G>_F_L and
     \<G>_Inf = \<G>_Inf_L
 proof
   fix B NL
-  show "B\<in>Bot_FL \<Longrightarrow> {B} |\<approx>FL NL"
-    unfolding entails_sound_FL_def Bot_FL_def using Non_ground.bot_implies_all by force
-next
+  show "Bot_FL \<noteq> {}" sorry
+(* next
   fix NL1 NL2
   show "NL2 \<subseteq> NL1 \<Longrightarrow> NL1 |\<approx>FL NL2"
   proof -
@@ -362,7 +360,7 @@ next
 next
   fix \<iota>
   show "\<iota> \<in> Inf_FL \<Longrightarrow> set (prems_of \<iota>) |\<approx>FL {concl_of \<iota>}"
-    unfolding entails_sound_FL_def using Inf_FL_to_Inf_F Non_ground.soundness by force
+    unfolding entails_sound_FL_def using Inf_FL_to_Inf_F Non_ground.soundness by force *)
 next
   show "B\<in>Bot_FL \<Longrightarrow> \<G>_F_L B \<noteq> {}" for B
     unfolding \<G>_F_L_def Bot_FL_def using Bot_map_not_empty by auto
@@ -383,31 +381,31 @@ qed
 definition Labeled_Empty_Order :: \<open> ('f \<times> 'l) \<Rightarrow> ('f \<times> 'l) \<Rightarrow> bool\<close> where
   "Labeled_Empty_Order C1 C2 \<equiv> False" 
 
-sublocale labeled_lifted_calculus: redundancy_criterion_lifting \<G>_F_L \<G>_Inf_L Bot_FL entails_sound_FL Inf_FL Bot_G entails_sound_G entails_comp_G Inf_G Red_Inf_G Red_F_G Labeled_Empty_Order
+sublocale labeled_lifted_calculus_with_red_crit: redundancy_criterion_lifting \<G>_F_L \<G>_Inf_L Bot_FL Inf_FL Bot_G entails_G Inf_G Red_Inf_G Red_F_G Labeled_Empty_Order
 proof
   show "po_on Labeled_Empty_Order UNIV" unfolding Labeled_Empty_Order_def po_on_def by (simp add: transp_onI wfp_on_imp_irreflp_on)
   show "wfp_on Labeled_Empty_Order UNIV" unfolding wfp_on_def Labeled_Empty_Order_def by simp
 qed
 
-notation "labeled_grounding_function.entails_\<G>" (infix "\<Turnstile>\<G>L" 50)
+notation "labeled_standard_lifting.entails_\<G>" (infix "\<Turnstile>\<G>L" 50)
 
 text \<open>Lemma 21 from the technical report\<close>
 lemma labeled_entailment_lifting: "NL1 \<Turnstile>\<G>L NL2 \<longleftrightarrow> fst ` NL1 \<Turnstile>\<G> fst ` NL2"
-  unfolding labeled_grounding_function.entails_\<G>_def \<G>_F_L_def entails_\<G>_def by auto
+  unfolding labeled_standard_lifting.entails_\<G>_def \<G>_F_L_def entails_\<G>_def by auto
 
 lemma subset_fst: "A \<subseteq> fst ` AB \<Longrightarrow> \<forall>x \<in> A. \<exists>y. (x,y) \<in> AB" by fastforce
 
-lemma red_inf_impl: "\<iota> \<in> labeled_lifted_calculus.Red_Inf_\<G> NL \<Longrightarrow> to_F \<iota> \<in> Red_Inf_\<G> (fst ` NL)"
-  unfolding labeled_lifted_calculus.Red_Inf_\<G>_def Red_Inf_\<G>_def \<G>_Inf_L_def \<G>_F_L_def to_F_def
+lemma red_inf_impl: "\<iota> \<in> labeled_lifted_calculus_with_red_crit.Red_Inf_\<G> NL \<Longrightarrow> to_F \<iota> \<in> Red_Inf_\<G> (fst ` NL)"
+  unfolding labeled_lifted_calculus_with_red_crit.Red_Inf_\<G>_def Red_Inf_\<G>_def \<G>_Inf_L_def \<G>_F_L_def to_F_def
   using Inf_FL_to_Inf_F by auto
 
 text \<open>lemma 22 from the technical report\<close>
-lemma labeled_saturation_lifting: "labeled_lifted_calculus.lifted_calculus.saturated NL \<Longrightarrow> empty_order_lifting.lifted_calculus.saturated (fst ` NL)"
-  unfolding labeled_lifted_calculus.lifted_calculus.saturated_def empty_order_lifting.lifted_calculus.saturated_def labeled_grounding_function.Non_ground.Inf_from_def Non_ground.Inf_from_def
+lemma labeled_saturation_lifting: "labeled_lifted_calculus_with_red_crit.lifted_calculus_with_red_crit.saturated NL \<Longrightarrow> empty_order_lifting.lifted_calculus_with_red_crit.saturated (fst ` NL)"
+  unfolding labeled_lifted_calculus_with_red_crit.lifted_calculus_with_red_crit.saturated_def empty_order_lifting.lifted_calculus_with_red_crit.saturated_def labeled_standard_lifting.Non_ground.Inf_from_def Non_ground.Inf_from_def
 proof clarify
   fix \<iota>
   assume
-    subs_Red_Inf: "{\<iota> \<in> Inf_FL. set (prems_of \<iota>) \<subseteq> NL} \<subseteq> labeled_lifted_calculus.Red_Inf_\<G> NL" and
+    subs_Red_Inf: "{\<iota> \<in> Inf_FL. set (prems_of \<iota>) \<subseteq> NL} \<subseteq> labeled_lifted_calculus_with_red_crit.Red_Inf_\<G> NL" and
     i_in: "\<iota> \<in> Inf_F" and
     i_prems: "set (prems_of \<iota>) \<subseteq> fst ` NL"
   define Lli where "Lli i \<equiv> (SOME x. ((prems_of \<iota>)!i,x) \<in> NL)" for i
@@ -422,33 +420,33 @@ proof clarify
   define \<iota>_FL where "\<iota>_FL = Infer (zip (prems_of \<iota>) Ll) (concl_of \<iota>, L0)"
   then have "set (prems_of \<iota>_FL) \<subseteq> NL" using subs_NL by simp
   then have "\<iota>_FL \<in> {\<iota> \<in> Inf_FL. set (prems_of \<iota>) \<subseteq> NL}" unfolding \<iota>_FL_def using L0 by blast
-  then have "\<iota>_FL \<in> labeled_lifted_calculus.Red_Inf_\<G> NL" using subs_Red_Inf by fast
+  then have "\<iota>_FL \<in> labeled_lifted_calculus_with_red_crit.Red_Inf_\<G> NL" using subs_Red_Inf by fast
   moreover have "\<iota> = to_F \<iota>_FL" unfolding to_F_def \<iota>_FL_def using Ll_length by (cases \<iota>) auto
   ultimately show "\<iota> \<in> Red_Inf_\<G> (fst ` NL)" by (auto intro:red_inf_impl)
 qed
 
 text "lemma 23 from the technical report"
-lemma "static_refutational_complete_calculus Bot_F entails_sound_F Inf_F (\<Turnstile>\<G>) Red_Inf_\<G> Red_F_\<G> \<Longrightarrow> static_refutational_complete_calculus Bot_FL entails_sound_FL Inf_FL (\<Turnstile>\<G>L) labeled_lifted_calculus.Red_Inf_\<G> labeled_lifted_calculus.Red_F_\<G>"
+lemma "static_refutational_complete_calculus Bot_F Inf_F (\<Turnstile>\<G>) Red_Inf_\<G> Red_F_\<G> \<Longrightarrow> static_refutational_complete_calculus Bot_FL Inf_FL (\<Turnstile>\<G>L) labeled_lifted_calculus_with_red_crit.Red_Inf_\<G> labeled_lifted_calculus_with_red_crit.Red_F_\<G>"
   unfolding static_refutational_complete_calculus_def
 proof (rule conjI impI; clarify)
-  interpret calculus Bot_FL entails_sound_FL Inf_FL labeled_grounding_function.entails_\<G> labeled_lifted_calculus.Red_Inf_\<G> labeled_lifted_calculus.Red_F_\<G> by (simp add: labeled_lifted_calculus.lifted_calculus.calculus_axioms)
-  show "calculus Bot_FL (|\<approx>FL) Inf_FL (\<Turnstile>\<G>L) labeled_lifted_calculus.Red_Inf_\<G> labeled_lifted_calculus.Red_F_\<G>" by standard
+  interpret calculus_with_red_crit Bot_FL Inf_FL labeled_standard_lifting.entails_\<G> labeled_lifted_calculus_with_red_crit.Red_Inf_\<G> labeled_lifted_calculus_with_red_crit.Red_F_\<G> by (simp add: labeled_lifted_calculus_with_red_crit.lifted_calculus_with_red_crit.calculus_with_red_crit_axioms)
+  show "calculus_with_red_crit Bot_FL Inf_FL (\<Turnstile>\<G>L) labeled_lifted_calculus_with_red_crit.Red_Inf_\<G> labeled_lifted_calculus_with_red_crit.Red_F_\<G>" by standard
 next
   assume
-    calc: "calculus Bot_F (|\<approx>F) Inf_F (\<Turnstile>\<G>) Red_Inf_\<G> Red_F_\<G>" and
+    calc: "calculus_with_red_crit Bot_F Inf_F (\<Turnstile>\<G>) Red_Inf_\<G> Red_F_\<G>" and
     static: "static_refutational_complete_calculus_axioms Bot_F Inf_F (\<Turnstile>\<G>) Red_Inf_\<G>"
-  show "static_refutational_complete_calculus_axioms Bot_FL Inf_FL (\<Turnstile>\<G>L) labeled_lifted_calculus.Red_Inf_\<G>" unfolding static_refutational_complete_calculus_axioms_def
+  show "static_refutational_complete_calculus_axioms Bot_FL Inf_FL (\<Turnstile>\<G>L) labeled_lifted_calculus_with_red_crit.Red_Inf_\<G>" unfolding static_refutational_complete_calculus_axioms_def
   proof (intro conjI impI allI)
     fix Bl :: \<open>'f \<times> 'l\<close> and Nl :: \<open>('f \<times> 'l) set\<close>
     assume 
       Bl_in: \<open>Bl \<in> Bot_FL\<close> and
-      Nl_sat: \<open>labeled_lifted_calculus.empty_order_lifting.lifted_calculus.saturated Nl\<close> and
+      Nl_sat: \<open>labeled_lifted_calculus_with_red_crit.empty_order_lifting.lifted_calculus_with_red_crit.saturated Nl\<close> and
       Nl_entails_Bl: \<open>Nl \<Turnstile>\<G>L {Bl}\<close>
-    have static_axioms: "B \<in> Bot_F \<longrightarrow> empty_order_lifting.lifted_calculus.saturated N \<longrightarrow> N \<Turnstile>\<G> {B} \<longrightarrow> (\<exists>B'\<in>Bot_F. B' \<in> N)" for B N using static[unfolded static_refutational_complete_calculus_axioms_def] by fast
+    have static_axioms: "B \<in> Bot_F \<longrightarrow> empty_order_lifting.lifted_calculus_with_red_crit.saturated N \<longrightarrow> N \<Turnstile>\<G> {B} \<longrightarrow> (\<exists>B'\<in>Bot_F. B' \<in> N)" for B N using static[unfolded static_refutational_complete_calculus_axioms_def] by fast
     define B where "B = fst Bl"
     have B_in: "B \<in> Bot_F" using Bl_in Bot_FL_def B_def SigmaE by force
     define N where "N = fst ` Nl"
-    have N_sat: "empty_order_lifting.lifted_calculus.saturated N"
+    have N_sat: "empty_order_lifting.lifted_calculus_with_red_crit.saturated N"
       using N_def Nl_sat labeled_saturation_lifting by blast 
     have N_entails_B: "N \<Turnstile>\<G> {B}" using Nl_entails_Bl unfolding labeled_entailment_lifting N_def B_def by force
     have "\<exists>B' \<in> Bot_F. B' \<in> N" using B_in N_sat N_entails_B static_axioms[of B N] by blast

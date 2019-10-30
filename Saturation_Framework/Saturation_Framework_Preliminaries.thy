@@ -361,8 +361,33 @@ end
 locale static_refutational_complete_calculus = calculus_with_red_crit +
   assumes static_refutational_complete: "B \<in> Bot \<Longrightarrow> saturated N \<Longrightarrow> N \<Turnstile> {B} \<Longrightarrow> \<exists>B'\<in>Bot. B' \<in> N"
 
+context calculus_with_red_crit_family
+begin
+
+paragraph \<open>Lemma 22 from the technical report\<close>
+lemma
+  "\<forall>N. (calculus_with_red_crit.saturated Inf Red_Inf_Q N \<and> (\<forall>B \<in> Bot. B \<notin> N)) \<longrightarrow>  (\<exists>B \<in> Bot. \<exists>qi \<in> Q. \<not> entails_q qi N {B})
+    \<Longrightarrow> static_refutational_complete_calculus Bot Inf entails_Q Red_Inf_Q Red_F_Q"
+proof (rule ccontr)
+  assume
+    N_saturated: "\<forall>N. (calculus_with_red_crit.saturated Inf Red_Inf_Q N \<and> (\<forall>B \<in> Bot. B \<notin> N)) \<longrightarrow>  (\<exists>B \<in> Bot. \<exists>qi \<in> Q. \<not> entails_q qi N {B})" and
+    no_stat_ref_comp: "\<not> static_refutational_complete_calculus Bot Inf (\<Turnstile>Q) Red_Inf_Q Red_F_Q"
+  obtain N1 B1 where B1_in: "B1 \<in> Bot" and N1_saturated: "calculus_with_red_crit.saturated Inf Red_Inf_Q N1" and
+    N1_unsat: "N1 \<Turnstile>Q {B1}" and no_B_in_N1: "\<forall>B \<in> Bot. B \<notin> N1"
+    using no_stat_ref_comp by (metis inter_red_crit static_refutational_complete_calculus.intro
+      static_refutational_complete_calculus_axioms.intro)
+  obtain B2 qi where no_qi:"\<not> entails_q qi N1 {B2}" and qi_in: "qi \<in> Q" using N_saturated N1_saturated no_B_in_N1 by blast
+  have "N1 \<Turnstile>Q {B2}" using N1_unsat B1_in cons_rel_family_is_cons_rel unfolding consequence_relation_def by metis
+  then have "entails_q qi N1 {B2}" unfolding entails_Q_def using qi_in by blast
+  then show "False" using no_qi by simp
+qed
+
+end
+
 context calculus_with_red_crit
 begin
+
+
 
 definition Sup_Red_Inf_llist :: "'f set llist \<Rightarrow> 'f inference set" where
   "Sup_Red_Inf_llist D = (\<Union>i \<in> {i. enat i < llength D}. Red_Inf (lnth D i))"
@@ -373,7 +398,6 @@ lemma Sup_Red_Inf_unit: "Sup_Red_Inf_llist (LCons X LNil) = Red_Inf X"
 definition fair :: "'f set llist \<Rightarrow> bool" where
   "fair D \<equiv> Inf_from (Liminf_llist D) \<subseteq> Sup_Red_Inf_llist D"
   
-(* TODO: TrRed is a temporary notation because \<rhd> is apparently not parsed by Isabelle*)
 inductive "derive" :: "'f set \<Rightarrow> 'f set \<Rightarrow> bool" (infix "\<rhd>Red" 50) where
   derive: "M - N \<subseteq> Red_F N \<Longrightarrow> M \<rhd>Red N"
 
@@ -569,23 +593,22 @@ proof
      unfolding Liminf_llist_def by auto
 qed
 
-subsection \<open>Grounding Function\<close>
+subsection \<open>standard lifting\<close>
 
-locale grounding_function = Non_ground: sound_inference_system Bot_F entails_sound_F Inf_F + Ground: redundancy_criterion Bot_G entails_sound_G Inf_G entails_comp_G Red_Inf_G Red_F_G
+locale standard_lifting = Non_ground: inference_system Inf_F + Ground: calculus_with_red_crit Bot_G Inf_G entails_G Red_Inf_G Red_F_G
   for
     Bot_F :: \<open>'f set\<close> and
-    entails_sound_F ::  \<open>'f set \<Rightarrow> 'f set \<Rightarrow> bool\<close> (infix "|\<approx>F" 50) and
     Inf_F :: \<open>'f inference set\<close> and
     Bot_G :: \<open>'g set\<close> and
-    entails_sound_G ::  \<open>'g set  \<Rightarrow> 'g set  \<Rightarrow> bool\<close> (infix "|\<approx>G" 50) and
     Inf_G ::  \<open>'g inference set\<close> and
-    entails_comp_G ::  \<open>'g set  \<Rightarrow> 'g set  \<Rightarrow> bool\<close> (infix "\<Turnstile>G" 50) and
+    entails_G ::  \<open>'g set  \<Rightarrow> 'g set  \<Rightarrow> bool\<close> (infix "\<Turnstile>G" 50) and
     Red_Inf_G :: \<open>'g set \<Rightarrow> 'g inference set\<close> and
     Red_F_G :: \<open>'g set \<Rightarrow> 'g set\<close>
   + fixes
     \<G>_F :: \<open>'f \<Rightarrow> 'g set\<close> and
     \<G>_Inf :: \<open>'f inference \<Rightarrow> 'g inference set\<close>
   assumes
+    Bot_F_not_empty: "Bot_F \<noteq> {}" and
     Bot_map_not_empty: \<open>B \<in> Bot_F \<Longrightarrow> \<G>_F B \<noteq> {}\<close> and
     Bot_map: \<open>B \<in> Bot_F \<Longrightarrow> \<G>_F B \<subseteq> Bot_G\<close> and
     Bot_cond: \<open>\<G>_F C \<inter> Bot_G \<noteq> {} \<longrightarrow> C \<in> Bot_F\<close> and
@@ -613,10 +636,12 @@ proof -
   then show ?thesis using r_trans Ground.entails_trans[of sB "{B}"] by auto
 qed
 
-text \<open>lemma 8 in the technical report\<close>
+text \<open>lemma 25 in the technical report\<close>
 sublocale lifted_consequence_relation: consequence_relation  
   where Bot=Bot_F and entails=entails_\<G>
 proof
+  show "Bot_F \<noteq> {}" using Bot_F_not_empty .
+next
   show \<open>B\<in>Bot_F \<Longrightarrow> {B} \<Turnstile>\<G> N\<close> for B N 
   proof -
     assume \<open>B \<in> Bot_F\<close>
@@ -644,5 +669,5 @@ next
 qed
 
 end
-
+(* TODO: split content of this file between several ones by topic: base, family of redundancy criteria, standard lifting ... *)
 end
