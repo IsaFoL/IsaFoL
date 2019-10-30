@@ -1,5 +1,5 @@
 theory PAC_Polynoms_Term
-  imports PAC_Polynoms_List
+  imports PAC_Polynoms
     Refine_Imperative_HOL.IICF
 begin
 
@@ -357,10 +357,6 @@ proof -
     by refine_rcg (auto intro: H)
 qed
 
-
-definition mult_poly_raw_l_spec where
-  \<open>mult_poly_raw_l_spec p q = map (apfst remdups_mset) (mult_poly_raw_l p q)\<close>
-
 fun mult_monoms :: \<open>term_poly_list \<Rightarrow> term_poly_list \<Rightarrow> term_poly_list\<close> where
   \<open>mult_monoms p [] = p\<close> |
   \<open>mult_monoms [] p = p\<close> |
@@ -453,67 +449,6 @@ definition mult_monomials :: \<open>_\<close> where
 definition mult_poly_raw :: \<open>llist_polynom \<Rightarrow> llist_polynom \<Rightarrow> llist_polynom\<close> where
   \<open>mult_poly_raw p q = foldl (\<lambda>b x. map (mult_monomials x) q @ b) [] p\<close>
 
-inductive mult_poly_p :: \<open>mset_polynom \<Rightarrow> mset_polynom \<times> mset_polynom \<Rightarrow> mset_polynom \<times> mset_polynom \<Rightarrow> bool\<close>
-  for q :: mset_polynom where
-mult_step:
-    \<open>mult_poly_p q (add_mset (xs, n) p, r) (p, (\<lambda>(ys, m). (remdups_mset (xs + ys), n * m)) `# q + r)\<close>
-
-
-lemmas mult_poly_p_induct = mult_poly_p.induct[split_format(complete)]
-
-
-context poly_embed
-begin
-
-lemma polynom_of_mset_mult_map:
-  \<open>polynom_of_mset
-     {#case x of (ys, n) \<Rightarrow> (remdups_mset (ys + xs), n * m). x \<in># q#} -
-    Const n * (poly_of_vars xs * polynom_of_mset q)
-    \<in> More_Modules.ideal polynom_bool\<close>
-proof (induction q)
-  case empty
-  then show ?case by (auto simp: algebra_simps ideal.span_zero)
-next
-  case (add x q)
-  show ?case
-    by (metis (no_types) add.IH add.left_neutral fold_mset_empty image_mset_add_mset mult_zero_left mult_zero_right
-      poly_embed.poly_of_vars_def poly_embed.poly_of_vars_simps(2) poly_embed.polynom_of_mset_Cons)
-qed
-
-lemma mult_poly_p_mult_ideal:
-  \<open>mult_poly_p q (p, r) (p', r') \<Longrightarrow>
-     (polynom_of_mset p' * polynom_of_mset q + polynom_of_mset r') - (polynom_of_mset p * polynom_of_mset q + polynom_of_mset r)
-       \<in> ideal polynom_bool\<close>
-proof (induction rule: mult_poly_p_induct)
-  case (mult_step xs n p r)
-  show ?case
-    by (auto simp: algebra_simps polynom_of_mset_mult_map)
-qed
-
-lemma rtranclp_mult_poly_p_mult_ideal:
-  \<open>(mult_poly_p q)\<^sup>*\<^sup>* (p, r) (p', r') \<Longrightarrow>
-     (polynom_of_mset p' * polynom_of_mset q + polynom_of_mset r') - (polynom_of_mset p * polynom_of_mset q + polynom_of_mset r)
-       \<in> ideal polynom_bool\<close>
-  apply (induction p' r' rule: rtranclp_induct[of \<open>mult_poly_p q\<close> \<open>(p, r)\<close> \<open>(p', q')\<close> for p' q', split_format(complete)])
-  subgoal
-    by (auto simp: ideal.span_zero)
-  subgoal for a b aa ba
-    apply (drule mult_poly_p_mult_ideal)
-    apply (drule ideal.span_add)
-    apply assumption
-    apply (auto simp: group_add_class.diff_add_eq_diff_diff_swap
-      add.assoc add.inverse_distrib_swap ac_simps
-      simp flip: ab_group_add_class.ab_diff_conv_add_uminus)
-    by (metis (no_types, hide_lams) ab_group_add_class.ab_diff_conv_add_uminus
-      ab_semigroup_add_class.add.commute add.assoc add.inverse_distrib_swap)
-  done
-
-lemma rtranclp_mult_poly_p_mult_ideal_final:
-  \<open>(mult_poly_p q)\<^sup>*\<^sup>* (p, {#}) ({#}, r) \<Longrightarrow>
-    (polynom_of_mset r) - (polynom_of_mset p * polynom_of_mset q)
-       \<in> ideal polynom_bool\<close>
-  by (drule rtranclp_mult_poly_p_mult_ideal) auto
-end
 
 lemma foldl_append_empty:
   \<open>NO_MATCH [] xs \<Longrightarrow> foldl (\<lambda>b x. f x @ b) xs p = foldl (\<lambda>b x. f x @ b) [] p @ xs\<close>
@@ -637,15 +572,13 @@ proof -
     done
 qed
 
-instantiation char :: linorder
-begin
-  definition less_eq_char :: \<open>char \<Rightarrow> char \<Rightarrow> bool\<close> where
+definition less_eq_char :: \<open>char \<Rightarrow> char \<Rightarrow> bool\<close> where
     \<open>less_eq_char c d = (((of_char c) :: nat) \<le> of_char d)\<close>
 
   definition less_char :: \<open>char \<Rightarrow> char \<Rightarrow> bool\<close> where
     \<open>less_char c d = (((of_char c) :: nat) < of_char d)\<close>
 
-instance
+global_interpretation char : linorder less_eq_char less_char
   using linorder_char
   unfolding linorder_class_def class.linorder_def
     less_eq_char_def[symmetric] less_char_def[symmetric]
@@ -653,8 +586,9 @@ instance
     class.preorder_def preorder_class_def
     ord_class_def
   apply auto
-  apply standard
   done
-end
+
+
+
 
 end

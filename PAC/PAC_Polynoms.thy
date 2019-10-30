@@ -164,6 +164,20 @@ proof -
     by (auto simp: mult_poly_by_monom_def)
 qed
 
+inductive mult_poly_p :: \<open>mset_polynom \<Rightarrow> mset_polynom \<times> mset_polynom \<Rightarrow> mset_polynom \<times> mset_polynom \<Rightarrow> bool\<close>
+  for q :: mset_polynom where
+mult_step:
+    \<open>mult_poly_p q (add_mset (xs, n) p, r) (p, (\<lambda>(ys, m). (remdups_mset (xs + ys), n * m)) `# q + r)\<close>
+
+
+lemmas mult_poly_p_induct = mult_poly_p.induct[split_format(complete)]
+
+inductive normalize_poly_p :: \<open>mset_polynom \<Rightarrow> mset_polynom \<Rightarrow> bool\<close>where
+rem_0_coeff:
+    \<open>normalize_poly_p (add_mset (xs, 0) p) p\<close> |
+merge_dup_coeff:
+    \<open>normalize_poly_p (add_mset (xs, m) (add_mset (xs, n) p)) (add_mset (xs, m + n) p)\<close>
+
 
 locale poly_embed =
   fixes \<phi> :: \<open>string \<Rightarrow> nat\<close>
@@ -306,6 +320,67 @@ lemma rtranclp_add_poly_p_polynom_of_mset_full:
     polynom_of_mset r' = (polynom_of_mset p + polynom_of_mset q)\<close>
   by (drule rtranclp_add_poly_p_polynom_of_mset)
     (auto simp: ac_simps add_eq_0_iff)
+
+
+lemma polynom_of_mset_mult_map:
+  \<open>polynom_of_mset
+     {#case x of (ys, n) \<Rightarrow> (remdups_mset (ys + xs), n * m). x \<in># q#} -
+    Const n * (poly_of_vars xs * polynom_of_mset q)
+    \<in> More_Modules.ideal polynom_bool\<close>
+proof (induction q)
+  case empty
+  then show ?case by (auto simp: algebra_simps ideal.span_zero)
+next
+  case (add x q)
+  show ?case
+    by (metis (no_types) add.IH add.left_neutral fold_mset_empty image_mset_add_mset mult_zero_left mult_zero_right
+      poly_embed.poly_of_vars_def poly_embed.poly_of_vars_simps(2) poly_embed.polynom_of_mset_Cons)
+qed
+
+lemma mult_poly_p_mult_ideal:
+  \<open>mult_poly_p q (p, r) (p', r') \<Longrightarrow>
+     (polynom_of_mset p' * polynom_of_mset q + polynom_of_mset r') - (polynom_of_mset p * polynom_of_mset q + polynom_of_mset r)
+       \<in> ideal polynom_bool\<close>
+proof (induction rule: mult_poly_p_induct)
+  case (mult_step xs n p r)
+  show ?case
+    by (auto simp: algebra_simps polynom_of_mset_mult_map)
+qed
+
+lemma rtranclp_mult_poly_p_mult_ideal:
+  \<open>(mult_poly_p q)\<^sup>*\<^sup>* (p, r) (p', r') \<Longrightarrow>
+     (polynom_of_mset p' * polynom_of_mset q + polynom_of_mset r') - (polynom_of_mset p * polynom_of_mset q + polynom_of_mset r)
+       \<in> ideal polynom_bool\<close>
+  apply (induction p' r' rule: rtranclp_induct[of \<open>mult_poly_p q\<close> \<open>(p, r)\<close> \<open>(p', q')\<close> for p' q', split_format(complete)])
+  subgoal
+    by (auto simp: ideal.span_zero)
+  subgoal for a b aa ba
+    apply (drule mult_poly_p_mult_ideal)
+    apply (drule ideal.span_add)
+    apply assumption
+    apply (auto simp: group_add_class.diff_add_eq_diff_diff_swap
+      add.assoc add.inverse_distrib_swap ac_simps
+      simp flip: ab_group_add_class.ab_diff_conv_add_uminus)
+    by (metis (no_types, hide_lams) ab_group_add_class.ab_diff_conv_add_uminus
+      ab_semigroup_add_class.add.commute add.assoc add.inverse_distrib_swap)
+  done
+
+lemma rtranclp_mult_poly_p_mult_ideal_final:
+  \<open>(mult_poly_p q)\<^sup>*\<^sup>* (p, {#}) ({#}, r) \<Longrightarrow>
+    (polynom_of_mset r) - (polynom_of_mset p * polynom_of_mset q)
+       \<in> ideal polynom_bool\<close>
+  by (drule rtranclp_mult_poly_p_mult_ideal) auto
+
+lemma normalize_poly_p_poly_of_mset:
+  \<open>normalize_poly_p p q \<Longrightarrow> polynom_of_mset p = polynom_of_mset q\<close>
+  by (induction rule: normalize_poly_p.induct)
+    (auto simp: Const_add algebra_simps)
+
+
+lemma rtranclp_normalize_poly_p_poly_of_mset:
+  \<open>normalize_poly_p\<^sup>*\<^sup>* p q \<Longrightarrow> polynom_of_mset p = polynom_of_mset q\<close>
+  by (induction rule: rtranclp_induct)
+    (auto simp: normalize_poly_p_poly_of_mset)
 
 end
 
