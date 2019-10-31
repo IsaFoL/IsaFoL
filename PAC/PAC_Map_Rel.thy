@@ -5,8 +5,6 @@ theory PAC_Map_Rel
     Weidenbach_Book_Base.WB_List_More
 begin
 
-term \<open>(K \<rightarrow> \<langle>V\<rangle>option_rel)\<close>
-
 definition fmap_rel where
   [to_relAPP]:
   "fmap_rel K V \<equiv> {(m1, m2).
@@ -109,22 +107,22 @@ subsection \<open>Patterns\<close>
 
 lemma pat_fmap_empty[pat_rules]: "fmempty \<equiv> op_fmap_empty" by simp
 
-lemma pat_map_is_empty[pat_rules]: 
-  "(=) $m$fmempty \<equiv> op_fmap_is_empty$m" 
-  "(=) $fmempty$m \<equiv> op_fmap_is_empty$m" 
+lemma pat_map_is_empty[pat_rules]:
+  "(=) $m$fmempty \<equiv> op_fmap_is_empty$m"
+  "(=) $fmempty$m \<equiv> op_fmap_is_empty$m"
   "(=) $(dom_m$m)${#} \<equiv> op_fmap_is_empty$m"
   "(=) ${#}$(dom_m$m) \<equiv> op_fmap_is_empty$m"
   unfolding atomize_eq
   by (auto dest: sym)
 
-lemma op_map_contains_key[pat_rules]: 
+lemma op_map_contains_key[pat_rules]:
   "(\<in>#) $ k $ (dom_m$m) \<equiv> op_fmap_contains_key$'k$'m"
    by (auto intro!: eq_reflection)
 
 
 subsection \<open>Parametricity\<close>
 
-locale fmap_custom_empty = 
+locale fmap_custom_empty =
   fixes op_custom_empty :: "('k, 'v) fmap"
   assumes op_custom_empty_def: "op_custom_empty = op_fmap_empty"
 begin
