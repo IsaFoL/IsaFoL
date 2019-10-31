@@ -3,6 +3,25 @@ theory PAC_Polynoms_Term
     Refine_Imperative_HOL.IICF
 begin
 
+(*Taken from WB_More_Refinement*)
+lemma fref_to_Down_curry_left:
+  fixes f:: \<open>'a \<Rightarrow> 'b \<Rightarrow> 'c nres\<close> and
+    A::\<open>(('a \<times> 'b) \<times> 'd) set\<close>
+  shows
+    \<open>(uncurry f, g) \<in> [P]\<^sub>f A \<rightarrow> \<langle>B\<rangle>nres_rel \<Longrightarrow>
+      (\<And>a b x'. P x' \<Longrightarrow> ((a, b), x') \<in> A \<Longrightarrow> f a b \<le> \<Down> B (g x'))\<close>
+  unfolding fref_def uncurry_def nres_rel_def
+  by auto
+
+lemma fref_to_Down_curry_right:
+  fixes g :: \<open>'a \<Rightarrow> 'b \<Rightarrow> 'c nres\<close> and f :: \<open>'d \<Rightarrow> _ nres\<close> and
+    A::\<open>('d \<times> ('a \<times> 'b)) set\<close>
+  shows
+    \<open>(f, uncurry g) \<in> [P]\<^sub>f A \<rightarrow> \<langle>B\<rangle>nres_rel \<Longrightarrow>
+      (\<And>a b x'. P (a,b) \<Longrightarrow> (x', (a, b)) \<in> A \<Longrightarrow> f x' \<le> \<Down> B (g a b))\<close>
+  unfolding fref_def uncurry_def nres_rel_def
+  by auto
+
 type_synonym term_poly_list = \<open>string list\<close>
 type_synonym llist_polynom = \<open>(term_poly_list \<times> int) list\<close>
 
@@ -652,50 +671,161 @@ lemma nonzero_coeffs_diff:
   by (auto simp: nonzero_coeffs_def dest: in_diffD)
 
 
+lemma merge_coeffs_is_normalize_poly_p:
+  \<open>(xs, ys) \<in> sorted_poly_rel \<Longrightarrow> \<exists>r. (merge_coeffs xs, r) \<in> sorted_poly_rel \<and> normalize_poly_p\<^sup>*\<^sup>* ys r\<close>
+  apply (induction xs arbitrary: ys rule: merge_coeffs.induct)
+  subgoal by auto
+  subgoal
+    by auto
+  subgoal premises p for xs n ys m p ysa
+    apply (cases \<open>xs = ys\<close>, cases \<open>m+n \<noteq> 0\<close>)
+    subgoal
+      using p(1)[of \<open>add_mset (mset ys, m+n) ysa - {#(mset ys, m), (mset ys, n)#}\<close>] p(4-)
+      apply (auto simp: sorted_poly_list_rel_Cons_iff ac_simps add_mset_commute
+        remove1_mset_add_mset_If nonzero_coeffs_diff)
+      apply (rule_tac x = \<open>r\<close> in exI)
+      using normalize_poly_p.merge_dup_coeff[of \<open>ysa -  {#(mset ys, m), (mset ys, n)#}\<close> \<open>ysa -  {#(mset ys, m), (mset ys, n)#}\<close> \<open>mset ys\<close> m n]
+      apply (auto intro: normalize_poly_p.intros add_mset_commute add_mset_commute converse_rtranclp_into_rtranclp dest!: multi_member_split
+        simp del: normalize_poly_p.merge_dup_coeff)
+      by (metis add_mset_commute converse_rtranclp_into_rtranclp)
+   subgoal
+      using p(2)[of \<open>ysa - {#(mset ys, m), (mset ys, n)#}\<close>] p(4-)
+      apply (auto simp: sorted_poly_list_rel_Cons_iff ac_simps add_mset_commute
+        remove1_mset_add_mset_If nonzero_coeffs_diff)
+      apply (rule_tac x = \<open>r\<close> in exI)
+      using normalize_poly_p.rem_0_coeff[of \<open>add_mset (mset ys, m +n) ysa -  {#(mset ys, m), (mset ys, n)#}\<close> \<open>add_mset (mset ys, m +n) ysa -  {#(mset ys, m), (mset ys, n)#}\<close> \<open>mset ys\<close>]
+      using normalize_poly_p.merge_dup_coeff[of \<open>ysa -  {#(mset ys, m), (mset ys, n)#}\<close> \<open>ysa -  {#(mset ys, m), (mset ys, n)#}\<close> \<open>mset ys\<close> m n]
+      apply (auto intro: normalize_poly_p.intros add_mset_commute add_mset_commute converse_rtranclp_into_rtranclp dest!: multi_member_split
+        simp del: normalize_poly_p.rem_0_coeff)
+      by (metis (no_types, hide_lams) add_mset_diff_bothsides converse_rtranclp_into_rtranclp diff_union_swap2 diff_zero
+        normalize_poly_p.rem_0_coeff p(4) same sorted_poly_list_rel_Cons_iff)
+   subgoal
+      using p(3)[of \<open>add_mset (mset ys, m) ysa - {#(mset xs, n), (mset ys, m)#}\<close>] p(4-)
+    apply (auto simp: sorted_poly_list_rel_Cons_iff ac_simps add_mset_commute
+      remove1_mset_add_mset_If)
+    apply (rule_tac x = \<open>add_mset (mset xs, n) r\<close> in exI)
+    apply (auto dest!: in_set_merge_coeffsD)
+    apply (auto intro: normalize_poly_p.intros rtranclp_normalize_poly_add_mset dest!: multi_member_split
+      dest: sorted_poly_list_rel_nonzeroD)
+    done
+  done
+done
+
+
+
+
+definition normalize_poly where
+  \<open>normalize_poly p = do {
+     p \<leftarrow> sort_poly_spec p;
+     RETURN (merge_coeffs p)
+}\<close>
+
+definition mult_poly_full :: \<open>_\<close> where
+\<open>mult_poly_full p q = do {
+  let pq = mult_poly_raw p q;
+  normalize_poly pq
+}\<close>
+
+
+lemma normalize_poly_normalize_poly_p:
+  assumes \<open>(p, p') \<in> unsorted_poly_rel\<close>
+  shows \<open>normalize_poly p \<le> \<Down> (sorted_poly_rel) (SPEC (\<lambda>r. normalize_poly_p\<^sup>*\<^sup>* p' r))\<close>
+proof -
+  have 1: \<open>SPEC (\<lambda>r. normalize_poly_p\<^sup>*\<^sup>* p' r) = do {
+      p' \<leftarrow> RETURN p';
+      SPEC (\<lambda>r. normalize_poly_p\<^sup>*\<^sup>* p' r)
+   }\<close>
+   by auto
+  show ?thesis
+    unfolding normalize_poly_def
+    apply (subst 1)
+    apply (refine_rcg sort_poly_spec_id[OF assms]
+      merge_coeffs_is_normalize_poly_p)
+    subgoal
+      by (drule merge_coeffs_is_normalize_poly_p)
+        (auto intro!: RES_refine simp: RETURN_def)
+    done
+qed
+
+definition mult_poly_p' :: \<open>_\<close> where
+\<open>mult_poly_p' p' q' = do {
+  pq \<leftarrow> SPEC(\<lambda>r. (mult_poly_p q')\<^sup>*\<^sup>* (p', {#}) ({#}, r));
+  SPEC (\<lambda>r. normalize_poly_p\<^sup>*\<^sup>* pq r)
+}\<close>
+
+definition normalize_poly_spec :: \<open>_\<close> where
+\<open>normalize_poly_spec p = SPEC (\<lambda>r. p - r \<in> ideal polynom_bool)\<close>
+
+definition mult_poly_spec :: \<open>_\<close> where
+\<open>mult_poly_spec p q = SPEC (\<lambda>r. p * q - r \<in> ideal polynom_bool)\<close>
+
+lemma mult_poly_full_mult_poly_p':
+  assumes \<open>(p, p') \<in> sorted_poly_rel\<close> \<open>(q, q') \<in> sorted_poly_rel\<close>
+  shows \<open>mult_poly_full p q \<le> \<Down> (sorted_poly_rel) (mult_poly_p' p' q')\<close>
+  unfolding mult_poly_full_def mult_poly_p'_def
+  apply (refine_rcg normalize_poly_normalize_poly_p)
+  apply (subst RETURN_RES_refine_iff)
+  apply (subst Bex_def)
+  apply (subst mem_Collect_eq)
+  apply (subst conj_commute)
+  apply (rule mult_poly_raw_mult_poly_p[OF assms(1,2)])
+  subgoal
+    by assumption
+  done
+
+definition add_poly_spec :: \<open>_\<close> where
+\<open>add_poly_spec p q = SPEC (\<lambda>r. p + q - r \<in> ideal polynom_bool)\<close>
+
+definition add_poly_p' :: \<open>_\<close> where
+\<open>add_poly_p' p q = SPEC(\<lambda>r. add_poly_p\<^sup>*\<^sup>* (p, q, {#}) ({#}, {#}, r))\<close>
+
+lemma add_poly_l_add_poly_p':
+  assumes \<open>(p, p') \<in> sorted_poly_rel\<close> \<open>(q, q') \<in> sorted_poly_rel\<close>
+  shows \<open>add_poly_l (p, q) \<le> \<Down> (sorted_poly_rel) (add_poly_p' p' q')\<close>
+  unfolding add_poly_p'_def
+  apply (refine_rcg add_poly_l_spec[THEN fref_to_Down_curry_right, THEN order_trans, of _ p' q'])
+  subgoal by auto
+  subgoal using assms by auto
+  subgoal
+    by auto
+  done
+
+
 context poly_embed
 begin
 
-  lemma merge_coeffs_is_normalize_poly_p:
-    \<open>(xs, ys) \<in> sorted_poly_rel \<Longrightarrow> \<exists>r. (merge_coeffs xs, r) \<in> sorted_poly_rel \<and> normalize_poly_p\<^sup>*\<^sup>* ys r\<close>
-    apply (induction xs arbitrary: ys rule: merge_coeffs.induct)
-    subgoal by auto
-    subgoal
-      by auto
-    subgoal premises p for xs n ys m p ysa
-      apply (cases \<open>xs = ys\<close>, cases \<open>m+n \<noteq> 0\<close>)
-      subgoal
-        using p(1)[of \<open>add_mset (mset ys, m+n) ysa - {#(mset ys, m), (mset ys, n)#}\<close>] p(4-)
-        apply (auto simp: sorted_poly_list_rel_Cons_iff ac_simps add_mset_commute
-          remove1_mset_add_mset_If nonzero_coeffs_diff)
-        apply (rule_tac x = \<open>r\<close> in exI)
-        using normalize_poly_p.merge_dup_coeff[of \<open>ysa -  {#(mset ys, m), (mset ys, n)#}\<close> \<open>ysa -  {#(mset ys, m), (mset ys, n)#}\<close> \<open>mset ys\<close> m n]
-        apply (auto intro: normalize_poly_p.intros add_mset_commute add_mset_commute converse_rtranclp_into_rtranclp dest!: multi_member_split
-          simp del: normalize_poly_p.merge_dup_coeff)
-        by (metis add_mset_commute converse_rtranclp_into_rtranclp)
-     subgoal
-        using p(2)[of \<open>ysa - {#(mset ys, m), (mset ys, n)#}\<close>] p(4-)
-        apply (auto simp: sorted_poly_list_rel_Cons_iff ac_simps add_mset_commute
-          remove1_mset_add_mset_If nonzero_coeffs_diff)
-        apply (rule_tac x = \<open>r\<close> in exI)
-        using normalize_poly_p.rem_0_coeff[of \<open>add_mset (mset ys, m +n) ysa -  {#(mset ys, m), (mset ys, n)#}\<close> \<open>add_mset (mset ys, m +n) ysa -  {#(mset ys, m), (mset ys, n)#}\<close> \<open>mset ys\<close>]
-        using normalize_poly_p.merge_dup_coeff[of \<open>ysa -  {#(mset ys, m), (mset ys, n)#}\<close> \<open>ysa -  {#(mset ys, m), (mset ys, n)#}\<close> \<open>mset ys\<close> m n]
-        apply (auto intro: normalize_poly_p.intros add_mset_commute add_mset_commute converse_rtranclp_into_rtranclp dest!: multi_member_split
-          simp del: normalize_poly_p.rem_0_coeff)
-        by (metis (no_types, hide_lams) add_mset_diff_bothsides converse_rtranclp_into_rtranclp diff_union_swap2 diff_zero
-          normalize_poly_p.rem_0_coeff p(4) same sorted_poly_list_rel_Cons_iff)
-     subgoal
-        using p(3)[of \<open>add_mset (mset ys, m) ysa - {#(mset xs, n), (mset ys, m)#}\<close>] p(4-)
-      apply (auto simp: sorted_poly_list_rel_Cons_iff ac_simps add_mset_commute
-        remove1_mset_add_mset_If)
-      apply (rule_tac x = \<open>add_mset (mset xs, n) r\<close> in exI)
-      apply (auto dest!: in_set_merge_coeffsD)
-      apply (auto intro: normalize_poly_p.intros rtranclp_normalize_poly_add_mset dest!: multi_member_split
-        dest: sorted_poly_list_rel_nonzeroD)
-      done
-    done
+definition mset_poly_rel where
+  \<open>mset_poly_rel = {(a, b). b = polynom_of_mset a}\<close>
+
+lemma normalize_poly_p_normalize_poly_spec:
+  \<open>(p, p') \<in> mset_poly_rel \<Longrightarrow>  SPEC (\<lambda>r. normalize_poly_p\<^sup>*\<^sup>* p r) \<le> \<Down>mset_poly_rel (normalize_poly_spec p')\<close>
+  by (auto simp: mset_poly_rel_def rtranclp_normalize_poly_p_poly_of_mset ideal.span_zero
+    normalize_poly_spec_def intro!: RES_refine)
+
+
+lemma mult_poly_p'_mult_poly_spec:
+  \<open>(p, p') \<in> mset_poly_rel \<Longrightarrow> (q, q') \<in> mset_poly_rel \<Longrightarrow>
+  mult_poly_p' p q \<le> \<Down>mset_poly_rel (mult_poly_spec p' q')\<close>
+  unfolding mult_poly_p'_def mult_poly_spec_def
+  apply refine_rcg
+  apply (auto simp: mset_poly_rel_def dest!: rtranclp_mult_poly_p_mult_ideal_final)
+  apply (intro RES_refine)
+  apply auto
+  by (smt cancel_comm_monoid_add_class.diff_cancel diff_diff_add group_eq_aux ideal.span_diff rtranclp_normalize_poly_p_poly_of_mset)
+
+
+lemma add_poly_p'_add_poly_spec:
+  \<open>(p, p') \<in> mset_poly_rel \<Longrightarrow> (q, q') \<in> mset_poly_rel \<Longrightarrow>
+  add_poly_p' p q \<le> \<Down>mset_poly_rel (add_poly_spec p' q')\<close>
+  unfolding add_poly_p'_def add_poly_spec_def
+  apply (auto simp: mset_poly_rel_def dest!: rtranclp_add_poly_p_polynom_of_mset_full)
+  apply (intro RES_refine)
+  apply (auto simp: rtranclp_add_poly_p_polynom_of_mset_full ideal.span_zero)
   done
 
 end
+
+
 
 
 definition less_eq_char :: \<open>char \<Rightarrow> char \<Rightarrow> bool\<close> where

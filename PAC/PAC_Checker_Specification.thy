@@ -286,7 +286,7 @@ lemma PAC_checker_PAC_checker_specification2:
   subgoal by auto
   subgoal
     apply auto
-  apply (rule 
+  apply (rule
      PAC_checker_step_PAC_checker_specification2[THEN order_trans])
      apply assumption
      apply (auto intro: PAC_checker_specification_spec_trans simp: conc_fun_RES)
