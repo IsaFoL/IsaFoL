@@ -7,4 +7,7 @@ session PAC_Checker = "Sepref_IICF" +
      Weidenbach_Book_Base
    theories
      PAC_Specification
+     PAC_Map_Rel
+     PAC_Checker_Specification
      PAC_Polynoms
+     PAC_Polynoms_Term
