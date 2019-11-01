@@ -54,34 +54,65 @@ subsection \<open>Operations\<close>
     apply (rule fun_relI; auto)
     done
 
+
+lemma fmap_rel_fmupd_fmap_rel:
+  \<open>(A, B) \<in> \<langle>K, R\<rangle>fmap_rel \<Longrightarrow> (p, p') \<in> K \<Longrightarrow> (q, q') \<in> R \<Longrightarrow>
+   (fmupd p q A, fmupd p' q' B) \<in> \<langle>K, R\<rangle>fmap_rel\<close>
+  if "single_valued K" "single_valued (K\<inverse>)"
+  using that
+  unfolding fmap_rel_alt_def
+  apply (case_tac \<open>p' \<in># dom_m B\<close>)
+  apply (auto simp add: all_conj_distrib IS_RIGHT_UNIQUED dest!: multi_member_split)
+  done
+
   sepref_decl_op fmap_update: "fmupd" :: "K \<rightarrow> V \<rightarrow> \<langle>K,V\<rangle>fmap_rel \<rightarrow> \<langle>K,V\<rangle>fmap_rel"
     where "single_valued K" "single_valued (K\<inverse>)"
     apply (rule fref_ncI)
     apply parametricity
-    unfolding fmap_rel_alt_def
     apply (intro fun_relI)
-    apply (case_tac \<open>a' \<in># dom_m a'b\<close>)
-    apply (auto simp add: all_conj_distrib IS_RIGHT_UNIQUED dest!: multi_member_split)
-    done
+    by (rule fmap_rel_fmupd_fmap_rel)
+
+
+lemma fmap_rel_fmdrop_fmap_rel:
+  \<open>(A, B) \<in> \<langle>K, R\<rangle>fmap_rel \<Longrightarrow> (p, p') \<in> K \<Longrightarrow>
+   (fmdrop p A, fmdrop p' B) \<in> \<langle>K, R\<rangle>fmap_rel\<close>
+  if "single_valued K" "single_valued (K\<inverse>)"
+  using that
+  unfolding fmap_rel_alt_def
+  apply (auto simp add: all_conj_distrib IS_RIGHT_UNIQUED dest!: multi_member_split)
+  apply (metis IS_RIGHT_UNIQUED dom_m_fmdrop fmlookup_drop in_dom_m_lookup_iff union_single_eq_member)
+  apply (metis IS_RIGHT_UNIQUED dom_m_fmdrop fmlookup_drop in_dom_m_lookup_iff union_single_eq_member)
+  by (metis IS_RIGHT_UNIQUED converse.intros dom_m_fmdrop fmlookup_drop in_dom_m_lookup_iff union_single_eq_member)
 
   sepref_decl_op fmap_delete: "fmdrop" :: "K \<rightarrow> \<langle>K,V\<rangle>fmap_rel \<rightarrow> \<langle>K,V\<rangle>fmap_rel"
     where "single_valued K" "single_valued (K\<inverse>)"
     apply (rule fref_ncI)
     apply parametricity
-    unfolding fmap_rel_alt_def
-    apply (auto simp add: all_conj_distrib IS_RIGHT_UNIQUED dest!: multi_member_split)
-    apply (metis IS_RIGHT_UNIQUED dom_m_fmdrop fmlookup_drop in_dom_m_lookup_iff union_single_eq_member)
-    apply (metis IS_RIGHT_UNIQUED dom_m_fmdrop fmlookup_drop in_dom_m_lookup_iff union_single_eq_member)
-    apply (metis IS_RIGHT_UNIQUED dom_m_fmdrop fmlookup_drop in_dom_m_lookup_iff union_single_eq_member)
-    by (metis IS_RIGHT_UNIQUED converse.intros dom_m_fmdrop fmlookup_drop in_dom_m_lookup_iff union_single_eq_member)
+    by (auto simp add: fmap_rel_fmdrop_fmap_rel)
 
-lemma fmap_rel_fmlookup_rel:
-  \<open>(a, a') \<in> K \<Longrightarrow>
-       (aa, a'a) \<in> \<langle>K, V\<rangle>fmap_rel \<Longrightarrow>
-       (fmlookup aa a, fmlookup a'a a') \<in> \<langle>V\<rangle>option_rel\<close>
+  lemma fmap_rel_nat_the_fmlookup:
+    \<open>(A, B) \<in> \<langle>S, R\<rangle>fmap_rel \<Longrightarrow> (p, p') \<in> S \<Longrightarrow> p' \<in># dom_m B \<Longrightarrow>
+     (the (fmlookup A p), the (fmlookup B p')) \<in> R\<close>
+    by (auto simp: fmap_rel_alt_def distinct_mset_dom)
+
+  lemma fmap_rel_in_dom_iff:
+    \<open>(aa, a'a) \<in> \<langle>K, V\<rangle>fmap_rel \<Longrightarrow>
+    (a, a') \<in> K \<Longrightarrow>
+    a' \<in># dom_m a'a \<longleftrightarrow>
+    a \<in># dom_m aa\<close>
     unfolding fmap_rel_alt_def
-    apply (auto)
-    by (smt autoref_opt(1) fmupd_lookup fmupd_same in_dom_m_lookup_iff option_relI(2))
+    by auto
+
+  lemma fmap_rel_fmlookup_rel:
+    \<open>(a, a') \<in> K \<Longrightarrow> (aa, a'a) \<in> \<langle>K, V\<rangle>fmap_rel \<Longrightarrow>
+         (fmlookup aa a, fmlookup a'a a') \<in> \<langle>V\<rangle>option_rel\<close>
+    using fmap_rel_nat_the_fmlookup[of aa a'a K V a a']
+      fmap_rel_in_dom_iff[of aa a'a K V a a']
+      in_dom_m_lookup_iff[of a' a'a]
+      in_dom_m_lookup_iff[of a aa]
+    by (cases \<open>a' \<in># dom_m a'a\<close>)
+      auto
+
 
   sepref_decl_op fmap_lookup: "fmlookup" :: "\<langle>K,V\<rangle>fmap_rel \<rightarrow> K \<rightarrow>  \<langle>V\<rangle>option_rel"
     apply (rule fref_ncI)

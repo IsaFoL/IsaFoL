@@ -5,11 +5,11 @@ theory PAC_Checker_Specification
 
 begin
 
-datatype pac_step =
-  AddD (pac_src1: nat) (pac_src2: nat) (new_id: nat) (pac_res: int_poly) |
-  Add (pac_src1: nat) (pac_src2: nat) (new_id: nat) (pac_res: int_poly) |
-  MultD (pac_src1: nat) (pac_mult: int_poly) (new_id: nat) (pac_res: int_poly) |
-  Mult (pac_src1: nat) (pac_mult: int_poly) (new_id: nat) (pac_res: int_poly)
+datatype 'a pac_step =
+  AddD (pac_src1: nat) (pac_src2: nat) (new_id: nat) (pac_res: 'a) |
+  Add (pac_src1: nat) (pac_src2: nat) (new_id: nat) (pac_res: 'a) |
+  MultD (pac_src1: nat) (pac_mult: 'a) (new_id: nat) (pac_res: 'a) |
+  Mult (pac_src1: nat) (pac_mult: 'a) (new_id: nat) (pac_res: 'a)
 
 
 definition PAC_checker_specification ::  \<open>int_poly multiset \<Rightarrow> (bool \<times> int_poly multiset) nres\<close> where
@@ -29,7 +29,7 @@ lemma normalize_poly_spec_alt_def:
   unfolding normalize_poly_spec_def
   by (auto dest: ideal.span_neg)
 
-definition mult_poly_spec :: \<open>_\<close> where
+definition mult_poly_spec :: \<open>int mpoly \<Rightarrow> int mpoly \<Rightarrow> int mpoly nres\<close> where
   \<open>mult_poly_spec p q = SPEC (\<lambda>r. p * q - r \<in> ideal polynom_bool)\<close>
 
 definition check_add :: \<open>(nat, int mpoly) fmap \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> int mpoly \<Rightarrow> bool nres\<close> where
@@ -37,13 +37,13 @@ definition check_add :: \<open>(nat, int mpoly) fmap \<Rightarrow> nat \<Rightar
      SPEC(\<lambda>b. b \<longrightarrow> p \<in># dom_m A \<and> q \<in># dom_m A \<and> i \<notin># dom_m A \<and>
             the (fmlookup A p) + the (fmlookup A q) - r \<in>  ideal polynom_bool)\<close>
 
-definition check_mult where
+definition check_mult :: \<open>(nat, int mpoly) fmap \<Rightarrow> nat \<Rightarrow> int mpoly \<Rightarrow> nat \<Rightarrow> int mpoly \<Rightarrow> bool nres\<close> where
   \<open>check_mult A p q i r =
      SPEC(\<lambda>b. b \<longrightarrow> p \<in># dom_m A \<and>i \<notin># dom_m A \<and>
             the (fmlookup A p) * q - r \<in>  ideal polynom_bool)\<close>
 
 
-definition PAC_checker_step ::  \<open>(nat, int_poly) fmap  \<Rightarrow> pac_step \<Rightarrow> (bool \<times> (nat, int_poly) fmap) nres\<close> where
+definition PAC_checker_step ::  \<open>(nat, int_poly) fmap  \<Rightarrow> int_poly pac_step \<Rightarrow> (bool \<times> (nat, int_poly) fmap) nres\<close> where
   \<open>PAC_checker_step A st = (case st of
      AddD _ _ _ _ \<Rightarrow>
        do {
@@ -250,7 +250,7 @@ proof -
   done
 qed
 
-definition PAC_checker:: \<open>(nat, int_poly) fmap \<Rightarrow> pac_step list \<Rightarrow> (bool \<times> (nat, int_poly) fmap) nres\<close> where
+definition PAC_checker:: \<open>(nat, int_poly) fmap \<Rightarrow> int_poly pac_step list \<Rightarrow> (bool \<times> (nat, int_poly) fmap) nres\<close> where
   \<open>PAC_checker A st = do {
     (S, _) \<leftarrow> WHILE\<^sub>T
        (\<lambda>((b, A), n::nat). b \<and> n < length st)
@@ -298,3 +298,4 @@ lemma PAC_checker_PAC_checker_specification2:
   done
 
 end
+
