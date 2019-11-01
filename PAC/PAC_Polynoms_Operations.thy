@@ -744,6 +744,9 @@ end
 definition weak_equality_p :: \<open>llist_polynom \<Rightarrow> llist_polynom \<Rightarrow> bool nres\<close> where
   \<open>weak_equality_p p q = RETURN (p = q)\<close>
 
+definition weak_equality :: \<open>int mpoly \<Rightarrow> int mpoly \<Rightarrow> bool nres\<close> where
+  \<open>weak_equality p q = SPEC (\<lambda>r. r \<longrightarrow> p = q)\<close>
+
 definition weak_equality_spec :: \<open>mset_polynom \<Rightarrow> mset_polynom \<Rightarrow> bool nres\<close> where
   \<open>weak_equality_spec p q = SPEC (\<lambda>r. r \<longrightarrow> p = q)\<close>
 

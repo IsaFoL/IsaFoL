@@ -32,13 +32,23 @@ lemma normalize_poly_spec_alt_def:
 definition mult_poly_spec :: \<open>_\<close> where
   \<open>mult_poly_spec p q = SPEC (\<lambda>r. p * q - r \<in> ideal polynom_bool)\<close>
 
+definition check_add :: \<open>(nat, int mpoly) fmap \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> int mpoly \<Rightarrow> bool nres\<close> where
+  \<open>check_add A p q i r =
+     SPEC(\<lambda>b. b \<longrightarrow> p \<in># dom_m A \<and> q \<in># dom_m A \<and> i \<notin># dom_m A \<and>
+            the (fmlookup A p) + the (fmlookup A q) - r \<in>  ideal polynom_bool)\<close>
+
+definition check_mult where
+  \<open>check_mult A p q i r =
+     SPEC(\<lambda>b. b \<longrightarrow> p \<in># dom_m A \<and>i \<notin># dom_m A \<and>
+            the (fmlookup A p) * q - r \<in>  ideal polynom_bool)\<close>
+
+
 definition PAC_checker_step ::  \<open>(nat, int_poly) fmap  \<Rightarrow> pac_step \<Rightarrow> (bool \<times> (nat, int_poly) fmap) nres\<close> where
   \<open>PAC_checker_step A st = (case st of
      AddD _ _ _ _ \<Rightarrow>
        do {
-         r \<leftarrow> normalize_poly_spec (pac_res st);
-         eq \<leftarrow> SPEC(\<lambda>b. b \<longrightarrow> pac_src1 st \<in># dom_m A \<and> pac_src2 st \<in># dom_m A \<and> new_id st \<notin># dom_m A \<and>
-            the (fmlookup A (pac_src1 st)) + the (fmlookup A (pac_src2 st)) - r \<in>  ideal polynom_bool);
+        r \<leftarrow> normalize_poly_spec (pac_res st);
+        eq \<leftarrow> check_add A (pac_src1 st) (pac_src2 st) (new_id st) r;
         if eq
         then RETURN (True,
           fmupd (new_id st) r
@@ -48,8 +58,7 @@ definition PAC_checker_step ::  \<open>(nat, int_poly) fmap  \<Rightarrow> pac_s
    | Add _ _ _ _ \<Rightarrow>
        do {
          r \<leftarrow> normalize_poly_spec (pac_res st);
-         eq \<leftarrow> SPEC(\<lambda>b. b \<longrightarrow> pac_src1 st \<in># dom_m A \<and> pac_src2 st \<in># dom_m A \<and> new_id st \<notin># dom_m A \<and>
-            the (fmlookup A (pac_src1 st)) + the (fmlookup A (pac_src2 st)) - r \<in>  ideal polynom_bool);
+        eq \<leftarrow> check_add A (pac_src1 st) (pac_src2 st) (new_id st) r;
         if eq
         then RETURN (True,
           fmupd (new_id st) r A)
@@ -58,8 +67,7 @@ definition PAC_checker_step ::  \<open>(nat, int_poly) fmap  \<Rightarrow> pac_s
    | MultD _ _ _ _ \<Rightarrow>
        do {
          r \<leftarrow> normalize_poly_spec (pac_res st);
-         eq \<leftarrow> SPEC(\<lambda>b. b \<longrightarrow> pac_src1 st \<in># dom_m A \<and> new_id st \<notin># dom_m A \<and>
-            the (fmlookup A (pac_src1 st)) * pac_mult st - r \<in> ideal polynom_bool);
+        eq \<leftarrow> check_mult A (pac_src1 st) (pac_mult st) (new_id st) r;
         if eq
         then RETURN (True,
           fmupd (new_id st) r
@@ -69,8 +77,7 @@ definition PAC_checker_step ::  \<open>(nat, int_poly) fmap  \<Rightarrow> pac_s
    | Mult _ _ _ _ \<Rightarrow>
        do {
          r \<leftarrow> normalize_poly_spec (pac_res st);
-         eq \<leftarrow> SPEC(\<lambda>b. b \<longrightarrow> pac_src1 st \<in># dom_m A \<and> new_id st \<notin># dom_m A \<and>
-            the (fmlookup A (pac_src1 st)) * pac_mult st - r \<in>  ideal polynom_bool);
+        eq \<leftarrow> check_mult A (pac_src1 st) (pac_mult st) (new_id st) r;
         if eq
         then RETURN (True,
           fmupd (new_id st) r A)
@@ -181,7 +188,7 @@ lemma PAC_checker_step_PAC_checker_specification2:
 proof -
   show ?thesis
     unfolding PAC_checker_step_def PAC_checker_specification_spec_def
-      normalize_poly_spec_alt_def
+      normalize_poly_spec_alt_def check_mult_def check_add_def
     apply (cases st)
     apply clarsimp_all
     subgoal for x11 x12 x13 x14
