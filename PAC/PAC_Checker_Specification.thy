@@ -20,12 +20,23 @@ definition PAC_checker_specification_spec ::  \<open>int_poly multiset \<Rightar
 
 abbreviation PAC_checker_specification2 ::  \<open>int_poly multiset \<Rightarrow> (bool \<times> int_poly multiset) nres\<close> where
   \<open>PAC_checker_specification2 A \<equiv> SPEC(PAC_checker_specification_spec A)\<close>
-term fmupd
+
+definition normalize_poly_spec :: \<open>_\<close> where
+  \<open>normalize_poly_spec p = SPEC (\<lambda>r. p - r \<in> ideal polynom_bool)\<close>
+
+lemma normalize_poly_spec_alt_def:
+  \<open>normalize_poly_spec p = SPEC (\<lambda>r. r - p \<in> ideal polynom_bool)\<close>
+  unfolding normalize_poly_spec_def
+  by (auto dest: ideal.span_neg)
+
+definition mult_poly_spec :: \<open>_\<close> where
+  \<open>mult_poly_spec p q = SPEC (\<lambda>r. p * q - r \<in> ideal polynom_bool)\<close>
+
 definition PAC_checker_step ::  \<open>(nat, int_poly) fmap  \<Rightarrow> pac_step \<Rightarrow> (bool \<times> (nat, int_poly) fmap) nres\<close> where
   \<open>PAC_checker_step A st = (case st of
      AddD _ _ _ _ \<Rightarrow>
        do {
-         r \<leftarrow> SPEC(\<lambda>r. (r - pac_res st) \<in> ideal polynom_bool);
+         r \<leftarrow> normalize_poly_spec (pac_res st);
          eq \<leftarrow> SPEC(\<lambda>b. b \<longrightarrow> pac_src1 st \<in># dom_m A \<and> pac_src2 st \<in># dom_m A \<and> new_id st \<notin># dom_m A \<and>
             the (fmlookup A (pac_src1 st)) + the (fmlookup A (pac_src2 st)) - r \<in>  ideal polynom_bool);
         if eq
@@ -36,7 +47,7 @@ definition PAC_checker_step ::  \<open>(nat, int_poly) fmap  \<Rightarrow> pac_s
    }
    | Add _ _ _ _ \<Rightarrow>
        do {
-         r \<leftarrow> SPEC(\<lambda>r. (r - pac_res st) \<in> ideal polynom_bool);
+         r \<leftarrow> normalize_poly_spec (pac_res st);
          eq \<leftarrow> SPEC(\<lambda>b. b \<longrightarrow> pac_src1 st \<in># dom_m A \<and> pac_src2 st \<in># dom_m A \<and> new_id st \<notin># dom_m A \<and>
             the (fmlookup A (pac_src1 st)) + the (fmlookup A (pac_src2 st)) - r \<in>  ideal polynom_bool);
         if eq
@@ -46,7 +57,7 @@ definition PAC_checker_step ::  \<open>(nat, int_poly) fmap  \<Rightarrow> pac_s
    }
    | MultD _ _ _ _ \<Rightarrow>
        do {
-         r \<leftarrow> SPEC(\<lambda>r. (r - pac_res st) \<in> ideal polynom_bool);
+         r \<leftarrow> normalize_poly_spec (pac_res st);
          eq \<leftarrow> SPEC(\<lambda>b. b \<longrightarrow> pac_src1 st \<in># dom_m A \<and> new_id st \<notin># dom_m A \<and>
             the (fmlookup A (pac_src1 st)) * pac_mult st - r \<in> ideal polynom_bool);
         if eq
@@ -57,7 +68,7 @@ definition PAC_checker_step ::  \<open>(nat, int_poly) fmap  \<Rightarrow> pac_s
    }
    | Mult _ _ _ _ \<Rightarrow>
        do {
-         r \<leftarrow> SPEC(\<lambda>r. (r - pac_res st) \<in> ideal polynom_bool);
+         r \<leftarrow> normalize_poly_spec (pac_res st);
          eq \<leftarrow> SPEC(\<lambda>b. b \<longrightarrow> pac_src1 st \<in># dom_m A \<and> new_id st \<notin># dom_m A \<and>
             the (fmlookup A (pac_src1 st)) * pac_mult st - r \<in>  ideal polynom_bool);
         if eq
@@ -168,25 +179,9 @@ lemma PAC_checker_step_PAC_checker_specification2:
   assumes \<open>(A,B) \<in> polys_rel\<close>
   shows \<open>PAC_checker_step A st \<le> \<Down> (bool_rel \<times>\<^sub>r polys_rel) (PAC_checker_specification2 B)\<close>
 proof -
-(*  have \<open>x11 \<in> dom A \<Longrightarrow> x12 \<in> dom A \<Longrightarrow> ran (A(x11 := None, x12 := None)(x13 \<mapsto> r)) =
-    ran A\<close>
-    sorry
-  have [simp]: \<open>set_mset
-          (A -
-           (replicate_mset (count A x12) x12 +
-            replicate_mset (count A x11) x11)) =
-        set_mset A - {x11} - {x12}\<close> for x11 x12
-    by (auto dest: in_diffD simp: in_diff_count split: if_splits)
-  have H[intro]: \<open>x11 \<in># A \<Longrightarrow> x12 \<in># A \<Longrightarrow> PAC_Format\<^sup>*\<^sup>* (set_mset A) (set_mset A - {x11} - {x12})\<close>
-       for x11 x12
-    by (metis Diff_empty Diff_insert0 del rtranclp.simps)
-  have [intro]: \<open> x12 \<in># A \<Longrightarrow>
-       2 * x12 - x13 \<in> More_Modules.ideal polynom_bool \<Longrightarrow>
-       PAC_Format (set_mset A) (insert x13 (set_mset A))\<close> for x12 x13
-     by (simp add: ab_semigroup_mult_class.mult.commute mult)
-*)
   show ?thesis
     unfolding PAC_checker_step_def PAC_checker_specification_spec_def
+      normalize_poly_spec_alt_def
     apply (cases st)
     apply clarsimp_all
     subgoal for x11 x12 x13 x14

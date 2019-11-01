@@ -1,5 +1,5 @@
 theory PAC_Polynoms_Operations
-  imports PAC_Polynoms_Term
+  imports PAC_Polynoms_Term PAC_Checker_Specification
 begin
 
 
@@ -672,11 +672,6 @@ definition mult_poly_p' :: \<open>_\<close> where
   SPEC (\<lambda>r. normalize_poly_p\<^sup>*\<^sup>* pq r)
 }\<close>
 
-definition normalize_poly_spec :: \<open>_\<close> where
-\<open>normalize_poly_spec p = SPEC (\<lambda>r. p - r \<in> ideal polynom_bool)\<close>
-
-definition mult_poly_spec :: \<open>_\<close> where
-\<open>mult_poly_spec p q = SPEC (\<lambda>r. p * q - r \<in> ideal polynom_bool)\<close>
 
 lemma mult_poly_full_mult_poly_p':
   assumes \<open>(p, p') \<in> sorted_poly_rel\<close> \<open>(q, q') \<in> sorted_poly_rel\<close>
@@ -746,12 +741,37 @@ lemma add_poly_p'_add_poly_spec:
 end
 
 
+definition weak_equality_p :: \<open>llist_polynom \<Rightarrow> llist_polynom \<Rightarrow> bool nres\<close> where
+  \<open>weak_equality_p p q = RETURN (p = q)\<close>
+
+definition weak_equality_spec :: \<open>mset_polynom \<Rightarrow> mset_polynom \<Rightarrow> bool nres\<close> where
+  \<open>weak_equality_spec p q = SPEC (\<lambda>r. r \<longrightarrow> p = q)\<close>
+
+lemma term_poly_list_rel_same_rightD:
+  \<open>(a, aa) \<in> term_poly_list_rel \<Longrightarrow> (a, ab) \<in> term_poly_list_rel \<Longrightarrow> aa = ab\<close>
+    by (auto simp: term_poly_list_rel_def)
+
+lemma list_rel_term_poly_list_rel_same_rightD:
+  \<open>(xa, y) \<in> \<langle>term_poly_list_rel \<times>\<^sub>r int_rel\<rangle>list_rel \<Longrightarrow>
+   (xa, ya) \<in> \<langle>term_poly_list_rel \<times>\<^sub>r int_rel\<rangle>list_rel \<Longrightarrow>
+    y = ya\<close>
+  by (induction xa arbitrary: y ya)
+    (auto simp: list_rel_split_right_iff
+      dest: term_poly_list_rel_same_rightD)
+
+lemma weak_equality_p_weak_equality_spec:
+  \<open>(uncurry weak_equality_p, uncurry weak_equality_spec) \<in>
+    sorted_poly_rel \<times>\<^sub>r sorted_poly_rel \<rightarrow>\<^sub>f \<langle>bool_rel\<rangle>nres_rel\<close>
+  by (intro frefI nres_relI)
+   (auto simp: weak_equality_p_def weak_equality_spec_def
+      sorted_poly_list_rel_wrt_def list_mset_rel_def br_def
+    dest: list_rel_term_poly_list_rel_same_rightD)
 
 definition less_eq_char :: \<open>char \<Rightarrow> char \<Rightarrow> bool\<close> where
-    \<open>less_eq_char c d = (((of_char c) :: nat) \<le> of_char d)\<close>
+  \<open>less_eq_char c d = (((of_char c) :: nat) \<le> of_char d)\<close>
 
-  definition less_char :: \<open>char \<Rightarrow> char \<Rightarrow> bool\<close> where
-    \<open>less_char c d = (((of_char c) :: nat) < of_char d)\<close>
+definition less_char :: \<open>char \<Rightarrow> char \<Rightarrow> bool\<close> where
+  \<open>less_char c d = (((of_char c) :: nat) < of_char d)\<close>
 
 global_interpretation char : linorder less_eq_char less_char
   using linorder_char
