@@ -91,12 +91,13 @@ next
   show \<open>C \<in> Red_F_\<G> N\<close> unfolding Red_F_\<G>_def using only_if by auto
 qed
 
-text \<open>lemma 10 in the technical report\<close>
+text \<open>lemma 32 in the technical report\<close>
 lemma not_red_map_in_map_not_red: \<open>\<G>_set N - Red_F_G (\<G>_set N) \<subseteq> \<G>_set (N - Red_F_\<G> N)\<close>
 proof
   fix D
   assume
     D_hyp: \<open>D \<in> \<G>_set N - Red_F_G (\<G>_set N)\<close>
+  interpret minimal_element "Prec_F_g D" UNIV using all_wf[of D] .
   have D_in: \<open>D \<in> \<G>_set N\<close> using D_hyp by blast
   have  D_not_in: \<open>D \<notin> Red_F_G (\<G>_set N)\<close> using D_hyp by blast
   have exist_C: \<open>\<exists>C. C \<in> N \<and> D \<in> \<G>_F C\<close> using D_in by auto
@@ -109,14 +110,14 @@ proof
   have C_not_in: \<open>C \<notin> Red_F_\<G> N\<close>
   proof
     assume C_in: \<open>C \<in> Red_F_\<G> N\<close>
-    have \<open>D \<in> Red_F_G (\<G>_set N) \<or> (\<exists>E\<in>N. E \<sqsubset> C \<and> D \<in> \<G>_F E)\<close>
+    have \<open>D \<in> Red_F_G (\<G>_set N) \<or> (\<exists>E\<in>N. Prec_F_g D E C \<and> D \<in> \<G>_F E)\<close>
       using C_in D_in_C unfolding Red_F_\<G>_def by auto
     then show \<open>False\<close>
       proof
         assume \<open>D \<in> Red_F_G (\<G>_set N)\<close>
         then show \<open>False\<close> using D_not_in by simp
       next
-        assume \<open>\<exists>E\<in>N. E \<sqsubset> C \<and> D \<in> \<G>_F E\<close>
+        assume \<open>\<exists>E\<in>N. Prec_F_g D E C \<and> D \<in> \<G>_F E\<close>
         then show \<open>False\<close> 
           using C by (metis (no_types, lifting) B_def UNIV_I empty_iff mem_Collect_eq 
               min_elt_minimal top_greatest)
@@ -125,7 +126,7 @@ proof
   show \<open>D \<in> \<G>_set (N - Red_F_\<G> N)\<close> using D_in_C C_not_in C_in_N by blast
 qed
 
-text \<open>lemma 11 in the technical report\<close>
+text \<open>lemma 33 in the technical report\<close>
 lemma Red_F_Bot_F: \<open>B \<in> Bot_F \<Longrightarrow> N \<Turnstile>\<G> {B} \<Longrightarrow> N - Red_F_\<G> N \<Turnstile>\<G> {B}\<close>
 proof -
   fix B N
@@ -141,30 +142,30 @@ proof -
   then show \<open>N - Red_F_\<G> N \<Turnstile>\<G> {B}\<close> using Bot_map unfolding entails_\<G>_def by simp
 qed
 
-text \<open>lemma 12 in the technical report 1/2\<close>
+text \<open>lemma 34 in the technical report 1/2\<close>
 lemma Red_F_of_subset_F: \<open>N \<subseteq> N' \<Longrightarrow> Red_F_\<G> N \<subseteq> Red_F_\<G> N'\<close>
   using Ground.Red_F_of_subset unfolding Red_F_\<G>_def by (smt Collect_mono \<G>_subset subset_iff)
 
-text \<open>lemma 12 in the technical report 2/2\<close>
+text \<open>lemma 34 in the technical report 2/2\<close>
 lemma Red_Inf_of_subset_F: \<open>N \<subseteq> N' \<Longrightarrow> Red_Inf_\<G> N \<subseteq> Red_Inf_\<G> N'\<close>
   using Ground.Red_Inf_of_subset unfolding Red_Inf_\<G>_def by (smt Collect_mono \<G>_subset subset_iff)
 
-text \<open>lemma 13 in the technical report\<close>
+text \<open>lemma 35 in the technical report\<close>
 lemma Red_F_of_Red_F_subset_F: \<open>N' \<subseteq> Red_F_\<G> N \<Longrightarrow> Red_F_\<G> N \<subseteq> Red_F_\<G> (N - N')\<close>
 proof
   fix N N' C
   assume 
     N'_in_Red_F_N: \<open>N' \<subseteq> Red_F_\<G> N\<close> and
     C_in_red_F_N: \<open>C \<in> Red_F_\<G> N\<close>
-  have lem8: \<open>\<forall>D \<in> \<G>_F C. D \<in> Red_F_G (\<G>_set N) \<or> (\<exists>E \<in> (N - Red_F_\<G> N). E \<sqsubset> C \<and> D \<in> \<G>_F E)\<close>
+  have lem8: \<open>\<forall>D \<in> \<G>_F C. D \<in> Red_F_G (\<G>_set N) \<or> (\<exists>E \<in> (N - Red_F_\<G> N). Prec_F_g D E C \<and> D \<in> \<G>_F E)\<close>
     using Red_F_\<G>_equiv_def C_in_red_F_N by blast
   show \<open>C \<in> Red_F_\<G> (N - N')\<close> unfolding Red_F_\<G>_def
   proof (rule,rule)
     fix D
     assume \<open>D \<in> \<G>_F C\<close>
-    then have \<open>D \<in> Red_F_G (\<G>_set N) \<or> (\<exists>E \<in> (N - Red_F_\<G> N). E \<sqsubset> C \<and> D \<in> \<G>_F E)\<close>
+    then have \<open>D \<in> Red_F_G (\<G>_set N) \<or> (\<exists>E \<in> (N - Red_F_\<G> N). Prec_F_g D E C \<and> D \<in> \<G>_F E)\<close>
       using lem8 by auto
-    then show \<open>D \<in> Red_F_G (\<G>_set (N - N')) \<or> (\<exists>E\<in>N - N'. E \<sqsubset> C \<and> D \<in> \<G>_F E)\<close>
+    then show \<open>D \<in> Red_F_G (\<G>_set (N - N')) \<or> (\<exists>E\<in>N - N'. Prec_F_g D E C \<and> D \<in> \<G>_F E)\<close>
     proof
       assume \<open>D \<in> Red_F_G (\<G>_set N)\<close>
       then have \<open>D \<in> Red_F_G (\<G>_set N - Red_F_G (\<G>_set N))\<close>
@@ -176,10 +177,10 @@ proof
         by (smt DiffE DiffI Ground.Red_F_of_subset subsetCE subsetI)
       then show ?thesis by blast
     next
-      assume \<open>\<exists>E\<in>N - Red_F_\<G> N. E \<sqsubset> C \<and> D \<in> \<G>_F E\<close>
+      assume \<open>\<exists>E\<in>N - Red_F_\<G> N. Prec_F_g D E C \<and> D \<in> \<G>_F E\<close>
       then obtain E where 
         E_in: \<open>E\<in>N - Red_F_\<G> N\<close> and 
-        E_prec_C: \<open>E \<sqsubset> C\<close> and 
+        E_prec_C: \<open>Prec_F_g D E C\<close> and 
         D_in: \<open>D \<in> \<G>_F E\<close> 
         by auto
       have \<open>E \<in> N - N'\<close> using E_in N'_in_Red_F_N by blast
@@ -188,7 +189,7 @@ proof
   qed
 qed
 
-text \<open>lemma 14 in the technical report\<close>
+text \<open>lemma 36 in the technical report\<close>
 lemma Red_Inf_of_Red_F_subset_F: \<open>N' \<subseteq> Red_F_\<G> N \<Longrightarrow> Red_Inf_\<G> N \<subseteq> Red_Inf_\<G> (N - N') \<close>
 proof
   fix N N' \<iota>
@@ -211,7 +212,7 @@ proof
   then show \<open>\<iota> \<in> Red_Inf_\<G> (N - N')\<close> unfolding Red_Inf_\<G>_def using i_in by blast
 qed
 
-text \<open>lemma 15 in the technical report\<close>
+text \<open>lemma 37 in the technical report\<close>
 lemma Red_Inf_of_Inf_to_N_F: 
   assumes
     i_in: \<open>\<iota> \<in> Inf_F\<close> and
@@ -225,7 +226,7 @@ proof -
   ultimately show ?thesis using i_in unfolding Red_Inf_\<G>_def by simp
 qed
 
-text \<open>theorem 16 in the technical report\<close>
+text \<open>theorem 38 in the technical report\<close>
 sublocale lifted_calculus_with_red_crit: calculus_with_red_crit 
   where
     Bot = Bot_F and Inf = Inf_F and entails = entails_\<G> and
