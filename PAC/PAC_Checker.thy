@@ -365,8 +365,17 @@ proof -
     subgoal by (auto simp: list_rel_imp_same_length intro!: param_nth)
     subgoal by (auto simp: list_rel_imp_same_length)
     subgoal by (auto simp: list_rel_imp_same_length)
-    oops
+    done
+qed
+
 end
+
+lemma [code_unfold]:
+  \<open>(x, y) \<in> less_than_char \<longleftrightarrow> (of_char x :: nat) < of_char y\<close>
+  by (auto simp: less_than_char_def)
+
+export_code add_poly_l' in SML module_name test
+
 
 end
 

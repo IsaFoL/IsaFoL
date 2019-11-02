@@ -4,7 +4,7 @@ theory PAC_Map_Rel
     "HOL-Library.Finite_Map"
     Weidenbach_Book_Base.WB_List_More
 begin
-
+term hm.assn
 definition fmap_rel where
   [to_relAPP]:
   "fmap_rel K V \<equiv> {(m1, m2).
@@ -151,19 +151,59 @@ lemma op_map_contains_key[pat_rules]:
    by (auto intro!: eq_reflection)
 
 
-subsection \<open>Parametricity\<close>
+subsection \<open>Mapping to Normal Hashmaps\<close>
 
-locale fmap_custom_empty =
-  fixes op_custom_empty :: "('k, 'v) fmap"
-  assumes op_custom_empty_def: "op_custom_empty = op_fmap_empty"
-begin
-  sepref_register op_custom_empty :: "('kx,'vx) f_map"
+abbreviation map_of_fmap :: \<open>('k \<Rightarrow> 'v option) \<Rightarrow> ('k, 'v) fmap\<close> where
+\<open>map_of_fmap h \<equiv> Abs_fmap h\<close>
 
-  lemma fold_custom_empty:
-    "fmempty = op_custom_empty"
-    "op_fmap_empty = op_custom_empty"
-    "mop_fmap_empty = RETURN op_custom_empty"
-    unfolding op_custom_empty_def by simp_all
-end
+definition map_fmap_rel where
+  \<open>map_fmap_rel = br map_of_fmap (\<lambda>a. finite (dom a))\<close>
+
+lemma fmdrop_set_None:
+  \<open>(op_map_delete, fmdrop) \<in> Id \<rightarrow> map_fmap_rel \<rightarrow> map_fmap_rel\<close>
+  apply (auto simp: map_fmap_rel_def br_def)
+  apply (subst fmdrop.abs_eq)
+  apply (auto simp: eq_onp_def fmap.Abs_fmap_inject
+    map_drop_def map_filter_finite
+     intro!: ext)
+  apply (auto simp: map_filter_def)
+  done
+
+lemma map_upd_fmupd:
+  \<open>(op_map_update, fmupd) \<in> Id \<rightarrow> Id \<rightarrow> map_fmap_rel \<rightarrow> map_fmap_rel\<close>
+  apply (auto simp: map_fmap_rel_def br_def)
+  apply (subst fmupd.abs_eq)
+  apply (auto simp: eq_onp_def fmap.Abs_fmap_inject
+    map_drop_def map_filter_finite map_upd_def
+     intro!: ext)
+  done
+
+
+text \<open>Technically @{term op_map_lookup} has the arguments in the wrong direction.\<close>
+definition fmlookup' where
+  [simp]: \<open>fmlookup' A k = fmlookup k A\<close>
+
+lemma [def_pat_rules]:
+  \<open>fmlookup$k$A=fmlookup'$A$k\<close>
+  by auto
+
+lemma op_map_lookup_fmlookup:
+  \<open>(op_map_lookup, fmlookup') \<in> Id \<rightarrow> map_fmap_rel \<rightarrow> \<langle>Id\<rangle>option_rel\<close>
+  by (auto simp: map_fmap_rel_def br_def fmap.Abs_fmap_inverse)
+
+
+abbreviation hm_fmap_assn where
+  \<open>hm_fmap_assn K V \<equiv> hr_comp (hm.assn K V) map_fmap_rel\<close>
+
+lemmas fmap_delete_hnr [sepref_fr_rules] =
+   hm.delete_hnr[FCOMP fmdrop_set_None]
+
+lemmas fmap_update_hnr [sepref_fr_rules] =
+   hm.update_hnr[FCOMP map_upd_fmupd]
+
+
+lemmas fmap_lookup_hnr [sepref_fr_rules] =
+   hm.lookup_hnr[FCOMP op_map_lookup_fmlookup]
+
 
 end
