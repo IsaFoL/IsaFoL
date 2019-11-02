@@ -67,7 +67,8 @@ definition PAC_checker_step ::  \<open>(nat, int_poly) fmap  \<Rightarrow> int_p
    | MultD _ _ _ _ \<Rightarrow>
        do {
          r \<leftarrow> normalize_poly_spec (pac_res st);
-        eq \<leftarrow> check_mult A (pac_src1 st) (pac_mult st) (new_id st) r;
+         q \<leftarrow> normalize_poly_spec (pac_mult st);
+        eq \<leftarrow> check_mult A (pac_src1 st) q (new_id st) r;
         if eq
         then RETURN (True,
           fmupd (new_id st) r
@@ -77,7 +78,8 @@ definition PAC_checker_step ::  \<open>(nat, int_poly) fmap  \<Rightarrow> int_p
    | Mult _ _ _ _ \<Rightarrow>
        do {
          r \<leftarrow> normalize_poly_spec (pac_res st);
-        eq \<leftarrow> check_mult A (pac_src1 st) (pac_mult st) (new_id st) r;
+         q \<leftarrow> normalize_poly_spec (pac_mult st);
+        eq \<leftarrow> check_mult A (pac_src1 st) q (new_id st) r;
         if eq
         then RETURN (True,
           fmupd (new_id st) r A)

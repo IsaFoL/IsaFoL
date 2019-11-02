@@ -713,7 +713,8 @@ definition mset_poly_rel where
   \<open>mset_poly_rel = {(a, b). b = polynom_of_mset a}\<close>
 
 lemma normalize_poly_p_normalize_poly_spec:
-  \<open>(p, p') \<in> mset_poly_rel \<Longrightarrow>  SPEC (\<lambda>r. normalize_poly_p\<^sup>*\<^sup>* p r) \<le> \<Down>mset_poly_rel (normalize_poly_spec p')\<close>
+  \<open>(p, p') \<in> mset_poly_rel \<Longrightarrow>
+    SPEC (\<lambda>r. normalize_poly_p\<^sup>*\<^sup>* p r) \<le> \<Down>mset_poly_rel (normalize_poly_spec p')\<close>
   by (auto simp: mset_poly_rel_def rtranclp_normalize_poly_p_poly_of_mset ideal.span_zero
     normalize_poly_spec_def intro!: RES_refine)
 
@@ -726,7 +727,8 @@ lemma mult_poly_p'_mult_poly_spec:
   apply (auto simp: mset_poly_rel_def dest!: rtranclp_mult_poly_p_mult_ideal_final)
   apply (intro RES_refine)
   apply auto
-  by (smt cancel_comm_monoid_add_class.diff_cancel diff_diff_add group_eq_aux ideal.span_diff rtranclp_normalize_poly_p_poly_of_mset)
+  by (smt cancel_comm_monoid_add_class.diff_cancel diff_diff_add group_eq_aux ideal.span_diff
+    rtranclp_normalize_poly_p_poly_of_mset)
 
 
 lemma add_poly_p'_add_poly_spec:
