@@ -184,7 +184,7 @@ definition fmlookup' where
   [simp]: \<open>fmlookup' A k = fmlookup k A\<close>
 
 lemma [def_pat_rules]:
-  \<open>fmlookup$k$A=fmlookup'$A$k\<close>
+  \<open>fmlookup$k$A\<equiv>fmlookup'$A$k\<close>
   by auto
 
 lemma op_map_lookup_fmlookup:

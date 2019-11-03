@@ -275,6 +275,7 @@ lemma pac_step_rel_raw_def:
   \<open>\<langle>K, V\<rangle> pac_step_rel_raw = pac_step_rel_raw K V\<close>
   by (auto intro!: ext simp: relAPP_def)
 
+term var_order_rel
 lemma PAC_checker_l_step_PAC_checker_step:
   assumes
     \<open>(A, B) \<in> polys_rel\<close> and
@@ -370,9 +371,9 @@ qed
 
 end
 
-lemma [code_unfold]:
+lemma less_than_char_of_char[code_unfold]:
   \<open>(x, y) \<in> less_than_char \<longleftrightarrow> (of_char x :: nat) < of_char y\<close>
-  by (auto simp: less_than_char_def)
+  by (auto simp: less_than_char_def less_char_def)
 
 export_code add_poly_l' in SML module_name test
 

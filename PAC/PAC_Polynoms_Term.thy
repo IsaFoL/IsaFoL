@@ -29,8 +29,28 @@ type_synonym llist_polynom = \<open>(term_poly_list \<times> int) list\<close>
 text \<open>We instantiate the characters with typeclass linorder to be able to talk abourt sorted and
   so on.\<close>
 
-definition less_than_char :: \<open>(char \<times> char) set\<close> where
-  \<open>less_than_char = {(a, b). of_char a < (of_char b :: nat) }\<close>
+definition less_eq_char :: \<open>char \<Rightarrow> char \<Rightarrow> bool\<close> where
+  \<open>less_eq_char c d = (((of_char c) :: nat) \<le> of_char d)\<close>
+
+definition less_char :: \<open>char \<Rightarrow> char \<Rightarrow> bool\<close> where
+  \<open>less_char c d = (((of_char c) :: nat) < of_char d)\<close>
+
+global_interpretation char: linorder less_eq_char less_char
+  using linorder_char
+  unfolding linorder_class_def class.linorder_def
+    less_eq_char_def[symmetric] less_char_def[symmetric]
+    class.order_def order_class_def
+    class.preorder_def preorder_class_def
+    ord_class_def
+  apply auto
+  done
+
+abbreviation less_than_char :: \<open>(char \<times> char) set\<close> where
+  \<open>less_than_char \<equiv> p2rel less_char\<close>
+
+lemma less_than_char_def:
+  \<open>(x,y) \<in> less_than_char \<longleftrightarrow> less_char x y\<close>
+  by (auto simp: p2rel_def)
 
 lemma trans_less_than_char[simp]:
     \<open>trans less_than_char\<close> and
@@ -40,7 +60,7 @@ lemma trans_less_than_char[simp]:
     \<open>antisym less_than_char\<close>
   by (auto simp: less_than_char_def trans_def irrefl_def antisym_def)
 
-abbreviation var_order_rel :: \<open>(string \<times> string) set\<close> where
+definition var_order_rel :: \<open>(string \<times> string) set\<close> where
   \<open>var_order_rel \<equiv> lexord less_than_char\<close>
 
 abbreviation var_order :: \<open>string \<Rightarrow> string \<Rightarrow> bool\<close> where
@@ -56,7 +76,7 @@ definition term_poly_list_rel :: \<open>(term_poly_list \<times> term_poly) set\
   \<open>term_poly_list_rel = {(xs, ys).
      ys = mset xs \<and>
      distinct xs \<and>
-     sorted_wrt (rel2p (lexord less_than_char)) xs}\<close>
+     sorted_wrt (rel2p var_order_rel) xs}\<close>
 
 definition poly_list_rel :: \<open>_ \<Rightarrow> (('a \<times> int) list \<times> mset_polynom) set\<close> where
   \<open>poly_list_rel R = {(xs, ys).
@@ -74,7 +94,7 @@ abbreviation sorted_poly_list_rel where
   \<open>sorted_poly_list_rel R \<equiv> sorted_poly_list_rel_wrt R term_poly_list_rel\<close>
 
 abbreviation sorted_poly_rel where
-  \<open>sorted_poly_rel \<equiv> sorted_poly_list_rel (rel2p (lexord (lexord less_than_char)))\<close>
+  \<open>sorted_poly_rel \<equiv> sorted_poly_list_rel (rel2p (lexord var_order_rel))\<close>
 
 abbreviation unsorted_poly_rel where
   \<open>unsorted_poly_rel \<equiv> poly_list_rel term_poly_list_rel\<close>

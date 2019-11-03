@@ -55,7 +55,7 @@ lemma nonzero_coeffsD:
 
 lemma sorted_poly_list_rel_ConsD:
   \<open>((ys, n) # p, a) \<in> sorted_poly_list_rel S \<Longrightarrow> (p, remove1_mset (mset ys, n) a) \<in> sorted_poly_list_rel S \<and>
-    (mset ys, n) \<in># a \<and> (\<forall>x \<in> set p. S ys (fst x)) \<and> sorted_wrt (rel2p (lexord less_than_char)) ys \<and>
+    (mset ys, n) \<in># a \<and> (\<forall>x \<in> set p. S ys (fst x)) \<and> sorted_wrt (rel2p var_order_rel) ys \<and>
     distinct ys \<and> n \<noteq> 0 \<and> nonzero_coeffs a\<close>
   unfolding sorted_poly_list_rel_wrt_def prod.case mem_Collect_eq
     list_rel_def
@@ -80,7 +80,7 @@ lemma sorted_poly_list_rel_ConsD:
 
 lemma sorted_poly_list_rel_Cons_iff:
   \<open>((ys, n) # p, a) \<in> sorted_poly_list_rel S \<longleftrightarrow> (p, remove1_mset (mset ys, n) a) \<in> sorted_poly_list_rel S \<and>
-    (mset ys, n) \<in># a \<and> (\<forall>x \<in> set p. S ys (fst x)) \<and> sorted_wrt (rel2p (lexord less_than_char)) ys \<and>
+    (mset ys, n) \<in># a \<and> (\<forall>x \<in> set p. S ys (fst x)) \<and> sorted_wrt (rel2p var_order_rel) ys \<and>
     distinct ys \<and> n \<noteq> 0 \<and> nonzero_coeffs a\<close>
   apply (rule iffI)
   subgoal
@@ -218,7 +218,8 @@ lemma add_poly_l'_add_poly_p:
         using p(2)[of \<open>(remove1_mset (mset xs, n) (fst pq'), remove1_mset (mset ys, m)  (snd pq'))\<close>] p(5-)
         apply (auto dest!: sorted_poly_list_rel_ConsD multi_member_split)
         apply (rule_tac x = \<open>add_mset (mset ys, n + m) r\<close> in exI)
-        apply (fastforce dest!: monoms_add_poly_l'D simp: sorted_poly_list_rel_Cons_iff rel2p_def sorted_poly_list_rel_nonzeroD
+        apply (fastforce dest!: monoms_add_poly_l'D simp: sorted_poly_list_rel_Cons_iff rel2p_def
+           sorted_poly_list_rel_nonzeroD var_order_rel_def
           intro: add_poly_p_add_mset_comb2)
         done
      done
@@ -229,7 +230,7 @@ lemma add_poly_l'_add_poly_p:
         apply (auto dest!: multi_member_split simp: sorted_poly_list_rel_Cons_iff rel2p_def)
         apply (rule_tac x = \<open>add_mset (mset xs, n) r\<close> in exI)
         apply (auto dest!: monoms_add_poly_l'D)
-        apply (auto intro: lexord_trans add_poly_p_add_mset_comb  simp: lexord_transI)
+        apply (auto intro: lexord_trans add_poly_p_add_mset_comb simp: lexord_transI var_order_rel_def)
         apply (rule lexord_trans)
         apply assumption
         apply (auto intro: lexord_trans add_poly_p_add_mset_comb simp: lexord_transI
@@ -242,7 +243,7 @@ lemma add_poly_l'_add_poly_p:
         apply (auto dest!: monoms_add_poly_l'D
           simp: total_on_lexord_less_than_char_linear)
         apply (auto intro: lexord_trans add_poly_p_add_mset_comb  simp: lexord_transI
-          total_on_lexord_less_than_char_linear)
+          total_on_lexord_less_than_char_linear var_order_rel_def)
         apply (rule lexord_trans)
         apply assumption
         apply (auto intro: lexord_trans add_poly_p_add_mset_comb3 simp: lexord_transI
@@ -270,7 +271,7 @@ lemma add_poly_l_spec:
 
 definition sort_poly_spec :: \<open>llist_polynom \<Rightarrow> llist_polynom nres\<close> where
 \<open>sort_poly_spec p =
-  SPEC(\<lambda>p'. mset p = mset p' \<and> sorted_wrt (rel2p (lexord (lexord less_than_char))) (map fst p'))\<close>
+  SPEC(\<lambda>p'. mset p = mset p' \<and> sorted_wrt (rel2p (lexord var_order_rel)) (map fst p'))\<close>
 
 lemma sort_poly_spec_id:
   assumes \<open>(p, p') \<in> unsorted_poly_rel\<close>
@@ -287,7 +288,7 @@ proof -
     by (auto simp: list_rel_def list_all2_conv_all_nth)
   have H: \<open>(x, p')
         \<in> \<langle>term_poly_list_rel \<times>\<^sub>r int_rel\<rangle>list_rel O list_mset_rel\<close>
-     if px: \<open>mset p = mset x\<close> and \<open>sorted_wrt (rel2p (lexord (lexord less_than_char))) (map fst x)\<close>
+     if px: \<open>mset p = mset x\<close> and \<open>sorted_wrt (rel2p (lexord var_order_rel)) (map fst x)\<close>
      for x :: \<open>llist_polynom\<close>
   proof -
     obtain f where
@@ -347,7 +348,7 @@ lemma term_poly_list_rel_Cons_iff:
 
 lemma var_order_rel_antisym[simp]:
   \<open>(y, y) \<notin> var_order_rel\<close>
-  by (simp add: less_than_char_def lexord_irreflexive)
+  by (simp add: less_than_char_def lexord_irreflexive var_order_rel_def)
 
 lemma term_poly_list_rel_remdups_mset:
   \<open>(p, p') \<in> term_poly_list_rel \<Longrightarrow>
@@ -384,27 +385,25 @@ lemma mult_monoms_spec:
      subgoal
         using p(2)[of \<open>remove1_mset x p'\<close> \<open>q'\<close>] p(4-)
         apply (auto simp: term_poly_list_rel_Cons_iff rel2p_def
-            term_poly_list_rel_set_mset rel2p_def
+            term_poly_list_rel_set_mset rel2p_def var_order_rel_def
           dest!: multi_member_split[of _ p'] multi_member_split[of _ q']
             var_notin_notin_mult_monomsD
           split: if_splits)
        apply (meson lexord_cons_cons list.inject total_on_lexord_less_than_char_linear)
        apply (meson lexord_cons_cons list.inject total_on_lexord_less_than_char_linear)
        apply (meson lexord_cons_cons list.inject total_on_lexord_less_than_char_linear)
-       using lexord_trans trans_less_than_char var_order_rel_antisym apply blast
-       using lexord_trans trans_less_than_char var_order_rel_antisym apply blast
-       using lexord_trans trans_less_than_char var_order_rel_antisym apply blast
-       using lexord_trans trans_less_than_char var_order_rel_antisym apply blast
-       using lexord_trans trans_less_than_char var_order_rel_antisym apply blast
+       using lexord_trans trans_less_than_char var_order_rel_antisym
+       unfolding var_order_rel_def apply blast+
        done
      subgoal
         using p(3)[of \<open>p'\<close> \<open>remove1_mset y q'\<close>] p(4-)
         apply (auto simp: term_poly_list_rel_Cons_iff rel2p_def
-            term_poly_list_rel_set_mset rel2p_def
+            term_poly_list_rel_set_mset rel2p_def var_order_rel_antisym
           dest!: multi_member_split[of _ p'] multi_member_split[of _ q']
             var_notin_notin_mult_monomsD
           split: if_splits)
-       using lexord_trans trans_less_than_char var_order_rel_antisym apply blast
+       using lexord_trans trans_less_than_char var_order_rel_antisym
+       unfolding var_order_rel_def apply blast
        apply (meson lexord_cons_cons list.inject total_on_lexord_less_than_char_linear)
        by (meson less_than_char_linear lexord_linear lexord_trans trans_less_than_char)
        done
@@ -531,7 +530,8 @@ proof -
       apply (auto simp: sorted_poly_list_rel_Cons_iff
         dest!: multi_member_split)
       apply (rule_tac x = \<open>(\<lambda>(ys, n). (remdups_mset (mset (fst a) + ys), n * snd a)) `# q' + r\<close> in exI)
-      apply (auto intro: mult_poly_p.intros intro!: H dest: sorted_poly_list_rel_nonzeroD nonzero_coeffsD)
+      apply (auto intro: mult_poly_p.intros simp: var_order_rel_def intro!: H
+        dest: sorted_poly_list_rel_nonzeroD nonzero_coeffsD)
       apply (rule rtranclp_trans)
       apply (rule mult_poly_p_add_mset_same)
       apply assumption
@@ -624,7 +624,9 @@ lemma merge_coeffs_is_normalize_poly_p:
       remove1_mset_add_mset_If)
     apply (rule_tac x = \<open>add_mset (mset xs, n) r\<close> in exI)
     apply (auto dest!: in_set_merge_coeffsD)
-    apply (auto intro: normalize_poly_p.intros rtranclp_normalize_poly_add_mset dest!: multi_member_split
+    apply (auto intro: normalize_poly_p.intros rtranclp_normalize_poly_add_mset
+      simp: var_order_rel_def
+      dest!: multi_member_split
       dest: sorted_poly_list_rel_nonzeroD)
     done
   done
@@ -771,22 +773,6 @@ lemma weak_equality_p_weak_equality_spec:
    (auto simp: weak_equality_p_def weak_equality_spec_def
       sorted_poly_list_rel_wrt_def list_mset_rel_def br_def
     dest: list_rel_term_poly_list_rel_same_rightD)
-
-definition less_eq_char :: \<open>char \<Rightarrow> char \<Rightarrow> bool\<close> where
-  \<open>less_eq_char c d = (((of_char c) :: nat) \<le> of_char d)\<close>
-
-definition less_char :: \<open>char \<Rightarrow> char \<Rightarrow> bool\<close> where
-  \<open>less_char c d = (((of_char c) :: nat) < of_char d)\<close>
-
-global_interpretation char : linorder less_eq_char less_char
-  using linorder_char
-  unfolding linorder_class_def class.linorder_def
-    less_eq_char_def[symmetric] less_char_def[symmetric]
-    class.order_def order_class_def
-    class.preorder_def preorder_class_def
-    ord_class_def
-  apply auto
-  done
 
 
 
