@@ -8,16 +8,6 @@ definition string_rel :: \<open>(String.literal \<times> string) set\<close> whe
 abbreviation string_assn :: \<open>string \<Rightarrow> String.literal \<Rightarrow> assn\<close> where
   \<open>string_assn \<equiv> pure string_rel\<close>
 
-lemma var_order_string_le:
-  \<open>((<), var_order) \<in> string_rel \<rightarrow> string_rel \<rightarrow> bool_rel\<close>
-  by (auto intro!: frefI simp: string_rel_def String.less_literal_def
-    less_than_char_def rel2p_def linorder.lexordp_conv_lexord[OF char.linorder_axioms,
-      unfolded less_eq_char_def less_char_def] var_order_rel_def
-      less_char_def p2rel_def)
-
-lemmas var_order_string_le_hnr =
-   var_order_string_le[sepref_import_param]
-
 lemma eq_string_eq:
   \<open>((=), (=)) \<in> string_rel \<rightarrow> string_rel \<rightarrow> bool_rel\<close>
  by (auto intro!: frefI simp: string_rel_def String.less_literal_def
@@ -27,16 +17,28 @@ lemmas eq_string_eq_hnr =
    eq_string_eq[sepref_import_param]
 
 
+abbreviation monom_rel where
+  \<open>monom_rel \<equiv> \<langle>string_rel\<rangle>list_rel\<close>
+
 abbreviation monom_assn where
   \<open>monom_assn \<equiv> list_assn string_assn\<close>
 
+abbreviation monomial_rel where
+  \<open>monomial_rel \<equiv> monom_rel \<times>\<^sub>r int_rel\<close>
+  
+abbreviation monomial_assn where
+  \<open>monomial_assn \<equiv> monom_assn \<times>\<^sub>a int_assn\<close>
+
+
+abbreviation poly_rel where
+  \<open>poly_rel \<equiv> \<langle>monomial_rel\<rangle>list_rel\<close>
+
+
 abbreviation poly_assn where
-  \<open>poly_assn \<equiv> list_assn (prod_assn monom_assn int_assn)\<close>
+  \<open>poly_assn \<equiv> list_assn monomial_assn\<close>
 
 abbreviation polys_assn where
   \<open>polys_assn \<equiv> hm_fmap_assn nat_assn poly_assn\<close>
-
-find_theorems list_assn \<open>((=), (=))\<close>
 
 lemma string_rel_string_assn:
   \<open>(\<up> ((c, a) \<in> string_rel)) = string_assn a c\<close>
@@ -215,9 +217,10 @@ next
 qed
 
 
-lemma [sepref_import_param]:
+lemma string_rel_le[sepref_import_param]:
   shows \<open>((<), (<)) \<in> \<langle>string_rel\<rangle>list_rel \<rightarrow>  \<langle>string_rel\<rangle>list_rel \<rightarrow> bool_rel\<close>
   by (auto intro!: fun_relI simp: list_rel_list_rel_order_iff)
+
 
 sepref_definition add_poly_impl
   is \<open>add_poly_l\<close>
@@ -249,12 +252,12 @@ definition partition_main_poly :: \<open>nat \<Rightarrow> nat \<Rightarrow> lli
   \<open>partition_main_poly = partition_main (\<le>)  fst\<close>
 
 lemma full_quicksort_sort_poly_spec:
-  \<open>full_quicksort_poly xs
-    \<le> sort_poly_spec xs\<close>
+  \<open>(full_quicksort_poly, sort_poly_spec) \<in> \<langle>Id\<rangle>list_rel \<rightarrow>\<^sub>f \<langle>\<langle>Id\<rangle>list_rel\<rangle>nres_rel\<close>
 proof -
-  have xs: \<open>(xs, xs) \<in> \<langle>Id\<rangle>list_rel\<close> and \<open>\<Down>(\<langle>Id\<rangle>list_rel) x = x\<close> for x
+  have xs: \<open>(xs, xs) \<in> \<langle>Id\<rangle>list_rel\<close> and \<open>\<Down>(\<langle>Id\<rangle>list_rel) x = x\<close> for x xs
     by auto
   show ?thesis
+    apply (intro frefI nres_relI)
     unfolding full_quicksort_poly_def
     apply (rule full_quicksort_ref_full_quicksort[THEN fref_to_Down_curry, THEN order_trans])
     subgoal
@@ -320,6 +323,18 @@ sepref_definition partition_between_poly_impl
 declare partition_between_poly_impl.refine[sepref_fr_rules]
 
 
+lemma safe_poly_vars:
+  shows
+  [safe_constraint_rules]:
+    "is_pure (poly_assn)" and
+  [safe_constraint_rules]:
+    "is_pure (monom_assn)" and
+  [safe_constraint_rules]:
+    "is_pure (monomial_assn)" and
+  [safe_constraint_rules]:
+    "is_pure string_assn"
+  by (auto intro!: pure_prod list_assn_pure simp: prod_assn_pure_conv)
+
 sepref_definition quicksort_poly_impl
   is \<open>uncurry2 quicksort_poly\<close>
   :: \<open>nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a poly_assn\<^sup>k \<rightarrow>\<^sub>a poly_assn\<close>
@@ -327,7 +342,7 @@ sepref_definition quicksort_poly_impl
     partition_between_poly_def[symmetric]
   by sepref
 
-declare quicksort_poly_impl.refine[sepref_fr_rules]
+lemmas [sepref_fr_rules] = quicksort_poly_impl.refine
 
 sepref_register quicksort_poly
 sepref_definition full_quicksort_poly_impl
@@ -340,6 +355,216 @@ sepref_definition full_quicksort_poly_impl
     List.null_def
   by sepref
 
+
+lemmas sort_poly_spec_hnr[sepref_fr_rules] =
+  full_quicksort_poly_impl.refine[FCOMP full_quicksort_sort_poly_spec]
+
+sepref_register mult_monomials
+lemma mult_monoms_alt_def:
+  \<open>(RETURN oo mult_monoms) x y = REC\<^sub>T
+    (\<lambda>f (p, q).
+      case (p, q) of
+        ([], _) \<Rightarrow> RETURN q
+       | (_, []) \<Rightarrow> RETURN p
+       | (x # p, y # q) \<Rightarrow>
+        (if x = y then do {
+          pq \<leftarrow> f (p, q);
+           RETURN (x # pq)}
+        else if (x, y) \<in> var_order_rel
+        then do {
+          pq \<leftarrow> f (p, y # q);
+          RETURN (x # pq)}
+        else do {
+          pq \<leftarrow>  f (x # p, q);
+          RETURN (y # pq)}))
+     (x, y)\<close>
+  apply (induction x y rule: mult_monoms.induct)
+  subgoal for p 
+    apply (subst RECT_unfold)
+    apply refine_mono
+    apply (cases p)
+    apply auto
+    done
+  subgoal for p 
+    apply (subst RECT_unfold)
+    apply refine_mono
+    apply (cases p)
+    apply auto
+    done
+  subgoal for x p y q 
+    apply (subst RECT_unfold)
+    apply refine_mono
+    apply (auto simp: let_to_bind_conv)
+    apply (metis let_to_bind_conv)+
+    done
+  done
+
+definition var_order' where
+  [simp]: \<open>var_order' = var_order\<close>
+
+lemma var_order_rel[def_pat_rules]:
+  \<open>(\<in>)$(x,y)$var_order_rel \<equiv> var_order'$x$y\<close>
+  by (auto simp: p2rel_def rel2p_def)
+
+lemma var_order_rel_alt_def:
+  \<open>var_order_rel = p2rel char.lexordp\<close>
+  apply (auto simp: p2rel_def char.lexordp_conv_lexord var_order_rel_def)
+  using char.lexordp_conv_lexord apply auto
+  done
+
+lemma var_order_rel_var_order:
+  \<open>(x, y) \<in> var_order_rel \<longleftrightarrow> var_order x y\<close>
+  by (auto simp: rel2p_def)
+
+lemma var_order_string_le[sepref_import_param]:
+  \<open>((<), var_order') \<in> string_rel \<rightarrow> string_rel \<rightarrow> bool_rel\<close>
+  apply (auto intro!: frefI simp: string_rel_def String.less_literal_def
+     rel2p_def linorder.lexordp_conv_lexord[OF char.linorder_axioms,
+      unfolded less_eq_char_def] var_order_rel_def
+      p2rel_def
+      simp flip: PAC_Polynoms_Term.less_char_def)
+  using char.lexordp_conv_lexord apply auto
+  done
+
+sepref_definition mult_monoms_impl
+  is \<open>uncurry (RETURN oo mult_monoms)\<close>
+  :: \<open>(monom_assn)\<^sup>k *\<^sub>a (monom_assn)\<^sup>k \<rightarrow>\<^sub>a (monom_assn)\<close>
+  supply [[goals_limit=1]]
+  unfolding mult_poly_raw_def
+    HOL_list.fold_custom_empty
+    var_order'_def[symmetric]
+    term_order_rel'_alt_def
+    mult_monoms_alt_def
+    var_order_rel_var_order
+  by sepref
+
+declare mult_monoms_impl.refine[sepref_fr_rules]
+
+sepref_definition mult_monomials_impl
+  is \<open>uncurry (RETURN oo mult_monomials)\<close>
+  :: \<open>(monomial_assn)\<^sup>k *\<^sub>a (monomial_assn)\<^sup>k \<rightarrow>\<^sub>a (monomial_assn)\<close>
+  supply [[goals_limit=1]]
+  unfolding mult_monomials_def
+    HOL_list.fold_custom_empty
+    term_order_rel'_def[symmetric]
+    term_order_rel'_alt_def
+  by sepref
+
+
+declare mult_monomials_impl.refine[sepref_fr_rules]
+
+text \<open>TODO @{thm map_by_foldl} is the worst possible implementation of map!\<close>
+sepref_definition mult_poly_raw_impl
+  is \<open>uncurry (RETURN oo mult_poly_raw)\<close>
+  :: \<open>poly_assn\<^sup>k *\<^sub>a poly_assn\<^sup>k \<rightarrow>\<^sub>a poly_assn\<close>
+  supply [[goals_limit=1]]
+  supply [[eta_contract = false, show_abbrevs=false]]
+  unfolding mult_poly_raw_def
+    HOL_list.fold_custom_empty
+    term_order_rel'_def[symmetric]
+    term_order_rel'_alt_def
+    foldl_conv_fold
+    fold_eq_nfoldli
+    map_by_foldl[symmetric]
+  apply (rewrite in "_" eta_expand[where f = \<open>(@) u\<close> for u])
+  by sepref
+
+declare mult_poly_raw_impl.refine[sepref_fr_rules]
+
+
+lemma merge_coeffs_alt_def:
+  \<open>(RETURN o merge_coeffs) p =
+   REC\<^sub>T(\<lambda>f p.
+     (case p of
+       [] \<Rightarrow> RETURN []
+     | [_] => RETURN p
+     | ((xs, n) # (ys, m) # p) \<Rightarrow>
+      (if xs = ys
+       then if n + m \<noteq> 0 then f ((xs, n + m) # p) else f p
+       else do {p \<leftarrow> f ((ys, m) # p); RETURN ((xs, n) # p)})))
+    p\<close>
+  apply (induction p rule: merge_coeffs.induct)
+  subgoal
+    apply (subst RECT_unfold)
+    apply refine_mono
+    apply auto
+    done
+  subgoal
+    apply (subst RECT_unfold)
+    apply refine_mono
+    apply (cases p)
+    apply auto
+    done
+  subgoal for x p y q
+    apply (subst RECT_unfold)
+    apply refine_mono
+    apply (auto simp: let_to_bind_conv)
+    apply (metis let_to_bind_conv)+
+    done
+  done
+
+find_theorems is_pure invalid_assn
+lemma hn_invalid_recover:
+  \<open>is_pure R \<Longrightarrow> hn_invalid R = (\<lambda>x y. R x y * true)\<close>
+  \<open>is_pure R \<Longrightarrow> invalid_assn R = (\<lambda>x y. R x y * true)\<close>
+  by (auto simp: is_pure_conv invalid_pure_recover hn_ctxt_def intro!: ext)
+
+lemma invalid_assn_distrib:
+  \<open>invalid_assn monom_assn \<times>\<^sub>a invalid_assn int_assn = invalid_assn (monom_assn \<times>\<^sub>a int_assn)\<close>
+    apply (simp add: invalid_pure_recover hn_invalid_recover
+      safe_constraint_rules)
+    apply (subst hn_invalid_recover)
+    apply (rule safe_poly_vars(2))
+    apply (subst hn_invalid_recover)
+    apply (rule safe_poly_vars)
+    apply (auto intro!: ext)
+    done
+
+sepref_definition merge_coeffs_impl
+  is \<open>RETURN o merge_coeffs\<close>
+  :: \<open>poly_assn\<^sup>k \<rightarrow>\<^sub>a poly_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding merge_coeffs_alt_def
+    HOL_list.fold_custom_empty
+  apply (rewrite in \<open>_\<close> annotate_assn[where A=\<open>poly_assn\<close>])
+  apply sepref_dbg_preproc
+  apply sepref_dbg_cons_init
+  apply sepref_dbg_id
+  apply sepref_dbg_monadify
+  apply sepref_dbg_opt_init
+  apply sepref_dbg_trans_keep
+  apply sepref_dbg_trans_step_keep
+  defer
+  apply sepref_dbg_trans
+  defer
+  apply sepref_dbg_opt
+  apply sepref_dbg_cons_solve
+  apply sepref_dbg_cons_solve
+  apply sepref_dbg_constraints
+  sorry
+(*FIXME!*)
+
+declare merge_coeffs_impl.refine[sepref_fr_rules]
+sepref_definition normalize_poly_impl
+  is \<open>normalize_poly\<close>
+  :: \<open>poly_assn\<^sup>k \<rightarrow>\<^sub>a poly_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding normalize_poly_def
+  by sepref
+
+declare normalize_poly_impl.refine[sepref_fr_rules]
+
+sepref_definition mult_poly_impl
+  is \<open>uncurry mult_poly_full\<close>
+  :: \<open>poly_assn\<^sup>k *\<^sub>a poly_assn\<^sup>k \<rightarrow>\<^sub>a poly_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding mult_poly_full_def
+    HOL_list.fold_custom_empty
+    term_order_rel'_def[symmetric]
+    term_order_rel'_alt_def
+  by sepref
+
+declare mult_poly_impl.refine[sepref_fr_rules]
 
 
 end

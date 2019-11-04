@@ -462,7 +462,7 @@ lemma mult_monoms_spec:
     done
   done
 
-definition mult_monomials :: \<open>_\<close> where
+definition mult_monomials :: \<open>term_poly_list \<times> int \<Rightarrow> term_poly_list \<times> int \<Rightarrow> term_poly_list \<times> int\<close> where
   \<open>mult_monomials = (\<lambda>(x, a) (y, b). (mult_monoms x y, a * b))\<close>
 
 definition mult_poly_raw :: \<open>llist_polynom \<Rightarrow> llist_polynom \<Rightarrow> llist_polynom\<close> where
