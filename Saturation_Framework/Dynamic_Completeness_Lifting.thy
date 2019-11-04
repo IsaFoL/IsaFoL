@@ -297,6 +297,25 @@ qed
 
 end
 
+subsection \<open>Intersection of Liftings\<close>
+
+
+locale lifting_equivalence_with_red_crit_family = Non_ground: inference_system Inf_F
+  + Ground_family: calculus_with_red_crit_family Bot_G Inf_G Q_G entails_q Red_Inf_q Red_F_q
+  for
+    Inf_F :: "'f inference set" and
+    Bot_G :: "'g set" and
+    Inf_G :: \<open>'g inference set\<close> and
+    Q_G :: "'q set" and
+    entails_q :: "'q \<Rightarrow> ('g set \<Rightarrow> 'g set \<Rightarrow> bool)" and
+    Red_Inf_q :: "'q \<Rightarrow> ('g set \<Rightarrow> 'g inference set)" and
+    Red_F_q :: "'q \<Rightarrow> ('g set \<Rightarrow> 'g set)"
+  + fixes
+    \<G>_F_q :: "'q \<Rightarrow> 'f \<Rightarrow> 'g set" and
+    \<G>_Inf_q :: "'q \<Rightarrow> 'f inference \<Rightarrow> 'g inference set"
+
+
+
 subsection \<open>Adding labels\<close>
 
 locale labeled_redundancy_criterion_lifting = redundancy_criterion_lifting \<G>_F \<G>_Inf Bot_F Inf_F Bot_G entails_G Inf_G Red_Inf_G Red_F_G Prec_F
