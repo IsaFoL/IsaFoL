@@ -248,7 +248,7 @@ end
 definition Empty_Order :: \<open>'f \<Rightarrow> 'f \<Rightarrow> bool\<close> where
   "Empty_Order C1 C2 \<equiv> False" 
 
-locale lifting_equivalence_with_empty_order = any_order_lifting: redundancy_criterion_lifting \<G>_F \<G>_Inf Bot_F Inf_F Bot_G entails_G Inf_G Red_Inf_G Red_F_G Prec_F + empty_order_lifting: redundancy_criterion_lifting \<G>_F \<G>_Inf Bot_F Inf_F Bot_G entails_G Inf_G Red_Inf_G Red_F_G Empty_Order
+locale lifting_equivalence_with_empty_order = any_order_lifting: lifting_with_wf_ordering_family \<G>_F \<G>_Inf Bot_F Inf_F Bot_G entails_G Inf_G Red_Inf_G Red_F_G Prec_F_g + empty_order_lifting: lifting_with_wf_ordering_family \<G>_F \<G>_Inf Bot_F Inf_F Bot_G entails_G Inf_G Red_Inf_G Red_F_G "\<lambda>g. Empty_Order"
   for
     \<G>_F :: \<open>'f \<Rightarrow> 'g set\<close> and
     \<G>_Inf :: \<open>'f inference \<Rightarrow> 'g inference set\<close> and
@@ -259,9 +259,9 @@ locale lifting_equivalence_with_empty_order = any_order_lifting: redundancy_crit
     entails_G :: \<open>'g set \<Rightarrow> 'g set \<Rightarrow> bool\<close> (infix "\<Turnstile>G" 50) and
     Red_Inf_G :: \<open>'g set \<Rightarrow> 'g inference set\<close> and
     Red_F_G :: \<open>'g set \<Rightarrow> 'g set\<close> and
-    Prec_F :: \<open>'f \<Rightarrow> 'f \<Rightarrow> bool\<close> (infix "\<sqsubset>" 50)
+    Prec_F_g :: \<open>'g \<Rightarrow> 'f \<Rightarrow> 'f \<Rightarrow> bool\<close>
 
-sublocale redundancy_criterion_lifting \<subseteq> lifting_equivalence_with_empty_order
+sublocale lifting_with_wf_ordering_family \<subseteq> lifting_equivalence_with_empty_order
 proof
   show "po_on Empty_Order UNIV" unfolding Empty_Order_def po_on_def by (simp add: transp_onI wfp_on_imp_irreflp_on)
   show "wfp_on Empty_Order UNIV" unfolding wfp_on_def Empty_Order_def by simp
@@ -270,15 +270,15 @@ qed
 context lifting_equivalence_with_empty_order
 begin
 
-text "lemma 17 from the technical report"
+text "lemma 39 from the technical report"
 lemma "any_order_lifting.lifted_calculus_with_red_crit.saturated N = empty_order_lifting.lifted_calculus_with_red_crit.saturated N" by standard
 
-text "lemma 18 from the technical report" (*TODO: check with Mathias that the first any_order_lifting.entails_\<G> is OK*)
+text "lemma 40 from the technical report"
 lemma static_empty_order_equiv_static: "static_refutational_complete_calculus Bot_F Inf_F any_order_lifting.entails_\<G> empty_order_lifting.Red_Inf_\<G> empty_order_lifting.Red_F_\<G> = static_refutational_complete_calculus Bot_F Inf_F any_order_lifting.entails_\<G> any_order_lifting.Red_Inf_\<G> any_order_lifting.Red_F_\<G>"
   unfolding static_refutational_complete_calculus_def
   by (rule iffI) (standard,(standard)[],simp)+
    
-text "theorem 19 from the technical report"
+text "theorem 41 from the technical report"
 theorem "static_refutational_complete_calculus Bot_F Inf_F any_order_lifting.entails_\<G> empty_order_lifting.Red_Inf_\<G> empty_order_lifting.Red_F_\<G> = dynamic_refutational_complete_calculus Bot_F Inf_F any_order_lifting.entails_\<G> any_order_lifting.Red_Inf_\<G> any_order_lifting.Red_F_\<G> " (is "?static=?dynamic")
 proof
   assume ?static
