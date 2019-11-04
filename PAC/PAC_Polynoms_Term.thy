@@ -88,6 +88,7 @@ definition sorted_poly_list_rel_wrt :: \<open>('a \<Rightarrow> 'a \<Rightarrow>
   \<open>sorted_poly_list_rel_wrt S R = {(xs, ys).
      (xs, ys) \<in> \<langle>R \<times>\<^sub>r int_rel\<rangle>list_rel O list_mset_rel \<and>
      sorted_wrt S (map fst xs) \<and>
+     distinct (map fst xs) \<and>
      0 \<notin># snd `# ys}\<close>
 
 abbreviation sorted_poly_list_rel where
@@ -95,6 +96,21 @@ abbreviation sorted_poly_list_rel where
 
 abbreviation sorted_poly_rel where
   \<open>sorted_poly_rel \<equiv> sorted_poly_list_rel (rel2p (lexord var_order_rel))\<close>
+
+
+definition sorted_repeat_poly_list_rel_wrt :: \<open>('a \<Rightarrow> 'a \<Rightarrow> bool)
+     \<Rightarrow> ('a \<times> string multiset) set \<Rightarrow> (('a \<times> int) list \<times> mset_polynom) set\<close> where
+  \<open>sorted_repeat_poly_list_rel_wrt S R = {(xs, ys).
+     (xs, ys) \<in> \<langle>R \<times>\<^sub>r int_rel\<rangle>list_rel O list_mset_rel \<and>
+     sorted_wrt S (map fst xs) \<and>
+     0 \<notin># snd `# ys}\<close>
+
+abbreviation sorted_repeat_poly_list_rel where
+  \<open>sorted_repeat_poly_list_rel R \<equiv> sorted_repeat_poly_list_rel_wrt R term_poly_list_rel\<close>
+
+abbreviation sorted_repeat_poly_rel where
+  \<open>sorted_repeat_poly_rel \<equiv> sorted_repeat_poly_list_rel (rel2p (Id \<union> lexord var_order_rel))\<close>
+
 
 abbreviation unsorted_poly_rel where
   \<open>unsorted_poly_rel \<equiv> poly_list_rel term_poly_list_rel\<close>

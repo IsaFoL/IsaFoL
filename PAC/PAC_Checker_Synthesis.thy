@@ -1,5 +1,5 @@
 theory PAC_Checker_Synthesis
-  imports PAC_Checker
+  imports PAC_Checker WB_Sort
 begin
 
 definition string_rel :: \<open>(String.literal \<times> string) set\<close> where
@@ -36,7 +36,7 @@ abbreviation poly_assn where
 abbreviation polys_assn where
   \<open>polys_assn \<equiv> hm_fmap_assn nat_assn poly_assn\<close>
 
-find_theorems list_assn \<open>((=), (=))\<close> 
+find_theorems list_assn \<open>((=), (=))\<close>
 
 lemma string_rel_string_assn:
   \<open>(\<up> ((c, a) \<in> string_rel)) = string_assn a c\<close>
@@ -218,7 +218,7 @@ qed
 lemma [sepref_import_param]:
   shows \<open>((<), (<)) \<in> \<langle>string_rel\<rangle>list_rel \<rightarrow>  \<langle>string_rel\<rangle>list_rel \<rightarrow> bool_rel\<close>
   by (auto intro!: fun_relI simp: list_rel_list_rel_order_iff)
-  
+
 sepref_definition add_poly_impl
   is \<open>add_poly_l\<close>
   :: \<open>poly_assn\<^sup>k *\<^sub>a poly_assn\<^sup>k \<rightarrow>\<^sub>a poly_assn\<close>
@@ -228,5 +228,28 @@ sepref_definition add_poly_impl
     term_order_rel'_def[symmetric]
     term_order_rel'_alt_def
   by sepref
- 
+
+
+lemma full_quicksort_sort_poly_spec:
+  \<open>full_quicksort (\<lambda>x y. x = y \<or> (x, y) \<in> lexord var_order_rel) fst xs
+    \<le> sort_poly_spec xs\<close>
+proof -
+  show ?thesis
+    unfolding sorted_wrt_map sort_poly_spec_def
+    apply (rule full_quicksort_correct_sorted[where R = \<open>(\<lambda>x y. x = y \<or> (x, y) \<in> lexord var_order_rel)\<close> and h = \<open>fst\<close>,
+       THEN order_trans])
+    subgoal
+      apply (auto simp: rel2p_def var_order_rel_def p2rel_def Relation.total_on_def)
+      apply (smt PAC_Checker_Synthesis.less_char_def char.less_trans less_than_char_def lexord_partial_trans p2rel_def)
+      done
+    subgoal for x y
+      using total_on_lexord_less_than_char_linear[unfolded var_order_rel_def]
+      apply (auto simp: rel2p_def var_order_rel_def p2rel_def Relation.total_on_def
+        PAC_Checker_Synthesis.less_char_def)
+      done
+   subgoal
+    by (auto simp: rel2p_def p2rel_def)
+   done
+qed
+
 end
