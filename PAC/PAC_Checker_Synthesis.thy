@@ -224,7 +224,7 @@ lemma string_rel_le[sepref_import_param]:
 
 sepref_definition add_poly_impl
   is \<open>add_poly_l\<close>
-  :: \<open>poly_assn\<^sup>k *\<^sub>a poly_assn\<^sup>k \<rightarrow>\<^sub>a poly_assn\<close>
+  :: \<open>(poly_assn \<times>\<^sub>a poly_assn)\<^sup>k \<rightarrow>\<^sub>a poly_assn\<close>
   supply [[goals_limit=1]]
   unfolding add_poly_l_def
     HOL_list.fold_custom_empty
@@ -233,6 +233,7 @@ sepref_definition add_poly_impl
   by sepref
 
 
+declare add_poly_impl.refine[sepref_fr_rules]
 
 definition full_quicksort_poly where
   \<open>full_quicksort_poly = full_quicksort_ref (\<lambda>x y. x = y \<or> (x, y) \<in> term_order_rel) fst\<close>
@@ -520,9 +521,39 @@ lemma invalid_assn_distrib:
     apply (auto intro!: ext)
     done
 
+lemma WTF_RF_recover:
+  \<open>hn_ctxt (invalid_assn monom_assn \<times>\<^sub>a invalid_assn int_assn) xb
+        x'a \<or>\<^sub>A
+       hn_ctxt monomial_assn xb x'a \<Longrightarrow>\<^sub>t
+       hn_ctxt (monomial_assn) xb x'a\<close>
+   by (smt assn_aci(5) hn_ctxt_def invalid_assn_distrib invalid_pure_recover is_pure_conv merge_thms(4) merge_true_star reorder_enttI safe_poly_vars(3) star_aci(2) star_aci(3))
+
+lemma WTF_RF:
+  \<open>hn_ctxt (invalid_assn monom_assn \<times>\<^sub>a invalid_assn int_assn) xb x'a *
+       (hn_invalid poly_assn la l'a * hn_invalid int_assn a2' a2 *
+        hn_invalid monom_assn a1' a1 *
+        hn_invalid poly_assn l l' *
+        hn_invalid monomial_assn xa x' *
+        hn_invalid poly_assn ax px) \<Longrightarrow>\<^sub>t
+       hn_ctxt (monomial_assn) xb x'a *
+       hn_ctxt poly_assn
+        la l'a *
+       hn_ctxt poly_assn l l' *
+       (hn_invalid int_assn a2' a2 *
+        hn_invalid monom_assn a1' a1 *
+        hn_invalid monomial_assn xa x' *
+        hn_invalid poly_assn ax px)\<close>
+  \<open>hn_ctxt (invalid_assn monom_assn \<times>\<^sub>a invalid_assn int_assn) xa x' *
+       (hn_ctxt poly_assn l l' * hn_invalid poly_assn ax px) \<Longrightarrow>\<^sub>t
+       hn_ctxt (monomial_assn) xa x' *
+       hn_ctxt poly_assn l l' *
+       hn_ctxt poly_assn ax px *
+       emp\<close>
+  by sepref_dbg_trans_step+
+
 sepref_definition merge_coeffs_impl
   is \<open>RETURN o merge_coeffs\<close>
-  :: \<open>poly_assn\<^sup>k \<rightarrow>\<^sub>a poly_assn\<close>
+  :: \<open>poly_assn\<^sup>d \<rightarrow>\<^sub>a poly_assn\<close>
   supply [[goals_limit=1]]
   unfolding merge_coeffs_alt_def
     HOL_list.fold_custom_empty
@@ -532,16 +563,92 @@ sepref_definition merge_coeffs_impl
   apply sepref_dbg_id
   apply sepref_dbg_monadify
   apply sepref_dbg_opt_init
-  apply sepref_dbg_trans_keep
-  apply sepref_dbg_trans_step_keep
-  defer
-  apply sepref_dbg_trans
-  defer
+  apply sepref_dbg_trans_step
+  apply sepref_dbg_trans_step
+  apply sepref_dbg_trans_step
+  apply sepref_dbg_trans_step
+  apply sepref_dbg_trans_step
+  apply sepref_dbg_trans_step
+  apply sepref_dbg_trans_step
+  apply sepref_dbg_trans_step
+  apply sepref_dbg_trans_step
+  apply sepref_dbg_trans_step
+  apply sepref_dbg_trans_step
+  apply sepref_dbg_trans_step
+  apply sepref_dbg_trans_step
+  apply sepref_dbg_trans_step
+  apply sepref_dbg_trans_step
+  apply sepref_dbg_trans_step
+  apply sepref_dbg_trans_step
+  apply sepref_dbg_trans_step
+  apply sepref_dbg_trans_step
+  apply sepref_dbg_trans_step
+  apply sepref_dbg_trans_step
+  apply sepref_dbg_trans_step
+  apply sepref_dbg_trans_step
+  apply sepref_dbg_trans_step
+  apply sepref_dbg_trans_step
+  apply sepref_dbg_trans_step
+  apply sepref_dbg_trans_step
+  apply sepref_dbg_trans_step
+  apply sepref_dbg_trans_step
+  apply sepref_dbg_trans_step
+  apply sepref_dbg_trans_step
+  apply sepref_dbg_trans_step
+  apply sepref_dbg_trans_step
+  apply sepref_dbg_trans_step
+  apply sepref_dbg_trans_step
+  apply sepref_dbg_trans_step
+  apply sepref_dbg_trans_step
+  apply sepref_dbg_trans_step
+  apply sepref_dbg_trans_step
+  apply sepref_dbg_trans_step
+  apply sepref_dbg_trans_step
+  apply sepref_dbg_trans_step
+  apply sepref_dbg_trans_step
+  apply sepref_dbg_trans_step
+  apply sepref_dbg_trans_step
+  apply sepref_dbg_trans_step
+  apply sepref_dbg_trans_step
+  apply sepref_dbg_trans_step
+  apply sepref_dbg_trans_step
+  apply sepref_dbg_trans_step
+  apply sepref_dbg_trans_step
+  apply sepref_dbg_trans_step
+  apply sepref_dbg_trans_step
+  apply sepref_dbg_trans_step
+  apply sepref_dbg_trans_step
+  apply sepref_dbg_trans_step
+  apply sepref_dbg_trans_step
+  apply sepref_dbg_trans_step
+  apply sepref_dbg_trans_step
+  apply sepref_dbg_trans_step
+  apply sepref_dbg_trans_step
+  apply sepref_dbg_trans_step
+  apply sepref_dbg_trans_step
+  apply sepref_dbg_trans_step
+  apply sepref_dbg_trans_step
+  apply sepref_dbg_trans_step
+  apply sepref_dbg_trans_step
+  apply sepref_dbg_trans_step
+  apply sepref_dbg_trans_step
+  apply sepref_dbg_trans_step
+  apply sepref_dbg_trans_step
+  apply sepref_dbg_trans_step
+  apply (rule WTF_RF)
+  apply sepref_dbg_trans_step
+  apply sepref_dbg_trans_step
+  apply sepref_dbg_trans_step
+  apply (rule WTF_RF)
+  apply sepref_dbg_trans_step
+  apply sepref_dbg_trans_step
+  apply sepref_dbg_trans_step
+  apply sepref_dbg_trans_step
   apply sepref_dbg_opt
   apply sepref_dbg_cons_solve
   apply sepref_dbg_cons_solve
   apply sepref_dbg_constraints
-  sorry
+  done
 (*FIXME!*)
 
 declare merge_coeffs_impl.refine[sepref_fr_rules]
@@ -566,5 +673,82 @@ sepref_definition mult_poly_impl
 
 declare mult_poly_impl.refine[sepref_fr_rules]
 
+lemma single_valued_monom_rel: \<open>single_valued monom_rel\<close>
+  by (rule list_rel_sv)
+    (auto intro!: frefI simp: string_rel_def
+    rel2p_def single_valued_def p2rel_def)
+
+lemma single_valued_monomial_rel:
+  \<open>single_valued monomial_rel\<close>
+  using single_valued_monom_rel
+  by (auto intro!: frefI simp:
+    rel2p_def single_valued_def p2rel_def)
+
+lemma single_valued_monom_rel': \<open>IS_LEFT_UNIQUE monom_rel\<close>
+  unfolding IS_LEFT_UNIQUE_def inv_list_rel_eq
+  by (rule list_rel_sv)
+   (auto intro!: frefI simp: string_rel_def
+    rel2p_def single_valued_def p2rel_def literal.explode_inject)
+
+
+lemma single_valued_monomial_rel':
+  \<open>IS_LEFT_UNIQUE monomial_rel\<close>
+  using single_valued_monom_rel'
+  unfolding IS_LEFT_UNIQUE_def inv_list_rel_eq
+  by (auto intro!: frefI simp:
+    rel2p_def single_valued_def p2rel_def)
+
+lemma inverse_monomial:
+  \<open>monom_rel\<inverse> \<times>\<^sub>r int_rel = (monom_rel \<times>\<^sub>r int_rel)\<inverse>\<close>
+  by (auto)
+
+lemma eq_poly_rel_eq[sepref_import_param]:
+  \<open>((=), (=)) \<in> poly_rel \<rightarrow> poly_rel \<rightarrow> bool_rel\<close>
+  using list_rel_sv[of \<open>monomial_rel\<close>, OF single_valued_monomial_rel]
+  using list_rel_sv[OF single_valued_monomial_rel'[unfolded IS_LEFT_UNIQUE_def inv_list_rel_eq]]
+  unfolding inv_list_rel_eq[symmetric]
+  by (auto intro!: frefI simp: 
+      rel2p_def single_valued_def p2rel_def
+    simp del: inv_list_rel_eq)
+
+sepref_definition weak_equality_p_impl
+  is \<open>uncurry weak_equality_p\<close>
+  :: \<open>poly_assn\<^sup>k *\<^sub>a poly_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding weak_equality_p_def
+  by sepref
+
+declare weak_equality_p_impl.refine[sepref_fr_rules]
+sepref_register add_poly_l mult_poly_full
+
+sepref_definition check_addition_l_impl
+  is \<open>uncurry4 check_addition_l\<close>
+  :: \<open>polys_assn\<^sup>d *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a poly_assn\<^sup>k  \<rightarrow>\<^sub>a bool_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding mult_poly_full_def
+    HOL_list.fold_custom_empty
+    term_order_rel'_def[symmetric]
+    term_order_rel'_alt_def
+    check_addition_l_def
+    in_dom_m_lookup_iff
+    fmlookup'_def[symmetric]
+  by sepref
+
+declare check_addition_l_impl.refine[sepref_fr_rules]
+
+sepref_definition check_mult_l_impl
+  is \<open>uncurry4 check_mult_l\<close>
+  :: \<open>polys_assn\<^sup>d *\<^sub>a nat_assn\<^sup>k *\<^sub>a poly_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a poly_assn\<^sup>k  \<rightarrow>\<^sub>a bool_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding check_mult_l_def
+    HOL_list.fold_custom_empty
+    term_order_rel'_def[symmetric]
+    term_order_rel'_alt_def
+    check_addition_l_def
+    in_dom_m_lookup_iff
+    fmlookup'_def[symmetric]
+  by sepref
+
+declare check_mult_l_impl.refine[sepref_fr_rules]
 
 end

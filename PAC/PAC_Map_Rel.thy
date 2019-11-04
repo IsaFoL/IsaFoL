@@ -183,9 +183,11 @@ text \<open>Technically @{term op_map_lookup} has the arguments in the wrong dir
 definition fmlookup' where
   [simp]: \<open>fmlookup' A k = fmlookup k A\<close>
 
+
 lemma [def_pat_rules]:
-  \<open>fmlookup$k$A\<equiv>fmlookup'$A$k\<close>
-  by auto
+  \<open>((\<in>#)$k$(dom_m$A)) \<equiv> Not$(is_None$(fmlookup'$k$A))\<close>
+  apply (auto split: option.split simp: dom_m_def)
+  by (smt domIff fmdom.rep_eq option.disc_eq_case(1))
 
 lemma op_map_lookup_fmlookup:
   \<open>(op_map_lookup, fmlookup') \<in> Id \<rightarrow> map_fmap_rel \<rightarrow> \<langle>Id\<rangle>option_rel\<close>
