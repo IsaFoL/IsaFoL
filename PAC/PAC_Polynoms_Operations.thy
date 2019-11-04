@@ -10,7 +10,7 @@ fun add_poly_l' :: \<open>llist_polynom \<times> llist_polynom \<Rightarrow> lli
             (if xs = ys then if n + m = 0 then add_poly_l' (p, q) else
                  let pq = add_poly_l' (p, q) in
                  ((xs, n + m) # pq)
-            else if (xs, ys) \<in> lexord (lexord less_than_char)
+            else if (xs, ys) \<in> term_order_rel
               then
                  let pq = add_poly_l' (p, (ys, m) # q) in
                  ((xs, n) # pq)
@@ -31,7 +31,7 @@ definition add_poly_l :: \<open>llist_polynom \<times> llist_polynom \<Rightarro
                  pq \<leftarrow> add_poly_l (p, q);
                  RETURN ((xs, n + m) # pq)
              }
-            else if (xs, ys) \<in> lexord (lexord less_than_char)
+            else if (xs, ys) \<in> term_order_rel
               then do {
                  pq \<leftarrow> add_poly_l (p, (ys, m) # q);
                  RETURN ((xs, n) # pq)
@@ -236,6 +236,8 @@ lemma total_on_lexord_less_than_char_linear:
 lemma sorted_poly_list_rel_nonzeroD:
   \<open>(p, r) \<in> sorted_poly_list_rel term_order \<Longrightarrow>
        nonzero_coeffs (r)\<close>
+  \<open>(p, r) \<in> sorted_poly_list_rel (rel2p (lexord (lexord less_than_char))) \<Longrightarrow>
+       nonzero_coeffs (r)\<close>
   by (auto simp: sorted_poly_list_rel_wrt_def nonzero_coeffs_def)
 
 
@@ -282,12 +284,13 @@ lemma add_poly_l'_add_poly_p:
         apply (rule lexord_trans)
         apply assumption
         apply (auto intro: lexord_trans add_poly_p_add_mset_comb simp: lexord_transI
-          sorted_poly_list_rel_nonzeroD)
+          sorted_poly_list_rel_nonzeroD var_order_rel_def)
         using total_on_lexord_less_than_char_linear by fastforce
 
       subgoal
         using p(4)[of \<open>(fst pq', remove1_mset (mset ys, m) (snd pq'))\<close>] p(5-)
-        apply (auto dest!: multi_member_split simp: sorted_poly_list_rel_Cons_iff rel2p_def)
+        apply (auto dest!: multi_member_split simp: sorted_poly_list_rel_Cons_iff rel2p_def
+           var_order_rel_def)
         apply (rule_tac x = \<open>add_mset (mset ys, m) r\<close> in exI)
         apply (auto dest!: monoms_add_poly_l'D
           simp: total_on_lexord_less_than_char_linear)
@@ -296,7 +299,7 @@ lemma add_poly_l'_add_poly_p:
         apply (rule lexord_trans)
         apply assumption
         apply (auto intro: lexord_trans add_poly_p_add_mset_comb3 simp: lexord_transI
-          sorted_poly_list_rel_nonzeroD)
+          sorted_poly_list_rel_nonzeroD var_order_rel_def)
         using total_on_lexord_less_than_char_linear by fastforce
       done
    done
@@ -320,7 +323,7 @@ lemma add_poly_l_spec:
 
 definition sort_poly_spec :: \<open>llist_polynom \<Rightarrow> llist_polynom nres\<close> where
 \<open>sort_poly_spec p =
-  SPEC(\<lambda>p'. mset p = mset p' \<and> sorted_wrt (rel2p (Id \<union> lexord var_order_rel)) (map fst p'))\<close>
+  SPEC(\<lambda>p'. mset p = mset p' \<and> sorted_wrt (rel2p (Id \<union> term_order_rel)) (map fst p'))\<close>
 
 lemma sort_poly_spec_id:
   assumes \<open>(p, p') \<in> unsorted_poly_rel\<close>
@@ -579,7 +582,7 @@ proof -
       apply (auto simp: sorted_poly_list_rel_Cons_iff
         dest!: multi_member_split)
       apply (rule_tac x = \<open>(\<lambda>(ys, n). (remdups_mset (mset (fst a) + ys), n * snd a)) `# q' + r\<close> in exI)
-      apply (auto intro: mult_poly_p.intros simp: var_order_rel_def intro!: H
+      apply (auto 5 3 intro: mult_poly_p.intros simp: intro!: H
         dest: sorted_poly_list_rel_nonzeroD nonzero_coeffsD)
       apply (rule rtranclp_trans)
       apply (rule mult_poly_p_add_mset_same)
@@ -674,7 +677,7 @@ lemma merge_coeffs_is_normalize_poly_p:
     apply (rule_tac x = \<open>add_mset (mset xs, n) r\<close> in exI)
     apply (auto dest!: in_set_merge_coeffsD)
     apply (auto intro: normalize_poly_p.intros rtranclp_normalize_poly_add_mset
-      simp: var_order_rel_def rel2p_def
+      simp: rel2p_def var_order_rel_def
       dest!: multi_member_split
       dest: sorted_poly_list_rel_nonzeroD)
      using total_on_lexord_less_than_char_linear apply fastforce

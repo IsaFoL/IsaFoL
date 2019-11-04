@@ -67,7 +67,7 @@ abbreviation var_order :: \<open>string \<Rightarrow> string \<Rightarrow> bool\
   \<open>var_order \<equiv> rel2p var_order_rel\<close>
 
 abbreviation term_order_rel :: \<open>(term_poly_list \<times> term_poly_list) set\<close> where
-  \<open>term_order_rel \<equiv> lexord (lexord less_than_char)\<close>
+  \<open>term_order_rel \<equiv> lexord var_order_rel\<close>
 
 abbreviation term_order :: \<open>term_poly_list \<Rightarrow> term_poly_list \<Rightarrow> bool\<close> where
   \<open>term_order \<equiv> rel2p term_order_rel\<close>
