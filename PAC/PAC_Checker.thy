@@ -21,6 +21,21 @@ fun pac_step_rel_raw :: \<open>(nat \<times> nat) set \<Rightarrow> ('a \<times>
    (r, r') \<in> R2\<close> |
 \<open>pac_step_rel_raw R1 R2 _ _ \<longleftrightarrow> False\<close>
 
+fun pac_step_rel_assn :: \<open>(nat \<Rightarrow> nat \<Rightarrow> assn) \<Rightarrow> ('a \<Rightarrow> 'b \<Rightarrow> assn) \<Rightarrow> 'a pac_step \<Rightarrow> 'b pac_step \<Rightarrow> assn\<close> where
+\<open>pac_step_rel_assn R1 R2 (AddD p1 p2 i r) (AddD p1' p2' i' r') =
+   R1 p1 p1' * R1 p2 p2' * R1 i i' *
+   R2 r r'\<close> |
+\<open>pac_step_rel_assn R1 R2 (Add p1 p2 i r) (Add p1' p2' i' r') =
+   R1 p1 p1' * R1 p2 p2' * R1 i i' *
+   R2 r r'\<close> |
+\<open>pac_step_rel_assn R1 R2 (MultD p1 p2 i r) (MultD p1' p2' i' r') =
+   R1 p1 p1' * R2 p2 p2' * R1 i i' *
+   R2 r r'\<close> |
+\<open>pac_step_rel_assn R1 R2 (Mult p1 p2 i r) (Mult p1' p2' i' r') =
+   R1 p1 p1' * R2 p2 p2' * R1 i i' *
+   R2 r r'\<close> |
+\<open>pac_step_rel_assn R1 R2 _ _ = false\<close>
+
 
 definition check_addition_l :: \<open>_ \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> llist_polynom \<Rightarrow> bool nres\<close> where
 \<open>check_addition_l A p q i r = do {
@@ -153,8 +168,29 @@ definition PAC_checker_l_step ::  _ where
  )\<close>
 
 
+lemma pac_step_rel_raw_def:
+  \<open>\<langle>K, V\<rangle> pac_step_rel_raw = pac_step_rel_raw K V\<close>
+  by (auto intro!: ext simp: relAPP_def)
+
+definition PAC_checker_l where
+  \<open>PAC_checker_l A st = do {
+    (S, _) \<leftarrow> WHILE\<^sub>T
+       (\<lambda>((b, A), n::nat). b \<and> n < length st)
+       (\<lambda>((b, A), n). do {
+          ASSERT(n < length st);
+          S \<leftarrow> PAC_checker_l_step A (st ! n);
+          RETURN (S, (n+1))
+        })
+      ((True, A), 0);
+    RETURN S
+  }\<close>
+
+
 context poly_embed
 begin
+
+abbreviation pac_step_rel where
+  \<open>pac_step_rel \<equiv> p2rel (\<langle>Id, unsorted_poly_rel O mset_poly_rel\<rangle> pac_step_rel_raw)\<close>
 
 abbreviation polys_rel where
   \<open>polys_rel \<equiv> \<langle>nat_rel, sorted_poly_rel O mset_poly_rel\<rangle>fmap_rel\<close>
@@ -266,16 +302,6 @@ proof -
 qed
 
 
-abbreviation pac_step_rel where
-  \<open>pac_step_rel \<equiv> p2rel (\<langle>Id, unsorted_poly_rel O mset_poly_rel\<rangle> pac_step_rel_raw)\<close>
-
-term case_pac_step
-
-lemma pac_step_rel_raw_def:
-  \<open>\<langle>K, V\<rangle> pac_step_rel_raw = pac_step_rel_raw K V\<close>
-  by (auto intro!: ext simp: relAPP_def)
-
-term var_order_rel
 lemma PAC_checker_l_step_PAC_checker_step:
   assumes
     \<open>(A, B) \<in> polys_rel\<close> and
@@ -332,19 +358,6 @@ proof -
       done
     done
 qed
-
-definition PAC_checker_l where
-  \<open>PAC_checker_l A st = do {
-    (S, _) \<leftarrow> WHILE\<^sub>T
-       (\<lambda>((b, A), n::nat). b \<and> n < length st)
-       (\<lambda>((b, A), n). do {
-          ASSERT(n < length st);
-          S \<leftarrow> PAC_checker_l_step A (st ! n);
-          RETURN (S, (n+1))
-        })
-      ((True, A), 0);
-    RETURN S
-  }\<close>
 
 lemma PAC_checker_l_PAC_checker:
   assumes
