@@ -20,7 +20,7 @@ abbreviation Imp (infixr \<open>\<^bold>\<longrightarrow>\<close> 25) where
   \<open>p \<^bold>\<longrightarrow> q \<equiv> \<^bold>\<not> (p \<^bold>\<and> \<^bold>\<not> q)\<close>
 
 abbreviation Box (\<open>\<^bold>\<box> _\<close> 10) where
-  \<open>\<^bold>\<box> \<phi> \<equiv> \<^bold>\<not> (\<^bold>\<diamond> \<^bold>\<not> \<phi>)\<close>
+  \<open>\<^bold>\<box> p \<equiv> \<^bold>\<not> (\<^bold>\<diamond> \<^bold>\<not> p)\<close>
 
 primrec nominals :: \<open>('a, 'b) fm \<Rightarrow> 'b set\<close> where
   \<open>nominals (Pro x) = {}\<close>
