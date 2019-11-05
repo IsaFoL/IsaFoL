@@ -1,0 +1,50 @@
+%%
+
+%eop EOF
+
+(* %pos declares the type of positions for terminals.
+   Each symbol has an associated left and right position. *)
+
+%pos int
+
+%left SUB PLUS
+%left TIMES
+
+%term ID of string | NUM of int | PLUS | TIMES |
+    EOF | SUB | DELETE 
+    | ADD_RULE   
+    | MULT_RULE | COMMA 
+    | MULT
+
+%nonterm START of int option  | RULE | STATUS 
+       |  POLY 
+        | CLAUSE
+        | MONOM
+
+%name Calc
+
+%prefer PLUS TIMES SUB
+
+%noshift EOF
+%verbose
+%%
+
+(* the parser returns the value associated with the expression *)
+
+START : CLAUSE  ()
+      | CLAUSE CLAUSE ()
+
+  CLAUSE : ID STATUS RULE ()
+
+  STATUS : DELETE   ()
+      |          ()
+
+  RULE : ADD_RULE   ID COMMA ID COMMA POLY       ()
+      |  MULT_RULE  ID COMMA POLY COMMA POLY         ()
+
+MONOM : MONOM MULT MONOM            ()
+       | NUM            ()
+       | ID             ()
+
+  POLY : MONOM PLUS POLY ()
+       | MONOM            ()
