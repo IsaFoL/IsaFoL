@@ -11,7 +11,7 @@ theory Dynamic_Completeness_Lifting
     Well_Quasi_Orders.Minimal_Elements
 begin
 
-locale lifting_with_wf_ordering_family = standard_lifting Bot_F Inf_F Bot_G Inf_G entails_G Red_Inf_G Red_F_G
+locale lifting_with_wf_ordering_family = standard_lifting Bot_F Inf_F Bot_G Inf_G entails_G Red_Inf_G Red_F_G \<G>_F \<G>_Inf
   for
     Bot_F :: \<open>'f set\<close> and
     Inf_F :: \<open>'f inference set\<close> and
@@ -19,7 +19,9 @@ locale lifting_with_wf_ordering_family = standard_lifting Bot_F Inf_F Bot_G Inf_
     entails_G :: \<open>'g set \<Rightarrow> 'g set \<Rightarrow> bool\<close> (infix "\<Turnstile>G" 50) and
     Inf_G :: \<open>'g inference set\<close> and
     Red_Inf_G :: \<open>'g set \<Rightarrow> 'g inference set\<close> and
-    Red_F_G :: \<open>'g set \<Rightarrow> 'g set\<close>
+    Red_F_G :: \<open>'g set \<Rightarrow> 'g set\<close> and
+    \<G>_F :: "'f \<Rightarrow> 'g set" and
+    \<G>_Inf :: "'f inference \<Rightarrow> 'g inference set"
   + fixes
     Prec_F_g :: \<open>'g \<Rightarrow> 'f \<Rightarrow> 'f \<Rightarrow> bool\<close>
   assumes
@@ -248,7 +250,7 @@ end
 definition Empty_Order :: \<open>'f \<Rightarrow> 'f \<Rightarrow> bool\<close> where
   "Empty_Order C1 C2 \<equiv> False" 
 
-locale lifting_equivalence_with_empty_order = any_order_lifting: lifting_with_wf_ordering_family \<G>_F \<G>_Inf Bot_F Inf_F Bot_G entails_G Inf_G Red_Inf_G Red_F_G Prec_F_g + empty_order_lifting: lifting_with_wf_ordering_family \<G>_F \<G>_Inf Bot_F Inf_F Bot_G entails_G Inf_G Red_Inf_G Red_F_G "\<lambda>g. Empty_Order"
+locale lifting_equivalence_with_empty_order = any_order_lifting: lifting_with_wf_ordering_family Bot_F Inf_F Bot_G entails_G Inf_G Red_Inf_G Red_F_G \<G>_F \<G>_Inf Prec_F_g + empty_order_lifting: lifting_with_wf_ordering_family Bot_F Inf_F Bot_G entails_G Inf_G Red_Inf_G Red_F_G \<G>_F \<G>_Inf "\<lambda>g. Empty_Order"
   for
     \<G>_F :: \<open>'f \<Rightarrow> 'g set\<close> and
     \<G>_Inf :: \<open>'f inference \<Rightarrow> 'g inference set\<close> and
@@ -301,19 +303,33 @@ subsection \<open>Intersection of Liftings\<close>
 
 
 locale lifting_equivalence_with_red_crit_family = Non_ground: inference_system Inf_F
-  + Ground_family: calculus_with_red_crit_family Bot_G Inf_G Q_G entails_q Red_Inf_q Red_F_q
+  + Ground_family: calculus_with_red_crit_family Bot_G Inf_G Q entails_q Red_Inf_q Red_F_q
   for
     Inf_F :: "'f inference set" and
     Bot_G :: "'g set" and
     Inf_G :: \<open>'g inference set\<close> and
-    Q_G :: "'q set" and
+    Q :: "'q set" and
     entails_q :: "'q \<Rightarrow> ('g set \<Rightarrow> 'g set \<Rightarrow> bool)" and
     Red_Inf_q :: "'q \<Rightarrow> ('g set \<Rightarrow> 'g inference set)" and
     Red_F_q :: "'q \<Rightarrow> ('g set \<Rightarrow> 'g set)"
   + fixes
+    Bot_F :: "'f set" and
     \<G>_F_q :: "'q \<Rightarrow> 'f \<Rightarrow> 'g set" and
-    \<G>_Inf_q :: "'q \<Rightarrow> 'f inference \<Rightarrow> 'g inference set"
+    \<G>_Inf_q :: "'q \<Rightarrow> 'f inference \<Rightarrow> 'g inference set" and
+    Prec_F_g :: "'g \<Rightarrow> 'f \<Rightarrow> 'f \<Rightarrow> bool"
+  assumes
+    standard_lifting_family: "q \<in> Q \<Longrightarrow> lifting_with_wf_ordering_family Bot_F Inf_F Bot_G (entails_q q) Inf_G (Red_Inf_q q) (Red_F_q q) (\<G>_F_q q) (\<G>_Inf_q q) Prec_F_g" 
+begin
 
+definition Red_Inf_\<G>_Q :: "'f set \<Rightarrow> 'f inference set" where
+  "Red_Inf_\<G>_Q N = (\<Inter>q\<in>Q. {\<iota> \<in> Inf_F. \<G>_Inf_q q \<iota> \<subseteq> Red_Inf_q q (UNION N (\<G>_F_q q))})"
+
+definition Red_F_\<G>_empty :: "'f set \<Rightarrow> 'f set" where
+  "Red_F_\<G>_empty N = (\<Inter>q\<in>Q. {C. \<forall>D \<in> \<G>_F_q q C. D \<in> Red_F_q q (UNION N (\<G>_F_q q)) \<or> (\<exists>E \<in> N. Prec_F_g D E C \<and> D \<in> \<G>_F_q q E)})"
+
+
+
+end
 
 
 subsection \<open>Adding labels\<close>
