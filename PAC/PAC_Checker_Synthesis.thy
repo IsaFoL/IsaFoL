@@ -942,5 +942,6 @@ sepref_definition PAC_checker_l_impl
   apply sepref_dbg_constraints
   done
 
-
+export_code PAC_checker_l_impl in SML module_name PAC_Checker
+  file test.sml
 end
