@@ -1,0 +1,80 @@
+structure PAC_Parser =
+struct
+
+  open ParserCombinators
+  open CharParser
+
+  infixr 4 << >>
+  infixr 3 &&
+  infix  2 -- ##
+  infix  2 wth suchthat return guard when
+  infixr 1 || <|> ??
+  val int_of_string = valOf o IntInf.fromString
+
+  val var =
+      (repeat1 letter && repeat1 digit) wth
+                                        (fn (x, y) => (print (String.implode x ^ String.implode y ^"\n"); (String.implode x ^ String.implode y)))
+
+  val signed_coefficient : IntInf.int charParser =
+      (try (string "-" || string "+") && repeat1 digit) wth
+      (fn (s, x) => (if s = "-" then int_of_string "~1" else int_of_string "1") * int_of_string (String.implode x))
+
+  val unsigned_coefficient : IntInf.int charParser =
+      (repeat1 digit) wth
+      (fn x => int_of_string (String.implode x))
+  val int_coefficient =
+      signed_coefficient || unsigned_coefficient
+
+  val uminus_coefficient : IntInf.int charParser =
+      (string "-" || string "+") wth
+      (fn x => if x = "-" then int_of_string "~1" else int_of_string "1")
+
+  val coefficient : IntInf.int charParser =
+      try (int_coefficient || uminus_coefficient)
+
+  val var_product : string list charParser =
+     ((var && repeat (string "*" >> var)) wth
+        (fn (x, y) => (x :: y)))
+
+
+  val monomial : (IntInf.int * string list) charParser =
+      (((coefficient << opt (string "*")) && opt var_product) wth
+       (fn (x, y) => (x, getOpt(y, [])))) ||
+      ((var_product wth
+       (fn y => ((IntInf.fromInt 0, y)))))
+
+  val polynom : (IntInf.int * string list) list charParser =
+      repeat1 monomial
+
+
+  val rule : string charParser =
+      string "d +:" || string "+:" || string "d *:" || string "*:"
+
+  val plus_rule : string charParser =
+      (string "d +:" || string "+:") wth (fn x => (print x; x))
+
+  val mult_rule : string charParser =
+      string "d *:" || string "*:" wth (fn x => (print x; x))
+
+  val lbl : int charParser =
+      repeat1 digit wth
+              (fn x => (print ("\nlbl = " ^String.implode x ^"\n");
+                        valOf (Int.fromString (String.implode x))))
+
+  val input_poly : (int * (IntInf.int * (string list)) list) charParser =
+      ((lbl << space) && polynom) << string ";" <<  newLine
+
+
+  val step_poly =
+      ((((lbl << space) && (plus_rule << spaces) && (lbl << string ", ") && (lbl << string ", ")
+                       && polynom) << string ";" << newLine) wth (fn _ => ())) ||
+      ((((lbl << space) && (mult_rule << spaces) && (lbl << string ", ") && (polynom << string ", ")
+            && polynom) << string ";" << newLine)  wth (fn _ => ()))
+
+  val input_polys =
+      repeat1 input_poly
+  val step_poly =
+      repeat1 step_poly
+
+
+end
