@@ -37,13 +37,13 @@ struct
         (fn (x, y) => (x :: y)))
 
 
-  val monomial : (IntInf.int * string list) charParser =
+  val monomial : (string list * IntInf.int) charParser =
       (((coefficient << opt (string "*")) && opt var_product) wth
-       (fn (x, y) => (x, getOpt(y, [])))) ||
+       (fn (x, y) => (getOpt(y, []), x))) ||
       ((var_product wth
-       (fn y => ((IntInf.fromInt 0, y)))))
+       (fn y => (y, (IntInf.fromInt 0)))))
 
-  val polynom : (IntInf.int * string list) list charParser =
+  val polynom : (string list * IntInf.int) list charParser =
       repeat1 monomial
 
 
@@ -56,20 +56,43 @@ struct
   val mult_rule : string charParser =
       string "d *:" || string "*:" wth (fn x => (print x; x))
 
-  val lbl : int charParser =
+  val lbl : IntInf.int charParser =
       repeat1 digit wth
               (fn x => (print ("\nlbl = " ^String.implode x ^"\n");
-                        valOf (Int.fromString (String.implode x))))
+                        valOf (IntInf.fromString (String.implode x))))
 
-  val input_poly : (int * (IntInf.int * (string list)) list) charParser =
+  val input_poly : (IntInf.int * (string list * IntInf.int) list) charParser =
       ((lbl << space) && polynom) << string ";" <<  newLine
 
 
-  val step_poly =
+  val step_poly : ((string list * PAC_Checker.int) list PAC_Checker.pac_step) charParser =
       ((((lbl << space) && (plus_rule << spaces) && (lbl << string ", ") && (lbl << string ", ")
-                       && polynom) << string ";" << newLine) wth (fn _ => ())) ||
+                        && polynom) << string ";" << newLine) wth
+        (fn (lbl, (rule, (src1, (src2, poly)))) => 
+           if rule = "d +:"
+           then (PAC_Checker.AddD (
+                                  PAC_Checker.nat_of_integer src1,
+                                  PAC_Checker.nat_of_integer src2,
+                                  PAC_Checker.nat_of_integer lbl,
+                                  map (fn (a,b) => (a, PAC_Checker.Int_of_integer b)) poly))
+           else (PAC_Checker.Add (PAC_Checker.nat_of_integer src1,
+                                 PAC_Checker.nat_of_integer src2,
+                                 PAC_Checker.nat_of_integer lbl,
+                                 map (fn (a,b) => (a, PAC_Checker.Int_of_integer b)) poly))
+         ) ) ||
       ((((lbl << space) && (mult_rule << spaces) && (lbl << string ", ") && (polynom << string ", ")
-            && polynom) << string ";" << newLine)  wth (fn _ => ()))
+           && polynom) << string ";" << newLine)  wth
+       (fn (lbl, (rule, (src1, (src2, poly)))) => 
+           if rule = "d *:"
+           then (PAC_Checker.MultD (PAC_Checker.nat_of_integer src1,
+                                  map (fn (a,b) => (a, PAC_Checker.Int_of_integer b)) src2,
+                                  PAC_Checker.nat_of_integer lbl,
+                                  map (fn (a,b) => (a, PAC_Checker.Int_of_integer b)) poly))
+           else (PAC_Checker.Mult (PAC_Checker.nat_of_integer src1,
+                                 map (fn (a,b) => (a, PAC_Checker.Int_of_integer b)) src2,
+                                  PAC_Checker.nat_of_integer lbl,
+                                 map (fn (a,b) => (a, PAC_Checker.Int_of_integer b)) poly))
+        ) )
 
   val input_polys =
       repeat1 input_poly

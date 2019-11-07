@@ -3,8 +3,15 @@ $(SML_LIB)/basis/mlton.mlb
 /home/fleury/.smackage/lib/parcom/v1/parcom.mlb
 
 local
+  checker.sml
+in
+structure PAC_Checker
+end
+
+local
   parser.sml
 in
 structure PAC_Parser
 end
+
 pactrim.sml

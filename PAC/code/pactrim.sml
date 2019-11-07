@@ -23,24 +23,24 @@ val extract = (fn x => if Sum.isL x then (println (Sum.outL x); raise Sum.Sum) e
 fun parse_input_pac_file file_name = let
   val istream = TextIO.openIn file_name
   val a = map (fn x =>
-                  let val a = (extract (CharParser.parseString PAC_Parser.input_poly x))
+                  let val (lbl, poly) = (extract (CharParser.parseString PAC_Parser.input_poly x))
                   in
-                  ((*print "\npoly = ";
-                   print_input_poly a;*)
-                   a)
+                    (PAC_Checker.nat_of_integer lbl,
+                     PAC_Checker.normalize_poly_impl
+                         (map (fn (a,b) => (a, PAC_Checker.Int_of_integer b)) poly) ())
                   end)
               (readfile istream)
   val _ = TextIO.closeIn istream
 in
-  a
+  foldl (fn ((lbl, a), b) => PAC_Checker.pAC_update_impl lbl a b ()) (PAC_Checker.pAC_empty_impl ()) a
 end
 
 fun parse_pac_file file_name = let
   val istream = TextIO.openIn file_name
   val a = map (fn x =>
-                  let val a = (extract (CharParser.parseString PAC_Parser.step_poly x))
+                  let val a = (Sum.outR (CharParser.parseString PAC_Parser.step_poly x))
                   in
-                  (a)
+                  List.hd (a)
                   end)
               (readfile istream)
   val _ = TextIO.closeIn istream
@@ -62,17 +62,22 @@ in
       [a] => a
 end
 fun checker [polys, pac, spec] = let
-  val _ = println "start"
-  val timer = Timer.totalCPUTimer ()
+  val _ = println "start";
+  val timer = Timer.totalCPUTimer ();
   val problem = parse_input_pac_file polys;
   val _ = println "polys parsed\n******************"
-  val timer = Timer.totalCPUTimer ()
-  val problem = parse_pac_file pac;
+  val timer = Timer.totalCPUTimer ();
+  val pac : ((string list * PAC_Checker.int) list PAC_Checker.pac_step) list = parse_pac_file pac;
+  val pac : ((string list * PAC_Checker.int) list PAC_Checker.pac_step) array = (Array.fromList pac)
   val _ = println "pac parsed"
-  val problem = parse_spec_file spec;
-  val _ = println "spec parsed"
-  val end_of_init = Timer.checkCPUTimes timer
-  val _ = print (Int.toString (MLton.size problem))
+  val spec = parse_spec_file spec;
+  val _ = println "spec parsed";
+  val end_of_init = Timer.checkCPUTimes timer;
+  val _ = print (Int.toString (MLton.size problem));
+  val _ = println "Now checking";
+  val (b, _) = PAC_Checker.pAC_checker_l_impl problem pac ();
+  val _ = if PAC_Checker.is_success b then println "s SUCCESSFULL"
+          else (println "s FAILED!!!!!!!"; println (PAC_Checker.implode (PAC_Checker.status_error b)))
   (* val timer = Timer.totalCPUTimer () *)
   (* val (SAT, stat) = SAT_Solver.isaSAT_code (not norestart, (not noreduction, nounbounded)) problem (); *)
   (* val end_of_processing = Timer.checkCPUTimes timer *)
@@ -84,7 +89,7 @@ fun checker [polys, pac, spec] = let
   in
     ()
 end
-                                                                                     
+
 fun process_args [] = print_help() 
   | process_args [polys, pac, spec] =
     checker [polys, pac, spec]
