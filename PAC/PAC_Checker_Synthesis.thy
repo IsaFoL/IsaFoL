@@ -3,8 +3,27 @@ theory PAC_Checker_Synthesis
     PAC_Checker_Init
 begin
 
+
+fun status_assn where
+  \<open>status_assn _ SUCCESS SUCCESS = emp\<close> |
+  \<open>status_assn R (FAILED a) (FAILED b) = R a b\<close> |
+  \<open>status_assn _ _ _ = false\<close>
+
+lemma SUCCESS_hnr[sepref_fr_rules]:
+  \<open>(uncurry0 (return SUCCESS), uncurry0 (RETURN SUCCESS)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a status_assn R\<close>
+  by (sepref_to_hoare)
+    sep_auto
+    
+lemma is_success_hnr[sepref_fr_rules]:
+  \<open>CONSTRAINT is_pure R \<Longrightarrow> ((return o is_success), (RETURN o is_success)) \<in> (status_assn R)\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  apply (sepref_to_hoare)
+  apply (case_tac xi; case_tac x)
+  apply  sep_auto+
+  done
+
+
 sepref_definition add_poly_impl
-  is \<open>add_poly_l\<close>
+  is \<open> add_poly_l\<close>
   :: \<open>(poly_assn \<times>\<^sub>a poly_assn)\<^sup>k \<rightarrow>\<^sub>a poly_assn\<close>
   supply [[goals_limit=1]]
   unfolding add_poly_l_def
@@ -190,9 +209,41 @@ sepref_definition weak_equality_p_impl
 declare weak_equality_p_impl.refine[sepref_fr_rules]
 sepref_register add_poly_l mult_poly_full
 
+abbreviation raw_string_assn :: \<open>string \<Rightarrow> string \<Rightarrow> assn\<close> where
+  \<open>raw_string_assn \<equiv> list_assn id_assn\<close>
+
+definition show_nat :: \<open>nat \<Rightarrow> string\<close> where
+  \<open>show_nat i = show i\<close>
+
+lemma [sepref_import_param]:
+  \<open>(show_nat, show_nat) \<in> nat_rel \<rightarrow> \<langle>Id\<rangle>list_rel\<close>
+  by (auto intro: fun_relI)
+  
+lemma status_assn_pure_conv:
+  \<open>status_assn (id_assn) a b = id_assn a b\<close>
+  by (cases a; cases b)
+    (auto simp: pure_def)
+
+lemma  [sepref_fr_rules]:
+  \<open>(uncurry (return oo error_msg_not_equal_dom), uncurry (RETURN oo error_msg_not_equal_dom)) \<in> poly_assn\<^sup>k *\<^sub>a poly_assn\<^sup>k \<rightarrow>\<^sub>a raw_string_assn\<close>
+  unfolding show_nat_def[symmetric]
+  apply (sepref_to_hoare; sep_auto simp: error_msg_not_equal_dom_def list_assn_aux_append)
+  apply (subst list_assn_aux_append)
+  apply auto
+  sorry
+
+lemma [sepref_fr_rules]:
+  \<open>(return o error_msg_notin_dom, RETURN o error_msg_notin_dom) \<in> nat_assn\<^sup>k \<rightarrow>\<^sub>a raw_string_assn\<close>
+  \<open>(return o error_msg_reused_dom, RETURN o error_msg_reused_dom) \<in> nat_assn\<^sup>k \<rightarrow>\<^sub>a raw_string_assn\<close>
+  \<open>(uncurry (return oo error_msg), uncurry (RETURN oo error_msg)) \<in> nat_assn\<^sup>k *\<^sub>a raw_string_assn\<^sup>k  \<rightarrow>\<^sub>a status_assn raw_string_assn\<close>
+  unfolding error_msg_notin_dom_def list_assn_pure_conv list_rel_id_simp
+  unfolding status_assn_pure_conv
+  unfolding show_nat_def[symmetric]
+  by (sepref_to_hoare; sep_auto; fail)+
+
 sepref_definition check_addition_l_impl
   is \<open>uncurry4 check_addition_l\<close>
-  :: \<open>polys_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a poly_assn\<^sup>k  \<rightarrow>\<^sub>a bool_assn\<close>
+  :: \<open>polys_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a poly_assn\<^sup>k  \<rightarrow>\<^sub>a status_assn raw_string_assn\<close>
   supply [[goals_limit=1]]
   unfolding mult_poly_full_def
     HOL_list.fold_custom_empty
@@ -207,7 +258,7 @@ declare check_addition_l_impl.refine[sepref_fr_rules]
 
 sepref_definition check_mult_l_impl
   is \<open>uncurry4 check_mult_l\<close>
-  :: \<open>polys_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a poly_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a poly_assn\<^sup>k  \<rightarrow>\<^sub>a bool_assn\<close>
+  :: \<open>polys_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a poly_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a poly_assn\<^sup>k  \<rightarrow>\<^sub>a status_assn raw_string_assn\<close>
   supply [[goals_limit=1]]
   unfolding check_mult_l_def
     HOL_list.fold_custom_empty
@@ -337,10 +388,11 @@ lemma is_Mult_lastI:
 
 sepref_definition check_step_impl
   is \<open>uncurry PAC_checker_l_step\<close>
-  :: \<open>polys_assn\<^sup>d *\<^sub>a (pac_step_rel_assn (nat_assn) poly_assn)\<^sup>d \<rightarrow>\<^sub>a bool_assn \<times>\<^sub>a polys_assn\<close>
+  :: \<open>polys_assn\<^sup>d *\<^sub>a (pac_step_rel_assn (nat_assn) poly_assn)\<^sup>d \<rightarrow>\<^sub>a status_assn raw_string_assn \<times>\<^sub>a polys_assn\<close>
   supply [[goals_limit=1]] is_Mult_lastI[intro]
   unfolding PAC_checker_l_step_def
     pac_step.case_eq_if
+     is_success_alt_def[symmetric]
   apply sepref_dbg_preproc
   apply sepref_dbg_cons_init
   apply sepref_dbg_id
@@ -392,14 +444,15 @@ end
 
 lemma safe_pac_step_rel_assn[safe_constraint_rules]:
   "is_pure K \<Longrightarrow> is_pure V \<Longrightarrow> is_pure (pac_step_rel_assn K V)"
-  by (auto simp: fcomp_norm_unfold(30)[symmetric] is_pure_conv)
+  by (auto simp: fcomp_norm_unfold(31)[symmetric] is_pure_conv)
 
+term bool_with_error_msg
 sepref_register PAC_checker_l_step
 sepref_definition PAC_checker_l_impl
   is \<open>uncurry PAC_checker_l\<close>
-  :: \<open>polys_assn\<^sup>d *\<^sub>a (array_assn (pac_step_rel_assn (nat_assn) poly_assn))\<^sup>k \<rightarrow>\<^sub>a bool_assn \<times>\<^sub>a polys_assn\<close>
+  :: \<open>polys_assn\<^sup>d *\<^sub>a (array_assn (pac_step_rel_assn (nat_assn) poly_assn))\<^sup>k \<rightarrow>\<^sub>a status_assn raw_string_assn \<times>\<^sub>a polys_assn\<close>
   supply [[goals_limit=1]] is_Mult_lastI[intro]
-  unfolding PAC_checker_l_def
+  unfolding PAC_checker_l_def is_success_alt_def[symmetric]
   apply sepref_dbg_preproc
   apply sepref_dbg_cons_init
   apply sepref_dbg_id
@@ -412,7 +465,20 @@ sepref_definition PAC_checker_l_impl
   apply sepref_dbg_constraints
   done
 
-export_code PAC_checker_l_impl in SML module_name PAC_Checker
-  file test.sml
+sepref_definition PAC_update_impl
+  is \<open>uncurry2 (RETURN ooo fmupd)\<close>
+  :: \<open>nat_assn\<^sup>k *\<^sub>a poly_assn\<^sup>k *\<^sub>a (polys_assn)\<^sup>d \<rightarrow>\<^sub>a polys_assn\<close>
+  unfolding comp_def
+  by sepref
+
+sepref_definition PAC_empty_impl
+  is \<open>uncurry0 (RETURN fmempty)\<close>
+  :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a polys_assn\<close>
+  unfolding op_fmap_empty_def[symmetric] pat_fmap_empty
+  by sepref
+  
+export_code PAC_checker_l_impl normalize_poly_impl PAC_update_impl PAC_empty_impl is_success status_error
+  int_of_integer AddD Add Mult MultD nat_of_integer String.implode in SML_imp module_name PAC_Checker
+  file "code/checker.sml"
 
 end

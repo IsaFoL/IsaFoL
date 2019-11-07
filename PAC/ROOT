@@ -5,6 +5,7 @@ session PAC_Checker = "Sepref_IICF" +
      "HOL-Algebra"
      "Polynomials"
      Weidenbach_Book_Base
+     Show
    theories
      Weidenbach_Book_Base.WB_List_More
      WB_Sort 

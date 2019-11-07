@@ -2,10 +2,14 @@ theory PAC_Assoc_Map_Rel
   imports PAC_Map_Rel
 begin
 
-definition hassoc_map_rel where
+section \<open>Hash Map as association list\<close>
+
+type_synonym ('k, 'v) hash_assoc = \<open>('k \<times> 'v) list\<close>
+
+definition hassoc_map_rel :: \<open>(('k, 'v) hash_assoc \<times> _) set\<close> where
   \<open>hassoc_map_rel = br map_of (\<lambda>_. True)\<close>
 
-abbreviation hassoc_map_assn where
+abbreviation hassoc_map_assn :: \<open>('k \<Rightarrow> 'v option) \<Rightarrow> ('k, 'v) hash_assoc \<Rightarrow> assn\<close> where
   \<open>hassoc_map_assn \<equiv> pure (hassoc_map_rel)\<close>
 
 lemma hassoc_map_rel_empty[simp]:
@@ -14,7 +18,7 @@ lemma hassoc_map_rel_empty[simp]:
   \<open>hassoc_map_assn Map.empty [] = emp\<close>
   by (auto simp: hassoc_map_rel_def br_def pure_def)
 
-definition hassoc_new :: \<open>('k \<times> 'v) list Heap\<close>where
+definition hassoc_new :: \<open>('k, 'v) hash_assoc Heap\<close>where
   \<open>hassoc_new = return []\<close>
 
   lemma precise_hassoc_map_assn: \<open>precise hassoc_map_assn\<close>
@@ -39,14 +43,14 @@ definition hassoc_new :: \<open>('k \<times> 'v) list Heap\<close>where
        intro!: precise_pure return_cons_rule)
 
   definition "op_assoc_empty \<equiv> IICF_Map.op_map_empty"
- 
+
   interpretation hassoc: map_custom_empty op_assoc_empty
     by unfold_locales (simp add: op_assoc_empty_def)
 
 
   lemmas [sepref_fr_rules] = hassoc.empty_hnr[folded op_assoc_empty_def]
 
-  definition hassoc_update :: "'k \<Rightarrow> 'v \<Rightarrow> ('k \<times> 'v) list \<Rightarrow> ('k \<times> 'v) list Heap" where
+  definition hassoc_update :: "'k \<Rightarrow> 'v \<Rightarrow> ('k, 'v) hash_assoc \<Rightarrow> ('k, 'v) hash_assoc Heap" where
    "hassoc_update k v ht = return ((k, v ) # ht)"
 
   lemma hassoc_map_assn_Cons:
@@ -59,7 +63,7 @@ definition hassoc_new :: \<open>('k \<times> 'v) list Heap\<close>where
       simp: hassoc_update_def hassoc_map_assn_Cons)
 
 
-  definition hassoc_delete :: \<open>'k \<Rightarrow> ('k \<times> 'v) list \<Rightarrow> ('k \<times> 'v) list Heap\<close> where
+  definition hassoc_delete :: \<open>'k \<Rightarrow> ('k, 'v) hash_assoc \<Rightarrow> ('k, 'v) hash_assoc Heap\<close> where
     \<open>hassoc_delete k ht = return (filter (\<lambda>(a, b). a \<noteq> k) ht)\<close>
 
   lemma hassoc_map_of_filter_all:
@@ -81,7 +85,7 @@ definition hassoc_new :: \<open>('k \<times> 'v) list Heap\<close>where
      (auto intro: hassoc_map_assn_hassoc_delete)
 
 
-  definition hassoc_lookup :: \<open>'k \<Rightarrow> ('k \<times> 'v) list \<Rightarrow> ('v) option Heap\<close> where
+  definition hassoc_lookup :: \<open>'k \<Rightarrow> ('k, 'v) hash_assoc \<Rightarrow> 'v option Heap\<close> where
     \<open>hassoc_lookup k ht = return (map_of ht k)\<close>
 
   lemma hassoc_map_assn_hassoc_lookup:
@@ -103,4 +107,33 @@ definition hassoc_new :: \<open>('k \<times> 'v) list Heap\<close>where
     by unfold_locales
 
 
+subsection \<open>Conversion from assoc to other map\<close>
+
+definition hash_of_assoc_map where
+\<open>hash_of_assoc_map xs = fold (\<lambda>(k, v) m. if m k \<noteq> None then m else m(k \<mapsto> v)) xs Map.empty\<close>
+
+lemma map_upd_map_add_left:
+  \<open>m(a  \<mapsto> b) ++ m' = m ++ (if a \<notin> dom m' then m'(a  \<mapsto> b) else m')\<close>
+  apply (auto simp: )
+  by (metis (no_types) fun_upd_triv fun_upd_upd map_add_assoc map_add_empty map_add_upd map_le_iff_map_add_commute)
+
+lemma fold_map_of_alt:
+  \<open>fold (\<lambda>(k, v) m. if m k \<noteq> None then m else m(k \<mapsto> v)) xs m' = map_of xs ++ m'\<close>
+  by (induction xs arbitrary: m')
+    (auto simp: map_upd_map_add_left)
+
+lemma map_of_alt_def:
+  \<open>map_of xs = hash_of_assoc_map xs\<close>
+  using fold_map_of_alt[of xs Map.empty]
+  unfolding hash_of_assoc_map_def
+  by auto
+
+definition hashmap_conv where
+  [simp]: \<open>hashmap_conv x = x\<close>
+
+lemma hash_of_assoc_map_id:
+  \<open>(hash_of_assoc_map, hashmap_conv) \<in> hassoc_map_rel \<rightarrow> Id\<close>
+  by (auto intro!: fun_relI simp: hassoc_map_rel_def br_def map_of_alt_def)
+
 end
+

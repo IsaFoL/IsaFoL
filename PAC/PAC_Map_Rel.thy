@@ -207,5 +207,12 @@ lemmas fmap_update_hnr [sepref_fr_rules] =
 lemmas fmap_lookup_hnr [sepref_fr_rules] =
    hm.lookup_hnr[FCOMP op_map_lookup_fmlookup]
 
+lemma fmempty_empty:
+  \<open>(uncurry0 (RETURN op_map_empty), uncurry0 (RETURN fmempty)) \<in> unit_rel \<rightarrow>\<^sub>f \<langle>map_fmap_rel\<rangle>nres_rel\<close>
+  by (auto simp: map_fmap_rel_def br_def fmempty_def frefI nres_relI)
 
+lemmas [sepref_fr_rules] =
+  hm.empty_hnr[FCOMP fmempty_empty, unfolded op_fmap_empty_def[symmetric]]
+
+find_theorems name:empty fmempty 
 end

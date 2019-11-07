@@ -2,6 +2,8 @@ theory PAC_Checker
   imports PAC_Polynoms_Operations
     PAC_Checker_Specification
     PAC_Map_Rel
+    Show.Show
+    Show.Show_Instances
 begin
 
 
@@ -36,30 +38,61 @@ fun pac_step_rel_assn :: \<open>(nat \<Rightarrow> nat \<Rightarrow> assn) \<Rig
    R2 r r'\<close> |
 \<open>pac_step_rel_assn R1 R2 _ _ = false\<close>
 
+datatype 'a status =
+  FAILED (status_error: 'a) |
+  is_success: SUCCESS
 
-definition check_addition_l :: \<open>_ \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> llist_polynom \<Rightarrow> bool nres\<close> where
+lemma is_success_alt_def:
+  \<open>is_success a \<longleftrightarrow> a = SUCCESS\<close>
+  by (cases a) auto
+
+definition error_msg where
+  \<open>error_msg i msg = FAILED (''s CHECKING failed at line '' @ show i @ '' with error '' @ msg)\<close>
+
+definition bool_with_error_msg where
+  \<open>bool_with_error_msg = {(st, b). b \<longleftrightarrow> st = SUCCESS}\<close>
+
+definition error_msg_notin_dom_err where
+  \<open>error_msg_notin_dom_err = '' notin domain''\<close>
+
+definition error_msg_notin_dom :: \<open>nat \<Rightarrow> string\<close> where
+  \<open>error_msg_notin_dom i = show i @ error_msg_notin_dom_err\<close>
+
+definition error_msg_reused_dom where
+  \<open>error_msg_reused_dom i = show i @ '' already in domain''\<close>
+
+
+definition error_msg_not_equal_dom where
+  \<open>error_msg_not_equal_dom p q = show p @ '' and '' @ show q @ '' not equal''\<close>
+
+
+definition check_addition_l :: \<open>_ \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> llist_polynom \<Rightarrow> string status nres\<close> where
 \<open>check_addition_l A p q i r = do {
    if p \<notin># dom_m A \<or> q \<notin># dom_m A \<or> i \<in># dom_m A
-   then RETURN False
+   then RETURN (error_msg i ((if p \<notin># dom_m A then error_msg_notin_dom p else []) @ (if q \<notin># dom_m A then error_msg_notin_dom p else []) @
+      (if i \<in># dom_m A then error_msg_reused_dom p else [])))
    else do {
      ASSERT (p \<in># dom_m A);
      let p = the (fmlookup A p);
      ASSERT (q \<in># dom_m A);
      let q = the (fmlookup A q);
      pq \<leftarrow> add_poly_l (p, q);
-     weak_equality_p pq r
+     b \<leftarrow> weak_equality_p pq r;
+     if b then RETURN SUCCESS else RETURN (error_msg i (error_msg_not_equal_dom pq r))
    }
 }\<close>
 
-definition check_mult_l :: \<open>_ \<Rightarrow> nat \<Rightarrow>llist_polynom \<Rightarrow>  nat \<Rightarrow> llist_polynom \<Rightarrow> bool nres\<close> where
+definition check_mult_l :: \<open>_ \<Rightarrow> nat \<Rightarrow>llist_polynom \<Rightarrow>  nat \<Rightarrow> llist_polynom \<Rightarrow> string status  nres\<close> where
 \<open>check_mult_l A p q i r = do {
     if p \<notin># dom_m A \<or> i \<in># dom_m A
-    then RETURN False
+    then RETURN (error_msg i ((if p \<notin># dom_m A then error_msg_notin_dom p else []) @
+      (if i \<in># dom_m A then error_msg_reused_dom p else [])))
     else do {
        ASSERT (p \<in># dom_m A);
        let p = the (fmlookup A p);
        pq \<leftarrow> mult_poly_full p q;
-       weak_equality_p pq r
+       b \<leftarrow> weak_equality_p pq r;
+       if b then RETURN SUCCESS else RETURN (error_msg i (error_msg_not_equal_dom pq r))
      }
   }\<close>
 
@@ -79,7 +112,8 @@ lemma check_add_alt_def:
        ASSERT (q \<in># dom_m A);
        let q = the (fmlookup A q);
        pq \<leftarrow> add_poly_spec p q;
-       weak_equality pq r
+       eq \<leftarrow> weak_equality pq r;
+       RETURN eq
      }
   }\<close>
   by (auto simp: check_add_def weak_equality_def
@@ -98,7 +132,8 @@ lemma check_mult_alt_def:
        ASSERT (p \<in># dom_m A);
        let p = the (fmlookup A p);
        pq \<leftarrow> mult_poly_spec p q;
-       weak_equality pq r
+       p \<leftarrow> weak_equality pq r;
+       RETURN p
      }
   }\<close>
   by (auto simp: check_mult_def weak_equality_def
@@ -129,41 +164,41 @@ definition PAC_checker_l_step ::  _ where
        do {
         r \<leftarrow> normalize_poly (pac_res st);
         eq \<leftarrow> check_addition_l A (pac_src1 st) (pac_src2 st) (new_id st) r;
-        if eq
-        then RETURN (True,
+        if eq = SUCCESS
+        then RETURN (eq,
           fmupd (new_id st) r
             (fmdrop (pac_src1 st) (fmdrop (pac_src2 st) A)))
-        else RETURN (False, A)
+        else RETURN (eq, A)
    }
    | Add _ _ _ _ \<Rightarrow>
        do {
          r \<leftarrow> normalize_poly (pac_res st);
         eq \<leftarrow> check_addition_l A (pac_src1 st) (pac_src2 st) (new_id st) r;
-        if eq
-        then RETURN (True,
+        if eq = SUCCESS
+        then RETURN (eq,
           fmupd (new_id st) r A)
-        else RETURN (False, A)
+        else RETURN (eq, A)
    }
    | MultD _ _ _ _ \<Rightarrow>
        do {
          r \<leftarrow> normalize_poly (pac_res st);
          q \<leftarrow> normalize_poly (pac_mult st);
         eq \<leftarrow> check_mult_l A (pac_src1 st) q (new_id st) r;
-        if eq
-        then RETURN (True,
+        if eq = SUCCESS
+        then RETURN (eq,
           fmupd (new_id st) r
             (fmdrop (pac_src1 st) A))
-        else RETURN (False, A)
+        else RETURN (eq, A)
    }
    | Mult _ _ _ _ \<Rightarrow>
        do {
          r \<leftarrow> normalize_poly (pac_res st);
          q \<leftarrow> normalize_poly (pac_mult st);
         eq \<leftarrow> check_mult_l A (pac_src1 st) q (new_id st) r;
-        if eq
-        then RETURN (True,
+        if eq = SUCCESS
+        then RETURN (eq,
           fmupd (new_id st) r A)
-        else RETURN (False, A)
+        else RETURN (eq, A)
    }
  )\<close>
 
@@ -175,13 +210,13 @@ lemma pac_step_rel_raw_def:
 definition PAC_checker_l where
   \<open>PAC_checker_l A st = do {
     (S, _) \<leftarrow> WHILE\<^sub>T
-       (\<lambda>((b, A), n::nat). b \<and> n < length st)
+       (\<lambda>((b, A), n::nat). b = SUCCESS \<and> n < length st)
        (\<lambda>((b, A), n). do {
           ASSERT(n < length st);
           S \<leftarrow> PAC_checker_l_step A (st ! n);
           RETURN (S, (n+1))
         })
-      ((True, A), 0);
+      ((SUCCESS, A), 0);
     RETURN S
   }\<close>
 
@@ -221,11 +256,13 @@ lemma weak_equality_p_weak_equality_p'[refine]:
          weak_equality_spec_weak_equality
       simp flip: conc_fun_chain)
 
+lemma error_msg_ne_SUCCES[simp, iff]: \<open>error_msg i m \<noteq> SUCCESS\<close>
+  by (auto simp: error_msg_def)
 
 lemma check_addition_l_check_add:
   assumes \<open>(A, B) \<in> polys_rel\<close> and \<open>(r, r') \<in> sorted_poly_rel O mset_poly_rel\<close>
   shows
-    \<open>check_addition_l A p q i r \<le> \<Down>bool_rel (check_add B p q i r')\<close>
+    \<open>check_addition_l A p q i r \<le> \<Down> bool_with_error_msg (check_add B p q i r')\<close>
 proof -
   have [refine]:
     \<open>add_poly_l (p, q) \<le> \<Down> (sorted_poly_rel O mset_poly_rel) (add_poly_spec p' q')\<close>
@@ -244,13 +281,17 @@ proof -
     subgoal
       by auto
     subgoal
-      by auto
+      by (auto simp: bool_with_error_msg_def)
     subgoal
       by auto
     subgoal
       by auto
     subgoal
       by auto
+    subgoal
+      by auto
+    subgoal
+      by (auto simp: bool_with_error_msg_def)
     done
 qed
 
@@ -258,7 +299,7 @@ lemma check_mult_l_check_mult:
   assumes \<open>(A, B) \<in> polys_rel\<close> and \<open>(r, r') \<in> sorted_poly_rel O mset_poly_rel\<close> and
     \<open>(q, q') \<in> sorted_poly_rel O mset_poly_rel\<close>
   shows
-    \<open>check_mult_l A p q i r \<le> \<Down>bool_rel (check_mult B p q' i r')\<close>
+    \<open>check_mult_l A p q i r \<le> \<Down>bool_with_error_msg (check_mult B p q' i r')\<close>
 proof -
   have [refine]:
     \<open>mult_poly_full p q \<le> \<Down> (sorted_poly_rel O mset_poly_rel) (mult_poly_spec p' q')\<close>
@@ -277,9 +318,13 @@ proof -
     subgoal
       by auto
     subgoal
+      by (auto simp: bool_with_error_msg_def)
+    subgoal
       by auto
     subgoal
       by auto
+    subgoal
+      by (auto simp: bool_with_error_msg_def)
     done
 qed
 
@@ -307,7 +352,7 @@ lemma PAC_checker_l_step_PAC_checker_step:
     \<open>(A, B) \<in> polys_rel\<close> and
     \<open>(st, st') \<in> pac_step_rel\<close>
   shows
-    \<open>PAC_checker_l_step A st \<le> \<Down> (bool_rel \<times>\<^sub>r polys_rel) (PAC_checker_step B st')\<close>
+    \<open>PAC_checker_l_step A st \<le> \<Down> (bool_with_error_msg \<times>\<^sub>r polys_rel) (PAC_checker_step B st')\<close>
 proof -
   show ?thesis
     using assms(2)
@@ -319,7 +364,7 @@ proof -
         check_mult_l_check_mult check_addition_l_check_add)
       subgoal by auto
       subgoal using assms by auto
-      subgoal by auto
+      subgoal by (auto simp: bool_with_error_msg_def)
       subgoal by (auto intro!: fmap_rel_fmupd_fmap_rel
           fmap_rel_fmdrop_fmap_rel assms)
       subgoal using assms by auto
@@ -329,18 +374,7 @@ proof -
         check_mult_l_check_mult check_addition_l_check_add)
       subgoal by auto
       subgoal using assms by auto
-      subgoal by auto
-      subgoal by (auto intro!: fmap_rel_fmupd_fmap_rel
-          fmap_rel_fmdrop_fmap_rel assms)
-      subgoal using assms by auto
-      done
-    subgoal
-      apply (refine_rcg normalize_poly_normalize_poly_spec
-        check_mult_l_check_mult check_addition_l_check_add)
-      subgoal by auto
-      subgoal using assms by auto
-      subgoal using assms by auto
-      subgoal by auto
+      subgoal by (auto simp: bool_with_error_msg_def)
       subgoal by (auto intro!: fmap_rel_fmupd_fmap_rel
           fmap_rel_fmdrop_fmap_rel assms)
       subgoal using assms by auto
@@ -351,7 +385,18 @@ proof -
       subgoal by auto
       subgoal using assms by auto
       subgoal using assms by auto
+      subgoal by (auto simp: bool_with_error_msg_def)
+      subgoal by (auto intro!: fmap_rel_fmupd_fmap_rel
+          fmap_rel_fmdrop_fmap_rel assms)
+      subgoal using assms by auto
+      done
+    subgoal
+      apply (refine_rcg normalize_poly_normalize_poly_spec
+        check_mult_l_check_mult check_addition_l_check_add)
       subgoal by auto
+      subgoal using assms by auto
+      subgoal using assms by auto
+      subgoal by (auto simp: bool_with_error_msg_def)
       subgoal by (auto intro!: fmap_rel_fmupd_fmap_rel
           fmap_rel_fmdrop_fmap_rel assms)
       subgoal using assms by auto
@@ -364,16 +409,16 @@ lemma PAC_checker_l_PAC_checker:
     \<open>(A, B) \<in> polys_rel\<close> and
     \<open>(st, st') \<in> \<langle>pac_step_rel\<rangle>list_rel\<close>
   shows
-    \<open>PAC_checker_l A st \<le> \<Down> (bool_rel \<times>\<^sub>r polys_rel) (PAC_checker B st')\<close>
+    \<open>PAC_checker_l A st \<le> \<Down> (bool_with_error_msg \<times>\<^sub>r polys_rel) (PAC_checker B st')\<close>
 proof -
-  have [refine0]: \<open>(((True, A), 0), (True, B), 0) \<in>((bool_rel \<times>\<^sub>r polys_rel) \<times>\<^sub>r nat_rel)\<close>
-    using assms by auto
+  have [refine0]: \<open>(((SUCCESS, A), 0), (True, B), 0) \<in> ((bool_with_error_msg \<times>\<^sub>r polys_rel) \<times>\<^sub>r nat_rel)\<close>
+    using assms by (auto simp: bool_with_error_msg_def)
   show ?thesis
     using assms
     unfolding PAC_checker_l_def PAC_checker_def
     apply (refine_rcg PAC_checker_l_step_PAC_checker_step
       WHILEIT_refine[where R = \<open>((bool_rel \<times>\<^sub>r polys_rel) \<times>\<^sub>r nat_rel)\<close>])
-    subgoal by (auto simp: list_rel_imp_same_length)
+    subgoal by (auto simp: list_rel_imp_same_length bool_with_error_msg_def)
     subgoal by (auto simp: list_rel_imp_same_length)
     subgoal by (auto simp: list_rel_imp_same_length)
     subgoal by (auto simp: list_rel_imp_same_length intro!: param_nth)

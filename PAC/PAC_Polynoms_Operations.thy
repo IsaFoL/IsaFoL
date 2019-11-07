@@ -828,6 +828,42 @@ lemma weak_equality_p_weak_equality_spec:
       sorted_poly_list_rel_wrt_def list_mset_rel_def br_def
     dest: list_rel_term_poly_list_rel_same_rightD)
 
+definition sort_coeff :: \<open>string list \<Rightarrow> string list nres\<close> where
+\<open>sort_coeff ys = SPEC(\<lambda>xs. mset xs = mset ys \<and> sorted_wrt (rel2p (Id \<union> var_order_rel)) xs)\<close>
+
+term monadic_nfoldli
+find_theorems name:fold name:imp
+definition sort_all_coeffs :: \<open>llist_polynom \<Rightarrow> llist_polynom nres\<close> where
+\<open>sort_all_coeffs xs = monadic_nfoldli xs (\<lambda>_. RETURN True) (\<lambda>(a, n) b. do {a \<leftarrow> sort_coeff a; RETURN (b @ [(a, n)])}) []\<close>
+
+lemma sort_all_coeffs_gen:
+  \<open>monadic_nfoldli xs (\<lambda>_. RETURN True) (\<lambda>(a, n) b. do {a \<leftarrow> sort_coeff a; RETURN (b @ [(a, n)])}) xs' \<le>
+     \<Down>Id (SPEC(\<lambda>ys. map (\<lambda>(a,b). (mset a, b)) (xs' @ xs) = map (\<lambda>(a,b). (mset a, b)) ys))\<close>
+  unfolding sort_all_coeffs_def sort_coeff_def
+  apply (induction xs arbitrary: xs')
+  subgoal
+    by auto
+  subgoal premises p for a xs
+    by (cases a, simp only: monadic_nfoldli_simp bind_to_let_conv Let_def if_True Refine_Basic.nres_monad3
+      intro_spec_refine_iff prod.case)
+     (auto simp: intro_spec_refine_iff intro!: p[THEN order_trans])
+  done
+
+definition shuffle_coefficients where
+  \<open>shuffle_coefficients xs = (SPEC(\<lambda>ys. map (\<lambda>(a,b). (mset a, b)) (xs) = map (\<lambda>(a,b). (mset a, b)) ys))\<close>
+lemma sort_all_coeffs:
+  \<open>sort_all_coeffs xs \<le> \<Down> Id (shuffle_coefficients xs)\<close>
+  unfolding sort_all_coeffs_def shuffle_coefficients_def
+  by (rule sort_all_coeffs_gen[THEN order_trans])
+    auto
+
+definition full_normalize_poly where
+  \<open>full_normalize_poly p = do {
+     p \<leftarrow> sort_all_coeffs p;
+     p \<leftarrow> sort_poly_spec p;
+     RETURN (merge_coeffs p)
+}\<close>
+
 
 
 end
