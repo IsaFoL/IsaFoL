@@ -831,8 +831,6 @@ lemma weak_equality_p_weak_equality_spec:
 definition sort_coeff :: \<open>string list \<Rightarrow> string list nres\<close> where
 \<open>sort_coeff ys = SPEC(\<lambda>xs. mset xs = mset ys \<and> sorted_wrt (rel2p (Id \<union> var_order_rel)) xs)\<close>
 
-term monadic_nfoldli
-find_theorems name:fold name:imp
 definition sort_all_coeffs :: \<open>llist_polynom \<Rightarrow> llist_polynom nres\<close> where
 \<open>sort_all_coeffs xs = monadic_nfoldli xs (\<lambda>_. RETURN True) (\<lambda>(a, n) b. do {a \<leftarrow> sort_coeff a; RETURN (b @ [(a, n)])}) []\<close>
 
@@ -864,7 +862,29 @@ definition full_normalize_poly where
      RETURN (merge_coeffs p)
 }\<close>
 
+lemma sort_all_coeffs:
+  assumes \<open>(p, p') \<in> fully_unsorted_poly_rel\<close>
+  shows \<open>sort_all_coeffs p \<le> \<Down> (unsorted_poly_rel) (RETURN p')\<close>
+  using assms
+  unfolding sort_all_coeffs_def
+  apply (induction p arbitrary: p')
+  apply auto
+oops
 
+
+lemma unsorted_term_poly_list_rel_mset:
+  \<open>(ys, aa) \<in> unsorted_term_poly_list_rel \<Longrightarrow> mset ys = aa\<close>
+  by (auto simp: unsorted_term_poly_list_rel_def)
+
+lemma fully_unsorted_poly_rel_Cons_iff:
+  \<open>((ys, n) # p, a) \<in> fully_unsorted_poly_rel \<longleftrightarrow> (p, remove1_mset (mset ys, n) a) \<in> fully_unsorted_poly_rel \<and>
+    (mset ys, n) \<in># a\<close>
+    apply (auto simp: poly_list_rel_def list_rel_split_right_iff list_mset_rel_def br_def unsorted_term_poly_list_rel_def
+       nonzero_coeffs_def fully_unsorted_poly_list_rel_def dest!: multi_member_split)
+    apply blast
+    apply (rule_tac b = \<open>(mset ys, n) # y\<close> in relcompI)
+    apply auto
+    done
 
 end
 
