@@ -831,29 +831,47 @@ lemma weak_equality_p_weak_equality_spec:
 definition sort_coeff :: \<open>string list \<Rightarrow> string list nres\<close> where
 \<open>sort_coeff ys = SPEC(\<lambda>xs. mset xs = mset ys \<and> sorted_wrt (rel2p (Id \<union> var_order_rel)) xs)\<close>
 
+lemma distinct_var_order_Id_var_order:
+  \<open>distinct a \<Longrightarrow> sorted_wrt (rel2p (Id \<union> var_order_rel)) a \<Longrightarrow>
+          sorted_wrt var_order a\<close>
+  by (induction a) (auto simp: rel2p_def)
+
 definition sort_all_coeffs :: \<open>llist_polynom \<Rightarrow> llist_polynom nres\<close> where
 \<open>sort_all_coeffs xs = monadic_nfoldli xs (\<lambda>_. RETURN True) (\<lambda>(a, n) b. do {a \<leftarrow> sort_coeff a; RETURN (b @ [(a, n)])}) []\<close>
 
 lemma sort_all_coeffs_gen:
-  \<open>monadic_nfoldli xs (\<lambda>_. RETURN True) (\<lambda>(a, n) b. do {a \<leftarrow> sort_coeff a; RETURN (b @ [(a, n)])}) xs' \<le>
-     \<Down>Id (SPEC(\<lambda>ys. map (\<lambda>(a,b). (mset a, b)) (xs' @ xs) = map (\<lambda>(a,b). (mset a, b)) ys))\<close>
+  assumes \<open>(\<forall>xs \<in> mononoms xs'. sorted_wrt (rel2p (var_order_rel)) xs)\<close> and
+    \<open>\<forall>x \<in> mononoms (xs @ xs'). distinct x\<close>
+  shows \<open>monadic_nfoldli xs (\<lambda>_. RETURN True) (\<lambda>(a, n) b. do {a \<leftarrow> sort_coeff a; RETURN (b @ [(a, n)])}) xs' \<le>
+     \<Down>Id (SPEC(\<lambda>ys. map (\<lambda>(a,b). (mset a, b)) (xs' @ xs) = map (\<lambda>(a,b). (mset a, b)) ys \<and>
+     (\<forall>xs \<in> mononoms ys. sorted_wrt (rel2p (var_order_rel)) xs)))\<close>
+  using assms
   unfolding sort_all_coeffs_def sort_coeff_def
   apply (induction xs arbitrary: xs')
   subgoal
+    using assms
     by auto
   subgoal premises p for a xs
-    by (cases a, simp only: monadic_nfoldli_simp bind_to_let_conv Let_def if_True Refine_Basic.nres_monad3
+    using p(2-)
+    apply (cases a, simp only: monadic_nfoldli_simp bind_to_let_conv Let_def if_True Refine_Basic.nres_monad3
       intro_spec_refine_iff prod.case)
-     (auto simp: intro_spec_refine_iff intro!: p[THEN order_trans])
+    apply (auto simp: intro_spec_refine_iff image_Un
+      dest: same_mset_distinct_iff
+      intro!: p(1)[THEN order_trans] distinct_var_order_Id_var_order)
+    apply (auto dest: same_mset_distinct_iff)
+    by (metis UnCI fst_eqD rel2p_def sorted_wrt_mono_rel)
   done
 
 definition shuffle_coefficients where
-  \<open>shuffle_coefficients xs = (SPEC(\<lambda>ys. map (\<lambda>(a,b). (mset a, b)) (xs) = map (\<lambda>(a,b). (mset a, b)) ys))\<close>
+  \<open>shuffle_coefficients xs = (SPEC(\<lambda>ys. map (\<lambda>(a,b). (mset a, b)) (xs) = map (\<lambda>(a,b). (mset a, b)) ys \<and>
+     (\<forall>xs \<in> mononoms ys. sorted_wrt (rel2p (var_order_rel)) xs)))\<close>
+
 lemma sort_all_coeffs:
-  \<open>sort_all_coeffs xs \<le> \<Down> Id (shuffle_coefficients xs)\<close>
+  \<open>\<forall>x \<in> mononoms xs. distinct x \<Longrightarrow>
+  sort_all_coeffs xs \<le> \<Down> Id (shuffle_coefficients xs)\<close>
   unfolding sort_all_coeffs_def shuffle_coefficients_def
   by (rule sort_all_coeffs_gen[THEN order_trans])
-    auto
+   auto
 
 definition full_normalize_poly where
   \<open>full_normalize_poly p = do {
@@ -862,29 +880,169 @@ definition full_normalize_poly where
      RETURN (merge_coeffs p)
 }\<close>
 
-lemma sort_all_coeffs:
-  assumes \<open>(p, p') \<in> fully_unsorted_poly_rel\<close>
-  shows \<open>sort_all_coeffs p \<le> \<Down> (unsorted_poly_rel) (RETURN p')\<close>
-  using assms
-  unfolding sort_all_coeffs_def
-  apply (induction p arbitrary: p')
-  apply auto
-oops
-
 
 lemma unsorted_term_poly_list_rel_mset:
   \<open>(ys, aa) \<in> unsorted_term_poly_list_rel \<Longrightarrow> mset ys = aa\<close>
   by (auto simp: unsorted_term_poly_list_rel_def)
 
-lemma fully_unsorted_poly_rel_Cons_iff:
-  \<open>((ys, n) # p, a) \<in> fully_unsorted_poly_rel \<longleftrightarrow> (p, remove1_mset (mset ys, n) a) \<in> fully_unsorted_poly_rel \<and>
-    (mset ys, n) \<in># a\<close>
-    apply (auto simp: poly_list_rel_def list_rel_split_right_iff list_mset_rel_def br_def unsorted_term_poly_list_rel_def
-       nonzero_coeffs_def fully_unsorted_poly_list_rel_def dest!: multi_member_split)
-    apply blast
-    apply (rule_tac b = \<open>(mset ys, n) # y\<close> in relcompI)
+lemma RETURN_map_alt_def:
+  \<open>RETURN o (map f) =
+    REC\<^sub>T (\<lambda>g xs.
+      case xs of
+        [] \<Rightarrow> RETURN []
+      | x # xs \<Rightarrow> do {xs \<leftarrow> g xs; RETURN (f x # xs)})\<close>
+  unfolding comp_def
+  apply (subst eq_commute)
+  apply (intro ext)
+  apply (induct_tac x)
+  subgoal
+    apply (subst RECT_unfold)
+    apply refine_mono
     apply auto
     done
+  subgoal
+    apply (subst RECT_unfold)
+    apply refine_mono
+    apply auto
+    done
+  done
 
+
+lemma fully_unsorted_poly_rel_Cons_iff:
+  \<open>((ys, n) # p, a) \<in> fully_unsorted_poly_rel \<longleftrightarrow>
+    (p, remove1_mset (mset ys, n) a) \<in> fully_unsorted_poly_rel \<and>
+    (mset ys, n) \<in># a \<and> distinct ys\<close>
+  apply (auto simp: poly_list_rel_def list_rel_split_right_iff list_mset_rel_def br_def
+     unsorted_term_poly_list_rel_def
+     nonzero_coeffs_def fully_unsorted_poly_list_rel_def dest!: multi_member_split)
+  apply blast
+  apply (rule_tac b = \<open>(mset ys, n) # y\<close> in relcompI)
+  apply auto
+  done
+
+lemma map_mset_unsorted_term_poly_list_rel:
+  \<open>(\<And>a. a \<in> mononoms s \<Longrightarrow> distinct a) \<Longrightarrow> \<forall>x \<in> mononoms s. distinct x \<Longrightarrow>
+    (\<forall>xs \<in> mononoms s. sorted_wrt (rel2p (Id \<union> var_order_rel)) xs) \<Longrightarrow>
+    (s, map (\<lambda>(a, y). (mset a, y)) s)
+          \<in> \<langle>term_poly_list_rel \<times>\<^sub>r int_rel\<rangle>list_rel\<close>
+  by (induction s) (auto simp: term_poly_list_rel_def
+    distinct_var_order_Id_var_order)
+
+lemma list_rel_unsorted_term_poly_list_relD:
+  \<open>(p, y) \<in> \<langle>unsorted_term_poly_list_rel \<times>\<^sub>r int_rel\<rangle>list_rel \<Longrightarrow>
+   mset y = (\<lambda>(a, y). (mset a, y)) `# mset p \<and> (\<forall>x \<in> mononoms p. distinct x)\<close>
+  by (induction p arbitrary: y)
+   (auto simp: list_rel_split_right_iff
+    unsorted_term_poly_list_rel_def)
+
+lemma
+  \<open>map (\<lambda>(a, y). (mset a, y)) p = map (\<lambda>(a, y). (mset a, y)) s \<Longrightarrow>
+       (\<forall>x\<in>set p. distinct (fst x)) \<longleftrightarrow> (\<forall>x\<in>set s. distinct (fst x))\<close>
+   apply (drule arg_cong[of _ _ set])
+   apply (auto simp: in_set_conv_decomp)
+  oops
+
+lemma
+  \<open>(p, y) \<in> \<langle>unsorted_term_poly_list_rel \<times>\<^sub>r int_rel\<rangle>list_rel \<Longrightarrow>
+       (a, b) \<in> set p \<Longrightarrow>  distinct a\<close>
+   using list_rel_unsorted_term_poly_list_relD by fastforce
+
+find_theorems \<open>_ \<in> set _\<close> "\<exists>_. _"
+lemma mset_map_unsorted_poly_rel_with0:
+  assumes \<open>(p, p') \<in> fully_unsorted_poly_rel\<close>
+  shows \<open>sort_all_coeffs p \<le> \<Down> (unsorted_poly_rel_with0) (RETURN p')\<close>
+  apply (rule sort_all_coeffs[THEN order_trans])
+  using assms
+  apply (auto simp: shuffle_coefficients_def poly_list_rel_def
+       RETURN_def fully_unsorted_poly_list_rel_def list_mset_rel_def
+       br_def dest: list_rel_unsorted_term_poly_list_relD
+    intro!: RES_refine)
+  apply (rule_tac b= \<open>map (\<lambda>(a, y). (mset a, y)) p\<close> in relcompI)
+  apply (auto simp: mset_map
+    dest!: list_rel_unsorted_term_poly_list_relD
+    intro!: map_mset_unsorted_term_poly_list_rel)
+  apply auto    
+sledgehammer
+sorry
+  defer
+  apply (metis mset_map)
+  apply (rule map_mset_unsorted_term_poly_list_rel)
+  done
+
+
+lemma sort_poly_spec_id':
+  assumes \<open>(p, p') \<in> unsorted_poly_rel_with0\<close>
+  shows \<open>sort_poly_spec p \<le> \<Down> (sorted_repeat_poly_rel_with0) (RETURN p')\<close>
+proof -
+  obtain y where
+    py: \<open>(p, y) \<in> \<langle>unsorted_term_poly_list_rel \<times>\<^sub>r int_rel\<rangle>list_rel\<close> and
+    p'_y: \<open>p' = mset y\<close>
+    using assms
+    unfolding fully_unsorted_poly_list_rel_def poly_list_rel_def sorted_poly_list_rel_wrt_def
+    by (auto simp: list_mset_rel_def br_def Collect_eq_comp')
+  then have [simp]: \<open>length y = length p\<close>
+    by (auto simp: list_rel_def list_all2_conv_all_nth)
+  have H: \<open>(x, p')
+        \<in> \<langle>term_poly_list_rel \<times>\<^sub>r int_rel\<rangle>list_rel O list_mset_rel\<close>
+     if px: \<open>mset p = mset x\<close> and \<open>sorted_wrt (rel2p (Id \<union> lexord var_order_rel)) (map fst x)\<close>
+     for x :: \<open>llist_polynom\<close>
+  proof -
+    obtain f where
+      f: \<open>bij_betw f {..<length x} {..<length p}\<close> and
+      [simp]: \<open>\<And>i. i<length x \<Longrightarrow> x ! i = p ! (f i)\<close>
+      using px apply - apply (subst (asm)(2) eq_commute)  unfolding mset_eq_perm
+      by (auto dest!: permutation_Ex_bij)
+    let ?y = \<open>map (\<lambda>i. y ! f i) [0 ..< length x]\<close>
+    have \<open>i < length y \<Longrightarrow> (p ! f i, y ! f i) \<in> term_poly_list_rel \<times>\<^sub>r int_rel\<close> for i
+      using list_all2_nthD[of _ p y
+         \<open>f i\<close>, OF py[unfolded list_rel_def mem_Collect_eq prod.case]]
+         mset_eq_length[OF px] f
+      by (auto simp: list_rel_def list_all2_conv_all_nth bij_betw_def)
+    then have \<open>(x, ?y) \<in> \<langle>unsorted_term_poly_list_rel \<times>\<^sub>r int_rel\<rangle>list_rel\<close> and
+      xy: \<open>length x = length y\<close>
+      using py list_all2_nthD[of \<open>rel2p (term_poly_list_rel \<times>\<^sub>r int_rel)\<close> p y
+         \<open>f i\<close> for i, simplified] mset_eq_length[OF px]
+      by (auto simp: list_rel_def list_all2_conv_all_nth)
+    moreover {
+      have f: \<open>mset_set {0..<length x} = f `# mset_set {0..<length x}\<close>
+        using f mset_eq_length[OF px]
+        by (auto simp: bij_betw_def lessThan_atLeast0 image_mset_mset_set)
+      have \<open>mset y = {#y ! f x. x \<in># mset_set {0..<length x}#}\<close>
+        by (subst drop_0[symmetric], subst mset_drop_upto, subst xy[symmetric], subst f)
+          auto
+      then have \<open>(?y, p') \<in> list_mset_rel\<close>
+        by (auto simp: list_mset_rel_def br_def p'_y)
+    }
+    ultimately show ?thesis
+      by (auto intro!: relcompI[of _ ?y])
+  qed
+  show ?thesis
+    unfolding sort_poly_spec_def poly_list_rel_def sorted_repeat_poly_list_rel_with0_wrt_def
+    by refine_rcg (auto intro: H)
+qed
+
+lemma normalize_poly_normalize_poly_p:
+  assumes \<open>(p, p') \<in> fully_unsorted_poly_rel\<close>
+  shows \<open>full_normalize_poly p \<le> \<Down> (sorted_poly_rel) (SPEC (\<lambda>r. normalize_poly_p\<^sup>*\<^sup>* p' r))\<close>
+  (is \<open>?A \<le> \<Down> ?R ?B\<close>)
+proof -
+  have 1: \<open>?B = do {
+     p' \<leftarrow> RETURN p';
+     p' \<leftarrow> SPEC (\<lambda>r. normalize_poly_p\<^sup>*\<^sup>* p' r);
+     RETURN p'
+    }\<close>
+    by auto
+  have [refine0]: \<open>sort_all_coeffs p \<le> SPEC(\<lambda>p. (p, p') \<in> unsorted_poly_rel_with0)\<close>
+    by (rule mset_map_unsorted_poly_rel_with0[OF assms, THEN order_trans])
+      (auto simp: conc_fun_RES RETURN_def)
+  show ?thesis
+    apply (subst 1)
+    unfolding full_normalize_poly_def
+    apply (refine_rcg)
+    
+    oops
+
+find_theorems sort_poly_spec
+thm sort_poly_spec_id
 end
 

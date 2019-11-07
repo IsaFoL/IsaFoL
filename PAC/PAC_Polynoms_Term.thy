@@ -80,7 +80,7 @@ definition term_poly_list_rel :: \<open>(term_poly_list \<times> term_poly) set\
 
 definition unsorted_term_poly_list_rel :: \<open>(term_poly_list \<times> term_poly) set\<close> where
   \<open>unsorted_term_poly_list_rel = {(xs, ys).
-     ys = mset xs}\<close>
+     ys = mset xs \<and> distinct xs}\<close>
 
 definition poly_list_rel :: \<open>_ \<Rightarrow> (('a \<times> int) list \<times> mset_polynom) set\<close> where
   \<open>poly_list_rel R = {(xs, ys).
@@ -131,6 +131,37 @@ definition fully_unsorted_poly_list_rel :: \<open>_ \<Rightarrow> (('a \<times> 
  
 abbreviation fully_unsorted_poly_rel where
   \<open>fully_unsorted_poly_rel \<equiv> fully_unsorted_poly_list_rel unsorted_term_poly_list_rel\<close>
+
+
+lemma fully_unsorted_poly_list_rel_empty_iff[simp]:
+  \<open>(p, {#}) \<in> fully_unsorted_poly_list_rel R \<longleftrightarrow> p = []\<close>
+  \<open>([], p') \<in> fully_unsorted_poly_list_rel R \<longleftrightarrow> p' = {#}\<close>
+  by (auto simp: fully_unsorted_poly_list_rel_def list_mset_rel_def br_def)
+
+definition poly_list_rel_with0 :: \<open>_ \<Rightarrow> (('a \<times> int) list \<times> mset_polynom) set\<close> where
+  \<open>poly_list_rel_with0 R = {(xs, ys).
+     (xs, ys) \<in> \<langle>R \<times>\<^sub>r int_rel\<rangle>list_rel O list_mset_rel}\<close>
+
+abbreviation unsorted_poly_rel_with0 where
+  \<open>unsorted_poly_rel_with0 \<equiv> fully_unsorted_poly_list_rel term_poly_list_rel\<close>
+
+lemma poly_list_rel_with0_empty_iff[simp]:
+  \<open>(p, {#}) \<in> poly_list_rel_with0 R \<longleftrightarrow> p = []\<close>
+  \<open>([], p') \<in> poly_list_rel_with0 R \<longleftrightarrow> p' = {#}\<close>
+  by (auto simp: poly_list_rel_with0_def list_mset_rel_def br_def)
+
+
+definition sorted_repeat_poly_list_rel_with0_wrt :: \<open>('a \<Rightarrow> 'a \<Rightarrow> bool)
+     \<Rightarrow> ('a \<times> string multiset) set \<Rightarrow> (('a \<times> int) list \<times> mset_polynom) set\<close> where
+  \<open>sorted_repeat_poly_list_rel_with0_wrt S R = {(xs, ys).
+     (xs, ys) \<in> \<langle>R \<times>\<^sub>r int_rel\<rangle>list_rel O list_mset_rel \<and>
+     sorted_wrt S (map fst xs)}\<close>
+
+abbreviation sorted_repeat_poly_list_rel_with0 where
+  \<open>sorted_repeat_poly_list_rel_with0 R \<equiv> sorted_repeat_poly_list_rel_with0_wrt R term_poly_list_rel\<close>
+
+abbreviation sorted_repeat_poly_rel_with0 where
+  \<open>sorted_repeat_poly_rel_with0 \<equiv> sorted_repeat_poly_list_rel_with0 (rel2p (Id \<union> lexord var_order_rel))\<close>
 
 
 end
