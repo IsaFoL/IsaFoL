@@ -226,7 +226,9 @@ definition mononoms_equal_up_to_reorder where
 definition remap_polys_l where
   \<open>remap_polys_l A = SPEC (\<lambda>A'. dom_m A = dom_m A' \<and>
      (\<forall>i \<in># dom_m A. mononoms_equal_up_to_reorder (the (fmlookup A i)) (the (fmlookup A' i))) \<and>
-     (\<forall>i\<in># dom_m A. \<forall> x \<in> mononoms (the (fmlookup A' i)). sorted_wrt (rel2p var_order_rel) x))\<close>
+     (\<forall>i\<in># dom_m A. \<forall> x \<in> mononoms (the (fmlookup A' i)). sorted_wrt (rel2p var_order_rel) x) \<and>
+     (\<forall>i\<in># dom_m A. sorted_wrt term_order (map fst (the (fmlookup A' i))) \<and>
+       distinct (map fst (the (fmlookup A' i)))))\<close>
 
 definition PAC_checker_l where
   \<open>PAC_checker_l A st = do {
@@ -252,6 +254,15 @@ abbreviation pac_step_rel where
 abbreviation polys_rel where
   \<open>polys_rel \<equiv> \<langle>nat_rel, sorted_poly_rel O mset_poly_rel\<rangle>fmap_rel\<close>
 
+lemma
+  \<open>(A, B) \<in> \<langle>nat_rel, fully_unsorted_poly_rel O mset_poly_rel\<rangle>fmap_rel \<Longrightarrow>
+    remap_polys_l A \<le> \<Down> (polys_rel) (remap_polys B)\<close>
+  unfolding remap_polys_l_def remap_polys_def RETURN_def fmap_rel_alt_def
+  apply (intro RES_refine)
+  apply (auto simp: mset_poly_rel_def sorted_poly_list_rel_wrt_def)
+  apply (rule_tac b = \<open>(\<lambda>(a, b). (mset a, b)) `# mset (the (fmlookup s i))\<close> in relcompI)
+  apply auto
+  sorry
 lemma fref_to_Down_curry:
   \<open>(uncurry f, uncurry g) \<in> [P]\<^sub>f A \<rightarrow> \<langle>B\<rangle>nres_rel \<Longrightarrow>
      (\<And>x x' y y'. P (x', y') \<Longrightarrow> ((x, y), (x', y')) \<in> A \<Longrightarrow> f x y \<le> \<Down> B (g x' y'))\<close>

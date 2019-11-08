@@ -99,7 +99,7 @@ abbreviation sorted_poly_list_rel where
   \<open>sorted_poly_list_rel R \<equiv> sorted_poly_list_rel_wrt R term_poly_list_rel\<close>
 
 abbreviation sorted_poly_rel where
-  \<open>sorted_poly_rel \<equiv> sorted_poly_list_rel (rel2p (lexord var_order_rel))\<close>
+  \<open>sorted_poly_rel \<equiv> sorted_poly_list_rel term_order\<close>
 
 
 definition sorted_repeat_poly_list_rel_wrt :: \<open>('a \<Rightarrow> 'a \<Rightarrow> bool)
