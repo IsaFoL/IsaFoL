@@ -318,15 +318,38 @@ locale lifting_equivalence_with_red_crit_family = Non_ground: inference_system I
     \<G>_Inf_q :: "'q \<Rightarrow> 'f inference \<Rightarrow> 'g inference set" and
     Prec_F_g :: "'g \<Rightarrow> 'f \<Rightarrow> 'f \<Rightarrow> bool"
   assumes
+    Q_not_empty: "Q \<noteq> {}" and
     standard_lifting_family: "q \<in> Q \<Longrightarrow> lifting_with_wf_ordering_family Bot_F Inf_F Bot_G (entails_q q) Inf_G (Red_Inf_q q) (Red_F_q q) (\<G>_F_q q) (\<G>_Inf_q q) Prec_F_g" 
 begin
 
+definition \<G>_set_q :: "'q \<Rightarrow> 'f set \<Rightarrow> 'g set" where
+  "\<G>_set_q q N \<equiv> UNION N (\<G>_F_q q)"
+
 definition Red_Inf_\<G>_Q :: "'f set \<Rightarrow> 'f inference set" where
-  "Red_Inf_\<G>_Q N = (\<Inter>q\<in>Q. {\<iota> \<in> Inf_F. \<G>_Inf_q q \<iota> \<subseteq> Red_Inf_q q (UNION N (\<G>_F_q q))})"
+  "Red_Inf_\<G>_Q N = (\<Inter>q\<in>Q. {\<iota> \<in> Inf_F. \<G>_Inf_q q \<iota> \<subseteq> Red_Inf_q q (\<G>_set_q q N)})"
 
 definition Red_F_\<G>_empty :: "'f set \<Rightarrow> 'f set" where
-  "Red_F_\<G>_empty N = (\<Inter>q\<in>Q. {C. \<forall>D \<in> \<G>_F_q q C. D \<in> Red_F_q q (UNION N (\<G>_F_q q)) \<or> (\<exists>E \<in> N. Prec_F_g D E C \<and> D \<in> \<G>_F_q q E)})"
+  "Red_F_\<G>_empty N = (\<Inter>q\<in>Q. {C. \<forall>D \<in> \<G>_F_q q C. D \<in> Red_F_q q (\<G>_set_q q N) \<or> (\<exists>E \<in> N. Prec_F_g D E C \<and> D \<in> \<G>_F_q q E)})"
 
+definition entails_\<G>_q :: "'q \<Rightarrow> 'f set \<Rightarrow> 'f set \<Rightarrow> bool" where
+  "entails_\<G>_q q N1 N2 \<equiv> entails_q q (\<G>_set_q q N1) (\<G>_set_q q N2)"
+
+lemma \<open>consequence_relation_family Bot_F Q entails_\<G>_q\<close>
+proof
+  show \<open>Q \<noteq> {}\<close> by (rule Q_not_empty)
+next
+oops
+
+definition entails_\<G>_Q :: "'f set \<Rightarrow> 'f set \<Rightarrow> bool" where
+  "entails_\<G>_Q N1 N2 \<equiv> \<forall>q\<in>Q. entails_q q (\<G>_set_q q N1) (\<G>_set_q q N2)"
+
+
+lemma "calculus_with_red_crit Bot_F Inf_F entails_\<G>_Q Red_Inf_\<G>_Q Red_F_\<G>_empty"
+proof
+  show \<open>Bot_F \<noteq> {}\<close>
+    using Q_not_empty standard_lifting_family
+    by (meson ex_in_conv lifting_with_wf_ordering_family.axioms(1) standard_lifting.Bot_F_not_empty)
+oops
 
 
 end
