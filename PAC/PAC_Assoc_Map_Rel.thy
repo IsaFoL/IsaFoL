@@ -6,24 +6,24 @@ section \<open>Hash Map as association list\<close>
 
 type_synonym ('k, 'v) hash_assoc = \<open>('k \<times> 'v) list\<close>
 
-definition hassoc_map_rel :: \<open>(('k, 'v) hash_assoc \<times> _) set\<close> where
-  \<open>hassoc_map_rel = br map_of (\<lambda>_. True)\<close>
+definition hassoc_map_rel_raw :: \<open>(('k, 'v) hash_assoc \<times> _) set\<close> where
+  \<open>hassoc_map_rel_raw = br map_of (\<lambda>_. True)\<close>
 
 abbreviation hassoc_map_assn :: \<open>('k \<Rightarrow> 'v option) \<Rightarrow> ('k, 'v) hash_assoc \<Rightarrow> assn\<close> where
-  \<open>hassoc_map_assn \<equiv> pure (hassoc_map_rel)\<close>
+  \<open>hassoc_map_assn \<equiv> pure (hassoc_map_rel_raw)\<close>
 
-lemma hassoc_map_rel_empty[simp]:
-  \<open>([], m) \<in> hassoc_map_rel \<longleftrightarrow> m = Map.empty\<close>
-  \<open>(p, Map.empty) \<in> hassoc_map_rel \<longleftrightarrow> p = []\<close>
+lemma hassoc_map_rel_raw_empty[simp]:
+  \<open>([], m) \<in> hassoc_map_rel_raw \<longleftrightarrow> m = Map.empty\<close>
+  \<open>(p, Map.empty) \<in> hassoc_map_rel_raw \<longleftrightarrow> p = []\<close>
   \<open>hassoc_map_assn Map.empty [] = emp\<close>
-  by (auto simp: hassoc_map_rel_def br_def pure_def)
+  by (auto simp: hassoc_map_rel_raw_def br_def pure_def)
 
 definition hassoc_new :: \<open>('k, 'v) hash_assoc Heap\<close>where
   \<open>hassoc_new = return []\<close>
 
   lemma precise_hassoc_map_assn: \<open>precise hassoc_map_assn\<close>
     by (auto intro!: precise_pure)
-     (auto simp: single_valued_def hassoc_map_rel_def
+     (auto simp: single_valued_def hassoc_map_rel_raw_def
       br_def)
 
   definition hassoc_isEmpty :: "('k \<times> 'v) list \<Rightarrow> bool Heap" where
@@ -55,7 +55,7 @@ definition hassoc_new :: \<open>('k, 'v) hash_assoc Heap\<close>where
 
   lemma hassoc_map_assn_Cons:
      \<open>hassoc_map_assn (m) (p) \<Longrightarrow>\<^sub>A hassoc_map_assn (m(k \<mapsto> v)) ((k, v) # p) * true\<close>
-     by (auto simp: hassoc_map_rel_def pure_def br_def)
+     by (auto simp: hassoc_map_rel_raw_def pure_def br_def)
 
   interpretation hassoc: bind_map_update hassoc_map_assn hassoc_update
     by unfold_locales
@@ -76,7 +76,7 @@ definition hassoc_new :: \<open>('k, 'v) hash_assoc Heap\<close>where
 
   lemma hassoc_map_assn_hassoc_delete: \<open><hassoc_map_assn m
          p> hassoc_delete k p <hassoc_map_assn (m |` (- {k}))>\<^sub>t\<close>
-   by (auto simp: hassoc_delete_def hassoc_map_rel_def pure_def br_def
+   by (auto simp: hassoc_delete_def hassoc_map_rel_raw_def pure_def br_def
            hassoc_map_of_filter_all
          intro!: return_cons_rule)
 
@@ -90,7 +90,7 @@ definition hassoc_new :: \<open>('k, 'v) hash_assoc Heap\<close>where
 
   lemma hassoc_map_assn_hassoc_lookup:
     \<open><hassoc_map_assn m p> hassoc_lookup k p <\<lambda>r. hassoc_map_assn m p * \<up> (r = m k)>\<^sub>t\<close>
-     by (auto simp: hassoc_lookup_def hassoc_map_rel_def pure_def br_def
+     by (auto simp: hassoc_lookup_def hassoc_map_rel_raw_def pure_def br_def
              hassoc_map_of_filter_all
            intro!: return_cons_rule)
 
@@ -132,8 +132,18 @@ definition hashmap_conv where
   [simp]: \<open>hashmap_conv x = x\<close>
 
 lemma hash_of_assoc_map_id:
-  \<open>(hash_of_assoc_map, hashmap_conv) \<in> hassoc_map_rel \<rightarrow> Id\<close>
-  by (auto intro!: fun_relI simp: hassoc_map_rel_def br_def map_of_alt_def)
+  \<open>(hash_of_assoc_map, hashmap_conv) \<in> hassoc_map_rel_raw \<rightarrow> Id\<close>
+  by (auto intro!: fun_relI simp: hassoc_map_rel_raw_def br_def map_of_alt_def)
+
+definition hassoc_map_rel where
+  hassoc_map_rel_internal_def:
+  \<open>hassoc_map_rel K V = hassoc_map_rel_raw O \<langle>K,V\<rangle>map_rel\<close>
+
+lemma hassoc_map_rel_def:
+  \<open>\<langle>K,V\<rangle> hassoc_map_rel = hassoc_map_rel_raw O \<langle>K,V\<rangle>map_rel\<close>
+  unfolding relAPP_def hassoc_map_rel_internal_def
+  by auto
+
 
 end
 

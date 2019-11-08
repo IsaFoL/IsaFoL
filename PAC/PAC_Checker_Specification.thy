@@ -252,8 +252,12 @@ proof -
   done
 qed
 
+definition remap_polys :: \<open>(nat, int_poly) fmap \<Rightarrow> (nat, int_poly) fmap nres\<close> where
+  \<open>remap_polys A = RETURN A\<close>
+
 definition PAC_checker:: \<open>(nat, int_poly) fmap \<Rightarrow> int_poly pac_step list \<Rightarrow> (bool \<times> (nat, int_poly) fmap) nres\<close> where
   \<open>PAC_checker A st = do {
+    A \<leftarrow> remap_polys A;
     (S, _) \<leftarrow> WHILE\<^sub>T
        (\<lambda>((b, A), n::nat). b \<and> n < length st)
        (\<lambda>((b, A), n). do {
@@ -278,7 +282,7 @@ lemma RES_SPEC_eq:
   by auto
 lemma PAC_checker_PAC_checker_specification2:
   \<open>(A, B) \<in> polys_rel \<Longrightarrow> PAC_checker A st \<le> \<Down> (bool_rel \<times>\<^sub>r polys_rel) (PAC_checker_specification2 B)\<close>
-  unfolding PAC_checker_def conc_fun_RES
+  unfolding PAC_checker_def conc_fun_RES remap_polys_def
   apply (subst RES_SPEC_eq)
   apply (refine_vcg WHILET_rule[where
       I = \<open>\<lambda>((bB), n). n \<le> length st \<and> bB \<in> (bool_rel \<times>\<^sub>r polys_rel)\<inverse> ``
@@ -290,7 +294,7 @@ lemma PAC_checker_PAC_checker_specification2:
   subgoal by auto
   subgoal
     apply auto
-  apply (rule
+    apply (rule
      PAC_checker_step_PAC_checker_specification2[THEN order_trans])
      apply assumption
      apply (auto intro: PAC_checker_specification_spec_trans simp: conc_fun_RES)

@@ -219,8 +219,18 @@ lemma pac_step_rel_raw_def:
   \<open>\<langle>K, V\<rangle> pac_step_rel_raw = pac_step_rel_raw K V\<close>
   by (auto intro!: ext simp: relAPP_def)
 
+definition mononoms_equal_up_to_reorder where
+  \<open>mononoms_equal_up_to_reorder xs ys \<longleftrightarrow>
+     map (\<lambda>(a, b).  (mset a, b)) xs = map (\<lambda>(a, b). (mset a, b)) ys\<close>
+
+definition remap_polys_l where
+  \<open>remap_polys_l A = SPEC (\<lambda>A'. dom_m A = dom_m A' \<and>
+     (\<forall>i \<in># dom_m A. mononoms_equal_up_to_reorder (the (fmlookup A i)) (the (fmlookup A' i))) \<and>
+     (\<forall>i\<in># dom_m A. \<forall> x \<in> mononoms (the (fmlookup A' i)). sorted_wrt (rel2p var_order_rel) x))\<close>
+
 definition PAC_checker_l where
   \<open>PAC_checker_l A st = do {
+    A \<leftarrow> remap_polys_l A;
     (S, _) \<leftarrow> WHILE\<^sub>T
        (\<lambda>((b, A), n::nat). b = SUCCESS \<and> n < length st)
        (\<lambda>((b, A), n). do {
@@ -241,7 +251,6 @@ abbreviation pac_step_rel where
 
 abbreviation polys_rel where
   \<open>polys_rel \<equiv> \<langle>nat_rel, sorted_poly_rel O mset_poly_rel\<rangle>fmap_rel\<close>
-
 
 lemma fref_to_Down_curry:
   \<open>(uncurry f, uncurry g) \<in> [P]\<^sub>f A \<rightarrow> \<langle>B\<rangle>nres_rel \<Longrightarrow>
