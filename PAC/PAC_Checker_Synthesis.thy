@@ -13,7 +13,7 @@ lemma SUCCESS_hnr[sepref_fr_rules]:
   \<open>(uncurry0 (return SUCCESS), uncurry0 (RETURN SUCCESS)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a status_assn R\<close>
   by (sepref_to_hoare)
     sep_auto
-    
+
 lemma is_success_hnr[sepref_fr_rules]:
   \<open>CONSTRAINT is_pure R \<Longrightarrow> ((return o is_success), (RETURN o is_success)) \<in> (status_assn R)\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
   apply (sepref_to_hoare)
@@ -76,32 +76,6 @@ lemma mult_monoms_alt_def:
     done
   done
 
-definition var_order' where
-  [simp]: \<open>var_order' = var_order\<close>
-
-lemma var_order_rel[def_pat_rules]:
-  \<open>(\<in>)$(x,y)$var_order_rel \<equiv> var_order'$x$y\<close>
-  by (auto simp: p2rel_def rel2p_def)
-
-lemma var_order_rel_alt_def:
-  \<open>var_order_rel = p2rel char.lexordp\<close>
-  apply (auto simp: p2rel_def char.lexordp_conv_lexord var_order_rel_def)
-  using char.lexordp_conv_lexord apply auto
-  done
-
-lemma var_order_rel_var_order:
-  \<open>(x, y) \<in> var_order_rel \<longleftrightarrow> var_order x y\<close>
-  by (auto simp: rel2p_def)
-
-lemma var_order_string_le[sepref_import_param]:
-  \<open>((<), var_order') \<in> string_rel \<rightarrow> string_rel \<rightarrow> bool_rel\<close>
-  apply (auto intro!: frefI simp: string_rel_def String.less_literal_def
-     rel2p_def linorder.lexordp_conv_lexord[OF char.linorder_axioms,
-      unfolded less_eq_char_def] var_order_rel_def
-      p2rel_def
-      simp flip: PAC_Polynoms_Term.less_char_def)
-  using char.lexordp_conv_lexord apply auto
-  done
 
 sepref_definition mult_monoms_impl
   is \<open>uncurry (RETURN oo mult_monoms)\<close>
@@ -224,14 +198,18 @@ lemma status_assn_pure_conv:
   by (cases a; cases b)
     (auto simp: pure_def)
 
+
 lemma  [sepref_fr_rules]:
   \<open>(uncurry (return oo error_msg_not_equal_dom), uncurry (RETURN oo error_msg_not_equal_dom)) \<in> poly_assn\<^sup>k *\<^sub>a poly_assn\<^sup>k \<rightarrow>\<^sub>a raw_string_assn\<close>
-  unfolding show_nat_def[symmetric]
+  unfolding show_nat_def[symmetric] list_assn_pure_conv
+    prod_assn_pure_conv
   apply (sepref_to_hoare; sep_auto simp: error_msg_not_equal_dom_def list_assn_aux_append)
-  apply (subst list_assn_aux_append)
-  apply auto
+  apply (auto simp: shows_prec_literal_def string_rel_def)
+  supply[[show_types]]
   sorry
 
+term "shows_prec"
+find_theorems shows_prec "_ :: String.literal"
 lemma [sepref_fr_rules]:
   \<open>(return o error_msg_notin_dom, RETURN o error_msg_notin_dom) \<in> nat_assn\<^sup>k \<rightarrow>\<^sub>a raw_string_assn\<close>
   \<open>(return o error_msg_reused_dom, RETURN o error_msg_reused_dom) \<in> nat_assn\<^sup>k \<rightarrow>\<^sub>a raw_string_assn\<close>
@@ -255,6 +233,33 @@ sepref_definition check_addition_l_impl
   by sepref
 
 declare check_addition_l_impl.refine[sepref_fr_rules]
+
+sepref_register check_mult_l_dom_err
+
+definition check_mult_l_dom_err_impl where
+  \<open>check_mult_l_dom_err_impl pd p ia i =
+    (if pd then ''The polynom with id '' @ show p @ '' was not found'' else '''') @
+    (if ia then ''The id of the resulting id '' @ show i @ '' was was already given'' else '''')\<close>
+
+definition check_mult_l_mult_err_impl where
+  \<open>check_mult_l_mult_err_impl p q pq r =
+    ''Multiplying '' @ show p @ '' by '' @ show q @ '' gives '' @ show pq @ '' and not '' @ show r\<close>
+
+lemma [sepref_fr_rules]:
+  \<open>(uncurry3 ((\<lambda>x y. return oo (check_mult_l_dom_err_impl x y))),
+   uncurry3 (check_mult_l_dom_err)) \<in> bool_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a bool_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a raw_string_assn\<close>
+   unfolding check_mult_l_dom_err_def check_mult_l_dom_err_impl_def list_assn_pure_conv
+   apply sepref_to_hoare
+   apply sep_auto
+   done
+
+lemma [sepref_fr_rules]:
+  \<open>(uncurry3 ((\<lambda>x y. return oo (check_mult_l_mult_err_impl x y))),
+   uncurry3 (check_mult_l_mult_err)) \<in> poly_assn\<^sup>k *\<^sub>a poly_assn\<^sup>k *\<^sub>a poly_assn\<^sup>k *\<^sub>a poly_assn\<^sup>k \<rightarrow>\<^sub>a raw_string_assn\<close>
+   unfolding check_mult_l_mult_err_def check_mult_l_mult_err_impl_def list_assn_pure_conv
+   apply sepref_to_hoare
+   apply sep_auto
+   done
 
 sepref_definition check_mult_l_impl
   is \<open>uncurry4 check_mult_l\<close>
@@ -476,9 +481,10 @@ sepref_definition PAC_empty_impl
   :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a polys_assn\<close>
   unfolding op_fmap_empty_def[symmetric] pat_fmap_empty
   by sepref
-  
-export_code PAC_checker_l_impl normalize_poly_impl PAC_update_impl PAC_empty_impl is_success status_error
-  int_of_integer AddD Add Mult MultD nat_of_integer String.implode in SML_imp module_name PAC_Checker
+
+export_code PAC_checker_l_impl PAC_update_impl PAC_empty_impl is_success status_error
+  int_of_integer AddD Add Mult MultD nat_of_integer String.implode fully_normalize_poly_impl
+  in SML_imp module_name PAC_Checker
   file "code/checker.sml"
 
 end

@@ -82,17 +82,29 @@ definition check_addition_l :: \<open>_ \<Rightarrow> nat \<Rightarrow> nat \<Ri
    }
 }\<close>
 
+definition check_mult_l_dom_err :: \<open>bool \<Rightarrow> nat \<Rightarrow> bool \<Rightarrow> nat \<Rightarrow> string nres\<close> where
+  \<open>check_mult_l_dom_err p_notin p i_already i = SPEC (\<lambda>_. True)\<close>
+
+
+definition check_mult_l_mult_err :: \<open>llist_polynom \<Rightarrow> llist_polynom \<Rightarrow> llist_polynom \<Rightarrow> llist_polynom \<Rightarrow> string nres\<close> where
+  \<open>check_mult_l_mult_err p q pq r = SPEC (\<lambda>_. True)\<close>
+
+
 definition check_mult_l :: \<open>_ \<Rightarrow> nat \<Rightarrow>llist_polynom \<Rightarrow>  nat \<Rightarrow> llist_polynom \<Rightarrow> string status  nres\<close> where
 \<open>check_mult_l A p q i r = do {
     if p \<notin># dom_m A \<or> i \<in># dom_m A
-    then RETURN (error_msg i ((if p \<notin># dom_m A then error_msg_notin_dom p else []) @
-      (if i \<in># dom_m A then error_msg_reused_dom p else [])))
+    then do {
+      c \<leftarrow> check_mult_l_dom_err (p \<notin># dom_m A) p (i \<in># dom_m A) i;
+      RETURN (error_msg i c)}
     else do {
        ASSERT (p \<in># dom_m A);
        let p = the (fmlookup A p);
        pq \<leftarrow> mult_poly_full p q;
        b \<leftarrow> weak_equality_p pq r;
-       if b then RETURN SUCCESS else RETURN (error_msg i (error_msg_not_equal_dom pq r))
+       if b then RETURN SUCCESS else do {
+         c \<leftarrow> check_mult_l_mult_err p q pq r;
+         RETURN (error_msg i c)
+       }
      }
   }\<close>
 
@@ -314,6 +326,7 @@ proof -
   show ?thesis
     using assms
     unfolding check_mult_l_def check_mult_alt_def
+      check_mult_l_mult_err_def check_mult_l_dom_err_def
     apply refine_rcg
     subgoal
       by auto
@@ -324,7 +337,7 @@ proof -
     subgoal
       by auto
     subgoal
-      by (auto simp: bool_with_error_msg_def)
+      by (auto simp: bool_with_error_msg_def bind_RES_RETURN_eq)
     done
 qed
 
