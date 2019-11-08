@@ -26,7 +26,7 @@ fun parse_input_pac_file file_name = let
                   let val (lbl, poly) = (extract (CharParser.parseString PAC_Parser.input_poly x))
                   in
                     (PAC_Checker.nat_of_integer lbl,
-                     PAC_Checker.normalize_poly_impl
+                     PAC_Checker.fully_normalize_poly_impl
                          (map (fn (a,b) => (a, PAC_Checker.Int_of_integer b)) poly) ())
                   end)
               (readfile istream)
