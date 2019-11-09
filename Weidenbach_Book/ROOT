@@ -106,7 +106,7 @@ session "CDCL_no_Sepref" (Weidenbach_Book) = "HOL"  +
     "root.tex"
     "biblio.bib"
 
-session "CDCL" (Weidenbach_Book) = "Sepref_IICF"  +
+session "CDCL" (Weidenbach_Book) = "Isabelle_LLVM"  +
   description \<open>This session the CDCL calculi (Weidenbach and Nieuwenhuis et al.) and the links between
   both. It also contains a very simple implementation based on lists and two extensions (restart and
   incremental).
@@ -172,6 +172,7 @@ session "Watched_Literals" (Weidenbach_Book) = "CDCL"  +
     CDCL
     "HOL-Eisbach"
     Isabelle_LLVM
+    Sepref_IICF
   theories [quick_and_dirty = false, document = true]
     IICF_Array_List64
     Array_Array_List64

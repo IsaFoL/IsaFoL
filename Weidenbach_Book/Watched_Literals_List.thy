@@ -24,7 +24,8 @@ qed
 
 lemma twl_struct_invs_no_alien_in_trail:
   assumes \<open>twl_struct_invs S\<close>
-  shows \<open>L \<in> lits_of_l (get_trail S) \<Longrightarrow> L \<in># all_lits_of_mm (clause `# get_clauses S + unit_clss S)\<close>
+  shows \<open>L \<in> lits_of_l (get_trail S) \<Longrightarrow>
+    L \<in># all_lits_of_mm (clause `# get_clauses S + unit_clss S + subsumed_init_clauses S)\<close>
   using assms apply (cases S)
   apply (auto simp: twl_struct_invs_def
     cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
@@ -36,7 +37,7 @@ lemma twl_struct_invs_no_alien_in_trail:
 
 section \<open>Second Refinement: Lists as Clause\<close>
 
-subsection \<open>Types\<close>
+subsection \<open>Types\<close>=
 type_synonym 'v clauses_to_update_l = \<open>nat multiset\<close>
 
 type_synonym 'v cconflict = \<open>'v clause option\<close>
@@ -44,22 +45,22 @@ type_synonym 'v cconflict_l = \<open>'v literal list option\<close>
 
 type_synonym 'v twl_st_l =
   \<open>('v, nat) ann_lits \<times> 'v clauses_l \<times>
-    'v cconflict \<times> 'v clauses \<times> 'v clauses \<times> 'v clauses_to_update_l \<times> 'v lit_queue\<close>
+    'v cconflict \<times> 'v clauses \<times> 'v clauses \<times> 'v clauses \<times> 'v clauses \<times> 'v clauses_to_update_l \<times> 'v lit_queue\<close>
 
 fun clauses_to_update_l :: \<open>'v twl_st_l \<Rightarrow> 'v clauses_to_update_l\<close> where
-  \<open>clauses_to_update_l (_, _, _, _, _, WS, _) = WS\<close>
+  \<open>clauses_to_update_l (_, _, _, _, _, _, _, WS, _) = WS\<close>
 
 fun get_trail_l :: \<open>'v twl_st_l \<Rightarrow> ('v, nat) ann_lit list\<close> where
   \<open>get_trail_l (M, _, _, _, _, _, _) = M\<close>
 
 fun set_clauses_to_update_l :: \<open>'v clauses_to_update_l \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l\<close> where
-  \<open>set_clauses_to_update_l WS (M, N, D, NE, UE, _, Q) = (M, N, D, NE, UE, WS, Q)\<close>
+  \<open>set_clauses_to_update_l WS (M, N, D, NE, UE, NS, US, _, Q) = (M, N, D, NE, UE, NS, US, WS, Q)\<close>
 
 fun literals_to_update_l :: \<open>'v twl_st_l \<Rightarrow> 'v clause\<close> where
-  \<open>literals_to_update_l (_, _, _, _, _, _, Q) = Q\<close>
+  \<open>literals_to_update_l (_, _, _, _, _, _, _, _, Q) = Q\<close>
 
 fun set_literals_to_update_l :: \<open>'v clause \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l\<close> where
-  \<open>set_literals_to_update_l Q (M, N, D, NE, UE, WS, _) = (M, N, D, NE, UE, WS, Q)\<close>
+  \<open>set_literals_to_update_l Q (M, N, D, NE, UE, NS, US, WS, _) = (M, N, D, NE, UE, NS, US, WS, Q)\<close>
 
 fun get_conflict_l :: \<open>'v twl_st_l \<Rightarrow> 'v cconflict\<close> where
   \<open>get_conflict_l (_, _, D, _, _, _, _) = D\<close>
@@ -71,10 +72,10 @@ fun get_unit_clauses_l :: \<open>'v twl_st_l \<Rightarrow> 'v clauses\<close> wh
   \<open>get_unit_clauses_l (M, N, D, NE, UE, WS, Q) = NE + UE\<close>
 
 fun get_unit_init_clauses_l :: \<open>'v twl_st_l \<Rightarrow> 'v clauses\<close> where
-\<open>get_unit_init_clauses_l (M, N, D, NE, UE, WS, Q) = NE\<close>
+  \<open>get_unit_init_clauses_l (M, N, D, NE, UE, WS, Q) = NE\<close>
 
 fun get_unit_learned_clss_l :: \<open>'v twl_st_l \<Rightarrow> 'v clauses\<close> where
-\<open>get_unit_learned_clss_l (M, N, D, NE, UE, WS, Q) = UE\<close>
+  \<open>get_unit_learned_clss_l (M, N, D, NE, UE, WS, Q) = UE\<close>
 
 fun get_init_clauses :: \<open>'v twl_st \<Rightarrow> 'v twl_clss\<close> where
   \<open>get_init_clauses (M, N, U, D, NE, UE, WS, Q) = N\<close>
@@ -85,26 +86,33 @@ fun get_unit_init_clauses :: \<open>'v twl_st_l \<Rightarrow> 'v clauses\<close>
 definition get_learned_clss_l :: \<open>'v twl_st_l \<Rightarrow> 'v clause_l multiset\<close> where
   \<open>get_learned_clss_l S = learned_clss_lf (get_clauses_l S)\<close>
 
+fun get_subsumed_init_clauses_l :: \<open>'v twl_st_l \<Rightarrow> 'v clauses\<close> where
+  \<open>get_subsumed_init_clauses_l (M, N, D, NE, UE, NS, US, WS, Q) = NS\<close>
+
+fun get_subsumed_learned_clauses_l :: \<open>'v twl_st_l \<Rightarrow> 'v clauses\<close> where
+  \<open>get_subsumed_learned_clauses_l (M, N, D, NE, UE, NS, US, WS, Q) = US\<close>
 
 lemma state_decomp_to_state:
-  \<open>(case S of (M, N, U, D, NE, UE, WS, Q) \<Rightarrow> P M N U D NE UE WS Q) =
+  \<open>(case S of (M, N, U, D, NE, UE, NS, US, WS, Q) \<Rightarrow> P M N U D NE UE NS US WS Q) =
      P (get_trail S) (get_init_clauses S) (get_learned_clss S) (get_conflict S)
         (unit_init_clauses S) (get_init_learned_clss S)
+        (subsumed_init_clauses S) (subsumed_learned_clauses S)
         (clauses_to_update S)
         (literals_to_update S)\<close>
   by (cases S) auto
 
 
 lemma state_decomp_to_state_l:
-  \<open>(case S of (M, N, D, NE, UE, WS, Q) \<Rightarrow> P M N D NE UE WS Q) =
+  \<open>(case S of (M, N, D, NE, UE, NS, US, WS, Q) \<Rightarrow> P M N D NE UE NS US WS Q) =
      P (get_trail_l S) (get_clauses_l S) (get_conflict_l S)
         (get_unit_init_clauses_l S) (get_unit_learned_clss_l S)
+        (get_subsumed_init_clauses_l S) (get_subsumed_learned_clauses_l S)
         (clauses_to_update_l S)
         (literals_to_update_l S)\<close>
   by (cases S) auto
 
 definition set_conflict' :: \<open>'v clause option \<Rightarrow> 'v twl_st \<Rightarrow> 'v twl_st\<close> where
-  \<open>set_conflict' = (\<lambda>C (M, N, U, D, NE, UE, WS, Q). (M, N, U, C, NE, UE, WS, Q))\<close>
+  \<open>set_conflict' = (\<lambda>C (M, N, U, D, NE, UE, NS, US, WS, Q). (M, N, U, C, NE, UE, NS, US, WS, Q))\<close>
 
 inductive convert_lit
   :: \<open>'v clauses_l \<Rightarrow> 'v clauses \<Rightarrow>  ('v, nat) ann_lit \<Rightarrow> ('v, 'v clause) ann_lit \<Rightarrow> bool\<close>
@@ -513,6 +521,8 @@ lemma [twl_st_l]:
     \<open>get_level (get_trail T) = get_level (get_trail_l S)\<close>
     \<open>get_maximum_level (get_trail T) = get_maximum_level (get_trail_l S)\<close>
     \<open>get_trail T \<Turnstile>as D \<longleftrightarrow> get_trail_l S \<Turnstile>as D\<close>
+    \<open>subsumed_init_clauses T = get_subsumed_init_clauses_l S\<close>
+    \<open>subsumed_learned_clauses T = get_subsumed_learned_clauses_l S\<close>
   using assms unfolding twl_st_l_def all_clss_lf_ran_m[symmetric]
   by (auto split: option.splits simp: trail.simps clauses_def mset_take_mset_drop_mset')
 
