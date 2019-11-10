@@ -287,8 +287,8 @@ text \<open>
 \<close>
 inductive cdcl_twl_restart_l :: \<open>'v twl_st_l \<Rightarrow> 'v twl_st_l \<Rightarrow> bool\<close> where
 restart_trail:
-   \<open>cdcl_twl_restart_l (M, N, None, NE, UE, {#}, Q)
-       (M', N', None, NE + mset `# NE', UE + mset `# UE', {#}, Q')\<close>
+   \<open>cdcl_twl_restart_l (M, N, None, NE, UE, NS, US, {#}, Q)
+       (M', N', None, NE + mset `# NE', UE + mset `# UE', NS, {#}, {#}, Q')\<close>
   if
     \<open>valid_trail_reduction M M'\<close> and
     \<open>init_clss_lf N = init_clss_lf N' + NE'\<close> and
@@ -314,8 +314,8 @@ proof (induction rule: cdcl_twl_restart_l.induct)
   case (restart_trail M M' N N' NE' UE' NE UE Q Q') note red = this(1) and init = this(2) and
     learned = this(3) and NUE = this(4) and tr_ge0 = this(5) and tr_new0 = this(6) and
     tr_still0 = this(7) and dom0 = this(8) and QQ' = this(9) and list_invs = this(10)
-  let ?S = \<open>(M, N, None, NE, UE, {#}, Q)\<close>
-  let ?T = \<open>(M', N', None, NE + mset `# NE', UE + mset `# UE', {#}, Q')\<close>
+  let ?S = \<open>(M, N, None, NE, UE, NS, US, {#}, Q)\<close>
+  let ?T = \<open>(M', N', None, NE + mset `# NE', UE + mset `# UE', NS, {#}, {#}, Q')\<close>
   show ?case
     unfolding twl_list_invs_def
   proof (intro conjI impI allI ballI)
@@ -330,7 +330,7 @@ proof (induction rule: cdcl_twl_restart_l.induct)
     fix L C
     assume LC: \<open>Propagated L C \<in> set (get_trail_l ?T)\<close> and C0: \<open>0 < C\<close>
     then obtain C' where LC': \<open>Propagated L C' \<in> set (get_trail_l ?S)\<close>
-      using red by (auto dest!: valid_trail_reduction_Propagated_inD)
+      using red1 by (auto dest!: valid_trail_reduction_Propagated_inD)
     moreover have C'0: \<open>C' \<noteq> 0\<close>
       apply (rule ccontr)
       using C0 tr_still0 LC LC'
@@ -374,13 +374,13 @@ lemma cdcl_twl_restart_l_cdcl_twl_restart:
          clauses_to_update_l S = {#}}
      (SPEC (cdcl_twl_restart T))\<close>
 proof -
-  have [simp]:  \<open>set (watched_l x) \<union> set (unwatched_l x) = set x\<close> for x
+  have [simp]: \<open>set (watched_l x) \<union> set (unwatched_l x) = set x\<close> for x
     by (metis append_take_drop_id set_append)
   have \<open>\<exists>T'. cdcl_twl_restart T T' \<and> (S', T') \<in> twl_st_l None\<close>
     if \<open>cdcl_twl_restart_l S S'\<close> for S'
     using that ST struct_invs
   proof (induction rule: cdcl_twl_restart_l.induct)
-    case (restart_trail M M' N N' NE' UE' NE UE Q Q') note red = this(1) and init = this(2) and
+    case (restart_trail M M' N N' NE' UE' NE UE NS US Q Q') note red = this(1) and init = this(2) and
       learned = this(3) and NUE = this(4) and tr_ge0 = this(5) and tr_new0 = this(6) and
       tr_still0 = this(7) and dom0 = this(8) and QQ' = this(9) and ST = this(10) and
       struct_invs = this(11)
@@ -390,7 +390,7 @@ proof -
       using QQ' by (auto split: if_splits)
     obtain TM where
         T: \<open>T = (TM, twl_clause_of `# init_clss_lf N, twl_clause_of `# learned_clss_lf N, None,
-        NE, UE, {#}, Q)\<close> and
+        NE, UE, NS, US, {#}, Q)\<close> and
       M_TM: \<open>(M, TM) \<in> convert_lits_l N (NE+UE)\<close>
       using ST
       by (cases T) (auto simp: twl_st_l_def)

@@ -77,6 +77,9 @@ fun get_learned_clss :: \<open>'v twl_st \<Rightarrow> 'v twl_clss\<close> where
 fun subsumed_learned_clauses :: \<open>'v twl_st \<Rightarrow> 'v clauses\<close> where
   \<open>subsumed_learned_clauses (M, N, U, D, NE, UE, NS, US, WS, Q) = US\<close>
 
+fun subsumed_clauses :: \<open>'v twl_st \<Rightarrow> 'v clauses\<close> where
+  \<open>subsumed_clauses (M, N, U, D, NE, UE, NS, US, WS, Q) = NS + US\<close>
+
 fun get_init_learned_clss :: \<open>'v twl_st \<Rightarrow> 'v clauses\<close> where
   \<open>get_init_learned_clss (_, N, U, _, _, UE, NS, US, _) = UE\<close>
 
@@ -221,6 +224,13 @@ lemma [twl_st]:
 
 lemma [twl_st]: \<open>conflicting (state\<^sub>W_of S') = get_conflict S'\<close>
   by (cases S') (auto simp: conflicting.simps)
+
+
+lemma subsumed_clauses_simps[simp]:
+  \<open>subsumed_init_clauses (set_clauses_to_update K S) = subsumed_init_clauses S\<close>
+  \<open>subsumed_learned_clauses (set_clauses_to_update K S) = subsumed_learned_clauses S\<close>
+  \<open>subsumed_clauses (set_clauses_to_update K S) = subsumed_clauses S\<close>
+  by (cases S; auto; fail)+
 
 text \<open>
   The invariant on the clauses is the following:

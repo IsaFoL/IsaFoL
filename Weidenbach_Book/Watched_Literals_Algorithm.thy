@@ -57,7 +57,8 @@ definition update_clauseS :: \<open>'v literal \<Rightarrow> 'v twl_cls \<Righta
 
 definition mop_lit_is_pos where
   \<open>mop_lit_is_pos L S = do {
-     ASSERT(L \<in># all_lits_of_mm (clauses (get_clauses S) + unit_clss S) \<and>
+     ASSERT(L \<in># all_lits_of_mm (clauses (get_clauses S) +
+       unit_clss S + subsumed_clauses S) \<and>
         no_dup (get_trail S));
      RETURN (L \<in> lits_of_l (get_trail S))
   }\<close>
@@ -194,6 +195,11 @@ proof -
                   (set_clauses_to_update
                     (remove1_mset (L, C)
                       (clauses_to_update S))
+                    S) +
+                 subsumed_clauses
+                  (set_clauses_to_update
+                    (remove1_mset (L, C)
+                      (clauses_to_update S))
                     S))\<close>
         using K' \<open>C \<in># N + U\<close> by (auto dest!: multi_member_split
             simp: all_lits_of_mm_add_mset all_lits_of_m_add_mset clauses_def S)
@@ -240,6 +246,11 @@ proof -
                         (clauses_to_update S))
                       S)) +
                  unit_clss
+                  (set_clauses_to_update
+                    (remove1_mset (L, C)
+                      (clauses_to_update S))
+                    S) +
+                 subsumed_clauses
                   (set_clauses_to_update
                     (remove1_mset (L, C)
                       (clauses_to_update S))
@@ -309,7 +320,7 @@ proof -
 
 
         { \<comment> \<open>if \<^term>\<open>-L' \<in> lits_of_l M \<close> else\<close>
-             let ?S = \<open>(M, N, U, D, NE, UE, NS, US, WS, Q)\<close>
+           let ?S = \<open>(M, N, U, D, NE, UE, NS, US, WS, Q)\<close>
           let ?T' = \<open>(Propagated L' (clause C) # M, N, U, None, NE, UE, NS, US, WS', add_mset (- L') Q)\<close>
           let ?S' = \<open>(M, N, U, None, NE, UE, NS, US, add_mset (L, C) WS', Q)\<close>
           let ?T = \<open>propagate_lit L' C (set_clauses_to_update (remove1_mset (L, C) (clauses_to_update S)) S)\<close>
