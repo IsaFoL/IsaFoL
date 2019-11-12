@@ -334,21 +334,80 @@ definition Red_F_\<G>_empty :: "'f set \<Rightarrow> 'f set" where
 definition entails_\<G>_q :: "'q \<Rightarrow> 'f set \<Rightarrow> 'f set \<Rightarrow> bool" where
   "entails_\<G>_q q N1 N2 \<equiv> entails_q q (\<G>_set_q q N1) (\<G>_set_q q N2)"
 
-lemma \<open>consequence_relation_family Bot_F Q entails_\<G>_q\<close>
+lemma cons_rel_fam_Q_lem: \<open>consequence_relation_family Bot_F Q entails_\<G>_q\<close>
 proof
   show \<open>Q \<noteq> {}\<close> by (rule Q_not_empty)
 next
-oops
+  show "Bot_F \<noteq> {}"
+    using standard_lifting_family Q_not_empty
+    by (meson ex_in_conv lifting_with_wf_ordering_family.axioms(1) standard_lifting.Bot_F_not_empty)
+next
+  fix qi
+  assume "qi \<in> Q"
+  show "Bot_F \<noteq> {}"
+    using standard_lifting_family Q_not_empty
+    by (meson ex_in_conv lifting_with_wf_ordering_family.axioms(1) standard_lifting.Bot_F_not_empty)
+next
+  fix qi B N1
+  assume
+    qi_in: "qi \<in> Q" and
+    B_in: "B \<in> Bot_F"
+  interpret lift: lifting_with_wf_ordering_family Bot_F Inf_F Bot_G "entails_q qi" Inf_G "Red_Inf_q qi" "Red_F_q qi" "\<G>_F_q qi" "\<G>_Inf_q qi" Prec_F_g
+    by (rule standard_lifting_family[OF qi_in])
+  have "(entails_\<G>_q qi) = lift.entails_\<G>"
+    unfolding entails_\<G>_q_def lift.entails_\<G>_def \<G>_set_q_def by simp
+  then show "entails_\<G>_q qi {B} N1"
+    using B_in lift.lifted_consequence_relation.bot_implies_all by auto
+next
+  fix qi and N2 N1::"'f set"
+  assume
+    qi_in: "qi \<in> Q" and
+    N_incl: "N2 \<subseteq> N1"
+  interpret lift: lifting_with_wf_ordering_family Bot_F Inf_F Bot_G "entails_q qi" Inf_G "Red_Inf_q qi" "Red_F_q qi" "\<G>_F_q qi" "\<G>_Inf_q qi" Prec_F_g
+    by (rule standard_lifting_family[OF qi_in])
+  have "(entails_\<G>_q qi) = lift.entails_\<G>"
+    unfolding entails_\<G>_q_def lift.entails_\<G>_def \<G>_set_q_def by simp
+  then show "entails_\<G>_q qi N1 N2"
+    using N_incl by (simp add: lift.lifted_consequence_relation.subset_entailed)
+next
+  fix qi N1 N2
+  assume
+    qi_in: "qi \<in> Q" and
+    all_C: "\<forall>C\<in> N2. entails_\<G>_q qi N1 {C}"
+  interpret lift: lifting_with_wf_ordering_family Bot_F Inf_F Bot_G "entails_q qi" Inf_G "Red_Inf_q qi" "Red_F_q qi" "\<G>_F_q qi" "\<G>_Inf_q qi" Prec_F_g
+    by (rule standard_lifting_family[OF qi_in])
+  have "(entails_\<G>_q qi) = lift.entails_\<G>"
+    unfolding entails_\<G>_q_def lift.entails_\<G>_def \<G>_set_q_def by simp
+  then show "entails_\<G>_q qi N1 N2"
+    using all_C lift.lifted_consequence_relation.all_formulas_entailed by presburger
+next
+  fix qi N1 N2 N3
+  assume
+    qi_in: "qi \<in> Q" and
+    entails12: "entails_\<G>_q qi N1 N2" and
+    entails23: "entails_\<G>_q qi N2 N3"
+  interpret lift: lifting_with_wf_ordering_family Bot_F Inf_F Bot_G "entails_q qi" Inf_G "Red_Inf_q qi" "Red_F_q qi" "\<G>_F_q qi" "\<G>_Inf_q qi" Prec_F_g
+    by (rule standard_lifting_family[OF qi_in])
+  have "(entails_\<G>_q qi) = lift.entails_\<G>"
+    unfolding entails_\<G>_q_def lift.entails_\<G>_def \<G>_set_q_def by simp
+  then show "entails_\<G>_q qi N1 N3"
+    using entails12 entails23 lift.lifted_consequence_relation.entails_trans by presburger
+qed
 
 definition entails_\<G>_Q :: "'f set \<Rightarrow> 'f set \<Rightarrow> bool" where
   "entails_\<G>_Q N1 N2 \<equiv> \<forall>q\<in>Q. entails_q q (\<G>_set_q q N1) (\<G>_set_q q N2)"
 
+interpretation cons_rel_Q: consequence_relation Bot_F entails_\<G>_Q
+  using consequence_relation_family.cons_rel_family_is_cons_rel[OF cons_rel_fam_Q_lem] oops
 
 lemma "calculus_with_red_crit Bot_F Inf_F entails_\<G>_Q Red_Inf_\<G>_Q Red_F_\<G>_empty"
 proof
   show \<open>Bot_F \<noteq> {}\<close>
     using Q_not_empty standard_lifting_family
     by (meson ex_in_conv lifting_with_wf_ordering_family.axioms(1) standard_lifting.Bot_F_not_empty)
+next
+  show "\<And>B N1. B \<in> Bot_F \<Longrightarrow> entails_\<G>_Q {B} N1"
+    using consequence_relation.bot_implies_all
 oops
 
 
