@@ -398,20 +398,18 @@ definition entails_\<G>_Q :: "'f set \<Rightarrow> 'f set \<Rightarrow> bool" wh
   "entails_\<G>_Q N1 N2 \<equiv> \<forall>q\<in>Q. entails_q q (\<G>_set_q q N1) (\<G>_set_q q N2)"
 
 interpretation cons_rel_Q: consequence_relation Bot_F entails_\<G>_Q
-  using consequence_relation_family.cons_rel_family_is_cons_rel[OF cons_rel_fam_Q_lem] oops
+proof -
+  interpret cons_rel_fam: consequence_relation_family Bot_F Q entails_\<G>_q
+    by (rule cons_rel_fam_Q_lem)
+  have "consequence_relation_family.entails_Q Q entails_\<G>_q = entails_\<G>_Q"
+    unfolding entails_\<G>_Q_def cons_rel_fam.entails_Q_def by (simp add: entails_\<G>_q_def)
+  then show "consequence_relation Bot_F entails_\<G>_Q"
+    using consequence_relation_family.cons_rel_family_is_cons_rel[OF cons_rel_fam_Q_lem] by simp
+qed
 
 lemma "calculus_with_red_crit Bot_F Inf_F entails_\<G>_Q Red_Inf_\<G>_Q Red_F_\<G>_empty"
 proof
-  show \<open>Bot_F \<noteq> {}\<close>
-    using Q_not_empty standard_lifting_family
-    by (meson ex_in_conv lifting_with_wf_ordering_family.axioms(1) standard_lifting.Bot_F_not_empty)
-next
-  show "\<And>B N1. B \<in> Bot_F \<Longrightarrow> entails_\<G>_Q {B} N1"
-    using consequence_relation.bot_implies_all
 oops
-
-
-end
 
 
 subsection \<open>Adding labels\<close>
