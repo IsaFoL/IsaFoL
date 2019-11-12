@@ -34,6 +34,11 @@ lemma valid_trail_reduction_simps: \<open>valid_trail_reduction M M' \<longleftr
  apply (force dest: arg_cong[of \<open>map lit_of _\<close> _ length])+
  done
 
+lemma valid_trail_reduction_refl[simp]:
+  \<open>valid_trail_reduction M M\<close>
+  by (rule valid_trail_reduction.keep_red)
+    auto
+
 lemma trail_changes_same_decomp:
   assumes
     M'_lit: \<open>map lit_of M' = map lit_of ysa @ L # map lit_of zsa\<close> and
@@ -893,9 +898,6 @@ lemma tranclp_cdcl_twl_restart_l_cdcl_is_cdcl_twl_restart_l:
     using cdcl_twl_restart_l_cdcl_twl_restart_l_is_cdcl_twl_restart_l
     rtranclp_cdcl_twl_restart_l_no_dup by blast
   done
-
-lemma valid_trail_reduction_refl: \<open>valid_trail_reduction a a\<close>
-  by (auto simp: valid_trail_reduction.simps)
 
 
 paragraph \<open>Auxilary definition\<close>
@@ -1824,6 +1826,112 @@ where
       }
   })\<close>
 
+definition remove_all_learned_subsumed_clauses :: \<open>'v twl_st_l \<Rightarrow> ('v twl_st_l) nres\<close> where
+\<open>remove_all_learned_subsumed_clauses = (\<lambda>(M, N, D, NE, UE, NS, US, Q, W).
+   RETURN (M, N, D, NE, UE, NS, {#}, Q, W))\<close>
+
+
+lemma decomp_nth_eq_lit_eq:
+  assumes
+    \<open>M = M2 @ Propagated L C' # M1\<close> and
+    \<open>rev M ! i = Propagated L C\<close> and
+    \<open>no_dup M\<close> and
+    \<open>i < length M\<close>
+  shows \<open>length M1 = i\<close> and \<open>C = C'\<close>
+proof -
+  have [simp]: \<open>defined_lit M1 (lit_of (M1 ! i))\<close> if \<open>i < length M1\<close> for i
+    using that by (simp add: in_lits_of_l_defined_litD lits_of_def)
+  have[simp]: \<open>undefined_lit M2 L \<Longrightarrow>
+       k < length M2 \<Longrightarrow>
+       M2 ! k \<noteq> Propagated L C\<close> for k
+    using defined_lit_def nth_mem by fastforce
+  have[simp]: \<open>undefined_lit M1 L \<Longrightarrow>
+       k < length M1 \<Longrightarrow>
+       M1 ! k \<noteq> Propagated L C\<close> for k
+    using defined_lit_def nth_mem by fastforce
+  have \<open>M ! (length M - Suc i) \<in> set M\<close>
+    apply (rule nth_mem)
+    using assms by auto
+  from split_list[OF this] show \<open>length M1 = i\<close> and \<open>C = C'\<close>
+    using assms
+    by (auto simp: nth_append nth_Cons nth_rev split: if_splits nat.splits
+      elim!: list_match_lel_lel)
+qed
+
+lemma
+  assumes \<open>no_dup M\<close>
+  shows
+    no_dup_same_annotD:
+        \<open>Propagated L C \<in> set M \<Longrightarrow> Propagated L C' \<in> set M \<Longrightarrow> C = C'\<close> and
+     no_dup_no_propa_and_dec:
+       \<open>Propagated L C \<in> set M \<Longrightarrow> Decided L \<in> set M \<Longrightarrow> False\<close>
+  using assms
+  by (auto dest!: split_list elim: list_match_lel_lel)
+
+lemma
+  assumes \<open>remove_one_annot_true_clause_imp_inv S s\<close> and
+    s[simp]: \<open>s = (i, U)\<close>
+  shows
+    remove_all_learned_subsumed_clauses_cdcl_twl_restart_l:
+      \<open>remove_all_learned_subsumed_clauses U \<le> SPEC(\<lambda>U'. cdcl_twl_restart_l U U' \<and>
+        get_trail_l U = get_trail_l U')\<close> (is ?A) and
+    remove_one_annot_true_clause_imp_inv_no_dupD:
+      \<open>no_dup (get_trail_l U)\<close> and
+    remove_one_annot_true_clause_imp_inv_no_dupD2:
+      \<open>no_dup (get_trail_l S)\<close>
+proof -
+  obtain x where
+    SU: \<open>remove_one_annot_true_clause\<^sup>*\<^sup>* S U\<close> and
+    list_invs: \<open>twl_list_invs S\<close> and
+    \<open>i \<le> length (get_trail_l S)\<close> and
+    \<open>twl_list_invs S\<close> and
+    clss_upd_U: \<open>clauses_to_update_l S = clauses_to_update_l U\<close> and
+    \<open>literals_to_update_l S = literals_to_update_l U\<close> and
+    conflU: \<open>get_conflict_l U = None\<close> and
+    conflS: \<open>get_conflict_l S = None\<close> and
+    Sx: \<open>(S, x) \<in> twl_st_l None\<close> and
+    struct_invs: \<open>twl_struct_invs x\<close> and
+    clss_upd_S:  \<open>clauses_to_update_l S = {#}\<close> and
+    \<open>length (get_trail_l S) = length (get_trail_l U)\<close> and
+    \<open>\<forall>j<i. is_proped (rev (get_trail_l U) ! j) \<and>
+              mark_of (rev (get_trail_l U) ! j) = 0\<close>
+    using assms
+    unfolding remove_all_learned_subsumed_clauses_def
+      remove_one_annot_true_clause_imp_inv_def prod.case
+    by blast
+  obtain T' where
+    list_invs_U: \<open>twl_list_invs U\<close> and
+    UT': \<open>(U, T') \<in> twl_st_l None\<close> and
+    xT': \<open>cdcl_twl_restart\<^sup>*\<^sup>* x T'\<close>
+    using rtranclp_cdcl_twl_restart_l_list_invs[of S U, OF _ list_invs]
+      rtranclp_remove_one_annot_true_clause_cdcl_twl_restart_l2[OF SU list_invs
+        conflS clss_upd_S Sx struct_invs]
+    by auto
+  have 1: \<open>Propagated L E \<in> set (get_trail_l U) \<Longrightarrow> 0 < E \<Longrightarrow> E \<in># dom_m (get_clauses_l U)\<close>
+    \<open>0 \<notin># dom_m (get_clauses_l U)\<close> for E L
+    using list_invs_U
+    unfolding twl_list_invs_def
+    by auto
+  have \<open>twl_struct_invs T'\<close>
+    using rtranclp_cdcl_twl_restart_twl_struct_invs struct_invs xT' by blast
+  then show \<open>no_dup (get_trail_l U)\<close>
+    unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
+    using UT' by (simp add: twl_st)
+  from no_dup_same_annotD[OF this]
+  show ?A
+    using clss_upd_U conflU 1 unfolding clss_upd_S
+    unfolding remove_all_learned_subsumed_clauses_def
+    by (refine_rcg)
+      (auto simp: cdcl_twl_restart_l.simps)
+   show \<open>no_dup (get_trail_l S)\<close>
+     using Sx struct_invs
+    unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
+    by (simp add: twl_st)
+qed
+
+
 definition remove_one_annot_true_clause_imp :: \<open>'v twl_st_l \<Rightarrow> ('v twl_st_l) nres\<close>
 where
 \<open>remove_one_annot_true_clause_imp = (\<lambda>S. do {
@@ -1834,7 +1942,7 @@ where
       (\<lambda>(i, S). i < k)
       (\<lambda>(i, S). remove_one_annot_true_clause_one_imp i S)
       (0, S);
-    RETURN S
+    remove_all_learned_subsumed_clauses S
   })\<close>
 
 
@@ -1899,43 +2007,6 @@ lemma rtranclp_remove_one_annot_true_clause_reduce_dom_clauses:
    reduce_dom_clauses (get_clauses_l S) (get_clauses_l U)\<close>
   by (induction rule: rtranclp_induct)
     (auto dest!: remove_one_annot_true_clause_reduce_dom_clauses intro: reduce_dom_clauses_trans)
-
-lemma decomp_nth_eq_lit_eq:
-  assumes
-    \<open>M = M2 @ Propagated L C' # M1\<close> and
-    \<open>rev M ! i = Propagated L C\<close> and
-    \<open>no_dup M\<close> and
-    \<open>i < length M\<close>
-  shows \<open>length M1 = i\<close> and \<open>C = C'\<close>
-proof -
-  have [simp]: \<open>defined_lit M1 (lit_of (M1 ! i))\<close> if \<open>i < length M1\<close> for i
-    using that by (simp add: in_lits_of_l_defined_litD lits_of_def)
-  have[simp]: \<open>undefined_lit M2 L \<Longrightarrow>
-       k < length M2 \<Longrightarrow>
-       M2 ! k \<noteq> Propagated L C\<close> for k
-    using defined_lit_def nth_mem by fastforce
-  have[simp]: \<open>undefined_lit M1 L \<Longrightarrow>
-       k < length M1 \<Longrightarrow>
-       M1 ! k \<noteq> Propagated L C\<close> for k
-    using defined_lit_def nth_mem by fastforce
-  have \<open>M ! (length M - Suc i) \<in> set M\<close>
-    apply (rule nth_mem)
-    using assms by auto
-  from split_list[OF this] show \<open>length M1 = i\<close> and \<open>C = C'\<close>
-    using assms
-    by (auto simp: nth_append nth_Cons nth_rev split: if_splits nat.splits
-      elim!: list_match_lel_lel)
-qed
-
-lemma
-  assumes \<open>no_dup M\<close>
-  shows
-    no_dup_same_annotD:
-        \<open>Propagated L C \<in> set M \<Longrightarrow> Propagated L C' \<in> set M \<Longrightarrow> C = C'\<close> and
-     no_dup_no_propa_and_dec:
-       \<open>Propagated L C \<in> set M \<Longrightarrow> Decided L \<in> set M \<Longrightarrow> False\<close>
-  using assms
-  by (auto dest!: split_list elim: list_match_lel_lel)
 
 lemma remove_one_annot_true_clause_imp_inv_spec:
   assumes
@@ -2523,6 +2594,19 @@ lemma rtranclp_remove_one_annot_true_clause_count_dec:
   by (induction rule: rtranclp_induct)
     (auto simp: remove_one_annot_true_clause_count_dec)
 
+lemma rtranclp_valid_trail_reduction_count_dec_ge:
+  \<open>valid_trail_reduction M M' \<Longrightarrow>
+    count_decided M' \<le> count_decided M\<close>
+  apply (induction rule: valid_trail_reduction.induct)
+  by (auto simp: dest!: get_all_ann_decomposition_exists_prepend
+    dest: trail_renumber_count_dec)
+
+lemma rtranclp_cdcl_twl_restart_l_count_dec:
+  \<open>cdcl_twl_restart_l S b \<Longrightarrow>
+    count_decided (get_trail_l S) \<ge> count_decided (get_trail_l b)\<close>
+  by (induction rule: cdcl_twl_restart_l.induct)
+    (auto simp: remove_one_annot_true_clause_count_dec
+    dest: rtranclp_valid_trail_reduction_count_dec_ge)
 
 lemma remove_one_annot_true_clause_imp_spec:
   assumes
@@ -2531,11 +2615,12 @@ lemma remove_one_annot_true_clause_imp_spec:
     struct_invs: \<open>twl_struct_invs T\<close> and
     \<open>get_conflict_l S = None\<close> and
     \<open>clauses_to_update_l S = {#}\<close>
-  shows \<open>remove_one_annot_true_clause_imp S \<le> SPEC(\<lambda>T. remove_one_annot_true_clause\<^sup>*\<^sup>* S T)\<close>
+  shows \<open>remove_one_annot_true_clause_imp S \<le> SPEC(\<lambda>T. cdcl_twl_restart_l S T)\<close>
   unfolding remove_one_annot_true_clause_imp_def
   apply (refine_vcg WHILEIT_rule[where R=\<open>measure (\<lambda>(i, _). length (get_trail_l S) - i)\<close> and
       I=\<open>remove_one_annot_true_clause_imp_inv S\<close>]
-    remove_one_annot_true_clause_imp_inv_spec)
+    remove_one_annot_true_clause_imp_inv_spec
+    remove_all_learned_subsumed_clauses_cdcl_twl_restart_l[THEN order_trans])
   subgoal by auto
   subgoal using assms unfolding remove_one_annot_true_clause_imp_inv_def by blast
   apply (rule remove_one_annot_true_clause_one_imp_spec[of _ _ ])
@@ -2547,7 +2632,14 @@ lemma remove_one_annot_true_clause_imp_spec:
   subgoal
     by (auto dest!: get_all_ann_decomposition_exists_prepend
       simp: count_decided_0_iff rev_nth is_decided_no_proped_iff)
-  subgoal unfolding remove_one_annot_true_clause_imp_inv_def by auto
+  apply assumption
+  apply assumption
+  subgoal for x s a b xa
+    using tranclp_cdcl_twl_restart_l_cdcl_is_cdcl_twl_restart_l[of S xa]
+      rtranclp_into_tranclp1[of cdcl_twl_restart_l S b xa]
+      remove_one_annot_true_clause_imp_inv_no_dupD2[of S s \<open>fst s\<close> \<open>snd s\<close>]
+    by (auto simp: remove_one_annot_true_clause_imp_inv_def
+       dest!: rtranclp_remove_one_annot_true_clause_cdcl_twl_restart_l2)
   done
 
 lemma remove_one_annot_true_clause_imp_spec_lev0:
@@ -2558,7 +2650,7 @@ lemma remove_one_annot_true_clause_imp_spec_lev0:
     \<open>get_conflict_l S = None\<close> and
     \<open>clauses_to_update_l S = {#}\<close> and
     \<open>count_decided (get_trail_l S) = 0\<close>
-  shows \<open>remove_one_annot_true_clause_imp S \<le> SPEC(\<lambda>T. remove_one_annot_true_clause\<^sup>*\<^sup>* S T \<and>
+  shows \<open>remove_one_annot_true_clause_imp S \<le> SPEC(\<lambda>T. cdcl_twl_restart_l S T \<and>
      count_decided (get_trail_l T) = 0 \<and> (\<forall>L \<in> set (get_trail_l T). mark_of L = 0) \<and>
      length (get_trail_l S) = length (get_trail_l T)) \<close>
 proof -
@@ -2574,21 +2666,25 @@ proof -
      count_decided (get_trail_l b) \<noteq> 0\<close> for a b
     using count_decided_0_iff nth_mem by blast
   show ?thesis
+    apply (rule SPEC_rule_conjI)
+    apply (rule remove_one_annot_true_clause_imp_spec[OF assms(1-5)])
     unfolding remove_one_annot_true_clause_imp_def
     apply (refine_vcg WHILEIT_rule[where
-       R=\<open>measure (\<lambda>(i, _::'a twl_st_l). length (get_trail_l S) - i)\<close> and
-      I=\<open>remove_one_annot_true_clause_imp_inv S\<close>]
-      remove_one_annot_true_clause_one_imp_spec)
+        R=\<open>measure (\<lambda>(i, _::'a twl_st_l). length (get_trail_l S) - i)\<close> and
+        I=\<open>remove_one_annot_true_clause_imp_inv S\<close>]
+      remove_one_annot_true_clause_one_imp_spec
+      remove_all_learned_subsumed_clauses_cdcl_twl_restart_l[THEN order_trans])
     subgoal by auto
     subgoal using assms unfolding remove_one_annot_true_clause_imp_inv_def by blast
     subgoal using assms unfolding remove_one_annot_true_clause_imp_inv_def by auto
     subgoal using assms by (auto simp: count_decided_0_iff is_decided_no_proped_iff
       rev_nth)
-    subgoal
-      using assms(6) unfolding remove_one_annot_true_clause_imp_inv_def
-      by (auto dest: H K)
+    apply assumption
+    apply assumption
     subgoal using assms unfolding remove_one_annot_true_clause_imp_inv_def
-      by (auto simp: rtranclp_remove_one_annot_true_clause_count_dec)
+      apply (auto simp: rtranclp_remove_one_annot_true_clause_count_dec
+        dest: rtranclp_cdcl_twl_restart_l_count_dec)
+      done
     subgoal
       using assms(6) unfolding remove_one_annot_true_clause_imp_inv_def
       by (auto dest: H K)
@@ -3728,21 +3824,24 @@ lemma cdcl_twl_full_restart_l_GC_prog_cdcl_twl_restart_l:
     confl: \<open>get_conflict_l S = None\<close> and
     upd: \<open>clauses_to_update_l S = {#}\<close> and
     stgy_invs: \<open>twl_stgy_invs S'\<close>
-  shows \<open>cdcl_twl_full_restart_l_GC_prog S \<le> \<Down> Id (SPEC (\<lambda>T. cdcl_twl_restart_l S T \<or> S = T))\<close>
+  shows \<open>cdcl_twl_full_restart_l_GC_prog S \<le> \<Down> Id (SPEC (\<lambda>T. cdcl_twl_restart_l S T))\<close>
 proof -
-  let ?f = \<open>(\<lambda>S T. cdcl_twl_restart_l S T \<or> S = T)\<close>
-  let ?f1 = \<open>\<lambda>S S'. ?f S S' \<and> count_decided (get_trail_l S') = 0\<close>
-  let ?f2 = \<open>\<lambda>S S'. ?f1 S S' \<and> (\<forall>L \<in> set (get_trail_l S'). mark_of L = 0) \<and>
+  let ?f = \<open>(\<lambda>S T. cdcl_twl_restart_l S T)\<close>
+  let ?f1 = \<open>\<lambda>S S'. (?f S S' \<or> S = S') \<and> count_decided (get_trail_l S') = 0\<close>
+  let ?f1' = \<open>\<lambda>S S'. (?f S S') \<and> count_decided (get_trail_l S') = 0\<close>
+  let ?f2 = \<open>\<lambda>S S'. ?f S S' \<and> (\<forall>L \<in> set (get_trail_l S'). mark_of L = 0) \<and>
+    length (get_trail_l S) = length (get_trail_l S')\<close>
+  let ?f3 = \<open>\<lambda>S S'. ?f1 S S' \<and> (\<forall>L \<in> set (get_trail_l S'). mark_of L = 0) \<and>
     length (get_trail_l S) = length (get_trail_l S')\<close>
   have n_d: \<open>no_dup (get_trail_l S)\<close>
     using struct_invs ST unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
       cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
     by (simp add: twl_st)
-  then have alt_def: \<open>SPEC (\<lambda>T. cdcl_twl_restart_l S T \<or> S = T) \<ge> do {
+  then have alt_def: \<open>SPEC (\<lambda>T. cdcl_twl_restart_l S T) \<ge> do {
     S' \<leftarrow> SPEC (\<lambda>S'. ?f1 S S');
     T \<leftarrow> SPEC (?f2 S');
-    U \<leftarrow> SPEC (?f2 T);
-    V \<leftarrow> SPEC (\<lambda>V. ?f2 U V);
+    U \<leftarrow> SPEC (?f3 T);
+    V \<leftarrow> SPEC (\<lambda>V. ?f3 U V);
     RETURN V
     }\<close>
     unfolding RETURN_def RES_RES_RETURN_RES apply -
@@ -3752,16 +3851,16 @@ proof -
     unfolding mem_Collect_eq
     by (metis (full_types) cdcl_twl_restart_l_cdcl_twl_restart_l_is_cdcl_twl_restart_l singletonD)
 
-  have 1: \<open>remove_one_annot_true_clause_imp T \<le> SPEC (\<lambda>V. ?f2 U V \<or> V = U)\<close>
+  have 1: \<open>remove_one_annot_true_clause_imp T \<le> SPEC (\<lambda>V. ?f2 U V)\<close>
     if
       \<open>(T, U) \<in> Id\<close> and
       \<open>U \<in> Collect (\<lambda>S'. ?f1 S S')\<close>
     for T U
   proof -
-    have \<open>T = U\<close> and \<open>?f S T\<close> and count_0: \<open>count_decided (get_trail_l T) = 0\<close>
+    have \<open>T = U\<close> and \<open>?f S T \<or> S = T\<close> and count_0: \<open>count_decided (get_trail_l T) = 0\<close>
       using that by auto
     have confl: \<open>get_conflict_l T = None\<close>
-      using \<open>?f S T\<close> confl
+      using \<open>?f S T \<or> S = T\<close> confl
       by (auto simp: cdcl_twl_restart_l.simps)
     obtain T' where
       TT': \<open>(T, T') \<in> twl_st_l None\<close> and
@@ -3770,14 +3869,14 @@ proof -
       clss_upd: \<open>clauses_to_update_l T = {#}\<close> and
       \<open>cdcl_twl_restart S' T' \<or> S' = T'\<close>
       using cdcl_twl_restart_l_invs[OF assms(1-3), of T] assms
-        \<open>?f S T\<close>
+        \<open>?f S T \<or> S = T\<close>
       by blast
     show ?thesis
       unfolding \<open>T = U\<close>[symmetric]
       by (rule remove_one_annot_true_clause_imp_spec_lev0[OF TT' list_invs struct_invs confl
           clss_upd, THEN order_trans])
        (use count_0 remove_one_annot_true_clause_cdcl_twl_restart_l_spec[OF TT' list_invs struct_invs
-           confl clss_upd] n_d \<open>cdcl_twl_restart_l S T \<or> S = T\<close>
+           confl clss_upd] n_d \<open>?f S T \<or> S = T\<close>
 	   remove_one_annot_true_clause_map_mark_of_same_or_0[of T] in
          \<open>auto dest: cdcl_twl_restart_l_cdcl_twl_restart_l_is_cdcl_twl_restart_l
 	   simp: rtranclp_remove_one_annot_true_clause_count_dec\<close>)
@@ -3791,26 +3890,27 @@ proof -
       \<open>U' \<in> Collect (?f2 T')\<close>
     for T T' U U'
   proof -
-    have \<open>T = T'\<close> \<open>U = U'\<close> and \<open>?f T U\<close> and \<open>?f S T\<close>
+    have \<open>T = T'\<close> \<open>U = U'\<close> and \<open>?f T U\<close> and \<open>?f S T \<or> S = T\<close>
       using that by auto
-    then have \<open>?f S U\<close>
+    then have \<open>?f S U \<or> S = U\<close>
       using n_d cdcl_twl_restart_l_cdcl_twl_restart_l_is_cdcl_twl_restart_l
       by blast
     have confl: \<open>get_conflict_l U = None\<close>
-      using  \<open>?f T U\<close> confl
+      using \<open>?f T U\<close> \<open>?f S T \<or> S = T\<close> confl
       by (auto simp: cdcl_twl_restart_l.simps)
     obtain U' where
       TT': \<open>(U, U') \<in> twl_st_l None\<close> and
       list_invs: \<open>twl_list_invs U\<close> and
       struct_invs: \<open>twl_struct_invs U'\<close> and
       clss_upd: \<open>clauses_to_update_l U = {#}\<close> and
-      \<open>cdcl_twl_restart S' U'\<close>
-      using cdcl_twl_restart_l_invs[OF assms(1-3) \<open>?f S U\<close>] by blast
+      \<open>cdcl_twl_restart S' U' \<or> S' = U'\<close>
+      using cdcl_twl_restart_l_invs[OF assms(1-3), of U] \<open>?f S U \<or> S = U\<close> assms that[of S']
+      by blast
     then show ?thesis
       unfolding mark_to_delete_clauses_l_pre_def
       by blast
   qed
-  have 2: \<open>mark_to_delete_clauses_l U \<le> SPEC (\<lambda>V. ?f2 U' V \<or> U' = V)\<close>
+  have 2: \<open>mark_to_delete_clauses_l U \<le> SPEC (\<lambda>V. ?f3 U' V)\<close>
     if
       \<open>(T, T') \<in> Id\<close> and
       \<open>T' \<in> Collect (?f1 S)\<close> and
@@ -3819,7 +3919,7 @@ proof -
       pre: \<open>mark_to_delete_clauses_l_pre U\<close>
     for T T' U U'
   proof -
-    have \<open>T = T'\<close> \<open>U = U'\<close> and \<open>?f T U\<close> and \<open>?f S T\<close>
+    have \<open>T = T'\<close> \<open>U = U'\<close> and \<open>?f T U\<close> and \<open>?f S T \<or> S = T\<close>
       using that by auto
     then have SU: \<open>?f S U\<close>
       using n_d cdcl_twl_restart_l_cdcl_twl_restart_l_is_cdcl_twl_restart_l
@@ -3832,16 +3932,16 @@ proof -
       using pre unfolding mark_to_delete_clauses_l_pre_def
       by auto
     have confl: \<open>get_conflict_l U = None\<close> and upd: \<open>clauses_to_update_l U = {#}\<close> and UU[simp]: \<open>U' = U\<close>
-      using U UU'
+      using U UU' \<open>?f T U\<close> confl  \<open>?f S T \<or> S = T\<close> assms
       by (auto simp: cdcl_twl_restart_l.simps)
     show ?thesis
       by (rule mark_to_delete_clauses_l_spec[OF TV list_invs struct confl upd, THEN order_trans],
          subst Down_id_eq)
-        (use remove_one_annot_true_clause_cdcl_twl_restart_l_spec[OF TV list_invs struct confl upd]
+       (use remove_one_annot_true_clause_cdcl_twl_restart_l_spec[OF TV list_invs struct confl upd]
           cdcl_twl_restart_l_cdcl_twl_restart_l_is_cdcl_twl_restart_l[OF _ _ n_d, of T] that
-          ST in auto)
+          ST in \<open>auto dest!: rtranclp_cdcl_twl_restart_l_count_dec\<close>)
   qed
-  have 3: \<open>cdcl_GC_clauses V \<le> SPEC (?f2 V')\<close>
+  have 3: \<open>cdcl_GC_clauses V \<le> SPEC (?f3 V')\<close>
     if
       \<open>(T, T') \<in> Id\<close> and
       \<open>T' \<in> Collect (?f1 S)\<close> and
@@ -3849,28 +3949,29 @@ proof -
       \<open>U' \<in> Collect (?f2 T')\<close> and
       \<open>mark_to_delete_clauses_l_pre U\<close> and
       \<open>(V, V') \<in> Id\<close> and
-      \<open>V' \<in> Collect (?f2 U')\<close>
+      \<open>V' \<in> Collect (?f3 U')\<close>
     for T T' U U' V V'
   proof -
     have eq: \<open>U' = U\<close>
       using that by auto
-    have st: \<open>T = T'\<close> \<open>U = U'\<close> \<open>V = V'\<close> and \<open>?f S T\<close> and \<open>?f T U\<close> and \<open>?f U V\<close> and
+    have st: \<open>T = T'\<close> \<open>U = U'\<close> \<open>V = V'\<close> and \<open>?f S T \<or> S = T\<close> and \<open>?f T U\<close> and
+       \<open>?f U V \<or> U = V\<close> and
       le_UV: \<open>length (get_trail_l U) = length (get_trail_l V)\<close> and
       mark0: \<open>\<forall>L\<in>set (get_trail_l V'). mark_of L = 0\<close> and
       count_dec: \<open>count_decided (get_trail_l V') = 0\<close>
-      using that by auto
+      using that by (auto dest!: rtranclp_cdcl_twl_restart_l_count_dec)
     then have \<open>?f S V\<close>
       using n_d cdcl_twl_restart_l_cdcl_twl_restart_l_is_cdcl_twl_restart_l
       by blast
     have mark: \<open>mark_of (get_trail_l V ! i) = 0\<close> if \<open>i < length (get_trail_l V)\<close> for i
       using that
-      by (elim cdcl_twl_restart_l_mark_of_same_or_0[OF \<open>?f U V\<close>, of i])
-        (use st that le_UV count_dec mark0 in
+      by (use st that le_UV count_dec mark0 in
         \<open>auto simp: count_decided_0_iff is_decided_no_proped_iff\<close>)
     then have count_dec: \<open>count_decided (get_trail_l V') = 0\<close> and
       mark: \<open>\<And>L. L \<in> set (get_trail_l V') \<Longrightarrow> mark_of L = 0\<close>
-      using cdcl_twl_restart_l_count_dec_ge[OF \<open>?f U V\<close>] that
-      by auto
+      using cdcl_twl_restart_l_count_dec_ge[of U V] that \<open>?f U V \<or> U = V\<close>
+      by (auto dest!: rtranclp_cdcl_twl_restart_l_count_dec
+        rtranclp_cdcl_twl_restart_l_count_dec)
     obtain W where
       UV: \<open>(V, W) \<in> twl_st_l None\<close> and
       list_invs: \<open>twl_list_invs V\<close> and
@@ -3895,9 +3996,9 @@ proof -
       \<open>U' \<in> Collect (?f2 T')\<close> and
       \<open>mark_to_delete_clauses_l_pre U\<close> and
       \<open>(V, V') \<in> Id\<close> and
-      \<open>V' \<in> Collect (?f2 U')\<close> and
+      \<open>V' \<in> Collect (?f3 U')\<close> and
       \<open>(W, W') \<in> Id\<close> and
-      \<open>W' \<in> Collect (?f2 V')\<close>
+      \<open>W' \<in> Collect (?f3 V')\<close>
     for T T' U U' V V' W W'
     using n_d cdcl_twl_restart_l_cdcl_twl_restart_l_is_cdcl_twl_restart_l[of S T U]
       cdcl_twl_restart_l_cdcl_twl_restart_l_is_cdcl_twl_restart_l[of S U V]
@@ -3961,7 +4062,8 @@ where
 lemma restart_prog_l_restart_abs_l:
   \<open>(uncurry2 restart_prog_l, uncurry2 restart_abs_l) \<in> Id \<times>\<^sub>f nat_rel \<times>\<^sub>f bool_rel \<rightarrow>\<^sub>f \<langle>Id\<rangle>nres_rel\<close>
 proof -
-  have cdcl_twl_full_restart_l_prog: \<open>cdcl_twl_full_restart_l_prog S \<le> SPEC (cdcl_twl_restart_l S)\<close>
+  have cdcl_twl_full_restart_l_prog:
+    \<open>cdcl_twl_full_restart_l_prog S \<le> SPEC (\<lambda>T. cdcl_twl_restart_l S T \<or> S = T)\<close>
     if
       inv: \<open>restart_abs_l_pre S brk\<close> and
       \<open>(b, ba) \<in> bool_rel\<close> and
