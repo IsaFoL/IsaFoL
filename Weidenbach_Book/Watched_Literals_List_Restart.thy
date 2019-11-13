@@ -1,5 +1,6 @@
 theory Watched_Literals_List_Restart
   imports Watched_Literals_List Watched_Literals_Algorithm_Restart
+    Weidenbach_Book_Base.Explorer
 begin
 
 text \<open>
@@ -1034,7 +1035,10 @@ delete:
 if
   \<open>C \<in># dom_m N\<close> and
   \<open>\<not>irred N C\<close> and
-  \<open>\<forall>L. Propagated L C \<notin> set M\<close>
+  \<open>\<forall>L. Propagated L C \<notin> set M\<close> |
+delete_subsumed:
+  \<open>remove_one_annot_true_clause (M, N, D, NE, UE, NS, US, W, Q)
+     (M, N, D, NE, UE, NS, {#}, W, Q)\<close>
 
 text \<open>Remarks:
   \<^enum> \<^term>\<open>\<forall>L. Propagated L C \<notin> set M\<close> is overkill. However, I am currently unsure how I want to
@@ -1085,6 +1089,17 @@ proof -
     using split_list[OF LC] split_list[OF LC']
     by (force elim!: list_match_lel_lel)
 qed
+
+
+lemma
+  assumes \<open>no_dup M\<close>
+  shows
+    no_dup_same_annotD:
+        \<open>Propagated L C \<in> set M \<Longrightarrow> Propagated L C' \<in> set M \<Longrightarrow> C = C'\<close> and
+     no_dup_no_propa_and_dec:
+       \<open>Propagated L C \<in> set M \<Longrightarrow> Decided L \<in> set M \<Longrightarrow> False\<close>
+  using assms
+  by (auto dest!: split_list elim: list_match_lel_lel)
 
 lemma remove_one_annot_true_clause_cdcl_twl_restart_l:
   assumes
@@ -1395,6 +1410,16 @@ proof -
       subgoal by auto
       subgoal by auto
       done
+  next
+    case (delete_subsumed M N D NE UE NS US W Q)
+    have \<open>cdcl_twl_restart_l (M, N, None, NE, UE, NS, US, {#}, Q)
+       (M, N, None, NE + mset `# {#}, UE + mset `# {#}, NS, {#}, {#}, Q)\<close>
+      by (rule cdcl_twl_restart_l.intros)
+        (use lst_invs n_d in \<open>auto dest: no_dup_same_annotD simp: delete_subsumed twl_list_invs_def\<close>)
+    then show ?thesis
+      using assms
+      unfolding delete_subsumed
+      by simp
   qed
 qed
 
@@ -1857,16 +1882,6 @@ proof -
     by (auto simp: nth_append nth_Cons nth_rev split: if_splits nat.splits
       elim!: list_match_lel_lel)
 qed
-
-lemma
-  assumes \<open>no_dup M\<close>
-  shows
-    no_dup_same_annotD:
-        \<open>Propagated L C \<in> set M \<Longrightarrow> Propagated L C' \<in> set M \<Longrightarrow> C = C'\<close> and
-     no_dup_no_propa_and_dec:
-       \<open>Propagated L C \<in> set M \<Longrightarrow> Decided L \<in> set M \<Longrightarrow> False\<close>
-  using assms
-  by (auto dest!: split_list elim: list_match_lel_lel)
 
 lemma
   assumes \<open>remove_one_annot_true_clause_imp_inv S s\<close> and
@@ -2748,7 +2763,7 @@ definition mark_to_delete_clauses_l :: \<open>'v twl_st_l \<Rightarrow> 'v twl_s
        }
       })
       (to_keep, S, xs);
-    RETURN S
+    remove_all_learned_subsumed_clauses S
   })\<close>
 
 
@@ -2765,7 +2780,7 @@ lemma mark_to_delete_clauses_l_spec:
     struct_invs: \<open>twl_struct_invs S'\<close> and
     confl: \<open>get_conflict_l S = None\<close> and
     upd: \<open>clauses_to_update_l S = {#}\<close>
-  shows \<open>mark_to_delete_clauses_l S \<le> \<Down> Id (SPEC(\<lambda>T. remove_one_annot_true_clause\<^sup>*\<^sup>* S T \<and>
+  shows \<open>mark_to_delete_clauses_l S \<le> \<Down> Id (SPEC(\<lambda>T. remove_one_annot_true_clause\<^sup>+\<^sup>+ S T \<and>
     get_trail_l S = get_trail_l T))\<close>
 proof -
 
@@ -2940,6 +2955,33 @@ proof -
     show  \<open>I xs0 (i + 1, T, xs)\<close>
       using I unfolding I_def st prod.simps .
   qed
+  have remove_all_learned_subsumed_clauses: \<open>remove_all_learned_subsumed_clauses aa
+        \<le> SPEC
+           (\<lambda>T. remove_one_annot_true_clause\<^sup>+\<^sup>+ S T \<and>
+                get_trail_l S = get_trail_l T)\<close>
+    if
+      \<open>mark_to_delete_clauses_l_pre S\<close> and
+      \<open>xs0 \<in> {N. True}\<close> and
+      \<open>True\<close> and
+      \<open>mark_to_delete_clauses_l_inv S xs0 s\<close> and
+      \<open>I xs0 s\<close> and
+      \<open>\<not> (case s of (i, S, xs) \<Rightarrow> i < length xs)\<close> and
+      \<open>s = (a, b)\<close> and
+      \<open>b = (aa, ba)\<close>
+    for x s a b aa ba xs0
+  proof -
+    have 1: \<open>remove_all_learned_subsumed_clauses aa
+        \<le> SPEC
+           (\<lambda>T. remove_one_annot_true_clause aa T \<and>
+                get_trail_l aa = get_trail_l T)\<close>
+      unfolding remove_all_learned_subsumed_clauses_def
+      by refine_rcg
+        (auto intro!: remove_one_annot_true_clause.delete_subsumed)
+    show ?thesis
+      by (rule 1[THEN order_trans])
+        (use that in \<open>auto simp: mark_to_delete_clauses_l_inv_def\<close>)
+  qed
+
 
   show ?thesis
     unfolding mark_to_delete_clauses_l_def collect_valid_indices_def
@@ -2977,10 +3019,8 @@ proof -
         by (rule I_keep)
       subgoal
         by auto
-      subgoal
-        unfolding I_def by blast
-      subgoal
-        unfolding mark_to_delete_clauses_l_inv_def by auto
+      subgoal for x s a b aa ba
+        by (rule remove_all_learned_subsumed_clauses)
       done
     done
 qed
@@ -3456,26 +3496,36 @@ lemma remove_one_annot_true_clause_cdcl_twl_restart_l_spec:
     struct_invs: \<open>twl_struct_invs T\<close> and
     confl: \<open>get_conflict_l S = None\<close> and
     upd: \<open>clauses_to_update_l S = {#}\<close>
-  shows \<open>SPEC(remove_one_annot_true_clause\<^sup>*\<^sup>* S) \<le> SPEC(\<lambda>T. cdcl_twl_restart_l S T \<or> S = T)\<close>
+  shows \<open>SPEC(remove_one_annot_true_clause\<^sup>+\<^sup>+ S) \<le> SPEC(\<lambda>T. cdcl_twl_restart_l S T)\<close>
 proof -
-  have \<open>cdcl_twl_restart_l S U' \<or> S = U'\<close>
-    if rem: \<open>remove_one_annot_true_clause\<^sup>*\<^sup>* S U'\<close> for U'
+  have \<open>cdcl_twl_restart_l S U'\<close>
+    if rem: \<open>remove_one_annot_true_clause\<^sup>+\<^sup>+ S U'\<close> for U'
   proof -
     have n_d: \<open>no_dup (get_trail_l S)\<close>
       using ST struct_invs unfolding twl_struct_invs_def
           cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
           cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
       by (simp add: twl_st twl_st_l)
-    have \<open>cdcl_twl_restart_l\<^sup>*\<^sup>* S U'\<close>
-      using rtranclp_remove_one_annot_true_clause_cdcl_twl_restart_l2[of S U' T, OF rem list_invs
+    have subs_U': \<open>get_subsumed_learned_clauses_l U' = {#}\<close>
+      using rem unfolding tranclp_unfold_end
+      by (cases U'; auto simp: remove_one_annot_true_clause.simps)
+    have SU': \<open>cdcl_twl_restart_l\<^sup>*\<^sup>* S U'\<close>
+      using rtranclp_remove_one_annot_true_clause_cdcl_twl_restart_l2[of S U' T, OF
+        tranclp_into_rtranclp[OF rem] list_invs
         confl upd ST struct_invs]
       apply -
       apply normalize_goal+
       by auto
-    then show \<open>cdcl_twl_restart_l S U' \<or> S = U'\<close>
+    moreover have \<open>cdcl_twl_restart_l S U'\<close> if \<open>S = U'\<close>
+      using confl upd rem rtranclp_cdcl_twl_restart_l_no_dup[OF SU'] list_invs
+       n_d subs_U'
+      unfolding that[symmetric]
+      by (cases S)
+        (auto simp: cdcl_twl_restart_l.simps twl_list_invs_def
+         dest: no_dup_same_annotD)
+    ultimately show \<open>cdcl_twl_restart_l S U'\<close>
       using tranclp_cdcl_twl_restart_l_cdcl_is_cdcl_twl_restart_l[of S U', OF _ n_d]
-      unfolding rtranclp_unfold
-      by auto
+      by (meson rtranclpD) 
   qed
   then show ?thesis
     by force
@@ -3675,12 +3725,12 @@ lemma cdcl_twl_full_restart_l_prog_spec:
     struct_invs: \<open>twl_struct_invs T\<close> and
     confl: \<open>get_conflict_l S = None\<close> and
     upd: \<open>clauses_to_update_l S = {#}\<close>
-  shows \<open>cdcl_twl_full_restart_l_prog S \<le> \<Down> Id (SPEC(remove_one_annot_true_clause\<^sup>*\<^sup>* S))\<close>
+  shows \<open>cdcl_twl_full_restart_l_prog S \<le> \<Down> Id (SPEC(remove_one_annot_true_clause\<^sup>+\<^sup>+ S))\<close>
 proof -
   have mark_to_delete_clauses_l:
     \<open>mark_to_delete_clauses_l x \<le> SPEC (\<lambda>T. ASSERT (mark_to_delete_clauses_l_post U T) \<bind>
              (\<lambda>_. RETURN T)
-             \<le> SPEC (remove_one_annot_true_clause\<^sup>*\<^sup>* U))\<close>
+             \<le> SPEC (remove_one_annot_true_clause\<^sup>+\<^sup>+ U))\<close>
     if
       Ux: \<open>(x, U) \<in> Id\<close> and
       U: \<open>U \<in> Collect (remove_one_annot_true_clause\<^sup>*\<^sup>* S)\<close>
@@ -3706,15 +3756,15 @@ proof -
     have list_U: \<open>twl_list_invs U\<close>
       using SU' list_invs rtranclp_cdcl_twl_restart_l_list_invs by blast
      have [simp]:
-      \<open>remove_one_annot_true_clause\<^sup>*\<^sup>* U V' \<Longrightarrow>  mark_to_delete_clauses_l_post U V'\<close> for V'
+      \<open>remove_one_annot_true_clause\<^sup>+\<^sup>+ U V' \<Longrightarrow>  mark_to_delete_clauses_l_post U V'\<close> for V'
       unfolding mark_to_delete_clauses_l_post_def
       using UV struct_invs_V list_U confl_U upd_U
-      by blast
+      by (blast dest: tranclp_into_rtranclp)
     show ?thesis
       unfolding x
       by (rule mark_to_delete_clauses_l_spec[OF UV list_U struct_invs_V confl_U upd_U,
          THEN order_trans])
-        (auto intro: RES_refine)
+       (auto intro: RES_refine)
   qed
   have 1: \<open>SPEC (remove_one_annot_true_clause\<^sup>*\<^sup>* S) = do {
        T \<leftarrow> SPEC (remove_one_annot_true_clause\<^sup>*\<^sup>* S);
@@ -4063,7 +4113,7 @@ lemma restart_prog_l_restart_abs_l:
   \<open>(uncurry2 restart_prog_l, uncurry2 restart_abs_l) \<in> Id \<times>\<^sub>f nat_rel \<times>\<^sub>f bool_rel \<rightarrow>\<^sub>f \<langle>Id\<rangle>nres_rel\<close>
 proof -
   have cdcl_twl_full_restart_l_prog:
-    \<open>cdcl_twl_full_restart_l_prog S \<le> SPEC (\<lambda>T. cdcl_twl_restart_l S T \<or> S = T)\<close>
+    \<open>cdcl_twl_full_restart_l_prog S \<le> SPEC (\<lambda>T. cdcl_twl_restart_l S T)\<close>
     if
       inv: \<open>restart_abs_l_pre S brk\<close> and
       \<open>(b, ba) \<in> bool_rel\<close> and
