@@ -223,16 +223,29 @@ definition mononoms_equal_up_to_reorder where
   \<open>mononoms_equal_up_to_reorder xs ys \<longleftrightarrow>
      map (\<lambda>(a, b).  (mset a, b)) xs = map (\<lambda>(a, b). (mset a, b)) ys\<close>
 
-definition remap_polys_l where
-  \<open>remap_polys_l A = SPEC (\<lambda>A'. dom_m A = dom_m A' \<and>
-     (\<forall>i \<in># dom_m A. mononoms_equal_up_to_reorder (the (fmlookup A i)) (the (fmlookup A' i))) \<and>
-     (\<forall>i\<in># dom_m A. \<forall> x \<in> mononoms (the (fmlookup A' i)). sorted_wrt (rel2p var_order_rel) x) \<and>
-     (\<forall>i\<in># dom_m A. sorted_wrt term_order (map fst (the (fmlookup A' i))) \<and>
-       distinct (map fst (the (fmlookup A' i)))))\<close>
+
+ definition normalize_poly_l where
+  \<open>normalize_poly_l p = SPEC (\<lambda>p'.
+     normalize_poly_p\<^sup>*\<^sup>* ((\<lambda>(a, b). (mset a, b)) `# mset p) ((\<lambda>(a, b). (mset a, b)) `# mset p') \<and>
+     0 \<notin># snd `# mset p' \<and>
+     sorted_wrt (rel2p (term_order_rel \<times>\<^sub>r int_rel)) p' \<and>
+     (\<forall> x \<in> mononoms p'. sorted_wrt (rel2p var_order_rel) x))\<close>
+
+definition remap_polys_l :: \<open>(nat, llist_polynom) fmap \<Rightarrow> _ nres\<close> where
+  \<open>remap_polys_l A = do{
+    dom \<leftarrow> SPEC(\<lambda>dom. set_mset (dom_m A) \<subseteq> dom \<and> finite dom);
+   FOREACH dom
+     (\<lambda>i A'.
+        if i \<in># dom_m A
+        then  do {
+          p \<leftarrow> full_normalize_poly (the (fmlookup A i));
+          RETURN(fmupd i p A')
+        } else RETURN A')
+     fmempty
+ }\<close>
 
 definition PAC_checker_l where
   \<open>PAC_checker_l A st = do {
-    A \<leftarrow> remap_polys_l A;
     (S, _) \<leftarrow> WHILE\<^sub>T
        (\<lambda>((b, A), n::nat). b = SUCCESS \<and> n < length st)
        (\<lambda>((b, A), n). do {
@@ -255,14 +268,195 @@ abbreviation polys_rel where
   \<open>polys_rel \<equiv> \<langle>nat_rel, sorted_poly_rel O mset_poly_rel\<rangle>fmap_rel\<close>
 
 lemma
-  \<open>(A, B) \<in> \<langle>nat_rel, fully_unsorted_poly_rel O mset_poly_rel\<rangle>fmap_rel \<Longrightarrow>
-    remap_polys_l A \<le> \<Down> (polys_rel) (remap_polys B)\<close>
-  unfolding remap_polys_l_def remap_polys_def RETURN_def fmap_rel_alt_def
-  apply (intro RES_refine)
-  apply (auto simp: mset_poly_rel_def sorted_poly_list_rel_wrt_def)
-  apply (rule_tac b = \<open>(\<lambda>(a, b). (mset a, b)) `# mset (the (fmlookup s i))\<close> in relcompI)
-  apply auto
-  sorry
+  \<open>normalize_poly_p s0 s \<Longrightarrow>
+        (s0, p) \<in> mset_poly_rel \<Longrightarrow>
+        (s, p) \<in> mset_poly_rel\<close>
+  by (auto simp: mset_poly_rel_def normalize_poly_p_poly_of_mset)
+
+lemma
+  assumes \<open>(A, B) \<in> \<langle>nat_rel, fully_unsorted_poly_rel O mset_poly_rel\<rangle>fmap_rel\<close>
+  shows \<open>remap_polys_l A \<le> \<Down> (polys_rel) (remap_polys B)\<close>
+proof -
+  have 1: \<open>inj_on id (dom :: nat set)\<close> for dom
+    by auto
+  have remap_polys_alt_def:
+    \<open>remap_polys A = do{
+       dom \<leftarrow> SPEC(\<lambda>dom. set_mset (dom_m A) \<subseteq> dom \<and> finite dom);
+       A' \<leftarrow> FOREACH dom
+         (\<lambda>i A'.
+            if i \<in># dom_m A
+            then do {
+              p \<leftarrow> SPEC(\<lambda>p. the (fmlookup A i) - p \<in> ideal polynom_bool);
+              RETURN(fmupd i p A')
+            } else RETURN A')
+         fmempty;
+       RETURN A'
+     }\<close> for A
+    unfolding remap_polys_def by auto
+  have remap_polys_l_alt_def:
+    \<open>remap_polys_l A = do{
+       dom \<leftarrow> SPEC(\<lambda>dom. set_mset (dom_m A) \<subseteq> dom \<and> finite dom);
+       A' \<leftarrow> FOREACH dom
+         (\<lambda>i A'.
+            if i \<in># dom_m A
+            then  do {
+              p \<leftarrow> full_normalize_poly (the (fmlookup A i));
+              RETURN(fmupd i p A')
+            } else RETURN A')
+         fmempty;
+       RETURN A'
+     }\<close> for A
+     unfolding remap_polys_l_def
+     by auto
+  have H: \<open>x \<in># dom_m A \<Longrightarrow>
+     (\<And>p. (the (fmlookup A x), p) \<in> fully_unsorted_poly_rel \<Longrightarrow>
+       (p, the (fmlookup B x)) \<in> mset_poly_rel \<Longrightarrow> thesis) \<Longrightarrow>
+     thesis\<close> for x thesis
+     using fmap_rel_nat_the_fmlookup[OF assms, of x x] fmap_rel_nat_rel_dom_m[OF assms] by auto
+  have full_normalize_poly: \<open>full_normalize_poly (the (fmlookup A x))
+       \<le> \<Down> (sorted_poly_rel O mset_poly_rel)
+          (SPEC
+            (\<lambda>p. the (fmlookup B x') - p \<in> More_Modules.ideal polynom_bool))\<close>
+      if x_dom: \<open>x \<in># dom_m A\<close> and \<open>(x, x') \<in> Id\<close> for x x'
+      apply (rule H[OF x_dom])
+      subgoal for p
+      apply (rule full_normalize_poly_normalize_poly_p[THEN order_trans])
+      apply assumption
+      subgoal
+        using that(2) apply -
+        unfolding conc_fun_chain[symmetric]
+        by (rule ref_two_step', rule RES_refine)
+         (auto simp: rtranclp_normalize_poly_p_poly_of_mset
+          mset_poly_rel_def ideal.span_zero)
+      done
+      done
+
+  have emp: \<open>(fmempty, fmempty) \<in> polys_rel\<close>
+    by auto
+  show ?thesis
+    using assms
+    unfolding remap_polys_l_alt_def
+      remap_polys_alt_def
+    apply (refine_rcg full_normalize_poly fmap_rel_fmupd_fmap_rel)
+    subgoal
+      by auto
+    apply (rule 1)
+    subgoal by auto
+    apply (rule emp)
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    done
+qed
+
+
+definition remap_polys_in_place_l:: \<open>(nat, llist_polynom) fmap \<Rightarrow> _ nres\<close> where
+  \<open>remap_polys_in_place_l A = do{
+   dom \<leftarrow> SPEC(\<lambda>dom. set_mset (dom_m A) \<subseteq> dom \<and> finite dom);
+   FOREACH dom
+     (\<lambda>i A.
+        if i \<in># dom_m A
+        then  do {
+          p \<leftarrow> full_normalize_poly (the (fmlookup A i));
+          RETURN(fmupd i p A)
+        } else RETURN A)
+     A
+ }\<close>
+
+lemma
+  \<open>remap_polys_in_place_l A \<le> \<Down>Id (remap_polys_l A)\<close>
+
+proof -
+  have 1: \<open>inj_on id (dom :: nat set)\<close> for dom
+    by auto
+  have remap_polys_in_place_l_alt_def:
+    \<open>remap_polys_in_place_l A = do{
+       dom \<leftarrow> SPEC(\<lambda>dom. set_mset (dom_m A) \<subseteq> dom \<and> finite dom);
+       A' \<leftarrow>  FOREACH dom
+     (\<lambda>i A.
+        if i \<in># dom_m A
+        then  do {
+          p \<leftarrow> full_normalize_poly (the (fmlookup A i));
+          RETURN(fmupd i p A)
+        } else RETURN A)
+     A;
+       RETURN A'
+     }\<close> for A
+    unfolding remap_polys_in_place_l_def by auto
+  have remap_polys_l_alt_def:
+    \<open>remap_polys_l A = do{
+       dom \<leftarrow> SPEC(\<lambda>dom. set_mset (dom_m A) \<subseteq> dom \<and> finite dom);
+       A' \<leftarrow> FOREACH dom
+         (\<lambda>i A'.
+            if i \<in># dom_m A
+            then  do {
+              p \<leftarrow> full_normalize_poly (the (fmlookup A i));
+              RETURN(fmupd i p A')
+            } else RETURN A')
+         fmempty;
+       RETURN A'
+     }\<close> for A
+     unfolding remap_polys_l_def
+     by auto
+  let ?I = \<open>\<lambda>dom A' dom' fmempty. (A', fmempty) \<in> {(D, C).
+        dom_m D = mset_set (dom \<inter> set_mset (dom_m A))+ dom_m C \<and>
+          (\<forall>i\<in>dom. i \<notin># dom_m C) \<and>
+        (\<forall>i. i\<in>dom \<longrightarrow> fmlookup D i = fmlookup A i) \<and>
+        (\<forall>i \<in> set_mset (dom_m A) - dom. fmlookup D i = fmlookup C i) \<and>
+        dom_m C \<subseteq># dom_m A}\<close>
+
+  have 2: \<open>((dom, A), id ` dom, fmempty) \<in> {((dom, A'), dom', fmempty). ?I dom A' dom' fmempty}\<close>
+    if \<open>dom \<in> {dom. set_mset (dom_m A) \<subseteq> dom \<and> finite dom}\<close>
+    for dom
+    using that in_dom_m_lookup_iff apply auto
+    apply (metis dom_m_fmrestrict_set' fmlookup_restrict_set_id')
+    done
+  have 3: \<open>(dom, doma) \<in> Id \<Longrightarrow>
+    dom \<in> {dom. set_mset (dom_m A) \<subseteq> dom \<and> finite dom} \<Longrightarrow>
+    doma \<in> {dom. set_mset (dom_m A) \<subseteq> dom \<and> finite dom} \<Longrightarrow>
+    x' = id x \<Longrightarrow>
+    x \<in> it \<Longrightarrow>
+    x' \<in> it' \<Longrightarrow>
+    (( it, \<sigma>), it', \<sigma>') \<in> {((dom, A'), dom', fmempty). ?I dom A' dom' fmempty} \<Longrightarrow>
+    x \<in># dom_m \<sigma> \<Longrightarrow>
+    x' \<in># dom_m A \<Longrightarrow>
+    full_normalize_poly (the (fmlookup \<sigma> x))
+    \<le> \<Down> Id
+       (full_normalize_poly (the (fmlookup A x')))\<close>
+    for dom doma x it \<sigma> x' it' \<sigma>'
+    by (auto dest!: multi_member_split)
+
+  show ?thesis
+  supply FOREACH_refine_rcg[refine del]
+    unfolding remap_polys_l_alt_def remap_polys_in_place_l_alt_def
+    apply (refine_vcg FOREACH_refine_genR[where \<alpha> = id and R = \<open>{((dom, A'), dom', fmempty). ?I dom A' dom' fmempty}\<close> and
+       R' = \<open>{(C, D). ?I {} C {} D}\<close>])
+    apply (rule 1)
+    subgoal by auto
+    apply (rule 2, assumption)
+    subgoal
+      by (auto simp add: in_dom_m_lookup_iff intro: in_mono)
+    apply (rule 3; assumption)
+    subgoal for dom doma x it \<sigma> x' it' \<sigma>'
+      apply (auto dest: multi_member_split simp: ac_simps mset_set.insert_remove
+        intro: subset_add_mset_notin_subset)
+      using multi_member_split subset_add_mset_notin_subset by fastforce+
+    subgoal
+      by auto
+    subgoal
+      by auto
+    subgoal
+      apply auto
+      by (metis (mono_tags) Collect_mem_eq Collect_mono_iff finite_set_mset fmap_ext
+        in_dom_m_lookup_iff mset_set_subset_iff subset_mset.dual_order.trans)
+    done
+qed
+
+
 lemma fref_to_Down_curry:
   \<open>(uncurry f, uncurry g) \<in> [P]\<^sub>f A \<rightarrow> \<langle>B\<rangle>nres_rel \<Longrightarrow>
      (\<And>x x' y y'. P (x', y') \<Longrightarrow> ((x, y), (x', y')) \<in> A \<Longrightarrow> f x y \<le> \<Down> B (g x' y'))\<close>

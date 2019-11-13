@@ -252,12 +252,9 @@ proof -
   done
 qed
 
-definition remap_polys :: \<open>(nat, int_poly) fmap \<Rightarrow> (nat, int_poly) fmap nres\<close> where
-  \<open>remap_polys A = RETURN A\<close>
 
 definition PAC_checker:: \<open>(nat, int_poly) fmap \<Rightarrow> int_poly pac_step list \<Rightarrow> (bool \<times> (nat, int_poly) fmap) nres\<close> where
   \<open>PAC_checker A st = do {
-    A \<leftarrow> remap_polys A;
     (S, _) \<leftarrow> WHILE\<^sub>T
        (\<lambda>((b, A), n::nat). b \<and> n < length st)
        (\<lambda>((b, A), n). do {
@@ -282,7 +279,7 @@ lemma RES_SPEC_eq:
   by auto
 lemma PAC_checker_PAC_checker_specification2:
   \<open>(A, B) \<in> polys_rel \<Longrightarrow> PAC_checker A st \<le> \<Down> (bool_rel \<times>\<^sub>r polys_rel) (PAC_checker_specification2 B)\<close>
-  unfolding PAC_checker_def conc_fun_RES remap_polys_def
+  unfolding PAC_checker_def conc_fun_RES
   apply (subst RES_SPEC_eq)
   apply (refine_vcg WHILET_rule[where
       I = \<open>\<lambda>((bB), n). n \<le> length st \<and> bB \<in> (bool_rel \<times>\<^sub>r polys_rel)\<inverse> ``
@@ -302,6 +299,70 @@ lemma PAC_checker_PAC_checker_specification2:
   subgoal
     by auto
   done
+
+definition full_checker where
+  \<open>full_checker A pac spec = do {
+     A \<leftarrow> SPEC(\<lambda>A'. \<forall>i. fmlookup A i = fmlookup A' i);
+     (b, A) \<leftarrow> PAC_checker A pac;
+     SPEC(\<lambda>b'. b' \<longrightarrow> b \<and> spec \<in># ran_m A)
+}\<close>
+
+
+definition remap_polys :: \<open>(nat, int mpoly) fmap \<Rightarrow> (nat, int mpoly) fmap nres\<close> where
+  \<open>remap_polys A = do{
+    dom \<leftarrow> SPEC(\<lambda>dom. set_mset (dom_m A) \<subseteq> dom \<and> finite dom);
+   FOREACH dom
+     (\<lambda>i A'.
+        if i \<in># dom_m A
+        then do {
+          p \<leftarrow> SPEC(\<lambda>p. the (fmlookup A i) - p \<in> ideal polynom_bool);
+          RETURN(fmupd i p A')
+        } else RETURN A')
+     fmempty
+ }\<close>
+
+lemma remap_polys_spec:
+  \<open>remap_polys A \<le> SPEC(\<lambda>A'. dom_m A = dom_m A' \<and>
+    (\<forall>i \<in># dom_m A. the (fmlookup A i) - the (fmlookup A' i) \<in> ideal polynom_bool))\<close>
+    (is \<open>_ \<le> SPEC(?P)\<close>)
+  unfolding remap_polys_def
+  apply (refine_vcg FOREACH_rule[where
+    I = \<open>\<lambda>dom A'.
+      set_mset (dom_m A') =  set_mset (dom_m A) - dom \<and>
+      (\<forall>i \<in> set_mset (dom_m A) - dom. the (fmlookup A i) - the (fmlookup A' i) \<in> ideal polynom_bool)\<close>])
+  subgoal by auto
+  subgoal by auto
+  subgoal
+    by auto
+  subgoal by auto
+  subgoal using ideal.span_add by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by (auto simp: distinct_set_mset_eq_iff distinct_mset_dom)
+  subgoal by auto
+  done
+
+
+definition full_checker_specification ::  \<open>int_poly multiset \<Rightarrow> int_poly \<Rightarrow> bool nres\<close> where
+  \<open>full_checker_specification A spec = SPEC(\<lambda>b. b \<longrightarrow> spec \<in> pac_ideal (set_mset A))\<close>
+
+lemma
+  assumes \<open>(A, A') \<in> polys_rel\<close>
+  shows
+    \<open>full_checker A pac spec \<le> \<Down> bool_rel (full_checker_specification A' spec)\<close>
+proof -
+
+  show ?thesis
+    unfolding full_checker_def full_checker_specification_def
+    apply (refine_vcg PAC_checker_PAC_checker_specification2[THEN order_trans, of _ A'])
+    subgoal
+      using fmap_ext assms by (auto simp: polys_rel_def ran_m_def)
+    subgoal
+      by (auto simp add: PAC_checker_specification_spec_def conc_fun_RES polys_rel_def
+        dest!: rtranclp_PAC_Format_subset_ideal)
+    done
+qed
+
 
 end
 

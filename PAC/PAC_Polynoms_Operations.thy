@@ -1069,7 +1069,6 @@ definition mult_poly_full :: \<open>_\<close> where
   full_normalize_poly pq
 }\<close>
 
-
 lemma normalize_poly_normalize_poly_p:
   assumes \<open>(p, p') \<in> unsorted_poly_rel\<close>
   shows \<open>normalize_poly p \<le> \<Down> (sorted_poly_rel) (SPEC (\<lambda>r. normalize_poly_p\<^sup>*\<^sup>* p' r))\<close>

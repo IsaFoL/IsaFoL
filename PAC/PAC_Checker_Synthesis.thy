@@ -15,7 +15,8 @@ lemma SUCCESS_hnr[sepref_fr_rules]:
     sep_auto
 
 lemma is_success_hnr[sepref_fr_rules]:
-  \<open>CONSTRAINT is_pure R \<Longrightarrow> ((return o is_success), (RETURN o is_success)) \<in> (status_assn R)\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  \<open>CONSTRAINT is_pure R \<Longrightarrow>
+  ((return o is_success), (RETURN o is_success)) \<in> (status_assn R)\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
   apply (sepref_to_hoare)
   apply (case_tac xi; case_tac x)
   apply  sep_auto+
