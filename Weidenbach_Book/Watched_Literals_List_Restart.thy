@@ -3525,7 +3525,7 @@ proof -
          dest: no_dup_same_annotD)
     ultimately show \<open>cdcl_twl_restart_l S U'\<close>
       using tranclp_cdcl_twl_restart_l_cdcl_is_cdcl_twl_restart_l[of S U', OF _ n_d]
-      by (meson rtranclpD) 
+      by (meson rtranclpD)
   qed
   then show ?thesis
     by force
