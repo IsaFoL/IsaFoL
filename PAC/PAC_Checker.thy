@@ -38,14 +38,6 @@ fun pac_step_rel_assn :: \<open>(nat \<Rightarrow> nat \<Rightarrow> assn) \<Rig
    R2 r r'\<close> |
 \<open>pac_step_rel_assn R1 R2 _ _ = false\<close>
 
-datatype 'a status =
-  FAILED (status_error: 'a) |
-  is_success: SUCCESS
-
-lemma is_success_alt_def:
-  \<open>is_success a \<longleftrightarrow> a = SUCCESS\<close>
-  by (cases a) auto
-
 definition error_msg where
   \<open>error_msg i msg = FAILED (''s CHECKING failed at line '' @ show i @ '' with error '' @ msg)\<close>
 
