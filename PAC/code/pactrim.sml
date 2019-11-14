@@ -26,8 +26,7 @@ fun parse_polys_file file_name = let
                   let val (lbl, poly) = (extract (CharParser.parseString PAC_Parser.input_poly x))
                   in
                     (PAC_Checker.nat_of_integer lbl,
-                     PAC_Checker.fully_normalize_poly_impl
-                         (map (fn (a,b) => (a, PAC_Checker.Int_of_integer b)) poly) ())
+                         map (fn (a,b) => (a, PAC_Checker.Int_of_integer b)) poly)
                   end)
               (readfile istream)
   val _ = TextIO.closeIn istream
@@ -59,15 +58,14 @@ fun parse_spec_file file_name = let
   val _ = TextIO.closeIn istream
 in
   case a of
-      [a] => PAC_Checker.fully_normalize_poly_impl
-                                      (map (fn (a,b) => (a, PAC_Checker.Int_of_integer b)) a) ()
+      [a] => (map (fn (a,b) => (a, PAC_Checker.Int_of_integer b)) a)
 end
 
 
 fun checker [polys, pac, spec] = let
   val _ = println "start";
   val timer = Timer.totalCPUTimer ();
-  val (problem : (PAC_Checker.nat, ((string list * PAC_Checker.int) list)) PAC_Checker.hashtable) = parse_polys_file polys;
+  val problem = parse_polys_file polys;
   val _ = println "polys parsed\n******************"
   val timer = Timer.totalCPUTimer ();
   val pac : ((string list * PAC_Checker.int) list PAC_Checker.pac_step) list = parse_pac_file pac;
@@ -78,7 +76,7 @@ fun checker [polys, pac, spec] = let
   val end_of_init = Timer.checkCPUTimes timer;
   val _ = print (Int.toString (MLton.size problem));
   val _ = println "Now checking";
-  val (b, _) = PAC_Checker.pAC_checker_l_impl spec problem pac ();
+  val (b, _) = PAC_Checker.full_checker_l_impl spec problem pac ();
   val _ = if PAC_Checker.is_cfound b then println "s SUCCESSFULL"
           else if (PAC_Checker.is_cfailed b) = false then println "s FAILED, but correct PAC"
           else (println "s FAILED!!!!!!!"; println (PAC_Checker.implode (PAC_Checker.the_error b)))

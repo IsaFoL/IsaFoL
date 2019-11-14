@@ -11,7 +11,7 @@ struct
   infixr 1 || <|> ??
   val int_of_string = valOf o IntInf.fromString
 
-  fun print_ignore _ = ()
+  fun print_ignore a = ()
   val var =
       (repeat1 letter && repeat1 digit) wth
                                         (fn (x, y) => (print_ignore (String.implode x ^ String.implode y ^"\n"); (String.implode x ^ String.implode y)))
@@ -67,7 +67,7 @@ struct
 
 
   val step_poly : ((string list * PAC_Checker.int) list PAC_Checker.pac_step) charParser =
-      ((((lbl << space) && (plus_rule << spaces) && (lbl << string ", ") && (lbl << string ", ")
+      ((((lbl << spaces) && (plus_rule << spaces) && (lbl << string ", ") && (lbl << string ", ")
                         && polynom) << string ";" << newLine) wth
         (fn (lbl, (rule, (src1, (src2, poly)))) => 
            if rule = "d +:"
@@ -75,13 +75,11 @@ struct
                                   PAC_Checker.nat_of_integer src1,
                                   PAC_Checker.nat_of_integer src2,
                                   PAC_Checker.nat_of_integer lbl,
-                                  PAC_Checker.fully_normalize_poly_impl
-                                      (map (fn (a,b) => (a, PAC_Checker.Int_of_integer b)) poly) ()))
+                                      (map (fn (a,b) => (a, PAC_Checker.Int_of_integer b)) poly)))
            else (PAC_Checker.Add (PAC_Checker.nat_of_integer src1,
                                  PAC_Checker.nat_of_integer src2,
                                  PAC_Checker.nat_of_integer lbl,
-                                 PAC_Checker.fully_normalize_poly_impl
-                                     (map (fn (a,b) => (a, PAC_Checker.Int_of_integer b)) poly) ()))
+                                     (map (fn (a,b) => (a, PAC_Checker.Int_of_integer b)) poly)))
          ) ) ||
       ((((lbl << space) && (mult_rule << spaces) && (lbl << string ", ") &&
            ((polynom << string ", ") wth (fn x => (print_ignore "now poly "; x)))
@@ -90,17 +88,13 @@ struct
            let val _ = 1 in 
            if rule = "d *:"
            then (PAC_Checker.MultD (PAC_Checker.nat_of_integer src1,
-                                    PAC_Checker.fully_normalize_poly_impl
-                                        (map (fn (a,b) => (a, PAC_Checker.Int_of_integer b)) src2) (),
+                                        (map (fn (a,b) => (a, PAC_Checker.Int_of_integer b)) src2),
                                   PAC_Checker.nat_of_integer lbl,
-                                  PAC_Checker.fully_normalize_poly_impl
-                                      (map (fn (a,b) => (a, PAC_Checker.Int_of_integer b)) poly) ()))
+                                      (map (fn (a,b) => (a, PAC_Checker.Int_of_integer b)) poly)))
            else (PAC_Checker.Mult (PAC_Checker.nat_of_integer src1,
-                                   PAC_Checker.fully_normalize_poly_impl
-                                       (map (fn (a,b) => (a, PAC_Checker.Int_of_integer b)) src2) (),
+                                       (map (fn (a,b) => (a, PAC_Checker.Int_of_integer b)) src2),
                                   PAC_Checker.nat_of_integer lbl,
-                                  PAC_Checker.fully_normalize_poly_impl
-                                      (map (fn (a,b) => (a, PAC_Checker.Int_of_integer b)) poly) ())) end
+                                      (map (fn (a,b) => (a, PAC_Checker.Int_of_integer b)) poly))) end
         ) )
 
   val input_polys =
