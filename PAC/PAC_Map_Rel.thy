@@ -214,5 +214,57 @@ lemma fmempty_empty:
 lemmas [sepref_fr_rules] =
   hm.empty_hnr[FCOMP fmempty_empty, unfolded op_fmap_empty_def[symmetric]]
 
-find_theorems name:empty fmempty 
+
+abbreviation iam_fmap_assn where
+  \<open>iam_fmap_assn K V \<equiv> hr_comp (iam.assn K V) map_fmap_rel\<close>
+
+lemmas iam_fmap_delete_hnr [sepref_fr_rules] =
+   iam.delete_hnr[FCOMP fmdrop_set_None]
+
+lemmas iam_ffmap_update_hnr [sepref_fr_rules] =
+   iam.update_hnr[FCOMP map_upd_fmupd]
+
+
+lemmas iam_ffmap_lookup_hnr [sepref_fr_rules] =
+   iam.lookup_hnr[FCOMP op_map_lookup_fmlookup]
+
+definition op_iam_fmap_empty where
+  \<open>op_iam_fmap_empty = fmempty\<close>
+
+lemma iam_fmempty_empty:
+  \<open>(uncurry0 (RETURN op_map_empty), uncurry0 (RETURN op_iam_fmap_empty)) \<in> unit_rel \<rightarrow>\<^sub>f \<langle>map_fmap_rel\<rangle>nres_rel\<close>
+  by (auto simp: map_fmap_rel_def br_def fmempty_def frefI nres_relI op_iam_fmap_empty_def)
+
+lemmas [sepref_fr_rules] =
+  iam.empty_hnr[FCOMP fmempty_empty, unfolded op_iam_fmap_empty_def[symmetric]]
+
+definition upper_bound_on_dom where
+  \<open>upper_bound_on_dom A = SPEC(\<lambda>n. \<forall>i \<in>#(dom_m A). i < n)\<close>
+
+lemma [sepref_fr_rules]:
+   \<open>((Array.len), upper_bound_on_dom) \<in> (iam_fmap_assn nat_assn V)\<^sup>k \<rightarrow>\<^sub>a nat_assn\<close>
+proof -
+  have [simp]: \<open>finite (dom b) \<Longrightarrow> i \<in> fset (fmdom (map_of_fmap b)) \<longleftrightarrow> i \<in> dom b\<close> for i b
+    by (subst fmdom.abs_eq)
+     (auto simp: eq_onp_def fset.Abs_fset_inverse)
+  have 2: \<open>nat_rel = the_pure (nat_assn)\<close> and
+    3: \<open>nat_assn = pure nat_rel\<close>
+    by auto
+  have [simp]: \<open>the_pure (\<lambda>a c :: nat. \<up> (c = a)) = nat_rel\<close>
+    apply (subst 2)
+    apply (subst 3)
+    apply (subst pure_def)
+    apply auto
+    done
+
+  have [simp]: \<open>(iam_of_list l, b) \<in> the_pure (\<lambda>a c :: nat. \<up> (c = a)) \<rightarrow> \<langle>the_pure V\<rangle>option_rel \<Longrightarrow>
+       b i = Some y \<Longrightarrow> i < length l\<close>  for i b l y
+    by (auto dest!: fun_relD[of _ _ _ _ i i] simp: option_rel_def
+      iam_of_list_def split: if_splits)
+  show ?thesis
+   by sepref_to_hoare
+     (sep_auto simp: upper_bound_on_dom_def hr_comp_def iam.assn_def map_rel_def
+     map_fmap_rel_def is_iam_def br_def dom_m_def)
+qed
+
 end

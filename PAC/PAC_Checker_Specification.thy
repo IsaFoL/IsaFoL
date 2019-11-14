@@ -468,13 +468,26 @@ lemma PAC_checker_PAC_checker_specification2:
     by auto
   done
 
-definition full_checker 
-  :: \<open>int_poly \<Rightarrow> (nat, int_poly) fmap \<Rightarrow> int_poly pac_step list \<Rightarrow> (status \<times> _) nres\<close>
- where
-  \<open>full_checker spec A pac = do {
-     A \<leftarrow> SPEC(\<lambda>A'. \<forall>i. fmlookup A i = fmlookup A' i);
-     PAC_checker spec A pac
-}\<close>
+definition remap_polys_polynom_bool :: \<open>('a, int mpoly) fmap \<Rightarrow> ('a, int mpoly) fmap nres\<close> where
+\<open>remap_polys_polynom_bool A = SPEC(\<lambda>A'. dom_m A = dom_m A' \<and>
+      (\<forall>i \<in># dom_m A. the (fmlookup A i) - the (fmlookup A' i) \<in> ideal polynom_bool))\<close>
+
+definition remap_polys_change_all :: \<open>('a, int mpoly) fmap \<Rightarrow> ('a, int mpoly) fmap nres\<close> where
+\<open>remap_polys_change_all A = SPEC (\<lambda>A'. pac_ideal (set_mset (ran_m A)) = pac_ideal (set_mset (ran_m A')))\<close>
+
+lemma fmap_eq_dom_iff:
+  \<open>A = A' \<longleftrightarrow> dom_m A = dom_m A' \<and> (\<forall>i \<in># dom_m A. the (fmlookup A i) = the (fmlookup A' i))\<close>
+  apply auto
+  by (metis fmap_ext in_dom_m_lookup_iff option.collapse)
+
+lemma remap_polys_polynom_bool_remap_polys_change_all:
+  \<open>remap_polys_polynom_bool A \<le> remap_polys_change_all A\<close>
+  unfolding remap_polys_polynom_bool_def remap_polys_change_all_def
+  apply (simp add: ideal.span_zero fmap_eq_dom_iff ideal.span_eq)
+  apply (auto dest!: multi_member_split simp: ran_m_def pac_ideal_alt_def ideal.span_base
+    eq_commute[of \<open>add_mset _ _\<close> \<open>dom_m (A :: ('a, int mpoly)fmap)\<close> for A])
+    apply (metis (no_types) UnI2 ideal.eq_span_insert_eq ideal.span_base insertI1)
+  by (metis Un_insert_left diff_in_polynom_bool_pac_idealI ideal.span_base insertI1 pac_ideal_alt_def)
 
 
 definition remap_polys :: \<open>(nat, int mpoly) fmap \<Rightarrow> (nat, int mpoly) fmap nres\<close> where
@@ -511,26 +524,45 @@ lemma remap_polys_spec:
   subgoal by auto
   done
 
+
+definition full_checker
+  :: \<open>int_poly \<Rightarrow> (nat, int_poly) fmap \<Rightarrow> int_poly pac_step list \<Rightarrow> (status \<times> _) nres\<close>
+ where
+  \<open>full_checker spec A pac = do {
+     A \<leftarrow> remap_polys_change_all A;
+     spec \<leftarrow> normalize_poly_spec spec;
+     PAC_checker spec A pac
+}\<close>
+
 lemma full_checker_spec:
   assumes \<open>(A, A') \<in> polys_rel\<close>
   shows
     \<open>full_checker spec A pac \<le> \<Down> (status_rel \<times>\<^sub>r polys_rel) (PAC_checker_specification A' spec)\<close>
 proof -
-  have [intro]: \<open>set_mset b \<subseteq> pac_ideal (set_mset A') \<Longrightarrow>
+  have H[intro]: \<open>set_mset b \<subseteq> pac_ideal (set_mset (ran_m A)) \<Longrightarrow>
        x \<in> pac_ideal (set_mset b) \<Longrightarrow> x \<in> pac_ideal (set_mset A')\<close> for b x
+   using assms apply (auto simp: polys_rel_def)
    by (meson ideal.span_subset_spanI ideal.span_superset le_sup_iff subset_eq)
+  have 1: \<open>Aa \<in> {A'.
+             pac_ideal (set_mset (ran_m A)) =
+             pac_ideal (set_mset (ran_m A'))} \<Longrightarrow>
+       (Aa, ran_m Aa) \<in> polys_rel\<close> for Aa
+       by (auto simp: polys_rel_def)
   show ?thesis
-    unfolding full_checker_def
-      PAC_checker_specification_def
-    apply (refine_vcg PAC_checker_PAC_checker_specification2[THEN order_trans, of _ A' SUCCESS])
+    unfolding full_checker_def normalize_poly_spec_def
+      PAC_checker_specification_def remap_polys_change_all_def
+    apply (refine_vcg PAC_checker_PAC_checker_specification2[THEN order_trans, of _ _ SUCCESS])
+    apply (rule 1; assumption)
     subgoal
       using fmap_ext assms by (auto simp: polys_rel_def ran_m_def)
     subgoal by auto
-    subgoal by auto
     subgoal
-      by (rule ref_two_step[OF order.refl])
-       (auto simp add: PAC_checker_specification_spec_def conc_fun_RES polys_rel_def
+      apply (rule ref_two_step[OF order.refl])
+      apply (auto simp add: PAC_checker_specification_spec_def conc_fun_RES polys_rel_def
         dest!: rtranclp_PAC_Format_subset_ideal dest: is_failed_is_success_completeD)
+      apply (smt H diff_add_cancel ideal.span_add ideal.span_mono ideal.span_superset le_sup_iff subsetD sup_ge2)
+      apply (smt H diff_add_cancel ideal.span_add ideal.span_mono ideal.span_superset le_sup_iff subsetD sup_ge2)
+      done
     done
 qed
 

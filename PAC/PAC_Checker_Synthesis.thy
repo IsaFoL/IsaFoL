@@ -422,7 +422,7 @@ lemma PAC_checker_l_step_alt_def:
 sepref_decl_intf ('k) acode_status is "('k) code_status"
 sepref_decl_intf ('k) apac_step is "('k) pac_step"
 
-sepref_register merge_cstatus
+sepref_register merge_cstatus full_normalize_poly
 
 sepref_definition check_step_impl
   is \<open>uncurry3 PAC_checker_l_step'\<close>
@@ -487,7 +487,7 @@ lemma safe_pac_step_rel_assn[safe_constraint_rules]:
   "is_pure K \<Longrightarrow> is_pure V \<Longrightarrow> is_pure (pac_step_rel_assn K V)"
   by (auto simp: fcomp_norm_unfold(31)[symmetric] is_pure_conv)
 
-sepref_register PAC_checker_l_step PAC_checker_l_step'
+sepref_register PAC_checker_l_step PAC_checker_l_step' fully_normalize_poly_impl
 sepref_definition PAC_checker_l_impl
   is \<open>uncurry2 PAC_checker_l\<close>
   :: \<open>poly_assn\<^sup>k *\<^sub>a polys_assn\<^sup>d *\<^sub>a (array_assn (pac_step_rel_assn (nat_assn) poly_assn))\<^sup>k \<rightarrow>\<^sub>a status_assn raw_string_assn \<times>\<^sub>a polys_assn\<close>
@@ -507,20 +507,78 @@ sepref_definition PAC_checker_l_impl
   apply sepref_dbg_constraints
   done
 
+declare PAC_checker_l_impl.refine[sepref_fr_rules]
+
+lemma while_eq_nfoldli: "do {
+    (_,\<sigma>) \<leftarrow> WHILE\<^sub>T (FOREACH_cond c) (\<lambda>x. do {ASSERT (FOREACH_cond c x); FOREACH_body f x}) (l,\<sigma>);
+    RETURN \<sigma>
+  } = nfoldli l c f \<sigma>"
+  sorry
+
+abbreviation polys_assn_input where
+  \<open>polys_assn_input \<equiv> iam_fmap_assn nat_assn poly_assn\<close>
+
+lemma while_upt_while_direct:
+  "b \<ge> a \<Longrightarrow>
+  do {
+    (_,\<sigma>) \<leftarrow> WHILE\<^sub>T (FOREACH_cond c) (\<lambda>x. do {ASSERT (FOREACH_cond c x); FOREACH_body f x})
+      ([a..<b],\<sigma>);
+    RETURN \<sigma>
+  } = do {
+    (_,\<sigma>) \<leftarrow> WHILE\<^sub>T (\<lambda>(i, x). i < b \<and> c x) (\<lambda>(i, x). do {ASSERT (i < b);  \<sigma>'\<leftarrow>f i x; RETURN (i+1,\<sigma>')
+}) (a,\<sigma>);
+    RETURN \<sigma>
+  }"
+sorry
+sepref_register fmlookup' upper_bound_on_dom op_fmap_empty
+sepref_definition remap_polys_l_impl
+  is \<open>remap_polys_l2\<close>
+  :: \<open>polys_assn_input\<^sup>d \<rightarrow>\<^sub>a polys_assn\<close>
+  supply [[goals_limit=1]] is_Mult_lastI[intro]
+  unfolding remap_polys_l2_def op_fmap_empty_def[symmetric] while_eq_nfoldli[symmetric]
+    while_upt_while_direct
+    in_dom_m_lookup_iff
+    fmlookup'_def[symmetric]
+  apply (subst while_upt_while_direct)
+  apply simp
+  apply (rewrite at \<open>op_fmap_empty\<close> annotate_assn[where A=\<open>polys_assn\<close>])
+  by sepref
+
+
+lemma remap_polys_l2_remap_polys_l:
+  \<open>(remap_polys_l2, remap_polys_l) \<in> Id \<rightarrow>\<^sub>f \<langle>Id\<rangle>nres_rel\<close>
+  apply (intro frefI fun_relI nres_relI)
+  using remap_polys_l2_remap_polys_l by auto
+  
+  
+lemma [sepref_fr_rules]:
+   \<open>(remap_polys_l_impl, remap_polys_l) \<in> polys_assn_input\<^sup>d \<rightarrow>\<^sub>a polys_assn\<close>
+   using hfcomp_tcomp_pre[OF remap_polys_l2_remap_polys_l remap_polys_l_impl.refine]
+   by (auto simp: hrp_comp_def)
+
+sepref_definition full_checker_l_impl
+  is \<open>uncurry2 full_checker_l\<close>
+  :: \<open>poly_assn\<^sup>k *\<^sub>a polys_assn_input\<^sup>d *\<^sub>a (array_assn (pac_step_rel_assn (nat_assn) poly_assn))\<^sup>k \<rightarrow>\<^sub>a status_assn raw_string_assn \<times>\<^sub>a polys_assn\<close>
+  supply [[goals_limit=1]] is_Mult_lastI[intro]
+  unfolding full_checker_l_def
+  by sepref
+
 sepref_definition PAC_update_impl
   is \<open>uncurry2 (RETURN ooo fmupd)\<close>
-  :: \<open>nat_assn\<^sup>k *\<^sub>a poly_assn\<^sup>k *\<^sub>a (polys_assn)\<^sup>d \<rightarrow>\<^sub>a polys_assn\<close>
+  :: \<open>nat_assn\<^sup>k *\<^sub>a poly_assn\<^sup>k *\<^sub>a (polys_assn_input)\<^sup>d \<rightarrow>\<^sub>a polys_assn_input\<close>
   unfolding comp_def
   by sepref
 
 sepref_definition PAC_empty_impl
   is \<open>uncurry0 (RETURN fmempty)\<close>
-  :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a polys_assn\<close>
-  unfolding op_fmap_empty_def[symmetric] pat_fmap_empty
+  :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a polys_assn_input\<close>
+  unfolding op_iam_fmap_empty_def[symmetric] pat_fmap_empty
   by sepref
 
+term full_checker_l
 export_code PAC_checker_l_impl PAC_update_impl PAC_empty_impl the_error is_cfailed is_cfound
   int_of_integer AddD Add Mult MultD nat_of_integer String.implode fully_normalize_poly_impl
+  full_checker_l_impl
   in SML_imp module_name PAC_Checker
   file "code/checker.sml"
 
