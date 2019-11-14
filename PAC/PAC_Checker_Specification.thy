@@ -26,8 +26,8 @@ definition PAC_checker_specification
   :: \<open>int_poly multiset \<Rightarrow> int_poly \<Rightarrow> (status \<times> int_poly multiset) nres\<close>
 where
   \<open>PAC_checker_specification A spec = SPEC(\<lambda>(b, B).
-      (\<not>is_failed b \<longrightarrow> ideal (set_mset B) \<subseteq> ideal (set_mset A)) \<and>
-      (is_found b \<longrightarrow> spec \<in> ideal (set_mset A)))\<close>
+      (\<not>is_failed b \<longrightarrow> pac_ideal (set_mset B) \<subseteq> pac_ideal (set_mset A)) \<and>
+      (is_found b \<longrightarrow> spec \<in> pac_ideal (set_mset A)))\<close>
 
 definition PAC_checker_specification_spec
   ::  \<open>int_poly \<Rightarrow> int_poly multiset \<Rightarrow> (status \<times> int_poly multiset) \<Rightarrow> bool\<close>
@@ -40,6 +40,20 @@ abbreviation PAC_checker_specification2
   ::  \<open>int_poly \<Rightarrow> int_poly multiset \<Rightarrow> (status \<times> int_poly multiset) nres\<close>
 where
   \<open>PAC_checker_specification2 spec A \<equiv> SPEC(PAC_checker_specification_spec spec A)\<close>
+
+
+definition PAC_checker_specification_step_spec
+  ::  \<open>int_poly multiset \<Rightarrow> int_poly \<Rightarrow> int_poly multiset \<Rightarrow> (status \<times> int_poly multiset) \<Rightarrow> bool\<close>
+where
+  \<open>PAC_checker_specification_step_spec A\<^sub>0 spec A = (\<lambda>(b, B).
+       (is_success b \<longrightarrow> PAC_Format\<^sup>*\<^sup>* A\<^sub>0 A \<and> PAC_Format\<^sup>*\<^sup>* A B) \<and>
+       (is_found b \<longrightarrow> PAC_Format\<^sup>*\<^sup>* A\<^sub>0 A \<and> PAC_Format\<^sup>*\<^sup>* A B \<and> spec \<in> pac_ideal (set_mset A\<^sub>0)))\<close>
+
+abbreviation PAC_checker_specification_step2
+  ::  \<open>int_poly multiset \<Rightarrow> int_poly \<Rightarrow> int_poly multiset \<Rightarrow> (status \<times> int_poly multiset) nres\<close>
+where
+  \<open>PAC_checker_specification_step2 A\<^sub>0 spec A \<equiv> SPEC(PAC_checker_specification_step_spec A\<^sub>0  spec A)\<close>
+
 
 definition normalize_poly_spec :: \<open>_\<close> where
   \<open>normalize_poly_spec p = SPEC (\<lambda>r. p - r \<in> ideal polynom_bool)\<close>
@@ -262,8 +276,9 @@ lemma PAC_checker_step_PAC_checker_specification2:
   fixes a :: \<open>status\<close>
   assumes [simp,intro]: \<open>(A,B) \<in> polys_rel\<close> and
     \<open>\<not>is_failed a\<close> and
-    [simp,intro]: \<open>a = FOUND \<Longrightarrow> spec \<in> pac_ideal (set_mset B)\<close>
-  shows \<open>PAC_checker_step spec (a, A) st \<le> \<Down> (status_rel \<times>\<^sub>r polys_rel) (PAC_checker_specification2 spec B)\<close>
+    [simp,intro]: \<open>a = FOUND \<Longrightarrow> spec \<in> pac_ideal (set_mset A\<^sub>0)\<close> and
+    A\<^sub>0B: \<open>PAC_Format\<^sup>*\<^sup>* A\<^sub>0 B\<close>
+  shows \<open>PAC_checker_step spec (a, A) st \<le> \<Down> (status_rel \<times>\<^sub>r polys_rel) (PAC_checker_specification_step2 A\<^sub>0 spec B)\<close>
 proof -
   have H1: \<open> x12 \<in># dom_m A \<Longrightarrow>
        2 * the (fmlookup A x12) - r \<in> More_Modules.ideal polynom_bool \<Longrightarrow>
@@ -308,6 +323,10 @@ proof -
      apply (auto dest!: multi_member_split simp: ran_m_def intro: diff_in_polynom_bool_pac_idealI)
      by (metis PAC_Format_subset_ideal Un_insert_left mult set_image_mset set_mset_add_mset_insert subsetD union_single_eq_member)
 
+  have [intro]: \<open>spec \<in> pac_ideal (set_mset B) \<Longrightarrow> spec \<in> pac_ideal (set_mset A\<^sub>0)\<close>
+    using A\<^sub>0B by (smt ideal.span_mono ideal.span_span ideal.span_superset le_sup_iff
+      rtranclp_PAC_Format_subset_ideal subset_iff)
+
   have eq_successI: \<open>st' \<noteq> FAILED \<Longrightarrow>
        st' \<noteq> FOUND \<Longrightarrow> st' = SUCCESS\<close> for st'
     by (cases st') auto
@@ -317,7 +336,7 @@ proof -
     using assms(2) by (cases a; auto)+
   note [[goals_limit=1]]
   show ?thesis
-    unfolding PAC_checker_step_def PAC_checker_specification_spec_def
+    unfolding PAC_checker_step_def PAC_checker_specification_step_spec_def
       normalize_poly_spec_alt_def check_mult_def check_add_def
     apply (cases st)
     apply clarsimp_all
@@ -407,14 +426,19 @@ where
 
 lemma PAC_checker_specification_spec_trans:
   \<open>PAC_checker_specification_spec spec A (st, x2) \<Longrightarrow>
-    PAC_checker_specification_spec spec x2 (st, x1a) \<Longrightarrow>
-    PAC_checker_specification_spec spec A (st, x1a)\<close>
+    PAC_checker_specification_step_spec A spec x2 (st', x1a) \<Longrightarrow>
+    PAC_checker_specification_spec spec A (st', x1a)\<close>
  unfolding PAC_checker_specification_spec_def
+   PAC_checker_specification_step_spec_def
  by auto
 
 lemma RES_SPEC_eq:
   \<open>RES \<Phi> = SPEC(\<lambda>P. P \<in> \<Phi>)\<close>
   by auto
+
+lemma is_failed_is_success_completeD:
+  \<open>\<not> is_failed x \<Longrightarrow> \<not>is_success x \<Longrightarrow> is_found x\<close>
+  by (cases x) auto
 
 lemma PAC_checker_PAC_checker_specification2:
   \<open>(A, B) \<in> polys_rel \<Longrightarrow>
@@ -433,23 +457,23 @@ lemma PAC_checker_PAC_checker_specification2:
   subgoal
     apply auto
     apply (rule
-     PAC_checker_step_PAC_checker_specification2[THEN order_trans])
+     PAC_checker_step_PAC_checker_specification2[of _ _ _ _ B, THEN order_trans])
      apply assumption
      apply assumption
      apply (auto intro: PAC_checker_specification_spec_trans simp: conc_fun_RES)
-     apply (auto simp: PAC_checker_specification_spec_def dest: PAC_Format_subset_ideal)
-     
-     find_theorems PAC_Format "_ \<subseteq> _"
+     apply (auto simp: PAC_checker_specification_spec_def dest: PAC_Format_subset_ideal
+       dest: is_failed_is_success_completeD)
      done
   subgoal
     by auto
   done
 
-definition full_checker where
-  \<open>full_checker A pac spec = do {
+definition full_checker 
+  :: \<open>int_poly \<Rightarrow> (nat, int_poly) fmap \<Rightarrow> int_poly pac_step list \<Rightarrow> (status \<times> _) nres\<close>
+ where
+  \<open>full_checker spec A pac = do {
      A \<leftarrow> SPEC(\<lambda>A'. \<forall>i. fmlookup A i = fmlookup A' i);
-     (b, A) \<leftarrow> PAC_checker A pac;
-     SPEC(\<lambda>b'. b' \<longrightarrow> b \<and> spec \<in># ran_m A)
+     PAC_checker spec A pac
 }\<close>
 
 
@@ -487,24 +511,26 @@ lemma remap_polys_spec:
   subgoal by auto
   done
 
-
-definition full_checker_specification ::  \<open>int_poly multiset \<Rightarrow> int_poly \<Rightarrow> bool nres\<close> where
-  \<open>full_checker_specification A spec = SPEC(\<lambda>b. b \<longrightarrow> spec \<in> pac_ideal (set_mset A))\<close>
-
-lemma
+lemma full_checker_spec:
   assumes \<open>(A, A') \<in> polys_rel\<close>
   shows
-    \<open>full_checker A pac spec \<le> \<Down> bool_rel (full_checker_specification A' spec)\<close>
+    \<open>full_checker spec A pac \<le> \<Down> (status_rel \<times>\<^sub>r polys_rel) (PAC_checker_specification A' spec)\<close>
 proof -
-
+  have [intro]: \<open>set_mset b \<subseteq> pac_ideal (set_mset A') \<Longrightarrow>
+       x \<in> pac_ideal (set_mset b) \<Longrightarrow> x \<in> pac_ideal (set_mset A')\<close> for b x
+   by (meson ideal.span_subset_spanI ideal.span_superset le_sup_iff subset_eq)
   show ?thesis
-    unfolding full_checker_def full_checker_specification_def
-    apply (refine_vcg PAC_checker_PAC_checker_specification2[THEN order_trans, of _ A'])
+    unfolding full_checker_def
+      PAC_checker_specification_def
+    apply (refine_vcg PAC_checker_PAC_checker_specification2[THEN order_trans, of _ A' SUCCESS])
     subgoal
       using fmap_ext assms by (auto simp: polys_rel_def ran_m_def)
+    subgoal by auto
+    subgoal by auto
     subgoal
-      by (auto simp add: PAC_checker_specification_spec_def conc_fun_RES polys_rel_def
-        dest!: rtranclp_PAC_Format_subset_ideal)
+      by (rule ref_two_step[OF order.refl])
+       (auto simp add: PAC_checker_specification_spec_def conc_fun_RES polys_rel_def
+        dest!: rtranclp_PAC_Format_subset_ideal dest: is_failed_is_success_completeD)
     done
 qed
 

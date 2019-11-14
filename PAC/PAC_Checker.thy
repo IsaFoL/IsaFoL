@@ -653,7 +653,7 @@ lemma less_than_char_of_char[code_unfold]:
   by (auto simp: less_than_char_def less_char_def)
 
 
-lemmas [code] = 
+lemmas [code] =
   add_poly_l'.simps[unfolded var_order_rel_def]
 
 export_code add_poly_l' in SML module_name test
