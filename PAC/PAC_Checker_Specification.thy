@@ -92,7 +92,7 @@ where
        do {
         r \<leftarrow> normalize_poly_spec (pac_res st);
         eq \<leftarrow> check_add A (pac_src1 st) (pac_src2 st) (new_id st) r;
-        st' \<leftarrow> SPEC(\<lambda>st'. \<not>is_failed st' \<and> (is_found st' \<longrightarrow> r - spec \<in> ideal polynom_bool));
+        st' \<leftarrow> SPEC(\<lambda>st'. (\<not>is_failed st' \<and> is_found st' \<longrightarrow> r - spec \<in> ideal polynom_bool));
         if eq
         then RETURN (merge_status stat st',
           fmupd (new_id st) r
@@ -103,7 +103,7 @@ where
        do {
          r \<leftarrow> normalize_poly_spec (pac_res st);
         eq \<leftarrow> check_add A (pac_src1 st) (pac_src2 st) (new_id st) r;
-        st' \<leftarrow> SPEC(\<lambda>st'. is_success st' \<or> (is_found st' \<longrightarrow> r - spec \<in> ideal polynom_bool));
+        st' \<leftarrow> SPEC(\<lambda>st'. (\<not>is_failed st' \<and> is_found st' \<longrightarrow> r - spec \<in> ideal polynom_bool));
         if eq
         then RETURN (merge_status stat st',
           fmupd (new_id st) r A)
@@ -114,7 +114,7 @@ where
          r \<leftarrow> normalize_poly_spec (pac_res st);
          q \<leftarrow> normalize_poly_spec (pac_mult st);
         eq \<leftarrow> check_mult A (pac_src1 st) q (new_id st) r;
-        st' \<leftarrow> SPEC(\<lambda>st'. is_success st' \<or> (is_found st' \<longrightarrow> r - spec \<in> ideal polynom_bool));
+        st' \<leftarrow> SPEC(\<lambda>st'. (\<not>is_failed st' \<and> is_found st' \<longrightarrow> r - spec \<in> ideal polynom_bool));
         if eq
         then RETURN (merge_status stat st',
           fmupd (new_id st) r
@@ -126,7 +126,7 @@ where
          r \<leftarrow> normalize_poly_spec (pac_res st);
          q \<leftarrow> normalize_poly_spec (pac_mult st);
         eq \<leftarrow> check_mult A (pac_src1 st) q (new_id st) r;
-        st' \<leftarrow> SPEC(\<lambda>st'. is_success st' \<or> (is_found st' \<longrightarrow> r - spec \<in> ideal polynom_bool));
+        st' \<leftarrow> SPEC(\<lambda>st'. (\<not>is_failed st' \<and> is_found st' \<longrightarrow> r - spec \<in> ideal polynom_bool));
         if eq
         then RETURN (merge_status stat st',
           fmupd (new_id st) r A)

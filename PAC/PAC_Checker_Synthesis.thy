@@ -5,23 +5,43 @@ begin
 
 
 fun status_assn where
-  \<open>status_assn _ SUCCESS SUCCESS = emp\<close> |
-  \<open>status_assn R (FAILED a) (FAILED b) = R a b\<close> |
+  \<open>status_assn _ CSUCCESS CSUCCESS = emp\<close> |
+  \<open>status_assn _ CFOUND CFOUND = emp\<close> |
+  \<open>status_assn R (CFAILED a) (CFAILED b) = R a b\<close> |
   \<open>status_assn _ _ _ = false\<close>
 
 lemma SUCCESS_hnr[sepref_fr_rules]:
-  \<open>(uncurry0 (return SUCCESS), uncurry0 (RETURN SUCCESS)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a status_assn R\<close>
+  \<open>(uncurry0 (return CSUCCESS), uncurry0 (RETURN CSUCCESS)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a status_assn R\<close>
+  by (sepref_to_hoare)
+    sep_auto
+
+lemma FOUND_hnr[sepref_fr_rules]:
+  \<open>(uncurry0 (return CFOUND), uncurry0 (RETURN CFOUND)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a status_assn R\<close>
   by (sepref_to_hoare)
     sep_auto
 
 lemma is_success_hnr[sepref_fr_rules]:
   \<open>CONSTRAINT is_pure R \<Longrightarrow>
-  ((return o is_success), (RETURN o is_success)) \<in> (status_assn R)\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  ((return o is_cfound), (RETURN o is_cfound)) \<in> (status_assn R)\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
   apply (sepref_to_hoare)
   apply (case_tac xi; case_tac x)
   apply  sep_auto+
   done
 
+lemma is_cfailed_hnr[sepref_fr_rules]:
+  \<open>CONSTRAINT is_pure R \<Longrightarrow>
+  ((return o is_cfailed), (RETURN o is_cfailed)) \<in> (status_assn R)\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  apply (sepref_to_hoare)
+  apply (case_tac xi; case_tac x)
+  apply  sep_auto+
+  done
+
+lemma merge_cstatus_hnr[sepref_fr_rules]:
+  \<open>CONSTRAINT is_pure R \<Longrightarrow>
+  (uncurry (return oo merge_cstatus), uncurry (RETURN oo merge_cstatus)) \<in>
+    (status_assn R)\<^sup>k *\<^sub>a  (status_assn R)\<^sup>k \<rightarrow>\<^sub>a status_assn R\<close>
+  apply (sepref_to_hoare)
+  by (case_tac b; case_tac bi; case_tac a; case_tac ai; sep_auto simp: is_pure_conv pure_app_eq)
 
 sepref_definition add_poly_impl
   is \<open> add_poly_l\<close>
@@ -193,24 +213,22 @@ definition show_nat :: \<open>nat \<Rightarrow> string\<close> where
 lemma [sepref_import_param]:
   \<open>(show_nat, show_nat) \<in> nat_rel \<rightarrow> \<langle>Id\<rangle>list_rel\<close>
   by (auto intro: fun_relI)
-  
+
 lemma status_assn_pure_conv:
   \<open>status_assn (id_assn) a b = id_assn a b\<close>
   by (cases a; cases b)
     (auto simp: pure_def)
 
 
-lemma  [sepref_fr_rules]:
-  \<open>(uncurry (return oo error_msg_not_equal_dom), uncurry (RETURN oo error_msg_not_equal_dom)) \<in> poly_assn\<^sup>k *\<^sub>a poly_assn\<^sup>k \<rightarrow>\<^sub>a raw_string_assn\<close>
+lemma [sepref_fr_rules]:
+  \<open>(uncurry3 (\<lambda>x y. return oo (error_msg_not_equal_dom x y)), uncurry3 check_not_equal_dom_err) \<in>
+  poly_assn\<^sup>k *\<^sub>a poly_assn\<^sup>k *\<^sub>a poly_assn\<^sup>k *\<^sub>a poly_assn\<^sup>k \<rightarrow>\<^sub>a raw_string_assn\<close>
   unfolding show_nat_def[symmetric] list_assn_pure_conv
-    prod_assn_pure_conv
-  apply (sepref_to_hoare; sep_auto simp: error_msg_not_equal_dom_def list_assn_aux_append)
-  apply (auto simp: shows_prec_literal_def string_rel_def)
-  supply[[show_types]]
-  sorry
+    prod_assn_pure_conv check_not_equal_dom_err_def
+  by (sepref_to_hoare; sep_auto simp: error_msg_not_equal_dom_def list_assn_aux_append)
 
-term "shows_prec"
-find_theorems shows_prec "_ :: String.literal"
+
+
 lemma [sepref_fr_rules]:
   \<open>(return o error_msg_notin_dom, RETURN o error_msg_notin_dom) \<in> nat_assn\<^sup>k \<rightarrow>\<^sub>a raw_string_assn\<close>
   \<open>(return o error_msg_reused_dom, RETURN o error_msg_reused_dom) \<in> nat_assn\<^sup>k \<rightarrow>\<^sub>a raw_string_assn\<close>
@@ -221,8 +239,8 @@ lemma [sepref_fr_rules]:
   by (sepref_to_hoare; sep_auto; fail)+
 
 sepref_definition check_addition_l_impl
-  is \<open>uncurry4 check_addition_l\<close>
-  :: \<open>polys_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a poly_assn\<^sup>k  \<rightarrow>\<^sub>a status_assn raw_string_assn\<close>
+  is \<open>uncurry5 check_addition_l\<close>
+  :: \<open>poly_assn\<^sup>k *\<^sub>a polys_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a poly_assn\<^sup>k  \<rightarrow>\<^sub>a status_assn raw_string_assn\<close>
   supply [[goals_limit=1]]
   unfolding mult_poly_full_def
     HOL_list.fold_custom_empty
@@ -263,8 +281,8 @@ lemma [sepref_fr_rules]:
    done
 
 sepref_definition check_mult_l_impl
-  is \<open>uncurry4 check_mult_l\<close>
-  :: \<open>polys_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a poly_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a poly_assn\<^sup>k  \<rightarrow>\<^sub>a status_assn raw_string_assn\<close>
+  is \<open>uncurry5 check_mult_l\<close>
+  :: \<open>poly_assn\<^sup>k *\<^sub>a polys_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a poly_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a poly_assn\<^sup>k  \<rightarrow>\<^sub>a status_assn raw_string_assn\<close>
   supply [[goals_limit=1]]
   unfolding check_mult_l_def
     HOL_list.fold_custom_empty
@@ -392,13 +410,29 @@ lemma is_Mult_lastI:
        \<not> is_MultD b \<Longrightarrow> is_Mult b\<close>
   by (cases b) auto
 
+sepref_register is_cfailed is_AddD
+
+definition PAC_checker_l_step' ::  _ where
+  \<open>PAC_checker_l_step' a b c  = PAC_checker_l_step a (b, c)\<close>
+
+lemma PAC_checker_l_step_alt_def:
+  \<open>PAC_checker_l_step a bc d = (let (b,c) = bc in PAC_checker_l_step' a b c d)\<close>
+  unfolding PAC_checker_l_step'_def by auto
+
+sepref_decl_intf ('k) acode_status is "('k) code_status"
+sepref_decl_intf ('k) apac_step is "('k) pac_step"
+
+sepref_register merge_cstatus
+
 sepref_definition check_step_impl
-  is \<open>uncurry PAC_checker_l_step\<close>
-  :: \<open>polys_assn\<^sup>d *\<^sub>a (pac_step_rel_assn (nat_assn) poly_assn)\<^sup>d \<rightarrow>\<^sub>a status_assn raw_string_assn \<times>\<^sub>a polys_assn\<close>
+  is \<open>uncurry3 PAC_checker_l_step'\<close>
+  :: \<open>poly_assn\<^sup>k *\<^sub>a (status_assn raw_string_assn)\<^sup>d *\<^sub>a polys_assn\<^sup>d *\<^sub>a (pac_step_rel_assn (nat_assn) poly_assn)\<^sup>d \<rightarrow>\<^sub>a
+    status_assn raw_string_assn \<times>\<^sub>a polys_assn\<close>
   supply [[goals_limit=1]] is_Mult_lastI[intro]
-  unfolding PAC_checker_l_step_def
-    pac_step.case_eq_if
+  unfolding PAC_checker_l_step_def PAC_checker_l_step'_def
+    pac_step.case_eq_if Let_def
      is_success_alt_def[symmetric]
+
   apply sepref_dbg_preproc
   apply sepref_dbg_cons_init
   apply sepref_dbg_id
@@ -410,6 +444,7 @@ sepref_definition check_step_impl
   apply (rule entt_refl)
   apply sepref_dbg_trans_keep
   apply sepref_dbg_trans_step_keep
+
   apply sepref_dbg_opt
   apply sepref_dbg_cons_solve
   apply sepref_dbg_cons_solve
@@ -420,7 +455,7 @@ declare check_step_impl.refine[sepref_fr_rules]
 
 instantiation pac_step :: (heap) heap
 begin
-  
+
 instance
 proof standard
   obtain f :: \<open>'a \<Rightarrow> nat\<close> where
@@ -452,13 +487,14 @@ lemma safe_pac_step_rel_assn[safe_constraint_rules]:
   "is_pure K \<Longrightarrow> is_pure V \<Longrightarrow> is_pure (pac_step_rel_assn K V)"
   by (auto simp: fcomp_norm_unfold(31)[symmetric] is_pure_conv)
 
-term bool_with_error_msg
-sepref_register PAC_checker_l_step
+sepref_register PAC_checker_l_step PAC_checker_l_step'
 sepref_definition PAC_checker_l_impl
-  is \<open>uncurry PAC_checker_l\<close>
-  :: \<open>polys_assn\<^sup>d *\<^sub>a (array_assn (pac_step_rel_assn (nat_assn) poly_assn))\<^sup>k \<rightarrow>\<^sub>a status_assn raw_string_assn \<times>\<^sub>a polys_assn\<close>
+  is \<open>uncurry2 PAC_checker_l\<close>
+  :: \<open>poly_assn\<^sup>k *\<^sub>a polys_assn\<^sup>d *\<^sub>a (array_assn (pac_step_rel_assn (nat_assn) poly_assn))\<^sup>k \<rightarrow>\<^sub>a status_assn raw_string_assn \<times>\<^sub>a polys_assn\<close>
   supply [[goals_limit=1]] is_Mult_lastI[intro]
-  unfolding PAC_checker_l_def is_success_alt_def[symmetric]
+  unfolding PAC_checker_l_def is_success_alt_def[symmetric] PAC_checker_l_step_alt_def
+    nres_bind_let_law[symmetric]
+    apply (subst nres_bind_let_law)
   apply sepref_dbg_preproc
   apply sepref_dbg_cons_init
   apply sepref_dbg_id
@@ -483,7 +519,7 @@ sepref_definition PAC_empty_impl
   unfolding op_fmap_empty_def[symmetric] pat_fmap_empty
   by sepref
 
-export_code PAC_checker_l_impl PAC_update_impl PAC_empty_impl is_success status_error
+export_code PAC_checker_l_impl PAC_update_impl PAC_empty_impl the_error is_cfailed is_cfound
   int_of_integer AddD Add Mult MultD nat_of_integer String.implode fully_normalize_poly_impl
   in SML_imp module_name PAC_Checker
   file "code/checker.sml"
