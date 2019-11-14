@@ -190,6 +190,12 @@ lemma all_lits_alt_def:
   unfolding all_lits_def
   by auto
 
+lemma all_lits_alt_def2:
+  \<open>all_lits S (NUE + NUS) = all_lits_of_mm (mset `# ran_mf S + NUE + NUS)\<close>
+  \<open>all_lits S (NUE + NUS) = all_lits_of_mm ((\<lambda>C. mset (fst C)) `# ran_m S + NUE + NUS)\<close>
+  unfolding all_lits_def
+  by (auto simp: ac_simps)
+
 lemma literals_are_in_\<L>\<^sub>i\<^sub>n_mm_in_\<L>\<^sub>a\<^sub>l\<^sub>l:
   assumes
     N1: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm \<A> (mset `# ran_mf xs)\<close> and
