@@ -6,8 +6,8 @@ theory PAC_Checker_Specification
 begin
 
 
-datatype 'a status =
-  is_failed: FAILED (status_error: 'a) |
+datatype status =
+  is_failed: FAILED |
   is_success: SUCCESS |
   is_found: FOUND
 
@@ -23,21 +23,21 @@ datatype 'a pac_step =
 
 
 definition PAC_checker_specification
-  :: \<open>int_poly multiset \<Rightarrow> int_poly \<Rightarrow> ('a status \<times> int_poly multiset) nres\<close>
+  :: \<open>int_poly multiset \<Rightarrow> int_poly \<Rightarrow> (status \<times> int_poly multiset) nres\<close>
 where
   \<open>PAC_checker_specification A spec = SPEC(\<lambda>(b, B).
       (\<not>is_failed b \<longrightarrow> ideal (set_mset B) \<subseteq> ideal (set_mset A)) \<and>
       (is_found b \<longrightarrow> spec \<in> ideal (set_mset A)))\<close>
 
 definition PAC_checker_specification_spec
-  ::  \<open>int_poly \<Rightarrow> int_poly multiset \<Rightarrow> ('a status \<times> int_poly multiset) \<Rightarrow> bool\<close>
+  ::  \<open>int_poly \<Rightarrow> int_poly multiset \<Rightarrow> (status \<times> int_poly multiset) \<Rightarrow> bool\<close>
 where
   \<open>PAC_checker_specification_spec spec A = (\<lambda>(b, B).
        (is_success b \<longrightarrow> PAC_Format\<^sup>*\<^sup>* A B) \<and>
        (is_found b \<longrightarrow> PAC_Format\<^sup>*\<^sup>* A B \<and> spec \<in> pac_ideal (set_mset A)))\<close>
 
 abbreviation PAC_checker_specification2
-  ::  \<open>int_poly \<Rightarrow> int_poly multiset \<Rightarrow> ('a status \<times> int_poly multiset) nres\<close>
+  ::  \<open>int_poly \<Rightarrow> int_poly multiset \<Rightarrow> (status \<times> int_poly multiset) nres\<close>
 where
   \<open>PAC_checker_specification2 spec A \<equiv> SPEC(PAC_checker_specification_spec spec A)\<close>
 
@@ -63,15 +63,15 @@ definition check_mult :: \<open>(nat, int mpoly) fmap \<Rightarrow> nat \<Righta
             the (fmlookup A p) * q - r \<in>  ideal polynom_bool)\<close>
 
 fun merge_status where
-  \<open>merge_status (FAILED a) _ = FAILED a\<close> |
-  \<open>merge_status _ (FAILED a) = FAILED a\<close> |
+  \<open>merge_status (FAILED) _ = FAILED\<close> |
+  \<open>merge_status _ (FAILED) = FAILED\<close> |
   \<open>merge_status FOUND _ = FOUND\<close> |
   \<open>merge_status _ FOUND = FOUND\<close> |
   \<open>merge_status _ _ = SUCCESS\<close>
 
 definition PAC_checker_step
-  ::  \<open>int_poly \<Rightarrow> unit status \<times> (nat, int_poly) fmap \<Rightarrow> int_poly pac_step \<Rightarrow>
-    (unit status \<times> (nat, int_poly) fmap) nres\<close>
+  ::  \<open>int_poly \<Rightarrow> status \<times> (nat, int_poly) fmap \<Rightarrow> int_poly pac_step \<Rightarrow>
+    (status \<times> (nat, int_poly) fmap) nres\<close>
 where
   \<open>PAC_checker_step = (\<lambda>spec (stat, A) st. case st of
      AddD _ _ _ _ \<Rightarrow>
@@ -83,7 +83,7 @@ where
         then RETURN (merge_status stat st',
           fmupd (new_id st) r
             (fmdrop (pac_src1 st) (fmdrop (pac_src2 st) A)))
-        else RETURN (FAILED (), A)
+        else RETURN (FAILED, A)
    }
    | Add _ _ _ _ \<Rightarrow>
        do {
@@ -93,7 +93,7 @@ where
         if eq
         then RETURN (merge_status stat st',
           fmupd (new_id st) r A)
-        else RETURN (FAILED (), A)
+        else RETURN (FAILED, A)
    }
    | MultD _ _ _ _ \<Rightarrow>
        do {
@@ -105,7 +105,7 @@ where
         then RETURN (merge_status stat st',
           fmupd (new_id st) r
             (fmdrop (pac_src1 st) A))
-        else RETURN (FAILED (), A)
+        else RETURN (FAILED, A)
    }
    | Mult _ _ _ _ \<Rightarrow>
        do {
@@ -116,7 +116,7 @@ where
         if eq
         then RETURN (merge_status stat st',
           fmupd (new_id st) r A)
-        else RETURN (FAILED (), A)
+        else RETURN (FAILED, A)
    }
  )\<close>
 
@@ -218,28 +218,8 @@ lemma PAC_Format_add_and_remove:
   done
 
 
-definition status_rel where
-  \<open>status_rel = {(SUCCESS, SUCCESS), (FOUND, FOUND)} \<union>
-    (\<lambda>(a, b). (FAILED a, FAILED b)) ` (UNIV \<times> UNIV)\<close>
-
-lemma status_rel_intro[iff,simp]:
-  \<open>(FAILED a, FAILED b) \<in> status_rel\<close>
-  \<open>(SUCCESS,SUCCESS) \<in> status_rel\<close>
-  \<open>(FOUND,FOUND) \<in> status_rel\<close>
-  \<open>(FAILED a, SUCCESS) \<notin> status_rel\<close>
-  \<open>(FAILED a, FOUND) \<notin> status_rel\<close>
-  \<open>(SUCCESS,FAILED a) \<notin> status_rel\<close>
-  \<open>(SUCCESS,FOUND) \<notin> status_rel\<close>
-  \<open>(FOUND,SUCCESS) \<notin> status_rel\<close>
-  \<open>(FOUND,FAILED a) \<notin> status_rel\<close>
-  by (auto simp: status_rel_def)
-
-lemma status_rel_alt_def:
-  \<open>(a, b) \<in> status_rel \<longleftrightarrow>
-     (is_failed a = is_failed b) \<and>
-     (is_success a = is_success b) \<and>
-     (is_found a = is_found b)\<close>
-   by (cases a; cases b) auto
+abbreviation status_rel :: \<open>(status \<times> status) set\<close> where
+  \<open>status_rel \<equiv> Id\<close>
 
 lemma is_merge_status[simp]:
   \<open>is_failed (merge_status a st') \<longleftrightarrow> is_failed a \<or> is_failed st'\<close>
@@ -249,12 +229,12 @@ lemma is_merge_status[simp]:
 
 lemma status_rel_merge_status:
   \<open>(merge_status a b, SUCCESS) \<notin> status_rel \<longleftrightarrow>
-    (\<exists>a'. a = FAILED a') \<or> (\<exists>a'. b = FAILED a') \<or>
+    (a = FAILED) \<or> (b = FAILED) \<or>
     a = FOUND \<or> (b = FOUND)\<close>
   by (cases a; cases b; auto)
 
 lemma Ex_status_iff:
-  \<open>(\<exists>a. P a) \<longleftrightarrow> P SUCCESS \<or> P FOUND \<or> (\<exists>a. P (FAILED a))\<close>
+  \<open>(\<exists>a. P a) \<longleftrightarrow> P SUCCESS \<or> P FOUND \<or> (P (FAILED))\<close>
   apply auto
   apply (case_tac a; auto)
   done
@@ -268,16 +248,18 @@ lemma merge_status_eq_iff[simp]:
   \<open>merge_status a SUCCESS = FOUND \<longleftrightarrow> a = FOUND\<close>
   \<open>merge_status SUCCESS a = SUCCESS \<longleftrightarrow> a = SUCCESS\<close>
   \<open>merge_status SUCCESS a = FOUND \<longleftrightarrow> a = FOUND\<close>
-  \<open>merge_status SUCCESS a = FAILED b \<longleftrightarrow> a = FAILED b\<close>
-  \<open>merge_status a SUCCESS = FAILED b \<longleftrightarrow> a = FAILED b\<close>
-  \<open>merge_status FOUND a = FAILED b \<longleftrightarrow> a = FAILED b\<close>
-  \<open>merge_status a FOUND = FAILED b \<longleftrightarrow> a = FAILED b\<close>
+  \<open>merge_status SUCCESS a = FAILED \<longleftrightarrow> a = FAILED\<close>
+  \<open>merge_status a SUCCESS = FAILED \<longleftrightarrow> a = FAILED\<close>
+  \<open>merge_status FOUND a = FAILED \<longleftrightarrow> a = FAILED\<close>
+  \<open>merge_status a FOUND = FAILED \<longleftrightarrow> a = FAILED\<close>
   \<open>merge_status a FOUND = SUCCESS \<longleftrightarrow> False\<close>
-  by (cases a; auto; fail)+
+  \<open>merge_status a b = FOUND \<longleftrightarrow> (a = FOUND \<or> b = FOUND) \<and> (a \<noteq> FAILED \<and> b \<noteq> FAILED)\<close>
+  apply (cases a; auto; fail)+
+  apply (cases a; cases b; auto; fail)+
+  done
 
-find_theorems "is_success _ \<longleftrightarrow> _"
 lemma PAC_checker_step_PAC_checker_specification2:
-  fixes a :: \<open>unit status\<close>
+  fixes a :: \<open>status\<close>
   assumes [simp,intro]: \<open>(A,B) \<in> polys_rel\<close> and
     \<open>\<not>is_failed a\<close> and
     [simp,intro]: \<open>a = FOUND \<Longrightarrow> spec \<in> pac_ideal (set_mset B)\<close>
@@ -292,10 +274,10 @@ proof -
          of \<open>the (fmlookup A x12)\<close> _  \<open>the (fmlookup A x12)\<close>],
       of \<open>set_mset B \<union> polynom_bool\<close> \<open>2 * the (fmlookup A x12) - r\<close>]
      unfolding polys_rel_def
-    apply (subgoal_tac \<open>r \<in> pac_ideal (set_mset B)\<close>)
-     apply (auto dest!: multi_member_split simp: ran_m_def)
-     apply (metis Un_insert_left diff_in_polynom_bool_pac_idealI ideal.span_diff ideal.span_zero)
-     by (metis (no_types, lifting) UnCI Un_insert_left diff_in_polynom_bool_pac_idealI ideal.span_add ideal.span_base mult_2 set_image_mset set_mset_add_mset_insert union_single_eq_member)
+     apply (subgoal_tac \<open>r \<in> pac_ideal (set_mset B)\<close>)
+     apply (auto dest!: multi_member_split simp: ran_m_def intro: diff_in_polynom_bool_pac_idealI)
+     by (metis (no_types, lifting) UnCI Un_insert_left diff_in_polynom_bool_pac_idealI ideal.span_add
+       ideal.span_base mult_2 set_image_mset set_mset_add_mset_insert union_single_eq_member)
 
   have H2: \<open>x11 \<in># dom_m A \<Longrightarrow>
        x12 \<in># dom_m A \<Longrightarrow>
@@ -309,14 +291,27 @@ proof -
       of \<open>set_mset B \<union> polynom_bool\<close> \<open>the (fmlookup A x11) + the (fmlookup A x12) - r\<close>]
      unfolding polys_rel_def
     apply (subgoal_tac \<open>r \<in> pac_ideal (set_mset B)\<close>)
-     apply (auto dest!: multi_member_split simp: ran_m_def ideal.span_base)
-     apply (metis Un_insert_left diff_in_polynom_bool_pac_idealI ideal.span_diff ideal.span_zero)
-     by (smt Un_insert_left diff_diff_eq2 diff_in_polynom_bool_pac_idealI diff_zero ideal.span_base ideal.span_diff ideal.span_neg insertI1 minus_diff_eq)
+     apply (auto dest!: multi_member_split simp: ran_m_def ideal.span_base intro: diff_in_polynom_bool_pac_idealI)
+     by (smt Un_insert_left diff_diff_eq2 diff_in_polynom_bool_pac_idealI diff_zero ideal.span_base ideal.span_diff
+       ideal.span_neg insertI1 minus_diff_eq)
 
-  have eq_successI: \<open>st' \<noteq> FAILED () \<Longrightarrow>
+  have H3: \<open>x12 \<in># dom_m A \<Longrightarrow>
+       the (fmlookup A x12) * q - r \<in> More_Modules.ideal polynom_bool \<Longrightarrow>
+       r - spec \<in> More_Modules.ideal polynom_bool \<Longrightarrow>
+       spec \<in> pac_ideal (set_mset B)\<close> for x12 r q
+     using \<open>(A,B) \<in> polys_rel\<close>
+      ideal.span_add[OF ideal.span_add[OF ideal.span_neg ideal.span_neg,
+         of \<open>the (fmlookup A x12)\<close> _  \<open>the (fmlookup A x12)\<close>],
+      of \<open>set_mset B \<union> polynom_bool\<close> \<open>2 * the (fmlookup A x12) - r\<close>]
+     unfolding polys_rel_def
+     apply (subgoal_tac \<open>r \<in> pac_ideal (set_mset B)\<close>)
+     apply (auto dest!: multi_member_split simp: ran_m_def intro: diff_in_polynom_bool_pac_idealI)
+     by (metis PAC_Format_subset_ideal Un_insert_left mult set_image_mset set_mset_add_mset_insert subsetD union_single_eq_member)
+
+  have eq_successI: \<open>st' \<noteq> FAILED \<Longrightarrow>
        st' \<noteq> FOUND \<Longrightarrow> st' = SUCCESS\<close> for st'
     by (cases st') auto
-  have [iff]: \<open>a \<noteq> FAILED ()\<close> and
+  have [iff]: \<open>a \<noteq> FAILED\<close> and
     [intro]: \<open>a \<noteq> SUCCESS \<Longrightarrow> a = FOUND\<close> and
     [simp]: \<open>merge_status a FOUND = FOUND\<close>
     using assms(2) by (cases a; auto)+
@@ -327,84 +322,79 @@ proof -
     apply (cases st)
     apply clarsimp_all
     subgoal for x11 x12 x13 x14
-      apply refine_vcg
-      using assms
-      apply (auto 6 4 simp: RETURN_def 
-        intro: PAC_Format.intros simp flip: insert_minus_eq)
-      apply (rule RES_refine)
-      apply (auto simp: Ex_status_iff)
-      apply (rule RES_refine)
-      apply (auto simp: Ex_status_iff)
-      apply (rule RES_refine)
-      apply (rule_tac x = \<open>(if a = SUCCESS then SUCCESS else FOUND,add_mset r B - (if x11 \<noteq> x12 then {#the (fmlookup A x11), the (fmlookup A x12)#} else {#the (fmlookup A x11)#}))\<close> in bexI)
-      apply (auto simp: polys_rel_update_remove PAC_Format_add_and_remove
-           status_rel_alt_def is_failed_def is_success_def is_found_def
-        dest!: eq_successI
-        split: if_splits)[2]
-      apply (rule RES_refine)
-      apply (auto simp: status_rel_alt_def Ex_status_iff)
-      apply (rule RES_refine)
-      apply (rule_tac x = \<open>(if a = FOUND \<or> st' = FOUND then FOUND else SUCCESS,add_mset r B - (if x11 \<noteq> x12 then {#the (fmlookup A x11), the (fmlookup A x12)#} else {#the (fmlookup A x11)#}))\<close> in bexI)
-      apply (auto simp: polys_rel_update_remove PAC_Format_add_and_remove
-           status_rel_alt_def is_failed_def is_success_def is_found_def H1 H2
-        dest!: eq_successI
-        split: if_splits)[2]
-      apply (rule RES_refine)
-      apply (auto simp: status_rel_alt_def Ex_status_iff)
+      apply (refine_vcg lhs_step_If)
+      subgoal for r eqa st'
+        using assms apply -
+        apply (rule RETURN_SPEC_refine)
+        apply (rule_tac x = \<open>(merge_status a st',add_mset r B - (if x11 \<noteq> x12 then {#the (fmlookup A x11), the (fmlookup A x12)#} else {#the (fmlookup A x11)#}))\<close> in exI)
+        apply (auto simp: polys_rel_update_remove PAC_Format_add_and_remove
+             is_failed_def is_success_def is_found_def H1 H2
+          dest!: eq_successI
+          split: if_splits)
+        done
+      subgoal
+        by (rule RETURN_SPEC_refine)
+          (auto simp: Ex_status_iff)
       done
     subgoal
-      apply refine_vcg
-      using assms
-      apply (auto 6 4 simp: RETURN_def 
-        intro: PAC_Format.intros simp flip: insert_minus_eq)
-      apply (rule RES_refine)
-      apply auto
-      defer
-      apply (rule RES_refine)
-      apply auto
-      apply (rule RES_refine)
-      apply (rule_tac x = \<open>(True, add_mset r B)\<close> in bexI)
-      apply (auto simp: polys_rel_update_remove PAC_Format_add_and_remove)
+      apply (refine_vcg lhs_step_If)
+      subgoal for r eqa st'
+        using assms apply -
+        apply (rule RETURN_SPEC_refine)
+        apply (rule_tac x = \<open>(merge_status a st',add_mset r B)\<close> in exI)
+        apply (auto simp: polys_rel_update_remove
+             is_failed_def is_success_def is_found_def H1 H2
+          dest!: eq_successI
+          split: if_splits
+          intro: PAC_Format_add_and_remove)
+        done
+      subgoal
+        by (rule RETURN_SPEC_refine)
+          (auto simp: Ex_status_iff)
       done
-    subgoal for x11 x32 x33 x34
-      using assms
-      apply refine_vcg
-      apply (auto 6 4 simp: RETURN_def
-        intro: PAC_Format.intros simp flip: insert_minus_eq)
-      apply (rule RES_refine)
-      apply auto
-      defer
-      apply (rule RES_refine)
-      apply auto
-      apply (rule RES_refine)
-      apply (rule_tac x = \<open>(True, add_mset r B - {#the (fmlookup A x11)#})\<close> in bexI)
-      apply (auto simp: polys_rel_update_remove PAC_Format_add_and_remove)
+    subgoal for x11 x12 x13 x14
+      apply (refine_vcg lhs_step_If)
+      subgoal for r q eqa st'
+        using assms apply -
+        apply (rule RETURN_SPEC_refine)
+        apply (rule_tac x = \<open>(merge_status a st',add_mset r B - {#the (fmlookup A x11)#})\<close> in exI)
+        apply (auto simp: polys_rel_update_remove PAC_Format_add_and_remove
+             is_failed_def is_success_def is_found_def
+          dest!: eq_successI
+          split: if_splits
+          intro: PAC_Format_add_and_remove H3)
+        done
+      subgoal
+        by (rule RETURN_SPEC_refine)
+          (auto simp: Ex_status_iff)
       done
-    subgoal for x11 x32 x33 x34
-      using assms
-      apply refine_vcg
-      apply (auto 6 4 simp: RETURN_def
-        intro: PAC_Format.intros simp flip: insert_minus_eq)
-      apply (rule RES_refine)
-      apply auto
-      defer
-      apply (rule RES_refine)
-      apply auto
-      apply (rule RES_refine)
-      apply (rule_tac x = \<open>(True, add_mset r B)\<close> in bexI)
-      apply (auto simp: polys_rel_update_remove PAC_Format_add_and_remove)
+    subgoal for x11 x12 x13 x14
+      apply (refine_vcg lhs_step_If)
+      subgoal for r q eqa st'
+        using assms apply -
+        apply (rule RETURN_SPEC_refine)
+        apply (rule_tac x = \<open>(merge_status a st',add_mset r B)\<close> in exI)
+        apply (auto simp: polys_rel_update_remove PAC_Format_add_and_remove
+             is_failed_def is_success_def is_found_def
+          dest!: eq_successI
+          split: if_splits
+          intro: PAC_Format_add_and_remove H3)
+        done
+      subgoal
+        by (rule RETURN_SPEC_refine)
+          (auto simp: Ex_status_iff)
       done
-  done
+    done
 qed
 
 
 definition PAC_checker
   :: \<open>int_poly \<Rightarrow> (nat, int_poly) fmap \<Rightarrow> int_poly pac_step list \<Rightarrow>
-    (unit status \<times> (nat, int_poly) fmap) nres\<close>
+    (status \<times> (nat, int_poly) fmap) nres\<close>
 where
   \<open>PAC_checker spec A st = do {
     (S, _) \<leftarrow> WHILE\<^sub>T
-       (\<lambda>((b :: unit status, A :: (nat, int_poly) fmap), n::nat). \<not>is_failed b \<and> n < length st)
+       (\<lambda>((b :: status, A :: (nat, int_poly) fmap), n::nat). \<not>is_failed b \<and> n < length st)
        (\<lambda>((bA), n). do {
           ASSERT(n < length st);
           S \<leftarrow> PAC_checker_step spec (bA) (st ! n);
@@ -428,6 +418,7 @@ lemma RES_SPEC_eq:
 
 lemma PAC_checker_PAC_checker_specification2:
   \<open>(A, B) \<in> polys_rel \<Longrightarrow>
+    \<not>is_failed a \<Longrightarrow> (a = FOUND \<Longrightarrow> spec \<in> pac_ideal (set_mset B)) \<Longrightarrow>
   PAC_checker spec A st \<le> \<Down> (status_rel \<times>\<^sub>r polys_rel) (PAC_checker_specification2 spec B)\<close>
   unfolding PAC_checker_def conc_fun_RES
   apply (subst RES_SPEC_eq)
@@ -437,14 +428,18 @@ lemma PAC_checker_PAC_checker_specification2:
     and R = \<open>measure (\<lambda>(_, n).  Suc (length st) - n)\<close>])
   subgoal by auto
   subgoal by auto
-  subgoal by (force simp: PAC_checker_specification_spec_def status_rel_def)
+  subgoal by (force simp: PAC_checker_specification_spec_def)
   subgoal by auto
   subgoal
     apply auto
     apply (rule
      PAC_checker_step_PAC_checker_specification2[THEN order_trans])
      apply assumption
+     apply assumption
      apply (auto intro: PAC_checker_specification_spec_trans simp: conc_fun_RES)
+     apply (auto simp: PAC_checker_specification_spec_def dest: PAC_Format_subset_ideal)
+     
+     find_theorems PAC_Format "_ \<subseteq> _"
      done
   subgoal
     by auto
