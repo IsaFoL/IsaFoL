@@ -2193,7 +2193,7 @@ definition mop_lit_notin_conflict_l :: \<open>'v literal \<Rightarrow> 'v twl_st
   \<open>mop_lit_notin_conflict_l L S = do {
     ASSERT(get_conflict_l S \<noteq> None \<and> -L \<notin># the (get_conflict_l S) \<and>
          L \<in># all_lits_of_mm (mset `# ran_mf (get_clauses_l S) + get_unit_clauses_l S +
-           get_subsumed_init_clauses_l S));
+           get_subsumed_clauses_l S));
     RETURN (L \<notin># the (get_conflict_l S))
   }\<close>
 

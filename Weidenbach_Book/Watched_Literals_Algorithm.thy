@@ -702,7 +702,7 @@ definition mop_tl_state_pre :: \<open>'v twl_st \<Rightarrow> bool\<close> where
           get_conflict S \<noteq> Some {#} \<and>
           is_proped (hd (get_trail S)) \<and>
           lit_of (hd (get_trail S)) \<in># all_lits_of_mm (clauses (get_clauses S) + unit_clss S +
-             subsumed_init_clauses S) \<and>
+             subsumed_clauses S) \<and>
           lit_of (hd (get_trail S)) \<notin># the (get_conflict S) \<and>
           -lit_of (hd (get_trail S)) \<notin># the (get_conflict S)\<close>
 
@@ -721,7 +721,7 @@ definition update_confl_tl_pre :: \<open>'v literal \<Rightarrow> 'v clause \<Ri
           L \<in># D \<and>
           -L \<in># the (get_conflict S) \<and>
           hd (get_trail S) = Propagated L D \<and>
-          L \<in># all_lits_of_mm (clauses (get_clauses S) + unit_clss S + subsumed_init_clauses S)\<close>
+          L \<in># all_lits_of_mm (clauses (get_clauses S) + unit_clss S + subsumed_clauses S)\<close>
 
 definition update_confl_tl :: \<open>'v literal \<Rightarrow> 'v clause \<Rightarrow> 'v twl_st \<Rightarrow> (bool \<times> 'v twl_st)\<close> where
   \<open>update_confl_tl = (\<lambda>L C (M, N, U, D, NE, UE, NS, US, WS, Q).
@@ -735,7 +735,7 @@ definition mop_update_confl_tl :: \<open>'v literal \<Rightarrow> 'v clause \<Ri
 definition mop_lit_notin_conflict :: \<open>'v literal \<Rightarrow> 'v twl_st \<Rightarrow> bool nres\<close> where
   \<open>mop_lit_notin_conflict L S = do {
     ASSERT(get_conflict S \<noteq> None \<and> -L \<notin># the (get_conflict S)\<and>
-         L \<in># all_lits_of_mm (clauses (get_clauses S) + unit_clss S + subsumed_init_clauses S));
+         L \<in># all_lits_of_mm (clauses (get_clauses S) + unit_clss S + subsumed_clauses S));
     RETURN (L \<notin># the (get_conflict S))
   }\<close>
 
@@ -871,7 +871,7 @@ proof (refine_vcg WHILEIT_rule[where R = \<open>measure (\<lambda>(brk, S). Suc 
     by (auto simp add: cdcl\<^sub>W_restart_mset_state T D)
   then show \<open>- (- L) \<notin># the (get_conflict T)\<close>
     using M by (auto simp: T D dest!: multi_member_split uminus_lits_of_l_definedD)
-  show alien_L: \<open>- L  \<in># all_lits_of_mm (clauses (get_clauses T) + unit_clss T + subsumed_init_clauses T)\<close>
+  show alien_L: \<open>- L  \<in># all_lits_of_mm (clauses (get_clauses T) + unit_clss T + subsumed_clauses T)\<close>
     using alien M
     by (cases T)
       (auto simp: cdcl\<^sub>W_restart_mset.no_strange_atm_def
@@ -898,7 +898,7 @@ proof (refine_vcg WHILEIT_rule[where R = \<open>measure (\<lambda>(brk, S). Suc 
         cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
       by (auto simp: cdcl\<^sub>W_restart_mset_state T tl_state_def)
     moreover have \<open>- lit_of (hd M) \<in># all_lits_of_mm (clauses (get_clauses T) + unit_clss T +
-         subsumed_init_clauses T)\<close> \<open>is_proped (hd M)\<close>
+         subsumed_clauses T)\<close> \<open>is_proped (hd M)\<close>
        \<open>- lit_of (hd M) \<notin># the (get_conflict T)\<close>  \<open>lit_of (hd M) \<notin># the (get_conflict T)\<close>
       using M alien_L LD LD' D
       by (auto intro!: ASSERT_leI simp: T tl_state_def in_all_lits_of_mm_uminus_iff)
