@@ -87,13 +87,13 @@ structure PAC_Checker : sig
   val the_error : 'a code_status -> 'a
   val is_cfailed : 'a code_status -> bool
   val pAC_empty_impl : (unit -> ((((string list * int) list) option) array))
-  val fully_normalize_poly_impl :
-    (string list * int) list -> (unit -> ((string list * int) list))
   val pAC_update_impl :
     nat ->
       (string list * int) list ->
         (((string list * int) list) option) array ->
           (unit -> ((((string list * int) list) option) array))
+  val fully_normalize_poly_impl :
+    (string list * int) list -> (unit -> ((string list * int) list))
   val pAC_checker_l_impl :
     (string list * int) list ->
       (nat, ((string list * int) list)) hashtable ->
@@ -527,13 +527,6 @@ fun plus_nat m n = Nat (IntInf.+ (integer_of_nat m, integer_of_nat n));
 
 fun suc n = plus_nat n one_nat;
 
-fun minus_nat m n =
-  Nat (max ord_integer (0 : IntInf.int)
-        (IntInf.- (integer_of_nat m, integer_of_nat n)));
-
-fun nth (x :: xs) n =
-  (if equal_nata n zero_nat then x else nth xs (minus_nat n one_nat));
-
 fun len A_ a =
   (fn () => let
               val i = (fn () => IntInf.fromInt (Array.length a)) ();
@@ -544,7 +537,7 @@ fun len A_ a =
 fun new A_ =
   (fn a => fn b => (fn () => Array.array (IntInf.toInt a, b))) o integer_of_nat;
 
-fun ntha A_ a n = (fn () => Array.sub (a, IntInf.toInt (integer_of_nat n)));
+fun nth A_ a n = (fn () => Array.sub (a, IntInf.toInt (integer_of_nat n)));
 
 fun upd A_ i x a =
   (fn () =>
@@ -554,6 +547,10 @@ fun upd A_ i x a =
     in
       a
     end);
+
+fun minus_nat m n =
+  Nat (max ord_integer (0 : IntInf.int)
+        (IntInf.- (integer_of_nat m, integer_of_nat n)));
 
 fun drop n [] = []
   | drop n (x :: xs) =
@@ -567,13 +564,6 @@ fun lexordp A_ r (x :: xs) (y :: ys) =
   r x y orelse eq A_ x y andalso lexordp A_ r xs ys
   | lexordp A_ r [] (y :: ys) = true
   | lexordp A_ r xs [] = false;
-
-fun list_update [] i y = []
-  | list_update (x :: xs) i y =
-    (if equal_nata i zero_nat then y :: xs
-      else x :: list_update xs (minus_nat i one_nat) y);
-
-fun swap l i j = list_update (list_update l i (nth l j)) j (nth l i);
 
 fun replicate n x =
   (if equal_nata n zero_nat then []
@@ -656,7 +646,7 @@ fun ht_upd (A1_, A2_, A3_) B_ k v ht =
         val i = bounded_hashcode_nat A2_ m k;
       in
         (fn f_ => fn () => f_
-          ((ntha (heap_list (heap_prod A3_ B_)) (the_array ht) i) ()) ())
+          ((nth (heap_list (heap_prod A3_ B_)) (the_array ht) i) ()) ())
           (fn l =>
             let
               val la = ls_update A1_ k v l;
@@ -690,7 +680,7 @@ fun ht_copy (A1_, A2_, A3_) B_ n src dst =
     else (fn () =>
            let
              val l =
-               ntha (heap_list (heap_prod A3_ B_)) (the_array src)
+               nth (heap_list (heap_prod A3_ B_)) (the_array src)
                  (minus_nat n one_nat) ();
              val x = ht_insls (A1_, A2_, A3_) B_ l dst ();
            in
@@ -714,7 +704,7 @@ fun ht_delete (A1_, A2_, A3_) B_ k ht =
         val i = bounded_hashcode_nat A2_ m k;
       in
         (fn f_ => fn () => f_
-          ((ntha (heap_list (heap_prod A3_ B_)) (the_array ht) i) ()) ())
+          ((nth (heap_list (heap_prod A3_ B_)) (the_array ht) i) ()) ())
           (fn l =>
             let
               val la = ls_delete A1_ k l;
@@ -748,7 +738,7 @@ fun ht_lookup (A1_, A2_, A3_) B_ x ht =
         val i = bounded_hashcode_nat A2_ m x;
       in
         (fn f_ => fn () => f_
-          ((ntha (heap_list (heap_prod A3_ B_)) (the_array ht) i) ()) ())
+          ((nth (heap_list (heap_prod A3_ B_)) (the_array ht) i) ()) ())
           (fn l => (fn () => (ls_lookup A1_ x l)))
       end
         ()
@@ -795,8 +785,6 @@ fun array_grow A_ a s x =
                    (fn _ => (fn () => aa))))
         ()
     end);
-
-fun op_list_get x = nth x;
 
 fun error_msg A_ i msg =
   CFAILED
@@ -847,8 +835,6 @@ fun iam_new_sz A_ sz = new (heap_option A_) sz NONE;
 
 fun iam_new A_ = iam_new_sz A_ iam_initial_size;
 
-fun op_list_swap x = swap x;
-
 fun merge f (x :: xs) (y :: ys) =
   (if f x y then x :: merge f xs (y :: ys) else y :: merge f (x :: xs) ys)
   | merge f xs [] = xs
@@ -870,8 +856,6 @@ fun msort f [] = []
           (v :: vb :: vc)));
 
 fun op_list_concat x = (fn a => x @ a);
-
-fun op_list_length x = size_list x;
 
 fun iam_lookup A_ k a = nth_oo (heap_option A_) NONE a k;
 
@@ -904,8 +888,6 @@ fun merge_cstatus (CFAILED a) uu = CFAILED a
   | merge_cstatus CFOUND CFOUND = CFOUND
   | merge_cstatus CSUCCESS CFOUND = CFOUND
   | merge_cstatus CSUCCESS CSUCCESS = CSUCCESS;
-
-fun op_list_is_empty x = null x;
 
 fun plus_int k l =
   Int_of_integer (IntInf.+ (integer_of_int k, integer_of_int l));
@@ -993,6 +975,27 @@ fun is_cfailed (CFAILED x1) = true
   | is_cfailed CSUCCESS = false
   | is_cfailed CFOUND = false;
 
+fun merge_coeffs_impl_0 x =
+  (case x of [] => (fn () => []) | [(_, _)] => (fn () => x)
+    | (a1, a2) :: (a1a, a2a) :: l_a =>
+      (if equal_lista equal_literal a1 a1a
+        then (if not (equal_inta (plus_int a2 a2a) zero_int)
+               then merge_coeffs_impl_0
+                      (op_list_prepend (a1, plus_int a2 a2a) l_a)
+               else merge_coeffs_impl_0 l_a)
+        else (fn () =>
+               let
+                 val x_c =
+                   merge_coeffs_impl_0 (op_list_prepend (a1a, a2a) l_a) ();
+               in
+                 op_list_prepend (a1, a2) x_c
+               end)));
+
+fun merge_coeffs_impl x = merge_coeffs_impl_0 x;
+
+fun msort_monoms_impl x =
+  msort (fn xa => fn y => ((xa : string) < y) orelse ((xa : string) = y)) x;
+
 fun error_msg_not_equal_dom A_ B_ C_ D_ p q pq r =
   shows_prec A_ zero_nat p [] @
     [Chara (false, false, false, false, false, true, false, false),
@@ -1074,114 +1077,10 @@ fun add_poly_impl_0 x =
 
 fun add_poly_impl x = add_poly_impl_0 x;
 
-fun partition_main_vars_impl x =
-  (fn ai => fn bia => fn bi => fn () =>
-    let
-      val a =
-        heap_WHILET (fn (_, (a1a, _)) => (fn () => (less_nat a1a bia)))
-          (fn (a1, (a1a, a2a)) =>
-            (fn () =>
-              (if (((op_list_get a2a a1a) : string) <= (op_list_get bi bia))
-                then (plus_nat a1 one_nat,
-                       (plus_nat a1a one_nat, op_list_swap a2a a1 a1a))
-                else (a1, (plus_nat a1a one_nat, a2a)))))
-          (ai, (ai, bi)) ();
-    in
-      let
-        val (a1, (_, a2a)) = a;
-      in
-        (fn () => (op_list_swap a2a a1 bia, a1))
-      end
-        ()
-    end)
-    x;
-
-fun partition_between_vars_impl x =
-  (fn ai => fn bia => fn bi => fn () =>
-    let
-      val xa =
-        let
-          val x_b =
-            plus_nat ai
-              (divide_nat (minus_nat bia ai) (nat_of_integer (2 : IntInf.int)));
-          val x_d = op_list_get bi ai;
-          val x_f = op_list_get bi x_b;
-          val x_h = op_list_get bi bia;
-        in
-          (fn () =>
-            (if ((x_d : string) <= x_f) andalso ((x_f : string) <= x_h) orelse
-                  ((x_h : string) <= x_f) andalso ((x_f : string) <= x_d)
-              then x_b
-              else (if ((x_d : string) <= x_h) andalso
-                         ((x_h : string) <= x_f) orelse
-                         ((x_f : string) <= x_h) andalso ((x_h : string) <= x_d)
-                     then bia else ai)))
-        end
-          ();
-    in
-      partition_main_vars_impl ai bia (op_list_swap bi xa bia) ()
-    end)
-    x;
-
-fun quicksort_vars_impl_0 x =
-  let
-    val (a1, (a1a, a2a)) = x;
-  in
-    (fn () =>
-      let
-        val a = partition_between_vars_impl a1 a1a a2a ();
-      in
-        let
-          val (a1b, a2b) = a;
-        in
-          (fn f_ => fn () => f_
-            ((if less_eq_nat (minus_nat a2b one_nat) a1 then (fn () => a1b)
-               else quicksort_vars_impl_0 (a1, (minus_nat a2b one_nat, a1b)))
-            ()) ())
-            (fn x_b =>
-              (if less_eq_nat a1a (plus_nat a2b one_nat) then (fn () => x_b)
-                else quicksort_vars_impl_0 (plus_nat a2b one_nat, (a1a, x_b))))
-        end
-          ()
-      end)
-  end;
-
-fun quicksort_vars_impl x =
-  (fn ai => fn bia => fn bi => quicksort_vars_impl_0 (ai, (bia, bi))) x;
+fun normalize_poly_impl x = (fn xi => merge_coeffs_impl (msort_poly_impl xi)) x;
 
 val pAC_empty_impl : (unit -> ((((string list * int) list) option) array)) =
   iam_new (heap_list (heap_prod (heap_list heap_literal) heap_int));
-
-fun full_quicksort_vars_impl x =
-  (fn xi =>
-    (if op_list_is_empty xi then (fn () => xi)
-      else quicksort_vars_impl zero_nat (minus_nat (op_list_length xi) one_nat)
-             xi))
-    x;
-
-fun sort_all_coeffs_impl x =
-  (fn xi =>
-    imp_nfoldli xi (fn _ => (fn () => true))
-      (fn xb => fn sigma =>
-        let
-          val (a1, a2) = xb;
-        in
-          (fn () => let
-                      val x_b = full_quicksort_vars_impl a1 ();
-                    in
-                      op_list_concat sigma (op_list_prepend (x_b, a2) [])
-                    end)
-        end)
-      [])
-    x;
-
-fun fully_normalize_poly_impl x =
-  (fn xi => fn () => let
-                       val xa = sort_all_coeffs_impl xi ();
-                     in
-                       merge_coeffs0_impl (msort_poly_impl xa) ()
-                     end)
-    x;
 
 fun mult_monoms_impl_0 x =
   let
@@ -1253,8 +1152,21 @@ fun mult_poly_impl x =
   (fn ai => fn bi => fn () => let
                                 val xa = mult_poly_raw_impl ai bi ();
                               in
-                                fully_normalize_poly_impl xa ()
+                                normalize_poly_impl xa ()
                               end)
+    x;
+
+fun sort_all_coeffs_impl x =
+  (fn xi =>
+    imp_nfoldli xi (fn _ => (fn () => true))
+      (fn xb => fn sigma =>
+        (fn () =>
+          let
+            val (a1, a2) = xb;
+          in
+            op_list_concat sigma (op_list_prepend (msort_monoms_impl a1, a2) [])
+          end))
+      [])
     x;
 
 fun pAC_update_impl x =
@@ -1380,6 +1292,14 @@ fun is_AddD (AddD (x11, x12, x13, x14)) = true
   | is_AddD (Add (x21, x22, x23, x24)) = false
   | is_AddD (MultD (x31, x32, x33, x34)) = false
   | is_AddD (Mult (x41, x42, x43, x44)) = false;
+
+fun fully_normalize_poly_impl x =
+  (fn xi => fn () => let
+                       val xa = sort_all_coeffs_impl xi ();
+                     in
+                       merge_coeffs0_impl (msort_poly_impl xa) ()
+                     end)
+    x;
 
 fun new_id (AddD (x11, x12, x13, x14)) = x13
   | new_id (Add (x21, x22, x23, x24)) = x23
@@ -1706,9 +1626,9 @@ fun pAC_checker_l_impl x =
                  val (a1a, a2a) = a1;
                in
                  (fn f_ => fn () => f_
-                   ((ntha (heap_pac_step
-                            (heap_list
-                              (heap_prod (heap_list heap_literal) heap_int)))
+                   ((nth (heap_pac_step
+                           (heap_list
+                             (heap_prod (heap_list heap_literal) heap_int)))
                       bi a2)
                    ()) ())
                    (check_step_impl ai a1a a2a)

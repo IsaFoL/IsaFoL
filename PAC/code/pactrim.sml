@@ -61,25 +61,59 @@ in
       [a] => (map (fn (a,b) => (a, PAC_Checker.Int_of_integer b)) a)
 end
 
+fun print_stat polys_timer pac_timer end_of_init end_of_processing full =
+  let
+    fun print_timer d t = print ("c " ^ d ^ " (nonGC): " ^
+          Time.toString (Time.+ (#usr (#nongc t), #sys (#nongc t))) ^ " s = " ^
+          Time.toString (#usr (#nongc t)) ^ " s (usr) " ^
+          Time.toString (#sys (#nongc t)) ^ " s (sys)\n");
+    fun print_timer_GC d t = print ("c " ^ d ^ ": " ^
+          Time.toString (Time.+ (#usr (#gc t), #sys (#gc t))) ^ " s = " ^
+          Time.toString (#usr (#gc t)) ^ " s (usr) " ^
+          Time.toString (#sys (#gc t)) ^ " s (sys)\n");
+    fun print_full_timer d t = print ("c " ^ d ^ "(full): " ^
+                                      Time.toString (Time.+(Time.+ (#usr (#gc t), #sys (#gc t)),
+                                                      (Time.+ (#usr (#nongc t), #sys (#nongc t))))) ^ " s\n" );
+    val clock = Time.toSeconds (#usr (#nongc end_of_processing)) + Time.toSeconds (#sys (#nongc end_of_processing));
+     val _ = print "c\nc\nc ***** stats *****\n"
+     val _ = print_timer "parsing polys file init" polys_timer
+     val _ = print_timer "parsing pac file init" pac_timer
+     val _ = print_timer "full init" end_of_init
+     val _ = print_timer "time solving" end_of_processing
+     val _ = print_timer_GC "time GC" end_of_processing
+     val _ = print_full_timer "time solving" end_of_processing
+     val _ = print_timer "Overall" full
+     val _ = print_timer_GC "overall GC" full
+     val _ = print_full_timer "Overall" full
+  in
+   ()
+  end
+
 
 fun checker [polys, pac, spec] = let
   val _ = println "start";
-  val timer = Timer.totalCPUTimer ();
+  val init_timer = Timer.startCPUTimer ();
   val problem = parse_polys_file polys;
+  val polys_timer = Timer.checkCPUTimes init_timer;
+  val timer = Timer.startCPUTimer ();
   val _ = println "polys parsed\n******************"
-  val timer = Timer.totalCPUTimer ();
   val pac : ((string list * PAC_Checker.int) list PAC_Checker.pac_step) list = parse_pac_file pac;
   val pac : ((string list * PAC_Checker.int) list PAC_Checker.pac_step) array = (Array.fromList pac)
   val _ = println "pac parsed"
+  val pac_timer = Timer.checkCPUTimes timer;
+  val timer = Timer.startCPUTimer ();
   val (spec : ((string list * PAC_Checker.int) list)) = parse_spec_file spec;
   val _ = println "spec parsed";
-  val end_of_init = Timer.checkCPUTimes timer;
-  val _ = print (Int.toString (MLton.size problem));
+  val end_of_init = Timer.checkCPUTimes init_timer;
+  val timer = Timer.startCPUTimer ();
   val _ = println "Now checking";
   val (b, _) = PAC_Checker.full_checker_l_impl spec problem pac ();
   val _ = if PAC_Checker.is_cfound b then println "s SUCCESSFULL"
           else if (PAC_Checker.is_cfailed b) = false then println "s FAILED, but correct PAC"
           else (println "s FAILED!!!!!!!"; println (PAC_Checker.implode (PAC_Checker.the_error b)))
+  val end_of_processing = Timer.checkCPUTimes timer
+  val full = Timer.checkCPUTimes init_timer
+  val _ = print_stat polys_timer pac_timer end_of_init end_of_processing full
   (* val timer = Timer.totalCPUTimer () *)
   (* val (SAT, stat) = SAT_Solver.isaSAT_code (not norestart, (not noreduction, nounbounded)) problem (); *)
   (* val end_of_processing = Timer.checkCPUTimes timer *)
