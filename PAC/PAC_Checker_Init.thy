@@ -296,14 +296,20 @@ qed
 definition merge_sort_poly :: \<open>_\<close> where
 \<open>merge_sort_poly = msort (\<lambda>a b. fst a \<le> fst b)\<close>
 
+definition merge_monoms_poly :: \<open>_\<close> where
+\<open>merge_monoms_poly = msort (\<le>)\<close>
+
 definition merge_poly :: \<open>_\<close> where
 \<open>merge_poly = merge (\<lambda>a b. fst a \<le> fst b)\<close>
 
-definition msort_monoms_impl :: \<open>(string list \<times> int) list \<Rightarrow> _ \<Rightarrow> _\<close> where
-\<open>msort_monoms_impl = merge_poly\<close>
+definition merge_monoms :: \<open>_\<close> where
+\<open>merge_monoms = merge (\<le>)\<close>
 
 definition msort_poly_impl :: \<open>(String.literal list \<times> int) list \<Rightarrow> _\<close> where
 \<open>msort_poly_impl = msort (\<lambda>a b. fst a \<le> fst b)\<close>
+
+definition msort_monoms_impl :: \<open>(String.literal list) \<Rightarrow> _\<close> where
+\<open>msort_monoms_impl = msort (\<le>)\<close>
 
 lemma le_term_order_rel':
   \<open>(\<le>) = (\<lambda>x y. x = y \<or>  term_order_rel' x y)\<close>
@@ -515,6 +521,7 @@ lemmas sort_poly_spec_hnr =
   full_quicksort_poly_impl.refine[FCOMP full_quicksort_sort_poly_spec]
 
 declare merge_coeffs_impl.refine[sepref_fr_rules]
+
 sepref_definition normalize_poly_impl
   is \<open>normalize_poly\<close>
   :: \<open>poly_assn\<^sup>k \<rightarrow>\<^sub>a poly_assn\<close>
@@ -532,7 +539,6 @@ definition full_quicksort_vars where
 definition quicksort_vars:: \<open>nat \<Rightarrow> nat \<Rightarrow> string list \<Rightarrow> (string list) nres\<close> where
   \<open>quicksort_vars x y  z = quicksort_ref (\<le>) id (x, y, z)\<close>
 
-term partition_between_ref
 
 definition partition_between_vars :: \<open>nat \<Rightarrow> nat \<Rightarrow> string list \<Rightarrow> (string list \<times> nat) nres\<close> where
   \<open>partition_between_vars = partition_between_ref (\<le>) id\<close>
@@ -687,8 +693,91 @@ sepref_definition full_quicksort_vars_impl
   by sepref
 
 
-lemmas sort_vars_spec_hnr[sepref_fr_rules] =
+lemmas sort_vars_spec_hnr =
   full_quicksort_vars_impl.refine[FCOMP full_quicksort_sort_vars_spec]
+
+lemma string_rel_order_map:
+  \<open>(x, a) \<in> string_rel \<Longrightarrow>
+       (y, aa) \<in> string_rel \<Longrightarrow>
+       x \<le> y \<longleftrightarrow> a \<le> aa\<close>
+  unfolding string_rel_def less_eq_literal.rep_eq less_than_char_def
+    less_eq_list_def PAC_Polynoms_Term.less_char_def[symmetric]
+  by (auto simp: string_rel_def less_eq_literal.rep_eq less_than_char_def
+    less_eq_list_def char.lexordp_eq_conv_lexord lexordp_eq_refl
+    lexord_code lexordp_eq_conv_lexord
+    simp flip: less_char_def[abs_def])
+
+lemma merge_monoms_merge_monoms:
+  \<open>(merge_monoms, merge_monoms)
+   \<in> monom_rel \<rightarrow> monom_rel \<rightarrow> monom_rel\<close>
+   unfolding merge_monoms_def
+  apply (intro fun_relI)
+  subgoal for a a' aa a'a
+    apply (induction \<open>(\<lambda>(a :: String.literal)
+      (b :: String.literal). a \<le> b)\<close> a aa
+      arbitrary: a' a'a
+      rule: merge.induct)
+    subgoal
+      by (auto elim!: list_relE3 list_relE4 list_relE list_relE2
+        simp: string_rel_order_map)
+    subgoal
+      by (auto elim!: list_relE3 list_relE)
+    subgoal
+      by (auto elim!: list_relE3 list_relE4 list_relE list_relE2)
+    done
+  done
+
+lemma merge_monoms_merge_monoms2:
+  \<open>(a, b) \<in> monom_rel \<Longrightarrow> (a', b') \<in> monom_rel \<Longrightarrow>
+    (merge_monoms a a', merge_monoms b b') \<in> monom_rel\<close>
+  using merge_monoms_merge_monoms
+  unfolding fun_rel_def merge_monoms_def 
+  by auto
+
+
+lemma msort_monoms_impl:
+  \<open>(msort_monoms_impl, merge_monoms_poly)
+   \<in> monom_rel \<rightarrow> monom_rel\<close>
+   unfolding msort_monoms_impl_def merge_monoms_poly_def
+  apply (intro fun_relI)
+  subgoal for a a'
+  apply (induction \<open>(\<lambda>(a :: String.literal)
+    (b :: String.literal). a \<le> b)\<close> a
+    arbitrary: a'
+    rule: msort.induct)
+  subgoal
+    by auto
+  subgoal
+    by (auto elim!: list_relE3 list_relE)
+  subgoal premises p
+    using p
+    apply (auto elim!: list_relE3 list_relE4 list_relE list_relE2
+      simp: merge_monoms_def[symmetric]
+      intro!: merge_monoms_merge_monoms2)
+   apply (rule p(1)[simplified])
+   apply (auto simp: list_rel_imp_same_length intro!: list_rel_takeD)[]
+   apply (rule p(2)[simplified])
+   apply (auto simp: list_rel_imp_same_length intro!: list_rel_dropD)
+   done
+  done
+  done
+
+lemma merge_sort_monoms_sort_monoms_spec:
+  \<open>(RETURN o merge_monoms_poly, sort_coeff) \<in> \<langle>Id\<rangle>list_rel \<rightarrow>\<^sub>f \<langle>\<langle>Id\<rangle>list_rel\<rangle>nres_rel\<close>
+  unfolding merge_monoms_poly_def sort_coeff_def
+  by (intro frefI nres_relI)
+    (auto intro!: sorted_msort simp: sorted_wrt_map rel2p_def
+     le_term_order_rel' transp_def rel2p_def[abs_def]
+     simp flip: le_var_order_rel)
+
+sepref_register sort_coeff
+lemma  [sepref_fr_rules]:
+  \<open>(return o msort_monoms_impl, sort_coeff) \<in> monom_assn\<^sup>k \<rightarrow>\<^sub>a monom_assn\<close>
+  using msort_monoms_impl[sepref_param, FCOMP merge_sort_monoms_sort_monoms_spec]
+  apply auto
+  done
+
+find_theorems msort_monoms_impl
 
 
 sepref_definition sort_all_coeffs_impl

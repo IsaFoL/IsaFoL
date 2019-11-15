@@ -1066,7 +1066,7 @@ qed
 definition mult_poly_full :: \<open>_\<close> where
 \<open>mult_poly_full p q = do {
   let pq = mult_poly_raw p q;
-  full_normalize_poly pq
+  normalize_poly pq
 }\<close>
 
 lemma normalize_poly_normalize_poly_p:
@@ -1110,14 +1110,14 @@ lemma mult_poly_full_mult_poly_p':
   assumes \<open>(p, p') \<in> sorted_poly_rel\<close> \<open>(q, q') \<in> sorted_poly_rel\<close>
   shows \<open>mult_poly_full p q \<le> \<Down> (sorted_poly_rel) (mult_poly_p' p' q')\<close>
   unfolding mult_poly_full_def mult_poly_p'_def
-  apply (refine_rcg full_normalize_poly_normalize_poly_p)
+  apply (refine_rcg full_normalize_poly_normalize_poly_p
+    normalize_poly_normalize_poly_p)
   apply (subst RETURN_RES_refine_iff)
   apply (subst Bex_def)
   apply (subst mem_Collect_eq)
   apply (subst conj_commute)
   apply (rule mult_poly_raw_mult_poly_p[OF assms(1,2)])
   subgoal
-    using unsorted_poly_rel_fully_unsorted_poly_rel
     by blast
   done
 
