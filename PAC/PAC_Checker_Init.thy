@@ -299,6 +299,12 @@ definition merge_sort_poly :: \<open>_\<close> where
 definition merge_poly :: \<open>_\<close> where
 \<open>merge_poly = merge (\<lambda>a b. fst a \<le> fst b)\<close>
 
+definition msort_monoms_impl :: \<open>(string list \<times> int) list \<Rightarrow> _ \<Rightarrow> _\<close> where
+\<open>msort_monoms_impl = merge_poly\<close>
+
+definition msort_poly_impl :: \<open>(String.literal list \<times> int) list \<Rightarrow> _\<close> where
+\<open>msort_poly_impl = msort (\<lambda>a b. fst a \<le> fst b)\<close>
+
 lemma le_term_order_rel':
   \<open>(\<le>) = (\<lambda>x y. x = y \<or>  term_order_rel' x y)\<close>
   apply (intro ext)
@@ -307,6 +313,11 @@ lemma le_term_order_rel':
   using term_order_rel'_alt_def_lexord term_order_rel'_def apply blast
   using term_order_rel'_alt_def_lexord term_order_rel'_def apply blast
   done
+
+
+lemmas [code del] = msort_poly_impl_def msort_monoms_impl_def
+lemmas [code] = msort_poly_impl_def[unfolded le_less]
+  msort_monoms_impl_def[unfolded le_less]
 
 lemma merge_sort_poly_sort_poly_spec:
   \<open>(RETURN o merge_sort_poly, sort_poly_spec) \<in> \<langle>Id\<rangle>list_rel \<rightarrow>\<^sub>f \<langle>\<langle>Id\<rangle>list_rel\<rangle>nres_rel\<close>
@@ -355,6 +366,7 @@ lemma monomial_rel_order_map:
   apply auto
   using list_rel_list_rel_order_iff by fastforce+
 
+thm fcomp_norm_unfold
 lemma step_rewrite_pure:
   \<open>pure (p2rel (\<langle>K, V\<rangle>pac_step_rel_raw)) = pac_step_rel_assn (pure K) (pure V)\<close>
   \<open>monomial_assn = pure (monom_rel \<times>\<^sub>r int_rel)\<close> and
@@ -373,6 +385,7 @@ lemma step_rewrite_pure:
     unfolding H
     by (simp add: list_assn_pure_conv relAPP_def)
   done
+
 lemma merge_poly_merge_poly:
   \<open>(merge_poly, merge_poly)
    \<in> poly_rel \<rightarrow> poly_rel \<rightarrow> poly_rel\<close>
@@ -392,6 +405,11 @@ lemma merge_poly_merge_poly:
       by (auto elim!: list_relE3 list_relE4 list_relE list_relE2)
     done
   done
+
+lemmas [fcomp_norm_unfold] =
+  poly_assn_list[symmetric]
+  step_rewrite_pure(1)
+
 lemma merge_poly_merge_poly2:
   \<open>(a, b) \<in> poly_rel \<Longrightarrow> (a', b') \<in> poly_rel \<Longrightarrow>
     (merge_poly a a', merge_poly b b') \<in> poly_rel\<close>
@@ -418,9 +436,9 @@ lemma
    by (auto simp: list_rel_imp_same_length)
 
 lemma merge_sort_poly[sepref_import_param]:
-  \<open>(merge_sort_poly, merge_sort_poly)
+  \<open>(msort_poly_impl, merge_sort_poly)
    \<in> poly_rel \<rightarrow> poly_rel\<close>
-   unfolding merge_sort_poly_def
+   unfolding merge_sort_poly_def msort_poly_impl_def
   apply (intro fun_relI)
   subgoal for a a'
   apply (induction \<open>(\<lambda>(a :: String.literal list \<times> int)
@@ -443,6 +461,8 @@ lemma merge_sort_poly[sepref_import_param]:
    done
   done
   done
+
+
 
 lemmas [sepref_fr_rules] = merge_sort_poly[FCOMP merge_sort_poly_sort_poly_spec]
 
@@ -862,5 +882,6 @@ sepref_definition fully_normalize_poly_impl
   by sepref
 
 declare fully_normalize_poly_impl.refine[sepref_fr_rules]
+
 
 end

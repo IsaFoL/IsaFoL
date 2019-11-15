@@ -1,8 +1,10 @@
 theory PAC_Checker_Synthesis
   imports PAC_Checker WB_Sort PAC_Checker_Relation
     PAC_Checker_Init
+    "../Weidenbach_Book/WB_More_Refinement_Loops"
 begin
 
+hide_const (open) Autoref_Fix_Rel.CONSTRAINT
 
 fun status_assn where
   \<open>status_assn _ CSUCCESS CSUCCESS = emp\<close> |
@@ -302,15 +304,28 @@ sepref_register PAC_Polynoms_Operations.normalize_poly
   pac_src1 pac_src2 new_id pac_mult case_pac_step check_mult_l
   check_addition_l
 
+lemma pac_step_rel_assn_alt_def:
+  \<open>hn_ctxt (pac_step_rel_assn nat_assn poly_assn) b bi =
+       hn_val
+        (p2rel
+          (\<langle>nat_rel, poly_rel\<rangle>pac_step_rel_raw)) b bi\<close>
+  unfolding poly_assn_list hn_ctxt_def
+  by (induction nat_assn poly_assn b bi rule: pac_step_rel_assn.induct)
+   (auto simp: p2rel_def hn_val_unfold pac_step_rel_raw.simps relAPP_def
+    pure_app_eq)
+
+
 lemma is_AddD_import[sepref_import_param]:
-  \<open>(is_AddD, is_AddD) \<in> p2rel (\<langle>K, V\<rangle>pac_step_rel_raw) \<rightarrow> bool_rel\<close>
-  \<open>(pac_res, pac_res) \<in> p2rel (\<langle>K, V\<rangle>pac_step_rel_raw) \<rightarrow> V\<close>
-  \<open>(pac_src1, pac_src1) \<in> p2rel (\<langle>K, V\<rangle>pac_step_rel_raw) \<rightarrow> K\<close>
-  \<open>(new_id, new_id) \<in> p2rel (\<langle>K, V\<rangle>pac_step_rel_raw) \<rightarrow> K\<close>
-  \<open>(is_Add, is_Add) \<in> p2rel (\<langle>K, V\<rangle>pac_step_rel_raw) \<rightarrow> bool_rel\<close>
-  \<open>(is_AddD, is_AddD) \<in> p2rel (\<langle>K, V\<rangle>pac_step_rel_raw) \<rightarrow> bool_rel\<close>
-  \<open>(is_Mult, is_Mult) \<in> p2rel (\<langle>K, V\<rangle>pac_step_rel_raw) \<rightarrow> bool_rel\<close>
-  \<open>(is_MultD, is_MultD) \<in> p2rel (\<langle>K, V\<rangle>pac_step_rel_raw) \<rightarrow> bool_rel\<close>
+  assumes \<open>CONSTRAINT is_pure K\<close>  \<open>CONSTRAINT is_pure V\<close>
+  shows
+    \<open>(is_AddD, is_AddD) \<in> p2rel (\<langle>the_pure K, the_pure V\<rangle>pac_step_rel_raw) \<rightarrow> bool_rel\<close>
+    \<open>(pac_res, pac_res) \<in> p2rel (\<langle>the_pure K, the_pure V\<rangle>pac_step_rel_raw) \<rightarrow> the_pure V\<close>
+    \<open>(pac_src1, pac_src1) \<in> p2rel (\<langle>the_pure K, the_pure V\<rangle>pac_step_rel_raw) \<rightarrow> the_pure K\<close>
+    \<open>(new_id, new_id) \<in> p2rel (\<langle>the_pure K, the_pure V\<rangle>pac_step_rel_raw) \<rightarrow> the_pure K\<close>
+    \<open>(is_Add, is_Add) \<in> p2rel (\<langle>the_pure K, the_pure V\<rangle>pac_step_rel_raw) \<rightarrow> bool_rel\<close>
+    \<open>(is_AddD, is_AddD) \<in> p2rel (\<langle>the_pure K, the_pure V\<rangle>pac_step_rel_raw) \<rightarrow> bool_rel\<close>
+    \<open>(is_Mult, is_Mult) \<in> p2rel (\<langle>the_pure K, the_pure V\<rangle>pac_step_rel_raw) \<rightarrow> bool_rel\<close>
+    \<open>(is_MultD, is_MultD) \<in> p2rel (\<langle>the_pure K, the_pure V\<rangle>pac_step_rel_raw) \<rightarrow> bool_rel\<close>
   subgoal
     apply (intro fun_relI)
     apply (case_tac a; case_tac a')
@@ -361,6 +376,7 @@ lemma is_AddD_import[sepref_import_param]:
     done
   done
 
+thm is_AddD_import
 lemma [sepref_fr_rules]:
   \<open>CONSTRAINT is_pure K \<Longrightarrow>
   (return o pac_src2, RETURN o pac_src2) \<in> [\<lambda>x. is_Add x \<or> is_AddD x]\<^sub>a (pac_step_rel_assn K V)\<^sup>k \<rightarrow> K\<close>
@@ -404,16 +420,6 @@ sepref_decl_intf ('k) apac_step is "('k) pac_step"
 sepref_register merge_cstatus full_normalize_poly
 find_theorems poly_assn list_rel
 
-lemma pac_step_rel_assn_alt_def:
-  \<open>hn_ctxt (pac_step_rel_assn nat_assn poly_assn) b bi =
-       hn_val
-        (p2rel
-          (\<langle>nat_rel, poly_rel\<rangle>pac_step_rel_raw)) b bi\<close>
-  unfolding poly_assn_list hn_ctxt_def
-  by (induction nat_assn poly_assn b bi rule: pac_step_rel_assn.induct)
-   (auto simp: p2rel_def hn_val_unfold pac_step_rel_raw.simps relAPP_def
-    pure_app_eq)
-
 lemma poly_rel_the_pure:
   \<open>poly_rel = the_pure poly_assn\<close> and
   nat_rel_the_pure:
@@ -421,55 +427,17 @@ lemma poly_rel_the_pure:
  WTF_RF: \<open>pure (the_pure nat_assn) = nat_assn\<close>
   unfolding poly_assn_list
   by auto
-
+thm poly_assn_list
 sepref_definition check_step_impl
   is \<open>uncurry3 PAC_checker_l_step'\<close>
   :: \<open>poly_assn\<^sup>k *\<^sub>a (status_assn raw_string_assn)\<^sup>d *\<^sub>a polys_assn\<^sup>d *\<^sub>a (pac_step_rel_assn (nat_assn) poly_assn)\<^sup>d \<rightarrow>\<^sub>a
     status_assn raw_string_assn \<times>\<^sub>a polys_assn\<close>
   supply [[goals_limit=1]] is_Mult_lastI[intro]
-    poly_assn_list[fcomp_norm_unfold]
-    step_rewrite_pure(1)[fcomp_norm_unfold]
-    WTF_RF[fcomp_norm_unfold]
   unfolding PAC_checker_l_step_def PAC_checker_l_step'_def
     pac_step.case_eq_if Let_def
      is_success_alt_def[symmetric]
+  by sepref
 
-  apply sepref_dbg_preproc
-  apply sepref_dbg_cons_init
-  apply sepref_dbg_id
-  apply sepref_dbg_monadify
-  apply sepref_dbg_opt_init
-  apply sepref_dbg_trans_keep
-  apply sepref_dbg_trans_step_keep
-  apply (subst pac_step_rel_assn_alt_def[abs_def])
-  apply (rule entt_refl)
-  apply sepref_dbg_trans_keep
-  apply sepref_dbg_trans_step_keep
-  apply (subst poly_rel_the_pure)
-  apply (rule entt_refl)
-  unfolding poly_rel_the_pure[symmetric] WTF_RF
-  apply sepref_dbg_trans_keep
-  apply sepref_dbg_trans_step_keep+
-  apply (subst nat_rel_the_pure)
-  apply (rule entt_refl)
-  apply sepref_dbg_trans_step_keep+
-  apply (subst pac_step_rel_assn_alt_def[abs_def])
-  apply (rule entt_refl)
-  apply sepref_dbg_trans_step_keep+
-  apply (subst pac_step_rel_assn_alt_def[abs_def])
-  apply (subst nat_rel_the_pure)
-  apply (subst entt_refl)
-  apply sepref_dbg_trans_step_keep+
-
-
-oops
-apply (rule entt_refl)
-find_theorems pure the_pure
-  apply sepref_dbg_opt
-  apply sepref_dbg_cons_solve
-  apply sepref_dbg_cons_solve
-  apply sepref_dbg_constraints
-  done
 
 declare check_step_impl.refine[sepref_fr_rules]
 
@@ -505,7 +473,7 @@ end
 
 lemma safe_pac_step_rel_assn[safe_constraint_rules]:
   "is_pure K \<Longrightarrow> is_pure V \<Longrightarrow> is_pure (pac_step_rel_assn K V)"
-  by (auto simp: fcomp_norm_unfold(31)[symmetric] is_pure_conv)
+  by (auto simp: step_rewrite_pure(1)[symmetric] is_pure_conv)
 
 sepref_register PAC_checker_l_step PAC_checker_l_step' fully_normalize_poly_impl
 sepref_definition PAC_checker_l_impl
@@ -529,27 +497,10 @@ sepref_definition PAC_checker_l_impl
 
 declare PAC_checker_l_impl.refine[sepref_fr_rules]
 
-lemma while_eq_nfoldli: "do {
-    (_,\<sigma>) \<leftarrow> WHILE\<^sub>T (FOREACH_cond c) (\<lambda>x. do {ASSERT (FOREACH_cond c x); FOREACH_body f x}) (l,\<sigma>);
-    RETURN \<sigma>
-  } = nfoldli l c f \<sigma>"
-  sorry
-
 abbreviation polys_assn_input where
   \<open>polys_assn_input \<equiv> iam_fmap_assn nat_assn poly_assn\<close>
 
-lemma while_upt_while_direct:
-  "b \<ge> a \<Longrightarrow>
-  do {
-    (_,\<sigma>) \<leftarrow> WHILE\<^sub>T (FOREACH_cond c) (\<lambda>x. do {ASSERT (FOREACH_cond c x); FOREACH_body f x})
-      ([a..<b],\<sigma>);
-    RETURN \<sigma>
-  } = do {
-    (_,\<sigma>) \<leftarrow> WHILE\<^sub>T (\<lambda>(i, x). i < b \<and> c x) (\<lambda>(i, x). do {ASSERT (i < b);  \<sigma>'\<leftarrow>f i x; RETURN (i+1,\<sigma>')
-}) (a,\<sigma>);
-    RETURN \<sigma>
-  }"
-sorry
+
 sepref_register fmlookup' upper_bound_on_dom op_fmap_empty
 sepref_definition remap_polys_l_impl
   is \<open>remap_polys_l2\<close>
@@ -595,7 +546,6 @@ sepref_definition PAC_empty_impl
   unfolding op_iam_fmap_empty_def[symmetric] pat_fmap_empty
   by sepref
 
-term full_checker_l
 export_code PAC_checker_l_impl PAC_update_impl PAC_empty_impl the_error is_cfailed is_cfound
   int_of_integer AddD Add Mult MultD nat_of_integer String.implode fully_normalize_poly_impl
   full_checker_l_impl
