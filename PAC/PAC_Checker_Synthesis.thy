@@ -302,27 +302,6 @@ sepref_register PAC_Polynoms_Operations.normalize_poly
   pac_src1 pac_src2 new_id pac_mult case_pac_step check_mult_l
   check_addition_l
 
-lemma [fcomp_norm_unfold]:
-  \<open>pure (p2rel (\<langle>K, V\<rangle>pac_step_rel_raw)) = pac_step_rel_assn (pure K) (pure V)\<close>
-  \<open>monomial_assn = pure (monom_rel \<times>\<^sub>r int_rel)\<close> and
-  poly_assn_list[fcomp_norm_unfold]:
-    \<open>poly_assn = pure (\<langle>monom_rel \<times>\<^sub>r int_rel\<rangle>list_rel)\<close>
-  subgoal
-    apply (intro ext)
-    apply (case_tac x; case_tac xa)
-    apply (auto simp: relAPP_def p2rel_def pure_def)
-    done
-  subgoal H
-    apply (intro ext)
-    apply (case_tac x; case_tac xa)
-    by (simp add: list_assn_pure_conv)
-  subgoal
-    unfolding H
-    by (simp add: list_assn_pure_conv relAPP_def)
-  done
-
-term poly_rel
-
 lemma is_AddD_import[sepref_import_param]:
   \<open>(is_AddD, is_AddD) \<in> p2rel (\<langle>K, V\<rangle>pac_step_rel_raw) \<rightarrow> bool_rel\<close>
   \<open>(pac_res, pac_res) \<in> p2rel (\<langle>K, V\<rangle>pac_step_rel_raw) \<rightarrow> V\<close>
@@ -423,12 +402,34 @@ sepref_decl_intf ('k) acode_status is "('k) code_status"
 sepref_decl_intf ('k) apac_step is "('k) pac_step"
 
 sepref_register merge_cstatus full_normalize_poly
+find_theorems poly_assn list_rel
+
+lemma pac_step_rel_assn_alt_def:
+  \<open>hn_ctxt (pac_step_rel_assn nat_assn poly_assn) b bi =
+       hn_val
+        (p2rel
+          (\<langle>nat_rel, poly_rel\<rangle>pac_step_rel_raw)) b bi\<close>
+  unfolding poly_assn_list hn_ctxt_def
+  by (induction nat_assn poly_assn b bi rule: pac_step_rel_assn.induct)
+   (auto simp: p2rel_def hn_val_unfold pac_step_rel_raw.simps relAPP_def
+    pure_app_eq)
+
+lemma poly_rel_the_pure:
+  \<open>poly_rel = the_pure poly_assn\<close> and
+  nat_rel_the_pure:
+  \<open>nat_rel = the_pure nat_assn\<close> and
+ WTF_RF: \<open>pure (the_pure nat_assn) = nat_assn\<close>
+  unfolding poly_assn_list
+  by auto
 
 sepref_definition check_step_impl
   is \<open>uncurry3 PAC_checker_l_step'\<close>
   :: \<open>poly_assn\<^sup>k *\<^sub>a (status_assn raw_string_assn)\<^sup>d *\<^sub>a polys_assn\<^sup>d *\<^sub>a (pac_step_rel_assn (nat_assn) poly_assn)\<^sup>d \<rightarrow>\<^sub>a
     status_assn raw_string_assn \<times>\<^sub>a polys_assn\<close>
   supply [[goals_limit=1]] is_Mult_lastI[intro]
+    poly_assn_list[fcomp_norm_unfold]
+    step_rewrite_pure(1)[fcomp_norm_unfold]
+    WTF_RF[fcomp_norm_unfold]
   unfolding PAC_checker_l_step_def PAC_checker_l_step'_def
     pac_step.case_eq_if Let_def
      is_success_alt_def[symmetric]
@@ -440,11 +441,30 @@ sepref_definition check_step_impl
   apply sepref_dbg_opt_init
   apply sepref_dbg_trans_keep
   apply sepref_dbg_trans_step_keep
-  apply (subst poly_assn_list)
+  apply (subst pac_step_rel_assn_alt_def[abs_def])
   apply (rule entt_refl)
   apply sepref_dbg_trans_keep
   apply sepref_dbg_trans_step_keep
+  apply (subst poly_rel_the_pure)
+  apply (rule entt_refl)
+  unfolding poly_rel_the_pure[symmetric] WTF_RF
+  apply sepref_dbg_trans_keep
+  apply sepref_dbg_trans_step_keep+
+  apply (subst nat_rel_the_pure)
+  apply (rule entt_refl)
+  apply sepref_dbg_trans_step_keep+
+  apply (subst pac_step_rel_assn_alt_def[abs_def])
+  apply (rule entt_refl)
+  apply sepref_dbg_trans_step_keep+
+  apply (subst pac_step_rel_assn_alt_def[abs_def])
+  apply (subst nat_rel_the_pure)
+  apply (subst entt_refl)
+  apply sepref_dbg_trans_step_keep+
 
+
+oops
+apply (rule entt_refl)
+find_theorems pure the_pure
   apply sepref_dbg_opt
   apply sepref_dbg_cons_solve
   apply sepref_dbg_cons_solve
