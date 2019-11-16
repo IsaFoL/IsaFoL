@@ -401,7 +401,7 @@ definition twl_st_heur :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\<cl
 \<open>twl_st_heur =
   {((M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, heur,
        vdom, avdom, lcount, opts, old_arena),
-     (M, N, D, NE, UE, Q, W)).
+     (M, N, D, NE, UE, NS, US, Q, W)).
     (M', M) \<in> trail_pol (all_atms N (NE + UE)) \<and>
     valid_arena N' N (set vdom) \<and>
     (D', D) \<in> option_lookup_clause_rel (all_atms N (NE + UE)) \<and>

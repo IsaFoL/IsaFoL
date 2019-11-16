@@ -1400,16 +1400,26 @@ definition cdcl_GC_clauses_pre_wl :: \<open>'v twl_st_wl \<Rightarrow> bool\<clo
   )\<close>
 
 definition cdcl_GC_clauses_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
-\<open>cdcl_GC_clauses_wl = (\<lambda>(M, N, D, NE, UE, WS, Q). do {
-  ASSERT(cdcl_GC_clauses_pre_wl (M, N, D, NE, UE, WS, Q));
+\<open>cdcl_GC_clauses_wl = (\<lambda>(M, N, D, NE, UE, NS, US, WS, Q). do {
+  ASSERT(cdcl_GC_clauses_pre_wl (M, N, D, NE, UE, NS, US, WS, Q));
   let b = True;
   if b then do {
     (N', _) \<leftarrow> SPEC (\<lambda>(N'', m). GC_remap\<^sup>*\<^sup>* (N, Map.empty, fmempty) (fmempty, m, N'') \<and>
       0 \<notin># dom_m N'');
-    Q \<leftarrow> SPEC(\<lambda>Q. correct_watching' (M, N', D, NE, UE, WS, Q)\<and> literals_are_\<L>\<^sub>i\<^sub>n' (M, N', D, NE, UE, WS, Q));
-    RETURN (M, N', D, NE, UE, WS, Q)
+    Q \<leftarrow> SPEC(\<lambda>Q. correct_watching' (M, N', D, NE, UE, NS, US, WS, Q)\<and> literals_are_\<L>\<^sub>i\<^sub>n' (M, N', D, NE, UE, NS, US, WS, Q));
+    RETURN (M, N', D, NE, UE, NS, {#}, WS, Q)
   }
-  else RETURN (M, N, D, NE, UE, WS, Q)})\<close>
+  else RETURN (M, N, D, NE, UE, NS, {#}, WS, Q)})\<close>
+
+lemma literals_are_\<L>\<^sub>i\<^sub>n'_empty:
+  \<open>NO_MATCH {#} x2m \<Longrightarrow> literals_are_\<L>\<^sub>i\<^sub>n' (x1h, x1p, x1j, x1k, b, x', x2l, x2m, Q) \<longleftrightarrow>
+     literals_are_\<L>\<^sub>i\<^sub>n' (x1h, x1p, x1j, x1k, b, x', x2l, {#}, Q)\<close>
+  \<open>literals_are_\<L>\<^sub>i\<^sub>n' (x1h, x1p, x1j, x1k, b, x', x2l, x2m, Q) \<Longrightarrow>
+     literals_are_\<L>\<^sub>i\<^sub>n' (x1h, x1p, x1j, x1k, b, x', {#}, x2m, Q)\<close>
+   \<open>correct_watching' (x1h, x1i, x1j, x1k, b, x', x2l, x2m, Q) \<Longrightarrow>
+    correct_watching' (x1h, x1i, x1j, x1k, b, x', {#}, x2m, Q)\<close>
+   by (auto 5 3 simp: literals_are_\<L>\<^sub>i\<^sub>n'_def blits_in_\<L>\<^sub>i\<^sub>n'_def all_lits_of_mm_union
+     correct_watching'.simps correct_watching''.simps clause_to_update_def)
 
 lemma cdcl_GC_clauses_wl_cdcl_GC_clauses:
   \<open>(cdcl_GC_clauses_wl, cdcl_GC_clauses) \<in> {(S::'v twl_st_wl, S').
@@ -1424,7 +1434,8 @@ lemma cdcl_GC_clauses_wl_cdcl_GC_clauses:
   subgoal by auto
   subgoal for x y x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f x1g x2g x1h
        x2h x1i x2i x1j x2j x1k x2k b xa x' x1l x2l x1m x2m Q
-    by (auto simp: state_wl_l_def blits_in_\<L>\<^sub>i\<^sub>n'_def dest: multi_member_split)
+    by (auto simp: state_wl_l_def blits_in_\<L>\<^sub>i\<^sub>n'_def literals_are_\<L>\<^sub>i\<^sub>n'_empty
+      dest: multi_member_split)
   subgoal by auto
   done
 
@@ -1433,8 +1444,10 @@ definition cdcl_twl_full_restart_wl_GC_prog_post :: \<open>'v twl_st_wl \<Righta
   (\<exists>S' T'. (S, S') \<in> state_wl_l None \<and> (T, T') \<in> state_wl_l None \<and>
     cdcl_twl_full_restart_l_GC_prog_pre S' \<and>
     cdcl_twl_restart_l S' T' \<and> correct_watching' T \<and>
-    set_mset (all_lits_of_mm (mset `# init_clss_lf (get_clauses_wl T)+ get_unit_init_clss_wl T)) =
-    set_mset (all_lits_of_mm (mset `# ran_mf (get_clauses_wl T)+ get_unit_clauses_wl T)))\<close>
+    set_mset (all_lits_of_mm (mset `# init_clss_lf (get_clauses_wl T)+ get_unit_init_clss_wl T +
+       get_subsumed_init_clauses_wl T)) =
+    set_mset (all_lits_of_mm (mset `# ran_mf (get_clauses_wl T)+ get_unit_clauses_wl T +
+       get_subsumed_clauses_wl T)))\<close>
 
 definition (in -) restart_abs_wl_pre2 :: \<open>'v twl_st_wl \<Rightarrow> bool \<Rightarrow> bool\<close> where
   \<open>restart_abs_wl_pre2 S brk \<longleftrightarrow>
@@ -1442,11 +1455,11 @@ definition (in -) restart_abs_wl_pre2 :: \<open>'v twl_st_wl \<Rightarrow> bool 
       \<and> correct_watching'' S \<and> literals_are_\<L>\<^sub>i\<^sub>n' S)\<close>
 
 definition (in -) cdcl_twl_local_restart_wl_spec0 :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
-  \<open>cdcl_twl_local_restart_wl_spec0 = (\<lambda>(M, N, D, NE, UE, Q, W). do {
-      ASSERT(restart_abs_wl_pre2 (M, N, D, NE, UE, Q, W) False);
+  \<open>cdcl_twl_local_restart_wl_spec0 = (\<lambda>(M, N, D, NE, UE, NS, US, Q, W). do {
+      ASSERT(restart_abs_wl_pre2 (M, N, D, NE, UE, NS, US, Q, W) False);
       (M, Q) \<leftarrow> SPEC(\<lambda>(M', Q'). (\<exists>K M2. (Decided K # M', M2) \<in> set (get_all_ann_decomposition M) \<and>
             Q' = {#} \<and> count_decided M' = 0) \<or> (M' = M \<and> Q' = Q \<and> count_decided M' = 0));
-      RETURN (M, N, D, NE, UE, Q, W)
+      RETURN (M, N, D, NE, UE, NS, {#}, Q, W)
    })\<close>
 
 
@@ -1484,7 +1497,7 @@ definition mark_to_delete_clauses_wl2 :: \<open>'v twl_st_wl \<Rightarrow> 'v tw
        }
       })
       (l, S, xs);
-    RETURN S
+    remove_all_learned_subsumed_clauses_wl S
   })\<close>
 
 lemma mark_to_delete_clauses_wl2_invD1:
@@ -1499,7 +1512,7 @@ proof -
   then have \<open>get_clauses_wl T \<propto> C ! 0 \<in># all_init_lits_st T\<close>
     using assms(2,3) by (auto dest!: multi_member_split
       simp: ran_m_def all_init_lits_def all_lits_of_mm_add_mset
-        in_clause_in_all_lits_of_m literals_are_\<L>\<^sub>i\<^sub>n'_def
+        in_clause_in_all_lits_of_m literals_are_\<L>\<^sub>i\<^sub>n'_def ac_simps
         in_clause_in_all_lits_of_m subsetD)
   then show \<open>?thesis\<close>
     by (simp add: \<L>\<^sub>a\<^sub>l\<^sub>l_all_init_atms(1))
@@ -1527,7 +1540,8 @@ proof -
       WHILEIT_refine[where
          R = \<open>{((i, S, xs), (j, T, ys)). i = j \<and> (S, T) \<in> state_wl_l None \<and> correct_watching'' S \<and>
              xs = ys \<and> literals_are_\<L>\<^sub>i\<^sub>n' S}\<close>]
-      remove_one_annot_true_clause_one_imp_wl_remove_one_annot_true_clause_one_imp[THEN fref_to_Down_curry])
+      remove_one_annot_true_clause_one_imp_wl_remove_one_annot_true_clause_one_imp[THEN fref_to_Down_curry]
+      remove_all_learned_subsumed_clauses_wl_remove_all_learned_subsumed_clauses[THEN fref_to_Down])
     subgoal unfolding mark_to_delete_clauses_wl_pre_def by blast
     subgoal by auto
     subgoal by (auto simp: state_wl_l_def)
@@ -1546,7 +1560,7 @@ proof -
           mark_garbage_l_def correct_watching''_fmdrop
         split: prod.splits)
     subgoal by (auto simp: state_wl_l_def)
-    subgoal by auto
+    subgoal by (auto simp: ac_simps)
     done
 qed
 
@@ -1569,7 +1583,7 @@ definition cdcl_twl_full_restart_wl_GC_prog where
   }\<close>
 
 lemma blits_in_\<L>\<^sub>i\<^sub>n'_restart_wl_spec0:
-  \<open>literals_are_\<L>\<^sub>i\<^sub>n' (a, b, c, d, e, f', g) \<Longrightarrow> literals_are_\<L>\<^sub>i\<^sub>n' (ah, b, c, d, e, {#}, g)\<close>
+  \<open>literals_are_\<L>\<^sub>i\<^sub>n' (a, b, c, d, e, NS, US, f', g) \<Longrightarrow> literals_are_\<L>\<^sub>i\<^sub>n' (ah, b, c, d, e, NS, US, {#}, g)\<close>
   by (auto simp: blits_in_\<L>\<^sub>i\<^sub>n'_def literals_are_\<L>\<^sub>i\<^sub>n'_def
          all_init_lits_def)
 
@@ -1581,9 +1595,11 @@ lemma cdcl_twl_local_restart_wl_spec0_cdcl_twl_local_restart_l_spec0:
   unfolding cdcl_twl_local_restart_wl_spec0_def cdcl_twl_local_restart_l_spec0_def curry_def
   apply refine_vcg
   subgoal unfolding restart_abs_wl_pre2_def by (rule exI[of _ y]) fast
-  by (auto simp:
+  by (auto 4 4  simp:
       state_wl_l_def image_iff correct_watching''.simps clause_to_update_def
-      conc_fun_RES RES_RETURN_RES2 blits_in_\<L>\<^sub>i\<^sub>n'_restart_wl_spec0)
+      conc_fun_RES RES_RETURN_RES2 blits_in_\<L>\<^sub>i\<^sub>n'_restart_wl_spec0 
+      literals_are_\<L>\<^sub>i\<^sub>n'_empty(1) dest: literals_are_\<L>\<^sub>i\<^sub>n'_empty(2-))
+
 
 lemma cdcl_twl_full_restart_wl_GC_prog_post_correct_watching:
   assumes
@@ -1591,8 +1607,10 @@ lemma cdcl_twl_full_restart_wl_GC_prog_post_correct_watching:
     y_Va: \<open>cdcl_twl_restart_l y Va\<close>
     \<open>(V, Va) \<in> {(S, S'). (S, S') \<in> state_wl_l None \<and> correct_watching' S \<and> literals_are_\<L>\<^sub>i\<^sub>n' S}\<close>
   shows \<open>(V, Va) \<in> {(S, S'). (S, S') \<in> state_wl_l None \<and> correct_watching S \<and> blits_in_\<L>\<^sub>i\<^sub>n S}\<close> and
-    \<open>set_mset (all_lits_of_mm (mset `# init_clss_lf (get_clauses_wl V)+ get_unit_init_clss_wl V)) =
-    set_mset (all_lits_of_mm (mset `# ran_mf (get_clauses_wl V)+ get_unit_clauses_wl V))\<close>
+    \<open>set_mset (all_lits_of_mm (mset `# init_clss_lf (get_clauses_wl V)+ get_unit_init_clss_wl V +
+       get_subsumed_init_clauses_wl V)) =
+    set_mset (all_lits_of_mm (mset `# ran_mf (get_clauses_wl V)+ get_unit_clauses_wl V +
+       get_subsumed_clauses_wl V))\<close>
 proof -
   obtain x where
     y_x: \<open>(y, x) \<in> twl_st_l None\<close> and
@@ -1607,8 +1625,10 @@ proof -
   then have \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of V')\<close>
     unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
     by blast
-  then show eq: \<open>set_mset (all_lits_of_mm (mset `# init_clss_lf (get_clauses_wl V)+ get_unit_init_clss_wl V)) =
-    set_mset (all_lits_of_mm (mset `# ran_mf (get_clauses_wl V)+ get_unit_clauses_wl V))\<close>
+  then show eq: \<open>set_mset (all_lits_of_mm (mset `# init_clss_lf (get_clauses_wl V)+ get_unit_init_clss_wl V +
+       get_subsumed_init_clauses_wl V)) =
+    set_mset (all_lits_of_mm (mset `# ran_mf (get_clauses_wl V)+ get_unit_clauses_wl V +
+       get_subsumed_clauses_wl V))\<close>
     using assms(3) Va_V'
     apply (cases V; cases V')
     apply (auto simp: state_wl_l_def cdcl\<^sub>W_restart_mset.no_strange_atm_def
@@ -1626,7 +1646,7 @@ proof -
     have \<open>literals_are_\<L>\<^sub>i\<^sub>n' V \<Longrightarrow> blits_in_\<L>\<^sub>i\<^sub>n V\<close>
     using eq by (cases V)
       (clarsimp simp: blits_in_\<L>\<^sub>i\<^sub>n_def blits_in_\<L>\<^sub>i\<^sub>n'_def all_lits_def literals_are_\<L>\<^sub>i\<^sub>n'_def
-         all_init_lits_def)
+         all_init_lits_def ac_simps)
   ultimately show \<open>(V, Va) \<in> {(S, S'). (S, S') \<in> state_wl_l None \<and> correct_watching S \<and> blits_in_\<L>\<^sub>i\<^sub>n S}\<close>
     using assms by (auto simp: cdcl_twl_full_restart_wl_GC_prog_post_def)
 qed
@@ -1708,8 +1728,11 @@ proof -
   then have alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of x)\<close>
     unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
     by blast
-  then have eq: \<open>set_mset (all_lits_of_mm (mset `# init_clss_lf (get_clauses_wl x1c)+ get_unit_init_clss_wl x1c)) =
-    set_mset (all_lits_of_mm (mset `# ran_mf (get_clauses_wl x1c)+ get_unit_clauses_wl x1c))\<close>
+  then have eq:
+    \<open>set_mset (all_lits_of_mm (mset `# init_clss_lf (get_clauses_wl x1c)+ get_unit_init_clss_wl x1c +
+       get_subsumed_init_clauses_wl x1c)) =
+    set_mset (all_lits_of_mm (mset `# ran_mf (get_clauses_wl x1c)+ get_unit_clauses_wl x1c +
+       get_subsumed_clauses_wl x1c))\<close>
     using y_x x1c_y
     apply (cases x1c; cases y; cases x)
     apply (auto simp: state_wl_l_def cdcl\<^sub>W_restart_mset.no_strange_atm_def
@@ -1721,8 +1744,10 @@ proof -
       apply (auto dest!: split_list
         dest!: multi_member_split)
     done
-  moreover have eq: \<open>set_mset (all_lits_of_mm (mset `# learned_clss_lf (get_clauses_wl x1c) + get_unit_learned_clss_wl x1c)) \<subseteq>
-    set_mset (all_lits_of_mm (mset `# init_clss_lf (get_clauses_wl x1c) + get_unit_init_clss_wl x1c))\<close>
+  moreover have eq: \<open>set_mset (all_lits_of_mm (mset `# learned_clss_lf (get_clauses_wl x1c) +
+    get_unit_learned_clss_wl x1c + get_subsumed_learned_clauses_wl x1c)) \<subseteq>
+    set_mset (all_lits_of_mm (mset `# init_clss_lf (get_clauses_wl x1c) + get_unit_init_clss_wl x1c +
+       get_subsumed_init_clauses_wl x1c))\<close>
     using y_x x1c_y alien
     unfolding image_mset_union cdcl\<^sub>W_restart_mset.no_strange_atm_def all_lits_of_mm_union
     by (auto simp: in_all_lits_of_mm_ain_atms_of_iff get_learned_clss_l_def
@@ -1730,7 +1755,7 @@ proof -
   ultimately show \<open>literals_are_\<L>\<^sub>i\<^sub>n' x1c\<close>
     using eq assms by (cases x1c)
       (clarsimp simp: blits_in_\<L>\<^sub>i\<^sub>n_def blits_in_\<L>\<^sub>i\<^sub>n'_def all_lits_def literals_are_\<L>\<^sub>i\<^sub>n'_def
-         all_init_lits_def)
+         all_init_lits_def ac_simps)
 qed
 
 lemma cdcl_twl_full_restart_wl_prog_cdcl_twl_restart_l_prog:
@@ -2209,9 +2234,9 @@ where
       set_mset (dom_m N) \<subseteq> clauses_pointed_to (Neg ` set_mset \<B> \<union> Pos ` set_mset \<B>) WS))\<close>
 
 definition cdcl_GC_clauses_prog_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
-  \<open>cdcl_GC_clauses_prog_wl = (\<lambda>(M, N0, D, NE, UE, Q, WS). do {
-    ASSERT(cdcl_GC_clauses_pre_wl (M, N0, D, NE, UE, Q, WS));
-    \<A> \<leftarrow> SPEC(\<lambda>\<A>. set_mset \<A> = set_mset (all_init_atms N0 NE));
+  \<open>cdcl_GC_clauses_prog_wl = (\<lambda>(M, N0, D, NE, UE, NS, US, Q, WS). do {
+    ASSERT(cdcl_GC_clauses_pre_wl (M, N0, D, NE, UE, NS, US, Q, WS));
+    \<A> \<leftarrow> SPEC(\<lambda>\<A>. set_mset \<A> = set_mset (all_init_atms N0 (NE+NS)));
     (_, (N, N', WS)) \<leftarrow> WHILE\<^sub>T\<^bsup>cdcl_GC_clauses_prog_wl_inv \<A> N0\<^esup>
       (\<lambda>(\<B>, _). \<B> \<noteq> {#})
       (\<lambda>(\<B>, (N, N', WS)). do {
@@ -2221,21 +2246,22 @@ definition cdcl_GC_clauses_prog_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_s
         RETURN (remove1_mset A \<B>, (N, N', WS))
       })
       (\<A>, (N0, fmempty, WS));
-    RETURN (M, N', D, NE, UE, Q, WS)
+    RETURN (M, N', D, NE, UE, NS, US, Q, WS)
   })\<close>
 
 
 lemma cdcl_GC_clauses_prog_wl:
-  assumes \<open>((M, N0, D, NE, UE, Q, WS), S) \<in> state_wl_l None \<and>
-    correct_watching'' (M, N0, D, NE, UE, Q, WS) \<and> cdcl_GC_clauses_pre S \<and>
-    literals_are_\<L>\<^sub>i\<^sub>n' (M, N0, D, NE, UE, Q, WS) \<and> 
+  assumes \<open>((M, N0, D, NE, UE, NS, US, Q, WS), S) \<in> state_wl_l None \<and>
+    correct_watching'' (M, N0, D, NE, UE, NS, US, Q, WS) \<and> cdcl_GC_clauses_pre S \<and>
+    literals_are_\<L>\<^sub>i\<^sub>n' (M, N0, D, NE, UE, NS, US, Q, WS) \<and>
    set_mset (dom_m N0) \<subseteq> clauses_pointed_to
-      (Neg ` set_mset (all_init_atms N0 NE) \<union> Pos ` set_mset (all_init_atms N0 NE)) WS\<close>
+      (Neg ` set_mset (all_init_atms N0 (NE+NS)) \<union> Pos ` set_mset (all_init_atms N0 (NE+NS))) WS\<close>
   shows
-    \<open>cdcl_GC_clauses_prog_wl (M, N0, D, NE, UE, Q, WS) \<le>
-      (SPEC(\<lambda>(M', N', D', NE', UE', Q', WS'). (M', D', NE', UE', Q') = (M, D, NE, UE, Q) \<and>
+    \<open>cdcl_GC_clauses_prog_wl (M, N0, D, NE, UE, NS, US, Q, WS) \<le>
+      (SPEC(\<lambda>(M', N', D', NE', UE', NS', US', Q', WS').
+         (M', D', NE', UE', NS', US', Q') = (M, D, NE, UE, NS, US, Q) \<and>
          (\<exists>m. GC_remap\<^sup>*\<^sup>* (N0, (\<lambda>_. None), fmempty) (fmempty, m, N')) \<and>
-         0 \<notin># dom_m N' \<and> (\<forall>L \<in># all_init_lits N0 NE. WS' L = [])))\<close>
+         0 \<notin># dom_m N' \<and> (\<forall>L \<in># all_init_lits N0 (NE+NS). WS' L = [])))\<close>
 proof -
   show ?thesis
     supply[[goals_limit=1]]
@@ -2250,11 +2276,11 @@ proof -
     subgoal by auto
     subgoal using assms unfolding cdcl_GC_clauses_prog_wl_inv_def by auto
     subgoal by auto
-    subgoal for a b aa ba ab bb ac bc ad bd ae be x s af bf ag bg ah bh xa
+    subgoal for a b aa ba ab bb ac bc ad bd ae be af bf ag bg x s ah bh ai bi aj bj xa
       unfolding cdcl_GC_clauses_prog_wl_inv_def
       apply clarify
       apply (rule order_trans,
-         rule_tac m=m and \<A>=af in cdcl_GC_clauses_prog_single_wl)
+         rule_tac m=m and \<A>=ah in cdcl_GC_clauses_prog_single_wl)
       subgoal by auto
       subgoal
         apply (rule RES_rule)
@@ -2266,7 +2292,7 @@ proof -
             apply (solves \<open>auto dest!: multi_member_split\<close>)
            apply (solves auto)
           apply (rule_tac x=m' in exI)
-          apply (solves auto)[]
+          apply (solves \<open>auto\<close>)[]
          apply (simp_all add: size_Diff1_less)[]
         done
       done
@@ -2304,17 +2330,18 @@ lemma all_init_atms_fmdrop_add_mset_unit:
       init_clss_l_fmdrop_irrelev image_mset_remove1_mset_if)
 
 lemma cdcl_GC_clauses_prog_wl2:
-  assumes \<open>((M, N0, D, NE, UE, Q, WS), S) \<in> state_wl_l None \<and>
-    correct_watching'' (M, N0, D, NE, UE, Q, WS) \<and> cdcl_GC_clauses_pre S \<and>
-    literals_are_\<L>\<^sub>i\<^sub>n' (M, N0, D, NE, UE, Q, WS) \<and>
+  assumes \<open>((M, N0, D, NE, UE, NS, US, Q, WS), S) \<in> state_wl_l None \<and>
+    correct_watching'' (M, N0, D, NE, UE, NS, US, Q, WS) \<and> cdcl_GC_clauses_pre S \<and>
+    literals_are_\<L>\<^sub>i\<^sub>n' (M, N0, D, NE, UE, NS, US, Q, WS) \<and>
    set_mset (dom_m N0) \<subseteq> clauses_pointed_to
-      (Neg ` set_mset (all_init_atms N0 NE) \<union> Pos ` set_mset (all_init_atms N0 NE)) WS\<close> and
+      (Neg ` set_mset (all_init_atms N0 (NE+NS)) \<union> Pos ` set_mset (all_init_atms N0 (NE+NS))) WS\<close> and
     \<open>N0 = N0'\<close>
   shows
-    \<open>cdcl_GC_clauses_prog_wl (M, N0, D, NE, UE, Q, WS) \<le>
-       \<Down> {((M', N'', D', NE', UE', Q', WS'), (N, N')). (M', D', NE', UE', Q') = (M, D, NE, UE, Q) \<and>
-             N'' = N \<and> (\<forall>L\<in>#all_init_lits N0 NE. WS' L = [])\<and>
-           all_init_lits N0 NE = all_init_lits N NE' \<and>
+    \<open>cdcl_GC_clauses_prog_wl (M, N0, D, NE, UE, NS, US, Q, WS) \<le>
+       \<Down> {((M', N'', D', NE', UE', NS', US', Q', WS'), (N, N')).
+            (M', D', NE', UE', NS, US, Q') = (M, D, NE, UE, NS, US, Q) \<and>
+             N'' = N \<and> (\<forall>L\<in>#all_init_lits N0 (NE+NS). WS' L = [])\<and>
+           all_init_lits N0 (NE+NS) = all_init_lits N (NE'+NS') \<and>
            (\<exists>m. GC_remap\<^sup>*\<^sup>* (N0, (\<lambda>_. None), fmempty) (fmempty, m, N))}
       (SPEC(\<lambda>(N'::(nat, 'a literal list \<times> bool) fmap, m).
          GC_remap\<^sup>*\<^sup>* (N0', (\<lambda>_. None), fmempty) (fmempty, m, N') \<and>
@@ -2341,6 +2368,5 @@ definition cdcl_GC_clauses_pre_wl_D :: \<open>'v twl_st_wl \<Rightarrow> bool\<c
 
 
 end
-
 
 end
