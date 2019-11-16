@@ -4888,7 +4888,7 @@ proof -
         blits_in_\<L>\<^sub>i\<^sub>n
         (x1, x1a, x1b, x1c, x1d, NS, US, x1e, x2e) \<Longrightarrow>
        blits_in_\<L>\<^sub>i\<^sub>n
-        (Propagated (- La) 0 # x1, x1a, None, x1c, NS, US, add_mset {#-La#} x1d, {#La#},
+        (Propagated (- La) 0 # x1, x1a, None, x1c, add_mset {#-La#} x1d, NS, US, {#La#},
          x2e)\<close>
      for a b c d e f g x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e
        M Ma La NS US

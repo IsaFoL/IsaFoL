@@ -331,8 +331,8 @@ lemma correct_watching_fmdrop:
     \<open>correct_watching' (M', N, D, NE, UE, NS, US, Q, W)\<close> and
     C2: \<open>length (N \<propto> C) \<noteq> 2\<close> and
     blit: \<open>literals_are_\<L>\<^sub>i\<^sub>n' (M', N, D, NE, UE, NS, US, Q, W)\<close>
-  shows \<open>correct_watching' (M, fmdrop C N, D, NE, UE, NS, US, Q, W)\<close> and
-     \<open>literals_are_\<L>\<^sub>i\<^sub>n'  (M, fmdrop C N, D, NE, UE, NS, US, Q, W)\<close>
+  shows \<open>correct_watching' (M, fmdrop C N, D, NE, UE, NS, {#}, Q, W)\<close> and
+     \<open>literals_are_\<L>\<^sub>i\<^sub>n'  (M, fmdrop C N, D, NE, UE, NS, {#}, Q, W)\<close>
 proof -
   have
     Hdist: \<open>\<And>L i K b. L\<in>#all_lits_of_mm (mset `# init_clss_lf N + NE + NS) \<Longrightarrow>
@@ -365,7 +365,7 @@ proof -
     removeAll_mset C (filter_mset (\<lambda>i. i \<in># dom_m N) A)\<close> for A
     by (induction A)
       (auto simp: distinct_mset_remove1_All distinct_mset_dom)
-  show  \<open>correct_watching' (M, fmdrop C N, D, NE, UE, NS, US, Q, W)\<close>
+  show  \<open>correct_watching' (M, fmdrop C N, D, NE, UE, NS, {#}, Q, W)\<close>
     unfolding correct_watching'.simps clause_to_update_def
     apply (intro conjI impI ballI)
     subgoal for L using Hdist[of L] distinct_mset_dom[of N]
@@ -398,9 +398,15 @@ proof -
         distinct_mset_remove1_All filter_mset_neq_cond 2 H2 dest: all_lits_of_mm_diffD
         dest: multi_member_split)
     done
-  show \<open>literals_are_\<L>\<^sub>i\<^sub>n'  (M, fmdrop C N, D, NE, UE, Q, W)\<close>
+  have [dest!]: \<open>x \<in># all_lits_of_mm
+              (remove1_mset (mset (N \<propto> C))
+                ({#mset (fst x). x \<in># learned_clss_l N#} + UE)) \<Longrightarrow>
+           x \<in># all_lits_of_mm
+              ({#mset (fst x). x \<in># learned_clss_l N#} + UE)\<close> for x
+   by (auto dest: all_lits_of_mm_diffD)
+  show \<open>literals_are_\<L>\<^sub>i\<^sub>n'  (M, fmdrop C N, D, NE, UE, NS, {#}, Q, W)\<close>
      using assms by (auto simp: blits_in_\<L>\<^sub>i\<^sub>n'_def image_mset_remove1_mset_if literals_are_\<L>\<^sub>i\<^sub>n'_def
-         all_init_lits_def
+         all_init_lits_def all_lits_of_mm_union
        dest: multi_member_split all_lits_of_mm_diffD)
 qed
 
@@ -408,20 +414,20 @@ lemma correct_watching''_fmdrop:
   assumes
     irred: \<open>\<not> irred N C\<close> and
     C: \<open>C \<in># dom_m N\<close> and
-    \<open>correct_watching'' (M', N, D, NE, UE, Q, W)\<close> and
-    \<open>literals_are_\<L>\<^sub>i\<^sub>n'  (M', N, D, NE, UE, Q, W)\<close>
-  shows \<open>correct_watching'' (M, fmdrop C N, D, NE, UE, Q, W)\<close>and
-    \<open>literals_are_\<L>\<^sub>i\<^sub>n'  (M, fmdrop C N, D, NE, UE, Q, W)\<close>
+    \<open>correct_watching'' (M', N, D, NE, UE, NS, US, Q, W)\<close> and
+    \<open>literals_are_\<L>\<^sub>i\<^sub>n'  (M', N, D, NE, UE, NS, US, Q, W)\<close>
+  shows \<open>correct_watching'' (M, fmdrop C N, D, NE, UE, NS, {#}, Q, W)\<close>and
+    \<open>literals_are_\<L>\<^sub>i\<^sub>n'  (M, fmdrop C N, D, NE, UE, NS, {#}, Q, W)\<close>
 proof -
   have
-    Hdist: \<open>\<And>L i K b. L\<in>#all_lits_of_mm (mset `# init_clss_lf N + NE) \<Longrightarrow>
+    Hdist: \<open>\<And>L i K b. L\<in>#all_lits_of_mm (mset `# init_clss_lf N + NE + NS) \<Longrightarrow>
        distinct_watched (W L)\<close> and
-    H1: \<open>\<And>L i K b. L\<in>#all_lits_of_mm (mset `# init_clss_lf N + NE) \<Longrightarrow>
+    H1: \<open>\<And>L i K b. L\<in>#all_lits_of_mm (mset `# init_clss_lf N + NE + NS) \<Longrightarrow>
        (i, K, b)\<in>#mset (W L) \<Longrightarrow> i \<in># dom_m N \<Longrightarrow> K \<in> set (N \<propto> i) \<and> K \<noteq> L\<close> and
-    H2: \<open>\<And>L. L\<in>#all_lits_of_mm (mset `# init_clss_lf N + NE) \<Longrightarrow>
+    H2: \<open>\<And>L. L\<in>#all_lits_of_mm (mset `# init_clss_lf N + NE + NS) \<Longrightarrow>
        {#i \<in># fst `# mset (W L). i \<in># dom_m N#} =
-       {#C \<in># dom_m (get_clauses_l (M', N, D, NE, UE, {#}, {#})).
-        L \<in> set (watched_l (get_clauses_l (M', N, D, NE, UE, {#}, {#}) \<propto> C))#}\<close>
+       {#C \<in># dom_m (get_clauses_l (M', N, D, NE, UE, NS, US, {#}, {#})).
+        L \<in> set (watched_l (get_clauses_l (M', N, D, NE, UE, NS, US, {#}, {#}) \<propto> C))#}\<close>
     using assms
     unfolding correct_watching''.simps clause_to_update_def
     by fast+
@@ -441,7 +447,7 @@ proof -
     removeAll_mset C (filter_mset (\<lambda>i. i \<in># dom_m N) A)\<close> for A
     by (induction A)
       (auto simp: distinct_mset_remove1_All distinct_mset_dom)
-  show  \<open>correct_watching'' (M, fmdrop C N, D, NE, UE, Q, W)\<close>
+  show  \<open>correct_watching'' (M, fmdrop C N, D, NE, UE, NS, {#}, Q, W)\<close>
     unfolding correct_watching''.simps clause_to_update_def
     apply (intro conjI impI ballI)
     subgoal for L using Hdist[of L] distinct_mset_dom[of N]
@@ -465,9 +471,15 @@ proof -
         distinct_mset_remove1_All filter_mset_neq_cond 2 H2 dest: all_lits_of_mm_diffD
         dest: multi_member_split)
     done
-  show \<open>literals_are_\<L>\<^sub>i\<^sub>n'  (M, fmdrop C N, D, NE, UE, Q, W)\<close>
+  have [dest!]: \<open>x \<in># all_lits_of_mm
+              (remove1_mset (mset (N \<propto> C))
+                ({#mset (fst x). x \<in># learned_clss_l N#} + UE)) \<Longrightarrow>
+           x \<in># all_lits_of_mm
+              ({#mset (fst x). x \<in># learned_clss_l N#} + UE)\<close> for x
+   by (auto dest: all_lits_of_mm_diffD)
+  show \<open>literals_are_\<L>\<^sub>i\<^sub>n'  (M, fmdrop C N, D, NE, UE, NS, {#}, Q, W)\<close>
     using assms by (auto simp: blits_in_\<L>\<^sub>i\<^sub>n'_def image_mset_remove1_mset_if literals_are_\<L>\<^sub>i\<^sub>n'_def
-         all_init_lits_def
+         all_init_lits_def all_lits_of_mm_union
        dest: multi_member_split all_lits_of_mm_diffD)
 qed
 
@@ -475,21 +487,21 @@ lemma correct_watching''_fmdrop':
   assumes
     irred: \<open>irred N C\<close> and
     C: \<open>C \<in># dom_m N\<close> and
-    \<open>correct_watching'' (M', N, D, NE, UE, Q, W)\<close>and
-    \<open>literals_are_\<L>\<^sub>i\<^sub>n' (M', N, D, NE, UE, Q, W)\<close>
-  shows \<open>correct_watching'' (M, fmdrop C N, D, add_mset (mset (N \<propto> C)) NE, UE, Q, W)\<close> and
-    \<open>literals_are_\<L>\<^sub>i\<^sub>n' (M, fmdrop C N, D, add_mset (mset (N \<propto> C)) NE, UE, Q, W)\<close>
+    \<open>correct_watching'' (M', N, D, NE, UE, NS, US, Q, W)\<close>and
+    \<open>literals_are_\<L>\<^sub>i\<^sub>n' (M', N, D, NE, UE, NS, US, Q, W)\<close>
+  shows \<open>correct_watching'' (M, fmdrop C N, D, add_mset (mset (N \<propto> C)) NE, UE, NS, {#}, Q, W)\<close> and
+    \<open>literals_are_\<L>\<^sub>i\<^sub>n' (M, fmdrop C N, D, add_mset (mset (N \<propto> C)) NE, UE, NS, {#}, Q, W)\<close>
 proof -
   have
-    Hdist: \<open>\<And>L. L\<in>#all_lits_of_mm (mset `# init_clss_lf N + NE) \<Longrightarrow>
+    Hdist: \<open>\<And>L. L\<in>#all_lits_of_mm (mset `# init_clss_lf N + NE + NS) \<Longrightarrow>
        distinct_watched (W L)\<close> and
-    H1: \<open>\<And>L i K b. L\<in>#all_lits_of_mm (mset `# init_clss_lf N + NE) \<Longrightarrow>
+    H1: \<open>\<And>L i K b. L\<in>#all_lits_of_mm (mset `# init_clss_lf N + NE + NS) \<Longrightarrow>
        (i, K, b)\<in>#mset (W L) \<Longrightarrow> i \<in># dom_m N \<Longrightarrow>
           K \<in> set (N \<propto> i) \<and> K \<noteq> L\<close> and
-    H2: \<open>\<And>L. L\<in>#all_lits_of_mm (mset `# init_clss_lf N + NE) \<Longrightarrow>
+    H2: \<open>\<And>L. L\<in>#all_lits_of_mm (mset `# init_clss_lf N + NE + NS) \<Longrightarrow>
        {#i \<in># fst `# mset (W L). i \<in># dom_m N#} =
-       {#C \<in># dom_m (get_clauses_l (M', N, D, NE, UE, {#}, {#})).
-        L \<in> set (watched_l (get_clauses_l (M', N, D, NE, UE, {#}, {#}) \<propto> C))#}\<close>
+       {#C \<in># dom_m (get_clauses_l (M', N, D, NE, UE, NS, US, {#}, {#})).
+        L \<in> set (watched_l (get_clauses_l (M', N, D, NE, UE, NS, US, {#}, {#}) \<propto> C))#}\<close>
     using assms
     unfolding correct_watching''.simps clause_to_update_def
     by blast+
@@ -509,7 +521,7 @@ proof -
     removeAll_mset C (filter_mset (\<lambda>i. i \<in># dom_m N) A)\<close> for A
     by (induction A)
       (auto simp: distinct_mset_remove1_All distinct_mset_dom)
-  show \<open>correct_watching'' (M, fmdrop C N, D, add_mset (mset (N \<propto> C)) NE, UE, Q, W)\<close>
+  show \<open>correct_watching'' (M, fmdrop C N, D, add_mset (mset (N \<propto> C)) NE, UE, NS, {#}, Q, W)\<close>
     unfolding correct_watching''.simps clause_to_update_def
     apply (intro conjI impI ballI)
     subgoal for L
@@ -535,7 +547,8 @@ proof -
     done
   have \<open>(N \<propto> C, irred N C) \<in># (init_clss_l N)\<close>
     using assms by (auto simp: ran_m_def dest!: multi_member_split) (metis prod.collapse)
-  from multi_member_split[OF this] show \<open>literals_are_\<L>\<^sub>i\<^sub>n' (M, fmdrop C N, D, add_mset (mset (N \<propto> C)) NE, UE, Q, W)\<close>
+  from multi_member_split[OF this]
+  show \<open>literals_are_\<L>\<^sub>i\<^sub>n' (M, fmdrop C N, D, add_mset (mset (N \<propto> C)) NE, UE, NS, {#}, Q, W)\<close>
     using distinct_mset_dom[of N]
     using assms by (auto simp: blits_in_\<L>\<^sub>i\<^sub>n'_def image_mset_remove1_mset_if all_lits_of_mm_add_mset
           all_lits_of_mm_union literals_are_\<L>\<^sub>i\<^sub>n'_def all_init_lits_def
@@ -547,21 +560,21 @@ lemma correct_watching''_fmdrop'':
   assumes
     irred: \<open>\<not>irred N C\<close> and
     C: \<open>C \<in># dom_m N\<close> and
-    \<open>correct_watching'' (M', N, D, NE, UE, Q, W)\<close> and
-    \<open>literals_are_\<L>\<^sub>i\<^sub>n' (M', N, D, NE, UE, Q, W)\<close>
-  shows \<open>correct_watching'' (M, fmdrop C N, D, NE, add_mset (mset (N \<propto> C)) UE, Q, W)\<close> and
-    \<open>literals_are_\<L>\<^sub>i\<^sub>n' (M, fmdrop C N, D, NE, add_mset (mset (N \<propto> C)) UE, Q, W)\<close>
+    \<open>correct_watching'' (M', N, D, NE, UE, NS, US, Q, W)\<close> and
+    \<open>literals_are_\<L>\<^sub>i\<^sub>n' (M', N, D, NE, UE, NS, US, Q, W)\<close>
+  shows \<open>correct_watching'' (M, fmdrop C N, D, NE, add_mset (mset (N \<propto> C)) UE, NS, {#}, Q, W)\<close> and
+    \<open>literals_are_\<L>\<^sub>i\<^sub>n' (M, fmdrop C N, D, NE, add_mset (mset (N \<propto> C)) UE, NS, {#},  Q, W)\<close>
 proof -
   have
-    Hdist: \<open>\<And>L. L\<in>#all_lits_of_mm (mset `# init_clss_lf N + NE) \<Longrightarrow>
+    Hdist: \<open>\<And>L. L\<in>#all_lits_of_mm (mset `# init_clss_lf N + NE + NS) \<Longrightarrow>
        distinct_watched (W L)\<close> and
-    H1: \<open>\<And>L i K b. L\<in>#all_lits_of_mm (mset `# init_clss_lf N + NE) \<Longrightarrow>
+    H1: \<open>\<And>L i K b. L\<in>#all_lits_of_mm (mset `# init_clss_lf N + NE + NS) \<Longrightarrow>
        (i, K, b)\<in>#mset (W L) \<Longrightarrow> i \<in># dom_m N \<Longrightarrow> K \<in> set (N \<propto> i) \<and>
           K \<noteq> L\<close> and
-    H2: \<open>\<And>L. L\<in>#all_lits_of_mm (mset `# init_clss_lf N + NE) \<Longrightarrow>
+    H2: \<open>\<And>L. L\<in>#all_lits_of_mm (mset `# init_clss_lf N + NE + NS) \<Longrightarrow>
        {#i \<in># fst `# mset (W L). i \<in># dom_m N#} =
-       {#C \<in># dom_m (get_clauses_l (M', N, D, NE, UE, {#}, {#})).
-        L \<in> set (watched_l (get_clauses_l (M', N, D, NE, UE, {#}, {#}) \<propto> C))#}\<close>
+       {#C \<in># dom_m (get_clauses_l (M', N, D, NE, UE, NS, US, {#}, {#})).
+        L \<in> set (watched_l (get_clauses_l (M', N, D, NE, UE, NS, US, {#}, {#}) \<propto> C))#}\<close>
     using assms
     unfolding correct_watching''.simps clause_to_update_def
     by blast+
@@ -581,7 +594,7 @@ proof -
     removeAll_mset C (filter_mset (\<lambda>i. i \<in># dom_m N) A)\<close> for A
     by (induction A)
       (auto simp: distinct_mset_remove1_All distinct_mset_dom)
-  show  \<open>correct_watching'' (M, fmdrop C N, D, NE, add_mset (mset (N \<propto> C)) UE, Q, W)\<close>
+  show  \<open>correct_watching'' (M, fmdrop C N, D, NE, add_mset (mset (N \<propto> C)) UE, NS, {#}, Q, W)\<close>
     unfolding correct_watching''.simps clause_to_update_def
     apply (intro conjI impI ballI)
     subgoal for L
@@ -608,7 +621,8 @@ proof -
 
   have \<open>(N \<propto> C, irred N C) \<in># (learned_clss_l N)\<close>
     using assms by (auto simp: ran_m_def dest!: multi_member_split) (metis prod.collapse)
-  from multi_member_split[OF this] show \<open>literals_are_\<L>\<^sub>i\<^sub>n' (M, fmdrop C N, D, NE, add_mset (mset (N \<propto> C)) UE, Q, W)\<close>
+  from multi_member_split[OF this]
+  show \<open>literals_are_\<L>\<^sub>i\<^sub>n' (M, fmdrop C N, D, NE, add_mset (mset (N \<propto> C)) UE, NS, {#}, Q, W)\<close>
     using distinct_mset_dom[of N]
     using assms by (fastforce simp: blits_in_\<L>\<^sub>i\<^sub>n'_def image_mset_remove1_mset_if all_lits_of_mm_add_mset
           all_lits_of_mm_union literals_are_\<L>\<^sub>i\<^sub>n'_def all_init_lits_def
@@ -629,9 +643,9 @@ definition replace_annot_wl_pre :: \<open>'v literal \<Rightarrow> nat \<Rightar
 
 definition replace_annot_wl :: \<open>'v literal \<Rightarrow> nat \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
   \<open>replace_annot_wl L C =
-    (\<lambda>(M, N, D, NE, UE, Q, W). do {
-      ASSERT(replace_annot_wl_pre L C (M, N, D, NE, UE, Q, W));
-      RES {(M', N, D, NE, UE, Q, W)| M'.
+    (\<lambda>(M, N, D, NE, UE, NS, US, Q, W). do {
+      ASSERT(replace_annot_wl_pre L C (M, N, D, NE, UE, NS, US, Q, W));
+      RES {(M', N, D, NE, UE, NS, {#}, Q, W)| M'.
        (\<exists>M2 M1 C. M = M2 @ Propagated L C # M1 \<and> M' = M2 @ Propagated L 0 # M1)}
    })\<close>
 
@@ -645,7 +659,7 @@ lemma replace_annot_l_pre_replace_annot_wl_pre: \<open>(((L, C), S), (L', C'), S
     unfolding replace_annot_wl_pre_def replace_annot_l_pre_alt_def
     unfolding replace_annot_l_pre_def[symmetric]
     by (rule exI[of _ \<open>S'\<close>])
-      (auto simp add: all_init_lits_def)
+      (auto simp add: ac_simps all_init_lits_def)
 
 lemma replace_annot_wl_replace_annot_l:
   \<open>(uncurry2 replace_annot_wl, uncurry2 replace_annot_l) \<in>
@@ -661,9 +675,19 @@ lemma replace_annot_wl_replace_annot_l:
       by (force intro!: replace_annot_l_pre_replace_annot_wl_pre)
     subgoal
       by (rule RES_refine)
-        (fastforce simp: state_wl_l_def literals_are_\<L>\<^sub>i\<^sub>n'_def
+        (fastforce simp: state_wl_l_def literals_are_\<L>\<^sub>i\<^sub>n'_def ac_simps
+          all_lits_of_mm_union
           correct_watching''.simps clause_to_update_def blits_in_\<L>\<^sub>i\<^sub>n'_def)
     done
+
+definition remove_and_add_cls_wl :: \<open>nat \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
+  \<open>remove_and_add_cls_wl C =
+    (\<lambda>(M, N, D, NE, UE, NS, US, Q, W). do {
+       ASSERT(C \<in># dom_m N);
+        RETURN (M, fmdrop C N, D,
+         (if irred N C then add_mset (mset (N\<propto>C)) else id) NE,
+	 (if \<not>irred N C then add_mset (mset (N\<propto>C)) else id) UE, NS, {#}, Q, W)
+    })\<close>
 
 definition remove_one_annot_true_clause_one_imp_wl
   :: \<open>nat \<Rightarrow> 'v twl_st_wl \<Rightarrow> (nat \<times> 'v twl_st_wl) nres\<close>
@@ -678,7 +702,7 @@ where
       else do {
         ASSERT(C \<in># dom_m (get_clauses_wl S));
 	S \<leftarrow> replace_annot_wl L C S;
-	S \<leftarrow> remove_and_add_cls_l C S;
+	S \<leftarrow> remove_and_add_cls_wl C S;
         \<comment> \<open>\<^text>\<open>S \<leftarrow> remove_all_annot_true_clause_imp_wl L S;\<close>\<close>
         RETURN (i+1, S)
       }
@@ -721,14 +745,15 @@ lemma remove_one_annot_true_clause_one_imp_wl_remove_one_annot_true_clause_one_i
     (is \<open>_ \<in> _ \<times>\<^sub>f ?A \<rightarrow>\<^sub>f _\<close>)
 proof -
 
-  have [refine0]: \<open>remove_and_add_cls_l C S \<le>\<Down> ?A (remove_and_add_cls_l C' S')\<close>
+  have [refine0]: \<open>remove_and_add_cls_wl C S \<le>\<Down> ?A (remove_and_add_cls_l C' S')\<close>
     if \<open>(C, C') \<in> Id\<close> and \<open>(S, S') \<in> ?A\<close>
       for C C' S S'
-    using that unfolding remove_and_add_cls_l_def
+    using that unfolding remove_and_add_cls_l_def remove_and_add_cls_wl_def
     by refine_rcg
-      (auto intro!: RES_refine simp: state_wl_l_def
+     (auto intro!: RES_refine simp: state_wl_l_def
        intro: correct_watching''_fmdrop correct_watching''_fmdrop''
           correct_watching''_fmdrop')
+
   show ?thesis
     unfolding remove_one_annot_true_clause_one_imp_wl_def remove_one_annot_true_clause_one_imp_def
       uncurry_def
@@ -765,6 +790,10 @@ definition remove_one_annot_true_clause_imp_wl_inv where
        literals_are_\<L>\<^sub>i\<^sub>n' T \<and>
        remove_one_annot_true_clause_imp_inv S' (i, T')))\<close>
 
+definition remove_all_learned_subsumed_clauses_wl :: \<open>'v twl_st_wl \<Rightarrow> ('v twl_st_wl) nres\<close> where
+\<open>remove_all_learned_subsumed_clauses_wl = (\<lambda>(M, N, D, NE, UE, NS, US, Q, W).
+   RETURN (M, N, D, NE, UE, NS, {#}, Q, W))\<close>
+
 definition remove_one_annot_true_clause_imp_wl :: \<open>'v twl_st_wl \<Rightarrow> ('v twl_st_wl) nres\<close>
 where
 \<open>remove_one_annot_true_clause_imp_wl = (\<lambda>S. do {
@@ -775,8 +804,17 @@ where
       (\<lambda>(i, S). i < k)
       (\<lambda>(i, S). remove_one_annot_true_clause_one_imp_wl i S)
       (0, S);
-    RETURN S
+    remove_all_learned_subsumed_clauses_wl S
   })\<close>
+
+lemma remove_all_learned_subsumed_clauses_wl_remove_all_learned_subsumed_clauses:
+  \<open>(remove_all_learned_subsumed_clauses_wl, remove_all_learned_subsumed_clauses)
+   \<in> {(S, T). (S, T) \<in> state_wl_l None \<and> correct_watching'' S \<and> literals_are_\<L>\<^sub>i\<^sub>n' S} \<rightarrow>\<^sub>f
+      \<langle>{(S, T). (S, T) \<in> state_wl_l None \<and> correct_watching'' S \<and> literals_are_\<L>\<^sub>i\<^sub>n' S}\<rangle>nres_rel\<close>
+  by (auto intro!: frefI nres_relI
+    simp: remove_all_learned_subsumed_clauses_wl_def remove_all_learned_subsumed_clauses_def
+      literals_are_\<L>\<^sub>i\<^sub>n'_def correct_watching''.simps state_wl_l_def
+      clause_to_update_def all_lits_of_mm_union blits_in_\<L>\<^sub>i\<^sub>n'_def)
 
 lemma remove_one_annot_true_clause_imp_wl_remove_one_annot_true_clause_imp:
   \<open>(remove_one_annot_true_clause_imp_wl, remove_one_annot_true_clause_imp)
@@ -789,8 +827,12 @@ proof -
     apply (intro frefI nres_relI)
     apply (refine_vcg
       WHILEIT_refine[where
-         R = \<open>nat_rel \<times>\<^sub>f {(S, T).  (S, T) \<in> state_wl_l None \<and> correct_watching'' S \<and> literals_are_\<L>\<^sub>i\<^sub>n' S}\<close>]
-      remove_one_annot_true_clause_one_imp_wl_remove_one_annot_true_clause_one_imp[THEN fref_to_Down_curry])
+         R = \<open>nat_rel \<times>\<^sub>f {(S, T).  (S, T) \<in> state_wl_l None \<and> correct_watching'' S \<and>
+            literals_are_\<L>\<^sub>i\<^sub>n' S}\<close>]
+      remove_one_annot_true_clause_one_imp_wl_remove_one_annot_true_clause_one_imp[THEN
+        fref_to_Down_curry]
+      remove_all_learned_subsumed_clauses_wl_remove_all_learned_subsumed_clauses[THEN
+        fref_to_Down])
     subgoal by force
     subgoal by auto
     subgoal for x y k ka xa x'
@@ -824,7 +866,7 @@ where
    (\<exists>T. (S, T) \<in> state_wl_l None \<and> mark_to_delete_clauses_l_pre T \<and> literals_are_\<L>\<^sub>i\<^sub>n' S)\<close>
 
 definition mark_garbage_wl:: \<open>nat \<Rightarrow>  'v twl_st_wl \<Rightarrow> 'v twl_st_wl\<close>  where
-  \<open>mark_garbage_wl = (\<lambda>C (M, N0, D, NE, UE, WS, Q). (M, fmdrop C N0, D, NE, UE, WS, Q))\<close>
+  \<open>mark_garbage_wl = (\<lambda>C (M, N0, D, NE, UE, NS, US, WS, Q). (M, fmdrop C N0, D, NE, UE, NS, {#}, WS, Q))\<close>
 
 definition mark_to_delete_clauses_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
 \<open>mark_to_delete_clauses_wl  = (\<lambda>S. do {
@@ -850,7 +892,7 @@ definition mark_to_delete_clauses_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl
        }
       })
       (l, S, xs);
-    RETURN S
+    remove_all_learned_subsumed_clauses_wl S
   })\<close>
 
 lemma mark_to_delete_clauses_wl_invD1:
@@ -865,16 +907,25 @@ proof -
   then have \<open>get_clauses_wl T \<propto> C ! 0 \<in># all_init_lits_st T\<close>
     using assms(2,3) by (auto dest!: multi_member_split
       simp: ran_m_def all_init_lits_def all_lits_of_mm_add_mset
-        in_clause_in_all_lits_of_m literals_are_\<L>\<^sub>i\<^sub>n'_def
+        in_clause_in_all_lits_of_m literals_are_\<L>\<^sub>i\<^sub>n'_def ac_simps
         in_clause_in_all_lits_of_m subsetD)
   then show \<open>?thesis\<close>
     by (simp add: \<L>\<^sub>a\<^sub>l\<^sub>l_all_init_atms(1))
 qed
 
+lemma remove_all_learned_subsumed_clauses_wl_remove_all_learned_subsumed_clauses2:
+  \<open>(remove_all_learned_subsumed_clauses_wl, remove_all_learned_subsumed_clauses)
+   \<in> {(S, T). (S, T) \<in> state_wl_l None \<and> correct_watching' S \<and> literals_are_\<L>\<^sub>i\<^sub>n' S} \<rightarrow>\<^sub>f
+      \<langle>{(S, T). (S, T) \<in> state_wl_l None \<and> correct_watching' S \<and> literals_are_\<L>\<^sub>i\<^sub>n' S}\<rangle>nres_rel\<close>
+  by (auto intro!: frefI nres_relI
+    simp: remove_all_learned_subsumed_clauses_wl_def remove_all_learned_subsumed_clauses_def
+      literals_are_\<L>\<^sub>i\<^sub>n'_def correct_watching'.simps state_wl_l_def
+      clause_to_update_def all_lits_of_mm_union blits_in_\<L>\<^sub>i\<^sub>n'_def)
+
 lemma mark_to_delete_clauses_wl_mark_to_delete_clauses_l:
   \<open>(mark_to_delete_clauses_wl, mark_to_delete_clauses_l)
-    \<in> {(S, T).  (S, T) \<in> state_wl_l None \<and> correct_watching' S \<and> literals_are_\<L>\<^sub>i\<^sub>n' S} \<rightarrow>\<^sub>f
-      \<langle>{(S, T).  (S, T) \<in> state_wl_l None \<and> correct_watching' S \<and> literals_are_\<L>\<^sub>i\<^sub>n' S}\<rangle>nres_rel\<close>
+    \<in> {(S, T). (S, T) \<in> state_wl_l None \<and> correct_watching' S \<and> literals_are_\<L>\<^sub>i\<^sub>n' S} \<rightarrow>\<^sub>f
+      \<langle>{(S, T). (S, T) \<in> state_wl_l None \<and> correct_watching' S \<and> literals_are_\<L>\<^sub>i\<^sub>n' S}\<rangle>nres_rel\<close>
 proof -
   have [refine0]: \<open>collect_valid_indices_wl S  \<le> \<Down> Id  (collect_valid_indices S')\<close>
     if \<open>(S, S') \<in> {(S, T).  (S, T) \<in> state_wl_l None \<and> correct_watching' S \<and>
@@ -893,7 +944,10 @@ proof -
       WHILEIT_refine[where
          R = \<open>{((i, S, xs), (j, T, ys)). i = j \<and> (S, T) \<in> state_wl_l None \<and> correct_watching' S \<and>
              xs = ys \<and> literals_are_\<L>\<^sub>i\<^sub>n' S}\<close>]
-      remove_one_annot_true_clause_one_imp_wl_remove_one_annot_true_clause_one_imp[THEN fref_to_Down_curry])
+      remove_one_annot_true_clause_one_imp_wl_remove_one_annot_true_clause_one_imp[THEN
+        fref_to_Down_curry]
+      remove_all_learned_subsumed_clauses_wl_remove_all_learned_subsumed_clauses2[THEN
+        fref_to_Down])
     subgoal unfolding mark_to_delete_clauses_wl_pre_def by blast
     subgoal by auto
     subgoal by (auto simp: state_wl_l_def)
@@ -909,10 +963,10 @@ proof -
     subgoal by (force simp: state_wl_l_def)
     subgoal
       by (auto simp: state_wl_l_def correct_watching_fmdrop mark_garbage_wl_def
-          mark_garbage_l_def
+          mark_garbage_l_def ac_simps
         split: prod.splits)
     subgoal by (auto simp: state_wl_l_def)
-    subgoal by auto
+    subgoal by (auto simp: state_wl_l_def)
     done
 qed
 
@@ -925,9 +979,9 @@ text \<open>
   two). The first option is implemented in SPASS-SAT. The latter version (partly) in cadical.
 \<close>
 definition rewatch_clauses :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
-  \<open>rewatch_clauses = (\<lambda>(M, N, D, NE, UE, Q, W). SPEC(\<lambda>(M', N', D', NE', UE', Q', W').
-     (M, N, D, NE, UE, Q) = (M', N', D', NE', UE', Q') \<and>
-    correct_watching (M, N', D, NE, UE, Q, W')))\<close>
+  \<open>rewatch_clauses = (\<lambda>(M, N, D, NE, UE, NS, US, Q, W). SPEC(\<lambda>(M', N', D', NE', UE', NS', US', Q', W').
+     (M, N, D, NE, UE, NS, US, Q) = (M', N', D', NE', UE', NS', US', Q') \<and>
+    correct_watching (M, N', D, NE, UE, NS', US', Q, W')))\<close>
 
 definition mark_to_delete_clauses_wl_post where
   \<open>mark_to_delete_clauses_wl_post S T \<longleftrightarrow>
@@ -952,7 +1006,7 @@ lemma correct_watching_correct_watching: \<open>correct_watching S \<Longrightar
   by auto
 
 lemma (in -) [twl_st_l, simp]:
- \<open>(Sa, x) \<in> twl_st_l None \<Longrightarrow> get_all_learned_clss x =  mset `# (get_learned_clss_l Sa) + get_unit_learned_clss_l Sa\<close>
+ \<open>(Sa, x) \<in> twl_st_l None \<Longrightarrow> get_all_learned_clss x =  mset `# (get_learned_clss_l Sa) + get_unit_learned_clss_l Sa + get_subsumed_learned_clauses_l Sa\<close>
   by (cases Sa; cases x) (auto simp: twl_st_l_def get_learned_clss_l_def mset_take_mset_drop_mset')
 
 lemma cdcl_twl_full_restart_wl_prog_final_rel:
@@ -984,8 +1038,10 @@ proof -
   have \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of x)\<close>
     using struct unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
     by auto
-  then have \<open>set_mset (all_lits_of_mm (mset `# init_clss_lf (get_clauses_wl S) + get_unit_init_clss_wl S)) =
-    set_mset (all_lits_of_mm (mset `# ran_mf (get_clauses_wl S) + get_unit_clauses_wl S))\<close>
+  then have \<open>set_mset (all_lits_of_mm (mset `# init_clss_lf (get_clauses_wl S) +
+      get_unit_init_clss_wl S + get_subsumed_init_clauses_wl S)) =
+    set_mset (all_lits_of_mm (mset `# ran_mf (get_clauses_wl S) + get_unit_clauses_wl S +
+       get_subsumed_clauses_wl S))\<close>
     apply (subst all_clss_lf_ran_m[symmetric])
     using Sa_x S_Sa
     unfolding image_mset_union cdcl\<^sub>W_restart_mset.no_strange_atm_def all_lits_of_mm_union
@@ -1008,8 +1064,10 @@ proof -
   have \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of y)\<close>
     using struct unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
     by auto
-  then have eq: \<open>set_mset (all_lits_of_mm (mset `# init_clss_lf (get_clauses_wl T) + get_unit_init_clss_wl T)) =
-    set_mset (all_lits_of_mm (mset `# ran_mf (get_clauses_wl T) + get_unit_clauses_wl T))\<close>
+  then have eq: \<open>set_mset (all_lits_of_mm (mset `# init_clss_lf (get_clauses_wl T) +
+      get_unit_init_clss_wl T + get_subsumed_init_clauses_wl T)) =
+    set_mset (all_lits_of_mm (mset `# ran_mf (get_clauses_wl T) + get_unit_clauses_wl T +
+       get_subsumed_clauses_wl T))\<close>
     apply (subst all_clss_lf_ran_m[symmetric])
     using T_Ta Ta_y
     unfolding image_mset_union cdcl\<^sub>W_restart_mset.no_strange_atm_def all_lits_of_mm_union
@@ -1025,7 +1083,7 @@ proof -
     using blits_T eq
     unfolding blits_in_\<L>\<^sub>i\<^sub>n_def blits_in_\<L>\<^sub>i\<^sub>n'_def all_lits_def literals_are_\<L>\<^sub>i\<^sub>n'_def
        all_init_lits_def
-    by (auto dest: multi_member_split)
+    by (auto dest: multi_member_split simp: ac_simps)
   then show ?thesis
     using S_Sa T_Ta corr_T' corr_S' pre_l blits_S
     unfolding mark_to_delete_clauses_wl_post_def
@@ -1062,8 +1120,10 @@ proof -
   have \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of x)\<close>
     using struct unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
     by auto
-  then have \<open>set_mset (all_lits_of_mm (mset `# init_clss_lf (get_clauses_wl S) + get_unit_init_clss_wl S)) =
-    set_mset (all_lits_of_mm (mset `# ran_mf (get_clauses_wl S) + get_unit_clauses_wl S))\<close>
+  then have \<open>set_mset (all_lits_of_mm (mset `# init_clss_lf (get_clauses_wl S)
+      + get_unit_init_clss_wl S + get_subsumed_init_clauses_wl S)) =
+    set_mset (all_lits_of_mm (mset `# ran_mf (get_clauses_wl S) + get_unit_clauses_wl S +
+       get_subsumed_clauses_wl S))\<close>
     apply (subst all_clss_lf_ran_m[symmetric])
     using Sa_x S_Sa
     unfolding image_mset_union cdcl\<^sub>W_restart_mset.no_strange_atm_def all_lits_of_mm_union
@@ -1086,8 +1146,10 @@ proof -
   have \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of y)\<close>
     using struct unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
     by auto
-  then have eq: \<open>set_mset (all_lits_of_mm (mset `# init_clss_lf (get_clauses_wl T) + get_unit_init_clss_wl T)) =
-    set_mset (all_lits_of_mm (mset `# ran_mf (get_clauses_wl T) + get_unit_clauses_wl T))\<close>
+  then have eq: \<open>set_mset (all_lits_of_mm (mset `# init_clss_lf (get_clauses_wl T) +
+     get_unit_init_clss_wl T + get_subsumed_init_clauses_wl T)) =
+    set_mset (all_lits_of_mm (mset `# ran_mf (get_clauses_wl T) + get_unit_clauses_wl T +
+       get_subsumed_clauses_wl T))\<close>
     apply (subst all_clss_lf_ran_m[symmetric])
     using T_Ta Ta_y
     unfolding image_mset_union cdcl\<^sub>W_restart_mset.no_strange_atm_def all_lits_of_mm_union
@@ -1103,7 +1165,7 @@ proof -
     using blits_T eq
     unfolding blits_in_\<L>\<^sub>i\<^sub>n_def blits_in_\<L>\<^sub>i\<^sub>n'_def all_lits_def literals_are_\<L>\<^sub>i\<^sub>n'_def
          all_init_lits_def
-    by (auto dest: multi_member_split)
+    by (auto dest: multi_member_split simp: ac_simps)
   then show ?thesis
     using S_Sa T_Ta corr_T' corr_S' pre_l blits_S
     unfolding mark_to_delete_clauses_wl_post_def
@@ -1133,8 +1195,10 @@ proof -
   have \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of x)\<close>
     using struct unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
     by auto
-  then have \<open>set_mset (all_lits_of_mm (mset `# init_clss_lf (get_clauses_wl S) + get_unit_init_clss_wl S)) =
-    set_mset (all_lits_of_mm (mset `# ran_mf (get_clauses_wl S) + get_unit_clauses_wl S))\<close>
+  then have \<open>set_mset (all_lits_of_mm (mset `# init_clss_lf (get_clauses_wl S) +
+      get_unit_init_clss_wl S + get_subsumed_init_clauses_wl S)) =
+    set_mset (all_lits_of_mm (mset `# ran_mf (get_clauses_wl S) + get_unit_clauses_wl S +
+       get_subsumed_clauses_wl S))\<close>
     apply (subst all_clss_lf_ran_m[symmetric])
     using Sa_x S_Sa
     unfolding image_mset_union cdcl\<^sub>W_restart_mset.no_strange_atm_def all_lits_of_mm_union
@@ -1149,15 +1213,19 @@ proof -
   have alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of x)\<close>
     using struct unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
     by auto
-  then have eq: \<open>set_mset (all_lits_of_mm (mset `# init_clss_lf (get_clauses_wl S) + get_unit_init_clss_wl S)) =
-    set_mset (all_lits_of_mm (mset `# ran_mf (get_clauses_wl S) + get_unit_clauses_wl S))\<close>
+  then have eq: \<open>set_mset (all_lits_of_mm (mset `# init_clss_lf (get_clauses_wl S) +
+      get_unit_init_clss_wl S + get_subsumed_init_clauses_wl S)) =
+    set_mset (all_lits_of_mm (mset `# ran_mf (get_clauses_wl S) + get_unit_clauses_wl S +
+      get_subsumed_clauses_wl S))\<close>
     apply (subst all_clss_lf_ran_m[symmetric])
     using Sa_x S_Sa
     unfolding image_mset_union cdcl\<^sub>W_restart_mset.no_strange_atm_def all_lits_of_mm_union
     by (auto simp: in_all_lits_of_mm_ain_atms_of_iff get_learned_clss_l_def
       twl_st get_unit_clauses_wl_alt_def)
-  moreover have eq: \<open>set_mset (all_lits_of_mm (mset `# learned_clss_lf (get_clauses_wl S) + get_unit_learned_clss_wl S)) \<subseteq>
-    set_mset (all_lits_of_mm (mset `# init_clss_lf (get_clauses_wl S) + get_unit_init_clss_wl S))\<close>
+  moreover have eq: \<open>set_mset (all_lits_of_mm (mset `# learned_clss_lf (get_clauses_wl S) +
+       get_unit_learned_clss_wl S + get_subsumed_learned_clauses_wl S)) \<subseteq>
+    set_mset (all_lits_of_mm (mset `# init_clss_lf (get_clauses_wl S) + get_unit_init_clss_wl S +
+       get_subsumed_init_clauses_wl S))\<close>
     using Sa_x S_Sa alien
     unfolding image_mset_union cdcl\<^sub>W_restart_mset.no_strange_atm_def all_lits_of_mm_union
     by (auto simp: in_all_lits_of_mm_ain_atms_of_iff get_learned_clss_l_def
@@ -1166,7 +1234,7 @@ proof -
     using blits_S eq
     unfolding blits_in_\<L>\<^sub>i\<^sub>n_def blits_in_\<L>\<^sub>i\<^sub>n'_def all_lits_def literals_are_\<L>\<^sub>i\<^sub>n'_def
       all_init_lits_def
-    by (auto dest: multi_member_split)
+    by (auto dest: multi_member_split simp: ac_simps)
   then show ?thesis
     using S_Sa corr_S' blits_S
     unfolding mark_to_delete_clauses_wl_post_def
@@ -1197,11 +1265,11 @@ definition (in -) restart_abs_wl_pre :: \<open>'v twl_st_wl \<Rightarrow> bool \
       \<and> correct_watching S \<and> blits_in_\<L>\<^sub>i\<^sub>n S)\<close>
 
 definition (in -) cdcl_twl_local_restart_wl_spec :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
-  \<open>cdcl_twl_local_restart_wl_spec = (\<lambda>(M, N, D, NE, UE, Q, W). do {
-      ASSERT(restart_abs_wl_pre (M, N, D, NE, UE, Q, W) False);
+  \<open>cdcl_twl_local_restart_wl_spec = (\<lambda>(M, N, D, NE, UE, NS, US, Q, W). do {
+      ASSERT(restart_abs_wl_pre (M, N, D, NE, UE, NS, US, Q, W) False);
       (M, Q) \<leftarrow> SPEC(\<lambda>(M', Q'). (\<exists>K M2. (Decided K # M', M2) \<in> set (get_all_ann_decomposition M) \<and>
             Q' = {#}) \<or> (M' = M \<and> Q' = Q));
-      RETURN (M, N, D, NE, UE, Q, W)
+      RETURN (M, N, D, NE, UE, NS, {#}, Q, W)
    })\<close>
 
 lemma cdcl_twl_local_restart_wl_spec_cdcl_twl_local_restart_l_spec:
@@ -1209,15 +1277,50 @@ lemma cdcl_twl_local_restart_wl_spec_cdcl_twl_local_restart_l_spec:
     \<in> {(S, T). (S, T) \<in> state_wl_l None \<and> correct_watching S \<and> blits_in_\<L>\<^sub>i\<^sub>n S} \<rightarrow>\<^sub>f
       \<langle>{(S, T). (S, T) \<in> state_wl_l None \<and> correct_watching S \<and> blits_in_\<L>\<^sub>i\<^sub>n S}\<rangle>nres_rel\<close>
 proof -
+  have H: \<open>set_mset (all_lits N (NE + UE + NS)) = set_mset (all_lits N (NE + UE + NS + US))\<close>
+    if pre: \<open>restart_abs_wl_pre (M, N, D, NE, UE, NS, US, Q, W) brk\<close>
+     for M N D NE UE NS US W Q brk
+  proof -
+    obtain x xa where
+      Sx: \<open>((M, N, D, NE, UE, NS, US, Q, W), x) \<in> state_wl_l None\<close> and
+      \<open>correct_watching (M, N, D, NE, UE, NS, US, Q, W)\<close> and
+      \<open>blits_in_\<L>\<^sub>i\<^sub>n (M, N, D, NE, UE, NS, US, Q, W)\<close> and
+      xxa: \<open>(x, xa) \<in> twl_st_l None\<close> and
+      alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of xa)\<close>
+      using pre apply -
+      unfolding restart_abs_wl_pre_def restart_abs_l_pre_def
+        restart_prog_pre_def twl_struct_invs_def
+        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+      by blast
+    show ?thesis
+      using Sx xxa alien
+      unfolding cdcl\<^sub>W_restart_mset.no_strange_atm_def all_lits_def
+      apply (subst all_clss_l_ran_m[symmetric], subst image_mset_union)
+      apply (subst (2) all_clss_l_ran_m[symmetric], subst image_mset_union)
+      apply (cases x; cases xa)
+      by (auto simp: state_wl_l_def twl_st_l_def all_lits_def
+        cdcl\<^sub>W_restart_mset_state mset_take_mset_drop_mset'
+        all_lits_of_mm_union in_all_lits_of_mm_ain_atms_of_iff)
+  qed
+  have [simp]:
+    \<open>all_lits N (NE + UE + (NS + US)) = all_lits N (NE + UE + NS + US)\<close>
+    \<open>all_lits N ((NE + UE) + (NS + US)) = all_lits N (NE + UE + NS + US)\<close>
+    for NE UE NS US N
+    by (auto simp: ac_simps)
   have [refine0]:
-    \<open>\<And>x y x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f x1g x2g x1h x2h x1i x2i x1j x2j x1k x2k.
+    \<open>\<And>x y x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f x1g x2g x1h x2h x1i x2i x1j x2j x1k
+          x2k y1f y2g y2g y1h y1i x2m x1l x1n x2o y2i.
         (x, y) \<in> {(S, T). (S, T) \<in> state_wl_l None \<and> correct_watching S \<and> blits_in_\<L>\<^sub>i\<^sub>n S} \<Longrightarrow>
+        y2g = (y1h, y2i) \<Longrightarrow>
+        x2e = (y1f, y2g) \<Longrightarrow>
         x2d = (x1e, x2e) \<Longrightarrow>
         x2c = (x1d, x2d) \<Longrightarrow>
         x2b = (x1c, x2c) \<Longrightarrow>
         x2a = (x1b, x2b) \<Longrightarrow>
         x2 = (x1a, x2a) \<Longrightarrow>
         y = (x1, x2) \<Longrightarrow>
+        x2m = (x1n, x2o) \<Longrightarrow>
+        x2k = (x1l, x2m) \<Longrightarrow>
         x2j = (x1k, x2k) \<Longrightarrow>
         x2i = (x1j, x2j) \<Longrightarrow>
         x2h = (x1i, x2i) \<Longrightarrow>
@@ -1225,9 +1328,9 @@ proof -
         x2f = (x1g, x2g) \<Longrightarrow>
         x = (x1f, x2f) \<Longrightarrow>
         SPEC (\<lambda>(M', Q'). (\<exists>K M2. (Decided K # M', M2) \<in> set (get_all_ann_decomposition x1f) \<and>
-           Q' = {#}) \<or> M' = x1f \<and> Q' = x1k)
+           Q' = {#}) \<or> M' = x1f \<and> Q' = x1l)
         \<le> \<Down>Id (SPEC (\<lambda>(M', Q') .(\<exists>K M2. (Decided K # M', M2) \<in> set (get_all_ann_decomposition x1) \<and>
-           Q' = {#}) \<or> M' = x1 \<and> Q' = x2e))\<close>
+           Q' = {#}) \<or> M' = x1 \<and> Q' = y1f))\<close>
     by (auto simp: state_wl_l_def)
   show ?thesis
     unfolding cdcl_twl_local_restart_wl_spec_def cdcl_twl_local_restart_l_spec_def
@@ -1235,9 +1338,12 @@ proof -
     apply (intro frefI nres_relI)
     apply (refine_vcg)
     subgoal unfolding restart_abs_wl_pre_def by fast
-    apply assumption+
     subgoal by (auto simp: state_wl_l_def correct_watching.simps clause_to_update_def
       blits_in_\<L>\<^sub>i\<^sub>n_def)
+    subgoal
+      by (fastforce simp: state_wl_l_def correct_watching.simps clause_to_update_def
+          blits_in_\<L>\<^sub>i\<^sub>n_def
+        simp flip: all_lits_alt_def2 dest!: H)
     done
 qed
 
