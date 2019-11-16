@@ -402,14 +402,14 @@ definition twl_st_heur :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\<cl
   {((M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, heur,
        vdom, avdom, lcount, opts, old_arena),
      (M, N, D, NE, UE, NS, US, Q, W)).
-    (M', M) \<in> trail_pol (all_atms N (NE + UE)) \<and>
+    (M', M) \<in> trail_pol (all_atms N (NE + UE + NS + US)) \<and>
     valid_arena N' N (set vdom) \<and>
     (D', D) \<in> option_lookup_clause_rel (all_atms N (NE + UE + NS + US)) \<and>
     (D = None \<longrightarrow> j \<le> length M) \<and>
     Q = uminus `# lit_of `# mset (drop j (rev M)) \<and>
     (W', W) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 (all_atms N (NE + UE + NS + US))) \<and>
-    vm \<in> isa_vmtf (all_atms N (NE + UE)) M \<and>
-    phase_saving (all_atms N (NE + UE)) \<phi> \<and>
+    vm \<in> isa_vmtf (all_atms N (NE + UE + NS + US)) M \<and>
+    phase_saving (all_atms N (NE + UE + NS + US)) \<phi> \<and>
     no_dup M \<and>
     clvls \<in> counts_maximum_level M D \<and>
     cach_refinement_empty (all_atms N (NE + UE + NS + US)) cach \<and>
@@ -433,7 +433,7 @@ lemma twl_st_heur_state_simp:
          uminus `# lit_of `# mset (drop (literals_to_update_wl_heur S) (rev (get_trail_wl S')))\<close> and
      twl_st_heur_state_simp_watched2: \<open>C \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st S') \<Longrightarrow>
        nat_of_lit C < length(get_watched_wl_heur S)\<close>
-  using assms unfolding twl_st_heur_def by (auto simp: map_fun_rel_def)
+  using assms unfolding twl_st_heur_def by (auto simp: map_fun_rel_def ac_simps)
 
 abbreviation twl_st_heur'''
    :: \<open>nat \<Rightarrow> (twl_st_wl_heur \<times> nat twl_st_wl) set\<close>
@@ -451,35 +451,35 @@ where
   {((M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, heur, vdom,
        avdom, lcount, opts, old_arena),
       (M, N, D, NE, UE, NS, US, Q, W)).
-    (M', M) \<in> trail_pol (all_atms N (NE + UE)) \<and>
+    (M', M) \<in> trail_pol (all_atms N (NE + UE + NS + US)) \<and>
     valid_arena N' N (set vdom) \<and>
-    (D', D) \<in> option_lookup_clause_rel (all_atms N (NE + UE)) \<and>
-    (W', W) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 (all_atms N (NE + UE))) \<and>
-    vm \<in> isa_vmtf (all_atms N (NE + UE)) M \<and>
-    phase_saving (all_atms N (NE + UE)) \<phi> \<and>
+    (D', D) \<in> option_lookup_clause_rel (all_atms N (NE + UE + NS + US)) \<and>
+    (W', W) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 (all_atms N (NE + UE + NS + US))) \<and>
+    vm \<in> isa_vmtf (all_atms N (NE + UE + NS + US)) M \<and>
+    phase_saving (all_atms N (NE + UE + NS + US)) \<phi> \<and>
     no_dup M \<and>
     clvls \<in> counts_maximum_level M D \<and>
-    cach_refinement_empty (all_atms N (NE + UE)) cach \<and>
+    cach_refinement_empty (all_atms N (NE + UE + NS + US)) cach \<and>
     out_learned M D outl \<and>
     lcount = size (learned_clss_lf N) \<and>
-    vdom_m (all_atms N (NE + UE)) W N \<subseteq> set vdom \<and>
+    vdom_m (all_atms N (NE + UE + NS + US)) W N \<subseteq> set vdom \<and>
     mset avdom \<subseteq># mset vdom \<and>
     distinct vdom \<and>
-    isasat_input_bounded (all_atms N (NE + UE)) \<and>
-    isasat_input_nempty (all_atms N (NE + UE)) \<and>
+    isasat_input_bounded (all_atms N (NE + UE + NS + US)) \<and>
+    isasat_input_nempty (all_atms N (NE + UE + NS + US)) \<and>
     old_arena = []
   }\<close>
 
 lemma twl_st_heur_twl_st_heur_conflict_ana:
   \<open>(S, T) \<in> twl_st_heur \<Longrightarrow> (S, T) \<in> twl_st_heur_conflict_ana\<close>
-  by (auto simp: twl_st_heur_def twl_st_heur_conflict_ana_def)
+  by (auto simp: twl_st_heur_def twl_st_heur_conflict_ana_def ac_simps)
 
 lemma twl_st_heur_ana_state_simp:
   assumes \<open>(S, S') \<in> twl_st_heur_conflict_ana\<close>
   shows
     \<open>(get_trail_wl_heur S, get_trail_wl S') \<in> trail_pol (all_atms_st S')\<close> and
     \<open>C \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st S') \<Longrightarrow> watched_by_int S C = watched_by S' C\<close>
-  using assms unfolding twl_st_heur_conflict_ana_def by (auto simp: map_fun_rel_def)
+  using assms unfolding twl_st_heur_conflict_ana_def by (auto simp: map_fun_rel_def ac_simps)
 
 text \<open>This relations decouples the conflict that has been minimised and appears abstractly
 from the refined state, where the conflict has been removed from the data structure to a
@@ -489,22 +489,22 @@ definition twl_st_heur_bt :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\
   {((M', N', D', Q', W', vm, \<phi>, clvls, cach, lbd, outl, stats, heur, vdom, avdom, lcount, opts,
        old_arena),
      (M, N, D, NE, UE, NS, US, Q, W)).
-    (M', M) \<in> trail_pol (all_atms N (NE + UE)) \<and>
+    (M', M) \<in> trail_pol (all_atms N (NE + UE + NS + US)) \<and>
     valid_arena N' N (set vdom) \<and>
-    (D', None) \<in> option_lookup_clause_rel (all_atms N (NE + UE)) \<and>
-    (W', W) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 (all_atms N (NE + UE))) \<and>
-    vm \<in> isa_vmtf (all_atms N (NE + UE)) M \<and>
-    phase_saving (all_atms N (NE + UE)) \<phi> \<and>
+    (D', None) \<in> option_lookup_clause_rel (all_atms N (NE + UE + NS + US)) \<and>
+    (W', W) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 (all_atms N (NE + UE + NS + US))) \<and>
+    vm \<in> isa_vmtf (all_atms N (NE + UE + NS + US)) M \<and>
+    phase_saving (all_atms N (NE + UE + NS + US)) \<phi> \<and>
     no_dup M \<and>
     clvls \<in> counts_maximum_level M None \<and>
-    cach_refinement_empty (all_atms N (NE + UE)) cach \<and>
+    cach_refinement_empty (all_atms N (NE + UE + NS + US)) cach \<and>
     out_learned M None outl \<and>
     lcount = size (learned_clss_l N) \<and>
-    vdom_m (all_atms N (NE + UE)) W N \<subseteq> set vdom \<and>
+    vdom_m (all_atms N (NE + UE + NS + US)) W N \<subseteq> set vdom \<and>
     mset avdom \<subseteq># mset vdom \<and>
     distinct vdom \<and>
-    isasat_input_bounded (all_atms N (NE + UE)) \<and>
-    isasat_input_nempty (all_atms N (NE + UE)) \<and>
+    isasat_input_bounded (all_atms N (NE + UE + NS + US)) \<and>
+    isasat_input_nempty (all_atms N (NE + UE + NS + US)) \<and>
     old_arena = []
   }\<close>
 
@@ -592,12 +592,13 @@ proof -
      apply (rule atm_in_conflict_lookup_pre)
      unfolding \<L>\<^sub>a\<^sub>l\<^sub>l_all_atms_all_lits[symmetric]
      apply assumption+
-     
+     apply (auto simp: ac_simps)
      done
   subgoal for x y x1 x2 x1a x2a x1b x2b x1c x2c x1d x1e x2d x2e
     apply (subst atm_in_conflict_lookup_atm_in_conflict[THEN fref_to_Down_unRET_uncurry_Id, of \<open>all_atms_st x2\<close>  \<open>atm_of x1\<close> \<open>the (get_conflict_wl (snd y))\<close>])
     apply (simp add: \<L>\<^sub>a\<^sub>l\<^sub>l_all_atms_all_lits atms_of_def)[]
-    apply (auto simp add: \<L>\<^sub>a\<^sub>l\<^sub>l_all_atms_all_lits atms_of_def option_lookup_clause_rel_def)[]
+    apply (auto simp add: \<L>\<^sub>a\<^sub>l\<^sub>l_all_atms_all_lits atms_of_def option_lookup_clause_rel_def
+      ac_simps)[]
     apply (simp add: atm_in_conflict_def atm_of_in_atms_of_iff)
     done
   done
@@ -738,7 +739,7 @@ lemma clause_not_marked_to_delete_rel:
     (use arena_dom_status_iff in_dom_in_vdom in
       \<open>auto 5 5 simp: clause_not_marked_to_delete_def twl_st_heur_def
         clause_not_marked_to_delete_heur_def arena_dom_status_iff
-        clause_not_marked_to_delete_pre_def\<close>)
+        clause_not_marked_to_delete_pre_def ac_simps\<close>)
 
 
 definition (in -) access_lit_in_clauses_heur_pre where
@@ -992,12 +993,12 @@ lemma rewatch_st_correctness:
   subgoal
     using rewatch_correctness[OF assms]
     unfolding rewatch_st_def
-    apply (cases S, case_tac \<open>rewatch b g\<close>)
+    apply (cases S, case_tac \<open>rewatch b i\<close>)
     by (auto simp: RES_RETURN_RES)
   subgoal
     using rewatch_correctness[OF assms]
     unfolding rewatch_st_def
-    apply (cases S, case_tac \<open>rewatch b g\<close>)
+    apply (cases S, case_tac \<open>rewatch b i\<close>)
     by (force simp: RES_RETURN_RES)+
   done
 
@@ -1027,7 +1028,7 @@ lemma length_watched_le:
 proof -
   have dist: \<open>distinct_watched (watched_by x1 x2)\<close>
     using prop_inv x2 unfolding all_atms_def all_lits_def
-    by (cases x1; auto simp: \<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_all_lits_of_mm correct_watching.simps)
+    by (cases x1; auto simp: \<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_all_lits_of_mm correct_watching.simps ac_simps)
   then have dist: \<open>distinct_watched (watched_by x1 x2)\<close>
     using xb_x'a
     by (cases x1; auto simp: \<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_all_lits_of_mm correct_watching.simps)
@@ -1035,7 +1036,8 @@ proof -
     using xb_x'a
     by (cases x1)
       (auto simp: twl_st_heur_def twl_st_heur'_def)
-  have x2: \<open>x2 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms (get_clauses_wl x1) (get_unit_clauses_wl x1))\<close>
+  have x2: \<open>x2 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms (get_clauses_wl x1)
+      (get_unit_clauses_wl x1 + get_subsumed_clauses_wl x1))\<close>
     using x2 xb_x'a unfolding all_atms_def
     by auto
 
@@ -1048,7 +1050,8 @@ proof -
   have \<open>vdom_m (all_atms_st x1) (get_watched_wl x1) (get_clauses_wl x1) \<subseteq> set (get_vdom x1a)\<close>
     using xb_x'a
     by (cases x1)
-      (auto simp: twl_st_heur_def twl_st_heur'_def)
+      (auto simp: twl_st_heur_def twl_st_heur'_def ac_simps)
+
   then have subset: \<open>set (map fst (watched_by x1 x2)) \<subseteq> set (get_vdom x1a)\<close>
     using x2 unfolding vdom_m_def
     by (cases x1)
@@ -1078,7 +1081,7 @@ lemma length_watched_le2:
 proof -
   from prop_inv diff have dist: \<open>distinct_watched (watched_by x1 x2)\<close>
     using x2 unfolding all_atms_def all_lits_def
-    by (cases x1; auto simp: \<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_all_lits_of_mm correct_watching_except.simps)
+    by (cases x1; auto simp: \<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_all_lits_of_mm correct_watching_except.simps ac_simps)
   then have dist: \<open>distinct_watched (watched_by x1 x2)\<close>
     using xb_x'a
     by (cases x1; auto simp: \<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_all_lits_of_mm correct_watching.simps)
@@ -1086,9 +1089,9 @@ proof -
     using xb_x'a
     by (cases x1)
       (auto simp: twl_st_heur_def twl_st_heur'_def)
-  have x2: \<open>x2 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms (get_clauses_wl x1) (get_unit_clauses_wl x1))\<close>
+  have x2: \<open>x2 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms (get_clauses_wl x1) (get_unit_clauses_wl x1 + get_subsumed_clauses_wl x1))\<close>
     using x2 xb_x'a
-    by (auto simp flip: all_atms_def)
+    by (auto simp flip: all_atms_def all_lits_alt_def2 simp: ac_simps)
 
   have
       valid: \<open>valid_arena (get_clauses_wl_heur x1a) (get_clauses_wl x1) (set (get_vdom x1a))\<close>
@@ -1099,11 +1102,11 @@ proof -
   have \<open>vdom_m (all_atms_st x1) (get_watched_wl x1) (get_clauses_wl x1) \<subseteq> set (get_vdom x1a)\<close>
     using xb_x'a
     by (cases x1)
-      (auto simp: twl_st_heur_def twl_st_heur'_def simp flip: all_atms_def)
+      (auto simp: twl_st_heur_def twl_st_heur'_def ac_simps simp flip: all_atms_def)
   then have subset: \<open>set (map fst (watched_by x1 x2)) \<subseteq> set (get_vdom x1a)\<close>
     using x2 unfolding vdom_m_def
     by (cases x1)
-      (force simp: twl_st_heur'_def twl_st_heur_def simp flip: all_atms_def
+      (force simp: twl_st_heur'_def twl_st_heur_def ac_simps simp flip: all_atms_def all_lits_alt_def2
         dest!: multi_member_split)
   have watched_incl: \<open>mset (map fst (watched_by x1 x2)) \<subseteq># mset (get_vdom x1a)\<close>
     by (rule distinct_subseteq_iff[THEN iffD1])
@@ -1130,8 +1133,11 @@ lemma mop_watched_by_app_heur_mop_watched_by_at:
    \<open>(uncurry2 mop_watched_by_app_heur, uncurry2 mop_watched_by_at) \<in>
     twl_st_heur \<times>\<^sub>f nat_lit_lit_rel \<times>\<^sub>f nat_rel \<rightarrow>\<^sub>f \<langle>Id\<rangle>nres_rel\<close>
   unfolding mop_watched_by_app_heur_def mop_watched_by_at_def uncurry_def all_lits_def[symmetric] all_lits_alt_def[symmetric]
-  by (intro frefI nres_relI, refine_rcg)
-    (auto simp: twl_st_heur_def \<L>\<^sub>a\<^sub>l\<^sub>l_all_atms_all_lits map_fun_rel_def)
+  apply (intro frefI nres_relI, refine_rcg)
+ apply (auto simp: twl_st_heur_def \<L>\<^sub>a\<^sub>l\<^sub>l_all_atms_all_lits map_fun_rel_def
+      simp flip: all_lits_alt_def2)
+   apply (auto simp: add.assoc)
+  done
 
 lemma mop_watched_by_app_heur_mop_watched_by_at'':
    \<open>(uncurry2 mop_watched_by_app_heur, uncurry2 mop_watched_by_at) \<in>
@@ -1165,7 +1171,7 @@ lemma mop_polarity_st_heur_mop_polarity_wl:
   unfolding mop_polarity_wl_def mop_polarity_st_heur_def uncurry_def mop_polarity_pol_def
   apply (intro frefI nres_relI)
   apply (refine_rcg polarity_pol_polarity[of \<open>all_atms _ _\<close>, THEN fref_to_Down_unRET_uncurry])
-  apply (auto simp: twl_st_heur_def \<L>\<^sub>a\<^sub>l\<^sub>l_all_atms_all_lits
+  apply (auto simp: twl_st_heur_def \<L>\<^sub>a\<^sub>l\<^sub>l_all_atms_all_lits ac_simps
     intro!: polarity_pol_pre simp flip: all_atms_def)
   done
 
