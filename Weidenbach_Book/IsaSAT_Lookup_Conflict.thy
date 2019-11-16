@@ -2305,6 +2305,7 @@ lemma minimize_and_extract_highest_lookup_conflict_iterate_over_conflict:
     NU: \<open>NU \<equiv> get_clauses_wl S\<close> and
     NU'_def: \<open>NU' \<equiv> mset `# ran_mf NU\<close> and
     NUE: \<open>NUE \<equiv> get_unit_learned_clss_wl S + get_unit_init_clss_wl S\<close> and
+    NUS: \<open>NUS \<equiv> get_subsumed_learned_clauses_wl S + get_subsumed_init_clauses_wl S\<close> and
     M': \<open>M' \<equiv> trail S'''\<close>
   assumes
     S_S': \<open>(S, S') \<in> state_wl_l None\<close> and
@@ -2316,8 +2317,8 @@ lemma minimize_and_extract_highest_lookup_conflict_iterate_over_conflict:
     lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail \<A> M\<close> and
     struct_invs: \<open>twl_struct_invs S''\<close> and
     add_inv: \<open>twl_list_invs S'\<close> and
-    cach_init: \<open>conflict_min_analysis_inv M' s' (NU' + NUE) D\<close> and
-    NU_P_D: \<open>NU' + NUE \<Turnstile>pm add_mset K D\<close> and
+    cach_init: \<open>conflict_min_analysis_inv M' s' (NU' + NUE + NUS) D\<close> and
+    NU_P_D: \<open>NU' + NUE + NUS \<Turnstile>pm add_mset K D\<close> and
     lits_D: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n \<A> D\<close> and
     lits_NU: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm \<A> (mset `# ran_mf NU)\<close> and
     K: \<open>K = outl ! 0\<close> and
@@ -2332,11 +2333,13 @@ lemma minimize_and_extract_highest_lookup_conflict_iterate_over_conflict:
 proof -
   let ?UE = \<open>get_unit_learned_clss_wl S\<close>
   let ?NE = \<open>get_unit_init_clss_wl S\<close>
+  let ?US = \<open>get_subsumed_learned_clauses_wl S\<close>
+  let ?NS = \<open>get_subsumed_init_clauses_wl S\<close>
   define N U where
     \<open>N \<equiv> mset `# init_clss_lf NU\<close> and
     \<open>U \<equiv> mset `# learned_clss_lf NU\<close>
   obtain E where
-     S''': \<open>S''' = (M', N + ?NE, U + ?UE, E)\<close>
+     S''': \<open>S''' = (M', N + ?NE + ?NS, U + ?UE + ?US, E)\<close>
     using M' S_S' S'_S'' unfolding S'''_def N_def U_def NU
     by (cases S) (auto simp: state_wl_l_def twl_st_l_def
         mset_take_mset_drop_mset')
@@ -2346,15 +2349,15 @@ proof -
     apply (subst image_mset_union[symmetric])
     apply (subst image_mset_union[symmetric])
     by (auto simp: mset_take_mset_drop_mset')
-  let ?NU = \<open>N + ?NE + U + ?UE\<close>
+  let ?NU = \<open>N + ?NE + ?NS + U + ?UE + ?US\<close>
   have NU'_N_U: \<open>NU' = N + U\<close>
     unfolding NU'_def N_def U_def mset_append[symmetric] image_mset_union[symmetric]
     by auto
   have NU'_NUE: \<open>NU' + NUE = N + get_unit_init_clss_wl S + U + get_unit_learned_clss_wl S\<close>
     unfolding NUE NU'_N_U by (auto simp: ac_simps)
-  have struct_inv_S''': \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (M', N + get_unit_init_clss_wl S,
-          U + get_unit_learned_clss_wl S, E)\<close>
-    using struct_invs unfolding twl_struct_invs_def S'''_def[symmetric] S'''
+  have struct_inv_S''': \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (M', N + (?NE + ?NS),
+          U + (?UE + ?US), E)\<close>
+    using struct_invs unfolding twl_struct_invs_def S'''_def[symmetric] S''' add.assoc
     by fast
   then have n_d: \<open>no_dup M'\<close>
     unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
@@ -2371,7 +2374,7 @@ proof -
             mset (drop i outl') = E \<and>
             mset (tl outl') = F \<and>
             conflict_min_analysis_inv M' cach (?NU) F \<and>
-            NU' + NUE \<Turnstile>pm add_mset K F \<and>
+            ?NU \<Turnstile>pm add_mset K F \<and>
             mset (tl outl') = D' \<and>
             i > 0 \<and> outl' \<noteq> [] \<and>
             outl' ! 0 = K
@@ -2386,8 +2389,8 @@ proof -
     by (cases outl; cases \<open>tl outl\<close>)  (auto simp: highest_lit_def get_maximum_level_add_mset)
    then have init_args_ref: \<open>((D, 1, s', outl), D, D) \<in> R\<close>
     using D'_D cach_init NU_P_D dist_D tauto K
-    unfolding R_def NUE NU'_def NU_N_U
-    by (auto simp: ac_simps drop_Suc outl_nempty)
+    unfolding R_def NUE NU'_def NU_N_U NUS
+    by (auto simp: ac_simps drop_Suc outl_nempty ac_simps)
 
    have init_lo_inv: \<open>minimize_and_extract_highest_lookup_conflict_inv s'\<close>
     if
@@ -2422,9 +2425,9 @@ proof -
   have redundant: \<open>literal_redundant_wl_lookup \<A> M NU nxs cach
           (outl' ! x1d) lbd
       \<le> \<Down> {((s', a', b'), b). b = b' \<and>
-            (b \<longrightarrow> NU' + NUE \<Turnstile>pm remove1_mset L (add_mset K E) \<and>
+            (b \<longrightarrow> ?NU \<Turnstile>pm remove1_mset L (add_mset K E) \<and>
                conflict_min_analysis_inv M' s' ?NU (remove1_mset L E)) \<and>
-            (\<not>b \<longrightarrow> NU' + NUE \<Turnstile>pm add_mset K E \<and> conflict_min_analysis_inv M' s' ?NU E)}
+            (\<not>b \<longrightarrow> ?NU \<Turnstile>pm add_mset K E \<and> conflict_min_analysis_inv M' s' ?NU E)}
           (is_literal_redundant_spec K NU' NUE E L)\<close>
     (is \<open>_ \<le> \<Down> ?red _\<close>)
     if
@@ -2448,7 +2451,7 @@ proof -
       \<open>mset (tl outl') \<subseteq># D\<close> and
       \<open>E = mset (tl outl')\<close> and
       cach: \<open>conflict_min_analysis_inv M' cach ?NU E\<close> and
-      NU_P_E: \<open>NU' + NUE \<Turnstile>pm add_mset K (mset (tl outl'))\<close> and
+      NU_P_E: \<open>?NU \<Turnstile>pm add_mset K (mset (tl outl'))\<close> and
       \<open>nxs = mset (tl outl')\<close> and
       \<open>0 < x1d\<close> and
       [simp]: \<open>L = outl'!x1d\<close> and
@@ -2482,13 +2485,15 @@ proof -
         (use bounded S_S' S'_S'' M_x1 struct_invs add_inv \<open>outl' ! x1d \<in># E\<close> \<open>E = nxs\<close> in
           \<open>auto simp: NU\<close>)
 
+    have NU_alt_def: \<open>?NU = N + (?NE + ?NS) + U + (?UE + ?US)\<close>
+         by (auto simp: ac_simps)
     have 3:
        \<open>literal_redundant M' (N + U) nxs cach ?L \<le>
-         literal_redundant_spec M' (N + U + ?NE +  ?UE) nxs ?L\<close>
+         literal_redundant_spec M' (N + U + (?NE + ?NS) + (?UE + ?US)) nxs ?L\<close>
       unfolding \<open>E = nxs\<close>[symmetric]
       apply (rule literal_redundant_spec)
          apply (rule struct_inv_S''')
-      apply (rule cach)
+      apply (rule cach[unfolded NU_alt_def])
        apply (rule \<open>outl' ! x1d \<in># E\<close>)
       apply (rule M'_x1)
       done

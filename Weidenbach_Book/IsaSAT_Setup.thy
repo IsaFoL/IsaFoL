@@ -404,22 +404,22 @@ definition twl_st_heur :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\<cl
      (M, N, D, NE, UE, NS, US, Q, W)).
     (M', M) \<in> trail_pol (all_atms N (NE + UE)) \<and>
     valid_arena N' N (set vdom) \<and>
-    (D', D) \<in> option_lookup_clause_rel (all_atms N (NE + UE)) \<and>
+    (D', D) \<in> option_lookup_clause_rel (all_atms N (NE + UE + NS + US)) \<and>
     (D = None \<longrightarrow> j \<le> length M) \<and>
     Q = uminus `# lit_of `# mset (drop j (rev M)) \<and>
-    (W', W) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 (all_atms N (NE + UE))) \<and>
+    (W', W) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 (all_atms N (NE + UE + NS + US))) \<and>
     vm \<in> isa_vmtf (all_atms N (NE + UE)) M \<and>
     phase_saving (all_atms N (NE + UE)) \<phi> \<and>
     no_dup M \<and>
     clvls \<in> counts_maximum_level M D \<and>
-    cach_refinement_empty (all_atms N (NE + UE)) cach \<and>
+    cach_refinement_empty (all_atms N (NE + UE + NS + US)) cach \<and>
     out_learned M D outl \<and>
     lcount = size (learned_clss_lf N) \<and>
-    vdom_m (all_atms N (NE + UE))  W N \<subseteq> set vdom \<and>
+    vdom_m (all_atms N (NE + UE + NS + US))  W N \<subseteq> set vdom \<and>
     mset avdom \<subseteq># mset vdom \<and>
     distinct vdom \<and>
-    isasat_input_bounded (all_atms N (NE + UE)) \<and>
-    isasat_input_nempty (all_atms N (NE + UE)) \<and>
+    isasat_input_bounded (all_atms N (NE + UE + NS + US)) \<and>
+    isasat_input_nempty (all_atms N (NE + UE + NS + US)) \<and>
     old_arena = []
   }\<close>
 
@@ -450,7 +450,7 @@ where
 \<open>twl_st_heur_conflict_ana =
   {((M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, heur, vdom,
        avdom, lcount, opts, old_arena),
-      (M, N, D, NE, UE, Q, W)).
+      (M, N, D, NE, UE, NS, US, Q, W)).
     (M', M) \<in> trail_pol (all_atms N (NE + UE)) \<and>
     valid_arena N' N (set vdom) \<and>
     (D', D) \<in> option_lookup_clause_rel (all_atms N (NE + UE)) \<and>
@@ -488,7 +488,7 @@ definition twl_st_heur_bt :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\
 \<open>twl_st_heur_bt =
   {((M', N', D', Q', W', vm, \<phi>, clvls, cach, lbd, outl, stats, heur, vdom, avdom, lcount, opts,
        old_arena),
-     (M, N, D, NE, UE, Q, W)).
+     (M, N, D, NE, UE, NS, US, Q, W)).
     (M', M) \<in> trail_pol (all_atms N (NE + UE)) \<and>
     valid_arena N' N (set vdom) \<and>
     (D', None) \<in> option_lookup_clause_rel (all_atms N (NE + UE)) \<and>
@@ -592,6 +592,7 @@ proof -
      apply (rule atm_in_conflict_lookup_pre)
      unfolding \<L>\<^sub>a\<^sub>l\<^sub>l_all_atms_all_lits[symmetric]
      apply assumption+
+     
      done
   subgoal for x y x1 x2 x1a x2a x1b x2b x1c x2c x1d x1e x2d x2e
     apply (subst atm_in_conflict_lookup_atm_in_conflict[THEN fref_to_Down_unRET_uncurry_Id, of \<open>all_atms_st x2\<close>  \<open>atm_of x1\<close> \<open>the (get_conflict_wl (snd y))\<close>])
@@ -972,14 +973,14 @@ definition rewatch_heur_st_fast_pre where
 
 definition rewatch_st :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
   \<open>rewatch_st S = do{
-     (M, N, D, NE, UE, Q, W) \<leftarrow> RETURN S;
+     (M, N, D, NE, UE, NS, US, Q, W) \<leftarrow> RETURN S;
      W \<leftarrow> rewatch N W;
-     RETURN ((M, N, D, NE, UE, Q, W))
+     RETURN ((M, N, D, NE, UE, NS, US, Q, W))
   }\<close>
 
 
 fun remove_watched_wl :: \<open>'v twl_st_wl \<Rightarrow> _\<close> where
-  \<open>remove_watched_wl (M, N, D, NE, UE, Q, _) = (M, N, D, NE, UE, Q)\<close>
+  \<open>remove_watched_wl (M, N, D, NE, UE, NS, US, Q, _) = (M, N, D, NE, UE, NS, US, Q)\<close>
 
 lemma rewatch_st_correctness:
   assumes \<open>get_watched_wl S = (\<lambda>_. [])\<close> and
