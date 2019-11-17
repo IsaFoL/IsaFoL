@@ -4739,7 +4739,8 @@ proof -
     \<le> \<Down> {(U'::'v twl_st_wl, U).
           (U', U) \<in> state_wl_l None \<and> equality_except_conflict_wl U' S' \<and>
           the (get_conflict_wl U') \<subseteq># the (get_conflict_wl S') \<and>
-          get_conflict_wl U' \<noteq> None \<and> correct_watching U' \<and> blits_in_\<L>\<^sub>i\<^sub>n U'} (extract_shorter_conflict_l S)\<close>
+          get_conflict_wl U' \<noteq> None \<and> correct_watching U' \<and> blits_in_\<L>\<^sub>i\<^sub>n U'}
+        (extract_shorter_conflict_l S)\<close>
     (is \<open>_ \<le> \<Down> ?extract _\<close>)
     if  \<open>(S', S) \<in> ?A\<close>
     for S' S
