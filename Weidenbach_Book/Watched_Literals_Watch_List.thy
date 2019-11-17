@@ -3436,7 +3436,7 @@ proof -
     unfolding unit_propagation_inner_loop_body_wl_int_alt_def
       i_def[symmetric] i_def'[symmetric] unit_propagation_inner_loop_body_l_with_skip_alt_def
       unit_propagation_inner_loop_body_l_def
-    unfolding i_def[symmetric] SLw prod.case
+    unfolding i_def[symmetric] SLw prod.case all_lits_alt_def2[symmetric] all_lits_def[symmetric]
     apply (rewrite in \<open>if (\<not>_) then ASSERT _ >>= _ else _\<close> if_not_swap)
     supply RETURN_as_SPEC_refine[refine2 del]
     apply (refine_rcg f (*val f f' find_unwatched_l*)
@@ -4333,7 +4333,7 @@ definition find_lit_of_max_level_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v lite
 fun extract_shorter_conflict_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
   \<open>extract_shorter_conflict_wl (M, N, D, NE, UE, NS, US, Q, W) = SPEC(\<lambda>S.
      \<exists>D'. D' \<subseteq># the D \<and> S = (M, N, Some D', NE, UE, NS, US, Q, W) \<and>
-     clause `# twl_clause_of `# ran_mf N + NE + UE \<Turnstile>pm D' \<and> -lit_of (hd M) \<in># D')\<close>
+     clause `# twl_clause_of `# ran_mf N + NE + UE + NS + US \<Turnstile>pm D' \<and> -lit_of (hd M) \<in># D')\<close>
 
 declare extract_shorter_conflict_wl.simps[simp del]
 lemmas extract_shorter_conflict_wl_def = extract_shorter_conflict_wl.simps
@@ -4376,7 +4376,7 @@ definition propagate_unit_bt_wl_pre where
 
 definition propagate_unit_bt_wl :: \<open>'v literal \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
   \<open>propagate_unit_bt_wl = (\<lambda>L (M, N, D, NE, UE, NS, US, Q, W). do {
-    ASSERT(L \<in># all_lits_of_mm (mset `# ran_mf N + (NE + UE) + (NS + US)));
+    ASSERT(L \<in># all_lits_st (M, N, D, NE, UE, NS, US, Q, W));
     ASSERT(propagate_unit_bt_wl_pre L (M, N, D, NE, UE, NS, US, Q, W));
     M \<leftarrow> cons_trail_propagate_l (-L) 0 M;
     RETURN (M, N, None, NE, add_mset (the D) UE, NS, US, {#L#}, W)})\<close>
@@ -4924,7 +4924,7 @@ proof -
     apply (cases Sc; hypsubst)
     unfolding prod.case
     apply (refine_rcg fresh)
-    subgoal by (auto simp: state_wl_l_def)
+    subgoal by (auto simp: state_wl_l_def simp flip: all_lits_alt_def2)
     subgoal using propagate_unit_bt_wl_pre_def by blast
     apply (rule cons_trail_propagate_l)
     subgoal by (auto simp: state_wl_l_def)
