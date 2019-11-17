@@ -879,8 +879,6 @@ lemma fold_eq_nfoldli:
   "RETURN (fold f l s) = nfoldli l (\<lambda>_. True) (\<lambda>x s. RETURN (f x s)) s"
   by (induction l arbitrary: s) auto
 
-
-
 text \<open>This lemma cannot be moved to \<^theory>\<open>Weidenbach_Book_Base.WB_List_More\<close>, because the syntax
  \<^term>\<open>CARD('a)\<close> does not exist there.\<close>
 lemma finite_length_le_CARD:

@@ -399,4 +399,10 @@ lemma refine_itself0:
     \<open>(uncurry4 X4, uncurry4 X4) \<in> Id \<times>\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f Id \<rightarrow>\<^sub>f \<langle>Id\<rangle>nres_rel\<close>
   by (intro frefI nres_relI; auto; fail)+
 
+lemma fref_to_Down_unRET_Id_uncurry:
+  \<open>(uncurry (RETURN oo f), uncurry (RETURN oo g)) \<in> [P]\<^sub>f A \<rightarrow> \<langle>Id\<rangle>nres_rel \<Longrightarrow>
+     (\<And>x x' y y'. P (x', y') \<Longrightarrow> ((x, y), (x', y')) \<in> A \<Longrightarrow> f x y = (g x' y'))\<close>
+  unfolding fref_def uncurry_def nres_rel_def
+  by auto
+
 end

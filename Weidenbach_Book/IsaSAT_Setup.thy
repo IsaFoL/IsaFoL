@@ -1451,4 +1451,10 @@ lemma mop_arena_length_st_alt_def:
   unfolding mop_arena_length_st_def mop_arena_length_def
   by (auto intro!: ext)
 
+text \<open>In an attempt to avoid using @{thm ac_simps} everywhere.\<close>
+lemma all_lits_simps[simp]:
+  \<open>all_lits N ((NE + UE) + (NS + US)) = all_lits N (NE + UE + NS + US)\<close>
+  \<open>all_atms N ((NE + UE) + (NS + US)) = all_atms N (NE + UE + NS + US)\<close>
+  by (auto simp: ac_simps)
+
 end
