@@ -19,16 +19,15 @@ fun print_poly [] = (print " + 0")
 fun print_input_poly (lbl, poly) =
     (println (Int.toString lbl); print_poly poly)
 
-val extract = (fn x => if Sum.isL x then (println (Sum.outL x); raise Sum.Sum) else Sum.outR x)
 fun parse_polys_file file_name = let
   val istream = TextIO.openIn file_name
   val a = map (fn x =>
-                  let val (lbl, poly) = (extract (CharParser.parseString PAC_Parser.input_poly x))
+                  let val (lbl, poly) = x
                   in
                     (PAC_Checker.nat_of_integer lbl,
                          map (fn (a,b) => (a, PAC_Checker.Int_of_integer b)) poly)
                   end)
-              (readfile istream)
+              (PAC_Parser.input_polys istream)
   val _ = TextIO.closeIn istream
 in
   foldl (fn ((lbl, a), b) => PAC_Checker.pAC_update_impl lbl a b ()) (PAC_Checker.pAC_empty_impl ()) a
@@ -36,12 +35,7 @@ end
 
 fun parse_pac_file file_name = let
   val istream = TextIO.openIn file_name
-  val a = map (fn x =>
-                  let val a = (Sum.outR (CharParser.parseString PAC_Parser.step_poly x))
-                  in
-                  List.hd (a)
-                  end)
-              (readfile istream)
+  val a = PAC_Parser.step_polys istream
   val _ = TextIO.closeIn istream
 in
   a
@@ -49,16 +43,10 @@ end
 
 fun parse_spec_file file_name = let
   val istream = TextIO.openIn file_name
-  val a = map (fn x =>
-                  let val a = (Sum.outR (CharParser.parseString PAC_Parser.polynom x))
-                  in
-                  a
-                  end)
-              (readfile istream)
+  val poly = PAC_Parser.parse_polynom istream
   val _ = TextIO.closeIn istream
 in
-  case a of
-      [a] => (map (fn (a,b) => (a, PAC_Checker.Int_of_integer b)) a)
+  map(fn (a,b) => (a, PAC_Checker.Int_of_integer b)) poly
 end
 
 fun print_stat polys_timer pac_timer end_of_init end_of_processing full =
@@ -125,6 +113,7 @@ fun checker [polys, pac, spec] = let
   in
     ()
 end
+  handle PAC_Parser.Parser_Error err => print("parsing failed with error: " ^ err)
 
 fun process_args [] = print_help() 
   | process_args [polys, pac, spec] =

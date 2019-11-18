@@ -1,6 +1,5 @@
 $(SML_LIB)/basis/basis.mlb
 $(SML_LIB)/basis/mlton.mlb 
-/home/fleury/.smackage/lib/parcom/v1/parcom.mlb
 
 local
   checker.sml
