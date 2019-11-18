@@ -588,9 +588,9 @@ definition find_unassigned_lit :: \<open>'v twl_st \<Rightarrow> 'v literal opti
   \<open>find_unassigned_lit = (\<lambda>S.
       SPEC (\<lambda>L.
         (L \<noteq> None \<longrightarrow> undefined_lit (get_trail S) (the L) \<and>
-          atm_of (the L) \<in> atms_of_mm (get_all_init_clss S)) \<and>
+          atm_of (the L) \<in> atms_of_mm (get_all_clss S)) \<and>
         (L = None \<longrightarrow> (\<nexists>L. undefined_lit (get_trail S) L \<and>
-         atm_of L \<in> atms_of_mm (get_all_init_clss S)))))\<close>
+         atm_of L \<in> atms_of_mm (get_all_clss S)))))\<close>
 
 definition propagate_dec where
   \<open>propagate_dec = (\<lambda>L (M, N, U, D, NE, UE, NS, US, WS, Q).
@@ -624,16 +624,17 @@ proof -
   obtain M N U NE UE NS US where S: \<open>S = (M, N, U, None, NE, UE, NS, US, {#}, {#})\<close>
     using assms by (cases S) auto
   have atm_N_U:
-    \<open>atm_of L \<in> atms_of_mm (clauses N + NE + NS)\<close>
-    if U: \<open>atm_of L \<in> atms_of_ms (clause ` set_mset U)\<close> and
-       undef: \<open>undefined_lit M L\<close>
+    \<open>atm_of L \<in> atms_of_ms (clause ` set_mset U) \<Longrightarrow>
+       atm_of L \<in> atms_of_mm (clauses N + NE + NS)\<close>
+    \<open>atms_of_mm (get_all_clss (M, N, U, None, NE, UE, NS, US, {#}, {#})) = atms_of_mm (clauses N + NE + NS)\<close>
     for L
   proof -
     have \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of S)\<close> and unit: \<open>entailed_clss_inv S\<close>
       using twl unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
       by fast+
-    then show ?thesis
-      using that
+    then show
+      \<open>atm_of L \<in> atms_of_ms (clause ` set_mset U) \<Longrightarrow> atm_of L \<in> atms_of_mm (clauses N + NE + NS)\<close>
+      \<open>atms_of_mm (get_all_clss (M, N, U, None, NE, UE, NS, US, {#}, {#})) = atms_of_mm (clauses N + NE + NS)\<close>
       by (auto simp: cdcl\<^sub>W_restart_mset.no_strange_atm_def S cdcl\<^sub>W_restart_mset_state image_Un)
   qed
   {
@@ -650,18 +651,19 @@ proof -
   } note H = this
   show ?thesis
     using assms unfolding S find_unassigned_lit_def propagate_dec_def decide_or_skip_def
+      atm_N_U
     apply (refine_vcg)
     subgoal unfolding decide_or_skip_pre_def by blast
     subgoal by fast
     subgoal by blast
-    subgoal by (force simp: H elim!: cdcl_twl_oE cdcl_twl_stgyE cdcl_twl_cpE dest!: atm_N_U)
+    subgoal by (force simp: H elim!: cdcl_twl_oE cdcl_twl_stgyE cdcl_twl_cpE dest!: atm_N_U(1))
     subgoal by (force elim!: cdcl_twl_oE cdcl_twl_stgyE cdcl_twl_cpE)
     subgoal by fast
     subgoal by fast
     subgoal by fast
     subgoal by fast
     subgoal by (auto elim!: cdcl_twl_oE)
-    subgoal using atm_N_U by (auto simp: cdcl_twl_o.simps decide)
+    subgoal using atm_N_U(1) by (auto simp: ac_simps cdcl_twl_o.simps decide)
     subgoal by auto
     subgoal by (auto elim!: cdcl_twl_oE)
     subgoal using atm_N_U H by auto
