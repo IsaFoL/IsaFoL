@@ -1130,22 +1130,23 @@ fun mult_monomials_impl x =
                      end)
     x;
 
+fun map_append_poly_mult_impl_0 bia ai x =
+  (case x of [] => (fn () => bia)
+    | xa :: l =>
+      (fn () => let
+                  val x_a = map_append_poly_mult_impl_0 bia ai l ();
+                  val x_b = mult_monomials_impl ai xa ();
+                in
+                  op_list_prepend x_b x_a
+                end));
+
+fun map_append_poly_mult_impl x =
+  (fn ai => fn bia => map_append_poly_mult_impl_0 bia ai) x;
+
 fun mult_poly_raw_impl x =
   (fn ai => fn bi =>
     imp_nfoldli ai (fn _ => (fn () => true))
-      (fn xa => fn sigma => fn () =>
-        let
-          val x_b =
-            imp_nfoldli bi (fn _ => (fn () => true))
-              (fn xc => fn sigmaa =>
-                (fn f_ => fn () => f_ ((mult_monomials_impl xa xc) ()) ())
-                  (fn xb =>
-                    (fn () => (op_list_concat sigmaa (op_list_prepend xb [])))))
-              [] ();
-        in
-          x_b @ sigma
-        end)
-      [])
+      (fn xa => fn sigma => map_append_poly_mult_impl xa sigma bi) [])
     x;
 
 fun mult_poly_impl x =
