@@ -469,6 +469,15 @@ definition mult_poly_raw :: \<open>llist_polynom \<Rightarrow> llist_polynom \<R
   \<open>mult_poly_raw p q = foldl (\<lambda>b x. map (mult_monomials x) q @ b) [] p\<close>
 
 
+fun map_append where
+  \<open>map_append f b [] = b\<close> |
+  \<open>map_append f b (x # xs) = f x # map_append f b xs\<close>
+
+lemma map_append_alt_def:
+  \<open>map_append f b xs = map f xs @ b\<close>
+  by (induction f b xs rule: map_append.induct)
+   auto
+
 lemma foldl_append_empty:
   \<open>NO_MATCH [] xs \<Longrightarrow> foldl (\<lambda>b x. f x @ b) xs p = foldl (\<lambda>b x. f x @ b) [] p @ xs\<close>
   apply (induction p arbitrary: xs)

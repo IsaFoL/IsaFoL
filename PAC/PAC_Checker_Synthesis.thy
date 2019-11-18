@@ -46,7 +46,7 @@ lemma merge_cstatus_hnr[sepref_fr_rules]:
   by (case_tac b; case_tac bi; case_tac a; case_tac ai; sep_auto simp: is_pure_conv pure_app_eq)
 
 sepref_definition add_poly_impl
-  is \<open> add_poly_l\<close>
+  is \<open>add_poly_l\<close>
   :: \<open>(poly_assn \<times>\<^sub>a poly_assn)\<^sup>k \<rightarrow>\<^sub>a poly_assn\<close>
   supply [[goals_limit=1]]
   unfolding add_poly_l_def
@@ -125,7 +125,41 @@ sepref_definition mult_monomials_impl
   by sepref
 
 
+lemma map_append_alt_def2:
+  \<open>(RETURN o (map_append f b)) xs = REC\<^sub>T
+    (\<lambda>g xs. case xs of [] \<Rightarrow> RETURN b
+      | x # xs \<Rightarrow> do {
+           y \<leftarrow> g xs;
+           RETURN (f x # y)
+     }) xs\<close>
+   apply (subst eq_commute)
+  apply (induction f b xs rule: map_append.induct)
+  subgoal
+    apply (subst RECT_unfold)
+    apply refine_mono
+    apply auto
+    done
+  subgoal
+    apply (subst RECT_unfold)
+    apply refine_mono
+    apply auto
+    done
+  done
+
+
+definition map_append_poly_mult where
+  \<open>map_append_poly_mult x = map_append (mult_monomials x)\<close>
+
 declare mult_monomials_impl.refine[sepref_fr_rules]
+
+sepref_definition map_append_poly_mult_impl
+  is \<open>uncurry2 (RETURN ooo map_append_poly_mult)\<close>
+  :: \<open>monomial_assn\<^sup>k *\<^sub>a poly_assn\<^sup>k *\<^sub>a poly_assn\<^sup>k \<rightarrow>\<^sub>a poly_assn\<close>
+  unfolding map_append_poly_mult_def
+    map_append_alt_def2
+  by sepref
+
+declare map_append_poly_mult_impl.refine[sepref_fr_rules]
 
 text \<open>TODO @{thm map_by_foldl} is the worst possible implementation of map!\<close>
 sepref_definition mult_poly_raw_impl
@@ -139,8 +173,8 @@ sepref_definition mult_poly_raw_impl
     term_order_rel'_alt_def
     foldl_conv_fold
     fold_eq_nfoldli
-    map_by_foldl[symmetric]
-  apply (rewrite in "_" eta_expand[where f = \<open>(@) u\<close> for u])
+    map_append_poly_mult_def[symmetric]
+    map_append_alt_def[symmetric]
   by sepref
 
 declare mult_poly_raw_impl.refine[sepref_fr_rules]
