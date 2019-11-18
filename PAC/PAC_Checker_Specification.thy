@@ -413,13 +413,13 @@ definition PAC_checker
 where
   \<open>PAC_checker spec A st = do {
     (S, _) \<leftarrow> WHILE\<^sub>T
-       (\<lambda>((b :: status, A :: (nat, int_poly) fmap), n::nat). \<not>is_failed b \<and> n < length st)
-       (\<lambda>((bA), n). do {
-          ASSERT(n < length st);
-          S \<leftarrow> PAC_checker_step spec (bA) (st ! n);
-          RETURN (S, (n+1))
+       (\<lambda>((b :: status, A :: (nat, int_poly) fmap), st). \<not>is_failed b \<and> st \<noteq> [])
+       (\<lambda>((bA), st). do {
+          ASSERT(st \<noteq> []);
+          S \<leftarrow> PAC_checker_step spec (bA) (hd st);
+          RETURN (S, tl st)
         })
-      ((SUCCESS, A), 0);
+      ((SUCCESS, A), st);
     RETURN S
   }\<close>
 
@@ -447,10 +447,9 @@ lemma PAC_checker_PAC_checker_specification2:
   unfolding PAC_checker_def conc_fun_RES
   apply (subst RES_SPEC_eq)
   apply (refine_vcg WHILET_rule[where
-      I = \<open>\<lambda>((bB), n). n \<le> length st \<and> bB \<in> (status_rel \<times>\<^sub>r polys_rel)\<inverse> ``
+      I = \<open>\<lambda>((bB), st). bB \<in> (status_rel \<times>\<^sub>r polys_rel)\<inverse> ``
                       Collect (PAC_checker_specification_spec spec B)\<close>
-    and R = \<open>measure (\<lambda>(_, n).  Suc (length st) - n)\<close>])
-  subgoal by auto
+    and R = \<open>measure (\<lambda>(_, st).  Suc (length st))\<close>])
   subgoal by auto
   subgoal by (force simp: PAC_checker_specification_spec_def)
   subgoal by auto

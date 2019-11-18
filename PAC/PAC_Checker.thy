@@ -271,13 +271,13 @@ definition remap_polys_l :: \<open>(nat, llist_polynom) fmap \<Rightarrow> _ nre
 definition PAC_checker_l where
   \<open>PAC_checker_l spec A st = do {
     (S, _) \<leftarrow> WHILE\<^sub>T
-       (\<lambda>((b, A), n::nat). \<not>is_cfailed b \<and> n < length st)
+       (\<lambda>((b, A), n). \<not>is_cfailed b \<and> n \<noteq> [])
        (\<lambda>((bA), n). do {
-          ASSERT(n < length st);
-          S \<leftarrow> PAC_checker_l_step spec bA (st ! n);
-          RETURN (S, (n+1))
+          ASSERT(n \<noteq> []);
+          S \<leftarrow> PAC_checker_l_step spec bA (hd n);
+          RETURN (S, tl n)
         })
-      ((CSUCCESS, A), 0);
+      ((CSUCCESS, A), st);
     RETURN S
   }\<close>
 
@@ -752,19 +752,19 @@ lemma PAC_checker_l_PAC_checker:
   shows
     \<open>PAC_checker_l spec A st \<le> \<Down> (code_status_status_rel \<times>\<^sub>r fmap_polys_rel) (PAC_checker spec' B st')\<close>
 proof -
-  have [refine0]: \<open>(((CSUCCESS, A), 0), (SUCCESS, B), 0) \<in> ((code_status_status_rel \<times>\<^sub>r fmap_polys_rel) \<times>\<^sub>r nat_rel)\<close>
+  have [refine0]: \<open>(((CSUCCESS, A), st), (SUCCESS, B), st') \<in> ((code_status_status_rel \<times>\<^sub>r fmap_polys_rel) \<times>\<^sub>r  \<langle>pac_step_rel\<rangle>list_rel)\<close>
     using assms by (auto simp: code_status_status_rel_def)
   show ?thesis
     using assms
     unfolding PAC_checker_l_def PAC_checker_def
     apply (refine_rcg PAC_checker_l_step_PAC_checker_step
-      WHILEIT_refine[where R = \<open>((bool_rel \<times>\<^sub>r fmap_polys_rel) \<times>\<^sub>r nat_rel)\<close>])
-    subgoal by (auto simp: list_rel_imp_same_length code_status_status_rel_discrim_iff)
-    subgoal by (auto simp: list_rel_imp_same_length)
-    subgoal by (auto simp: list_rel_imp_same_length)
-    subgoal by (auto simp: list_rel_imp_same_length intro!: param_nth)
-    subgoal by (auto simp: list_rel_imp_same_length)
-    subgoal by (auto simp: list_rel_imp_same_length)
+      WHILEIT_refine[where R = \<open>((bool_rel \<times>\<^sub>r fmap_polys_rel) \<times>\<^sub>r \<langle>pac_step_rel\<rangle>list_rel)\<close>])
+    subgoal by (auto simp: code_status_status_rel_discrim_iff)
+    subgoal by auto
+    subgoal by (auto simp: neq_Nil_conv)
+    subgoal by (auto simp: neq_Nil_conv intro!: param_nth)
+    subgoal by (auto simp: neq_Nil_conv)
+    subgoal by auto
     done
 qed
 

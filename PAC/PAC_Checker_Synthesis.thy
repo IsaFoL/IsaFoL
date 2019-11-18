@@ -512,7 +512,7 @@ lemma safe_pac_step_rel_assn[safe_constraint_rules]:
 sepref_register PAC_checker_l_step PAC_checker_l_step' fully_normalize_poly_impl
 sepref_definition PAC_checker_l_impl
   is \<open>uncurry2 PAC_checker_l\<close>
-  :: \<open>poly_assn\<^sup>k *\<^sub>a polys_assn\<^sup>d *\<^sub>a (array_assn (pac_step_rel_assn (nat_assn) poly_assn))\<^sup>k \<rightarrow>\<^sub>a status_assn raw_string_assn \<times>\<^sub>a polys_assn\<close>
+  :: \<open>poly_assn\<^sup>k *\<^sub>a polys_assn\<^sup>d *\<^sub>a (list_assn (pac_step_rel_assn (nat_assn) poly_assn))\<^sup>k \<rightarrow>\<^sub>a status_assn raw_string_assn \<times>\<^sub>a polys_assn\<close>
   supply [[goals_limit=1]] is_Mult_lastI[intro]
   unfolding PAC_checker_l_def is_success_alt_def[symmetric] PAC_checker_l_step_alt_def
     nres_bind_let_law[symmetric]
@@ -563,7 +563,7 @@ lemma [sepref_fr_rules]:
 
 sepref_definition full_checker_l_impl
   is \<open>uncurry2 full_checker_l\<close>
-  :: \<open>poly_assn\<^sup>k *\<^sub>a polys_assn_input\<^sup>d *\<^sub>a (array_assn (pac_step_rel_assn (nat_assn) poly_assn))\<^sup>k \<rightarrow>\<^sub>a status_assn raw_string_assn \<times>\<^sub>a polys_assn\<close>
+  :: \<open>poly_assn\<^sup>k *\<^sub>a polys_assn_input\<^sup>d *\<^sub>a (list_assn (pac_step_rel_assn (nat_assn) poly_assn))\<^sup>k \<rightarrow>\<^sub>a status_assn raw_string_assn \<times>\<^sub>a polys_assn\<close>
   supply [[goals_limit=1]] is_Mult_lastI[intro]
   unfolding full_checker_l_def
   by sepref
