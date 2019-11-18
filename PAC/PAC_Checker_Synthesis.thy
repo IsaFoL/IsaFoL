@@ -554,8 +554,7 @@ lemma remap_polys_l2_remap_polys_l:
   \<open>(remap_polys_l2, remap_polys_l) \<in> Id \<rightarrow>\<^sub>f \<langle>Id\<rangle>nres_rel\<close>
   apply (intro frefI fun_relI nres_relI)
   using remap_polys_l2_remap_polys_l by auto
-  
-  
+
 lemma [sepref_fr_rules]:
    \<open>(remap_polys_l_impl, remap_polys_l) \<in> polys_assn_input\<^sup>d \<rightarrow>\<^sub>a polys_assn\<close>
    using hfcomp_tcomp_pre[OF remap_polys_l2_remap_polys_l remap_polys_l_impl.refine]

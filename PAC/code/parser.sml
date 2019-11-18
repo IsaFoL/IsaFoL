@@ -73,7 +73,7 @@ struct
         (parse_aux ();
          if !num = []
          then raise Parser_Error "no variable found"
-         else (print (String.implode (rev (!num))); String.implode (rev (!num))))
+         else (print (String.implode (rev2 (!num))); String.implode (rev2 (!num))))
       end;
 
   fun parse_vars_only_monom istream = (* can start with /*/ *)

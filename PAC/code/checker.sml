@@ -851,6 +851,19 @@ fun msort f [] = []
                 (nat_of_integer (2 : IntInf.int)))
           (v :: vb :: vc)));
 
+fun msort2 f (v :: vb :: va :: vd) =
+  merge f
+    (msort f
+      (v :: take (divide_nat (suc (size_list vd))
+                   (nat_of_integer (2 : IntInf.int)))
+              (vb :: va :: vd)))
+    (msort f
+      (drop (divide_nat (suc (size_list vd)) (nat_of_integer (2 : IntInf.int)))
+        (vb :: va :: vd)))
+  | msort2 f [x, y] = (if f x y then [x, y] else [y, x])
+  | msort2 f [x] = [x]
+  | msort2 f [] = [];
+
 fun op_list_concat x = (fn a => x @ a);
 
 fun iam_lookup A_ k a = nth_oo (heap_option A_) NONE a k;
@@ -889,6 +902,11 @@ fun op_list_is_empty x = null x;
 
 fun plus_int k l =
   Int_of_integer (IntInf.+ (integer_of_int k, integer_of_int l));
+
+fun lexord_eq (A1_, A2_) [] uu = true
+  | lexord_eq (A1_, A2_) (x :: xs) (y :: ys) =
+    less A2_ x y orelse eq A1_ x y andalso lexord_eq (A1_, A2_) xs ys
+  | lexord_eq (A1_, A2_) (v :: va) [] = false;
 
 fun imp_nfoldli (x :: ls) c f s =
   (fn () =>
@@ -955,12 +973,8 @@ fun error_msg_reused_dom A_ i =
       Chara (true, false, false, true, false, true, true, false),
       Chara (false, true, true, true, false, true, true, false)];
 
-fun less_list (A1_, A2_) = lexordp A1_ (less A2_);
-
 fun msort_poly_impl x =
-  msort (fn a => fn b =>
-          less_list (equal_literal, ord_literal) (fst a) (fst b) orelse
-            equal_lista equal_literal (fst a) (fst b))
+  msort (fn a => fn b => lexord_eq (equal_literal, ord_literal) (fst a) (fst b))
     x;
 
 fun is_cfound (CFAILED x1) = false
@@ -991,8 +1005,7 @@ fun merge_coeffs_impl_0 x =
 
 fun merge_coeffs_impl x = merge_coeffs_impl_0 x;
 
-fun msort_monoms_impl x =
-  msort (fn xa => fn y => ((xa : string) < y) orelse ((xa : string) = y)) x;
+fun msort_monoms_impl x = msort2 (fn a => fn b => ((a : string) <= b)) x;
 
 fun error_msg_not_equal_dom A_ B_ C_ D_ p q pq r =
   shows_prec A_ zero_nat p [] @
@@ -1040,6 +1053,8 @@ fun merge_coeffs0_impl_0 x =
                       end))));
 
 fun merge_coeffs0_impl x = merge_coeffs0_impl_0 x;
+
+fun less_list (A1_, A2_) = lexordp A1_ (less A2_);
 
 fun add_poly_impl_0 x =
   (case x
