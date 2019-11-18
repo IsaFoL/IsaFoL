@@ -48,8 +48,7 @@ struct
                     else raise Parser_Error ("no number found, found " ^ String.implode [c])
             end
       in
-        (skip_spaces istream;
-         parse_aux ();
+        (parse_aux ();
          if !seen_one_digit = false
          then raise Parser_Error ("no number digit")
          else !num)
@@ -106,7 +105,6 @@ struct
         val next_token = ref NONE;
       in
         (
-          skip_spaces istream;
           next_token := TextIO.lookahead(istream);
           print ("parse_full_monom/next token 1 = '" ^String.implode [valOf (!next_token)] ^ "'\n");
           (case !next_token of
@@ -185,6 +183,7 @@ struct
         val lbl = parse_natural istream;
         val _ = print ("label = " ^ IntInf.toString lbl);
         val rule = parse_rule istream;
+        val _ = skip_spaces istream;
       in
         if rule = "d +:" orelse rule = "+:"
         then
@@ -243,7 +242,9 @@ struct
       end
 
   fun input_poly istream : IntInf.int * (string list * IntInf.int) list =
-      let val (a,b) = (parse_natural istream, (parse_polynom istream))
+      let val a = parse_natural istream
+          val _ = skip_spaces istream
+          val b = (parse_polynom istream)
           val _ = print ("parsed " ^ IntInf.toString a ^"\n")
       in (a,b) end
 

@@ -77,11 +77,11 @@ structure PAC_Checker : sig
   type nat
   val nat_of_integer : IntInf.int -> nat
   type char
+  type ('a, 'b) hashtable
+  type 'a code_status
   datatype 'a pac_step = AddD of nat * nat * nat * 'a |
     Add of nat * nat * nat * 'a | MultD of nat * 'a * nat * 'a |
     Mult of nat * 'a * nat * 'a
-  type ('a, 'b) hashtable
-  type 'a code_status
   val implode : char list -> string
   val is_cfound : 'a code_status -> bool
   val the_error : 'a code_status -> 'a
@@ -97,14 +97,14 @@ structure PAC_Checker : sig
   val pAC_checker_l_impl :
     (string list * int) list ->
       (nat, ((string list * int) list)) hashtable ->
-        ((string list * int) list) pac_step array ->
+        ((string list * int) list) pac_step list ->
           (unit ->
             ((char list) code_status *
               (nat, ((string list * int) list)) hashtable))
   val full_checker_l_impl :
     (string list * int) list ->
       (((string list * int) list) option) array ->
-        ((string list * int) list) pac_step array ->
+        ((string list * int) list) pac_step list ->
           (unit ->
             ((char list) code_status *
               (nat, ((string list * int) list)) hashtable))
@@ -502,26 +502,13 @@ val zero_neq_one_integer =
   {one_zero_neq_one = one_integer, zero_zero_neq_one = zero_integer} :
   IntInf.int zero_neq_one;
 
-datatype 'a pac_step = AddD of nat * nat * nat * 'a |
-  Add of nat * nat * nat * 'a | MultD of nat * 'a * nat * 'a |
-  Mult of nat * 'a * nat * 'a;
-
-fun typerep_pac_stepa A_ t =
-  Typerep ("PAC_Checker_Specification.pac_step", [typerep A_ Type]);
-
-fun countable_pac_step A_ = {} : 'a pac_step countable;
-
-fun typerep_pac_step A_ = {typerep = typerep_pac_stepa A_} :
-  'a pac_step typerep;
-
-fun heap_pac_step A_ =
-  {countable_heap = countable_pac_step A_,
-    typerep_heap = typerep_pac_step (typerep_heap A_)}
-  : 'a pac_step heap;
-
 datatype ('a, 'b) hashtable = HashTable of (('a * 'b) list) array * nat;
 
 datatype 'a code_status = CFAILED of 'a | CSUCCESS | CFOUND;
+
+datatype 'a pac_step = AddD of nat * nat * nat * 'a |
+  Add of nat * nat * nat * 'a | MultD of nat * 'a * nat * 'a |
+  Mult of nat * 'a * nat * 'a;
 
 fun plus_nat m n = Nat (IntInf.+ (integer_of_nat m, integer_of_nat n));
 
@@ -564,6 +551,11 @@ fun lexordp A_ r (x :: xs) (y :: ys) =
   r x y orelse eq A_ x y andalso lexordp A_ r xs ys
   | lexordp A_ r [] (y :: ys) = true
   | lexordp A_ r xs [] = false;
+
+fun hd (x21 :: x22) = x21;
+
+fun tl [] = []
+  | tl (x21 :: x22) = x22;
 
 fun replicate n x =
   (if equal_nata n zero_nat then []
@@ -772,6 +764,10 @@ fun ht_update (A1_, A2_, A3_) B_ k v ht =
       ht_upd (A1_, A2_, A3_) B_ k v x ()
     end);
 
+fun op_list_hd x = hd x;
+
+fun op_list_tl x = tl x;
+
 fun array_grow A_ a s x =
   (fn () =>
     let
@@ -888,6 +884,8 @@ fun merge_cstatus (CFAILED a) uu = CFAILED a
   | merge_cstatus CFOUND CFOUND = CFOUND
   | merge_cstatus CSUCCESS CFOUND = CFOUND
   | merge_cstatus CSUCCESS CSUCCESS = CSUCCESS;
+
+fun op_list_is_empty x = null x;
 
 fun plus_int k l =
   Int_of_integer (IntInf.+ (integer_of_int k, integer_of_int l));
@@ -1613,30 +1611,21 @@ fun pAC_checker_l_impl x =
     let
       val a =
         heap_WHILET
-          (fn ((a1a, _), a2) =>
-            (fn f_ => fn () => f_
-              ((len (heap_pac_step
-                      (heap_list (heap_prod (heap_list heap_literal) heap_int)))
-                 bi)
-              ()) ())
-              (fn xa =>
-                (fn () => (not (is_cfailed a1a) andalso less_nat a2 xa))))
           (fn (a1, a2) =>
-            (fn f_ => fn () => f_
-              (let
-                 val (a1a, a2a) = a1;
-               in
-                 (fn f_ => fn () => f_
-                   ((nth (heap_pac_step
-                           (heap_list
-                             (heap_prod (heap_list heap_literal) heap_int)))
-                      bi a2)
-                   ()) ())
-                   (check_step_impl ai a1a a2a)
-               end
+            (fn () => let
+                        val (a1a, _) = a1;
+                      in
+                        not (is_cfailed a1a) andalso not (op_list_is_empty a2)
+                      end))
+          (fn (a1, a2) =>
+            (fn f_ => fn () => f_ (let
+                                     val (a1a, a2a) = a1;
+                                   in
+                                     check_step_impl ai a1a a2a (op_list_hd a2)
+                                   end
               ()) ())
-              (fn x_b => (fn () => (x_b, plus_nat a2 one_nat))))
-          ((CSUCCESS, bia), zero_nat) ();
+              (fn x_b => (fn () => (x_b, op_list_tl a2))))
+          ((CSUCCESS, bia), bi) ();
     in
       let
         val (a1, _) = a;

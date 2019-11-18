@@ -86,7 +86,6 @@ fun checker [polys, pac, spec] = let
   val timer = Timer.startCPUTimer ();
   val _ = println "polys parsed\n******************"
   val pac : ((string list * PAC_Checker.int) list PAC_Checker.pac_step) list = parse_pac_file pac;
-  val pac : ((string list * PAC_Checker.int) list PAC_Checker.pac_step) array = (Array.fromList pac)
   val _ = println "pac parsed"
   val pac_timer = Timer.checkCPUTimes timer;
   val timer = Timer.startCPUTimer ();
