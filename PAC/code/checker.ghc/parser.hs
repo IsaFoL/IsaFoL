@@ -10,7 +10,11 @@ parseInt = do
   return $ read n
 
 (<++>) :: ReadP a -> ReadP b -> ReadP (a, b)
-a <++> b = liftM2 (\ x y -> (x, y)) a b
+a <++> b = do
+  x <- a
+  y <- b
+  return (x, y)
+
 
 var_separator :: Char -> Bool
 var_separator x = (x /= ';' && x /= ',' && x /= '*'  && x /= '-'  && x /= '+')
