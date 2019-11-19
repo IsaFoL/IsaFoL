@@ -1,5 +1,6 @@
 structure PAC_Parser =
 struct
+(*
 fun hashList hashA l = 
     case l
      of nil => 0wx0
@@ -53,7 +54,9 @@ fun share_term t =
 
 
 val share_term = map share_var;
+*)
 
+val share_var = fn x => x
 val share_term = fn x => x;
 
                                                             
@@ -86,7 +89,7 @@ exception Parser_Error of string
   fun parse_natural istream =
       let
         val _ = print2 "parse_number\n"
-        val num = ref (IntInf.fromInt 0);
+        val num = ref [];
         val seen_one_digit = ref false;
         fun parse_aux () =
             let val c = TextIO.lookahead istream
@@ -99,7 +102,34 @@ exception Parser_Error of string
                   | SOME c =>
                     if is_digit c
                     then (seen_one_digit := true;
-                          num := IntInf.+ (IntInf.*(!num, IntInf.fromInt 10), IntInf.fromInt (digit_of_char c));
+                          num := c :: !num;
+                          parse_aux ())
+                    else raise Parser_Error ("no number found, found " ^ String.implode [c])
+            end
+      in
+        (parse_aux ();
+         if !seen_one_digit = false
+         then raise Parser_Error ("no number digit")
+         else valOf (IntInf.fromString (String.implode (rev (!num)))))
+      end
+
+  fun parse_nat istream =
+      let
+        val _ = print2 "parse_nat\n"
+        val num = ref 0;
+        val seen_one_digit = ref false;
+        fun parse_aux () =
+            let val c = TextIO.lookahead istream
+            in
+              if (is_space (valOf c) orelse is_separator (valOf c))
+              then (print2 ("number sep = " ^ String.implode [(valOf c)]))
+              else
+                case TextIO.input1(istream) of
+                    NONE => raise Parser_Error "no number found"
+                  | SOME c =>
+                    if is_digit c
+                    then (seen_one_digit := true;
+                          num := !num* 10 + digit_of_char c;
                           parse_aux ())
                     else raise Parser_Error ("no number found, found " ^ String.implode [c])
             end
@@ -236,7 +266,7 @@ exception Parser_Error of string
  
   fun parse_step istream =
       let
-        val lbl = parse_natural istream;
+        val lbl = IntInf.fromInt (parse_nat istream);
         val _ = print2 ("label = " ^ IntInf.toString lbl);
         val rule = parse_rule istream;
         val _ = skip_spaces istream;
