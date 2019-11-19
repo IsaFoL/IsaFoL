@@ -3,6 +3,7 @@
 import Text.ParserCombinators.ReadP;
 import Prelude;
 import Data.Char;
+import System.IO
 
 parseInt :: ReadP Int
 parseInt = do
@@ -48,8 +49,23 @@ parseMonom :: ReadP (Int, [String])
 parseMonom =
   (parseIntDef 0 <++> (optional (string "*") *> parseVars))
 
+parsePolynom :: ReadP [(Int, [String])]
+parsePolynom =
+  many $ parseMonom
 
+parseInputPoly :: ReadP (Int, [(Int, [String])])
+parseInputPoly = do
+  n <- parseInt
+  skipSpaces
+  p <- parsePolynom
+  return (n, p)
+  
+parseInputPolys :: ReadP [(Int, [(Int, [String])])]
+parseInputPolys =
+  many $ parseInputPoly
 
-main =
+main = do
+  let polys = "~/Documents/repos/algprop/src/dpactrim/examples_indices/btor3.polys"
+  withFile polys ReadMode $ \h -> getlines h >>= mapM_ parseInputPoly
   putStrLn "hello, world"  
   

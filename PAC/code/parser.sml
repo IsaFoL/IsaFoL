@@ -1,7 +1,63 @@
 structure PAC_Parser =
 struct
+fun hashList hashA l = 
+    case l
+     of nil => 0wx0
+      | [a] => 0w1 + hashA a
+      | a1::a2::_ => 0w2 + 0w3853 * hashA a1 + 0wx1327 * hashA a2
+val hashChar = Word.fromInt o ord
+fun hashString s =
+         case String.size s
+           of 0 => 0wx0
+            | 1 => 0w1 + hashChar(String.sub(s,0))
+            | 2 => let val w1 = String.sub(s,0)
+                       val w2 = String.sub(s,1)
+                   in 0w2 + hashChar w1 * 0wx1327 + hashChar w2
+                   end
+            | n => let val w1 = String.sub(s,0)
+                       val w2 = String.sub(s,1)
+                       val wn = String.sub(s,2)
+                   in 0w3 + hashChar w1 * 0wx3853 + hashChar w2 * 0wx1327 + hashChar wn
+                   end
 
-  exception Parser_Error of string
+val hash : (string list, string list) HashTable.t ref = ref (HashTable.new {hash = hashList hashString, equals = op=});
+val hashvar : (string, string) HashTable.t ref = ref (HashTable.new {hash = hashString, equals = op=});
+val num_vars = ref 0;
+
+fun share_var t =
+    case HashTable.peek (!hashvar, t) of
+        SOME t => t
+      | NONE =>
+        let val new = Int.toString (!num_vars) in
+          (num_vars := 1 + !num_vars;
+           ignore (HashTable.insertIfNew(!hashvar, t, fn () => new, ignore));
+           new)
+        end
+
+
+fun share_term t =
+    case HashTable.peek (!hash, t) of
+        SOME t => t
+      | NONE => 
+        (case t of
+             [] => []
+           | x :: xs =>
+             (let
+               val xs' = share_term xs;
+               val x = share_var x; 
+              in
+                ignore (HashTable.insertIfNew(!hash, t, fn () => x::xs, ignore));
+                x :: xs'
+              end
+        ));
+
+
+val share_term = map share_var;
+
+val share_term = fn x => x;
+
+                                                            
+exception Parser_Error of string
 
   fun is_digit c = c >= #"0" andalso c <= #"9";
   fun is_zero c = (c = #"0");
@@ -17,11 +73,11 @@ struct
   fun is_separator c =
       c = #"*" orelse c = #"," orelse c = #";" orelse c = #"+" orelse c = #"-";
 
-  fun print _ = ();
+  fun print2 _ = ();
   fun rev2 a = rev a;
 
   fun skip_spaces istream =
-      (print "skip space";
+      (print2 "skip space";
        if TextIO.lookahead(istream) = SOME #" "
       then (TextIO.input1(istream); skip_spaces istream)
       else ())
@@ -29,14 +85,14 @@ struct
 
   fun parse_natural istream =
       let
-        val _ = print "parse_number\n"
+        val _ = print2 "parse_number\n"
         val num = ref (IntInf.fromInt 0);
         val seen_one_digit = ref false;
         fun parse_aux () =
             let val c = TextIO.lookahead istream
             in
               if (is_space (valOf c) orelse is_separator (valOf c))
-              then (print ("number sep = " ^ String.implode [(valOf c)]))
+              then (print2 ("number sep = " ^ String.implode [(valOf c)]))
               else
                 case TextIO.input1(istream) of
                     NONE => raise Parser_Error "no number found"
@@ -56,13 +112,13 @@ struct
 
   fun parse_var istream =
       let
-        val _ = print "parse_var\n"
+        val _ = print2 "parse_var\n"
         val num = ref [];
         fun parse_aux () =
             let val c = TextIO.lookahead istream
             in
               if (is_space (valOf c) orelse is_separator (valOf c))
-              then (print ("var sep = " ^ String.implode [(valOf c)]))
+              then (print2 ("var sep = " ^ String.implode [(valOf c)]))
               else
                 case TextIO.input1(istream) of
                     NONE => raise Parser_Error "no char found"
@@ -73,17 +129,17 @@ struct
         (parse_aux ();
          if !num = []
          then raise Parser_Error "no variable found"
-         else (print (String.implode (rev2 (!num))); String.implode (rev2 (!num))))
+         else (print2 (String.implode (rev2 (!num))); String.implode (rev2 (!num))))
       end;
 
   fun parse_vars_only_monom istream = (* can start with /*/ *)
       let
-        val _ = print "parse_vars_only_monom\n"
+        val _ = print2 "parse_vars_only_monom\n"
         val vars = ref [];
         fun parse_aux () =
             if TextIO.lookahead(istream) = SOME #"," orelse TextIO.lookahead(istream) = SOME #";"
                orelse TextIO.lookahead(istream) = SOME #"-" orelse TextIO.lookahead(istream) = SOME #"+"
-            then (print ("parse_vars_only_monom, sep =" ^ String.implode [valOf (TextIO.lookahead(istream))] ^ "\n"))
+            then (print2 ("parse_vars_only_monom, sep =" ^ String.implode [valOf (TextIO.lookahead(istream))] ^ "\n"))
             else if TextIO.lookahead(istream) = SOME #"*"
             then
               (ignore (TextIO.input1(istream));
@@ -94,19 +150,19 @@ struct
                parse_aux ())
       in
         parse_aux ();
-        rev2 (!vars)
+        share_term (rev2 (!vars))
       end;
 
   fun parse_full_monom istream =
       let
-        val _ = print "parse_full_monom\n"
+        val _ = print2 "parse_full_monom\n"
         val num = ref 1;
         val vars = ref [];
         val next_token = ref NONE;
       in
         (
           next_token := TextIO.lookahead(istream);
-          print ("parse_full_monom/next token 1 = '" ^String.implode [valOf (!next_token)] ^ "'\n");
+          print2 ("parse_full_monom/next token 1 = '" ^String.implode [valOf (!next_token)] ^ "'\n");
           (case !next_token of
                SOME #"-" =>
                (ignore (TextIO.input1 istream);
@@ -114,13 +170,13 @@ struct
              | SOME #"+" => ignore (TextIO.input1 istream)
              | _ => ());
           next_token := TextIO.lookahead(istream);
-          print ("parse_full_monom/next token 2 = '" ^String.implode [valOf (!next_token)] ^ "'\n");
+          print2 ("parse_full_monom/next token 2 = '" ^String.implode [valOf (!next_token)] ^ "'\n");
           if !next_token <> NONE andalso is_digit (valOf (!next_token))
           then num := !num * parse_natural istream
           else ();
           vars := parse_vars_only_monom istream;
           next_token := TextIO.lookahead(istream);
-          print ("parse_full_monom/next token 3 = '" ^String.implode [valOf (!next_token)] ^ "'\n");
+          print2 ("parse_full_monom/next token 3 = '" ^String.implode [valOf (!next_token)] ^ "'\n");
           (!vars, !num)
         )
       end;
@@ -138,11 +194,11 @@ struct
           
   fun parse_polynom istream : (string list * IntInf.int) list =
       let
-        val _ = print "parse_poly\n"
+        val _ = print2 "parse_poly\n"
         val monoms = ref [];
         fun parse_aux () =
             if TextIO.lookahead(istream) = SOME #"," orelse TextIO.lookahead(istream) = SOME #";"
-            then print ("parse_poly finished"  ^ String.implode [valOf (TextIO.lookahead(istream))] ^ "\n")
+            then print2 ("parse_poly finished"  ^ String.implode [valOf (TextIO.lookahead(istream))] ^ "\n")
             else (monoms := parse_full_monom istream :: !monoms;
                  parse_aux ())
       in
@@ -181,7 +237,7 @@ struct
   fun parse_step istream =
       let
         val lbl = parse_natural istream;
-        val _ = print ("label = " ^ IntInf.toString lbl);
+        val _ = print2 ("label = " ^ IntInf.toString lbl);
         val rule = parse_rule istream;
         val _ = skip_spaces istream;
       in
@@ -245,7 +301,7 @@ struct
       let val a = parse_natural istream
           val _ = skip_spaces istream
           val b = (parse_polynom istream)
-          val _ = print ("parsed " ^ IntInf.toString a ^"\n")
+          val _ = print2 ("parsed " ^ IntInf.toString a ^"\n")
       in (a,b) end
 
   fun input_polys istream =

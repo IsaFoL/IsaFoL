@@ -78,7 +78,7 @@ structure PAC_Checker : sig
   val nat_of_integer : IntInf.int -> nat
   type char
   type ('a, 'b) hashtable
-  type 'a code_status
+  datatype 'a code_status = CFAILED of 'a | CSUCCESS | CFOUND
   datatype 'a pac_step = AddD of nat * nat * nat * 'a |
     Add of nat * nat * nat * 'a | MultD of nat * 'a * nat * 'a |
     Mult of nat * 'a * nat * 'a
@@ -94,6 +94,14 @@ structure PAC_Checker : sig
           (unit -> ((((string list * int) list) option) array))
   val fully_normalize_poly_impl :
     (string list * int) list -> (unit -> ((string list * int) list))
+  val check_step_impl :
+    (string list * int) list ->
+      (char list) code_status ->
+        (nat, ((string list * int) list)) hashtable ->
+          ((string list * int) list) pac_step ->
+            (unit ->
+              ((char list) code_status *
+                (nat, ((string list * int) list)) hashtable))
   val pAC_checker_l_impl :
     (string list * int) list ->
       (nat, ((string list * int) list)) hashtable ->
@@ -101,6 +109,9 @@ structure PAC_Checker : sig
           (unit ->
             ((char list) code_status *
               (nat, ((string list * int) list)) hashtable))
+  val remap_polys_l_impl :
+    (((string list * int) list) option) array ->
+      (unit -> (nat, ((string list * int) list)) hashtable)
   val full_checker_l_impl :
     (string list * int) list ->
       (((string list * int) list) option) array ->
@@ -1634,7 +1645,7 @@ fun pAC_checker_l_impl x =
                       end))
           (fn (a1, a2) =>
             (fn f_ => fn () => f_ (let
-                                     val (a1a, a2a) = a1;
+                                    val (a1a, a2a) = a1;
                                    in
                                      check_step_impl ai a1a a2a (op_list_hd a2)
                                    end

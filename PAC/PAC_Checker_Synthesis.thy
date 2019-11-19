@@ -580,8 +580,9 @@ sepref_definition PAC_empty_impl
   by sepref
 
 export_code PAC_checker_l_impl PAC_update_impl PAC_empty_impl the_error is_cfailed is_cfound
-  int_of_integer AddD Add Mult MultD nat_of_integer String.implode fully_normalize_poly_impl
-  full_checker_l_impl
+  int_of_integer AddD Add Mult MultD nat_of_integer String.implode remap_polys_l_impl
+  fully_normalize_poly_impl
+  full_checker_l_impl check_step_impl CSUCCESS
   in SML_imp module_name PAC_Checker
   file "code/checker.sml"
 

@@ -1,6 +1,14 @@
 $(SML_LIB)/basis/basis.mlb
 $(SML_LIB)/basis/mlton.mlb 
 
+
+local
+  /home/fleury/Documents/repos/mlton/lib/mlton/sources.mlb
+in
+structure HashTable
+end
+
+
 local
   checker.sml
 in

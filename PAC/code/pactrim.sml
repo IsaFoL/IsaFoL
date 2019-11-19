@@ -77,6 +77,44 @@ fun print_stat polys_timer pac_timer end_of_init end_of_processing full =
    ()
   end
 
+fun first (a, b) = a
+fun second (a, b) = b
+
+fun inside_loop [polys, pac, spec] =
+    let
+      val _ = println "start";
+      val init_timer = Timer.startCPUTimer ();
+      val problem = parse_polys_file polys;
+      val polys_timer = Timer.checkCPUTimes init_timer;
+      val timer = Timer.startCPUTimer ();
+      val _ = println "polys parsed\n******************"
+      val timer = Timer.startCPUTimer ();
+      val (spec : ((string list * PAC_Checker.int) list)) = parse_spec_file spec;
+      val _ = println "spec parsed";
+      val end_of_init = Timer.checkCPUTimes init_timer;
+      val timer = Timer.startCPUTimer ();
+      val _ = println "Now checking";
+      val polys = PAC_Checker.remap_polys_l_impl problem ();
+      val spec = PAC_Checker.fully_normalize_poly_impl spec ();
+      val state = ref (PAC_Checker.CSUCCESS, polys)
+      val istream = TextIO.openIn pac
+      val _ =
+          while (TextIO.lookahead(istream) <> NONE andalso PAC_Checker.is_cfailed (first (!state)) = false)
+                do
+                let
+                  val st = PAC_Parser.parse_step istream
+                in
+                  state := PAC_Checker.check_step_impl spec (first (!state)) (second (!state)) st ()
+                end;
+      val (b, _) = !state;
+      val _ = if PAC_Checker.is_cfound b then println "s SUCCESSFULL"
+              else if (PAC_Checker.is_cfailed b) = false then println "s FAILED, but correct PAC"
+              else (println "s FAILED!!!!!!!"; println (PAC_Checker.implode (PAC_Checker.the_error b)))
+      val end_of_processing = Timer.checkCPUTimes timer
+      val full = Timer.checkCPUTimes init_timer
+  val _ = print_stat polys_timer polys_timer end_of_init end_of_processing full
+    in ()
+    end
 
 fun checker [polys, pac, spec] = let
   val _ = println "start";
@@ -116,6 +154,10 @@ end
   handle PAC_Parser.Parser_Error err => print("parsing failed with error: " ^ err)
 
 fun process_args [] = print_help() 
+  | process_args [arg, polys, pac, spec] =
+    if arg = "--iloop"
+    then inside_loop [polys, pac, spec]
+    else print_help()
   | process_args [polys, pac, spec] =
     checker [polys, pac, spec]
 
