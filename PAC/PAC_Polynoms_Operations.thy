@@ -712,13 +712,13 @@ lemma distinct_var_order_Id_var_order:
   by (induction a) (auto simp: rel2p_def)
 
 definition sort_all_coeffs :: \<open>llist_polynom \<Rightarrow> llist_polynom nres\<close> where
-\<open>sort_all_coeffs xs = monadic_nfoldli xs (\<lambda>_. RETURN True) (\<lambda>(a, n) b. do {a \<leftarrow> sort_coeff a; RETURN (b @ [(a, n)])}) []\<close>
+\<open>sort_all_coeffs xs = monadic_nfoldli xs (\<lambda>_. RETURN True) (\<lambda>(a, n) b. do {a \<leftarrow> sort_coeff a; RETURN ((a, n) # b)}) []\<close>
 
 lemma sort_all_coeffs_gen:
   assumes \<open>(\<forall>xs \<in> mononoms xs'. sorted_wrt (rel2p (var_order_rel)) xs)\<close> and
     \<open>\<forall>x \<in> mononoms (xs @ xs'). distinct x\<close>
-  shows \<open>monadic_nfoldli xs (\<lambda>_. RETURN True) (\<lambda>(a, n) b. do {a \<leftarrow> sort_coeff a; RETURN (b @ [(a, n)])}) xs' \<le>
-     \<Down>Id (SPEC(\<lambda>ys. map (\<lambda>(a,b). (mset a, b)) (xs' @ xs) = map (\<lambda>(a,b). (mset a, b)) ys \<and>
+  shows \<open>monadic_nfoldli xs (\<lambda>_. RETURN True) (\<lambda>(a, n) b. do {a \<leftarrow> sort_coeff a; RETURN ((a, n) # b)}) xs' \<le>
+     \<Down>Id (SPEC(\<lambda>ys. map (\<lambda>(a,b). (mset a, b)) (rev xs @ xs') = map (\<lambda>(a,b). (mset a, b)) (ys) \<and>
      (\<forall>xs \<in> mononoms ys. sorted_wrt (rel2p (var_order_rel)) xs)))\<close>
   using assms
   unfolding sort_all_coeffs_def sort_coeff_def
@@ -734,11 +734,12 @@ lemma sort_all_coeffs_gen:
       dest: same_mset_distinct_iff
       intro!: p(1)[THEN order_trans] distinct_var_order_Id_var_order)
     apply (auto dest: same_mset_distinct_iff)
-    by (metis UnCI fst_eqD rel2p_def sorted_wrt_mono_rel)
+    apply (metis UnCI fst_eqD rel2p_def sorted_wrt_mono_rel)
+    done
   done
 
 definition shuffle_coefficients where
-  \<open>shuffle_coefficients xs = (SPEC(\<lambda>ys. map (\<lambda>(a,b). (mset a, b)) (xs) = map (\<lambda>(a,b). (mset a, b)) ys \<and>
+  \<open>shuffle_coefficients xs = (SPEC(\<lambda>ys. map (\<lambda>(a,b). (mset a, b)) (rev xs) = map (\<lambda>(a,b). (mset a, b)) ys \<and>
      (\<forall>xs \<in> mononoms ys. sorted_wrt (rel2p (var_order_rel)) xs)))\<close>
 
 lemma sort_all_coeffs:
@@ -837,24 +838,31 @@ lemma
 lemma sort_all_coeffs_unsorted_poly_rel_with0:
   assumes \<open>(p, p') \<in> fully_unsorted_poly_rel\<close>
   shows \<open>sort_all_coeffs p \<le> \<Down> (unsorted_poly_rel_with0) (RETURN p')\<close>
+proof -
+  have \<open>(map (\<lambda>(a, y). (mset a, y)) (rev p)) =
+          map (\<lambda>(a, y). (mset a, y)) s \<longleftrightarrow>
+          (map (\<lambda>(a, y). (mset a, y)) p) =
+          map (\<lambda>(a, y). (mset a, y)) (rev s)\<close> for s
+    apply (auto simp flip: rev_map)
+    by (metis rev_rev_ident)
+  show ?thesis
   apply (rule sort_all_coeffs[THEN order_trans])
   using assms
   apply (auto simp: shuffle_coefficients_def poly_list_rel_def
        RETURN_def fully_unsorted_poly_list_rel_def list_mset_rel_def
        br_def dest: list_rel_unsorted_term_poly_list_relD
     intro!: RES_refine)
-  apply (rule_tac b= \<open>map (\<lambda>(a, y). (mset a, y)) p\<close> in relcompI)
+  apply (rule_tac b= \<open>map (\<lambda>(a, y). (mset a, y)) (rev p)\<close> in relcompI)
   apply (auto dest: list_rel_unsorted_term_poly_list_relD
     simp:)
-  apply (auto simp: mset_map
+  apply (auto simp: mset_map rev_map
     dest!: list_rel_unsorted_term_poly_list_relD
     intro!: map_mset_unsorted_term_poly_list_rel)
   apply (force dest: shuffle_terms_distinct_iff["THEN" iffD1])
   apply (force dest: shuffle_terms_distinct_iff["THEN" iffD1])
-  defer
-  apply (metis mset_map)
-  by (metis UnCI fst_conv rel2p_def sorted_wrt_mono_rel)
-
+  apply (metis Un_iff fst_conv rel2p_def sorted_wrt_mono_rel)
+  by (metis mset_map mset_rev)
+qed
 
 lemma sort_poly_spec_id':
   assumes \<open>(p, p') \<in> unsorted_poly_rel_with0\<close>

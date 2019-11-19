@@ -586,11 +586,4 @@ export_code PAC_checker_l_impl PAC_update_impl PAC_empty_impl the_error is_cfail
   in SML_imp module_name PAC_Checker
   file "code/checker.sml"
 
-
-export_code PAC_checker_l_impl PAC_update_impl PAC_empty_impl the_error is_cfailed is_cfound
-  int_of_integer AddD Add Mult MultD nat_of_integer String.implode fully_normalize_poly_impl
-  full_checker_l_impl
-  in Haskell_imp module_name PAC_Checker
-  file "code/checker.ghc"
-
 end

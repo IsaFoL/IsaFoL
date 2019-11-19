@@ -1185,12 +1185,11 @@ fun sort_all_coeffs_impl x =
   (fn xi =>
     imp_nfoldli xi (fn _ => (fn () => true))
       (fn xb => fn sigma =>
-        (fn () =>
-          let
-            val (a1, a2) = xb;
-          in
-            op_list_concat sigma (op_list_prepend (msort_monoms_impl a1, a2) [])
-          end))
+        (fn () => let
+                    val (a1, a2) = xb;
+                  in
+                    op_list_prepend (msort_monoms_impl a1, a2) sigma
+                  end))
       [])
     x;
 
@@ -1645,7 +1644,7 @@ fun pAC_checker_l_impl x =
                       end))
           (fn (a1, a2) =>
             (fn f_ => fn () => f_ (let
-                                    val (a1a, a2a) = a1;
+                                     val (a1a, a2a) = a1;
                                    in
                                      check_step_impl ai a1a a2a (op_list_hd a2)
                                    end

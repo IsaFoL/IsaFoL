@@ -6,19 +6,19 @@ fun hashList hashA l =
       | [a] => 0w1 + hashA a
       | a1::a2::_ => 0w2 + 0w3853 * hashA a1 + 0wx1327 * hashA a2
 val hashChar = Word.fromInt o ord
+
 fun hashString s =
-         case String.size s
-           of 0 => 0wx0
-            | 1 => 0w1 + hashChar(String.sub(s,0))
-            | 2 => let val w1 = String.sub(s,0)
-                       val w2 = String.sub(s,1)
-                   in 0w2 + hashChar w1 * 0wx1327 + hashChar w2
-                   end
-            | n => let val w1 = String.sub(s,0)
-                       val w2 = String.sub(s,1)
-                       val wn = String.sub(s,2)
-                   in 0w3 + hashChar w1 * 0wx3853 + hashChar w2 * 0wx1327 + hashChar wn
-                   end
+    let val res = ref 0wx0;
+        val i = ref 0;
+    in
+      while !i < String.size s
+      do
+      (res := !res + hashChar (String.sub(s,!i));
+       res := !res * 0wx3853;
+       i := !i+1);
+      !res
+    end
+
 
 val hash : (string list, string list) HashTable.t ref = ref (HashTable.new {hash = hashList hashString, equals = op=});
 val hashvar : (string, string) HashTable.t ref = ref (HashTable.new {hash = hashString, equals = op=});
@@ -129,7 +129,7 @@ exception Parser_Error of string
         (parse_aux ();
          if !num = []
          then raise Parser_Error "no variable found"
-         else (print2 (String.implode (rev2 (!num))); String.implode (rev2 (!num))))
+         else (print2 (String.implode (rev2 (!num))); share_var (String.implode (rev2 (!num)))))
       end;
 
   fun parse_vars_only_monom istream = (* can start with /*/ *)
