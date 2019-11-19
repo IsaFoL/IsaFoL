@@ -2,7 +2,19 @@ fun println x = print (x ^ "\n")
 
 
 fun print_help () = (
-  println "TODO"
+  println ("Usage: pactrim [option] <file.polys> <file.pac> <file.spec>\n" ^
+           "\n" ^
+           "Prints\n" ^
+           "s SUCCESSFULL: if everything worked\n" ^
+           "s FAILED, but correct PAC: if the PAC file is correct, but\n" ^
+           "\tthe spec was not derived\n" ^
+           "s FAILED: if the PAC file is incorrect\n" ^
+           "\n" ^
+           "\n" ^
+           "Option:\n" ^
+           "--iloop (internal loop): use the non-verified loop instead of \n" ^
+           "\tthe verified loop. This is faster because the file does not\n" ^
+           "\t have to be parsed upfront.")
 )
 
 fun readfile istream =
@@ -109,7 +121,7 @@ fun inside_loop [polys, pac, spec] =
       val (b, _) = !state;
       val _ = if PAC_Checker.is_cfound b then println "s SUCCESSFULL"
               else if (PAC_Checker.is_cfailed b) = false then println "s FAILED, but correct PAC"
-              else (println "s FAILED!!!!!!!"; println (PAC_Checker.implode (PAC_Checker.the_error b)))
+              else (println "s FAILED"; println (PAC_Checker.implode (PAC_Checker.the_error b)))
       val end_of_processing = Timer.checkCPUTimes timer
       val full = Timer.checkCPUTimes init_timer
   val _ = print_stat polys_timer polys_timer end_of_init end_of_processing full
