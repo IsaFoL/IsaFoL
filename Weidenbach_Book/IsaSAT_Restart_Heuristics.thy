@@ -38,24 +38,24 @@ definition twl_st_heur_restart :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl)
 \<open>twl_st_heur_restart =
   {((M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, (fast_ema, slow_ema, ccount),
        vdom, avdom, lcount, opts, old_arena),
-     (M, N, D, NE, UE, Q, W)).
-    (M', M) \<in> trail_pol (all_init_atms N NE) \<and>
+     (M, N, D, NE, UE, NS, US, Q, W)).
+    (M', M) \<in> trail_pol (all_init_atms N (NE+NS)) \<and>
     valid_arena N' N (set vdom) \<and>
-    (D', D) \<in> option_lookup_clause_rel (all_init_atms N NE) \<and>
+    (D', D) \<in> option_lookup_clause_rel (all_init_atms N (NE+NS)) \<and>
     (D = None \<longrightarrow> j \<le> length M) \<and>
     Q = uminus `# lit_of `# mset (drop j (rev M)) \<and>
-    (W', W) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 (all_init_atms N NE)) \<and>
-    vm \<in> isa_vmtf (all_init_atms N NE) M \<and>
-    phase_saving (all_init_atms N NE) \<phi> \<and>
+    (W', W) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 (all_init_atms N (NE+NS))) \<and>
+    vm \<in> isa_vmtf (all_init_atms N (NE+NS)) M \<and>
+    phase_saving (all_init_atms N (NE+NS)) \<phi> \<and>
     no_dup M \<and>
     clvls \<in> counts_maximum_level M D \<and>
-    cach_refinement_empty (all_init_atms N NE) cach \<and>
+    cach_refinement_empty (all_init_atms N (NE+NS)) cach \<and>
     out_learned M D outl \<and>
     lcount = size (learned_clss_lf N) \<and>
-    vdom_m (all_init_atms N NE)  W N \<subseteq> set vdom \<and>
+    vdom_m (all_init_atms N (NE+NS))  W N \<subseteq> set vdom \<and>
     mset avdom \<subseteq># mset vdom \<and>
-    isasat_input_bounded (all_init_atms N NE) \<and>
-    isasat_input_nempty (all_init_atms N NE) \<and>
+    isasat_input_bounded (all_init_atms N (NE+NS)) \<and>
+    isasat_input_nempty (all_init_atms N (NE+NS)) \<and>
     distinct vdom \<and> old_arena = []
   }\<close>
 
@@ -225,7 +225,7 @@ named_theorems twl_st_heur_restart
 lemma [twl_st_heur_restart]:
   assumes \<open>(S, T) \<in> twl_st_heur_restart\<close>
   shows \<open>(get_trail_wl_heur S, get_trail_wl T) \<in> trail_pol (all_init_atms_st T)\<close>
-  using assms by (cases S; cases T; auto simp: twl_st_heur_restart_def)
+  using assms by (cases S; cases T; auto simp: twl_st_heur_restart_def ac_simps)
 
 lemma trail_pol_literals_are_in_\<L>\<^sub>i\<^sub>n_trail:
   \<open>(M', M) \<in> trail_pol \<A> \<Longrightarrow> literals_are_in_\<L>\<^sub>i\<^sub>n_trail \<A> M\<close>

@@ -2902,9 +2902,9 @@ definition find_unassigned_lit_l :: \<open>'v twl_st_l \<Rightarrow> 'v literal 
      SPEC (\<lambda>L.
          (L \<noteq> None \<longrightarrow>
             undefined_lit M (the L) \<and>
-            atm_of (the L) \<in> atms_of_mm (clause `# twl_clause_of `# init_clss_lf N + NE + NS)) \<and>
+            atm_of (the L) \<in> atms_of_mm (mset `# ran_mf N + (NE+UE) + (NS+US))) \<and>
          (L = None \<longrightarrow> (\<nexists>L'. undefined_lit M L' \<and>
-            atm_of L' \<in> atms_of_mm (clause `# twl_clause_of `# init_clss_lf N + NE + NS))))
+            atm_of L' \<in> atms_of_mm (mset `# ran_mf N + (NE+UE) + (NS+US)))))
      )\<close>
 
 definition decide_l_or_skip_pre where
@@ -2956,8 +2956,11 @@ proof -
     if SS': \<open>(S, S') \<in> ?R\<close>
     for S S'
     using that
-    by (cases S)
-      (auto simp: find_unassigned_lit_l_def find_unassigned_lit_def
+    unfolding find_unassigned_lit_l_def find_unassigned_lit_def
+    apply (subst all_clss_l_ran_m[symmetric])
+    apply (subst (3) all_clss_l_ran_m[symmetric])
+    unfolding image_mset_union
+    by (auto simp add: 
           mset_take_mset_drop_mset' image_image twl_st_l_def)
 
   have I: \<open>(x, x') \<in> Id \<Longrightarrow> (x, x') \<in> \<langle>Id\<rangle>option_rel\<close> for x x' by auto

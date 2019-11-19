@@ -4019,9 +4019,9 @@ definition find_unassigned_lit_wl :: \<open>'v twl_st_wl \<Rightarrow> ('v twl_s
      SPEC (\<lambda>(S, L). S = (M, N, D, NE, UE, NS, US, WS, Q) \<and>
          (L \<noteq> None \<longrightarrow>
             undefined_lit M (the L) \<and>
-            atm_of (the L) \<in> atms_of_mm (clause `# twl_clause_of `# init_clss_lf N + NE + NS)) \<and>
+            the L \<in># all_lits_st (M, N, D, NE, UE, NS, US, WS, Q)) \<and>
          (L = None \<longrightarrow> (\<nexists>L'. undefined_lit M L' \<and>
-            atm_of L' \<in> atms_of_mm (clause `# twl_clause_of `# init_clss_lf N + NE + NS))))
+            L' \<in># all_lits_st (M, N, D, NE, UE, NS, US, WS, Q))))
      )\<close>
 
 definition decide_wl_or_skip_pre where
@@ -4062,7 +4062,9 @@ proof -
     for S :: \<open>'v twl_st_l\<close> and S' :: \<open>'v twl_st_wl\<close>
     using that
     by (cases S') (auto simp: find_unassigned_lit_wl_def find_unassigned_lit_l_def
+        in_all_lits_of_mm_ain_atms_of_iff all_lits_def
         mset_take_mset_drop_mset' state_wl_l_def intro!: RES_refine)
+
   have option: \<open>(x, x') \<in> \<langle>Id\<rangle>option_rel\<close> if \<open>x = x'\<close> for x x'
     using that by (auto)
   show ?thesis
