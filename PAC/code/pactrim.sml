@@ -8,7 +8,7 @@ fun print_help () = (
            "s SUCCESSFULL: if everything worked\n" ^
            "s FAILED, but correct PAC: if the PAC file is correct, but\n" ^
            "\tthe spec was not derived\n" ^
-           "s FAILED: if the PAC file is incorrect\n" ^
+           "s PAC FAILED: if the PAC file is incorrect\n" ^
            "\n" ^
            "\n" ^
            "Option:\n" ^
@@ -94,18 +94,17 @@ fun second (a, b) = b
 
 fun inside_loop [polys, pac, spec] =
     let
-      val _ = println "start";
       val init_timer = Timer.startCPUTimer ();
       val problem = parse_polys_file polys;
       val polys_timer = Timer.checkCPUTimes init_timer;
       val timer = Timer.startCPUTimer ();
-      val _ = println "polys parsed\n******************"
+      val _ = println "c polys parsed\nc ******************"
       val timer = Timer.startCPUTimer ();
       val (spec : ((string list * PAC_Checker.int) list)) = parse_spec_file spec;
-      val _ = println "spec parsed";
+      val _ = println "c spec parsed";
       val end_of_init = Timer.checkCPUTimes init_timer;
       val timer = Timer.startCPUTimer ();
-      val _ = println "Now checking";
+      val _ = println "c Now checking";
       val polys = PAC_Checker.remap_polys_l_impl problem ();
       val spec = PAC_Checker.fully_normalize_poly_impl spec ();
       val state = ref (PAC_Checker.CSUCCESS, polys)
@@ -121,7 +120,7 @@ fun inside_loop [polys, pac, spec] =
       val (b, _) = !state;
       val _ = if PAC_Checker.is_cfound b then println "s SUCCESSFULL"
               else if (PAC_Checker.is_cfailed b) = false then println "s FAILED, but correct PAC"
-              else (println "s FAILED"; println (PAC_Checker.implode (PAC_Checker.the_error b)))
+              else (println "s PAC FAILED"; println (PAC_Checker.implode (PAC_Checker.the_error b)))
       val end_of_processing = Timer.checkCPUTimes timer
       val full = Timer.checkCPUTimes init_timer
   val _ = print_stat polys_timer polys_timer end_of_init end_of_processing full
@@ -129,26 +128,25 @@ fun inside_loop [polys, pac, spec] =
     end
 
 fun checker [polys, pac, spec] = let
-  val _ = println "start";
   val init_timer = Timer.startCPUTimer ();
   val problem = parse_polys_file polys;
   val polys_timer = Timer.checkCPUTimes init_timer;
   val timer = Timer.startCPUTimer ();
-  val _ = println "polys parsed\n******************"
+  val _ = println "c polys parsed\nc ******************"
   val pac : ((string list * PAC_Checker.int) list PAC_Checker.pac_step) list = parse_pac_file pac;
 (*  val _ = MLton.share pac; *)
-  val _ = println "pac parsed"
+  val _ = println "c pac parsed"
   val pac_timer = Timer.checkCPUTimes timer;
   val timer = Timer.startCPUTimer ();
   val (spec : ((string list * PAC_Checker.int) list)) = parse_spec_file spec;
-  val _ = println "spec parsed";
+  val _ = println "c spec parsed";
   val end_of_init = Timer.checkCPUTimes init_timer;
   val timer = Timer.startCPUTimer ();
-  val _ = println "Now checking";
+  val _ = println "c Now checking";
   val (b, _) = PAC_Checker.full_checker_l_impl spec problem pac ();
   val _ = if PAC_Checker.is_cfound b then println "s SUCCESSFULL"
           else if (PAC_Checker.is_cfailed b) = false then println "s FAILED, but correct PAC"
-          else (println "s FAILED!!!!!!!"; println (PAC_Checker.implode (PAC_Checker.the_error b)))
+          else (println "s PAC FAILED"; println (PAC_Checker.implode (PAC_Checker.the_error b)))
   val end_of_processing = Timer.checkCPUTimes timer
   val full = Timer.checkCPUTimes init_timer
   val _ = print_stat polys_timer pac_timer end_of_init end_of_processing full
