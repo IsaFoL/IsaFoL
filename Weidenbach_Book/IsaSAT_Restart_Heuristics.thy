@@ -3806,10 +3806,10 @@ qed
 
 
 lemma cdcl_GC_clauses_prog_wl_alt_def:
-  \<open>cdcl_GC_clauses_prog_wl = (\<lambda>(M, N0, D, NE, UE, Q, WS). do {
-    ASSERT(cdcl_GC_clauses_pre_wl (M, N0, D, NE, UE, Q, WS));
-    (N, N', WS) \<leftarrow> cdcl_GC_clauses_prog_wl2 N0 (all_init_atms N0 NE) WS;
-    RETURN (M, N', D, NE, UE, Q, WS)
+  \<open>cdcl_GC_clauses_prog_wl = (\<lambda>(M, N0, D, NE, UE, NS, US, Q, WS). do {
+    ASSERT(cdcl_GC_clauses_pre_wl (M, N0, D, NE, UE, NS, US, Q, WS));
+    (N, N', WS) \<leftarrow> cdcl_GC_clauses_prog_wl2 N0 (all_init_atms N0 (NE+NS)) WS;
+    RETURN (M, N', D, NE, UE, NS, US, Q, WS)
      })\<close>
  proof -
    have [refine0]: \<open>(x1c, x1) \<in> Id \<Longrightarrow> RES (set_mset x1c)
@@ -3874,7 +3874,7 @@ proof
     using xb_x'a
     by (cases x1)
       (auto simp: twl_st_heur_restart_def)
-  have x2: \<open>x2 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_init_atms (get_clauses_wl x1) (get_unit_init_clss_wl x1))\<close>
+  have x2: \<open>x2 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_init_atms_st x1)\<close>
     using x2 xb_x'a unfolding all_init_atms_def all_init_lits_def
     by auto
 
