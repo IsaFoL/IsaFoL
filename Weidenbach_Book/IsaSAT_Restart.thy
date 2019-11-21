@@ -359,7 +359,9 @@ proof -
     cdcl_twl_stgy_restart_abs_wl_heur_inv x x1f x1g x2g\<close>
    for x y ebrk ebrka xa x' x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d
        x1e x2e T Ta xb x'a x1f x2f x1g x2g
-    unfolding cdcl_twl_stgy_restart_abs_wl_heur_inv_def by fastforce
+    unfolding cdcl_twl_stgy_restart_abs_wl_heur_inv_def
+    apply (rule_tac x=y in exI)
+    by fastforce
   show ?thesis
     supply[[goals_limit=1]] isasat_fast_length_leD[dest] twl_st_heur'_def[simp]
     unfolding cdcl_twl_stgy_restart_prog_bounded_wl_heur_def

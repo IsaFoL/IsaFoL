@@ -833,8 +833,8 @@ qed
 definition already_propagated_unit_cls_conflict
   :: \<open>nat literal \<Rightarrow> nat twl_st_wl_init \<Rightarrow> nat twl_st_wl_init\<close>
 where
-  \<open>already_propagated_unit_cls_conflict = (\<lambda>L ((M, N, D, NE, UE, Q), OC).
-     ((M, N, D, add_mset {#L#} NE, UE, {#}), OC))\<close>
+  \<open>already_propagated_unit_cls_conflict = (\<lambda>L ((M, N, D, NE, UE, NS, US, Q), OC).
+     ((M, N, D, add_mset {#L#} NE, UE, NS, US, {#}), OC))\<close>
 
 definition already_propagated_unit_cls_conflict_heur
   :: \<open>nat literal \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur_init nres\<close>
@@ -847,7 +847,8 @@ where
 lemma already_propagated_unit_cls_conflict_heur_already_propagated_unit_cls_conflict:
   \<open>(uncurry already_propagated_unit_cls_conflict_heur,
      uncurry (RETURN oo already_propagated_unit_cls_conflict)) \<in>
-   [\<lambda>(L, S). L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>]\<^sub>f Id \<times>\<^sub>r twl_st_heur_parsing_no_WL \<A> unbdd \<rightarrow> \<langle>twl_st_heur_parsing_no_WL \<A> unbdd\<rangle> nres_rel\<close>
+   [\<lambda>(L, S). L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>]\<^sub>f Id \<times>\<^sub>r twl_st_heur_parsing_no_WL \<A> unbdd \<rightarrow>
+     \<langle>twl_st_heur_parsing_no_WL \<A> unbdd\<rangle> nres_rel\<close>
   by (intro frefI nres_relI)
     (auto simp: twl_st_heur_parsing_no_WL_def already_propagated_unit_cls_conflict_heur_def
       already_propagated_unit_cls_conflict_def all_lits_of_mm_add_mset
@@ -888,8 +889,8 @@ lemma set_empty_clause_as_conflict_heur_set_empty_clause_as_conflict:
 
 definition (in -) add_clause_to_others_heur
    :: \<open>nat clause_l \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur_init nres\<close> where
-  \<open>add_clause_to_others_heur = (\<lambda> _ (M, N, D, Q, WS).
-      RETURN (M, N, D, Q, WS))\<close>
+  \<open>add_clause_to_others_heur = (\<lambda> _ (M, N, D, Q, NS, US, WS).
+      RETURN (M, N, D, Q, NS, US, WS))\<close>
 
 lemma add_clause_to_others_heur_add_clause_to_others:
   \<open>(uncurry add_clause_to_others_heur, uncurry (RETURN oo add_to_other_init)) \<in>
@@ -1488,7 +1489,7 @@ where
         init_dt_wl_spec CS T' TOC')\<close>
 
 definition init_state_wl :: \<open>nat twl_st_wl_init'\<close> where
-  \<open>init_state_wl = ([], fmempty, None, {#}, {#}, {#})\<close>
+  \<open>init_state_wl = ([], fmempty, None, {#}, {#}, {#}, {#}, {#})\<close>
 
 definition init_state_wl_heur :: \<open>nat multiset \<Rightarrow> twl_st_wl_heur_init nres\<close> where
   \<open>init_state_wl_heur \<A> = do {
@@ -1594,11 +1595,11 @@ lemma rewatch_heur_st_correct_watching:
     \<open>\<And>x. x \<in># dom_m (get_clauses_init_wl T) \<Longrightarrow> distinct (get_clauses_init_wl T \<propto> x) \<and>
         2 \<le> length (get_clauses_init_wl T \<propto> x)\<close>
   shows \<open>rewatch_heur_st S \<le> \<Down> (twl_st_heur_parsing \<A> unbdd)
-    (SPEC (\<lambda>((M,N, D, NE, UE, Q, W), OC). T = ((M,N,D,NE,UE,Q), OC)\<and>
-       correct_watching (M, N, D, NE, UE, Q, W)))\<close>
+    (SPEC (\<lambda>((M,N, D, NE, UE, NS, US, Q, W), OC). T = ((M,N,D,NE,UE,NS, US, Q), OC)\<and>
+       correct_watching (M, N, D, NE, UE, NS, US, Q, W)))\<close>
 proof -
-  obtain M N D NE UE Q OC where
-    T: \<open>T = ((M,N, D, NE, UE, Q), OC)\<close>
+  obtain M N D NE UE NS US Q OC where
+    T: \<open>T = ((M,N, D, NE, UE, NS, US, Q), OC)\<close>
     by (cases T) auto
 
   obtain M' N' D' j W vm \<phi> clvls cach lbd vdom where
@@ -1616,15 +1617,15 @@ proof -
   have H: \<open>RES ({(W, W').
           (W, W') \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 \<A>) \<and> vdom_m \<A> W' N \<subseteq> set_mset (dom_m N)}\<inverse> ``
          {W. Watched_Literals_Watch_List_Initialisation.correct_watching_init
-              (M, N, D, NE, UE, Q, W)})
+              (M, N, D, NE, UE, NS, US, Q, W)})
     \<le> RES ({(W, W').
           (W, W') \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 \<A>) \<and> vdom_m \<A> W' N \<subseteq> set_mset (dom_m N)}\<inverse> ``
          {W. Watched_Literals_Watch_List_Initialisation.correct_watching_init
-              (M, N, D, NE, UE, Q, W)})\<close>
+              (M, N, D, NE, UE, NS, US, Q, W)})\<close>
     for W'
     by (rule order.refl)
   have eq: \<open>Watched_Literals_Watch_List_Initialisation.correct_watching_init
-        (M, N, None, NE, UE, {#}, xa) \<Longrightarrow>
+        (M, N, None, NE, UE, NS, US, {#}, xa) \<Longrightarrow>
        vdom_m \<A> xa N = set_mset (dom_m N)\<close> for xa
     by (auto 5 5 simp: Watched_Literals_Watch_List_Initialisation.correct_watching_init.simps
       vdom_m_def)
@@ -2221,7 +2222,7 @@ lemma init_state_wl_heur_init_state_wl':
 lemma all_blits_are_in_problem_init_blits_in: \<open>all_blits_are_in_problem_init S \<Longrightarrow> blits_in_\<L>\<^sub>i\<^sub>n S\<close>
   unfolding blits_in_\<L>\<^sub>i\<^sub>n_def
   by (cases S)
-   (auto simp: all_blits_are_in_problem_init.simps
+   (auto simp: all_blits_are_in_problem_init.simps ac_simps
     \<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_all_lits_of_mm all_lits_def)
 
 lemma correct_watching_init_blits_in_\<L>\<^sub>i\<^sub>n:
@@ -2236,10 +2237,10 @@ proof -
  qed
 
 fun append_empty_watched where
-  \<open>append_empty_watched ((M, N, D, NE, UE, Q), OC) = ((M, N, D, NE, UE, Q, (\<lambda>_. [])), OC)\<close>
+  \<open>append_empty_watched ((M, N, D, NE, UE, NS, US, Q), OC) = ((M, N, D, NE, UE, NS, US, Q, (\<lambda>_. [])), OC)\<close>
 
 fun remove_watched :: \<open>'v twl_st_wl_init_full \<Rightarrow> 'v twl_st_wl_init\<close> where
-  \<open>remove_watched ((M, N, D, NE, UE, Q, _), OC) = ((M, N, D, NE, UE, Q), OC)\<close>
+  \<open>remove_watched ((M, N, D, NE, UE, NS, US, Q, _), OC) = ((M, N, D, NE, UE, NS, US, Q), OC)\<close>
 
 
 definition init_dt_wl' :: \<open>'v clause_l list \<Rightarrow> 'v twl_st_wl_init \<Rightarrow> 'v twl_st_wl_init_full nres\<close> where

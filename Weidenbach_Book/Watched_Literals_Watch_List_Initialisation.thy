@@ -507,12 +507,13 @@ proof -
     \<open>get_conflict_l_init xa = None \<longrightarrow>
      literals_to_update_l_init xa = uminus `# lit_of `# mset (get_trail_l_init xa)\<close> and
     \<open>mset `# mset CS + mset `# ran_mf (get_clauses_l_init x) + other_clauses_l_init x +
-     get_unit_clauses_l_init x =
+     get_unit_clauses_l_init x + get_subsumed_init_clauses_l_init x =
      mset `# ran_mf (get_clauses_l_init xa) + other_clauses_l_init xa +
-     get_unit_clauses_l_init xa\<close> and
+     get_unit_clauses_l_init xa + get_subsumed_init_clauses_l_init xa\<close> and
     \<open>learned_clss_lf (get_clauses_l_init x) =
      learned_clss_lf (get_clauses_l_init xa)\<close> and
     \<open>get_learned_unit_clauses_l_init xa = get_learned_unit_clauses_l_init x\<close> and
+    \<open>get_subsumed_learned_clauses_l_init xa = get_subsumed_learned_clauses_l_init x\<close>
     \<open>twl_list_invs (fst xa)\<close> and
     \<open>twl_stgy_invs (fst xb)\<close> and
     \<open>other_clauses_l_init xa \<noteq> {#} \<longrightarrow> get_conflict_l_init xa \<noteq> None\<close> and

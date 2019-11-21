@@ -34,6 +34,9 @@ fun get_subsumed_init_clauses_init :: \<open>'v twl_st_init \<Rightarrow> 'v cla
 fun get_subsumed_learned_clauses_init :: \<open>'v twl_st_init \<Rightarrow> 'v clauses\<close> where
   \<open>get_subsumed_learned_clauses_init ((_, _, _, _, _, _, NS, US, _, _), _) = US\<close>
 
+fun get_subsumed_clauses_init :: \<open>'v twl_st_init \<Rightarrow> 'v clauses\<close> where
+  \<open>get_subsumed_clauses_init ((_, _, _, _, _, _, NS, US, _, _), _) = NS + US\<close>
+
 fun clauses_to_update_init :: \<open>'v twl_st_init \<Rightarrow> ('v literal \<times> 'v twl_cls) multiset\<close> where
   \<open>clauses_to_update_init ((_, _, _, _, _, _, _, _, WS, _), _) = WS\<close>
 
@@ -95,10 +98,13 @@ fun state\<^sub>W_of_init :: "'v twl_st_init \<Rightarrow> 'v cdcl\<^sub>W_resta
   (M, clause `# N + NE + NS + OC, clause `# U + UE + US, C)"
 
 fun get_subsumed_init_clauses_l_init :: \<open>'v twl_st_l_init \<Rightarrow> 'v clauses\<close> where
-  \<open>get_subsumed_init_clauses_l_init ((_, _, _, _, NS, US, _, _), _) = NS\<close>
+  \<open>get_subsumed_init_clauses_l_init ((_, _, _, _, _, NS, US, _, _), _) = NS\<close>
 
 fun get_subsumed_learned_clauses_l_init :: \<open>'v twl_st_l_init \<Rightarrow> 'v clauses\<close> where
   \<open>get_subsumed_learned_clauses_l_init ((M, N, D, NE, UE, NS, US, WS, Q), _) = US\<close>
+
+fun get_subsumed_clauses_l_init :: \<open>'v twl_st_l_init \<Rightarrow> 'v clauses\<close> where
+  \<open>get_subsumed_clauses_l_init ((M, N, D, NE, UE, NS, US, WS, Q), _) = NS+US\<close>
 
 
 named_theorems twl_st_init \<open>Convertion for inital theorems\<close>
@@ -310,8 +316,6 @@ definition init_dt_step :: \<open>'v clause_l \<Rightarrow> 'v twl_st_l_init \<R
 definition init_dt :: \<open>'v clause_l list \<Rightarrow> 'v twl_st_l_init \<Rightarrow> 'v twl_st_l_init nres\<close> where
   \<open>init_dt CS S = nfoldli CS (\<lambda>_. True) init_dt_step S\<close>
 
-thm nfoldli.simps
-
 definition   init_dt_pre where
   \<open>init_dt_pre CS SOC \<longleftrightarrow>
     (\<exists>T. (SOC, T) \<in> twl_st_l_init \<and>
@@ -339,11 +343,12 @@ definition init_dt_spec where
            (get_conflict_l_init SOC' = None \<longrightarrow>
               literals_to_update_l_init SOC' = uminus `# lit_of `# mset (get_trail_l_init SOC')) \<and>
            (mset `# mset CS + mset `# ran_mf (get_clauses_l_init SOC) + other_clauses_l_init SOC +
-                 get_unit_clauses_l_init SOC =
+                 get_unit_clauses_l_init SOC + get_subsumed_init_clauses_l_init SOC =
             mset `# ran_mf (get_clauses_l_init SOC') + other_clauses_l_init SOC'  +
-                 get_unit_clauses_l_init SOC') \<and>
+                 get_unit_clauses_l_init SOC' + get_subsumed_init_clauses_l_init SOC') \<and>
            learned_clss_lf (get_clauses_l_init SOC) = learned_clss_lf (get_clauses_l_init SOC') \<and>
            get_learned_unit_clauses_l_init SOC' = get_learned_unit_clauses_l_init SOC \<and>
+           get_subsumed_learned_clauses_l_init SOC' = get_subsumed_learned_clauses_l_init SOC \<and>
            twl_list_invs (fst SOC') \<and>
            twl_stgy_invs (fst T') \<and>
            (other_clauses_l_init SOC' \<noteq> {#} \<longrightarrow> get_conflict_l_init SOC' \<noteq> None) \<and>
@@ -921,6 +926,8 @@ lemma [twl_st_l_init]:
   \<open>clauses_to_update_l_init (set_conflict_init_l C S) = {#}\<close>
   \<open>get_conflict_l_init (set_conflict_init_l C S) = Some (mset C)\<close>
   \<open>get_unit_clauses_l_init (set_conflict_init_l C S) = add_mset (mset C) (get_unit_clauses_l_init S)\<close>
+  \<open>get_subsumed_init_clauses_l_init (set_conflict_init_l C S) = get_subsumed_init_clauses_l_init S\<close>
+  \<open>get_subsumed_learned_clauses_l_init (set_conflict_init_l C S) = get_subsumed_learned_clauses_l_init S\<close>
   \<open>get_learned_unit_clauses_l_init (set_conflict_init_l C S) = get_learned_unit_clauses_l_init S\<close>
   \<open>get_clauses_l_init (set_conflict_init_l C S) = get_clauses_l_init S\<close>
   \<open>other_clauses_l_init (set_conflict_init_l C S) = other_clauses_l_init S\<close>
@@ -1004,7 +1011,7 @@ qed
 lemma [twl_st_init]:
   \<open>get_trail_init (add_empty_conflict_init T) = get_trail_init T\<close>
   \<open>get_conflict_init (add_empty_conflict_init T) = Some {#}\<close>
-  \<open> clauses_to_update_init (add_empty_conflict_init T) =  clauses_to_update_init T\<close>
+  \<open>clauses_to_update_init (add_empty_conflict_init T) =  clauses_to_update_init T\<close>
   \<open>literals_to_update_init (add_empty_conflict_init T) = {#}\<close>
   by (cases T; auto simp:; fail)+
 
@@ -1014,6 +1021,8 @@ lemma [twl_st_l_init]:
   \<open>clauses_to_update_l_init (add_empty_conflict_init_l T) =  clauses_to_update_l_init T\<close>
   \<open>literals_to_update_l_init (add_empty_conflict_init_l T) = {#}\<close>
   \<open>get_unit_clauses_l_init (add_empty_conflict_init_l T) = get_unit_clauses_l_init T\<close>
+  \<open>get_subsumed_init_clauses_l_init (add_empty_conflict_init_l T) = get_subsumed_init_clauses_l_init T\<close>
+  \<open>get_subsumed_learned_clauses_l_init (add_empty_conflict_init_l T) = get_subsumed_learned_clauses_l_init T\<close>
   \<open>get_learned_unit_clauses_l_init (add_empty_conflict_init_l T) = get_learned_unit_clauses_l_init T\<close>
   \<open>get_clauses_l_init (add_empty_conflict_init_l T) = get_clauses_l_init T\<close>
   \<open>other_clauses_l_init (add_empty_conflict_init_l T) = add_mset {#} (other_clauses_l_init T)\<close>
@@ -1384,9 +1393,11 @@ proof -
     \<open>get_conflict_l_init T = None \<longrightarrow>
      literals_to_update_l_init T = uminus `# lit_of `# mset (get_trail_l_init T)\<close> and
     clss: \<open>mset `# mset CS + mset `# ran_mf (get_clauses_l_init S) + other_clauses_l_init S +
-     get_unit_clauses_l_init S =
-     mset `# ran_mf (get_clauses_l_init T) + other_clauses_l_init T + get_unit_clauses_l_init T\<close> and
-    learned: \<open>learned_clss_lf (get_clauses_l_init S) = learned_clss_lf (get_clauses_l_init T)\<close> and
+     get_unit_clauses_l_init S + get_subsumed_init_clauses_l_init S =
+     mset `# ran_mf (get_clauses_l_init T) + other_clauses_l_init T + get_unit_clauses_l_init T +
+       get_subsumed_init_clauses_l_init T\<close> and
+    learned: \<open>learned_clss_lf (get_clauses_l_init S) = learned_clss_lf (get_clauses_l_init T)\<close>
+      \<open>get_subsumed_learned_clauses_l_init S = get_subsumed_learned_clauses_l_init T\<close> and
     unit_le: \<open>get_learned_unit_clauses_l_init T = get_learned_unit_clauses_l_init S\<close> and
     \<open>twl_list_invs (fst T)\<close> and
     \<open>twl_stgy_invs (fst T')\<close> and
@@ -1406,10 +1417,12 @@ proof -
     confl: \<open>get_conflict_l_init U = None \<longrightarrow>
      literals_to_update_l_init U = uminus `# lit_of `# mset (get_trail_l_init U)\<close> and
     clss': \<open>mset `# mset CS' + mset `# ran_mf (get_clauses_l_init T) + other_clauses_l_init T +
-     get_unit_clauses_l_init T =
-     mset `# ran_mf (get_clauses_l_init U) + other_clauses_l_init U + get_unit_clauses_l_init U\<close> and
+     get_unit_clauses_l_init T + get_subsumed_init_clauses_l_init T =
+     mset `# ran_mf (get_clauses_l_init U) + other_clauses_l_init U + get_unit_clauses_l_init U +
+     get_subsumed_init_clauses_l_init U\<close> and
     learned': \<open>learned_clss_lf (get_clauses_l_init T) = learned_clss_lf (get_clauses_l_init U)\<close> and
-    unit_le': \<open>get_learned_unit_clauses_l_init U = get_learned_unit_clauses_l_init T\<close> and
+    unit_le': \<open>get_learned_unit_clauses_l_init U = get_learned_unit_clauses_l_init T\<close>
+      \<open>get_subsumed_learned_clauses_l_init U = get_subsumed_learned_clauses_l_init T\<close> and
     list_invs: \<open>twl_list_invs (fst U)\<close> and
     stgy_invs: \<open>twl_stgy_invs (fst U')\<close> and
     oth: \<open>other_clauses_l_init U \<noteq> {#} \<longrightarrow> get_conflict_l_init U \<noteq> None\<close> and
@@ -1434,6 +1447,7 @@ proof -
           image_mset_union mset_append)
     subgoal using learned' learned by simp
     subgoal using unit_le unit_le' by simp
+    subgoal using unit_le' learned by auto
     subgoal using list_invs .
     subgoal using stgy_invs .
     subgoal using oth .
