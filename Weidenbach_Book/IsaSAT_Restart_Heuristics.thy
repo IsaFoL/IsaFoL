@@ -13,7 +13,19 @@ lemma all_init_atms_alt_def:
     dest: multi_member_split atm_of_lit_in_atms_of
     simp del: set_image_mset)
 
-lemma twl_st_heur_change_init_clauses:
+lemma in_set_all_init_atms_iff:
+  \<open>y \<in># all_init_atms bu bw \<longleftrightarrow>
+    y \<in> atms_of_mm (mset `# init_clss_lf bu) \<or> y \<in> atms_of_mm bw\<close>
+  by (auto simp: all_atms_def all_lits_def in_all_lits_of_mm_ain_atms_of_iff
+     atm_of_all_lits_of_mm all_init_atms_alt_def
+      simp: in_all_lits_of_mm_ain_atms_of_iff
+      all_lits_of_mm_def atms_of_ms_def image_UN
+      atms_of_def
+    dest!: multi_member_split[of \<open>(_, _)\<close> \<open>ran_m N\<close>]
+    dest: multi_member_split atm_of_lit_in_atms_of
+    simp del: set_image_mset)
+
+lemma twl_st_heur_change_subsumed_clauses:
   assumes \<open>((M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, heur,
        vdom, avdom, lcount, opts, old_arena),
      (M, N, D, NE, UE, NS, US, Q, W)) \<in> twl_st_heur\<close>
@@ -339,21 +351,51 @@ proof -
     done
   have H:
       \<open>set_mset (all_atms_st S) =
-           set_mset (all_init_atms_st S)\<close>
-      \<open>set_mset (all_atms (get_clauses_wl S) (get_unit_clauses_wl S + get_subsumed_init_clauses_wl S)) =
-           set_mset (all_init_atms_st S)\<close>
+           set_mset (all_init_atms_st S)\<close> (is ?A)
+      \<open>set_mset (all_atms_st S) =
+           set_mset (all_atms (get_clauses_wl S) (get_unit_clauses_wl S + get_subsumed_init_clauses_wl S))\<close>
+           (is ?B)
+      \<open>get_conflict_wl S = None\<close> (is ?C)
      if pre: \<open>restart_abs_wl_pre S False\<close>
        for S
   proof -
-    obtain T U where True
-      using pre unfolding restart_abs_wl_pre_def restart_abs_l_pre_def
-     sorry
-   show
-      \<open>set_mset (all_atms_st S) =
-           set_mset (all_init_atms_st S)\<close>
-      \<open>set_mset (all_atms (get_clauses_wl S) (get_unit_clauses_wl S + get_subsumed_init_clauses_wl S)) =
-           set_mset (all_init_atms_st S)\<close>
-      sorry
+    obtain T U where
+      ST: \<open>(S, T) \<in> state_wl_l None\<close> and
+      \<open>correct_watching S\<close> and
+      \<open>blits_in_\<L>\<^sub>i\<^sub>n S\<close> and
+      TU: \<open>(T, U) \<in> twl_st_l None\<close> and
+      struct: \<open>twl_struct_invs U\<close> and
+      \<open>twl_list_invs T\<close> and
+      \<open>clauses_to_update_l T = {#}\<close> and
+      \<open>twl_stgy_invs U\<close> and
+      confl: \<open>get_conflict U = None\<close>
+      using pre unfolding restart_abs_wl_pre_def restart_abs_l_pre_def restart_prog_pre_def apply -
+      by blast
+
+   show ?C
+     using ST TU confl by auto
+
+   have alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of U)\<close>
+     using struct unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+     by fast+
+   then show ?A and ?B
+      subgoal
+        using ST TU unfolding set_eq_iff in_set_all_atms_iff
+          in_set_all_atms_iff in_set_all_init_atms_iff get_unit_clauses_wl_alt_def
+        apply (subst all_clss_lf_ran_m[symmetric])
+        unfolding image_mset_union
+        apply (auto simp: cdcl\<^sub>W_restart_mset.no_strange_atm_def twl_st twl_st_l in_set_all_atms_iff
+          in_set_all_init_atms_iff)
+        done
+      subgoal
+        using ST TU alien unfolding set_eq_iff in_set_all_atms_iff
+          in_set_all_atms_iff in_set_all_init_atms_iff get_unit_clauses_wl_alt_def
+        apply (subst all_clss_lf_ran_m[symmetric])
+        apply (subst all_clss_lf_ran_m[symmetric])
+        unfolding image_mset_union
+        by (auto simp: cdcl\<^sub>W_restart_mset.no_strange_atm_def twl_st twl_st_l in_set_all_atms_iff
+          in_set_all_init_atms_iff)
+     done
   qed
   have P: \<open>P\<close>
     if
@@ -466,31 +508,35 @@ proof -
     apply assumption
     subgoal by (auto simp: twl_st_heur_def count_decided_st_heur_def trail_pol_def)
     subgoal
-      apply (drule H)
-      unfolding twl_st_heur_def
-      apply (simp only: mem_Collect_eq prod.case get_clauses_wl.simps get_unit_init_clss_wl.simps
-        get_subsumed_init_clauses_wl.simps get_unit_clauses_wl.simps
-        get_subsumed_learned_clauses_wl.simps empty_neutral)
-        apply (subst (asm) trail_pol_cong)
-        sorry
+      by (drule H(2)) (simp add: twl_st_heur_change_subsumed_clauses)
 
     apply (rule P)
     apply assumption+
       apply (rule refine_generalise1)
       apply assumption
-    subgoal for a aa ab ac ad b ae af ag ba ah ai aj ak al am bb an bc ao ap aq bd ar as at
-       au av aw be ax ay az bf bg bh bi bj bk bl bm bn bo bp bq br bs bt bu bv
-       bw bx "by" bz lvl i vm0
+    subgoal for a aa ab ac ad b ae af ag ba ah ai aj ak al am bb an bc ao ap aq bd ar
+       as at au av aw ax ay az be bf bg bh bi bj bk bl bm bn bo bp bq br bs
+       bt bu bv bw bx "by" bz ca cb cc cd ce cf cg ch ci lvl i vm0
       unfolding RETURN_def RES_RES2_RETURN_RES RES_RES13_RETURN_RES find_decomp_w_ns_def conc_fun_RES
         RES_RES13_RETURN_RES K K2
-	apply (auto simp: intro_spec_iff intro!: ASSERT_leI isa_length_trail_pre dest!: H)
-	apply (auto simp: isa_length_trail_length_u[THEN fref_to_Down_unRET_Id]
-	  intro: isa_vmtfI trail_pol_no_dup)
+      apply (auto simp: intro_spec_iff intro!: ASSERT_leI isa_length_trail_pre)
+      apply (auto simp: isa_length_trail_length_u[THEN fref_to_Down_unRET_Id]
+        intro: isa_vmtfI trail_pol_no_dup)
+      apply (frule twl_st_heur_change_subsumed_clauses[where US' = \<open>{#}\<close> and NS' = cf])
+      apply (solves \<open>auto dest: H(2)\<close>)[]
+      apply (frule H(2))
+      apply (frule H(3))
 	apply (clarsimp simp: twl_st_heur_def)
 	apply (rule_tac x=aja in exI)
-(*	apply (auto simp: isa_length_trail_length_u[THEN fref_to_Down_unRET_Id] trail_pol_cong
-	  intro: isa_vmtfI trail_pol_no_dup)*)
-	sorry
+	apply (auto simp: isa_length_trail_length_u[THEN fref_to_Down_unRET_Id]
+	  intro: isa_vmtfI trail_pol_no_dup)
+      apply (rule trail_pol_cong)
+      apply assumption
+      apply fast
+      apply (rule isa_vmtf_cong)
+      apply assumption
+      apply (fast intro: isa_vmtfI)
+      done
     done
 qed
 
@@ -1434,7 +1480,7 @@ proof -
           }
         })
         (l, S, xs);
-      RETURN S
+      remove_all_learned_subsumed_clauses_wl S
     })\<close>
     unfolding mark_to_delete_clauses_wl_def reorder_vdom_wl_def bind_to_let_conv Let_def
     by (force intro!: ext)
@@ -1742,13 +1788,27 @@ proof -
   subgoal using that by (auto dest!: twl_st_heur_restart_anaD twl_st_heur_restart_valid_arena simp: arena_lifting)
   done
 
-  have [refine0]: \<open>mark_clauses_as_unused_wl_D_heur i T
-    \<le> SPEC
-       (\<lambda>x. incr_restart_stat x \<le> SPEC (\<lambda>c. (c, S) \<in> twl_st_heur_restart_ana r))\<close>
+  have incr_restart_stat: \<open>incr_restart_stat T
+    \<le> \<Down> (twl_st_heur_restart_ana r) (remove_all_learned_subsumed_clauses_wl S)\<close>
     if \<open>(T, S) \<in> twl_st_heur_restart_ana r\<close> for S T i
-    by (rule order_trans, rule mark_clauses_as_unused_wl_D_heur[OF that, of i])
+    using that
+    by (cases S; cases T)
       (auto simp: conc_fun_RES incr_restart_stat_def
-        twl_st_heur_restart_ana_def twl_st_heur_restart_def)
+        twl_st_heur_restart_ana_def twl_st_heur_restart_def
+        remove_all_learned_subsumed_clauses_wl_def
+        RES_RETURN_RES)
+
+  have [refine0]: \<open>mark_clauses_as_unused_wl_D_heur i T\<bind> incr_restart_stat
+    \<le> \<Down> (twl_st_heur_restart_ana r)
+       (remove_all_learned_subsumed_clauses_wl S)\<close>
+    if \<open>(T, S) \<in> twl_st_heur_restart_ana r\<close> for S T i
+    apply (cases S)
+    apply (rule bind_refine_res[where R = Id, simplified])
+    defer
+    apply (rule mark_clauses_as_unused_wl_D_heur[unfolded conc_fun_RES, OF that, of i])
+    apply (rule incr_restart_stat[THEN order_trans, of _ S])
+    by auto
+
   show ?thesis
     supply sort_vdom_heur_def[simp] twl_st_heur_restart_anaD[dest] [[goals_limit=1]]
     unfolding mark_to_delete_clauses_wl_D_heur_alt_def mark_to_delete_clauses_wl_D_alt_def
