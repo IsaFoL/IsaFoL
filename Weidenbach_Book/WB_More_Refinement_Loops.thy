@@ -875,6 +875,19 @@ lemma RES_RES7_RETURN_RES:
   by (auto simp:  pw_eq_iff refine_pw_simps uncurry_def Bex_def
     split: prod.splits)
 
+
+lemma RES_RES8_RETURN_RES:
+   \<open>RES A \<bind> (\<lambda>(a, b, c, d, e, g, h, i). RES (f a b c d e g h i)) =
+   RES (\<Union>((\<lambda>(a, b, c, d, e, g, h, i). f a b c d e g h i) ` A))\<close>
+  by (auto simp:  pw_eq_iff refine_pw_simps uncurry_def Bex_def
+    split: prod.splits)
+
+lemma RES_RES9_RETURN_RES:
+   \<open>RES A \<bind> (\<lambda>(a, b, c, d, e, g, h, i, j). RES (f a b c d e g h i j)) =
+   RES (\<Union>((\<lambda>(a, b, c, d, e, g, h, i, j). f a b c d e g h i j) ` A))\<close>
+  by (auto simp:  pw_eq_iff refine_pw_simps uncurry_def Bex_def
+    split: prod.splits)
+
 lemma fold_eq_nfoldli:
   "RETURN (fold f l s) = nfoldli l (\<lambda>_. True) (\<lambda>x s. RETURN (f x s)) s"
   by (induction l arbitrary: s) auto

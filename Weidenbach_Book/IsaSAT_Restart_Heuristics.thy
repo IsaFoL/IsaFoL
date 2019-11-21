@@ -13,6 +13,28 @@ lemma all_init_atms_alt_def:
     dest: multi_member_split atm_of_lit_in_atms_of
     simp del: set_image_mset)
 
+lemma twl_st_heur_change_init_clauses:
+  assumes \<open>((M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, heur,
+       vdom, avdom, lcount, opts, old_arena),
+     (M, N, D, NE, UE, NS, US, Q, W)) \<in> twl_st_heur\<close>
+    \<open>set_mset (all_atms N ((NE+UE)+(NS+US))) = set_mset (all_atms N ((NE+UE)+(NS'+US')))\<close>
+  shows \<open>((M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, heur,
+       vdom, avdom, lcount, opts, old_arena),
+     (M, N, D, NE, UE, NS', US', Q, W)) \<in> twl_st_heur\<close>
+proof -
+  note cong =  trail_pol_cong
+      option_lookup_clause_rel_cong D\<^sub>0_cong isa_vmtf_cong phase_saving_cong
+      cach_refinement_empty_cong vdom_m_cong isasat_input_nempty_cong
+      isasat_input_bounded_cong
+  show ?thesis
+    using cong[OF assms(2)] assms(1)
+    apply (auto simp add: twl_st_heur_def)
+    apply fastforce
+    apply force
+    done
+qed
+
+
 text \<open>
   This is a list of comments (how does it work for glucose and cadical) to prepare the future
   refinement:
@@ -3865,8 +3887,9 @@ proof
       unit_propagation_outer_loop_wl_inv_def
     by auto
   then have dist: \<open>distinct_watched (watched_by x1 x2)\<close>
-    using x2 unfolding all_init_atms_def all_init_lits_def
-    by (cases x1; auto simp: \<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_all_lits_of_mm correct_watching''.simps)
+    using x2
+    by (cases x1; auto simp: \<L>\<^sub>a\<^sub>l\<^sub>l_all_init_atms correct_watching''.simps
+      simp flip: all_init_lits_def all_init_lits_alt_def)
   then have dist: \<open>distinct_watched (watched_by x1 x2)\<close>
     using xb_x'a
     by (cases x1; auto simp: \<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_all_lits_of_mm correct_watching.simps)
@@ -3915,54 +3938,54 @@ lemma isasat_GC_clauses_prog_wl:
   (is \<open>_ \<in> ?T \<rightarrow>\<^sub>f _\<close>)
 proof-
   have [refine0]: \<open>\<And>x1 x1a x1b x1c x1d x1e x2e x1f x1g x1h x1i x1j x1m x1n x1o x1p x2n x2o x1q
-       x1r x1s x1t x1u x1v x1w x1x x1y x1z x1aa x1ab x2ab.
+       x1r x1s x1t x1u x1v x1w x1x x1y x1z x1aa x1ab x2ab NS US.
        ((x1f, x1g, x1h, x1i, x1j, ((x1m, x1n, x1o, x1p, x2n), x2o), x1q, x1r,
          x1s, x1t, x1w, x1x, x1y, x1z, x1aa, x1ab, x2ab),
-        x1, x1a, x1b, x1c, x1d, x1e, x2e)
+        x1, x1a, x1b, x1c, x1d, NS, US, x1e, x2e)
        \<in> ?T \<Longrightarrow>
        valid_arena x1g x1a (set x1z)\<close>
      unfolding twl_st_heur_restart_def
      by auto
   have [refine0]: \<open>\<And>x1 x1a x1b x1c x1d x1e x2e x1f x1g x1h x1i x1j x1m x1n x1o x1p x2n x2o x1q
-       x1r x1s x1t x1u x1v x1w x1x x1y x1z x1aa x1ab x2ab.
+       x1r x1s x1t x1u x1v x1w x1x x1y x1z x1aa x1ab x2ab NS US.
        ((x1f, x1g, x1h, x1i, x1j, ((x1m, x1n, x1o, x1p, x2n), x2o), x1q, x1r,
          x1s, x1t, x1w, x1x, x1y, x1z, x1aa, x1ab, x2ab),
-        x1, x1a, x1b, x1c, x1d, x1e, x2e)
+        x1, x1a, x1b, x1c, x1d, NS, US, x1e, x2e)
        \<in> ?T \<Longrightarrow>
-       isasat_input_bounded (all_init_atms x1a x1c)\<close>
+       isasat_input_bounded (all_init_atms x1a (x1c + NS))\<close>
      unfolding twl_st_heur_restart_def
      by auto
   have [refine0]: \<open>\<And>x1 x1a x1b x1c x1d x1e x2e x1f x1g x1h x1i x1j x1m x1n x1o x1p x2n x2o x1q
-       x1r x1s x1t x1u x1v x1w x1x x1y x1z x1aa x1ab x2ab.
+       x1r x1s x1t x1u x1v x1w x1x x1y x1z x1aa x1ab x2ab NS US.
        ((x1f, x1g, x1h, x1i, x1j, ((x1m, x1n, x1o, x1p, x2n), x2o), x1q, x1r,
          x1s, x1t, x1w, x1x, x1y, x1z, x1aa, x1ab, x2ab),
-        x1, x1a, x1b, x1c, x1d, x1e, x2e)
+        x1, x1a, x1b, x1c, x1d, NS, US, x1e, x2e)
        \<in> ?T \<Longrightarrow>
-       vdom_m (all_init_atms x1a x1c) x2e x1a \<subseteq> set x1z\<close>
+       vdom_m (all_init_atms x1a (x1c+NS)) x2e x1a \<subseteq> set x1z\<close>
      unfolding twl_st_heur_restart_def
      by auto
   have [refine0]: \<open>\<And>x1 x1a x1b x1c x1d x1e x2e x1f x1g x1h x1i x1j x1m x1n x1o x1p x2n x2o x1q
-       x1r x1s x1t x1u x1v x1w x1x x1y x1z x1aa x1ab x2ab.
+       x1r x1s x1t x1u x1v x1w x1x x1y x1z x1aa x1ab x2ab NS US.
        ((x1f, x1g, x1h, x1i, x1j, ((x1m, x1n, x1o, x1p, x2n), x2o), x1q, x1r,
          x1s, x1t, x1w, x1x, x1y, x1z, x1aa, x1ab, x2ab),
-        x1, x1a, x1b, x1c, x1d, x1e, x2e)
+        x1, x1a, x1b, x1c, x1d, NS, US, x1e, x2e)
        \<in> ?T \<Longrightarrow>
-       all_init_atms x1a x1c \<noteq> {#}\<close>
+       all_init_atms x1a (x1c+NS) \<noteq> {#}\<close>
      unfolding twl_st_heur_restart_def
      by auto
   have [refine0]: \<open>\<And>x1 x1a x1b x1c x1d x1e x2e x1f x1g x1h x1i x1j x1m x1n x1o x1p x2n x2o x1q
-       x1r x1s x1t x1u x1v x1w x1x x1y x1z x1aa x1ab x2ab.
+       x1r x1s x1t x1u x1v x1w x1x x1y x1z x1aa x1ab x2ab NS US.
        ((x1f, x1g, x1h, x1i, x1j, ((x1m, x1n, x1o, x1p, x2n), x2o), x1q, x1r,
          x1s, x1t, x1w, x1x, x1y, x1z, x1aa, x1ab, x2ab),
-        x1, x1a, x1b, x1c, x1d, x1e, x2e)
+        x1, x1a, x1b, x1c, x1d, NS, US, x1e, x2e)
        \<in> ?T \<Longrightarrow>
-       ((x1m, x1n, x1o, x1p, x2n), set (fst x2o)) \<in> vmtf (all_init_atms x1a x1c) x1\<close>
+       ((x1m, x1n, x1o, x1p, x2n), set (fst x2o)) \<in> vmtf (all_init_atms x1a (x1c+NS)) x1\<close>
        \<open>\<And>x1 x1a x1b x1c x1d x1e x2e x1f x1g x1h x1i x1j x1m x1n x1o x1p x2n x2o x1q
-       x1r x1s x1t x1u x1v x1w x1x x1y x1z x1aa x1ab x2ab.
+       x1r x1s x1t x1u x1v x1w x1x x1y x1z x1aa x1ab x2ab NS US.
        ((x1f, x1g, x1h, x1i, x1j, ((x1m, x1n, x1o, x1p, x2n), x2o), x1q, x1r,
          x1s, x1t, x1w, x1x, x1y, x1z, x1aa, x1ab, x2ab),
-        x1, x1a, x1b, x1c, x1d, x1e, x2e)
-       \<in> ?T \<Longrightarrow> (x1j, x2e) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 (all_init_atms x1a x1c))\<close>
+        x1, x1a, x1b, x1c, x1d, NS, US, x1e, x2e)
+       \<in> ?T \<Longrightarrow> (x1j, x2e) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 (all_init_atms x1a (x1c+NS)))\<close>
      unfolding twl_st_heur_restart_def isa_vmtf_def distinct_atoms_rel_def distinct_hash_atoms_rel_def
      by auto
   have H: \<open>vdom_m (all_init_atms x1a x1c) x2ad x1ad \<subseteq> set x2af\<close>
@@ -4009,16 +4032,23 @@ proof-
 qed
 
 definition cdcl_remap_st :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
-\<open>cdcl_remap_st = (\<lambda>(M, N0, D, NE, UE, Q, WS).
-  SPEC (\<lambda>(M', N', D', NE', UE', Q', WS'). (M', D', NE', UE', Q') = (M, D, NE, UE, Q) \<and>
+\<open>cdcl_remap_st = (\<lambda>(M, N0, D, NE, UE, NS, US, Q, WS).
+  SPEC (\<lambda>(M', N', D', NE', UE', NS', US', Q', WS').
+         (M', D', NE', UE', NS', US', Q') = (M, D, NE, UE, NS, US, Q) \<and>
          (\<exists>m. GC_remap\<^sup>*\<^sup>* (N0, (\<lambda>_. None), fmempty) (fmempty, m, N')) \<and>
          0 \<notin># dom_m N'))\<close>
 
 definition rewatch_spec :: \<open>nat twl_st_wl \<Rightarrow> nat twl_st_wl nres\<close> where
-\<open>rewatch_spec = (\<lambda>(M, N, D, NE, UE, Q, WS).
-  SPEC (\<lambda>(M', N', D', NE', UE', Q', WS'). (M', N', D', NE', UE', Q') = (M, N, D, NE, UE, Q) \<and>
-     correct_watching' (M, N', D, NE, UE, Q', WS') \<and>
-     literals_are_\<L>\<^sub>i\<^sub>n' (M, N', D, NE, UE, Q', WS')))\<close>
+\<open>rewatch_spec = (\<lambda>(M, N, D, NE, UE, NS, US, Q, WS).
+  SPEC (\<lambda>(M', N', D', NE', UE', NS', US', Q', WS').
+     (M', N', D', NE', UE', NS', US', Q') = (M, N, D, NE, UE, NS, {#}, Q) \<and>
+     correct_watching' (M, N', D, NE, UE, NS', US, Q', WS') \<and>
+     literals_are_\<L>\<^sub>i\<^sub>n' (M, N', D, NE, UE, NS', US, Q', WS')))\<close>
+
+lemma blits_in_\<L>\<^sub>i\<^sub>n'_restart_wl_spec0':
+  \<open>literals_are_\<L>\<^sub>i\<^sub>n' (a, aq, ab, ac, ad, ae, af, Q, b) \<Longrightarrow>
+       literals_are_\<L>\<^sub>i\<^sub>n' (a, aq, ab, ac, ad, ae, af, {#}, b)\<close>
+  by (auto simp: literals_are_\<L>\<^sub>i\<^sub>n'_empty blits_in_\<L>\<^sub>i\<^sub>n'_restart_wl_spec0)
 
 lemma cdcl_GC_clauses_wl_D_alt_def:
   \<open>cdcl_GC_clauses_wl = (\<lambda>S. do {
@@ -4029,14 +4059,15 @@ lemma cdcl_GC_clauses_wl_D_alt_def:
       S \<leftarrow> rewatch_spec S;
       RETURN S
     }
-    else RETURN S})\<close>
+    else remove_all_learned_subsumed_clauses_wl S})\<close>
   supply [[goals_limit=1]]
   unfolding cdcl_GC_clauses_wl_def
   by (fastforce intro!: ext simp: RES_RES_RETURN_RES2 cdcl_remap_st_def
-      RES_RES7_RETURN_RES uncurry_def image_iff cdcl_remap_st_def
+      RES_RES9_RETURN_RES uncurry_def image_iff cdcl_remap_st_def
       RES_RETURN_RES_RES2 RES_RETURN_RES RES_RES2_RETURN_RES rewatch_spec_def
-      rewatch_spec_def
-    intro!: bind_cong_nres)
+      rewatch_spec_def remove_all_learned_subsumed_clauses_wl_def
+      literals_are_\<L>\<^sub>i\<^sub>n'_empty blits_in_\<L>\<^sub>i\<^sub>n'_restart_wl_spec0'
+    intro!: bind_cong_nres intro: literals_are_\<L>\<^sub>i\<^sub>n'_empty(4))
 
 definition isasat_GC_clauses_pre_wl_D :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close> where
 \<open>isasat_GC_clauses_pre_wl_D S \<longleftrightarrow> (
@@ -4062,26 +4093,28 @@ lemma cdcl_GC_clauses_prog_wl2_st:
   assumes \<open>(T, S) \<in> state_wl_l None\<close>
   \<open>correct_watching'' T \<and> cdcl_GC_clauses_pre S \<and>
    set_mset (dom_m (get_clauses_wl T)) \<subseteq> clauses_pointed_to
-      (Neg ` set_mset (all_init_atms (get_clauses_wl T) (get_unit_init_clss_wl T)) \<union>
-       Pos ` set_mset (all_init_atms (get_clauses_wl T) (get_unit_init_clss_wl T)))
+      (Neg ` set_mset (all_init_atms_st T) \<union>
+       Pos ` set_mset (all_init_atms_st T))
        (get_watched_wl T) \<and>
     literals_are_\<L>\<^sub>i\<^sub>n' T\<close> and
     \<open>get_clauses_wl T = N0'\<close>
   shows
     \<open>cdcl_GC_clauses_prog_wl T \<le>
-       \<Down> {((M', N'', D', NE', UE', Q', WS'), (N, N')).
-       (M', D', NE', UE', Q') = (get_trail_wl T, get_conflict_wl T, get_unit_init_clss_wl T,
-           get_unit_learned_clss_wl T, literals_to_update_wl T) \<and> N'' = N \<and>
-           (\<forall>L\<in>#all_init_lits (get_clauses_wl T) (get_unit_init_clss_wl T). WS' L = []) \<and>
-           all_init_lits (get_clauses_wl T) (get_unit_init_clss_wl T) = all_init_lits N NE' \<and>
+       \<Down> {((M', N'', D', NE', UE', NS', US', Q', WS'), (N, N')).
+       (M', D', NE', UE', NS', US', Q') = (get_trail_wl T, get_conflict_wl T, get_unit_init_clss_wl T,
+           get_unit_learned_clss_wl T, get_subsumed_init_clauses_wl T, get_subsumed_learned_clauses_wl T,
+           literals_to_update_wl T) \<and> N'' = N \<and>
+           (\<forall>L\<in>#all_init_lits_st T. WS' L = []) \<and>
+           all_init_lits_st T = all_init_lits N (NE'+NS') \<and>
            (\<exists>m. GC_remap\<^sup>*\<^sup>* (get_clauses_wl T, Map.empty, fmempty)
                (fmempty, m, N))}
       (SPEC(\<lambda>(N'::(nat, 'a literal list \<times> bool) fmap, m).
          GC_remap\<^sup>*\<^sup>* (N0', (\<lambda>_. None), fmempty) (fmempty, m, N') \<and>
 	  0 \<notin># dom_m N'))\<close>
    using cdcl_GC_clauses_prog_wl2[of \<open>get_trail_wl T\<close> \<open>get_clauses_wl T\<close> \<open>get_conflict_wl T\<close>
-     \<open>get_unit_init_clss_wl T\<close> \<open>get_unit_learned_clss_wl T\<close> \<open>literals_to_update_wl T\<close>
-     \<open>get_watched_wl T\<close> S] assms
+     \<open>get_unit_init_clss_wl T\<close> \<open>get_unit_learned_clss_wl T\<close> \<open>get_subsumed_init_clauses_wl T\<close>
+     \<open>get_subsumed_learned_clauses_wl T\<close> \<open>literals_to_update_wl T\<close>
+     \<open>get_watched_wl T\<close> S N0'] assms
    by (cases T) auto
 
 lemma correct_watching''_clauses_pointed_to:
@@ -4094,18 +4127,18 @@ lemma correct_watching''_clauses_pointed_to:
          \<subseteq> clauses_pointed_to
             (Neg `
              set_mset
-              (all_init_atms (get_clauses_wl xa) (get_unit_init_clss_wl xa)) \<union>
+              (all_init_atms_st xa) \<union>
              Pos `
              set_mset
-              (all_init_atms (get_clauses_wl xa) (get_unit_init_clss_wl xa)))
+              (all_init_atms_st xa))
             (get_watched_wl xa)\<close>
         (is \<open>_ \<subseteq> ?A\<close>)
 proof
   let ?\<A> = \<open>all_init_atms (get_clauses_wl xa) (get_unit_init_clss_wl xa)\<close>
   fix C
   assume C: \<open>C \<in># dom_m (get_clauses_wl xa)\<close>
-  obtain M N D NE UE Q W where
-    xa: \<open>xa = (M, N, D, NE, UE, Q, W)\<close>
+  obtain M N D NE UE NS US Q W where
+    xa: \<open>xa = (M, N, D, NE, UE, NS, US, Q, W)\<close>
     by (cases xa)
   obtain x where
     xb_x: \<open>(xb, x) \<in> twl_st_l None\<close> and
@@ -4135,7 +4168,7 @@ proof
         simp: all_init_atms_def xa \<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_all_lits_of_mm[symmetric]
           all_init_lits_def)
 
-  have H: \<open>get_clauses_wl xa \<propto> C ! 0 \<in># all_lits_of_mm (mset `# init_clss_lf (get_clauses_wl xa) + get_unit_init_clss_wl xa)\<close>
+  have H: \<open>get_clauses_wl xa \<propto> C ! 0 \<in># all_init_lits_st xa\<close>
     using L C le0 apply -
     unfolding all_init_atms_def[symmetric] all_init_lits_def[symmetric]
     apply (subst literals_are_\<L>\<^sub>i\<^sub>n'_literals_are_\<L>\<^sub>i\<^sub>n_iff(4)[OF xa_xb xb_x struct_invs])
@@ -4150,7 +4183,9 @@ proof
            add_mset C {#Ca \<in># remove1_mset C (dom_m N). N \<propto> C ! 0 \<in> set (watched_l (N \<propto> Ca))#}\<close>
       using corr H C le unfolding xa
       by (auto simp: clauses_pointed_to_def correct_watching''.simps xa
-        simp: all_init_atms_def all_init_lits_def clause_to_update_def
+        simp flip: all_init_atms_def all_init_lits_def all_init_atms_alt_def
+          all_init_lits_alt_def
+        simp: clause_to_update_def
         simp del: all_init_atms_def[symmetric]
         dest!: multi_member_split)
     from arg_cong[OF this, of set_mset] have \<open>C \<in> fst ` set (W (N \<propto> C ! 0))\<close>
@@ -4162,19 +4197,22 @@ proof
   ultimately show \<open>C \<in> ?A\<close>
     by (cases \<open>N \<propto> C ! 0\<close>)
       (auto simp: clauses_pointed_to_def correct_watching''.simps xa
-      simp: all_init_atms_def all_init_lits_def clause_to_update_def
-      simp del: all_init_atms_def[symmetric]
+        simp flip: all_init_lits_def all_init_atms_alt_def
+          all_init_lits_alt_def
+        simp: clause_to_update_def all_init_atms_def
+        simp del: all_init_atms_def[symmetric]
       dest!: multi_member_split)
 qed
 
 abbreviation isasat_GC_clauses_rel where
   \<open>isasat_GC_clauses_rel y \<equiv> {(S, T). (S, T) \<in> twl_st_heur_restart \<and>
-           (\<forall>L\<in>#all_init_lits (get_clauses_wl y) (get_unit_init_clss_wl y). get_watched_wl T L = [])\<and>
-           all_init_lits_st y = all_init_lits (get_clauses_wl y) (get_unit_init_clss_wl y) \<and>
+           (\<forall>L\<in>#all_init_lits_st y. get_watched_wl T L = [])\<and>
            get_trail_wl T = get_trail_wl y \<and>
            get_conflict_wl T = get_conflict_wl y \<and>
            get_unit_init_clss_wl T = get_unit_init_clss_wl y \<and>
            get_unit_learned_clss_wl T = get_unit_learned_clss_wl y \<and>
+           get_subsumed_init_clauses_wl T = get_subsumed_init_clauses_wl y \<and>
+           get_subsumed_learned_clauses_wl T = get_subsumed_learned_clauses_wl y \<and>
            (\<exists>m. GC_remap\<^sup>*\<^sup>* (get_clauses_wl y, (\<lambda>_. None), fmempty) (fmempty, m, get_clauses_wl T)) \<and>
            arena_is_packed (get_clauses_wl_heur S) (get_clauses_wl T)}\<close>
 
@@ -4192,11 +4230,12 @@ proof -
   have H: \<open>isasat_GC_clauses_rel y =
     {(S, T). (S, T) \<in> twl_st_heur_restart \<and> arena_is_packed (get_clauses_wl_heur S) (get_clauses_wl T)} O
     {(S, T). S = T \<and> (\<forall>L\<in>#all_init_lits_st y. get_watched_wl T L = [])\<and>
-           all_init_lits_st y = all_init_lits (get_clauses_wl y) (get_unit_init_clss_wl y) \<and>
            get_trail_wl T = get_trail_wl y \<and>
            get_conflict_wl T = get_conflict_wl y \<and>
            get_unit_init_clss_wl T = get_unit_init_clss_wl y \<and>
            get_unit_learned_clss_wl T = get_unit_learned_clss_wl y \<and>
+           get_subsumed_init_clauses_wl T = get_subsumed_init_clauses_wl y \<and>
+           get_subsumed_learned_clauses_wl T = get_subsumed_learned_clauses_wl y \<and>
            (\<exists>m. GC_remap\<^sup>*\<^sup>* (get_clauses_wl y, (\<lambda>_. None), fmempty) (fmempty, m, get_clauses_wl T))}\<close>
     by blast
   show ?thesis
@@ -4219,24 +4258,24 @@ proof -
 qed
 
 fun correct_watching''' :: \<open>_ \<Rightarrow> 'v twl_st_wl \<Rightarrow> bool\<close> where
-  \<open>correct_watching''' \<A> (M, N, D, NE, UE, Q, W) \<longleftrightarrow>
+  \<open>correct_watching''' \<A> (M, N, D, NE, UE, NS, US, Q, W) \<longleftrightarrow>
     (\<forall>L \<in># all_lits_of_mm \<A>.
        distinct_watched (W L) \<and>
        (\<forall>(i, K, b)\<in>#mset (W L).
              i \<in># dom_m N \<and> K \<in> set (N \<propto> i) \<and> K \<noteq> L \<and>
              correctly_marked_as_binary N (i, K, b)) \<and>
-        fst `# mset (W L) = clause_to_update L (M, N, D, NE, UE, {#}, {#}))\<close>
+        fst `# mset (W L) = clause_to_update L (M, N, D, NE, UE, NS, US, {#}, {#}))\<close>
 
 declare correct_watching'''.simps[simp del]
 
 lemma correct_watching'''_add_clause:
   assumes
-    corr: \<open>correct_watching''' \<A> ((a, aa, CD, ac, ad, Q, b))\<close> and
+    corr: \<open>correct_watching''' \<A> ((a, aa, CD, ac, ad, NS, US, Q, b))\<close> and
     leC: \<open>2 \<le> length C\<close> and
     i_notin[simp]: \<open>i \<notin># dom_m aa\<close> and
     dist[iff]: \<open>C ! 0 \<noteq> C ! Suc 0\<close>
   shows \<open>correct_watching''' \<A>
-          ((a, fmupd i (C, red) aa, CD, ac, ad, Q, b
+          ((a, fmupd i (C, red) aa, CD, ac, ad, NS, US, Q, b
             (C ! 0 := b (C ! 0) @ [(i, C ! Suc 0, length C = 2)],
              C ! Suc 0 := b (C ! Suc 0) @ [(i, C ! 0, length C = 2)])))\<close>
 proof -
@@ -4266,17 +4305,17 @@ lemma rewatch_correctness:
     H[dest]: \<open>\<And>x. x \<in># dom_m N \<Longrightarrow> distinct (N \<propto> x) \<and> length (N \<propto> x) \<ge> 2\<close> and
     incl: \<open>set_mset (all_lits_of_mm (mset `# ran_mf N)) \<subseteq> set_mset (all_lits_of_mm \<A>)\<close>
   shows
-    \<open>rewatch N W \<le> SPEC(\<lambda>W. correct_watching''' \<A> (M, N, C, NE, UE, Q, W))\<close>
+    \<open>rewatch N W \<le> SPEC(\<lambda>W. correct_watching''' \<A> (M, N, C, NE, UE, NS, US, Q, W))\<close>
 proof -
   define I where
     \<open>I \<equiv> \<lambda>(a :: nat list) (b :: nat list) W.
-        correct_watching''' \<A> ((M, fmrestrict_set (set a) N, C, NE, UE, Q, W))\<close>
+        correct_watching''' \<A> ((M, fmrestrict_set (set a) N, C, NE, UE, NS, US, Q, W))\<close>
   have I0: \<open>set_mset (dom_m N) \<subseteq> set x \<and> distinct x \<Longrightarrow> I [] x W\<close> for x
     using empty unfolding I_def by (auto simp: correct_watching'''.simps
        all_blits_are_in_problem_init.simps clause_to_update_def
        all_lits_of_mm_union)
   have le: \<open>length (\<sigma> L) < size (dom_m N)\<close>
-     if \<open>correct_watching''' \<A> (M, fmrestrict_set (set l1) N, C, NE, UE, Q, \<sigma>)\<close> and
+     if \<open>correct_watching''' \<A> (M, fmrestrict_set (set l1) N, C, NE, UE, NS, US, Q, \<sigma>)\<close> and
       \<open>set_mset (dom_m N) \<subseteq> set x \<and> distinct x\<close> and
      \<open>x = l1 @ xa # l2\<close> \<open>xa \<in># dom_m N\<close> \<open>L \<in> set (N \<propto> xa)\<close>
      for L l1 \<sigma> xa l2 x
@@ -4371,8 +4410,8 @@ lemma rewatch_heur_st_correct_watching:
   shows \<open>rewatch_heur_st S \<le> \<Down> (twl_st_heur_restart''' (length (get_clauses_wl_heur S)))
     (rewatch_spec T)\<close>
 proof -
-  obtain M N D NE UE Q W where
-    T: \<open>T = (M, N, D, NE, UE, Q, W)\<close>
+  obtain M N D NE UE NS US Q W where
+    T: \<open>T = (M, N, D, NE, UE, NS, US, Q, W)\<close>
     by (cases T) auto
 
   obtain M' N' D' j W' vm \<phi> clvls cach lbd outl stats fast_ema slow_ema ccount
@@ -4385,11 +4424,13 @@ proof -
     valid: \<open>valid_arena N' N (set vdom)\<close> and
     dist: \<open>distinct vdom\<close> and
     dom_m_vdom: \<open>set_mset (dom_m N) \<subseteq> set vdom\<close> and
-    W: \<open>(W', W) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 (all_init_atms N NE))\<close> and
+    W: \<open>(W', W) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 (all_init_atms_st T))\<close> and
     empty: \<open>\<And>L. L \<in># all_init_lits_st y \<Longrightarrow> W L = []\<close> and
     NUE:\<open>get_unit_init_clss_wl y = NE \<close>
       \<open>get_unit_learned_clss_wl y = UE\<close>
       \<open>get_trail_wl y = M\<close>
+      \<open>get_subsumed_init_clauses_wl y = NS\<close>
+      \<open>get_subsumed_learned_clauses_wl y = US\<close>
     using assms by (auto simp: twl_st_heur_restart_def S T)
   obtain m where
     m: \<open>GC_remap\<^sup>*\<^sup>* (get_clauses_wl y, Map.empty, fmempty)
@@ -4437,14 +4478,14 @@ proof -
   have eq_UnD: \<open>A = A' \<union> A'' \<Longrightarrow> A' \<subseteq> A\<close> for A A' A''
       by blast
 
-  have eq3: \<open>all_init_lits (get_clauses_wl y) NE = all_init_lits N NE\<close>
+  have eq3: \<open>all_init_lits (get_clauses_wl y) (NE+NS) = all_init_lits N (NE+NS)\<close>
     using rtranclp_GC_remap_init_clss_l_old_new[OF m]
     by (auto simp: all_init_lits_def)
   moreover have \<open>all_lits_st y = all_lits_st T\<close>
     using rtranclp_GC_remap_init_clss_l_old_new[OF m] rtranclp_GC_remap_learned_clss_l_old_new[OF m]
     apply (auto simp: all_init_lits_def T NUE all_lits_def)
     by (metis NUE(1) NUE(2) all_clss_l_ran_m all_lits_def get_unit_clauses_wl_alt_def)
-  ultimately have lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm (all_init_atms N NE) (mset `# ran_mf N)\<close>
+  ultimately have lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm (all_init_atms N (NE+NS)) (mset `# ran_mf N)\<close>
     using literals_are_\<L>\<^sub>i\<^sub>n'_literals_are_\<L>\<^sub>i\<^sub>n_iff(3)[OF x_xa xa_xb struct_invs] lits_y
       rtranclp_GC_remap_init_clss_l_old_new[OF m]
       rtranclp_GC_remap_learned_clss_l_old_new[OF m]
@@ -4458,63 +4499,66 @@ proof -
       split: if_splits
       simp del: all_init_atms_def[symmetric] all_atms_def[symmetric])
 
-  have eq: \<open>set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l (all_init_atms N NE)) = set_mset (all_init_lits_st y)\<close>
+  have eq: \<open>set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l (all_init_atms N (NE+NS))) = set_mset (all_init_lits_st y)\<close>
     using rtranclp_GC_remap_init_clss_l_old_new[OF m]
     by (auto simp: T all_init_lits_def NUE
       \<L>\<^sub>a\<^sub>l\<^sub>l_all_init_atms_all_init_lits)
-  then have vd: \<open>vdom_m (all_init_atms N NE) W N \<subseteq> set_mset (dom_m N)\<close>
+  then have vd: \<open>vdom_m (all_init_atms N (NE+NS)) W N \<subseteq> set_mset (dom_m N)\<close>
     using empty dom_m_vdom
     by (auto simp: vdom_m_def)
-  have \<open>{#i \<in># clause_to_update L (M, N, get_conflict_wl y, NE, UE, {#}, {#}).
+  have \<open>{#i \<in># clause_to_update L (M, N, get_conflict_wl y, NE, UE, NS, US, {#}, {#}).
          i \<in># dom_m N#} =
-       {#i \<in># clause_to_update L (M, N, get_conflict_wl y, NE, UE, {#}, {#}).
+       {#i \<in># clause_to_update L (M, N, get_conflict_wl y, NE, UE, NS, US, {#}, {#}).
          True#}\<close> for L
        by (rule filter_mset_cong2)  (auto simp: clause_to_update_def)
   then have corr2: \<open>correct_watching'''
-        ({#mset (fst x). x \<in># init_clss_l (get_clauses_wl y)#} + NE)
-        (M, N, get_conflict_wl y, NE, UE, Q, W'a) \<Longrightarrow>
-       correct_watching' (M, N, get_conflict_wl y, NE, UE, Q, W'a)\<close> for W'a
+        ({#mset (fst x). x \<in># init_clss_l (get_clauses_wl y)#} + NE + NS)
+        (M, N, get_conflict_wl y, NE, UE, NS, US, Q, W'a) \<Longrightarrow>
+       correct_watching' (M, N, get_conflict_wl y, NE, UE,NS, US, Q, W'a)\<close> for W'a
      using rtranclp_GC_remap_init_clss_l_old_new[OF m]
      by (auto simp: correct_watching'''.simps correct_watching'.simps)
-  have eq2: \<open>all_init_lits (get_clauses_wl y) NE = all_init_lits N NE\<close>
+  have eq2: \<open>all_init_lits (get_clauses_wl y) (NE+NS) = all_init_lits N (NE+NS)\<close>
     using rtranclp_GC_remap_init_clss_l_old_new[OF m]
     by (auto simp: T all_init_lits_def NUE
       \<L>\<^sub>a\<^sub>l\<^sub>l_all_init_atms_all_init_lits)
-  have \<open>i \<in># dom_m N \<Longrightarrow> set (N \<propto> i) \<subseteq> set_mset (all_init_lits N NE)\<close> for i
-    using lits by (auto dest!: multi_member_split split_list simp: literals_are_in_\<L>\<^sub>i\<^sub>n_mm_def ran_m_def
-      all_lits_of_mm_add_mset all_lits_of_m_add_mset
-      \<L>\<^sub>a\<^sub>l\<^sub>l_all_init_atms_all_init_lits)
+  have \<open>i \<in># dom_m N \<Longrightarrow> set (N \<propto> i) \<subseteq> set_mset (all_init_lits N (NE+NS))\<close> for i
+    using lits by (auto dest!: multi_member_split split_list
+      simp: literals_are_in_\<L>\<^sub>i\<^sub>n_mm_def ran_m_def
+        all_lits_of_mm_add_mset all_lits_of_m_add_mset
+        \<L>\<^sub>a\<^sub>l\<^sub>l_all_init_atms_all_init_lits)
   then have blit2: \<open>correct_watching'''
-        ({#mset x. x \<in># init_clss_lf (get_clauses_wl y)#} + NE)
-        (M, N, get_conflict_wl y, NE, UE, Q, W'a) \<Longrightarrow>
-        blits_in_\<L>\<^sub>i\<^sub>n' (M, N, get_conflict_wl y, NE, UE, Q, W'a)\<close> for W'a
+        ({#mset x. x \<in># init_clss_lf (get_clauses_wl y)#} + NE + NS)
+        (M, N, get_conflict_wl y, NE, UE, NS, US, Q, W'a) \<Longrightarrow>
+        blits_in_\<L>\<^sub>i\<^sub>n' (M, N, get_conflict_wl y, NE, UE, NS, US, Q, W'a)\<close> for W'a
       using rtranclp_GC_remap_init_clss_l_old_new[OF m]
-      unfolding  correct_watching'''.simps  blits_in_\<L>\<^sub>i\<^sub>n'_def
-        \<L>\<^sub>a\<^sub>l\<^sub>l_all_init_atms_all_init_lits all_init_lits_def[symmetric]
+      unfolding  correct_watching'''.simps  blits_in_\<L>\<^sub>i\<^sub>n'_def eq2
+        \<L>\<^sub>a\<^sub>l\<^sub>l_all_init_atms_all_init_lits all_init_lits_alt_def[symmetric]
       by (fastforce simp: correct_watching'''.simps  blits_in_\<L>\<^sub>i\<^sub>n'_def
-        simp: eq \<L>\<^sub>a\<^sub>l\<^sub>l_all_init_atms_all_init_lits eq2
-        dest!: multi_member_split[of _ \<open>all_init_lits N NE\<close>]
+        simp: eq \<L>\<^sub>a\<^sub>l\<^sub>l_all_init_atms eq2
+        dest!: multi_member_split[of _ \<open>all_init_lits N (NE+NS)\<close>]
         dest: mset_eq_setD)
   have \<open>correct_watching'''
-        ({#mset x. x \<in># init_clss_lf (get_clauses_wl y)#} + NE)
-        (M, N, get_conflict_wl y, NE, UE, Q, W'a) \<Longrightarrow>
-        vdom_m (all_init_atms N NE) W'a N \<subseteq> set_mset (dom_m N)\<close> for W'a
+        ({#mset x. x \<in># init_clss_lf (get_clauses_wl y)#} + (NE + NS))
+        (M, N, get_conflict_wl y, NE, UE, NS, US, Q, W'a) \<Longrightarrow>
+        vdom_m (all_init_atms N (NE+NS)) W'a N \<subseteq> set_mset (dom_m N)\<close> for W'a
       unfolding  correct_watching'''.simps  blits_in_\<L>\<^sub>i\<^sub>n'_def
         \<L>\<^sub>a\<^sub>l\<^sub>l_all_init_atms_all_init_lits all_init_lits_def[symmetric]
+        all_init_lits_alt_def[symmetric]
       using eq eq3
-      by (force simp: correct_watching'''.simps vdom_m_def NUE)
-  then have st: \<open>(x, W'a) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 (all_init_atms N NE)) \<Longrightarrow>
+      by (force simp: correct_watching'''.simps vdom_m_def NUE
+        \<L>\<^sub>a\<^sub>l\<^sub>l_all_init_atms)
+  then have st: \<open>(x, W'a) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 (all_init_atms N (NE+NS))) \<Longrightarrow>
      correct_watching'''
-        ({#mset x. x \<in># init_clss_lf (get_clauses_wl y)#} + NE)
-        (M, N, get_conflict_wl y, NE, UE, Q, W'a) \<Longrightarrow>
+        ({#mset x. x \<in># init_clss_lf (get_clauses_wl y)#} + NE + NS)
+        (M, N, get_conflict_wl y, NE, UE, NS, US, Q, W'a) \<Longrightarrow>
       ((M', N', D', j, x, vm, \<phi>, clvls, cach, lbd, outl, stats, (fast_ema,
          slow_ema, ccount), vdom, avdom, lcount, opts),
-        M, N, get_conflict_wl y, NE, UE, Q, W'a)
+        M, N, get_conflict_wl y, NE, UE, NS, {#}, Q, W'a)
        \<in> twl_st_heur_restart\<close> for W'a m x
        using S_T dom_m_vdom
-       by (auto simp: S T twl_st_heur_restart_def y_x NUE)
-  have truc: \<open>xa \<in># all_lits_of_mm ({#mset (fst x). x \<in># learned_clss_l N#} + UE) \<Longrightarrow>
-       xa \<in># all_lits_of_mm ({#mset (fst x). x \<in># init_clss_l N#} + NE)\<close> for xa
+       by (auto simp: S T twl_st_heur_restart_def y_x NUE ac_simps)
+  have truc: \<open>xa \<in># all_lits_of_mm ({#mset (fst x). x \<in># learned_clss_l N#} + (UE + US)) \<Longrightarrow>
+       xa \<in># all_lits_of_mm ({#mset (fst x). x \<in># init_clss_l N#} + (NE + NS))\<close> for xa
     using lits_y eq3 rtranclp_GC_remap_learned_clss_l[OF m]
     unfolding literals_are_\<L>\<^sub>i\<^sub>n'_def all_init_lits_def NUE
       all_lits_of_mm_union all_init_lits_def  \<L>\<^sub>a\<^sub>l\<^sub>l_all_init_atms_all_init_lits
@@ -4530,11 +4574,12 @@ proof -
     apply (rule bind_refine_res)
     prefer 2
     apply (rule order.trans)
-    apply (rule rewatch_heur_rewatch[OF valid _ dist dom_m_vdom W lits])
+    apply (rule rewatch_heur_rewatch[OF valid _ dist dom_m_vdom W[unfolded T, simplified] lits])
     apply (solves simp)
     apply (rule vd)
     apply (rule order_trans[OF ref_two_step'])
-    apply (rule rewatch_correctness[where M=M and N=N and NE=NE and UE=UE and C=D and Q=Q])
+    apply (rule rewatch_correctness[where M=M and N=N and NE=NE and UE=UE and C=D and Q=Q and
+        NS=NS and US=US])
     apply (rule empty[unfolded all_init_lits_def]; assumption)
     apply (rule struct_wf; assumption)
     subgoal using lits eq2 by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_mm_def all_init_atms_def all_init_lits_def
@@ -4542,10 +4587,9 @@ proof -
        simp del: all_init_atms_def[symmetric])
     apply (subst conc_fun_RES)
     apply (rule order.refl)
-    apply (fastforce simp: rewatch_spec_def RETURN_RES_refine_iff NUE
-        literals_are_in_\<L>\<^sub>i\<^sub>n_mm_def literals_are_\<L>\<^sub>i\<^sub>n'_def
+    by (fastforce simp: rewatch_spec_def RETURN_RES_refine_iff NUE
+        literals_are_in_\<L>\<^sub>i\<^sub>n_mm_def literals_are_\<L>\<^sub>i\<^sub>n'_def add.assoc
       intro: corr2 blit2 st dest: truc)
-    done
 qed
 
 lemma GC_remap_dom_m_subset:

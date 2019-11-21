@@ -21,7 +21,8 @@ definition all_init_lits :: \<open>(nat, 'v literal list \<times> bool) fmap \<R
   \<open>all_init_lits S NUE = all_lits_of_mm ((\<lambda>C. mset C) `# init_clss_lf S + NUE)\<close>
 
 lemma all_init_lits_alt_def:
- \<open>all_init_lits S (NUE + NUS) = all_lits_of_mm ((\<lambda>C. mset C) `# init_clss_lf S + NUE + NUS)\<close>
+  \<open>all_init_lits S (NUE + NUS) = all_lits_of_mm ((\<lambda>C. mset C) `# init_clss_lf S + NUE + NUS)\<close>
+  \<open>all_init_lits b (d + f) = all_lits_of_mm ({#mset (fst x). x \<in># init_clss_l b#} + d + f)\<close>
   by (auto simp: all_init_lits_def ac_simps)
 
 abbreviation all_init_lits_st :: \<open>'v twl_st_wl \<Rightarrow> 'v literal multiset\<close> where
@@ -1414,12 +1415,22 @@ definition cdcl_GC_clauses_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl 
 lemma literals_are_\<L>\<^sub>i\<^sub>n'_empty:
   \<open>NO_MATCH {#} x2m \<Longrightarrow> literals_are_\<L>\<^sub>i\<^sub>n' (x1h, x1p, x1j, x1k, b, x', x2l, x2m, Q) \<longleftrightarrow>
      literals_are_\<L>\<^sub>i\<^sub>n' (x1h, x1p, x1j, x1k, b, x', x2l, {#}, Q)\<close>
+   \<open>NO_MATCH {#} x2l \<Longrightarrow> correct_watching' (x1h, x1i, x1j, x1k, b, x', x2l, x2m, Q) \<longleftrightarrow>
+    correct_watching' (x1h, x1i, x1j, x1k, b, x', {#}, x2m, Q)\<close>
+   \<open>NO_MATCH {#} x2m \<Longrightarrow> correct_watching' (x1h, x1i, x1j, x1k, b, x', x2l, x2m, Q) \<longleftrightarrow>
+    correct_watching' (x1h, x1i, x1j, x1k, b, x', x2l, {#}, Q)\<close>
   \<open>literals_are_\<L>\<^sub>i\<^sub>n' (x1h, x1p, x1j, x1k, b, x', x2l, x2m, Q) \<Longrightarrow>
      literals_are_\<L>\<^sub>i\<^sub>n' (x1h, x1p, x1j, x1k, b, x', {#}, x2m, Q)\<close>
-   \<open>correct_watching' (x1h, x1i, x1j, x1k, b, x', x2l, x2m, Q) \<Longrightarrow>
-    correct_watching' (x1h, x1i, x1j, x1k, b, x', {#}, x2m, Q)\<close>
    by (auto 5 3 simp: literals_are_\<L>\<^sub>i\<^sub>n'_def blits_in_\<L>\<^sub>i\<^sub>n'_def all_lits_of_mm_union
      correct_watching'.simps correct_watching''.simps clause_to_update_def)
+
+lemma literals_are_\<L>\<^sub>i\<^sub>n'_decompD:
+  \<open>(K # x1h', M2) \<in> set (get_all_ann_decomposition x1h) \<Longrightarrow>
+  literals_are_\<L>\<^sub>i\<^sub>n' (x1h, x1p, x1j', x1k, b, x', x2l, x2m, Q) \<Longrightarrow>
+     literals_are_\<L>\<^sub>i\<^sub>n' (x1h', x1p, x1j, x1k, b, x', x2l, x2m, Q)\<close>
+  by (auto 5 3 simp: literals_are_\<L>\<^sub>i\<^sub>n'_def blits_in_\<L>\<^sub>i\<^sub>n'_def all_lits_of_mm_union
+     correct_watching'.simps correct_watching''.simps clause_to_update_def
+     dest!: get_all_ann_decomposition_exists_prepend)
 
 lemma cdcl_GC_clauses_wl_cdcl_GC_clauses:
   \<open>(cdcl_GC_clauses_wl, cdcl_GC_clauses) \<in> {(S::'v twl_st_wl, S').
@@ -1583,7 +1594,8 @@ definition cdcl_twl_full_restart_wl_GC_prog where
   }\<close>
 
 lemma blits_in_\<L>\<^sub>i\<^sub>n'_restart_wl_spec0:
-  \<open>literals_are_\<L>\<^sub>i\<^sub>n' (a, b, c, d, e, NS, US, f', g) \<Longrightarrow> literals_are_\<L>\<^sub>i\<^sub>n' (ah, b, c, d, e, NS, US, {#}, g)\<close>
+  \<open>NO_MATCH {#} f' \<Longrightarrow>
+  literals_are_\<L>\<^sub>i\<^sub>n' (a, b, c, d, e, NS, US, f', g) \<longleftrightarrow> literals_are_\<L>\<^sub>i\<^sub>n' (ah, b, c, d, e, NS, US, {#}, g)\<close>
   by (auto simp: blits_in_\<L>\<^sub>i\<^sub>n'_def literals_are_\<L>\<^sub>i\<^sub>n'_def
          all_init_lits_def)
 
@@ -1595,11 +1607,10 @@ lemma cdcl_twl_local_restart_wl_spec0_cdcl_twl_local_restart_l_spec0:
   unfolding cdcl_twl_local_restart_wl_spec0_def cdcl_twl_local_restart_l_spec0_def curry_def
   apply refine_vcg
   subgoal unfolding restart_abs_wl_pre2_def by (rule exI[of _ y]) fast
-  by (auto 4 4  simp:
-      state_wl_l_def image_iff correct_watching''.simps clause_to_update_def
-      conc_fun_RES RES_RETURN_RES2 blits_in_\<L>\<^sub>i\<^sub>n'_restart_wl_spec0 
-      literals_are_\<L>\<^sub>i\<^sub>n'_empty(1) dest: literals_are_\<L>\<^sub>i\<^sub>n'_empty(2-))
-
+  by (auto simp add: literals_are_\<L>\<^sub>i\<^sub>n'_empty
+        state_wl_l_def image_iff correct_watching''.simps clause_to_update_def
+      conc_fun_RES RES_RETURN_RES2 blits_in_\<L>\<^sub>i\<^sub>n'_restart_wl_spec0
+      intro: literals_are_\<L>\<^sub>i\<^sub>n'_decompD literals_are_\<L>\<^sub>i\<^sub>n'_empty(4))
 
 lemma cdcl_twl_full_restart_wl_GC_prog_post_correct_watching:
   assumes
@@ -2339,7 +2350,7 @@ lemma cdcl_GC_clauses_prog_wl2:
   shows
     \<open>cdcl_GC_clauses_prog_wl (M, N0, D, NE, UE, NS, US, Q, WS) \<le>
        \<Down> {((M', N'', D', NE', UE', NS', US', Q', WS'), (N, N')).
-            (M', D', NE', UE', NS, US, Q') = (M, D, NE, UE, NS, US, Q) \<and>
+            (M', D', NE', UE', NS', US', Q') = (M, D, NE, UE, NS, US, Q) \<and>
              N'' = N \<and> (\<forall>L\<in>#all_init_lits N0 (NE+NS). WS' L = [])\<and>
            all_init_lits N0 (NE+NS) = all_init_lits N (NE'+NS') \<and>
            (\<exists>m. GC_remap\<^sup>*\<^sup>* (N0, (\<lambda>_. None), fmempty) (fmempty, m, N))}
