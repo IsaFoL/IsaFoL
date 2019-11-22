@@ -306,6 +306,7 @@ FILE * open_pipe (const char * fmt, const char * path,
   prg[prglen] = 0;
   char cmd[strlen (fmt) + strlen (path)];
   sprintf (cmd, fmt, path);
+  printf("res = %s", cmd);
   FILE * res = fopen (cmd, mode);
   return res;
 }
