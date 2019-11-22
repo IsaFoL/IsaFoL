@@ -13,7 +13,7 @@ sepref_def MINIMUM_DELETION_LBD_impl
   by sepref
 
 
-sepref_register delete_index_and_swap
+sepref_register delete_index_and_swap mop_mark_garbage_heur
 
 sepref_def mark_to_delete_clauses_wl_D_heur_fast_impl
   is \<open>mark_to_delete_clauses_wl_D_heur\<close>
@@ -31,7 +31,7 @@ sepref_def mark_to_delete_clauses_wl_D_heur_fast_impl
     mop_marked_as_used_st_def[symmetric]
     mop_arena_status_st_def[symmetric]
     mop_arena_length_st_def[symmetric]
-  supply [[goals_limit = 1]]
+  supply [[goals_limit = 1]] of_nat_snat[sepref_import_param]
     length_avdom_def[symmetric, simp] access_vdom_at_def[simp]
   apply (annot_snat_const "TYPE(64)")
   by sepref

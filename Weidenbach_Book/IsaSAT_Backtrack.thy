@@ -671,9 +671,9 @@ lemma the_option_lookup_clause_assn:
     (auto simp: option_lookup_clause_rel_def)
 
 definition update_heuristics where
-  \<open>update_heuristics = (\<lambda>glue (fema, sema, res_info).
+  \<open>update_heuristics = (\<lambda>glue (fema, sema, res_info, wasted).
      (ema_update glue fema, ema_update glue sema,
-          incr_conflict_count_since_last_restart res_info))\<close>
+          incr_conflict_count_since_last_restart res_info, wasted))\<close>
 
 definition propagate_bt_wl_D_heur
   :: \<open>nat literal \<Rightarrow> nat clause_l \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where

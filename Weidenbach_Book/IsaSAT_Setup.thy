@@ -147,25 +147,36 @@ definition restart_info_restart_done :: \<open>restart_info \<Rightarrow> restar
 
 paragraph \<open>Combining heuristics into a single component\<close>
 
-type_synonym restart_heuristics = \<open>ema \<times> ema \<times> restart_info\<close>
+type_synonym restart_heuristics = \<open>ema \<times> ema \<times> restart_info \<times> 64 word\<close>
 
 fun fast_ema_of :: \<open>restart_heuristics \<Rightarrow> ema\<close> where
-  \<open>fast_ema_of (fast_ema, slow_ema, restart_info) = fast_ema\<close>
+  \<open>fast_ema_of (fast_ema, slow_ema, restart_info, wasted) = fast_ema\<close>
 
 fun slow_ema_of :: \<open>restart_heuristics \<Rightarrow> ema\<close> where
-  \<open>slow_ema_of (fast_ema, slow_ema, restart_info) = slow_ema\<close>
+  \<open>slow_ema_of (fast_ema, slow_ema, restart_info, wasted) = slow_ema\<close>
 
 fun restart_info_of :: \<open>restart_heuristics \<Rightarrow> restart_info\<close> where
-  \<open>restart_info_of (fast_ema, slow_ema, restart_info) = restart_info\<close>
+  \<open>restart_info_of (fast_ema, slow_ema, restart_info, wasted) = restart_info\<close>
 
 fun current_restart_phase :: \<open>restart_heuristics \<Rightarrow> 64 word\<close> where
-  \<open>current_restart_phase (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase, end_of_phase)) =
+  \<open>current_restart_phase (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase, end_of_phase), wasted) =
     restart_phase\<close>
 
 
 fun incr_restart_phase :: \<open>restart_heuristics \<Rightarrow> restart_heuristics\<close> where
-  \<open>incr_restart_phase (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase, end_of_phase)) =
-    (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase XOR 1, end_of_phase))\<close>
+  \<open>incr_restart_phase (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase, end_of_phase), wasted) =
+    (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase XOR 1, end_of_phase), wasted)\<close>
+
+fun incr_wasted :: \<open>64 word \<Rightarrow> restart_heuristics \<Rightarrow> restart_heuristics\<close> where
+  \<open>incr_wasted waste (fast_ema, slow_ema, res_info, wasted) =
+    (fast_ema, slow_ema, res_info, wasted + waste)\<close>
+
+fun set_zero_wasted :: \<open>restart_heuristics \<Rightarrow> restart_heuristics\<close> where
+  \<open>set_zero_wasted (fast_ema, slow_ema, res_info, wasted) =
+    (fast_ema, slow_ema, res_info, 0)\<close>
+
+fun wasted_of :: \<open>restart_heuristics \<Rightarrow> 64 word\<close> where
+  \<open>wasted_of (fast_ema, slow_ema, res_info, wasted) = wasted\<close>
 
 
 paragraph \<open>VMTF\<close>
@@ -1333,12 +1344,12 @@ lemma get_fast_ema_heur_alt_def:
 
 fun get_conflict_count_since_last_restart_heur :: \<open>twl_st_wl_heur \<Rightarrow> 64 word\<close> where
   \<open>get_conflict_count_since_last_restart_heur (_, _, _, _, _, _, _, _, _, _, _, _,
-    (_, _, (ccount, _)), _)
+    (_, _, (ccount, _), _), _)
       = ccount\<close>
 
 lemma (in -) get_counflict_count_heur_alt_def:
    \<open>RETURN o get_conflict_count_since_last_restart_heur = (\<lambda>(M, N0, D, Q, W, vm, \<phi>, clvls, cach, lbd,
-       outl, stats, (_, _, (ccount, _)), lcount). RETURN ccount)\<close>
+       outl, stats, (_, _, (ccount, _), _), lcount). RETURN ccount)\<close>
   by auto
 
 lemma get_learned_count_alt_def:
@@ -1352,19 +1363,33 @@ text \<open>
 \<close>
 definition incr_restart_stat :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
   \<open>incr_restart_stat = (\<lambda>(M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, stats, (fast_ema, slow_ema,
-       res_info), vdom, avdom, lcount). do{
+       res_info, wasted), vdom, avdom, lcount). do{
      RETURN (M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, incr_restart stats,
        (fast_ema, slow_ema,
-       restart_info_restart_done res_info), vdom, avdom, lcount)
+       restart_info_restart_done res_info, wasted), vdom, avdom, lcount)
   })\<close>
 
 definition incr_lrestart_stat :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
   \<open>incr_lrestart_stat = (\<lambda>(M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, stats, (fast_ema, slow_ema,
-     res_info), vdom, avdom, lcount). do{
+     res_info, wasted), vdom, avdom, lcount). do{
      RETURN (M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, incr_lrestart stats,
-       (fast_ema, slow_ema, restart_info_restart_done res_info),
+       (fast_ema, slow_ema, restart_info_restart_done res_info, wasted),
        vdom, avdom, lcount)
   })\<close>
+
+definition incr_wasted_st :: \<open>64 word \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur\<close> where
+  \<open>incr_wasted_st = (\<lambda>waste (M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, stats, (fast_ema, slow_ema,
+     res_info, wasted), vdom, avdom, lcount). do{
+     (M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, stats,
+       (fast_ema, slow_ema, res_info, wasted+waste),
+       vdom, avdom, lcount)
+  })\<close>
+
+
+definition wasted_bytes_st :: \<open>twl_st_wl_heur \<Rightarrow> 64 word\<close> where
+  \<open>wasted_bytes_st = (\<lambda>(M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, stats, (fast_ema, slow_ema,
+     res_info, wasted), vdom, avdom, lcount).
+     wasted)\<close>
 
 
 definition opts_restart_st :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close> where
@@ -1425,7 +1450,7 @@ lemma mop_arena_status_st_alt_def:
   by (auto intro!: ext)
 
 
-definition mop_marked_as_used_st where
+definition mop_marked_as_used_st :: \<open>twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> bool nres\<close> where
   \<open>mop_marked_as_used_st S =
     mop_marked_as_used (get_clauses_wl_heur S)\<close>
 
@@ -1438,7 +1463,7 @@ lemma mop_marked_as_used_st_alt_def:
   unfolding mop_marked_as_used_st_def mop_marked_as_used_def
   by (auto intro!: ext)
 
-definition mop_arena_length_st where
+definition mop_arena_length_st :: \<open>twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> nat nres\<close> where
   \<open>mop_arena_length_st S =
     mop_arena_length (get_clauses_wl_heur S)\<close>
 
@@ -1450,6 +1475,10 @@ lemma mop_arena_length_st_alt_def:
    })\<close>
   unfolding mop_arena_length_st_def mop_arena_length_def
   by (auto intro!: ext)
+
+definition full_arena_length_st :: \<open>twl_st_wl_heur \<Rightarrow> nat\<close> where
+  \<open>full_arena_length_st = (\<lambda>(M', arena, D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, heur,
+       vdom, avdom, lcount, opts, old_arena). length arena)\<close>
 
 text \<open>In an attempt to avoid using @{thm ac_simps} everywhere.\<close>
 lemma all_lits_simps[simp]:

@@ -225,20 +225,20 @@ abbreviation phase_saver_assn where
 
 (* TODO: Move *)
 type_synonym arena_assn = "(32 word, 64) array_list"
-
-typ "(32 word, 64) array_list"
+type_synonym heur_assn = \<open>(ema \<times> ema \<times> restart_info \<times> 64 word)\<close>
 
 type_synonym twl_st_wll_trail_fast =
   \<open>trail_pol_fast_assn \<times> arena_assn \<times> option_lookup_clause_assn \<times>
     64 word \<times> watched_wl_uint32 \<times> vmtf_remove_assn \<times> phase_saver_assn \<times>
     32 word \<times> cach_refinement_l_assn \<times> lbd_assn \<times> out_learned_assn \<times> stats \<times>
-    (ema \<times> ema \<times> restart_info) \<times>
+    heur_assn \<times>
     vdom_fast_assn \<times> vdom_fast_assn \<times> 64 word \<times> opts_assn \<times> arena_assn\<close>
 
-definition heuristic_assn where
+definition heuristic_assn :: \<open>heur_assn \<Rightarrow> restart_heuristics \<Rightarrow> assn\<close> where
   \<open>heuristic_assn = ema_assn *a
   ema_assn *a
-  restart_info_assn\<close>
+  restart_info_assn *a
+  word64_assn\<close>
 
 definition isasat_bounded_assn :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wll_trail_fast \<Rightarrow> assn\<close> where
 \<open>isasat_bounded_assn =
@@ -669,6 +669,43 @@ sepref_def mop_arena_length_st_impl
   unfolding mop_arena_length_st_alt_def isasat_bounded_assn_def
   by sepref
 
+sepref_register incr_wasted_st full_arena_length_st wasted_bytes_st
+sepref_def incr_wasted_st_impl
+  is \<open>uncurry (RETURN oo incr_wasted_st)\<close>
+  :: \<open>word64_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
+  supply[[goals_limit=1]]
+  unfolding incr_wasted_st_def incr_wasted.simps
+    isasat_bounded_assn_def heuristic_assn_def
+  by sepref
+
+sepref_def full_arena_length_st_impl
+  is \<open>RETURN o full_arena_length_st\<close>
+  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a sint64_nat_assn\<close>
+  unfolding full_arena_length_st_def isasat_bounded_assn_def
+  by sepref
+
+
+sepref_def wasted_bytes_st_impl
+  is \<open>RETURN o wasted_bytes_st\<close>
+  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a word64_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding isasat_bounded_assn_def
+    heuristic_assn_def wasted_bytes_st_def
+  by sepref
+
+lemma set_zero_wasted_def:
+  \<open>set_zero_wasted = (\<lambda>(fast_ema, slow_ema, res_info, wasted).
+    (fast_ema, slow_ema, res_info, 0))\<close>
+  by (auto intro!: ext)
+
+sepref_def set_zero_wasted_impl
+  is \<open>RETURN o set_zero_wasted\<close>
+  :: \<open>heuristic_assn\<^sup>k \<rightarrow>\<^sub>a heuristic_assn\<close>
+  unfolding heuristic_assn_def set_zero_wasted_def
+  by sepref
+
+sepref_register set_zero_wasted
+
 experiment begin
 
 export_llvm
@@ -687,6 +724,7 @@ export_llvm
   access_lit_in_clauses_heur_fast_code
   rewatch_heur_fast_code
   rewatch_heur_st_fast_code
+  set_zero_wasted_impl
 
 end
 

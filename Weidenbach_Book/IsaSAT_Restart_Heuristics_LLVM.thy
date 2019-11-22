@@ -23,7 +23,7 @@ sepref_def FLAG_GC_restart_impl
 
 lemma current_restart_phase_alt_def:
   \<open>current_restart_phase = (\<lambda>(fast_ema, slow_ema,
-    (ccount, ema_lvl, restart_phase, end_of_phase)).
+    (ccount, ema_lvl, restart_phase, end_of_phase), _).
     restart_phase)\<close>
   by auto
 
@@ -54,8 +54,8 @@ sepref_def end_of_restart_phase_st_impl
 
 lemma incr_restart_phase_end_alt_def:
   \<open>incr_restart_phase_end = (\<lambda>(fast_ema, slow_ema,
-    (ccount, ema_lvl, restart_phase, end_of_phase)).
-     (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase, 10 * end_of_phase + 1)))\<close>
+    (ccount, ema_lvl, restart_phase, end_of_phase), wasted).
+     (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase, 10 * end_of_phase + 1), wasted))\<close>
   by auto
 
 sepref_def incr_restart_phase_end_impl
@@ -67,8 +67,8 @@ sepref_def incr_restart_phase_end_impl
 
 lemma incr_restart_phase_alt_def:
   \<open>incr_restart_phase = (\<lambda>(fast_ema, slow_ema,
-    (ccount, ema_lvl, restart_phase, end_of_phase)).
-     (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase XOR 1, end_of_phase)))\<close>
+    (ccount, ema_lvl, restart_phase, end_of_phase), wasted).
+     (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase XOR 1, end_of_phase), wasted))\<close>
   by auto
 
 sepref_def incr_restart_phase_impl
@@ -278,14 +278,17 @@ sepref_def get_reductions_count_fast_code
 
 sepref_register get_reductions_count
 
+lemma of_nat_snat:
+  "(id,of_nat) \<in> snat_rel' TYPE('a::len2) \<rightarrow> word_rel"
+  by (auto simp: snat_rel_def snat.rel_def in_br_conv snat_eq_unat)
 
 sepref_def GC_required_heur_fast_code
   is \<open>uncurry GC_required_heur\<close>
   :: \<open>isasat_bounded_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
-  supply [[goals_limit=1]]
+  supply [[goals_limit=1]] of_nat_snat[sepref_import_param]
   unfolding GC_required_heur_def GC_EVERY_def
+  apply (annot_snat_const "TYPE(64)")
   by sepref
-
 
 sepref_register ema_get_value get_fast_ema_heur get_slow_ema_heur
 sepref_def restart_required_heur_fast_code
@@ -466,6 +469,12 @@ sepref_def isasat_GC_clauses_prog_wl2_code
   apply (rewrite at \<open> _ ! _\<close> annot_index_of_atm)
   by sepref
 
+(*TODO Move*)
+sepref_def set_zero_wasted_impl
+  is \<open>RETURN o set_zero_wasted\<close>
+  :: \<open>heuristic_assn\<^sup>d \<rightarrow>\<^sub>a heuristic_assn\<close>
+  unfolding heuristic_assn_def set_zero_wasted_def
+  by sepref
 
 sepref_register isasat_GC_clauses_prog_wl isasat_GC_clauses_prog_wl2' rewatch_heur_st
 sepref_def isasat_GC_clauses_prog_wl_code

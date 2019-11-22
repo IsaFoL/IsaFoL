@@ -216,12 +216,12 @@ lemma find_local_restart_target_level_int_find_local_restart_target_level:
   done
 
 definition empty_Q :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
-  \<open>empty_Q = (\<lambda>(M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, stats, (fema, sema, ccount), vdom,
+  \<open>empty_Q = (\<lambda>(M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, stats, (fema, sema, ccount, wasted), vdom,
       lcount). do{
     ASSERT(isa_length_trail_pre M);
     let j = isa_length_trail M;
     RETURN (M, N, D, j, W, vm, \<phi>, clvls, cach, lbd, outl, stats, (fema, sema,
-       restart_info_restart_done ccount), vdom, lcount)
+       restart_info_restart_done ccount, wasted), vdom, lcount)
   })\<close>
 
 definition restart_abs_wl_heur_pre  :: \<open>twl_st_wl_heur \<Rightarrow> bool \<Rightarrow> bool\<close> where
@@ -522,7 +522,7 @@ proof -
       apply (auto simp: intro_spec_iff intro!: ASSERT_leI isa_length_trail_pre)
       apply (auto simp: isa_length_trail_length_u[THEN fref_to_Down_unRET_Id]
         intro: isa_vmtfI trail_pol_no_dup)
-      apply (frule twl_st_heur_change_subsumed_clauses[where US' = \<open>{#}\<close> and NS' = cf])
+      apply (frule twl_st_heur_change_subsumed_clauses[where US' = \<open>{#}\<close> and NS' = cg])
       apply (solves \<open>auto dest: H(2)\<close>)[]
       apply (frule H(2))
       apply (frule H(3))
@@ -858,9 +858,10 @@ definition get_restart_phase :: \<open>twl_st_wl_heur \<Rightarrow> 64 word\<clo
 
 definition GC_required_heur :: "twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> bool nres" where
   \<open>GC_required_heur S n = do {
-    let lres = get_reductions_count S;
-    RETURN (lres AND GC_EVERY = GC_EVERY)} \<^cancel>\<open>Temporary measure\<close>
-  \<close>
+    n \<leftarrow> RETURN (full_arena_length_st S);
+    wasted \<leftarrow> RETURN (wasted_bytes_st S);
+    RETURN (wasted > ((of_nat n)>>1))
+ }\<close>
 
 
 definition FLAG_no_restart :: \<open>8 word\<close> where
@@ -1221,7 +1222,7 @@ where
         if \<not>clause_not_marked_to_delete_heur T C then RETURN (i, delete_index_vdom_heur i T)
         else do {
           ASSERT(arena_act_pre (get_clauses_wl_heur T) C);
-          RETURN (i+1, mark_unused_st_heur C T)
+          RETURN (i+1, (mark_unused_st_heur C T))
         }
       })
       (i, S);
@@ -1233,6 +1234,32 @@ lemma avdom_delete_index_vdom_heur[simp]:
      delete_index_and_swap (get_avdom S) i\<close>
   by (cases S) (auto simp: delete_index_vdom_heur_def)
 
+lemma incr_wasted_st:
+  assumes
+    \<open>(S, T) \<in> twl_st_heur_restart_ana r\<close>
+  shows \<open>(incr_wasted_st C S, T) \<in> twl_st_heur_restart_ana r\<close>
+  using assms
+  apply (cases S; cases T)
+   apply (simp add: twl_st_heur_restart_ana_def incr_wasted_st_def)
+  apply (auto simp: twl_st_heur_restart_def mark_garbage_heur_def mark_garbage_wl_def
+         learned_clss_l_l_fmdrop size_remove1_mset_If
+     simp: all_init_atms_def all_init_lits_def
+     simp del: all_init_atms_def[symmetric]
+     intro!: valid_arena_mark_unused valid_arena_arena_decr_act
+     dest!: in_set_butlastD in_vdom_m_fmdropD
+     elim!: in_set_upd_cases)
+  done
+
+lemma incr_wasted_st_twl_st[simp]:
+  \<open>get_avdom (incr_wasted_st w T) = get_avdom T\<close>
+  \<open>get_vdom (incr_wasted_st w T) = get_vdom T\<close>
+  \<open>get_trail_wl_heur (incr_wasted_st w T) = get_trail_wl_heur T\<close>
+  \<open>get_clauses_wl_heur (incr_wasted_st C T) = get_clauses_wl_heur T\<close>
+  \<open>get_conflict_wl_heur (incr_wasted_st C T) = get_conflict_wl_heur T\<close>
+  \<open>get_learned_count (incr_wasted_st C T) = get_learned_count T\<close>
+  \<open>get_conflict_count_heur (incr_wasted_st C T) = get_conflict_count_heur T\<close>
+  by (cases T; auto simp: incr_wasted_st_def)+
+
 lemma mark_clauses_as_unused_wl_D_heur:
   assumes \<open>(S, T) \<in> twl_st_heur_restart_ana r\<close>
   shows \<open>mark_clauses_as_unused_wl_D_heur i S \<le> \<Down> (twl_st_heur_restart_ana r) (SPEC ( (=) T))\<close>
@@ -1243,7 +1270,7 @@ proof -
     }\<close>
     by (auto simp: RES_RETURN_RES2 uncurry_def conc_fun_RES)
   show ?thesis
-    unfolding mark_clauses_as_unused_wl_D_heur_def 1
+    unfolding mark_clauses_as_unused_wl_D_heur_def 1 mop_arena_length_st_def
     apply (rule Refine_Basic.bind_mono)
     subgoal
       apply (refine_vcg
@@ -1269,15 +1296,24 @@ proof -
 	  arena_is_valid_clause_vdom_def arena_act_pre_def
        by (fastforce simp: twl_st_heur_restart_def twl_st_heur_restart
             dest!: twl_st_heur_restart_anaD)
-      subgoal by (auto intro!: mark_unused_st_heur_ana simp: twl_st_heur_restart
-        dest: twl_st_heur_restart_anaD)
-      subgoal by auto
-      subgoal by auto
+      subgoal for s a b
+        apply (auto intro!: mark_unused_st_heur_ana)
+        unfolding arena_act_pre_def arena_is_valid_clause_idx_def
+          arena_is_valid_clause_idx_def
+          arena_is_valid_clause_vdom_def arena_act_pre_def
+        by (fastforce simp: twl_st_heur_restart_def twl_st_heur_restart
+            intro!: mark_unused_st_heur_ana
+            dest!: twl_st_heur_restart_anaD)
+      subgoal
+        unfolding twl_st_heur_restart_ana_def
+        by (auto simp: twl_st_heur_restart_def)
+      subgoal
+        by (auto intro!: mark_unused_st_heur_ana incr_wasted_st simp: twl_st_heur_restart
+          dest: twl_st_heur_restart_anaD)
       subgoal by auto
       done
-    subgoal
-      by auto
-    done
+      subgoal by auto
+      done
 qed
 
 definition mark_to_delete_clauses_wl_D_heur
@@ -1315,7 +1351,8 @@ where
           if can_del
           then
             do {
-              T \<leftarrow> mop_mark_garbage_heur C i T;
+              wasted \<leftarrow> mop_arena_length_st T C;
+              T \<leftarrow> mop_mark_garbage_heur C i (incr_wasted_st (of_nat wasted) T);
               RETURN (i, T)
             }
           else do {
@@ -1422,11 +1459,12 @@ lemma mark_to_delete_clauses_wl_D_heur_alt_def:
                                 (get_avdom T ! i));
                           if can_del
                           then do {
+                                wasted \<leftarrow> mop_arena_length_st T (get_avdom T ! i);
                                  ASSERT(mark_garbage_pre
                                    (get_clauses_wl_heur T, get_avdom T ! i) \<and>
                                    1 \<le> get_learned_count T \<and> i < length (get_avdom T));
                                  RETURN
-                                  (i, mark_garbage_heur (get_avdom T ! i) i T)
+                                  (i, mark_garbage_heur (get_avdom T ! i) i (incr_wasted_st (of_nat wasted) T))
                                }
                           else do {
                                  ASSERT(arena_act_pre (get_clauses_wl_heur T) (get_avdom T ! i));
@@ -1445,8 +1483,8 @@ lemma mark_to_delete_clauses_wl_D_heur_alt_def:
       mop_arena_lbd_def mop_arena_status_def mop_arena_length_def
       mop_marked_as_used_def bind_to_let_conv Let_def
       nres_monad3 mop_mark_garbage_heur_def mop_mark_unused_st_heur_def
+      incr_wasted_st_twl_st
     by (auto intro!: ext simp: get_clauses_wl_heur.simps)
-
 
 lemma mark_to_delete_clauses_wl_D_heur_mark_to_delete_clauses_wl_D:
   \<open>(mark_to_delete_clauses_wl_D_heur, mark_to_delete_clauses_wl) \<in>
@@ -1672,7 +1710,7 @@ proof -
           dest!: in_set_butlastD in_vdom_m_fmdropD
           elim!: in_set_upd_cases)
   qed
-  have get_learned_count_ge: \<open>1 \<le> get_learned_count x2b\<close>
+  have get_learned_count_ge: \<open>Suc 0 \<le> get_learned_count x2b\<close>
     if
       xy: \<open>(x, y) \<in> twl_st_heur_restart_ana r\<close> and
       \<open>(xa, x')
@@ -1874,17 +1912,31 @@ proof -
       by (auto dest!: twl_st_heur_restart_anaD twl_st_heur_restart_valid_arena simp: arena_lifting)
     subgoal by fast
     subgoal for x y S Sa _ xs l la xa x' x1 x2 x1a x2a x1b x2b
-      unfolding prod.simps mark_garbage_pre_def
-        arena_is_valid_clause_vdom_def arena_is_valid_clause_idx_def
-      by (rule exI[of _ \<open>get_clauses_wl x1a\<close>], rule exI[of _ \<open>set (get_vdom x2b)\<close>])
-        (auto simp: twl_st_heur_restart dest: twl_st_heur_restart_valid_arena)
-    subgoal for x y S Sa uu_ xs l la xa x' x1 x2 x1a x2a x1b x2b D can_del
-       by (rule get_learned_count_ge; assumption?; fast)
-    subgoal for x y S Sa _ xs l la xa x' x1 x2 x1a x2a x1b x2b b ba L K D bb can_del
-    by (use arena_lifting(24)[of \<open>get_clauses_wl_heur x2b\<close> _ _  \<open>get_avdom x2b ! x1\<close>] in
-      \<open>auto intro!: mark_garbage_heur_wl_ana
-      dest: twl_st_heur_restart_valid_arena twl_st_heur_restart_anaD\<close>)
-    subgoal for x y
+      unfolding mop_arena_length_st_def
+      apply (rule mop_arena_length[THEN fref_to_Down_curry, THEN order_trans,
+        of \<open>get_clauses_wl x1a\<close> \<open>get_avdom x2b ! x1b\<close> _ _ \<open>set (get_vdom x2b)\<close>])
+      subgoal
+        by auto
+      subgoal
+        by (auto simp: twl_st_heur_restart_valid_arena)
+      subgoal
+        apply (auto intro!: incr_wasted_st_twl_st ASSERT_leI)
+        subgoal
+          unfolding prod.simps mark_garbage_pre_def 
+            arena_is_valid_clause_vdom_def arena_is_valid_clause_idx_def
+          by (rule exI[of _ \<open>get_clauses_wl x1a\<close>], rule exI[of _ \<open>set (get_vdom x2b)\<close>])
+            (auto simp: twl_st_heur_restart dest: twl_st_heur_restart_valid_arena)
+        subgoal
+           apply (rule get_learned_count_ge; assumption?; fast?)
+           apply auto
+           done
+        subgoal
+          by (use arena_lifting(24)[of \<open>get_clauses_wl_heur x2b\<close> _ _  \<open>get_avdom x2b ! x1\<close>] in
+            \<open>auto intro!: incr_wasted_st mark_garbage_heur_wl_ana
+            dest: twl_st_heur_restart_valid_arena twl_st_heur_restart_anaD\<close>)
+        done
+     done
+   subgoal for x y
       unfolding valid_sort_clause_score_pre_def arena_is_valid_clause_vdom_def
         get_clause_LBD_pre_def arena_is_valid_clause_idx_def arena_act_pre_def
       by (force simp: valid_sort_clause_score_pre_def twl_st_heur_restart_ana_def arena_dom_status_iff
@@ -2547,11 +2599,11 @@ proof -
 	    isa_find_decomp_wl_imp (get_trail_wl_heur S) 0 (get_vmtf_heur S);
 	  RETURN (upd M' vm S)
 	} \<le> \<Down> {((M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, (fast_ema,
-         slow_ema, ccount),
+         slow_ema, ccount, wasted),
        vdom, avdom, lcount, opts),
      T).
        ((M', N', D', isa_length_trail M', W', vm, \<phi>, clvls, cach, lbd, outl, stats, (fast_ema,
-         slow_ema, restart_info_restart_done ccount), vdom, avdom, lcount, opts),
+         slow_ema, restart_info_restart_done ccount, wasted), vdom, avdom, lcount, opts),
 	  (empty_Q_wl T)) \<in> twl_st_heur_restart_ana r \<and>
 	  isa_length_trail_pre M'} (SPEC (find_decomp_wl0 y))\<close>
      (is \<open>_ \<le> \<Down> ?A _\<close>)
@@ -2561,11 +2613,11 @@ proof -
   proof -
     have A:
       \<open>?A = {((M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, (fast_ema, slow_ema,
-	  ccount),
+	  ccount, wasted),
        vdom, avdom, lcount, opts),
      T).
        ((M', N', D', length (get_trail_wl T), W', vm, \<phi>, clvls, cach, lbd, outl, stats, (fast_ema,
-         slow_ema, restart_info_restart_done ccount), vdom, avdom, lcount, opts),
+         slow_ema, restart_info_restart_done ccount, wasted), vdom, avdom, lcount, opts),
 	  (empty_Q_wl T)) \<in> twl_st_heur_restart_ana r \<and>
 	  isa_length_trail_pre M'}\<close>
 	  supply[[goals_limit=1]]
@@ -2986,7 +3038,7 @@ proof -
           dest!: in_set_butlastD in_vdom_m_fmdropD
           elim!: in_set_upd_cases)
   qed
-  have get_learned_count_ge: \<open>1 \<le> get_learned_count x2b\<close>
+  have get_learned_count_ge: \<open>Suc 0 \<le> get_learned_count x2b\<close>
     if
       xy: \<open>(x, y) \<in> twl_st_heur_restart_ana r\<close> and
       \<open>(xa, x')
@@ -3187,16 +3239,31 @@ proof -
       by (auto dest!: twl_st_heur_restart_anaD twl_st_heur_restart_valid_arena simp: arena_lifting)
     subgoal by fast
     subgoal for x y S Sa _ xs l la xa x' x1 x2 x1a x2a x1b x2b
-      unfolding prod.simps mark_garbage_pre_def
-        arena_is_valid_clause_vdom_def arena_is_valid_clause_idx_def
-      by (rule exI[of _ \<open>get_clauses_wl x1a\<close>], rule exI[of _ \<open>set (get_vdom x2b)\<close>])
-        (auto simp: twl_st_heur_restart dest: twl_st_heur_restart_valid_arena)
-    subgoal for x y S Sa uu_ xs l la xa x' x1 x2 x1a x2a x1b x2b D can_del
-       by (rule get_learned_count_ge; assumption?; fast)
-    subgoal by (use arena_lifting(24) in \<open>auto intro!: mark_garbage_heur_wl_ana
-      dest: twl_st_heur_restart_valid_arena twl_st_heur_restart_anaD\<close>)
-        (auto dest!:  twl_st_heur_restart_valid_arena twl_st_heur_restart_anaD)
-    subgoal for x y
+      unfolding mop_arena_length_st_def
+      apply (rule mop_arena_length[THEN fref_to_Down_curry, THEN order_trans,
+        of \<open>get_clauses_wl x1a\<close> \<open>get_avdom x2b ! x1b\<close> _ _ \<open>set (get_vdom x2b)\<close>])
+      subgoal
+        by auto
+      subgoal
+        by (auto simp: twl_st_heur_restart_valid_arena)
+      subgoal
+        apply (auto intro!: incr_wasted_st_twl_st ASSERT_leI)
+        subgoal
+          unfolding prod.simps mark_garbage_pre_def 
+            arena_is_valid_clause_vdom_def arena_is_valid_clause_idx_def
+          by (rule exI[of _ \<open>get_clauses_wl x1a\<close>], rule exI[of _ \<open>set (get_vdom x2b)\<close>])
+            (auto simp: twl_st_heur_restart dest: twl_st_heur_restart_valid_arena)
+        subgoal
+           apply (rule get_learned_count_ge; assumption?; fast?)
+           apply auto
+           done
+        subgoal
+          by (use arena_lifting(24)[of \<open>get_clauses_wl_heur x2b\<close> _ _  \<open>get_avdom x2b ! x1\<close>] in
+            \<open>auto intro!: incr_wasted_st mark_garbage_heur_wl_ana
+            dest: twl_st_heur_restart_valid_arena twl_st_heur_restart_anaD\<close>)
+        done
+     done
+   subgoal for x y
       unfolding valid_sort_clause_score_pre_def arena_is_valid_clause_vdom_def
         get_clause_LBD_pre_def arena_is_valid_clause_idx_def arena_act_pre_def
       by (force simp: valid_sort_clause_score_pre_def twl_st_heur_restart_ana_def arena_dom_status_iff
@@ -3930,7 +3997,7 @@ definition isasat_GC_clauses_prog_wl :: \<open>twl_st_wl_heur \<Rightarrow> twl_
     heur,  vdom, avdom, lcount, opts, old_arena). do {
     ASSERT(old_arena = []);
     (N, (N', vdom, avdom), WS) \<leftarrow> isasat_GC_clauses_prog_wl2 (ns, Some fst_As) (N', (old_arena, take 0 vdom, take 0 avdom), W');
-    RETURN (M', N', D', j, WS, ((ns, st, fst_As, lst_As, nxt), to_remove), \<phi>, clvls, cach, lbd, outl, incr_GC stats, heur,
+    RETURN (M', N', D', j, WS, ((ns, st, fst_As, lst_As, nxt), to_remove), \<phi>, clvls, cach, lbd, outl, incr_GC stats, set_zero_wasted heur,
        vdom, avdom, lcount, opts, take 0 N)
   })\<close>
 
@@ -4879,7 +4946,7 @@ lemma cdcl_twl_full_restart_wl_D_GC_heur_prog:
 
 
 definition end_of_restart_phase :: \<open>restart_heuristics \<Rightarrow> 64 word\<close> where
-  \<open>end_of_restart_phase = (\<lambda>(_, _, (restart_phase,_ ,_ , end_of_phase)).
+  \<open>end_of_restart_phase = (\<lambda>(_, _, (restart_phase,_ ,_ , end_of_phase), _).
     end_of_phase)\<close>
 
 definition end_of_restart_phase_st :: \<open>twl_st_wl_heur \<Rightarrow> 64 word\<close> where
@@ -4889,8 +4956,8 @@ definition end_of_restart_phase_st :: \<open>twl_st_wl_heur \<Rightarrow> 64 wor
 
 text \<open>Using \<^term>\<open>a + 1\<close> ensures that we do not get stuck with 0.\<close>
 fun incr_restart_phase_end :: \<open>restart_heuristics \<Rightarrow> restart_heuristics\<close> where
-  \<open>incr_restart_phase_end (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase, end_of_phase)) =
-    (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase, 10 * end_of_phase + 1))\<close>
+  \<open>incr_restart_phase_end (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase, end_of_phase), wasted) =
+    (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase, 10 * end_of_phase + 1), wasted)\<close>
 
 definition update_restart_phases :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
   \<open>update_restart_phases = (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, heur,
