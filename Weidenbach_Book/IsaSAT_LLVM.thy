@@ -377,8 +377,8 @@ sepref_def IsaSAT_code_wrapped
 
 experiment
 begin
-term NORMAL_PHASE
-declare NORMAL_PHASE_def[llvm_code]
+
+  declare NORMAL_PHASE_def[llvm_inline] DEFAULT_INIT_PHASE_def[llvm_inline] QUIET_PHASE_def[llvm_inline]
   export_llvm IsaSAT_code_wrapped default_opts_impl IsaSAT_code file "code/isasat_restart.ll"
 
 end
