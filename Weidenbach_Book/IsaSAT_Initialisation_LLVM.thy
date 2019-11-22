@@ -250,8 +250,8 @@ declare set_empty_clause_as_conflict_code.refine[sepref_fr_rules]
 
 definition (in -) add_clause_to_others_heur'
    :: \<open>twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur_init nres\<close> where
-  \<open>add_clause_to_others_heur' = (\<lambda> (M, N, D, Q, WS).
-      RETURN (M, N, D, Q, WS))\<close>
+  \<open>add_clause_to_others_heur' = (\<lambda> (M, N, D, Q, NS, US, WS).
+      RETURN (M, N, D, Q, NS, US, WS))\<close>
 
 lemma add_clause_to_others_heur'_alt: \<open>add_clause_to_others_heur L = add_clause_to_others_heur'\<close>
   unfolding add_clause_to_others_heur'_def add_clause_to_others_heur_def

@@ -1053,7 +1053,7 @@ lemma extract_shorter_conflict_alt_def:
   \<open>extract_shorter_conflict S = do {
    ASSERT(extract_shorter_conflict_pre S);
     SPEC(\<lambda>S'. \<exists>D'. equality_except_conflict S S' \<and> Some D' = get_conflict S' \<and>
-       D' \<subseteq># the (get_conflict S) \<and> clause `# (get_clauses S) + unit_clss S + subsumed_clss S \<Turnstile>pm D' \<and>
+       D' \<subseteq># the (get_conflict S) \<and> clause `# (get_clauses S) + unit_clss S + subsumed_clauses S \<Turnstile>pm D' \<and>
        -lit_of (hd (get_trail S)) \<in># D')}\<close>
   unfolding extract_shorter_conflict_def
   by (cases S) (auto simp: ac_simps intro!: bind_cong[OF refl])

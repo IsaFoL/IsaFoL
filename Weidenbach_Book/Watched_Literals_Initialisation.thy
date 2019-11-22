@@ -148,6 +148,7 @@ lemma [twl_st_init]:
   \<open>clauses_to_update (fst T) = clauses_to_update_init T\<close>
   \<open>get_conflict (fst T) =  get_conflict_init T\<close>
   \<open>literals_to_update (fst T) = literals_to_update_init T\<close>
+  \<open>subsumed_learned_clss (fst T) = get_subsumed_learned_clauses_init T\<close>
   by (cases T; auto simp: cdcl\<^sub>W_restart_mset_state; fail)+
 
 definition twl_st_l_init :: \<open>('v twl_st_l_init \<times> 'v twl_st_init) set\<close> where
@@ -730,9 +731,17 @@ lemma [twl_st_l_init]:
   by (auto simp: twl_st_l_init_def)
 
 lemma [twl_st_l_init]:
+  \<open>(V, W) \<in> twl_st_l_init \<Longrightarrow>get_subsumed_learned_clauses_init W = get_subsumed_learned_clauses_l_init V\<close>
+  by (cases V, cases W, auto simp: twl_st_l_init_def)
+
+lemma [twl_st_l_init]:
   \<open>get_conflict_l (fst T) =  get_conflict_l_init T\<close>
   \<open>literals_to_update_l (fst T) = literals_to_update_l_init T\<close>
   \<open>clauses_to_update_l (fst T) = clauses_to_update_l_init T\<close>
+  \<open>get_subsumed_learned_clauses_l (fst T) = get_subsumed_learned_clauses_l_init T\<close>
+  \<open>get_subsumed_init_clauses_l (fst T) = get_subsumed_init_clauses_l_init T\<close>
+  \<open>get_subsumed_clauses_l (fst T) = get_subsumed_clauses_l_init T\<close>
+  \<open>get_conflict_l (fst T) = get_conflict_l_init T\<close>
   by (cases T; auto; fail)+
 
 lemma entailed_clss_inv_add_to_unit_init_clauses:

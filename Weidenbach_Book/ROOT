@@ -164,14 +164,13 @@ session "CDCL_Extensions" (Weidenbach_Book) = "CDCL"  +
     "biblio.bib"
 
 
-session "Watched_Literals" (Weidenbach_Book) = "CDCL"  +
+session "Watched_Literals" (Weidenbach_Book) = "Isabelle_LLVM"  +
   description \<open>This session contains all theories related to the two-watched literals. It links
     the abstract CDCL calculus to a more concrete version with watched literals.\<close>
   options [document = pdf, document_output = "output"]
   sessions
     CDCL
     "HOL-Eisbach"
-    Isabelle_LLVM
     Sepref_IICF
   theories [quick_and_dirty = false, document = true]
     IICF_Array_List64

@@ -62,8 +62,8 @@ fun unit_clss :: \<open>'v twl_st \<Rightarrow> 'v clause multiset\<close> where
 fun unit_init_clauses :: \<open>'v twl_st \<Rightarrow> 'v clauses\<close> where
   \<open>unit_init_clauses (M, N, U, D, NE, UE, NS, US, WS, Q) = NE\<close>
 
-fun subsumed_clss :: \<open>'v twl_st \<Rightarrow> 'v clause multiset\<close> where
-  \<open>subsumed_clss (M, N, U, D, NE, UE, NS, US, WS, Q) = NS + US\<close>
+fun subsumed_learned_clss :: \<open>'v twl_st \<Rightarrow> 'v clause multiset\<close> where
+  \<open>subsumed_learned_clss (M, N, U, D, NE, UE, NS, US, WS, Q) = US\<close>
 
 fun subsumed_init_clauses :: \<open>'v twl_st \<Rightarrow> 'v clauses\<close> where
   \<open>subsumed_init_clauses (M, N, U, D, NE, UE, NS, US, WS, Q) = NS\<close>
