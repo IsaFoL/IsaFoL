@@ -26,6 +26,7 @@ static char * inputname;
 static FILE * inputfile;
 
 static int lineno;
+static int charno;
 
 static void perr (const char * fmt, ...) {
   va_list ap;
@@ -101,7 +102,7 @@ CLAUSES new_clauses(int64_t size) {
 
 
 void free_clauses (CLAUSES *cl) {
-  for (int64_t n = 0; n < cl->size; ++n) {
+  for (int64_t n = 0; n <= cl->size; ++n) {
     free_clause(&cl->clauses[n]);
   }
   free(cl->clauses);
@@ -123,7 +124,8 @@ void print_clauses(CLAUSES *cl) {
 static int64_t next (void) {
   int64_t res;
   res = getc (inputfile);
-  if (res == '\n') lineno++;
+  ++charno;
+  if (res == '\n') lineno++,charno = 0;
   return res;
 }
 
@@ -134,11 +136,11 @@ static CLAUSES parse (void) {
   int64_t num_lits, num_clss;
 HEADER:
   ch = next ();
-  if (ch == EOF) perr ("unexpected end-of-file in header");
+  if (ch == EOF) perr ("unexpected end-of-file in header on line %u", lineno);
   if (ch == 'c') {
     while ((ch = next ()) != '\n')
       if (ch == EOF)
-	perr ("unexpected end-of-file in header comment");
+	perr ("unexpected end-of-file in header comment on line %u", lineno);
     goto HEADER;
   }
   if (ch != 'p' ||
@@ -146,7 +148,7 @@ HEADER:
       next () != 'c' ||
       next () != 'n' ||
       next () != 'f' ||
-      next () != ' ') perr ("invalid header (expected 'p cnf ')");
+      next () != ' ') perr ("invalid header (expected 'p cnf '), but found %c on line %u, char %u", ch, lineno, charno-1);
 
   ch = next ();
 
@@ -164,18 +166,19 @@ HEADER:
 
 CLAUSES:
   if (ch == ' ' || ch == '\t' || ch == '\r' || ch == '\n') {
-    ch = next (); goto CLAUSES;
+    ch = next ();
+    goto CLAUSES;
   }
   if (ch == 'c') {
     while ((ch = next ()) != '\n')
       if (ch == EOF)
-	perr ("unexpected end-of-file in body comment");
+	perr ("unexpected end-of-file in body comment on line %u", lineno);
     goto CLAUSES;
   }
   if (ch == EOF) goto DONE;
   if (ch == '0') {
     if(clause_num > num_clss)
-      perr("found too many clauses: clause  number %d, only %d expected", clause_num, num_clss);
+      perr("found too many clauses: clause  number %d, only %d expected on line %u", clause_num, num_clss, lineno);
     clauses.clauses[clause_num++] = copy_clause(&cl);
     cl.used = 0;
 
@@ -185,10 +188,10 @@ CLAUSES:
   if (ch == '-') {
     sign = -1;
     ch = next ();
-    if (!isdigit (ch)) perr ("expected digit after '-'");
+    if (!isdigit (ch)) perr ("expected digit after '-' on line %u", lineno);
   } else sign = 1;
 
-  if (!isdigit (ch) || ch == 0) perr ("expected literal");
+  if (!isdigit (ch) || ch == 0) perr ("expected literal on line %u", lineno);
 
   lit = ch - '0';
 
@@ -205,6 +208,7 @@ DONE:
   if(clause_num != num_clss)
     perr("found %d clauses, while %d were expected", clause_num, num_clss);
 
+  free(cl.clause);
   return clauses;
 }
 
@@ -280,13 +284,89 @@ void IsaSAT_Show_LLVM_print_uint64_impl(int64_t p) {
   printf(" %ld ", p);
 }
 
+_Bool has_suffix (const char * str, const char * suffix) {
+  size_t k = strlen (str), l = strlen (suffix);
+  return k > l && !strcmp (str + k - l, suffix);
+}
+
+static int xzsig[] = { 0xFD, 0x37, 0x7A, 0x58, 0x5A, 0x00, 0x00, EOF };
+static int bz2sig[] = { 0x42, 0x5A, 0x68, EOF };
+static int gzsig[] = { 0x1F, 0x8B, EOF };
+static int sig7z[] = { 0x37, 0x7A, 0xBC, 0xAF, 0x27, 0x1C, EOF };
+static int lzmasig[] = { 0x5D, 0x00, 0x00, 0x80, 0x00, EOF };
+
+
+FILE * open_pipe (const char * fmt, const char * path,
+                        const char * mode)
+{
+  size_t prglen = 0;
+  while (fmt[prglen] && fmt[prglen] != ' ') prglen++;
+  char prg [prglen + 1];
+  strncpy (prg, fmt, prglen);
+  prg[prglen] = 0;
+  char cmd[strlen (fmt) + strlen (path)];
+  sprintf (cmd, fmt, path);
+  FILE * res = fopen (cmd, mode);
+  return res;
+}
+
+char * find (const char * prg) {
+  size_t prglen = strlen (prg);
+  const char * c = getenv ("PATH");
+  if (!c) return 0;;
+  size_t len = strlen (c);
+  char e [len + 1];
+  strcpy (e, c);
+  char * res = 0;
+  for (char * p = e, * q; !res && p < e + len; p = q) {
+    for (q = p; *q && *q != ':'; q++)
+      ;
+    *q++ = 0;
+    size_t pathlen = (q - p) + prglen;
+    char path [pathlen + 1];
+    sprintf (path, "%s/%s", p, prg);
+    free(path);
+  }
+  free(e);
+  return res;
+}
+
+FILE * read_pipe (const char * fmt,
+                        const int * sig,
+                        const char * path) {
+  return open_pipe (fmt, path, "r");
+}
+
+
 int main(int argc, char *argv[]) {
   if(argc != 2) {
-    printf("expected one argument");
+    printf("expected one argument, the DIMACS file to solve");
     return 0;
   }
   inputname = argv[1];
-  inputfile = fopen (inputname, "r");
+  
+  
+  if (has_suffix (inputname, ".xz")) {
+    inputfile = read_pipe ("xz -c -d %s", xzsig, inputname);
+    printf("c compressed file\n");
+    if (!inputfile) goto READ_FILE;
+  } else if (has_suffix (inputname, ".lzma")) {
+    inputfile = read_pipe ("lzma -c -d %s", lzmasig, inputname);
+    if (!inputfile) goto READ_FILE;
+  } else if (has_suffix (inputname, ".bz2")) {
+    inputfile = read_pipe ("bzip2 -c -d %s", bz2sig, inputname);
+    if (!inputfile) goto READ_FILE;
+  } else if (has_suffix (inputname, ".gz")) {
+    inputfile = read_pipe ("gzip -c -d %s", gzsig, inputname);
+    if (!inputfile) goto READ_FILE;
+  } else if (has_suffix (inputname, ".7z")) {
+    inputfile = read_pipe ("7z x -so %s 2>/dev/null", sig7z, inputname);
+    if (!inputfile) goto READ_FILE;
+  } else {
+READ_FILE:
+    printf("c not compressed file\n");
+    inputfile = fopen (inputname, "r");
+  }
 
   if(inputfile == NULL) {
     printf("could not open file %s", inputname);
@@ -295,6 +375,7 @@ int main(int argc, char *argv[]) {
 
   CLAUSES clauses = parse();
 
+  fclose(inputfile);
   //print_clauses(&clauses);
   int64_t t = IsaSAT_No_Restart_LLVM_IsaSAT_code_wrapped2(clauses);
   if((t & 2) == 0)
