@@ -238,7 +238,7 @@ typedef struct R {
 int64_t IsaSAT_No_Restart_LLVM_IsaSAT_code_wrapped2(CLAUSES);
 
 void print_propagations(int64_t props) {
-  printf("c propagations %ld\n", props);
+  printf("\nc propagations %ld\n", props);
 }
 
 void print_conflicts(int64_t props) {
