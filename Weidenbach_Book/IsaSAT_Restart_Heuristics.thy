@@ -860,7 +860,7 @@ definition GC_required_heur :: "twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> b
   \<open>GC_required_heur S n = do {
     n \<leftarrow> RETURN (full_arena_length_st S);
     wasted \<leftarrow> RETURN (wasted_bytes_st S);
-    RETURN (wasted > ((of_nat n)>>1))
+    RETURN (3*wasted > ((of_nat n)>>2))
  }\<close>
 
 
