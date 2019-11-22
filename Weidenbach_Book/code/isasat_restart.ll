@@ -4782,7 +4782,7 @@ define { i64, { i64, i32* } } @IsaSAT_VMTF_LLVM_quicksort_vmtf_nth_ref_code({ i6
     %tmpa = insertvalue { i64, { i64, { i64, i32* } } } %x4, { i64, { i64, i32* } } %x3, 1
     %xa = insertvalue { i64, { i64, { i64, { i64, i32* } } } } zeroinitializer, i64 %x1, 0
     %x5 = insertvalue { i64, { i64, { i64, { i64, i32* } } } } %xa, { i64, { i64, { i64, i32* } } } %tmpa, 1
-    %x6 = call { i64, { i64, i32* } } @IsaSAT_LLVM_experiment13647274_quicksort_vmtf_nth_ref_code_f_013761182 ({ i64, { i32, i32 } }* %x, { i64, { i64, { i64, { i64, i32* } } } } %x5)
+    %x6 = call { i64, { i64, i32* } } @IsaSAT_LLVM_experiment14427448_quicksort_vmtf_nth_ref_code_f_014541414 ({ i64, { i32, i32 } }* %x, { i64, { i64, { i64, { i64, i32* } } } } %x5)
     ret { i64, { i64, i32* } } %x6
 }
 
@@ -10255,9 +10255,10 @@ define i1 @IsaSAT_Restart_Heuristics_LLVM_GC_required_heur_fast_code({ { { i64, 
   start:
     %x2 = call i64 @IsaSAT_Setup_LLVM_full_arena_length_st_impl ({ { { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } }, { { i64, { i64, i32* } }, { { i1, { i32, i1* } }, { i64, { { i64, { i64, { i64, { i64, { i32, i1 } }* } }* }, { { { { i64, { i32, i32 } }*, { i64, { i32, { i32, i32 } } } }, { { i64, { i64, i32* } }, i1* } }, { { i64, i1* }, { i32, { { i8*, { i64, { i64, i32* } } }, { { { i64, i1* }, { i32, i32 } }, { { i64, { i64, i32* } }, { { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } }, { { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, i64 } } }, i64 } } }, { { i64, { i64, i64* } }, { { i64, { i64, i64* } }, { i64, { { i1, { i1, i1 } }, { i64, { i64, i32* } } } } } } } } } } } } } } } } } } } %x)
     %xa = call i64 @IsaSAT_Setup_LLVM_wasted_bytes_st_impl ({ { { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } }, { { i64, { i64, i32* } }, { { i1, { i32, i1* } }, { i64, { { i64, { i64, { i64, { i64, { i32, i1 } }* } }* }, { { { { i64, { i32, i32 } }*, { i64, { i32, { i32, i32 } } } }, { { i64, { i64, i32* } }, i1* } }, { { i64, i1* }, { i32, { { i8*, { i64, { i64, i32* } } }, { { { i64, i1* }, { i32, i32 } }, { { i64, { i64, i32* } }, { { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } }, { { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, i64 } } }, i64 } } }, { { i64, { i64, i64* } }, { { i64, { i64, i64* } }, { i64, { { i1, { i1, i1 } }, { i64, { i64, i32* } } } } } } } } } } } } } } } } } } } %x)
-    %xb = lshr i64 %x2, 1
-    %x3 = icmp ult i64 %xb, %xa
-    ret i1 %x3
+    %xba = lshr i64 %x2, 2
+    %x3 = mul i64 3, %xa
+    %x4 = icmp ult i64 %xba, %x3
+    ret i1 %x4
 }
 
 define i64 @IsaSAT_Restart_Heuristics_LLVM_current_restart_phase_impl({ { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, i64 } } }, i64 } } } %x) {
@@ -10398,7 +10399,7 @@ define { i64, { i64, i64* } } @IsaSAT_Restart_Heuristics_LLVM_sort_clauses_by_sc
     %tmpa = insertvalue { i64, { i64, { i64, i64* } } } %xf, { i64, { i64, i64* } } %x1, 1
     %xg = insertvalue { i64, { i64, { i64, { i64, i64* } } } } zeroinitializer, i64 0, 0
     %x3 = insertvalue { i64, { i64, { i64, { i64, i64* } } } } %xg, { i64, { i64, { i64, i64* } } } %tmpa, 1
-    %x4 = call { i64, { i64, i64* } } @IsaSAT_LLVM_experiment13647274_sort_clauses_by_score_code_f_013690456 ({ i64, { i64, i32* } } %x, { i64, { i64, { i64, { i64, i64* } } } } %x3)
+    %x4 = call { i64, { i64, i64* } } @IsaSAT_LLVM_experiment14427448_sort_clauses_by_score_code_f_014470630 ({ i64, { i64, i32* } } %x, { i64, { i64, { i64, { i64, i64* } } } } %x3)
     br label %ctd_if
 
   ctd_if:
@@ -13635,7 +13636,7 @@ define { { i64, { i64, i32* } }, { { { i64, { i64, i32* } }, { { i64, { i64, i64
     ret { { i64, { i64, i32* } }, { { { i64, { i64, i32* } }, { { i64, { i64, i64* } }, { i64, { i64, i64* } } } }, { i64, { i64, { i64, { i64, { i32, i1 } }* } }* } } } %x6
 }
 
-define { i64, { i64, i64* } } @IsaSAT_LLVM_experiment13647274_sort_clauses_by_score_code_f_013690456({ i64, { i64, i32* } } %ai, { i64, { i64, { i64, { i64, i64* } } } } %x) {
+define { i64, { i64, i64* } } @IsaSAT_LLVM_experiment14427448_sort_clauses_by_score_code_f_014470630({ i64, { i64, i32* } } %ai, { i64, { i64, { i64, { i64, i64* } } } } %x) {
 
   start:
     %a1 = extractvalue { i64, { i64, { i64, { i64, i64* } } } } %x, 0
@@ -13680,7 +13681,7 @@ define { i64, { i64, i64* } } @IsaSAT_LLVM_experiment13647274_sort_clauses_by_sc
     %tmpda = insertvalue { i64, { i64, { i64, i64* } } } %xn, { i64, { i64, i64* } } %a1b, 1
     %xo = insertvalue { i64, { i64, { i64, { i64, i64* } } } } zeroinitializer, i64 %a1, 0
     %x3 = insertvalue { i64, { i64, { i64, { i64, i64* } } } } %xo, { i64, { i64, { i64, i64* } } } %tmpda, 1
-    %x4 = call { i64, { i64, i64* } } @IsaSAT_LLVM_experiment13647274_sort_clauses_by_score_code_f_013690456 ({ i64, { i64, i32* } } %ai, { i64, { i64, { i64, { i64, i64* } } } } %x3)
+    %x4 = call { i64, { i64, i64* } } @IsaSAT_LLVM_experiment14427448_sort_clauses_by_score_code_f_014470630 ({ i64, { i64, i32* } } %ai, { i64, { i64, { i64, { i64, i64* } } } } %x3)
     br label %ctd_ifa
 
   ctd_ifa:
@@ -13698,7 +13699,7 @@ define { i64, { i64, i64* } } @IsaSAT_LLVM_experiment13647274_sort_clauses_by_sc
     %tmpca = insertvalue { i64, { i64, { i64, i64* } } } %xp, { i64, { i64, i64* } } %xl1, 1
     %xq = insertvalue { i64, { i64, { i64, { i64, i64* } } } } zeroinitializer, i64 %xoa, 0
     %x5 = insertvalue { i64, { i64, { i64, { i64, i64* } } } } %xq, { i64, { i64, { i64, i64* } } } %tmpca, 1
-    %x6 = call { i64, { i64, i64* } } @IsaSAT_LLVM_experiment13647274_sort_clauses_by_score_code_f_013690456 ({ i64, { i64, i32* } } %ai, { i64, { i64, { i64, { i64, i64* } } } } %x5)
+    %x6 = call { i64, { i64, i64* } } @IsaSAT_LLVM_experiment14427448_sort_clauses_by_score_code_f_014470630 ({ i64, { i64, i32* } } %ai, { i64, { i64, { i64, { i64, i64* } } } } %x5)
     br label %ctd_ifc
 
   ctd_ifc:
@@ -13879,7 +13880,7 @@ define { { i1, { i32, i1* } }, { { i64, i32* }, i32 } } @IsaSAT_Backtrack_LLVM_e
     ret { { i1, { i32, i1* } }, { { i64, i32* }, i32 } } %x11
 }
 
-define { i64, { i64, i32* } } @IsaSAT_LLVM_experiment13647274_quicksort_vmtf_nth_ref_code_f_013761182({ i64, { i32, i32 } }* %ai, { i64, { i64, { i64, { i64, i32* } } } } %x) {
+define { i64, { i64, i32* } } @IsaSAT_LLVM_experiment14427448_quicksort_vmtf_nth_ref_code_f_014541414({ i64, { i32, i32 } }* %ai, { i64, { i64, { i64, { i64, i32* } } } } %x) {
 
   start:
     %a1 = extractvalue { i64, { i64, { i64, { i64, i32* } } } } %x, 0
@@ -13904,7 +13905,7 @@ define { i64, { i64, i32* } } @IsaSAT_LLVM_experiment13647274_quicksort_vmtf_nth
     %tmpac = insertvalue { i64, { i64, { i64, i32* } } } %xh, { i64, { i64, i32* } } %a1b, 1
     %xi = insertvalue { i64, { i64, { i64, { i64, i32* } } } } zeroinitializer, i64 %a1, 0
     %x1 = insertvalue { i64, { i64, { i64, { i64, i32* } } } } %xi, { i64, { i64, { i64, i32* } } } %tmpac, 1
-    %x2 = call { i64, { i64, i32* } } @IsaSAT_LLVM_experiment13647274_quicksort_vmtf_nth_ref_code_f_013761182 ({ i64, { i32, i32 } }* %ai, { i64, { i64, { i64, { i64, i32* } } } } %x1)
+    %x2 = call { i64, { i64, i32* } } @IsaSAT_LLVM_experiment14427448_quicksort_vmtf_nth_ref_code_f_014541414 ({ i64, { i32, i32 } }* %ai, { i64, { i64, { i64, { i64, i32* } } } } %x1)
     br label %ctd_if
 
   ctd_if:
@@ -13922,7 +13923,7 @@ define { i64, { i64, i32* } } @IsaSAT_LLVM_experiment13647274_quicksort_vmtf_nth
     %tmpac1 = insertvalue { i64, { i64, { i64, i32* } } } %xk, { i64, { i64, i32* } } %xg, 1
     %xl = insertvalue { i64, { i64, { i64, { i64, i32* } } } } zeroinitializer, i64 %xja, 0
     %x3 = insertvalue { i64, { i64, { i64, { i64, i32* } } } } %xl, { i64, { i64, { i64, i32* } } } %tmpac1, 1
-    %x4 = call { i64, { i64, i32* } } @IsaSAT_LLVM_experiment13647274_quicksort_vmtf_nth_ref_code_f_013761182 ({ i64, { i32, i32 } }* %ai, { i64, { i64, { i64, { i64, i32* } } } } %x3)
+    %x4 = call { i64, { i64, i32* } } @IsaSAT_LLVM_experiment14427448_quicksort_vmtf_nth_ref_code_f_014541414 ({ i64, { i32, i32 } }* %ai, { i64, { i64, { i64, { i64, i32* } } } } %x3)
     br label %ctd_ifa
 
   ctd_ifa:
