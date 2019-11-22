@@ -1,3 +1,4 @@
+#define _POSIX_C_SOURCE 2
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdlib.h>
@@ -307,7 +308,7 @@ FILE * open_pipe (const char * fmt, const char * path,
   char cmd[strlen (fmt) + strlen (path)];
   sprintf (cmd, fmt, path);
   printf("res = %s", cmd);
-  FILE * res = fopen (cmd, mode);
+  FILE * res = popen (cmd, mode);
   return res;
 }
 
