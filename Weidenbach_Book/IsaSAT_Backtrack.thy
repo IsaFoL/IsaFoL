@@ -648,7 +648,7 @@ paragraph \<open>Minimisation of the conflict\<close>
 definition extract_shorter_conflict_list_heur_st
   :: \<open>twl_st_wl_heur \<Rightarrow> (twl_st_wl_heur \<times> _ \<times> _) nres\<close>
   where
-    \<open>extract_shorter_conflict_list_heur_st = (\<lambda>(M, N, (_, D), Q', W', vm, \<phi>, clvls, cach, lbd, outl,
+    \<open>extract_shorter_conflict_list_heur_st = (\<lambda>(M, N, (_, D), Q', W', vm, clvls, cach, lbd, outl,
        stats, ccont, vdom). do {
      ASSERT(fst M \<noteq> []);
      let K = lit_of_last_trail_pol M;
@@ -662,7 +662,7 @@ definition extract_shorter_conflict_list_heur_st
      let cach = empty_cach_ref cach;
      ASSERT(outl \<noteq> [] \<and> length outl \<le> uint32_max);
      (D, C, n) \<leftarrow> isa_empty_conflict_and_extract_clause_heur M D outl;
-     RETURN ((M, N, D, Q', W', vm, \<phi>, clvls, cach, lbd, take 1 outl, stats, ccont, vdom), n, C)
+     RETURN ((M, N, D, Q', W', vm, clvls, cach, lbd, take 1 outl, stats, ccont, vdom), n, C)
   })\<close>
 
 lemma the_option_lookup_clause_assn:
@@ -677,32 +677,33 @@ definition update_heuristics where
 
 lemma heuristic_rel_update_heuristics[intro!]:
   \<open>heuristic_rel \<A> heur \<Longrightarrow> heuristic_rel \<A> (update_heuristics glue heur)\<close>
-  by (auto simp: heuristic_rel_def)
+  by (auto simp: heuristic_rel_def phase_save_heur_rel_def phase_saving_def
+    update_heuristics_def)
 
 definition propagate_bt_wl_D_heur
   :: \<open>nat literal \<Rightarrow> nat clause_l \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
-  \<open>propagate_bt_wl_D_heur = (\<lambda>L C (M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, heur, vdom, avdom, lcount, opts). do {
+  \<open>propagate_bt_wl_D_heur = (\<lambda>L C (M, N0, D, Q, W0, vm0, y, cach, lbd, outl, stats, heur, vdom, avdom, lcount, opts). do {
       ASSERT(length vdom \<le> length N0);
       ASSERT(length avdom \<le> length N0);
       ASSERT(nat_of_lit (C!1) < length W0 \<and> nat_of_lit (-L) < length W0);
       ASSERT(length C > 1);
       let L' = C!1;
       ASSERT(length C \<le> uint32_max div 2 + 1);
-      (vm, \<phi>) \<leftarrow> isa_vmtf_rescore C M vm0 \<phi>0;
+      vm \<leftarrow> isa_vmtf_rescore C M vm0;
       glue \<leftarrow> get_LBD lbd;
       let b = False;
       let b' = (length C = 2);
-      ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, heur,
+      ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, y, cach, lbd, outl, stats, heur,
         vdom, avdom, lcount, opts) \<longrightarrow> append_and_length_fast_code_pre ((b, C), N0));
-      ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, heur,
+      ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, y, cach, lbd, outl, stats, heur,
         vdom, avdom, lcount, opts) \<longrightarrow> lcount < sint64_max);
       (N, i) \<leftarrow> fm_add_new b C N0;
       ASSERT(update_lbd_pre ((i, glue), N));
       let N = update_lbd i glue N;
-      ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, heur,
+      ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, y, cach, lbd, outl, stats, heur,
          vdom, avdom, lcount, opts) \<longrightarrow> length_ll W0 (nat_of_lit (-L)) < sint64_max);
       let W = W0[nat_of_lit (- L) := W0 ! nat_of_lit (- L) @ [(i, L', b')]];
-      ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, heur,
+      ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, y, cach, lbd, outl, stats, heur,
          vdom, avdom, lcount, opts) \<longrightarrow> length_ll W (nat_of_lit L') < sint64_max);
       let W = W[nat_of_lit L' := W!nat_of_lit L' @ [(i, -L, b')]];
       lbd \<leftarrow> lbd_empty lbd;
@@ -712,8 +713,8 @@ definition propagate_bt_wl_D_heur
       ASSERT(cons_trail_Propagated_tr_pre ((-L, i), M));
       M \<leftarrow> cons_trail_Propagated_tr (- L) i M;
       vm \<leftarrow> isa_vmtf_flush_int M vm;
-      ASSERT(atm_of L < length \<phi>);
-      RETURN (M, N, D, j, W, vm, save_phase (-L) \<phi>, 0,
+      heur \<leftarrow> mop_save_phase_heur (atm_of L') (is_neg L') heur;
+      RETURN (M, N, D, j, W, vm, 0,
          cach, lbd, outl, add_lbd (of_nat glue) stats, update_heuristics glue heur, vdom @ [ i],
           avdom @ [ i],
           lcount + 1, opts)
@@ -730,7 +731,7 @@ definition remove_last
 definition propagate_unit_bt_wl_D_int
   :: \<open>nat literal \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close>
   where
-    \<open>propagate_unit_bt_wl_D_int = (\<lambda>L (M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, stats,
+    \<open>propagate_unit_bt_wl_D_int = (\<lambda>L (M, N, D, Q, W, vm, clvls, cach, lbd, outl, stats,
         heur, vdom). do {
       vm \<leftarrow> isa_vmtf_flush_int M vm;
       glue \<leftarrow> get_LBD lbd;
@@ -741,7 +742,7 @@ definition propagate_unit_bt_wl_D_int
       ASSERT(cons_trail_Propagated_tr_pre ((- L, 0::nat), M));
       M \<leftarrow> cons_trail_Propagated_tr (- L) 0 M;
       let stats = incr_uset stats;
-      RETURN (M, N, D, j, W, vm, \<phi>, clvls, cach, lbd, outl, stats,
+      RETURN (M, N, D, j, W, vm, clvls, cach, lbd, outl, stats,
         (update_heuristics glue heur), vdom)})\<close>
 
 
@@ -941,15 +942,14 @@ proof -
     obtain M N D NE UE NS US Q W where
       S: \<open>S = (M, N, D, NE, UE, NS, US, Q, W)\<close>
       by (cases S)
-    obtain M' W' vm \<phi> clvls cach lbd outl stats heur avdom vdom lcount D' arena b Q' opts where
-      S': \<open>S' = (M', arena, (b, D'), Q', W', vm, \<phi>, clvls, cach, lbd, outl, stats, heur, vdom,
+    obtain M' W' vm clvls cach lbd outl stats heur avdom vdom lcount D' arena b Q' opts where
+      S': \<open>S' = (M', arena, (b, D'), Q', W', vm, clvls, cach, lbd, outl, stats, heur, vdom,
         avdom, lcount, opts)\<close>
       using S'_S by (cases S') (auto simp: twl_st_heur_conflict_ana_def S)
     have
       M'_M: \<open>(M', M) \<in> trail_pol (all_atms_st S)\<close>  and
       \<open>(W', W) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 (all_atms_st S))\<close> and
       vm: \<open>vm \<in> isa_vmtf (all_atms_st S) M\<close> and
-      \<open>phase_saving (all_atms_st S) \<phi>\<close> and
       n_d: \<open>no_dup M\<close> and
       \<open>clvls \<in> counts_maximum_level M D\<close> and
       cach_empty: \<open>cach_refinement_empty (all_atms_st S) cach\<close> and
@@ -1262,7 +1262,7 @@ proof -
         done
     qed
 
-    have final: \<open>(((M', arena, x1b, Q', W', vm', \<phi>, clvls, empty_cach_ref x1a, lbd, take 1 x2a,
+    have final: \<open>(((M', arena, x1b, Q', W', vm', clvls, empty_cach_ref x1a, lbd, take 1 x2a,
             stats, heur, vdom, avdom, lcount, opts),
             x2c, x1c),
           M, N, Da, NE, UE, NS, US, Q, W)
@@ -1341,7 +1341,7 @@ proof -
       then have max_lvl_le:
         \<open>get_maximum_level M (remove1_mset (- lit_of (hd M)) (the Da)) < count_decided M\<close>
         using get_maximum_level_mono[OF Da_D', of M] by auto
-      have \<open>((M', arena, x1b, Q', W', vm', \<phi>, clvls, empty_cach_ref x1a, lbd, take (Suc 0) x2a,
+      have \<open>((M', arena, x1b, Q', W', vm', clvls, empty_cach_ref x1a, lbd, take (Suc 0) x2a,
           stats, heur, vdom, avdom, lcount, opts),
         del_conflict_wl (M, N, Da, NE, UE, NS, US, Q, W))
         \<in> twl_st_heur_bt\<close>
@@ -1485,8 +1485,8 @@ proof -
     obtain M N D NE UE NS US Q W where
       T': \<open>T' = (M, N, D, NE, UE, NS, US, Q, W)\<close>
       by (cases T')
-    obtain M' W' vm \<phi> clvls cach lbd outl stats arena D' Q' where
-      T: \<open>T = (M', arena, D', Q', W', vm, \<phi>, clvls, cach, lbd, outl, stats)\<close>
+    obtain M' W' vm clvls cach lbd outl stats arena D' Q' where
+      T: \<open>T = (M', arena, D', Q', W', vm, clvls, cach, lbd, outl, stats)\<close>
       using TT' by (cases T) (auto simp: twl_st_heur_bt_def T' del_conflict_wl_def)
     have
       vm: \<open>vm \<in> isa_vmtf (all_atms_st T') M\<close> and
@@ -1701,10 +1701,10 @@ proof -
       using \<open>(TnC, T') \<in> ?shorter S' S\<close> \<open>1 < length C\<close> find_decomp
       apply (cases U')
       by (auto simp: find_lit_of_max_level_wl_def T' intro: literals_are_in_\<L>\<^sub>i\<^sub>n_mono)
-    obtain M1' vm' W' \<phi> clvls cach lbd outl stats heur avdom vdom lcount arena D'
+    obtain M1' vm' W' clvls cach lbd outl stats heur avdom vdom lcount arena D'
         Q' opts
       where
-        U: \<open>U = (M1', arena, D', Q', W', vm', \<phi>, clvls, cach, lbd, outl, stats, heur,
+        U: \<open>U = (M1', arena, D', Q', W', vm', clvls, cach, lbd, outl, stats, heur,
            vdom, avdom, lcount, opts, [])\<close>
       using UU' find_decomp by (cases U) (auto simp: U' T' twl_st_heur_bt_def all_atms_def[symmetric])
 
@@ -1716,7 +1716,6 @@ proof -
       M1'_M1: \<open>(M1', M1) \<in> trail_pol (all_atms_st U')\<close> and
       W'W: \<open>(W', W) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 (all_atms_st U'))\<close> and
       vmtf: \<open>vm' \<in> isa_vmtf (all_atms_st U') M1\<close> and
-      \<phi>: \<open>phase_saving (all_atms_st U') \<phi>\<close> and
       n_d_M1: \<open>no_dup M1\<close> and
       empty_cach: \<open>cach_refinement_empty (all_atms_st U') cach\<close> and
       \<open>length outl = Suc 0\<close> and
@@ -1757,7 +1756,7 @@ proof -
     qed
 
     have propagate_bt_wl_D_heur_alt_def:
-      \<open>propagate_bt_wl_D_heur = (\<lambda>L C (M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, heur,
+      \<open>propagate_bt_wl_D_heur = (\<lambda>L C (M, N0, D, Q, W0, vm0, y, cach, lbd, outl, stats, heur,
            vdom, avdom, lcount, opts). do {
           ASSERT(length vdom \<le> length N0);
           ASSERT(length avdom \<le> length N0);
@@ -1765,21 +1764,21 @@ proof -
           ASSERT(length C > 1);
           let L' = C!1;
           ASSERT (length C \<le> uint32_max div 2 + 1);
-          (vm, \<phi>) \<leftarrow> isa_vmtf_rescore C M vm0 \<phi>0;
+          vm \<leftarrow> isa_vmtf_rescore C M vm0;
           glue \<leftarrow> get_LBD lbd;
           let _ = C;
           let b = False;
-          ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, heur,
+          ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, y, cach, lbd, outl, stats, heur,
             vdom, avdom, lcount, opts) \<longrightarrow> append_and_length_fast_code_pre ((b, C), N0));
-          ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, heur,
+          ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, y, cach, lbd, outl, stats, heur,
              vdom, avdom, lcount, opts) \<longrightarrow> lcount < sint64_max);
           (N, i) \<leftarrow> fm_add_new b C N0;
           ASSERT(update_lbd_pre ((i, glue), N));
           let N = update_lbd i glue N;
-          ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, heur,
+          ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, y, cach, lbd, outl, stats, heur,
             vdom, avdom, lcount, opts) \<longrightarrow> length_ll W0 (nat_of_lit (-L)) < sint64_max);
           let W = W0[nat_of_lit (- L) := W0 ! nat_of_lit (- L) @ [(i, L', length C = 2)]];
-          ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, heur,
+          ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, y, cach, lbd, outl, stats, heur,
             vdom, avdom, lcount, opts) \<longrightarrow> length_ll W (nat_of_lit L') < sint64_max);
           let W = W[nat_of_lit L' := W!nat_of_lit L' @ [(i, -L, length C = 2)]];
           lbd \<leftarrow> lbd_empty lbd;
@@ -1789,8 +1788,8 @@ proof -
           ASSERT(cons_trail_Propagated_tr_pre ((-L, i), M));
           M \<leftarrow> cons_trail_Propagated_tr (- L) i M;
           vm \<leftarrow> isa_vmtf_flush_int M vm;
-          ASSERT(atm_of L < length \<phi>);
-          RETURN (M, N, D, j, W, vm, save_phase (-L) \<phi>, 0,
+          heur \<leftarrow> mop_save_phase_heur (atm_of L') (is_neg L') heur;
+          RETURN (M, N, D, j, W, vm, 0,
             cach, lbd, outl, add_lbd (of_nat glue) stats, update_heuristics glue heur, vdom @ [ i],
               avdom @ [i], Suc lcount, opts)
       })\<close>
@@ -1829,6 +1828,7 @@ proof -
             _ \<leftarrow> RETURN (); \<^cancel>\<open>lbd empty\<close>
 	     M2 \<leftarrow> cons_trail_propagate_l (- LK') i M1;
             _ \<leftarrow> RETURN (); \<^cancel>\<open>vmtf_flush\<close>
+            _ \<leftarrow> RETURN (); \<^cancel>\<open>heur\<close>
             RETURN
               (M2,
                 N, None, NE, UE, NS, US, {#LK'#},
@@ -1838,15 +1838,15 @@ proof -
       unfolding propagate_bt_wl_def Let_def find_new_alt nres_monad3
         U U' H get_fresh_index_wl_def prod.case
         propagate_bt_wl_def Let_def rescore_clause_def
-      by (auto simp: U' RES_RES2_RETURN_RES RES_RETURN_RES \<phi> uminus_\<A>\<^sub>i\<^sub>n_iff
+      by (auto simp: U' RES_RES2_RETURN_RES RES_RETURN_RES uminus_\<A>\<^sub>i\<^sub>n_iff
           uncurry_def RES_RES_RETURN_RES length_list_ge2 C_1_neq_hd
           get_fresh_index_def RES_RETURN_RES2 RES_RES_RETURN_RES2 list_of_mset2_def
           cons_trail_propagate_l_def
           intro!: bind_cong[OF refl]
           simp flip: all_lits_alt_def2 all_lits_alt_def all_lits_def)
 
-    have [refine0]: \<open>SPEC (\<lambda>(vm', \<phi>'). vm' \<in> vmtf \<A> M1 \<and> phase_saving \<A> \<phi>')
-       \<le> \<Down>{((vm', \<phi>'), ()). vm' \<in> vmtf \<A> M1 \<and> phase_saving \<A> \<phi>'} (RETURN ())\<close> for \<A>
+    have [refine0]: \<open>SPEC (\<lambda>(vm'). vm' \<in> vmtf \<A> M1)
+       \<le> \<Down>{((vm'), ()). vm' \<in> vmtf \<A> M1 } (RETURN ())\<close> for \<A>
       by (auto intro!: RES_refine simp: RETURN_def)
 
     obtain vm0 where
@@ -1854,17 +1854,16 @@ proof -
       vm0: \<open>vm0 \<in> vmtf (all_atms_st U') M1\<close>
       using vmtf unfolding isa_vmtf_def by (cases vm') auto
     have [refine0]:
-      \<open>isa_vmtf_rescore C M1' vm' \<phi> \<le> SPEC (\<lambda>c. (c, ()) \<in> {((vm, \<phi>), _).
-         vm \<in> isa_vmtf (all_atms_st U') M1 \<and>
-	       phase_saving (all_atms_st U') \<phi>})\<close>
+      \<open>isa_vmtf_rescore C M1' vm' \<le> SPEC (\<lambda>c. (c, ()) \<in> {((vm), _).
+         vm \<in> isa_vmtf (all_atms_st U') M1})\<close>
       apply (rule order.trans)
-       apply (rule isa_vmtf_rescore[of \<open>all_atms_st U'\<close>, THEN fref_to_Down_curry3, of _ _ _ _ C M1 vm0 \<phi>])
+       apply (rule isa_vmtf_rescore[of \<open>all_atms_st U'\<close>, THEN fref_to_Down_curry2, of _ _ _ C M1 vm0])
       subgoal using bounded by auto
       subgoal using vm M1'_M1 by auto
       apply (rule order.trans)
        apply (rule ref_two_step')
-       apply (rule vmtf_rescore_score_clause[THEN fref_to_Down_curry3, of \<open>all_atms_st U'\<close> C M1 vm0 \<phi>])
-      subgoal using vm0 lits_confl \<phi> by (auto simp: S' U')
+       apply (rule vmtf_rescore_score_clause[THEN fref_to_Down_curry2, of \<open>all_atms_st U'\<close> C M1 vm0])
+      subgoal using vm0 lits_confl by (auto simp: S' U')
       subgoal using vm M1'_M1 by auto
       subgoal by (auto simp: rescore_clause_def conc_fun_RES intro!: isa_vmtfI)
       done
@@ -2027,6 +2026,7 @@ proof -
           cach_refinement_list_def vdom_m_def
           isasat_input_bounded_def
           isasat_input_nempty_def cach_refinement_nonull_def
+          heuristic_rel_def phase_save_heur_rel_def
         unfolding trail_pol_def[symmetric] ann_lits_split_reasons_def[symmetric]
           isasat_input_bounded_def[symmetric]
           vmtf_def[symmetric]
@@ -2044,6 +2044,7 @@ proof -
           isasat_input_bounded_def[symmetric]
           isasat_input_nempty_def[symmetric]
           heuristic_rel_def[symmetric]
+          heuristic_rel_def[symmetric] phase_save_heur_rel_def[symmetric]
         apply auto
         done
       show ?K
@@ -2051,6 +2052,13 @@ proof -
         by (auto simp: vdom_m_simps5 vdom_m_def)
     qed
 
+    have \<open>mop_save_phase_heur (atm_of (C ! 1)) (is_neg (C ! 1)) heur
+    \<le> SPEC
+       (\<lambda>c. (c, ())
+            \<in> {(c, _). heuristic_rel (all_atms N (NE + UE)) c})\<close>
+      using heur
+      unfolding mop_save_phase_heur_def
+      apply (auto intro!: ASSERT_leI save_phase_heur_preI)
     have arena_le: \<open>length arena + header_size C + length C \<le> 6 + r + uint32_max div 2\<close>
       using r r' le_C_ge by (auto simp: uint32_max_def header_size_def S' U)
     have vm: \<open>vm \<in> isa_vmtf (all_atms N (NE + UE)) M1 \<Longrightarrow>
@@ -2083,7 +2091,7 @@ proof -
         by (auto simp: propagate_bt_wl_D_heur_def twl_st_heur_def lit_of_hd_trail_st_heur_def
             phase_saving_def atms_of_def S' U' lit_of_hd_trail_def all_atms_def[symmetric] isasat_fast_def
             sint64_max_def uint32_max_def)
-      subgoal for x uu x1 x2 vm uua_ glue uub D'' xa x' x1a x2a
+      subgoal for x uu x1 x2 vm uua_ glue uub D'' xa x'
         by (auto simp: update_lbd_pre_def arena_is_valid_clause_idx_def)
       subgoal using length_watched_le[of S' S \<open>-lit_of_hd_trail M\<close>] corr SS' uM_\<L>\<^sub>a\<^sub>l\<^sub>l W'_eq S_arena
          by (auto simp: isasat_fast_def length_ll_def S' U lit_of_hd_trail_def simp flip: all_atms_def)
@@ -2111,14 +2119,14 @@ proof -
       subgoal
         using D' C_1_neq_hd vmtf avdom M1'_M1
         by (auto simp: propagate_bt_wl_D_heur_def twl_st_heur_def lit_of_hd_trail_st_heur_def
-            phase_saving_def atms_of_def S' U' lit_of_hd_trail_def all_atms_def[symmetric])
+            atms_of_def S' U' lit_of_hd_trail_def all_atms_def[symmetric])
       subgoal
         supply All_atms_rew[simp]
         unfolding twl_st_heur_def
         using D' C_1_neq_hd vmtf avdom M1'_M1 bounded nempty r arena_le
         by (clarsimp simp add: propagate_bt_wl_D_heur_def twl_st_heur_def
             Let_def T' U' U rescore_clause_def S' map_fun_rel_def
-            list_of_mset2_def vmtf_flush_def RES_RES2_RETURN_RES RES_RETURN_RES \<phi> uminus_\<A>\<^sub>i\<^sub>n_iff
+            list_of_mset2_def vmtf_flush_def RES_RES2_RETURN_RES RES_RETURN_RES uminus_\<A>\<^sub>i\<^sub>n_iff
             get_fresh_index_def RES_RETURN_RES2 RES_RES_RETURN_RES2 lit_of_hd_trail_def
             RES_RES_RETURN_RES lbd_empty_def get_LBD_def DECISION_REASON_def
             all_atms_def[symmetric] All_atms_rew

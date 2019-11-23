@@ -515,13 +515,13 @@ definition set_conflict_wl_heur_pre where
 definition set_conflict_wl_heur
   :: \<open>nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close>
 where
-  \<open>set_conflict_wl_heur = (\<lambda>C (M, N, D, Q, W, vmtf, \<phi>, clvls, cach, lbd, outl, stats, fema, sema). do {
+  \<open>set_conflict_wl_heur = (\<lambda>C (M, N, D, Q, W, vmtf, clvls, cach, lbd, outl, stats, fema, sema). do {
     let n = 0;
     ASSERT(curry6 isa_set_lookup_conflict_aa_pre M N C D n lbd outl);
     (D, clvls, lbd, outl) \<leftarrow> isa_set_lookup_conflict_aa M N C D n lbd outl;
     ASSERT(isa_length_trail_pre M);
     ASSERT(arena_act_pre N C);
-    RETURN (M, arena_incr_act N C, D, isa_length_trail M, W, vmtf, \<phi>, clvls, cach, lbd, outl,
+    RETURN (M, arena_incr_act N C, D, isa_length_trail M, W, vmtf, clvls, cach, lbd, outl,
       incr_conflict stats, fema, sema)})\<close>
 
 
@@ -602,7 +602,7 @@ lemma update_clause_wl_heur_update_clause_wl:
       arena_is_valid_clause_idx_and_access_def swap_lits_pre_def
     intro!: ASSERT_refine_left valid_arena_swap_lits
     intro!: bex_leI exI)
-  apply (rule_tac vdom= \<open>set (p)\<close> in mop_arena_swap)
+  apply (rule_tac vdom= \<open>set (get_vdom ((\<lambda>(((((((L,C),b),j),w),_),_),x). x) x))\<close> in mop_arena_swap)
   subgoal
     by (auto 0 0 simp: twl_st_heur_def Let_def
       map_fun_rel_def twl_st_heur'_def update_clause_wl_pre_def arena_lifting arena_lit_pre_def
@@ -624,11 +624,11 @@ lemma update_clause_wl_heur_update_clause_wl:
       map_fun_rel_def twl_st_heur'_def update_clause_wl_pre_def arena_lifting arena_lit_pre_def
     dest: multi_member_split simp flip: all_lits_def all_lits_alt_def2
     intro!: ASSERT_refine_left valid_arena_swap_lits)
-  subgoal for x y a b c d e f g h i j k l m n p q ra sa t aa ba ca da ea fa ga ha ia
+  subgoal for x y a b c d e f g h i j k l m n p q ra t aa ba ca da ea fa ga ha ia
        ja x1 x1a x1b x1c x1d x1e x1f x2 x2a x2b x2c x2d x2e x2f x1g x2g x1h
        x2h x1i x2i x1j x2j x1k x2k x1l x2l x1m x2m x1n x2n x1o x1p x1q x1r
        x1s x1t x1u x2o x2p x2q x2r x2s x2t x2u x1v x2v x1w x2w x1x x2x x1y
-       x2y x1z x2z K' K'a N' N'a
+       x2y x1z x2z K' K'a N' K'a'
   supply[[goals_limit=1]]
     by (auto dest!: length_watched_le2[of _ _ _ _ x2u \<D> r K'a])
       (simp_all add: twl_st_heur'_def twl_st_heur_def map_fun_rel_def ac_simps)
@@ -657,15 +657,15 @@ definition propagate_lit_wl_heur_pre where
 definition propagate_lit_wl_heur
   :: \<open>nat literal \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close>
 where
-  \<open>propagate_lit_wl_heur = (\<lambda>L' C i (M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, stats,
-    fema, sema). do {
+  \<open>propagate_lit_wl_heur = (\<lambda>L' C i (M, N, D, Q, W, vm, clvls, cach, lbd, outl, stats,
+    heur, sema). do {
       ASSERT(i \<le> 1);
       M \<leftarrow> cons_trail_Propagated_tr L' C M;
       N' \<leftarrow> mop_arena_swap C 0 (1 - i) N;
-      ASSERT(atm_of L' < length \<phi>);
       let stats = incr_propagation (if count_decided_pol M = 0 then incr_uset stats else stats);
-      RETURN (M, N', D, Q, W, vm, save_phase L' \<phi>, clvls, cach, lbd, outl,
-         stats, fema, sema)
+      heur \<leftarrow> mop_save_phase_heur (atm_of L') (is_pos L') heur;
+      RETURN (M, N', D, Q, W, vm, clvls, cach, lbd, outl,
+         stats, heur, sema)
   })\<close>
 
 definition propagate_lit_wl_pre where
@@ -682,14 +682,14 @@ lemma isa_vmtf_consD:
   using vmtf_consD[of ns m fst_As lst_As next_search _ \<A> M L] assms
   by (auto simp: isa_vmtf_def)
 
-
 lemma propagate_lit_wl_heur_propagate_lit_wl:
   \<open>(uncurry3 propagate_lit_wl_heur, uncurry3 (propagate_lit_wl)) \<in>
   [\<lambda>_. True]\<^sub>f
   Id \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f twl_st_heur_up'' \<D> r s K \<rightarrow> \<langle>twl_st_heur_up'' \<D> r s K\<rangle>nres_rel\<close>
   supply [[goals_limit=1]]
   unfolding propagate_lit_wl_heur_def propagate_lit_wl_def Let_def
-  apply (intro frefI nres_relI) unfolding uncurry_def
+  apply (intro frefI nres_relI) unfolding uncurry_def mop_save_phase_heur_def
+    nres_monad3
   apply (refine_rcg)
   subgoal by auto
   apply (rule_tac \<A> = \<open>all_atms_st (snd y)\<close> in cons_trail_Propagated_tr2)
@@ -731,7 +731,8 @@ lemma propagate_lit_wl_heur_propagate_lit_wl:
   subgoal by (auto simp: twl_st_heur_def propagate_lit_wl_heur_def propagate_lit_wl_def
         isa_vmtf_consD twl_st_heur'_def propagate_lit_wl_pre_def swap_lits_pre_def
         valid_arena_swap_lits arena_lifting phase_saving_def atms_of_def \<L>\<^sub>a\<^sub>l\<^sub>l_all_atms_all_lits
-        all_lits_def ac_simps)
+        all_lits_def ac_simps
+        intro!: save_phase_heur_preI)
   subgoal for x y
     by (cases x; cases y; hypsubst)
      (clarsimp simp add: twl_st_heur_def twl_st_heur'_def isa_vmtf_consD2
@@ -746,13 +747,13 @@ definition propagate_lit_wl_bin_pre where
 definition propagate_lit_wl_bin_heur
   :: \<open>nat literal \<Rightarrow> nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close>
 where
-  \<open>propagate_lit_wl_bin_heur = (\<lambda>L' C (M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl, stats,
-    fema, sema). do {
-      ASSERT(atm_of L' < length \<phi>);
+  \<open>propagate_lit_wl_bin_heur = (\<lambda>L' C (M, N, D, Q, W, vm, clvls, cach, lbd, outl, stats,
+    heur, sema). do {
       M \<leftarrow> cons_trail_Propagated_tr L' C M;
       let stats = incr_propagation (if count_decided_pol M = 0 then incr_uset stats else stats);
-      RETURN (M, N, D, Q, W, vm, save_phase L' \<phi>, clvls, cach, lbd, outl,
-         stats, fema, sema)
+      heur \<leftarrow> mop_save_phase_heur (atm_of L') (is_pos L') heur;
+      RETURN (M, N, D, Q, W, vm, clvls, cach, lbd, outl,
+         stats, heur, sema)
   })\<close>
 
 lemma propagate_lit_wl_bin_heur_propagate_lit_wl_bin:
@@ -761,19 +762,20 @@ lemma propagate_lit_wl_bin_heur_propagate_lit_wl_bin:
   nat_lit_lit_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f twl_st_heur_up'' \<D> r s K \<rightarrow> \<langle>twl_st_heur_up'' \<D> r s K\<rangle>nres_rel\<close>
   supply [[goals_limit=1]]
   unfolding propagate_lit_wl_bin_heur_def propagate_lit_wl_bin_def Let_def
-  apply (intro frefI nres_relI) unfolding uncurry_def
+  apply (intro frefI nres_relI) unfolding uncurry_def mop_save_phase_heur_def nres_monad3
   apply (refine_rcg)
+  apply (rule_tac \<A> = \<open>all_atms_st (snd y)\<close> in cons_trail_Propagated_tr2)
   subgoal by (auto 4 3 simp: twl_st_heur_def propagate_lit_wl_bin_heur_def propagate_lit_wl_bin_def
         isa_vmtf_consD twl_st_heur'_def propagate_lit_wl_bin_pre_def swap_lits_pre_def
         arena_lifting phase_saving_def atms_of_def save_phase_def \<L>\<^sub>a\<^sub>l\<^sub>l_all_atms_all_lits
         all_lits_def ac_simps
       intro!: ASSERT_refine_left cons_trail_Propagated_tr2 cons_trail_Propagated_tr_pre
       dest: multi_member_split valid_arena_DECISION_REASON)
-  apply (rule_tac \<A> = \<open>all_atms_st (snd y)\<close> in cons_trail_Propagated_tr2)
   subgoal by (auto 4 3 simp: twl_st_heur_def twl_st_heur'_def propagate_lit_wl_bin_pre_def swap_lits_pre_def
-        arena_lifting phase_saving_def atms_of_def save_phase_def ac_simps
+        arena_lifting phase_saving_def atms_of_def save_phase_def \<L>\<^sub>a\<^sub>l\<^sub>l_all_atms_all_lits \<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_all_lits_of_mm
       intro!: ASSERT_refine_left cons_trail_Propagated_tr2 cons_trail_Propagated_tr_pre
-      dest: multi_member_split valid_arena_DECISION_REASON)
+      dest: multi_member_split valid_arena_DECISION_REASON
+        intro!: save_phase_heur_preI)
   subgoal by (auto 4 3 simp: twl_st_heur_def twl_st_heur'_def propagate_lit_wl_bin_pre_def swap_lits_pre_def
         arena_lifting phase_saving_def atms_of_def save_phase_def \<L>\<^sub>a\<^sub>l\<^sub>l_all_atms_all_lits
         all_lits_def \<L>\<^sub>a\<^sub>l\<^sub>l_all_atms_all_lits \<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_all_lits_of_mm ac_simps
@@ -782,7 +784,8 @@ lemma propagate_lit_wl_bin_heur_propagate_lit_wl_bin:
   subgoal by (auto 4 3 simp: twl_st_heur_def twl_st_heur'_def propagate_lit_wl_bin_pre_def swap_lits_pre_def
         arena_lifting phase_saving_def atms_of_def save_phase_def \<L>\<^sub>a\<^sub>l\<^sub>l_all_atms_all_lits \<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_all_lits_of_mm
       intro!: ASSERT_refine_left cons_trail_Propagated_tr2 cons_trail_Propagated_tr_pre
-      dest: multi_member_split valid_arena_DECISION_REASON)
+      dest: multi_member_split valid_arena_DECISION_REASON
+        intro!: save_phase_heur_preI)
   subgoal for x y
     by (cases x; cases y; hypsubst)
      (clarsimp simp add: ac_simps twl_st_heur_def twl_st_heur'_def isa_vmtf_consD2
@@ -1017,8 +1020,7 @@ proof -
       \<open>x2r = (x1s, x2s)\<close> and
       \<open>x2q = (x1r, x2r)\<close> and
       \<open>x2p = (x1q, x2q)\<close> and
-      \<open>x2o = (x1p, x2p)\<close> and
-      \<open>x2n = (x1o, x2o)\<close> and
+      \<open>x2n = (x1o, x2p)\<close> and
       \<open>x2m = (x1n, x2n)\<close> and
       \<open>x2l = (x1m, x2m)\<close> and
       \<open>x2k = (x1l, x2l)\<close> and
@@ -1065,8 +1067,7 @@ proof -
       \<open>x2r = (x1s, x2s)\<close> and
       \<open>x2q = (x1r, x2r)\<close> and
       \<open>x2p = (x1q, x2q)\<close> and
-      \<open>x2o = (x1p, x2p)\<close> and
-      \<open>x2n = (x1o, x2o)\<close> and
+      \<open>x2n = (x1o, x2p)\<close> and
       \<open>x2m = (x1n, x2n)\<close> and
       \<open>x2l = (x1m, x2m)\<close> and
       \<open>x2k = (x1l, x2l)\<close> and
