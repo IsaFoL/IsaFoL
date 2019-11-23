@@ -1993,7 +1993,7 @@ proof -
     have H': \<open>A = B \<Longrightarrow> A x \<Longrightarrow> B x\<close> for A B x
       by auto
 
-    note cong =  trail_pol_cong
+    note cong =  trail_pol_cong heuristic_rel_cong
       option_lookup_clause_rel_cong isa_vmtf_init_cong
        vdom_m_cong[THEN H] isasat_input_nempty_cong[THEN iffD1]
       isasat_input_bounded_cong[THEN iffD1]
@@ -2165,7 +2165,7 @@ proof -
     have H': \<open>A = B \<Longrightarrow> A x \<Longrightarrow> B x\<close> for A B x
       by auto
 
-    note cong =  trail_pol_cong
+    note cong =  trail_pol_cong heuristic_rel_cong
       option_lookup_clause_rel_cong isa_vmtf_init_cong
        vdom_m_cong[THEN H] isasat_input_nempty_cong[THEN iffD1]
       isasat_input_bounded_cong[THEN iffD1]
@@ -3900,7 +3900,7 @@ proof -
     have H': \<open>A = B \<Longrightarrow> A x \<Longrightarrow> B x\<close> for A B x
       by auto
 
-    note cong =  trail_pol_cong
+    note cong =  trail_pol_cong heuristic_rel_cong
       option_lookup_clause_rel_cong isa_vmtf_init_cong
        vdom_m_cong[THEN H] isasat_input_nempty_cong[THEN iffD1]
       isasat_input_bounded_cong[THEN iffD1]
@@ -4070,7 +4070,7 @@ proof -
     have H': \<open>A = B \<Longrightarrow> A x \<Longrightarrow> B x\<close> for A B x
       by auto
 
-    note cong =  trail_pol_cong
+    note cong =  trail_pol_cong heuristic_rel_cong
       option_lookup_clause_rel_cong isa_vmtf_init_cong
        vdom_m_cong[THEN H] isasat_input_nempty_cong[THEN iffD1]
       isasat_input_bounded_cong[THEN iffD1]

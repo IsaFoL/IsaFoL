@@ -34,10 +34,10 @@ lemma twl_st_heur_change_subsumed_clauses:
        vdom, avdom, lcount, opts, old_arena),
      (M, N, D, NE, UE, NS', US', Q, W)) \<in> twl_st_heur\<close>
 proof -
-  note cong =  trail_pol_cong
+  note cong = trail_pol_cong heuristic_rel_cong
       option_lookup_clause_rel_cong D\<^sub>0_cong isa_vmtf_cong phase_saving_cong
       cach_refinement_empty_cong vdom_m_cong isasat_input_nempty_cong
-      isasat_input_bounded_cong
+      isasat_input_bounded_cong heuristic_rel_cong
   show ?thesis
     using cong[OF assms(2)] assms(1)
     apply (auto simp add: twl_st_heur_def)
@@ -90,7 +90,8 @@ definition twl_st_heur_restart :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl)
     mset avdom \<subseteq># mset vdom \<and>
     isasat_input_bounded (all_init_atms N (NE+NS)) \<and>
     isasat_input_nempty (all_init_atms N (NE+NS)) \<and>
-    distinct vdom \<and> old_arena = []
+    distinct vdom \<and> old_arena = [] \<and>
+    heuristic_rel (all_init_atms N (NE+NS)) heur
   }\<close>
 
 
@@ -306,6 +307,11 @@ qed
 lemma trail_pol_no_dup: \<open>(M, M') \<in> trail_pol \<A> \<Longrightarrow> no_dup M'\<close>
   by (auto simp: trail_pol_def)
 
+lemma heuristic_rel_restart_info_done[intro!, simp]:
+  \<open>heuristic_rel \<A> (fema, sema, ccount, wasted) \<Longrightarrow>
+    heuristic_rel \<A> ((fema, sema, restart_info_restart_done ccount, wasted))\<close>
+  by (auto simp: heuristic_rel_def)
+
 lemma cdcl_twl_local_restart_wl_D_heur_cdcl_twl_local_restart_wl_D_spec:
   \<open>(cdcl_twl_local_restart_wl_D_heur, cdcl_twl_local_restart_wl_spec) \<in>
     twl_st_heur''' r \<rightarrow>\<^sub>f \<langle>twl_st_heur''' r\<rangle>nres_rel\<close>
@@ -486,7 +492,7 @@ proof -
         using ST
         by (auto simp: find_decomp_w_ns_def conc_fun_RES twl_st_heur_def)
   qed
-  note cong =  trail_pol_cong
+  note cong =  trail_pol_cong heuristic_rel_cong
       option_lookup_clause_rel_cong D\<^sub>0_cong isa_vmtf_cong phase_saving_cong
       cach_refinement_empty_cong vdom_m_cong isasat_input_nempty_cong
       isasat_input_bounded_cong
@@ -977,7 +983,7 @@ lemma mark_to_delete_clauses_wl_D_heur_pre_alt_def:
       \<open>mark_to_delete_clauses_wl_post T0 T \<Longrightarrow>
         (S, T) \<in> twl_st_heur \<longleftrightarrow> (S, T) \<in> twl_st_heur_restart\<close> (is \<open>_ \<Longrightarrow> _ ?C\<close>)
 proof -
-  note cong =  trail_pol_cong
+  note cong = trail_pol_cong heuristic_rel_cong
       option_lookup_clause_rel_cong D\<^sub>0_cong isa_vmtf_cong phase_saving_cong
       cach_refinement_empty_cong vdom_m_cong isasat_input_nempty_cong
       isasat_input_bounded_cong
@@ -1243,7 +1249,7 @@ lemma incr_wasted_st:
    apply (simp add: twl_st_heur_restart_ana_def incr_wasted_st_def)
   apply (auto simp: twl_st_heur_restart_def mark_garbage_heur_def mark_garbage_wl_def
          learned_clss_l_l_fmdrop size_remove1_mset_If
-     simp: all_init_atms_def all_init_lits_def
+     simp: all_init_atms_def all_init_lits_def heuristic_rel_def
      simp del: all_init_atms_def[symmetric]
      intro!: valid_arena_mark_unused valid_arena_arena_decr_act
      dest!: in_set_butlastD in_vdom_m_fmdropD
@@ -4858,7 +4864,7 @@ lemma
        \<open>cdcl_twl_full_restart_wl_GC_prog_post S0 T \<Longrightarrow>
         (S, T) \<in> twl_st_heur \<longleftrightarrow> (S, T) \<in> twl_st_heur_restart\<close>  (is \<open>_ \<Longrightarrow> _ ?B\<close>)
 proof -
-  note cong =  trail_pol_cong
+  note cong = trail_pol_cong heuristic_rel_cong
       option_lookup_clause_rel_cong D\<^sub>0_cong isa_vmtf_cong phase_saving_cong
       cach_refinement_empty_cong vdom_m_cong isasat_input_nempty_cong
       isasat_input_bounded_cong
@@ -4903,7 +4909,7 @@ proof -
       apply (clarsimp simp del: isasat_input_nempty_def isasat_input_bounded_def)
       apply (cases S; cases T; cases T')
       apply (simp add: twl_st_heur_def twl_st_heur_restart_def del: isasat_input_nempty_def)
-      using isa_vmtf_cong option_lookup_clause_rel_cong trail_pol_cong
+      using isa_vmtf_cong option_lookup_clause_rel_cong trail_pol_cong heuristic_rel_cong
       by presburger
     subgoal
       using literals_are_\<L>\<^sub>i\<^sub>n'_literals_are_\<L>\<^sub>i\<^sub>n_iff(3)[of T T']
@@ -5013,13 +5019,20 @@ lemma restart_required_heur_restart_required_wl0:
     by (intro frefI nres_relI)
      (auto simp: twl_st_heur_def get_learned_clss_wl_def RETURN_RES_refine_iff)
 
+(*heuristic_rel (all_atms cd (cf + cg + ch + ci))
+     (incr_restart_phase_end
+       (incr_restart_phase*)
+lemma heuristic_rel_incr_restartI[intro!]:
+  \<open>heuristic_rel \<A> heur \<Longrightarrow> heuristic_rel \<A> (incr_restart_phase_end heur)\<close>
+  by (auto simp: heuristic_rel_def)
+
 lemma update_all_phases_Pair:
   \<open>(uncurry update_all_phases, uncurry (RETURN oo Pair)) \<in>
     twl_st_heur'''' r \<times>\<^sub>f nat_rel \<rightarrow>\<^sub>f \<langle>twl_st_heur'''' r \<times>\<^sub>f nat_rel\<rangle>nres_rel\<close>
-  unfolding update_all_phases_def
-    update_restart_phases_def
+  unfolding update_all_phases_def update_restart_phases_def
   by (intro frefI nres_relI)
-    (auto simp: twl_st_heur'_def twl_st_heur_def)
+    (auto simp: twl_st_heur'_def twl_st_heur_def
+      simp del: incr_restart_phase_end.simps incr_restart_phase.simps)
 
 lemma restart_prog_wl_D_heur_restart_prog_wl_D:
   \<open>(uncurry2 restart_prog_wl_D_heur, uncurry2 restart_prog_wl) \<in>

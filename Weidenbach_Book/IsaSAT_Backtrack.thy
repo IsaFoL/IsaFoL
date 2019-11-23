@@ -675,6 +675,10 @@ definition update_heuristics where
      (ema_update glue fema, ema_update glue sema,
           incr_conflict_count_since_last_restart res_info, wasted))\<close>
 
+lemma heuristic_rel_update_heuristics[intro!]:
+  \<open>heuristic_rel \<A> heur \<Longrightarrow> heuristic_rel \<A> (update_heuristics glue heur)\<close>
+  by (auto simp: heuristic_rel_def)
+
 definition propagate_bt_wl_D_heur
   :: \<open>nat literal \<Rightarrow> nat clause_l \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
   \<open>propagate_bt_wl_D_heur = (\<lambda>L C (M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, heur, vdom, avdom, lcount, opts). do {
@@ -1697,10 +1701,10 @@ proof -
       using \<open>(TnC, T') \<in> ?shorter S' S\<close> \<open>1 < length C\<close> find_decomp
       apply (cases U')
       by (auto simp: find_lit_of_max_level_wl_def T' intro: literals_are_in_\<L>\<^sub>i\<^sub>n_mono)
-    obtain M1' vm' W' \<phi> clvls cach lbd outl stats fema sema ccount avdom vdom lcount arena D'
+    obtain M1' vm' W' \<phi> clvls cach lbd outl stats heur avdom vdom lcount arena D'
         Q' opts
       where
-        U: \<open>U = (M1', arena, D', Q', W', vm', \<phi>, clvls, cach, lbd, outl, stats, (fema, sema, ccount),
+        U: \<open>U = (M1', arena, D', Q', W', vm', \<phi>, clvls, cach, lbd, outl, stats, heur,
            vdom, avdom, lcount, opts, [])\<close>
       using UU' find_decomp by (cases U) (auto simp: U' T' twl_st_heur_bt_def all_atms_def[symmetric])
 
@@ -1725,7 +1729,8 @@ proof -
       avdom: \<open>mset avdom \<subseteq># mset vdom\<close> and
       bounded: \<open>isasat_input_bounded (all_atms_st U')\<close> and
       nempty: \<open>isasat_input_nempty (all_atms_st U')\<close> and
-      dist_vdom: \<open>distinct vdom\<close>
+      dist_vdom: \<open>distinct vdom\<close> and
+      heur: \<open>heuristic_rel (all_atms_st U') heur\<close>
       using UU' by (auto simp: out_learned_def twl_st_heur_bt_def U U' all_atms_def[symmetric])
     have [simp]: \<open>C ! 1 = L'\<close> \<open>C ! 0 = - lit_of (hd M)\<close> and
       n_d: \<open>no_dup M\<close>
@@ -1994,6 +1999,8 @@ proof -
         isasat_input_nempty ((all_atms N (NE + UE + NS + US)))\<close> (is ?J)
       \<open>vdom_m (all_atms N (NE + UE + NS + US)) W (fmupd x' (C', b) N) =
         insert x' (vdom_m (all_atms N (NE + UE + NS + US)) W N)\<close> (is ?K)
+      \<open>heuristic_rel ((all_atms (fmupd x' (C', b) N) (NE + UE + NS + US))) =
+        heuristic_rel (all_atms N (NE + UE + NS + US))\<close> (is ?L)
       if \<open>x' \<notin># dom_m N\<close> and C: \<open>C' = C\<close> for b x' C'
     proof -
       show A: ?A
@@ -2010,13 +2017,13 @@ proof -
         set_mset (all_atms N (NE + UE + NS + US))\<close>
         using A unfolding \<L>\<^sub>a\<^sub>l\<^sub>l_def C by (auto simp: A)
 
-      show ?B and ?C and ?D and ?E and ?F and ?G and ?G2 and ?H and ?I and ?J
+      show ?B and ?C and ?D and ?E and ?F and ?G and ?G2 and ?H and ?I and ?J and ?L
         unfolding trail_pol_def A A2 ann_lits_split_reasons_def isasat_input_bounded_def
           isa_vmtf_def vmtf_def distinct_atoms_rel_def vmtf_\<L>\<^sub>a\<^sub>l\<^sub>l_def atms_of_def
           distinct_hash_atoms_rel_def
           atoms_hash_rel_def A A2 A3 C option_lookup_clause_rel_def
           lookup_clause_rel_def phase_saving_def cach_refinement_empty_def
-          cach_refinement_def
+          cach_refinement_def heuristic_rel_def
           cach_refinement_list_def vdom_m_def
           isasat_input_bounded_def
           isasat_input_nempty_def cach_refinement_nonull_def
@@ -2036,6 +2043,7 @@ proof -
           vdom_m_def[symmetric]
           isasat_input_bounded_def[symmetric]
           isasat_input_nempty_def[symmetric]
+          heuristic_rel_def[symmetric]
         apply auto
         done
       show ?K
@@ -2052,7 +2060,7 @@ proof -
     then show ?thesis
       supply [[goals_limit=1]]
       using empty_cach n_d_M1 C_L' W'W outl vmtf undef \<open>1 < length C\<close> lits
-        uM_\<L>\<^sub>a\<^sub>l\<^sub>l vdom lcount vdom_m dist_vdom
+        uM_\<L>\<^sub>a\<^sub>l\<^sub>l vdom lcount vdom_m dist_vdom heur
       apply (subst propagate_bt_wl_D_alt_def)
       unfolding U U' H get_fresh_index_wl_def prod.case
         propagate_bt_wl_D_heur_alt_def rescore_clause_def
@@ -2108,23 +2116,21 @@ proof -
         supply All_atms_rew[simp]
         unfolding twl_st_heur_def
         using D' C_1_neq_hd vmtf avdom M1'_M1 bounded nempty r arena_le
-        apply (simp add: propagate_bt_wl_D_heur_def twl_st_heur_def
+        by (clarsimp simp add: propagate_bt_wl_D_heur_def twl_st_heur_def
             Let_def T' U' U rescore_clause_def S' map_fun_rel_def
             list_of_mset2_def vmtf_flush_def RES_RES2_RETURN_RES RES_RETURN_RES \<phi> uminus_\<A>\<^sub>i\<^sub>n_iff
             get_fresh_index_def RES_RETURN_RES2 RES_RES_RETURN_RES2 lit_of_hd_trail_def
             RES_RES_RETURN_RES lbd_empty_def get_LBD_def DECISION_REASON_def
             all_atms_def[symmetric] All_atms_rew
-            del: isasat_input_bounded_def isasat_input_nempty_def)
-        apply (auto simp: propagate_bt_wl_D_heur_def twl_st_heur_def
-            Let_def T' U' U rescore_clause_def S' map_fun_rel_def
-            list_of_mset2_def vmtf_flush_def RES_RES2_RETURN_RES RES_RETURN_RES \<phi> uminus_\<A>\<^sub>i\<^sub>n_iff
-            get_fresh_index_def RES_RETURN_RES2 RES_RES_RETURN_RES2 lit_of_hd_trail_def
-            RES_RES_RETURN_RES lbd_empty_def get_LBD_def DECISION_REASON_def
-            all_atms_def[symmetric]
-            intro!: ASSERT_refine_left ASSERT_leI RES_refine exI[of _ C] valid_arena_update_lbd
+            intro!: valid_arena_update_lbd
+            simp del: isasat_input_bounded_def isasat_input_nempty_def
+            dest: valid_arena_one_notin_vdomD)
+           (intro conjI, clarsimp_all
+            intro!: valid_arena_update_lbd
+            simp del: isasat_input_bounded_def isasat_input_nempty_def
+            dest: valid_arena_one_notin_vdomD, auto simp: 
             dest: valid_arena_one_notin_vdomD
             simp del: isasat_input_bounded_def isasat_input_nempty_def)
-        done \<comment> \<open>@{thm vdom_m_simps5} must apply after the other simp rules.\<close>
       done
   qed
 
@@ -2215,7 +2221,8 @@ proof -
       D': \<open>(D', None) \<in> option_lookup_clause_rel (all_atms_st U')\<close> and
       bounded: \<open>isasat_input_bounded (all_atms_st U')\<close> and
       nempty: \<open>isasat_input_nempty (all_atms_st U')\<close> and
-      dist_vdom: \<open>distinct vdom\<close>
+      dist_vdom: \<open>distinct vdom\<close> and
+      heur: \<open>heuristic_rel (all_atms_st U') heur\<close>
       using UU' by (auto simp: out_learned_def twl_st_heur_bt_def U U' all_atms_def[symmetric])
     have [simp]: \<open>C ! 0 = - lit_of (hd M)\<close> and
       n_d: \<open>no_dup M\<close>
@@ -2305,6 +2312,8 @@ proof -
         isasat_input_nempty ((all_atms N (NE + UE + NS + US)))\<close> (is ?J)
       \<open>vdom_m (all_atms N ?NE) W (N) =
         (vdom_m (all_atms N (NE + UE + NS + US)) W N)\<close> (is ?K)
+      \<open>heuristic_rel ((all_atms (N) (?NE))) =
+        heuristic_rel ((all_atms N (NE + UE + NS + US)))\<close> (is ?L)
       for b x' C'
     proof -
       show A: ?A
@@ -2323,7 +2332,7 @@ proof -
         set_mset (all_atms N (NE + UE + NS + US))\<close>
         using A unfolding \<L>\<^sub>a\<^sub>l\<^sub>l_def C by (auto simp: A)
 
-      show ?B and ?C and ?D and ?E and ?F and ?G and ?H and ?I and ?J and ?K
+      show ?B and ?C and ?D and ?E and ?F and ?G and ?H and ?I and ?J and ?K and ?L
         unfolding trail_pol_def A A2 ann_lits_split_reasons_def isasat_input_bounded_def
           isa_vmtf_def vmtf_def distinct_atoms_rel_def vmtf_\<L>\<^sub>a\<^sub>l\<^sub>l_def atms_of_def
           distinct_hash_atoms_rel_def
@@ -2331,7 +2340,7 @@ proof -
           lookup_clause_rel_def phase_saving_def cach_refinement_empty_def
           cach_refinement_def
           cach_refinement_list_def vdom_m_def
-          isasat_input_bounded_def
+          isasat_input_bounded_def heuristic_rel_def
           isasat_input_nempty_def cach_refinement_nonull_def vdom_m_def
         unfolding trail_pol_def[symmetric] ann_lits_split_reasons_def[symmetric]
           isasat_input_bounded_def[symmetric]
@@ -2348,7 +2357,7 @@ proof -
           cach_refinement_list_def[symmetric]
           vdom_m_def[symmetric]
           isasat_input_bounded_def[symmetric] cach_refinement_nonull_def[symmetric]
-          isasat_input_nempty_def[symmetric]
+          isasat_input_nempty_def[symmetric] heuristic_rel_def[symmetric]
         apply auto
         done
     qed
@@ -2382,7 +2391,7 @@ proof -
            intro!: vmtf_consD
            simp del: isasat_input_bounded_def isasat_input_nempty_def)
      subgoal
-       using bounded nempty dist_vdom r'
+       using bounded nempty dist_vdom r' heur
        by (auto simp: U U' lit_of_hd_trail_st_heur_def RETURN_def
            single_of_mset_def vmtf_flush_def twl_st_heur_def lbd_empty_def get_LBD_def
            RES_RES2_RETURN_RES RES_RETURN_RES S' uminus_\<A>\<^sub>i\<^sub>n_iff RES_RES_RETURN_RES

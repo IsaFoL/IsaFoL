@@ -538,17 +538,18 @@ lemma extract_lits_sorted_hnr[sepref_fr_rules]:
     (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
 proof -
   have H: \<open>hrr_comp isasat_atms_ext_rel
-      (\<lambda>_. arl64_assn atom_assn *a unat_assn) (\<lambda>_. lits_with_max_rel) = (\<lambda>_. hr_comp
-      (al_assn atom_assn *a unat_assn) lits_with_max_rel)\<close>
+        (\<lambda>_ _. al_assn atom_assn *a unat_assn) (\<lambda>_. lits_with_max_rel) =
+       (\<lambda>_ _. lits_with_max_assn)\<close>
     by (auto simp: hrr_comp_def intro!: ext)
-  
+
   have H: \<open>?c
     \<in> [comp_PRE isasat_atms_ext_rel (\<lambda>_. True)
          (\<lambda>_ (xs, n, vars). \<forall>x\<in>#mset vars. x < length xs) (\<lambda>_. True)]\<^sub>a
        hrp_comp (isasat_atms_ext_rel_assn\<^sup>d) isasat_atms_ext_rel \<rightarrow> lits_with_max_assn\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
     using hfref_compI_PRE_aux[OF extract_lits_sorted_code.refine
-      extract_lits_sorted_mset_set[unfolded convert_fref]] unfolding H
+      extract_lits_sorted_mset_set[unfolded convert_fref]]
+      unfolding H
     by auto
 
   have pre: \<open>?pre' x\<close> if \<open>?pre x\<close> for x

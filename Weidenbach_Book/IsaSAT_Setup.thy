@@ -145,7 +145,7 @@ definition restart_info_restart_done :: \<open>restart_info \<Rightarrow> restar
   \<open>restart_info_restart_done = (\<lambda>(ccount, lvl_avg). (0, lvl_avg))\<close>
 
 
-paragraph \<open>Combining heuristics into a single component\<close>
+paragraph \<open>Heuristics\<close>
 
 type_synonym restart_heuristics = \<open>ema \<times> ema \<times> restart_info \<times> 64 word\<close>
 
@@ -162,7 +162,6 @@ fun current_restart_phase :: \<open>restart_heuristics \<Rightarrow> 64 word\<cl
   \<open>current_restart_phase (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase, end_of_phase), wasted) =
     restart_phase\<close>
 
-
 fun incr_restart_phase :: \<open>restart_heuristics \<Rightarrow> restart_heuristics\<close> where
   \<open>incr_restart_phase (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase, end_of_phase), wasted) =
     (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase XOR 1, end_of_phase), wasted)\<close>
@@ -178,6 +177,16 @@ fun set_zero_wasted :: \<open>restart_heuristics \<Rightarrow> restart_heuristic
 fun wasted_of :: \<open>restart_heuristics \<Rightarrow> 64 word\<close> where
   \<open>wasted_of (fast_ema, slow_ema, res_info, wasted) = wasted\<close>
 
+definition heuristic_rel :: \<open>nat multiset \<Rightarrow> restart_heuristics \<Rightarrow> bool\<close> where
+  \<open>heuristic_rel \<A> = (\<lambda>(fast_ema, slow_ema, res_info, wasted). True)\<close>
+
+lemma heuristic_relI[intro!]:
+  \<open>heuristic_rel \<A> heur \<Longrightarrow> heuristic_rel \<A> (incr_wasted wast heur)\<close>
+  \<open>heuristic_rel \<A> heur \<Longrightarrow> heuristic_rel \<A> (set_zero_wasted heur)\<close>
+  \<open>heuristic_rel \<A> heur \<Longrightarrow> heuristic_rel \<A> (incr_restart_phase heur)\<close>
+  by (auto simp: heuristic_rel_def)
+
+paragraph \<open>Combining heuristics into a single component\<close>
 
 paragraph \<open>VMTF\<close>
 
@@ -431,7 +440,8 @@ definition twl_st_heur :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\<cl
     distinct vdom \<and>
     isasat_input_bounded (all_atms N (NE + UE + NS + US)) \<and>
     isasat_input_nempty (all_atms N (NE + UE + NS + US)) \<and>
-    old_arena = []
+    old_arena = [] \<and>
+    heuristic_rel (all_atms N (NE + UE + NS + US)) heur
   }\<close>
 
 lemma twl_st_heur_state_simp:
@@ -478,7 +488,8 @@ where
     distinct vdom \<and>
     isasat_input_bounded (all_atms N (NE + UE + NS + US)) \<and>
     isasat_input_nempty (all_atms N (NE + UE + NS + US)) \<and>
-    old_arena = []
+    old_arena = [] \<and>
+    heuristic_rel (all_atms N (NE + UE + NS + US)) heur
   }\<close>
 
 lemma twl_st_heur_twl_st_heur_conflict_ana:
@@ -516,7 +527,8 @@ definition twl_st_heur_bt :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\
     distinct vdom \<and>
     isasat_input_bounded (all_atms N (NE + UE + NS + US)) \<and>
     isasat_input_nempty (all_atms N (NE + UE + NS + US)) \<and>
-    old_arena = []
+    old_arena = [] \<and>
+    heuristic_rel (all_atms N (NE + UE + NS + US)) heur
   }\<close>
 
 
@@ -653,6 +665,10 @@ lemma distinct_atoms_rel_cong:
   unfolding vmtf_def vmtf_\<L>\<^sub>a\<^sub>l\<^sub>l_def distinct_atoms_rel_def distinct_hash_atoms_rel_def
     atoms_hash_rel_def
   by (auto simp: )
+
+lemma heuristic_rel_cong:
+  \<open>set_mset \<A> = set_mset \<B> \<Longrightarrow> heuristic_rel \<A> heur \<Longrightarrow> heuristic_rel \<B> heur\<close>
+  by (auto simp: heuristic_rel_def)
 
 lemma vmtf_cong:
   \<open>set_mset \<A> = set_mset \<B> \<Longrightarrow> L \<in> vmtf \<A> M \<Longrightarrow> L \<in> vmtf \<B> M\<close>
@@ -1144,11 +1160,10 @@ lemma mop_watched_by_app_heur_mop_watched_by_at:
    \<open>(uncurry2 mop_watched_by_app_heur, uncurry2 mop_watched_by_at) \<in>
     twl_st_heur \<times>\<^sub>f nat_lit_lit_rel \<times>\<^sub>f nat_rel \<rightarrow>\<^sub>f \<langle>Id\<rangle>nres_rel\<close>
   unfolding mop_watched_by_app_heur_def mop_watched_by_at_def uncurry_def all_lits_def[symmetric] all_lits_alt_def[symmetric]
-  apply (intro frefI nres_relI, refine_rcg)
- apply (auto simp: twl_st_heur_def \<L>\<^sub>a\<^sub>l\<^sub>l_all_atms_all_lits map_fun_rel_def
+  by (intro frefI nres_relI, refine_rcg,
+     auto simp: twl_st_heur_def \<L>\<^sub>a\<^sub>l\<^sub>l_all_atms_all_lits map_fun_rel_def
       simp flip: all_lits_alt_def2)
-   apply (auto simp: add.assoc)
-  done
+    (auto simp: add.assoc)
 
 lemma mop_watched_by_app_heur_mop_watched_by_at'':
    \<open>(uncurry2 mop_watched_by_app_heur, uncurry2 mop_watched_by_at) \<in>

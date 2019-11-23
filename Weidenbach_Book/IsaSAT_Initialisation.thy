@@ -1890,7 +1890,7 @@ lemma finalise_init_finalise_init_full:
   apply (auto simp: finalise_init_def twl_st_heur_def twl_st_heur_parsing_no_WL_def
     twl_st_heur_parsing_no_WL_wl_def
       finalise_init_code_def out_learned_def all_atms_def
-      twl_st_heur_post_parsing_wl_def
+      twl_st_heur_post_parsing_wl_def heuristic_rel_def
       intro!: ASSERT_leI intro!: isa_vmtf_init_isa_vmtf
       dest: isa_vmtf_init_nemptyD)
   done
