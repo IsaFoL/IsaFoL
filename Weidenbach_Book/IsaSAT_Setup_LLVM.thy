@@ -226,7 +226,7 @@ abbreviation phase_saver_assn :: \<open>phase_saver \<Rightarrow> phase_saver_as
 (* TODO: Move *)
 type_synonym arena_assn = "(32 word, 64) array_list"
 type_synonym heur_assn = \<open>(ema \<times> ema \<times> restart_info \<times> 64 word \<times>
-   phase_saver_assn \<times> phase_saver_assn \<times> phase_saver_assn)\<close>
+   phase_saver_assn \<times> 32 word \<times> phase_saver_assn \<times> 32 word \<times> phase_saver_assn \<times> 64 word \<times> 64 word)\<close>
 
 type_synonym twl_st_wll_trail_fast =
   \<open>trail_pol_fast_assn \<times> arena_assn \<times> option_lookup_clause_assn \<times>
@@ -239,7 +239,8 @@ definition heuristic_assn :: \<open>restart_heuristics \<Rightarrow> heur_assn \
   \<open>heuristic_assn = ema_assn *a
   ema_assn *a
   restart_info_assn *a
-  word64_assn *a (phase_saver_assn *a phase_saver_assn *a phase_saver_assn)\<close>
+  word64_assn *a (phase_saver_assn *a word32_assn *a phase_saver_assn *a word32_assn *a
+     phase_saver_assn *a word64_assn *a word64_assn)\<close>
 
 definition isasat_bounded_assn :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wll_trail_fast \<Rightarrow> assn\<close> where
 \<open>isasat_bounded_assn =

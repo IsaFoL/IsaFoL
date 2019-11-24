@@ -30,5 +30,10 @@ sepref_def copy_phase_impl
   apply (annot_snat_const "TYPE(64)")
   by sepref
 
+sepref_def phase_save_rephase_impl
+  is phase_save_rephase
+  :: \<open>phase_saver_assn\<^sup>d \<rightarrow>\<^sub>a phase_saver_assn\<close>
+  unfolding phase_save_rephase_def
+  by sepref
 
 end

@@ -146,12 +146,25 @@ definition restart_info_restart_done :: \<open>restart_info \<Rightarrow> restar
 
 paragraph \<open>Phase saving\<close>
 
-type_synonym phase_save_heur = \<open>phase_saver \<times> phase_saver \<times> phase_saver\<close>
+type_synonym phase_save_heur = \<open>phase_saver \<times> 32 word \<times> phase_saver \<times> 32 word \<times> phase_saver \<times> 64 word \<times> 64 word\<close>
 
 definition phase_save_heur_rel :: \<open>nat multiset \<Rightarrow> phase_save_heur \<Rightarrow> bool\<close> where
-\<open>phase_save_heur_rel \<A> = (\<lambda>(\<phi>, target, best). phase_saving \<A> \<phi> \<and>
+\<open>phase_save_heur_rel \<A> = (\<lambda>(\<phi>, target_assigned, target, best_assigned, best,
+    end_of_phase, curr_phase). phase_saving \<A> \<phi> \<and>
   phase_saving \<A> target \<and> phase_saving \<A> best \<and> length \<phi> = length best \<and>
   length target = length best)\<close>
+
+definition end_of_rephasing_phase :: \<open>phase_save_heur \<Rightarrow> 64 word\<close> where
+  \<open>end_of_rephasing_phase = (\<lambda>(\<phi>, target_assigned, target, best_assigned, best, end_of_phase, curr_phase). end_of_phase)\<close>
+
+definition incr_rephasing_phase :: \<open>phase_save_heur \<Rightarrow> phase_save_heur\<close> where
+  \<open>incr_rephasing_phase = (\<lambda>(\<phi>, target_assigned, target, best_assigned, best, end_of_phase, curr_phase).
+     (\<phi>, target_assigned, target, best_assigned, best, end_of_phase,
+        if end_of_phase \<ge> 4 then 0 else curr_phase + 1))\<close>
+
+definition incr_rephasing_phase_end :: \<open>phase_save_heur \<Rightarrow> phase_save_heur\<close> where
+  \<open>incr_rephasing_phase_end = (\<lambda>(\<phi>, target_assigned, target, best_assigned, best, end_of_phase, curr_phase).
+     (\<phi>, target_assigned, target, best_assigned, best, end_of_phase + 10000, curr_phase))\<close>
 
 
 paragraph \<open>Heuristics\<close>
@@ -214,12 +227,32 @@ definition mop_get_saved_phase_heur :: \<open>nat \<Rightarrow> restart_heuristi
    RETURN (get_saved_phase_heur L heur)
 }\<close>
 
+
+definition end_of_rephasing_phase_heur :: \<open>restart_heuristics \<Rightarrow> 64 word\<close> where
+  \<open>end_of_rephasing_phase_heur =
+    (\<lambda>(fast_ema, slow_ema, res_info, wasted, phasing). end_of_rephasing_phase phasing)\<close>
+
+definition incr_rephasing_phase_heur :: \<open>restart_heuristics \<Rightarrow> restart_heuristics\<close> where
+  \<open>incr_rephasing_phase_heur =
+    (\<lambda>(fast_ema, slow_ema, res_info, wasted, phasing).
+       (fast_ema, slow_ema, res_info, wasted, incr_rephasing_phase phasing))\<close>
+
+definition incr_rephasing_phase_end_heur :: \<open>restart_heuristics \<Rightarrow> restart_heuristics\<close> where
+  \<open>incr_rephasing_phase_end_heur =
+    (\<lambda>(fast_ema, slow_ema, res_info, wasted, phasing).
+      (fast_ema, slow_ema, res_info, wasted, incr_rephasing_phase_end phasing))\<close>
+
+
 lemma heuristic_relI[intro!]:
   \<open>heuristic_rel \<A> heur \<Longrightarrow> heuristic_rel \<A> (incr_wasted wast heur)\<close>
   \<open>heuristic_rel \<A> heur \<Longrightarrow> heuristic_rel \<A> (set_zero_wasted heur)\<close>
   \<open>heuristic_rel \<A> heur \<Longrightarrow> heuristic_rel \<A> (incr_restart_phase heur)\<close>
   \<open>heuristic_rel \<A> heur \<Longrightarrow> heuristic_rel \<A> (save_phase_heur L b heur)\<close>
-  by (auto simp: heuristic_rel_def save_phase_heur_def phase_save_heur_rel_def phase_saving_def)
+  \<open>heuristic_rel \<A> heur \<Longrightarrow> heuristic_rel \<A> (incr_rephasing_phase_end_heur heur)\<close>
+  \<open>heuristic_rel \<A> heur \<Longrightarrow> heuristic_rel \<A> (incr_rephasing_phase_heur heur)\<close>
+  by (clarsimp_all simp: heuristic_rel_def save_phase_heur_def phase_save_heur_rel_def phase_saving_def
+    incr_rephasing_phase_end_def incr_rephasing_phase_heur_def incr_rephasing_phase_def
+    incr_rephasing_phase_end_heur_def)
 
 lemma save_phase_heur_preI:
   \<open>heuristic_rel \<A> heur \<Longrightarrow> a \<in># \<A> \<Longrightarrow> save_phase_heur_pre a b heur\<close>
