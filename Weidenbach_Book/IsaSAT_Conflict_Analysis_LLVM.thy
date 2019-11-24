@@ -34,7 +34,7 @@ qed
 *)
 
 lemma get_count_max_lvls_heur_def:
-   \<open>get_count_max_lvls_heur = (\<lambda>(_, _, _, _, _, _, _, clvls, _). clvls)\<close>
+   \<open>get_count_max_lvls_heur = (\<lambda>(_, _, _, _, _, _, clvls, _). clvls)\<close>
   by (auto intro!: ext)
 
 sepref_def get_count_max_lvls_heur_impl
@@ -195,7 +195,7 @@ declare extract_valuse_of_lookup_conflict_impl.refine[sepref_fr_rules]
 sepref_register isasat_lookup_merge_eq2 update_confl_tl_wl_heur
 
 lemma update_confl_tl_wl_heur_alt_def:
-  \<open>update_confl_tl_wl_heur = (\<lambda>L C (M, N, bnxs, Q, W, vm, \<phi>, clvls, cach, lbd, outl, stats). do {
+  \<open>update_confl_tl_wl_heur = (\<lambda>L C (M, N, bnxs, Q, W, vm, clvls, cach, lbd, outl, stats). do {
       ASSERT (clvls \<ge> 1);
       let L' = atm_of L;
       ASSERT(arena_is_valid_clause_idx N C);
@@ -213,7 +213,7 @@ lemma update_confl_tl_wl_heur_alt_def:
       ASSERT(vmtf_unset_pre L' vm);
       ASSERT(tl_trailt_tr_pre M);
       RETURN (False, (tl_trailt_tr M, N, (None_lookup_conflict b nxs), Q, W, isa_vmtf_unset L' vm,
-          \<phi>, clvls - 1, cach, lbd, outl, stats))
+          clvls - 1, cach, lbd, outl, stats))
    })\<close>
   unfolding update_confl_tl_wl_heur_def
   by (auto intro!: ext bind_cong simp: None_lookup_conflict_def the_lookup_conflict_def

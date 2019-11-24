@@ -220,25 +220,26 @@ abbreviation vdom_fast_assn :: \<open>vdom \<Rightarrow> vdom_fast_assn \<Righta
   \<open>vdom_fast_assn \<equiv> arl64_assn sint64_nat_assn\<close>
 
 type_synonym phase_saver_assn = "1 word larray64"
-abbreviation phase_saver_assn where
+abbreviation phase_saver_assn :: \<open>phase_saver \<Rightarrow> phase_saver_assn \<Rightarrow> assn\<close> where
   \<open>phase_saver_assn \<equiv> larray64_assn bool1_assn\<close>
 
 (* TODO: Move *)
 type_synonym arena_assn = "(32 word, 64) array_list"
-type_synonym heur_assn = \<open>(ema \<times> ema \<times> restart_info \<times> 64 word)\<close>
+type_synonym heur_assn = \<open>(ema \<times> ema \<times> restart_info \<times> 64 word \<times>
+   phase_saver_assn \<times> phase_saver_assn \<times> phase_saver_assn)\<close>
 
 type_synonym twl_st_wll_trail_fast =
   \<open>trail_pol_fast_assn \<times> arena_assn \<times> option_lookup_clause_assn \<times>
-    64 word \<times> watched_wl_uint32 \<times> vmtf_remove_assn \<times> phase_saver_assn \<times>
+    64 word \<times> watched_wl_uint32 \<times> vmtf_remove_assn \<times>
     32 word \<times> cach_refinement_l_assn \<times> lbd_assn \<times> out_learned_assn \<times> stats \<times>
     heur_assn \<times>
     vdom_fast_assn \<times> vdom_fast_assn \<times> 64 word \<times> opts_assn \<times> arena_assn\<close>
 
-definition heuristic_assn :: \<open>heur_assn \<Rightarrow> restart_heuristics \<Rightarrow> assn\<close> where
+definition heuristic_assn :: \<open>restart_heuristics \<Rightarrow> heur_assn \<Rightarrow> assn\<close> where
   \<open>heuristic_assn = ema_assn *a
   ema_assn *a
   restart_info_assn *a
-  word64_assn\<close>
+  word64_assn *a (phase_saver_assn *a phase_saver_assn *a phase_saver_assn)\<close>
 
 definition isasat_bounded_assn :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wll_trail_fast \<Rightarrow> assn\<close> where
 \<open>isasat_bounded_assn =
@@ -246,7 +247,7 @@ definition isasat_bounded_assn :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wll
   conflict_option_rel_assn *a
   sint64_nat_assn *a
   watchlist_fast_assn *a
-  vmtf_remove_assn *a phase_saver_assn *a
+  vmtf_remove_assn *a
   uint32_nat_assn *a
   cach_refinement_l_assn *a
   lbd_assn *a
@@ -413,7 +414,7 @@ sepref_register clause_lbd_heur
 
 
 lemma clause_lbd_heur_alt_def:
-  \<open>clause_lbd_heur = (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats, heur, vdom,
+  \<open>clause_lbd_heur = (\<lambda>(M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur, vdom,
      lcount) C.
      arena_lbd N' C)\<close>
   by (intro ext) (auto simp: clause_lbd_heur_def)
@@ -694,17 +695,35 @@ sepref_def wasted_bytes_st_impl
   by sepref
 
 lemma set_zero_wasted_def:
-  \<open>set_zero_wasted = (\<lambda>(fast_ema, slow_ema, res_info, wasted).
-    (fast_ema, slow_ema, res_info, 0))\<close>
+  \<open>set_zero_wasted = (\<lambda>(fast_ema, slow_ema, res_info, wasted, \<phi>, target, best).
+    (fast_ema, slow_ema, res_info, 0, \<phi>, target, best))\<close>
   by (auto intro!: ext)
 
 sepref_def set_zero_wasted_impl
   is \<open>RETURN o set_zero_wasted\<close>
-  :: \<open>heuristic_assn\<^sup>k \<rightarrow>\<^sub>a heuristic_assn\<close>
+  :: \<open>heuristic_assn\<^sup>d \<rightarrow>\<^sub>a heuristic_assn\<close>
   unfolding heuristic_assn_def set_zero_wasted_def
   by sepref
 
-sepref_register set_zero_wasted
+lemma mop_save_phase_heur_alt_def:
+  \<open>mop_save_phase_heur = (\<lambda> L b (fast_ema, slow_ema, res_info, wasted, \<phi>, target, best). do {
+    ASSERT(L < length \<phi>);
+    RETURN (fast_ema, slow_ema, res_info, wasted, \<phi>[L := b], target,
+                 best)})\<close>
+  unfolding mop_save_phase_heur_def save_phase_heur_def save_phase_heur_pre_def
+    heuristic_assn_def
+  by (auto intro!: ext)
+
+sepref_def mop_save_phase_heur_impl
+  is \<open>uncurry2 (mop_save_phase_heur)\<close>
+  :: \<open>atom_assn\<^sup>k *\<^sub>a bool1_assn\<^sup>k *\<^sub>a heuristic_assn\<^sup>d \<rightarrow>\<^sub>a heuristic_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding mop_save_phase_heur_alt_def save_phase_heur_def save_phase_heur_pre_def
+    heuristic_assn_def
+  apply annot_all_atm_idxs
+  by sepref
+
+sepref_register set_zero_wasted mop_save_phase_heur
 
 experiment begin
 

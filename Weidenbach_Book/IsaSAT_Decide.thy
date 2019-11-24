@@ -341,7 +341,7 @@ proof -
     apply (rule lit_of_found_atm; assumption)
     subgoal for a aa ab ac ad b ae af ag ba ah ai aj ak al am bb an bc ao ap aq bd ar
        as at au av aw ax ay az be bf bg bh bi bj bk bl bm bn bo bp bq br bs
-       bt bu bv bw bx "by" bz ca cb cc cd ce cf cg ch ci x L x1 x1a x2 x2a La Lb
+       bt bu bv bw bx "by" bz ca cb cc cd ce cf cg ch ci _ _ x L x1 x1a x2 x2a La Lb
       by (cases x1)
        (clarsimp_all simp: twl_st_heur_def unassigned_atm_def atm_of_eq_atm_of uminus_\<A>\<^sub>i\<^sub>n_iff
           simp del: twl_st_of_wl.simps dest!: atms intro!: RETURN_RES_refine;
@@ -378,6 +378,11 @@ definition decide_lit_wl_heur :: \<open>nat literal \<Rightarrow> twl_st_wl_heur
       RETURN (cons_trail_Decided_tr L' M, N, D, j, W, vmtf, clvls, cach, lbd, outl, incr_decision stats,
          fema, sema)})\<close>
 
+definition mop_get_saved_phase_heur_st :: \<open>nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> bool nres\<close> where
+   \<open>mop_get_saved_phase_heur_st =
+     (\<lambda>L (M', N', D', Q', W', vm, clvls, cach, lbd, outl, stats, heur, vdom, avdom, lcount, opts,
+       old_arena).
+      mop_get_saved_phase_heur L heur)\<close>
 
 definition decide_wl_or_skip_D_heur
   :: \<open>twl_st_wl_heur \<Rightarrow> (bool \<times> twl_st_wl_heur) nres\<close>
@@ -386,7 +391,9 @@ where
     (S, L) \<leftarrow> find_unassigned_lit_wl_D_heur S;
     case L of
       None \<Rightarrow> RETURN (True, S)
-    | Some L \<Rightarrow> do {T \<leftarrow> decide_lit_wl_heur L S; RETURN (False, T)}
+    | Some L \<Rightarrow> do {
+        T \<leftarrow> decide_lit_wl_heur L S;
+        RETURN (False, T)}
   })
 \<close>
 
@@ -464,5 +471,75 @@ proof -
     apply (rule final; assumption)
     done
  qed
+
+
+term \<open>do {
+      ((M, vm), L) \<leftarrow> isa_vmtf_find_next_undef_upd M vm;
+      ASSERT(L \<noteq> None \<longrightarrow> get_saved_phase_heur_pre (the L) heur);
+      case L of 
+       None \<Rightarrow> RETURN (True, bb)
+     | Some L \<Rightarrow> do {
+        b \<leftarrow> mop_get_saved_phase_heur L heur;
+        L \<leftarrow> RETURN (if b then Pos L else Neg L);
+        T \<leftarrow> decide_lit_wl_heur L' aa;
+        RETURN (False, T)
+      }
+      }\<close>
+
+lemma bind_triple_unfold:
+  \<open>do {
+    ((M, vm), L) \<leftarrow> (P :: _ nres);
+    f ((M, vm), L)
+} =
+do {
+    x \<leftarrow> P;
+    f x
+}\<close>
+  by (intro bind_cong) auto
+
+definition decide_wl_or_skip_D_heur' where
+  \<open>decide_wl_or_skip_D_heur' = (\<lambda>(M, N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
+       vdom, avdom, lcount, opts, old_arena). do {
+      ((M, vm), L) \<leftarrow> isa_vmtf_find_next_undef_upd M vm;
+      ASSERT(L \<noteq> None \<longrightarrow> get_saved_phase_heur_pre (the L) heur);
+      case L of 
+       None \<Rightarrow> RETURN (True, (M, N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
+         vdom, avdom, lcount, opts, old_arena))
+     | Some L \<Rightarrow> do {
+        b \<leftarrow> mop_get_saved_phase_heur L heur;
+        let L = (if b then Pos L else Neg L);
+        T \<leftarrow> decide_lit_wl_heur L (M, N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
+          vdom, avdom, lcount, opts, old_arena);
+        RETURN (False, T)
+      }
+    })
+\<close>
+lemma decide_wl_or_skip_D_heur'_decide_wl_or_skip_D_heur:
+  \<open>decide_wl_or_skip_D_heur' S \<le> \<Down>Id (decide_wl_or_skip_D_heur S)\<close>
+proof -
+  have [iff]:
+    \<open>{K. (\<exists>y. K = Some y) \<and> atm_of (the K) = x2d} = {Some (Pos x2d), Some (Neg x2d)}\<close> for x2d
+    apply (auto simp: atm_of_eq_atm_of)
+    apply (case_tac y)
+    apply auto
+    done
+
+  show ?thesis
+    apply (cases S, simp only:)
+    unfolding decide_wl_or_skip_D_heur_def find_unassigned_lit_wl_D_heur_def
+      nres_monad3 prod.case decide_wl_or_skip_D_heur'_def
+    apply (subst (3) bind_triple_unfold[symmetric])
+    unfolding decide_wl_or_skip_D_heur_def find_unassigned_lit_wl_D_heur_def
+      nres_monad3 prod.case lit_of_found_atm_def mop_get_saved_phase_heur_def
+    apply refine_vcg
+    subgoal by fast
+    subgoal
+      by (auto split: option.splits simp: bind_RES)
+    done
+qed
+
+lemma decide_wl_or_skip_D_heur'_decide_wl_or_skip_D_heur2:
+  \<open>(decide_wl_or_skip_D_heur', decide_wl_or_skip_D_heur) \<in> Id \<rightarrow>\<^sub>f \<langle>Id\<rangle>nres_rel\<close>
+  by (intro frefI nres_relI) (use decide_wl_or_skip_D_heur'_decide_wl_or_skip_D_heur in auto)
 
 end

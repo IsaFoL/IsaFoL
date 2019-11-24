@@ -400,9 +400,9 @@ sepref_def find_decomp_wl_imp_fast_code
 
 
 sepref_def vmtf_rescore_fast_code
-  is \<open>uncurry3 isa_vmtf_rescore\<close>
-  :: \<open>clause_ll_assn\<^sup>k *\<^sub>a trail_pol_fast_assn\<^sup>k *\<^sub>a vmtf_remove_assn\<^sup>d *\<^sub>a phase_saver_assn\<^sup>d \<rightarrow>\<^sub>a
-       vmtf_remove_assn *a phase_saver_assn\<close>
+  is \<open>uncurry2 isa_vmtf_rescore\<close>
+  :: \<open>clause_ll_assn\<^sup>k *\<^sub>a trail_pol_fast_assn\<^sup>k *\<^sub>a vmtf_remove_assn\<^sup>d \<rightarrow>\<^sub>a
+       vmtf_remove_assn\<close>
   unfolding isa_vmtf_rescore_body_def[abs_def] PR_CONST_def isa_vmtf_rescore_def
   supply [[goals_limit = 1]] fold_is_None[simp]
   apply (annot_snat_const "TYPE(64)")

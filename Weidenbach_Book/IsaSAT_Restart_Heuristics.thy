@@ -522,7 +522,7 @@ proof -
       apply assumption
     subgoal for a aa ab ac ad b ae af ag ba ah ai aj ak al am bb an bc ao ap aq bd ar
        as at au av aw ax ay az be bf bg bh bi bj bk bl bm bn bo bp bq br bs
-       bt bu bv bw bx "by" bz ca cb cc cd ce cf cg ch ci lvl i vm0
+       bt bu bv bw bx _ _ "by" bz ca cb cc cd ce cf cg ch ci lvl i vm0
       unfolding RETURN_def RES_RES2_RETURN_RES RES_RES13_RETURN_RES find_decomp_w_ns_def conc_fun_RES
         RES_RES13_RETURN_RES K K2
       apply (auto simp: intro_spec_iff intro!: ASSERT_leI isa_length_trail_pre)

@@ -80,10 +80,10 @@ definition model_assn where
   \<open>model_assn = hr_comp model_stat_assn model_stat_rel\<close>
 
 lemma extract_model_of_state_stat_alt_def:
-  \<open>RETURN o extract_model_of_state_stat = (\<lambda>((M, M'), N', D', j, W', vm, \<phi>, clvls, cach, lbd,
+  \<open>RETURN o extract_model_of_state_stat = (\<lambda>((M, M'), N', D', j, W', vm, clvls, cach, lbd,
     outl, stats,
     heur, vdom, avdom, lcount, opts, old_arena).
-     do {mop_free M'; mop_free N'; mop_free D'; mop_free j; mop_free W'; mop_free vm; mop_free \<phi>;
+     do {mop_free M'; mop_free N'; mop_free D'; mop_free j; mop_free W'; mop_free vm;
          mop_free clvls;
          mop_free cach; mop_free lbd; mop_free outl; mop_free heur;
          mop_free vdom; mop_free avdom; mop_free opts;
@@ -122,7 +122,7 @@ schematic_goal mk_free_heuristic_assn[sepref_frame_free_rules]: "MK_FREE heurist
   unfolding heuristic_assn_def
   by (rule free_thms sepref_frame_free_rules)+ (* TODO: Write a method for that! *)
 
-
+thm array_mk_free
   context 
     fixes l_dummy :: "'l::len2 itself"
     fixes ll_dummy :: "'ll::len2 itself"
@@ -166,11 +166,11 @@ sepref_def extract_model_of_state_stat
 lemmas [sepref_fr_rules] = extract_model_of_state_stat.refine
 
 lemma extract_state_stat_alt_def:
-  \<open>RETURN o extract_state_stat = (\<lambda>(M, N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl, stats,
+  \<open>RETURN o extract_state_stat = (\<lambda>(M, N', D', j, W', vm, clvls, cach, lbd, outl, stats,
        heur,
        vdom, avdom, lcount, opts, old_arena).
      do {mop_free M; mop_free N'; mop_free D'; mop_free j; mop_free W'; mop_free vm;
-         mop_free \<phi>; mop_free clvls;
+         mop_free clvls;
          mop_free cach; mop_free lbd; mop_free outl; mop_free heur;
          mop_free vdom; mop_free avdom; mop_free opts;
          mop_free old_arena;

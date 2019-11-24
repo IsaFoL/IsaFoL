@@ -146,10 +146,12 @@ definition restart_info_restart_done :: \<open>restart_info \<Rightarrow> restar
 
 paragraph \<open>Phase saving\<close>
 
-type_synonym phase_save_heur = \<open>phase_saver\<close>
+type_synonym phase_save_heur = \<open>phase_saver \<times> phase_saver \<times> phase_saver\<close>
 
-definition phase_save_heur_rel :: \<open>nat multiset \<Rightarrow> phase_saver \<Rightarrow> bool\<close> where
-\<open>phase_save_heur_rel \<A> = (\<lambda>\<phi>. phase_saving \<A> \<phi>)\<close>
+definition phase_save_heur_rel :: \<open>nat multiset \<Rightarrow> phase_save_heur \<Rightarrow> bool\<close> where
+\<open>phase_save_heur_rel \<A> = (\<lambda>(\<phi>, target, best). phase_saving \<A> \<phi> \<and>
+  phase_saving \<A> target \<and> phase_saving \<A> best \<and> length \<phi> = length best \<and>
+  length target = length best)\<close>
 
 
 paragraph \<open>Heuristics\<close>
@@ -188,10 +190,11 @@ definition heuristic_rel :: \<open>nat multiset \<Rightarrow> restart_heuristics
   \<open>heuristic_rel \<A> = (\<lambda>(fast_ema, slow_ema, res_info, wasted, \<phi>). phase_save_heur_rel \<A> \<phi>)\<close>
 
 definition save_phase_heur :: \<open>nat \<Rightarrow> bool \<Rightarrow> restart_heuristics \<Rightarrow> restart_heuristics\<close> where
-\<open>save_phase_heur L b = (\<lambda>(fast_ema, slow_ema, res_info, wasted, \<phi>). (fast_ema, slow_ema, res_info, wasted, \<phi>[L := b]))\<close>
+\<open>save_phase_heur L b = (\<lambda>(fast_ema, slow_ema, res_info, wasted, (\<phi>, target, best)).
+    (fast_ema, slow_ema, res_info, wasted, (\<phi>[L := b], target, best)))\<close>
 
 definition save_phase_heur_pre :: \<open>nat \<Rightarrow> bool \<Rightarrow> restart_heuristics \<Rightarrow> bool\<close> where
-\<open>save_phase_heur_pre L b = (\<lambda>(fast_ema, slow_ema, res_info, wasted, \<phi>). L < length \<phi>)\<close>
+\<open>save_phase_heur_pre L b = (\<lambda>(fast_ema, slow_ema, res_info, wasted, (\<phi>, _)). L < length \<phi>)\<close>
 
 definition mop_save_phase_heur :: \<open>nat \<Rightarrow> bool \<Rightarrow> restart_heuristics \<Rightarrow> restart_heuristics nres\<close> where
 \<open>mop_save_phase_heur L b heur = do {
@@ -200,10 +203,10 @@ definition mop_save_phase_heur :: \<open>nat \<Rightarrow> bool \<Rightarrow> re
 }\<close>
 
 definition get_saved_phase_heur_pre :: \<open>nat \<Rightarrow> restart_heuristics \<Rightarrow> bool\<close> where
-\<open>get_saved_phase_heur_pre L = (\<lambda>(fast_ema, slow_ema, res_info, wasted, \<phi>). L < length \<phi>)\<close>
+\<open>get_saved_phase_heur_pre L = (\<lambda>(fast_ema, slow_ema, res_info, wasted, (\<phi>, _)). L < length \<phi>)\<close>
 
 definition get_saved_phase_heur :: \<open>nat \<Rightarrow> restart_heuristics \<Rightarrow> bool\<close> where
-\<open>get_saved_phase_heur L = (\<lambda>(fast_ema, slow_ema, res_info, wasted, \<phi>). \<phi>!L)\<close>
+\<open>get_saved_phase_heur L = (\<lambda>(fast_ema, slow_ema, res_info, wasted, (\<phi>, _)). \<phi>!L)\<close>
 
 definition mop_get_saved_phase_heur :: \<open>nat \<Rightarrow> restart_heuristics \<Rightarrow> bool nres\<close> where
 \<open>mop_get_saved_phase_heur L heur = do {

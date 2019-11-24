@@ -154,8 +154,8 @@ lemma op_list_list_upd_alt_def: \<open>op_list_list_upd xss i j x = xss[i := (xs
 sepref_def update_blit_wl_heur_fast_code
   is \<open>uncurry6 update_blit_wl_heur\<close>
   :: \<open>[\<lambda>((((((_, _), _), _), C), i), S). length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a
-      unat_lit_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a bool1_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a
-         isasat_bounded_assn\<^sup>d \<rightarrow>
+      unat_lit_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a bool1_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a
+      sint64_nat_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow>
      sint64_nat_assn *a sint64_nat_assn *a isasat_bounded_assn\<close>
   supply [[goals_limit=1]] sint64_max_le_max_snat64[intro]
   unfolding update_blit_wl_heur_def isasat_bounded_assn_def append_ll_def[symmetric]
@@ -242,7 +242,6 @@ sepref_def pos_of_watched_heur_impl
   apply (annot_snat_const "TYPE (64)")
   by sepref
 
-  
 sepref_def unit_propagation_inner_loop_body_wl_fast_heur_code
   is \<open>uncurry3 unit_propagation_inner_loop_body_wl_heur\<close>
   :: \<open>[\<lambda>((L, w), S). length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a
