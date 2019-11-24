@@ -96,24 +96,23 @@ lemma lit_and_ann_of_propagated_st_heur_lit_and_ann_of_propagated_st:
 
 definition tl_state_wl_heur_pre :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close> where
   \<open>tl_state_wl_heur_pre =
-      (\<lambda>(M, N, D, WS, Q, ((A, m, fst_As, lst_As, next_search), to_remove), \<phi>, _). fst M \<noteq> [] \<and>
+      (\<lambda>(M, N, D, WS, Q, ((A, m, fst_As, lst_As, next_search), to_remove), _). fst M \<noteq> [] \<and>
          tl_trailt_tr_pre M \<and>
 	 vmtf_unset_pre (atm_of (last (fst M))) ((A, m, fst_As, lst_As, next_search), to_remove) \<and>
-         atm_of (last (fst M)) < length \<phi> \<and>
          atm_of (last (fst M)) < length A \<and>
          (next_search \<noteq> None \<longrightarrow>  the next_search < length A))\<close>
 
 definition tl_state_wl_heur :: \<open>twl_st_wl_heur \<Rightarrow> (bool \<times> twl_st_wl_heur) nres\<close> where
-  \<open>tl_state_wl_heur = (\<lambda>(M, N, D, WS, Q, vmtf, \<phi>, clvls). do {
-       ASSERT(tl_state_wl_heur_pre (M, N, D, WS, Q, vmtf, \<phi>, clvls));
-       RETURN (False, (tl_trailt_tr M, N, D, WS, Q, isa_vmtf_unset (atm_of (lit_of_last_trail_pol M)) vmtf, \<phi>, clvls))
+  \<open>tl_state_wl_heur = (\<lambda>(M, N, D, WS, Q, vmtf, clvls). do {
+       ASSERT(tl_state_wl_heur_pre (M, N, D, WS, Q, vmtf, clvls));
+       RETURN (False, (tl_trailt_tr M, N, D, WS, Q, isa_vmtf_unset (atm_of (lit_of_last_trail_pol M)) vmtf, clvls))
   })\<close>
 
 lemma tl_state_wl_heur_alt_def:
-    \<open>tl_state_wl_heur = (\<lambda>(M, N, D, WS, Q, vmtf, \<phi>, clvls). do {
-       ASSERT(tl_state_wl_heur_pre (M, N, D, WS, Q, vmtf, \<phi>, clvls));
+    \<open>tl_state_wl_heur = (\<lambda>(M, N, D, WS, Q, vmtf, clvls). do {
+       ASSERT(tl_state_wl_heur_pre (M, N, D, WS, Q, vmtf, clvls));
        let L = lit_of_last_trail_pol M;
-       RETURN (False, (tl_trailt_tr M, N, D, WS, Q, isa_vmtf_unset (atm_of L) vmtf, \<phi>, clvls))
+       RETURN (False, (tl_trailt_tr M, N, D, WS, Q, isa_vmtf_unset (atm_of L) vmtf, clvls))
     })\<close>
   by (auto simp: tl_state_wl_heur_def Let_def intro!: ext)
 
@@ -208,7 +207,7 @@ lemma tl_state_wl_heur_tl_state_wl:
   unfolding tl_state_wl_heur_def mop_tl_state_wl_def
   apply (intro frefI nres_relI)
   apply refine_vcg
-  subgoal for x y a b aa ba ab bb ac bc ad bd ae be af bf
+  subgoal for x y a b aa ba ab bb ac bc ad bd ae be
     using mop_tl_state_wl_pre_tl_state_wl_heur_pre[of x y] by simp
   subgoal
     apply (auto simp: twl_st_heur_conflict_ana_def tl_state_wl_heur_def tl_state_wl_def vmtf_unset_vmtf_tl
@@ -247,7 +246,7 @@ definition (in -) get_max_lvl_st :: \<open>nat twl_st_wl \<Rightarrow> nat liter
 definition update_confl_tl_wl_heur
   :: \<open>nat literal \<Rightarrow> nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> (bool \<times> twl_st_wl_heur) nres\<close>
 where
-  \<open>update_confl_tl_wl_heur = (\<lambda>L C (M, N, (b, (n, xs)), Q, W, vm, \<phi>, clvls, cach, lbd, outl, stats). do {
+  \<open>update_confl_tl_wl_heur = (\<lambda>L C (M, N, (b, (n, xs)), Q, W, vm, clvls, cach, lbd, outl, stats). do {
       ASSERT (clvls \<ge> 1);
       let L' = atm_of L;
       ASSERT(arena_is_valid_clause_idx N C);
@@ -263,7 +262,7 @@ where
       ASSERT(vmtf_unset_pre L' vm);
       ASSERT(tl_trailt_tr_pre M);
       RETURN (False, (tl_trailt_tr M, N, (b, (n, xs)), Q, W, isa_vmtf_unset L' vm,
-          \<phi>, clvls - 1, cach, lbd, outl, stats))
+          clvls - 1, cach, lbd, outl, stats))
    })\<close>
 
 lemma card_max_lvl_remove1_mset_hd:
@@ -576,7 +575,7 @@ proof -
          RETURN ((b, (nxs)), clvls, lbd, outl) }\<close>
     for  L M N C b n xs clvls lbd outl
   have update_confl_tl_wl_heur_alt_def:
-    \<open>update_confl_tl_wl_heur = (\<lambda>L C (M, N, (b, (n, xs)), Q, W, vm, \<phi>, clvls, cach, lbd, outl, stats). do {
+    \<open>update_confl_tl_wl_heur = (\<lambda>L C (M, N, (b, (n, xs)), Q, W, vm, clvls, cach, lbd, outl, stats). do {
       ASSERT (clvls \<ge> 1);
       let L' = atm_of L;
       ASSERT(arena_is_valid_clause_idx N C);
@@ -588,18 +587,18 @@ proof -
       ASSERT(vmtf_unset_pre L' vm);
       ASSERT(tl_trailt_tr_pre M);
       RETURN (False, (tl_trailt_tr M, N, (b, (n, xs)), Q, W, isa_vmtf_unset L' vm,
-          \<phi>, clvls - 1, cach, lbd, outl, stats))
+          clvls - 1, cach, lbd, outl, stats))
    })\<close>
   by (auto simp: update_confl_tl_wl_heur_def Let_def rr_def intro!: ext bind_cong[OF refl])
 
 note [[goals_limit=1]]
-  have rr: \<open>(((x1g, x2g), x1h, x1i, (x1k, x1l, x2k), x1m, x1n, x1o, x1p, x1q, x1r,
+  have rr: \<open>(((x1g, x2g), x1h, x1i, (x1k, x1l, x2k), x1m, x1n, x1p, x1q, x1r,
       x1s, x1t, m, n, p, q, ra, s, t),
      (x1, x2), x1a, x1b, x1c, x1d, x1e, NS, US, x1f, x2f)
     \<in> nat_lit_lit_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f twl_st_heur_conflict_ana' r \<Longrightarrow>
     CLS = ((x1, x2), x1a, x1b, x1c, x1d, x1e, NS, US, x1f, x2f) \<Longrightarrow>
     CLS' =
-    ((x1g, x2g), x1h, x1i, (x1k, x1l, x2k), x1m, x1n, x1o, x1p, x1q, x1r,
+    ((x1g, x2g), x1h, x1i, (x1k, x1l, x2k), x1m, x1n, x1p, x1q, x1r,
      x1s, x1t, m, n, p, q, ra, s, t) \<Longrightarrow>
     update_confl_tl_wl_pre x1 x2 (x1a, x1b, x1c, x1d, x1e, NS, US, x1f, x2f) \<Longrightarrow>
     1 \<le> x1q \<Longrightarrow>
@@ -613,11 +612,11 @@ note [[goals_limit=1]]
         D = resolve_cls_wl' (x1a, x1b, x1c, x1d, x1e, NS, US, x1f, x2f) x2 x1}
        (RETURN (resolve_cls_wl' (x1a, x1b, x1c, x1d, x1e, NS, US, x1f, x2f) x2 x1))\<close>
      for m n p q ra s t x1 x2 x1a x1b x1c x1d x1e x1f x2f x1g x2g x1h x1i x1k
-       x1l x2k x1m x1n x1o x1p x1q x1r x1s x1t CLS CLS' NS US
+       x1l x2k x1m x1n x1p x1q x1r x1s x1t CLS CLS' NS US
      unfolding rr_def
      apply (refine_vcg lhs_step_If)
      apply (rule isasat_lookup_merge_eq2_lookup_merge_eq2[where
-        vdom = \<open>set (get_vdom (x1h, x1i, (x1k, x1l, x2k), x1m, x1n, x1o, x1p, x1q, x1r,
+        vdom = \<open>set (get_vdom (x1h, x1i, (x1k, x1l, x2k), x1m, x1n, x1p, x1q, x1r,
       x1s, x1t, m, n, p, q, ra, s, t))\<close> and M = x1a and  N = x1b and C = x1c and
       \<A> = \<open>all_atms_st (x1a, x1b, x1c, x1d, x1e, NS, US, x1f, x2f) \<close>, THEN order_trans])
      subgoal by (auto simp: twl_st_heur_conflict_ana_def)
@@ -711,7 +710,6 @@ note [[goals_limit=1]]
            intro!: vmtf_unset_pre')
       subgoal for m n p q ra s t ha ia ja x1 x2 x1a x1b x1c x1d x1e x1f x1g x2g x1h x1i
        x1k x1l x2k x1m x1n x1o x1p x1q x1r x1s x1t D x1v x1w x2v x1x x1y
-       x2y
          by (rule tl_trailt_tr_pre[of x1a _ \<open>all_atms_st (x1a, x1b, x1c, x1d, x1e, x1f, ha, ia, ja)\<close>])
            (clarsimp_all dest!: update_confl_tl_wl_pre_update_confl_tl_wl_pre'
              simp: update_confl_tl_wl_pre'_def arena_is_valid_clause_idx_def twl_st_heur_conflict_ana_def
@@ -766,11 +764,10 @@ definition update_confl_tl_wl_heur_pre
    :: \<open>(nat \<times> nat literal) \<times> twl_st_wl_heur \<Rightarrow> bool\<close>
 where
 \<open>update_confl_tl_wl_heur_pre =
-  (\<lambda>((i, L), (M, N, D, W, Q, ((A, m, fst_As, lst_As, next_search), _), \<phi>, clvls, cach, lbd,
+  (\<lambda>((i, L), (M, N, D, W, Q, ((A, m, fst_As, lst_As, next_search), _), clvls, cach, lbd,
         outl, _)).
       i > 0 \<and>
       (fst M) \<noteq> [] \<and>
-      atm_of ((last (fst M))) < length \<phi> \<and>
       atm_of ((last (fst M))) < length A \<and> (next_search \<noteq> None \<longrightarrow>  the next_search < length A) \<and>
       L = (last (fst M))
       )\<close>

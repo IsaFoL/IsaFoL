@@ -56,16 +56,20 @@ definition lit_of_found_atm_D_pre where
 definition find_unassigned_lit_wl_D_heur
   :: \<open>twl_st_wl_heur \<Rightarrow> (twl_st_wl_heur \<times> nat literal option) nres\<close>
 where
-  \<open>find_unassigned_lit_wl_D_heur = (\<lambda>(M, N, D, WS, Q, vm, \<phi>, clvls). do {
+  \<open>find_unassigned_lit_wl_D_heur = (\<lambda>(M, N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
+       vdom, avdom, lcount, opts, old_arena). do {
       ((M, vm), L) \<leftarrow> isa_vmtf_find_next_undef_upd M vm;
-      ASSERT(lit_of_found_atm_D_pre (\<phi>, L));
-      L \<leftarrow> lit_of_found_atm \<phi> L;
-      RETURN ((M, N, D, WS, Q, vm, \<phi>, clvls), L)
+      ASSERT(L \<noteq> None \<longrightarrow> get_saved_phase_heur_pre (the L) heur);
+      L \<leftarrow> lit_of_found_atm heur L;
+      RETURN ((M, N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
+       vdom, avdom, lcount, opts, old_arena), L)
     })\<close>
 
 lemma lit_of_found_atm_D_pre:
-  \<open>phase_saving \<A> \<phi> \<Longrightarrow> isasat_input_bounded \<A> \<Longrightarrow> (L \<noteq> None \<Longrightarrow> the L \<in># \<A>) \<Longrightarrow> lit_of_found_atm_D_pre (\<phi>, L)\<close>
-  by (auto simp: lit_of_found_atm_D_pre_def phase_saving_def
+  \<open>heuristic_rel \<A> heur \<Longrightarrow> isasat_input_bounded \<A> \<Longrightarrow> (L \<noteq> None \<Longrightarrow> the L \<in># \<A>) \<Longrightarrow>
+    L \<noteq> None \<Longrightarrow> get_saved_phase_heur_pre (the L) heur\<close>
+  by (auto simp: lit_of_found_atm_D_pre_def phase_saving_def heuristic_rel_def phase_save_heur_rel_def
+    get_saved_phase_heur_pre_def
     atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff dest: bspec[of _ _ \<open>Pos (the L)\<close>])
 
 definition find_unassigned_lit_wl_D_heur_pre where
@@ -150,8 +154,6 @@ proof -
 	atm_of_all_lits_of_mm atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n)
   qed
 
-  have [dest]: \<open>(S, T) \<in> twl_st_heur \<Longrightarrow> \<phi> = get_phase_saver_heur S \<Longrightarrow> phase_saving (all_atms_st T) \<phi>\<close> for S T \<phi>
-    by (auto simp: twl_st_heur_def)
 
   define unassigned_atm where
     \<open>unassigned_atm S L \<equiv> \<exists> M N D NE UE NS US WS Q.
@@ -240,7 +242,7 @@ proof -
     if
       pre: \<open>find_unassigned_lit_wl_D_heur_pre (bt, bu, bv, bw, bx, by, bz, baa, bab)\<close> and
       T: \<open>(((a, aa, ab, ac, ad, b), ae, (af, ag, ba), ah, ai,
-	 ((aj, ak, al, am, bb), an, bc), ao, ap, (aq, bd), ar, as,
+	 ((aj, ak, al, am, bb), an, bc), ao, (aq, bd), ar, as,
 	 (at, au, av, aw, be), heur, bo, bp, bq, br, bs),
 	bt, bu, bv, bw, bx, by, bz, baa, bab)
        \<in> twl_st_heur\<close> and
@@ -248,7 +250,7 @@ proof -
        length
 	(get_clauses_wl_heur
 	  ((a, aa, ab, ac, ad, b), ae, (af, ag, ba), ah, ai,
-	   ((aj, ak, al, am, bb), an, bc), ao, ap, (aq, bd), ar, as,
+	   ((aj, ak, al, am, bb), an, bc), ao, (aq, bd), ar, as,
 	   (at, au, av, aw, be), heur, bo, bp, bq, br, bs))\<close>
      for a aa ab ac ad b ae af ag ba ah ai aj ak al am bb an bc ao ap aq bd ar as at
 	 au av aw be ax ay az bf bg bh bi bj bk bl bm bn bo bp bq br bs bt bu bv
@@ -297,13 +299,13 @@ proof -
     done
   qed
 
-  have lit_of_found_atm: \<open>lit_of_found_atm ao x2a
+  have lit_of_found_atm: \<open>lit_of_found_atm ao' x2a
 	\<le> \<Down> {(L, L'). L = L' \<and> map_option atm_of  L = x2a}
 	   (RES {L, map_option uminus L})\<close>
     if
       \<open>find_unassigned_lit_wl_D_heur_pre (bt, bu, bv, bw, bx, by, bz, baa, bab)\<close> and
       \<open>(((a, aa, ab, ac, ad, b), ae, (af, ag, ba), ah, ai,
-	 ((aj, ak, al, am, bb), an, bc), ao, ap, (aq, bd), ar, as,
+	 ((aj, ak, al, am, bb), an, bc), ao, (aq, bd), ar, as,
 	 (at, au, av, aw, be), heur, bo, bp, bq, br, bs),
 	bt, bu, bv, bw, bx, by, bz, baa, bab)
        \<in> twl_st_heur\<close> and
@@ -311,14 +313,14 @@ proof -
        length
 	(get_clauses_wl_heur
 	  ((a, aa, ab, ac, ad, b), ae, (af, ag, ba), ah, ai,
-	   ((aj, ak, al, am, bb), an, bc), ao, ap, (aq, bd), ar, as,
+	   ((aj, ak, al, am, bb), an, bc), ao, (aq, bd), ar, as,
 	   (at, au, av, aw, be), heur, bo, bp, bq, br, bs))\<close> and
       \<open>(x, L) \<in> ?find bt bu bv bw bx by bz baa bab\<close> and
       \<open>x1 = (x1a, x2)\<close> and
       \<open>x = (x1, x2a)\<close>
      for a aa ab ac ad b ae af ag ba ah ai aj ak al am bb an bc ao ap aq bd ar as at
        au av aw be ax ay az bf bg bh bi bj bk bl bm bn bo bp bq br bs bt bu bv
-       bw bx "by" bz x L x1 x1a x2 x2a heur baa bab
+       bw bx "by" bz x L x1 x1a x2 x2a heur baa bab ao'
   proof -
     show ?thesis
       using that unfolding lit_of_found_atm_def
@@ -339,11 +341,11 @@ proof -
     apply (rule lit_of_found_atm; assumption)
     subgoal for a aa ab ac ad b ae af ag ba ah ai aj ak al am bb an bc ao ap aq bd ar
        as at au av aw ax ay az be bf bg bh bi bj bk bl bm bn bo bp bq br bs
-       bt bu bv bw bx "by" bz ca cb cc cd ce cf cg ch ci x L x1 x1a x2 x2a La
-       Lb
-      by (cases L)
-        (auto simp: twl_st_heur_def unassigned_atm_def atm_of_eq_atm_of uminus_\<A>\<^sub>i\<^sub>n_iff
-          simp del: twl_st_of_wl.simps dest!: atms intro!: RETURN_RES_refine)
+       bt bu bv bw bx "by" bz ca cb cc cd ce cf cg ch ci x L x1 x1a x2 x2a La Lb
+      by (cases x1)
+       (clarsimp_all simp: twl_st_heur_def unassigned_atm_def atm_of_eq_atm_of uminus_\<A>\<^sub>i\<^sub>n_iff
+          simp del: twl_st_of_wl.simps dest!: atms intro!: RETURN_RES_refine;
+          auto simp: atm_of_eq_atm_of uminus_\<A>\<^sub>i\<^sub>n_iff)+
     done
 qed
 
@@ -369,11 +371,11 @@ lemma lit_of_found_atm_D_lit_of_found_atm:
   by (auto split: option.splits if_splits simp: pw_le_iff refine_pw_simps lit_of_found_atm_D_pre_def)
 
 definition decide_lit_wl_heur :: \<open>nat literal \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
-  \<open>decide_lit_wl_heur = (\<lambda>L' (M, N, D, Q, W, vmtf, \<phi>, clvls, cach, lbd, outl, stats, fema, sema). do {
+  \<open>decide_lit_wl_heur = (\<lambda>L' (M, N, D, Q, W, vmtf, clvls, cach, lbd, outl, stats, fema, sema). do {
       ASSERT(isa_length_trail_pre M);
       let j = isa_length_trail M;
       ASSERT(cons_trail_Decided_tr_pre (L', M));
-      RETURN (cons_trail_Decided_tr L' M, N, D, j, W, vmtf, \<phi>, clvls, cach, lbd, outl, incr_decision stats,
+      RETURN (cons_trail_Decided_tr L' M, N, D, j, W, vmtf, clvls, cach, lbd, outl, incr_decision stats,
          fema, sema)})\<close>
 
 

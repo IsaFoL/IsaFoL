@@ -2052,13 +2052,15 @@ proof -
         by (auto simp: vdom_m_simps5 vdom_m_def)
     qed
 
-    have \<open>mop_save_phase_heur (atm_of (C ! 1)) (is_neg (C ! 1)) heur
+    have [refine0]: \<open>mop_save_phase_heur (atm_of (C ! 1)) (is_neg (C ! 1)) heur
     \<le> SPEC
        (\<lambda>c. (c, ())
-            \<in> {(c, _). heuristic_rel (all_atms N (NE + UE)) c})\<close>
-      using heur
+            \<in> {(c, _). heuristic_rel (all_atms_st U') c})\<close>
+      using heur uM_\<L>\<^sub>a\<^sub>l\<^sub>l lits_confl le_C
+        literals_are_in_\<L>\<^sub>i\<^sub>n_in_mset_\<L>\<^sub>a\<^sub>l\<^sub>l[of \<open>all_atms_st S'\<close> \<open>mset C\<close> \<open>C!1\<close>]
       unfolding mop_save_phase_heur_def
-      apply (auto intro!: ASSERT_leI save_phase_heur_preI)
+      by (auto intro!: ASSERT_leI save_phase_heur_preI simp: U' S')
+
     have arena_le: \<open>length arena + header_size C + length C \<le> 6 + r + uint32_max div 2\<close>
       using r r' le_C_ge by (auto simp: uint32_max_def header_size_def S' U)
     have vm: \<open>vm \<in> isa_vmtf (all_atms N (NE + UE)) M1 \<Longrightarrow>
@@ -2116,10 +2118,6 @@ proof -
             dest: valid_arena_one_notin_vdomD
             intro!: vm)
       apply assumption
-      subgoal
-        using D' C_1_neq_hd vmtf avdom M1'_M1
-        by (auto simp: propagate_bt_wl_D_heur_def twl_st_heur_def lit_of_hd_trail_st_heur_def
-            atms_of_def S' U' lit_of_hd_trail_def all_atms_def[symmetric])
       subgoal
         supply All_atms_rew[simp]
         unfolding twl_st_heur_def
@@ -2206,10 +2204,10 @@ proof -
        \<open>LK' = lit_of (hd (get_trail_wl T'))\<close>
        \<open>LK = LK'\<close>
        using KK' SS' S' by (auto simp: T')
-    obtain vm' W' \<phi> clvls cach lbd outl stats heur vdom avdom lcount arena D' Q' opts
+    obtain vm' W' clvls cach lbd outl stats heur vdom avdom lcount arena D' Q' opts
       M1'
       where
-        U: \<open>U = (M1', arena, D', Q', W', vm', \<phi>, clvls, cach, lbd, outl, stats, heur,
+        U: \<open>U = (M1', arena, D', Q', W', vm', clvls, cach, lbd, outl, stats, heur,
            vdom, avdom, lcount, opts, [])\<close> and
         avdom: \<open>mset avdom \<subseteq># mset vdom\<close> and
         r': \<open>length (get_clauses_wl_heur U) = r\<close>
@@ -2218,7 +2216,6 @@ proof -
       M'M: \<open>(M1', M1) \<in> trail_pol (all_atms_st U')\<close> and
       W'W: \<open>(W', W) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0  (all_atms_st U'))\<close> and
       vmtf: \<open>vm' \<in> isa_vmtf  (all_atms_st U') M1\<close> and
-      \<phi>: \<open>phase_saving  (all_atms_st U') \<phi>\<close> and
       n_d_M1: \<open>no_dup M1\<close> and
       empty_cach: \<open>cach_refinement_empty  (all_atms_st U') cach\<close> and
       \<open>length outl = Suc 0\<close> and
@@ -2350,6 +2347,7 @@ proof -
           cach_refinement_list_def vdom_m_def
           isasat_input_bounded_def heuristic_rel_def
           isasat_input_nempty_def cach_refinement_nonull_def vdom_m_def
+          phase_save_heur_rel_def phase_saving_def
         unfolding trail_pol_def[symmetric] ann_lits_split_reasons_def[symmetric]
           isasat_input_bounded_def[symmetric]
           vmtf_def[symmetric]
@@ -2366,12 +2364,13 @@ proof -
           vdom_m_def[symmetric]
           isasat_input_bounded_def[symmetric] cach_refinement_nonull_def[symmetric]
           isasat_input_nempty_def[symmetric] heuristic_rel_def[symmetric]
+          phase_save_heur_rel_def[symmetric] phase_saving_def[symmetric]
         apply auto
         done
     qed
 
     show ?thesis
-      using empty_cach n_d_M1 W'W outl vmtf C \<phi> undef uL_M vdom lcount valid D' avdom
+      using empty_cach n_d_M1 W'W outl vmtf C undef uL_M vdom lcount valid D' avdom
       unfolding U U' propagate_unit_bt_wl_D_int_def prod.simps hd_SM
         propagate_unit_bt_wl_alt_def
       apply (rewrite at \<open>let _ = incr_uset _ in _\<close> Let_def)
@@ -2469,7 +2468,7 @@ lemma le_uint32_max_div_2_le_uint32_max: \<open>a \<le> uint32_max div 2 + 1 \<L
 
 
 lemma propagate_bt_wl_D_heur_alt_def:
-  \<open>propagate_bt_wl_D_heur = (\<lambda>L C (M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, heur,
+  \<open>propagate_bt_wl_D_heur = (\<lambda>L C (M, N0, D, Q, W0, vm0, y, cach, lbd, outl, stats, heur,
          vdom, avdom, lcount, opts). do {
       ASSERT(length vdom \<le> length N0);
       ASSERT(length avdom \<le> length N0);
@@ -2477,21 +2476,21 @@ lemma propagate_bt_wl_D_heur_alt_def:
       ASSERT(length C > 1);
       let L' = C!1;
       ASSERT(length C \<le> uint32_max div 2 + 1);
-      (vm, \<phi>) \<leftarrow> isa_vmtf_rescore C M vm0 \<phi>0;
+      vm \<leftarrow> isa_vmtf_rescore C M vm0;
       glue \<leftarrow> get_LBD lbd;
       let b = False;
       let b' = (length C = 2);
-      ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, heur,
+      ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, y, cach, lbd, outl, stats, heur,
          vdom, avdom, lcount, opts) \<longrightarrow> append_and_length_fast_code_pre ((b, C), N0));
-      ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, heur,
+      ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, y, cach, lbd, outl, stats, heur,
          vdom, avdom, lcount, opts) \<longrightarrow> lcount < sint64_max);
       (N, i) \<leftarrow> fm_add_new_fast b C N0;
       ASSERT(update_lbd_pre ((i, glue), N));
       let N = update_lbd i glue N;
-      ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, heur,
+      ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, y, cach, lbd, outl, stats, heur,
          vdom, avdom, lcount, opts) \<longrightarrow> length_ll W0 (nat_of_lit (-L)) < sint64_max);
       let W = W0[nat_of_lit (- L) := W0 ! nat_of_lit (- L) @ [(i, L', b')]];
-      ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, \<phi>0, y, cach, lbd, outl, stats, heur,
+      ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, y, cach, lbd, outl, stats, heur,
          vdom, avdom, lcount, opts) \<longrightarrow> length_ll W (nat_of_lit L') < sint64_max);
       let W = W[nat_of_lit L' := W!nat_of_lit L' @ [(i, -L, b')]];
       lbd \<leftarrow> lbd_empty lbd;
@@ -2501,8 +2500,8 @@ lemma propagate_bt_wl_D_heur_alt_def:
       ASSERT(cons_trail_Propagated_tr_pre ((-L, i), M));
       M \<leftarrow> cons_trail_Propagated_tr (- L) i M;
       vm \<leftarrow> isa_vmtf_flush_int M vm;
-      ASSERT(atm_of L < length \<phi>);
-      RETURN (M, N, D, j, W, vm, save_phase (-L) \<phi>, 0,
+      heur \<leftarrow> mop_save_phase_heur (atm_of L') (is_neg L') heur;
+      RETURN (M, N, D, j, W, vm, 0,
          cach, lbd, outl, add_lbd (of_nat glue) stats, update_heuristics glue heur, vdom @ [i],
           avdom @ [i],
           lcount + 1, opts)

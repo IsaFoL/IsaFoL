@@ -1485,12 +1485,12 @@ qed
 definition extract_model_of_state_stat :: \<open>twl_st_wl_heur \<Rightarrow> bool \<times> nat literal list \<times> stats\<close> where
   \<open>extract_model_of_state_stat U =
      (False, (fst (get_trail_wl_heur U)),
-       (\<lambda>(M, _,  _, _, _ ,_ ,_ ,_, _, _, _, stat, _, _). stat) U)\<close>
+       (\<lambda>(M, _,  _, _, _ ,_ ,_ ,_, _, _,  stat, _, _). stat) U)\<close>
 
 definition extract_state_stat :: \<open>twl_st_wl_heur \<Rightarrow> bool \<times> nat literal list \<times> stats\<close> where
   \<open>extract_state_stat U =
      (True, [],
-       (\<lambda>(M, _, _, _, _ ,_ ,_ ,_, _, _, _, stat, _, _). stat) U)\<close>
+       (\<lambda>(M, _, _, _, _ ,_ ,_ ,_, _, _, stat, _, _). stat) U)\<close>
 
 definition empty_conflict :: \<open>nat literal list option\<close> where
   \<open>empty_conflict = Some []\<close>

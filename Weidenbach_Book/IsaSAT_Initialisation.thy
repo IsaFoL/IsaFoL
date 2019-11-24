@@ -1863,9 +1863,9 @@ definition finalise_init_code :: \<open>opts \<Rightarrow> twl_st_wl_heur_init \
      let sema = ema_slow_init;
      let ccount = restart_info_init;
      let lcount = 0;
-    RETURN (M', N', D', Q', W', ((ns, m, the fst_As, the lst_As, next_search), to_remove), \<phi>,
+    RETURN (M', N', D', Q', W', ((ns, m, the fst_As, the lst_As, next_search), to_remove),
        clvls, cach, lbd, take 1(replicate 160 (Pos 0)), init_stats,
-        (fema, sema, ccount, 0), vdom, [], lcount, opts, [])
+        (fema, sema, ccount, 0, \<phi>), vdom, [], lcount, opts, [])
      })\<close>
 
 lemma isa_vmtf_init_nemptyD: \<open>((ak, al, am, an, bc), ao, bd)
@@ -1879,6 +1879,10 @@ lemma isa_vmtf_init_isa_vmtf: \<open>\<A> \<noteq> {#} \<Longrightarrow> ((ak, a
        \<in> isa_vmtf \<A> au\<close>
   by (auto simp: isa_vmtf_init_def vmtf_init_def Image_iff intro!: isa_vmtfI)
 
+lemma heuristic_rel_initI:
+   \<open>phase_saving \<A> \<phi> \<Longrightarrow> heuristic_rel \<A> (fema, sema, ccount, 0, \<phi>)\<close>
+   by (auto simp: heuristic_rel_def phase_save_heur_rel_def)
+
 lemma finalise_init_finalise_init_full:
   \<open>get_conflict_wl S = None \<Longrightarrow>
   all_atms_st S \<noteq> {#} \<Longrightarrow> size (learned_clss_l (get_clauses_wl S)) = 0 \<Longrightarrow>
@@ -1890,8 +1894,8 @@ lemma finalise_init_finalise_init_full:
   apply (auto simp: finalise_init_def twl_st_heur_def twl_st_heur_parsing_no_WL_def
     twl_st_heur_parsing_no_WL_wl_def
       finalise_init_code_def out_learned_def all_atms_def
-      twl_st_heur_post_parsing_wl_def heuristic_rel_def
-      intro!: ASSERT_leI intro!: isa_vmtf_init_isa_vmtf
+      twl_st_heur_post_parsing_wl_def
+      intro!: ASSERT_leI intro!: isa_vmtf_init_isa_vmtf heuristic_rel_initI
       dest: isa_vmtf_init_nemptyD)
   done
 

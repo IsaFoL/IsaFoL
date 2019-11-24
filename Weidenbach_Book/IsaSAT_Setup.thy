@@ -1021,11 +1021,11 @@ lemma arena_lit_pre_le_sint64_max:
 definition rewatch_heur_st
  :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close>
 where
-\<open>rewatch_heur_st = (\<lambda>(M, N0, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl,
+\<open>rewatch_heur_st = (\<lambda>(M, N0, D, Q, W, vm, clvls, cach, lbd, outl,
        stats, heur, vdom, avdom, ccount, lcount). do {
   ASSERT(length vdom \<le> length N0);
   W \<leftarrow> rewatch_heur vdom N0 W;
-  RETURN (M, N0, D, Q, W, vm, \<phi>, clvls, cach, lbd, outl,
+  RETURN (M, N0, D, Q, W, vm, clvls, cach, lbd, outl,
        stats, heur, vdom, avdom, ccount, lcount)
   })\<close>
 
@@ -1351,9 +1351,9 @@ definition mop_mark_garbage_heur :: \<open>nat \<Rightarrow> nat \<Rightarrow> t
   })\<close>
 
 definition mark_unused_st_heur :: \<open>nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur\<close> where
-  \<open>mark_unused_st_heur C = (\<lambda>(M', N', D', j, W', vm, \<phi>, clvls, cach, lbd, outl,
+  \<open>mark_unused_st_heur C = (\<lambda>(M', N', D', j, W', vm, clvls, cach, lbd, outl,
       stats, heur, vdom, avdom, lcount, opts).
-    (M', arena_decr_act (mark_unused N' C) C, D', j, W', vm, \<phi>, clvls, cach,
+    (M', arena_decr_act (mark_unused N' C) C, D', j, W', vm, clvls, cach,
       lbd, outl, stats, heur,
       vdom, avdom, lcount, opts))\<close>
 
