@@ -104,13 +104,17 @@ structure PAC_Checker : sig
   val pAC_checker_l_impl :
     (string list * int) list ->
       (nat, ((string list * int) list)) hashtable ->
-        ((string list * int) list) pac_step list ->
-          (unit ->
-            ((char list) code_status *
-              (nat, ((string list * int) list)) hashtable))
+        (char list) code_status ->
+          ((string list * int) list) pac_step list ->
+            (unit ->
+              ((char list) code_status *
+                (nat, ((string list * int) list)) hashtable))
   val remap_polys_l_impl :
-    (((string list * int) list) option) array ->
-      (unit -> (nat, ((string list * int) list)) hashtable)
+    (string list * int) list ->
+      (((string list * int) list) option) array ->
+        (unit ->
+          ((nat, ((string list * int) list)) hashtable *
+            (char list) code_status))
   val full_checker_l_impl :
     (string list * int) list ->
       (((string list * int) list) option) array ->
@@ -1620,7 +1624,7 @@ fun check_step_impl x =
     x;
 
 fun pAC_checker_l_impl x =
-  (fn ai => fn bia => fn bi => fn () =>
+  (fn ai => fn bib => fn bia => fn bi => fn () =>
     let
       val a =
         heap_WHILET
@@ -1638,7 +1642,7 @@ fun pAC_checker_l_impl x =
                                    end
               ()) ())
               (fn x_b => (fn () => (x_b, op_list_tl a2))))
-          ((CSUCCESS, bia), bi) ();
+          ((bia, bib), bi) ();
     in
       let
         val (a1, _) = a;
@@ -1650,62 +1654,75 @@ fun pAC_checker_l_impl x =
     x;
 
 fun remap_polys_l_impl x =
-  (fn xi => fn () =>
+  (fn ai => fn bi => fn () =>
     let
       val xa =
         len (heap_option
               (heap_list (heap_prod (heap_list heap_literal) heap_int)))
-          xi ();
+          bi ();
       val xaa =
         ht_new (hashable_nat, heap_nat)
           (heap_list (heap_prod (heap_list heap_literal) heap_int)) ();
-      val a =
+      val xb =
         heap_WHILET (fn (a1, _) => (fn () => (less_nat a1 xa andalso true)))
           (fn (a1, a2) =>
             (fn f_ => fn () => f_
-              ((iam_lookup
-                 (heap_list (heap_prod (heap_list heap_literal) heap_int)) a1
-                 xi)
+              (let
+                 val (a1a, a2a) = a2;
+               in
+                 (fn f_ => fn () => f_
+                   ((iam_lookup
+                      (heap_list (heap_prod (heap_list heap_literal) heap_int))
+                      a1 bi)
+                   ()) ())
+                   (fn xb =>
+                     (if not (is_None xb)
+                       then (fn f_ => fn () => f_
+                              ((iam_lookup
+                                 (heap_list
+                                   (heap_prod (heap_list heap_literal)
+                                     heap_int))
+                                 a1 bi)
+                              ()) ())
+                              (fn xc =>
+                                (fn f_ => fn () => f_
+                                  ((fully_normalize_poly_impl (the xc)) ()) ())
+                                  (fn x_c =>
+                                    (fn f_ => fn () => f_
+                                      ((weak_equality_p_impl x_c ai) ()) ())
+                                      (fn x_d =>
+(fn f_ => fn () => f_
+  ((ht_update (equal_nat, hashable_nat, heap_nat)
+     (heap_list (heap_prod (heap_list heap_literal) heap_int)) a1 x_c a1a)
+  ()) ())
+  (fn x_e => (fn () => (x_e, a2a orelse x_d))))))
+                       else (fn () => (a1a, a2a))))
+               end
               ()) ())
-              (fn xb =>
-                (fn f_ => fn () => f_
-                  ((if not (is_None xb)
-                     then (fn f_ => fn () => f_
-                            ((iam_lookup
-                               (heap_list
-                                 (heap_prod (heap_list heap_literal) heap_int))
-                               a1 xi)
-                            ()) ())
-                            (fn xc =>
-                              (fn f_ => fn () => f_
-                                ((fully_normalize_poly_impl (the xc)) ()) ())
-                                (fn x_c =>
-                                  ht_update (equal_nat, hashable_nat, heap_nat)
-                                    (heap_list
-                                      (heap_prod (heap_list heap_literal)
-heap_int))
-                                    a1 x_c a2))
-                     else (fn () => a2))
-                  ()) ())
-                  (fn x_b => (fn () => (plus_nat a1 one_nat, x_b)))))
-          (zero_nat, xaa) ();
+              (fn x_b => (fn () => (plus_nat a1 one_nat, x_b))))
+          (zero_nat, (xaa, false)) ();
+      val (a1, a2) = let
+                       val (_, b) = xb;
+                     in
+                       b
+                     end;
     in
-      let
-        val (_, aa) = a;
-      in
-        (fn () => aa)
-      end
-        ()
+      (a1, (if a2 then CFOUND else CSUCCESS))
     end)
     x;
 
 fun full_checker_l_impl x =
   (fn ai => fn bia => fn bi => fn () =>
     let
-      val xa = remap_polys_l_impl bia ();
-      val x_a = fully_normalize_poly_impl ai ();
+      val xa = fully_normalize_poly_impl ai ();
+      val a = remap_polys_l_impl xa bia ();
     in
-      pAC_checker_l_impl x_a xa bi ()
+      let
+        val (a1, a2) = a;
+      in
+        pAC_checker_l_impl xa a1 a2 bi
+      end
+        ()
     end)
     x;
 

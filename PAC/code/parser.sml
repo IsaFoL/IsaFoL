@@ -251,12 +251,16 @@ exception Parser_Error of string
 
   fun parse_EOL istream () =
       let
-        val c1 = TextIO.input1(istream)
-        val c2 = TextIO.input1(istream)
+        val c1 = TextIO.input1(istream);
+        val c2 = TextIO.input1(istream);
+        fun f () =
+          (case TextIO.lookahead istream of
+               SOME #"\n" => (ignore (TextIO.input1 istream); f ())
+             | _ => ())
       in
         if c1 <> NONE andalso c2 <> NONE andalso (valOf c1 <> #";" orelse valOf c2 <> #"\n")
         then raise Parser_Error ("unrecognised EOL '" ^ String.implode [valOf c1, valOf c2] ^ "'")
-        else ()
+        else f ()
       end
  
   fun parse_step istream =
