@@ -73,30 +73,30 @@ lemma rephase_random_spec:
 
 
 definition phase_rephase :: \<open>phase_save_heur \<Rightarrow> phase_save_heur nres\<close> where
-\<open>phase_rephase = (\<lambda>(\<phi>, target_assigned, target, best_assigned, best, end_of_phase, curr_phase).
+\<open>phase_rephase = (\<lambda>(\<phi>, target_assigned, target, best_assigned, best, end_of_phase, curr_phase, length_phase).
     if curr_phase = 0
     then do {
        \<phi> \<leftarrow> rephase_init False \<phi>;
-       RETURN (\<phi>, target_assigned, target, best_assigned, best, 10000+end_of_phase, 1)
+       RETURN (\<phi>, target_assigned, target, best_assigned, best, length_phase*1000+end_of_phase, 1, length_phase+1)
     }
     else if curr_phase = 1
     then do {
        \<phi> \<leftarrow> copy_phase best \<phi>;
-       RETURN (\<phi>, target_assigned, target, best_assigned, best, 10000+end_of_phase, 2)
+       RETURN (\<phi>, target_assigned, target, best_assigned, best, length_phase*1000+end_of_phase, 2, length_phase+1)
     }
     else if curr_phase = 2
     then do {
        \<phi> \<leftarrow> rephase_init True \<phi>;
-       RETURN (\<phi>, target_assigned, target, best_assigned, best, 10000+end_of_phase, 3)
+       RETURN (\<phi>, target_assigned, target, best_assigned, best, length_phase*1000+end_of_phase, 3, length_phase+1)
     }
     else if curr_phase = 3
     then do {
        \<phi> \<leftarrow> rephase_random end_of_phase \<phi>;
-       RETURN (\<phi>, target_assigned, target, best_assigned, best, 10000+end_of_phase, 4)
+       RETURN (\<phi>, target_assigned, target, best_assigned, best, length_phase*1000+end_of_phase, 4, length_phase+1)
     }
     else do {
        \<phi> \<leftarrow> copy_phase best \<phi>;
-       RETURN (\<phi>, target_assigned, target, best_assigned, best, 10000+end_of_phase, 0)
+       RETURN (\<phi>, target_assigned, target, best_assigned, best, length_phase*1000+end_of_phase, 0, length_phase+1)
     })\<close>
 
 lemma phase_rephase_spec:
@@ -109,26 +109,26 @@ proof -
   then have [simp]: \<open>length \<phi>' = length best\<close>
     using assms by (auto simp: phase_save_heur_rel_def)
   have 1: \<open>\<Down>Id (SPEC(phase_save_heur_rel \<A>)) \<ge>
-    \<Down>Id((\<lambda>(\<phi>, target_assigned, target, best_assigned, best, end_of_phase, curr_phase).
+    \<Down>Id((\<lambda>(\<phi>, target_assigned, target, best_assigned, best, end_of_phase, curr_phase, length_phase).
       if curr_phase = 0 then  do {
         \<phi>' \<leftarrow> SPEC (\<lambda>\<phi>'. length \<phi> = length \<phi>');
-        RETURN (\<phi>', target_assigned, target, best_assigned, best, 10000+end_of_phase, 1)
+        RETURN (\<phi>', target_assigned, target, best_assigned, best, length_phase*1000+end_of_phase, 1, length_phase+1)
       }
      else if curr_phase = 1 then  do {
         \<phi>' \<leftarrow> SPEC (\<lambda>\<phi>'. length \<phi> = length \<phi>');
-        RETURN (\<phi>', target_assigned, target, best_assigned, best, 10000+end_of_phase, 2)
+        RETURN (\<phi>', target_assigned, target, best_assigned, best, length_phase*1000+end_of_phase, 2, length_phase+1)
      }
      else if curr_phase = 2 then  do {
         \<phi>' \<leftarrow> SPEC (\<lambda>\<phi>'. length \<phi> = length \<phi>');
-        RETURN (\<phi>', target_assigned, target, best_assigned, best, 10000+end_of_phase, 3)
+        RETURN (\<phi>', target_assigned, target, best_assigned, best, length_phase*1000+end_of_phase, 3, length_phase+1)
      }
      else if curr_phase = 3 then  do {
         \<phi>' \<leftarrow> SPEC (\<lambda>\<phi>'. length \<phi> = length \<phi>');
-        RETURN (\<phi>', target_assigned, target, best_assigned, best, 10000+end_of_phase, 4)
+        RETURN (\<phi>', target_assigned, target, best_assigned, best, length_phase*1000+end_of_phase, 4, length_phase+1)
      }
      else do {
         \<phi>' \<leftarrow> SPEC (\<lambda>\<phi>'. length \<phi> = length \<phi>');
-        RETURN (\<phi>', target_assigned, target, best_assigned, best, 10000+end_of_phase, 0)
+        RETURN (\<phi>', target_assigned, target, best_assigned, best, length_phase*1000+end_of_phase, 0, length_phase+1)
      }) \<phi>)\<close>
    using assms
    by (cases \<phi>)

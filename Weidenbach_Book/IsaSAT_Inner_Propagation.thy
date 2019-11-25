@@ -1211,7 +1211,7 @@ definition update_blit_wl_heur_pre where
       intro!: ASSERT_leI ASSERT_refine_right
       simp: vdom_m_update_subset)
   subgoal for aa ab ac ad ae be af ag ah bf aj ak al am an bg ao bh ap aq ar bi at bl
-       bm bn bo bp bq br bs bt bu bv bw bx _ _ _ _ _ _ "by" bz ca cb ci cj ck cl cm cn co
+       bm bn bo bp bq br bs bt bu bv bw bx _ _ _ _ _ _ _ "by" bz ca cb ci cj ck cl cm cn co
        cq cr cs ct cv y x
     apply (subgoal_tac \<open>vdom_m (all_atms co (cq + cr + cs + ct))
           (cv(K := (cv K)[ck := (ci, cm, cj)])) co \<subseteq>
@@ -1221,7 +1221,7 @@ definition update_blit_wl_heur_pre where
     apply auto
     done
   subgoal for aa ab ac ad ae be af ag ah bf ai aj ak al am an bg ao bh ap aq ar bi at
-       bl bm bn bo bp bq br bs bt bu bv bw bx _ _ _ _ _ _ "by" bz ca cb ci cj ck cl cm cn
+       bl bm bn bo bp bq br bs bt bu bv bw bx _ _ _ _ _ _ _ "by" bz ca cb ci cj ck cl cm cn
        co cp cq cr cs ct cv x
     apply (subgoal_tac \<open>vdom_m (all_atms co (cq + cr + cs + ct))
          (cv(K := (cv K)[ck := (ci, cm, cj)])) co \<subseteq>

@@ -226,7 +226,7 @@ abbreviation phase_saver_assn :: \<open>phase_saver \<Rightarrow> phase_saver_as
 (* TODO: Move *)
 type_synonym arena_assn = "(32 word, 64) array_list"
 type_synonym heur_assn = \<open>(ema \<times> ema \<times> restart_info \<times> 64 word \<times>
-   phase_saver_assn \<times> 32 word \<times> phase_saver_assn \<times> 32 word \<times> phase_saver_assn \<times> 64 word \<times> 64 word)\<close>
+   phase_saver_assn \<times> 32 word \<times> phase_saver_assn \<times> 32 word \<times> phase_saver_assn \<times> 64 word \<times> 64 word \<times> 64 word)\<close>
 
 type_synonym twl_st_wll_trail_fast =
   \<open>trail_pol_fast_assn \<times> arena_assn \<times> option_lookup_clause_assn \<times>
@@ -238,7 +238,7 @@ type_synonym twl_st_wll_trail_fast =
 
 abbreviation phase_heur_assn where
   \<open>phase_heur_assn \<equiv> phase_saver_assn *a uint32_nat_assn *a phase_saver_assn *a uint32_nat_assn *a
-     phase_saver_assn *a word64_assn *a word64_assn\<close>
+     phase_saver_assn *a word64_assn *a word64_assn *a word64_assn\<close>
      
 definition heuristic_assn :: \<open>restart_heuristics \<Rightarrow> heur_assn \<Rightarrow> assn\<close> where
   \<open>heuristic_assn = ema_assn *a
