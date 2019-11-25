@@ -520,15 +520,16 @@ proof -
     apply assumption+
       apply (rule refine_generalise1)
       apply assumption
-    subgoal for a aa ab ac ad b ae af ag ba ah ai aj ak al am bb an bc ao ap aq bd ar
-       as at au av aw ax ay az be bf bg bh bi bj bk bl bm bn bo bp bq br bs
-       bt bu bv bw bx _ _ "by" bz ca cb cc cd ce cf cg ch ci lvl i vm0
+    subgoal for a aa ab ac ad b ae af ag ba ah ai aj ak al am bb an bc ao ap bd aq ar
+       as at au av aw ax ay be az bf bg bh bi bj bk bl bm bn bo bp bq br bs
+       bt bu bv bw bx "by" bz ca cb cc cd ce cf cg ch ci cj ck cl cm cn co cp
+       lvl i vm0
       unfolding RETURN_def RES_RES2_RETURN_RES RES_RES13_RETURN_RES find_decomp_w_ns_def conc_fun_RES
         RES_RES13_RETURN_RES K K2
       apply (auto simp: intro_spec_iff intro!: ASSERT_leI isa_length_trail_pre)
       apply (auto simp: isa_length_trail_length_u[THEN fref_to_Down_unRET_Id]
         intro: isa_vmtfI trail_pol_no_dup)
-      apply (frule twl_st_heur_change_subsumed_clauses[where US' = \<open>{#}\<close> and NS' = cg])
+      apply (frule twl_st_heur_change_subsumed_clauses[where US' = \<open>{#}\<close> and NS' = cm])
       apply (solves \<open>auto dest: H(2)\<close>)[]
       apply (frule H(2))
       apply (frule H(3))

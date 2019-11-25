@@ -72,8 +72,8 @@ lemma rephase_random_spec:
   done
 
 
-definition phase_save_rephase :: \<open>phase_save_heur \<Rightarrow> phase_save_heur nres\<close> where
-\<open>phase_save_rephase = (\<lambda>(\<phi>, target_assigned, target, best_assigned, best, end_of_phase, curr_phase).
+definition phase_rephase :: \<open>phase_save_heur \<Rightarrow> phase_save_heur nres\<close> where
+\<open>phase_rephase = (\<lambda>(\<phi>, target_assigned, target, best_assigned, best, end_of_phase, curr_phase).
     if curr_phase = 0
     then do {
        \<phi> \<leftarrow> rephase_init False \<phi>;
@@ -99,9 +99,9 @@ definition phase_save_rephase :: \<open>phase_save_heur \<Rightarrow> phase_save
        RETURN (\<phi>, target_assigned, target, best_assigned, best, end_of_phase, 0)
     })\<close>
 
-lemma phase_save_rephase_spec:
+lemma phase_rephase_spec:
   assumes \<open>phase_save_heur_rel \<A> \<phi>\<close>
-  shows \<open>phase_save_rephase \<phi> \<le> \<Down>Id (SPEC(phase_save_heur_rel \<A>))\<close>
+  shows \<open>phase_rephase \<phi> \<le> \<Down>Id (SPEC(phase_save_heur_rel \<A>))\<close>
 proof -
   obtain \<phi>' target_assigned target best_assigned best end_of_phase curr_phase where
     \<phi>: \<open>\<phi> = (\<phi>', target_assigned, target, best_assigned, best, end_of_phase, curr_phase)\<close>
@@ -135,29 +135,128 @@ proof -
     (auto simp: phase_save_heur_rel_def phase_saving_def RES_RETURN_RES)
 
   show ?thesis
-    unfolding phase_save_rephase_def \<phi>
+    unfolding phase_rephase_def \<phi>
     apply (simp only: prod.case)
     apply (rule order_trans)
     defer
     apply (rule 1)
     apply (simp only: prod.case \<phi>)
     apply (refine_vcg if_mono rephase_init_spec copy_phase_spec rephase_random_spec)
-    apply (auto simp: phase_save_rephase_def)
+    apply (auto simp: phase_rephase_def)
     done
 qed
 
 definition rephase_heur :: \<open>restart_heuristics \<Rightarrow> restart_heuristics nres\<close> where
   \<open>rephase_heur = (\<lambda>(fast_ema, slow_ema, restart_info, wasted, \<phi>).
     do {
-      \<phi> \<leftarrow> phase_save_rephase \<phi>;
+      \<phi> \<leftarrow> phase_rephase \<phi>;
       RETURN (fast_ema, slow_ema, restart_info, wasted, \<phi>)
    })\<close>
 
 lemma rephase_heur_spec:
   \<open>heuristic_rel \<A> heur \<Longrightarrow> rephase_heur heur \<le>  \<Down>Id (SPEC(heuristic_rel \<A>))\<close>
   unfolding rephase_heur_def
-  apply (refine_vcg phase_save_rephase_spec[THEN order_trans])
+  apply (refine_vcg phase_rephase_spec[THEN order_trans])
   apply (auto simp: heuristic_rel_def)
   done
+
+definition rephase_heur_st :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
+  \<open>rephase_heur_st = (\<lambda>(M', arena, D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
+       vdom, avdom, lcount, opts, old_arena). do {
+      heur \<leftarrow> rephase_heur heur;
+      RETURN (M', arena, D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
+       vdom, avdom, lcount, opts, old_arena)
+   })\<close>
+
+lemma rephase_heur_st_spec:
+  \<open>(S, S') \<in> twl_st_heur \<Longrightarrow> rephase_heur_st S \<le> SPEC(\<lambda>S. (S, S') \<in> twl_st_heur)\<close>
+  unfolding rephase_heur_st_def
+  apply (cases S')
+  apply (refine_vcg rephase_heur_spec[THEN order_trans, of \<open>all_atms_st S'\<close>])
+  apply (simp_all add:  twl_st_heur_def)
+  done
+
+definition phase_save_phase :: \<open>nat \<Rightarrow> phase_save_heur \<Rightarrow> phase_save_heur nres\<close> where
+\<open>phase_save_phase = (\<lambda>n (\<phi>, target_assigned, target, best_assigned, best, end_of_phase, curr_phase). do {
+       target \<leftarrow> (if n > target_assigned
+          then copy_phase \<phi> target else RETURN target);
+       target_assigned \<leftarrow> (if n > target_assigned
+          then RETURN n else RETURN target_assigned);
+       best \<leftarrow> (if n > best_assigned
+          then copy_phase \<phi> best else RETURN best);
+       best_assigned \<leftarrow> (if n > best_assigned
+          then RETURN n else RETURN best_assigned);
+       RETURN (\<phi>, target_assigned, target, best_assigned, best, end_of_phase, curr_phase)
+   })\<close>
+
+lemma phase_save_phase_spec:
+  assumes \<open>phase_save_heur_rel \<A> \<phi>\<close>
+  shows \<open>phase_save_phase n \<phi> \<le> \<Down>Id (SPEC(phase_save_heur_rel \<A>))\<close>
+proof -
+  obtain \<phi>' target_assigned target best_assigned best end_of_phase curr_phase where
+    \<phi>: \<open>\<phi> = (\<phi>', target_assigned, target, best_assigned, best, end_of_phase, curr_phase)\<close>
+    by (cases \<phi>) auto
+  then have [simp]: \<open>length \<phi>' = length best\<close>  \<open>length target = length best\<close>
+    using assms by (auto simp: phase_save_heur_rel_def)
+  have 1: \<open>\<Down>Id (SPEC(phase_save_heur_rel \<A>)) \<ge>
+    \<Down>Id((\<lambda>(\<phi>, target_assigned, target, best_assigned, best, end_of_phase, curr_phase). do {
+        target \<leftarrow> (if n > target_assigned
+          then SPEC (\<lambda>\<phi>'. length \<phi> = length \<phi>') else RETURN target);
+        target_assigned \<leftarrow> (if n > target_assigned
+          then RETURN n else RETURN target_assigned);
+        best \<leftarrow> (if n > best_assigned
+          then SPEC (\<lambda>\<phi>'. length \<phi> = length \<phi>') else RETURN best);
+        best_assigned \<leftarrow> (if n > best_assigned
+          then RETURN n else RETURN best_assigned);
+        RETURN (\<phi>', target_assigned, target, best_assigned, best, end_of_phase, curr_phase)
+     }) \<phi>)\<close>
+   using assms
+   by  (auto simp: phase_save_heur_rel_def phase_saving_def RES_RETURN_RES \<phi> RES_RES_RETURN_RES)
+
+  show ?thesis
+    unfolding phase_save_phase_def \<phi>
+    apply (simp only: prod.case)
+    apply (rule order_trans)
+    defer
+    apply (rule 1)
+    apply (simp only: prod.case \<phi>)
+    apply (refine_vcg if_mono rephase_init_spec copy_phase_spec rephase_random_spec)
+    apply (auto simp: phase_rephase_def)
+    done
+qed
+
+definition save_phase_heur :: \<open>nat \<Rightarrow> restart_heuristics \<Rightarrow> restart_heuristics nres\<close> where
+  \<open>save_phase_heur = (\<lambda>n (fast_ema, slow_ema, restart_info, wasted, \<phi>).
+    do {
+      \<phi> \<leftarrow> phase_save_phase n \<phi>;
+      RETURN (fast_ema, slow_ema, restart_info, wasted, \<phi>)
+   })\<close>
+
+lemma save_phase_heur_spec:
+  \<open>heuristic_rel \<A> heur \<Longrightarrow> save_phase_heur n heur \<le>  \<Down>Id (SPEC(heuristic_rel \<A>))\<close>
+  unfolding save_phase_heur_def
+  apply (refine_vcg phase_save_phase_spec[THEN order_trans])
+  apply (auto simp: heuristic_rel_def)
+  done
+
+
+definition save_phase_st :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
+  \<open>save_phase_st = (\<lambda>(M', arena, D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
+       vdom, avdom, lcount, opts, old_arena). do {
+      let n = count_decided_pol M';
+      heur \<leftarrow> save_phase_heur n heur;
+      RETURN (M', arena, D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
+       vdom, avdom, lcount, opts, old_arena)
+   })\<close>
+
+lemma save_phase_st_spec:
+  \<open>(S, S') \<in> twl_st_heur \<Longrightarrow> save_phase_st S \<le> SPEC(\<lambda>S. (S, S') \<in> twl_st_heur)\<close>
+  unfolding save_phase_st_def
+  apply (cases S')
+  apply (refine_vcg save_phase_heur_spec[THEN order_trans, of \<open>all_atms_st S'\<close>])
+  apply (simp_all add:  twl_st_heur_def)
+  done
+
+
 
 end

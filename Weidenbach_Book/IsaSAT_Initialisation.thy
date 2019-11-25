@@ -1865,7 +1865,7 @@ definition finalise_init_code :: \<open>opts \<Rightarrow> twl_st_wl_heur_init \
      let lcount = 0;
     RETURN (M', N', D', Q', W', ((ns, m, the fst_As, the lst_As, next_search), to_remove),
        clvls, cach, lbd, take 1(replicate 160 (Pos 0)), init_stats,
-        (fema, sema, ccount, 0, \<phi>, replicate (length \<phi>) False, replicate (length \<phi>) False), vdom, [], lcount, opts, [])
+        (fema, sema, ccount, 0, \<phi>, 0, replicate (length \<phi>) False, 0, replicate (length \<phi>) False, 10000, 0), vdom, [], lcount, opts, [])
      })\<close>
 
 lemma isa_vmtf_init_nemptyD: \<open>((ak, al, am, an, bc), ao, bd)
@@ -1880,7 +1880,7 @@ lemma isa_vmtf_init_isa_vmtf: \<open>\<A> \<noteq> {#} \<Longrightarrow> ((ak, a
   by (auto simp: isa_vmtf_init_def vmtf_init_def Image_iff intro!: isa_vmtfI)
 
 lemma heuristic_rel_initI:
-   \<open>phase_saving \<A> \<phi> \<Longrightarrow> length \<phi>' = length \<phi> \<Longrightarrow> length \<phi>'' = length \<phi> \<Longrightarrow> heuristic_rel \<A> (fema, sema, ccount, 0, (\<phi>,\<phi>',\<phi>''))\<close>
+   \<open>phase_saving \<A> \<phi> \<Longrightarrow> length \<phi>' = length \<phi> \<Longrightarrow> length \<phi>'' = length \<phi> \<Longrightarrow> heuristic_rel \<A> (fema, sema, ccount, 0, (\<phi>,a, \<phi>',b,\<phi>'',c,d))\<close>
    by (auto simp: heuristic_rel_def phase_save_heur_rel_def phase_saving_def)
 
 lemma finalise_init_finalise_init_full:

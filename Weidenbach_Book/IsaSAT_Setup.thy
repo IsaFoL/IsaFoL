@@ -146,7 +146,7 @@ definition restart_info_restart_done :: \<open>restart_info \<Rightarrow> restar
 
 paragraph \<open>Phase saving\<close>
 
-type_synonym phase_save_heur = \<open>phase_saver \<times> 32 word \<times> phase_saver \<times> 32 word \<times> phase_saver \<times> 64 word \<times> 64 word\<close>
+type_synonym phase_save_heur = \<open>phase_saver \<times> nat \<times> phase_saver \<times> nat \<times> phase_saver \<times> 64 word \<times> 64 word\<close>
 
 definition phase_save_heur_rel :: \<open>nat multiset \<Rightarrow> phase_save_heur \<Rightarrow> bool\<close> where
 \<open>phase_save_heur_rel \<A> = (\<lambda>(\<phi>, target_assigned, target, best_assigned, best,

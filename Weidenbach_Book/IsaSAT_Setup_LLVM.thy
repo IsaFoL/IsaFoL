@@ -239,7 +239,7 @@ definition heuristic_assn :: \<open>restart_heuristics \<Rightarrow> heur_assn \
   \<open>heuristic_assn = ema_assn *a
   ema_assn *a
   restart_info_assn *a
-  word64_assn *a (phase_saver_assn *a word32_assn *a phase_saver_assn *a word32_assn *a
+  word64_assn *a (phase_saver_assn *a uint32_nat_assn *a phase_saver_assn *a uint32_nat_assn *a
      phase_saver_assn *a word64_assn *a word64_assn)\<close>
 
 definition isasat_bounded_assn :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wll_trail_fast \<Rightarrow> assn\<close> where

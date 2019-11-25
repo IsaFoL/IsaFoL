@@ -30,10 +30,57 @@ sepref_def copy_phase_impl
   apply (annot_snat_const "TYPE(64)")
   by sepref
 
-sepref_def phase_save_rephase_impl
-  is phase_save_rephase
-  :: \<open>phase_saver_assn\<^sup>d \<rightarrow>\<^sub>a phase_saver_assn\<close>
-  unfolding phase_save_rephase_def
+abbreviation phase_heur_assn where
+  \<open>phase_heur_assn \<equiv> phase_saver_assn *a uint32_nat_assn *a phase_saver_assn *a uint32_nat_assn *a
+     phase_saver_assn *a word64_assn *a word64_assn\<close>
+
+
+sepref_register rephase_init rephase_random copy_phase
+
+sepref_def phase_save_phase_impl
+  is \<open>uncurry phase_save_phase\<close>
+  :: \<open>uint32_nat_assn\<^sup>k *\<^sub>a phase_heur_assn\<^sup>d \<rightarrow>\<^sub>a phase_heur_assn\<close>
+  unfolding phase_save_phase_def
   by sepref
+
+
+sepref_def save_phase_heur_impl
+  is \<open>uncurry save_phase_heur\<close>
+  ::  \<open>uint32_nat_assn\<^sup>k *\<^sub>a heuristic_assn\<^sup>d \<rightarrow>\<^sub>a heuristic_assn\<close>
+  unfolding save_phase_heur_def heuristic_assn_def
+  by sepref
+
+
+sepref_def save_phase_heur_st
+  is save_phase_st
+  ::  \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
+  unfolding save_phase_st_def isasat_bounded_assn_def
+  by sepref
+
+sepref_def phase_save_rephase_impl
+  is phase_rephase
+  :: \<open>phase_heur_assn\<^sup>d \<rightarrow>\<^sub>a phase_heur_assn\<close>
+  unfolding phase_rephase_def
+  by sepref
+
+
+sepref_def rephase_heur_impl
+  is \<open>rephase_heur\<close>
+  ::  \<open>heuristic_assn\<^sup>d \<rightarrow>\<^sub>a heuristic_assn\<close>
+  unfolding rephase_heur_def heuristic_assn_def
+  by sepref
+
+
+sepref_def rephase_heur_st_impl
+  is rephase_heur_st
+  ::  \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
+  unfolding rephase_heur_st_def isasat_bounded_assn_def
+  by sepref
+
+experiment
+begin
+export_llvm rephase_heur_st_impl
+  save_phase_heur_st
+end
 
 end
