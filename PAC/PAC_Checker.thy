@@ -251,21 +251,23 @@ definition mononoms_equal_up_to_reorder where
      sorted_wrt (rel2p (term_order_rel \<times>\<^sub>r int_rel)) p' \<and>
      (\<forall> x \<in> mononoms p'. sorted_wrt (rel2p var_order_rel) x))\<close>
 
-definition remap_polys_l :: \<open>(nat, llist_polynom) fmap \<Rightarrow> _ nres\<close> where
-  \<open>remap_polys_l A = do{
-    dom \<leftarrow> SPEC(\<lambda>dom. set_mset (dom_m A) \<subseteq> dom \<and> finite dom);
-   FOREACH dom
-     (\<lambda>i A'.
+definition remap_polys_l :: \<open>llist_polynom \<Rightarrow> (nat, llist_polynom) fmap \<Rightarrow> _ nres\<close> where
+  \<open>remap_polys_l spec A = do{
+   dom \<leftarrow> SPEC(\<lambda>dom. set_mset (dom_m A) \<subseteq> dom \<and> finite dom);
+   (A, b) \<leftarrow> FOREACH dom
+     (\<lambda>i (A', b).
         if i \<in># dom_m A
         then  do {
           p \<leftarrow> full_normalize_poly (the (fmlookup A i));
-          RETURN(fmupd i p A')
-        } else RETURN A')
-     fmempty
+          eq \<leftarrow> weak_equality_p p spec;
+          RETURN(fmupd i p A', b \<or> eq)
+        } else RETURN (A', b))
+     (fmempty, False);
+   RETURN (A, if b then CFOUND else CSUCCESS)
  }\<close>
 
 definition PAC_checker_l where
-  \<open>PAC_checker_l spec A st = do {
+  \<open>PAC_checker_l spec A b st = do {
     (S, _) \<leftarrow> WHILE\<^sub>T
        (\<lambda>((b, A), n). \<not>is_cfailed b \<and> n \<noteq> [])
        (\<lambda>((bA), n). do {
@@ -273,7 +275,7 @@ definition PAC_checker_l where
           S \<leftarrow> PAC_checker_l_step spec bA (hd n);
           RETURN (S, tl n)
         })
-      ((CSUCCESS, A), st);
+      ((b, A), st);
     RETURN S
   }\<close>
 
@@ -293,46 +295,19 @@ lemma
         (s, p) \<in> mset_poly_rel\<close>
   by (auto simp: mset_poly_rel_def normalize_poly_p_poly_of_mset)
 
-lemma
-  assumes \<open>(A, B) \<in> \<langle>nat_rel, fully_unsorted_poly_rel O mset_poly_rel\<rangle>fmap_rel\<close>
-  shows \<open>remap_polys_l A \<le> \<Down> (fmap_polys_rel) (remap_polys B)\<close>
+lemma remap_polys_l_remap_polys:
+  assumes
+    AB: \<open>(A, B) \<in> \<langle>nat_rel, fully_unsorted_poly_rel O mset_poly_rel\<rangle>fmap_rel\<close> and
+    spec: \<open>(spec, spec') \<in> sorted_poly_rel O mset_poly_rel\<close>
+  shows \<open>remap_polys_l spec A \<le> \<Down>(fmap_polys_rel \<times>\<^sub>r code_status_status_rel) (remap_polys spec' B)\<close>
 proof -
   have 1: \<open>inj_on id (dom :: nat set)\<close> for dom
     by auto
-  have remap_polys_alt_def:
-    \<open>remap_polys A = do{
-       dom \<leftarrow> SPEC(\<lambda>dom. set_mset (dom_m A) \<subseteq> dom \<and> finite dom);
-       A' \<leftarrow> FOREACH dom
-         (\<lambda>i A'.
-            if i \<in># dom_m A
-            then do {
-              p \<leftarrow> SPEC(\<lambda>p. the (fmlookup A i) - p \<in> ideal polynom_bool);
-              RETURN(fmupd i p A')
-            } else RETURN A')
-         fmempty;
-       RETURN A'
-     }\<close> for A
-    unfolding remap_polys_def by auto
-  have remap_polys_l_alt_def:
-    \<open>remap_polys_l A = do{
-       dom \<leftarrow> SPEC(\<lambda>dom. set_mset (dom_m A) \<subseteq> dom \<and> finite dom);
-       A' \<leftarrow> FOREACH dom
-         (\<lambda>i A'.
-            if i \<in># dom_m A
-            then  do {
-              p \<leftarrow> full_normalize_poly (the (fmlookup A i));
-              RETURN(fmupd i p A')
-            } else RETURN A')
-         fmempty;
-       RETURN A'
-     }\<close> for A
-     unfolding remap_polys_l_def
-     by auto
   have H: \<open>x \<in># dom_m A \<Longrightarrow>
      (\<And>p. (the (fmlookup A x), p) \<in> fully_unsorted_poly_rel \<Longrightarrow>
        (p, the (fmlookup B x)) \<in> mset_poly_rel \<Longrightarrow> thesis) \<Longrightarrow>
      thesis\<close> for x thesis
-     using fmap_rel_nat_the_fmlookup[OF assms, of x x] fmap_rel_nat_rel_dom_m[OF assms] by auto
+     using fmap_rel_nat_the_fmlookup[OF AB, of x x] fmap_rel_nat_rel_dom_m[OF AB] by auto
   have full_normalize_poly: \<open>full_normalize_poly (the (fmlookup A x))
        \<le> \<Down> (sorted_poly_rel O mset_poly_rel)
           (SPEC
@@ -351,12 +326,20 @@ proof -
       done
       done
 
-  have emp: \<open>(fmempty, fmempty) \<in> fmap_polys_rel\<close>
+  have H': \<open>(p, pa) \<in> sorted_poly_rel O mset_poly_rel \<Longrightarrow>
+     weak_equality_p p spec \<le> SPEC (\<lambda>eqa. eqa \<longrightarrow> pa = spec')\<close> for p pa
+    using spec apply (auto simp: weak_equality_p_def weak_equality_spec_def
+       list_mset_rel_def br_def
+    dest: list_rel_term_poly_list_rel_same_rightD sorted_poly_list_relD)
+    by (metis (mono_tags) mem_Collect_eq poly_embed.mset_poly_rel_def prod.simps(2)
+      sorted_poly_list_relD)
+
+  have emp: \<open>((fmempty, False), fmempty, False) \<in> fmap_polys_rel \<times>\<^sub>r bool_rel\<close>
     by auto
   show ?thesis
     using assms
-    unfolding remap_polys_l_alt_def
-      remap_polys_alt_def
+    unfolding remap_polys_l_def
+      remap_polys_def
     apply (refine_rcg full_normalize_poly fmap_rel_fmupd_fmap_rel)
     subgoal
       by auto
@@ -365,115 +348,13 @@ proof -
     apply (rule emp)
     subgoal by auto
     subgoal by auto
-    subgoal by auto
-    subgoal by auto
-    subgoal by auto
+    subgoal by (rule H')
+    subgoal by (auto intro!: fmap_rel_fmupd_fmap_rel)
     subgoal by auto
     subgoal by auto
     done
 qed
 
-
-definition remap_polys_in_place_l:: \<open>(nat, llist_polynom) fmap \<Rightarrow> _ nres\<close> where
-  \<open>remap_polys_in_place_l A = do{
-   dom \<leftarrow> SPEC(\<lambda>dom. set_mset (dom_m A) \<subseteq> dom \<and> finite dom);
-   FOREACH dom
-     (\<lambda>i A.
-        if i \<in># dom_m A
-        then  do {
-          p \<leftarrow> full_normalize_poly (the (fmlookup A i));
-          RETURN(fmupd i p A)
-        } else RETURN A)
-     A
- }\<close>
-
-lemma remap_polys_in_place_l_remap_polys:
-  \<open>remap_polys_in_place_l A \<le> \<Down>Id (remap_polys_l A)\<close>
-proof -
-  have 1: \<open>inj_on id (dom :: nat set)\<close> for dom
-    by auto
-  have remap_polys_in_place_l_alt_def:
-    \<open>remap_polys_in_place_l A = do{
-       dom \<leftarrow> SPEC(\<lambda>dom. set_mset (dom_m A) \<subseteq> dom \<and> finite dom);
-       A' \<leftarrow>  FOREACH dom
-     (\<lambda>i A.
-        if i \<in># dom_m A
-        then  do {
-          p \<leftarrow> full_normalize_poly (the (fmlookup A i));
-          RETURN(fmupd i p A)
-        } else RETURN A)
-     A;
-       RETURN A'
-     }\<close> for A
-    unfolding remap_polys_in_place_l_def by auto
-  have remap_polys_l_alt_def:
-    \<open>remap_polys_l A = do{
-       dom \<leftarrow> SPEC(\<lambda>dom. set_mset (dom_m A) \<subseteq> dom \<and> finite dom);
-       A' \<leftarrow> FOREACH dom
-         (\<lambda>i A'.
-            if i \<in># dom_m A
-            then  do {
-              p \<leftarrow> full_normalize_poly (the (fmlookup A i));
-              RETURN(fmupd i p A')
-            } else RETURN A')
-         fmempty;
-       RETURN A'
-     }\<close> for A
-     unfolding remap_polys_l_def
-     by auto
-  let ?I = \<open>\<lambda>dom A' dom' fmempty. (A', fmempty) \<in> {(D, C).
-        dom_m D = mset_set (dom \<inter> set_mset (dom_m A))+ dom_m C \<and>
-          (\<forall>i\<in>dom. i \<notin># dom_m C) \<and>
-        (\<forall>i. i\<in>dom \<longrightarrow> fmlookup D i = fmlookup A i) \<and>
-        (\<forall>i \<in> set_mset (dom_m A) - dom. fmlookup D i = fmlookup C i) \<and>
-        dom_m C \<subseteq># dom_m A}\<close>
-
-  have 2: \<open>((dom, A), id ` dom, fmempty) \<in> {((dom, A'), dom', fmempty). ?I dom A' dom' fmempty}\<close>
-    if \<open>dom \<in> {dom. set_mset (dom_m A) \<subseteq> dom \<and> finite dom}\<close>
-    for dom
-    using that in_dom_m_lookup_iff apply auto
-    apply (metis dom_m_fmrestrict_set' fmlookup_restrict_set_id')
-    done
-  have 3: \<open>(dom, doma) \<in> Id \<Longrightarrow>
-    dom \<in> {dom. set_mset (dom_m A) \<subseteq> dom \<and> finite dom} \<Longrightarrow>
-    doma \<in> {dom. set_mset (dom_m A) \<subseteq> dom \<and> finite dom} \<Longrightarrow>
-    x' = id x \<Longrightarrow>
-    x \<in> it \<Longrightarrow>
-    x' \<in> it' \<Longrightarrow>
-    (( it, \<sigma>), it', \<sigma>') \<in> {((dom, A'), dom', fmempty). ?I dom A' dom' fmempty} \<Longrightarrow>
-    x \<in># dom_m \<sigma> \<Longrightarrow>
-    x' \<in># dom_m A \<Longrightarrow>
-    full_normalize_poly (the (fmlookup \<sigma> x))
-    \<le> \<Down> Id
-       (full_normalize_poly (the (fmlookup A x')))\<close>
-    for dom doma x it \<sigma> x' it' \<sigma>'
-    by (auto dest!: multi_member_split)
-
-  show ?thesis
-  supply FOREACH_refine_rcg[refine del]
-    unfolding remap_polys_l_alt_def remap_polys_in_place_l_alt_def
-    apply (refine_vcg FOREACH_refine_genR[where \<alpha> = id and R = \<open>{((dom, A'), dom', fmempty). ?I dom A' dom' fmempty}\<close> and
-       R' = \<open>{(C, D). ?I {} C {} D}\<close>])
-    apply (rule 1)
-    subgoal by auto
-    apply (rule 2, assumption)
-    subgoal
-      by (auto simp add: in_dom_m_lookup_iff intro: in_mono)
-    apply (rule 3; assumption)
-    subgoal for dom doma x it \<sigma> x' it' \<sigma>'
-      apply (auto dest: multi_member_split simp: ac_simps mset_set.insert_remove
-        intro: subset_add_mset_notin_subset)
-      using multi_member_split subset_add_mset_notin_subset by fastforce+
-    subgoal
-      by auto
-    subgoal
-      by auto
-    subgoal
-      apply auto
-      by (metis (mono_tags) Collect_mem_eq Collect_mono_iff finite_set_mset fmap_ext
-        in_dom_m_lookup_iff mset_set_subset_iff subset_mset.dual_order.trans)
-    done
-qed
 
 
 lemma fref_to_Down_curry:
@@ -735,11 +616,12 @@ lemma PAC_checker_l_PAC_checker:
   assumes
     \<open>(A, B) \<in> fmap_polys_rel\<close> and
     \<open>(st, st') \<in> \<langle>pac_step_rel\<rangle>list_rel\<close> and
-    \<open>(spec, spec') \<in> sorted_poly_rel O mset_poly_rel\<close>
+    \<open>(spec, spec') \<in> sorted_poly_rel O mset_poly_rel\<close> and
+    \<open>(b, b') \<in> code_status_status_rel\<close>
   shows
-    \<open>PAC_checker_l spec A st \<le> \<Down> (code_status_status_rel \<times>\<^sub>r fmap_polys_rel) (PAC_checker spec' B st')\<close>
+    \<open>PAC_checker_l spec A b st \<le> \<Down> (code_status_status_rel \<times>\<^sub>r fmap_polys_rel) (PAC_checker spec' B b' st')\<close>
 proof -
-  have [refine0]: \<open>(((CSUCCESS, A), st), (SUCCESS, B), st') \<in> ((code_status_status_rel \<times>\<^sub>r fmap_polys_rel) \<times>\<^sub>r  \<langle>pac_step_rel\<rangle>list_rel)\<close>
+  have [refine0]: \<open>(((b, A), st), (b', B), st') \<in> ((code_status_status_rel \<times>\<^sub>r fmap_polys_rel) \<times>\<^sub>r  \<langle>pac_step_rel\<rangle>list_rel)\<close>
     using assms by (auto simp: code_status_status_rel_def)
   show ?thesis
     using assms
@@ -772,9 +654,9 @@ definition full_checker_l
     (string code_status \<times> _) nres\<close>
 where
   \<open>full_checker_l spec A st = do {
-    A \<leftarrow> remap_polys_l A;
     spec \<leftarrow> full_normalize_poly spec;
-    PAC_checker_l spec A st
+    (A, b) \<leftarrow> remap_polys_l spec A;
+    PAC_checker_l spec A b st
   }\<close>
 
 
@@ -787,32 +669,6 @@ thm full_normalize_poly_diff_ideal[unfolded normalize_poly_spec_def[symmetric]]
 abbreviation unsorted_fmap_polys_rel where
   \<open>unsorted_fmap_polys_rel \<equiv> \<langle>nat_rel, fully_unsorted_poly_rel O mset_poly_rel\<rangle>fmap_rel\<close>
 
-lemma remap_polys_l_remap_polys:
- assumes
-    \<open>(A, B) \<in> unsorted_fmap_polys_rel\<close>
- shows
-  \<open>remap_polys_l A \<le> \<Down>fmap_polys_rel (remap_polys B)\<close>
-proof -
-  have 1: \<open>inj_on id R\<close> for R
-    by auto
-  show ?thesis
-  unfolding remap_polys_l_def remap_polys_def
-  apply (refine_rcg  FOREACH_refine_genR[where \<alpha> = id and
-       R = \<open>{((dom :: nat set, A), dom', A'). (A, A') \<in> fmap_polys_rel \<and> dom = dom'}\<close> and
-       R' = \<open>fmap_polys_rel\<close>]
-       full_normalize_poly_diff_ideal)
-  subgoal using assms by auto
-  apply (rule 1)
-  subgoal by auto
-  subgoal by auto
-  subgoal using assms by auto
-  subgoal using assms by auto
-  subgoal by (auto intro!: fmap_rel_fmupd_fmap_rel)
-  subgoal by auto
-  subgoal by auto
-  done
-qed
-
 lemma full_checker_l_full_checker:
  assumes
     \<open>(A, B) \<in> unsorted_fmap_polys_rel\<close> and
@@ -822,8 +678,11 @@ lemma full_checker_l_full_checker:
     \<open>full_checker_l spec A st \<le> \<Down> (code_status_status_rel \<times>\<^sub>r fmap_polys_rel) (full_checker spec' B st')\<close>
 proof -
   have [refine]:
-    \<open>remap_polys_l A \<le> \<Down> fmap_polys_rel (remap_polys_change_all B)\<close>
+    \<open>(spec, spec') \<in> sorted_poly_rel O mset_poly_rel \<Longrightarrow>
+    remap_polys_l spec A \<le> \<Down>(fmap_polys_rel \<times>\<^sub>r code_status_status_rel)
+        (remap_polys_change_all spec' B)\<close> for spec spec'
     apply (rule remap_polys_l_remap_polys[THEN order_trans, OF assms(1)])
+    apply assumption
     apply (rule ref_two_step[OF order.refl])
     apply(rule remap_polys_spec[THEN order_trans])
     unfolding remap_polys_polynom_bool_def[symmetric]
@@ -836,29 +695,33 @@ proof -
        PAC_checker_l_PAC_checker)
     subgoal
       using assms(3) .
+    subgoal by auto
     subgoal
       using assms(2) by (auto simp: p2rel_def)
+    subgoal by auto
     done
 qed
 
 end
 
-definition remap_polys_l2 :: \<open>(nat, llist_polynom) fmap \<Rightarrow> _ nres\<close> where
-  \<open>remap_polys_l2 A = do{
+definition remap_polys_l2 :: \<open>llist_polynom \<Rightarrow> (nat, llist_polynom) fmap \<Rightarrow> _ nres\<close> where
+  \<open>remap_polys_l2 spec A = do{
    n \<leftarrow> upper_bound_on_dom A;
-   nfoldli ([0..<n]) (\<lambda>_. True)
-     (\<lambda>i A'.
+   (A', b) \<leftarrow> nfoldli ([0..<n]) (\<lambda>_. True)
+     (\<lambda>i (A', b).
         if i \<in># dom_m A
-        then  do {
+        then do {
           ASSERT(fmlookup A i \<noteq> None);
           p \<leftarrow> full_normalize_poly (the (fmlookup A i));
-          RETURN(fmupd i p A')
-        } else RETURN A')
-     fmempty
+          eq \<leftarrow> weak_equality_p p spec;
+          RETURN(fmupd i p A', b \<or> eq)
+        } else RETURN (A', b))
+     (fmempty, False);
+   RETURN (A', if b then CFOUND else CSUCCESS)
  }\<close>
 
 lemma remap_polys_l2_remap_polys_l:
-  \<open>remap_polys_l2 A \<le> \<Down> Id (remap_polys_l A)\<close>
+  \<open>remap_polys_l2 spec A \<le> \<Down> Id (remap_polys_l spec A)\<close>
 proof -
   have [refine]: \<open>upper_bound_on_dom A
     \<le> \<Down> {(n, dom). dom = set [0..<n]} (SPEC (\<lambda>dom. set_mset (dom_m A) \<subseteq> dom \<and> finite dom))\<close>
@@ -879,7 +742,23 @@ proof -
   have 3: \<open>(n, dom) \<in> {(n, dom). dom = set [0..<n]} \<Longrightarrow>
        ([0..<n], dom) \<in> \<langle>nat_rel\<rangle>list_set_rel\<close> for n dom
   by (auto simp: list_set_rel_def br_def)
-       find_theorems nfoldli FOREACH
+  have 4: \<open>(p,q) \<in> Id \<Longrightarrow>
+    weak_equality_p p spec \<le> \<Down>Id (weak_equality_p q spec)\<close> for p q spec
+    by auto
+  have 5: \<open>\<And>n dom x xi s si x1 x2 x1a x2a p pa eqa eqaa.
+       (n, dom) \<in> {(n, dom). dom = set [0..<n]} \<Longrightarrow>
+       dom \<in> {dom. set_mset (dom_m A) \<subseteq> dom \<and> finite dom} \<Longrightarrow>
+       (xi, x) \<in> nat_rel \<Longrightarrow>
+       (si, s) \<in> Id \<times>\<^sub>r bool_rel \<Longrightarrow>
+       s = (x1, x2) \<Longrightarrow>
+       si = (x1a, x2a) \<Longrightarrow>
+       xi \<in># dom_m A \<Longrightarrow>
+       x \<in># dom_m A \<Longrightarrow>
+       fmlookup A xi \<noteq> None \<Longrightarrow>
+       (p, pa) \<in> Id \<Longrightarrow>
+       (eqa, eqaa) \<in> bool_rel \<Longrightarrow>
+       ((fmupd xi p x1a, x2a \<or> eqa), fmupd x pa x1, x2 \<or> eqaa) \<in> Id \<times>\<^sub>r bool_rel\<close>
+    by (auto)
   show ?thesis
     unfolding remap_polys_l2_def remap_polys_l_def
     apply (refine_rcg LFO_refine)
@@ -887,6 +766,9 @@ proof -
     subgoal by auto
     subgoal by (simp add: in_dom_m_lookup_iff)
     apply (rule 2; assumption)
+    apply (rule 4; assumption)
+    apply (rule 5; assumption)
+    subgoal by auto
     subgoal by auto
     subgoal by auto
     done

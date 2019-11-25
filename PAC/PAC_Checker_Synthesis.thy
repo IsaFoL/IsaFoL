@@ -531,8 +531,9 @@ lemma safe_pac_step_rel_assn[safe_constraint_rules]:
 
 sepref_register PAC_checker_l_step PAC_checker_l_step' fully_normalize_poly_impl
 sepref_definition PAC_checker_l_impl
-  is \<open>uncurry2 PAC_checker_l\<close>
-  :: \<open>poly_assn\<^sup>k *\<^sub>a polys_assn\<^sup>d *\<^sub>a (list_assn (pac_step_rel_assn (nat_assn) poly_assn))\<^sup>k \<rightarrow>\<^sub>a status_assn raw_string_assn \<times>\<^sub>a polys_assn\<close>
+  is \<open>uncurry3 PAC_checker_l\<close>
+  :: \<open>poly_assn\<^sup>k *\<^sub>a polys_assn\<^sup>d *\<^sub>a (status_assn raw_string_assn)\<^sup>d *\<^sub>a
+       (list_assn (pac_step_rel_assn (nat_assn) poly_assn))\<^sup>k \<rightarrow>\<^sub>a status_assn raw_string_assn \<times>\<^sub>a polys_assn\<close>
   supply [[goals_limit=1]] is_Mult_lastI[intro]
   unfolding PAC_checker_l_def is_success_alt_def[symmetric] PAC_checker_l_step_alt_def
     nres_bind_let_law[symmetric]
@@ -557,8 +558,8 @@ abbreviation polys_assn_input where
 
 sepref_register fmlookup' upper_bound_on_dom op_fmap_empty
 sepref_definition remap_polys_l_impl
-  is \<open>remap_polys_l2\<close>
-  :: \<open>polys_assn_input\<^sup>d \<rightarrow>\<^sub>a polys_assn\<close>
+  is \<open>uncurry remap_polys_l2\<close>
+  :: \<open>poly_assn\<^sup>k *\<^sub>a polys_assn_input\<^sup>d \<rightarrow>\<^sub>a polys_assn \<times>\<^sub>a status_assn raw_string_assn\<close>
   supply [[goals_limit=1]] is_Mult_lastI[intro]
   unfolding remap_polys_l2_def op_fmap_empty_def[symmetric] while_eq_nfoldli[symmetric]
     while_upt_while_direct
@@ -571,14 +572,14 @@ sepref_definition remap_polys_l_impl
 
 
 lemma remap_polys_l2_remap_polys_l:
-  \<open>(remap_polys_l2, remap_polys_l) \<in> Id \<rightarrow>\<^sub>f \<langle>Id\<rangle>nres_rel\<close>
+  \<open>(uncurry remap_polys_l2, uncurry remap_polys_l) \<in> Id \<times>\<^sub>r Id \<rightarrow>\<^sub>f \<langle>Id\<rangle>nres_rel\<close>
   apply (intro frefI fun_relI nres_relI)
   using remap_polys_l2_remap_polys_l by auto
 
 lemma [sepref_fr_rules]:
-   \<open>(remap_polys_l_impl, remap_polys_l) \<in> polys_assn_input\<^sup>d \<rightarrow>\<^sub>a polys_assn\<close>
+   \<open>(uncurry remap_polys_l_impl, uncurry remap_polys_l) \<in> poly_assn\<^sup>k *\<^sub>a polys_assn_input\<^sup>d \<rightarrow>\<^sub>a polys_assn \<times>\<^sub>a status_assn raw_string_assn\<close>
    using hfcomp_tcomp_pre[OF remap_polys_l2_remap_polys_l remap_polys_l_impl.refine]
-   by (auto simp: hrp_comp_def)
+   by (auto simp: hrp_comp_def hfprod_def)
 
 sepref_definition full_checker_l_impl
   is \<open>uncurry2 full_checker_l\<close>
