@@ -1,6 +1,6 @@
 theory IsaSAT_Restart_Heuristics_LLVM
   imports IsaSAT_Restart_Heuristics IsaSAT_Setup_LLVM
-     IsaSAT_VMTF_LLVM
+     IsaSAT_VMTF_LLVM IsaSAT_Rephase_LLVM
 begin
 
 sepref_def FLAG_restart_impl
@@ -51,6 +51,25 @@ sepref_def end_of_restart_phase_st_impl
   unfolding end_of_restart_phase_st_def isasat_bounded_assn_def
   by sepref
 
+
+
+sepref_def end_of_rephasing_phase_impl
+  is \<open>RETURN o end_of_rephasing_phase\<close>
+  :: \<open>phase_heur_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
+  unfolding end_of_rephasing_phase_def heuristic_assn_def
+  by sepref
+  
+sepref_def end_of_rephasing_phase_heur_impl
+  is \<open>RETURN o end_of_rephasing_phase_heur\<close>
+  :: \<open>heuristic_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
+  unfolding end_of_rephasing_phase_heur_def heuristic_assn_def
+  by sepref
+
+sepref_def end_of_rephasing_phase_st_impl
+  is \<open>RETURN o end_of_rephasing_phase_st\<close>
+  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
+  unfolding end_of_rephasing_phase_st_def isasat_bounded_assn_def
+  by sepref
 
 lemma incr_restart_phase_end_alt_def:
   \<open>incr_restart_phase_end = (\<lambda>(fast_ema, slow_ema,

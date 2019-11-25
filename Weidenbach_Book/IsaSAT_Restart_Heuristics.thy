@@ -1,5 +1,5 @@
 theory IsaSAT_Restart_Heuristics
-imports Watched_Literals.WB_Sort Watched_Literals.Watched_Literals_Watch_List_Restart
+imports Watched_Literals.WB_Sort Watched_Literals.Watched_Literals_Watch_List_Restart IsaSAT_Rephase
   IsaSAT_Setup IsaSAT_VMTF
 begin
 
@@ -4962,6 +4962,13 @@ definition end_of_restart_phase_st :: \<open>twl_st_wl_heur \<Rightarrow> 64 wor
        vdom, avdom, lcount, opts, old_arena).
       end_of_restart_phase heur)\<close>
 
+
+definition end_of_rephasing_phase_st :: \<open>twl_st_wl_heur \<Rightarrow> 64 word\<close> where
+  \<open>end_of_rephasing_phase_st = (\<lambda>(M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
+       vdom, avdom, lcount, opts, old_arena).
+      end_of_rephasing_phase_heur heur)\<close>
+
+
 text \<open>Using \<^term>\<open>a + 1\<close> ensures that we do not get stuck with 0.\<close>
 fun incr_restart_phase_end :: \<open>restart_heuristics \<Rightarrow> restart_heuristics\<close> where
   \<open>incr_restart_phase_end (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase, end_of_phase), wasted) =
@@ -4981,6 +4988,7 @@ definition update_all_phases :: \<open>twl_st_wl_heur \<Rightarrow> nat \<Righta
      let lcount = get_learned_count S;
      end_of_restart_phase \<leftarrow> RETURN (end_of_restart_phase_st S);
      S \<leftarrow> (if end_of_restart_phase > of_nat lcount then RETURN S else update_restart_phases S);
+     S \<leftarrow> (if end_of_rephasing_phase_st S > of_nat lcount then RETURN S else rephase_heur_st S);
      RETURN (S, n)
   })\<close>
 
@@ -5031,10 +5039,38 @@ lemma heuristic_rel_incr_restartI[intro!]:
 lemma update_all_phases_Pair:
   \<open>(uncurry update_all_phases, uncurry (RETURN oo Pair)) \<in>
     twl_st_heur'''' r \<times>\<^sub>f nat_rel \<rightarrow>\<^sub>f \<langle>twl_st_heur'''' r \<times>\<^sub>f nat_rel\<rangle>nres_rel\<close>
-  unfolding update_all_phases_def update_restart_phases_def
-  by (intro frefI nres_relI)
-    (auto simp: twl_st_heur'_def twl_st_heur_def
-      simp del: incr_restart_phase_end.simps incr_restart_phase.simps)
+proof -
+  have [refine0]: \<open>(S, S') \<in> twl_st_heur'''' r \<Longrightarrow> update_restart_phases S \<le> SPEC(\<lambda>S. (S, S') \<in> twl_st_heur'''' r)\<close>
+    for S :: twl_st_wl_heur and S' :: \<open>nat twl_st_wl\<close>
+    unfolding update_all_phases_def update_restart_phases_def
+    by (auto simp: twl_st_heur'_def twl_st_heur_def
+        intro!: rephase_heur_st_spec[THEN order_trans]
+        simp del: incr_restart_phase_end.simps incr_restart_phase.simps)
+  have [refine0]: \<open>(S, S') \<in> twl_st_heur'''' r \<Longrightarrow> rephase_heur_st S \<le> SPEC(\<lambda>S. (S, S') \<in> twl_st_heur'''' r)\<close>
+    for S :: twl_st_wl_heur and S' :: \<open>nat twl_st_wl\<close>
+    unfolding update_all_phases_def rephase_heur_st_def
+    apply (cases S')
+    apply (refine_vcg rephase_heur_spec[THEN order_trans, of \<open>all_atms_st S'\<close>])
+    apply (clarsimp_all simp: twl_st_heur'_def twl_st_heur_def)
+    done
+  have Pair_alt_def: \<open>RETURN \<circ>\<circ> Pair = (\<lambda>S n. do {S \<leftarrow> RETURN S; S \<leftarrow> RETURN S; RETURN (S, n)})\<close>
+    by (auto intro!: ext)
+
+  show ?thesis
+    supply[[goals_limit=1]]
+    unfolding update_all_phases_def Pair_alt_def
+    apply (subst (1) bind_to_let_conv)
+    apply (subst (1) Let_def)
+    apply (subst (1) Let_def)
+    apply (intro frefI nres_relI)
+    apply (case_tac x rule:prod.exhaust)
+    apply (simp only: uncurry_def prod.case)
+    apply refine_vcg
+    subgoal by simp
+    subgoal by simp
+    subgoal by simp
+    done
+qed
 
 lemma restart_prog_wl_D_heur_restart_prog_wl_D:
   \<open>(uncurry2 restart_prog_wl_D_heur, uncurry2 restart_prog_wl) \<in>

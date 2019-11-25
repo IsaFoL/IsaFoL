@@ -235,12 +235,16 @@ type_synonym twl_st_wll_trail_fast =
     heur_assn \<times>
     vdom_fast_assn \<times> vdom_fast_assn \<times> 64 word \<times> opts_assn \<times> arena_assn\<close>
 
+
+abbreviation phase_heur_assn where
+  \<open>phase_heur_assn \<equiv> phase_saver_assn *a uint32_nat_assn *a phase_saver_assn *a uint32_nat_assn *a
+     phase_saver_assn *a word64_assn *a word64_assn\<close>
+     
 definition heuristic_assn :: \<open>restart_heuristics \<Rightarrow> heur_assn \<Rightarrow> assn\<close> where
   \<open>heuristic_assn = ema_assn *a
   ema_assn *a
   restart_info_assn *a
-  word64_assn *a (phase_saver_assn *a uint32_nat_assn *a phase_saver_assn *a uint32_nat_assn *a
-     phase_saver_assn *a word64_assn *a word64_assn)\<close>
+  word64_assn *a phase_heur_assn\<close>
 
 definition isasat_bounded_assn :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wll_trail_fast \<Rightarrow> assn\<close> where
 \<open>isasat_bounded_assn =

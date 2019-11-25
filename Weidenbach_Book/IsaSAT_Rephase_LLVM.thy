@@ -30,9 +30,6 @@ sepref_def copy_phase_impl
   apply (annot_snat_const "TYPE(64)")
   by sepref
 
-abbreviation phase_heur_assn where
-  \<open>phase_heur_assn \<equiv> phase_saver_assn *a uint32_nat_assn *a phase_saver_assn *a uint32_nat_assn *a
-     phase_saver_assn *a word64_assn *a word64_assn\<close>
 
 
 sepref_register rephase_init rephase_random copy_phase
@@ -45,9 +42,9 @@ sepref_def phase_save_phase_impl
 
 
 sepref_def save_phase_heur_impl
-  is \<open>uncurry save_phase_heur\<close>
+  is \<open>uncurry save_rephase_heur\<close>
   ::  \<open>uint32_nat_assn\<^sup>k *\<^sub>a heuristic_assn\<^sup>d \<rightarrow>\<^sub>a heuristic_assn\<close>
-  unfolding save_phase_heur_def heuristic_assn_def
+  unfolding save_rephase_heur_def heuristic_assn_def
   by sepref
 
 

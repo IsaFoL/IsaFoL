@@ -1,5 +1,5 @@
 theory IsaSAT_Decide_LLVM
-  imports IsaSAT_Decide IsaSAT_VMTF_LLVM IsaSAT_Setup_LLVM
+  imports IsaSAT_Decide IsaSAT_VMTF_LLVM IsaSAT_Setup_LLVM IsaSAT_Rephase_LLVM
 begin
 
 
@@ -71,6 +71,7 @@ sepref_def decide_wl_or_skip_D_fast_code
   :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a bool1_assn *a isasat_bounded_assn\<close>
   supply[[goals_limit=1]]
     decide_lit_wl_fast_code.refine[unfolded isasat_bounded_assn_def, sepref_fr_rules]
+    save_phase_heur_st.refine[unfolded isasat_bounded_assn_def, sepref_fr_rules]
   apply (rule hfref_refine_with_pre[OF decide_wl_or_skip_D_heur'_decide_wl_or_skip_D_heur, unfolded Down_id_eq])
   unfolding decide_wl_or_skip_D_heur'_def isasat_bounded_assn_def
   unfolding fold_tuple_optimizations option.case_eq_if atom.fold_option
