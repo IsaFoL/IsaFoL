@@ -16,10 +16,9 @@ lemma is_success_alt_def:
   by (cases a) auto
 
 datatype 'a pac_step =
-  AddD (pac_src1: nat) (pac_src2: nat) (new_id: nat) (pac_res: 'a) |
   Add (pac_src1: nat) (pac_src2: nat) (new_id: nat) (pac_res: 'a) |
-  MultD (pac_src1: nat) (pac_mult: 'a) (new_id: nat) (pac_res: 'a) |
-  Mult (pac_src1: nat) (pac_mult: 'a) (new_id: nat) (pac_res: 'a)
+  Mult (pac_src1: nat) (pac_mult: 'a) (new_id: nat) (pac_res: 'a) |
+  Del (pac_src1: nat)
 
 
 definition PAC_checker_specification
@@ -83,23 +82,17 @@ fun merge_status where
   \<open>merge_status _ FOUND = FOUND\<close> |
   \<open>merge_status _ _ = SUCCESS\<close>
 
+
+definition check_del :: \<open>(nat, int mpoly) fmap \<Rightarrow> nat \<Rightarrow> bool nres\<close> where
+  \<open>check_del A p =
+     SPEC(\<lambda>b. b \<longrightarrow> p \<in># dom_m A)\<close>
+
 definition PAC_checker_step
   ::  \<open>int_poly \<Rightarrow> status \<times> (nat, int_poly) fmap \<Rightarrow> int_poly pac_step \<Rightarrow>
     (status \<times> (nat, int_poly) fmap) nres\<close>
 where
   \<open>PAC_checker_step = (\<lambda>spec (stat, A) st. case st of
-     AddD _ _ _ _ \<Rightarrow>
-       do {
-        r \<leftarrow> normalize_poly_spec (pac_res st);
-        eq \<leftarrow> check_add A (pac_src1 st) (pac_src2 st) (new_id st) r;
-        st' \<leftarrow> SPEC(\<lambda>st'. (\<not>is_failed st' \<and> is_found st' \<longrightarrow> r - spec \<in> ideal polynom_bool));
-        if eq
-        then RETURN (merge_status stat st',
-          fmupd (new_id st) r
-            (fmdrop (pac_src1 st) (fmdrop (pac_src2 st) A)))
-        else RETURN (FAILED, A)
-   }
-   | Add _ _ _ _ \<Rightarrow>
+     Add _ _ _ _ \<Rightarrow>
        do {
          r \<leftarrow> normalize_poly_spec (pac_res st);
         eq \<leftarrow> check_add A (pac_src1 st) (pac_src2 st) (new_id st) r;
@@ -109,16 +102,11 @@ where
           fmupd (new_id st) r A)
         else RETURN (FAILED, A)
    }
-   | MultD _ _ _ _ \<Rightarrow>
+   | Del _ \<Rightarrow>
        do {
-         r \<leftarrow> normalize_poly_spec (pac_res st);
-         q \<leftarrow> normalize_poly_spec (pac_mult st);
-        eq \<leftarrow> check_mult A (pac_src1 st) q (new_id st) r;
-        st' \<leftarrow> SPEC(\<lambda>st'. (\<not>is_failed st' \<and> is_found st' \<longrightarrow> r - spec \<in> ideal polynom_bool));
+        eq \<leftarrow> check_del A (pac_src1 st);
         if eq
-        then RETURN (merge_status stat st',
-          fmupd (new_id st) r
-            (fmdrop (pac_src1 st) A))
+        then RETURN (stat, (fmdrop (pac_src1 st) A))
         else RETURN (FAILED, A)
    }
    | Mult _ _ _ _ \<Rightarrow>
@@ -147,6 +135,8 @@ lemma polys_rel_update_remove:
        \<in> polys_rel\<close>
   \<open>x13 \<notin>#dom_m A \<Longrightarrow> (A,B) \<in> polys_rel \<Longrightarrow>
    (fmupd x13 r A, add_mset r B) \<in> polys_rel\<close>
+  \<open>x13 \<in>#dom_m A \<Longrightarrow> (A,B) \<in> polys_rel \<Longrightarrow>
+   (fmdrop x13 A, remove1_mset (the (fmlookup A x13)) B) \<in> polys_rel\<close>
   using distinct_mset_dom[of A]
   apply (auto simp: polys_rel_def ran_m_mapsto_upd ran_m_mapsto_upd_notin
     ran_m_fmdrop)
@@ -154,7 +144,7 @@ lemma polys_rel_update_remove:
   apply (auto dest: in_diffD dest!: multi_member_split simp: ran_m_fmdrop ran_m_fmdrop_If distinct_mset_remove1_All ran_m_def
       add_mset_eq_add_mset removeAll_notin
     split: if_splits intro!: image_mset_cong)
-    by (smt count_inI diff_single_trivial fmlookup_drop image_mset_cong2 replicate_mset_0)
+ by (smt count_inI diff_single_trivial fmlookup_drop image_mset_cong2 replicate_mset_0)
 
 lemma polys_rel_in_dom_inD:
   \<open>(A, B) \<in> polys_rel \<Longrightarrow>
@@ -193,6 +183,9 @@ lemma PAC_Format_add_and_remove:
        x11 \<in># dom_m A \<Longrightarrow>
        the (fmlookup A x11) * x32 - r \<in> More_Modules.ideal polynom_bool \<Longrightarrow>
        PAC_Format\<^sup>*\<^sup>* B (remove1_mset (the (fmlookup A x11)) (add_mset r B))\<close>
+  \<open>(A, B) \<in> polys_rel \<Longrightarrow>
+       x12 \<in># dom_m A \<Longrightarrow>
+       PAC_Format\<^sup>*\<^sup>* B (remove1_mset (the (fmlookup A x12)) B)\<close>
    subgoal
      apply (rule converse_rtranclp_into_rtranclp)
      apply (rule PAC_Format.add[of \<open>the (fmlookup A x12)\<close> B \<open>the (fmlookup A x12)\<close>])
@@ -227,6 +220,11 @@ lemma PAC_Format_add_and_remove:
     apply (rule H2; assumption)
     apply (rule converse_rtranclp_into_rtranclp)
     apply (rule PAC_Format.del[of \<open>the (fmlookup A x11)\<close>])
+    apply (auto dest: polys_rel_in_dom_inD)
+    done
+  subgoal
+    apply (rule converse_rtranclp_into_rtranclp)
+    apply (rule PAC_Format.del[of \<open>the (fmlookup A x12)\<close> B])
     apply (auto dest: polys_rel_in_dom_inD)
     done
   done
@@ -340,32 +338,18 @@ proof -
       normalize_poly_spec_alt_def check_mult_def check_add_def
     apply (cases st)
     apply clarsimp_all
+    
     subgoal for x11 x12 x13 x14
       apply (refine_vcg lhs_step_If)
       subgoal for r eqa st'
         using assms apply -
         apply (rule RETURN_SPEC_refine)
-        apply (rule_tac x = \<open>(merge_status a st',add_mset r B - (if x11 \<noteq> x12 then {#the (fmlookup A x11), the (fmlookup A x12)#} else {#the (fmlookup A x11)#}))\<close> in exI)
-        apply (auto simp: polys_rel_update_remove PAC_Format_add_and_remove
-             is_failed_def is_success_def is_found_def H1 H2
-          dest!: eq_successI
-          split: if_splits)
-        done
-      subgoal
-        by (rule RETURN_SPEC_refine)
-          (auto simp: Ex_status_iff)
-      done
-    subgoal
-      apply (refine_vcg lhs_step_If)
-      subgoal for r eqa st'
-        using assms apply -
-        apply (rule RETURN_SPEC_refine)
         apply (rule_tac x = \<open>(merge_status a st',add_mset r B)\<close> in exI)
-        apply (auto simp: polys_rel_update_remove
-             is_failed_def is_success_def is_found_def H1 H2
+        apply (auto simp: polys_rel_update_remove PAC_Format_add_and_remove
+             is_failed_def is_success_def is_found_def
           dest!: eq_successI
           split: if_splits
-          intro: PAC_Format_add_and_remove)
+          intro: PAC_Format_add_and_remove H2)
         done
       subgoal
         by (rule RETURN_SPEC_refine)
@@ -376,7 +360,7 @@ proof -
       subgoal for r q eqa st'
         using assms apply -
         apply (rule RETURN_SPEC_refine)
-        apply (rule_tac x = \<open>(merge_status a st',add_mset r B - {#the (fmlookup A x11)#})\<close> in exI)
+        apply (rule_tac x = \<open>(merge_status a st',add_mset r B)\<close> in exI)
         apply (auto simp: polys_rel_update_remove PAC_Format_add_and_remove
              is_failed_def is_success_def is_found_def
           dest!: eq_successI
@@ -387,12 +371,13 @@ proof -
         by (rule RETURN_SPEC_refine)
           (auto simp: Ex_status_iff)
       done
-    subgoal for x11 x12 x13 x14
+    subgoal for x11
+      unfolding check_del_def
       apply (refine_vcg lhs_step_If)
-      subgoal for r q eqa st'
+      subgoal for eq
         using assms apply -
         apply (rule RETURN_SPEC_refine)
-        apply (rule_tac x = \<open>(merge_status a st',add_mset r B)\<close> in exI)
+        apply (rule_tac x = \<open>(a,remove1_mset (the (fmlookup A x11)) B)\<close> in exI)
         apply (auto simp: polys_rel_update_remove PAC_Format_add_and_remove
              is_failed_def is_success_def is_found_def
           dest!: eq_successI

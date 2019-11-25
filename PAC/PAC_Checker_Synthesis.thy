@@ -331,12 +331,37 @@ sepref_definition check_mult_l_impl
 
 declare check_mult_l_impl.refine[sepref_fr_rules]
 
+definition check_del_l_dom_err_impl where
+  \<open>check_del_l_dom_err_impl p =
+    (''The polynom with id '' @ show p @ '' was not found'')\<close>
+
+
+lemma [sepref_fr_rules]:
+  \<open>(return o (check_del_l_dom_err_impl),
+   (check_del_l_dom_err)) \<in> nat_assn\<^sup>k \<rightarrow>\<^sub>a raw_string_assn\<close>
+   unfolding check_del_l_dom_err_def list_assn_pure_conv
+   apply sepref_to_hoare
+   apply sep_auto
+   done
+
+
+sepref_definition check_del_l_impl
+  is \<open>uncurry2 check_del_l\<close>
+  :: \<open>poly_assn\<^sup>k *\<^sub>a polys_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k  \<rightarrow>\<^sub>a status_assn raw_string_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding check_del_l_def
+    in_dom_m_lookup_iff
+    fmlookup'_def[symmetric]
+  by sepref
+
+lemmas [sepref_fr_rules] = check_del_l_impl.refine
+
 abbreviation pac_step_rel where
   \<open>pac_step_rel \<equiv> p2rel (\<langle>Id, \<langle>monomial_rel\<rangle>list_rel\<rangle> pac_step_rel_raw)\<close>
 
 sepref_register PAC_Polynoms_Operations.normalize_poly
   pac_src1 pac_src2 new_id pac_mult case_pac_step check_mult_l
-  check_addition_l
+  check_addition_l check_del_l
 
 lemma pac_step_rel_assn_alt_def:
   \<open>hn_ctxt (pac_step_rel_assn nat_assn poly_assn) b bi =
@@ -349,97 +374,93 @@ lemma pac_step_rel_assn_alt_def:
     pure_app_eq)
 
 
-lemma is_AddD_import[sepref_import_param]:
+term Del
+lemma is_AddD_import[sepref_fr_rules]:
   assumes \<open>CONSTRAINT is_pure K\<close>  \<open>CONSTRAINT is_pure V\<close>
   shows
-    \<open>(is_AddD, is_AddD) \<in> p2rel (\<langle>the_pure K, the_pure V\<rangle>pac_step_rel_raw) \<rightarrow> bool_rel\<close>
-    \<open>(pac_res, pac_res) \<in> p2rel (\<langle>the_pure K, the_pure V\<rangle>pac_step_rel_raw) \<rightarrow> the_pure V\<close>
-    \<open>(pac_src1, pac_src1) \<in> p2rel (\<langle>the_pure K, the_pure V\<rangle>pac_step_rel_raw) \<rightarrow> the_pure K\<close>
-    \<open>(new_id, new_id) \<in> p2rel (\<langle>the_pure K, the_pure V\<rangle>pac_step_rel_raw) \<rightarrow> the_pure K\<close>
-    \<open>(is_Add, is_Add) \<in> p2rel (\<langle>the_pure K, the_pure V\<rangle>pac_step_rel_raw) \<rightarrow> bool_rel\<close>
-    \<open>(is_AddD, is_AddD) \<in> p2rel (\<langle>the_pure K, the_pure V\<rangle>pac_step_rel_raw) \<rightarrow> bool_rel\<close>
-    \<open>(is_Mult, is_Mult) \<in> p2rel (\<langle>the_pure K, the_pure V\<rangle>pac_step_rel_raw) \<rightarrow> bool_rel\<close>
-    \<open>(is_MultD, is_MultD) \<in> p2rel (\<langle>the_pure K, the_pure V\<rangle>pac_step_rel_raw) \<rightarrow> bool_rel\<close>
+    \<open>(return o pac_res, RETURN o pac_res) \<in> [\<lambda>x. is_Add x \<or> is_Mult x]\<^sub>a (pac_step_rel_assn K V)\<^sup>k \<rightarrow> V\<close>
+    \<open>(return o pac_src1, RETURN o pac_src1) \<in> (pac_step_rel_assn K V)\<^sup>k \<rightarrow>\<^sub>a K\<close>
+    \<open>(return o new_id, RETURN o new_id) \<in> [\<lambda>x. is_Add x \<or> is_Mult x]\<^sub>a (pac_step_rel_assn K V)\<^sup>k \<rightarrow> K\<close>
+    \<open>(return o is_Add, RETURN o is_Add) \<in>  (pac_step_rel_assn K V)\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+    \<open>(return o is_Mult, RETURN o is_Mult) \<in> (pac_step_rel_assn K V)\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+    \<open>(return o is_Del, RETURN o is_Del) \<in> (pac_step_rel_assn K V)\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
   subgoal
-    apply (intro fun_relI)
-    apply (case_tac a; case_tac a')
-    apply (auto intro!: simp: p2rel_def)
-    apply (auto simp: relAPP_def)
+    using assms
+    apply sepref_to_hoare
+    apply sep_auto
+    apply (case_tac x; case_tac xi)
+    apply (auto simp: is_pure_conv ent_true_drop pure_app_eq)
+    apply (case_tac x; case_tac xi)
+    apply (auto simp: is_pure_conv ent_true_drop pure_app_eq)
     done
   subgoal
-    apply (intro fun_relI)
-    apply (case_tac a; case_tac a')
-    apply (auto intro!: simp: p2rel_def)
-    apply (auto simp: relAPP_def)
+    using assms
+    apply sepref_to_hoare
+    apply sep_auto
+    apply (case_tac x; case_tac xi)
+    apply (auto simp: is_pure_conv ent_true_drop pure_app_eq)
     done
   subgoal
-    apply (intro fun_relI)
-    apply (case_tac a; case_tac a')
-    apply (auto intro!: simp: p2rel_def)
-    apply (auto simp: relAPP_def)
+    using assms
+    apply sepref_to_hoare
+    apply sep_auto
+    apply (case_tac x; case_tac xi)
+    apply (auto simp: is_pure_conv ent_true_drop pure_app_eq)
+    apply (case_tac x; case_tac xi)
+    apply (auto simp: is_pure_conv ent_true_drop pure_app_eq)
     done
   subgoal
-    apply (intro fun_relI)
-    apply (case_tac a; case_tac a')
-    apply (auto intro!: simp: p2rel_def)
-    apply (auto simp: relAPP_def)
+    using assms
+    apply sepref_to_hoare
+    apply sep_auto
+    apply (case_tac x; case_tac xi)
+    apply (auto simp: is_pure_conv ent_true_drop pure_app_eq)
+    apply (case_tac x; case_tac xi)
+    apply (auto simp: is_pure_conv ent_true_drop pure_app_eq)
     done
   subgoal
-    apply (intro fun_relI)
-    apply (case_tac a; case_tac a')
-    apply (auto intro!: simp: p2rel_def)
-    apply (auto simp: relAPP_def)
+    using assms
+    apply sepref_to_hoare
+    apply sep_auto
+    apply (case_tac x; case_tac xi)
+    apply (auto simp: is_pure_conv ent_true_drop pure_app_eq)
+    apply (case_tac x; case_tac xi)
+    apply (auto simp: is_pure_conv ent_true_drop pure_app_eq)
     done
   subgoal
-    apply (intro fun_relI)
-    apply (case_tac a; case_tac a')
-    apply (auto intro!: simp: p2rel_def)
-    apply (auto simp: relAPP_def)
-    done
-  subgoal
-    apply (intro fun_relI)
-    apply (case_tac a; case_tac a')
-    apply (auto intro!: simp: p2rel_def)
-    apply (auto simp: relAPP_def)
-    done
-  subgoal
-    apply (intro fun_relI)
-    apply (case_tac a; case_tac a')
-    apply (auto intro!: simp: p2rel_def)
-    apply (auto simp: relAPP_def)
+    using assms
+    apply sepref_to_hoare
+    apply sep_auto
+    apply (case_tac x; case_tac xi)
+    apply (auto simp: is_pure_conv ent_true_drop pure_app_eq)
+    apply (case_tac x; case_tac xi)
+    apply (auto simp: is_pure_conv ent_true_drop pure_app_eq)
     done
   done
 
-thm is_AddD_import
 lemma [sepref_fr_rules]:
   \<open>CONSTRAINT is_pure K \<Longrightarrow>
-  (return o pac_src2, RETURN o pac_src2) \<in> [\<lambda>x. is_Add x \<or> is_AddD x]\<^sub>a (pac_step_rel_assn K V)\<^sup>k \<rightarrow> K\<close>
+  (return o pac_src2, RETURN o pac_src2) \<in> [\<lambda>x. is_Add x]\<^sub>a (pac_step_rel_assn K V)\<^sup>k \<rightarrow> K\<close>
   apply sepref_to_hoare
   apply sep_auto
-  apply (case_tac x; case_tac xi)
-  apply (auto simp: is_pure_conv ent_true_drop pure_app_eq)
   apply (case_tac x; case_tac xi)
   apply (auto simp: is_pure_conv ent_true_drop pure_app_eq)
   done
 
 lemma [sepref_fr_rules]:
   \<open>CONSTRAINT is_pure V \<Longrightarrow>
-  (return o pac_mult, RETURN o pac_mult) \<in> [\<lambda>x. is_Mult x \<or> is_MultD x]\<^sub>a (pac_step_rel_assn K V)\<^sup>k \<rightarrow> V\<close>
+  (return o pac_mult, RETURN o pac_mult) \<in> [\<lambda>x. is_Mult x]\<^sub>a (pac_step_rel_assn K V)\<^sup>k \<rightarrow> V\<close>
   apply sepref_to_hoare
   apply sep_auto
-  apply (case_tac x; case_tac xi)
-  apply (auto simp: is_pure_conv ent_true_drop pure_app_eq)
   apply (case_tac x; case_tac xi)
   apply (auto simp: is_pure_conv ent_true_drop pure_app_eq)
   done
 
 lemma is_Mult_lastI:
-  \<open>\<not> is_AddD b \<Longrightarrow>
-       \<not> is_Add b \<Longrightarrow>
-       \<not> is_MultD b \<Longrightarrow> is_Mult b\<close>
+  \<open>\<not> is_Add b \<Longrightarrow> \<not>is_Mult b \<Longrightarrow> is_Del b\<close>
   by (cases b) auto
 
-sepref_register is_cfailed is_AddD
+sepref_register is_cfailed is_Del
 
 definition PAC_checker_l_step' ::  _ where
   \<open>PAC_checker_l_step' a b c  = PAC_checker_l_step a (b, c)\<close>
@@ -461,7 +482,7 @@ lemma poly_rel_the_pure:
  WTF_RF: \<open>pure (the_pure nat_assn) = nat_assn\<close>
   unfolding poly_assn_list
   by auto
-thm poly_assn_list
+
 sepref_definition check_step_impl
   is \<open>uncurry3 PAC_checker_l_step'\<close>
   :: \<open>poly_assn\<^sup>k *\<^sub>a (status_assn raw_string_assn)\<^sup>d *\<^sub>a polys_assn\<^sup>d *\<^sub>a (pac_step_rel_assn (nat_assn) poly_assn)\<^sup>d \<rightarrow>\<^sub>a
@@ -491,9 +512,8 @@ proof standard
   let ?f = \<open>\<lambda>x :: 'a pac_step.
      g (case x of
         Add a b c d \<Rightarrow> (0, a, b, c, f d)
-      | AddD a b c d \<Rightarrow> (1, a, b, c, f d)
-      | Mult a b c d \<Rightarrow> (2, a, f b, c, f d)
-      | MultD a b c d \<Rightarrow> (3, a, f b, c, f d))\<close>
+      | Del a  \<Rightarrow> (1, a, 0, 0, 0)
+      | Mult a b c d \<Rightarrow> (2, a, f b, c, f d))\<close>
    have \<open>inj ?f\<close>
      apply (auto simp: inj_def)
      apply (case_tac x; case_tac y)
@@ -580,7 +600,7 @@ sepref_definition PAC_empty_impl
   by sepref
 
 export_code PAC_checker_l_impl PAC_update_impl PAC_empty_impl the_error is_cfailed is_cfound
-  int_of_integer AddD Add Mult MultD nat_of_integer String.implode remap_polys_l_impl
+  int_of_integer Del Add Mult nat_of_integer String.implode remap_polys_l_impl
   fully_normalize_poly_impl
   full_checker_l_impl check_step_impl CSUCCESS
   in SML_imp module_name PAC_Checker

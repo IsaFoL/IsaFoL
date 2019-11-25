@@ -34,33 +34,25 @@ lemma in_code_status_status_rel_iff[simp]:
   by (cases a; cases b; auto simp: code_status_status_rel_def; fail)+
   
 fun pac_step_rel_raw :: \<open>(nat \<times> nat) set \<Rightarrow> ('a \<times> 'b) set \<Rightarrow> 'a pac_step \<Rightarrow> 'b pac_step \<Rightarrow> bool\<close> where
-\<open>pac_step_rel_raw R1 R2 (AddD p1 p2 i r) (AddD p1' p2' i' r') \<longleftrightarrow>
-   (p1, p1') \<in> R1 \<and> (p2, p2') \<in> R1 \<and> (i, i') \<in> R1 \<and>
-   (r, r') \<in> R2\<close> |
 \<open>pac_step_rel_raw R1 R2 (Add p1 p2 i r) (Add p1' p2' i' r') \<longleftrightarrow>
    (p1, p1') \<in> R1 \<and> (p2, p2') \<in> R1 \<and> (i, i') \<in> R1 \<and>
-   (r, r') \<in> R2\<close> |
-\<open>pac_step_rel_raw R1 R2 (MultD p1 p2 i r) (MultD p1' p2' i' r') \<longleftrightarrow>
-   (p1, p1') \<in> R1 \<and> (p2, p2') \<in> R2 \<and> (i, i') \<in> R1 \<and>
    (r, r') \<in> R2\<close> |
 \<open>pac_step_rel_raw R1 R2 (Mult p1 p2 i r) (Mult p1' p2' i' r') \<longleftrightarrow>
    (p1, p1') \<in> R1 \<and> (p2, p2') \<in> R2 \<and> (i, i') \<in> R1 \<and>
    (r, r') \<in> R2\<close> |
+\<open>pac_step_rel_raw R1 R2 (Del p1) (Del p1') \<longleftrightarrow>
+   (p1, p1') \<in> R1\<close> |
 \<open>pac_step_rel_raw R1 R2 _ _ \<longleftrightarrow> False\<close>
 
 fun pac_step_rel_assn :: \<open>(nat \<Rightarrow> nat \<Rightarrow> assn) \<Rightarrow> ('a \<Rightarrow> 'b \<Rightarrow> assn) \<Rightarrow> 'a pac_step \<Rightarrow> 'b pac_step \<Rightarrow> assn\<close> where
-\<open>pac_step_rel_assn R1 R2 (AddD p1 p2 i r) (AddD p1' p2' i' r') =
-   R1 p1 p1' * R1 p2 p2' * R1 i i' *
-   R2 r r'\<close> |
 \<open>pac_step_rel_assn R1 R2 (Add p1 p2 i r) (Add p1' p2' i' r') =
    R1 p1 p1' * R1 p2 p2' * R1 i i' *
-   R2 r r'\<close> |
-\<open>pac_step_rel_assn R1 R2 (MultD p1 p2 i r) (MultD p1' p2' i' r') =
-   R1 p1 p1' * R2 p2 p2' * R1 i i' *
    R2 r r'\<close> |
 \<open>pac_step_rel_assn R1 R2 (Mult p1 p2 i r) (Mult p1' p2' i' r') =
    R1 p1 p1' * R2 p2 p2' * R1 i i' *
    R2 r r'\<close> |
+\<open>pac_step_rel_assn R1 R2 (Del p1) (Del p1') =
+   R1 p1 p1'\<close> |
 \<open>pac_step_rel_assn R1 R2 _ _ = false\<close>
 
 definition error_msg where
@@ -130,6 +122,25 @@ definition check_mult_l :: \<open>_ \<Rightarrow> _ \<Rightarrow> nat \<Rightarr
      }
   }\<close>
 
+
+definition check_del_l_dom_err :: \<open>nat \<Rightarrow> string nres\<close> where
+  \<open>check_del_l_dom_err p = SPEC (\<lambda>_. True)\<close>
+
+
+
+definition check_del_l :: \<open>_ \<Rightarrow> _ \<Rightarrow> nat \<Rightarrow> string code_status nres\<close> where
+\<open>check_del_l spec A p = do {
+    if p \<notin># dom_m A
+    then do {
+      c \<leftarrow> check_del_l_dom_err p;
+      RETURN (error_msg p c)
+      }
+    else do {
+         RETURN CSUCCESS
+       }
+  }\<close>
+
+
 (* Copy of WB_More_Refinement *)
 lemma RES_RES_RETURN_RES: \<open>RES A \<bind> (\<lambda>T. RES (f T)) = RES (\<Union>(f ` A))\<close>
   by (auto simp: pw_eq_iff refine_pw_simps)
@@ -192,18 +203,7 @@ lemma ref_two_step':
 
 definition PAC_checker_l_step ::  _ where
   \<open>PAC_checker_l_step = (\<lambda>spec (st', A) st. case st of
-     AddD _ _ _ _ \<Rightarrow>
-       do {
-        r \<leftarrow> full_normalize_poly (pac_res st);
-        eq \<leftarrow> check_addition_l spec A (pac_src1 st) (pac_src2 st) (new_id st) r;
-        let _ = eq;
-        if \<not>is_cfailed eq
-        then RETURN (merge_cstatus st' eq,
-          fmupd (new_id st) r
-            (fmdrop (pac_src1 st) (fmdrop (pac_src2 st) A)))
-        else RETURN (eq, A)
-   }
-   | Add _ _ _ _ \<Rightarrow>
+     Add _ _ _ _ \<Rightarrow>
        do {
          r \<leftarrow> full_normalize_poly (pac_res st);
         eq \<leftarrow> check_addition_l spec A (pac_src1 st) (pac_src2 st) (new_id st) r;
@@ -213,16 +213,12 @@ definition PAC_checker_l_step ::  _ where
           fmupd (new_id st) r A)
         else RETURN (eq, A)
    }
-   | MultD _ _ _ _ \<Rightarrow>
+   | Del _ \<Rightarrow>
        do {
-         r \<leftarrow> full_normalize_poly (pac_res st);
-         q \<leftarrow> full_normalize_poly (pac_mult st);
-        eq \<leftarrow> check_mult_l spec A (pac_src1 st) q (new_id st) r;
+        eq \<leftarrow> check_del_l spec A (pac_src1 st);
         let _ = eq;
         if \<not>is_cfailed eq
-        then RETURN (merge_cstatus st' eq,
-          fmupd (new_id st) r
-            (fmdrop (pac_src1 st) A))
+        then RETURN (merge_cstatus st' eq, fmdrop (pac_src1 st) A)
         else RETURN (eq, A)
    }
    | Mult _ _ _ _ \<Rightarrow>
@@ -551,6 +547,13 @@ proof -
     done
 qed
 
+lemma check_del_l_check_del:
+  \<open>(A, B) \<in> fmap_polys_rel \<Longrightarrow> (x3, x3a) \<in> Id \<Longrightarrow> check_del_l spec A (pac_src1 (Del x3))
+    \<le> \<Down> {(st, b). (\<not>is_cfailed st \<longleftrightarrow> b) \<and> (b \<longrightarrow> st = CSUCCESS)} (check_del B (pac_src1 (Del x3a)))\<close>
+  unfolding check_del_l_def check_del_def check_del_l_dom_err_def
+  by (refine_vcg lhs_step_If RETURN_SPEC_refine)
+    (auto simp: fmap_rel_nat_rel_dom_m bind_RES_RETURN_eq)
+
 lemma check_mult_l_check_mult:
   assumes \<open>(A, B) \<in> fmap_polys_rel\<close> and \<open>(r, r') \<in> sorted_poly_rel O mset_poly_rel\<close> and
     \<open>(q, q') \<in> sorted_poly_rel O mset_poly_rel\<close>
@@ -663,6 +666,11 @@ proof -
      using AB
      by (cases eqa; cases st'a)
        (auto simp: code_status_status_rel_def)
+  have [simp]: \<open>(merge_cstatus cst CSUCCESS, cst') \<in> code_status_status_rel\<close>
+    using AB
+    by (cases st)
+      (auto simp: code_status_status_rel_def)
+
   show ?thesis
     using assms(2)
     unfolding PAC_checker_l_step_def PAC_checker_step_def Ast Bst prod.case
@@ -691,23 +699,6 @@ proof -
         full_normalize_poly_diff_ideal[unfolded normalize_poly_spec_def[symmetric]])
       subgoal using AB by auto
       subgoal using AB by auto
-      subgoal by (auto simp: )
-      subgoal by (auto simp: )
-      subgoal by (auto simp: )
-      apply assumption+
-      subgoal
-        by (auto simp: code_status_status_rel_def)
-      subgoal
-        by (auto intro!: fmap_rel_fmupd_fmap_rel
-          fmap_rel_fmdrop_fmap_rel AB)
-      subgoal using AB by auto
-      done
-    subgoal
-      apply (refine_rcg normalize_poly_normalize_poly_spec
-        check_mult_l_check_mult check_addition_l_check_add
-        full_normalize_poly_diff_ideal[unfolded normalize_poly_spec_def[symmetric]])
-      subgoal using AB by auto
-      subgoal using AB by auto
       subgoal using AB by (auto simp: )
       subgoal by (auto simp: )
       subgoal by (auto simp: )
@@ -721,20 +712,16 @@ proof -
       done
     subgoal
       apply (refine_rcg normalize_poly_normalize_poly_spec
-        check_mult_l_check_mult check_addition_l_check_add
+        check_del_l_check_del check_addition_l_check_add
         full_normalize_poly_diff_ideal[unfolded normalize_poly_spec_def[symmetric]])
       subgoal using AB by auto
       subgoal using AB by auto
-      subgoal using AB by (auto simp: )
-      subgoal by (auto simp: )
-      subgoal by (auto simp: )
-      apply assumption+
       subgoal
-        by (auto simp: code_status_status_rel_def)
+        by (auto intro!: fmap_rel_fmupd_fmap_rel
+          fmap_rel_fmdrop_fmap_rel code_status_status_rel_def AB)
       subgoal
         by (auto intro!: fmap_rel_fmupd_fmap_rel
           fmap_rel_fmdrop_fmap_rel AB)
-      subgoal using AB by auto
       done
     done
 qed
