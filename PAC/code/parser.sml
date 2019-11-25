@@ -76,7 +76,7 @@ exception Parser_Error of string
   fun is_separator c =
       c = #"*" orelse c = #"," orelse c = #";" orelse c = #"+" orelse c = #"-";
 
-  fun print2 _ = ();
+  fun print2 a = ();
   fun rev2 a = rev a;
 
   fun skip_spaces istream =
@@ -238,19 +238,14 @@ exception Parser_Error of string
 
   fun parse_rule istream =
       let val del = ref false;
+          val _ = skip_spaces istream;
       in
-        skip_spaces istream;
-        if TextIO.lookahead(istream) = SOME #"d"
-        then (TextIO.input1(istream); del := true)
-        else ();
-        skip_spaces istream;
-        case TextIO.lookahead(istream) of
-            SOME #"+" =>
-            if !del then (ignore (TextIO.input1 istream); ignore (TextIO.input1 istream); "d +:")
-            else (ignore (TextIO.input1 istream); ignore (TextIO.input1 istream); "+:")
+        case TextIO.input1(istream) of
+            SOME #"d" => (print2 "rule d:\n"; "d")
+          | SOME #"+" =>
+            (ignore (TextIO.input1 istream); print2 "rule +:\n"; "+:")
           | SOME #"*" =>
-            if !del then (ignore (TextIO.input1 istream); ignore (TextIO.input1 istream); "d *:")
-            else (ignore (TextIO.input1 istream); ignore (TextIO.input1 istream); "*:")
+            (ignore (TextIO.input1 istream); print2 "rule *:\n";"*:")
           | SOME c => raise Parser_Error ("unrecognised rule '" ^ String.implode [c] ^ "'")
       end
 
@@ -269,11 +264,12 @@ exception Parser_Error of string
         val lbl = IntInf.fromInt (parse_nat istream);
         val _ = print2 ("label = " ^ IntInf.toString lbl);
         val rule = parse_rule istream;
-        val _ = skip_spaces istream;
+        val _ = print2 ("rule = " ^ rule);
       in
-        if rule = "d +:" orelse rule = "+:"
+        if  rule = "+:"
         then
           let
+            val _ = skip_spaces istream;
             val src1 = parse_natural istream;
             val _ = parse_comma istream ();
             val src2 = parse_natural istream;
@@ -281,19 +277,15 @@ exception Parser_Error of string
             val poly = parse_polynom istream;
             val _ = parse_EOL istream ();
           in
-            if rule = "d +:"
-            then (PAC_Checker.AddD (
-                     PAC_Checker.nat_of_integer src1,
-                     PAC_Checker.nat_of_integer src2,
-                     PAC_Checker.nat_of_integer lbl,
-                     (map (fn (a,b) => (a, PAC_Checker.Int_of_integer b)) poly)))
-            else (PAC_Checker.Add (PAC_Checker.nat_of_integer src1,
+            (PAC_Checker.Add (PAC_Checker.nat_of_integer src1,
                                    PAC_Checker.nat_of_integer src2,
                                    PAC_Checker.nat_of_integer lbl,
                                    (map (fn (a,b) => (a, PAC_Checker.Int_of_integer b)) poly)))
           end
-        else
+        else if rule = "*:"
+        then
           let
+            val _ = skip_spaces istream;
             val src1 = parse_natural istream;
             val _ = parse_comma istream ();
             val src2 = parse_polynom istream;
@@ -301,16 +293,19 @@ exception Parser_Error of string
             val poly = parse_polynom istream;
             val _ = parse_EOL istream ();
           in
-           if rule = "d *:"
-           then (PAC_Checker.MultD (PAC_Checker.nat_of_integer src1,
-                                        (map (fn (a,b) => (a, PAC_Checker.Int_of_integer b)) src2),
-                                  PAC_Checker.nat_of_integer lbl,
-                                      (map (fn (a,b) => (a, PAC_Checker.Int_of_integer b)) poly)))
-           else (PAC_Checker.Mult (PAC_Checker.nat_of_integer src1,
+           (PAC_Checker.Mult (PAC_Checker.nat_of_integer src1,
                                        (map (fn (a,b) => (a, PAC_Checker.Int_of_integer b)) src2),
                                   PAC_Checker.nat_of_integer lbl,
-                                      (map (fn (a,b) => (a, PAC_Checker.Int_of_integer b)) poly)))
+                                  (map (fn (a,b) => (a, PAC_Checker.Int_of_integer b)) poly)))
           end
+        else if rule = "d"
+        then
+          let
+            val _ = parse_EOL istream ();
+          in
+            (PAC_Checker.Del (PAC_Checker.nat_of_integer lbl))
+          end
+        else raise Parser_Error ("unrecognised rule '" ^ rule ^ "'")
       end
 
   fun step_polys istream =
