@@ -403,5 +403,4 @@ theorem IsaSAT_full_correctness:
   apply auto
   done
 
-
 end
