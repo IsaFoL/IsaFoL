@@ -341,7 +341,7 @@ proof -
     apply (rule lit_of_found_atm; assumption)
     subgoal for a aa ab ac ad b ae af ag ba ah ai aj ak al am bb an bc ao ap aq bd ar
        as at au av aw ax ay az be bf bg bh bi bj bk bl bm bn bo bp bq br bs
-       bt bu bv bw bx _ _ _ _ _ _ "by" bz ca cb cc cd ce cf cg ch ci _ _ x L x1 x1a x2 x2a La Lb
+       bt bu bv bw bx _ _ _ _ _ _ _ "by" bz ca cb cc cd ce cf cg ch ci _ _ x L x1 x1a x2 x2a La Lb
       by (cases L)
        (clarsimp_all simp: twl_st_heur_def unassigned_atm_def atm_of_eq_atm_of uminus_\<A>\<^sub>i\<^sub>n_iff
           simp del: twl_st_of_wl.simps dest!: atms intro!: RETURN_RES_refine;
@@ -405,6 +405,8 @@ lemma save_phase_st_spec:
   apply (cases S')
   apply (refine_vcg save_phase_heur_spec[THEN order_trans, of \<open>all_atms_st S'\<close>])
   apply (simp_all add:  twl_st_heur_def)
+  apply (rule isa_length_trail_pre)
+  apply blast
   done
 
 lemma decide_wl_or_skip_D_heur_decide_wl_or_skip_D:
@@ -453,6 +455,10 @@ proof -
       subgoal
         by (rule cons_trail_Decided_tr_pre[of _ \<open>get_trail_wl x1\<close> \<open>all_atms_st x1\<close>])
 	  (use that(2) in \<open>auto simp: twl_st_heur_def st all_atms_def[symmetric]\<close>)
+      subgoal
+         by (rule isa_length_trail_pre[of _ \<open>cons_trail_Decided xb (get_trail_wl x1)\<close> \<open>all_atms_st x1\<close>])
+          (use that(2) in \<open>auto simp add: twl_st_heur_def st
+	    intro!: cons_trail_Decided_tr[THEN fref_to_Down_unRET_uncurry]\<close>)
       subgoal
         using that(2) unfolding cons_trail_Decided_def[symmetric] st apply -
         apply (rule  save_phase_heur_spec[THEN order_trans, of \<open>all_atms_st x1\<close>])

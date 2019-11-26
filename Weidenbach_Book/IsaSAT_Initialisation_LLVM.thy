@@ -610,8 +610,8 @@ sepref_def finalise_init_code'
   apply (rewrite at \<open>Pos \<hole>\<close> unat_const_fold[where 'a=32])
   apply (rewrite at \<open>Pos \<hole>\<close> atom_of_value_def[symmetric])
   apply (rewrite at \<open>take \<hole>\<close> snat_const_fold[where 'a=64])
-  apply (rewrite at \<open>(_, _,_,\<hole>, _,_,_,_,_)\<close> unat_const_fold[where 'a=32])
-  apply (rewrite at \<open>(_, _,_,\<hole>, _,_,_)\<close> unat_const_fold[where 'a=32])
+  apply (rewrite at \<open>(_, _,_,\<hole>, _,_,_,_,_)\<close> snat_const_fold[where 'a=64])
+  apply (rewrite at \<open>(_, _,_,\<hole>, _,_,_)\<close> snat_const_fold[where 'a=64])
   apply (annot_unat_const "TYPE(64)")
   apply (rewrite at \<open>(_, \<hole>, _)\<close> al_fold_custom_empty[where 'l=64])
   apply (rewrite at \<open>(_, \<hole>)\<close> al_fold_custom_empty[where 'l=64])
@@ -667,6 +667,7 @@ declare init_trail_D_fast_code.refine[sepref_fr_rules]
 sepref_def init_state_wl_D'_code
   is \<open>init_state_wl_D'\<close>
   :: \<open>(arl64_assn atom_assn *a uint32_nat_assn)\<^sup>k \<rightarrow>\<^sub>a isasat_init_assn\<close>
+  supply[[goals_limit=1]]
   unfolding init_state_wl_D'_def PR_CONST_def init_trail_D_fast_def[symmetric] isasat_init_assn_def
    cach_refinement_l_assn_def Suc_eq_plus1_left conflict_option_rel_assn_def  lookup_clause_rel_assn_def
   apply (rewrite at \<open>let _ = 1 + \<hole> in _\<close> annot_unat_snat_upcast[where 'l=64])
@@ -688,7 +689,6 @@ sepref_def init_state_wl_D'_code
   apply (annot_snat_const "TYPE(64)")
   apply (rewrite at \<open>RETURN \<hole>\<close> annotate_assn[where A=\<open>isasat_init_assn\<close>, unfolded isasat_init_assn_def
      conflict_option_rel_assn_def cach_refinement_l_assn_def lookup_clause_rel_assn_def])
-  supply [[goals_limit = 1]]
   by sepref
 
 declare init_state_wl_D'_code.refine[sepref_fr_rules]

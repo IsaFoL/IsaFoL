@@ -522,7 +522,7 @@ proof -
       apply assumption
     subgoal for a aa ab ac ad b ae af ag ba ah ai aj ak al am bb an bc ao ap bd aq ar
        as at au av aw ax ay be az bf bg bh bi bj bk bl bm bn bo bp bq br bs
-       bt bu bv bw bx _ "by" bz ca cb cc cd ce cf cg ch ci cj ck cl cm cn co cp
+       bt bu bv bw bx _ _ "by" bz ca cb cc cd ce cf cg ch ci cj ck cl cm cn co cp
        lvl i vm0
       unfolding RETURN_def RES_RES2_RETURN_RES RES_RES13_RETURN_RES find_decomp_w_ns_def conc_fun_RES
         RES_RES13_RETURN_RES K K2
@@ -4954,7 +4954,7 @@ lemma cdcl_twl_full_restart_wl_D_GC_heur_prog:
 
 
 definition end_of_restart_phase :: \<open>restart_heuristics \<Rightarrow> 64 word\<close> where
-  \<open>end_of_restart_phase = (\<lambda>(_, _, (restart_phase,_ ,_ , end_of_phase), _).
+  \<open>end_of_restart_phase = (\<lambda>(_, _, (restart_phase,_ ,_ , end_of_phase, _), _).
     end_of_phase)\<close>
 
 definition end_of_restart_phase_st :: \<open>twl_st_wl_heur \<Rightarrow> 64 word\<close> where
@@ -4971,8 +4971,8 @@ definition end_of_rephasing_phase_st :: \<open>twl_st_wl_heur \<Rightarrow> 64 w
 
 text \<open>Using \<^term>\<open>a + 1\<close> ensures that we do not get stuck with 0.\<close>
 fun incr_restart_phase_end :: \<open>restart_heuristics \<Rightarrow> restart_heuristics\<close> where
-  \<open>incr_restart_phase_end (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase, end_of_phase), wasted) =
-    (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase, 10 * end_of_phase + 1), wasted)\<close>
+  \<open>incr_restart_phase_end (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase, end_of_phase, length_phase), wasted) =
+    (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase, end_of_phase + length_phase, (length_phase * 3) >> 1), wasted)\<close>
 
 definition update_restart_phases :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
   \<open>update_restart_phases = (\<lambda>(M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,

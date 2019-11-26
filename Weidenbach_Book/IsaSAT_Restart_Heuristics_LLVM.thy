@@ -73,14 +73,17 @@ sepref_def end_of_rephasing_phase_st_impl
 
 lemma incr_restart_phase_end_alt_def:
   \<open>incr_restart_phase_end = (\<lambda>(fast_ema, slow_ema,
-    (ccount, ema_lvl, restart_phase, end_of_phase), wasted).
-     (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase, 10 * end_of_phase + 1), wasted))\<close>
+    (ccount, ema_lvl, restart_phase, end_of_phase, length_phase), wasted).
+    (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase, end_of_phase + length_phase,
+      (length_phase * 3) >> 1), wasted))\<close>
   by auto
 
 sepref_def incr_restart_phase_end_impl
   is \<open>RETURN o incr_restart_phase_end\<close>
   :: \<open>heuristic_assn\<^sup>d \<rightarrow>\<^sub>a heuristic_assn\<close>
+  supply[[goals_limit=1]]
   unfolding heuristic_assn_def incr_restart_phase_end_alt_def
+  apply (annot_snat_const "TYPE(64)")
   by sepref
 
 

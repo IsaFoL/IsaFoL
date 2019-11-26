@@ -1,5 +1,5 @@
 theory IsaSAT_Rephase
-  imports IsaSAT_Setup
+  imports IsaSAT_Setup IsaSAT_Show
 begin
 
 definition rephase_init :: \<open>bool \<Rightarrow> bool list \<Rightarrow> bool list nres\<close> where
@@ -164,6 +164,7 @@ definition rephase_heur_st :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur
   \<open>rephase_heur_st = (\<lambda>(M', arena, D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
        vdom, avdom, lcount, opts, old_arena). do {
       heur \<leftarrow> rephase_heur heur;
+      let _ = isasat_print_progress (current_rephasing_phase heur) (current_restart_phase heur) stats lcount;
       RETURN (M', arena, D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
        vdom, avdom, lcount, opts, old_arena)
    })\<close>
@@ -243,7 +244,8 @@ lemma save_phase_heur_spec:
 definition save_phase_st :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
   \<open>save_phase_st = (\<lambda>(M', arena, D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
        vdom, avdom, lcount, opts, old_arena). do {
-      let n = count_decided_pol M';
+      ASSERT(isa_length_trail_pre M');
+      let n = isa_length_trail M';
       heur \<leftarrow> save_rephase_heur n heur;
       RETURN (M', arena, D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
        vdom, avdom, lcount, opts, old_arena)
@@ -254,7 +256,9 @@ lemma save_phase_st_spec:
   unfolding save_phase_st_def
   apply (cases S')
   apply (refine_vcg save_phase_heur_spec[THEN order_trans, of \<open>all_atms_st S'\<close>])
-  apply (simp_all add:  twl_st_heur_def)
+  apply (simp_all add:  twl_st_heur_def isa_length_trail_pre)
+  apply (rule isa_length_trail_pre)
+  apply blast
   done
 
 

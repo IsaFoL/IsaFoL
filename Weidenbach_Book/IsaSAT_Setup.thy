@@ -129,17 +129,17 @@ definition DEFAULT_INIT_PHASE :: \<open>64 word\<close> where
   \<open>DEFAULT_INIT_PHASE = 10000\<close>
 
 
-type_synonym restart_info = \<open>64 word \<times> 64 word \<times> 64 word \<times> 64 word\<close>
+type_synonym restart_info = \<open>64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word\<close>
 
 definition incr_conflict_count_since_last_restart :: \<open>restart_info \<Rightarrow> restart_info\<close> where
-  \<open>incr_conflict_count_since_last_restart = (\<lambda>(ccount, ema_lvl, restart_phase, end_of_phase).
-    (ccount + 1, ema_lvl, restart_phase, end_of_phase))\<close>
+  \<open>incr_conflict_count_since_last_restart = (\<lambda>(ccount, ema_lvl, restart_phase, end_of_phase, length_phase).
+    (ccount + 1, ema_lvl, restart_phase, end_of_phase, length_phase))\<close>
 
 definition restart_info_update_lvl_avg :: \<open>32 word \<Rightarrow> restart_info \<Rightarrow> restart_info\<close> where
   \<open>restart_info_update_lvl_avg = (\<lambda>lvl (ccount, ema_lvl). (ccount, ema_lvl))\<close>
 
 definition restart_info_init :: \<open>restart_info\<close> where
-  \<open>restart_info_init = (0, 0, NORMAL_PHASE, DEFAULT_INIT_PHASE)\<close>
+  \<open>restart_info_init = (0, 0, NORMAL_PHASE, DEFAULT_INIT_PHASE, 1000)\<close>
 
 definition restart_info_restart_done :: \<open>restart_info \<Rightarrow> restart_info\<close> where
   \<open>restart_info_restart_done = (\<lambda>(ccount, lvl_avg). (0, lvl_avg))\<close>
@@ -155,7 +155,14 @@ definition phase_save_heur_rel :: \<open>nat multiset \<Rightarrow> phase_save_h
   length target = length best)\<close>
 
 definition end_of_rephasing_phase :: \<open>phase_save_heur \<Rightarrow> 64 word\<close> where
-  \<open>end_of_rephasing_phase = (\<lambda>(\<phi>, target_assigned, target, best_assigned, best, end_of_phase, curr_phase, length_phase). end_of_phase)\<close>
+  \<open>end_of_rephasing_phase = (\<lambda>(\<phi>, target_assigned, target, best_assigned, best, end_of_phase, curr_phase,
+     length_phase). end_of_phase)\<close>
+
+
+definition phase_current_rephasing_phase :: \<open>phase_save_heur \<Rightarrow> 64 word\<close> where
+  \<open>phase_current_rephasing_phase =
+    (\<lambda>(\<phi>, target_assigned, target, best_assigned, best, end_of_phase, curr_phase, length_phase). curr_phase)\<close>
+
 
 
 paragraph \<open>Heuristics\<close>
@@ -211,6 +218,9 @@ definition get_saved_phase_heur_pre :: \<open>nat \<Rightarrow> restart_heuristi
 
 definition get_saved_phase_heur :: \<open>nat \<Rightarrow> restart_heuristics \<Rightarrow> bool\<close> where
 \<open>get_saved_phase_heur L = (\<lambda>(fast_ema, slow_ema, res_info, wasted, (\<phi>, _)). \<phi>!L)\<close>
+
+definition current_rephasing_phase :: \<open>restart_heuristics \<Rightarrow> 64 word\<close> where
+\<open>current_rephasing_phase = (\<lambda>(fast_ema, slow_ema, res_info, wasted, \<phi>). phase_current_rephasing_phase \<phi>)\<close>
 
 definition mop_get_saved_phase_heur :: \<open>nat \<Rightarrow> restart_heuristics \<Rightarrow> bool nres\<close> where
 \<open>mop_get_saved_phase_heur L heur = do {

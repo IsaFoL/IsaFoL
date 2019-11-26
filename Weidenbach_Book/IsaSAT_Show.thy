@@ -48,12 +48,19 @@ definition zero_some_stats :: \<open>stats \<Rightarrow> stats\<close> where
 \<open>zero_some_stats = (\<lambda>(propa, confl, decs, frestarts, lrestarts, uset, gcs, lbds).
      (propa, confl, decs, frestarts, lrestarts, uset, gcs, 0))\<close>
 
-definition isasat_current_information :: \<open>stats \<Rightarrow> _ \<Rightarrow> stats\<close> where
+definition print_open_colour :: \<open>64 word \<Rightarrow> unit\<close> where
+  \<open>print_open_colour _ = ()\<close>
+
+definition print_close_colour :: \<open>64 word \<Rightarrow> unit\<close> where
+  \<open>print_close_colour _ = ()\<close>
+
+definition isasat_current_information :: \<open>64 word \<Rightarrow> stats \<Rightarrow> _ \<Rightarrow> stats\<close> where
 \<open>isasat_current_information =
-   (\<lambda>(propa, confl, decs, frestarts, lrestarts, uset, gcs, lbds) lcount.
+   (\<lambda>curr_phase (propa, confl, decs, frestarts, lrestarts, uset, gcs, lbds) lcount.
      if confl AND 8191 = 8191 \<comment> \<open>\<^term>\<open>8191 = 8192 - 1\<close>, i.e., we print when all first bits are 1.\<close>
      then do{
        let _ = print_c propa;
+         _ = if curr_phase = 1 then print_open_colour 33 else ();
          _ = print_uint64 propa;
          _ = print_uint64 confl;
          _ = print_uint64 frestarts;
@@ -67,22 +74,13 @@ definition isasat_current_information :: \<open>stats \<Rightarrow> _ \<Rightarr
     )\<close>
 
 
-definition print_current_information :: \<open>stats \<Rightarrow> _ \<Rightarrow> stats\<close> where
-\<open>print_current_information = (\<lambda>(propa, confl, decs, frestarts, lrestarts, uset, gcs, lbds) _.
-     if confl AND 8191 = 8191 then (propa, confl, decs, frestarts, lrestarts, uset, gcs, 0)
-     else (propa, confl, decs, frestarts, lrestarts, uset, gcs, lbds))\<close>
-
-lemma print_current_information_isasat_current:
-  \<open>print_current_information = isasat_current_information\<close>
-  by (auto simp: isasat_current_information_def print_current_information_def
-    print_c_def print_uint64_def Let_def zero_some_stats_def intro!: ext)
-
 definition isasat_current_status :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
 \<open>isasat_current_status =
    (\<lambda>(M', N', D', j, W', vm, clvls, cach, lbd, outl, stats,
        heur, avdom,
        vdom, lcount, opts, old_arena).
-     let stats = (print_current_information stats lcount)
+     let curr_phase = current_restart_phase heur;
+        stats = (isasat_current_information curr_phase stats lcount)
      in RETURN (M', N', D', j, W', vm, clvls, cach, lbd, outl, stats,
        heur, avdom,
        vdom, lcount, opts, old_arena))\<close>
@@ -93,13 +91,6 @@ lemma isasat_current_status_id:
    \<langle>{(S, T). (S, T) \<in> twl_st_heur \<and> length (get_clauses_wl_heur S) \<le> r}\<rangle>nres_rel\<close>
   by (intro frefI nres_relI)
     (auto simp: twl_st_heur_def isasat_current_status_def)
-
-definition print_open_colour :: \<open>64 word \<Rightarrow> unit\<close> where
-  \<open>print_open_colour _ = ()\<close>
-
-definition print_close_colour :: \<open>64 word \<Rightarrow> unit\<close> where
-  \<open>print_close_colour _ = ()\<close>
-
 
 definition isasat_print_progress :: \<open>64 word \<Rightarrow> 64 word \<Rightarrow> stats \<Rightarrow> _ \<Rightarrow> unit\<close> where
 \<open>isasat_print_progress c curr_phase =
@@ -127,7 +118,6 @@ definition isasat_current_progress :: \<open>64 word \<Rightarrow> twl_st_wl_heu
        vdom, lcount, opts, old_arena).
      let
        curr_phase = current_restart_phase heur;
-       stats = print_current_information stats lcount;
        _ = isasat_print_progress c curr_phase stats lcount
      in RETURN ())\<close>
 
