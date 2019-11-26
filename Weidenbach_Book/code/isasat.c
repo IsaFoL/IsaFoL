@@ -284,6 +284,15 @@ void IsaSAT_Show_LLVM_print_c_impl() {
 void IsaSAT_Show_LLVM_print_uint64_impl(int64_t p) {
   printf(" %12ld ", p);
 }
+void IsaSAT_Show_LLVM_print_open_colour_impl(int64_t c) {
+  printf("\e[%lim", c);
+}
+void IsaSAT_Show_LLVM_print_close_colour_impl(int64_t c) {
+  printf("\e[0m");
+}
+void IsaSAT_Show_LLVM_print_char_impl(int64_t c) {
+  printf("%li", c);
+}
 
 _Bool has_suffix (const char * str, const char * suffix) {
   size_t k = strlen (str), l = strlen (suffix);
