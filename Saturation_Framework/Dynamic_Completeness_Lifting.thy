@@ -2,14 +2,88 @@
     Author:      Sophie Tourret <stourret at mpi-inf.mpg.de>, 2018
 *)
 
-section \<open>Adding a family of well-founded orderings to the standard lifting\<close>
-
-(* TODO: rename file and theory to something that reflects its content better *)
 theory Dynamic_Completeness_Lifting
   imports
     Saturation_Framework_Preliminaries
     Well_Quasi_Orders.Minimal_Elements
 begin
+
+subsection \<open>standard lifting\<close>
+
+locale standard_lifting = Non_ground: inference_system Inf_F + Ground: calculus_with_red_crit Bot_G Inf_G entails_G Red_Inf_G Red_F_G
+  for
+    Bot_F :: \<open>'f set\<close> and
+    Inf_F :: \<open>'f inference set\<close> and
+    Bot_G :: \<open>'g set\<close> and
+    Inf_G ::  \<open>'g inference set\<close> and
+    entails_G ::  \<open>'g set  \<Rightarrow> 'g set  \<Rightarrow> bool\<close> (infix "\<Turnstile>G" 50) and
+    Red_Inf_G :: \<open>'g set \<Rightarrow> 'g inference set\<close> and
+    Red_F_G :: \<open>'g set \<Rightarrow> 'g set\<close>
+  + fixes
+    \<G>_F :: \<open>'f \<Rightarrow> 'g set\<close> and
+    \<G>_Inf :: \<open>'f inference \<Rightarrow> 'g inference set\<close>
+  assumes
+    Bot_F_not_empty: "Bot_F \<noteq> {}" and
+    Bot_map_not_empty: \<open>B \<in> Bot_F \<Longrightarrow> \<G>_F B \<noteq> {}\<close> and
+    Bot_map: \<open>B \<in> Bot_F \<Longrightarrow> \<G>_F B \<subseteq> Bot_G\<close> and
+    Bot_cond: \<open>\<G>_F C \<inter> Bot_G \<noteq> {} \<longrightarrow> C \<in> Bot_F\<close> and
+    inf_map: \<open>\<iota> \<in> Inf_F \<Longrightarrow> \<G>_Inf \<iota> \<subseteq> Red_Inf_G (\<G>_F (concl_of \<iota>))\<close>
+begin
+
+abbreviation \<G>_set :: \<open>'f set \<Rightarrow> 'g set\<close> where
+  \<open>\<G>_set N \<equiv> UNION N \<G>_F\<close> (*  \<Union>C \<in> N. \<G>_F C *)
+
+lemma \<G>_subset: \<open>N1 \<subseteq> N2 \<Longrightarrow> \<G>_set N1 \<subseteq> \<G>_set N2\<close> by auto
+
+definition entails_\<G>  :: \<open>'f set \<Rightarrow> 'f set \<Rightarrow> bool\<close> (infix "\<Turnstile>\<G>" 50) where
+  \<open>N1 \<Turnstile>\<G> N2 \<equiv> \<G>_set N1 \<Turnstile>G \<G>_set N2\<close>
+
+lemma subs_Bot_G_entails: 
+  assumes
+    not_empty: \<open>sB \<noteq> {}\<close> and
+    in_bot: \<open>sB \<subseteq> Bot_G\<close>
+  shows \<open>sB \<Turnstile>G N\<close>
+proof -
+  have \<open>\<exists>B. B \<in> sB\<close> using not_empty by auto
+  then obtain B where B_in: \<open>B \<in> sB\<close> by auto
+  then have r_trans: \<open>{B} \<Turnstile>G N\<close> using Ground.bot_implies_all in_bot by auto
+  have l_trans: \<open>sB \<Turnstile>G {B}\<close> using B_in Ground.subset_entailed by auto
+  then show ?thesis using r_trans Ground.entails_trans[of sB "{B}"] by auto
+qed
+
+text \<open>lemma 25 in the technical report\<close>
+sublocale lifted_consequence_relation: consequence_relation  
+  where Bot=Bot_F and entails=entails_\<G>
+proof
+  show "Bot_F \<noteq> {}" using Bot_F_not_empty .
+next
+  show \<open>B\<in>Bot_F \<Longrightarrow> {B} \<Turnstile>\<G> N\<close> for B N 
+  proof -
+    assume \<open>B \<in> Bot_F\<close>
+    then show \<open>{B} \<Turnstile>\<G> N\<close>
+      using Bot_map Ground.bot_implies_all[of _ "\<G>_set N"] subs_Bot_G_entails Bot_map_not_empty
+      unfolding entails_\<G>_def
+      by auto
+  qed
+next
+  fix N1 N2 :: \<open>'f set\<close>
+  assume 
+    \<open>N2 \<subseteq> N1\<close>
+  then show \<open>N1 \<Turnstile>\<G> N2\<close> using entails_\<G>_def \<G>_subset Ground.subset_entailed by auto
+next
+  fix N1 N2
+  assume
+    N1_entails_C: \<open>\<forall>C \<in> N2. N1 \<Turnstile>\<G> {C}\<close>
+  show \<open>N1 \<Turnstile>\<G> N2\<close> using Ground.all_formulas_entailed N1_entails_C entails_\<G>_def 
+    by (smt UN_E UN_I Ground.entail_set_all_formulas singletonI)
+next
+  fix N1 N2 N3
+  assume
+    \<open>N1 \<Turnstile>\<G> N2\<close> and \<open>N2 \<Turnstile>\<G> N3\<close>
+  then show \<open>N1 \<Turnstile>\<G> N3\<close> using entails_\<G>_def Ground.entails_trans by blast
+qed
+
+end
 
 locale lifting_with_wf_ordering_family = standard_lifting Bot_F Inf_F Bot_G Inf_G entails_G Red_Inf_G Red_F_G \<G>_F \<G>_Inf
   for
@@ -299,282 +373,5 @@ qed
 
 end
 
-subsection \<open>Intersection of Liftings\<close>
-
-
-locale lifting_equivalence_with_red_crit_family = Non_ground: inference_system Inf_F
-  + Ground_family: calculus_with_red_crit_family Bot_G Inf_G Q entails_q Red_Inf_q Red_F_q
-  for
-    Inf_F :: "'f inference set" and
-    Bot_G :: "'g set" and
-    Inf_G :: \<open>'g inference set\<close> and
-    Q :: "'q set" and
-    entails_q :: "'q \<Rightarrow> ('g set \<Rightarrow> 'g set \<Rightarrow> bool)" and
-    Red_Inf_q :: "'q \<Rightarrow> ('g set \<Rightarrow> 'g inference set)" and
-    Red_F_q :: "'q \<Rightarrow> ('g set \<Rightarrow> 'g set)"
-  + fixes
-    Bot_F :: "'f set" and
-    \<G>_F_q :: "'q \<Rightarrow> 'f \<Rightarrow> 'g set" and
-    \<G>_Inf_q :: "'q \<Rightarrow> 'f inference \<Rightarrow> 'g inference set" and
-    Prec_F_g :: "'g \<Rightarrow> 'f \<Rightarrow> 'f \<Rightarrow> bool"
-  assumes
-    Q_not_empty: "Q \<noteq> {}" and
-    standard_lifting_family: "q \<in> Q \<Longrightarrow> lifting_with_wf_ordering_family Bot_F Inf_F Bot_G (entails_q q) Inf_G (Red_Inf_q q) (Red_F_q q) (\<G>_F_q q) (\<G>_Inf_q q) Prec_F_g" 
-begin
-
-definition \<G>_set_q :: "'q \<Rightarrow> 'f set \<Rightarrow> 'g set" where
-  "\<G>_set_q q N \<equiv> UNION N (\<G>_F_q q)"
-
-definition Red_Inf_\<G>_Q :: "'f set \<Rightarrow> 'f inference set" where
-  "Red_Inf_\<G>_Q N = (\<Inter>q\<in>Q. {\<iota> \<in> Inf_F. \<G>_Inf_q q \<iota> \<subseteq> Red_Inf_q q (\<G>_set_q q N)})"
-
-definition Red_F_\<G>_empty :: "'f set \<Rightarrow> 'f set" where
-  "Red_F_\<G>_empty N = (\<Inter>q\<in>Q. {C. \<forall>D \<in> \<G>_F_q q C. D \<in> Red_F_q q (\<G>_set_q q N) \<or> (\<exists>E \<in> N. Prec_F_g D E C \<and> D \<in> \<G>_F_q q E)})"
-
-definition entails_\<G>_q :: "'q \<Rightarrow> 'f set \<Rightarrow> 'f set \<Rightarrow> bool" where
-  "entails_\<G>_q q N1 N2 \<equiv> entails_q q (\<G>_set_q q N1) (\<G>_set_q q N2)"
-
-lemma cons_rel_fam_Q_lem: \<open>consequence_relation_family Bot_F Q entails_\<G>_q\<close>
-proof
-  show \<open>Q \<noteq> {}\<close> by (rule Q_not_empty)
-next
-  show "Bot_F \<noteq> {}"
-    using standard_lifting_family Q_not_empty
-    by (meson ex_in_conv lifting_with_wf_ordering_family.axioms(1) standard_lifting.Bot_F_not_empty)
-next
-  fix qi
-  assume "qi \<in> Q"
-  show "Bot_F \<noteq> {}"
-    using standard_lifting_family Q_not_empty
-    by (meson ex_in_conv lifting_with_wf_ordering_family.axioms(1) standard_lifting.Bot_F_not_empty)
-next
-  fix qi B N1
-  assume
-    qi_in: "qi \<in> Q" and
-    B_in: "B \<in> Bot_F"
-  interpret lift: lifting_with_wf_ordering_family Bot_F Inf_F Bot_G "entails_q qi" Inf_G "Red_Inf_q qi" "Red_F_q qi" "\<G>_F_q qi" "\<G>_Inf_q qi" Prec_F_g
-    by (rule standard_lifting_family[OF qi_in])
-  have "(entails_\<G>_q qi) = lift.entails_\<G>"
-    unfolding entails_\<G>_q_def lift.entails_\<G>_def \<G>_set_q_def by simp
-  then show "entails_\<G>_q qi {B} N1"
-    using B_in lift.lifted_consequence_relation.bot_implies_all by auto
-next
-  fix qi and N2 N1::"'f set"
-  assume
-    qi_in: "qi \<in> Q" and
-    N_incl: "N2 \<subseteq> N1"
-  interpret lift: lifting_with_wf_ordering_family Bot_F Inf_F Bot_G "entails_q qi" Inf_G "Red_Inf_q qi" "Red_F_q qi" "\<G>_F_q qi" "\<G>_Inf_q qi" Prec_F_g
-    by (rule standard_lifting_family[OF qi_in])
-  have "(entails_\<G>_q qi) = lift.entails_\<G>"
-    unfolding entails_\<G>_q_def lift.entails_\<G>_def \<G>_set_q_def by simp
-  then show "entails_\<G>_q qi N1 N2"
-    using N_incl by (simp add: lift.lifted_consequence_relation.subset_entailed)
-next
-  fix qi N1 N2
-  assume
-    qi_in: "qi \<in> Q" and
-    all_C: "\<forall>C\<in> N2. entails_\<G>_q qi N1 {C}"
-  interpret lift: lifting_with_wf_ordering_family Bot_F Inf_F Bot_G "entails_q qi" Inf_G "Red_Inf_q qi" "Red_F_q qi" "\<G>_F_q qi" "\<G>_Inf_q qi" Prec_F_g
-    by (rule standard_lifting_family[OF qi_in])
-  have "(entails_\<G>_q qi) = lift.entails_\<G>"
-    unfolding entails_\<G>_q_def lift.entails_\<G>_def \<G>_set_q_def by simp
-  then show "entails_\<G>_q qi N1 N2"
-    using all_C lift.lifted_consequence_relation.all_formulas_entailed by presburger
-next
-  fix qi N1 N2 N3
-  assume
-    qi_in: "qi \<in> Q" and
-    entails12: "entails_\<G>_q qi N1 N2" and
-    entails23: "entails_\<G>_q qi N2 N3"
-  interpret lift: lifting_with_wf_ordering_family Bot_F Inf_F Bot_G "entails_q qi" Inf_G "Red_Inf_q qi" "Red_F_q qi" "\<G>_F_q qi" "\<G>_Inf_q qi" Prec_F_g
-    by (rule standard_lifting_family[OF qi_in])
-  have "(entails_\<G>_q qi) = lift.entails_\<G>"
-    unfolding entails_\<G>_q_def lift.entails_\<G>_def \<G>_set_q_def by simp
-  then show "entails_\<G>_q qi N1 N3"
-    using entails12 entails23 lift.lifted_consequence_relation.entails_trans by presburger
-qed
-
-definition entails_\<G>_Q :: "'f set \<Rightarrow> 'f set \<Rightarrow> bool" where
-  "entails_\<G>_Q N1 N2 \<equiv> \<forall>q\<in>Q. entails_q q (\<G>_set_q q N1) (\<G>_set_q q N2)"
-
-interpretation cons_rel_Q: consequence_relation Bot_F entails_\<G>_Q
-proof -
-  interpret cons_rel_fam: consequence_relation_family Bot_F Q entails_\<G>_q
-    by (rule cons_rel_fam_Q_lem)
-  have "consequence_relation_family.entails_Q Q entails_\<G>_q = entails_\<G>_Q"
-    unfolding entails_\<G>_Q_def cons_rel_fam.entails_Q_def by (simp add: entails_\<G>_q_def)
-  then show "consequence_relation Bot_F entails_\<G>_Q"
-    using consequence_relation_family.cons_rel_family_is_cons_rel[OF cons_rel_fam_Q_lem] by simp
-qed
-
-lemma "calculus_with_red_crit Bot_F Inf_F entails_\<G>_Q Red_Inf_\<G>_Q Red_F_\<G>_empty"
-proof
-oops
-
-
-subsection \<open>Adding labels\<close>
-
-locale labeled_redundancy_criterion_lifting = redundancy_criterion_lifting \<G>_F \<G>_Inf Bot_F Inf_F Bot_G entails_G Inf_G Red_Inf_G Red_F_G Prec_F
-  for
-    \<G>_F :: "'f \<Rightarrow> 'g set" and
-    \<G>_Inf :: "'f inference \<Rightarrow> 'g inference set" and
-    Bot_F :: "'f set" and
-    Inf_F :: "'f inference set" and
-    Bot_G :: "'g set" and
-    entails_G :: "'g set \<Rightarrow> 'g set \<Rightarrow> bool"  (infix "\<Turnstile>G" 50) and
-    Inf_G :: "'g inference set" and
-    Red_Inf_G :: "'g set \<Rightarrow> 'g inference set" and
-    Red_F_G :: "'g set \<Rightarrow> 'g set" and
-    Prec_F :: "'f \<Rightarrow> 'f \<Rightarrow> bool"  (infix "\<sqsubset>" 50)
-  + fixes
-    l :: \<open>'l itself\<close> and
-    Inf_FL :: \<open>('f \<times> 'l) inference set\<close>
-  assumes
-    Inf_F_to_Inf_FL: \<open>\<iota>\<^sub>F \<in> Inf_F \<Longrightarrow> length (Ll :: 'l list) = length (prems_of \<iota>\<^sub>F) \<Longrightarrow> \<exists>L0. Infer (zip (prems_of \<iota>\<^sub>F) Ll) (concl_of \<iota>\<^sub>F, L0) \<in> Inf_FL\<close> and
-    Inf_FL_to_Inf_F: \<open>\<iota>\<^sub>F\<^sub>L \<in> Inf_FL \<Longrightarrow> Infer (map fst (prems_of \<iota>\<^sub>F\<^sub>L)) (fst (concl_of \<iota>\<^sub>F\<^sub>L)) \<in> Inf_F\<close>
-begin
-
-definition to_F :: \<open>('f \<times> 'l) inference \<Rightarrow> 'f inference\<close> where \<open>to_F \<iota>\<^sub>F\<^sub>L = Infer (map fst (prems_of \<iota>\<^sub>F\<^sub>L)) (fst (concl_of \<iota>\<^sub>F\<^sub>L))\<close>
-
-text \<open>The set FL is implicitly defined as \<^term>\<open>UNIV::('f\<times>'l) set\<close> and the function \<^term>\<open>proj_1\<close> is implicitly defined as \<^term>\<open>(`) fst\<close>.\<close>
-definition Bot_FL :: \<open>('f \<times> 'l) set\<close> where \<open>Bot_FL = Bot_F \<times> UNIV\<close>
-
-definition \<G>_F_L :: \<open>('f \<times> 'l) \<Rightarrow> 'g set\<close> where \<open>\<G>_F_L CL = \<G>_F (fst CL)\<close>
-
-definition \<G>_Inf_L :: \<open>('f \<times> 'l) inference \<Rightarrow> 'g inference set\<close> where \<open>\<G>_Inf_L \<iota>\<^sub>F\<^sub>L = \<G>_Inf (to_F \<iota>\<^sub>F\<^sub>L)\<close>
-
-(* definition entails_sound_FL :: \<open>('f \<times> 'l) set \<Rightarrow> ('f \<times> 'l) set \<Rightarrow> bool\<close> (infix "|\<approx>FL" 50) where \<open>CL1 |\<approx>FL
-CL2 \<equiv> fst ` CL1 |\<approx>F fst ` CL2\<close> *)
-
-text \<open>Lemma 20 from the technical report\<close>
-sublocale labeled_standard_lifting: standard_lifting
-  where
-    Bot_F = Bot_FL and
-    Inf_F = Inf_FL and
-    \<G>_F = \<G>_F_L and
-    \<G>_Inf = \<G>_Inf_L
-proof
-  fix B NL
-  show "Bot_FL \<noteq> {}" sorry
-(* next
-  fix NL1 NL2
-  show "NL2 \<subseteq> NL1 \<Longrightarrow> NL1 |\<approx>FL NL2"
-  proof -
-    assume "NL2 \<subseteq> NL1"
-    then have "fst ` NL2 \<subseteq> fst ` NL1" by (simp add: image_mono)
-    then show "NL1 |\<approx>FL NL2" unfolding entails_sound_FL_def using Non_ground.subset_entailed by simp
-  qed
-next
-  fix NL1 NL2
-  show "\<forall>C\<in>NL2. NL1 |\<approx>FL {C} \<Longrightarrow> NL1 |\<approx>FL NL2" 
-    unfolding entails_sound_FL_def using Non_ground.all_formulas_entailed
-    by (smt image_empty image_iff image_insert)
-next
-  fix NL1 NL2 NL3
-  show "NL1 |\<approx>FL NL2 \<Longrightarrow> NL2 |\<approx>FL NL3 \<Longrightarrow> NL1 |\<approx>FL NL3"
-    unfolding entails_sound_FL_def using Non_ground.entails_trans by blast
-next
-  fix \<iota>
-  show "\<iota> \<in> Inf_FL \<Longrightarrow> set (prems_of \<iota>) |\<approx>FL {concl_of \<iota>}"
-    unfolding entails_sound_FL_def using Inf_FL_to_Inf_F Non_ground.soundness by force *)
-next
-  show "B\<in>Bot_FL \<Longrightarrow> \<G>_F_L B \<noteq> {}" for B
-    unfolding \<G>_F_L_def Bot_FL_def using Bot_map_not_empty by auto
-next
-  show "B\<in>Bot_FL \<Longrightarrow> \<G>_F_L B \<subseteq> Bot_G" for B
-    unfolding \<G>_F_L_def Bot_FL_def using Bot_map by force
-next
-  fix CL
-  show "\<G>_F_L CL \<inter> Bot_G \<noteq> {} \<longrightarrow> CL \<in> Bot_FL"
-    unfolding \<G>_F_L_def Bot_FL_def using Bot_cond by (metis SigmaE UNIV_I UNIV_Times_UNIV mem_Sigma_iff prod.sel(1))
-next
-  fix \<iota>
-  assume \<open>\<iota> \<in> Inf_FL\<close>
-  then show "\<G>_Inf_L \<iota> \<subseteq> Red_Inf_G (\<G>_F_L (concl_of \<iota>))"
-    unfolding \<G>_Inf_L_def \<G>_F_L_def to_F_def using inf_map Inf_FL_to_Inf_F by fastforce
-qed
-
-definition Labeled_Empty_Order :: \<open> ('f \<times> 'l) \<Rightarrow> ('f \<times> 'l) \<Rightarrow> bool\<close> where
-  "Labeled_Empty_Order C1 C2 \<equiv> False" 
-
-sublocale labeled_lifted_calculus_with_red_crit: redundancy_criterion_lifting \<G>_F_L \<G>_Inf_L Bot_FL Inf_FL Bot_G entails_G Inf_G Red_Inf_G Red_F_G Labeled_Empty_Order
-proof
-  show "po_on Labeled_Empty_Order UNIV" unfolding Labeled_Empty_Order_def po_on_def by (simp add: transp_onI wfp_on_imp_irreflp_on)
-  show "wfp_on Labeled_Empty_Order UNIV" unfolding wfp_on_def Labeled_Empty_Order_def by simp
-qed
-
-notation "labeled_standard_lifting.entails_\<G>" (infix "\<Turnstile>\<G>L" 50)
-
-text \<open>Lemma 21 from the technical report\<close>
-lemma labeled_entailment_lifting: "NL1 \<Turnstile>\<G>L NL2 \<longleftrightarrow> fst ` NL1 \<Turnstile>\<G> fst ` NL2"
-  unfolding labeled_standard_lifting.entails_\<G>_def \<G>_F_L_def entails_\<G>_def by auto
-
-lemma subset_fst: "A \<subseteq> fst ` AB \<Longrightarrow> \<forall>x \<in> A. \<exists>y. (x,y) \<in> AB" by fastforce
-
-lemma red_inf_impl: "\<iota> \<in> labeled_lifted_calculus_with_red_crit.Red_Inf_\<G> NL \<Longrightarrow> to_F \<iota> \<in> Red_Inf_\<G> (fst ` NL)"
-  unfolding labeled_lifted_calculus_with_red_crit.Red_Inf_\<G>_def Red_Inf_\<G>_def \<G>_Inf_L_def \<G>_F_L_def to_F_def
-  using Inf_FL_to_Inf_F by auto
-
-text \<open>lemma 22 from the technical report\<close>
-lemma labeled_saturation_lifting: "labeled_lifted_calculus_with_red_crit.lifted_calculus_with_red_crit.saturated NL \<Longrightarrow> empty_order_lifting.lifted_calculus_with_red_crit.saturated (fst ` NL)"
-  unfolding labeled_lifted_calculus_with_red_crit.lifted_calculus_with_red_crit.saturated_def empty_order_lifting.lifted_calculus_with_red_crit.saturated_def labeled_standard_lifting.Non_ground.Inf_from_def Non_ground.Inf_from_def
-proof clarify
-  fix \<iota>
-  assume
-    subs_Red_Inf: "{\<iota> \<in> Inf_FL. set (prems_of \<iota>) \<subseteq> NL} \<subseteq> labeled_lifted_calculus_with_red_crit.Red_Inf_\<G> NL" and
-    i_in: "\<iota> \<in> Inf_F" and
-    i_prems: "set (prems_of \<iota>) \<subseteq> fst ` NL"
-  define Lli where "Lli i \<equiv> (SOME x. ((prems_of \<iota>)!i,x) \<in> NL)" for i
-  have [simp]:"((prems_of \<iota>)!i,Lli i) \<in> NL" if "i < length (prems_of \<iota>)" for i
-    using that subset_fst[OF i_prems] unfolding Lli_def by (meson nth_mem someI_ex)
-  define Ll where "Ll \<equiv> map Lli [0..<length (prems_of \<iota>)]"
-  have Ll_length: "length Ll = length (prems_of \<iota>)" unfolding Ll_def by auto
-    (* "\<exists>L0. Infer (zip (prems_of \<iota>) Ll) (concl_of \<iota>, L0) \<in> Inf_FL" and *)
-  have subs_NL: "set (zip (prems_of \<iota>) Ll) \<subseteq> NL" unfolding Ll_def by (auto simp:in_set_zip)
-  obtain L0 where L0: "Infer (zip (prems_of \<iota>) Ll) (concl_of \<iota>, L0) \<in> Inf_FL"
-    using Inf_F_to_Inf_FL[OF i_in Ll_length] ..
-  define \<iota>_FL where "\<iota>_FL = Infer (zip (prems_of \<iota>) Ll) (concl_of \<iota>, L0)"
-  then have "set (prems_of \<iota>_FL) \<subseteq> NL" using subs_NL by simp
-  then have "\<iota>_FL \<in> {\<iota> \<in> Inf_FL. set (prems_of \<iota>) \<subseteq> NL}" unfolding \<iota>_FL_def using L0 by blast
-  then have "\<iota>_FL \<in> labeled_lifted_calculus_with_red_crit.Red_Inf_\<G> NL" using subs_Red_Inf by fast
-  moreover have "\<iota> = to_F \<iota>_FL" unfolding to_F_def \<iota>_FL_def using Ll_length by (cases \<iota>) auto
-  ultimately show "\<iota> \<in> Red_Inf_\<G> (fst ` NL)" by (auto intro:red_inf_impl)
-qed
-
-text "lemma 23 from the technical report"
-lemma "static_refutational_complete_calculus Bot_F Inf_F (\<Turnstile>\<G>) Red_Inf_\<G> Red_F_\<G> \<Longrightarrow> static_refutational_complete_calculus Bot_FL Inf_FL (\<Turnstile>\<G>L) labeled_lifted_calculus_with_red_crit.Red_Inf_\<G> labeled_lifted_calculus_with_red_crit.Red_F_\<G>"
-  unfolding static_refutational_complete_calculus_def
-proof (rule conjI impI; clarify)
-  interpret calculus_with_red_crit Bot_FL Inf_FL labeled_standard_lifting.entails_\<G> labeled_lifted_calculus_with_red_crit.Red_Inf_\<G> labeled_lifted_calculus_with_red_crit.Red_F_\<G> by (simp add: labeled_lifted_calculus_with_red_crit.lifted_calculus_with_red_crit.calculus_with_red_crit_axioms)
-  show "calculus_with_red_crit Bot_FL Inf_FL (\<Turnstile>\<G>L) labeled_lifted_calculus_with_red_crit.Red_Inf_\<G> labeled_lifted_calculus_with_red_crit.Red_F_\<G>" by standard
-next
-  assume
-    calc: "calculus_with_red_crit Bot_F Inf_F (\<Turnstile>\<G>) Red_Inf_\<G> Red_F_\<G>" and
-    static: "static_refutational_complete_calculus_axioms Bot_F Inf_F (\<Turnstile>\<G>) Red_Inf_\<G>"
-  show "static_refutational_complete_calculus_axioms Bot_FL Inf_FL (\<Turnstile>\<G>L) labeled_lifted_calculus_with_red_crit.Red_Inf_\<G>" unfolding static_refutational_complete_calculus_axioms_def
-  proof (intro conjI impI allI)
-    fix Bl :: \<open>'f \<times> 'l\<close> and Nl :: \<open>('f \<times> 'l) set\<close>
-    assume 
-      Bl_in: \<open>Bl \<in> Bot_FL\<close> and
-      Nl_sat: \<open>labeled_lifted_calculus_with_red_crit.empty_order_lifting.lifted_calculus_with_red_crit.saturated Nl\<close> and
-      Nl_entails_Bl: \<open>Nl \<Turnstile>\<G>L {Bl}\<close>
-    have static_axioms: "B \<in> Bot_F \<longrightarrow> empty_order_lifting.lifted_calculus_with_red_crit.saturated N \<longrightarrow> N \<Turnstile>\<G> {B} \<longrightarrow> (\<exists>B'\<in>Bot_F. B' \<in> N)" for B N using static[unfolded static_refutational_complete_calculus_axioms_def] by fast
-    define B where "B = fst Bl"
-    have B_in: "B \<in> Bot_F" using Bl_in Bot_FL_def B_def SigmaE by force
-    define N where "N = fst ` Nl"
-    have N_sat: "empty_order_lifting.lifted_calculus_with_red_crit.saturated N"
-      using N_def Nl_sat labeled_saturation_lifting by blast 
-    have N_entails_B: "N \<Turnstile>\<G> {B}" using Nl_entails_Bl unfolding labeled_entailment_lifting N_def B_def by force
-    have "\<exists>B' \<in> Bot_F. B' \<in> N" using B_in N_sat N_entails_B static_axioms[of B N] by blast
-    then obtain B' where in_Bot: "B' \<in> Bot_F" and in_N: "B' \<in> N" by force
-    then have "B' \<in> fst ` Bot_FL" unfolding Bot_FL_def by fastforce
-    obtain Bl' where in_Nl: "Bl' \<in> Nl" and fst_Bl': "fst Bl' = B'"
-      using in_N unfolding N_def by blast
-    have "Bl' \<in> Bot_FL" unfolding Bot_FL_def using fst_Bl' in_Bot vimage_fst by fastforce
-    then show \<open>\<exists>Bl'\<in>Bot_FL. Bl' \<in> Nl\<close> using in_Nl by blast
-  qed
-qed
-
-end
 
 end
