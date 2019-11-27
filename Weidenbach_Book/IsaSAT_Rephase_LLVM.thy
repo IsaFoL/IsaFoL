@@ -58,38 +58,41 @@ sepref_def save_phase_heur_st
   by sepref
 
 sepref_def phase_save_rephase_impl
-  is phase_rephase
-  :: \<open>phase_heur_assn\<^sup>d \<rightarrow>\<^sub>a phase_heur_assn\<close>
+  is \<open>uncurry phase_rephase\<close>
+  :: \<open>word_assn\<^sup>k *\<^sub>a phase_heur_assn\<^sup>d \<rightarrow>\<^sub>a phase_heur_assn\<close>
   unfolding phase_rephase_def
+  apply (annot_snat_const "TYPE(64)")
   by sepref
 
 
 sepref_def rephase_heur_impl
-  is \<open>rephase_heur\<close>
-  ::  \<open>heuristic_assn\<^sup>d \<rightarrow>\<^sub>a heuristic_assn\<close>
+  is \<open>uncurry rephase_heur\<close>
+  :: \<open>word_assn\<^sup>k *\<^sub>a heuristic_assn\<^sup>d \<rightarrow>\<^sub>a heuristic_assn\<close>
   unfolding rephase_heur_def heuristic_assn_def
   by sepref
 
 lemma current_rephasing_phase_alt_def:
   \<open>RETURN o current_rephasing_phase =
-    (\<lambda>(fast_ema, slow_ema, res_info, wasted, (\<phi>, target_assigned, target, best_assigned, best, end_of_phase, curr_phase, length_phase)).   RETURN curr_phase)\<close>
+    (\<lambda>(fast_ema, slow_ema, res_info, wasted,
+      (\<phi>, target_assigned, target, best_assigned, best, end_of_phase, curr_phase, length_phase)).
+      RETURN curr_phase)\<close>
   unfolding current_rephasing_phase_def
     phase_current_rephasing_phase_def
   by (auto intro!: ext)
 
 sepref_def current_rephasing_phase
   is \<open>RETURN o current_rephasing_phase\<close>
-  :: \<open>heuristic_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
+  :: \<open>heuristic_assn\<^sup>k \<rightarrow>\<^sub>a word64_assn\<close>
   unfolding current_rephasing_phase_alt_def heuristic_assn_def
   by sepref
 
+sepref_register rephase_heur
 sepref_def rephase_heur_st_impl
   is rephase_heur_st
   ::  \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
   unfolding rephase_heur_st_def isasat_bounded_assn_def
   by sepref
 
-term current_rephasing_phase
 
 experiment
 begin
