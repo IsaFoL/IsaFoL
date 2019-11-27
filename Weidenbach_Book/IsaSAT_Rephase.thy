@@ -79,49 +79,49 @@ definition phase_rephase :: \<open>64 word \<Rightarrow> phase_save_heur \<Right
       if curr_phase = 0
       then do {
          \<phi> \<leftarrow> rephase_init False \<phi>;
-         RETURN (\<phi>, target_assigned, target, best_assigned, best, length_phase*1000+end_of_phase, 1, length_phase)
+         RETURN (\<phi>, target_assigned, target, best_assigned, best, length_phase*100+end_of_phase, 1, length_phase)
       }
       else if curr_phase = 1
       then do {
          \<phi> \<leftarrow> copy_phase best \<phi>;
-         RETURN (\<phi>, target_assigned, target, best_assigned, best, length_phase*1000+end_of_phase, 2, length_phase)
+         RETURN (\<phi>, target_assigned, target, best_assigned, best, length_phase*100+end_of_phase, 2, length_phase)
       }
       else if curr_phase = 2
       then do {
          \<phi> \<leftarrow> rephase_init True \<phi>;
-         RETURN (\<phi>, target_assigned, target, best_assigned, best, length_phase*1000+end_of_phase, 3, length_phase)
+         RETURN (\<phi>, target_assigned, target, best_assigned, best, length_phase*100+end_of_phase, 3, length_phase)
       }
       else if curr_phase = 3
       then do {
          \<phi> \<leftarrow> rephase_random end_of_phase \<phi>;
-         RETURN (\<phi>, target_assigned, target, best_assigned, best, length_phase*1000+end_of_phase, 4, length_phase)
+         RETURN (\<phi>, target_assigned, target, best_assigned, best, length_phase*100+end_of_phase, 4, length_phase)
       }
       else do {
          \<phi> \<leftarrow> copy_phase best \<phi>;
-         RETURN (\<phi>, target_assigned, target, best_assigned, best, (1+length_phase)*1000+end_of_phase, 0,
-            (length_phase* 3) >> 2)
+         RETURN (\<phi>, target_assigned, target, best_assigned, best, (1+length_phase)*100+end_of_phase, 0,
+            length_phase+1)
       }
     }
     else do {
       if curr_phase = 0
       then do {
          \<phi> \<leftarrow> rephase_init False \<phi>;
-         RETURN (\<phi>, target_assigned, target, best_assigned, best, length_phase*1000+end_of_phase, 1, length_phase)
+         RETURN (\<phi>, target_assigned, target, best_assigned, best, length_phase*100+end_of_phase, 1, length_phase)
       }
       else if curr_phase = 1
       then do {
          \<phi> \<leftarrow> copy_phase best \<phi>;
-         RETURN (\<phi>, target_assigned, target, best_assigned, best, length_phase*1000+end_of_phase, 2, length_phase)
+         RETURN (\<phi>, target_assigned, target, best_assigned, best, length_phase*100+end_of_phase, 2, length_phase)
       }
       else if curr_phase = 2
       then do {
          \<phi> \<leftarrow> rephase_init True \<phi>;
-         RETURN (\<phi>, target_assigned, target, best_assigned, best, length_phase*1000+end_of_phase, 3, length_phase)
+         RETURN (\<phi>, target_assigned, target, best_assigned, best, length_phase*100+end_of_phase, 3, length_phase)
       }
       else do {
          \<phi> \<leftarrow> copy_phase best \<phi>;
-         RETURN (\<phi>, target_assigned, target, best_assigned, best, (1+length_phase)*1000+end_of_phase, 0,
-           (length_phase* 3) >> 2)
+         RETURN (\<phi>, target_assigned, target, best_assigned, best, (1+length_phase)*100+end_of_phase, 0,
+           length_phase+1)
      }
     })\<close>
 
@@ -140,42 +140,42 @@ proof -
       then do {
         if curr_phase = 0 then  do {
           \<phi>' \<leftarrow> SPEC (\<lambda>\<phi>'. length \<phi> = length \<phi>');
-          RETURN (\<phi>', target_assigned, target, best_assigned, best,length_phase*1000+end_of_phase, 1, length_phase)
+          RETURN (\<phi>', target_assigned, target, best_assigned, best,length_phase*100+end_of_phase, 1, length_phase)
         }
        else if curr_phase = 1 then  do {
           \<phi>' \<leftarrow> SPEC (\<lambda>\<phi>'. length \<phi> = length \<phi>');
-          RETURN (\<phi>', target_assigned, target, best_assigned, best, length_phase*1000+end_of_phase, 2, length_phase)
+          RETURN (\<phi>', target_assigned, target, best_assigned, best, length_phase*100+end_of_phase, 2, length_phase)
        }
        else if curr_phase = 2 then  do {
           \<phi>' \<leftarrow> SPEC (\<lambda>\<phi>'. length \<phi> = length \<phi>');
-          RETURN (\<phi>', target_assigned, target, best_assigned, best, length_phase*1000+end_of_phase, 3, length_phase)
+          RETURN (\<phi>', target_assigned, target, best_assigned, best, length_phase*100+end_of_phase, 3, length_phase)
        }
        else if curr_phase = 3 then  do {
           \<phi>' \<leftarrow> SPEC (\<lambda>\<phi>'. length \<phi> = length \<phi>');
-          RETURN (\<phi>', target_assigned, target, best_assigned, best, length_phase*1000+end_of_phase, 4, length_phase)
+          RETURN (\<phi>', target_assigned, target, best_assigned, best, length_phase*100+end_of_phase, 4, length_phase)
        }
        else do {
           \<phi>' \<leftarrow> SPEC (\<lambda>\<phi>'. length \<phi> = length \<phi>');
-          RETURN (\<phi>', target_assigned, target, best_assigned, best, (1+length_phase)*1000+end_of_phase, 0, (length_phase* 3) >> 2)
+          RETURN (\<phi>', target_assigned, target, best_assigned, best, (1+length_phase)*100+end_of_phase, 0, length_phase+1)
        }
      }
      else do {
         if curr_phase = 0 then  do {
           \<phi>' \<leftarrow> SPEC (\<lambda>\<phi>'. length \<phi> = length \<phi>');
-          RETURN (\<phi>', target_assigned, target, best_assigned, best,length_phase*1000+end_of_phase, 1, length_phase)
+          RETURN (\<phi>', target_assigned, target, best_assigned, best,length_phase*100+end_of_phase, 1, length_phase)
         }
        else if curr_phase = 1 then  do {
           \<phi>' \<leftarrow> SPEC (\<lambda>\<phi>'. length \<phi> = length \<phi>');
-          RETURN (\<phi>', target_assigned, target, best_assigned, best, length_phase*1000+end_of_phase, 2, length_phase)
+          RETURN (\<phi>', target_assigned, target, best_assigned, best, length_phase*100+end_of_phase, 2, length_phase)
        }
        else if curr_phase = 2 then  do {
           \<phi>' \<leftarrow> SPEC (\<lambda>\<phi>'. length \<phi> = length \<phi>');
-          RETURN (\<phi>', target_assigned, target, best_assigned, best, length_phase*1000+end_of_phase, 3, length_phase)
+          RETURN (\<phi>', target_assigned, target, best_assigned, best, length_phase*100+end_of_phase, 3, length_phase)
        }
        else do {
           \<phi>' \<leftarrow> SPEC (\<lambda>\<phi>'. length \<phi> = length \<phi>');
-          RETURN (\<phi>', target_assigned, target, best_assigned, best, (1+length_phase)*1000+end_of_phase, 0,
-            (length_phase* 3) >> 2)
+          RETURN (\<phi>', target_assigned, target, best_assigned, best, (1+length_phase)*100+end_of_phase, 0,
+            length_phase+1)
        }
      }
      ) \<phi>)\<close>
