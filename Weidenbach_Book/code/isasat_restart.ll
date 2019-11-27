@@ -12,7 +12,6 @@ declare void @IsaSAT_Show_LLVM_print_uint64_impl(i64)
 declare void @IsaSAT_Show_LLVM_print_open_colour_impl(i64)
 declare void @IsaSAT_Show_LLVM_print_close_colour_impl(i64)
 
-
 define i32 @LBD_LLVM_get_LBD_code({ { i64, i1* }, { i32, i32 } } %x) {
 
   start:
@@ -2720,27 +2719,27 @@ define i1 @IsaSAT_Lookup_Conflict_LLVM_Some_impl(i1 %x) {
     ret i1 1
 }
 
-define { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } } } } } @IsaSAT_Rephase_LLVM_rephase_heur_impl({ { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } } } } } %x) {
+define { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } } } } } @IsaSAT_Rephase_LLVM_rephase_heur_impl(i64 %x, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } } } } } %x1) {
 
   start:
-    %a1 = extractvalue { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } } } } } %x, 0
-    %x1 = extractvalue { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } } } } } %x, 1
-    %a1a = extractvalue { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } } } } %x1, 0
-    %xa = extractvalue { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } } } } %x1, 1
+    %a1 = extractvalue { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } } } } } %x1, 0
+    %x2 = extractvalue { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } } } } } %x1, 1
+    %a1a = extractvalue { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } } } } %x2, 0
+    %xa = extractvalue { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } } } } %x2, 1
     %a1b = extractvalue { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } } } %xa, 0
     %xb = extractvalue { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } } } %xa, 1
     %a1c = extractvalue { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } } %xb, 0
     %a2c = extractvalue { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } } %xb, 1
-    %xc = call { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } @IsaSAT_Rephase_LLVM_phase_save_rephase_impl ({ { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } %a2c)
+    %xc = call { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } @IsaSAT_Rephase_LLVM_phase_save_rephase_impl (i64 %x, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } %a2c)
     %xd = insertvalue { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } } } } } zeroinitializer, { i64, { i64, { i64, { i64, i64 } } } } %a1, 0
     %xe = insertvalue { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } } zeroinitializer, i64 %a1c, 0
     %tmpaa = insertvalue { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } } %xe, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } %xc, 1
     %xf = insertvalue { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } } } zeroinitializer, { i64, { i64, { i64, { i64, i64 } } } } %a1b, 0
     %tmpba = insertvalue { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } } } %xf, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } } %tmpaa, 1
     %xg = insertvalue { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } } } } zeroinitializer, { i64, { i64, { i64, { i64, i64 } } } } %a1a, 0
-    %x2 = insertvalue { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } } } } %xg, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } } } %tmpba, 1
-    %x3 = insertvalue { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } } } } } %xd, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } } } } %x2, 1
-    ret { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } } } } } %x3
+    %x3 = insertvalue { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } } } } %xg, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } } } %tmpba, 1
+    %x4 = insertvalue { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } } } } } %xd, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } } } } %x3, 1
+    ret { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } } } } } %x4
 }
 
 define { i64, i1* } @IsaSAT_Rephase_LLVM_rephase_init_impl(i1 %x, { i64, i1* } %x1) {
@@ -3761,10 +3760,10 @@ define { { { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64
     %xo = extractvalue { i64, { { i1, { i1, i1 } }, { i64, { i64, i32* } } } } %xn, 1
     %a1o = extractvalue { { i1, { i1, i1 } }, { i64, { i64, i32* } } } %xo, 0
     %a2o = extractvalue { { i1, { i1, i1 } }, { i64, { i64, i32* } } } %xo, 1
-    %xp = call { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } } } } } @IsaSAT_Rephase_LLVM_rephase_heur_impl ({ { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } } } } } %a1k)
-    %xq = call i64 @IsaSAT_Rephase_LLVM_current_rephasing_phase ({ { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } } } } } %xp)
-    %xr = call i64 @IsaSAT_Show_LLVM_current_restart_phase_impl ({ { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } } } } } %xp)
-    call void @IsaSAT_Show_LLVM_isasat_print_progress_impl (i64 %xq, i64 %xr, { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } } %a1j, i64 %a1n)
+    %xp = call i64 @IsaSAT_Show_LLVM_current_restart_phase_impl ({ { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } } } } } %a1k)
+    %xq = call { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } } } } } @IsaSAT_Rephase_LLVM_rephase_heur_impl (i64 %xp, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } } } } } %a1k)
+    %xr = call i64 @IsaSAT_Rephase_LLVM_current_rephasing_phase ({ { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } } } } } %xq)
+    call void @IsaSAT_Show_LLVM_isasat_print_progress_impl (i64 %xr, i64 %xp, { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } } %a1j, i64 %a1n)
     %xt = insertvalue { { { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } }, { { i64, { i64, i32* } }, { { i1, { i32, i1* } }, { i64, { { i64, { i64, { i64, { i64, { i32, i1 } }* } }* }, { { { { i64, { i32, i32 } }*, { i64, { i32, { i32, i32 } } } }, { { i64, { i64, i32* } }, i1* } }, { i32, { { i8*, { i64, { i64, i32* } } }, { { { i64, i1* }, { i32, i32 } }, { { i64, { i64, i32* } }, { { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } }, { { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } } } } }, { { i64, { i64, i64* } }, { { i64, { i64, i64* } }, { i64, { { i1, { i1, i1 } }, { i64, { i64, i32* } } } } } } } } } } } } } } } } } } zeroinitializer, { { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } } %a1, 0
     %xu = insertvalue { { i1, { i1, i1 } }, { i64, { i64, i32* } } } zeroinitializer, { i1, { i1, i1 } } %a1o, 0
     %tmpaa = insertvalue { { i1, { i1, i1 } }, { i64, { i64, i32* } } } %xu, { i64, { i64, i32* } } %a2o, 1
@@ -3774,7 +3773,7 @@ define { { { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64
     %tmpca = insertvalue { { i64, { i64, i64* } }, { i64, { { i1, { i1, i1 } }, { i64, { i64, i32* } } } } } %xw, { i64, { { i1, { i1, i1 } }, { i64, { i64, i32* } } } } %tmpba, 1
     %xx = insertvalue { { i64, { i64, i64* } }, { { i64, { i64, i64* } }, { i64, { { i1, { i1, i1 } }, { i64, { i64, i32* } } } } } } zeroinitializer, { i64, { i64, i64* } } %a1l, 0
     %tmpda = insertvalue { { i64, { i64, i64* } }, { { i64, { i64, i64* } }, { i64, { { i1, { i1, i1 } }, { i64, { i64, i32* } } } } } } %xx, { { i64, { i64, i64* } }, { i64, { { i1, { i1, i1 } }, { i64, { i64, i32* } } } } } %tmpca, 1
-    %xy = insertvalue { { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } } } } }, { { i64, { i64, i64* } }, { { i64, { i64, i64* } }, { i64, { { i1, { i1, i1 } }, { i64, { i64, i32* } } } } } } } zeroinitializer, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } } } } } %xp, 0
+    %xy = insertvalue { { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } } } } }, { { i64, { i64, i64* } }, { { i64, { i64, i64* } }, { i64, { { i1, { i1, i1 } }, { i64, { i64, i32* } } } } } } } zeroinitializer, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } } } } } %xq, 0
     %tmpea = insertvalue { { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } } } } }, { { i64, { i64, i64* } }, { { i64, { i64, i64* } }, { i64, { { i1, { i1, i1 } }, { i64, { i64, i32* } } } } } } } %xy, { { i64, { i64, i64* } }, { { i64, { i64, i64* } }, { i64, { { i1, { i1, i1 } }, { i64, { i64, i32* } } } } } } %tmpda, 1
     %xz = insertvalue { { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } }, { { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } } } } }, { { i64, { i64, i64* } }, { { i64, { i64, i64* } }, { i64, { { i1, { i1, i1 } }, { i64, { i64, i32* } } } } } } } } zeroinitializer, { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } } %a1j, 0
     %tmpfa = insertvalue { { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } }, { { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } } } } }, { { i64, { i64, i64* } }, { { i64, { i64, i64* } }, { i64, { { i1, { i1, i1 } }, { i64, { i64, i32* } } } } } } } } %xz, { { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } } } } }, { { i64, { i64, i64* } }, { { i64, { i64, i64* } }, { i64, { { i1, { i1, i1 } }, { i64, { i64, i32* } } } } } } } %tmpea, 1
@@ -4944,13 +4943,13 @@ define i64 @IsaSAT_Rephase_LLVM_current_rephasing_phase({ { i64, { i64, { i64, {
     ret i64 %a1j
 }
 
-define { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } @IsaSAT_Rephase_LLVM_phase_save_rephase_impl({ { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } %x) {
+define { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } @IsaSAT_Rephase_LLVM_phase_save_rephase_impl(i64 %x, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } %x1) {
 
   start:
-    %a1 = extractvalue { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } %x, 0
-    %x1 = extractvalue { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } %x, 1
-    %a1a = extractvalue { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } %x1, 0
-    %xa = extractvalue { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } %x1, 1
+    %a1 = extractvalue { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } %x1, 0
+    %x2 = extractvalue { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } %x1, 1
+    %a1a = extractvalue { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } %x2, 0
+    %xa = extractvalue { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } %x2, 1
     %a1b = extractvalue { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } %xa, 0
     %xb = extractvalue { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } %xa, 1
     %a1c = extractvalue { i64, { { i64, i1* }, { i64, { i64, i64 } } } } %xb, 0
@@ -4961,13 +4960,17 @@ define { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i6
     %xe = extractvalue { i64, { i64, i64 } } %xd, 1
     %a1f = extractvalue { i64, i64 } %xe, 0
     %a2f = extractvalue { i64, i64 } %xe, 1
-    %xfa = icmp eq i64 %a1f, 0
+    %xfa = icmp eq i64 %x, 0
     br i1 %xfa, label %then, label %else
 
   then:
-    %xg = call { i64, i1* } @IsaSAT_Rephase_LLVM_rephase_init_impl (i1 0, { i64, i1* } %a1)
-    %xh = insertvalue { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } zeroinitializer, { i64, i1* } %xg, 0
-    %tmpb = mul i64 %a2f, 1000
+    %xga = icmp eq i64 %a1f, 0
+    br i1 %xga, label %thena, label %elsea
+
+  thena:
+    %xh = call { i64, i1* } @IsaSAT_Rephase_LLVM_rephase_init_impl (i1 0, { i64, i1* } %a1)
+    %xi = insertvalue { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } zeroinitializer, { i64, i1* } %xh, 0
+    %tmpb = mul i64 %a2f, 100
     %tmpc = add i64 %tmpb, %a1e
     %xk = insertvalue { i64, i64 } zeroinitializer, i64 1, 0
     %tmpab = insertvalue { i64, i64 } %xk, i64 %a2f, 1
@@ -4980,18 +4983,18 @@ define { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i6
     %xo = insertvalue { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } zeroinitializer, { i64, i1* } %a1b, 0
     %tmpg = insertvalue { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } %xo, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } %tmpf, 1
     %xp = insertvalue { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } zeroinitializer, i64 %a1a, 0
-    %x2 = insertvalue { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } %xp, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } %tmpg, 1
-    %x3 = insertvalue { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } %xh, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } %x2, 1
-    br label %ctd_if
+    %x3 = insertvalue { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } %xp, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } %tmpg, 1
+    %x4 = insertvalue { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } %xi, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } %x3, 1
+    br label %ctd_ifa
 
-  else:
-    %xga = icmp eq i64 %a1f, 1
-    br i1 %xga, label %thena, label %elsea
+  elsea:
+    %xha = icmp eq i64 %a1f, 1
+    br i1 %xha, label %thenb, label %elseb
 
-  thena:
-    %xh1 = call { i64, i1* } @IsaSAT_Rephase_LLVM_copy_phase_impl ({ i64, i1* } %a1d, { i64, i1* } %a1)
-    %xj = insertvalue { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } zeroinitializer, { i64, i1* } %xh1, 0
-    %tmpa = mul i64 %a2f, 1000
+  thenb:
+    %xi1 = call { i64, i1* } @IsaSAT_Rephase_LLVM_copy_phase_impl ({ i64, i1* } %a1d, { i64, i1* } %a1)
+    %xj = insertvalue { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } zeroinitializer, { i64, i1* } %xi1, 0
+    %tmpa = mul i64 %a2f, 100
     %tmpb1 = add i64 %tmpa, %a1e
     %xl1 = insertvalue { i64, i64 } zeroinitializer, i64 2, 0
     %tmpab1 = insertvalue { i64, i64 } %xl1, i64 %a2f, 1
@@ -5004,18 +5007,18 @@ define { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i6
     %xp1 = insertvalue { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } zeroinitializer, { i64, i1* } %a1b, 0
     %tmpf1 = insertvalue { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } %xp1, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } %tmpe1, 1
     %xq = insertvalue { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } zeroinitializer, i64 %a1a, 0
-    %x4 = insertvalue { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } %xq, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } %tmpf1, 1
-    %x5 = insertvalue { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } %xj, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } %x4, 1
-    br label %ctd_ifa
+    %x5 = insertvalue { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } %xq, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } %tmpf1, 1
+    %x6 = insertvalue { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } %xj, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } %x5, 1
+    br label %ctd_ifb
 
-  elsea:
-    %xha = icmp eq i64 %a1f, 2
-    br i1 %xha, label %thenb, label %elseb
+  elseb:
+    %xia = icmp eq i64 %a1f, 2
+    br i1 %xia, label %thenc, label %elsec
 
-  thenb:
+  thenc:
     %xj1 = call { i64, i1* } @IsaSAT_Rephase_LLVM_rephase_init_impl (i1 1, { i64, i1* } %a1)
     %xk1 = insertvalue { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } zeroinitializer, { i64, i1* } %xj1, 0
-    %tmpb2 = mul i64 %a2f, 1000
+    %tmpb2 = mul i64 %a2f, 100
     %tmpc2 = add i64 %tmpb2, %a1e
     %xm2 = insertvalue { i64, i64 } zeroinitializer, i64 3, 0
     %tmpab2 = insertvalue { i64, i64 } %xm2, i64 %a2f, 1
@@ -5028,18 +5031,18 @@ define { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i6
     %xq1 = insertvalue { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } zeroinitializer, { i64, i1* } %a1b, 0
     %tmpg1 = insertvalue { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } %xq1, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } %tmpf2, 1
     %xr = insertvalue { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } zeroinitializer, i64 %a1a, 0
-    %x6 = insertvalue { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } %xr, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } %tmpg1, 1
-    %x7 = insertvalue { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } %xk1, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } %x6, 1
-    br label %ctd_ifb
+    %x7 = insertvalue { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } %xr, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } %tmpg1, 1
+    %x8 = insertvalue { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } %xk1, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } %x7, 1
+    br label %ctd_ifc
 
-  elseb:
+  elsec:
     %xja = icmp eq i64 %a1f, 3
-    br i1 %xja, label %thenc, label %elsec
+    br i1 %xja, label %thend, label %elsed
 
-  thenc:
+  thend:
     %xk2 = call { i64, i1* } @IsaSAT_Rephase_LLVM_rephase_random_impl (i64 %a1e, { i64, i1* } %a1)
     %xl2 = insertvalue { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } zeroinitializer, { i64, i1* } %xk2, 0
-    %tmpa1 = mul i64 %a2f, 1000
+    %tmpa1 = mul i64 %a2f, 100
     %tmpb3 = add i64 %tmpa1, %a1e
     %xn3 = insertvalue { i64, i64 } zeroinitializer, i64 4, 0
     %tmpab3 = insertvalue { i64, i64 } %xn3, i64 %a2f, 1
@@ -5052,15 +5055,15 @@ define { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i6
     %xr1 = insertvalue { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } zeroinitializer, { i64, i1* } %a1b, 0
     %tmpf3 = insertvalue { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } %xr1, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } %tmpe3, 1
     %xs = insertvalue { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } zeroinitializer, i64 %a1a, 0
-    %x8 = insertvalue { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } %xs, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } %tmpf3, 1
-    %x9 = insertvalue { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } %xl2, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } %x8, 1
-    br label %ctd_ifc
+    %x9 = insertvalue { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } %xs, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } %tmpf3, 1
+    %x10 = insertvalue { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } %xl2, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } %x9, 1
+    br label %ctd_ifd
 
-  elsec:
+  elsed:
     %xk3 = call { i64, i1* } @IsaSAT_Rephase_LLVM_copy_phase_impl ({ i64, i1* } %a1d, { i64, i1* } %a1)
     %xl3 = insertvalue { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } zeroinitializer, { i64, i1* } %xk3, 0
     %tmpb4 = add i64 1, %a2f
-    %tmpc4 = mul i64 %tmpb4, 1000
+    %tmpc4 = mul i64 %tmpb4, 100
     %tmpd4 = add i64 %tmpc4, %a1e
     %tmpba = add i64 %a2f, 1
     %xo4 = insertvalue { i64, i64 } zeroinitializer, i64 0, 0
@@ -5074,25 +5077,135 @@ define { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i6
     %xs1 = insertvalue { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } zeroinitializer, { i64, i1* } %a1b, 0
     %tmph = insertvalue { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } %xs1, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } %tmpg2, 1
     %xt = insertvalue { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } zeroinitializer, i64 %a1a, 0
-    %x10 = insertvalue { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } %xt, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } %tmph, 1
-    %x11 = insertvalue { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } %xl3, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } %x10, 1
+    %x11 = insertvalue { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } %xt, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } %tmph, 1
+    %x12 = insertvalue { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } %xl3, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } %x11, 1
+    br label %ctd_ifd
+
+  ctd_ifd:
+    %x13 = phi { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } [ %x12, %elsed ], [ %x10, %thend ]
     br label %ctd_ifc
 
   ctd_ifc:
-    %x12 = phi { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } [ %x11, %elsec ], [ %x9, %thenc ]
+    %x14 = phi { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } [ %x13, %ctd_ifd ], [ %x8, %thenc ]
     br label %ctd_ifb
 
   ctd_ifb:
-    %x13 = phi { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } [ %x12, %ctd_ifc ], [ %x7, %thenb ]
+    %x15 = phi { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } [ %x14, %ctd_ifc ], [ %x6, %thenb ]
     br label %ctd_ifa
 
   ctd_ifa:
-    %x14 = phi { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } [ %x13, %ctd_ifb ], [ %x5, %thena ]
+    %x16 = phi { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } [ %x15, %ctd_ifb ], [ %x4, %thena ]
+    br label %ctd_if
+
+  else:
+    %xga1 = icmp eq i64 %a1f, 0
+    br i1 %xga1, label %thene, label %elsee
+
+  thene:
+    %xh1 = call { i64, i1* } @IsaSAT_Rephase_LLVM_rephase_init_impl (i1 0, { i64, i1* } %a1)
+    %xi2 = insertvalue { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } zeroinitializer, { i64, i1* } %xh1, 0
+    %tmpb5 = mul i64 %a2f, 100
+    %tmpc5 = add i64 %tmpb5, %a1e
+    %xk4 = insertvalue { i64, i64 } zeroinitializer, i64 1, 0
+    %tmpab5 = insertvalue { i64, i64 } %xk4, i64 %a2f, 1
+    %xl4 = insertvalue { i64, { i64, i64 } } zeroinitializer, i64 %tmpc5, 0
+    %tmpd5 = insertvalue { i64, { i64, i64 } } %xl4, { i64, i64 } %tmpab5, 1
+    %xm3 = insertvalue { { i64, i1* }, { i64, { i64, i64 } } } zeroinitializer, { i64, i1* } %a1d, 0
+    %tmpe5 = insertvalue { { i64, i1* }, { i64, { i64, i64 } } } %xm3, { i64, { i64, i64 } } %tmpd5, 1
+    %xn4 = insertvalue { i64, { { i64, i1* }, { i64, { i64, i64 } } } } zeroinitializer, i64 %a1c, 0
+    %tmpf5 = insertvalue { i64, { { i64, i1* }, { i64, { i64, i64 } } } } %xn4, { { i64, i1* }, { i64, { i64, i64 } } } %tmpe5, 1
+    %xo5 = insertvalue { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } zeroinitializer, { i64, i1* } %a1b, 0
+    %tmpg3 = insertvalue { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } %xo5, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } %tmpf5, 1
+    %xp5 = insertvalue { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } zeroinitializer, i64 %a1a, 0
+    %x17 = insertvalue { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } %xp5, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } %tmpg3, 1
+    %x18 = insertvalue { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } %xi2, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } %x17, 1
+    br label %ctd_ife
+
+  elsee:
+    %xha1 = icmp eq i64 %a1f, 1
+    br i1 %xha1, label %thenf, label %elsef
+
+  thenf:
+    %xi3 = call { i64, i1* } @IsaSAT_Rephase_LLVM_copy_phase_impl ({ i64, i1* } %a1d, { i64, i1* } %a1)
+    %xj2 = insertvalue { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } zeroinitializer, { i64, i1* } %xi3, 0
+    %tmpa2 = mul i64 %a2f, 100
+    %tmpb6 = add i64 %tmpa2, %a1e
+    %xl5 = insertvalue { i64, i64 } zeroinitializer, i64 2, 0
+    %tmpab6 = insertvalue { i64, i64 } %xl5, i64 %a2f, 1
+    %xm4 = insertvalue { i64, { i64, i64 } } zeroinitializer, i64 %tmpb6, 0
+    %tmpc6 = insertvalue { i64, { i64, i64 } } %xm4, { i64, i64 } %tmpab6, 1
+    %xn5 = insertvalue { { i64, i1* }, { i64, { i64, i64 } } } zeroinitializer, { i64, i1* } %a1d, 0
+    %tmpd6 = insertvalue { { i64, i1* }, { i64, { i64, i64 } } } %xn5, { i64, { i64, i64 } } %tmpc6, 1
+    %xo6 = insertvalue { i64, { { i64, i1* }, { i64, { i64, i64 } } } } zeroinitializer, i64 %a1c, 0
+    %tmpe6 = insertvalue { i64, { { i64, i1* }, { i64, { i64, i64 } } } } %xo6, { { i64, i1* }, { i64, { i64, i64 } } } %tmpd6, 1
+    %xp6 = insertvalue { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } zeroinitializer, { i64, i1* } %a1b, 0
+    %tmpf6 = insertvalue { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } %xp6, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } %tmpe6, 1
+    %xq4 = insertvalue { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } zeroinitializer, i64 %a1a, 0
+    %x19 = insertvalue { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } %xq4, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } %tmpf6, 1
+    %x20 = insertvalue { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } %xj2, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } %x19, 1
+    br label %ctd_iff
+
+  elsef:
+    %xia1 = icmp eq i64 %a1f, 2
+    br i1 %xia1, label %theng, label %elseg
+
+  theng:
+    %xj3 = call { i64, i1* } @IsaSAT_Rephase_LLVM_rephase_init_impl (i1 1, { i64, i1* } %a1)
+    %xk5 = insertvalue { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } zeroinitializer, { i64, i1* } %xj3, 0
+    %tmpb7 = mul i64 %a2f, 100
+    %tmpc7 = add i64 %tmpb7, %a1e
+    %xm5 = insertvalue { i64, i64 } zeroinitializer, i64 3, 0
+    %tmpab7 = insertvalue { i64, i64 } %xm5, i64 %a2f, 1
+    %xn6 = insertvalue { i64, { i64, i64 } } zeroinitializer, i64 %tmpc7, 0
+    %tmpd7 = insertvalue { i64, { i64, i64 } } %xn6, { i64, i64 } %tmpab7, 1
+    %xo7 = insertvalue { { i64, i1* }, { i64, { i64, i64 } } } zeroinitializer, { i64, i1* } %a1d, 0
+    %tmpe7 = insertvalue { { i64, i1* }, { i64, { i64, i64 } } } %xo7, { i64, { i64, i64 } } %tmpd7, 1
+    %xp7 = insertvalue { i64, { { i64, i1* }, { i64, { i64, i64 } } } } zeroinitializer, i64 %a1c, 0
+    %tmpf7 = insertvalue { i64, { { i64, i1* }, { i64, { i64, i64 } } } } %xp7, { { i64, i1* }, { i64, { i64, i64 } } } %tmpe7, 1
+    %xq5 = insertvalue { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } zeroinitializer, { i64, i1* } %a1b, 0
+    %tmpg4 = insertvalue { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } %xq5, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } %tmpf7, 1
+    %xr3 = insertvalue { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } zeroinitializer, i64 %a1a, 0
+    %x21 = insertvalue { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } %xr3, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } %tmpg4, 1
+    %x22 = insertvalue { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } %xk5, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } %x21, 1
+    br label %ctd_ifg
+
+  elseg:
+    %xj4 = call { i64, i1* } @IsaSAT_Rephase_LLVM_copy_phase_impl ({ i64, i1* } %a1d, { i64, i1* } %a1)
+    %xk6 = insertvalue { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } zeroinitializer, { i64, i1* } %xj4, 0
+    %tmpb8 = add i64 1, %a2f
+    %tmpc8 = mul i64 %tmpb8, 100
+    %tmpd8 = add i64 %tmpc8, %a1e
+    %tmpba1 = add i64 %a2f, 1
+    %xn7 = insertvalue { i64, i64 } zeroinitializer, i64 0, 0
+    %tmpab8 = insertvalue { i64, i64 } %xn7, i64 %tmpba1, 1
+    %xo8 = insertvalue { i64, { i64, i64 } } zeroinitializer, i64 %tmpd8, 0
+    %tmpe8 = insertvalue { i64, { i64, i64 } } %xo8, { i64, i64 } %tmpab8, 1
+    %xp8 = insertvalue { { i64, i1* }, { i64, { i64, i64 } } } zeroinitializer, { i64, i1* } %a1d, 0
+    %tmpf8 = insertvalue { { i64, i1* }, { i64, { i64, i64 } } } %xp8, { i64, { i64, i64 } } %tmpe8, 1
+    %xq6 = insertvalue { i64, { { i64, i1* }, { i64, { i64, i64 } } } } zeroinitializer, i64 %a1c, 0
+    %tmpg5 = insertvalue { i64, { { i64, i1* }, { i64, { i64, i64 } } } } %xq6, { { i64, i1* }, { i64, { i64, i64 } } } %tmpf8, 1
+    %xr4 = insertvalue { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } zeroinitializer, { i64, i1* } %a1b, 0
+    %tmph1 = insertvalue { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } %xr4, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } %tmpg5, 1
+    %xs2 = insertvalue { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } zeroinitializer, i64 %a1a, 0
+    %x23 = insertvalue { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } %xs2, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } %tmph1, 1
+    %x24 = insertvalue { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } %xk6, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } %x23, 1
+    br label %ctd_ifg
+
+  ctd_ifg:
+    %x25 = phi { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } [ %x24, %elseg ], [ %x22, %theng ]
+    br label %ctd_iff
+
+  ctd_iff:
+    %x26 = phi { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } [ %x25, %ctd_ifg ], [ %x20, %thenf ]
+    br label %ctd_ife
+
+  ctd_ife:
+    %x27 = phi { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } [ %x26, %ctd_iff ], [ %x18, %thene ]
     br label %ctd_if
 
   ctd_if:
-    %x15 = phi { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } [ %x14, %ctd_ifa ], [ %x3, %then ]
-    ret { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } %x15
+    %x28 = phi { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } [ %x27, %ctd_ife ], [ %x16, %ctd_ifa ]
+    ret { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } %x28
 }
 
 define i64 @IsaSAT_Setup_LLVM_full_arena_length_st_impl({ { { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } }, { { i64, { i64, i32* } }, { { i1, { i32, i1* } }, { i64, { { i64, { i64, { i64, { i64, { i32, i1 } }* } }* }, { { { { i64, { i32, i32 } }*, { i64, { i32, { i32, i32 } } } }, { { i64, { i64, i32* } }, i1* } }, { i32, { { i8*, { i64, { i64, i32* } } }, { { { i64, i1* }, { i32, i32 } }, { { i64, { i64, i32* } }, { { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } }, { { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } } } } }, { { i64, { i64, i64* } }, { { i64, { i64, i64* } }, { i64, { { i1, { i1, i1 } }, { i64, { i64, i32* } } } } } } } } } } } } } } } } } } %x) {
@@ -5435,7 +5548,7 @@ define { i64, { i64, i32* } } @IsaSAT_VMTF_LLVM_quicksort_vmtf_nth_ref_code({ i6
     %tmpa = insertvalue { i64, { i64, { i64, i32* } } } %x4, { i64, { i64, i32* } } %x3, 1
     %xa = insertvalue { i64, { i64, { i64, { i64, i32* } } } } zeroinitializer, i64 %x1, 0
     %x5 = insertvalue { i64, { i64, { i64, { i64, i32* } } } } %xa, { i64, { i64, { i64, i32* } } } %tmpa, 1
-    %x6 = call { i64, { i64, i32* } } @IsaSAT_LLVM_experiment17801956_quicksort_vmtf_nth_ref_code_f_017923956 ({ i64, { i32, i32 } }* %x, { i64, { i64, { i64, { i64, i32* } } } } %x5)
+    %x6 = call { i64, { i64, i32* } } @IsaSAT_LLVM_experiment9954716_quicksort_vmtf_nth_ref_code_f_010078648 ({ i64, { i32, i32 } }* %x, { i64, { i64, { i64, { i64, i32* } } } } %x5)
     ret { i64, { i64, i32* } } %x6
 }
 
@@ -6192,8 +6305,8 @@ define { { { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64
     %tmpeh = insertvalue { i64, { i64, { i64, i64 } } } %ze, { i64, { i64, i64 } } %tmpfg, 1
     %zf = insertvalue { i64, { i64, { i64, { i64, i64 } } } } zeroinitializer, i64 0, 0
     %tmpdh = insertvalue { i64, { i64, { i64, { i64, i64 } } } } %zf, { i64, { i64, { i64, i64 } } } %tmpeh, 1
-    %zg = insertvalue { i64, i64 } zeroinitializer, i64 0, 0
-    %tmpib = insertvalue { i64, i64 } %zg, i64 0, 1
+    %zg = insertvalue { i64, i64 } zeroinitializer, i64 1000, 0
+    %tmpib = insertvalue { i64, i64 } %zg, i64 1, 1
     %zh = insertvalue { i64, { i64, i64 } } zeroinitializer, i64 10000, 0
     %tmphd = insertvalue { i64, { i64, i64 } } %zh, { i64, i64 } %tmpib, 1
     %zi = insertvalue { { i64, i1* }, { i64, { i64, i64 } } } zeroinitializer, { i64, i1* } %xz, 0
@@ -11164,7 +11277,7 @@ define { i64, { i64, i64* } } @IsaSAT_Restart_Heuristics_LLVM_sort_clauses_by_sc
     %tmpa = insertvalue { i64, { i64, { i64, i64* } } } %xf, { i64, { i64, i64* } } %x1, 1
     %xg = insertvalue { i64, { i64, { i64, { i64, i64* } } } } zeroinitializer, i64 0, 0
     %x3 = insertvalue { i64, { i64, { i64, { i64, i64* } } } } %xg, { i64, { i64, { i64, i64* } } } %tmpa, 1
-    %x4 = call { i64, { i64, i64* } } @IsaSAT_LLVM_experiment17801956_sort_clauses_by_score_code_f_017854396 ({ i64, { i64, i32* } } %x, { i64, { i64, { i64, { i64, i64* } } } } %x3)
+    %x4 = call { i64, { i64, i64* } } @IsaSAT_LLVM_experiment9954716_sort_clauses_by_score_code_f_010009088 ({ i64, { i64, i32* } } %x, { i64, { i64, { i64, { i64, i64* } } } } %x3)
     br label %ctd_if
 
   ctd_if:
@@ -14380,6 +14493,77 @@ define i1 @IsaSAT_Conflict_Analysis_LLVM_extract_valuse_of_lookup_conflict_impl(
     ret i1 %a1
 }
 
+define { i64, { i64, i64* } } @IsaSAT_LLVM_experiment9954716_sort_clauses_by_score_code_f_010009088({ i64, { i64, i32* } } %ai, { i64, { i64, { i64, { i64, i64* } } } } %x) {
+
+  start:
+    %a1 = extractvalue { i64, { i64, { i64, { i64, i64* } } } } %x, 0
+    %xga = extractvalue { i64, { i64, { i64, { i64, i64* } } } } %x, 1
+    %a1a = extractvalue { i64, { i64, { i64, i64* } } } %xga, 0
+    %a2a = extractvalue { i64, { i64, { i64, i64* } } } %xga, 1
+    %xh = call { { i64, { i64, i64* } }, i64 } @IsaSAT_Restart_Heuristics_LLVM_partition_clause_fast_code ({ i64, { i64, i32* } } %ai, i64 %a1, i64 %a1a, { i64, { i64, i64* } } %a2a)
+    %a1b = extractvalue { { i64, { i64, i64* } }, i64 } %xh, 0
+    %a2b = extractvalue { { i64, { i64, i64* } }, i64 } %xh, 1
+    %xi = icmp sle i64 1, %a2b
+    br i1 %xi, label %then, label %else
+
+  then:
+    %x1 = sub i64 %a2b, 1
+    br label %ctd_if
+
+  else:
+    br label %ctd_if
+
+  ctd_if:
+    %xj = phi i64 [ 0, %else ], [ %x1, %then ]
+    %xk = icmp sle i64 %xj, %a1
+    br i1 %xk, label %thena, label %elsea
+
+  thena:
+    br label %ctd_ifa
+
+  elsea:
+    %xl = icmp sle i64 1, %a2b
+    br i1 %xl, label %thenb, label %elseb
+
+  thenb:
+    %x2 = sub i64 %a2b, 1
+    br label %ctd_ifb
+
+  elseb:
+    br label %ctd_ifb
+
+  ctd_ifb:
+    %xm = phi i64 [ 0, %elseb ], [ %x2, %thenb ]
+    %xn = insertvalue { i64, { i64, { i64, i64* } } } zeroinitializer, i64 %xm, 0
+    %tmpda = insertvalue { i64, { i64, { i64, i64* } } } %xn, { i64, { i64, i64* } } %a1b, 1
+    %xo = insertvalue { i64, { i64, { i64, { i64, i64* } } } } zeroinitializer, i64 %a1, 0
+    %x3 = insertvalue { i64, { i64, { i64, { i64, i64* } } } } %xo, { i64, { i64, { i64, i64* } } } %tmpda, 1
+    %x4 = call { i64, { i64, i64* } } @IsaSAT_LLVM_experiment9954716_sort_clauses_by_score_code_f_010009088 ({ i64, { i64, i32* } } %ai, { i64, { i64, { i64, { i64, i64* } } } } %x3)
+    br label %ctd_ifa
+
+  ctd_ifa:
+    %xl1 = phi { i64, { i64, i64* } } [ %x4, %ctd_ifb ], [ %a1b, %thena ]
+    %xma = add i64 %a2b, 1
+    %xn1 = icmp sle i64 %a1a, %xma
+    br i1 %xn1, label %thenc, label %elsec
+
+  thenc:
+    br label %ctd_ifc
+
+  elsec:
+    %xoa = add i64 %a2b, 1
+    %xp = insertvalue { i64, { i64, { i64, i64* } } } zeroinitializer, i64 %a1a, 0
+    %tmpca = insertvalue { i64, { i64, { i64, i64* } } } %xp, { i64, { i64, i64* } } %xl1, 1
+    %xq = insertvalue { i64, { i64, { i64, { i64, i64* } } } } zeroinitializer, i64 %xoa, 0
+    %x5 = insertvalue { i64, { i64, { i64, { i64, i64* } } } } %xq, { i64, { i64, { i64, i64* } } } %tmpca, 1
+    %x6 = call { i64, { i64, i64* } } @IsaSAT_LLVM_experiment9954716_sort_clauses_by_score_code_f_010009088 ({ i64, { i64, i32* } } %ai, { i64, { i64, { i64, { i64, i64* } } } } %x5)
+    br label %ctd_ifc
+
+  ctd_ifc:
+    %x7 = phi { i64, { i64, i64* } } [ %x6, %elsec ], [ %xl1, %thenc ]
+    ret { i64, { i64, i64* } } %x7
+}
+
 define { { i64, { i64, i32* } }, { { { i64, { i64, i32* } }, { { i64, { i64, i64* } }, { i64, { i64, i64* } } } }, { i64, { i64, { i64, { i64, { i32, i1 } }* } }* } } } @IsaSAT_Restart_Heuristics_LLVM_isasat_GC_clauses_prog_single_wl_code({ i64, { i64, i32* } } %x, { { i64, { i64, i32* } }, { { i64, { i64, i64* } }, { i64, { i64, i64* } } } } %x1, { i64, { i64, { i64, { i64, { i32, i1 } }* } }* } %x2, i32 %x3) {
 
   start:
@@ -14441,75 +14625,55 @@ define { { i64, { i64, i32* } }, { { { i64, { i64, i32* } }, { { i64, { i64, i64
     ret { { i64, { i64, i32* } }, { { { i64, { i64, i32* } }, { { i64, { i64, i64* } }, { i64, { i64, i64* } } } }, { i64, { i64, { i64, { i64, { i32, i1 } }* } }* } } } %x6
 }
 
-define { i64, { i64, i64* } } @IsaSAT_LLVM_experiment17801956_sort_clauses_by_score_code_f_017854396({ i64, { i64, i32* } } %ai, { i64, { i64, { i64, { i64, i64* } } } } %x) {
+define { i64, { i64, i32* } } @IsaSAT_LLVM_experiment9954716_quicksort_vmtf_nth_ref_code_f_010078648({ i64, { i32, i32 } }* %ai, { i64, { i64, { i64, { i64, i32* } } } } %x) {
 
   start:
-    %a1 = extractvalue { i64, { i64, { i64, { i64, i64* } } } } %x, 0
-    %xga = extractvalue { i64, { i64, { i64, { i64, i64* } } } } %x, 1
-    %a1a = extractvalue { i64, { i64, { i64, i64* } } } %xga, 0
-    %a2a = extractvalue { i64, { i64, { i64, i64* } } } %xga, 1
-    %xh = call { { i64, { i64, i64* } }, i64 } @IsaSAT_Restart_Heuristics_LLVM_partition_clause_fast_code ({ i64, { i64, i32* } } %ai, i64 %a1, i64 %a1a, { i64, { i64, i64* } } %a2a)
-    %a1b = extractvalue { { i64, { i64, i64* } }, i64 } %xh, 0
-    %a2b = extractvalue { { i64, { i64, i64* } }, i64 } %xh, 1
-    %xi = icmp sle i64 1, %a2b
-    br i1 %xi, label %then, label %else
+    %a1 = extractvalue { i64, { i64, { i64, { i64, i32* } } } } %x, 0
+    %xaa = extractvalue { i64, { i64, { i64, { i64, i32* } } } } %x, 1
+    %a1a = extractvalue { i64, { i64, { i64, i32* } } } %xaa, 0
+    %a2a = extractvalue { i64, { i64, { i64, i32* } } } %xaa, 1
+    %xba = call { { i64, { i64, i32* } }, i64 } @IsaSAT_VMTF_LLVM_partition_between_ref_vmtf_code ({ i64, { i32, i32 } }* %ai, i64 %a1, i64 %a1a, { i64, { i64, i32* } } %a2a)
+    %a1b = extractvalue { { i64, { i64, i32* } }, i64 } %xba, 0
+    %a2b = extractvalue { { i64, { i64, i32* } }, i64 } %xba, 1
+    %xca = icmp eq i64 %a2b, 0
+    %xda = add i64 %a1, 1
+    %xe = icmp sle i64 %a2b, %xda
+    %xf = or i1 %xca, %xe
+    br i1 %xf, label %then, label %else
 
   then:
-    %x1 = sub i64 %a2b, 1
     br label %ctd_if
 
   else:
+    %xga = sub i64 %a2b, 1
+    %xh = insertvalue { i64, { i64, { i64, i32* } } } zeroinitializer, i64 %xga, 0
+    %tmpac = insertvalue { i64, { i64, { i64, i32* } } } %xh, { i64, { i64, i32* } } %a1b, 1
+    %xi = insertvalue { i64, { i64, { i64, { i64, i32* } } } } zeroinitializer, i64 %a1, 0
+    %x1 = insertvalue { i64, { i64, { i64, { i64, i32* } } } } %xi, { i64, { i64, { i64, i32* } } } %tmpac, 1
+    %x2 = call { i64, { i64, i32* } } @IsaSAT_LLVM_experiment9954716_quicksort_vmtf_nth_ref_code_f_010078648 ({ i64, { i32, i32 } }* %ai, { i64, { i64, { i64, { i64, i32* } } } } %x1)
     br label %ctd_if
 
   ctd_if:
-    %xj = phi i64 [ 0, %else ], [ %x1, %then ]
-    %xk = icmp sle i64 %xj, %a1
-    br i1 %xk, label %thena, label %elsea
+    %xg = phi { i64, { i64, i32* } } [ %x2, %else ], [ %a1b, %then ]
+    %xha = add i64 %a2b, 1
+    %xi1 = icmp sle i64 %a1a, %xha
+    br i1 %xi1, label %thena, label %elsea
 
   thena:
     br label %ctd_ifa
 
   elsea:
-    %xl = icmp sle i64 1, %a2b
-    br i1 %xl, label %thenb, label %elseb
-
-  thenb:
-    %x2 = sub i64 %a2b, 1
-    br label %ctd_ifb
-
-  elseb:
-    br label %ctd_ifb
-
-  ctd_ifb:
-    %xm = phi i64 [ 0, %elseb ], [ %x2, %thenb ]
-    %xn = insertvalue { i64, { i64, { i64, i64* } } } zeroinitializer, i64 %xm, 0
-    %tmpda = insertvalue { i64, { i64, { i64, i64* } } } %xn, { i64, { i64, i64* } } %a1b, 1
-    %xo = insertvalue { i64, { i64, { i64, { i64, i64* } } } } zeroinitializer, i64 %a1, 0
-    %x3 = insertvalue { i64, { i64, { i64, { i64, i64* } } } } %xo, { i64, { i64, { i64, i64* } } } %tmpda, 1
-    %x4 = call { i64, { i64, i64* } } @IsaSAT_LLVM_experiment17801956_sort_clauses_by_score_code_f_017854396 ({ i64, { i64, i32* } } %ai, { i64, { i64, { i64, { i64, i64* } } } } %x3)
+    %xja = add i64 %a2b, 1
+    %xk = insertvalue { i64, { i64, { i64, i32* } } } zeroinitializer, i64 %a1a, 0
+    %tmpac1 = insertvalue { i64, { i64, { i64, i32* } } } %xk, { i64, { i64, i32* } } %xg, 1
+    %xl = insertvalue { i64, { i64, { i64, { i64, i32* } } } } zeroinitializer, i64 %xja, 0
+    %x3 = insertvalue { i64, { i64, { i64, { i64, i32* } } } } %xl, { i64, { i64, { i64, i32* } } } %tmpac1, 1
+    %x4 = call { i64, { i64, i32* } } @IsaSAT_LLVM_experiment9954716_quicksort_vmtf_nth_ref_code_f_010078648 ({ i64, { i32, i32 } }* %ai, { i64, { i64, { i64, { i64, i32* } } } } %x3)
     br label %ctd_ifa
 
   ctd_ifa:
-    %xl1 = phi { i64, { i64, i64* } } [ %x4, %ctd_ifb ], [ %a1b, %thena ]
-    %xma = add i64 %a2b, 1
-    %xn1 = icmp sle i64 %a1a, %xma
-    br i1 %xn1, label %thenc, label %elsec
-
-  thenc:
-    br label %ctd_ifc
-
-  elsec:
-    %xoa = add i64 %a2b, 1
-    %xp = insertvalue { i64, { i64, { i64, i64* } } } zeroinitializer, i64 %a1a, 0
-    %tmpca = insertvalue { i64, { i64, { i64, i64* } } } %xp, { i64, { i64, i64* } } %xl1, 1
-    %xq = insertvalue { i64, { i64, { i64, { i64, i64* } } } } zeroinitializer, i64 %xoa, 0
-    %x5 = insertvalue { i64, { i64, { i64, { i64, i64* } } } } %xq, { i64, { i64, { i64, i64* } } } %tmpca, 1
-    %x6 = call { i64, { i64, i64* } } @IsaSAT_LLVM_experiment17801956_sort_clauses_by_score_code_f_017854396 ({ i64, { i64, i32* } } %ai, { i64, { i64, { i64, { i64, i64* } } } } %x5)
-    br label %ctd_ifc
-
-  ctd_ifc:
-    %x7 = phi { i64, { i64, i64* } } [ %x6, %elsec ], [ %xl1, %thenc ]
-    ret { i64, { i64, i64* } } %x7
+    %x5 = phi { i64, { i64, i32* } } [ %x4, %elsea ], [ %xg, %thena ]
+    ret { i64, { i64, i32* } } %x5
 }
 
 define i64 @IsaSAT_Restart_Heuristics_LLVM_get_the_propagation_reason_pol_st_code({ { { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } }, { { i64, { i64, i32* } }, { { i1, { i32, i1* } }, { i64, { { i64, { i64, { i64, { i64, { i32, i1 } }* } }* }, { { { { i64, { i32, i32 } }*, { i64, { i32, { i32, i32 } } } }, { { i64, { i64, i32* } }, i1* } }, { i32, { { i8*, { i64, { i64, i32* } } }, { { { i64, i1* }, { i32, i32 } }, { { i64, { i64, i32* } }, { { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } }, { { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } } } } }, { { i64, { i64, i64* } }, { { i64, { i64, i64* } }, { i64, { { i1, { i1, i1 } }, { i64, { i64, i32* } } } } } } } } } } } } } } } } } } %x, i32 %x1) {
@@ -14683,57 +14847,6 @@ define { { i1, { i32, i1* } }, { { i64, i32* }, i32 } } @IsaSAT_Backtrack_LLVM_e
     %x10 = insertvalue { { i64, i32* }, i32 } %xp1, i32 %xm1, 1
     %x11 = insertvalue { { i1, { i32, i1* } }, { { i64, i32* }, i32 } } %xna, { { i64, i32* }, i32 } %x10, 1
     ret { { i1, { i32, i1* } }, { { i64, i32* }, i32 } } %x11
-}
-
-define { i64, { i64, i32* } } @IsaSAT_LLVM_experiment17801956_quicksort_vmtf_nth_ref_code_f_017923956({ i64, { i32, i32 } }* %ai, { i64, { i64, { i64, { i64, i32* } } } } %x) {
-
-  start:
-    %a1 = extractvalue { i64, { i64, { i64, { i64, i32* } } } } %x, 0
-    %xaa = extractvalue { i64, { i64, { i64, { i64, i32* } } } } %x, 1
-    %a1a = extractvalue { i64, { i64, { i64, i32* } } } %xaa, 0
-    %a2a = extractvalue { i64, { i64, { i64, i32* } } } %xaa, 1
-    %xba = call { { i64, { i64, i32* } }, i64 } @IsaSAT_VMTF_LLVM_partition_between_ref_vmtf_code ({ i64, { i32, i32 } }* %ai, i64 %a1, i64 %a1a, { i64, { i64, i32* } } %a2a)
-    %a1b = extractvalue { { i64, { i64, i32* } }, i64 } %xba, 0
-    %a2b = extractvalue { { i64, { i64, i32* } }, i64 } %xba, 1
-    %xca = icmp eq i64 %a2b, 0
-    %xda = add i64 %a1, 1
-    %xe = icmp sle i64 %a2b, %xda
-    %xf = or i1 %xca, %xe
-    br i1 %xf, label %then, label %else
-
-  then:
-    br label %ctd_if
-
-  else:
-    %xga = sub i64 %a2b, 1
-    %xh = insertvalue { i64, { i64, { i64, i32* } } } zeroinitializer, i64 %xga, 0
-    %tmpac = insertvalue { i64, { i64, { i64, i32* } } } %xh, { i64, { i64, i32* } } %a1b, 1
-    %xi = insertvalue { i64, { i64, { i64, { i64, i32* } } } } zeroinitializer, i64 %a1, 0
-    %x1 = insertvalue { i64, { i64, { i64, { i64, i32* } } } } %xi, { i64, { i64, { i64, i32* } } } %tmpac, 1
-    %x2 = call { i64, { i64, i32* } } @IsaSAT_LLVM_experiment17801956_quicksort_vmtf_nth_ref_code_f_017923956 ({ i64, { i32, i32 } }* %ai, { i64, { i64, { i64, { i64, i32* } } } } %x1)
-    br label %ctd_if
-
-  ctd_if:
-    %xg = phi { i64, { i64, i32* } } [ %x2, %else ], [ %a1b, %then ]
-    %xha = add i64 %a2b, 1
-    %xi1 = icmp sle i64 %a1a, %xha
-    br i1 %xi1, label %thena, label %elsea
-
-  thena:
-    br label %ctd_ifa
-
-  elsea:
-    %xja = add i64 %a2b, 1
-    %xk = insertvalue { i64, { i64, { i64, i32* } } } zeroinitializer, i64 %a1a, 0
-    %tmpac1 = insertvalue { i64, { i64, { i64, i32* } } } %xk, { i64, { i64, i32* } } %xg, 1
-    %xl = insertvalue { i64, { i64, { i64, { i64, i32* } } } } zeroinitializer, i64 %xja, 0
-    %x3 = insertvalue { i64, { i64, { i64, { i64, i32* } } } } %xl, { i64, { i64, { i64, i32* } } } %tmpac1, 1
-    %x4 = call { i64, { i64, i32* } } @IsaSAT_LLVM_experiment17801956_quicksort_vmtf_nth_ref_code_f_017923956 ({ i64, { i32, i32 } }* %ai, { i64, { i64, { i64, { i64, i32* } } } } %x3)
-    br label %ctd_ifa
-
-  ctd_ifa:
-    %x5 = phi { i64, { i64, i32* } } [ %x4, %elsea ], [ %xg, %thena ]
-    ret { i64, { i64, i32* } } %x5
 }
 
 define i64 @IsaSAT_Setup_LLVM_get_conflict_count_since_last_restart_heur_fast_code({ { { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } }, { { i64, { i64, i32* } }, { { i1, { i32, i1* } }, { i64, { { i64, { i64, { i64, { i64, { i32, i1 } }* } }* }, { { { { i64, { i32, i32 } }*, { i64, { i32, { i32, i32 } } } }, { { i64, { i64, i32* } }, i1* } }, { i32, { { i8*, { i64, { i64, i32* } } }, { { { i64, i1* }, { i32, i32 } }, { { i64, { i64, i32* } }, { { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } }, { { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } } } } }, { { i64, { i64, i64* } }, { { i64, { i64, i64* } }, { i64, { { i1, { i1, i1 } }, { i64, { i64, i32* } } } } } } } } } } } } } } } } } } %x) {
