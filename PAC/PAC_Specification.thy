@@ -186,25 +186,44 @@ proof
 qed
 
 lemma span_explicit':
-  "{v \<in> ideal.span b. vars v \<subseteq> \<V>} = {(\<Sum>v | f v \<noteq> 0. f v * v) | f. finite {v. f v \<noteq> 0} \<and> (\<forall>v. f v \<noteq> 0 \<longrightarrow> v \<in> b) \<and> (\<forall>v. f v \<noteq> 0 \<longrightarrow> vars (f v) \<subseteq> \<V>)}"
+  fixes b :: \<open>int mpoly set\<close>
+  assumes b: \<open>\<Union> (vars `b) \<subseteq> \<V>\<close>
+  shows
+    "{v \<in> ideal.span b. vars v \<subseteq> \<V>} = {(\<Sum>v | f v \<noteq> 0. f v * v) | f. finite {v. f v \<noteq> 0} \<and> (\<forall>v. f v \<noteq> 0 \<longrightarrow> v \<in> b) \<and> (\<forall>v. f v \<noteq> 0 \<longrightarrow> vars (f v) \<subseteq> \<V>)}"
   (is \<open>?A = ?B\<close>)
 proof (standard; standard)
   fix x
   assume \<open>x \<in> ?B\<close>
-  then show \<open>x \<in> ?A\<close>
-    unfolding More_Modules.ideal.span_explicit'
+  then obtain f where
+    x: \<open>x = (\<Sum>v | f v \<noteq> 0. f v * v)\<close> and
+    fin: \<open>finite {v. f v \<noteq> 0}\<close> and
+    v_b: \<open>\<And>v. f v \<noteq> 0 \<Longrightarrow> v \<in> b\<close> and
+    f_b: \<open>\<And>v. f v \<noteq> 0 \<Longrightarrow> vars (f v) \<subseteq> \<V>\<close>
+    unfolding ideal.span_explicit'
+    by auto
+  then have \<open>x \<in> ideal.span b\<close>
+    unfolding ideal.span_explicit'
+    by auto
+  moreover have \<open>\<Union> (vars ` {v. f v \<noteq> 0}) \<union> \<Union> (vars ` f ` {v. f v \<noteq> 0}) \<subseteq> \<V>\<close>
+    using f_b v_b b by blast
+  then have \<open>vars x \<subseteq> \<V>\<close>
+    using vars_sum_vars_union[of f] fin
+    unfolding x
     apply auto
-    
+    by blast
+  ultimately show \<open>x \<in> ?A\<close>
     by auto
 next
   fix x
   assume \<open>x \<in> ?A\<close>
-  then obtain f where
-    \<open>x = (\<Sum>v | f v \<noteq> 0. f v * v)\<close>
-    \<open>finite {v. f v \<noteq> 0}\<close> and
-    \<open>\<forall>v. f v \<noteq> 0 \<longrightarrow> v \<in> b\<close>
-    unfolding More_Modules.ideal.span_explicit'
+  then have \<open>x \<in> ideal b\<close> and
+    \<open>vars x \<subseteq> \<V>\<close>
     by auto
+  from More_Modules.ideal.spanE[OF this(1)] obtain A q where
+    \<open>x = (\<Sum>b\<in>A. q b * b)\<close>
+    \<open>finite A\<close> and
+    \<open>A \<subseteq> b\<close>
+    by metis
     oops
 
 lemma
