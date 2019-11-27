@@ -61,7 +61,6 @@ sepref_def phase_save_rephase_impl
   is \<open>uncurry phase_rephase\<close>
   :: \<open>word_assn\<^sup>k *\<^sub>a phase_heur_assn\<^sup>d \<rightarrow>\<^sub>a phase_heur_assn\<close>
   unfolding phase_rephase_def
-  apply (annot_snat_const "TYPE(64)")
   by sepref
 
 
