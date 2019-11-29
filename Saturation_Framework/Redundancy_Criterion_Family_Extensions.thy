@@ -369,8 +369,36 @@ qed
 
 lemma "calculus_with_red_crit Bot_F Inf_F entails_\<G>_Q Red_Inf_\<G>_Q Red_F_\<G>_empty"
 proof
+  fix N
+  have all_q: "\<forall>q\<in>Q. ({\<iota> \<in> Inf_F. \<G>_Inf_q q \<iota> \<subseteq> Red_Inf_q q (\<G>_set_q q N)} \<subseteq> Inf_F)"
+  proof
+    fix q
+    assume
+      q_in: "q \<in> Q"
+    show "{\<iota> \<in> Inf_F. \<G>_Inf_q q \<iota> \<subseteq> Red_Inf_q q (\<G>_set_q q N)} \<subseteq> Inf_F"
+      using standard_lifting_family[OF q_in] by blast
+  qed
+  have "x \<in> Red_Inf_\<G>_Q N \<Longrightarrow> \<forall>q\<in>Q. x \<in> {\<iota> \<in> Inf_F. \<G>_Inf_q q \<iota> \<subseteq> Red_Inf_q q (\<G>_set_q q N)}"
+    unfolding Red_Inf_\<G>_Q_def by blast
+  then have "x \<in> Red_Inf_\<G>_Q N \<Longrightarrow> x \<in> Inf_F" using all_q Q_not_empty by blast
+  then show "Red_Inf_\<G>_Q N \<subseteq> Inf_F" using Q_not_empty Red_Inf_\<G>_Q_def by auto
+next
+  fix B N
+  assume
+    B_in: "B \<in> Bot_F" and
+    entails_nb: "entails_\<G>_Q N {B}"
+  show "entails_\<G>_Q (N - Red_F_\<G>_empty N) {B}" unfolding entails_\<G>_Q_def
+  proof
+    fix q
+    assume
+      q_in: "q \<in> Q"
+    interpret lift_q: lifting_with_wf_ordering_family Bot_F Inf_F Bot_G "entails_q q" Inf_G "Red_Inf_q q" "Red_F_q q" "\<G>_F_q q" "\<G>_Inf_q q" Prec_F_g
+      using standard_lifting_family[OF q_in] by blast
+    have lift_q_ent: "lift_q.entails_\<G> N {B}"
+      using entails_nb unfolding entails_\<G>_Q_def by (simp add: \<G>_set_q_def q_in lift_q.entails_\<G>_def)
+    show "entails_q q (\<G>_set_q q (N - Red_F_\<G>_empty N)) (\<G>_set_q q {B})
+    using lift_q.Red_F_Bot_F[OF B_in lift_q_ent]
 oops
-
 
 end
 
