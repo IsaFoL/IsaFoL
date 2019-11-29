@@ -396,8 +396,8 @@ next
       using standard_lifting_family[OF q_in] by blast
     have lift_q_ent: "lift_q.entails_\<G> N {B}"
       using entails_nb unfolding entails_\<G>_Q_def by (simp add: \<G>_set_q_def q_in lift_q.entails_\<G>_def)
-    show "entails_q q (\<G>_set_q q (N - Red_F_\<G>_empty N)) (\<G>_set_q q {B})
-    using lift_q.Red_F_Bot_F[OF B_in lift_q_ent]
+    show "entails_q q (\<G>_set_q q (N - Red_F_\<G>_empty N)) (\<G>_set_q q {B})"
+    using lift_q.Red_F_Bot_F[OF B_in lift_q_ent] 
 oops
 
 end
