@@ -1,7 +1,10 @@
 theory IsaSAT_Restart_Heuristics
-imports Watched_Literals.WB_Sort Watched_Literals.Watched_Literals_Watch_List_Restart IsaSAT_Rephase
+imports
+  IsaSAT_Sorting
+  Watched_Literals.WB_Sort Watched_Literals.Watched_Literals_Watch_List_Restart IsaSAT_Rephase
   IsaSAT_Setup IsaSAT_VMTF
 begin
+
 
 lemma all_init_atms_alt_def:
   \<open>set_mset (all_init_atms N NE) = atms_of_mm (mset `# init_clss_lf N) \<union> atms_of_mm NE\<close>
