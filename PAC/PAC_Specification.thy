@@ -2,11 +2,6 @@ theory PAC_Specification
   imports PAC_More_Poly
 begin
 
-inductive_set my_ideal :: \<open>'a :: {plus,times} set \<Rightarrow> 'a set\<close> for A :: \<open>'a set\<close> where
-  \<open>a \<in> A \<Longrightarrow> a \<in> my_ideal A\<close> |
-  \<open>a \<in> my_ideal A \<Longrightarrow> b \<in> my_ideal A \<Longrightarrow> a + b \<in> my_ideal A\<close>|
-  \<open>a \<in> my_ideal A \<Longrightarrow> a*b \<in> my_ideal A\<close>
-
 type_synonym int_poly = \<open>int mpoly\<close>
 definition polynom_bool :: \<open>int_poly set\<close> where
   \<open>polynom_bool = (\<lambda>c. Var c ^ 2 - Var c) ` UNIV\<close>
@@ -14,6 +9,7 @@ definition polynom_bool :: \<open>int_poly set\<close> where
 abbreviation poly_partial_object :: \<open>int_poly partial_object\<close> where
   \<open>poly_partial_object \<equiv> \<lparr>carrier = UNIV\<rparr>\<close>
 
+term partial_object.extend
 abbreviation poly_monoid :: \<open>int_poly monoid\<close> where
   \<open>poly_monoid \<equiv> partial_object.extend poly_partial_object \<lparr>mult = (*), one = 1\<rparr>\<close>
 
@@ -312,155 +308,6 @@ proof -
   qed
 qed
 
-lemma finsum_cong:
-  \<open>finite A \<Longrightarrow> A \<subseteq> carrier p \<Longrightarrow> abelian_monoid p \<Longrightarrow> f \<in> A \<rightarrow> carrier p \<Longrightarrow> (\<And>x. x \<in> A \<Longrightarrow> g x = f x) \<Longrightarrow> finsum p f A = finsum p g A\<close>
-  apply (induction rule: finite_induct)
-  apply (auto simp: abelian_monoid.finsum_insert abelian_monoid.finsum_empty)
-  apply (subst abelian_monoid.finsum_insert)
-  apply auto
-  done
-
-lemma
-  assumes \<open>ring p\<close> and
-    I_P: \<open>I \<subseteq> carrier p\<close> and
-    fin: \<open>finite I\<close>
-  shows \<open>genideal p I = {finsum p (\<lambda>x. mult p (f x) x) I| f. \<forall>x \<in> I. f x \<in> carrier p}\<close>
-    (is \<open>?A = ?B\<close> is \<open>_ = {?P f| f. _}\<close> is \<open>_ = {?P' I f| f. _}\<close>)
-proof
-  have abel[simp]: \<open>abelian_monoid p\<close>
-    using abelian_group.axioms(1) assms(1) ring_def by blast
-  have fx_carrier[intro!, simp]: \<open>f x \<in> carrier p \<Longrightarrow> x \<in> carrier p \<Longrightarrow> mult p (f x) x \<in> carrier p\<close> for f x
-    by (rule ring.ring_simprules[OF assms(1)])
-
-  have H: \<open>\<exists>fb. fb \<in> I \<rightarrow> carrier p \<and> ?P f \<oplus>\<^bsub>p\<^esub> ?P fa = ?P fb\<close> if \<open>f \<in> I \<rightarrow> carrier p\<close>  \<open>fa \<in> I \<rightarrow> carrier p\<close> for f fa
-    using fin that I_P
-  proof (induction I arbitrary: f fa rule: finite_induct)
-    case empty
-    then show ?case
-      by (auto simp: abelian_monoid.finsum_empty abelian_monoidE(2)
-      abelian_monoidE(2)[OF abel] ring.ring_simprules(15)[OF assms(1)])
-  next
-    case (insert x F) note fin = this(1) and xF = this(2) and IH = this(3) and H = this(4-)
-    obtain fb where
-       fb: \<open>fb \<in> F \<rightarrow> carrier p \<and> ?P' F f \<oplus>\<^bsub>p\<^esub> ?P' F fa = ?P' F fb\<close>
-       using IH[of f fa] H
-       by auto
-    define fb' where \<open>fb' = (\<lambda>a. if a = x then add p (f a) (fa a) else fb a)\<close>
-    have fb'_x: \<open>fb' x = add p (f x) (fa x)\<close>
-      unfolding fb'_def by auto
-    have \<open>fb' \<in> insert x F \<rightarrow> carrier p\<close> and
-      \<open>?P' F f \<oplus>\<^bsub>p\<^esub> ?P' F fa = ?P' F fb'\<close>
-      using fb H fin xF by (auto simp: fb'_def ring.ring_simprules[OF assms(1)] intro!: finsum_cong)
-    moreover {
-    have \<open>f x \<otimes>\<^bsub>p\<^esub> x \<oplus>\<^bsub>p\<^esub> (\<Oplus>\<^bsub>p\<^esub>x\<in>F. f x \<otimes>\<^bsub>p\<^esub> x) \<oplus>\<^bsub>p\<^esub> (fa x \<otimes>\<^bsub>p\<^esub> x \<oplus>\<^bsub>p\<^esub> (\<Oplus>\<^bsub>p\<^esub>x\<in>F. fa x \<otimes>\<^bsub>p\<^esub> x)) =
-         f x \<otimes>\<^bsub>p\<^esub> x \<oplus>\<^bsub>p\<^esub> (\<Oplus>\<^bsub>p\<^esub>x\<in>F. f x \<otimes>\<^bsub>p\<^esub> x) \<oplus>\<^bsub>p\<^esub> fa x \<otimes>\<^bsub>p\<^esub> x \<oplus>\<^bsub>p\<^esub> (\<Oplus>\<^bsub>p\<^esub>x\<in>F. fa x \<otimes>\<^bsub>p\<^esub> x)\<close>
-      using H
-      apply (auto simp: fb'_x ring.ring_simprules[OF assms(1)] ac_simps)
-      by (simp add: Pi_iff abelian_groupE(1) abelian_monoid.finsum_closed abelian_monoidE(3) assms(1) ring.is_abelian_group subsetD)
-   also have \<open>... = (f x \<otimes>\<^bsub>p\<^esub> x \<oplus>\<^bsub>p\<^esub> fa x \<otimes>\<^bsub>p\<^esub> x) \<oplus>\<^bsub>p\<^esub> (\<Oplus>\<^bsub>p\<^esub>x\<in>F. f x \<otimes>\<^bsub>p\<^esub> x) \<oplus>\<^bsub>p\<^esub> (\<Oplus>\<^bsub>p\<^esub>x\<in>F. fa x \<otimes>\<^bsub>p\<^esub> x)\<close>
-       using H
-      apply (auto simp: fb'_x ring.ring_simprules[OF assms(1)] field_simps)
-      by (smt Pi_iff abel abelian_monoid.finsum_closed abelian_monoidE(3) assms(1) ring.ring_simprules(10) ring.ring_simprules(5) subsetD)
-   also have \<open>... = ((f x \<oplus>\<^bsub>p\<^esub> fa x) \<otimes>\<^bsub>p\<^esub> x) \<oplus>\<^bsub>p\<^esub> (\<Oplus>\<^bsub>p\<^esub>x\<in>F. f x \<otimes>\<^bsub>p\<^esub> x) \<oplus>\<^bsub>p\<^esub> (\<Oplus>\<^bsub>p\<^esub>x\<in>F. fa x \<otimes>\<^bsub>p\<^esub> x)\<close>
-       using H
-      by (auto simp: fb'_x ring.ring_simprules[OF assms(1)] field_simps)
-    finally have \<open>f x \<otimes>\<^bsub>p\<^esub> x \<oplus>\<^bsub>p\<^esub> (\<Oplus>\<^bsub>p\<^esub>x\<in>F. f x \<otimes>\<^bsub>p\<^esub> x) \<oplus>\<^bsub>p\<^esub>
-    (fa x \<otimes>\<^bsub>p\<^esub> x \<oplus>\<^bsub>p\<^esub> (\<Oplus>\<^bsub>p\<^esub>x\<in>F. fa x \<otimes>\<^bsub>p\<^esub> x)) =
-    fb' x \<otimes>\<^bsub>p\<^esub> x \<oplus>\<^bsub>p\<^esub> ((\<Oplus>\<^bsub>p\<^esub>x\<in>F. f x \<otimes>\<^bsub>p\<^esub> x) \<oplus>\<^bsub>p\<^esub> (\<Oplus>\<^bsub>p\<^esub>x\<in>F. fa x \<otimes>\<^bsub>p\<^esub> x))\<close>
-      using H
-      apply (auto simp: fb'_x ring.ring_simprules(15)[OF assms(1)] ac_simps)
-      by (simp add: Pi_iff abelian_monoid.finsum_closed abelian_monoidE(3) assms(1) ring.ring_simprules(1) ring.ring_simprules(5) subset_iff)
-    }
-    ultimately show ?case
-      using H xF
-      apply (auto intro!: exI[of _ fb'] simp: abelian_monoid.finsum_insert)
-      apply (subst abelian_monoid.finsum_insert)
-      apply (auto intro: fin)
-      apply (subst abelian_monoid.finsum_insert)
-      apply (auto intro: fin)
-      apply (subst abelian_monoid.finsum_insert)
-      apply (auto intro: fin)
-      done
-  qed
-
-  have [simp]: \<open>finsum p ((\<otimes>\<^bsub>p\<^esub>) \<zero>\<^bsub>p\<^esub>)I = zero p\<close>
-    using fin I_P apply (induction rule: finite_induct)
-    apply (auto simp: abelian_monoid.finsum_insert abelian_monoid.finsum_empty abelian_monoidE(2)
-      abelian_monoidE(2)[OF abel] ring.ring_simprules(15)[OF assms(1)])
-      apply (subst abelian_monoid.finsum_insert)
-      apply (auto intro: fin simp: ring.ring_simprules[OF assms(1)])
-     done
-have inv[intro,simp]: \<open>x \<in> carrier p \<Longrightarrow> a_inv p x \<in> carrier p\<close> for x
-  using
-    ring.ring_simprules(3)[of _ x, OF Ideal.ideal.axioms(2), of ?A p]
-    ring.ring_simprules(3)[of _ \<open>a_inv p x\<close>, OF Ideal.ideal.axioms(2), of ?A p]
-    ring.genideal_ideal[of p I]
-  by (auto simp: assms)
-
-have [simp]:
-  \<open> \<forall>x\<in>I. f x \<in> carrier p \<Longrightarrow>
-        x \<in> I \<Longrightarrow> f x \<otimes>\<^bsub>p\<^esub> x \<oplus>\<^bsub>p\<^esub> \<ominus>\<^bsub>p\<^esub> f x \<otimes>\<^bsub>p\<^esub> x = \<zero>\<^bsub>p\<^esub>\<close> 
-  \<open> \<forall>x\<in>I. f x \<in> carrier p \<Longrightarrow>
-        x \<in> I \<Longrightarrow> \<ominus>\<^bsub>p\<^esub> f x \<otimes>\<^bsub>p\<^esub> x \<oplus>\<^bsub>p\<^esub> f x \<otimes>\<^bsub>p\<^esub> x = \<zero>\<^bsub>p\<^esub>\<close>for f x
-   using I_P assms(1) in_mono ring.l_minus ring.ring_simprules(16) apply fastforce
-   by (smt I_P fx_carrier assms(1) ring.l_minus ring.ring_simprules(9) subsetD)
-
-have \<open>subgroup ?B (add_monoid p)\<close>
-    apply (standard)
-    subgoal
-      apply (auto simp: assms intro!: H)
-      apply (smt I_P Pi_iff abel abelian_monoid.finsum_closed assms(1) ring.ring_simprules(5) subset_iff)
-      done
-    subgoal for x y
-      apply clarify
-      subgoal for f fa
-        using H[of f fa]
-        by auto
-      done
-    subgoal
-      by (auto intro!: exI[of _ \<open>\<lambda>_. zero p\<close>] simp: ring.ring_simprules[OF assms(1)])
-    subgoal for x
-      apply (auto simp: intro!: )
-      apply (rule_tac x= \<open>\<lambda>x. a_inv p (f x)\<close> in exI)
-      apply (auto simp: m_inv_def intro!: the_equality)
-      apply (smt I_P Pi_I' inv abel abelian_monoid.finsum_closed assms(1) in_mono monoid.m_closed ring_def)
-      apply (subst abelian_monoid.finsum_addf[symmetric])
-      using I_P apply (auto cong: finsum_cong)
-      apply (subst finsum_cong[of _ _ _ \<open>\<lambda>_. zero p\<close>])
-      apply (auto simp: assms ring.ring_simprules(2)[OF assms(1)] abelian_monoid.finsum_zero[OF abel])
-      apply (subst abelian_monoid.finsum_addf[symmetric])
-      using I_P apply auto
-      apply (subst finsum_cong[of _ _ _ \<open>\<lambda>_. zero p\<close>])
-      using I_P apply (auto simp: assms ring.ring_simprules(2)[OF assms(1)] abelian_monoid.finsum_zero[OF abel])
-      defer
-      find_theorems \<open>(THE _. _) = _\<close>
-      find_theorems \<open>add _ _ _ = zero _\<close>
-  using
-    ring.ring_simprules(3)[of _ \<open>f _\<close>, OF Ideal.ideal.axioms(2), of I p]
-    ring.ring_simprules(3)[of _ \<open>a_inv p (f _)\<close>, OF Ideal.ideal.axioms(2), of i p]
-  apply (auto simp: additive_subgroup.a_inv_closed ideal_def)
-  apply (drule additive_subgroup.a_inv_closed)
-  apply (auto dest: additive_subgroup.a_inv_closed simp: ideal_def ring.ring_simprules)
-      apply (rule group.inv_closed)
-      apply auto
-      
-      term ring
-    
-    apply (rule H)
-    find_theorems  a_inv carrier
-    thm ideal_a_inv_closed
-    sorry
-  have \<open>Ideal.ideal ?B p\<close>
-    apply (rule idealI)
-    apply (auto intro: assms)
-find_theorems \<open>_ \<subseteq> _\<close> Ideal.ideal
-find_theorems \<open>genideal _ _ \<subseteq> _\<close>
-thm ring.ideal_incl_iff
-term \<open>a_r_coset S\<close>
-lemma \<open>A = a_r_coset poly_ring_scheme\<close>
-  unfolding a_r_coset_def r_coset_def
-apply auto
-sorry
 lemma PAC_Format_subset_ideal:
   \<open>PAC_Format (\<V>, A) (\<V>', B) \<Longrightarrow> \<Union>(vars ` set_mset A) \<subseteq> \<V> \<Longrightarrow>
      restricted_ideal_to\<^sub>I \<V> B \<subseteq> restricted_ideal_to\<^sub>I \<V> A \<and> \<V> \<subseteq> \<V>' \<and> \<Union>(vars ` set_mset B) \<subseteq> \<V>'\<close>
