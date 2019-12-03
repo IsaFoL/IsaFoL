@@ -226,59 +226,64 @@ next
     by metis
     oops
 
+lemma ideal_insert':
+  \<open>More_Modules.ideal (insert a S) = {y. \<exists>x k. y = x + k * a \<and> x \<in> More_Modules.ideal S}\<close>
+    apply (auto simp: pac_ideal_def ideal.span_insert
+      intro: exI[of _ \<open>_ - k * a\<close>])
+   apply (rule_tac x = \<open>x - k * a\<close> in exI)
+   apply auto
+   apply (rule_tac x = \<open>k\<close> in exI)
+   apply auto
+   done
+
+
+lemma vars_in_right_only:
+  "x \<in> vars q \<Longrightarrow> x \<notin> vars p \<Longrightarrow> x \<in> vars (p+q)"
+  apply (auto simp: vars_def keys_def plus_mpoly.rep_eq
+    lookup_plus_fun)
+  by (metis add.left_neutral gr_implies_not0)
+
+lemma [simp]:
+  \<open>vars 0 = {}\<close>
+  by (simp add: vars_def zero_mpoly.rep_eq)
+
 lemma
-  fixes xa :: \<open>int mpoly\<close>
+  fixes p :: \<open>int mpoly\<close>
   assumes
-    \<open>MPoly_Type.coeff p (monomial (Suc 0) x) = 1\<close>
-    \<open>x \<notin> vars (p - Var x)\<close>
-    \<open>vars (p - Var x) \<subseteq> \<Union>(vars ` A)\<close>
-    \<open>x \<notin>  \<Union>(vars ` A)\<close> and
-    xa_ideal: \<open>xa \<in> More_Modules.ideal (insert p A)\<close>
-  shows \<open>MPoly_Type.coeff xa (monomial (Suc 0) x) \<noteq> 0 \<or> xa \<in> More_Modules.ideal A\<close>
-proof -
-  obtain f where
-    xa: \<open>xa = (\<Sum>v | f v \<noteq> 0. f v * v)\<close> and
-    fin: \<open>finite {v. f v \<noteq> 0}\<close> and
-    f: \<open>\<forall>v. f v \<noteq> 0 \<longrightarrow> v \<in> insert p A\<close>
-    using xa_ideal
-    by (auto simp: More_Modules.ideal.span_explicit')
+    x'_p: \<open>x' \<in> vars p\<close> and
+    x': \<open>x' \<notin> \<V>\<close> and
+    \<open>MPoly_Type.coeff p (monomial (Suc 0) x') = 1\<close> and
+    vars: \<open>vars (xa + k * p) \<subseteq> \<V>\<close> and
+    \<open>xa \<in> More_Modules.ideal (set_mset A \<union> polynom_bool)\<close>
+  shows \<open>k = 0\<close>
+proof (rule ccontr)
+  assume \<open>k \<noteq> 0\<close>
+  define p' where \<open>p' \<equiv> p - Var x'\<close>
+  have \<open>p = Var x' + p'\<close>
+    unfolding p'_def
+    by auto
 
-  show ?thesis
-  proof (cases \<open>f p = 0\<close>)
-    case True
-    then show \<open>?thesis\<close>
-      using xa fin f by (auto simp: More_Modules.ideal.span_explicit')
-  next
-    case False
-    define f' where \<open>f' = (\<lambda>x. if x = p then 0 else f x)\<close>
-    have fv: \<open>f p * p = (\<Sum>v | v = p. f v * v)\<close>
-      using assms(1)
-      by (auto simp: f'_def)
-    have f': \<open>(\<Sum>v | f' v \<noteq> 0. f' v * v) = (\<Sum>v | f' v \<noteq> 0. f v * v)\<close>
-      by (rule sum.cong)
-       (auto simp: f'_def)
-    have H:
-       \<open>{v. v \<noteq> p \<and> (v \<noteq> p \<longrightarrow> f v \<noteq> 0)} = {v. f v \<noteq> 0} - {p}\<close>
-       \<open>insert p {v. v \<noteq> p \<and> (v \<noteq> p \<longrightarrow> f v \<noteq> 0)} = {v. f v \<noteq> 0}\<close>
-       \<open>finite {v. v \<noteq> p \<and> (v \<noteq> p \<longrightarrow> f v \<noteq> 0)}\<close> (is \<open>finite ?A\<close>) and
-       fin': \<open>finite {v. f' v \<noteq> 0}\<close> (is \<open>finite ?B\<close>)
-      using False fin finite_subset[of \<open>?A\<close> \<open>{v. f v \<noteq> 0}\<close>] finite_subset[of \<open>?B\<close> \<open>{v. f v \<noteq> 0}\<close>]
-      by (auto simp: f'_def split: if_splits)
-    have xa': \<open>xa = f p * p + (\<Sum>v | f' v \<noteq> 0. f' v * v)\<close>
-      unfolding xa fv f'
-      apply (subst comm_monoid_add_class.sum.union_disjoint[symmetric])
-      using fin f apply (auto simp: f'_def xa H(2))
-      apply (simp add: H(3))
-      done
+  have \<open>vars (xa + k * p) = vars (xa + (k * p' + k*Var x'))\<close>
+    by (auto simp: p'_def algebra_simps)
+  have \<open>x' \<notin> vars (xa + k * p)\<close>
+    using vars x' by auto
+  then have \<open>x' \<notin> vars (k*p)\<close>
+    using vars_add[of xa \<open>k*p\<close>]
+    apply auto
+    sorry
 
-    have \<open>MPoly_Type.coeff (\<Sum>v | f' v \<noteq> 0. f' v * v) (monomial (Suc 0) x) = 0\<close>
-      using vars_setsum[of \<open>{v. f' v \<noteq> 0}\<close> \<open>\<lambda>v. f' v * v\<close>]
-      apply (auto intro!: not_in_vars_coeff0 simp: fin')
-sorry
-    have \<open>MPoly_Type.coeff xa (monomial (Suc 0) x) \<noteq> 0\<close>
-      unfolding xa'
-      apply (auto simp flip: coeff_add)
 oops
+
+
+
+
+
+
+
+
+
+
+
 
 
 lemma PAC_Format_subset_ideal:
@@ -298,9 +303,12 @@ lemma PAC_Format_subset_ideal:
   subgoal for p A
     using pac_ideal_mono[of \<open>set_mset (A - {#p#})\<close> \<open>set_mset A\<close>]
     by (auto dest: in_diffD)
-  subgoal
-    apply (auto simp: pac_ideal_def)
-    
+  subgoal for p x'
+    apply auto
+    apply (auto simp: pac_ideal_def ideal_insert' vars_add)
+    sledgehammer
+find_theorems "vars (_ + _)"
+    thm ideal.span_insert[of a S]
     try0
   done
 
