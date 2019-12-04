@@ -374,13 +374,15 @@ sepref_def IsaSAT_code_wrapped
   apply (annot_snat_const "TYPE(64)")
   by sepref
 
-lemma al_of_list:
-  \<open>NO_MATCH [] b \<Longrightarrow> a # b = [a] @ b\<close>
-  \<open>xs @ ys @ zs = (xs @ ys) @ zs\<close>
-  \<open>x # op_al_empty TYPE('l::len2) = op_al_empty TYPE('l::len2) @ [x]\<close>
-  unfolding op_al_empty_def[abs_def]
-  by auto
-find_theorems array_assn al_assn
+
+text \<open>The setup to transmit the version is a bit complicated, because
+  it LLVM does not support direct export of string
+  literals. Therefore, we actually convert the version to an array
+  chars (more precisely, of machine words -- ended with 0) that can be read
+  and printed in isasat.
+\<close>
+
+
 function array_of_version where
   \<open>array_of_version i str arr =
     (if i \<ge> length str then arr
@@ -435,5 +437,5 @@ theorem IsaSAT_full_correctness:
   unfolding model_bounded_assn_def clauses_l_assn_def
   apply auto
   done
-thm Version.version_def
+
 end
