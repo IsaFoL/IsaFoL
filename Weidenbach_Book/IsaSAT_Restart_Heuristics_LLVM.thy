@@ -1,7 +1,14 @@
 theory IsaSAT_Restart_Heuristics_LLVM
   imports IsaSAT_Restart_Heuristics IsaSAT_Setup_LLVM
      IsaSAT_VMTF_LLVM IsaSAT_Rephase_LLVM
+     IsaSAT_Sorting_LLVM
 begin
+
+hide_fact (open) Sepref_Rules.frefI
+no_notation Sepref_Rules.fref ("[_]\<^sub>f\<^sub>d _ \<rightarrow> _" [0,60,60] 60)
+no_notation Sepref_Rules.freft ("_ \<rightarrow>\<^sub>f\<^sub>d _" [60,60] 60)
+no_notation Sepref_Rules.freftnd ("_ \<rightarrow>\<^sub>f _" [60,60] 60)
+no_notation Sepref_Rules.frefnd ("[_]\<^sub>f _ \<rightarrow> _" [0,60,60] 60)
 
 sepref_def FLAG_restart_impl
   is \<open>uncurry0 (RETURN FLAG_restart)\<close>
@@ -50,8 +57,6 @@ sepref_def end_of_restart_phase_st_impl
   :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
   unfolding end_of_restart_phase_st_def isasat_bounded_assn_def
   by sepref
-
-
 
 sepref_def end_of_rephasing_phase_impl
   is \<open>RETURN o end_of_rephasing_phase\<close>
@@ -117,12 +122,6 @@ sepref_def update_all_phases_impl
     fold_tuple_optimizations
   by sepref
 
-sepref_def clause_score_ordering
-  is \<open>uncurry (RETURN oo clause_score_ordering)\<close>
-  :: \<open>(uint32_nat_assn *a uint32_nat_assn)\<^sup>k *\<^sub>a (uint32_nat_assn *a uint32_nat_assn)\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
-  unfolding clause_score_ordering_def
-  by sepref
-
 sepref_def find_local_restart_target_level_fast_code
   is \<open>uncurry find_local_restart_target_level_int\<close>
   :: \<open>trail_pol_fast_assn\<^sup>k *\<^sub>a vmtf_remove_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
@@ -186,67 +185,41 @@ sepref_def lower_restart_bound_not_reached_impl
   by sepref
 
 
-sepref_register clause_score_extract
+find_theorems sort_spec
 
-sepref_def (in -) clause_score_extract_code
-  is \<open>uncurry (RETURN oo clause_score_extract)\<close>
-  :: \<open>[uncurry valid_sort_clause_score_pre_at]\<^sub>a
-      arena_fast_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> uint32_nat_assn *a uint32_nat_assn\<close>
-  supply [[goals_limit = 1]]
-  unfolding clause_score_extract_def valid_sort_clause_score_pre_at_def
-  apply (annot_unat_const "TYPE(32)")
-  by sepref
+definition lbd_sort_clauses_raw :: \<open>arena \<Rightarrow> vdom \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat list nres\<close> where
+  \<open>lbd_sort_clauses_raw arena N = pslice_sort_spec idx_cdom clause_score_less arena N\<close>
 
-declare clause_score_extract_code.refine[sepref_fr_rules]
+definition lbd_sort_clauses :: \<open>arena \<Rightarrow> vdom \<Rightarrow> nat list nres\<close> where
+  \<open>lbd_sort_clauses arena N = lbd_sort_clauses_raw arena N 0 (length N)\<close>
 
-sepref_def partition_main_clause_fast_code
-  is \<open>uncurry3 partition_main_clause\<close>
-  :: \<open>[\<lambda>(((arena, i), j), vdom). length vdom \<le> sint64_max \<and> valid_sort_clause_score_pre arena vdom]\<^sub>a
-      arena_fast_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a vdom_fast_assn\<^sup>d \<rightarrow> vdom_fast_assn *a sint64_nat_assn\<close>
-  supply insort_inner_clauses_by_score_invI[intro] [[goals_limit=1]]
-    partition_main_inv_def[simp] mset_eq_length[dest]
-  unfolding partition_main_clause_def partition_between_ref_def
-    partition_main_def convert_swap gen_swap
-    WB_More_Refinement_List.swap_def
+lemmas LBD_introsort[sepref_fr_rules] =
+  LBD_it.introsort_param_impl_correct[unfolded lbd_sort_clauses_raw_def[symmetric] PR_CONST_def]
+
+lemma quicksort_clauses_by_score_sort:
+ \<open>(lbd_sort_clauses, sort_clauses_by_score) \<in>
+   Id \<rightarrow> Id \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
+   apply (intro fun_relI nres_relI)
+   subgoal for arena arena' vdom vdom'
+   by (auto simp: lbd_sort_clauses_def lbd_sort_clauses_raw_def sort_clauses_by_score_def
+       pslice_sort_spec_def le_ASSERT_iff idx_cdom_def slice_rel_def br_def
+       conc_fun_RES sort_spec_def
+       eq_commute[of _ \<open>length vdom'\<close>]
+     intro!: ASSERT_leI slice_sort_spec_refine_sort[THEN order_trans, of _ vdom vdom])
+   done
+
+
+sepref_register lbd_sort_clauses_raw
+sepref_def lbd_sort_clauses_impl
+  is \<open>uncurry lbd_sort_clauses\<close>
+  :: \<open>arena_fast_assn\<^sup>k *\<^sub>a vdom_fast_assn\<^sup>d \<rightarrow>\<^sub>a vdom_fast_assn\<close>
+  supply[[goals_limit=1]]
+  unfolding lbd_sort_clauses_def
   apply (annot_snat_const "TYPE(64)")
   by sepref
 
-
-sepref_def partition_clause_fast_code
-  is \<open>uncurry3 partition_clause\<close>
-  :: \<open>[\<lambda>(((arena, i), j), vdom). length vdom \<le> sint64_max \<and> valid_sort_clause_score_pre arena vdom]\<^sub>a
-      arena_fast_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a vdom_fast_assn\<^sup>d \<rightarrow> vdom_fast_assn *a sint64_nat_assn\<close>
-  supply insort_inner_clauses_by_score_invI[intro] valid_sort_clause_score_pre_swap[
-    unfolded WB_More_Refinement_List.swap_def, intro] mset_eq_length[dest]
-  unfolding partition_clause_def partition_between_ref_def
-    choose_pivot3_def partition_main_clause_def[symmetric]
-    convert_swap gen_swap
-  apply (annot_snat_const "TYPE(64)")
-  by sepref
-
-
-(*TODO useful?*)
-lemma minus_safe:
-  \<open>p - a = (if p \<ge> a then p - a else 0)\<close> for p a :: nat
-  by auto
-
-sepref_def sort_clauses_by_score_code
-  is \<open>uncurry quicksort_clauses_by_score\<close>
-  :: \<open>[uncurry valid_sort_clause_score_pre]\<^sub>a
-      arena_fast_assn\<^sup>k *\<^sub>a vdom_fast_assn\<^sup>d \<rightarrow> vdom_fast_assn\<close>
-  supply sort_clauses_by_score_invI[intro] [[goals_limit=1]]
-  unfolding
-    quicksort_clauses_by_score_def
-    full_quicksort_ref_def
-    quicksort_ref_def
-    partition_clause_def[symmetric]
-    List.null_def
-    length_0_conv[symmetric]
-  apply (rewrite in \<open>(_, \<hole>, _)\<close> minus_safe)
-  apply (rewrite in \<open>If \<hole> _\<close> minus_safe)
-  apply (annot_snat_const "TYPE(64)")
-  by sepref
-
+lemmas [sepref_fr_rules] =
+  lbd_sort_clauses_impl.refine[FCOMP quicksort_clauses_by_score_sort]
 
 sepref_register remove_deleted_clauses_from_avdom arena_status DELETED
 
@@ -560,7 +533,7 @@ sepref_def number_clss_to_keep_fast_code
 
 lemma number_clss_to_keep_impl_number_clss_to_keep:
   \<open>(number_clss_to_keep_impl, number_clss_to_keep) \<in> Sepref_Rules.freft Id (\<lambda>_. \<langle>nat_rel\<rangle>nres_rel)\<close>
-  by (auto simp: number_clss_to_keep_impl_def number_clss_to_keep_def Let_def intro!: frefI nres_relI)
+  by (auto simp: number_clss_to_keep_impl_def number_clss_to_keep_def Let_def intro!: Sepref_Rules.frefI nres_relI)
 
 lemma number_clss_to_keep_fast_code_refine[sepref_fr_rules]:
   \<open>(number_clss_to_keep_fast_code, number_clss_to_keep) \<in> (isasat_bounded_assn)\<^sup>k \<rightarrow>\<^sub>a snat_assn\<close>

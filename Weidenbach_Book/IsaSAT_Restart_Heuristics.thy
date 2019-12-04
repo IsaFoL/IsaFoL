@@ -1,8 +1,7 @@
 theory IsaSAT_Restart_Heuristics
 imports
-  IsaSAT_Sorting
   Watched_Literals.WB_Sort Watched_Literals.Watched_Literals_Watch_List_Restart IsaSAT_Rephase
-  IsaSAT_Setup IsaSAT_VMTF
+  IsaSAT_Setup IsaSAT_VMTF IsaSAT_Sorting
 begin
 
 
@@ -119,8 +118,8 @@ lemma twl_st_heur_restartD:
   \<open>x \<in> twl_st_heur_restart \<Longrightarrow> x \<in> twl_st_heur_restart_ana (length (get_clauses_wl_heur (fst x)))\<close>
   by (auto simp: twl_st_heur_restart_def twl_st_heur_restart_ana_def)
 
-definition clause_score_ordering where
-  \<open>clause_score_ordering = (\<lambda>(lbd, act) (lbd', act'). lbd < lbd' \<or> (lbd = lbd' \<and> act \<le> act'))\<close>
+definition clause_score_ordering2 where
+  \<open>clause_score_ordering2 = (\<lambda>(lbd, act) (lbd', act'). lbd < lbd' \<or> (lbd = lbd' \<and> act \<le> act'))\<close>
 
 lemma unbounded_id: \<open>unbounded (id :: nat \<Rightarrow> nat)\<close>
   by (auto simp: bounded_def) presburger
@@ -409,7 +408,7 @@ proof -
     if
       ST: \<open>(((a, aa, ab, ac, ad, b), ae, heur, ah, ai,
 	 ((aj, ak, al, am, bb), an, bc), ao, (aq, bd), ar, as,
-	 (at, au, av, aw, be), ((ax, ay, az, bf, bg), (bh, bi, bj, bk, bl),
+	 (at', au, av, aw, be), ((ax, ay, az, bf, bg), (bh, bi, bj, bk, bl),
 	 (bm, bn)), bo, bp, bq, br, bs),
 	bt, bu, bv, bw, bx, NS, US, by, bz)
        \<in> twl_st_heur\<close> and
@@ -417,7 +416,7 @@ proof -
       \<open>restart_abs_wl_heur_pre
 	((a, aa, ab, ac, ad, b), ae, heur, ah, ai,
 	 ((aj, ak, al, am, bb), an, bc), ao, (aq, bd), ar, as,
-	 (at, au, av, aw, be), ((ax, ay, az, bf, bg), (bh, bi, bj, bk, bl),
+	 (at', au, av, aw, be), ((ax, ay, az, bf, bg), (bh, bi, bj, bk, bl),
 	 (bm, bn)), bo, bp, bq, br, bs)
 	False\<close> and
       lvl: \<open>(lvl, i)
@@ -429,7 +428,7 @@ proof -
        count_decided_st_heur
 	((a, aa, ab, ac, ad, b), ae, heur, ah, ai,
 	 ((aj, ak, al, am, bb), an, bc), ao, (aq, bd), ar, as,
-	 (at, au, av, aw, be), ((ax, ay, az, bf, bg), (bh, bi, bj, bk, bl),
+	 (at', au, av, aw, be), ((ax, ay, az, bf, bg), (bh, bi, bj, bk, bl),
 	 (bm, bn)), bo, bp, bq, br, bs)\<close> and
       i: \<open>\<not> i\<close> and
     H: \<open>(\<And>vm0. ((an, bc), vm0) \<in> distinct_atoms_rel (all_atms_st (bt, bu, bv, bw, bx, NS, US, by, bz)) \<Longrightarrow>
@@ -439,7 +438,7 @@ proof -
 	\<le> \<Down> {(a, b). (a,b) \<in> trail_pol (all_atms_st (bt, bu, bv, bw, bx, NS, US, by, bz)) \<times>\<^sub>f
                (Id \<times>\<^sub>f distinct_atoms_rel (all_atms_st (bt, bu, bv, bw, bx, NS, US, by, bz)))}
 	    (find_decomp_w_ns (all_atms_st (bt, bu, bv, bw, bx, NS, US, by, bz)) bt lvl vm0) \<Longrightarrow> P)\<close>
-    for a aa ab ac ad b ae af ag ba ah ai aj ak al am bb an bc ao aq bd ar as at
+    for a aa ab ac ad b ae af ag ba ah ai aj ak al am bb an bc ao aq bd ar as at'
        au av aw be ax ay az bf bg bh bi bj bk bl bm bn bo bp bq br bs bt bu bv
        bw bx "by" bz lvl i x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f
        x1g x2g x1h x2h x1i x2i P NS US heur
@@ -637,36 +636,27 @@ definition (in -) lower_restart_bound_not_reached :: \<open>twl_st_wl_heur \<Rig
        vdom, avdom, lcount, opts, old).
      (\<not>opts_reduce opts \<or> (opts_restart opts \<and> (of_nat lcount < 2000 + 1000 * restarts))))\<close>
 
-definition (in -) clause_score_extract :: \<open>arena \<Rightarrow> nat \<Rightarrow> nat \<times> nat\<close> where
-  \<open>clause_score_extract arena C = (
-     if arena_status arena C = DELETED
-     then (uint32_max, 0) \<comment> \<open>deleted elements are the
-        largest possible\<close>
-     else
-       let lbd = arena_lbd arena C in
-       let act = arena_act arena C in
-       (lbd, act)
-  )\<close>
-
-definition valid_sort_clause_score_pre_at where
-  \<open>valid_sort_clause_score_pre_at arena C \<longleftrightarrow>
-    (\<exists>i vdom. C = vdom ! i \<and> arena_is_valid_clause_vdom arena (vdom!i) \<and>
-          (arena_status arena (vdom!i) \<noteq> DELETED \<longrightarrow>
-             (get_clause_LBD_pre arena (vdom!i) \<and> arena_act_pre arena (vdom!i)))
-          \<and> i < length vdom)\<close>
-
-definition (in -)valid_sort_clause_score_pre where
-  \<open>valid_sort_clause_score_pre arena vdom \<longleftrightarrow>
-    (\<forall>C \<in> set vdom. arena_is_valid_clause_vdom arena C \<and>
-        (arena_status arena C \<noteq> DELETED \<longrightarrow>
-             (get_clause_LBD_pre arena C \<and> arena_act_pre arena C)))\<close>
-
 definition reorder_vdom_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
   \<open>reorder_vdom_wl S = RETURN S\<close>
 
+definition sort_clauses_by_score :: \<open>arena \<Rightarrow> nat list \<Rightarrow> nat list nres\<close> where
+  \<open>sort_clauses_by_score arena vdom = do {
+      ASSERT(\<forall>i\<in>set vdom. valid_sort_clause_score_pre_at arena i);
+      SPEC(\<lambda>vdom'. mset vdom = mset vdom')
+  }\<close>
+
 definition (in -) quicksort_clauses_by_score :: \<open>arena \<Rightarrow> nat list \<Rightarrow> nat list nres\<close> where
   \<open>quicksort_clauses_by_score arena =
-    full_quicksort_ref clause_score_ordering (clause_score_extract arena)\<close>
+    full_quicksort_ref clause_score_ordering2 (clause_score_extract arena)\<close>
+
+lemma quicksort_clauses_by_score_sort:
+ \<open>(quicksort_clauses_by_score, sort_clauses_by_score) \<in>
+   Id \<rightarrow> Id \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
+   by (intro fun_relI nres_relI)
+    (auto simp: quicksort_clauses_by_score_def sort_clauses_by_score_def
+       reorder_list_def  clause_score_extract_def clause_score_ordering2_def
+       le_ASSERT_iff
+     intro!: insert_sort_reorder_list[THEN fref_to_Down, THEN order_trans])
 
 definition remove_deleted_clauses_from_avdom :: \<open>_\<close> where
 \<open>remove_deleted_clauses_from_avdom N avdom0 = do {
@@ -765,18 +755,25 @@ definition (in -) sort_vdom_heur :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_w
     avdom \<leftarrow> isa_remove_deleted_clauses_from_avdom arena avdom;
     ASSERT(valid_sort_clause_score_pre arena avdom);
     ASSERT(length avdom \<le> length arena);
-    avdom \<leftarrow> quicksort_clauses_by_score arena avdom;
+    avdom \<leftarrow> sort_clauses_by_score arena avdom;
     RETURN (M', arena, D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
        vdom, avdom, lcount)
     })\<close>
 
 
 lemma sort_clauses_by_score_reorder:
-  \<open>quicksort_clauses_by_score arena vdom \<le> SPEC(\<lambda>vdom'. mset vdom = mset vdom')\<close>
-  unfolding quicksort_clauses_by_score_def
-  by (rule full_quicksort_ref_full_quicksort[THEN fref_to_Down, THEN order_trans])
-    (auto simp add: reorder_list_def clause_score_ordering_def
-     intro!: full_quicksort_correct[THEN order_trans])
+  \<open>valid_arena arena N (set vdom') \<Longrightarrow> set vdom \<subseteq> set vdom' \<Longrightarrow>
+    sort_clauses_by_score arena vdom \<le> SPEC(\<lambda>vdom'. mset vdom = mset vdom')\<close>
+  unfolding sort_clauses_by_score_def
+  apply refine_vcg
+  unfolding valid_sort_clause_score_pre_def arena_is_valid_clause_vdom_def
+    get_clause_LBD_pre_def arena_is_valid_clause_idx_def arena_act_pre_def
+    valid_sort_clause_score_pre_at_def
+  apply (auto simp: valid_sort_clause_score_pre_def twl_st_heur_restart_ana_def arena_dom_status_iff(2-)
+    arena_dom_status_iff(1)[symmetric] in_set_conv_nth
+    arena_act_pre_def get_clause_LBD_pre_def arena_is_valid_clause_idx_def twl_st_heur_restart_def
+    intro!: exI[of _ \<open>get_clauses_wl y\<close>]  dest!: set_mset_mono mset_subset_eqD)
+  using arena_dom_status_iff(1) nth_mem by blast
 
 lemma sort_vdom_heur_reorder_vdom_wl:
   \<open>(sort_vdom_heur, reorder_vdom_wl) \<in> twl_st_heur_restart_ana r \<rightarrow>\<^sub>f \<langle>twl_st_heur_restart_ana r\<rangle>nres_rel\<close>
@@ -810,12 +807,12 @@ proof -
         intro!: exI[of _ \<open>get_clauses_wl y\<close>]  dest!: set_mset_mono mset_subset_eqD)
     apply (subst assert_bind_spec_conv, intro conjI)
     subgoal by (auto simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def dest!: valid_arena_vdom_subset size_mset_mono)
-    subgoal
+    subgoal for x y
       apply (rewrite at \<open>_ \<le> \<hole>\<close> Down_id_eq[symmetric])
       apply (rule bind_refine_spec)
       prefer 2
-      apply (rule sort_clauses_by_score_reorder)
-      by (auto simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def dest: mset_eq_setD)
+      apply (rule sort_clauses_by_score_reorder[of _ \<open>get_clauses_wl y\<close>  \<open>get_vdom x\<close>])
+      by (auto 5 3 simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def dest: mset_eq_setD)
     done
 qed
 
@@ -1675,8 +1672,9 @@ proof -
       apply (rewrite at \<open>_ \<le> \<hole>\<close> Down_id_eq[symmetric])
       apply (rule bind_refine_spec)
       prefer 2
-      apply (rule sort_clauses_by_score_reorder)
-      by (auto simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def
+      apply (rule sort_clauses_by_score_reorder[of _ \<open>get_clauses_wl T\<close>  \<open>get_vdom S\<close>])
+      by (auto 5 3 simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def dest: mset_eq_setD
+        simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def
          intro: mark_to_delete_clauses_wl_D_heur_pre_vdom'
          dest: mset_eq_setD)
     done
@@ -3004,8 +3002,8 @@ proof -
       apply (rewrite at \<open>_ \<le> \<hole>\<close> Down_id_eq[symmetric])
       apply (rule bind_refine_spec)
       prefer 2
-      apply (rule sort_clauses_by_score_reorder)
-      by (auto simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def
+      apply (rule sort_clauses_by_score_reorder[of _ \<open>get_clauses_wl T\<close> \<open>get_vdom S\<close>])
+      by (auto 5 3 simp: twl_st_heur_restart_ana_def twl_st_heur_restart_def dest: mset_eq_setD
          intro: mark_to_delete_clauses_wl_D_heur_pre_vdom'
          dest: mset_eq_setD)
     done
