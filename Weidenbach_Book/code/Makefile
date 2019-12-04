@@ -28,7 +28,7 @@ isallvm:
 
 isallvm-prof:
 #	llvm-as -disable-output isasat_no_restart.ll
-	$(CLANG) -std=c11 -Wall -Wextra -inline-threshold=6000 -O2 -lprofiler isasat.c "lib_isabelle_llvm.c" isasat_no_restart_wrapper.ll isasat_no_restart.ll -o isasat_llvm
+	$(CLANG) -std=c11 -Wall -Wextra -inline-threshold=6000 -O2 -lprofiler isasat.c "lib_isabelle_llvm.c"  isasat_restart.ll isasat_wrapper.ll -o isasat_llvm
 
 
 isallvm-sanit:
@@ -36,4 +36,4 @@ isallvm-sanit:
 	$(CLANG) $(CFLAGS) -fsanitize=undefined -fsanitize=address -fno-sanitize-recover=undefined -Wall -Wextra -g isasat.c "lib_isabelle_llvm.c"  isasat_wrapper.ll isasat_restart.ll -o isasat_llvm
 
 isallvm-gdb:
-	$(CLANG) -std=c11 -O0 -g -Wall -Wextra -g isasat.c "lib_isabelle_llvm.c" isasat_no_restart.ll -o isasat_llvm
+	$(CLANG) -std=c11 -O0 -g -Wall -Wextra -g isasat.c "lib_isabelle_llvm.c"  isasat_restart.ll isasat_wrapper.ll -o isasat_llvm

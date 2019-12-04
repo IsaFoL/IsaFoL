@@ -348,6 +348,18 @@ FILE * read_pipe (const char * fmt,
   return open_pipe (fmt, path, "r");
 }
 
+int32_t* IsaSAT_LLVM_llvm_version();
+void LLVM_DS_NArray_narray_free1(int32_t *);
+
+void print_version() {
+  int32_t* version = IsaSAT_LLVM_llvm_version();
+  while(*version) {
+    printf("%c", (char)*version);
+    ++version;
+  }
+  //LLVM_DS_NArray_narray_free1(*version);
+};
+
 
 int main(int argc, char *argv[]) {
   if(argc != 2) {
@@ -355,8 +367,12 @@ int main(int argc, char *argv[]) {
     return 0;
   }
   inputname = argv[1];
-  
-  
+  if(has_suffix(inputname, "version")) {
+    print_version();
+    printf("\n");
+    return 0;
+  }
+
   if (has_suffix (inputname, ".xz")) {
     inputfile = read_pipe ("xz -c -d %s", xzsig, inputname);
     printf("c compressed file\n");

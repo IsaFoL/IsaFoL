@@ -374,14 +374,47 @@ sepref_def IsaSAT_code_wrapped
   apply (annot_snat_const "TYPE(64)")
   by sepref
 
+lemma al_of_list:
+  \<open>NO_MATCH [] b \<Longrightarrow> a # b = [a] @ b\<close>
+  \<open>xs @ ys @ zs = (xs @ ys) @ zs\<close>
+  \<open>x # op_al_empty TYPE('l::len2) = op_al_empty TYPE('l::len2) @ [x]\<close>
+  unfolding op_al_empty_def[abs_def]
+  by auto
+find_theorems array_assn al_assn
+function array_of_version where
+  \<open>array_of_version i str arr =
+    (if i \<ge> length str then arr
+    else array_of_version (i+1) str (arr[i := str ! i]))\<close>
+by pat_completeness auto
+termination
+  apply (relation \<open>measure (\<lambda>(i,str, arr). length str - i)\<close>)
+  apply auto
+  done
+
+sepref_definition llvm_version
+  is \<open>uncurry0 (RETURN (
+        let str = map (nat_of_integer o (of_char :: _ \<Rightarrow> integer)) (String.explode Version.version) @ [0] in
+        array_of_version 0 str (replicate (length str) 0)))\<close>
+  :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a array_assn sint32_nat_assn\<close>
+  supply[[goals_limit=1]]
+  unfolding Version.version_def String.explode_code
+    String.asciis_of_Literal
+  apply (auto simp: String.asciis_of_Literal of_char_of char_of_char nat_of_integer_def
+    simp del: list_update.simps replicate.simps)
+  apply (annot_snat_const "TYPE(32)")
+  unfolding array_fold_custom_replicate
+  unfolding hf_pres.simps[symmetric]
+  by sepref
 
 experiment
 begin
+  lemmas [llvm_code] = llvm_version_def
 
   declare NORMAL_PHASE_def[llvm_inline] DEFAULT_INIT_PHASE_def[llvm_inline] QUIET_PHASE_def[llvm_inline]
-  export_llvm IsaSAT_code_wrapped default_opts_impl IsaSAT_code file "code/isasat_restart.ll"
+  export_llvm IsaSAT_code_wrapped llvm_version default_opts_impl IsaSAT_code file "code/isasat_restart.ll"
 
 end
+
 
 definition model_bounded_assn where
   \<open>model_bounded_assn =
@@ -402,5 +435,5 @@ theorem IsaSAT_full_correctness:
   unfolding model_bounded_assn_def clauses_l_assn_def
   apply auto
   done
-
+thm Version.version_def
 end
