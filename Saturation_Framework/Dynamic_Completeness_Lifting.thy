@@ -324,6 +324,23 @@ end
 definition Empty_Order :: \<open>'f \<Rightarrow> 'f \<Rightarrow> bool\<close> where
   "Empty_Order C1 C2 \<equiv> False" 
 
+lemma any_to_empty_order_lifting:
+  "lifting_with_wf_ordering_family Bot_F Inf_F Bot_G entails_G Inf_G Red_Inf_G Red_F_G \<G>_F \<G>_Inf Prec_F_g
+  \<Longrightarrow> lifting_with_wf_ordering_family Bot_F Inf_F Bot_G entails_G Inf_G Red_Inf_G Red_F_G \<G>_F \<G>_Inf (\<lambda>g. Empty_Order)"
+proof -
+  fix Bot_F Inf_F Bot_G entails_G Inf_G Red_Inf_G Red_F_G \<G>_F \<G>_Inf Prec_F_g
+  assume lift: "lifting_with_wf_ordering_family Bot_F Inf_F Bot_G entails_G Inf_G Red_Inf_G Red_F_G \<G>_F \<G>_Inf Prec_F_g"
+  then interpret lift_g:
+    lifting_with_wf_ordering_family Bot_F Inf_F Bot_G entails_G Inf_G Red_Inf_G Red_F_G \<G>_F \<G>_Inf Prec_F_g
+    by auto
+  have empty_wf: "minimal_element ((\<lambda>g. Empty_Order) g) UNIV"
+    by (simp add: lift_g.all_wf Empty_Order_def minimal_element.intro po_on_def transp_on_def wfp_on_def
+      wfp_on_imp_irreflp_on)
+  then show "lifting_with_wf_ordering_family Bot_F Inf_F Bot_G entails_G Inf_G Red_Inf_G Red_F_G \<G>_F \<G>_Inf (\<lambda>g. Empty_Order)"
+    by (simp add: empty_wf lift_g.standard_lifting_axioms lifting_with_wf_ordering_family_axioms.intro lifting_with_wf_ordering_family_def)
+qed
+
+
 locale lifting_equivalence_with_empty_order = any_order_lifting: lifting_with_wf_ordering_family Bot_F Inf_F Bot_G entails_G Inf_G Red_Inf_G Red_F_G \<G>_F \<G>_Inf Prec_F_g + empty_order_lifting: lifting_with_wf_ordering_family Bot_F Inf_F Bot_G entails_G Inf_G Red_Inf_G Red_F_G \<G>_F \<G>_Inf "\<lambda>g. Empty_Order"
   for
     \<G>_F :: \<open>'f \<Rightarrow> 'g set\<close> and

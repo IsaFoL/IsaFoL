@@ -202,6 +202,14 @@ next
   qed
 qed
 
+sublocale inter_red_crit_calculus: calculus_with_red_crit
+  where Bot=Bot
+  and Inf=Inf
+  and entails=entails_Q
+  and Red_Inf=Red_Inf_Q
+  and Red_F=Red_F_Q
+  using inter_red_crit .
+
 paragraph \<open>Lemma 21 from the technical report\<close>
 lemma "calculus_with_red_crit.saturated Inf Red_Inf_Q N \<longleftrightarrow>
   (\<forall>qi \<in> Q. calculus_with_red_crit.saturated Inf (Red_Inf_q qi) N)" for N
@@ -289,7 +297,10 @@ definition Red_Inf_\<G>_Q :: "'f set \<Rightarrow> 'f inference set" where
   "Red_Inf_\<G>_Q N = (\<Inter>q\<in>Q. {\<iota> \<in> Inf_F. \<G>_Inf_q q \<iota> \<subseteq> Red_Inf_q q (\<G>_set_q q N)})"
 
 definition Red_F_\<G>_empty :: "'f set \<Rightarrow> 'f set" where
-  "Red_F_\<G>_empty N = (\<Inter>q\<in>Q. {C. \<forall>D \<in> \<G>_F_q q C. D \<in> Red_F_q q (\<G>_set_q q N) \<or> (\<exists>E \<in> N. Prec_F_g D E C \<and> D \<in> \<G>_F_q q E)})"
+  "Red_F_\<G>_empty N = (\<Inter>q\<in>Q. {C. \<forall>D \<in> \<G>_F_q q C. D \<in> Red_F_q q (\<G>_set_q q N) \<or> (\<exists>E \<in> N. Empty_Order E C \<and> D \<in> \<G>_F_q q E)})"
+
+definition Red_F_\<G>_g :: "'f set \<Rightarrow> 'f set" where
+  "Red_F_\<G>_g N = (\<Inter>q\<in>Q. {C. \<forall>D \<in> \<G>_F_q q C. D \<in> Red_F_q q (\<G>_set_q q N) \<or> (\<exists>E \<in> N. Prec_F_g D E C \<and> D \<in> \<G>_F_q q E)})"
 
 definition entails_\<G>_q :: "'q \<Rightarrow> 'f set \<Rightarrow> 'f set \<Rightarrow> bool" where
   "entails_\<G>_q q N1 N2 \<equiv> entails_q q (\<G>_set_q q N1) (\<G>_set_q q N2)"
@@ -392,12 +403,15 @@ next
     fix q
     assume
       q_in: "q \<in> Q"
-    interpret lift_q: lifting_with_wf_ordering_family Bot_F Inf_F Bot_G "entails_q q" Inf_G "Red_Inf_q q" "Red_F_q q" "\<G>_F_q q" "\<G>_Inf_q q" Prec_F_g
-      using standard_lifting_family[OF q_in] by blast
+    interpret lift_q: lifting_with_wf_ordering_family Bot_F Inf_F Bot_G "entails_q q" Inf_G "Red_Inf_q q" "Red_F_q q" "\<G>_F_q q" "\<G>_Inf_q q" "\<lambda>g. Empty_Order"
+      using any_to_empty_order_lifting[OF standard_lifting_family[OF q_in]] . 
     have lift_q_ent: "lift_q.entails_\<G> N {B}"
-      using entails_nb unfolding entails_\<G>_Q_def by (simp add: \<G>_set_q_def q_in lift_q.entails_\<G>_def)
+      using entails_nb unfolding entails_\<G>_Q_def lift_q.entails_\<G>_def by (simp add: \<G>_set_q_def q_in)
+    have "lift_q.Red_F_\<G> = Red_F_\<G>_empty"
+      unfolding Red_F_\<G>_empty_def lift_q.Red_F_\<G>_def
     show "entails_q q (\<G>_set_q q (N - Red_F_\<G>_empty N)) (\<G>_set_q q {B})"
-    using lift_q.Red_F_Bot_F[OF B_in lift_q_ent] 
+    using lift_q.Red_F_Bot_F[OF B_in lift_q_ent] unfolding lift_q.entails_\<G>_def \<G>_set_q_def
+    sorry
 oops
 
 end
