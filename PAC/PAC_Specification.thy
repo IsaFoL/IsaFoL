@@ -176,7 +176,7 @@ proof
     by (auto simp: vars_def times_mpoly.rep_eq simp del: keys_mult)
   then have \<open>x \<in> (\<Union>x. keys (mapping_of (f x) * mapping_of x))\<close>
     using keys_mapping_sum_add[of \<open>{v. f v \<noteq> 0}\<close> \<open>\<lambda>x. f x * x\<close>] assms
-    by (auto simp: vars_def times_mpoly.rep_eq simp del: keys_mult)
+    by (auto simp: vars_def times_mpoly.rep_eq)
   then have \<open>x \<in> (\<Union>x. {a+b| a b. a \<in> keys (mapping_of (f x)) \<and> b \<in> keys (mapping_of x)})\<close>
     using Union_mono[OF ] keys_mult by fast
   then show \<open>p \<in> ?B\<close>
@@ -185,46 +185,6 @@ proof
       in_mono keys_zero vars_def zero_mpoly.rep_eq)
 qed
 
-lemma span_explicit':
-  fixes b :: \<open>int mpoly set\<close>
-  assumes b: \<open>\<Union> (vars `b) \<subseteq> \<V>\<close>
-  shows
-    "{v \<in> ideal.span b. vars v \<subseteq> \<V>} = {(\<Sum>v | f v \<noteq> 0. f v * v) | f. finite {v. f v \<noteq> 0} \<and> (\<forall>v. f v \<noteq> 0 \<longrightarrow> v \<in> b) \<and> (\<forall>v. f v \<noteq> 0 \<longrightarrow> vars (f v) \<subseteq> \<V>)}"
-  (is \<open>?A = ?B\<close>)
-proof (standard; standard)
-  fix x
-  assume \<open>x \<in> ?B\<close>
-  then obtain f where
-    x: \<open>x = (\<Sum>v | f v \<noteq> 0. f v * v)\<close> and
-    fin: \<open>finite {v. f v \<noteq> 0}\<close> and
-    v_b: \<open>\<And>v. f v \<noteq> 0 \<Longrightarrow> v \<in> b\<close> and
-    f_b: \<open>\<And>v. f v \<noteq> 0 \<Longrightarrow> vars (f v) \<subseteq> \<V>\<close>
-    unfolding ideal.span_explicit'
-    by auto
-  then have \<open>x \<in> ideal.span b\<close>
-    unfolding ideal.span_explicit'
-    by auto
-  moreover have \<open>\<Union> (vars ` {v. f v \<noteq> 0}) \<union> \<Union> (vars ` f ` {v. f v \<noteq> 0}) \<subseteq> \<V>\<close>
-    using f_b v_b b by blast
-  then have \<open>vars x \<subseteq> \<V>\<close>
-    using vars_sum_vars_union[of f] fin
-    unfolding x
-    apply auto
-    by blast
-  ultimately show \<open>x \<in> ?A\<close>
-    by auto
-next
-  fix x
-  assume \<open>x \<in> ?A\<close>
-  then have \<open>x \<in> ideal b\<close> and
-    \<open>vars x \<subseteq> \<V>\<close>
-    by auto
-  from More_Modules.ideal.spanE[OF this(1)] obtain A q where
-    \<open>x = (\<Sum>b\<in>A. q b * b)\<close>
-    \<open>finite A\<close> and
-    \<open>A \<subseteq> b\<close>
-    by metis
-    oops
 
 lemma ideal_insert':
   \<open>More_Modules.ideal (insert a S) = {y. \<exists>x k. y = x + k * a \<and> x \<in> More_Modules.ideal S}\<close>
@@ -247,32 +207,46 @@ lemma [simp]:
   \<open>vars 0 = {}\<close>
   by (simp add: vars_def zero_mpoly.rep_eq)
 
-lemma
-  fixes p :: \<open>int mpoly\<close>
-  assumes
-    x'_p: \<open>x' \<in> vars p\<close> and
-    x': \<open>x' \<notin> \<V>\<close> and
-    \<open>MPoly_Type.coeff p (monomial (Suc 0) x') = 1\<close> and
-    vars: \<open>vars (xa + k * p) \<subseteq> \<V>\<close> and
-    \<open>xa \<in> More_Modules.ideal (set_mset A \<union> polynom_bool)\<close>
-  shows \<open>k = 0\<close>
-proof (rule ccontr)
-  assume \<open>k \<noteq> 0\<close>
-  define p' where \<open>p' \<equiv> p - Var x'\<close>
-  have \<open>p = Var x' + p'\<close>
-    unfolding p'_def
+
+lemma polynom_sum_monoms:
+  fixes p :: \<open>'a :: {comm_monoid_add,cancel_comm_monoid_add} mpoly\<close>
+  shows \<open>p = (\<Sum>x\<in>keys (mapping_of p). MPoly_Type.monom x (MPoly_Type.coeff p x))\<close>
+proof -
+  define I where \<open>I \<equiv> keys (mapping_of p)\<close>
+  define a where \<open>a x \<equiv> coeff p x\<close> for x
+  have \<open>finite (keys (mapping_of p))\<close>
     by auto
+  have \<open>p = (\<Sum>x\<in>I. MPoly_Type.monom x (MPoly_Type.coeff p x))\<close>
+    if \<open>finite I\<close> and \<open>keys (mapping_of p) \<subseteq> I\<close>
+    for I
+    using that
+    unfolding I_def a_def
+   proof (induction I arbitrary: p rule: finite_induct)
+      case empty
+      then have \<open>p = 0\<close>
+        using empty coeff_all_0 coeff_keys by blast
+      then show ?case using empty by (auto simp: zero_mpoly.rep_eq)
+    next
+      case (insert x F) note fin = this(1) and xF = this(2) and IH = this(3) and
+        incl = this(4)
+      let ?p = \<open>p - MPoly_Type.monom x (MPoly_Type.coeff p x)\<close>
+      have \<open>?p = (\<Sum>xa\<in>F. MPoly_Type.monom xa (MPoly_Type.coeff ?p xa))\<close>
+        apply (rule IH)
+        using incl apply auto
+        by (smt Diff_iff Diff_insert_absorb add_diff_cancel_right'
+          remove_term_keys remove_term_sum subsetD xF)
+      also have \<open>... = (\<Sum>xa\<in>F. MPoly_Type.monom xa (MPoly_Type.coeff p xa))\<close>
+        apply (use xF in \<open>auto intro!: sum.cong\<close>)
+        by (metis (mono_tags, hide_lams) add_diff_cancel_right' remove_term_coeff
+          remove_term_sum when_def)
+      finally show ?case
+        using xF fin apply auto
+        by (metis add.commute add_diff_cancel_right' remove_term_sum)
+    qed
+    from this[of I] show ?thesis
+      by (auto simp: I_def)
+qed
 
-  have \<open>vars (xa + k * p) = vars (xa + (k * p' + k*Var x'))\<close>
-    by (auto simp: p'_def algebra_simps)
-  have \<open>x' \<notin> vars (xa + k * p)\<close>
-    using vars x' by auto
-  then have \<open>x' \<notin> vars (k*p)\<close>
-    using vars_add[of xa \<open>k*p\<close>]
-    apply auto
-    sorry
-
-oops
 
 
 
@@ -306,10 +280,7 @@ lemma PAC_Format_subset_ideal:
   subgoal for p x'
     apply auto
     apply (auto simp: pac_ideal_def ideal_insert' vars_add)
-    sledgehammer
-find_theorems "vars (_ + _)"
-    thm ideal.span_insert[of a S]
-    try0
+
   done
 
 
