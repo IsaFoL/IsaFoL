@@ -318,6 +318,9 @@ proof
   show \<open>\<iota> \<in> Inf_F \<Longrightarrow> concl_of \<iota> \<in> N \<Longrightarrow> \<iota> \<in> Red_Inf_\<G> N\<close> using Red_Inf_of_Inf_to_N_F by simp
 qed
 
+lemma "calculus_with_red_crit Bot_F Inf_F entails_\<G> Red_Inf_\<G> Red_F_\<G>"
+  using lifted_calculus_with_red_crit.calculus_with_red_crit_axioms .
+
 end
 
 
