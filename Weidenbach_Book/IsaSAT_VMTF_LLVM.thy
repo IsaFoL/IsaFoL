@@ -577,10 +577,6 @@ export_llvm
   ns_vmtf_dequeue_code
   vmtf_en_dequeue_fast_code
   vmtf_rescale_code
-  partition_vmtf_nth_code
-  partition_between_ref_vmtf_code
-  quicksort_vmtf_nth_ref_code
-  quicksort_vmtf_nth_code
   current_stamp_impl
   isa_vmtf_flush_fast_code
   isa_vmtf_mark_to_rescore_code
