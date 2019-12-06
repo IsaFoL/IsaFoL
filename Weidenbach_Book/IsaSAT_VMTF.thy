@@ -32,7 +32,7 @@ definition isa_vmtf_enqueue :: \<open>trail_pol \<Rightarrow> nat \<Rightarrow> 
   ASSERT(defined_atm_pol_pre M L);
   de \<leftarrow> RETURN (defined_atm_pol M L);
   case fst_As of
-    None \<Rightarrow>RETURN ( (ns[L := VMTF_Node m fst_As None], m+1, L, L,
+    None \<Rightarrow>RETURN ((ns[L := VMTF_Node m fst_As None], m+1, L, L,
             (if de then None else Some L)))
   | Some fst_As \<Rightarrow> do {
       let fst_As' = VMTF_Node (stamp (ns!fst_As)) (Some L) (get_next (ns!fst_As));
@@ -239,12 +239,23 @@ lemma vmtf_rescale_alt_def:
   })\<close>
   unfolding update_stamp.simps Let_def vmtf_rescale_def by auto
 
+definition vmtf_reorder_list_raw where
+  \<open>vmtf_reorder_list_raw = (\<lambda>vm to_remove. do {
+    ASSERT(\<forall>x\<in>set to_remove. x < length vm);
+    reorder_list vm to_remove
+  })\<close>
+
+
+definition vmtf_reorder_list where
+  \<open>vmtf_reorder_list = (\<lambda>(vm, _) to_remove. do {
+    vmtf_reorder_list_raw vm to_remove
+  })\<close>
 
 definition isa_vmtf_flush_int :: \<open>trail_pol \<Rightarrow> _ \<Rightarrow> _ nres\<close> where
 \<open>isa_vmtf_flush_int  = (\<lambda>M (vm, (to_remove, h)). do {
     ASSERT(\<forall>x\<in>set to_remove. x < length (fst vm));
     ASSERT(length to_remove \<le> uint32_max);
-    to_remove' \<leftarrow> reorder_list vm to_remove;
+    to_remove' \<leftarrow> vmtf_reorder_list vm to_remove;
     ASSERT(length to_remove' \<le> uint32_max);
     vm \<leftarrow> (if length to_remove' \<ge> uint64_max - fst (snd vm)
       then vmtf_rescale vm else RETURN vm);
@@ -290,7 +301,7 @@ proof -
     unfolding vmtf_flush_int_def
     by auto
 
-  have reorder_list: \<open>reorder_list x1d x1e
+  have reorder_list: \<open>vmtf_reorder_list x1d x1e
 	\<le> \<Down> Id
 	   (reorder_list x1a x1b)\<close>
     if
@@ -305,7 +316,8 @@ proof -
       \<open>\<forall>x\<in>set x1e. x < length (fst x1d)\<close> and
       \<open>length x1e \<le> uint32_max\<close>
     for x y x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e
-    using that by auto
+    using that unfolding vmtf_reorder_list_def by (cases x1a)
+      (auto intro!: ASSERT_leI simp: reorder_list_def vmtf_reorder_list_raw_def)
 
   have vmtf_rescale: \<open>vmtf_rescale x1d
 	\<le> \<Down> Id

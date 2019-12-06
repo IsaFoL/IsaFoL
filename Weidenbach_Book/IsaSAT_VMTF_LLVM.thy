@@ -1,5 +1,7 @@
 theory IsaSAT_VMTF_LLVM
 imports Watched_Literals.WB_Sort IsaSAT_VMTF IsaSAT_Setup_LLVM
+   Isabelle_LLVM.Sorting_Introsort
+   IsaSAT_Sorting_LLVM
 begin
 
 (* TODO: Mathias! Only import the refinement stuff over a single point,
@@ -38,6 +40,200 @@ lemma get_prev_ref[sepref_fr_rules]:
   unfolding option_assn_pure_conv
   by sepref_to_hoare (sep_auto simp: return_cons_rule vmtf_node_rel_def)
 *)
+
+
+
+no_notation WB_More_Refinement.fref ("[_]\<^sub>f _ \<rightarrow> _" [0,60,60] 60)
+no_notation WB_More_Refinement.freft ("_ \<rightarrow>\<^sub>f _" [60,60] 60)
+declare \<alpha>_butlast[simp del]
+
+definition idx_cdom :: "nat_vmtf_node list \<Rightarrow> nat set" where
+ "idx_cdom xs \<equiv> {i. i < length xs}"
+
+definition VMTF_score_less where
+  \<open>VMTF_score_less xs i j \<longleftrightarrow> stamp (xs ! i) < stamp (xs ! j)\<close>
+  
+definition mop_VMTF_score_less where
+  \<open>mop_VMTF_score_less xs i j = do {
+    ASSERT(i < length xs);
+    ASSERT(j < length xs);
+    RETURN (stamp (xs ! i) < stamp (xs ! j))
+  }\<close>
+
+sepref_register VMTF_score_less
+
+sepref_def (in -) mop_VMTF_score_less_impl
+  is \<open>uncurry2 (mop_VMTF_score_less)\<close>
+  :: \<open>(array_assn vmtf_node_assn)\<^sup>k *\<^sub>a atom_assn\<^sup>k *\<^sub>a atom_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
+  supply [[goals_limit = 1]]
+  unfolding mop_VMTF_score_less_def
+  apply (rewrite at \<open>stamp (_ ! \<hole>)\<close> value_of_atm_def[symmetric])
+  apply (rewrite at \<open>stamp (_ ! \<hole>)\<close> in \<open>_ < \<hole>\<close> value_of_atm_def[symmetric])
+  unfolding index_of_atm_def[symmetric]
+  by sepref
+
+
+interpretation VMTF: weak_ordering_on_lt where
+  C = "idx_cdom vs" and
+  less = "VMTF_score_less vs"
+  by unfold_locales
+   (auto simp: VMTF_score_less_def split: if_splits)
+
+interpretation VMTF: parameterized_weak_ordering idx_cdom VMTF_score_less
+    mop_VMTF_score_less
+  by unfold_locales
+   (auto simp: mop_VMTF_score_less_def
+     idx_cdom_def VMTF_score_less_def)
+
+
+global_interpretation VMTF: parameterized_sort_impl_context
+  "woarray_assn atom_assn" "eoarray_assn atom_assn" atom_assn
+  return return
+  eo_extract_impl
+  array_upd
+  idx_cdom VMTF_score_less mop_VMTF_score_less mop_VMTF_score_less_impl
+  "array_assn vmtf_node_assn"
+  defines
+          VMTF_is_guarded_insert_impl = VMTF.is_guarded_param_insert_impl
+      and VMTF_is_unguarded_insert_impl = VMTF.is_unguarded_param_insert_impl
+      and VMTF_unguarded_insertion_sort_impl = VMTF.unguarded_insertion_sort_param_impl
+      and VMTF_guarded_insertion_sort_impl = VMTF.guarded_insertion_sort_param_impl
+      and VMTF_final_insertion_sort_impl = VMTF.final_insertion_sort_param_impl
+      (*and VMTF_mop_lchild_impl  = VMTF.mop_lchild_impl
+      and VMTF_mop_rchild_impl  = VMTF.mop_rchild_impl
+      and VMTF_has_rchild_impl  = VMTF.has_rchild_impl
+      and VMTF_has_lchild_impl  = VMTF.has_lchild_impl *)
+
+      and VMTF_pcmpo_idxs_impl  = VMTF.pcmpo_idxs_impl
+      and VMTF_pcmpo_v_idx_impl  = VMTF.pcmpo_v_idx_impl
+      and VMTF_pcmpo_idx_v_impl  = VMTF.pcmpo_idx_v_impl
+      and VMTF_pcmp_idxs_impl  = VMTF.pcmp_idxs_impl
+
+      and VMTF_mop_geth_impl    = VMTF.mop_geth_impl
+      and VMTF_mop_seth_impl    = VMTF.mop_seth_impl
+      and VMTF_sift_down_impl   = VMTF.sift_down_impl
+      and VMTF_heapify_btu_impl = VMTF.heapify_btu_impl
+      and VMTF_heapsort_impl    = VMTF.heapsort_param_impl
+      and VMTF_qsp_next_l_impl       = VMTF.qsp_next_l_impl
+      and VMTF_qsp_next_h_impl       = VMTF.qsp_next_h_impl
+      and VMTF_qs_partition_impl     = VMTF.qs_partition_impl
+(*      and VMTF_qs_partitionXXX_impl     = VMTF.qs_partitionXXX_impl *)
+      and VMTF_partition_pivot_impl  = VMTF.partition_pivot_impl
+      and VMTF_introsort_aux_impl = VMTF.introsort_aux_param_impl
+      and VMTF_introsort_impl        = VMTF.introsort_param_impl
+      and VMTF_move_median_to_first_impl = VMTF.move_median_to_first_param_impl
+
+  apply unfold_locales
+  apply (rule eo_hnr_dep)+
+  unfolding GEN_ALGO_def refines_param_relp_def (* TODO: thm gen_refines_param_relpI *)
+  supply[[unify_trace_failure]]
+  by (rule mop_VMTF_score_less_impl.refine)
+
+
+ 
+global_interpretation
+  VMTF_it: pure_eo_adapter atom_assn "arl64_assn atom_assn" arl_nth arl_upd
+  defines VMTF_it_eo_extract_impl = VMTF_it.eo_extract_impl
+  apply (rule al_pure_eo)
+  by (simp add: safe_constraint_rules)
+
+
+
+global_interpretation VMTF_it: parameterized_sort_impl_context
+  where
+    wo_assn = \<open>arl64_assn atom_assn\<close>
+    and eo_assn = VMTF_it.eo_assn
+    and elem_assn = atom_assn
+    and to_eo_impl = return
+    and to_wo_impl = return
+    and extract_impl = VMTF_it_eo_extract_impl
+    and set_impl = arl_upd
+    and cdom = idx_cdom
+    and pless = VMTF_score_less
+    and pcmp = mop_VMTF_score_less
+    and pcmp_impl = mop_VMTF_score_less_impl
+    and cparam_assn = \<open>array_assn vmtf_node_assn\<close>
+  defines
+          VMTF_it_is_guarded_insert_impl = VMTF_it.is_guarded_param_insert_impl
+      and VMTF_it_is_unguarded_insert_impl = VMTF_it.is_unguarded_param_insert_impl
+      and VMTF_it_unguarded_insertion_sort_impl = VMTF_it.unguarded_insertion_sort_param_impl
+      and VMTF_it_guarded_insertion_sort_impl = VMTF_it.guarded_insertion_sort_param_impl
+      and VMTF_it_final_insertion_sort_impl = VMTF_it.final_insertion_sort_param_impl
+      (*and VMTF_it_mop_lchild_impl  = VMTF_it.mop_lchild_impl
+      and VMTF_it_mop_rchild_impl  = VMTF_it.mop_rchild_impl
+      and VMTF_it_has_rchild_impl  = VMTF_it.has_rchild_impl
+      and VMTF_it_has_lchild_impl  = VMTF_it.has_lchild_impl *)
+
+      and VMTF_it_pcmpo_idxs_impl  = VMTF_it.pcmpo_idxs_impl
+      and VMTF_it_pcmpo_v_idx_impl  = VMTF_it.pcmpo_v_idx_impl
+      and VMTF_it_pcmpo_idx_v_impl  = VMTF_it.pcmpo_idx_v_impl
+      and VMTF_it_pcmp_idxs_impl  = VMTF_it.pcmp_idxs_impl
+
+      and VMTF_it_mop_geth_impl    = VMTF_it.mop_geth_impl
+      and VMTF_it_mop_seth_impl    = VMTF_it.mop_seth_impl
+      and VMTF_it_sift_down_impl   = VMTF_it.sift_down_impl
+      and VMTF_it_heapify_btu_impl = VMTF_it.heapify_btu_impl
+      and VMTF_it_heapsort_impl    = VMTF_it.heapsort_param_impl
+      and VMTF_it_qsp_next_l_impl       = VMTF_it.qsp_next_l_impl
+      and VMTF_it_qsp_next_h_impl       = VMTF_it.qsp_next_h_impl
+      and VMTF_it_qs_partition_impl     = VMTF_it.qs_partition_impl
+(*      and VMTF_it_qs_partitionXXX_impl     = VMTF_it.qs_partitionXXX_impl *)
+      and VMTF_it_partition_pivot_impl  = VMTF_it.partition_pivot_impl
+      and VMTF_it_introsort_aux_impl = VMTF_it.introsort_aux_param_impl
+      and VMTF_it_introsort_impl        = VMTF_it.introsort_param_impl
+      and VMTF_it_move_median_to_first_impl = VMTF_it.move_median_to_first_param_impl
+
+  apply unfold_locales
+  unfolding GEN_ALGO_def refines_param_relp_def (* TODO: thm gen_refines_param_relpI *)
+  apply (rule mop_VMTF_score_less_impl.refine)
+  done
+
+
+lemmas [llvm_inline] = VMTF_it.eo_extract_impl_def[THEN meta_fun_cong, THEN meta_fun_cong]
+
+print_named_simpset llvm_inline
+export_llvm
+  "VMTF_heapsort_impl :: _ \<Rightarrow> _ \<Rightarrow> _"
+  "VMTF_introsort_impl :: _ \<Rightarrow> _ \<Rightarrow> _"
+
+definition VMTF_sort_scores_raw :: \<open>_\<close> where
+  \<open>VMTF_sort_scores_raw = pslice_sort_spec idx_cdom VMTF_score_less\<close>
+
+definition VMTF_sort_scores :: \<open>_\<close> where
+  \<open>VMTF_sort_scores xs ys = VMTF_sort_scores_raw xs ys 0 (length ys)\<close>
+
+lemmas VMTF_introsort[sepref_fr_rules] =
+  VMTF_it.introsort_param_impl_correct[unfolded VMTF_sort_scores_raw_def[symmetric] PR_CONST_def]
+
+sepref_register VMTF_sort_scores_raw vmtf_reorder_list_raw
+
+lemma VMTF_sort_scores_vmtf_reorder_list_raw:
+  \<open>(VMTF_sort_scores, vmtf_reorder_list_raw) \<in> Id \<rightarrow> Id \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
+  unfolding VMTF_sort_scores_def VMTF_sort_scores_raw_def pslice_sort_spec_def
+    vmtf_reorder_list_raw_def
+  apply (refine_rcg)
+  subgoal by (auto simp: idx_cdom_def)
+  subgoal for vm vm' arr arr'
+    by (auto intro!: slice_sort_spec_refine_sort[THEN order_trans, of _ arr' arr']
+    simp: idx_cdom_def slice_rel_def br_def reorder_list_def conc_fun_RES sort_spec_def
+      eq_commute[of \<open>length _\<close> \<open>length arr'\<close>])
+  done
+
+sepref_def VMTF_sort_scores_raw_impl
+  is \<open>uncurry VMTF_sort_scores\<close>
+  :: \<open>(IICF_Array.array_assn vmtf_node_assn)\<^sup>k *\<^sub>a VMTF_it.arr_assn\<^sup>d \<rightarrow>\<^sub>a VMTF_it.arr_assn\<close>
+  unfolding VMTF_sort_scores_def
+  apply (annot_snat_const "TYPE(64)")
+  by sepref
+
+lemmas[sepref_fr_rules] =
+  VMTF_sort_scores_raw_impl.refine[FCOMP VMTF_sort_scores_vmtf_reorder_list_raw]
+
+sepref_def VMTF_sort_scores_impl
+  is \<open>uncurry vmtf_reorder_list\<close>
+  :: \<open>(vmtf_assn)\<^sup>k *\<^sub>a VMTF_it.arr_assn\<^sup>d \<rightarrow>\<^sub>a VMTF_it.arr_assn\<close>
+  unfolding vmtf_reorder_list_def
+  by sepref
 
 sepref_def atoms_hash_del_code
   is \<open>uncurry (RETURN oo atoms_hash_del)\<close>
@@ -213,26 +409,6 @@ sepref_def vmtf_rescale_code
   apply (annot_unat_const "TYPE(64)")
   apply annot_all_atm_idxs    
   by sepref
-  
-
-
-sepref_def partition_vmtf_nth_code
-   is \<open>uncurry3 partition_vmtf_nth\<close>
-   :: \<open>[\<lambda>(((ns, _), hi), xs). (\<forall>x\<in>set xs. x < length ns) \<and> length xs \<le> uint32_max]\<^sub>a
-  (array_assn vmtf_node_assn)\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a (arl64_assn atom_assn)\<^sup>d \<rightarrow>
-  arl64_assn atom_assn *a sint64_nat_assn\<close>
-  unfolding partition_vmtf_nth_def
-    partition_main_def choose_pivot3_def
-    convert_swap gen_swap
-    
-  apply (annot_snat_const "TYPE(64)")  
-  supply [[goals_limit = 1]]
-  supply [simp] = max_snat_def uint32_max_def
-  supply partition_vmtf_nth_code_helper3[intro] partition_main_inv_def[simp]
-  apply (rewrite at \<open>_ ! _\<close> at \<open>stamp ( _ ! \<hole>)\<close> value_of_atm_def[symmetric])
-  apply (rewrite at \<open>stamp ( _ ! \<hole>)\<close> in \<open>If \<hole> _\<close> value_of_atm_def[symmetric])
-  unfolding index_of_atm_def[symmetric]
-  by sepref
 
 
 sepref_register partition_between_ref
@@ -242,73 +418,7 @@ sepref_register partition_between_ref
   apply sepref_bounds
   apply (drule in_snat_rel_imp_less_max')+ 
   by auto
-*)  
-  
-    
-  
-(*TODO Move*)
-sepref_def partition_between_ref_vmtf_code
-   is \<open>uncurry3 partition_between_ref_vmtf\<close>
-   :: \<open>[\<lambda>(((vm), _), remove). (\<forall>x\<in>#mset remove. x < length (fst vm)) \<and> length remove \<le> uint32_max]\<^sub>a
-      (array_assn vmtf_node_assn)\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a (arl64_assn atom_assn)\<^sup>d  \<rightarrow>
-       arl64_assn atom_assn *a sint64_nat_assn\<close>
-  supply [[goals_limit=1]]
-  unfolding quicksort_vmtf_nth_def partition_vmtf_nth_def[symmetric]
-    quicksort_vmtf_nth_ref_def List.null_def quicksort_ref_def
-    partition_between_ref_vmtf_def
-    partition_between_ref_def 
-    partition_vmtf_nth_def[symmetric] choose_pivot3_def
-    convert_swap gen_swap
-  apply (rewrite at \<open>_ ! _\<close> at \<open>stamp ( _ ! \<hole>)\<close> value_of_atm_def[symmetric])
-  apply (rewrite at \<open>let _ = _; _ = stamp ( _ ! \<hole>) in _\<close> value_of_atm_def[symmetric])
-  apply (rewrite at \<open>let _ = _; _ = _; _ = stamp ( _ ! \<hole>) in _\<close> value_of_atm_def[symmetric])
-  unfolding index_of_atm_def[symmetric]
-  apply (annot_snat_const "TYPE(64)")
-  by sepref
-
-sepref_register partition_between_ref_vmtf quicksort_vmtf_nth_ref
-
-lemma quicksort_vmtf_nth_ref_code_avoid_minus: "p - (1::nat) \<le> lo \<longleftrightarrow> p=0 \<or> p \<le> lo + 1" by auto
-sepref_def quicksort_vmtf_nth_ref_code
-   is \<open>uncurry3 quicksort_vmtf_nth_ref\<close>
-   :: \<open>[\<lambda>((vm, _), remove). (\<forall>x\<in>#mset remove. x < length (fst vm)) \<and> length remove \<le> uint32_max]\<^sub>a
-      (array_assn vmtf_node_assn)\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a (arl64_assn atom_assn)\<^sup>d  \<rightarrow>
-       arl64_assn atom_assn\<close>
-  unfolding quicksort_vmtf_nth_def partition_vmtf_nth_def[symmetric]
-    quicksort_vmtf_nth_ref_def List.null_def quicksort_ref_def
-    length_0_conv[symmetric]
-   partition_vmtf_nth_def[symmetric]
-   partition_between_ref_vmtf_def[symmetric]
-   partition_vmtf_nth_def[symmetric]
-  apply (rewrite quicksort_vmtf_nth_ref_code_avoid_minus)
-  apply (annot_snat_const "TYPE(64)")
-  supply [[goals_limit = 1]]
-  supply mset_eq_setD[dest] mset_eq_length[dest]
-  by sepref
-
-
-sepref_def quicksort_vmtf_nth_code
-   is \<open>uncurry quicksort_vmtf_nth\<close>
-   :: \<open>[\<lambda>(vm, remove). (\<forall>x\<in>#mset remove. x < length (fst vm)) \<and> length remove \<le> uint32_max]\<^sub>a
-      vmtf_assn\<^sup>k *\<^sub>a (arl64_assn atom_assn)\<^sup>d  \<rightarrow>
-       arl64_assn atom_assn\<close>
-  unfolding quicksort_vmtf_nth_def partition_vmtf_nth_def[symmetric]
-    full_quicksort_ref_def List.null_def 
-    length_0_conv[symmetric] 
-    quicksort_vmtf_nth_ref_def[symmetric]
-  supply [[goals_limit = 1]]
-  supply mset_eq_setD[dest] mset_eq_length[dest]
-  apply (annot_snat_const "TYPE(64)")
-  by sepref
-
-
-lemma quicksort_vmtf_nth_code_reorder_list[sepref_fr_rules]:
-   \<open>(uncurry quicksort_vmtf_nth_code, uncurry reorder_list) \<in>
-      [\<lambda>((a, _), b). (\<forall>x\<in>set b. x < length a) \<and> length b \<le> uint32_max]\<^sub>a
-      vmtf_assn\<^sup>k *\<^sub>a (arl64_assn atom_assn)\<^sup>d \<rightarrow> arl64_assn atom_assn\<close>
-      supply [[show_types]]
-  using quicksort_vmtf_nth_code.refine[FCOMP quicksort_vmtf_nth_reorder[unfolded convert_fref]]
-  by auto
+*)
 sepref_register isa_vmtf_enqueue
 
 (*
@@ -323,6 +433,7 @@ sepref_def current_stamp_impl
   :: \<open>vmtf_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
   unfolding current_stamp_alt_def
   by sepref
+
 
 
 sepref_register isa_vmtf_en_dequeue
