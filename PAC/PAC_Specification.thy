@@ -2,6 +2,7 @@ theory PAC_Specification
   imports PAC_More_Poly
 begin
 
+find_theorems \<open>genideal _ {}\<close>
 type_synonym int_poly = \<open>int mpoly\<close>
 definition polynom_bool :: \<open>int_poly set\<close> where
   \<open>polynom_bool = (\<lambda>c. Var c ^ 2 - Var c) ` UNIV\<close>
@@ -414,7 +415,8 @@ lemma polynom_decomp_alien_var:
     q: \<open>q = A * (monom (monomial (Suc 0) x') 1) + b\<close> and
     x: \<open>x' \<notin> vars q\<close> \<open>x' \<notin> vars b\<close>
   shows
-    \<open>A = 0\<close>
+    \<open>A = 0\<close> and
+    \<open>q = b\<close>
 proof -
   let ?A = \<open>A * (monom (monomial (Suc 0) x') 1)\<close>
   have \<open>?A = q - b\<close>
@@ -430,6 +432,8 @@ proof -
   then show \<open>A = 0\<close>
     apply auto
     by (metis (full_types) empty_iff insert_iff mult_zero_right vars_mult_monom)
+  then show \<open>q = b\<close>
+    using q by auto
 qed
 
 lemma vars_unE: \<open>x \<in> vars (a * b) \<Longrightarrow> (x \<in> vars a \<Longrightarrow> thesis) \<Longrightarrow> (x \<in> vars b \<Longrightarrow> thesis) \<Longrightarrow> thesis\<close>
@@ -511,15 +515,14 @@ proof -
     apply (cases \<open>pv' \<in> t'\<close>)
     by (subst sum.remove[of _ pv']) (use fin_t in \<open>auto simp: t pv'_def field_simps\<close>)
 
-  have q1: \<open>q = (\<Sum>a\<in>t'. ?v * g a * a) + (\<Sum>a\<in>t'. h a * a) + r p * p\<close>
-    using fin_t unfolding q t r
-    by (auto simp: field_simps comm_monoid_add_class.sum.distrib)
-  also have q1: \<open>... = (\<Sum>a\<in>t'. ?v * g a * a) + ?NOx' + ?bx' * ?v + r p * p\<close>
+  have q1: \<open>q = (\<Sum>a\<in>t'. ?v * g a * a) + (\<Sum>a\<in>t'. h a * a) + ?v * g p * p' + h p * p' + r p * ?v\<close>
+    using fin_t t'' unfolding q t r
+    by (auto simp: field_simps comm_monoid_add_class.sum.distrib p_p')
+  also have q1: \<open>... = (\<Sum>a\<in>t'. ?v * g a * a) + ?NOx' + ?bx' * ?v + g p * p' * ?v + h p * p' + r p * ?v\<close>
     using fin_t unfolding q t r eq2
     by (auto simp: field_simps comm_monoid_add_class.sum.distrib)
-  also have \<open>... = (r p + (\<Sum>a\<in>t'. g a * a) + ?bx') * ?v + (r p * p' + ?NOx')\<close> (is \<open>_ = ?X' * ?v' + ?NOx''\<close>)
-    by (subst (2) p_p')
-      (auto simp: field_simps sum_distrib_left)
+  also have \<open>... = (r p + (\<Sum>a\<in>t'. g a * a) + ?bx' + g p * p') * ?v + (h p * p' + ?NOx')\<close> (is \<open>_ = ?X' * ?v' + ?NOx''\<close>)
+    by (auto simp: field_simps sum_distrib_left r)
   finally have q_decomp: \<open>q = ?X' * ?v' + ?NOx''\<close>
    .
 
@@ -561,19 +564,33 @@ proof -
        \<open>t \<subseteq> insert p (set_mset A \<union> polynom_bool)\<close>
      by (auto simp: t)
 
-  then have
+  moreover {
+    have \<open>x' \<notin> vars p'\<close>
+      using assms(7)
+      unfolding p'_def
+      by auto
+    then have \<open>x' \<notin> vars (h p * p')\<close>
+      using vars_mult[of \<open>h p\<close> p'] x'_h
+      by auto
+  }
+  ultimately have
     \<open>x' \<notin> vars q\<close>
     \<open>x' \<notin> vars ?NOx''\<close>
-    using x' vars_q vars_add[of \<open>r p * p'\<close> \<open>\<Sum>a\<in>t'. h a * a\<close>]
-      vars_mult[of \<open>r p\<close> p']
+    using x' vars_q vars_add[of \<open>h p * p'\<close> \<open>\<Sum>a\<in>t'. h a * a\<close>] x'_h
     apply auto
-    sorry
-  then have \<open>?X' = 0\<close>
+    by (meson UnE in_mono vars_add)
+  then have \<open>?X' = 0\<close> and q_decomp: \<open>q = ?NOx''\<close>
     unfolding mon[symmetric]
-    by (rule polynom_decomp_alien_var[OF q_decomp[unfolded mon[symmetric]]])
+    by (rule polynom_decomp_alien_var[OF q_decomp[unfolded mon[symmetric]]])+
 
+  then have \<open>r p = - ?bx' + (\<Sum>a\<in>t'. (- g a) * a) - (g p * p')\<close>
+    (is \<open>_ = ?pv + ?CL - ?p'\<close>)
+    unfolding add.assoc add_eq_0_iff equation_minus_iff
+    by (auto simp: sum_negf ac_simps)
+
+thm q_decomp
   then have \<open>r p = (\<Sum>a\<in>t'. (- g a) * a)\<close>
-    by (auto simp: add_eq_0_iff sum_negf)
+    sorry
 
   then have rpp: \<open>r p * p = (\<Sum>a\<in>t'. (- g a * p) * a)\<close>
     by (auto simp: sum_distrib_left ac_simps)
@@ -588,8 +605,8 @@ proof -
   then show ?thesis
     using fin_t \<open>t \<subseteq> insert p (set_mset A \<union> polynom_bool)\<close>
     by (force simp: ideal.span_explicit t)
+  qed
 qed
-
 
 
 lemma PAC_Format_subset_ideal:
