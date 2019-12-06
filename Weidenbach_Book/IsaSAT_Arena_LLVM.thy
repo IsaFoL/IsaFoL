@@ -298,16 +298,43 @@ lemma update_posI:
   (* TODO: Clean up this mess *)
   apply (metis (full_types) MAX_LENGTH_SHORT_CLAUSE_def arena_is_valid_clause_idx_def arena_posI(1) get_saved_pos_pre_def)
   by (simp add: less_imp_diff_less valid_arena_def)
-  
+
 lemma update_posI2:
   assumes "isa_update_pos_pre ((b, pos), a)"
-  assumes "rdomp (al_assn arena_el_impl_assn) a"
+  assumes "rdomp (al_assn arena_el_impl_assn :: _ \<Rightarrow> (32 word, 64) array_list \<Rightarrow> assn) a"
   shows "pos - 2 < max_unat 32"
-  using assms POS_SHIFT_def
-  unfolding isa_update_pos_pre_def
-  apply (auto simp: arena_is_valid_clause_idx_def arena_lifting)
-  sorry (* TODO !*)
-  
+proof -
+  obtain N vdom where
+    \<open>valid_arena a N vdom\<close> and
+    \<open>b \<in># dom_m N\<close>
+    using assms(1) unfolding isa_update_pos_pre_def arena_is_valid_clause_idx_def
+    by auto
+  then have eq: \<open>length (N \<propto> b) = arena_length a b\<close> and
+    le: \<open>b < length a\<close> and
+    size: \<open>is_Size (a ! (b - SIZE_SHIFT))\<close>
+    by (auto simp: arena_lifting)
+
+  have \<open>i<length a \<Longrightarrow> rdomp arena_el_impl_assn (a ! i)\<close> for i
+    using rdomp_al_dest'[OF assms(2)]
+    by auto
+  from this[of \<open>b - SIZE_SHIFT\<close>] have \<open>rdomp arena_el_impl_assn (a ! (b - SIZE_SHIFT))\<close>
+    using le by auto
+  then have \<open>length (N \<propto> b) \<le> uint32_max + 2\<close>
+    using size eq unfolding rdomp_pure
+    apply (auto simp: rdomp_def arena_el_impl_rel_def is_Size_def
+       comp_def pure_def unat_rel_def unat.rel_def br_def
+       arena_length_def uint32_max_def)
+     subgoal for x
+       using unat_lt_max_unat[of x]
+       apply (auto simp: max_unat_def)
+       done
+    done
+  then show ?thesis
+    using assms POS_SHIFT_def
+    unfolding isa_update_pos_pre_def
+    by (auto simp: arena_is_valid_clause_idx_def arena_lifting eq
+       uint32_max_def max_unat_def)
+qed
 
 sepref_register arena_update_pos   
 sepref_def update_pos_impl

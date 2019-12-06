@@ -1,7 +1,7 @@
 theory IsaSAT_Restart_Heuristics_LLVM
   imports IsaSAT_Restart_Heuristics IsaSAT_Setup_LLVM
      IsaSAT_VMTF_LLVM IsaSAT_Rephase_LLVM
-     IsaSAT_Sorting_LLVM
+     IsaSAT_Arena_Sorting_LLVM
 begin
 
 hide_fact (open) Sepref_Rules.frefI

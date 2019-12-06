@@ -67,7 +67,8 @@ definition isasat_current_information :: \<open>64 word \<Rightarrow> stats \<Ri
          _ = print_uint64 lrestarts;
          _ = print_uint64 uset;
          _ = print_uint64 gcs;
-         _ = print_uint64 lbds
+         _ = print_uint64 lbds;
+         _ = print_close_colour 0
        in
        zero_some_stats (propa, confl, decs, frestarts, lrestarts, uset, gcs, lbds)}
       else (propa, confl, decs, frestarts, lrestarts, uset, gcs, lbds)
@@ -105,7 +106,6 @@ definition isasat_print_progress :: \<open>64 word \<Rightarrow> 64 word \<Right
          _ = print_uint64 lrestarts;
          _ = print_uint64 uset;
          _ = print_uint64 gcs;
-         _ = print_uint64 lbds;
          _ = print_close_colour 0
      in
        ())\<close>

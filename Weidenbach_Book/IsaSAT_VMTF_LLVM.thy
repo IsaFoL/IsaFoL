@@ -42,17 +42,12 @@ lemma get_prev_ref[sepref_fr_rules]:
 *)
 
 
-
-no_notation WB_More_Refinement.fref ("[_]\<^sub>f _ \<rightarrow> _" [0,60,60] 60)
-no_notation WB_More_Refinement.freft ("_ \<rightarrow>\<^sub>f _" [60,60] 60)
-declare \<alpha>_butlast[simp del]
-
-definition idx_cdom :: "nat_vmtf_node list \<Rightarrow> nat set" where
- "idx_cdom xs \<equiv> {i. i < length xs}"
+definition valid_atoms :: "nat_vmtf_node list \<Rightarrow> nat set" where
+ "valid_atoms xs \<equiv> {i. i < length xs}"
 
 definition VMTF_score_less where
   \<open>VMTF_score_less xs i j \<longleftrightarrow> stamp (xs ! i) < stamp (xs ! j)\<close>
-  
+
 definition mop_VMTF_score_less where
   \<open>mop_VMTF_score_less xs i j = do {
     ASSERT(i < length xs);
@@ -74,16 +69,16 @@ sepref_def (in -) mop_VMTF_score_less_impl
 
 
 interpretation VMTF: weak_ordering_on_lt where
-  C = "idx_cdom vs" and
+  C = "valid_atoms vs" and
   less = "VMTF_score_less vs"
   by unfold_locales
    (auto simp: VMTF_score_less_def split: if_splits)
 
-interpretation VMTF: parameterized_weak_ordering idx_cdom VMTF_score_less
+interpretation VMTF: parameterized_weak_ordering valid_atoms VMTF_score_less
     mop_VMTF_score_less
   by unfold_locales
    (auto simp: mop_VMTF_score_less_def
-     idx_cdom_def VMTF_score_less_def)
+     valid_atoms_def VMTF_score_less_def)
 
 
 global_interpretation VMTF: parameterized_sort_impl_context
@@ -91,7 +86,7 @@ global_interpretation VMTF: parameterized_sort_impl_context
   return return
   eo_extract_impl
   array_upd
-  idx_cdom VMTF_score_less mop_VMTF_score_less mop_VMTF_score_less_impl
+  valid_atoms VMTF_score_less mop_VMTF_score_less mop_VMTF_score_less_impl
   "array_assn vmtf_node_assn"
   defines
           VMTF_is_guarded_insert_impl = VMTF.is_guarded_param_insert_impl
@@ -148,7 +143,7 @@ global_interpretation VMTF_it: parameterized_sort_impl_context
     and to_wo_impl = return
     and extract_impl = VMTF_it_eo_extract_impl
     and set_impl = arl_upd
-    and cdom = idx_cdom
+    and cdom = valid_atoms
     and pless = VMTF_score_less
     and pcmp = mop_VMTF_score_less
     and pcmp_impl = mop_VMTF_score_less_impl
@@ -197,7 +192,7 @@ export_llvm
   "VMTF_introsort_impl :: _ \<Rightarrow> _ \<Rightarrow> _"
 
 definition VMTF_sort_scores_raw :: \<open>_\<close> where
-  \<open>VMTF_sort_scores_raw = pslice_sort_spec idx_cdom VMTF_score_less\<close>
+  \<open>VMTF_sort_scores_raw = pslice_sort_spec valid_atoms VMTF_score_less\<close>
 
 definition VMTF_sort_scores :: \<open>_\<close> where
   \<open>VMTF_sort_scores xs ys = VMTF_sort_scores_raw xs ys 0 (length ys)\<close>
@@ -212,10 +207,10 @@ lemma VMTF_sort_scores_vmtf_reorder_list_raw:
   unfolding VMTF_sort_scores_def VMTF_sort_scores_raw_def pslice_sort_spec_def
     vmtf_reorder_list_raw_def
   apply (refine_rcg)
-  subgoal by (auto simp: idx_cdom_def)
+  subgoal by (auto simp: valid_atoms_def)
   subgoal for vm vm' arr arr'
     by (auto intro!: slice_sort_spec_refine_sort[THEN order_trans, of _ arr' arr']
-    simp: idx_cdom_def slice_rel_def br_def reorder_list_def conc_fun_RES sort_spec_def
+    simp: valid_atoms_def slice_rel_def br_def reorder_list_def conc_fun_RES sort_spec_def
       eq_commute[of \<open>length _\<close> \<open>length arr'\<close>])
   done
 

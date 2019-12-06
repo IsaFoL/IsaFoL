@@ -1413,15 +1413,17 @@ proof -
     subgoal by simp
     subgoal by simp
     subgoal by simp
-    subgoal unfolding update_blit_wl_heur_pre_def unit_propagation_inner_loop_wl_loop_D_heur_inv0_def prod.case unit_propagation_inner_loop_wl_loop_pre_def
-       apply normalize_goal+ by simp
+    subgoal
+      unfolding update_blit_wl_heur_pre_def unit_propagation_inner_loop_wl_loop_D_heur_inv0_def
+      prod.case unit_propagation_inner_loop_wl_loop_pre_def
+      by normalize_goal+ simp
     subgoal by simp
     subgoal by simp
     subgoal by simp
     subgoal by simp
     subgoal by simp
+    subgoal by force
     subgoal by simp
-    subgoal by fast
     subgoal by simp
     subgoal by simp
     subgoal by simp
