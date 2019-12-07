@@ -3425,7 +3425,7 @@ define { i64, { i64, i32* } } @IsaSAT_VMTF_LLVM_VMTF_it_introsort_aux_impl({ i64
     %tmpab = insertvalue { i64, { i64, i64 } } %xa, { i64, i64 } %tmpa, 1
     %xb = insertvalue { { i64, { i64, i32* } }, { i64, { i64, i64 } } } zeroinitializer, { i64, { i64, i32* } } %x1, 0
     %x6 = insertvalue { { i64, { i64, i32* } }, { i64, { i64, i64 } } } %xb, { i64, { i64, i64 } } %tmpab, 1
-    %x7 = call { i64, { i64, i32* } } @IsaSAT_CDCL_LLVM_VMTF_it_introsort_aux_impl_f_016172146 ({ i64, { i32, i32 } }* %x, { { i64, { i64, i32* } }, { i64, { i64, i64 } } } %x6)
+    %x7 = call { i64, { i64, i32* } } @IsaSAT_CDCL_LLVM_VMTF_it_introsort_aux_impl_f_032416528 ({ i64, { i32, i32 } }* %x, { { i64, { i64, i32* } }, { i64, { i64, i64 } } } %x6)
     ret { i64, { i64, i32* } } %x7
 }
 
@@ -5151,6 +5151,27 @@ define { i64, { i64, i32* } } @IsaSAT_VMTF_LLVM_VMTF_it_is_unguarded_insert_impl
     ret { i64, { i64, i32* } } %x6
 }
 
+define i32 @IsaSAT_Arena_LLVM_arena_other_watched_as_swap_impl({ i64, { i64, i32* } } %x, i32 %x1, i64 %x2, i64 %x3) {
+
+  start:
+    %l = extractvalue { i64, { i64, i32* } } %x, 0
+    %x4 = extractvalue { i64, { i64, i32* } } %x, 1
+    %c = extractvalue { i64, i32* } %x4, 0
+    %a = extractvalue { i64, i32* } %x4, 1
+    %xa = getelementptr i32, i32* %a, i64 %x2
+    %xb = load i32, i32* %xa
+    %xc = add i64 1, %x2
+    %la = extractvalue { i64, { i64, i32* } } %x, 0
+    %xd = extractvalue { i64, { i64, i32* } } %x, 1
+    %ca = extractvalue { i64, i32* } %xd, 0
+    %aa = extractvalue { i64, i32* } %xd, 1
+    %xe = getelementptr i32, i32* %aa, i64 %xc
+    %xf = load i32, i32* %xe
+    %x5 = xor i32 %xb, %xf
+    %x6 = xor i32 %x1, %x5
+    ret i32 %x6
+}
+
 define i64 @IsaSAT_Trail_LLVM_get_propagation_reason_fast_code({ { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } } %x, i32 %x1) {
 
   start:
@@ -6464,7 +6485,7 @@ define i32 @IsaSAT_Backtrack_LLVM_lit_of_hd_trail_st_heur_fast_code({ { { i64, {
     ret i32 %x6
 }
 
-define { i64, { i64, i32* } } @IsaSAT_CDCL_LLVM_VMTF_it_introsort_aux_impl_f_016172146({ i64, { i32, i32 } }* %ai, { { i64, { i64, i32* } }, { i64, { i64, i64 } } } %x) {
+define { i64, { i64, i32* } } @IsaSAT_CDCL_LLVM_VMTF_it_introsort_aux_impl_f_032416528({ i64, { i32, i32 } }* %ai, { { i64, { i64, i32* } }, { i64, { i64, i64 } } } %x) {
 
   start:
     %a1 = extractvalue { { i64, { i64, i32* } }, { i64, { i64, i64 } } } %x, 0
@@ -6496,7 +6517,7 @@ define { i64, { i64, i32* } } @IsaSAT_CDCL_LLVM_VMTF_it_introsort_aux_impl_f_016
     %tmpda = insertvalue { i64, { i64, i64 } } %xi, { i64, i64 } %tmpca, 1
     %xj = insertvalue { { i64, { i64, i32* } }, { i64, { i64, i64 } } } zeroinitializer, { i64, { i64, i32* } } %a1c, 0
     %xk = insertvalue { { i64, { i64, i32* } }, { i64, { i64, i64 } } } %xj, { i64, { i64, i64 } } %tmpda, 1
-    %xha = call { i64, { i64, i32* } } @IsaSAT_CDCL_LLVM_VMTF_it_introsort_aux_impl_f_016172146 ({ i64, { i32, i32 } }* %ai, { { i64, { i64, i32* } }, { i64, { i64, i64 } } } %xk)
+    %xha = call { i64, { i64, i32* } } @IsaSAT_CDCL_LLVM_VMTF_it_introsort_aux_impl_f_032416528 ({ i64, { i32, i32 } }* %ai, { { i64, { i64, i32* } }, { i64, { i64, i64 } } } %xk)
     %xia = sub i64 %a2b, 1
     %xm = insertvalue { i64, i64 } zeroinitializer, i64 %a1b, 0
     %tmpeb = insertvalue { i64, i64 } %xm, i64 %xia, 1
@@ -6504,7 +6525,7 @@ define { i64, { i64, i32* } } @IsaSAT_CDCL_LLVM_VMTF_it_introsort_aux_impl_f_016
     %tmpfa = insertvalue { i64, { i64, i64 } } %xn, { i64, i64 } %tmpeb, 1
     %xo = insertvalue { { i64, { i64, i32* } }, { i64, { i64, i64 } } } zeroinitializer, { i64, { i64, i32* } } %xha, 0
     %x2 = insertvalue { { i64, { i64, i32* } }, { i64, { i64, i64 } } } %xo, { i64, { i64, i64 } } %tmpfa, 1
-    %x3 = call { i64, { i64, i32* } } @IsaSAT_CDCL_LLVM_VMTF_it_introsort_aux_impl_f_016172146 ({ i64, { i32, i32 } }* %ai, { { i64, { i64, i32* } }, { i64, { i64, i64 } } } %x2)
+    %x3 = call { i64, { i64, i32* } } @IsaSAT_CDCL_LLVM_VMTF_it_introsort_aux_impl_f_032416528 ({ i64, { i32, i32 } }* %ai, { { i64, { i64, i32* } }, { i64, { i64, i64 } } } %x2)
     br label %ctd_ifa
 
   ctd_ifa:
@@ -9257,8 +9278,11 @@ define { i64, { i64, { { { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }
 
   ctd_ifd:
     %ys1 = phi i64 [ 1, %elsed ], [ 0, %thend ]
-    %yt = sub i64 1, %ys1
-    %yu = call i32 @IsaSAT_Inner_Propagation_LLVM_mop_access_lit_in_clauses_heur_impl ({ { { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } }, { { i64, { i64, i32* } }, { { i1, { i32, i1* } }, { i64, { { i64, { i64, { i64, { i64, { i32, i1 } }* } }* }, { { { { i64, { i32, i32 } }*, { i64, { i32, { i32, i32 } } } }, { { i64, { i64, i32* } }, i1* } }, { i32, { { i8*, { i64, { i64, i32* } } }, { { { i64, i1* }, { i32, i32 } }, { { i64, { i64, i32* } }, { { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } }, { { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } } } } }, { { i64, { i64, i64* } }, { { i64, { i64, i64* } }, { i64, { { i1, { i1, i1 } }, { i64, { i64, i32* } } } } } } } } } } } } } } } } } } %yha, i64 %a1m, i64 %yt)
+    %a1p = extractvalue { { { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } }, { { i64, { i64, i32* } }, { { i1, { i32, i1* } }, { i64, { { i64, { i64, { i64, { i64, { i32, i1 } }* } }* }, { { { { i64, { i32, i32 } }*, { i64, { i32, { i32, i32 } } } }, { { i64, { i64, i32* } }, i1* } }, { i32, { { i8*, { i64, { i64, i32* } } }, { { { i64, i1* }, { i32, i32 } }, { { i64, { i64, i32* } }, { { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } }, { { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } } } } }, { { i64, { i64, i64* } }, { { i64, { i64, i64* } }, { i64, { { i1, { i1, i1 } }, { i64, { i64, i32* } } } } } } } } } } } } } } } } } } %yha, 0
+    %yt = extractvalue { { { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } }, { { i64, { i64, i32* } }, { { i1, { i32, i1* } }, { i64, { { i64, { i64, { i64, { i64, { i32, i1 } }* } }* }, { { { { i64, { i32, i32 } }*, { i64, { i32, { i32, i32 } } } }, { { i64, { i64, i32* } }, i1* } }, { i32, { { i8*, { i64, { i64, i32* } } }, { { { i64, i1* }, { i32, i32 } }, { { i64, { i64, i32* } }, { { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } }, { { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } } } } }, { { i64, { i64, i64* } }, { { i64, { i64, i64* } }, { i64, { { i1, { i1, i1 } }, { i64, { i64, i32* } } } } } } } } } } } } } } } } } } %yha, 1
+    %a1ad = extractvalue { { i64, { i64, i32* } }, { { i1, { i32, i1* } }, { i64, { { i64, { i64, { i64, { i64, { i32, i1 } }* } }* }, { { { { i64, { i32, i32 } }*, { i64, { i32, { i32, i32 } } } }, { { i64, { i64, i32* } }, i1* } }, { i32, { { i8*, { i64, { i64, i32* } } }, { { { i64, i1* }, { i32, i32 } }, { { i64, { i64, i32* } }, { { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } }, { { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } } } } }, { { i64, { i64, i64* } }, { { i64, { i64, i64* } }, { i64, { { i1, { i1, i1 } }, { i64, { i64, i32* } } } } } } } } } } } } } } } } } %yt, 0
+    %a2aa = extractvalue { { i64, { i64, i32* } }, { { i1, { i32, i1* } }, { i64, { { i64, { i64, { i64, { i64, { i32, i1 } }* } }* }, { { { { i64, { i32, i32 } }*, { i64, { i32, { i32, i32 } } } }, { { i64, { i64, i32* } }, i1* } }, { i32, { { i8*, { i64, { i64, i32* } } }, { { { i64, i1* }, { i32, i32 } }, { { i64, { i64, i32* } }, { { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } }, { { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } } } } }, { { i64, { i64, i64* } }, { { i64, { i64, i64* } }, { i64, { { i1, { i1, i1 } }, { i64, { i64, i32* } } } } } } } } } } } } } } } } } %yt, 1
+    %yu = call i32 @IsaSAT_Arena_LLVM_arena_other_watched_as_swap_impl ({ i64, { i64, i32* } } %a1ad, i32 %x, i64 %a1m, i64 %ys1)
     %yv = call i8 @IsaSAT_Setup_LLVM_polarity_st_heur_pol_fast ({ { { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } }, { { i64, { i64, i32* } }, { { i1, { i32, i1* } }, { i64, { { i64, { i64, { i64, { i64, { i32, i1 } }* } }* }, { { { { i64, { i32, i32 } }*, { i64, { i32, { i32, i32 } } } }, { { i64, { i64, i32* } }, i1* } }, { i32, { { i8*, { i64, { i64, i32* } } }, { { { i64, i1* }, { i32, i32 } }, { { i64, { i64, i32* } }, { { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } }, { { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } } } } }, { { i64, { i64, i64* } }, { { i64, { i64, i64* } }, { i64, { { i1, { i1, i1 } }, { i64, { i64, i32* } } } } } } } } } } } } } } } } } } %yha, i32 %yu)
     %yw = call i8 @IsaSAT_Trail_LLVM_tri_bool_SET_TRUE_impl ()
     %yx = icmp eq i8 %yv, %yw
