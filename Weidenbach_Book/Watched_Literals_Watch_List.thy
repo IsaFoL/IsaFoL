@@ -1541,7 +1541,7 @@ definition is_nondeleted_clause_pre :: \<open>nat \<Rightarrow> 'v literal \<Rig
 definition other_watched_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v literal \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'v literal nres\<close> where
   \<open>other_watched_wl S L C i = do {
     ASSERT(get_clauses_wl S \<propto> C ! i = L \<and> i < length (get_clauses_wl S \<propto> C) \<and> i < 2 \<and>
-      C \<in># dom_m (get_clauses_wl S));
+      C \<in># dom_m (get_clauses_wl S) \<and> 1-i < length (get_clauses_wl S \<propto> C));
     mop_clauses_at (get_clauses_wl S) C (1 - i)
   }\<close>
 
@@ -1550,7 +1550,6 @@ lemma other_watched_wl_other_watched_l:
   unfolding other_watched_wl_def other_watched_l_def uncurry_def
   by (intro frefI nres_relI)
    (refine_rcg, auto simp: state_wl_l_def)
-term \<open>{(L, L'). L = L' \<and> L = get_clauses_wl Sa \<propto> x1 ! (1 - ia)}\<close>
 
 lemma other_watched_wl_other_watched_l_spec_itself:
   \<open>((S, L, C, i), (S', L', C', i')) \<in> state_wl_l b \<times>\<^sub>r (Id :: ('v literal \<times> _) set) \<times>\<^sub>r nat_rel \<times>\<^sub>r

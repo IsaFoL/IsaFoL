@@ -2166,4 +2166,11 @@ definition mop_marked_as_used where
     RETURN(marked_as_used arena C)
   }\<close>
 
+definition arena_other_watched :: \<open>arena \<Rightarrow> nat literal \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat literal nres\<close> where
+\<open>arena_other_watched S L C i = do {
+    ASSERT(i < 2 \<and> arena_lit S (C + i) = L \<and> arena_lit_pre2 S C i \<and>
+      arena_lit_pre2 S C (1-i));
+    mop_arena_lit2 S C (1 - i)
+  }\<close>
+
 end

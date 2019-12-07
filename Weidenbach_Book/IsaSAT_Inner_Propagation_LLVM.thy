@@ -87,13 +87,25 @@ sepref_def mop_access_lit_in_clauses_heur_impl
   unfolding mop_access_lit_in_clauses_heur_alt_def isasat_bounded_assn_def
   by sepref
 
+lemma other_watched_wl_heur_alt_def:
+  \<open>other_watched_wl_heur = (\<lambda>S. arena_other_watched (get_clauses_wl_heur S))\<close>
+  apply (intro ext)
+  unfolding other_watched_wl_heur_def
+    arena_other_watched_def
+    mop_access_lit_in_clauses_heur_def
+  by auto argo
+
+lemma other_watched_wl_heur_alt_def2:
+  \<open>other_watched_wl_heur = (\<lambda>(_, N, _). arena_other_watched N)\<close>
+  by (auto intro!: ext simp: other_watched_wl_heur_alt_def)
+
 sepref_def other_watched_wl_heur_impl
   is \<open>uncurry3 other_watched_wl_heur\<close>
   :: \<open>isasat_bounded_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a
     unat_lit_assn\<close>
   supply [[goals_limit=1]]
-  unfolding other_watched_wl_heur_def
-  apply (annot_snat_const "TYPE (64)")
+  unfolding other_watched_wl_heur_alt_def2
+    isasat_bounded_assn_def
   by sepref
 
 sepref_register update_clause_wl_heur

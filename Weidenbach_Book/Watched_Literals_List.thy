@@ -831,7 +831,7 @@ definition pos_of_watched :: \<open>'v clauses_l \<Rightarrow> nat \<Rightarrow>
 definition other_watched_l :: \<open>'v twl_st_l \<Rightarrow> 'v literal \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'v literal nres\<close> where
   \<open>other_watched_l S L C i = do {
     ASSERT(get_clauses_l S \<propto> C ! i = L \<and> i < length (get_clauses_l S \<propto> C) \<and> i < 2 \<and>
-      C \<in># dom_m (get_clauses_l S));
+      C \<in># dom_m (get_clauses_l S) \<and> 1-i < length (get_clauses_l S \<propto> C));
     mop_clauses_at (get_clauses_l S) C (1 - i)
   }\<close>
 

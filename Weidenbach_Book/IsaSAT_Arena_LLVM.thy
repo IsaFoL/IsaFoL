@@ -495,6 +495,133 @@ sepref_def MAX_LENGTH_SHORT_CLAUSE_impl is "uncurry0 (RETURN MAX_LENGTH_SHORT_CL
   by sepref
 
 
+definition arena_other_watched_as_swap :: \<open>nat list \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat nres\<close> where
+\<open>arena_other_watched_as_swap S L C i = do {
+    ASSERT(i < 2 \<and>
+      C + i < length S \<and>
+      C < length S \<and>
+      (C + 1) < length S);
+    K \<leftarrow> RETURN (S ! C);
+    K' \<leftarrow> RETURN (S ! (1 + C));
+    RETURN (L XOR K XOR K')
+  }\<close>
+
+lemma bin_pos_same_XOR3:
+  \<open>a XOR a XOR c = c\<close>
+  \<open>a XOR c XOR a = c\<close> for a c :: int
+  by (metis bin_ops_same(3) int_xor_assoc int_xor_zero)+
+
+lemma bin_pos_same_XOR3_nat:
+  \<open>a XOR a XOR c = c\<close>
+  \<open>a XOR c XOR a = c\<close> for a c :: nat
+ unfolding bitXOR_nat_def by (auto simp: bin_pos_same_XOR3)
+
+lemma arena_other_watched_as_swap_arena_other_watched:
+  assumes
+    N: \<open>(N, N') \<in> \<langle>arena_el_rel\<rangle>list_rel\<close> and
+    L: \<open>(L, L') \<in> nat_lit_rel\<close> and
+    C: \<open>(C, C') \<in> nat_rel\<close> and
+    i: \<open>(i, i') \<in> nat_rel\<close>
+  shows
+    \<open>arena_other_watched_as_swap N L C i \<le> \<Down>nat_lit_rel
+        (arena_other_watched N' L' C' i')\<close>
+proof -
+   have eq: \<open>i =i'\<close> \<open>C=C'\<close>
+     using assms by auto
+   have A: \<open>Pos (L div 2) = A \<Longrightarrow> even L \<Longrightarrow> L = 2 * atm_of A\<close> for A :: \<open>nat literal\<close>
+     by (cases A)
+      auto
+   have Ci: \<open>(C' + i', C' + i') \<in> nat_rel\<close>
+     unfolding eq by auto
+   have [simp]: \<open>L = N ! (C+i)\<close> if \<open>L' = arena_lit N' (C' + i')\<close> \<open>C' + i' < length N'\<close>
+     \<open>arena_lit_pre2 N' C i\<close>
+     using that param_nth[OF that(2) Ci N] C i L
+     unfolding arena_lit_pre2_def
+     apply - apply normalize_goal+
+     subgoal for N'' vdom
+       using arena_lifting(6)[of N' N'' vdom C i] A[of \<open>arena_lit N' (C' + i')\<close>]
+       apply (simp only: list_rel_imp_same_length[of N] eq)
+     apply (cases \<open>N' ! (C' + i')\<close>; cases \<open>arena_lit N' (C' + i')\<close>)
+     apply (simp_all add: eq nat_lit_rel_def br_def)
+     apply (auto split: if_splits simp: eq_commute[of _ \<open>Pos (L div 2)\<close>]
+       eq_commute[of _ \<open>ALit (Pos (_ div 2))\<close>] arena_lit_def)
+     using div2_even_ext_nat by blast
+    done
+   have [simp]: \<open>N ! (C' + i') XOR N ! C' XOR N ! Suc C' = N ! (C' + (Suc 0 - i))\<close> if \<open>i < 2\<close>
+     using that i
+     by (cases i; cases \<open>i-1\<close>)
+      (auto simp: bin_pos_same_XOR3_nat)
+  have Ci': \<open>(C' + (1 - i'), C' + (1 - i')) \<in> nat_rel\<close>
+    unfolding eq by auto
+
+  have [intro!]: \<open>(N ! (Suc C' - i'), arena_lit N' (Suc C' - i')) \<in> nat_lit_rel\<close>
+     if \<open>arena_lit_pre2 N' C i\<close> \<open>i < 2\<close>
+     using that param_nth[OF _ Ci' N]
+     unfolding arena_lit_pre2_def
+     apply - apply normalize_goal+
+     apply (subgoal_tac \<open>C' + (Suc 0 - i') < length N'\<close>)
+     defer
+       subgoal for N'' vdom
+       using
+         arena_lifting(7)[of N' N'' vdom C i]
+        apply (auto simp: arena_lit_pre2_def list_rel_imp_same_length[of N]
+          simp del: arena_el_rel_def)
+        by (metis add.right_neutral add_Suc add_diff_cancel_left' arena_lifting(22) arena_lifting(4) arena_lifting(7) eq(1) eq(2) less_2_cases less_Suc_eq not_less_eq plus_1_eq_Suc)
+     apply (subgoal_tac \<open>(Suc 0 - i') < length (x \<propto> C)\<close>)
+     defer
+     subgoal for N'' vdom
+       using
+         arena_lifting(7)[of N' N'' vdom C i]
+       by (auto simp: arena_lit_pre2_def list_rel_imp_same_length[of N]
+          arena_lifting(22) arena_lifting(4) less_imp_diff_less
+          simp del: arena_el_rel_def)
+     subgoal for N'' vdom
+       using
+         arena_lifting(6)[of N' N'' vdom C \<open>Suc 0 - i\<close>]
+       by (cases \<open>N' ! (C' + (Suc 0 - i'))\<close>)
+        (auto simp: arena_lit_pre2_def list_rel_imp_same_length[of N] eq
+          arena_lit_def arena_lifting)
+     done
+   show ?thesis
+     using assms
+     unfolding arena_other_watched_as_swap_def arena_other_watched_def
+       le_ASSERT_iff mop_arena_lit2_def
+     apply (refine_vcg)
+     apply (auto simp: le_ASSERT_iff list_rel_imp_same_length arena_lit_pre2_def
+       arena_lifting
+       bin_pos_same_XOR3_nat)
+     using arena_lifting(22) arena_lifting(4) arena_lifting(7) apply fastforce
+     using arena_lifting(22) arena_lifting(4) arena_lifting(7) arena_lit_pre2_def apply fastforce
+     done
+qed
+
+
+sepref_def arena_other_watched_as_swap_impl
+  is \<open>uncurry3 arena_other_watched_as_swap\<close>
+  :: \<open>(al_assn' (TYPE(64)) uint32_nat_assn)\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a
+       sint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+  supply[[goals_limit=1]]
+  unfolding arena_other_watched_as_swap_def
+  apply (annot_snat_const "TYPE(64)")
+  by sepref
+
+lemma arena_other_watched_as_swap_arena_other_watched':
+  \<open>(arena_other_watched_as_swap, arena_other_watched) \<in>
+     \<langle>arena_el_rel\<rangle>list_rel \<rightarrow> nat_lit_rel \<rightarrow> nat_rel \<rightarrow> nat_rel \<rightarrow>
+      \<langle>nat_lit_rel\<rangle>nres_rel\<close>
+  apply (intro fun_relI nres_relI)
+  using arena_other_watched_as_swap_arena_other_watched
+  by blast
+
+lemma arena_fast_al_unat_assn:
+  \<open>hr_comp (al_assn unat_assn) (\<langle>arena_el_rel\<rangle>list_rel) = arena_fast_assn\<close>
+  unfolding al_assn_def hr_comp_assoc
+  by (auto simp: arena_el_impl_rel_def list_rel_compp)
+
+lemmas [sepref_fr_rules] =
+  arena_other_watched_as_swap_impl.refine[FCOMP arena_other_watched_as_swap_arena_other_watched',
+    unfolded arena_fast_al_unat_assn]
+
 end
 
 sepref_def mop_arena_length_impl

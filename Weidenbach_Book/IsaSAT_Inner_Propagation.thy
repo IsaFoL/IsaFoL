@@ -851,8 +851,8 @@ definition unit_propagation_inner_loop_wl_loop_D_heur_inv0 where
 
 definition other_watched_wl_heur :: \<open>twl_st_wl_heur \<Rightarrow> nat literal \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat literal nres\<close> where
 \<open>other_watched_wl_heur S L C i = do {
-    ASSERT(i < 2 \<and> arena_lit (get_clauses_wl_heur S) (C + i) = L \<and>
-      C + i < length (get_clauses_wl_heur S));
+    ASSERT(i < 2 \<and> arena_lit_pre2 (get_clauses_wl_heur S) C i \<and>
+      arena_lit (get_clauses_wl_heur S) (C + i) = L \<and> arena_lit_pre2 (get_clauses_wl_heur S) C (1 - i));
     mop_access_lit_in_clauses_heur S C (1 - i)
   }\<close>
 
@@ -864,7 +864,9 @@ lemma other_watched_heur:
    unfolding other_watched_wl_heur_def other_watched_wl_def
      mop_access_lit_in_clauses_heur_def
    by (refine_rcg mop_arena_lit[where vdom = \<open>set (get_vdom S)\<close>])
-     (auto simp: twl_st_heur'_def twl_st_heur_def)
+     (auto simp: twl_st_heur'_def twl_st_heur_def
+     arena_lit_pre2_def
+     intro!: exI[of _ \<open>get_clauses_wl S'\<close>])
 
 definition unit_propagation_inner_loop_body_wl_heur
    :: \<open>nat literal \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> (nat \<times> nat \<times> twl_st_wl_heur) nres\<close>
