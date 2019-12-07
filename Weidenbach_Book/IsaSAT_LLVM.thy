@@ -416,6 +416,7 @@ begin
     unit_propagation_inner_loop_body_wl_fast_heur_code_def
     NORMAL_PHASE_def DEFAULT_INIT_PHASE_def QUIET_PHASE_def
     find_unwatched_wl_st_heur_fast_code_def
+    update_clause_wl_fast_code_def
 
   export_llvm IsaSAT_code_wrapped llvm_version default_opts_impl IsaSAT_code file "code/isasat_restart.ll"
 
