@@ -274,8 +274,10 @@ void print_phase(int8_t phase) {
 
 /*
 declare void @IsaSAT_Show_LLVM_print_c_impl(i64)
+declare void @IsaSAT_Show_LLVM_print_char_impl(i64)
 declare void @IsaSAT_Show_LLVM_print_uint64_impl(i64)
-declare void @print_phase(i64)
+declare void @IsaSAT_Show_LLVM_print_open_colour_impl(i64)
+declare void @IsaSAT_Show_LLVM_print_close_colour_impl(i64)
 */
 void IsaSAT_Show_LLVM_print_c_impl() {
   printf("\nc ");
