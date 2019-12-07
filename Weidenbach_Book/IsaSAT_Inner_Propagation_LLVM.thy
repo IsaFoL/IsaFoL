@@ -56,7 +56,6 @@ sepref_def mop_arena_pos_impl
   unfolding mop_arena_pos_def
   by sepref
 
-term mop_arena_swap
 sepref_def swap_lits_impl is "uncurry3 mop_arena_swap"
   :: "sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>d \<rightarrow>\<^sub>a arena_fast_assn"
   unfolding mop_arena_swap_def swap_lits_pre_def
@@ -80,7 +79,22 @@ sepref_def find_unwatched_wl_st_heur_fast_code
   unfolding fold_tuple_optimizations
   by sepref
 
+sepref_register mop_access_lit_in_clauses_heur mop_watched_by_app_heur
+sepref_def mop_access_lit_in_clauses_heur_impl
+  is \<open>uncurry2 mop_access_lit_in_clauses_heur\<close>
+  :: \<open>isasat_bounded_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a unat_lit_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding mop_access_lit_in_clauses_heur_alt_def isasat_bounded_assn_def
+  by sepref
 
+sepref_def other_watched_wl_heur_impl
+  is \<open>uncurry3 other_watched_wl_heur\<close>
+  :: \<open>isasat_bounded_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a
+    unat_lit_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding other_watched_wl_heur_def
+  apply (annot_snat_const "TYPE (64)")
+  by sepref
 
 sepref_register update_clause_wl_heur
 setup \<open>map_theory_claset (fn ctxt => ctxt delSWrapper "split_all_tac")\<close>
@@ -225,14 +239,6 @@ lemma unit_propagation_inner_loop_wl_loop_D_heur_inv0D: \<open>unit_propagation_
     by (simp only: twl_st_l twl_st twl_st_wl
      \<L>\<^sub>a\<^sub>l\<^sub>l_all_atms_all_lits) linarith
 
-sepref_register mop_access_lit_in_clauses_heur mop_watched_by_app_heur
-sepref_def mop_access_lit_in_clauses_heur_impl
-  is \<open>uncurry2 mop_access_lit_in_clauses_heur\<close>
-  :: \<open>isasat_bounded_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a unat_lit_assn\<close>
-  supply [[goals_limit=1]]
-  unfolding mop_access_lit_in_clauses_heur_alt_def isasat_bounded_assn_def
-  by sepref
-
 
 sepref_def pos_of_watched_heur_impl
   is \<open>uncurry2 pos_of_watched_heur\<close>
@@ -258,6 +264,15 @@ sepref_def unit_propagation_inner_loop_body_wl_fast_heur_code
 
 sepref_register unit_propagation_inner_loop_body_wl_heur
 
+lemmas [llvm_inline] =
+  other_watched_wl_heur_impl_def
+  pos_of_watched_heur_impl_def
+  propagate_lit_wl_heur_def
+  clause_not_marked_to_delete_heur_fast_code_def
+  mop_watched_by_app_heur_code_def
+  keep_watch_heur_fast_code_def
+  nat_of_lit_rel_impl_def
+
 
 experiment begin
 
@@ -269,7 +284,7 @@ export_llvm
   update_clause_wl_fast_code
   propagate_lit_wl_fast_code
   propagate_lit_wl_bin_fast_code
-  status_neq_impl 
+  status_neq_impl
   clause_not_marked_to_delete_heur_fast_code
   update_blit_wl_heur_fast_code
   keep_watch_heur_fast_code

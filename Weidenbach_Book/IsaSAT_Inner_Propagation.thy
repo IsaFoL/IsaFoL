@@ -849,6 +849,23 @@ definition unit_propagation_inner_loop_wl_loop_D_heur_inv0 where
    (\<lambda>(j, w, S'). \<exists>S. (S', S) \<in> twl_st_heur \<and> unit_propagation_inner_loop_wl_loop_inv L (j, w, S) \<and>
       length (watched_by S L) \<le> length (get_clauses_wl_heur S') - 4)\<close>
 
+definition other_watched_wl_heur :: \<open>twl_st_wl_heur \<Rightarrow> nat literal \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat literal nres\<close> where
+\<open>other_watched_wl_heur S L C i = do {
+    ASSERT(i < 2 \<and> arena_lit (get_clauses_wl_heur S) (C + i) = L \<and>
+      C + i < length (get_clauses_wl_heur S));
+    mop_access_lit_in_clauses_heur S C (1 - i)
+  }\<close>
+
+lemma other_watched_heur:
+  \<open>(S, S') \<in> {(T, T').  get_vdom T = get_vdom x2e \<and> (T, T') \<in> twl_st_heur_up'' \<D> r s t} \<Longrightarrow>
+   ((L, C, i), (L', C', i')) \<in> Id \<times>\<^sub>r Id \<Longrightarrow>
+   other_watched_wl_heur S L C i \<le> \<Down> Id (other_watched_wl S' L' C' i')\<close>
+   using arena_lifting(5,7)[of \<open>get_clauses_wl_heur S\<close> \<open>get_clauses_wl S'\<close> _ C i]
+   unfolding other_watched_wl_heur_def other_watched_wl_def
+     mop_access_lit_in_clauses_heur_def
+   by (refine_rcg mop_arena_lit[where vdom = \<open>set (get_vdom S)\<close>])
+     (auto simp: twl_st_heur'_def twl_st_heur_def)
+
 definition unit_propagation_inner_loop_body_wl_heur
    :: \<open>nat literal \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> (nat \<times> nat \<times> twl_st_wl_heur) nres\<close>
    where
@@ -878,7 +895,7 @@ definition unit_propagation_inner_loop_body_wl_heur
 	  else do {
 	    i \<leftarrow> pos_of_watched_heur S C L;
             ASSERT(i \<le> 1);
-	    L' \<leftarrow> mop_access_lit_in_clauses_heur S C (1 - i);
+	    L' \<leftarrow> other_watched_wl_heur S L C i;
 	    val_L' \<leftarrow> mop_polarity_st_heur S L';
 	    if val_L' = Some True
 	    then update_blit_wl_heur L C b j w L' S
@@ -1304,7 +1321,7 @@ lemma unit_propagation_inner_loop_body_wl_alt_def:
           ASSERT(unit_prop_body_wl_inv S j w L);
           i \<leftarrow> pos_of_watched (get_clauses_wl S) C L;
           ASSERT(i \<le> 1);
-          L' \<leftarrow> mop_clauses_at (get_clauses_wl S) C (1-i);
+          L' \<leftarrow> other_watched_wl S L C i;
           val_L' \<leftarrow> mop_polarity_wl S L';
           if val_L' = Some True
           then update_blit_wl L C b j w L' S
@@ -1362,6 +1379,7 @@ proof -
      propagate_lit_wl_heur_propagate_lit_wl[of \<D> r K s, THEN fref_to_Down_curry3, unfolded comp_def]
      isa_save_pos_is_Id
       update_clause_wl_heur_update_clause_wl[of K r \<D> s, THEN fref_to_Down_curry7]
+     other_watched_heur[of _ _ _ \<D> r K s]
 
   have [simp]: \<open>is_nondeleted_clause_pre x1f x1b Sa \<Longrightarrow>
     clause_not_marked_to_delete_pre (Sa, x1f)\<close> for x1f x1b Sa
@@ -1407,10 +1425,9 @@ proof -
     apply assumption
     subgoal by auto
     subgoal by auto
-    subgoal by auto
+    apply assumption
     subgoal by auto
     subgoal by fast
-    subgoal by simp
     subgoal by simp
     subgoal by simp
     subgoal

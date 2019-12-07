@@ -828,6 +828,13 @@ definition pos_of_watched :: \<open>'v clauses_l \<Rightarrow> nat \<Rightarrow>
      RETURN (if (N \<propto> C) ! 0 = L then 0 else 1)
   }\<close>
 
+definition other_watched_l :: \<open>'v twl_st_l \<Rightarrow> 'v literal \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'v literal nres\<close> where
+  \<open>other_watched_l S L C i = do {
+    ASSERT(get_clauses_l S \<propto> C ! i = L \<and> i < length (get_clauses_l S \<propto> C) \<and> i < 2 \<and>
+      C \<in># dom_m (get_clauses_l S));
+    mop_clauses_at (get_clauses_l S) C (1 - i)
+  }\<close>
+
 definition unit_propagation_inner_loop_body_l :: \<open>'v literal \<Rightarrow> nat \<Rightarrow>
   'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close> where
   \<open>unit_propagation_inner_loop_body_l L C S = do {
@@ -838,7 +845,7 @@ definition unit_propagation_inner_loop_body_l :: \<open>'v literal \<Rightarrow>
       then RETURN S
       else do {
         i \<leftarrow> pos_of_watched (get_clauses_l S) C L;
-        L' \<leftarrow> mop_clauses_at (get_clauses_l S) C (1 - i);
+        L' \<leftarrow> other_watched_l S L C i;
         val_L' \<leftarrow> mop_polarity_l S L';
         if val_L' = Some True
         then RETURN S
@@ -1712,6 +1719,21 @@ proof -
 
    have I: \<open>(x, ()) \<in> {_. True}\<close> for x
      by auto
+   have L_i0: \<open>L = get_clauses_l S \<propto> C ! 0 \<Longrightarrow> Suc 0 - i = Suc 0\<close>
+     by (auto simp: i_def)
+   have other_watched_l: \<open>(i', ia) \<in> {(j, j'). j = i \<and> i < 2} \<Longrightarrow>
+    other_watched_l
+     (set_clauses_to_update_l (remove1_mset C (clauses_to_update_l S)) S) L
+     C i'
+    \<le> SPEC (\<lambda>K. K \<in># remove1_mset L (watched (twl_clause_of C')))\<close> for i' ia
+    unfolding other_watched_l_def
+    by (refine_vcg mop_clauses_at[THEN fref_to_Down_curry2, unfolded comp_def, THEN order_trans])
+     (use mset_watched_C pre_inv in \<open>auto simp: op_clauses_at_def C_N_U
+            unit_propagation_inner_loop_body_l_inv_def L_i0
+          intro!: ASSERT_leI split: if_splits
+          intro!: mop_clauses_at[THEN fref_to_Down_curry2, unfolded comp_def, THEN order_trans]
+          simp: other_watched_l_def\<close>)
+
    have H: \<open>?A \<le> \<Down> {(S, S'). (S, S') \<in> twl_st_l (Some L) \<and> twl_list_invs S} ?B\<close>
     unfolding unit_propagation_inner_loop_body_l_def unit_propagation_inner_loop_body_alt_def
       option.case_eq_if find_unwatched_l_def op_clauses_at_def[symmetric]
@@ -1723,9 +1745,7 @@ proof -
     subgoal using SS' by (auto simp: pol_spec_def)
     subgoal by (rule upd_rel)
     subgoal
-      by (rule mop_clauses_at[THEN fref_to_Down_curry2, unfolded comp_def, THEN order_trans])
-        (use mset_watched_C pre_inv in \<open>auto simp: i_def op_clauses_at_def C_N_U
-          unit_propagation_inner_loop_body_l_inv_def\<close>)
+      by (rule other_watched_l)
     subgoal for L'
       using assms by (auto simp: pol_spec_def)
     subgoal by (rule upd_rel)
