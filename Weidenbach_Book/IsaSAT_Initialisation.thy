@@ -2,6 +2,9 @@ theory IsaSAT_Initialisation
   imports Watched_Literals.Watched_Literals_Watch_List_Initialisation IsaSAT_Setup IsaSAT_VMTF
     Automatic_Refinement.Relators \<comment> \<open>for more lemmas\<close>
 begin
+
+chapter \<open>Initialisation\<close>
+
 (*TODO Move*)
 lemma bitXOR_1_if_mod_2_int: \<open>bitOR L 1 = (if L mod 2 = 0 then L + 1 else L)\<close> for L :: int
   apply (rule bin_rl_eqI)

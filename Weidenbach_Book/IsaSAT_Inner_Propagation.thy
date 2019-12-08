@@ -3,10 +3,14 @@ theory IsaSAT_Inner_Propagation
      IsaSAT_Clauses
 begin
 
+
+chapter \<open>Propagation: Inner Loop\<close>
+
 declare all_atms_def[symmetric,simp]
 
 
-subsection \<open>Propagations Step\<close>
+section \<open>Find replacement\<close>
+
 lemma literals_are_in_\<L>\<^sub>i\<^sub>n_nth2:
   fixes C :: nat
   assumes dom: \<open>C \<in># dom_m (get_clauses_wl S)\<close> 
@@ -508,6 +512,8 @@ proof -
 qed
 
 
+section \<open>Updates\<close>
+
 definition set_conflict_wl_heur_pre where
   \<open>set_conflict_wl_heur_pre =
      (\<lambda>(C, S). True)\<close>
@@ -639,16 +645,6 @@ lemma update_clause_wl_heur_update_clause_wl:
       op_clauses_swap_def)
   done
 
-definition (in -) access_lit_in_clauses where
-  \<open>access_lit_in_clauses S i j = (get_clauses_wl S) \<propto> i ! j\<close>
-
-lemma twl_st_heur_get_clauses_access_lit[simp]:
-  \<open>(S, T) \<in> twl_st_heur \<Longrightarrow> C \<in># dom_m (get_clauses_wl T) \<Longrightarrow>
-    i < length (get_clauses_wl T \<propto> C) \<Longrightarrow>
-    get_clauses_wl T \<propto> C ! i = access_lit_in_clauses_heur S C i\<close>
-    for S T C i
-    by (cases S; cases T)
-      (auto simp: arena_lifting twl_st_heur_def access_lit_in_clauses_heur_def)
 
 definition propagate_lit_wl_heur_pre where
   \<open>propagate_lit_wl_heur_pre =
@@ -867,6 +863,9 @@ lemma other_watched_heur:
      (auto simp: twl_st_heur'_def twl_st_heur_def
      arena_lit_pre2_def
      intro!: exI[of _ \<open>get_clauses_wl S'\<close>])
+
+
+section \<open>Full inner loop\<close>
 
 definition unit_propagation_inner_loop_body_wl_heur
    :: \<open>nat literal \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> (nat \<times> nat \<times> twl_st_wl_heur) nres\<close>
@@ -2090,11 +2089,6 @@ lemma update_clause_wl_heur_pre_le_sint64:
   using assms
   by (auto simp: arena_is_valid_clause_idx_and_access_def isasat_fast_def
     dest!: arena_lifting(10))
-
-lemma clause_not_marked_to_delete_heur_alt_def:
-  \<open>RETURN \<circ>\<circ> clause_not_marked_to_delete_heur = (\<lambda>(M, arena, D, oth) C.
-     RETURN (arena_status arena C \<noteq> DELETED))\<close>
-  unfolding clause_not_marked_to_delete_heur_def by (auto intro!: ext)
 
 
 end

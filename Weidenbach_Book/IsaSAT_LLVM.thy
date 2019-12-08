@@ -4,6 +4,8 @@ theory IsaSAT_LLVM
     IsaSAT_Restart_LLVM
 begin
 
+chapter \<open>Code of Full IsaSAT\<close>
+
 abbreviation  model_stat_assn where
   \<open>model_stat_assn \<equiv> bool1_assn *a (arl64_assn unat_lit_assn) *a stats_assn\<close>
 

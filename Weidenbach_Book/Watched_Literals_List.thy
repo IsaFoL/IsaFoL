@@ -2,6 +2,10 @@ theory Watched_Literals_List
   imports WB_More_Refinement_List Watched_Literals_Algorithm CDCL.DPLL_CDCL_W_Implementation
     Watched_Literals_Clauses
 begin
+
+
+chapter \<open>Second Refinement: Lists as Clause\<close>
+
 declare RETURN_as_SPEC_refine[refine2]
 
 lemma mset_take_mset_drop_mset: \<open>(\<lambda>x. mset (take 2 x) + mset (drop 2 x)) = mset\<close>
@@ -36,9 +40,7 @@ lemma twl_struct_invs_no_alien_in_trail:
     in_all_lits_of_mm_ain_atms_of_iff)
 
 
-section \<open>Second Refinement: Lists as Clause\<close>
-
-subsection \<open>Types\<close>
+section \<open>Types\<close>
 type_synonym 'v clauses_to_update_l = \<open>nat multiset\<close>
 
 type_synonym 'v cconflict = \<open>'v clause option\<close>
@@ -709,7 +711,7 @@ lemma equality_except_conflict_alt_def:
   by (cases S, cases T) auto
 
 
-subsection \<open>Additional Invariants and Definitions\<close>
+section \<open>Additional Invariants and Definitions\<close>
 
 definition twl_list_invs where
   \<open>twl_list_invs S \<longleftrightarrow>
@@ -3153,7 +3155,7 @@ proof -
 qed
 
 
-subsection \<open>Full Strategy\<close>
+section \<open>Full Strategy\<close>
 
 definition cdcl_twl_stgy_prog_l_inv :: \<open>'v twl_st_l \<Rightarrow> bool \<times> 'v twl_st_l  \<Rightarrow> bool\<close> where
   \<open>cdcl_twl_stgy_prog_l_inv S\<^sub>0 \<equiv> \<lambda>(brk, T). \<exists>S\<^sub>0' T'. (T, T') \<in> twl_st_l None \<and>

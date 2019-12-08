@@ -3,9 +3,9 @@ theory IsaSAT_Propagate_Conflict
 begin
 
 
-subsubsection \<open>Refining Propagate And Conflict\<close>
+chapter \<open>Propagation Loop And Conflict\<close>
 
-paragraph \<open>Unit Propagation, Inner Loop\<close>
+section \<open>Unit Propagation, Inner Loop\<close>
 
 definition (in -) length_ll_fs :: \<open>nat twl_st_wl \<Rightarrow> nat literal \<Rightarrow> nat\<close> where
   \<open>length_ll_fs = (\<lambda>(_, _, _, _, _, _, _, _, W) L. length (W L))\<close>
@@ -46,7 +46,7 @@ lemma unit_propagation_inner_loop_wl_loop_D_heur_alt_def:
   unfolding unit_propagation_inner_loop_wl_loop_D_heur_def Let_def ..
 
 
-paragraph \<open>Unit propagation, Outer Loop\<close>
+section \<open>Unit propagation, Outer Loop\<close>
 
 lemma select_and_remove_from_literals_to_update_wl_heur_alt_def:
   \<open>select_and_remove_from_literals_to_update_wl_heur =

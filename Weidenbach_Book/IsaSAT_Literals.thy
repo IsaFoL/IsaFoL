@@ -5,20 +5,13 @@ theory IsaSAT_Literals
      Isabelle_LLVM.Bits_Natural (*Watched_Literals.WB_Word*)
 begin
 
-subsubsection \<open>Refinement of the Watched Function\<close>
 
-definition map_fun_rel :: \<open>(nat \<times> 'key) set \<Rightarrow> ('b \<times> 'a) set \<Rightarrow> ('b list \<times> ('key \<Rightarrow> 'a)) set\<close> where
-  map_fun_rel_def_internal:
-    \<open>map_fun_rel D R = {(m, f). \<forall>(i, j)\<in>D. i < length m \<and> (m ! i, f j) \<in> R}\<close>
-
-lemma map_fun_rel_def:
-  \<open>\<langle>R\<rangle>map_fun_rel D = {(m, f). \<forall>(i, j)\<in>D. i < length m \<and> (m ! i, f j) \<in> R}\<close>
-  unfolding relAPP_def map_fun_rel_def_internal by auto
+chapter \<open>Refinement of Literals\<close>
 
 
-subsection \<open>Literals as Natural Numbers\<close>
+section \<open>Literals as Natural Numbers\<close>
 
-subsubsection \<open>Definition\<close>
+subsection \<open>Definition\<close>
 
 lemma Pos_div2_iff:
   \<open>Pos ((bb :: nat) div 2) = b \<longleftrightarrow> is_pos b \<and> (bb = 2 * atm_of b \<or> bb = 2 * atm_of b + 1)\<close>
@@ -63,6 +56,12 @@ lemma literal_of_nat_literal_of_nat_eq[iff]: \<open>literal_of_nat x = literal_o
 definition nat_lit_rel :: \<open>(nat \<times> nat literal) set\<close> where
   \<open>nat_lit_rel =  br literal_of_nat (\<lambda>_. True)\<close>
 
+lemma ex_literal_of_nat: \<open>\<exists>bb. b = literal_of_nat bb\<close>
+  by (cases b)
+    (auto simp: nat_of_lit_def split: if_splits; presburger; fail)+
+
+
+subsection \<open>Lifting to annotated literals\<close>
 
 fun pair_of_ann_lit :: \<open>('a, 'b) ann_lit \<Rightarrow> 'a literal \<times> 'b option\<close> where
   \<open>pair_of_ann_lit (Propagated L D) = (L, Some D)\<close>
@@ -88,13 +87,6 @@ lemma literal_of_neq_eq_nat_of_lit_eq_iff: \<open>literal_of_nat b = L \<longlef
 lemma nat_of_lit_eq_iff[iff]: \<open>nat_of_lit xa = nat_of_lit x \<longleftrightarrow> x = xa\<close>
   apply (cases x; cases xa) by auto presburger+
 
-(*
-lemma
-   nat_lit_rel_right_unique: \<open>IS_RIGHT_UNIQUE nat_lit_rel\<close> and
-   nat_lit_rel_left_unique: \<open>IS_LEFT_UNIQUE nat_lit_rel\<close>
-  unfolding single_valued_def nat_lit_rel_def IS_LEFT_UNIQUE_def
-  by (auto simp: br_def) presburger*)
-
 definition ann_lit_rel:: \<open>('a \<times> nat) set \<Rightarrow> ('b \<times> nat option) set \<Rightarrow>
     (('a \<times> 'b) \<times> (nat, nat) ann_lit) set\<close> where
   ann_lit_rel_internal_def:
@@ -102,11 +94,13 @@ definition ann_lit_rel:: \<open>('a \<times> nat) set \<Rightarrow> ('b \<times>
       b = ann_lit_of_pair (literal_of_nat c, d)}\<close>
 
 
-definition (in -)the_is_empty where
+section \<open>Conflict Clause\<close>
+
+definition the_is_empty where
   \<open>the_is_empty D = Multiset.is_empty (the D)\<close>
 
 
-subsection \<open>Atoms with bound\<close>
+section \<open>Atoms with bound\<close>
 
 definition uint32_max :: nat where
   \<open>uint32_max \<equiv> 2^32-1\<close>
@@ -121,6 +115,8 @@ definition sint64_max :: nat where
   \<open>sint64_max \<equiv> 2^63-1\<close>
 
 
+section \<open>Operations with set of atoms.\<close>
+
 context
   fixes \<A>\<^sub>i\<^sub>n :: \<open>nat multiset\<close>
 begin
@@ -131,14 +127,10 @@ abbreviation D\<^sub>0 :: \<open>(nat \<times> nat literal) set\<close> where
 definition length_ll_f where
   \<open>length_ll_f W L = length (W L)\<close>
 
-lemma length_ll_length_ll_f:
-  \<open>(uncurry (RETURN oo length_ll), uncurry (RETURN oo length_ll_f)) \<in>
-     [\<lambda>(W, L). L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<^sub>i\<^sub>n]\<^sub>f ((\<langle>Id\<rangle>map_fun_rel D\<^sub>0) \<times>\<^sub>r nat_lit_rel) \<rightarrow>
-       \<langle>nat_rel\<rangle> nres_rel\<close>
-  unfolding length_ll_def length_ll_f_def
-  by (fastforce simp: fref_def map_fun_rel_def prod_rel_def nres_rel_def p2rel_def br_def
-      nat_lit_rel_def)
-
+text \<open>
+  The following lemma was necessary at some point to prove the existence of some
+  list.
+\<close>
 lemma ex_list_watched:
   fixes W :: \<open>nat literal \<Rightarrow> 'a list\<close>
   shows \<open>\<exists>aa. \<forall>x\<in>#\<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<^sub>i\<^sub>n. nat_of_lit x < length aa \<and> aa ! nat_of_lit x = W x\<close>
@@ -195,6 +187,9 @@ definition isasat_input_nempty where
 
 definition isasat_input_bounded_nempty where
   \<open>isasat_input_bounded_nempty = (isasat_input_bounded \<and> isasat_input_nempty)\<close>
+
+
+section \<open>Set of atoms with bound\<close>
 
 context
   assumes in_\<L>\<^sub>a\<^sub>l\<^sub>l_less_uint32_max: \<open>isasat_input_bounded\<close>
@@ -350,15 +345,6 @@ proof -
     using pos neg by linarith
 qed
 
-(*
-lemma clss_size_uint64_max:
-  assumes
-   lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n \<A>\<^sub>i\<^sub>n C\<close> and
-   dist: \<open>distinct_mset C\<close>
- shows \<open>size C < uint64_max\<close>
-  using clss_size_uint32_max[OF assms]
-  by (auto simp: uint32_max_def uint64_max_def)
-*)
 lemma clss_size_upper:
   assumes
    lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n \<A>\<^sub>i\<^sub>n C\<close> and
@@ -470,6 +456,7 @@ end
 end
 
 
+section \<open>Instantion for code generation\<close>
 instantiation literal :: (default) default
 begin
 
@@ -488,8 +475,6 @@ instance by standard
 
 end
 
-
-section \<open>Code Generation\<close>
 
 subsection \<open>Literals as Natural Numbers\<close>
 
@@ -513,21 +498,6 @@ lemma uminus_lit_imp_uminus:
 subsection \<open>State Conversion\<close>
 
 subsubsection \<open>Functions and Types:\<close>
-
-type_synonym nat_clauses_l = \<open>nat list list\<close>
-
-subsubsection \<open>Refinement of the Watched Function\<close>
-
-definition watched_by_nth :: \<open>nat twl_st_wl \<Rightarrow> nat literal \<Rightarrow> nat \<Rightarrow> nat watcher\<close> where
-  \<open>watched_by_nth = (\<lambda>(M, N, D, NE, UE, NS, US, Q, W) L i. W L ! i)\<close>
-
-definition watched_app
-  :: \<open>(nat literal \<Rightarrow> (nat watcher) list) \<Rightarrow> nat literal \<Rightarrow> nat \<Rightarrow> nat watcher\<close> where
-  \<open>watched_app M L i \<equiv> M L ! i\<close>
-
-lemma watched_by_nth_watched_app:
-  \<open>watched_by S K ! w = watched_app ((snd o snd o snd o snd o snd o snd o snd o snd) S) K w\<close>
-  by (cases S) (auto simp: watched_app_def)
 
 
 subsubsection \<open>More Operations\<close>
@@ -625,9 +595,9 @@ lemma get_conflict_wl_is_None: \<open>get_conflict_wl S = None \<longleftrightar
 
 lemma watched_by_nth_watched_app':
   \<open>watched_by S K = ((snd o snd o snd o snd o snd o snd o snd o snd) S) K\<close>
-  by (cases S) (auto simp: watched_app_def)
+  by (cases S) (auto)
 
-lemma (in -) hd_decided_count_decided_ge_1:
+lemma hd_decided_count_decided_ge_1:
   \<open>x \<noteq> [] \<Longrightarrow> is_decided (hd x) \<Longrightarrow> Suc 0 \<le> count_decided x\<close>
   by (cases x) auto
 
@@ -635,38 +605,6 @@ definition (in -) find_decomp_wl_imp' :: \<open>(nat, nat) ann_lits \<Rightarrow
     nat clause \<Rightarrow> nat clauses \<Rightarrow> nat clauses \<Rightarrow> nat lit_queue_wl \<Rightarrow>
     (nat literal \<Rightarrow> nat watched) \<Rightarrow> _ \<Rightarrow> (nat, nat) ann_lits nres\<close> where
   \<open>find_decomp_wl_imp' = (\<lambda>M N U D NE UE W Q L. find_decomp_wl_imp M D L)\<close>
-
-lemma nth_ll_watched_app:
-  \<open>(uncurry2 (RETURN ooo nth_rll), uncurry2 (RETURN ooo watched_app)) \<in>
-     [\<lambda>((W, L), i). L \<in># (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>)]\<^sub>f ((\<langle>Id\<rangle>map_fun_rel (D\<^sub>0 \<A>)) \<times>\<^sub>r nat_lit_rel) \<times>\<^sub>r nat_rel \<rightarrow>
-       \<langle>nat_rel \<times>\<^sub>r Id\<rangle> nres_rel\<close>
-  unfolding watched_app_def nth_rll_def
-  by (fastforce simp: fref_def map_fun_rel_def prod_rel_def nres_rel_def p2rel_def br_def
-      nat_lit_rel_def)
-
-lemma ex_literal_of_nat: \<open>\<exists>bb. b = literal_of_nat bb\<close>
-  by (cases b)
-    (auto simp: nat_of_lit_def split: if_splits; presburger; fail)+
-
-
-subsubsection \<open>Unit Propagation: Step\<close>
-
-definition delete_index_and_swap_update :: \<open>('a \<Rightarrow> 'b list) \<Rightarrow> 'a \<Rightarrow> nat \<Rightarrow> 'a \<Rightarrow> 'b list\<close> where
-  \<open>delete_index_and_swap_update W K w = W(K := delete_index_and_swap (W K) w)\<close>
-
-text \<open>The precondition is not necessary.\<close>
-lemma delete_index_and_swap_ll_delete_index_and_swap_update:
-  \<open>(uncurry2 (RETURN ooo delete_index_and_swap_ll), uncurry2 (RETURN ooo delete_index_and_swap_update))
-  \<in>[\<lambda>((W, L), i). L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>]\<^sub>f (\<langle>Id\<rangle>map_fun_rel (D\<^sub>0 \<A>) \<times>\<^sub>r nat_lit_rel) \<times>\<^sub>r nat_rel \<rightarrow>
-      \<langle>\<langle>Id\<rangle>map_fun_rel (D\<^sub>0 \<A>)\<rangle>nres_rel\<close>
-  by (auto simp: delete_index_and_swap_ll_def uncurry_def fref_def nres_rel_def
-      delete_index_and_swap_update_def map_fun_rel_def p2rel_def nat_lit_rel_def br_def
-      nth_list_update' nat_lit_rel_def
-      simp del: literal_of_nat.simps)
-
-definition append_update :: \<open>('a \<Rightarrow> 'b list) \<Rightarrow> 'a \<Rightarrow> 'b \<Rightarrow> 'a \<Rightarrow> 'b list\<close> where
-  \<open>append_update W L a = W(L:= W (L) @ [a])\<close>
-
 
 definition is_decided_hd_trail_wl where
   \<open>is_decided_hd_trail_wl S = is_decided (hd (get_trail_wl S))\<close>

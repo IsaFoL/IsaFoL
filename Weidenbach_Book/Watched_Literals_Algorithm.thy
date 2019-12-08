@@ -5,9 +5,9 @@ theory Watched_Literals_Algorithm
     Watched_Literals_All_Literals
 begin
 
-section \<open>First Refinement: Deterministic Rule Application\<close>
+chapter \<open>First Refinement: Deterministic Rule Application\<close>
 
-subsection \<open>Unit Propagation Loops\<close>
+section \<open>Unit Propagation Loops\<close>
 
 definition set_conflict_pre :: \<open>'v twl_cls \<Rightarrow> 'v twl_st \<Rightarrow> bool\<close> where
   \<open>set_conflict_pre C S \<longleftrightarrow>
@@ -580,9 +580,9 @@ qed
 declare unit_propagation_outer_loop[THEN order_trans, refine_vcg]
 
 
-subsection \<open>Other Rules\<close>
+section \<open>Other Rules\<close>
 
-subsubsection \<open>Decide\<close>
+subsection \<open>Decide\<close>
 
 definition find_unassigned_lit :: \<open>'v twl_st \<Rightarrow> 'v literal option nres\<close> where
   \<open>find_unassigned_lit = (\<lambda>S.
@@ -678,7 +678,7 @@ qed
 declare decide_or_skip_spec[THEN order_trans, refine_vcg]
 
 
-subsubsection \<open>Skip and Resolve Loop\<close>
+subsection \<open>Skip and Resolve Loop\<close>
 
 definition skip_and_resolve_loop_inv where
   \<open>skip_and_resolve_loop_inv S\<^sub>0 =
@@ -1032,7 +1032,7 @@ qed
 declare skip_and_resolve_loop_spec[THEN order_trans, refine_vcg]
 
 
-subsubsection \<open>Backtrack\<close>
+subsection \<open>Backtrack\<close>
 
 definition extract_shorter_conflict_pre :: \<open>'v twl_st \<Rightarrow> bool\<close> where
   \<open>extract_shorter_conflict_pre S \<longleftrightarrow> twl_struct_invs S \<and> twl_stgy_invs S \<and>
@@ -1536,7 +1536,7 @@ qed
 declare backtrack_spec[THEN order_trans, refine_vcg]
 
 
-subsubsection \<open>Full loop\<close>
+subsection \<open>Full loop\<close>
 
 definition cdcl_twl_o_prog :: \<open>'v twl_st \<Rightarrow> (bool \<times> 'v twl_st) nres\<close> where
   \<open>cdcl_twl_o_prog S =
@@ -1647,7 +1647,7 @@ qed
 declare cdcl_twl_o_prog_spec[THEN order_trans, refine_vcg]
 
 
-subsection \<open>Full Strategy\<close>
+section \<open>Full Strategy\<close>
 
 abbreviation cdcl_twl_stgy_prog_inv where
   \<open>cdcl_twl_stgy_prog_inv S\<^sub>0 \<equiv> \<lambda>(brk, T). twl_struct_invs T \<and> twl_stgy_invs T \<and>

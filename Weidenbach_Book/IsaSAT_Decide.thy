@@ -3,7 +3,7 @@ theory IsaSAT_Decide
 begin
 
 
-paragraph \<open>Decide\<close>
+chapter \<open>Decide\<close>
 
 lemma (in -)not_is_None_not_None: \<open>\<not>is_None s \<Longrightarrow> s \<noteq> None\<close>
   by (auto split: option.splits)

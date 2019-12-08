@@ -2,7 +2,8 @@ theory IsaSAT
   imports IsaSAT_Restart IsaSAT_Initialisation
 begin
 
-subsection \<open>Final code generation\<close>
+chapter \<open>Full IsaSAT\<close>
+
 text \<open>
   We now combine all the previous definitions to prove correctness of the complete SAT
   solver:
@@ -20,7 +21,7 @@ text \<open>
 \<close>
 
 
-subsubsection \<open>Correctness Relation\<close>
+section \<open>Correctness Relation\<close>
 
 text \<open>
   We cannot use \<^term>\<open>cdcl_twl_stgy_restart\<close> since we do not always end in a final state
@@ -148,7 +149,7 @@ definition init_dt_spec0 :: \<open>'v clause_l list \<Rightarrow> 'v twl_st_init
       (get_conflict_init SOC \<noteq> None \<longrightarrow> get_conflict_init SOC = get_conflict_init T'))\<close>
 
 
-subsubsection \<open>Refinements of the Whole SAT Solver\<close>
+section \<open>Refinements of the Whole SAT Solver\<close>
 
 text \<open>
   We do not add the refinement steps in separate files, since the form is very specific
@@ -2566,7 +2567,7 @@ proof -
 qed
 
 
-subsubsection \<open>Refinements of the Whole Bounded SAT Solver\<close>
+section \<open>Refinements of the Whole Bounded SAT Solver\<close>
 
 text \<open>This is the specification of the SAT solver:\<close>
 definition SAT_bounded :: \<open>nat clauses \<Rightarrow> (bool \<times> nat cdcl\<^sub>W_restart_mset) nres\<close> where

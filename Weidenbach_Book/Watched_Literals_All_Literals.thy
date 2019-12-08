@@ -2,14 +2,15 @@ theory Watched_Literals_All_Literals
 imports Watched_Literals_Clauses
 begin
 
+chapter \<open>Set of all literals\<close>
+
 type_synonym ann_lits_l = \<open>(nat, nat) ann_lits\<close>
 type_synonym clauses_to_update_ll = \<open>nat list\<close>
 
 
-subsection \<open>Refinement\<close>
+section \<open>Refinement\<close>
 
-subsubsection \<open>Set of all literals of the problem\<close>
-
+subsection \<open>Set of all literals of the problem\<close>
 
 definition all_lits_of_mm :: \<open>'a clauses \<Rightarrow> 'a literal multiset\<close> where
 \<open>all_lits_of_mm Ls = Pos `# (atm_of `# (\<Union># Ls)) + Neg `# (atm_of `# (\<Union># Ls))\<close>
@@ -78,6 +79,8 @@ lemma all_lits_of_mm_mono:
   \<open>set_mset A \<subseteq> set_mset B \<Longrightarrow> set_mset (all_lits_of_mm A) \<subseteq> set_mset (all_lits_of_mm B)\<close>
   by (auto simp: all_lits_of_mm_def)
 
+
+section \<open>Conversion from set of atoms to set of literals\<close>
 
 text \<open>We start in a context where we have an initial set of atoms. We later extend the locale to
   include a bound on the largest atom (in order to generate more efficient code).

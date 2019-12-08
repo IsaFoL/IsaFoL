@@ -2,9 +2,9 @@ theory IsaSAT_VMTF
 imports Watched_Literals.WB_Sort IsaSAT_Setup
 begin
 
+
+chapter \<open>Decision heuristic\<close>
 subsection \<open>Code generation for the VMTF decision heuristic and the trail\<close>
-
-
 
 (* TODO used? *)
 definition size_conflict_wl :: \<open>nat twl_st_wl \<Rightarrow> nat\<close> where

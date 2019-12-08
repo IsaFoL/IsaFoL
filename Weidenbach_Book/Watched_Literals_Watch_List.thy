@@ -3,9 +3,9 @@ theory Watched_Literals_Watch_List
 begin
 
 
-section \<open>Third Refinement: Remembering watched\<close>
+chapter \<open>Third Refinement: Remembering watched\<close>
 
-subsection \<open>Types\<close>
+section \<open>Types\<close>
 
 type_synonym clauses_to_update_wl = \<open>nat multiset\<close>
 type_synonym 'v watcher = \<open>(nat \<times> 'v literal \<times> bool)\<close>
@@ -17,7 +17,7 @@ type_synonym 'v twl_st_wl =
     'v cconflict \<times> 'v clauses \<times> 'v clauses  \<times> 'v clauses \<times> 'v clauses \<times> 'v lit_queue_wl \<times>
     ('v literal \<Rightarrow> 'v watched)\<close>
 
-subsection \<open>Access Functions\<close>
+section \<open>Access Functions\<close>
 
 fun clauses_to_update_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v literal \<Rightarrow> nat \<Rightarrow> clauses_to_update_wl\<close> where
   \<open>clauses_to_update_wl (_, N, _, _, _, _, _ ,_ , W) L i =
@@ -68,7 +68,7 @@ definition get_learned_clss_wl where
   \<open>get_learned_clss_wl S = learned_clss_lf (get_clauses_wl S)\<close>
 
 
-subsection \<open>Watch List Function\<close>
+section \<open>Watch List Function\<close>
 
 definition op_watch_list :: \<open>('v literal \<Rightarrow> 'v watched) \<Rightarrow> 'v literal \<Rightarrow> nat \<Rightarrow> 'v watcher\<close> where
   [simp]: \<open>op_watch_list W K i = W K ! i\<close>
@@ -107,7 +107,7 @@ lemma shows
    intro!: ASSERT_leI)
 
 
-subsection \<open>Watch List Invariants\<close>
+section \<open>Watch List Invariants\<close>
 
 text \<open>
   We cannot just extract the literals of the clauses: we cannot be sure that atoms appear \<^emph>\<open>both\<close>
@@ -1828,9 +1828,9 @@ proof -
 qed
 
 
-subsection \<open>The Functions\<close>
+section \<open>The Functions\<close>
 
-subsubsection \<open>Inner Loop\<close>
+subsection \<open>Inner Loop\<close>
 
 lemma clause_to_update_mapsto_upd_If:
   assumes
@@ -3870,7 +3870,7 @@ proof -
 qed
 
 
-subsubsection \<open>Outer loop\<close>
+subsection \<open>Outer loop\<close>
 
 definition select_and_remove_from_literals_to_update_wl :: \<open>'v twl_st_wl \<Rightarrow> ('v twl_st_wl \<times> 'v literal) nres\<close> where
   \<open>select_and_remove_from_literals_to_update_wl S = SPEC(\<lambda>(S', L). L \<in># literals_to_update_wl S \<and>
@@ -4045,7 +4045,7 @@ proof -
 qed
 
 
-subsubsection \<open>Decide or Skip\<close>
+subsection \<open>Decide or Skip\<close>
 
 definition find_unassigned_lit_wl :: \<open>'v twl_st_wl \<Rightarrow> ('v twl_st_wl \<times> 'v literal option) nres\<close> where
   \<open>find_unassigned_lit_wl = (\<lambda>(M, N, D, NE, UE, NS, US, WS, Q).
@@ -4114,7 +4114,7 @@ proof -
 qed
 
 
-subsubsection \<open>Skip or Resolve\<close>
+subsection \<open>Skip or Resolve\<close>
 
 
 definition mop_tl_state_wl_pre :: \<open>'v twl_st_wl \<Rightarrow> bool\<close> where
@@ -4352,7 +4352,7 @@ proof -
 qed
 
 
-subsubsection \<open>Backtrack\<close>
+subsection \<open>Backtrack\<close>
 
 definition find_decomp_wl :: \<open>'v literal \<Rightarrow> 'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
   \<open>find_decomp_wl = (\<lambda>L (M, N, D, NE, UE, NS, US, Q, W).
@@ -4990,7 +4990,7 @@ proof -
 qed
 
 
-subsubsection \<open>Backtrack, Skip, Resolve or Decide\<close>
+subsection \<open>Backtrack, Skip, Resolve or Decide\<close>
 
 definition cdcl_twl_o_prog_wl_pre where
   \<open>cdcl_twl_o_prog_wl_pre S \<longleftrightarrow>
@@ -5076,7 +5076,7 @@ proof -
 qed
 
 
-subsubsection \<open>Full Strategy\<close>
+subsection \<open>Full Strategy\<close>
 
 definition cdcl_twl_stgy_prog_wl_inv :: \<open>'v twl_st_wl \<Rightarrow> bool \<times> 'v twl_st_wl  \<Rightarrow> bool\<close> where
   \<open>cdcl_twl_stgy_prog_wl_inv S\<^sub>0 \<equiv> \<lambda>(brk, T).

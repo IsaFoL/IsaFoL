@@ -1,6 +1,9 @@
 theory IsaSAT_Arena_LLVM
   imports IsaSAT_Arena IsaSAT_Literals_LLVM
 begin
+
+section \<open>Code Generation\<close>
+
 no_notation WB_More_Refinement.fref ("[_]\<^sub>f _ \<rightarrow> _" [0,60,60] 60)
 no_notation WB_More_Refinement.freft ("_ \<rightarrow>\<^sub>f _" [60,60] 60)
 

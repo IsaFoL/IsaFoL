@@ -3,10 +3,7 @@ theory IsaSAT_Arena
     Watched_Literals.WB_More_Refinement_List
     IsaSAT_Literals
 begin
-
-
-subsection \<open>The memory representation: Arenas\<close>
-
+chapter \<open>The memory representation: Arenas\<close>
 
 text \<open>
 We implement an ``arena'' memory representation: This is a flat representation of clauses, where
@@ -28,7 +25,7 @@ two types, making a comparison impossible. This means that half of the blocking 
 lost (if we iterate over the watch lists) or all (if we iterate over the clauses directly).
 
 The order in memory is in the following order:
-  \<^enum> the saved position (is optional in cadical too);
+  \<^enum> the saved position (was optional in cadical too; since sr-19, not optional);
   \<^enum> the status;
   \<^enum> the activity;
   \<^enum> the LBD;
@@ -82,7 +79,7 @@ We can mark clause as used. This trick is used to implement a MTF-like scheme to
 \<close>
 
 
-subsubsection \<open>Status of a clause\<close>
+section \<open>Status of a clause\<close>
 
 datatype clause_status = IRRED | LEARNED | DELETED
 
@@ -95,7 +92,7 @@ instance by standard
 end
 
 
-subsubsection \<open>Definition\<close>
+section \<open>Definition\<close>
 
 text \<open>The following definitions are the offset between the beginning of the clause and the
 specific headers before the beginning of the clause. Remark that the first offset is not always
@@ -130,6 +127,10 @@ definition header_size :: \<open>nat clause_l \<Rightarrow> nat\<close> where
 
 lemmas SHIFTS_def = POS_SHIFT_def STATUS_SHIFT_def ACTIVITY_SHIFT_def LBD_SHIFT_def SIZE_SHIFT_def
 
+text \<open>
+  In an attempt to avoid unfolding definitions and to not rely on the actual value
+  of the positions of the headers before the clauses.
+\<close>
 (*TODO is that still used?*)
 lemma arena_shift_distinct:
   \<open>i >  3 \<Longrightarrow> i - SIZE_SHIFT \<noteq> i - LBD_SHIFT\<close>
@@ -290,12 +291,13 @@ definition arena_lit where
   \<open>arena_lit arena i = xarena_lit (arena!i)\<close>
 
 definition "op_incr_mod32 n \<equiv> (n+1 :: nat) mod 2^32"
-  
+
 definition arena_incr_act where
   \<open>arena_incr_act arena i = arena[i - ACTIVITY_SHIFT := AActivity (op_incr_mod32 (xarena_act (arena!(i - ACTIVITY_SHIFT))))]\<close>
-  
-  
-subsubsection \<open>Separation properties\<close>
+
+
+
+section \<open>Separation properties\<close>
 
 text \<open>The following two lemmas talk about the minimal distance between two clauses in memory. They
 are important for the proof of correctness of all update function.
@@ -509,7 +511,7 @@ qed
 
 text \<open>At first we had the weaker \<^term>\<open>i - j \<ge> 1\<close> which we replaced by \<^term>\<open>i - j \<ge> 4\<close>.
 The former however was able to solve many more goals due to different handling between \<^term>\<open>1\<close>
-(which is simplified to \<^term>\<open>Suc 0\<close>) and \<^term>\<open>4\<close> (which is not). Therefore, we replaced \<^term>\<open>4\<close>
+(which is simplified to \<^term>\<open>Suc 0\<close>) and \<^term>\<open>4\<close> (whi::natch is not). Therefore, we replaced \<^term>\<open>4\<close>
 by \<^term>\<open>Suc (Suc (Suc (Suc 0)))\<close>
 \<close>
 lemma minimal_difference_between_invalid_index2:
@@ -2044,7 +2046,9 @@ lemma length_arena_incr_act[simp]:
   by (auto simp: arena_incr_act_def)
 
 
-subsection \<open>MOP versions\<close>
+section \<open>MOP versions of operations\<close>
+
+subsection \<open>Access to literals\<close>
 
 definition mop_arena_lit where
   \<open>mop_arena_lit arena s = do {
@@ -2097,7 +2101,6 @@ definition mop_arena_lit2' :: \<open>nat set \<Rightarrow> arena \<Rightarrow> n
 \<open>mop_arena_lit2' vdom = mop_arena_lit2\<close>
 
 
-
 lemma mop_arena_lit2'[mop_arena_lit]:
   assumes valid: \<open>valid_arena arena N vdom\<close> and
     i: \<open>(C, C') \<in> nat_rel\<close> \<open>(i, i') \<in> nat_rel\<close>
@@ -2112,6 +2115,8 @@ lemma arena_lit_pre2_arena_lit[dest]:
   by (auto simp: arena_lit_pre_def arena_lit_pre2_def arena_is_valid_clause_idx_and_access_def
     intro!: exI[of _ i])
 
+
+subsection \<open>Swapping of literals\<close>
 definition mop_arena_swap where
   \<open>mop_arena_swap C i j arena = do {
       ASSERT(swap_lits_pre C i j arena);
@@ -2127,6 +2132,9 @@ lemma mop_arena_swap[mop_arena_lit]:
   by refine_rcg
     (auto simp: arena_lifting valid_arena_swap_lits)
 
+
+subsection \<open>Position Saving\<close>
+
 definition mop_arena_pos :: \<open>arena \<Rightarrow> nat \<Rightarrow> nat nres\<close> where
 \<open>mop_arena_pos arena C = do {
    ASSERT(get_saved_pos_pre arena C);
@@ -2140,12 +2148,14 @@ definition mop_arena_length :: \<open>arena_el list \<Rightarrow> nat \<Rightarr
 }\<close>
 
 
+subsection \<open>Clause length\<close>
+
 lemma mop_arena_length:
    \<open>(uncurry mop_arena_length, uncurry (RETURN oo (\<lambda>N c. length (N \<propto> c)))) \<in>
     [\<lambda>(N, i). i \<in># dom_m N]\<^sub>f {(N, N'). valid_arena N N' vdom} \<times>\<^sub>f nat_rel \<rightarrow> \<langle>nat_rel\<rangle>nres_rel\<close>
   unfolding mop_arena_length_def
   by (intro frefI nres_relI)
-    (auto 5 3 intro!: ASSERT_leI simp: map_fun_rel_def append_ll_def arena_is_valid_clause_idx_def
+    (auto 5 3 intro!: ASSERT_leI simp: append_ll_def arena_is_valid_clause_idx_def
         arena_lifting)
 
 definition mop_arena_lbd where

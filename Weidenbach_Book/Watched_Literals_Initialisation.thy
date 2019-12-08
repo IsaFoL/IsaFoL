@@ -2,7 +2,7 @@ theory Watched_Literals_Initialisation
   imports Watched_Literals_List
 begin
 
-subsection \<open>Initialise Data structure\<close>
+chapter \<open>Initialisation of Data structure\<close>
 
 type_synonym 'v twl_st_init = \<open>'v twl_st  \<times> 'v clauses\<close>
 

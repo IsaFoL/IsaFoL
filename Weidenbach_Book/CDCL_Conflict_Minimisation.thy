@@ -5,6 +5,7 @@ theory CDCL_Conflict_Minimisation
     WB_More_Refinement_List "List-Index.List_Index"
 begin
 
+chapter \<open>Conflict Minimisation\<close>
 
 text \<open>We implement the conflict minimisation as presented by Sörensson and Biere
 (``Minimizing Learned Clauses''').

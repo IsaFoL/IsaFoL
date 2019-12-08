@@ -2,6 +2,8 @@ theory IsaSAT_Restart
   imports IsaSAT_Restart_Heuristics IsaSAT_CDCL
 begin
 
+chapter \<open>Full CDCL with Restarts\<close>
+x
 definition cdcl_twl_stgy_restart_abs_wl_heur_inv where
   \<open>cdcl_twl_stgy_restart_abs_wl_heur_inv S\<^sub>0 brk T n \<longleftrightarrow>
     (\<exists>S\<^sub>0' T'. (S\<^sub>0, S\<^sub>0') \<in> twl_st_heur \<and> (T, T') \<in> twl_st_heur \<and>

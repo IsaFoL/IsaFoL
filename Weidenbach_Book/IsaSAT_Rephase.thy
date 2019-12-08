@@ -2,6 +2,15 @@ theory IsaSAT_Rephase
   imports IsaSAT_Setup IsaSAT_Show
 begin
 
+chapter \<open>Rephasing\<close>
+
+text \<open>
+  We implement the idea in CaDiCaL of rephasing:
+  \<^item> We remember the best model found so far. It is used as base.
+  \<^item> We flip the phase saving heuristics between \<^term>\<open>True\<close>,
+   \<^term>\<open>False\<close>, and random.
+\<close>
+
 definition rephase_init :: \<open>bool \<Rightarrow> bool list \<Rightarrow> bool list nres\<close> where
 \<open>rephase_init b \<phi> = do {
   let n = length \<phi>;

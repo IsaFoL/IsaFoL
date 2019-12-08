@@ -8,7 +8,7 @@ theory IsaSAT_Lookup_Conflict
     IsaSAT_Trail
 begin
 
-subsubsection \<open>Clauses Encoded as Positions\<close>
+chapter \<open>Clauses Encoded as Positions\<close>
 
 text \<open>We use represent the conflict in two data structures close to the one used by the most SAT
 solvers: We keep an array that represent the clause (for efficient iteration on the clause) and a

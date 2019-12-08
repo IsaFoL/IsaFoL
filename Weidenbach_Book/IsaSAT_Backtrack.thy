@@ -3,9 +3,13 @@ theory IsaSAT_Backtrack
 begin
 
 
-subsection \<open>Backtrack\<close>
+chapter \<open>Backtrack\<close>
 
-subsubsection \<open>Backtrack with direct extraction of literal if highest level\<close>
+text \<open>
+  The backtrack function is highly complicated and tricky to maintain.
+\<close>
+
+section \<open>Backtrack with direct extraction of literal if highest level\<close>
 
 paragraph \<open>Empty conflict\<close>
 
@@ -2461,7 +2465,7 @@ proof -
 qed
 
 
-subsubsection \<open>Backtrack with direct extraction of literal if highest level\<close>
+section \<open>Backtrack with direct extraction of literal if highest level\<close>
 
 lemma le_uint32_max_div_2_le_uint32_max: \<open>a \<le> uint32_max div 2 + 1 \<Longrightarrow> a \<le> uint32_max\<close>
   by (auto simp: uint32_max_def sint64_max_def)

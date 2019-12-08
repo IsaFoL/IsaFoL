@@ -4,6 +4,7 @@ imports
   IsaSAT_Setup IsaSAT_VMTF IsaSAT_Sorting
 begin
 
+chapter \<open>Restarts\<close>
 
 lemma all_init_atms_alt_def:
   \<open>set_mset (all_init_atms N NE) = atms_of_mm (mset `# init_clss_lf N) \<union> atms_of_mm NE\<close>

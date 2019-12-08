@@ -6,7 +6,7 @@ theory IsaSAT_Setup
     IsaSAT_Clauses IsaSAT_Arena IsaSAT_Watch_List LBD
 begin
 
-subsection \<open>Code Generation\<close>
+chapter \<open>Complete state\<close>
 
 text \<open>We here define the last step of our refinement: the step with all the heuristics and fully
   deterministic code.
@@ -20,9 +20,7 @@ text \<open>We here define the last step of our refinement: the step with all th
   does not have a binding to GMP integers.
 \<close>
 
-subsubsection \<open>Types and Refinement Relations\<close>
-
-paragraph \<open>Statistics\<close>
+section \<open>Statistics\<close>
 
 text \<open>
 We do some statistics on the run.
@@ -59,7 +57,7 @@ definition add_lbd :: \<open>64 word \<Rightarrow> stats \<Rightarrow> stats\<cl
   \<open>add_lbd lbd = (\<lambda>(propa, confl, dec, res, lres, uset, gcs, lbds). (propa, confl, dec, res, lres, uset, gcs, lbd + lbds))\<close>
 
 
-paragraph \<open>Moving averages\<close>
+section \<open>Moving averages\<close>
 
 text \<open>We use (at least hopefully) the variant of EMA-14 implemented in Cadical, but with fixed-point
 calculation (\<^term>\<open>1 :: nat\<close> is \<^term>\<open>(1 :: nat) >> 32\<close>).
@@ -117,7 +115,7 @@ abbreviation ema_slow_init :: ema where
   \<open>ema_slow_init \<equiv> ema_init 429450\<close>
 
 
-paragraph \<open>Information related to restarts\<close>
+section \<open>Information related to restarts\<close>
 
 definition NORMAL_PHASE :: \<open>64 word\<close> where
   \<open>NORMAL_PHASE = 0\<close>
@@ -144,7 +142,8 @@ definition restart_info_init :: \<open>restart_info\<close> where
 definition restart_info_restart_done :: \<open>restart_info \<Rightarrow> restart_info\<close> where
   \<open>restart_info_restart_done = (\<lambda>(ccount, lvl_avg). (0, lvl_avg))\<close>
 
-paragraph \<open>Phase saving\<close>
+
+section \<open>Phase saving\<close>
 
 type_synonym phase_save_heur = \<open>phase_saver \<times> nat \<times> phase_saver \<times> nat \<times> phase_saver \<times> 64 word \<times> 64 word \<times> 64 word\<close>
 
@@ -165,7 +164,7 @@ definition phase_current_rephasing_phase :: \<open>phase_save_heur \<Rightarrow>
 
 
 
-paragraph \<open>Heuristics\<close>
+section \<open>Heuristics\<close>
 
 type_synonym restart_heuristics = \<open>ema \<times> ema \<times> restart_info \<times> 64 word \<times> phase_save_heur\<close>
 
@@ -246,13 +245,13 @@ lemma save_phase_heur_preI:
   by (auto simp: heuristic_rel_def phase_saving_def save_phase_heur_pre_def
      phase_save_heur_rel_def atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n)
 
-paragraph \<open>Combining heuristics into a single component\<close>
 
-paragraph \<open>VMTF\<close>
+section \<open>VMTF\<close>
 
 type_synonym (in -) isa_vmtf_remove_int = \<open>vmtf \<times> (nat list \<times> bool list)\<close>
 
-paragraph \<open>Options\<close>
+
+section \<open>Options\<close>
 
 type_synonym opts = \<open>bool \<times> bool \<times> bool\<close>
 
@@ -267,21 +266,25 @@ definition opts_unbounded_mode where
   \<open>opts_unbounded_mode = (\<lambda>(a, b, c). c)\<close>
 
 
-paragraph \<open>Base state\<close>
-
-
 type_synonym out_learned = \<open>nat clause_l\<close>
 
 type_synonym vdom = \<open>nat list\<close>
 
+
+section \<open>Full state\<close>
+
 text \<open>\<^emph>\<open>heur\<close> stands for heuristic.\<close>
 
+paragraph \<open>Definition\<close>
 (* TODO rename to isasat *)
 type_synonym twl_st_wl_heur =
   \<open>trail_pol \<times> arena \<times>
     conflict_option_rel \<times> nat \<times> (nat watcher) list list \<times> isa_vmtf_remove_int \<times>
     nat \<times> conflict_min_cach_l \<times> lbd \<times> out_learned \<times> stats \<times> restart_heuristics \<times>
     vdom \<times> vdom \<times> nat \<times> opts \<times> arena\<close>
+
+
+paragraph \<open>Accessors\<close>
 
 fun get_clauses_wl_heur :: \<open>twl_st_wl_heur \<Rightarrow> arena\<close> where
   \<open>get_clauses_wl_heur (M, N, D, _) = N\<close>
@@ -363,6 +366,8 @@ fun get_ops :: \<open>twl_st_wl_heur \<Rightarrow> opts\<close> where
 fun get_old_arena :: \<open>twl_st_wl_heur \<Rightarrow> arena\<close> where
   \<open>get_old_arena (_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, old_arena) = old_arena\<close>
 
+
+section \<open>Virtual domain\<close>
 
 text \<open>The virtual domain is composed of the addressable (and accessible) elements, i.e.,
   the domain and all the deleted clauses that are still present in the watch lists.
@@ -450,6 +455,7 @@ definition cach_refinement_empty where
   \<open>cach_refinement_empty \<A> cach \<longleftrightarrow>
        (cach, \<lambda>_. SEEN_UNKNOWN) \<in> cach_refinement \<A>\<close>
 
+paragraph \<open>VMTF\<close>
 definition isa_vmtf where
   \<open>isa_vmtf \<A> M =
     ((Id \<times>\<^sub>r nat_rel \<times>\<^sub>r nat_rel \<times>\<^sub>r nat_rel \<times>\<^sub>r \<langle>nat_rel\<rangle>option_rel) \<times>\<^sub>f distinct_atoms_rel \<A>)\<inverse>
@@ -597,7 +603,7 @@ lemma isasat_fast_length_leD: \<open>isasat_fast S \<Longrightarrow> length (get
   by (cases S) (auto simp: isasat_fast_def)
 
 
-subsubsection \<open>Lift Operations to State\<close>
+section \<open>Lift Operations to State\<close>
 
 definition polarity_st :: \<open>'v twl_st_wl \<Rightarrow> 'v literal \<Rightarrow> bool option\<close> where
   \<open>polarity_st S = polarity (get_trail_wl S)\<close>
@@ -686,7 +692,7 @@ abbreviation nat_lit_lit_rel where
   \<open>nat_lit_lit_rel \<equiv> Id :: (nat literal \<times> _) set\<close>
 
 
-subsection \<open>More theorems\<close>
+section \<open>More theorems\<close>
 
 lemma valid_arena_DECISION_REASON:
   \<open>valid_arena arena NU vdom \<Longrightarrow> DECISION_REASON \<notin># dom_m NU\<close>
@@ -799,7 +805,7 @@ lemma isasat_input_nempty_cong:
   by (auto simp: intro!: ext)
 
 
-subsection \<open>Shared Code Equations\<close>
+section \<open>Shared Code Equations\<close>
 
 definition clause_not_marked_to_delete where
   \<open>clause_not_marked_to_delete S C \<longleftrightarrow> C \<in># dom_m (get_clauses_wl S)\<close>
@@ -900,10 +906,7 @@ proof
 qed
 
 
-subsection \<open>Rewatch\<close>
-
-
-subsection \<open>Rewatch\<close>
+section \<open>Rewatch\<close>
 
 definition rewatch_heur where
 \<open>rewatch_heur vdom arena W = do {
@@ -1089,7 +1092,9 @@ lemma rewatch_st_correctness:
     by (force simp: RES_RETURN_RES)+
   done
 
-subsection \<open>Fast to slow conversion\<close>
+
+section \<open>Fast to slow conversion\<close>
+
 text \<open>Setup to convert a list from \<^typ>\<open>64 word\<close> to \<^typ>\<open>nat\<close>.\<close>
 definition convert_wlists_to_nat_conv :: \<open>'a list list \<Rightarrow> 'a list list\<close> where
   \<open>convert_wlists_to_nat_conv = id\<close>
@@ -1555,10 +1560,26 @@ definition full_arena_length_st :: \<open>twl_st_wl_heur \<Rightarrow> nat\<clos
   \<open>full_arena_length_st = (\<lambda>(M', arena, D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
        vdom, avdom, lcount, opts, old_arena). length arena)\<close>
 
+definition (in -) access_lit_in_clauses where
+  \<open>access_lit_in_clauses S i j = (get_clauses_wl S) \<propto> i ! j\<close>
+
+lemma twl_st_heur_get_clauses_access_lit[simp]:
+  \<open>(S, T) \<in> twl_st_heur \<Longrightarrow> C \<in># dom_m (get_clauses_wl T) \<Longrightarrow>
+    i < length (get_clauses_wl T \<propto> C) \<Longrightarrow>
+    get_clauses_wl T \<propto> C ! i = access_lit_in_clauses_heur S C i\<close>
+    for S T C i
+    by (cases S; cases T)
+      (auto simp: arena_lifting twl_st_heur_def access_lit_in_clauses_heur_def)
+
 text \<open>In an attempt to avoid using @{thm ac_simps} everywhere.\<close>
 lemma all_lits_simps[simp]:
   \<open>all_lits N ((NE + UE) + (NS + US)) = all_lits N (NE + UE + NS + US)\<close>
   \<open>all_atms N ((NE + UE) + (NS + US)) = all_atms N (NE + UE + NS + US)\<close>
   by (auto simp: ac_simps)
+
+lemma clause_not_marked_to_delete_heur_alt_def:
+  \<open>RETURN \<circ>\<circ> clause_not_marked_to_delete_heur = (\<lambda>(M, arena, D, oth) C.
+     RETURN (arena_status arena C \<noteq> DELETED))\<close>
+  unfolding clause_not_marked_to_delete_heur_def by (auto intro!: ext)
 
 end

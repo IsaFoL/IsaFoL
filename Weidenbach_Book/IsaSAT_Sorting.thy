@@ -2,6 +2,10 @@ theory IsaSAT_Sorting
   imports IsaSAT_Setup
 begin
 
+chapter \<open>Sorting of clauses\<close>
+
+text \<open>We use the sort function developped by Peter Lammich.\<close>
+
 definition clause_score_ordering where
   \<open>clause_score_ordering = (\<lambda>(lbd, act) (lbd', act'). lbd < lbd' \<or> (lbd = lbd' \<and> act < act'))\<close>
 

@@ -4,6 +4,7 @@ begin
 
 (* TODO This file should probably be merged with IsaSAT_Arena*)
 
+chapter \<open>The memory representation: Manipulation of all clauses\<close>
 
 subsubsection \<open>Representation of Clauses\<close>
 
@@ -184,11 +185,6 @@ lemma fm_add_new_alt_def:
 definition fmap_swap_ll_u64 where
   [simp]: \<open>fmap_swap_ll_u64 = fmap_swap_ll\<close>
 
-
-lemma slice_Suc_nth:
-  \<open>a < b \<Longrightarrow> a < length xs \<Longrightarrow> Suc a < b \<Longrightarrow> Misc.slice a b xs = xs ! a # Misc.slice (Suc a) b xs\<close>
-  by (metis Cons_nth_drop_Suc Misc.slice_def Suc_diff_Suc take_Suc_Cons)
-
 definition fm_mv_clause_to_new_arena where
  \<open>fm_mv_clause_to_new_arena C old_arena new_arena0 = do {
     ASSERT(arena_is_valid_clause_idx old_arena C);
@@ -367,25 +363,6 @@ lemma size_learned_clss_dom_m: \<open>size (learned_clss_l N) \<le> size (dom_m 
   apply (rule order_trans[OF size_filter_mset_lesseq])
   by (auto simp: ran_m_def)
 
-lemma distinct_sum_mset_sum:
-  \<open>distinct_mset As \<Longrightarrow> (\<Sum>A \<in># As. (f :: 'a \<Rightarrow> nat) A) = (\<Sum>A \<in> set_mset As. f A)\<close>
-  by (subst sum_mset_sum_count)  (auto intro!: sum.cong simp: distinct_mset_def)
-
-lemma distinct_sorted_append: \<open>distinct (xs @ [x]) \<Longrightarrow> sorted (xs @ [x]) \<longleftrightarrow> sorted xs \<and> (\<forall>y \<in> set xs. y < x)\<close>
-  using not_distinct_conv_prefix sorted_append by fastforce
-
-lemma (in linordered_ab_semigroup_add) Max_add_commute2:
-  fixes k
-  assumes "finite S" and "S \<noteq> {}"
-  shows "Max ((\<lambda>x. x + k) ` S) = Max S + k"
-proof -
-  have m: "\<And>x y. max x y + k = max (x+k) (y+k)"
-    by(simp add: max_def antisym add_right_mono)
-  have "(\<lambda>x. x + k) ` S = (\<lambda>y. y + k) ` (S)" by auto
-  have "Max \<dots> = Max ( S) + k"
-    using assms hom_Max_commute [of "\<lambda>y. y+k" "S", OF m, symmetric] by simp
-  then show ?thesis by simp
-qed
 
 lemma valid_arena_ge_length_clauses:
   assumes \<open>valid_arena arena N vdom\<close>

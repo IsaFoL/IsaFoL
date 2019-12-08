@@ -290,4 +290,29 @@ lemma list_rel_in_find_correspondanceE:
   using assms[unfolded in_set_conv_decomp] by (auto simp: list_rel_append1
       elim!: list_relE3)
 
+
+lemma slice_Suc_nth:
+  \<open>a < b \<Longrightarrow> a < length xs \<Longrightarrow> Suc a < b \<Longrightarrow> Misc.slice a b xs = xs ! a # Misc.slice (Suc a) b xs\<close>
+  by (metis Cons_nth_drop_Suc Misc.slice_def Suc_diff_Suc take_Suc_Cons)
+
+lemma distinct_sum_mset_sum:
+  \<open>distinct_mset As \<Longrightarrow> (\<Sum>A \<in># As. (f :: 'a \<Rightarrow> nat) A) = (\<Sum>A \<in> set_mset As. f A)\<close>
+  by (subst sum_mset_sum_count)  (auto intro!: sum.cong simp: distinct_mset_def)
+
+lemma distinct_sorted_append: \<open>distinct (xs @ [x]) \<Longrightarrow> sorted (xs @ [x]) \<longleftrightarrow> sorted xs \<and> (\<forall>y \<in> set xs. y < x)\<close>
+  using not_distinct_conv_prefix sorted_append by fastforce
+
+lemma (in linordered_ab_semigroup_add) Max_add_commute2:
+  fixes k
+  assumes "finite S" and "S \<noteq> {}"
+  shows "Max ((\<lambda>x. x + k) ` S) = Max S + k"
+proof -
+  have m: "\<And>x y. max x y + k = max (x+k) (y+k)"
+    by(simp add: max_def antisym add_right_mono)
+  have "(\<lambda>x. x + k) ` S = (\<lambda>y. y + k) ` (S)" by auto
+  have "Max \<dots> = Max ( S) + k"
+    using assms hom_Max_commute [of "\<lambda>y. y+k" "S", OF m, symmetric] by simp
+  then show ?thesis by simp
+qed
+
 end

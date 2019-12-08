@@ -242,7 +242,7 @@ session "IsaSAT" (Weidenbach_Book) = "Watched_Literals"  +
     IsaSAT_LLVM
 
   document_files
-    "root.tex"
+    "root_isasat.tex"
     "biblio.bib"
   export_files (in "code") [1]
     "IsaSAT.IsaSAT:**"

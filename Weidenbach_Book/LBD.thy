@@ -2,7 +2,7 @@ theory LBD
   imports IsaSAT_Literals
 begin
 
-subsubsection \<open>LBD\<close>
+chapter \<open>LBD\<close>
 
 text \<open>LBD (literal block distance) or glue is a measure of usefulness of clauses: It is the number
 of different levels involved in a clause. This measure has been introduced by Glucose in 2009
@@ -14,9 +14,11 @@ of the same level in the conflict.
 
 The LBD data structure is well-suited to do so: We mark every level that appears in the conflict in
 a hash-table like data structure.
+
+Remark that we combine the LBD with a MTF scheme.
 \<close>
 
-paragraph \<open>Types and relations\<close>
+section \<open>Types and relations\<close>
 type_synonym lbd = \<open>bool list\<close>
 type_synonym lbd_ref = \<open>bool list \<times> nat \<times> nat\<close>
 
@@ -34,7 +36,7 @@ definition lbd_ref where
       m = length (filter id lbd)}\<close>
 
 
-paragraph \<open>Testing if a level is marked\<close>
+section \<open>Testing if a level is marked\<close>
 
 definition level_in_lbd :: \<open>nat \<Rightarrow> lbd \<Rightarrow> bool\<close> where
   \<open>level_in_lbd i = (\<lambda>lbd. i < length lbd \<and> lbd!i)\<close>
@@ -47,7 +49,7 @@ lemma level_in_lbd_ref_level_in_lbd:
     nat_rel \<times>\<^sub>r lbd_ref \<rightarrow>\<^sub>f \<langle>bool_rel\<rangle>nres_rel\<close>
   by (intro frefI nres_relI) (auto simp: level_in_lbd_ref_def level_in_lbd_def lbd_ref_def)
 
-paragraph \<open>Marking more levels\<close>
+section \<open>Marking more levels\<close>
 definition list_grow where
   \<open>list_grow xs n x = xs @ replicate (n - length xs) x\<close>
 
@@ -87,7 +89,7 @@ lemma lbd_ref_write_lbd_write:
         length_filter_update_false
       intro!: ASSERT_leI le_trans[OF length_filter_le])
 
-paragraph \<open>Cleaning the marked levels\<close>
+section \<open>Cleaning the marked levels\<close>
 
 definition lbd_emtpy_inv :: \<open>nat \<Rightarrow> bool list \<times> nat \<Rightarrow> bool\<close> where
   \<open>lbd_emtpy_inv m = (\<lambda>(xs, i). i \<le> Suc m \<and> (\<forall>j < i. xs ! j = False) \<and>
@@ -214,7 +216,7 @@ lemma empty_lbd_ref_empty_lbd:
   by (intro frefI nres_relI) (auto simp: empty_lbd_def lbd_ref_def empty_lbd_ref_def
       uint32_max_def nth_Cons split: nat.splits)
 
-paragraph \<open>Extracting the LBD\<close>
+section \<open>Extracting the LBD\<close>
 
 text \<open>We do not prove correctness of our algorithm, as we don't care about the actual returned
 value (for correctness).\<close>

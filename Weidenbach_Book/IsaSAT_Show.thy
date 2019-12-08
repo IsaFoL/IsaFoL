@@ -4,7 +4,7 @@ theory IsaSAT_Show
     IsaSAT_Setup
 begin
 
-subsection \<open>Printing information about progress\<close>
+chapter \<open>Printing information about progress\<close>
 
 text \<open>We provide a function to print some information about the state.
   This is mostly meant to ease extracting statistics and printing information
@@ -14,7 +14,11 @@ text \<open>We provide a function to print some information about the state.
 
   However, it seems that the PolyML as targeted by \<open>export_code checking\<close> does
   not support that print function. Therefore, we cannot provide the code printing equations
-  by default.\<close>
+  by default.
+
+  For the LLVM version code equations are not supported and hence we replace the function by
+  hand.
+\<close>
 definition println_string :: \<open>String.literal \<Rightarrow> unit\<close> where
   \<open>println_string _ = ()\<close>
 

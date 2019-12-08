@@ -4,7 +4,7 @@ imports IsaSAT_Literals
 begin
 
 
-subsubsection \<open>Trail\<close>
+chapter \<open>Efficient Trail\<close>
 
 text \<open>Our trail contains several additional information compared to the simple trail:
   \<^item> the (reversed) trail in an array (i.e., the trail in the same order as presented in
@@ -27,7 +27,7 @@ trail). Remark that the control stack contains is not updated during the backjum
 \<close>
 
 
-paragraph \<open>Polarities\<close>
+section \<open>Polarities\<close>
 
 type_synonym tri_bool = \<open>bool option\<close>
 
@@ -45,7 +45,7 @@ definition (in -) tri_bool_eq :: \<open>tri_bool \<Rightarrow> tri_bool \<Righta
 
 
   
-paragraph \<open>Types\<close>
+section \<open>Types\<close>
 
 type_synonym trail_pol =
    \<open>nat literal list \<times> tri_bool list \<times> nat list \<times> nat list \<times> nat \<times> nat list\<close>
@@ -66,7 +66,7 @@ abbreviation undefined_atm where
   \<open>undefined_atm M L \<equiv> \<not>defined_atm M L\<close>
 
 
-paragraph \<open>Control Stack\<close>
+section \<open>Control Stack\<close>
 
 inductive control_stack where
 empty:
@@ -257,7 +257,7 @@ proof -
 qed
 
 
-paragraph \<open>Encoding of the reasons\<close>
+section \<open>Encoding of the reasons\<close>
 
 definition DECISION_REASON :: nat where
   \<open>DECISION_REASON = 1\<close>
@@ -282,7 +282,7 @@ definition trail_pol :: \<open>nat multiset \<Rightarrow> (trail_pol \<times> (n
     isasat_input_bounded \<A>}\<close>
 
 
-paragraph \<open>Definition of the full trail\<close>
+section \<open>Definition of the full trail\<close>
 
 
 lemma trail_pol_alt_def:
@@ -314,9 +314,9 @@ proof -
 	simp del: isasat_input_bounded_def)
 qed
 
-paragraph \<open>Code generation\<close>
+section \<open>Code generation\<close>
 
-subparagraph \<open>Conversion between incomplete and complete mode\<close>
+subsection \<open>Conversion between incomplete and complete mode\<close>
 
 definition trail_fast_of_slow :: \<open>(nat, nat) ann_lits \<Rightarrow> (nat, nat) ann_lits\<close> where
   \<open>trail_fast_of_slow = id\<close>
@@ -364,8 +364,7 @@ lemma counts_maximum_level_None[simp]: \<open>counts_maximum_level M None = Coll
 
 
 
-subparagraph \<open>Level of a literal\<close>
-
+subsection \<open>Level of a literal\<close>
 
 definition get_level_atm_pol_pre where
   \<open>get_level_atm_pol_pre = (\<lambda>((M, xs, lvls, k), L). L < length lvls)\<close>
@@ -410,7 +409,7 @@ lemma get_level_get_level_pol:
   by (auto simp: get_level_pol_def get_level_atm_pol_def trail_pol_def)
 
 
-subparagraph \<open>Current level\<close>
+subsection \<open>Current level\<close>
 
 definition (in -) count_decided_pol where
   \<open>count_decided_pol = (\<lambda>(_, _, _, _, k, _). k)\<close>
@@ -420,7 +419,7 @@ lemma count_decided_trail_ref:
   by (intro frefI nres_relI) (auto simp: trail_pol_def count_decided_pol_def)
 
 
-subparagraph \<open>Polarity\<close>
+subsection \<open>Polarity\<close>
 
 definition (in -) polarity_pol :: \<open>trail_pol \<Rightarrow> nat literal \<Rightarrow> bool option\<close> where
   \<open>polarity_pol = (\<lambda>(M, xs, lvls, k) L. do {
@@ -462,7 +461,7 @@ lemma isa_length_trail_length_u:
     intro!: ASSERT_leI)
 
 
-subparagraph \<open>Consing elements\<close>
+subsection \<open>Consing elements\<close>
 
 definition cons_trail_Propagated_tr_pre where
   \<open>cons_trail_Propagated_tr_pre = (\<lambda>((L, C), (M, xs, lvls, reasons, k)). nat_of_lit L < length xs \<and>
@@ -762,7 +761,7 @@ lemma lit_of_last_trail_pol_lit_of_last_trail:
      ann_lits_split_reasons_def hd_map rev_map[symmetric] last_rev
       intro!: frefI nres_relI)
 
-subparagraph \<open>Setting a new literal\<close>
+subsection \<open>Setting a new literal\<close>
 
 definition cons_trail_Decided :: \<open>nat literal \<Rightarrow> (nat, nat) ann_lits \<Rightarrow> (nat, nat) ann_lits\<close> where
   \<open>cons_trail_Decided L M' = Decided L # M'\<close>
@@ -804,7 +803,7 @@ lemma cons_trail_Decided_tr_pre:
        intro!: ext undefined_lit_count_decided_uint32_max length_trail_uint32_max)
 
 
-subparagraph \<open>Polarity: Defined or Undefined\<close>
+subsection \<open>Polarity: Defined or Undefined\<close>
 
 definition (in -) defined_atm_pol_pre where
   \<open>defined_atm_pol_pre = (\<lambda>(M, xs, lvls, k) L. 2*L < length xs \<and>
@@ -848,7 +847,7 @@ proof -
 qed
 
 
-subparagraph \<open>Reasons\<close>
+subsection \<open>Reasons\<close>
 
 definition get_propagation_reason_pol :: \<open>trail_pol \<Rightarrow> nat literal \<Rightarrow> nat option nres\<close> where
   \<open>get_propagation_reason_pol = (\<lambda>(_, _, _, reasons, _) L. do {
@@ -950,7 +949,7 @@ proof -
 qed
 
 
-paragraph \<open>Direct access to elements in the trail\<close>
+section \<open>Direct access to elements in the trail\<close>
 
 definition (in -) rev_trail_nth where
   \<open>rev_trail_nth M i = lit_of (rev M ! i)\<close>
