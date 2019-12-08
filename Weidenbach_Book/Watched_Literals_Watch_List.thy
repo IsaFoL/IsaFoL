@@ -914,9 +914,7 @@ definition update_blit_wl :: \<open>'v literal \<Rightarrow> nat \<Rightarrow> b
 
 
 definition unit_prop_body_wl_find_unwatched_inv where
-\<open>unit_prop_body_wl_find_unwatched_inv f C S \<longleftrightarrow>
-  True \<comment>\<open>get_clauses_wl S \<propto> C \<noteq> [] \<and>
-   (f = None \<longleftrightarrow> (\<forall>L\<in>#mset (unwatched_l (get_clauses_wl S \<propto> C)). - L \<in> lits_of_l (get_trail_wl S)))\<close>\<close>
+\<open>unit_prop_body_wl_find_unwatched_inv f C S \<longleftrightarrow> True\<close>
 
 abbreviation remaining_nondom_wl where
 \<open>remaining_nondom_wl w L S \<equiv>

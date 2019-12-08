@@ -1700,6 +1700,10 @@ lemma distinct_mset_iff:
       member_add_mset mset_add not_in_iff)
 
 
+lemma diff_add_mset_remove1: \<open>NO_MATCH {#} N \<Longrightarrow> M - add_mset a N = remove1_mset a (M - N)\<close>
+  by auto
+
+
 section \<open>Finite maps and multisets\<close>
 
 subsubsection \<open>Finite sets and multisets\<close>

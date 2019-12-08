@@ -173,19 +173,11 @@ session "Watched_Literals" (Weidenbach_Book) = "Isabelle_LLVM"  +
     "HOL-Eisbach"
     Sepref_IICF
   theories [quick_and_dirty = false, document = true]
-    IICF_Array_List64
-    Array_Array_List64
-    IICF_Array_List32
-    Array_UInt
-    WB_Word
-    WB_Word_Assn
     WB_More_Refinement_Loops
     WB_More_Refinement
     WB_More_Refinement_List
-    WB_More_IICF_SML
     WB_More_IICF_LLVM
     WB_Sort
-    WB_Sort_SML
     Watched_Literals_Transition_System
     Watched_Literals_Algorithm
     Watched_Literals_Algorithm_Restart
@@ -211,43 +203,43 @@ session "IsaSAT" (Weidenbach_Book) = "Watched_Literals"  +
     Isabelle_LLVM
   theories
     IsaSAT_Arena
-    IsaSAT_Arena_SML
+    IsaSAT_Arena_LLVM
     IsaSAT_Clauses
-    IsaSAT_Clauses_SML
+    IsaSAT_Clauses_LLVM
     IsaSAT_Literals
     IsaSAT_Trail
     Watched_Literals_VMTF
     LBD
-    LBD_SML
+    LBD_LLVM
     Version
     IsaSAT_Watch_List
-    IsaSAT_Watch_List_SML
+    IsaSAT_Watch_List_LLVM
     IsaSAT_Setup
-    IsaSAT_Setup_SML
+    IsaSAT_Setup_LLVM
     IsaSAT_Inner_Propagation
-    IsaSAT_Inner_Propagation_SML
+    IsaSAT_Inner_Propagation_LLVM
     IsaSAT_VMTF
-    IsaSAT_VMTF_SML
+    IsaSAT_VMTF_LLVM
     IsaSAT_Backtrack
-    IsaSAT_Backtrack_SML
+    IsaSAT_Backtrack_LLVM
     IsaSAT_Initialisation
-    IsaSAT_Initialisation_SML
+    IsaSAT_Initialisation_LLVM
     IsaSAT_Conflict_Analysis
-    IsaSAT_Conflict_Analysis_SML
+    IsaSAT_Conflict_Analysis_LLVM
     IsaSAT_Propagate_Conflict
-    IsaSAT_Propagate_Conflict_SML
+    IsaSAT_Propagate_Conflict_LLVM
     IsaSAT_Decide
-    IsaSAT_Decide_SML
+    IsaSAT_Decide_LLVM
     IsaSAT_CDCL
-    IsaSAT_CDCL_SML
+    IsaSAT_CDCL_LLVM
 
     IsaSAT_Restart_Heuristics
-    IsaSAT_Restart_Heuristics_SML
+    IsaSAT_Restart_Heuristics_LLVM
     IsaSAT_Restart
-    IsaSAT_Restart_SML
+    IsaSAT_Restart_LLVM
 
     IsaSAT
-    IsaSAT_SML
+    IsaSAT_LLVM
 
   document_files
     "root.tex"
@@ -255,6 +247,7 @@ session "IsaSAT" (Weidenbach_Book) = "Watched_Literals"  +
   export_files (in "code") [1]
     "IsaSAT.IsaSAT:**"
 
+(*
 session Model_Enumeration (Weidenbach_Book) = Watched_Literals +
   description \<open>This extends the previous version to a very simple 'SMT' solver: we enumerate all models and let an unspecified theoty solver checks if a model is valid or another must be found.\<close>
   sessions
@@ -270,6 +263,7 @@ session Model_Enumeration (Weidenbach_Book) = Watched_Literals +
   document_files
     "root.tex"
     "biblio.bib"
+*)
 
 session Weidenbach_Book (Weidenbach_Book) = IsaSAT +
   description \<open>We import everything\<close>
@@ -279,7 +273,6 @@ session Weidenbach_Book (Weidenbach_Book) = IsaSAT +
     CDCL
     CDCL_Extensions
     Watched_Literals
-    Model_Enumeration
     IsaSAT
     "HOL-Library"
     Resolution_Superposition

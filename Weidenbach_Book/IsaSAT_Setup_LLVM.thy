@@ -38,6 +38,7 @@ lemma [sepref_import_param]:
 
 lemma ema_bitshifting_inline[llvm_inline]:
   "ema_bitshifting = (0x100000000::_::len word)" by (auto simp: ema_bitshifting_def)
+
 lemma ema_reinit_inline[llvm_inline]:
   "ema_reinit = (\<lambda>(value, \<alpha>, \<beta>, wait, period).
     (value, \<alpha>, 0x100000000::_::len word, 0::_ word, 0:: _ word))"
@@ -318,7 +319,6 @@ sepref_def polarity_st_heur_pol_fast
 
 subsection \<open>More theorems\<close>
 
-(*TODO dup of count_decided_pol*)
 lemma count_decided_st_heur_alt_def:
    \<open>count_decided_st_heur = (\<lambda>(M, _). count_decided_pol M)\<close>
   by (auto simp: count_decided_st_heur_def count_decided_pol_def)
@@ -339,7 +339,7 @@ sepref_def access_lit_in_clauses_heur_fast_code
   unfolding isasat_bounded_assn_def access_lit_in_clauses_heur_alt_def
     access_lit_in_clauses_heur_pre_def
   unfolding fold_tuple_optimizations
-  by sepref (* slow *)
+  by sepref
 
 
 sepref_register \<open>(=) :: clause_status \<Rightarrow> clause_status \<Rightarrow> _\<close>
@@ -630,7 +630,7 @@ sepref_def delete_index_and_swap_code2
   unfolding delete_index_and_swap.simps
   by sepref
 
-sepref_def mop_mark_garbage_heur_impj
+sepref_def mop_mark_garbage_heur_impl
   is \<open>uncurry2 mop_mark_garbage_heur\<close>
   :: \<open>[\<lambda>((C, i), S). length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a
       sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>

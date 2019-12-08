@@ -27,6 +27,7 @@ sepref_def copy_phase_impl
   unfolding copy_phase_def
     while_eq_nfoldli[symmetric]
   apply (subst while_upt_while_direct, simp)
+  unfolding simp_thms(21) \<comment> \<open>remove \<^term>\<open>a \<and> True\<close> from condition\<close>
   apply (annot_snat_const "TYPE(64)")
   by sepref
 

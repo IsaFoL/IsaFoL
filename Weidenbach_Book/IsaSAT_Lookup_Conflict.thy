@@ -8,9 +8,6 @@ theory IsaSAT_Lookup_Conflict
     IsaSAT_Trail
 begin
 
-hide_const Autoref_Fix_Rel.CONSTRAINT
-
-
 subsubsection \<open>Clauses Encoded as Positions\<close>
 
 text \<open>We use represent the conflict in two data structures close to the one used by the most SAT
@@ -116,8 +113,8 @@ next
     then show ?thesis
       using mset dist
       by (metis (no_types, lifting) add_mset_union assms(2) distinct.simps(2) fold_simps(2)
-       insert_DiffM list_update_id mset.simps(2) mset_as_position_nth set_mset_mset
-       sup_union_right1)
+        insert_DiffM list_update_id mset.simps(2) mset_as_position_nth set_mset_mset
+        sup_union_right1)
   next
     case False
     have [simp]: \<open>length (fold (\<lambda>L xs. xs[atm_of L := Some (is_pos L)]) P xs) = length xs\<close>
@@ -2821,13 +2818,12 @@ lemma conflict_min_cach_set_removable:
     uncurry (RETURN oo conflict_min_cach_set_removable)) \<in>
      [\<lambda>(cach, L). L \<in># \<A>\<^sub>i\<^sub>n \<and> isasat_input_bounded \<A>\<^sub>i\<^sub>n]\<^sub>f cach_refinement \<A>\<^sub>i\<^sub>n \<times>\<^sub>r nat_rel \<rightarrow> \<langle>cach_refinement \<A>\<^sub>i\<^sub>n\<rangle>nres_rel\<close>
   supply isasat_input_bounded_def[simp del]
-  apply (intro frefI nres_relI) (*TODO Proof*)
-  apply   (auto simp: in_cach_refinement_alt_def map_fun_rel_def cach_refinement_list_def
+  by (intro frefI nres_relI)
+    (auto 5 5 simp: in_cach_refinement_alt_def map_fun_rel_def cach_refinement_list_def
         conflict_min_cach_set_removable_l_def cach_refinement_nonull_def
         all_conj_distrib intro!: ASSERT_leI bounded_included_le[of \<A>\<^sub>i\<^sub>n]
       dest!: multi_member_split dest: set_mset_mono
       dest: subset_add_mset_notin_subset_mset)
-  by (fastforce dest: subset_add_mset_notin_subset_mset)+
 
 
 

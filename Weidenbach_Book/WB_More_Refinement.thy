@@ -11,7 +11,8 @@ theory WB_More_Refinement
     \<comment> \<open>don't import \<open>Refine_Monadic.Monadic\<close>, that imports too much.\<close>
     Isabelle_LLVM.Sepref_Misc
     WB_More_Refinement_Loops
-      \<comment> \<open>TODO: replace by a Isabelle_LLVM.More_Notations to fix WB_More_IICF_SML\<close>
+    WB_More_Refinement_List
+      \<comment> \<open>TODO: replace by a Isabelle\_LLVM.More\_Notations to fix \<^file>\<open>WB_More_IICF_SML.thy\<close>\<close>
 begin
 
 (*
@@ -291,41 +292,6 @@ subsection \<open>More declarations\<close>
 
 (* TODO: only input notation? *)
 notation prod_rel_syn (infixl "\<times>\<^sub>f" 70)
-
-
-lemma diff_add_mset_remove1: \<open>NO_MATCH {#} N \<Longrightarrow> M - add_mset a N = remove1_mset a (M - N)\<close>
-  by auto
-
-
-subsection \<open>List relation\<close>
-
-lemma list_rel_take:
-  \<open>(ba, ab) \<in> \<langle>A\<rangle>list_rel \<Longrightarrow> (take b ba, take b ab) \<in> \<langle>A\<rangle>list_rel\<close>
-  by (auto simp: list_rel_def)
-
-lemma list_rel_update':
-  fixes R
-  assumes rel: \<open>(xs, ys) \<in> \<langle>R\<rangle>list_rel\<close> and
-   h: \<open>(bi, b) \<in> R\<close>
-  shows \<open>(list_update xs ba bi, list_update ys ba b) \<in> \<langle>R\<rangle>list_rel\<close>
-proof -
-  have [simp]: \<open>(bi, b) \<in> R\<close>
-    using h by auto
-  have \<open>length xs = length ys\<close>
-    using assms list_rel_imp_same_length by blast
-
-  then show ?thesis
-    using rel
-    by (induction xs ys arbitrary: ba rule: list_induct2) (auto split: nat.splits)
-qed
-
-
-lemma list_rel_in_find_correspondanceE:
-  assumes \<open>(M, M') \<in> \<langle>R\<rangle>list_rel\<close> and \<open>L \<in> set M\<close>
-  obtains L' where \<open>(L, L') \<in> R\<close> and \<open>L' \<in> set M'\<close>
-  using assms[unfolded in_set_conv_decomp] by (auto simp: list_rel_append1
-      elim!: list_relE3)
-
 
 
 subsection \<open>More Functions, Relations, and Theorems\<close>

@@ -5,8 +5,6 @@ theory IsaSAT_Literals
      Isabelle_LLVM.Bits_Natural (*Watched_Literals.WB_Word*)
 begin
 
-hide_const Autoref_Fix_Rel.CONSTRAINT
-
 subsubsection \<open>Refinement of the Watched Function\<close>
 
 definition map_fun_rel :: \<open>(nat \<times> 'key) set \<Rightarrow> ('b \<times> 'a) set \<Rightarrow> ('b list \<times> ('key \<Rightarrow> 'a)) set\<close> where

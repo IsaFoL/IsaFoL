@@ -41,8 +41,6 @@ proof -
 qed
 
 
-hide_const Autoref_Fix_Rel.CONSTRAINT
-
 section \<open>Code for the initialisation of the Data Structure\<close>
 
 text \<open>The initialisation is done in three different steps:

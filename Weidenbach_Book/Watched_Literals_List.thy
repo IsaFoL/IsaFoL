@@ -2,6 +2,7 @@ theory Watched_Literals_List
   imports WB_More_Refinement_List Watched_Literals_Algorithm CDCL.DPLL_CDCL_W_Implementation
     Watched_Literals_Clauses
 begin
+declare RETURN_as_SPEC_refine[refine2]
 
 lemma mset_take_mset_drop_mset: \<open>(\<lambda>x. mset (take 2 x) + mset (drop 2 x)) = mset\<close>
   unfolding mset_append[symmetric] append_take_drop_id ..
@@ -1373,19 +1374,20 @@ proof -
     ultimately show 
        \<open>K \<in># all_lits_of_mm (get_all_init_clss_l (M, N, D, NE, UE, NS, US, remove1_mset C WS, Q))\<close>
        \<open>j \<le> 1\<close>
-       \<open>cons_trail_propagate_l K C M \<bind>
-    (\<lambda>M. (if 2 < length (N \<propto> C)
-          then mop_clauses_swap N C 0 (Suc 0 - j)
-          else RETURN N) \<bind>
-         (\<lambda>N. RETURN
-               (M, N, D, NE, UE, NS, US, remove1_mset C WS,
-                add_mset (- K) Q)))
-    \<le> SPEC (\<lambda>c. (c, propagate_lit L' (twl_clause_of C')
+       \<open>do {
+               M \<leftarrow> cons_trail_propagate_l K C M;
+               N \<leftarrow> if 2 < length (N \<propto> C)
+                   then mop_clauses_swap N C 0 (Suc 0 - j) else RETURN N;
+               RETURN
+                (M, N, D, NE, UE, NS, US, remove1_mset C WS,
+                 add_mset (- K) Q)
+             } \<le> SPEC(\<lambda>C.
+                  (C,
+                    (propagate_lit L' (twl_clause_of C')
                       (set_clauses_to_update
                         (remove1_mset (L, twl_clause_of C')
                           (clauses_to_update S'))
-                        S'))
-                 \<in> {(S, S').
+                        S'))) \<in> {(S, S').
                      (S, S') \<in> twl_st_l (Some L) \<and>
                      twl_list_invs S})\<close>
       using SS' WS C_N_U that unfolding propagate_lit_l_def apply (auto simp: S)
