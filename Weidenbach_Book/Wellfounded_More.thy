@@ -352,4 +352,122 @@ next
       (use H ST T'T in auto)
 qed
 
+
+text \<open>The following lemma gives a bound on the maximal number of transitions of a sequence that is well-founded
+  under the lexicographic ordering \<^term>\<open>lexn\<close> on natural numbers.
+\<close>
+lemma lexn_number_of_transition:
+  assumes
+    le: \<open>\<And>i. i < n \<Longrightarrow> ((f (Suc i)), (f i)) \<in> lexn less_than m\<close> and
+    upper: \<open>\<And>i j. i \<le> n \<Longrightarrow> j < m \<Longrightarrow> (f i) ! j \<in> {0..<k}\<close> and
+    \<open>finite A\<close> and
+    k: \<open>k > 1\<close>
+  shows \<open>n < k ^ Suc m\<close>
+proof -
+  define r where
+    \<open>r x = zip x (map (\<lambda>i. k ^ (length x -i)) [0..<length x])\<close> for x :: \<open>nat list\<close>
+
+  define s where
+    \<open>s x = foldr (\<lambda>a b. a + b) (map (\<lambda>(a, b). a * b) x) 0\<close> for x :: \<open>(nat \<times> nat) list\<close>
+
+  have [simp]: \<open>r [] = []\<close> \<open>s [] = 0\<close>
+    by (auto simp: r_def s_def)
+
+  have upt': \<open>m > 0 \<Longrightarrow> [0..< m] = 0 # map Suc [0..< m - 1]\<close> for m
+    by (auto simp: map_Suc_upt upt_conv_Cons)
+
+  have upt'': \<open>m > 0 \<Longrightarrow> [0..< m] = [0..< m - 1] @ [m-1]\<close> for m
+    by (cases m) (auto simp: )
+
+  have Cons: \<open>r (x # xs) = (x, k^(Suc (length xs))) # (r xs)\<close> for x xs
+   unfolding r_def
+   apply (subst upt')
+   apply (clarsimp simp add: upt'' comp_def nth_append Suc_diff_le simp flip: zip_map2)
+   apply (clarsimp simp add: upt'' comp_def nth_append Suc_diff_le simp flip: zip_map2)
+   done
+
+  have [simp]: \<open>s (ab # xs) = fst ab * snd ab + s xs\<close> for ab xs
+    unfolding s_def by (cases ab) auto
+
+  have le2: \<open>(\<forall>a \<in> set b. a < k) \<Longrightarrow> (k ^ (Suc (length b))) > s ((r b))\<close> for b
+    apply (induction b arbitrary: f)
+    using k apply (auto simp: Cons)
+    apply (rule order.strict_trans1)
+    apply (rule_tac j = \<open>(k - 1) * k *k ^ length b\<close> in Nat.add_le_mono1)
+    subgoal for a b
+      by auto
+    apply (rule order.strict_trans2)
+    apply (rule_tac b = \<open>(k - 1) * k * k ^ length b\<close> and d = \<open>(k * k ^ length b)\<close> in add_le_less_mono)
+    apply (auto simp: mult.assoc comm_semiring_1_class.semiring_normalization_rules(2))
+    done
+
+  have \<open>s (r (f (Suc i))) < s (r (f i))\<close> if \<open>i < n\<close> for i
+  proof -
+    have i_n: \<open>Suc i \<le> n\<close> \<open>i \<le> n\<close>
+      using that by auto
+    have length: \<open>length (f i) = m\<close>  \<open>length (f (Suc i)) = m\<close>
+     using le[OF that] by (auto dest: lexn_length)
+    define xs and ys where \<open>xs = f i\<close> and \<open>ys = f (Suc i)\<close>
+
+    show ?thesis
+      using le[OF that] upper[OF i_n(2)] upper[OF i_n(1)] length Cons
+      unfolding xs_def[symmetric] ys_def[symmetric]
+    proof (induction m arbitrary: xs ys)
+      case 0 then show ?case by auto
+    next
+      case (Suc m) note IH = this(1) and H = this(2) and p = this(3-)
+      have IH: \<open>(tl ys, tl xs) \<in> lexn less_than m \<Longrightarrow> s (r (tl ys)) < s (r (tl xs))\<close>
+        apply (rule IH)
+        subgoal by auto
+        subgoal for i using p(1)[of \<open>Suc i\<close>] p by (cases xs; auto)
+        subgoal for i using p(2)[of \<open>Suc i\<close>] p by (cases ys; auto)
+        subgoal using p by (cases xs) auto
+        subgoal using p by auto
+        subgoal using p by auto
+        done
+     have \<open>s (r (tl ys)) < k ^ (Suc (length (tl ys)))\<close>
+       apply (rule le2)
+       unfolding all_set_conv_all_nth
+       using p by (simp add: nth_tl)
+     then have \<open>ab * (k * k ^ length (tl ys)) + s (r (tl ys)) <
+               ab * (k * k ^ length (tl ys)) + (k * k ^ length (tl ys))\<close> for ab
+       by auto
+     also have \<open>\<dots> ab  \<le> (ab + 1) * (k * k ^ length (tl ys))\<close> for ab
+       by auto
+     finally have less: \<open>ab < ac \<Longrightarrow> ab * (k * k ^ length (tl ys)) + s (r (tl ys)) <
+                                    ac * (k * k ^ length (tl ys))\<close> for ab ac
+     proof -
+       assume a1: "\<And>ab. ab * (k * k ^ length (tl ys)) + s (r (tl ys)) <
+                   (ab + 1) * (k * k ^ length (tl ys))"
+       assume "ab < ac"
+       then have "\<not> ac * (k * k ^ length (tl ys)) < (ab + 1) * (k * k ^ length (tl ys))"
+         by (metis (no_types) One_nat_def Suc_leI add.right_neutral add_Suc_right
+            mult_less_cancel2 not_less)
+       then show ?thesis
+         using a1 by (meson le_less_trans not_less)
+     qed
+
+    have \<open>ab < ac \<Longrightarrow>
+        ab * (k * k ^ length (tl ys)) + s (r (tl ys))
+        < ac * (k * k ^ length (tl xs)) + s (r (tl xs))\<close> for ab ac
+        using less[of ab ac] p by auto
+    then show ?case
+         apply (cases xs; cases ys)
+        using IH H p(3-5) by auto
+    qed
+  qed
+  then have \<open>i\<le>n \<Longrightarrow> s (r (f i)) + i \<le> s (r (f 0))\<close> for i
+    apply (induction i)
+    subgoal by auto
+    subgoal premises p for i
+       using p(3)[of \<open>i-1\<close>] p(1,2)
+      apply auto
+      by (meson Nat.le_diff_conv2 Suc_leI Suc_le_lessD add_leD2 less_diff_conv less_le_trans p(3))
+    done
+  from this[of n] show \<open>n < k ^ Suc m\<close>
+    using le2[of \<open>f 0\<close>] upper[of 0] k
+    using le[of 0] apply (cases \<open>n = 0\<close>)
+    by (auto dest!: lexn_length simp: all_set_conv_all_nth eq_commute[of _ m])
+qed
+
 end
