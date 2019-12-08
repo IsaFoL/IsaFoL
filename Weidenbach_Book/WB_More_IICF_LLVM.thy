@@ -1,17 +1,20 @@
 theory WB_More_IICF_LLVM
-imports Isabelle_LLVM.IICF Isabelle_LLVM.Sepref_HOL_Bindings Separation_Logic_Imperative_HOL.Automation WB_More_Refinement
+imports 
+  Isabelle_LLVM.IICF 
+  Isabelle_LLVM.Sepref_HOL_Bindings
+  WB_More_Refinement
 begin
-
 
 paragraph \<open>This is not part of the multiset setup\<close>
 
+(*
 definition "list_mset_assn A \<equiv> pure (list_mset_rel O \<langle>the_pure A\<rangle>mset_rel)"
 declare list_mset_assn_def[symmetric,fcomp_norm_unfold]
 lemma [safe_constraint_rules]: "is_pure (list_mset_assn A)" unfolding list_mset_assn_def by simp
+*)
 
 no_notation prod_assn (infixr "\<times>\<^sub>a" 70)
 notation prod_assn (infixr "*a" 70)
-hide_const Heap_Monad.return
 
 lemma prod_assn_id_assn_destroy:
   fixes R :: \<open>_ \<Rightarrow> _ \<Rightarrow> _ \<Rightarrow> bool\<close>
@@ -22,7 +25,7 @@ lemma prod_assn_id_assn_destroy:
     pure_part_split_conj)
 
 
-lemma
+(*lemma
  shows list_mset_assn_add_mset_Nil:
      \<open>list_mset_assn R (add_mset q Q) [] = (\<lambda>_. False)\<close> and
    list_mset_assn_empty_Cons:
@@ -32,8 +35,9 @@ lemma
   unfolding list_mset_assn_def list_mset_rel_def mset_rel_def pure_def p2rel_def
     rel2p_def rel_mset_def br_def
   by (sep_auto simp: Collect_eq_comp pure_true_conv)+
+*)
 
-lemma Exists_eq_simp[simp]: \<open>(\<exists>x. (P x \<and>* \<up> (x = b)) s) \<longleftrightarrow> P b s\<close>
+lemma Exists_eq_simp: \<open>(\<exists>x. (P x \<and>* \<up> (x = b)) s) \<longleftrightarrow> P b s\<close>
   apply (auto)
   apply (metis (full_types) Sep_Algebra_Add.pure_part_pure pure_partI pure_part_split_conj pure_true_conv sep.add.right_neutral)
   by (metis (full_types)pure_true_conv sep_conj_sep_emptyE)
@@ -59,15 +63,16 @@ lemma split_conj_is_pure2:
   apply simp
   done
 
-
+(*
 lemma snd_hnr_pure:
    \<open>CONSTRAINT is_pure B \<Longrightarrow> (return \<circ> snd, RETURN \<circ> snd) \<in> A\<^sup>d *\<^sub>a B\<^sup>k \<rightarrow>\<^sub>a B\<close>
   apply sepref_to_hoare
   apply (sep_auto simp: htriple_def wp_def mwp_def Monad.return_def pure_true_conv split_conj_is_pure
     split_conj_is_pure2 pred_lift_def)
   oops
+*)
 
-
+(*
 lemma list_mset_assn_pure_conv:
   \<open>list_mset_assn (pure R) = pure (\<langle>R\<rangle>list_rel_mset_rel)\<close>
 proof -
@@ -86,49 +91,22 @@ proof -
       list_rel_def Collect_eq_comp_right Sepref_Basic.pure_def
     intro!: arg_cong[of _ _ \<open>\<lambda>b. pure b _ _\<close>])
 qed
+*)
 
-
-text \<open>This functions deletes all elements of a resizable array, without resizing it.\<close>
-definition emptied_arl :: \<open>('a, 'l::len0) array_list \<Rightarrow> ('a, 'l) array_list\<close> where
-\<open>emptied_arl = (\<lambda>(m, n, a). (0, n, a))\<close>
-
-lemma emptied_arl_refine[sepref_fr_rules]:
-  \<open>(return o emptied_arl, RETURN o emptied_list) \<in> (\<upharpoonleft>arl_assn)\<^sup>d \<rightarrow>\<^sub>a \<upharpoonleft>arl_assn\<close>
-  unfolding emptied_arl_def emptied_list_def
-  apply sepref_to_hoare apply (sep_auto simp: arl_assn_def hr_comp_def htriple_def wp_def mwp_def Monad.return_def
-  pure_true_conv)
-  oops (*TODO Peter: I am too stupid for that theorem too*)
 
 lemma nempty_list_mset_rel_iff: \<open>M \<noteq> {#} \<Longrightarrow>
   (xs, M) \<in> list_mset_rel \<longleftrightarrow> (xs \<noteq> [] \<and> hd xs \<in># M \<and>
          (tl xs, remove1_mset (hd xs) M) \<in> list_mset_rel)\<close>
   by (cases xs) (auto simp: list_mset_rel_def br_def dest!: multi_member_split)
 
-abbreviation ghost_assn where
+(*abbreviation ghost_assn where
   \<open>ghost_assn \<equiv> hr_comp unit_assn virtual_copy_rel\<close>
-
-lemma [sepref_fr_rules]:
- \<open>(return o (\<lambda>_. ()), RETURN o virtual_copy) \<in> R\<^sup>k \<rightarrow>\<^sub>a ghost_assn\<close>
- apply sepref_to_hoare  apply (sep_auto simp: virtual_copy_rel_def htriple_def wp_def mwp_def Monad.return_def
-  pure_true_conv) oops
-
-
-
-definition \<open>op_arl_replicate = op_list_replicate\<close>
-lemma arl_fold_custom_replicate:
-  \<open>replicate = op_arl_replicate\<close>
-  unfolding op_arl_replicate_def op_list_replicate_def ..
+*)  
 
 text \<open>This function does not change the size of the underlying array.\<close>
 definition take1 where
   \<open>take1 xs = take 1 xs\<close>
 
-lemma take1_hnr[sepref_fr_rules]:
-  \<open>(return o (\<lambda>(_, a). (1, a)), RETURN o take1) \<in> [\<lambda>xs. xs \<noteq> []]\<^sub>a (\<upharpoonleft>arl_assn)\<^sup>d \<rightarrow> \<upharpoonleft>arl_assn\<close>
-  apply sepref_to_hoare
-  apply (sep_auto simp: arl_assn_def hr_comp_def take1_def list_rel_def htriple_def wp_def mwp_def
-    Monad.return_def pure_true_conv arl_assn'_def)
-  oops
 
 text \<open>The following two abbreviation are variants from \<^term>\<open>uncurry4\<close> and
    \<^term>\<open>uncurry6\<close>. The problem is that \<^term>\<open>uncurry2 (uncurry2 f)\<close> and
@@ -141,49 +119,10 @@ abbreviation uncurry6' where
   "uncurry6' f \<equiv> uncurry2 (uncurry4' f)"
 
 
-lemma ex_assn_up_eq2: \<open>(\<exists>\<^sub>Aba. f ba * \<up> (ba = c)) = (f c)\<close>
-  by (simp add: ex_assn_def)
-
-
-lemma ex_assn_pair_split: \<open>(\<exists>\<^sub>Ab. P b) = (\<exists>\<^sub>Aa b. P (a, b))\<close>
-  by (subst ex_assn_def, subst (1) ex_assn_def, auto)+
-
-lemma ex_assn_swap: \<open>(\<exists>\<^sub>Aa b. P a b) = (\<exists>\<^sub>Ab a. P a b)\<close>
-  by (meson ent_ex_postI ent_ex_preI ent_iffI ent_refl)
-
-lemma ent_ex_up_swap: \<open>(\<exists>\<^sub>Aaa. \<up> (P aa)) = (\<up>(\<exists>aa. P aa))\<close>
-  by (smt ent_ex_postI ent_ex_preI ent_iffI ent_pure_pre_iff ent_refl mult.left_neutral)
-
-lemma ex_assn_def_pure_eq_middle3:
-  \<open>(\<exists>\<^sub>Aba b bb. f b ba bb * \<up> (ba = h b bb) * P b ba bb) = (\<exists>\<^sub>Ab bb. f b (h b bb) bb * P b (h b bb) bb)\<close>
-  \<open>(\<exists>\<^sub>Ab ba bb. f b ba bb * \<up> (ba = h b bb) * P b ba bb) = (\<exists>\<^sub>Ab bb. f b (h b bb) bb * P b (h b bb) bb)\<close>
-  \<open>(\<exists>\<^sub>Ab bb ba. f b ba bb * \<up> (ba = h b bb) * P b ba bb) = (\<exists>\<^sub>Ab bb. f b (h b bb) bb * P b (h b bb) bb)\<close>
-  \<open>(\<exists>\<^sub>Aba b bb. f b ba bb * \<up> (ba = h b bb \<and> Q b ba bb)) = (\<exists>\<^sub>Ab bb. f b (h b bb) bb * \<up>(Q b (h b bb) bb))\<close>
-  \<open>(\<exists>\<^sub>Ab ba bb. f b ba bb * \<up> (ba = h b bb \<and> Q b ba bb)) = (\<exists>\<^sub>Ab bb. f b (h b bb) bb * \<up>(Q b (h b bb) bb))\<close>
-  \<open>(\<exists>\<^sub>Ab bb ba. f b ba bb * \<up> (ba = h b bb \<and> Q b ba bb)) = (\<exists>\<^sub>Ab bb. f b (h b bb) bb * \<up>(Q b (h b bb) bb))\<close>
-  by (subst ex_assn_def, subst (3) ex_assn_def, auto)+
-
-lemma ex_assn_def_pure_eq_middle2:
-  \<open>(\<exists>\<^sub>Aba b. f b ba * \<up> (ba = h b) * P b ba) = (\<exists>\<^sub>Ab . f b (h b) * P b (h b))\<close>
-  \<open>(\<exists>\<^sub>Ab ba. f b ba * \<up> (ba = h b) * P b ba) = (\<exists>\<^sub>Ab . f b (h b) * P b (h b))\<close>
-  \<open>(\<exists>\<^sub>Ab ba. f b ba * \<up> (ba = h b \<and> Q b ba)) = (\<exists>\<^sub>Ab. f b (h b) * \<up>(Q b (h b)))\<close>
-  \<open>(\<exists>\<^sub>A ba b. f b ba * \<up> (ba = h b \<and> Q b ba)) = (\<exists>\<^sub>Ab. f b (h b) * \<up>(Q b (h b)))\<close>
-  by (subst ex_assn_def, subst (2) ex_assn_def, auto)+
-
-lemma ex_assn_skip_first2:
-  \<open>(\<exists>\<^sub>Aba bb. f bb * \<up>(P ba bb)) = (\<exists>\<^sub>Abb. f bb * \<up>(\<exists>ba. P ba bb))\<close>
-  \<open>(\<exists>\<^sub>Abb ba. f bb * \<up>(P ba bb)) = (\<exists>\<^sub>Abb. f bb * \<up>(\<exists>ba. P ba bb))\<close>
-  apply (subst ex_assn_swap)
-  by (subst ex_assn_def, subst (2) ex_assn_def, auto)+
-
-lemma fr_refl': \<open>A \<Longrightarrow>\<^sub>A B \<Longrightarrow> C * A \<Longrightarrow>\<^sub>A C * B\<close>
-  unfolding assn_times_comm[of C]
-  by (rule Automation.fr_refl)
-
 lemma hrp_comp_Id2[simp]: \<open>hrp_comp A Id = A\<close>
   unfolding hrp_comp_def by auto
 
-
+(*
 lemma norm_RETURN_o[to_hnr_post]:
   "\<And>f. (RETURN oooo f)$x$y$z$a = (RETURN$(f$x$y$z$a))"
   "\<And>f. (RETURN ooooo f)$x$y$z$a$b = (RETURN$(f$x$y$z$a$b))"
@@ -231,7 +170,7 @@ lemma norm_return_o[to_hnr_post]:
   "\<And>f. (return \<circ>\<^sub>2\<^sub>0 f)$x$y$z$a$b$c$d$e$g$h$i$j$l$m$n$p$r$s$t$u=
     (return$(f$x$y$z$a$b$c$d$e$g$h$i$j$l$m$n$p$r$s$t$u))"
     by auto
-
+*)
 
 lemma nfoldli_cong2:
   assumes
@@ -265,7 +204,7 @@ proof -
   obtain R' where R: \<open>the_pure R = R'\<close> and R': \<open>R = pure R'\<close>
     using p by fastforce
   have [simp]: \<open>(bi, b) \<in> the_pure R\<close>
-    using h p by (auto simp: mod_star_conv R R' pure_app_eq pred_lift_extract_simps)
+    using h p by (auto simp: R R' pure_app_eq pred_lift_extract_simps)
   have \<open>length xs = length ys\<close>
     using assms list_rel_imp_same_length by blast
 

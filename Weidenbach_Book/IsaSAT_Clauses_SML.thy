@@ -109,14 +109,14 @@ sepref_definition nth_rll_u64_i64_clauses
 
 sepref_definition length_rll_n_uint32_clss
   is \<open>uncurry (RETURN oo (\<lambda>(N, _) i. length_rll_n_uint32 N i))\<close>
-  :: \<open>[\<lambda>((xs, _), i). i < length xs \<and> length (xs ! i) \<le> uint_max]\<^sub>a
+  :: \<open>[\<lambda>((xs, _), i). i < length xs \<and> length (xs ! i) \<le> uint32_max]\<^sub>a
        isasat_clauses_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
   by sepref
 
 
 sepref_definition length_raa_i64_u_clss
   is \<open>uncurry (RETURN oo (\<lambda>(N, _) i. length_rll_n_uint32 N i))\<close>
-  :: \<open>[\<lambda>((xs, _), i). i < length xs \<and> length (xs ! i) \<le> uint_max]\<^sub>a
+  :: \<open>[\<lambda>((xs, _), i). i < length xs \<and> length (xs ! i) \<le> uint32_max]\<^sub>a
        isasat_clauses_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
   by sepref
 
@@ -180,10 +180,12 @@ sepref_definition append_and_length_code
   supply [[goals_limit=1]] le_uint32_max_le_uint64_max[intro]
   unfolding fm_add_new_def AStatus_IRRED_def[symmetric] AStatus_IRRED2_def[symmetric]
    AStatus_LEARNED_def[symmetric] AStatus_LEARNED2_def[symmetric]
-   two_uint64_nat_def[symmetric]
+   two_uint64_nat_def[symmetric] one_uint64_nat_def[symmetric]
+   apply (rewrite in \<open>(\<hole>, _)\<close> zero_uint64_nat_def[symmetric])
    apply (rewrite in \<open>let _ = _ - _ in _\<close> length_uint64_nat_def[symmetric])
    apply (rewrite in \<open>let _ = _ in let _ = _ in let _ = \<hole> in _\<close> uint32_of_uint64_conv_def[symmetric])
    apply (rewrite at \<open>WHILEIT _ (\<lambda>(_, _)._ < \<hole>)\<close> length_uint64_nat_def[symmetric])
+  unfolding zero_uint32_nat_def[symmetric]
   by sepref
 
 declare append_and_length_code.refine[sepref_fr_rules]
@@ -224,13 +226,17 @@ sepref_definition (in -)append_and_length_fast_code
        arena_fast_assn *a uint64_nat_assn\<close>
   supply [[goals_limit=1]] le_uint32_max_le_uint64_max[intro] append_and_length_code_fast[intro]
     header_size_def[simp] if_splits[split] header_size_fast_code.refine[sepref_fr_rules]
+    uint64_max_def[simp] sint64_max_def[simp]
   unfolding fm_add_new_def AStatus_IRRED_def[symmetric] append_and_length_fast_code_pre_def
    AStatus_LEARNED_def[symmetric] AStatus_LEARNED2_def[symmetric]
    AStatus_IRRED2_def[symmetric]  four_uint64_nat_def[symmetric]
    two_uint64_nat_def[symmetric] fm_add_new_fast_def
+   two_uint64_nat_def[symmetric] one_uint64_nat_def[symmetric]
+   apply (rewrite in \<open>(\<hole>, _)\<close> zero_uint64_nat_def[symmetric])
    apply (rewrite in \<open>let _ = _ - _ in _\<close> length_uint64_nat_def[symmetric])
    apply (rewrite in \<open>let _ = _ in let _ = _ in let _ = \<hole> in _\<close> uint32_of_uint64_conv_def[symmetric])
   apply (rewrite at \<open>WHILEIT _ (\<lambda>(_, _)._ < \<hole>)\<close> length_uint64_nat_def[symmetric])
+  unfolding zero_uint32_nat_def[symmetric]
   by sepref
 
 declare append_and_length_fast_code.refine[sepref_fr_rules]
@@ -293,7 +299,9 @@ sepref_definition fm_mv_clause_to_new_arena_code
   is \<open>uncurry2 fm_mv_clause_to_new_arena\<close>
   :: \<open>nat_assn\<^sup>k *\<^sub>a arena_assn\<^sup>k *\<^sub>a arena_assn\<^sup>d \<rightarrow>\<^sub>a arena_assn\<close>
   supply [[goals_limit=1]]
-  unfolding fm_mv_clause_to_new_arena_def
+  unfolding fm_mv_clause_to_new_arena_def length_uint64_nat_def
+  apply (rewrite at \<open>_ \<le> \<hole>\<close> four_uint64_nat_def[symmetric])+
+  apply (rewrite at \<open>let _ = _ + \<hole> in _\<close> nat_of_uint64_conv_def[symmetric])
   by sepref
 
 declare fm_mv_clause_to_new_arena_code.refine[sepref_fr_rules]

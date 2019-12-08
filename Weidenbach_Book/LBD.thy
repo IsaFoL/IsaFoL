@@ -1,5 +1,5 @@
 theory LBD
-  imports Watched_Literals.WB_Word IsaSAT_Literals
+  imports IsaSAT_Literals
 begin
 
 subsubsection \<open>LBD\<close>
@@ -19,7 +19,7 @@ a hash-table like data structure.
 paragraph \<open>Types and relations\<close>
 type_synonym lbd = \<open>bool list\<close>
 type_synonym lbd_ref = \<open>bool list \<times> nat \<times> nat\<close>
-type_synonym lbd_assn = \<open>bool array \<times> uint32 \<times> uint32\<close>
+
 
 text \<open>Beside the actual ``lookup'' table, we also keep the highest level marked so far to unmark
 all levels faster (but we currently don't save the LBD and have to iterate over the data structure).
@@ -30,7 +30,7 @@ because there are much stronger guarantees on the key that there is in a general
 definition lbd_ref where
   \<open>lbd_ref = {((lbd, n, m), lbd'). lbd = lbd' \<and> n < length lbd \<and>
       (\<forall>k > n. k < length lbd \<longrightarrow> \<not>lbd!k) \<and>
-      length lbd \<le> Suc (Suc (uint_max div 2)) \<and> n < length lbd \<and>
+      length lbd \<le> Suc (Suc (uint32_max div 2)) \<and> n < length lbd \<and>
       m = length (filter id lbd)}\<close>
 
 
@@ -59,13 +59,13 @@ definition lbd_write :: \<open>lbd \<Rightarrow> nat \<Rightarrow> lbd\<close> w
 
 definition lbd_ref_write :: \<open>lbd_ref \<Rightarrow> nat \<Rightarrow> lbd_ref nres\<close>  where
   \<open>lbd_ref_write = (\<lambda>(lbd, m, n) i. do {
-    ASSERT(length lbd \<le> uint_max \<and> n + 1 \<le> uint_max);
+    ASSERT(length lbd \<le> uint32_max \<and> n + 1 \<le> uint32_max);
     (if i < length_uint32_nat lbd then
-       let n = if lbd ! i then n else n+one_uint32_nat in
+       let n = if lbd ! i then n else n+1 in
        RETURN (lbd[i := True], max i m, n)
      else do {
-        ASSERT(i + 1 \<le> uint_max);
-        RETURN ((list_grow lbd (i + one_uint32_nat) False)[i := True], max i m, n + one_uint32_nat)
+        ASSERT(i + 1 \<le> uint32_max);
+        RETURN ((list_grow lbd (i + 1) False)[i := True], max i m, n + 1)
      })
   })\<close>
 
@@ -78,12 +78,12 @@ lemma list_update_append2: \<open>i \<ge> length xs \<Longrightarrow> (xs @ ys)[
 
 lemma lbd_ref_write_lbd_write:
   \<open>(uncurry (lbd_ref_write), uncurry (RETURN oo lbd_write)) \<in>
-    [\<lambda>(lbd, i). i \<le> Suc (uint_max div 2)]\<^sub>f
+    [\<lambda>(lbd, i). i \<le> Suc (uint32_max div 2)]\<^sub>f
      lbd_ref \<times>\<^sub>f nat_rel \<rightarrow> \<langle>lbd_ref\<rangle>nres_rel\<close>
   unfolding lbd_ref_write_def lbd_write_def
   by (intro frefI nres_relI)
     (auto simp: level_in_lbd_ref_def level_in_lbd_def lbd_ref_def list_grow_def
-        nth_append uint_max_def length_filter_update_true list_update_append2
+        nth_append uint32_max_def length_filter_update_true list_update_append2
         length_filter_update_false
       intro!: ASSERT_leI le_trans[OF length_filter_le])
 
@@ -100,10 +100,10 @@ definition lbd_empty_ref where
          (\<lambda>(xs, i). i \<le> m)
          (\<lambda>(xs, i). do {
             ASSERT(i < length xs);
-            ASSERT(i + one_uint32_nat < uint_max);
-            RETURN (xs[i := False], i + one_uint32_nat)})
-         (xs, zero_uint32_nat);
-     RETURN (xs, zero_uint32_nat, zero_uint32_nat)
+            ASSERT(i + 1 < uint32_max);
+            RETURN (xs[i := False], i + 1)})
+         (xs, 0);
+     RETURN (xs, 0, 0)
   })\<close>
 
 definition lbd_empty where
@@ -114,15 +114,15 @@ lemma lbd_empty_ref:
   shows
     \<open>lbd_empty_ref (xs, m, n) \<le> \<Down> lbd_ref (RETURN (replicate (length xs) False))\<close>
 proof -
-  have m_xs: \<open>m \<le> length xs\<close> and [simp]: \<open>xs \<noteq> []\<close> and le_xs: \<open>length xs \<le> uint_max div 2 + 2\<close>
+  have m_xs: \<open>m \<le> length xs\<close> and [simp]: \<open>xs \<noteq> []\<close> and le_xs: \<open>length xs \<le> uint32_max div 2 + 2\<close>
     using assms by (auto simp: lbd_ref_def)
   have [iff]: \<open>(\<forall>j. \<not> j < (b :: nat)) \<longleftrightarrow> b = 0\<close> for b
     by auto
-  have init: \<open>lbd_emtpy_inv m (xs, zero_uint32_nat)\<close>
+  have init: \<open>lbd_emtpy_inv m (xs, 0)\<close>
     using assms m_xs unfolding lbd_emtpy_inv_def
     by (auto simp: lbd_ref_def)
   have lbd_remove: \<open>lbd_emtpy_inv m
-       (a[b := False], b + one_uint32_nat)\<close>
+       (a[b := False], b + 1)\<close>
     if
       inv: \<open>lbd_emtpy_inv m s\<close> and
       \<open>case s of (ys, i) \<Rightarrow> length ys = length xs\<close> and
@@ -137,16 +137,16 @@ proof -
     have 2: \<open>\<forall>j>m. j < length (a[b := False]) \<longrightarrow> a[b := False] ! j = False\<close>
       using inv that unfolding lbd_emtpy_inv_def s
       by auto
-    have \<open>b + one_uint32_nat \<le> Suc m\<close>
+    have \<open>b + 1 \<le> Suc m\<close>
       using cond unfolding s by simp
-    moreover have \<open>a[b := False] ! j = False\<close> if \<open>j<b + one_uint32_nat\<close> for j
+    moreover have \<open>a[b := False] ! j = False\<close> if \<open>j<b + 1\<close> for j
       using 1[of j] that cond by (cases \<open>j = b\<close>) auto
     moreover have \<open>\<forall>j>m. j < length (a[b := False]) \<longrightarrow> a[b := False] ! j = False\<close>
       using 2 by auto
     ultimately show ?thesis
       unfolding lbd_emtpy_inv_def by auto
   qed
-  have lbd_final: \<open>((a, zero_uint32_nat, zero_uint32_nat), replicate (length xs) False) \<in> lbd_ref\<close>
+  have lbd_final: \<open>((a, 0, 0), replicate (length xs) False) \<in> lbd_ref\<close>
     if
       lbd: \<open>lbd_emtpy_inv m s\<close> and
       I': \<open>case s of (ys, i) \<Rightarrow> length ys = length xs\<close> and
@@ -186,7 +186,7 @@ proof -
     subgoal by (rule init)
     subgoal by auto
     subgoal using assms by (auto simp: lbd_ref_def)
-    subgoal using m_xs le_xs by (auto simp: uint_max_def)
+    subgoal using m_xs le_xs by (auto simp: uint32_max_def)
     subgoal by (rule lbd_remove)
     subgoal by auto
     subgoal by auto
@@ -207,12 +207,12 @@ definition (in -)empty_lbd :: \<open>lbd\<close> where
    \<open>empty_lbd = (replicate 32 False)\<close>
 
 definition empty_lbd_ref :: \<open>lbd_ref\<close> where
-   \<open>empty_lbd_ref = (replicate 32 False, zero_uint32_nat, zero_uint32_nat)\<close>
+   \<open>empty_lbd_ref = (replicate 32 False, 0, 0)\<close>
 
 lemma empty_lbd_ref_empty_lbd:
   \<open>(\<lambda>_. (RETURN empty_lbd_ref), \<lambda>_. (RETURN empty_lbd)) \<in> unit_rel \<rightarrow>\<^sub>f \<langle>lbd_ref\<rangle>nres_rel\<close>
   by (intro frefI nres_relI) (auto simp: empty_lbd_def lbd_ref_def empty_lbd_ref_def
-      uint_max_def nth_Cons split: nat.splits)
+      uint32_max_def nth_Cons split: nat.splits)
 
 paragraph \<open>Extracting the LBD\<close>
 

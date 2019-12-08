@@ -3,6 +3,109 @@ theory IsaSAT_Setup_SML
     IsaSAT_Clauses_SML IsaSAT_Arena_SML LBD_SML Watched_Literals.IICF_Array_List32
 begin
 
+
+definition isasat_fast_slow :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
+  \<open>isasat_fast_slow =
+    (\<lambda>(M', N', D', Q', W', vm, \<phi>, clvls, cach, lbd, outl, stats, fema, sema, ccount, vdom, avdom, lcount, opts, old_arena).
+      RETURN (trail_pol_slow_of_fast M', N', D', Q', convert_wlists_to_nat_conv W', vm, \<phi>,
+        clvls, cach, lbd, outl, stats, fema, sema, ccount, vdom, avdom, nat_of_uint64_conv lcount, opts, old_arena))\<close>
+
+definition (in -)isasat_fast_slow_wl_D where
+  \<open>isasat_fast_slow_wl_D = id\<close>
+
+lemma isasat_fast_slow_alt_def:
+  \<open>isasat_fast_slow S = RETURN S\<close>
+  by (cases S)
+    (auto simp: isasat_fast_slow_def trail_slow_of_fast_def convert_wlists_to_nat_conv_def
+      trail_pol_slow_of_fast_alt_def)
+
+lemma isasat_fast_slow_isasat_fast_slow_wl_D:
+  \<open>(isasat_fast_slow, RETURN o isasat_fast_slow_wl_D) \<in> twl_st_heur \<rightarrow>\<^sub>f \<langle>twl_st_heur\<rangle>nres_rel\<close>
+  by (intro nres_relI WB_More_Refinement.frefI)
+    (auto simp: isasat_fast_slow_alt_def isasat_fast_slow_wl_D_def)
+
+
+type_synonym vmtf_assn = \<open>(32 word, 64 word) vmtf_node array \<times> 64 word \<times> uint32 \<times> uint32 \<times> uint32 option\<close>
+
+type_synonym phase_saver_assn = \<open>bool array\<close>
+
+definition (in -) vmtf_node_rel where
+\<open>vmtf_node_rel = {(a', a). (stamp a', stamp a) \<in> uint64_nat_rel \<and>
+   (get_prev a', get_prev a) \<in> \<langle>uint32_nat_rel\<rangle>option_rel \<and>
+   (get_next a', get_next a) \<in> \<langle>uint32_nat_rel\<rangle>option_rel}\<close>
+
+
+text \<open>Setup to convert a list from \<^typ>\<open>64 word\<close> to \<^typ>\<open>nat\<close>.\<close>
+definition arl_copy_to :: \<open>('a \<Rightarrow> 'b) \<Rightarrow> 'a list \<Rightarrow> 'b list\<close> where
+\<open>arl_copy_to R xs = map R xs\<close>
+
+definition op_map_to
+  :: \<open>('b \<Rightarrow> 'a) \<Rightarrow> 'a \<Rightarrow> 'b list \<Rightarrow> 'a list list \<Rightarrow> nat \<Rightarrow> 'a list list nres\<close>
+where
+  \<open>op_map_to R e xs W j = do {
+    (_, zs) \<leftarrow>
+       WHILE\<^sub>T\<^bsup>\<lambda>(i,W'). i \<le> length xs \<and> W'!j = W!j @ map R (take i xs) \<and>
+         (\<forall>k. k \<noteq> j \<longrightarrow> k < length W \<longrightarrow> W'!k = W!k) \<and> length W' = length W\<^esup>
+      (\<lambda>(i, W'). i < length xs)
+      (\<lambda>(i, W'). do {
+         ASSERT(i < length xs);
+         let x = xs ! i;
+         RETURN (i+1, append_ll W' j (R x))})
+      (0, W);
+    RETURN zs
+     }\<close>
+
+lemma op_map_to_map:
+  \<open>j < length W' \<Longrightarrow> op_map_to R e xs W' j \<le> RETURN (W'[j := W'!j @ map R xs])\<close>
+  unfolding op_map_to_def Let_def
+  apply (refine_vcg WHILEIT_rule[where R=\<open>measure (\<lambda>(i,_). length xs - i)\<close>])
+         apply (auto simp: hd_conv_nth take_Suc_conv_app_nth list_update_append
+      append_ll_def split: nat.splits)
+  by (simp add: list_eq_iff_nth_eq)
+
+lemma op_map_to_map_rel:
+  \<open>(uncurry2 (op_map_to R e), uncurry2 (RETURN ooo (\<lambda>xs W' j. W'[j := W'!j @ map R xs]))) \<in>
+    [\<lambda>((xs, ys), j). j < length ys]\<^sub>f
+    \<langle>Id\<rangle>list_rel \<times>\<^sub>f
+    \<langle>\<langle>Id\<rangle>list_rel\<rangle>list_rel \<times>\<^sub>f nat_rel \<rightarrow>
+    \<langle>\<langle>\<langle>Id\<rangle>list_rel\<rangle>list_rel\<rangle>nres_rel\<close>
+  by (intro frefI nres_relI) (auto simp: op_map_to_map)
+
+definition convert_single_wl_to_nat where
+\<open>convert_single_wl_to_nat W i W' j =
+  op_map_to (\<lambda>(i, C). (nat_of_uint64_conv i, C)) (to_watcher 0 (Pos 0) False) (W!i) W' j\<close>
+
+definition convert_single_wl_to_nat_conv where
+\<open>convert_single_wl_to_nat_conv xs i W' j =
+   W'[j :=  map (\<lambda>(i, C). (nat_of_uint64_conv i, C)) (xs!i)]\<close>
+
+lemma convert_single_wl_to_nat:
+  \<open>(uncurry3 convert_single_wl_to_nat,
+    uncurry3 (RETURN oooo convert_single_wl_to_nat_conv)) \<in>
+   [\<lambda>(((xs, i), ys), j). i < length xs \<and> j < length ys \<and> ys!j = []]\<^sub>f
+   \<langle>\<langle>Id\<rangle>list_rel\<rangle>list_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f
+     \<langle>\<langle>Id\<rangle>list_rel\<rangle>list_rel \<times>\<^sub>f nat_rel \<rightarrow>
+     \<langle>\<langle>\<langle>Id\<rangle>list_rel\<rangle>list_rel\<rangle>nres_rel\<close>
+  by (intro frefI nres_relI)
+    (auto simp: convert_single_wl_to_nat_def convert_single_wl_to_nat_conv_def nat_of_uint64_conv_def
+      dest: op_map_to_map[of _ _ id])
+
+
+
+instance vmtf_node :: (heap, heap) heap
+proof intro_classes
+  let ?to_pair = \<open>\<lambda>x::('a, 'b) vmtf_node. (stamp x, get_prev x, get_next x)\<close>
+  have inj': \<open>inj ?to_pair\<close>
+    unfolding inj_def by (intro allI) (case_tac x; case_tac y; auto)
+  obtain to_nat :: \<open>'b \<times> 'a option \<times> 'a option \<Rightarrow> nat\<close> where
+    \<open>inj to_nat\<close>
+    by blast
+  then have \<open>inj (to_nat o ?to_pair)\<close>
+    using inj' by (blast intro: inj_compose)
+  then show \<open>\<exists>to_nat :: ('a, 'b) vmtf_node \<Rightarrow> nat. inj to_nat\<close>
+    by blast
+qed
+
 (*TODO Move*)
 (*End Move*)
 type_synonym minimize_assn = \<open>minimize_status array \<times> uint32 array_list32\<close>

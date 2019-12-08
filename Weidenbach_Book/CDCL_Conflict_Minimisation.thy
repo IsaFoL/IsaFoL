@@ -1,8 +1,8 @@
 theory CDCL_Conflict_Minimisation
   imports
-    Watched_Literals_Watch_List_Domain
+    Watched_Literals_Watch_List
     WB_More_Refinement
-    WB_More_Refinement_List "List-Index.List_Index" "HOL-Imperative_HOL.Imperative_HOL"
+    WB_More_Refinement_List "List-Index.List_Index"
 begin
 
 
@@ -353,15 +353,6 @@ proof -
 qed
 
 datatype minimize_status = SEEN_FAILED | SEEN_REMOVABLE | SEEN_UNKNOWN
-
-instance minimize_status :: heap
-proof standard
-  let ?f = \<open>\<lambda>s. case s of SEEN_FAILED \<Rightarrow> (0 :: nat) | SEEN_REMOVABLE \<Rightarrow> 1 | SEEN_UNKNOWN \<Rightarrow> 2\<close>
-  have \<open>inj ?f\<close>
-    by (auto simp: inj_def split: minimize_status.splits)
-  then show \<open>\<exists>to_nat. inj (to_nat :: minimize_status \<Rightarrow> nat)\<close>
-    by blast
-qed
 
 instantiation minimize_status :: default
 begin
@@ -1576,8 +1567,8 @@ lemma lit_redundant_rec_wl:
        (lit_redundant_rec M' NU' D cach analyse')\<close>
    (is \<open>_ \<le> \<Down> (_ \<times>\<^sub>r ?A \<times>\<^sub>r _) _\<close> is \<open>_ \<le> \<Down> ?R _\<close>)
 proof -
-  obtain D' NE UE Q W where
-    S: \<open>S = (M, NU, D', NE, UE, Q, W)\<close>
+  obtain D' NE UE Q W NS US where
+    S: \<open>S = (M, NU, D', NE, UE, NS, US, Q, W)\<close>
     using M_def NU by (cases S) auto
   have M'_def: \<open>(M, M') \<in> convert_lits_l NU (NE + UE)\<close>
     using NU S_S' S'_S'' unfolding M' by (auto simp: S state_wl_l_def twl_st_l_def)
@@ -1973,8 +1964,8 @@ lemma literal_redundant_wl_literal_redundant:
        (literal_redundant M' NU' D cach L)\<close>
    (is \<open>_ \<le> \<Down> (_ \<times>\<^sub>r ?A \<times>\<^sub>r _) _\<close> is \<open>_ \<le> \<Down> ?R _\<close>)
 proof -
-  obtain D' NE UE Q W where
-    S: \<open>S = (M, NU, D', NE, UE, Q, W)\<close>
+  obtain D' NE UE Q W NS US where
+    S: \<open>S = (M, NU, D', NE, UE, NS, US, Q, W)\<close>
     using M_def NU by (cases S) auto
   have M'_def: \<open>(M, M') \<in> convert_lits_l NU (NE+UE)\<close>
     using NU S_S' S'_S'' S M' by (auto simp: twl_st_l_def state_wl_l_def)
@@ -2195,7 +2186,10 @@ proof -
       have [iff]: \<open>(\<forall>a b. (a, b) \<notin> set analyse) \<longleftrightarrow> False\<close>
         using i by (cases analyse) auto
       show ?thesis
-        unfolding in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff[symmetric] atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n[symmetric]
+        unfolding in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff[symmetric]
+        apply (subst atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n[symmetric])
+        unfolding atms_of_def
+        apply (rule imageI)
         apply (rule literals_are_in_\<L>\<^sub>i\<^sub>n_mm_in_\<L>\<^sub>a\<^sub>l\<^sub>l)
         using NU_\<L>\<^sub>i\<^sub>n that nth_mem[of i analyse]
         by (auto simp: mark_failed_lits_stack_inv_def I_def)

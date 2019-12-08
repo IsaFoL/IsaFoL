@@ -1,5 +1,6 @@
 theory WB_More_IICF_SML
-  imports Refine_Imperative_HOL.IICF WB_More_Refinement WB_More_Refinement_List
+  imports Refine_Imperative_HOL.IICF Weidenbach_Book_Base.WB_List_More  WB_More_Refinement_List
+    WB_More_Refinement_Loops
 begin
 
 no_notation Sepref_Rules.fref ("[_]\<^sub>f _ \<rightarrow> _" [0,60,60] 60)
@@ -17,7 +18,7 @@ lemma prod_assn_id_assn_destroy:
 definition list_mset_assn where
   "list_mset_assn A \<equiv> pure (list_mset_rel O \<langle>the_pure A\<rangle>mset_rel)"
 declare list_mset_assn_def[symmetric,fcomp_norm_unfold]
-lemma [safe_constraint_rules]: "is_pure (list_mset_assn A)" unfolding list_mset_assn_def by simp
+
 
 lemma
  shows list_mset_assn_add_mset_Nil:
@@ -560,7 +561,7 @@ proof -
     using hfref_imp2[of S S' P R'] assms(3) by auto
 qed
 
-
+(*
 lemma norm_RETURN_o[to_hnr_post]:
   "\<And>f. (RETURN oooo f)$x$y$z$a = (RETURN$(f$x$y$z$a))"
   "\<And>f. (RETURN ooooo f)$x$y$z$a$b = (RETURN$(f$x$y$z$a$b))"
@@ -608,7 +609,7 @@ lemma norm_return_o[to_hnr_post]:
   "\<And>f. (return \<circ>\<^sub>2\<^sub>0 f)$x$y$z$a$b$c$d$e$g$h$i$j$l$m$n$p$r$s$t$u=
     (return$(f$x$y$z$a$b$c$d$e$g$h$i$j$l$m$n$p$r$s$t$u))"
     by auto
-
+*)
 lemma list_rel_update:
   fixes R :: \<open>'a \<Rightarrow> 'b :: {heap}\<Rightarrow> assn\<close>
   assumes rel: \<open>(xs, ys) \<in> \<langle>the_pure R\<rangle>list_rel\<close> and

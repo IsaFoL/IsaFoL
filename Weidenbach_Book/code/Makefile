@@ -1,4 +1,7 @@
 MLTON = mlton
+CLANG = clang
+
+CFLAGS = -flto -std=c11 -Wall -Wextra 
 
 all: isasat
 
@@ -17,4 +20,20 @@ llvm:
 	$(MLTON) -verbose 1 -const 'MLton.safe false' -default-type int64 -output IsaSAT -codegen llvm -inline 700 -cc-opt -fPIC -as-opt --relocation-model=pic -link-opt -fPIC -llvm-llc-opt '--relocation-model=pic -O3' -llvm-opt-opt --relocation-model=pic IsaSAT.mlb
 
 clean:
-	rm -f IsaSAT IsaSAT_restart
+	rm -f IsaSAT IsaSAT_restart *.profdata *.prof *.profraw
+
+isallvm:
+#	llvm-as -disable-output isasat_no_restart.ll
+	$(CLANG) $(CFLAGS) -flto -O3 isasat.c "lib_isabelle_llvm.c"  isasat_restart.ll isasat_wrapper.ll -o isasat_llvm
+
+isallvm-prof:
+#	llvm-as -disable-output isasat_no_restart.ll
+	$(CLANG) -std=c11 -Wall -Wextra -inline-threshold=6000 -O2 -lprofiler isasat.c "lib_isabelle_llvm.c"  isasat_restart.ll isasat_wrapper.ll -o isasat_llvm
+
+
+isallvm-sanit:
+#	llvm-as -disable-output isasat_no_restart.ll
+	$(CLANG) $(CFLAGS) -fsanitize=undefined -fsanitize=address -fno-sanitize-recover=undefined -Wall -Wextra -g isasat.c "lib_isabelle_llvm.c"  isasat_wrapper.ll isasat_restart.ll -o isasat_llvm
+
+isallvm-gdb:
+	$(CLANG) -std=c11 -O0 -g -Wall -Wextra -g isasat.c "lib_isabelle_llvm.c"  isasat_restart.ll isasat_wrapper.ll -o isasat_llvm

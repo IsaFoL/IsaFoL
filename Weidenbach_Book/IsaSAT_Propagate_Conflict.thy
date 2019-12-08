@@ -8,7 +8,7 @@ subsubsection \<open>Refining Propagate And Conflict\<close>
 paragraph \<open>Unit Propagation, Inner Loop\<close>
 
 definition (in -) length_ll_fs :: \<open>nat twl_st_wl \<Rightarrow> nat literal \<Rightarrow> nat\<close> where
-  \<open>length_ll_fs = (\<lambda>(_, _, _, _, _, _, W) L. length (W L))\<close>
+  \<open>length_ll_fs = (\<lambda>(_, _, _, _, _, _, _, _, W) L. length (W L))\<close>
 
 definition (in -) length_ll_fs_heur :: \<open>twl_st_wl_heur \<Rightarrow> nat literal \<Rightarrow> nat\<close> where
   \<open>length_ll_fs_heur S L = length (watched_by_int S L)\<close>
@@ -33,10 +33,9 @@ lemma unit_propagation_inner_loop_wl_loop_D_heur_fast:
 
 lemma unit_propagation_inner_loop_wl_loop_D_heur_alt_def:
   \<open>unit_propagation_inner_loop_wl_loop_D_heur L S\<^sub>0 = do {
-    ASSERT (nat_of_lit L < length (get_watched_wl_heur S\<^sub>0));
-     ASSERT (length (watched_by_int S\<^sub>0 L) \<le> length (get_clauses_wl_heur S\<^sub>0));
-    let n = length (watched_by_int S\<^sub>0 L);
-    let b = (zero_uint64_nat, zero_uint64_nat, S\<^sub>0);
+    ASSERT (length (watched_by_int S\<^sub>0 L) \<le> length (get_clauses_wl_heur S\<^sub>0));
+    n \<leftarrow> mop_length_watched_by_int S\<^sub>0 L;
+    let b = (0, 0, S\<^sub>0);
     WHILE\<^sub>T\<^bsup>unit_propagation_inner_loop_wl_loop_D_heur_inv S\<^sub>0 L\<^esup>
       (\<lambda>(j, w, S). w < n \<and> get_conflict_wl_is_None_heur S)
       (\<lambda>(j, w, S). do {
@@ -44,8 +43,7 @@ lemma unit_propagation_inner_loop_wl_loop_D_heur_alt_def:
       })
       b
   }\<close>
-  unfolding unit_propagation_inner_loop_wl_loop_D_heur_def Let_def zero_uint64_nat_def ..
-
+  unfolding unit_propagation_inner_loop_wl_loop_D_heur_def Let_def ..
 
 
 paragraph \<open>Unit propagation, Outer Loop\<close>

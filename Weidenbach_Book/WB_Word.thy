@@ -1,6 +1,14 @@
 theory WB_Word
-  imports "HOL-Word.Word" "Native_Word.Uint64" "Native_Word.Uint32" WB_More_Refinement "HOL-Imperative_HOL.Heap"
-    Collections.HashCode Bits_Natural
+  imports 
+    "HOL-Word.Word" 
+    "Native_Word.Uint64" 
+    "Native_Word.Uint32" 
+    WB_More_Refinement 
+    "HOL-Imperative_HOL.Heap"
+    Collections.HashCode 
+    "Isabelle_LLVM.Bits_Natural"
+    Native_Word.Native_Word_Imperative_HOL
+    Native_Word.Code_Target_Bits_Int Native_Word.Uint32 Native_Word.Uint64
 begin
 
 lemma less_upper_bintrunc_id: \<open>n < 2 ^b \<Longrightarrow> n \<ge> 0 \<Longrightarrow> bintrunc b n = n\<close>
@@ -605,7 +613,7 @@ lemma nat_of_uint32_mult_le:
   apply transfer
   by (auto simp: unat_word_ariths uint32_max_def)
 
-lemma nat_and_numerals [simp]:
+(*lemma nat_and_numerals [simp]:
   "(numeral (Num.Bit0 x) :: nat) AND (numeral (Num.Bit0 y) :: nat) = (2 :: nat) * (numeral x AND numeral y)"
   "numeral (Num.Bit0 x) AND numeral (Num.Bit1 y) = (2 :: nat) * (numeral x AND numeral y)"
   "numeral (Num.Bit1 x) AND numeral (Num.Bit0 y) = (2 :: nat) * (numeral x AND numeral y)"
@@ -621,7 +629,7 @@ lemma nat_and_numerals [simp]:
   "Suc 0 AND Suc 0 = 1"
   supply [[show_types]]
   by (auto simp: bitAND_nat_def Bit_def nat_add_distrib)
-
+*)
 lemma nat_of_uint32_div:
   \<open>nat_of_uint32 (a div b) = nat_of_uint32 a div nat_of_uint32 b\<close>
   by transfer (auto simp: unat_div)

@@ -43,6 +43,11 @@ output
 ### Binaries
 */drat-trim
 IsaSAT
+IsaSAT_old
+full_SAT_Trail
+
+# old files
+*old
 
 ### Bibliography auxiliary files (bibtex/biblatex/biber):
 *.bbl

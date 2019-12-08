@@ -13,7 +13,7 @@ where
       if get_conflict_wl_is_None_heur S
       then decide_wl_or_skip_D_heur S
       else do {
-        if count_decided_st_heur S > zero_uint32_nat
+        if count_decided_st_heur S > 0
         then do {
           T \<leftarrow> skip_and_resolve_loop_wl_D_heur S;
           ASSERT(length (get_clauses_wl_heur S) = length (get_clauses_wl_heur T));
@@ -38,7 +38,7 @@ proof -
     apply (intro conjI impI allI)
     subgoal for x y
       using assms[of \<open>dom_m (get_clauses_wl y)\<close>  \<open>length (get_clauses_wl_heur x)\<close>,
-        unfolded ref_def twl_st_heur'_def nres_rel_def in_pair_collect_simp f,
+        unfolded twl_st_heur'_def nres_rel_def in_pair_collect_simp f,
         rule_format] unfolding f
       apply (simp only: fref_def twl_st_heur'_def nres_rel_def in_pair_collect_simp)
       apply (drule spec[of _ x])
@@ -64,7 +64,7 @@ proof -
     apply (intro conjI impI allI)
     subgoal for x y
       using assms[of \<open>length (get_clauses_wl_heur x)\<close>,
-        unfolded ref_def twl_st_heur'_def nres_rel_def in_pair_collect_simp f,
+        unfolded twl_st_heur'_def nres_rel_def in_pair_collect_simp f,
         rule_format] unfolding f
       apply (simp only: fref_def twl_st_heur'_def nres_rel_def in_pair_collect_simp)
       apply (drule spec[of _ x])
@@ -89,7 +89,7 @@ proof -
     apply (intro conjI impI allI)
     subgoal for x y
       using assms[of \<open>length (get_clauses_wl_heur x)\<close>,
-        unfolded ref_def twl_st_heur'_def nres_rel_def in_pair_collect_simp f,
+        unfolded twl_st_heur'_def nres_rel_def in_pair_collect_simp f,
         rule_format] unfolding f
       apply (simp only: fref_def twl_st_heur'_def nres_rel_def in_pair_collect_simp)
       apply (drule spec[of _ x])
@@ -102,7 +102,7 @@ proof -
 qed
 
 lemma cdcl_twl_o_prog_wl_D_heur_cdcl_twl_o_prog_wl_D:
-  \<open>(cdcl_twl_o_prog_wl_D_heur, cdcl_twl_o_prog_wl_D) \<in>
+  \<open>(cdcl_twl_o_prog_wl_D_heur, cdcl_twl_o_prog_wl) \<in>
    {(S, T). (S, T) \<in> twl_st_heur \<and> length (get_clauses_wl_heur S) = r} \<rightarrow>\<^sub>f
      \<langle>bool_rel \<times>\<^sub>f {(S, T). (S, T) \<in> twl_st_heur \<and>
         length (get_clauses_wl_heur S) \<le> r + 6 + uint32_max div 2}\<rangle>nres_rel\<close>
@@ -118,7 +118,7 @@ proof -
                length (get_clauses_wl_heur x)}\<close> for x y
     by (auto simp: twl_st_heur_state_simp twl_st_heur_twl_st_heur_conflict_ana)
   show ?thesis
-    unfolding cdcl_twl_o_prog_wl_D_heur_def cdcl_twl_o_prog_wl_D_def
+    unfolding cdcl_twl_o_prog_wl_D_heur_def cdcl_twl_o_prog_wl_def
       get_conflict_wl_is_None
     apply (intro frefI nres_relI)
     apply (refine_vcg
@@ -141,7 +141,7 @@ proof -
 qed
 
 lemma cdcl_twl_o_prog_wl_D_heur_cdcl_twl_o_prog_wl_D2:
-  \<open>(cdcl_twl_o_prog_wl_D_heur, cdcl_twl_o_prog_wl_D) \<in>
+  \<open>(cdcl_twl_o_prog_wl_D_heur, cdcl_twl_o_prog_wl) \<in>
    {(S, T). (S, T) \<in> twl_st_heur} \<rightarrow>\<^sub>f
      \<langle>bool_rel \<times>\<^sub>f {(S, T). (S, T) \<in> twl_st_heur}\<rangle>nres_rel\<close>
   apply (intro frefI nres_relI)
@@ -172,14 +172,14 @@ where
   \<close>
 
 theorem unit_propagation_outer_loop_wl_D_heur_unit_propagation_outer_loop_wl_D:
-  \<open>(unit_propagation_outer_loop_wl_D_heur, unit_propagation_outer_loop_wl_D) \<in>
+  \<open>(unit_propagation_outer_loop_wl_D_heur, unit_propagation_outer_loop_wl) \<in>
     twl_st_heur \<rightarrow>\<^sub>f \<langle>twl_st_heur\<rangle> nres_rel\<close>
   using twl_st_heur''D_twl_st_heurD[OF
      unit_propagation_outer_loop_wl_D_heur_unit_propagation_outer_loop_wl_D']
   .
 
 lemma cdcl_twl_stgy_prog_wl_D_heur_cdcl_twl_stgy_prog_wl_D:
-  \<open>(cdcl_twl_stgy_prog_wl_D_heur, cdcl_twl_stgy_prog_wl_D) \<in> twl_st_heur \<rightarrow>\<^sub>f \<langle>twl_st_heur\<rangle>nres_rel\<close>
+  \<open>(cdcl_twl_stgy_prog_wl_D_heur, cdcl_twl_stgy_prog_wl) \<in> twl_st_heur \<rightarrow>\<^sub>f \<langle>twl_st_heur\<rangle>nres_rel\<close>
 proof -
   have H: \<open>(x, y) \<in> {(S, T).
                (S, T) \<in> twl_st_heur \<and>
@@ -192,7 +192,7 @@ proof -
                length (get_clauses_wl_heur x)}\<close> for x y
     by (auto simp: twl_st_heur_state_simp twl_st_heur_twl_st_heur_conflict_ana)
   show ?thesis
-    unfolding cdcl_twl_stgy_prog_wl_D_heur_def cdcl_twl_stgy_prog_wl_D_def
+    unfolding cdcl_twl_stgy_prog_wl_D_heur_def cdcl_twl_stgy_prog_wl_def
     apply (intro frefI nres_relI)
     subgoal for x y
     apply (refine_vcg
@@ -228,5 +228,71 @@ where
     if brk then RETURN T
     else cdcl_twl_stgy_prog_wl_D_heur T
   }\<close>
+
+
+definition cdcl_twl_stgy_prog_bounded_wl_heur :: \<open>twl_st_wl_heur \<Rightarrow> (bool \<times> twl_st_wl_heur) nres\<close>
+where
+  \<open>cdcl_twl_stgy_prog_bounded_wl_heur S\<^sub>0 =
+  do {
+    b \<leftarrow> RETURN (isasat_fast S\<^sub>0);
+    (b, brk, T) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(b, brk, T). True\<^esup>
+        (\<lambda>(b, brk, _). b \<and> \<not>brk)
+        (\<lambda>(b, brk, S).
+        do {
+          ASSERT(isasat_fast S);
+          T \<leftarrow> unit_propagation_outer_loop_wl_D_heur S;
+          ASSERT(isasat_fast T);
+          (brk, T) \<leftarrow> cdcl_twl_o_prog_wl_D_heur T;
+          b \<leftarrow> RETURN (isasat_fast T);
+          RETURN(b, brk, T)
+        })
+        (b, False, S\<^sub>0);
+    RETURN (brk, T)
+  }\<close>
+
+
+lemma cdcl_twl_stgy_restart_prog_early_wl_heur_cdcl_twl_stgy_restart_prog_early_wl_D:
+  assumes r: \<open>r \<le> sint64_max\<close>
+  shows \<open>(cdcl_twl_stgy_prog_bounded_wl_heur, cdcl_twl_stgy_prog_early_wl) \<in>
+   twl_st_heur''' r \<rightarrow>\<^sub>f \<langle>bool_rel \<times>\<^sub>r twl_st_heur\<rangle>nres_rel\<close>
+proof -
+  have A[refine0]: \<open>RETURN (isasat_fast x) \<le> \<Down>
+      {(b, b'). b = b' \<and> (b = (isasat_fast x))} (RES UNIV)\<close>
+    for x
+    by (auto intro: RETURN_RES_refine)
+  have twl_st_heur'': \<open>(x1e, x1b) \<in> twl_st_heur \<Longrightarrow>
+    (x1e, x1b)
+    \<in> twl_st_heur''
+        (dom_m (get_clauses_wl x1b))
+        (length (get_clauses_wl_heur x1e))\<close>
+    for x1e x1b
+    by (auto simp: twl_st_heur'_def)
+  have twl_st_heur''': \<open>(x1e, x1b) \<in> twl_st_heur'' \<D> r \<Longrightarrow>
+    (x1e, x1b)
+    \<in> twl_st_heur''' r\<close>
+    for x1e x1b r \<D>
+    by (auto simp: twl_st_heur'_def)
+  have H: \<open>SPEC (\<lambda>_::bool. True) = RES UNIV\<close> by auto
+  show ?thesis
+    supply[[goals_limit=1]] isasat_fast_length_leD[dest] twl_st_heur'_def[simp]
+    unfolding cdcl_twl_stgy_prog_bounded_wl_heur_def
+      cdcl_twl_stgy_prog_early_wl_def H
+    apply (intro frefI nres_relI)
+    apply (refine_rcg
+        cdcl_twl_o_prog_wl_D_heur_cdcl_twl_o_prog_wl_D[THEN fref_to_Down]
+        unit_propagation_outer_loop_wl_D_heur_unit_propagation_outer_loop_wl_D'[THEN fref_to_Down]
+        WHILEIT_refine[where R = \<open>{((ebrk, brk, T), (ebrk', brk', T')).
+	    (ebrk = ebrk') \<and> (brk = brk') \<and> (T, T')  \<in> twl_st_heur \<and>
+	      (ebrk \<longrightarrow> isasat_fast T) \<and> length (get_clauses_wl_heur T) \<le> sint64_max}\<close>])
+    subgoal using r by auto
+    subgoal by fast
+    subgoal by auto
+    apply (rule twl_st_heur''; auto; fail)
+    subgoal by (auto simp: isasat_fast_def)
+    apply (rule twl_st_heur'''; assumption)
+    subgoal by (auto simp: isasat_fast_def sint64_max_def uint32_max_def)
+    subgoal by auto
+    done
+qed
 
 end

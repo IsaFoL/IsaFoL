@@ -1,11 +1,9 @@
 theory IsaSAT_Literals
   imports Watched_Literals.WB_More_Refinement "HOL-Word.More_Word"
-     Watched_Literals.Watched_Literals_Watch_List_Domain
+     Watched_Literals.Watched_Literals_Watch_List
      Entailment_Definition.Partial_Herbrand_Interpretation
-     Watched_Literals.Bits_Natural Watched_Literals.WB_Word
+     Isabelle_LLVM.Bits_Natural (*Watched_Literals.WB_Word*)
 begin
-
-hide_const Autoref_Fix_Rel.CONSTRAINT
 
 subsubsection \<open>Refinement of the Watched Function\<close>
 
@@ -65,8 +63,6 @@ lemma literal_of_nat_literal_of_nat_eq[iff]: \<open>literal_of_nat x = literal_o
 definition nat_lit_rel :: \<open>(nat \<times> nat literal) set\<close> where
   \<open>nat_lit_rel =  br literal_of_nat (\<lambda>_. True)\<close>
 
-definition unat_lit_rel :: \<open>(uint32 \<times> nat literal) set\<close> where
-  \<open>unat_lit_rel \<equiv> uint32_nat_rel O nat_lit_rel\<close>
 
 fun pair_of_ann_lit :: \<open>('a, 'b) ann_lit \<Rightarrow> 'a literal \<times> 'b option\<close> where
   \<open>pair_of_ann_lit (Propagated L D) = (L, Some D)\<close>
@@ -105,35 +101,6 @@ definition ann_lit_rel:: \<open>('a \<times> nat) set \<Rightarrow> ('b \<times>
   \<open>ann_lit_rel R R' = {(a, b). \<exists>c d. (fst a, c) \<in> R \<and> (snd a, d) \<in> R' \<and>
       b = ann_lit_of_pair (literal_of_nat c, d)}\<close>
 
-type_synonym ann_lit_wl = \<open>uint32 \<times> nat option\<close>
-type_synonym ann_lits_wl = \<open>ann_lit_wl list\<close>
-type_synonym ann_lit_wl_fast = \<open>uint32 \<times> uint64 option\<close>
-type_synonym ann_lits_wl_fast = \<open>ann_lit_wl_fast list\<close>
-
-definition nat_ann_lit_rel :: \<open>(ann_lit_wl \<times> (nat, nat) ann_lit) set\<close> where
-  nat_ann_lit_rel_internal_def: \<open>nat_ann_lit_rel = \<langle>uint32_nat_rel, \<langle>nat_rel\<rangle>option_rel\<rangle>ann_lit_rel\<close>
-
-lemma ann_lit_rel_def:
-  \<open>\<langle>R, R'\<rangle>ann_lit_rel = {(a, b). \<exists>c d. (fst a, c) \<in> R \<and> (snd a, d) \<in> R' \<and>
-      b = ann_lit_of_pair (literal_of_nat c, d)}\<close>
-  unfolding nat_ann_lit_rel_internal_def ann_lit_rel_internal_def relAPP_def ..
-
-lemma nat_ann_lit_rel_def:
-  \<open>nat_ann_lit_rel = {(a, b). b = ann_lit_of_pair ((\<lambda>(a,b). (literal_of_nat (nat_of_uint32 a), b)) a)}\<close>
-  unfolding nat_ann_lit_rel_internal_def ann_lit_rel_def
-  apply (auto simp: option_rel_def ex_disj_distrib uint32_nat_rel_def br_def)
-   apply (case_tac b)
-    apply auto
-   apply (case_tac b)
-   apply auto
-  done
-
-definition nat_ann_lits_rel :: \<open>(ann_lits_wl \<times> (nat, nat) ann_lits) set\<close> where
-  \<open>nat_ann_lits_rel = \<langle>nat_ann_lit_rel\<rangle>list_rel\<close>
-
-lemma nat_ann_lits_rel_Cons[iff]:
-  \<open>(x # xs, y # ys) \<in> nat_ann_lits_rel \<longleftrightarrow> (x, y) \<in> nat_ann_lit_rel \<and> (xs, ys) \<in> nat_ann_lits_rel\<close>
-  by (auto simp: nat_ann_lits_rel_def)
 
 definition (in -)the_is_empty where
   \<open>the_is_empty D = Multiset.is_empty (the D)\<close>
@@ -141,10 +108,18 @@ definition (in -)the_is_empty where
 
 subsection \<open>Atoms with bound\<close>
 
-abbreviation uint_max :: nat where
-  \<open>uint_max \<equiv> uint32_max\<close>
+definition uint32_max :: nat where
+  \<open>uint32_max \<equiv> 2^32-1\<close>
 
-lemmas uint_max_def = uint32_max_def
+definition uint64_max :: nat where
+  \<open>uint64_max \<equiv> 2^64-1\<close>
+
+definition sint32_max :: nat where
+  \<open>sint32_max \<equiv> 2^31-1\<close>
+
+definition sint64_max :: nat where
+  \<open>sint64_max \<equiv> 2^63-1\<close>
+
 
 context
   fixes \<A>\<^sub>i\<^sub>n :: \<open>nat multiset\<close>
@@ -213,7 +188,7 @@ proof -
 qed
 
 definition isasat_input_bounded where
-  [simp]: \<open>isasat_input_bounded = (\<forall>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<^sub>i\<^sub>n. nat_of_lit L \<le> uint_max)\<close>
+  [simp]: \<open>isasat_input_bounded = (\<forall>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<^sub>i\<^sub>n. nat_of_lit L \<le> uint32_max)\<close>
 
 definition isasat_input_nempty where
   [simp]: \<open>isasat_input_nempty = (set_mset \<A>\<^sub>i\<^sub>n \<noteq> {})\<close>
@@ -222,25 +197,25 @@ definition isasat_input_bounded_nempty where
   \<open>isasat_input_bounded_nempty = (isasat_input_bounded \<and> isasat_input_nempty)\<close>
 
 context
-  assumes in_\<L>\<^sub>a\<^sub>l\<^sub>l_less_uint_max: \<open>isasat_input_bounded\<close>
+  assumes in_\<L>\<^sub>a\<^sub>l\<^sub>l_less_uint32_max: \<open>isasat_input_bounded\<close>
 begin
 
-lemma in_\<L>\<^sub>a\<^sub>l\<^sub>l_less_uint_max': \<open>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<^sub>i\<^sub>n \<Longrightarrow> nat_of_lit L \<le> uint_max\<close>
-  using in_\<L>\<^sub>a\<^sub>l\<^sub>l_less_uint_max by auto
+lemma in_\<L>\<^sub>a\<^sub>l\<^sub>l_less_uint32_max': \<open>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<^sub>i\<^sub>n \<Longrightarrow> nat_of_lit L \<le> uint32_max\<close>
+  using in_\<L>\<^sub>a\<^sub>l\<^sub>l_less_uint32_max by auto
 
-lemma in_\<A>\<^sub>i\<^sub>n_less_than_uint_max_div_2:
-  \<open>L \<in># \<A>\<^sub>i\<^sub>n \<Longrightarrow> L \<le> uint_max div 2\<close>
-  using in_\<L>\<^sub>a\<^sub>l\<^sub>l_less_uint_max'[of \<open>Neg L\<close>]
+lemma in_\<A>\<^sub>i\<^sub>n_less_than_uint32_max_div_2:
+  \<open>L \<in># \<A>\<^sub>i\<^sub>n \<Longrightarrow> L \<le> uint32_max div 2\<close>
+  using in_\<L>\<^sub>a\<^sub>l\<^sub>l_less_uint32_max'[of \<open>Neg L\<close>]
   unfolding Ball_def atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
-  by (auto simp: uint_max_def)
+  by (auto simp: uint32_max_def)
 
 lemma simple_clss_size_upper_div2':
   assumes
     lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n  \<A>\<^sub>i\<^sub>n C\<close> and
     dist: \<open>distinct_mset C\<close> and
     tauto: \<open>\<not>tautology C\<close> and
-    in_\<L>\<^sub>a\<^sub>l\<^sub>l_less_uint_max: \<open>\<forall>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<^sub>i\<^sub>n. nat_of_lit L < uint_max - 1\<close>
-  shows \<open>size C \<le> uint_max div 2\<close>
+    in_\<L>\<^sub>a\<^sub>l\<^sub>l_less_uint32_max: \<open>\<forall>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<^sub>i\<^sub>n. nat_of_lit L < uint32_max - 1\<close>
+  shows \<open>size C \<le> uint32_max div 2\<close>
 proof -
   let ?C = \<open>atm_of `# C\<close>
   have \<open>distinct_mset ?C\<close>
@@ -262,7 +237,7 @@ proof -
   have size: \<open>size ?C = size C\<close>
     using dist tauto
     by (induction C) (auto simp: tautology_add_mset)
-  have m: \<open>set_mset ?C \<subseteq> {0..<uint_max div 2}\<close>
+  have m: \<open>set_mset ?C \<subseteq> {0..<uint32_max div 2}\<close>
   proof
     fix L
     assume \<open>L \<in> set_mset ?C\<close>
@@ -271,19 +246,19 @@ proof -
         in_all_lits_of_m_ain_atms_of_iff subset_iff)
     then have \<open>Pos L \<in># (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<^sub>i\<^sub>n)\<close>
       using lits by (auto simp: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff)
-    then have \<open>nat_of_lit (Pos L) < uint_max - 1\<close>
-      using in_\<L>\<^sub>a\<^sub>l\<^sub>l_less_uint_max by (auto simp: atm_of_lit_in_atms_of
+    then have \<open>nat_of_lit (Pos L) < uint32_max - 1\<close>
+      using in_\<L>\<^sub>a\<^sub>l\<^sub>l_less_uint32_max by (auto simp: atm_of_lit_in_atms_of
         in_all_lits_of_m_ain_atms_of_iff subset_iff)
-    then have \<open>L < uint_max div 2\<close>
+    then have \<open>L < uint32_max div 2\<close>
        by (auto simp: atm_of_lit_in_atms_of
-        in_all_lits_of_m_ain_atms_of_iff subset_iff uint_max_def)
-    then show \<open>L \<in> {0..<uint_max div 2}\<close>
-       by (auto simp: atm_of_lit_in_atms_of uint_max_def
+        in_all_lits_of_m_ain_atms_of_iff subset_iff uint32_max_def)
+    then show \<open>L \<in> {0..<uint32_max div 2}\<close>
+       by (auto simp: atm_of_lit_in_atms_of uint32_max_def
         in_all_lits_of_m_ain_atms_of_iff subset_iff)
   qed
-  moreover have \<open>card \<dots> =  uint_max div 2\<close>
+  moreover have \<open>card \<dots> =  uint32_max div 2\<close>
     by auto
-  ultimately have \<open>card (set_mset ?C) \<le> uint_max div 2\<close>
+  ultimately have \<open>card (set_mset ?C) \<le> uint32_max div 2\<close>
     using card_mono[OF _ m] by auto
   then show ?thesis
     unfolding card[symmetric] size .
@@ -295,7 +270,7 @@ lemma simple_clss_size_upper_div2:
    lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n  \<A>\<^sub>i\<^sub>n C\<close> and
    dist: \<open>distinct_mset C\<close> and
    tauto: \<open>\<not>tautology C\<close>
-  shows \<open>size C \<le> 1 + uint_max div 2\<close>
+  shows \<open>size C \<le> 1 + uint32_max div 2\<close>
 proof -
   let ?C = \<open>atm_of `# C\<close>
   have \<open>distinct_mset ?C\<close>
@@ -317,38 +292,38 @@ proof -
   have size: \<open>size ?C = size C\<close>
     using dist tauto
     by (induction C) (auto simp: tautology_add_mset)
-  have m: \<open>set_mset ?C \<subseteq> {0..uint_max div 2}\<close>
+  have m: \<open>set_mset ?C \<subseteq> {0..uint32_max div 2}\<close>
   proof
     fix L
     assume \<open>L \<in> set_mset ?C\<close>
     then have \<open>L \<in> atms_of (\<L>\<^sub>a\<^sub>l\<^sub>l  \<A>\<^sub>i\<^sub>n)\<close>
     using lits by (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_def atm_of_lit_in_atms_of
         in_all_lits_of_m_ain_atms_of_iff subset_iff)
-    then have \<open>Pos L \<in># (\<L>\<^sub>a\<^sub>l\<^sub>l  \<A>\<^sub>i\<^sub>n)\<close>
+    then have \<open>Neg L \<in># (\<L>\<^sub>a\<^sub>l\<^sub>l  \<A>\<^sub>i\<^sub>n)\<close>
       using lits by (auto simp: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff)
-    then have \<open>nat_of_lit (Pos L) \<le> uint_max\<close>
-      using in_\<L>\<^sub>a\<^sub>l\<^sub>l_less_uint_max by (auto simp: atm_of_lit_in_atms_of
+    then have \<open>nat_of_lit (Neg L) \<le> uint32_max\<close>
+      using in_\<L>\<^sub>a\<^sub>l\<^sub>l_less_uint32_max by (auto simp: atm_of_lit_in_atms_of
         in_all_lits_of_m_ain_atms_of_iff subset_iff)
-    then have \<open>L \<le> uint_max div 2\<close>
+    then have \<open>L \<le> uint32_max div 2\<close>
        by (auto simp: atm_of_lit_in_atms_of
-        in_all_lits_of_m_ain_atms_of_iff subset_iff uint_max_def)
-    then show \<open>L \<in> {0 .. uint_max div 2}\<close>
-       by (auto simp: atm_of_lit_in_atms_of uint_max_def
+        in_all_lits_of_m_ain_atms_of_iff subset_iff uint32_max_def)
+    then show \<open>L \<in> {0 .. uint32_max div 2}\<close>
+       by (auto simp: atm_of_lit_in_atms_of uint32_max_def
         in_all_lits_of_m_ain_atms_of_iff subset_iff)
   qed
-  moreover have \<open>card \<dots> =  1 + uint_max div 2\<close>
+  moreover have \<open>card \<dots> =  1 + uint32_max div 2\<close>
     by auto
-  ultimately have \<open>card (set_mset ?C) \<le> 1 + uint_max div 2\<close>
+  ultimately have \<open>card (set_mset ?C) \<le> 1 + uint32_max div 2\<close>
     using card_mono[OF _ m] by auto
   then show ?thesis
     unfolding card[symmetric] size .
 qed
 
-lemma clss_size_uint_max:
+lemma clss_size_uint32_max:
   assumes
    lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n \<A>\<^sub>i\<^sub>n C\<close> and
    dist: \<open>distinct_mset C\<close>
-  shows \<open>size C \<le> uint_max + 2\<close>
+  shows \<open>size C \<le> uint32_max + 2\<close>
 proof -
   let ?posC = \<open>filter_mset is_pos C\<close>
   let ?negC = \<open>filter_mset is_neg C\<close>
@@ -359,14 +334,14 @@ proof -
     by (rule literals_are_in_\<L>\<^sub>i\<^sub>n_mono[OF lits]) auto
   moreover have \<open>distinct_mset ?posC\<close>
     by (rule distinct_mset_mono[OF _dist]) auto
-  ultimately have pos: \<open>size ?posC \<le> 1 + uint_max div 2\<close>
+  ultimately have pos: \<open>size ?posC \<le> 1 + uint32_max div 2\<close>
     by (rule simple_clss_size_upper_div2) (auto simp: tautology_decomp)
 
   have \<open>literals_are_in_\<L>\<^sub>i\<^sub>n \<A>\<^sub>i\<^sub>n ?negC\<close>
     by (rule literals_are_in_\<L>\<^sub>i\<^sub>n_mono[OF lits]) auto
   moreover have \<open>distinct_mset ?negC\<close>
     by (rule distinct_mset_mono[OF _dist]) auto
-  ultimately have neg: \<open>size ?negC \<le> 1 + uint_max div 2\<close>
+  ultimately have neg: \<open>size ?negC \<le> 1 + uint32_max div 2\<close>
     by (rule simple_clss_size_upper_div2) (auto simp: tautology_decomp)
 
   show ?thesis
@@ -375,19 +350,21 @@ proof -
     using pos neg by linarith
 qed
 
+(*
 lemma clss_size_uint64_max:
   assumes
    lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n \<A>\<^sub>i\<^sub>n C\<close> and
    dist: \<open>distinct_mset C\<close>
  shows \<open>size C < uint64_max\<close>
-  using clss_size_uint_max[OF assms] by (auto simp: uint32_max_def uint64_max_def)
-
+  using clss_size_uint32_max[OF assms]
+  by (auto simp: uint32_max_def uint64_max_def)
+*)
 lemma clss_size_upper:
   assumes
    lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n \<A>\<^sub>i\<^sub>n C\<close> and
    dist: \<open>distinct_mset C\<close> and
-   in_\<L>\<^sub>a\<^sub>l\<^sub>l_less_uint_max: \<open>\<forall>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<^sub>i\<^sub>n. nat_of_lit L < uint_max - 1\<close>
- shows \<open>size C \<le> uint_max\<close>
+   in_\<L>\<^sub>a\<^sub>l\<^sub>l_less_uint32_max: \<open>\<forall>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<^sub>i\<^sub>n. nat_of_lit L < uint32_max - 1\<close>
+ shows \<open>size C \<le> uint32_max\<close>
 proof -
   let ?A = \<open>remdups_mset (atm_of `# C)\<close>
   have [simp]: \<open>distinct_mset (poss ?A)\<close> \<open>distinct_mset (negs ?A)\<close>
@@ -407,14 +384,14 @@ proof -
 
   have \<open>\<not> tautology (poss ?A)\<close> \<open>\<not> tautology (negs ?A)\<close>
     by (auto simp: tautology_decomp)
-  then have \<open>size (poss ?A) \<le> uint_max div 2\<close> and \<open>size (negs ?A) \<le> uint_max div 2\<close>
+  then have \<open>size (poss ?A) \<le> uint32_max div 2\<close> and \<open>size (negs ?A) \<le> uint32_max div 2\<close>
     using simple_clss_size_upper_div2'[of \<open>poss ?A\<close>]
-      simple_clss_size_upper_div2'[of \<open>negs ?A\<close>] in_\<L>\<^sub>a\<^sub>l\<^sub>l_less_uint_max
+      simple_clss_size_upper_div2'[of \<open>negs ?A\<close>] in_\<L>\<^sub>a\<^sub>l\<^sub>l_less_uint32_max
     by auto
-  then have \<open>size C \<le> uint_max div 2 + uint_max div 2\<close>
+  then have \<open>size C \<le> uint32_max div 2 + uint32_max div 2\<close>
     using \<open>C \<subseteq># poss (remdups_mset (atm_of `# C)) + negs (remdups_mset (atm_of `# C))\<close>
       size_mset_mono by fastforce
-  then show ?thesis by (auto simp: uint_max_def)
+  then show ?thesis by (auto simp: uint32_max_def)
 qed
 
 lemma
@@ -423,11 +400,11 @@ lemma
     n_d: \<open>no_dup M\<close>
   shows
     literals_are_in_\<L>\<^sub>i\<^sub>n_trail_length_le_uint32_max:
-      \<open>length M \<le> Suc (uint_max div 2)\<close> and
-    literals_are_in_\<L>\<^sub>i\<^sub>n_trail_count_decided_uint_max:
-      \<open>count_decided M \<le> Suc (uint_max div 2)\<close> and
-    literals_are_in_\<L>\<^sub>i\<^sub>n_trail_get_level_uint_max:
-      \<open>get_level M L \<le> Suc (uint_max div 2)\<close>
+      \<open>length M \<le> Suc (uint32_max div 2)\<close> and
+    literals_are_in_\<L>\<^sub>i\<^sub>n_trail_count_decided_uint32_max:
+      \<open>count_decided M \<le> Suc (uint32_max div 2)\<close> and
+    literals_are_in_\<L>\<^sub>i\<^sub>n_trail_get_level_uint32_max:
+      \<open>get_level M L \<le> Suc (uint32_max div 2)\<close>
 proof -
   have \<open>length M = card (atm_of ` lits_of_l M)\<close>
     using no_dup_length_eq_card_atm_of_lits_of_l[OF n_d] .
@@ -436,28 +413,28 @@ proof -
   ultimately have \<open>length M \<le> card (set_mset \<A>\<^sub>i\<^sub>n)\<close>
     by (simp add: card_mono)
   moreover {
-    have \<open>set_mset \<A>\<^sub>i\<^sub>n \<subseteq> {0 ..< (uint_max div 2) + 1}\<close>
-      using in_\<A>\<^sub>i\<^sub>n_less_than_uint_max_div_2 by (fastforce simp: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
-          Ball_def atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n uint_max_def)
-    from subset_eq_atLeast0_lessThan_card[OF this] have \<open>card (set_mset \<A>\<^sub>i\<^sub>n) \<le> uint_max div 2 + 1\<close>
+    have \<open>set_mset \<A>\<^sub>i\<^sub>n \<subseteq> {0 ..< (uint32_max div 2) + 1}\<close>
+      using in_\<A>\<^sub>i\<^sub>n_less_than_uint32_max_div_2 by (fastforce simp: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff
+          Ball_def atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n uint32_max_def)
+    from subset_eq_atLeast0_lessThan_card[OF this] have \<open>card (set_mset \<A>\<^sub>i\<^sub>n) \<le> uint32_max div 2 + 1\<close>
       .
   }
-  ultimately show \<open>length M \<le> Suc (uint_max div 2)\<close>
+  ultimately show \<open>length M \<le> Suc (uint32_max div 2)\<close>
     by linarith
   moreover have \<open>count_decided M \<le> length M\<close>
     unfolding count_decided_def by auto
-  ultimately show \<open>count_decided M \<le> Suc (uint_max div 2)\<close> by simp
-  then show \<open>get_level M L \<le> Suc (uint_max div 2)\<close>
+  ultimately show \<open>count_decided M \<le> Suc (uint32_max div 2)\<close> by simp
+  then show \<open>get_level M L \<le> Suc (uint32_max div 2)\<close>
     using count_decided_ge_get_level[of M L]
     by simp
 qed
 
-lemma length_trail_uint_max_div2:
+lemma length_trail_uint32_max_div2:
   fixes M :: \<open>(nat, 'b) ann_lits\<close>
   assumes
     M_\<L>\<^sub>a\<^sub>l\<^sub>l: \<open>\<forall>L\<in>set M. lit_of L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<^sub>i\<^sub>n\<close> and
     n_d: \<open>no_dup M\<close>
-  shows \<open>length M \<le> uint_max div 2 + 1\<close>
+  shows \<open>length M \<le> uint32_max div 2 + 1\<close>
 proof -
   have dist_atm_M: \<open>distinct_mset {#atm_of (lit_of x). x \<in># mset M#}\<close>
     using n_d by (metis distinct_mset_mset_distinct mset_map no_dup_def)
@@ -468,10 +445,10 @@ proof -
         atm_of_eq_atm_of)
   have inj_on: \<open>inj_on nat_of_lit (set_mset (remdups_mset (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<^sub>i\<^sub>n)))\<close>
     by (auto simp: inj_on_def)
-  have H: \<open>xa \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<^sub>i\<^sub>n \<Longrightarrow> atm_of xa \<le> uint_max div 2\<close> for xa
-    using in_\<L>\<^sub>a\<^sub>l\<^sub>l_less_uint_max
-    by (cases xa) (auto simp: uint_max_def)
-  have \<open>remdups_mset (atm_of `# \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<^sub>i\<^sub>n) \<subseteq># mset [0..< 1 + (uint_max div 2)]\<close>
+  have H: \<open>xa \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<^sub>i\<^sub>n \<Longrightarrow> atm_of xa \<le> uint32_max div 2\<close> for xa
+    using in_\<L>\<^sub>a\<^sub>l\<^sub>l_less_uint32_max
+    by (cases xa) (auto simp: uint32_max_def)
+  have \<open>remdups_mset (atm_of `# \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<^sub>i\<^sub>n) \<subseteq># mset [0..< 1 + (uint32_max div 2)]\<close>
     apply (subst distinct_subseteq_iff[THEN iffD1])
     using H distinct_image_mset_inj[OF inj_on]
     by (force simp del: literal_of_nat.simps simp: distinct_mset_mset_set
@@ -479,10 +456,10 @@ proof -
   note _ = size_mset_mono[OF this]
   moreover have \<open>size (nat_of_lit `# remdups_mset (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<^sub>i\<^sub>n)) = size (remdups_mset (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<^sub>i\<^sub>n))\<close>
     by simp
-  ultimately have 2: \<open>size (remdups_mset (atm_of `# (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<^sub>i\<^sub>n))) \<le> 1 + uint_max div 2\<close>
+  ultimately have 2: \<open>size (remdups_mset (atm_of `# (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<^sub>i\<^sub>n))) \<le> 1 + uint32_max div 2\<close>
     by auto
   from size_mset_mono[OF incl] have 1: \<open>length M \<le> size (remdups_mset (atm_of `# (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<^sub>i\<^sub>n)))\<close>
-    unfolding uint_max_def count_decided_def
+    unfolding uint32_max_def count_decided_def
     by (auto simp del: length_filter_le)
   with 2 show ?thesis
     by (auto simp: uint32_max_def)
@@ -492,58 +469,6 @@ end
 
 end
 
-text \<open>
-  First we instantiate our types with sort heap and default, to have compatibility with code
-  generation. The idea is simplify to create injections into the components of our datatypes.
-\<close>
-instance literal :: (heap) heap
-proof standard
-  obtain f :: \<open>'a \<Rightarrow> nat\<close> where f: \<open>inj f\<close>
-    by blast
-  then have Hf: \<open>f x = f s \<longleftrightarrow> x = s\<close> for s x
-    unfolding inj_on_def Ball_def comp_def by blast
-  let ?f = \<open>\<lambda>L. (is_pos L, f (atm_of L))\<close>
-  have \<open>OFCLASS(bool \<times> nat, heap_class)\<close>
-   by standard
-  then obtain g :: \<open>bool \<times> nat \<Rightarrow> nat\<close> where g: \<open>inj g\<close>
-    by blast
-  then have H: \<open>g (x, y) = g (s, t) \<longleftrightarrow> x = s \<and> y = t\<close> for s t x y
-    unfolding inj_on_def Ball_def comp_def by blast
-  have \<open>inj (g o ?f)\<close>
-    using f g unfolding inj_on_def Ball_def comp_def H Hf
-    apply (intro allI impI)
-    apply (rename_tac x y, case_tac x; case_tac y)
-    by auto
-  then show \<open>\<exists>to_nat:: 'a literal \<Rightarrow> nat. inj to_nat\<close>
-    by blast
-qed
-
-instance annotated_lit :: (heap, heap, heap) heap
-proof standard
-  let ?f = \<open>\<lambda>L:: ('a, 'b, 'c) annotated_lit.
-      (if is_decided L then Some (lit_dec L) else None,
-       if is_decided L then None else Some (lit_prop L), if is_decided L then None else Some (mark_of L))\<close>
-  have f: \<open>inj ?f\<close>
-    unfolding inj_on_def Ball_def
-    apply (intro allI impI)
-    apply (rename_tac x y, case_tac x; case_tac y)
-    by auto
-  then have Hf: \<open>?f x = ?f s \<longleftrightarrow> x = s\<close> for s x
-    unfolding inj_on_def Ball_def comp_def by blast
-  have \<open>OFCLASS('a option \<times> 'b option \<times> 'c option, heap_class)\<close>
-   by standard
-  then obtain g :: \<open>'a option \<times> 'b option \<times> 'c option \<Rightarrow> nat\<close> where g: \<open>inj g\<close>
-    by blast
-  then have H: \<open>g (x, y) = g (s, t) \<longleftrightarrow> x = s \<and> y = t\<close> for s t x y
-    unfolding inj_on_def Ball_def comp_def by blast
-  have \<open>inj (g o ?f)\<close>
-    using f g unfolding inj_on_def Ball_def comp_def H Hf
-    apply (intro allI impI)
-    apply (rename_tac x y, case_tac x; case_tac y)
-    by auto
-  then show \<open>\<exists>to_nat:: ('a, 'b, 'c) annotated_lit \<Rightarrow> nat. inj to_nat\<close>
-    by blast
-qed
 
 instantiation literal :: (default) default
 begin
@@ -581,11 +506,8 @@ lemma uminus_lit_imp_uminus:
   \<open>(RETURN o uminus_lit_imp, RETURN o uminus) \<in>
      nat_lit_rel \<rightarrow>\<^sub>f \<langle>nat_lit_rel\<rangle>nres_rel\<close>
   unfolding bitXOR_1_if_mod_2 uminus_lit_imp_def
-  by (intro frefI nres_relI) (auto simp: nat_ann_lit_rel_def uminus_lit_imp_def case_prod_beta p2rel_def
+  by (intro frefI nres_relI) (auto simp: uminus_lit_imp_def case_prod_beta p2rel_def
       br_def nat_lit_rel_def split: option.splits, presburger)
-
-definition uminus_code :: \<open>uint32 \<Rightarrow> uint32\<close> where
-  \<open>uminus_code L = bitXOR L 1\<close>
 
 
 subsection \<open>State Conversion\<close>
@@ -597,25 +519,18 @@ type_synonym nat_clauses_l = \<open>nat list list\<close>
 subsubsection \<open>Refinement of the Watched Function\<close>
 
 definition watched_by_nth :: \<open>nat twl_st_wl \<Rightarrow> nat literal \<Rightarrow> nat \<Rightarrow> nat watcher\<close> where
-  \<open>watched_by_nth = (\<lambda>(M, N, D, NE, UE, Q, W) L i. W L ! i)\<close>
+  \<open>watched_by_nth = (\<lambda>(M, N, D, NE, UE, NS, US, Q, W) L i. W L ! i)\<close>
 
 definition watched_app
   :: \<open>(nat literal \<Rightarrow> (nat watcher) list) \<Rightarrow> nat literal \<Rightarrow> nat \<Rightarrow> nat watcher\<close> where
   \<open>watched_app M L i \<equiv> M L ! i\<close>
 
 lemma watched_by_nth_watched_app:
-  \<open>watched_by S K ! w = watched_app ((snd o snd o snd o snd o snd o snd) S) K w\<close>
+  \<open>watched_by S K ! w = watched_app ((snd o snd o snd o snd o snd o snd o snd o snd) S) K w\<close>
   by (cases S) (auto simp: watched_app_def)
 
 
 subsubsection \<open>More Operations\<close>
-
-lemma nat_of_uint32_shiftr: \<open>nat_of_uint32 (shiftr xi n) = shiftr (nat_of_uint32 xi) n\<close>
-  by transfer (auto simp: shiftr_div_2n unat_def shiftr_nat_def)
-
-definition atm_of_code :: \<open>uint32 \<Rightarrow> uint32\<close> where
-  \<open>atm_of_code L = shiftr L 1\<close>
-
 
 subsection \<open>Code Generation\<close>
 
@@ -640,11 +555,6 @@ lemma in_nat_list_rel_list_all2_in_set_iff:
 
 definition is_decided_wl where
   \<open>is_decided_wl L \<longleftrightarrow> snd L = None\<close>
-
-lemma is_decided_wl_is_decided:
-  \<open>(RETURN o is_decided_wl, RETURN o is_decided) \<in> nat_ann_lit_rel \<rightarrow> \<langle>bool_rel\<rangle> nres_rel\<close>
-  by (auto simp: nat_ann_lit_rel_def is_decided_wl_def is_decided_def intro!: frefI nres_relI
-      elim: ann_lit_of_pair.elims)
 
 lemma ann_lit_of_pair_if:
   \<open>ann_lit_of_pair (L, D) = (if D = None then Decided L else Propagated L (the D))\<close>
@@ -714,7 +624,7 @@ lemma get_conflict_wl_is_None: \<open>get_conflict_wl S = None \<longleftrightar
   by (cases S) (auto simp: get_conflict_wl_is_None_def split: option.splits)
 
 lemma watched_by_nth_watched_app':
-  \<open>watched_by S K = ((snd o snd o snd o snd o snd o snd) S) K\<close>
+  \<open>watched_by S K = ((snd o snd o snd o snd o snd o snd o snd o snd) S) K\<close>
   by (cases S) (auto simp: watched_app_def)
 
 lemma (in -) hd_decided_count_decided_ge_1:
@@ -739,10 +649,6 @@ lemma ex_literal_of_nat: \<open>\<exists>bb. b = literal_of_nat bb\<close>
     (auto simp: nat_of_lit_def split: if_splits; presburger; fail)+
 
 
-definition (in -) is_pos_code :: \<open>uint32 \<Rightarrow> bool\<close> where
-  \<open>is_pos_code L \<longleftrightarrow> bitAND L 1 = 0\<close>
-
-
 subsubsection \<open>Unit Propagation: Step\<close>
 
 definition delete_index_and_swap_update :: \<open>('a \<Rightarrow> 'b list) \<Rightarrow> 'a \<Rightarrow> nat \<Rightarrow> 'a \<Rightarrow> 'b list\<close> where
@@ -761,16 +667,6 @@ lemma delete_index_and_swap_ll_delete_index_and_swap_update:
 definition append_update :: \<open>('a \<Rightarrow> 'b list) \<Rightarrow> 'a \<Rightarrow> 'b \<Rightarrow> 'a \<Rightarrow> 'b list\<close> where
   \<open>append_update W L a = W(L:= W (L) @ [a])\<close>
 
-lemma append_ll_append_update:
-  \<open>(uncurry2 (RETURN ooo (\<lambda>xs i j. append_ll xs (nat_of_uint32 i) j)), uncurry2 (RETURN ooo append_update))
-  \<in>  [\<lambda>((W, L), i). L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>]\<^sub>f
-     \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 \<A>) \<times>\<^sub>f unat_lit_rel \<times>\<^sub>f Id \<rightarrow> \<langle>\<langle>Id\<rangle>map_fun_rel (D\<^sub>0 \<A>)\<rangle>nres_rel\<close>
-  by (auto simp: append_ll_def uncurry_def fref_def nres_rel_def
-      delete_index_and_swap_update_def map_fun_rel_def p2rel_def nat_lit_rel_def
-      nth_list_update' append_update_def nat_lit_rel_def unat_lit_rel_def br_def
-      uint32_nat_rel_def append_update_def
-      simp del: literal_of_nat.simps)
-
 
 definition is_decided_hd_trail_wl where
   \<open>is_decided_hd_trail_wl S = is_decided (hd (get_trail_wl S))\<close>
@@ -783,9 +679,6 @@ definition is_decided_hd_trail_wll :: \<open>nat twl_st_wl \<Rightarrow> bool nr
 lemma Propagated_eq_ann_lit_of_pair_iff:
   \<open>Propagated x21 x22 = ann_lit_of_pair (a, b) \<longleftrightarrow> x21 = a \<and> b = Some x22\<close>
   by (cases b) auto
-
-definition lit_and_ann_of_propagated_code where
-  \<open>lit_and_ann_of_propagated_code = (\<lambda>L::ann_lit_wl. (fst L, the (snd L)))\<close>
 
 lemma set_mset_all_lits_of_mm_atms_of_ms_iff:
   \<open>set_mset (all_lits_of_mm A) = set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>) \<longleftrightarrow> atms_of_ms (set_mset A) = atms_of (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>)\<close>

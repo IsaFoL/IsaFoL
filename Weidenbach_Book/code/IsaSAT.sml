@@ -62,12 +62,19 @@ fun print_seq_at a i 0 = (print "<...>\n")
       end
     else print "<EOF>\n"
 
+fun print_clause_at [] = print "\n"
+  | print_clause_at  (a :: xs) =
+    let
+      val l = (lit_of_nat a)
+      val _ = print (IntInf.toString l)
+    in (print " "; print_clause_at xs)
+    end
 
-fun print_clauses id a [] = ()
-  | print_clauses id a (i::xs) = (
+fun print_clauses id [] = ()
+  | print_clauses id (i::xs) = (
       print (Int.toString id ^ ": ");
-      print_clause_at a (int_of_gn i);
-      print_clauses (id+1) a xs
+      print_clause_at i;
+      print_clauses (id + 1) xs
     )
 
 fun print_stat (propa, (confl, (dec, (res, (lres, (ures, (gcs, _))))))) end_of_init end_of_processing =

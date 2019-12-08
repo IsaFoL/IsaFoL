@@ -2,6 +2,131 @@ theory IsaSAT_Literals_SML
   imports Watched_Literals.WB_Word_Assn
     Watched_Literals.Array_UInt IsaSAT_Literals
 begin
+hide_const (open) IsaSAT_Literals.uint32_max IsaSAT_Literals.uint64_max
+hide_fact (open) IsaSAT_Literals.uint32_max_def IsaSAT_Literals.uint64_max_def
+
+lemma [simp]: \<open>IsaSAT_Literals.uint32_max = uint32_max\<close>
+    \<open>IsaSAT_Literals.uint64_max = uint64_max\<close>
+  by (auto simp: IsaSAT_Literals.uint32_max_def uint32_max_def
+    IsaSAT_Literals.uint64_max_def uint64_max_def)
+
+text \<open>
+  First we instantiate our types with sort heap and default, to have compatibility with code
+  generation. The idea is simplify to create injections into the components of our datatypes.
+\<close>
+instance literal :: (heap) heap
+proof standard
+  obtain f :: \<open>'a \<Rightarrow> nat\<close> where f: \<open>inj f\<close>
+    by blast
+  then have Hf: \<open>f x = f s \<longleftrightarrow> x = s\<close> for s x
+    unfolding inj_on_def Ball_def comp_def by blast
+  let ?f = \<open>\<lambda>L. (is_pos L, f (atm_of L))\<close>
+  have \<open>OFCLASS(bool \<times> nat, heap_class)\<close>
+   by standard
+  then obtain g :: \<open>bool \<times> nat \<Rightarrow> nat\<close> where g: \<open>inj g\<close>
+    by blast
+  then have H: \<open>g (x, y) = g (s, t) \<longleftrightarrow> x = s \<and> y = t\<close> for s t x y
+    unfolding inj_on_def Ball_def comp_def by blast
+  have \<open>inj (g o ?f)\<close>
+    using f g unfolding inj_on_def Ball_def comp_def H Hf
+    apply (intro allI impI)
+    apply (rename_tac x y, case_tac x; case_tac y)
+    by auto
+  then show \<open>\<exists>to_nat:: 'a literal \<Rightarrow> nat. inj to_nat\<close>
+    by blast
+qed
+
+instance annotated_lit :: (heap, heap, heap) heap
+proof standard
+  let ?f = \<open>\<lambda>L:: ('a, 'b, 'c) annotated_lit.
+      (if is_decided L then Some (lit_dec L) else None,
+       if is_decided L then None else Some (lit_prop L), if is_decided L then None else Some (mark_of L))\<close>
+  have f: \<open>inj ?f\<close>
+    unfolding inj_on_def Ball_def
+    apply (intro allI impI)
+    apply (rename_tac x y, case_tac x; case_tac y)
+    by auto
+  then have Hf: \<open>?f x = ?f s \<longleftrightarrow> x = s\<close> for s x
+    unfolding inj_on_def Ball_def comp_def by blast
+  have \<open>OFCLASS('a option \<times> 'b option \<times> 'c option, heap_class)\<close>
+   by standard
+  then obtain g :: \<open>'a option \<times> 'b option \<times> 'c option \<Rightarrow> nat\<close> where g: \<open>inj g\<close>
+    by blast
+  then have H: \<open>g (x, y) = g (s, t) \<longleftrightarrow> x = s \<and> y = t\<close> for s t x y
+    unfolding inj_on_def Ball_def comp_def by blast
+  have \<open>inj (g o ?f)\<close>
+    using f g unfolding inj_on_def Ball_def comp_def H Hf
+    apply (intro allI impI)
+    apply (rename_tac x y, case_tac x; case_tac y)
+    by auto
+  then show \<open>\<exists>to_nat:: ('a, 'b, 'c) annotated_lit \<Rightarrow> nat. inj to_nat\<close>
+    by blast
+qed
+
+definition uminus_code :: \<open>uint32 \<Rightarrow> uint32\<close> where
+  \<open>uminus_code L = bitXOR L 1\<close>
+
+definition unat_lit_rel :: \<open>(uint32 \<times> nat literal) set\<close> where
+  \<open>unat_lit_rel \<equiv> uint32_nat_rel O nat_lit_rel\<close>
+
+lemma nat_of_uint32_shiftr: \<open>nat_of_uint32 (shiftr xi n) = shiftr (nat_of_uint32 xi) n\<close>
+  by transfer (auto simp: shiftr_div_2n unat_def shiftr_nat_def)
+
+definition atm_of_code :: \<open>uint32 \<Rightarrow> uint32\<close> where
+  \<open>atm_of_code L = shiftr L 1\<close>
+
+
+lemma append_ll_append_update:
+  \<open>(uncurry2 (RETURN ooo (\<lambda>xs i j. append_ll xs (nat_of_uint32 i) j)), uncurry2 (RETURN ooo append_update))
+  \<in>  [\<lambda>((W, L), i). L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>]\<^sub>f
+     \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 \<A>) \<times>\<^sub>f unat_lit_rel \<times>\<^sub>f Id \<rightarrow> \<langle>\<langle>Id\<rangle>map_fun_rel (D\<^sub>0 \<A>)\<rangle>nres_rel\<close>
+  by (auto simp: append_ll_def uncurry_def fref_def nres_rel_def
+      delete_index_and_swap_update_def map_fun_rel_def p2rel_def nat_lit_rel_def
+      nth_list_update' append_update_def nat_lit_rel_def unat_lit_rel_def br_def
+      uint32_nat_rel_def append_update_def
+      simp del: literal_of_nat.simps)
+type_synonym ann_lit_wl = \<open>uint32 \<times> nat option\<close>
+type_synonym ann_lits_wl = \<open>ann_lit_wl list\<close>
+type_synonym ann_lit_wl_fast = \<open>uint32 \<times> uint64 option\<close>
+type_synonym ann_lits_wl_fast = \<open>ann_lit_wl_fast list\<close>
+
+definition nat_ann_lit_rel :: \<open>(ann_lit_wl \<times> (nat, nat) ann_lit) set\<close> where
+  nat_ann_lit_rel_internal_def: \<open>nat_ann_lit_rel = \<langle>uint32_nat_rel, \<langle>nat_rel\<rangle>option_rel\<rangle>ann_lit_rel\<close>
+
+lemma ann_lit_rel_def:
+  \<open>\<langle>R, R'\<rangle>ann_lit_rel = {(a, b). \<exists>c d. (fst a, c) \<in> R \<and> (snd a, d) \<in> R' \<and>
+      b = ann_lit_of_pair (literal_of_nat c, d)}\<close>
+  unfolding nat_ann_lit_rel_internal_def ann_lit_rel_internal_def relAPP_def ..
+
+lemma nat_ann_lit_rel_def:
+  \<open>nat_ann_lit_rel = {(a, b). b = ann_lit_of_pair ((\<lambda>(a,b). (literal_of_nat (nat_of_uint32 a), b)) a)}\<close>
+  unfolding nat_ann_lit_rel_internal_def ann_lit_rel_def
+  apply (auto simp: option_rel_def ex_disj_distrib uint32_nat_rel_def br_def)
+   apply (case_tac b)
+    apply auto
+   apply (case_tac b)
+   apply auto
+  done
+
+definition nat_ann_lits_rel :: \<open>(ann_lits_wl \<times> (nat, nat) ann_lits) set\<close> where
+  \<open>nat_ann_lits_rel = \<langle>nat_ann_lit_rel\<rangle>list_rel\<close>
+
+lemma nat_ann_lits_rel_Cons[iff]:
+  \<open>(x # xs, y # ys) \<in> nat_ann_lits_rel \<longleftrightarrow> (x, y) \<in> nat_ann_lit_rel \<and> (xs, ys) \<in> nat_ann_lits_rel\<close>
+  by (auto simp: nat_ann_lits_rel_def)
+
+lemma is_decided_wl_is_decided:
+  \<open>(RETURN o is_decided_wl, RETURN o is_decided) \<in> nat_ann_lit_rel \<rightarrow> \<langle>bool_rel\<rangle> nres_rel\<close>
+  by (auto simp: nat_ann_lit_rel_def is_decided_wl_def is_decided_def intro!: frefI nres_relI
+      elim: ann_lit_of_pair.elims)
+
+
+definition (in -) is_pos_code :: \<open>uint32 \<Rightarrow> bool\<close> where
+  \<open>is_pos_code L \<longleftrightarrow> bitAND L 1 = 0\<close>
+
+definition lit_and_ann_of_propagated_code where
+  \<open>lit_and_ann_of_propagated_code = (\<lambda>L::ann_lit_wl. (fst L, the (snd L)))\<close>
+
 
 sepref_decl_op atm_of: \<open>atm_of :: nat literal \<Rightarrow> nat\<close> ::
   \<open>(Id :: (nat literal \<times> _) set) \<rightarrow> (Id :: (nat \<times> _) set)\<close> .
@@ -72,7 +197,7 @@ lemma \<open>(return o (\<lambda>n. shiftr n 1), RETURN o shiftr1) \<in> word_na
   by sepref_to_hoare (sep_auto simp: shiftr1_def word_nat_rel_def unat_shiftr br_def)
 
 
-lemma propagated_hnr[sepref_fr_rules]:
+(*lemma propagated_hnr[sepref_fr_rules]:
   \<open>(uncurry (return oo propagated), uncurry (RETURN oo Propagated)) \<in>
      unat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a pair_nat_ann_lit_assn\<close>
   by sepref_to_hoare (sep_auto simp: nat_ann_lit_rel_def propagated_def case_prod_beta p2rel_def
@@ -86,6 +211,8 @@ lemma decided_hnr[sepref_fr_rules]:
       br_def uint32_nat_rel_def unat_lit_rel_def nat_lit_rel_def
       split: option.splits)
 
+*)      
+      
 lemma uminus_lit_hnr[sepref_fr_rules]:
   \<open>(return o uminus_code, RETURN o uminus) \<in>
      unat_lit_assn\<^sup>k \<rightarrow>\<^sub>a unat_lit_assn\<close>
@@ -224,7 +351,7 @@ lemma Pos_unat_lit_assn:
   \<open>(return o (\<lambda>n. two_uint32 * n), RETURN o Pos) \<in> [\<lambda>L. Pos L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A> \<and> isasat_input_bounded \<A>]\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>
      unat_lit_assn\<close>
   by sepref_to_hoare
-    (sep_auto simp: unat_lit_rel_def nat_lit_rel_def uint32_nat_rel_def br_def Collect_eq_comp
+   (sep_auto simp: unat_lit_rel_def nat_lit_rel_def uint32_nat_rel_def br_def Collect_eq_comp
       nat_of_uint32_distrib_mult2)
 
 lemma Neg_unat_lit_assn:
@@ -232,21 +359,21 @@ lemma Neg_unat_lit_assn:
       unat_lit_assn\<close>
   by sepref_to_hoare
    (sep_auto simp: unat_lit_rel_def nat_lit_rel_def uint32_nat_rel_def br_def Collect_eq_comp
-      nat_of_uint32_distrib_mult2_plus1 uint_max_def)
+      nat_of_uint32_distrib_mult2_plus1 uint32_max_def)
 
 lemma Pos_unat_lit_assn':
-  \<open>(return o (\<lambda>n. two_uint32 * n), RETURN o Pos) \<in> [\<lambda>L. L \<le> uint_max div 2]\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>
+  \<open>(return o (\<lambda>n. two_uint32 * n), RETURN o Pos) \<in> [\<lambda>L. L \<le> uint32_max div 2]\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>
      unat_lit_assn\<close>
   by sepref_to_hoare
    (sep_auto simp: unat_lit_rel_def nat_lit_rel_def uint32_nat_rel_def br_def Collect_eq_comp
-      nat_of_uint32_distrib_mult2 uint_max_def)
+      nat_of_uint32_distrib_mult2 uint32_max_def)
 
 lemma Neg_unat_lit_assn':
-  \<open>(return o (\<lambda>n. two_uint32 * n + 1), RETURN o Neg) \<in> [\<lambda>L. L \<le> uint_max div 2]\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>
+  \<open>(return o (\<lambda>n. two_uint32 * n + 1), RETURN o Neg) \<in> [\<lambda>L. L \<le> uint32_max div 2]\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>
      unat_lit_assn\<close>
   by sepref_to_hoare
     (sep_auto simp: unat_lit_rel_def nat_lit_rel_def uint32_nat_rel_def br_def Collect_eq_comp
-      nat_of_uint32_distrib_mult2 uint_max_def nat_of_uint32_add)
+      nat_of_uint32_distrib_mult2 uint32_max_def nat_of_uint32_add)
 
 subsection \<open>Declaration of some Operators and Implementation\<close>
 

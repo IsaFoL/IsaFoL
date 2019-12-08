@@ -3,6 +3,28 @@ imports IsaSAT_Literals_SML Watched_Literals.Array_UInt IsaSAT_Trail
    Watched_Literals.IICF_Array_List32
 begin
 
+type_synonym tri_bool_assn = \<open>uint32\<close>
+
+text \<open>
+  We define set/non set not as the trivial \<^term>\<open>None\<close>, \<^term>\<open>Some True\<close>, and
+  \<^term>\<open>Some False\<close>, because it is not clear whether the compiler can represent the values
+  without pointers. Therefore, we use \<^typ>\<open>uint32\<close>.
+\<close>
+definition UNSET_code :: \<open>tri_bool_assn\<close> where
+  [simp]: \<open>UNSET_code = 0\<close>
+
+definition SET_TRUE_code :: \<open>tri_bool_assn\<close> where
+  [simp]: \<open>SET_TRUE_code = 2\<close>
+
+definition SET_FALSE_code :: \<open>tri_bool_assn\<close> where
+  [simp]: \<open>SET_FALSE_code = 3\<close>
+
+
+definition tri_bool_ref :: \<open>(tri_bool_assn \<times> tri_bool) set\<close> where
+  \<open>tri_bool_ref = {(SET_TRUE_code, SET_TRUE), (UNSET_code, UNSET), (SET_FALSE_code, SET_FALSE)}\<close>
+
+  
+  
 definition tri_bool_assn :: \<open>tri_bool \<Rightarrow> tri_bool_assn \<Rightarrow> assn\<close> where
   \<open>tri_bool_assn = hr_comp uint32_assn tri_bool_ref\<close>
 
@@ -68,11 +90,15 @@ paragraph \<open>Code generation\<close>
 
 subparagraph \<open>Conversion between incomplete and complete mode\<close>
 
+lemma array_nat_of_uint64_conv_alt_def:
+   \<open>array_nat_of_uint64_conv x = x\<close>
+  by (auto simp: array_nat_of_uint64_conv_def)
 sepref_definition trail_pol_slow_of_fast_code
   is \<open>RETURN o trail_pol_slow_of_fast\<close>
   :: \<open>trail_pol_fast_assn\<^sup>d \<rightarrow>\<^sub>a trail_pol_assn\<close>
   unfolding trail_pol_slow_of_fast_def
   apply (rewrite in \<open>(\<hole>, _, _, _)\<close> arl32_to_arl_conv_def[symmetric])
+  apply (rewrite in \<open>(_, _, _, \<hole>, _)\<close> array_nat_of_uint64_conv_alt_def[symmetric])
   apply (rewrite in \<open>(_, _, _, array_nat_of_uint64_conv _, _, \<hole>)\<close> arl32_to_arl_conv_def[symmetric])
   by sepref
 
@@ -221,6 +247,8 @@ sepref_definition tl_trail_tr_code
   supply if_splits[split] option.splits[split]
   unfolding tl_trailt_tr_def UNSET_def[symmetric] butlast_nonresizing_def[symmetric]
     tl_trailt_tr_pre_def
+  apply (rewrite at \<open>_ - \<hole>\<close> one_uint32_nat_def[symmetric])
+  apply (rewrite at \<open>list_update _ _ \<hole>\<close> zero_uint32_nat_def[symmetric])
   apply (rewrite at \<open>_ - one_uint32_nat\<close> fast_minus_def[symmetric])
   supply [[goals_limit = 1]]
   by sepref
@@ -232,9 +260,12 @@ sepref_definition tl_trail_tr_fast_code
   :: \<open>[tl_trailt_tr_pre]\<^sub>a
         trail_pol_fast_assn\<^sup>d \<rightarrow> trail_pol_fast_assn\<close>
   supply if_splits[split] option.splits[split] DECISION_REASON_uint64[sepref_fr_rules]
-  unfolding tl_trailt_tr_def UNSET_def[symmetric] zero_uint64_nat_def[symmetric]
-     butlast_nonresizing_def[symmetric] tl_trailt_tr_pre_def
+  unfolding tl_trailt_tr_def UNSET_def[symmetric]butlast_nonresizing_def[symmetric]
+   tl_trailt_tr_pre_def
+  apply (rewrite at \<open>_ - \<hole>\<close> one_uint32_nat_def[symmetric])
+  apply (rewrite at \<open>list_update _ _ \<hole>\<close> zero_uint32_nat_def[symmetric])
   apply (rewrite at \<open>_ - one_uint32_nat\<close> fast_minus_def[symmetric])
+  unfolding zero_uint64_nat_def[symmetric]
   supply [[goals_limit = 1]]
   by sepref
 
@@ -248,6 +279,8 @@ sepref_definition tl_trail_proped_tr_code
   unfolding tl_trail_propedt_tr_def UNSET_def[symmetric]
      butlast_nonresizing_def[symmetric] tl_trail_propedt_tr_pre_def
   supply [[goals_limit = 1]]
+  apply (rewrite at \<open>list_update _ _ \<hole>\<close> zero_uint32_nat_def[symmetric])
+  supply [[goals_limit = 1]]
   by sepref
 
 declare tl_trail_proped_tr_code.refine[sepref_fr_rules]
@@ -260,6 +293,7 @@ sepref_definition tl_trail_proped_tr_fast_code
   supply if_splits[split] option.splits[split]
   unfolding tl_trail_propedt_tr_def UNSET_def[symmetric]
     butlast_nonresizing_def[symmetric] tl_trail_propedt_tr_pre_def
+  apply (rewrite at \<open>list_update _ _ \<hole>\<close> zero_uint32_nat_def[symmetric])
   supply [[goals_limit = 1]]
   by sepref
 
@@ -286,6 +320,7 @@ sepref_definition cons_trail_Decided_tr_code
        unat_lit_assn\<^sup>k *\<^sub>a trail_pol_assn\<^sup>d \<rightarrow> trail_pol_assn\<close>
   unfolding cons_trail_Decided_tr_def cons_trail_Decided_tr_def one_uint32_nat_def[symmetric]
     SET_TRUE_def[symmetric] SET_FALSE_def[symmetric] cons_trail_Decided_tr_pre_def
+   length_uint32_nat_def[symmetric]
   supply [[goals_limit = 1]]
   by sepref
 
@@ -307,7 +342,7 @@ sepref_definition defined_atm_code
   is \<open>uncurry (RETURN oo defined_atm_pol)\<close>
   :: \<open>[uncurry defined_atm_pol_pre]\<^sub>a trail_pol_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> bool_assn\<close>
   unfolding defined_atm_pol_def UNSET_def[symmetric] tri_bool_eq_def[symmetric]
-    defined_atm_pol_pre_def
+    defined_atm_pol_pre_def two_uint32_nat_def[symmetric]
   supply UNSET_def[simp del] uint32_nat_assn_mult[sepref_fr_rules]
   by sepref
 
@@ -317,7 +352,7 @@ sepref_definition defined_atm_fast_code
   is \<open>uncurry (RETURN oo defined_atm_pol)\<close>
   :: \<open>[uncurry defined_atm_pol_pre]\<^sub>a trail_pol_fast_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> bool_assn\<close>
   unfolding defined_atm_pol_def UNSET_def[symmetric] tri_bool_eq_def[symmetric]
-    defined_atm_pol_pre_def
+    defined_atm_pol_pre_def two_uint32_nat_def[symmetric]
   supply UNSET_def[simp del] uint32_nat_assn_mult[sepref_fr_rules]
   by sepref
 
@@ -383,6 +418,7 @@ sepref_definition tl_trail_tr_no_CS_code
   supply if_splits[split] option.splits[split]
   unfolding tl_trailt_tr_no_CS_def UNSET_def[symmetric] tl_trailt_tr_no_CS_pre_def
     butlast_nonresizing_def[symmetric]
+  apply (rewrite at \<open>list_update _ _ \<hole>\<close> zero_uint32_nat_def[symmetric])
   supply [[goals_limit = 1]]
   by sepref
 
@@ -393,6 +429,7 @@ sepref_definition tl_trail_tr_no_CS_fast_code
   supply if_splits[split] option.splits[split]
   unfolding tl_trailt_tr_no_CS_def UNSET_def[symmetric] tl_trailt_tr_no_CS_pre_def
     butlast_nonresizing_def[symmetric]
+  apply (rewrite at \<open>list_update _ _ \<hole>\<close> zero_uint32_nat_def[symmetric])
   supply [[goals_limit = 1]]
   by sepref
 
@@ -422,6 +459,7 @@ sepref_definition (in -) trail_conv_back_imp_code
   :: \<open>uint32_nat_assn\<^sup>k *\<^sub>a trail_pol_assn'\<^sup>d \<rightarrow>\<^sub>a trail_pol_assn'\<close>
   supply [[goals_limit=1]] nat_of_uint32_conv_def[simp]
   unfolding trail_conv_back_imp_def
+  apply (rewrite at \<open>take \<hole>\<close> nat_of_uint32_conv_def[symmetric])
   by sepref
 
 declare trail_conv_back_imp_code.refine[sepref_fr_rules]

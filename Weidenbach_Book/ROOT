@@ -106,7 +106,7 @@ session "CDCL_no_Sepref" (Weidenbach_Book) = "HOL"  +
     "root.tex"
     "biblio.bib"
 
-session "CDCL" (Weidenbach_Book) = "Sepref_IICF"  +
+session "CDCL" (Weidenbach_Book) = "Isabelle_LLVM"  +
   description \<open>This session the CDCL calculi (Weidenbach and Nieuwenhuis et al.) and the links between
   both. It also contains a very simple implementation based on lists and two extensions (restart and
   incremental).
@@ -164,26 +164,20 @@ session "CDCL_Extensions" (Weidenbach_Book) = "CDCL"  +
     "biblio.bib"
 
 
-session "Watched_Literals" (Weidenbach_Book) = "CDCL"  +
+session "Watched_Literals" (Weidenbach_Book) = "Isabelle_LLVM"  +
   description \<open>This session contains all theories related to the two-watched literals. It links
     the abstract CDCL calculus to a more concrete version with watched literals.\<close>
   options [document = pdf, document_output = "output"]
   sessions
     CDCL
     "HOL-Eisbach"
+    Sepref_IICF
   theories [quick_and_dirty = false, document = true]
-    Bits_Natural
-    IICF_Array_List64
-    Array_Array_List64
-    IICF_Array_List32
-    Array_UInt
-    WB_Word
-    WB_Word_Assn
-    WB_More_Refinement_List
+    WB_More_Refinement_Loops
     WB_More_Refinement
-    WB_More_IICF_SML
+    WB_More_Refinement_List
+    WB_More_IICF_LLVM
     WB_Sort
-    WB_Sort_SML
     Watched_Literals_Transition_System
     Watched_Literals_Algorithm
     Watched_Literals_Algorithm_Restart
@@ -191,8 +185,6 @@ session "Watched_Literals" (Weidenbach_Book) = "CDCL"  +
     Watched_Literals_List_Restart
     Watched_Literals_Watch_List
     Watched_Literals_Watch_List_Restart
-    Watched_Literals_Watch_List_Domain
-    Watched_Literals_Watch_List_Domain_Restart
     Watched_Literals_Watch_List_Initialisation
     CDCL_Conflict_Minimisation
 
@@ -208,45 +200,46 @@ session "IsaSAT" (Weidenbach_Book) = "Watched_Literals"  +
     "HOL-Eisbach"
     Watched_Literals
     Show
+    Isabelle_LLVM
   theories
     IsaSAT_Arena
-    IsaSAT_Arena_SML
+    IsaSAT_Arena_LLVM
     IsaSAT_Clauses
-    IsaSAT_Clauses_SML
+    IsaSAT_Clauses_LLVM
     IsaSAT_Literals
     IsaSAT_Trail
     Watched_Literals_VMTF
     LBD
-    LBD_SML
+    LBD_LLVM
     Version
     IsaSAT_Watch_List
-    IsaSAT_Watch_List_SML
+    IsaSAT_Watch_List_LLVM
     IsaSAT_Setup
-    IsaSAT_Setup_SML
+    IsaSAT_Setup_LLVM
     IsaSAT_Inner_Propagation
-    IsaSAT_Inner_Propagation_SML
+    IsaSAT_Inner_Propagation_LLVM
     IsaSAT_VMTF
-    IsaSAT_VMTF_SML
+    IsaSAT_VMTF_LLVM
     IsaSAT_Backtrack
-    IsaSAT_Backtrack_SML
+    IsaSAT_Backtrack_LLVM
     IsaSAT_Initialisation
-    IsaSAT_Initialisation_SML
+    IsaSAT_Initialisation_LLVM
     IsaSAT_Conflict_Analysis
-    IsaSAT_Conflict_Analysis_SML
+    IsaSAT_Conflict_Analysis_LLVM
     IsaSAT_Propagate_Conflict
-    IsaSAT_Propagate_Conflict_SML
+    IsaSAT_Propagate_Conflict_LLVM
     IsaSAT_Decide
-    IsaSAT_Decide_SML
+    IsaSAT_Decide_LLVM
     IsaSAT_CDCL
-    IsaSAT_CDCL_SML
+    IsaSAT_CDCL_LLVM
 
     IsaSAT_Restart_Heuristics
-    IsaSAT_Restart_Heuristics_SML
+    IsaSAT_Restart_Heuristics_LLVM
     IsaSAT_Restart
-    IsaSAT_Restart_SML
+    IsaSAT_Restart_LLVM
 
     IsaSAT
-    IsaSAT_SML
+    IsaSAT_LLVM
 
   document_files
     "root.tex"
@@ -254,6 +247,7 @@ session "IsaSAT" (Weidenbach_Book) = "Watched_Literals"  +
   export_files (in "code") [1]
     "IsaSAT.IsaSAT:**"
 
+(*
 session Model_Enumeration (Weidenbach_Book) = Watched_Literals +
   description \<open>This extends the previous version to a very simple 'SMT' solver: we enumerate all models and let an unspecified theoty solver checks if a model is valid or another must be found.\<close>
   sessions
@@ -269,6 +263,7 @@ session Model_Enumeration (Weidenbach_Book) = Watched_Literals +
   document_files
     "root.tex"
     "biblio.bib"
+*)
 
 session Weidenbach_Book (Weidenbach_Book) = IsaSAT +
   description \<open>We import everything\<close>
@@ -278,7 +273,6 @@ session Weidenbach_Book (Weidenbach_Book) = IsaSAT +
     CDCL
     CDCL_Extensions
     Watched_Literals
-    Model_Enumeration
     IsaSAT
     "HOL-Library"
     Resolution_Superposition

@@ -1,0 +1,18 @@
+session PAC_Checker = "Sepref_IICF" +
+   description \<open>PAC proof checker\<close>
+   sessions
+     "HOL-Library"
+     "HOL-Algebra"
+     "Polynomials"
+     Weidenbach_Book_Base
+     Show
+     "HOL-ex"
+   theories
+     Weidenbach_Book_Base.WB_List_More
+     WB_Sort 
+     PAC_Specification
+     PAC_Map_Rel
+     PAC_Checker_Specification
+     PAC_Polynoms
+     PAC_Polynoms_Term
+     PAC_Checker

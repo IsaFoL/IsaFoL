@@ -1,0 +1,589 @@
+theory PAC_Checker_Specification
+  imports PAC_Specification
+     Refine_Imperative_HOL.IICF
+     Weidenbach_Book_Base.WB_List_More
+
+begin
+
+
+datatype status =
+  is_failed: FAILED |
+  is_success: SUCCESS |
+  is_found: FOUND
+
+lemma is_success_alt_def:
+  \<open>is_success a \<longleftrightarrow> a = SUCCESS\<close>
+  by (cases a) auto
+
+datatype 'a pac_step =
+  Add (pac_src1: nat) (pac_src2: nat) (new_id: nat) (pac_res: 'a) |
+  Mult (pac_src1: nat) (pac_mult: 'a) (new_id: nat) (pac_res: 'a) |
+  Del (pac_src1: nat)
+
+
+definition PAC_checker_specification
+  :: \<open>int_poly multiset \<Rightarrow> int_poly \<Rightarrow> (status \<times> int_poly multiset) nres\<close>
+where
+  \<open>PAC_checker_specification A spec = SPEC(\<lambda>(b, B).
+      (\<not>is_failed b \<longrightarrow> pac_ideal (set_mset B) \<subseteq> pac_ideal (set_mset A)) \<and>
+      (is_found b \<longrightarrow> spec \<in> pac_ideal (set_mset A)))\<close>
+
+definition PAC_checker_specification_spec
+  ::  \<open>int_poly \<Rightarrow> int_poly multiset \<Rightarrow> (status \<times> int_poly multiset) \<Rightarrow> bool\<close>
+where
+  \<open>PAC_checker_specification_spec spec A = (\<lambda>(b, B).
+       (is_success b \<longrightarrow> PAC_Format\<^sup>*\<^sup>* A B) \<and>
+       (is_found b \<longrightarrow> PAC_Format\<^sup>*\<^sup>* A B \<and> spec \<in> pac_ideal (set_mset A)))\<close>
+
+abbreviation PAC_checker_specification2
+  ::  \<open>int_poly \<Rightarrow> int_poly multiset \<Rightarrow> (status \<times> int_poly multiset) nres\<close>
+where
+  \<open>PAC_checker_specification2 spec A \<equiv> SPEC(PAC_checker_specification_spec spec A)\<close>
+
+
+definition PAC_checker_specification_step_spec
+  ::  \<open>int_poly multiset \<Rightarrow> int_poly \<Rightarrow> int_poly multiset \<Rightarrow> (status \<times> int_poly multiset) \<Rightarrow> bool\<close>
+where
+  \<open>PAC_checker_specification_step_spec A\<^sub>0 spec A = (\<lambda>(b, B).
+       (is_success b \<longrightarrow> PAC_Format\<^sup>*\<^sup>* A\<^sub>0 A \<and> PAC_Format\<^sup>*\<^sup>* A B) \<and>
+       (is_found b \<longrightarrow> PAC_Format\<^sup>*\<^sup>* A\<^sub>0 A \<and> PAC_Format\<^sup>*\<^sup>* A B \<and> spec \<in> pac_ideal (set_mset A\<^sub>0)))\<close>
+
+abbreviation PAC_checker_specification_step2
+  ::  \<open>int_poly multiset \<Rightarrow> int_poly \<Rightarrow> int_poly multiset \<Rightarrow> (status \<times> int_poly multiset) nres\<close>
+where
+  \<open>PAC_checker_specification_step2 A\<^sub>0 spec A \<equiv> SPEC(PAC_checker_specification_step_spec A\<^sub>0  spec A)\<close>
+
+
+definition normalize_poly_spec :: \<open>_\<close> where
+  \<open>normalize_poly_spec p = SPEC (\<lambda>r. p - r \<in> ideal polynom_bool)\<close>
+
+lemma normalize_poly_spec_alt_def:
+  \<open>normalize_poly_spec p = SPEC (\<lambda>r. r - p \<in> ideal polynom_bool)\<close>
+  unfolding normalize_poly_spec_def
+  by (auto dest: ideal.span_neg)
+
+definition mult_poly_spec :: \<open>int mpoly \<Rightarrow> int mpoly \<Rightarrow> int mpoly nres\<close> where
+  \<open>mult_poly_spec p q = SPEC (\<lambda>r. p * q - r \<in> ideal polynom_bool)\<close>
+
+definition check_add :: \<open>(nat, int mpoly) fmap \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> int mpoly \<Rightarrow> bool nres\<close> where
+  \<open>check_add A p q i r =
+     SPEC(\<lambda>b. b \<longrightarrow> p \<in># dom_m A \<and> q \<in># dom_m A \<and> i \<notin># dom_m A \<and>
+            the (fmlookup A p) + the (fmlookup A q) - r \<in>  ideal polynom_bool)\<close>
+
+definition check_mult :: \<open>(nat, int mpoly) fmap \<Rightarrow> nat \<Rightarrow> int mpoly \<Rightarrow> nat \<Rightarrow> int mpoly \<Rightarrow> bool nres\<close> where
+  \<open>check_mult A p q i r =
+     SPEC(\<lambda>b. b \<longrightarrow> p \<in># dom_m A \<and>i \<notin># dom_m A \<and>
+            the (fmlookup A p) * q - r \<in>  ideal polynom_bool)\<close>
+
+fun merge_status where
+  \<open>merge_status (FAILED) _ = FAILED\<close> |
+  \<open>merge_status _ (FAILED) = FAILED\<close> |
+  \<open>merge_status FOUND _ = FOUND\<close> |
+  \<open>merge_status _ FOUND = FOUND\<close> |
+  \<open>merge_status _ _ = SUCCESS\<close>
+
+
+definition check_del :: \<open>(nat, int mpoly) fmap \<Rightarrow> nat \<Rightarrow> bool nres\<close> where
+  \<open>check_del A p =
+     SPEC(\<lambda>b. b \<longrightarrow> p \<in># dom_m A)\<close>
+
+definition PAC_checker_step
+  ::  \<open>int_poly \<Rightarrow> status \<times> (nat, int_poly) fmap \<Rightarrow> int_poly pac_step \<Rightarrow>
+    (status \<times> (nat, int_poly) fmap) nres\<close>
+where
+  \<open>PAC_checker_step = (\<lambda>spec (stat, A) st. case st of
+     Add _ _ _ _ \<Rightarrow>
+       do {
+         r \<leftarrow> normalize_poly_spec (pac_res st);
+        eq \<leftarrow> check_add A (pac_src1 st) (pac_src2 st) (new_id st) r;
+        st' \<leftarrow> SPEC(\<lambda>st'. (\<not>is_failed st' \<and> is_found st' \<longrightarrow> r - spec \<in> ideal polynom_bool));
+        if eq
+        then RETURN (merge_status stat st',
+          fmupd (new_id st) r A)
+        else RETURN (FAILED, A)
+   }
+   | Del _ \<Rightarrow>
+       do {
+        eq \<leftarrow> check_del A (pac_src1 st);
+        if eq
+        then RETURN (stat, (fmdrop (pac_src1 st) A))
+        else RETURN (FAILED, A)
+   }
+   | Mult _ _ _ _ \<Rightarrow>
+       do {
+         r \<leftarrow> normalize_poly_spec (pac_res st);
+         q \<leftarrow> normalize_poly_spec (pac_mult st);
+        eq \<leftarrow> check_mult A (pac_src1 st) q (new_id st) r;
+        st' \<leftarrow> SPEC(\<lambda>st'. (\<not>is_failed st' \<and> is_found st' \<longrightarrow> r - spec \<in> ideal polynom_bool));
+        if eq
+        then RETURN (merge_status stat st',
+          fmupd (new_id st) r A)
+        else RETURN (FAILED, A)
+   }
+ )\<close>
+
+definition polys_rel :: \<open>_\<close> where
+\<open>polys_rel = {(A, B). B = (ran_m A)}\<close>
+
+lemma polys_rel_update_remove:
+  \<open>x13 \<notin>#dom_m A \<Longrightarrow> x11 \<in># dom_m A \<Longrightarrow> x12 \<in># dom_m A \<Longrightarrow> x11 \<noteq> x12 \<Longrightarrow> (A,B) \<in> polys_rel \<Longrightarrow>
+   (fmupd x13 r (fmdrop x11 (fmdrop x12 A)),
+        add_mset r B - {#the (fmlookup A x11), the (fmlookup A x12)#})
+       \<in> polys_rel\<close>
+  \<open>x13 \<notin>#dom_m A \<Longrightarrow> x11 \<in># dom_m A \<Longrightarrow> (A,B) \<in> polys_rel \<Longrightarrow>
+   (fmupd x13 r (fmdrop x11 A),add_mset r B - {#the (fmlookup A x11)#})
+       \<in> polys_rel\<close>
+  \<open>x13 \<notin>#dom_m A \<Longrightarrow> (A,B) \<in> polys_rel \<Longrightarrow>
+   (fmupd x13 r A, add_mset r B) \<in> polys_rel\<close>
+  \<open>x13 \<in>#dom_m A \<Longrightarrow> (A,B) \<in> polys_rel \<Longrightarrow>
+   (fmdrop x13 A, remove1_mset (the (fmlookup A x13)) B) \<in> polys_rel\<close>
+  using distinct_mset_dom[of A]
+  apply (auto simp: polys_rel_def ran_m_mapsto_upd ran_m_mapsto_upd_notin
+    ran_m_fmdrop)
+  apply (subst ran_m_mapsto_upd_notin)
+  apply (auto dest: in_diffD dest!: multi_member_split simp: ran_m_fmdrop ran_m_fmdrop_If distinct_mset_remove1_All ran_m_def
+      add_mset_eq_add_mset removeAll_notin
+    split: if_splits intro!: image_mset_cong)
+ by (smt count_inI diff_single_trivial fmlookup_drop image_mset_cong2 replicate_mset_0)
+
+lemma polys_rel_in_dom_inD:
+  \<open>(A, B) \<in> polys_rel \<Longrightarrow>
+    x12 \<in># dom_m A \<Longrightarrow>
+    the (fmlookup A x12) \<in># B\<close>
+  by (auto simp: polys_rel_def)
+
+lemma PAC_Format_add_and_remove:
+  \<open>r - x14 \<in> More_Modules.ideal polynom_bool \<Longrightarrow>
+       (A, B) \<in> polys_rel \<Longrightarrow>
+       x12 \<in># dom_m A \<Longrightarrow>
+       x13 \<notin># dom_m A \<Longrightarrow>
+       2 * the (fmlookup A x12) - r \<in> More_Modules.ideal polynom_bool \<Longrightarrow>
+       PAC_Format\<^sup>*\<^sup>* B (remove1_mset (the (fmlookup A x12)) (add_mset r B))\<close>
+   \<open>r - x14 \<in> More_Modules.ideal polynom_bool \<Longrightarrow>
+       (A, B) \<in> polys_rel \<Longrightarrow>
+       the (fmlookup A x11) + the (fmlookup A x12) - r \<in> More_Modules.ideal polynom_bool \<Longrightarrow>
+       x11 \<in># dom_m A \<Longrightarrow>
+       x12 \<in># dom_m A \<Longrightarrow>
+       PAC_Format\<^sup>*\<^sup>* B (add_mset r B)\<close>
+   \<open>r - x14 \<in> More_Modules.ideal polynom_bool \<Longrightarrow>
+       (A, B) \<in> polys_rel \<Longrightarrow>
+       x11 \<in># dom_m A \<Longrightarrow>
+       x12 \<in># dom_m A \<Longrightarrow>
+       the (fmlookup A x11) + the (fmlookup A x12) - r \<in> More_Modules.ideal polynom_bool \<Longrightarrow>
+       x11 \<noteq> x12 \<Longrightarrow>
+       PAC_Format\<^sup>*\<^sup>* B
+        (add_mset r B - {#the (fmlookup A x11), the (fmlookup A x12)#})\<close>
+   \<open>(A, B) \<in> polys_rel \<Longrightarrow>
+       r - x34 \<in> More_Modules.ideal polynom_bool \<Longrightarrow>
+       x11 \<in># dom_m A \<Longrightarrow>
+       the (fmlookup A x11) * x32 - r \<in> More_Modules.ideal polynom_bool \<Longrightarrow>
+       PAC_Format\<^sup>*\<^sup>* B (add_mset r B)\<close>
+   \<open>(A, B) \<in> polys_rel \<Longrightarrow>
+       r - x34 \<in> More_Modules.ideal polynom_bool \<Longrightarrow>
+       x11 \<in># dom_m A \<Longrightarrow>
+       the (fmlookup A x11) * x32 - r \<in> More_Modules.ideal polynom_bool \<Longrightarrow>
+       PAC_Format\<^sup>*\<^sup>* B (remove1_mset (the (fmlookup A x11)) (add_mset r B))\<close>
+  \<open>(A, B) \<in> polys_rel \<Longrightarrow>
+       x12 \<in># dom_m A \<Longrightarrow>
+       PAC_Format\<^sup>*\<^sup>* B (remove1_mset (the (fmlookup A x12)) B)\<close>
+   subgoal
+     apply (rule converse_rtranclp_into_rtranclp)
+     apply (rule PAC_Format.add[of \<open>the (fmlookup A x12)\<close> B \<open>the (fmlookup A x12)\<close>])
+     apply (auto dest: polys_rel_in_dom_inD)
+     apply (rule converse_rtranclp_into_rtranclp)
+     apply (rule PAC_Format.del[of \<open>the (fmlookup A x12)\<close>])
+     apply (auto dest: polys_rel_in_dom_inD)
+     done
+  subgoal H2
+    apply (rule converse_rtranclp_into_rtranclp)
+    apply (rule PAC_Format.add[of \<open>the (fmlookup A x11)\<close> B \<open>the (fmlookup A x12)\<close>])
+    apply (auto dest: polys_rel_in_dom_inD)
+    done
+  subgoal
+    apply (rule rtranclp_trans)
+    apply (rule H2; assumption)
+    apply (rule converse_rtranclp_into_rtranclp)
+    apply (rule PAC_Format.del[of \<open>the (fmlookup A x12)\<close>])
+    apply (auto dest: polys_rel_in_dom_inD)
+    apply (rule converse_rtranclp_into_rtranclp)
+    apply (rule PAC_Format.del[of \<open>the (fmlookup A x11)\<close>])
+    apply (auto dest: polys_rel_in_dom_inD)
+    apply (auto simp: polys_rel_def ran_m_def add_mset_eq_add_mset dest!: multi_member_split)
+    done
+ subgoal H2
+    apply (rule converse_rtranclp_into_rtranclp)
+    apply (rule PAC_Format.mult[of \<open>the (fmlookup A x11)\<close> B \<open>x32\<close>])
+    apply (auto dest: polys_rel_in_dom_inD)
+    done
+  subgoal
+    apply (rule rtranclp_trans)
+    apply (rule H2; assumption)
+    apply (rule converse_rtranclp_into_rtranclp)
+    apply (rule PAC_Format.del[of \<open>the (fmlookup A x11)\<close>])
+    apply (auto dest: polys_rel_in_dom_inD)
+    done
+  subgoal
+    apply (rule converse_rtranclp_into_rtranclp)
+    apply (rule PAC_Format.del[of \<open>the (fmlookup A x12)\<close> B])
+    apply (auto dest: polys_rel_in_dom_inD)
+    done
+  done
+
+
+abbreviation status_rel :: \<open>(status \<times> status) set\<close> where
+  \<open>status_rel \<equiv> Id\<close>
+
+lemma is_merge_status[simp]:
+  \<open>is_failed (merge_status a st') \<longleftrightarrow> is_failed a \<or> is_failed st'\<close>
+  \<open>is_found (merge_status a st') \<longleftrightarrow> \<not>is_failed a \<and> \<not>is_failed st' \<and> (is_found a \<or> is_found st')\<close>
+  \<open>is_success (merge_status a st') \<longleftrightarrow> (is_success a \<and> is_success st')\<close>
+  by (cases a; cases st'; auto; fail)+
+
+lemma status_rel_merge_status:
+  \<open>(merge_status a b, SUCCESS) \<notin> status_rel \<longleftrightarrow>
+    (a = FAILED) \<or> (b = FAILED) \<or>
+    a = FOUND \<or> (b = FOUND)\<close>
+  by (cases a; cases b; auto)
+
+lemma Ex_status_iff:
+  \<open>(\<exists>a. P a) \<longleftrightarrow> P SUCCESS \<or> P FOUND \<or> (P (FAILED))\<close>
+  apply auto
+  apply (case_tac a; auto)
+  done
+
+lemma is_failed_alt_def:
+  \<open>is_failed st' \<longleftrightarrow> \<not>is_success st' \<and> \<not>is_found st'\<close>
+  by (cases st') auto
+
+lemma merge_status_eq_iff[simp]:
+  \<open>merge_status a SUCCESS = SUCCESS \<longleftrightarrow> a = SUCCESS\<close>
+  \<open>merge_status a SUCCESS = FOUND \<longleftrightarrow> a = FOUND\<close>
+  \<open>merge_status SUCCESS a = SUCCESS \<longleftrightarrow> a = SUCCESS\<close>
+  \<open>merge_status SUCCESS a = FOUND \<longleftrightarrow> a = FOUND\<close>
+  \<open>merge_status SUCCESS a = FAILED \<longleftrightarrow> a = FAILED\<close>
+  \<open>merge_status a SUCCESS = FAILED \<longleftrightarrow> a = FAILED\<close>
+  \<open>merge_status FOUND a = FAILED \<longleftrightarrow> a = FAILED\<close>
+  \<open>merge_status a FOUND = FAILED \<longleftrightarrow> a = FAILED\<close>
+  \<open>merge_status a FOUND = SUCCESS \<longleftrightarrow> False\<close>
+  \<open>merge_status a b = FOUND \<longleftrightarrow> (a = FOUND \<or> b = FOUND) \<and> (a \<noteq> FAILED \<and> b \<noteq> FAILED)\<close>
+  apply (cases a; auto; fail)+
+  apply (cases a; cases b; auto; fail)+
+  done
+
+lemma PAC_checker_step_PAC_checker_specification2:
+  fixes a :: \<open>status\<close>
+  assumes [simp,intro]: \<open>(A,B) \<in> polys_rel\<close> and
+    \<open>\<not>is_failed a\<close> and
+    [simp,intro]: \<open>a = FOUND \<Longrightarrow> spec \<in> pac_ideal (set_mset A\<^sub>0)\<close> and
+    A\<^sub>0B: \<open>PAC_Format\<^sup>*\<^sup>* A\<^sub>0 B\<close>
+  shows \<open>PAC_checker_step spec (a, A) st \<le> \<Down> (status_rel \<times>\<^sub>r polys_rel) (PAC_checker_specification_step2 A\<^sub>0 spec B)\<close>
+proof -
+  have H1: \<open> x12 \<in># dom_m A \<Longrightarrow>
+       2 * the (fmlookup A x12) - r \<in> More_Modules.ideal polynom_bool \<Longrightarrow>
+       r - spec \<in> More_Modules.ideal polynom_bool \<Longrightarrow>
+       spec \<in> pac_ideal (set_mset B)\<close> for x12 r
+     using \<open>(A,B) \<in> polys_rel\<close>
+      ideal.span_add[OF ideal.span_add[OF ideal.span_neg ideal.span_neg,
+         of \<open>the (fmlookup A x12)\<close> _  \<open>the (fmlookup A x12)\<close>],
+      of \<open>set_mset B \<union> polynom_bool\<close> \<open>2 * the (fmlookup A x12) - r\<close>]
+     unfolding polys_rel_def
+     apply (subgoal_tac \<open>r \<in> pac_ideal (set_mset B)\<close>)
+     apply (auto dest!: multi_member_split simp: ran_m_def intro: diff_in_polynom_bool_pac_idealI)
+     by (metis (no_types, lifting) UnCI Un_insert_left diff_in_polynom_bool_pac_idealI ideal.span_add
+       ideal.span_base mult_2 set_image_mset set_mset_add_mset_insert union_single_eq_member)
+
+  have H2: \<open>x11 \<in># dom_m A \<Longrightarrow>
+       x12 \<in># dom_m A \<Longrightarrow>
+       the (fmlookup A x11) + the (fmlookup A x12) - r
+       \<in> More_Modules.ideal polynom_bool \<Longrightarrow>
+       r - spec \<in> More_Modules.ideal polynom_bool \<Longrightarrow>
+       spec \<in> pac_ideal (set_mset B)\<close>  for x12 r x11
+     using \<open>(A,B) \<in> polys_rel\<close>
+      ideal.span_add[OF ideal.span_add[OF ideal.span_neg ideal.span_neg,
+         of \<open>the (fmlookup A x11)\<close> _  \<open>the (fmlookup A x12)\<close>],
+      of \<open>set_mset B \<union> polynom_bool\<close> \<open>the (fmlookup A x11) + the (fmlookup A x12) - r\<close>]
+     unfolding polys_rel_def
+    apply (subgoal_tac \<open>r \<in> pac_ideal (set_mset B)\<close>)
+     apply (auto dest!: multi_member_split simp: ran_m_def ideal.span_base intro: diff_in_polynom_bool_pac_idealI)
+     by (smt Un_insert_left diff_diff_eq2 diff_in_polynom_bool_pac_idealI diff_zero ideal.span_base ideal.span_diff
+       ideal.span_neg insertI1 minus_diff_eq)
+
+  have H3: \<open>x12 \<in># dom_m A \<Longrightarrow>
+       the (fmlookup A x12) * q - r \<in> More_Modules.ideal polynom_bool \<Longrightarrow>
+       r - spec \<in> More_Modules.ideal polynom_bool \<Longrightarrow>
+       spec \<in> pac_ideal (set_mset B)\<close> for x12 r q
+     using \<open>(A,B) \<in> polys_rel\<close>
+      ideal.span_add[OF ideal.span_add[OF ideal.span_neg ideal.span_neg,
+         of \<open>the (fmlookup A x12)\<close> _  \<open>the (fmlookup A x12)\<close>],
+      of \<open>set_mset B \<union> polynom_bool\<close> \<open>2 * the (fmlookup A x12) - r\<close>]
+     unfolding polys_rel_def
+     apply (subgoal_tac \<open>r \<in> pac_ideal (set_mset B)\<close>)
+     apply (auto dest!: multi_member_split simp: ran_m_def intro: diff_in_polynom_bool_pac_idealI)
+     by (metis PAC_Format_subset_ideal Un_insert_left mult set_image_mset set_mset_add_mset_insert subsetD union_single_eq_member)
+
+  have [intro]: \<open>spec \<in> pac_ideal (set_mset B) \<Longrightarrow> spec \<in> pac_ideal (set_mset A\<^sub>0)\<close>
+    using A\<^sub>0B by (smt ideal.span_mono ideal.span_span ideal.span_superset le_sup_iff
+      rtranclp_PAC_Format_subset_ideal subset_iff)
+
+  have eq_successI: \<open>st' \<noteq> FAILED \<Longrightarrow>
+       st' \<noteq> FOUND \<Longrightarrow> st' = SUCCESS\<close> for st'
+    by (cases st') auto
+  have [iff]: \<open>a \<noteq> FAILED\<close> and
+    [intro]: \<open>a \<noteq> SUCCESS \<Longrightarrow> a = FOUND\<close> and
+    [simp]: \<open>merge_status a FOUND = FOUND\<close>
+    using assms(2) by (cases a; auto)+
+  note [[goals_limit=1]]
+  show ?thesis
+    unfolding PAC_checker_step_def PAC_checker_specification_step_spec_def
+      normalize_poly_spec_alt_def check_mult_def check_add_def
+    apply (cases st)
+    apply clarsimp_all
+    
+    subgoal for x11 x12 x13 x14
+      apply (refine_vcg lhs_step_If)
+      subgoal for r eqa st'
+        using assms apply -
+        apply (rule RETURN_SPEC_refine)
+        apply (rule_tac x = \<open>(merge_status a st',add_mset r B)\<close> in exI)
+        apply (auto simp: polys_rel_update_remove PAC_Format_add_and_remove
+             is_failed_def is_success_def is_found_def
+          dest!: eq_successI
+          split: if_splits
+          intro: PAC_Format_add_and_remove H2)
+        done
+      subgoal
+        by (rule RETURN_SPEC_refine)
+          (auto simp: Ex_status_iff)
+      done
+    subgoal for x11 x12 x13 x14
+      apply (refine_vcg lhs_step_If)
+      subgoal for r q eqa st'
+        using assms apply -
+        apply (rule RETURN_SPEC_refine)
+        apply (rule_tac x = \<open>(merge_status a st',add_mset r B)\<close> in exI)
+        apply (auto simp: polys_rel_update_remove PAC_Format_add_and_remove
+             is_failed_def is_success_def is_found_def
+          dest!: eq_successI
+          split: if_splits
+          intro: PAC_Format_add_and_remove H3)
+        done
+      subgoal
+        by (rule RETURN_SPEC_refine)
+          (auto simp: Ex_status_iff)
+      done
+    subgoal for x11
+      unfolding check_del_def
+      apply (refine_vcg lhs_step_If)
+      subgoal for eq
+        using assms apply -
+        apply (rule RETURN_SPEC_refine)
+        apply (rule_tac x = \<open>(a,remove1_mset (the (fmlookup A x11)) B)\<close> in exI)
+        apply (auto simp: polys_rel_update_remove PAC_Format_add_and_remove
+             is_failed_def is_success_def is_found_def
+          dest!: eq_successI
+          split: if_splits
+          intro: PAC_Format_add_and_remove H3)
+        done
+      subgoal
+        by (rule RETURN_SPEC_refine)
+          (auto simp: Ex_status_iff)
+      done
+    done
+qed
+
+
+definition PAC_checker
+  :: \<open>int_poly \<Rightarrow> (nat, int_poly) fmap \<Rightarrow> status \<Rightarrow> int_poly pac_step list \<Rightarrow>
+    (status \<times> (nat, int_poly) fmap) nres\<close>
+where
+  \<open>PAC_checker spec A b st = do {
+    (S, _) \<leftarrow> WHILE\<^sub>T
+       (\<lambda>((b :: status, A :: (nat, int_poly) fmap), st). \<not>is_failed b \<and> st \<noteq> [])
+       (\<lambda>((bA), st). do {
+          ASSERT(st \<noteq> []);
+          S \<leftarrow> PAC_checker_step spec (bA) (hd st);
+          RETURN (S, tl st)
+        })
+      ((b, A), st);
+    RETURN S
+  }\<close>
+
+
+lemma PAC_checker_specification_spec_trans:
+  \<open>PAC_checker_specification_spec spec A (st, x2) \<Longrightarrow>
+    PAC_checker_specification_step_spec A spec x2 (st', x1a) \<Longrightarrow>
+    PAC_checker_specification_spec spec A (st', x1a)\<close>
+ unfolding PAC_checker_specification_spec_def
+   PAC_checker_specification_step_spec_def
+ by auto
+
+lemma RES_SPEC_eq:
+  \<open>RES \<Phi> = SPEC(\<lambda>P. P \<in> \<Phi>)\<close>
+  by auto
+
+lemma is_failed_is_success_completeD:
+  \<open>\<not> is_failed x \<Longrightarrow> \<not>is_success x \<Longrightarrow> is_found x\<close>
+  by (cases x) auto
+
+lemma PAC_checker_PAC_checker_specification2:
+  \<open>(A, B) \<in> polys_rel \<Longrightarrow>
+    \<not>is_failed a \<Longrightarrow> (a = FOUND \<Longrightarrow> spec \<in> pac_ideal (set_mset B)) \<Longrightarrow>
+  PAC_checker spec A a st \<le> \<Down> (status_rel \<times>\<^sub>r polys_rel) (PAC_checker_specification2 spec B)\<close>
+  unfolding PAC_checker_def conc_fun_RES
+  apply (subst RES_SPEC_eq)
+  apply (refine_vcg WHILET_rule[where
+      I = \<open>\<lambda>((bB), st). bB \<in> (status_rel \<times>\<^sub>r polys_rel)\<inverse> ``
+                      Collect (PAC_checker_specification_spec spec B)\<close>
+    and R = \<open>measure (\<lambda>(_, st).  Suc (length st))\<close>])
+  subgoal by auto
+  subgoal by (force simp: PAC_checker_specification_spec_def)
+  subgoal by auto
+  subgoal
+    apply auto
+    apply (rule
+     PAC_checker_step_PAC_checker_specification2[of _ _ _ _ B, THEN order_trans])
+     apply assumption
+     apply assumption
+     apply (auto intro: PAC_checker_specification_spec_trans simp: conc_fun_RES)
+     apply (auto simp: PAC_checker_specification_spec_def dest: PAC_Format_subset_ideal
+       dest: is_failed_is_success_completeD)
+     done
+  subgoal
+    by auto
+  done
+
+definition remap_polys_polynom_bool :: \<open>int mpoly \<Rightarrow> ('a, int mpoly) fmap \<Rightarrow> (('a, int mpoly) fmap \<times> status) nres\<close> where
+\<open>remap_polys_polynom_bool spec A = SPEC(\<lambda>(A', st). dom_m A = dom_m A' \<and>
+      (\<forall>i \<in># dom_m A. the (fmlookup A i) - the (fmlookup A' i) \<in> ideal polynom_bool) \<and>
+    (st = FOUND \<longrightarrow> spec \<in># ran_m A') \<and>
+    \<not>is_failed st)\<close>
+
+definition remap_polys_change_all :: \<open>int mpoly \<Rightarrow> ('a, int mpoly) fmap \<Rightarrow> (('a, int mpoly) fmap \<times> status) nres\<close> where
+\<open>remap_polys_change_all spec A = SPEC (\<lambda>(A', st).
+    pac_ideal (set_mset (ran_m A)) = pac_ideal (set_mset (ran_m A')) \<and>
+    (st = FOUND \<longrightarrow> spec \<in># ran_m A') \<and>
+    \<not>is_failed st)\<close>
+
+lemma fmap_eq_dom_iff:
+  \<open>A = A' \<longleftrightarrow> dom_m A = dom_m A' \<and> (\<forall>i \<in># dom_m A. the (fmlookup A i) = the (fmlookup A' i))\<close>
+  apply auto
+  by (metis fmap_ext in_dom_m_lookup_iff option.collapse)
+
+lemma remap_polys_polynom_bool_remap_polys_change_all:
+  \<open>remap_polys_polynom_bool spec A \<le> remap_polys_change_all spec A\<close>
+  unfolding remap_polys_polynom_bool_def remap_polys_change_all_def
+  apply (simp add: ideal.span_zero fmap_eq_dom_iff ideal.span_eq)
+  apply (auto dest!: multi_member_split simp: ran_m_def pac_ideal_alt_def ideal.span_base
+    add_mset_eq_add_mset
+    eq_commute[of \<open>add_mset _ _\<close> \<open>dom_m (A :: ('a, int mpoly)fmap)\<close> for A])
+    apply (metis (no_types) UnI2 ideal.eq_span_insert_eq ideal.span_base insertI1)
+  apply (metis Un_insert_left diff_in_polynom_bool_pac_idealI ideal.span_base insertI1 pac_ideal_alt_def)
+  apply (metis (no_types) UnI2 ideal.eq_span_insert_eq ideal.span_base insertI1)
+  apply (metis Un_insert_left diff_in_polynom_bool_pac_idealI ideal.span_base ideal.span_insertI ideal.span_neg insertI1 minus_diff_eq pac_ideal_alt_def)
+  apply (metis Un_insert_left diff_in_polynom_bool_pac_idealI2 insertI1 pac_ideal_alt_def)
+  by (metis Un_insert_left diff_in_polynom_bool_pac_idealI2 ideal.span_insertI insertI1 pac_ideal_alt_def)
+
+
+definition remap_polys :: \<open>int mpoly \<Rightarrow> (nat, int mpoly) fmap \<Rightarrow> ((nat, int mpoly) fmap \<times> status) nres\<close> where
+  \<open>remap_polys spec A = do{
+    dom \<leftarrow> SPEC(\<lambda>dom. set_mset (dom_m A) \<subseteq> dom \<and> finite dom);
+   (N, b) \<leftarrow> FOREACH dom
+     (\<lambda>i (A', b).
+        if i \<in># dom_m A
+        then do {
+          p \<leftarrow> SPEC(\<lambda>p. the (fmlookup A i) - p \<in> ideal polynom_bool);
+          eq \<leftarrow> SPEC(\<lambda>eq. eq \<longrightarrow> p = spec);
+          RETURN(fmupd i p A', b \<or> eq)
+        } else RETURN (A', b))
+     (fmempty, False);
+     RETURN (N, if b then FOUND else SUCCESS)
+ }\<close>
+
+lemma remap_polys_spec:
+  \<open>remap_polys spec A \<le> SPEC(\<lambda>(A', b). dom_m A = dom_m A' \<and>
+    (\<forall>i \<in># dom_m A. the (fmlookup A i) - the (fmlookup A' i) \<in> ideal polynom_bool) \<and>
+    (b = FOUND \<longrightarrow> spec \<in># ran_m A') \<and>
+    \<not>is_failed b)\<close>
+    (is \<open>_ \<le> SPEC(?P)\<close>)
+  unfolding remap_polys_def
+  apply (refine_vcg FOREACH_rule[where
+    I = \<open>\<lambda>dom (A', b).
+      set_mset (dom_m A') =  set_mset (dom_m A) - dom \<and>
+      (\<forall>i \<in> set_mset (dom_m A) - dom. the (fmlookup A i) - the (fmlookup A' i) \<in> ideal polynom_bool) \<and>
+      (b \<longrightarrow> spec \<in># ran_m A')\<close>])
+  subgoal by auto
+  subgoal by auto
+  subgoal
+    by auto
+  subgoal by auto
+  subgoal using ideal.span_add by auto
+  subgoal apply (auto simp: )
+    apply (smt Diff_iff)
+    apply (smt Diff_iff)
+    apply (smt Diff_iff)
+    apply (smt Diff_iff)
+    apply (smt Diff_iff)
+    apply (smt Diff_iff)
+    apply (smt Diff_iff)
+    apply (smt Diff_iff)
+    done
+  subgoal by (auto simp: ran_m_mapsto_upd_notin)
+  subgoal using ideal.span_add by auto
+  subgoal by auto
+  subgoal by (auto simp: distinct_set_mset_eq_iff distinct_mset_dom)
+  subgoal by (auto simp: distinct_set_mset_eq_iff distinct_mset_dom)
+  subgoal by auto
+  subgoal by auto
+  subgoal by (auto split: if_splits)
+  done
+
+
+definition full_checker
+  :: \<open>int_poly \<Rightarrow> (nat, int_poly) fmap \<Rightarrow> int_poly pac_step list \<Rightarrow> (status \<times> _) nres\<close>
+ where
+  \<open>full_checker spec A pac = do {
+     spec \<leftarrow> normalize_poly_spec spec;
+     (A, st) \<leftarrow> remap_polys_change_all spec A;
+     PAC_checker spec A st pac
+}\<close>
+
+lemma full_checker_spec:
+  assumes \<open>(A, A') \<in> polys_rel\<close>
+  shows
+    \<open>full_checker spec A pac \<le> \<Down> (status_rel \<times>\<^sub>r polys_rel) (PAC_checker_specification A' spec)\<close>
+proof -
+  have H[intro]: \<open>set_mset b \<subseteq> pac_ideal (set_mset (ran_m A)) \<Longrightarrow>
+       x \<in> pac_ideal (set_mset b) \<Longrightarrow> x \<in> pac_ideal (set_mset A')\<close> for b x
+   using assms apply (auto simp: polys_rel_def)
+   by (meson ideal.span_subset_spanI ideal.span_superset le_sup_iff subset_eq)
+  have 1: \<open>x \<in> {(A', st).
+            pac_ideal (set_mset (ran_m A)) =
+            pac_ideal (set_mset (ran_m A')) \<and>
+            (st = FOUND \<longrightarrow> speca \<in># ran_m A') \<and>
+            \<not>is_failed st} \<Longrightarrow>
+       x = (Aa, st) \<Longrightarrow>(Aa, ran_m Aa) \<in> polys_rel\<close> for Aa speca st x
+       by (auto simp: polys_rel_def)
+  show ?thesis
+    unfolding full_checker_def normalize_poly_spec_def
+      PAC_checker_specification_def remap_polys_change_all_def
+    apply (refine_vcg PAC_checker_PAC_checker_specification2[THEN order_trans, of _ _])
+    apply (rule 1; assumption)
+    subgoal
+      using fmap_ext assms by (auto simp: polys_rel_def ran_m_def)
+    subgoal
+      by (metis (mono_tags, lifting) UnI1 case_prodD ideal.span_base mem_Collect_eq)
+    subgoal
+      apply (rule ref_two_step[OF order.refl])
+      apply (auto simp add: PAC_checker_specification_spec_def conc_fun_RES polys_rel_def
+        dest!: rtranclp_PAC_Format_subset_ideal dest: is_failed_is_success_completeD)
+      apply (metis H diff_in_polynom_bool_pac_idealI ideal.span_neg ideal.span_superset le_sup_iff minus_diff_eq)
+      apply (metis H diff_in_polynom_bool_pac_idealI ideal.span_neg ideal.span_superset le_sup_iff minus_diff_eq)
+      apply (metis H diff_in_polynom_bool_pac_idealI ideal.span_neg ideal.span_superset le_sup_iff minus_diff_eq)
+      apply (metis H diff_in_polynom_bool_pac_idealI ideal.span_neg ideal.span_superset le_sup_iff minus_diff_eq)
+      done
+    done
+qed
+
+
+end
+

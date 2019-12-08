@@ -2,8 +2,6 @@ theory Array_UInt
   imports Array_List_Array WB_Word_Assn WB_More_Refinement_List
 begin
 
-hide_const Autoref_Fix_Rel.CONSTRAINT
-
 lemma convert_fref:
   "WB_More_Refinement.fref = Sepref_Rules.fref"
   "WB_More_Refinement.freft = Sepref_Rules.freft"

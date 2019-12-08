@@ -1758,6 +1758,10 @@ lemma distinct_mset_iff:
       member_add_mset mset_add not_in_iff)
 
 
+lemma diff_add_mset_remove1: \<open>NO_MATCH {#} N \<Longrightarrow> M - add_mset a N = remove1_mset a (M - N)\<close>
+  by auto
+
+
 section \<open>Finite maps and multisets\<close>
 
 subsubsection \<open>Finite sets and multisets\<close>
@@ -1920,6 +1924,52 @@ lemma fmlookup_restrict_set_id': \<open>set_mset (dom_m N) \<subseteq> A \<Longr
   by (rule fmlookup_restrict_set_id)
     (auto simp: dom_m_def)
 
+lemma ran_m_mapsto_upd:
+  assumes
+    NC: \<open>C \<in># dom_m N\<close>
+  shows \<open>ran_m (fmupd C C' N) =
+         add_mset C' (remove1_mset (the (fmlookup N C)) (ran_m N))\<close>
+proof -
+  define N' where
+    \<open>N' = fmdrop C N\<close>
+  have N_N': \<open>dom_m N = add_mset C (dom_m N')\<close>
+    using NC unfolding N'_def by auto
+  have \<open>C \<notin># dom_m N'\<close>
+    using NC distinct_mset_dom[of N] unfolding N_N' by auto
+  then show ?thesis
+    by (auto simp: N_N' ran_m_def mset_set.insert_remove image_mset_remove1_mset_if
+      intro!: image_mset_cong)
+qed
+
+lemma ran_m_mapsto_upd_notin:
+  assumes
+    NC: \<open>C \<notin># dom_m N\<close>
+  shows \<open>ran_m (fmupd C C' N) = add_mset C' (ran_m N)\<close>
+  using NC
+  by (auto simp: ran_m_def mset_set.insert_remove image_mset_remove1_mset_if
+      intro!: image_mset_cong split: if_splits)
+
+lemma ran_m_fmdrop:
+  \<open>C \<in># dom_m N \<Longrightarrow>  ran_m (fmdrop C N) = remove1_mset (the (fmlookup N C)) (ran_m N)\<close>
+  using distinct_mset_dom[of N]
+  by (cases \<open>fmlookup N C\<close>)
+    (auto simp: ran_m_def image_mset_If_eq_notin[of C _ \<open>\<lambda>x. fst (the x)\<close>]
+     dest!: multi_member_split
+    intro!: filter_mset_cong2 image_mset_cong2)
+
+lemma ran_m_fmdrop_notin:
+  \<open>C \<notin># dom_m N \<Longrightarrow> ran_m (fmdrop C N) = ran_m N\<close>
+  using distinct_mset_dom[of N]
+  by (auto simp: ran_m_def image_mset_If_eq_notin[of C _ \<open>\<lambda>x. fst (the x)\<close>]
+    dest!: multi_member_split
+    intro!: filter_mset_cong2 image_mset_cong2)
+
+lemma ran_m_fmdrop_If:
+  \<open>ran_m (fmdrop C N) = (if C \<in># dom_m N then remove1_mset (the (fmlookup N C)) (ran_m N) else ran_m N)\<close>
+  using distinct_mset_dom[of N]
+  by (auto simp: ran_m_def image_mset_If_eq_notin[of C _ \<open>\<lambda>x. fst (the x)\<close>]
+    dest!: multi_member_split
+    intro!: filter_mset_cong2 image_mset_cong2)
 
 subsubsection \<open>Compact domain for finite maps\<close>
 
