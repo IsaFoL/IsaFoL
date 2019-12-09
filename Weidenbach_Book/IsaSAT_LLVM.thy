@@ -429,7 +429,7 @@ begin
     count_decided_pol_impl is \<open>uint32_t count_decided_st_heur_pol_fast(TRAIL)\<close>
     arena_lit_impl is \<open>uint32_t arena_lit_impl(ARENA, int64_t)\<close>
   defines \<open>
-     typedef struct {int64_t size; struct {int64_t used; uint32_t *data;};} CLAUSE;
+     typedef struct {int64_t size; struct {int64_t used; uint32_t *clause;};} CLAUSE;
      typedef struct {int64_t num_clauses; CLAUSE *clauses;} CLAUSES;
 
      typedef struct {int64_t size; struct {int64_t capacity; int32_t *data;};} ARENA;
@@ -451,7 +451,6 @@ begin
 
 end
 
-thm \<alpha>_butlast[simp del]
 definition model_bounded_assn where
   \<open>model_bounded_assn =
    hr_comp (bool1_assn \<times>\<^sub>a model_stat_assn\<^sub>0)
