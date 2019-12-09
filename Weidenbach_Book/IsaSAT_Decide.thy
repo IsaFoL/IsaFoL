@@ -1,5 +1,5 @@
 theory IsaSAT_Decide
-  imports IsaSAT_Setup IsaSAT_VMTF IsaSAT_Rephase
+  imports IsaSAT_Setup IsaSAT_VMTF
 begin
 
 
@@ -393,21 +393,9 @@ where
       None \<Rightarrow> RETURN (True, S)
     | Some L \<Rightarrow> do {
         T \<leftarrow> decide_lit_wl_heur L S;
-        T \<leftarrow> save_phase_st T;
         RETURN (False, T)}
   })
 \<close>
-
-
-lemma save_phase_st_spec:
-  \<open>(S, S') \<in> twl_st_heur''' r \<Longrightarrow> save_phase_st S \<le> SPEC(\<lambda>S. (S, S') \<in> twl_st_heur''' r)\<close>
-  unfolding save_phase_st_def
-  apply (cases S')
-  apply (refine_vcg save_phase_heur_spec[THEN order_trans, of \<open>all_atms_st S'\<close>])
-  apply (simp_all add:  twl_st_heur_def)
-  apply (rule isa_length_trail_pre)
-  apply blast
-  done
 
 lemma decide_wl_or_skip_D_heur_decide_wl_or_skip_D:
   \<open>(decide_wl_or_skip_D_heur, decide_wl_or_skip) \<in> twl_st_heur''' r \<rightarrow>\<^sub>f \<langle>bool_rel \<times>\<^sub>f twl_st_heur''' r\<rangle> nres_rel\<close>
@@ -421,7 +409,7 @@ proof -
 
   have final: \<open>decide_lit_wl_heur xb x1a
 	\<le> SPEC
-	   (\<lambda>T.  do {T \<leftarrow> save_phase_st T;
+	   (\<lambda>T.  do {
                   RETURN (False, T)}
 		\<le> SPEC
 		   (\<lambda>c. (c, False, decide_lit_wl x'a x1)
@@ -446,7 +434,7 @@ proof -
   proof -
     show ?thesis
       unfolding decide_lit_wl_heur_def
-        decide_lit_wl_def save_phase_st_def
+        decide_lit_wl_def
       apply (cases x1a)
       apply refine_vcg
       subgoal
@@ -456,12 +444,7 @@ proof -
         by (rule cons_trail_Decided_tr_pre[of _ \<open>get_trail_wl x1\<close> \<open>all_atms_st x1\<close>])
 	  (use that(2) in \<open>auto simp: twl_st_heur_def st all_atms_def[symmetric]\<close>)
       subgoal
-         by (rule isa_length_trail_pre[of _ \<open>cons_trail_Decided xb (get_trail_wl x1)\<close> \<open>all_atms_st x1\<close>])
-          (use that(2) in \<open>auto simp add: twl_st_heur_def st
-	    intro!: cons_trail_Decided_tr[THEN fref_to_Down_unRET_uncurry]\<close>)
-      subgoal
-        using that(2) unfolding cons_trail_Decided_def[symmetric] st apply -
-        apply (rule  save_phase_heur_spec[THEN order_trans, of \<open>all_atms_st x1\<close>])
+        using that(2) unfolding cons_trail_Decided_def[symmetric] st
         apply (auto simp: twl_st_heur_def)[]
         apply (clarsimp simp add: twl_st_heur_def all_atms_def[symmetric] 
 	   isa_length_trail_length_u[THEN fref_to_Down_unRET_Id] out_learned_def
@@ -487,8 +470,7 @@ proof -
     unfolding decide_wl_or_skip_D_heur_def decide_wl_or_skip_alt_def decide_wl_or_skip_pre_def
      decide_l_or_skip_pre_def twl_st_of_wl.simps[symmetric]
     apply (intro nres_relI frefI same_in_Id_option_rel)
-    apply (refine_vcg find_unassigned_lit_wl_D'_find_unassigned_lit_wl_D[of r, THEN fref_to_Down]
-      save_phase_st_spec[of _ _ r])
+    apply (refine_vcg find_unassigned_lit_wl_D'_find_unassigned_lit_wl_D[of r, THEN fref_to_Down])
     subgoal for x y
       unfolding decide_wl_or_skip_pre_def find_unassigned_lit_wl_D_heur_pre_def
 	decide_wl_or_skip_pre_def decide_l_or_skip_pre_def decide_or_skip_pre_def
@@ -529,7 +511,6 @@ definition decide_wl_or_skip_D_heur' where
         let L = (if b then Pos L else Neg L);
         T \<leftarrow> decide_lit_wl_heur L (M, N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
           vdom, avdom, lcount, opts, old_arena);
-        T \<leftarrow> save_phase_st T;
         RETURN (False, T)
       }
     })
@@ -548,7 +529,7 @@ proof -
     apply (cases S, simp only:)
     unfolding decide_wl_or_skip_D_heur_def find_unassigned_lit_wl_D_heur_def
       nres_monad3 prod.case decide_wl_or_skip_D_heur'_def
-    apply (subst (4) bind_triple_unfold[symmetric])
+    apply (subst (3) bind_triple_unfold[symmetric])
     unfolding decide_wl_or_skip_D_heur_def find_unassigned_lit_wl_D_heur_def
       nres_monad3 prod.case lit_of_found_atm_def mop_get_saved_phase_heur_def
     apply refine_vcg

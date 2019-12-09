@@ -1,5 +1,6 @@
 theory IsaSAT_Backtrack_LLVM
   imports IsaSAT_Backtrack IsaSAT_VMTF_LLVM IsaSAT_Lookup_Conflict_LLVM
+    IsaSAT_Rephase_LLVM
 begin
 
 lemma isa_empty_conflict_and_extract_clause_heur_alt_def:
@@ -53,7 +54,7 @@ sepref_def empty_conflict_and_extract_clause_heur_fast_code
 
 lemma emptied_list_alt_def: \<open>emptied_list xs = take 0 xs\<close>
   by (auto simp: emptied_list_def)
-  
+
 sepref_def empty_cach_code
   is \<open>empty_cach_ref_set\<close>
   :: \<open>cach_refinement_l_assn\<^sup>d \<rightarrow>\<^sub>a cach_refinement_l_assn\<close>
@@ -103,15 +104,6 @@ sepref_register fm_add_new_fast
 
 lemma isasat_fast_length_leD: \<open>isasat_fast S \<Longrightarrow> Suc (length (get_clauses_wl_heur S)) < max_snat 64\<close>
   by (cases S) (auto simp: isasat_fast_def max_snat_def sint64_max_def)
-
-  
-find_in_thms isa_vmtf_flush_int in sepref_fr_rules
-
-thm append_ll_def
-  
-thm mop_list_list_push_back_def
-
-thm isasat_fast_length_leD
 
 sepref_register update_heuristics
 sepref_def update_heuristics_impl
@@ -200,6 +192,7 @@ sepref_def lit_of_hd_trail_st_heur_fast_code
   unfolding lit_of_hd_trail_st_heur_alt_def isasat_bounded_assn_def
   by sepref
 
+sepref_register save_phase_st
 sepref_def backtrack_wl_D_fast_code
   is \<open>backtrack_wl_D_nlit_heur\<close>
   :: \<open>[isasat_fast]\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
@@ -209,7 +202,6 @@ sepref_def backtrack_wl_D_fast_code
   unfolding delete_index_and_swap_update_def[symmetric] append_update_def[symmetric]
     append_ll_def[symmetric]
     size_conflict_wl_def[symmetric]
-  unfolding fold_tuple_optimizations
   apply (annot_snat_const "TYPE(64)")
   by sepref
 

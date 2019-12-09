@@ -1,7 +1,21 @@
 theory IsaSAT_Backtrack
-  imports IsaSAT_Setup IsaSAT_VMTF
+  imports IsaSAT_Setup IsaSAT_VMTF IsaSAT_Rephase
 begin
 
+(*
+
+save_phase_st
+lemma save_phase_st_spec:
+  \<open>(S, S') \<in> twl_st_heur''' r \<Longrightarrow> save_phase_st S \<le> SPEC(\<lambda>S. (S, S') \<in> twl_st_heur''' r)\<close>
+  unfolding save_phase_st_def
+  apply (cases S')
+  apply (refine_vcg save_phase_heur_spec[THEN order_trans, of \<open>all_atms_st S'\<close>])
+  apply (simp_all add:  twl_st_heur_def)
+  apply (rule isa_length_trail_pre)
+  apply blast
+  done
+
+*)
 
 chapter \<open>Backtrack\<close>
 
@@ -720,7 +734,7 @@ definition propagate_bt_wl_D_heur
       heur \<leftarrow> mop_save_phase_heur (atm_of L') (is_neg L') heur;
       RETURN (M, N, D, j, W, vm, 0,
          cach, lbd, outl, add_lbd (of_nat glue) stats, update_heuristics glue heur, vdom @ [ i],
-          avdom @ [ i],
+          avdom @ [i],
           lcount + 1, opts)
     })\<close>
 
@@ -767,7 +781,8 @@ definition backtrack_wl_D_nlit_heur
       ASSERT(get_clauses_wl_heur S = get_clauses_wl_heur S\<^sub>0);
       if size C > 1
       then do {
-        propagate_bt_wl_D_heur L C S
+        S \<leftarrow> propagate_bt_wl_D_heur L C S;
+        save_phase_st S
       }
       else do {
         propagate_unit_bt_wl_D_int L S
@@ -897,7 +912,8 @@ proof -
       if size C > 1
       then do {
         let _ = C ! 1;
-        propagate_bt_wl_D_heur L C S
+        S \<leftarrow> propagate_bt_wl_D_heur L C S;
+        save_phase_st S
       }
       else do {
         propagate_unit_bt_wl_D_int L S
@@ -2444,10 +2460,49 @@ proof -
         (auto simp:  twl_st_heur_conflict_ana_def mop_lit_hd_trail_wl_pre_def mop_lit_hd_trail_l_pre_def
            mop_lit_hd_trail_pre_def state_wl_l_def twl_st_l_def lit_of_hd_trail_def RETURN_RES_refine_iff)
     done
+  have backtrack_wl_alt_def:
+    \<open>backtrack_wl S =
+      do {
+        ASSERT(backtrack_wl_inv S);
+        L \<leftarrow> mop_lit_hd_trail_wl S;
+        S \<leftarrow> extract_shorter_conflict_wl S;
+        S \<leftarrow> find_decomp_wl L S;
+
+        if size (the (get_conflict_wl S)) > 1
+        then do {
+          L' \<leftarrow> find_lit_of_max_level_wl S L;
+          S \<leftarrow> propagate_bt_wl L L' S;
+          RETURN S
+        }
+        else do {
+          propagate_unit_bt_wl L S
+       }
+    }\<close> for S
+    unfolding backtrack_wl_def while.imonad2
+    by auto
+
+  have save_phase_st: \<open>(xb, x') \<in> ?S \<Longrightarrow>
+       save_phase_st xb
+       \<le> SPEC
+          (\<lambda>c. (c, x')
+               \<in> {(S, T).
+                  (S, T) \<in> twl_st_heur \<and>
+                  length (get_clauses_wl_heur S)
+                  \<le> 6 + r + uint32_max div 2})\<close> for xb x'
+    unfolding save_phase_st_def
+    apply (refine_vcg save_phase_heur_spec[THEN order_trans, of \<open>all_atms_st x'\<close>])
+    subgoal
+      by (rule isa_length_trail_pre[of _ \<open>get_trail_wl x'\<close> \<open>all_atms_st x'\<close>])
+        (auto simp: twl_st_heur_def)
+    subgoal
+      by (auto simp: twl_st_heur_def)
+    subgoal
+      by (auto simp: twl_st_heur_def)
+    done
   show ?thesis
     supply [[goals_limit=1]]
     apply (intro frefI nres_relI)
-    unfolding backtrack_wl_D_nlit_heur_alt_def backtrack_wl_def
+    unfolding backtrack_wl_D_nlit_heur_alt_def backtrack_wl_alt_def
     apply (refine_rcg shorter)
     subgoal by (rule inv)
     subgoal by (rule trail_nempty)
@@ -2460,6 +2515,7 @@ proof -
       by (auto simp: twl_st_heur_state_simp equality_except_trail_wl_get_conflict_wl)
     apply (rule fst_find_lit_of_max_level_wl; solves assumption)
     apply (rule propagate_bt_wl_D_heur; assumption)
+    apply (rule save_phase_st; assumption)
     apply (rule propagate_unit_bt_wl_D_int; assumption)
     done
 qed
