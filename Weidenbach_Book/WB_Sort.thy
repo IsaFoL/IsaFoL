@@ -3,6 +3,18 @@ theory WB_Sort
   imports WB_More_Refinement WB_More_Refinement_List "HOL-Library.Rewrite"
 begin
 
+section \<open>Sorting\<close>
+
+text \<open>
+  The correctness proof is due to Maximilian Wuttke.
+
+  Remark that a more efficient can be found as part of Isabelle\_LLVM. It has a few advantages.
+  First, it does fewer recursive calls (which is an issue in the SAT solver). Second, it is more
+  general (see the examples of string sorting that requires ownership knowledge). Finally,
+  it is as fast as C++ sorting.
+\<close>
+
+
 text \<open>Every element between \<^term>\<open>lo\<close> and \<^term>\<open>hi\<close> can be chosen as pivot element.\<close>
 definition choose_pivot :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> 'b) \<Rightarrow> 'a list \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat nres\<close> where
   \<open>choose_pivot _ _ _ lo hi = SPEC(\<lambda>k. k \<ge> lo \<and> k \<le> hi)\<close>

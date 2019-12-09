@@ -271,6 +271,18 @@ type_synonym out_learned = \<open>nat clause_l\<close>
 type_synonym vdom = \<open>nat list\<close>
 
 
+subsection \<open>Conflict\<close>
+
+definition size_conflict_wl :: \<open>nat twl_st_wl \<Rightarrow> nat\<close> where
+  \<open>size_conflict_wl S = size (the (get_conflict_wl S))\<close>
+
+definition size_conflict :: \<open>nat clause option \<Rightarrow> nat\<close> where
+  \<open>size_conflict D = size (the D)\<close>
+
+definition size_conflict_int :: \<open>conflict_option_rel \<Rightarrow> nat\<close> where
+  \<open>size_conflict_int = (\<lambda>(_, n, _). n)\<close>
+
+
 section \<open>Full state\<close>
 
 text \<open>\<^emph>\<open>heur\<close> stands for heuristic.\<close>
