@@ -6,6 +6,11 @@ target triple = "x86_64-pc-linux-gnu"
 
 declare void @isabelle_llvm_free(i8*)
 declare i8* @isabelle_llvm_calloc(i64, i64)
+declare void @IsaSAT_Show_LLVM_print_c_impl(i64)
+declare void @IsaSAT_Show_LLVM_print_char_impl(i64)
+declare void @IsaSAT_Show_LLVM_print_uint64_impl(i64)
+declare void @IsaSAT_Show_LLVM_print_open_colour_impl(i64)
+declare void @IsaSAT_Show_LLVM_print_close_colour_impl(i64)
 
 
 define i32 @LBD_LLVM_get_LBD_code({ { i64, i1* }, { i32, i32 } } %x) {
@@ -866,7 +871,7 @@ define { { i64, i1* }, { i32, i32 } } @LBD_LLVM_lbd_write_code({ { i64, i1* }, {
     ret { { i64, i1* }, { i32, i32 } } %x8
 }
 
-define i32* @IsaSAT_LLVM_llvm_version() {
+define i32* @llvm_version() {
 
   start:
     %x = add i32 0, 1
@@ -880,32 +885,32 @@ define i32* @IsaSAT_LLVM_llvm_version() {
     %xh = add i32 %xg, 1
     %xi = call i32* @LLVM_DS_NArray_narray_new_init5 (i32 %xh, i32 0)
     %p = getelementptr i32, i32* %xi, i32 0
-    store i32 98, i32* %p
+    store i32 99, i32* %p
     %xk = add i32 0, 1
     %pa = getelementptr i32, i32* %xi, i32 %xk
-    store i32 101, i32* %pa
+    store i32 49, i32* %pa
     %xm = add i32 0, 1
     %xn = add i32 %xm, 1
     %pb = getelementptr i32, i32* %xi, i32 %xn
-    store i32 98, i32* %pb
+    store i32 48, i32* %pb
     %xp = add i32 0, 1
     %xq = add i32 %xp, 1
     %xr = add i32 %xq, 1
     %pc = getelementptr i32, i32* %xi, i32 %xr
-    store i32 55, i32* %pc
+    store i32 48, i32* %pc
     %xt = add i32 0, 1
     %xu = add i32 %xt, 1
     %xv = add i32 %xu, 1
     %xw = add i32 %xv, 1
     %pd = getelementptr i32, i32* %xi, i32 %xw
-    store i32 49, i32* %pd
+    store i32 55, i32* %pd
     %xy = add i32 0, 1
     %xz = add i32 %xy, 1
     %ya = add i32 %xz, 1
     %yb = add i32 %ya, 1
     %yc = add i32 %yb, 1
     %pe = getelementptr i32, i32* %xi, i32 %yc
-    store i32 57, i32* %pe
+    store i32 101, i32* %pe
     %ye = add i32 0, 1
     %yf = add i32 %ye, 1
     %yg = add i32 %yf, 1
@@ -913,7 +918,7 @@ define i32* @IsaSAT_LLVM_llvm_version() {
     %yi = add i32 %yh, 1
     %yj = add i32 %yi, 1
     %pf = getelementptr i32, i32* %xi, i32 %yj
-    store i32 54, i32* %pf
+    store i32 98, i32* %pf
     %yl = add i32 0, 1
     %ym = add i32 %yl, 1
     %yn = add i32 %ym, 1
@@ -922,7 +927,7 @@ define i32* @IsaSAT_LLVM_llvm_version() {
     %yq = add i32 %yp, 1
     %yr = add i32 %yq, 1
     %pg = getelementptr i32, i32* %xi, i32 %yr
-    store i32 102, i32* %pg
+    store i32 97, i32* %pg
     %yt = add i32 0, 1
     %yu = add i32 %yt, 1
     %yv = add i32 %yu, 1
@@ -1290,12 +1295,6 @@ define i32 @IsaSAT_Literals_LLVM_Pos_impl(i32 %x) {
   start:
     %x1 = mul i32 2, %x
     ret i32 %x1
-}
-
-define void @IsaSAT_Show_LLVM_print_c_impl(i64 %x) {
-
-  start:
-    ret void
 }
 
 define { i64, { i64, i64* } } @LLVM_DS_Array_List_arl_resize(i64 %c, { i64, { i64, i64* } } %al) {
@@ -1798,7 +1797,7 @@ define i32* @LLVM_DS_NArray_narray_new_init5(i32 %n, i32 %c) {
     ret i32* %r
 }
 
-define i64 @IsaSAT_LLVM_IsaSAT_code_wrapped({ i64, { i64, { i64, i32* } }* } %x) {
+define i64 @IsaSAT_code_wrapped({ i64, { i64, { i64, i32* } }* } %x) {
 
   start:
     %x1 = call { i1, { i1, i1 } } @IsaSAT_LLVM_default_opts_impl ()
@@ -1882,7 +1881,7 @@ define i32 @IsaSAT_Arena_LLVM_arena_lbd_impl({ i64, { i64, i32* } } %x, i64 %x1)
     ret i32 %x3
 }
 
-define i32 @IsaSAT_Arena_LLVM_arena_lit_impl({ i64, { i64, i32* } } %x, i64 %x1) {
+define i32 @arena_lit_impl({ i64, { i64, i32* } } %x, i64 %x1) {
 
   start:
     %l = extractvalue { i64, { i64, i32* } } %x, 0
@@ -2068,12 +2067,6 @@ define { i64, { i32, i32 } } @IsaSAT_Setup_LLVM_VMTF_Node_impl(i64 %x, i32 %x1, 
     %x4 = insertvalue { i32, i32 } %xa, i32 %x2, 1
     %x5 = insertvalue { i64, { i32, i32 } } %x3, { i32, i32 } %x4, 1
     ret { i64, { i32, i32 } } %x5
-}
-
-define void @IsaSAT_Show_LLVM_print_char_impl(i64 %x) {
-
-  start:
-    ret void
 }
 
 define { i64, { i64, i32* } } @IsaSAT_Arena_LLVM_update_lbd_impl(i64 %x, i32 %x1, { i64, { i64, i32* } } %x2) {
@@ -2292,12 +2285,6 @@ define i1 @IsaSAT_Setup_LLVM_opts_reduce_impl({ i1, { i1, i1 } } %x) {
     %a1a = extractvalue { i1, i1 } %b, 0
     %a2a = extractvalue { i1, i1 } %b, 1
     ret i1 %a1a
-}
-
-define void @IsaSAT_Show_LLVM_print_uint64_impl(i64 %x) {
-
-  start:
-    ret void
 }
 
 define { { i64, { i32, i32 } }*, { i64, { i32, { i32, i32 } } } } @IsaSAT_VMTF_LLVM_vmtf_rescale_code({ { i64, { i32, i32 } }*, { i64, { i32, { i32, i32 } } } } %x) {
@@ -2526,7 +2513,7 @@ define i64 @IsaSAT_VMTF_LLVM_current_stamp_impl({ { i64, { i32, i32 } }*, { i64,
 define i32 @IsaSAT_Arena_LLVM_mop_arena_lit_impl({ i64, { i64, i32* } } %x, i64 %x1) {
 
   start:
-    %x2 = call i32 @IsaSAT_Arena_LLVM_arena_lit_impl ({ i64, { i64, i32* } } %x, i64 %x1)
+    %x2 = call i32 @arena_lit_impl ({ i64, { i64, i32* } } %x, i64 %x1)
     ret i32 %x2
 }
 
@@ -2824,7 +2811,7 @@ define i32 @IsaSAT_Arena_LLVM_mop_arena_lit2_impl({ i64, { i64, i32* } } %x, i64
 
   start:
     %x3 = add i64 %x1, %x2
-    %x4 = call i32 @IsaSAT_Arena_LLVM_arena_lit_impl ({ i64, { i64, i32* } } %x, i64 %x3)
+    %x4 = call i32 @arena_lit_impl ({ i64, { i64, i32* } } %x, i64 %x3)
     ret i32 %x4
 }
 
@@ -3740,12 +3727,6 @@ define i32 @IsaSAT_Setup_LLVM_mop_arena_lbd_st_impl({ { { i64, { i64, i32* } }, 
     ret i32 %x17
 }
 
-define void @IsaSAT_Show_LLVM_print_open_colour_impl(i64 %x) {
-
-  start:
-    ret void
-}
-
 define i1 @IsaSAT_Trail_LLVM_defined_atm_fast_code({ { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } } %x, i32 %x1) {
 
   start:
@@ -4579,13 +4560,7 @@ define { i64, { i64, { i64, { i64, { i32, i1 } }* } }* } @IsaSAT_Setup_LLVM_rewa
     ret { i64, { i64, { i64, { i64, { i32, i1 } }* } }* } %x8
 }
 
-define void @IsaSAT_Show_LLVM_print_close_colour_impl(i64 %x) {
-
-  start:
-    ret void
-}
-
-define i32 @IsaSAT_Trail_LLVM_count_decided_pol_impl({ { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } } %x) {
+define i32 @count_decided_st_heur_pol_fast({ { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } } %x) {
 
   start:
     %a1 = extractvalue { { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } } %x, 0
@@ -6172,7 +6147,7 @@ define { i64, { i64, i32* } } @IsaSAT_VMTF_LLVM_VMTF_it_introsort_aux_impl({ i64
     %tmpab = insertvalue { i64, { i64, i64 } } %xa, { i64, i64 } %tmpa, 1
     %xb = insertvalue { { i64, { i64, i32* } }, { i64, { i64, i64 } } } zeroinitializer, { i64, { i64, i32* } } %x1, 0
     %x6 = insertvalue { { i64, { i64, i32* } }, { i64, { i64, i64 } } } %xb, { i64, { i64, i64 } } %tmpab, 1
-    %x7 = call { i64, { i64, i32* } } @IsaSAT_LLVM_experiment9017136_VMTF_it_introsort_aux_impl_f_09173718 ({ i64, { i32, i32 } }* %x, { { i64, { i64, i32* } }, { i64, { i64, i64 } } } %x6)
+    %x7 = call { i64, { i64, i32* } } @IsaSAT_LLVM_experiment10992272_VMTF_it_introsort_aux_impl_f_015051542 ({ i64, { i32, i32 } }* %x, { { i64, { i64, i32* } }, { i64, { i64, i64 } } } %x6)
     ret { i64, { i64, i32* } } %x7
 }
 
@@ -6751,7 +6726,7 @@ define { { i64, { i64, i32* } }, i64 } @IsaSAT_VMTF_LLVM_VMTF_it_partition_pivot
 define { { { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } }, { { { i64, { i32, i32 } }*, { i64, { i32, { i32, i32 } } } }, { { i64, { i64, i32* } }, i1* } } } @IsaSAT_VMTF_LLVM_find_decomp_wl_imp_fast_code({ { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } } %x, i32 %x1, { { { i64, { i32, i32 } }*, { i64, { i32, { i32, i32 } } } }, { { i64, { i64, i32* } }, i1* } } %x2) {
 
   start:
-    %x3 = call i32 @IsaSAT_Trail_LLVM_count_decided_pol_impl ({ { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } } %x)
+    %x3 = call i32 @count_decided_st_heur_pol_fast ({ { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } } %x)
     %xa = call i64 @IsaSAT_Trail_LLVM_isa_length_trail_fast_code ({ { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } } %x)
     %xb = call i32 @IsaSAT_Trail_LLVM_get_pos_of_level_in_trail_imp_fast_code ({ { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } } %x, i32 %x1)
     %xca = zext i32 %xb to i64
@@ -9198,7 +9173,7 @@ define i32 @IsaSAT_Setup_LLVM_count_decided_st_heur_pol_fast({ { { i64, { i64, i
   start:
     %a1 = extractvalue { { { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } }, { { i64, { i64, i32* } }, { { i1, { i32, i1* } }, { i64, { { i64, { i64, { i64, { i64, { i32, i1 } }* } }* }, { { { { i64, { i32, i32 } }*, { i64, { i32, { i32, i32 } } } }, { { i64, { i64, i32* } }, i1* } }, { i32, { { i8*, { i64, { i64, i32* } } }, { { { i64, i1* }, { i32, i32 } }, { { i64, { i64, i32* } }, { { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } }, { { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } } } } }, { { i64, { i64, i64* } }, { { i64, { i64, i64* } }, { i64, { { i1, { i1, i1 } }, { i64, { i64, i32* } } } } } } } } } } } } } } } } } } %x, 0
     %a2 = extractvalue { { { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } }, { { i64, { i64, i32* } }, { { i1, { i32, i1* } }, { i64, { { i64, { i64, { i64, { i64, { i32, i1 } }* } }* }, { { { { i64, { i32, i32 } }*, { i64, { i32, { i32, i32 } } } }, { { i64, { i64, i32* } }, i1* } }, { i32, { { i8*, { i64, { i64, i32* } } }, { { { i64, i1* }, { i32, i32 } }, { { i64, { i64, i32* } }, { { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } }, { { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } } } } }, { { i64, { i64, i64* } }, { { i64, { i64, i64* } }, { i64, { { i1, { i1, i1 } }, { i64, { i64, i32* } } } } } } } } } } } } } } } } } } %x, 1
-    %x1 = call i32 @IsaSAT_Trail_LLVM_count_decided_pol_impl ({ { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } } %a1)
+    %x1 = call i32 @count_decided_st_heur_pol_fast ({ { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } } %a1)
     ret i32 %x1
 }
 
@@ -10736,7 +10711,7 @@ define { i64, { i64, i64* } } @IsaSAT_Arena_Sorting_LLVM_LBD_it_introsort_aux_im
     %tmpab = insertvalue { i64, { i64, i64 } } %xa, { i64, i64 } %tmpa, 1
     %xb = insertvalue { { i64, { i64, i64* } }, { i64, { i64, i64 } } } zeroinitializer, { i64, { i64, i64* } } %x1, 0
     %x6 = insertvalue { { i64, { i64, i64* } }, { i64, { i64, i64 } } } %xb, { i64, { i64, i64 } } %tmpab, 1
-    %x7 = call { i64, { i64, i64* } } @IsaSAT_LLVM_experiment9017136_LBD_it_introsort_aux_impl_f_09077724 ({ i64, { i64, i32* } } %x, { { i64, { i64, i64* } }, { i64, { i64, i64 } } } %x6)
+    %x7 = call { i64, { i64, i64* } } @IsaSAT_LLVM_experiment10992272_LBD_it_introsort_aux_impl_f_014955548 ({ i64, { i64, i32* } } %x, { { i64, { i64, i64* } }, { i64, { i64, i64 } } } %x6)
     ret { i64, { i64, i64* } } %x7
 }
 
@@ -12659,7 +12634,7 @@ define { { { i64, { i32, i32 } }*, { i64, { i32, { i32, i32 } } } }, { { i64, { 
   while_body:
     %a11 = extractvalue { i64, { { { i64, { i32, i32 } }*, { i64, { i32, { i32, i32 } } } }, { { i64, { i64, i32* } }, i1* } } } %xb, 0
     %a21 = extractvalue { i64, { { { i64, { i32, i32 } }*, { i64, { i32, { i32, i32 } } } }, { { i64, { i64, i32* } }, i1* } } } %xb, 1
-    %xaa1 = call i32 @IsaSAT_Arena_LLVM_arena_lit_impl ({ i64, { i64, i32* } } %x, i64 %a11)
+    %xaa1 = call i32 @arena_lit_impl ({ i64, { i64, i32* } } %x, i64 %a11)
     %xba1 = call i32 @IsaSAT_Literals_LLVM_atm_of_impl (i32 %xaa1)
     %xc1 = call { { { i64, { i32, i32 } }*, { i64, { i32, { i32, i32 } } } }, { { i64, { i64, i32* } }, i1* } } @IsaSAT_VMTF_LLVM_isa_vmtf_mark_to_rescore_code (i32 %xba1, { { { i64, { i32, i32 } }*, { i64, { i32, { i32, i32 } } } }, { { i64, { i64, i32* } }, i1* } } %a21)
     %xda = add i64 %a11, 1
@@ -13120,7 +13095,7 @@ define { { { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64
     %xk = call { { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } } @IsaSAT_Trail_LLVM_cons_trail_Propagated_tr_fast_code (i32 %x, i64 %x1, { { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } } %a1)
     %xl = sub i64 1, %x2
     %xm = call { i64, { i64, i32* } } @IsaSAT_Inner_Propagation_LLVM_swap_lits_impl (i64 %x1, i64 0, i64 %xl, { i64, { i64, i32* } } %a1a)
-    %xn = call i32 @IsaSAT_Trail_LLVM_count_decided_pol_impl ({ { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } } %xk)
+    %xn = call i32 @count_decided_st_heur_pol_fast ({ { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } } %xk)
     %xoa = icmp eq i32 %xn, 0
     br i1 %xoa, label %then, label %else
 
@@ -14635,7 +14610,7 @@ define { { { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64
     %a1k = extractvalue { { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } } } } }, { { i64, { i64, i64* } }, { { i64, { i64, i64* } }, { i64, { { i1, { i1, i1 } }, { i64, { i64, i32* } } } } } } } %xj, 0
     %a2k = extractvalue { { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } } } } }, { { i64, { i64, i64* } }, { { i64, { i64, i64* } }, { i64, { { i1, { i1, i1 } }, { i64, { i64, i32* } } } } } } } %xj, 1
     %xk = call { { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } } @IsaSAT_Trail_LLVM_cons_trail_Propagated_tr_fast_code (i32 %x, i64 %x1, { { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } } %a1)
-    %xl = call i32 @IsaSAT_Trail_LLVM_count_decided_pol_impl ({ { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } } %xk)
+    %xl = call i32 @count_decided_st_heur_pol_fast ({ { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } } %xk)
     %xma = icmp eq i32 %xl, 0
     br i1 %xma, label %then, label %else
 
@@ -14860,21 +14835,21 @@ define { { i1, { i32, i1* } }, { i32, { { { i64, i1* }, { i32, i32 } }, { i64, {
     %xga1 = extractvalue { { i32, i1* }, { { { i64, i1* }, { i32, i32 } }, { i64, { i64, i32* } } } } %xfa1, 1
     %a1c1 = extractvalue { { { i64, i1* }, { i32, i32 } }, { i64, { i64, i32* } } } %xga1, 0
     %a2c1 = extractvalue { { { i64, i1* }, { i32, i32 } }, { i64, { i64, i32* } } } %xga1, 1
-    %xh1 = call i32 @IsaSAT_Arena_LLVM_arena_lit_impl ({ i64, { i64, i32* } } %x1, i64 %a11)
+    %xh1 = call i32 @arena_lit_impl ({ i64, { i64, i32* } } %x1, i64 %a11)
     %xi = call i32 @IsaSAT_Trail_LLVM_get_level_fast_code ({ { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } } %x, i32 %xh1)
     %xj = call { { i64, i1* }, { i32, i32 } } @LBD_LLVM_lbd_write_code ({ { i64, i1* }, { i32, i32 } } %a1c1, i32 %xi)
-    %xk = call i32 @IsaSAT_Arena_LLVM_arena_lit_impl ({ i64, { i64, i32* } } %x1, i64 %a11)
+    %xk = call i32 @arena_lit_impl ({ i64, { i64, i32* } } %x1, i64 %a11)
     %xl = call i32 @IsaSAT_Trail_LLVM_get_level_fast_code ({ { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } } %x, i32 %xk)
-    %xm = call i32 @IsaSAT_Trail_LLVM_count_decided_pol_impl ({ { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } } %x)
+    %xm = call i32 @count_decided_st_heur_pol_fast ({ { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } } %x)
     %xn = icmp ult i32 %xl, %xm
-    %xo = call i32 @IsaSAT_Arena_LLVM_arena_lit_impl ({ i64, { i64, i32* } } %x1, i64 %a11)
+    %xo = call i32 @arena_lit_impl ({ i64, { i64, i32* } } %x1, i64 %a11)
     %xp = call i1 @IsaSAT_Lookup_Conflict_LLVM_is_in_conflict_code ({ i32, i1* } %a1b1, i32 %xo)
     %xqa = add i1 %xp, 1
     %xr = and i1 %xn, %xqa
     br i1 %xr, label %then, label %else
 
   then:
-    %xs = call i32 @IsaSAT_Arena_LLVM_arena_lit_impl ({ i64, { i64, i32* } } %x1, i64 %a11)
+    %xs = call i32 @arena_lit_impl ({ i64, { i64, i32* } } %x1, i64 %a11)
     %l = extractvalue { i64, { i64, i32* } } %a2c1, 0
     %xt = extractvalue { i64, { i64, i32* } } %a2c1, 1
     %c = extractvalue { i64, i32* } %xt, 0
@@ -14922,11 +14897,11 @@ define { { i1, { i32, i1* } }, { i32, { { { i64, i1* }, { i32, i32 } }, { i64, {
 
   ctd_if:
     %xs1 = phi { i64, { i64, i32* } } [ %a2c1, %else ], [ %x15, %ctd_ifa ]
-    %xt1 = call i32 @IsaSAT_Arena_LLVM_arena_lit_impl ({ i64, { i64, i32* } } %x1, i64 %a11)
+    %xt1 = call i32 @arena_lit_impl ({ i64, { i64, i32* } } %x1, i64 %a11)
     %xu = call i32 @IsaSAT_Trail_LLVM_get_level_fast_code ({ { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } } %x, i32 %xt1)
-    %xv3 = call i32 @IsaSAT_Trail_LLVM_count_decided_pol_impl ({ { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } } %x)
+    %xv3 = call i32 @count_decided_st_heur_pol_fast ({ { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } } %x)
     %xw2 = icmp eq i32 %xu, %xv3
-    %xx1 = call i32 @IsaSAT_Arena_LLVM_arena_lit_impl ({ i64, { i64, i32* } } %x1, i64 %a11)
+    %xx1 = call i32 @arena_lit_impl ({ i64, { i64, i32* } } %x1, i64 %a11)
     %xy = call i1 @IsaSAT_Lookup_Conflict_LLVM_is_in_conflict_code ({ i32, i1* } %a1b1, i32 %xx1)
     %xza = add i1 %xy, 1
     %ya = and i1 %xw2, %xza
@@ -14941,7 +14916,7 @@ define { { i1, { i32, i1* } }, { i32, { { { i64, i1* }, { i32, i32 } }, { i64, {
 
   ctd_ifb:
     %yb = phi i32 [ %a1a1, %elseb ], [ %x16, %thenb ]
-    %yc = call i32 @IsaSAT_Arena_LLVM_arena_lit_impl ({ i64, { i64, i32* } } %x1, i64 %a11)
+    %yc = call i32 @arena_lit_impl ({ i64, { i64, i32* } } %x1, i64 %a11)
     %yd = call { i32, i1* } @IsaSAT_Lookup_Conflict_LLVM_add_to_lookup_conflict_impl (i32 %yc, { i32, i1* } %a1b1)
     %yea = add i64 %a11, 1
     %yf = insertvalue { i32, { { i32, i1* }, { { { i64, i1* }, { i32, i32 } }, { i64, { i64, i32* } } } } } zeroinitializer, i32 %yb, 0
@@ -15183,13 +15158,13 @@ define { { i1, { i32, i1* } }, { i32, { { { i64, i1* }, { i32, i32 } }, { i64, {
 
   start:
     %x8 = call { i32, i1* } @IsaSAT_Lookup_Conflict_LLVM_the_lookup_conflict_impl ({ i1, { i32, i1* } } %x4)
-    %xa = call i32 @IsaSAT_Arena_LLVM_arena_lit_impl ({ i64, { i64, i32* } } %x2, i64 %x3)
+    %xa = call i32 @arena_lit_impl ({ i64, { i64, i32* } } %x2, i64 %x3)
     %xb = call i1 @IsaSAT_Literals_LLVM_lit_eq_impl (i32 %xa, i32 %x)
     br i1 %xb, label %then, label %else
 
   then:
     %x9 = add i64 %x3, 1
-    %x10 = call i32 @IsaSAT_Arena_LLVM_arena_lit_impl ({ i64, { i64, i32* } } %x2, i64 %x9)
+    %x10 = call i32 @arena_lit_impl ({ i64, { i64, i32* } } %x2, i64 %x9)
     br label %ctd_if
 
   else:
@@ -15200,7 +15175,7 @@ define { { i1, { i32, i1* } }, { i32, { { { i64, i1* }, { i32, i32 } }, { i64, {
     %xd = call i32 @IsaSAT_Trail_LLVM_get_level_fast_code ({ { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } } %x1, i32 %xc)
     %xe = call { { i64, i1* }, { i32, i32 } } @LBD_LLVM_lbd_write_code ({ { i64, i1* }, { i32, i32 } } %x6, i32 %xd)
     %xf = call i32 @IsaSAT_Trail_LLVM_get_level_fast_code ({ { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } } %x1, i32 %xc)
-    %xg = call i32 @IsaSAT_Trail_LLVM_count_decided_pol_impl ({ { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } } %x1)
+    %xg = call i32 @count_decided_st_heur_pol_fast ({ { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } } %x1)
     %xh = icmp ult i32 %xf, %xg
     %xi = call i1 @IsaSAT_Lookup_Conflict_LLVM_is_in_conflict_code ({ i32, i1* } %x8, i32 %xc)
     %xja = add i1 %xi, 1
@@ -15256,7 +15231,7 @@ define { { i1, { i32, i1* } }, { i32, { { { i64, i1* }, { i32, i32 } }, { i64, {
   ctd_ifa:
     %xl1 = phi { i64, { i64, i32* } } [ %x7, %elsea ], [ %x16, %ctd_ifb ]
     %xm = call i32 @IsaSAT_Trail_LLVM_get_level_fast_code ({ { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } } %x1, i32 %xc)
-    %xn3 = call i32 @IsaSAT_Trail_LLVM_count_decided_pol_impl ({ { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } } %x1)
+    %xn3 = call i32 @count_decided_st_heur_pol_fast ({ { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } } %x1)
     %xo2 = icmp eq i32 %xm, %xn3
     %xp1 = call i1 @IsaSAT_Lookup_Conflict_LLVM_is_in_conflict_code ({ i32, i1* } %x8, i32 %xc)
     %xqa = add i1 %xp1, 1
@@ -16170,7 +16145,7 @@ define { i8*, { i64, { i64, i32* } } } @IsaSAT_Lookup_Conflict_LLVM_isa_mark_fai
     %xga = zext i32 %a1b to i64
     %xh = add i64 %a1a, %xga
     %xia = sub i64 %xh, 1
-    %xj = call i32 @IsaSAT_Arena_LLVM_arena_lit_impl ({ i64, { i64, i32* } } %x, i64 %xia)
+    %xj = call i32 @arena_lit_impl ({ i64, { i64, i32* } } %x, i64 %xia)
     %xk = call i32 @IsaSAT_Literals_LLVM_atm_of_impl (i32 %xj)
     %xl = call { i8*, { i64, { i64, i32* } } } @IsaSAT_Lookup_Conflict_LLVM_conflict_min_cach_set_failed_l_code ({ i8*, { i64, { i64, i32* } } } %a21, i32 %xk)
     %xma = add i64 %a11, 1
@@ -16310,7 +16285,7 @@ define { { i8*, { i64, { i64, i32* } } }, { { i64, { i64, { i64, { i32, i1 } }* 
 
   then:
     %xi = add i64 %a1b, %a1c
-    %xj = call i32 @IsaSAT_Arena_LLVM_arena_lit_impl ({ i64, { i64, i32* } } %x1, i64 %xi)
+    %xj = call i32 @arena_lit_impl ({ i64, { i64, i32* } } %x1, i64 %xi)
     %xk = call i32 @IsaSAT_Literals_LLVM_atm_of_impl (i32 %xj)
     %xl = call { i8*, { i64, { i64, i32* } } } @IsaSAT_Lookup_Conflict_LLVM_conflict_min_cach_set_removable_l_code ({ i8*, { i64, { i64, i32* } } } %a11, i32 %xk)
     %lb = extractvalue { i64, { i64, { i64, { i32, i1 } }* } } %a1a1, 0
@@ -16770,61 +16745,6 @@ define i64 @IsaSAT_Inner_Propagation_LLVM_isa_find_unwatched_between_fast_code({
     ret i64 %a12
 }
 
-define { i64, { i64, i64* } } @IsaSAT_LLVM_experiment9017136_LBD_it_introsort_aux_impl_f_09077724({ i64, { i64, i32* } } %ai, { { i64, { i64, i64* } }, { i64, { i64, i64 } } } %x) {
-
-  start:
-    %a1 = extractvalue { { i64, { i64, i64* } }, { i64, { i64, i64 } } } %x, 0
-    %xaa = extractvalue { { i64, { i64, i64* } }, { i64, { i64, i64 } } } %x, 1
-    %a1a = extractvalue { i64, { i64, i64 } } %xaa, 0
-    %xba = extractvalue { i64, { i64, i64 } } %xaa, 1
-    %a1b = extractvalue { i64, i64 } %xba, 0
-    %a2b = extractvalue { i64, i64 } %xba, 1
-    %xca = sub i64 %a1b, %a1a
-    %xd = icmp slt i64 16, %xca
-    br i1 %xd, label %then, label %else
-
-  then:
-    %xea = icmp eq i64 %a2b, 0
-    br i1 %xea, label %thena, label %elsea
-
-  thena:
-    %x1 = call { i64, { i64, i64* } } @IsaSAT_Arena_Sorting_LLVM_LBD_it_heapsort_impl ({ i64, { i64, i32* } } %ai, { i64, { i64, i64* } } %a1, i64 %a1a, i64 %a1b)
-    br label %ctd_ifa
-
-  elsea:
-    %xf = call { { i64, { i64, i64* } }, i64 } @IsaSAT_Arena_Sorting_LLVM_LBD_it_partition_pivot_impl ({ i64, { i64, i32* } } %ai, { i64, { i64, i64* } } %a1, i64 %a1a, i64 %a1b)
-    %a1c = extractvalue { { i64, { i64, i64* } }, i64 } %xf, 0
-    %a2c = extractvalue { { i64, { i64, i64* } }, i64 } %xf, 1
-    %xga = sub i64 %a2b, 1
-    %xh = insertvalue { i64, i64 } zeroinitializer, i64 %a2c, 0
-    %tmpca = insertvalue { i64, i64 } %xh, i64 %xga, 1
-    %xi = insertvalue { i64, { i64, i64 } } zeroinitializer, i64 %a1a, 0
-    %tmpda = insertvalue { i64, { i64, i64 } } %xi, { i64, i64 } %tmpca, 1
-    %xj = insertvalue { { i64, { i64, i64* } }, { i64, { i64, i64 } } } zeroinitializer, { i64, { i64, i64* } } %a1c, 0
-    %xk = insertvalue { { i64, { i64, i64* } }, { i64, { i64, i64 } } } %xj, { i64, { i64, i64 } } %tmpda, 1
-    %xha = call { i64, { i64, i64* } } @IsaSAT_LLVM_experiment9017136_LBD_it_introsort_aux_impl_f_09077724 ({ i64, { i64, i32* } } %ai, { { i64, { i64, i64* } }, { i64, { i64, i64 } } } %xk)
-    %xia = sub i64 %a2b, 1
-    %xm = insertvalue { i64, i64 } zeroinitializer, i64 %a1b, 0
-    %tmpeb = insertvalue { i64, i64 } %xm, i64 %xia, 1
-    %xn = insertvalue { i64, { i64, i64 } } zeroinitializer, i64 %a2c, 0
-    %tmpfa = insertvalue { i64, { i64, i64 } } %xn, { i64, i64 } %tmpeb, 1
-    %xo = insertvalue { { i64, { i64, i64* } }, { i64, { i64, i64 } } } zeroinitializer, { i64, { i64, i64* } } %xha, 0
-    %x2 = insertvalue { { i64, { i64, i64* } }, { i64, { i64, i64 } } } %xo, { i64, { i64, i64 } } %tmpfa, 1
-    %x3 = call { i64, { i64, i64* } } @IsaSAT_LLVM_experiment9017136_LBD_it_introsort_aux_impl_f_09077724 ({ i64, { i64, i32* } } %ai, { { i64, { i64, i64* } }, { i64, { i64, i64 } } } %x2)
-    br label %ctd_ifa
-
-  ctd_ifa:
-    %x4 = phi { i64, { i64, i64* } } [ %x3, %elsea ], [ %x1, %thena ]
-    br label %ctd_if
-
-  else:
-    br label %ctd_if
-
-  ctd_if:
-    %x5 = phi { i64, { i64, i64* } } [ %a1, %else ], [ %x4, %ctd_ifa ]
-    ret { i64, { i64, i64* } } %x5
-}
-
 define { i8*, { i64, { i64, i32* } } } @IsaSAT_Lookup_Conflict_LLVM_conflict_min_cach_set_removable_l_code({ i8*, { i64, { i64, i32* } } } %x, i32 %x1) {
 
   start:
@@ -16894,61 +16814,6 @@ define { i8*, { i64, { i64, i32* } } } @IsaSAT_Lookup_Conflict_LLVM_conflict_min
     ret { i8*, { i64, { i64, i32* } } } %x9
 }
 
-define { i64, { i64, i32* } } @IsaSAT_LLVM_experiment9017136_VMTF_it_introsort_aux_impl_f_09173718({ i64, { i32, i32 } }* %ai, { { i64, { i64, i32* } }, { i64, { i64, i64 } } } %x) {
-
-  start:
-    %a1 = extractvalue { { i64, { i64, i32* } }, { i64, { i64, i64 } } } %x, 0
-    %xaa = extractvalue { { i64, { i64, i32* } }, { i64, { i64, i64 } } } %x, 1
-    %a1a = extractvalue { i64, { i64, i64 } } %xaa, 0
-    %xba = extractvalue { i64, { i64, i64 } } %xaa, 1
-    %a1b = extractvalue { i64, i64 } %xba, 0
-    %a2b = extractvalue { i64, i64 } %xba, 1
-    %xca = sub i64 %a1b, %a1a
-    %xd = icmp slt i64 16, %xca
-    br i1 %xd, label %then, label %else
-
-  then:
-    %xea = icmp eq i64 %a2b, 0
-    br i1 %xea, label %thena, label %elsea
-
-  thena:
-    %x1 = call { i64, { i64, i32* } } @IsaSAT_VMTF_LLVM_VMTF_it_heapsort_impl ({ i64, { i32, i32 } }* %ai, { i64, { i64, i32* } } %a1, i64 %a1a, i64 %a1b)
-    br label %ctd_ifa
-
-  elsea:
-    %xf = call { { i64, { i64, i32* } }, i64 } @IsaSAT_VMTF_LLVM_VMTF_it_partition_pivot_impl ({ i64, { i32, i32 } }* %ai, { i64, { i64, i32* } } %a1, i64 %a1a, i64 %a1b)
-    %a1c = extractvalue { { i64, { i64, i32* } }, i64 } %xf, 0
-    %a2c = extractvalue { { i64, { i64, i32* } }, i64 } %xf, 1
-    %xga = sub i64 %a2b, 1
-    %xh = insertvalue { i64, i64 } zeroinitializer, i64 %a2c, 0
-    %tmpca = insertvalue { i64, i64 } %xh, i64 %xga, 1
-    %xi = insertvalue { i64, { i64, i64 } } zeroinitializer, i64 %a1a, 0
-    %tmpda = insertvalue { i64, { i64, i64 } } %xi, { i64, i64 } %tmpca, 1
-    %xj = insertvalue { { i64, { i64, i32* } }, { i64, { i64, i64 } } } zeroinitializer, { i64, { i64, i32* } } %a1c, 0
-    %xk = insertvalue { { i64, { i64, i32* } }, { i64, { i64, i64 } } } %xj, { i64, { i64, i64 } } %tmpda, 1
-    %xha = call { i64, { i64, i32* } } @IsaSAT_LLVM_experiment9017136_VMTF_it_introsort_aux_impl_f_09173718 ({ i64, { i32, i32 } }* %ai, { { i64, { i64, i32* } }, { i64, { i64, i64 } } } %xk)
-    %xia = sub i64 %a2b, 1
-    %xm = insertvalue { i64, i64 } zeroinitializer, i64 %a1b, 0
-    %tmpeb = insertvalue { i64, i64 } %xm, i64 %xia, 1
-    %xn = insertvalue { i64, { i64, i64 } } zeroinitializer, i64 %a2c, 0
-    %tmpfa = insertvalue { i64, { i64, i64 } } %xn, { i64, i64 } %tmpeb, 1
-    %xo = insertvalue { { i64, { i64, i32* } }, { i64, { i64, i64 } } } zeroinitializer, { i64, { i64, i32* } } %xha, 0
-    %x2 = insertvalue { { i64, { i64, i32* } }, { i64, { i64, i64 } } } %xo, { i64, { i64, i64 } } %tmpfa, 1
-    %x3 = call { i64, { i64, i32* } } @IsaSAT_LLVM_experiment9017136_VMTF_it_introsort_aux_impl_f_09173718 ({ i64, { i32, i32 } }* %ai, { { i64, { i64, i32* } }, { i64, { i64, i64 } } } %x2)
-    br label %ctd_ifa
-
-  ctd_ifa:
-    %x4 = phi { i64, { i64, i32* } } [ %x3, %elsea ], [ %x1, %thena ]
-    br label %ctd_if
-
-  else:
-    br label %ctd_if
-
-  ctd_if:
-    %x5 = phi { i64, { i64, i32* } } [ %a1, %else ], [ %x4, %ctd_ifa ]
-    ret { i64, { i64, i32* } } %x5
-}
-
 define { { i1, { i32, i1* } }, { i32, { { { i64, i1* }, { i32, i32 } }, { i64, { i64, i32* } } } } } @IsaSAT_Lookup_Conflict_LLVM_resolve_lookup_conflict_merge_fast_code({ { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } } %x, { i64, { i64, i32* } } %x1, i64 %x2, { i1, { i32, i1* } } %x3, i32 %x4, { { i64, i1* }, { i32, i32 } } %x5, { i64, { i64, i32* } } %x6) {
 
   start:
@@ -16987,21 +16852,21 @@ define { { i1, { i32, i1* } }, { i32, { { { i64, i1* }, { i32, i32 } }, { i64, {
     %xfa1 = extractvalue { { i32, i1* }, { { { i64, i1* }, { i32, i32 } }, { i64, { i64, i32* } } } } %xea1, 1
     %a1c1 = extractvalue { { { i64, i1* }, { i32, i32 } }, { i64, { i64, i32* } } } %xfa1, 0
     %a2c1 = extractvalue { { { i64, i1* }, { i32, i32 } }, { i64, { i64, i32* } } } %xfa1, 1
-    %xg1 = call i32 @IsaSAT_Arena_LLVM_arena_lit_impl ({ i64, { i64, i32* } } %x1, i64 %a11)
+    %xg1 = call i32 @arena_lit_impl ({ i64, { i64, i32* } } %x1, i64 %a11)
     %xh = call i32 @IsaSAT_Trail_LLVM_get_level_fast_code ({ { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } } %x, i32 %xg1)
     %xi = call { { i64, i1* }, { i32, i32 } } @LBD_LLVM_lbd_write_code ({ { i64, i1* }, { i32, i32 } } %a1c1, i32 %xh)
-    %xj = call i32 @IsaSAT_Arena_LLVM_arena_lit_impl ({ i64, { i64, i32* } } %x1, i64 %a11)
+    %xj = call i32 @arena_lit_impl ({ i64, { i64, i32* } } %x1, i64 %a11)
     %xk = call i32 @IsaSAT_Trail_LLVM_get_level_fast_code ({ { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } } %x, i32 %xj)
-    %xl = call i32 @IsaSAT_Trail_LLVM_count_decided_pol_impl ({ { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } } %x)
+    %xl = call i32 @count_decided_st_heur_pol_fast ({ { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } } %x)
     %xm = icmp ult i32 %xk, %xl
-    %xn = call i32 @IsaSAT_Arena_LLVM_arena_lit_impl ({ i64, { i64, i32* } } %x1, i64 %a11)
+    %xn = call i32 @arena_lit_impl ({ i64, { i64, i32* } } %x1, i64 %a11)
     %xo = call i1 @IsaSAT_Lookup_Conflict_LLVM_is_in_conflict_code ({ i32, i1* } %a1b1, i32 %xn)
     %xpa = add i1 %xo, 1
     %xq = and i1 %xm, %xpa
     br i1 %xq, label %then, label %else
 
   then:
-    %xr = call i32 @IsaSAT_Arena_LLVM_arena_lit_impl ({ i64, { i64, i32* } } %x1, i64 %a11)
+    %xr = call i32 @arena_lit_impl ({ i64, { i64, i32* } } %x1, i64 %a11)
     %l = extractvalue { i64, { i64, i32* } } %a2c1, 0
     %xs = extractvalue { i64, { i64, i32* } } %a2c1, 1
     %c = extractvalue { i64, i32* } %xs, 0
@@ -17049,11 +16914,11 @@ define { { i1, { i32, i1* } }, { i32, { { { i64, i1* }, { i32, i32 } }, { i64, {
 
   ctd_if:
     %xr1 = phi { i64, { i64, i32* } } [ %a2c1, %else ], [ %x15, %ctd_ifa ]
-    %xs1 = call i32 @IsaSAT_Arena_LLVM_arena_lit_impl ({ i64, { i64, i32* } } %x1, i64 %a11)
+    %xs1 = call i32 @arena_lit_impl ({ i64, { i64, i32* } } %x1, i64 %a11)
     %xt = call i32 @IsaSAT_Trail_LLVM_get_level_fast_code ({ { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } } %x, i32 %xs1)
-    %xu3 = call i32 @IsaSAT_Trail_LLVM_count_decided_pol_impl ({ { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } } %x)
+    %xu3 = call i32 @count_decided_st_heur_pol_fast ({ { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } } %x)
     %xv2 = icmp eq i32 %xt, %xu3
-    %xw1 = call i32 @IsaSAT_Arena_LLVM_arena_lit_impl ({ i64, { i64, i32* } } %x1, i64 %a11)
+    %xw1 = call i32 @arena_lit_impl ({ i64, { i64, i32* } } %x1, i64 %a11)
     %xx = call i1 @IsaSAT_Lookup_Conflict_LLVM_is_in_conflict_code ({ i32, i1* } %a1b1, i32 %xw1)
     %xya = add i1 %xx, 1
     %xz = and i1 %xv2, %xya
@@ -17068,7 +16933,7 @@ define { { i1, { i32, i1* } }, { i32, { { { i64, i1* }, { i32, i32 } }, { i64, {
 
   ctd_ifb:
     %ya = phi i32 [ %a1a1, %elseb ], [ %x16, %thenb ]
-    %yb = call i32 @IsaSAT_Arena_LLVM_arena_lit_impl ({ i64, { i64, i32* } } %x1, i64 %a11)
+    %yb = call i32 @arena_lit_impl ({ i64, { i64, i32* } } %x1, i64 %a11)
     %yc = call { i32, i1* } @IsaSAT_Lookup_Conflict_LLVM_add_to_lookup_conflict_impl (i32 %yb, { i32, i1* } %a1b1)
     %yda = add i64 %a11, 1
     %ye = insertvalue { i32, { { i32, i1* }, { { { i64, i1* }, { i32, i32 } }, { i64, { i64, i32* } } } } } zeroinitializer, i32 %ya, 0
@@ -17170,6 +17035,61 @@ define i1 @IsaSAT_Conflict_Analysis_LLVM_extract_valuse_of_lookup_conflict_impl(
     ret i1 %a1
 }
 
+define { i64, { i64, i64* } } @IsaSAT_LLVM_experiment10992272_LBD_it_introsort_aux_impl_f_014955548({ i64, { i64, i32* } } %ai, { { i64, { i64, i64* } }, { i64, { i64, i64 } } } %x) {
+
+  start:
+    %a1 = extractvalue { { i64, { i64, i64* } }, { i64, { i64, i64 } } } %x, 0
+    %xaa = extractvalue { { i64, { i64, i64* } }, { i64, { i64, i64 } } } %x, 1
+    %a1a = extractvalue { i64, { i64, i64 } } %xaa, 0
+    %xba = extractvalue { i64, { i64, i64 } } %xaa, 1
+    %a1b = extractvalue { i64, i64 } %xba, 0
+    %a2b = extractvalue { i64, i64 } %xba, 1
+    %xca = sub i64 %a1b, %a1a
+    %xd = icmp slt i64 16, %xca
+    br i1 %xd, label %then, label %else
+
+  then:
+    %xea = icmp eq i64 %a2b, 0
+    br i1 %xea, label %thena, label %elsea
+
+  thena:
+    %x1 = call { i64, { i64, i64* } } @IsaSAT_Arena_Sorting_LLVM_LBD_it_heapsort_impl ({ i64, { i64, i32* } } %ai, { i64, { i64, i64* } } %a1, i64 %a1a, i64 %a1b)
+    br label %ctd_ifa
+
+  elsea:
+    %xf = call { { i64, { i64, i64* } }, i64 } @IsaSAT_Arena_Sorting_LLVM_LBD_it_partition_pivot_impl ({ i64, { i64, i32* } } %ai, { i64, { i64, i64* } } %a1, i64 %a1a, i64 %a1b)
+    %a1c = extractvalue { { i64, { i64, i64* } }, i64 } %xf, 0
+    %a2c = extractvalue { { i64, { i64, i64* } }, i64 } %xf, 1
+    %xga = sub i64 %a2b, 1
+    %xh = insertvalue { i64, i64 } zeroinitializer, i64 %a2c, 0
+    %tmpca = insertvalue { i64, i64 } %xh, i64 %xga, 1
+    %xi = insertvalue { i64, { i64, i64 } } zeroinitializer, i64 %a1a, 0
+    %tmpda = insertvalue { i64, { i64, i64 } } %xi, { i64, i64 } %tmpca, 1
+    %xj = insertvalue { { i64, { i64, i64* } }, { i64, { i64, i64 } } } zeroinitializer, { i64, { i64, i64* } } %a1c, 0
+    %xk = insertvalue { { i64, { i64, i64* } }, { i64, { i64, i64 } } } %xj, { i64, { i64, i64 } } %tmpda, 1
+    %xha = call { i64, { i64, i64* } } @IsaSAT_LLVM_experiment10992272_LBD_it_introsort_aux_impl_f_014955548 ({ i64, { i64, i32* } } %ai, { { i64, { i64, i64* } }, { i64, { i64, i64 } } } %xk)
+    %xia = sub i64 %a2b, 1
+    %xm = insertvalue { i64, i64 } zeroinitializer, i64 %a1b, 0
+    %tmpeb = insertvalue { i64, i64 } %xm, i64 %xia, 1
+    %xn = insertvalue { i64, { i64, i64 } } zeroinitializer, i64 %a2c, 0
+    %tmpfa = insertvalue { i64, { i64, i64 } } %xn, { i64, i64 } %tmpeb, 1
+    %xo = insertvalue { { i64, { i64, i64* } }, { i64, { i64, i64 } } } zeroinitializer, { i64, { i64, i64* } } %xha, 0
+    %x2 = insertvalue { { i64, { i64, i64* } }, { i64, { i64, i64 } } } %xo, { i64, { i64, i64 } } %tmpfa, 1
+    %x3 = call { i64, { i64, i64* } } @IsaSAT_LLVM_experiment10992272_LBD_it_introsort_aux_impl_f_014955548 ({ i64, { i64, i32* } } %ai, { { i64, { i64, i64* } }, { i64, { i64, i64 } } } %x2)
+    br label %ctd_ifa
+
+  ctd_ifa:
+    %x4 = phi { i64, { i64, i64* } } [ %x3, %elsea ], [ %x1, %thena ]
+    br label %ctd_if
+
+  else:
+    br label %ctd_if
+
+  ctd_if:
+    %x5 = phi { i64, { i64, i64* } } [ %a1, %else ], [ %x4, %ctd_ifa ]
+    ret { i64, { i64, i64* } } %x5
+}
+
 define { { i64, { i64, i32* } }, { { { i64, { i64, i32* } }, { { i64, { i64, i64* } }, { i64, { i64, i64* } } } }, { i64, { i64, { i64, { i64, { i32, i1 } }* } }* } } } @IsaSAT_Restart_Heuristics_LLVM_isasat_GC_clauses_prog_single_wl_code({ i64, { i64, i32* } } %x, { { i64, { i64, i32* } }, { { i64, { i64, i64* } }, { i64, { i64, i64* } } } } %x1, { i64, { i64, { i64, { i64, { i32, i1 } }* } }* } %x2, i32 %x3) {
 
   start:
@@ -17229,6 +17149,61 @@ define { { i64, { i64, i32* } }, { { { i64, { i64, i32* } }, { { i64, { i64, i64
     %x5 = insertvalue { { { i64, { i64, i32* } }, { { i64, { i64, i64* } }, { i64, { i64, i64* } } } }, { i64, { i64, { i64, { i64, { i32, i1 } }* } }* } } %xt, { i64, { i64, { i64, { i64, { i32, i1 } }* } }* } %xra, 1
     %x6 = insertvalue { { i64, { i64, i32* } }, { { { i64, { i64, i32* } }, { { i64, { i64, i64* } }, { i64, { i64, i64* } } } }, { i64, { i64, { i64, { i64, { i32, i1 } }* } }* } } } %xs, { { { i64, { i64, i32* } }, { { i64, { i64, i64* } }, { i64, { i64, i64* } } } }, { i64, { i64, { i64, { i64, { i32, i1 } }* } }* } } %x5, 1
     ret { { i64, { i64, i32* } }, { { { i64, { i64, i32* } }, { { i64, { i64, i64* } }, { i64, { i64, i64* } } } }, { i64, { i64, { i64, { i64, { i32, i1 } }* } }* } } } %x6
+}
+
+define { i64, { i64, i32* } } @IsaSAT_LLVM_experiment10992272_VMTF_it_introsort_aux_impl_f_015051542({ i64, { i32, i32 } }* %ai, { { i64, { i64, i32* } }, { i64, { i64, i64 } } } %x) {
+
+  start:
+    %a1 = extractvalue { { i64, { i64, i32* } }, { i64, { i64, i64 } } } %x, 0
+    %xaa = extractvalue { { i64, { i64, i32* } }, { i64, { i64, i64 } } } %x, 1
+    %a1a = extractvalue { i64, { i64, i64 } } %xaa, 0
+    %xba = extractvalue { i64, { i64, i64 } } %xaa, 1
+    %a1b = extractvalue { i64, i64 } %xba, 0
+    %a2b = extractvalue { i64, i64 } %xba, 1
+    %xca = sub i64 %a1b, %a1a
+    %xd = icmp slt i64 16, %xca
+    br i1 %xd, label %then, label %else
+
+  then:
+    %xea = icmp eq i64 %a2b, 0
+    br i1 %xea, label %thena, label %elsea
+
+  thena:
+    %x1 = call { i64, { i64, i32* } } @IsaSAT_VMTF_LLVM_VMTF_it_heapsort_impl ({ i64, { i32, i32 } }* %ai, { i64, { i64, i32* } } %a1, i64 %a1a, i64 %a1b)
+    br label %ctd_ifa
+
+  elsea:
+    %xf = call { { i64, { i64, i32* } }, i64 } @IsaSAT_VMTF_LLVM_VMTF_it_partition_pivot_impl ({ i64, { i32, i32 } }* %ai, { i64, { i64, i32* } } %a1, i64 %a1a, i64 %a1b)
+    %a1c = extractvalue { { i64, { i64, i32* } }, i64 } %xf, 0
+    %a2c = extractvalue { { i64, { i64, i32* } }, i64 } %xf, 1
+    %xga = sub i64 %a2b, 1
+    %xh = insertvalue { i64, i64 } zeroinitializer, i64 %a2c, 0
+    %tmpca = insertvalue { i64, i64 } %xh, i64 %xga, 1
+    %xi = insertvalue { i64, { i64, i64 } } zeroinitializer, i64 %a1a, 0
+    %tmpda = insertvalue { i64, { i64, i64 } } %xi, { i64, i64 } %tmpca, 1
+    %xj = insertvalue { { i64, { i64, i32* } }, { i64, { i64, i64 } } } zeroinitializer, { i64, { i64, i32* } } %a1c, 0
+    %xk = insertvalue { { i64, { i64, i32* } }, { i64, { i64, i64 } } } %xj, { i64, { i64, i64 } } %tmpda, 1
+    %xha = call { i64, { i64, i32* } } @IsaSAT_LLVM_experiment10992272_VMTF_it_introsort_aux_impl_f_015051542 ({ i64, { i32, i32 } }* %ai, { { i64, { i64, i32* } }, { i64, { i64, i64 } } } %xk)
+    %xia = sub i64 %a2b, 1
+    %xm = insertvalue { i64, i64 } zeroinitializer, i64 %a1b, 0
+    %tmpeb = insertvalue { i64, i64 } %xm, i64 %xia, 1
+    %xn = insertvalue { i64, { i64, i64 } } zeroinitializer, i64 %a2c, 0
+    %tmpfa = insertvalue { i64, { i64, i64 } } %xn, { i64, i64 } %tmpeb, 1
+    %xo = insertvalue { { i64, { i64, i32* } }, { i64, { i64, i64 } } } zeroinitializer, { i64, { i64, i32* } } %xha, 0
+    %x2 = insertvalue { { i64, { i64, i32* } }, { i64, { i64, i64 } } } %xo, { i64, { i64, i64 } } %tmpfa, 1
+    %x3 = call { i64, { i64, i32* } } @IsaSAT_LLVM_experiment10992272_VMTF_it_introsort_aux_impl_f_015051542 ({ i64, { i32, i32 } }* %ai, { { i64, { i64, i32* } }, { i64, { i64, i64 } } } %x2)
+    br label %ctd_ifa
+
+  ctd_ifa:
+    %x4 = phi { i64, { i64, i32* } } [ %x3, %elsea ], [ %x1, %thena ]
+    br label %ctd_if
+
+  else:
+    br label %ctd_if
+
+  ctd_if:
+    %x5 = phi { i64, { i64, i32* } } [ %a1, %else ], [ %x4, %ctd_ifa ]
+    ret { i64, { i64, i32* } } %x5
 }
 
 define i64 @IsaSAT_Restart_Heuristics_LLVM_get_the_propagation_reason_pol_st_code({ { { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } }, { { i64, { i64, i32* } }, { { i1, { i32, i1* } }, { i64, { { i64, { i64, { i64, { i64, { i32, i1 } }* } }* }, { { { { i64, { i32, i32 } }*, { i64, { i32, { i32, i32 } } } }, { { i64, { i64, i32* } }, i1* } }, { i32, { { i8*, { i64, { i64, i32* } } }, { { { i64, i1* }, { i32, i32 } }, { { i64, { i64, i32* } }, { { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } }, { { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { { i64, i1* }, { i64, { i64, i64 } } } } } } } } } } }, { { i64, { i64, i64* } }, { { i64, { i64, i64* } }, { i64, { { i1, { i1, i1 } }, { i64, { i64, i32* } } } } } } } } } } } } } } } } } } %x, i32 %x1) {
@@ -18409,7 +18384,7 @@ define { i64, { i32, i1 } } @IsaSAT_Lookup_Conflict_LLVM_lit_redundant_reason_st
     br label %ctd_if
 
   else:
-    %xb1 = call i32 @IsaSAT_Arena_LLVM_arena_lit_impl ({ i64, { i64, i32* } } %x1, i64 %x2)
+    %xb1 = call i32 @arena_lit_impl ({ i64, { i64, i32* } } %x1, i64 %x2)
     %xc1 = call i1 @IsaSAT_Literals_LLVM_lit_eq_impl (i32 %xb1, i32 %x)
     br i1 %xc1, label %thena, label %elsea
 
@@ -18583,7 +18558,7 @@ define { i32, { i64, { i64, { i64, { i32, i1 } }* } } } @IsaSAT_Lookup_Conflict_
     %a2a = extractvalue { i32, i1 } %xc, 1
     %xda = zext i32 %a1a to i64
     %xe = add i64 %a1, %xda
-    %xf = call i32 @IsaSAT_Arena_LLVM_arena_lit_impl ({ i64, { i64, i32* } } %x, i64 %xe)
+    %xf = call i32 @arena_lit_impl ({ i64, { i64, i32* } } %x, i64 %xe)
     %lb = extractvalue { i64, { i64, { i64, { i32, i1 } }* } } %x1, 0
     %xg = extractvalue { i64, { i64, { i64, { i32, i1 } }* } } %x1, 1
     %ca = extractvalue { i64, { i64, { i32, i1 } }* } %xg, 0

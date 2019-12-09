@@ -420,21 +420,22 @@ begin
     find_unwatched_wl_st_heur_fast_code_def
     update_clause_wl_fast_code_def
 
-term \<open>count_decided_pol_fast\<close>
   export_llvm
-    IsaSAT_code_wrapped
+    IsaSAT_code_wrapped is \<open>int64_t IsaSAT_code_wrapped(CLAUSES)\<close>
     llvm_version is \<open>STRING_VERSION llvm_version\<close>
     default_opts_impl
     IsaSAT_code
     opts_restart_impl
     count_decided_pol_impl is \<open>uint32_t count_decided_st_heur_pol_fast(TRAIL)\<close>
     arena_lit_impl is \<open>uint32_t arena_lit_impl(ARENA, int64_t)\<close>
-    llvm_version is \<open>STRING_VERSION llvm_version()\<close>
   defines \<open>
+     typedef struct {int64_t size; struct {int64_t used; uint32_t *data;};} CLAUSE;
+     typedef struct {int64_t num_clauses; CLAUSE *clauses;} CLAUSES;
+
      typedef struct {int64_t size; struct {int64_t capacity; int32_t *data;};} ARENA;
      typedef int32_t* STRING_VERSION;
 
-     typedef struct {int64_t size; struct {int64_t capacity; int32_t *data;};} RAW_TRAIL;
+     typedef struct {int64_t size; struct {int64_t capacity; uint32_t *data;};} RAW_TRAIL;
      typedef struct {int64_t size; int8_t *polarity;} POLARITY;
      typedef struct {int64_t size; int32_t *level;} LEVEL;
      typedef struct {int64_t size; int64_t *reasons;} REASONS;
@@ -450,7 +451,7 @@ term \<open>count_decided_pol_fast\<close>
 
 end
 
-
+thm \<alpha>_butlast[simp del]
 definition model_bounded_assn where
   \<open>model_bounded_assn =
    hr_comp (bool1_assn \<times>\<^sub>a model_stat_assn\<^sub>0)

@@ -6,22 +6,9 @@
 #include <stdint.h>
 #include <string.h>
 
+#include "isasat_restart.h"
+
 /*the parser is based on the code from lingeling*/
-
-typedef struct CLAUSE {
-  int64_t size;
-  struct {
-    int64_t used;
-    uint32_t* clause;
-  };
-} CLAUSE;
-
-
-typedef struct CLAUSES {
-  int64_t size;
-  CLAUSE* clauses;
-} clauses, CLAUSES;
-
 
 static char * inputname;
 static FILE * inputfile;
@@ -93,7 +80,7 @@ static void free_clause (CLAUSE *cl) {
 
 CLAUSES new_clauses(int64_t size) {
   CLAUSES clauses;
-  clauses.size = size;
+  clauses.num_clauses = size;
   clauses.clauses = (CLAUSE *) malloc((size+1) * sizeof(CLAUSE));
   for (int64_t n = 0; n < size; ++n) {
     clauses.clauses[n] = new_empty_clause();
@@ -103,7 +90,7 @@ CLAUSES new_clauses(int64_t size) {
 
 
 void free_clauses (CLAUSES *cl) {
-  for (int64_t n = 0; n <= cl->size; ++n) {
+  for (int64_t n = 0; n <= cl->num_clauses; ++n) {
     free_clause(&cl->clauses[n]);
   }
   free(cl->clauses);
@@ -118,7 +105,7 @@ void print_clause(CLAUSE *cl) {
 }
 
 void print_clauses(CLAUSES *cl) {
-  for(int i = 0; i < cl->size; ++i)
+  for(int i = 0; i < cl->num_clauses; ++i)
     print_clause(&cl->clauses[i]);
 }
 
@@ -350,11 +337,11 @@ FILE * read_pipe (const char * fmt,
   return open_pipe (fmt, path, "r");
 }
 
-int32_t* IsaSAT_LLVM_llvm_version();
+
 void LLVM_DS_NArray_narray_free1(int32_t *);
 
 void print_version() {
-  int32_t* version = IsaSAT_LLVM_llvm_version();
+  int32_t* version = llvm_version();
   while(*version) {
     printf("%c", (char)*version);
     ++version;
