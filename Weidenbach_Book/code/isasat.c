@@ -8,6 +8,8 @@
 
 #include "isasat_restart.h"
 
+
+
 /*the parser is based on the code from lingeling*/
 
 static char * inputname;
