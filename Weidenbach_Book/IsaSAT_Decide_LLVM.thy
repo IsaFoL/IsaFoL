@@ -46,7 +46,7 @@ sepref_def update_next_search_code is
 sepref_register isa_vmtf_find_next_undef_upd  mop_get_saved_phase_heur
 sepref_def isa_vmtf_find_next_undef_upd_code is 
   "uncurry isa_vmtf_find_next_undef_upd" 
-    :: "trail_pol_fast_assn\<^sup>d *\<^sub>a vmtf_remove_assn\<^sup>d \<rightarrow>\<^sub>a (trail_pol_fast_assn *a vmtf_remove_assn) *a atom.option_assn"
+    :: "trail_pol_fast_assn\<^sup>d *\<^sub>a vmtf_remove_assn\<^sup>d \<rightarrow>\<^sub>a (trail_pol_fast_assn \<times>\<^sub>a vmtf_remove_assn) \<times>\<^sub>a atom.option_assn"
   unfolding isa_vmtf_find_next_undef_upd_def
   by sepref
 
@@ -68,7 +68,7 @@ sepref_def mop_get_saved_phase_heur_impl
 
 sepref_def decide_wl_or_skip_D_fast_code
   is \<open>decide_wl_or_skip_D_heur\<close>
-  :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a bool1_assn *a isasat_bounded_assn\<close>
+  :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a bool1_assn \<times>\<^sub>a isasat_bounded_assn\<close>
   supply[[goals_limit=1]]
     decide_lit_wl_fast_code.refine[unfolded isasat_bounded_assn_def, sepref_fr_rules]
     save_phase_heur_st.refine[unfolded isasat_bounded_assn_def, sepref_fr_rules]

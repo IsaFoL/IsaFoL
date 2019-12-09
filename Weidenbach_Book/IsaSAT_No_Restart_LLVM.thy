@@ -5,7 +5,7 @@ theory IsaSAT_No_Restart_LLVM
 begin
 
 abbreviation  model_stat_assn where
-  \<open>model_stat_assn \<equiv> bool1_assn *a (arl64_assn unat_lit_assn) *a stats_assn\<close>
+  \<open>model_stat_assn \<equiv> bool1_assn \<times>\<^sub>a (arl64_assn unat_lit_assn) \<times>\<^sub>a stats_assn\<close>
 
 abbreviation  model_stat_assn\<^sub>0 ::
     "bool \<times>
@@ -18,17 +18,17 @@ abbreviation  model_stat_assn\<^sub>0 ::
        64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word
        \<Rightarrow> llvm_amemory \<Rightarrow> bool"
 where
-  \<open>model_stat_assn\<^sub>0 \<equiv> bool1_assn *a (al_assn unat_lit_assn) *a stats_assn\<close>
+  \<open>model_stat_assn\<^sub>0 \<equiv> bool1_assn \<times>\<^sub>a (al_assn unat_lit_assn) \<times>\<^sub>a stats_assn\<close>
 
 abbreviation lits_with_max_assn :: \<open>nat multiset
      \<Rightarrow> (64 word \<times> 64 word \<times> 32 word ptr) \<times> 32 word \<Rightarrow> llvm_amemory \<Rightarrow> bool\<close> where
-  \<open>lits_with_max_assn \<equiv> hr_comp (arl64_assn atom_assn *a uint32_nat_assn) lits_with_max_rel\<close>
+  \<open>lits_with_max_assn \<equiv> hr_comp (arl64_assn atom_assn \<times>\<^sub>a uint32_nat_assn) lits_with_max_rel\<close>
 
 abbreviation lits_with_max_assn\<^sub>0 :: \<open>nat multiset
      \<Rightarrow> (64 word \<times> 64 word \<times> 32 word ptr) \<times> 32 word \<Rightarrow> llvm_amemory \<Rightarrow> bool\<close> where
-  \<open>lits_with_max_assn\<^sub>0 \<equiv> hr_comp (al_assn atom_assn *a unat32_assn) lits_with_max_rel\<close>
+  \<open>lits_with_max_assn\<^sub>0 \<equiv> hr_comp (al_assn atom_assn \<times>\<^sub>a unat32_assn) lits_with_max_rel\<close>
 
-lemma lits_with_max_assn_alt_def: \<open>lits_with_max_assn = hr_comp (arl64_assn atom_assn *a uint32_nat_assn)
+lemma lits_with_max_assn_alt_def: \<open>lits_with_max_assn = hr_comp (arl64_assn atom_assn \<times>\<^sub>a uint32_nat_assn)
           (lits_with_max_rel O \<langle>nat_rel\<rangle>IsaSAT_Initialisation.mset_rel)\<close>
 proof -
 
@@ -326,7 +326,7 @@ schematic_goal mk_free_ghost_assn[sepref_frame_free_rules]: "MK_FREE ghost_assn 
 
 sepref_def IsaSAT_code
   is \<open>uncurry IsaSAT_bounded_heur\<close>
-  :: \<open>opts_assn\<^sup>d *\<^sub>a (clauses_ll_assn)\<^sup>k \<rightarrow>\<^sub>a bool1_assn *a model_stat_assn\<close>
+  :: \<open>opts_assn\<^sup>d *\<^sub>a (clauses_ll_assn)\<^sup>k \<rightarrow>\<^sub>a bool1_assn \<times>\<^sub>a model_stat_assn\<close>
   supply [[goals_limit=1]] isasat_fast_init_def[simp]
   unfolding IsaSAT_bounded_heur_def empty_conflict_def[symmetric]
     get_conflict_wl_is_None extract_model_of_state_def[symmetric]

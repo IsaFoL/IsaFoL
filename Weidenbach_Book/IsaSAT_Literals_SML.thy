@@ -181,7 +181,7 @@ abbreviation pair_nat_ann_lits_assn :: \<open>(nat, nat) ann_lits \<Rightarrow> 
   \<open>pair_nat_ann_lits_assn \<equiv> list_assn pair_nat_ann_lit_assn\<close>
 
 abbreviation pair_nat_ann_lit_fast_assn :: \<open>(nat, nat) ann_lit \<Rightarrow> ann_lit_wl_fast \<Rightarrow> assn\<close> where
-  \<open>pair_nat_ann_lit_fast_assn \<equiv> hr_comp (uint32_assn *a option_assn uint64_nat_assn) nat_ann_lit_rel\<close>
+  \<open>pair_nat_ann_lit_fast_assn \<equiv> hr_comp (uint32_assn \<times>\<^sub>a option_assn uint64_nat_assn) nat_ann_lit_rel\<close>
 
 abbreviation pair_nat_ann_lits_fast_assn :: \<open>(nat, nat) ann_lits \<Rightarrow> ann_lits_wl_fast \<Rightarrow> assn\<close> where
   \<open>pair_nat_ann_lits_fast_assn \<equiv> list_assn pair_nat_ann_lit_fast_assn\<close>
@@ -252,10 +252,10 @@ proof -
 qed
 
 abbreviation ann_lit_wl_assn :: \<open>ann_lit_wl \<Rightarrow> ann_lit_wl \<Rightarrow> assn\<close> where
-  \<open>ann_lit_wl_assn \<equiv> uint32_assn *a (option_assn nat_assn)\<close>
+  \<open>ann_lit_wl_assn \<equiv> uint32_assn \<times>\<^sub>a (option_assn nat_assn)\<close>
 
 abbreviation ann_lit_wl_fast_assn :: \<open>ann_lit_wl \<Rightarrow> ann_lit_wl_fast \<Rightarrow> assn\<close> where
-  \<open>ann_lit_wl_fast_assn \<equiv> uint32_assn *a (option_assn uint64_nat_assn)\<close>
+  \<open>ann_lit_wl_fast_assn \<equiv> uint32_assn \<times>\<^sub>a (option_assn uint64_nat_assn)\<close>
 
 abbreviation ann_lits_wl_assn :: \<open>ann_lits_wl \<Rightarrow> ann_lits_wl \<Rightarrow> assn\<close> where
   \<open>ann_lits_wl_assn \<equiv> list_assn ann_lit_wl_assn\<close>
@@ -337,7 +337,7 @@ qed
 
 lemma lit_and_ann_of_propagated_hnr[sepref_fr_rules]:
   \<open>(return o lit_and_ann_of_propagated_code, RETURN o lit_and_ann_of_propagated) \<in>
-   [\<lambda>L. \<not>is_decided L]\<^sub>a pair_nat_ann_lit_assn\<^sup>k \<rightarrow> (unat_lit_assn *a nat_assn)\<close>
+   [\<lambda>L. \<not>is_decided L]\<^sub>a pair_nat_ann_lit_assn\<^sup>k \<rightarrow> (unat_lit_assn \<times>\<^sub>a nat_assn)\<close>
   unfolding lit_and_ann_of_propagated_code_def
   apply sepref_to_hoare
   apply (rename_tac x x')

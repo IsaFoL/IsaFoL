@@ -34,7 +34,7 @@ sepref_definition empty_conflict_and_extract_clause_heur_code
   is \<open>uncurry2 (isa_empty_conflict_and_extract_clause_heur)\<close>
   :: \<open>[\<lambda>((M, D), outl). outl \<noteq> [] \<and> length outl \<le> uint32_max]\<^sub>a
       trail_pol_assn\<^sup>k *\<^sub>a lookup_clause_rel_assn\<^sup>d *\<^sub>a out_learned_assn\<^sup>k \<rightarrow>
-       (bool_assn *a uint32_nat_assn *a array_assn option_bool_assn) *a clause_ll_assn *a uint32_nat_assn\<close>
+       (bool_assn \<times>\<^sub>a uint32_nat_assn \<times>\<^sub>a array_assn option_bool_assn) \<times>\<^sub>a clause_ll_assn \<times>\<^sub>a uint32_nat_assn\<close>
   supply [[goals_limit=1]] image_image[simp]
   unfolding isa_empty_conflict_and_extract_clause_heur_alt_def
     array_fold_custom_replicate length_uint32_nat_def zero_uint32_nat_def[symmetric]
@@ -47,7 +47,7 @@ sepref_definition empty_conflict_and_extract_clause_heur_fast_code
   is \<open>uncurry2 (isa_empty_conflict_and_extract_clause_heur)\<close>
   :: \<open>[\<lambda>((M, D), outl). outl \<noteq> [] \<and> length outl \<le> uint32_max]\<^sub>a
       trail_pol_fast_assn\<^sup>k *\<^sub>a lookup_clause_rel_assn\<^sup>d *\<^sub>a out_learned_assn\<^sup>k \<rightarrow>
-       (bool_assn *a uint32_nat_assn *a array_assn option_bool_assn) *a clause_ll_assn *a uint32_nat_assn\<close>
+       (bool_assn \<times>\<^sub>a uint32_nat_assn \<times>\<^sub>a array_assn option_bool_assn) \<times>\<^sub>a clause_ll_assn \<times>\<^sub>a uint32_nat_assn\<close>
   supply [[goals_limit=1]] image_image[simp]
   unfolding isa_empty_conflict_and_extract_clause_heur_alt_def
     array_fold_custom_replicate length_uint32_nat_def zero_uint32_nat_def[symmetric]
@@ -169,7 +169,7 @@ sepref_register isa_minimize_and_extract_highest_lookup_conflict
 
 sepref_definition extract_shorter_conflict_list_heur_st_code
   is \<open>extract_shorter_conflict_list_heur_st\<close>
-  :: \<open>isasat_unbounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_unbounded_assn *a uint32_nat_assn *a clause_ll_assn\<close>
+  :: \<open>isasat_unbounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_unbounded_assn \<times>\<^sub>a uint32_nat_assn \<times>\<^sub>a clause_ll_assn\<close>
   supply [[goals_limit=1]] empty_conflict_and_extract_clause_pre_def[simp]
   unfolding extract_shorter_conflict_list_heur_st_def PR_CONST_def isasat_unbounded_assn_def
   unfolding delete_index_and_swap_update_def[symmetric] append_update_def[symmetric]
@@ -181,7 +181,7 @@ declare extract_shorter_conflict_list_heur_st_code.refine[sepref_fr_rules]
 sepref_definition extract_shorter_conflict_list_heur_st_fast
   is \<open>extract_shorter_conflict_list_heur_st\<close>
   :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> uint64_max]\<^sub>a
-        isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn *a uint32_nat_assn *a clause_ll_assn\<close>
+        isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn \<times>\<^sub>a uint32_nat_assn \<times>\<^sub>a clause_ll_assn\<close>
   supply [[goals_limit=1]] empty_conflict_and_extract_clause_pre_def[simp]
   unfolding extract_shorter_conflict_list_heur_st_def PR_CONST_def isasat_bounded_assn_def
   unfolding delete_index_and_swap_update_def[symmetric] append_update_def[symmetric]

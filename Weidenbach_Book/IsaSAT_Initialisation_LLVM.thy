@@ -17,13 +17,13 @@ type_synonym (in -)vmtf_remove_assn_option_fst_As =
   \<open>vmtf_assn_option_fst_As \<times> (32 word array_list64) \<times> 1 word ptr\<close>
 
 abbreviation (in -) vmtf_conc_option_fst_As :: \<open>_ \<Rightarrow> _ \<Rightarrow> llvm_amemory \<Rightarrow> bool\<close> where
-  \<open>vmtf_conc_option_fst_As \<equiv> (array_assn vmtf_node_assn *a uint64_nat_assn *a
-    atom.option_assn *a atom.option_assn *a atom.option_assn)\<close>
+  \<open>vmtf_conc_option_fst_As \<equiv> (array_assn vmtf_node_assn \<times>\<^sub>a uint64_nat_assn \<times>\<^sub>a
+    atom.option_assn \<times>\<^sub>a atom.option_assn \<times>\<^sub>a atom.option_assn)\<close>
 
 abbreviation vmtf_remove_conc_option_fst_As
   :: \<open>isa_vmtf_remove_int_option_fst_As \<Rightarrow> vmtf_remove_assn_option_fst_As \<Rightarrow> assn\<close>
 where
-  \<open>vmtf_remove_conc_option_fst_As \<equiv> vmtf_conc_option_fst_As *a distinct_atoms_assn\<close>
+  \<open>vmtf_remove_conc_option_fst_As \<equiv> vmtf_conc_option_fst_As \<times>\<^sub>a distinct_atoms_assn\<close>
 
 sepref_register atoms_hash_empty
 sepref_def (in -) atoms_hash_empty_code
@@ -52,15 +52,15 @@ definition isasat_init_assn
        32 word \<times> cach_refinement_l_assn \<times> lbd_assn \<times> vdom_fast_assn \<times> 1 word \<Rightarrow> assn\<close>
 where
 \<open>isasat_init_assn =
-  trail_pol_fast_assn *a arena_fast_assn *a
-  conflict_option_rel_assn *a
-  sint64_nat_assn *a
-  watchlist_fast_assn *a
-  vmtf_remove_conc_option_fst_As *a phase_saver_assn *a
-  uint32_nat_assn *a
-  cach_refinement_l_assn *a
-  lbd_assn *a
-  vdom_fast_assn *a
+  trail_pol_fast_assn \<times>\<^sub>a arena_fast_assn \<times>\<^sub>a
+  conflict_option_rel_assn \<times>\<^sub>a
+  sint64_nat_assn \<times>\<^sub>a
+  watchlist_fast_assn \<times>\<^sub>a
+  vmtf_remove_conc_option_fst_As \<times>\<^sub>a phase_saver_assn \<times>\<^sub>a
+  uint32_nat_assn \<times>\<^sub>a
+  cach_refinement_l_assn \<times>\<^sub>a
+  lbd_assn \<times>\<^sub>a
+  vdom_fast_assn \<times>\<^sub>a
   bool1_assn\<close>
 
 sepref_def initialise_VMTF_code
@@ -183,7 +183,7 @@ sepref_def append_and_length_fast_code
   is \<open>uncurry3 fm_add_new_fast'\<close>
   :: \<open>[\<lambda>(((b, C), i), N). i < length C \<and> append_and_length_fast_code_pre ((b, C!i), N)]\<^sub>a
      bool1_assn\<^sup>k *\<^sub>a clauses_ll_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a (arena_fast_assn)\<^sup>d \<rightarrow>
-       arena_fast_assn *a sint64_nat_assn\<close>
+       arena_fast_assn \<times>\<^sub>a sint64_nat_assn\<close>
   supply [[goals_limit=1]]
   supply [simp] = fm_add_new_bounds1[simplified]
   supply [split] = if_splits
@@ -333,7 +333,7 @@ sepref_register init_dt_wl_heur_unb
 
 
 abbreviation isasat_atms_ext_rel_assn where
-  \<open>isasat_atms_ext_rel_assn \<equiv> larray64_assn uint64_nat_assn *a uint32_nat_assn *a
+  \<open>isasat_atms_ext_rel_assn \<equiv> larray64_assn uint64_nat_assn \<times>\<^sub>a uint32_nat_assn \<times>\<^sub>a
        arl64_assn atom_assn\<close>
 
 abbreviation nat_lit_list_hm_assn where
@@ -507,7 +507,7 @@ sepref_def (in -) extract_lits_sorted'_impl
    :: \<open>[\<lambda>((xs, n), vars). (\<forall>x\<in>#mset vars. x < length xs)]\<^sub>a
       (larray64_assn uint64_nat_assn)\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a
        (arl64_assn atom_assn)\<^sup>d  \<rightarrow>
-       arl64_assn atom_assn *a uint32_nat_assn\<close>
+       arl64_assn atom_assn \<times>\<^sub>a uint32_nat_assn\<close>
   unfolding extract_lits_sorted'_def extract_lits_sorted_def nres_monad1
     prod.case
   by sepref
@@ -519,7 +519,7 @@ sepref_def (in -) extract_lits_sorted_code
    is \<open>extract_lits_sorted\<close>
    :: \<open>[\<lambda>(xs, n, vars). (\<forall>x\<in>#mset vars. x < length xs)]\<^sub>a
       isasat_atms_ext_rel_assn\<^sup>d  \<rightarrow>
-       arl64_assn atom_assn *a uint32_nat_assn\<close>
+       arl64_assn atom_assn \<times>\<^sub>a uint32_nat_assn\<close>
   apply (subst extract_lits_sorted_extract_lits_sorted')
   unfolding extract_lits_sorted'_def extract_lits_sorted_def nres_monad1
     prod.case
@@ -531,14 +531,14 @@ declare extract_lits_sorted_code.refine[sepref_fr_rules]
 
 
 abbreviation lits_with_max_assn where
-  \<open>lits_with_max_assn \<equiv> hr_comp (arl64_assn atom_assn *a uint32_nat_assn) lits_with_max_rel\<close>
+  \<open>lits_with_max_assn \<equiv> hr_comp (arl64_assn atom_assn \<times>\<^sub>a uint32_nat_assn) lits_with_max_rel\<close>
 
 lemma extract_lits_sorted_hnr[sepref_fr_rules]:
   \<open>(extract_lits_sorted_code, RETURN \<circ> mset_set) \<in> nat_lit_list_hm_assn\<^sup>d \<rightarrow>\<^sub>a lits_with_max_assn\<close>
     (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
 proof -
   have H: \<open>hrr_comp isasat_atms_ext_rel
-        (\<lambda>_ _. al_assn atom_assn *a unat_assn) (\<lambda>_. lits_with_max_rel) =
+        (\<lambda>_ _. al_assn atom_assn \<times>\<^sub>a unat_assn) (\<lambda>_. lits_with_max_rel) =
        (\<lambda>_ _. lits_with_max_assn)\<close>
     by (auto simp: hrr_comp_def intro!: ext)
 
@@ -628,7 +628,7 @@ declare finalise_init_code'.refine[sepref_fr_rules]
 
 (*sepref_definition init_aa'_code
   is \<open>RETURN o init_aa'\<close>
-  :: \<open>sint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a arl_assn (clause_status_assn *a uint32_nat_assn *a uint32_nat_assn)\<close>
+  :: \<open>sint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a arl_assn (clause_status_assn \<times>\<^sub>a uint32_nat_assn \<times>\<^sub>a uint32_nat_assn)\<close>
   unfolding init_aa'_alt_def
   by sepref
 
@@ -666,7 +666,7 @@ declare init_trail_D_fast_code.refine[sepref_fr_rules]
 
 sepref_def init_state_wl_D'_code
   is \<open>init_state_wl_D'\<close>
-  :: \<open>(arl64_assn atom_assn *a uint32_nat_assn)\<^sup>k \<rightarrow>\<^sub>a isasat_init_assn\<close>
+  :: \<open>(arl64_assn atom_assn \<times>\<^sub>a uint32_nat_assn)\<^sup>k \<rightarrow>\<^sub>a isasat_init_assn\<close>
   supply[[goals_limit=1]]
   unfolding init_state_wl_D'_def PR_CONST_def init_trail_D_fast_def[symmetric] isasat_init_assn_def
    cach_refinement_l_assn_def Suc_eq_plus1_left conflict_option_rel_assn_def  lookup_clause_rel_assn_def

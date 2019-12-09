@@ -73,16 +73,16 @@ lemmas fold_tuples = tuple4_def[symmetric] tuple7_def[symmetric] tuple13_def[sym
 sepref_register tuple4 tuple7 tuple13
 
 sepref_def "tuple4_impl" [llvm_inline] is "uncurry3 (RETURN oooo tuple4)" :: 
-  "A1\<^sup>d *\<^sub>a A2\<^sup>d *\<^sub>a A3\<^sup>d *\<^sub>a A4\<^sup>d \<rightarrow>\<^sub>a A1 *a A2 *a A3 *a A4"
+  "A1\<^sup>d *\<^sub>a A2\<^sup>d *\<^sub>a A3\<^sup>d *\<^sub>a A4\<^sup>d \<rightarrow>\<^sub>a A1 \<times>\<^sub>a A2 \<times>\<^sub>a A3 \<times>\<^sub>a A4"
   unfolding tuple4_def by sepref
   
 sepref_def "tuple7_impl" [llvm_inline] is "uncurry6 (RETURN ooooooo tuple7)" :: 
-  "A1\<^sup>d *\<^sub>a A2\<^sup>d *\<^sub>a A3\<^sup>d *\<^sub>a A4\<^sup>d *\<^sub>a A5\<^sup>d *\<^sub>a A6\<^sup>d *\<^sub>a A7\<^sup>d \<rightarrow>\<^sub>a A1 *a A2 *a A3 *a A4 *a A5 *a A6 *a A7"
+  "A1\<^sup>d *\<^sub>a A2\<^sup>d *\<^sub>a A3\<^sup>d *\<^sub>a A4\<^sup>d *\<^sub>a A5\<^sup>d *\<^sub>a A6\<^sup>d *\<^sub>a A7\<^sup>d \<rightarrow>\<^sub>a A1 \<times>\<^sub>a A2 \<times>\<^sub>a A3 \<times>\<^sub>a A4 \<times>\<^sub>a A5 \<times>\<^sub>a A6 \<times>\<^sub>a A7"
   unfolding tuple7_def by sepref
 
 sepref_def "tuple13_impl" [llvm_inline] is "uncurry12 (RETURN o\<^sub>1\<^sub>3 tuple13)" :: 
   "A1\<^sup>d *\<^sub>a A2\<^sup>d *\<^sub>a A3\<^sup>d *\<^sub>a A4\<^sup>d *\<^sub>a A5\<^sup>d *\<^sub>a A6\<^sup>d *\<^sub>a A7\<^sup>d *\<^sub>a A8\<^sup>d *\<^sub>a A9\<^sup>d *\<^sub>a A10\<^sup>d *\<^sub>a A11\<^sup>d *\<^sub>a A12\<^sup>d *\<^sub>a A13\<^sup>d 
-  \<rightarrow>\<^sub>a A1 *a A2 *a A3 *a A4 *a A5 *a A6 *a A7 *a A8 *a A9 *a A10 *a A11 *a A12 *a A13"
+  \<rightarrow>\<^sub>a A1 \<times>\<^sub>a A2 \<times>\<^sub>a A3 \<times>\<^sub>a A4 \<times>\<^sub>a A5 \<times>\<^sub>a A6 \<times>\<^sub>a A7 \<times>\<^sub>a A8 \<times>\<^sub>a A9 \<times>\<^sub>a A10 \<times>\<^sub>a A11 \<times>\<^sub>a A12 \<times>\<^sub>a A13"
   unfolding tuple13_def by sepref
 
 lemmas fold_tuple_optimizations = fold_tuples fold_case_prod_open
@@ -368,31 +368,4 @@ sepref_def is_pos_impl is [] "RETURN o (\<lambda>x. x AND 1 = 0)" :: "uint32_nat
   
 lemmas [sepref_fr_rules] = is_pos_impl.refine[FCOMP is_pos_refine_aux]
 
-
-  
-
-
-
-(*lemma propagated_hnr[sepref_fr_rules]:
-  \<open>(uncurry (return oo propagated), uncurry (RETURN oo Propagated)) \<in>
-     unat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a pair_nat_ann_lit_assn\<close>
-  by sepref_to_hoare (sep_auto simp: nat_ann_lit_rel_def propagated_def case_prod_beta p2rel_def
-      br_def uint32_nat_rel_def unat_lit_rel_def nat_lit_rel_def
-      split: option.splits)
-
-lemma decided_hnr[sepref_fr_rules]:
-  \<open>(return o decided, RETURN o Decided) \<in>
-     unat_lit_assn\<^sup>k \<rightarrow>\<^sub>a pair_nat_ann_lit_assn\<close>
-  by sepref_to_hoare (sep_auto simp: nat_ann_lit_rel_def decided_def case_prod_beta p2rel_def
-      br_def uint32_nat_rel_def unat_lit_rel_def nat_lit_rel_def
-      split: option.splits)
-
-*)      
-      
-(*
-type_synonym clause_wl = \<open>(32 word,64) larray\<close>
-abbreviation clause_ll_assn :: \<open>nat clause_l \<Rightarrow> clause_wl \<Rightarrow> assn\<close> where
-  \<open>clause_ll_assn \<equiv> larray_assn unat_lit_assn\<close>
-*)  
-  
 end

@@ -74,15 +74,15 @@ lemma DECISION_REASON'[sepref_fr_rules]:
 
 abbreviation trail_pol_assn :: \<open>trail_pol \<Rightarrow> trail_pol_assn \<Rightarrow> assn\<close> where
   \<open>trail_pol_assn \<equiv>
-    arl_assn unat_lit_assn *a array_assn (tri_bool_assn) *a
-    array_assn uint32_nat_assn *a
-    array_assn (nat_assn) *a uint32_nat_assn *a arl_assn uint32_nat_assn\<close>
+    arl_assn unat_lit_assn \<times>\<^sub>a array_assn (tri_bool_assn) \<times>\<^sub>a
+    array_assn uint32_nat_assn \<times>\<^sub>a
+    array_assn (nat_assn) \<times>\<^sub>a uint32_nat_assn \<times>\<^sub>a arl_assn uint32_nat_assn\<close>
 
 abbreviation trail_pol_fast_assn :: \<open>trail_pol \<Rightarrow> trail_pol_fast_assn \<Rightarrow> assn\<close> where
   \<open>trail_pol_fast_assn \<equiv>
-    arl32_assn unat_lit_assn *a array_assn (tri_bool_assn) *a
-    array_assn uint32_nat_assn *a
-    array_assn uint64_nat_assn *a uint32_nat_assn *a
+    arl32_assn unat_lit_assn \<times>\<^sub>a array_assn (tri_bool_assn) \<times>\<^sub>a
+    array_assn uint32_nat_assn \<times>\<^sub>a
+    array_assn uint64_nat_assn \<times>\<^sub>a uint32_nat_assn \<times>\<^sub>a
     arl32_assn uint32_nat_assn\<close>
 
 
@@ -221,7 +221,7 @@ declare cons_trail_Propagated_tr_fast_code.refine[sepref_fr_rules]
 sepref_definition (in -)last_trail_code
   is \<open>RETURN o last_trail_pol\<close>
   :: \<open>[last_trail_pol_pre]\<^sub>a
-       trail_pol_assn\<^sup>k \<rightarrow> unat_lit_assn *a option_assn nat_assn\<close>
+       trail_pol_assn\<^sup>k \<rightarrow> unat_lit_assn \<times>\<^sub>a option_assn nat_assn\<close>
   unfolding last_trail_pol_def nth_u_def[symmetric] last_trail_pol_pre_def
   supply [[goals_limit = 1]]
   by sepref
@@ -231,7 +231,7 @@ declare last_trail_code.refine[sepref_fr_rules]
 sepref_definition (in -)last_trail_fast_code
   is \<open>RETURN o last_trail_pol\<close>
   :: \<open>[last_trail_pol_pre]\<^sub>a
-       trail_pol_fast_assn\<^sup>k \<rightarrow> unat_lit_assn *a option_assn uint64_nat_assn\<close>
+       trail_pol_fast_assn\<^sup>k \<rightarrow> unat_lit_assn \<times>\<^sub>a option_assn uint64_nat_assn\<close>
   supply DECISION_REASON_uint64[sepref_fr_rules]
   unfolding last_trail_pol_def nth_u_def[symmetric] zero_uint64_nat_def[symmetric]
     last_trail_pol_pre_def
@@ -435,15 +435,15 @@ sepref_definition tl_trail_tr_no_CS_fast_code
 
 abbreviation (in -) trail_pol_assn' :: \<open>trail_pol \<Rightarrow> trail_pol_assn \<Rightarrow> assn\<close> where
   \<open>trail_pol_assn' \<equiv>
-      arl_assn unat_lit_assn *a array_assn (tri_bool_assn) *a
-      array_assn uint32_nat_assn *a
-      array_assn nat_assn *a uint32_nat_assn *a arl_assn uint32_nat_assn\<close>
+      arl_assn unat_lit_assn \<times>\<^sub>a array_assn (tri_bool_assn) \<times>\<^sub>a
+      array_assn uint32_nat_assn \<times>\<^sub>a
+      array_assn nat_assn \<times>\<^sub>a uint32_nat_assn \<times>\<^sub>a arl_assn uint32_nat_assn\<close>
 
 abbreviation (in -) trail_pol_fast_assn' :: \<open>trail_pol \<Rightarrow> trail_pol_fast_assn \<Rightarrow> assn\<close> where
   \<open>trail_pol_fast_assn' \<equiv>
-      arl32_assn unat_lit_assn *a array_assn (tri_bool_assn) *a
-      array_assn uint32_nat_assn *a
-      array_assn uint64_nat_assn *a uint32_nat_assn *a arl32_assn uint32_nat_assn\<close>
+      arl32_assn unat_lit_assn \<times>\<^sub>a array_assn (tri_bool_assn) \<times>\<^sub>a
+      array_assn uint32_nat_assn \<times>\<^sub>a
+      array_assn uint64_nat_assn \<times>\<^sub>a uint32_nat_assn \<times>\<^sub>a arl32_assn uint32_nat_assn\<close>
 
 lemma (in -) take_arl_assn[sepref_fr_rules]:
   \<open>(uncurry (return oo take_arl), uncurry (RETURN oo take))

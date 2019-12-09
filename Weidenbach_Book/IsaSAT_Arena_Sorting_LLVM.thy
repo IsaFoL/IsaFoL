@@ -16,7 +16,7 @@ sepref_register clause_score_extract
 sepref_def (in -) clause_score_extract_code
   is \<open>uncurry (RETURN oo clause_score_extract)\<close>
   :: \<open>[uncurry valid_sort_clause_score_pre_at]\<^sub>a
-      arena_fast_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> uint32_nat_assn *a uint32_nat_assn\<close>
+      arena_fast_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> uint32_nat_assn \<times>\<^sub>a uint32_nat_assn\<close>
   supply [[goals_limit = 1]]
   unfolding clause_score_extract_def valid_sort_clause_score_pre_at_def
   apply (annot_unat_const "TYPE(32)")
@@ -24,7 +24,7 @@ sepref_def (in -) clause_score_extract_code
 
 sepref_def (in -) clause_score_ordering_code
   is \<open>uncurry (RETURN oo clause_score_ordering)\<close>
-  :: \<open>(uint32_nat_assn *a uint32_nat_assn)\<^sup>k *\<^sub>a (uint32_nat_assn *a uint32_nat_assn)\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
+  :: \<open>(uint32_nat_assn \<times>\<^sub>a uint32_nat_assn)\<^sup>k *\<^sub>a (uint32_nat_assn \<times>\<^sub>a uint32_nat_assn)\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
   supply [[goals_limit = 1]]
   unfolding clause_score_ordering_def
   by sepref

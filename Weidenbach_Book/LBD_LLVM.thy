@@ -10,7 +10,7 @@ type_synonym lbd_assn = \<open>(1 word) larray64 \<times> 32 word \<times> 32 wo
 
 (*TODO use 32*)
 abbreviation lbd_int_assn :: \<open>lbd_ref \<Rightarrow> lbd_assn \<Rightarrow> assn\<close> where
-  \<open>lbd_int_assn \<equiv> larray64_assn bool1_assn *a uint32_nat_assn *a uint32_nat_assn\<close>
+  \<open>lbd_int_assn \<equiv> larray64_assn bool1_assn \<times>\<^sub>a uint32_nat_assn \<times>\<^sub>a uint32_nat_assn\<close>
 
 definition lbd_assn :: \<open>lbd \<Rightarrow> lbd_assn \<Rightarrow> assn\<close> where
   \<open>lbd_assn \<equiv> hr_comp lbd_int_assn lbd_ref\<close>

@@ -46,7 +46,7 @@ sepref_register unit_propagation_inner_loop_body_wl_heur
 
 sepref_definition unit_propagation_inner_loop_wl_loop_D
   is \<open>uncurry unit_propagation_inner_loop_wl_loop_D_heur\<close>
-  :: \<open>unat_lit_assn\<^sup>k *\<^sub>a isasat_unbounded_assn\<^sup>d \<rightarrow>\<^sub>a nat_assn *a nat_assn *a isasat_unbounded_assn\<close>
+  :: \<open>unat_lit_assn\<^sup>k *\<^sub>a isasat_unbounded_assn\<^sup>d \<rightarrow>\<^sub>a nat_assn \<times>\<^sub>a nat_assn \<times>\<^sub>a isasat_unbounded_assn\<close>
   unfolding unit_propagation_inner_loop_wl_loop_D_heur_def PR_CONST_def
   unfolding watched_by_nth_watched_app watched_app_def[symmetric]
     length_ll_fs_heur_def[symmetric]
@@ -64,7 +64,7 @@ declare unit_propagation_inner_loop_wl_loop_D.refine[sepref_fr_rules]
 sepref_definition unit_propagation_inner_loop_wl_loop_D_fast
   is \<open>uncurry unit_propagation_inner_loop_wl_loop_D_heur\<close>
   :: \<open>[\<lambda>(L, S). length (get_clauses_wl_heur S) \<le> uint64_max]\<^sub>a
-      unat_lit_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> uint64_nat_assn *a uint64_nat_assn *a isasat_bounded_assn\<close>
+      unat_lit_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> uint64_nat_assn \<times>\<^sub>a uint64_nat_assn \<times>\<^sub>a isasat_bounded_assn\<close>
   unfolding unit_propagation_inner_loop_wl_loop_D_heur_def PR_CONST_def
   unfolding watched_by_nth_watched_app watched_app_def[symmetric]
     length_ll_fs_heur_def[symmetric]
@@ -143,7 +143,7 @@ declare unit_propagation_inner_loop_wl_D_fast_code.refine[sepref_fr_rules]
 
 sepref_definition select_and_remove_from_literals_to_update_wl_code
   is \<open>select_and_remove_from_literals_to_update_wl_heur\<close>
-  :: \<open>isasat_unbounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_unbounded_assn *a unat_lit_assn\<close>
+  :: \<open>isasat_unbounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_unbounded_assn \<times>\<^sub>a unat_lit_assn\<close>
   supply [[goals_limit=1]] uint32_nat_assn_plus[sepref_fr_rules]
   unfolding select_and_remove_from_literals_to_update_wl_heur_alt_def isasat_unbounded_assn_def
     one_uint32_nat_def[symmetric]
@@ -154,7 +154,7 @@ declare select_and_remove_from_literals_to_update_wl_code.refine[sepref_fr_rules
 
 sepref_definition select_and_remove_from_literals_to_update_wlfast_code
   is \<open>select_and_remove_from_literals_to_update_wl_heur\<close>
-  :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn *a unat_lit_assn\<close>
+  :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn \<times>\<^sub>a unat_lit_assn\<close>
   supply [[goals_limit=1]] uint32_nat_assn_plus[sepref_fr_rules]
   unfolding select_and_remove_from_literals_to_update_wl_heur_alt_def isasat_bounded_assn_def
     one_uint32_nat_def[symmetric]

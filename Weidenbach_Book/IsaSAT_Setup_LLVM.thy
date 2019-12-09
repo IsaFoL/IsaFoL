@@ -22,10 +22,10 @@ abbreviation ema_rel :: \<open>(ema\<times>ema) set\<close> where
   \<open>ema_rel \<equiv> word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel\<close>
 
 abbreviation ema_assn :: \<open>ema \<Rightarrow> ema \<Rightarrow> assn\<close> where
-  \<open>ema_assn \<equiv> word64_assn *a word64_assn *a word64_assn *a word64_assn *a word64_assn\<close>
+  \<open>ema_assn \<equiv> word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn\<close>
 
 abbreviation stats_assn :: \<open>stats \<Rightarrow> stats \<Rightarrow> assn\<close> where
-  \<open>stats_assn \<equiv> word64_assn *a word64_assn *a word64_assn *a ema_assn\<close>
+  \<open>stats_assn \<equiv> word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a ema_assn\<close>
 
 
 lemma [sepref_import_param]:
@@ -80,7 +80,7 @@ lemmas [llvm_inline] =
 abbreviation (input) "restart_info_rel \<equiv> word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel"
 
 abbreviation (input) restart_info_assn where
-  \<open>restart_info_assn \<equiv> word64_assn *a word64_assn *a word64_assn *a word64_assn *a word64_assn\<close>
+  \<open>restart_info_assn \<equiv> word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn\<close>
 
 lemma restart_info_params[sepref_import_param]:
   "(incr_conflict_count_since_last_restart,incr_conflict_count_since_last_restart) \<in>
@@ -102,7 +102,7 @@ lemmas [llvm_inline] =
 type_synonym vmtf_node_assn = "(64 word \<times> 32 word \<times> 32 word)"
 
 definition "vmtf_node1_rel \<equiv> { ((a,b,c),(VMTF_Node a b c)) | a b c. True}"
-definition "vmtf_node2_assn \<equiv> uint64_nat_assn *a atom.option_assn *a atom.option_assn"
+definition "vmtf_node2_assn \<equiv> uint64_nat_assn \<times>\<^sub>a atom.option_assn \<times>\<^sub>a atom.option_assn"
 
 definition "vmtf_node_assn \<equiv> hr_comp vmtf_node2_assn vmtf_node1_rel"
 lemmas [fcomp_norm_unfold] = vmtf_node_assn_def[symmetric]
@@ -173,19 +173,19 @@ type_synonym vmtf_remove_assn = \<open>vmtf_assn \<times> (32 word array_list64 
 
 
 abbreviation vmtf_assn :: "_ \<Rightarrow> vmtf_assn \<Rightarrow> assn" where
-  \<open>vmtf_assn \<equiv> (array_assn vmtf_node_assn *a uint64_nat_assn *a atom_assn *a atom_assn
-    *a atom.option_assn)\<close>
+  \<open>vmtf_assn \<equiv> (array_assn vmtf_node_assn \<times>\<^sub>a uint64_nat_assn \<times>\<^sub>a atom_assn \<times>\<^sub>a atom_assn
+    \<times>\<^sub>a atom.option_assn)\<close>
 
 abbreviation atoms_hash_assn :: \<open>bool list \<Rightarrow> 1 word ptr \<Rightarrow> assn\<close> where
   \<open>atoms_hash_assn \<equiv> array_assn bool1_assn\<close>
 
 abbreviation distinct_atoms_assn where
-  \<open>distinct_atoms_assn \<equiv> arl64_assn atom_assn *a atoms_hash_assn\<close>
+  \<open>distinct_atoms_assn \<equiv> arl64_assn atom_assn \<times>\<^sub>a atoms_hash_assn\<close>
 
 definition vmtf_remove_assn
   :: \<open>isa_vmtf_remove_int \<Rightarrow> vmtf_remove_assn \<Rightarrow> assn\<close>
 where
-  \<open>vmtf_remove_assn \<equiv> vmtf_assn *a distinct_atoms_assn\<close>
+  \<open>vmtf_remove_assn \<equiv> vmtf_assn \<times>\<^sub>a distinct_atoms_assn\<close>
 
 
 paragraph \<open>Options\<close>
@@ -195,7 +195,7 @@ type_synonym opts_assn = "1 word \<times> 1 word \<times> 1 word"
 definition opts_assn
   :: \<open>opts \<Rightarrow> opts_assn \<Rightarrow> assn\<close>
 where
-  \<open>opts_assn \<equiv> bool1_assn *a bool1_assn *a bool1_assn\<close>
+  \<open>opts_assn \<equiv> bool1_assn \<times>\<^sub>a bool1_assn \<times>\<^sub>a bool1_assn\<close>
 
 lemma workaround_opt_assn: "RETURN o (\<lambda>(a,b,c). f a b c) = (\<lambda>(a,b,c). RETURN (f a b c))" by auto
 
@@ -238,32 +238,32 @@ type_synonym twl_st_wll_trail_fast =
 
 
 abbreviation phase_heur_assn where
-  \<open>phase_heur_assn \<equiv> phase_saver_assn *a sint64_nat_assn *a phase_saver_assn *a sint64_nat_assn *a
-     phase_saver_assn *a word64_assn *a word64_assn *a word64_assn\<close>
+  \<open>phase_heur_assn \<equiv> phase_saver_assn \<times>\<^sub>a sint64_nat_assn \<times>\<^sub>a phase_saver_assn \<times>\<^sub>a sint64_nat_assn \<times>\<^sub>a
+     phase_saver_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn\<close>
 
 definition heuristic_assn :: \<open>restart_heuristics \<Rightarrow> heur_assn \<Rightarrow> assn\<close> where
-  \<open>heuristic_assn = ema_assn *a
-  ema_assn *a
-  restart_info_assn *a
-  word64_assn *a phase_heur_assn\<close>
+  \<open>heuristic_assn = ema_assn \<times>\<^sub>a
+  ema_assn \<times>\<^sub>a
+  restart_info_assn \<times>\<^sub>a
+  word64_assn \<times>\<^sub>a phase_heur_assn\<close>
 
 definition isasat_bounded_assn :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wll_trail_fast \<Rightarrow> assn\<close> where
 \<open>isasat_bounded_assn =
-  trail_pol_fast_assn *a arena_fast_assn *a
-  conflict_option_rel_assn *a
-  sint64_nat_assn *a
-  watchlist_fast_assn *a
-  vmtf_remove_assn *a
-  uint32_nat_assn *a
-  cach_refinement_l_assn *a
-  lbd_assn *a
-  out_learned_assn *a
-  stats_assn *a
-  heuristic_assn *a
-  vdom_fast_assn *a
-  vdom_fast_assn *a
-  uint64_nat_assn *a
-  opts_assn *a arena_fast_assn\<close>
+  trail_pol_fast_assn \<times>\<^sub>a arena_fast_assn \<times>\<^sub>a
+  conflict_option_rel_assn \<times>\<^sub>a
+  sint64_nat_assn \<times>\<^sub>a
+  watchlist_fast_assn \<times>\<^sub>a
+  vmtf_remove_assn \<times>\<^sub>a
+  uint32_nat_assn \<times>\<^sub>a
+  cach_refinement_l_assn \<times>\<^sub>a
+  lbd_assn \<times>\<^sub>a
+  out_learned_assn \<times>\<^sub>a
+  stats_assn \<times>\<^sub>a
+  heuristic_assn \<times>\<^sub>a
+  vdom_fast_assn \<times>\<^sub>a
+  vdom_fast_assn \<times>\<^sub>a
+  uint64_nat_assn \<times>\<^sub>a
+  opts_assn \<times>\<^sub>a arena_fast_assn\<close>
 
 
 sepref_register NORMAL_PHASE QUIET_PHASE DEFAULT_INIT_PHASE

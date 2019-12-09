@@ -131,7 +131,7 @@ sepref_definition update_clause_wl_code
   is \<open>uncurry7 update_clause_wl_heur\<close>
   :: \<open>[update_clause_wl_code_pre]\<^sub>a
      unat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a bool_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k
-        *\<^sub>a isasat_unbounded_assn\<^sup>d \<rightarrow> nat_assn *a nat_assn *a isasat_unbounded_assn\<close>
+        *\<^sub>a isasat_unbounded_assn\<^sup>d \<rightarrow> nat_assn \<times>\<^sub>a nat_assn \<times>\<^sub>a isasat_unbounded_assn\<close>
   supply [[goals_limit=1]] length_rll_def[simp] length_ll_def[simp]
     update_clause_wl_heur_pre_le_uint64[intro!]
   unfolding update_clause_wl_heur_def isasat_unbounded_assn_def Array_List_Array.swap_ll_def[symmetric]
@@ -152,7 +152,7 @@ sepref_definition update_clause_wl_fast_code
         length (get_clauses_wl_heur S) \<le> uint64_max]\<^sub>a
      unat_lit_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a bool_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a
        uint64_nat_assn\<^sup>k
-        *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> uint64_nat_assn *a uint64_nat_assn *a isasat_bounded_assn\<close>
+        *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> uint64_nat_assn \<times>\<^sub>a uint64_nat_assn \<times>\<^sub>a isasat_bounded_assn\<close>
   supply [[goals_limit=1]] length_rll_def[simp] length_ll_def[simp]
     update_clause_wl_heur_pre_le_uint64[intro]
   unfolding update_clause_wl_heur_def isasat_bounded_assn_def Array_List_Array.swap_ll_def[symmetric]
@@ -266,7 +266,7 @@ sepref_definition update_blit_wl_heur_code
   is \<open>uncurry6 update_blit_wl_heur\<close>
   :: \<open>
       unat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a bool_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a isasat_unbounded_assn\<^sup>d \<rightarrow>\<^sub>a
-     nat_assn *a nat_assn *a isasat_unbounded_assn\<close>
+     nat_assn \<times>\<^sub>a nat_assn \<times>\<^sub>a isasat_unbounded_assn\<close>
   supply [[goals_limit=1]] length_ll_def[simp]
   unfolding update_blit_wl_heur_def isasat_unbounded_assn_def update_ll_def[symmetric]
   by sepref
@@ -278,7 +278,7 @@ sepref_definition update_blit_wl_heur_fast_code
   :: \<open>[\<lambda>((((((_, _), _), _), C), i), S). length (get_clauses_wl_heur S) \<le> uint64_max]\<^sub>a
       unat_lit_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a bool_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a
          isasat_bounded_assn\<^sup>d \<rightarrow>
-     uint64_nat_assn *a uint64_nat_assn *a isasat_bounded_assn\<close>
+     uint64_nat_assn \<times>\<^sub>a uint64_nat_assn \<times>\<^sub>a isasat_bounded_assn\<close>
   supply [[goals_limit=1]] length_ll_def[simp]
   unfolding update_blit_wl_heur_def isasat_bounded_assn_def update_ll_def[symmetric]
     to_watcher_fast_def[symmetric] one_uint64_nat_def[symmetric]
@@ -360,7 +360,7 @@ setup \<open>map_theory_claset (fn ctxt => ctxt delSWrapper "split_all_tac")\<cl
 sepref_register update_blit_wl_heur clause_not_marked_to_delete_heur
 sepref_definition unit_propagation_inner_loop_body_wl_heur_code
   is \<open>uncurry3 unit_propagation_inner_loop_body_wl_heur\<close>
-  :: \<open>unat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a isasat_unbounded_assn\<^sup>d \<rightarrow>\<^sub>a nat_assn *a nat_assn *a isasat_unbounded_assn\<close>
+  :: \<open>unat_lit_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a isasat_unbounded_assn\<^sup>d \<rightarrow>\<^sub>a nat_assn \<times>\<^sub>a nat_assn \<times>\<^sub>a isasat_unbounded_assn\<close>
   supply
     [[goals_limit=1]]
     if_splits[split]
@@ -380,7 +380,7 @@ sepref_definition unit_propagation_inner_loop_body_wl_fast_heur_code
   is \<open>uncurry3 unit_propagation_inner_loop_body_wl_heur\<close>
   :: \<open>[\<lambda>((L, w), S). length (get_clauses_wl_heur S) \<le> uint64_max]\<^sub>a
       unat_lit_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k  *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow>
-       uint64_nat_assn *a uint64_nat_assn *a isasat_bounded_assn\<close>
+       uint64_nat_assn \<times>\<^sub>a uint64_nat_assn \<times>\<^sub>a isasat_bounded_assn\<close>
   supply [[goals_limit=1]]
     if_splits[split]
     length_rll_def[simp]

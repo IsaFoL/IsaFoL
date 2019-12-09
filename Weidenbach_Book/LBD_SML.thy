@@ -3,7 +3,7 @@ theory LBD_SML
 begin
 type_synonym lbd_assn = \<open>bool array \<times> uint32 \<times> uint32\<close>
 abbreviation lbd_int_assn :: \<open>lbd_ref \<Rightarrow> lbd_assn \<Rightarrow> assn\<close> where
-  \<open>lbd_int_assn \<equiv> array_assn bool_assn *a uint32_nat_assn *a uint32_nat_assn\<close>
+  \<open>lbd_int_assn \<equiv> array_assn bool_assn \<times>\<^sub>a uint32_nat_assn \<times>\<^sub>a uint32_nat_assn\<close>
 
 definition lbd_assn :: \<open>lbd \<Rightarrow> lbd_assn \<Rightarrow> assn\<close> where
   \<open>lbd_assn \<equiv> hr_comp lbd_int_assn lbd_ref\<close>

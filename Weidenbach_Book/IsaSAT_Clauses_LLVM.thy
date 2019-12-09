@@ -37,7 +37,7 @@ sepref_def append_and_length_fast_code
   is \<open>uncurry2 fm_add_new_fast\<close>
   :: \<open>[append_and_length_fast_code_pre]\<^sub>a
      bool1_assn\<^sup>k *\<^sub>a clause_ll_assn\<^sup>k *\<^sub>a (arena_fast_assn)\<^sup>d \<rightarrow>
-       arena_fast_assn *a sint64_nat_assn\<close>
+       arena_fast_assn \<times>\<^sub>a sint64_nat_assn\<close>
   unfolding fm_add_new_fast_def fm_add_new_def append_and_length_fast_code_pre_def
   
   apply (rewrite at "AActivity \<hole>" unat_const_fold[where 'a=32])+

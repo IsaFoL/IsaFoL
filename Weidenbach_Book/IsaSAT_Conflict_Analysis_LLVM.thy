@@ -78,7 +78,7 @@ declare
 sepref_def lit_and_ann_of_propagated_st_heur_fast_code
   is \<open>lit_and_ann_of_propagated_st_heur\<close>
   :: \<open>[\<lambda>_. True]\<^sub>a
-       isasat_bounded_assn\<^sup>k \<rightarrow> (unat_lit_assn *a sint64_nat_assn)\<close>
+       isasat_bounded_assn\<^sup>k \<rightarrow> (unat_lit_assn \<times>\<^sub>a sint64_nat_assn)\<close>
   supply [[goals_limit=1]]
   supply get_trail_wl_heur_def[simp]
   unfolding lit_and_ann_of_propagated_st_heur_def isasat_bounded_assn_def
@@ -152,7 +152,7 @@ lemma tl_state_wl_heur_alt_def:
 
 sepref_def tl_state_wl_heur_fast_code
   is \<open>tl_state_wl_heur\<close>
-  :: \<open>[\<lambda>_. True]\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> bool1_assn *a isasat_bounded_assn\<close>
+  :: \<open>[\<lambda>_. True]\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> bool1_assn \<times>\<^sub>a isasat_bounded_assn\<close>
   supply [[goals_limit=1]] if_splits[split] tl_state_wl_heurI[simp]
   unfolding tl_state_wl_heur_alt_def[abs_def] isasat_bounded_assn_def get_trail_wl_heur_def
     vmtf_unset_def bind_ref_tag_def short_circuit_conv
@@ -222,7 +222,7 @@ lemma update_confl_tl_wl_heur_alt_def:
 sepref_def update_confl_tl_wl_fast_code
   is \<open>uncurry2 update_confl_tl_wl_heur\<close>
   :: \<open>[\<lambda>((i, L), S). isasat_fast S]\<^sub>a
-   unat_lit_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>aisasat_bounded_assn\<^sup>d \<rightarrow> bool1_assn *a isasat_bounded_assn\<close>
+   unat_lit_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>aisasat_bounded_assn\<^sup>d \<rightarrow> bool1_assn \<times>\<^sub>a isasat_bounded_assn\<close>
   supply [[goals_limit=1]] isasat_fast_length_leD[intro]
   unfolding update_confl_tl_wl_heur_alt_def isasat_bounded_assn_def
     PR_CONST_def

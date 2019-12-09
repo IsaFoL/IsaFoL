@@ -40,7 +40,7 @@ sepref_register cdcl_twl_full_restart_wl_prog_heur
 
 sepref_def cdcl_twl_full_restart_wl_prog_heur_fast_code
   is \<open>cdcl_twl_full_restart_wl_prog_heur\<close>
-  :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a  isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
+  :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   unfolding cdcl_twl_full_restart_wl_prog_heur_def
   supply [[goals_limit = 1]]
   by sepref
@@ -66,7 +66,7 @@ sepref_register restart_required_heur cdcl_twl_restart_wl_heur
 sepref_def restart_prog_wl_D_heur_fast_code
   is \<open>uncurry2 (restart_prog_wl_D_heur)\<close>
   :: \<open>[\<lambda>((S, n), _). length (get_clauses_wl_heur S) \<le> sint64_max \<and> n < uint64_max]\<^sub>a
-      isasat_bounded_assn\<^sup>d *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a bool1_assn\<^sup>k \<rightarrow> isasat_bounded_assn *a uint64_nat_assn\<close>
+      isasat_bounded_assn\<^sup>d *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a bool1_assn\<^sup>k \<rightarrow> isasat_bounded_assn \<times>\<^sub>a uint64_nat_assn\<close>
   unfolding restart_prog_wl_D_heur_def
   supply [[goals_limit = 1]]
   apply (annot_unat_const "TYPE(64)")
@@ -94,7 +94,7 @@ sepref_def isasat_fast_code
 sepref_register cdcl_twl_stgy_restart_prog_bounded_wl_heur
 sepref_def cdcl_twl_stgy_restart_prog_wl_heur_fast_code
   is \<open>cdcl_twl_stgy_restart_prog_bounded_wl_heur\<close>
-  :: \<open>[\<lambda>S. isasat_fast S]\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> bool1_assn *a isasat_bounded_assn\<close>
+  :: \<open>[\<lambda>S. isasat_fast S]\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> bool1_assn \<times>\<^sub>a isasat_bounded_assn\<close>
   unfolding cdcl_twl_stgy_restart_prog_bounded_wl_heur_def
   supply [[goals_limit = 1]] isasat_fast_def[simp]
   apply (annot_unat_const "TYPE(64)")

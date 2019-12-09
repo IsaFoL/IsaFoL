@@ -494,7 +494,7 @@ sepref_def vmtf_mark_to_rescore_and_unset_code
 sepref_def find_decomp_wl_imp_fast_code
   is \<open>uncurry2 (isa_find_decomp_wl_imp)\<close>
   :: \<open>[\<lambda>((M, lev), vm). True]\<^sub>a trail_pol_fast_assn\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a vmtf_remove_assn\<^sup>d
-    \<rightarrow> trail_pol_fast_assn *a vmtf_remove_assn\<close>
+    \<rightarrow> trail_pol_fast_assn \<times>\<^sub>a vmtf_remove_assn\<close>
   unfolding isa_find_decomp_wl_imp_def get_maximum_level_remove_def[symmetric] PR_CONST_def
     trail_pol_conv_to_no_CS_def
   supply trail_conv_to_no_CS_def[simp] lit_of_hd_trail_def[simp]

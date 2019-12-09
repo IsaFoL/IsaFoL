@@ -11,7 +11,7 @@ sepref_register get_conflict_wl_is_None decide_wl_or_skip_D_heur skip_and_resolv
 sepref_def cdcl_twl_o_prog_wl_D_fast_code
   is \<open>cdcl_twl_o_prog_wl_D_heur\<close>
   :: \<open>[isasat_fast]\<^sub>a
-      isasat_bounded_assn\<^sup>d \<rightarrow> bool1_assn *a isasat_bounded_assn\<close>
+      isasat_bounded_assn\<^sup>d \<rightarrow> bool1_assn \<times>\<^sub>a isasat_bounded_assn\<close>
   unfolding cdcl_twl_o_prog_wl_D_heur_def PR_CONST_def
   unfolding get_conflict_wl_is_None get_conflict_wl_is_None_heur_alt_def[symmetric]
   supply [[goals_limit = 1]] isasat_fast_def[simp]
@@ -53,7 +53,7 @@ declare isasat_fast_impl.refine[sepref_fr_rules]
 
 sepref_def cdcl_twl_stgy_prog_wl_D_code
   is \<open>cdcl_twl_stgy_prog_bounded_wl_heur\<close>
-  :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a bool1_assn *a isasat_bounded_assn\<close>
+  :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a bool1_assn \<times>\<^sub>a isasat_bounded_assn\<close>
   unfolding cdcl_twl_stgy_prog_bounded_wl_heur_def PR_CONST_def
   supply [[goals_limit = 1]] isasat_fast_length_leD[dest]
   by sepref

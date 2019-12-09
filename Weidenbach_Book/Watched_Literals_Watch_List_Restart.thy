@@ -1641,16 +1641,14 @@ proof -
     set_mset (all_lits_of_mm (mset `# ran_mf (get_clauses_wl V)+ get_unit_clauses_wl V +
        get_subsumed_clauses_wl V))\<close>
     using assms(3) Va_V'
-    apply (cases V; cases V')
-    apply (auto simp: state_wl_l_def cdcl\<^sub>W_restart_mset.no_strange_atm_def
+    by (cases V; cases V'; auto simp: state_wl_l_def cdcl\<^sub>W_restart_mset.no_strange_atm_def
       twl_st_l_def cdcl\<^sub>W_restart_mset_state image_image mset_take_mset_drop_mset'
       in_all_lits_of_mm_ain_atms_of_iff atms_of_ms_def atms_of_def atm_of_eq_atm_of
       conj_disj_distribR Collect_disj_eq ex_disj_distrib
       split: if_splits
       dest!: multi_member_split[of _ \<open>ran_m _\<close>])
-      apply (auto dest!: split_list
+      (auto dest!: split_list
         dest!: multi_member_split)
-    done
   then have \<open>correct_watching' V \<Longrightarrow>  correct_watching V\<close>
     by (cases V) (auto simp: correct_watching.simps correct_watching'.simps)
   moreover
@@ -1745,16 +1743,15 @@ proof -
     set_mset (all_lits_of_mm (mset `# ran_mf (get_clauses_wl x1c)+ get_unit_clauses_wl x1c +
        get_subsumed_clauses_wl x1c))\<close>
     using y_x x1c_y
-    apply (cases x1c; cases y; cases x)
-    apply (auto simp: state_wl_l_def cdcl\<^sub>W_restart_mset.no_strange_atm_def
+    by (cases x1c; cases y; cases x;
+      auto simp: state_wl_l_def cdcl\<^sub>W_restart_mset.no_strange_atm_def
       twl_st_l_def cdcl\<^sub>W_restart_mset_state image_image mset_take_mset_drop_mset'
       in_all_lits_of_mm_ain_atms_of_iff atms_of_ms_def atms_of_def atm_of_eq_atm_of
       conj_disj_distribR Collect_disj_eq ex_disj_distrib
       split: if_splits
       dest!: multi_member_split[of _ \<open>ran_m _\<close>])
-      apply (auto dest!: split_list
+     (auto dest!: split_list
         dest!: multi_member_split)
-    done
   moreover have eq: \<open>set_mset (all_lits_of_mm (mset `# learned_clss_lf (get_clauses_wl x1c) +
     get_unit_learned_clss_wl x1c + get_subsumed_learned_clauses_wl x1c)) \<subseteq>
     set_mset (all_lits_of_mm (mset `# init_clss_lf (get_clauses_wl x1c) + get_unit_init_clss_wl x1c +

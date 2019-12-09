@@ -86,7 +86,7 @@ declare is_decided_hd_trail_wl_code.refine[sepref_fr_rules]
 sepref_definition lit_and_ann_of_propagated_st_heur_code
   is \<open>RETURN o lit_and_ann_of_propagated_st_heur\<close>
   :: \<open>[lit_and_ann_of_propagated_st_heur_pre]\<^sub>a
-       isasat_unbounded_assn\<^sup>k \<rightarrow> (unat_lit_assn *a nat_assn)\<close>
+       isasat_unbounded_assn\<^sup>k \<rightarrow> (unat_lit_assn \<times>\<^sub>a nat_assn)\<close>
   supply [[goals_limit=1]]
   supply get_trail_wl_heur_def[simp]
   unfolding lit_and_ann_of_propagated_st_heur_def isasat_unbounded_assn_def lit_and_ann_of_propagated_st_heur_pre_def
@@ -95,7 +95,7 @@ sepref_definition lit_and_ann_of_propagated_st_heur_code
 sepref_definition lit_and_ann_of_propagated_st_heur_fast_code
   is \<open>RETURN o lit_and_ann_of_propagated_st_heur\<close>
   :: \<open>[lit_and_ann_of_propagated_st_heur_pre]\<^sub>a
-       isasat_bounded_assn\<^sup>k \<rightarrow> (unat_lit_assn *a uint64_nat_assn)\<close>
+       isasat_bounded_assn\<^sup>k \<rightarrow> (unat_lit_assn \<times>\<^sub>a uint64_nat_assn)\<close>
   supply [[goals_limit=1]]
   supply get_trail_wl_heur_def[simp]
   unfolding lit_and_ann_of_propagated_st_heur_def isasat_bounded_assn_def lit_and_ann_of_propagated_st_heur_pre_def
@@ -133,7 +133,7 @@ sepref_register isasat_lookup_merge_eq2 update_confl_tl_wl_heur
 sepref_definition update_confl_tl_wl_code
   is \<open>uncurry2 update_confl_tl_wl_heur\<close>
   :: \<open>[update_confl_tl_wl_heur_pre]\<^sub>a
-  nat_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a isasat_unbounded_assn\<^sup>d \<rightarrow> bool_assn *a isasat_unbounded_assn\<close>
+  nat_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a isasat_unbounded_assn\<^sup>d \<rightarrow> bool_assn \<times>\<^sub>a isasat_unbounded_assn\<close>
   supply [[goals_limit=1]]
   unfolding update_confl_tl_wl_heur_def isasat_unbounded_assn_def
     update_confl_tl_wl_heur_pre_def PR_CONST_def
@@ -161,7 +161,7 @@ thm isa_mark_used_code
 sepref_definition update_confl_tl_wl_fast_code
   is \<open>uncurry2 update_confl_tl_wl_heur\<close>
   :: \<open>[\<lambda>((i, L), S). update_confl_tl_wl_heur_pre ((i, L), S) \<and> isasat_fast S]\<^sub>a
-  uint64_nat_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> bool_assn *a isasat_bounded_assn\<close>
+  uint64_nat_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> bool_assn \<times>\<^sub>a isasat_bounded_assn\<close>
   supply [[goals_limit=1]] isasat_fast_length_leD[dest]
   unfolding update_confl_tl_wl_heur_def isasat_bounded_assn_def
     update_confl_tl_wl_heur_pre_def PR_CONST_def

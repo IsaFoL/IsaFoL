@@ -49,9 +49,9 @@ sepref_def DECISION_REASON_impl is "uncurry0 (RETURN DECISION_REASON)"
 
 definition trail_pol_fast_assn :: \<open>trail_pol \<Rightarrow> trail_pol_fast_assn \<Rightarrow> assn\<close> where
   \<open>trail_pol_fast_assn \<equiv>
-    arl64_assn unat_lit_assn *a larray64_assn (tri_bool_assn) *a
-    larray64_assn uint32_nat_assn *a
-    larray64_assn sint64_nat_assn *a uint32_nat_assn *a
+    arl64_assn unat_lit_assn \<times>\<^sub>a larray64_assn (tri_bool_assn) \<times>\<^sub>a
+    larray64_assn uint32_nat_assn \<times>\<^sub>a
+    larray64_assn sint64_nat_assn \<times>\<^sub>a uint32_nat_assn \<times>\<^sub>a
     arl64_assn uint32_nat_assn\<close>
 
 
@@ -124,7 +124,7 @@ sepref_def cons_trail_Propagated_tr_fast_code
 sepref_def (in -)last_trail_fast_code
   is \<open>RETURN o last_trail_pol\<close>
   :: \<open>[last_trail_pol_pre]\<^sub>a
-       trail_pol_fast_assn\<^sup>k \<rightarrow> unat_lit_assn *a option_assn uint64_nat_assn\<close>
+       trail_pol_fast_assn\<^sup>k \<rightarrow> unat_lit_assn \<times>\<^sub>a option_assn uint64_nat_assn\<close>
   unfolding last_trail_pol_def nth_u_def[symmetric] zero_uint64_nat_def[symmetric]
     last_trail_pol_pre_def
   supply [[goals_limit = 1]]

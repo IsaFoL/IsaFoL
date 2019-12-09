@@ -110,11 +110,11 @@ qed
 (*End Move*)
 type_synonym minimize_assn = \<open>minimize_status array \<times> uint32 array_list32\<close>
 abbreviation stats_assn :: \<open>stats \<Rightarrow> stats \<Rightarrow> assn\<close> where
-  \<open>stats_assn \<equiv> uint64_assn *a uint64_assn *a uint64_assn *a uint64_assn *a uint64_assn
-     *a uint64_assn *a uint64_assn *a uint64_assn\<close>
+  \<open>stats_assn \<equiv> uint64_assn \<times>\<^sub>a uint64_assn \<times>\<^sub>a uint64_assn \<times>\<^sub>a uint64_assn \<times>\<^sub>a uint64_assn
+     \<times>\<^sub>a uint64_assn \<times>\<^sub>a uint64_assn \<times>\<^sub>a uint64_assn\<close>
 
 abbreviation ema_assn :: \<open>ema \<Rightarrow> ema \<Rightarrow> assn\<close> where
-  \<open>ema_assn \<equiv> uint64_assn *a uint64_assn *a uint64_assn *a uint64_assn *a uint64_assn\<close>
+  \<open>ema_assn \<equiv> uint64_assn \<times>\<^sub>a uint64_assn \<times>\<^sub>a uint64_assn \<times>\<^sub>a uint64_assn \<times>\<^sub>a uint64_assn\<close>
 
 lemma ema_get_value_hnr[sepref_fr_rules]:
   \<open>(return o ema_get_value, RETURN o ema_get_value) \<in> ema_assn\<^sup>k \<rightarrow>\<^sub>a uint64_assn\<close>
@@ -197,7 +197,7 @@ lemma (in -) ema_init_coeff_hnr[sepref_fr_rules]:
     (sep_auto simp: ema_init_def uint64_nat_rel_def br_def)
 
 abbreviation restart_info_assn where
-  \<open>restart_info_assn \<equiv> uint64_assn *a uint64_assn\<close>
+  \<open>restart_info_assn \<equiv> uint64_assn \<times>\<^sub>a uint64_assn\<close>
 
 lemma incr_conflict_count_since_last_restart_hnr[sepref_fr_rules]:
     \<open>(return o incr_conflict_count_since_last_restart, RETURN o incr_conflict_count_since_last_restart)
@@ -228,19 +228,19 @@ abbreviation (in -)vmtf_node_assn where
 \<open>vmtf_node_assn \<equiv> pure vmtf_node_rel\<close>
 
 abbreviation vmtf_conc where
-  \<open>vmtf_conc \<equiv> (array_assn vmtf_node_assn *a uint64_nat_assn *a uint32_nat_assn *a uint32_nat_assn
-    *a option_assn uint32_nat_assn)\<close>
+  \<open>vmtf_conc \<equiv> (array_assn vmtf_node_assn \<times>\<^sub>a uint64_nat_assn \<times>\<^sub>a uint32_nat_assn \<times>\<^sub>a uint32_nat_assn
+    \<times>\<^sub>a option_assn uint32_nat_assn)\<close>
 
 abbreviation atoms_hash_assn :: \<open>bool list \<Rightarrow> bool array \<Rightarrow> assn\<close> where
   \<open>atoms_hash_assn \<equiv> array_assn bool_assn\<close>
 
 abbreviation distinct_atoms_assn where
-  \<open>distinct_atoms_assn \<equiv> arl32_assn uint32_nat_assn *a atoms_hash_assn\<close>
+  \<open>distinct_atoms_assn \<equiv> arl32_assn uint32_nat_assn \<times>\<^sub>a atoms_hash_assn\<close>
 
 abbreviation vmtf_remove_conc
   :: \<open>isa_vmtf_remove_int \<Rightarrow> vmtf_remove_assn \<Rightarrow> assn\<close>
 where
-  \<open>vmtf_remove_conc \<equiv> vmtf_conc *a distinct_atoms_assn\<close>
+  \<open>vmtf_remove_conc \<equiv> vmtf_conc \<times>\<^sub>a distinct_atoms_assn\<close>
 
 
 paragraph \<open>Options\<close>
@@ -248,7 +248,7 @@ paragraph \<open>Options\<close>
 abbreviation opts_assn
   :: \<open>opts \<Rightarrow> opts \<Rightarrow> assn\<close>
 where
-  \<open>opts_assn \<equiv> bool_assn *a bool_assn *a bool_assn\<close>
+  \<open>opts_assn \<equiv> bool_assn \<times>\<^sub>a bool_assn \<times>\<^sub>a bool_assn\<close>
 
 lemma opts_restart_hnr[sepref_fr_rules]:
   \<open>(return o opts_restart, RETURN o opts_restart) \<in> opts_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
@@ -395,43 +395,43 @@ type_synonym twl_st_wll_trail_fast =
 
 definition isasat_unbounded_assn :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wll_trail \<Rightarrow> assn\<close> where
 \<open>isasat_unbounded_assn =
-  trail_pol_assn *a arena_assn *a
-  isasat_conflict_assn *a
-  uint32_nat_assn *a
-  watchlist_assn *a
-  vmtf_remove_conc *a phase_saver_conc *a
-  uint32_nat_assn *a
-  cach_refinement_l_assn *a
-  lbd_assn *a
-  out_learned_assn *a
-  stats_assn *a
-  ema_assn *a
-  ema_assn *a
-  restart_info_assn *a
-  vdom_assn *a
-  vdom_assn *a
-  nat_assn *a
-  opts_assn *a arena_assn\<close>
+  trail_pol_assn \<times>\<^sub>a arena_assn \<times>\<^sub>a
+  isasat_conflict_assn \<times>\<^sub>a
+  uint32_nat_assn \<times>\<^sub>a
+  watchlist_assn \<times>\<^sub>a
+  vmtf_remove_conc \<times>\<^sub>a phase_saver_conc \<times>\<^sub>a
+  uint32_nat_assn \<times>\<^sub>a
+  cach_refinement_l_assn \<times>\<^sub>a
+  lbd_assn \<times>\<^sub>a
+  out_learned_assn \<times>\<^sub>a
+  stats_assn \<times>\<^sub>a
+  ema_assn \<times>\<^sub>a
+  ema_assn \<times>\<^sub>a
+  restart_info_assn \<times>\<^sub>a
+  vdom_assn \<times>\<^sub>a
+  vdom_assn \<times>\<^sub>a
+  nat_assn \<times>\<^sub>a
+  opts_assn \<times>\<^sub>a arena_assn\<close>
 
 definition isasat_bounded_assn :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wll_trail_fast \<Rightarrow> assn\<close> where
 \<open>isasat_bounded_assn =
-  trail_pol_fast_assn *a arena_fast_assn *a
-  isasat_conflict_assn *a
-  uint32_nat_assn *a
-  watchlist_fast_assn *a
-  vmtf_remove_conc *a phase_saver_conc *a
-  uint32_nat_assn *a
-  cach_refinement_l_assn *a
-  lbd_assn *a
-  out_learned_assn *a
-  stats_assn *a
-  ema_assn *a
-  ema_assn *a
-  restart_info_assn *a
-  vdom_fast_assn *a
-  vdom_fast_assn *a
-  uint64_nat_assn *a
-  opts_assn *a arena_fast_assn\<close>
+  trail_pol_fast_assn \<times>\<^sub>a arena_fast_assn \<times>\<^sub>a
+  isasat_conflict_assn \<times>\<^sub>a
+  uint32_nat_assn \<times>\<^sub>a
+  watchlist_fast_assn \<times>\<^sub>a
+  vmtf_remove_conc \<times>\<^sub>a phase_saver_conc \<times>\<^sub>a
+  uint32_nat_assn \<times>\<^sub>a
+  cach_refinement_l_assn \<times>\<^sub>a
+  lbd_assn \<times>\<^sub>a
+  out_learned_assn \<times>\<^sub>a
+  stats_assn \<times>\<^sub>a
+  ema_assn \<times>\<^sub>a
+  ema_assn \<times>\<^sub>a
+  restart_info_assn \<times>\<^sub>a
+  vdom_fast_assn \<times>\<^sub>a
+  vdom_fast_assn \<times>\<^sub>a
+  uint64_nat_assn \<times>\<^sub>a
+  opts_assn \<times>\<^sub>a arena_fast_assn\<close>
 
 
 sepref_definition isasat_fast_slow_code

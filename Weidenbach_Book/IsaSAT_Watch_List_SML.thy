@@ -181,10 +181,10 @@ abbreviation watcher_enc_assn where
   \<open>watcher_enc_assn \<equiv> pure watcher_enc\<close>
 
 abbreviation watcher_assn where
-  \<open>watcher_assn \<equiv> nat_assn *a watcher_enc_assn\<close>
+  \<open>watcher_assn \<equiv> nat_assn \<times>\<^sub>a watcher_enc_assn\<close>
 
 abbreviation watcher_fast_assn where
-  \<open>watcher_fast_assn \<equiv> uint64_nat_assn *a watcher_enc_assn\<close>
+  \<open>watcher_fast_assn \<equiv> uint64_nat_assn \<times>\<^sub>a watcher_enc_assn\<close>
 
 lemma is_marked_binary_code_hnr:
   \<open>(return o is_marked_binary_code, RETURN o is_marked_binary) \<in> watcher_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
@@ -205,14 +205,14 @@ lemma blit_of_code_hnr:
 
 lemma watcher_of_code_hnr[sepref_fr_rules]:
   \<open>(return o watcher_of_code, RETURN o watcher_of) \<in>
-    watcher_assn\<^sup>k \<rightarrow>\<^sub>a (nat_assn *a unat_lit_assn *a bool_assn)\<close>
+    watcher_assn\<^sup>k \<rightarrow>\<^sub>a (nat_assn \<times>\<^sub>a unat_lit_assn \<times>\<^sub>a bool_assn)\<close>
   by sepref_to_hoare
     (sep_auto dest: watcher_enc_extract_bool watcher_enc_extract_bool_True watcher_enc_extract_blit
       simp: watcher_of_code_def)
 
 lemma watcher_of_fast_code_hnr[sepref_fr_rules]:
   \<open>(return o watcher_of_fast_code, RETURN o watcher_of) \<in>
-    watcher_fast_assn\<^sup>k \<rightarrow>\<^sub>a (uint64_nat_assn *a unat_lit_assn *a bool_assn)\<close>
+    watcher_fast_assn\<^sup>k \<rightarrow>\<^sub>a (uint64_nat_assn \<times>\<^sub>a unat_lit_assn \<times>\<^sub>a bool_assn)\<close>
   by sepref_to_hoare
     (sep_auto dest: watcher_enc_extract_bool watcher_enc_extract_bool_True watcher_enc_extract_blit
       simp: watcher_of_fast_code_def)

@@ -7,7 +7,7 @@ begin
 chapter \<open>Code of Full IsaSAT\<close>
 
 abbreviation  model_stat_assn where
-  \<open>model_stat_assn \<equiv> bool1_assn *a (arl64_assn unat_lit_assn) *a stats_assn\<close>
+  \<open>model_stat_assn \<equiv> bool1_assn \<times>\<^sub>a (arl64_assn unat_lit_assn) \<times>\<^sub>a stats_assn\<close>
 
 abbreviation  model_stat_assn\<^sub>0 ::
     "bool \<times>
@@ -20,17 +20,17 @@ abbreviation  model_stat_assn\<^sub>0 ::
        64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word
        \<Rightarrow> llvm_amemory \<Rightarrow> bool"
 where
-  \<open>model_stat_assn\<^sub>0 \<equiv> bool1_assn *a (al_assn unat_lit_assn) *a stats_assn\<close>
+  \<open>model_stat_assn\<^sub>0 \<equiv> bool1_assn \<times>\<^sub>a (al_assn unat_lit_assn) \<times>\<^sub>a stats_assn\<close>
 
 abbreviation lits_with_max_assn :: \<open>nat multiset
      \<Rightarrow> (64 word \<times> 64 word \<times> 32 word ptr) \<times> 32 word \<Rightarrow> llvm_amemory \<Rightarrow> bool\<close> where
-  \<open>lits_with_max_assn \<equiv> hr_comp (arl64_assn atom_assn *a uint32_nat_assn) lits_with_max_rel\<close>
+  \<open>lits_with_max_assn \<equiv> hr_comp (arl64_assn atom_assn \<times>\<^sub>a uint32_nat_assn) lits_with_max_rel\<close>
 
 abbreviation lits_with_max_assn\<^sub>0 :: \<open>nat multiset
      \<Rightarrow> (64 word \<times> 64 word \<times> 32 word ptr) \<times> 32 word \<Rightarrow> llvm_amemory \<Rightarrow> bool\<close> where
-  \<open>lits_with_max_assn\<^sub>0 \<equiv> hr_comp (al_assn atom_assn *a unat32_assn) lits_with_max_rel\<close>
+  \<open>lits_with_max_assn\<^sub>0 \<equiv> hr_comp (al_assn atom_assn \<times>\<^sub>a unat32_assn) lits_with_max_rel\<close>
 
-lemma lits_with_max_assn_alt_def: \<open>lits_with_max_assn = hr_comp (arl64_assn atom_assn *a uint32_nat_assn)
+lemma lits_with_max_assn_alt_def: \<open>lits_with_max_assn = hr_comp (arl64_assn atom_assn \<times>\<^sub>a uint32_nat_assn)
           (lits_with_max_rel O \<langle>nat_rel\<rangle>IsaSAT_Initialisation.mset_rel)\<close>
 proof -
 
@@ -329,7 +329,7 @@ schematic_goal mk_free_ghost_assn[sepref_frame_free_rules]: "MK_FREE ghost_assn 
 
 sepref_def IsaSAT_code
   is \<open>uncurry IsaSAT_bounded_heur\<close>
-  :: \<open>opts_assn\<^sup>d *\<^sub>a (clauses_ll_assn)\<^sup>k \<rightarrow>\<^sub>a bool1_assn *a model_stat_assn\<close>
+  :: \<open>opts_assn\<^sup>d *\<^sub>a (clauses_ll_assn)\<^sup>k \<rightarrow>\<^sub>a bool1_assn \<times>\<^sub>a model_stat_assn\<close>
   supply [[goals_limit=1]] isasat_fast_init_def[simp]
   unfolding IsaSAT_bounded_heur_def empty_conflict_def[symmetric]
     get_conflict_wl_is_None extract_model_of_state_def[symmetric]
@@ -420,14 +420,40 @@ begin
     find_unwatched_wl_st_heur_fast_code_def
     update_clause_wl_fast_code_def
 
-  export_llvm IsaSAT_code_wrapped llvm_version default_opts_impl IsaSAT_code file "code/isasat_restart.ll"
+term \<open>count_decided_pol_fast\<close>
+  export_llvm
+    IsaSAT_code_wrapped
+    llvm_version is \<open>STRING_VERSION llvm_version\<close>
+    default_opts_impl
+    IsaSAT_code
+    opts_restart_impl
+    count_decided_pol_impl is \<open>uint32_t count_decided_st_heur_pol_fast(TRAIL)\<close>
+    arena_lit_impl is \<open>uint32_t arena_lit_impl(ARENA, int64_t)\<close>
+    llvm_version is \<open>STRING_VERSION llvm_version()\<close>
+  defines \<open>
+     typedef struct {int64_t size; struct {int64_t capacity; int32_t *data;};} ARENA;
+     typedef int32_t* STRING_VERSION;
+
+     typedef struct {int64_t size; struct {int64_t capacity; int32_t *data;};} RAW_TRAIL;
+     typedef struct {int64_t size; int8_t *polarity;} POLARITY;
+     typedef struct {int64_t size; int32_t *level;} LEVEL;
+     typedef struct {int64_t size; int64_t *reasons;} REASONS;
+     typedef struct {int64_t size; struct {int64_t capacity; int32_t *data;};} CONTROL_STACK;
+     typedef struct {RAW_TRAIL raw_trail;
+         struct {POLARITY pol;
+           struct {LEVEL lev;
+             struct {REASONS resasons;
+               struct {int32_t dec_lev;
+                CONTROL_STACK cs;};};};};} TRAIL;
+  \<close>
+  file "code/isasat_restart.ll"
 
 end
 
 
 definition model_bounded_assn where
   \<open>model_bounded_assn =
-   hr_comp (bool1_assn *a model_stat_assn\<^sub>0)
+   hr_comp (bool1_assn \<times>\<^sub>a model_stat_assn\<^sub>0)
    {((b, m), (b', m')). b=b' \<and> (b \<longrightarrow> (m,m') \<in> model_stat_rel)}\<close>
 
 definition clauses_l_assn where
@@ -439,7 +465,7 @@ definition clauses_l_assn where
 theorem IsaSAT_full_correctness:
   \<open>(uncurry IsaSAT_code, uncurry (\<lambda>_. model_if_satisfiable_bounded))
      \<in> [\<lambda>(_, a). Multiset.Ball a distinct_mset \<and>
-      (\<forall>C\<in>#a.  \<forall>L\<in>#C. nat_of_lit L  \<le> uint32_max)]\<^sub>a opts_assn\<^sup>d *\<^sub>a  clauses_l_assn\<^sup>k \<rightarrow> model_bounded_assn\<close>
+      (\<forall>C\<in>#a.  \<forall>L\<in>#C. nat_of_lit L  \<le> uint32_max)]\<^sub>a opts_assn\<^sup>d *\<^sub>a clauses_l_assn\<^sup>k \<rightarrow> model_bounded_assn\<close>
   using IsaSAT_code.refine[FCOMP IsaSAT_bounded_heur_model_if_sat'[unfolded convert_fref]]
   unfolding model_bounded_assn_def clauses_l_assn_def
   apply auto

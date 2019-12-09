@@ -364,7 +364,7 @@ sepref_definition cdcl_twl_full_restart_wl_prog_heur_code
 
 sepref_definition cdcl_twl_full_restart_wl_prog_heur_fast_code
   is \<open>cdcl_twl_full_restart_wl_prog_heur\<close>
-  :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> uint64_max]\<^sub>a  isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
+  :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> uint64_max]\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   unfolding cdcl_twl_full_restart_wl_prog_heur_def
   supply [[goals_limit = 1]]
   by sepref
@@ -414,7 +414,7 @@ declare cdcl_twl_restart_wl_heur_fast_code.refine[sepref_fr_rules]
 sepref_register restart_required_heur cdcl_twl_restart_wl_heur
 sepref_definition restart_wl_D_heur_slow_code
   is \<open>uncurry2 restart_prog_wl_D_heur\<close>
-  :: \<open>isasat_unbounded_assn\<^sup>d *\<^sub>a nat_assn\<^sup>k *\<^sub>a bool_assn\<^sup>k \<rightarrow>\<^sub>a isasat_unbounded_assn *a nat_assn\<close>
+  :: \<open>isasat_unbounded_assn\<^sup>d *\<^sub>a nat_assn\<^sup>k *\<^sub>a bool_assn\<^sup>k \<rightarrow>\<^sub>a isasat_unbounded_assn \<times>\<^sub>a nat_assn\<close>
   unfolding restart_prog_wl_D_heur_def
   supply [[goals_limit = 1]]
   by sepref
@@ -422,7 +422,7 @@ sepref_definition restart_wl_D_heur_slow_code
 sepref_definition restart_prog_wl_D_heur_fast_code
   is \<open>uncurry2 (restart_prog_wl_D_heur)\<close>
   :: \<open>[\<lambda>((S, _), _). length (get_clauses_wl_heur S) \<le> uint64_max]\<^sub>a
-      isasat_bounded_assn\<^sup>d *\<^sub>a nat_assn\<^sup>k *\<^sub>a bool_assn\<^sup>k \<rightarrow> isasat_bounded_assn *a nat_assn\<close>
+      isasat_bounded_assn\<^sup>d *\<^sub>a nat_assn\<^sup>k *\<^sub>a bool_assn\<^sup>k \<rightarrow> isasat_bounded_assn \<times>\<^sub>a nat_assn\<close>
   unfolding restart_prog_wl_D_heur_def
   supply [[goals_limit = 1]]
   by sepref

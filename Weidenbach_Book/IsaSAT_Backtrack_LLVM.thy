@@ -35,7 +35,7 @@ sepref_def empty_conflict_and_extract_clause_heur_fast_code
   is \<open>uncurry2 (isa_empty_conflict_and_extract_clause_heur)\<close>
   :: \<open>[\<lambda>((M, D), outl). outl \<noteq> [] \<and> length outl \<le> uint32_max]\<^sub>a
       trail_pol_fast_assn\<^sup>k *\<^sub>a lookup_clause_rel_assn\<^sup>d *\<^sub>a out_learned_assn\<^sup>k \<rightarrow>
-       (conflict_option_rel_assn) *a clause_ll_assn *a uint32_nat_assn\<close>
+       (conflict_option_rel_assn) \<times>\<^sub>a clause_ll_assn \<times>\<^sub>a uint32_nat_assn\<close>
   supply [[goals_limit=1]] image_image[simp]
   supply [simp] = max_snat_def uint32_max_def
   unfolding isa_empty_conflict_and_extract_clause_heur_alt_def
@@ -180,7 +180,7 @@ sepref_register isa_minimize_and_extract_highest_lookup_conflict
 sepref_def extract_shorter_conflict_list_heur_st_fast
   is \<open>extract_shorter_conflict_list_heur_st\<close>
   :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a
-        isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn *a uint32_nat_assn *a clause_ll_assn\<close>
+        isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn \<times>\<^sub>a uint32_nat_assn \<times>\<^sub>a clause_ll_assn\<close>
   supply [[goals_limit=1]] empty_conflict_and_extract_clause_pre_def[simp]
   unfolding extract_shorter_conflict_list_heur_st_alt_def PR_CONST_def isasat_bounded_assn_def
   unfolding delete_index_and_swap_update_def[symmetric] append_update_def[symmetric]

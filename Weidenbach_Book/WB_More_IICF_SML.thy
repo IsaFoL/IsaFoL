@@ -12,7 +12,7 @@ hide_const Autoref_Fix_Rel.CONSTRAINT IICF_List_Mset.list_mset_rel
 
 lemma prod_assn_id_assn_destroy:
   fixes R :: \<open>_ \<Rightarrow> _ \<Rightarrow> assn\<close>
-  shows \<open>R\<^sup>d *\<^sub>a id_assn\<^sup>d = (R *a id_assn)\<^sup>d\<close>
+  shows \<open>R\<^sup>d *\<^sub>a id_assn\<^sup>d = (R \<times>\<^sub>a id_assn)\<^sup>d\<close>
   by (auto simp: hfprod_def prod_assn_def[abs_def] invalid_assn_def pure_def intro!: ext)
 
 definition list_mset_assn where
@@ -543,7 +543,7 @@ lemma hrp_comp_Id2[simp]: \<open>hrp_comp A Id = A\<close>
   unfolding hrp_comp_def by auto
 
 lemma hn_ctxt_prod_assn_prod:
-  \<open>hn_ctxt (R *a S) (a, b) (a', b') = hn_ctxt R a a' * hn_ctxt S b b'\<close>
+  \<open>hn_ctxt (R \<times>\<^sub>a S) (a, b) (a', b') = hn_ctxt R a a' * hn_ctxt S b b'\<close>
   unfolding hn_ctxt_def
   by auto
 

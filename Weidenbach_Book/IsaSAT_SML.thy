@@ -16,16 +16,16 @@ lemma [code]: \<open>uint32_max_uint32 = 4294967295\<close>
   by (auto simp: uint32_max_uint32_def)
 (*end move*)
 abbreviation  model_stat_assn where
-  \<open>model_stat_assn \<equiv> option_assn (arl_assn unat_lit_assn) *a stats_assn\<close>
+  \<open>model_stat_assn \<equiv> option_assn (arl_assn unat_lit_assn) \<times>\<^sub>a stats_assn\<close>
 
 
 abbreviation lits_with_max_assn where
-  \<open>lits_with_max_assn \<equiv> hr_comp (arl_assn uint32_nat_assn *a uint32_nat_assn) lits_with_max_rel\<close>
-lemma lits_with_max_assn_alt_def: \<open>lits_with_max_assn  = hr_comp (arl_assn uint32_assn *a uint32_assn)
+  \<open>lits_with_max_assn \<equiv> hr_comp (arl_assn uint32_nat_assn \<times>\<^sub>a uint32_nat_assn) lits_with_max_rel\<close>
+lemma lits_with_max_assn_alt_def: \<open>lits_with_max_assn  = hr_comp (arl_assn uint32_assn \<times>\<^sub>a uint32_assn)
           (lits_with_max_rel O \<langle>uint32_nat_rel\<rangle>IsaSAT_Initialisation.mset_rel)\<close>
 proof -
-  have 1: \<open>arl_assn uint32_nat_assn *a uint32_nat_assn =
-     hr_comp (arl_assn uint32_assn *a uint32_assn) (\<langle>uint32_nat_rel\<rangle>list_rel \<times>\<^sub>r uint32_nat_rel)\<close>
+  have 1: \<open>arl_assn uint32_nat_assn \<times>\<^sub>a uint32_nat_assn =
+     hr_comp (arl_assn uint32_assn \<times>\<^sub>a uint32_assn) (\<langle>uint32_nat_rel\<rangle>list_rel \<times>\<^sub>r uint32_nat_rel)\<close>
      unfolding arl_assn_comp' hr_comp_prod_conv
      by auto
 
@@ -281,7 +281,7 @@ sepref_definition IsaSAT_code
 theorem IsaSAT_full_correctness: (* \htmllink{IsaSAT_full_correctness} *)
   \<open>(uncurry IsaSAT_code, uncurry (\<lambda>_. model_if_satisfiable))
      \<in> [\<lambda>(_, a). Multiset.Ball a distinct_mset \<and>
-      (\<forall>C\<in>#a.  \<forall>L\<in>#C. nat_of_lit L  \<le> uint32_max)]\<^sub>a opts_assn\<^sup>d *\<^sub>a  clauses_l_assn\<^sup>k \<rightarrow> model_assn\<close>
+      (\<forall>C\<in>#a.  \<forall>L\<in>#C. nat_of_lit L  \<le> uint32_max)]\<^sub>a opts_assn\<^sup>d *\<^sub>a clauses_l_assn\<^sup>k \<rightarrow> model_assn\<close>
   using IsaSAT_code.refine[FCOMP IsaSAT_heur_model_if_sat'[unfolded convert_fref],
     unfolded list_assn_list_mset_rel_clauses_l_assn]
   unfolding model_assn_def
@@ -291,7 +291,7 @@ theorem IsaSAT_full_correctness: (* \htmllink{IsaSAT_full_correctness} *)
 
 sepref_definition cdcl_twl_stgy_restart_prog_bounded_wl_heur_fast_code
   is \<open>cdcl_twl_stgy_restart_prog_bounded_wl_heur\<close>
-  :: \<open>[\<lambda>S. isasat_fast S]\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> bool_assn *a isasat_bounded_assn\<close>
+  :: \<open>[\<lambda>S. isasat_fast S]\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> bool_assn \<times>\<^sub>a isasat_bounded_assn\<close>
   unfolding cdcl_twl_stgy_restart_prog_bounded_wl_heur_def
   supply [[goals_limit = 1]] isasat_fast_def[simp]
   by sepref
@@ -302,7 +302,7 @@ definition get_trail_wl_code_b :: \<open>_ \<Rightarrow> uint32 array_list32 opt
   \<open>get_trail_wl_code_b = (\<lambda>((M, _), _, _, _, _ ,_ ,_ ,_, _, _, _, stat, _). (Some M, stat))\<close>
 
 abbreviation  model_stat_fast_assn where
-  \<open>model_stat_fast_assn \<equiv> option_assn (arl32_assn unat_lit_assn) *a stats_assn\<close>
+  \<open>model_stat_fast_assn \<equiv> option_assn (arl32_assn unat_lit_assn) \<times>\<^sub>a stats_assn\<close>
 
 lemma extract_model_of_state_stat_bounded_hnr[sepref_fr_rules]:
   \<open>(return o get_trail_wl_code_b, RETURN o extract_model_of_state_stat) \<in> isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a
@@ -364,7 +364,7 @@ qed
 
 sepref_definition IsaSAT_bounded_code
   is \<open>uncurry IsaSAT_bounded_heur\<close>
-  :: \<open>opts_assn\<^sup>d *\<^sub>a (list_assn (list_assn unat_lit_assn))\<^sup>k \<rightarrow>\<^sub>a bool_assn *a model_stat_fast_assn\<close>
+  :: \<open>opts_assn\<^sup>d *\<^sub>a (list_assn (list_assn unat_lit_assn))\<^sup>k \<rightarrow>\<^sub>a bool_assn \<times>\<^sub>a model_stat_fast_assn\<close>
   supply [[goals_limit=1]] isasat_fast_init_def[simp]
   unfolding IsaSAT_bounded_heur_def empty_conflict_def[symmetric]
     get_conflict_wl_is_None extract_model_of_state_def[symmetric]

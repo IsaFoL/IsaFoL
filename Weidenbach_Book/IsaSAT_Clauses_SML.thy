@@ -3,7 +3,7 @@ theory IsaSAT_Clauses_SML
 begin
 
 abbreviation isasat_clauses_assn where
-  \<open>isasat_clauses_assn \<equiv> arlO_assn clause_ll_assn *a arl_assn (clause_status_assn *a uint32_nat_assn *a uint32_nat_assn)\<close>
+  \<open>isasat_clauses_assn \<equiv> arlO_assn clause_ll_assn \<times>\<^sub>a arl_assn (clause_status_assn \<times>\<^sub>a uint32_nat_assn \<times>\<^sub>a uint32_nat_assn)\<close>
 
 lemma AStatus_IRRED [sepref_fr_rules]:
   \<open>(uncurry0 (return 0), uncurry0 (RETURN AStatus_IRRED)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a arena_el_assn\<close>
@@ -78,7 +78,7 @@ lemma nth_raa_i_uint64_hnr':
   shows
     \<open>(uncurry2 (\<lambda>(N, _) j. nth_raa_i_u64 N j), uncurry2 (RETURN \<circ>\<circ>\<circ> (\<lambda>(N, _) j. nth_rll N j))) \<in>
        [\<lambda>(((l, _),i),j). i < length l \<and> j < length_rll l i]\<^sub>a
-       (arlO_assn (array_assn R) *a GG)\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow> R\<close>
+       (arlO_assn (array_assn R) \<times>\<^sub>a GG)\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow> R\<close>
   unfolding nth_raa_i_u64_def
   supply nth_aa_hnr[to_hnr, sep_heap_rules]
   using assms
@@ -89,7 +89,7 @@ lemma nth_raa_hnr':
   shows
     \<open>(uncurry2 (\<lambda>(N, _) j k. nth_raa N j k), uncurry2 (RETURN \<circ>\<circ>\<circ> (\<lambda>(N, _) i. nth_rll N i))) \<in>
        [\<lambda>(((l, _),i),j). i < length l \<and> j < length_rll l i]\<^sub>a
-       (arlO_assn (array_assn R) *a GG)\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> R\<close>
+       (arlO_assn (array_assn R) \<times>\<^sub>a GG)\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow> R\<close>
   using assms
   by sepref_to_hoare sep_auto
 
@@ -176,7 +176,7 @@ declare header_size_code.refine[sepref_fr_rules]
 sepref_definition append_and_length_code
   is \<open>uncurry2 fm_add_new\<close>
   :: \<open>[\<lambda>((b, C), N). length C \<le> uint32_max+2 \<and> length C \<ge> 2]\<^sub>a bool_assn\<^sup>k *\<^sub>a clause_ll_assn\<^sup>d *\<^sub>a (arena_assn)\<^sup>d \<rightarrow>
-       arena_assn *a nat_assn\<close>
+       arena_assn \<times>\<^sub>a nat_assn\<close>
   supply [[goals_limit=1]] le_uint32_max_le_uint64_max[intro]
   unfolding fm_add_new_def AStatus_IRRED_def[symmetric] AStatus_IRRED2_def[symmetric]
    AStatus_LEARNED_def[symmetric] AStatus_LEARNED2_def[symmetric]
@@ -223,7 +223,7 @@ sepref_definition (in -)append_and_length_fast_code
   is \<open>uncurry2 fm_add_new_fast\<close>
   :: \<open>[append_and_length_fast_code_pre]\<^sub>a
      bool_assn\<^sup>k *\<^sub>a clause_ll_assn\<^sup>d *\<^sub>a (arena_fast_assn)\<^sup>d \<rightarrow>
-       arena_fast_assn *a uint64_nat_assn\<close>
+       arena_fast_assn \<times>\<^sub>a uint64_nat_assn\<close>
   supply [[goals_limit=1]] le_uint32_max_le_uint64_max[intro] append_and_length_code_fast[intro]
     header_size_def[simp] if_splits[split] header_size_fast_code.refine[sepref_fr_rules]
     uint64_max_def[simp] sint64_max_def[simp]

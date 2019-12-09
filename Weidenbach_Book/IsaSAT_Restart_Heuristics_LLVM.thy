@@ -117,7 +117,7 @@ sepref_def update_restart_phases_impl
 sepref_def update_all_phases_impl
   is \<open>uncurry update_all_phases\<close>
   :: \<open>isasat_bounded_assn\<^sup>d *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a
-     isasat_bounded_assn *a uint64_nat_assn\<close>
+     isasat_bounded_assn \<times>\<^sub>a uint64_nat_assn\<close>
   unfolding update_all_phases_def
     fold_tuple_optimizations
   by sepref
@@ -343,7 +343,7 @@ sepref_register remove_one_annot_true_clause_one_imp_wl_D_heur
 term mark_garbage_heur2
 sepref_def remove_one_annot_true_clause_one_imp_wl_D_heur_code
   is \<open>uncurry remove_one_annot_true_clause_one_imp_wl_D_heur\<close>
-  :: \<open>sint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a sint64_nat_assn *a isasat_bounded_assn\<close>
+  :: \<open>sint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a sint64_nat_assn \<times>\<^sub>a isasat_bounded_assn\<close>
   supply [[goals_limit=1]]
   unfolding remove_one_annot_true_clause_one_imp_wl_D_heur_def
     isasat_trail_nth_st_def[symmetric] get_the_propagation_reason_pol_st_def[symmetric]
@@ -422,8 +422,8 @@ sepref_def isasat_GC_clauses_prog_copy_wl_entry_code
   is \<open>uncurry3 isasat_GC_clauses_prog_copy_wl_entry\<close>
   :: \<open>[\<lambda>(((N, _), _), _). length N \<le> sint64_max]\<^sub>a
      arena_fast_assn\<^sup>d *\<^sub>a watchlist_fast_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a
-         (arena_fast_assn *a vdom_fast_assn *a vdom_fast_assn)\<^sup>d \<rightarrow>
-     (arena_fast_assn *a (arena_fast_assn *a vdom_fast_assn *a vdom_fast_assn))\<close>
+         (arena_fast_assn \<times>\<^sub>a vdom_fast_assn \<times>\<^sub>a vdom_fast_assn)\<^sup>d \<rightarrow>
+     (arena_fast_assn \<times>\<^sub>a (arena_fast_assn \<times>\<^sub>a vdom_fast_assn \<times>\<^sub>a vdom_fast_assn))\<close>
   supply [[goals_limit=1]] if_splits[split] length_ll_def[simp]
   unfolding isasat_GC_clauses_prog_copy_wl_entry_alt_def nth_rll_def[symmetric]
     length_ll_def[symmetric] if_conn(4)
@@ -439,8 +439,8 @@ lemma shorten_taken_op_list_list_take:
 sepref_def isasat_GC_clauses_prog_single_wl_code
   is \<open>uncurry3 isasat_GC_clauses_prog_single_wl\<close>
   :: \<open>[\<lambda>(((N, _), _), A). A \<le> uint32_max div 2 \<and> length N \<le> sint64_max]\<^sub>a
-     arena_fast_assn\<^sup>d *\<^sub>a (arena_fast_assn *a vdom_fast_assn *a vdom_fast_assn)\<^sup>d *\<^sub>a watchlist_fast_assn\<^sup>d *\<^sub>a atom_assn\<^sup>k \<rightarrow>
-     (arena_fast_assn *a (arena_fast_assn *a vdom_fast_assn *a vdom_fast_assn) *a watchlist_fast_assn)\<close>
+     arena_fast_assn\<^sup>d *\<^sub>a (arena_fast_assn \<times>\<^sub>a vdom_fast_assn \<times>\<^sub>a vdom_fast_assn)\<^sup>d *\<^sub>a watchlist_fast_assn\<^sup>d *\<^sub>a atom_assn\<^sup>k \<rightarrow>
+     (arena_fast_assn \<times>\<^sub>a (arena_fast_assn \<times>\<^sub>a vdom_fast_assn \<times>\<^sub>a vdom_fast_assn) \<times>\<^sub>a watchlist_fast_assn)\<close>
   supply [[goals_limit=1]]
   unfolding isasat_GC_clauses_prog_single_wl_def
     shorten_taken_op_list_list_take
@@ -456,8 +456,8 @@ sepref_def isasat_GC_clauses_prog_wl2_code
   is \<open>uncurry2 isasat_GC_clauses_prog_wl2'\<close>
   :: \<open>[\<lambda>((_, _), (N, _)). length N \<le> sint64_max]\<^sub>a
      (array_assn vmtf_node_assn)\<^sup>k *\<^sub>a (atom.option_assn)\<^sup>k *\<^sub>a
-     (arena_fast_assn *a (arena_fast_assn *a vdom_fast_assn *a vdom_fast_assn) *a watchlist_fast_assn)\<^sup>d \<rightarrow>
-     (arena_fast_assn *a (arena_fast_assn *a vdom_fast_assn *a vdom_fast_assn) *a watchlist_fast_assn)\<close>
+     (arena_fast_assn \<times>\<^sub>a (arena_fast_assn \<times>\<^sub>a vdom_fast_assn \<times>\<^sub>a vdom_fast_assn) \<times>\<^sub>a watchlist_fast_assn)\<^sup>d \<rightarrow>
+     (arena_fast_assn \<times>\<^sub>a (arena_fast_assn \<times>\<^sub>a vdom_fast_assn \<times>\<^sub>a vdom_fast_assn) \<times>\<^sub>a watchlist_fast_assn)\<close>
   supply [[goals_limit=1]]
   unfolding isasat_GC_clauses_prog_wl2_def isasat_GC_clauses_prog_wl2'_def prod.case
     atom.fold_option

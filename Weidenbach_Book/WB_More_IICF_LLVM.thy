@@ -13,12 +13,9 @@ declare list_mset_assn_def[symmetric,fcomp_norm_unfold]
 lemma [safe_constraint_rules]: "is_pure (list_mset_assn A)" unfolding list_mset_assn_def by simp
 *)
 
-no_notation prod_assn (infixr "\<times>\<^sub>a" 70)
-notation prod_assn (infixr "*a" 70)
-
 lemma prod_assn_id_assn_destroy:
   fixes R :: \<open>_ \<Rightarrow> _ \<Rightarrow> _ \<Rightarrow> bool\<close>
-  shows \<open>R\<^sup>d *\<^sub>a id_assn\<^sup>d = (R *a id_assn)\<^sup>d\<close>
+  shows \<open>R\<^sup>d *\<^sub>a id_assn\<^sup>d = (R \<times>\<^sub>a id_assn)\<^sup>d\<close>
   apply (auto simp: hfprod_def prod_assn_def[abs_def] invalid_assn_def pure_def intro!: ext)
   apply (metis (full_types) pred_lift_extract_simps(2) pure_true_conv sep.add.right_neutral)
   by (metis Sep_Algebra_Add.pure_part_pure pred_lift_extract_simps(1) pred_lift_extract_simps(2)
@@ -171,28 +168,6 @@ lemma norm_return_o[to_hnr_post]:
     (return$(f$x$y$z$a$b$c$d$e$g$h$i$j$l$m$n$p$r$s$t$u))"
     by auto
 *)
-
-lemma nfoldli_cong2:
-  assumes
-    le: \<open>length l = length l'\<close> and
-    \<sigma>: \<open>\<sigma> = \<sigma>'\<close> and
-    c: \<open>c = c'\<close> and
-    H: \<open>\<And>\<sigma> x. x < length l \<Longrightarrow> c' \<sigma> \<Longrightarrow> f (l ! x) \<sigma> = f' (l' ! x) \<sigma>\<close>
-  shows \<open>nfoldli l c f \<sigma> = nfoldli l' c' f' \<sigma>'\<close>
-proof -
-  show ?thesis
-    using le H unfolding c[symmetric] \<sigma>[symmetric]
-  proof (induction l arbitrary: l' \<sigma>)
-    case Nil
-    then show ?case by simp
-  next
-    case (Cons a l l'') note IH=this(1) and le = this(2) and H = this(3)
-    show ?case
-      using le H[of \<open>Suc _\<close>] H[of 0] IH[of \<open>tl l''\<close> \<open>_\<close>]
-      by (cases l'')
-        (auto intro: bind_cong_nres)
-  qed
-qed
 
 (*This is rather different from the SML version*)
 lemma list_rel_update:

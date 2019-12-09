@@ -12,7 +12,7 @@ sepref_register choose_pivot3
 text \<open>Example instantiation code for pivot\<close>
 sepref_definition choose_pivot3_impl_code
   is \<open>uncurry2 (choose_pivot3_impl)\<close>
-  :: \<open>(arl_assn nat_assn)\<^sup>k  *\<^sub>a  nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k\<rightarrow>\<^sub>a nat_assn\<close>
+  :: \<open>(arl_assn nat_assn)\<^sup>k  *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k\<rightarrow>\<^sub>a nat_assn\<close>
   unfolding choose_pivot3_impl_def choose_pivot3_def id_def
   by sepref
 
@@ -30,7 +30,7 @@ text \<open>Example instantiation code for \<^term>\<open>partition_main\<close>
 sepref_definition partition_main_code
   is \<open>uncurry2 (partition_main_impl)\<close>
   :: \<open>nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a (arl_assn nat_assn)\<^sup>d \<rightarrow>\<^sub>a
-      arl_assn nat_assn *a nat_assn\<close>
+      arl_assn nat_assn \<times>\<^sub>a nat_assn\<close>
   unfolding partition_main_impl_def partition_main_def
     id_def isasat_codegen
   by sepref
@@ -48,7 +48,7 @@ text \<open>Example instantiation code for partition\<close>
 sepref_definition partition_between_code
   is \<open>uncurry2 (partition_between_impl)\<close>
   :: \<open>nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a (arl_assn nat_assn)\<^sup>d \<rightarrow>\<^sub>a
-      arl_assn nat_assn *a nat_assn\<close>
+      arl_assn nat_assn \<times>\<^sub>a nat_assn\<close>
   unfolding partition_between_ref_def partition_between_impl_def
     choose_pivot3_impl_def[symmetric] partition_main_impl_def[symmetric]
   unfolding  id_def isasat_codegen

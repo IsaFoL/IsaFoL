@@ -5,8 +5,8 @@ theory IsaSAT_Initialisation_SML
 begin
 
 abbreviation (in -) vmtf_conc_option_fst_As where
-  \<open>vmtf_conc_option_fst_As \<equiv> (array_assn vmtf_node_assn *a uint64_nat_assn *a
-    option_assn uint32_nat_assn *a option_assn uint32_nat_assn *a option_assn uint32_nat_assn)\<close>
+  \<open>vmtf_conc_option_fst_As \<equiv> (array_assn vmtf_node_assn \<times>\<^sub>a uint64_nat_assn \<times>\<^sub>a
+    option_assn uint32_nat_assn \<times>\<^sub>a option_assn uint32_nat_assn \<times>\<^sub>a option_assn uint32_nat_assn)\<close>
 
 type_synonym (in -)vmtf_assn_option_fst_As =
   \<open>(uint32, uint64) vmtf_node array \<times> uint64 \<times> uint32 option \<times> uint32 option \<times> uint32 option\<close>
@@ -17,7 +17,7 @@ type_synonym (in -)vmtf_remove_assn_option_fst_As =
 abbreviation vmtf_remove_conc_option_fst_As
   :: \<open>isa_vmtf_remove_int_option_fst_As \<Rightarrow> vmtf_remove_assn_option_fst_As \<Rightarrow> assn\<close>
 where
-  \<open>vmtf_remove_conc_option_fst_As \<equiv> vmtf_conc_option_fst_As *a distinct_atoms_assn\<close>
+  \<open>vmtf_remove_conc_option_fst_As \<equiv> vmtf_conc_option_fst_As \<times>\<^sub>a distinct_atoms_assn\<close>
 
 sepref_register atoms_hash_empty
 sepref_definition (in -) atoms_hash_empty_code
@@ -29,7 +29,7 @@ sepref_definition (in -) atoms_hash_empty_code
 find_theorems replicate arl64_assn
 sepref_definition distinct_atms_empty_code
   is \<open>distinct_atms_int_empty\<close>
-  :: \<open>nat_assn\<^sup>k \<rightarrow>\<^sub>a arl32_assn uint32_nat_assn *a atoms_hash_assn\<close>
+  :: \<open>nat_assn\<^sup>k \<rightarrow>\<^sub>a arl32_assn uint32_nat_assn \<times>\<^sub>a atoms_hash_assn\<close>
   unfolding distinct_atms_int_empty_def array_fold_custom_replicate
     arl32.fold_custom_empty
   by sepref
@@ -45,15 +45,15 @@ definition isasat_init_assn
   :: \<open>twl_st_wl_heur_init \<Rightarrow> twl_st_wll_trail_init \<Rightarrow> assn\<close>
 where
 \<open>isasat_init_assn =
-  trail_pol_fast_assn *a arena_fast_assn *a
-  isasat_conflict_assn *a
-  uint32_nat_assn *a
-  watchlist_fast_assn *a
-  vmtf_remove_conc_option_fst_As *a phase_saver_conc *a
-  uint32_nat_assn *a
-  cach_refinement_l_assn *a
-  lbd_assn *a
-  vdom_fast_assn *a
+  trail_pol_fast_assn \<times>\<^sub>a arena_fast_assn \<times>\<^sub>a
+  isasat_conflict_assn \<times>\<^sub>a
+  uint32_nat_assn \<times>\<^sub>a
+  watchlist_fast_assn \<times>\<^sub>a
+  vmtf_remove_conc_option_fst_As \<times>\<^sub>a phase_saver_conc \<times>\<^sub>a
+  uint32_nat_assn \<times>\<^sub>a
+  cach_refinement_l_assn \<times>\<^sub>a
+  lbd_assn \<times>\<^sub>a
+  vdom_fast_assn \<times>\<^sub>a
   bool_assn\<close>
 
 
@@ -66,15 +66,15 @@ definition isasat_init_unbounded_assn
   :: \<open>twl_st_wl_heur_init \<Rightarrow> twl_st_wll_trail_init_unbounded \<Rightarrow> assn\<close>
 where
 \<open>isasat_init_unbounded_assn =
-  trail_pol_assn *a arena_assn *a
-  isasat_conflict_assn *a
-  uint32_nat_assn *a
-  watchlist_assn *a
-  vmtf_remove_conc_option_fst_As *a phase_saver_conc *a
-  uint32_nat_assn *a
-  cach_refinement_l_assn *a
-  lbd_assn *a
-  vdom_assn *a
+  trail_pol_assn \<times>\<^sub>a arena_assn \<times>\<^sub>a
+  isasat_conflict_assn \<times>\<^sub>a
+  uint32_nat_assn \<times>\<^sub>a
+  watchlist_assn \<times>\<^sub>a
+  vmtf_remove_conc_option_fst_As \<times>\<^sub>a phase_saver_conc \<times>\<^sub>a
+  uint32_nat_assn \<times>\<^sub>a
+  cach_refinement_l_assn \<times>\<^sub>a
+  lbd_assn \<times>\<^sub>a
+  vdom_assn \<times>\<^sub>a
   bool_assn\<close>
 
 sepref_definition initialise_VMTF_code
@@ -396,7 +396,7 @@ sepref_register init_dt_wl_heur_unb
 
 
 abbreviation isasat_atms_ext_rel_assn where
-  \<open>isasat_atms_ext_rel_assn \<equiv> array_assn uint64_nat_assn *a uint32_nat_assn *a
+  \<open>isasat_atms_ext_rel_assn \<equiv> array_assn uint64_nat_assn \<times>\<^sub>a uint32_nat_assn \<times>\<^sub>a
        arl_assn uint32_nat_assn\<close>
 
 abbreviation nat_lit_list_hm_assn where
@@ -535,7 +535,7 @@ sepref_definition (in -) extract_lits_sorted_code
    is \<open>extract_lits_sorted\<close>
    :: \<open>[\<lambda>(xs, n, vars). (\<forall>x\<in>#mset vars. x < length xs)]\<^sub>a
       isasat_atms_ext_rel_assn\<^sup>d  \<rightarrow>
-       arl_assn uint32_nat_assn *a uint32_nat_assn\<close>
+       arl_assn uint32_nat_assn \<times>\<^sub>a uint32_nat_assn\<close>
   unfolding extract_lits_sorted_def
   supply [[goals_limit = 1]]
   supply mset_eq_setD[dest] mset_eq_length[dest]
@@ -545,7 +545,7 @@ declare extract_lits_sorted_code.refine[sepref_fr_rules]
 
 
 abbreviation lits_with_max_assn where
-  \<open>lits_with_max_assn \<equiv> hr_comp (arl_assn uint32_nat_assn *a uint32_nat_assn) lits_with_max_rel\<close>
+  \<open>lits_with_max_assn \<equiv> hr_comp (arl_assn uint32_nat_assn \<times>\<^sub>a uint32_nat_assn) lits_with_max_rel\<close>
 
 lemma extract_lits_sorted_hnr[sepref_fr_rules]:
   \<open>(extract_lits_sorted_code, RETURN \<circ> mset_set) \<in> nat_lit_list_hm_assn\<^sup>d \<rightarrow>\<^sub>a lits_with_max_assn\<close>
@@ -653,7 +653,7 @@ lemma init_aa'_alt_def: \<open>RETURN o init_aa' = (\<lambda>n. RETURN op_arl_em
 
 sepref_definition init_aa'_code
   is \<open>RETURN o init_aa'\<close>
-  :: \<open>nat_assn\<^sup>k \<rightarrow>\<^sub>a arl_assn (clause_status_assn *a uint32_nat_assn *a uint32_nat_assn)\<close>
+  :: \<open>nat_assn\<^sup>k \<rightarrow>\<^sub>a arl_assn (clause_status_assn \<times>\<^sub>a uint32_nat_assn \<times>\<^sub>a uint32_nat_assn)\<close>
   unfolding init_aa'_alt_def
   by sepref
 
@@ -705,7 +705,7 @@ declare init_trail_D_fast_code.refine[sepref_fr_rules]
 
 sepref_definition init_state_wl_D'_code
   is \<open>init_state_wl_D'\<close>
-  :: \<open>(arl_assn uint32_assn *a uint32_assn)\<^sup>d \<rightarrow>\<^sub>a isasat_init_assn\<close>
+  :: \<open>(arl_assn uint32_assn \<times>\<^sub>a uint32_assn)\<^sup>d \<rightarrow>\<^sub>a isasat_init_assn\<close>
   unfolding init_state_wl_D'_def PR_CONST_def init_trail_D_fast_def[symmetric] isasat_init_assn_def
   apply (rewrite at \<open>let _ = (_, \<hole>) in _\<close> arl32.fold_custom_empty)
   apply (rewrite at \<open>let _ = \<hole> in _\<close>  init_lrl_def[symmetric])
@@ -719,13 +719,13 @@ sepref_definition init_state_wl_D'_code
 
 sepref_definition init_state_wl_D'_code_unb
   is \<open>init_state_wl_D'\<close>
-  :: \<open>(arl_assn uint32_assn *a uint32_assn)\<^sup>d \<rightarrow>\<^sub>a trail_pol_assn *a arena_assn *a
-    conflict_option_rel_assn *a
-    uint32_nat_assn *a
-    watchlist_assn *a
-    vmtf_remove_conc_option_fst_As *a
-    phase_saver_conc *a uint32_nat_assn *a
-    cach_refinement_l_assn *a lbd_assn *a vdom_assn *a bool_assn\<close>
+  :: \<open>(arl_assn uint32_assn \<times>\<^sub>a uint32_assn)\<^sup>d \<rightarrow>\<^sub>a trail_pol_assn \<times>\<^sub>a arena_assn \<times>\<^sub>a
+    conflict_option_rel_assn \<times>\<^sub>a
+    uint32_nat_assn \<times>\<^sub>a
+    watchlist_assn \<times>\<^sub>a
+    vmtf_remove_conc_option_fst_As \<times>\<^sub>a
+    phase_saver_conc \<times>\<^sub>a uint32_nat_assn \<times>\<^sub>a
+    cach_refinement_l_assn \<times>\<^sub>a lbd_assn \<times>\<^sub>a vdom_assn \<times>\<^sub>a bool_assn\<close>
   unfolding init_state_wl_D'_def PR_CONST_def
   apply (rewrite at \<open>let _ = (_, \<hole>) in _\<close> arl32.fold_custom_empty)
   apply (rewrite at \<open>let _ = \<hole> in _\<close>  init_lrl_def[symmetric])

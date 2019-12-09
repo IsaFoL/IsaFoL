@@ -1336,7 +1336,7 @@ sepref_definition mark_garbage_code
 
 lemma mark_garbage_hnr[sepref_fr_rules]:
   \<open>(uncurry mark_garbage_code, uncurry (RETURN oo extra_information_mark_to_delete))
-  \<in> [mark_garbage_pre]\<^sub>a  arena_assn\<^sup>d *\<^sub>a nat_assn\<^sup>k \<rightarrow> arena_assn\<close>
+  \<in> [mark_garbage_pre]\<^sub>a arena_assn\<^sup>d *\<^sub>a nat_assn\<^sup>k \<rightarrow> arena_assn\<close>
   using mark_garbage_code.refine[FCOMP isa_mark_garbage[unfolded convert_fref]]
   unfolding hr_comp_assoc[symmetric] list_rel_compp status_assn_alt_def uncurry_def
   by (auto simp add: arl_assn_comp update_lbd_pre_def)
