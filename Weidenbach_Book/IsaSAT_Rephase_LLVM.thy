@@ -23,8 +23,21 @@ sepref_def rephase_init_impl
 
 sepref_def copy_phase_impl
   is \<open>uncurry copy_phase\<close>
-  :: \<open>phase_saver_assn\<^sup>k *\<^sub>a phase_saver_assn\<^sup>d \<rightarrow>\<^sub>a phase_saver_assn\<close>
-  unfolding copy_phase_def
+  :: \<open>phase_saver_assn\<^sup>k *\<^sub>a phase_saver'_assn\<^sup>d \<rightarrow>\<^sub>a phase_saver'_assn\<close>
+  unfolding copy_phase_alt_def
+    while_eq_nfoldli[symmetric]
+  apply (subst while_upt_while_direct, simp)
+  unfolding simp_thms(21) \<comment> \<open>remove \<^term>\<open>a \<and> True\<close> from condition\<close>
+  apply (annot_snat_const "TYPE(64)")
+  by sepref
+
+definition copy_phase2 where
+  \<open>copy_phase2 = copy_phase\<close>
+
+sepref_def copy_phase_impl2
+  is \<open>uncurry copy_phase2\<close>
+  :: \<open>phase_saver'_assn\<^sup>k *\<^sub>a phase_saver_assn\<^sup>d \<rightarrow>\<^sub>a phase_saver_assn\<close>
+  unfolding copy_phase_def copy_phase2_def
     while_eq_nfoldli[symmetric]
   apply (subst while_upt_while_direct, simp)
   unfolding simp_thms(21) \<comment> \<open>remove \<^term>\<open>a \<and> True\<close> from condition\<close>
@@ -61,7 +74,7 @@ sepref_def save_phase_heur_st
 sepref_def phase_save_rephase_impl
   is \<open>uncurry phase_rephase\<close>
   :: \<open>word_assn\<^sup>k *\<^sub>a phase_heur_assn\<^sup>d \<rightarrow>\<^sub>a phase_heur_assn\<close>
-  unfolding phase_rephase_def
+  unfolding phase_rephase_def copy_phase2_def[symmetric]
   by sepref
 
 

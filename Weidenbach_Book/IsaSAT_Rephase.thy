@@ -43,10 +43,26 @@ definition copy_phase :: \<open>bool list \<Rightarrow> bool list \<Rightarrow> 
     (\<lambda> a \<phi>'. do {
        ASSERT(a < length \<phi>);
        ASSERT(a < length \<phi>');
-       RETURN (\<phi>'[a := \<phi>'!a])
+       RETURN (\<phi>'[a := \<phi>!a])
    })
    \<phi>'
  }\<close>
+
+lemma copy_phase_alt_def:
+\<open>copy_phase \<phi> \<phi>' = do {
+  ASSERT(length \<phi> = length \<phi>');
+  let n = length \<phi>;
+  nfoldli [0..<n]
+    (\<lambda>_. True)
+    (\<lambda> a \<phi>'. do {
+       ASSERT(a < length \<phi>);
+       ASSERT(a < length \<phi>');
+       RETURN (\<phi>'[a := \<phi>!a])
+   })
+   \<phi>'
+ }\<close>
+  unfolding copy_phase_def
+  by (auto simp: ASSERT_same_eq_conv)
 
 lemma copy_phase_spec:
   \<open>length \<phi> = length \<phi>' \<Longrightarrow> copy_phase \<phi> \<phi>' \<le> SPEC(\<lambda>\<psi>. length \<psi> = length \<phi>)\<close>

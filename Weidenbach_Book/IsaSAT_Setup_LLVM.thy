@@ -224,10 +224,15 @@ type_synonym phase_saver_assn = "1 word larray64"
 abbreviation phase_saver_assn :: \<open>phase_saver \<Rightarrow> phase_saver_assn \<Rightarrow> assn\<close> where
   \<open>phase_saver_assn \<equiv> larray64_assn bool1_assn\<close>
 
+type_synonym phase_saver'_assn = "1 word ptr"
+
+abbreviation phase_saver'_assn :: \<open>phase_saver \<Rightarrow> phase_saver'_assn \<Rightarrow> assn\<close> where
+  \<open>phase_saver'_assn \<equiv> array_assn bool1_assn\<close>
+
 (* TODO: Move *)
 type_synonym arena_assn = "(32 word, 64) array_list"
 type_synonym heur_assn = \<open>(ema \<times> ema \<times> restart_info \<times> 64 word \<times>
-   phase_saver_assn \<times> 64 word \<times> phase_saver_assn \<times> 64 word \<times> phase_saver_assn \<times> 64 word \<times> 64 word \<times> 64 word)\<close>
+   phase_saver_assn \<times> 64 word \<times> phase_saver'_assn \<times> 64 word \<times> phase_saver'_assn \<times> 64 word \<times> 64 word \<times> 64 word)\<close>
 
 type_synonym twl_st_wll_trail_fast =
   \<open>trail_pol_fast_assn \<times> arena_assn \<times> option_lookup_clause_assn \<times>
@@ -238,8 +243,8 @@ type_synonym twl_st_wll_trail_fast =
 
 
 abbreviation phase_heur_assn where
-  \<open>phase_heur_assn \<equiv> phase_saver_assn \<times>\<^sub>a sint64_nat_assn \<times>\<^sub>a phase_saver_assn \<times>\<^sub>a sint64_nat_assn \<times>\<^sub>a
-     phase_saver_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn\<close>
+  \<open>phase_heur_assn \<equiv> phase_saver_assn \<times>\<^sub>a sint64_nat_assn \<times>\<^sub>a phase_saver'_assn \<times>\<^sub>a sint64_nat_assn \<times>\<^sub>a
+     phase_saver'_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn\<close>
 
 definition heuristic_assn :: \<open>restart_heuristics \<Rightarrow> heur_assn \<Rightarrow> assn\<close> where
   \<open>heuristic_assn = ema_assn \<times>\<^sub>a
