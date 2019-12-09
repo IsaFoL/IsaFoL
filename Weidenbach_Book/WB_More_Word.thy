@@ -50,5 +50,39 @@ proof -
   then show ?thesis
     unfolding bitXOR_nat_def by auto
 qed
+lemma bitXOR_1_if_mod_2_int: \<open>bitOR L 1 = (if L mod 2 = 0 then L + 1 else L)\<close> for L :: int
+  apply (rule bin_rl_eqI)
+  unfolding bin_rest_OR bin_last_OR
+   apply (auto simp: bin_rest_def bin_last_def)
+  done
+
+
+lemma bitOR_1_if_mod_2_nat:
+  \<open>bitOR L 1 = (if L mod 2 = 0 then L + 1 else L)\<close>
+  \<open>bitOR L (Suc 0) = (if L mod 2 = 0 then L + 1 else L)\<close> for L :: nat
+proof -
+  have H: \<open>bitOR L 1 =  L + (if bin_last (int L) then 0 else 1)\<close>
+    unfolding bitOR_nat_def
+    apply (auto simp: bitOR_nat_def bin_last_def
+        bitXOR_1_if_mod_2_int)
+    done
+  show \<open>bitOR L 1 = (if L mod 2 = 0 then L + 1 else L)\<close>
+    unfolding H
+    apply (auto simp: bitOR_nat_def bin_last_def)
+    apply presburger+
+    done
+  then show \<open>bitOR L (Suc 0) = (if L mod 2 = 0 then L + 1 else L)\<close>
+    by simp
+qed
+
+lemma bin_pos_same_XOR3:
+  \<open>a XOR a XOR c = c\<close>
+  \<open>a XOR c XOR a = c\<close> for a c :: int
+  by (metis bin_ops_same(3) int_xor_assoc int_xor_zero)+
+
+lemma bin_pos_same_XOR3_nat:
+  \<open>a XOR a XOR c = c\<close>
+  \<open>a XOR c XOR a = c\<close> for a c :: nat
+ unfolding bitXOR_nat_def by (auto simp: bin_pos_same_XOR3)
 
 end

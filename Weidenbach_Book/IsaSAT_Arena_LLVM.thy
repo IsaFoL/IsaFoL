@@ -1,6 +1,8 @@
 theory IsaSAT_Arena_LLVM
   imports IsaSAT_Arena IsaSAT_Literals_LLVM
+    WB_More_Word
 begin
+
 
 section \<open>Code Generation\<close>
 
@@ -508,16 +510,6 @@ definition arena_other_watched_as_swap :: \<open>nat list \<Rightarrow> nat \<Ri
     K' \<leftarrow> RETURN (S ! (1 + C));
     RETURN (L XOR K XOR K')
   }\<close>
-
-lemma bin_pos_same_XOR3:
-  \<open>a XOR a XOR c = c\<close>
-  \<open>a XOR c XOR a = c\<close> for a c :: int
-  by (metis bin_ops_same(3) int_xor_assoc int_xor_zero)+
-
-lemma bin_pos_same_XOR3_nat:
-  \<open>a XOR a XOR c = c\<close>
-  \<open>a XOR c XOR a = c\<close> for a c :: nat
- unfolding bitXOR_nat_def by (auto simp: bin_pos_same_XOR3)
 
 lemma arena_other_watched_as_swap_arena_other_watched:
   assumes

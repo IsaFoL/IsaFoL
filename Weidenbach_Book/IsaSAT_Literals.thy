@@ -115,6 +115,19 @@ definition sint64_max :: nat where
   \<open>sint64_max \<equiv> 2^63-1\<close>
 
 
+lemma uint64_max_uint_def: \<open>unat (-1 :: 64 Word.word) = uint64_max\<close>
+proof -
+  have \<open>unat (-1 :: 64 Word.word) = unat (- Numeral1 :: 64 Word.word)\<close>
+    unfolding numeral.numeral_One ..
+  also have \<open>\<dots> = uint64_max\<close>
+    unfolding unat_bintrunc_neg
+    apply (simp add: uint64_max_def)
+    apply (subst numeral_eq_Suc; subst bintrunc.Suc; simp)+
+    done
+  finally show ?thesis .
+qed
+
+
 section \<open>Operations with set of atoms.\<close>
 
 context
