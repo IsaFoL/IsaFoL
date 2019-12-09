@@ -367,7 +367,7 @@ context lifting_equivalence_with_empty_order
 begin
 
 text "lemma 39 from the technical report"
-lemma "any_order_lifting.lifted_calculus_with_red_crit.saturated N = empty_order_lifting.lifted_calculus_with_red_crit.saturated N" by standard
+lemma saturated_empty_order_equiv_saturated: "any_order_lifting.lifted_calculus_with_red_crit.saturated N = empty_order_lifting.lifted_calculus_with_red_crit.saturated N" by standard
 
 text "lemma 40 from the technical report"
 lemma static_empty_order_equiv_static: "static_refutational_complete_calculus Bot_F Inf_F any_order_lifting.entails_\<G> empty_order_lifting.Red_Inf_\<G> empty_order_lifting.Red_F_\<G> = static_refutational_complete_calculus Bot_F Inf_F any_order_lifting.entails_\<G> any_order_lifting.Red_Inf_\<G> any_order_lifting.Red_F_\<G>"
@@ -375,7 +375,7 @@ lemma static_empty_order_equiv_static: "static_refutational_complete_calculus Bo
   by (rule iffI) (standard,(standard)[],simp)+
    
 text "theorem 41 from the technical report"
-theorem "static_refutational_complete_calculus Bot_F Inf_F any_order_lifting.entails_\<G> empty_order_lifting.Red_Inf_\<G> empty_order_lifting.Red_F_\<G> = dynamic_refutational_complete_calculus Bot_F Inf_F any_order_lifting.entails_\<G> any_order_lifting.Red_Inf_\<G> any_order_lifting.Red_F_\<G> " (is "?static=?dynamic")
+theorem static_to_dynamic: "static_refutational_complete_calculus Bot_F Inf_F any_order_lifting.entails_\<G> empty_order_lifting.Red_Inf_\<G> empty_order_lifting.Red_F_\<G> = dynamic_refutational_complete_calculus Bot_F Inf_F any_order_lifting.entails_\<G> any_order_lifting.Red_Inf_\<G> any_order_lifting.Red_F_\<G> " (is "?static=?dynamic")
 proof
   assume ?static
   then have static_general: "static_refutational_complete_calculus Bot_F Inf_F any_order_lifting.entails_\<G> any_order_lifting.Red_Inf_\<G> any_order_lifting.Red_F_\<G>" (is "?static_gen") using static_empty_order_equiv_static by simp

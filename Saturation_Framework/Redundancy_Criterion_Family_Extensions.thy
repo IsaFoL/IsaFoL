@@ -446,8 +446,6 @@ sublocale empty_ord_lifted_calc_w_red_crit_family:
   using cons_rel_fam_Q_lem red_crit_lifting_family_empty_ord
   by (simp add: calculus_with_red_crit_family.intro calculus_with_red_crit_family_axioms_def)
 
-find_theorems name: lifted_calc_w_red_crit_family name: empty
-
 lemma "calculus_with_red_crit Bot_F Inf_F entails_\<G>_Q Red_Inf_\<G>_Q Red_F_\<G>_empty"
 proof -
   have "lifted_calc_w_red_crit_family.entails_Q = entails_\<G>_Q"
@@ -459,6 +457,49 @@ proof -
   ultimately show "calculus_with_red_crit Bot_F Inf_F entails_\<G>_Q Red_Inf_\<G>_Q Red_F_\<G>_empty"
   using empty_ord_lifted_calc_w_red_crit_family.inter_red_crit by simp
 qed
+
+text "lemma 42 from the technical report"
+lemma "lifted_calc_w_red_crit_family.inter_red_crit_calculus.saturated N =
+  empty_ord_lifted_calc_w_red_crit_family.inter_red_crit_calculus.saturated N "
+  by simp
+
+text "lemma 43 from the technical report"
+lemma static_empty_ord_inter_equiv_static_inter: "static_refutational_complete_calculus Bot_F Inf_F lifted_calc_w_red_crit_family.entails_Q
+    lifted_calc_w_red_crit_family.Red_Inf_Q lifted_calc_w_red_crit_family.Red_F_Q =
+  static_refutational_complete_calculus Bot_F Inf_F lifted_calc_w_red_crit_family.entails_Q
+    empty_ord_lifted_calc_w_red_crit_family.Red_Inf_Q empty_ord_lifted_calc_w_red_crit_family.Red_F_Q"
+  unfolding static_refutational_complete_calculus_def
+  by (simp add: empty_ord_lifted_calc_w_red_crit_family.inter_red_crit_calculus.calculus_with_red_crit_axioms
+    lifted_calc_w_red_crit_family.inter_red_crit_calculus.calculus_with_red_crit_axioms)
+
+text "lemma 44 from the technical report"
+theorem "static_refutational_complete_calculus Bot_F Inf_F lifted_calc_w_red_crit_family.entails_Q
+    empty_ord_lifted_calc_w_red_crit_family.Red_Inf_Q empty_ord_lifted_calc_w_red_crit_family.Red_F_Q =
+  dynamic_refutational_complete_calculus Bot_F Inf_F lifted_calc_w_red_crit_family.entails_Q
+    lifted_calc_w_red_crit_family.Red_Inf_Q lifted_calc_w_red_crit_family.Red_F_Q"  (is "?static=?dynamic")
+proof
+  assume ?static
+  then have static_general: "static_refutational_complete_calculus Bot_F Inf_F
+    lifted_calc_w_red_crit_family.entails_Q lifted_calc_w_red_crit_family.Red_Inf_Q
+    lifted_calc_w_red_crit_family.Red_F_Q" (is "?static_gen")
+    using static_empty_ord_inter_equiv_static_inter
+    by simp
+  interpret static_refutational_complete_calculus Bot_F Inf_F lifted_calc_w_red_crit_family.entails_Q
+    lifted_calc_w_red_crit_family.Red_Inf_Q lifted_calc_w_red_crit_family.Red_F_Q
+    using static_general .
+  show "?dynamic" by standard 
+next
+  assume dynamic_gen: ?dynamic
+  interpret dynamic_refutational_complete_calculus Bot_F Inf_F lifted_calc_w_red_crit_family.entails_Q
+    lifted_calc_w_red_crit_family.Red_Inf_Q lifted_calc_w_red_crit_family.Red_F_Q
+    using dynamic_gen .
+  have "static_refutational_complete_calculus Bot_F Inf_F lifted_calc_w_red_crit_family.entails_Q
+    lifted_calc_w_red_crit_family.Red_Inf_Q lifted_calc_w_red_crit_family.Red_F_Q"
+    by standard
+  then show "?static" using static_empty_ord_inter_equiv_static_inter by simp
+qed
+
+
 
 end
 
