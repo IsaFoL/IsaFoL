@@ -51,8 +51,8 @@ fun state\<^sub>W_of :: \<open>'v prag_st \<Rightarrow> 'v cdcl\<^sub>W_restart_
 \<open>state\<^sub>W_of (M, N, U, C, NE, UE, NS, US) =
   (M, N + NE + NS, U + UE + US,  C)\<close>
 
-section \<open>Conversion\<close>
 
+section \<open>Conversion\<close>
 
 fun pget_trail :: \<open>'v prag_st \<Rightarrow> ('v, 'v clause) ann_lit list\<close> where
   \<open>pget_trail (M, _, _, _, _, _, _, _) = M\<close>
@@ -67,11 +67,17 @@ fun pget_conflict :: \<open>'v prag_st \<Rightarrow> 'v clause option\<close> wh
 fun pget_clauses :: \<open>'v prag_st \<Rightarrow> 'v clauses\<close> where
   \<open>pget_clauses (M, N, U, D, NE, UE, NS, US) = N + U\<close>
 
+fun pget_init_clauses :: \<open>'v prag_st \<Rightarrow> 'v clauses\<close> where
+  \<open>pget_init_clauses (M, N, U, D, NE, UE, NS, US) = N\<close>
+
 fun punit_clss :: \<open>'v prag_st \<Rightarrow> 'v clauses\<close> where
   \<open>punit_clss (M, N, U, D, NE, UE, NS, US) = NE + UE\<close>
 
 fun punit_init_clauses :: \<open>'v prag_st \<Rightarrow> 'v clauses\<close> where
   \<open>punit_init_clauses (M, N, U, D, NE, UE, NS, US) = NE\<close>
+
+fun punit_clauses :: \<open>'v prag_st \<Rightarrow> 'v clauses\<close> where
+  \<open>punit_clauses (M, N, U, D, NE, UE, NS, US) = NE + UE\<close>
 
 fun psubsumed_learned_clss :: \<open>'v prag_st \<Rightarrow> 'v clause multiset\<close> where
   \<open>psubsumed_learned_clss (M, N, U, D, NE, UE, NS, US) = US\<close>
@@ -260,6 +266,51 @@ subsumption, learning of a clause, and potentially forget.
 
 \<close>
 
+section \<open>Invariants\<close>
+
+text \<open>
+
+To avoid adding a new component, we store tautologies in the subsumed
+components, even though we could also store them separately. Finally,
+we really want to get rid of tautologies from the clause set. They
+require special cases in the arena module.
+
+\<close>
+definition psubsumed_invs :: \<open>'v prag_st \<Rightarrow> bool\<close> where
+\<open>psubsumed_invs S \<longleftrightarrow>
+  (\<forall>C\<in>#psubsumed_init_clauses S. tautology C \<or>
+    (\<exists>C'\<in>#pget_init_clauses S+punit_init_clauses S. C' \<subseteq># C)) \<and>
+  (\<forall>C\<in>#psubsumed_learned_clauses S. tautology C \<or>
+    (\<exists>C'\<in>#pget_clauses S+punit_clauses S. C' \<subseteq># C))\<close>
+
+text \<open>
+In the TWL version, we also had \<^term>\<open>(\<forall>C \<in># NE + UE.
+      (\<exists>L. L \<in># C \<and> (D = None \<or> count_decided M > 0 \<longrightarrow> get_level M L = 0 \<and> L \<in> lits_of_l M)))\<close>
+as definition. This make is possible to express the conflict analysis at level 0.
+However, it makes the code easier to not do this analysis, because we already know
+that we will derive the empty clause (but do not know what the trail will be).
+
+We could simplify the invariant to
+ \<^term>\<open>(\<forall>C \<in># NE + UE.
+      (\<exists>L. L \<in># C \<and> (get_level M L = 0 \<and> L \<in> lits_of_l M)))\<close>
+at the price of an uglier correctness theorem.
+
+
+Final remark, we could simplify the invariant in another way: We could have \<^term>\<open>D={#L#}\<close>.
+This, however, requires that we either remove all literals set at level 0, including in
+\<^emph>\<open>reasons\<close>, which we would rather avoid, or add the new clause \<^term>\<open>{#L#}\<close> each time we
+propagate a clause at level 0 and change the reason to this new clause. In either cases,
+we could use the subsumed components to store the clauses.
+\<close>
+fun entailed_clss_inv :: \<open>'v prag_st \<Rightarrow> bool\<close> where
+  \<open>entailed_clss_inv (M, N, U, D, NE, UE, NS, US) \<longleftrightarrow>
+    (\<forall>C \<in># NE + UE.
+      (\<exists>L. L \<in># C \<and> (D = None \<or> count_decided M > 0 \<longrightarrow> get_level M L = 0 \<and> L \<in> lits_of_l M)))\<close>
+
+lemmas entailed_clss_inv_def = entailed_clss_inv.simps
+
+lemmas [simp del] = entailed_clss_inv.simps
+
 
 section \<open>Relation to CDCL\<close>
 
@@ -267,22 +318,26 @@ lemma cdcl_decide_is_decide:
   \<open>cdcl_decide S T \<Longrightarrow> cdcl\<^sub>W_restart_mset.decide (state\<^sub>W_of S) (state\<^sub>W_of T)\<close>
   apply (cases rule: cdcl_decide.cases, assumption)
   apply (rule_tac L=L' in cdcl\<^sub>W_restart_mset.decide.intros)
-  by (auto intro!: cdcl\<^sub>W_restart_mset.decide.intros
-    simp: cdcl\<^sub>W_restart_mset_state)
+  by (auto simp: cdcl\<^sub>W_restart_mset_state)
+
+lemma decide_is_cdcl_decide:
+  \<open>cdcl\<^sub>W_restart_mset.decide (state\<^sub>W_of S) T \<Longrightarrow> Ex(cdcl_decide S)\<close>
+  apply (cases S, hypsubst)
+  apply (cases rule: cdcl\<^sub>W_restart_mset.decide.cases, assumption)
+  apply (rule exI[of _ \<open>(_, _, _, None, _, _, _, _)\<close>])
+  by (auto intro!: cdcl_decide.intros simp: cdcl\<^sub>W_restart_mset_state)
 
 lemma cdcl_skip_is_skip:
   \<open>cdcl_skip S T \<Longrightarrow> cdcl\<^sub>W_restart_mset.skip (state\<^sub>W_of S) (state\<^sub>W_of T)\<close>
   apply (cases rule: cdcl_skip.cases, assumption)
   apply (rule_tac L=L' and C'=C and E=D and M=M in cdcl\<^sub>W_restart_mset.skip.intros)
-  by (auto intro!: cdcl\<^sub>W_restart_mset.skip.intros
-    simp: cdcl\<^sub>W_restart_mset_state)
+  by (auto simp: cdcl\<^sub>W_restart_mset_state)
 
 lemma cdcl_resolve_is_resolve:
   \<open>cdcl_resolve S T \<Longrightarrow> cdcl\<^sub>W_restart_mset.resolve (state\<^sub>W_of S) (state\<^sub>W_of T)\<close>
   apply (cases rule: cdcl_resolve.cases, assumption)
   apply (rule_tac L=L' and E=C in cdcl\<^sub>W_restart_mset.resolve.intros)
-  by (auto intro!: cdcl\<^sub>W_restart_mset.resolve.intros
-    simp: cdcl\<^sub>W_restart_mset_state)
+  by (auto simp: cdcl\<^sub>W_restart_mset_state)
 
 lemma cdcl_conflict_is_conflict:
   \<open>cdcl_conflict S T \<Longrightarrow> cdcl\<^sub>W_restart_mset.conflict (state\<^sub>W_of S) (state\<^sub>W_of T)\<close>
@@ -295,8 +350,7 @@ lemma cdcl_backtrack_is_backtrack:
   apply (cases rule: cdcl_backtrack.cases, assumption)
   apply (rule_tac L=L and D'=D' and D=D and K=K in
     cdcl\<^sub>W_restart_mset.backtrack.intros)
-  by (auto
-    simp: clauses_def ac_simps cdcl\<^sub>W_restart_mset_state
+  by (auto simp: clauses_def ac_simps cdcl\<^sub>W_restart_mset_state
       cdcl\<^sub>W_restart_mset_reduce_trail_to)
 
 end
