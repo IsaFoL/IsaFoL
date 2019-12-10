@@ -1,0 +1,18 @@
+chapter Weidenbach_Book
+
+session "Entailment_Definition" (Weidenbach_Book) = "Weidenbach_Book_Base" +
+  description \<open>This session contains various (but still general) definition of entailment used
+  later.\<close>
+  options [document = pdf, document_output = "output"]
+  sessions
+    "HOL-Library"
+    Ordered_Resolution_Prover
+  theories [document = true]
+    Doc_Entailment
+    Partial_Herbrand_Interpretation
+    Partial_Annotated_Herbrand_Interpretation
+    Partial_And_Total_Herbrand_Interpretation
+    Prop_Logic
+  document_files
+    "root.tex"
+    "biblio.bib"

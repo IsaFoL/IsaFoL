@@ -1,0 +1,19 @@
+chapter Weidenbach_Book
+
+(*
+session Model_Enumeration (Weidenbach_Book) = Watched_Literals +
+  description \<open>This extends the previous version to a very simple 'SMT' solver: we enumerate all models and let an unspecified theoty solver checks if a model is valid or another must be found.\<close>
+  sessions
+    Normalisation
+    CDCL
+    Watched_Literals
+  theories[document = true]
+    Model_Enumeration
+    Watched_Literals_Transition_System_Enumeration
+    Watched_Literals_Algorithm_Enumeration
+    Watched_Literals_List_Enumeration
+    Watched_Literals_Watch_List_Enumeration
+  document_files
+    "root.tex"
+    "biblio.bib"
+*)

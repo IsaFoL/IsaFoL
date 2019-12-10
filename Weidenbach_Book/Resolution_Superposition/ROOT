@@ -1,0 +1,14 @@
+session "Resolution_Superposition" (Weidenbach_Book) = "Entailment_Definition" +
+  description \<open>This session contains the formalisation of resolution and the beginning of
+  superposition.\<close>
+  options [document = pdf, document_output = "output"]
+  sessions
+    Entailment_Definition
+    Normalisation
+  theories [document = true]
+    Prop_Resolution
+  theories [quick_and_dirty, document = true]
+    Prop_Superposition
+  document_files
+    "root.tex"
+    "biblio.bib"
