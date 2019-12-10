@@ -8,7 +8,7 @@ begin
 
 subsection \<open>Adding labels\<close>
 
-locale labeled_redundancy_criterion_lifting = redundancy_criterion_lifting \<G>_F \<G>_Inf Bot_F Inf_F Bot_G entails_G Inf_G Red_Inf_G Red_F_G Prec_F
+locale labeled_lifting_w_wf_ord_family = lifting_with_wf_ordering_family Bot_F Inf_F Bot_G entails_G Inf_G Red_Inf_G Red_F_G \<G>_F \<G>_Inf Prec_F
   for
     \<G>_F :: "'f \<Rightarrow> 'g set" and
     \<G>_Inf :: "'f inference \<Rightarrow> 'g inference set" and
@@ -19,7 +19,7 @@ locale labeled_redundancy_criterion_lifting = redundancy_criterion_lifting \<G>_
     Inf_G :: "'g inference set" and
     Red_Inf_G :: "'g set \<Rightarrow> 'g inference set" and
     Red_F_G :: "'g set \<Rightarrow> 'g set" and
-    Prec_F :: "'f \<Rightarrow> 'f \<Rightarrow> bool"  (infix "\<sqsubset>" 50)
+    Prec_F :: "'g \<Rightarrow> 'f \<Rightarrow> 'f \<Rightarrow> bool"  (infix "\<sqsubset>" 50)
   + fixes
     l :: \<open>'l itself\<close> and
     Inf_FL :: \<open>('f \<times> 'l) inference set\<close>
@@ -48,29 +48,8 @@ sublocale labeled_standard_lifting: standard_lifting
     \<G>_F = \<G>_F_L and
     \<G>_Inf = \<G>_Inf_L
 proof
-  fix B NL
-  show "Bot_FL \<noteq> {}" sorry
-(* next
-  fix NL1 NL2
-  show "NL2 \<subseteq> NL1 \<Longrightarrow> NL1 |\<approx>FL NL2"
-  proof -
-    assume "NL2 \<subseteq> NL1"
-    then have "fst ` NL2 \<subseteq> fst ` NL1" by (simp add: image_mono)
-    then show "NL1 |\<approx>FL NL2" unfolding entails_sound_FL_def using Non_ground.subset_entailed by simp
-  qed
-next
-  fix NL1 NL2
-  show "\<forall>C\<in>NL2. NL1 |\<approx>FL {C} \<Longrightarrow> NL1 |\<approx>FL NL2" 
-    unfolding entails_sound_FL_def using Non_ground.all_formulas_entailed
-    by (smt image_empty image_iff image_insert)
-next
-  fix NL1 NL2 NL3
-  show "NL1 |\<approx>FL NL2 \<Longrightarrow> NL2 |\<approx>FL NL3 \<Longrightarrow> NL1 |\<approx>FL NL3"
-    unfolding entails_sound_FL_def using Non_ground.entails_trans by blast
-next
-  fix \<iota>
-  show "\<iota> \<in> Inf_FL \<Longrightarrow> set (prems_of \<iota>) |\<approx>FL {concl_of \<iota>}"
-    unfolding entails_sound_FL_def using Inf_FL_to_Inf_F Non_ground.soundness by force *)
+  show "Bot_FL \<noteq> {}"
+    unfolding Bot_FL_def using Bot_F_not_empty by simp
 next
   show "B\<in>Bot_FL \<Longrightarrow> \<G>_F_L B \<noteq> {}" for B
     unfolding \<G>_F_L_def Bot_FL_def using Bot_map_not_empty by auto
@@ -91,7 +70,7 @@ qed
 definition Labeled_Empty_Order :: \<open> ('f \<times> 'l) \<Rightarrow> ('f \<times> 'l) \<Rightarrow> bool\<close> where
   "Labeled_Empty_Order C1 C2 \<equiv> False" 
 
-sublocale labeled_lifted_calculus_with_red_crit: redundancy_criterion_lifting \<G>_F_L \<G>_Inf_L Bot_FL Inf_FL Bot_G entails_G Inf_G Red_Inf_G Red_F_G Labeled_Empty_Order
+sublocale labeled_lifting_w_empty_ord_family : lifting_with_wf_ordering_family Bot_FL Inf_FL Bot_G entails_G Inf_G Red_Inf_G Red_F_G \<G>_F_L \<G>_Inf_L "\<lambda>g. Labeled_Empty_Order" 
 proof
   show "po_on Labeled_Empty_Order UNIV" unfolding Labeled_Empty_Order_def po_on_def by (simp add: transp_onI wfp_on_imp_irreflp_on)
   show "wfp_on Labeled_Empty_Order UNIV" unfolding wfp_on_def Labeled_Empty_Order_def by simp

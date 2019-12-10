@@ -323,7 +323,6 @@ lemma "calculus_with_red_crit Bot_F Inf_F entails_\<G> Red_Inf_\<G> Red_F_\<G>"
 
 end
 
-
 definition Empty_Order :: \<open>'f \<Rightarrow> 'f \<Rightarrow> bool\<close> where
   "Empty_Order C1 C2 \<equiv> False" 
 
@@ -342,7 +341,6 @@ proof -
   then show "lifting_with_wf_ordering_family Bot_F Inf_F Bot_G entails_G Inf_G Red_Inf_G Red_F_G \<G>_F \<G>_Inf (\<lambda>g. Empty_Order)"
     by (simp add: empty_wf lift_g.standard_lifting_axioms lifting_with_wf_ordering_family_axioms.intro lifting_with_wf_ordering_family_def)
 qed
-
 
 locale lifting_equivalence_with_empty_order = any_order_lifting: lifting_with_wf_ordering_family Bot_F Inf_F Bot_G entails_G Inf_G Red_Inf_G Red_F_G \<G>_F \<G>_Inf Prec_F_g + empty_order_lifting: lifting_with_wf_ordering_family Bot_F Inf_F Bot_G entails_G Inf_G Red_Inf_G Red_F_G \<G>_F \<G>_Inf "\<lambda>g. Empty_Order"
   for
