@@ -1,0 +1,73 @@
+chapter Weidenbach_Book
+
+session "CDCL_no_Sepref" (Weidenbach_Book) = "HOL"  +
+  description \<open>This session is the same as the CDCL session, but des not import
+  the Refinement Framework.
+  \<close>
+  options [document = pdf, document = false]
+  sessions
+    Nested_Multisets_Ordinals
+    Weidenbach_Book_Base
+    Entailment_Definition
+    Ordered_Resolution_Prover
+  theories [quick_and_dirty = false]
+    DPLL_W
+    CDCL_W_Level
+    CDCL_W
+    CDCL_W_Termination
+    CDCL_W_Merge
+    CDCL_NOT
+    CDCL_WNOT
+    CDCL_W_Full
+    CDCL_W_Restart
+    CDCL_W_Incremental
+
+    DPLL_CDCL_W_Implementation
+    DPLL_W_Implementation
+    CDCL_W_Implementation
+    CDCL_Abstract_Clause_Representation
+    CDCL_W_Abstract_State
+
+  document_files
+    "root.tex"
+    "biblio.bib"
+
+session "CDCL" (Weidenbach_Book) = "Isabelle_LLVM"  +
+  description \<open>This session the CDCL calculi (Weidenbach and Nieuwenhuis et al.) and the links between
+  both. It also contains a very simple implementation based on lists and two extensions (restart and
+  incremental).
+
+  This version is based on the Refinement Framework, to make the two-watched-literals part easier to compile
+  (workaround as long as a session cannot have two parents).
+  \<close>
+  options [document = pdf, document_output = "output"]
+  sessions
+    Nested_Multisets_Ordinals
+    Weidenbach_Book_Base
+    Entailment_Definition
+  theories [document = false]
+    "HOL-Eisbach.Eisbach_Tools"
+
+  theories [quick_and_dirty = false, document = true]
+    DPLL_W
+    CDCL_W_Level
+    CDCL_W
+    CDCL_W_Termination
+    CDCL_W_Merge
+    CDCL_NOT
+    CDCL_WNOT
+    CDCL_W_Full
+    CDCL_W_Restart
+    CDCL_W_Incremental
+
+    DPLL_CDCL_W_Implementation
+    DPLL_W_Implementation
+    CDCL_W_Implementation
+    CDCL_Abstract_Clause_Representation
+    CDCL_W_Abstract_State
+
+  document_files
+    "root.tex"
+    "biblio.bib"
+  export_files (in "code") [1]
+    "CDCL.CDCL_W_Implementation:**"

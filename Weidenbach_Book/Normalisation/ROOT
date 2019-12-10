@@ -1,0 +1,17 @@
+chapter Weidenbach_Book
+
+session "Normalisation" (Weidenbach_Book) = "Entailment_Definition" +
+  description \<open>This session contains the normalisation from general formulas to CNF and DNF.\<close>
+  options [document = pdf, document_output = "output"]
+  sessions
+    Nested_Multisets_Ordinals
+    Entailment_Definition
+  theories [document = false]
+    Nested_Multisets_Ordinals.Multiset_More
+  theories [document = true]
+    Prop_Abstract_Transformation
+    Prop_Normalisation
+    Prop_Logic_Multiset
+  document_files
+    "root.tex"
+    "biblio.bib"

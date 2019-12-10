@@ -1,0 +1,26 @@
+chapter Weidenbach_Book
+
+session "Weidenbach_Book_Base" (Weidenbach_Book) = "Sepref_IICF" +
+  description \<open>This session imports HOL, some additional useful theories from HOL, and our own
+  extensions above these lemmas.\<close>
+  options [document = pdf, document_output = "output"]
+  sessions
+    "HOL-Eisbach"
+    "HOL-Library"
+    Nested_Multisets_Ordinals
+  theories [document = false]
+    "HOL-Library.Code_Target_Numeral"
+    "HOL-Library.Multiset"
+    "HOL-Library.Multiset_Order"
+    "HOL-Library.Extended_Nat"
+    Nested_Multisets_Ordinals.Multiset_More
+    "HOL-Eisbach.Eisbach"
+    "HOL-Eisbach.Eisbach_Tools"
+  theories
+    Doc_Libraries
+    Wellfounded_More
+    WB_List_More
+    "../../lib/Explorer"
+  document_files
+    "root.tex"
+    "biblio.bib"

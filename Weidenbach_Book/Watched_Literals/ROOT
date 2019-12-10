@@ -1,0 +1,27 @@
+session "Watched_Literals" (Weidenbach_Book) = "Isabelle_LLVM"  +
+  description \<open>This session contains all theories related to the two-watched literals. It links
+    the abstract CDCL calculus to a more concrete version with watched literals.\<close>
+  options [document = pdf, document_output = "output"]
+  sessions
+    CDCL
+    "HOL-Eisbach"
+    Sepref_IICF
+  theories [quick_and_dirty = false, document = true]
+    WB_More_Refinement_Loops
+    WB_More_Refinement
+    WB_More_Refinement_List
+    WB_More_IICF_LLVM
+    WB_Sort
+    Watched_Literals_Transition_System
+    Watched_Literals_Algorithm
+    Watched_Literals_Algorithm_Restart
+    Watched_Literals_List
+    Watched_Literals_List_Restart
+    Watched_Literals_Watch_List
+    Watched_Literals_Watch_List_Restart
+    Watched_Literals_Watch_List_Initialisation
+    CDCL_Conflict_Minimisation
+
+  document_files
+    "root.tex"
+    "biblio.bib"
