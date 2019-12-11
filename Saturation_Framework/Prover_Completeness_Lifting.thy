@@ -40,7 +40,7 @@ definition \<G>_Inf_L :: \<open>('f \<times> 'l) inference \<Rightarrow> 'g infe
 (* definition entails_sound_FL :: \<open>('f \<times> 'l) set \<Rightarrow> ('f \<times> 'l) set \<Rightarrow> bool\<close> (infix "|\<approx>FL" 50) where \<open>CL1 |\<approx>FL
 CL2 \<equiv> fst ` CL1 |\<approx>F fst ` CL2\<close> *)
 
-text \<open>Lemma 20 from the technical report\<close>
+text \<open>Lemma 48 from the technical report\<close>
 sublocale labeled_standard_lifting: standard_lifting
   where
     Bot_F = Bot_FL and
@@ -78,7 +78,7 @@ qed
 
 notation "labeled_standard_lifting.entails_\<G>" (infix "\<Turnstile>\<G>L" 50)
 
-text \<open>Lemma 21 from the technical report\<close>
+text \<open>Lemma 49 from the technical report\<close>
 lemma labeled_entailment_lifting: "NL1 \<Turnstile>\<G>L NL2 \<longleftrightarrow> fst ` NL1 \<Turnstile>\<G> fst ` NL2"
   unfolding labeled_standard_lifting.entails_\<G>_def \<G>_F_L_def entails_\<G>_def by auto
 
@@ -88,7 +88,7 @@ lemma red_inf_impl: "\<iota> \<in> labeled_lifting_w_empty_ord_family.Red_Inf_\<
   unfolding labeled_lifting_w_empty_ord_family.Red_Inf_\<G>_def Red_Inf_\<G>_def \<G>_Inf_L_def \<G>_F_L_def to_F_def
   using Inf_FL_to_Inf_F by auto
 
-text \<open>lemma 22 from the technical report\<close>
+text \<open>lemma 50 from the technical report\<close>
 lemma labeled_saturation_lifting: "labeled_lifting_w_empty_ord_family.lifted_calculus_with_red_crit.saturated NL \<Longrightarrow> empty_order_lifting.lifted_calculus_with_red_crit.saturated (fst ` NL)"
   unfolding labeled_lifting_w_empty_ord_family.lifted_calculus_with_red_crit.saturated_def empty_order_lifting.lifted_calculus_with_red_crit.saturated_def labeled_standard_lifting.Non_ground.Inf_from_def Non_ground.Inf_from_def
 proof clarify
@@ -114,7 +114,7 @@ proof clarify
   ultimately show "\<iota> \<in> Red_Inf_\<G> (fst ` NL)" by (auto intro:red_inf_impl)
 qed
 
-text "lemma 23 from the technical report"
+text "lemma 51 from the technical report"
 lemma "static_refutational_complete_calculus Bot_F Inf_F (\<Turnstile>\<G>) Red_Inf_\<G> Red_F_\<G> \<Longrightarrow> static_refutational_complete_calculus Bot_FL Inf_FL (\<Turnstile>\<G>L) labeled_lifting_w_empty_ord_family.Red_Inf_\<G> labeled_lifting_w_empty_ord_family.Red_F_\<G>"
   unfolding static_refutational_complete_calculus_def
 proof (rule conjI impI; clarify)
