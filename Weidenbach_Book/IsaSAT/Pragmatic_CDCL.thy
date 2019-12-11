@@ -51,6 +51,10 @@ fun state\<^sub>W_of :: \<open>'v prag_st \<Rightarrow> 'v cdcl\<^sub>W_restart_
 \<open>state\<^sub>W_of (M, N, U, C, NE, UE, NS, US) =
   (M, N + NE + NS, U + UE + US,  C)\<close>
 
+declare cdcl\<^sub>W_restart_mset_state[simp]
+
+named_theorems ptwl "Theorems to simplify the state"
+
 
 section \<open>Conversion\<close>
 
@@ -108,12 +112,19 @@ fun pget_all_clss :: \<open>'v prag_st \<Rightarrow> 'v clause multiset\<close> 
      N + NE + NS + U + UE + US\<close>
 
 
+lemma [ptwl]:
+  \<open>trail (state\<^sub>W_of S) = pget_trail S\<close>
+  by (solves \<open>cases S; auto\<close>)
+
+declare ptwl[simp]
+
+
 section \<open>The old rules\<close>
 
 inductive cdcl_propagate :: \<open>'v prag_st \<Rightarrow> 'v prag_st \<Rightarrow> bool\<close> where
 propagate:
   \<open>cdcl_propagate (M, N, U, None, NE, UE, NS, US)
-    (Propagated L' (D) # M, N, U, None, NE, UE, NS, US)\<close>
+    (Propagated L' D # M, N, U, None, NE, UE, NS, US)\<close>
   if
   \<open>L' \<in># D\<close> and \<open>M \<Turnstile>as CNot (remove1_mset L' D)\<close> and
   \<open>undefined_lit M L'\<close> \<open>D \<in># N + U\<close>
@@ -157,7 +168,6 @@ inductive cdcl_backtrack :: \<open>'v prag_st \<Rightarrow> 'v prag_st \<Rightar
   \<open>cdcl_backtrack (M, N, U, Some (add_mset L D), NE, UE, NS, US)
   (Propagated L (add_mset L D') # M1, N, add_mset (add_mset L D') U, None, NE, UE, NS, US)\<close>
   if
-    \<open>L \<in># D\<close> and
     \<open>(Decided K # M1, M2) \<in> set (get_all_ann_decomposition M)\<close> and
     \<open>get_level M L = count_decided M\<close> and
     \<open>get_level M L = get_maximum_level M (add_mset L D')\<close> and
@@ -237,8 +247,12 @@ lemma cdcl_resolution_still_entailed:
    by auto
   done
 
-text \<open>Tautologies are not necessarily entailed by the clause set. Therefore, we
- do not learn tautologies.
+text \<open>
+  Tautologies are always entailed by the clause set, but not necessarily entailed by a non-total
+  model of the clauses. Therefore, we do not learn tautologies.
+
+  E.g.: \<^term>\<open>(A \<or> B) \<and> (A \<or> C)\<close> entails the clause \<^term>\<open>(\<not>B \<or> B)\<close>, but the model containing only the
+  literal \<^term>\<open>A\<close> does not entail the latter.
  \<close>
 inductive cdcl_learn_clause :: \<open>'v prag_st \<Rightarrow> 'v prag_st \<Rightarrow> bool\<close> where
 learn_clause:
@@ -250,12 +264,12 @@ learn_clause:
     \<open>count_decided M = 0\<close>
 
 lemma cdcl_learn_clause_still_entailed:
-  \<open>cdcl_learn_clause S T \<Longrightarrow> consistent_interp I \<Longrightarrow> total_over_m I (set_mset (pget_all_init_clss T)) \<Longrightarrow>
+  \<open>cdcl_learn_clause S T \<Longrightarrow> consistent_interp I \<Longrightarrow>
     I \<Turnstile>m pget_all_init_clss S \<Longrightarrow> I \<Turnstile>m pget_all_init_clss T\<close>
   apply (induction rule: cdcl_learn_clause.induct)
   subgoal for C N NE US NS M U D UE
     using true_clss_cls_true_clss_true_cls[of \<open>set_mset (N+NE+NS)\<close> C I]
-    by (auto simp: intro: true_clss_cls_true_clss_true_cls)
+    by auto
   done
 
 
@@ -318,39 +332,160 @@ lemma cdcl_decide_is_decide:
   \<open>cdcl_decide S T \<Longrightarrow> cdcl\<^sub>W_restart_mset.decide (state\<^sub>W_of S) (state\<^sub>W_of T)\<close>
   apply (cases rule: cdcl_decide.cases, assumption)
   apply (rule_tac L=L' in cdcl\<^sub>W_restart_mset.decide.intros)
-  by (auto simp: cdcl\<^sub>W_restart_mset_state)
+  by auto
 
 lemma decide_is_cdcl_decide:
   \<open>cdcl\<^sub>W_restart_mset.decide (state\<^sub>W_of S) T \<Longrightarrow> Ex(cdcl_decide S)\<close>
   apply (cases S, hypsubst)
   apply (cases rule: cdcl\<^sub>W_restart_mset.decide.cases, assumption)
   apply (rule exI[of _ \<open>(_, _, _, None, _, _, _, _)\<close>])
-  by (auto intro!: cdcl_decide.intros simp: cdcl\<^sub>W_restart_mset_state)
+  by (auto intro!: cdcl_decide.intros)
 
 lemma cdcl_skip_is_skip:
   \<open>cdcl_skip S T \<Longrightarrow> cdcl\<^sub>W_restart_mset.skip (state\<^sub>W_of S) (state\<^sub>W_of T)\<close>
   apply (cases rule: cdcl_skip.cases, assumption)
   apply (rule_tac L=L' and C'=C and E=D and M=M in cdcl\<^sub>W_restart_mset.skip.intros)
-  by (auto simp: cdcl\<^sub>W_restart_mset_state)
+  by auto
+
+lemma skip_is_cdcl_skip:
+  \<open>cdcl\<^sub>W_restart_mset.skip (state\<^sub>W_of S) (state\<^sub>W_of T) \<Longrightarrow> Ex(cdcl_skip S)\<close>
+  apply (cases rule: cdcl\<^sub>W_restart_mset.skip.cases, assumption)
+  apply (cases S)
+  apply (auto simp: cdcl_skip.simps)
+  done
 
 lemma cdcl_resolve_is_resolve:
   \<open>cdcl_resolve S T \<Longrightarrow> cdcl\<^sub>W_restart_mset.resolve (state\<^sub>W_of S) (state\<^sub>W_of T)\<close>
   apply (cases rule: cdcl_resolve.cases, assumption)
   apply (rule_tac L=L' and E=C in cdcl\<^sub>W_restart_mset.resolve.intros)
-  by (auto simp: cdcl\<^sub>W_restart_mset_state)
+  by auto
 
-lemma cdcl_conflict_is_conflict:
-  \<open>cdcl_conflict S T \<Longrightarrow> cdcl\<^sub>W_restart_mset.conflict (state\<^sub>W_of S) (state\<^sub>W_of T)\<close>
-  apply (cases rule: cdcl_conflict.cases, assumption)
-  apply (rule_tac D=D in cdcl\<^sub>W_restart_mset.conflict.intros)
-  by (auto simp: clauses_def cdcl\<^sub>W_restart_mset_state)
+lemma resolve_is_cdcl_resolve:
+  \<open>cdcl\<^sub>W_restart_mset.resolve (state\<^sub>W_of S) (state\<^sub>W_of T) \<Longrightarrow> Ex(cdcl_resolve S)\<close>
+  apply (cases rule: cdcl\<^sub>W_restart_mset.resolve.cases, assumption)
+  apply (cases S; cases \<open>pget_trail S\<close>)
+  apply (auto simp: cdcl_resolve.simps)
+  done
 
 lemma cdcl_backtrack_is_backtrack:
   \<open>cdcl_backtrack S T \<Longrightarrow> cdcl\<^sub>W_restart_mset.backtrack (state\<^sub>W_of S) (state\<^sub>W_of T)\<close>
   apply (cases rule: cdcl_backtrack.cases, assumption)
   apply (rule_tac L=L and D'=D' and D=D and K=K in
     cdcl\<^sub>W_restart_mset.backtrack.intros)
-  by (auto simp: clauses_def ac_simps cdcl\<^sub>W_restart_mset_state
+  by (auto simp: clauses_def ac_simps
       cdcl\<^sub>W_restart_mset_reduce_trail_to)
+
+
+lemma backtrack_is_cdcl_backtrack:
+  \<open>cdcl\<^sub>W_restart_mset.backtrack (state\<^sub>W_of S) (state\<^sub>W_of T) \<Longrightarrow> Ex(cdcl_backtrack S)\<close>
+  apply (cases rule: cdcl\<^sub>W_restart_mset.backtrack.cases, assumption)
+  apply (cases S; cases T)
+  apply (simp add: cdcl_backtrack.simps clauses_def add_mset_eq_add_mset
+        cdcl\<^sub>W_restart_mset_reduce_trail_to conj_disj_distribR ex_disj_distrib
+      split: cong: if_cong)
+  apply (rule disjI1)
+  apply (rule_tac x=K in exI)
+  apply auto
+  apply (rule_tac x=D' in exI)
+  apply (auto simp: Un_commute Un_assoc)
+  apply (rule back_subst[of \<open>\<lambda>a. a \<Turnstile>p _\<close>])
+  apply assumption
+  apply auto
+  done
+
+lemma cdcl_conflict_is_conflict:
+  \<open>cdcl_conflict S T \<Longrightarrow> cdcl\<^sub>W_restart_mset.conflict (state\<^sub>W_of S) (state\<^sub>W_of T)\<close>
+  apply (cases rule: cdcl_conflict.cases, assumption)
+  apply (rule_tac D=D in cdcl\<^sub>W_restart_mset.conflict.intros)
+  by (auto simp: clauses_def)
+
+
+lemma conflict_is_cdcl_conflictD:
+  assumes
+    confl: \<open>cdcl\<^sub>W_restart_mset.conflict (state\<^sub>W_of S) T\<close> and
+    sub: \<open>psubsumed_invs S\<close> and
+    ent: \<open>entailed_clss_inv S\<close> and
+    invs: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state\<^sub>W_of S)\<close>
+  shows \<open>Ex (cdcl_conflict S)\<close>
+proof -
+  obtain C where
+    C: \<open>C \<in># cdcl\<^sub>W_restart_mset.clauses (state\<^sub>W_of S)\<close> and
+    confl: \<open>trail (state\<^sub>W_of S) \<Turnstile>as CNot C\<close> and
+    conf: \<open>conflicting (state\<^sub>W_of S) = None\<close> and
+    \<open>T \<sim>m update_conflicting (Some C) (state\<^sub>W_of S)\<close>
+    using cdcl\<^sub>W_restart_mset.conflictE[OF confl]
+    by metis
+  have n_d: \<open>no_dup (pget_trail S)\<close>
+    using invs unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
+      by simp
+  then have \<open>C \<notin># punit_clauses S\<close>
+    using ent confl conf
+    by (cases S)
+     (auto 4 3 simp: entailed_clss_inv_def cdcl\<^sub>W_restart_mset_state
+      dest!: multi_member_split dest: no_dup_consistentD)
+
+  moreover have \<open>C \<in># psubsumed_clauses S \<Longrightarrow> \<exists>C' \<in># pget_clauses S. trail (state\<^sub>W_of S) \<Turnstile>as CNot C'\<close>
+    using sub confl conf n_d ent
+      consistent_CNot_not_tautology[of \<open>lits_of_l (pget_trail S)\<close> C, OF distinct_consistent_interp]
+    apply (cases S)
+    apply (auto simp: psubsumed_invs_def true_annots_true_cls entailed_clss_inv_def
+        insert_subset_eq_iff
+      dest: distinct_consistent_interp mset_subset_eqD no_dup_consistentD
+      dest!: multi_member_split)
+    apply (auto simp add: mset_subset_eqD
+        true_clss_def_iff_negation_in_model tautology_decomp' insert_subset_eq_iff
+      dest: no_dup_consistentD)
+     done
+  ultimately show ?thesis
+    using C confl conf
+    by (cases S)
+     (auto simp: cdcl_conflict.simps clauses_def)
+qed
+
+lemma propagate_is_cdcl_propagateD:
+  assumes
+    confl: \<open>cdcl\<^sub>W_restart_mset.propagate (state\<^sub>W_of S) T\<close> and
+    sub: \<open>psubsumed_invs S\<close> and
+    ent: \<open>entailed_clss_inv S\<close> and
+    invs: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state\<^sub>W_of S)\<close>
+  shows \<open>Ex (cdcl_propagate S) \<or> Ex(cdcl_conflict S)\<close>
+proof -
+  obtain L C where
+    C: \<open>C \<in># cdcl\<^sub>W_restart_mset.clauses (state\<^sub>W_of S)\<close> and
+    conf: \<open>conflicting (state\<^sub>W_of S) = None\<close> and
+    confl:  \<open>trail (state\<^sub>W_of S) \<Turnstile>as CNot (remove1_mset L C)\<close> and
+    LC: \<open>L \<in># C\<close> and
+   undef:  \<open>undefined_lit (trail (state\<^sub>W_of S)) L\<close> and
+    \<open>T \<sim>m cons_trail (Propagated L C) (state\<^sub>W_of S)\<close>
+    using cdcl\<^sub>W_restart_mset.propagateE[OF confl]
+    by metis
+  have n_d: \<open>no_dup (pget_trail S)\<close>
+    using invs unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
+      by simp
+  then have \<open>C \<notin># punit_clauses S\<close>
+    using ent confl conf LC undef
+    by (cases S)
+      (auto 4 3 simp: entailed_clss_inv_def cdcl\<^sub>W_restart_mset_state
+      dest!: multi_member_split dest: no_dup_consistentD in_lits_of_l_defined_litD)
+
+  moreover have \<open>C \<in># psubsumed_clauses S \<Longrightarrow> \<exists>C' \<in># pget_clauses S. trail (state\<^sub>W_of S) \<Turnstile>as CNot C'\<close>
+    using sub confl conf n_d ent
+      consistent_CNot_not_tautology[of \<open>lits_of_l (pget_trail S)\<close> C, OF distinct_consistent_interp]
+    apply (cases S)
+    apply (auto simp: psubsumed_invs_def true_annots_true_cls entailed_clss_inv_def
+        insert_subset_eq_iff
+      dest: distinct_consistent_interp mset_subset_eqD no_dup_consistentD
+      dest!: multi_member_split)
+    apply (auto simp add: mset_subset_eqD
+        true_clss_def_iff_negation_in_model tautology_decomp' insert_subset_eq_iff
+      dest: no_dup_consistentD)
+     done
+  ultimately show ?thesis
+    using C confl conf
+    by (cases S)
+     (auto simp: cdcl_propagate.simps clauses_def)
+qed
 
 end

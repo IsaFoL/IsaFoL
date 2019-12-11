@@ -1,0 +1,55 @@
+chapter Weidenbach_Book
+
+session "IsaSAT" (Weidenbach_Book) = "Watched_Literals"  +
+  description \<open>We here refine the previous session to generate code.\<close>
+  sessions
+    CDCL
+    "HOL-Eisbach"
+    Watched_Literals
+    Show
+    Isabelle_LLVM
+  theories
+    IsaSAT_Arena
+    IsaSAT_Arena_LLVM
+    IsaSAT_Clauses
+    IsaSAT_Clauses_LLVM
+    IsaSAT_Literals
+    IsaSAT_Trail
+    Watched_Literals_VMTF
+    LBD
+    LBD_LLVM
+    Version
+    IsaSAT_Watch_List
+    IsaSAT_Watch_List_LLVM
+    IsaSAT_Setup
+    IsaSAT_Setup_LLVM
+    IsaSAT_Inner_Propagation
+    IsaSAT_Inner_Propagation_LLVM
+    IsaSAT_VMTF
+    IsaSAT_VMTF_LLVM
+    IsaSAT_Backtrack
+    IsaSAT_Backtrack_LLVM
+    IsaSAT_Initialisation
+    IsaSAT_Initialisation_LLVM
+    IsaSAT_Conflict_Analysis
+    IsaSAT_Conflict_Analysis_LLVM
+    IsaSAT_Propagate_Conflict
+    IsaSAT_Propagate_Conflict_LLVM
+    IsaSAT_Decide
+    IsaSAT_Decide_LLVM
+    IsaSAT_CDCL
+    IsaSAT_CDCL_LLVM
+
+    IsaSAT_Restart_Heuristics
+    IsaSAT_Restart_Heuristics_LLVM
+    IsaSAT_Restart
+    IsaSAT_Restart_LLVM
+
+    IsaSAT
+    IsaSAT_LLVM
+
+  document_files
+    "root.tex"
+    "biblio.bib"
+  export_files (in "code") [1]
+    "IsaSAT.IsaSAT:**"
