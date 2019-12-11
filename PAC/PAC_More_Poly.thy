@@ -2,6 +2,7 @@ theory PAC_More_Poly
   imports "HOL-Library.Poly_Mapping" "HOL-Algebra.Polynomials" "Polynomials.MPoly_Type_Class"
   "HOL-Algebra.Module"
   "HOL-Library.Countable_Set"
+  "Polynomials.MPoly_PM"
 begin
 
 
