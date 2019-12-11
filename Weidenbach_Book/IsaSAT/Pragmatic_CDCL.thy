@@ -470,22 +470,77 @@ proof -
       (auto 4 3 simp: entailed_clss_inv_def cdcl\<^sub>W_restart_mset_state
       dest!: multi_member_split dest: no_dup_consistentD in_lits_of_l_defined_litD)
 
-  moreover have \<open>C \<in># psubsumed_clauses S \<Longrightarrow> \<exists>C' \<in># pget_clauses S. trail (state\<^sub>W_of S) \<Turnstile>as CNot C'\<close>
-    using sub confl conf n_d ent
-      consistent_CNot_not_tautology[of \<open>lits_of_l (pget_trail S)\<close> C, OF distinct_consistent_interp]
-    apply (cases S)
-    apply (auto simp: psubsumed_invs_def true_annots_true_cls entailed_clss_inv_def
+  have tauto: \<open>\<not> tautology (remove1_mset L C)\<close>
+    using confl conf n_d ent
+      consistent_CNot_not_tautology[of \<open>lits_of_l (pget_trail S)\<close> \<open>remove1_mset L C\<close>,
+        OF distinct_consistent_interp]
+    by (cases S)
+     (auto simp: true_annots_true_cls entailed_clss_inv_def
         insert_subset_eq_iff
       dest: distinct_consistent_interp mset_subset_eqD no_dup_consistentD
       dest!: multi_member_split)
-    apply (auto simp add: mset_subset_eqD
-        true_clss_def_iff_negation_in_model tautology_decomp' insert_subset_eq_iff
-      dest: no_dup_consistentD)
-     done
-  ultimately show ?thesis
-    using C confl conf
+   have \<open>(\<exists>C' \<in># pget_clauses S. trail (state\<^sub>W_of S) \<Turnstile>as CNot C') \<or>
+     (\<exists>C' \<in># pget_clauses S. L \<in># C' \<and> trail (state\<^sub>W_of S) \<Turnstile>as CNot (remove1_mset L C'))\<close>
+    if C: \<open>C \<in># psubsumed_clauses S\<close>
+  proof -
+    have \<open>\<not>tautology C\<close>
+      using confl undef tauto
+      apply (auto simp: tautology_decomp' add_mset_eq_add_mset remove1_mset_add_mset_If
+        dest!: multi_member_split dest: in_lits_of_l_defined_litD split: )
+        apply (case_tac \<open>L = -La\<close>)
+        apply (auto dest: in_lits_of_l_defined_litD)[]
+        apply simp
+        apply (subst (asm) remove1_mset_add_mset_If)
+        apply (case_tac \<open>L = La\<close>)
+        apply (auto dest: in_lits_of_l_defined_litD)[]
+        apply (auto dest: in_lits_of_l_defined_litD)[]
+        done
+    then consider
+       C' where \<open>C' \<subseteq># C\<close> \<open>C' \<in># pget_clauses S\<close> |
+       C' where \<open>C' \<subseteq># C\<close> \<open>C' \<in># punit_clauses S\<close>
+      using sub C
+      by (cases S)
+       (auto simp: psubsumed_invs_def
+        dest!: multi_member_split)
+    then show ?thesis
+    proof cases
+      case 2
+      then show ?thesis
+        using ent confl undef conf n_d
+       apply (cases S)
+       apply (cases \<open>L  \<in># C'\<close>)
+       apply (auto simp: psubsumed_invs_def true_annots_true_cls entailed_clss_inv_def
+           insert_subset_eq_iff remove1_mset_add_mset_If
+         dest: distinct_consistent_interp mset_subset_eqD no_dup_consistentD
+         dest!: multi_member_split)
+       apply (auto simp add: mset_subset_eqD add_mset_eq_add_mset subset_mset.le_iff_add
+           true_clss_def_iff_negation_in_model tautology_decomp' insert_subset_eq_iff
+         dest: no_dup_consistentD in_lits_of_l_defined_litD dest!: multi_member_split[of _ C]
+         split: if_splits)
+       done
+    next
+      case 1
+      then show ?thesis
+        using tauto confl undef conf n_d
+        apply (cases S)
+       apply (cases \<open>L  \<in># C'\<close>)
+        apply (auto simp: psubsumed_invs_def true_annots_true_cls entailed_clss_inv_def
+            insert_subset_eq_iff
+          dest: distinct_consistent_interp mset_subset_eqD no_dup_consistentD
+          dest!: multi_member_split)
+        apply (auto simp add: mset_subset_eqD add_mset_eq_add_mset
+            true_clss_def_iff_negation_in_model tautology_decomp' insert_subset_eq_iff
+          dest: no_dup_consistentD dest!: multi_member_split[of _ C] intro!: bexI[of _ C'])
+        by (metis (no_types, hide_lams) in_multiset_minus_notin_snd insert_DiffM member_add_mset
+          mset_subset_eqD multi_self_add_other_not_self zero_diff)+
+     qed
+  qed
+  then show ?thesis
+    using C confl conf  \<open>C \<notin># punit_clauses S\<close> undef LC
     by (cases S)
-     (auto simp: cdcl_propagate.simps clauses_def)
+      (auto simp: cdcl_propagate.simps clauses_def cdcl_conflict.simps intro!: exI[of _ L]
+        intro: exI[of _ C])
 qed
+
 
 end
