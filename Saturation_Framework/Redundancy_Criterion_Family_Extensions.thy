@@ -3,7 +3,7 @@
 *)
 
 theory Redundancy_Criterion_Family_Extensions
-  imports Dynamic_Completeness_Lifting
+  imports Prover_Completeness_Lifting
 
 begin
 
@@ -297,7 +297,6 @@ definition Red_Inf_\<G>_q :: "'q \<Rightarrow> 'f set \<Rightarrow> 'f inference
 definition Red_Inf_\<G>_Q :: "'f set \<Rightarrow> 'f inference set" where
   "Red_Inf_\<G>_Q N = \<Inter> {X N |X. X \<in> (Red_Inf_\<G>_q ` Q)}"
 
-
 definition Red_F_\<G>_empty_q :: "'q \<Rightarrow> 'f set \<Rightarrow> 'f set" where
   "Red_F_\<G>_empty_q q N = {C. \<forall>D \<in> \<G>_F_q q C. D \<in> Red_F_q q (\<G>_set_q q N) \<or> (\<exists>E \<in> N. Empty_Order E C \<and> D \<in> \<G>_F_q q E)}"
 
@@ -499,8 +498,71 @@ next
   then show "?static" using static_empty_ord_inter_equiv_static_inter by simp
 qed
 
+end
+
+locale labeled_lifting_equiv = no_labels: lifting_equivalence_with_red_crit_family Inf_F Bot_G Inf_G Q entails_q Red_Inf_q Red_F_q Bot_F \<G>_F_q \<G>_Inf_q Prec_F_g
+  for
+    Bot_F :: "'f set" and
+    Inf_F :: "'f inference set" and
+    Bot_G :: "'g set" and
+    Q :: "'q set" and
+    entails_q :: "'q \<Rightarrow> 'g set \<Rightarrow> 'g set \<Rightarrow> bool"  (infix "\<Turnstile>G" 50) and
+    Inf_G :: "'g inference set" and
+    Red_Inf_q :: "'q \<Rightarrow> 'g set \<Rightarrow> 'g inference set" and
+    Red_F_q :: "'q \<Rightarrow> 'g set \<Rightarrow> 'g set" and
+    \<G>_F_q :: "'q \<Rightarrow> 'f \<Rightarrow> 'g set" and
+    \<G>_Inf_q :: "'q \<Rightarrow> 'f inference \<Rightarrow> 'g inference set" and
+    Prec_F_g :: "'g \<Rightarrow> 'f \<Rightarrow> 'f \<Rightarrow> bool"  (infix "\<sqsubset>" 50)
+  + fixes
+    l :: "'l itself" and
+    Inf_FL :: \<open>('f \<times> 'l) inference set\<close>
+  assumes
+    Inf_F_to_Inf_FL: \<open>\<iota>\<^sub>F \<in> Inf_F \<Longrightarrow> length (Ll :: 'l list) = length (prems_of \<iota>\<^sub>F) \<Longrightarrow> \<exists>L0. Infer (zip (prems_of \<iota>\<^sub>F) Ll) (concl_of \<iota>\<^sub>F, L0) \<in> Inf_FL\<close> and
+    Inf_FL_to_Inf_F: \<open>\<iota>\<^sub>F\<^sub>L \<in> Inf_FL \<Longrightarrow> Infer (map fst (prems_of \<iota>\<^sub>F\<^sub>L)) (fst (concl_of \<iota>\<^sub>F\<^sub>L)) \<in> Inf_F\<close>
+begin
+
+definition to_F :: \<open>('f \<times> 'l) inference \<Rightarrow> 'f inference\<close> where
+  \<open>to_F \<iota>\<^sub>F\<^sub>L = Infer (map fst (prems_of \<iota>\<^sub>F\<^sub>L)) (fst (concl_of \<iota>\<^sub>F\<^sub>L))\<close>
+
+definition Bot_FL :: \<open>('f \<times> 'l) set\<close> where \<open>Bot_FL = Bot_F \<times> UNIV\<close>
+
+definition \<G>_F_L_q :: \<open>'q \<Rightarrow> ('f \<times> 'l) \<Rightarrow> 'g set\<close> where \<open>\<G>_F_L_q q CL = \<G>_F_q q (fst CL)\<close>
+
+definition \<G>_Inf_L_q :: \<open>'q \<Rightarrow> ('f \<times> 'l) inference \<Rightarrow> 'g inference set\<close> where
+  \<open>\<G>_Inf_L_q q \<iota>\<^sub>F\<^sub>L = \<G>_Inf_q q (to_F \<iota>\<^sub>F\<^sub>L)\<close>
+
+definition \<G>_set_L_q :: "'q \<Rightarrow> ('f \<times> 'l) set \<Rightarrow> 'g set" where
+  "\<G>_set_L_q q N \<equiv> UNION N (\<G>_F_L_q q)"
+
+definition Red_Inf_\<G>_L_q :: "'q \<Rightarrow> ('f \<times> 'l) set \<Rightarrow> ('f \<times> 'l) inference set" where
+  "Red_Inf_\<G>_L_q q N = {\<iota> \<in> Inf_FL. \<G>_Inf_L_q q \<iota> \<subseteq> Red_Inf_q q (\<G>_set_L_q q N)}"
+
+definition Red_Inf_\<G>_L_Q :: "('f \<times> 'l) set \<Rightarrow> ('f \<times> 'l) inference set" where
+  "Red_Inf_\<G>_L_Q N = \<Inter> {X N |X. X \<in> (Red_Inf_\<G>_L_q ` Q)}"
+
+definition Red_F_\<G>_empty_L_q :: "'q \<Rightarrow> ('f \<times> 'l) set \<Rightarrow> ('f \<times> 'l) set" where
+  "Red_F_\<G>_empty_L_q q N = {C. \<forall>D \<in> \<G>_F_L_q q C. D \<in> Red_F_q q (\<G>_set_L_q q N) \<or> (\<exists>E \<in> N. Empty_Order E C \<and> D \<in> \<G>_F_L_q q E)}"
+
+definition Red_F_\<G>_empty_L :: "('f \<times> 'l) set \<Rightarrow> ('f \<times> 'l) set" where
+  "Red_F_\<G>_empty_L N = \<Inter> {X N |X. X \<in> (Red_F_\<G>_empty_L_q ` Q)}"
+
+definition entails_\<G>_L_q :: "'q \<Rightarrow> ('f \<times> 'l) set \<Rightarrow> ('f \<times> 'l) set \<Rightarrow> bool" where
+  "entails_\<G>_L_q q N1 N2 \<equiv> entails_q q (\<G>_set_L_q q N1) (\<G>_set_L_q q N2)"
+
+definition entails_\<G>_L_Q :: "('f \<times> 'l) set \<Rightarrow> ('f \<times> 'l) set \<Rightarrow> bool" where
+  "entails_\<G>_L_Q N1 N2 \<equiv> \<forall>q\<in>Q. entails_\<G>_L_q q N1 N2"
+
+lemma "q \<in> Q \<Longrightarrow> labeled_lifting_w_wf_ord_family Bot_F Inf_F Bot_G (entails_q q) Inf_G (Red_Inf_q q) (Red_F_q q) (\<G>_F_q q) (\<G>_Inf_q q) Prec_F_g Inf_FL"
+proof -
+  fix q
+  assume q_in: "q \<in> Q"
+  show "labeled_lifting_w_wf_ord_family Bot_F Inf_F Bot_G (entails_q q) Inf_G (Red_Inf_q q) (Red_F_q q) (\<G>_F_q q) (\<G>_Inf_q q) Prec_F_g Inf_FL"
+    using no_labels.standard_lifting_family[OF q_in] Inf_F_to_Inf_FL Inf_FL_to_Inf_F
+    by (simp add: labeled_lifting_w_wf_ord_family_axioms_def labeled_lifting_w_wf_ord_family_def)
+qed
 
 
 end
+
 
 end

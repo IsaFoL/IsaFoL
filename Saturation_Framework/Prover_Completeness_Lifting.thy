@@ -10,8 +10,6 @@ subsection \<open>Adding labels\<close>
 
 locale labeled_lifting_w_wf_ord_family = lifting_with_wf_ordering_family Bot_F Inf_F Bot_G entails_G Inf_G Red_Inf_G Red_F_G \<G>_F \<G>_Inf Prec_F
   for
-    \<G>_F :: "'f \<Rightarrow> 'g set" and
-    \<G>_Inf :: "'f inference \<Rightarrow> 'g inference set" and
     Bot_F :: "'f set" and
     Inf_F :: "'f inference set" and
     Bot_G :: "'g set" and
@@ -19,6 +17,8 @@ locale labeled_lifting_w_wf_ord_family = lifting_with_wf_ordering_family Bot_F I
     Inf_G :: "'g inference set" and
     Red_Inf_G :: "'g set \<Rightarrow> 'g inference set" and
     Red_F_G :: "'g set \<Rightarrow> 'g set" and
+    \<G>_F :: "'f \<Rightarrow> 'g set" and
+    \<G>_Inf :: "'f inference \<Rightarrow> 'g inference set" and
     Prec_F :: "'g \<Rightarrow> 'f \<Rightarrow> 'f \<Rightarrow> bool"  (infix "\<sqsubset>" 50)
   + fixes
     l :: \<open>'l itself\<close> and
@@ -28,9 +28,11 @@ locale labeled_lifting_w_wf_ord_family = lifting_with_wf_ordering_family Bot_F I
     Inf_FL_to_Inf_F: \<open>\<iota>\<^sub>F\<^sub>L \<in> Inf_FL \<Longrightarrow> Infer (map fst (prems_of \<iota>\<^sub>F\<^sub>L)) (fst (concl_of \<iota>\<^sub>F\<^sub>L)) \<in> Inf_F\<close>
 begin
 
-definition to_F :: \<open>('f \<times> 'l) inference \<Rightarrow> 'f inference\<close> where \<open>to_F \<iota>\<^sub>F\<^sub>L = Infer (map fst (prems_of \<iota>\<^sub>F\<^sub>L)) (fst (concl_of \<iota>\<^sub>F\<^sub>L))\<close>
+definition to_F :: \<open>('f \<times> 'l) inference \<Rightarrow> 'f inference\<close> where
+  \<open>to_F \<iota>\<^sub>F\<^sub>L = Infer (map fst (prems_of \<iota>\<^sub>F\<^sub>L)) (fst (concl_of \<iota>\<^sub>F\<^sub>L))\<close>
 
-text \<open>The set FL is implicitly defined as \<^term>\<open>UNIV::('f\<times>'l) set\<close> and the function \<^term>\<open>proj_1\<close> is implicitly defined as \<^term>\<open>(`) fst\<close>.\<close>
+text \<open>The set FL is implicitly defined as \<^term>\<open>UNIV::('f\<times>'l) set\<close> and the function \<^term>\<open>proj_1\<close> is
+  implicitly defined as \<^term>\<open>(`) fst\<close>.\<close>
 definition Bot_FL :: \<open>('f \<times> 'l) set\<close> where \<open>Bot_FL = Bot_F \<times> UNIV\<close>
 
 definition \<G>_F_L :: \<open>('f \<times> 'l) \<Rightarrow> 'g set\<close> where \<open>\<G>_F_L CL = \<G>_F (fst CL)\<close>
