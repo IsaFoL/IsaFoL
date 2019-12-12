@@ -539,8 +539,11 @@ definition Red_Inf_\<G>_L_q :: "'q \<Rightarrow> ('f \<times> 'l) set \<Rightarr
 definition Red_Inf_\<G>_L_Q :: "('f \<times> 'l) set \<Rightarrow> ('f \<times> 'l) inference set" where
   "Red_Inf_\<G>_L_Q N = \<Inter> {X N |X. X \<in> (Red_Inf_\<G>_L_q ` Q)}"
 
+definition Labeled_Empty_Order :: \<open> ('f \<times> 'l) \<Rightarrow> ('f \<times> 'l) \<Rightarrow> bool\<close> where
+  "Labeled_Empty_Order C1 C2 \<equiv> False" 
+
 definition Red_F_\<G>_empty_L_q :: "'q \<Rightarrow> ('f \<times> 'l) set \<Rightarrow> ('f \<times> 'l) set" where
-  "Red_F_\<G>_empty_L_q q N = {C. \<forall>D \<in> \<G>_F_L_q q C. D \<in> Red_F_q q (\<G>_set_L_q q N) \<or> (\<exists>E \<in> N. Empty_Order E C \<and> D \<in> \<G>_F_L_q q E)}"
+  "Red_F_\<G>_empty_L_q q N = {C. \<forall>D \<in> \<G>_F_L_q q C. D \<in> Red_F_q q (\<G>_set_L_q q N) \<or> (\<exists>E \<in> N. Labeled_Empty_Order E C \<and> D \<in> \<G>_F_L_q q E)}"
 
 definition Red_F_\<G>_empty_L :: "('f \<times> 'l) set \<Rightarrow> ('f \<times> 'l) set" where
   "Red_F_\<G>_empty_L N = \<Inter> {X N |X. X \<in> (Red_F_\<G>_empty_L_q ` Q)}"
@@ -561,15 +564,59 @@ proof -
     by (simp add: labeled_lifting_w_wf_ord_family_axioms_def labeled_lifting_w_wf_ord_family_def)
 qed
 
-lemma lifted_q: "q \<in> Q \<Longrightarrow> standard_lifting Bot_FL Inf_FL Bot_G Inf_G (entails_q q) (Red_Inf_q q) (Red_F_q q) (\<G>_F_L_q q) (\<G>_Inf_L_q q)"
+lemma lifted_q: "q \<in> Q \<Longrightarrow> standard_lifting Bot_FL Inf_FL Bot_G Inf_G (entails_q q) (Red_Inf_q q)
+  (Red_F_q q) (\<G>_F_L_q q) (\<G>_Inf_L_q q)"
 proof -
   fix q
   assume q_in: "q \<in> Q"
-  interpret q_lifting: labeled_lifting_w_wf_ord_family Bot_F Inf_F Bot_G "entails_q q" Inf_G "Red_Inf_q q" "Red_F_q q" "\<G>_F_q q" "\<G>_Inf_q q" "\<lambda>g. Empty_Order" l Inf_FL
+  interpret q_lifting: labeled_lifting_w_wf_ord_family Bot_F Inf_F Bot_G "entails_q q" Inf_G
+    "Red_Inf_q q" "Red_F_q q" "\<G>_F_q q" "\<G>_Inf_q q" "\<lambda>g. Empty_Order" l Inf_FL
     using lifting_q[OF q_in] .
-  show "standard_lifting Bot_FL Inf_FL Bot_G Inf_G (entails_q q) (Red_Inf_q q) (Red_F_q q) (\<G>_F_L_q q) (\<G>_Inf_L_q q)"
-    using q_lifting.labeled_standard_lifting.standard_lifting_axioms
-oops
+  have "\<G>_F_L_q q = q_lifting.\<G>_F_L"
+    unfolding \<G>_F_L_q_def q_lifting.\<G>_F_L_def by simp
+  moreover have "\<G>_Inf_L_q q = q_lifting.\<G>_Inf_L"
+    unfolding \<G>_Inf_L_q_def q_lifting.\<G>_Inf_L_def to_F_def q_lifting.to_F_def by simp
+  moreover have "Bot_FL = q_lifting.Bot_FL"
+    unfolding Bot_FL_def q_lifting.Bot_FL_def by simp
+  ultimately show "standard_lifting Bot_FL Inf_FL Bot_G Inf_G (entails_q q) (Red_Inf_q q) (Red_F_q q)
+    (\<G>_F_L_q q) (\<G>_Inf_L_q q)"
+    using q_lifting.labeled_standard_lifting.standard_lifting_axioms by simp
+qed
+
+lemma ord_fam_lifted_q: "q \<in> Q \<Longrightarrow> lifting_with_wf_ordering_family Bot_FL Inf_FL Bot_G (entails_q q) Inf_G
+    (Red_Inf_q q) (Red_F_q q) (\<G>_F_L_q q) (\<G>_Inf_L_q q) (\<lambda>g. Labeled_Empty_Order)"
+proof -
+  fix q
+  assume q_in: "q \<in> Q"
+  interpret standard_q_lifting: standard_lifting Bot_FL Inf_FL Bot_G Inf_G "entails_q q"
+    "Red_Inf_q q" "Red_F_q q" "\<G>_F_L_q q" "\<G>_Inf_L_q q"
+    using lifted_q[OF q_in] .
+  have "minimal_element Labeled_Empty_Order UNIV"
+    unfolding Labeled_Empty_Order_def
+    by (simp add: minimal_element.intro po_on_def transp_onI wfp_on_imp_irreflp_on)
+  then show "lifting_with_wf_ordering_family Bot_FL Inf_FL Bot_G (entails_q q) Inf_G
+    (Red_Inf_q q) (Red_F_q q) (\<G>_F_L_q q) (\<G>_Inf_L_q q) (\<lambda>g. Labeled_Empty_Order)"
+    using standard_q_lifting.standard_lifting_axioms
+    by (simp add: lifting_with_wf_ordering_family_axioms.intro lifting_with_wf_ordering_family_def)
+qed
+
+lemma "q \<in> Q \<Longrightarrow> calculus_with_red_crit Bot_FL Inf_FL (entails_\<G>_L_q q) (Red_Inf_\<G>_L_q q) (Red_F_\<G>_empty_L_q q)"
+proof -
+  fix q
+  assume q_in: "q \<in> Q"
+  interpret ord_q_lifting: lifting_with_wf_ordering_family Bot_FL Inf_FL Bot_G "entails_q q" Inf_G
+    "Red_Inf_q q" "Red_F_q q" "\<G>_F_L_q q" "\<G>_Inf_L_q q" "\<lambda>g. Labeled_Empty_Order"
+    using ord_fam_lifted_q[OF q_in] .
+  have "entails_\<G>_L_q q = ord_q_lifting.entails_\<G>"
+    unfolding entails_\<G>_L_q_def \<G>_set_L_q_def ord_q_lifting.entails_\<G>_def by simp
+  moreover have "Red_Inf_\<G>_L_q q = ord_q_lifting.Red_Inf_\<G>"
+    unfolding Red_Inf_\<G>_L_q_def ord_q_lifting.Red_Inf_\<G>_def \<G>_set_L_q_def by simp
+  moreover have "Red_F_\<G>_empty_L_q q = ord_q_lifting.Red_F_\<G>"
+    unfolding Red_F_\<G>_empty_L_q_def ord_q_lifting.Red_F_\<G>_def \<G>_set_L_q_def by simp
+  ultimately show "calculus_with_red_crit Bot_FL Inf_FL (entails_\<G>_L_q q) (Red_Inf_\<G>_L_q q) (Red_F_\<G>_empty_L_q q)"
+    using ord_q_lifting.lifted_calculus_with_red_crit.calculus_with_red_crit_axioms by argo
+qed
+
 
 notation "no_labels.entails_\<G>_Q" (infix "\<Turnstile>\<inter>" 50)
 
@@ -581,25 +628,9 @@ lemma labeled_entailment_lifting: "NL1 \<Turnstile>\<inter>L NL2 \<longleftright
 
 find_theorems name: inter_red_crit name: no_labels
 
-lemma "q \<in> Q \<Longrightarrow> calculus_with_red_crit Bot_FL Inf_FL (entails_\<G>_L_q q) (Red_Inf_\<G>_L_q q) (Red_F_\<G>_empty_L_q q)"
-proof -
-  fix q
-  assume q_in: "q \<in> Q"
-  show "calculus_with_red_crit Bot_FL Inf_FL (entails_\<G>_L_q q) (Red_Inf_\<G>_L_q q) (Red_F_\<G>_empty_L_q q)"
-    using no_labels.lifted_calc_w_red_crit_family.inter_red_crit
-    unfolding no_labels.lifted_calc_w_red_crit_family.entails_Q_def
-      no_labels.empty_ord_lifted_calc_w_red_crit_family.Red_Inf_Q_def
-      no_labels.lifted_calc_w_red_crit_family.Red_F_Q_def
-      no_labels.entails_\<G>_q_def no_labels.Red_Inf_\<G>_q_def no_labels.Red_F_\<G>_q_g_def no_labels.\<G>_set_q_def
-      Bot_FL_def entails_\<G>_L_q_def Red_Inf_\<G>_L_q_def Red_F_\<G>_empty_L_q_def \<G>_set_L_q_def \<G>_F_L_q_def
-oops
-
 sublocale calculus_with_red_crit_family Bot_FL Inf_FL Q entails_\<G>_L_q Red_Inf_\<G>_L_q Red_F_\<G>_empty_L_q
 proof -
 oops
-
-definition Labeled_Empty_Order :: \<open> ('f \<times> 'l) \<Rightarrow> ('f \<times> 'l) \<Rightarrow> bool\<close> where
-  "Labeled_Empty_Order C1 C2 \<equiv> False" 
 
 term "no_labels.Ground_family.inter_red_crit_calculus.saturated"
 term "no_labels.lifted_calc_w_red_crit_family.inter_red_crit_calculus.saturated"
