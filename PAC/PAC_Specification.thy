@@ -632,7 +632,7 @@ lemma in_keys_minusI2:
   shows "t \<in> keys (p - q)"
   using assms unfolding in_keys_iff lookup_minus by simp
 
-lemma
+lemma extensions_are_safe:
   assumes \<open>x' \<in> vars p\<close> and
     x': \<open>x' \<notin> \<V>\<close> and
     \<open>\<Union> (vars ` set_mset A) \<subseteq> \<V>\<close> and
@@ -909,6 +909,7 @@ proof -
     using t fin_t \<open>t \<subseteq> ?trimmed\<close> unfolding ideal.span_explicit
     by (auto intro!: exI[of _ t'] exI[of _ \<open>\<lambda>a. r a - p * g a\<close>]
       simp: field_simps polynom_bool_def)
+  qed
 qed
 
 
