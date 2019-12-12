@@ -41,6 +41,9 @@ backtrack in CaDiCaL or in SPASS).
 Termination still comes from the CDCL calculus: We do not want to
 apply the other rules exhaustively.
 
+
+The idea is to have CDCL as the core part of the calculus and other
+rules that are optional.
 \<close>
 type_synonym 'v prag_st =
   \<open>('v, 'v clause) ann_lits \<times> 'v clauses \<times> 'v clauses \<times>
@@ -195,6 +198,22 @@ cdcl_forget_subsumed:
   \<open>cdcl_forget (M, N, U, None, NE, UE, NS, add_mset C US)
     (M', N, U, None, NE, UE, NS, US)\<close>
 
+inductive pcdcl_core :: \<open>'v prag_st \<Rightarrow> 'v prag_st \<Rightarrow> bool\<close> where
+  \<open>cdcl_conflict S T \<Longrightarrow> pcdcl_core S T\<close> |
+  \<open>cdcl_propagate S T \<Longrightarrow> pcdcl_core S T\<close> |
+  \<open>cdcl_decide S T \<Longrightarrow> pcdcl_core S T\<close> |
+  \<open>cdcl_skip S T \<Longrightarrow> pcdcl_core S T\<close> |
+  \<open>cdcl_resolve S T \<Longrightarrow> pcdcl_core S T\<close> |
+  \<open>cdcl_backtrack S T \<Longrightarrow> pcdcl_core S T\<close>
+
+inductive pcdcl_core_stgy :: \<open>'v prag_st \<Rightarrow> 'v prag_st \<Rightarrow> bool\<close> where
+  \<open>cdcl_conflict S T \<Longrightarrow> pcdcl_core_stgy S T\<close> |
+  \<open>cdcl_propagate S T \<Longrightarrow> pcdcl_core_stgy S T\<close> |
+  \<open>no_step cdcl_conflict S \<Longrightarrow> no_step cdcl_propagate S \<Longrightarrow> cdcl_decide S T \<Longrightarrow> pcdcl_core_stgy S T\<close> |
+  \<open>cdcl_skip S T \<Longrightarrow> pcdcl_core_stgy S T\<close> |
+  \<open>cdcl_resolve S T \<Longrightarrow> pcdcl_core_stgy S T\<close> |
+  \<open>cdcl_backtrack S T \<Longrightarrow> pcdcl_core_stgy S T\<close>
+
 
 section \<open>The new rules\<close>
 
@@ -218,8 +237,13 @@ lemma state\<^sub>W_of_cdcl_subsumed:
   by (induction rule: cdcl_subsumed.induct)
      auto
 
-text \<open>Resolution requires to restart (or a very careful thinking where
-the clause can be used, so for now, we require level 0)\<close>
+text \<open>
+
+Resolution requires to restart (or a very careful thinking where
+the clause can be used, so for now, we require level 0). The names 'I'
+and 'L' refers to 'irredundant' and 'learnt'.
+
+\<close>
 
 
 inductive cdcl_resolution :: \<open>'v prag_st \<Rightarrow> 'v prag_st \<Rightarrow> bool\<close> where
@@ -253,6 +277,9 @@ text \<open>
 
   E.g.: \<^term>\<open>(A \<or> B) \<and> (A \<or> C)\<close> entails the clause \<^term>\<open>(\<not>B \<or> B)\<close>, but the model containing only the
   literal \<^term>\<open>A\<close> does not entail the latter.
+
+  This function has nothing to with CDCL's learn: any clause can be learned by this function,
+  including the empty clause.
  \<close>
 inductive cdcl_learn_clause :: \<open>'v prag_st \<Rightarrow> 'v prag_st \<Rightarrow> bool\<close> where
 learn_clause:
@@ -272,6 +299,12 @@ lemma cdcl_learn_clause_still_entailed:
     by auto
   done
 
+
+inductive pcdcl :: \<open>'v prag_st \<Rightarrow> 'v prag_st \<Rightarrow> bool\<close> where
+  \<open>pcdcl_core S T \<Longrightarrow> pcdcl S T\<close> |
+  \<open>cdcl_learn_clause S T \<Longrightarrow> pcdcl S T\<close> |
+  \<open>cdcl_resolution S T \<Longrightarrow> pcdcl S T\<close> |
+  \<open>cdcl_subsumed S T \<Longrightarrow> pcdcl S T\<close>
 
 text \<open>
 
@@ -348,7 +381,7 @@ lemma cdcl_skip_is_skip:
   by auto
 
 lemma skip_is_cdcl_skip:
-  \<open>cdcl\<^sub>W_restart_mset.skip (state\<^sub>W_of S) (state\<^sub>W_of T) \<Longrightarrow> Ex(cdcl_skip S)\<close>
+  \<open>cdcl\<^sub>W_restart_mset.skip (state\<^sub>W_of S) T \<Longrightarrow> Ex(cdcl_skip S)\<close>
   apply (cases rule: cdcl\<^sub>W_restart_mset.skip.cases, assumption)
   apply (cases S)
   apply (auto simp: cdcl_skip.simps)
@@ -361,7 +394,7 @@ lemma cdcl_resolve_is_resolve:
   by auto
 
 lemma resolve_is_cdcl_resolve:
-  \<open>cdcl\<^sub>W_restart_mset.resolve (state\<^sub>W_of S) (state\<^sub>W_of T) \<Longrightarrow> Ex(cdcl_resolve S)\<close>
+  \<open>cdcl\<^sub>W_restart_mset.resolve (state\<^sub>W_of S) T \<Longrightarrow> Ex(cdcl_resolve S)\<close>
   apply (cases rule: cdcl\<^sub>W_restart_mset.resolve.cases, assumption)
   apply (cases S; cases \<open>pget_trail S\<close>)
   apply (auto simp: cdcl_resolve.simps)
@@ -377,7 +410,7 @@ lemma cdcl_backtrack_is_backtrack:
 
 
 lemma backtrack_is_cdcl_backtrack:
-  \<open>cdcl\<^sub>W_restart_mset.backtrack (state\<^sub>W_of S) (state\<^sub>W_of T) \<Longrightarrow> Ex(cdcl_backtrack S)\<close>
+  \<open>cdcl\<^sub>W_restart_mset.backtrack (state\<^sub>W_of S) T \<Longrightarrow> Ex(cdcl_backtrack S)\<close>
   apply (cases rule: cdcl\<^sub>W_restart_mset.backtrack.cases, assumption)
   apply (cases S; cases T)
   apply (simp add: cdcl_backtrack.simps clauses_def add_mset_eq_add_mset
@@ -442,6 +475,12 @@ proof -
     by (cases S)
      (auto simp: cdcl_conflict.simps clauses_def)
 qed
+
+lemma cdcl_propagate_is_propagate:
+  \<open>cdcl_propagate S T \<Longrightarrow> cdcl\<^sub>W_restart_mset.propagate (state\<^sub>W_of S) (state\<^sub>W_of T)\<close>
+  apply (cases rule: cdcl_propagate.cases, assumption)
+  apply (rule_tac L=L' and E=D in cdcl\<^sub>W_restart_mset.propagate.intros)
+  by (auto simp: clauses_def)
 
 lemma propagate_is_cdcl_propagateD:
   assumes
@@ -542,5 +581,83 @@ proof -
         intro: exI[of _ C])
 qed
 
+
+lemma pcdcl_core_is_cdcl:
+  \<open>pcdcl_core S T \<Longrightarrow> cdcl\<^sub>W_restart_mset.cdcl\<^sub>W (state\<^sub>W_of S) (state\<^sub>W_of T)\<close>
+  by (induction rule: pcdcl_core.induct)
+   (blast intro: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W.intros cdcl_conflict_is_conflict
+      cdcl_propagate_is_propagate cdcl_propagate_is_propagate cdcl_decide_is_decide
+      cdcl_propagate_is_propagate cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_o.intros cdcl_skip_is_skip
+      cdcl_resolve_is_resolve cdcl_backtrack_is_backtrack
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_bj.intros)+
+
+lemma pcdcl_core_stgy_is_cdcl_stgy:
+  assumes
+    confl: \<open>pcdcl_core_stgy S T\<close> and
+    sub: \<open>psubsumed_invs S\<close> and
+    ent: \<open>entailed_clss_inv S\<close> and
+    invs: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state\<^sub>W_of S)\<close>
+  shows \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy (state\<^sub>W_of S) (state\<^sub>W_of T)\<close>
+  using assms
+  by (induction rule: pcdcl_core_stgy.induct)
+   ((blast intro: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy.intros cdcl_conflict_is_conflict
+      cdcl_propagate_is_propagate cdcl_decide_is_decide cdcl_skip_is_skip cdcl_backtrack_is_backtrack
+      cdcl_resolve_is_resolve cdcl\<^sub>W_restart_mset.resolve
+      cdcl_skip_is_skip cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_bj_cdcl\<^sub>W_stgy
+    dest: conflict_is_cdcl_conflictD propagate_is_cdcl_propagateD)+)[6]
+
+
+
+lemma no_step_pcdcl_core_stgy_is_cdcl_stgy:
+  assumes
+    confl: \<open>no_step pcdcl_core_stgy S\<close> and
+    sub: \<open>psubsumed_invs S\<close> and
+    ent: \<open>entailed_clss_inv S\<close> and
+    invs: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state\<^sub>W_of S)\<close>
+  shows \<open>no_step cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy (state\<^sub>W_of S)\<close>
+  using assms apply -
+  apply (rule ccontr)
+  unfolding not_all not_not
+  apply normalize_goal+
+  apply (cases rule: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy.cases, assumption)
+  using conflict_is_cdcl_conflictD pcdcl_core_stgy.intros(1) apply blast
+  using pcdcl_core_stgy.intros(1) pcdcl_core_stgy.intros(2) propagate_is_cdcl_propagateD apply blast
+  apply (cases rule: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_o.cases, assumption)
+  using cdcl_conflict_is_conflict cdcl_propagate_is_propagate decide_is_cdcl_decide pcdcl_core_stgy.intros(3) apply blast
+  apply (cases rule: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_bj.cases, assumption)
+  apply (blast dest: resolve_is_cdcl_resolve backtrack_is_cdcl_backtrack pcdcl_core_stgy.intros
+    skip_is_cdcl_skip)+
+  done
+
+
+lemma cdcl_resolution_psubsumed_invs:
+  \<open>cdcl_resolution S T \<Longrightarrow> psubsumed_invs S \<Longrightarrow> psubsumed_invs T\<close>
+  by (cases rule:cdcl_resolution.cases, assumption)
+    (auto simp: psubsumed_invs_def)
+
+lemma cdcl_resolution_entailed_clss_inv:
+  \<open>cdcl_resolution S T \<Longrightarrow> entailed_clss_inv S \<Longrightarrow> entailed_clss_inv T\<close>
+  by (cases rule:cdcl_resolution.cases, assumption)
+    (auto simp: entailed_clss_inv_def)
+
+lemma cdcl_subsumed_psubsumed_invs:
+  \<open>cdcl_subsumed S T \<Longrightarrow> psubsumed_invs S \<Longrightarrow> psubsumed_invs T\<close>
+  by (cases rule:cdcl_subsumed.cases, assumption)
+    (auto simp: psubsumed_invs_def)
+
+lemma cdcl_subsumed_entailed_clss_inv:
+  \<open>cdcl_subsumed S T \<Longrightarrow> entailed_clss_inv S \<Longrightarrow> entailed_clss_inv T\<close>
+  by (cases rule:cdcl_subsumed.cases, assumption)
+    (auto simp: entailed_clss_inv_def)
+
+lemma cdcl_learn_clause_psubsumed_invs:
+  \<open>cdcl_learn_clause S T \<Longrightarrow> psubsumed_invs S \<Longrightarrow> psubsumed_invs T\<close>
+  by (cases rule:cdcl_learn_clause.cases, assumption)
+    (auto simp: psubsumed_invs_def)
+
+lemma cdcl_learn_clause_entailed_clss_inv:
+  \<open>cdcl_learn_clause S T \<Longrightarrow> entailed_clss_inv S \<Longrightarrow> entailed_clss_inv T\<close>
+  by (cases rule:cdcl_learn_clause.cases, assumption)
+    (auto simp: entailed_clss_inv_def)
 
 end
