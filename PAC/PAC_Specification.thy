@@ -150,41 +150,6 @@ lemma pac_ideal_mono:
   using ideal.span_mono[of \<open>A \<union> _\<close> \<open>B \<union> _\<close>]
   by (auto simp: pac_ideal_def intro: ideal.span_mono)
 
-lemma not_in_vars_coeff0:
-  \<open>x \<notin> vars p \<Longrightarrow> MPoly_Type.coeff p (monomial (Suc 0) x) = 0\<close>
-  apply (subst not_not[symmetric])
-  apply (subst coeff_keys[symmetric])
-  apply (auto simp: vars_def)
-  done
-
-lemma keys_mapping_sum_add:
-  \<open>finite A \<Longrightarrow> keys (mapping_of (\<Sum>v \<in> A. f v)) \<subseteq> \<Union>(keys ` mapping_of ` f ` UNIV)\<close>
-  apply (induction A rule: finite_induct)
-  apply (auto simp add: zero_mpoly.rep_eq plus_mpoly.rep_eq
-    keys_plus_ninv_comm_monoid_add)
-  by (metis (no_types, lifting) Poly_Mapping.keys_add UN_E UnE subset_eq)
-
-lemma vars_sum_vars_union:
-  fixes f :: \<open>int mpoly \<Rightarrow> int mpoly\<close>
-  assumes \<open>finite {v. f v \<noteq> 0}\<close>
-  shows \<open>vars (\<Sum>v | f v \<noteq> 0. f v * v) \<subseteq> \<Union>(vars ` {v. f v \<noteq> 0}) \<union> \<Union>(vars ` f ` {v. f v \<noteq> 0})\<close>
-    (is \<open>?A \<subseteq> ?B\<close>)
-proof
-  fix p
-  assume \<open>p \<in> vars (\<Sum>v | f v \<noteq> 0. f v * v)\<close>
-  then obtain x where \<open>x \<in> keys (mapping_of (\<Sum>v | f v \<noteq> 0. f v * v))\<close> and
-    p: \<open>p \<in> keys x\<close>
-    by (auto simp: vars_def times_mpoly.rep_eq simp del: keys_mult)
-  then have \<open>x \<in> (\<Union>x. keys (mapping_of (f x) * mapping_of x))\<close>
-    using keys_mapping_sum_add[of \<open>{v. f v \<noteq> 0}\<close> \<open>\<lambda>x. f x * x\<close>] assms
-    by (auto simp: vars_def times_mpoly.rep_eq)
-  then have \<open>x \<in> (\<Union>x. {a+b| a b. a \<in> keys (mapping_of (f x)) \<and> b \<in> keys (mapping_of x)})\<close>
-    using Union_mono[OF ] keys_mult by fast
-  then show \<open>p \<in> ?B\<close>
-    using p apply (auto simp: keys_add)
-    by (metis (no_types, lifting) Poly_Mapping.keys_add UN_I UnE empty_iff
-      in_mono keys_zero vars_def zero_mpoly.rep_eq)
-qed
 
 
 lemma ideal_insert':
@@ -196,61 +161,6 @@ lemma ideal_insert':
    apply (rule_tac x = \<open>k\<close> in exI)
    apply auto
    done
-
-
-lemma vars_in_right_only:
-  "x \<in> vars q \<Longrightarrow> x \<notin> vars p \<Longrightarrow> x \<in> vars (p+q)"
-  apply (auto simp: vars_def keys_def plus_mpoly.rep_eq
-    lookup_plus_fun)
-  by (metis add.left_neutral gr_implies_not0)
-
-lemma [simp]:
-  \<open>vars 0 = {}\<close>
-  by (simp add: vars_def zero_mpoly.rep_eq)
-
-
-lemma polynom_sum_monoms:
-  fixes p :: \<open>'a :: {comm_monoid_add,cancel_comm_monoid_add} mpoly\<close>
-  shows
-     \<open>p = (\<Sum>x\<in>keys (mapping_of p). MPoly_Type.monom x (MPoly_Type.coeff p x))\<close>
-     \<open>keys (mapping_of p) \<subseteq> I \<Longrightarrow> finite I \<Longrightarrow> p = (\<Sum>x\<in>I. MPoly_Type.monom x (MPoly_Type.coeff p x))\<close>
-proof -
-  define J where \<open>J \<equiv> keys (mapping_of p)\<close>
-  define a where \<open>a x \<equiv> coeff p x\<close> for x
-  have \<open>finite (keys (mapping_of p))\<close>
-    by auto
-  have \<open>p = (\<Sum>x\<in>I. MPoly_Type.monom x (MPoly_Type.coeff p x))\<close>
-    if \<open>finite I\<close> and \<open>keys (mapping_of p) \<subseteq> I\<close>
-    for I
-    using that
-    unfolding a_def
-   proof (induction I arbitrary: p rule: finite_induct)
-      case empty
-      then have \<open>p = 0\<close>
-        using empty coeff_all_0 coeff_keys by blast
-      then show ?case using empty by (auto simp: zero_mpoly.rep_eq)
-    next
-      case (insert x F) note fin = this(1) and xF = this(2) and IH = this(3) and
-        incl = this(4)
-      let ?p = \<open>p - MPoly_Type.monom x (MPoly_Type.coeff p x)\<close>
-      have \<open>?p = (\<Sum>xa\<in>F. MPoly_Type.monom xa (MPoly_Type.coeff ?p xa))\<close>
-        apply (rule IH)
-        using incl apply auto
-        by (smt Diff_iff Diff_insert_absorb add_diff_cancel_right'
-          remove_term_keys remove_term_sum subsetD xF)
-      also have \<open>... = (\<Sum>xa\<in>F. MPoly_Type.monom xa (MPoly_Type.coeff p xa))\<close>
-        apply (use xF in \<open>auto intro!: sum.cong\<close>)
-        by (metis (mono_tags, hide_lams) add_diff_cancel_right' remove_term_coeff
-          remove_term_sum when_def)
-      finally show ?case
-        using xF fin apply auto
-        by (metis add.commute add_diff_cancel_right' remove_term_sum)
-    qed
-    from this[of I] this[of J] show
-     \<open>p = (\<Sum>x\<in>keys (mapping_of p). MPoly_Type.monom x (MPoly_Type.coeff p x))\<close>
-     \<open>keys (mapping_of p) \<subseteq> I \<Longrightarrow> finite I \<Longrightarrow> p = (\<Sum>x\<in>I. MPoly_Type.monom x (MPoly_Type.coeff p x))\<close>
-     by (auto simp: J_def)
-qed
 
 
 definition decrease_key::"'a \<Rightarrow> ('a \<Rightarrow>\<^sub>0 'b::{monoid_add, minus,one}) \<Rightarrow> ('a \<Rightarrow>\<^sub>0 'b)" where
@@ -314,30 +224,72 @@ proof -
     by blast
 qed
 
-lemma monomial_inj:
-  "monomial c s = monomial (d::'b::zero_neq_one) t \<longleftrightarrow> (c = 0 \<and> d = 0) \<or> (c = d \<and> s = t)"
-  apply (auto simp: monomial_inj Poly_Mapping.single_def
-    poly_mapping.Abs_poly_mapping_inject when_def
-    cong: if_cong
-    split: if_splits)
-    apply metis
-    apply metis
-    apply metis
-    apply metis
-    done
-
-lemma MPoly_monomial_power':
-  \<open>MPoly (monomial 1 x') ^ (n+1) =  MPoly (monomial (1) (((\<lambda>x. x + x') ^^ n) x'))\<close>
-  by (induction n)
-   (auto simp: times_mpoly.abs_eq mult_single ac_simps)
-
-lemma MPoly_monomial_power:
-  \<open>n > 0 \<Longrightarrow> MPoly (monomial 1 x') ^ (n) =  MPoly (monomial (1) (((\<lambda>x. x + x') ^^ (n - 1)) x'))\<close>
-  using MPoly_monomial_power'[of _ \<open>n-1\<close>]
-  by auto
-
 
 lemma polynom_split_on_var2:
+  fixes p :: \<open>int mpoly\<close>
+  assumes \<open>x' \<notin> vars s\<close>
+  obtains q r where
+    \<open>p = (monom (monomial (Suc 0) x') 1 - s) * q + r\<close> and
+    \<open>x' \<notin> vars r\<close>
+proof -
+  have eq[simp]: \<open>monom (monomial (Suc 0) x') 1 = Var x'\<close>
+    by (simp add: Var.abs_eq Var\<^sub>0_def monom.abs_eq)
+  have \<open>\<forall>m \<le> n. \<forall>P::int mpoly. degree P x' < m \<longrightarrow> (\<exists>A B. P = (Var x' - s) * A + B \<and> x' \<notin> vars B)\<close> for n
+  proof (induction n)
+    case 0
+    then show ?case by auto
+  next
+    case (Suc n)
+    then have IH: \<open>m\<le>n \<Longrightarrow> MPoly_Type.degree P x' < m \<Longrightarrow>
+              (\<exists>A B. P = (Var x' - s) * A + B \<and> x' \<notin> vars B)\<close> for m P
+      by fast
+    show ?case
+    proof (intro allI impI)
+     fix m and P :: \<open>int mpoly\<close>
+     assume \<open>m \<le> Suc n\<close> and deg: \<open>MPoly_Type.degree P x' < m\<close>
+     consider
+       \<open>m \<le> n\<close> |
+       \<open>m = Suc n\<close>
+       using \<open>m \<le> Suc n\<close> by linarith
+     then show \<open>\<exists>A B. P = (Var x' - s) * A + B \<and> x' \<notin> vars B\<close>
+     proof cases
+       case 1
+       then show \<open>?thesis\<close>
+         using Suc deg by blast
+     next
+       case [simp]: 2
+       obtain A B where
+         P: \<open>P = Var x' * A + B\<close> and
+         \<open>x' \<notin> vars B\<close>
+         using polynom_split_on_var[of P x'] unfolding eq by blast
+       have P': \<open>P = (Var x' - s) * A + (s * A + B)\<close>
+         by (auto simp: field_simps P)
+       have \<open>A = 0 \<or> degree (s * A) x' < degree P x'\<close>
+         using deg \<open>x' \<notin> vars B\<close> \<open>x' \<notin> vars s\<close> degree_times_le[of s A x'] deg
+         unfolding P
+         by (auto simp: degree_sum_notin degree_mult_Var' degree_mult_Var degree_notin_vars
+           split: if_splits)
+       then obtain A' B' where
+         sA: \<open>s*A = (Var x' - s) * A' + B'\<close> and
+         \<open>x' \<notin> vars B'\<close>
+         using IH[of \<open>m-1\<close> \<open>s*A\<close>] deg apply auto
+         by (metis \<open>x' \<notin> vars B\<close> add.right_neutral mult_zero_right vars_in_right_only)
+       have \<open>P = (Var x' - s) * (A + A') + (B' + B)\<close>
+         unfolding P' sA by (auto simp: field_simps)
+       moreover have \<open>x' \<notin> vars (B' + B)\<close>
+         using \<open>x' \<notin> vars B'\<close>  \<open>x' \<notin> vars B\<close>
+         by (meson UnE subset_iff vars_add)
+       ultimately show ?thesis
+         by fast
+     qed
+   qed
+  qed
+  then show ?thesis
+    using that unfolding eq
+    by blast
+qed
+
+lemma polynom_split_on_var_diff_sq2:
  fixes p :: \<open>int mpoly\<close>
   obtains q r s where
     \<open>p = monom (monomial (Suc 0) x') 1 * q + r + s * (monom (monomial (Suc 0) x') 1^2 - monom (monomial (Suc 0) x') 1)\<close> and
@@ -493,6 +445,32 @@ proof -
     done
 qed
 
+lemma polynom_decomp_alien_var:
+  fixes q A b :: \<open>int mpoly\<close>
+  assumes
+    q: \<open>q = A * (monom (monomial (Suc 0) x') 1) + b\<close> and
+    x: \<open>x' \<notin> vars q\<close> \<open>x' \<notin> vars b\<close>
+  shows
+    \<open>A = 0\<close> and
+    \<open>q = b\<close>
+proof -
+  let ?A = \<open>A * (monom (monomial (Suc 0) x') 1)\<close>
+  have \<open>?A = q - b\<close>
+    using arg_cong[OF q, of \<open>\<lambda>a. a - b\<close>]
+    by auto
+  moreover have \<open>x' \<notin> vars (q - b)\<close>
+    using x vars_in_right_only
+    by fastforce
+  ultimately have \<open>x' \<notin> vars (?A)\<close>
+    by simp
+  then have \<open>?A = 0\<close>
+    by (auto simp: vars_mult_monom split: if_splits)
+  then show \<open>A = 0\<close>
+    apply auto
+    by (metis (full_types) empty_iff insert_iff mult_zero_right vars_mult_monom)
+  then show \<open>q = b\<close>
+    using q by auto
+qed
 lemma vars_Un_nointer:
   \<open>keys (mapping_of p) \<inter>  keys (mapping_of q) = {} \<Longrightarrow> vars (p + q) = vars p \<union> vars q\<close>
   apply (auto simp: vars_def)
@@ -507,26 +485,7 @@ lemma vars_mult_monom:
   fixes p :: \<open>int mpoly\<close>
   shows \<open>vars (p * (monom (monomial (Suc 0) x') 1)) = (if p = 0 then {} else insert x' (vars p))\<close>
 proof -
-(*  have 0: \<open>a = x - b \<longleftrightarrow> x = a + b\<close> for x a :: \<open>nat \<Rightarrow>\<^sub>0 nat\<close> and b
-    apply (auto simp: ac_simps)
-    apply transfer
-    supply[[show_types]]
-    apply (auto intro!: ext simp: ac_simps)
-    sledgehammer
-    sorry
-  have  \<open>(\<Sum>aa. (if aa = monomial (Suc 0) x' then 1 else 0) when
-                   x = a + aa) = (if a = x - monomial (Suc 0) x' then 1 else 0)\<close> for x a
-   unfolding 0
-   using Sum_any.not_neutral_obtains_not_neutral by force
 
-  show ?thesis
-    apply (auto simp: vars_def times_mpoly.rep_eq)
-    apply (smt Poly_Mapping.keys_add Un_iff in_keys_timesE in_mono lookup_eq_zero_in_keys_contradict lookup_single_not_eq)
-    apply (auto simp: keys_def times_poly_mapping.rep_eq prod_fun_def)[]
-    
-    sorry
-    find_theorems "lookup (_ * _)"
-    *)
   let ?v = \<open>monom (monomial (Suc 0) x') 1\<close>
   have
     p: \<open>p = (\<Sum>x\<in>keys (mapping_of p). MPoly_Type.monom x (MPoly_Type.coeff p x))\<close> (is \<open>_ = (\<Sum>x \<in> ?I. ?f x)\<close>)
@@ -588,44 +547,78 @@ proof -
      done
 qed
 
-lemma polynom_decomp_alien_var:
+lemma polynom_decomp_alien_var2:
   fixes q A b :: \<open>int mpoly\<close>
   assumes
-    q: \<open>q = A * (monom (monomial (Suc 0) x') 1) + b\<close> and
-    x: \<open>x' \<notin> vars q\<close> \<open>x' \<notin> vars b\<close>
+    q: \<open>q = A * (monom (monomial (Suc 0) x') 1 + p) + b\<close> and
+    x: \<open>x' \<notin> vars q\<close> \<open>x' \<notin> vars b\<close> \<open>x' \<notin> vars p\<close>
   shows
     \<open>A = 0\<close> and
     \<open>q = b\<close>
 proof -
-  let ?A = \<open>A * (monom (monomial (Suc 0) x') 1)\<close>
-  have \<open>?A = q - b\<close>
-    using arg_cong[OF q, of \<open>\<lambda>a. a - b\<close>]
-    by auto
-  moreover have \<open>x' \<notin> vars (q - b)\<close>
-    using x vars_in_right_only
-    by fastforce
-  ultimately have \<open>x' \<notin> vars (?A)\<close>
-    by simp
-  then have \<open>?A = 0\<close>
-    by (auto simp: vars_mult_monom split: if_splits)
-  then show \<open>A = 0\<close>
+  let ?x = \<open>monom (monomial (Suc 0) x') 1\<close>
+  have x'[simp]: \<open>?x = Var x'\<close>
+    by (simp add: Var.abs_eq Var\<^sub>0_def monom.abs_eq)
+  have \<open>\<exists>n Ax A'. A = ?x * Ax + A' \<and> x' \<notin> vars A' \<and> degree Ax x' = n\<close>
+    using polynom_split_on_var[of A x'] by metis
+  from wellorder_class.exists_least_iff[THEN iffD1, OF this] obtain Ax A' n where
+    A: \<open>A = Ax * ?x + A'\<close> and
+    \<open>x' \<notin> vars A'\<close> and
+    n: \<open>MPoly_Type.degree Ax x' = n\<close> and
+    H: \<open>\<And>m Ax A'. m < n \<longrightarrow>
+                   A \<noteq> Ax * MPoly_Type.monom (monomial (Suc 0) x') 1 + A' \<or>
+                   x' \<in> vars A' \<or> MPoly_Type.degree Ax x' \<noteq> m\<close>
+    unfolding wellorder_class.exists_least_iff[of \<open>\<lambda>n. \<exists>Ax A'. A = Ax * ?x + A' \<and> x' \<notin> vars A' \<and>
+      degree Ax x' = n\<close>]
+    by (auto simp: field_simps)
+
+  have \<open>q = (A + Ax * p) * monom (monomial (Suc 0) x') 1 + (p * A' + b)\<close>
+    unfolding q A by (auto simp: field_simps)
+  moreover have \<open>x' \<notin> vars q\<close> \<open>x' \<notin> vars (p * A' + b)\<close>
+    using x \<open>x' \<notin> vars A'\<close> apply (auto elim!: )
+    by (smt UnE add.assoc add.commute calculation subset_iff vars_in_right_only vars_mult)
+  ultimately have \<open>A + Ax * p = 0\<close> \<open>q = p * A' + b\<close>
+    by (rule polynom_decomp_alien_var)+
+
+  have A': \<open>A' = -Ax * ?x - Ax * p\<close>
+    using \<open>A + Ax * p = 0\<close> unfolding A
+    by (metis (no_types, lifting) add_uminus_conv_diff eq_neg_iff_add_eq_0 minus_add_cancel mult_minus_left)
+
+  have \<open>A = - (Ax * p)\<close>
+    using A unfolding A'
     apply auto
-    by (metis (full_types) empty_iff insert_iff mult_zero_right vars_mult_monom)
+    done
+
+  obtain Axx Ax' where
+    Ax: \<open>Ax = ?x * Axx + Ax'\<close> and
+    \<open>x' \<notin> vars Ax'\<close>
+    using polynom_split_on_var[of Ax x'] by metis
+
+  have \<open>A = ?x * (- Axx * p) + (- Ax' * p)\<close>
+    unfolding \<open>A = - (Ax * p)\<close> Ax
+    by (auto simp: field_simps)
+
+  moreover have \<open>x' \<notin> vars (-Ax' * p)\<close>
+    using \<open>x' \<notin> vars Ax'\<close> by (metis (no_types, hide_lams) UnE add.right_neutral
+      add_minus_cancel assms(4) subsetD vars_in_right_only vars_mult)
+   moreover have \<open>Axx \<noteq> 0 \<Longrightarrow> MPoly_Type.degree (- Axx * p) x' < degree Ax x'\<close>
+     using degree_times_le[of Axx p x'] x
+     by (auto simp: Ax degree_sum_notin \<open>x' \<notin> vars Ax'\<close> degree_mult_Var'
+       degree_notin_vars)
+   ultimately have [simp]: \<open>Axx = 0\<close>
+     using H[of \<open>MPoly_Type.degree (- Axx * p) x'\<close> \<open>- Axx * p\<close> \<open>- Ax' * p\<close>]
+     by (auto simp: n)
+  then have [simp]: \<open>Ax' = Ax\<close>
+    using Ax by auto
+
+  show \<open>A = 0\<close>
+    using A \<open>A = - (Ax * p)\<close> \<open>x' \<notin> vars (- Ax' * p)\<close> \<open>x' \<notin> vars A'\<close> polynom_decomp_alien_var(1) by force
   then show \<open>q = b\<close>
     using q by auto
 qed
 
 lemma vars_unE: \<open>x \<in> vars (a * b) \<Longrightarrow> (x \<in> vars a \<Longrightarrow> thesis) \<Longrightarrow> (x \<in> vars b \<Longrightarrow> thesis) \<Longrightarrow> thesis\<close>
    using vars_mult[of a b] by auto
-
-lemma
-  assumes \<open>p^2 - p \<in> More_Modules.ideal polynom_bool\<close>
-  shows \<open>p \<in> More_Modules.ideal polynom_bool\<close>
-proof -
-  show ?thesis
-    using assms
-    oops
-term poly_eval
 
 
 lemma in_keys_minusI1:
@@ -828,29 +821,35 @@ proof -
     then have t: \<open>t = insert p t'\<close>
       by (auto simp: t'_def)
 
+   have \<open>x' \<notin> vars (- p')\<close>
+     using leading p'_def vars_in_right_only by fastforce
    have mon: \<open>monom (monomial (Suc 0) x') 1 = Var x'\<close>
      by (auto simp:coeff_def minus_mpoly.rep_eq Var_def Var\<^sub>0_def monom_def
        times_mpoly.rep_eq lookup_minus lookup_times_monomial_right mpoly.MPoly_inverse)
-   then have \<open>\<forall>a. \<exists>g h. r a = ?v * g + h \<and> x' \<notin> vars h\<close>
-     using polynom_split_on_var[of \<open>r _\<close> x']
-     by metis
+   then have \<open>\<forall>a. \<exists>g h. r a = (?v + p') * g + h \<and> x' \<notin> vars h\<close>
+     using polynom_split_on_var2[of x' \<open>-p'\<close> \<open>r _\<close>]  \<open>x' \<notin> vars (- p')\<close>
+     by (metis diff_minus_eq_add)
    then obtain g h where
-     r: \<open>r a = ?v * g a + h a\<close> and
+     r: \<open>r a = p * g a + h a\<close> and
      x'_h: \<open>x' \<notin> vars (h a)\<close> for a
-     using polynom_split_on_var[of \<open>r a\<close> x']
+     using polynom_split_on_var2[of x' p' \<open>r a\<close>] unfolding p_p'[symmetric]
      by metis
 
-  have q1: \<open>q = (\<Sum>a\<in>t'. ?v * g a * a) + (\<Sum>a\<in>t'. h a * a) + (?v * g p * p' + h p * p' + r p * ?v)\<close>
+
+  have ISABLLE_come_on: \<open>a * (p * g a) = p * (a * g a)\<close> for a
+    by auto
+  have q1: \<open>q = p * (\<Sum>a\<in>t'. g a * a) + (\<Sum>a\<in>t'. h a * a) + p * r p\<close>
     (is \<open>_ = _ + ?NOx' + _\<close>)
-    using fin_t t'' unfolding q t r
-    by (auto simp: field_simps comm_monoid_add_class.sum.distrib p_p')
-  also have q1: \<open>... = (\<Sum>a\<in>t'. ?v * g a * a) + ?NOx' + g p * p' * ?v + h p * p' + r p * ?v\<close>
-    using fin_t unfolding q t r
-    by (auto simp: field_simps comm_monoid_add_class.sum.distrib)
-  also have \<open>... = (r p + (\<Sum>a\<in>t'. g a * a) + g p * p') * ?v + (h p * p' + ?NOx')\<close> (is \<open>_ = ?X' * ?v' + ?NOx''\<close>)
-    by (auto simp: field_simps sum_distrib_left r)
-  finally have q_decomp: \<open>q = ?X' * ?v' + ?NOx''\<close>
-   .
+    using fin_t t'' unfolding q t ISABLLE_come_on r
+    apply (subst semiring_class.distrib_right)+
+    apply (auto simp: comm_monoid_add_class.sum.distrib semigroup_mult_class.mult.assoc
+      ISABLLE_come_on simp flip: semiring_0_class.sum_distrib_right
+         semiring_0_class.sum_distrib_left)
+    by (auto simp: field_simps)
+  also have \<open>... = ((\<Sum>a\<in>t'. g a * a) + r p) * p + (\<Sum>a\<in>t'. h a * a)\<close>
+    by (auto simp: field_simps)
+  finally have q_decomp: \<open>q = ((\<Sum>a\<in>t'. g a * a) + r p) * p + (\<Sum>a\<in>t'. h a * a)\<close>
+    (is \<open>q = ?X * p + ?NOx'\<close>).
 
 
    have [iff]: \<open>monomial (Suc 0) c = 0 - monomial (Suc 0) c = False\<close> for c
@@ -880,26 +879,23 @@ proof -
   }
   ultimately have
     \<open>x' \<notin> vars q\<close>
-    \<open>x' \<notin> vars ?NOx''\<close>
+    \<open>x' \<notin> vars ?NOx'\<close>
+    \<open>x' \<notin> vars p'\<close>
     using x' vars_q vars_add[of \<open>h p * p'\<close> \<open>\<Sum>a\<in>t'. h a * a\<close>] x'_h
+      leading p'_def
     by auto
-  then have \<open>?X' = 0\<close> and q_decomp: \<open>q = ?NOx''\<close>
-    unfolding mon[symmetric]
-    by (rule polynom_decomp_alien_var[OF q_decomp[unfolded mon[symmetric]]])+
+  then have \<open>?X = 0\<close> and q_decomp: \<open>q = ?NOx'\<close>
+    unfolding mon[symmetric] p_p'
+    using polynom_decomp_alien_var2[OF q_decomp[unfolded p_p' mon[symmetric]]]
+    by auto
 
-  then have \<open>r p = (\<Sum>a\<in>t'. (- g a) * a) - (g p * p')\<close>
-    (is \<open>_ = ?CL - ?p'\<close>)
+  then have \<open>r p = (\<Sum>a\<in>t'. (- g a) * a)\<close>
+    (is \<open>_ = ?CL\<close>)
     unfolding add.assoc add_eq_0_iff equation_minus_iff
     by (auto simp: sum_negf ac_simps)
 
-  then have \<open>h p = ?CL - ?p' - Var x' * g p\<close>
-    unfolding r
-    apply (auto simp: )
-    apply (metis add_diff_cancel_left')
-    done
 
-
-  then have q2: \<open>q = (\<Sum>a\<in>t'. a * (r a - p * g a)) - (p * p') * g p\<close>
+  then have q2: \<open>q = (\<Sum>a\<in>t'. a * (r a - p * g a))\<close>
     using fin_t unfolding q
     apply (auto simp: t r q
          comm_monoid_add_class.sum.distrib[symmetric]
@@ -909,107 +905,10 @@ proof -
         intro!: sum.cong)
     apply (auto simp: field_simps)
     done
-
-
-  let ?size = \<open>\<lambda>f. card ({x \<in> keys (mapping_of f). x' \<in> keys x})\<close>
-  let ?size = \<open>\<lambda>v. degree v x'\<close>
-  term total_degree
-  have \<open>?size (p * p' * g p) < ?size (p * r p)\<close>
-  proof -
-    have \<open>insert 0
-          ((\<lambda>x. lookup x x') `
-           {k. lookup (mapping_of p' * (mapping_of p' * mapping_of (g p)))
-                k +
-               lookup
-                (mapping_of p' * (mapping_of (Var x') * mapping_of (g p)))
-                k \<noteq>
-               0}) =
-        AA\<close>
-      apply (auto simp: image_iff)
-      sorry
-    show ?thesis
-      apply (subst p_p')
-      apply (subst (2)p_p')
-      apply (auto simp: r keys_def algebra_simps
-        extract_var_sum extract_var_monom_mult degree_def)
-      apply (auto simp: degree_def plus_mpoly.rep_eq times_mpoly.rep_eq algebra_simps
-        extract_var_sum extract_var_monom_mult keys_def
-        lookup_plus_fun)
-
-
-      sorry
-      find_theorems lookup keys
-   qed
-
-   define r' where \<open>r' a \<equiv> (r a - p * g a)\<close> for a
-   have \<open>\<forall>a. \<exists>g h. r' a = ?v * g + h \<and> x' \<notin> vars h\<close>
-     using polynom_split_on_var[of \<open>r' _\<close> x'] unfolding mon
-     by metis
-   then obtain g' h' where
-     r': \<open>r' a = ?v * g' a + h' a\<close> and
-     x'_h: \<open>x' \<notin> vars (h' a)\<close> for a
-     using polynom_split_on_var[of \<open>r' a\<close> x']
-     by metis
-
-  obtain gX'' h'' where
-     r'': \<open>g p = ?v * gX'' + h''\<close> and
-     x'_h'': \<open>x' \<notin> vars (h'')\<close>
-     using polynom_split_on_var[of \<open>g p\<close> x'] unfolding mon
-     by metis
-  have q2: \<open>q = ((\<Sum>a\<in>t'. a * g' a) - p' * gX'' * ?v - p' * h'' - p' * p' * gX'') * ?v + ((\<Sum>a\<in>t'. a * h' a) - p' * (p' * h''))\<close>
-    (is \<open>q = (?CL - ?p'g - ?p'h'' - ?p'') * ?v + ?q\<close>)
-    unfolding q2 r'_def[symmetric] unfolding r' r''
-    apply (auto simp: field_simps p_p'
-         comm_monoid_add_class.sum.distrib
-         sum_distrib_left
-         sum_distrib_right)
-    done
-
-  have \<open>x' \<notin> vars q\<close> \<open>x' \<notin> vars ?q\<close>
-    
-    sorry
-  then have
-    p'h'': \<open>?CL - ?p'g - ?p'h'' - ?p'' = 0\<close> and
-    q3: \<open>q = ?q\<close>
-    unfolding mon[symmetric]
-    by (rule polynom_decomp_alien_var[OF q2[unfolded mon[symmetric]]])+
-  have p'h'': \<open>?p'h'' = ?CL - ?p'g - ?p''\<close>
-    using p'h'' by (smt add_cancel_left_left cancel_ab_semigroup_add_class.diff_right_commute eq_diff_eq)
-  have \<open>q = (\<Sum>a\<in>t'. a * (h' a - p' * g' a)) + gX'' * p' * p' * (Var x' + p')\<close>
-    unfolding q3 p'h''
-    by (auto simp: field_simps
-         comm_monoid_add_class.sum.distrib[symmetric]
-         sum_distrib_left
-         sum_distrib_right)
-
-      
-    show ?thesis
-      apply (auto simp: r' plus_mpoly.rep_eq times_mpoly.rep_eq
-        minus_mpoly.rep_eq)
-    thm in_keys_plusI2
-  typ mpoly
-  find_theorems \<open>keys (_ + _)\<close>
-  have \<open>iiii = vars (r a)\<close>
-    unfolding vars_def
-
-
-  have \<open>r p = (\<Sum>a\<in>t'. (- g a) * a)\<close>
-    sorry
-
-  then have rpp: \<open>r p * p = (\<Sum>a\<in>t'. (- g a * p) * a)\<close>
-    by (auto simp: sum_distrib_left ac_simps)
-
-  have \<open>q = (\<Sum>a\<in>t'. (r a + - g a * p) * a)\<close>
-    using fin_t unfolding q
-    by (auto simp: t rpp q
-         comm_monoid_add_class.sum.distrib[symmetric]
-        intro!: sum.cong)
-     (auto simp: field_simps)
-
-  then show ?thesis
-    using fin_t \<open>t \<subseteq> insert p (set_mset A \<union> polynom_bool)\<close>
-    by (force simp: ideal.span_explicit t)
-  qed
+  then show \<open>?thesis\<close>
+    using t fin_t \<open>t \<subseteq> ?trimmed\<close> unfolding ideal.span_explicit
+    by (auto intro!: exI[of _ t'] exI[of _ \<open>\<lambda>a. r a - p * g a\<close>]
+      simp: field_simps polynom_bool_def)
 qed
 
 
