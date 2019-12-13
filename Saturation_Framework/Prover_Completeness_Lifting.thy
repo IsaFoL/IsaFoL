@@ -130,14 +130,18 @@ next
   assume
     calc: "calculus_with_red_crit Bot_F Inf_F (\<Turnstile>\<G>) Red_Inf_\<G> Red_F_\<G>" and
     static: "static_refutational_complete_calculus_axioms Bot_F Inf_F (\<Turnstile>\<G>) Red_Inf_\<G>"
-  show "static_refutational_complete_calculus_axioms Bot_FL Inf_FL (\<Turnstile>\<G>L) labeled_lifting_w_empty_ord_family.Red_Inf_\<G>" unfolding static_refutational_complete_calculus_axioms_def
+  show "static_refutational_complete_calculus_axioms Bot_FL Inf_FL (\<Turnstile>\<G>L)
+    labeled_lifting_w_empty_ord_family.Red_Inf_\<G>"
+    unfolding static_refutational_complete_calculus_axioms_def
   proof (intro conjI impI allI)
     fix Bl :: \<open>'f \<times> 'l\<close> and Nl :: \<open>('f \<times> 'l) set\<close>
     assume 
       Bl_in: \<open>Bl \<in> Bot_FL\<close> and
       Nl_sat: \<open>labeled_lifting_w_empty_ord_family.empty_order_lifting.lifted_calculus_with_red_crit.saturated Nl\<close> and
       Nl_entails_Bl: \<open>Nl \<Turnstile>\<G>L {Bl}\<close>
-    have static_axioms: "B \<in> Bot_F \<longrightarrow> empty_order_lifting.lifted_calculus_with_red_crit.saturated N \<longrightarrow> N \<Turnstile>\<G> {B} \<longrightarrow> (\<exists>B'\<in>Bot_F. B' \<in> N)" for B N using static[unfolded static_refutational_complete_calculus_axioms_def] by fast
+    have static_axioms: "B \<in> Bot_F \<longrightarrow> empty_order_lifting.lifted_calculus_with_red_crit.saturated N \<longrightarrow>
+      N \<Turnstile>\<G> {B} \<longrightarrow> (\<exists>B'\<in>Bot_F. B' \<in> N)" for B N
+      using static[unfolded static_refutational_complete_calculus_axioms_def] by fast
     define B where "B = fst Bl"
     have B_in: "B \<in> Bot_F" using Bl_in Bot_FL_def B_def SigmaE by force
     define N where "N = fst ` Nl"

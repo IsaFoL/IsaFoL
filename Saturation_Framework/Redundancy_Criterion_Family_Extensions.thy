@@ -666,7 +666,7 @@ proof clarify
 qed
 
 text \<open>Lemma 53 from the technical report\<close>
-lemma "with_labels.inter_red_crit_calculus.saturated NL \<Longrightarrow>
+lemma labeled_family_saturation_lifting: "with_labels.inter_red_crit_calculus.saturated NL \<Longrightarrow>
   no_labels.lifted_calc_w_red_crit_family.inter_red_crit_calculus.saturated (fst ` NL)"
   unfolding with_labels.inter_red_crit_calculus.saturated_def
     no_labels.lifted_calc_w_red_crit_family.inter_red_crit_calculus.saturated_def
@@ -693,6 +693,50 @@ proof clarify
   moreover have "\<iota>F = to_F \<iota>FL" unfolding to_F_def \<iota>FL_def using Ll_length by (cases \<iota>F) auto
   ultimately show "\<iota>F \<in> no_labels.empty_ord_lifted_calc_w_red_crit_family.Red_Inf_Q (fst ` NL)"
     by (auto intro:red_inf_impl)
+qed
+
+text "lemma 54 from the technical report"
+lemma "static_refutational_complete_calculus Bot_F Inf_F (\<Turnstile>\<inter>)
+  no_labels.empty_ord_lifted_calc_w_red_crit_family.Red_Inf_Q
+  no_labels.empty_ord_lifted_calc_w_red_crit_family.Red_F_Q
+  \<Longrightarrow> static_refutational_complete_calculus Bot_FL Inf_FL (\<Turnstile>\<inter>L) with_labels.Red_Inf_Q with_labels.Red_F_Q"
+  unfolding static_refutational_complete_calculus_def
+proof (rule conjI impI; clarify)
+  show "calculus_with_red_crit Bot_FL Inf_FL (\<Turnstile>\<inter>L) with_labels.Red_Inf_Q with_labels.Red_F_Q"
+    using with_labels.inter_red_crit_calculus.calculus_with_red_crit_axioms
+    unfolding labeled_cons_rel_family.entails_Q_def entails_\<G>_L_Q_def .
+next
+  assume
+    calc: "calculus_with_red_crit Bot_F Inf_F (\<Turnstile>\<inter>)
+      no_labels.empty_ord_lifted_calc_w_red_crit_family.Red_Inf_Q
+      no_labels.empty_ord_lifted_calc_w_red_crit_family.Red_F_Q" and
+    static: "static_refutational_complete_calculus_axioms Bot_F Inf_F (\<Turnstile>\<inter>)
+      no_labels.empty_ord_lifted_calc_w_red_crit_family.Red_Inf_Q"
+  show "static_refutational_complete_calculus_axioms Bot_FL Inf_FL (\<Turnstile>\<inter>L) with_labels.Red_Inf_Q"
+    unfolding static_refutational_complete_calculus_axioms_def
+  proof (intro conjI impI allI)
+    fix Bl :: \<open>'f \<times> 'l\<close> and Nl :: \<open>('f \<times> 'l) set\<close>
+    assume
+      Bl_in: \<open>Bl \<in> Bot_FL\<close> and
+      Nl_sat: \<open>with_labels.inter_red_crit_calculus.saturated Nl\<close> and
+      Nl_entails_Bl: \<open>Nl \<Turnstile>\<inter>L {Bl}\<close>
+    have static_axioms: "B \<in> Bot_F \<longrightarrow> no_labels.lifted_calc_w_red_crit_family.inter_red_crit_calculus.saturated N
+      \<longrightarrow> N \<Turnstile>\<inter> {B} \<longrightarrow> (\<exists>B'\<in>Bot_F. B' \<in> N)" for B N
+      using static[unfolded static_refutational_complete_calculus_axioms_def] by fast
+    define B where "B = fst Bl"
+    have B_in: "B \<in> Bot_F" using Bl_in Bot_FL_def B_def SigmaE by force
+    define N where "N = fst ` Nl"
+    have N_sat: "no_labels.lifted_calc_w_red_crit_family.inter_red_crit_calculus.saturated N"
+      using N_def Nl_sat labeled_family_saturation_lifting by blast
+    have N_entails_B: "N \<Turnstile>\<inter> {B}" using Nl_entails_Bl unfolding labeled_entailment_lifting N_def B_def by force
+    have "\<exists>B' \<in> Bot_F. B' \<in> N" using B_in N_sat N_entails_B static_axioms[of B N] by blast
+    then obtain B' where in_Bot: "B' \<in> Bot_F" and in_N: "B' \<in> N" by force
+    then have "B' \<in> fst ` Bot_FL" unfolding Bot_FL_def by fastforce
+    obtain Bl' where in_Nl: "Bl' \<in> Nl" and fst_Bl': "fst Bl' = B'"
+      using in_N unfolding N_def by blast
+    have "Bl' \<in> Bot_FL" unfolding Bot_FL_def using fst_Bl' in_Bot vimage_fst by fastforce
+    then show \<open>\<exists>Bl'\<in>Bot_FL. Bl' \<in> Nl\<close> using in_Nl by blast
+  qed
 qed
 
 end
