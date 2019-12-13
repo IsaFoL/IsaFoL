@@ -600,7 +600,7 @@ proof -
     by (simp add: lifting_with_wf_ordering_family_axioms.intro lifting_with_wf_ordering_family_def)
 qed
 
-lemma "q \<in> Q \<Longrightarrow> calculus_with_red_crit Bot_FL Inf_FL (entails_\<G>_L_q q) (Red_Inf_\<G>_L_q q) (Red_F_\<G>_empty_L_q q)"
+lemma all_lifted_red_crit: "q \<in> Q \<Longrightarrow> calculus_with_red_crit Bot_FL Inf_FL (entails_\<G>_L_q q) (Red_Inf_\<G>_L_q q) (Red_F_\<G>_empty_L_q q)"
 proof -
   fix q
   assume q_in: "q \<in> Q"
@@ -617,6 +617,25 @@ proof -
     using ord_q_lifting.lifted_calculus_with_red_crit.calculus_with_red_crit_axioms by argo
 qed
 
+lemma all_lifted_cons_rel: "q \<in> Q \<Longrightarrow> consequence_relation Bot_FL (entails_\<G>_L_q q)"
+proof -
+  fix q
+  assume q_in: "q \<in> Q"
+  interpret q_red_crit: calculus_with_red_crit Bot_FL Inf_FL "entails_\<G>_L_q q" "Red_Inf_\<G>_L_q q" "Red_F_\<G>_empty_L_q q"
+    using all_lifted_red_crit[OF q_in] .
+  show "consequence_relation Bot_FL (entails_\<G>_L_q q)"
+    using q_red_crit.consequence_relation_axioms . 
+qed
+
+sublocale labeled_cons_rel_family: consequence_relation_family Bot_FL Q entails_\<G>_L_q
+  using all_lifted_cons_rel no_labels.Q_not_empty no_labels.lifted_calc_w_red_crit_family.Bot_not_empty
+  unfolding Bot_FL_def
+  by (simp add: consequence_relation_family.intro)
+
+sublocale with_labels: calculus_with_red_crit_family Bot_FL Inf_FL Q entails_\<G>_L_q Red_Inf_\<G>_L_q Red_F_\<G>_empty_L_q
+  using calculus_with_red_crit_family.intro[OF labeled_cons_rel_family.consequence_relation_family_axioms]
+    all_lifted_cons_rel
+  by (simp add: all_lifted_red_crit calculus_with_red_crit_family_axioms_def) 
 
 notation "no_labels.entails_\<G>_Q" (infix "\<Turnstile>\<inter>" 50)
 
@@ -626,27 +645,56 @@ lemma labeled_entailment_lifting: "NL1 \<Turnstile>\<inter>L NL2 \<longleftright
     entails_\<G>_L_Q_def entails_\<G>_L_q_def \<G>_set_L_q_def \<G>_F_L_q_def
   by force
 
-find_theorems name: inter_red_crit name: no_labels
+lemma subset_fst: "A \<subseteq> fst ` AB \<Longrightarrow> \<forall>x \<in> A. \<exists>y. (x,y) \<in> AB" by fastforce
 
-sublocale calculus_with_red_crit_family Bot_FL Inf_FL Q entails_\<G>_L_q Red_Inf_\<G>_L_q Red_F_\<G>_empty_L_q
-proof -
-oops
+lemma red_inf_impl: "\<iota> \<in> with_labels.Red_Inf_Q NL \<Longrightarrow>
+  to_F \<iota> \<in> no_labels.empty_ord_lifted_calc_w_red_crit_family.Red_Inf_Q (fst ` NL)"
+  unfolding no_labels.empty_ord_lifted_calc_w_red_crit_family.Red_Inf_Q_def with_labels.Red_Inf_Q_def
+proof clarify
+  fix X Xa q
+  assume
+    q_in: "q \<in> Q" and
+    i_in_inter: "\<iota> \<in> \<Inter> {X NL |X. X \<in> Red_Inf_\<G>_L_q ` Q}"
+  have i_in_q: "\<iota> \<in> Red_Inf_\<G>_L_q q NL" using q_in i_in_inter image_eqI by blast
+  then have i_in: "\<iota> \<in> Inf_FL" unfolding Red_Inf_\<G>_L_q_def by blast
+  have to_F_in: "to_F \<iota> \<in> Inf_F" unfolding to_F_def using Inf_FL_to_Inf_F[OF i_in] .
+  have subs_red: "\<G>_Inf_L_q q \<iota> \<subseteq> Red_Inf_q q (\<G>_set_L_q q NL)" using i_in_q unfolding Red_Inf_\<G>_L_q_def by blast
+  then have "\<G>_Inf_q q (to_F \<iota>) \<subseteq> Red_Inf_q q (no_labels.\<G>_set_q q (fst ` NL))"
+    unfolding \<G>_Inf_L_q_def \<G>_set_L_q_def no_labels.\<G>_set_q_def \<G>_F_L_q_def by simp
+  then show "to_F \<iota> \<in> no_labels.Red_Inf_\<G>_q q (fst ` NL)"
+    using to_F_in unfolding no_labels.Red_Inf_\<G>_q_def by simp
+qed
 
-term "no_labels.Ground_family.inter_red_crit_calculus.saturated"
-term "no_labels.lifted_calc_w_red_crit_family.inter_red_crit_calculus.saturated"
+text \<open>Lemma 53 from the technical report\<close>
+lemma "with_labels.inter_red_crit_calculus.saturated NL \<Longrightarrow>
+  no_labels.lifted_calc_w_red_crit_family.inter_red_crit_calculus.saturated (fst ` NL)"
+  unfolding with_labels.inter_red_crit_calculus.saturated_def
+    no_labels.lifted_calc_w_red_crit_family.inter_red_crit_calculus.saturated_def
+    with_labels.Inf_from_def no_labels.Non_ground.Inf_from_def
+proof clarify
+  fix \<iota>F
+  assume
+    labeled_sat: "{\<iota> \<in> Inf_FL. set (prems_of \<iota>) \<subseteq> NL} \<subseteq> with_labels.Red_Inf_Q NL" and
+    iF_in: "\<iota>F \<in> Inf_F" and
+    iF_prems: "set (prems_of \<iota>F) \<subseteq> fst ` NL"
+  define Lli where "Lli i \<equiv> (SOME x. ((prems_of \<iota>F)!i,x) \<in> NL)" for i
+  have [simp]:"((prems_of \<iota>F)!i,Lli i) \<in> NL" if "i < length (prems_of \<iota>F)" for i
+    using that subset_fst[OF iF_prems] nth_mem someI_ex unfolding Lli_def
+    by metis
+  define Ll where "Ll \<equiv> map Lli [0..<length (prems_of \<iota>F)]"
+  have Ll_length: "length Ll = length (prems_of \<iota>F)" unfolding Ll_def by auto
+  have subs_NL: "set (zip (prems_of \<iota>F) Ll) \<subseteq> NL" unfolding Ll_def by (auto simp:in_set_zip)
+  obtain L0 where L0: "Infer (zip (prems_of \<iota>F) Ll) (concl_of \<iota>F, L0) \<in> Inf_FL"
+    using Inf_F_to_Inf_FL[OF iF_in Ll_length] ..
+  define \<iota>FL where "\<iota>FL = Infer (zip (prems_of \<iota>F) Ll) (concl_of \<iota>F, L0)"
+  then have "set (prems_of \<iota>FL) \<subseteq> NL" using subs_NL by simp
+  then have "\<iota>FL \<in> {\<iota> \<in> Inf_FL. set (prems_of \<iota>) \<subseteq> NL}" unfolding \<iota>FL_def using L0 by blast
+  then have "\<iota>FL \<in> with_labels.Red_Inf_Q NL" using labeled_sat by fast
+  moreover have "\<iota>F = to_F \<iota>FL" unfolding to_F_def \<iota>FL_def using Ll_length by (cases \<iota>F) auto
+  ultimately show "\<iota>F \<in> no_labels.empty_ord_lifted_calc_w_red_crit_family.Red_Inf_Q (fst ` NL)"
+    by (auto intro:red_inf_impl)
+qed
 
-sublocale with_labels: lifting_equivalence_with_red_crit_family Inf_FL Bot_G Inf_G Q entails_q
-  Red_Inf_q Red_F_q Bot_FL \<G>_F_L_q \<G>_Inf_L_q "\<lambda>g. Labeled_Empty_Order"
-proof -
-  have "q \<in> Q \<Longrightarrow> lifting_with_wf_ordering_family Bot_FL Inf_FL Bot_G (entails_q q) Inf_G
-    (Red_Inf_q q) (Red_F_q q) (\<G>_F_L_q q) (\<G>_Inf_L_q q) (\<lambda>g. Labeled_Empty_Order)"
-  proof -
-    fix q
-    assume q_in: "q \<in> Q"
-    have "lifting_with_wf_ordering_family Bot_F Inf_F Bot_G (entails_q q) Inf_G (Red_Inf_q q) (Red_F_q q) (\<G>_F_q q) (\<G>_Inf_q q) (\<lambda>g. Empty_Order)"
-      using no_labels.standard_lifting_family[OF q_in] .
-oops
- 
 end
 
 

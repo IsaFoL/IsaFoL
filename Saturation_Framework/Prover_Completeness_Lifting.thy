@@ -91,8 +91,12 @@ lemma red_inf_impl: "\<iota> \<in> labeled_lifting_w_empty_ord_family.Red_Inf_\<
   using Inf_FL_to_Inf_F by auto
 
 text \<open>lemma 50 from the technical report\<close>
-lemma labeled_saturation_lifting: "labeled_lifting_w_empty_ord_family.lifted_calculus_with_red_crit.saturated NL \<Longrightarrow> empty_order_lifting.lifted_calculus_with_red_crit.saturated (fst ` NL)"
-  unfolding labeled_lifting_w_empty_ord_family.lifted_calculus_with_red_crit.saturated_def empty_order_lifting.lifted_calculus_with_red_crit.saturated_def labeled_standard_lifting.Non_ground.Inf_from_def Non_ground.Inf_from_def
+lemma labeled_saturation_lifting:
+  "labeled_lifting_w_empty_ord_family.lifted_calculus_with_red_crit.saturated NL \<Longrightarrow>
+    empty_order_lifting.lifted_calculus_with_red_crit.saturated (fst ` NL)"
+  unfolding labeled_lifting_w_empty_ord_family.lifted_calculus_with_red_crit.saturated_def
+    empty_order_lifting.lifted_calculus_with_red_crit.saturated_def
+    labeled_standard_lifting.Non_ground.Inf_from_def Non_ground.Inf_from_def
 proof clarify
   fix \<iota>
   assume
