@@ -2,7 +2,6 @@ theory PAC_More_Poly
   imports "HOL-Library.Poly_Mapping" "HOL-Algebra.Polynomials" "Polynomials.MPoly_Type_Class"
   "HOL-Algebra.Module"
   "HOL-Library.Countable_Set"
-  "Polynomials.MPoly_PM"
 begin
 
 
@@ -307,5 +306,14 @@ lemma MPoly_monomial_power:
   \<open>n > 0 \<Longrightarrow> MPoly (monomial 1 x') ^ (n) =  MPoly (monomial (1) (((\<lambda>x. x + x') ^^ (n - 1)) x'))\<close>
   using MPoly_monomial_power'[of _ \<open>n-1\<close>]
   by auto
+
+
+lemma [simp]:
+  \<open>vars (-p) = vars p\<close>
+  by (auto simp: vars_def uminus_mpoly.rep_eq)
+
+lemma [simp]:
+  \<open>MPoly_Type.coeff (-p) x = -MPoly_Type.coeff p x\<close>
+  by (auto simp: coeff_def uminus_mpoly.rep_eq)
 
 end

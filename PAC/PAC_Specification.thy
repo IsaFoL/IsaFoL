@@ -50,6 +50,7 @@ stating that \<^term>\<open>p\<close> and  \<^term>\<open>p'\<close> are equival
 \<close>
 
 type_synonym pac_st = \<open>(nat set \<times> int_poly multiset)\<close>
+
 inductive PAC_Format :: \<open>pac_st \<Rightarrow> pac_st \<Rightarrow> bool\<close> where
 add:
   \<open>PAC_Format (\<V>, A) (\<V>, add_mset p' A)\<close>
@@ -82,6 +83,15 @@ extend_minus:
     \<open>(Var x + p')^2 - (Var x + p') \<in> ideal polynom_bool\<close>
     \<open>x \<notin> \<V>\<close>
     \<open>x \<notin> vars(p' + Var x)\<close>
+
+text  \<open>
+  In the PAC format above, we have a technical condition on the
+  normalisation: \<^term>\<open>vars p' \<subseteq> vars (p + q)\<close> is here to ensure that
+  we don't normalise \<^term>\<open>0 :: int mpoly\<close> to  \<^term>\<open>Var x^2 - Var x :: int mpoly\<close>
+  for a new variable \<^term>\<open>x :: nat\<close>. This is completely obvious for the normalisation
+  processe we have in mind when we write the specification, but we must add it
+  explicitely because we are too general.
+\<close>
 
 lemmas  PAC_Format_induct_split =
    PAC_Format.induct[split_format(complete), of V A V' A' for V A V' A']
@@ -924,14 +934,6 @@ proof -
       simp: field_simps polynom_bool_def)
   qed
 qed
-
-lemma [simp]:
-  \<open>vars (-p) = vars p\<close>
-  by (auto simp: vars_def uminus_mpoly.rep_eq)
-
-lemma [simp]:
-  \<open>MPoly_Type.coeff (-p) x = -MPoly_Type.coeff p x\<close>
-  by (auto simp: coeff_def uminus_mpoly.rep_eq)
 
 lemma extensions_are_safe_uminus:
   assumes \<open>x' \<in> vars p\<close> and

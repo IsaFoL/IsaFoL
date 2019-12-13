@@ -18,8 +18,10 @@ lemma is_success_alt_def:
 datatype 'a pac_step =
   Add (pac_src1: nat) (pac_src2: nat) (new_id: nat) (pac_res: 'a) |
   Mult (pac_src1: nat) (pac_mult: 'a) (new_id: nat) (pac_res: 'a) |
+  Extension (new_id: nat) (pac_res: 'a) |
   Del (pac_src1: nat)
 
+type_synonym  pac_state = \<open>(nat set \<times> int_poly multiset)\<close>
 
 definition PAC_checker_specification
   :: \<open>int_poly multiset \<Rightarrow> int_poly \<Rightarrow> (status \<times> int_poly multiset) nres\<close>
@@ -29,36 +31,39 @@ where
       (is_found b \<longrightarrow> spec \<in> pac_ideal (set_mset A)))\<close>
 
 definition PAC_checker_specification_spec
-  ::  \<open>int_poly \<Rightarrow> int_poly multiset \<Rightarrow> (status \<times> int_poly multiset) \<Rightarrow> bool\<close>
+  ::  \<open>int_poly \<Rightarrow> pac_state \<Rightarrow> (status \<times> pac_state) \<Rightarrow> bool\<close>
 where
-  \<open>PAC_checker_specification_spec spec A = (\<lambda>(b, B).
-       (is_success b \<longrightarrow> PAC_Format\<^sup>*\<^sup>* A B) \<and>
-       (is_found b \<longrightarrow> PAC_Format\<^sup>*\<^sup>* A B \<and> spec \<in> pac_ideal (set_mset A)))\<close>
+  \<open>PAC_checker_specification_spec spec = (\<lambda>(\<V>, A) (b, B). \<Union>(vars ` set_mset A) \<subseteq> \<V> \<and>
+       (is_success b \<longrightarrow> PAC_Format\<^sup>*\<^sup>* (\<V>, A) B) \<and>
+       (is_found b \<longrightarrow> PAC_Format\<^sup>*\<^sup>* (\<V>, A) B \<and> spec \<in> pac_ideal (set_mset A)))\<close>
 
 abbreviation PAC_checker_specification2
-  ::  \<open>int_poly \<Rightarrow> int_poly multiset \<Rightarrow> (status \<times> int_poly multiset) nres\<close>
+  ::  \<open>int_poly \<Rightarrow> (nat set \<times> int_poly multiset) \<Rightarrow> (status \<times> (nat set \<times> int_poly multiset)) nres\<close>
 where
   \<open>PAC_checker_specification2 spec A \<equiv> SPEC(PAC_checker_specification_spec spec A)\<close>
 
 
 definition PAC_checker_specification_step_spec
-  ::  \<open>int_poly multiset \<Rightarrow> int_poly \<Rightarrow> int_poly multiset \<Rightarrow> (status \<times> int_poly multiset) \<Rightarrow> bool\<close>
+  ::  \<open>pac_state \<Rightarrow> int_poly \<Rightarrow> pac_state \<Rightarrow> (status \<times> pac_state) \<Rightarrow> bool\<close>
 where
-  \<open>PAC_checker_specification_step_spec A\<^sub>0 spec A = (\<lambda>(b, B).
-       (is_success b \<longrightarrow> PAC_Format\<^sup>*\<^sup>* A\<^sub>0 A \<and> PAC_Format\<^sup>*\<^sup>* A B) \<and>
-       (is_found b \<longrightarrow> PAC_Format\<^sup>*\<^sup>* A\<^sub>0 A \<and> PAC_Format\<^sup>*\<^sup>* A B \<and> spec \<in> pac_ideal (set_mset A\<^sub>0)))\<close>
+  \<open>PAC_checker_specification_step_spec = (\<lambda>(\<V>\<^sub>0, A\<^sub>0) spec (\<V>, A) (b, B).
+       \<Union>(vars ` set_mset A\<^sub>0) \<subseteq> \<V>\<^sub>0 \<and>
+       \<Union>(vars ` set_mset A) \<subseteq> \<V> \<and>
+       (is_success b \<longrightarrow> PAC_Format\<^sup>*\<^sup>* (\<V>\<^sub>0, A\<^sub>0) (\<V>, A) \<and> PAC_Format\<^sup>*\<^sup>* (\<V>, A) B) \<and>
+       (is_found b \<longrightarrow> PAC_Format\<^sup>*\<^sup>* (\<V>\<^sub>0, A\<^sub>0) (\<V>, A) \<and> PAC_Format\<^sup>*\<^sup>* (\<V>, A) B \<and>
+         spec \<in> pac_ideal (set_mset A\<^sub>0)))\<close>
 
 abbreviation PAC_checker_specification_step2
-  ::  \<open>int_poly multiset \<Rightarrow> int_poly \<Rightarrow> int_poly multiset \<Rightarrow> (status \<times> int_poly multiset) nres\<close>
+  ::  \<open>pac_state \<Rightarrow> int_poly \<Rightarrow> pac_state \<Rightarrow> (status \<times> pac_state) nres\<close>
 where
   \<open>PAC_checker_specification_step2 A\<^sub>0 spec A \<equiv> SPEC(PAC_checker_specification_step_spec A\<^sub>0  spec A)\<close>
 
 
 definition normalize_poly_spec :: \<open>_\<close> where
-  \<open>normalize_poly_spec p = SPEC (\<lambda>r. p - r \<in> ideal polynom_bool)\<close>
+  \<open>normalize_poly_spec p = SPEC (\<lambda>r. p - r \<in> ideal polynom_bool \<and> vars r \<subseteq> vars p)\<close>
 
 lemma normalize_poly_spec_alt_def:
-  \<open>normalize_poly_spec p = SPEC (\<lambda>r. r - p \<in> ideal polynom_bool)\<close>
+  \<open>normalize_poly_spec p = SPEC (\<lambda>r. r - p \<in> ideal polynom_bool \<and> vars r \<subseteq> vars p)\<close>
   unfolding normalize_poly_spec_def
   by (auto dest: ideal.span_neg)
 
@@ -70,10 +75,21 @@ definition check_add :: \<open>(nat, int mpoly) fmap \<Rightarrow> nat \<Rightar
      SPEC(\<lambda>b. b \<longrightarrow> p \<in># dom_m A \<and> q \<in># dom_m A \<and> i \<notin># dom_m A \<and>
             the (fmlookup A p) + the (fmlookup A q) - r \<in>  ideal polynom_bool)\<close>
 
-definition check_mult :: \<open>(nat, int mpoly) fmap \<Rightarrow> nat \<Rightarrow> int mpoly \<Rightarrow> nat \<Rightarrow> int mpoly \<Rightarrow> bool nres\<close> where
-  \<open>check_mult A p q i r =
-     SPEC(\<lambda>b. b \<longrightarrow> p \<in># dom_m A \<and>i \<notin># dom_m A \<and>
+definition check_mult :: \<open>(nat, int mpoly) fmap \<Rightarrow> nat set \<Rightarrow> nat \<Rightarrow> int mpoly \<Rightarrow> nat \<Rightarrow> int mpoly \<Rightarrow> bool nres\<close> where
+  \<open>check_mult A \<V> p q i r =
+     SPEC(\<lambda>b. b \<longrightarrow> p \<in># dom_m A \<and>i \<notin># dom_m A \<and> vars q \<subseteq> \<V> \<and>
             the (fmlookup A p) * q - r \<in>  ideal polynom_bool)\<close>
+
+definition check_extension :: \<open>(nat, int mpoly) fmap \<Rightarrow> nat set \<Rightarrow> nat \<Rightarrow> int mpoly \<Rightarrow> bool nres\<close> where
+  \<open>check_extension A \<V> i p =
+     SPEC(\<lambda>b. b \<longrightarrow> i \<notin># dom_m A \<and>
+     (\<exists>v. v \<notin> \<V> \<and>
+        (coeff p (Poly_Mapping.single v 1) = 1 \<and>
+           (Var v - p)\<^sup>2 - (Var v - p) \<in> ideal polynom_bool \<and>
+           v \<notin> vars (Var v - p)) \<or>
+        (coeff p (Poly_Mapping.single v 1) = -1 \<and>
+           (Var v + p)\<^sup>2 - (Var v + p) \<in> ideal polynom_bool \<and>
+           v \<notin> vars (Var v + p))))\<close>
 
 fun merge_status where
   \<open>merge_status (FAILED) _ = FAILED\<close> |
@@ -82,16 +98,17 @@ fun merge_status where
   \<open>merge_status _ FOUND = FOUND\<close> |
   \<open>merge_status _ _ = SUCCESS\<close>
 
+type_synonym fpac_step = \<open>(nat, int_poly) fmap \<times> nat set\<close>
 
 definition check_del :: \<open>(nat, int mpoly) fmap \<Rightarrow> nat \<Rightarrow> bool nres\<close> where
   \<open>check_del A p =
      SPEC(\<lambda>b. b \<longrightarrow> p \<in># dom_m A)\<close>
 
 definition PAC_checker_step
-  ::  \<open>int_poly \<Rightarrow> status \<times> (nat, int_poly) fmap \<Rightarrow> int_poly pac_step \<Rightarrow>
-    (status \<times> (nat, int_poly) fmap) nres\<close>
+  ::  \<open>int_poly \<Rightarrow> (status \<times> fpac_step) \<Rightarrow> int_poly pac_step \<Rightarrow>
+    (status \<times> fpac_step) nres\<close>
 where
-  \<open>PAC_checker_step = (\<lambda>spec (stat, A) st. case st of
+  \<open>PAC_checker_step = (\<lambda>spec (stat, (A, \<V>)) st. case st of
      Add _ _ _ _ \<Rightarrow>
        do {
          r \<leftarrow> normalize_poly_spec (pac_res st);
@@ -99,26 +116,36 @@ where
         st' \<leftarrow> SPEC(\<lambda>st'. (\<not>is_failed st' \<and> is_found st' \<longrightarrow> r - spec \<in> ideal polynom_bool));
         if eq
         then RETURN (merge_status stat st',
-          fmupd (new_id st) r A)
-        else RETURN (FAILED, A)
+          fmupd (new_id st) r A, \<V>)
+        else RETURN (FAILED, (A, \<V>))
    }
    | Del _ \<Rightarrow>
        do {
         eq \<leftarrow> check_del A (pac_src1 st);
         if eq
-        then RETURN (stat, (fmdrop (pac_src1 st) A))
-        else RETURN (FAILED, A)
+        then RETURN (stat, (fmdrop (pac_src1 st) A, \<V>))
+        else RETURN (FAILED, (A, \<V>))
    }
    | Mult _ _ _ _ \<Rightarrow>
        do {
          r \<leftarrow> normalize_poly_spec (pac_res st);
          q \<leftarrow> normalize_poly_spec (pac_mult st);
-        eq \<leftarrow> check_mult A (pac_src1 st) q (new_id st) r;
+        eq \<leftarrow> check_mult A \<V> (pac_src1 st) q (new_id st) r;
         st' \<leftarrow> SPEC(\<lambda>st'. (\<not>is_failed st' \<and> is_found st' \<longrightarrow> r - spec \<in> ideal polynom_bool));
         if eq
         then RETURN (merge_status stat st',
-          fmupd (new_id st) r A)
-        else RETURN (FAILED, A)
+          fmupd (new_id st) r A, \<V>)
+        else RETURN (FAILED, (A, \<V>))
+   }
+   | Extension _ _ \<Rightarrow>
+       do {
+         r \<leftarrow> normalize_poly_spec (pac_res st);
+        eq \<leftarrow> check_extension A \<V> (new_id st) r;
+        st' \<leftarrow> SPEC(\<lambda>st'. (\<not>is_failed st' \<and> is_found st' \<longrightarrow> r - spec \<in> ideal polynom_bool));
+        if eq
+        then RETURN (merge_status stat st',
+          fmupd (new_id st) r A, \<V>)
+        else RETURN (FAILED, (A, \<V>))
    }
  )\<close>
 
@@ -157,35 +184,42 @@ lemma PAC_Format_add_and_remove:
        (A, B) \<in> polys_rel \<Longrightarrow>
        x12 \<in># dom_m A \<Longrightarrow>
        x13 \<notin># dom_m A \<Longrightarrow>
+       vars r \<subseteq> vars (2 * the (fmlookup A x12)) \<Longrightarrow>
        2 * the (fmlookup A x12) - r \<in> More_Modules.ideal polynom_bool \<Longrightarrow>
-       PAC_Format\<^sup>*\<^sup>* B (remove1_mset (the (fmlookup A x12)) (add_mset r B))\<close>
+       PAC_Format\<^sup>*\<^sup>* (\<V>, B) (\<V>, remove1_mset (the (fmlookup A x12)) (add_mset r B))\<close>
    \<open>r - x14 \<in> More_Modules.ideal polynom_bool \<Longrightarrow>
        (A, B) \<in> polys_rel \<Longrightarrow>
        the (fmlookup A x11) + the (fmlookup A x12) - r \<in> More_Modules.ideal polynom_bool \<Longrightarrow>
        x11 \<in># dom_m A \<Longrightarrow>
        x12 \<in># dom_m A \<Longrightarrow>
-       PAC_Format\<^sup>*\<^sup>* B (add_mset r B)\<close>
+       vars r \<subseteq> vars (the (fmlookup A x11) + the (fmlookup A x12)) \<Longrightarrow>
+       PAC_Format\<^sup>*\<^sup>* (\<V>, B) (\<V>, add_mset r B)\<close>
    \<open>r - x14 \<in> More_Modules.ideal polynom_bool \<Longrightarrow>
        (A, B) \<in> polys_rel \<Longrightarrow>
        x11 \<in># dom_m A \<Longrightarrow>
        x12 \<in># dom_m A \<Longrightarrow>
        the (fmlookup A x11) + the (fmlookup A x12) - r \<in> More_Modules.ideal polynom_bool \<Longrightarrow>
+       vars r \<subseteq> vars (the (fmlookup A x11) + the (fmlookup A x12)) \<Longrightarrow>
        x11 \<noteq> x12 \<Longrightarrow>
-       PAC_Format\<^sup>*\<^sup>* B
-        (add_mset r B - {#the (fmlookup A x11), the (fmlookup A x12)#})\<close>
+       PAC_Format\<^sup>*\<^sup>* (\<V>, B)
+        (\<V>, add_mset r B - {#the (fmlookup A x11), the (fmlookup A x12)#})\<close>
    \<open>(A, B) \<in> polys_rel \<Longrightarrow>
        r - x34 \<in> More_Modules.ideal polynom_bool \<Longrightarrow>
        x11 \<in># dom_m A \<Longrightarrow>
        the (fmlookup A x11) * x32 - r \<in> More_Modules.ideal polynom_bool \<Longrightarrow>
-       PAC_Format\<^sup>*\<^sup>* B (add_mset r B)\<close>
+       vars x32 \<subseteq> \<V> \<Longrightarrow>
+       vars r \<subseteq> vars (the (fmlookup A x11) * x32) \<Longrightarrow>
+       PAC_Format\<^sup>*\<^sup>* (\<V>, B) (\<V>, add_mset r B)\<close>
    \<open>(A, B) \<in> polys_rel \<Longrightarrow>
        r - x34 \<in> More_Modules.ideal polynom_bool \<Longrightarrow>
        x11 \<in># dom_m A \<Longrightarrow>
        the (fmlookup A x11) * x32 - r \<in> More_Modules.ideal polynom_bool \<Longrightarrow>
-       PAC_Format\<^sup>*\<^sup>* B (remove1_mset (the (fmlookup A x11)) (add_mset r B))\<close>
+       vars x32 \<subseteq> \<V> \<Longrightarrow>
+       vars r \<subseteq> vars (the (fmlookup A x11) * x32) \<Longrightarrow>
+       PAC_Format\<^sup>*\<^sup>* (\<V>, B) (\<V>, remove1_mset (the (fmlookup A x11)) (add_mset r B))\<close>
   \<open>(A, B) \<in> polys_rel \<Longrightarrow>
        x12 \<in># dom_m A \<Longrightarrow>
-       PAC_Format\<^sup>*\<^sup>* B (remove1_mset (the (fmlookup A x12)) B)\<close>
+       PAC_Format\<^sup>*\<^sup>* (\<V>, B) (\<V>, remove1_mset (the (fmlookup A x12)) B)\<close>
    subgoal
      apply (rule converse_rtranclp_into_rtranclp)
      apply (rule PAC_Format.add[of \<open>the (fmlookup A x12)\<close> B \<open>the (fmlookup A x12)\<close>])
