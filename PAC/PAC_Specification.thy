@@ -66,13 +66,22 @@ if
    \<open>vars q \<subseteq> \<V>\<close> |
 del:
    \<open>p \<in># A \<Longrightarrow> PAC_Format (\<V>, A) (\<V>, A - {#p#})\<close> |
-extend:
+extend_pos:
   \<open>PAC_Format (\<V>, A) (\<V> \<union> {x \<in> vars p'. x \<notin> \<V>}, add_mset p' A)\<close>
   if
     \<open>x \<in> vars p'\<close>
     \<open>coeff p' (Poly_Mapping.single x 1) = 1\<close>
-    \<open>(p' - Var x)^2 - (p' - Var x) = 0\<close>
+    \<open>(Var x - p')\<^sup>2 - (Var x - p') \<in> ideal polynom_bool\<close>
     \<open>x \<notin> \<V>\<close>
+    \<open>x \<notin> vars(p' - Var x)\<close> |
+extend_minus:
+  \<open>PAC_Format (\<V>, A) (\<V> \<union> {x \<in> vars p'. x \<notin> \<V>}, add_mset p' A)\<close>
+  if
+    \<open>x \<in> vars p'\<close>
+    \<open>coeff p' (Poly_Mapping.single x 1) = -1\<close>
+    \<open>(Var x + p')^2 - (Var x + p') \<in> ideal polynom_bool\<close>
+    \<open>x \<notin> \<V>\<close>
+    \<open>x \<notin> vars(p' + Var x)\<close>
 
 lemmas  PAC_Format_induct_split =
    PAC_Format.induct[split_format(complete), of V A V' A' for V A V' A']
@@ -85,7 +94,11 @@ lemma PAC_Format_induct[consumes 1, case_names add mult del ext]:
       \<open>\<And>p q p' A \<V>. p \<in># A \<Longrightarrow> p*q - p' \<in> ideal polynom_bool \<Longrightarrow> vars p' \<subseteq> vars (p * q) \<Longrightarrow> vars q \<subseteq> \<V> \<Longrightarrow>
         P \<V> A \<V> (add_mset p' A)\<close>
       \<open>\<And>p A \<V>. p \<in># A \<Longrightarrow> P \<V> A \<V> (A - {#p#})\<close>
-      \<open>\<And>p' x. x \<in> vars p' \<Longrightarrow> coeff p' (Poly_Mapping.single x 1) = -1 \<or> coeff p' (Poly_Mapping.single x 1) = 1 \<Longrightarrow>
+      \<open>\<And>p' x. x \<in> vars p' \<Longrightarrow> coeff p' (Poly_Mapping.single x 1) = 1 \<Longrightarrow>
+        (Var x - p')\<^sup>2 - (Var x - p') \<in> ideal polynom_bool \<Longrightarrow> x \<notin> vars(p' - Var x) \<Longrightarrow>
+        x \<notin> \<V> \<Longrightarrow> P \<V> A (\<V> \<union> {x \<in> vars p'. x \<notin> \<V>}) (add_mset p' A)\<close>
+      \<open>\<And>p' x. x \<in> vars p' \<Longrightarrow> coeff p' (Poly_Mapping.single x 1) = -1 \<Longrightarrow>
+        (Var x + p')^2 - (Var x + p') \<in> ideal polynom_bool \<Longrightarrow> x \<notin> vars(p' + Var x) \<Longrightarrow>
         x \<notin> \<V> \<Longrightarrow> P \<V> A (\<V> \<union> {x \<in> vars p'. x \<notin> \<V>}) (add_mset p' A)\<close>
   shows
      \<open>P \<V> A \<V>' A'\<close>
@@ -640,7 +653,7 @@ lemma extensions_are_safe:
     vars_q: \<open>vars q \<subseteq> \<V>\<close> and
     q: \<open>q \<in> More_Modules.ideal (insert p (set_mset A \<union> polynom_bool))\<close> and
     leading: \<open>x' \<notin> vars (p - Var x')\<close> and
-    diff: \<open>(Var x' - p)^2 - (Var x' - p) \<in> More_Modules.ideal polynom_bool\<close>
+    diff: \<open>(Var x' - p)\<^sup>2 - (Var x' - p) \<in> More_Modules.ideal polynom_bool\<close>
   shows
     \<open>q \<in> More_Modules.ideal (set_mset A \<union> polynom_bool)\<close>
 proof -
@@ -912,6 +925,34 @@ proof -
   qed
 qed
 
+lemma [simp]:
+  \<open>vars (-p) = vars p\<close>
+  by (auto simp: vars_def uminus_mpoly.rep_eq)
+
+lemma [simp]:
+  \<open>MPoly_Type.coeff (-p) x = -MPoly_Type.coeff p x\<close>
+  by (auto simp: coeff_def uminus_mpoly.rep_eq)
+
+lemma extensions_are_safe_uminus:
+  assumes \<open>x' \<in> vars p\<close> and
+    x': \<open>x' \<notin> \<V>\<close> and
+    \<open>\<Union> (vars ` set_mset A) \<subseteq> \<V>\<close> and
+    p_x_coeff: \<open>coeff p (monomial (Suc 0) x') = -1\<close> and
+    vars_q: \<open>vars q \<subseteq> \<V>\<close> and
+    q: \<open>q \<in> More_Modules.ideal (insert p (set_mset A \<union> polynom_bool))\<close> and
+    leading: \<open>x' \<notin> vars (p + Var x')\<close> and
+    diff: \<open>(Var x' + p)^2 - (Var x' + p) \<in> More_Modules.ideal polynom_bool\<close>
+  shows
+    \<open>q \<in> More_Modules.ideal (set_mset A \<union> polynom_bool)\<close>
+proof -
+  have \<open>q \<in> More_Modules.ideal (insert (- p) (set_mset A \<union> polynom_bool))\<close>
+    by (metis ideal.span_breakdown_eq minus_mult_minus q)
+
+  then show ?thesis
+    using extensions_are_safe[of x' \<open>-p\<close> \<V> A q] assms
+    using vars_in_right_only by force
+qed
+
 
 lemma PAC_Format_subset_ideal:
   \<open>PAC_Format (\<V>, A) (\<V>', B) \<Longrightarrow> \<Union>(vars ` set_mset A) \<subseteq> \<V> \<Longrightarrow>
@@ -931,9 +972,11 @@ lemma PAC_Format_subset_ideal:
     using pac_ideal_mono[of \<open>set_mset (A - {#p#})\<close> \<open>set_mset A\<close>]
     by (auto dest: in_diffD)
   subgoal for p x'
-    apply auto
-    apply (auto simp: pac_ideal_def vars_add)
-
+    using extensions_are_safe[of x' p \<V> A] unfolding pac_ideal_def
+    by auto
+  subgoal for p x'
+    using extensions_are_safe_uminus[of x' p \<V> A] unfolding pac_ideal_def
+    by auto
   done
 
 
@@ -947,7 +990,7 @@ lemma restricted_ideal_to_restricted_ideal_to\<^sub>ID:
 
 lemma rtranclp_PAC_Format_subset_ideal:
   \<open>rtranclp PAC_Format (\<V>, A) (\<V>', B) \<Longrightarrow> \<Union>(vars ` set_mset A) \<subseteq> \<V> \<Longrightarrow>
-     restricted_ideal_to \<V> (set_mset B) \<subseteq> restricted_ideal_to\<^sub>I \<V> A \<and> \<V> \<subseteq> \<V>' \<and> \<Union>(vars ` set_mset B) \<subseteq> \<V>'\<close>
+     restricted_ideal_to\<^sub>I \<V> B \<subseteq> restricted_ideal_to\<^sub>I \<V> A \<and> \<V> \<subseteq> \<V>' \<and> \<Union>(vars ` set_mset B) \<subseteq> \<V>'\<close>
   apply (induction rule:rtranclp_induct[of PAC_Format \<open>(_, _)\<close> \<open>(_, _)\<close>, split_format(complete)])
   subgoal
     by (simp add: restricted_ideal_to_restricted_ideal_to\<^sub>ID)
@@ -955,17 +998,8 @@ lemma rtranclp_PAC_Format_subset_ideal:
     apply (drule PAC_Format_subset_ideal)
     apply simp_all
     apply auto
-    sledgehammer
-  apply (simp_all add: ideal.span_base 
-       ideal.span_subset_spanI restricted_ideal_to_restricted_ideal_to\<^sub>ID)
-
-
-      apply (auto simp add: Collect_disj_eq pac_idealI1 restricted_ideal_to_def conj_disj_distribR Collect_conv_if
-        dest!: multi_member_split split: if_splits)
-apply auto
-      sorry
-  by (meson ideal.span_subset_spanI ideal.span_superset le_sup_iff subsetD)
-find_theorems "{_. _ = _ \<and>  _}"
+    by (smt Collect_mono_iff mem_Collect_eq restricted_ideal_to_def subset_trans)
+  done
 
 lemma ideal_mult_right_in:
   \<open>a \<in> ideal A \<Longrightarrow> a * b \<in> More_Modules.ideal A\<close>
@@ -974,6 +1008,5 @@ lemma ideal_mult_right_in:
 lemma ideal_mult_right_in2:
   \<open>a \<in> ideal A \<Longrightarrow> b * a \<in> More_Modules.ideal A\<close>
   by (metis ideal.span_scale)
-
 
 end
