@@ -75,9 +75,57 @@ definition error_msg_not_equal_dom where
 definition check_not_equal_dom_err :: \<open>llist_polynom \<Rightarrow> llist_polynom \<Rightarrow> llist_polynom \<Rightarrow> llist_polynom \<Rightarrow> string nres\<close> where
   \<open>check_not_equal_dom_err p q pq r = SPEC (\<lambda>_. True)\<close>
 
-definition check_addition_l :: \<open>_ \<Rightarrow> _ \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> llist_polynom \<Rightarrow> string code_status nres\<close> where
-\<open>check_addition_l spec A p q i r = do {
-   if p \<notin># dom_m A \<or> q \<notin># dom_m A \<or> i \<in># dom_m A
+
+lemma in_vars_addE:
+  \<open>x \<in> vars (p + q) \<Longrightarrow> (x \<in> vars p \<Longrightarrow> thesis) \<Longrightarrow> (x \<in> vars q \<Longrightarrow> thesis) \<Longrightarrow> thesis\<close>
+  by (meson UnE in_mono vars_add)
+
+lemma lookup_monomial_If:
+  \<open>lookup (monomial v k) = (\<lambda>k'. if k = k' then v else 0)\<close>
+  by (intro ext)
+   (auto simp:lookup_single_not_eq lookup_single_eq intro!: ext)
+
+lemma vars_mult_Var:
+  \<open>vars (Var x * p) = (if p = 0 then {} else insert x (vars p))\<close> for p :: \<open>int mpoly\<close>
+  apply (auto simp: vars_def times_mpoly.rep_eq
+    elim!: in_keys_timesE)
+  apply (metis Var.rep_eq Var\<^sub>0_def add.right_neutral in_keys_iff lookup_add lookup_single_not_eq)
+  apply (auto simp: keys_def lookup_times_monomial_left Var.rep_eq Var\<^sub>0_def adds_def)
+   apply (metis (no_types, hide_lams) One_nat_def ab_semigroup_add_class.add.commute
+     add_diff_cancel_right' aux lookup_add lookup_single_eq mapping_of_inject
+     neq0_conv one_neq_zero plus_eq_zero_2 zero_mpoly.rep_eq)
+  by (metis ab_semigroup_add_class.add.commute add_diff_cancel_left' add_less_same_cancel1 lookup_add neq0_conv not_less0)
+
+
+lemma keys_mult_monomial:
+  \<open>keys (monomial (n :: int) k * mapping_of a) = (if n = 0 then {} else ((+) k) ` keys (mapping_of a))\<close>
+proof -
+  have [simp]: \<open>(\<Sum>aa. (if k = aa then n else 0) *
+               (\<Sum>q. lookup (mapping_of a) q when k + xa = aa + q)) =
+        (\<Sum>aa. (if k = aa then n * (\<Sum>q. lookup (mapping_of a) q when k + xa = aa + q) else 0))\<close>
+      for xa
+    by (smt Sum_any.cong mult_not_zero)
+  show ?thesis
+  apply auto
+    apply (auto simp: vars_def times_mpoly.rep_eq Const.rep_eq
+      Const\<^sub>0_def elim!: in_keys_timesE split: if_splits)
+    apply (auto simp: lookup_monomial_If prod_fun_def
+      keys_def times_poly_mapping.rep_eq)
+    done
+qed
+
+lemma vars_mult_Const:
+  \<open>vars (Const n * a) = (if n = 0 then {} else vars a)\<close> for a :: \<open>int mpoly\<close>
+  by (auto simp: vars_def times_mpoly.rep_eq Const.rep_eq keys_mult_monomial
+    Const\<^sub>0_def elim!: in_keys_timesE split: if_splits)
+definition vars_llist :: \<open>llist_polynom \<Rightarrow> string set\<close> where
+\<open>vars_llist  xs = \<Union>(set ` fst ` set xs)\<close>
+
+
+definition check_addition_l :: \<open>_ \<Rightarrow> _ \<Rightarrow> string set \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> llist_polynom \<Rightarrow> string code_status nres\<close> where
+\<open>check_addition_l spec A \<V> p q i r = do {
+   let b = p \<in># dom_m A \<and> q \<in># dom_m A \<and> i \<notin># dom_m A \<and> vars_llist r \<subseteq> \<V>;
+   if \<not>b
    then RETURN (error_msg i ((if p \<notin># dom_m A then error_msg_notin_dom p else []) @ (if q \<notin># dom_m A then error_msg_notin_dom p else []) @
       (if i \<in># dom_m A then error_msg_reused_dom p else [])))
    else do {
@@ -147,9 +195,10 @@ lemma RES_RES_RETURN_RES: \<open>RES A \<bind> (\<lambda>T. RES (f T)) = RES (\<
 
 
 lemma check_add_alt_def:
-  \<open>check_add A \<V> p q i r =
+  \<open>check_add A \<V> p q i r \<ge>
     do {
-     if p \<notin># dom_m A \<or> q \<notin># dom_m A \<or> i \<in># dom_m A \<or> \<not>vars r \<subseteq> \<V>
+     b \<leftarrow> SPEC(\<lambda>b. b \<longrightarrow> p \<in># dom_m A \<and> q \<in># dom_m A \<and> i \<notin># dom_m A \<and> vars r \<subseteq> \<V>);
+     if \<not>b
      then RETURN False
      else do {
        ASSERT (p \<in># dom_m A);
@@ -160,13 +209,28 @@ lemma check_add_alt_def:
        eq \<leftarrow> weak_equality pq r;
        RETURN eq
      }
-  }\<close>
-  by (auto simp: check_add_def weak_equality_def
-      add_poly_spec_def RES_RES_RETURN_RES
-    intro!:  ideal.span_zero
-      exI[of _ \<open>the (fmlookup A p) + the (fmlookup A q)\<close>])
-
-
+  }\<close> (is \<open>_ \<ge> ?A\<close>)
+proof -
+  have check_add_alt_def: \<open>check_add A \<V> p q i r = do {
+     b \<leftarrow> SPEC(\<lambda>b. b \<longrightarrow> p \<in># dom_m A \<and> q \<in># dom_m A \<and> i \<notin># dom_m A \<and> vars r \<subseteq> \<V>);
+     if \<not>b then SPEC(\<lambda>b. b \<longrightarrow> p \<in># dom_m A \<and> q \<in># dom_m A \<and> i \<notin># dom_m A \<and> vars r \<subseteq> \<V> \<and>
+            the (fmlookup A p) + the (fmlookup A q) - r \<in>  ideal polynom_bool)
+     else
+       SPEC(\<lambda>b. b \<longrightarrow> p \<in># dom_m A \<and> q \<in># dom_m A \<and> i \<notin># dom_m A \<and> vars r \<subseteq> \<V> \<and>
+            the (fmlookup A p) + the (fmlookup A q) - r \<in>  ideal polynom_bool)}\<close>
+   (is \<open>_ = ?B\<close>)
+    by (auto simp: check_add_def RES_RES_RETURN_RES)
+   have \<open>?A \<le> \<Down> Id (check_add A \<V> p q i r)\<close>
+     apply refine_vcg
+     apply ((auto simp: check_add_alt_def weak_equality_def
+        add_poly_spec_def RES_RES_RETURN_RES summarize_ASSERT_conv
+      cong: if_cong
+      intro!:  ideal.span_zero;fail)+)
+      done
+   then show ?thesis
+     unfolding check_add_alt_def[symmetric]
+     by simp
+qed
 
 lemma check_mult_alt_def:
   \<open>check_mult A \<V> p q i r =
@@ -251,8 +315,6 @@ definition mononoms_equal_up_to_reorder where
      sorted_wrt (rel2p (term_order_rel \<times>\<^sub>r int_rel)) p' \<and>
      (\<forall> x \<in> mononoms p'. sorted_wrt (rel2p var_order_rel) x))\<close>
 
-definition vars_llist :: \<open>llist_polynom \<Rightarrow> string set\<close> where
-\<open>vars_llist  xs = \<Union>(set ` fst ` set xs)\<close>
 
 definition remap_polys_l :: \<open>llist_polynom \<Rightarrow> string set \<times> (nat, llist_polynom) fmap \<Rightarrow>
    (_ code_status \<times> string set \<times> (nat, llist_polynom) fmap) nres\<close> where
@@ -299,49 +361,6 @@ lemma
         (s0, p) \<in> mset_poly_rel \<Longrightarrow>
         (s, p) \<in> mset_poly_rel\<close>
   by (auto simp: mset_poly_rel_def normalize_poly_p_poly_of_mset)
-
-lemma in_vars_addE:
-  \<open>x \<in> vars (p + q) \<Longrightarrow> (x \<in> vars p \<Longrightarrow> thesis) \<Longrightarrow> (x \<in> vars q \<Longrightarrow> thesis) \<Longrightarrow> thesis\<close>
-  by (meson UnE in_mono vars_add)
-
-lemma lookup_monomial_If:
-  \<open>lookup (monomial v k) = (\<lambda>k'. if k = k' then v else 0)\<close>
-  by (intro ext)
-   (auto simp:lookup_single_not_eq lookup_single_eq intro!: ext)
-
-lemma vars_mult_Var:
-  \<open>vars (Var x * p) = (if p = 0 then {} else insert x (vars p))\<close> for p :: \<open>int mpoly\<close>
-  apply (auto simp: vars_def times_mpoly.rep_eq
-    elim!: in_keys_timesE)
-  apply (metis Var.rep_eq Var\<^sub>0_def add.right_neutral in_keys_iff lookup_add lookup_single_not_eq)
-  apply (auto simp: keys_def lookup_times_monomial_left Var.rep_eq Var\<^sub>0_def adds_def)
-   apply (metis (no_types, hide_lams) One_nat_def ab_semigroup_add_class.add.commute
-     add_diff_cancel_right' aux lookup_add lookup_single_eq mapping_of_inject
-     neq0_conv one_neq_zero plus_eq_zero_2 zero_mpoly.rep_eq)
-  by (metis ab_semigroup_add_class.add.commute add_diff_cancel_left' add_less_same_cancel1 lookup_add neq0_conv not_less0)
-
-
-lemma keys_mult_monomial:
-  \<open>keys (monomial (n :: int) k * mapping_of a) = (if n = 0 then {} else ((+) k) ` keys (mapping_of a))\<close>
-proof -
-  have [simp]: \<open>(\<Sum>aa. (if k = aa then n else 0) *
-               (\<Sum>q. lookup (mapping_of a) q when k + xa = aa + q)) =
-        (\<Sum>aa. (if k = aa then n * (\<Sum>q. lookup (mapping_of a) q when k + xa = aa + q) else 0))\<close>
-      for xa
-    by (smt Sum_any.cong mult_not_zero)
-  show ?thesis
-  apply auto
-    apply (auto simp: vars_def times_mpoly.rep_eq Const.rep_eq
-      Const\<^sub>0_def elim!: in_keys_timesE split: if_splits)
-    apply (auto simp: lookup_monomial_If prod_fun_def
-      keys_def times_poly_mapping.rep_eq)
-    done
-qed
-
-lemma vars_mult_Const:
-  \<open>vars (Const n * a) = (if n = 0 then {} else vars a)\<close> for a :: \<open>int mpoly\<close>
-  by (auto simp: vars_def times_mpoly.rep_eq Const.rep_eq keys_mult_monomial
-    Const\<^sub>0_def elim!: in_keys_timesE split: if_splits)
 
 lemma vars_poly_of_vars:
   \<open>vars (poly_of_vars a :: int mpoly) \<subseteq> (\<phi> ` set_mset a)\<close>
@@ -483,12 +502,28 @@ lemma error_msg_ne_SUCCES[iff]:
   \<open>\<not>is_cfound (error_msg i m)\<close>
   by (auto simp: error_msg_def)
 
+lemma sorted_poly_rel_vars_llist:
+  \<open>(r, r') \<in> sorted_poly_rel O mset_poly_rel \<Longrightarrow>
+   vars r' \<subseteq> \<phi> ` vars_llist r\<close>
+  apply (auto simp: mset_poly_rel_def
+      set_rel_def var_rel_def br_def vars_llist_def list_rel_append2 list_rel_append1
+      list_rel_split_right_iff list_mset_rel_def image_iff sorted_poly_list_rel_wrt_def
+    dest!: set_rev_mp[OF _ vars_polynom_of_mset]
+    dest!: split_list)
+    apply (auto dest!: multi_member_split simp: list_rel_append1
+      term_poly_list_rel_def eq_commute[of _ \<open>mset _\<close>]
+      list_rel_split_right_iff list_rel_append2 list_rel_split_left_iff
+      dest: arg_cong[of \<open>mset _\<close> \<open>add_mset _ _\<close> set_mset])
+    done
+
+
 lemma check_addition_l_check_add:
   assumes \<open>(A, B) \<in> fmap_polys_rel\<close> and \<open>(r, r') \<in> sorted_poly_rel O mset_poly_rel\<close>
     \<open>(p, p') \<in> Id\<close> \<open>(q, q') \<in> Id\<close> \<open>(i, i') \<in> nat_rel\<close>
+    \<open>(\<V>', \<V>) \<in> \<langle>var_rel\<rangle>set_rel\<close>
   shows
-    \<open>check_addition_l spec A p q i r \<le> \<Down> {(st, b). (\<not>is_cfailed st \<longleftrightarrow> b) \<and>
-       (is_cfound st \<longrightarrow> spec = r)} (check_add B p' q' i' r')\<close>
+    \<open>check_addition_l spec A \<V>' p q i r \<le> \<Down> {(st, b). (\<not>is_cfailed st \<longleftrightarrow> b) \<and>
+       (is_cfound st \<longrightarrow> spec = r)} (check_add B \<V> p' q' i' r')\<close>
 proof -
   have [refine]:
     \<open>add_poly_l (p, q) \<le> \<Down> (sorted_poly_rel O mset_poly_rel) (add_poly_spec p' q')\<close>
@@ -502,13 +537,20 @@ proof -
 
   show ?thesis
     using assms
-    unfolding check_addition_l_def check_add_alt_def
-      check_not_equal_dom_err_def
+    unfolding check_addition_l_def
+      check_not_equal_dom_err_def apply -
+    apply (rule order_trans)
+    defer
+    apply (rule ref_two_step')
+    apply (rule check_add_alt_def)
     apply refine_rcg
     subgoal
-      by auto
+      by (drule sorted_poly_rel_vars_llist)
+       (auto simp: set_rel_def var_rel_def br_def)
     subgoal
       by (auto simp: )
+    subgoal
+      by auto
     subgoal
       by auto
     subgoal
