@@ -151,9 +151,10 @@ definition check_mult_l_mult_err :: \<open>llist_polynom \<Rightarrow> llist_pol
   \<open>check_mult_l_mult_err p q pq r = SPEC (\<lambda>_. True)\<close>
 
 
-definition check_mult_l :: \<open>_ \<Rightarrow> _ \<Rightarrow> nat \<Rightarrow>llist_polynom \<Rightarrow>  nat \<Rightarrow> llist_polynom \<Rightarrow> string code_status nres\<close> where
-\<open>check_mult_l spec A p q i r = do {
-    if p \<notin># dom_m A \<or> i \<in># dom_m A
+definition check_mult_l :: \<open>_ \<Rightarrow> _ \<Rightarrow> _ \<Rightarrow> nat \<Rightarrow>llist_polynom \<Rightarrow>  nat \<Rightarrow> llist_polynom \<Rightarrow> string code_status nres\<close> where
+\<open>check_mult_l spec A \<V> p q i r = do {
+    let b = p \<in># dom_m A \<and> i \<notin># dom_m A \<and> vars_llist q \<subseteq> \<V>\<and> vars_llist r \<subseteq> \<V>;
+    if \<not>b
     then do {
       c \<leftarrow> check_mult_l_dom_err (p \<notin># dom_m A) p (i \<in># dom_m A) i;
       RETURN (error_msg i c)}
@@ -233,9 +234,10 @@ proof -
 qed
 
 lemma check_mult_alt_def:
-  \<open>check_mult A \<V> p q i r =
+  \<open>check_mult A \<V> p q i r \<ge>
     do {
-     if p \<notin># dom_m A \<or> i \<in># dom_m A\<or> \<not>vars q \<subseteq> \<V> \<or> \<not>vars r \<subseteq> \<V>
+     b \<leftarrow> SPEC(\<lambda>b. b \<longrightarrow> p \<in># dom_m A \<and> i \<notin># dom_m A \<and> vars q \<subseteq> \<V>  \<and> vars r \<subseteq> \<V>);
+     if \<not>b
      then RETURN False
      else do {
        ASSERT (p \<in># dom_m A);
@@ -245,7 +247,10 @@ lemma check_mult_alt_def:
        RETURN p
      }
   }\<close>
-  by (auto simp: check_mult_def weak_equality_def
+  unfolding check_mult_def
+  apply (rule refine_IdD)
+  by refine_vcg
+   (auto simp: check_mult_def weak_equality_def
       mult_poly_spec_def RES_RES_RETURN_RES
     intro!:  ideal.span_zero
       exI[of _ \<open>the (fmlookup A p) * q\<close>])
@@ -270,7 +275,7 @@ definition PAC_checker_l_step ::  _ where
      Add _ _ _ _ \<Rightarrow>
        do {
          r \<leftarrow> full_normalize_poly (pac_res st);
-        eq \<leftarrow> check_addition_l spec A (pac_src1 st) (pac_src2 st) (new_id st) r;
+        eq \<leftarrow> check_addition_l spec A \<V> (pac_src1 st) (pac_src2 st) (new_id st) r;
         let _ = eq;
         if \<not>is_cfailed eq
         then RETURN (merge_cstatus st' eq,
@@ -289,7 +294,7 @@ definition PAC_checker_l_step ::  _ where
        do {
          r \<leftarrow> full_normalize_poly (pac_res st);
          q \<leftarrow> full_normalize_poly (pac_mult st);
-        eq \<leftarrow> check_mult_l spec A (pac_src1 st) q (new_id st) r;
+        eq \<leftarrow> check_mult_l spec A \<V> (pac_src1 st) q (new_id st) r;
         let _ = eq;
         if \<not>is_cfailed eq
         then RETURN (merge_cstatus st' eq,
@@ -574,10 +579,10 @@ lemma check_del_l_check_del:
 lemma check_mult_l_check_mult:
   assumes \<open>(A, B) \<in> fmap_polys_rel\<close> and \<open>(r, r') \<in> sorted_poly_rel O mset_poly_rel\<close> and
     \<open>(q, q') \<in> sorted_poly_rel O mset_poly_rel\<close>
-    \<open>(p, p') \<in> Id\<close> \<open>(i, i') \<in> nat_rel\<close>
+    \<open>(p, p') \<in> Id\<close> \<open>(i, i') \<in> nat_rel\<close> \<open>(\<V>, \<V>') \<in> \<langle>var_rel\<rangle>set_rel\<close>
   shows
-    \<open>check_mult_l spec A p q i r \<le> \<Down>  {(st, b). (\<not>is_cfailed st \<longleftrightarrow> b) \<and>
-       (is_cfound st \<longrightarrow> spec = r)} (check_mult B p' q' i' r')\<close>
+    \<open>check_mult_l spec A \<V> p q i r \<le> \<Down>  {(st, b). (\<not>is_cfailed st \<longleftrightarrow> b) \<and>
+       (is_cfound st \<longrightarrow> spec = r)} (check_mult B \<V>' p' q' i' r')\<close>
 proof -
   have [refine]:
     \<open>mult_poly_full p q \<le> \<Down> (sorted_poly_rel O mset_poly_rel) (mult_poly_spec p' q')\<close>
@@ -591,9 +596,16 @@ proof -
 
   show ?thesis
     using assms
-    unfolding check_mult_l_def check_mult_alt_def
-      check_mult_l_mult_err_def check_mult_l_dom_err_def
+    unfolding check_mult_l_def 
+      check_mult_l_mult_err_def check_mult_l_dom_err_def apply -
+    apply (rule order_trans)
+    defer
+    apply (rule ref_two_step')
+    apply (rule check_mult_alt_def)
     apply refine_rcg
+    subgoal
+      by (drule sorted_poly_rel_vars_llist)+
+        (fastforce simp: set_rel_def var_rel_def br_def)
     subgoal
       by auto
     subgoal
