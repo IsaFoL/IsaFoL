@@ -26,7 +26,7 @@ be easily expressed in CDCL, but are important in a SAT solver:
   (Armin Biere calls these clauses irredundant).
 
 
-  The second idea was already included in the formalization of TWL
+The second idea was already included in the formalization of TWL
 because of (i) clauses of length one do not have two literals to
 watch; (ii) moving them away makes garbage collecting easier, because
 no reason at level 0 on the trail is included in the set of clauses.
@@ -35,15 +35,37 @@ We also started to implement the ideas one and three, but we realised
 while thinking about restarts that separate rules are needed to avoid
 a lot of copy-and-paste. It was also not clear how to add subsumption
 detection on the fly without restart (like done right after a
-backtrack in CaDiCaL or in SPASS).
+backtrack in CaDiCaL or in SPASS). In the end, we decided to go for a
+separate calculus that incorporates all theses rules: The idea is to
+have CDCL as the core part of the calculus and other rules that are
+optional.
 
 
 Termination still comes from the CDCL calculus: We do not want to
 apply the other rules exhaustively.
 
+Non-satisfiability-preserving clause additions are possible if all
+models after adding a clause are also models from the set of clauses
+before adding that clause.
 
-The idea is to have CDCL as the core part of the calculus and other
-rules that are optional.
+The calculus as expressed here does not deal with global
+transformations, like renumbering of variables or symmetry
+breaking. It only supports clause addition.
+
+There are still a few things that are missing in this calculus and
+require further thinking:
+
+  \<^enum> Non-satisfiability-preserving clause elimination (blocked clause
+  elimination, covered clauses). These transformations requires to
+  reconstruct the model, and it also not clear how to find these
+  clauses efficiently. Reconstruction is not that easy to express, and
+  it is not so clear how to implement it in the SAT solver.
+
+  \<^enum> Variable Elimination. Here reconstruction is also required. This
+  technique is however extremely powerful and likely a must for every
+  SAT solver.
+
+
 \<close>
 type_synonym 'v prag_st =
   \<open>('v, 'v clause) ann_lits \<times> 'v clauses \<times> 'v clauses \<times>
@@ -52,7 +74,7 @@ type_synonym 'v prag_st =
 
 fun state\<^sub>W_of :: \<open>'v prag_st \<Rightarrow> 'v cdcl\<^sub>W_restart_mset\<close> where
 \<open>state\<^sub>W_of (M, N, U, C, NE, UE, NS, US) =
-  (M, N + NE + NS, U + UE + US,  C)\<close>
+  (M, N + NE + NS, U + UE + US, C)\<close>
 
 declare cdcl\<^sub>W_restart_mset_state[simp]
 
