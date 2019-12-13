@@ -674,13 +674,8 @@ definition remap_polys :: \<open>int mpoly \<Rightarrow> fpac_step \<Rightarrow>
  })\<close>
 
 lemma remap_polys_spec:
-  \<open>remap_polys spec (\<V>, A) \<le> SPEC(\<lambda>(b, \<V>, A'). dom_m A = dom_m A' \<and>
-    (\<forall>i \<in># dom_m A. the (fmlookup A i) - the (fmlookup A' i) \<in> ideal polynom_bool) \<and>
-    (b = FOUND \<longrightarrow> spec \<in># ran_m A') \<and>
-    \<Union>(vars ` set_mset (ran_m A)) \<subseteq> \<V> \<and>
-    \<not>is_failed b)\<close>
-    (is \<open>_ \<le> SPEC(?P)\<close>)
-  unfolding remap_polys_def
+  \<open>remap_polys spec (\<V>, A) \<le> remap_polys_polynom_bool spec (\<V>, A)\<close>
+  unfolding remap_polys_def remap_polys_polynom_bool_def
   apply (refine_vcg FOREACH_rule[where
     I = \<open>\<lambda>dom (b, \<V>, A').
       set_mset (dom_m A') =  set_mset (dom_m A) - dom \<and>
@@ -722,11 +717,14 @@ lemma remap_polys_spec:
    subgoal
      by auto
    subgoal
-     by (auto simp: distinct_set_mset_eq_iff distinct_mset_dom)
+     by (auto simp: distinct_set_mset_eq_iff[symmetric] distinct_mset_dom)
    subgoal
-     by auto
+     by (auto simp: distinct_set_mset_eq_iff[symmetric] distinct_mset_dom)
    subgoal
-     by auto
+     by (auto simp add: ran_m_mapsto_upd_notin dom_m_fmrestrict_set' subset_eq
+       fmlookup_restrict_set_id')
+   subgoal
+     by (auto simp add: ran_m_mapsto_upd_notin dom_m_fmrestrict_set' subset_eq)
    subgoal
      by (auto simp add: ran_m_mapsto_upd_notin dom_m_fmrestrict_set' subset_eq
        fmlookup_restrict_set_id')
@@ -741,7 +739,8 @@ definition full_checker
   \<open>full_checker spec0 A pac = do {
      spec \<leftarrow> normalize_poly_spec spec0;
      (st, \<V>, A) \<leftarrow> remap_polys_change_all spec ({}, A);
-     PAC_checker spec (\<V> \<union> vars spec0, A) st pac
+     \<V> \<leftarrow> SPEC(\<lambda>\<V>'. \<V> \<union> vars spec0 \<subseteq> \<V>');
+     PAC_checker spec (\<V>, A) st pac
 }\<close>
 
 lemma restricted_ideal_to_mono:
