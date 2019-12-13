@@ -57,13 +57,13 @@ add:
 if
    \<open>p \<in># A\<close> \<open>q \<in># A\<close>
    \<open>p+q - p' \<in> ideal polynom_bool\<close>
-   \<open>vars p' \<subseteq> vars (p + q)\<close> |
+   \<open>vars p' \<subseteq> \<V>\<close> |
 mult:
   \<open>PAC_Format (\<V>, A) (\<V>, add_mset p' A)\<close>
 if
    \<open>p \<in># A\<close>
    \<open>p*q - p' \<in> ideal polynom_bool\<close>
-   \<open>vars p' \<subseteq> vars (p * q)\<close>
+   \<open>vars p' \<subseteq> \<V>\<close>
    \<open>vars q \<subseteq> \<V>\<close> |
 del:
    \<open>p \<in># A \<Longrightarrow> PAC_Format (\<V>, A) (\<V>, A - {#p#})\<close> |
@@ -100,8 +100,8 @@ lemma PAC_Format_induct[consumes 1, case_names add mult del ext]:
   assumes
     \<open>PAC_Format (\<V>, A) (\<V>', A')\<close> and
     cases:
-      \<open>\<And>p q p'  A \<V>. p \<in># A \<Longrightarrow> q \<in># A \<Longrightarrow> p+q - p' \<in> ideal polynom_bool \<Longrightarrow> vars p' \<subseteq> vars (p + q) \<Longrightarrow> P \<V> A \<V> (add_mset p' A)\<close>
-      \<open>\<And>p q p' A \<V>. p \<in># A \<Longrightarrow> p*q - p' \<in> ideal polynom_bool \<Longrightarrow> vars p' \<subseteq> vars (p * q) \<Longrightarrow> vars q \<subseteq> \<V> \<Longrightarrow>
+      \<open>\<And>p q p'  A \<V>. p \<in># A \<Longrightarrow> q \<in># A \<Longrightarrow> p+q - p' \<in> ideal polynom_bool \<Longrightarrow> vars p' \<subseteq> \<V> \<Longrightarrow> P \<V> A \<V> (add_mset p' A)\<close>
+      \<open>\<And>p q p' A \<V>. p \<in># A \<Longrightarrow> p*q - p' \<in> ideal polynom_bool \<Longrightarrow> vars p' \<subseteq> \<V> \<Longrightarrow> vars q \<subseteq> \<V> \<Longrightarrow>
         P \<V> A \<V> (add_mset p' A)\<close>
       \<open>\<And>p A \<V>. p \<in># A \<Longrightarrow> P \<V> A \<V> (A - {#p#})\<close>
       \<open>\<And>p' x. x \<in> vars p' \<Longrightarrow> coeff p' (Poly_Mapping.single x 1) = 1 \<Longrightarrow>
@@ -963,7 +963,7 @@ lemma PAC_Format_subset_ideal:
   apply (induction rule:PAC_Format_induct)
   subgoal for p q pq A \<V>
     using vars_add
-    by (fastforce simp: ideal.span_add_eq ideal.span_base pac_ideal_insert_already_in[OF diff_in_polynom_bool_pac_idealI[of \<open>p + q\<close> \<open>_\<close> pq]]
+    by (force simp: ideal.span_add_eq ideal.span_base pac_ideal_insert_already_in[OF diff_in_polynom_bool_pac_idealI[of \<open>p + q\<close> \<open>_\<close> pq]]
         pac_ideal_add
       intro!: diff_in_polynom_bool_pac_idealI[of \<open>p + q\<close> \<open>_\<close> pq])
   subgoal for p q pq

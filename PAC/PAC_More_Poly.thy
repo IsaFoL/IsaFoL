@@ -308,11 +308,11 @@ lemma MPoly_monomial_power:
   by auto
 
 
-lemma [simp]:
+lemma vars_uminus[simp]:
   \<open>vars (-p) = vars p\<close>
   by (auto simp: vars_def uminus_mpoly.rep_eq)
 
-lemma [simp]:
+lemma coeff_uminus[simp]:
   \<open>MPoly_Type.coeff (-p) x = -MPoly_Type.coeff p x\<close>
   by (auto simp: coeff_def uminus_mpoly.rep_eq)
 
