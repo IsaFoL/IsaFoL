@@ -5,7 +5,7 @@ begin
 definition string_rel :: \<open>(String.literal \<times> string) set\<close> where
   \<open>string_rel = {(x, y). y = String.explode x}\<close>
 
-abbreviation string_assn :: \<open>string \<Rightarrow> String.literal \<Rightarrow> assn\<close> where
+nabbreviation string_assn :: \<open>string \<Rightarrow> String.literal \<Rightarrow> assn\<close> where
   \<open>string_assn \<equiv> pure string_rel\<close>
 
 lemma eq_string_eq:

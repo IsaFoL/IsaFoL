@@ -1,7 +1,7 @@
 theory PAC_Checker_Synthesis
   imports PAC_Checker WB_Sort PAC_Checker_Relation
     PAC_Checker_Init
-    "../Weidenbach_Book/WB_More_Refinement_Loops"
+    "../Weidenbach_Book/Watched_Literals/WB_More_Refinement_Loops"
 begin
 
 hide_const (open) Autoref_Fix_Rel.CONSTRAINT

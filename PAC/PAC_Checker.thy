@@ -75,9 +75,57 @@ definition error_msg_not_equal_dom where
 definition check_not_equal_dom_err :: \<open>llist_polynom \<Rightarrow> llist_polynom \<Rightarrow> llist_polynom \<Rightarrow> llist_polynom \<Rightarrow> string nres\<close> where
   \<open>check_not_equal_dom_err p q pq r = SPEC (\<lambda>_. True)\<close>
 
-definition check_addition_l :: \<open>_ \<Rightarrow> _ \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> llist_polynom \<Rightarrow> string code_status nres\<close> where
-\<open>check_addition_l spec A p q i r = do {
-   if p \<notin># dom_m A \<or> q \<notin># dom_m A \<or> i \<in># dom_m A
+
+lemma in_vars_addE:
+  \<open>x \<in> vars (p + q) \<Longrightarrow> (x \<in> vars p \<Longrightarrow> thesis) \<Longrightarrow> (x \<in> vars q \<Longrightarrow> thesis) \<Longrightarrow> thesis\<close>
+  by (meson UnE in_mono vars_add)
+
+lemma lookup_monomial_If:
+  \<open>lookup (monomial v k) = (\<lambda>k'. if k = k' then v else 0)\<close>
+  by (intro ext)
+   (auto simp:lookup_single_not_eq lookup_single_eq intro!: ext)
+
+lemma vars_mult_Var:
+  \<open>vars (Var x * p) = (if p = 0 then {} else insert x (vars p))\<close> for p :: \<open>int mpoly\<close>
+  apply (auto simp: vars_def times_mpoly.rep_eq
+    elim!: in_keys_timesE)
+  apply (metis Var.rep_eq Var\<^sub>0_def add.right_neutral in_keys_iff lookup_add lookup_single_not_eq)
+  apply (auto simp: keys_def lookup_times_monomial_left Var.rep_eq Var\<^sub>0_def adds_def)
+   apply (metis (no_types, hide_lams) One_nat_def ab_semigroup_add_class.add.commute
+     add_diff_cancel_right' aux lookup_add lookup_single_eq mapping_of_inject
+     neq0_conv one_neq_zero plus_eq_zero_2 zero_mpoly.rep_eq)
+  by (metis ab_semigroup_add_class.add.commute add_diff_cancel_left' add_less_same_cancel1 lookup_add neq0_conv not_less0)
+
+
+lemma keys_mult_monomial:
+  \<open>keys (monomial (n :: int) k * mapping_of a) = (if n = 0 then {} else ((+) k) ` keys (mapping_of a))\<close>
+proof -
+  have [simp]: \<open>(\<Sum>aa. (if k = aa then n else 0) *
+               (\<Sum>q. lookup (mapping_of a) q when k + xa = aa + q)) =
+        (\<Sum>aa. (if k = aa then n * (\<Sum>q. lookup (mapping_of a) q when k + xa = aa + q) else 0))\<close>
+      for xa
+    by (smt Sum_any.cong mult_not_zero)
+  show ?thesis
+  apply auto
+    apply (auto simp: vars_def times_mpoly.rep_eq Const.rep_eq
+      Const\<^sub>0_def elim!: in_keys_timesE split: if_splits)
+    apply (auto simp: lookup_monomial_If prod_fun_def
+      keys_def times_poly_mapping.rep_eq)
+    done
+qed
+
+lemma vars_mult_Const:
+  \<open>vars (Const n * a) = (if n = 0 then {} else vars a)\<close> for a :: \<open>int mpoly\<close>
+  by (auto simp: vars_def times_mpoly.rep_eq Const.rep_eq keys_mult_monomial
+    Const\<^sub>0_def elim!: in_keys_timesE split: if_splits)
+definition vars_llist :: \<open>llist_polynom \<Rightarrow> string set\<close> where
+\<open>vars_llist  xs = \<Union>(set ` fst ` set xs)\<close>
+
+
+definition check_addition_l :: \<open>_ \<Rightarrow> _ \<Rightarrow> string set \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> llist_polynom \<Rightarrow> string code_status nres\<close> where
+\<open>check_addition_l spec A \<V> p q i r = do {
+   let b = p \<in># dom_m A \<and> q \<in># dom_m A \<and> i \<notin># dom_m A \<and> vars_llist r \<subseteq> \<V>;
+   if \<not>b
    then RETURN (error_msg i ((if p \<notin># dom_m A then error_msg_notin_dom p else []) @ (if q \<notin># dom_m A then error_msg_notin_dom p else []) @
       (if i \<in># dom_m A then error_msg_reused_dom p else [])))
    else do {
@@ -103,9 +151,10 @@ definition check_mult_l_mult_err :: \<open>llist_polynom \<Rightarrow> llist_pol
   \<open>check_mult_l_mult_err p q pq r = SPEC (\<lambda>_. True)\<close>
 
 
-definition check_mult_l :: \<open>_ \<Rightarrow> _ \<Rightarrow> nat \<Rightarrow>llist_polynom \<Rightarrow>  nat \<Rightarrow> llist_polynom \<Rightarrow> string code_status nres\<close> where
-\<open>check_mult_l spec A p q i r = do {
-    if p \<notin># dom_m A \<or> i \<in># dom_m A
+definition check_mult_l :: \<open>_ \<Rightarrow> _ \<Rightarrow> _ \<Rightarrow> nat \<Rightarrow>llist_polynom \<Rightarrow>  nat \<Rightarrow> llist_polynom \<Rightarrow> string code_status nres\<close> where
+\<open>check_mult_l spec A \<V> p q i r = do {
+    let b = p \<in># dom_m A \<and> i \<notin># dom_m A \<and> vars_llist q \<subseteq> \<V>\<and> vars_llist r \<subseteq> \<V>;
+    if \<not>b
     then do {
       c \<leftarrow> check_mult_l_dom_err (p \<notin># dom_m A) p (i \<in># dom_m A) i;
       RETURN (error_msg i c)}
@@ -147,9 +196,10 @@ lemma RES_RES_RETURN_RES: \<open>RES A \<bind> (\<lambda>T. RES (f T)) = RES (\<
 
 
 lemma check_add_alt_def:
-  \<open>check_add A p q i r =
+  \<open>check_add A \<V> p q i r \<ge>
     do {
-     if p \<notin># dom_m A \<or> q \<notin># dom_m A \<or> i \<in># dom_m A
+     b \<leftarrow> SPEC(\<lambda>b. b \<longrightarrow> p \<in># dom_m A \<and> q \<in># dom_m A \<and> i \<notin># dom_m A \<and> vars r \<subseteq> \<V>);
+     if \<not>b
      then RETURN False
      else do {
        ASSERT (p \<in># dom_m A);
@@ -160,18 +210,34 @@ lemma check_add_alt_def:
        eq \<leftarrow> weak_equality pq r;
        RETURN eq
      }
-  }\<close>
-  by (auto simp: check_add_def weak_equality_def
-      add_poly_spec_def RES_RES_RETURN_RES
-    intro!:  ideal.span_zero
-      exI[of _ \<open>the (fmlookup A p) + the (fmlookup A q)\<close>])
-
-
+  }\<close> (is \<open>_ \<ge> ?A\<close>)
+proof -
+  have check_add_alt_def: \<open>check_add A \<V> p q i r = do {
+     b \<leftarrow> SPEC(\<lambda>b. b \<longrightarrow> p \<in># dom_m A \<and> q \<in># dom_m A \<and> i \<notin># dom_m A \<and> vars r \<subseteq> \<V>);
+     if \<not>b then SPEC(\<lambda>b. b \<longrightarrow> p \<in># dom_m A \<and> q \<in># dom_m A \<and> i \<notin># dom_m A \<and> vars r \<subseteq> \<V> \<and>
+            the (fmlookup A p) + the (fmlookup A q) - r \<in>  ideal polynom_bool)
+     else
+       SPEC(\<lambda>b. b \<longrightarrow> p \<in># dom_m A \<and> q \<in># dom_m A \<and> i \<notin># dom_m A \<and> vars r \<subseteq> \<V> \<and>
+            the (fmlookup A p) + the (fmlookup A q) - r \<in>  ideal polynom_bool)}\<close>
+   (is \<open>_ = ?B\<close>)
+    by (auto simp: check_add_def RES_RES_RETURN_RES)
+   have \<open>?A \<le> \<Down> Id (check_add A \<V> p q i r)\<close>
+     apply refine_vcg
+     apply ((auto simp: check_add_alt_def weak_equality_def
+        add_poly_spec_def RES_RES_RETURN_RES summarize_ASSERT_conv
+      cong: if_cong
+      intro!:  ideal.span_zero;fail)+)
+      done
+   then show ?thesis
+     unfolding check_add_alt_def[symmetric]
+     by simp
+qed
 
 lemma check_mult_alt_def:
-  \<open>check_mult A p q i r =
+  \<open>check_mult A \<V> p q i r \<ge>
     do {
-     if p \<notin># dom_m A \<or> i \<in># dom_m A
+     b \<leftarrow> SPEC(\<lambda>b. b \<longrightarrow> p \<in># dom_m A \<and> i \<notin># dom_m A \<and> vars q \<subseteq> \<V>  \<and> vars r \<subseteq> \<V>);
+     if \<not>b
      then RETURN False
      else do {
        ASSERT (p \<in># dom_m A);
@@ -181,7 +247,10 @@ lemma check_mult_alt_def:
        RETURN p
      }
   }\<close>
-  by (auto simp: check_mult_def weak_equality_def
+  unfolding check_mult_def
+  apply (rule refine_IdD)
+  by refine_vcg
+   (auto simp: check_mult_def weak_equality_def
       mult_poly_spec_def RES_RES_RETURN_RES
     intro!:  ideal.span_zero
       exI[of _ \<open>the (fmlookup A p) * q\<close>])
@@ -202,35 +271,35 @@ lemma ref_two_step':
   using ref_two_step by auto
 
 definition PAC_checker_l_step ::  _ where
-  \<open>PAC_checker_l_step = (\<lambda>spec (st', A) st. case st of
+  \<open>PAC_checker_l_step = (\<lambda>spec (st', \<V>, A) st. case st of
      Add _ _ _ _ \<Rightarrow>
        do {
          r \<leftarrow> full_normalize_poly (pac_res st);
-        eq \<leftarrow> check_addition_l spec A (pac_src1 st) (pac_src2 st) (new_id st) r;
+        eq \<leftarrow> check_addition_l spec A \<V> (pac_src1 st) (pac_src2 st) (new_id st) r;
         let _ = eq;
         if \<not>is_cfailed eq
         then RETURN (merge_cstatus st' eq,
-          fmupd (new_id st) r A)
-        else RETURN (eq, A)
+          \<V>, fmupd (new_id st) r A)
+        else RETURN (eq, \<V>, A)
    }
    | Del _ \<Rightarrow>
        do {
         eq \<leftarrow> check_del_l spec A (pac_src1 st);
         let _ = eq;
         if \<not>is_cfailed eq
-        then RETURN (merge_cstatus st' eq, fmdrop (pac_src1 st) A)
-        else RETURN (eq, A)
+        then RETURN (merge_cstatus st' eq, \<V>, fmdrop (pac_src1 st) A)
+        else RETURN (eq, \<V>, A)
    }
    | Mult _ _ _ _ \<Rightarrow>
        do {
          r \<leftarrow> full_normalize_poly (pac_res st);
          q \<leftarrow> full_normalize_poly (pac_mult st);
-        eq \<leftarrow> check_mult_l spec A (pac_src1 st) q (new_id st) r;
+        eq \<leftarrow> check_mult_l spec A \<V> (pac_src1 st) q (new_id st) r;
         let _ = eq;
         if \<not>is_cfailed eq
         then RETURN (merge_cstatus st' eq,
-          fmupd (new_id st) r A)
-        else RETURN (eq, A)
+          \<V>, fmupd (new_id st) r A)
+        else RETURN (eq, \<V>, A)
    }
  )\<close>
 
@@ -251,20 +320,23 @@ definition mononoms_equal_up_to_reorder where
      sorted_wrt (rel2p (term_order_rel \<times>\<^sub>r int_rel)) p' \<and>
      (\<forall> x \<in> mononoms p'. sorted_wrt (rel2p var_order_rel) x))\<close>
 
-definition remap_polys_l :: \<open>llist_polynom \<Rightarrow> (nat, llist_polynom) fmap \<Rightarrow> _ nres\<close> where
-  \<open>remap_polys_l spec A = do{
+
+definition remap_polys_l :: \<open>llist_polynom \<Rightarrow> string set \<times> (nat, llist_polynom) fmap \<Rightarrow>
+   (_ code_status \<times> string set \<times> (nat, llist_polynom) fmap) nres\<close> where
+  \<open>remap_polys_l spec = (\<lambda>(\<V>, A). do{
    dom \<leftarrow> SPEC(\<lambda>dom. set_mset (dom_m A) \<subseteq> dom \<and> finite dom);
-   (A, b) \<leftarrow> FOREACH dom
-     (\<lambda>i (A', b).
+   (b, \<V>, A) \<leftarrow> FOREACH dom
+     (\<lambda>i (b, \<V>,  A').
         if i \<in># dom_m A
         then  do {
           p \<leftarrow> full_normalize_poly (the (fmlookup A i));
           eq \<leftarrow> weak_equality_p p spec;
-          RETURN(fmupd i p A', b \<or> eq)
-        } else RETURN (A', b))
-     (fmempty, False);
-   RETURN (A, if b then CFOUND else CSUCCESS)
- }\<close>
+          \<V> \<leftarrow> RETURN(\<V> \<union> vars_llist (the (fmlookup A i)));
+          RETURN(b \<or> eq, \<V>, fmupd i p A')
+        } else RETURN (b, \<V>, A'))
+     (False, \<V>, fmempty);
+   RETURN (if b then CFOUND else CSUCCESS, \<V>, A)
+ })\<close>
 
 definition PAC_checker_l where
   \<open>PAC_checker_l spec A b st = do {
@@ -295,11 +367,51 @@ lemma
         (s, p) \<in> mset_poly_rel\<close>
   by (auto simp: mset_poly_rel_def normalize_poly_p_poly_of_mset)
 
+lemma vars_poly_of_vars:
+  \<open>vars (poly_of_vars a :: int mpoly) \<subseteq> (\<phi> ` set_mset a)\<close>
+  by (induction a)
+   (auto simp: vars_mult_Var)
+
+lemma vars_polynom_of_mset:
+  \<open>vars (polynom_of_mset za) \<subseteq> \<Union>(image \<phi> ` (set_mset o fst) ` set_mset za)\<close>
+  apply (induction za)
+  using vars_poly_of_vars
+  by (fastforce elim!: in_vars_addE simp: vars_mult_Const split: if_splits)+
+
+lemma fully_unsorted_poly_rel_vars_subset_vars_llist:
+  \<open>(A, B) \<in> fully_unsorted_poly_rel O mset_poly_rel \<Longrightarrow> vars B \<subseteq> \<phi> ` vars_llist A \<close>
+  apply (auto simp: fully_unsorted_poly_list_rel_def mset_poly_rel_def
+      set_rel_def var_rel_def br_def vars_llist_def list_rel_append2 list_rel_append1
+      list_rel_split_right_iff list_mset_rel_def image_iff
+    dest!: set_rev_mp[OF _ vars_polynom_of_mset]
+    dest!: split_list)
+    apply (auto dest!: multi_member_split simp: list_rel_append1
+      unsorted_term_poly_list_rel_def eq_commute[of _ \<open>mset _\<close>]
+      list_rel_split_right_iff list_rel_append2 list_rel_split_left_iff
+      dest: arg_cong[of \<open>mset _\<close> \<open>add_mset _ _\<close> set_mset])
+    done
+
+lemma fully_unsorted_poly_rel_extend_vars:
+  \<open>(A, B) \<in> fully_unsorted_poly_rel O mset_poly_rel \<Longrightarrow>
+  (x1c, x1a) \<in> \<langle>var_rel\<rangle>set_rel \<Longrightarrow>
+   RETURN (x1c \<union> vars_llist A)
+    \<le> \<Down> (\<langle>var_rel\<rangle>set_rel)
+       (SPEC ((\<subseteq>) (x1a \<union> vars (B))))\<close>
+  using fully_unsorted_poly_rel_vars_subset_vars_llist[of A B]
+  apply (subst RETURN_RES_refine_iff)
+  apply clarsimp
+  apply (rule exI[of _ \<open>x1a \<union> \<phi> ` vars_llist A\<close>])
+  apply (auto simp: set_rel_def var_rel_def br_def
+    dest: fully_unsorted_poly_rel_vars_subset_vars_llist)
+  done
+
 lemma remap_polys_l_remap_polys:
   assumes
     AB: \<open>(A, B) \<in> \<langle>nat_rel, fully_unsorted_poly_rel O mset_poly_rel\<rangle>fmap_rel\<close> and
-    spec: \<open>(spec, spec') \<in> sorted_poly_rel O mset_poly_rel\<close>
-  shows \<open>remap_polys_l spec A \<le> \<Down>(fmap_polys_rel \<times>\<^sub>r code_status_status_rel) (remap_polys spec' B)\<close>
+    spec: \<open>(spec, spec') \<in> sorted_poly_rel O mset_poly_rel\<close> and
+    V: \<open>(\<V>, \<V>') \<in> \<langle>var_rel\<rangle>set_rel\<close>
+  shows \<open>remap_polys_l spec (\<V>, A) \<le> \<Down>(code_status_status_rel \<times>\<^sub>r \<langle>var_rel\<rangle>set_rel \<times>\<^sub>r fmap_polys_rel) (remap_polys spec' (\<V>', B))\<close>
+  (is \<open>_ \<le> \<Down> ?R _\<close>)
 proof -
   have 1: \<open>inj_on id (dom :: nat set)\<close> for dom
     by auto
@@ -311,7 +423,8 @@ proof -
   have full_normalize_poly: \<open>full_normalize_poly (the (fmlookup A x))
        \<le> \<Down> (sorted_poly_rel O mset_poly_rel)
           (SPEC
-            (\<lambda>p. the (fmlookup B x') - p \<in> More_Modules.ideal polynom_bool))\<close>
+            (\<lambda>p. the (fmlookup B x') - p \<in> More_Modules.ideal polynom_bool \<and>
+                 vars p \<subseteq> vars (the (fmlookup B x'))))\<close>
       if x_dom: \<open>x \<in># dom_m A\<close> and \<open>(x, x') \<in> Id\<close> for x x'
       apply (rule H[OF x_dom])
       subgoal for p
@@ -334,27 +447,32 @@ proof -
     by (metis (mono_tags) mem_Collect_eq poly_embed.mset_poly_rel_def prod.simps(2)
       sorted_poly_list_relD)
 
-  have emp: \<open>((fmempty, False), fmempty, False) \<in> fmap_polys_rel \<times>\<^sub>r bool_rel\<close>
+  have emp: \<open>(\<V>, \<V>') \<in> \<langle>var_rel\<rangle>set_rel \<Longrightarrow>
+    ((False, \<V>, fmempty), False, \<V>', fmempty) \<in> bool_rel \<times>\<^sub>r \<langle>var_rel\<rangle>set_rel \<times>\<^sub>r fmap_polys_rel\<close> for \<V> \<V>'
     by auto
   show ?thesis
     using assms
     unfolding remap_polys_l_def
-      remap_polys_def
+      remap_polys_def prod.case
     apply (refine_rcg full_normalize_poly fmap_rel_fmupd_fmap_rel)
     subgoal
       by auto
     apply (rule 1)
     subgoal by auto
     apply (rule emp)
+    subgoal
+      using V by auto
     subgoal by auto
     subgoal by auto
     subgoal by (rule H')
+    apply (rule fully_unsorted_poly_rel_extend_vars)
+    subgoal by (auto intro!: fmap_rel_fmupd_fmap_rel)
+    subgoal by (auto intro!: fmap_rel_fmupd_fmap_rel)
     subgoal by (auto intro!: fmap_rel_fmupd_fmap_rel)
     subgoal by auto
     subgoal by auto
     done
 qed
-
 
 
 lemma fref_to_Down_curry:
@@ -389,12 +507,28 @@ lemma error_msg_ne_SUCCES[iff]:
   \<open>\<not>is_cfound (error_msg i m)\<close>
   by (auto simp: error_msg_def)
 
+lemma sorted_poly_rel_vars_llist:
+  \<open>(r, r') \<in> sorted_poly_rel O mset_poly_rel \<Longrightarrow>
+   vars r' \<subseteq> \<phi> ` vars_llist r\<close>
+  apply (auto simp: mset_poly_rel_def
+      set_rel_def var_rel_def br_def vars_llist_def list_rel_append2 list_rel_append1
+      list_rel_split_right_iff list_mset_rel_def image_iff sorted_poly_list_rel_wrt_def
+    dest!: set_rev_mp[OF _ vars_polynom_of_mset]
+    dest!: split_list)
+    apply (auto dest!: multi_member_split simp: list_rel_append1
+      term_poly_list_rel_def eq_commute[of _ \<open>mset _\<close>]
+      list_rel_split_right_iff list_rel_append2 list_rel_split_left_iff
+      dest: arg_cong[of \<open>mset _\<close> \<open>add_mset _ _\<close> set_mset])
+    done
+
+
 lemma check_addition_l_check_add:
   assumes \<open>(A, B) \<in> fmap_polys_rel\<close> and \<open>(r, r') \<in> sorted_poly_rel O mset_poly_rel\<close>
     \<open>(p, p') \<in> Id\<close> \<open>(q, q') \<in> Id\<close> \<open>(i, i') \<in> nat_rel\<close>
+    \<open>(\<V>', \<V>) \<in> \<langle>var_rel\<rangle>set_rel\<close>
   shows
-    \<open>check_addition_l spec A p q i r \<le> \<Down> {(st, b). (\<not>is_cfailed st \<longleftrightarrow> b) \<and>
-       (is_cfound st \<longrightarrow> spec = r)} (check_add B p' q' i' r')\<close>
+    \<open>check_addition_l spec A \<V>' p q i r \<le> \<Down> {(st, b). (\<not>is_cfailed st \<longleftrightarrow> b) \<and>
+       (is_cfound st \<longrightarrow> spec = r)} (check_add B \<V> p' q' i' r')\<close>
 proof -
   have [refine]:
     \<open>add_poly_l (p, q) \<le> \<Down> (sorted_poly_rel O mset_poly_rel) (add_poly_spec p' q')\<close>
@@ -408,13 +542,20 @@ proof -
 
   show ?thesis
     using assms
-    unfolding check_addition_l_def check_add_alt_def
-      check_not_equal_dom_err_def
+    unfolding check_addition_l_def
+      check_not_equal_dom_err_def apply -
+    apply (rule order_trans)
+    defer
+    apply (rule ref_two_step')
+    apply (rule check_add_alt_def)
     apply refine_rcg
     subgoal
-      by auto
+      by (drule sorted_poly_rel_vars_llist)
+       (auto simp: set_rel_def var_rel_def br_def)
     subgoal
       by (auto simp: )
+    subgoal
+      by auto
     subgoal
       by auto
     subgoal
@@ -438,10 +579,10 @@ lemma check_del_l_check_del:
 lemma check_mult_l_check_mult:
   assumes \<open>(A, B) \<in> fmap_polys_rel\<close> and \<open>(r, r') \<in> sorted_poly_rel O mset_poly_rel\<close> and
     \<open>(q, q') \<in> sorted_poly_rel O mset_poly_rel\<close>
-    \<open>(p, p') \<in> Id\<close> \<open>(i, i') \<in> nat_rel\<close>
+    \<open>(p, p') \<in> Id\<close> \<open>(i, i') \<in> nat_rel\<close> \<open>(\<V>, \<V>') \<in> \<langle>var_rel\<rangle>set_rel\<close>
   shows
-    \<open>check_mult_l spec A p q i r \<le> \<Down>  {(st, b). (\<not>is_cfailed st \<longleftrightarrow> b) \<and>
-       (is_cfound st \<longrightarrow> spec = r)} (check_mult B p' q' i' r')\<close>
+    \<open>check_mult_l spec A \<V> p q i r \<le> \<Down>  {(st, b). (\<not>is_cfailed st \<longleftrightarrow> b) \<and>
+       (is_cfound st \<longrightarrow> spec = r)} (check_mult B \<V>' p' q' i' r')\<close>
 proof -
   have [refine]:
     \<open>mult_poly_full p q \<le> \<Down> (sorted_poly_rel O mset_poly_rel) (mult_poly_spec p' q')\<close>
@@ -455,9 +596,16 @@ proof -
 
   show ?thesis
     using assms
-    unfolding check_mult_l_def check_mult_alt_def
-      check_mult_l_mult_err_def check_mult_l_dom_err_def
+    unfolding check_mult_l_def 
+      check_mult_l_mult_err_def check_mult_l_dom_err_def apply -
+    apply (rule order_trans)
+    defer
+    apply (rule ref_two_step')
+    apply (rule check_mult_alt_def)
     apply refine_rcg
+    subgoal
+      by (drule sorted_poly_rel_vars_llist)+
+        (fastforce simp: set_rel_def var_rel_def br_def)
     subgoal
       by auto
     subgoal

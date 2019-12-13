@@ -257,7 +257,7 @@ lemma polynom_of_mset_mult_poly_raw[simp]:
 
 lemma X2_X_polynom_bool_mult_in:
   \<open>Var (x1) * (Var (x1) * p) -  Var (x1) * p \<in> More_Modules.ideal polynom_bool\<close>
-  using ideal_mult_right_in[OF  X2_X_in_pac_ideal[of x1 \<open>{}\<close>], of p]
+  using ideal_mult_right_in[OF  X2_X_in_pac_ideal[of x1 \<open>{}\<close>, unfolded pac_ideal_def], of p]
   by (auto simp: right_diff_distrib ac_simps power2_eq_square)
 
 
