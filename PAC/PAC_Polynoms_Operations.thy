@@ -1163,6 +1163,9 @@ begin
 definition mset_poly_rel where
   \<open>mset_poly_rel = {(a, b). b = polynom_of_mset a}\<close>
 
+definition var_rel where
+  \<open>var_rel = br \<phi> (\<lambda>_. True)\<close>
+
 lemma normalize_poly_p_normalize_poly_spec:
   \<open>(p, p') \<in> mset_poly_rel \<Longrightarrow>
     SPEC (\<lambda>r. normalize_poly_p\<^sup>*\<^sup>* p r) \<le> \<Down>mset_poly_rel (normalize_poly_spec p')\<close>

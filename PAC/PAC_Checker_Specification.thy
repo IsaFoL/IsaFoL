@@ -666,7 +666,8 @@ definition remap_polys :: \<open>int mpoly \<Rightarrow> fpac_step \<Rightarrow>
         then do {
           p \<leftarrow> SPEC(\<lambda>p. the (fmlookup A i) - p \<in> ideal polynom_bool \<and> vars p \<subseteq> vars (the (fmlookup A i)));
           eq \<leftarrow> SPEC(\<lambda>eq. eq \<longrightarrow> p = spec);
-          RETURN(b \<or> eq, \<V> \<union> vars (the (fmlookup A i)), fmupd i p A')
+          \<V> \<leftarrow> SPEC(\<lambda>\<V>'. \<V> \<union> vars (the (fmlookup A i)) \<subseteq> \<V>');
+          RETURN(b \<or> eq, \<V>, fmupd i p A')
         } else RETURN (b, \<V>, A'))
      (False, \<V>, fmempty);
      RETURN (if b then FOUND else SUCCESS, N)

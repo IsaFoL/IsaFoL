@@ -228,8 +228,8 @@ proof -
 qed
 
 lemma in_mapping_mult_single:
-  \<open>x \<in> (\<lambda>x. lookup x x') ` keys (mapping_of A * (Var\<^sub>0 x' :: (nat \<Rightarrow>\<^sub>0 nat) \<Rightarrow>\<^sub>0 'b :: {monoid_mult,zero_neq_one,semiring_0})) \<longleftrightarrow>
-    x > 0 \<and> x - 1 \<in> (\<lambda>x. lookup x x') ` keys (mapping_of A)\<close>
+  \<open>x \<in> (\<lambda>x. lookup x x') ` keys (A * (Var\<^sub>0 x' :: (nat \<Rightarrow>\<^sub>0 nat) \<Rightarrow>\<^sub>0 'b :: {monoid_mult,zero_neq_one,semiring_0})) \<longleftrightarrow>
+    x > 0 \<and> x - 1 \<in> (\<lambda>x. lookup x x') ` keys (A)\<close>
   apply (auto  elim!: in_keys_timesE simp: lookup_add)
   apply (auto simp: keys_def lookup_times_monomial_right Var\<^sub>0_def)
   apply (metis One_nat_def lookup_single_eq lookup_single_not_eq one_neq_zero)
