@@ -83,7 +83,7 @@ lemma term_order_rel_alt_def:
 
 instantiation char :: linorder
 begin
-  definition less_char where [symmetric, simp]: "less_char = PAC_Polynoms_Term.less_char" 
+  definition less_char where [symmetric, simp]: "less_char = PAC_Polynoms_Term.less_char"
   definition less_eq_char where [symmetric, simp]: "less_eq_char = PAC_Polynoms_Term.less_eq_char"
 instance
   apply standard
@@ -96,7 +96,7 @@ end
 
 instantiation list :: (linorder) linorder
 begin
-  definition less_list where  "less_list = lexordp (<)" 
+  definition less_list where  "less_list = lexordp (<)"
   definition less_eq_list where "less_eq_list = lexordp_eq"
 
 instance

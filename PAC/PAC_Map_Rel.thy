@@ -25,7 +25,7 @@ lemma fmap_rel_alt_def:
   unfolding fmap_rel_def dom_m_def fmember.rep_eq
   by auto
 
-lemma fmap_rel_empty1_simp[simp]: 
+lemma fmap_rel_empty1_simp[simp]:
   "(fmempty,m)\<in>\<langle>K,V\<rangle>fmap_rel \<longleftrightarrow> m=fmempty"
   apply (cases \<open>fmdom m = {||}\<close>)
   apply (auto simp: fmap_rel_def)
@@ -41,7 +41,7 @@ lemma fmap_rel_empty2_simp[simp]:
 
 sepref_decl_intf ('k,'v) f_map is "('k, 'v) fmap"
 
-lemma [synth_rules]: "\<lbrakk>INTF_OF_REL K TYPE('k); INTF_OF_REL V TYPE('v)\<rbrakk> 
+lemma [synth_rules]: "\<lbrakk>INTF_OF_REL K TYPE('k); INTF_OF_REL V TYPE('v)\<rbrakk>
   \<Longrightarrow> INTF_OF_REL (\<langle>K,V\<rangle>fmap_rel) TYPE(('k,'v) f_map)" by simp
 
 subsection \<open>Operations\<close>

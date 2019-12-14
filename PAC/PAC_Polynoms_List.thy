@@ -141,7 +141,7 @@ lemma normalized_poly_l_add_poly:
   subgoal
     by auto
   subgoal for xs n p ys m q
-    by auto 
+    by auto
      ((auto elim!: in_set_add_poly_in_mononoms_eitherE dest: antisympD transpD
         dest!: total_onD)+)
   done

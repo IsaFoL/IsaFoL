@@ -1542,7 +1542,7 @@ lemma fref_to_Down_curry2:
          f x y z \<le> \<Down> B (g x' y' z'))\<close>
   unfolding fref_def uncurry_def nres_rel_def
   by auto
-  
+
 lemma fref_to_Down_curry:
   \<open>(f, g) \<in> [P]\<^sub>f A \<rightarrow> \<langle>B\<rangle>nres_rel \<Longrightarrow>
      (\<And>x x' . P x' \<Longrightarrow> (x, x') \<in> A\<Longrightarrow>

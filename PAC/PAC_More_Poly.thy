@@ -267,7 +267,7 @@ lemma degree_mult_Var:
 
 lemma degree_mult_Var':
   \<open>degree (Var x' * A) x' = (if A = 0 then 0 else Suc (degree A x'))\<close> for A :: \<open>int mpoly\<close>
- by (simp add: degree_mult_Var semiring_normalization_rules(7)) 
+ by (simp add: degree_mult_Var semiring_normalization_rules(7))
 
 lemma degree_add_max:
   \<open>degree (A + B) x \<le> max (degree A x) (degree B x)\<close>

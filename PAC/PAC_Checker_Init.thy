@@ -867,7 +867,7 @@ lemma merge_monoms_merge_monoms2:
   \<open>(a, b) \<in> monom_rel \<Longrightarrow> (a', b') \<in> monom_rel \<Longrightarrow>
     (merge_monoms a a', merge_monoms b b') \<in> monom_rel\<close>
   using merge_monoms_merge_monoms
-  unfolding fun_rel_def merge_monoms_def 
+  unfolding fun_rel_def merge_monoms_def
   by auto
 
 

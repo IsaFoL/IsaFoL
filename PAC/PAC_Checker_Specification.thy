@@ -50,7 +50,7 @@ where
        (is_success b \<longrightarrow>
          \<Union>(vars ` set_mset A\<^sub>0) \<subseteq> \<V>\<^sub>0 \<and>
           \<Union>(vars ` set_mset A) \<subseteq> \<V> \<and> PAC_Format\<^sup>*\<^sup>* (\<V>\<^sub>0, A\<^sub>0) (\<V>, A) \<and> PAC_Format\<^sup>*\<^sup>* (\<V>, A) B) \<and>
-       (is_found b \<longrightarrow> 
+       (is_found b \<longrightarrow>
           \<Union>(vars ` set_mset A\<^sub>0) \<subseteq> \<V>\<^sub>0 \<and>
           \<Union>(vars ` set_mset A) \<subseteq> \<V> \<and> PAC_Format\<^sup>*\<^sup>* (\<V>\<^sub>0, A\<^sub>0) (\<V>, A) \<and> PAC_Format\<^sup>*\<^sup>* (\<V>, A) B \<and>
          spec \<in> pac_ideal (set_mset A\<^sub>0)))\<close>

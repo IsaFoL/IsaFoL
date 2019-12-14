@@ -31,7 +31,7 @@ lemma in_code_status_status_rel_iff[simp]:
   \<open>(a, FAILED) \<in> code_status_status_rel \<longleftrightarrow> is_cfailed a\<close>
   \<open>(CFAILED C, b) \<in> code_status_status_rel \<longleftrightarrow> b = FAILED\<close>
   by (cases a; cases b; auto simp: code_status_status_rel_def; fail)+
-  
+
 fun pac_step_rel_raw :: \<open>(nat \<times> nat) set \<Rightarrow> ('a \<times> 'b) set \<Rightarrow> 'a pac_step \<Rightarrow> 'b pac_step \<Rightarrow> bool\<close> where
 \<open>pac_step_rel_raw R1 R2 (Add p1 p2 i r) (Add p1' p2' i' r') \<longleftrightarrow>
    (p1, p1') \<in> R1 \<and> (p2, p2') \<in> R1 \<and> (i, i') \<in> R1 \<and>
@@ -619,7 +619,7 @@ proof -
 
   show ?thesis
     using assms
-    unfolding check_mult_l_def 
+    unfolding check_mult_l_def
       check_mult_l_mult_err_def check_mult_l_dom_err_def apply -
     apply (rule order_trans)
     defer

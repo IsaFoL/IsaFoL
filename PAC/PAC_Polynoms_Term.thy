@@ -128,7 +128,7 @@ lemma sorted_poly_list_rel_empty_l[simp]:
 definition fully_unsorted_poly_list_rel :: \<open>_ \<Rightarrow> (('a \<times> int) list \<times> mset_polynom) set\<close> where
   \<open>fully_unsorted_poly_list_rel R = {(xs, ys).
      (xs, ys) \<in> \<langle>R \<times>\<^sub>r int_rel\<rangle>list_rel O list_mset_rel}\<close>
- 
+
 abbreviation fully_unsorted_poly_rel where
   \<open>fully_unsorted_poly_rel \<equiv> fully_unsorted_poly_list_rel unsorted_term_poly_list_rel\<close>
 

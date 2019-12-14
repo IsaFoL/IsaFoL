@@ -196,19 +196,19 @@ lemma mult_monoms_alt_def:
           RETURN (y # pq)}))
      (x, y)\<close>
   apply (induction x y rule: mult_monoms.induct)
-  subgoal for p 
+  subgoal for p
     apply (subst RECT_unfold)
     apply refine_mono
     apply (cases p)
     apply auto
     done
-  subgoal for p 
+  subgoal for p
     apply (subst RECT_unfold)
     apply refine_mono
     apply (cases p)
     apply auto
     done
-  subgoal for x p y q 
+  subgoal for x p y q
     apply (subst RECT_unfold)
     apply refine_mono
     apply (auto simp: let_to_bind_conv)
@@ -343,7 +343,7 @@ lemma eq_poly_rel_eq[sepref_import_param]:
   using list_rel_sv[of \<open>monomial_rel\<close>, OF single_valued_monomial_rel]
   using list_rel_sv[OF single_valued_monomial_rel'[unfolded IS_LEFT_UNIQUE_def inv_list_rel_eq]]
   unfolding inv_list_rel_eq[symmetric]
-  by (auto intro!: frefI simp: 
+  by (auto intro!: frefI simp:
       rel2p_def single_valued_def p2rel_def
     simp del: inv_list_rel_eq)
 
@@ -751,7 +751,7 @@ lemma [sepref_fr_rules]:
    by (auto simp: hrp_comp_def hfprod_def)
 
 sepref_register remap_polys_l
-find_theorems \<open>{} = _\<close> name:hs
+
 sepref_definition full_checker_l_impl
   is \<open>uncurry2 full_checker_l\<close>
   :: \<open>poly_assn\<^sup>k *\<^sub>a polys_assn_input\<^sup>d *\<^sub>a (list_assn (pac_step_rel_assn (nat_assn) poly_assn))\<^sup>k \<rightarrow>\<^sub>a
@@ -779,7 +779,7 @@ sepref_definition empty_vars_impl
   :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a vars_assn\<close>
   unfolding hs.fold_custom_empty
   by sepref
-  
+
 export_code PAC_checker_l_impl PAC_update_impl PAC_empty_impl the_error is_cfailed is_cfound
   int_of_integer Del Add Mult nat_of_integer String.implode remap_polys_l_impl
   fully_normalize_poly_impl union_vars_poly_impl empty_vars_impl

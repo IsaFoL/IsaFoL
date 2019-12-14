@@ -824,7 +824,7 @@ proof -
     then show \<open>distinct (fst x)\<close>
       using dist by (metis \<open>x = (v, n)\<close> distinct_mset_mset_distinct fst_conv)
   qed
-  from this[of p s] this[of s p] 
+  from this[of p s] this[of s p]
   show \<open>?thesis\<close>
     unfolding assms
     by blast
