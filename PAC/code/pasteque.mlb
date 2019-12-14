@@ -22,4 +22,4 @@ in
 structure PAC_Parser
 end
 
-pactrim.sml
+pasteque.sml
