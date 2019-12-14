@@ -185,6 +185,7 @@ keep_coeff[simp, intro]:
 
 locale poly_embed =
   fixes \<phi> :: \<open>string \<Rightarrow> nat\<close>
+  assumes \<phi>_inj: \<open>inj \<phi>\<close>
 begin
 
 definition poly_of_vars :: "term_poly \<Rightarrow> ('a :: {comm_semiring_1}) mpoly" where
@@ -332,7 +333,7 @@ lemma poly_of_vars_remdups_mset:
   apply (induction xs)
   apply (auto dest!: simp: ideal.span_zero)
   apply (metis (no_types, lifting) diff_add_cancel ideal.span_diff insert_DiffM
-    linordered_field_class.sign_simps(11) poly_embed.X2_X_polynom_bool_mult_in
+    linordered_field_class.sign_simps(11) X2_X_polynom_bool_mult_in
     poly_of_vars_simps(1))
   by (metis ideal.span_scale right_diff_distrib')
 
@@ -353,8 +354,8 @@ next
     apply (subst ideal.span_add_eq2[symmetric, OF uP])
     apply (cases x)
     apply (auto simp: field_simps Const_mult)
-    by (metis ideal.span_scale poly_embed.poly_of_vars_remdups_mset
-      poly_embed.poly_of_vars_simps(2) right_diff_distrib')
+    by (metis ideal.span_scale poly_of_vars_remdups_mset
+      poly_of_vars_simps(2) right_diff_distrib')
 qed
 
 lemma mult_poly_p_mult_ideal:
