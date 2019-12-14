@@ -892,6 +892,7 @@ definition remap_polys_l2 :: \<open>llist_polynom \<Rightarrow> string set \<tim
           ASSERT(fmlookup A i \<noteq> None);
           p \<leftarrow> full_normalize_poly (the (fmlookup A i));
           eq \<leftarrow> weak_equality_p p spec;
+          \<V> \<leftarrow> RETURN (\<V> \<union> vars_llist (the (fmlookup A i)));
           RETURN(b \<or> eq, \<V>, fmupd i p A')
         } else RETURN (b, \<V>, A')
       )
@@ -900,10 +901,10 @@ definition remap_polys_l2 :: \<open>llist_polynom \<Rightarrow> string set \<tim
  })\<close>
 
 lemma remap_polys_l2_remap_polys_l:
-  \<open>remap_polys_l2 spec A \<le> \<Down> Id (remap_polys_l spec A)\<close>
+  \<open>remap_polys_l2 spec (\<V>, A) \<le> \<Down> Id (remap_polys_l spec (\<V>, A))\<close>
 proof -
-  have [refine]: \<open>upper_bound_on_dom A
-    \<le> \<Down> {(n, dom). dom = set [0..<n]} (SPEC (\<lambda>dom. set_mset (dom_m A) \<subseteq> dom \<and> finite dom))\<close>
+  have [refine]: \<open>(A, A') \<in> Id \<Longrightarrow> upper_bound_on_dom A
+    \<le> \<Down> {(n, dom). dom = set [0..<n]} (SPEC (\<lambda>dom. set_mset (dom_m A') \<subseteq> dom \<and> finite dom))\<close> for A A'
     unfolding upper_bound_on_dom_def
     apply (rule RES_refine)
     apply (auto simp: upper_bound_on_dom_def)
@@ -911,12 +912,13 @@ proof -
   have 1: \<open>inj_on id dom\<close> for dom
     by auto
   have 2: \<open>x \<in># dom_m A \<Longrightarrow>
-       x' \<in># dom_m A \<Longrightarrow>
+       x' \<in># dom_m A' \<Longrightarrow>
        (x, x') \<in> nat_rel \<Longrightarrow>
+       (A, A') \<in> Id \<Longrightarrow>
        full_normalize_poly (the (fmlookup A x))
        \<le> \<Down> Id
-          (full_normalize_poly (the (fmlookup A x')))\<close>
-       for A x x'
+          (full_normalize_poly (the (fmlookup A' x')))\<close>
+       for A A' x x'
        by (auto)
   have 3: \<open>(n, dom) \<in> {(n, dom). dom = set [0..<n]} \<Longrightarrow>
        ([0..<n], dom) \<in> \<langle>nat_rel\<rangle>list_set_rel\<close> for n dom
@@ -924,29 +926,26 @@ proof -
   have 4: \<open>(p,q) \<in> Id \<Longrightarrow>
     weak_equality_p p spec \<le> \<Down>Id (weak_equality_p q spec)\<close> for p q spec
     by auto
-  have 5: \<open>\<And>n dom x xi s si x1 x2 x1a x2a p pa eqa eqaa.
-       (n, dom) \<in> {(n, dom). dom = set [0..<n]} \<Longrightarrow>
-       dom \<in> {dom. set_mset (dom_m A) \<subseteq> dom \<and> finite dom} \<Longrightarrow>
-       (xi, x) \<in> nat_rel \<Longrightarrow>
-       (si, s) \<in> Id \<times>\<^sub>r bool_rel \<Longrightarrow>
-       s = (x1, x2) \<Longrightarrow>
-       si = (x1a, x2a) \<Longrightarrow>
-       xi \<in># dom_m A \<Longrightarrow>
-       x \<in># dom_m A \<Longrightarrow>
-       fmlookup A xi \<noteq> None \<Longrightarrow>
-       (p, pa) \<in> Id \<Longrightarrow>
-       (eqa, eqaa) \<in> bool_rel \<Longrightarrow>
-       ((fmupd xi p x1a, x2a \<or> eqa), fmupd x pa x1, x2 \<or> eqaa) \<in> Id \<times>\<^sub>r bool_rel\<close>
-    by (auto)
+
+  have 6: \<open>a = b \<Longrightarrow> (a, b) \<in> Id\<close> for a b
+    by auto
   show ?thesis
     unfolding remap_polys_l2_def remap_polys_l_def
-    apply (refine_rcg LFO_refine)
-    apply (rule 3; assumption)
+    apply (refine_rcg LFO_refine[where R= \<open>Id \<times>\<^sub>r \<langle>Id\<rangle>set_rel \<times>\<^sub>r Id\<close>])
+    subgoal by auto
+    apply (rule 3)
     subgoal by auto
     subgoal by (simp add: in_dom_m_lookup_iff)
-    apply (rule 2; assumption)
+    subgoal by (simp add: in_dom_m_lookup_iff)
+    apply (rule 2)
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
     apply (rule 4; assumption)
-    apply (rule 5; assumption)
+    apply (rule 6)
+    subgoal by auto
+    subgoal by auto
     subgoal by auto
     subgoal by auto
     subgoal by auto
