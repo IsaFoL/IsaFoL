@@ -208,18 +208,19 @@ definition check_extension_l_side_cond_err
 where
   \<open>check_extension_l_side_cond_err v p p' q = SPEC (\<lambda>_. True)\<close>
 
-definition find_undefined_var :: \<open>nat set \<Rightarrow> int mpoly \<Rightarrow> (_ option) nres\<close> where
+definition find_undefined_var :: \<open>nat set \<Rightarrow> int mpoly \<Rightarrow> ((nat \<times> int \<times> int mpoly) option) nres\<close> where
 \<open>find_undefined_var \<V> p =
-  SPEC(\<lambda>(a :: (nat \<times> nat \<times> int mpoly) option).
+  SPEC(\<lambda>(a :: (nat \<times> int \<times> int mpoly) option).
       case a of
           None \<Rightarrow> True
        | Some (a, c, p') \<Rightarrow> (a \<notin> \<V> \<and>
          ((c = 1 \<and> p' = p - Var a) \<or>
           (c = -1 \<and> p' = p + Var a))))\<close>
 
-definition find_undefined_var_l :: \<open>string set \<Rightarrow> llist_polynom \<Rightarrow> (_ option) nres\<close> where
+definition find_undefined_var_l
+  :: \<open>string set \<Rightarrow> llist_polynom \<Rightarrow> ((string \<times> int \<times> llist_polynom) option) nres\<close> where
 \<open>find_undefined_var_l \<V> p =
-  SPEC(\<lambda>(a :: (string \<times> nat \<times> llist_polynom) option).
+  SPEC(\<lambda>(a :: (string \<times> int \<times> llist_polynom) option).
       case a of
           None \<Rightarrow> True
        | Some (a, c, p') \<Rightarrow> (a \<notin> \<V> \<and>
@@ -250,7 +251,7 @@ where
         }
         else do {
            p2 \<leftarrow> mult_poly_full p' p';
-           let up = (if c = 0 then map (\<lambda>(a, b). (a, -b)) p' else p');
+           let up = (if c = -1 then map (\<lambda>(a, b). (a, -b)) p' else p');
            q \<leftarrow> add_poly_l (p2, up);
            eq \<leftarrow> weak_equality_p q [];
            if eq then do {
@@ -263,6 +264,10 @@ where
       }
     }
   }\<close>
+
+(*TODO Move*)
+lemma coeff_minus: "coeff p m - coeff q m = coeff (p-q) m"
+  by (simp add: coeff_def lookup_minus minus_mpoly.rep_eq)
 
 lemma check_extension_alt_def:
   \<open>check_extension A \<V> i p \<ge> do {
@@ -278,7 +283,7 @@ lemma check_extension_alt_def:
            then RETURN (False, 0)
            else do {
              pq \<leftarrow> mult_poly_spec p p;
-             up \<leftarrow> RETURN (if c = 0 then -p else p);
+             up \<leftarrow> RETURN (if c = -1 then -p else p);
              p \<leftarrow> add_poly_spec pq up;
              eq \<leftarrow> weak_equality p 0;
              if eq then RETURN(True, v)
@@ -289,14 +294,29 @@ lemma check_extension_alt_def:
   }\<close>
 proof -
   have [intro!]: \<open>ab \<notin> \<V> \<Longrightarrow>
-       vars ba \<subseteq> \<V> \<Longrightarrow> 
+       vars ba \<subseteq> \<V> \<Longrightarrow>
        MPoly_Type.coeff (ba + Var ab) (monomial (Suc 0) ab) = 1\<close> for ab ba
       apply (auto simp flip: coeff_add simp: not_in_vars_coeff0
         Var.abs_eq Var\<^sub>0_def)
       apply (subst not_in_vars_coeff0)
       apply auto
       by (metis MPoly_Type.coeff_def lookup_single_eq monom.abs_eq monom.rep_eq)
-
+  have [simp]: \<open>MPoly_Type.coeff p (monomial (Suc 0) ab) = -1\<close>
+     if \<open>vars (p + Var ab) \<subseteq> \<V>\<close>
+       \<open>ab \<notin> \<V>\<close>
+     for ab
+   proof -
+     define q where \<open>q \<equiv> p + Var ab\<close>
+     then have p: \<open>p = q - Var ab\<close>
+       by auto
+     show ?thesis
+       unfolding p find_theorems \<open>coeff ( _ - _)\<close>
+      apply (auto simp flip: coeff_minus simp: not_in_vars_coeff0
+        Var.abs_eq Var\<^sub>0_def)
+      apply (subst not_in_vars_coeff0)
+      using that unfolding q_def[symmetric] apply auto
+      by (metis MPoly_Type.coeff_def lookup_single_eq monom.abs_eq monom.rep_eq)
+  qed
   have [simp]: \<open>vars (p - Var ab) = vars (Var ab - p)\<close> for ab
     using vars_uminus[of \<open>p - Var ab\<close>]
     by simp
@@ -837,6 +857,50 @@ proof -
     done
 qed
 
+lemma remove1_sorted_poly_rel_mset_poly_rel_minus:
+  assumes
+    \<open>(r, r') \<in> sorted_poly_rel O mset_poly_rel\<close> and
+    \<open>([a], -1) \<in> set r\<close>
+  shows
+    \<open>(remove1 ([a], -1) r, r' + Var (\<phi> a))
+          \<in> sorted_poly_rel O mset_poly_rel\<close>
+proof -
+   have [simp]: \<open>([a], {#a#}) \<in> term_poly_list_rel\<close>
+     \<open>\<And>aa. ([a], aa) \<in> term_poly_list_rel \<longleftrightarrow> aa = {#a#}\<close>
+     by (auto simp: term_poly_list_rel_def)
+  have H:
+    \<open>\<And>aa. ([a], aa) \<in> term_poly_list_rel \<Longrightarrow> aa = {#a#}\<close>
+     \<open>\<And>aa. (aa, {#a#}) \<in> term_poly_list_rel \<Longrightarrow> aa = [a]\<close>
+     by (auto simp: single_valued_def IS_LEFT_UNIQUE_def
+       term_poly_list_rel_def)
+
+  have [simp]: \<open>Const (1 :: int) = (1 :: int mpoly)\<close>
+    by (simp add: Const.abs_eq Const\<^sub>0_one one_mpoly.abs_eq)
+  have [simp]: \<open>sorted_wrt term_order (map fst r) \<Longrightarrow>
+         sorted_wrt term_order (map fst (remove1 ([a], -1) r))\<close>
+    by (induction r) auto
+  have [intro]: \<open>distinct (map fst r) \<Longrightarrow> distinct (map fst (remove1 x r))\<close> for x
+    apply (induction r) apply auto
+    by (meson img_fst in_set_remove1D)
+  have [simp]: \<open>(r, ya) \<in> \<langle>term_poly_list_rel \<times>\<^sub>r int_rel\<rangle>list_rel \<Longrightarrow>
+         polynom_of_mset (mset ya) +  Var (\<phi> a) =
+         polynom_of_mset (remove1_mset ({#a#}, -1) (mset ya))\<close> for ya
+    using assms
+     by (auto simp: list_rel_append1 list_rel_split_right_iff
+       dest!: split_list)
+
+  show ?thesis
+    using assms
+    apply (auto simp: mset_poly_rel_def sorted_poly_list_rel_wrt_def
+      Collect_eq_comp' dest!: )
+    apply (rule_tac b = \<open>remove1_mset ({#a#}, -1) za\<close> in relcompI)
+    apply (auto)
+    apply (rule_tac b = \<open>remove1 ({#a#}, -1) ya\<close> in relcompI)
+    apply (auto intro!: remove1_list_rel2 intro: H
+      simp: list_mset_rel_def br_def)
+    done
+qed
+
 
 lemma insert_var_rel_set_rel:
   \<open>(\<V>, \<V>') \<in> \<langle>var_rel\<rangle>set_rel \<Longrightarrow>
@@ -850,7 +914,7 @@ lemma find_undefined_var_l_find_undefined_var:
      \<open>(\<V>, \<V>') \<in> \<langle>var_rel\<rangle>set_rel\<close>
   shows
     \<open>find_undefined_var_l \<V> r  \<le>
-     \<Down> (\<langle>var_rel \<times>\<^sub>r nat_rel \<times>\<^sub>r (sorted_poly_rel O mset_poly_rel)\<rangle>option_rel)
+     \<Down> (\<langle>var_rel \<times>\<^sub>r int_rel \<times>\<^sub>r (sorted_poly_rel O mset_poly_rel)\<rangle>option_rel)
        (find_undefined_var \<V>' r')\<close>
   using assms
   unfolding find_undefined_var_def find_undefined_var_l_def
@@ -864,6 +928,8 @@ lemma find_undefined_var_l_find_undefined_var:
   apply (auto intro!: remove1_sorted_poly_rel_mset_poly_rel)
   using \<phi>_inj
   apply (auto simp: inj_on_def)
+  apply (rule_tac x = \<open>Some (\<phi> a, -1, _)\<close> in exI)
+  apply (auto intro: remove1_sorted_poly_rel_mset_poly_rel_minus)
   done
 
 (*TODO Move*)
@@ -924,8 +990,8 @@ proof -
 
   have uminus: \<open>(x2c, x2a) \<in> sorted_poly_rel O mset_poly_rel \<Longrightarrow>
        (x1c, x1a) \<in> Id \<Longrightarrow>
-       (if x1c = 0 then map (\<lambda>(a, b). (a, - b)) x2c else x2c,
-        if x1a = 0 then - x2a else x2a)
+       (if x1c = -1 then map (\<lambda>(a, b). (a, - b)) x2c else x2c,
+        if x1a = -1 then - x2a else x2a)
        \<in> sorted_poly_rel O mset_poly_rel\<close> for x2c x2a x1c x1a
      apply (clarsimp simp: sorted_poly_list_rel_wrt_def
       mset_poly_rel_def)
@@ -1282,5 +1348,40 @@ proof -
     done
 qed
 
-end
+term find_undefined_var_l
 
+fun find_undefined_var_l_only :: \<open>string set \<Rightarrow> llist_polynom \<Rightarrow> (string \<times> int) option\<close> where
+  \<open>find_undefined_var_l_only \<V> [] = None\<close> |
+  \<open>find_undefined_var_l_only \<V> (([x], n) # xs) =
+    (if x \<notin> \<V> \<and> (n = 1 \<or> n = -1)
+     then Some (x, n)
+     else find_undefined_var_l_only \<V> xs)\<close> |
+  \<open>find_undefined_var_l_only \<V> (_ # xs) =
+    (find_undefined_var_l_only \<V> xs)\<close>
+
+lemma find_undefined_var_l_only_spec:
+  \<open>case find_undefined_var_l_only \<V> xs of
+          None \<Rightarrow> True
+       | Some (a, c) \<Rightarrow> (a \<notin> \<V> \<and>
+         ((([a], 1) \<in> set xs \<and> c = 1) \<or>
+          (([a], -1) \<in> set xs \<and> c = -1)))\<close>
+   apply (induction \<V> xs rule: find_undefined_var_l_only.induct)
+   apply (auto split: option.splits)
+   done
+
+lemma find_undefined_var_l_alt_def:
+  \<open>find_undefined_var_l \<V> xs \<ge>
+   do {
+    c \<leftarrow> RETURN (find_undefined_var_l_only \<V> xs);
+    case c of
+      None \<Rightarrow> RETURN None
+    | Some (a, i) \<Rightarrow> RETURN (Some (a, i, remove1 ([a], i) xs))
+  }\<close>
+  unfolding find_undefined_var_l_def
+  apply refine_vcg
+  using find_undefined_var_l_only_spec[of \<V> xs]
+  apply (auto)
+  done
+
+
+end

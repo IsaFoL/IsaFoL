@@ -451,7 +451,7 @@ declare check_mult_l_impl.refine[sepref_fr_rules]
 
 definition check_ext_l_dom_err_impl :: \<open>nat \<Rightarrow> _\<close>  where
   \<open>check_ext_l_dom_err_impl p =
-    ''Extension not implemented at step '' @ show p\<close>
+    ''There is already a polynom with index '' @ show p\<close>
 
 lemma [sepref_fr_rules]:
   \<open>(((return o (check_ext_l_dom_err_impl))),
@@ -461,21 +461,113 @@ lemma [sepref_fr_rules]:
    apply sep_auto
    done
 
-sepref_register check_extension_l_dom_err
 
-find_theorems error_msg raw_string_assn
+definition check_extension_l_no_new_var_err_impl :: \<open>_ \<Rightarrow> _\<close>  where
+  \<open>check_extension_l_no_new_var_err_impl p =
+    ''There is already a polynom with index '' @ show p\<close>
+
+lemma [sepref_fr_rules]:
+  \<open>(((return o (check_extension_l_no_new_var_err_impl))),
+    (check_extension_l_no_new_var_err)) \<in> poly_assn\<^sup>k \<rightarrow>\<^sub>a raw_string_assn\<close>
+   unfolding check_extension_l_no_new_var_err_impl_def check_extension_l_no_new_var_err_def
+     list_assn_pure_conv
+   apply sepref_to_hoare
+   apply sep_auto
+   done
+
+definition check_extension_l_side_cond_err_impl :: \<open>_ \<Rightarrow> _\<close>  where
+  \<open>check_extension_l_side_cond_err_impl v p r s =
+    ''Error while checking side conditions of extensions polynow, var is '' @ show v @
+    '' polynom is '' @ show p @ ''side condition p*p - p = '' @ show s @ '' and should be 0''\<close>
+
+lemma [sepref_fr_rules]:
+  \<open>((uncurry3 (\<lambda>x y. return oo (check_extension_l_side_cond_err_impl x y))),
+    uncurry3 (check_extension_l_side_cond_err)) \<in> string_assn\<^sup>k *\<^sub>a poly_assn\<^sup>k *\<^sub>a poly_assn\<^sup>k *\<^sub>a poly_assn\<^sup>k \<rightarrow>\<^sub>a raw_string_assn\<close>
+   unfolding check_extension_l_side_cond_err_impl_def check_extension_l_side_cond_err_def
+     list_assn_pure_conv
+   apply sepref_to_hoare
+   apply sep_auto
+   done
+
+
+term check_extension_l_side_cond_err
+
+sepref_register check_extension_l_dom_err fmlookup'
+  check_extension_l_side_cond_err check_extension_l_no_new_var_err
+
+lemma check_extension_l_alt_def:
+\<open>check_extension_l spec A \<V> i p = do {
+  b \<leftarrow> RETURN (i \<notin># dom_m A);
+  if \<not>b
+  then do {
+    c \<leftarrow> check_extension_l_dom_err i;
+    RETURN (error_msg i c, None)
+  } else do {
+    v \<leftarrow> find_undefined_var_l \<V> p;
+    case v of
+      None \<Rightarrow> do {
+        c \<leftarrow> check_extension_l_no_new_var_err p;
+        RETURN (error_msg i c, None)
+      }
+    | Some (v, c, p') \<Rightarrow> do {
+        let b = vars_llist p' \<subseteq> \<V>;
+        if \<not>b
+        then do {
+          c \<leftarrow> check_extension_l_new_var_multiple_err v p';
+          RETURN (error_msg i c, None)
+        }
+        else do {
+           p2 \<leftarrow> mult_poly_full p' p';
+           let up = (if c = 0 then map (\<lambda>(a, b). (a, -b)) p' else p');
+           q \<leftarrow> add_poly_l (p2, up);
+           eq \<leftarrow> weak_equality_p q [];
+           if eq then do {
+             RETURN (CSUCCESS, Some v)
+           } else do {
+            c \<leftarrow> check_extension_l_side_cond_err v p p' q;
+            RETURN (error_msg i c, None)
+          }
+        }
+      }
+    }
+  }\<close>
+  by (auto simp: check_extension_l_def)
+
+sepref_register find_undefined_var_l vars_of_poly_in
+
 sepref_definition check_extension_l_impl
   is \<open>uncurry4 check_extension_l\<close>
-  :: \<open>poly_assn\<^sup>k *\<^sub>a polys_assn\<^sup>k *\<^sub>a vars_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a poly_assn\<^sup>k \<rightarrow>\<^sub>a status_assn raw_string_assn\<close>
+  :: \<open>poly_assn\<^sup>k *\<^sub>a polys_assn\<^sup>k *\<^sub>a vars_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a poly_assn\<^sup>k \<rightarrow>\<^sub>a
+     status_assn raw_string_assn \<times>\<^sub>a option_assn string_assn\<close>
   supply [[goals_limit=1]]
-  unfolding check_mult_l_def
+  unfolding
     HOL_list.fold_custom_empty
     term_order_rel'_def[symmetric]
     term_order_rel'_alt_def
     in_dom_m_lookup_iff
     fmlookup'_def[symmetric]
     vars_llist_alt_def
-    check_extension_l_def
+    check_extension_l_alt_def
+    not_not
+    option.case_eq_if
+
+  apply sepref_dbg_preproc
+  apply sepref_dbg_cons_init
+  apply sepref_dbg_id
+  apply sepref_dbg_monadify_arity
+  apply sepref_dbg_monadify_comb
+  apply sepref_dbg_monadify_check_EVAL
+  apply sepref_dbg_monadify_mark_params
+  apply sepref_dbg_monadify_dup
+  apply sepref_dbg_monadify_remove_pass
+
+find_theorems case_option If
+
+  apply sepref_dbg_keep
+  apply sepref_dbg_trans_keep
+  apply sepref_dbg_trans_step_keep
+  apply sepref_dbg_side_unfold
+oops
   by sepref
 
 declare check_extension_l_impl.refine[sepref_fr_rules]
