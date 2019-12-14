@@ -1383,5 +1383,30 @@ lemma find_undefined_var_l_alt_def:
   apply (auto)
   done
 
+lemma find_undefined_var_l_only_alt_def:
+  \<open>RETURN (find_undefined_var_l_only \<V> xs) =
+  REC\<^sub>T (\<lambda>f xs.
+    case xs of
+      [] \<Rightarrow> RETURN None
+    | ([x], n) # xs \<Rightarrow>
+        (if x \<notin> \<V> \<and> (n = 1 \<or> n = -1)
+         then RETURN (Some (x, n))
+         else f xs)
+    | _ # xs \<Rightarrow> f xs)
+    xs\<close>
+  apply (subst eq_commute)
+  apply (induction xs)
+  subgoal
+    apply (subst RECT_unfold)
+    apply (refine_mono)
+    apply auto
+    done
+  subgoal for a xs
+    apply (subst RECT_unfold)
+    apply (refine_mono)
+    apply (cases a)
+    apply (auto split: list.splits)
+    done
+ done
 
 end
