@@ -188,7 +188,7 @@ locale poly_embed =
 begin
 
 definition poly_of_vars :: "term_poly \<Rightarrow> ('a :: {comm_semiring_1}) mpoly" where
-  \<open>poly_of_vars xs = fold_mset (\<lambda>a b. Var (\<phi> a) * b) (0 :: 'a mpoly) xs\<close>
+  \<open>poly_of_vars xs = fold_mset (\<lambda>a b. Var (\<phi> a) * b) (1 :: 'a mpoly) xs\<close>
 
 lemma poly_of_vars_simps[simp]:
   shows
@@ -199,13 +199,14 @@ proof -
     by standard
       (auto simp: algebra_simps ac_simps
          Var_def times_monomial_monomial intro!: ext)
-  note [[show_types]]
+
   show ?A
     by (auto simp: poly_of_vars_def comp_fun_commute_axioms fold_mset_fusion
       ac_simps)
   show ?B
     apply (auto simp: poly_of_vars_def ac_simps)
-    by (smt comp_fun_commute_axioms fold_mset_fusion mult.commute mult_zero_right)
+    by (simp add: local.comp_fun_commute_axioms local.fold_mset_fusion
+      semiring_normalization_rules(18))
 qed
 
 
@@ -218,7 +219,7 @@ interpretation comp_fun_commute \<open>mononom_of_vars\<close>
        Var_def times_monomial_monomial intro!: ext)
 
 lemma [simp]:
-  \<open>poly_of_vars {#} = 0\<close>
+  \<open>poly_of_vars {#} = 1\<close>
   by (auto simp: poly_of_vars_def)
 
 lemma mononom_of_vars_add[simp]:
@@ -289,8 +290,8 @@ next
     subgoal for ys y
       using ideal_mult_right_in2[OF diff, of \<open>poly_of_vars ys\<close> ys]
       apply (auto simp: remove_powers_def right_diff_distrib
-        ideal.span_diff ideal.span_add ac_simps)
-     by (smt add.right_neutral fold_mset_empty mult_zero_right poly_of_vars_def poly_of_vars_simps(2))
+        ideal.span_diff ideal.span_add field_simps)
+      by (metis add_diff_add diff ideal.scale_right_diff_distrib ideal.span_add ideal.span_scale)
     done
 qed
 
@@ -325,20 +326,35 @@ lemma rtranclp_add_poly_p_polynom_of_mset_full:
   by (drule rtranclp_add_poly_p_polynom_of_mset)
     (auto simp: ac_simps add_eq_0_iff)
 
+lemma poly_of_vars_remdups_mset:
+  \<open>poly_of_vars (remdups_mset (xs)) - (poly_of_vars xs)
+    \<in> More_Modules.ideal polynom_bool\<close>
+  apply (induction xs)
+  apply (auto dest!: simp: ideal.span_zero)
+  apply (metis (no_types, lifting) diff_add_cancel ideal.span_diff insert_DiffM
+    linordered_field_class.sign_simps(11) poly_embed.X2_X_polynom_bool_mult_in
+    poly_of_vars_simps(1))
+  by (metis ideal.span_scale right_diff_distrib')
 
 lemma polynom_of_mset_mult_map:
   \<open>polynom_of_mset
      {#case x of (ys, n) \<Rightarrow> (remdups_mset (ys + xs), n * m). x \<in># q#} -
-    Const n * (poly_of_vars xs * polynom_of_mset q)
+    Const m * (poly_of_vars xs * polynom_of_mset q)
     \<in> More_Modules.ideal polynom_bool\<close>
+  (is \<open>?P q \<in> _\<close>)
 proof (induction q)
   case empty
   then show ?case by (auto simp: algebra_simps ideal.span_zero)
 next
   case (add x q)
+  then have uP:  \<open>-?P q \<in> More_Modules.ideal polynom_bool\<close>
+    using ideal.span_neg by blast
   show ?case
-    by (metis (no_types) add.IH add.left_neutral fold_mset_empty image_mset_add_mset mult_zero_left mult_zero_right
-      poly_embed.poly_of_vars_def poly_embed.poly_of_vars_simps(2) poly_embed.polynom_of_mset_Cons)
+    apply (subst ideal.span_add_eq2[symmetric, OF uP])
+    apply (cases x)
+    apply (auto simp: field_simps Const_mult)
+    by (metis ideal.span_scale poly_embed.poly_of_vars_remdups_mset
+      poly_embed.poly_of_vars_simps(2) right_diff_distrib')
 qed
 
 lemma mult_poly_p_mult_ideal:
