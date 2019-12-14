@@ -54,6 +54,8 @@ fun pac_step_rel_assn :: \<open>(nat \<Rightarrow> nat \<Rightarrow> assn) \<Rig
    R2 r r'\<close> |
 \<open>pac_step_rel_assn R1 R2 (Del p1) (Del p1') =
    R1 p1 p1'\<close> |
+\<open>pac_step_rel_assn R1 R2 (Extension i p1) (Extension i' p1') =
+   R1 i i' * R2 p1 p1'\<close> |
 \<open>pac_step_rel_assn R1 R2 _ _ = false\<close>
 
 definition error_msg where
@@ -194,10 +196,10 @@ definition check_del_l :: \<open>_ \<Rightarrow> _ \<Rightarrow> nat \<Rightarro
 definition check_extension_l_dom_err :: \<open>nat \<Rightarrow> string nres\<close> where
   \<open>check_extension_l_dom_err p = SPEC (\<lambda>_. True)\<close>
 
-definition check_extension_l :: \<open>_ \<Rightarrow> _ \<Rightarrow> nat \<Rightarrow> llist_polynom \<Rightarrow> string code_status nres\<close> where
-\<open>check_extension_l spec A i p = do {
-    c \<leftarrow> check_del_l_dom_err i;
-    RETURN (error_msg p c)
+definition check_extension_l :: \<open>_ \<Rightarrow> _ \<Rightarrow> string set \<Rightarrow> nat \<Rightarrow> llist_polynom \<Rightarrow> string code_status nres\<close> where
+\<open>check_extension_l spec A \<V> i p = do {
+    c \<leftarrow> check_extension_l_dom_err i;
+    RETURN (error_msg i c)
   }\<close>
 
 (* Copy of WB_More_Refinement *)
@@ -314,7 +316,7 @@ definition PAC_checker_l_step ::  _ where
    | Extension _ _ \<Rightarrow>
        do {
          r \<leftarrow> full_normalize_poly (pac_res st);
-        eq \<leftarrow> check_extension_l spec A (new_id st) r;
+        eq \<leftarrow> check_extension_l spec A \<V> (new_id st) r;
         let _ = eq;
         if \<not>is_cfailed eq
         then RETURN (merge_cstatus st' eq,
@@ -341,9 +343,9 @@ definition mononoms_equal_up_to_reorder where
      (\<forall> x \<in> mononoms p'. sorted_wrt (rel2p var_order_rel) x))\<close>
 
 
-definition remap_polys_l :: \<open>llist_polynom \<Rightarrow> string set \<times> (nat, llist_polynom) fmap \<Rightarrow>
+definition remap_polys_l :: \<open>llist_polynom \<Rightarrow> string set \<Rightarrow> (nat, llist_polynom) fmap \<Rightarrow>
    (_ code_status \<times> string set \<times> (nat, llist_polynom) fmap) nres\<close> where
-  \<open>remap_polys_l spec = (\<lambda>(\<V>, A). do{
+  \<open>remap_polys_l spec = (\<lambda>\<V> A. do{
    dom \<leftarrow> SPEC(\<lambda>dom. set_mset (dom_m A) \<subseteq> dom \<and> finite dom);
    (b, \<V>, A) \<leftarrow> FOREACH dom
      (\<lambda>i (b, \<V>,  A').
@@ -430,7 +432,8 @@ lemma remap_polys_l_remap_polys:
     AB: \<open>(A, B) \<in> \<langle>nat_rel, fully_unsorted_poly_rel O mset_poly_rel\<rangle>fmap_rel\<close> and
     spec: \<open>(spec, spec') \<in> sorted_poly_rel O mset_poly_rel\<close> and
     V: \<open>(\<V>, \<V>') \<in> \<langle>var_rel\<rangle>set_rel\<close>
-  shows \<open>remap_polys_l spec (\<V>, A) \<le> \<Down>(code_status_status_rel \<times>\<^sub>r \<langle>var_rel\<rangle>set_rel \<times>\<^sub>r fmap_polys_rel) (remap_polys spec' (\<V>', B))\<close>
+  shows \<open>remap_polys_l spec \<V> A \<le>
+     \<Down>(code_status_status_rel \<times>\<^sub>r \<langle>var_rel\<rangle>set_rel \<times>\<^sub>r fmap_polys_rel) (remap_polys spec' \<V>' B)\<close>
   (is \<open>_ \<le> \<Down> ?R _\<close>)
 proof -
   have 1: \<open>inj_on id (dom :: nat set)\<close> for dom
@@ -657,7 +660,19 @@ proof -
       simp flip: conc_fun_chain\<close>)
 qed
 
-
+lemma check_extension_l_check_extension:
+  assumes \<open>(A, B) \<in> fmap_polys_rel\<close> and \<open>(r, r') \<in> sorted_poly_rel O mset_poly_rel\<close> and
+    \<open>(i, i') \<in> nat_rel\<close> \<open>(\<V>, \<V>') \<in> \<langle>var_rel\<rangle>set_rel\<close>
+  shows
+    \<open>check_extension_l spec A \<V> i r \<le> \<Down>  {(st, (b, n)). is_cfailed st \<and> (\<not>is_cfailed st \<longleftrightarrow> b) \<and>
+       (is_cfound st \<longrightarrow> spec = r)} (check_extension B \<V>' i' r')\<close>
+   unfolding check_extension_def check_extension_l_def
+     check_extension_l_dom_err_def
+   apply refine_vcg
+   apply (rule RETURN_SPEC_refine)
+   apply (auto simp: check_extension_def check_extension_l_def
+     check_extension_l_dom_err_def)
+   done
 
 lemma full_normalize_poly_diff_ideal:
   fixes dom
@@ -763,7 +778,19 @@ proof -
       subgoal using AB by auto
       done
     subgoal
-      sorry
+      apply (refine_rcg full_normalize_poly_diff_ideal
+        check_extension_l_check_extension)
+      subgoal using AB by auto
+      subgoal using AB by auto
+      subgoal using AB by (auto simp: )
+      subgoal by (auto simp: )
+      subgoal by (auto simp: )
+      subgoal
+        by (auto simp: code_status_status_rel_def)
+      subgoal
+        by (auto simp: code_status_status_rel_def AB
+          code_status.is_cfailed_def)
+      done
     subgoal
       apply (refine_rcg normalize_poly_normalize_poly_spec
         check_del_l_check_del check_addition_l_check_add
@@ -828,7 +855,7 @@ definition full_checker_l
 where
   \<open>full_checker_l spec A st = do {
     spec' \<leftarrow> full_normalize_poly spec;
-    (b, \<V>, A) \<leftarrow> remap_polys_l spec' ({}, A);
+    (b, \<V>, A) \<leftarrow> remap_polys_l spec' {} A;
     let \<V> = \<V> \<union> vars_llist spec;
     PAC_checker_l spec' (\<V>, A) b st
   }\<close>
@@ -854,8 +881,8 @@ proof -
   have [refine]:
     \<open>(spec, spec') \<in> sorted_poly_rel O mset_poly_rel \<Longrightarrow>
     (\<V>, \<V>') \<in> \<langle>var_rel\<rangle>set_rel \<Longrightarrow>
-    remap_polys_l spec (\<V>, A) \<le> \<Down>(code_status_status_rel \<times>\<^sub>r \<langle>var_rel\<rangle>set_rel \<times>\<^sub>r fmap_polys_rel)
-        (remap_polys_change_all spec' (\<V>', B))\<close> for spec spec' \<V> \<V>'
+    remap_polys_l spec \<V> A \<le> \<Down>(code_status_status_rel \<times>\<^sub>r \<langle>var_rel\<rangle>set_rel \<times>\<^sub>r fmap_polys_rel)
+        (remap_polys_change_all spec' \<V>' B)\<close> for spec spec' \<V> \<V>'
     apply (rule remap_polys_l_remap_polys[THEN order_trans, OF assms(1)])
     apply assumption+
     apply (rule ref_two_step[OF order.refl])
@@ -882,8 +909,8 @@ qed
 
 end
 
-definition remap_polys_l2 :: \<open>llist_polynom \<Rightarrow> string set \<times> (nat, llist_polynom) fmap \<Rightarrow> _ nres\<close> where
-  \<open>remap_polys_l2 spec = (\<lambda>(\<V>, A). do{
+definition remap_polys_l2 :: \<open>llist_polynom \<Rightarrow> string set \<Rightarrow> (nat, llist_polynom) fmap \<Rightarrow> _ nres\<close> where
+  \<open>remap_polys_l2 spec = (\<lambda>\<V> A. do{
    n \<leftarrow> upper_bound_on_dom A;
    (b, \<V>, A) \<leftarrow> nfoldli ([0..<n]) (\<lambda>_. True)
      (\<lambda>i (b, \<V>, A').
@@ -901,7 +928,7 @@ definition remap_polys_l2 :: \<open>llist_polynom \<Rightarrow> string set \<tim
  })\<close>
 
 lemma remap_polys_l2_remap_polys_l:
-  \<open>remap_polys_l2 spec (\<V>, A) \<le> \<Down> Id (remap_polys_l spec (\<V>, A))\<close>
+  \<open>remap_polys_l2 spec \<V> A \<le> \<Down> Id (remap_polys_l spec \<V> A)\<close>
 proof -
   have [refine]: \<open>(A, A') \<in> Id \<Longrightarrow> upper_bound_on_dom A
     \<le> \<Down> {(n, dom). dom = set [0..<n]} (SPEC (\<lambda>dom. set_mset (dom_m A') \<subseteq> dom \<and> finite dom))\<close> for A A'
