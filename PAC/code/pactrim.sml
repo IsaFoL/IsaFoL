@@ -100,22 +100,25 @@ fun inside_loop [polys, pac, spec] =
       val timer = Timer.startCPUTimer ();
       val _ = println "c polys parsed\nc ******************"
       val timer = Timer.startCPUTimer ();
-      val (spec : ((string list * PAC_Checker.int) list)) = parse_spec_file spec;
+      val (spec0 : ((string list * PAC_Checker.int) list)) = parse_spec_file spec;
       val _ = println "c spec parsed";
       val end_of_init = Timer.checkCPUTimes init_timer;
       val timer = Timer.startCPUTimer ();
       val _ = println "c Now checking";
-      val spec = PAC_Checker.fully_normalize_poly_impl spec ();
-      val (polys, b) = PAC_Checker.remap_polys_l_impl spec problem ();
-      val state = ref (b, polys)
+      val spec = PAC_Checker.fully_normalize_poly_impl spec0 ();
+      val vars = PAC_Checker.empty_vars_impl ();
+      val (b, (vars, polys)) = PAC_Checker.remap_polys_l_impl spec vars problem ();
+      val vars = PAC_Checker.union_vars_poly_impl spec0 vars ()
+      val state = ref (b, (vars, polys))
       val istream = TextIO.openIn pac
       val _ =
           while (TextIO.lookahead(istream) <> NONE andalso PAC_Checker.is_cfailed (first (!state)) = false)
                 do
                 let
-                  val st = PAC_Parser.parse_step istream
+                  val st = PAC_Parser.parse_step istream;
+                  val (b, (vars, a)) = !state;
                 in
-                  state := PAC_Checker.check_step_impl spec (first (!state)) (second (!state)) st ()
+                  state := PAC_Checker.check_step_impl spec b vars a st ()
                 end;
       val (b, _) = !state;
       val _ = if PAC_Checker.is_cfound b then println "s SUCCESSFULL"

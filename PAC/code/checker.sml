@@ -80,7 +80,7 @@ structure PAC_Checker : sig
   type ('a, 'b) hashtable
   datatype 'a code_status = CFAILED of 'a | CSUCCESS | CFOUND
   datatype 'a pac_step = Add of nat * nat * nat * 'a |
-    Mult of nat * 'a * nat * 'a | Del of nat
+    Mult of nat * 'a * nat * 'a | Extension of nat * 'a | Del of nat
   val implode : char list -> string
   val is_cfound : 'a code_status -> bool
   val the_error : 'a code_status -> 'a
@@ -96,32 +96,43 @@ structure PAC_Checker : sig
   val check_step_impl :
     (string list * int) list ->
       (char list) code_status ->
-        (nat, ((string list * int) list)) hashtable ->
-          ((string list * int) list) pac_step ->
-            (unit ->
-              ((char list) code_status *
-                (nat, ((string list * int) list)) hashtable))
+        (string, unit) hashtable ->
+          (nat, ((string list * int) list)) hashtable ->
+            ((string list * int) list) pac_step ->
+              (unit ->
+                ((char list) code_status *
+                  ((string, unit) hashtable *
+                    (nat, ((string list * int) list)) hashtable)))
+  val empty_vars_impl : (unit -> (string, unit) hashtable)
   val pAC_checker_l_impl :
     (string list * int) list ->
-      (nat, ((string list * int) list)) hashtable ->
-        (char list) code_status ->
-          ((string list * int) list) pac_step list ->
-            (unit ->
-              ((char list) code_status *
-                (nat, ((string list * int) list)) hashtable))
+      (string, unit) hashtable ->
+        (nat, ((string list * int) list)) hashtable ->
+          (char list) code_status ->
+            ((string list * int) list) pac_step list ->
+              (unit ->
+                ((char list) code_status *
+                  ((string, unit) hashtable *
+                    (nat, ((string list * int) list)) hashtable)))
+  val union_vars_poly_impl :
+    (string list * int) list ->
+      (string, unit) hashtable -> (unit -> (string, unit) hashtable)
   val remap_polys_l_impl :
     (string list * int) list ->
-      (((string list * int) list) option) array ->
-        (unit ->
-          ((nat, ((string list * int) list)) hashtable *
-            (char list) code_status))
+      (string, unit) hashtable ->
+        (((string list * int) list) option) array ->
+          (unit ->
+            ((char list) code_status *
+              ((string, unit) hashtable *
+                (nat, ((string list * int) list)) hashtable)))
   val full_checker_l_impl :
     (string list * int) list ->
       (((string list * int) list) option) array ->
         ((string list * int) list) pac_step list ->
           (unit ->
             ((char list) code_status *
-              (nat, ((string list * int) list)) hashtable))
+              ((string, unit) hashtable *
+                (nat, ((string list * int) list)) hashtable)))
 end = struct
 
 datatype int = Int_of_integer of IntInf.int;
@@ -387,6 +398,52 @@ fun show_list A_ =
   {shows_prec = shows_prec_list A_, shows_list = shows_list_list A_} :
   ('a list) show;
 
+fun def_hashmap_size_char x = (fn _ => nat_of_integer (32 : IntInf.int)) x;
+
+type 'a zero = {zero : 'a};
+val zero = #zero : 'a zero -> 'a;
+
+type 'a one = {one : 'a};
+val one = #one : 'a one -> 'a;
+
+type 'a zero_neq_one = {one_zero_neq_one : 'a one, zero_zero_neq_one : 'a zero};
+val one_zero_neq_one = #one_zero_neq_one : 'a zero_neq_one -> 'a one;
+val zero_zero_neq_one = #zero_zero_neq_one : 'a zero_neq_one -> 'a zero;
+
+fun of_bool A_ true = one (one_zero_neq_one A_)
+  | of_bool A_ false = zero (zero_zero_neq_one A_);
+
+val one_integera : IntInf.int = (1 : IntInf.int);
+
+val zero_integer = {zero = (0 : IntInf.int)} : IntInf.int zero;
+
+val one_integer = {one = one_integera} : IntInf.int one;
+
+val zero_neq_one_integer =
+  {one_zero_neq_one = one_integer, zero_zero_neq_one = zero_integer} :
+  IntInf.int zero_neq_one;
+
+fun integer_of_char (Chara (b0, b1, b2, b3, b4, b5, b6, b7)) =
+  IntInf.+ (IntInf.* (IntInf.+ (IntInf.* (IntInf.+ (IntInf.* (IntInf.+ (IntInf.* (IntInf.+ (IntInf.* (IntInf.+ (IntInf.* (IntInf.+ (IntInf.* (of_bool
+                        zero_neq_one_integer
+                        b7, (2 : IntInf.int)), of_bool zero_neq_one_integer
+         b6), (2 : IntInf.int)), of_bool zero_neq_one_integer
+                                   b5), (2 : IntInf.int)), of_bool
+                     zero_neq_one_integer
+                     b4), (2 : IntInf.int)), of_bool zero_neq_one_integer
+       b3), (2 : IntInf.int)), of_bool zero_neq_one_integer
+                                 b2), (2 : IntInf.int)), of_bool
+                   zero_neq_one_integer
+                   b1), (2 : IntInf.int)), of_bool zero_neq_one_integer b0);
+
+fun int_of_char x = (Int_of_integer o integer_of_char) x;
+
+fun hashcode_char c = uint32_of_int (int_of_char c);
+
+val hashable_char =
+  {hashcode = hashcode_char, def_hashmap_size = def_hashmap_size_char} :
+  char hashable;
+
 fun typerep_optiona A_ t = Typerep ("Option.option", [typerep A_ Type]);
 
 fun countable_option A_ = {} : ('a option) countable;
@@ -463,6 +520,23 @@ val ord_literal =
     less = (fn a => fn b => ((a : string) < b))}
   : string ord;
 
+fun def_hashmap_size_literal uu = nat_of_integer (10 : IntInf.int);
+
+fun foldl f a [] = a
+  | foldl f a (x :: xs) = foldl f (f a x) xs;
+
+fun hashcode_list A_ =
+  foldl (fn h => fn x =>
+          Word32.+ (Word32.* (h, Word32.fromLargeInt (IntInf.toLarge (33 : IntInf.int))), hashcode
+            A_ x))
+    (Word32.fromLargeInt (IntInf.toLarge (5381 : IntInf.int)));
+
+fun hashcode_literal s = hashcode_list hashable_char (explode s);
+
+val hashable_literal =
+  {hashcode = hashcode_literal, def_hashmap_size = def_hashmap_size_literal} :
+  string hashable;
+
 fun equal_proda A_ B_ (x1, x2) (y1, y2) = eq A_ x1 y1 andalso eq B_ x2 y2;
 
 fun equal_prod A_ B_ = {equal = equal_proda A_ B_} : ('a * 'b) equal;
@@ -496,32 +570,21 @@ fun show_prod A_ B_ =
   {shows_prec = shows_prec_prod A_ B_, shows_list = shows_list_prod A_ B_} :
   ('a * 'b) show;
 
-val one_integera : IntInf.int = (1 : IntInf.int);
+fun typerep_unita t = Typerep ("Product_Type.unit", []);
 
-type 'a one = {one : 'a};
-val one = #one : 'a one -> 'a;
+val countable_unit = {} : unit countable;
 
-val one_integer = {one = one_integera} : IntInf.int one;
+val typerep_unit = {typerep = typerep_unita} : unit typerep;
 
-type 'a zero = {zero : 'a};
-val zero = #zero : 'a zero -> 'a;
-
-val zero_integer = {zero = (0 : IntInf.int)} : IntInf.int zero;
-
-type 'a zero_neq_one = {one_zero_neq_one : 'a one, zero_zero_neq_one : 'a zero};
-val one_zero_neq_one = #one_zero_neq_one : 'a zero_neq_one -> 'a one;
-val zero_zero_neq_one = #zero_zero_neq_one : 'a zero_neq_one -> 'a zero;
-
-val zero_neq_one_integer =
-  {one_zero_neq_one = one_integer, zero_zero_neq_one = zero_integer} :
-  IntInf.int zero_neq_one;
+val heap_unit = {countable_heap = countable_unit, typerep_heap = typerep_unit} :
+  unit heap;
 
 datatype ('a, 'b) hashtable = HashTable of (('a * 'b) list) array * nat;
 
 datatype 'a code_status = CFAILED of 'a | CSUCCESS | CFOUND;
 
 datatype 'a pac_step = Add of nat * nat * nat * 'a | Mult of nat * 'a * nat * 'a
-  | Del of nat;
+  | Extension of nat * 'a | Del of nat;
 
 fun plus_nat m n = Nat (IntInf.+ (integer_of_nat m, integer_of_nat n));
 
@@ -573,22 +636,6 @@ fun tl [] = []
 fun replicate n x =
   (if equal_nata n zero_nat then []
     else x :: replicate (minus_nat n one_nat) x);
-
-fun of_bool A_ true = one (one_zero_neq_one A_)
-  | of_bool A_ false = zero (zero_zero_neq_one A_);
-
-fun integer_of_char (Chara (b0, b1, b2, b3, b4, b5, b6, b7)) =
-  IntInf.+ (IntInf.* (IntInf.+ (IntInf.* (IntInf.+ (IntInf.* (IntInf.+ (IntInf.* (IntInf.+ (IntInf.* (IntInf.+ (IntInf.* (IntInf.+ (IntInf.* (of_bool
-                        zero_neq_one_integer
-                        b7, (2 : IntInf.int)), of_bool zero_neq_one_integer
-         b6), (2 : IntInf.int)), of_bool zero_neq_one_integer
-                                   b5), (2 : IntInf.int)), of_bool
-                     zero_neq_one_integer
-                     b4), (2 : IntInf.int)), of_bool zero_neq_one_integer
-       b3), (2 : IntInf.int)), of_bool zero_neq_one_integer
-                                 b2), (2 : IntInf.int)), of_bool
-                   zero_neq_one_integer
-                   b1), (2 : IntInf.int)), of_bool zero_neq_one_integer b0);
 
 fun implode cs =
   (String.implode
@@ -692,6 +739,38 @@ fun ht_copy (A1_, A2_, A3_) B_ n src dst =
              ht_copy (A1_, A2_, A3_) B_ (minus_nat n one_nat) src x ()
            end));
 
+fun times_nat m n = Nat (IntInf.* (integer_of_nat m, integer_of_nat n));
+
+val load_factor : nat = nat_of_integer (75 : IntInf.int);
+
+fun ht_rehash (A1_, A2_, A3_) B_ ht =
+  (fn () =>
+    let
+      val n = len (heap_list (heap_prod A3_ B_)) (the_array ht) ();
+      val x =
+        ht_new_sz (A2_, A3_) B_ (times_nat (nat_of_integer (2 : IntInf.int)) n)
+          ();
+    in
+      ht_copy (A1_, A2_, A3_) B_ n ht x ()
+    end);
+
+fun ht_update (A1_, A2_, A3_) B_ k v ht =
+  (fn () =>
+    let
+      val m = len (heap_list (heap_prod A3_ B_)) (the_array ht) ();
+      val x =
+        (if less_eq_nat (times_nat m load_factor)
+              (times_nat (the_size ht) (nat_of_integer (100 : IntInf.int)))
+          then ht_rehash (A1_, A2_, A3_) B_ ht else (fn () => ht))
+          ();
+    in
+      ht_upd (A1_, A2_, A3_) B_ k v x ()
+    end);
+
+fun hs_ins (A1_, A2_, A3_) x ht = ht_update (A1_, A2_, A3_) heap_unit x () ht;
+
+fun hs_new (A1_, A2_) = ht_new (A1_, A2_) heap_unit;
+
 fun ls_delete A_ k [] = ([], false)
   | ls_delete A_ k ((l, w) :: ls) =
     (if eq A_ k l then (ls, true) else let
@@ -749,34 +828,6 @@ fun ht_lookup (A1_, A2_, A3_) B_ x ht =
         ()
     end);
 
-fun times_nat m n = Nat (IntInf.* (integer_of_nat m, integer_of_nat n));
-
-fun ht_rehash (A1_, A2_, A3_) B_ ht =
-  (fn () =>
-    let
-      val n = len (heap_list (heap_prod A3_ B_)) (the_array ht) ();
-      val x =
-        ht_new_sz (A2_, A3_) B_ (times_nat (nat_of_integer (2 : IntInf.int)) n)
-          ();
-    in
-      ht_copy (A1_, A2_, A3_) B_ n ht x ()
-    end);
-
-val load_factor : nat = nat_of_integer (75 : IntInf.int);
-
-fun ht_update (A1_, A2_, A3_) B_ k v ht =
-  (fn () =>
-    let
-      val m = len (heap_list (heap_prod A3_ B_)) (the_array ht) ();
-      val x =
-        (if less_eq_nat (times_nat m load_factor)
-              (times_nat (the_size ht) (nat_of_integer (100 : IntInf.int)))
-          then ht_rehash (A1_, A2_, A3_) B_ ht else (fn () => ht))
-          ();
-    in
-      ht_upd (A1_, A2_, A3_) B_ k v x ()
-    end);
-
 fun op_list_hd x = hd x;
 
 fun op_list_tl x = tl x;
@@ -794,6 +845,13 @@ fun array_grow A_ a s x =
                    (fn _ => (fn () => aa))))
         ()
     end);
+
+fun hs_memb (A1_, A2_, A3_) x s =
+  (fn () => let
+              val r = ht_lookup (A1_, A2_, A3_) heap_unit x s ();
+            in
+              (case r of NONE => false | SOME _ => true)
+            end);
 
 fun error_msg A_ i msg =
   CFAILED
@@ -1198,50 +1256,127 @@ fun sort_all_coeffs_impl x =
 fun pAC_update_impl x =
   iam_update (heap_list (heap_prod (heap_list heap_literal) heap_int)) x;
 
+fun is_Extension (Add (x11, x12, x13, x14)) = false
+  | is_Extension (Mult (x21, x22, x23, x24)) = false
+  | is_Extension (Extension (x31, x32)) = true
+  | is_Extension (Del x4) = false;
+
+fun check_ext_l_dom_err_impl p =
+  [Chara (true, false, true, false, false, false, true, false),
+    Chara (false, false, false, true, true, true, true, false),
+    Chara (false, false, true, false, true, true, true, false),
+    Chara (true, false, true, false, false, true, true, false),
+    Chara (false, true, true, true, false, true, true, false),
+    Chara (true, true, false, false, true, true, true, false),
+    Chara (true, false, false, true, false, true, true, false),
+    Chara (true, true, true, true, false, true, true, false),
+    Chara (false, true, true, true, false, true, true, false),
+    Chara (false, false, false, false, false, true, false, false),
+    Chara (false, true, true, true, false, true, true, false),
+    Chara (true, true, true, true, false, true, true, false),
+    Chara (false, false, true, false, true, true, true, false),
+    Chara (false, false, false, false, false, true, false, false),
+    Chara (true, false, false, true, false, true, true, false),
+    Chara (true, false, true, true, false, true, true, false),
+    Chara (false, false, false, false, true, true, true, false),
+    Chara (false, false, true, true, false, true, true, false),
+    Chara (true, false, true, false, false, true, true, false),
+    Chara (true, false, true, true, false, true, true, false),
+    Chara (true, false, true, false, false, true, true, false),
+    Chara (false, true, true, true, false, true, true, false),
+    Chara (false, false, true, false, true, true, true, false),
+    Chara (true, false, true, false, false, true, true, false),
+    Chara (false, false, true, false, false, true, true, false),
+    Chara (false, false, false, false, false, true, false, false),
+    Chara (true, false, false, false, false, true, true, false),
+    Chara (false, false, true, false, true, true, true, false),
+    Chara (false, false, false, false, false, true, false, false),
+    Chara (true, true, false, false, true, true, true, false),
+    Chara (false, false, true, false, true, true, true, false),
+    Chara (true, false, true, false, false, true, true, false),
+    Chara (false, false, false, false, true, true, true, false),
+    Chara (false, false, false, false, false, true, false, false)] @
+    shows_prec_nat zero_nat p [];
+
+fun check_extension_l_impl x =
+  (fn _ => fn _ => fn _ => fn bia => fn _ =>
+    (fn () => (error_msg show_nat bia (check_ext_l_dom_err_impl bia))))
+    x;
+
 fun weak_equality_p_impl x =
   (fn ai => fn bi =>
     (fn () =>
       (equal_lista (equal_prod (equal_list equal_literal) equal_int) ai bi)))
     x;
 
+fun vars_of_monom_in_impl x =
+  (fn ai => fn bi =>
+    imp_nfoldli ai (fn _ => (fn () => true))
+      (fn xa => fn sigma => fn () =>
+        let
+          val x_b =
+            hs_memb (equal_literal, hashable_literal, heap_literal) xa bi ();
+        in
+          sigma andalso x_b
+        end)
+      true)
+    x;
+
+fun vars_of_poly_in_impl x =
+  (fn ai => fn bi =>
+    imp_nfoldli ai (fn _ => (fn () => true))
+      (fn xa => fn sigma =>
+        let
+          val (a1, _) = xa;
+        in
+          (fn () => let
+                      val x_b = vars_of_monom_in_impl a1 bi ();
+                    in
+                      sigma andalso x_b
+                    end)
+        end)
+      true)
+    x;
+
 fun check_addition_l_impl x =
-  (fn ai => fn bid => fn bic => fn bib => fn bia => fn bi => fn () =>
+  (fn ai => fn bie => fn bid => fn bic => fn bib => fn bia => fn bi => fn () =>
     let
       val xa =
         ht_lookup (equal_nat, hashable_nat, heap_nat)
-          (heap_list (heap_prod (heap_list heap_literal) heap_int)) bic bid ();
+          (heap_list (heap_prod (heap_list heap_literal) heap_int)) bic bie ();
       val xaa =
         ht_lookup (equal_nat, hashable_nat, heap_nat)
-          (heap_list (heap_prod (heap_list heap_literal) heap_int)) bib bid ();
+          (heap_list (heap_prod (heap_list heap_literal) heap_int)) bib bie ();
       val xb =
         ht_lookup (equal_nat, hashable_nat, heap_nat)
-          (heap_list (heap_prod (heap_list heap_literal) heap_int)) bia bid ();
+          (heap_list (heap_prod (heap_list heap_literal) heap_int)) bia bie ();
+      val xc = vars_of_poly_in_impl bi bid ();
     in
-      (if not (not (is_None xa)) orelse
-            (not (not (is_None xaa)) orelse not (is_None xb))
+      (if not (not (is_None xa) andalso
+                (not (is_None xaa) andalso (not (not (is_None xb)) andalso xc)))
         then (fn f_ => fn () => f_
                ((ht_lookup (equal_nat, hashable_nat, heap_nat)
                   (heap_list (heap_prod (heap_list heap_literal) heap_int)) bic
-                  bid)
+                  bie)
                ()) ())
-               (fn xc =>
+               (fn xd =>
                  (fn f_ => fn () => f_
                    ((ht_lookup (equal_nat, hashable_nat, heap_nat)
                       (heap_list (heap_prod (heap_list heap_literal) heap_int))
-                      bib bid)
+                      bib bie)
                    ()) ())
                    (fn xab =>
                      (fn f_ => fn () => f_
                        ((ht_lookup (equal_nat, hashable_nat, heap_nat)
                           (heap_list
                             (heap_prod (heap_list heap_literal) heap_int))
-                          bia bid)
+                          bia bie)
                        ()) ())
                        (fn xba =>
                          (fn () =>
                            (error_msg show_nat bia
                              (op_list_concat
-                               (if not (not (is_None xc))
+                               (if not (not (is_None xd))
                                  then error_msg_notin_dom bic else [])
                                (op_list_concat
                                  (if not (not (is_None xab))
@@ -1252,40 +1387,40 @@ fun check_addition_l_impl x =
         else (fn f_ => fn () => f_
                ((ht_lookup (equal_nat, hashable_nat, heap_nat)
                   (heap_list (heap_prod (heap_list heap_literal) heap_int)) bic
-                  bid)
+                  bie)
                ()) ())
-               (fn xc =>
+               (fn xd =>
                  let
-                   val x_a = the xc;
+                   val x_c = the xd;
                  in
                    (fn f_ => fn () => f_
                      ((ht_lookup (equal_nat, hashable_nat, heap_nat)
                         (heap_list
                           (heap_prod (heap_list heap_literal) heap_int))
-                        bib bid)
+                        bib bie)
                      ()) ())
-                     (fn xd =>
+                     (fn xe =>
                        let
-                         val x_c = the xd;
+                         val x_e = the xe;
                        in
-                         (fn f_ => fn () => f_ ((add_poly_impl (x_a, x_c)) ())
+                         (fn f_ => fn () => f_ ((add_poly_impl (x_c, x_e)) ())
                            ())
-                           (fn x_e =>
+                           (fn x_g =>
                              (fn f_ => fn () => f_
-                               ((weak_equality_p_impl x_e bi) ()) ())
-                               (fn x_f =>
+                               ((weak_equality_p_impl x_g bi) ()) ())
+                               (fn x_h =>
                                  (fn f_ => fn () => f_
                                    ((weak_equality_p_impl bi ai) ()) ())
-                                   (fn x_g =>
+                                   (fn x_i =>
                                      (fn () =>
-                                       (if x_f
- then (if x_g then CFOUND else CSUCCESS)
+                                       (if x_h
+ then (if x_i then CFOUND else CSUCCESS)
  else error_msg show_nat bia
         (error_msg_not_equal_dom
           (show_list (show_prod (show_list show_literal) show_int))
           (show_list (show_prod (show_list show_literal) show_int))
           (show_list (show_prod (show_list show_literal) show_int))
-          (show_list (show_prod (show_list show_literal) show_int)) x_a x_c x_e
+          (show_list (show_prod (show_list show_literal) show_int)) x_c x_e x_g
           bi))))))
                        end)
                  end))
@@ -1297,16 +1432,18 @@ fun pac_src2 (Add (x11, x12, x13, x14)) = x12;
 
 fun pac_src1 (Add (x11, x12, x13, x14)) = x11
   | pac_src1 (Mult (x21, x22, x23, x24)) = x21
-  | pac_src1 (Del x3) = x3;
+  | pac_src1 (Del x4) = x4;
 
 fun pac_mult (Mult (x21, x22, x23, x24)) = x22;
 
 fun pac_res (Add (x11, x12, x13, x14)) = x14
-  | pac_res (Mult (x21, x22, x23, x24)) = x24;
+  | pac_res (Mult (x21, x22, x23, x24)) = x24
+  | pac_res (Extension (x31, x32)) = x32;
 
 fun is_Mult (Add (x11, x12, x13, x14)) = false
   | is_Mult (Mult (x21, x22, x23, x24)) = true
-  | is_Mult (Del x3) = false;
+  | is_Mult (Extension (x31, x32)) = false
+  | is_Mult (Del x4) = false;
 
 fun fully_normalize_poly_impl x =
   (fn xi => fn () => let
@@ -1317,11 +1454,13 @@ fun fully_normalize_poly_impl x =
     x;
 
 fun new_id (Add (x11, x12, x13, x14)) = x13
-  | new_id (Mult (x21, x22, x23, x24)) = x23;
+  | new_id (Mult (x21, x22, x23, x24)) = x23
+  | new_id (Extension (x31, x32)) = x31;
 
 fun is_Add (Add (x11, x12, x13, x14)) = true
   | is_Add (Mult (x21, x22, x23, x24)) = false
-  | is_Add (Del x3) = false;
+  | is_Add (Extension (x31, x32)) = false
+  | is_Add (Del x4) = false;
 
 fun check_mult_l_mult_err_impl A_ B_ C_ D_ p q pq r =
   [Chara (true, false, true, true, false, false, true, false),
@@ -1453,58 +1592,61 @@ fun check_mult_l_dom_err_impl A_ B_ pd p ia i =
       else []);
 
 fun check_mult_l_impl x =
-  (fn ai => fn bid => fn bic => fn bib => fn bia => fn bi => fn () =>
+  (fn ai => fn bie => fn bid => fn bic => fn bib => fn bia => fn bi => fn () =>
     let
       val xa =
         ht_lookup (equal_nat, hashable_nat, heap_nat)
-          (heap_list (heap_prod (heap_list heap_literal) heap_int)) bic bid ();
+          (heap_list (heap_prod (heap_list heap_literal) heap_int)) bic bie ();
       val xaa =
         ht_lookup (equal_nat, hashable_nat, heap_nat)
-          (heap_list (heap_prod (heap_list heap_literal) heap_int)) bia bid ();
+          (heap_list (heap_prod (heap_list heap_literal) heap_int)) bia bie ();
+      val xb = vars_of_poly_in_impl bib bid ();
+      val xc = vars_of_poly_in_impl bi bid ();
     in
-      (if not (not (is_None xa)) orelse not (is_None xaa)
+      (if not (not (is_None xa) andalso
+                (not (not (is_None xaa)) andalso (xb andalso xc)))
         then (fn f_ => fn () => f_
                ((ht_lookup (equal_nat, hashable_nat, heap_nat)
                   (heap_list (heap_prod (heap_list heap_literal) heap_int)) bic
-                  bid)
+                  bie)
                ()) ())
-               (fn xb =>
+               (fn xd =>
                  (fn f_ => fn () => f_
                    ((ht_lookup (equal_nat, hashable_nat, heap_nat)
                       (heap_list (heap_prod (heap_list heap_literal) heap_int))
-                      bia bid)
+                      bia bie)
                    ()) ())
                    (fn xab =>
                      (fn () =>
                        (error_msg show_nat bia
                          (check_mult_l_dom_err_impl show_nat show_nat
-                           (not (not (is_None xb))) bic (not (is_None xab))
+                           (not (not (is_None xd))) bic (not (is_None xab))
                            bia)))))
         else (fn f_ => fn () => f_
                ((ht_lookup (equal_nat, hashable_nat, heap_nat)
                   (heap_list (heap_prod (heap_list heap_literal) heap_int)) bic
-                  bid)
+                  bie)
                ()) ())
-               (fn xb =>
+               (fn xd =>
                  let
-                   val x_a = the xb;
+                   val x_c = the xd;
                  in
-                   (fn f_ => fn () => f_ ((mult_poly_impl x_a bib) ()) ())
-                     (fn x_c =>
-                       (fn f_ => fn () => f_ ((weak_equality_p_impl x_c bi) ())
+                   (fn f_ => fn () => f_ ((mult_poly_impl x_c bib) ()) ())
+                     (fn x_e =>
+                       (fn f_ => fn () => f_ ((weak_equality_p_impl x_e bi) ())
                          ())
-                         (fn x_d =>
+                         (fn x_f =>
                            (fn f_ => fn () => f_ ((weak_equality_p_impl bi ai)
                              ()) ())
-                             (fn x_e =>
+                             (fn x_g =>
                                (fn () =>
-                                 (if x_d then (if x_e then CFOUND else CSUCCESS)
+                                 (if x_f then (if x_g then CFOUND else CSUCCESS)
                                    else error_msg show_nat bia
   (check_mult_l_mult_err_impl
     (show_list (show_prod (show_list show_literal) show_int))
     (show_list (show_prod (show_list show_literal) show_int))
     (show_list (show_prod (show_list show_literal) show_int))
-    (show_list (show_prod (show_list show_literal) show_int)) x_a bib x_c
+    (show_list (show_prod (show_list show_literal) show_int)) x_c bib x_e
     bi))))))
                  end))
         ()
@@ -1562,13 +1704,13 @@ fun check_del_l_impl x =
     x;
 
 fun check_step_impl x =
-  (fn ai => fn bib => fn bia => fn bi =>
+  (fn ai => fn bic => fn bib => fn bia => fn bi =>
     (if is_Add bi
       then (fn () =>
              let
                val x_a = fully_normalize_poly_impl (pac_res bi) ();
                val x_b =
-                 check_addition_l_impl ai bia (pac_src1 bi) (pac_src2 bi)
+                 check_addition_l_impl ai bia bib (pac_src1 bi) (pac_src2 bi)
                    (new_id bi) x_a ();
              in
                (if not (is_cfailed x_b)
@@ -1578,8 +1720,8 @@ fun check_step_impl x =
                              (heap_prod (heap_list heap_literal) heap_int))
                            (new_id bi) x_a bia)
                         ()) ())
-                        (fn x_e => (fn () => (merge_cstatus bib x_b, x_e)))
-                 else (fn () => (x_b, bia)))
+                        (fn xa => (fn () => (merge_cstatus bic x_b, (bib, xa))))
+                 else (fn () => (x_b, (bib, bia))))
                  ()
              end)
       else (if is_Mult bi
@@ -1588,8 +1730,8 @@ fun check_step_impl x =
                       val x_b = fully_normalize_poly_impl (pac_res bi) ();
                       val x_c = fully_normalize_poly_impl (pac_mult bi) ();
                       val x_d =
-                        check_mult_l_impl ai bia (pac_src1 bi) x_c (new_id bi)
-                          x_b ();
+                        check_mult_l_impl ai bia bib (pac_src1 bi) x_c
+                          (new_id bi) x_b ();
                     in
                       (if not (is_cfailed x_d)
                         then (fn f_ => fn () => f_
@@ -1599,32 +1741,53 @@ fun check_step_impl x =
                                       heap_int))
                                   (new_id bi) x_b bia)
                                ()) ())
-                               (fn x_g =>
-                                 (fn () => (merge_cstatus bib x_d, x_g)))
-                        else (fn () => (x_d, bia)))
+                               (fn xa =>
+                                 (fn () => (merge_cstatus bic x_d, (bib, xa))))
+                        else (fn () => (x_d, (bib, bia))))
                         ()
                     end)
-             else (fn () =>
-                    let
-                      val x_b = check_del_l_impl ai bia (pac_src1 bi) ();
-                    in
-                      (if not (is_cfailed x_b)
-                        then (fn f_ => fn () => f_
-                               ((ht_delete (equal_nat, hashable_nat, heap_nat)
-                                  (heap_list
-                                    (heap_prod (heap_list heap_literal)
-                                      heap_int))
-                                  (pac_src1 bi) bia)
-                               ()) ())
-                               (fn x_e =>
-                                 (fn () => (merge_cstatus bib x_b, x_e)))
-                        else (fn () => (x_b, bia)))
-                        ()
-                    end))))
+             else (if is_Extension bi
+                    then (fn () =>
+                           let
+                             val x_c =
+                               fully_normalize_poly_impl (pac_res bi) ();
+                             val x_d =
+                               check_extension_l_impl ai bia bib (new_id bi) x_c
+                                 ();
+                           in
+                             (if not (is_cfailed x_d)
+                               then (fn f_ => fn () => f_
+                                      ((ht_update
+ (equal_nat, hashable_nat, heap_nat)
+ (heap_list (heap_prod (heap_list heap_literal) heap_int)) (new_id bi) x_c bia)
+                                      ()) ())
+                                      (fn xa =>
+(fn () => (merge_cstatus bic x_d, (bib, xa))))
+                               else (fn () => (x_d, (bib, bia))))
+                               ()
+                           end)
+                    else (fn () =>
+                           let
+                             val x_c = check_del_l_impl ai bia (pac_src1 bi) ();
+                           in
+                             (if not (is_cfailed x_c)
+                               then (fn f_ => fn () => f_
+                                      ((ht_delete
+ (equal_nat, hashable_nat, heap_nat)
+ (heap_list (heap_prod (heap_list heap_literal) heap_int)) (pac_src1 bi) bia)
+                                      ()) ())
+                                      (fn xa =>
+(fn () => (merge_cstatus bic x_c, (bib, xa))))
+                               else (fn () => (x_c, (bib, bia))))
+                               ()
+                           end)))))
     x;
 
+val empty_vars_impl : (unit -> (string, unit) hashtable) =
+  hs_new (hashable_literal, heap_literal);
+
 fun pAC_checker_l_impl x =
-  (fn ai => fn bib => fn bia => fn bi => fn () =>
+  (fn ai => fn bic => fn bib => fn bia => fn bi => fn () =>
     let
       val a =
         heap_WHILET
@@ -1635,14 +1798,15 @@ fun pAC_checker_l_impl x =
                         not (is_cfailed a1a) andalso not (op_list_is_empty a2)
                       end))
           (fn (a1, a2) =>
-            (fn f_ => fn () => f_ (let
-                                     val (a1a, a2a) = a1;
-                                   in
-                                     check_step_impl ai a1a a2a (op_list_hd a2)
-                                   end
+            (fn f_ => fn () => f_
+              (let
+                 val (a1a, (a1b, a2b)) = a1;
+               in
+                 check_step_impl ai a1a a1b a2b (op_list_hd a2)
+               end
               ()) ())
               (fn x_b => (fn () => (x_b, op_list_tl a2))))
-          ((bia, bib), bi) ();
+          ((bia, (bic, bib)), bi) ();
     in
       let
         val (a1, _) = a;
@@ -1653,8 +1817,24 @@ fun pAC_checker_l_impl x =
     end)
     x;
 
+fun union_vars_monom_impl x =
+  (fn ai =>
+    imp_nfoldli ai (fn _ => (fn () => true))
+      (hs_ins (equal_literal, hashable_literal, heap_literal)))
+    x;
+
+fun union_vars_poly_impl x =
+  (fn ai =>
+    imp_nfoldli ai (fn _ => (fn () => true))
+      (fn xa => fn sigma => let
+                              val (a1, _) = xa;
+                            in
+                              union_vars_monom_impl a1 sigma
+                            end))
+    x;
+
 fun remap_polys_l_impl x =
-  (fn ai => fn bi => fn () =>
+  (fn ai => fn bia => fn bi => fn () =>
     let
       val xa =
         len (heap_option
@@ -1668,7 +1848,7 @@ fun remap_polys_l_impl x =
           (fn (a1, a2) =>
             (fn f_ => fn () => f_
               (let
-                 val (a1a, a2a) = a2;
+                 val (a1a, (a1b, a2b)) = a2;
                in
                  (fn f_ => fn () => f_
                    ((iam_lookup
@@ -1692,22 +1872,29 @@ fun remap_polys_l_impl x =
                                       ((weak_equality_p_impl x_c ai) ()) ())
                                       (fn x_d =>
 (fn f_ => fn () => f_
-  ((ht_update (equal_nat, hashable_nat, heap_nat)
-     (heap_list (heap_prod (heap_list heap_literal) heap_int)) a1 x_c a1a)
+  ((iam_lookup (heap_list (heap_prod (heap_list heap_literal) heap_int)) a1 bi)
   ()) ())
-  (fn x_e => (fn () => (x_e, a2a orelse x_d))))))
-                       else (fn () => (a1a, a2a))))
+  (fn xd =>
+    (fn f_ => fn () => f_ ((union_vars_poly_impl (the xd) a1b) ()) ())
+      (fn x_e =>
+        (fn f_ => fn () => f_
+          ((ht_update (equal_nat, hashable_nat, heap_nat)
+             (heap_list (heap_prod (heap_list heap_literal) heap_int)) a1 x_c
+             a2b)
+          ()) ())
+          (fn xe => (fn () => (a1a orelse x_d, (x_e, xe)))))))))
+                       else (fn () => (a1a, (a1b, a2b)))))
                end
               ()) ())
               (fn x_b => (fn () => (plus_nat a1 one_nat, x_b))))
-          (zero_nat, (xaa, false)) ();
-      val (a1, a2) = let
-                       val (_, b) = xb;
-                     in
-                       b
-                     end;
+          (zero_nat, (false, (bia, xaa))) ();
+      val (a1, (a1a, a2a)) = let
+                               val (_, b) = xb;
+                             in
+                               b
+                             end;
     in
-      (a1, (if a2 then CFOUND else CSUCCESS))
+      ((if a1 then CFOUND else CSUCCESS), (a1a, a2a))
     end)
     x;
 
@@ -1715,12 +1902,18 @@ fun full_checker_l_impl x =
   (fn ai => fn bia => fn bi => fn () =>
     let
       val xa = fully_normalize_poly_impl ai ();
-      val a = remap_polys_l_impl xa bia ();
+      val xaa = hs_new (hashable_literal, heap_literal) ();
+      val a = remap_polys_l_impl xa xaa bia ();
     in
       let
-        val (a1, a2) = a;
+        val (a1, (a1a, a2a)) = a;
       in
-        pAC_checker_l_impl xa a1 a2 bi
+        (fn f_ => fn () => f_ ((union_vars_poly_impl ai a1a) ()) ())
+          (fn x_b => let
+                       val (a1b, a2b) = (x_b, a2a);
+                     in
+                       pAC_checker_l_impl xa a1b a2b a1 bi
+                     end)
       end
         ()
     end)
