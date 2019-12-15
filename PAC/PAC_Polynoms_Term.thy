@@ -2,7 +2,10 @@ theory PAC_Polynoms_Term
   imports PAC_Polynoms
     Refine_Imperative_HOL.IICF
 begin
-typ \<open>('a, 'b) fmap\<close>
+
+
+section \<open>Terms\<close>
+
 (*Taken from WB_More_Refinement*)
 lemma fref_to_Down_curry_left:
   fixes f:: \<open>'a \<Rightarrow> 'b \<Rightarrow> 'c nres\<close> and

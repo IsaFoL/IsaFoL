@@ -6,6 +6,9 @@ theory PAC_Checker
     Show.Show_Instances
 begin
 
+section \<open>Executable Checker\<close>
+
+
 datatype 'a code_status =
   is_cfailed: CFAILED (the_error: 'a) |
   CSUCCESS |
@@ -1275,6 +1278,14 @@ proof -
     subgoal by auto
     done
 qed
+
+
+lemma full_checker_l_full_checker':
+  \<open>(uncurry2 full_checker_l, uncurry2 full_checker) \<in>
+  ((fully_unsorted_poly_rel O mset_poly_rel) \<times>\<^sub>r unsorted_fmap_polys_rel) \<times>\<^sub>r \<langle>pac_step_rel\<rangle>list_rel \<rightarrow>\<^sub>f
+    \<langle>(code_status_status_rel \<times>\<^sub>r \<langle>var_rel\<rangle>set_rel \<times>\<^sub>r fmap_polys_rel)\<rangle>nres_rel\<close>
+  apply (intro frefI nres_relI)
+  using full_checker_l_full_checker by force
 
 end
 

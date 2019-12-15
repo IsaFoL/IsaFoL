@@ -4,6 +4,7 @@ theory PAC_Checker_Synthesis
     "../Weidenbach_Book/Watched_Literals/WB_More_Refinement_Loops"
 begin
 
+section \<open>Code Synthesis of the Checker\<close>
 
 abbreviation vars_assn where
   \<open>vars_assn \<equiv> hs.assn string_assn\<close>
@@ -928,5 +929,85 @@ export_code PAC_checker_l_impl PAC_update_impl PAC_empty_impl the_error is_cfail
   Extension
   in SML_imp module_name PAC_Checker
   file "code/checker.sml"
+
+
+section \<open>Correctness theorem\<close>
+
+context poly_embed
+begin
+
+definition full_poly_assn where
+  \<open>full_poly_assn = hr_comp poly_assn (fully_unsorted_poly_rel O mset_poly_rel)\<close>
+
+definition full_poly_input_assn where
+  \<open>full_poly_input_assn = hr_comp
+        (hr_comp polys_assn_input
+          (\<langle>nat_rel, fully_unsorted_poly_rel O mset_poly_rel\<rangle>fmap_rel))
+        polys_rel\<close>
+
+definition fully_pac_assn where
+  \<open>fully_pac_assn = (list_assn
+        (hr_comp (pac_step_rel_assn nat_assn poly_assn)
+          (p2rel
+            (\<langle>nat_rel,
+             fully_unsorted_poly_rel O
+             mset_poly_rel\<rangle>pac_step_rel_raw))))\<close>
+
+definition code_status_assn where
+  \<open>code_status_assn = hr_comp (status_assn raw_string_assn)
+                            code_status_status_rel\<close>
+
+definition full_vars_assn where
+  \<open>full_vars_assn = hr_comp (hs.assn string_assn)
+                              (\<langle>var_rel\<rangle>set_rel)\<close>
+
+lemma polys_rel_full_polys_rel:
+  \<open>polys_rel_full = Id \<times>\<^sub>r polys_rel\<close>
+  by (auto simp: polys_rel_full_def)
+
+definition full_polys_assn :: \<open>_\<close> where
+\<open>full_polys_assn = hr_comp (hr_comp polys_assn
+                              (\<langle>nat_rel,
+                               sorted_poly_rel O mset_poly_rel\<rangle>fmap_rel))
+                            polys_rel\<close>
+
+lemma PAC_full_correctness:
+  \<open>(uncurry2 full_checker_l_impl,
+     uncurry2 (\<lambda>spec A _. PAC_checker_specification spec A))
+    \<in> (full_poly_assn)\<^sup>k *\<^sub>a
+      (full_poly_input_assn)\<^sup>d *\<^sub>a
+      (fully_pac_assn)\<^sup>k \<rightarrow>\<^sub>a code_status_assn \<times>\<^sub>a
+                           full_vars_assn \<times>\<^sub>a full_polys_assn\<close>
+  using 
+    full_checker_l_impl.refine[FCOMP full_checker_l_full_checker',
+    FCOMP full_checker_spec',
+    unfolded full_poly_assn_def[symmetric]
+      full_poly_input_assn_def[symmetric]
+      fully_pac_assn_def[symmetric]
+      code_status_assn_def[symmetric]
+      full_vars_assn_def[symmetric]
+      polys_rel_full_polys_rel
+      hr_comp_prod_conv
+      full_polys_assn_def[symmetric]]
+   by auto
+
+end
+
+definition \<phi> :: \<open>string \<Rightarrow> nat\<close> where
+  \<open>\<phi> = (SOME \<phi>. bij \<phi>)\<close>
+
+lemma bij_\<phi>: \<open>bij \<phi>\<close>
+  using someI[of \<open> \<lambda>\<phi> :: string \<Rightarrow> nat. bij \<phi>\<close>]
+  unfolding \<phi>_def[symmetric]
+  using poly_embed_EX
+  by auto
+
+global_interpretation PAC: poly_embed where
+  \<phi> = \<phi>
+  apply standard
+  apply (use bij_\<phi> in \<open>auto simp: bij_def\<close>)
+  done
+
+text \<open>The full correctness theorem is @{thm PAC.PAC_full_correctness}.\<close>
 
 end

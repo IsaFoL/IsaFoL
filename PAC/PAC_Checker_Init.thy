@@ -2,6 +2,9 @@ theory PAC_Checker_Init
   imports  PAC_Checker WB_Sort PAC_Checker_Relation
 begin
 
+section \<open>Initial Normalisation of Polynoms\<close>
+
+
 text \<open>Adapted from the theory \<^text>\<open>HOL-ex.MergeSort\<close> by Tobias.\<close>
 
 fun merge :: "_ \<Rightarrow>  'a list \<Rightarrow> 'a list \<Rightarrow> 'a list"

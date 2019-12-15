@@ -2,6 +2,7 @@ theory PAC_Polynoms_Operations
   imports PAC_Polynoms_Term PAC_Checker_Specification
 begin
 
+section \<open>Polynoms as Lists\<close>
 
 fun add_poly_l' :: \<open>llist_polynom \<times> llist_polynom \<Rightarrow> llist_polynom\<close> where
   \<open>add_poly_l' (p, []) = p\<close> |
@@ -1050,7 +1051,24 @@ definition full_normalize_poly where
      p \<leftarrow> sort_all_coeffs p;
      p \<leftarrow> sort_poly_spec p;
      RETURN (merge_coeffs0 p)
-}\<close>
+  }\<close>
+
+fun sorted_remdups where
+  \<open>sorted_remdups (x # y # zs) =
+    (if x = y then sorted_remdups (y # zs) else x # sorted_remdups (y # zs))\<close> |
+  \<open>sorted_remdups zs = zs\<close>
+
+lemma set_sorted_remdups[simp]:
+  \<open>set (sorted_remdups xs) = set xs\<close>
+  by (induction xs rule: sorted_remdups.induct)
+   auto
+
+lemma distinct_sorted_remdups:
+  \<open>sorted_wrt R xs \<Longrightarrow> transp R \<Longrightarrow> Restricted_Predicates.total_on R UNIV \<Longrightarrow>
+    antisymp R \<Longrightarrow>
+    distinct (sorted_remdups xs)\<close>
+  by (induction xs rule: sorted_remdups.induct)
+    (auto dest: antisympD)
 
 lemma full_normalize_poly_normalize_poly_p:
   assumes \<open>(p, p') \<in> fully_unsorted_poly_rel\<close>

@@ -5,6 +5,16 @@ theory PAC_Checker_Specification
 
 begin
 
+section \<open>Checker Implementation\<close>
+
+
+text \<open>
+
+In this level of refinement, we define the first level of the
+implementation of the checker, both with the specification as
+on ideals and the first version of the loop.
+
+\<close>
 
 datatype status =
   is_failed: FAILED |
@@ -24,9 +34,9 @@ datatype 'a pac_step =
 type_synonym  pac_state = \<open>(nat set \<times> int_poly multiset)\<close>
 
 definition PAC_checker_specification
-  :: \<open>int_poly multiset \<Rightarrow> int_poly \<Rightarrow> (status \<times> nat set \<times> int_poly multiset) nres\<close>
+  :: \<open>int_poly \<Rightarrow> int_poly multiset \<Rightarrow> (status \<times> nat set \<times> int_poly multiset) nres\<close>
 where
-  \<open>PAC_checker_specification A spec = SPEC(\<lambda>(b, \<V>, B).
+  \<open>PAC_checker_specification spec A = SPEC(\<lambda>(b, \<V>, B).
       (\<not>is_failed b \<longrightarrow> restricted_ideal_to\<^sub>I (\<Union>(vars ` set_mset A) \<union> vars spec) B \<subseteq> restricted_ideal_to\<^sub>I (\<Union>(vars ` set_mset A) \<union> vars spec) A) \<and>
       (is_found b \<longrightarrow> spec \<in> pac_ideal (set_mset A)))\<close>
 
@@ -752,7 +762,7 @@ lemma restricted_ideal_to_mono:
 lemma full_checker_spec:
   assumes \<open>(A, A') \<in> polys_rel\<close>
   shows
-    \<open>full_checker spec A pac \<le> \<Down> (status_rel \<times>\<^sub>r polys_rel_full) (PAC_checker_specification (A') spec)\<close>
+    \<open>full_checker spec A pac \<le> \<Down> (status_rel \<times>\<^sub>r polys_rel_full) (PAC_checker_specification spec (A'))\<close>
 proof -
   have H: \<open>set_mset b \<subseteq> pac_ideal (set_mset (ran_m A)) \<Longrightarrow>
        x \<in> pac_ideal (set_mset b) \<Longrightarrow> x \<in> pac_ideal (set_mset A')\<close> for b x
@@ -806,6 +816,13 @@ proof -
    done
 qed
 
+
+lemma full_checker_spec':
+  shows
+    \<open>(uncurry2 full_checker, uncurry2 (\<lambda>spec A _. PAC_checker_specification spec A)) \<in>
+       (Id \<times>\<^sub>r polys_rel) \<times>\<^sub>r Id \<rightarrow>\<^sub>f \<langle>(status_rel \<times>\<^sub>r polys_rel_full)\<rangle>nres_rel\<close>
+  using full_checker_spec
+  by (auto intro!: frefI nres_relI)
 
 end
 

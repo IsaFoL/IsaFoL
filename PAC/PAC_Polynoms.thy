@@ -5,9 +5,17 @@ theory PAC_Polynoms
 begin
 
 
+section \<open>Polynoms of strings\<close>
+
+text \<open>
+
+  Isabelle's definition of polynoms only work with variables of type
+  \<^typ>\<open>nat\<close>. Therefore, we introduce a version that uses strings.
+
+\<close>
 lemma poly_embed_EX:
-  \<open>\<exists>\<phi>. bij (\<phi> :: string list \<Rightarrow> nat)\<close>
-  by (rule countableE_infinite[of \<open>UNIV :: string list set\<close>])
+  \<open>\<exists>\<phi>. bij (\<phi> :: string \<Rightarrow> nat)\<close>
+  by (rule countableE_infinite[of \<open>UNIV :: string set\<close>])
      (auto intro!: infinite_UNIV_listI)
 
 text \<open>Using a multiset instead of a list has some advantage from an abstract point of view.\<close>
@@ -183,6 +191,9 @@ keep_coeff[simp, intro]:
     \<open>normalize_poly_p p q \<Longrightarrow> normalize_poly_p (add_mset x p) (add_mset x q)\<close>
 
 
+text \<open>
+  This locales maps string polynoms to real polynoms.
+\<close>
 locale poly_embed =
   fixes \<phi> :: \<open>string \<Rightarrow> nat\<close>
   assumes \<phi>_inj: \<open>inj \<phi>\<close>
@@ -394,8 +405,9 @@ lemma rtranclp_mult_poly_p_mult_ideal_final:
 
 lemma normalize_poly_p_poly_of_mset:
   \<open>normalize_poly_p p q \<Longrightarrow> polynom_of_mset p = polynom_of_mset q\<close>
-  by (induction rule: normalize_poly_p.induct)
-    (auto simp: Const_add algebra_simps)
+  apply (induction rule: normalize_poly_p.induct)
+  apply (auto simp: Const_add algebra_simps)
+  done
 
 
 lemma rtranclp_normalize_poly_p_poly_of_mset:
