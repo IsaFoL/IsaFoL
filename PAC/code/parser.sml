@@ -167,17 +167,21 @@ exception Parser_Error of string
         val _ = print2 "parse_vars_only_monom\n"
         val vars = ref [];
         fun parse_aux () =
-            if TextIO.lookahead(istream) = SOME #"," orelse TextIO.lookahead(istream) = SOME #";"
-               orelse TextIO.lookahead(istream) = SOME #"-" orelse TextIO.lookahead(istream) = SOME #"+"
-            then (print2 ("parse_vars_only_monom, sep =" ^ String.implode [valOf (TextIO.lookahead(istream))] ^ "\n"))
-            else if TextIO.lookahead(istream) = SOME #"*"
-            then
-              (ignore (TextIO.input1(istream));
-               vars := parse_var istream :: (!vars);
-               parse_aux ())
-            else
-              (vars := parse_var istream :: (!vars);
-               parse_aux ())
+            let
+              val _ = skip_spaces istream;
+            in
+              if TextIO.lookahead(istream) = SOME #"," orelse TextIO.lookahead(istream) = SOME #";"
+                 orelse TextIO.lookahead(istream) = SOME #"-" orelse TextIO.lookahead(istream) = SOME #"+"
+              then (print2 ("parse_vars_only_monom, sep =" ^ String.implode [valOf (TextIO.lookahead(istream))] ^ "\n"))
+              else if TextIO.lookahead(istream) = SOME #"*"
+              then
+                (ignore (TextIO.input1(istream));
+                 vars := parse_var istream :: (!vars);
+                 parse_aux ())
+              else
+                (vars := parse_var istream :: (!vars);
+                 parse_aux ())
+            end
       in
         parse_aux ();
         share_term (rev2 (!vars))
