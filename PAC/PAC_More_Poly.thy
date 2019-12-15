@@ -4,7 +4,9 @@ theory PAC_More_Poly
   "HOL-Library.Countable_Set"
 begin
 
-section \<open>More Polynoms\<close>
+section \<open>Libraries\<close>
+
+subsection \<open>More Polynoms\<close>
 
 text \<open>
 
@@ -719,5 +721,35 @@ lemma in_keys_minusI2:
   shows "t \<in> keys (p - q)"
   using assms unfolding in_keys_iff lookup_minus by simp
 
+
+
+subsection \<open>More Ideals\<close>
+
+lemma
+  fixes A :: \<open>(('x \<Rightarrow>\<^sub>0 nat) \<Rightarrow>\<^sub>0 'a::comm_ring_1) set\<close>
+  assumes \<open>p \<in> ideal A\<close>
+  shows \<open>p * q \<in> ideal A\<close>
+  by (metis assms ideal.span_scale semiring_normalization_rules(7))
+
+
+text \<open>The following theorem is very close to @{thm ideal.span_insert}, except that it
+more useful if we need to take an element of \<^term>\<open>More_Modules.ideal (insert a S)\<close>.\<close>
+lemma ideal_insert':
+  \<open>More_Modules.ideal (insert a S) = {y. \<exists>x k. y = x + k * a \<and> x \<in> More_Modules.ideal S}\<close>
+    apply (auto simp: ideal.span_insert
+      intro: exI[of _ \<open>_ - k * a\<close>])
+   apply (rule_tac x = \<open>x - k * a\<close> in exI)
+   apply auto
+   apply (rule_tac x = \<open>k\<close> in exI)
+   apply auto
+   done
+
+lemma ideal_mult_right_in:
+  \<open>a \<in> ideal A \<Longrightarrow> a * b \<in> More_Modules.ideal A\<close>
+  by (metis ideal.span_scale linordered_field_class.sign_simps(5))
+
+lemma ideal_mult_right_in2:
+  \<open>a \<in> ideal A \<Longrightarrow> b * a \<in> More_Modules.ideal A\<close>
+  by (metis ideal.span_scale)
 
 end

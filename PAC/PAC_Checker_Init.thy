@@ -553,7 +553,7 @@ lemma monomial_rel_order_map:
   apply auto
   using list_rel_list_rel_order_iff by fastforce+
 
-thm fcomp_norm_unfold
+
 lemma step_rewrite_pure:
   \<open>pure (p2rel (\<langle>K, V\<rangle>pac_step_rel_raw)) = pac_step_rel_assn (pure K) (pure V)\<close>
   \<open>monomial_assn = pure (monom_rel \<times>\<^sub>r int_rel)\<close> and
@@ -572,6 +572,11 @@ lemma step_rewrite_pure:
     unfolding H
     by (simp add: list_assn_pure_conv relAPP_def)
   done
+
+lemma safe_pac_step_rel_assn[safe_constraint_rules]:
+  "is_pure K \<Longrightarrow> is_pure V \<Longrightarrow> is_pure (pac_step_rel_assn K V)"
+  by (auto simp: step_rewrite_pure(1)[symmetric] is_pure_conv)
+
 
 lemma merge_poly_merge_poly:
   \<open>(merge_poly, merge_poly)

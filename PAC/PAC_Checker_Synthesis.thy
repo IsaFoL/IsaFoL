@@ -37,12 +37,6 @@ lemma vars_of_monom_in_alt_def2:
      auto
   done
 
-lemma [safe_constraint_rules]:
-  \<open>Sepref_Constraints.CONSTRAINT single_valued string_rel\<close>
-  \<open>Sepref_Constraints.CONSTRAINT IS_LEFT_UNIQUE string_rel\<close>
-  by (auto simp: CONSTRAINT_def single_valued_def
-    string_rel_def IS_LEFT_UNIQUE_def literal.explode_inject)
-
 sepref_definition vars_of_monom_in_impl
   is \<open>uncurry (RETURN oo vars_of_monom_in)\<close>
   :: \<open>(list_assn string_assn)\<^sup>k *\<^sub>a vars_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
@@ -70,8 +64,6 @@ sepref_definition vars_of_poly_in_impl
 
 declare vars_of_poly_in_impl.refine[sepref_fr_rules]
 
-
-term vars_llist
 
 definition union_vars_monom :: \<open>string list \<Rightarrow> string set \<Rightarrow> string set\<close> where
 \<open>union_vars_monom xs \<V> = fold insert xs \<V>\<close>
@@ -310,31 +302,6 @@ sepref_definition mult_poly_impl
 
 declare mult_poly_impl.refine[sepref_fr_rules]
 
-lemma single_valued_monom_rel: \<open>single_valued monom_rel\<close>
-  by (rule list_rel_sv)
-    (auto intro!: frefI simp: string_rel_def
-    rel2p_def single_valued_def p2rel_def)
-
-lemma single_valued_monomial_rel:
-  \<open>single_valued monomial_rel\<close>
-  using single_valued_monom_rel
-  by (auto intro!: frefI simp:
-    rel2p_def single_valued_def p2rel_def)
-
-lemma single_valued_monom_rel': \<open>IS_LEFT_UNIQUE monom_rel\<close>
-  unfolding IS_LEFT_UNIQUE_def inv_list_rel_eq
-  by (rule list_rel_sv)
-   (auto intro!: frefI simp: string_rel_def
-    rel2p_def single_valued_def p2rel_def literal.explode_inject)
-
-
-lemma single_valued_monomial_rel':
-  \<open>IS_LEFT_UNIQUE monomial_rel\<close>
-  using single_valued_monom_rel'
-  unfolding IS_LEFT_UNIQUE_def inv_list_rel_eq
-  by (auto intro!: frefI simp:
-    rel2p_def single_valued_def p2rel_def)
-
 lemma inverse_monomial:
   \<open>monom_rel\<inverse> \<times>\<^sub>r int_rel = (monom_rel \<times>\<^sub>r int_rel)\<inverse>\<close>
   by (auto)
@@ -493,7 +460,8 @@ lemma [sepref_fr_rules]:
 definition check_extension_l_new_var_multiple_err_impl :: \<open>_ \<Rightarrow> _\<close>  where
   \<open>check_extension_l_new_var_multiple_err_impl v p =
     ''Error while checking side conditions of extensions polynow, var is '' @ show v @
-    '' but appears several times in the polynom '' @ show p\<close>
+    '' but it either appears at least once in the polynom or another new variable is created '' @
+    show p @ '' but should not.''\<close>
 
 lemma [sepref_fr_rules]:
   \<open>((uncurry (return oo (check_extension_l_new_var_multiple_err_impl))),
@@ -518,16 +486,6 @@ sepref_definition find_undefined_var_l_only_impl
   by sepref
 
 declare find_undefined_var_l_only_impl.refine[sepref_fr_rules]
-
-lemma [sepref_import_param]:
-  assumes \<open>CONSTRAINT IS_LEFT_UNIQUE R\<close>  \<open>CONSTRAINT IS_RIGHT_UNIQUE R\<close>
-  shows \<open>(remove1, remove1) \<in> R \<rightarrow> \<langle>R\<rangle>list_rel \<rightarrow> \<langle>R\<rangle>list_rel\<close>
-  apply (intro fun_relI)
-  subgoal premises p for x y xs ys
-    using p(2) p(1) assms
-    by (induction xs ys rule: list_rel_induct)
-      (auto simp: IS_LEFT_UNIQUE_def single_valued_def)
-  done
 
 sepref_definition find_undefined_var_l_fun_impl
   is \<open>uncurry find_undefined_var_l_fun\<close>
@@ -638,7 +596,7 @@ lemma [sepref_fr_rules]:
 
 sepref_definition check_del_l_impl
   is \<open>uncurry2 check_del_l\<close>
-  :: \<open>poly_assn\<^sup>k *\<^sub>a polys_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k  \<rightarrow>\<^sub>a status_assn raw_string_assn\<close>
+  :: \<open>poly_assn\<^sup>k *\<^sub>a polys_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a status_assn raw_string_assn\<close>
   supply [[goals_limit=1]]
   unfolding check_del_l_def
     in_dom_m_lookup_iff
@@ -665,7 +623,6 @@ lemma pac_step_rel_assn_alt_def:
     pure_app_eq)
 
 
-term Del
 lemma is_AddD_import[sepref_fr_rules]:
   assumes \<open>CONSTRAINT is_pure K\<close>  \<open>CONSTRAINT is_pure V\<close>
   shows
@@ -769,7 +726,6 @@ sepref_decl_intf ('k) acode_status is "('k) code_status"
 sepref_decl_intf ('k) apac_step is "('k) pac_step"
 
 sepref_register merge_cstatus full_normalize_poly
-find_theorems poly_assn list_rel
 
 lemma poly_rel_the_pure:
   \<open>poly_rel = the_pure poly_assn\<close> and
@@ -791,40 +747,6 @@ sepref_definition check_step_impl
 
 
 declare check_step_impl.refine[sepref_fr_rules]
-
-instantiation pac_step :: (heap) heap
-begin
-
-instance
-proof standard
-  obtain f :: \<open>'a \<Rightarrow> nat\<close> where
-    f: \<open>inj f\<close>
-    by blast
-  obtain g :: \<open>nat \<times> nat \<times> nat \<times> nat \<times> nat \<Rightarrow> nat\<close> where
-    g: \<open>inj g\<close>
-    by blast
-  have [iff]: \<open>g a = g b \<longleftrightarrow> a = b\<close>  \<open>f a' = f b' \<longleftrightarrow> a' = b'\<close> for a b a' b'
-    using f g unfolding inj_def by blast+
-  let ?f = \<open>\<lambda>x :: 'a pac_step.
-     g (case x of
-        Add a b c d \<Rightarrow> (0, a, b, c, f d)
-      | Del a  \<Rightarrow> (1, a, 0, 0, 0)
-      | Mult a b c d \<Rightarrow> (2, a, f b, c, f d)
-      | Extension a b \<Rightarrow> (3, a, f b, 0, 0))\<close>
-   have \<open>inj ?f\<close>
-     apply (auto simp: inj_def)
-     apply (case_tac x; case_tac y)
-     apply auto
-     done
-   then show \<open>\<exists>f :: 'a pac_step \<Rightarrow> nat. inj f\<close>
-     by blast
-qed
-
-end
-
-lemma safe_pac_step_rel_assn[safe_constraint_rules]:
-  "is_pure K \<Longrightarrow> is_pure V \<Longrightarrow> is_pure (pac_step_rel_assn K V)"
-  by (auto simp: step_rewrite_pure(1)[symmetric] is_pure_conv)
 
 sepref_register PAC_checker_l_step PAC_checker_l_step' fully_normalize_poly_impl
 
@@ -866,7 +788,8 @@ abbreviation polys_assn_input where
 sepref_register upper_bound_on_dom op_fmap_empty
 sepref_definition remap_polys_l_impl
   is \<open>uncurry2 remap_polys_l2\<close>
-  :: \<open>poly_assn\<^sup>k *\<^sub>a vars_assn\<^sup>d *\<^sub>a polys_assn_input\<^sup>d \<rightarrow>\<^sub>a status_assn raw_string_assn \<times>\<^sub>a vars_assn \<times>\<^sub>a polys_assn\<close>
+  :: \<open>poly_assn\<^sup>k *\<^sub>a vars_assn\<^sup>d *\<^sub>a polys_assn_input\<^sup>d \<rightarrow>\<^sub>a
+    status_assn raw_string_assn \<times>\<^sub>a vars_assn \<times>\<^sub>a polys_assn\<close>
   supply [[goals_limit=1]] is_Mult_lastI[intro]
   unfolding remap_polys_l2_def op_fmap_empty_def[symmetric] while_eq_nfoldli[symmetric]
     while_upt_while_direct
@@ -990,6 +913,15 @@ there is no information on the spec, aka checking failed)
 \<^term>\<open>err\<close> \<^emph>\<open>might\<close> give you an indication of the error, but the correctness
 theorem does not say anything about that).
 
+
+The input parameters are:
+
+\<^enum> the specification polynom represented as a list
+
+\<^enum> the input polynoms as hash map (as an array of option polynom)
+
+\<^enum> a represention of the PAC proofs.
+
 \<close>
 
 lemma PAC_full_correctness: (* \htmllink{PAC-full-correctness} *)
@@ -999,7 +931,7 @@ lemma PAC_full_correctness: (* \htmllink{PAC-full-correctness} *)
       (full_poly_input_assn)\<^sup>d *\<^sub>a
       (fully_pac_assn)\<^sup>k \<rightarrow>\<^sub>a code_status_assn \<times>\<^sub>a
                            full_vars_assn \<times>\<^sub>a full_polys_assn\<close>
-  using 
+  using
     full_checker_l_impl.refine[FCOMP full_checker_l_full_checker',
     FCOMP full_checker_spec',
     unfolded full_poly_assn_def[symmetric]
@@ -1011,6 +943,44 @@ lemma PAC_full_correctness: (* \htmllink{PAC-full-correctness} *)
       hr_comp_prod_conv
       full_polys_assn_def[symmetric]]
    by auto
+
+text \<open>
+
+It would be more efficient to move the parsing to Isabelle, as this
+would be more memory efficient (and also reduce the TCB). But now
+comes the fun part: It cannot work. A stream (of a file) is consumed
+by side effects. Assume that this would work. The code could look like:
+
+\<^term>\<open>
+  let next_token = read_file file
+  in f (next_token)
+\<close>
+
+This code is equivalent to:
+\<^term>\<open>
+  let _ = read_file file;
+      next_token = read_file file
+  in f (next_token)
+\<close>
+
+However, as an hypothetic \<^term>\<open>read_file\<close> changes the underlying
+stream, we would get the next token. Remark that this is already a
+weird point of ML compilers. Anyway, I see currently two solutions to
+this problem:
+
+\<^enum> The meta-argument: use it only in the Refinement Framework in a
+setup where copies are disallowed. Basically, this works because we
+can express the non-duplication constraints on the type
+level. However, we cannot forbid people from expressing things
+directly at the HOL level.
+
+\<^enum> On the target language side, model the stream as the stream and the
+position. Reading takes two arguments. First, the position to
+read. Second, the stream (and the current position) to read. If the
+position to read does not match the current position, return an
+error.
+
+\<close>
 
 end
 

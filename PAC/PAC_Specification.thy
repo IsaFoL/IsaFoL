@@ -13,12 +13,6 @@ definition polynom_bool :: \<open>int_poly set\<close> where
 definition pac_ideal where
   \<open>pac_ideal A \<equiv> ideal (A \<union> polynom_bool)\<close>
 
-lemma
-  fixes A :: \<open>(('x \<Rightarrow>\<^sub>0 nat) \<Rightarrow>\<^sub>0 'a::comm_ring_1) set\<close>
-  assumes \<open>p \<in> ideal A\<close>
-  shows \<open>p * q \<in> ideal A\<close>
-  by (metis assms ideal.span_scale semiring_normalization_rules(7))
-
 lemma X2_X_in_pac_ideal:
   \<open>Var c ^ 2 - Var c \<in> pac_ideal A\<close>
   unfolding polynom_bool_def pac_ideal_def
@@ -107,16 +101,6 @@ lemma pac_ideal_mono:
   using ideal.span_mono[of \<open>A \<union> _\<close> \<open>B \<union> _\<close>]
   by (auto simp: pac_ideal_def intro: ideal.span_mono)
 
-lemma ideal_insert':
-  \<open>More_Modules.ideal (insert a S) = {y. \<exists>x k. y = x + k * a \<and> x \<in> More_Modules.ideal S}\<close>
-    apply (auto simp: pac_ideal_def ideal.span_insert
-      intro: exI[of _ \<open>_ - k * a\<close>])
-   apply (rule_tac x = \<open>x - k * a\<close> in exI)
-   apply auto
-   apply (rule_tac x = \<open>k\<close> in exI)
-   apply auto
-   done
-
 
 subsection \<open>PAC Format\<close>
 
@@ -197,7 +181,13 @@ lemma PAC_Format_induct[consumes 1, case_names add mult del ext]:
    (auto intro: assms(1) cases)
 
 
+text \<open>
 
+The theorem below (based on the proof ideal by Manuel Kauers) is the
+correctness theorem of extensions. Remark that the assumption \<^term>\<open>vars
+q \<subseteq> \<V>\<close> is only used to show that \<^term>\<open>x' \<notin> vars q\<close>.
+
+\<close>
 lemma extensions_are_safe:
   assumes \<open>x' \<in> vars p\<close> and
     x': \<open>x' \<notin> \<V>\<close> and
@@ -498,6 +488,8 @@ proof -
     using vars_in_right_only by force
 qed
 
+text \<open>This is the correctness theorem of a PAC step: no polynoms are
+added to the ideal.\<close>
 
 lemma PAC_Format_subset_ideal:
   \<open>PAC_Format (\<V>, A) (\<V>', B) \<Longrightarrow> \<Union>(vars ` set_mset A) \<subseteq> \<V> \<Longrightarrow>
@@ -546,12 +538,5 @@ lemma rtranclp_PAC_Format_subset_ideal:
     by (smt Collect_mono_iff mem_Collect_eq restricted_ideal_to_def subset_trans)
   done
 
-lemma ideal_mult_right_in:
-  \<open>a \<in> ideal A \<Longrightarrow> a * b \<in> More_Modules.ideal A\<close>
-  by (metis ideal.span_scale linordered_field_class.sign_simps(5))
-
-lemma ideal_mult_right_in2:
-  \<open>a \<in> ideal A \<Longrightarrow> b * a \<in> More_Modules.ideal A\<close>
-  by (metis ideal.span_scale)
 
 end
