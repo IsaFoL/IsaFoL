@@ -973,7 +973,7 @@ definition full_polys_assn :: \<open>_\<close> where
 
 text \<open>
 
-This is the full correctness theorems. It basically states that:
+Below is the full correctness theorems. It basically states that:
 
   \<^enum> assuming that the input polynomials have no duplicate variables
 
@@ -992,7 +992,7 @@ theorem does not say anything about that).
 
 \<close>
 
-lemma PAC_full_correctness:
+lemma PAC_full_correctness: (* \htmllink{PAC-full-correctness} *)
   \<open>(uncurry2 full_checker_l_impl,
      uncurry2 (\<lambda>spec A _. PAC_checker_specification spec A))
     \<in> (full_poly_assn)\<^sup>k *\<^sub>a
