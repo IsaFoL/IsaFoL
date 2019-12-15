@@ -464,7 +464,7 @@ lemma [sepref_fr_rules]:
 
 definition check_extension_l_no_new_var_err_impl :: \<open>_ \<Rightarrow> _\<close>  where
   \<open>check_extension_l_no_new_var_err_impl p =
-    ''There is already a polynom with index '' @ show p\<close>
+    ''No new variable could be found in polynom '' @ show p\<close>
 
 lemma [sepref_fr_rules]:
   \<open>(((return o (check_extension_l_no_new_var_err_impl))),
@@ -489,11 +489,73 @@ lemma [sepref_fr_rules]:
    apply sep_auto
    done
 
+definition check_extension_l_new_var_multiple_err_impl :: \<open>_ \<Rightarrow> _\<close>  where
+  \<open>check_extension_l_new_var_multiple_err_impl v p =
+    ''Error while checking side conditions of extensions polynow, var is '' @ show v @
+    '' but appears several times in the polynom '' @ show p\<close>
 
-term check_extension_l_side_cond_err
+lemma [sepref_fr_rules]:
+  \<open>((uncurry (return oo (check_extension_l_new_var_multiple_err_impl))),
+    uncurry (check_extension_l_new_var_multiple_err)) \<in> string_assn\<^sup>k *\<^sub>a poly_assn\<^sup>k \<rightarrow>\<^sub>a raw_string_assn\<close>
+   unfolding check_extension_l_new_var_multiple_err_impl_def
+     check_extension_l_new_var_multiple_err_def
+     list_assn_pure_conv
+   apply sepref_to_hoare
+   apply sep_auto
+   done
+
 
 sepref_register check_extension_l_dom_err fmlookup'
   check_extension_l_side_cond_err check_extension_l_no_new_var_err
+  find_undefined_var_l_only find_undefined_var_l_fun
+  check_extension_l_new_var_multiple_err
+
+sepref_definition find_undefined_var_l_only_impl
+  is \<open>uncurry (RETURN oo find_undefined_var_l_only)\<close>
+  :: \<open>vars_assn\<^sup>k *\<^sub>a poly_assn\<^sup>k \<rightarrow>\<^sub>a option_assn (string_assn \<times>\<^sub>a int_assn)\<close>
+  unfolding find_undefined_var_l_only_alt_def[abs_def]
+  by sepref
+
+declare find_undefined_var_l_only_impl.refine[sepref_fr_rules]
+
+lemma [sepref_import_param]:
+  assumes \<open>CONSTRAINT IS_LEFT_UNIQUE R\<close>  \<open>CONSTRAINT IS_RIGHT_UNIQUE R\<close>
+  shows \<open>(remove1, remove1) \<in> R \<rightarrow> \<langle>R\<rangle>list_rel \<rightarrow> \<langle>R\<rangle>list_rel\<close>
+  apply (intro fun_relI)
+  subgoal premises p for x y xs ys
+    using p(2) p(1) assms
+    by (induction xs ys rule: list_rel_induct)
+      (auto simp: IS_LEFT_UNIQUE_def single_valued_def)
+  done
+
+sepref_definition find_undefined_var_l_fun_impl
+  is \<open>uncurry find_undefined_var_l_fun\<close>
+  :: \<open>vars_assn\<^sup>k *\<^sub>a poly_assn\<^sup>k \<rightarrow>\<^sub>a option_assn (string_assn \<times>\<^sub>a int_assn \<times>\<^sub>a poly_assn)\<close>
+  supply option.splits[split]
+  unfolding find_undefined_var_l_fun_def
+    option.case_eq_if HOL_list.fold_custom_empty
+  by sepref
+
+lemma find_undefined_var_l_fun_find_undefined_var_l:
+  \<open>(uncurry find_undefined_var_l_fun, uncurry find_undefined_var_l) \<in> Id \<times>\<^sub>r Id \<rightarrow>\<^sub>f \<langle>Id\<rangle>nres_rel\<close>
+  using find_undefined_var_l_alt_def
+  by (auto intro!: ext frefI nres_relI)
+
+lemmas [sepref_fr_rules] =
+  find_undefined_var_l_fun_impl.refine[FCOMP find_undefined_var_l_fun_find_undefined_var_l]
+
+definition uminus_poly :: \<open>llist_polynom \<Rightarrow> llist_polynom\<close> where
+  \<open>uminus_poly p' = map (\<lambda>(a, b). (a, - b)) p'\<close>
+
+sepref_register uminus_poly
+lemma [sepref_import_param]:
+  \<open>(map (\<lambda>(a, b). (a, - b)), uminus_poly) \<in> poly_rel \<rightarrow> poly_rel\<close>
+  unfolding uminus_poly_def
+  apply (intro fun_relI)
+  subgoal for p p'
+    by (induction p p' rule: list_rel_induct)
+     auto
+  done
 
 lemma check_extension_l_alt_def:
 \<open>check_extension_l spec A \<V> i p = do {
@@ -518,7 +580,7 @@ lemma check_extension_l_alt_def:
         }
         else do {
            p2 \<leftarrow> mult_poly_full p' p';
-           let up = (if c = 0 then map (\<lambda>(a, b). (a, -b)) p' else p');
+           let up = (if c = -1 then map (\<lambda>(a, b). (a, -b)) p' else p');
            q \<leftarrow> add_poly_l (p2, up);
            eq \<leftarrow> weak_equality_p q [];
            if eq then do {
@@ -534,11 +596,13 @@ lemma check_extension_l_alt_def:
   by (auto simp: check_extension_l_def)
 
 sepref_register find_undefined_var_l vars_of_poly_in
+  weak_equality_p
 
 sepref_definition check_extension_l_impl
   is \<open>uncurry4 check_extension_l\<close>
   :: \<open>poly_assn\<^sup>k *\<^sub>a polys_assn\<^sup>k *\<^sub>a vars_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a poly_assn\<^sup>k \<rightarrow>\<^sub>a
      status_assn raw_string_assn \<times>\<^sub>a option_assn string_assn\<close>
+  supply option.splits[split]
   supply [[goals_limit=1]]
   unfolding
     HOL_list.fold_custom_empty
@@ -550,25 +614,10 @@ sepref_definition check_extension_l_impl
     check_extension_l_alt_def
     not_not
     option.case_eq_if
-
-  apply sepref_dbg_preproc
-  apply sepref_dbg_cons_init
-  apply sepref_dbg_id
-  apply sepref_dbg_monadify_arity
-  apply sepref_dbg_monadify_comb
-  apply sepref_dbg_monadify_check_EVAL
-  apply sepref_dbg_monadify_mark_params
-  apply sepref_dbg_monadify_dup
-  apply sepref_dbg_monadify_remove_pass
-
-find_theorems case_option If
-
-  apply sepref_dbg_keep
-  apply sepref_dbg_trans_keep
-  apply sepref_dbg_trans_step_keep
-  apply sepref_dbg_side_unfold
-oops
+    uminus_poly_def[symmetric]
+    HOL_list.fold_custom_empty
   by sepref
+
 
 declare check_extension_l_impl.refine[sepref_fr_rules]
 
@@ -813,7 +862,7 @@ abbreviation polys_assn_input where
   \<open>polys_assn_input \<equiv> iam_fmap_assn nat_assn poly_assn\<close>
 
 
-sepref_register fmlookup' upper_bound_on_dom op_fmap_empty
+sepref_register upper_bound_on_dom op_fmap_empty
 sepref_definition remap_polys_l_impl
   is \<open>uncurry2 remap_polys_l2\<close>
   :: \<open>poly_assn\<^sup>k *\<^sub>a vars_assn\<^sup>d *\<^sub>a polys_assn_input\<^sup>d \<rightarrow>\<^sub>a status_assn raw_string_assn \<times>\<^sub>a vars_assn \<times>\<^sub>a polys_assn\<close>
@@ -876,6 +925,7 @@ export_code PAC_checker_l_impl PAC_update_impl PAC_empty_impl the_error is_cfail
   int_of_integer Del Add Mult nat_of_integer String.implode remap_polys_l_impl
   fully_normalize_poly_impl union_vars_poly_impl empty_vars_impl
   full_checker_l_impl check_step_impl CSUCCESS
+  Extension
   in SML_imp module_name PAC_Checker
   file "code/checker.sml"
 

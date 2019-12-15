@@ -1369,21 +1369,23 @@ lemma find_undefined_var_l_only_spec:
    apply (auto split: option.splits)
    done
 
-lemma find_undefined_var_l_alt_def:
-  \<open>find_undefined_var_l \<V> xs \<ge>
-   do {
+definition find_undefined_var_l_fun where
+  \<open>find_undefined_var_l_fun \<V> xs = do {
     c \<leftarrow> RETURN (find_undefined_var_l_only \<V> xs);
     case c of
       None \<Rightarrow> RETURN None
     | Some (a, i) \<Rightarrow> RETURN (Some (a, i, remove1 ([a], i) xs))
   }\<close>
-  unfolding find_undefined_var_l_def
+
+lemma find_undefined_var_l_alt_def:
+  \<open>find_undefined_var_l \<V> xs \<ge> find_undefined_var_l_fun \<V> xs\<close>
+  unfolding find_undefined_var_l_def find_undefined_var_l_fun_def
   apply refine_vcg
   using find_undefined_var_l_only_spec[of \<V> xs]
   apply (auto)
   done
 
-lemma find_undefined_var_l_only_alt_def:
+lemma find_undefined_var_l_only_RECT:
   \<open>RETURN (find_undefined_var_l_only \<V> xs) =
   REC\<^sub>T (\<lambda>f xs.
     case xs of
@@ -1408,5 +1410,17 @@ lemma find_undefined_var_l_only_alt_def:
     apply (auto split: list.splits)
     done
  done
+lemma find_undefined_var_l_only_alt_def:
+  \<open>(RETURN oo find_undefined_var_l_only) =
+  (\<lambda>\<V> xs. REC\<^sub>T (\<lambda>f xs.
+    case xs of
+      [] \<Rightarrow> RETURN None
+    | ([x], n) # xs \<Rightarrow>
+        (if x \<notin> \<V> \<and> (n = 1 \<or> n = -1)
+         then RETURN (Some (x, n))
+         else f xs)
+    | _ # xs \<Rightarrow> f xs)
+    xs)\<close>
+  using find_undefined_var_l_only_RECT by fastforce
 
 end
