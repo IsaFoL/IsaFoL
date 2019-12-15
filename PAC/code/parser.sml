@@ -95,7 +95,7 @@ exception Parser_Error of string
             let val c = TextIO.lookahead istream
             in
               if (is_space (valOf c) orelse is_separator (valOf c))
-              then (print2 ("number sep = " ^ String.implode [(valOf c)]))
+              then (print2 ("number sep = '" ^ String.implode [(valOf c)] ^"'"))
               else
                 case TextIO.input1(istream) of
                     NONE => raise Parser_Error "no number found"
@@ -122,7 +122,7 @@ exception Parser_Error of string
             let val c = TextIO.lookahead istream
             in
               if (is_space (valOf c) orelse is_separator (valOf c))
-              then (print2 ("number sep = " ^ String.implode [(valOf c)]))
+              then (print2 ("number sep = '" ^ String.implode [(valOf c)] ^ "'"))
               else
                 case TextIO.input1(istream) of
                     NONE => raise Parser_Error "no number found"
@@ -148,7 +148,7 @@ exception Parser_Error of string
             let val c = TextIO.lookahead istream
             in
               if (is_space (valOf c) orelse is_separator (valOf c))
-              then (print2 ("var sep = " ^ String.implode [(valOf c)]))
+              then (print2 ("var sep = '" ^ String.implode [(valOf c)] ^ "'"))
               else
                 case TextIO.input1(istream) of
                     NONE => raise Parser_Error "no char found"
@@ -213,11 +213,11 @@ exception Parser_Error of string
 
   fun parse_comma istream () =
       let
-        val c1 = TextIO.input1(istream)
-        val c2 = TextIO.input1(istream)
+        val c1 = TextIO.input1(istream);
+        val c2 = skip_spaces istream;
       in
-        if valOf c1 <> #"," orelse valOf c2 <> #" "
-        then raise Parser_Error ("unrecognised ', ', found '" ^ String.implode [valOf c1, valOf c2] ^ "'")
+        if valOf c1 <> #","
+        then raise Parser_Error ("unrecognised ',', found '" ^ String.implode [valOf c1] ^ "'")
         else ()
       end
 
@@ -246,6 +246,8 @@ exception Parser_Error of string
             (ignore (TextIO.input1 istream); print2 "rule +:\n"; "+:")
           | SOME #"*" =>
             (ignore (TextIO.input1 istream); print2 "rule *:\n";"*:")
+          | SOME #"e" =>
+            (print2 "rule e\n"; "e")
           | SOME c => raise Parser_Error ("unrecognised rule '" ^ String.implode [c] ^ "'")
       end
 
@@ -305,9 +307,20 @@ exception Parser_Error of string
         else if rule = "d"
         then
           let
+            val _ = skip_spaces istream;
             val _ = parse_EOL istream ();
           in
             (PAC_Checker.Del (PAC_Checker.nat_of_integer lbl))
+          end
+        else if rule = "e"
+        then
+          let
+            val _ = skip_spaces istream;
+            val ext = parse_polynom istream;
+            val _ = parse_EOL istream ();
+          in
+           (PAC_Checker.Extension (PAC_Checker.nat_of_integer lbl,
+                                       (map (fn (a,b) => (a, PAC_Checker.Int_of_integer b)) ext)))
           end
         else raise Parser_Error ("unrecognised rule '" ^ rule ^ "'")
       end
@@ -321,6 +334,7 @@ exception Parser_Error of string
             else (polys := parse_step istream :: (!polys);
                   skip_spaces istream;
                   parse_EOL istream;
+                  skip_spaces istream;
                   parse_aux ())
       in
         parse_aux ()
