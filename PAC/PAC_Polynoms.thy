@@ -267,6 +267,12 @@ lemma polynom_of_mset_mult_poly_raw[simp]:
   by (induction xs arbitrary: ys)
    (auto simp: Const_mult algebra_simps)
 
+lemma polynom_of_mset_uminus:
+  \<open>polynom_of_mset {#case x of (a, b) \<Rightarrow> (a, - b). x \<in># za#} =
+    - polynom_of_mset za\<close>
+  by (induction za)
+    auto
+
 
 lemma X2_X_polynom_bool_mult_in:
   \<open>Var (x1) * (Var (x1) * p) -  Var (x1) * p \<in> More_Modules.ideal polynom_bool\<close>

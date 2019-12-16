@@ -722,6 +722,59 @@ lemma in_keys_minusI2:
   using assms unfolding in_keys_iff lookup_minus by simp
 
 
+lemma in_vars_addE:
+  \<open>x \<in> vars (p + q) \<Longrightarrow> (x \<in> vars p \<Longrightarrow> thesis) \<Longrightarrow> (x \<in> vars q \<Longrightarrow> thesis) \<Longrightarrow> thesis\<close>
+  by (meson UnE in_mono vars_add)
+
+lemma lookup_monomial_If:
+  \<open>lookup (monomial v k) = (\<lambda>k'. if k = k' then v else 0)\<close>
+  by (intro ext)
+   (auto simp:lookup_single_not_eq lookup_single_eq intro!: ext)
+
+lemma vars_mult_Var:
+  \<open>vars (Var x * p) = (if p = 0 then {} else insert x (vars p))\<close> for p :: \<open>int mpoly\<close>
+  apply (auto simp: vars_def times_mpoly.rep_eq Var.rep_eq
+    elim!: in_keys_timesE)
+  apply (metis add.right_neutral in_keys_iff lookup_add lookup_single_not_eq)
+  apply (auto simp: keys_def lookup_times_monomial_left Var.rep_eq Var\<^sub>0_def adds_def)
+   apply (metis (no_types, hide_lams) One_nat_def ab_semigroup_add_class.add.commute
+     add_diff_cancel_right' aux lookup_add lookup_single_eq mapping_of_inject
+     neq0_conv one_neq_zero plus_eq_zero_2 zero_mpoly.rep_eq)
+  by (metis ab_semigroup_add_class.add.commute add_diff_cancel_left' add_less_same_cancel1 lookup_add neq0_conv not_less0)
+
+
+lemma keys_mult_monomial:
+  \<open>keys (monomial (n :: int) k * mapping_of a) = (if n = 0 then {} else ((+) k) ` keys (mapping_of a))\<close>
+proof -
+  have [simp]: \<open>(\<Sum>aa. (if k = aa then n else 0) *
+               (\<Sum>q. lookup (mapping_of a) q when k + xa = aa + q)) =
+        (\<Sum>aa. (if k = aa then n * (\<Sum>q. lookup (mapping_of a) q when k + xa = aa + q) else 0))\<close>
+      for xa
+    by (smt Sum_any.cong mult_not_zero)
+  show ?thesis
+  apply auto
+    apply (auto simp: vars_def times_mpoly.rep_eq Const.rep_eq
+      Const\<^sub>0_def elim!: in_keys_timesE split: if_splits)
+    apply (auto simp: lookup_monomial_If prod_fun_def
+      keys_def times_poly_mapping.rep_eq)
+    done
+qed
+
+lemma vars_mult_Const:
+  \<open>vars (Const n * a) = (if n = 0 then {} else vars a)\<close> for a :: \<open>int mpoly\<close>
+  by (auto simp: vars_def times_mpoly.rep_eq Const.rep_eq keys_mult_monomial
+    Const\<^sub>0_def elim!: in_keys_timesE split: if_splits)
+
+lemma coeff_minus: "coeff p m - coeff q m = coeff (p-q) m"
+  by (simp add: coeff_def lookup_minus minus_mpoly.rep_eq)
+
+lemma Const_1_eq_1: \<open>Const (1 :: int) = (1 :: int mpoly)\<close>
+  by (simp add: Const.abs_eq Const\<^sub>0_one one_mpoly.abs_eq)
+
+lemma [simp]:
+  \<open>vars (1 :: int mpoly) = {}\<close>
+  by (auto simp: vars_def one_mpoly.rep_eq Const_1_eq_1)
+
 
 subsection \<open>More Ideals\<close>
 

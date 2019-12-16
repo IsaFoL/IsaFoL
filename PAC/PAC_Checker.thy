@@ -82,48 +82,6 @@ definition check_not_equal_dom_err :: \<open>llist_polynom \<Rightarrow> llist_p
   \<open>check_not_equal_dom_err p q pq r = SPEC (\<lambda>_. True)\<close>
 
 
-lemma in_vars_addE:
-  \<open>x \<in> vars (p + q) \<Longrightarrow> (x \<in> vars p \<Longrightarrow> thesis) \<Longrightarrow> (x \<in> vars q \<Longrightarrow> thesis) \<Longrightarrow> thesis\<close>
-  by (meson UnE in_mono vars_add)
-
-lemma lookup_monomial_If:
-  \<open>lookup (monomial v k) = (\<lambda>k'. if k = k' then v else 0)\<close>
-  by (intro ext)
-   (auto simp:lookup_single_not_eq lookup_single_eq intro!: ext)
-
-lemma vars_mult_Var:
-  \<open>vars (Var x * p) = (if p = 0 then {} else insert x (vars p))\<close> for p :: \<open>int mpoly\<close>
-  apply (auto simp: vars_def times_mpoly.rep_eq
-    elim!: in_keys_timesE)
-  apply (metis Var.rep_eq Var\<^sub>0_def add.right_neutral in_keys_iff lookup_add lookup_single_not_eq)
-  apply (auto simp: keys_def lookup_times_monomial_left Var.rep_eq Var\<^sub>0_def adds_def)
-   apply (metis (no_types, hide_lams) One_nat_def ab_semigroup_add_class.add.commute
-     add_diff_cancel_right' aux lookup_add lookup_single_eq mapping_of_inject
-     neq0_conv one_neq_zero plus_eq_zero_2 zero_mpoly.rep_eq)
-  by (metis ab_semigroup_add_class.add.commute add_diff_cancel_left' add_less_same_cancel1 lookup_add neq0_conv not_less0)
-
-
-lemma keys_mult_monomial:
-  \<open>keys (monomial (n :: int) k * mapping_of a) = (if n = 0 then {} else ((+) k) ` keys (mapping_of a))\<close>
-proof -
-  have [simp]: \<open>(\<Sum>aa. (if k = aa then n else 0) *
-               (\<Sum>q. lookup (mapping_of a) q when k + xa = aa + q)) =
-        (\<Sum>aa. (if k = aa then n * (\<Sum>q. lookup (mapping_of a) q when k + xa = aa + q) else 0))\<close>
-      for xa
-    by (smt Sum_any.cong mult_not_zero)
-  show ?thesis
-  apply auto
-    apply (auto simp: vars_def times_mpoly.rep_eq Const.rep_eq
-      Const\<^sub>0_def elim!: in_keys_timesE split: if_splits)
-    apply (auto simp: lookup_monomial_If prod_fun_def
-      keys_def times_poly_mapping.rep_eq)
-    done
-qed
-
-lemma vars_mult_Const:
-  \<open>vars (Const n * a) = (if n = 0 then {} else vars a)\<close> for a :: \<open>int mpoly\<close>
-  by (auto simp: vars_def times_mpoly.rep_eq Const.rep_eq keys_mult_monomial
-    Const\<^sub>0_def elim!: in_keys_timesE split: if_splits)
 definition vars_llist :: \<open>llist_polynom \<Rightarrow> string set\<close> where
 \<open>vars_llist  xs = \<Union>(set ` fst ` set xs)\<close>
 
@@ -140,8 +98,8 @@ definition check_addition_l :: \<open>_ \<Rightarrow> _ \<Rightarrow> string set
      ASSERT (q \<in># dom_m A);
      let q = the (fmlookup A q);
      pq \<leftarrow> add_poly_l (p, q);
-     b \<leftarrow> weak_equality_p pq r;
-     b' \<leftarrow> weak_equality_p r spec;
+     b \<leftarrow> weak_equality_l pq r;
+     b' \<leftarrow> weak_equality_l r spec;
      if b then (if b' then RETURN CFOUND else RETURN CSUCCESS)
      else do {
        c \<leftarrow> check_not_equal_dom_err p q pq r;
@@ -168,8 +126,8 @@ definition check_mult_l :: \<open>_ \<Rightarrow> _ \<Rightarrow> _ \<Rightarrow
        ASSERT (p \<in># dom_m A);
        let p = the (fmlookup A p);
        pq \<leftarrow> mult_poly_full p q;
-       b \<leftarrow> weak_equality_p pq r;
-       b' \<leftarrow> weak_equality_p r spec;
+       b \<leftarrow> weak_equality_l pq r;
+       b' \<leftarrow> weak_equality_l r spec;
        if b then (if b' then RETURN CFOUND else RETURN CSUCCESS) else do {
          c \<leftarrow> check_mult_l_mult_err p q pq r;
          RETURN (error_msg i c)
@@ -256,7 +214,7 @@ where
            p2 \<leftarrow> mult_poly_full p' p';
            let up = (if c = -1 then map (\<lambda>(a, b). (a, -b)) p' else p');
            q \<leftarrow> add_poly_l (p2, up);
-           eq \<leftarrow> weak_equality_p q [];
+           eq \<leftarrow> weak_equality_l q [];
            if eq then do {
              RETURN (CSUCCESS, Some v)
            } else do {
@@ -268,9 +226,6 @@ where
     }
   }\<close>
 
-(*TODO Move*)
-lemma coeff_minus: "coeff p m - coeff q m = coeff (p-q) m"
-  by (simp add: coeff_def lookup_minus minus_mpoly.rep_eq)
 
 lemma check_extension_alt_def:
   \<open>check_extension A \<V> i p \<ge> do {
@@ -324,11 +279,20 @@ proof -
     using vars_uminus[of \<open>p - Var ab\<close>]
     by simp
   show ?thesis
-    by (force simp: check_extension_def weak_equality_def
+    apply (clarsimp simp: check_extension_def weak_equality_def
       find_undefined_var_def mult_poly_spec_def field_simps
       add_poly_spec_def power2_eq_square cong: if_cong
       intro!: intro_spec_refine[where R=Id, simplified]
       split: option.splits dest: ideal.span_add)
+    apply (intro conjI impI)
+    apply auto
+    apply (rule intro_spec_refine[where R=Id, simplified])
+    apply (force simp: check_extension_def weak_equality_def
+      find_undefined_var_def mult_poly_spec_def field_simps
+      add_poly_spec_def power2_eq_square cong: if_cong
+      intro!: intro_spec_refine[where R=Id, simplified]
+      split: option.splits dest: ideal.span_add)+
+    done
 qed
 
 (* Copy of WB_More_Refinement *)
@@ -395,21 +359,6 @@ lemma check_mult_alt_def:
       mult_poly_spec_def RES_RES_RETURN_RES
     intro!:  ideal.span_zero
       exI[of _ \<open>the (fmlookup A p) * q\<close>])
-
-
-lemma fmap_rel_nat_rel_dom_m[simp]:
-  \<open>(A, B) \<in> \<langle>nat_rel, R\<rangle>fmap_rel \<Longrightarrow> dom_m A = dom_m B\<close>
-  by (subst distinct_set_mset_eq_iff[symmetric])
-    (auto simp: fmap_rel_alt_def distinct_mset_dom)
-
-lemma fmap_rel_nat_the_fmlookup[simp]:
-  \<open>(A, B) \<in> \<langle>S, R\<rangle>fmap_rel \<Longrightarrow> (p, p') \<in> S \<Longrightarrow> p' \<in># dom_m B \<Longrightarrow>
-   (the (fmlookup A p), the (fmlookup B p')) \<in> R\<close>
-  by (auto simp: fmap_rel_alt_def distinct_mset_dom)
-
-lemma ref_two_step':
-  \<open>A \<le> B \<Longrightarrow>  \<Down> R A \<le> \<Down> R B\<close>
-  using ref_two_step by auto
 
 definition PAC_checker_l_step ::  _ where
   \<open>PAC_checker_l_step = (\<lambda>spec (st', \<V>, A) st. case st of
@@ -483,7 +432,7 @@ definition remap_polys_l :: \<open>llist_polynom \<Rightarrow> string set \<Righ
         if i \<in># dom_m A
         then  do {
           p \<leftarrow> full_normalize_poly (the (fmlookup A i));
-          eq \<leftarrow> weak_equality_p p spec;
+          eq \<leftarrow> weak_equality_l p spec;
           \<V> \<leftarrow> RETURN(\<V> \<union> vars_llist (the (fmlookup A i)));
           RETURN(b \<or> eq, \<V>, fmupd i p A')
         } else RETURN (b, \<V>, A'))
@@ -520,13 +469,6 @@ lemma
         (s, p) \<in> mset_poly_rel\<close>
   by (auto simp: mset_poly_rel_def normalize_poly_p_poly_of_mset)
 
-lemma Const_1_eq_1: \<open>Const (1 :: int) = (1 :: int mpoly)\<close>
-  by (simp add: Const.abs_eq Const\<^sub>0_one one_mpoly.abs_eq)
-
-lemma [simp]:
-  \<open>vars (1 :: int mpoly) = {}\<close>
-  by (auto simp: vars_def one_mpoly.rep_eq poly_embed.Const_1_eq_1)
-
 lemma vars_poly_of_vars:
   \<open>vars (poly_of_vars a :: int mpoly) \<subseteq> (\<phi> ` set_mset a)\<close>
   by (induction a)
@@ -539,7 +481,7 @@ lemma vars_polynom_of_mset:
   by (fastforce elim!: in_vars_addE simp: vars_mult_Const split: if_splits)+
 
 lemma fully_unsorted_poly_rel_vars_subset_vars_llist:
-  \<open>(A, B) \<in> fully_unsorted_poly_rel O mset_poly_rel \<Longrightarrow> vars B \<subseteq> \<phi> ` vars_llist A \<close>
+  \<open>(A, B) \<in> fully_unsorted_poly_rel O mset_poly_rel \<Longrightarrow> vars B \<subseteq> \<phi> ` vars_llist A\<close>
   apply (auto simp: fully_unsorted_poly_list_rel_def mset_poly_rel_def
       set_rel_def var_rel_def br_def vars_llist_def list_rel_append2 list_rel_append1
       list_rel_split_right_iff list_mset_rel_def image_iff
@@ -601,8 +543,8 @@ proof -
       done
 
   have H': \<open>(p, pa) \<in> sorted_poly_rel O mset_poly_rel \<Longrightarrow>
-     weak_equality_p p spec \<le> SPEC (\<lambda>eqa. eqa \<longrightarrow> pa = spec')\<close> for p pa
-    using spec apply (auto simp: weak_equality_p_def weak_equality_spec_def
+     weak_equality_l p spec \<le> SPEC (\<lambda>eqa. eqa \<longrightarrow> pa = spec')\<close> for p pa
+    using spec apply (auto simp: weak_equality_l_def weak_equality_spec_def
        list_mset_rel_def br_def
     dest: list_rel_term_poly_list_rel_same_rightD sorted_poly_list_relD)
     by (metis (mono_tags) mem_Collect_eq mset_poly_rel_def prod.simps(2)
@@ -627,7 +569,7 @@ proof -
     subgoal by auto
     subgoal by (rule H')
     apply (rule fully_unsorted_poly_rel_extend_vars)
-    subgoal by (auto intro!: fmap_rel_fmupd_fmap_rel)
+    subgoal by (auto intro!: fmap_rel_nat_the_fmlookup)
     subgoal by (auto intro!: fmap_rel_fmupd_fmap_rel)
     subgoal by (auto intro!: fmap_rel_fmupd_fmap_rel)
     subgoal by auto
@@ -650,13 +592,13 @@ lemma weak_equality_spec_weak_equality:
   by (auto simp: mset_poly_rel_def)
 
 
-lemma weak_equality_p_weak_equality_p'[refine]:
-  \<open>weak_equality_p p q \<le> \<Down> bool_rel (weak_equality p' q')\<close>
+lemma weak_equality_l_weak_equality_l'[refine]:
+  \<open>weak_equality_l p q \<le> \<Down> bool_rel (weak_equality p' q')\<close>
   if \<open>(p, p') \<in> sorted_poly_rel O mset_poly_rel\<close>
     \<open>(q, q') \<in> sorted_poly_rel O mset_poly_rel\<close>
   for p p' q q'
   using that
-  by (auto intro!: weak_equality_p_weak_equality_spec[THEN fref_to_Down_curry, THEN order_trans]
+  by (auto intro!: weak_equality_l_weak_equality_spec[THEN fref_to_Down_curry, THEN order_trans]
          ref_two_step'
          weak_equality_spec_weak_equality
       simp flip: conc_fun_chain)
@@ -714,8 +656,6 @@ proof -
       by (drule sorted_poly_rel_vars_llist)
        (auto simp: set_rel_def var_rel_def br_def)
     subgoal
-      by (auto simp: )
-    subgoal
       by auto
     subgoal
       by auto
@@ -726,7 +666,9 @@ proof -
     subgoal
       by auto
     subgoal
-      by (auto simp: weak_equality_p_def bind_RES_RETURN_eq)
+      by auto
+    subgoal
+      by (auto simp: weak_equality_l_def bind_RES_RETURN_eq)
     done
 qed
 
@@ -776,7 +718,7 @@ proof -
     subgoal
       by auto
     subgoal
-      by (auto simp: weak_equality_p_def bind_RES_RETURN_eq)
+      by (auto simp: weak_equality_l_def bind_RES_RETURN_eq)
     done
 qed
 
@@ -806,6 +748,7 @@ lemma remove1_list_rel:
   (remove1 a xs, remove1 b ys) \<in> \<langle>R\<rangle>list_rel\<close>
   by (induction xs ys rule: list_rel_induct)
    (auto simp: single_valued_def IS_LEFT_UNIQUE_def)
+
 lemma remove1_list_rel2:
   \<open>(xs, ys) \<in> \<langle>R\<rangle> list_rel \<Longrightarrow>
   (a, b) \<in> R \<Longrightarrow>
@@ -910,7 +853,7 @@ lemma insert_var_rel_set_rel:
   (yb, x2) \<in> var_rel \<Longrightarrow>
   (insert yb \<V>, insert x2 \<V>') \<in> \<langle>var_rel\<rangle>set_rel\<close>
   by (auto simp: var_rel_def set_rel_def)
-  
+
 lemma find_undefined_var_l_find_undefined_var:
   assumes
     \<open>(r, r') \<in> sorted_poly_rel O mset_poly_rel\<close> and
@@ -934,13 +877,6 @@ lemma find_undefined_var_l_find_undefined_var:
   apply (rule_tac x = \<open>Some (\<phi> a, -1, _)\<close> in exI)
   apply (auto intro: remove1_sorted_poly_rel_mset_poly_rel_minus)
   done
-
-(*TODO Move*)
-lemma polynom_of_mset_uminus:
-  \<open>polynom_of_mset {#case x of (a, b) \<Rightarrow> (a, - b). x \<in># za#} =
-    - polynom_of_mset za\<close>
-  by (induction za)
-    auto
 
 lemma check_extension_l_check_extension:
   assumes \<open>(A, B) \<in> fmap_polys_rel\<close> and \<open>(r, r') \<in> sorted_poly_rel O mset_poly_rel\<close> and
@@ -1298,7 +1234,7 @@ definition remap_polys_l2 :: \<open>llist_polynom \<Rightarrow> string set \<Rig
         then do {
           ASSERT(fmlookup A i \<noteq> None);
           p \<leftarrow> full_normalize_poly (the (fmlookup A i));
-          eq \<leftarrow> weak_equality_p p spec;
+          eq \<leftarrow> weak_equality_l p spec;
           \<V> \<leftarrow> RETURN (\<V> \<union> vars_llist (the (fmlookup A i)));
           RETURN(b \<or> eq, \<V>, fmupd i p A')
         } else RETURN (b, \<V>, A')
@@ -1331,7 +1267,7 @@ proof -
        ([0..<n], dom) \<in> \<langle>nat_rel\<rangle>list_set_rel\<close> for n dom
   by (auto simp: list_set_rel_def br_def)
   have 4: \<open>(p,q) \<in> Id \<Longrightarrow>
-    weak_equality_p p spec \<le> \<Down>Id (weak_equality_p q spec)\<close> for p q spec
+    weak_equality_l p spec \<le> \<Down>Id (weak_equality_l q spec)\<close> for p q spec
     by auto
 
   have 6: \<open>a = b \<Longrightarrow> (a, b) \<in> Id\<close> for a b
@@ -1421,6 +1357,7 @@ lemma find_undefined_var_l_only_RECT:
     apply (auto split: list.splits)
     done
  done
+
 lemma find_undefined_var_l_only_alt_def:
   \<open>(RETURN oo find_undefined_var_l_only) =
   (\<lambda>\<V> xs. REC\<^sub>T (\<lambda>f xs.

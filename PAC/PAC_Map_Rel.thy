@@ -4,7 +4,16 @@ theory PAC_Map_Rel
     "HOL-Library.Finite_Map"
     Weidenbach_Book_Base.WB_List_More
 begin
-term hm.assn
+
+
+section \<open>Hash-Map for finite mappings\<close>
+
+text \<open>
+
+This function declares hash-maps for \<^typ>\<open>('a, 'b)fmap\<close>, that are nicer
+to use especially here where everything is finite.
+
+\<close>
 definition fmap_rel where
   [to_relAPP]:
   "fmap_rel K V \<equiv> {(m1, m2).
@@ -90,7 +99,7 @@ lemma fmap_rel_fmdrop_fmap_rel:
     apply parametricity
     by (auto simp add: fmap_rel_fmdrop_fmap_rel)
 
-  lemma fmap_rel_nat_the_fmlookup:
+  lemma fmap_rel_nat_the_fmlookup[intro]:
     \<open>(A, B) \<in> \<langle>S, R\<rangle>fmap_rel \<Longrightarrow> (p, p') \<in> S \<Longrightarrow> p' \<in># dom_m B \<Longrightarrow>
      (the (fmlookup A p), the (fmlookup B p')) \<in> R\<close>
     by (auto simp: fmap_rel_alt_def distinct_mset_dom)
@@ -111,7 +120,7 @@ lemma fmap_rel_fmdrop_fmap_rel:
       in_dom_m_lookup_iff[of a' a'a]
       in_dom_m_lookup_iff[of a aa]
     by (cases \<open>a' \<in># dom_m a'a\<close>)
-      auto
+      (auto simp del: fmap_rel_nat_the_fmlookup)
 
 
   sepref_decl_op fmap_lookup: "fmlookup" :: "\<langle>K,V\<rangle>fmap_rel \<rightarrow> K \<rightarrow>  \<langle>V\<rangle>option_rel"
@@ -266,5 +275,17 @@ proof -
      (sep_auto simp: upper_bound_on_dom_def hr_comp_def iam.assn_def map_rel_def
      map_fmap_rel_def is_iam_def br_def dom_m_def)
 qed
+
+
+lemma fmap_rel_nat_rel_dom_m[simp]:
+  \<open>(A, B) \<in> \<langle>nat_rel, R\<rangle>fmap_rel \<Longrightarrow> dom_m A = dom_m B\<close>
+  by (subst distinct_set_mset_eq_iff[symmetric])
+    (auto simp: fmap_rel_alt_def distinct_mset_dom
+      simp del: fmap_rel_nat_the_fmlookup)
+
+lemma ref_two_step':
+  \<open>A \<le> B \<Longrightarrow>  \<Down> R A \<le> \<Down> R B\<close>
+  using ref_two_step by auto
+
 
 end

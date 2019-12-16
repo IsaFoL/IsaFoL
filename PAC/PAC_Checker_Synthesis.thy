@@ -315,14 +315,14 @@ lemma eq_poly_rel_eq[sepref_import_param]:
       rel2p_def single_valued_def p2rel_def
     simp del: inv_list_rel_eq)
 
-sepref_definition weak_equality_p_impl
-  is \<open>uncurry weak_equality_p\<close>
+sepref_definition weak_equality_l_impl
+  is \<open>uncurry weak_equality_l\<close>
   :: \<open>poly_assn\<^sup>k *\<^sub>a poly_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
   supply [[goals_limit=1]]
-  unfolding weak_equality_p_def
+  unfolding weak_equality_l_def
   by sepref
 
-declare weak_equality_p_impl.refine[sepref_fr_rules]
+declare weak_equality_l_impl.refine[sepref_fr_rules]
 sepref_register add_poly_l mult_poly_full
 
 abbreviation raw_string_assn :: \<open>string \<Rightarrow> string \<Rightarrow> assn\<close> where
@@ -541,7 +541,7 @@ lemma check_extension_l_alt_def:
            p2 \<leftarrow> mult_poly_full p' p';
            let up = (if c = -1 then map (\<lambda>(a, b). (a, -b)) p' else p');
            q \<leftarrow> add_poly_l (p2, up);
-           eq \<leftarrow> weak_equality_p q [];
+           eq \<leftarrow> weak_equality_l q [];
            if eq then do {
              RETURN (CSUCCESS, Some v)
            } else do {
@@ -555,7 +555,7 @@ lemma check_extension_l_alt_def:
   by (auto simp: check_extension_l_def)
 
 sepref_register find_undefined_var_l vars_of_poly_in
-  weak_equality_p
+  weak_equality_l
 
 sepref_definition check_extension_l_impl
   is \<open>uncurry4 check_extension_l\<close>
