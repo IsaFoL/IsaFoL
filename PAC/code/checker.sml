@@ -1688,7 +1688,7 @@ fun check_ext_l_dom_err_impl p =
     Chara (false, false, false, false, false, true, false, false)] @
     shows_prec_nat zero_nat p [];
 
-fun weak_equality_p_impl x =
+fun weak_equality_l_impl x =
   (fn ai => fn bi =>
     (fn () =>
       (equal_lista (equal_prod (equal_list equal_literal) equal_int) ai bi)))
@@ -1765,7 +1765,7 @@ fun check_extension_l_impl x =
               then map (fn (a, b) => (a, uminus_int b)) a2a else a2a)))
    ()) ())
    (fn x_k =>
-     (fn f_ => fn () => f_ ((weak_equality_p_impl x_k []) ()) ())
+     (fn f_ => fn () => f_ ((weak_equality_l_impl x_k []) ()) ())
        (fn x_l =>
          (fn () =>
            (if x_l then (CSUCCESS, SOME a1)
@@ -1849,10 +1849,10 @@ fun check_addition_l_impl x =
                            ())
                            (fn x_g =>
                              (fn f_ => fn () => f_
-                               ((weak_equality_p_impl x_g bi) ()) ())
+                               ((weak_equality_l_impl x_g bi) ()) ())
                                (fn x_h =>
                                  (fn f_ => fn () => f_
-                                   ((weak_equality_p_impl bi ai) ()) ())
+                                   ((weak_equality_l_impl bi ai) ()) ())
                                    (fn x_i =>
                                      (fn () =>
                                        (if x_h
@@ -2075,10 +2075,10 @@ fun check_mult_l_impl x =
                  in
                    (fn f_ => fn () => f_ ((mult_poly_impl x_c bib) ()) ())
                      (fn x_e =>
-                       (fn f_ => fn () => f_ ((weak_equality_p_impl x_e bi) ())
+                       (fn f_ => fn () => f_ ((weak_equality_l_impl x_e bi) ())
                          ())
                          (fn x_f =>
-                           (fn f_ => fn () => f_ ((weak_equality_p_impl bi ai)
+                           (fn f_ => fn () => f_ ((weak_equality_l_impl bi ai)
                              ()) ())
                              (fn x_g =>
                                (fn () =>
@@ -2317,7 +2317,7 @@ fun remap_polys_l_impl x =
                                   ((fully_normalize_poly_impl (the xc)) ()) ())
                                   (fn x_c =>
                                     (fn f_ => fn () => f_
-                                      ((weak_equality_p_impl x_c ai) ()) ())
+                                      ((weak_equality_l_impl x_c ai) ()) ())
                                       (fn x_d =>
 (fn f_ => fn () => f_
   ((iam_lookup (heap_list (heap_prod (heap_list heap_literal) heap_int)) a1 bi)
