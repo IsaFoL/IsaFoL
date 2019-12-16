@@ -94,17 +94,15 @@ exception Parser_Error of string
         fun parse_aux () =
             let val c = TextIO.lookahead istream
             in
-              if (is_space (valOf c) orelse is_separator (valOf c))
+              if (is_space (valOf c) orelse is_separator (valOf c) orelse not (is_digit (valOf c)))
               then (print2 ("number sep = '" ^ String.implode [(valOf c)] ^"'"))
               else
                 case TextIO.input1(istream) of
                     NONE => raise Parser_Error "no number found"
                   | SOME c =>
-                    if is_digit c
-                    then (seen_one_digit := true;
-                          num := c :: !num;
-                          parse_aux ())
-                    else raise Parser_Error ("no number found, found " ^ String.implode [c])
+                    (seen_one_digit := true;
+                     num := c :: !num;
+                     parse_aux ())
             end
       in
         (parse_aux ();
@@ -258,6 +256,7 @@ exception Parser_Error of string
   fun parse_EOL istream () =
       let
         val c1 = TextIO.input1(istream);
+        val _ = skip_spaces istream;
         val c2 = TextIO.input1(istream);
         fun f () =
           (case TextIO.lookahead istream of
