@@ -191,6 +191,7 @@ exception Parser_Error of string
         val num = ref 1;
         val vars = ref [];
         val next_token = ref NONE;
+        val _ = skip_spaces istream;
       in
         (
           next_token := TextIO.lookahead(istream);
@@ -201,6 +202,7 @@ exception Parser_Error of string
                 num := ~1)
              | SOME #"+" => ignore (TextIO.input1 istream)
              | _ => ());
+          skip_spaces istream;
           next_token := TextIO.lookahead(istream);
           print2 ("parse_full_monom/next token 2 = '" ^String.implode [valOf (!next_token)] ^ "'\n");
           if !next_token <> NONE andalso is_digit (valOf (!next_token))
