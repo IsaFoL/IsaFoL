@@ -86,11 +86,24 @@ exception Parser_Error of string
       else ())
 
 
+  (* string_num is a very imperative to do the parser, but it avoid allocating memory and
+  improves performations. We use is for 'string' until we need real 'strings'. Once we need them
+  (to convert them to a number), we convert them via slices.
+  *)
+  val string_num = ref (ArraySlice.slice(Array.tabulate (1000, fn _ => #" "), 0, NONE));
+  fun double_string_size () =
+      let
+        fun new_val c =  if c > ArraySlice.length (!string_num) then #" " else ArraySlice.sub(!string_num, c)
+        val c = ArraySlice.slice(Array.tabulate(2*ArraySlice.length (!string_num), new_val),0,NONE)
+      in
+        string_num := c
+      end
   fun parse_natural istream =
       let
         val _ = print2 "parse_number\n"
-        val num = ref [];
+        val i = ref (0);
         val seen_one_digit = ref false;
+        fun extract (arr, s, l) = ArraySlice.vector (ArraySlice.subslice (arr, s, l))
         fun parse_aux () =
             let val c = TextIO.lookahead istream
             in
@@ -100,15 +113,21 @@ exception Parser_Error of string
                 case TextIO.input1(istream) of
                     NONE => raise Parser_Error "no number found"
                   | SOME c =>
-                    (seen_one_digit := true;
-                     num := c :: !num;
+                    ( (*print2 (String.implode [c] ^ " to be put at position" ^ Int.toString (!i));*)
+                     seen_one_digit := true;
+                     if !i < ArraySlice.length (!string_num)
+                     then () else double_string_size ();
+                     ArraySlice.update(!string_num, !i, c);
+                     i := !i + 1;
                      parse_aux ())
             end
       in
         (parse_aux ();
          if !seen_one_digit = false
          then raise Parser_Error ("no number digit")
-         else valOf (IntInf.fromString (String.implode (rev (!num)))))
+         else
+           (print2 (extract(!string_num, 0, SOME (!i)) ^"\n");
+            (valOf (IntInf.fromString ((extract(!string_num, 0, SOME (!i))))))))
       end
 
   fun parse_nat istream =
