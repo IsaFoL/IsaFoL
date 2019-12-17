@@ -92,20 +92,20 @@ exception Parser_Error of string
    Compared to a string, it could also avoid allocating memory, although that does not seem to
    happen.
   *)
-  val string_num = ref (ArraySlice.slice(Array.tabulate (10, fn _ => #" "), 0, NONE));
+  val resizable_str = ref (ArraySlice.slice(Array.tabulate (10, fn _ => #" "), 0, NONE));
   fun double_string_size () =
       let
-        fun new_val c =  if c >= ArraySlice.length (!string_num) then #" " else ArraySlice.sub(!string_num, c)
-        val c = ArraySlice.slice(Array.tabulate(2*ArraySlice.length (!string_num), new_val),0,NONE)
+        fun new_val c =  if c >= ArraySlice.length (!resizable_str) then #" " else ArraySlice.sub(!resizable_str, c)
+        val c = ArraySlice.slice(Array.tabulate(2*ArraySlice.length (!resizable_str), new_val),0,NONE)
       in
-        string_num := c
+        resizable_str := c
       end
+  fun extract (arr, s, l) = ArraySlice.vector (ArraySlice.subslice (arr, s, l))
   fun parse_natural istream =
       let
         val _ = print2 "parse_number\n"
         val i = ref (0);
         val seen_one_digit = ref false;
-        fun extract (arr, s, l) = ArraySlice.vector (ArraySlice.subslice (arr, s, l))
         fun parse_aux () =
             let val c = TextIO.lookahead istream
             in
@@ -117,9 +117,9 @@ exception Parser_Error of string
                   | SOME c =>
                     ( (*print2 (String.implode [c] ^ " to be put at position" ^ Int.toString (!i));*)
                      seen_one_digit := true;
-                     if !i < ArraySlice.length (!string_num) - 1
+                     if !i < ArraySlice.length (!resizable_str) - 1
                      then () else double_string_size ();
-                     ArraySlice.update(!string_num, !i, c);
+                     ArraySlice.update(!resizable_str, !i, c);
                      i := !i + 1;
                      parse_aux ())
             end
@@ -128,8 +128,8 @@ exception Parser_Error of string
          if !seen_one_digit = false
          then raise Parser_Error ("no number digit")
          else
-           (print2 (extract(!string_num, 0, SOME (!i)) ^"\n");
-            (valOf (IntInf.fromString ((extract(!string_num, 0, SOME (!i))))))))
+           (print2 (extract(!resizable_str, 0, SOME (!i)) ^"\n");
+            (valOf (IntInf.fromString ((extract(!resizable_str, 0, SOME (!i))))))))
       end
 
   fun parse_nat istream =
@@ -162,7 +162,7 @@ exception Parser_Error of string
   fun parse_var istream =
       let
         val _ = print2 "parse_var\n"
-        val num = ref [];
+        val i = ref 0;
         fun parse_aux () =
             let val c = TextIO.lookahead istream
             in
@@ -172,13 +172,19 @@ exception Parser_Error of string
                 case TextIO.input1(istream) of
                     NONE => raise Parser_Error "no char found"
                   | SOME c =>
-                    (num := c :: (!num); parse_aux ())
+                     (if !i < ArraySlice.length (!resizable_str) - 1
+                     then () else double_string_size ();
+                     ArraySlice.update(!resizable_str, !i, c);
+                     i := !i + 1;
+                     parse_aux ())
             end
       in
         (parse_aux ();
-         if !num = []
+         if !i = 0
          then raise Parser_Error "no variable found"
-         else (print2 (String.implode (rev2 (!num))); share_var (String.implode (rev2 (!num)))))
+         else
+           (print2 (extract(!resizable_str, 0, SOME (!i)));
+            extract(!resizable_str, 0, SOME (!i))))
       end;
 
   fun parse_vars_only_monom istream = (* can start with /*/ *)
