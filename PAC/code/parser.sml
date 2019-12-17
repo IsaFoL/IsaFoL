@@ -95,7 +95,7 @@ exception Parser_Error of string
   val string_num = ref (ArraySlice.slice(Array.tabulate (10, fn _ => #" "), 0, NONE));
   fun double_string_size () =
       let
-        fun new_val c =  if c > ArraySlice.length (!string_num) then #" " else ArraySlice.sub(!string_num, c)
+        fun new_val c =  if c >= ArraySlice.length (!string_num) then #" " else ArraySlice.sub(!string_num, c)
         val c = ArraySlice.slice(Array.tabulate(2*ArraySlice.length (!string_num), new_val),0,NONE)
       in
         string_num := c
@@ -117,7 +117,7 @@ exception Parser_Error of string
                   | SOME c =>
                     ( (*print2 (String.implode [c] ^ " to be put at position" ^ Int.toString (!i));*)
                      seen_one_digit := true;
-                     if !i < ArraySlice.length (!string_num)
+                     if !i < ArraySlice.length (!string_num) - 1
                      then () else double_string_size ();
                      ArraySlice.update(!string_num, !i, c);
                      i := !i + 1;
