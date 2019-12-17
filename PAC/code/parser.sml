@@ -86,11 +86,13 @@ exception Parser_Error of string
       else ())
 
 
-  (* string_num is a very imperative to do the parser, but it avoid allocating memory and
-  improves performations. We use is for 'string' until we need real 'strings'. Once we need them
-  (to convert them to a number), we convert them via slices.
+  (* string_num is a very imperative to do the parser. We use is for 'string' until we need real
+  'strings'. Once we need them (to convert them to a number), we convert them via slices.
+
+   Compared to a string, it could also avoid allocating memory, although that does not seem to
+   happen.
   *)
-  val string_num = ref (ArraySlice.slice(Array.tabulate (1000, fn _ => #" "), 0, NONE));
+  val string_num = ref (ArraySlice.slice(Array.tabulate (10, fn _ => #" "), 0, NONE));
   fun double_string_size () =
       let
         fun new_val c =  if c > ArraySlice.length (!string_num) then #" " else ArraySlice.sub(!string_num, c)
