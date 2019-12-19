@@ -2,6 +2,7 @@ theory PAC_Polynoms_Operations
   imports PAC_Polynoms_Term PAC_Checker_Specification
 begin
 
+section \<open>Polynoms as Lists\<close>
 
 fun add_poly_l' :: \<open>llist_polynom \<times> llist_polynom \<Rightarrow> llist_polynom\<close> where
   \<open>add_poly_l' (p, []) = p\<close> |
@@ -824,7 +825,7 @@ proof -
     then show \<open>distinct (fst x)\<close>
       using dist by (metis \<open>x = (v, n)\<close> distinct_mset_mset_distinct fst_conv)
   qed
-  from this[of p s] this[of s p] 
+  from this[of p s] this[of s p]
   show \<open>?thesis\<close>
     unfolding assms
     by blast
@@ -1050,7 +1051,23 @@ definition full_normalize_poly where
      p \<leftarrow> sort_all_coeffs p;
      p \<leftarrow> sort_poly_spec p;
      RETURN (merge_coeffs0 p)
-}\<close>
+  }\<close>
+
+fun sorted_remdups where
+  \<open>sorted_remdups (x # y # zs) =
+    (if x = y then sorted_remdups (y # zs) else x # sorted_remdups (y # zs))\<close> |
+  \<open>sorted_remdups zs = zs\<close>
+
+lemma set_sorted_remdups[simp]:
+  \<open>set (sorted_remdups xs) = set xs\<close>
+  by (induction xs rule: sorted_remdups.induct)
+   auto
+
+lemma distinct_sorted_remdups:
+  \<open>sorted_wrt R xs \<Longrightarrow> transp R \<Longrightarrow> Restricted_Predicates.total_on R UNIV \<Longrightarrow>
+    antisymp R \<Longrightarrow> distinct (sorted_remdups xs)\<close>
+  by (induction xs rule: sorted_remdups.induct)
+    (auto dest: antisympD)
 
 lemma full_normalize_poly_normalize_poly_p:
   assumes \<open>(p, p') \<in> fully_unsorted_poly_rel\<close>
@@ -1197,8 +1214,8 @@ lemma add_poly_p'_add_poly_spec:
 end
 
 
-definition weak_equality_p :: \<open>llist_polynom \<Rightarrow> llist_polynom \<Rightarrow> bool nres\<close> where
-  \<open>weak_equality_p p q = RETURN (p = q)\<close>
+definition weak_equality_l :: \<open>llist_polynom \<Rightarrow> llist_polynom \<Rightarrow> bool nres\<close> where
+  \<open>weak_equality_l p q = RETURN (p = q)\<close>
 
 definition weak_equality :: \<open>int mpoly \<Rightarrow> int mpoly \<Rightarrow> bool nres\<close> where
   \<open>weak_equality p q = SPEC (\<lambda>r. r \<longrightarrow> p = q)\<close>
@@ -1218,11 +1235,11 @@ lemma list_rel_term_poly_list_rel_same_rightD:
     (auto simp: list_rel_split_right_iff
       dest: term_poly_list_rel_same_rightD)
 
-lemma weak_equality_p_weak_equality_spec:
-  \<open>(uncurry weak_equality_p, uncurry weak_equality_spec) \<in>
+lemma weak_equality_l_weak_equality_spec:
+  \<open>(uncurry weak_equality_l, uncurry weak_equality_spec) \<in>
     sorted_poly_rel \<times>\<^sub>r sorted_poly_rel \<rightarrow>\<^sub>f \<langle>bool_rel\<rangle>nres_rel\<close>
   by (intro frefI nres_relI)
-   (auto simp: weak_equality_p_def weak_equality_spec_def
+   (auto simp: weak_equality_l_def weak_equality_spec_def
       sorted_poly_list_rel_wrt_def list_mset_rel_def br_def
     dest: list_rel_term_poly_list_rel_same_rightD)
 

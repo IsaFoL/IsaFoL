@@ -4,6 +4,116 @@ theory PAC_Checker_Synthesis
     "../Weidenbach_Book/Watched_Literals/WB_More_Refinement_Loops"
 begin
 
+section \<open>Code Synthesis of the Checker\<close>
+
+abbreviation vars_assn where
+  \<open>vars_assn \<equiv> hs.assn string_assn\<close>
+
+fun vars_of_monom_in where
+  \<open>vars_of_monom_in [] _ = True\<close> |
+  \<open>vars_of_monom_in (x # xs) \<V> \<longleftrightarrow> x \<in> \<V> \<and> vars_of_monom_in xs \<V>\<close>
+
+fun vars_of_poly_in where
+  \<open>vars_of_poly_in [] _ = True\<close> |
+  \<open>vars_of_poly_in ((x, _) # xs) \<V> \<longleftrightarrow> vars_of_monom_in x \<V> \<and> vars_of_poly_in xs \<V>\<close>
+
+lemma vars_of_monom_in_alt_def:
+  \<open>vars_of_monom_in xs \<V> \<longleftrightarrow> set xs \<subseteq> \<V>\<close>
+  by (induction xs)
+   auto
+
+lemma vars_llist_alt_def:
+  \<open>vars_llist xs \<subseteq> \<V> \<longleftrightarrow> vars_of_poly_in xs \<V>\<close>
+  by (induction xs)
+   (auto simp: vars_llist_def vars_of_monom_in_alt_def)
+
+lemma vars_of_monom_in_alt_def2:
+  \<open>vars_of_monom_in xs \<V> \<longleftrightarrow> fold (\<lambda>x b. b \<and> x \<in> \<V>) xs True\<close>
+  apply (subst foldr_fold[symmetric])
+  subgoal
+    by auto
+  subgoal
+    by (induction xs)
+     auto
+  done
+
+sepref_definition vars_of_monom_in_impl
+  is \<open>uncurry (RETURN oo vars_of_monom_in)\<close>
+  :: \<open>(list_assn string_assn)\<^sup>k *\<^sub>a vars_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  unfolding vars_of_monom_in_alt_def2
+  by sepref
+
+declare vars_of_monom_in_impl.refine[sepref_fr_rules]
+
+lemma vars_of_poly_in_alt_def2:
+  \<open>vars_of_poly_in xs \<V> \<longleftrightarrow> fold (\<lambda>(x, _) b. b \<and> vars_of_monom_in x \<V>) xs True\<close>
+  apply (subst foldr_fold[symmetric])
+  subgoal
+    by auto
+  subgoal
+    by (induction xs)
+     auto
+  done
+
+
+sepref_definition vars_of_poly_in_impl
+  is \<open>uncurry (RETURN oo vars_of_poly_in)\<close>
+  :: \<open>(poly_assn)\<^sup>k *\<^sub>a vars_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+  unfolding vars_of_poly_in_alt_def2
+  by sepref
+
+declare vars_of_poly_in_impl.refine[sepref_fr_rules]
+
+
+definition union_vars_monom :: \<open>string list \<Rightarrow> string set \<Rightarrow> string set\<close> where
+\<open>union_vars_monom xs \<V> = fold insert xs \<V>\<close>
+
+definition union_vars_poly :: \<open>llist_polynom \<Rightarrow> string set \<Rightarrow> string set\<close> where
+\<open>union_vars_poly xs \<V> = fold (\<lambda>(xs, _) \<V>. union_vars_monom xs \<V>) xs \<V>\<close>
+
+lemma union_vars_monom_alt_def:
+  \<open>union_vars_monom xs \<V> = \<V> \<union> set xs\<close>
+  unfolding union_vars_monom_def
+  apply (subst foldr_fold[symmetric])
+  subgoal for x y
+    by (cases x; cases y)
+      auto
+  subgoal
+    by (induction xs)
+     auto
+  done
+
+lemma union_vars_poly_alt_def:
+  \<open>union_vars_poly xs \<V> = \<V> \<union> vars_llist xs\<close>
+  unfolding union_vars_poly_def
+  apply (subst foldr_fold[symmetric])
+  subgoal for x y
+    by (cases x; cases y)
+      (auto simp: union_vars_monom_alt_def)
+  subgoal
+    by (induction xs)
+     (auto simp: vars_llist_def union_vars_monom_alt_def)
+   done
+
+sepref_definition union_vars_monom_impl
+  is \<open>uncurry (RETURN oo union_vars_monom)\<close>
+  :: \<open>(list_assn string_assn)\<^sup>k *\<^sub>a vars_assn\<^sup>d \<rightarrow>\<^sub>a vars_assn\<close>
+  unfolding union_vars_monom_def
+  by sepref
+
+declare union_vars_monom_impl.refine[sepref_fr_rules]
+
+sepref_definition union_vars_poly_impl
+  is \<open>uncurry (RETURN oo union_vars_poly)\<close>
+  :: \<open>(poly_assn)\<^sup>k *\<^sub>a vars_assn\<^sup>d \<rightarrow>\<^sub>a vars_assn\<close>
+  unfolding union_vars_poly_def
+  by sepref
+
+declare union_vars_poly_impl.refine[sepref_fr_rules]
+
+
+
+
 hide_const (open) Autoref_Fix_Rel.CONSTRAINT
 
 fun status_assn where
@@ -79,19 +189,19 @@ lemma mult_monoms_alt_def:
           RETURN (y # pq)}))
      (x, y)\<close>
   apply (induction x y rule: mult_monoms.induct)
-  subgoal for p 
+  subgoal for p
     apply (subst RECT_unfold)
     apply refine_mono
     apply (cases p)
     apply auto
     done
-  subgoal for p 
+  subgoal for p
     apply (subst RECT_unfold)
     apply refine_mono
     apply (cases p)
     apply auto
     done
-  subgoal for x p y q 
+  subgoal for x p y q
     apply (subst RECT_unfold)
     apply refine_mono
     apply (auto simp: let_to_bind_conv)
@@ -192,31 +302,6 @@ sepref_definition mult_poly_impl
 
 declare mult_poly_impl.refine[sepref_fr_rules]
 
-lemma single_valued_monom_rel: \<open>single_valued monom_rel\<close>
-  by (rule list_rel_sv)
-    (auto intro!: frefI simp: string_rel_def
-    rel2p_def single_valued_def p2rel_def)
-
-lemma single_valued_monomial_rel:
-  \<open>single_valued monomial_rel\<close>
-  using single_valued_monom_rel
-  by (auto intro!: frefI simp:
-    rel2p_def single_valued_def p2rel_def)
-
-lemma single_valued_monom_rel': \<open>IS_LEFT_UNIQUE monom_rel\<close>
-  unfolding IS_LEFT_UNIQUE_def inv_list_rel_eq
-  by (rule list_rel_sv)
-   (auto intro!: frefI simp: string_rel_def
-    rel2p_def single_valued_def p2rel_def literal.explode_inject)
-
-
-lemma single_valued_monomial_rel':
-  \<open>IS_LEFT_UNIQUE monomial_rel\<close>
-  using single_valued_monom_rel'
-  unfolding IS_LEFT_UNIQUE_def inv_list_rel_eq
-  by (auto intro!: frefI simp:
-    rel2p_def single_valued_def p2rel_def)
-
 lemma inverse_monomial:
   \<open>monom_rel\<inverse> \<times>\<^sub>r int_rel = (monom_rel \<times>\<^sub>r int_rel)\<inverse>\<close>
   by (auto)
@@ -226,18 +311,18 @@ lemma eq_poly_rel_eq[sepref_import_param]:
   using list_rel_sv[of \<open>monomial_rel\<close>, OF single_valued_monomial_rel]
   using list_rel_sv[OF single_valued_monomial_rel'[unfolded IS_LEFT_UNIQUE_def inv_list_rel_eq]]
   unfolding inv_list_rel_eq[symmetric]
-  by (auto intro!: frefI simp: 
+  by (auto intro!: frefI simp:
       rel2p_def single_valued_def p2rel_def
     simp del: inv_list_rel_eq)
 
-sepref_definition weak_equality_p_impl
-  is \<open>uncurry weak_equality_p\<close>
+sepref_definition weak_equality_l_impl
+  is \<open>uncurry weak_equality_l\<close>
   :: \<open>poly_assn\<^sup>k *\<^sub>a poly_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
   supply [[goals_limit=1]]
-  unfolding weak_equality_p_def
+  unfolding weak_equality_l_def
   by sepref
 
-declare weak_equality_p_impl.refine[sepref_fr_rules]
+declare weak_equality_l_impl.refine[sepref_fr_rules]
 sepref_register add_poly_l mult_poly_full
 
 abbreviation raw_string_assn :: \<open>string \<Rightarrow> string \<Rightarrow> assn\<close> where
@@ -275,8 +360,8 @@ lemma [sepref_fr_rules]:
   by (sepref_to_hoare; sep_auto; fail)+
 
 sepref_definition check_addition_l_impl
-  is \<open>uncurry5 check_addition_l\<close>
-  :: \<open>poly_assn\<^sup>k *\<^sub>a polys_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a poly_assn\<^sup>k  \<rightarrow>\<^sub>a status_assn raw_string_assn\<close>
+  is \<open>uncurry6 check_addition_l\<close>
+  :: \<open>poly_assn\<^sup>k *\<^sub>a polys_assn\<^sup>k *\<^sub>a vars_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a poly_assn\<^sup>k  \<rightarrow>\<^sub>a status_assn raw_string_assn\<close>
   supply [[goals_limit=1]]
   unfolding mult_poly_full_def
     HOL_list.fold_custom_empty
@@ -285,6 +370,7 @@ sepref_definition check_addition_l_impl
     check_addition_l_def
     in_dom_m_lookup_iff
     fmlookup'_def[symmetric]
+    vars_llist_alt_def
   by sepref
 
 declare check_addition_l_impl.refine[sepref_fr_rules]
@@ -317,19 +403,182 @@ lemma [sepref_fr_rules]:
    done
 
 sepref_definition check_mult_l_impl
-  is \<open>uncurry5 check_mult_l\<close>
-  :: \<open>poly_assn\<^sup>k *\<^sub>a polys_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a poly_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a poly_assn\<^sup>k  \<rightarrow>\<^sub>a status_assn raw_string_assn\<close>
+  is \<open>uncurry6 check_mult_l\<close>
+  :: \<open>poly_assn\<^sup>k *\<^sub>a polys_assn\<^sup>k *\<^sub>a vars_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a poly_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a poly_assn\<^sup>k  \<rightarrow>\<^sub>a status_assn raw_string_assn\<close>
   supply [[goals_limit=1]]
   unfolding check_mult_l_def
     HOL_list.fold_custom_empty
     term_order_rel'_def[symmetric]
     term_order_rel'_alt_def
-    check_addition_l_def
     in_dom_m_lookup_iff
     fmlookup'_def[symmetric]
+    vars_llist_alt_def
   by sepref
 
 declare check_mult_l_impl.refine[sepref_fr_rules]
+
+definition check_ext_l_dom_err_impl :: \<open>nat \<Rightarrow> _\<close>  where
+  \<open>check_ext_l_dom_err_impl p =
+    ''There is already a polynom with index '' @ show p\<close>
+
+lemma [sepref_fr_rules]:
+  \<open>(((return o (check_ext_l_dom_err_impl))),
+    (check_extension_l_dom_err)) \<in> nat_assn\<^sup>k \<rightarrow>\<^sub>a raw_string_assn\<close>
+   unfolding check_extension_l_dom_err_def check_ext_l_dom_err_impl_def list_assn_pure_conv
+   apply sepref_to_hoare
+   apply sep_auto
+   done
+
+
+definition check_extension_l_no_new_var_err_impl :: \<open>_ \<Rightarrow> _\<close>  where
+  \<open>check_extension_l_no_new_var_err_impl p =
+    ''No new variable could be found in polynom '' @ show p\<close>
+
+lemma [sepref_fr_rules]:
+  \<open>(((return o (check_extension_l_no_new_var_err_impl))),
+    (check_extension_l_no_new_var_err)) \<in> poly_assn\<^sup>k \<rightarrow>\<^sub>a raw_string_assn\<close>
+   unfolding check_extension_l_no_new_var_err_impl_def check_extension_l_no_new_var_err_def
+     list_assn_pure_conv
+   apply sepref_to_hoare
+   apply sep_auto
+   done
+
+definition check_extension_l_side_cond_err_impl :: \<open>_ \<Rightarrow> _\<close>  where
+  \<open>check_extension_l_side_cond_err_impl v p r s =
+    ''Error while checking side conditions of extensions polynow, var is '' @ show v @
+    '' polynom is '' @ show p @ ''side condition p*p - p = '' @ show s @ '' and should be 0''\<close>
+
+lemma [sepref_fr_rules]:
+  \<open>((uncurry3 (\<lambda>x y. return oo (check_extension_l_side_cond_err_impl x y))),
+    uncurry3 (check_extension_l_side_cond_err)) \<in> string_assn\<^sup>k *\<^sub>a poly_assn\<^sup>k *\<^sub>a poly_assn\<^sup>k *\<^sub>a poly_assn\<^sup>k \<rightarrow>\<^sub>a raw_string_assn\<close>
+   unfolding check_extension_l_side_cond_err_impl_def check_extension_l_side_cond_err_def
+     list_assn_pure_conv
+   apply sepref_to_hoare
+   apply sep_auto
+   done
+
+definition check_extension_l_new_var_multiple_err_impl :: \<open>_ \<Rightarrow> _\<close>  where
+  \<open>check_extension_l_new_var_multiple_err_impl v p =
+    ''Error while checking side conditions of extensions polynow, var is '' @ show v @
+    '' but it either appears at least once in the polynom or another new variable is created '' @
+    show p @ '' but should not.''\<close>
+
+lemma [sepref_fr_rules]:
+  \<open>((uncurry (return oo (check_extension_l_new_var_multiple_err_impl))),
+    uncurry (check_extension_l_new_var_multiple_err)) \<in> string_assn\<^sup>k *\<^sub>a poly_assn\<^sup>k \<rightarrow>\<^sub>a raw_string_assn\<close>
+   unfolding check_extension_l_new_var_multiple_err_impl_def
+     check_extension_l_new_var_multiple_err_def
+     list_assn_pure_conv
+   apply sepref_to_hoare
+   apply sep_auto
+   done
+
+
+sepref_register check_extension_l_dom_err fmlookup'
+  check_extension_l_side_cond_err check_extension_l_no_new_var_err
+  find_undefined_var_l_only find_undefined_var_l_fun
+  check_extension_l_new_var_multiple_err
+
+sepref_definition find_undefined_var_l_only_impl
+  is \<open>uncurry (RETURN oo find_undefined_var_l_only)\<close>
+  :: \<open>vars_assn\<^sup>k *\<^sub>a poly_assn\<^sup>k \<rightarrow>\<^sub>a option_assn (string_assn \<times>\<^sub>a int_assn)\<close>
+  unfolding find_undefined_var_l_only_alt_def[abs_def]
+  by sepref
+
+declare find_undefined_var_l_only_impl.refine[sepref_fr_rules]
+
+sepref_definition find_undefined_var_l_fun_impl
+  is \<open>uncurry find_undefined_var_l_fun\<close>
+  :: \<open>vars_assn\<^sup>k *\<^sub>a poly_assn\<^sup>k \<rightarrow>\<^sub>a option_assn (string_assn \<times>\<^sub>a int_assn \<times>\<^sub>a poly_assn)\<close>
+  supply option.splits[split]
+  unfolding find_undefined_var_l_fun_def
+    option.case_eq_if HOL_list.fold_custom_empty
+  by sepref
+
+lemma find_undefined_var_l_fun_find_undefined_var_l:
+  \<open>(uncurry find_undefined_var_l_fun, uncurry find_undefined_var_l) \<in> Id \<times>\<^sub>r Id \<rightarrow>\<^sub>f \<langle>Id\<rangle>nres_rel\<close>
+  using find_undefined_var_l_alt_def
+  by (auto intro!: ext frefI nres_relI)
+
+lemmas [sepref_fr_rules] =
+  find_undefined_var_l_fun_impl.refine[FCOMP find_undefined_var_l_fun_find_undefined_var_l]
+
+definition uminus_poly :: \<open>llist_polynom \<Rightarrow> llist_polynom\<close> where
+  \<open>uminus_poly p' = map (\<lambda>(a, b). (a, - b)) p'\<close>
+
+sepref_register uminus_poly
+lemma [sepref_import_param]:
+  \<open>(map (\<lambda>(a, b). (a, - b)), uminus_poly) \<in> poly_rel \<rightarrow> poly_rel\<close>
+  unfolding uminus_poly_def
+  apply (intro fun_relI)
+  subgoal for p p'
+    by (induction p p' rule: list_rel_induct)
+     auto
+  done
+
+lemma check_extension_l_alt_def:
+\<open>check_extension_l spec A \<V> i p = do {
+  b \<leftarrow> RETURN (i \<notin># dom_m A);
+  if \<not>b
+  then do {
+    c \<leftarrow> check_extension_l_dom_err i;
+    RETURN (error_msg i c, None)
+  } else do {
+    v \<leftarrow> find_undefined_var_l \<V> p;
+    case v of
+      None \<Rightarrow> do {
+        c \<leftarrow> check_extension_l_no_new_var_err p;
+        RETURN (error_msg i c, None)
+      }
+    | Some (v, c, p') \<Rightarrow> do {
+        let b = vars_llist p' \<subseteq> \<V>;
+        if \<not>b
+        then do {
+          c \<leftarrow> check_extension_l_new_var_multiple_err v p';
+          RETURN (error_msg i c, None)
+        }
+        else do {
+           p2 \<leftarrow> mult_poly_full p' p';
+           let up = (if c = -1 then map (\<lambda>(a, b). (a, -b)) p' else p');
+           q \<leftarrow> add_poly_l (p2, up);
+           eq \<leftarrow> weak_equality_l q [];
+           if eq then do {
+             RETURN (CSUCCESS, Some v)
+           } else do {
+            c \<leftarrow> check_extension_l_side_cond_err v p p' q;
+            RETURN (error_msg i c, None)
+          }
+        }
+      }
+    }
+  }\<close>
+  by (auto simp: check_extension_l_def)
+
+sepref_register find_undefined_var_l vars_of_poly_in
+  weak_equality_l
+
+sepref_definition check_extension_l_impl
+  is \<open>uncurry4 check_extension_l\<close>
+  :: \<open>poly_assn\<^sup>k *\<^sub>a polys_assn\<^sup>k *\<^sub>a vars_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a poly_assn\<^sup>k \<rightarrow>\<^sub>a
+     status_assn raw_string_assn \<times>\<^sub>a option_assn string_assn\<close>
+  supply option.splits[split]
+  supply [[goals_limit=1]]
+  unfolding
+    HOL_list.fold_custom_empty
+    term_order_rel'_def[symmetric]
+    term_order_rel'_alt_def
+    in_dom_m_lookup_iff
+    fmlookup'_def[symmetric]
+    vars_llist_alt_def
+    check_extension_l_alt_def
+    not_not
+    option.case_eq_if
+    uminus_poly_def[symmetric]
+    HOL_list.fold_custom_empty
+  by sepref
+
+
+declare check_extension_l_impl.refine[sepref_fr_rules]
 
 definition check_del_l_dom_err_impl where
   \<open>check_del_l_dom_err_impl p =
@@ -347,7 +596,7 @@ lemma [sepref_fr_rules]:
 
 sepref_definition check_del_l_impl
   is \<open>uncurry2 check_del_l\<close>
-  :: \<open>poly_assn\<^sup>k *\<^sub>a polys_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k  \<rightarrow>\<^sub>a status_assn raw_string_assn\<close>
+  :: \<open>poly_assn\<^sup>k *\<^sub>a polys_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a status_assn raw_string_assn\<close>
   supply [[goals_limit=1]]
   unfolding check_del_l_def
     in_dom_m_lookup_iff
@@ -361,7 +610,7 @@ abbreviation pac_step_rel where
 
 sepref_register PAC_Polynoms_Operations.normalize_poly
   pac_src1 pac_src2 new_id pac_mult case_pac_step check_mult_l
-  check_addition_l check_del_l
+  check_addition_l check_del_l check_extension_l
 
 lemma pac_step_rel_assn_alt_def:
   \<open>hn_ctxt (pac_step_rel_assn nat_assn poly_assn) b bi =
@@ -374,31 +623,35 @@ lemma pac_step_rel_assn_alt_def:
     pure_app_eq)
 
 
-term Del
 lemma is_AddD_import[sepref_fr_rules]:
   assumes \<open>CONSTRAINT is_pure K\<close>  \<open>CONSTRAINT is_pure V\<close>
   shows
-    \<open>(return o pac_res, RETURN o pac_res) \<in> [\<lambda>x. is_Add x \<or> is_Mult x]\<^sub>a (pac_step_rel_assn K V)\<^sup>k \<rightarrow> V\<close>
-    \<open>(return o pac_src1, RETURN o pac_src1) \<in> (pac_step_rel_assn K V)\<^sup>k \<rightarrow>\<^sub>a K\<close>
-    \<open>(return o new_id, RETURN o new_id) \<in> [\<lambda>x. is_Add x \<or> is_Mult x]\<^sub>a (pac_step_rel_assn K V)\<^sup>k \<rightarrow> K\<close>
+    \<open>(return o pac_res, RETURN o pac_res) \<in> [\<lambda>x. is_Add x \<or> is_Mult x \<or> is_Extension x]\<^sub>a
+       (pac_step_rel_assn K V)\<^sup>k \<rightarrow> V\<close>
+    \<open>(return o pac_src1, RETURN o pac_src1) \<in> [\<lambda>x. is_Add x \<or> is_Mult x \<or> is_Del x]\<^sub>a (pac_step_rel_assn K V)\<^sup>k \<rightarrow> K\<close>
+    \<open>(return o new_id, RETURN o new_id) \<in> [\<lambda>x. is_Add x \<or> is_Mult x \<or> is_Extension x]\<^sub>a (pac_step_rel_assn K V)\<^sup>k \<rightarrow> K\<close>
     \<open>(return o is_Add, RETURN o is_Add) \<in>  (pac_step_rel_assn K V)\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
     \<open>(return o is_Mult, RETURN o is_Mult) \<in> (pac_step_rel_assn K V)\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
     \<open>(return o is_Del, RETURN o is_Del) \<in> (pac_step_rel_assn K V)\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
+    \<open>(return o is_Extension, RETURN o is_Extension) \<in> (pac_step_rel_assn K V)\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
   subgoal
     using assms
     apply sepref_to_hoare
     apply sep_auto
-    apply (case_tac x; case_tac xi)
-    apply (auto simp: is_pure_conv ent_true_drop pure_app_eq)
-    apply (case_tac x; case_tac xi)
-    apply (auto simp: is_pure_conv ent_true_drop pure_app_eq)
+    apply (case_tac x; case_tac xi; auto simp: is_pure_conv ent_true_drop pure_app_eq)+
     done
   subgoal
     using assms
     apply sepref_to_hoare
     apply sep_auto
-    apply (case_tac x; case_tac xi)
-    apply (auto simp: is_pure_conv ent_true_drop pure_app_eq)
+    apply (case_tac x; case_tac xi;
+      auto simp: is_pure_conv ent_true_drop pure_app_eq; fail)+
+    done
+  subgoal
+    using assms
+    apply sepref_to_hoare
+    apply sep_auto
+    apply (case_tac x; case_tac xi; auto simp: is_pure_conv ent_true_drop pure_app_eq)+
     done
   subgoal
     using assms
@@ -457,23 +710,22 @@ lemma [sepref_fr_rules]:
   done
 
 lemma is_Mult_lastI:
-  \<open>\<not> is_Add b \<Longrightarrow> \<not>is_Mult b \<Longrightarrow> is_Del b\<close>
+  \<open>\<not> is_Add b \<Longrightarrow> \<not>is_Mult b \<Longrightarrow> \<not>is_Extension b \<Longrightarrow> is_Del b\<close>
   by (cases b) auto
 
 sepref_register is_cfailed is_Del
 
 definition PAC_checker_l_step' ::  _ where
-  \<open>PAC_checker_l_step' a b c  = PAC_checker_l_step a (b, c)\<close>
+  \<open>PAC_checker_l_step' a b c d = PAC_checker_l_step a (b, c, d)\<close>
 
 lemma PAC_checker_l_step_alt_def:
-  \<open>PAC_checker_l_step a bc d = (let (b,c) = bc in PAC_checker_l_step' a b c d)\<close>
+  \<open>PAC_checker_l_step a bcd e = (let (b,c,d) = bcd in PAC_checker_l_step' a b c d e)\<close>
   unfolding PAC_checker_l_step'_def by auto
 
 sepref_decl_intf ('k) acode_status is "('k) code_status"
 sepref_decl_intf ('k) apac_step is "('k) pac_step"
 
 sepref_register merge_cstatus full_normalize_poly
-find_theorems poly_assn list_rel
 
 lemma poly_rel_the_pure:
   \<open>poly_rel = the_pure poly_assn\<close> and
@@ -484,9 +736,9 @@ lemma poly_rel_the_pure:
   by auto
 
 sepref_definition check_step_impl
-  is \<open>uncurry3 PAC_checker_l_step'\<close>
-  :: \<open>poly_assn\<^sup>k *\<^sub>a (status_assn raw_string_assn)\<^sup>d *\<^sub>a polys_assn\<^sup>d *\<^sub>a (pac_step_rel_assn (nat_assn) poly_assn)\<^sup>d \<rightarrow>\<^sub>a
-    status_assn raw_string_assn \<times>\<^sub>a polys_assn\<close>
+  is \<open>uncurry4 PAC_checker_l_step'\<close>
+  :: \<open>poly_assn\<^sup>k *\<^sub>a (status_assn raw_string_assn)\<^sup>d *\<^sub>a vars_assn\<^sup>d *\<^sub>a polys_assn\<^sup>d *\<^sub>a (pac_step_rel_assn (nat_assn) poly_assn)\<^sup>d \<rightarrow>\<^sub>a
+    status_assn raw_string_assn \<times>\<^sub>a vars_assn \<times>\<^sub>a polys_assn\<close>
   supply [[goals_limit=1]] is_Mult_lastI[intro]
   unfolding PAC_checker_l_step_def PAC_checker_l_step'_def
     pac_step.case_eq_if Let_def
@@ -496,47 +748,24 @@ sepref_definition check_step_impl
 
 declare check_step_impl.refine[sepref_fr_rules]
 
-instantiation pac_step :: (heap) heap
-begin
-
-instance
-proof standard
-  obtain f :: \<open>'a \<Rightarrow> nat\<close> where
-    f: \<open>inj f\<close>
-    by blast
-  obtain g :: \<open>nat \<times> nat \<times> nat \<times> nat \<times> nat \<Rightarrow> nat\<close> where
-    g: \<open>inj g\<close>
-    by blast
-  have [iff]: \<open>g a = g b \<longleftrightarrow> a = b\<close>  \<open>f a' = f b' \<longleftrightarrow> a' = b'\<close> for a b a' b'
-    using f g unfolding inj_def by blast+
-  let ?f = \<open>\<lambda>x :: 'a pac_step.
-     g (case x of
-        Add a b c d \<Rightarrow> (0, a, b, c, f d)
-      | Del a  \<Rightarrow> (1, a, 0, 0, 0)
-      | Mult a b c d \<Rightarrow> (2, a, f b, c, f d))\<close>
-   have \<open>inj ?f\<close>
-     apply (auto simp: inj_def)
-     apply (case_tac x; case_tac y)
-     apply auto
-     done
-   then show \<open>\<exists>f :: 'a pac_step \<Rightarrow> nat. inj f\<close>
-     by blast
-qed
-
-end
-
-lemma safe_pac_step_rel_assn[safe_constraint_rules]:
-  "is_pure K \<Longrightarrow> is_pure V \<Longrightarrow> is_pure (pac_step_rel_assn K V)"
-  by (auto simp: step_rewrite_pure(1)[symmetric] is_pure_conv)
-
 sepref_register PAC_checker_l_step PAC_checker_l_step' fully_normalize_poly_impl
+
+definition PAC_checker_l' where
+  \<open>PAC_checker_l' p \<V> A status steps = PAC_checker_l p (\<V>, A) status steps\<close>
+
+lemma PAC_checker_l_alt_def:
+  \<open>PAC_checker_l p \<V>A status steps =
+    (let (\<V>, A) = \<V>A in PAC_checker_l' p \<V> A status steps)\<close>
+  unfolding PAC_checker_l'_def by auto
+
 sepref_definition PAC_checker_l_impl
-  is \<open>uncurry3 PAC_checker_l\<close>
-  :: \<open>poly_assn\<^sup>k *\<^sub>a polys_assn\<^sup>d *\<^sub>a (status_assn raw_string_assn)\<^sup>d *\<^sub>a
-       (list_assn (pac_step_rel_assn (nat_assn) poly_assn))\<^sup>k \<rightarrow>\<^sub>a status_assn raw_string_assn \<times>\<^sub>a polys_assn\<close>
+  is \<open>uncurry4 PAC_checker_l'\<close>
+  :: \<open>poly_assn\<^sup>k *\<^sub>a vars_assn\<^sup>d *\<^sub>a polys_assn\<^sup>d *\<^sub>a (status_assn raw_string_assn)\<^sup>d *\<^sub>a
+       (list_assn (pac_step_rel_assn (nat_assn) poly_assn))\<^sup>k \<rightarrow>\<^sub>a
+     status_assn raw_string_assn \<times>\<^sub>a vars_assn \<times>\<^sub>a polys_assn\<close>
   supply [[goals_limit=1]] is_Mult_lastI[intro]
   unfolding PAC_checker_l_def is_success_alt_def[symmetric] PAC_checker_l_step_alt_def
-    nres_bind_let_law[symmetric]
+    nres_bind_let_law[symmetric] PAC_checker_l'_def
     apply (subst nres_bind_let_law)
   apply sepref_dbg_preproc
   apply sepref_dbg_cons_init
@@ -556,36 +785,46 @@ abbreviation polys_assn_input where
   \<open>polys_assn_input \<equiv> iam_fmap_assn nat_assn poly_assn\<close>
 
 
-sepref_register fmlookup' upper_bound_on_dom op_fmap_empty
+sepref_register upper_bound_on_dom op_fmap_empty
 sepref_definition remap_polys_l_impl
-  is \<open>uncurry remap_polys_l2\<close>
-  :: \<open>poly_assn\<^sup>k *\<^sub>a polys_assn_input\<^sup>d \<rightarrow>\<^sub>a polys_assn \<times>\<^sub>a status_assn raw_string_assn\<close>
+  is \<open>uncurry2 remap_polys_l2\<close>
+  :: \<open>poly_assn\<^sup>k *\<^sub>a vars_assn\<^sup>d *\<^sub>a polys_assn_input\<^sup>d \<rightarrow>\<^sub>a
+    status_assn raw_string_assn \<times>\<^sub>a vars_assn \<times>\<^sub>a polys_assn\<close>
   supply [[goals_limit=1]] is_Mult_lastI[intro]
   unfolding remap_polys_l2_def op_fmap_empty_def[symmetric] while_eq_nfoldli[symmetric]
     while_upt_while_direct
     in_dom_m_lookup_iff
     fmlookup'_def[symmetric]
+    union_vars_poly_alt_def[symmetric]
   apply (subst while_upt_while_direct)
   apply simp
   apply (rewrite at \<open>op_fmap_empty\<close> annotate_assn[where A=\<open>polys_assn\<close>])
   by sepref
 
+thm remap_polys_l2_remap_polys_l
 
 lemma remap_polys_l2_remap_polys_l:
-  \<open>(uncurry remap_polys_l2, uncurry remap_polys_l) \<in> Id \<times>\<^sub>r Id \<rightarrow>\<^sub>f \<langle>Id\<rangle>nres_rel\<close>
+  \<open>(uncurry2 remap_polys_l2, uncurry2 remap_polys_l) \<in> (Id \<times>\<^sub>r \<langle>Id\<rangle>set_rel) \<times>\<^sub>r Id \<rightarrow>\<^sub>f \<langle>Id\<rangle>nres_rel\<close>
   apply (intro frefI fun_relI nres_relI)
   using remap_polys_l2_remap_polys_l by auto
 
 lemma [sepref_fr_rules]:
-   \<open>(uncurry remap_polys_l_impl, uncurry remap_polys_l) \<in> poly_assn\<^sup>k *\<^sub>a polys_assn_input\<^sup>d \<rightarrow>\<^sub>a polys_assn \<times>\<^sub>a status_assn raw_string_assn\<close>
+   \<open>(uncurry2 remap_polys_l_impl,
+     uncurry2 remap_polys_l) \<in> poly_assn\<^sup>k *\<^sub>a vars_assn\<^sup>d *\<^sub>a polys_assn_input\<^sup>d \<rightarrow>\<^sub>a
+       status_assn raw_string_assn \<times>\<^sub>a vars_assn \<times>\<^sub>a polys_assn\<close>
    using hfcomp_tcomp_pre[OF remap_polys_l2_remap_polys_l remap_polys_l_impl.refine]
    by (auto simp: hrp_comp_def hfprod_def)
 
+sepref_register remap_polys_l
+
 sepref_definition full_checker_l_impl
   is \<open>uncurry2 full_checker_l\<close>
-  :: \<open>poly_assn\<^sup>k *\<^sub>a polys_assn_input\<^sup>d *\<^sub>a (list_assn (pac_step_rel_assn (nat_assn) poly_assn))\<^sup>k \<rightarrow>\<^sub>a status_assn raw_string_assn \<times>\<^sub>a polys_assn\<close>
+  :: \<open>poly_assn\<^sup>k *\<^sub>a polys_assn_input\<^sup>d *\<^sub>a (list_assn (pac_step_rel_assn (nat_assn) poly_assn))\<^sup>k \<rightarrow>\<^sub>a
+    status_assn raw_string_assn \<times>\<^sub>a vars_assn \<times>\<^sub>a polys_assn\<close>
   supply [[goals_limit=1]] is_Mult_lastI[intro]
-  unfolding full_checker_l_def
+  unfolding full_checker_l_def hs.fold_custom_empty
+    union_vars_poly_alt_def[symmetric]
+    PAC_checker_l_alt_def
   by sepref
 
 sepref_definition PAC_update_impl
@@ -600,11 +839,166 @@ sepref_definition PAC_empty_impl
   unfolding op_iam_fmap_empty_def[symmetric] pat_fmap_empty
   by sepref
 
+sepref_definition empty_vars_impl
+  is \<open>uncurry0 (RETURN {})\<close>
+  :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a vars_assn\<close>
+  unfolding hs.fold_custom_empty
+  by sepref
+
 export_code PAC_checker_l_impl PAC_update_impl PAC_empty_impl the_error is_cfailed is_cfound
   int_of_integer Del Add Mult nat_of_integer String.implode remap_polys_l_impl
-  fully_normalize_poly_impl
+  fully_normalize_poly_impl union_vars_poly_impl empty_vars_impl
   full_checker_l_impl check_step_impl CSUCCESS
+  Extension
   in SML_imp module_name PAC_Checker
   file "code/checker.sml"
+
+
+section \<open>Correctness theorem\<close>
+
+context poly_embed
+begin
+
+definition full_poly_assn where
+  \<open>full_poly_assn = hr_comp poly_assn (fully_unsorted_poly_rel O mset_poly_rel)\<close>
+
+definition full_poly_input_assn where
+  \<open>full_poly_input_assn = hr_comp
+        (hr_comp polys_assn_input
+          (\<langle>nat_rel, fully_unsorted_poly_rel O mset_poly_rel\<rangle>fmap_rel))
+        polys_rel\<close>
+
+definition fully_pac_assn where
+  \<open>fully_pac_assn = (list_assn
+        (hr_comp (pac_step_rel_assn nat_assn poly_assn)
+          (p2rel
+            (\<langle>nat_rel,
+             fully_unsorted_poly_rel O
+             mset_poly_rel\<rangle>pac_step_rel_raw))))\<close>
+
+definition code_status_assn where
+  \<open>code_status_assn = hr_comp (status_assn raw_string_assn)
+                            code_status_status_rel\<close>
+
+definition full_vars_assn where
+  \<open>full_vars_assn = hr_comp (hs.assn string_assn)
+                              (\<langle>var_rel\<rangle>set_rel)\<close>
+
+lemma polys_rel_full_polys_rel:
+  \<open>polys_rel_full = Id \<times>\<^sub>r polys_rel\<close>
+  by (auto simp: polys_rel_full_def)
+
+definition full_polys_assn :: \<open>_\<close> where
+\<open>full_polys_assn = hr_comp (hr_comp polys_assn
+                              (\<langle>nat_rel,
+                               sorted_poly_rel O mset_poly_rel\<rangle>fmap_rel))
+                            polys_rel\<close>
+
+text \<open>
+
+Below is the full correctness theorems. It basically states that:
+
+  \<^enum> assuming that the input polynomials have no duplicate variables
+
+
+Then:
+
+\<^enum> if the checker returns \<^term>\<open>CFOUND\<close>, the spec is in the ideal
+  and the PAC file is correct
+
+\<^enum> if the checker returns \<^term>\<open>CSUCCESS\<close>, the PAC file is correct (but
+there is no information on the spec, aka checking failed)
+
+\<^enum> if the checker return \<^term>\<open>CFAILED err\<close>, then checking failed (and
+\<^term>\<open>err\<close> \<^emph>\<open>might\<close> give you an indication of the error, but the correctness
+theorem does not say anything about that).
+
+
+The input parameters are:
+
+\<^enum> the specification polynom represented as a list
+
+\<^enum> the input polynoms as hash map (as an array of option polynom)
+
+\<^enum> a represention of the PAC proofs.
+
+\<close>
+
+lemma PAC_full_correctness: (* \htmllink{PAC-full-correctness} *)
+  \<open>(uncurry2 full_checker_l_impl,
+     uncurry2 (\<lambda>spec A _. PAC_checker_specification spec A))
+    \<in> (full_poly_assn)\<^sup>k *\<^sub>a
+      (full_poly_input_assn)\<^sup>d *\<^sub>a
+      (fully_pac_assn)\<^sup>k \<rightarrow>\<^sub>a code_status_assn \<times>\<^sub>a
+                           full_vars_assn \<times>\<^sub>a full_polys_assn\<close>
+  using
+    full_checker_l_impl.refine[FCOMP full_checker_l_full_checker',
+    FCOMP full_checker_spec',
+    unfolded full_poly_assn_def[symmetric]
+      full_poly_input_assn_def[symmetric]
+      fully_pac_assn_def[symmetric]
+      code_status_assn_def[symmetric]
+      full_vars_assn_def[symmetric]
+      polys_rel_full_polys_rel
+      hr_comp_prod_conv
+      full_polys_assn_def[symmetric]]
+   by auto
+
+text \<open>
+
+It would be more efficient to move the parsing to Isabelle, as this
+would be more memory efficient (and also reduce the TCB). But now
+comes the fun part: It cannot work. A stream (of a file) is consumed
+by side effects. Assume that this would work. The code could look like:
+
+\<^term>\<open>
+  let next_token = read_file file
+  in f (next_token)
+\<close>
+
+This code is equivalent to:
+\<^term>\<open>
+  let _ = read_file file;
+      next_token = read_file file
+  in f (next_token)
+\<close>
+
+However, as an hypothetic \<^term>\<open>read_file\<close> changes the underlying
+stream, we would get the next token. Remark that this is already a
+weird point of ML compilers. Anyway, I see currently two solutions to
+this problem:
+
+\<^enum> The meta-argument: use it only in the Refinement Framework in a
+setup where copies are disallowed. Basically, this works because we
+can express the non-duplication constraints on the type
+level. However, we cannot forbid people from expressing things
+directly at the HOL level.
+
+\<^enum> On the target language side, model the stream as the stream and the
+position. Reading takes two arguments. First, the position to
+read. Second, the stream (and the current position) to read. If the
+position to read does not match the current position, return an
+error.
+
+\<close>
+
+end
+
+definition \<phi> :: \<open>string \<Rightarrow> nat\<close> where
+  \<open>\<phi> = (SOME \<phi>. bij \<phi>)\<close>
+
+lemma bij_\<phi>: \<open>bij \<phi>\<close>
+  using someI[of \<open> \<lambda>\<phi> :: string \<Rightarrow> nat. bij \<phi>\<close>]
+  unfolding \<phi>_def[symmetric]
+  using poly_embed_EX
+  by auto
+
+global_interpretation PAC: poly_embed where
+  \<phi> = \<phi>
+  apply standard
+  apply (use bij_\<phi> in \<open>auto simp: bij_def\<close>)
+  done
+
+text \<open>The full correctness theorem is @{thm PAC.PAC_full_correctness}.\<close>
 
 end

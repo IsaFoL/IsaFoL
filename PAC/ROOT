@@ -1,3 +1,5 @@
+chapter PAC_Checker
+
 session PAC_Checker = "Sepref_IICF" +
    description \<open>PAC proof checker\<close>
    sessions
@@ -9,10 +11,14 @@ session PAC_Checker = "Sepref_IICF" +
      "HOL-ex"
    theories
      Weidenbach_Book_Base.WB_List_More
-     WB_Sort 
+     WB_Sort
      PAC_Specification
      PAC_Map_Rel
      PAC_Checker_Specification
      PAC_Polynoms
      PAC_Polynoms_Term
      PAC_Checker
+     PAC_Checker_Synthesis
+  document_files
+    "root.tex"
+    "biblio.bib"

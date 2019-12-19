@@ -86,31 +86,50 @@ exception Parser_Error of string
       else ())
 
 
+  (* string_num is a very imperative to do the parser. We use is for 'string' until we need real
+  'strings'. Once we need them (to convert them to a number), we convert them via slices.
+
+   Compared to a string, it could also avoid allocating memory, although that does not seem to
+   happen.
+  *)
+  val resizable_str = ref (ArraySlice.slice(Array.tabulate (10, fn _ => #" "), 0, NONE));
+  fun double_string_size () =
+      let
+        fun new_val c =  if c >= ArraySlice.length (!resizable_str) then #" " else ArraySlice.sub(!resizable_str, c)
+        val c = ArraySlice.slice(Array.tabulate(2*ArraySlice.length (!resizable_str), new_val),0,NONE)
+      in
+        resizable_str := c
+      end
+  fun extract (arr, s, l) = ArraySlice.vector (ArraySlice.subslice (arr, s, l))
   fun parse_natural istream =
       let
         val _ = print2 "parse_number\n"
-        val num = ref [];
+        val i = ref (0);
         val seen_one_digit = ref false;
         fun parse_aux () =
             let val c = TextIO.lookahead istream
             in
-              if (is_space (valOf c) orelse is_separator (valOf c))
-              then (print2 ("number sep = " ^ String.implode [(valOf c)]))
+              if (is_space (valOf c) orelse is_separator (valOf c) orelse not (is_digit (valOf c)))
+              then (print2 ("number sep = '" ^ String.implode [(valOf c)] ^"'"))
               else
                 case TextIO.input1(istream) of
                     NONE => raise Parser_Error "no number found"
                   | SOME c =>
-                    if is_digit c
-                    then (seen_one_digit := true;
-                          num := c :: !num;
-                          parse_aux ())
-                    else raise Parser_Error ("no number found, found " ^ String.implode [c])
+                    ( (*print2 (String.implode [c] ^ " to be put at position" ^ Int.toString (!i));*)
+                     seen_one_digit := true;
+                     if !i < ArraySlice.length (!resizable_str) - 1
+                     then () else double_string_size ();
+                     ArraySlice.update(!resizable_str, !i, c);
+                     i := !i + 1;
+                     parse_aux ())
             end
       in
         (parse_aux ();
          if !seen_one_digit = false
          then raise Parser_Error ("no number digit")
-         else valOf (IntInf.fromString (String.implode (rev (!num)))))
+         else
+           (print2 (extract(!resizable_str, 0, SOME (!i)) ^"\n");
+            (valOf (IntInf.fromString ((extract(!resizable_str, 0, SOME (!i))))))))
       end
 
   fun parse_nat istream =
@@ -122,7 +141,7 @@ exception Parser_Error of string
             let val c = TextIO.lookahead istream
             in
               if (is_space (valOf c) orelse is_separator (valOf c))
-              then (print2 ("number sep = " ^ String.implode [(valOf c)]))
+              then (print2 ("number sep = '" ^ String.implode [(valOf c)] ^ "'"))
               else
                 case TextIO.input1(istream) of
                     NONE => raise Parser_Error "no number found"
@@ -143,23 +162,29 @@ exception Parser_Error of string
   fun parse_var istream =
       let
         val _ = print2 "parse_var\n"
-        val num = ref [];
+        val i = ref 0;
         fun parse_aux () =
             let val c = TextIO.lookahead istream
             in
               if (is_space (valOf c) orelse is_separator (valOf c))
-              then (print2 ("var sep = " ^ String.implode [(valOf c)]))
+              then (print2 ("var sep = '" ^ String.implode [(valOf c)] ^ "'"))
               else
                 case TextIO.input1(istream) of
                     NONE => raise Parser_Error "no char found"
                   | SOME c =>
-                    (num := c :: (!num); parse_aux ())
+                     (if !i < ArraySlice.length (!resizable_str) - 1
+                     then () else double_string_size ();
+                     ArraySlice.update(!resizable_str, !i, c);
+                     i := !i + 1;
+                     parse_aux ())
             end
       in
         (parse_aux ();
-         if !num = []
+         if !i = 0
          then raise Parser_Error "no variable found"
-         else (print2 (String.implode (rev2 (!num))); share_var (String.implode (rev2 (!num)))))
+         else
+           (print2 (extract(!resizable_str, 0, SOME (!i)));
+            extract(!resizable_str, 0, SOME (!i))))
       end;
 
   fun parse_vars_only_monom istream = (* can start with /*/ *)
@@ -167,17 +192,21 @@ exception Parser_Error of string
         val _ = print2 "parse_vars_only_monom\n"
         val vars = ref [];
         fun parse_aux () =
-            if TextIO.lookahead(istream) = SOME #"," orelse TextIO.lookahead(istream) = SOME #";"
-               orelse TextIO.lookahead(istream) = SOME #"-" orelse TextIO.lookahead(istream) = SOME #"+"
-            then (print2 ("parse_vars_only_monom, sep =" ^ String.implode [valOf (TextIO.lookahead(istream))] ^ "\n"))
-            else if TextIO.lookahead(istream) = SOME #"*"
-            then
-              (ignore (TextIO.input1(istream));
-               vars := parse_var istream :: (!vars);
-               parse_aux ())
-            else
-              (vars := parse_var istream :: (!vars);
-               parse_aux ())
+            let
+              val _ = skip_spaces istream;
+            in
+              if TextIO.lookahead(istream) = SOME #"," orelse TextIO.lookahead(istream) = SOME #";"
+                 orelse TextIO.lookahead(istream) = SOME #"-" orelse TextIO.lookahead(istream) = SOME #"+"
+              then (print2 ("parse_vars_only_monom, sep =" ^ String.implode [valOf (TextIO.lookahead(istream))] ^ "\n"))
+              else if TextIO.lookahead(istream) = SOME #"*"
+              then
+                (ignore (TextIO.input1(istream));
+                 vars := parse_var istream :: (!vars);
+                 parse_aux ())
+              else
+                (vars := parse_var istream :: (!vars);
+                 parse_aux ())
+            end
       in
         parse_aux ();
         share_term (rev2 (!vars))
@@ -189,6 +218,7 @@ exception Parser_Error of string
         val num = ref 1;
         val vars = ref [];
         val next_token = ref NONE;
+        val _ = skip_spaces istream;
       in
         (
           next_token := TextIO.lookahead(istream);
@@ -199,6 +229,7 @@ exception Parser_Error of string
                 num := ~1)
              | SOME #"+" => ignore (TextIO.input1 istream)
              | _ => ());
+          skip_spaces istream;
           next_token := TextIO.lookahead(istream);
           print2 ("parse_full_monom/next token 2 = '" ^String.implode [valOf (!next_token)] ^ "'\n");
           if !next_token <> NONE andalso is_digit (valOf (!next_token))
@@ -213,11 +244,11 @@ exception Parser_Error of string
 
   fun parse_comma istream () =
       let
-        val c1 = TextIO.input1(istream)
-        val c2 = TextIO.input1(istream)
+        val c1 = TextIO.input1(istream);
+        val c2 = skip_spaces istream;
       in
-        if valOf c1 <> #"," orelse valOf c2 <> #" "
-        then raise Parser_Error ("unrecognised ', ', found '" ^ String.implode [valOf c1, valOf c2] ^ "'")
+        if valOf c1 <> #","
+        then raise Parser_Error ("unrecognised ',', found '" ^ String.implode [valOf c1] ^ "'")
         else ()
       end
 
@@ -246,12 +277,15 @@ exception Parser_Error of string
             (ignore (TextIO.input1 istream); print2 "rule +:\n"; "+:")
           | SOME #"*" =>
             (ignore (TextIO.input1 istream); print2 "rule *:\n";"*:")
+          | SOME #"e" =>
+            (print2 "rule e\n"; "e")
           | SOME c => raise Parser_Error ("unrecognised rule '" ^ String.implode [c] ^ "'")
       end
 
   fun parse_EOL istream () =
       let
         val c1 = TextIO.input1(istream);
+        val _ = skip_spaces istream;
         val c2 = TextIO.input1(istream);
         fun f () =
           (case TextIO.lookahead istream of
@@ -305,9 +339,20 @@ exception Parser_Error of string
         else if rule = "d"
         then
           let
+            val _ = skip_spaces istream;
             val _ = parse_EOL istream ();
           in
             (PAC_Checker.Del (PAC_Checker.nat_of_integer lbl))
+          end
+        else if rule = "e"
+        then
+          let
+            val _ = skip_spaces istream;
+            val ext = parse_polynom istream;
+            val _ = parse_EOL istream ();
+          in
+           (PAC_Checker.Extension (PAC_Checker.nat_of_integer lbl,
+                                       (map (fn (a,b) => (a, PAC_Checker.Int_of_integer b)) ext)))
           end
         else raise Parser_Error ("unrecognised rule '" ^ rule ^ "'")
       end
@@ -321,6 +366,7 @@ exception Parser_Error of string
             else (polys := parse_step istream :: (!polys);
                   skip_spaces istream;
                   parse_EOL istream;
+                  skip_spaces istream;
                   parse_aux ())
       in
         parse_aux ()

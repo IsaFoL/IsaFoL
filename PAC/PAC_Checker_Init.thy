@@ -2,6 +2,9 @@ theory PAC_Checker_Init
   imports  PAC_Checker WB_Sort PAC_Checker_Relation
 begin
 
+section \<open>Initial Normalisation of Polynoms\<close>
+
+
 text \<open>Adapted from the theory \<^text>\<open>HOL-ex.MergeSort\<close> by Tobias.\<close>
 
 fun merge :: "_ \<Rightarrow>  'a list \<Rightarrow> 'a list \<Rightarrow> 'a list"
@@ -550,7 +553,7 @@ lemma monomial_rel_order_map:
   apply auto
   using list_rel_list_rel_order_iff by fastforce+
 
-thm fcomp_norm_unfold
+
 lemma step_rewrite_pure:
   \<open>pure (p2rel (\<langle>K, V\<rangle>pac_step_rel_raw)) = pac_step_rel_assn (pure K) (pure V)\<close>
   \<open>monomial_assn = pure (monom_rel \<times>\<^sub>r int_rel)\<close> and
@@ -569,6 +572,11 @@ lemma step_rewrite_pure:
     unfolding H
     by (simp add: list_assn_pure_conv relAPP_def)
   done
+
+lemma safe_pac_step_rel_assn[safe_constraint_rules]:
+  "is_pure K \<Longrightarrow> is_pure V \<Longrightarrow> is_pure (pac_step_rel_assn K V)"
+  by (auto simp: step_rewrite_pure(1)[symmetric] is_pure_conv)
+
 
 lemma merge_poly_merge_poly:
   \<open>(merge_poly, merge_poly)
@@ -867,7 +875,7 @@ lemma merge_monoms_merge_monoms2:
   \<open>(a, b) \<in> monom_rel \<Longrightarrow> (a', b') \<in> monom_rel \<Longrightarrow>
     (merge_monoms a a', merge_monoms b b') \<in> monom_rel\<close>
   using merge_monoms_merge_monoms
-  unfolding fun_rel_def merge_monoms_def 
+  unfolding fun_rel_def merge_monoms_def
   by auto
 
 

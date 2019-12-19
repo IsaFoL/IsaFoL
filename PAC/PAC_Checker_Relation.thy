@@ -2,10 +2,12 @@ theory PAC_Checker_Relation
   imports PAC_Checker WB_Sort
 begin
 
+section \<open>Various Refinement Relations\<close>
+
 definition string_rel :: \<open>(String.literal \<times> string) set\<close> where
   \<open>string_rel = {(x, y). y = String.explode x}\<close>
 
-nabbreviation string_assn :: \<open>string \<Rightarrow> String.literal \<Rightarrow> assn\<close> where
+abbreviation string_assn :: \<open>string \<Rightarrow> String.literal \<Rightarrow> assn\<close> where
   \<open>string_assn \<equiv> pure string_rel\<close>
 
 lemma eq_string_eq:
@@ -57,10 +59,40 @@ lemma IS_RIGHT_UNIQUE_string_rel:
    by (auto simp: single_valued_def string_rel_def
      literal.explode_inject)
 
+lemma single_valued_monom_rel: \<open>single_valued monom_rel\<close>
+  by (rule list_rel_sv)
+    (auto intro!: frefI simp: string_rel_def
+    rel2p_def single_valued_def p2rel_def)
+
+lemma single_valued_monomial_rel:
+  \<open>single_valued monomial_rel\<close>
+  using single_valued_monom_rel
+  by (auto intro!: frefI simp:
+    rel2p_def single_valued_def p2rel_def)
+
+lemma single_valued_monom_rel': \<open>IS_LEFT_UNIQUE monom_rel\<close>
+  unfolding IS_LEFT_UNIQUE_def inv_list_rel_eq
+  by (rule list_rel_sv)
+   (auto intro!: frefI simp: string_rel_def
+    rel2p_def single_valued_def p2rel_def literal.explode_inject)
+
+
+lemma single_valued_monomial_rel':
+  \<open>IS_LEFT_UNIQUE monomial_rel\<close>
+  using single_valued_monom_rel'
+  unfolding IS_LEFT_UNIQUE_def inv_list_rel_eq
+  by (auto intro!: frefI simp:
+    rel2p_def single_valued_def p2rel_def)
+
+lemma [safe_constraint_rules]:
+  \<open>Sepref_Constraints.CONSTRAINT single_valued string_rel\<close>
+  \<open>Sepref_Constraints.CONSTRAINT IS_LEFT_UNIQUE string_rel\<close>
+  by (auto simp: CONSTRAINT_def single_valued_def
+    string_rel_def IS_LEFT_UNIQUE_def literal.explode_inject)
+
 lemma eq_string_monom_hnr[sepref_fr_rules]:
   \<open>(uncurry (return oo (=)), uncurry (RETURN oo (=))) \<in> monom_assn\<^sup>k *\<^sub>a monom_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
-  using safe_constraint_rules(37)[OF IS_LEFT_UNIQUE_string_rel]
-  using IS_RIGHT_UNIQUE_string_rel
+  using single_valued_monom_rel' IS_RIGHT_UNIQUE_string_rel
   apply (subst (asm)list_rel_sv_iff[symmetric])
   by sepref_to_hoare
    (sep_auto simp: list_assn_pure_conv string_rel_string_assn
@@ -83,7 +115,7 @@ lemma term_order_rel_alt_def:
 
 instantiation char :: linorder
 begin
-  definition less_char where [symmetric, simp]: "less_char = PAC_Polynoms_Term.less_char" 
+  definition less_char where [symmetric, simp]: "less_char = PAC_Polynoms_Term.less_char"
   definition less_eq_char where [symmetric, simp]: "less_eq_char = PAC_Polynoms_Term.less_eq_char"
 instance
   apply standard
@@ -96,7 +128,7 @@ end
 
 instantiation list :: (linorder) linorder
 begin
-  definition less_list where  "less_list = lexordp (<)" 
+  definition less_list where  "less_list = lexordp (<)"
   definition less_eq_list where "less_eq_list = lexordp_eq"
 
 instance
@@ -132,8 +164,7 @@ lemma list_rel_list_rel_order_iff:
 proof
   have H: \<open>(a, b) \<in> \<langle>string_rel\<rangle>list_rel \<Longrightarrow>
        (a, cs) \<in> \<langle>string_rel\<rangle>list_rel \<Longrightarrow> b = cs\<close> for cs
-     using safe_constraint_rules(37)[OF IS_LEFT_UNIQUE_string_rel]
-     using IS_RIGHT_UNIQUE_string_rel
+     using single_valued_monom_rel' IS_RIGHT_UNIQUE_string_rel
      by (subst (asm)list_rel_sv_iff[symmetric])
        (auto simp: single_valued_def)
   assume \<open>a < a'\<close>
@@ -175,7 +206,7 @@ proof
 next
   have H: \<open>(a, b) \<in> \<langle>string_rel\<rangle>list_rel \<Longrightarrow>
        (a', b) \<in> \<langle>string_rel\<rangle>list_rel \<Longrightarrow> a = a'\<close> for a a' b
-     using safe_constraint_rules(37)[OF IS_LEFT_UNIQUE_string_rel]
+     using single_valued_monom_rel'
      by (auto simp: single_valued_def IS_LEFT_UNIQUE_def
        simp flip: inv_list_rel_eq)
   assume \<open>b < b'\<close>
@@ -219,5 +250,46 @@ qed
 lemma string_rel_le[sepref_import_param]:
   shows \<open>((<), (<)) \<in> \<langle>string_rel\<rangle>list_rel \<rightarrow>  \<langle>string_rel\<rangle>list_rel \<rightarrow> bool_rel\<close>
   by (auto intro!: fun_relI simp: list_rel_list_rel_order_iff)
+
+(* TODO Move *)
+lemma [sepref_import_param]:
+  assumes \<open>CONSTRAINT IS_LEFT_UNIQUE R\<close>  \<open>CONSTRAINT IS_RIGHT_UNIQUE R\<close>
+  shows \<open>(remove1, remove1) \<in> R \<rightarrow> \<langle>R\<rangle>list_rel \<rightarrow> \<langle>R\<rangle>list_rel\<close>
+  apply (intro fun_relI)
+  subgoal premises p for x y xs ys
+    using p(2) p(1) assms
+    by (induction xs ys rule: list_rel_induct)
+      (auto simp: IS_LEFT_UNIQUE_def single_valued_def)
+  done
+
+instantiation pac_step :: (heap) heap
+begin
+
+instance
+proof standard
+  obtain f :: \<open>'a \<Rightarrow> nat\<close> where
+    f: \<open>inj f\<close>
+    by blast
+  obtain g :: \<open>nat \<times> nat \<times> nat \<times> nat \<times> nat \<Rightarrow> nat\<close> where
+    g: \<open>inj g\<close>
+    by blast
+  have [iff]: \<open>g a = g b \<longleftrightarrow> a = b\<close>  \<open>f a' = f b' \<longleftrightarrow> a' = b'\<close> for a b a' b'
+    using f g unfolding inj_def by blast+
+  let ?f = \<open>\<lambda>x :: 'a pac_step.
+     g (case x of
+        Add a b c d \<Rightarrow> (0, a, b, c, f d)
+      | Del a  \<Rightarrow> (1, a, 0, 0, 0)
+      | Mult a b c d \<Rightarrow> (2, a, f b, c, f d)
+      | Extension a b \<Rightarrow> (3, a, f b, 0, 0))\<close>
+   have \<open>inj ?f\<close>
+     apply (auto simp: inj_def)
+     apply (case_tac x; case_tac y)
+     apply auto
+     done
+   then show \<open>\<exists>f :: 'a pac_step \<Rightarrow> nat. inj f\<close>
+     by blast
+qed
+
+end
 
 end

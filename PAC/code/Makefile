@@ -1,15 +1,15 @@
 MLTON=mlton
 
-all: pactrim
+all: pasteque
 
 
-pactrim: *.sml *.mlb
-	$(MLTON) -inline 1500 pactrim.mlb
+pasteque: *.sml *.mlb
+	$(MLTON) -inline 1500 pasteque.mlb
 
 profile: *.sml *.mlb
-	$(MLTON) -profile time pactrim.mlb
+	$(MLTON) -profile time pasteque.mlb
 
 llvm: *.sml *.mlb
-	$(MLTON) -verbose 1 -const 'MLton.safe false' -default-type int64 -output pactrim -codegen llvm -inline 1500 -cc-opt -fPIC -as-opt --relocation-model=pic -link-opt -fPIC -llvm-llc-opt '--relocation-model=pic -O3' -llvm-opt-opt --relocation-model=pic pactrim.mlb
+	$(MLTON) -verbose 1 -const 'MLton.safe false' -default-type int64 -output pasteque -codegen llvm -inline 1500 -cc-opt -fPIC -as-opt --relocation-model=pic -link-opt -fPIC -llvm-llc-opt '--relocation-model=pic -O3' -llvm-opt-opt --relocation-model=pic pasteque.mlb
 clean:
-	rm -rf pactrim
+	rm -rf pasteque

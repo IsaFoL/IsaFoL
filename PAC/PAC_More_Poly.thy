@@ -4,6 +4,17 @@ theory PAC_More_Poly
   "HOL-Library.Countable_Set"
 begin
 
+section \<open>Libraries\<close>
+
+subsection \<open>More Polynoms\<close>
+
+text \<open>
+
+  Here are more theorems on polynoms. Most of these facts are
+  extremely trivial and should probably be generalised and moved to
+  the Isabelle distribution.
+
+\<close>
 
 lemma Const\<^sub>0_add:
   \<open>Const\<^sub>0 (a + b) = Const\<^sub>0 a + Const\<^sub>0 b\<close>
@@ -267,7 +278,7 @@ lemma degree_mult_Var:
 
 lemma degree_mult_Var':
   \<open>degree (Var x' * A) x' = (if A = 0 then 0 else Suc (degree A x'))\<close> for A :: \<open>int mpoly\<close>
- by (simp add: degree_mult_Var semiring_normalization_rules(7)) 
+ by (simp add: degree_mult_Var semiring_normalization_rules(7))
 
 lemma degree_add_max:
   \<open>degree (A + B) x \<le> max (degree A x) (degree B x)\<close>
@@ -315,5 +326,483 @@ lemma vars_uminus[simp]:
 lemma coeff_uminus[simp]:
   \<open>MPoly_Type.coeff (-p) x = -MPoly_Type.coeff p x\<close>
   by (auto simp: coeff_def uminus_mpoly.rep_eq)
+
+definition decrease_key::"'a \<Rightarrow> ('a \<Rightarrow>\<^sub>0 'b::{monoid_add, minus,one}) \<Rightarrow> ('a \<Rightarrow>\<^sub>0 'b)" where
+  "decrease_key k0 f = Abs_poly_mapping (\<lambda>k. if k = k0 \<and> lookup f k \<noteq> 0 then lookup f k - 1 else lookup f k)"
+
+lemma remove_key_lookup:
+  "lookup (decrease_key k0 f) k = (if k = k0 \<and> lookup f k \<noteq> 0 then lookup f k - 1 else lookup f k)"
+  unfolding decrease_key_def using finite_subset apply (simp add: lookup_Abs_poly_mapping)
+  apply (subst lookup_Abs_poly_mapping)
+  apply (auto intro: finite_subset[of _ \<open>{x. lookup f x \<noteq> 0}\<close>])
+  apply (subst lookup_Abs_poly_mapping)
+  apply (auto intro: finite_subset[of _ \<open>{x. lookup f x \<noteq> 0}\<close>])
+  done
+
+lemma polynom_split_on_var:
+  fixes p :: \<open>'a :: {comm_monoid_add,cancel_comm_monoid_add,semiring_0,comm_semiring_1} mpoly\<close>
+  obtains q r where
+    \<open>p = monom (monomial (Suc 0) x') 1 * q + r\<close> and
+    \<open>x' \<notin> vars r\<close>
+proof -
+  have [simp]: \<open>{x \<in> keys (mapping_of p). x' \<in> keys x} \<union>
+        {x \<in> keys (mapping_of p). x' \<notin> keys x} = keys (mapping_of p)\<close>
+    by auto
+  have
+    \<open>p = (\<Sum>x\<in>keys (mapping_of p). MPoly_Type.monom x (MPoly_Type.coeff p x))\<close> (is \<open>_ = (\<Sum>x \<in> ?I. ?f x)\<close>)
+    using polynom_sum_monoms(1)[of p] .
+  also have \<open>... = (\<Sum>x\<in> {x \<in> ?I. x' \<in> keys x}. ?f x) + (\<Sum>x\<in> {x \<in> ?I. x' \<notin> keys x}. ?f x)\<close> (is \<open>_ = ?pX + ?qX\<close>)
+    by (subst comm_monoid_add_class.sum.union_disjoint[symmetric]) auto
+  finally have 1: \<open>p = ?pX + ?qX\<close> .
+  have H: \<open>0 < lookup x x' \<Longrightarrow> (\<lambda>k. (if x' = k then Suc 0 else 0) +
+          (if k = x' \<and> 0 < lookup x k then lookup x k - 1
+           else lookup x k)) = lookup x\<close> for x x'
+      by auto
+  have H: \<open>x' \<in> keys x \<Longrightarrow> monomial (Suc 0) x' + Abs_poly_mapping (\<lambda>k. if k = x' \<and> 0 < lookup x k then lookup x k - 1 else lookup x k) = x\<close>
+    for x and x' :: nat
+    apply (simp only: keys_def single.abs_eq)
+    apply (subst plus_poly_mapping.abs_eq)
+    apply (auto simp: eq_onp_def intro!: finite_subset[of \<open>{_. _ \<and> _}\<close> \<open>{xa. 0 < lookup x xa}\<close>])
+    apply (smt bounded_nat_set_is_finite lessI mem_Collect_eq neq0_conv when_cong when_neq_zero)
+    apply (rule finite_subset[of _  \<open>{xa. 0 < lookup x xa}\<close>])
+    by (auto simp: when_def H split: if_splits)
+
+  have [simp]: \<open>x' \<in> keys x \<Longrightarrow>
+        MPoly_Type.monom (monomial (Suc 0) x' + decrease_key x' x) n =
+        MPoly_Type.monom x n\<close> for x n and x'
+        apply (subst mpoly.mapping_of_inject[symmetric], subst poly_mapping.lookup_inject[symmetric])
+        unfolding mapping_of_monom lookup_single
+        apply (auto intro!: ext simp: decrease_key_def when_def H)
+        done
+  have pX: \<open>?pX = monom (monomial (Suc 0) x') 1 * (\<Sum>x\<in> {x \<in> ?I. x' \<in> keys x}. MPoly_Type.monom (decrease_key x' x) (MPoly_Type.coeff p x))\<close>
+    (is \<open>_ = _ * ?pX'\<close>)
+    by (subst sum_distrib_left, subst mult_monom)
+     (auto intro!: sum.cong)
+  have \<open>x' \<notin> vars ?qX\<close>
+    using vars_setsum[of \<open>{x. x \<in> keys (mapping_of p) \<and> x' \<notin> keys x}\<close> \<open>?f\<close>]
+    by auto (metis (mono_tags, lifting) UN_E mem_Collect_eq subsetD vars_monom_subset)
+
+  then show ?thesis
+    using that[of ?pX' ?qX]
+    unfolding pX[symmetric] 1[symmetric]
+    by blast
+qed
+
+
+lemma polynom_split_on_var2:
+  fixes p :: \<open>int mpoly\<close>
+  assumes \<open>x' \<notin> vars s\<close>
+  obtains q r where
+    \<open>p = (monom (monomial (Suc 0) x') 1 - s) * q + r\<close> and
+    \<open>x' \<notin> vars r\<close>
+proof -
+  have eq[simp]: \<open>monom (monomial (Suc 0) x') 1 = Var x'\<close>
+    by (simp add: Var.abs_eq Var\<^sub>0_def monom.abs_eq)
+  have \<open>\<forall>m \<le> n. \<forall>P::int mpoly. degree P x' < m \<longrightarrow> (\<exists>A B. P = (Var x' - s) * A + B \<and> x' \<notin> vars B)\<close> for n
+  proof (induction n)
+    case 0
+    then show ?case by auto
+  next
+    case (Suc n)
+    then have IH: \<open>m\<le>n \<Longrightarrow> MPoly_Type.degree P x' < m \<Longrightarrow>
+              (\<exists>A B. P = (Var x' - s) * A + B \<and> x' \<notin> vars B)\<close> for m P
+      by fast
+    show ?case
+    proof (intro allI impI)
+     fix m and P :: \<open>int mpoly\<close>
+     assume \<open>m \<le> Suc n\<close> and deg: \<open>MPoly_Type.degree P x' < m\<close>
+     consider
+       \<open>m \<le> n\<close> |
+       \<open>m = Suc n\<close>
+       using \<open>m \<le> Suc n\<close> by linarith
+     then show \<open>\<exists>A B. P = (Var x' - s) * A + B \<and> x' \<notin> vars B\<close>
+     proof cases
+       case 1
+       then show \<open>?thesis\<close>
+         using Suc deg by blast
+     next
+       case [simp]: 2
+       obtain A B where
+         P: \<open>P = Var x' * A + B\<close> and
+         \<open>x' \<notin> vars B\<close>
+         using polynom_split_on_var[of P x'] unfolding eq by blast
+       have P': \<open>P = (Var x' - s) * A + (s * A + B)\<close>
+         by (auto simp: field_simps P)
+       have \<open>A = 0 \<or> degree (s * A) x' < degree P x'\<close>
+         using deg \<open>x' \<notin> vars B\<close> \<open>x' \<notin> vars s\<close> degree_times_le[of s A x'] deg
+         unfolding P
+         by (auto simp: degree_sum_notin degree_mult_Var' degree_mult_Var degree_notin_vars
+           split: if_splits)
+       then obtain A' B' where
+         sA: \<open>s*A = (Var x' - s) * A' + B'\<close> and
+         \<open>x' \<notin> vars B'\<close>
+         using IH[of \<open>m-1\<close> \<open>s*A\<close>] deg apply auto
+         by (metis \<open>x' \<notin> vars B\<close> add.right_neutral mult_zero_right vars_in_right_only)
+       have \<open>P = (Var x' - s) * (A + A') + (B' + B)\<close>
+         unfolding P' sA by (auto simp: field_simps)
+       moreover have \<open>x' \<notin> vars (B' + B)\<close>
+         using \<open>x' \<notin> vars B'\<close>  \<open>x' \<notin> vars B\<close>
+         by (meson UnE subset_iff vars_add)
+       ultimately show ?thesis
+         by fast
+     qed
+   qed
+  qed
+  then show ?thesis
+    using that unfolding eq
+    by blast
+qed
+
+lemma polynom_split_on_var_diff_sq2:
+ fixes p :: \<open>int mpoly\<close>
+  obtains q r s where
+    \<open>p = monom (monomial (Suc 0) x') 1 * q + r + s * (monom (monomial (Suc 0) x') 1^2 - monom (monomial (Suc 0) x') 1)\<close> and
+    \<open>x' \<notin> vars r\<close> and
+    \<open>x' \<notin> vars q\<close>
+proof -
+  let ?v = \<open>monom (monomial (Suc 0) x') 1 :: int mpoly\<close>
+  have H: \<open>n < m \<Longrightarrow> n > 0 \<Longrightarrow> \<exists>q. ?v^n = ?v + q * (?v^2 - ?v)\<close> for n m :: nat
+  proof (induction m arbitrary: n)
+    case 0
+    then show ?case by auto
+  next
+    case (Suc m n) note IH = this(1-)
+    consider
+      \<open>n < m\<close> |
+      \<open>m = n\<close> \<open>n > 1\<close> |
+      \<open>n = 1\<close>
+      using IH
+      by (cases \<open>n < m\<close>; cases n) auto
+    then show ?case
+    proof cases
+      case 1
+      then show ?thesis using IH by auto
+    next
+      case 2
+      have eq: \<open>?v^(n) = ((?v :: int mpoly) ^ (n-2)) * (?v^2-?v) + ?v^(n-1)\<close>
+        using 2 by (auto simp: field_simps power_eq_if
+          ideal.scale_right_diff_distrib)
+      obtain q where
+        q: \<open>?v^(n-1) = ?v + q * (?v^2 - ?v)\<close>
+        using IH(1)[of \<open>n-1\<close>] 2
+        by auto
+      show ?thesis
+        using q unfolding eq
+        by (auto intro!: exI[of _ \<open>?v ^ (n - 2) + q\<close>] simp: distrib_right)
+    next
+      case 3
+      then show \<open>?thesis\<close>
+        by auto
+    qed
+  qed
+  have H: \<open>n>0 \<Longrightarrow> \<exists>q. ?v^n = ?v + q * (?v^2-?v)\<close> for n
+    using H[of n \<open>n+1\<close>]
+    by auto
+  obtain qr :: \<open>nat \<Rightarrow> int mpoly\<close> where
+     qr: \<open>n > 0 \<Longrightarrow> ?v^n = ?v + qr n * (?v^2-?v)\<close> for n
+   using H[of ]
+   by metis
+  have vn: \<open>(if lookup x x' = 0 then 1 else Var x' ^ lookup x x') =
+    (if lookup x x' = 0 then 1 else ?v) + (if lookup x x' = 0 then 0 else 1) * qr (lookup x x') * (?v^2-?v)\<close> for x
+    by (simp add: qr[symmetric] Var_def Var\<^sub>0_def monom.abs_eq[symmetric] cong: if_cong)
+
+  have q: \<open>p = (\<Sum>x\<in>keys (mapping_of p). MPoly_Type.monom x (MPoly_Type.coeff p x))\<close>
+    by (rule polynom_sum_monoms(1)[of p])
+  have [simp]:
+    \<open>lookup x x' = 0 \<Longrightarrow>
+    Abs_poly_mapping (\<lambda>k. lookup x k when k \<noteq> x') = x\<close> for x
+    by (cases x, auto simp: poly_mapping.Abs_poly_mapping_inject)
+      (auto intro!: ext simp: when_def)
+  have [simp]: \<open>finite {x. 0 < (a when x' = x)}\<close> for a :: nat
+    by (metis (no_types, lifting) infinite_nat_iff_unbounded less_not_refl lookup_single lookup_single_not_eq mem_Collect_eq)
+
+  have [simp]: \<open>((\<lambda>x. x + monomial (Suc 0) x') ^^ (n))
+     (monomial (Suc 0) x') = Abs_poly_mapping (\<lambda>k. (if k = x' then n+1 else 0))\<close> for n
+    by (induction n)
+     (auto simp: single_def Abs_poly_mapping_inject plus_poly_mapping.abs_eq eq_onp_def cong:if_cong)
+  have [simp]: \<open>0 < lookup x x' \<Longrightarrow>
+    Abs_poly_mapping (\<lambda>k. lookup x k when k \<noteq> x') +
+    Abs_poly_mapping (\<lambda>k. if k = x' then lookup x x' - Suc 0 + 1 else 0) =
+    x\<close> for x
+    apply (cases x, auto simp: poly_mapping.Abs_poly_mapping_inject plus_poly_mapping.abs_eq eq_onp_def)
+    apply (subst plus_poly_mapping.abs_eq)
+    apply (auto simp: poly_mapping.Abs_poly_mapping_inject plus_poly_mapping.abs_eq eq_onp_def)
+    apply (metis (no_types, lifting) finite_nat_set_iff_bounded less_numeral_extra(3) mem_Collect_eq when_neq_zero zero_less_iff_neq_zero)
+    apply (subst Abs_poly_mapping_inject)
+    apply auto
+    apply (metis (no_types, lifting) finite_nat_set_iff_bounded less_numeral_extra(3) mem_Collect_eq when_neq_zero zero_less_iff_neq_zero)
+    done
+  define f where
+    \<open>f x = (MPoly_Type.monom (remove_key x' x) (MPoly_Type.coeff p x)) *
+      (if lookup x x' = 0 then 1 else Var x' ^ (lookup x x'))\<close> for x
+  have f_alt_def: \<open>f x = MPoly_Type.monom x (MPoly_Type.coeff p x)\<close> for x
+    by (auto simp: f_def monom_def remove_key_def Var_def MPoly_monomial_power Var\<^sub>0_def
+      mpoly.MPoly_inject monomial_inj times_mpoly.abs_eq
+      times_mpoly.abs_eq mult_single)
+  have p: \<open>p = (\<Sum>x\<in>keys (mapping_of p).
+       MPoly_Type.monom (remove_key x' x) (MPoly_Type.coeff p x) *
+       (if lookup x x' = 0 then 1 else ?v)) +
+          (\<Sum>x\<in>keys (mapping_of p).
+       MPoly_Type.monom (remove_key x' x) (MPoly_Type.coeff p x) *
+       (if lookup x x' = 0 then 0
+        else 1) * qr (lookup x x')) *
+             (?v\<^sup>2 - ?v)\<close>
+    (is \<open>_ = ?a + ?v2v\<close>)
+    apply (subst q)
+    unfolding f_alt_def[symmetric, abs_def] f_def vn semiring_class.distrib_left
+      comm_semiring_1_class.semiring_normalization_rules(18) semiring_0_class.sum_distrib_right
+    by (simp add: semiring_class.distrib_left
+      sum.distrib)
+
+  have I: \<open>keys (mapping_of p) = {x \<in> keys (mapping_of p). lookup x x' = 0} \<union> {x \<in> keys (mapping_of p). lookup x x' \<noteq> 0}\<close>
+    by auto
+
+  have \<open>p = (\<Sum>x | x \<in> keys (mapping_of p) \<and> lookup x x' = 0.
+       MPoly_Type.monom x (MPoly_Type.coeff p x)) +
+    (\<Sum>x | x \<in> keys (mapping_of p) \<and> lookup x x' \<noteq> 0.
+       MPoly_Type.monom (remove_key x' x) (MPoly_Type.coeff p x)) *
+       (MPoly_Type.monom (monomial (Suc 0) x') 1) +
+     (\<Sum>x | x \<in> keys (mapping_of p) \<and> lookup x x' \<noteq> 0.
+        MPoly_Type.monom (remove_key x' x) (MPoly_Type.coeff p x) *
+        qr (lookup x x')) *
+             (?v\<^sup>2 - ?v)\<close>
+    (is \<open>p = ?A + ?B * _ + ?C * _\<close>)
+    unfolding semiring_0_class.sum_distrib_right[of _ _ \<open>(MPoly_Type.monom (monomial (Suc 0) x') 1)\<close>]
+    apply (subst p)
+    apply (subst (2)I)
+    apply (subst I)
+    apply (subst comm_monoid_add_class.sum.union_disjoint)
+    apply auto[3]
+    apply (subst comm_monoid_add_class.sum.union_disjoint)
+    apply auto[3]
+    apply (subst (4) sum.cong[OF refl, of _ _ \<open>\<lambda>x. MPoly_Type.monom (remove_key x' x) (MPoly_Type.coeff p x) *
+        qr (lookup x x')\<close>])
+    apply (auto; fail)
+    apply (subst (3) sum.cong[OF refl, of _ _ \<open>\<lambda>x. 0\<close>])
+    apply (auto; fail)
+    apply (subst (2) sum.cong[OF refl, of _ _ \<open>\<lambda>x. MPoly_Type.monom (remove_key x' x) (MPoly_Type.coeff p x) *
+       (MPoly_Type.monom (monomial (Suc 0) x') 1)\<close>])
+    apply (auto; fail)
+    apply (subst (1) sum.cong[OF refl, of _ _ \<open>\<lambda>x. MPoly_Type.monom x (MPoly_Type.coeff p x)\<close>])
+    apply (auto)
+    by (smt f_alt_def f_def mult_cancel_left1)
+
+  moreover have \<open>x' \<notin> vars ?A\<close>
+    using vars_setsum[of \<open>{x \<in> keys (mapping_of p). lookup x x' = 0}\<close>
+      \<open>\<lambda>x. MPoly_Type.monom x (MPoly_Type.coeff p x)\<close>]
+    apply auto
+    apply (drule set_rev_mp, assumption)
+    apply (auto dest!: lookup_eq_zero_in_keys_contradict)
+    by (meson lookup_eq_zero_in_keys_contradict subsetD vars_monom_subset)
+  moreover have \<open>x' \<notin> vars ?B\<close>
+    using vars_setsum[of \<open>{x \<in> keys (mapping_of p). lookup x x' \<noteq> 0}\<close>
+      \<open>\<lambda>x. MPoly_Type.monom (remove_key x' x) (MPoly_Type.coeff p x)\<close>]
+    apply auto
+    apply (drule set_rev_mp, assumption)
+    apply (auto dest!: lookup_eq_zero_in_keys_contradict)
+    apply (drule subsetD[OF vars_monom_subset])
+    apply (auto simp: remove_key_keys[symmetric])
+    done
+  ultimately show ?thesis apply -
+    apply (rule that[of ?B ?A ?C])
+    apply (auto simp: ac_simps)
+    done
+qed
+
+lemma polynom_decomp_alien_var:
+  fixes q A b :: \<open>int mpoly\<close>
+  assumes
+    q: \<open>q = A * (monom (monomial (Suc 0) x') 1) + b\<close> and
+    x: \<open>x' \<notin> vars q\<close> \<open>x' \<notin> vars b\<close>
+  shows
+    \<open>A = 0\<close> and
+    \<open>q = b\<close>
+proof -
+  let ?A = \<open>A * (monom (monomial (Suc 0) x') 1)\<close>
+  have \<open>?A = q - b\<close>
+    using arg_cong[OF q, of \<open>\<lambda>a. a - b\<close>]
+    by auto
+  moreover have \<open>x' \<notin> vars (q - b)\<close>
+    using x vars_in_right_only
+    by fastforce
+  ultimately have \<open>x' \<notin> vars (?A)\<close>
+    by simp
+  then have \<open>?A = 0\<close>
+    by (auto simp: vars_mult_monom split: if_splits)
+  then show \<open>A = 0\<close>
+    apply auto
+    by (metis (full_types) empty_iff insert_iff mult_zero_right vars_mult_monom)
+  then show \<open>q = b\<close>
+    using q by auto
+qed
+
+lemma polynom_decomp_alien_var2:
+  fixes q A b :: \<open>int mpoly\<close>
+  assumes
+    q: \<open>q = A * (monom (monomial (Suc 0) x') 1 + p) + b\<close> and
+    x: \<open>x' \<notin> vars q\<close> \<open>x' \<notin> vars b\<close> \<open>x' \<notin> vars p\<close>
+  shows
+    \<open>A = 0\<close> and
+    \<open>q = b\<close>
+proof -
+  let ?x = \<open>monom (monomial (Suc 0) x') 1\<close>
+  have x'[simp]: \<open>?x = Var x'\<close>
+    by (simp add: Var.abs_eq Var\<^sub>0_def monom.abs_eq)
+  have \<open>\<exists>n Ax A'. A = ?x * Ax + A' \<and> x' \<notin> vars A' \<and> degree Ax x' = n\<close>
+    using polynom_split_on_var[of A x'] by metis
+  from wellorder_class.exists_least_iff[THEN iffD1, OF this] obtain Ax A' n where
+    A: \<open>A = Ax * ?x + A'\<close> and
+    \<open>x' \<notin> vars A'\<close> and
+    n: \<open>MPoly_Type.degree Ax x' = n\<close> and
+    H: \<open>\<And>m Ax A'. m < n \<longrightarrow>
+                   A \<noteq> Ax * MPoly_Type.monom (monomial (Suc 0) x') 1 + A' \<or>
+                   x' \<in> vars A' \<or> MPoly_Type.degree Ax x' \<noteq> m\<close>
+    unfolding wellorder_class.exists_least_iff[of \<open>\<lambda>n. \<exists>Ax A'. A = Ax * ?x + A' \<and> x' \<notin> vars A' \<and>
+      degree Ax x' = n\<close>]
+    by (auto simp: field_simps)
+
+  have \<open>q = (A + Ax * p) * monom (monomial (Suc 0) x') 1 + (p * A' + b)\<close>
+    unfolding q A by (auto simp: field_simps)
+  moreover have \<open>x' \<notin> vars q\<close> \<open>x' \<notin> vars (p * A' + b)\<close>
+    using x \<open>x' \<notin> vars A'\<close> apply (auto elim!: )
+    by (smt UnE add.assoc add.commute calculation subset_iff vars_in_right_only vars_mult)
+  ultimately have \<open>A + Ax * p = 0\<close> \<open>q = p * A' + b\<close>
+    by (rule polynom_decomp_alien_var)+
+
+  have A': \<open>A' = -Ax * ?x - Ax * p\<close>
+    using \<open>A + Ax * p = 0\<close> unfolding A
+    by (metis (no_types, lifting) add_uminus_conv_diff eq_neg_iff_add_eq_0 minus_add_cancel mult_minus_left)
+
+  have \<open>A = - (Ax * p)\<close>
+    using A unfolding A'
+    apply auto
+    done
+
+  obtain Axx Ax' where
+    Ax: \<open>Ax = ?x * Axx + Ax'\<close> and
+    \<open>x' \<notin> vars Ax'\<close>
+    using polynom_split_on_var[of Ax x'] by metis
+
+  have \<open>A = ?x * (- Axx * p) + (- Ax' * p)\<close>
+    unfolding \<open>A = - (Ax * p)\<close> Ax
+    by (auto simp: field_simps)
+
+  moreover have \<open>x' \<notin> vars (-Ax' * p)\<close>
+    using \<open>x' \<notin> vars Ax'\<close> by (metis (no_types, hide_lams) UnE add.right_neutral
+      add_minus_cancel assms(4) subsetD vars_in_right_only vars_mult)
+   moreover have \<open>Axx \<noteq> 0 \<Longrightarrow> MPoly_Type.degree (- Axx * p) x' < degree Ax x'\<close>
+     using degree_times_le[of Axx p x'] x
+     by (auto simp: Ax degree_sum_notin \<open>x' \<notin> vars Ax'\<close> degree_mult_Var'
+       degree_notin_vars)
+   ultimately have [simp]: \<open>Axx = 0\<close>
+     using H[of \<open>MPoly_Type.degree (- Axx * p) x'\<close> \<open>- Axx * p\<close> \<open>- Ax' * p\<close>]
+     by (auto simp: n)
+  then have [simp]: \<open>Ax' = Ax\<close>
+    using Ax by auto
+
+  show \<open>A = 0\<close>
+    using A \<open>A = - (Ax * p)\<close> \<open>x' \<notin> vars (- Ax' * p)\<close> \<open>x' \<notin> vars A'\<close> polynom_decomp_alien_var(1) by force
+  then show \<open>q = b\<close>
+    using q by auto
+qed
+
+lemma vars_unE: \<open>x \<in> vars (a * b) \<Longrightarrow> (x \<in> vars a \<Longrightarrow> thesis) \<Longrightarrow> (x \<in> vars b \<Longrightarrow> thesis) \<Longrightarrow> thesis\<close>
+   using vars_mult[of a b] by auto
+
+
+lemma in_keys_minusI1:
+  assumes "t \<in> keys p" and "t \<notin> keys q"
+  shows "t \<in> keys (p - q)"
+  using assms unfolding in_keys_iff lookup_minus by simp
+
+lemma in_keys_minusI2:
+  fixes t :: \<open>'a\<close> and q :: \<open>'a \<Rightarrow>\<^sub>0 'b :: {cancel_comm_monoid_add,group_add}\<close>
+  assumes "t \<in> keys q" and "t \<notin> keys p"
+  shows "t \<in> keys (p - q)"
+  using assms unfolding in_keys_iff lookup_minus by simp
+
+
+lemma in_vars_addE:
+  \<open>x \<in> vars (p + q) \<Longrightarrow> (x \<in> vars p \<Longrightarrow> thesis) \<Longrightarrow> (x \<in> vars q \<Longrightarrow> thesis) \<Longrightarrow> thesis\<close>
+  by (meson UnE in_mono vars_add)
+
+lemma lookup_monomial_If:
+  \<open>lookup (monomial v k) = (\<lambda>k'. if k = k' then v else 0)\<close>
+  by (intro ext)
+   (auto simp:lookup_single_not_eq lookup_single_eq intro!: ext)
+
+lemma vars_mult_Var:
+  \<open>vars (Var x * p) = (if p = 0 then {} else insert x (vars p))\<close> for p :: \<open>int mpoly\<close>
+  apply (auto simp: vars_def times_mpoly.rep_eq Var.rep_eq
+    elim!: in_keys_timesE)
+  apply (metis add.right_neutral in_keys_iff lookup_add lookup_single_not_eq)
+  apply (auto simp: keys_def lookup_times_monomial_left Var.rep_eq Var\<^sub>0_def adds_def)
+   apply (metis (no_types, hide_lams) One_nat_def ab_semigroup_add_class.add.commute
+     add_diff_cancel_right' aux lookup_add lookup_single_eq mapping_of_inject
+     neq0_conv one_neq_zero plus_eq_zero_2 zero_mpoly.rep_eq)
+  by (metis ab_semigroup_add_class.add.commute add_diff_cancel_left' add_less_same_cancel1 lookup_add neq0_conv not_less0)
+
+
+lemma keys_mult_monomial:
+  \<open>keys (monomial (n :: int) k * mapping_of a) = (if n = 0 then {} else ((+) k) ` keys (mapping_of a))\<close>
+proof -
+  have [simp]: \<open>(\<Sum>aa. (if k = aa then n else 0) *
+               (\<Sum>q. lookup (mapping_of a) q when k + xa = aa + q)) =
+        (\<Sum>aa. (if k = aa then n * (\<Sum>q. lookup (mapping_of a) q when k + xa = aa + q) else 0))\<close>
+      for xa
+    by (smt Sum_any.cong mult_not_zero)
+  show ?thesis
+  apply auto
+    apply (auto simp: vars_def times_mpoly.rep_eq Const.rep_eq
+      Const\<^sub>0_def elim!: in_keys_timesE split: if_splits)
+    apply (auto simp: lookup_monomial_If prod_fun_def
+      keys_def times_poly_mapping.rep_eq)
+    done
+qed
+
+lemma vars_mult_Const:
+  \<open>vars (Const n * a) = (if n = 0 then {} else vars a)\<close> for a :: \<open>int mpoly\<close>
+  by (auto simp: vars_def times_mpoly.rep_eq Const.rep_eq keys_mult_monomial
+    Const\<^sub>0_def elim!: in_keys_timesE split: if_splits)
+
+lemma coeff_minus: "coeff p m - coeff q m = coeff (p-q) m"
+  by (simp add: coeff_def lookup_minus minus_mpoly.rep_eq)
+
+lemma Const_1_eq_1: \<open>Const (1 :: int) = (1 :: int mpoly)\<close>
+  by (simp add: Const.abs_eq Const\<^sub>0_one one_mpoly.abs_eq)
+
+lemma [simp]:
+  \<open>vars (1 :: int mpoly) = {}\<close>
+  by (auto simp: vars_def one_mpoly.rep_eq Const_1_eq_1)
+
+
+subsection \<open>More Ideals\<close>
+
+lemma
+  fixes A :: \<open>(('x \<Rightarrow>\<^sub>0 nat) \<Rightarrow>\<^sub>0 'a::comm_ring_1) set\<close>
+  assumes \<open>p \<in> ideal A\<close>
+  shows \<open>p * q \<in> ideal A\<close>
+  by (metis assms ideal.span_scale semiring_normalization_rules(7))
+
+
+text \<open>The following theorem is very close to @{thm ideal.span_insert}, except that it
+more useful if we need to take an element of \<^term>\<open>More_Modules.ideal (insert a S)\<close>.\<close>
+lemma ideal_insert':
+  \<open>More_Modules.ideal (insert a S) = {y. \<exists>x k. y = x + k * a \<and> x \<in> More_Modules.ideal S}\<close>
+    apply (auto simp: ideal.span_insert
+      intro: exI[of _ \<open>_ - k * a\<close>])
+   apply (rule_tac x = \<open>x - k * a\<close> in exI)
+   apply auto
+   apply (rule_tac x = \<open>k\<close> in exI)
+   apply auto
+   done
+
+lemma ideal_mult_right_in:
+  \<open>a \<in> ideal A \<Longrightarrow> a * b \<in> More_Modules.ideal A\<close>
+  by (metis ideal.span_scale linordered_field_class.sign_simps(5))
+
+lemma ideal_mult_right_in2:
+  \<open>a \<in> ideal A \<Longrightarrow> b * a \<in> More_Modules.ideal A\<close>
+  by (metis ideal.span_scale)
 
 end
