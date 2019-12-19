@@ -74,16 +74,23 @@ qed
 lemma subst_ground_cl: \<open>ground_cl C \<Longrightarrow> subst_apply_cl C \<sigma> = C\<close>
   by (simp add: subst_ground_lit image_mset_cong)
 
+lemma ex_grounding_subst:
+  \<open>\<exists>\<sigma> :: ('f, 'v) subst. \<forall>t. ground_term (t \<cdot> \<sigma>)\<close>
+proof -
+  obtain f :: \<open>'f\<close> and t :: \<open>('f, 'v) term\<close> where \<open>t = Fun f []\<close> and \<open>ground_term t\<close> by auto
+  have \<open>ground_term (s \<cdot> (\<lambda>x. t))\<close> for s :: \<open>('f, 'v) term\<close>
+  proof (induct s; simp add: \<open>ground_term t\<close>) qed
+  then show ?thesis by auto
+qed
+
 lemma ex_ground_instance: \<open>\<exists>\<sigma> :: ('f, 'v) subst. ground_cl (subst_apply_cl C \<sigma>)\<close>
 proof -
-  obtain f :: 'f where True by auto
-  let ?\<sigma> = \<open>\<lambda>x :: 'v. Fun f ([] :: ('f, 'v) term list)\<close>
-  have ground_subst: \<open>ground_term (t \<cdot> ?\<sigma>)\<close> for t
-  proof (induction t; auto) qed
-  have \<open>L \<in># subst_apply_cl C ?\<sigma> \<Longrightarrow> ground_lit L\<close> for L
+  obtain \<sigma> :: \<open>('f, 'v) subst\<close> where ground_subst: \<open>ground_term (t \<cdot> \<sigma>)\<close> for t
+    using ex_grounding_subst by auto
+  have \<open>L \<in># subst_apply_cl C \<sigma> \<Longrightarrow> ground_lit L\<close> for L
   proof -
-    assume \<open>L \<in># subst_apply_cl C ?\<sigma>\<close>
-    then obtain L' where \<open>L = subst_apply_lit L' ?\<sigma>\<close> by auto
+    assume \<open>L \<in># subst_apply_cl C \<sigma>\<close>
+    then obtain L' where \<open>L = subst_apply_lit L' \<sigma>\<close> by auto
     then show \<open>ground_lit L\<close>
     proof (cases L'; simp add: ground_subst) qed
   qed
@@ -183,13 +190,17 @@ qed
 
 locale superposition =
   fixes term_ord :: \<open>(('f,'v) term \<times> ('f,'v) term) set\<close>
-  assumes term_ord_ground_trans: \<open>ground_term s \<Longrightarrow> ground_term t \<Longrightarrow> ground_term u \<Longrightarrow> (s,t) \<in> term_ord \<Longrightarrow> (t,u) \<in> term_ord \<Longrightarrow> (s,u) \<in> term_ord\<close>
-  assumes term_ord_ground_antisym: \<open>ground_term s \<Longrightarrow> ground_term t \<Longrightarrow> (s,t) \<in> term_ord \<Longrightarrow> (t,s) \<in> term_ord \<Longrightarrow> s = t\<close>
-  assumes term_ord_ground_total: \<open>total_on {t. ground_term t} term_ord\<close>
-  assumes term_ord_ground_term_comp: \<open>ground_term (Fun f (a1 @ s # a2)) \<Longrightarrow> ground_term (Fun f (a1 @ t # a2)) \<Longrightarrow> (s, t) \<in> term_ord \<Longrightarrow> (Fun f (a1 @ s # a2), Fun f (a1 @ t # a2)) \<in> term_ord\<close>
-  assumes term_ord_ground_subterm_comp: \<open>ground_term (Fun f (a1 @ s # a2)) \<Longrightarrow> (s, Fun f (a1 @ s # a2)) \<in> term_ord\<close>
-  assumes wf_term_ord: \<open>wf term_ord\<close>
-  assumes term_ord_stable_grounding: \<open>\<And> \<sigma> :: ('f,'v) subst. (s, t) \<in> term_ord \<Longrightarrow> ground_term (s \<cdot> \<sigma>) \<Longrightarrow> ground_term (t \<cdot> \<sigma>) \<Longrightarrow> (s \<cdot> \<sigma>, t \<cdot> \<sigma>) \<in> term_ord\<close>
+    and selection :: \<open>('f, 'v) clause \<Rightarrow> ('f, 'v) literal multiset\<close>
+  assumes term_ord_trans: \<open>(s,t) \<in> term_ord \<Longrightarrow> (t,u) \<in> term_ord \<Longrightarrow> \<not> ((u,s) \<in> term_ord \<or> u = s)\<close>
+      and term_ord_antisym: \<open>(s,t) \<in> term_ord \<Longrightarrow> (t,s) \<in> term_ord \<Longrightarrow> s = t\<close>
+      and term_ord_term_comp: \<open>(s, t) \<in> term_ord \<Longrightarrow> \<not> ((Fun f (a1 @ t # a2), Fun f (a1 @ s # a2)) \<in> term_ord \<or> Fun f (a1 @ t # a2) = Fun f (a1 @ s # a2))\<close>
+      and term_ord_subterm_comp: \<open>s \<in> set argl \<Longrightarrow> \<not> ((Fun f argl, s) \<in> term_ord \<or> Fun f argl = s)\<close>
+      and wf_term_ord: \<open>wf term_ord\<close>
+      and term_ord_ground_total: \<open>total_on {t. ground_term t} term_ord\<close>
+      and term_ord_stable_grounding: \<open>\<And> \<sigma> :: ('f,'v) subst. (s, t) \<in> term_ord \<Longrightarrow> ground_term (s \<cdot> \<sigma>) \<Longrightarrow> ground_term (t \<cdot> \<sigma>) \<Longrightarrow> (s \<cdot> \<sigma>, t \<cdot> \<sigma>) \<in> term_ord\<close>
+      and selection_subset: \<open>selection C \<subseteq># C\<close>
+      and selection_neg_lit: \<open>\<not> Eq s t \<in># selection C\<close>
+      (* TODO add stability under renaming for selection *)
 begin
 
 (* extend order to literals and clauses *)
@@ -284,10 +295,6 @@ lemma wf_ground_clause_set_ord: \<open>wf ground_clause_set_ord\<close>
   unfolding ground_clause_set_ord_def
   using wf_clause_set_ord wf_inv_image by blast
 
-(*lemma ground_comparison: \<open>ground_term s \<Longrightarrow> ground_term t \<Longrightarrow> \<not> t \<preceq> s \<Longrightarrow> s \<prec> t\<close>
-  using term_ord_ground_total
-  unfolding total_on_def by blast*)
-
 lemma lit_ord_ground_total: \<open>ground_lit L1 \<Longrightarrow> ground_lit L2 \<Longrightarrow> L1 \<prec>L L2 \<or> L2 \<preceq>L L1\<close>
   sorry
 
@@ -310,30 +317,37 @@ lemma mult_max:
 
 definition eresolution_inferences :: \<open>('f, 'v) clause inference set\<close> where
 \<open>eresolution_inferences = {Infer [{# Neq s s' #} + C] (subst_apply_cl C \<sigma>)
-                          | s s' C \<sigma>. is_mgu \<sigma> {(s, s')}}\<close>
+                          | s s' C \<sigma>. is_mgu \<sigma> {(s, s')}
+                                      \<and> (selection ({# Neq s s' #} + C) = {#} \<or> Neq s s' \<in># selection ({# Neq s s' #} + C))
+                                      \<and> (\<forall>M \<in># C. subst_apply_lit M \<sigma> \<preceq>L subst_apply_lit (Neq s s') \<sigma>)}\<close>
 
 definition efactoring_inferences :: \<open>('f, 'v) clause inference set\<close>
   where
 \<open>efactoring_inferences = {Infer [{# Eq u t #} + {# Eq u' s #} + C] (subst_apply_cl ({# Eq u t #} + {# Neq t s #} + C) \<sigma>)
                          | s t u u' C \<sigma>. is_mgu \<sigma> {(u,u')}
                                          \<and> \<not> t \<cdot> \<sigma> \<preceq> s \<cdot> \<sigma>
-                                         \<and> \<not> u \<cdot> \<sigma> \<preceq> t \<cdot> \<sigma>}\<close>
+                                         \<and> \<not> u \<cdot> \<sigma> \<preceq> t \<cdot> \<sigma>
+                                         \<and> selection ({# Eq u t #} + {# Eq u' s #} + C) = {#}
+                                         \<and> (\<forall>M \<in># {# Eq u' s #} +  C. subst_apply_lit M \<sigma> \<preceq>L subst_apply_lit (Eq u' s) \<sigma>)}\<close>
 
 (* subterm s t u v \<equiv> t can be obtained from s by replacing one occurrence of u by v*)
 inductive subterm_replace :: \<open>('f,'v) term \<Rightarrow> ('f,'v) term \<Rightarrow> ('f,'v) term \<Rightarrow> ('f,'v) term \<Rightarrow> bool\<close> where
   base: \<open>subterm_replace s t s t\<close> |
   step: \<open>subterm_replace s t u v \<Longrightarrow> subterm_replace (Fun f (a1 @ s # a2)) (Fun f (a1 @ t # a2)) u v\<close>
 
+(* TODO separate positive/negative inferences? *)
 definition superposition_inferences :: \<open>('f, 'v) clause inference set\<close>
   where
 \<open>superposition_inferences = {Infer [{# Eq t s #} + C , {# L #} + D] (subst_apply_cl ({# L' #} + C + D) \<sigma>)
-                            | s t L L' C D \<sigma>. \<exists>t' u vt vs. (L = Eq vt u \<and> L' = Eq vs u \<or> L = Neq vt u \<and> L' = Neq vs u)
+                            | s t L L' C D \<sigma>. \<exists>t' u vt vs. (L = Eq vt u \<and> L' = Eq vs u \<and> selection ({# L #} + D) = {#}
+                                                            \<or> L = Neq vt u \<and> L' = Neq vs u \<and> (selection ({# L #} + D) = {#} \<or> L' \<in># selection ({# L #} + D)))
                                                            \<and> is_mgu \<sigma> {(t, t')}
                                                            \<and> subterm_replace vs vt s t'
                                                            \<and> \<not> is_Var t'
                                                            \<and> \<not> t \<cdot> \<sigma> \<preceq> s \<cdot> \<sigma>
                                                            \<and> \<not> u \<cdot> \<sigma> \<preceq> vt \<cdot> \<sigma>
                                                            \<and> subst_apply_lit (Eq t s) \<sigma> \<prec>L subst_apply_lit L \<sigma>
+                                                           \<and> selection ({# Eq t s #} + C) = {#}
                                                            \<and> (\<forall>M \<in># C. subst_apply_lit M \<sigma> \<prec>L subst_apply_lit (Eq t s) \<sigma>)
                                                            \<and> (\<forall>M \<in># D. subst_apply_lit M \<sigma> \<prec>L subst_apply_lit L \<sigma>)}\<close>
 
@@ -848,9 +862,12 @@ proof -
     next
       case (step s' t' a1 a2)
       with Fun have \<open>s' \<prec> t'\<close> by auto
+      then have \<open>\<not> Fun f (a1 @ t' # a2) \<preceq> Fun f (a1 @ s' # a2)\<close>
+        using term_ord_term_comp by auto
       moreover from Fun step have \<open>ground_term (Fun f (a1 @ s' # a2))\<close> and \<open>ground_term (Fun f (a1 @ t' # a2))\<close> by auto
       ultimately have \<open>Fun f (a1 @ s' # a2) \<prec> Fun f (a1 @ t' # a2)\<close>
-        using term_ord_ground_term_comp by auto
+        using term_ord_ground_total unfolding total_on_def
+        by (metis (mono_tags, lifting) mem_Collect_eq)
       with step show ?thesis by auto
     qed
   qed
@@ -896,7 +913,9 @@ proof -
       by (metis (mono_tags, lifting) mem_Collect_eq)
     from mgu have \<open>u' \<cdot> \<sigma> = u \<cdot> \<sigma>\<close> unfolding is_mgu_def unifiers_def by auto
     with ground have \<open>u' = u\<close> using subst_ground_term by metis
-    with ord' ground term_ord_ground_trans have \<open>s \<prec> u' \<and> t \<prec> u'\<close> unfolding trans_def by auto
+    with ord' ground term_ord_trans term_ord_ground_total have \<open>s \<prec> u' \<and> t \<prec> u'\<close>
+      unfolding total_on_def
+      by (metis (mono_tags, lifting) mem_Collect_eq)
     then have \<open>Neq t s \<prec>L Eq u' s\<close>
       using one_step_implies_mult [of \<open>{#u'#}\<close> \<open>{#t,t,s#}\<close> term_ord \<open>{#s#}\<close>] unfolding lit_ord_def by auto
     then have \<open>(Rep_ground_clause (concl_of \<iota>), Rep_ground_clause P) \<in> mult lit_ord\<close>
@@ -1091,19 +1110,106 @@ definition equiv_class_of_trs :: \<open>('f, 'v) trs \<Rightarrow> ('f,'v) inter
 abbreviation ordered :: \<open>('f, 'v) trs \<Rightarrow> bool\<close>
   where \<open>ordered S \<equiv> \<forall> (t, s) \<in> S. s \<prec> t\<close>
 
-(* since many properties of \<prec> are restricted to ground terms, lemmas about the TRS must specify that it is ground *)
-abbreviation ground_trs :: \<open>('f, 'v) trs \<Rightarrow> bool\<close>
-  where \<open>ground_trs S \<equiv> \<forall> (t, s) \<in> S. ground_term s \<and> ground_term t\<close>
+lemma ordered_trs_preserve_groundness:
+  \<open>rewrite_by_trs S t t' \<Longrightarrow> ordered S \<Longrightarrow> ground_term t \<Longrightarrow> ground_term t'\<close>
+proof (induct rule: rewrite_by_trs.induct)
+  case (eq t s S)
+  have \<open>\<not> ground_term s \<Longrightarrow> \<not> s \<prec> t\<close>
+  proof -
+    let ?\<sigma> = \<open>\<lambda>x. t\<close>
+    have grounding: \<open>ground_term (s \<cdot> ?\<sigma>)\<close> for s :: \<open>('f, 'v) term\<close> proof (induct s; simp add: \<open>ground_term t\<close>) qed
+    have \<open>\<not> ground_term s \<Longrightarrow> \<not> s \<cdot> ?\<sigma> \<prec> t \<cdot> ?\<sigma>\<close>
+    proof (induct s)
+      case (Var x)
+      then show ?case using subst_ground_term wf_term_ord \<open>ground_term t\<close> by fastforce
+    next
+      case (Fun f args)
+      then obtain s' where \<open>s' \<in> set args\<close>
+                       and \<open>vars_term s' \<noteq> {}\<close>
+                       and nlt: \<open>\<not> s' \<cdot> ?\<sigma> \<prec> t \<cdot> ?\<sigma>\<close> by auto
+      then have \<open>\<not> (Fun f args) \<cdot> ?\<sigma> \<preceq> s' \<cdot> ?\<sigma>\<close>
+        using term_ord_subterm_comp by auto
+      then have \<open>s' \<cdot> ?\<sigma> \<prec> Fun f args \<cdot> ?\<sigma>\<close>
+        using grounding term_ord_ground_total unfolding total_on_def by blast
+      moreover have le: \<open>t \<cdot> ?\<sigma> \<preceq> s' \<cdot> ?\<sigma>\<close>
+        using nlt grounding term_ord_ground_total unfolding total_on_def by blast
+      ultimately show \<open>\<not> Fun f args \<cdot> ?\<sigma> \<prec> t \<cdot> ?\<sigma>\<close>
+        using le term_ord_trans by blast
+    qed
+    then show \<open>\<not> ground_term s \<Longrightarrow> \<not> s \<prec> t\<close> using term_ord_stable_grounding grounding by blast
+  qed
+  then show ?case using eq by blast
+next
+  case (func S t s f a1 a2)
+  then show ?case by auto
+next
+  case (trans S u t s)
+  then show ?case by fast
+qed
 
-lemma ordered_normalizing: \<open>ordered S \<Longrightarrow> \<exists>s. normal_form S t s\<close>
-  sorry
+lemma ordered_rewriting: \<open>ordered S \<Longrightarrow> ground_term t \<Longrightarrow> rewrite_by_trs S t s \<Longrightarrow> s \<prec> t\<close>
+proof -
+  assume \<open>rewrite_by_trs S t s\<close>
+  then show \<open>ordered S \<Longrightarrow> ground_term t \<Longrightarrow> s \<prec> t\<close>
+  proof (induct rule: rewrite_by_trs.induct)
+    case (eq t s S)
+    then show ?case by blast
+  next
+    case (func S t s f a1 a2)
+    then have \<open>ground_term (Fun f (a1 @ s # a2)) \<and> ground_term (Fun f (a1 @ t # a2))\<close> using ordered_trs_preserve_groundness by auto
+    moreover have \<open>\<not> Fun f (a1 @ t # a2) \<preceq> Fun f (a1 @ s # a2)\<close> using term_ord_term_comp func by auto
+    ultimately show ?case using term_ord_ground_total unfolding total_on_def
+      by (metis (mono_tags, lifting) mem_Collect_eq)
+  next
+    case (trans S u t s)
+    then have ground: \<open>ground_term s \<and> ground_term t \<and> ground_term u\<close> using ordered_trs_preserve_groundness by simp
+    moreover have \<open>\<not> u \<preceq> s\<close> using term_ord_trans trans ground by blast
+    then show ?case
+      using ground term_ord_ground_total
+      unfolding total_on_def by blast
+  qed
+qed
+
+lemma ordered_normalizing: \<open>ordered S \<Longrightarrow> ground_term t \<Longrightarrow> \<exists>t'. normal_form S t t'\<close>
+proof -
+  assume \<open>ordered S\<close> and \<open>ground_term t\<close>
+  have \<open>ground_term t \<longrightarrow> (\<exists>t'. normal_form S t t')\<close>
+  proof (rule wf_induct [of \<open>term_ord\<close>])
+    show \<open>wf term_ord\<close> using wf_term_ord .
+  next
+    show \<open>\<forall>s. s \<prec> t \<longrightarrow> ground_term s \<longrightarrow> (\<exists>s'. normal_form S s s') \<Longrightarrow> ground_term t \<longrightarrow> (\<exists>t'. normal_form S t t')\<close> for t
+    proof -
+      assume ind: \<open>\<forall>s. s \<prec> t \<longrightarrow> ground_term s \<longrightarrow> (\<exists>s'. normal_form S s s')\<close>
+      show \<open>ground_term t \<longrightarrow> (\<exists>t'. normal_form S t t')\<close>
+      proof (cases \<open>irreducible S t\<close>)
+        case True
+        then show ?thesis unfolding normal_form_def by blast
+      next
+        case False
+        then obtain s where rew: \<open>rewrite_by_trs S t s\<close> unfolding irreducible_def by blast
+        show ?thesis
+        proof
+          assume \<open>ground_term t\<close>
+          then have \<open>ground_term s \<and> s \<prec> t\<close>
+            using ordered_rewriting ordered_trs_preserve_groundness \<open>ordered S\<close> rew by metis
+          then obtain s' where \<open>normal_form S s s'\<close> using ind by blast
+          then have \<open>irreducible S s' \<and> rewrite_by_trs S t s'\<close>
+            using rewrite_by_trs.trans rew
+            unfolding normal_form_def by blast
+          then show \<open>\<exists>t'. normal_form S t t'\<close> unfolding normal_form_def by blast
+        qed
+      qed
+    qed
+  qed
+  then show ?thesis using \<open>ground_term t\<close> by auto
+qed
 
 lemma ordered_confluent: \<open>ordered S \<Longrightarrow> rewrite_by_trs S t s \<Longrightarrow> rewrite_by_trs S t u \<Longrightarrow> (u, s) \<in> equiv_class_of_trs S\<close>
   sorry
 
-lemma ordered_unique_normal_form: \<open>ordered S \<Longrightarrow> \<exists>!s. normal_form S t s\<close>
+lemma ordered_unique_normal_form: \<open>ordered S \<Longrightarrow> ground_term t \<Longrightarrow> \<exists>!s. normal_form S t s\<close>
 proof -
-  assume ord: \<open>ordered S\<close>
+  assume ord: \<open>ordered S\<close> and \<open>ground_term t\<close>
   then obtain s where nf_s: \<open>normal_form S t s\<close> using ordered_normalizing by blast
   show \<open>\<exists>!s. normal_form S t s\<close>
   proof
@@ -1138,6 +1244,7 @@ proof -
   qed
 qed
 
+(* TODO prove normalization for non-ground term as well, or require the TRS to be a congruence only for ground terms? *)
 lemma equiv_class_refl: \<open>ordered S \<Longrightarrow> refl (equiv_class_of_trs S)\<close>
   unfolding equiv_class_of_trs_def refl_on_def
   using ordered_normalizing by simp
@@ -1150,6 +1257,7 @@ lemma equiv_class_trans: \<open>ordered S \<Longrightarrow> trans (equiv_class_o
   using ordered_unique_normal_form by blast
 
 lemma equiv_class_fun_comp: \<open>ordered S \<Longrightarrow> fun_comp (equiv_class_of_trs S)\<close>
+  unfolding fun_comp_def
   sorry
 
 lemma equiv_class_fo: \<open>ordered S \<Longrightarrow> congruence (equiv_class_of_trs S)\<close>
@@ -1346,29 +1454,6 @@ next
   qed
 qed
 
-lemma ground_trs_preserve_groundness:
-  \<open>rewrite_by_trs S t t' \<Longrightarrow> ground_trs S \<Longrightarrow> ground_term t \<Longrightarrow> ground_term t'\<close>
-proof (induct rule: rewrite_by_trs.induct; auto) qed
-
-lemma ordered_rewriting: \<open>ordered S \<Longrightarrow> ground_term t \<Longrightarrow> ground_trs S \<Longrightarrow> rewrite_by_trs S t s \<Longrightarrow> s \<prec> t\<close>
-proof -
-  assume \<open>rewrite_by_trs S t s\<close>
-  then show \<open>ordered S \<Longrightarrow> ground_term t \<Longrightarrow> ground_trs S \<Longrightarrow> s \<prec> t\<close>
-  proof (induct rule: rewrite_by_trs.induct)
-    case (eq t s S)
-    then show ?case by blast
-  next
-    case (func S t s f a1 a2)
-    then show ?case sorry
-  next
-    case (trans S u t s)
-    then have \<open>ground_term t\<close> using ground_trs_preserve_groundness by simp
-    then have \<open>ground_term s\<close> using ground_trs_preserve_groundness trans by simp
-    then have \<open>s \<prec> t \<and> t \<prec> u\<close> using \<open>ground_term t\<close> trans by blast
-    then show ?case using trans \<open>ground_term s\<close> \<open>ground_term t\<close> term_ord_ground_trans by blast
-  qed
-qed
-
 lemma rewrite_requires_smaller_lhs:
   \<open>rewrite_by_trs S t t' \<Longrightarrow> ground_term t \<Longrightarrow> ground_trs S \<Longrightarrow> ordered S \<Longrightarrow> \<exists>s s'. (s, s') \<in> S \<and> s \<preceq> t\<close>
 proof (induct rule: rewrite_by_trs.induct)
@@ -1510,9 +1595,19 @@ next
   qed
 qed
 
+
+
 lemma equiv_clauses_production:
   \<open>{# mset_lit L. L \<in># Rep_ground_clause C1 #} = {# mset_lit L. L \<in># Rep_ground_clause C2 #} \<Longrightarrow> production TRS C1 = production TRS C2\<close>
-  sorry
+proof -
+  have subset: \<open>{# mset_lit L. L \<in># Rep_ground_clause C1 #} = {# mset_lit L. L \<in># Rep_ground_clause C2 #} \<Longrightarrow> production TRS C1 \<subseteq> production TRS C2\<close> for C1 C2
+  proof
+    fix s t
+    assume \<open>image_mset mset_lit (Rep_ground_clause C1) = image_mset mset_lit (Rep_ground_clause C2)\<close> and \<open>(t, s) \<in> production TRS C1\<close>
+    show \<open>(t, s) \<in> production TRS C2\<close> sorry
+  qed
+  then show \<open>{# mset_lit L. L \<in># Rep_ground_clause C1 #} = {# mset_lit L. L \<in># Rep_ground_clause C2 #} \<Longrightarrow> production TRS C1 = production TRS C2\<close> by (simp add: eq_iff)
+qed
 
 lemma equiv_clauses_trs:
   \<open>{# mset_lit L. L \<in># Rep_ground_clause C1 #} = {# mset_lit L. L \<in># Rep_ground_clause C2 #} \<Longrightarrow> trs_of_clause N C1 = trs_of_clause N C2\<close>
@@ -1650,6 +1745,34 @@ proof -
   then show ?thesis using assms by blast
 qed
 
+lemma equality_in_equiv_class:
+  \<open>ordered TRS \<Longrightarrow> s = t \<or> (t, s) \<in> TRS \<or> (s, t) \<in> TRS \<Longrightarrow> (t, s) \<in> equiv_class_of_trs TRS\<close>
+proof -
+  assume ord: \<open>ordered TRS\<close> and \<open>s = t \<or> (t, s) \<in> TRS \<or> (s, t) \<in> TRS\<close>
+  then consider (eq) \<open>s = t\<close> | (left) \<open>(t, s) \<in> TRS\<close> | (right) \<open>(s, t) \<in> TRS\<close> by blast
+  then show \<open>(t, s) \<in> equiv_class_of_trs TRS\<close>
+  proof cases
+    case eq
+    then show ?thesis
+      unfolding equiv_class_of_trs_def
+      using ord ordered_normalizing by fast
+  next
+    case left
+    with ord ordered_normalizing obtain s' where \<open>normal_form TRS s s'\<close> by blast
+    then have \<open>rewrite_by_trs TRS t s' \<and> irreducible TRS s' \<and> (s' = s \<or> rewrite_by_trs TRS s s')\<close>
+      using left rewrite_by_trs.eq rewrite_by_trs.trans
+      unfolding normal_form_def by fast
+    then show ?thesis unfolding equiv_class_of_trs_def normal_form_def by blast
+  next
+    case right
+    with ord ordered_normalizing obtain t' where \<open>normal_form TRS t t'\<close> by blast
+    then have \<open>rewrite_by_trs TRS s t' \<and> irreducible TRS t' \<and> (t' = t \<or> rewrite_by_trs TRS t t')\<close>
+      using right rewrite_by_trs.eq rewrite_by_trs.trans
+      unfolding normal_form_def by fast
+    then show ?thesis unfolding equiv_class_of_trs_def normal_form_def by blast
+  qed
+qed
+
 lemma canonical_interp_model:
   assumes \<open>saturated N\<close>
   assumes \<open>\<bottom>G \<notin> N\<close>
@@ -1676,10 +1799,13 @@ proof -
     then show ?thesis
     proof (cases L)
       case (Eq s t)
-      then have \<open>(s,t) \<in> production ?trs_smaller C \<or> (t,s) \<in> production ?trs_smaller C \<or> s = t\<close> sorry
+      then have \<open>ground_term s \<and> ground_term t\<close> using L_elem Rep_ground_clause by fastforce
+      then consider (eq) \<open>s = t\<close> | (lt) \<open>t \<prec> s\<close> | (gt) \<open>s \<prec> t\<close> using term_ord_ground_total unfolding total_on_def by blast
+      then have \<open>s = t \<or> (s,t) \<in> production ?trs_smaller C \<or> (t,s) \<in> production ?trs_smaller C\<close> sorry
+      then have \<open>s = t \<or> (s,t) \<in> trs_of_clause N C \<or> (t,s) \<in> trs_of_clause N C\<close>
+        by (metis (no_types, lifting) Un_iff trs_def)
       then have \<open>(s, t) \<in> equiv_class_of_trs (trs_of_clause N C)\<close>
-        unfolding equiv_class_of_trs_def
-        using rewrite_by_trs.eq rewrite_by_trs.sym rewrite_by_trs.eq trs_def by blast
+        using equality_in_equiv_class ordered_trs_of_clause by metis
       then have \<open>validate_ground_lit (equiv_class_of_trs (trs_of_clause N C)) L\<close>
         using Eq validate_ground_lit.simps(1) by blast
       then have \<open>validate_ground_lit (equiv_class_of_trs (trs_of_clause N C)) (subst_apply_lit L \<sigma>)\<close> for \<sigma>
@@ -1695,7 +1821,7 @@ proof -
         unfolding validate_clause_def by blast
       with L_elem Rep_ground_clause have \<open>\<not> validate_ground_lit (equiv_class_of_trs ?trs_smaller) L\<close>
         by (smt mem_Collect_eq subst_ground_lit)
-      then have "(s, t) \<in> equiv_class_of_trs ?trs_smaller"
+      then have \<open>(s, t) \<in> equiv_class_of_trs ?trs_smaller\<close>
         using Neq validate_ground_lit.simps(2) by blast
       then show ?thesis sorry
     qed
