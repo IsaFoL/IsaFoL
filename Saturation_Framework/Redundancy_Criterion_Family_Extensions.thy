@@ -506,7 +506,7 @@ locale labeled_lifting_equiv = no_labels: lifting_equivalence_with_red_crit_fami
     Inf_F :: "'f inference set" and
     Bot_G :: "'g set" and
     Q :: "'q set" and
-    entails_q :: "'q \<Rightarrow> 'g set \<Rightarrow> 'g set \<Rightarrow> bool"  (infix "\<Turnstile>G" 50) and
+    entails_q :: "'q \<Rightarrow> 'g set \<Rightarrow> 'g set \<Rightarrow> bool"  and
     Inf_G :: "'g inference set" and
     Red_Inf_q :: "'q \<Rightarrow> 'g set \<Rightarrow> 'g inference set" and
     Red_F_q :: "'q \<Rightarrow> 'g set \<Rightarrow> 'g set" and
