@@ -25,10 +25,12 @@ locale Given_Clause_Proc = labeled_lifting_equiv Bot_F Inf_F Bot_G Q entails_q I
     and Inf_FL :: \<open>('f \<times> 'l) inference set\<close>
   + fixes
     Equiv_F :: "('f \<times> 'f) set" and
-    Prec_F :: "'f \<Rightarrow> 'f \<Rightarrow> bool" (infix "\<lless>" 50) (* In the report, the symbol used points in the oposite direction *)
+    Prec_F :: "'f \<Rightarrow> 'f \<Rightarrow> bool" (infix "\<lless>" 50) and (* In the report, the symbol used points in the opposite direction *)
+    Prec_l :: "'l \<Rightarrow> 'l \<Rightarrow> bool" (infix "\<sqsubset>l" 50)
   assumes
     equiv_F_is_equiv_rel: "equiv UNIV Equiv_F" and
     wf_prec_F: "minimal_element (Prec_F) UNIV" and
+    wf_prec_l: "minimal_element (Prec_l) UNIV" and
     compat_equiv_prec: "(C1,D1) \<in> equiv_F \<Longrightarrow> (C2,D2) \<in> equiv_F \<Longrightarrow> C1 \<lless> C2 \<Longrightarrow> D1 \<lless> D2" and
     equiv_F_grounding: "q \<in> Q \<Longrightarrow> (C1,C2) \<in> equiv_F \<Longrightarrow> \<G>_F_q q C1 = \<G>_F_q q C2" and
     prec_F_grounding: "q \<in> Q \<Longrightarrow> C1 \<lless> C2 \<Longrightarrow> \<G>_F_q q C1 \<subseteq> \<G>_F_q q C2" and
@@ -37,8 +39,15 @@ locale Given_Clause_Proc = labeled_lifting_equiv Bot_F Inf_F Bot_G Q entails_q I
       no_labels.empty_ord_lifted_calc_w_red_crit_family.Red_F_Q"
 begin
 
-abbreviation equiv_F_fun :: "'f \<Rightarrow> 'f \<Rightarrow> bool" (infix "\<doteq>" 50) where
+definition equiv_F_fun :: "'f \<Rightarrow> 'f \<Rightarrow> bool" (infix "\<doteq>" 50) where
   "equiv_F_fun C D \<equiv> (C,D) \<in> Equiv_F"
+
+definition Prec_eq_F :: "'f \<Rightarrow> 'f \<Rightarrow> bool" (infix "\<lless>\<doteq>" 50) where
+  "Prec_eq_F C D \<equiv> ((C,D) \<in> Equiv_F \<or> C \<lless> D)"
+
+definition Prec_Fl :: "('f \<times> 'l) \<Rightarrow> ('f \<times> 'l) \<Rightarrow> bool" (infix "\<sqsubset>" 50) where
+  "Prec_Fl Cl1 Cl2 \<equiv> (fst Cl1 \<lless> fst Cl2) \<or> (fst Cl1 \<doteq> fst Cl2 \<and> snd Cl1 \<sqsubset>l snd Cl2)"
+
 
 end
 
