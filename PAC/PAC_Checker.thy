@@ -35,31 +35,31 @@ lemma in_code_status_status_rel_iff[simp]:
   \<open>(CFAILED C, b) \<in> code_status_status_rel \<longleftrightarrow> b = FAILED\<close>
   by (cases a; cases b; auto simp: code_status_status_rel_def; fail)+
 
-fun pac_step_rel_raw :: \<open>(nat \<times> nat) set \<Rightarrow> ('a \<times> 'b) set \<Rightarrow> 'a pac_step \<Rightarrow> 'b pac_step \<Rightarrow> bool\<close> where
-\<open>pac_step_rel_raw R1 R2 (Add p1 p2 i r) (Add p1' p2' i' r') \<longleftrightarrow>
+fun pac_step_rel_raw :: \<open>(nat \<times> nat) set \<Rightarrow> ('a \<times> 'b) set \<Rightarrow> ('c \<times> 'd) set \<Rightarrow> ('a, 'c) pac_step \<Rightarrow> ('b, 'd) pac_step \<Rightarrow> bool\<close> where
+\<open>pac_step_rel_raw R1 R2 R3 (Add p1 p2 i r) (Add p1' p2' i' r') \<longleftrightarrow>
    (p1, p1') \<in> R1 \<and> (p2, p2') \<in> R1 \<and> (i, i') \<in> R1 \<and>
    (r, r') \<in> R2\<close> |
-\<open>pac_step_rel_raw R1 R2 (Mult p1 p2 i r) (Mult p1' p2' i' r') \<longleftrightarrow>
+\<open>pac_step_rel_raw R1 R2 R3 (Mult p1 p2 i r) (Mult p1' p2' i' r') \<longleftrightarrow>
    (p1, p1') \<in> R1 \<and> (p2, p2') \<in> R2 \<and> (i, i') \<in> R1 \<and>
    (r, r') \<in> R2\<close> |
-\<open>pac_step_rel_raw R1 R2 (Del p1) (Del p1') \<longleftrightarrow>
+\<open>pac_step_rel_raw R1 R2 R3 (Del p1) (Del p1') \<longleftrightarrow>
    (p1, p1') \<in> R1\<close> |
-\<open>pac_step_rel_raw R1 R2 (Extension i p1) (Extension j p1') \<longleftrightarrow>
-   (i, j) \<in> R1 \<and> (p1, p1') \<in> R2\<close> |
-\<open>pac_step_rel_raw R1 R2 _ _ \<longleftrightarrow> False\<close>
+\<open>pac_step_rel_raw R1 R2 R3 (Extension i x p1) (Extension j x' p1') \<longleftrightarrow>
+   (i, j) \<in> R1 \<and> (x, x') \<in> R3 \<and> (p1, p1') \<in> R2\<close> |
+\<open>pac_step_rel_raw R1 R2 R3 _ _ \<longleftrightarrow> False\<close>
 
-fun pac_step_rel_assn :: \<open>(nat \<Rightarrow> nat \<Rightarrow> assn) \<Rightarrow> ('a \<Rightarrow> 'b \<Rightarrow> assn) \<Rightarrow> 'a pac_step \<Rightarrow> 'b pac_step \<Rightarrow> assn\<close> where
-\<open>pac_step_rel_assn R1 R2 (Add p1 p2 i r) (Add p1' p2' i' r') =
+fun pac_step_rel_assn :: \<open>(nat \<Rightarrow> nat \<Rightarrow> assn) \<Rightarrow> ('a \<Rightarrow> 'b \<Rightarrow> assn) \<Rightarrow> ('c \<Rightarrow> 'd \<Rightarrow> assn) \<Rightarrow> ('a, 'c) pac_step \<Rightarrow> ('b, 'd) pac_step \<Rightarrow> assn\<close> where
+\<open>pac_step_rel_assn R1 R2 R3 (Add p1 p2 i r) (Add p1' p2' i' r') =
    R1 p1 p1' * R1 p2 p2' * R1 i i' *
    R2 r r'\<close> |
-\<open>pac_step_rel_assn R1 R2 (Mult p1 p2 i r) (Mult p1' p2' i' r') =
+\<open>pac_step_rel_assn R1 R2 R3 (Mult p1 p2 i r) (Mult p1' p2' i' r') =
    R1 p1 p1' * R2 p2 p2' * R1 i i' *
    R2 r r'\<close> |
-\<open>pac_step_rel_assn R1 R2 (Del p1) (Del p1') =
+\<open>pac_step_rel_assn R1 R2 R3 (Del p1) (Del p1') =
    R1 p1 p1'\<close> |
-\<open>pac_step_rel_assn R1 R2 (Extension i p1) (Extension i' p1') =
-   R1 i i' * R2 p1 p1'\<close> |
-\<open>pac_step_rel_assn R1 R2 _ _ = false\<close>
+\<open>pac_step_rel_assn R1 R2 R3 (Extension i x p1) (Extension i' x' p1') =
+   R1 i i' * R3 x x' * R2 p1 p1'\<close> |
+\<open>pac_step_rel_assn R1 R2 _ _ _ = false\<close>
 
 definition error_msg where
   \<open>error_msg i msg = CFAILED (''s CHECKING failed at line '' @ show i @ '' with error '' @ msg)\<close>
@@ -169,58 +169,31 @@ definition check_extension_l_side_cond_err
 where
   \<open>check_extension_l_side_cond_err v p p' q = SPEC (\<lambda>_. True)\<close>
 
-definition find_undefined_var :: \<open>nat set \<Rightarrow> int mpoly \<Rightarrow> ((nat \<times> int \<times> int mpoly) option) nres\<close> where
-\<open>find_undefined_var \<V> p =
-  SPEC(\<lambda>(a :: (nat \<times> int \<times> int mpoly) option).
-      case a of
-          None \<Rightarrow> True
-       | Some (a, c, p') \<Rightarrow> (a \<notin> \<V> \<and>
-         ((c = 1 \<and> p' = p - Var a) \<or>
-          (c = -1 \<and> p' = p + Var a))))\<close>
-
-definition find_undefined_var_l
-  :: \<open>string set \<Rightarrow> llist_polynom \<Rightarrow> ((string \<times> int \<times> llist_polynom) option) nres\<close> where
-\<open>find_undefined_var_l \<V> p =
-  SPEC(\<lambda>(a :: (string \<times> int \<times> llist_polynom) option).
-      case a of
-          None \<Rightarrow> True
-       | Some (a, c, p') \<Rightarrow> (a \<notin> \<V> \<and>
-         ((([a], 1) \<in> set p \<and> p' = remove1 ([a], 1) p \<and> c = 1) \<or>
-          (([a], -1) \<in> set p \<and> p' = remove1 ([a], -1) p \<and> c = -1))))\<close>
-
 definition check_extension_l
-  :: \<open>_ \<Rightarrow> _ \<Rightarrow> string set \<Rightarrow> nat \<Rightarrow> llist_polynom \<Rightarrow> (string code_status \<times> string option) nres\<close>
+  :: \<open>_ \<Rightarrow> _ \<Rightarrow> string set \<Rightarrow> nat \<Rightarrow> string \<Rightarrow> llist_polynom \<Rightarrow> (string code_status) nres\<close>
 where
-\<open>check_extension_l spec A \<V> i p = do {
-  if i \<in># dom_m A
+\<open>check_extension_l spec A \<V> i v p = do {
+  if i \<in># dom_m A \<or> v \<in> \<V>
   then do {
     c \<leftarrow> check_extension_l_dom_err i;
-    RETURN (error_msg i c, None)
+    RETURN (error_msg i c)
   } else do {
-    v \<leftarrow> find_undefined_var_l \<V> p;
-    case v of
-      None \<Rightarrow> do {
-        c \<leftarrow> check_extension_l_no_new_var_err p;
-        RETURN (error_msg i c, None)
+      let b = vars_llist p \<subseteq> \<V>;
+      if \<not>b
+      then do {
+        c \<leftarrow> check_extension_l_new_var_multiple_err v p;
+        RETURN (error_msg i c)
       }
-    | Some (v, c, p') \<Rightarrow> do {
-        let b = vars_llist p' \<subseteq> \<V>;
-        if \<not>b
-        then do {
-          c \<leftarrow> check_extension_l_new_var_multiple_err v p';
-          RETURN (error_msg i c, None)
-        }
-        else do {
-           p2 \<leftarrow> mult_poly_full p' p';
-           let up = (if c = -1 then map (\<lambda>(a, b). (a, -b)) p' else p');
-           q \<leftarrow> add_poly_l (p2, up);
-           eq \<leftarrow> weak_equality_l q [];
-           if eq then do {
-             RETURN (CSUCCESS, Some v)
-           } else do {
-            c \<leftarrow> check_extension_l_side_cond_err v p p' q;
-            RETURN (error_msg i c, None)
-          }
+      else do {
+         p2 \<leftarrow> mult_poly_full p p;
+         let up = map (\<lambda>(a, b). (a, -b)) p;
+         q \<leftarrow> add_poly_l (p2, up);
+         eq \<leftarrow> weak_equality_l q [];
+         if eq then do {
+           RETURN (CSUCCESS)
+         } else do {
+          c \<leftarrow> check_extension_l_side_cond_err v p p q;
+          RETURN (error_msg i c)
         }
       }
     }
@@ -228,30 +201,25 @@ where
 
 
 lemma check_extension_alt_def:
-  \<open>check_extension A \<V> i p \<ge> do {
-    if i \<in># dom_m A
-    then RETURN (False, 0)
+  \<open>check_extension A \<V> i v p \<ge> do {
+    if i \<in># dom_m A \<or> v \<in> \<V>
+    then RETURN (False)
     else do {
-      v' \<leftarrow> find_undefined_var \<V> p;
-      case v' of
-        None \<Rightarrow> RETURN (False, 0)
-      | Some (v, c, p) \<Rightarrow> do {
-           b \<leftarrow> SPEC(\<lambda>b. b \<longrightarrow> vars p \<subseteq> \<V>);
-           if \<not>b
-           then RETURN (False, 0)
-           else do {
-             pq \<leftarrow> mult_poly_spec p p;
-             up \<leftarrow> RETURN (if c = -1 then -p else p);
-             p \<leftarrow> add_poly_spec pq up;
-             eq \<leftarrow> weak_equality p 0;
-             if eq then RETURN(True, v)
-             else RETURN (False, 0)
-         }
+         b \<leftarrow> SPEC(\<lambda>b. b \<longrightarrow> vars p \<subseteq> \<V>);
+         if \<not>b
+         then RETURN (False)
+         else do {
+           pq \<leftarrow> mult_poly_spec p p;
+           up \<leftarrow> RETURN (-p);
+           p \<leftarrow> add_poly_spec pq up;
+           eq \<leftarrow> weak_equality p 0;
+           if eq then RETURN(True)
+           else RETURN (False)
        }
-   }
-  }\<close>
+     }
+   }\<close>
 proof -
-  have [intro!]: \<open>ab \<notin> \<V> \<Longrightarrow>
+  have [intro]: \<open>ab \<notin> \<V> \<Longrightarrow>
        vars ba \<subseteq> \<V> \<Longrightarrow>
        MPoly_Type.coeff (ba + Var ab) (monomial (Suc 0) ab) = 1\<close> for ab ba
       apply (auto simp flip: coeff_add simp: not_in_vars_coeff0
@@ -268,7 +236,7 @@ proof -
      then have p: \<open>p = q - Var ab\<close>
        by auto
      show ?thesis
-       unfolding p find_theorems \<open>coeff ( _ - _)\<close>
+       unfolding p
       apply (auto simp flip: coeff_minus simp: not_in_vars_coeff0
         Var.abs_eq Var\<^sub>0_def)
       apply (subst not_in_vars_coeff0)
@@ -279,20 +247,11 @@ proof -
     using vars_uminus[of \<open>p - Var ab\<close>]
     by simp
   show ?thesis
-    apply (clarsimp simp: check_extension_def weak_equality_def
-      find_undefined_var_def mult_poly_spec_def field_simps
+    by (auto 5 3 simp: check_extension_def weak_equality_def
+      mult_poly_spec_def field_simps
       add_poly_spec_def power2_eq_square cong: if_cong
       intro!: intro_spec_refine[where R=Id, simplified]
       split: option.splits dest: ideal.span_add)
-    apply (intro conjI impI)
-    apply auto
-    apply (rule intro_spec_refine[where R=Id, simplified])
-    apply (force simp: check_extension_def weak_equality_def
-      find_undefined_var_def mult_poly_spec_def field_simps
-      add_poly_spec_def power2_eq_square cong: if_cong
-      intro!: intro_spec_refine[where R=Id, simplified]
-      split: option.splits dest: ideal.span_add)+
-    done
 qed
 
 (* Copy of WB_More_Refinement *)
@@ -360,7 +319,13 @@ lemma check_mult_alt_def:
     intro!:  ideal.span_zero
       exI[of _ \<open>the (fmlookup A p) * q\<close>])
 
-definition PAC_checker_l_step ::  _ where
+primrec insort_key_rel :: "('b \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow> 'b \<Rightarrow> 'b list \<Rightarrow> 'b list" where
+"insort_key_rel f x [] = [x]" |
+"insort_key_rel f x (y#ys) =
+  (if f x y then (x#y#ys) else y#(insort_key_rel f x ys))"
+
+
+definition PAC_checker_l_step ::  \<open>_ \<Rightarrow> string code_status \<times> string set \<times> _ \<Rightarrow> (llist_polynom, string) pac_step \<Rightarrow> _\<close> where
   \<open>PAC_checker_l_step = (\<lambda>spec (st', \<V>, A) st. case st of
      Add _ _ _ _ \<Rightarrow>
        do {
@@ -391,23 +356,20 @@ definition PAC_checker_l_step ::  _ where
           \<V>, fmupd (new_id st) r A)
         else RETURN (eq, \<V>, A)
    }
-   | Extension _ _ \<Rightarrow>
+   | Extension _ _ _ \<Rightarrow>
        do {
          r \<leftarrow> full_normalize_poly (pac_res st);
-        (eq, v) \<leftarrow> check_extension_l spec A \<V> (new_id st) r;
-        let _ = eq;
+        (eq) \<leftarrow> check_extension_l spec A \<V> (new_id st) (new_var st) r;
         if \<not>is_cfailed eq
         then do {
-          ASSERT(v \<noteq> None);
           RETURN (st',
-            insert (the v) \<V>, fmupd (new_id st) r A)}
+            insert (new_var st) \<V>, fmupd (new_id st) (insort_key_rel (\<lambda>(a, _) (c, _). term_order a c) ([new_var st], 1) (map (\<lambda>(a,b). (a, -b)) r)) A)}
         else RETURN (eq, \<V>, A)
    }
  )\<close>
 
-
 lemma pac_step_rel_raw_def:
-  \<open>\<langle>K, V\<rangle> pac_step_rel_raw = pac_step_rel_raw K V\<close>
+  \<open>\<langle>K, V, R\<rangle> pac_step_rel_raw = pac_step_rel_raw K V R\<close>
   by (auto intro!: ext simp: relAPP_def)
 
 definition mononoms_equal_up_to_reorder where
@@ -458,7 +420,7 @@ context poly_embed
 begin
 
 abbreviation pac_step_rel where
-  \<open>pac_step_rel \<equiv> p2rel (\<langle>Id, fully_unsorted_poly_rel O mset_poly_rel\<rangle> pac_step_rel_raw)\<close>
+  \<open>pac_step_rel \<equiv> p2rel (\<langle>Id, fully_unsorted_poly_rel O mset_poly_rel, var_rel\<rangle> pac_step_rel_raw)\<close>
 
 abbreviation fmap_polys_rel where
   \<open>fmap_polys_rel \<equiv> \<langle>nat_rel, sorted_poly_rel O mset_poly_rel\<rangle>fmap_rel\<close>
@@ -853,39 +815,22 @@ lemma insert_var_rel_set_rel:
   (yb, x2) \<in> var_rel \<Longrightarrow>
   (insert yb \<V>, insert x2 \<V>') \<in> \<langle>var_rel\<rangle>set_rel\<close>
   by (auto simp: var_rel_def set_rel_def)
+  
+lemma var_rel_set_rel_iff:
+  \<open>(\<V>, \<V>') \<in> \<langle>var_rel\<rangle>set_rel \<Longrightarrow>
+  (yb, x2) \<in> var_rel \<Longrightarrow>
+  yb \<in> \<V> \<longleftrightarrow> x2 \<in>  \<V>'\<close>
+  using \<phi>_inj inj_eq by (fastforce simp: var_rel_def set_rel_def br_def)
 
-lemma find_undefined_var_l_find_undefined_var:
-  assumes
-    \<open>(r, r') \<in> sorted_poly_rel O mset_poly_rel\<close> and
-     \<open>(\<V>, \<V>') \<in> \<langle>var_rel\<rangle>set_rel\<close>
-  shows
-    \<open>find_undefined_var_l \<V> r  \<le>
-     \<Down> (\<langle>var_rel \<times>\<^sub>r int_rel \<times>\<^sub>r (sorted_poly_rel O mset_poly_rel)\<rangle>option_rel)
-       (find_undefined_var \<V>' r')\<close>
-  using assms
-  unfolding find_undefined_var_def find_undefined_var_l_def
-    conc_fun_RES
-  apply (auto split: option.splits simp: Image_iff set_rel_def
-      var_rel_def br_def
-    intro: exI[of _ None])
-  apply (rule exI[of _ None])
-  apply auto
-  apply (rule_tac x = \<open>Some (\<phi> a, _, _)\<close> in exI)
-  apply (auto intro!: remove1_sorted_poly_rel_mset_poly_rel)
-  using \<phi>_inj
-  apply (auto simp: inj_on_def)
-  apply (rule_tac x = \<open>Some (\<phi> a, -1, _)\<close> in exI)
-  apply (auto intro: remove1_sorted_poly_rel_mset_poly_rel_minus)
-  done
 
 lemma check_extension_l_check_extension:
   assumes \<open>(A, B) \<in> fmap_polys_rel\<close> and \<open>(r, r') \<in> sorted_poly_rel O mset_poly_rel\<close> and
-    \<open>(i, i') \<in> nat_rel\<close> \<open>(\<V>, \<V>') \<in> \<langle>var_rel\<rangle>set_rel\<close>
+    \<open>(i, i') \<in> nat_rel\<close> \<open>(\<V>, \<V>') \<in> \<langle>var_rel\<rangle>set_rel\<close> \<open>(x, x') \<in> var_rel\<close>
   shows
-    \<open>check_extension_l spec A \<V> i r \<le>
-      \<Down>{((st, v), (b, n)). (\<not>is_cfailed st \<longrightarrow> v \<noteq> None \<and> (the v, n) \<in> var_rel) \<and>
+    \<open>check_extension_l spec A \<V> i x r \<le>
+      \<Down>{((st), (b)).
         (\<not>is_cfailed st \<longleftrightarrow> b) \<and>
-       (is_cfound st \<longrightarrow> spec = r)} (check_extension B \<V>' i' r')\<close>
+       (is_cfound st \<longrightarrow> spec = r)} (check_extension B \<V>' i' x' r')\<close>
 proof -
   have [refine]:
     \<open>mult_poly_full p q \<le> \<Down> (sorted_poly_rel O mset_poly_rel) (mult_poly_spec p' q')\<close>
@@ -928,9 +873,8 @@ proof -
     by (auto intro: ext)
 
   have uminus: \<open>(x2c, x2a) \<in> sorted_poly_rel O mset_poly_rel \<Longrightarrow>
-       (x1c, x1a) \<in> Id \<Longrightarrow>
-       (if x1c = -1 then map (\<lambda>(a, b). (a, - b)) x2c else x2c,
-        if x1a = -1 then - x2a else x2a)
+       (map (\<lambda>(a, b). (a, - b)) x2c,
+        - x2a)
        \<in> sorted_poly_rel O mset_poly_rel\<close> for x2c x2a x1c x1a
      apply (clarsimp simp: sorted_poly_list_rel_wrt_def
       mset_poly_rel_def)
@@ -951,30 +895,25 @@ proof -
       defer
       apply (rule ref_two_step')
       apply (rule check_extension_alt_def)
-      apply (refine_vcg find_undefined_var_l_find_undefined_var)
-      subgoal using assms(1,3) by auto
+      apply (refine_vcg )
+      subgoal using assms(1,3,4,5)
+        by (auto simp: var_rel_set_rel_iff)
       subgoal by auto
-      subgoal using assms by auto
-      subgoal using assms by auto
-      apply assumption
-      subgoal by auto
-      subgoal for x v' xa x' x1 x2 x1a x2a x1b x2b x1c x2c
-        using sorted_poly_rel_vars_llist[of \<open>snd (snd (xa))\<close> \<open>snd (snd (x'))\<close>]
-          assms(4)
+      subgoal using sorted_poly_rel_vars_llist[of \<open>r\<close> \<open>r'\<close>]
+          assms
         by (force simp: set_rel_def var_rel_def br_def
           dest!: sorted_poly_rel_vars_llist)
       subgoal by auto
       subgoal by auto
-      subgoal by auto
-      subgoal by auto
+      subgoal using assms by auto
+      subgoal using assms by auto
       apply (rule uminus)
-      subgoal by auto
-      subgoal by auto
-      subgoal by auto
-      subgoal by auto
-      subgoal by auto
-      subgoal by auto
-      subgoal by auto
+      subgoal using assms by auto
+      subgoal using assms by auto
+      subgoal using assms by auto
+      subgoal using assms by auto
+      subgoal using assms by auto
+      subgoal using assms by auto
       done
 qed
 
