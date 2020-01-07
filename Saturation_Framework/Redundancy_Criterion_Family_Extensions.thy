@@ -696,7 +696,7 @@ proof clarify
 qed
 
 text "lemma 54 from the technical report"
-lemma "static_refutational_complete_calculus Bot_F Inf_F (\<Turnstile>\<inter>)
+lemma labeled_static_ref: "static_refutational_complete_calculus Bot_F Inf_F (\<Turnstile>\<inter>)
   no_labels.empty_ord_lifted_calc_w_red_crit_family.Red_Inf_Q
   no_labels.empty_ord_lifted_calc_w_red_crit_family.Red_F_Q
   \<Longrightarrow> static_refutational_complete_calculus Bot_FL Inf_FL (\<Turnstile>\<inter>L) with_labels.Red_Inf_Q with_labels.Red_F_Q"
