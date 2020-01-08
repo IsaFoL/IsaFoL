@@ -173,13 +173,13 @@ definition check_extension_l
   :: \<open>_ \<Rightarrow> _ \<Rightarrow> string set \<Rightarrow> nat \<Rightarrow> string \<Rightarrow> llist_polynom \<Rightarrow> (string code_status) nres\<close>
 where
 \<open>check_extension_l spec A \<V> i v p = do {
-  let b = i \<notin># dom_m A \<and> v \<notin> \<V> \<and> ([v], 1) \<in> set p;
+  let b = i \<notin># dom_m A \<and> v \<notin> \<V> \<and> ([v], -1) \<in> set p;
   if \<not>b
   then do {
     c \<leftarrow> check_extension_l_dom_err i;
     RETURN (error_msg i c)
   } else do {
-      let p' = remove1 ([v], 1) p;
+      let p' = remove1 ([v], -1) p;
       let b = vars_llist p' \<subseteq> \<V>;
       if \<not>b
       then do {
@@ -188,6 +188,7 @@ where
       }
       else do {
          p2 \<leftarrow> mult_poly_full p' p';
+         let p' = map (\<lambda>(a,b). (a, -b)) p';
          q \<leftarrow> add_poly_l (p2, p');
          eq \<leftarrow> weak_equality_l q [];
          if eq then do {
@@ -207,12 +208,13 @@ lemma check_extension_alt_def:
     if \<not>b
     then RETURN (False)
     else do {
-         p' \<leftarrow> RETURN (p - Var v);
+         p' \<leftarrow> RETURN (p + Var v);
          b \<leftarrow> SPEC(\<lambda>b. b \<longrightarrow> vars p' \<subseteq> \<V>);
          if \<not>b
          then RETURN (False)
          else do {
            pq \<leftarrow> mult_poly_spec p' p';
+           let p' = - p';
            p \<leftarrow> add_poly_spec pq p';
            eq \<leftarrow> weak_equality p 0;
            if eq then RETURN(True)
@@ -381,7 +383,7 @@ definition PAC_checker_l_step ::  \<open>_ \<Rightarrow> string code_status \<ti
    }
    | Extension _ _ _ \<Rightarrow>
        do {
-         r \<leftarrow> full_normalize_poly (([new_var st], 1) # map (\<lambda>(a,b). (a, -b)) (pac_res st));
+         r \<leftarrow> full_normalize_poly (([new_var st], -1) # (pac_res st));
         (eq) \<leftarrow> check_extension_l spec A \<V> (new_id st) (new_var st) r;
         if \<not>is_cfailed eq
         then do {
@@ -927,7 +929,7 @@ proof -
         by (auto simp: var_rel_set_rel_iff)
       subgoal by auto
       subgoal by auto
-      apply (subst \<open>x' = \<phi> x\<close>, rule remove1_sorted_poly_rel_mset_poly_rel)
+      apply (subst \<open>x' = \<phi> x\<close>, rule remove1_sorted_poly_rel_mset_poly_rel_minus)
       subgoal using assms by auto
       subgoal using assms by auto
       subgoal using sorted_poly_rel_vars_llist[of \<open>r\<close> \<open>r'\<close>]
@@ -937,6 +939,7 @@ proof -
       subgoal by auto
       subgoal by auto
       subgoal using assms by auto
+      apply (rule uminus)
       subgoal using assms by auto
       subgoal using assms by auto
       subgoal using assms by auto
@@ -995,27 +998,27 @@ lemma unsorted_poly_rel_list_rel_list_rel_uminus:
   by (induction r arbitrary: yc)
    (auto simp: elim!: list_relE3)
 
-lemma mset_poly_rel_uminus_minus: \<open>({#(a, b)#}, v') \<in> mset_poly_rel \<Longrightarrow>
+lemma mset_poly_rel_minus: \<open>({#(a, b)#}, v') \<in> mset_poly_rel \<Longrightarrow>
        (mset yc, r') \<in> mset_poly_rel \<Longrightarrow>
-       (map (\<lambda>(a, b). (a, - b)) r, yc)
+       (r, yc)
        \<in> \<langle>unsorted_term_poly_list_rel \<times>\<^sub>r int_rel\<rangle>list_rel \<Longrightarrow>
-       (add_mset (a, b) {#case x of (a, b) \<Rightarrow> (a, - b). x \<in># mset yc#},
-        v' - r')
+       (add_mset (a, b) (mset yc),
+        v' + r')
        \<in> mset_poly_rel\<close>
   by (induction r arbitrary: r')
     (auto simp: mset_poly_rel_def polynom_of_mset_uminus)
 
-lemma fully_unsorted_poly_rel_uminus_diff:
+lemma fully_unsorted_poly_rel_diff:
    \<open>([v], v') \<in> fully_unsorted_poly_rel O mset_poly_rel \<Longrightarrow>
-   (map (\<lambda>(a,b). (a, -b)) r, r') \<in> fully_unsorted_poly_rel O mset_poly_rel \<Longrightarrow>
+   (r, r') \<in> fully_unsorted_poly_rel O mset_poly_rel \<Longrightarrow>
     (v # r,
-     v' - r')
+     v' + r')
     \<in> fully_unsorted_poly_rel O mset_poly_rel\<close>
   apply auto
-  apply (rule_tac b = \<open>y +  (\<lambda>(a, b). (a, - b)) `# ya\<close> in relcompI)
+  apply (rule_tac b = \<open>y + ya\<close> in relcompI)
   apply (auto simp: fully_unsorted_poly_list_rel_def list_mset_rel_def br_def)
-  apply (rule_tac b = \<open>yb @ map (\<lambda>(a, b). (a, - b)) yc\<close> in relcompI)
-  apply (auto elim!: list_relE3 simp: unsorted_poly_rel_list_rel_list_rel_uminus mset_poly_rel_uminus_minus)
+  apply (rule_tac b = \<open>yb @ yc\<close> in relcompI)
+  apply (auto elim!: list_relE3 simp: unsorted_poly_rel_list_rel_list_rel_uminus mset_poly_rel_minus)
   done
 
 lemma PAC_checker_l_step_PAC_checker_step:
@@ -1059,12 +1062,13 @@ proof -
     by (cases st)
       (auto simp: code_status_status_rel_def)
   have [simp]: \<open>(x32, x32a) \<in> var_rel \<Longrightarrow>
-        ([([x32], 1::int)], Var x32a) \<in> fully_unsorted_poly_rel O mset_poly_rel\<close> for x32 x32a
+        ([([x32], -1::int)], -Var x32a) \<in> fully_unsorted_poly_rel O mset_poly_rel\<close> for x32 x32a
    by (auto simp: mset_poly_rel_def fully_unsorted_poly_list_rel_def list_mset_rel_def br_def
          unsorted_term_poly_list_rel_def var_rel_def Const_1_eq_1
-       intro!: relcompI[of _ \<open>{#({#x32#}, 1 :: int)#}\<close>]
-         relcompI[of _ \<open>[({#x32#}, 1)]\<close>])
-
+       intro!: relcompI[of _ \<open>{#({#x32#}, -1 :: int)#}\<close>]
+         relcompI[of _ \<open>[({#x32#}, -1)]\<close>])
+  have H3: \<open>p - Var a = (-Var a) + p\<close> for p :: \<open>int mpoly\<close> and a
+    by auto
   show ?thesis
     using assms(2)
     unfolding PAC_checker_l_step_def PAC_checker_step_def Ast Bst prod.case
@@ -1109,7 +1113,7 @@ proof -
     subgoal
       apply (refine_rcg full_normalize_poly_diff_ideal
         check_extension_l_check_extension)
-      subgoal using AB by (auto intro!: fully_unsorted_poly_rel_uminus_diff simp: comp_def case_prod_beta)
+      subgoal using AB by (auto intro!: fully_unsorted_poly_rel_diff[of _ \<open>-Var _ :: int mpoly\<close>, unfolded H3[symmetric]] simp: comp_def case_prod_beta)
       subgoal using AB by auto
       subgoal using AB by (auto simp: )
       subgoal by (auto simp: )
