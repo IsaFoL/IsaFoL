@@ -132,21 +132,11 @@ if
 del:
    \<open>p \<in># A \<Longrightarrow> PAC_Format (\<V>, A) (\<V>, A - {#p#})\<close> |
 extend_pos:
-  \<open>PAC_Format (\<V>, A) (\<V> \<union> {x \<in> vars p'. x \<notin> \<V>}, add_mset p' A)\<close>
+  \<open>PAC_Format (\<V>, A) (\<V> \<union> {x' \<in> vars (Var x - p'). x' \<notin> \<V>}, add_mset (Var x - p') A)\<close>
   if
-    \<open>x \<in> vars p'\<close>
-    \<open>coeff p' (Poly_Mapping.single x 1) = 1\<close>
-    \<open>(Var x - p')\<^sup>2 - (Var x - p') \<in> ideal polynom_bool\<close>
+    \<open>(p')\<^sup>2 - p' \<in> ideal polynom_bool\<close>
+    \<open>vars p' \<subseteq> \<V>\<close>
     \<open>x \<notin> \<V>\<close>
-    \<open>x \<notin> vars(p' - Var x)\<close> |
-extend_minus:
-  \<open>PAC_Format (\<V>, A) (\<V> \<union> {x \<in> vars p'. x \<notin> \<V>}, add_mset p' A)\<close>
-  if
-    \<open>x \<in> vars p'\<close>
-    \<open>coeff p' (Poly_Mapping.single x 1) = -1\<close>
-    \<open>(Var x + p')^2 - (Var x + p') \<in> ideal polynom_bool\<close>
-    \<open>x \<notin> \<V>\<close>
-    \<open>x \<notin> vars(p' + Var x)\<close>
 
 text  \<open>
   In the PAC format above, we have a technical condition on the
@@ -168,12 +158,9 @@ lemma PAC_Format_induct[consumes 1, case_names add mult del ext]:
       \<open>\<And>p q p' A \<V>. p \<in># A \<Longrightarrow> p*q - p' \<in> ideal polynom_bool \<Longrightarrow> vars p' \<subseteq> \<V> \<Longrightarrow> vars q \<subseteq> \<V> \<Longrightarrow>
         P \<V> A \<V> (add_mset p' A)\<close>
       \<open>\<And>p A \<V>. p \<in># A \<Longrightarrow> P \<V> A \<V> (A - {#p#})\<close>
-      \<open>\<And>p' x. x \<in> vars p' \<Longrightarrow> coeff p' (Poly_Mapping.single x 1) = 1 \<Longrightarrow>
-        (Var x - p')\<^sup>2 - (Var x - p') \<in> ideal polynom_bool \<Longrightarrow> x \<notin> vars(p' - Var x) \<Longrightarrow>
-        x \<notin> \<V> \<Longrightarrow> P \<V> A (\<V> \<union> {x \<in> vars p'. x \<notin> \<V>}) (add_mset p' A)\<close>
-      \<open>\<And>p' x. x \<in> vars p' \<Longrightarrow> coeff p' (Poly_Mapping.single x 1) = -1 \<Longrightarrow>
-        (Var x + p')^2 - (Var x + p') \<in> ideal polynom_bool \<Longrightarrow> x \<notin> vars(p' + Var x) \<Longrightarrow>
-        x \<notin> \<V> \<Longrightarrow> P \<V> A (\<V> \<union> {x \<in> vars p'. x \<notin> \<V>}) (add_mset p' A)\<close>
+      \<open>\<And>p' x r. 
+        (p')^2 - (p') \<in> ideal polynom_bool \<Longrightarrow> vars p' \<subseteq> \<V> \<Longrightarrow> 
+        x \<notin> \<V> \<Longrightarrow> P \<V> A (\<V> \<union> {x' \<in> vars (Var x - p'). x' \<notin> \<V>}) (add_mset (Var x - p') A)\<close>
   shows
      \<open>P \<V> A \<V>' A'\<close>
   using assms(1) apply -
@@ -491,6 +478,29 @@ qed
 text \<open>This is the correctness theorem of a PAC step: no polynoms are
 added to the ideal.\<close>
 
+lemma vars_subst_in_left_only:
+  \<open>x \<notin> vars p \<Longrightarrow> x \<in> vars (Var x - p)\<close> for p :: \<open>int mpoly\<close>
+  by (metis One_nat_def Var.abs_eq Var\<^sub>0_def group_eq_aux in_vars_addE monom.abs_eq mult_numeral_1 polynom_decomp_alien_var(1) zero_neq_numeral)
+
+lemma vars_subst_in_left_only_iff:
+  \<open>x \<notin> vars p \<Longrightarrow> vars (Var x - p) = insert x (vars p)\<close> for p :: \<open>int mpoly\<close>
+  apply (auto simp: vars_subst_in_left_only)
+  apply (metis (no_types, hide_lams) diff_0_right diff_minus_eq_add empty_iff in_vars_addE insert_iff keys_single minus_diff_eq
+    monom_one mult.right_neutral one_neq_zero single_zero vars_monom_keys vars_mult_Var vars_uminus)
+  by (metis add.commute empty_iff group_eq_aux insert_iff keys_single monom_one mult.right_neutral
+    one_neq_zero single_zero vars_in_right_only vars_monom_keys vars_mult_Var)
+
+lemma coeff_add_left_notin:
+  \<open>x \<notin> vars p \<Longrightarrow> MPoly_Type.coeff (Var x - p) (monomial (Suc 0) x) = 1\<close>
+  apply (auto simp flip: coeff_minus simp: not_in_vars_coeff0)
+  by (simp add: MPoly_Type.coeff_def Var.rep_eq Var\<^sub>0_def)
+
+lemma ideal_insert_polynom_bool_swap: \<open>r - s \<in> ideal polynom_bool \<Longrightarrow>
+  More_Modules.ideal (insert r  (A \<union> polynom_bool)) = More_Modules.ideal (insert s (A \<union> polynom_bool))\<close>
+  apply auto
+  using ideal.eq_span_insert_eq ideal.span_mono sup_ge2 apply blast+
+  done
+
 lemma PAC_Format_subset_ideal:
   \<open>PAC_Format (\<V>, A) (\<V>', B) \<Longrightarrow> \<Union>(vars ` set_mset A) \<subseteq> \<V> \<Longrightarrow>
      restricted_ideal_to\<^sub>I \<V> B \<subseteq> restricted_ideal_to\<^sub>I \<V> A \<and> \<V> \<subseteq> \<V>' \<and> \<Union>(vars ` set_mset B) \<subseteq> \<V>'\<close>
@@ -508,12 +518,11 @@ lemma PAC_Format_subset_ideal:
   subgoal for p A
     using pac_ideal_mono[of \<open>set_mset (A - {#p#})\<close> \<open>set_mset A\<close>]
     by (auto dest: in_diffD)
-  subgoal for p x'
-    using extensions_are_safe[of x' p \<V> A] unfolding pac_ideal_def
-    by auto
-  subgoal for p x'
-    using extensions_are_safe_uminus[of x' p \<V> A] unfolding pac_ideal_def
-    by auto
+  subgoal for p x' r'
+    apply (subgoal_tac \<open>x' \<notin> vars p\<close>)
+    using extensions_are_safe[of x' \<open>Var x' - p\<close> \<V> A] unfolding pac_ideal_def
+    apply (auto simp: vars_subst_in_left_only coeff_add_left_notin)
+    done
   done
 
 

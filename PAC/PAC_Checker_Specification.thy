@@ -25,10 +25,10 @@ lemma is_success_alt_def:
   \<open>is_success a \<longleftrightarrow> a = SUCCESS\<close>
   by (cases a) auto
 
-datatype 'a pac_step =
+datatype ('a, 'b) pac_step =
   Add (pac_src1: nat) (pac_src2: nat) (new_id: nat) (pac_res: 'a) |
   Mult (pac_src1: nat) (pac_mult: 'a) (new_id: nat) (pac_res: 'a) |
-  Extension (new_id: nat) (pac_res: 'a) |
+  Extension (new_id: nat) (new_var: 'b) (pac_res: 'a) |
   Del (pac_src1: nat)
 
 type_synonym  pac_state = \<open>(nat set \<times> int_poly multiset)\<close>
@@ -92,18 +92,12 @@ definition check_mult :: \<open>(nat, int mpoly) fmap \<Rightarrow> nat set \<Ri
      SPEC(\<lambda>b. b \<longrightarrow> p \<in># dom_m A \<and>i \<notin># dom_m A \<and> vars q \<subseteq> \<V> \<and> vars r \<subseteq> \<V> \<and>
             the (fmlookup A p) * q - r \<in>  ideal polynom_bool)\<close>
 
-definition check_extension :: \<open>(nat, int mpoly) fmap \<Rightarrow> nat set \<Rightarrow> nat \<Rightarrow> int mpoly \<Rightarrow> (bool \<times> nat) nres\<close> where
-  \<open>check_extension A \<V> i p =
-     SPEC(\<lambda>(b, v). b \<longrightarrow> (i \<notin># dom_m A \<and>
+definition check_extension :: \<open>(nat, int mpoly) fmap \<Rightarrow> nat set \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> int mpoly \<Rightarrow> (bool) nres\<close> where
+  \<open>check_extension A \<V> i v p =
+     SPEC(\<lambda>b. b \<longrightarrow> (i \<notin># dom_m A \<and>
      (v \<notin> \<V> \<and>
-        ((coeff p (Poly_Mapping.single v 1) = 1 \<and>
-           (Var v - p)\<^sup>2 - (Var v - p) \<in> ideal polynom_bool \<and>
-            vars (Var v - p) \<subseteq> \<V> \<and>
-            v \<notin> vars (Var v - p)) \<or>
-        (coeff p (Poly_Mapping.single v 1) = -1 \<and>
-           (Var v + p)\<^sup>2 - (Var v + p) \<in> ideal polynom_bool \<and>
-            vars (Var v + p) \<subseteq> \<V> \<and>
-            v \<notin> vars (Var v + p))))))\<close>
+           (p-Var v)\<^sup>2 + (p-Var v) \<in> ideal polynom_bool \<and>
+            vars (p-Var v) \<subseteq> \<V>)))\<close>
 
 fun merge_status where
   \<open>merge_status (FAILED) _ = FAILED\<close> |
@@ -119,7 +113,7 @@ definition check_del :: \<open>(nat, int mpoly) fmap \<Rightarrow> nat \<Rightar
      SPEC(\<lambda>b. b \<longrightarrow> p \<in># dom_m A)\<close>
 
 definition PAC_checker_step
-  ::  \<open>int_poly \<Rightarrow> (status \<times> fpac_step) \<Rightarrow> int_poly pac_step \<Rightarrow>
+  ::  \<open>int_poly \<Rightarrow> (status \<times> fpac_step) \<Rightarrow> (int_poly, nat) pac_step \<Rightarrow>
     (status \<times> fpac_step) nres\<close>
 where
   \<open>PAC_checker_step = (\<lambda>spec (stat, (\<V>, A)) st. case st of
@@ -151,13 +145,14 @@ where
           \<V>, fmupd (new_id st) r A)
         else RETURN (FAILED, (\<V>, A))
    }
-   | Extension _ _ \<Rightarrow>
+   | Extension _ _ _ \<Rightarrow>
        do {
-         r \<leftarrow> normalize_poly_spec (pac_res st);
-        (eq, v) \<leftarrow> check_extension A \<V> (new_id st) r;
+         r \<leftarrow> normalize_poly_spec (Var (new_var st) - pac_res st);
+        (eq) \<leftarrow> check_extension A \<V> (new_id st) (new_var st) r;
         if eq
-        then RETURN (stat,
-          insert v \<V>, fmupd (new_id st) r A)
+        then do {
+         RETURN (stat,
+          insert (new_var st) \<V>, fmupd (new_id st) (r) A)}
         else RETURN (FAILED, (\<V>, A))
    }
  )\<close>
@@ -255,19 +250,10 @@ lemma PAC_Format_add_and_remove:
        x12 \<in># dom_m A \<Longrightarrow>
        PAC_Format\<^sup>*\<^sup>* (\<V>, B) (\<V>, remove1_mset (the (fmlookup A x12)) B)\<close>
    \<open>(A, B) \<in> polys_rel \<Longrightarrow>
-       coeff p' (Poly_Mapping.single x 1) = 1 \<Longrightarrow>
-       (Var x - p')\<^sup>2 - (Var x - p') \<in> ideal polynom_bool \<Longrightarrow>
+       (p' - Var x)\<^sup>2 + (p' - Var x) \<in> ideal polynom_bool \<Longrightarrow>
        x \<notin> \<V> \<Longrightarrow>
        x \<notin> vars(p' - Var x) \<Longrightarrow>
        vars(p' - Var x) \<subseteq> \<V> \<Longrightarrow>
-       PAC_Format\<^sup>*\<^sup>* (\<V>, B)
-         (insert x \<V>, add_mset p' B)\<close>
-   \<open>(A, B) \<in> polys_rel \<Longrightarrow>
-       coeff p' (Poly_Mapping.single x 1) = -1 \<Longrightarrow>
-       (Var x + p')\<^sup>2 - (Var x + p') \<in> ideal polynom_bool \<Longrightarrow>
-       x \<notin> \<V> \<Longrightarrow>
-       x \<notin> vars(p' + Var x) \<Longrightarrow>
-       vars(p' + Var x) \<subseteq> \<V> \<Longrightarrow>
        PAC_Format\<^sup>*\<^sup>* (\<V>, B)
          (insert x \<V>, add_mset p' B)\<close>
    subgoal
@@ -313,23 +299,17 @@ lemma PAC_Format_add_and_remove:
     done
   subgoal
     apply (rule converse_rtranclp_into_rtranclp)
-    apply (rule PAC_Format.extend_pos[of x p'])
-    using coeff_monomila_in_varsD[of p' x]
-    apply (auto dest: polys_rel_in_dom_inD)
-    apply (subgoal_tac \<open>\<V> \<union> {x \<in> vars p'. x \<notin> \<V>} = insert x \<V>\<close>)
+    apply (rule PAC_Format.extend_pos[of \<open>Var x - p'\<close> _ x])
+    using coeff_monomila_in_varsD[of \<open>Var x - p'\<close> x]
+    apply (auto dest: polys_rel_in_dom_inD simp: vars_in_right_only vars_subst_in_left_only)
+    apply (subgoal_tac \<open>(p' - Var x)\<^sup>2 + (p' - Var x) = (Var x - p')\<^sup>2 - (Var x - p')\<close>)
+    apply (auto simp: power2_eq_square field_simps)[2]
+    using vars_in_right_only apply fastforce
+    apply (subgoal_tac \<open>\<V> \<union> {x' \<in> vars (p'). x' \<notin> \<V>} = insert x \<V>\<close>)
     apply simp
     using coeff_monomila_in_varsD[of p' x]
-    apply (auto dest: vars_minus_Var_subset polys_rel_in_dom_inD)[]
-    done
-  subgoal
-    apply (rule converse_rtranclp_into_rtranclp)
-    apply (rule PAC_Format.extend_minus[of x p'])
-    using coeff_monomila_in_varsD[of p' x]
-    apply (auto dest: polys_rel_in_dom_inD vars_minus_Var_subset)
-    apply (subgoal_tac \<open>\<V> \<union> {x \<in> vars p'. x \<notin> \<V>} = insert x \<V>\<close>)
-    apply simp
-    apply (auto dest: vars_add_Var_subset polys_rel_in_dom_inD)
-    done
+    apply (auto dest: vars_minus_Var_subset polys_rel_in_dom_inD simp: vars_subst_in_left_only_iff)
+    using vars_in_right_only vars_subst_in_left_only by force
   done
 
 
@@ -484,22 +464,14 @@ proof -
         by (rule RETURN_SPEC_refine)
           (auto simp: Ex_status_iff)
       done
-    subgoal for x31 x32
+    subgoal for x31 x32 x34
       apply (refine_vcg lhs_step_If)
-      subgoal for r x x1 x2
+      subgoal for r x
         using assms vars_B apply -
         apply (rule RETURN_SPEC_refine)
-        apply (rule_tac x = \<open>(a,insert x2 \<V>, add_mset r B)\<close> in exI)
-        apply (auto simp: intro: polys_rel_update_remove PAC_Format_add_and_remove(5-)
+        apply (rule_tac x = \<open>(a,insert x32 \<V>, add_mset r B)\<close> in exI)
+        apply (auto simp: intro!: polys_rel_update_remove PAC_Format_add_and_remove(5-)
            dest: rtranclp_PAC_Format_subset_ideal)
-        apply (rule PAC_Format_add_and_remove(5-))
-        apply (auto simp: vars_diff_inv)
-        apply (rule PAC_Format_add_and_remove(5-))
-        apply (auto simp: vars_diff_inv)
-        apply (rule PAC_Format_add_and_remove(8-))
-        apply (auto simp: vars_add_inv)
-        apply (rule PAC_Format_add_and_remove(8-))
-        apply (auto simp: vars_add_inv)
         done
       subgoal
         by (rule RETURN_SPEC_refine)
@@ -528,7 +500,7 @@ qed
 
 
 definition PAC_checker
-  :: \<open>int_poly \<Rightarrow> fpac_step \<Rightarrow> status \<Rightarrow> int_poly pac_step list \<Rightarrow>
+  :: \<open>int_poly \<Rightarrow> fpac_step \<Rightarrow> status \<Rightarrow> (int_poly, nat) pac_step list \<Rightarrow>
     (status \<times> fpac_step) nres\<close>
 where
   \<open>PAC_checker spec A b st = do {
@@ -743,7 +715,7 @@ lemma remap_polys_spec:
 
 
 definition full_checker
-  :: \<open>int_poly \<Rightarrow> (nat, int_poly) fmap \<Rightarrow> int_poly pac_step list \<Rightarrow> (status \<times> _) nres\<close>
+  :: \<open>int_poly \<Rightarrow> (nat, int_poly) fmap \<Rightarrow> (int_poly, nat) pac_step list \<Rightarrow> (status \<times> _) nres\<close>
  where
   \<open>full_checker spec0 A pac = do {
      spec \<leftarrow> normalize_poly_spec spec0;

@@ -79,8 +79,8 @@ structure PAC_Checker : sig
   type char
   type ('a, 'b) hashtable
   datatype 'a code_status = CFAILED of 'a | CSUCCESS | CFOUND
-  datatype 'a pac_step = Add of nat * nat * nat * 'a |
-    Mult of nat * 'a * nat * 'a | Extension of nat * 'a | Del of nat
+  datatype ('a, 'b) pac_step = Add of nat * nat * nat * 'a |
+    Mult of nat * 'a * nat * 'a | Extension of nat * 'b * 'a | Del of nat
   val implode : char list -> string
   val is_cfound : 'a code_status -> bool
   val the_error : 'a code_status -> 'a
@@ -98,7 +98,7 @@ structure PAC_Checker : sig
       (char list) code_status ->
         (string, unit) hashtable ->
           (nat, ((string list * int) list)) hashtable ->
-            ((string list * int) list) pac_step ->
+            (((string list * int) list), string) pac_step ->
               (unit ->
                 ((char list) code_status *
                   ((string, unit) hashtable *
@@ -109,7 +109,7 @@ structure PAC_Checker : sig
       (string, unit) hashtable ->
         (nat, ((string list * int) list)) hashtable ->
           (char list) code_status ->
-            ((string list * int) list) pac_step list ->
+            (((string list * int) list), string) pac_step list ->
               (unit ->
                 ((char list) code_status *
                   ((string, unit) hashtable *
@@ -128,7 +128,7 @@ structure PAC_Checker : sig
   val full_checker_l_impl :
     (string list * int) list ->
       (((string list * int) list) option) array ->
-        ((string list * int) list) pac_step list ->
+        (((string list * int) list), string) pac_step list ->
           (unit ->
             ((char list) code_status *
               ((string, unit) hashtable *
@@ -583,8 +583,8 @@ datatype ('a, 'b) hashtable = HashTable of (('a * 'b) list) array * nat;
 
 datatype 'a code_status = CFAILED of 'a | CSUCCESS | CFOUND;
 
-datatype 'a pac_step = Add of nat * nat * nat * 'a | Mult of nat * 'a * nat * 'a
-  | Extension of nat * 'a | Del of nat;
+datatype ('a, 'b) pac_step = Add of nat * nat * nat * 'a |
+  Mult of nat * 'a * nat * 'a | Extension of nat * 'b * 'a | Del of nat;
 
 fun plus_nat m n = Nat (IntInf.+ (integer_of_nat m, integer_of_nat n));
 
@@ -622,6 +622,9 @@ fun drop n [] = []
 fun take n [] = []
   | take n (x :: xs) =
     (if equal_nata n zero_nat then [] else x :: take (minus_nat n one_nat) xs);
+
+fun member A_ [] y = false
+  | member A_ (x :: xs) y = eq A_ x y orelse member A_ xs y;
 
 fun lexordp A_ r (x :: xs) (y :: ys) =
   r x y orelse eq A_ x y andalso lexordp A_ r xs ys
@@ -974,6 +977,8 @@ fun merge_cstatus (CFAILED a) uu = CFAILED a
   | merge_cstatus CSUCCESS CFOUND = CFOUND
   | merge_cstatus CSUCCESS CSUCCESS = CSUCCESS;
 
+fun op_list_contains A_ = (fn x => fn l => member A_ l x);
+
 fun op_list_is_empty x = null x;
 
 fun plus_int k l =
@@ -1263,7 +1268,7 @@ fun pAC_update_impl x =
 
 fun is_Extension (Add (x11, x12, x13, x14)) = false
   | is_Extension (Mult (x21, x22, x23, x24)) = false
-  | is_Extension (Extension (x31, x32)) = true
+  | is_Extension (Extension (x31, x32, x33)) = true
   | is_Extension (Del x4) = false;
 
 fun check_extension_l_new_var_multiple_err_impl A_ B_ v p =
@@ -1440,51 +1445,6 @@ fun check_extension_l_new_var_multiple_err_impl A_ B_ v p =
             Chara (false, false, true, false, true, true, true, false),
             Chara (false, true, true, true, false, true, false, false)];
 
-fun check_extension_l_no_new_var_err_impl A_ p =
-  [Chara (false, true, true, true, false, false, true, false),
-    Chara (true, true, true, true, false, true, true, false),
-    Chara (false, false, false, false, false, true, false, false),
-    Chara (false, true, true, true, false, true, true, false),
-    Chara (true, false, true, false, false, true, true, false),
-    Chara (true, true, true, false, true, true, true, false),
-    Chara (false, false, false, false, false, true, false, false),
-    Chara (false, true, true, false, true, true, true, false),
-    Chara (true, false, false, false, false, true, true, false),
-    Chara (false, true, false, false, true, true, true, false),
-    Chara (true, false, false, true, false, true, true, false),
-    Chara (true, false, false, false, false, true, true, false),
-    Chara (false, true, false, false, false, true, true, false),
-    Chara (false, false, true, true, false, true, true, false),
-    Chara (true, false, true, false, false, true, true, false),
-    Chara (false, false, false, false, false, true, false, false),
-    Chara (true, true, false, false, false, true, true, false),
-    Chara (true, true, true, true, false, true, true, false),
-    Chara (true, false, true, false, true, true, true, false),
-    Chara (false, false, true, true, false, true, true, false),
-    Chara (false, false, true, false, false, true, true, false),
-    Chara (false, false, false, false, false, true, false, false),
-    Chara (false, true, false, false, false, true, true, false),
-    Chara (true, false, true, false, false, true, true, false),
-    Chara (false, false, false, false, false, true, false, false),
-    Chara (false, true, true, false, false, true, true, false),
-    Chara (true, true, true, true, false, true, true, false),
-    Chara (true, false, true, false, true, true, true, false),
-    Chara (false, true, true, true, false, true, true, false),
-    Chara (false, false, true, false, false, true, true, false),
-    Chara (false, false, false, false, false, true, false, false),
-    Chara (true, false, false, true, false, true, true, false),
-    Chara (false, true, true, true, false, true, true, false),
-    Chara (false, false, false, false, false, true, false, false),
-    Chara (false, false, false, false, true, true, true, false),
-    Chara (true, true, true, true, false, true, true, false),
-    Chara (false, false, true, true, false, true, true, false),
-    Chara (true, false, false, true, true, true, true, false),
-    Chara (false, true, true, true, false, true, true, false),
-    Chara (true, true, true, true, false, true, true, false),
-    Chara (true, false, true, true, false, true, true, false),
-    Chara (false, false, false, false, false, true, false, false)] @
-    shows_prec A_ zero_nat p [];
-
 fun check_extension_l_side_cond_err_impl A_ B_ D_ v p r s =
   [Chara (true, false, true, false, false, false, true, false),
     Chara (false, true, false, false, true, true, true, false),
@@ -1610,43 +1570,6 @@ fun check_extension_l_side_cond_err_impl A_ B_ D_ v p r s =
                 Chara (false, false, false, false, false, true, false, false),
                 Chara (false, false, false, false, true, true, false, false)];
 
-fun find_undefined_var_l_only_impl_0 ai x =
-  (case x of [] => (fn () => NONE)
-    | ([], _) :: l => find_undefined_var_l_only_impl_0 ai l
-    | ([x_a], a2) :: l =>
-      (fn () =>
-        let
-          val xa =
-            hs_memb (equal_literal, hashable_literal, heap_literal) x_a ai ();
-        in
-          (if not xa andalso
-                (equal_inta a2 one_int orelse
-                  equal_inta a2 (uminus_int one_int))
-            then (fn () => (SOME (x_a, a2)))
-            else find_undefined_var_l_only_impl_0 ai l)
-            ()
-        end)
-    | (_ :: _ :: _, _) :: l => find_undefined_var_l_only_impl_0 ai l);
-
-fun find_undefined_var_l_only_impl x = find_undefined_var_l_only_impl_0 x;
-
-fun find_undefined_var_l_fun_impl x =
-  (fn ai => fn bi => fn () =>
-    let
-      val xa = find_undefined_var_l_only_impl ai bi ();
-    in
-      (if is_None xa then NONE
-        else let
-               val (a1, a2) = the xa;
-             in
-               SOME (a1, (a2, remove1
-                                (equal_prod (equal_list equal_literal)
-                                  equal_int)
-                                (op_list_prepend a1 [], a2) bi))
-             end)
-    end)
-    x;
-
 fun check_ext_l_dom_err_impl p =
   [Chara (false, false, true, false, true, false, true, false),
     Chara (false, false, false, true, false, true, true, false),
@@ -1724,58 +1647,52 @@ fun vars_of_poly_in_impl x =
     x;
 
 fun check_extension_l_impl x =
-  (fn _ => fn bic => fn bib => fn bia => fn bi => fn () =>
+  (fn _ => fn bid => fn bic => fn bib => fn bia => fn bi => fn () =>
     let
       val xa =
         ht_lookup (equal_nat, hashable_nat, heap_nat)
-          (heap_list (heap_prod (heap_list heap_literal) heap_int)) bia bic ();
+          (heap_list (heap_prod (heap_list heap_literal) heap_int)) bib bid ();
+      val xaa =
+        hs_memb (equal_literal, hashable_literal, heap_literal) bia bic ();
     in
-      (if not (is_None xa)
-        then (fn () =>
-               (error_msg show_nat bia (check_ext_l_dom_err_impl bia), NONE))
-        else (fn f_ => fn () => f_ ((find_undefined_var_l_fun_impl bib bi) ())
-               ())
-               (fn x_b =>
-                 (if is_None x_b
-                   then (fn () =>
-                          (error_msg show_nat bia
-                             (check_extension_l_no_new_var_err_impl
-                               (show_list
-                                 (show_prod (show_list show_literal) show_int))
-                               bi),
-                            NONE))
-                   else let
-                          val (a1, (a1a, a2a)) = the x_b;
-                        in
-                          (fn f_ => fn () => f_ ((vars_of_poly_in_impl a2a bib)
-                            ()) ())
-                            (fn x_e =>
-                              (if not x_e
-                                then (fn () =>
-                                       (error_msg show_nat bia
-  (check_extension_l_new_var_multiple_err_impl show_literal
-    (show_list (show_prod (show_list show_literal) show_int)) a1 a2a),
- NONE))
-                                else (fn f_ => fn () => f_
-                                       ((mult_poly_impl a2a a2a) ()) ())
-                                       (fn x_h =>
- (fn f_ => fn () => f_
-   ((add_poly_impl
-      (x_h, (if equal_inta a1a (uminus_int one_int)
-              then map (fn (a, b) => (a, uminus_int b)) a2a else a2a)))
-   ()) ())
-   (fn x_k =>
-     (fn f_ => fn () => f_ ((weak_equality_l_impl x_k []) ()) ())
-       (fn x_l =>
-         (fn () =>
-           (if x_l then (CSUCCESS, SOME a1)
-             else (error_msg show_nat bia
-                     (check_extension_l_side_cond_err_impl show_literal
-                       (show_list (show_prod (show_list show_literal) show_int))
-                       (show_list (show_prod (show_list show_literal) show_int))
-                       a1 bi a2a x_k),
-                    NONE))))))))
-                        end)))
+      (if not (is_None xa andalso
+                (not xaa andalso
+                  op_list_contains
+                    (equal_prod (equal_list equal_literal) equal_int)
+                    (op_list_prepend bia [], one_int) bi))
+        then (fn () => (error_msg show_nat bib (check_ext_l_dom_err_impl bib)))
+        else let
+               val x_c =
+                 remove1 (equal_prod (equal_list equal_literal) equal_int)
+                   (op_list_prepend bia [], one_int) bi;
+             in
+               (fn f_ => fn () => f_ ((vars_of_poly_in_impl x_c bic) ()) ())
+                 (fn x_e =>
+                   (if not x_e
+                     then (fn () =>
+                            (error_msg show_nat bib
+                              (check_extension_l_new_var_multiple_err_impl
+                                show_literal
+                                (show_list
+                                  (show_prod (show_list show_literal) show_int))
+                                bia x_c)))
+                     else (fn f_ => fn () => f_ ((mult_poly_impl x_c x_c) ())
+                            ())
+                            (fn x_h =>
+                              (fn f_ => fn () => f_ ((add_poly_impl (x_h, x_c))
+                                ()) ())
+                                (fn x_i =>
+                                  (fn f_ => fn () => f_
+                                    ((weak_equality_l_impl x_i []) ()) ())
+                                    (fn x_j =>
+                                      (fn () =>
+(if x_j then CSUCCESS
+  else error_msg show_nat bib
+         (check_extension_l_side_cond_err_impl show_literal
+           (show_list (show_prod (show_list show_literal) show_int))
+           (show_list (show_prod (show_list show_literal) show_int)) bia bi x_c
+           x_i))))))))
+             end)
         ()
     end)
     x;
@@ -1880,11 +1797,13 @@ fun pac_mult (Mult (x21, x22, x23, x24)) = x22;
 
 fun pac_res (Add (x11, x12, x13, x14)) = x14
   | pac_res (Mult (x21, x22, x23, x24)) = x24
-  | pac_res (Extension (x31, x32)) = x32;
+  | pac_res (Extension (x31, x32, x33)) = x33;
+
+fun new_var (Extension (x31, x32, x33)) = x32;
 
 fun is_Mult (Add (x11, x12, x13, x14)) = false
   | is_Mult (Mult (x21, x22, x23, x24)) = true
-  | is_Mult (Extension (x31, x32)) = false
+  | is_Mult (Extension (x31, x32, x33)) = false
   | is_Mult (Del x4) = false;
 
 fun fully_normalize_poly_impl x =
@@ -1897,11 +1816,11 @@ fun fully_normalize_poly_impl x =
 
 fun new_id (Add (x11, x12, x13, x14)) = x13
   | new_id (Mult (x21, x22, x23, x24)) = x23
-  | new_id (Extension (x31, x32)) = x31;
+  | new_id (Extension (x31, x32, x33)) = x31;
 
 fun is_Add (Add (x11, x12, x13, x14)) = true
   | is_Add (Mult (x21, x22, x23, x24)) = false
-  | is_Add (Extension (x31, x32)) = false
+  | is_Add (Extension (x31, x32, x33)) = false
   | is_Add (Del x4) = false;
 
 fun check_mult_l_mult_err_impl A_ B_ C_ D_ p q pq r =
@@ -2192,26 +2111,29 @@ fun check_step_impl x =
                     then (fn () =>
                            let
                              val x_c =
-                               fully_normalize_poly_impl (pac_res bi) ();
-                             val a =
-                               check_extension_l_impl ai bia bib (new_id bi) x_c
+                               fully_normalize_poly_impl
+                                 (op_list_prepend
+                                   (op_list_prepend (new_var bi) [], one_int)
+                                   (map (fn (a, b) => (a, uminus_int b))
+                                     (pac_res bi)))
                                  ();
+                             val x_d =
+                               check_extension_l_impl ai bia bib (new_id bi)
+                                 (new_var bi) x_c ();
                            in
-                             let
-                               val (a1, a2) = a;
-                             in
-                               (if not (is_cfailed a1)
-                                 then (fn f_ => fn () => f_
-((hs_ins (equal_literal, hashable_literal, heap_literal) (the a2) bib) ()) ())
-(fn xa =>
-  (fn f_ => fn () => f_
-    ((ht_update (equal_nat, hashable_nat, heap_nat)
-       (heap_list (heap_prod (heap_list heap_literal) heap_int)) (new_id bi) x_c
-       bia)
-    ()) ())
-    (fn xaa => (fn () => (bic, (xa, xaa)))))
-                                 else (fn () => (a1, (bib, bia))))
-                             end
+                             (if not (is_cfailed x_d)
+                               then (fn f_ => fn () => f_
+                                      ((hs_ins
+ (equal_literal, hashable_literal, heap_literal) (new_var bi) bib)
+                                      ()) ())
+                                      (fn xa =>
+(fn f_ => fn () => f_
+  ((ht_update (equal_nat, hashable_nat, heap_nat)
+     (heap_list (heap_prod (heap_list heap_literal) heap_int)) (new_id bi) x_c
+     bia)
+  ()) ())
+  (fn xaa => (fn () => (bic, (xa, xaa)))))
+                               else (fn () => (x_d, (bib, bia))))
                                ()
                            end)
                     else (fn () =>
