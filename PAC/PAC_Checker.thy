@@ -173,7 +173,8 @@ definition check_extension_l
   :: \<open>_ \<Rightarrow> _ \<Rightarrow> string set \<Rightarrow> nat \<Rightarrow> string \<Rightarrow> llist_polynom \<Rightarrow> (string code_status) nres\<close>
 where
 \<open>check_extension_l spec A \<V> i v p = do {
-  if i \<in># dom_m A \<or> v \<in> \<V>
+  let b = i \<notin># dom_m A \<and> v \<notin> \<V> \<and> ([v], 1) \<in> set p;
+  if \<not>b
   then do {
     c \<leftarrow> check_extension_l_dom_err i;
     RETURN (error_msg i c)
@@ -202,7 +203,8 @@ where
 
 lemma check_extension_alt_def:
   \<open>check_extension A \<V> i v p \<ge> do {
-    if i \<in># dom_m A \<or> v \<in> \<V>
+    b \<leftarrow> SPEC(\<lambda>b. b \<longrightarrow> i \<notin># dom_m A \<and> v \<notin> \<V>);
+    if \<not>b
     then RETURN (False)
     else do {
          p' \<leftarrow> RETURN (p - Var v);
@@ -248,7 +250,7 @@ proof -
     by simp
   show ?thesis
     unfolding check_extension_def
-    apply (auto 5 3 simp: check_extension_def weak_equality_def
+    apply (auto 5 5 simp: check_extension_def weak_equality_def
       mult_poly_spec_def field_simps
       add_poly_spec_def power2_eq_square cong: if_cong
       intro!: intro_spec_refine[where R=Id, simplified]
@@ -836,7 +838,7 @@ lemma insert_var_rel_set_rel:
   (yb, x2) \<in> var_rel \<Longrightarrow>
   (insert yb \<V>, insert x2 \<V>') \<in> \<langle>var_rel\<rangle>set_rel\<close>
   by (auto simp: var_rel_def set_rel_def)
-  
+
 lemma var_rel_set_rel_iff:
   \<open>(\<V>, \<V>') \<in> \<langle>var_rel\<rangle>set_rel \<Longrightarrow>
   (yb, x2) \<in> var_rel \<Longrightarrow>
@@ -847,7 +849,6 @@ lemma var_rel_set_rel_iff:
 lemma check_extension_l_check_extension:
   assumes \<open>(A, B) \<in> fmap_polys_rel\<close> and \<open>(r, r') \<in> sorted_poly_rel O mset_poly_rel\<close> and
     \<open>(i, i') \<in> nat_rel\<close> \<open>(\<V>, \<V>') \<in> \<langle>var_rel\<rangle>set_rel\<close> \<open>(x, x') \<in> var_rel\<close>
-    \<open>([x], 1) \<in> set r\<close>
   shows
     \<open>check_extension_l spec A \<V> i x r \<le>
       \<Down>{((st), (b)).
@@ -922,6 +923,9 @@ proof -
       apply (refine_vcg )
       subgoal using assms(1,3,4,5)
         by (auto simp: var_rel_set_rel_iff)
+      subgoal using assms(1,3,4,5)
+        by (auto simp: var_rel_set_rel_iff)
+      subgoal by auto
       subgoal by auto
       apply (subst \<open>x' = \<phi> x\<close>, rule remove1_sorted_poly_rel_mset_poly_rel)
       subgoal using assms by auto
@@ -983,68 +987,37 @@ lemma term_poly_list_rel_list_relD: \<open>(ys, cs) \<in> \<langle>term_poly_lis
 lemma term_poly_list_rel_single: \<open>([x32], {#x32#}) \<in> term_poly_list_rel\<close>
   by (auto simp: term_poly_list_rel_def)
 
-(*
-lemma
-  assumes \<open>(r, ra)\<in> sorted_poly_rel O mset_poly_rel\<close>
-  shows \<open>(insort_key_rel (\<lambda>a c. term_order (fst a) (fst c)) ([x32], 1)
-         r, Var x32a + ra)
-       \<in> sorted_poly_rel O mset_poly_rel\<close>
-    (is \<open>(?a, ?b) \<in> _\<close>)
-proof -
-  obtain r' where r': \<open>(r, r')\<in> sorted_poly_rel\<close> \<open>(r', ra)\<in> mset_poly_rel\<close>
-    using assms by auto
+lemma unsorted_poly_rel_list_rel_list_rel_uminus:
+   \<open>(map (\<lambda>(a, b). (a, - b)) r, yc)
+       \<in> \<langle>unsorted_term_poly_list_rel \<times>\<^sub>r int_rel\<rangle>list_rel \<Longrightarrow>
+       (r, map (\<lambda>(a, b). (a, - b)) yc)
+       \<in> \<langle>unsorted_term_poly_list_rel \<times>\<^sub>r int_rel\<rangle>list_rel\<close>
+  by (induction r arbitrary: yc)
+   (auto simp: elim!: list_relE3)
 
-  let ?a' = \<open>add_mset ({#x32#}, 1) (r')\<close>
-  obtain ys zs where r: \<open>r = ys @ zs\<close>
-    \<open>insort_key_rel (\<lambda>a c. term_order (fst a) (fst c)) ([x32], 1) (ys @ zs) =
-       ys @ ([x32], 1) # zs\<close>
-   using insort_key_rel_decomp[of r \<open>(\<lambda>a c. term_order (fst a) (fst c))\<close> \<open>([x32], 1)\<close>]
-   by blast
-  let ?a'' = \<open>map (\<lambda>(a, b). (mset a, b)) (ys @ ([x32], 1) # zs)\<close>
-  have \<open>(?a, ?a'') \<in> \<langle>term_poly_list_rel \<times>\<^sub>r int_rel\<rangle>list_rel\<close>
-    using r' unfolding r
-    apply (auto simp: sorted_wrt_map list_rel_append_same_length image_Un term_poly_list_rel_single
-        list_rel_imp_same_length r
-      intro!: sorted_wrt_insort_key_rel
-      dest: distinct_mapI dest!: list_rel_append1[THEN iffD1]
-      elim!: list_relE1 list_relE2 list_relE3 list_relE4)
-    apply (auto simp: sorted_poly_list_rel_wrt_def mset_poly_rel_def list_rel_append1
-        list_mset_rel_def br_def term_poly_list_relD(1,4)
-      intro!: map_mset_unsorted_term_poly_list_rel dest!: split_list
-      elim!: list_relE1 list_relE2 list_relE3 list_relE4)
-   done
-  moreover have \<open>(?a'', ?a') \<in> list_mset_rel\<close>
-    using r'
-    apply (auto simp: list_mset_rel_def br_def mset_poly_rel_def r
-      sorted_poly_list_rel_wrt_def)
-    using r'(1) r(1) sorted_poly_list_relD by fastforce
-  ultimately have \<open>(?a, ?a') \<in> sorted_poly_rel\<close>
-   apply (auto simp: sorted_poly_list_rel_wrt_def sorted_wrt_map
-   intro!: sorted_wrt_insort_key_rel2)
-   defer
-   sledgehammer
-    sorry
-  show ?thesis
-  apply (auto simp: sorted_poly_list_rel_wrt_def mset_poly_rel_def)
-  apply (rule_tac b = \<open>add_mset ({#x32#}, 1) (r')\<close> in relcompI)
-  apply (auto simp: list_mset_rel_def br_def Collect_eq_comp')
-  using insort_key_rel_decomp[of r \<open>(\<lambda>a c. term_order (fst a) (fst c))\<close> \<open>([x32], 1)\<close>] apply auto
-  apply (rule_tac b = \<open>map (\<lambda>(a, b). (mset a, b)) (ys @ ([x32], 1) # zs)\<close> in relcompI)
-  apply (auto simp: sorted_wrt_map list_rel_append_same_length image_Un term_poly_list_rel_single
-    intro!: sorted_wrt_insort_key_rel)
-  apply (auto simp: sorted_wrt_map list_rel_append_same_length image_Un term_poly_list_rel_single
-    list_rel_imp_same_length
-    intro!: sorted_wrt_insort_key_rel
-    dest: distinct_mapI dest!: list_rel_append1[THEN iffD1]
-    elim!: list_relE1 list_relE2 list_relE3 list_relE4)
-  using term_poly_list_rel_list_relD apply auto
-  apply (metis (no_types) mset_map)
-    
-  find_theorems list_rel append
-find_theorems distinct map
-thm list_relE1 list_relE2 list_relE3 list_relE4
-thm list_rel_append1[THEN iffD1]
-*)
+lemma mset_poly_rel_uminus_minus: \<open>({#(a, b)#}, v') \<in> mset_poly_rel \<Longrightarrow>
+       (mset yc, r') \<in> mset_poly_rel \<Longrightarrow>
+       (map (\<lambda>(a, b). (a, - b)) r, yc)
+       \<in> \<langle>unsorted_term_poly_list_rel \<times>\<^sub>r int_rel\<rangle>list_rel \<Longrightarrow>
+       (add_mset (a, b) {#case x of (a, b) \<Rightarrow> (a, - b). x \<in># mset yc#},
+        v' - r')
+       \<in> mset_poly_rel\<close>
+  by (induction r arbitrary: r')
+    (auto simp: mset_poly_rel_def polynom_of_mset_uminus)
+
+lemma fully_unsorted_poly_rel_uminus_diff:
+   \<open>([v], v') \<in> fully_unsorted_poly_rel O mset_poly_rel \<Longrightarrow>
+   (map (\<lambda>(a,b). (a, -b)) r, r') \<in> fully_unsorted_poly_rel O mset_poly_rel \<Longrightarrow>
+    (v # r,
+     v' - r')
+    \<in> fully_unsorted_poly_rel O mset_poly_rel\<close>
+  apply auto
+  apply (rule_tac b = \<open>y +  (\<lambda>(a, b). (a, - b)) `# ya\<close> in relcompI)
+  apply (auto simp: fully_unsorted_poly_list_rel_def list_mset_rel_def br_def)
+  apply (rule_tac b = \<open>yb @ map (\<lambda>(a, b). (a, - b)) yc\<close> in relcompI)
+  apply (auto elim!: list_relE3 simp: unsorted_poly_rel_list_rel_list_rel_uminus mset_poly_rel_uminus_minus)
+  done
+
 lemma PAC_checker_l_step_PAC_checker_step:
   assumes
     \<open>(Ast, Bst) \<in> code_status_status_rel \<times>\<^sub>r \<langle>var_rel\<rangle>set_rel \<times>\<^sub>r fmap_polys_rel\<close> and
@@ -1085,6 +1058,12 @@ proof -
     using AB
     by (cases st)
       (auto simp: code_status_status_rel_def)
+  have [simp]: \<open>(x32, x32a) \<in> var_rel \<Longrightarrow>
+        ([([x32], 1::int)], Var x32a) \<in> fully_unsorted_poly_rel O mset_poly_rel\<close> for x32 x32a
+   by (auto simp: mset_poly_rel_def fully_unsorted_poly_list_rel_def list_mset_rel_def br_def
+         unsorted_term_poly_list_rel_def var_rel_def Const_1_eq_1
+       intro!: relcompI[of _ \<open>{#({#x32#}, 1 :: int)#}\<close>]
+         relcompI[of _ \<open>[({#x32#}, 1)]\<close>])
 
   show ?thesis
     using assms(2)
@@ -1130,12 +1109,11 @@ proof -
     subgoal
       apply (refine_rcg full_normalize_poly_diff_ideal
         check_extension_l_check_extension)
-      subgoal sorry
-      subgoal using AB by auto
+      subgoal using AB by (auto intro!: fully_unsorted_poly_rel_uminus_diff simp: comp_def case_prod_beta)
       subgoal using AB by auto
       subgoal using AB by (auto simp: )
       subgoal by (auto simp: )
-      subgoal apply auto sorry
+      subgoal by auto
       subgoal
         by (auto simp: code_status_status_rel_def)
       subgoal

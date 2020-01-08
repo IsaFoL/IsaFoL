@@ -494,11 +494,19 @@ lemma [sepref_import_param]:
 sepref_register vars_of_poly_in
   weak_equality_l
 
+lemma [safe_constraint_rules]:
+  \<open>Sepref_Constraints.CONSTRAINT single_valued (the_pure monomial_assn)\<close> and
+  single_valued_the_monomial_assn:
+    \<open>single_valued (the_pure monomial_assn)\<close>
+    \<open>single_valued ((the_pure monomial_assn)\<inverse>)\<close>
+  unfolding IS_LEFT_UNIQUE_def[symmetric]
+  by (auto simp: step_rewrite_pure single_valued_monomial_rel single_valued_monomial_rel' Sepref_Constraints.CONSTRAINT_def)
+
 sepref_definition check_extension_l_impl
   is \<open>uncurry5 check_extension_l\<close>
   :: \<open>poly_assn\<^sup>k *\<^sub>a polys_assn\<^sup>k *\<^sub>a vars_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a string_assn\<^sup>k *\<^sub>a poly_assn\<^sup>k \<rightarrow>\<^sub>a
      status_assn raw_string_assn\<close>
-  supply option.splits[split]
+  supply option.splits[split] single_valued_the_monomial_assn[simp]
   supply [[goals_limit=1]]
   unfolding
     HOL_list.fold_custom_empty
@@ -824,7 +832,7 @@ definition fully_pac_assn where
           (p2rel
             (\<langle>nat_rel,
              fully_unsorted_poly_rel O
-             mset_poly_rel, Id\<rangle>pac_step_rel_raw))))\<close>
+             mset_poly_rel, var_rel\<rangle>pac_step_rel_raw))))\<close>
 
 definition code_status_assn where
   \<open>code_status_assn = hr_comp (status_assn raw_string_assn)
@@ -892,6 +900,7 @@ lemma PAC_full_correctness: (* \htmllink{PAC-full-correctness} *)
       polys_rel_full_polys_rel
       hr_comp_prod_conv
       full_polys_assn_def[symmetric]]
+      hr_comp_Id2
    by auto
 
 text \<open>
