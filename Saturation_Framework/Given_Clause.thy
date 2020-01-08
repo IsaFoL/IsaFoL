@@ -48,9 +48,7 @@ definition Prec_eq_F :: "'f \<Rightarrow> 'f \<Rightarrow> bool" (infix "\<lless
 definition Prec_FL :: "('f \<times> 'l) \<Rightarrow> ('f \<times> 'l) \<Rightarrow> bool" (infix "\<sqsubset>" 50) where
   "Prec_FL Cl1 Cl2 \<equiv> (fst Cl1 \<lless> fst Cl2) \<or> (fst Cl1 \<doteq> fst Cl2 \<and> snd Cl1 \<sqsubset>l snd Cl2)"
 
-find_theorems minimal_element
-
-lemma "minimal_element (\<sqsubset>) UNIV"
+lemma wf_prec_FL: "minimal_element (\<sqsubset>) UNIV"
 proof
   show "po_on (\<sqsubset>) UNIV" unfolding po_on_def
   proof
@@ -81,9 +79,25 @@ next
   show "wfp_on (\<sqsubset>) UNIV" unfolding wfp_on_def 
   proof
     assume contra: "\<exists>f. \<forall>i. f i \<in> UNIV \<and> f (Suc i) \<sqsubset> f i"
-    then obtain f where f_in: "\<forall>i. f i \<in> UNIV" and f_suc: "f (Suc i) \<sqsubset> f i" by blast
-    (* define f_F where "f_F i = *)
-oops
+    then obtain f where f_in: "\<forall>i. f i \<in> UNIV" and f_suc: "\<forall>i. f (Suc i) \<sqsubset> f i" by blast
+    define f_F where "f_F = (\<lambda>i. fst (f i))"
+    define f_L where "f_L = (\<lambda>i. snd (f i))"
+    have uni_F: "\<forall>i. f_F i \<in> UNIV" using f_in by simp
+    have uni_L: "\<forall>i. f_L i \<in> UNIV" using f_in by simp
+    have decomp: "\<forall>i. f_F (Suc i) \<lless> f_F i \<or> f_L (Suc i) \<sqsubset>l f_L i"
+      using f_suc unfolding Prec_FL_def f_F_def f_L_def by blast
+    define I_F where "I_F = { i |i. f_F (Suc i) \<lless> f_F i}"
+    define I_L where "I_L = { i |i. f_L (Suc i) \<sqsubset>l f_L i}"
+    have "I_F \<union> I_L = UNIV" using decomp unfolding I_F_def I_L_def by blast
+    then have "finite I_F \<Longrightarrow> \<not> finite I_L" by (metis finite_UnI infinite_UNIV_nat)
+    moreover have "infinite I_F \<Longrightarrow> \<exists>f. \<forall>i. f i \<in> UNIV \<and> f (Suc i) \<lless> f i"
+      using uni_F unfolding I_F_def by (meson compat_equiv_prec iso_tuple_UNIV_I not_finite_existsD)
+    moreover have "infinite I_L \<Longrightarrow> \<exists>f. \<forall>i. f i \<in> UNIV \<and> f (Suc i) \<sqsubset>l f i"
+      using uni_L unfolding I_L_def
+      by (metis UNIV_I compat_equiv_prec decomp minimal_element_def wf_prec_F wfp_on_def)
+    ultimately show False using wf_prec_F wf_prec_l by (metis minimal_element_def wfp_on_def)
+  qed
+qed
 
 lemma labeled_static_ref_comp:
   "static_refutational_complete_calculus Bot_FL Inf_FL (\<Turnstile>\<inter>L) with_labels.Red_Inf_Q with_labels.Red_F_Q"
@@ -99,10 +113,10 @@ proof -
   then have "standard_lifting Bot_FL Inf_FL Bot_G Inf_G (entails_q q) (Red_Inf_q q) (Red_F_q q)
     (\<G>_F_L_q q) (\<G>_Inf_L_q q)"
     using lifted_q q_in by blast
-  moreover have "minimal_element Prec_FL UNIV"
-    unfolding Prec_FL_def using wf_prec_F wf_prec_l 
-  ultimately show "lifting_with_wf_ordering_family Bot_FL Inf_FL Bot_G (entails_q q) Inf_G (Red_Inf_q q) (Red_F_q q) (\<G>_F_L_q q) (\<G>_Inf_L_q q) (\<lambda>g. Prec_FL)" 
-oops
+  then show "lifting_with_wf_ordering_family Bot_FL Inf_FL Bot_G (entails_q q) Inf_G (Red_Inf_q q) (Red_F_q q) (\<G>_F_L_q q) (\<G>_Inf_L_q q) (\<lambda>g. Prec_FL)"
+    using wf_prec_FL
+    by (simp add: lifting_with_wf_ordering_family.intro lifting_with_wf_ordering_family_axioms.intro)
+qed
 
 sublocale lifting_equivalence_with_red_crit_family Inf_FL Bot_G Inf_G Q entails_q Red_Inf_q Red_F_q
   Bot_FL \<G>_F_L_q \<G>_Inf_L_q "\<lambda>g. Prec_FL"
