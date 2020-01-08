@@ -47,6 +47,25 @@ instance uint64 :: semiring_numeral
 lemma nat_of_uint64_012[simp]: \<open>nat_of_uint64 0 = 0\<close> \<open>nat_of_uint64 2 = 2\<close> \<open>nat_of_uint64 1 = 1\<close>
   by (transfer, auto)+
 
+definition uint64_of_nat_conv where
+  [simp]: \<open>uint64_of_nat_conv (x :: nat) = x\<close>
+lemma less_upper_bintrunc_id: \<open>n < 2 ^b \<Longrightarrow> n \<ge> 0 \<Longrightarrow> bintrunc b n = n\<close>
+  unfolding uint32_of_nat_def
+  by (simp add: no_bintr_alt1)
+
+lemma nat_of_uint64_uint64_of_nat_id: \<open>n < 2^64 \<Longrightarrow> nat_of_uint64 (uint64_of_nat n) = n\<close>
+  unfolding uint64_of_nat_def
+  apply simp
+  apply transfer
+  apply (auto simp: unat_def)
+  apply transfer
+  by (auto simp: less_upper_bintrunc_id)
+
+lemma [sepref_fr_rules]:
+  \<open>(return o uint64_of_nat, RETURN o uint64_of_nat_conv) \<in> [\<lambda>a. a < 2 ^64]\<^sub>a nat_assn\<^sup>k \<rightarrow> uint64_nat_assn\<close>
+  by sepref_to_hoare
+   (sep_auto simp: uint64_nat_rel_def br_def nat_of_uint64_uint64_of_nat_id)
+
 definition string_rel :: \<open>(String.literal \<times> string) set\<close> where
   \<open>string_rel = {(x, y). y = String.explode x}\<close>
 
@@ -61,6 +80,11 @@ lemma eq_string_eq:
 lemmas eq_string_eq_hnr =
    eq_string_eq[sepref_import_param]
 
+definition string2_rel :: \<open>(string \<times> string) set\<close> where
+  \<open>string2_rel \<equiv> \<langle>Id\<rangle>list_rel\<close>
+
+abbreviation string2_assn :: \<open>string \<Rightarrow> string \<Rightarrow> assn\<close> where
+  \<open>string2_assn \<equiv> pure string2_rel\<close>
 
 abbreviation monom_rel where
   \<open>monom_rel \<equiv> \<langle>string_rel\<rangle>list_rel\<close>
@@ -114,8 +138,8 @@ lemma single_valued_monomial_rel:
     rel2p_def single_valued_def p2rel_def)
 
 lemma single_valued_monom_rel': \<open>IS_LEFT_UNIQUE monom_rel\<close>
-  unfolding IS_LEFT_UNIQUE_def inv_list_rel_eq
-  by (rule list_rel_sv)
+  unfolding IS_LEFT_UNIQUE_def inv_list_rel_eq string2_rel_def
+  by (rule list_rel_sv)+
    (auto intro!: frefI simp: string_rel_def
     rel2p_def single_valued_def p2rel_def literal.explode_inject)
 
@@ -135,8 +159,8 @@ lemma [safe_constraint_rules]:
 
 lemma eq_string_monom_hnr[sepref_fr_rules]:
   \<open>(uncurry (return oo (=)), uncurry (RETURN oo (=))) \<in> monom_assn\<^sup>k *\<^sub>a monom_assn\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
-  using single_valued_monom_rel' IS_RIGHT_UNIQUE_string_rel
-  apply (subst (asm)list_rel_sv_iff[symmetric])
+  using single_valued_monom_rel' single_valued_monom_rel
+  unfolding list_assn_pure_conv
   by sepref_to_hoare
    (sep_auto simp: list_assn_pure_conv string_rel_string_assn
        single_valued_def IS_LEFT_UNIQUE_def
@@ -208,6 +232,7 @@ proof
   have H: \<open>(a, b) \<in> \<langle>string_rel\<rangle>list_rel \<Longrightarrow>
        (a, cs) \<in> \<langle>string_rel\<rangle>list_rel \<Longrightarrow> b = cs\<close> for cs
      using single_valued_monom_rel' IS_RIGHT_UNIQUE_string_rel
+     unfolding string2_rel_def
      by (subst (asm)list_rel_sv_iff[symmetric])
        (auto simp: single_valued_def)
   assume \<open>a < a'\<close>

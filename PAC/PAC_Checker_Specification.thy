@@ -497,7 +497,7 @@ qed
 
 
 definition PAC_checker
-  :: \<open>int_poly \<Rightarrow> fpac_step \<Rightarrow> status \<Rightarrow> (int_poly, nat) pac_step list \<Rightarrow>
+  :: \<open>int_poly \<Rightarrow> fpac_step \<Rightarrow> status \<Rightarrow> (int_poly, nat, nat) pac_step list \<Rightarrow>
     (status \<times> fpac_step) nres\<close>
 where
   \<open>PAC_checker spec A b st = do {
@@ -519,7 +519,9 @@ lemma PAC_checker_specification_spec_trans:
     PAC_checker_specification_spec spec A (st', x1a)\<close>
  unfolding PAC_checker_specification_spec_def
    PAC_checker_specification_step_spec_def
- by auto
+ apply auto
+using is_failed_alt_def apply blast+
+done
 
 lemma RES_SPEC_eq:
   \<open>RES \<Phi> = SPEC(\<lambda>P. P \<in> \<Phi>)\<close>
@@ -712,7 +714,7 @@ lemma remap_polys_spec:
 
 
 definition full_checker
-  :: \<open>int_poly \<Rightarrow> (nat, int_poly) fmap \<Rightarrow> (int_poly, nat) pac_step list \<Rightarrow> (status \<times> _) nres\<close>
+  :: \<open>int_poly \<Rightarrow> (nat, int_poly) fmap \<Rightarrow> (int_poly, nat,nat) pac_step list \<Rightarrow> (status \<times> _) nres\<close>
  where
   \<open>full_checker spec0 A pac = do {
      spec \<leftarrow> normalize_poly_spec spec0;
