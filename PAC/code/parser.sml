@@ -156,7 +156,7 @@ exception Parser_Error of string
         (parse_aux ();
          if !seen_one_digit = false
          then raise Parser_Error ("no number digit")
-         else !num)
+         else Uint64.fromInt (IntInf.fromInt(!num)))
       end
 
   fun parse_var istream =
@@ -184,7 +184,7 @@ exception Parser_Error of string
          then raise Parser_Error "no variable found"
          else
            (print2 (extract(!resizable_str, 0, SOME (!i)));
-            extract(!resizable_str, 0, SOME (!i))))
+             (extract(!resizable_str, 0, SOME (!i)))))
       end;
 
   fun parse_vars_only_monom istream = (* can start with /*/ *)
@@ -299,8 +299,8 @@ exception Parser_Error of string
  
   fun parse_step istream =
       let
-        val lbl = IntInf.fromInt (parse_nat istream);
-        val _ = print2 ("label = " ^ IntInf.toString lbl);
+        val lbl = parse_nat istream;
+        val _ = print2 ("label = " ^ IntInf.toString (Uint64.toInt lbl));
         val rule = parse_rule istream;
         val _ = print2 ("rule = " ^ rule);
       in
@@ -315,9 +315,8 @@ exception Parser_Error of string
             val poly = parse_polynom istream;
             val _ = parse_EOL istream ();
           in
-            (PAC_Checker.Add (PAC_Checker.nat_of_integer src1,
-                                   PAC_Checker.nat_of_integer src2,
-                                   PAC_Checker.nat_of_integer lbl,
+            (PAC_Checker.Add (src1, src2,
+                                   lbl,
                                    (map (fn (a,b) => (a, PAC_Checker.Int_of_integer b)) poly)))
           end
         else if rule = "*:"
@@ -331,9 +330,9 @@ exception Parser_Error of string
             val poly = parse_polynom istream;
             val _ = parse_EOL istream ();
           in
-           (PAC_Checker.Mult (PAC_Checker.nat_of_integer src1,
+           (PAC_Checker.Mult (src1,
                                        (map (fn (a,b) => (a, PAC_Checker.Int_of_integer b)) src2),
-                                  PAC_Checker.nat_of_integer lbl,
+                                  lbl,
                                   (map (fn (a,b) => (a, PAC_Checker.Int_of_integer b)) poly)))
           end
         else if rule = "d"
@@ -342,7 +341,7 @@ exception Parser_Error of string
             val _ = skip_spaces istream;
             val _ = parse_EOL istream ();
           in
-            (PAC_Checker.Del (PAC_Checker.nat_of_integer lbl))
+            (PAC_Checker.Del (lbl))
           end
         else if rule = "="
         then
@@ -353,7 +352,7 @@ exception Parser_Error of string
             val ext = parse_polynom istream;
             val _ = parse_EOL istream ();
           in
-           (PAC_Checker.Extension (PAC_Checker.nat_of_integer lbl, var,
+           (PAC_Checker.Extension (lbl, var,
                                        (map (fn (a,b) => (a, PAC_Checker.Int_of_integer b)) ext)))
           end
         else raise Parser_Error ("unrecognised rule '" ^ rule ^ "'")
