@@ -135,7 +135,7 @@ extend_pos:
   \<open>PAC_Format (\<V>, A) (\<V> \<union> {x' \<in> vars (Var x - p'). x' \<notin> \<V>}, add_mset (Var x - p') A)\<close>
   if
     \<open>(p')\<^sup>2 - p' \<in> ideal polynom_bool\<close>
-   \<open>vars p' \<subseteq> \<V>\<close>
+    \<open>vars p' \<subseteq> \<V>\<close>
     \<open>x \<notin> \<V>\<close>
 
 text  \<open>
@@ -158,8 +158,8 @@ lemma PAC_Format_induct[consumes 1, case_names add mult del ext]:
       \<open>\<And>p q p' A \<V>. p \<in># A \<Longrightarrow> p*q - p' \<in> ideal polynom_bool \<Longrightarrow> vars p' \<subseteq> \<V> \<Longrightarrow> vars q \<subseteq> \<V> \<Longrightarrow>
         P \<V> A \<V> (add_mset p' A)\<close>
       \<open>\<And>p A \<V>. p \<in># A \<Longrightarrow> P \<V> A \<V> (A - {#p#})\<close>
-      \<open>\<And>p' x. 
-        (p')^2 - (p') \<in> ideal polynom_bool \<Longrightarrow> vars p' \<subseteq> \<V> \<Longrightarrow>
+      \<open>\<And>p' x r. 
+        (p')^2 - (p') \<in> ideal polynom_bool \<Longrightarrow> vars p' \<subseteq> \<V> \<Longrightarrow> 
         x \<notin> \<V> \<Longrightarrow> P \<V> A (\<V> \<union> {x' \<in> vars (Var x - p'). x' \<notin> \<V>}) (add_mset (Var x - p') A)\<close>
   shows
      \<open>P \<V> A \<V>' A'\<close>
@@ -495,6 +495,12 @@ lemma coeff_add_left_notin:
   apply (auto simp flip: coeff_minus simp: not_in_vars_coeff0)
   by (simp add: MPoly_Type.coeff_def Var.rep_eq Var\<^sub>0_def)
 
+lemma ideal_insert_polynom_bool_swap: \<open>r - s \<in> ideal polynom_bool \<Longrightarrow>
+  More_Modules.ideal (insert r  (A \<union> polynom_bool)) = More_Modules.ideal (insert s (A \<union> polynom_bool))\<close>
+  apply auto
+  using ideal.eq_span_insert_eq ideal.span_mono sup_ge2 apply blast+
+  done
+
 lemma PAC_Format_subset_ideal:
   \<open>PAC_Format (\<V>, A) (\<V>', B) \<Longrightarrow> \<Union>(vars ` set_mset A) \<subseteq> \<V> \<Longrightarrow>
      restricted_ideal_to\<^sub>I \<V> B \<subseteq> restricted_ideal_to\<^sub>I \<V> A \<and> \<V> \<subseteq> \<V>' \<and> \<Union>(vars ` set_mset B) \<subseteq> \<V>'\<close>
@@ -512,10 +518,11 @@ lemma PAC_Format_subset_ideal:
   subgoal for p A
     using pac_ideal_mono[of \<open>set_mset (A - {#p#})\<close> \<open>set_mset A\<close>]
     by (auto dest: in_diffD)
-  subgoal for p x'
+  subgoal for p x' r'
     apply (subgoal_tac \<open>x' \<notin> vars p\<close>)
     using extensions_are_safe[of x' \<open>Var x' - p\<close> \<V> A] unfolding pac_ideal_def
-    by (auto simp: vars_subst_in_left_only coeff_add_left_notin)
+    apply (auto simp: vars_subst_in_left_only coeff_add_left_notin)
+    done
   done
 
 

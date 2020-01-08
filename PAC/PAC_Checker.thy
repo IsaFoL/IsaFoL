@@ -178,21 +178,21 @@ where
     c \<leftarrow> check_extension_l_dom_err i;
     RETURN (error_msg i c)
   } else do {
-      let b = vars_llist p \<subseteq> \<V>;
+      let p' = remove1 ([v], 1) p;
+      let b = vars_llist p' \<subseteq> \<V>;
       if \<not>b
       then do {
-        c \<leftarrow> check_extension_l_new_var_multiple_err v p;
+        c \<leftarrow> check_extension_l_new_var_multiple_err v p';
         RETURN (error_msg i c)
       }
       else do {
-         p2 \<leftarrow> mult_poly_full p p;
-         let up = map (\<lambda>(a, b). (a, -b)) p;
-         q \<leftarrow> add_poly_l (p2, up);
+         p2 \<leftarrow> mult_poly_full p' p';
+         q \<leftarrow> add_poly_l (p2, p');
          eq \<leftarrow> weak_equality_l q [];
          if eq then do {
            RETURN (CSUCCESS)
          } else do {
-          c \<leftarrow> check_extension_l_side_cond_err v p p q;
+          c \<leftarrow> check_extension_l_side_cond_err v p p' q;
           RETURN (error_msg i c)
         }
       }
@@ -205,13 +205,13 @@ lemma check_extension_alt_def:
     if i \<in># dom_m A \<or> v \<in> \<V>
     then RETURN (False)
     else do {
-         b \<leftarrow> SPEC(\<lambda>b. b \<longrightarrow> vars p \<subseteq> \<V>);
+         p' \<leftarrow> RETURN (p - Var v);
+         b \<leftarrow> SPEC(\<lambda>b. b \<longrightarrow> vars p' \<subseteq> \<V>);
          if \<not>b
          then RETURN (False)
          else do {
-           pq \<leftarrow> mult_poly_spec p p;
-           up \<leftarrow> RETURN (-p);
-           p \<leftarrow> add_poly_spec pq up;
+           pq \<leftarrow> mult_poly_spec p' p';
+           p \<leftarrow> add_poly_spec pq p';
            eq \<leftarrow> weak_equality p 0;
            if eq then RETURN(True)
            else RETURN (False)
@@ -247,11 +247,13 @@ proof -
     using vars_uminus[of \<open>p - Var ab\<close>]
     by simp
   show ?thesis
-    by (auto 5 3 simp: check_extension_def weak_equality_def
+    unfolding check_extension_def
+    apply (auto 5 3 simp: check_extension_def weak_equality_def
       mult_poly_spec_def field_simps
       add_poly_spec_def power2_eq_square cong: if_cong
       intro!: intro_spec_refine[where R=Id, simplified]
       split: option.splits dest: ideal.span_add)
+   done
 qed
 
 (* Copy of WB_More_Refinement *)
@@ -324,6 +326,25 @@ primrec insort_key_rel :: "('b \<Rightarrow> 'b \<Rightarrow> bool) \<Rightarrow
 "insort_key_rel f x (y#ys) =
   (if f x y then (x#y#ys) else y#(insort_key_rel f x ys))"
 
+lemma set_insort_key_rel[simp]: \<open>set (insort_key_rel R x xs) = insert x (set xs)\<close>
+  by (induction xs)
+   auto
+
+lemma sorted_wrt_insort_key_rel:
+   \<open>total_on R (insert x (set xs)) \<Longrightarrow> transp R \<Longrightarrow> reflp R \<Longrightarrow>
+    sorted_wrt R xs \<Longrightarrow> sorted_wrt R (insort_key_rel R x xs)\<close>
+  apply (induction xs)
+  apply (auto dest: transpD)
+  apply (metis Restricted_Predicates.total_on_def in_mono insertI1 reflpD subset_insertI)
+  by (simp add: Restricted_Predicates.total_on_def)
+
+lemma sorted_wrt_insort_key_rel2:
+   \<open>total_on R (insert x (set xs)) \<Longrightarrow> transp R \<Longrightarrow> x \<notin> set xs \<Longrightarrow>
+    sorted_wrt R xs \<Longrightarrow> sorted_wrt R (insort_key_rel R x xs)\<close>
+  apply (induction xs)
+  apply (auto dest: transpD)
+  apply (metis Restricted_Predicates.total_on_def in_mono insertI1 subset_insertI)
+  by (simp add: Restricted_Predicates.total_on_def)
 
 definition PAC_checker_l_step ::  \<open>_ \<Rightarrow> string code_status \<times> string set \<times> _ \<Rightarrow> (llist_polynom, string) pac_step \<Rightarrow> _\<close> where
   \<open>PAC_checker_l_step = (\<lambda>spec (st', \<V>, A) st. case st of
@@ -358,12 +379,12 @@ definition PAC_checker_l_step ::  \<open>_ \<Rightarrow> string code_status \<ti
    }
    | Extension _ _ _ \<Rightarrow>
        do {
-         r \<leftarrow> full_normalize_poly (pac_res st);
+         r \<leftarrow> full_normalize_poly (([new_var st], 1) # map (\<lambda>(a,b). (a, -b)) (pac_res st));
         (eq) \<leftarrow> check_extension_l spec A \<V> (new_id st) (new_var st) r;
         if \<not>is_cfailed eq
         then do {
           RETURN (st',
-            insert (new_var st) \<V>, fmupd (new_id st) (insort_key_rel (\<lambda>(a, _) (c, _). term_order a c) ([new_var st], 1) (map (\<lambda>(a,b). (a, -b)) r)) A)}
+            insert (new_var st) \<V>, fmupd (new_id st) r A)}
         else RETURN (eq, \<V>, A)
    }
  )\<close>
@@ -826,12 +847,15 @@ lemma var_rel_set_rel_iff:
 lemma check_extension_l_check_extension:
   assumes \<open>(A, B) \<in> fmap_polys_rel\<close> and \<open>(r, r') \<in> sorted_poly_rel O mset_poly_rel\<close> and
     \<open>(i, i') \<in> nat_rel\<close> \<open>(\<V>, \<V>') \<in> \<langle>var_rel\<rangle>set_rel\<close> \<open>(x, x') \<in> var_rel\<close>
+    \<open>([x], 1) \<in> set r\<close>
   shows
     \<open>check_extension_l spec A \<V> i x r \<le>
       \<Down>{((st), (b)).
         (\<not>is_cfailed st \<longleftrightarrow> b) \<and>
        (is_cfound st \<longrightarrow> spec = r)} (check_extension B \<V>' i' x' r')\<close>
 proof -
+  have \<open>x' = \<phi> x\<close>
+    using assms(5) by (auto simp: var_rel_def br_def)
   have [refine]:
     \<open>mult_poly_full p q \<le> \<Down> (sorted_poly_rel O mset_poly_rel) (mult_poly_spec p' q')\<close>
     if \<open>(p, p') \<in> sorted_poly_rel O mset_poly_rel\<close>
@@ -899,15 +923,15 @@ proof -
       subgoal using assms(1,3,4,5)
         by (auto simp: var_rel_set_rel_iff)
       subgoal by auto
+      apply (subst \<open>x' = \<phi> x\<close>, rule remove1_sorted_poly_rel_mset_poly_rel)
+      subgoal using assms by auto
+      subgoal using assms by auto
       subgoal using sorted_poly_rel_vars_llist[of \<open>r\<close> \<open>r'\<close>]
           assms
         by (force simp: set_rel_def var_rel_def br_def
           dest!: sorted_poly_rel_vars_llist)
       subgoal by auto
       subgoal by auto
-      subgoal using assms by auto
-      subgoal using assms by auto
-      apply (rule uminus)
       subgoal using assms by auto
       subgoal using assms by auto
       subgoal using assms by auto
@@ -939,6 +963,88 @@ proof -
             simp: mset_poly_rel_def ideal.span_zero\<close>)
 qed
 
+lemma insort_key_rel_decomp:
+   \<open>\<exists>ys zs. xs = ys @ zs \<and> insort_key_rel R x xs = ys @ x # zs\<close>
+  apply (induction xs)
+  apply (auto 5 3)
+  apply (rule_tac x = \<open>a # ys\<close> in exI)
+  apply auto
+  done
+
+lemma list_rel_append_same_length:
+   \<open>length xs = length xs' \<Longrightarrow> (xs @ ys, xs' @ ys') \<in> \<langle>R\<rangle>list_rel \<longleftrightarrow> (xs, xs') \<in> \<langle>R\<rangle>list_rel \<and> (ys, ys') \<in> \<langle>R\<rangle>list_rel\<close>
+  by (auto simp: list_rel_def list_all2_append2 dest: list_all2_lengthD)
+
+lemma term_poly_list_rel_list_relD: \<open>(ys, cs) \<in> \<langle>term_poly_list_rel \<times>\<^sub>r int_rel\<rangle>list_rel \<Longrightarrow>
+       cs = map (\<lambda>(a, y). (mset a, y)) ys\<close>
+  by (induction ys arbitrary: cs)
+   (auto simp: term_poly_list_rel_def list_rel_def list_all2_append list_all2_Cons1 list_all2_Cons2)
+
+lemma term_poly_list_rel_single: \<open>([x32], {#x32#}) \<in> term_poly_list_rel\<close>
+  by (auto simp: term_poly_list_rel_def)
+
+(*
+lemma
+  assumes \<open>(r, ra)\<in> sorted_poly_rel O mset_poly_rel\<close>
+  shows \<open>(insort_key_rel (\<lambda>a c. term_order (fst a) (fst c)) ([x32], 1)
+         r, Var x32a + ra)
+       \<in> sorted_poly_rel O mset_poly_rel\<close>
+    (is \<open>(?a, ?b) \<in> _\<close>)
+proof -
+  obtain r' where r': \<open>(r, r')\<in> sorted_poly_rel\<close> \<open>(r', ra)\<in> mset_poly_rel\<close>
+    using assms by auto
+
+  let ?a' = \<open>add_mset ({#x32#}, 1) (r')\<close>
+  obtain ys zs where r: \<open>r = ys @ zs\<close>
+    \<open>insort_key_rel (\<lambda>a c. term_order (fst a) (fst c)) ([x32], 1) (ys @ zs) =
+       ys @ ([x32], 1) # zs\<close>
+   using insort_key_rel_decomp[of r \<open>(\<lambda>a c. term_order (fst a) (fst c))\<close> \<open>([x32], 1)\<close>]
+   by blast
+  let ?a'' = \<open>map (\<lambda>(a, b). (mset a, b)) (ys @ ([x32], 1) # zs)\<close>
+  have \<open>(?a, ?a'') \<in> \<langle>term_poly_list_rel \<times>\<^sub>r int_rel\<rangle>list_rel\<close>
+    using r' unfolding r
+    apply (auto simp: sorted_wrt_map list_rel_append_same_length image_Un term_poly_list_rel_single
+        list_rel_imp_same_length r
+      intro!: sorted_wrt_insort_key_rel
+      dest: distinct_mapI dest!: list_rel_append1[THEN iffD1]
+      elim!: list_relE1 list_relE2 list_relE3 list_relE4)
+    apply (auto simp: sorted_poly_list_rel_wrt_def mset_poly_rel_def list_rel_append1
+        list_mset_rel_def br_def term_poly_list_relD(1,4)
+      intro!: map_mset_unsorted_term_poly_list_rel dest!: split_list
+      elim!: list_relE1 list_relE2 list_relE3 list_relE4)
+   done
+  moreover have \<open>(?a'', ?a') \<in> list_mset_rel\<close>
+    using r'
+    apply (auto simp: list_mset_rel_def br_def mset_poly_rel_def r
+      sorted_poly_list_rel_wrt_def)
+    using r'(1) r(1) sorted_poly_list_relD by fastforce
+  ultimately have \<open>(?a, ?a') \<in> sorted_poly_rel\<close>
+   apply (auto simp: sorted_poly_list_rel_wrt_def sorted_wrt_map
+   intro!: sorted_wrt_insort_key_rel2)
+   defer
+   sledgehammer
+    sorry
+  show ?thesis
+  apply (auto simp: sorted_poly_list_rel_wrt_def mset_poly_rel_def)
+  apply (rule_tac b = \<open>add_mset ({#x32#}, 1) (r')\<close> in relcompI)
+  apply (auto simp: list_mset_rel_def br_def Collect_eq_comp')
+  using insort_key_rel_decomp[of r \<open>(\<lambda>a c. term_order (fst a) (fst c))\<close> \<open>([x32], 1)\<close>] apply auto
+  apply (rule_tac b = \<open>map (\<lambda>(a, b). (mset a, b)) (ys @ ([x32], 1) # zs)\<close> in relcompI)
+  apply (auto simp: sorted_wrt_map list_rel_append_same_length image_Un term_poly_list_rel_single
+    intro!: sorted_wrt_insort_key_rel)
+  apply (auto simp: sorted_wrt_map list_rel_append_same_length image_Un term_poly_list_rel_single
+    list_rel_imp_same_length
+    intro!: sorted_wrt_insort_key_rel
+    dest: distinct_mapI dest!: list_rel_append1[THEN iffD1]
+    elim!: list_relE1 list_relE2 list_relE3 list_relE4)
+  using term_poly_list_rel_list_relD apply auto
+  apply (metis (no_types) mset_map)
+    
+  find_theorems list_rel append
+find_theorems distinct map
+thm list_relE1 list_relE2 list_relE3 list_relE4
+thm list_rel_append1[THEN iffD1]
+*)
 lemma PAC_checker_l_step_PAC_checker_step:
   assumes
     \<open>(Ast, Bst) \<in> code_status_status_rel \<times>\<^sub>r \<langle>var_rel\<rangle>set_rel \<times>\<^sub>r fmap_polys_rel\<close> and
@@ -1024,16 +1130,17 @@ proof -
     subgoal
       apply (refine_rcg full_normalize_poly_diff_ideal
         check_extension_l_check_extension)
+      subgoal sorry
       subgoal using AB by auto
       subgoal using AB by auto
       subgoal using AB by (auto simp: )
       subgoal by (auto simp: )
-      subgoal by (auto simp: )
+      subgoal apply auto sorry
       subgoal
         by (auto simp: code_status_status_rel_def)
       subgoal
         by (auto simp: AB
-           intro!: fmap_rel_fmupd_fmap_rel insert_var_rel_set_rel)
+          intro!: fmap_rel_fmupd_fmap_rel insert_var_rel_set_rel)
       subgoal
         by (auto simp: code_status_status_rel_def AB
           code_status.is_cfailed_def)
@@ -1097,7 +1204,7 @@ lemmas [code] =
 export_code add_poly_l' in SML module_name test
 
 definition full_checker_l
-  :: \<open>llist_polynom \<Rightarrow> (nat, llist_polynom) fmap \<Rightarrow> _ pac_step list \<Rightarrow>
+  :: \<open>llist_polynom \<Rightarrow> (nat, llist_polynom) fmap \<Rightarrow> (_, string) pac_step list \<Rightarrow>
     (string code_status \<times> _) nres\<close>
 where
   \<open>full_checker_l spec A st = do {
@@ -1233,81 +1340,5 @@ proof -
     subgoal by auto
     done
 qed
-
-term find_undefined_var_l
-
-fun find_undefined_var_l_only :: \<open>string set \<Rightarrow> llist_polynom \<Rightarrow> (string \<times> int) option\<close> where
-  \<open>find_undefined_var_l_only \<V> [] = None\<close> |
-  \<open>find_undefined_var_l_only \<V> (([x], n) # xs) =
-    (if x \<notin> \<V> \<and> (n = 1 \<or> n = -1)
-     then Some (x, n)
-     else find_undefined_var_l_only \<V> xs)\<close> |
-  \<open>find_undefined_var_l_only \<V> (_ # xs) =
-    (find_undefined_var_l_only \<V> xs)\<close>
-
-lemma find_undefined_var_l_only_spec:
-  \<open>case find_undefined_var_l_only \<V> xs of
-          None \<Rightarrow> True
-       | Some (a, c) \<Rightarrow> (a \<notin> \<V> \<and>
-         ((([a], 1) \<in> set xs \<and> c = 1) \<or>
-          (([a], -1) \<in> set xs \<and> c = -1)))\<close>
-   apply (induction \<V> xs rule: find_undefined_var_l_only.induct)
-   apply (auto split: option.splits)
-   done
-
-definition find_undefined_var_l_fun where
-  \<open>find_undefined_var_l_fun \<V> xs = do {
-    c \<leftarrow> RETURN (find_undefined_var_l_only \<V> xs);
-    case c of
-      None \<Rightarrow> RETURN None
-    | Some (a, i) \<Rightarrow> RETURN (Some (a, i, remove1 ([a], i) xs))
-  }\<close>
-
-lemma find_undefined_var_l_alt_def:
-  \<open>find_undefined_var_l \<V> xs \<ge> find_undefined_var_l_fun \<V> xs\<close>
-  unfolding find_undefined_var_l_def find_undefined_var_l_fun_def
-  apply refine_vcg
-  using find_undefined_var_l_only_spec[of \<V> xs]
-  apply (auto)
-  done
-
-lemma find_undefined_var_l_only_RECT:
-  \<open>RETURN (find_undefined_var_l_only \<V> xs) =
-  REC\<^sub>T (\<lambda>f xs.
-    case xs of
-      [] \<Rightarrow> RETURN None
-    | ([x], n) # xs \<Rightarrow>
-        (if x \<notin> \<V> \<and> (n = 1 \<or> n = -1)
-         then RETURN (Some (x, n))
-         else f xs)
-    | _ # xs \<Rightarrow> f xs)
-    xs\<close>
-  apply (subst eq_commute)
-  apply (induction xs)
-  subgoal
-    apply (subst RECT_unfold)
-    apply (refine_mono)
-    apply auto
-    done
-  subgoal for a xs
-    apply (subst RECT_unfold)
-    apply (refine_mono)
-    apply (cases a)
-    apply (auto split: list.splits)
-    done
- done
-
-lemma find_undefined_var_l_only_alt_def:
-  \<open>(RETURN oo find_undefined_var_l_only) =
-  (\<lambda>\<V> xs. REC\<^sub>T (\<lambda>f xs.
-    case xs of
-      [] \<Rightarrow> RETURN None
-    | ([x], n) # xs \<Rightarrow>
-        (if x \<notin> \<V> \<and> (n = 1 \<or> n = -1)
-         then RETURN (Some (x, n))
-         else f xs)
-    | _ # xs \<Rightarrow> f xs)
-    xs)\<close>
-  using find_undefined_var_l_only_RECT by fastforce
 
 end

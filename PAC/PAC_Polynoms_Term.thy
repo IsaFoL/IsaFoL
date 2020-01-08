@@ -166,5 +166,12 @@ abbreviation sorted_repeat_poly_list_rel_with0 where
 abbreviation sorted_repeat_poly_rel_with0 where
   \<open>sorted_repeat_poly_rel_with0 \<equiv> sorted_repeat_poly_list_rel_with0 (rel2p (Id \<union> lexord var_order_rel))\<close>
 
+lemma term_poly_list_relD:
+  \<open>(xs, ys) \<in> term_poly_list_rel \<Longrightarrow> distinct xs\<close>
+  \<open>(xs, ys) \<in> term_poly_list_rel \<Longrightarrow> ys = mset xs\<close>
+  \<open>(xs, ys) \<in> term_poly_list_rel \<Longrightarrow> sorted_wrt (rel2p var_order_rel) xs\<close>
+  \<open>(xs, ys) \<in> term_poly_list_rel \<Longrightarrow> sorted_wrt (rel2p (Id \<union> var_order_rel)) xs\<close>
+  apply (auto simp: term_poly_list_rel_def)
+  by (metis UnI2 rel2p_def sorted_wrt_mono_rel)
 
 end

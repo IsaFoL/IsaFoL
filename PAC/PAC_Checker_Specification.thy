@@ -96,8 +96,8 @@ definition check_extension :: \<open>(nat, int mpoly) fmap \<Rightarrow> nat set
   \<open>check_extension A \<V> i v p =
      SPEC(\<lambda>b. b \<longrightarrow> (i \<notin># dom_m A \<and>
      (v \<notin> \<V> \<and>
-           (p)\<^sup>2 - (p) \<in> ideal polynom_bool \<and>
-            vars (p) \<subseteq> \<V>)))\<close>
+           (p-Var v)\<^sup>2 + (p-Var v) \<in> ideal polynom_bool \<and>
+            vars (p-Var v) \<subseteq> \<V>)))\<close>
 
 fun merge_status where
   \<open>merge_status (FAILED) _ = FAILED\<close> |
@@ -147,11 +147,12 @@ where
    }
    | Extension _ _ _ \<Rightarrow>
        do {
-         r \<leftarrow> normalize_poly_spec (pac_res st);
+         r \<leftarrow> normalize_poly_spec (Var (new_var st) - pac_res st);
         (eq) \<leftarrow> check_extension A \<V> (new_id st) (new_var st) r;
         if eq
-        then RETURN (stat,
-          insert (new_var st) \<V>, fmupd (new_id st) (Var (new_var st) - r) A)
+        then do {
+         RETURN (stat,
+          insert (new_var st) \<V>, fmupd (new_id st) (r) A)}
         else RETURN (FAILED, (\<V>, A))
    }
  )\<close>
@@ -249,12 +250,12 @@ lemma PAC_Format_add_and_remove:
        x12 \<in># dom_m A \<Longrightarrow>
        PAC_Format\<^sup>*\<^sup>* (\<V>, B) (\<V>, remove1_mset (the (fmlookup A x12)) B)\<close>
    \<open>(A, B) \<in> polys_rel \<Longrightarrow>
-       (p')\<^sup>2 - (p') \<in> ideal polynom_bool \<Longrightarrow>
+       (p' - Var x)\<^sup>2 + (p' - Var x) \<in> ideal polynom_bool \<Longrightarrow>
        x \<notin> \<V> \<Longrightarrow>
-       x \<notin> vars(p') \<Longrightarrow>
-       vars(p') \<subseteq> \<V> \<Longrightarrow>
+       x \<notin> vars(p' - Var x) \<Longrightarrow>
+       vars(p' - Var x) \<subseteq> \<V> \<Longrightarrow>
        PAC_Format\<^sup>*\<^sup>* (\<V>, B)
-         (insert x \<V>, add_mset (Var x - p') B)\<close>
+         (insert x \<V>, add_mset p' B)\<close>
    subgoal
      apply (rule converse_rtranclp_into_rtranclp)
      apply (rule PAC_Format.add[of \<open>the (fmlookup A x12)\<close> B \<open>the (fmlookup A x12)\<close>])
@@ -298,14 +299,17 @@ lemma PAC_Format_add_and_remove:
     done
   subgoal
     apply (rule converse_rtranclp_into_rtranclp)
-    apply (rule PAC_Format.extend_pos[of p' _ x])
-    using coeff_monomila_in_varsD[of p' x]
-    apply (auto dest: polys_rel_in_dom_inD)
-    apply (subgoal_tac \<open>\<V> \<union> {x' \<in> vars (Var x - p'). x' \<notin> \<V>} = insert x \<V>\<close>)
+    apply (rule PAC_Format.extend_pos[of \<open>Var x - p'\<close> _ x])
+    using coeff_monomila_in_varsD[of \<open>Var x - p'\<close> x]
+    apply (auto dest: polys_rel_in_dom_inD simp: vars_in_right_only vars_subst_in_left_only)
+    apply (subgoal_tac \<open>(p' - Var x)\<^sup>2 + (p' - Var x) = (Var x - p')\<^sup>2 - (Var x - p')\<close>)
+    apply (auto simp: power2_eq_square field_simps)[2]
+    using vars_in_right_only apply fastforce
+    apply (subgoal_tac \<open>\<V> \<union> {x' \<in> vars (p'). x' \<notin> \<V>} = insert x \<V>\<close>)
     apply simp
     using coeff_monomila_in_varsD[of p' x]
-    apply (auto dest: vars_minus_Var_subset polys_rel_in_dom_inD simp: vars_subst_in_left_only_iff)[]
-    done
+    apply (auto dest: vars_minus_Var_subset polys_rel_in_dom_inD simp: vars_subst_in_left_only_iff)
+    using vars_in_right_only vars_subst_in_left_only by force
   done
 
 
@@ -465,8 +469,8 @@ proof -
       subgoal for r x
         using assms vars_B apply -
         apply (rule RETURN_SPEC_refine)
-        apply (rule_tac x = \<open>(a,insert x32 \<V>, add_mset (Var (new_var (Extension x31 x32 x34)) - r) B)\<close> in exI)
-        apply (auto simp: intro: polys_rel_update_remove PAC_Format_add_and_remove(5-)
+        apply (rule_tac x = \<open>(a,insert x32 \<V>, add_mset r B)\<close> in exI)
+        apply (auto simp: intro!: polys_rel_update_remove PAC_Format_add_and_remove(5-)
            dest: rtranclp_PAC_Format_subset_ideal)
         done
       subgoal

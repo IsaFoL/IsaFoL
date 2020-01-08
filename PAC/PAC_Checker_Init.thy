@@ -555,7 +555,7 @@ lemma monomial_rel_order_map:
 
 
 lemma step_rewrite_pure:
-  \<open>pure (p2rel (\<langle>K, V\<rangle>pac_step_rel_raw)) = pac_step_rel_assn (pure K) (pure V)\<close>
+  \<open>pure (p2rel (\<langle>K, V, R\<rangle>pac_step_rel_raw)) = pac_step_rel_assn (pure K) (pure V) (pure R)\<close>
   \<open>monomial_assn = pure (monom_rel \<times>\<^sub>r int_rel)\<close> and
   poly_assn_list:
     \<open>poly_assn = pure (\<langle>monom_rel \<times>\<^sub>r int_rel\<rangle>list_rel)\<close>
@@ -574,7 +574,7 @@ lemma step_rewrite_pure:
   done
 
 lemma safe_pac_step_rel_assn[safe_constraint_rules]:
-  "is_pure K \<Longrightarrow> is_pure V \<Longrightarrow> is_pure (pac_step_rel_assn K V)"
+  "is_pure K \<Longrightarrow> is_pure V \<Longrightarrow> is_pure R \<Longrightarrow> is_pure (pac_step_rel_assn K V R)"
   by (auto simp: step_rewrite_pure(1)[symmetric] is_pure_conv)
 
 
