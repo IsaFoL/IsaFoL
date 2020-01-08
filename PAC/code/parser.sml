@@ -348,10 +348,11 @@ exception Parser_Error of string
         then
           let
             val _ = skip_spaces istream;
+            val var = parse_var istream;
             val ext = parse_polynom istream;
             val _ = parse_EOL istream ();
           in
-           (PAC_Checker.Extension (PAC_Checker.nat_of_integer lbl,
+           (PAC_Checker.Extension (PAC_Checker.nat_of_integer lbl, var,
                                        (map (fn (a,b) => (a, PAC_Checker.Int_of_integer b)) ext)))
           end
         else raise Parser_Error ("unrecognised rule '" ^ rule ^ "'")

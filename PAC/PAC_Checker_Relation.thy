@@ -262,7 +262,7 @@ lemma [sepref_import_param]:
       (auto simp: IS_LEFT_UNIQUE_def single_valued_def)
   done
 
-instantiation pac_step :: (heap) heap
+instantiation pac_step :: (heap, heap) heap
 begin
 
 instance
@@ -273,20 +273,23 @@ proof standard
   obtain g :: \<open>nat \<times> nat \<times> nat \<times> nat \<times> nat \<Rightarrow> nat\<close> where
     g: \<open>inj g\<close>
     by blast
-  have [iff]: \<open>g a = g b \<longleftrightarrow> a = b\<close>  \<open>f a' = f b' \<longleftrightarrow> a' = b'\<close> for a b a' b'
-    using f g unfolding inj_def by blast+
-  let ?f = \<open>\<lambda>x :: 'a pac_step.
+  obtain h :: \<open>'b \<Rightarrow> nat\<close> where
+    h: \<open>inj h\<close>
+    by blast
+  have [iff]: \<open>g a = g b \<longleftrightarrow> a = b\<close>\<open>h a'' = h b'' \<longleftrightarrow> a'' = b''\<close>  \<open>f a' = f b' \<longleftrightarrow> a' = b'\<close> for a b a' b' a'' b''
+    using f g h unfolding inj_def by blast+
+  let ?f = \<open>\<lambda>x :: ('a, 'b) pac_step.
      g (case x of
-        Add a b c d \<Rightarrow> (0, a, b, c, f d)
-      | Del a  \<Rightarrow> (1, a, 0, 0, 0)
-      | Mult a b c d \<Rightarrow> (2, a, f b, c, f d)
-      | Extension a b \<Rightarrow> (3, a, f b, 0, 0))\<close>
+        Add a b c d \<Rightarrow>     (0, a, b,   c, f d)
+      | Del a  \<Rightarrow>          (1, a, 0,   0,   0)
+      | Mult a b c d \<Rightarrow>    (2, a, f b, c, f d)
+      | Extension a b c \<Rightarrow> (3, a, f c, 0, h b))\<close>
    have \<open>inj ?f\<close>
      apply (auto simp: inj_def)
      apply (case_tac x; case_tac y)
      apply auto
      done
-   then show \<open>\<exists>f :: 'a pac_step \<Rightarrow> nat. inj f\<close>
+   then show \<open>\<exists>f :: ('a, 'b) pac_step \<Rightarrow> nat. inj f\<close>
      by blast
 qed
 
