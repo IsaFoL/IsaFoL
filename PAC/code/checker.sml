@@ -623,6 +623,9 @@ fun take n [] = []
   | take n (x :: xs) =
     (if equal_nata n zero_nat then [] else x :: take (minus_nat n one_nat) xs);
 
+fun member A_ [] y = false
+  | member A_ (x :: xs) y = eq A_ x y orelse member A_ xs y;
+
 fun lexordp A_ r (x :: xs) (y :: ys) =
   r x y orelse eq A_ x y andalso lexordp A_ r xs ys
   | lexordp A_ r [] (y :: ys) = true
@@ -973,6 +976,8 @@ fun merge_cstatus (CFAILED a) uu = CFAILED a
   | merge_cstatus CFOUND CFOUND = CFOUND
   | merge_cstatus CSUCCESS CFOUND = CFOUND
   | merge_cstatus CSUCCESS CSUCCESS = CSUCCESS;
+
+fun op_list_contains A_ = (fn x => fn l => member A_ l x);
 
 fun op_list_is_empty x = null x;
 
@@ -1650,39 +1655,43 @@ fun check_extension_l_impl x =
       val xaa =
         hs_memb (equal_literal, hashable_literal, heap_literal) bia bic ();
     in
-      (if not (is_None xa) orelse xaa
+      (if not (is_None xa andalso
+                (not xaa andalso
+                  op_list_contains
+                    (equal_prod (equal_list equal_literal) equal_int)
+                    (op_list_prepend bia [], one_int) bi))
         then (fn () => (error_msg show_nat bib (check_ext_l_dom_err_impl bib)))
         else let
-               val x_a =
+               val x_c =
                  remove1 (equal_prod (equal_list equal_literal) equal_int)
                    (op_list_prepend bia [], one_int) bi;
              in
-               (fn f_ => fn () => f_ ((vars_of_poly_in_impl x_a bic) ()) ())
-                 (fn x_c =>
-                   (if not x_c
+               (fn f_ => fn () => f_ ((vars_of_poly_in_impl x_c bic) ()) ())
+                 (fn x_e =>
+                   (if not x_e
                      then (fn () =>
                             (error_msg show_nat bib
                               (check_extension_l_new_var_multiple_err_impl
                                 show_literal
                                 (show_list
                                   (show_prod (show_list show_literal) show_int))
-                                bia x_a)))
-                     else (fn f_ => fn () => f_ ((mult_poly_impl x_a x_a) ())
+                                bia x_c)))
+                     else (fn f_ => fn () => f_ ((mult_poly_impl x_c x_c) ())
                             ())
-                            (fn x_f =>
-                              (fn f_ => fn () => f_ ((add_poly_impl (x_f, x_a))
+                            (fn x_h =>
+                              (fn f_ => fn () => f_ ((add_poly_impl (x_h, x_c))
                                 ()) ())
-                                (fn x_g =>
+                                (fn x_i =>
                                   (fn f_ => fn () => f_
-                                    ((weak_equality_l_impl x_g []) ()) ())
-                                    (fn x_h =>
+                                    ((weak_equality_l_impl x_i []) ()) ())
+                                    (fn x_j =>
                                       (fn () =>
-(if x_h then CSUCCESS
+(if x_j then CSUCCESS
   else error_msg show_nat bib
          (check_extension_l_side_cond_err_impl show_literal
            (show_list (show_prod (show_list show_literal) show_int))
-           (show_list (show_prod (show_list show_literal) show_int)) bia bi x_a
-           x_g))))))))
+           (show_list (show_prod (show_list show_literal) show_int)) bia bi x_c
+           x_i))))))))
              end)
         ()
     end)
