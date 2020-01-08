@@ -25,11 +25,11 @@ lemma is_success_alt_def:
   \<open>is_success a \<longleftrightarrow> a = SUCCESS\<close>
   by (cases a) auto
 
-datatype ('a, 'b) pac_step =
-  Add (pac_src1: nat) (pac_src2: nat) (new_id: nat) (pac_res: 'a) |
-  Mult (pac_src1: nat) (pac_mult: 'a) (new_id: nat) (pac_res: 'a) |
-  Extension (new_id: nat) (new_var: 'b) (pac_res: 'a) |
-  Del (pac_src1: nat)
+datatype ('a, 'b, 'lbls) pac_step =
+  Add (pac_src1: 'lbls) (pac_src2: 'lbls) (new_id: 'lbls) (pac_res: 'a) |
+  Mult (pac_src1: 'lbls) (pac_mult: 'a) (new_id: 'lbls) (pac_res: 'a) |
+  Extension (new_id: 'lbls) (new_var: 'b) (pac_res: 'a) |
+  Del (pac_src1: 'lbls)
 
 type_synonym  pac_state = \<open>(nat set \<times> int_poly multiset)\<close>
 
@@ -43,7 +43,7 @@ where
 definition PAC_checker_specification_spec
   ::  \<open>int_poly \<Rightarrow> pac_state \<Rightarrow> (status \<times> pac_state) \<Rightarrow> bool\<close>
 where
-  \<open>PAC_checker_specification_spec spec = (\<lambda>(\<V>, A) (b, B). \<Union>(vars ` set_mset A) \<subseteq> \<V> \<and>
+  \<open>PAC_checker_specification_spec spec = (\<lambda>(\<V>, A) (b, B). (\<not>is_failed b \<longrightarrow> \<Union>(vars ` set_mset A) \<subseteq> \<V>) \<and>
        (is_success b \<longrightarrow> PAC_Format\<^sup>*\<^sup>* (\<V>, A) B) \<and>
        (is_found b \<longrightarrow> PAC_Format\<^sup>*\<^sup>* (\<V>, A) B \<and> spec \<in> pac_ideal (set_mset A)))\<close>
 
@@ -113,7 +113,7 @@ definition check_del :: \<open>(nat, int mpoly) fmap \<Rightarrow> nat \<Rightar
      SPEC(\<lambda>b. b \<longrightarrow> p \<in># dom_m A)\<close>
 
 definition PAC_checker_step
-  ::  \<open>int_poly \<Rightarrow> (status \<times> fpac_step) \<Rightarrow> (int_poly, nat) pac_step \<Rightarrow>
+  ::  \<open>int_poly \<Rightarrow> (status \<times> fpac_step) \<Rightarrow> (int_poly, nat, nat) pac_step \<Rightarrow>
     (status \<times> fpac_step) nres\<close>
 where
   \<open>PAC_checker_step = (\<lambda>spec (stat, (\<V>, A)) st. case st of

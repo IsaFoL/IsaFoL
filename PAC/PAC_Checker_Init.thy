@@ -555,8 +555,10 @@ lemma monomial_rel_order_map:
 
 
 lemma step_rewrite_pure:
-  \<open>pure (p2rel (\<langle>K, V, R\<rangle>pac_step_rel_raw)) = pac_step_rel_assn (pure K) (pure V) (pure R)\<close>
-  \<open>monomial_assn = pure (monom_rel \<times>\<^sub>r int_rel)\<close> and
+  fixes K :: \<open>('olbl \<times> 'lbl) set\<close>
+  shows
+    \<open>pure (p2rel (\<langle>K, V, R\<rangle>pac_step_rel_raw)) = pac_step_rel_assn (pure K) (pure V) (pure R)\<close>
+    \<open>monomial_assn = pure (monom_rel \<times>\<^sub>r int_rel)\<close> and
   poly_assn_list:
     \<open>poly_assn = pure (\<langle>monom_rel \<times>\<^sub>r int_rel\<rangle>list_rel)\<close>
   subgoal

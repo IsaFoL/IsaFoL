@@ -188,6 +188,7 @@ lemma mult_monoms_alt_def:
           pq \<leftarrow>  f (x # p, q);
           RETURN (y # pq)}))
      (x, y)\<close>
+  apply (subst eq_commute)
   apply (induction x y rule: mult_monoms.induct)
   subgoal for p
     apply (subst RECT_unfold)
@@ -205,7 +206,6 @@ lemma mult_monoms_alt_def:
     apply (subst RECT_unfold)
     apply refine_mono
     apply (auto simp: let_to_bind_conv)
-    apply (metis let_to_bind_conv)+
     done
   done
 
@@ -351,17 +351,17 @@ lemma [sepref_fr_rules]:
 
 
 lemma [sepref_fr_rules]:
-  \<open>(return o error_msg_notin_dom, RETURN o error_msg_notin_dom) \<in> nat_assn\<^sup>k \<rightarrow>\<^sub>a raw_string_assn\<close>
-  \<open>(return o error_msg_reused_dom, RETURN o error_msg_reused_dom) \<in> nat_assn\<^sup>k \<rightarrow>\<^sub>a raw_string_assn\<close>
-  \<open>(uncurry (return oo error_msg), uncurry (RETURN oo error_msg)) \<in> nat_assn\<^sup>k *\<^sub>a raw_string_assn\<^sup>k  \<rightarrow>\<^sub>a status_assn raw_string_assn\<close>
+  \<open>(return o (error_msg_notin_dom o nat_of_uint64), RETURN o error_msg_notin_dom) \<in> uint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a raw_string_assn\<close>
+  \<open>(return o (error_msg_reused_dom o nat_of_uint64), RETURN o error_msg_reused_dom) \<in> uint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a raw_string_assn\<close>
+  \<open>(uncurry (return oo (\<lambda>i. error_msg (nat_of_uint64 i))), uncurry (RETURN oo error_msg)) \<in> uint64_nat_assn\<^sup>k *\<^sub>a raw_string_assn\<^sup>k  \<rightarrow>\<^sub>a status_assn raw_string_assn\<close>
   unfolding error_msg_notin_dom_def list_assn_pure_conv list_rel_id_simp
   unfolding status_assn_pure_conv
   unfolding show_nat_def[symmetric]
-  by (sepref_to_hoare; sep_auto; fail)+
+  by (sepref_to_hoare; sep_auto simp: uint64_nat_rel_def br_def; fail)+
 
 sepref_definition check_addition_l_impl
   is \<open>uncurry6 check_addition_l\<close>
-  :: \<open>poly_assn\<^sup>k *\<^sub>a polys_assn\<^sup>k *\<^sub>a vars_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a poly_assn\<^sup>k  \<rightarrow>\<^sub>a status_assn raw_string_assn\<close>
+  :: \<open>poly_assn\<^sup>k *\<^sub>a polys_assn\<^sup>k *\<^sub>a vars_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a poly_assn\<^sup>k  \<rightarrow>\<^sub>a status_assn raw_string_assn\<close>
   supply [[goals_limit=1]]
   unfolding mult_poly_full_def
     HOL_list.fold_custom_empty
@@ -379,8 +379,8 @@ sepref_register check_mult_l_dom_err
 
 definition check_mult_l_dom_err_impl where
   \<open>check_mult_l_dom_err_impl pd p ia i =
-    (if pd then ''The polynom with id '' @ show p @ '' was not found'' else '''') @
-    (if ia then ''The id of the resulting id '' @ show i @ '' was was already given'' else '''')\<close>
+    (if pd then ''The polynom with id '' @ show (nat_of_uint64 p) @ '' was not found'' else '''') @
+    (if ia then ''The id of the resulting id '' @ show (nat_of_uint64 i) @ '' was already given'' else '''')\<close>
 
 definition check_mult_l_mult_err_impl where
   \<open>check_mult_l_mult_err_impl p q pq r =
@@ -388,7 +388,7 @@ definition check_mult_l_mult_err_impl where
 
 lemma [sepref_fr_rules]:
   \<open>(uncurry3 ((\<lambda>x y. return oo (check_mult_l_dom_err_impl x y))),
-   uncurry3 (check_mult_l_dom_err)) \<in> bool_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a bool_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a raw_string_assn\<close>
+   uncurry3 (check_mult_l_dom_err)) \<in> bool_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a bool_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a raw_string_assn\<close>
    unfolding check_mult_l_dom_err_def check_mult_l_dom_err_impl_def list_assn_pure_conv
    apply sepref_to_hoare
    apply sep_auto
@@ -404,7 +404,7 @@ lemma [sepref_fr_rules]:
 
 sepref_definition check_mult_l_impl
   is \<open>uncurry6 check_mult_l\<close>
-  :: \<open>poly_assn\<^sup>k *\<^sub>a polys_assn\<^sup>k *\<^sub>a vars_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a poly_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a poly_assn\<^sup>k  \<rightarrow>\<^sub>a status_assn raw_string_assn\<close>
+  :: \<open>poly_assn\<^sup>k *\<^sub>a polys_assn\<^sup>k *\<^sub>a vars_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a poly_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a poly_assn\<^sup>k  \<rightarrow>\<^sub>a status_assn raw_string_assn\<close>
   supply [[goals_limit=1]]
   unfolding check_mult_l_def
     HOL_list.fold_custom_empty
@@ -417,13 +417,13 @@ sepref_definition check_mult_l_impl
 
 declare check_mult_l_impl.refine[sepref_fr_rules]
 
-definition check_ext_l_dom_err_impl :: \<open>nat \<Rightarrow> _\<close>  where
+definition check_ext_l_dom_err_impl :: \<open>uint64 \<Rightarrow> _\<close>  where
   \<open>check_ext_l_dom_err_impl p =
-    ''There is already a polynom with index '' @ show p\<close>
+    ''There is already a polynom with index '' @ show (nat_of_uint64 p)\<close>
 
 lemma [sepref_fr_rules]:
   \<open>(((return o (check_ext_l_dom_err_impl))),
-    (check_extension_l_dom_err)) \<in> nat_assn\<^sup>k \<rightarrow>\<^sub>a raw_string_assn\<close>
+    (check_extension_l_dom_err)) \<in> uint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a raw_string_assn\<close>
    unfolding check_extension_l_dom_err_def check_ext_l_dom_err_impl_def list_assn_pure_conv
    apply sepref_to_hoare
    apply sep_auto
@@ -504,7 +504,7 @@ lemma [safe_constraint_rules]:
 
 sepref_definition check_extension_l_impl
   is \<open>uncurry5 check_extension_l\<close>
-  :: \<open>poly_assn\<^sup>k *\<^sub>a polys_assn\<^sup>k *\<^sub>a vars_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a string_assn\<^sup>k *\<^sub>a poly_assn\<^sup>k \<rightarrow>\<^sub>a
+  :: \<open>poly_assn\<^sup>k *\<^sub>a polys_assn\<^sup>k *\<^sub>a vars_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a string_assn\<^sup>k *\<^sub>a poly_assn\<^sup>k \<rightarrow>\<^sub>a
      status_assn raw_string_assn\<close>
   supply option.splits[split] single_valued_the_monomial_assn[simp]
   supply [[goals_limit=1]]
@@ -527,12 +527,12 @@ declare check_extension_l_impl.refine[sepref_fr_rules]
 
 definition check_del_l_dom_err_impl where
   \<open>check_del_l_dom_err_impl p =
-    (''The polynom with id '' @ show p @ '' was not found'')\<close>
+    (''The polynom with id '' @ show (nat_of_uint64 p) @ '' was not found'')\<close>
 
 
 lemma [sepref_fr_rules]:
   \<open>(return o (check_del_l_dom_err_impl),
-   (check_del_l_dom_err)) \<in> nat_assn\<^sup>k \<rightarrow>\<^sub>a raw_string_assn\<close>
+   (check_del_l_dom_err)) \<in> uint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a raw_string_assn\<close>
    unfolding check_del_l_dom_err_def list_assn_pure_conv
    apply sepref_to_hoare
    apply sep_auto
@@ -541,7 +541,7 @@ lemma [sepref_fr_rules]:
 
 sepref_definition check_del_l_impl
   is \<open>uncurry2 check_del_l\<close>
-  :: \<open>poly_assn\<^sup>k *\<^sub>a polys_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a status_assn raw_string_assn\<close>
+  :: \<open>poly_assn\<^sup>k *\<^sub>a polys_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a status_assn raw_string_assn\<close>
   supply [[goals_limit=1]]
   unfolding check_del_l_def
     in_dom_m_lookup_iff
@@ -677,7 +677,7 @@ lemma PAC_checker_l_step_alt_def:
   unfolding PAC_checker_l_step'_def by auto
 
 sepref_decl_intf ('k) acode_status is "('k) code_status"
-sepref_decl_intf ('k, 'b) apac_step is "('k, 'b) pac_step"
+sepref_decl_intf ('k, 'b, 'lbl) apac_step is "('k, 'b, 'lbl) pac_step"
 
 sepref_register merge_cstatus full_normalize_poly new_var is_Add
 
@@ -689,13 +689,18 @@ lemma poly_rel_the_pure:
   unfolding poly_assn_list
   by auto
 
-thm sepref_fr_rules(7, 50)[sepref_fr_rules]
-find_theorems hn_refine hn_val
+lemma [safe_constraint_rules]:
+  \<open>CONSTRAINT IS_LEFT_UNIQUE uint64_nat_rel\<close>
+  and
+  single_valued_uint64_nat_rel[safe_constraint_rules]:
+    \<open>CONSTRAINT single_valued uint64_nat_rel\<close>
+  by (auto simp: CONSTRAINT_def IS_LEFT_UNIQUE_def single_valued_def uint64_nat_rel_def br_def)
+
 sepref_definition check_step_impl
   is \<open>uncurry4 PAC_checker_l_step'\<close>
-  :: \<open>poly_assn\<^sup>k *\<^sub>a (status_assn raw_string_assn)\<^sup>d *\<^sub>a vars_assn\<^sup>d *\<^sub>a polys_assn\<^sup>d *\<^sub>a (pac_step_rel_assn (nat_assn) poly_assn (string_assn :: string \<Rightarrow> _))\<^sup>d \<rightarrow>\<^sub>a
+  :: \<open>poly_assn\<^sup>k *\<^sub>a (status_assn raw_string_assn)\<^sup>d *\<^sub>a vars_assn\<^sup>d *\<^sub>a polys_assn\<^sup>d *\<^sub>a (pac_step_rel_assn (uint64_nat_assn) poly_assn (string_assn :: string \<Rightarrow> _))\<^sup>d \<rightarrow>\<^sub>a
     status_assn raw_string_assn \<times>\<^sub>a vars_assn \<times>\<^sub>a polys_assn\<close>
-  supply [[goals_limit=1]] is_Mult_lastI[intro]
+  supply [[goals_limit=1]] is_Mult_lastI[intro] single_valued_uint64_nat_rel[simp]
   unfolding PAC_checker_l_step_def PAC_checker_l_step'_def
     pac_step.case_eq_if Let_def
      is_success_alt_def[symmetric]
@@ -719,7 +724,7 @@ lemma PAC_checker_l_alt_def:
 sepref_definition PAC_checker_l_impl
   is \<open>uncurry4 PAC_checker_l'\<close>
   :: \<open>poly_assn\<^sup>k *\<^sub>a vars_assn\<^sup>d *\<^sub>a polys_assn\<^sup>d *\<^sub>a (status_assn raw_string_assn)\<^sup>d *\<^sub>a
-       (list_assn (pac_step_rel_assn (nat_assn) poly_assn string_assn))\<^sup>k \<rightarrow>\<^sub>a
+       (list_assn (pac_step_rel_assn (uint64_nat_assn) poly_assn string_assn))\<^sup>k \<rightarrow>\<^sub>a
      status_assn raw_string_assn \<times>\<^sub>a vars_assn \<times>\<^sub>a polys_assn\<close>
   supply [[goals_limit=1]] is_Mult_lastI[intro]
   unfolding PAC_checker_l_def is_success_alt_def[symmetric] PAC_checker_l_step_alt_def
@@ -746,7 +751,7 @@ abbreviation polys_assn_input where
 sepref_register upper_bound_on_dom op_fmap_empty
 sepref_definition remap_polys_l_impl
   is \<open>uncurry2 remap_polys_l2\<close>
-  :: \<open>poly_assn\<^sup>k *\<^sub>a vars_assn\<^sup>d *\<^sub>a polys_assn_input\<^sup>d \<rightarrow>\<^sub>a
+  :: \<open>[\<lambda>((spec,\<V>), A'). (\<forall>i \<in># dom_m A. i < 2^64)]\<^sub>a poly_assn\<^sup>k *\<^sub>a vars_assn\<^sup>d *\<^sub>a polys_assn_input\<^sup>d \<rightarrow>
     status_assn raw_string_assn \<times>\<^sub>a vars_assn \<times>\<^sub>a polys_assn\<close>
   supply [[goals_limit=1]] is_Mult_lastI[intro]
   unfolding remap_polys_l2_def op_fmap_empty_def[symmetric] while_eq_nfoldli[symmetric]
@@ -757,6 +762,11 @@ sepref_definition remap_polys_l_impl
   apply (subst while_upt_while_direct)
   apply simp
   apply (rewrite at \<open>op_fmap_empty\<close> annotate_assn[where A=\<open>polys_assn\<close>])
+apply sepref_dbg_keep
+apply sepref_dbg_trans_keep
+apply sepref_dbg_trans_step_keep
+apply sepref_dbg_side_unfold
+
   by sepref
 
 thm remap_polys_l2_remap_polys_l

@@ -1,8 +1,51 @@
 theory PAC_Checker_Relation
-  imports PAC_Checker WB_Sort
+  imports PAC_Checker WB_Sort "Native_Word.Uint64"
 begin
 
 section \<open>Various Refinement Relations\<close>
+
+text \<open>When writing this, it was not possible to share the definition with the IsaSAT version.\<close>
+definition uint64_nat_rel :: "(uint64 \<times> nat) set" where
+ \<open>uint64_nat_rel = br nat_of_uint64 (\<lambda>_. True)\<close>
+
+abbreviation uint64_nat_assn where
+  \<open>uint64_nat_assn \<equiv> pure uint64_nat_rel\<close>
+
+instantiation uint32 :: hashable
+begin
+definition hashcode_uint32 :: \<open>uint32 \<Rightarrow> uint32\<close> where
+  \<open>hashcode_uint32 n = n\<close>
+
+definition def_hashmap_size_uint32 :: \<open>uint32 itself \<Rightarrow> nat\<close> where
+  \<open>def_hashmap_size_uint32 = (\<lambda>_. 16)\<close>
+  \<comment> \<open>same as @{typ nat}\<close>
+instance
+  by standard (simp add: def_hashmap_size_uint32_def)
+end
+
+instantiation uint64 :: hashable
+begin
+definition hashcode_uint64 :: \<open>uint64 \<Rightarrow> uint32\<close> where
+  \<open>hashcode_uint64 n = (uint32_of_nat (nat_of_uint64 ((n) AND ((2 :: uint64)^32 -1))))\<close>
+
+definition def_hashmap_size_uint64 :: \<open>uint64 itself \<Rightarrow> nat\<close> where
+  \<open>def_hashmap_size_uint64 = (\<lambda>_. 16)\<close>
+  \<comment> \<open>same as @{typ nat}\<close>
+instance
+  by standard (simp add: def_hashmap_size_uint64_def)
+end
+
+lemma word_nat_of_uint64_Rep_inject[simp]: \<open>nat_of_uint64 ai = nat_of_uint64 bi \<longleftrightarrow> ai = bi\<close>
+  by transfer simp
+
+instance uint64 :: heap
+  by standard (auto simp: inj_def exI[of _ nat_of_uint64])
+
+instance uint64 :: semiring_numeral
+  by standard
+
+lemma nat_of_uint64_012[simp]: \<open>nat_of_uint64 0 = 0\<close> \<open>nat_of_uint64 2 = 2\<close> \<open>nat_of_uint64 1 = 1\<close>
+  by (transfer, auto)+
 
 definition string_rel :: \<open>(String.literal \<times> string) set\<close> where
   \<open>string_rel = {(x, y). y = String.explode x}\<close>
@@ -39,7 +82,7 @@ abbreviation poly_assn where
   \<open>poly_assn \<equiv> list_assn monomial_assn\<close>
 
 abbreviation polys_assn where
-  \<open>polys_assn \<equiv> hm_fmap_assn nat_assn poly_assn\<close>
+  \<open>polys_assn \<equiv> hm_fmap_assn uint64_nat_assn poly_assn\<close>
 
 lemma string_rel_string_assn:
   \<open>(\<up> ((c, a) \<in> string_rel)) = string_assn a c\<close>
@@ -262,7 +305,7 @@ lemma [sepref_import_param]:
       (auto simp: IS_LEFT_UNIQUE_def single_valued_def)
   done
 
-instantiation pac_step :: (heap, heap) heap
+instantiation pac_step :: (heap, heap, heap) heap
 begin
 
 instance
@@ -276,20 +319,24 @@ proof standard
   obtain h :: \<open>'b \<Rightarrow> nat\<close> where
     h: \<open>inj h\<close>
     by blast
-  have [iff]: \<open>g a = g b \<longleftrightarrow> a = b\<close>\<open>h a'' = h b'' \<longleftrightarrow> a'' = b''\<close>  \<open>f a' = f b' \<longleftrightarrow> a' = b'\<close> for a b a' b' a'' b''
-    using f g h unfolding inj_def by blast+
-  let ?f = \<open>\<lambda>x :: ('a, 'b) pac_step.
+  obtain i :: \<open>'c \<Rightarrow> nat\<close> where
+    i: \<open>inj i\<close>
+    by blast
+  have [iff]: \<open>g a = g b \<longleftrightarrow> a = b\<close>\<open>h a'' = h b'' \<longleftrightarrow> a'' = b''\<close>  \<open>f a' = f b' \<longleftrightarrow> a' = b'\<close>
+    \<open>i a''' = i b''' \<longleftrightarrow> a''' = b'''\<close>  for a b a' b' a'' b'' a''' b'''
+    using f g h i unfolding inj_def by blast+
+  let ?f = \<open>\<lambda>x :: ('a, 'b, 'c) pac_step.
      g (case x of
-        Add a b c d \<Rightarrow>     (0, a, b,   c, f d)
-      | Del a  \<Rightarrow>          (1, a, 0,   0,   0)
-      | Mult a b c d \<Rightarrow>    (2, a, f b, c, f d)
-      | Extension a b c \<Rightarrow> (3, a, f c, 0, h b))\<close>
+        Add a b c d \<Rightarrow>     (0, i a,  i b,  i c, f d)
+      | Del a  \<Rightarrow>          (1, i a,    0,   0,   0)
+      | Mult a b c d \<Rightarrow>    (2, i a, f b, i c, f d)
+      | Extension a b c \<Rightarrow> (3, i a, f c, 0, h b))\<close>
    have \<open>inj ?f\<close>
      apply (auto simp: inj_def)
      apply (case_tac x; case_tac y)
      apply auto
      done
-   then show \<open>\<exists>f :: ('a, 'b) pac_step \<Rightarrow> nat. inj f\<close>
+   then show \<open>\<exists>f :: ('a, 'b, 'c) pac_step \<Rightarrow> nat. inj f\<close>
      by blast
 qed
 

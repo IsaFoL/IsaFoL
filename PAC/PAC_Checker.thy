@@ -35,7 +35,7 @@ lemma in_code_status_status_rel_iff[simp]:
   \<open>(CFAILED C, b) \<in> code_status_status_rel \<longleftrightarrow> b = FAILED\<close>
   by (cases a; cases b; auto simp: code_status_status_rel_def; fail)+
 
-fun pac_step_rel_raw :: \<open>(nat \<times> nat) set \<Rightarrow> ('a \<times> 'b) set \<Rightarrow> ('c \<times> 'd) set \<Rightarrow> ('a, 'c) pac_step \<Rightarrow> ('b, 'd) pac_step \<Rightarrow> bool\<close> where
+fun pac_step_rel_raw :: \<open>('olbl \<times> 'lbl) set \<Rightarrow> ('a \<times> 'b) set \<Rightarrow> ('c \<times> 'd) set \<Rightarrow> ('a, 'c, 'olbl) pac_step \<Rightarrow> ('b, 'd, 'lbl) pac_step \<Rightarrow> bool\<close> where
 \<open>pac_step_rel_raw R1 R2 R3 (Add p1 p2 i r) (Add p1' p2' i' r') \<longleftrightarrow>
    (p1, p1') \<in> R1 \<and> (p2, p2') \<in> R1 \<and> (i, i') \<in> R1 \<and>
    (r, r') \<in> R2\<close> |
@@ -48,7 +48,7 @@ fun pac_step_rel_raw :: \<open>(nat \<times> nat) set \<Rightarrow> ('a \<times>
    (i, j) \<in> R1 \<and> (x, x') \<in> R3 \<and> (p1, p1') \<in> R2\<close> |
 \<open>pac_step_rel_raw R1 R2 R3 _ _ \<longleftrightarrow> False\<close>
 
-fun pac_step_rel_assn :: \<open>(nat \<Rightarrow> nat \<Rightarrow> assn) \<Rightarrow> ('a \<Rightarrow> 'b \<Rightarrow> assn) \<Rightarrow> ('c \<Rightarrow> 'd \<Rightarrow> assn) \<Rightarrow> ('a, 'c) pac_step \<Rightarrow> ('b, 'd) pac_step \<Rightarrow> assn\<close> where
+fun pac_step_rel_assn :: \<open>('olbl \<Rightarrow> 'lbl \<Rightarrow> assn) \<Rightarrow> ('a \<Rightarrow> 'b \<Rightarrow> assn) \<Rightarrow> ('c \<Rightarrow> 'd \<Rightarrow> assn) \<Rightarrow> ('a, 'c, 'olbl) pac_step \<Rightarrow> ('b, 'd, 'lbl) pac_step \<Rightarrow> assn\<close> where
 \<open>pac_step_rel_assn R1 R2 R3 (Add p1 p2 i r) (Add p1' p2' i' r') =
    R1 p1 p1' * R1 p2 p2' * R1 i i' *
    R2 r r'\<close> |
@@ -350,7 +350,7 @@ lemma sorted_wrt_insort_key_rel2:
   apply (metis Restricted_Predicates.total_on_def in_mono insertI1 subset_insertI)
   by (simp add: Restricted_Predicates.total_on_def)
 
-definition PAC_checker_l_step ::  \<open>_ \<Rightarrow> string code_status \<times> string set \<times> _ \<Rightarrow> (llist_polynom, string) pac_step \<Rightarrow> _\<close> where
+definition PAC_checker_l_step ::  \<open>_ \<Rightarrow> string code_status \<times> string set \<times> _ \<Rightarrow> (llist_polynom, string, nat) pac_step \<Rightarrow> _\<close> where
   \<open>PAC_checker_l_step = (\<lambda>spec (st', \<V>, A) st. case st of
      Add _ _ _ _ \<Rightarrow>
        do {
@@ -1186,7 +1186,7 @@ lemmas [code] =
 export_code add_poly_l' in SML module_name test
 
 definition full_checker_l
-  :: \<open>llist_polynom \<Rightarrow> (nat, llist_polynom) fmap \<Rightarrow> (_, string) pac_step list \<Rightarrow>
+  :: \<open>llist_polynom \<Rightarrow> (nat, llist_polynom) fmap \<Rightarrow> (_, string, nat) pac_step list \<Rightarrow>
     (string code_status \<times> _) nres\<close>
 where
   \<open>full_checker_l spec A st = do {
