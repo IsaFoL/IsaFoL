@@ -118,9 +118,45 @@ proof -
     by (simp add: lifting_with_wf_ordering_family.intro lifting_with_wf_ordering_family_axioms.intro)
 qed
 
-sublocale lifting_equivalence_with_red_crit_family Inf_FL Bot_G Inf_G Q entails_q Red_Inf_q Red_F_q
+sublocale labeled_ord_red_crit_fam: lifting_equivalence_with_red_crit_family Inf_FL Bot_G Inf_G Q entails_q Red_Inf_q Red_F_q
   Bot_FL \<G>_F_L_q \<G>_Inf_L_q "\<lambda>g. Prec_FL"
-  sorry
+  using standard_labeled_lifting_family no_labels.Q_not_empty
+    no_labels.Ground_family.calculus_with_red_crit_family_axioms
+  by (simp add: lifting_equivalence_with_red_crit_family.intro lifting_equivalence_with_red_crit_family_axioms.intro)
+
+lemma entail_equiv: "labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.entails_Q N1 N2 = (N1 \<Turnstile>\<inter>L N2)"
+  unfolding labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.entails_Q_def
+    entails_\<G>_L_Q_def entails_\<G>_L_q_def labeled_ord_red_crit_fam.entails_\<G>_q_def
+     labeled_ord_red_crit_fam.\<G>_set_q_def \<G>_set_L_q_def
+  by simp 
+
+lemma entail_equiv2: "labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.entails_Q = (\<Turnstile>\<inter>L)"
+  using entail_equiv by auto
+
+lemma red_inf_equiv: "labeled_ord_red_crit_fam.empty_ord_lifted_calc_w_red_crit_family.Red_Inf_Q N = with_labels.Red_Inf_Q N"
+  unfolding labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_Inf_Q_def
+    with_labels.Red_Inf_Q_def labeled_ord_red_crit_fam.Red_Inf_\<G>_q_def Red_Inf_\<G>_L_q_def
+    labeled_ord_red_crit_fam.\<G>_set_q_def \<G>_set_L_q_def
+  by simp
+
+lemma red_inf_equiv2: "labeled_ord_red_crit_fam.empty_ord_lifted_calc_w_red_crit_family.Red_Inf_Q =
+  with_labels.Red_Inf_Q"
+  using red_inf_equiv by auto
+
+lemma empty_red_f_equiv: "labeled_ord_red_crit_fam.empty_ord_lifted_calc_w_red_crit_family.Red_F_Q N =
+  with_labels.Red_F_Q N"
+  unfolding labeled_ord_red_crit_fam.empty_ord_lifted_calc_w_red_crit_family.Red_F_Q_def
+    with_labels.Red_F_Q_def labeled_ord_red_crit_fam.Red_F_\<G>_empty_q_def Red_F_\<G>_empty_L_q_def
+    labeled_ord_red_crit_fam.\<G>_set_q_def \<G>_set_L_q_def Empty_Order_def Labeled_Empty_Order_def
+  by simp
+
+lemma empty_red_f_equiv2: "labeled_ord_red_crit_fam.empty_ord_lifted_calc_w_red_crit_family.Red_F_Q = with_labels.Red_F_Q"
+  using empty_red_f_equiv by auto
+
+lemma labeled_ordered_static_ref_comp: "static_refutational_complete_calculus Bot_FL Inf_FL labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.entails_Q labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_Inf_Q labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_F_Q"
+  using labeled_ord_red_crit_fam.static_empty_ord_inter_equiv_static_inter empty_red_f_equiv2 red_inf_equiv2
+    entail_equiv2 labeled_static_ref_comp
+  by argo 
 
 end
 
