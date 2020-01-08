@@ -803,6 +803,22 @@ sepref_definition empty_vars_impl
   unfolding hs.fold_custom_empty
   by sepref
 
+text \<open>This is a hack for performance. There is no need to recheck that that a char is valid when working
+  on chars.\<close>
+definition unsafe_asciis_of_literal :: \<open>_\<close> where
+  \<open>unsafe_asciis_of_literal xs = String.asciis_of_literal xs\<close>
+
+definition unsafe_asciis_of_literal' :: \<open>_\<close> where
+  [simp, symmetric, code]: \<open>unsafe_asciis_of_literal' = unsafe_asciis_of_literal\<close>
+
+code_printing
+  constant unsafe_asciis_of_literal' \<rightharpoonup>
+    (SML) "!(List.map (fn c => let val k = Char.ord c in IntInf.fromInt k end) /o String.explode)"
+
+lemmas [code] =
+  hashcode_literal_def[unfolded String.explode_code
+    unsafe_asciis_of_literal_def[symmetric]]
+
 export_code PAC_checker_l_impl PAC_update_impl PAC_empty_impl the_error is_cfailed is_cfound
   int_of_integer Del Add Mult nat_of_integer String.implode remap_polys_l_impl
   fully_normalize_poly_impl union_vars_poly_impl empty_vars_impl

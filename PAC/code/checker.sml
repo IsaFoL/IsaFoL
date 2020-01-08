@@ -522,6 +522,11 @@ val ord_literal =
 
 fun def_hashmap_size_literal uu = nat_of_integer (10 : IntInf.int);
 
+fun unsafe_asciis_of_literal x =
+  (List.map (fn c => let val k = Char.ord c in IntInf.fromInt k end) 
+    o String.explode)
+    x;
+
 fun foldl f a [] = a
   | foldl f a (x :: xs) = foldl f (f a x) xs;
 
@@ -531,7 +536,9 @@ fun hashcode_list A_ =
             A_ x))
     (Word32.fromLargeInt (IntInf.toLarge (5381 : IntInf.int)));
 
-fun hashcode_literal s = hashcode_list hashable_char (explode s);
+fun hashcode_literal s =
+  hashcode_list hashable_char
+    (map char_of_integer (unsafe_asciis_of_literal s));
 
 val hashable_literal =
   {hashcode = hashcode_literal, def_hashmap_size = def_hashmap_size_literal} :
