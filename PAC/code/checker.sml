@@ -1659,12 +1659,12 @@ fun check_extension_l_impl x =
                 (not xaa andalso
                   op_list_contains
                     (equal_prod (equal_list equal_literal) equal_int)
-                    (op_list_prepend bia [], one_int) bi))
+                    (op_list_prepend bia [], uminus_int one_int) bi))
         then (fn () => (error_msg show_nat bib (check_ext_l_dom_err_impl bib)))
         else let
                val x_c =
                  remove1 (equal_prod (equal_list equal_literal) equal_int)
-                   (op_list_prepend bia [], one_int) bi;
+                   (op_list_prepend bia [], uminus_int one_int) bi;
              in
                (fn f_ => fn () => f_ ((vars_of_poly_in_impl x_c bic) ()) ())
                  (fn x_e =>
@@ -1679,19 +1679,24 @@ fun check_extension_l_impl x =
                      else (fn f_ => fn () => f_ ((mult_poly_impl x_c x_c) ())
                             ())
                             (fn x_h =>
-                              (fn f_ => fn () => f_ ((add_poly_impl (x_h, x_c))
-                                ()) ())
-                                (fn x_i =>
-                                  (fn f_ => fn () => f_
-                                    ((weak_equality_l_impl x_i []) ()) ())
-                                    (fn x_j =>
-                                      (fn () =>
-(if x_j then CSUCCESS
-  else error_msg show_nat bib
-         (check_extension_l_side_cond_err_impl show_literal
-           (show_list (show_prod (show_list show_literal) show_int))
-           (show_list (show_prod (show_list show_literal) show_int)) bia bi x_c
-           x_i))))))))
+                              let
+                                val x_i =
+                                  map (fn (a, b) => (a, uminus_int b)) x_c;
+                              in
+                                (fn f_ => fn () => f_
+                                  ((add_poly_impl (x_h, x_i)) ()) ())
+                                  (fn x_k =>
+                                    (fn f_ => fn () => f_
+                                      ((weak_equality_l_impl x_k []) ()) ())
+                                      (fn x_l =>
+(fn () =>
+  (if x_l then CSUCCESS
+    else error_msg show_nat bib
+           (check_extension_l_side_cond_err_impl show_literal
+             (show_list (show_prod (show_list show_literal) show_int))
+             (show_list (show_prod (show_list show_literal) show_int)) bia bi
+             x_i x_k)))))
+                              end)))
              end)
         ()
     end)
@@ -2113,9 +2118,9 @@ fun check_step_impl x =
                              val x_c =
                                fully_normalize_poly_impl
                                  (op_list_prepend
-                                   (op_list_prepend (new_var bi) [], one_int)
-                                   (map (fn (a, b) => (a, uminus_int b))
-                                     (pac_res bi)))
+                                   (op_list_prepend (new_var bi) [],
+                                     uminus_int one_int)
+                                   (pac_res bi))
                                  ();
                              val x_d =
                                check_extension_l_impl ai bia bib (new_id bi)

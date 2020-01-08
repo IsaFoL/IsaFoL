@@ -277,8 +277,8 @@ exception Parser_Error of string
             (ignore (TextIO.input1 istream); print2 "rule +:\n"; "+:")
           | SOME #"*" =>
             (ignore (TextIO.input1 istream); print2 "rule *:\n";"*:")
-          | SOME #"e" =>
-            (print2 "rule e\n"; "e")
+          | SOME #"=" =>
+            (print2 "rule =\n"; "=")
           | SOME c => raise Parser_Error ("unrecognised rule '" ^ String.implode [c] ^ "'")
       end
 
@@ -344,11 +344,12 @@ exception Parser_Error of string
           in
             (PAC_Checker.Del (PAC_Checker.nat_of_integer lbl))
           end
-        else if rule = "e"
+        else if rule = "="
         then
           let
             val _ = skip_spaces istream;
             val var = parse_var istream;
+            val _ = parse_comma istream ();
             val ext = parse_polynom istream;
             val _ = parse_EOL istream ();
           in
