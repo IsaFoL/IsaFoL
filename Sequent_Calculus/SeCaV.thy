@@ -279,7 +279,7 @@ proof (induct arbitrary: f rule: sequent_calculus.induct)
     moreover have \<open>list_all (\<lambda>p. i \<notin> params p) x\<close>
       using 11 by auto
     ultimately show ?thesis
-      using 11 Ball_set_list_all insert_iff list.set(2) upd_lemma by metis
+      using 11 Ball_set insert_iff list.set(2) upd_lemma by metis
   qed auto
 next
   case (12 i p x)
@@ -289,7 +289,7 @@ next
     moreover have \<open>list_all (\<lambda>p. i \<notin> params p) x\<close>
       using 12 by auto
     ultimately show ?thesis
-      using 12 Ball_set_list_all insert_iff list.set(2) upd_lemma by metis
+      using 12 Ball_set insert_iff list.set(2) upd_lemma by metis
   qed auto
 qed auto
 
