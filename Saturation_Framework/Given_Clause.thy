@@ -176,7 +176,7 @@ lemma "\<iota> \<in> Inf_FL \<Longrightarrow>
   \<iota> \<in> labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_Inf_Q N \<equiv> (to_F \<iota>) \<in> no_labels.empty_ord_lifted_calc_w_red_crit_family.Red_Inf_Q (fst ` N)" for \<iota>
 proof -
   fix \<iota>
-  assume "\<iota> \<in> Inf_FL"
+  assume i_in: "\<iota> \<in> Inf_FL"
   have "\<iota> \<in> labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_Inf_Q N \<Longrightarrow>
     (to_F \<iota>) \<in> no_labels.empty_ord_lifted_calc_w_red_crit_family.Red_Inf_Q (fst ` N)"
   proof -
@@ -197,32 +197,71 @@ proof -
         then have i0_in2: "\<iota>0 \<in> to_F ` (labeled_ord_red_crit_fam.Red_Inf_\<G>_q q0 N)"
           using x0_is by argo
         then obtain \<iota>0_FL where i0_FL_in: "\<iota>0_FL \<in> Inf_FL" and i0_to_i0_FL: "\<iota>0 = to_F \<iota>0_FL" and
-          "\<G>_Inf_L_q q0 \<iota>0_FL \<subseteq> Red_Inf_q q0 (labeled_ord_red_crit_fam.\<G>_set_q q0 N)"
+          subs1: "\<G>_Inf_L_q q0 \<iota>0_FL \<subseteq> Red_Inf_q q0 (labeled_ord_red_crit_fam.\<G>_set_q q0 N)"
           unfolding labeled_ord_red_crit_fam.Red_Inf_\<G>_q_def by blast
-        have "\<iota>0 \<in> Inf_F"
+        have i0_in3: "\<iota>0 \<in> Inf_F"
           using i0_to_i0_FL Inf_FL_to_Inf_F[OF i0_FL_in] unfolding to_F_def by blast
         {
           assume "\<G>_Inf_q q0 \<iota>0 \<noteq> {}"
           then obtain \<iota>1 where i1_in: "\<iota>1 \<in> \<G>_Inf_q q0 \<iota>0" by blast
           have "\<G>_Inf_q q0 \<iota>0 \<subseteq> Red_Inf_q q0 (no_labels.\<G>_set_q q0 (fst ` N))"
-            sorry
+            using subs1 i0_to_i0_FL
+            unfolding no_labels.\<G>_set_q_def labeled_ord_red_crit_fam.\<G>_set_q_def
+              \<G>_Inf_L_q_def \<G>_F_L_q_def
+            by simp
         }
-        show "\<iota>0 \<in> no_labels.Red_Inf_\<G>_q q0 (fst ` N)" 
-          unfolding no_labels.Red_Inf_\<G>_q_def
-        
+        then show "\<iota>0 \<in> no_labels.Red_Inf_\<G>_q q0 (fst ` N)" 
+          unfolding no_labels.Red_Inf_\<G>_q_def using i0_in3 by blast
+       qed 
+     next
+       show "no_labels.Red_Inf_\<G>_q q0 (fst ` N) \<subseteq> to_F ` X0 N"
+       proof
+         fix \<iota>0
+         assume i0_in: "\<iota>0 \<in> no_labels.Red_Inf_\<G>_q q0 (fst ` N)"
+         then have i0_in2: "\<iota>0 \<in> Inf_F"
+           unfolding no_labels.Red_Inf_\<G>_q_def by blast
+         obtain \<iota>0_FL where i0_FL_in: "\<iota>0_FL \<in> Inf_FL" and i0_to_i0_FL: "\<iota>0 = to_F \<iota>0_FL"
+           using Inf_F_to_Inf_FL[OF i0_in2] unfolding to_F_def
+           by (metis Ex_list_of_length fst_conv inference.exhaust_sel inference.inject map_fst_zip)
+         have subs1: "\<G>_Inf_L_q q0 \<iota>0_FL \<subseteq> Red_Inf_q q0 (labeled_ord_red_crit_fam.\<G>_set_q q0 N)"
+           using i0_in i0_to_i0_FL
+           unfolding no_labels.Red_Inf_\<G>_q_def \<G>_Inf_L_q_def no_labels.\<G>_set_q_def
+             labeled_ord_red_crit_fam.\<G>_set_q_def \<G>_F_L_q_def
+           by simp
+         then have "\<iota>0_FL \<in> labeled_ord_red_crit_fam.Red_Inf_\<G>_q q0 N"
+           using i0_FL_in unfolding labeled_ord_red_crit_fam.Red_Inf_\<G>_q_def
+           by simp
+         then show "\<iota>0 \<in> to_F ` X0 N"
+           using x0_is i0_to_i0_FL i0_in2 by blast
+       qed
+     qed
     then have "Y \<in> no_labels.Red_Inf_\<G>_q ` Q \<Longrightarrow> (to_F \<iota>) \<in> Y (fst ` N)" for Y
-      unfolding no_labels.Red_Inf_\<G>_q_def
+      using \<open>\<iota> \<in> labeled_ord_red_crit_fam.empty_ord_lifted_calc_w_red_crit_family.Red_Inf_Q N\<close>
+        no_labels.lifted_calc_w_red_crit_family.Red_Inf_Q_def red_inf_equiv2 red_inf_impl by fastforce
     then show "(to_F \<iota>) \<in> no_labels.empty_ord_lifted_calc_w_red_crit_family.Red_Inf_Q (fst ` N)"
       unfolding labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_Inf_Q_def
         no_labels.empty_ord_lifted_calc_w_red_crit_family.Red_Inf_Q_def
-
-(* no_labels.Red_Inf_\<G>_q_def
-        labeled_ord_red_crit_fam.Red_Inf_\<G>_q_def labeled_ord_red_crit_fam.\<G>_set_q_def
-        no_labels.\<G>_set_q_def \<G>_Inf_L_q_def \<G>_F_L_q_def *)
-    sorry
+      by blast
+    qed
   moreover have "(to_F \<iota>) \<in> no_labels.empty_ord_lifted_calc_w_red_crit_family.Red_Inf_Q (fst ` N) \<Longrightarrow>
     \<iota> \<in> labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_Inf_Q N"
+  proof -
+    assume to_F_in: "to_F \<iota> \<in> no_labels.empty_ord_lifted_calc_w_red_crit_family.Red_Inf_Q (fst ` N)"
+    have i_F_in: "to_F \<iota> \<in> Inf_F" using to_F_in
+      unfolding no_labels.empty_ord_lifted_calc_w_red_crit_family.Red_Inf_Q_def no_labels.Red_Inf_\<G>_q_def
+      by (meson no_labels.lifted_calc_w_red_crit_family.inter_red_crit_calculus.Red_Inf_to_Inf subset_iff to_F_in)
+    have "X \<in> no_labels.Red_Inf_\<G>_q ` Q \<Longrightarrow> to_F \<iota> \<in> X (fst ` N)" for X
+      using to_F_in unfolding no_labels.empty_ord_lifted_calc_w_red_crit_family.Red_Inf_Q_def
+      by blast
+    obtain X0 where "X0 \<in> no_labels.Red_Inf_\<G>_q ` Q"
+      using no_labels.lifted_calc_w_red_crit_family.Q_not_empty by blast
+    then obtain q0 where x0_is: "X0 = no_labels.Red_Inf_\<G>_q q0" by blast
+    then obtain Y0 where "Y0 N = labeled_ord_red_crit_fam.Red_Inf_\<G>_q q0 N" by blast
+
+    show "\<iota> \<in> labeled_ord_red_crit_fam.empty_ord_lifted_calc_w_red_crit_family.Red_Inf_Q N"
+      unfolding labeled_ord_red_crit_fam.empty_ord_lifted_calc_w_red_crit_family.Red_Inf_Q_def
     sorry
+  qed
   ultimately show "\<iota> \<in> labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_Inf_Q N \<equiv>
     (to_F \<iota>) \<in> no_labels.empty_ord_lifted_calc_w_red_crit_family.Red_Inf_Q (fst ` N)"
     by argo
