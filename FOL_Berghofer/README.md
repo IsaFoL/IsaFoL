@@ -1,7 +1,7 @@
 # First-Order Logic According to Berghofer #
 
 [This directory](https://bitbucket.org/isafol/isafol/src/master/FOL_Berghofer/) contains an ongoing Isabelle formalization of
-first-order logic based on Stefan Berghofer’s [AFP entry](https://www.isa-afp.org/entries/FOL-Fitting.shtml).
+first-order logic based on Stefan Berghofer’s [AFP entry](https://www.isa-afp.org/entries/FOL-Fitting.shtml) and my own [AFP entry](https://www.isa-afp.org/entries/FOL_Seq_Calc1.html).
 
 Natural Deduction and the Isabelle Proof Assistant.  
 Jørgen Villadsen, Andreas Halkjær From and Anders Schlichtkrull.  
