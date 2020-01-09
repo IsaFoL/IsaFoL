@@ -2,6 +2,8 @@
 
 [This directory](https://bitbucket.org/isafol/isafol/src/master/Hybrid_Logic/) contains an ongoing Isabelle formalization of [hybrid logic](https://plato.stanford.edu/entries/logic-hybrid/) for the author's MSc thesis.
 
+The formalization is now also in the [Archive of Formal Proof](https://www.isa-afp.org/entries/Hybrid_Logic.html).
+
 Supervisors:
 
 * Jørgen Villadsen
@@ -20,5 +22,5 @@ Journal of Logic and Computation 27(1):81-107 2017.
 
 ## Author ##
 
-* [Andreas Halkjær From](mailto:s144442 shtrudel student.dtu.dk)
+* [Asta Halkjær From](mailto:s144442 shtrudel student.dtu.dk)
 
