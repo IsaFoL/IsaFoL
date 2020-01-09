@@ -2152,55 +2152,7 @@ fun check_mult_l_impl x =
     end)
     x;
 
-fun check_del_l_dom_err_impl p =
-  [Chara (false, false, true, false, true, false, true, false),
-    Chara (false, false, false, true, false, true, true, false),
-    Chara (true, false, true, false, false, true, true, false),
-    Chara (false, false, false, false, false, true, false, false),
-    Chara (false, false, false, false, true, true, true, false),
-    Chara (true, true, true, true, false, true, true, false),
-    Chara (false, false, true, true, false, true, true, false),
-    Chara (true, false, false, true, true, true, true, false),
-    Chara (false, true, true, true, false, true, true, false),
-    Chara (true, true, true, true, false, true, true, false),
-    Chara (true, false, true, true, false, true, true, false),
-    Chara (false, false, false, false, false, true, false, false),
-    Chara (true, true, true, false, true, true, true, false),
-    Chara (true, false, false, true, false, true, true, false),
-    Chara (false, false, true, false, true, true, true, false),
-    Chara (false, false, false, true, false, true, true, false),
-    Chara (false, false, false, false, false, true, false, false),
-    Chara (true, false, false, true, false, true, true, false),
-    Chara (false, false, true, false, false, true, true, false),
-    Chara (false, false, false, false, false, true, false, false)] @
-    shows_prec_nat zero_nat (nat_of_uint64 p) [] @
-      [Chara (false, false, false, false, false, true, false, false),
-        Chara (true, true, true, false, true, true, true, false),
-        Chara (true, false, false, false, false, true, true, false),
-        Chara (true, true, false, false, true, true, true, false),
-        Chara (false, false, false, false, false, true, false, false),
-        Chara (false, true, true, true, false, true, true, false),
-        Chara (true, true, true, true, false, true, true, false),
-        Chara (false, false, true, false, true, true, true, false),
-        Chara (false, false, false, false, false, true, false, false),
-        Chara (false, true, true, false, false, true, true, false),
-        Chara (true, true, true, true, false, true, true, false),
-        Chara (true, false, true, false, true, true, true, false),
-        Chara (false, true, true, true, false, true, true, false),
-        Chara (false, false, true, false, false, true, true, false)];
-
-fun check_del_l_impl x =
-  (fn _ => fn bia => fn bi => fn () =>
-    let
-      val xa =
-        ht_lookup (equal_uint64, hashable_uint64, heap_uint64)
-          (heap_list (heap_prod (heap_list heap_literal) heap_int)) bi bia ();
-    in
-      (if not (not (is_None xa))
-        then error_msg show_nat (nat_of_uint64 bi) (check_del_l_dom_err_impl bi)
-        else CSUCCESS)
-    end)
-    x;
+fun check_del_l_impl x = (fn _ => fn _ => fn _ => (fn () => CSUCCESS)) x;
 
 fun check_step_impl x =
   (fn ai => fn bic => fn bib => fn bia => fn bi =>

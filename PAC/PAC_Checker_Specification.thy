@@ -110,7 +110,7 @@ type_synonym fpac_step = \<open>nat set \<times> (nat, int_poly) fmap\<close>
 
 definition check_del :: \<open>(nat, int mpoly) fmap \<Rightarrow> nat \<Rightarrow> bool nres\<close> where
   \<open>check_del A p =
-     SPEC(\<lambda>b. b \<longrightarrow> p \<in># dom_m A)\<close>
+     SPEC(\<lambda>b. b \<longrightarrow> True)\<close>
 
 definition PAC_checker_step
   ::  \<open>int_poly \<Rightarrow> (status \<times> fpac_step) \<Rightarrow> (int_poly, nat, nat) pac_step \<Rightarrow>
@@ -189,24 +189,6 @@ lemma polys_rel_in_dom_inD:
     x12 \<in># dom_m A \<Longrightarrow>
     the (fmlookup A x12) \<in># B\<close>
   by (auto simp: polys_rel_def)
-
-lemma [simp]: \<open>vars (Var x :: 'a :: {zero_neq_one} mpoly) = {x}\<close>
-  by (auto simp: vars_def Var.rep_eq  Var\<^sub>0_def)
-
-lemma vars_minus_Var_subset:
-  \<open>vars (p' - Var x :: 'a :: {ab_group_add,one,zero_neq_one} mpoly) \<subseteq>  \<V> \<Longrightarrow> vars p' \<subseteq> insert x \<V>\<close>
-  using vars_add[of \<open>p' - Var x\<close> \<open>Var x\<close>]
-  by auto
-
-lemma vars_add_Var_subset:
-  \<open>vars (p' + Var x :: 'a :: {ab_group_add,one,zero_neq_one} mpoly) \<subseteq>  \<V> \<Longrightarrow> vars p' \<subseteq> insert x \<V>\<close>
-  using vars_add[of \<open>p' + Var x\<close> \<open>-Var x\<close>]
-  by auto
-
-lemma coeff_monomila_in_varsD:
-  \<open>coeff p (monomial (Suc 0) x) \<noteq> 0 \<Longrightarrow> x \<in> vars (p :: int mpoly)\<close>
-  by (auto simp: coeff_def vars_def keys_def
-    intro!: exI[of _ \<open>monomial (Suc 0) x\<close>])
 
 lemma PAC_Format_add_and_remove:
   \<open>r - x14 \<in> More_Modules.ideal polynom_bool \<Longrightarrow>
@@ -350,6 +332,9 @@ lemma merge_status_eq_iff[simp]:
   apply (cases a; cases b; auto; fail)+
   done
 
+lemma fmdrop_irrelevant: \<open>x11 \<notin># dom_m A \<Longrightarrow> fmdrop x11 A = A\<close>
+  by (simp add: fmap_ext in_dom_m_lookup_iff)
+
 lemma PAC_checker_step_PAC_checker_specification2:
   fixes a :: \<open>status\<close>
   assumes AB: \<open>((\<V>, A),(\<V>\<^sub>B, B)) \<in> polys_rel_full\<close> and
@@ -480,13 +465,25 @@ proof -
       subgoal for eq
         using assms vars_B apply -
         apply (rule RETURN_SPEC_refine)
-        apply (rule_tac x = \<open>(a,\<V>, remove1_mset (the (fmlookup A x11)) B)\<close> in exI)
-        apply (auto simp: polys_rel_update_remove PAC_Format_add_and_remove
-             is_failed_def is_success_def is_found_def
-          dest!: eq_successI
-          split: if_splits
-          dest: rtranclp_PAC_Format_subset_ideal
-          intro: PAC_Format_add_and_remove H3)
+        apply (cases \<open>x11 \<in># dom_m A\<close>)
+        subgoal
+          apply (rule_tac x = \<open>(a,\<V>, remove1_mset (the (fmlookup A x11)) B)\<close> in exI)
+          apply (auto simp: polys_rel_update_remove PAC_Format_add_and_remove
+               is_failed_def is_success_def is_found_def
+            dest!: eq_successI
+            split: if_splits
+            dest: rtranclp_PAC_Format_subset_ideal
+            intro: PAC_Format_add_and_remove H3)
+          done
+        subgoal
+          apply (rule_tac x = \<open>(a,\<V>, B)\<close> in exI)
+          apply (auto simp: fmdrop_irrelevant
+               is_failed_def is_success_def is_found_def
+            dest!: eq_successI
+            split: if_splits
+            dest: rtranclp_PAC_Format_subset_ideal
+            intro: PAC_Format_add_and_remove)
+          done
         done
       subgoal
         by (rule RETURN_SPEC_refine)

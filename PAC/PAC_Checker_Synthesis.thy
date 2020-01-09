@@ -525,20 +525,6 @@ sepref_definition check_extension_l_impl
 
 declare check_extension_l_impl.refine[sepref_fr_rules]
 
-definition check_del_l_dom_err_impl where
-  \<open>check_del_l_dom_err_impl p =
-    (''The polynom with id '' @ show (nat_of_uint64 p) @ '' was not found'')\<close>
-
-
-lemma [sepref_fr_rules]:
-  \<open>(return o (check_del_l_dom_err_impl),
-   (check_del_l_dom_err)) \<in> uint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a raw_string_assn\<close>
-   unfolding check_del_l_dom_err_def list_assn_pure_conv
-   apply sepref_to_hoare
-   apply sep_auto
-   done
-
-
 sepref_definition check_del_l_impl
   is \<open>uncurry2 check_del_l\<close>
   :: \<open>poly_assn\<^sup>k *\<^sub>a polys_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a status_assn raw_string_assn\<close>

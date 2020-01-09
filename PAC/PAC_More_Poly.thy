@@ -805,4 +805,25 @@ lemma ideal_mult_right_in2:
   \<open>a \<in> ideal A \<Longrightarrow> b * a \<in> More_Modules.ideal A\<close>
   by (metis ideal.span_scale)
 
+
+
+lemma [simp]: \<open>vars (Var x :: 'a :: {zero_neq_one} mpoly) = {x}\<close>
+  by (auto simp: vars_def Var.rep_eq  Var\<^sub>0_def)
+
+lemma vars_minus_Var_subset:
+  \<open>vars (p' - Var x :: 'a :: {ab_group_add,one,zero_neq_one} mpoly) \<subseteq>  \<V> \<Longrightarrow> vars p' \<subseteq> insert x \<V>\<close>
+  using vars_add[of \<open>p' - Var x\<close> \<open>Var x\<close>]
+  by auto
+
+lemma vars_add_Var_subset:
+  \<open>vars (p' + Var x :: 'a :: {ab_group_add,one,zero_neq_one} mpoly) \<subseteq>  \<V> \<Longrightarrow> vars p' \<subseteq> insert x \<V>\<close>
+  using vars_add[of \<open>p' + Var x\<close> \<open>-Var x\<close>]
+  by auto
+
+lemma coeff_monomila_in_varsD:
+  \<open>coeff p (monomial (Suc 0) x) \<noteq> 0 \<Longrightarrow> x \<in> vars (p :: int mpoly)\<close>
+  by (auto simp: coeff_def vars_def keys_def
+    intro!: exI[of _ \<open>monomial (Suc 0) x\<close>])
+
+
 end

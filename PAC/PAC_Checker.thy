@@ -135,23 +135,8 @@ definition check_mult_l :: \<open>_ \<Rightarrow> _ \<Rightarrow> _ \<Rightarrow
      }
   }\<close>
 
-
-definition check_del_l_dom_err :: \<open>nat \<Rightarrow> string nres\<close> where
-  \<open>check_del_l_dom_err p = SPEC (\<lambda>_. True)\<close>
-
-
-
 definition check_del_l :: \<open>_ \<Rightarrow> _ \<Rightarrow> nat \<Rightarrow> string code_status nres\<close> where
-\<open>check_del_l spec A p = do {
-    if p \<notin># dom_m A
-    then do {
-      c \<leftarrow> check_del_l_dom_err p;
-      RETURN (error_msg p c)
-      }
-    else do {
-         RETURN CSUCCESS
-       }
-  }\<close>
+\<open>check_del_l spec A p = RETURN CSUCCESS\<close>
 
 
 definition check_extension_l_dom_err :: \<open>nat \<Rightarrow> string nres\<close> where
@@ -662,7 +647,7 @@ qed
 lemma check_del_l_check_del:
   \<open>(A, B) \<in> fmap_polys_rel \<Longrightarrow> (x3, x3a) \<in> Id \<Longrightarrow> check_del_l spec A (pac_src1 (Del x3))
     \<le> \<Down> {(st, b). (\<not>is_cfailed st \<longleftrightarrow> b) \<and> (b \<longrightarrow> st = CSUCCESS)} (check_del B (pac_src1 (Del x3a)))\<close>
-  unfolding check_del_l_def check_del_def check_del_l_dom_err_def
+  unfolding check_del_l_def check_del_def
   by (refine_vcg lhs_step_If RETURN_SPEC_refine)
     (auto simp: fmap_rel_nat_rel_dom_m bind_RES_RETURN_eq)
 
