@@ -256,8 +256,43 @@ proof -
     obtain X0 where "X0 \<in> no_labels.Red_Inf_\<G>_q ` Q"
       using no_labels.lifted_calc_w_red_crit_family.Q_not_empty by blast
     then obtain q0 where x0_is: "X0 = no_labels.Red_Inf_\<G>_q q0" by blast
-    then obtain Y0 where "Y0 N = labeled_ord_red_crit_fam.Red_Inf_\<G>_q q0 N" by blast
+    then have i0_FL_for_all_i0: "\<iota>0 \<in> X0 (fst ` N) \<Longrightarrow> \<exists>\<iota>0_FL \<in> Inf_FL. to_F \<iota>0_FL = \<iota>0" for \<iota>0
+      unfolding no_labels.Red_Inf_\<G>_q_def
+      proof -
+        assume a1: "\<iota>0 \<in> X0 (fst ` N)"
+        assume "X0 = (\<lambda>N. {\<iota> \<in> Inf_F. \<G>_Inf_q q0 \<iota> \<subseteq> Red_Inf_q q0 (no_labels.\<G>_set_q q0 N)})"
+        then have "\<iota>0 \<in> Inf_F"
+          using a1 by fastforce
+        then show ?thesis
+          by (metis Ex_list_of_length Inf_F_to_Inf_FL fst_conv inference.collapse inference.sel(1)
+            inference.sel(2) map_fst_zip to_F_def) 
+      qed
+    have x0_is2: "X0 (fst ` N) = {\<iota> \<in> Inf_F. \<G>_Inf_q q0 \<iota> \<subseteq> Red_Inf_q q0 (no_labels.\<G>_set_q q0 (fst ` N))}"
+      using x0_is unfolding no_labels.Red_Inf_\<G>_q_def by blast
+    obtain Y0 where Y0_is: "Y0 N = {\<iota>0_FL \<in> Inf_FL. \<exists>\<iota>0 \<in> X0 (fst ` N). to_F \<iota>0_FL = \<iota>0}" by auto
+    then have y0_to_x0: "to_F ` (Y0 N) = X0 (fst ` N)"
+      using i0_FL_for_all_i0 by fast
+    have y0_in: "Y0 N \<subseteq> Inf_FL" using Y0_is by simp  
+    have "\<iota>_FL \<in> Y0 N \<Longrightarrow> to_F \<iota>_FL \<in> X0 (fst ` N)" for \<iota>_FL using y0_to_x0 by fast
+    then have "\<iota>_FL \<in> Y0 N \<Longrightarrow> \<G>_Inf_q q0 (to_F \<iota>_FL) \<subseteq> Red_Inf_q q0 (no_labels.\<G>_set_q q0 (fst ` N))" for \<iota>_FL
+      using x0_is2 by blast
+    then have "Y0 N = labeled_ord_red_crit_fam.Red_Inf_\<G>_q q0 N"
+    proof -
+      have subsl: "Y0 N \<subseteq> labeled_ord_red_crit_fam.Red_Inf_\<G>_q q0 N"
+      proof
+        fix \<iota>1
+        assume i1_in: "\<iota>1 \<in> Y0 N"
+        show "\<iota>1 \<in> labeled_ord_red_crit_fam.Red_Inf_\<G>_q q0 N"
+      oops
+      have subsr: "labeled_ord_red_crit_fam.Red_Inf_\<G>_q q0 N \<subseteq> Y0 N" sorry
+      show ?thesis using subsl subsr by blast
+    qed
 
+      using y0_in
+      unfolding no_labels.Red_Inf_\<G>_q_def labeled_ord_red_crit_fam.Red_Inf_\<G>_q_def \<G>_Inf_L_q_def
+        no_labels.\<G>_set_q_def labeled_ord_red_crit_fam.\<G>_set_q_def
+      
+    then have "Y \<in> labeled_ord_red_crit_fam.Red_Inf_\<G>_q ` Q \<Longrightarrow> \<iota> \<in> Y N" for Y
     show "\<iota> \<in> labeled_ord_red_crit_fam.empty_ord_lifted_calc_w_red_crit_family.Red_Inf_Q N"
       unfolding labeled_ord_red_crit_fam.empty_ord_lifted_calc_w_red_crit_family.Red_Inf_Q_def
     sorry
