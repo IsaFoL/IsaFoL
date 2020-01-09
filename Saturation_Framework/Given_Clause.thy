@@ -153,10 +153,81 @@ lemma empty_red_f_equiv: "labeled_ord_red_crit_fam.empty_ord_lifted_calc_w_red_c
 lemma empty_red_f_equiv2: "labeled_ord_red_crit_fam.empty_ord_lifted_calc_w_red_crit_family.Red_F_Q = with_labels.Red_F_Q"
   using empty_red_f_equiv by auto
 
-lemma labeled_ordered_static_ref_comp: "static_refutational_complete_calculus Bot_FL Inf_FL labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.entails_Q labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_Inf_Q labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_F_Q"
+lemma labeled_ordered_static_ref_comp:
+  "static_refutational_complete_calculus Bot_FL Inf_FL
+  labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.entails_Q
+  labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_Inf_Q labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_F_Q"
   using labeled_ord_red_crit_fam.static_empty_ord_inter_equiv_static_inter empty_red_f_equiv2 red_inf_equiv2
     entail_equiv2 labeled_static_ref_comp
   by argo 
+
+interpretation stat_ref_calc: static_refutational_complete_calculus Bot_FL Inf_FL
+  labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.entails_Q
+  labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_Inf_Q labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_F_Q
+  by (rule labeled_ordered_static_ref_comp) 
+
+lemma labeled_ordered_dynamic_ref_comp:
+  "dynamic_refutational_complete_calculus Bot_FL Inf_FL
+  labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.entails_Q labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_Inf_Q labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_F_Q"
+  by (rule stat_ref_calc.dynamic_refutational_complete_calculus_axioms)
+
+text "lemma 55 from the technical report"
+lemma "\<iota> \<in> Inf_FL \<Longrightarrow> 
+  \<iota> \<in> labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_Inf_Q N \<equiv> (to_F \<iota>) \<in> no_labels.empty_ord_lifted_calc_w_red_crit_family.Red_Inf_Q (fst ` N)" for \<iota>
+proof -
+  fix \<iota>
+  assume "\<iota> \<in> Inf_FL"
+  have "\<iota> \<in> labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_Inf_Q N \<Longrightarrow>
+    (to_F \<iota>) \<in> no_labels.empty_ord_lifted_calc_w_red_crit_family.Red_Inf_Q (fst ` N)"
+  proof -
+    assume "\<iota> \<in> labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_Inf_Q N"
+    then have "X \<in> labeled_ord_red_crit_fam.Red_Inf_\<G>_q ` Q \<Longrightarrow> \<iota> \<in> X N" for X
+      unfolding labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_Inf_Q_def by blast
+    obtain X0 where "X0 \<in> labeled_ord_red_crit_fam.Red_Inf_\<G>_q ` Q" 
+      using no_labels.lifted_calc_w_red_crit_family.Q_not_empty by blast
+    then obtain q0 where x0_is: "X0 N = labeled_ord_red_crit_fam.Red_Inf_\<G>_q q0 N" by blast
+    then obtain Y0 where y0_is: "Y0 (fst ` N) = to_F ` (X0 N)" by auto
+    have "Y0 (fst ` N) = no_labels.Red_Inf_\<G>_q q0 (fst ` N)"
+      unfolding  y0_is
+    proof 
+      show "to_F ` X0 N \<subseteq> no_labels.Red_Inf_\<G>_q q0 (fst ` N)"
+      proof
+        fix \<iota>0
+        assume i0_in: "\<iota>0 \<in> to_F ` X0 N"
+        then have i0_in2: "\<iota>0 \<in> to_F ` (labeled_ord_red_crit_fam.Red_Inf_\<G>_q q0 N)"
+          using x0_is by argo
+        then obtain \<iota>0_FL where i0_FL_in: "\<iota>0_FL \<in> Inf_FL" and i0_to_i0_FL: "\<iota>0 = to_F \<iota>0_FL" and
+          "\<G>_Inf_L_q q0 \<iota>0_FL \<subseteq> Red_Inf_q q0 (labeled_ord_red_crit_fam.\<G>_set_q q0 N)"
+          unfolding labeled_ord_red_crit_fam.Red_Inf_\<G>_q_def by blast
+        have "\<iota>0 \<in> Inf_F"
+          using i0_to_i0_FL Inf_FL_to_Inf_F[OF i0_FL_in] unfolding to_F_def by blast
+        {
+          assume "\<G>_Inf_q q0 \<iota>0 \<noteq> {}"
+          then obtain \<iota>1 where i1_in: "\<iota>1 \<in> \<G>_Inf_q q0 \<iota>0" by blast
+          have "\<G>_Inf_q q0 \<iota>0 \<subseteq> Red_Inf_q q0 (no_labels.\<G>_set_q q0 (fst ` N))"
+            sorry
+        }
+        show "\<iota>0 \<in> no_labels.Red_Inf_\<G>_q q0 (fst ` N)" 
+          unfolding no_labels.Red_Inf_\<G>_q_def
+        
+    then have "Y \<in> no_labels.Red_Inf_\<G>_q ` Q \<Longrightarrow> (to_F \<iota>) \<in> Y (fst ` N)" for Y
+      unfolding no_labels.Red_Inf_\<G>_q_def
+    then show "(to_F \<iota>) \<in> no_labels.empty_ord_lifted_calc_w_red_crit_family.Red_Inf_Q (fst ` N)"
+      unfolding labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_Inf_Q_def
+        no_labels.empty_ord_lifted_calc_w_red_crit_family.Red_Inf_Q_def
+
+(* no_labels.Red_Inf_\<G>_q_def
+        labeled_ord_red_crit_fam.Red_Inf_\<G>_q_def labeled_ord_red_crit_fam.\<G>_set_q_def
+        no_labels.\<G>_set_q_def \<G>_Inf_L_q_def \<G>_F_L_q_def *)
+    sorry
+  moreover have "(to_F \<iota>) \<in> no_labels.empty_ord_lifted_calc_w_red_crit_family.Red_Inf_Q (fst ` N) \<Longrightarrow>
+    \<iota> \<in> labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_Inf_Q N"
+    sorry
+  ultimately show "\<iota> \<in> labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_Inf_Q N \<equiv>
+    (to_F \<iota>) \<in> no_labels.empty_ord_lifted_calc_w_red_crit_family.Red_Inf_Q (fst ` N)"
+    by argo
+qed
+
 
 end
 

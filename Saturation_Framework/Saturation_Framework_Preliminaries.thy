@@ -302,6 +302,7 @@ qed
 
 end
 
+
 text \<open>lemma 6 from the technical report\<close>
 text \<open>The assumption that the derivation is not the empty derivation had to be added to the 
   hypotheses of \<^text>\<open>dynamic_refutational_complete\<close> for the proof of lemma 10 to work. Otherwise,
@@ -333,6 +334,5 @@ proof
    then show \<open>\<exists>i\<in>{i. enat i < llength D}. \<exists>B'\<in>Bot. B' \<in> lnth D i\<close>
      unfolding Liminf_llist_def by auto
 qed
-
 
 end
