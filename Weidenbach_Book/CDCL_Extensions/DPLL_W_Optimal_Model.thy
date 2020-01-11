@@ -3,6 +3,29 @@ imports CDCL_W_Optimal_Model
   CDCL.DPLL_W
 begin
 
+
+lemma
+  assumes \<open>dpll\<^sub>W S T\<close> and
+    \<open>rev (trail S) = M1 @ Propagated K () # M2\<close>
+  shows
+    \<open>\<exists>M1 M2 M2' K'. (rev (trail S) = M1 @ Propagated K' () # M2 \<or>
+         rev (trail S) = M1 @ Decided (-K') # M2) \<and>
+      rev (trail T) = M1 @ Propagated K' () # M2'\<close>
+  using assms
+  apply (induction S T rule: dpll\<^sub>W.induct)
+  subgoal
+    by auto
+  subgoal
+    by auto
+  subgoal for S M' L M D
+    using backtrack_split_snd_hd_decided[of \<open>trail S\<close>]
+      backtrack_split_list_eq[of \<open>trail S\<close>, symmetric]
+    apply - apply (rule exI[of _ \<open>rev M\<close>], rule exI[of _ \<open>rev M'\<close>], rule exI[of _ \<open>[]\<close>],
+       rule exI[of _ \<open>-lit_of L\<close>])
+    apply (cases L)
+    by (auto intro: )
+  done
+
 locale bnb_ops =
   fixes
     weight :: \<open>'st \<Rightarrow> 'a\<close> and
@@ -61,11 +84,11 @@ locale bnb =
 
     conflicting_clss_update_weight_information_mono:
       \<open>dpll\<^sub>W_all_inv (abs_state S) \<Longrightarrow> is_improving M M' S \<Longrightarrow>
-        conflicting_clss S \<subseteq># conflicting_clss (update_weight_information M' S)\<close>
-    and
+        conflicting_clss S \<subseteq># conflicting_clss (update_weight_information M' S)\<close> and
     conflicting_clss_update_weight_information_in:
-      \<open>is_improving M M' S \<Longrightarrow>         negate_ann_lits M' \<in># conflicting_clss (update_weight_information M' S)\<close>
-
+      \<open>is_improving M M' S \<Longrightarrow>         negate_ann_lits M' \<in># conflicting_clss (update_weight_information M' S)\<close> and
+    atms_of_conflicting_clss:
+      \<open>atms_of_mm (conflicting_clss S) \<subseteq> atms_of_mm (clauses S)\<close>
 begin
 
 inductive dpll\<^sub>W_core :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
@@ -109,17 +132,37 @@ lemma [simp]: \<open>trail (update_weight_information M' S) = trail S\<close>
   using update_weight_information[of S]
   by (auto simp: state_def)
 
+lemma [simp]:
+  \<open>clauses (update_weight_information M' S) = clauses S\<close>
+  using update_weight_information[of S]
+  by (auto simp: state_def)
+
 lemma dpll\<^sub>W_branch_trail:
     \<open>dpll\<^sub>W_branch S T \<Longrightarrow> trail S = trail T\<close> and
+   dpll\<^sub>W_branch_clauses:
+    \<open>dpll\<^sub>W_branch S T \<Longrightarrow> clauses S = clauses T\<close> and
   dpll\<^sub>W_branch_conflicting_clss:
-    \<open>dpll\<^sub>W_branch S T \<Longrightarrow> conflicting_clss S \<subseteq># conflicting_clss T\<close>
-  apply (induction rule: dpll\<^sub>W_branch.induct)
-  apply (auto simp: dpll\<^sub>W_all_inv_def state_def)
+    \<open>dpll\<^sub>W_branch S T \<Longrightarrow> dpll\<^sub>W_all_inv (abs_state S) \<Longrightarrow> conflicting_clss S \<subseteq># conflicting_clss T\<close>
+  subgoal
+    by (induction rule: dpll\<^sub>W_branch.induct)
+     (auto simp: dpll\<^sub>W_all_inv_def state_def dest!: conflicting_clss_update_weight_information_mono)
+  subgoal
+    by (induction rule: dpll\<^sub>W_branch.induct)
+     (auto simp: dpll\<^sub>W_all_inv_def state_def dest!: conflicting_clss_update_weight_information_mono)
+  subgoal
+    by (induction rule: dpll\<^sub>W_branch.induct)
+      (auto simp: state_def conflicting_clss_def
+        dest!: conflicting_clss_update_weight_information_mono)
   done
-  
-  
-lemma \<open>dpll\<^sub>W_branch S T \<Longrightarrow> dpll\<^sub>W_all_inv (abs_state S) \<Longrightarrow> dpll\<^sub>W_all_inv (abs_state T)\<close>
-  apply (auto simp: dpll\<^sub>W_all_inv_def dpll\<^sub>W_branch_trail)
+
+lemma dpll\<^sub>W_branch_abs_state_all_inv:
+  \<open>dpll\<^sub>W_branch S T \<Longrightarrow> dpll\<^sub>W_all_inv (abs_state S) \<Longrightarrow> dpll\<^sub>W_all_inv (abs_state T)\<close>
+  using dpll\<^sub>W_branch_conflicting_clss[of S T] dpll\<^sub>W_branch_clauses[of S T]
+   atms_of_conflicting_clss[of T] atms_of_conflicting_clss[of S]
+  apply (auto simp: dpll\<^sub>W_all_inv_def dpll\<^sub>W_branch_trail lits_of_def image_image
+    intro: all_decomposition_implies_mono[OF set_mset_mono] dest: dpll\<^sub>W_branch_conflicting_clss)
+  by (blast intro: all_decomposition_implies_mono)
 
 end
+
 end

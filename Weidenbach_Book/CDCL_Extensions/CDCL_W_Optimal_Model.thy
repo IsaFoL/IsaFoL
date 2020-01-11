@@ -372,8 +372,7 @@ lemma improve_cdcl\<^sub>W_all_struct_inv:
   using assms atms_of_conflicting_clss[of T] atms_of_conflicting_clss[of S]
 proof (induction rule: improvep.cases)
   case (improve_rule M' T)
-  moreover
-  have \<open>all_decomposition_implies
+  moreover have \<open>all_decomposition_implies
      (set_mset (init_clss S) \<union> set_mset (conflicting_clss S) \<union> set_mset (learned_clss S))
      (get_all_ann_decomposition (trail S)) \<Longrightarrow>
     all_decomposition_implies
@@ -383,7 +382,7 @@ proof (induction rule: improvep.cases)
       apply (rule all_decomposition_implies_mono)
       using improve_rule conflicting_clss_update_weight_information_mono[of S \<open>trail S\<close> M'] inv
       by (auto dest: multi_member_split)
-    ultimately show ?case
+   ultimately show ?case
       using conflicting_clss_update_weight_information_mono[of S \<open>trail S\<close> M']
       by (auto 6 2 simp add: cdcl\<^sub>W_restart_mset.no_strange_atm_def
             cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
