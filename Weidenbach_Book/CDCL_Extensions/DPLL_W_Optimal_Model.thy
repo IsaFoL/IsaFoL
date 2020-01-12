@@ -1,30 +1,58 @@
 theory DPLL_W_Optimal_Model
-imports CDCL_W_Optimal_Model
+imports
+  CDCL_W_Optimal_Model
   CDCL.DPLL_W
 begin
 
 
-lemma
+lemma dpll\<^sub>W_trail_after_step1:
   assumes \<open>dpll\<^sub>W S T\<close> and
     \<open>rev (trail S) = M1 @ Propagated K () # M2\<close>
   shows
-    \<open>\<exists>M1 M2 M2' K'. (rev (trail S) = M1 @ Propagated K' () # M2 \<or>
-         rev (trail S) = M1 @ Decided (-K') # M2) \<and>
-      rev (trail T) = M1 @ Propagated K' () # M2'\<close>
+    \<open>\<exists>K' M1 M2' M2''.
+      ((rev (trail S) = M1 @ Propagated K' () # M2 @ M2' \<and> M2'' \<noteq> []) \<or>
+         rev (trail S) = M1 @ Decided (-K') # M2') \<and>
+      rev (trail T) = M1 @ Propagated K' () # M2''\<close>
   using assms
   apply (induction S T rule: dpll\<^sub>W.induct)
+  subgoal for L C T
+    apply auto
+    apply blast
+    done
   subgoal
-    by auto
-  subgoal
-    by auto
+    apply auto
+    apply blast
+    done
   subgoal for S M' L M D
     using backtrack_split_snd_hd_decided[of \<open>trail S\<close>]
       backtrack_split_list_eq[of \<open>trail S\<close>, symmetric]
-    apply - apply (rule exI[of _ \<open>rev M\<close>], rule exI[of _ \<open>rev M'\<close>], rule exI[of _ \<open>[]\<close>],
-       rule exI[of _ \<open>-lit_of L\<close>])
-    apply (cases L)
-    by (auto intro: )
+    apply - apply (rule exI[of _ \<open>-lit_of L\<close>], rule exI[of _ \<open>rev M\<close>], rule exI[of _ \<open>rev M'\<close>], rule exI[of _ \<open>[]\<close>])
+    by (cases L)
+      auto
   done
+
+lemma
+  assumes \<open>dpll\<^sub>W\<^sup>+\<^sup>+ S T\<close> and
+    \<open>rev (trail S) = M1 @ Propagated K () # M2\<close>
+  shows
+    \<open>\<exists>K' M1 M2' M2''.
+      ((rev (trail S) = M1 @ Propagated K' () # M2 @ M2' \<and> M2'' \<noteq> []) \<or>
+         rev (trail S) = M1 @ Decided (-K') # M2') \<and>
+      rev (trail T) = M1 @ Propagated K' () # M2''\<close>
+  using assms(1)
+  apply (induction rule: tranclp_induct)
+  subgoal
+    using assms(2)
+    by (blast intro: dpll\<^sub>W_trail_after_step1)
+  subgoal for T U
+    using assms(2)
+    apply clarify
+    apply (elim disjE)
+    apply (drule dpll\<^sub>W_trail_after_step1)
+    apply assumption
+    apply auto
+    apply (auto dest!: dpll\<^sub>W_trail_after_step1 intro!: )
+  oops
 
 locale bnb_ops =
   fixes
@@ -86,7 +114,7 @@ locale bnb =
       \<open>dpll\<^sub>W_all_inv (abs_state S) \<Longrightarrow> is_improving M M' S \<Longrightarrow>
         conflicting_clss S \<subseteq># conflicting_clss (update_weight_information M' S)\<close> and
     conflicting_clss_update_weight_information_in:
-      \<open>is_improving M M' S \<Longrightarrow>         negate_ann_lits M' \<in># conflicting_clss (update_weight_information M' S)\<close> and
+      \<open>is_improving M M' S \<Longrightarrow> negate_ann_lits M' \<in># conflicting_clss (update_weight_information M' S)\<close> and
     atms_of_conflicting_clss:
       \<open>atms_of_mm (conflicting_clss S) \<subseteq> atms_of_mm (clauses S)\<close>
 begin
@@ -106,10 +134,19 @@ backtrack_opt: "backtrack_split (trail S) = (M', L # M) \<Longrightarrow> is_dec
   \<Longrightarrow> abs_state T = (Propagated (- (lit_of L)) () # M, clauses S + conflicting_clss S)
   \<Longrightarrow> dpll\<^sub>W_core S T"
 
+
 inductive dpll\<^sub>W_branch  :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
 update_info:
   \<open>is_improving M M' S \<Longrightarrow> state T = state (update_weight_information M' S)
    \<Longrightarrow> dpll\<^sub>W_branch S T\<close>
+
+inductive odpll\<^sub>W :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<close> where
+dpll:
+  \<open>odpll\<^sub>W S T\<close>
+  if \<open>dpll\<^sub>W_core S T\<close> |
+bnb:
+  \<open>odpll\<^sub>W S T\<close>
+  if \<open>dpll\<^sub>W_branch S T\<close>
 
 lemma [simp]: \<open>DPLL_W.clauses (abs_state S) = clauses S + conflicting_clss S\<close>
   \<open>DPLL_W.trail (abs_state S) = trail S\<close>
