@@ -2281,6 +2281,232 @@ fun pAC_checker_l_impl x =
     end)
     x;
 
+val remap_polys_l_dom_err_impl : char list =
+  [Chara (true, false, true, false, false, false, true, false),
+    Chara (false, true, false, false, true, true, true, false),
+    Chara (false, true, false, false, true, true, true, false),
+    Chara (true, true, true, true, false, true, true, false),
+    Chara (false, true, false, false, true, true, true, false),
+    Chara (false, false, false, false, false, true, false, false),
+    Chara (false, false, true, false, false, true, true, false),
+    Chara (true, false, true, false, true, true, true, false),
+    Chara (false, true, false, false, true, true, true, false),
+    Chara (true, false, false, true, false, true, true, false),
+    Chara (false, true, true, true, false, true, true, false),
+    Chara (true, true, true, false, false, true, true, false),
+    Chara (false, false, false, false, false, true, false, false),
+    Chara (true, false, false, true, false, true, true, false),
+    Chara (false, true, true, true, false, true, true, false),
+    Chara (true, false, false, true, false, true, true, false),
+    Chara (false, false, true, false, true, true, true, false),
+    Chara (true, false, false, true, false, true, true, false),
+    Chara (true, false, false, false, false, true, true, false),
+    Chara (false, false, true, true, false, true, true, false),
+    Chara (true, false, false, true, false, true, true, false),
+    Chara (true, true, false, false, true, true, true, false),
+    Chara (true, false, false, false, false, true, true, false),
+    Chara (false, false, true, false, true, true, true, false),
+    Chara (true, false, false, true, false, true, true, false),
+    Chara (true, true, true, true, false, true, true, false),
+    Chara (false, true, true, true, false, true, true, false),
+    Chara (false, true, true, true, false, true, false, false),
+    Chara (false, false, false, false, false, true, false, false),
+    Chara (false, false, true, false, true, false, true, false),
+    Chara (true, true, true, true, false, true, true, false),
+    Chara (true, true, true, true, false, true, true, false),
+    Chara (false, false, false, false, false, true, false, false),
+    Chara (true, false, true, true, false, true, true, false),
+    Chara (true, false, false, false, false, true, true, false),
+    Chara (false, true, true, true, false, true, true, false),
+    Chara (true, false, false, true, true, true, true, false),
+    Chara (false, false, false, false, false, true, false, false),
+    Chara (false, false, false, false, true, true, true, false),
+    Chara (true, true, true, true, false, true, true, false),
+    Chara (false, false, true, true, false, true, true, false),
+    Chara (true, false, false, true, true, true, true, false),
+    Chara (false, true, true, true, false, true, true, false),
+    Chara (true, true, true, true, false, true, true, false),
+    Chara (true, false, true, true, false, true, true, false),
+    Chara (true, true, false, false, true, true, true, false),
+    Chara (false, false, false, false, false, true, false, false),
+    Chara (true, true, true, false, true, true, true, false),
+    Chara (false, false, false, true, false, true, true, false),
+    Chara (true, false, true, false, false, true, true, false),
+    Chara (false, true, false, false, true, true, true, false),
+    Chara (true, false, true, false, false, true, true, false),
+    Chara (false, false, false, false, false, true, false, false),
+    Chara (false, false, false, false, true, true, true, false),
+    Chara (false, true, false, false, true, true, true, false),
+    Chara (true, true, true, true, false, true, true, false),
+    Chara (false, true, true, false, true, true, true, false),
+    Chara (true, false, false, true, false, true, true, false),
+    Chara (false, false, true, false, false, true, true, false),
+    Chara (true, false, true, false, false, true, true, false),
+    Chara (false, false, true, false, false, true, true, false),
+    Chara (false, true, true, true, false, true, false, false),
+    Chara (false, false, false, false, false, true, false, false),
+    Chara (true, false, false, true, false, false, true, false),
+    Chara (false, true, true, false, false, true, true, false),
+    Chara (false, false, false, false, false, true, false, false),
+    Chara (false, false, true, false, true, true, true, false),
+    Chara (false, false, false, true, false, true, true, false),
+    Chara (true, false, false, true, false, true, true, false),
+    Chara (true, true, false, false, true, true, true, false),
+    Chara (false, false, false, false, false, true, false, false),
+    Chara (false, false, false, true, false, true, true, false),
+    Chara (true, false, false, false, false, true, true, false),
+    Chara (false, false, false, false, true, true, true, false),
+    Chara (false, false, false, false, true, true, true, false),
+    Chara (true, false, true, false, false, true, true, false),
+    Chara (false, true, true, true, false, true, true, false),
+    Chara (true, true, false, false, true, true, true, false),
+    Chara (false, false, true, true, false, true, false, false)] @
+    [Chara (false, false, false, false, true, true, true, false),
+      Chara (false, false, true, true, false, true, true, false),
+      Chara (true, false, true, false, false, true, true, false),
+      Chara (true, false, false, false, false, true, true, false),
+      Chara (true, true, false, false, true, true, true, false),
+      Chara (true, false, true, false, false, true, true, false),
+      Chara (false, false, false, false, false, true, false, false),
+      Chara (false, true, false, false, true, true, true, false),
+      Chara (true, false, true, false, false, true, true, false),
+      Chara (false, false, false, false, true, true, true, false),
+      Chara (true, true, true, true, false, true, true, false),
+      Chara (false, true, false, false, true, true, true, false),
+      Chara (false, false, true, false, true, true, true, false),
+      Chara (false, false, false, false, false, true, false, false),
+      Chara (false, false, true, false, true, true, true, false),
+      Chara (false, false, false, true, false, true, true, false),
+      Chara (true, false, true, false, false, true, true, false),
+      Chara (false, false, false, false, false, true, false, false),
+      Chara (true, false, true, false, false, true, true, false),
+      Chara (false, false, false, true, true, true, true, false),
+      Chara (true, false, false, false, false, true, true, false),
+      Chara (true, false, true, true, false, true, true, false),
+      Chara (false, false, false, false, true, true, true, false),
+      Chara (false, false, true, true, false, true, true, false),
+      Chara (true, false, true, false, false, true, true, false),
+      Chara (false, false, false, false, false, true, false, false),
+      Chara (false, false, true, false, true, true, true, false),
+      Chara (true, true, true, true, false, true, true, false),
+      Chara (false, false, false, false, false, true, false, false),
+      Chara (false, false, true, false, true, true, true, false),
+      Chara (false, false, false, true, false, true, true, false),
+      Chara (true, false, true, false, false, true, true, false),
+      Chara (false, false, false, false, false, true, false, false),
+      Chara (true, false, false, false, false, true, true, false),
+      Chara (true, false, true, false, true, true, true, false),
+      Chara (false, false, true, false, true, true, true, false),
+      Chara (false, false, false, true, false, true, true, false),
+      Chara (true, true, true, true, false, true, true, false),
+      Chara (false, true, false, false, true, true, true, false),
+      Chara (true, true, false, false, true, true, true, false),
+      Chara (false, false, true, true, false, true, false, false),
+      Chara (false, false, false, false, false, true, false, false),
+      Chara (false, true, false, false, false, true, true, false),
+      Chara (true, false, true, false, false, true, true, false),
+      Chara (true, true, false, false, false, true, true, false),
+      Chara (true, false, false, false, false, true, true, false),
+      Chara (true, false, true, false, true, true, true, false),
+      Chara (true, true, false, false, true, true, true, false),
+      Chara (true, false, true, false, false, true, true, false),
+      Chara (false, false, false, false, false, true, false, false),
+      Chara (true, true, false, false, true, true, true, false),
+      Chara (true, true, true, true, false, true, true, false),
+      Chara (true, false, true, true, false, true, true, false),
+      Chara (true, false, true, false, false, true, true, false),
+      Chara (false, false, true, false, true, true, true, false),
+      Chara (false, false, false, true, false, true, true, false),
+      Chara (true, false, false, true, false, true, true, false),
+      Chara (false, true, true, true, false, true, true, false),
+      Chara (true, true, true, false, false, true, true, false),
+      Chara (false, false, false, false, false, true, false, false),
+      Chara (true, true, true, false, true, true, true, false),
+      Chara (true, false, true, false, false, true, true, false),
+      Chara (false, true, true, true, false, true, true, false),
+      Chara (false, false, true, false, true, true, true, false),
+      Chara (false, false, false, false, false, true, false, false),
+      Chara (true, true, true, false, true, true, true, false),
+      Chara (false, true, false, false, true, true, true, false),
+      Chara (true, true, true, true, false, true, true, false),
+      Chara (false, true, true, true, false, true, true, false),
+      Chara (true, true, true, false, false, true, true, false),
+      Chara (false, false, false, false, false, true, false, false),
+      Chara (false, false, true, false, false, true, true, false),
+      Chara (true, false, true, false, true, true, true, false),
+      Chara (false, true, false, false, true, true, true, false),
+      Chara (true, false, false, true, false, true, true, false),
+      Chara (false, true, true, true, false, true, true, false),
+      Chara (true, true, true, false, false, true, true, false),
+      Chara (false, false, false, false, false, true, false, false)] @
+      [Chara (true, true, false, false, false, true, true, false),
+        Chara (true, true, true, true, false, true, true, false),
+        Chara (false, false, true, false, false, true, true, false),
+        Chara (true, false, true, false, false, true, true, false),
+        Chara (false, false, false, false, false, true, false, false),
+        Chara (true, true, true, false, false, true, true, false),
+        Chara (true, false, true, false, false, true, true, false),
+        Chara (false, true, true, true, false, true, true, false),
+        Chara (true, false, true, false, false, true, true, false),
+        Chara (false, true, false, false, true, true, true, false),
+        Chara (true, false, false, false, false, true, true, false),
+        Chara (false, false, true, false, true, true, true, false),
+        Chara (true, false, false, true, false, true, true, false),
+        Chara (true, true, true, true, false, true, true, false),
+        Chara (false, true, true, true, false, true, true, false),
+        Chara (false, false, false, false, false, true, false, false),
+        Chara (false, false, false, true, false, true, false, false),
+        Chara (true, true, false, false, false, true, true, false),
+        Chara (true, true, true, true, false, true, true, false),
+        Chara (false, false, true, false, false, true, true, false),
+        Chara (true, false, true, false, false, true, true, false),
+        Chara (false, false, false, false, false, true, false, false),
+        Chara (true, true, true, false, false, true, true, false),
+        Chara (true, false, true, false, false, true, true, false),
+        Chara (false, true, true, true, false, true, true, false),
+        Chara (true, false, true, false, false, true, true, false),
+        Chara (false, true, false, false, true, true, true, false),
+        Chara (true, false, false, false, false, true, true, false),
+        Chara (false, false, true, false, true, true, true, false),
+        Chara (true, false, false, true, false, true, true, false),
+        Chara (true, true, true, true, false, true, true, false),
+        Chara (false, true, true, true, false, true, true, false),
+        Chara (false, false, false, false, false, true, false, false),
+        Chara (false, false, true, false, true, true, true, false),
+        Chara (true, true, true, true, false, true, true, false),
+        Chara (false, false, false, false, false, true, false, false),
+        Chara (true, false, false, false, false, true, true, false),
+        Chara (false, true, false, false, true, true, true, false),
+        Chara (false, true, false, false, true, true, true, false),
+        Chara (true, false, false, false, false, true, true, false),
+        Chara (true, false, false, true, true, true, true, false),
+        Chara (true, true, false, false, true, true, true, false),
+        Chara (false, false, false, false, false, true, false, false),
+        Chara (true, false, false, true, false, true, true, false),
+        Chara (true, true, false, false, true, true, true, false),
+        Chara (false, false, false, false, false, true, false, false),
+        Chara (false, false, true, true, false, true, true, false),
+        Chara (true, false, false, true, false, true, true, false),
+        Chara (true, true, false, true, false, true, true, false),
+        Chara (true, false, true, false, false, true, true, false),
+        Chara (false, false, true, true, false, true, true, false),
+        Chara (true, false, false, true, true, true, true, false),
+        Chara (false, false, false, false, false, true, false, false),
+        Chara (false, false, true, false, true, true, true, false),
+        Chara (true, true, true, true, false, true, true, false),
+        Chara (false, false, false, false, false, true, false, false),
+        Chara (false, true, false, false, false, true, true, false),
+        Chara (true, false, true, false, false, true, true, false),
+        Chara (false, false, false, false, false, true, false, false),
+        Chara (false, true, false, false, false, true, true, false),
+        Chara (false, true, false, false, true, true, true, false),
+        Chara (true, true, true, true, false, true, true, false),
+        Chara (true, true, false, true, false, true, true, false),
+        Chara (true, false, true, false, false, true, true, false),
+        Chara (false, true, true, true, false, true, true, false),
+        Chara (true, false, false, true, false, true, false, false),
+        Chara (false, true, true, true, false, true, false, false)];
+
 fun union_vars_monom_impl x =
   (fn ai =>
     imp_nfoldli ai (fn _ => (fn () => true))
@@ -2304,61 +2530,80 @@ fun remap_polys_l_impl x =
         len (heap_option
               (heap_list (heap_prod (heap_list heap_literal) heap_int)))
           bi ();
-      val xaa =
-        ht_new (hashable_uint64, heap_uint64)
-          (heap_list (heap_prod (heap_list heap_literal) heap_int)) ();
-      val xb =
-        heap_WHILET (fn (a1, _) => (fn () => (less_nat a1 xa andalso true)))
-          (fn (a1, a2) =>
-            (fn f_ => fn () => f_
-              (let
-                 val (a1a, (a1b, a2b)) = a2;
-               in
+    in
+      (if less_eq_nat (nat_of_integer (18446744073709551616 : IntInf.int)) xa
+        then (fn f_ => fn () => f_
+               ((ht_new (hashable_uint64, heap_uint64)
+                  (heap_list (heap_prod (heap_list heap_literal) heap_int)))
+               ()) ())
+               (fn xb =>
+                 (fn () =>
+                   (error_msg show_nat zero_nat remap_polys_l_dom_err_impl,
+                     (bia, xb))))
+        else (fn f_ => fn () => f_
+               ((ht_new (hashable_uint64, heap_uint64)
+                  (heap_list (heap_prod (heap_list heap_literal) heap_int)))
+               ()) ())
+               (fn xaa =>
                  (fn f_ => fn () => f_
-                   ((iam_lookup
-                      (heap_list (heap_prod (heap_list heap_literal) heap_int))
-                      a1 bi)
-                   ()) ())
-                   (fn xb =>
-                     (if not (is_None xb)
-                       then (fn f_ => fn () => f_
-                              ((iam_lookup
-                                 (heap_list
-                                   (heap_prod (heap_list heap_literal)
-                                     heap_int))
-                                 a1 bi)
-                              ()) ())
-                              (fn xc =>
-                                (fn f_ => fn () => f_
-                                  ((fully_normalize_poly_impl (the xc)) ()) ())
-                                  (fn x_c =>
-                                    (fn f_ => fn () => f_
-                                      ((weak_equality_l_impl x_c ai) ()) ())
-                                      (fn x_d =>
-(fn f_ => fn () => f_
+                   ((heap_WHILET
+                      (fn (a1, _) => (fn () => (less_nat a1 xa andalso true)))
+                      (fn (a1, a2) =>
+                        (fn f_ => fn () => f_
+                          (let
+                             val (a1a, (a1b, a2b)) = a2;
+                           in
+                             (fn f_ => fn () => f_
+                               ((iam_lookup
+                                  (heap_list
+                                    (heap_prod (heap_list heap_literal)
+                                      heap_int))
+                                  a1 bi)
+                               ()) ())
+                               (fn xb =>
+                                 (if not (is_None xb)
+                                   then (fn f_ => fn () => f_
   ((iam_lookup (heap_list (heap_prod (heap_list heap_literal) heap_int)) a1 bi)
   ()) ())
-  (fn xd =>
-    (fn f_ => fn () => f_ ((union_vars_poly_impl (the xd) a1b) ()) ())
-      (fn x_e =>
-        (fn f_ => fn () => f_
-          ((ht_update (equal_uint64, hashable_uint64, heap_uint64)
-             (heap_list (heap_prod (heap_list heap_literal) heap_int))
-             (uint64_of_nat a1) x_c a2b)
-          ()) ())
-          (fn xe => (fn () => (a1a orelse x_d, (x_e, xe)))))))))
-                       else (fn () => (a1a, (a1b, a2b)))))
-               end
+  (fn xc =>
+    (fn f_ => fn () => f_ ((fully_normalize_poly_impl (the xc)) ()) ())
+      (fn x_d =>
+        (fn f_ => fn () => f_ ((weak_equality_l_impl x_d ai) ()) ())
+          (fn x_e =>
+            (fn f_ => fn () => f_
+              ((iam_lookup
+                 (heap_list (heap_prod (heap_list heap_literal) heap_int)) a1
+                 bi)
               ()) ())
-              (fn x_b => (fn () => (plus_nat a1 one_nat, x_b))))
-          (zero_nat, (false, (bia, xaa))) ();
-      val (a1, (a1a, a2a)) = let
-                               val (_, b) = xb;
-                             in
-                               b
-                             end;
-    in
-      ((if a1 then CFOUND else CSUCCESS), (a1a, a2a))
+              (fn xd =>
+                (fn f_ => fn () => f_ ((union_vars_poly_impl (the xd) a1b) ())
+                  ())
+                  (fn x_f =>
+                    (fn f_ => fn () => f_
+                      ((ht_update (equal_uint64, hashable_uint64, heap_uint64)
+                         (heap_list
+                           (heap_prod (heap_list heap_literal) heap_int))
+                         (uint64_of_nat a1) x_d a2b)
+                      ()) ())
+                      (fn xe => (fn () => (a1a orelse x_e, (x_f, xe)))))))))
+                                   else (fn () => (a1a, (a1b, a2b)))))
+                           end
+                          ()) ())
+                          (fn x_c => (fn () => (plus_nat a1 one_nat, x_c))))
+                      (zero_nat, (false, (bia, xaa))))
+                   ()) ())
+                   (fn xb =>
+                     (fn () =>
+                       let
+                         val (a1, (a1a, a2a)) = let
+          val (_, b) = xb;
+        in
+          b
+        end;
+                       in
+                         ((if a1 then CFOUND else CSUCCESS), (a1a, a2a))
+                       end))))
+        ()
     end)
     x;
 
@@ -2372,12 +2617,13 @@ fun full_checker_l_impl x =
       let
         val (a1, (a1a, a2a)) = a;
       in
-        (fn f_ => fn () => f_ ((union_vars_poly_impl ai a1a) ()) ())
-          (fn x_b => let
-                       val (a1b, a2b) = (x_b, a2a);
-                     in
-                       pAC_checker_l_impl xa a1b a2b a1 bi
-                     end)
+        (if is_cfailed a1 then (fn () => (a1, (a1a, a2a)))
+          else (fn f_ => fn () => f_ ((union_vars_poly_impl ai a1a) ()) ())
+                 (fn x_c => let
+                              val (a1b, a2b) = (x_c, a2a);
+                            in
+                              pAC_checker_l_impl xa a1b a2b a1 bi
+                            end))
       end
         ()
     end)
