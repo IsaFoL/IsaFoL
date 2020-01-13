@@ -3,6 +3,7 @@ fun println x = print (x ^ "\n")
 
 fun print_help () = (
   println ("Usage: pactrim [option] <file.polys> <file.pac> <file.spec>\n" ^
+           "    or pactrim --version\n" ^
            "\n" ^
            "Prints\n" ^
            "s SUCCESSFULL: if everything worked\n" ^
