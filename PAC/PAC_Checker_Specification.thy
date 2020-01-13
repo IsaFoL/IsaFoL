@@ -566,20 +566,20 @@ lemma PAC_checker_PAC_checker_specification2:
 
 definition remap_polys_polynom_bool :: \<open>int mpoly \<Rightarrow> nat set \<Rightarrow> (nat, int_poly) fmap \<Rightarrow> (status \<times> fpac_step) nres\<close> where
 \<open>remap_polys_polynom_bool spec = (\<lambda>\<V> A.
-   SPEC(\<lambda>(st, \<V>', A'). dom_m A = dom_m A' \<and>
+   SPEC(\<lambda>(st, \<V>', A'). (\<not>is_failed st \<longrightarrow>
+      dom_m A = dom_m A' \<and>
       (\<forall>i \<in># dom_m A. the (fmlookup A i) - the (fmlookup A' i) \<in> ideal polynom_bool) \<and>
       \<Union>(vars ` set_mset (ran_m A)) \<subseteq> \<V>' \<and>
-      \<Union>(vars ` set_mset (ran_m A')) \<subseteq> \<V>' \<and>
-    (st = FOUND \<longrightarrow> spec \<in># ran_m A') \<and>
-    \<not>is_failed st))\<close>
+      \<Union>(vars ` set_mset (ran_m A')) \<subseteq> \<V>') \<and>
+    (st = FOUND \<longrightarrow> spec \<in># ran_m A')))\<close>
 
 definition remap_polys_change_all :: \<open>int mpoly \<Rightarrow> nat set \<Rightarrow> (nat, int_poly) fmap \<Rightarrow> (status \<times> fpac_step) nres\<close> where
 \<open>remap_polys_change_all spec = (\<lambda>\<V> A. SPEC (\<lambda>(st, \<V>', A').
-    pac_ideal (set_mset (ran_m A)) = pac_ideal (set_mset (ran_m A')) \<and>
-    (st = FOUND \<longrightarrow> spec \<in># ran_m A') \<and>
-    \<Union>(vars ` set_mset (ran_m A)) \<subseteq> \<V>' \<and>
-    \<Union>(vars ` set_mset (ran_m A')) \<subseteq> \<V>' \<and>
-    \<not>is_failed st))\<close>
+    (\<not>is_failed st \<longrightarrow>
+      pac_ideal (set_mset (ran_m A)) = pac_ideal (set_mset (ran_m A')) \<and>
+      \<Union>(vars ` set_mset (ran_m A)) \<subseteq> \<V>' \<and>
+      \<Union>(vars ` set_mset (ran_m A')) \<subseteq> \<V>') \<and>
+    (st = FOUND \<longrightarrow> spec \<in># ran_m A')))\<close>
 
 lemma fmap_eq_dom_iff:
   \<open>A = A' \<longleftrightarrow> dom_m A = dom_m A' \<and> (\<forall>i \<in># dom_m A. the (fmlookup A i) = the (fmlookup A' i))\<close>
@@ -637,18 +637,26 @@ lemma remap_polys_polynom_bool_remap_polys_change_all:
 definition remap_polys :: \<open>int mpoly \<Rightarrow> nat set \<Rightarrow> (nat, int_poly) fmap \<Rightarrow> (status \<times> fpac_step) nres\<close> where
   \<open>remap_polys spec = (\<lambda>\<V> A. do{
    dom \<leftarrow> SPEC(\<lambda>dom. set_mset (dom_m A) \<subseteq> dom \<and> finite dom);
-   (b, N) \<leftarrow> FOREACH dom
-     (\<lambda>i (b, \<V>, A').
-        if i \<in># dom_m A
-        then do {
-          p \<leftarrow> SPEC(\<lambda>p. the (fmlookup A i) - p \<in> ideal polynom_bool \<and> vars p \<subseteq> vars (the (fmlookup A i)));
-          eq \<leftarrow> SPEC(\<lambda>eq. eq \<longrightarrow> p = spec);
-          \<V> \<leftarrow> SPEC(\<lambda>\<V>'. \<V> \<union> vars (the (fmlookup A i)) \<subseteq> \<V>');
-          RETURN(b \<or> eq, \<V>, fmupd i p A')
-        } else RETURN (b, \<V>, A'))
-     (False, \<V>, fmempty);
-     RETURN (if b then FOUND else SUCCESS, N)
- })\<close>
+
+   failed \<leftarrow> SPEC(\<lambda>_::bool. True);
+   if failed
+   then do {
+      RETURN (FAILED, \<V>, fmempty)
+   }
+   else do {
+     (b, N) \<leftarrow> FOREACH dom
+       (\<lambda>i (b, \<V>, A').
+          if i \<in># dom_m A
+          then do {
+            p \<leftarrow> SPEC(\<lambda>p. the (fmlookup A i) - p \<in> ideal polynom_bool \<and> vars p \<subseteq> vars (the (fmlookup A i)));
+            eq \<leftarrow> SPEC(\<lambda>eq. eq \<longrightarrow> p = spec);
+            \<V> \<leftarrow> SPEC(\<lambda>\<V>'. \<V> \<union> vars (the (fmlookup A i)) \<subseteq> \<V>');
+            RETURN(b \<or> eq, \<V>, fmupd i p A')
+          } else RETURN (b, \<V>, A'))
+       (False, \<V>, fmempty);
+       RETURN (if b then FOUND else SUCCESS, N)
+     }
+   })\<close>
 
 lemma remap_polys_spec:
   \<open>remap_polys spec \<V> A \<le> remap_polys_polynom_bool spec \<V> A\<close>
@@ -662,19 +670,18 @@ lemma remap_polys_spec:
       (b \<longrightarrow> spec \<in># ran_m A')\<close>])
   subgoal by auto
   subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
   subgoal
     by auto
   subgoal by auto
   subgoal using ideal.span_add by auto
   subgoal by auto
-  subgoal
-    apply clarsimp
-    apply (auto simp: )
-    done
-  subgoal
-    apply clarsimp
-    apply (auto simp: )
-    done
+  subgoal by auto
+  subgoal by clarsimp auto
    subgoal
      supply[[goals_limit=1]]
      by (auto simp add: ran_m_mapsto_upd_notin dom_m_fmrestrict_set' subset_eq)
@@ -705,8 +712,6 @@ lemma remap_polys_spec:
    subgoal
      by (auto simp add: ran_m_mapsto_upd_notin dom_m_fmrestrict_set' subset_eq
        fmlookup_restrict_set_id')
-   subgoal
-     by (auto split: if_splits)
    done
 
 
@@ -716,8 +721,12 @@ definition full_checker
   \<open>full_checker spec0 A pac = do {
      spec \<leftarrow> normalize_poly_spec spec0;
      (st, \<V>, A) \<leftarrow> remap_polys_change_all spec {} A;
-     \<V> \<leftarrow> SPEC(\<lambda>\<V>'. \<V> \<union> vars spec0 \<subseteq> \<V>');
-     PAC_checker spec (\<V>, A) st pac
+     if is_failed st then
+     RETURN (st, \<V>, A)
+     else do {
+       \<V> \<leftarrow> SPEC(\<lambda>\<V>'. \<V> \<union> vars spec0 \<subseteq> \<V>');
+       PAC_checker spec (\<V>, A) st pac
+    }
 }\<close>
 
 lemma restricted_ideal_to_mono:
@@ -730,25 +739,29 @@ lemma restricted_ideal_to_mono:
 lemma full_checker_spec:
   assumes \<open>(A, A') \<in> polys_rel\<close>
   shows
-    \<open>full_checker spec A pac \<le> \<Down> (status_rel \<times>\<^sub>r polys_rel_full) (PAC_checker_specification spec (A'))\<close>
+      \<open>full_checker spec A pac \<le> \<Down>{((st, G), (st', G')). (st, st') \<in> status_rel \<and>
+           (st \<noteq> FAILED \<longrightarrow> (G, G') \<in> polys_rel_full)}
+        (PAC_checker_specification spec (A'))\<close>
 proof -
   have H: \<open>set_mset b \<subseteq> pac_ideal (set_mset (ran_m A)) \<Longrightarrow>
        x \<in> pac_ideal (set_mset b) \<Longrightarrow> x \<in> pac_ideal (set_mset A')\<close> for b x
    using assms apply (auto simp: polys_rel_def)
    by (metis (no_types, lifting) ideal.span_subset_spanI ideal.span_superset le_sup_iff pac_ideal_alt_def subsetD)
   have 1: \<open>x \<in> {(st, \<V>', A').
-            pac_ideal (set_mset (ran_m x2)) =
-            pac_ideal (set_mset (ran_m A')) \<and>
-            (st = FOUND \<longrightarrow> speca \<in># ran_m A') \<and>
-            \<Union> (vars ` set_mset (ran_m ABC)) \<subseteq> \<V>' \<and>
-            \<Union> (vars ` set_mset (ran_m A')) \<subseteq> \<V>' \<and> \<not> is_failed st} \<Longrightarrow>
+          ( \<not> is_failed st \<longrightarrow> pac_ideal (set_mset (ran_m x2)) =
+              pac_ideal (set_mset (ran_m A')) \<and>
+              \<Union> (vars ` set_mset (ran_m ABC)) \<subseteq> \<V>' \<and>
+              \<Union> (vars ` set_mset (ran_m A')) \<subseteq> \<V>') \<and> 
+            (st = FOUND \<longrightarrow> speca \<in># ran_m A')} \<Longrightarrow>
          x = (st, x') \<Longrightarrow> x' = (\<V>, Aa) \<Longrightarrow>((\<V>', Aa), \<V>', ran_m Aa) \<in> polys_rel_full\<close> for Aa speca x2 st x \<V>' \<V> x' ABC
        by (auto simp: polys_rel_def polys_rel_full_def)
   show ?thesis
     supply[[goals_limit=1]]
     unfolding full_checker_def normalize_poly_spec_def
       PAC_checker_specification_def remap_polys_change_all_def
-    apply (refine_vcg PAC_checker_PAC_checker_specification2[THEN order_trans, of _ _])
+    apply (refine_vcg PAC_checker_PAC_checker_specification2[THEN order_trans, of _ _]
+      lhs_step_If)
+    subgoal by (auto simp: is_failed_def RETURN_RES_refine_iff)
     apply (rule 1; assumption)
     subgoal
       using fmap_ext assms by (auto simp: polys_rel_def ran_m_def)
@@ -756,10 +769,9 @@ proof -
       by auto
     subgoal
       by auto
-    subgoal
-      by auto
     subgoal for speca x1 x2 x x1a x2a x1b
-      apply (rule ref_two_step[OF order.refl])
+      apply (rule ref_two_step[OF conc_fun_R_mono])
+      apply auto[]
       using assms
       apply (auto simp add: PAC_checker_specification_spec_def conc_fun_RES polys_rel_def polys_rel_full_def
         dest!: rtranclp_PAC_Format_subset_ideal dest: is_failed_is_success_completeD)
@@ -768,17 +780,17 @@ proof -
       apply auto[]
       apply (metis (no_types, lifting) group_eq_aux ideal.span_add ideal.span_base in_mono pac_ideal_alt_def sup.cobounded2)
       apply (smt le_sup_iff restricted_ideal_to_mono subsetD subset_trans sup_ge1 sup_ge2)
-      apply (smt le_sup_iff restricted_ideal_to_mono subsetD subset_trans sup_ge1 sup_ge2)
       apply (metis (no_types, lifting) cancel_comm_monoid_add_class.diff_cancel diff_add_eq
         diff_in_polynom_bool_pac_idealI group_eq_aux ideal.span_add_eq2)
       apply (drule restricted_ideal_to_mono[of _ _ _ _ \<open>\<Union> (vars ` set_mset (ran_m A)) \<union> vars spec\<close>])
       apply auto[]
       apply auto[]
-      apply (metis (no_types, lifting) group_eq_aux ideal.span_add ideal.span_base in_mono pac_ideal_alt_def sup.cobounded2)
       apply (smt le_sup_iff restricted_ideal_to_mono subsetD subset_trans sup_ge1 sup_ge2)
       apply (drule restricted_ideal_to_mono[of _ _ _ _ \<open>\<Union> (vars ` set_mset (ran_m A)) \<union> vars spec\<close>])
       apply auto[]
       apply auto[]
+      apply (metis (no_types, lifting) group_eq_aux ideal.span_add ideal.span_base in_mono pac_ideal_alt_def sup.cobounded2)
+      apply (smt le_sup_iff restricted_ideal_to_mono subsetD subset_trans sup_ge1 sup_ge2)
       apply (metis (no_types, lifting) group_eq_aux ideal.span_add ideal.span_base in_mono pac_ideal_alt_def sup.cobounded2)
       done
    done
@@ -788,7 +800,8 @@ qed
 lemma full_checker_spec':
   shows
     \<open>(uncurry2 full_checker, uncurry2 (\<lambda>spec A _. PAC_checker_specification spec A)) \<in>
-       (Id \<times>\<^sub>r polys_rel) \<times>\<^sub>r Id \<rightarrow>\<^sub>f \<langle>(status_rel \<times>\<^sub>r polys_rel_full)\<rangle>nres_rel\<close>
+       (Id \<times>\<^sub>r polys_rel) \<times>\<^sub>r Id \<rightarrow>\<^sub>f \<langle>{((st, G), (st', G')). (st, st') \<in> status_rel \<and>
+           (st \<noteq> FAILED \<longrightarrow> (G, G') \<in> polys_rel_full)}\<rangle>nres_rel\<close>
   using full_checker_spec
   by (auto intro!: frefI nres_relI)
 

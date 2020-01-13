@@ -355,6 +355,7 @@ lemma [sepref_fr_rules]:
   \<open>(return o (error_msg_notin_dom o nat_of_uint64), RETURN o error_msg_notin_dom) \<in> uint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a raw_string_assn\<close>
   \<open>(return o (error_msg_reused_dom o nat_of_uint64), RETURN o error_msg_reused_dom) \<in> uint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a raw_string_assn\<close>
   \<open>(uncurry (return oo (\<lambda>i. error_msg (nat_of_uint64 i))), uncurry (RETURN oo error_msg)) \<in> uint64_nat_assn\<^sup>k *\<^sub>a raw_string_assn\<^sup>k  \<rightarrow>\<^sub>a status_assn raw_string_assn\<close>
+  \<open>(uncurry (return oo  error_msg), uncurry (RETURN oo error_msg)) \<in> nat_assn\<^sup>k *\<^sub>a raw_string_assn\<^sup>k  \<rightarrow>\<^sub>a status_assn raw_string_assn\<close>
   unfolding error_msg_notin_dom_def list_assn_pure_conv list_rel_id_simp
   unfolding status_assn_pure_conv
   unfolding show_nat_def[symmetric]
@@ -734,15 +735,32 @@ declare PAC_checker_l_impl.refine[sepref_fr_rules]
 abbreviation polys_assn_input where
   \<open>polys_assn_input \<equiv> iam_fmap_assn nat_assn poly_assn\<close>
 
+definition remap_polys_l_dom_err_impl :: \<open>_\<close>  where
+  \<open>remap_polys_l_dom_err_impl =
+    ''Error during initialisation. Too many polynoms where provided. If this happens,'' @
+    ''please report the example to the authors, because something went wrong during '' @
+    ''code generation (code generation to arrays is likely to be broken).''\<close>
 
+lemma [sepref_fr_rules]:
+  \<open>((uncurry0 (return (remap_polys_l_dom_err_impl))),
+    uncurry0 (remap_polys_l_dom_err)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a raw_string_assn\<close>
+   unfolding remap_polys_l_dom_err_def
+     remap_polys_l_dom_err_def
+     list_assn_pure_conv
+   apply sepref_to_hoare
+   apply sep_auto
+   done
+
+lemma pow_2_64: \<open>(2::nat) ^64 = 18446744073709551616\<close>
+  by auto
 sepref_register upper_bound_on_dom op_fmap_empty
 sepref_definition remap_polys_l_impl
   is \<open>uncurry2 remap_polys_l2\<close>
-  :: \<open>[\<lambda>((spec,\<V>), A'). (\<forall>i \<in># dom_m A'. i < 2^64)]\<^sub>a poly_assn\<^sup>k *\<^sub>a vars_assn\<^sup>d *\<^sub>a polys_assn_input\<^sup>d \<rightarrow>
+  :: \<open>poly_assn\<^sup>k *\<^sub>a vars_assn\<^sup>d *\<^sub>a polys_assn_input\<^sup>d \<rightarrow>\<^sub>a
     status_assn raw_string_assn \<times>\<^sub>a vars_assn \<times>\<^sub>a polys_assn\<close>
   supply [[goals_limit=1]] is_Mult_lastI[intro] indom_mI[dest]
   unfolding remap_polys_l2_def op_fmap_empty_def[symmetric] while_eq_nfoldli[symmetric]
-    while_upt_while_direct
+    while_upt_while_direct pow_2_64
     in_dom_m_lookup_iff
     fmlookup'_def[symmetric]
     union_vars_poly_alt_def[symmetric]
@@ -761,7 +779,7 @@ lemma remap_polys_l2_remap_polys_l:
 
 lemma [sepref_fr_rules]:
    \<open>(uncurry2 remap_polys_l_impl,
-     uncurry2 remap_polys_l) \<in> [\<lambda>((spec,\<V>), A'). (\<forall>i \<in># dom_m A'. i < 2^64)]\<^sub>a poly_assn\<^sup>k *\<^sub>a vars_assn\<^sup>d *\<^sub>a polys_assn_input\<^sup>d \<rightarrow>
+     uncurry2 remap_polys_l) \<in> poly_assn\<^sup>k *\<^sub>a vars_assn\<^sup>d *\<^sub>a polys_assn_input\<^sup>d \<rightarrow>\<^sub>a
        status_assn raw_string_assn \<times>\<^sub>a vars_assn \<times>\<^sub>a polys_assn\<close>
    using hfcomp_tcomp_pre[OF remap_polys_l2_remap_polys_l remap_polys_l_impl.refine]
    by (auto simp: hrp_comp_def hfprod_def)
@@ -770,7 +788,7 @@ sepref_register remap_polys_l
 
 sepref_definition full_checker_l_impl
   is \<open>uncurry2 full_checker_l\<close>
-  :: \<open>[\<lambda>((spec,A'), st). (\<forall>i \<in># dom_m A'. i < 2^64)]\<^sub>a poly_assn\<^sup>k *\<^sub>a polys_assn_input\<^sup>d *\<^sub>a (list_assn (pac_step_rel_assn (uint64_nat_assn) poly_assn string_assn))\<^sup>k \<rightarrow>
+  :: \<open>poly_assn\<^sup>k *\<^sub>a polys_assn_input\<^sup>d *\<^sub>a (list_assn (pac_step_rel_assn (uint64_nat_assn) poly_assn string_assn))\<^sup>k \<rightarrow>\<^sub>a
     status_assn raw_string_assn \<times>\<^sub>a vars_assn \<times>\<^sub>a polys_assn\<close>
   supply [[goals_limit=1]] is_Mult_lastI[intro]
   unfolding full_checker_l_def hs.fold_custom_empty
@@ -797,7 +815,7 @@ sepref_definition empty_vars_impl
   by sepref
 
 text \<open>This is a hack for performance. There is no need to recheck that that a char is valid when working
-  on chars.\<close>
+  on chars coming from strings.\<close>
 definition unsafe_asciis_of_literal :: \<open>_\<close> where
   \<open>unsafe_asciis_of_literal xs = String.asciis_of_literal xs\<close>
 
@@ -868,7 +886,7 @@ definition full_poly_input_assn where
 
 definition fully_pac_assn where
   \<open>fully_pac_assn = (list_assn
-        (hr_comp (pac_step_rel_assn nat_assn poly_assn string_assn)
+        (hr_comp (pac_step_rel_assn uint64_nat_assn poly_assn string_assn)
           (p2rel
             (\<langle>nat_rel,
              fully_unsorted_poly_rel O
@@ -921,15 +939,22 @@ The input parameters are:
 \<^enum> a represention of the PAC proofs.
 
 \<close>
-(*
+
 lemma PAC_full_correctness: (* \htmllink{PAC-full-correctness} *)
   \<open>(uncurry2 full_checker_l_impl,
      uncurry2 (\<lambda>spec A _. PAC_checker_specification spec A))
-    \<in> [\<lambda>((spec,A'), _). (\<forall>i \<in># dom_m A'. i < 2^64)]\<^sub>a (full_poly_assn)\<^sup>k *\<^sub>a
+    \<in> (full_poly_assn)\<^sup>k *\<^sub>a
       (full_poly_input_assn)\<^sup>d *\<^sub>a
-      (fully_pac_assn)\<^sup>k \<rightarrow> code_status_assn \<times>\<^sub>a
-                           full_vars_assn \<times>\<^sub>a full_polys_assn\<close>
-  thm
+      (fully_pac_assn)\<^sup>k \<rightarrow>\<^sub>a hr_comp
+                            (code_status_assn \<times>\<^sub>a
+                             full_vars_assn \<times>\<^sub>a
+                             hr_comp polys_assn
+                              (\<langle>nat_rel,
+                               sorted_poly_rel O mset_poly_rel\<rangle>fmap_rel))
+                            {((st, G), st', G').
+                             st = st' \<and>
+                             (st \<noteq> FAILED \<longrightarrow> (G, G') \<in> Id \<times>\<^sub>r polys_rel)}\<close>
+  using
     full_checker_l_impl.refine[FCOMP full_checker_l_full_checker',
     FCOMP full_checker_spec',
     unfolded full_poly_assn_def[symmetric]
@@ -942,7 +967,7 @@ lemma PAC_full_correctness: (* \htmllink{PAC-full-correctness} *)
       full_polys_assn_def[symmetric]]
       hr_comp_Id2
    by auto
-*)
+
 text \<open>
 
 It would be more efficient to move the parsing to Isabelle, as this
@@ -998,7 +1023,7 @@ global_interpretation PAC: poly_embed where
   apply (use bij_\<phi> in \<open>auto simp: bij_def\<close>)
   done
 
-(*
+
 text \<open>The full correctness theorem is @{thm PAC.PAC_full_correctness}.\<close>
-*)
+
 end

@@ -395,22 +395,33 @@ definition mononoms_equal_up_to_reorder where
      (\<forall> x \<in> mononoms p'. sorted_wrt (rel2p var_order_rel) x))\<close>
 
 
+definition remap_polys_l_dom_err :: \<open>string nres\<close> where
+  \<open>remap_polys_l_dom_err = SPEC (\<lambda>_. True)\<close>
+
+
 definition remap_polys_l :: \<open>llist_polynom \<Rightarrow> string set \<Rightarrow> (nat, llist_polynom) fmap \<Rightarrow>
    (_ code_status \<times> string set \<times> (nat, llist_polynom) fmap) nres\<close> where
   \<open>remap_polys_l spec = (\<lambda>\<V> A. do{
    dom \<leftarrow> SPEC(\<lambda>dom. set_mset (dom_m A) \<subseteq> dom \<and> finite dom);
-   (b, \<V>, A) \<leftarrow> FOREACH dom
-     (\<lambda>i (b, \<V>,  A').
-        if i \<in># dom_m A
-        then  do {
-          p \<leftarrow> full_normalize_poly (the (fmlookup A i));
-          eq \<leftarrow> weak_equality_l p spec;
-          \<V> \<leftarrow> RETURN(\<V> \<union> vars_llist (the (fmlookup A i)));
-          RETURN(b \<or> eq, \<V>, fmupd i p A')
-        } else RETURN (b, \<V>, A'))
-     (False, \<V>, fmempty);
-   RETURN (if b then CFOUND else CSUCCESS, \<V>, A)
- })\<close>
+   failed \<leftarrow> SPEC(\<lambda>_::bool. True);
+   if failed
+   then do {
+      c \<leftarrow> remap_polys_l_dom_err;
+      RETURN (error_msg (0 :: nat) c, \<V>, fmempty)
+   }
+   else do {
+     (b, \<V>, A) \<leftarrow> FOREACH dom
+       (\<lambda>i (b, \<V>,  A').
+          if i \<in># dom_m A
+          then  do {
+            p \<leftarrow> full_normalize_poly (the (fmlookup A i));
+            eq \<leftarrow> weak_equality_l p spec;
+            \<V> \<leftarrow> RETURN(\<V> \<union> vars_llist (the (fmlookup A i)));
+            RETURN(b \<or> eq, \<V>, fmupd i p A')
+          } else RETURN (b, \<V>, A'))
+       (False, \<V>, fmempty);
+     RETURN (if b then CFOUND else CSUCCESS, \<V>, A)
+ }})\<close>
 
 definition PAC_checker_l where
   \<open>PAC_checker_l spec A b st = do {
@@ -527,11 +538,15 @@ proof -
     by auto
   show ?thesis
     using assms
-    unfolding remap_polys_l_def
+    unfolding remap_polys_l_def remap_polys_l_dom_err_def
       remap_polys_def prod.case
     apply (refine_rcg full_normalize_poly fmap_rel_fmupd_fmap_rel)
     subgoal
       by auto
+    subgoal
+      by auto
+    subgoal
+      by (auto simp: error_msg_def)
     apply (rule 1)
     subgoal by auto
     apply (rule emp)
@@ -1177,8 +1192,12 @@ where
   \<open>full_checker_l spec A st = do {
     spec' \<leftarrow> full_normalize_poly spec;
     (b, \<V>, A) \<leftarrow> remap_polys_l spec' {} A;
-    let \<V> = \<V> \<union> vars_llist spec;
-    PAC_checker_l spec' (\<V>, A) b st
+    if is_cfailed b
+    then RETURN (b, \<V>, A)
+    else do {
+      let \<V> = \<V> \<union> vars_llist spec;
+      PAC_checker_l spec' (\<V>, A) b st
+    }
   }\<close>
 
 
@@ -1218,6 +1237,8 @@ proof -
     subgoal
       using assms(3) .
     subgoal by auto
+    subgoal by (auto simp: is_cfailed_def is_failed_def)
+    subgoal by auto
     apply (rule fully_unsorted_poly_rel_extend_vars)
     subgoal using assms(3) .
     subgoal by auto
@@ -1241,19 +1262,27 @@ end
 definition remap_polys_l2 :: \<open>llist_polynom \<Rightarrow> string set \<Rightarrow> (nat, llist_polynom) fmap \<Rightarrow> _ nres\<close> where
   \<open>remap_polys_l2 spec = (\<lambda>\<V> A. do{
    n \<leftarrow> upper_bound_on_dom A;
-   (b, \<V>, A) \<leftarrow> nfoldli ([0..<n]) (\<lambda>_. True)
-     (\<lambda>i (b, \<V>, A').
-        if i \<in># dom_m A
-        then do {
-          ASSERT(fmlookup A i \<noteq> None);
-          p \<leftarrow> full_normalize_poly (the (fmlookup A i));
-          eq \<leftarrow> weak_equality_l p spec;
-          \<V> \<leftarrow> RETURN (\<V> \<union> vars_llist (the (fmlookup A i)));
-          RETURN(b \<or> eq, \<V>, fmupd i p A')
-        } else RETURN (b, \<V>, A')
-      )
-     (False, \<V>, fmempty);
-   RETURN (if b then CFOUND else CSUCCESS, \<V>, A)
+   b \<leftarrow> RETURN (n \<ge> 2^64);
+   if b
+   then do {
+     c \<leftarrow> remap_polys_l_dom_err;
+     RETURN (error_msg (0 ::nat) c, \<V>, fmempty)
+   }
+   else do {
+       (b, \<V>, A) \<leftarrow> nfoldli ([0..<n]) (\<lambda>_. True)
+       (\<lambda>i (b, \<V>, A').
+          if i \<in># dom_m A
+          then do {
+            ASSERT(fmlookup A i \<noteq> None);
+            p \<leftarrow> full_normalize_poly (the (fmlookup A i));
+            eq \<leftarrow> weak_equality_l p spec;
+            \<V> \<leftarrow> RETURN (\<V> \<union> vars_llist (the (fmlookup A i)));
+            RETURN(b \<or> eq, \<V>, fmupd i p A')
+          } else RETURN (b, \<V>, A')
+        )
+       (False, \<V>, fmempty);
+     RETURN (if b then CFOUND else CSUCCESS, \<V>, A)
+    }
  })\<close>
 
 lemma remap_polys_l2_remap_polys_l:
@@ -1288,6 +1317,8 @@ proof -
   show ?thesis
     unfolding remap_polys_l2_def remap_polys_l_def
     apply (refine_rcg LFO_refine[where R= \<open>Id \<times>\<^sub>r \<langle>Id\<rangle>set_rel \<times>\<^sub>r Id\<close>])
+    subgoal by auto
+    subgoal by auto
     subgoal by auto
     apply (rule 3)
     subgoal by auto
