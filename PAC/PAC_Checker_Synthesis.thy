@@ -1,6 +1,7 @@
 theory PAC_Checker_Synthesis
   imports PAC_Checker WB_Sort PAC_Checker_Relation
     PAC_Checker_Init
+    PAC_Version
     "../Weidenbach_Book/Watched_Literals/WB_More_Refinement_Loops"
 begin
 
@@ -846,7 +847,7 @@ export_code PAC_checker_l_impl PAC_update_impl PAC_empty_impl the_error is_cfail
   int_of_integer Del Add Mult nat_of_integer String.implode remap_polys_l_impl
   fully_normalize_poly_impl union_vars_poly_impl empty_vars_impl
   full_checker_l_impl check_step_impl CSUCCESS
-  Extension hashcode_literal'
+  Extension hashcode_literal' version
   in SML_imp module_name PAC_Checker
   file "code/checker.sml"
 

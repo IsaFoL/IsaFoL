@@ -12,7 +12,7 @@ fun print_help () = (
            "\n" ^
            "\n" ^
            "Option:\n" ^
-           "--iloop (internal loop): use the non-verified loop instead of \n" ^
+           "--uloop (unsafe loop): use the non-verified loop instead of \n" ^
            "\tthe verified loop. This is faster because the file does not\n" ^
            "\t have to be parsed upfront.")
 )
@@ -153,26 +153,22 @@ fun checker [polys, pac, spec] = let
   val end_of_processing = Timer.checkCPUTimes timer
   val full = Timer.checkCPUTimes init_timer
   val _ = print_stat polys_timer pac_timer end_of_init end_of_processing full
-  (* val timer = Timer.totalCPUTimer () *)
-  (* val (SAT, stat) = SAT_Solver.isaSAT_code (not norestart, (not noreduction, nounbounded)) problem (); *)
-  (* val end_of_processing = Timer.checkCPUTimes timer *)
-  (* val _ = (if print_stats then print_stat stat end_of_init end_of_processing else ()); *)
-  (* val _ = *)
-  (*       (case SAT of *)
-  (*            NONE => print "s UNSATISFIABLE\n" *)
-  (*          | SOME SAT => (if print_modelb then ignore (print_model SAT) else (); print "s SATISFIABLE\n")) *)
   in
     ()
 end
   handle PAC_Parser.Parser_Error err => print("parsing failed with error: " ^ err)
 
-fun process_args [] = print_help() 
-  | process_args [arg, polys, pac, spec] =
-    if arg = "--iloop"
+fun process_args [arg, polys, pac, spec] =
+    if arg = "--iloop" orelse arg = "--uloop"
     then inside_loop [polys, pac, spec]
     else print_help()
   | process_args [polys, pac, spec] =
     checker [polys, pac, spec]
+  | process_args [arg] =
+    if arg = "--version" orelse arg = "-v" orelse arg = "-version"
+    then println (PAC_Checker.version)
+    else print_help()
+  | process_args [] = print_help()
 
 fun main () = let
   val args = CommandLine.arguments ();

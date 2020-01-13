@@ -187,6 +187,7 @@ structure PAC_Checker : sig
   datatype ('a, 'b, 'c) pac_step = Add of 'c * 'c * 'c * 'a |
     Mult of 'c * 'a * 'c * 'a | Extension of 'c * 'b * 'a | Del of 'c
   val implode : char list -> string
+  val version : string
   val is_cfound : 'a code_status -> bool
   val the_error : 'a code_status -> 'a
   val is_cfailed : 'a code_status -> bool
@@ -871,6 +872,8 @@ fun ht_copy (A1_, A2_, A3_) B_ n src dst =
            in
              ht_copy (A1_, A2_, A3_) B_ (minus_nat n one_nat) src x ()
            end));
+
+val version : string = "269249bb";
 
 fun times_nat m n = Nat (IntInf.* (integer_of_nat m, integer_of_nat n));
 

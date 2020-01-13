@@ -18,6 +18,7 @@ session PAC_Checker = "Sepref_IICF" +
      PAC_Polynoms
      PAC_Polynoms_Term
      PAC_Checker
+     PAC_Version
      PAC_Checker_Synthesis
   document_files
     "root.tex"
