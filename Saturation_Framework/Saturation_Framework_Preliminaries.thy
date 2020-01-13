@@ -13,7 +13,7 @@ theory Saturation_Framework_Preliminaries
 begin
 
 paragraph \<open>
-This theory corresponds to the section 2 of the technical report "A Comprehensive Framework for Saturation-Based Theorem Proving"
+This theory corresponds to sec:preliminaries of the technical report "A Comprehensive Framework for Saturation-Based Theorem Proving"
 \<close>
 
 locale consequence_relation =
@@ -87,7 +87,7 @@ begin
 lemma Red_Inf_of_Inf_to_N_subset: "{\<iota> \<in> Inf. (concl_of \<iota> \<in> N)} \<subseteq> Red_Inf N"
   using Red_Inf_of_Inf_to_N by blast 
 
-paragraph \<open>Lemma 1 from the technical report\<close>
+paragraph \<open>lemma:red-concl-implies-red-inf\<close>
 lemma red_concl_to_red_inf: 
   assumes 
     i_in: "\<iota> \<in> Inf" and
@@ -179,7 +179,7 @@ proof -
     by (metis Suc_leI dual_order.order_iff_strict enat_ord_simps(2) less_trans)
 qed
 
-text \<open>lemma 2 from the technical report\<close>
+text \<open>lemma:nonpersistent-is-redundant\<close>
 lemma Red_in_Sup: 
   assumes deriv: "chain (\<rhd>Red) D"
   shows "Sup_llist D - Liminf_llist D \<subseteq> Red_F (Sup_llist D)"
@@ -199,7 +199,7 @@ proof
   then show "C \<in> Red_F (Sup_llist D)" using equiv_Sup_Liminf[of C] C_in_subset by fast
 qed
 
-text \<open>lemma 3 from the technical report 1/2\<close>
+text \<open>lemma:redundant-remains-redundant-during-run 1/2\<close>
 lemma Red_Inf_subset_Liminf: 
   assumes deriv: \<open>chain (\<rhd>Red) D\<close> and
     i: \<open>enat i < llength D\<close>
@@ -216,7 +216,7 @@ proof -
   then show ?thesis using Red_Inf_Sup_in_Liminf by auto
 qed
 
-text \<open>lemma 3 from the technical report 2/2\<close>
+text \<open>lemma:redundant-remains-redundant-during-run 2/2\<close>
 lemma Red_F_subset_Liminf:
  assumes deriv: \<open>chain (\<rhd>Red) D\<close> and
     i: \<open>enat i < llength D\<close>
@@ -234,7 +234,7 @@ proof -
   then show ?thesis using Red_F_Sup_in_Liminf by auto
 qed
 
-text \<open>lemma 4 from the technical report\<close>
+text \<open>lemma:N-i-is-persistent-or-redundant\<close>
 lemma i_in_Liminf_or_Red_F:
   assumes 
     deriv: \<open>chain (\<rhd>Red) D\<close> and
@@ -252,7 +252,7 @@ proof (rule,rule)
   then show \<open>C \<in> Red_F (Liminf_llist D)\<close> using Red_F_subset_Liminf[of D "Suc j"] deriv j(2) by blast
 qed
 
-text \<open>lemma 5 from the technical report\<close>
+text \<open>lemma:fairness-implies-saturation\<close>
 lemma fair_implies_Liminf_saturated:
   assumes 
     deriv: \<open>chain (\<rhd>Red) D\<close> and
@@ -276,7 +276,7 @@ locale dynamic_refutational_complete_calculus = calculus_with_red_crit +
       \<Longrightarrow> lnth D 0 \<Turnstile> {B} \<Longrightarrow> \<exists>i \<in> {i. enat i < llength D}. \<exists>B'\<in>Bot. B' \<in> lnth D i"
 begin
 
-text \<open>lemma 7 from the technical report\<close>
+text \<open>lemma:dynamic-ref-compl-implies-static\<close>
 sublocale static_refutational_complete_calculus
 proof
   fix B N
@@ -303,7 +303,7 @@ qed
 end
 
 
-text \<open>lemma 6 from the technical report\<close>
+text \<open>lemma:static-ref-compl-implies-dynamic\<close>
 text \<open>The assumption that the derivation is not the empty derivation had to be added to the 
   hypotheses of \<^text>\<open>dynamic_refutational_complete\<close> for the proof of lemma 10 to work. Otherwise,
   \<^term>\<open>lnth D 0\<close> is undefined and the first 'have' can't be proven.\<close>

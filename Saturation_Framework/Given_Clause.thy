@@ -171,7 +171,7 @@ lemma labeled_ordered_dynamic_ref_comp:
   labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.entails_Q labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_Inf_Q labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_F_Q"
   by (rule stat_ref_calc.dynamic_refutational_complete_calculus_axioms)
 
-text "lemma 55 from the technical report"
+text "lemma:redundant-labeled-inferences in the paper"
 lemma "\<iota> \<in> Inf_FL \<Longrightarrow> 
   \<iota> \<in> labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_Inf_Q N \<equiv> (to_F \<iota>) \<in> no_labels.empty_ord_lifted_calc_w_red_crit_family.Red_Inf_Q (fst ` N)" for \<iota>
 proof -
@@ -311,6 +311,10 @@ proof -
     by argo
 qed
 
+text \<open>lemma:redundant-labeled-clauses\<close>
+lemma \<open>(C,L) \<in> labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_F_Q N \<Longrightarrow>
+  C \<in> no_labels.Red_F_\<G>_empty (fst ` N) \<or> (\<exists>C' \<in> (fst ` N). C \<lless> C') \<or> (\<exists>(C',L') \<in> N. (L' \<sqsubset>l L \<and> C \<lless>\<doteq> C'))\<close>
+sorry
 
 end
 
