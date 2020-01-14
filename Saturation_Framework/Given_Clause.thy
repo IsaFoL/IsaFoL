@@ -308,10 +308,26 @@ proof -
     by argo
 qed
 
+find_theorems name: HOL name: disj
+
 text \<open>lemma:redundant-labeled-clauses\<close>
-lemma \<open>(C,L) \<in> labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_F_Q N \<Longrightarrow>
-  C \<in> no_labels.Red_F_\<G>_empty (fst ` N) \<or> (\<exists>C' \<in> (fst ` N). C \<lless> C') \<or> (\<exists>(C',L') \<in> N. (L' \<sqsubset>l L \<and> C \<lless>\<doteq> C'))\<close>
-sorry
+lemma \<open>C \<in> no_labels.Red_F_\<G>_empty (fst ` N) \<or> (\<exists>C' \<in> (fst ` N). C \<lless> C') \<or> (\<exists>(C',L') \<in> N. (L' \<sqsubset>l L \<and> C \<lless>\<doteq> C')) \<Longrightarrow>
+  (C,L) \<in> labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_F_Q N\<close>
+proof -
+  fix C N L
+  assume \<open>C \<in> no_labels.Red_F_\<G>_empty (fst ` N) \<or> (\<exists>C' \<in> (fst ` N). C \<lless> C') \<or> (\<exists>(C',L') \<in> N. (L' \<sqsubset>l L \<and> C \<lless>\<doteq> C'))\<close>
+  moreover have \<open>C \<in> no_labels.Red_F_\<G>_empty (fst ` N) \<Longrightarrow>
+    (C,L) \<in> labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_F_Q N\<close>
+    sorry
+  moreover have \<open>\<exists>C' \<in> (fst ` N). C \<lless> C' \<Longrightarrow>
+    (C,L) \<in> labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_F_Q N\<close>
+    sorry
+  moreover have \<open>\<exists>(C',L') \<in> N. (L' \<sqsubset>l L \<and> C \<lless>\<doteq> C')  \<Longrightarrow>
+    (C,L) \<in> labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_F_Q N\<close>
+    sorry
+  ultimately show \<open>(C,L) \<in> labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_F_Q N\<close>
+    by blast
+qed    
 
 end
 
