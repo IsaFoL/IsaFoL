@@ -12,16 +12,15 @@ text \<open>ssec:intersections\<close>
 locale consequence_relation_family =
   fixes
     Bot :: "'f set" and
-    Q :: "'q set" and
+    Q :: "'q itself" and
     entails_q :: "'q \<Rightarrow> ('f set \<Rightarrow> 'f set \<Rightarrow> bool)"
   assumes
-    Q_not_empty: "Q \<noteq> {}" and
     Bot_not_empty: "Bot \<noteq> {}" and
-    q_cons_rel: "q \<in> Q \<Longrightarrow> consequence_relation Bot (entails_q q)"
+    q_cons_rel: "consequence_relation Bot (entails_q q)"
 begin
 
 definition entails_Q :: "'f set \<Rightarrow> 'f set \<Rightarrow> bool" (infix "\<Turnstile>Q" 50) where
-  "(N1 \<Turnstile>Q N2) = (\<forall>q \<in> Q. entails_q q N1 N2)"
+  "(N1 \<Turnstile>Q N2) = (\<forall>q. entails_q q N1 N2)"
 
 paragraph \<open>lemma:intersection-of-conseq-rel\<close>
 lemma cons_rel_family_is_cons_rel: "consequence_relation Bot entails_Q"
@@ -48,20 +47,20 @@ locale calculus_with_red_crit_family = inference_system Inf + consequence_relati
   for
     Bot :: "'f set" and
     Inf :: \<open>'f inference set\<close> and
-    Q :: "'q set" and
+    Q :: "'q itself" and
     entails_q :: "'q \<Rightarrow> ('f set \<Rightarrow> 'f set \<Rightarrow> bool)"
   + fixes
     Red_Inf_q :: "'q \<Rightarrow> ('f set \<Rightarrow> 'f inference set)" and
     Red_F_q :: "'q \<Rightarrow> ('f set \<Rightarrow> 'f set)"
   assumes
-    all_red_crit: "q \<in> Q \<Longrightarrow> calculus_with_red_crit Bot Inf (entails_q q) (Red_Inf_q q) (Red_F_q q)"
+    all_red_crit: "calculus_with_red_crit Bot Inf (entails_q q) (Red_Inf_q q) (Red_F_q q)"
 begin
 
 definition Red_Inf_Q :: "'f set \<Rightarrow> 'f inference set" where
-  "Red_Inf_Q N = \<Inter> {X N |X. X \<in> (Red_Inf_q ` Q)}"
+  "Red_Inf_Q N = \<Inter> {X N |X. X \<in> (Red_Inf_q ` UNIV)}"
 
 definition Red_F_Q :: "'f set \<Rightarrow> 'f set" where
-  "Red_F_Q N = \<Inter> {X N |X. X \<in> (Red_F_q ` Q)}"
+  "Red_F_Q N = \<Inter> {X N |X. X \<in> (Red_F_q ` UNIV)}"
 
 paragraph \<open>lemma:intersection-of-red-crit\<close>
 lemma inter_red_crit: "calculus_with_red_crit Bot Inf entails_Q Red_Inf_Q Red_F_Q"
@@ -74,24 +73,24 @@ next
     unfolding Red_Inf_Q_def
   proof
     fix N
-    show "\<Inter> {X N |X. X \<in> Red_Inf_q ` Q} \<subseteq> Inf"
+    show "\<Inter> {X N |X. X \<in> Red_Inf_q ` UNIV} \<subseteq> Inf"
     proof (intro Inter_subset)
       fix Red_Infs
-      assume one_red_inf: "Red_Infs \<in> {X N |X. X \<in> Red_Inf_q ` Q}"
+      assume one_red_inf: "Red_Infs \<in> {X N |X. X \<in> Red_Inf_q ` UNIV}"
       show "Red_Infs \<subseteq> Inf" using one_red_inf
       proof
-        assume "\<exists>Red_Inf_qi. Red_Infs = Red_Inf_qi N \<and> Red_Inf_qi \<in> Red_Inf_q ` Q"
+        assume "\<exists>Red_Inf_qi. Red_Infs = Red_Inf_qi N \<and> Red_Inf_qi \<in> Red_Inf_q ` UNIV"
         then obtain Red_Inf_qi where
-          red_infs_def: "Red_Infs = Red_Inf_qi N" and red_inf_qi_in: "Red_Inf_qi \<in> Red_Inf_q ` Q"
+          red_infs_def: "Red_Infs = Red_Inf_qi N" and red_inf_qi_in: "Red_Inf_qi \<in> Red_Inf_q ` UNIV"
           by blast
-        obtain qi where red_inf_qi_def: "Red_Inf_qi = Red_Inf_q qi" and qi_in: "qi \<in> Q"
+        obtain qi where red_inf_qi_def: "Red_Inf_qi = Red_Inf_q qi" and qi_in: "qi \<in> UNIV"
           using red_inf_qi_in by blast
         show "Red_Infs \<subseteq> Inf"
-          using all_red_crit[OF qi_in] calculus_with_red_crit.Red_Inf_to_Inf red_inf_qi_def
+          using all_red_crit calculus_with_red_crit.Red_Inf_to_Inf red_inf_qi_def
           red_infs_def by blast
       qed
     next
-      show "{X N |X. X \<in> Red_Inf_q ` Q} \<noteq> {}" using Q_not_empty by blast
+      show "{X N |X. X \<in> Red_Inf_q ` UNIV} \<noteq> {}" by blast
     qed
   qed
 next
@@ -104,22 +103,21 @@ next
     show "N - Red_F_Q N \<Turnstile>Q {B}" unfolding entails_Q_def Red_F_Q_def 
     proof
       fix qi
-      assume qi_in: "qi \<in> Q"
       define entails_qi (infix "\<Turnstile>qi" 50) where "entails_qi = entails_q qi"
       have cons_rel_qi: "consequence_relation Bot entails_qi"
-        unfolding entails_qi_def using all_red_crit[OF qi_in] calculus_with_red_crit.axioms(1) by blast
+        unfolding entails_qi_def using all_red_crit calculus_with_red_crit.axioms(1) by blast
       define Red_F_qi where "Red_F_qi = Red_F_q qi"
       have red_qi_in_Q: "Red_F_Q N \<subseteq> Red_F_qi N"
-        unfolding Red_F_Q_def Red_F_qi_def using image_iff qi_in by blast
+        unfolding Red_F_Q_def Red_F_qi_def using image_iff by blast
       then have "N - (Red_F_qi N) \<subseteq> N - (Red_F_Q N)" by blast
       then have entails_1: "(N - Red_F_Q N) \<Turnstile>qi (N - Red_F_qi N)"
-        using all_red_crit[OF qi_in]
+        using all_red_crit
         unfolding calculus_with_red_crit_def consequence_relation_def entails_qi_def by metis
-      have N_unsat_qi: "N \<Turnstile>qi {B}" using qi_in N_unsat unfolding entails_qi_def entails_Q_def by simp
+      have N_unsat_qi: "N \<Turnstile>qi {B}" using N_unsat unfolding entails_qi_def entails_Q_def by simp
       then have N_unsat_qi: "(N - Red_F_qi N) \<Turnstile>qi {B}"
-        using all_red_crit[OF qi_in] Red_F_qi_def calculus_with_red_crit.Red_F_Bot[OF _ B_in] entails_qi_def
+        using all_red_crit Red_F_qi_def calculus_with_red_crit.Red_F_Bot[OF _ B_in] entails_qi_def
         by fastforce
-      show "(N - \<Inter> {X N |X. X \<in> Red_F_q ` Q}) \<Turnstile>qi {B}"
+      show "(N - \<Inter> {X N |X. X \<in> Red_F_q ` UNIV}) \<Turnstile>qi {B}"
         using consequence_relation.entails_trans[OF cons_rel_qi entails_1 N_unsat_qi]
         unfolding Red_F_Q_def .
     qed
@@ -135,8 +133,8 @@ next
     proof
       fix x
       assume x_in: "x \<in> Red_F_Q N1"
-      then have "\<forall>qi \<in> Q. x \<in> Red_F_q qi N1" unfolding Red_F_Q_def by blast
-      then have "\<forall>qi \<in> Q. x \<in> Red_F_q qi N2"
+      then have "\<forall>qi. x \<in> Red_F_q qi N1" unfolding Red_F_Q_def by blast
+      then have "\<forall>qi. x \<in> Red_F_q qi N2"
         using N1_in_N2 all_red_crit calculus_with_red_crit.axioms(2) calculus_with_red_crit.Red_F_of_subset by blast
       then show "x \<in> Red_F_Q N2" unfolding Red_F_Q_def by blast
     qed
@@ -152,8 +150,8 @@ next
     proof
       fix x
       assume x_in: "x \<in> Red_Inf_Q N1"
-      then have "\<forall>qi \<in> Q. x \<in> Red_Inf_q qi N1" unfolding Red_Inf_Q_def by blast
-      then have "\<forall>qi \<in> Q. x \<in> Red_Inf_q qi N2"
+      then have "\<forall>qi. x \<in> Red_Inf_q qi N1" unfolding Red_Inf_Q_def by blast
+      then have "\<forall>qi. x \<in> Red_Inf_q qi N2"
         using N1_in_N2 all_red_crit calculus_with_red_crit.axioms(2) calculus_with_red_crit.Red_Inf_of_subset by blast
       then show "x \<in> Red_Inf_Q N2" unfolding Red_Inf_Q_def by blast
     qed
@@ -167,9 +165,9 @@ next
     proof
       fix x
       assume x_in: "x \<in> Red_F_Q N1"
-      then have "\<forall>qi \<in> Q. x \<in> Red_F_q qi N1" unfolding Red_F_Q_def by blast
-      moreover have "\<forall>qi \<in> Q. N2 \<subseteq> Red_F_q qi N1" using N2_in_Red_N1 unfolding Red_F_Q_def by blast
-      ultimately have "\<forall>qi \<in> Q. x \<in> Red_F_q qi (N1 - N2)"
+      then have "\<forall>qi. x \<in> Red_F_q qi N1" unfolding Red_F_Q_def by blast
+      moreover have "\<forall>qi. N2 \<subseteq> Red_F_q qi N1" using N2_in_Red_N1 unfolding Red_F_Q_def by blast
+      ultimately have "\<forall>qi. x \<in> Red_F_q qi (N1 - N2)"
         using all_red_crit calculus_with_red_crit.axioms(2) calculus_with_red_crit.Red_F_of_Red_F_subset by blast
       then show "x \<in> Red_F_Q (N1 - N2)" unfolding Red_F_Q_def by blast
     qed
@@ -183,9 +181,9 @@ next
     proof
       fix x
       assume x_in: "x \<in> Red_Inf_Q N1"
-      then have "\<forall>qi \<in> Q. x \<in> Red_Inf_q qi N1" unfolding Red_Inf_Q_def by blast
-      moreover have "\<forall>qi \<in> Q. N2 \<subseteq> Red_F_q qi N1" using N2_in_Red_N1 unfolding Red_F_Q_def by blast
-      ultimately have "\<forall>qi \<in> Q. x \<in> Red_Inf_q qi (N1 - N2)"
+      then have "\<forall>qi. x \<in> Red_Inf_q qi N1" unfolding Red_Inf_Q_def by blast
+      moreover have "\<forall>qi. N2 \<subseteq> Red_F_q qi N1" using N2_in_Red_N1 unfolding Red_F_Q_def by blast
+      ultimately have "\<forall>qi. x \<in> Red_Inf_q qi (N1 - N2)"
         using all_red_crit calculus_with_red_crit.axioms(2) calculus_with_red_crit.Red_Inf_of_Red_F_subset by blast
       then show "x \<in> Red_Inf_Q (N1 - N2)" unfolding Red_Inf_Q_def by blast
     qed
@@ -197,7 +195,7 @@ next
     assume
       i_in: "\<iota> \<in> Inf" and
       concl_in: "concl_of \<iota> \<in> N"
-    then have "\<forall>qi \<in> Q. \<iota> \<in> Red_Inf_q qi N"
+    then have "\<forall>qi. \<iota> \<in> Red_Inf_q qi N"
       using all_red_crit calculus_with_red_crit.axioms(2) calculus_with_red_crit.Red_Inf_of_Inf_to_N by blast
     then show "\<iota> \<in> Red_Inf_Q N" unfolding Red_Inf_Q_def by blast
   qed
@@ -213,56 +211,57 @@ sublocale inter_red_crit_calculus: calculus_with_red_crit
 
 paragraph \<open>lemma:satur-wrt-intersection-of-red\<close>
 lemma "calculus_with_red_crit.saturated Inf Red_Inf_Q N \<longleftrightarrow>
-  (\<forall>qi \<in> Q. calculus_with_red_crit.saturated Inf (Red_Inf_q qi) N)" for N
+  (\<forall>qi. calculus_with_red_crit.saturated Inf (Red_Inf_q qi) N)" for N
 proof
   fix N
   assume inter_sat: "calculus_with_red_crit.saturated Inf Red_Inf_Q N"
-  show "\<forall>qi \<in> Q. calculus_with_red_crit.saturated Inf (Red_Inf_q qi) N"
+  show "\<forall>qi. calculus_with_red_crit.saturated Inf (Red_Inf_q qi) N"
   proof
     fix qi
-    assume qi_in: "qi \<in> Q"
     interpret one: calculus_with_red_crit Bot Inf "entails_q qi" "Red_Inf_q qi" "Red_F_q qi"
-      by (rule all_red_crit[OF qi_in])
+      by (rule all_red_crit)
     show "one.saturated N"
-      using qi_in inter_sat unfolding one.saturated_def inter_red_crit_calculus.saturated_def Red_Inf_Q_def 
+      using inter_sat unfolding one.saturated_def inter_red_crit_calculus.saturated_def Red_Inf_Q_def 
       by blast
   qed
 next
   fix N
-  assume all_sat: "\<forall>qi \<in> Q. calculus_with_red_crit.saturated Inf (Red_Inf_q qi) N"
+  assume all_sat: "\<forall>qi. calculus_with_red_crit.saturated Inf (Red_Inf_q qi) N"
   show "inter_red_crit_calculus.saturated N" unfolding inter_red_crit_calculus.saturated_def Red_Inf_Q_def 
   proof
     fix x
     assume x_in: "x \<in> Inf_from N"
-    have "\<forall>Red_Inf_qi \<in> Red_Inf_q ` Q. x \<in> Red_Inf_qi N" 
+    have "\<forall>Red_Inf_qi \<in> Red_Inf_q ` UNIV. x \<in> Red_Inf_qi N" 
     proof
       fix Red_Inf_qi
-      assume red_inf_in: "Red_Inf_qi \<in> Red_Inf_q ` Q"
-      then obtain qi where red_inf_qi_def: "Red_Inf_qi = Red_Inf_q qi" and qi_in: "qi \<in> Q" by blast
+      assume red_inf_in: "Red_Inf_qi \<in> Red_Inf_q ` UNIV"
+      then obtain qi where red_inf_qi_def: "Red_Inf_qi = Red_Inf_q qi" by blast
       interpret one: calculus_with_red_crit Bot Inf "entails_q qi" "Red_Inf_q qi" "Red_F_q qi"
-        by (rule all_red_crit[OF qi_in])
-      have "one.saturated N" using all_sat qi_in red_inf_qi_def by blast
+        by (rule all_red_crit)
+      have "one.saturated N" using all_sat red_inf_qi_def by blast
       then show "x \<in> Red_Inf_qi N" unfolding one.saturated_def using x_in red_inf_qi_def by blast
     qed
-    then show "x \<in> \<Inter> {X N |X. X \<in> Red_Inf_q ` Q}" by blast
+    then show "x \<in> \<Inter> {X N |X. X \<in> Red_Inf_q ` UNIV}" by blast
   qed
 qed
 
 paragraph \<open>lemma:checking-static-ref-compl-for-intersections\<close>
 lemma
-  "\<forall>N. (calculus_with_red_crit.saturated Inf Red_Inf_Q N \<and> (\<forall>B \<in> Bot. B \<notin> N)) \<longrightarrow>  (\<exists>B \<in> Bot. \<exists>qi \<in> Q. \<not> entails_q qi N {B})
+  "\<forall>N. (calculus_with_red_crit.saturated Inf Red_Inf_Q N \<and> (\<forall>B \<in> Bot. B \<notin> N)) \<longrightarrow>
+    (\<exists>B \<in> Bot. \<exists>qi. \<not> entails_q qi N {B})
     \<Longrightarrow> static_refutational_complete_calculus Bot Inf entails_Q Red_Inf_Q Red_F_Q"
 proof (rule ccontr)
   assume
-    N_saturated: "\<forall>N. (calculus_with_red_crit.saturated Inf Red_Inf_Q N \<and> (\<forall>B \<in> Bot. B \<notin> N)) \<longrightarrow>  (\<exists>B \<in> Bot. \<exists>qi \<in> Q. \<not> entails_q qi N {B})" and
+    N_saturated: "\<forall>N. (calculus_with_red_crit.saturated Inf Red_Inf_Q N \<and> (\<forall>B \<in> Bot. B \<notin> N)) \<longrightarrow>
+      (\<exists>B \<in> Bot. \<exists>qi. \<not> entails_q qi N {B})" and
     no_stat_ref_comp: "\<not> static_refutational_complete_calculus Bot Inf (\<Turnstile>Q) Red_Inf_Q Red_F_Q"
   obtain N1 B1 where B1_in: "B1 \<in> Bot" and N1_saturated: "calculus_with_red_crit.saturated Inf Red_Inf_Q N1" and
     N1_unsat: "N1 \<Turnstile>Q {B1}" and no_B_in_N1: "\<forall>B \<in> Bot. B \<notin> N1"
     using no_stat_ref_comp by (metis inter_red_crit static_refutational_complete_calculus.intro
       static_refutational_complete_calculus_axioms.intro)
-  obtain B2 qi where no_qi:"\<not> entails_q qi N1 {B2}" and qi_in: "qi \<in> Q" using N_saturated N1_saturated no_B_in_N1 by blast
+  obtain B2 qi where no_qi:"\<not> entails_q qi N1 {B2}" using N_saturated N1_saturated no_B_in_N1 by blast
   have "N1 \<Turnstile>Q {B2}" using N1_unsat B1_in cons_rel_family_is_cons_rel unfolding consequence_relation_def by metis
-  then have "entails_q qi N1 {B2}" unfolding entails_Q_def using qi_in by blast
+  then have "entails_q qi N1 {B2}" unfolding entails_Q_def by blast
   then show "False" using no_qi by simp
 qed
 
@@ -276,7 +275,7 @@ locale lifting_equivalence_with_red_crit_family = Non_ground: inference_system I
     Inf_F :: "'f inference set" and
     Bot_G :: "'g set" and
     Inf_G :: \<open>'g inference set\<close> and
-    Q :: "'q set" and
+    Q :: "'q itself" and
     entails_q :: "'q \<Rightarrow> ('g set \<Rightarrow> 'g set \<Rightarrow> bool)" and
     Red_Inf_q :: "'q \<Rightarrow> ('g set \<Rightarrow> 'g inference set)" and
     Red_F_q :: "'q \<Rightarrow> ('g set \<Rightarrow> 'g set)"
@@ -286,8 +285,7 @@ locale lifting_equivalence_with_red_crit_family = Non_ground: inference_system I
     \<G>_Inf_q :: "'q \<Rightarrow> 'f inference \<Rightarrow> 'g inference set" and
     Prec_F_g :: "'g \<Rightarrow> 'f \<Rightarrow> 'f \<Rightarrow> bool"
   assumes
-    Q_not_empty: "Q \<noteq> {}" and
-    standard_lifting_family: "q \<in> Q \<Longrightarrow> lifting_with_wf_ordering_family Bot_F Inf_F Bot_G (entails_q q) Inf_G (Red_Inf_q q) (Red_F_q q) (\<G>_F_q q) (\<G>_Inf_q q) Prec_F_g" 
+    standard_lifting_family: "lifting_with_wf_ordering_family Bot_F Inf_F Bot_G (entails_q q) Inf_G (Red_Inf_q q) (Red_F_q q) (\<G>_F_q q) (\<G>_Inf_q q) Prec_F_g" 
 begin
 
 definition \<G>_set_q :: "'q \<Rightarrow> 'f set \<Rightarrow> 'g set" where
@@ -297,34 +295,33 @@ definition Red_Inf_\<G>_q :: "'q \<Rightarrow> 'f set \<Rightarrow> 'f inference
   "Red_Inf_\<G>_q q N = {\<iota> \<in> Inf_F. \<G>_Inf_q q \<iota> \<subseteq> Red_Inf_q q (\<G>_set_q q N)}"
 
 definition Red_Inf_\<G>_Q :: "'f set \<Rightarrow> 'f inference set" where
-  "Red_Inf_\<G>_Q N = \<Inter> {X N |X. X \<in> (Red_Inf_\<G>_q ` Q)}"
+  "Red_Inf_\<G>_Q N = \<Inter> {X N |X. X \<in> (Red_Inf_\<G>_q ` UNIV)}"
 
 definition Red_F_\<G>_empty_q :: "'q \<Rightarrow> 'f set \<Rightarrow> 'f set" where
   "Red_F_\<G>_empty_q q N = {C. \<forall>D \<in> \<G>_F_q q C. D \<in> Red_F_q q (\<G>_set_q q N) \<or> (\<exists>E \<in> N. Empty_Order E C \<and> D \<in> \<G>_F_q q E)}"
 
 definition Red_F_\<G>_empty :: "'f set \<Rightarrow> 'f set" where
-  "Red_F_\<G>_empty N = \<Inter> {X N |X. X \<in> (Red_F_\<G>_empty_q ` Q)}"
+  "Red_F_\<G>_empty N = \<Inter> {X N |X. X \<in> (Red_F_\<G>_empty_q ` UNIV)}"
 
 definition Red_F_\<G>_q_g :: "'q \<Rightarrow> 'f set \<Rightarrow> 'f set" where
   "Red_F_\<G>_q_g q N = {C. \<forall>D \<in> \<G>_F_q q C. D \<in> Red_F_q q (\<G>_set_q q N) \<or> (\<exists>E \<in> N. Prec_F_g D E C \<and> D \<in> \<G>_F_q q E)}"
 
 definition Red_F_\<G>_g :: "'f set \<Rightarrow> 'f set" where
-  "Red_F_\<G>_g N = \<Inter> {X N |X. X \<in> (Red_F_\<G>_q_g ` Q)}"
+  "Red_F_\<G>_g N = \<Inter> {X N |X. X \<in> (Red_F_\<G>_q_g ` UNIV)}"
 
 definition entails_\<G>_q :: "'q \<Rightarrow> 'f set \<Rightarrow> 'f set \<Rightarrow> bool" where
   "entails_\<G>_q q N1 N2 \<equiv> entails_q q (\<G>_set_q q N1) (\<G>_set_q q N2)"
 
 definition entails_\<G>_Q :: "'f set \<Rightarrow> 'f set \<Rightarrow> bool" where
-  "entails_\<G>_Q N1 N2 \<equiv> \<forall>q\<in>Q. entails_\<G>_q q N1 N2"
+  "entails_\<G>_Q N1 N2 \<equiv> \<forall>q. entails_\<G>_q q N1 N2"
 
 lemma red_crit_lifting_family:
-  "q \<in> Q \<Longrightarrow> calculus_with_red_crit Bot_F Inf_F (entails_\<G>_q q) (Red_Inf_\<G>_q q) (Red_F_\<G>_q_g q)"
+  "calculus_with_red_crit Bot_F Inf_F (entails_\<G>_q q) (Red_Inf_\<G>_q q) (Red_F_\<G>_q_g q)"
 proof -
   fix q
-  assume q_in: "q \<in> Q"
   interpret wf_lift:
     lifting_with_wf_ordering_family Bot_F Inf_F Bot_G "entails_q q" Inf_G "Red_Inf_q q" "Red_F_q q" "\<G>_F_q q" "\<G>_Inf_q q" Prec_F_g
-    using standard_lifting_family[OF q_in] .
+    using standard_lifting_family .
   have "entails_\<G>_q q = wf_lift.entails_\<G>"
     unfolding entails_\<G>_q_def wf_lift.entails_\<G>_def \<G>_set_q_def by blast
   moreover have "Red_Inf_\<G>_q q = wf_lift.Red_Inf_\<G>"
@@ -337,13 +334,12 @@ qed
 
 
 lemma red_crit_lifting_family_empty_ord:
-  "q \<in> Q \<Longrightarrow> calculus_with_red_crit Bot_F Inf_F (entails_\<G>_q q) (Red_Inf_\<G>_q q) (Red_F_\<G>_empty_q q)"
+  "calculus_with_red_crit Bot_F Inf_F (entails_\<G>_q q) (Red_Inf_\<G>_q q) (Red_F_\<G>_empty_q q)"
 proof -
   fix q
-  assume q_in: "q \<in> Q"
   interpret wf_lift:
     lifting_with_wf_ordering_family Bot_F Inf_F Bot_G "entails_q q" Inf_G "Red_Inf_q q" "Red_F_q q" "\<G>_F_q q" "\<G>_Inf_q q" Prec_F_g
-    using standard_lifting_family[OF q_in] .
+    using standard_lifting_family .
   have "entails_\<G>_q q = wf_lift.entails_\<G>"
     unfolding entails_\<G>_q_def wf_lift.entails_\<G>_def \<G>_set_q_def by blast
   moreover have "Red_Inf_\<G>_q q = wf_lift.Red_Inf_\<G>"
@@ -355,26 +351,22 @@ proof -
     by simp
 qed
 
-lemma cons_rel_fam_Q_lem: \<open>consequence_relation_family Bot_F Q entails_\<G>_q\<close>
+lemma cons_rel_fam_Q_lem: \<open>consequence_relation_family Bot_F entails_\<G>_q\<close>
 proof
-  show \<open>Q \<noteq> {}\<close> by (rule Q_not_empty)
-next
   show "Bot_F \<noteq> {}"
-    using standard_lifting_family Q_not_empty
+    using standard_lifting_family 
     by (meson ex_in_conv lifting_with_wf_ordering_family.axioms(1) standard_lifting.Bot_F_not_empty)
 next
   fix qi
-  assume "qi \<in> Q"
   show "Bot_F \<noteq> {}"
-    using standard_lifting_family Q_not_empty
+    using standard_lifting_family
     by (meson ex_in_conv lifting_with_wf_ordering_family.axioms(1) standard_lifting.Bot_F_not_empty)
 next
   fix qi B N1
   assume
-    qi_in: "qi \<in> Q" and
     B_in: "B \<in> Bot_F"
   interpret lift: lifting_with_wf_ordering_family Bot_F Inf_F Bot_G "entails_q qi" Inf_G "Red_Inf_q qi" "Red_F_q qi" "\<G>_F_q qi" "\<G>_Inf_q qi" Prec_F_g
-    by (rule standard_lifting_family[OF qi_in])
+    by (rule standard_lifting_family)
   have "(entails_\<G>_q qi) = lift.entails_\<G>"
     unfolding entails_\<G>_q_def lift.entails_\<G>_def \<G>_set_q_def by simp
   then show "entails_\<G>_q qi {B} N1"
@@ -382,10 +374,10 @@ next
 next
   fix qi and N2 N1::"'f set"
   assume
-    qi_in: "qi \<in> Q" and
     N_incl: "N2 \<subseteq> N1"
-  interpret lift: lifting_with_wf_ordering_family Bot_F Inf_F Bot_G "entails_q qi" Inf_G "Red_Inf_q qi" "Red_F_q qi" "\<G>_F_q qi" "\<G>_Inf_q qi" Prec_F_g
-    by (rule standard_lifting_family[OF qi_in])
+  interpret lift: lifting_with_wf_ordering_family Bot_F Inf_F Bot_G "entails_q qi" Inf_G "Red_Inf_q qi"
+   "Red_F_q qi" "\<G>_F_q qi" "\<G>_Inf_q qi" Prec_F_g
+    by (rule standard_lifting_family)
   have "(entails_\<G>_q qi) = lift.entails_\<G>"
     unfolding entails_\<G>_q_def lift.entails_\<G>_def \<G>_set_q_def by simp
   then show "entails_\<G>_q qi N1 N2"
@@ -393,10 +385,10 @@ next
 next
   fix qi N1 N2
   assume
-    qi_in: "qi \<in> Q" and
     all_C: "\<forall>C\<in> N2. entails_\<G>_q qi N1 {C}"
-  interpret lift: lifting_with_wf_ordering_family Bot_F Inf_F Bot_G "entails_q qi" Inf_G "Red_Inf_q qi" "Red_F_q qi" "\<G>_F_q qi" "\<G>_Inf_q qi" Prec_F_g
-    by (rule standard_lifting_family[OF qi_in])
+  interpret lift: lifting_with_wf_ordering_family Bot_F Inf_F Bot_G "entails_q qi" Inf_G "Red_Inf_q qi"
+    "Red_F_q qi" "\<G>_F_q qi" "\<G>_Inf_q qi" Prec_F_g
+    by (rule standard_lifting_family)
   have "(entails_\<G>_q qi) = lift.entails_\<G>"
     unfolding entails_\<G>_q_def lift.entails_\<G>_def \<G>_set_q_def by simp
   then show "entails_\<G>_q qi N1 N2"
@@ -404,11 +396,11 @@ next
 next
   fix qi N1 N2 N3
   assume
-    qi_in: "qi \<in> Q" and
     entails12: "entails_\<G>_q qi N1 N2" and
     entails23: "entails_\<G>_q qi N2 N3"
-  interpret lift: lifting_with_wf_ordering_family Bot_F Inf_F Bot_G "entails_q qi" Inf_G "Red_Inf_q qi" "Red_F_q qi" "\<G>_F_q qi" "\<G>_Inf_q qi" Prec_F_g
-    by (rule standard_lifting_family[OF qi_in])
+  interpret lift: lifting_with_wf_ordering_family Bot_F Inf_F Bot_G "entails_q qi" Inf_G "Red_Inf_q qi"
+    "Red_F_q qi" "\<G>_F_q qi" "\<G>_Inf_q qi" Prec_F_g
+    by (rule standard_lifting_family)
   have "(entails_\<G>_q qi) = lift.entails_\<G>"
     unfolding entails_\<G>_q_def lift.entails_\<G>_def \<G>_set_q_def by simp
   then show "entails_\<G>_q qi N1 N3"
@@ -419,7 +411,7 @@ interpretation cons_rel_Q: consequence_relation Bot_F entails_\<G>_Q
 proof -
   interpret cons_rel_fam: consequence_relation_family Bot_F Q entails_\<G>_q
     by (rule cons_rel_fam_Q_lem)
-  have "consequence_relation_family.entails_Q Q entails_\<G>_q = entails_\<G>_Q"
+  have "consequence_relation_family.entails_Q entails_\<G>_q = entails_\<G>_Q"
     unfolding entails_\<G>_Q_def cons_rel_fam.entails_Q_def by (simp add: entails_\<G>_q_def)
   then show "consequence_relation Bot_F entails_\<G>_Q"
     using consequence_relation_family.cons_rel_family_is_cons_rel[OF cons_rel_fam_Q_lem] by simp
@@ -508,7 +500,7 @@ locale labeled_lifting_equiv = no_labels: lifting_equivalence_with_red_crit_fami
     Bot_F :: "'f set" and
     Inf_F :: "'f inference set" and
     Bot_G :: "'g set" and
-    Q :: "'q set" and
+    Q :: "'q itself" and
     entails_q :: "'q \<Rightarrow> 'g set \<Rightarrow> 'g set \<Rightarrow> bool"  and
     Inf_G :: "'g inference set" and
     Red_Inf_q :: "'q \<Rightarrow> 'g set \<Rightarrow> 'g inference set" and
@@ -540,7 +532,7 @@ definition Red_Inf_\<G>_L_q :: "'q \<Rightarrow> ('f \<times> 'l) set \<Rightarr
   "Red_Inf_\<G>_L_q q N = {\<iota> \<in> Inf_FL. \<G>_Inf_L_q q \<iota> \<subseteq> Red_Inf_q q (\<G>_set_L_q q N)}"
 
 definition Red_Inf_\<G>_L_Q :: "('f \<times> 'l) set \<Rightarrow> ('f \<times> 'l) inference set" where
-  "Red_Inf_\<G>_L_Q N = \<Inter> {X N |X. X \<in> (Red_Inf_\<G>_L_q ` Q)}"
+  "Red_Inf_\<G>_L_Q N = \<Inter> {X N |X. X \<in> (Red_Inf_\<G>_L_q ` UNIV)}"
 
 definition Labeled_Empty_Order :: \<open> ('f \<times> 'l) \<Rightarrow> ('f \<times> 'l) \<Rightarrow> bool\<close> where
   "Labeled_Empty_Order C1 C2 \<equiv> False" 
@@ -549,32 +541,30 @@ definition Red_F_\<G>_empty_L_q :: "'q \<Rightarrow> ('f \<times> 'l) set \<Righ
   "Red_F_\<G>_empty_L_q q N = {C. \<forall>D \<in> \<G>_F_L_q q C. D \<in> Red_F_q q (\<G>_set_L_q q N) \<or> (\<exists>E \<in> N. Labeled_Empty_Order E C \<and> D \<in> \<G>_F_L_q q E)}"
 
 definition Red_F_\<G>_empty_L :: "('f \<times> 'l) set \<Rightarrow> ('f \<times> 'l) set" where
-  "Red_F_\<G>_empty_L N = \<Inter> {X N |X. X \<in> (Red_F_\<G>_empty_L_q ` Q)}"
+  "Red_F_\<G>_empty_L N = \<Inter> {X N |X. X \<in> (Red_F_\<G>_empty_L_q ` UNIV)}"
 
 definition entails_\<G>_L_q :: "'q \<Rightarrow> ('f \<times> 'l) set \<Rightarrow> ('f \<times> 'l) set \<Rightarrow> bool" where
   "entails_\<G>_L_q q N1 N2 \<equiv> entails_q q (\<G>_set_L_q q N1) (\<G>_set_L_q q N2)"
 
 definition entails_\<G>_L_Q :: "('f \<times> 'l) set \<Rightarrow> ('f \<times> 'l) set \<Rightarrow> bool" (infix "\<Turnstile>\<inter>L" 50) where
-  "entails_\<G>_L_Q N1 N2 \<equiv> \<forall>q\<in>Q. entails_\<G>_L_q q N1 N2"
+  "entails_\<G>_L_Q N1 N2 \<equiv> \<forall>q. entails_\<G>_L_q q N1 N2"
 
-lemma lifting_q: "q \<in> Q \<Longrightarrow> labeled_lifting_w_wf_ord_family Bot_F Inf_F Bot_G (entails_q q) Inf_G (Red_Inf_q q) (Red_F_q q) (\<G>_F_q q) (\<G>_Inf_q q) (\<lambda>g. Empty_Order) Inf_FL"
+lemma lifting_q: "labeled_lifting_w_wf_ord_family Bot_F Inf_F Bot_G (entails_q q) Inf_G (Red_Inf_q q) (Red_F_q q) (\<G>_F_q q) (\<G>_Inf_q q) (\<lambda>g. Empty_Order) Inf_FL"
 proof -
   fix q
-  assume q_in: "q \<in> Q"
   show "labeled_lifting_w_wf_ord_family Bot_F Inf_F Bot_G (entails_q q) Inf_G (Red_Inf_q q)
     (Red_F_q q) (\<G>_F_q q) (\<G>_Inf_q q) (\<lambda>g. Empty_Order) Inf_FL"
-    using no_labels.standard_lifting_family[OF q_in] Inf_F_to_Inf_FL Inf_FL_to_Inf_F
+    using no_labels.standard_lifting_family Inf_F_to_Inf_FL Inf_FL_to_Inf_F
     by (simp add: labeled_lifting_w_wf_ord_family_axioms_def labeled_lifting_w_wf_ord_family_def)
 qed
 
-lemma lifted_q: "q \<in> Q \<Longrightarrow> standard_lifting Bot_FL Inf_FL Bot_G Inf_G (entails_q q) (Red_Inf_q q)
+lemma lifted_q: "standard_lifting Bot_FL Inf_FL Bot_G Inf_G (entails_q q) (Red_Inf_q q)
   (Red_F_q q) (\<G>_F_L_q q) (\<G>_Inf_L_q q)"
 proof -
   fix q
-  assume q_in: "q \<in> Q"
   interpret q_lifting: labeled_lifting_w_wf_ord_family Bot_F Inf_F Bot_G "entails_q q" Inf_G
     "Red_Inf_q q" "Red_F_q q" "\<G>_F_q q" "\<G>_Inf_q q" "\<lambda>g. Empty_Order" l Inf_FL
-    using lifting_q[OF q_in] .
+    using lifting_q .
   have "\<G>_F_L_q q = q_lifting.\<G>_F_L"
     unfolding \<G>_F_L_q_def q_lifting.\<G>_F_L_def by simp
   moreover have "\<G>_Inf_L_q q = q_lifting.\<G>_Inf_L"
@@ -586,14 +576,13 @@ proof -
     using q_lifting.labeled_standard_lifting.standard_lifting_axioms by simp
 qed
 
-lemma ord_fam_lifted_q: "q \<in> Q \<Longrightarrow> lifting_with_wf_ordering_family Bot_FL Inf_FL Bot_G (entails_q q) Inf_G
+lemma ord_fam_lifted_q: "lifting_with_wf_ordering_family Bot_FL Inf_FL Bot_G (entails_q q) Inf_G
     (Red_Inf_q q) (Red_F_q q) (\<G>_F_L_q q) (\<G>_Inf_L_q q) (\<lambda>g. Labeled_Empty_Order)"
 proof -
   fix q
-  assume q_in: "q \<in> Q"
   interpret standard_q_lifting: standard_lifting Bot_FL Inf_FL Bot_G Inf_G "entails_q q"
     "Red_Inf_q q" "Red_F_q q" "\<G>_F_L_q q" "\<G>_Inf_L_q q"
-    using lifted_q[OF q_in] .
+    using lifted_q .
   have "minimal_element Labeled_Empty_Order UNIV"
     unfolding Labeled_Empty_Order_def
     by (simp add: minimal_element.intro po_on_def transp_onI wfp_on_imp_irreflp_on)
@@ -603,13 +592,12 @@ proof -
     by (simp add: lifting_with_wf_ordering_family_axioms.intro lifting_with_wf_ordering_family_def)
 qed
 
-lemma all_lifted_red_crit: "q \<in> Q \<Longrightarrow> calculus_with_red_crit Bot_FL Inf_FL (entails_\<G>_L_q q) (Red_Inf_\<G>_L_q q) (Red_F_\<G>_empty_L_q q)"
+lemma all_lifted_red_crit: "calculus_with_red_crit Bot_FL Inf_FL (entails_\<G>_L_q q) (Red_Inf_\<G>_L_q q) (Red_F_\<G>_empty_L_q q)"
 proof -
   fix q
-  assume q_in: "q \<in> Q"
   interpret ord_q_lifting: lifting_with_wf_ordering_family Bot_FL Inf_FL Bot_G "entails_q q" Inf_G
     "Red_Inf_q q" "Red_F_q q" "\<G>_F_L_q q" "\<G>_Inf_L_q q" "\<lambda>g. Labeled_Empty_Order"
-    using ord_fam_lifted_q[OF q_in] .
+    using ord_fam_lifted_q .
   have "entails_\<G>_L_q q = ord_q_lifting.entails_\<G>"
     unfolding entails_\<G>_L_q_def \<G>_set_L_q_def ord_q_lifting.entails_\<G>_def by simp
   moreover have "Red_Inf_\<G>_L_q q = ord_q_lifting.Red_Inf_\<G>"
@@ -620,18 +608,17 @@ proof -
     using ord_q_lifting.lifted_calculus_with_red_crit.calculus_with_red_crit_axioms by argo
 qed
 
-lemma all_lifted_cons_rel: "q \<in> Q \<Longrightarrow> consequence_relation Bot_FL (entails_\<G>_L_q q)"
+lemma all_lifted_cons_rel: "consequence_relation Bot_FL (entails_\<G>_L_q q)"
 proof -
   fix q
-  assume q_in: "q \<in> Q"
   interpret q_red_crit: calculus_with_red_crit Bot_FL Inf_FL "entails_\<G>_L_q q" "Red_Inf_\<G>_L_q q" "Red_F_\<G>_empty_L_q q"
-    using all_lifted_red_crit[OF q_in] .
+    using all_lifted_red_crit .
   show "consequence_relation Bot_FL (entails_\<G>_L_q q)"
     using q_red_crit.consequence_relation_axioms . 
 qed
 
 sublocale labeled_cons_rel_family: consequence_relation_family Bot_FL Q entails_\<G>_L_q
-  using all_lifted_cons_rel no_labels.Q_not_empty no_labels.lifted_calc_w_red_crit_family.Bot_not_empty
+  using all_lifted_cons_rel no_labels.lifted_calc_w_red_crit_family.Bot_not_empty
   unfolding Bot_FL_def
   by (simp add: consequence_relation_family.intro)
 
@@ -656,9 +643,8 @@ lemma red_inf_impl: "\<iota> \<in> with_labels.Red_Inf_Q NL \<Longrightarrow>
 proof clarify
   fix X Xa q
   assume
-    q_in: "q \<in> Q" and
-    i_in_inter: "\<iota> \<in> \<Inter> {X NL |X. X \<in> Red_Inf_\<G>_L_q ` Q}"
-  have i_in_q: "\<iota> \<in> Red_Inf_\<G>_L_q q NL" using q_in i_in_inter image_eqI by blast
+    i_in_inter: "\<iota> \<in> \<Inter> {X NL |X. X \<in> Red_Inf_\<G>_L_q ` UNIV}"
+  have i_in_q: "\<iota> \<in> Red_Inf_\<G>_L_q q NL" using i_in_inter image_eqI by blast
   then have i_in: "\<iota> \<in> Inf_FL" unfolding Red_Inf_\<G>_L_q_def by blast
   have to_F_in: "to_F \<iota> \<in> Inf_F" unfolding to_F_def using Inf_FL_to_Inf_F[OF i_in] .
   have subs_red: "\<G>_Inf_L_q q \<iota> \<subseteq> Red_Inf_q q (\<G>_set_L_q q NL)" using i_in_q unfolding Red_Inf_\<G>_L_q_def by blast

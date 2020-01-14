@@ -14,7 +14,7 @@ locale Given_Clause_Proc = labeled_lifting_equiv Bot_F Inf_F Bot_G Q entails_q I
     Bot_F :: "'f set"
     and Inf_F :: "'f inference set"
     and Bot_G :: "'g set"
-    and Q :: "'q set"
+    and Q :: "'q itself"
     and entails_q :: "'q \<Rightarrow> ('g set \<Rightarrow> 'g set \<Rightarrow> bool)"
     and Inf_G :: \<open>'g inference set\<close>
     and Red_Inf_q :: "'q \<Rightarrow> ('g set \<Rightarrow> 'g inference set)"
@@ -32,8 +32,8 @@ locale Given_Clause_Proc = labeled_lifting_equiv Bot_F Inf_F Bot_G Q entails_q I
     wf_prec_F: "minimal_element (Prec_F) UNIV" and
     wf_prec_l: "minimal_element (Prec_l) UNIV" and
     compat_equiv_prec: "(C1,D1) \<in> equiv_F \<Longrightarrow> (C2,D2) \<in> equiv_F \<Longrightarrow> C1 \<lless> C2 \<Longrightarrow> D1 \<lless> D2" and
-    equiv_F_grounding: "q \<in> Q \<Longrightarrow> (C1,C2) \<in> equiv_F \<Longrightarrow> \<G>_F_q q C1 = \<G>_F_q q C2" and
-    prec_F_grounding: "q \<in> Q \<Longrightarrow> C1 \<lless> C2 \<Longrightarrow> \<G>_F_q q C1 \<subseteq> \<G>_F_q q C2" and
+    equiv_F_grounding: "(C1,C2) \<in> equiv_F \<Longrightarrow> \<G>_F_q q C1 = \<G>_F_q q C2" and
+    prec_F_grounding: "C1 \<lless> C2 \<Longrightarrow> \<G>_F_q q C1 \<subseteq> \<G>_F_q q C2" and
     static_ref_comp: "static_refutational_complete_calculus Bot_F Inf_F (\<Turnstile>\<inter>)
       no_labels.empty_ord_lifted_calc_w_red_crit_family.Red_Inf_Q
       no_labels.empty_ord_lifted_calc_w_red_crit_family.Red_F_Q"
@@ -103,24 +103,25 @@ lemma labeled_static_ref_comp:
   "static_refutational_complete_calculus Bot_FL Inf_FL (\<Turnstile>\<inter>L) with_labels.Red_Inf_Q with_labels.Red_F_Q"
   using labeled_static_ref[OF static_ref_comp] .
 
-lemma standard_labeled_lifting_family: "q \<in> Q \<Longrightarrow> lifting_with_wf_ordering_family Bot_FL Inf_FL Bot_G (entails_q q) Inf_G (Red_Inf_q q) (Red_F_q q) (\<G>_F_L_q q) (\<G>_Inf_L_q q) (\<lambda>g. Prec_FL)"
+lemma standard_labeled_lifting_family: "lifting_with_wf_ordering_family Bot_FL Inf_FL Bot_G
+  (entails_q q) Inf_G (Red_Inf_q q) (Red_F_q q) (\<G>_F_L_q q) (\<G>_Inf_L_q q) (\<lambda>g. Prec_FL)"
 proof -
   fix q
-  assume q_in: "q \<in> Q"
   have "lifting_with_wf_ordering_family Bot_FL Inf_FL Bot_G (entails_q q) Inf_G
     (Red_Inf_q q) (Red_F_q q) (\<G>_F_L_q q) (\<G>_Inf_L_q q) (\<lambda>g. Labeled_Empty_Order)"
-    using ord_fam_lifted_q[OF q_in] .
+    using ord_fam_lifted_q .
   then have "standard_lifting Bot_FL Inf_FL Bot_G Inf_G (entails_q q) (Red_Inf_q q) (Red_F_q q)
     (\<G>_F_L_q q) (\<G>_Inf_L_q q)"
-    using lifted_q q_in by blast
+    using lifted_q by blast
   then show "lifting_with_wf_ordering_family Bot_FL Inf_FL Bot_G (entails_q q) Inf_G (Red_Inf_q q) (Red_F_q q) (\<G>_F_L_q q) (\<G>_Inf_L_q q) (\<lambda>g. Prec_FL)"
     using wf_prec_FL
     by (simp add: lifting_with_wf_ordering_family.intro lifting_with_wf_ordering_family_axioms.intro)
 qed
 
-sublocale labeled_ord_red_crit_fam: lifting_equivalence_with_red_crit_family Inf_FL Bot_G Inf_G Q entails_q Red_Inf_q Red_F_q
+sublocale labeled_ord_red_crit_fam: lifting_equivalence_with_red_crit_family Inf_FL Bot_G Inf_G Q
+  entails_q Red_Inf_q Red_F_q
   Bot_FL \<G>_F_L_q \<G>_Inf_L_q "\<lambda>g. Prec_FL"
-  using standard_labeled_lifting_family no_labels.Q_not_empty
+  using standard_labeled_lifting_family
     no_labels.Ground_family.calculus_with_red_crit_family_axioms
   by (simp add: lifting_equivalence_with_red_crit_family.intro lifting_equivalence_with_red_crit_family_axioms.intro)
 
@@ -181,10 +182,9 @@ proof -
     (to_F \<iota>) \<in> no_labels.empty_ord_lifted_calc_w_red_crit_family.Red_Inf_Q (fst ` N)"
   proof -
     assume i_in2: "\<iota> \<in> labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_Inf_Q N"
-    then have "X \<in> labeled_ord_red_crit_fam.Red_Inf_\<G>_q ` Q \<Longrightarrow> \<iota> \<in> X N" for X
+    then have "X \<in> labeled_ord_red_crit_fam.Red_Inf_\<G>_q ` UNIV \<Longrightarrow> \<iota> \<in> X N" for X
       unfolding labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_Inf_Q_def by blast
-    obtain X0 where "X0 \<in> labeled_ord_red_crit_fam.Red_Inf_\<G>_q ` Q" 
-      using no_labels.lifted_calc_w_red_crit_family.Q_not_empty by blast
+    obtain X0 where "X0 \<in> labeled_ord_red_crit_fam.Red_Inf_\<G>_q ` UNIV" by blast
     then obtain q0 where x0_is: "X0 N = labeled_ord_red_crit_fam.Red_Inf_\<G>_q q0 N" by blast
     then obtain Y0 where y0_is: "Y0 (fst ` N) = to_F ` (X0 N)" by auto
     have "Y0 (fst ` N) = no_labels.Red_Inf_\<G>_q q0 (fst ` N)"
@@ -235,7 +235,7 @@ proof -
            using x0_is i0_to_i0_FL i0_in2 by blast
        qed
      qed
-    then have "Y \<in> no_labels.Red_Inf_\<G>_q ` Q \<Longrightarrow> (to_F \<iota>) \<in> Y (fst ` N)" for Y
+    then have "Y \<in> no_labels.Red_Inf_\<G>_q ` UNIV \<Longrightarrow> (to_F \<iota>) \<in> Y (fst ` N)" for Y
       using i_in2 no_labels.lifted_calc_w_red_crit_family.Red_Inf_Q_def
         red_inf_equiv2 red_inf_impl by fastforce
     then show "(to_F \<iota>) \<in> no_labels.empty_ord_lifted_calc_w_red_crit_family.Red_Inf_Q (fst ` N)"
@@ -247,21 +247,19 @@ proof -
     \<iota> \<in> labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_Inf_Q N"
   proof -
     assume to_F_in: "to_F \<iota> \<in> no_labels.empty_ord_lifted_calc_w_red_crit_family.Red_Inf_Q (fst ` N)"
-    have imp_to_F: "X \<in> no_labels.Red_Inf_\<G>_q ` Q \<Longrightarrow> to_F \<iota> \<in> X (fst ` N)" for X
+    have imp_to_F: "X \<in> no_labels.Red_Inf_\<G>_q ` UNIV \<Longrightarrow> to_F \<iota> \<in> X (fst ` N)" for X
       using to_F_in unfolding no_labels.empty_ord_lifted_calc_w_red_crit_family.Red_Inf_Q_def
       by blast
-    then have to_F_in2: "q \<in> Q \<Longrightarrow> to_F \<iota> \<in> no_labels.Red_Inf_\<G>_q q (fst ` N)" for q
+    then have to_F_in2: "to_F \<iota> \<in> no_labels.Red_Inf_\<G>_q q (fst ` N)" for q
       by fast
-    have "q \<in> Q \<Longrightarrow>
-      labeled_ord_red_crit_fam.Red_Inf_\<G>_q q N = {\<iota>0_FL \<in> Inf_FL. to_F \<iota>0_FL \<in> no_labels.Red_Inf_\<G>_q q (fst ` N)}"
-      for q
+    have "labeled_ord_red_crit_fam.Red_Inf_\<G>_q q N =
+      {\<iota>0_FL \<in> Inf_FL. to_F \<iota>0_FL \<in> no_labels.Red_Inf_\<G>_q q (fst ` N)}" for q
     proof
-      show "q \<in> Q \<Longrightarrow>
-        labeled_ord_red_crit_fam.Red_Inf_\<G>_q q N \<subseteq> {\<iota>0_FL \<in> Inf_FL. to_F \<iota>0_FL \<in> no_labels.Red_Inf_\<G>_q q (fst ` N)}"
+      show "labeled_ord_red_crit_fam.Red_Inf_\<G>_q q N \<subseteq>
+        {\<iota>0_FL \<in> Inf_FL. to_F \<iota>0_FL \<in> no_labels.Red_Inf_\<G>_q q (fst ` N)}"
       proof
         fix q0 \<iota>1
         assume
-          q0_in: "q0 \<in> Q" and
           i1_in: "\<iota>1 \<in> labeled_ord_red_crit_fam.Red_Inf_\<G>_q q0 N"
         then have i1_in2: "\<iota>1 \<in> Inf_FL"
           unfolding labeled_ord_red_crit_fam.Red_Inf_\<G>_q_def by blast
@@ -276,12 +274,11 @@ proof -
           using i1_in2 i1_to_F_in by blast
       qed
     next
-      show "q \<in> Q \<Longrightarrow>
-        {\<iota>0_FL \<in> Inf_FL. to_F \<iota>0_FL \<in> no_labels.Red_Inf_\<G>_q q (fst ` N)} \<subseteq> labeled_ord_red_crit_fam.Red_Inf_\<G>_q q N"
+      show "{\<iota>0_FL \<in> Inf_FL. to_F \<iota>0_FL \<in> no_labels.Red_Inf_\<G>_q q (fst ` N)} \<subseteq>
+        labeled_ord_red_crit_fam.Red_Inf_\<G>_q q N"
       proof
         fix q0 \<iota>1
         assume
-          q0_in: "q0 \<in> Q" and
           i1_in: "\<iota>1 \<in> {\<iota>0_FL \<in> Inf_FL. to_F \<iota>0_FL \<in> no_labels.Red_Inf_\<G>_q q0 (fst ` N)}"
         then have i1_in2: "\<iota>1 \<in> Inf_FL" by blast
         then have "to_F \<iota>1 \<in> Inf_F"
@@ -296,7 +293,7 @@ proof -
           by blast
       qed
     qed
-    then have "q \<in> Q \<Longrightarrow> \<iota> \<in> labeled_ord_red_crit_fam.Red_Inf_\<G>_q q N" for q
+    then have "\<iota> \<in> labeled_ord_red_crit_fam.Red_Inf_\<G>_q q N" for q
       using to_F_in2 i_in
       unfolding labeled_ord_red_crit_fam.Red_Inf_\<G>_q_def
         no_labels.Red_Inf_\<G>_q_def \<G>_Inf_L_q_def labeled_ord_red_crit_fam.\<G>_set_q_def
