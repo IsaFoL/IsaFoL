@@ -51,7 +51,7 @@ proof -
   then show ?thesis using r_trans Ground.entails_trans[of sB "{B}"] by auto
 qed
 
-text \<open>lemma 25 in the technical report\<close>
+text \<open>lemma:derived-consequence-relation\<close>
 sublocale lifted_consequence_relation: consequence_relation  
   where Bot=Bot_F and entails=entails_\<G>
 proof
@@ -119,7 +119,7 @@ lemma Prec_trans:
 lemma prop_nested_in_set: "D \<in> P C \<Longrightarrow> C \<in> {C. \<forall>D \<in> P C. A D \<or> B C D} \<Longrightarrow> A D \<or> B C D"
   by blast
 
-text \<open>lemma 31 in the technical report\<close>
+text \<open>lemma:wolog-C'-nonredundant\<close>
 lemma Red_F_\<G>_equiv_def: 
   \<open>Red_F_\<G> N = {C. \<forall>Di \<in> \<G>_F C. Di \<in> Red_F_G (\<G>_set N) \<or> (\<exists>E \<in> (N - Red_F_\<G> N). Prec_F_g Di E C \<and> Di \<in> \<G>_F E)}\<close>
 proof (rule;clarsimp)
@@ -167,7 +167,7 @@ next
   show \<open>C \<in> Red_F_\<G> N\<close> unfolding Red_F_\<G>_def using only_if by auto
 qed
 
-text \<open>lemma 32 in the technical report\<close>
+text \<open>lemma:lifting-main-technical\<close>
 lemma not_red_map_in_map_not_red: \<open>\<G>_set N - Red_F_G (\<G>_set N) \<subseteq> \<G>_set (N - Red_F_\<G> N)\<close>
 proof
   fix D
@@ -202,7 +202,7 @@ proof
   show \<open>D \<in> \<G>_set (N - Red_F_\<G> N)\<close> using D_in_C C_not_in C_in_N by blast
 qed
 
-text \<open>lemma 33 in the technical report\<close>
+text \<open>lemma:nonredundant-entails-redundant\<close>
 lemma Red_F_Bot_F: \<open>B \<in> Bot_F \<Longrightarrow> N \<Turnstile>\<G> {B} \<Longrightarrow> N - Red_F_\<G> N \<Turnstile>\<G> {B}\<close>
 proof -
   fix B N
@@ -218,15 +218,15 @@ proof -
   then show \<open>N - Red_F_\<G> N \<Turnstile>\<G> {B}\<close> using Bot_map unfolding entails_\<G>_def by simp
 qed
 
-text \<open>lemma 34 in the technical report 1/2\<close>
+text \<open>lemma:redundancy-monotonic-addition 1/2\<close>
 lemma Red_F_of_subset_F: \<open>N \<subseteq> N' \<Longrightarrow> Red_F_\<G> N \<subseteq> Red_F_\<G> N'\<close>
   using Ground.Red_F_of_subset unfolding Red_F_\<G>_def by (smt Collect_mono \<G>_subset subset_iff)
 
-text \<open>lemma 34 in the technical report 2/2\<close>
+text \<open>lemma:redundancy-monotonic-addition 2/2\<close>
 lemma Red_Inf_of_subset_F: \<open>N \<subseteq> N' \<Longrightarrow> Red_Inf_\<G> N \<subseteq> Red_Inf_\<G> N'\<close>
   using Ground.Red_Inf_of_subset unfolding Red_Inf_\<G>_def by (smt Collect_mono \<G>_subset subset_iff)
 
-text \<open>lemma 35 in the technical report\<close>
+text \<open>lemma:redundancy-monotonic-deletion-forms\<close>
 lemma Red_F_of_Red_F_subset_F: \<open>N' \<subseteq> Red_F_\<G> N \<Longrightarrow> Red_F_\<G> N \<subseteq> Red_F_\<G> (N - N')\<close>
 proof
   fix N N' C
@@ -265,7 +265,7 @@ proof
   qed
 qed
 
-text \<open>lemma 36 in the technical report\<close>
+text \<open>lemma:redundancy-monotonic-deletion-infs\<close>
 lemma Red_Inf_of_Red_F_subset_F: \<open>N' \<subseteq> Red_F_\<G> N \<Longrightarrow> Red_Inf_\<G> N \<subseteq> Red_Inf_\<G> (N - N') \<close>
 proof
   fix N N' \<iota>
@@ -288,7 +288,7 @@ proof
   then show \<open>\<iota> \<in> Red_Inf_\<G> (N - N')\<close> unfolding Red_Inf_\<G>_def using i_in by blast
 qed
 
-text \<open>lemma 37 in the technical report\<close>
+text \<open>lemma:concl-contained-implies-red-inf\<close>
 lemma Red_Inf_of_Inf_to_N_F: 
   assumes
     i_in: \<open>\<iota> \<in> Inf_F\<close> and
@@ -302,7 +302,7 @@ proof -
   ultimately show ?thesis using i_in unfolding Red_Inf_\<G>_def by simp
 qed
 
-text \<open>theorem 38 in the technical report\<close>
+text \<open>thm:FRedsqsubset-is-red-crit\<close>
 sublocale lifted_calculus_with_red_crit: calculus_with_red_crit 
   where
     Bot = Bot_F and Inf = Inf_F and entails = entails_\<G> and
@@ -364,15 +364,15 @@ qed
 context lifting_equivalence_with_empty_order
 begin
 
-text "lemma 39 from the technical report"
+text "lemma:saturation-indep-of-sqsubset"
 lemma saturated_empty_order_equiv_saturated: "any_order_lifting.lifted_calculus_with_red_crit.saturated N = empty_order_lifting.lifted_calculus_with_red_crit.saturated N" by standard
 
-text "lemma 40 from the technical report"
+text "lemma:static-ref-compl-indep-of-sqsubset"
 lemma static_empty_order_equiv_static: "static_refutational_complete_calculus Bot_F Inf_F any_order_lifting.entails_\<G> empty_order_lifting.Red_Inf_\<G> empty_order_lifting.Red_F_\<G> = static_refutational_complete_calculus Bot_F Inf_F any_order_lifting.entails_\<G> any_order_lifting.Red_Inf_\<G> any_order_lifting.Red_F_\<G>"
   unfolding static_refutational_complete_calculus_def
   by (rule iffI) (standard,(standard)[],simp)+
    
-text "theorem 41 from the technical report"
+text "thm:FRedsqsubset-is-dyn-ref-compl"
 theorem static_to_dynamic: "static_refutational_complete_calculus Bot_F Inf_F any_order_lifting.entails_\<G> empty_order_lifting.Red_Inf_\<G> empty_order_lifting.Red_F_\<G> = dynamic_refutational_complete_calculus Bot_F Inf_F any_order_lifting.entails_\<G> any_order_lifting.Red_Inf_\<G> any_order_lifting.Red_F_\<G> " (is "?static=?dynamic")
 proof
   assume ?static

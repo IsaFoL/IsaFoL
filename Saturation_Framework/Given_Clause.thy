@@ -171,7 +171,7 @@ lemma labeled_ordered_dynamic_ref_comp:
   labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.entails_Q labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_Inf_Q labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_F_Q"
   by (rule stat_ref_calc.dynamic_refutational_complete_calculus_axioms)
 
-text "lemma:redundant-labeled-inferences in the paper"
+text "lemma:redundant-labeled-inferences"
 lemma "\<iota> \<in> Inf_FL \<Longrightarrow> 
   \<iota> \<in> labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_Inf_Q N \<equiv> (to_F \<iota>) \<in> no_labels.empty_ord_lifted_calc_w_red_crit_family.Red_Inf_Q (fst ` N)" for \<iota>
 proof -

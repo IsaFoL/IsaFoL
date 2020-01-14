@@ -7,6 +7,8 @@ theory Redundancy_Criterion_Family_Extensions
 
 begin
 
+text \<open>ssec:intersections\<close>
+
 locale consequence_relation_family =
   fixes
     Bot :: "'f set" and
@@ -21,7 +23,7 @@ begin
 definition entails_Q :: "'f set \<Rightarrow> 'f set \<Rightarrow> bool" (infix "\<Turnstile>Q" 50) where
   "(N1 \<Turnstile>Q N2) = (\<forall>q \<in> Q. entails_q q N1 N2)"
 
-paragraph \<open>Lemma 19 from the technical report\<close>
+paragraph \<open>lemma:intersection-of-conseq-rel\<close>
 lemma cons_rel_family_is_cons_rel: "consequence_relation Bot entails_Q"
   unfolding consequence_relation_def
 proof (intro conjI)
@@ -61,7 +63,7 @@ definition Red_Inf_Q :: "'f set \<Rightarrow> 'f inference set" where
 definition Red_F_Q :: "'f set \<Rightarrow> 'f set" where
   "Red_F_Q N = \<Inter> {X N |X. X \<in> (Red_F_q ` Q)}"
 
-paragraph \<open>Lemma 20 from the technical report\<close>
+paragraph \<open>lemma:intersection-of-red-crit\<close>
 lemma inter_red_crit: "calculus_with_red_crit Bot Inf entails_Q Red_Inf_Q Red_F_Q"
   unfolding calculus_with_red_crit_def calculus_with_red_crit_axioms_def
 proof (intro conjI)
@@ -209,7 +211,7 @@ sublocale inter_red_crit_calculus: calculus_with_red_crit
   and Red_F=Red_F_Q
   using inter_red_crit .
 
-paragraph \<open>Lemma 21 from the technical report\<close>
+paragraph \<open>lemma:satur-wrt-intersection-of-red\<close>
 lemma "calculus_with_red_crit.saturated Inf Red_Inf_Q N \<longleftrightarrow>
   (\<forall>qi \<in> Q. calculus_with_red_crit.saturated Inf (Red_Inf_q qi) N)" for N
 proof
@@ -246,7 +248,7 @@ next
   qed
 qed
 
-paragraph \<open>Lemma 22 from the technical report\<close>
+paragraph \<open>lemma:checking-static-ref-compl-for-intersections\<close>
 lemma
   "\<forall>N. (calculus_with_red_crit.saturated Inf Red_Inf_Q N \<and> (\<forall>B \<in> Bot. B \<notin> N)) \<longrightarrow>  (\<exists>B \<in> Bot. \<exists>qi \<in> Q. \<not> entails_q qi N {B})
     \<Longrightarrow> static_refutational_complete_calculus Bot Inf entails_Q Red_Inf_Q Red_F_Q"
@@ -266,7 +268,7 @@ qed
 
 end
 
-subsection \<open>Intersection of Liftings\<close>
+subsection \<open>Intersection of Liftings (ssec:intersections-of-liftings)\<close>
 
 locale lifting_equivalence_with_red_crit_family = Non_ground: inference_system Inf_F
   + Ground_family: calculus_with_red_crit_family Bot_G Inf_G Q entails_q Red_Inf_q Red_F_q
@@ -457,12 +459,12 @@ proof -
   using empty_ord_lifted_calc_w_red_crit_family.inter_red_crit by simp
 qed
 
-text "lemma 42 from the technical report"
+text "lemma:intersect-saturation-indep-of-sqsubset"
 lemma "lifted_calc_w_red_crit_family.inter_red_crit_calculus.saturated N =
   empty_ord_lifted_calc_w_red_crit_family.inter_red_crit_calculus.saturated N "
   by simp
 
-text "lemma 43 from the technical report"
+text "lemma:intersect-static-ref-compl-indep-of-sqsubset"
 lemma static_empty_ord_inter_equiv_static_inter: "static_refutational_complete_calculus Bot_F Inf_F lifted_calc_w_red_crit_family.entails_Q
     lifted_calc_w_red_crit_family.Red_Inf_Q lifted_calc_w_red_crit_family.Red_F_Q =
   static_refutational_complete_calculus Bot_F Inf_F lifted_calc_w_red_crit_family.entails_Q
@@ -471,7 +473,7 @@ lemma static_empty_ord_inter_equiv_static_inter: "static_refutational_complete_c
   by (simp add: empty_ord_lifted_calc_w_red_crit_family.inter_red_crit_calculus.calculus_with_red_crit_axioms
     lifted_calc_w_red_crit_family.inter_red_crit_calculus.calculus_with_red_crit_axioms)
 
-text "lemma 44 from the technical report"
+text "thm:intersect-static-ref-compl-is-dyn-ref-compl-with-order"
 theorem "static_refutational_complete_calculus Bot_F Inf_F lifted_calc_w_red_crit_family.entails_Q
     empty_ord_lifted_calc_w_red_crit_family.Red_Inf_Q empty_ord_lifted_calc_w_red_crit_family.Red_F_Q =
   dynamic_refutational_complete_calculus Bot_F Inf_F lifted_calc_w_red_crit_family.entails_Q
@@ -500,6 +502,7 @@ qed
 
 end
 
+text \<open>end of ssec:adding-labels\<close>
 locale labeled_lifting_equiv = no_labels: lifting_equivalence_with_red_crit_family Inf_F Bot_G Inf_G Q entails_q Red_Inf_q Red_F_q Bot_F \<G>_F_q \<G>_Inf_q "\<lambda>g. Empty_Order"
   for
     Bot_F :: "'f set" and
@@ -639,7 +642,7 @@ sublocale with_labels: calculus_with_red_crit_family Bot_FL Inf_FL Q entails_\<G
 
 notation "no_labels.entails_\<G>_Q" (infix "\<Turnstile>\<inter>" 50)
 
-text \<open>Lemma 52 from the technical report\<close>
+text \<open>lemma:labeled-consequence-intersection\<close>
 lemma labeled_entailment_lifting: "NL1 \<Turnstile>\<inter>L NL2 \<longleftrightarrow> fst ` NL1 \<Turnstile>\<inter> fst ` NL2"
   unfolding no_labels.entails_\<G>_Q_def no_labels.entails_\<G>_q_def no_labels.\<G>_set_q_def
     entails_\<G>_L_Q_def entails_\<G>_L_q_def \<G>_set_L_q_def \<G>_F_L_q_def
@@ -665,7 +668,7 @@ proof clarify
     using to_F_in unfolding no_labels.Red_Inf_\<G>_q_def by simp
 qed
 
-text \<open>Lemma 53 from the technical report\<close>
+text \<open>lemma:labeled-saturation-intersection\<close>
 lemma labeled_family_saturation_lifting: "with_labels.inter_red_crit_calculus.saturated NL \<Longrightarrow>
   no_labels.lifted_calc_w_red_crit_family.inter_red_crit_calculus.saturated (fst ` NL)"
   unfolding with_labels.inter_red_crit_calculus.saturated_def
@@ -695,7 +698,7 @@ proof clarify
     by (auto intro:red_inf_impl)
 qed
 
-text "lemma 54 from the technical report"
+text "lemma:labeled-static-ref-compl-intersection"
 lemma labeled_static_ref: "static_refutational_complete_calculus Bot_F Inf_F (\<Turnstile>\<inter>)
   no_labels.empty_ord_lifted_calc_w_red_crit_family.Red_Inf_Q
   no_labels.empty_ord_lifted_calc_w_red_crit_family.Red_F_Q
