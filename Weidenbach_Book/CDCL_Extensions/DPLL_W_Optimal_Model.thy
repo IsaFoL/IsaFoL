@@ -6,23 +6,19 @@ begin
 
 
 lemma dpll\<^sub>W_trail_after_step1:
-  assumes \<open>dpll\<^sub>W S T\<close> and
-    \<open>rev (trail S) = M1 @ Propagated K () # M2\<close>
+  assumes \<open>dpll\<^sub>W S T\<close>
   shows
     \<open>\<exists>K' M1 M2' M2''.
-      ((rev (trail S) = M1 @ Propagated K' () # M2 @ M2' \<and> M2'' \<noteq> []) \<or>
-         rev (trail S) = M1 @ Decided (-K') # M2') \<and>
-      rev (trail T) = M1 @ Propagated K' () # M2''\<close>
+      (rev (trail T) = rev (trail S) @ M2' \<and> M2' \<noteq> []) \<or>
+      (rev (trail S) = M1 @ Decided (-K') # M2' \<and>
+        rev (trail T) = M1 @ Propagated K' () # M2'' \<and>
+       Suc (length M1) \<le> length (trail S))\<close>
   using assms
   apply (induction S T rule: dpll\<^sub>W.induct)
   subgoal for L C T
-    apply auto
-    apply blast
-    done
+    by auto
   subgoal
-    apply auto
-    apply blast
-    done
+    by auto
   subgoal for S M' L M D
     using backtrack_split_snd_hd_decided[of \<open>trail S\<close>]
       backtrack_split_list_eq[of \<open>trail S\<close>, symmetric]
@@ -31,28 +27,132 @@ lemma dpll\<^sub>W_trail_after_step1:
       auto
   done
 
-lemma
-  assumes \<open>dpll\<^sub>W\<^sup>+\<^sup>+ S T\<close> and
-    \<open>rev (trail S) = M1 @ Propagated K () # M2\<close>
+lemma tranclp_dpll\<^sub>W_trail_after_step:
+  assumes \<open>dpll\<^sub>W\<^sup>+\<^sup>+ S T\<close>
   shows
     \<open>\<exists>K' M1 M2' M2''.
-      ((rev (trail S) = M1 @ Propagated K' () # M2 @ M2' \<and> M2'' \<noteq> []) \<or>
-         rev (trail S) = M1 @ Decided (-K') # M2') \<and>
-      rev (trail T) = M1 @ Propagated K' () # M2''\<close>
+      (rev (trail T) = rev (trail S) @ M2' \<and> M2' \<noteq> []) \<or>
+      (rev (trail S) = M1 @ Decided (-K') # M2' \<and>
+        rev (trail T) = M1 @ Propagated K' () # M2'' \<and> Suc (length M1) \<le> length (trail S))\<close>
   using assms(1)
-  apply (induction rule: tranclp_induct)
-  subgoal
-    using assms(2)
-    by (blast intro: dpll\<^sub>W_trail_after_step1)
-  subgoal for T U
-    using assms(2)
-    apply clarify
-    apply (elim disjE)
-    apply (drule dpll\<^sub>W_trail_after_step1)
-    apply assumption
-    apply auto
-    apply (auto dest!: dpll\<^sub>W_trail_after_step1 intro!: )
-  oops
+proof (induction rule: tranclp_induct)
+  case (base y)
+  then show ?case by (auto dest!: dpll\<^sub>W_trail_after_step1)
+next
+  case (step y z)
+  then consider
+    (1) M2' where
+      \<open>rev (DPLL_W.trail y) = rev (DPLL_W.trail S) @ M2'\<close> \<open>M2' \<noteq> []\<close> |
+    (2) K' M1 M2' M2'' where \<open>rev (DPLL_W.trail S) = M1 @ Decided (- K') # M2'\<close>
+       \<open>rev (DPLL_W.trail y) = M1 @ Propagated K' () # M2''\<close> and \<open>Suc (length M1) \<le> length (trail S)\<close>
+    by blast
+  then show ?case
+  proof cases
+    case (1 M2')
+    consider
+      (a) M2' where
+        \<open>rev (DPLL_W.trail z) = rev (DPLL_W.trail y) @ M2'\<close> \<open>M2' \<noteq> []\<close> |
+      (b) K'' M1' M2'' M2''' where \<open>rev (DPLL_W.trail y) = M1' @ Decided (- K'') # M2''\<close>
+         \<open>rev (DPLL_W.trail z) = M1' @ Propagated K'' () # M2'''\<close> and
+        \<open>Suc (length M1') \<le> length (trail y)\<close>
+      using dpll\<^sub>W_trail_after_step1[OF step(2)]
+      by blast
+    then show ?thesis
+    proof cases
+      case a
+      then show ?thesis using 1 by auto
+    next
+      case b
+      have H: \<open>rev (DPLL_W.trail S) @ M2' = M1' @ Decided (- K'') # M2'' \<Longrightarrow>
+           length M1' \<noteq> length (DPLL_W.trail S) \<Longrightarrow>
+           length M1' < Suc (length (DPLL_W.trail S)) \<Longrightarrow> rev (DPLL_W.trail S) =
+           M1' @ Decided (- K'') # drop (Suc (length M1')) (rev (DPLL_W.trail S))\<close>
+        apply (drule arg_cong[of _ _ \<open>take (length (trail S))\<close>])
+        by (auto simp: take_Cons')
+      show ?thesis using b 1 apply -
+        apply (rule exI[of _ \<open>K''\<close>])
+        apply (rule exI[of _ \<open>M1'\<close>])
+        apply (rule exI[of _ \<open>if length (trail S) \<le> length M1' then drop (length (DPLL_W.trail S)) (rev (DPLL_W.trail z)) else
+              drop (Suc (length M1')) (rev (DPLL_W.trail S))\<close>])
+        apply (cases \<open>length (trail S) < length M1'\<close>)
+        subgoal
+          apply auto
+          by (simp add: append_eq_append_conv_if)
+        apply (cases \<open>length M1' = length (trail S)\<close>)
+        subgoal by auto
+        subgoal
+          using H
+          apply (clarsimp simp: )
+          done
+        done
+      qed
+    next
+      case (2 K'' M1' M2'' M2''')
+      consider
+        (a) M2' where
+          \<open>rev (DPLL_W.trail z) = rev (DPLL_W.trail y) @ M2'\<close> \<open>M2' \<noteq> []\<close> |
+        (b) K'' M1' M2'' M2''' where \<open>rev (DPLL_W.trail y) = M1' @ Decided (- K'') # M2''\<close>
+           \<open>rev (DPLL_W.trail z) = M1' @ Propagated K'' () # M2'''\<close> and
+          \<open>Suc (length M1') \<le> length (trail y)\<close>
+        using dpll\<^sub>W_trail_after_step1[OF step(2)]
+        by blast
+      then show ?thesis
+      proof cases
+        case a
+        then show ?thesis using 2 by auto
+      next
+        case (b K''' M1'' M2'''' M2''''')
+        have [iff]: \<open>M1' @ Propagated K'' () # M2''' = M1'' @ Decided (- K''') # M2'''' \<longleftrightarrow>
+          (\<exists>N1''. M1'' = M1' @ Propagated K'' () # N1'' \<and> M2''' = N1'' @ Decided (- K''') # M2'''')\<close> if \<open>length M1' < length M1''\<close>
+          using that apply (auto simp: append_eq_append_conv_if)
+          by (metis (no_types, lifting) Cons_eq_append_conv append_take_drop_id drop_eq_Nil leD)
+        have [iff]: \<open>M1' @ Propagated K'' () # M2''' = M1'' @ Decided (- K''') # M2'''' \<longleftrightarrow>
+          (\<exists>N1''. M1' = M1'' @ Decided (- K''') # N1'' \<and> M2'''' = N1'' @ Propagated K'' () # M2''')\<close> if \<open>\<not>length M1' < length M1''\<close>
+          using that apply (auto simp: append_eq_append_conv_if)
+          by (metis (no_types, lifting) Cons_eq_append_conv append_take_drop_id drop_eq_Nil le_eq_less_or_eq)
+
+        show ?thesis using b 2 apply -
+          apply (rule exI[of _ \<open>if length M1' < length M1'' then K'' else K'''\<close>])
+          apply (rule exI[of _ \<open>if length M1' < length M1'' then M1' else M1''\<close>])
+          apply (cases \<open>length (trail S) < min (length M1') (length M1'')\<close>)
+          subgoal
+            by auto
+          apply (cases \<open>min (length M1') (length M1'') = length (trail S)\<close>)
+          subgoal by auto
+          subgoal
+            by (auto simp: )
+          done
+       qed
+   qed
+qed
+
+text \<open>
+  This theorem is an important (although rather obvious) property: the model
+  induced by trails are not repeated.
+\<close>
+lemma tranclp_dpll\<^sub>W_no_dup_trail:
+  assumes \<open>dpll\<^sub>W\<^sup>+\<^sup>+ S T\<close> and \<open>dpll\<^sub>W_all_inv S\<close>
+  shows \<open>set (trail S) \<noteq> set (trail T)\<close>
+proof -
+  have [simp]: \<open>A = B \<union> A \<longleftrightarrow> B \<subseteq> A\<close> for A B
+    by auto
+  have [simp]: \<open>rev (trail U) = xs \<longleftrightarrow>trail U = rev xs\<close> for xs U
+    by auto
+  have \<open>dpll\<^sub>W_all_inv T\<close>
+    by (metis assms(1) assms(2) reflclp_tranclp rtranclp_dpll\<^sub>W_all_inv sup2CI)
+  then have n_d: \<open>no_dup (trail S)\<close> \<open>no_dup (trail T)\<close>
+    using assms unfolding dpll\<^sub>W_all_inv_def by (auto dest: no_dup_imp_distinct)
+  have [simp]: \<open>no_dup (rev M2' @ DPLL_W.trail S) \<Longrightarrow>
+          dpll\<^sub>W_all_inv S \<Longrightarrow>
+          set M2' \<subseteq> set (DPLL_W.trail S) \<longleftrightarrow> M2' = []\<close> for M2'
+    by (cases M2' rule: rev_cases)
+      (auto simp: undefined_notin)
+  show ?thesis
+    using n_d tranclp_dpll\<^sub>W_trail_after_step[OF assms(1)] assms(2) apply auto
+    by (metis (no_types, lifting) Un_insert_right insertI1 list.simps(15) lit_of.simps(1,2)
+      n_d(1) no_dup_cannot_not_lit_and_uminus set_append set_rev)
+qed
+
 
 locale bnb_ops =
   fixes
