@@ -5,155 +5,6 @@ imports
 begin
 
 
-lemma dpll\<^sub>W_trail_after_step1:
-  assumes \<open>dpll\<^sub>W S T\<close>
-  shows
-    \<open>\<exists>K' M1 M2' M2''.
-      (rev (trail T) = rev (trail S) @ M2' \<and> M2' \<noteq> []) \<or>
-      (rev (trail S) = M1 @ Decided (-K') # M2' \<and>
-        rev (trail T) = M1 @ Propagated K' () # M2'' \<and>
-       Suc (length M1) \<le> length (trail S))\<close>
-  using assms
-  apply (induction S T rule: dpll\<^sub>W.induct)
-  subgoal for L C T
-    by auto
-  subgoal
-    by auto
-  subgoal for S M' L M D
-    using backtrack_split_snd_hd_decided[of \<open>trail S\<close>]
-      backtrack_split_list_eq[of \<open>trail S\<close>, symmetric]
-    apply - apply (rule exI[of _ \<open>-lit_of L\<close>], rule exI[of _ \<open>rev M\<close>], rule exI[of _ \<open>rev M'\<close>], rule exI[of _ \<open>[]\<close>])
-    by (cases L)
-      auto
-  done
-
-lemma tranclp_dpll\<^sub>W_trail_after_step:
-  assumes \<open>dpll\<^sub>W\<^sup>+\<^sup>+ S T\<close>
-  shows
-    \<open>\<exists>K' M1 M2' M2''.
-      (rev (trail T) = rev (trail S) @ M2' \<and> M2' \<noteq> []) \<or>
-      (rev (trail S) = M1 @ Decided (-K') # M2' \<and>
-        rev (trail T) = M1 @ Propagated K' () # M2'' \<and> Suc (length M1) \<le> length (trail S))\<close>
-  using assms(1)
-proof (induction rule: tranclp_induct)
-  case (base y)
-  then show ?case by (auto dest!: dpll\<^sub>W_trail_after_step1)
-next
-  case (step y z)
-  then consider
-    (1) M2' where
-      \<open>rev (DPLL_W.trail y) = rev (DPLL_W.trail S) @ M2'\<close> \<open>M2' \<noteq> []\<close> |
-    (2) K' M1 M2' M2'' where \<open>rev (DPLL_W.trail S) = M1 @ Decided (- K') # M2'\<close>
-       \<open>rev (DPLL_W.trail y) = M1 @ Propagated K' () # M2''\<close> and \<open>Suc (length M1) \<le> length (trail S)\<close>
-    by blast
-  then show ?case
-  proof cases
-    case (1 M2')
-    consider
-      (a) M2' where
-        \<open>rev (DPLL_W.trail z) = rev (DPLL_W.trail y) @ M2'\<close> \<open>M2' \<noteq> []\<close> |
-      (b) K'' M1' M2'' M2''' where \<open>rev (DPLL_W.trail y) = M1' @ Decided (- K'') # M2''\<close>
-         \<open>rev (DPLL_W.trail z) = M1' @ Propagated K'' () # M2'''\<close> and
-        \<open>Suc (length M1') \<le> length (trail y)\<close>
-      using dpll\<^sub>W_trail_after_step1[OF step(2)]
-      by blast
-    then show ?thesis
-    proof cases
-      case a
-      then show ?thesis using 1 by auto
-    next
-      case b
-      have H: \<open>rev (DPLL_W.trail S) @ M2' = M1' @ Decided (- K'') # M2'' \<Longrightarrow>
-           length M1' \<noteq> length (DPLL_W.trail S) \<Longrightarrow>
-           length M1' < Suc (length (DPLL_W.trail S)) \<Longrightarrow> rev (DPLL_W.trail S) =
-           M1' @ Decided (- K'') # drop (Suc (length M1')) (rev (DPLL_W.trail S))\<close>
-        apply (drule arg_cong[of _ _ \<open>take (length (trail S))\<close>])
-        by (auto simp: take_Cons')
-      show ?thesis using b 1 apply -
-        apply (rule exI[of _ \<open>K''\<close>])
-        apply (rule exI[of _ \<open>M1'\<close>])
-        apply (rule exI[of _ \<open>if length (trail S) \<le> length M1' then drop (length (DPLL_W.trail S)) (rev (DPLL_W.trail z)) else
-              drop (Suc (length M1')) (rev (DPLL_W.trail S))\<close>])
-        apply (cases \<open>length (trail S) < length M1'\<close>)
-        subgoal
-          apply auto
-          by (simp add: append_eq_append_conv_if)
-        apply (cases \<open>length M1' = length (trail S)\<close>)
-        subgoal by auto
-        subgoal
-          using H
-          apply (clarsimp simp: )
-          done
-        done
-      qed
-    next
-      case (2 K'' M1' M2'' M2''')
-      consider
-        (a) M2' where
-          \<open>rev (DPLL_W.trail z) = rev (DPLL_W.trail y) @ M2'\<close> \<open>M2' \<noteq> []\<close> |
-        (b) K'' M1' M2'' M2''' where \<open>rev (DPLL_W.trail y) = M1' @ Decided (- K'') # M2''\<close>
-           \<open>rev (DPLL_W.trail z) = M1' @ Propagated K'' () # M2'''\<close> and
-          \<open>Suc (length M1') \<le> length (trail y)\<close>
-        using dpll\<^sub>W_trail_after_step1[OF step(2)]
-        by blast
-      then show ?thesis
-      proof cases
-        case a
-        then show ?thesis using 2 by auto
-      next
-        case (b K''' M1'' M2'''' M2''''')
-        have [iff]: \<open>M1' @ Propagated K'' () # M2''' = M1'' @ Decided (- K''') # M2'''' \<longleftrightarrow>
-          (\<exists>N1''. M1'' = M1' @ Propagated K'' () # N1'' \<and> M2''' = N1'' @ Decided (- K''') # M2'''')\<close> if \<open>length M1' < length M1''\<close>
-          using that apply (auto simp: append_eq_append_conv_if)
-          by (metis (no_types, lifting) Cons_eq_append_conv append_take_drop_id drop_eq_Nil leD)
-        have [iff]: \<open>M1' @ Propagated K'' () # M2''' = M1'' @ Decided (- K''') # M2'''' \<longleftrightarrow>
-          (\<exists>N1''. M1' = M1'' @ Decided (- K''') # N1'' \<and> M2'''' = N1'' @ Propagated K'' () # M2''')\<close> if \<open>\<not>length M1' < length M1''\<close>
-          using that apply (auto simp: append_eq_append_conv_if)
-          by (metis (no_types, lifting) Cons_eq_append_conv append_take_drop_id drop_eq_Nil le_eq_less_or_eq)
-
-        show ?thesis using b 2 apply -
-          apply (rule exI[of _ \<open>if length M1' < length M1'' then K'' else K'''\<close>])
-          apply (rule exI[of _ \<open>if length M1' < length M1'' then M1' else M1''\<close>])
-          apply (cases \<open>length (trail S) < min (length M1') (length M1'')\<close>)
-          subgoal
-            by auto
-          apply (cases \<open>min (length M1') (length M1'') = length (trail S)\<close>)
-          subgoal by auto
-          subgoal
-            by (auto simp: )
-          done
-       qed
-   qed
-qed
-
-text \<open>
-  This theorem is an important (although rather obvious) property: the model
-  induced by trails are not repeated.
-\<close>
-lemma tranclp_dpll\<^sub>W_no_dup_trail:
-  assumes \<open>dpll\<^sub>W\<^sup>+\<^sup>+ S T\<close> and \<open>dpll\<^sub>W_all_inv S\<close>
-  shows \<open>set (trail S) \<noteq> set (trail T)\<close>
-proof -
-  have [simp]: \<open>A = B \<union> A \<longleftrightarrow> B \<subseteq> A\<close> for A B
-    by auto
-  have [simp]: \<open>rev (trail U) = xs \<longleftrightarrow>trail U = rev xs\<close> for xs U
-    by auto
-  have \<open>dpll\<^sub>W_all_inv T\<close>
-    by (metis assms(1) assms(2) reflclp_tranclp rtranclp_dpll\<^sub>W_all_inv sup2CI)
-  then have n_d: \<open>no_dup (trail S)\<close> \<open>no_dup (trail T)\<close>
-    using assms unfolding dpll\<^sub>W_all_inv_def by (auto dest: no_dup_imp_distinct)
-  have [simp]: \<open>no_dup (rev M2' @ DPLL_W.trail S) \<Longrightarrow>
-          dpll\<^sub>W_all_inv S \<Longrightarrow>
-          set M2' \<subseteq> set (DPLL_W.trail S) \<longleftrightarrow> M2' = []\<close> for M2'
-    by (cases M2' rule: rev_cases)
-      (auto simp: undefined_notin)
-  show ?thesis
-    using n_d tranclp_dpll\<^sub>W_trail_after_step[OF assms(1)] assms(2) apply auto
-    by (metis (no_types, lifting) Un_insert_right insertI1 list.simps(15) lit_of.simps(1,2)
-      n_d(1) no_dup_cannot_not_lit_and_uminus set_append set_rev)
-qed
-
-
 locale bnb_ops =
   fixes
     weight :: \<open>'st \<Rightarrow> 'a\<close> and
@@ -178,6 +29,9 @@ definition abs_state where
 
 abbreviation is_improving where
   \<open>is_improving M M' S \<equiv> is_improving_int M M' (clauses S) (weight S)\<close>
+
+definition state' :: \<open>'st \<Rightarrow> 'v  dpll\<^sub>W_ann_lits \<times> 'v clauses \<times> 'a \<times> 'v clauses\<close> where
+  \<open>state' S = (trail S, clauses S, weight S, conflicting_clss S)\<close>
 
 end
 
@@ -219,19 +73,32 @@ locale bnb =
       \<open>atms_of_mm (conflicting_clss S) \<subseteq> atms_of_mm (clauses S)\<close>
 begin
 
+
+text \<open>
+  In the definition below the \<^term>\<open>state' T = (Propagated L () # trail
+  S, clauses S, weight S, conflicting_clss S)\<close> are not necessary, but
+  avoids to change the DPLL formalisation with proper locales, as we
+  did for CDCL.
+
+  The DPLL calculus looks slightly more general than the CDCL calculus
+  because we can take any conflicting clause from \<^term>\<open>conflicting_clss S\<close>.
+  However, this does not make a difference for the trail, as we backtrack
+  to the last decision independantly of the conflict.
+\<close>
 inductive dpll\<^sub>W_core :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
 propagate: "add_mset L C \<in># clauses S \<Longrightarrow> trail S \<Turnstile>as CNot C \<Longrightarrow> undefined_lit (trail S) L \<Longrightarrow>
-  abs_state T = (Propagated L () # trail S, clauses S + conflicting_clss S) \<Longrightarrow>
+  state' T = (Propagated L () # trail S, clauses S, weight S, conflicting_clss S) \<Longrightarrow>
   dpll\<^sub>W_core S T" |
 decided: "undefined_lit (trail S) L \<Longrightarrow> atm_of L \<in> atms_of_mm (clauses S)
-  \<Longrightarrow> abs_state T = (Decided L # trail S, clauses S + conflicting_clss S)
+  \<Longrightarrow> state' T = (Decided L # trail S, clauses S, weight S, conflicting_clss S)
   \<Longrightarrow> dpll\<^sub>W_core S T " |
 backtrack: "backtrack_split (trail S) = (M', L # M) \<Longrightarrow> is_decided L \<Longrightarrow> D \<in># clauses S
-  \<Longrightarrow> abs_state T = (Propagated (- (lit_of L)) () # M, clauses S + conflicting_clss S)
+  \<Longrightarrow> trail S \<Turnstile>as CNot D
+  \<Longrightarrow> state' T = (Propagated (- (lit_of L)) () # M, clauses S, weight S, conflicting_clss S)
   \<Longrightarrow> trail S \<Turnstile>as CNot D \<Longrightarrow> dpll\<^sub>W_core S T" |
 backtrack_opt: "backtrack_split (trail S) = (M', L # M) \<Longrightarrow> is_decided L \<Longrightarrow> D \<in># conflicting_clss S
   \<Longrightarrow> trail S \<Turnstile>as CNot D
-  \<Longrightarrow> abs_state T = (Propagated (- (lit_of L)) () # M, clauses S + conflicting_clss S)
+  \<Longrightarrow> state' T = (Propagated (- (lit_of L)) () # M, clauses S, weight S, conflicting_clss S)
   \<Longrightarrow> dpll\<^sub>W_core S T"
 
 
@@ -240,13 +107,15 @@ update_info:
   \<open>is_improving M M' S \<Longrightarrow> state T = state (update_weight_information M' S)
    \<Longrightarrow> dpll\<^sub>W_branch S T\<close>
 
-inductive odpll\<^sub>W :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<close> where
+inductive dpll\<^sub>W_bnb :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<close> where
 dpll:
-  \<open>odpll\<^sub>W S T\<close>
+  \<open>dpll\<^sub>W_bnb S T\<close>
   if \<open>dpll\<^sub>W_core S T\<close> |
 bnb:
-  \<open>odpll\<^sub>W S T\<close>
+  \<open>dpll\<^sub>W_bnb S T\<close>
   if \<open>dpll\<^sub>W_branch S T\<close>
+
+inductive_cases dpll\<^sub>W_bnbE: \<open>dpll\<^sub>W_bnb S T\<close>
 
 lemma [simp]: \<open>DPLL_W.clauses (abs_state S) = clauses S + conflicting_clss S\<close>
   \<open>DPLL_W.trail (abs_state S) = trail S\<close>
@@ -254,6 +123,25 @@ lemma [simp]: \<open>DPLL_W.clauses (abs_state S) = clauses S + conflicting_clss
 
 lemma dpll\<^sub>W_core_is_dpll\<^sub>W:
   \<open>dpll\<^sub>W_core S T \<Longrightarrow> dpll\<^sub>W (abs_state S) (abs_state T)\<close>
+  supply abs_state_def[simp] state'_def[simp]
+  apply (induction rule: dpll\<^sub>W_core.induct)
+  subgoal
+    by (auto simp: dpll\<^sub>W.simps)
+  subgoal
+    by (auto simp: dpll\<^sub>W.simps)
+  subgoal
+    by (auto simp: dpll\<^sub>W.simps)
+  subgoal
+    by (auto simp: dpll\<^sub>W.simps)
+  done
+
+lemma dpll\<^sub>W_core_abs_state_all_inv:
+  \<open>dpll\<^sub>W_core S T \<Longrightarrow> dpll\<^sub>W_all_inv (abs_state S) \<Longrightarrow> dpll\<^sub>W_all_inv (abs_state T)\<close>
+  by (auto dest!: dpll\<^sub>W_core_is_dpll\<^sub>W intro: dpll\<^sub>W_all_inv)
+
+lemma dpll\<^sub>W_core_same_weight:
+  \<open>dpll\<^sub>W_core S T \<Longrightarrow> weight S = weight T\<close>
+  supply abs_state_def[simp] state'_def[simp]
   apply (induction rule: dpll\<^sub>W_core.induct)
   subgoal
     by (auto simp: dpll\<^sub>W.simps)
@@ -271,8 +159,18 @@ lemma [simp]: \<open>trail (update_weight_information M' S) = trail S\<close>
 
 lemma [simp]:
   \<open>clauses (update_weight_information M' S) = clauses S\<close>
+  \<open>weight (cons_trail uu S) = weight S\<close>
+  \<open>clauses (cons_trail uu S) = clauses S\<close>
+  \<open>conflicting_clss (cons_trail uu S) = conflicting_clss S\<close>
+  \<open>trail (cons_trail uu S) = uu # trail S\<close>
+  \<open>trail (tl_trail S) = tl (trail S)\<close>
+  \<open>clauses (tl_trail S) = clauses (S)\<close>
+  \<open>weight (tl_trail S) = weight (S)\<close>
+  \<open>conflicting_clss (tl_trail S) = conflicting_clss (S)\<close>
   using update_weight_information[of S]
-  by (auto simp: state_def)
+    cons_trail[of S]
+    tl_trail[of S]
+  by (auto simp: state_def conflicting_clss_def)
 
 lemma dpll\<^sub>W_branch_trail:
     \<open>dpll\<^sub>W_branch S T \<Longrightarrow> trail S = trail T\<close> and
@@ -300,6 +198,134 @@ lemma dpll\<^sub>W_branch_abs_state_all_inv:
     intro: all_decomposition_implies_mono[OF set_mset_mono] dest: dpll\<^sub>W_branch_conflicting_clss)
   by (blast intro: all_decomposition_implies_mono)
 
-end
+lemma dpll\<^sub>W_bnb_abs_state_all_inv:
+  \<open>dpll\<^sub>W_bnb S T \<Longrightarrow> dpll\<^sub>W_all_inv (abs_state S) \<Longrightarrow> dpll\<^sub>W_all_inv (abs_state T)\<close>
+  by (auto elim!: dpll\<^sub>W_bnb.cases intro: dpll\<^sub>W_branch_abs_state_all_inv dpll\<^sub>W_core_abs_state_all_inv)
+
+lemma atms_of_clauses_conflicting_clss[simp]:
+  \<open>atms_of_mm (clauses S) \<union> atms_of_mm (conflicting_clss S) = atms_of_mm (clauses S)\<close>
+  using atms_of_conflicting_clss[of S] by blast
+
+lemma wf_dpll\<^sub>W_bnb_bnb: (* \htmllink{wf_dpll_bnb} *)
+  assumes improve: \<open>\<And>S T. dpll\<^sub>W_branch S T \<Longrightarrow> clauses S = N \<Longrightarrow> (\<nu> (weight T), \<nu> (weight S)) \<in> R\<close> and
+    wf_R: \<open>wf R\<close>
+  shows \<open>wf {(T, S). dpll\<^sub>W_all_inv (abs_state S) \<and> dpll\<^sub>W_bnb S T \<and>
+      clauses S = N}\<close>
+    (is \<open>wf ?A\<close>)
+proof -
+  let ?R = \<open>{(T, S). (\<nu> (weight T), \<nu> (weight S)) \<in> R}\<close>
+
+  have \<open>wf {(T, S). dpll\<^sub>W_all_inv S \<and> dpll\<^sub>W S T}\<close>
+    by (rule wf_dpll\<^sub>W)
+  from wf_if_measure_f[OF this, of abs_state]
+  have wf: \<open>wf {(T, S).  dpll\<^sub>W_all_inv (abs_state S) \<and>
+      dpll\<^sub>W (abs_state S) (abs_state T) \<and> weight S = weight T}\<close>
+    (is \<open>wf ?CDCL\<close>)
+    by (rule wf_subset) auto
+  have \<open>wf (?R \<union> ?CDCL)\<close>
+    apply (rule wf_union_compatible)
+    subgoal by (rule wf_if_measure_f[OF wf_R, of \<open>\<lambda>x. \<nu> (weight x)\<close>])
+    subgoal by (rule wf)
+    subgoal by (auto simp: dpll\<^sub>W_core_same_weight)
+    done
+
+  moreover have \<open>?A \<subseteq> ?R \<union> ?CDCL\<close>
+    by (auto elim!: dpll\<^sub>W_bnbE dest: dpll\<^sub>W_core_abs_state_all_inv dpll\<^sub>W_core_is_dpll\<^sub>W
+      simp: dpll\<^sub>W_core_same_weight improve)
+  ultimately show ?thesis
+    by (rule wf_subset)
+qed
+
+lemma state_tl_trail: \<open>state (tl_trail S) = (tl (trail S), clauses S, weight S)\<close>
+  by (auto simp: state_def)
+
+lemma state_tl_trail_comp_pow: \<open>state ((tl_trail ^^ n) S) = ((tl ^^ n) (trail S), clauses S, weight S)\<close>
+  by (induction n)
+   (auto simp: state_tl_trail state_def)
+
+lemma [simp]:
+  \<open>weight ((tl_trail ^^ n) S) = weight S\<close>
+  \<open>trail ((tl_trail ^^ n) S) = (tl ^^ n) (trail S)\<close>
+  \<open>clauses ((tl_trail ^^ n) S) = clauses S\<close>
+  \<open>conflicting_clss ((tl_trail ^^ n) S) = conflicting_clss S\<close>
+  using state_tl_trail_comp_pow[of n S]
+  by (auto simp: state_def conflicting_clss_def)
+
+lemma (in -)funpow_tl_append_skip_last:
+  \<open>((tl ^^ length M') (M' @ M)) = M\<close>
+  by (induction M')
+    (auto simp del: funpow.simps(2) simp: funpow_Suc_right)
+
+
+lemma dpll\<^sub>W_core_Ex_propagate:
+  \<open>add_mset L C \<in># clauses S \<Longrightarrow> trail S \<Turnstile>as CNot C \<Longrightarrow> undefined_lit (trail S) L \<Longrightarrow>
+    Ex (dpll\<^sub>W_core S)\<close> and
+   dpll\<^sub>W_core_Ex_decide:
+   "undefined_lit (trail S) L \<Longrightarrow> atm_of L \<in> atms_of_mm (clauses S) \<Longrightarrow>
+     Ex (dpll\<^sub>W_core S)" and
+    dpll\<^sub>W_core_Ex_backtrack: "backtrack_split (trail S) = (M', L' # M) \<Longrightarrow> is_decided L' \<Longrightarrow> D \<in># clauses S \<Longrightarrow>
+   trail S \<Turnstile>as CNot D \<Longrightarrow> Ex (dpll\<^sub>W_core S)" and
+    dpll\<^sub>W_core_Ex_backtrack_opt: "backtrack_split (trail S) = (M', L' # M) \<Longrightarrow> is_decided L' \<Longrightarrow> D \<in># conflicting_clss S
+  \<Longrightarrow> trail S \<Turnstile>as CNot D \<Longrightarrow>
+   Ex (dpll\<^sub>W_core S)"
+  subgoal
+    by (rule exI[of _ \<open>cons_trail (Propagated L ()) S\<close>])
+     (auto simp: dpll\<^sub>W_core.simps state'_def)
+  subgoal
+    by (rule exI[of _ \<open>cons_trail (Decided L) S\<close>])
+     (auto simp: dpll\<^sub>W_core.simps state'_def)
+  subgoal
+    using backtrack_split_list_eq[of \<open>trail S\<close>, symmetric] apply -
+    apply (rule exI[of _ \<open>cons_trail (Propagated (-lit_of L') ()) ((tl_trail ^^ (length (L' # M'))) S)\<close>]))
+    apply (auto simp: dpll\<^sub>W_core.simps state'_def state_tl_trail_comp_pow funpow_tl_append_skip_last)
+    done
+  subgoal
+    using backtrack_split_list_eq[of \<open>trail S\<close>, symmetric] apply -
+    apply (rule exI[of _ \<open>cons_trail (Propagated (-lit_of L') ()) ((tl_trail ^^ (length (L' # M'))) S)\<close>])
+    apply (auto simp: dpll\<^sub>W_core.simps state'_def state_tl_trail_comp_pow funpow_tl_append_skip_last)
+    done
+  done
+
+
+text \<open>
+  Unlike the CDCL case, we do not need assumptions on improve. The reason behind it is that
+  we do not need any strategy on propagation and decisions.
+\<close>
+lemma no_step_dpll_bnb_dpll\<^sub>W:
+  assumes
+    ns: \<open>no_step dpll\<^sub>W_bnb S\<close> and
+    struct_invs: \<open>dpll\<^sub>W_all_inv (abs_state S)\<close>
+  shows \<open>no_step dpll\<^sub>W (abs_state S)\<close>
+proof -
+  have no_decide: \<open>atm_of L \<in> atms_of_mm (clauses S) \<Longrightarrow>
+                  defined_lit (trail S) L\<close> for L
+    using spec[OF ns, of \<open>cons_trail _ S\<close>]
+    apply (fastforce simp: dpll\<^sub>W_bnb.simps total_over_m_def total_over_set_def
+      dpll\<^sub>W_core.simps state'_def)
+    done
+  have [intro]: \<open>is_decided L \<Longrightarrow>
+       backtrack_split (trail S) = (M', L # M) \<Longrightarrow>
+       trail S \<Turnstile>as CNot D \<Longrightarrow> D \<in># clauses S \<Longrightarrow> False\<close> for M' L M D
+    using dpll\<^sub>W_core_Ex_backtrack[of S M' L M D] ns
+    by (auto simp: dpll\<^sub>W_bnb.simps)
+  have [intro]: \<open>is_decided L \<Longrightarrow>
+       backtrack_split (trail S) = (M', L # M) \<Longrightarrow>
+       trail S \<Turnstile>as CNot D \<Longrightarrow> D \<in># conflicting_clss S \<Longrightarrow> False\<close> for M' L M D
+    using dpll\<^sub>W_core_Ex_backtrack_opt[of S M' L M D] ns
+    by (auto simp: dpll\<^sub>W_bnb.simps)
+  have tot: \<open>total_over_m (lits_of_l (trail S)) (set_mset (clauses S))\<close>
+    using no_decide
+    by (force simp: total_over_m_def total_over_set_def state'_def
+      Decided_Propagated_in_iff_in_lits_of_l)
+  have [simp]: \<open>add_mset L C \<in># clauses S \<Longrightarrow> defined_lit (trail S) L\<close> for L C
+     using no_decide
+    by (auto dest!: multi_member_split)
+  have [simp]: \<open>add_mset L C \<in># conflicting_clss S \<Longrightarrow> defined_lit (trail S) L\<close> for L C
+     using no_decide atms_of_conflicting_clss[of S]
+    by (auto dest!: multi_member_split)
+  show ?thesis
+    by (auto simp: dpll\<^sub>W.simps no_decide)
+qed
+
 
 end
