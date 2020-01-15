@@ -735,6 +735,11 @@ next
     by auto
 qed
 
+lemma simple_clss_entailed_by_too_heavy_in_conflicting:
+   \<open>C \<in># mset_set (simple_clss (atms_of_mm (clauses S))) \<Longrightarrow>
+    too_heavy_clauses (clauses S) (weight S) \<Turnstile>pm
+     (C) \<Longrightarrow> C \<in># bnb.conflicting_clss S\<close>
+  by (auto simp: conflicting_clauses_def bnb.conflicting_clss_def)
 
 lemma can_always_improve:
   assumes
@@ -751,26 +756,20 @@ proof -
     using all_struct by (auto simp: simple_clss_def
         dpll\<^sub>W_all_inv_def atms_of_def lits_of_def image_image clauses_def
       dest: no_dup_not_tautology no_dup_distinct)
-  moreover have \<open>\<not>too_heavy_clauses (clauses S + bnb.conflicting_clss S) (weight S) \<Turnstile>pm
-       pNeg (lit_of `# mset (trail S))\<close>
-    using n_s total
-    apply (auto simp:  lits_of_def
-         conflicting_clauses_def clauses_def negate_ann_lits_pNeg_lit_of image_iff
-         simple_clss_finite subset_iff
-       dest!: spec[of _ \<open>(lit_of `# mset (trail S))\<close>] dest: total_over_m_atms_incl
-          true_clss_cls_in too_heavy_clauses_contains_itself
-          intro!: true_clss_cls_in)
-find_theorems \<open> _ \<Turnstile>p _\<close> \<open> _ \<in> _\<close>
-    sorry
+  moreover have \<open>trail S \<Turnstile>as CNot (pNeg (lit_of `# mset (trail S)))\<close>
+    by (auto simp: pNeg_def true_annots_true_cls_def_iff_negation_in_model lits_of_def)
+
   ultimately have le: \<open>Found (\<rho> (lit_of `# mset (trail S))) < \<rho>' (weight S)\<close>
-    using n_s total not_entailed_too_heavy_clauses_ge[of \<open>lit_of `# mset (trail S)\<close> \<open>clauses S + bnb.conflicting_clss S\<close> \<open>weight S\<close>]
-    apply (auto simp:  lits_of_def
+    using n_s total not_entailed_too_heavy_clauses_ge[of \<open>lit_of `# mset (trail S)\<close> \<open>clauses S\<close> \<open>weight S\<close>]
+     simple_clss_entailed_by_too_heavy_in_conflicting[of \<open>pNeg (lit_of `# mset (trail S))\<close> S]
+    by (cases \<open>\<not> too_heavy_clauses (clauses S) (weight S) \<Turnstile>pm
+       pNeg (lit_of `# mset (trail S))\<close>)
+     (auto simp:  lits_of_def
          conflicting_clauses_def clauses_def negate_ann_lits_pNeg_lit_of image_iff
          simple_clss_finite subset_iff
-       dest!: spec[of _ \<open>(lit_of `# mset (trail S))\<close>] dest: total_over_m_atms_incl
+       dest: bspec[of _ _ \<open>(lit_of `# mset (trail S))\<close>] dest: total_over_m_atms_incl
           true_clss_cls_in too_heavy_clauses_contains_itself
-          dest: )
-    sorry
+          dest!: multi_member_split)
   have tr: \<open>trail S \<Turnstile>asm clauses S\<close>
     using ent by (auto simp: clauses_def)
   have tot': \<open>total_over_m (lits_of_l (trail S)) (set_mset (clauses S))\<close>
@@ -809,6 +808,22 @@ find_theorems \<open> _ \<Turnstile>p _\<close> \<open> _ \<in> _\<close>
     by fast
 qed
 
+
+lemma no_step_dpll\<^sub>W_bnb_conflict:
+  assumes
+    ns: \<open>no_step bnb.dpll\<^sub>W_bnb S\<close> and
+    invs: \<open>dpll\<^sub>W_all_inv (bnb.abs_state S)\<close>
+  shows \<open>\<exists>C \<in># clauses S + bnb.conflicting_clss S. trail S \<Turnstile>as CNot C\<close> (is ?A) and
+      \<open>count_decided (trail S) = 0\<close> and
+     \<open>unsatisfiable (set_mset (clauses S + bnb.conflicting_clss S))\<close>
+  apply (rule bnb.no_step_dpll\<^sub>W_bnb_conflict[OF _ assms])
+  subgoal using can_always_improve by blast
+  apply (rule bnb.no_step_dpll\<^sub>W_bnb_conflict[OF _ assms])
+  subgoal using can_always_improve by blast
+  apply (rule bnb.no_step_dpll\<^sub>W_bnb_conflict[OF _ assms])
+  subgoal using can_always_improve by blast
+  done
+
 lemma full_cdcl_bnb_stgy_larger_or_equal_weight:
   assumes
     st: \<open>full bnb.dpll\<^sub>W_bnb S T\<close> and
@@ -832,36 +847,16 @@ proof -
       bnb.rtranclp_dpll\<^sub>W_bnb_clauses[OF st] tot
     by auto
 
-  thm  bnb.no_step_dpll\<^sub>W_bnb_conflict
-  have \<open>\<not> (set_mset I \<Turnstile>sm clauses T + bnb.conflicting_clss T)\<close>
-  proof
-    assume ent'': \<open>set_mset I \<Turnstile>sm clauses T + conflicting_clss T\<close>
-    moreover have \<open>total_over_m (set_mset I) (set_mset (clauses T + conflicting_clss T))\<close>
-      using tot[symmetric] atms_of_conflicting_clss[of T] alien
-      unfolding rtranclp_cdcl_bnb_no_more_init_clss[OF st'] cdcl\<^sub>W_restart_mset.no_strange_atm_def
-      by (auto simp: clauses_def total_over_m_def total_over_set_def atm_iff_pos_or_neg_lit
-              abs_state_def cdcl\<^sub>W_restart_mset_state atms_eq)
-    then show \<open>False\<close>
-      using ent' cons ent''
-      unfolding true_clss_cls_def by auto
-  qed
-  then show \<open>\<rho>' (weight T) \<le> Found (\<rho> I)\<close>
-    using rtranclp_cdcl_bnb_still_model[OF st' all_struct ent dist cons tot opt_struct]
-    by auto
-
-  show \<open>unsatisfiable (set_mset (clauses T + conflicting_clss T))\<close>
-  proof
-    assume \<open>satisfiable (set_mset (clauses T + conflicting_clss T))\<close>
-    then obtain I where
-      ent'': \<open>I \<Turnstile>sm clauses T + conflicting_clss T\<close> and
-      tot: \<open>total_over_m I (set_mset (clauses T + conflicting_clss T))\<close> and
-      \<open>consistent_interp I\<close>
-      unfolding satisfiable_def
-      by blast
-    then show \<open>False\<close>
-      using ent' cons ent''
-      unfolding true_clss_cls_def by auto
-  qed
+  show \<open>unsatisfiable (set_mset (clauses T + bnb.conflicting_clss T))\<close>
+    using no_step_dpll\<^sub>W_bnb_conflict[of T] ns struct_T
+    by fast
+  then have \<open>\<not>set_mset I \<Turnstile>sm clauses T + bnb.conflicting_clss T\<close>
+    using dist cons by auto
+  then have \<open>False\<close> if \<open>Found (\<rho> I) < \<rho>' (weight T)\<close>
+    using ent that rtranclp_cdcl_bnb_still_model[OF st assms(2-)]
+      bnb.rtranclp_dpll\<^sub>W_bnb_clauses[OF st] by auto
+  then show \<open>Found (\<rho> I) \<ge> \<rho>' (weight T)\<close>
+    by force
 qed
 
 

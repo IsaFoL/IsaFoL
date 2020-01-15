@@ -2606,8 +2606,7 @@ proof -
     by (auto simp: conflict_opt.simps conflicting_clss_def lits_of_def
          conflicting_clauses_def clauses_def negate_ann_lits_pNeg_lit_of image_iff
          simple_clss_finite subset_iff
-       dest!: spec[of _ \<open>(lit_of `# mset (trail S))\<close>] dest: total_over_m_atms_incl
-          true_clss_cls_in too_heavy_clauses_contains_itself
+       dest!: spec[of _ \<open>(lit_of `# mset (trail S))\<close>]
           dest: not_entailed_too_heavy_clauses_ge)
   have tr: \<open>trail S \<Turnstile>asm init_clss S\<close>
     using ent by (auto simp: clauses_def)
