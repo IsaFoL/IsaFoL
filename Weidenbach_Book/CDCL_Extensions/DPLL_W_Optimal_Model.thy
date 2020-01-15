@@ -4,6 +4,20 @@ imports
   CDCL.DPLL_W
 begin
 
+lemma (in -)funpow_tl_append_skip_last:
+  \<open>((tl ^^ length M') (M' @ M)) = M\<close>
+  by (induction M')
+    (auto simp del: funpow.simps(2) simp: funpow_Suc_right)
+
+(*TODO MOVE*)
+lemma (in -) backtrack_split_some_is_decided_then_snd_has_hd':
+  \<open>l\<in>set M \<Longrightarrow> is_decided l \<Longrightarrow> \<exists>M' L' M''. backtrack_split M = (M'', L' # M')\<close>
+  by (metis backtrack_snd_empty_not_decided list.exhaust prod.collapse)
+
+lemma (in -) total_over_m_entailed_or_conflict:
+  shows \<open>total_over_m M N \<Longrightarrow> M \<Turnstile>s N \<or> (\<exists>C \<in> N. M \<Turnstile>s CNot C)\<close>
+  by (metis Set.set_insert total_not_true_cls_true_clss_CNot total_over_m_empty total_over_m_insert true_clss_def)
+
 locale dpll_ops =
   fixes
     trail :: \<open>'st \<Rightarrow> 'v  dpll\<^sub>W_ann_lits\<close> and
@@ -33,7 +47,7 @@ locale bnb_ops =
     conflicting_clauses :: "'v clauses \<Rightarrow> 'a \<Rightarrow> 'v clauses"
 begin
 
-sublocale dpll: dpll_ops where
+interpretation dpll: dpll_ops where
   trail = trail and
   clauses = clauses and
   tl_trail = tl_trail and
@@ -165,10 +179,13 @@ lemma state_simp[simp]:
   by (auto dest!: state_eq_state simp: state conflicting_clss_def)
 
 
-sublocale dpll: dpll\<^sub>W_state trail clauses tl_trail cons_trail state_eq state
+interpretation dpll: dpll_ops trail clauses tl_trail cons_trail state_eq state
+  .
+
+interpretation dpll: dpll\<^sub>W_state trail clauses tl_trail cons_trail state_eq state
   apply standard
   apply (auto dest: state_eq_sym[THEN iffD1] intro: state_eq_trans dest: state_eq_state)
-  apply (auto simp: state dpll.additional_info_def)
+  apply (auto simp: state cons_trail dpll.additional_info_def)
   done
 
 
@@ -329,12 +346,6 @@ lemma [simp]:
   using state_tl_trail_comp_pow[of n S]
   by (auto simp: state conflicting_clss_def)
 
-lemma (in -)funpow_tl_append_skip_last:
-  \<open>((tl ^^ length M') (M' @ M)) = M\<close>
-  by (induction M')
-    (auto simp del: funpow.simps(2) simp: funpow_Suc_right)
-
-
 lemma dpll\<^sub>W_core_Ex_propagate:
   \<open>add_mset L C \<in># clauses S \<Longrightarrow> trail S \<Turnstile>as CNot C \<Longrightarrow> undefined_lit (trail S) L \<Longrightarrow>
     Ex (dpll\<^sub>W_core S)\<close> and
@@ -405,15 +416,6 @@ proof -
     by (auto simp: dpll\<^sub>W.simps no_decide)
 qed
 
-(*TODO MOVE*)
-lemma (in -) backtrack_split_some_is_decided_then_snd_has_hd':
-  \<open>l\<in>set M \<Longrightarrow> is_decided l \<Longrightarrow> \<exists>M' L' M''. backtrack_split M = (M'', L' # M')\<close>
-  by (metis backtrack_snd_empty_not_decided list.exhaust prod.collapse)
-
-lemma (in -) total_over_m_entailed_or_conflict:
-  shows \<open>total_over_m M N \<Longrightarrow> M \<Turnstile>s N \<or> (\<exists>C \<in> N. M \<Turnstile>s CNot C)\<close>
-  by (metis Set.set_insert total_not_true_cls_true_clss_CNot total_over_m_empty total_over_m_insert true_clss_def)
-
 
 context
   assumes can_always_improve:
@@ -478,6 +480,122 @@ proof (rule ccontr)
   then show \<open>count_decided (trail S) = 0\<close>
     using dec0 by blast
 qed
+
+end
+
+end
+
+
+locale dpll\<^sub>W_state_optimal_weight =
+  dpll\<^sub>W_state trail clauses
+    tl_trail cons_trail state_eq state +
+  ocdcl_weight \<rho>
+  for
+    trail :: \<open>'st \<Rightarrow> 'v  dpll\<^sub>W_ann_lits\<close> and
+    clauses :: \<open>'st \<Rightarrow> 'v clauses\<close> and
+    tl_trail :: \<open>'st \<Rightarrow> 'st\<close> and
+    cons_trail :: \<open>'v  dpll\<^sub>W_ann_lit \<Rightarrow> 'st \<Rightarrow> 'st\<close> and
+    state_eq  :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<close> (infix "\<sim>" 50) and
+    state :: \<open>'st \<Rightarrow> 'v  dpll\<^sub>W_ann_lits \<times> 'v clauses \<times> 'v clause option \<times> 'b\<close> and
+    \<rho> :: \<open>'v clause \<Rightarrow> 'a :: {linorder}\<close> +
+  fixes
+    update_additional_info :: \<open>'v clause option \<times> 'b \<Rightarrow> 'st \<Rightarrow> 'st\<close>
+  assumes
+    update_additional_info:
+      \<open>state S = (M, N, K) \<Longrightarrow> state (update_additional_info K' S) = (M, N, K')\<close>
+begin
+
+definition update_weight_information :: \<open>('v literal, 'v literal, unit) annotated_lits \<Rightarrow> 'st \<Rightarrow> 'st\<close> where
+  \<open>update_weight_information M S =
+    update_additional_info (Some (lit_of `# mset M), snd (additional_info S)) S\<close>
+
+lemma [simp]:
+  \<open>trail (update_weight_information M' S) = trail S\<close>
+  \<open>clauses (update_weight_information M' S) = clauses S\<close>
+  \<open>clauses (update_additional_info c S) = clauses S\<close>
+  \<open>additional_info (update_additional_info (w, oth) S) = (w, oth)\<close>
+  using update_additional_info[of S] unfolding update_weight_information_def
+  by (auto simp: state)
+
+lemma state_update_weight_information: \<open>state S = (M, N, w, oth) \<Longrightarrow>
+       \<exists>w'. state (update_weight_information M' S) = (M, N, w', oth)\<close>
+  apply (auto simp: state)
+  apply (auto simp: update_weight_information_def)
+  done
+
+definition weight where
+  \<open>weight S = fst (additional_info S)\<close>
+
+text \<open>
+
+  We test here a slightly different decision. In the CDCL version, we renamed \<^term>\<open>additional_info\<close>
+  from the BNB version to avoid collisions. Here instead of renaming, we add the prefix
+  \<text>\<open>bnb.\<close> to every name.
+
+\<close>
+sublocale bnb: bnb_ops where
+  trail = trail and
+  clauses = clauses and
+  tl_trail = tl_trail and
+  cons_trail = cons_trail and
+  state_eq = state_eq and
+  state = state and
+  weight = weight and
+  conflicting_clauses = conflicting_clauses and
+  is_improving_int = is_improving_int and
+  update_weight_information = update_weight_information
+  by unfold_locales
+
+
+lemma atms_of_mm_conflicting_clss_incl_init_clauses:
+  \<open>atms_of_mm (bnb.conflicting_clss S) \<subseteq> atms_of_mm (clauses S)\<close>
+  using conflicting_clss_incl_init_clauses[of \<open>clauses S\<close> \<open>weight S\<close>]
+  unfolding bnb.conflicting_clss_def
+  by auto
+
+lemma is_improving_conflicting_clss_update_weight_information: \<open>bnb.is_improving M M' S \<Longrightarrow>
+       bnb.conflicting_clss S \<subseteq># bnb.conflicting_clss (update_weight_information M' S)\<close>
+  using is_improving_conflicting_clss_update_weight_information[of M M' \<open>clauses S\<close> \<open>weight S\<close>]
+  unfolding bnb.conflicting_clss_def
+  by (auto simp: update_weight_information_def weight_def)
+
+lemma conflicting_clss_update_weight_information_in2:
+  assumes \<open>bnb.is_improving M M' S\<close>
+  shows \<open>negate_ann_lits M' \<in># bnb.conflicting_clss (update_weight_information M' S)\<close>
+  using conflicting_clss_update_weight_information_in2[of M M' \<open>clauses S\<close> \<open>weight S\<close>] assms
+  unfolding bnb.conflicting_clss_def
+  unfolding bnb.conflicting_clss_def
+  by (auto simp: update_weight_information_def weight_def)
+
+
+lemma state_additional_info':
+  \<open>state S = (trail S, clauses S, weight S, bnb.additional_info S)\<close>
+  unfolding additional_info_def by (cases \<open>state S\<close>; auto simp: state weight_def bnb.additional_info_def)
+
+sublocale bnb: bnb where
+  trail = trail and
+  clauses = clauses and
+  tl_trail = tl_trail and
+  cons_trail = cons_trail and
+  state_eq = state_eq and
+  state = state and
+  weight = weight and
+  conflicting_clauses = conflicting_clauses and
+  is_improving_int = is_improving_int and
+  update_weight_information = update_weight_information
+  apply unfold_locales
+  subgoal by auto
+  subgoal by (rule state_eq_sym)
+  subgoal by (rule state_eq_trans)
+  subgoal by (auto dest!: state_eq_state)
+  subgoal by (rule cons_trail)
+  subgoal by (rule tl_trail)
+  subgoal by (rule state_update_weight_information)
+  subgoal by (rule is_improving_conflicting_clss_update_weight_information)
+  subgoal by (rule conflicting_clss_update_weight_information_in2; assumption)
+  subgoal by (rule atms_of_mm_conflicting_clss_incl_init_clauses)
+  subgoal by (rule state_additional_info')
+  done
 
 end
 
