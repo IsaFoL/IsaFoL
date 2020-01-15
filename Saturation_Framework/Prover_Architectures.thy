@@ -305,23 +305,72 @@ proof -
     by argo
 qed
 
-find_theorems name: HOL name: disj
-
 text \<open>lemma:redundant-labeled-clauses\<close>
 lemma \<open>C \<in> no_labels.Red_F_\<G>_empty (fst ` N) \<or> (\<exists>C' \<in> (fst ` N). C \<lless> C') \<or> (\<exists>(C',L') \<in> N. (L' \<sqsubset>l L \<and> C \<lless>\<doteq> C')) \<Longrightarrow>
   (C,L) \<in> labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_F_Q N\<close>
 proof -
-  fix C N L
   assume \<open>C \<in> no_labels.Red_F_\<G>_empty (fst ` N) \<or> (\<exists>C' \<in> (fst ` N). C \<lless> C') \<or> (\<exists>(C',L') \<in> N. (L' \<sqsubset>l L \<and> C \<lless>\<doteq> C'))\<close>
-  moreover have \<open>C \<in> no_labels.Red_F_\<G>_empty (fst ` N) \<Longrightarrow>
+  moreover have i: \<open>C \<in> no_labels.Red_F_\<G>_empty (fst ` N) \<Longrightarrow>
     (C,L) \<in> labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_F_Q N\<close>
-    sorry
-  moreover have \<open>\<exists>C' \<in> (fst ` N). C \<lless> C' \<Longrightarrow>
+  proof -
+    assume "C \<in> no_labels.Red_F_\<G>_empty (fst ` N)"
+    then have "C \<in> no_labels.Red_F_\<G>_empty_q q (fst ` N)" for q
+      unfolding no_labels.Red_F_\<G>_empty_def by fast
+    then have g_in_red: "\<G>_F_q q C \<subseteq> Red_F_q q (no_labels.\<G>_set_q q (fst ` N))" for q
+      unfolding no_labels.Red_F_\<G>_empty_q_def Empty_Order_def by blast
+    have "no_labels.\<G>_set_q q (fst ` N) = labeled_ord_red_crit_fam.\<G>_set_q q N" for q
+      unfolding no_labels.\<G>_set_q_def labeled_ord_red_crit_fam.\<G>_set_q_def \<G>_F_L_q_def by simp
+    then have "\<G>_F_L_q q (C,L) \<subseteq> Red_F_q q (labeled_ord_red_crit_fam.\<G>_set_q q N)" for q
+      using g_in_red unfolding \<G>_F_L_q_def by simp
+    then show "(C,L) \<in> labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_F_Q N"
+      unfolding labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_F_Q_def
+        labeled_ord_red_crit_fam.Red_F_\<G>_q_g_def by blast
+  qed
+  moreover have ii: \<open>\<exists>C' \<in> (fst ` N). C \<lless> C' \<Longrightarrow>
     (C,L) \<in> labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_F_Q N\<close>
-    sorry
-  moreover have \<open>\<exists>(C',L') \<in> N. (L' \<sqsubset>l L \<and> C \<lless>\<doteq> C')  \<Longrightarrow>
+  proof -
+    assume "\<exists>C' \<in> (fst ` N). C \<lless> C'"
+    then obtain C' where c'_in: "C' \<in> (fst ` N)" and c_prec_c': "C \<lless> C'" by blast
+    obtain L' where c'_l'_in: "(C',L') \<in> N" using c'_in by auto
+    have c'_l'_prec: "(C',L') \<sqsubset> (C,L)"
+      using c_prec_c' unfolding Prec_FL_def by (meson UNIV_I compat_equiv_prec)
+    have c_in_c'_g: "\<G>_F_q q C \<subseteq> \<G>_F_q q C'" for q
+      using prec_F_grounding[OF c_prec_c'] by presburger
+    then have "\<G>_F_L_q q (C,L) \<subseteq> \<G>_F_L_q q (C',L')" for q
+      unfolding no_labels.\<G>_set_q_def labeled_ord_red_crit_fam.\<G>_set_q_def \<G>_F_L_q_def by auto
+    then have "(C,L) \<in> labeled_ord_red_crit_fam.Red_F_\<G>_q_g q N" for q
+      unfolding labeled_ord_red_crit_fam.Red_F_\<G>_q_g_def using c'_l'_in c'_l'_prec by blast
+    then show "(C,L) \<in> labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_F_Q N"
+      unfolding labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_F_Q_def by blast
+  qed
+  moreover have iii: \<open>\<exists>(C',L') \<in> N. (L' \<sqsubset>l L \<and> C \<lless>\<doteq> C')  \<Longrightarrow>
     (C,L) \<in> labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_F_Q N\<close>
-    sorry
+  proof -
+    assume "\<exists>(C',L') \<in> N. (L' \<sqsubset>l L \<and> C \<lless>\<doteq> C')"
+    then obtain C' L' where c'_l'_in: "(C',L') \<in> N" and l'_sub_l: "L' \<sqsubset>l L" and c'_sub_c: "C \<lless>\<doteq> C'" by fast
+    {
+      assume "C \<lless> C'"
+      then have "(C,L) \<in> labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_F_Q N"
+      using c'_l'_in ii by fastforce
+    }
+    moreover {
+      assume equiv_c_c': "C \<doteq> C'"
+      then have equiv_c'_c: "C' \<doteq> C"
+        using equiv_F_is_equiv_rel equiv_F_fun_def equiv_class_eq_iff by fastforce
+      then have c'_l'_prec: "(C',L') \<sqsubset> (C,L)"
+        using l'_sub_l unfolding Prec_FL_def by simp
+      have "\<G>_F_q q C = \<G>_F_q q C'" for q
+        using equiv_F_grounding equiv_c'_c by blast
+      then have "\<G>_F_L_q q (C,L) = \<G>_F_L_q q (C',L')" for q
+        unfolding no_labels.\<G>_set_q_def labeled_ord_red_crit_fam.\<G>_set_q_def \<G>_F_L_q_def by auto
+      then have "(C,L) \<in> labeled_ord_red_crit_fam.Red_F_\<G>_q_g q N" for q
+        unfolding labeled_ord_red_crit_fam.Red_F_\<G>_q_g_def using c'_l'_in c'_l'_prec by blast
+      then have "(C,L) \<in> labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_F_Q N"
+        unfolding labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_F_Q_def by blast
+    }
+    ultimately show "(C,L) \<in> labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_F_Q N"
+      using c'_sub_c unfolding Prec_eq_F_def equiv_F_fun_def equiv_F_is_equiv_rel by blast
+  qed
   ultimately show \<open>(C,L) \<in> labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_F_Q N\<close>
     by blast
 qed    
