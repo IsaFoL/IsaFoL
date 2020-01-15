@@ -20,6 +20,10 @@ lemma total_over_m_entailed_or_conflict:
   shows \<open>total_over_m M N \<Longrightarrow> M \<Turnstile>s N \<or> (\<exists>C \<in> N. M \<Turnstile>s CNot C)\<close>
   by (metis Set.set_insert total_not_true_cls_true_clss_CNot total_over_m_empty total_over_m_insert true_clss_def)
 
+text \<open>The locales on DPLL should eventually be moved to the DPLL theory, but currently it is only a discount
+  version (in particular, we cheat and don't use \<^text>\<open>S \<sim> T\<close> in the transition system below, even if it
+  would be cleaner to do as as we de for CDCL).
+)\<close>
 locale dpll_ops =
   fixes
     trail :: \<open>'st \<Rightarrow> 'v  dpll\<^sub>W_ann_lits\<close> and
