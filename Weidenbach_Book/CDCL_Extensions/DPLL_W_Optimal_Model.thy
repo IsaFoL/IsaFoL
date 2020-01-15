@@ -526,6 +526,13 @@ lemma state_update_weight_information: \<open>state S = (M, N, w, oth) \<Longrig
 definition weight where
   \<open>weight S = fst (additional_info S)\<close>
 
+text \<open>
+
+  We test here a slightly different decision. In the CDCL version, we renamed \<^term>\<open>additional_info\<close>
+  from the BNB version to avoid collisions. Here instead of renaming, we add the prefix
+  \<text>\<open>bnb.\<close> to every name.
+
+\<close>
 sublocale bnb: bnb_ops where
   trail = trail and
   clauses = clauses and
