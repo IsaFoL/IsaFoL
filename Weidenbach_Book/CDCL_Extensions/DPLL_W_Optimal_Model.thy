@@ -4,17 +4,19 @@ imports
   CDCL.DPLL_W
 begin
 
-lemma (in -)funpow_tl_append_skip_last:
+lemma funpow_tl_append_skip_last:
   \<open>((tl ^^ length M') (M' @ M)) = M\<close>
   by (induction M')
     (auto simp del: funpow.simps(2) simp: funpow_Suc_right)
 
 (*TODO MOVE*)
-lemma (in -) backtrack_split_some_is_decided_then_snd_has_hd':
+text \<open>The following version is more suited than @{thm backtrack_split_some_is_decided_then_snd_has_hd}
+ for direct use.\<close>
+lemma backtrack_split_some_is_decided_then_snd_has_hd':
   \<open>l\<in>set M \<Longrightarrow> is_decided l \<Longrightarrow> \<exists>M' L' M''. backtrack_split M = (M'', L' # M')\<close>
   by (metis backtrack_snd_empty_not_decided list.exhaust prod.collapse)
 
-lemma (in -) total_over_m_entailed_or_conflict:
+lemma total_over_m_entailed_or_conflict:
   shows \<open>total_over_m M N \<Longrightarrow> M \<Turnstile>s N \<or> (\<exists>C \<in> N. M \<Turnstile>s CNot C)\<close>
   by (metis Set.set_insert total_not_true_cls_true_clss_CNot total_over_m_empty total_over_m_insert true_clss_def)
 
@@ -200,7 +202,7 @@ text \<open>
   However, this does not make a difference for the trail, as we backtrack
   to the last decision independantly of the conflict.
 \<close>
-inductive dpll\<^sub>W_core :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
+inductive dpll\<^sub>W_core :: "'st \<Rightarrow> 'st \<Rightarrow> bool" for S T where
 propagate: "add_mset L C \<in># clauses S \<Longrightarrow> trail S \<Turnstile>as CNot C \<Longrightarrow> undefined_lit (trail S) L \<Longrightarrow>
   T \<sim> cons_trail (Propagated L ()) S \<Longrightarrow>
   dpll\<^sub>W_core S T" |
@@ -216,10 +218,11 @@ backtrack_opt: "backtrack_split (trail S) = (M', L # M) \<Longrightarrow> is_dec
   \<Longrightarrow> state' T = (Propagated (- (lit_of L)) () # M, clauses S, weight S, conflicting_clss S)
   \<Longrightarrow> dpll\<^sub>W_core S T"
 
+inductive_cases dpll\<^sub>W_coreE: \<open>dpll\<^sub>W_core S T\<close>
 
 inductive dpll\<^sub>W_branch :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
 update_info:
-  \<open>is_improving M M' S \<Longrightarrow> state T = state (update_weight_information M' S)
+  \<open>is_improving M M' S \<Longrightarrow> T \<sim> (update_weight_information M' S)
    \<Longrightarrow> dpll\<^sub>W_branch S T\<close>
 
 inductive dpll\<^sub>W_bnb :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<close> where
@@ -293,6 +296,35 @@ lemma dpll\<^sub>W_branch_abs_state_all_inv:
 lemma dpll\<^sub>W_bnb_abs_state_all_inv:
   \<open>dpll\<^sub>W_bnb S T \<Longrightarrow> dpll\<^sub>W_all_inv (abs_state S) \<Longrightarrow> dpll\<^sub>W_all_inv (abs_state T)\<close>
   by (auto elim!: dpll\<^sub>W_bnb.cases intro: dpll\<^sub>W_branch_abs_state_all_inv dpll\<^sub>W_core_abs_state_all_inv)
+
+lemma rtranclp_dpll\<^sub>W_bnb_abs_state_all_inv:
+  \<open>dpll\<^sub>W_bnb\<^sup>*\<^sup>* S T \<Longrightarrow> dpll\<^sub>W_all_inv (abs_state S) \<Longrightarrow> dpll\<^sub>W_all_inv (abs_state T)\<close>
+  by (induction rule: rtranclp_induct)
+   (auto simp: dpll\<^sub>W_bnb_abs_state_all_inv)
+
+lemma dpll\<^sub>W_core_clauses:
+  \<open>dpll\<^sub>W_core S T \<Longrightarrow> clauses S = clauses T\<close>
+  supply abs_state_def[simp] state'_def[simp]
+  apply (induction rule: dpll\<^sub>W_core.induct)
+  subgoal
+    by (auto simp: dpll\<^sub>W.simps)
+  subgoal
+    by (auto simp: dpll\<^sub>W.simps)
+  subgoal
+    by (auto simp: dpll\<^sub>W.simps)
+  subgoal
+    by (auto simp: dpll\<^sub>W.simps)
+  done
+
+lemma dpll\<^sub>W_bnb_clauses:
+  \<open>dpll\<^sub>W_bnb S T \<Longrightarrow> clauses S = clauses T\<close>
+  by (auto elim!: dpll\<^sub>W_bnbE simp: dpll\<^sub>W_branch_clauses dpll\<^sub>W_core_clauses)
+
+lemma rtranclp_dpll\<^sub>W_bnb_clauses:
+  \<open>dpll\<^sub>W_bnb\<^sup>*\<^sup>* S T \<Longrightarrow> clauses S = clauses T\<close>
+  by (induction rule: rtranclp_induct)
+    (auto simp:  dpll\<^sub>W_bnb_clauses)
+
 
 lemma atms_of_clauses_conflicting_clss[simp]:
   \<open>atms_of_mm (clauses S) \<union> atms_of_mm (conflicting_clss S) = atms_of_mm (clauses S)\<close>
@@ -526,11 +558,14 @@ lemma state_update_weight_information: \<open>state S = (M, N, w, oth) \<Longrig
 definition weight where
   \<open>weight S = fst (additional_info S)\<close>
 
+lemma [simp]: \<open>(weight (update_weight_information M' S)) = Some (lit_of `# mset M')\<close>
+  unfolding weight_def by (auto simp: update_weight_information_def)
+
 text \<open>
 
   We test here a slightly different decision. In the CDCL version, we renamed \<^term>\<open>additional_info\<close>
   from the BNB version to avoid collisions. Here instead of renaming, we add the prefix
-  \<text>\<open>bnb.\<close> to every name.
+  \<^text>\<open>bnb.\<close> to every name.
 
 \<close>
 sublocale bnb: bnb_ops where
@@ -596,6 +631,108 @@ sublocale bnb: bnb where
   subgoal by (rule atms_of_mm_conflicting_clss_incl_init_clauses)
   subgoal by (rule state_additional_info')
   done
+
+lemma improve_model_still_model:
+  assumes
+    \<open>bnb.dpll\<^sub>W_branch S T\<close> and
+    all_struct: \<open>dpll\<^sub>W_all_inv (bnb.abs_state S)\<close> and
+    ent: \<open>set_mset I \<Turnstile>sm clauses S\<close>  \<open>set_mset I \<Turnstile>sm bnb.conflicting_clss S\<close> and
+    dist: \<open>distinct_mset I\<close> and
+    cons: \<open>consistent_interp (set_mset I)\<close> and
+    tot: \<open>atms_of I = atms_of_mm (clauses S)\<close> and
+    le: \<open>Found (\<rho> I) < \<rho>' (weight T)\<close>
+  shows
+    \<open>set_mset I \<Turnstile>sm clauses T \<and> set_mset I \<Turnstile>sm bnb.conflicting_clss T\<close>
+  using assms(1)
+proof (cases rule: bnb.dpll\<^sub>W_branch.cases)
+  case (update_info M M') note imp = this(1) and T = this(2)
+  have atm_trail: \<open>atms_of (lit_of `# mset (trail S)) \<subseteq> atms_of_mm (clauses S)\<close> and
+       dist2: \<open>distinct_mset (lit_of `# mset (trail S))\<close> and
+      taut2: \<open>\<not> tautology (lit_of `# mset (trail S))\<close>
+    using all_struct unfolding dpll\<^sub>W_all_inv_def by (auto simp: lits_of_def atms_of_def
+      dest: no_dup_distinct no_dup_not_tautology)
+
+  have tot2: \<open>total_over_m (set_mset I) (set_mset (clauses S))\<close>
+    using tot[symmetric]
+    by (auto simp: total_over_m_def total_over_set_def atm_iff_pos_or_neg_lit)
+  have atm_trail: \<open>atms_of (lit_of `# mset M') \<subseteq> atms_of_mm (clauses S)\<close> and
+    dist2: \<open>distinct_mset (lit_of `# mset M')\<close> and
+    taut2: \<open>\<not> tautology (lit_of `# mset M')\<close>
+    using imp by (auto simp: lits_of_def atms_of_def is_improving_int_def
+      simple_clss_def)
+
+  have tot2: \<open>total_over_m (set_mset I) (set_mset (clauses S))\<close>
+    using tot[symmetric]
+    by (auto simp: total_over_m_def total_over_set_def atm_iff_pos_or_neg_lit)
+  have
+    \<open>set_mset I \<Turnstile>m conflicting_clauses (clauses S) (weight (update_weight_information M' S))\<close>
+    using entails_conflicting_clauses_if_le[of I \<open>clauses S\<close> M' M \<open>weight S\<close>]
+    using T dist cons tot le imp by auto
+  then have \<open>set_mset I \<Turnstile>m bnb.conflicting_clss (update_weight_information M' S)\<close>
+    by (auto simp: update_weight_information_def bnb.conflicting_clss_def)
+  then show ?thesis
+    using ent T by (auto simp: bnb.conflicting_clss_def state)
+qed
+
+lemma cdcl_bnb_still_model:
+  assumes
+    \<open>bnb.dpll\<^sub>W_bnb S T\<close> and
+    all_struct: \<open>dpll\<^sub>W_all_inv (bnb.abs_state S)\<close> and
+    ent: \<open>set_mset I \<Turnstile>sm clauses S\<close> \<open>set_mset I \<Turnstile>sm bnb.conflicting_clss S\<close> and
+    dist: \<open>distinct_mset I\<close> and
+    cons: \<open>consistent_interp (set_mset I)\<close> and
+    tot: \<open>atms_of I = atms_of_mm (clauses S)\<close> 
+  shows
+    \<open>(set_mset I \<Turnstile>sm clauses T \<and> set_mset I \<Turnstile>sm bnb.conflicting_clss T) \<or> Found (\<rho> I) \<ge> \<rho>' (weight T)\<close>
+  using assms
+proof (induction rule: bnb.dpll\<^sub>W_bnb.induct)
+  case (dpll S T)
+  then show ?case using ent by (auto elim!: bnb.dpll\<^sub>W_coreE simp: bnb.state'_def)
+next
+  case (bnb S T)
+  then show ?case
+    using improve_model_still_model[of S T I] using assms(2-) by auto
+qed
+
+lemma cdcl_bnb_larger_still_larger:
+  assumes
+    \<open>bnb.dpll\<^sub>W_bnb S T\<close>
+  shows \<open>\<rho>' (weight S) \<ge> \<rho>' (weight T)\<close>
+  using assms apply (cases rule: bnb.dpll\<^sub>W_bnb.cases)
+  by (auto simp: bnb.dpll\<^sub>W_branch.simps is_improving_int_def bnb.dpll\<^sub>W_core_same_weight)
+
+lemma rtranclp_cdcl_bnb_still_model:
+  assumes
+    st: \<open>bnb.dpll\<^sub>W_bnb\<^sup>*\<^sup>* S T\<close> and
+    all_struct: \<open>dpll\<^sub>W_all_inv (bnb.abs_state S)\<close> and
+    ent: \<open>(set_mset I \<Turnstile>sm clauses S \<and> set_mset I \<Turnstile>sm bnb.conflicting_clss S) \<or> Found (\<rho> I) \<ge> \<rho>' (weight S)\<close> and
+    dist: \<open>distinct_mset I\<close> and
+    cons: \<open>consistent_interp (set_mset I)\<close> and
+    tot: \<open>atms_of I = atms_of_mm (clauses S)\<close>
+  shows
+    \<open>(set_mset I \<Turnstile>sm clauses T \<and> set_mset I \<Turnstile>sm bnb.conflicting_clss T) \<or> Found (\<rho> I) \<ge> \<rho>' (weight T)\<close>
+  using st
+proof (induction rule: rtranclp_induct)
+  case base
+  then show ?case
+    using ent by auto
+next
+  case (step T U) note star = this(1) and st = this(2) and IH = this(3)
+  have 1: \<open>dpll\<^sub>W_all_inv (bnb.abs_state T)\<close>
+    using bnb.rtranclp_dpll\<^sub>W_bnb_abs_state_all_inv[OF star all_struct] .
+  have 3: \<open>atms_of I = atms_of_mm (clauses T)\<close>
+    using bnb.rtranclp_dpll\<^sub>W_bnb_clauses[OF star] tot by auto
+  show ?case
+    using cdcl_bnb_still_model[OF st 1 _ _ dist cons 3] IH
+      cdcl_bnb_larger_still_larger[OF st]
+    by auto
+qed
+
+
+(*TODO:
+full_cdcl_bnb_stgy_larger_or_equal_weight
+full_cdcl_bnb_stgy_no_conflicting_clause_from_init_state
+*)
 
 end
 
