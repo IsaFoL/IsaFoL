@@ -2178,7 +2178,7 @@ lemma conflicting_clss_update_weight_information_in2:
       negate_ann_lits_pNeg_lit_of image_iff dest: total_over_m_atms_incl
       intro!: true_clss_cls_in too_heavy_clauses_contains_itself)
 
-lemma atms_of_init_clss_conflicting_clauses[simp]:
+lemma atms_of_init_clss_conflicting_clauses'[simp]:
   \<open>atms_of_mm N \<union> atms_of_mm (conflicting_clauses N S) = atms_of_mm N\<close>
   using conflicting_clss_incl_init_clauses[of N] by blast
 
@@ -2509,13 +2509,13 @@ sublocale conflict_driven_clause_learning\<^sub>W
     init_state = init_state
   by unfold_locales
 
-lemma is_improving_conflicting_clss_update_weight_information: \<open>is_improving M M' S \<Longrightarrow>
+lemma is_improving_conflicting_clss_update_weight_information': \<open>is_improving M M' S \<Longrightarrow>
        conflicting_clss S \<subseteq># conflicting_clss (update_weight_information M' S)\<close>
   using is_improving_conflicting_clss_update_weight_information[of M M' \<open>init_clss S\<close> \<open>weight S\<close>]
   unfolding conflicting_clss_def
   by auto
 
-lemma conflicting_clss_update_weight_information_in2:
+lemma conflicting_clss_update_weight_information_in2':
   assumes \<open>is_improving M M' S\<close>
   shows \<open>negate_ann_lits M' \<in># conflicting_clss (update_weight_information M' S)\<close>
   using conflicting_clss_update_weight_information_in2[of M M' \<open>init_clss S\<close> \<open>weight S\<close>] assms
@@ -2544,8 +2544,8 @@ sublocale conflict_driven_clause_learning_with_adding_init_clause_cost\<^sub>W_o
   subgoal by (rule state_update_weight_information)
   subgoal unfolding conflicting_clss_def by (rule conflicting_clss_incl_init_clauses)
   subgoal unfolding conflicting_clss_def by (rule distinct_mset_mset_conflicting_clss2)
-  subgoal by (rule is_improving_conflicting_clss_update_weight_information)
-  subgoal by (rule conflicting_clss_update_weight_information_in2; assumption)
+  subgoal by (rule is_improving_conflicting_clss_update_weight_information')
+  subgoal by (rule conflicting_clss_update_weight_information_in2'; assumption)
   done
 
 lemma wf_cdcl_bnb_fixed:
@@ -2711,7 +2711,7 @@ proof (cases rule: obacktrack.cases)
 qed
 
 
-lemma entails_conflicting_clauses_if_le:
+lemma entails_conflicting_clauses_if_le':
   fixes M''
   defines \<open>M' \<equiv> lit_of `# mset M''\<close>
   assumes
@@ -2766,7 +2766,7 @@ proof (cases rule: improvep.cases)
     by (auto simp: total_over_m_def total_over_set_def atm_iff_pos_or_neg_lit)
   have
       \<open>set_mset I \<Turnstile>m conflicting_clauses (init_clss S) (weight (update_weight_information M' S))\<close>
-    apply (rule entails_conflicting_clauses_if_le[unfolded conflicting_clss_def])
+    apply (rule entails_conflicting_clauses_if_le'[unfolded conflicting_clss_def])
     using T dist cons tot le imp by (auto intro!: )
 
   then have \<open>set_mset I \<Turnstile>m conflicting_clss (update_weight_information M' S)\<close>
