@@ -22,7 +22,8 @@ locale Given_Clause = labeled_lifting_with_red_crit_family Bot_F Inf_F Bot_G Q e
     and Inf_FL :: \<open>('f \<times> 'l) inference set\<close>
   + fixes
     Equiv_F :: "('f \<times> 'f) set" and
-    Prec_F :: "'f \<Rightarrow> 'f \<Rightarrow> bool" (infix "\<lless>" 50) and (* In the report, the symbol used points in the opposite direction *)
+    (* TODO: In the report, the symbol used points in the opposite direction *)
+    Prec_F :: "'f \<Rightarrow> 'f \<Rightarrow> bool" (infix "\<lless>" 50) and 
     Prec_l :: "'l \<Rightarrow> 'l \<Rightarrow> bool" (infix "\<sqsubset>l" 50)
   assumes
     equiv_F_is_equiv_rel: "equiv UNIV Equiv_F" and
@@ -110,7 +111,8 @@ proof -
   then have "standard_lifting Bot_FL Inf_FL Bot_G Inf_G (entails_q q) (Red_Inf_q q) (Red_F_q q)
     (\<G>_F_L_q q) (\<G>_Inf_L_q q)"
     using lifted_q by blast
-  then show "lifting_with_wf_ordering_family Bot_FL Inf_FL Bot_G (entails_q q) Inf_G (Red_Inf_q q) (Red_F_q q) (\<G>_F_L_q q) (\<G>_Inf_L_q q) (\<lambda>g. Prec_FL)"
+  then show "lifting_with_wf_ordering_family Bot_FL Inf_FL Bot_G (entails_q q) Inf_G (Red_Inf_q q)
+    (Red_F_q q) (\<G>_F_L_q q) (\<G>_Inf_L_q q) (\<lambda>g. Prec_FL)"
     using wf_prec_FL
     by (simp add: lifting_with_wf_ordering_family.intro lifting_with_wf_ordering_family_axioms.intro)
 qed
@@ -120,9 +122,11 @@ sublocale labeled_ord_red_crit_fam: standard_lifting_with_red_crit_family Inf_FL
   Bot_FL \<G>_F_L_q \<G>_Inf_L_q "\<lambda>g. Prec_FL"
   using standard_labeled_lifting_family
     no_labels.Ground_family.calculus_with_red_crit_family_axioms
-  by (simp add: standard_lifting_with_red_crit_family.intro standard_lifting_with_red_crit_family_axioms.intro)
+  by (simp add: standard_lifting_with_red_crit_family.intro
+    standard_lifting_with_red_crit_family_axioms.intro)
 
-lemma entail_equiv: "labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.entails_Q N1 N2 = (N1 \<Turnstile>\<inter>L N2)"
+lemma entail_equiv:
+  "labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.entails_Q N1 N2 = (N1 \<Turnstile>\<inter>L N2)"
   unfolding labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.entails_Q_def
     entails_\<G>_L_Q_def entails_\<G>_L_q_def labeled_ord_red_crit_fam.entails_\<G>_q_def
      labeled_ord_red_crit_fam.\<G>_set_q_def \<G>_set_L_q_def
@@ -131,7 +135,8 @@ lemma entail_equiv: "labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.enta
 lemma entail_equiv2: "labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.entails_Q = (\<Turnstile>\<inter>L)"
   using entail_equiv by auto
 
-lemma red_inf_equiv: "labeled_ord_red_crit_fam.empty_ord_lifted_calc_w_red_crit_family.Red_Inf_Q N = with_labels.Red_Inf_Q N"
+lemma red_inf_equiv: "labeled_ord_red_crit_fam.empty_ord_lifted_calc_w_red_crit_family.Red_Inf_Q N =
+  with_labels.Red_Inf_Q N"
   unfolding labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_Inf_Q_def
     with_labels.Red_Inf_Q_def labeled_ord_red_crit_fam.Red_Inf_\<G>_q_def Red_Inf_\<G>_L_q_def
     labeled_ord_red_crit_fam.\<G>_set_q_def \<G>_set_L_q_def
@@ -148,30 +153,35 @@ lemma empty_red_f_equiv: "labeled_ord_red_crit_fam.empty_ord_lifted_calc_w_red_c
     labeled_ord_red_crit_fam.\<G>_set_q_def \<G>_set_L_q_def Empty_Order_def Labeled_Empty_Order_def
   by simp
 
-lemma empty_red_f_equiv2: "labeled_ord_red_crit_fam.empty_ord_lifted_calc_w_red_crit_family.Red_F_Q = with_labels.Red_F_Q"
+lemma empty_red_f_equiv2: "labeled_ord_red_crit_fam.empty_ord_lifted_calc_w_red_crit_family.Red_F_Q =
+  with_labels.Red_F_Q"
   using empty_red_f_equiv by auto
 
 lemma labeled_ordered_static_ref_comp:
   "static_refutational_complete_calculus Bot_FL Inf_FL
   labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.entails_Q
-  labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_Inf_Q labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_F_Q"
-  using labeled_ord_red_crit_fam.static_empty_ord_inter_equiv_static_inter empty_red_f_equiv2 red_inf_equiv2
-    entail_equiv2 labeled_static_ref_comp
+  labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_Inf_Q
+  labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_F_Q"
+  using labeled_ord_red_crit_fam.static_empty_ord_inter_equiv_static_inter empty_red_f_equiv2
+    red_inf_equiv2 entail_equiv2 labeled_static_ref_comp
   by argo 
 
 interpretation stat_ref_calc: static_refutational_complete_calculus Bot_FL Inf_FL
   labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.entails_Q
-  labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_Inf_Q labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_F_Q
+  labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_Inf_Q
+  labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_F_Q
   by (rule labeled_ordered_static_ref_comp) 
 
 lemma labeled_ordered_dynamic_ref_comp:
   "dynamic_refutational_complete_calculus Bot_FL Inf_FL
-  labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.entails_Q labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_Inf_Q labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_F_Q"
+  labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.entails_Q
+  labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_Inf_Q labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_F_Q"
   by (rule stat_ref_calc.dynamic_refutational_complete_calculus_axioms)
 
 text "lemma:redundant-labeled-inferences"
 lemma "\<iota> \<in> Inf_FL \<Longrightarrow> 
-  \<iota> \<in> labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_Inf_Q N \<equiv> (to_F \<iota>) \<in> no_labels.empty_ord_lifted_calc_w_red_crit_family.Red_Inf_Q (fst ` N)" for \<iota>
+  \<iota> \<in> labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_Inf_Q N \<equiv>
+  (to_F \<iota>) \<in> no_labels.empty_ord_lifted_calc_w_red_crit_family.Red_Inf_Q (fst ` N)" for \<iota>
 proof -
   fix \<iota>
   assume i_in: "\<iota> \<in> Inf_FL"

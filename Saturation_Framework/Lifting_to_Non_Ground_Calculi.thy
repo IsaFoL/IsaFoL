@@ -8,7 +8,8 @@ theory Lifting_to_Non_Ground_Calculi
     Well_Quasi_Orders.Minimal_Elements
 begin
 
-locale standard_lifting = Non_ground: inference_system Inf_F + Ground: calculus_with_red_crit Bot_G Inf_G entails_G Red_Inf_G Red_F_G
+locale standard_lifting = Non_ground: inference_system Inf_F +
+  Ground: calculus_with_red_crit Bot_G Inf_G entails_G Red_Inf_G Red_F_G
   for
     Bot_F :: \<open>'f set\<close> and
     Inf_F :: \<open>'f inference set\<close> and
@@ -83,9 +84,8 @@ qed
 
 end
 
-
-
-locale lifting_with_wf_ordering_family = standard_lifting Bot_F Inf_F Bot_G Inf_G entails_G Red_Inf_G Red_F_G \<G>_F \<G>_Inf
+locale lifting_with_wf_ordering_family =
+  standard_lifting Bot_F Inf_F Bot_G Inf_G entails_G Red_Inf_G Red_F_G \<G>_F \<G>_Inf
   for
     Bot_F :: \<open>'f set\<close> and
     Inf_F :: \<open>'f inference set\<close> and
@@ -121,16 +121,19 @@ lemma prop_nested_in_set: "D \<in> P C \<Longrightarrow> C \<in> {C. \<forall>D 
 
 text \<open>lemma:wolog-C'-nonredundant\<close>
 lemma Red_F_\<G>_equiv_def: 
-  \<open>Red_F_\<G> N = {C. \<forall>Di \<in> \<G>_F C. Di \<in> Red_F_G (\<G>_set N) \<or> (\<exists>E \<in> (N - Red_F_\<G> N). Prec_F_g Di E C \<and> Di \<in> \<G>_F E)}\<close>
+  \<open>Red_F_\<G> N = {C. \<forall>Di \<in> \<G>_F C. Di \<in> Red_F_G (\<G>_set N) \<or>
+    (\<exists>E \<in> (N - Red_F_\<G> N). Prec_F_g Di E C \<and> Di \<in> \<G>_F E)}\<close>
 proof (rule;clarsimp)
   fix C D
   assume 
     C_in: \<open>C \<in> Red_F_\<G> N\<close> and
     D_in: \<open>D \<in> \<G>_F C\<close> and
     not_sec_case: \<open>\<forall>E \<in> N - Red_F_\<G> N. Prec_F_g D E C \<longrightarrow> D \<notin> \<G>_F E\<close>
-  have C_in_unfolded: "C \<in> {C. \<forall>Di \<in> \<G>_F C. Di \<in> Red_F_G (\<G>_set N) \<or> (\<exists>E\<in>N. Prec_F_g Di E C \<and> Di \<in> \<G>_F E)}"
+  have C_in_unfolded: "C \<in> {C. \<forall>Di \<in> \<G>_F C. Di \<in> Red_F_G (\<G>_set N) \<or>
+    (\<exists>E\<in>N. Prec_F_g Di E C \<and> Di \<in> \<G>_F E)}"
     using C_in unfolding Red_F_\<G>_def .
-  have neg_not_sec_case: \<open>\<not> (\<exists>E\<in>N - Red_F_\<G> N. Prec_F_g D E C \<and> D \<in> \<G>_F E)\<close> using not_sec_case by clarsimp 
+  have neg_not_sec_case: \<open>\<not> (\<exists>E\<in>N - Red_F_\<G> N. Prec_F_g D E C \<and> D \<in> \<G>_F E)\<close>
+    using not_sec_case by clarsimp 
   have unfol_C_D: \<open>D \<in> Red_F_G (\<G>_set N) \<or> (\<exists>E\<in>N. Prec_F_g D E C \<and> D \<in> \<G>_F E)\<close> 
     using prop_nested_in_set[of D \<G>_F C "\<lambda>x. x \<in> Red_F_G (\<Union> (\<G>_F ` N))"
       "\<lambda>x y. \<exists>E \<in> N. Prec_F_g y E x \<and> y \<in> \<G>_F E", OF D_in C_in_unfolded] by blast
@@ -143,7 +146,8 @@ proof (rule;clarsimp)
     interpret minimal_element "Prec_F_g D" UNIV using all_wf[of D] .
     obtain F :: 'f where F: \<open>F = min_elt B\<close> by auto
     then have D_in_F: \<open>D \<in> \<G>_F F\<close> unfolding B_def using non_empty
-      by (smt Sup_UNIV Sup_upper UNIV_I contra_subsetD empty_iff empty_subsetI mem_Collect_eq min_elt_mem unfol_C_D) 
+      by (smt Sup_UNIV Sup_upper UNIV_I contra_subsetD empty_iff empty_subsetI mem_Collect_eq
+        min_elt_mem unfol_C_D) 
     have F_prec: \<open>Prec_F_g D F C\<close> using F min_elt_mem[of B, OF _ B_non_empty] unfolding B_def by auto
     have F_not_in: \<open>F \<notin> Red_F_\<G> N\<close>
     proof
@@ -327,22 +331,32 @@ definition Empty_Order :: \<open>'f \<Rightarrow> 'f \<Rightarrow> bool\<close> 
   "Empty_Order C1 C2 \<equiv> False" 
 
 lemma any_to_empty_order_lifting:
-  "lifting_with_wf_ordering_family Bot_F Inf_F Bot_G entails_G Inf_G Red_Inf_G Red_F_G \<G>_F \<G>_Inf Prec_F_g
-  \<Longrightarrow> lifting_with_wf_ordering_family Bot_F Inf_F Bot_G entails_G Inf_G Red_Inf_G Red_F_G \<G>_F \<G>_Inf (\<lambda>g. Empty_Order)"
+  "lifting_with_wf_ordering_family Bot_F Inf_F Bot_G entails_G Inf_G Red_Inf_G Red_F_G \<G>_F
+    \<G>_Inf Prec_F_g \<Longrightarrow> lifting_with_wf_ordering_family Bot_F Inf_F Bot_G entails_G Inf_G Red_Inf_G
+    Red_F_G \<G>_F \<G>_Inf (\<lambda>g. Empty_Order)"
 proof -
   fix Bot_F Inf_F Bot_G entails_G Inf_G Red_Inf_G Red_F_G \<G>_F \<G>_Inf Prec_F_g
-  assume lift: "lifting_with_wf_ordering_family Bot_F Inf_F Bot_G entails_G Inf_G Red_Inf_G Red_F_G \<G>_F \<G>_Inf Prec_F_g"
+  assume lift: "lifting_with_wf_ordering_family Bot_F Inf_F Bot_G entails_G Inf_G Red_Inf_G
+    Red_F_G \<G>_F \<G>_Inf Prec_F_g"
   then interpret lift_g:
-    lifting_with_wf_ordering_family Bot_F Inf_F Bot_G entails_G Inf_G Red_Inf_G Red_F_G \<G>_F \<G>_Inf Prec_F_g
+    lifting_with_wf_ordering_family Bot_F Inf_F Bot_G entails_G Inf_G Red_Inf_G Red_F_G \<G>_F
+      \<G>_Inf Prec_F_g
     by auto
   have empty_wf: "minimal_element ((\<lambda>g. Empty_Order) g) UNIV"
     by (simp add: lift_g.all_wf Empty_Order_def minimal_element.intro po_on_def transp_on_def wfp_on_def
       wfp_on_imp_irreflp_on)
-  then show "lifting_with_wf_ordering_family Bot_F Inf_F Bot_G entails_G Inf_G Red_Inf_G Red_F_G \<G>_F \<G>_Inf (\<lambda>g. Empty_Order)"
-    by (simp add: empty_wf lift_g.standard_lifting_axioms lifting_with_wf_ordering_family_axioms.intro lifting_with_wf_ordering_family_def)
+  then show "lifting_with_wf_ordering_family Bot_F Inf_F Bot_G entails_G Inf_G Red_Inf_G Red_F_G
+    \<G>_F \<G>_Inf (\<lambda>g. Empty_Order)"
+    by (simp add: empty_wf lift_g.standard_lifting_axioms
+      lifting_with_wf_ordering_family_axioms.intro lifting_with_wf_ordering_family_def)
 qed
 
-locale lifting_equivalence_with_empty_order = any_order_lifting: lifting_with_wf_ordering_family Bot_F Inf_F Bot_G entails_G Inf_G Red_Inf_G Red_F_G \<G>_F \<G>_Inf Prec_F_g + empty_order_lifting: lifting_with_wf_ordering_family Bot_F Inf_F Bot_G entails_G Inf_G Red_Inf_G Red_F_G \<G>_F \<G>_Inf "\<lambda>g. Empty_Order"
+(* TODO: there may be a way to merge this locale with the previous one *)
+locale lifting_equivalence_with_empty_order =
+  any_order_lifting: lifting_with_wf_ordering_family Bot_F Inf_F Bot_G entails_G Inf_G Red_Inf_G
+    Red_F_G \<G>_F \<G>_Inf Prec_F_g +
+  empty_order_lifting: lifting_with_wf_ordering_family Bot_F Inf_F Bot_G entails_G Inf_G Red_Inf_G
+    Red_F_G \<G>_F \<G>_Inf "\<lambda>g. Empty_Order"
   for
     \<G>_F :: \<open>'f \<Rightarrow> 'g set\<close> and
     \<G>_Inf :: \<open>'f inference \<Rightarrow> 'g inference set\<close> and
@@ -357,34 +371,52 @@ locale lifting_equivalence_with_empty_order = any_order_lifting: lifting_with_wf
 
 sublocale lifting_with_wf_ordering_family \<subseteq> lifting_equivalence_with_empty_order
 proof
-  show "po_on Empty_Order UNIV" unfolding Empty_Order_def po_on_def by (simp add: transp_onI wfp_on_imp_irreflp_on)
-  show "wfp_on Empty_Order UNIV" unfolding wfp_on_def Empty_Order_def by simp
+  show "po_on Empty_Order UNIV"
+    unfolding Empty_Order_def po_on_def by (simp add: transp_onI wfp_on_imp_irreflp_on)
+  show "wfp_on Empty_Order UNIV"
+    unfolding wfp_on_def Empty_Order_def by simp
 qed
 
 context lifting_equivalence_with_empty_order
 begin
 
 text "lemma:saturation-indep-of-sqsubset"
-lemma saturated_empty_order_equiv_saturated: "any_order_lifting.lifted_calculus_with_red_crit.saturated N = empty_order_lifting.lifted_calculus_with_red_crit.saturated N" by standard
+lemma saturated_empty_order_equiv_saturated:
+  "any_order_lifting.lifted_calculus_with_red_crit.saturated N =
+    empty_order_lifting.lifted_calculus_with_red_crit.saturated N" by standard
 
 text "lemma:static-ref-compl-indep-of-sqsubset"
-lemma static_empty_order_equiv_static: "static_refutational_complete_calculus Bot_F Inf_F any_order_lifting.entails_\<G> empty_order_lifting.Red_Inf_\<G> empty_order_lifting.Red_F_\<G> = static_refutational_complete_calculus Bot_F Inf_F any_order_lifting.entails_\<G> any_order_lifting.Red_Inf_\<G> any_order_lifting.Red_F_\<G>"
+lemma static_empty_order_equiv_static:
+  "static_refutational_complete_calculus Bot_F Inf_F
+    any_order_lifting.entails_\<G> empty_order_lifting.Red_Inf_\<G> empty_order_lifting.Red_F_\<G> =
+    static_refutational_complete_calculus Bot_F Inf_F any_order_lifting.entails_\<G> any_order_lifting.Red_Inf_\<G> any_order_lifting.Red_F_\<G>"
   unfolding static_refutational_complete_calculus_def
   by (rule iffI) (standard,(standard)[],simp)+
    
 text "thm:FRedsqsubset-is-dyn-ref-compl"
-theorem static_to_dynamic: "static_refutational_complete_calculus Bot_F Inf_F any_order_lifting.entails_\<G> empty_order_lifting.Red_Inf_\<G> empty_order_lifting.Red_F_\<G> = dynamic_refutational_complete_calculus Bot_F Inf_F any_order_lifting.entails_\<G> any_order_lifting.Red_Inf_\<G> any_order_lifting.Red_F_\<G> " (is "?static=?dynamic")
+theorem static_to_dynamic:
+  "static_refutational_complete_calculus Bot_F Inf_F
+    any_order_lifting.entails_\<G> empty_order_lifting.Red_Inf_\<G> empty_order_lifting.Red_F_\<G> =
+    dynamic_refutational_complete_calculus Bot_F Inf_F
+    any_order_lifting.entails_\<G> any_order_lifting.Red_Inf_\<G> any_order_lifting.Red_F_\<G> "
+  (is "?static=?dynamic")
 proof
   assume ?static
-  then have static_general: "static_refutational_complete_calculus Bot_F Inf_F any_order_lifting.entails_\<G> any_order_lifting.Red_Inf_\<G> any_order_lifting.Red_F_\<G>" (is "?static_gen") using static_empty_order_equiv_static by simp
-  interpret static_refutational_complete_calculus Bot_F Inf_F any_order_lifting.entails_\<G> any_order_lifting.Red_Inf_\<G> any_order_lifting.Red_F_\<G>
+  then have static_general:
+    "static_refutational_complete_calculus Bot_F Inf_F any_order_lifting.entails_\<G>
+      any_order_lifting.Red_Inf_\<G> any_order_lifting.Red_F_\<G>" (is "?static_gen")
+    using static_empty_order_equiv_static by simp
+  interpret static_refutational_complete_calculus Bot_F Inf_F any_order_lifting.entails_\<G>
+    any_order_lifting.Red_Inf_\<G> any_order_lifting.Red_F_\<G>
     using static_general .
   show "?dynamic" by standard 
 next
   assume dynamic_gen: ?dynamic
-  interpret dynamic_refutational_complete_calculus Bot_F Inf_F any_order_lifting.entails_\<G> any_order_lifting.Red_Inf_\<G> any_order_lifting.Red_F_\<G>
+  interpret dynamic_refutational_complete_calculus Bot_F Inf_F any_order_lifting.entails_\<G>
+    any_order_lifting.Red_Inf_\<G> any_order_lifting.Red_F_\<G>
     using dynamic_gen .
-  have "static_refutational_complete_calculus Bot_F Inf_F any_order_lifting.entails_\<G> any_order_lifting.Red_Inf_\<G> any_order_lifting.Red_F_\<G>"
+  have "static_refutational_complete_calculus Bot_F Inf_F any_order_lifting.entails_\<G>
+    any_order_lifting.Red_Inf_\<G> any_order_lifting.Red_F_\<G>"
     by standard
   then show "?static" using static_empty_order_equiv_static by simp
 qed
@@ -407,7 +439,8 @@ locale standard_lifting_with_red_crit_family = Non_ground: inference_system Inf_
     \<G>_Inf_q :: "'q \<Rightarrow> 'f inference \<Rightarrow> 'g inference set" and
     Prec_F_g :: "'g \<Rightarrow> 'f \<Rightarrow> 'f \<Rightarrow> bool"
   assumes
-    standard_lifting_family: "lifting_with_wf_ordering_family Bot_F Inf_F Bot_G (entails_q q) Inf_G (Red_Inf_q q) (Red_F_q q) (\<G>_F_q q) (\<G>_Inf_q q) Prec_F_g" 
+    standard_lifting_family: "lifting_with_wf_ordering_family Bot_F Inf_F Bot_G (entails_q q)
+      Inf_G (Red_Inf_q q) (Red_F_q q) (\<G>_F_q q) (\<G>_Inf_q q) Prec_F_g" 
 begin
 
 definition \<G>_set_q :: "'q \<Rightarrow> 'f set \<Rightarrow> 'g set" where
@@ -442,7 +475,8 @@ lemma red_crit_lifting_family:
 proof -
   fix q
   interpret wf_lift:
-    lifting_with_wf_ordering_family Bot_F Inf_F Bot_G "entails_q q" Inf_G "Red_Inf_q q" "Red_F_q q" "\<G>_F_q q" "\<G>_Inf_q q" Prec_F_g
+    lifting_with_wf_ordering_family Bot_F Inf_F Bot_G "entails_q q" Inf_G "Red_Inf_q q" "Red_F_q q"
+      "\<G>_F_q q" "\<G>_Inf_q q" Prec_F_g
     using standard_lifting_family .
   have "entails_\<G>_q q = wf_lift.entails_\<G>"
     unfolding entails_\<G>_q_def wf_lift.entails_\<G>_def \<G>_set_q_def by blast
@@ -460,7 +494,8 @@ lemma red_crit_lifting_family_empty_ord:
 proof -
   fix q
   interpret wf_lift:
-    lifting_with_wf_ordering_family Bot_F Inf_F Bot_G "entails_q q" Inf_G "Red_Inf_q q" "Red_F_q q" "\<G>_F_q q" "\<G>_Inf_q q" Prec_F_g
+    lifting_with_wf_ordering_family Bot_F Inf_F Bot_G "entails_q q" Inf_G "Red_Inf_q q" "Red_F_q q"
+      "\<G>_F_q q" "\<G>_Inf_q q" Prec_F_g
     using standard_lifting_family .
   have "entails_\<G>_q q = wf_lift.entails_\<G>"
     unfolding entails_\<G>_q_def wf_lift.entails_\<G>_def \<G>_set_q_def by blast
@@ -487,7 +522,8 @@ next
   fix qi B N1
   assume
     B_in: "B \<in> Bot_F"
-  interpret lift: lifting_with_wf_ordering_family Bot_F Inf_F Bot_G "entails_q qi" Inf_G "Red_Inf_q qi" "Red_F_q qi" "\<G>_F_q qi" "\<G>_Inf_q qi" Prec_F_g
+  interpret lift: lifting_with_wf_ordering_family Bot_F Inf_F Bot_G "entails_q qi" Inf_G "Red_Inf_q qi"
+    "Red_F_q qi" "\<G>_F_q qi" "\<G>_Inf_q qi" Prec_F_g
     by (rule standard_lifting_family)
   have "(entails_\<G>_q qi) = lift.entails_\<G>"
     unfolding entails_\<G>_q_def lift.entails_\<G>_def \<G>_set_q_def by simp
@@ -579,7 +615,8 @@ lemma "lifted_calc_w_red_crit_family.inter_red_crit_calculus.saturated N =
   by simp
 
 text "lemma:intersect-static-ref-compl-indep-of-sqsubset"
-lemma static_empty_ord_inter_equiv_static_inter: "static_refutational_complete_calculus Bot_F Inf_F lifted_calc_w_red_crit_family.entails_Q
+lemma static_empty_ord_inter_equiv_static_inter:
+  "static_refutational_complete_calculus Bot_F Inf_F lifted_calc_w_red_crit_family.entails_Q
     lifted_calc_w_red_crit_family.Red_Inf_Q lifted_calc_w_red_crit_family.Red_F_Q =
   static_refutational_complete_calculus Bot_F Inf_F lifted_calc_w_red_crit_family.entails_Q
     empty_ord_lifted_calc_w_red_crit_family.Red_Inf_Q empty_ord_lifted_calc_w_red_crit_family.Red_F_Q"

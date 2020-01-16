@@ -3,7 +3,10 @@
 *)
 
 theory Calculi
-  imports Consequence_Relations_and_Inference_Systems
+  imports
+    Consequence_Relations_and_Inference_Systems
+    Ordered_Resolution_Prover.Lazy_List_Liminf
+    Ordered_Resolution_Prover.Lazy_List_Chain
 begin
 
 locale calculus_with_red_crit = inference_system Inf + consequence_relation Bot entails

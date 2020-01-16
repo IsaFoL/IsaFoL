@@ -4,8 +4,7 @@
 
 theory Consequence_Relations_and_Inference_Systems
   imports
-    Ordered_Resolution_Prover.Lazy_List_Liminf
-    Ordered_Resolution_Prover.Lazy_List_Chain
+    Main
 begin
 
 locale consequence_relation =
