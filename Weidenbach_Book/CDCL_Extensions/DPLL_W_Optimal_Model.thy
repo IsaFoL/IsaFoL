@@ -23,7 +23,7 @@ lemma total_over_m_entailed_or_conflict:
 text \<open>The locales on DPLL should eventually be moved to the DPLL theory, but currently it is only a discount
   version (in particular, we cheat and don't use \<^text>\<open>S \<sim> T\<close> in the transition system below, even if it
   would be cleaner to do as as we de for CDCL).
-)\<close>
+\<close>
 locale dpll_ops =
   fixes
     trail :: \<open>'st \<Rightarrow> 'v  dpll\<^sub>W_ann_lits\<close> and
@@ -31,13 +31,14 @@ locale dpll_ops =
     tl_trail :: \<open>'st \<Rightarrow> 'st\<close> and
     cons_trail :: \<open>'v  dpll\<^sub>W_ann_lit \<Rightarrow> 'st \<Rightarrow> 'st\<close> and
     state_eq  :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<close> (infix "\<sim>" 50) and
-    state :: \<open>'st \<Rightarrow> 'v  dpll\<^sub>W_ann_lits \<times> 'v clauses \<times> 'b\<close> 
+    state :: \<open>'st \<Rightarrow> 'v  dpll\<^sub>W_ann_lits \<times> 'v clauses \<times> 'b\<close>
 begin
 
 definition additional_info :: \<open>'st \<Rightarrow> 'b\<close> where
   \<open>additional_info S = (\<lambda>(M, N, w). w) (state S)\<close>
 
 end
+
 
 locale bnb_ops =
   fixes
@@ -107,7 +108,73 @@ locale dpll\<^sub>W_state =
        \<open>state S = (trail S, clauses S, additional_info S)\<close>
 begin
 
+
+lemma [simp]:
+  \<open>clauses (cons_trail uu S) = clauses S\<close>
+  \<open>trail (cons_trail uu S) = uu # trail S\<close>
+  \<open>trail (tl_trail S) = tl (trail S)\<close>
+  \<open>clauses (tl_trail S) = clauses (S)\<close>
+  \<open>additional_info (cons_trail L S) = additional_info S\<close>
+  \<open>additional_info (tl_trail S) = additional_info S\<close>
+  using
+    cons_trail[of S]
+    tl_trail[of S]
+  by (auto simp: state)
+
+lemma state_simp[simp]:
+  \<open>T \<sim> S \<Longrightarrow> trail T = trail S\<close>
+  \<open>T \<sim> S \<Longrightarrow> clauses T = clauses S\<close>
+  by (auto dest!: state_eq_state simp: state)
+
+
+inductive dpll_backtrack :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<close> where
+\<open>dpll_backtrack S T\<close>
+if
+  \<open>D \<in># clauses S\<close> and
+  \<open>trail S \<Turnstile>as CNot D\<close> and
+  \<open>backtrack_split (trail S) = (M', L # M)\<close> and
+  \<open>state T = (Propagated (-lit_of L) () # M, clauses S, additional_info S)\<close>
+
+inductive dpll_propagate :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<close> where
+\<open>dpll_propagate S T\<close>
+if
+  \<open>add_mset L D \<in># clauses S\<close> and
+  \<open>trail S \<Turnstile>as CNot D\<close> and
+  \<open>undefined_lit (trail S) L\<close>
+  \<open>T \<sim> cons_trail (Propagated L ()) S\<close>
+
+inductive dpll_decide :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<close> where
+\<open>dpll_decide S T\<close>
+if
+  \<open>add_mset L D \<in># clauses S\<close> and
+  \<open>trail S \<Turnstile>as CNot D\<close> and
+  \<open>undefined_lit (trail S) L\<close>
+  \<open>T \<sim> cons_trail (Decided L) S\<close>
+
+inductive dpll :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<close> where
+\<open>dpll S T\<close> if \<open>dpll_decide S T\<close> |
+\<open>dpll S T\<close> if \<open>dpll_propagate S T\<close> |
+\<open>dpll S T\<close> if \<open>dpll_backtrack S T\<close>
+
+lemma dpll_is_dpll\<^sub>W:
+  \<open>dpll S T \<Longrightarrow> dpll\<^sub>W (trail S, clauses S) (trail T, clauses T)\<close>
+  apply (induction rule: dpll.induct)
+  subgoal for S T
+    apply (auto simp: dpll.simps dpll\<^sub>W.simps dpll_decide.simps dpll_backtrack.simps dpll_propagate.simps
+      dest!: multi_member_split[of _ \<open>clauses S\<close>])
+    done
+  subgoal for S T
+    unfolding dpll.simps dpll\<^sub>W.simps dpll_decide.simps dpll_backtrack.simps dpll_propagate.simps
+    by auto
+  subgoal for S T
+    unfolding dpll\<^sub>W.simps dpll_decide.simps dpll_backtrack.simps dpll_propagate.simps
+    apply (auto simp: state)
+    apply (metis backtrack_split_snd_hd_decided list.sel(1) list.simps(3) snd_conv)+
+    done
+ done
+
 end
+
 
 locale bnb =
   bnb_ops trail clauses
