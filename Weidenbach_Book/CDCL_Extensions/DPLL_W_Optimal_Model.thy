@@ -4,10 +4,14 @@ imports
   CDCL.DPLL_W
 begin
 
-lemma funpow_tl_append_skip_last:
-  \<open>((tl ^^ length M') (M' @ M)) = M\<close>
-  by (induction M')
-    (auto simp del: funpow.simps(2) simp: funpow_Suc_right)
+lemma funpow_tl_append_skip_ge:
+  \<open>n \<ge> length M' \<Longrightarrow> ((tl ^^ n) (M' @ M)) = (tl ^^ (n - length M')) M\<close>
+  apply (induction n arbitrary: M')
+  subgoal by auto
+  subgoal for n M'
+    by (cases M')
+      (auto simp del: funpow.simps(2) simp: funpow_Suc_right)
+  done
 
 (*TODO MOVE*)
 text \<open>The following version is more suited than @{thm backtrack_split_some_is_decided_then_snd_has_hd}
@@ -469,12 +473,12 @@ lemma dpll\<^sub>W_core_Ex_propagate:
   subgoal
     using backtrack_split_list_eq[of \<open>trail S\<close>, symmetric] apply -
     apply (rule exI[of _ \<open>cons_trail (Propagated (-lit_of L') ()) ((tl_trail ^^ (length (L' # M'))) S)\<close>])
-    apply (auto simp: dpll\<^sub>W_core.simps state'_def state_tl_trail_comp_pow funpow_tl_append_skip_last)
+    apply (auto simp: dpll\<^sub>W_core.simps state'_def state_tl_trail_comp_pow funpow_tl_append_skip_ge)
     done
   subgoal
     using backtrack_split_list_eq[of \<open>trail S\<close>, symmetric] apply -
     apply (rule exI[of _ \<open>cons_trail (Propagated (-lit_of L') ()) ((tl_trail ^^ (length (L' # M'))) S)\<close>])
-    apply (auto simp: dpll\<^sub>W_core.simps state'_def state_tl_trail_comp_pow funpow_tl_append_skip_last)
+    apply (auto simp: dpll\<^sub>W_core.simps state'_def state_tl_trail_comp_pow funpow_tl_append_skip_ge)
     done
   done
 
