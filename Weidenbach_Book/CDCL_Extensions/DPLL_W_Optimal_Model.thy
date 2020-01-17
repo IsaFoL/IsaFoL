@@ -323,10 +323,10 @@ backtrack_opt: \<open>backtrack_opt S T \<Longrightarrow> dpll\<^sub>W_core S T\
 
 inductive_cases dpll\<^sub>W_coreE: \<open>dpll\<^sub>W_core S T\<close>
 
-inductive dpll\<^sub>W_branch :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
+inductive dpll\<^sub>W_bound :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
 update_info:
   \<open>is_improving M M' S \<Longrightarrow> T \<sim> (update_weight_information M' S)
-   \<Longrightarrow> dpll\<^sub>W_branch S T\<close>
+   \<Longrightarrow> dpll\<^sub>W_bound S T\<close>
 
 inductive dpll\<^sub>W_bnb :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<close> where
 dpll:
@@ -334,11 +334,11 @@ dpll:
   if \<open>dpll\<^sub>W_core S T\<close> |
 bnb:
   \<open>dpll\<^sub>W_bnb S T\<close>
-  if \<open>dpll\<^sub>W_branch S T\<close>
+  if \<open>dpll\<^sub>W_bound S T\<close>
 
 
 inductive_cases dpll\<^sub>W_bnbE: \<open>dpll\<^sub>W_bnb S T\<close>
-find_theorems atms_of_mm conflicting_clss
+
 lemma dpll\<^sub>W_core_is_dpll\<^sub>W:
   \<open>dpll\<^sub>W_core S T \<Longrightarrow> dpll\<^sub>W (abs_state S) (abs_state T)\<close>
   supply abs_state_def[simp] state'_def[simp]
@@ -371,35 +371,35 @@ lemma dpll\<^sub>W_core_same_weight:
     by (auto simp: dpll\<^sub>W.simps backtrack_opt.simps)
   done
 
-lemma dpll\<^sub>W_branch_trail:
-    \<open>dpll\<^sub>W_branch S T \<Longrightarrow> trail S = trail T\<close> and
-   dpll\<^sub>W_branch_clauses:
-    \<open>dpll\<^sub>W_branch S T \<Longrightarrow> clauses S = clauses T\<close> and
-  dpll\<^sub>W_branch_conflicting_clss:
-    \<open>dpll\<^sub>W_branch S T \<Longrightarrow> dpll\<^sub>W_all_inv (abs_state S) \<Longrightarrow> conflicting_clss S \<subseteq># conflicting_clss T\<close>
+lemma dpll\<^sub>W_bound_trail:
+    \<open>dpll\<^sub>W_bound S T \<Longrightarrow> trail S = trail T\<close> and
+   dpll\<^sub>W_bound_clauses:
+    \<open>dpll\<^sub>W_bound S T \<Longrightarrow> clauses S = clauses T\<close> and
+  dpll\<^sub>W_bound_conflicting_clss:
+    \<open>dpll\<^sub>W_bound S T \<Longrightarrow> dpll\<^sub>W_all_inv (abs_state S) \<Longrightarrow> conflicting_clss S \<subseteq># conflicting_clss T\<close>
   subgoal
-    by (induction rule: dpll\<^sub>W_branch.induct)
+    by (induction rule: dpll\<^sub>W_bound.induct)
      (auto simp: dpll\<^sub>W_all_inv_def state dest!: conflicting_clss_update_weight_information_mono)
   subgoal
-    by (induction rule: dpll\<^sub>W_branch.induct)
+    by (induction rule: dpll\<^sub>W_bound.induct)
      (auto simp: dpll\<^sub>W_all_inv_def state dest!: conflicting_clss_update_weight_information_mono)
   subgoal
-    by (induction rule: dpll\<^sub>W_branch.induct)
+    by (induction rule: dpll\<^sub>W_bound.induct)
       (auto simp: state conflicting_clss_def
         dest!: conflicting_clss_update_weight_information_mono)
   done
 
-lemma dpll\<^sub>W_branch_abs_state_all_inv:
-  \<open>dpll\<^sub>W_branch S T \<Longrightarrow> dpll\<^sub>W_all_inv (abs_state S) \<Longrightarrow> dpll\<^sub>W_all_inv (abs_state T)\<close>
-  using dpll\<^sub>W_branch_conflicting_clss[of S T] dpll\<^sub>W_branch_clauses[of S T]
+lemma dpll\<^sub>W_bound_abs_state_all_inv:
+  \<open>dpll\<^sub>W_bound S T \<Longrightarrow> dpll\<^sub>W_all_inv (abs_state S) \<Longrightarrow> dpll\<^sub>W_all_inv (abs_state T)\<close>
+  using dpll\<^sub>W_bound_conflicting_clss[of S T] dpll\<^sub>W_bound_clauses[of S T]
    atms_of_conflicting_clss[of T] atms_of_conflicting_clss[of S]
-  apply (auto simp: dpll\<^sub>W_all_inv_def dpll\<^sub>W_branch_trail lits_of_def image_image
-    intro: all_decomposition_implies_mono[OF set_mset_mono] dest: dpll\<^sub>W_branch_conflicting_clss)
+  apply (auto simp: dpll\<^sub>W_all_inv_def dpll\<^sub>W_bound_trail lits_of_def image_image
+    intro: all_decomposition_implies_mono[OF set_mset_mono] dest: dpll\<^sub>W_bound_conflicting_clss)
   by (blast intro: all_decomposition_implies_mono)
 
 lemma dpll\<^sub>W_bnb_abs_state_all_inv:
   \<open>dpll\<^sub>W_bnb S T \<Longrightarrow> dpll\<^sub>W_all_inv (abs_state S) \<Longrightarrow> dpll\<^sub>W_all_inv (abs_state T)\<close>
-  by (auto elim!: dpll\<^sub>W_bnb.cases intro: dpll\<^sub>W_branch_abs_state_all_inv dpll\<^sub>W_core_abs_state_all_inv)
+  by (auto elim!: dpll\<^sub>W_bnb.cases intro: dpll\<^sub>W_bound_abs_state_all_inv dpll\<^sub>W_core_abs_state_all_inv)
 
 lemma rtranclp_dpll\<^sub>W_bnb_abs_state_all_inv:
   \<open>dpll\<^sub>W_bnb\<^sup>*\<^sup>* S T \<Longrightarrow> dpll\<^sub>W_all_inv (abs_state S) \<Longrightarrow> dpll\<^sub>W_all_inv (abs_state T)\<close>
@@ -422,7 +422,7 @@ lemma dpll\<^sub>W_core_clauses:
 
 lemma dpll\<^sub>W_bnb_clauses:
   \<open>dpll\<^sub>W_bnb S T \<Longrightarrow> clauses S = clauses T\<close>
-  by (auto elim!: dpll\<^sub>W_bnbE simp: dpll\<^sub>W_branch_clauses dpll\<^sub>W_core_clauses)
+  by (auto elim!: dpll\<^sub>W_bnbE simp: dpll\<^sub>W_bound_clauses dpll\<^sub>W_core_clauses)
 
 lemma rtranclp_dpll\<^sub>W_bnb_clauses:
   \<open>dpll\<^sub>W_bnb\<^sup>*\<^sup>* S T \<Longrightarrow> clauses S = clauses T\<close>
@@ -435,7 +435,7 @@ lemma atms_of_clauses_conflicting_clss[simp]:
   using atms_of_conflicting_clss[of S] by blast
 
 lemma wf_dpll\<^sub>W_bnb_bnb: (* \htmllink{wf_dpll_bnb} *)
-  assumes improve: \<open>\<And>S T. dpll\<^sub>W_branch S T \<Longrightarrow> clauses S = N \<Longrightarrow> (\<nu> (weight T), \<nu> (weight S)) \<in> R\<close> and
+  assumes improve: \<open>\<And>S T. dpll\<^sub>W_bound S T \<Longrightarrow> clauses S = N \<Longrightarrow> (\<nu> (weight T), \<nu> (weight S)) \<in> R\<close> and
     wf_R: \<open>wf R\<close>
   shows \<open>wf {(T, S). dpll\<^sub>W_all_inv (abs_state S) \<and> dpll\<^sub>W_bnb S T \<and>
       clauses S = N}\<close>
@@ -557,7 +557,7 @@ context
   assumes can_always_improve:
      \<open>\<And>S. trail S \<Turnstile>asm clauses S \<Longrightarrow> (\<forall>C \<in># conflicting_clss S. \<not> trail S \<Turnstile>as CNot C) \<Longrightarrow>
        dpll\<^sub>W_all_inv (abs_state S) \<Longrightarrow>
-       total_over_m (lits_of_l (trail S)) (set_mset (clauses S)) \<Longrightarrow> Ex (dpll\<^sub>W_branch S)\<close>
+       total_over_m (lits_of_l (trail S)) (set_mset (clauses S)) \<Longrightarrow> Ex (dpll\<^sub>W_bound S)\<close>
 begin
 
 lemma no_step_dpll\<^sub>W_bnb_conflict:
@@ -626,7 +626,40 @@ proof (rule ccontr)
    by auto
 qed
 
+
 end
+
+inductive dpll\<^sub>W_core_stgy :: "'st \<Rightarrow> 'st \<Rightarrow> bool" for S T where
+propagate: "dpll.dpll_propagate S T \<Longrightarrow> dpll\<^sub>W_core_stgy S T" |
+decided: "dpll.dpll_decide S T \<Longrightarrow> no_step dpll.dpll_propagate S  \<Longrightarrow> no_step dpll.dpll_backtrack S \<Longrightarrow> dpll\<^sub>W_core_stgy S T " |
+backtrack: "dpll.dpll_backtrack S T \<Longrightarrow> dpll\<^sub>W_core_stgy S T" |
+backtrack_opt: \<open>backtrack_opt S T \<Longrightarrow> dpll\<^sub>W_core_stgy S T\<close>
+
+lemma dpll\<^sub>W_core_stgy_dpll\<^sub>W_core: \<open>dpll\<^sub>W_core_stgy S T \<Longrightarrow> dpll\<^sub>W_core S T\<close>
+  by (induction rule: dpll\<^sub>W_core_stgy.induct)
+    (auto intro: dpll\<^sub>W_core.intros)
+
+lemma rtranclp_dpll\<^sub>W_core_stgy_dpll\<^sub>W_core: \<open>dpll\<^sub>W_core_stgy\<^sup>*\<^sup>* S T \<Longrightarrow> dpll\<^sub>W_core\<^sup>*\<^sup>* S T\<close>
+  by (induction rule: rtranclp_induct)
+    (auto dest: dpll\<^sub>W_core_stgy_dpll\<^sub>W_core)
+
+lemma no_step_stgy_iff: \<open>no_step dpll\<^sub>W_core_stgy S \<longleftrightarrow> no_step dpll\<^sub>W_core S\<close>
+  by (auto simp: dpll\<^sub>W_core_stgy.simps dpll\<^sub>W_core.simps)
+
+lemma full_dpll\<^sub>W_core_stgy_dpll\<^sub>W_core: \<open>full dpll\<^sub>W_core_stgy S T \<Longrightarrow> full dpll\<^sub>W_core S T\<close>
+  unfolding full_def by (simp add: no_step_stgy_iff rtranclp_dpll\<^sub>W_core_stgy_dpll\<^sub>W_core)
+
+lemma dpll\<^sub>W_core_stgy_clauses:
+  \<open>dpll\<^sub>W_core_stgy S T \<Longrightarrow> clauses T = clauses S\<close>
+  by (induction rule: dpll\<^sub>W_core_stgy.induct)
+   (auto simp: dpll.dpll_propagate.simps dpll.dpll_decide.simps dpll.dpll_backtrack.simps
+      backtrack_opt.simps)
+
+lemma rtranclp_dpll\<^sub>W_core_stgy_clauses:
+  \<open>dpll\<^sub>W_core_stgy\<^sup>*\<^sup>* S T \<Longrightarrow> clauses T = clauses S\<close>
+  by (induction rule: rtranclp_induct)
+    (auto dest: dpll\<^sub>W_core_stgy_clauses)
+
 
 end
 
@@ -747,7 +780,7 @@ sublocale bnb: bnb where
 
 lemma improve_model_still_model:
   assumes
-    \<open>bnb.dpll\<^sub>W_branch S T\<close> and
+    \<open>bnb.dpll\<^sub>W_bound S T\<close> and
     all_struct: \<open>dpll\<^sub>W_all_inv (bnb.abs_state S)\<close> and
     ent: \<open>set_mset I \<Turnstile>sm clauses S\<close>  \<open>set_mset I \<Turnstile>sm bnb.conflicting_clss S\<close> and
     dist: \<open>distinct_mset I\<close> and
@@ -757,7 +790,7 @@ lemma improve_model_still_model:
   shows
     \<open>set_mset I \<Turnstile>sm clauses T \<and> set_mset I \<Turnstile>sm bnb.conflicting_clss T\<close>
   using assms(1)
-proof (cases rule: bnb.dpll\<^sub>W_branch.cases)
+proof (cases rule: bnb.dpll\<^sub>W_bound.cases)
   case (update_info M M') note imp = this(1) and T = this(2)
   have atm_trail: \<open>atms_of (lit_of `# mset (trail S)) \<subseteq> atms_of_mm (clauses S)\<close> and
        dist2: \<open>distinct_mset (lit_of `# mset (trail S))\<close> and
@@ -814,7 +847,7 @@ lemma cdcl_bnb_larger_still_larger:
     \<open>bnb.dpll\<^sub>W_bnb S T\<close>
   shows \<open>\<rho>' (weight S) \<ge> \<rho>' (weight T)\<close>
   using assms apply (cases rule: bnb.dpll\<^sub>W_bnb.cases)
-  by (auto simp: bnb.dpll\<^sub>W_branch.simps is_improving_int_def bnb.dpll\<^sub>W_core_same_weight)
+  by (auto simp: bnb.dpll\<^sub>W_bound.simps is_improving_int_def bnb.dpll\<^sub>W_core_same_weight)
 
 lemma rtranclp_cdcl_bnb_still_model:
   assumes
@@ -855,7 +888,7 @@ lemma can_always_improve:
     total: \<open>total_over_m (lits_of_l (trail S)) (set_mset (clauses S))\<close> and
     n_s: \<open>(\<forall>C \<in># bnb.conflicting_clss S. \<not> trail S \<Turnstile>as CNot C)\<close> and
     all_struct: \<open>dpll\<^sub>W_all_inv (bnb.abs_state S)\<close>
-   shows \<open>Ex (bnb.dpll\<^sub>W_branch S)\<close>
+   shows \<open>Ex (bnb.dpll\<^sub>W_bound S)\<close>
 proof -
   have H: \<open>(lit_of `# mset (trail S)) \<in># mset_set (simple_clss (atms_of_mm (clauses S)))\<close>
     \<open>(lit_of `# mset (trail S)) \<in> simple_clss (atms_of_mm (clauses S))\<close>
@@ -912,7 +945,7 @@ proof -
     using that total H tr tot' M' unfolding is_improving_int_def lits_of_def
     by fast
   then show ?thesis
-    using bnb.dpll\<^sub>W_branch.intros[of \<open>trail S\<close> _ S \<open>update_weight_information (trail S) S\<close>] total H le
+    using bnb.dpll\<^sub>W_bound.intros[of \<open>trail S\<close> _ S \<open>update_weight_information (trail S) S\<close>] total H le
     by fast
 qed
 
