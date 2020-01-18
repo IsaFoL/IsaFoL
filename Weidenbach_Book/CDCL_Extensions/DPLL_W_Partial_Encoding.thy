@@ -4,10 +4,196 @@ imports
   CDCL_W_Partial_Encoding
 begin
 
+context optimal_encoding_ops
+begin
+
+definition list_new_vars :: \<open>'v list\<close> where
+\<open>list_new_vars = (SOME v. set v = \<Delta>\<Sigma> \<and> distinct v)\<close>
+
+fun all_sound_trails where
+  \<open>all_sound_trails [] = simple_clss (\<Sigma> - \<Delta>\<Sigma>)\<close> |
+  \<open>all_sound_trails (L # M) =
+     all_sound_trails M \<union> add_mset (Pos (replacement_pos L)) ` all_sound_trails M
+      \<union> add_mset (Pos (replacement_neg L)) ` all_sound_trails M\<close>
+
+lemma all_sound_trails_atms:
+  \<open>set xs \<subseteq> \<Delta>\<Sigma> \<Longrightarrow>
+   C \<in> all_sound_trails xs \<Longrightarrow>
+     atms_of C \<subseteq> \<Sigma> - \<Delta>\<Sigma> \<union> replacement_pos ` set xs \<union> replacement_neg ` set xs\<close>
+  apply (induction xs arbitrary: C)
+  subgoal by (auto simp: simple_clss_def)
+  subgoal for x xs C
+    apply (auto simp: tautology_add_mset)
+    apply blast+
+    done
+  done
+
+lemma all_sound_trails_distinct_mset:
+  \<open>set xs \<subseteq> \<Delta>\<Sigma> \<Longrightarrow> distinct xs \<Longrightarrow>
+   C \<in> all_sound_trails xs \<Longrightarrow>
+     distinct_mset C\<close>
+  using all_sound_trails_atms[of xs C]
+  apply (induction xs arbitrary: C)
+  subgoal by (auto simp: simple_clss_def)
+  subgoal for x xs C
+    apply clarsimp
+    apply (auto simp: tautology_add_mset)
+    apply (simp add: all_sound_trails_atms; fail)+
+    apply (frule all_sound_trails_atms, assumption)
+    apply (auto dest!: multi_member_split simp: subsetD)
+    apply (simp add: all_sound_trails_atms; fail)+
+    apply (frule all_sound_trails_atms, assumption)
+    apply (auto dest!: multi_member_split simp: subsetD)
+    apply (simp add: all_sound_trails_atms; fail)+
+    done
+  done
+
+lemma all_sound_trails_tautology:
+  \<open>set xs \<subseteq> \<Delta>\<Sigma> \<Longrightarrow> distinct xs \<Longrightarrow>
+   C \<in> all_sound_trails xs \<Longrightarrow>
+     \<not>tautology C\<close>
+  using all_sound_trails_atms[of xs C]
+  apply (induction xs arbitrary: C)
+  subgoal by (auto simp: simple_clss_def)
+  subgoal for x xs C
+    apply clarsimp
+    apply (auto simp: tautology_add_mset)
+    apply (simp add: all_sound_trails_atms; fail)+
+    apply (frule all_sound_trails_atms, assumption)
+    apply (auto dest!: multi_member_split simp: subsetD)
+    apply (simp add: all_sound_trails_atms; fail)+
+    apply (frule all_sound_trails_atms, assumption)
+    apply (auto dest!: multi_member_split simp: subsetD)
+    done
+  done
+
+lemma all_sound_trails_simple_clss:
+  \<open>set xs \<subseteq> \<Delta>\<Sigma> \<Longrightarrow> distinct xs \<Longrightarrow>
+   all_sound_trails xs \<subseteq> simple_clss (\<Sigma> - \<Delta>\<Sigma> \<union> replacement_pos ` set xs \<union> replacement_neg ` set xs)\<close>
+   using all_sound_trails_tautology[of xs]
+     all_sound_trails_distinct_mset[of xs]
+     all_sound_trails_atms[of xs]
+   by (fastforce simp: simple_clss_def)
+
+lemma in_all_sound_trails_inD:
+  \<open>set xs \<subseteq> \<Delta>\<Sigma> \<Longrightarrow> distinct xs \<Longrightarrow> a \<in> \<Delta>\<Sigma> \<Longrightarrow>
+   add_mset (Pos (a\<^sup>\<mapsto>\<^sup>0)) xa \<in> all_sound_trails xs \<Longrightarrow> a \<in> set xs\<close>
+  using all_sound_trails_simple_clss[of xs]
+  apply (auto simp: simple_clss_def)
+  apply (rotate_tac 3)
+  apply (frule set_mp, assumption)
+  apply auto
+  done
+
+lemma in_all_sound_trails_inD':
+  \<open>set xs \<subseteq> \<Delta>\<Sigma> \<Longrightarrow> distinct xs \<Longrightarrow> a \<in> \<Delta>\<Sigma> \<Longrightarrow>
+   add_mset (Pos (a\<^sup>\<mapsto>\<^sup>1)) xa \<in> all_sound_trails xs \<Longrightarrow> a \<in> set xs\<close>
+  using all_sound_trails_simple_clss[of xs]
+  apply (auto simp: simple_clss_def)
+  apply (rotate_tac 3)
+  apply (frule set_mp, assumption)
+  apply auto
+  done
+
+context
+  assumes [simp]: \<open>finite \<Sigma>\<close>
+begin
+
+lemma all_sound_trails_finite[simp]:
+  \<open>finite (all_sound_trails xs)\<close>
+  by (induction xs)
+    (auto intro!: simple_clss_finite finite_\<Sigma>)
+
+lemma card_all_sound_trails:
+  assumes \<open>set xs \<subseteq> \<Delta>\<Sigma>\<close> and \<open>distinct xs\<close>
+  shows \<open>card (all_sound_trails xs) = card (simple_clss (\<Sigma> - \<Delta>\<Sigma>)) * 3 ^ (length xs)\<close>
+  using assms
+  apply (induction xs)
+  apply auto
+  apply (subst card_Un_disjoint)
+  apply (auto simp: add_mset_eq_add_mset dest: in_all_sound_trails_inD)
+  apply (subst card_Un_disjoint)
+  apply (auto simp: add_mset_eq_add_mset dest: in_all_sound_trails_inD')
+  apply (subst card_image)
+  apply (auto simp: inj_on_def)
+  apply (subst card_image)
+  apply (auto simp: inj_on_def)
+  done
+
+end
+
+lemma simple_clss_all_sound_trails: \<open>simple_clss (\<Sigma> - \<Delta>\<Sigma>) \<subseteq> all_sound_trails ys\<close>
+  apply (induction ys)
+  apply auto
+  done
+
+lemma \<open>set xs = set xs' \<Longrightarrow> distinct xs \<Longrightarrow> distinct xs' \<Longrightarrow> all_sound_trails xs = all_sound_trails xs'\<close>
+  apply (induction xs arbitrary: xs')
+  subgoal by simp
+  subgoal premises p for a xs xs'
+    using p(1)[of \<open>remove1 a xs'\<close>] p(2-)
+    apply (cases \<open>a \<in> set xs'\<close>)
+    apply (auto dest!: split_list[of a])
+oops
+lemma
+  assumes \<open>set xs \<subseteq> set ys\<close>
+  shows \<open>all_sound_trails xs \<subseteq> all_sound_trails ys\<close>
+  using assms
+  apply (induction xs)
+  apply auto
+  oops
+lemma
+  assumes
+    \<open>C \<subseteq> \<Delta>\<Sigma>\<close>  \<open>C' \<subseteq> \<Delta>\<Sigma>\<close>  \<open>C \<inter> C' = {}\<close> \<open>C \<union> C' \<subseteq> set xs\<close>
+    \<open>D \<in> simple_clss (\<Sigma> - \<Delta>\<Sigma>)\<close>
+  shows
+    \<open>(Pos o replacement_pos) `# mset_set C + (Pos o replacement_neg) `# mset_set C' + D \<in> all_sound_trails xs\<close>
+  using assms
+  apply (induction xs arbitrary: C C' D)
+  subgoal
+    using simple_clss_all_sound_trails[of \<open>[]\<close>]
+    by auto
+  subgoal premises p for a xs C C' D
+    apply (cases \<open>a \<in># mset_set C\<close>)
+    subgoal
+      using p(1)[of \<open>C - {a}\<close> C' D] p(2-)
+      finite_subset[OF p(3)]
+      apply -
+      apply (subgoal_tac \<open>finite C \<and> C - {a} \<subseteq> \<Delta>\<Sigma> \<and> C' \<subseteq> \<Delta>\<Sigma> \<and> (C - {a}) \<inter> C' = {} \<and> C - {a} \<union> C' \<subseteq> set xs\<close>)
+      defer
+      apply (auto simp: disjoint_iff_not_equal finite_subset)[]
+      apply (auto dest!: multi_member_split)
+      by (simp add: mset_set.remove)
+    apply (cases \<open>a \<in># mset_set C'\<close>)
+    subgoal
+      using p(1)[of C \<open>C' - {a}\<close> D] p(2-)
+        finite_subset[OF p(3)]
+      apply -
+      apply (subgoal_tac \<open>finite C \<and> C \<subseteq> \<Delta>\<Sigma> \<and> C'- {a} \<subseteq> \<Delta>\<Sigma> \<and> (C) \<inter> (C'- {a}) = {} \<and> C \<union> C'- {a} \<subseteq> set xs \<and>
+         C \<subseteq> set xs \<and> C' - {a} \<subseteq> set xs\<close>)
+      defer
+      apply (auto simp: disjoint_iff_not_equal finite_subset)[]
+      apply (auto dest!: multi_member_split)
+      by (simp add: mset_set.remove)
+    subgoal
+      using p(1)[of C C' D] p(2-)
+        finite_subset[OF p(3)]
+      apply -
+      apply (subgoal_tac \<open>finite C \<and> C \<subseteq> \<Delta>\<Sigma> \<and> C' \<subseteq> \<Delta>\<Sigma> \<and> (C) \<inter> (C') = {} \<and> C \<union> C' \<subseteq> set xs \<and>
+         C \<subseteq> set xs \<and> C' \<subseteq> set xs\<close>)
+      defer
+      apply (auto simp: disjoint_iff_not_equal finite_subset)[]
+      by (auto dest!: multi_member_split)
+    done
+  done
+
+end
+
+
 locale dpll_optimal_encoding_opt =
   dpll\<^sub>W_state_optimal_weight trail clauses
-    tl_trail cons_trail state_eq state   \<rho> update_additional_info +
-  optimal_encoding_opt_ops \<Sigma> \<Delta>\<Sigma> new_vars 
+    tl_trail cons_trail state_eq state \<rho> update_additional_info +
+  optimal_encoding_opt_ops \<Sigma> \<Delta>\<Sigma> new_vars
   for
     trail :: \<open>'st \<Rightarrow> 'v  dpll\<^sub>W_ann_lits\<close> and
     clauses :: \<open>'st \<Rightarrow> 'v clauses\<close> and
@@ -237,7 +423,6 @@ definition no_smaller_propa :: \<open>'st \<Rightarrow> bool\<close> where
 "no_smaller_propa (S ::'st) \<longleftrightarrow>
   (\<forall>M K M' D L. trail S = M' @ Decided K # M \<longrightarrow> add_mset L D \<in># clauses S \<longrightarrow> undefined_lit M L \<longrightarrow> \<not>M \<Turnstile>as CNot D)"
 
-    
 lemma [simp]: \<open>T \<sim> S \<Longrightarrow> no_smaller_propa T = no_smaller_propa S\<close>
   by (auto simp: no_smaller_propa_def)
 
@@ -573,12 +758,12 @@ lemma in_set_all_clauses_literals_simp[simp]:
   by (auto simp: all_clauses_literals)
 
 
-abbreviation cut_and_complete_trail :: \<open>'st \<Rightarrow> 'v clause\<close> where
-\<open>cut_and_complete_trail S \<equiv> lit_of `# mset (snd (backtrack_split (trail S)))\<close>
+abbreviation cut_and_complete_trail :: \<open>'st \<Rightarrow> _\<close> where
+\<open>cut_and_complete_trail S \<equiv> trail S\<close>
 
 
 (*TODO prove that favouring conflict over propagate works [this is obvious, but still]...*)
-inductive odpll\<^sub>W_core_stgy_count :: "'st \<times>'v clauses \<Rightarrow> 'st \<times> 'v clauses \<Rightarrow> bool" where
+inductive odpll\<^sub>W_core_stgy_count :: "'st \<times> _ \<Rightarrow> 'st \<times> _ \<Rightarrow> bool" where
 propagate: "dpll_propagate S T \<Longrightarrow> odpll\<^sub>W_core_stgy_count (S, C) (T, C)" |
 decided: "odecide S T \<Longrightarrow> no_step dpll_propagate S  \<Longrightarrow> no_step dpll_backtrack S \<Longrightarrow>
   no_step dpll_conflict S \<Longrightarrow> odpll\<^sub>W_core_stgy_count (S, C) (T, C) " |
@@ -586,7 +771,7 @@ backtrack: "dpll_backtrack S T \<Longrightarrow> odpll\<^sub>W_core_stgy_count (
 backtrack_opt: \<open>bnb.backtrack_opt S T \<Longrightarrow> odpll\<^sub>W_core_stgy_count (S, C) (T, add_mset (cut_and_complete_trail S) C)\<close>
 
 
-inductive odpll\<^sub>W_bnb_stgy_count :: \<open>'st \<times> 'v clauses \<Rightarrow> 'st \<times> 'v clauses \<Rightarrow> bool\<close> where
+inductive odpll\<^sub>W_bnb_stgy_count :: \<open>'st \<times> _ \<Rightarrow> 'st \<times> _ \<Rightarrow> bool\<close> where
 dpll:
   \<open>odpll\<^sub>W_bnb_stgy_count S T\<close>
   if \<open>odpll\<^sub>W_core_stgy_count S T\<close> |
@@ -648,9 +833,14 @@ lemma
   apply (auto simp: complete_trail_def lits_of_def image_image)
   done
 
-definition conflict_clauses_are_entailed :: \<open>'st \<times> 'v clauses \<Rightarrow> bool\<close> where
+definition conflict_clauses_are_entailed :: \<open>'st \<times> _ \<Rightarrow> bool\<close> where
 \<open>conflict_clauses_are_entailed =
-  (\<lambda>(S, Cs). \<forall>C \<in># Cs. \<exists>M' K M. trail S = M' @ Propagated K () # M \<and> lit_of `# mset (Decided (-K) # M) \<subseteq># C)\<close>>
+  (\<lambda>(S, Cs). \<forall>C \<in># Cs. (\<exists>M' K M M''. trail S = M' @ Propagated K () # M \<and> C = M'' @ Decided (-K) # M))\<close>
+
+definition conflict_clauses_are_entailed2 :: \<open>'st \<times> ('v literal, 'v literal, unit) annotated_lits multiset \<Rightarrow> bool\<close> where
+\<open>conflict_clauses_are_entailed2 =
+  (\<lambda>(S, Cs). \<forall>C \<in># Cs. \<forall>C' \<in># remove1_mset C Cs. (\<exists>L. Decided L \<in> set C \<and> Propagated (-L) () \<in> set C') \<or>
+    (\<exists>L.  Propagated (L) () \<in> set C \<and> Decided (-L) \<in> set C'))\<close>
 
 lemma propagated_cons_eq_append_propagated_cons:
  \<open>Propagated L () # M = M' @ Propagated K () # Ma \<longleftrightarrow>
@@ -682,12 +872,12 @@ lemma odpll\<^sub>W_core_stgy_count_conflict_clauses_are_entailed:
     apply (auto simp: dpll_backtrack.simps conflict_clauses_are_entailed_def
         propagated_cons_eq_append_propagated_cons is_decided_def append_eq_append_conv2
         eq_commute[of _ \<open>Propagated _ () # _\<close>] conj_disj_distribR ex_disj_distrib
-      cdcl\<^sub>W_restart_mset.propagated_cons_eq_append_decide_cons
+      cdcl\<^sub>W_restart_mset.propagated_cons_eq_append_decide_cons dpll\<^sub>W_all_inv_def
       dest!: multi_member_split
       simp del: backtrack_split_list_eq
      )
-    using subset_mset.dual_order.trans apply force
-    by (metis append.left_neutral cdcl\<^sub>W_restart_mset.propagated_cons_eq_append_decide_cons list.distinct(1) list.sel(1) list.sel(3) tl_append2)
+     apply (case_tac us)
+     by force+
   subgoal for S T C
     using backtrack_split_list_eq[of \<open>trail S\<close>, symmetric]
       backtrack_split_snd_hd_decided[of \<open>trail S\<close>]
@@ -695,21 +885,86 @@ lemma odpll\<^sub>W_core_stgy_count_conflict_clauses_are_entailed:
         propagated_cons_eq_append_propagated_cons is_decided_def append_eq_append_conv2
         eq_commute[of _ \<open>Propagated _ () # _\<close>] conj_disj_distribR ex_disj_distrib
       cdcl\<^sub>W_restart_mset.propagated_cons_eq_append_decide_cons
+      dpll\<^sub>W_all_inv_def
       dest!: multi_member_split
       simp del: backtrack_split_list_eq
      )
-    using subset_mset.dual_order.trans apply force
-    by (metis append.left_neutral cdcl\<^sub>W_restart_mset.propagated_cons_eq_append_decide_cons list.distinct(1) list.sel(1) list.sel(3) tl_append2)
+     apply (case_tac us)
+     by force+
   done
 
-lemma odpll\<^sub>W_core_stgy_count_conflict_clauses_are_entailed:
+
+lemma odpll\<^sub>W_bnb_stgy_count_conflict_clauses_are_entailed:
+  assumes
+    \<open>odpll\<^sub>W_bnb_stgy_count S T\<close> and
+    \<open>conflict_clauses_are_entailed S\<close>
+  shows
+    \<open>conflict_clauses_are_entailed T\<close>
+  using assms odpll\<^sub>W_core_stgy_count_conflict_clauses_are_entailed[of S T]
+  apply (auto simp: odpll\<^sub>W_bnb_stgy_count.simps)
+  apply (auto simp: conflict_clauses_are_entailed_def
+    bnb.dpll\<^sub>W_bound.simps)
+  done
+
+lemma odpll\<^sub>W_core_stgy_count_no_dup_clss:
+  assumes
+    \<open>odpll\<^sub>W_core_stgy_count S T\<close> and
+    \<open>\<forall>C \<in># snd S. no_dup C\<close> and
+    invs: \<open>dpll\<^sub>W_all_inv (bnb.abs_state (fst S))\<close>
+  shows
+    \<open>\<forall>C \<in># snd T. no_dup C\<close>
+  using assms
+  by (induction rule: odpll\<^sub>W_core_stgy_count.induct)
+    (auto simp: dpll\<^sub>W_all_inv_def)
+
+lemma odpll\<^sub>W_bnb_stgy_count_no_dup_clss:
+  assumes
+    \<open>odpll\<^sub>W_bnb_stgy_count S T\<close> and
+    \<open>\<forall>C \<in># snd S. no_dup C\<close> and
+    invs: \<open>dpll\<^sub>W_all_inv (bnb.abs_state (fst S))\<close>
+  shows
+    \<open>\<forall>C \<in># snd T. no_dup C\<close>
+  using assms
+  by (induction rule: odpll\<^sub>W_bnb_stgy_count.induct)
+    (auto simp: dpll\<^sub>W_all_inv_def 
+      bnb.dpll\<^sub>W_bound.simps dest!: odpll\<^sub>W_core_stgy_count_no_dup_clss)
+
+lemma backtrack_split_conflict_clauses_are_entailed_itself:
+  assumes
+    \<open>backtrack_split (trail S) = (M', L # M)\<close> and
+    invs: \<open>dpll\<^sub>W_all_inv (bnb.abs_state S)\<close>
+  shows \<open>\<not> conflict_clauses_are_entailed
+            (S, add_mset (trail S) C)\<close> (is \<open>\<not> ?A\<close>)
+proof
+  assume ?A
+  then obtain M' K Ma where
+    tr: \<open>trail S = M' @ Propagated K () # Ma\<close> and
+    \<open>add_mset (- K) (lit_of `# mset Ma) \<subseteq>#
+       add_mset (lit_of L) (lit_of `# mset M)\<close>
+    by (clarsimp simp: conflict_clauses_are_entailed_def)
+
+  then have \<open>-K \<in># add_mset (lit_of L) (lit_of `# mset M)\<close>
+    by (meson member_add_mset mset_subset_eqD)
+  then have \<open>-K \<in># lit_of `# mset (trail S)\<close>
+    using backtrack_split_list_eq[of \<open>trail S\<close>, symmetric] assms(1)
+    by auto
+  moreover have \<open>K \<in># lit_of `# mset (trail S)\<close>
+    by (auto simp: tr)
+  ultimately show False using invs unfolding dpll\<^sub>W_all_inv_def
+    by (auto simp add: no_dup_cannot_not_lit_and_uminus uminus_lit_swap)
+qed
+
+
+
+lemma odpll\<^sub>W_core_stgy_count_distinct_mset:
   assumes
     \<open>odpll\<^sub>W_core_stgy_count S T\<close> and
     \<open>conflict_clauses_are_entailed S\<close> and
-    \<open>distinct_mset (snd S)\<close>
+    \<open>distinct_mset (snd S)\<close> and
+    invs: \<open>dpll\<^sub>W_all_inv (bnb.abs_state (fst S))\<close>
   shows
     \<open>distinct_mset (snd T)\<close>
-  using assms(1,2,3) odpll\<^sub>W_core_stgy_count_conflict_clauses_are_entailed[OF assms(1,2)]
+  using assms(1,2,3,4) odpll\<^sub>W_core_stgy_count_conflict_clauses_are_entailed[OF assms(1,2)]
   apply (induction rule: odpll\<^sub>W_core_stgy_count.induct)
   subgoal
     by (auto simp: dpll_propagate.simps conflict_clauses_are_entailed_def
@@ -717,20 +972,251 @@ lemma odpll\<^sub>W_core_stgy_count_conflict_clauses_are_entailed:
   subgoal
     by (auto simp:)
   subgoal for S T C
-    apply (clarsimp simp: dpll_backtrack.simps dest!: multi_member_split)
-    (* a trail does not entail a subset *)
-     sorry
+    by (clarsimp simp: dpll_backtrack.simps backtrack_split_conflict_clauses_are_entailed_itself
+      dest!: multi_member_split)
+  subgoal for S T C
+    by (clarsimp simp: bnb.backtrack_opt.simps backtrack_split_conflict_clauses_are_entailed_itself
+      dest!: multi_member_split)
+  done
 
-oops
+lemma odpll\<^sub>W_bnb_stgy_count_distinct_mset:
+  assumes
+    \<open>odpll\<^sub>W_bnb_stgy_count S T\<close> and
+    \<open>conflict_clauses_are_entailed S\<close> and
+    \<open>distinct_mset (snd S)\<close> and
+    invs: \<open>dpll\<^sub>W_all_inv (bnb.abs_state (fst S))\<close>
+  shows
+    \<open>distinct_mset (snd T)\<close>
+  using assms odpll\<^sub>W_core_stgy_count_distinct_mset[OF _ assms(2-), of T]
+  by (auto simp: odpll\<^sub>W_bnb_stgy_count.simps)
+
+
+lemma odpll\<^sub>W_core_stgy_count_conflict_clauses_are_entailed2:
+  assumes
+    \<open>odpll\<^sub>W_core_stgy_count S T\<close> and
+    \<open>conflict_clauses_are_entailed S\<close> and
+    \<open>conflict_clauses_are_entailed2 S\<close> and
+    \<open>distinct_mset (snd S)\<close> and
+    invs: \<open>dpll\<^sub>W_all_inv (bnb.abs_state (fst S))\<close>
+  shows
+      \<open>conflict_clauses_are_entailed2 T\<close>
+  using assms
+proof (induction rule: odpll\<^sub>W_core_stgy_count.induct)
+  case (propagate S T C)
+  then show ?case
+    by (auto simp: dpll_propagate.simps conflict_clauses_are_entailed2_def)
+next
+  case (decided S T C)
+  then show ?case
+    by (auto simp: dpll_decide.simps conflict_clauses_are_entailed2_def)
+next
+  case (backtrack S T C) note bt = this(1) and ent = this(2) and ent2 = this(3) and dist = this(4)
+    and invs = this(5)
+  let ?M = \<open>(cut_and_complete_trail S)\<close>
+  have \<open>conflict_clauses_are_entailed (T, add_mset ?M C)\<close> and
+    dist': \<open>distinct_mset (add_mset ?M C)\<close>
+    using odpll\<^sub>W_core_stgy_count_conflict_clauses_are_entailed[OF _ ent, of \<open>(T, add_mset ?M C)\<close>]
+    odpll\<^sub>W_core_stgy_count_distinct_mset[OF _ ent dist invs, of \<open>(T, add_mset ?M C)\<close>]
+      bt by (auto dest!: odpll\<^sub>W_core_stgy_count.intros(3)[of S T C])
+
+  obtain M1 K M2 where
+    spl: \<open>backtrack_split (trail S) = (M2, Decided K # M1)\<close>
+    using bt backtrack_split_snd_hd_decided[of \<open>trail S\<close>]
+    by (cases \<open>hd (snd (backtrack_split (trail S)))\<close>) (auto simp: dpll_backtrack.simps)
+  have has_dec: \<open>\<exists>l\<in>set (trail S). is_decided l\<close>
+    using bt apply (auto simp: dpll_backtrack.simps)
+    using bt count_decided_0_iff no_step_dpll_backtrack_iff by blast
+
+  let ?P = \<open>\<lambda>Ca C'.
+          (\<exists>L. Decided L \<in> set Ca \<and> Propagated (- L) () \<in> set C') \<or>
+          (\<exists>L. Propagated L () \<in> set Ca \<and> Decided (- L)  \<in> set C')\<close>
+  have \<open>\<forall>C'\<in>#remove1_mset ?M C. ?P ?M C'\<close>
+  proof
+    fix C'
+    assume \<open>C'\<in>#remove1_mset ?M C\<close>
+    then have \<open>C' \<in># C\<close> and \<open>C' \<noteq> ?M\<close>
+      using dist' by auto
+    then obtain M' L M M'' where
+      \<open>trail S = M' @ Propagated L () # M\<close> and
+      \<open>C' = M'' @ Decided (- L) # M\<close>
+      using ent unfolding conflict_clauses_are_entailed_def
+      by auto
+    then show \<open>?P ?M C'\<close>
+      using backtrack_split_some_is_decided_then_snd_has_hd[of \<open>trail S\<close>, OF has_dec]
+        spl backtrack_split_list_eq[of \<open>trail S\<close>, symmetric]
+      by (clarsimp simp: conj_disj_distribR ex_disj_distrib  decided_cons_eq_append_decide_cons
+        cdcl\<^sub>W_restart_mset.propagated_cons_eq_append_decide_cons propagated_cons_eq_append_propagated_cons
+        append_eq_append_conv2)
+  qed
+  moreover have H: \<open>?case \<longleftrightarrow> (\<forall>Ca\<in>#add_mset ?M C.
+       \<forall>C'\<in>#remove1_mset Ca C. ?P Ca C')\<close>
+    unfolding conflict_clauses_are_entailed2_def prod.case
+    apply (intro conjI iffI impI ballI)
+    subgoal for Ca C'
+      by (auto dest: multi_member_split dest: in_diffD)
+    subgoal for Ca C'
+      using dist'
+      by (auto 5 3 dest!: multi_member_split[of Ca] dest: in_diffD)
+    done
+  moreover have \<open>(\<forall>Ca\<in>#C. \<forall>C'\<in>#remove1_mset Ca C. ?P Ca C')\<close>
+    using ent2 unfolding conflict_clauses_are_entailed2_def
+    by auto
+  ultimately show ?case
+    unfolding H
+    by auto
+next
+  case (backtrack_opt S T C) note bt = this(1) and ent = this(2) and ent2 = this(3) and dist = this(4)
+    and invs = this(5)
+  let ?M = \<open>(cut_and_complete_trail S)\<close>
+  have \<open>conflict_clauses_are_entailed (T, add_mset ?M C)\<close> and
+    dist': \<open>distinct_mset (add_mset ?M C)\<close>
+    using odpll\<^sub>W_core_stgy_count_conflict_clauses_are_entailed[OF _ ent, of \<open>(T, add_mset ?M C)\<close>]
+    odpll\<^sub>W_core_stgy_count_distinct_mset[OF _ ent dist invs, of \<open>(T, add_mset ?M C)\<close>]
+      bt by (auto dest!: odpll\<^sub>W_core_stgy_count.intros(4)[of S T C])
+
+  obtain M1 K M2 where
+    spl: \<open>backtrack_split (trail S) = (M2, Decided K # M1)\<close>
+    using bt backtrack_split_snd_hd_decided[of \<open>trail S\<close>]
+    by (cases \<open>hd (snd (backtrack_split (trail S)))\<close>) (auto simp: bnb.backtrack_opt.simps)
+  have has_dec: \<open>\<exists>l\<in>set (trail S). is_decided l\<close>
+    using bt apply (auto simp: bnb.backtrack_opt.simps)
+    by (metis annotated_lit.disc(1) backtrack_split_list_eq in_set_conv_decomp snd_conv spl)
+
+  let ?P = \<open>\<lambda>Ca C'.
+          (\<exists>L. Decided L \<in> set Ca \<and> Propagated (- L) () \<in> set C') \<or>
+          (\<exists>L. Propagated L () \<in> set Ca \<and> Decided (- L)  \<in> set C')\<close>
+  have \<open>\<forall>C'\<in>#remove1_mset ?M C. ?P ?M C'\<close>
+  proof
+    fix C'
+    assume \<open>C'\<in>#remove1_mset ?M C\<close>
+    then have \<open>C' \<in># C\<close> and \<open>C' \<noteq> ?M\<close>
+      using dist' by auto
+    then obtain M' L M M'' where
+      \<open>trail S = M' @ Propagated L () # M\<close> and
+      \<open>C' = M'' @ Decided (- L) # M\<close>
+      using ent unfolding conflict_clauses_are_entailed_def
+      by auto
+    then show \<open>?P ?M C'\<close>
+      using backtrack_split_some_is_decided_then_snd_has_hd[of \<open>trail S\<close>, OF has_dec]
+        spl backtrack_split_list_eq[of \<open>trail S\<close>, symmetric]
+      by (clarsimp simp: conj_disj_distribR ex_disj_distrib  decided_cons_eq_append_decide_cons
+        cdcl\<^sub>W_restart_mset.propagated_cons_eq_append_decide_cons propagated_cons_eq_append_propagated_cons
+        append_eq_append_conv2)
+  qed
+  moreover have H: \<open>?case \<longleftrightarrow> (\<forall>Ca\<in>#add_mset ?M C.
+       \<forall>C'\<in>#remove1_mset Ca C. ?P Ca C')\<close>
+    unfolding conflict_clauses_are_entailed2_def prod.case
+    apply (intro conjI iffI impI ballI)
+    subgoal for Ca C'
+      by (auto dest: multi_member_split dest: in_diffD)
+    subgoal for Ca C'
+      using dist'
+      by (auto 5 3 dest!: multi_member_split[of Ca] dest: in_diffD)
+    done
+  moreover have \<open>(\<forall>Ca\<in>#C. \<forall>C'\<in>#remove1_mset Ca C. ?P Ca C')\<close>
+    using ent2 unfolding conflict_clauses_are_entailed2_def
+    by auto
+  ultimately show ?case
+    unfolding H
+    by auto
+qed
+
+
+lemma odpll\<^sub>W_bnb_stgy_count_conflict_clauses_are_entailed2:
+  assumes
+    \<open>odpll\<^sub>W_bnb_stgy_count S T\<close> and
+    \<open>conflict_clauses_are_entailed S\<close> and
+    \<open>conflict_clauses_are_entailed2 S\<close> and
+    \<open>distinct_mset (snd S)\<close> and
+    invs: \<open>dpll\<^sub>W_all_inv (bnb.abs_state (fst S))\<close>
+  shows
+    \<open>conflict_clauses_are_entailed2 T\<close>
+  using assms odpll\<^sub>W_core_stgy_count_conflict_clauses_are_entailed2[of S T]
+  apply (auto simp: odpll\<^sub>W_bnb_stgy_count.simps)
+  apply (auto simp: conflict_clauses_are_entailed2_def
+    bnb.dpll\<^sub>W_bound.simps)
+  done
+
+definition no_complement_set_lit :: \<open>'v dpll\<^sub>W_ann_lits \<Rightarrow> bool\<close> where
+  \<open>no_complement_set_lit M \<longleftrightarrow>
+    (\<forall>L \<in> \<Delta>\<Sigma>. Decided (Neg (replacement_pos L)) \<in> set M \<longrightarrow> Decided (Neg (replacement_neg L)) \<notin> set M) \<and>
+    atm_of ` lits_of_l M \<subseteq> \<Sigma> \<union> replacement_pos ` \<Delta>\<Sigma> \<union> replacement_neg ` \<Delta>\<Sigma>\<close>
+
+definition no_complement_set_lit_st :: \<open>'st \<times> 'v dpll\<^sub>W_ann_lits multiset \<Rightarrow> bool\<close> where
+  \<open>no_complement_set_lit_st = (\<lambda>(S, Cs). (\<forall>C\<in>#Cs. no_complement_set_lit C))\<close>
+
+definition stgy_invs :: \<open>'st \<times> _ \<Rightarrow> bool\<close> where
+  \<open>stgy_invs S \<longleftrightarrow>
+    no_smaller_propa (fst S) \<and>
+    no_smaller_confl (fst S) \<and>
+    conflict_clauses_are_entailed S \<and>
+    conflict_clauses_are_entailed2 S \<and>
+    distinct_mset (snd S) \<and>
+    (\<forall>C \<in># snd S. no_dup C) \<and>
+    dpll\<^sub>W_all_inv (bnb.abs_state (fst S))\<close>
+
+lemma odpll\<^sub>W_bnb_stgy_count_stgy_invs:
+  assumes
+    \<open>odpll\<^sub>W_bnb_stgy_count S T\<close> and
+    \<open>clauses (fst S) = penc N\<close> and
+    \<open>atms_of_mm N = \<Sigma>\<close> and
+    \<open>stgy_invs S\<close>
+  shows \<open>stgy_invs T\<close>
+  using odpll\<^sub>W_bnb_stgy_count_conflict_clauses_are_entailed2[of S T]
+    odpll\<^sub>W_bnb_stgy_count_conflict_clauses_are_entailed[of S T]
+    odpll\<^sub>W_bnb_stgy_no_smaller_propa[of \<open>fst S\<close> \<open>fst T\<close>]
+    odpll\<^sub>W_bnb_stgy_no_smaller_conflict[of \<open>fst S\<close> \<open>fst T\<close>]
+    odpll\<^sub>W_bnb_stgy_countD[of S T]
+    odpll\<^sub>W_core_stgy_count_distinct_mset[of S T]
+    odpll\<^sub>W_bnb_stgy_count_no_dup_clss[of S T]
+    odpll\<^sub>W_bnb_stgy_count_distinct_mset[of S T]
+    assms(1,4)
+    odpll\<^sub>W_bnb_stgy_dpll\<^sub>W_bnb_stgy[OF assms(2,3), of \<open>fst T\<close>]
+  using local.bnb.dpll\<^sub>W_bnb_abs_state_all_inv
+  unfolding stgy_invs_def
+  by auto
 
 lemma
+  assumes \<open>stgy_invs S\<close>
+  shows \<open>size (snd S) < 3 ^ (card \<Sigma>)\<close>
+proof -
+  have \<open>no_smaller_propa (fst S)\<close> and
+    \<open>no_smaller_confl (fst S)\<close> and
+    \<open>conflict_clauses_are_entailed S\<close> and
+    ent2: \<open>conflict_clauses_are_entailed2 S\<close> and
+    dist: \<open>distinct_mset (snd S)\<close> and
+    n_d: \<open>(\<forall>C \<in># snd S. no_dup C)\<close> and
+    \<open>dpll\<^sub>W_all_inv (bnb.abs_state (fst S))\<close>
+    using assms unfolding stgy_invs_def by fast+
+
+  let ?f = \<open>(filter_mset is_decided o mset)\<close>
+  have \<open>distinct_mset (?f `# (snd S))\<close>
+    apply (subst distinct_image_mset_inj)
+    subgoal
+      using ent2 n_d
+      apply (auto simp: conflict_clauses_are_entailed2_def
+        inj_on_def add_mset_eq_add_mset dest!: multi_member_split split_list)
+      using n_d apply auto
+      apply (metis defined_lit_def multiset_partition set_mset_mset union_iff union_single_eq_member)+
+      done
+    subgoal
+      using dist by auto
+    done
+  have \<open>size (?f `# (snd S)) < 3 ^ (card \<Sigma>)\<close>
+    sorry
+  then show \<open>?thesis\<close>
+    by auto
+
+oops
+lemma
   assumes \<open>clauses S = penc N\<close> \<open>atms_of_mm N = \<Sigma>\<close> and
-    \<open>odpll\<^sub>W_bnb_stgy_count\<^sup>*\<^sup>* (S, n) (T, m)\<close> and
+    \<open>odpll\<^sub>W_bnb_stgy_count\<^sup>*\<^sup>* (S, C) (T, D)\<close> and
     tr: \<open>trail S = []\<close>
   shows \<open>size m < 3 ^ (card \<Sigma>) + size n\<close>
 proof -
-  have \<open>no_smaller_confl S\<close> \<open>no_smaller_propa S\<close>
-    using tr unfolding no_smaller_confl_def no_smaller_propa_def by auto
+  have \<open>stgy_invs (S, .{})\<close> \<open>no_smaller_propa S\<close>
+    using tr unfolding no_smaller_confl_def no_smaller_propa_def
+    stgy_invs_def by auto
 
 
 oops
