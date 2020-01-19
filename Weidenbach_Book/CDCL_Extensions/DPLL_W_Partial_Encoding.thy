@@ -7,6 +7,19 @@ begin
 context optimal_encoding_ops
 begin
 
+text \<open>
+
+We use the following list to generate an upper bound of the derived
+trails by ODPLL: using lists makes it possible to use recursion. Using
+\<^text>\<open>inductive_set\<close> does not work, because it is not possible to
+recurse on the arguments of a predicate.
+
+
+The idea is similar to an earlier definition of \<^term>\<open>simple_clss\<close>,
+although in that case, we went for recursion over the set of literals
+directly, via a choice in the recursive call.
+
+\<close>
 definition list_new_vars :: \<open>'v list\<close> where
 \<open>list_new_vars = (SOME v. set v = \<Delta>\<Sigma> \<and> distinct v)\<close>
 
@@ -1272,8 +1285,7 @@ proof -
     apply (subst distinct_image_mset_inj[OF inj])
     using dist by auto
   also have \<open>... \<le> card (all_sound_trails list_new_vars)\<close>
-    by (rule card_mono[OF _ incl])
-     (simp add: finite_\<Sigma>)
+    by (rule card_mono[OF _ incl]) simp
   also have \<open>... \<le> card (simple_clss (\<Sigma> - \<Delta>\<Sigma>)) * 3 ^ card \<Delta>\<Sigma>\<close>
     using card_all_sound_trails[of list_new_vars]
     by (auto simp: set_list_new_vars distinct_list_new_vars
