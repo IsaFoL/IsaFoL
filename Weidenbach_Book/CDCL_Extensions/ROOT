@@ -1,3 +1,5 @@
+chapter Weidenbach_Book
+
 session "CDCL_Extensions" (Weidenbach_Book) = "CDCL"  +
   description \<open>This sessions contains the extensions of the CDCL calculus.\<close>
   options [document = pdf, document_output = "output"]
