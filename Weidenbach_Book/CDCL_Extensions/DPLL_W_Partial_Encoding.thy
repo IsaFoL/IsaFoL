@@ -386,8 +386,7 @@ if \<open>C \<in># clauses S\<close> and
 
 inductive odpll\<^sub>W_core_stgy :: "'st \<Rightarrow> 'st \<Rightarrow> bool" for S T where
 propagate: "dpll_propagate S T \<Longrightarrow> odpll\<^sub>W_core_stgy S T" |
-decided: "odecide S T \<Longrightarrow> no_step dpll_propagate S  \<Longrightarrow> no_step dpll_backtrack S \<Longrightarrow>
-  no_step dpll_conflict S \<Longrightarrow> odpll\<^sub>W_core_stgy S T " |
+decided: "odecide S T \<Longrightarrow> no_step dpll_propagate S  \<Longrightarrow> odpll\<^sub>W_core_stgy S T " |
 backtrack: "dpll_backtrack S T \<Longrightarrow> odpll\<^sub>W_core_stgy S T" |
 backtrack_opt: \<open>bnb.backtrack_opt S T \<Longrightarrow> odpll\<^sub>W_core_stgy S T\<close>
 
@@ -458,7 +457,6 @@ lemma
     by auto
   done
 
-(*
 lemma no_step_odpll\<^sub>W_core_stgy_no_step_dpll\<^sub>W_core_stgy:
   assumes \<open>clauses S = penc N\<close> and [simp]:\<open>atms_of_mm N = \<Sigma>\<close>
   shows
@@ -482,11 +480,7 @@ lemma full_odpll\<^sub>W_core_stgy_full_dpll\<^sub>W_core_stgy:
     rtranclp_odpll\<^sub>W_bnb_stgy_clauses[of S T, symmetric, unfolded assms]
     rtranclp_odpll\<^sub>W_bnb_stgy_dpll\<^sub>W_bnb_stgy[of S N T, OF assms]
    by (auto simp: full_def)
-*)
 
-definition no_smaller_confl :: \<open>'st \<Rightarrow> bool\<close> where
-"no_smaller_confl (S ::'st) \<longleftrightarrow>
-  (\<forall>M K M' D. trail S = M' @ Decided K # M \<longrightarrow> D \<in># clauses S \<longrightarrow> \<not>M \<Turnstile>as CNot D)"
 
 lemma decided_cons_eq_append_decide_cons:
   "Decided L # Ms = M' @ Decided K # M \<longleftrightarrow>
@@ -494,19 +488,6 @@ lemma decided_cons_eq_append_decide_cons:
     (hd M' = Decided L \<and> Ms = tl M' @ Decided K # M \<and> M' \<noteq> [])"
   by (cases M')
    auto
-
-lemma [simp]: \<open>T \<sim> S \<Longrightarrow> no_smaller_confl T = no_smaller_confl S\<close>
-  by (auto simp: no_smaller_confl_def)
-
-lemma no_smaller_confl_cons_trail[simp]:
-  \<open>no_smaller_confl (cons_trail (Propagated L C) S) \<longleftrightarrow> no_smaller_confl S\<close>
-  \<open>no_smaller_confl (update_weight_information M' S) \<longleftrightarrow> no_smaller_confl S\<close>
-  by (force simp: no_smaller_confl_def cdcl\<^sub>W_restart_mset.propagated_cons_eq_append_decide_cons)+
-
-lemma no_smaller_confl_cons_trail_decided[simp]:
-  \<open>no_smaller_confl S \<Longrightarrow> no_smaller_confl (cons_trail (Decided L) S) \<longleftrightarrow> (\<forall>C \<in># clauses S. \<not>trail S \<Turnstile>as CNot C)\<close>
-  by (auto simp: no_smaller_confl_def cdcl\<^sub>W_restart_mset.propagated_cons_eq_append_decide_cons
-    decided_cons_eq_append_decide_cons)
 
 lemma no_step_dpll_backtrack_iff:
   \<open>no_step dpll_backtrack S \<longleftrightarrow> (count_decided (trail S) = 0 \<or> (\<forall>C \<in># clauses S. \<not>trail S \<Turnstile>as CNot C))\<close>
@@ -517,35 +498,6 @@ lemma no_step_dpll_backtrack_iff:
 lemma no_step_dpll_conflict:
   \<open>no_step dpll_conflict S \<longleftrightarrow> (\<forall>C \<in># clauses S. \<not>trail S \<Turnstile>as CNot C)\<close>
   by (auto simp: dpll_conflict.simps)
-
-lemma count_decided_0_no_smaller_confl: \<open>count_decided (trail S) = 0 \<Longrightarrow> no_smaller_confl S\<close>
-  by (auto simp: no_smaller_confl_def)
-
-lemma no_smaller_confl_backtrack_split:
-  \<open>no_smaller_confl S \<Longrightarrow>
-       backtrack_split (trail S) = (M', L # M) \<Longrightarrow>
-       no_smaller_confl (reduce_trail_to M S)\<close>
-  using backtrack_split_list_eq[of \<open>trail S\<close>, symmetric]
-  by (auto simp: no_smaller_confl_def)
-
-lemma odpll\<^sub>W_core_stgy_no_smaller_conflict:
-  \<open>odpll\<^sub>W_core_stgy S T \<Longrightarrow> no_smaller_confl S \<Longrightarrow> no_smaller_confl T\<close>
-  using no_step_dpll_backtrack_iff[of S] apply -
-  by (induction rule: odpll\<^sub>W_core_stgy.induct)
-   (auto simp: cdcl\<^sub>W_restart_mset.propagated_cons_eq_append_decide_cons count_decided_0_no_smaller_confl
-      dpll_propagate.simps dpll_decide.simps odecide.simps decided_cons_eq_append_decide_cons
-      bnb.backtrack_opt.simps dpll_backtrack.simps no_step_dpll_conflict no_smaller_confl_backtrack_split)
-
-lemma odpll\<^sub>W_bound_stgy_no_smaller_conflict: \<open>bnb.dpll\<^sub>W_bound S T \<Longrightarrow> no_smaller_confl S \<Longrightarrow> no_smaller_confl T\<close>
-  by (auto simp: cdcl\<^sub>W_restart_mset.propagated_cons_eq_append_decide_cons count_decided_0_no_smaller_confl
-      dpll_propagate.simps dpll_decide.simps odecide.simps decided_cons_eq_append_decide_cons bnb.dpll\<^sub>W_bound.simps
-      bnb.backtrack_opt.simps dpll_backtrack.simps no_step_dpll_conflict no_smaller_confl_backtrack_split)
-
-lemma odpll\<^sub>W_bnb_stgy_no_smaller_conflict:
-  \<open>odpll\<^sub>W_bnb_stgy S T \<Longrightarrow> no_smaller_confl S \<Longrightarrow> no_smaller_confl T\<close>
-  by (induction rule: odpll\<^sub>W_bnb_stgy.induct)
-    (auto simp: odpll\<^sub>W_core_stgy_no_smaller_conflict odpll\<^sub>W_bound_stgy_no_smaller_conflict)
-
 
 definition no_smaller_propa :: \<open>'st \<Rightarrow> bool\<close> where
 "no_smaller_propa (S ::'st) \<longleftrightarrow>
@@ -627,8 +579,7 @@ abbreviation (input) cut_and_complete_trail :: \<open>'st \<Rightarrow> _\<close
 (*TODO prove that favouring conflict over propagate works [this is obvious, but still]...*)
 inductive odpll\<^sub>W_core_stgy_count :: "'st \<times> _ \<Rightarrow> 'st \<times> _ \<Rightarrow> bool" where
 propagate: "dpll_propagate S T \<Longrightarrow> odpll\<^sub>W_core_stgy_count (S, C) (T, C)" |
-decided: "odecide S T \<Longrightarrow> no_step dpll_propagate S  \<Longrightarrow> no_step dpll_backtrack S \<Longrightarrow>
-  no_step dpll_conflict S \<Longrightarrow> odpll\<^sub>W_core_stgy_count (S, C) (T, C) " |
+decided: "odecide S T \<Longrightarrow> no_step dpll_propagate S  \<Longrightarrow> odpll\<^sub>W_core_stgy_count (S, C) (T, C) " |
 backtrack: "dpll_backtrack S T \<Longrightarrow> odpll\<^sub>W_core_stgy_count (S, C) (T, add_mset (cut_and_complete_trail S) C)" |
 backtrack_opt: \<open>bnb.backtrack_opt S T \<Longrightarrow> odpll\<^sub>W_core_stgy_count (S, C) (T, add_mset (cut_and_complete_trail S) C)\<close>
 
@@ -659,31 +610,6 @@ lemma rtranclp_odpll\<^sub>W_bnb_stgy_countD:
 
 lemmas odpll\<^sub>W_core_stgy_count_induct = odpll\<^sub>W_core_stgy_count.induct[of \<open>(S, n)\<close> \<open>(T, m)\<close> for S n T m, split_format(complete), OF dpll_optimal_encoding_axioms,
    consumes 1]
-
-definition no_conflict_of_constraint_on_trail :: \<open>'st \<Rightarrow> bool\<close> where
-\<open>no_conflict_of_constraint_on_trail S \<longleftrightarrow>
-  (\<forall>L \<in> \<Delta>\<Sigma>. \<forall>M M' K. trail S = M' @ Decided K # M \<longrightarrow> Pos (replacement_pos L) \<in> lits_of_l M \<longrightarrow> Pos (replacement_neg L) \<in> lits_of_l M \<longrightarrow> False)\<close>
-
-lemma no_smaller_confl_no_conflict_of_constraint_on_trail:
-  assumes
-    \<open>clauses S = penc N\<close> and
-    \<open>no_smaller_confl S\<close>
- shows
-    \<open>no_conflict_of_constraint_on_trail S\<close>
-  unfolding no_conflict_of_constraint_on_trail_def
-proof (intro allI impI ballI)
-  fix L M M' K
-  assume \<open>L \<in> \<Delta>\<Sigma>\<close> and tr: \<open>trail S = M' @ Decided K # M\<close> and
-   neg: \<open>Pos (replacement_pos L) \<in> lits_of_l M\<close>
-    \<open>Pos (replacement_neg L) \<in> lits_of_l M\<close>
-  have H: \<open>trail S = M' @ Decided K # M \<Longrightarrow> D \<in># clauses S \<Longrightarrow> \<not>M \<Turnstile>as CNot D\<close> for M K M' D
-    using assms unfolding no_smaller_confl_def by auto
-  have \<open>{#Neg (replacement_pos L), Neg (replacement_neg L)#} \<in># clauses S\<close>
-    using assms(1) \<open>L \<in> \<Delta>\<Sigma>\<close> multi_member_split[of L \<open>mset_set \<Delta>\<Sigma>\<close>]
-    by (auto simp: penc_def additional_constraints_def additional_constraint_def dest!: bspec[of _ _ L])
-  from H[OF tr this] show \<open>False\<close>
-    using neg by auto
-qed
 
 
 definition conflict_clauses_are_entailed :: \<open>'st \<times> _ \<Rightarrow> bool\<close> where
@@ -1035,7 +961,7 @@ next
     \<open>undefined_lit (trail S) (Pos (L\<^sup>\<mapsto>\<^sup>1))\<close> \<open>L \<in> \<Delta>\<Sigma>\<close> for L
   proof -
     have \<open>{#Neg (L\<^sup>\<mapsto>\<^sup>0), Neg (L\<^sup>\<mapsto>\<^sup>1)#} \<in># clauses S\<close>
-      using decided(10) that
+      using decided that
       by (fastforce simp: penc_def additional_constraints_def additional_constraint_def)
     then show False
       using decided(2) that
@@ -1051,7 +977,7 @@ next
     \<open>undefined_lit (trail S) (Pos (L\<^sup>\<mapsto>\<^sup>0))\<close> \<open>L \<in> \<Delta>\<Sigma>\<close> for L
   proof -
     have \<open>{#Neg (L\<^sup>\<mapsto>\<^sup>0), Neg (L\<^sup>\<mapsto>\<^sup>1)#} \<in># clauses S\<close>
-      using decided(10) that
+      using decided that
       by (fastforce simp: penc_def additional_constraints_def additional_constraint_def)
     then show False
       using decided(2) that
@@ -1064,7 +990,7 @@ next
       done
   qed
   have \<open>?case \<longleftrightarrow> no_complement_set_lit (trail T)\<close>
-    using decided(1,9) unfolding no_complement_set_lit_st_def
+    using decided(1,7) unfolding no_complement_set_lit_st_def
     by (auto simp: odecide.simps)
   moreover have \<open>no_complement_set_lit (trail T)\<close>
   proof -
@@ -1075,7 +1001,7 @@ next
       \<open>L \<in> \<Delta>\<Sigma> \<Longrightarrow> Decided (Neg (L\<^sup>\<mapsto>\<^sup>0)) \<in> set (trail S) \<Longrightarrow> False\<close>
       \<open>atm_of ` lits_of_l (trail S) \<subseteq> \<Sigma> - \<Delta>\<Sigma> \<union> replacement_pos ` \<Delta>\<Sigma> \<union> replacement_neg ` \<Delta>\<Sigma>\<close>
       for L
-      using decided(9) unfolding no_complement_set_lit_st_def no_complement_set_lit_def
+      using decided(7) unfolding no_complement_set_lit_st_def no_complement_set_lit_def
       by blast+
     have \<open>L \<in> \<Delta>\<Sigma> \<Longrightarrow>
         Decided (Pos (L\<^sup>\<mapsto>\<^sup>1)) \<in> set (trail T) \<Longrightarrow>
@@ -1134,7 +1060,6 @@ lemma odpll\<^sub>W_bnb_stgy_count_no_complement_set_lit_st:
 definition stgy_invs :: \<open>'v clauses \<Rightarrow> 'st \<times> _ \<Rightarrow> bool\<close> where
   \<open>stgy_invs N S \<longleftrightarrow>
     no_smaller_propa (fst S) \<and>
-    no_smaller_confl (fst S) \<and>
     conflict_clauses_are_entailed S \<and>
     conflict_clauses_are_entailed2 S \<and>
     distinct_mset (snd S) \<and>
@@ -1153,7 +1078,6 @@ lemma odpll\<^sub>W_bnb_stgy_count_stgy_invs:
   using odpll\<^sub>W_bnb_stgy_count_conflict_clauses_are_entailed2[of S T]
     odpll\<^sub>W_bnb_stgy_count_conflict_clauses_are_entailed[of S T]
     odpll\<^sub>W_bnb_stgy_no_smaller_propa[of \<open>fst S\<close> \<open>fst T\<close>]
-    odpll\<^sub>W_bnb_stgy_no_smaller_conflict[of \<open>fst S\<close> \<open>fst T\<close>]
     odpll\<^sub>W_bnb_stgy_countD[of S T]
     odpll\<^sub>W_bnb_stgy_clauses[of \<open>fst S\<close> \<open>fst T\<close>]
     odpll\<^sub>W_core_stgy_count_distinct_mset[of S T]
@@ -1171,7 +1095,6 @@ lemma stgy_invs_size_le:
   shows \<open>size (snd S) \<le> 3 ^ (card \<Sigma>)\<close>
 proof -
   have \<open>no_smaller_propa (fst S)\<close> and
-    \<open>no_smaller_confl (fst S)\<close> and
     \<open>conflict_clauses_are_entailed S\<close> and
     ent2: \<open>conflict_clauses_are_entailed2 S\<close> and
     dist: \<open>distinct_mset (snd S)\<close> and
@@ -1316,7 +1239,7 @@ theorem (* \htmllink{ODPLL-complexity} *)
   shows \<open>size D \<le> 3 ^ (card \<Sigma>)\<close>
 proof -
   have i: \<open>stgy_invs N (S, {#})\<close>
-    using tr unfolding no_smaller_confl_def no_smaller_propa_def
+    using tr unfolding no_smaller_propa_def
       stgy_invs_def conflict_clauses_are_entailed_def
       conflict_clauses_are_entailed2_def assms(1,2)
       no_complement_set_lit_st_def no_complement_set_lit_def

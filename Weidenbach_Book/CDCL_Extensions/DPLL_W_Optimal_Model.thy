@@ -631,7 +631,7 @@ end
 
 inductive dpll\<^sub>W_core_stgy :: "'st \<Rightarrow> 'st \<Rightarrow> bool" for S T where
 propagate: "dpll.dpll_propagate S T \<Longrightarrow> dpll\<^sub>W_core_stgy S T" |
-decided: "dpll.dpll_decide S T \<Longrightarrow> no_step dpll.dpll_propagate S  \<Longrightarrow> no_step dpll.dpll_backtrack S \<Longrightarrow> dpll\<^sub>W_core_stgy S T " |
+decided: "dpll.dpll_decide S T \<Longrightarrow> no_step dpll.dpll_propagate S  \<Longrightarrow> dpll\<^sub>W_core_stgy S T " |
 backtrack: "dpll.dpll_backtrack S T \<Longrightarrow> dpll\<^sub>W_core_stgy S T" |
 backtrack_opt: \<open>backtrack_opt S T \<Longrightarrow> dpll\<^sub>W_core_stgy S T\<close>
 
