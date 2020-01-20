@@ -729,7 +729,7 @@ lemma ocdcl_trail_inv_Cons2:
   by (cases L; cases \<open>lit_of L\<close>; auto simp: ocdcl_trail_inv_def)
 
 lemma ocdcl_trail_inv_ConsE:
-  \<open>ocdcl_trail_inv (L # M) \<Longrightarrow> atm_of (lit_of L) \<in> \<Sigma> \<union> replacement_pos ` \<Delta>\<Sigma> \<union> replacement_neg ` \<Delta>\<Sigma> \<Longrightarrow> 
+  \<open>ocdcl_trail_inv (L # M) \<Longrightarrow> atm_of (lit_of L) \<in> \<Sigma> \<union> replacement_pos ` \<Delta>\<Sigma> \<union> replacement_neg ` \<Delta>\<Sigma> \<Longrightarrow>
     (atm_of (lit_of L) \<in> replacement_pos ` \<Delta>\<Sigma> \<union> replacement_neg ` \<Delta>\<Sigma>  \<Longrightarrow>
        undefined_lit M (lit_of L) \<Longrightarrow>
        (is_decided L \<longrightarrow> is_pos (lit_of L) \<and>
@@ -746,7 +746,7 @@ lemma
     undefined_lit (remove_dup_information M) (Pos (opposite_var P))\<close>
   unfolding remove_dup_information_def
   apply (induction M arbitrary: P rule: ann_lit_list_induct)
-  apply (auto simp: defined_lit_cons split: 
+  apply (auto simp: defined_lit_cons split:
      dest: elim!: )
 thm TrueI
 subgoal

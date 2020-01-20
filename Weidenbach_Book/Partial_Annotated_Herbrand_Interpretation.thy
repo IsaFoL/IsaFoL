@@ -1298,7 +1298,7 @@ lemma true_clss_restrict_iff:
 
 subsection \<open>Negation of annotated clauses\<close>
 
-definition negate_ann_lits :: \<open>('v, 'v clause) ann_lits \<Rightarrow> 'v literal multiset\<close> where
+definition negate_ann_lits :: \<open>_ \<Rightarrow> 'v literal multiset\<close> where
   \<open>negate_ann_lits M = (\<lambda>L. - lit_of L) `# mset M\<close>
 
 lemma negate_ann_lits_empty[simp]: \<open>negate_ann_lits [] = {#}\<close>

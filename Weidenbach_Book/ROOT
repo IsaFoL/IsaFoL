@@ -158,6 +158,8 @@ session "CDCL_Extensions" (Weidenbach_Book) = "CDCL"  +
     CDCL_W_MaxSAT
     CDCL_W_Partial_Optimal_Model
     CDCL_W_Covering_Models
+    DPLL_W_Optimal_Model
+    DPLL_W_Partial_Encoding
 
   document_files
     "root.tex"

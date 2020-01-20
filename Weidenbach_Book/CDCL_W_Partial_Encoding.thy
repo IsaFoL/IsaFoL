@@ -2,6 +2,20 @@ theory CDCL_W_Partial_Encoding
   imports CDCL_W_Optimal_Model
 begin
 
+(*TODO Move*)
+lemma consistent_interp_unionI:
+  \<open>consistent_interp A \<Longrightarrow> consistent_interp B \<Longrightarrow> (\<And>a. a \<in> A \<Longrightarrow> -a \<notin> B) \<Longrightarrow> (\<And>a. a \<in> B \<Longrightarrow> -a \<notin> A) \<Longrightarrow>
+    consistent_interp (A \<union> B)\<close>
+  by (auto simp: consistent_interp_def)
+
+lemma consistent_interp_poss: \<open>consistent_interp (Pos ` A)\<close> and
+  consistent_interp_negs: \<open>consistent_interp (Neg ` A)\<close>
+  by (auto simp: consistent_interp_def)
+
+lemma Neg_in_lits_of_l_definedD:
+  \<open>Neg A \<in> lits_of_l M \<Longrightarrow> defined_lit M (Pos A)\<close>
+  by (simp add: Decided_Propagated_in_iff_in_lits_of_l)
+
 
 subsection \<open>Encoding of partial SAT into total SAT\<close>
 
@@ -35,39 +49,7 @@ text \<open>
   \<^item> \<^term>\<open>\<Delta>\<Sigma>\<close> is the set of all variables with a (possibly non-zero) weight: These are the variable that needs
     to be replaced during encoding, but it does not matter if the weight 0.
 \<close>
-
-locale optimal_encoding_opt = conflict_driven_clause_learning\<^sub>W_optimal_weight
-    state_eq
-    state
-    \<comment> \<open>functions for the state:\<close>
-    \<comment> \<open>access functions:\<close>
-    trail init_clss learned_clss conflicting
-    \<comment> \<open>changing state:\<close>
-    cons_trail tl_trail add_learned_cls remove_cls
-    update_conflicting
-
-     \<comment> \<open>get state:\<close>
-     init_state
-     \<rho>
-     update_additional_info
-  for
-    state_eq :: "'st \<Rightarrow> 'st \<Rightarrow> bool" (infix "\<sim>" 50) and
-    state :: "'st \<Rightarrow> ('v, 'v clause) ann_lits \<times> 'v clauses \<times> 'v clauses \<times> 'v clause option \<times>
-        'v clause option \<times> 'b" and
-    trail :: "'st \<Rightarrow> ('v, 'v clause) ann_lits" and
-    init_clss :: "'st \<Rightarrow> 'v clauses" and
-    learned_clss :: "'st \<Rightarrow> 'v clauses" and
-    conflicting :: "'st \<Rightarrow> 'v clause option" and
-
-    cons_trail :: "('v, 'v clause) ann_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
-    tl_trail :: "'st \<Rightarrow> 'st" and
-    add_learned_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
-    remove_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
-    update_conflicting :: "'v clause option \<Rightarrow> 'st \<Rightarrow> 'st" and
-
-    init_state :: "'v clauses \<Rightarrow> 'st" and
-    \<rho> :: \<open>'v clause \<Rightarrow> 'a :: {linorder}\<close> and
-    update_additional_info :: \<open>'v clause option \<times> 'b \<Rightarrow> 'st \<Rightarrow> 'st\<close> +
+locale optimal_encoding_opt_ops = 
   fixes \<Sigma> \<Delta>\<Sigma> :: \<open>'v set\<close> and
     new_vars :: \<open>'v \<Rightarrow> 'v \<times> 'v\<close>
 begin
@@ -231,6 +213,46 @@ lemma atm_of_upostp_subset:
     replacement_neg ` \<Delta>\<Sigma> \<union> \<Sigma>\<close>
   by (auto simp: upostp_def image_Un)
 
+end
+
+
+locale optimal_encoding_opt = conflict_driven_clause_learning\<^sub>W_optimal_weight
+    state_eq
+    state
+    \<comment> \<open>functions for the state:\<close>
+    \<comment> \<open>access functions:\<close>
+    trail init_clss learned_clss conflicting
+    \<comment> \<open>changing state:\<close>
+    cons_trail tl_trail add_learned_cls remove_cls
+    update_conflicting
+
+     \<comment> \<open>get state:\<close>
+     init_state \<rho>
+     update_additional_info +
+  optimal_encoding_opt_ops \<Sigma> \<Delta>\<Sigma> new_vars
+  for
+    state_eq :: "'st \<Rightarrow> 'st \<Rightarrow> bool" (infix "\<sim>" 50) and
+    state :: "'st \<Rightarrow> ('v, 'v clause) ann_lits \<times> 'v clauses \<times> 'v clauses \<times> 'v clause option \<times>
+        'v clause option \<times> 'b" and
+    trail :: "'st \<Rightarrow> ('v, 'v clause) ann_lits" and
+    init_clss :: "'st \<Rightarrow> 'v clauses" and
+    learned_clss :: "'st \<Rightarrow> 'v clauses" and
+    conflicting :: "'st \<Rightarrow> 'v clause option" and
+
+    cons_trail :: "('v, 'v clause) ann_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
+    tl_trail :: "'st \<Rightarrow> 'st" and
+    add_learned_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
+    remove_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
+    update_conflicting :: "'v clause option \<Rightarrow> 'st \<Rightarrow> 'st" and
+
+    init_state :: "'v clauses \<Rightarrow> 'st" and
+    update_additional_info :: \<open>'v clause option \<times> 'b \<Rightarrow> 'st \<Rightarrow> 'st\<close> and
+    \<Sigma> \<Delta>\<Sigma> :: \<open>'v set\<close> and
+    \<rho> :: \<open>'v clause \<Rightarrow> 'a :: {linorder}\<close> and
+    new_vars :: \<open>'v \<Rightarrow> 'v \<times> 'v\<close>
+begin
+
+
 inductive odecide :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<close> where
   odecide_noweight: \<open>odecide S T\<close>
 if
@@ -265,42 +287,14 @@ definition lonely_weighted_lit_decided where
 
 end
 
-
-locale optimal_encoding = optimal_encoding_opt
-    state_eq
-    state
-    \<comment> \<open>functions for the state:\<close>
-    \<comment> \<open>access functions:\<close>
-    trail init_clss learned_clss conflicting
-    \<comment> \<open>changing state:\<close>
-    cons_trail tl_trail add_learned_cls remove_cls
-    update_conflicting
-
-    \<comment> \<open>get state:\<close>
-    init_state
-    \<rho>
-    update_additional_info
+locale optimal_encoding_ops = optimal_encoding_opt_ops
     \<Sigma> \<Delta>\<Sigma>
-    new_vars
+    new_vars +
+  ocdcl_weight \<rho>
   for
-    state_eq :: "'st \<Rightarrow> 'st \<Rightarrow> bool" (infix "\<sim>" 50) and
-    state :: "'st \<Rightarrow> ('v, 'v clause) ann_lits \<times> 'v clauses \<times> 'v clauses \<times> 'v clause option \<times>
-        'v clause option \<times> 'b" and
-    trail :: "'st \<Rightarrow> ('v, 'v clause) ann_lits" and
-    init_clss :: "'st \<Rightarrow> 'v clauses" and
-    learned_clss :: "'st \<Rightarrow> 'v clauses" and
-    conflicting :: "'st \<Rightarrow> 'v clause option" and
-    cons_trail :: "('v, 'v clause) ann_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
-    tl_trail :: "'st \<Rightarrow> 'st" and
-    add_learned_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
-    remove_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
-    update_conflicting :: "'v clause option \<Rightarrow> 'st \<Rightarrow> 'st" and
-
-    init_state :: "'v clauses \<Rightarrow> 'st" and
-    \<rho> :: \<open>'v clause \<Rightarrow> 'a :: {linorder}\<close> and
-    update_additional_info :: \<open>'v clause option \<times> 'b \<Rightarrow> 'st \<Rightarrow> 'st\<close> and
     \<Sigma> \<Delta>\<Sigma> :: \<open>'v set\<close> and
-    new_vars :: \<open>'v \<Rightarrow> 'v \<times> 'v\<close> +
+    new_vars :: \<open>'v \<Rightarrow> 'v \<times> 'v\<close> and
+    \<rho> :: \<open>'v clause \<Rightarrow> 'a :: {linorder}\<close> +
   assumes
     finite_\<Sigma>:
     \<open>finite \<Delta>\<Sigma>\<close> and
@@ -315,9 +309,8 @@ locale optimal_encoding = optimal_encoding_opt
     \<open>inj_on replacement_neg \<Delta>\<Sigma>\<close>
     \<open>replacement_pos ` \<Delta>\<Sigma> \<inter> replacement_neg ` \<Delta>\<Sigma> = {}\<close> and
     \<Sigma>_no_weight:
-    \<open>atm_of C \<in> \<Sigma> - \<Delta>\<Sigma> \<Longrightarrow> \<rho> (add_mset C M) = \<rho> M\<close>
+      \<open>atm_of C \<in> \<Sigma> - \<Delta>\<Sigma> \<Longrightarrow> \<rho> (add_mset C M) = \<rho> M\<close>
 begin
-
 
 lemma new_vars_dist2:
   \<open>A \<in> \<Delta>\<Sigma> \<Longrightarrow> B \<in> \<Delta>\<Sigma> \<Longrightarrow> A \<noteq> B \<Longrightarrow> replacement_pos A \<noteq> replacement_pos B\<close>
@@ -441,18 +434,6 @@ proof -
     using enc add unfolding penc_def by auto
 qed
 
-lemma satisfiable_penc:
-  assumes \<Sigma>: \<open>atms_of_mm N = \<Sigma>\<close> and
-    sat: \<open>satisfiable (set_mset N)\<close>
-  shows \<open>satisfiable (set_mset (penc N))\<close>
-  using assms
-  apply (subst (asm) satisfiable_def_min)
-  apply clarify
-  subgoal for I
-    using penc_ent_upostp[of N I] consistent_interp_upostp[of I]
-    by auto
-  done
-
 lemma penc_ent_postp: (*  \htmllink{ocdcl-enc-postp-model} *)
   assumes \<Sigma>: \<open>atms_of_mm N = \<Sigma>\<close> and
     sat: \<open>I \<Turnstile>sm penc N\<close> and
@@ -507,6 +488,18 @@ lemma satisfiable_penc_satisfiable:
     by auto
   done
 
+lemma satisfiable_penc:
+  assumes \<Sigma>: \<open>atms_of_mm N = \<Sigma>\<close> and
+    sat: \<open>satisfiable (set_mset N)\<close>
+  shows \<open>satisfiable (set_mset (penc N))\<close>
+  using assms
+  apply (subst (asm) satisfiable_def_min)
+  apply clarify
+  subgoal for I
+    using penc_ent_upostp[of N I] consistent_interp_upostp[of I]
+    by auto
+  done
+
 lemma satisfiable_penc_iff:
   assumes \<Sigma>: \<open>atms_of_mm N = \<Sigma>\<close>
   shows \<open>satisfiable (set_mset (penc N)) \<longleftrightarrow> satisfiable (set_mset N)\<close>
@@ -517,40 +510,56 @@ abbreviation \<rho>\<^sub>e_filter :: \<open>'v literal multiset \<Rightarrow> '
   \<open>\<rho>\<^sub>e_filter M \<equiv> {#L \<in># poss (mset_set \<Delta>\<Sigma>). Pos (atm_of L\<^sup>\<mapsto>\<^sup>1) \<in># M#} +
      {#L \<in># negs (mset_set \<Delta>\<Sigma>). Pos (atm_of L\<^sup>\<mapsto>\<^sup>0) \<in># M#}\<close>
 
+lemma finite_upostp: \<open>finite I  \<Longrightarrow> finite \<Sigma> \<Longrightarrow> finite (upostp I)\<close>
+  using finite_\<Sigma> \<Delta>\<Sigma>_\<Sigma>
+  by (auto simp: upostp_def)
+
+declare finite_\<Sigma>[simp]
+
+lemma encode_lit_eq_iff:
+  \<open>atm_of x \<in> \<Sigma> \<Longrightarrow> atm_of y \<in> \<Sigma> \<Longrightarrow> encode_lit x = encode_lit y \<longleftrightarrow> x = y\<close>
+  by (cases x; cases y) (auto simp: encode_lit_alt_def atm_of_eq_atm_of)
+
+lemma distinct_mset_encode_clause_iff:
+  \<open>atms_of N \<subseteq> \<Sigma> \<Longrightarrow> distinct_mset (encode_clause N) \<longleftrightarrow> distinct_mset N\<close>
+  by (induction N)
+    (auto simp: encode_clause_def encode_lit_eq_iff
+      dest!: multi_member_split)
+
+lemma distinct_mset_encodes_clause_iff:
+  \<open>atms_of_mm N \<subseteq> \<Sigma> \<Longrightarrow> distinct_mset_mset (encode_clauses N) \<longleftrightarrow> distinct_mset_mset N\<close>
+  by (induction N)
+    (auto simp: encode_clauses_def distinct_mset_encode_clause_iff)
+
+lemma distinct_additional_constraints[simp]:
+  \<open>distinct_mset_mset additional_constraints\<close>
+  by (auto simp: additional_constraints_def additional_constraint_def
+      distinct_mset_set_def)
+
+lemma distinct_mset_penc:
+  \<open>atms_of_mm N \<subseteq> \<Sigma> \<Longrightarrow> distinct_mset_mset (penc N) \<longleftrightarrow> distinct_mset_mset N\<close>
+  by (auto simp: penc_def
+      distinct_mset_encodes_clause_iff)
+
+lemma finite_postp: \<open>finite I \<Longrightarrow> finite (postp I)\<close>
+  by (auto simp: postp_def)
+
+lemma total_entails_iff_no_conflict:
+  assumes \<open>atms_of_mm N \<subseteq> atm_of ` I\<close> and \<open>consistent_interp I\<close>
+  shows \<open>I \<Turnstile>sm N \<longleftrightarrow> (\<forall>C \<in># N. \<not>I \<Turnstile>s CNot C)\<close>
+  apply rule
+  subgoal
+    using assms by (auto dest!: multi_member_split
+        simp: consistent_CNot_not)
+  subgoal
+    by (smt assms(1) atms_of_atms_of_ms_mono atms_of_ms_CNot_atms_of
+        atms_of_ms_insert atms_of_ms_mono atms_of_s_def empty_iff
+        subset_iff sup.orderE total_not_true_cls_true_clss_CNot
+        total_over_m_alt_def true_clss_def)
+  done
+
 definition \<rho>\<^sub>e :: \<open>'v literal multiset \<Rightarrow> 'a :: {linorder}\<close> where
   \<open>\<rho>\<^sub>e M = \<rho> (\<rho>\<^sub>e_filter M)\<close>
-
-lemma \<rho>\<^sub>e_mono: \<open>distinct_mset B \<Longrightarrow> A \<subseteq># B \<Longrightarrow> \<rho>\<^sub>e A \<le> \<rho>\<^sub>e B\<close>
-  unfolding \<rho>\<^sub>e_def
-  apply (rule \<rho>_mono)
-  subgoal
-    by (subst distinct_mset_add)
-      (auto simp: distinct_image_mset_inj distinct_mset_filter distinct_mset_mset_set inj_on_Pos
-        finite_\<Sigma> mset_inter_empty_set_mset image_mset_mset_set inj_on_Neg)
-  subgoal
-    by (rule subset_mset.add_mono; rule filter_mset_mono_subset) (auto simp: finite_\<Sigma>)
-  done
-
-interpretation enc_weight_opt: conflict_driven_clause_learning\<^sub>W_optimal_weight where
-  state_eq = state_eq and
-  state = state and
-  trail = trail and
-  init_clss = init_clss and
-  learned_clss = learned_clss and
-  conflicting = conflicting and
-  cons_trail = cons_trail and
-  tl_trail = tl_trail and
-  add_learned_cls = add_learned_cls and
-  remove_cls = remove_cls and
-  update_conflicting = update_conflicting and
-  init_state = init_state and
-  \<rho> = \<rho>\<^sub>e and
-  update_additional_info = update_additional_info
-  apply unfold_locales
-  subgoal by (rule \<rho>\<^sub>e_mono)
-  subgoal using update_additional_info by fast
-  subgoal using weight_init_state by fast
-  done
 
 lemma \<Sigma>_no_weight_\<rho>\<^sub>e: \<open>atm_of C \<in> \<Sigma> - \<Delta>\<Sigma> \<Longrightarrow> \<rho>\<^sub>e (add_mset C M) = \<rho>\<^sub>e M\<close>
   using \<Sigma>_no_weight[of C \<open>\<rho>\<^sub>e_filter M\<close>]
@@ -573,19 +582,17 @@ lemma \<rho>_mono2:
   subgoal by auto
   by (auto intro!: \<rho>_mono intro: consistent_interp_subset intro!: distinct_mset_mono[of _ M'])
 
-lemma finite_upostp: \<open>finite I  \<Longrightarrow> finite \<Sigma> \<Longrightarrow> finite (upostp I)\<close>
-  using finite_\<Sigma> \<Delta>\<Sigma>_\<Sigma>
-  by (auto simp: upostp_def)
+lemma \<rho>\<^sub>e_mono: \<open>distinct_mset B \<Longrightarrow> A \<subseteq># B \<Longrightarrow> \<rho>\<^sub>e A \<le> \<rho>\<^sub>e B\<close>
+  unfolding \<rho>\<^sub>e_def
+  apply (rule \<rho>_mono)
+  subgoal
+    by (subst distinct_mset_add)
+      (auto simp: distinct_image_mset_inj distinct_mset_filter distinct_mset_mset_set inj_on_Pos
+        mset_inter_empty_set_mset image_mset_mset_set inj_on_Neg)
+  subgoal
+    by (rule subset_mset.add_mono; rule filter_mset_mono_subset) auto
+  done
 
-declare finite_\<Sigma>[simp]
-lemma consistent_interp_unionI:
-  \<open>consistent_interp A \<Longrightarrow> consistent_interp B \<Longrightarrow> (\<And>a. a \<in> A \<Longrightarrow> -a \<notin> B) \<Longrightarrow> (\<And>a. a \<in> B \<Longrightarrow> -a \<notin> A) \<Longrightarrow>
-    consistent_interp (A \<union> B)\<close>
-  by (auto simp: consistent_interp_def)
-
-lemma consistent_interp_poss: \<open>consistent_interp (Pos ` A)\<close> and
-  consistent_interp_negs: \<open>consistent_interp (Neg ` A)\<close>
-  by (auto simp: consistent_interp_def)
 
 lemma \<rho>\<^sub>e_upostp_\<rho>:
   assumes [simp]: \<open>finite \<Sigma>\<close> and
@@ -654,34 +661,69 @@ proof -
     by simp
 qed
 
+end
 
-lemma encode_lit_eq_iff:
-  \<open>atm_of x \<in> \<Sigma> \<Longrightarrow> atm_of y \<in> \<Sigma> \<Longrightarrow> encode_lit x = encode_lit y \<longleftrightarrow> x = y\<close>
-  by (cases x; cases y) (auto simp: encode_lit_alt_def atm_of_eq_atm_of)
+locale optimal_encoding = optimal_encoding_opt
+    state_eq
+    state
+    \<comment> \<open>functions for the state:\<close>
+    \<comment> \<open>access functions:\<close>
+    trail init_clss learned_clss conflicting
+    \<comment> \<open>changing state:\<close>
+    cons_trail tl_trail add_learned_cls remove_cls
+    update_conflicting
 
-lemma distinct_mset_encode_clause_iff:
-  \<open>atms_of N \<subseteq> \<Sigma> \<Longrightarrow> distinct_mset (encode_clause N) \<longleftrightarrow> distinct_mset N\<close>
-  by (induction N)
-    (auto simp: encode_clause_def encode_lit_eq_iff
-      dest!: multi_member_split)
+    \<comment> \<open>get state:\<close>
+    init_state
+    update_additional_info
+    \<Sigma> \<Delta>\<Sigma>
+    \<rho>
+    new_vars +
+    optimal_encoding_ops
+    \<Sigma> \<Delta>\<Sigma>
+    new_vars \<rho>
+  for
+    state_eq :: "'st \<Rightarrow> 'st \<Rightarrow> bool" (infix "\<sim>" 50) and
+    state :: "'st \<Rightarrow> ('v, 'v clause) ann_lits \<times> 'v clauses \<times> 'v clauses \<times> 'v clause option \<times>
+        'v clause option \<times> 'b" and
+    trail :: "'st \<Rightarrow> ('v, 'v clause) ann_lits" and
+    init_clss :: "'st \<Rightarrow> 'v clauses" and
+    learned_clss :: "'st \<Rightarrow> 'v clauses" and
+    conflicting :: "'st \<Rightarrow> 'v clause option" and
+    cons_trail :: "('v, 'v clause) ann_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
+    tl_trail :: "'st \<Rightarrow> 'st" and
+    add_learned_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
+    remove_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
+    update_conflicting :: "'v clause option \<Rightarrow> 'st \<Rightarrow> 'st" and
 
-lemma distinct_mset_encodes_clause_iff:
-  \<open>atms_of_mm N \<subseteq> \<Sigma> \<Longrightarrow> distinct_mset_mset (encode_clauses N) \<longleftrightarrow> distinct_mset_mset N\<close>
-  by (induction N)
-    (auto simp: encode_clauses_def distinct_mset_encode_clause_iff)
+    init_state :: "'v clauses \<Rightarrow> 'st" and
+    \<rho> :: \<open>'v clause \<Rightarrow> 'a :: {linorder}\<close> and
+    update_additional_info :: \<open>'v clause option \<times> 'b \<Rightarrow> 'st \<Rightarrow> 'st\<close> and
+    \<Sigma> \<Delta>\<Sigma> :: \<open>'v set\<close> and
+    new_vars :: \<open>'v \<Rightarrow> 'v \<times> 'v\<close> 
+begin
 
-lemma distinct_additional_constraints[simp]:
-  \<open>distinct_mset_mset additional_constraints\<close>
-  by (auto simp: additional_constraints_def additional_constraint_def
-      distinct_mset_set_def)
 
-lemma distinct_mset_penc:
-  \<open>atms_of_mm N \<subseteq> \<Sigma> \<Longrightarrow> distinct_mset_mset (penc N) \<longleftrightarrow> distinct_mset_mset N\<close>
-  by (auto simp: penc_def
-      distinct_mset_encodes_clause_iff)
-
-lemma finite_postp: \<open>finite I \<Longrightarrow> finite (postp I)\<close>
-  by (auto simp: postp_def)
+interpretation enc_weight_opt: conflict_driven_clause_learning\<^sub>W_optimal_weight where
+  state_eq = state_eq and
+  state = state and
+  trail = trail and
+  init_clss = init_clss and
+  learned_clss = learned_clss and
+  conflicting = conflicting and
+  cons_trail = cons_trail and
+  tl_trail = tl_trail and
+  add_learned_cls = add_learned_cls and
+  remove_cls = remove_cls and
+  update_conflicting = update_conflicting and
+  init_state = init_state and
+  \<rho> = \<rho>\<^sub>e and
+  update_additional_info = update_additional_info
+  apply unfold_locales
+  subgoal by (rule \<rho>\<^sub>e_mono)
+  subgoal using update_additional_info by fast
+  subgoal using weight_init_state by fast
+  done
 
 theorem full_encoding_OCDCL_correctness: (* \htmllink{ocdcl-partial-enc-correctness} *)
   assumes
@@ -979,20 +1021,6 @@ lemma rtranclp_cdcl_bnb_r_stgy_all_struct_inv:
 
 end
 
-lemma total_entails_iff_no_conflict:
-  assumes \<open>atms_of_mm N \<subseteq> atm_of ` I\<close> and \<open>consistent_interp I\<close>
-  shows \<open>I \<Turnstile>sm N \<longleftrightarrow> (\<forall>C \<in># N. \<not>I \<Turnstile>s CNot C)\<close>
-  apply rule
-  subgoal
-    using assms by (auto dest!: multi_member_split
-        simp: consistent_CNot_not)
-  subgoal
-    by (smt assms(1) atms_of_atms_of_ms_mono atms_of_ms_CNot_atms_of
-        atms_of_ms_insert atms_of_ms_mono atms_of_s_def empty_iff
-        subset_iff sup.orderE total_not_true_cls_true_clss_CNot
-        total_over_m_alt_def true_clss_def)
-  done
-
 lemma no_step_cdcl_bnb_r_stgy_no_step_cdcl_bnb_stgy:
   assumes
     N: \<open>init_clss S = penc N\<close> and
@@ -1151,10 +1179,6 @@ proof -
     using st' unfolding full_def
     by auto
 qed
-
-lemma Neg_in_lits_of_l_definedD:
-  \<open>Neg A \<in> lits_of_l M \<Longrightarrow> defined_lit M (Pos A)\<close>
-  by (simp add: Decided_Propagated_in_iff_in_lits_of_l)
 
 lemma propagation_one_lit_of_same_lvl:
   assumes

@@ -372,8 +372,7 @@ lemma improve_cdcl\<^sub>W_all_struct_inv:
   using assms atms_of_conflicting_clss[of T] atms_of_conflicting_clss[of S]
 proof (induction rule: improvep.cases)
   case (improve_rule M' T)
-  moreover
-  have \<open>all_decomposition_implies
+  moreover have \<open>all_decomposition_implies
      (set_mset (init_clss S) \<union> set_mset (conflicting_clss S) \<union> set_mset (learned_clss S))
      (get_all_ann_decomposition (trail S)) \<Longrightarrow>
     all_decomposition_implies
@@ -383,7 +382,7 @@ proof (induction rule: improvep.cases)
       apply (rule all_decomposition_implies_mono)
       using improve_rule conflicting_clss_update_weight_information_mono[of S \<open>trail S\<close> M'] inv
       by (auto dest: multi_member_split)
-    ultimately show ?case
+   ultimately show ?case
       using conflicting_clss_update_weight_information_mono[of S \<open>trail S\<close> M']
       by (auto 6 2 simp add: cdcl\<^sub>W_restart_mset.no_strange_atm_def
             cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
@@ -1929,38 +1928,6 @@ end
 
 subsubsection \<open>OCDCL\<close>
 
-text \<open>This locales includes only the assumption we make on the weight function.\<close>
-locale ocdcl_weight =
-  fixes
-    \<rho> :: \<open>'v clause \<Rightarrow> 'a :: {linorder}\<close>
-  assumes
-    \<rho>_mono: \<open>distinct_mset B \<Longrightarrow> A \<subseteq># B \<Longrightarrow> \<rho> A \<le> \<rho> B\<close>
-begin
-
-lemma \<rho>_empty_simp[simp]:
-  assumes \<open>consistent_interp (set_mset A)\<close> \<open>distinct_mset A\<close>
-  shows \<open>\<rho> A \<ge> \<rho> {#}\<close> \<open>\<not>\<rho> A < \<rho> {#}\<close>  \<open>\<rho> A \<le> \<rho> {#} \<longleftrightarrow> \<rho> A = \<rho> {#}\<close>
-  using \<rho>_mono[of A \<open>{#}\<close>] assms
-  by auto
-
-end
-
-
-text \<open>This is one of the version of the weight functions used by Christoph Weidenbach.\<close>
-locale ocdcl_weight_WB =
-  fixes
-    \<nu> :: \<open>'v literal \<Rightarrow> nat\<close>
-begin
-
-definition \<rho> :: \<open>'v clause \<Rightarrow> nat\<close> where
-  \<open>\<rho> M = (\<Sum>A \<in># M. \<nu> A)\<close>
-
-sublocale ocdcl_weight \<rho>
-  by (unfold_locales)
-    (auto simp: \<rho>_def sum_image_mset_mono)
-
-end
-
 text \<open>
   The following datatype is equivalent to \<^typ>\<open>'a option\<close>. Howover, it has the opposite
   ordering. Therefore, I decided to use a different type instead of have a second order
@@ -2037,107 +2004,26 @@ instance by standard (metis CollectI split_conv wf_def wf_less_optimal_model)
 
 end
 
-locale conflict_driven_clause_learning\<^sub>W_optimal_weight =
-  conflict_driven_clause_learning\<^sub>W
-    state_eq
-    state
-    \<comment> \<open>functions for the state:\<close>
-      \<comment> \<open>access functions:\<close>
-    trail init_clss learned_clss conflicting
-      \<comment> \<open>changing state:\<close>
-    cons_trail tl_trail add_learned_cls remove_cls
-    update_conflicting
-      \<comment> \<open>get state:\<close>
-    init_state +
-  ocdcl_weight \<rho>
-  for
-    state_eq :: "'st \<Rightarrow> 'st \<Rightarrow> bool" (infix "\<sim>" 50) and
-    state :: "'st \<Rightarrow> ('v, 'v clause) ann_lits \<times> 'v clauses \<times> 'v clauses \<times> 'v clause option \<times>
-      'v clause option \<times> 'b" and
-    trail :: "'st \<Rightarrow> ('v, 'v clause) ann_lits" and
-    init_clss :: "'st \<Rightarrow> 'v clauses" and
-    learned_clss :: "'st \<Rightarrow> 'v clauses" and
-    conflicting :: "'st \<Rightarrow> 'v clause option" and
 
-    cons_trail :: "('v, 'v clause) ann_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
-    tl_trail :: "'st \<Rightarrow> 'st" and
-    add_learned_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
-    remove_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
-    update_conflicting :: "'v clause option \<Rightarrow> 'st \<Rightarrow> 'st" and
-    init_state :: "'v clauses \<Rightarrow> 'st" and
-    \<rho> :: \<open>'v clause \<Rightarrow> 'a :: {linorder}\<close>  +
+text \<open>This locales includes only the assumption we make on the weight function.\<close>
+locale ocdcl_weight =
   fixes
-    update_additional_info :: \<open>'v clause option \<times> 'b \<Rightarrow> 'st \<Rightarrow> 'st\<close>
+    \<rho> :: \<open>'v clause \<Rightarrow> 'a :: {linorder}\<close>
   assumes
-    update_additional_info:
-      \<open>state S = (M, N, U, C, K) \<Longrightarrow> state (update_additional_info K' S) = (M, N, U, C, K')\<close> and
-    weight_init_state:
-      \<open>\<And>N :: 'v clauses. fst (additional_info (init_state N)) = None\<close>
+    \<rho>_mono: \<open>distinct_mset B \<Longrightarrow> A \<subseteq># B \<Longrightarrow> \<rho> A \<le> \<rho> B\<close>
 begin
 
-definition update_weight_information :: \<open>('v, 'v clause) ann_lits \<Rightarrow> 'st \<Rightarrow> 'st\<close> where
-  \<open>update_weight_information M S =
-    update_additional_info (Some (lit_of `# mset M), snd (additional_info S)) S\<close>
-
-lemma
-  trail_update_additional_info[simp]: \<open>trail (update_additional_info w S) = trail S\<close> and
-  init_clss_update_additional_info[simp]:
-    \<open>init_clss (update_additional_info w S) = init_clss S\<close> and
-  learned_clss_update_additional_info[simp]:
-    \<open>learned_clss (update_additional_info w S) = learned_clss S\<close> and
-  backtrack_lvl_update_additional_info[simp]:
-    \<open>backtrack_lvl (update_additional_info w S) = backtrack_lvl S\<close> and
-  conflicting_update_additional_info[simp]:
-    \<open>conflicting (update_additional_info w S) = conflicting S\<close> and
-  clauses_update_additional_info[simp]:
-    \<open>clauses (update_additional_info w S) = clauses S\<close>
-  using update_additional_info[of S] unfolding clauses_def
-  by (subst (asm) state_prop; subst (asm) state_prop; auto; fail)+
-
-lemma
-  trail_update_weight_information[simp]:
-    \<open>trail (update_weight_information w S) = trail S\<close> and
-  init_clss_update_weight_information[simp]:
-    \<open>init_clss (update_weight_information w S) = init_clss S\<close> and
-  learned_clss_update_weight_information[simp]:
-    \<open>learned_clss (update_weight_information w S) = learned_clss S\<close> and
-  backtrack_lvl_update_weight_information[simp]:
-    \<open>backtrack_lvl (update_weight_information w S) = backtrack_lvl S\<close> and
-  conflicting_update_weight_information[simp]:
-    \<open>conflicting (update_weight_information w S) = conflicting S\<close> and
-  clauses_update_weight_information[simp]:
-    \<open>clauses (update_weight_information w S) = clauses S\<close>
-  using update_additional_info[of S] unfolding update_weight_information_def by auto
-
-definition weight where
-  \<open>weight S = fst (additional_info S)\<close>
-
-lemma
-  additional_info_update_additional_info[simp]:
-  "additional_info (update_additional_info w S) = w"
-  unfolding additional_info_def using update_additional_info[of S]
-  by (cases \<open>state S\<close>; auto; fail)+
-
-lemma
-  weight_cons_trail2[simp]: \<open>weight (cons_trail L S) = weight S\<close> and
-  clss_tl_trail2[simp]: "weight (tl_trail S) = weight S" and
-  weight_add_learned_cls_unfolded:
-    "weight (add_learned_cls U S) = weight S"
-    and
-  weight_update_conflicting2[simp]: "weight (update_conflicting D S) = weight S" and
-  weight_remove_cls2[simp]:
-    "weight (remove_cls C S) = weight S" and
-  weight_add_learned_cls2[simp]:
-    "weight (add_learned_cls C S) = weight S" and
-  weight_update_weight_information2[simp]:
-    "weight (update_weight_information M S) = Some (lit_of `# mset M)"
-  by (auto simp: update_weight_information_def weight_def)
+lemma \<rho>_empty_simp[simp]:
+  assumes \<open>consistent_interp (set_mset A)\<close> \<open>distinct_mset A\<close>
+  shows \<open>\<rho> A \<ge> \<rho> {#}\<close> \<open>\<not>\<rho> A < \<rho> {#}\<close>  \<open>\<rho> A \<le> \<rho> {#} \<longleftrightarrow> \<rho> A = \<rho> {#}\<close>
+  using \<rho>_mono[of A \<open>{#}\<close>] assms
+  by auto
 
 abbreviation \<rho>' :: \<open>'v clause option \<Rightarrow> 'a optimal_model\<close> where
   \<open>\<rho>' w \<equiv> (case w of None \<Rightarrow> Not_Found | Some w \<Rightarrow> Found (\<rho> w))\<close>
 
 definition is_improving_int
-  :: "('v, 'v clause) ann_lits \<Rightarrow> ('v, 'v clause) ann_lits \<Rightarrow> 'v clauses \<Rightarrow>
+  :: "('v literal, 'v literal, 'b) annotated_lits \<Rightarrow> ('v literal, 'v literal, 'b) annotated_lits \<Rightarrow> 'v clauses \<Rightarrow>
     'v clause option \<Rightarrow> bool"
 where
   \<open>is_improving_int M M' N w \<longleftrightarrow> Found (\<rho> (lit_of `# mset M')) < \<rho>' w \<and>
@@ -2244,6 +2130,269 @@ next
         dest!: spec[of _ I])
 qed
 
+lemma not_entailed_too_heavy_clauses_ge:
+  \<open>C \<in> simple_clss (atms_of_mm N) \<Longrightarrow> \<not> too_heavy_clauses N w \<Turnstile>pm pNeg C \<Longrightarrow> \<not>Found (\<rho> C) \<ge> \<rho>' w\<close>
+  using true_clss_cls_in[of \<open>pNeg C\<close> \<open>set_mset (too_heavy_clauses N w)\<close>]
+    too_heavy_clauses_contains_itself
+  by (auto simp: too_heavy_clauses_def simple_clss_finite
+        image_iff)
+
+lemma pNeg_simple_clss_iff[simp]:
+  \<open>pNeg C \<in> simple_clss N \<longleftrightarrow> C \<in> simple_clss N\<close>
+  by (auto simp: simple_clss_def)
+
+lemma conflicting_clss_incl_init_clauses:
+  \<open>atms_of_mm (conflicting_clauses N w) \<subseteq> atms_of_mm (N)\<close>
+  unfolding conflicting_clauses_def
+  apply (auto simp: simple_clss_finite)
+  by (auto simp: simple_clss_def atms_of_ms_def split: if_splits)
+
+lemma distinct_mset_mset_conflicting_clss2: \<open>distinct_mset_mset (conflicting_clauses N w)\<close>
+  unfolding conflicting_clauses_def distinct_mset_set_def
+  apply (auto simp: simple_clss_finite)
+  by (auto simp: simple_clss_def)
+
+lemma too_heavy_clauses_mono:
+  \<open>\<rho> a > \<rho> (lit_of `# mset M) \<Longrightarrow> too_heavy_clauses N (Some a) \<subseteq>#
+       too_heavy_clauses N (Some (lit_of `# mset M))\<close>
+  by (auto simp: too_heavy_clauses_def multiset_filter_mono2
+    intro!: multiset_filter_mono image_mset_subseteq_mono)
+
+lemma is_improving_conflicting_clss_update_weight_information: \<open>is_improving_int M M' N w \<Longrightarrow>
+       conflicting_clauses N w \<subseteq># conflicting_clauses N (Some (lit_of `# mset M'))\<close>
+  using too_heavy_clauses_mono[of M' \<open>the w\<close> \<open>N\<close>]
+  by (cases \<open>w\<close>)
+    (auto simp: is_improving_int_def  conflicting_clauses_def
+      simp: multiset_filter_mono2
+      intro!: image_mset_subseteq_mono
+      intro: true_clss_cls_subset
+      dest: simple_clssE)
+
+lemma conflicting_clss_update_weight_information_in2:
+  assumes \<open>is_improving_int M M' N w\<close>
+  shows \<open>negate_ann_lits M' \<in># conflicting_clauses N (Some (lit_of `# mset M'))\<close>
+  using assms apply (auto simp: simple_clss_finite
+    conflicting_clauses_def is_improving_int_def)
+  by (auto simp: is_improving_int_def conflicting_clauses_def
+      simp: multiset_filter_mono2 simple_clss_def lits_of_def
+      negate_ann_lits_pNeg_lit_of image_iff dest: total_over_m_atms_incl
+      intro!: true_clss_cls_in too_heavy_clauses_contains_itself)
+
+lemma atms_of_init_clss_conflicting_clauses'[simp]:
+  \<open>atms_of_mm N \<union> atms_of_mm (conflicting_clauses N S) = atms_of_mm N\<close>
+  using conflicting_clss_incl_init_clauses[of N] by blast
+
+lemma entails_too_heavy_clauses_if_le:
+  assumes
+    dist: \<open>distinct_mset I\<close> and
+    cons: \<open>consistent_interp (set_mset I)\<close> and
+    tot: \<open>atms_of I = atms_of_mm N\<close> and
+    le: \<open>Found (\<rho> I) < \<rho>' (Some M')\<close>
+  shows
+    \<open>set_mset I \<Turnstile>m too_heavy_clauses N (Some M')\<close>
+proof -
+  show \<open>set_mset I \<Turnstile>m too_heavy_clauses N (Some M')\<close>
+    unfolding true_cls_mset_def
+  proof
+    fix C
+    assume \<open>C \<in># too_heavy_clauses N (Some M')\<close>
+    then obtain x where
+      [simp]: \<open>C = pNeg x\<close> and
+      x: \<open>x \<in> simple_clss (atms_of_mm N)\<close> and
+      we: \<open>\<rho> M' \<le> \<rho> x\<close>
+      unfolding too_heavy_clauses_def
+      by (auto simp: simple_clss_finite)
+    then have \<open>x \<noteq> I\<close>
+      using le
+      by auto
+    then have \<open>set_mset x \<noteq> set_mset I\<close>
+      using distinct_set_mset_eq_iff[of x I] x dist
+      by (auto simp: simple_clss_def)
+    then have \<open>\<exists>a. ((a \<in># x \<and> a \<notin># I) \<or> (a \<in># I \<and> a \<notin># x))\<close>
+      by auto
+    moreover have not_incl: \<open>\<not>set_mset x \<subseteq> set_mset I\<close>
+      using \<rho>_mono[of I \<open>x\<close>] we le distinct_set_mset_eq_iff[of x I] simple_clssE[OF x]
+        dist cons
+      by auto
+    moreover have \<open>x \<noteq> {#}\<close>
+      using we le cons dist not_incl
+      by auto
+    ultimately obtain L where
+      L_x: \<open>L \<in># x\<close> and
+      \<open>L \<notin># I\<close>
+      by auto
+    moreover have \<open>atms_of x \<subseteq> atms_of I\<close>
+      using simple_clssE[OF x] tot
+      atm_iff_pos_or_neg_lit[of a I] atm_iff_pos_or_neg_lit[of a x]
+      by (auto dest!: multi_member_split)
+    ultimately have \<open>-L \<in># I\<close>
+      using tot simple_clssE[OF x] atm_of_notin_atms_of_iff
+      by auto
+    then show \<open>set_mset I \<Turnstile> C\<close>
+      using L_x by (auto simp: simple_clss_finite pNeg_def dest!: multi_member_split)
+  qed
+qed
+
+
+
+lemma entails_conflicting_clauses_if_le:
+  fixes M''
+  defines \<open>M' \<equiv> lit_of `# mset M''\<close>
+  assumes
+    dist: \<open>distinct_mset I\<close> and
+    cons: \<open>consistent_interp (set_mset I)\<close> and
+    tot: \<open>atms_of I = atms_of_mm N\<close> and
+    le: \<open>Found (\<rho> I) < \<rho>' (Some M')\<close> and
+    \<open>is_improving_int M M'' N w\<close>
+  shows
+    \<open>set_mset I \<Turnstile>m conflicting_clauses N (Some (lit_of `# mset M''))\<close>
+proof -
+  show ?thesis
+    apply (rule entails_too_heavy_clauses_too_heavy_clauses)
+    subgoal using cons by auto
+    subgoal
+      using assms unfolding is_improving_int_def
+      by (auto simp: total_over_m_alt_def M'_def atms_of_def
+          atms_too_heavy_clauses_Some eq_commute[of _ \<open>atms_of_mm N\<close>]
+          lit_in_set_iff_atm
+             dest: multi_member_split
+             dest!: simple_clssE)
+    subgoal
+      using entails_too_heavy_clauses_if_le[OF assms(2-5)]
+      by (auto simp: M'_def)
+    subgoal
+      using assms unfolding is_improving_int_def
+      by (auto simp: M'_def lits_of_def image_image
+              dest!: simple_clssE)
+    subgoal
+      using assms unfolding is_improving_int_def
+      by (auto simp: M'_def lits_of_def image_image
+              dest!: simple_clssE)
+    subgoal
+      using assms unfolding is_improving_int_def
+      by (auto simp: M'_def lits_of_def image_image
+              dest!: simple_clssE)
+    done
+qed
+
+end
+
+
+text \<open>This is one of the version of the weight functions used by Christoph Weidenbach.\<close>
+locale ocdcl_weight_WB =
+  fixes
+    \<nu> :: \<open>'v literal \<Rightarrow> nat\<close>
+begin
+
+definition \<rho> :: \<open>'v clause \<Rightarrow> nat\<close> where
+  \<open>\<rho> M = (\<Sum>A \<in># M. \<nu> A)\<close>
+
+sublocale ocdcl_weight \<rho>
+  by (unfold_locales)
+    (auto simp: \<rho>_def sum_image_mset_mono)
+
+end
+
+
+locale conflict_driven_clause_learning\<^sub>W_optimal_weight =
+  conflict_driven_clause_learning\<^sub>W
+    state_eq
+    state
+    \<comment> \<open>functions for the state:\<close>
+      \<comment> \<open>access functions:\<close>
+    trail init_clss learned_clss conflicting
+      \<comment> \<open>changing state:\<close>
+    cons_trail tl_trail add_learned_cls remove_cls
+    update_conflicting
+      \<comment> \<open>get state:\<close>
+    init_state +
+  ocdcl_weight \<rho>
+  for
+    state_eq :: "'st \<Rightarrow> 'st \<Rightarrow> bool" (infix "\<sim>" 50) and
+    state :: "'st \<Rightarrow> ('v, 'v clause) ann_lits \<times> 'v clauses \<times> 'v clauses \<times> 'v clause option \<times>
+      'v clause option \<times> 'b" and
+    trail :: "'st \<Rightarrow> ('v, 'v clause) ann_lits" and
+    init_clss :: "'st \<Rightarrow> 'v clauses" and
+    learned_clss :: "'st \<Rightarrow> 'v clauses" and
+    conflicting :: "'st \<Rightarrow> 'v clause option" and
+
+    cons_trail :: "('v, 'v clause) ann_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
+    tl_trail :: "'st \<Rightarrow> 'st" and
+    add_learned_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
+    remove_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
+    update_conflicting :: "'v clause option \<Rightarrow> 'st \<Rightarrow> 'st" and
+    init_state :: "'v clauses \<Rightarrow> 'st" and
+    \<rho> :: \<open>'v clause \<Rightarrow> 'a :: {linorder}\<close>  +
+  fixes
+    update_additional_info :: \<open>'v clause option \<times> 'b \<Rightarrow> 'st \<Rightarrow> 'st\<close>
+  assumes
+    update_additional_info:
+      \<open>state S = (M, N, U, C, K) \<Longrightarrow> state (update_additional_info K' S) = (M, N, U, C, K')\<close> and
+    weight_init_state:
+      \<open>\<And>N :: 'v clauses. fst (additional_info (init_state N)) = None\<close>
+begin
+
+thm conflicting_clss_incl_init_clauses
+definition update_weight_information :: \<open>('v, 'v clause) ann_lits \<Rightarrow> 'st \<Rightarrow> 'st\<close> where
+  \<open>update_weight_information M S =
+    update_additional_info (Some (lit_of `# mset M), snd (additional_info S)) S\<close>
+
+lemma
+  trail_update_additional_info[simp]: \<open>trail (update_additional_info w S) = trail S\<close> and
+  init_clss_update_additional_info[simp]:
+    \<open>init_clss (update_additional_info w S) = init_clss S\<close> and
+  learned_clss_update_additional_info[simp]:
+    \<open>learned_clss (update_additional_info w S) = learned_clss S\<close> and
+  backtrack_lvl_update_additional_info[simp]:
+    \<open>backtrack_lvl (update_additional_info w S) = backtrack_lvl S\<close> and
+  conflicting_update_additional_info[simp]:
+    \<open>conflicting (update_additional_info w S) = conflicting S\<close> and
+  clauses_update_additional_info[simp]:
+    \<open>clauses (update_additional_info w S) = clauses S\<close>
+  using update_additional_info[of S] unfolding clauses_def
+  by (subst (asm) state_prop; subst (asm) state_prop; auto; fail)+
+
+lemma
+  trail_update_weight_information[simp]:
+    \<open>trail (update_weight_information w S) = trail S\<close> and
+  init_clss_update_weight_information[simp]:
+    \<open>init_clss (update_weight_information w S) = init_clss S\<close> and
+  learned_clss_update_weight_information[simp]:
+    \<open>learned_clss (update_weight_information w S) = learned_clss S\<close> and
+  backtrack_lvl_update_weight_information[simp]:
+    \<open>backtrack_lvl (update_weight_information w S) = backtrack_lvl S\<close> and
+  conflicting_update_weight_information[simp]:
+    \<open>conflicting (update_weight_information w S) = conflicting S\<close> and
+  clauses_update_weight_information[simp]:
+    \<open>clauses (update_weight_information w S) = clauses S\<close>
+  using update_additional_info[of S] unfolding update_weight_information_def by auto
+
+definition weight where
+  \<open>weight S = fst (additional_info S)\<close>
+
+lemma
+  additional_info_update_additional_info[simp]:
+  "additional_info (update_additional_info w S) = w"
+  unfolding additional_info_def using update_additional_info[of S]
+  by (cases \<open>state S\<close>; auto; fail)+
+
+lemma
+  weight_cons_trail2[simp]: \<open>weight (cons_trail L S) = weight S\<close> and
+  clss_tl_trail2[simp]: "weight (tl_trail S) = weight S" and
+  weight_add_learned_cls_unfolded:
+    "weight (add_learned_cls U S) = weight S"
+    and
+  weight_update_conflicting2[simp]: "weight (update_conflicting D S) = weight S" and
+  weight_remove_cls2[simp]:
+    "weight (remove_cls C S) = weight S" and
+  weight_add_learned_cls2[simp]:
+    "weight (add_learned_cls C S) = weight S" and
+  weight_update_weight_information2[simp]:
+    "weight (update_weight_information M S) = Some (lit_of `# mset M)"
+  by (auto simp: update_weight_information_def weight_def)
+
+
+
 sublocale conflict_driven_clause_learning\<^sub>W
   where
     state_eq = state_eq and
@@ -2288,46 +2437,9 @@ lemma state_update_weight_information:
     \<exists>w'. state (update_weight_information T S) = (M, N, U, C, w', other)\<close>
   unfolding update_weight_information_def by (cases \<open>state S\<close>; auto simp: state_prop weight_def)
 
-lemma conflicting_clss_incl_init_clss:
-  \<open>atms_of_mm (conflicting_clss S) \<subseteq> atms_of_mm (init_clss S)\<close>
-  unfolding conflicting_clss_def conflicting_clauses_def
-  apply (auto simp: simple_clss_finite)
-  by (auto simp: simple_clss_def atms_of_ms_def split: if_splits)
-
-lemma distinct_mset_mset_conflicting_clss2: \<open>distinct_mset_mset (conflicting_clss S)\<close>
-  unfolding conflicting_clss_def conflicting_clauses_def distinct_mset_set_def
-  apply (auto simp: simple_clss_finite)
-  by (auto simp: simple_clss_def)
-
-lemma too_heavy_clauses_mono:
-  \<open>\<rho> a > \<rho> (lit_of `# mset M) \<Longrightarrow> too_heavy_clauses N (Some a) \<subseteq>#
-       too_heavy_clauses N (Some (lit_of `# mset M))\<close>
-  by (auto simp: too_heavy_clauses_def multiset_filter_mono2
-    intro!: multiset_filter_mono image_mset_subseteq_mono)
-
-lemma is_improving_conflicting_clss_update_weight_information: \<open>is_improving M M' S \<Longrightarrow>
-       conflicting_clss S \<subseteq># conflicting_clss (update_weight_information M' S)\<close>
-  using too_heavy_clauses_mono[of M' \<open>the (weight S)\<close> \<open>(init_clss S)\<close>]
-  by (cases \<open>weight S\<close>)
-    (auto simp: is_improving_int_def conflicting_clss_def conflicting_clauses_def
-      simp: multiset_filter_mono2
-      intro!: image_mset_subseteq_mono
-      intro: true_clss_cls_subset
-      dest: simple_clssE)
-
-lemma conflicting_clss_update_weight_information_in2:
-  assumes \<open>is_improving M M' S\<close>
-  shows \<open>negate_ann_lits M' \<in># conflicting_clss (update_weight_information M' S)\<close>
-  using assms apply (auto simp: simple_clss_finite
-    conflicting_clauses_def conflicting_clss_def is_improving_int_def)
-  by (auto simp: is_improving_int_def conflicting_clss_def conflicting_clauses_def
-      simp: multiset_filter_mono2 simple_clss_def lits_of_def
-      negate_ann_lits_pNeg_lit_of image_iff dest: total_over_m_atms_incl
-      intro!: true_clss_cls_in too_heavy_clauses_contains_itself)
-
-lemma atms_of_init_clss_conflicting_clss[simp]:
+lemma atms_of_init_clss_conflicting_clauses[simp]:
   \<open>atms_of_mm (init_clss S) \<union> atms_of_mm (conflicting_clss S) = atms_of_mm (init_clss S)\<close>
-  using conflicting_clss_incl_init_clss[of S] by blast
+  using conflicting_clss_incl_init_clauses[of \<open>(init_clss S)\<close>] unfolding conflicting_clss_def by blast
 
 lemma lit_of_trail_in_simple_clss: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S) \<Longrightarrow>
          lit_of `# mset (trail S) \<in> simple_clss (atms_of_mm (init_clss S))\<close>
@@ -2397,6 +2509,19 @@ sublocale conflict_driven_clause_learning\<^sub>W
     init_state = init_state
   by unfold_locales
 
+lemma is_improving_conflicting_clss_update_weight_information': \<open>is_improving M M' S \<Longrightarrow>
+       conflicting_clss S \<subseteq># conflicting_clss (update_weight_information M' S)\<close>
+  using is_improving_conflicting_clss_update_weight_information[of M M' \<open>init_clss S\<close> \<open>weight S\<close>]
+  unfolding conflicting_clss_def
+  by auto
+
+lemma conflicting_clss_update_weight_information_in2':
+  assumes \<open>is_improving M M' S\<close>
+  shows \<open>negate_ann_lits M' \<in># conflicting_clss (update_weight_information M' S)\<close>
+  using conflicting_clss_update_weight_information_in2[of M M' \<open>init_clss S\<close> \<open>weight S\<close>] assms
+  unfolding conflicting_clss_def
+  by auto
+
 sublocale conflict_driven_clause_learning_with_adding_init_clause_cost\<^sub>W_ops
   where
     state = state and
@@ -2417,10 +2542,10 @@ sublocale conflict_driven_clause_learning_with_adding_init_clause_cost\<^sub>W_o
   apply unfold_locales
   subgoal by (rule state_additional_info')
   subgoal by (rule state_update_weight_information)
-  subgoal by (rule conflicting_clss_incl_init_clss)
-  subgoal by (rule distinct_mset_mset_conflicting_clss2)
-  subgoal by (rule is_improving_conflicting_clss_update_weight_information)
-  subgoal by (rule conflicting_clss_update_weight_information_in2; assumption)
+  subgoal unfolding conflicting_clss_def by (rule conflicting_clss_incl_init_clauses)
+  subgoal unfolding conflicting_clss_def by (rule distinct_mset_mset_conflicting_clss2)
+  subgoal by (rule is_improving_conflicting_clss_update_weight_information')
+  subgoal by (rule conflicting_clss_update_weight_information_in2'; assumption)
   done
 
 lemma wf_cdcl_bnb_fixed:
@@ -2459,17 +2584,6 @@ lemma wf_cdcl_bnb2:
      \<and> cdcl_bnb S T}\<close>
   by (subst wf_cdcl_bnb_fixed_iff[symmetric]) (intro allI, rule wf_cdcl_bnb_fixed)
 
-lemma not_entailed_too_heavy_clauses_ge:
-  \<open>C \<in> simple_clss (atms_of_mm N) \<Longrightarrow> \<not> too_heavy_clauses N w \<Turnstile>pm pNeg C \<Longrightarrow> \<not>Found (\<rho> C) \<ge> \<rho>' w\<close>
-  using true_clss_cls_in[of \<open>pNeg C\<close> \<open>set_mset (too_heavy_clauses N w)\<close>]
-    too_heavy_clauses_contains_itself
-  by (auto simp: too_heavy_clauses_def simple_clss_finite
-        image_iff)
-
-lemma pNeg_simple_clss_iff[simp]:
-  \<open>pNeg C \<in> simple_clss N \<longleftrightarrow> C \<in> simple_clss N\<close>
-  by (auto simp: simple_clss_def)
-
 lemma can_always_improve:
   assumes
     ent: \<open>trail S \<Turnstile>asm clauses S\<close> and
@@ -2492,8 +2606,7 @@ proof -
     by (auto simp: conflict_opt.simps conflicting_clss_def lits_of_def
          conflicting_clauses_def clauses_def negate_ann_lits_pNeg_lit_of image_iff
          simple_clss_finite subset_iff
-       dest!: spec[of _ \<open>(lit_of `# mset (trail S))\<close>] dest: total_over_m_atms_incl
-          true_clss_cls_in too_heavy_clauses_contains_itself
+       dest!: spec[of _ \<open>(lit_of `# mset (trail S))\<close>]
           dest: not_entailed_too_heavy_clauses_ge)
   have tr: \<open>trail S \<Turnstile>asm init_clss S\<close>
     using ent by (auto simp: clauses_def)
@@ -2598,98 +2711,21 @@ proof (cases rule: obacktrack.cases)
 qed
 
 
-lemma entails_too_heavy_clauses_if_le:
-  assumes
-    dist: \<open>distinct_mset I\<close> and
-    cons: \<open>consistent_interp (set_mset I)\<close> and
-    tot: \<open>atms_of I = atms_of_mm N\<close> and
-    le: \<open>Found (\<rho> I) < \<rho>' (Some M')\<close>
-  shows
-    \<open>set_mset I \<Turnstile>m too_heavy_clauses N (Some M')\<close>
-proof -
-  show \<open>set_mset I \<Turnstile>m too_heavy_clauses N (Some M')\<close>
-    unfolding true_cls_mset_def
-  proof
-    fix C
-    assume \<open>C \<in># too_heavy_clauses N (Some M')\<close>
-    then obtain x where
-      [simp]: \<open>C = pNeg x\<close> and
-      x: \<open>x \<in> simple_clss (atms_of_mm N)\<close> and
-      we: \<open>\<rho> M' \<le> \<rho> x\<close>
-      unfolding too_heavy_clauses_def
-      by (auto simp: simple_clss_finite)
-    then have \<open>x \<noteq> I\<close>
-      using cdcl_bnb_larger_still_larger[of S T]
-      using le
-      by auto
-    then have \<open>set_mset x \<noteq> set_mset I\<close>
-      using distinct_set_mset_eq_iff[of x I] x dist
-      by (auto simp: simple_clss_def)
-    then have \<open>\<exists>a. ((a \<in># x \<and> a \<notin># I) \<or> (a \<in># I \<and> a \<notin># x))\<close>
-      by auto
-    moreover have not_incl: \<open>\<not>set_mset x \<subseteq> set_mset I\<close>
-      using \<rho>_mono[of I \<open>x\<close>] we le distinct_set_mset_eq_iff[of x I] simple_clssE[OF x]
-        dist cons
-      by auto
-    moreover have \<open>x \<noteq> {#}\<close>
-      using we le cons dist not_incl
-      by (cases \<open>weight S\<close>) auto
-    ultimately obtain L where
-      L_x: \<open>L \<in># x\<close> and
-      \<open>L \<notin># I\<close>
-      by auto
-    moreover have \<open>atms_of x \<subseteq> atms_of I\<close>
-      using simple_clssE[OF x] tot
-      atm_iff_pos_or_neg_lit[of a I] atm_iff_pos_or_neg_lit[of a x]
-      by (auto dest!: multi_member_split)
-    ultimately have \<open>-L \<in># I\<close>
-      using tot simple_clssE[OF x] atm_of_notin_atms_of_iff
-      by auto
-    then show \<open>set_mset I \<Turnstile> C\<close>
-      using L_x by (auto simp: simple_clss_finite pNeg_def dest!: multi_member_split)
-  qed
-qed
-
-
-lemma entails_conflicting_clauses_if_le:
+lemma entails_conflicting_clauses_if_le':
   fixes M''
   defines \<open>M' \<equiv> lit_of `# mset M''\<close>
   assumes
     dist: \<open>distinct_mset I\<close> and
     cons: \<open>consistent_interp (set_mset I)\<close> and
-    tot: \<open>atms_of I = atms_of_mm N\<close> and
+    tot: \<open>atms_of I = atms_of_mm (init_clss S)\<close> and
     le: \<open>Found (\<rho> I) < \<rho>' (Some M')\<close> and
-    \<open>is_improving_int M M'' N w\<close>
+    \<open>is_improving M M'' S\<close> and
+   \<open>N = init_clss S\<close>
   shows
     \<open>set_mset I \<Turnstile>m conflicting_clauses N (weight (update_weight_information M'' S))\<close>
-proof -
-  show ?thesis
-    apply (rule entails_too_heavy_clauses_too_heavy_clauses)
-    subgoal using cons by auto
-    subgoal
-      using assms unfolding is_improving_int_def
-      by (auto simp: total_over_m_alt_def M'_def atms_of_def
-          atms_too_heavy_clauses_Some eq_commute[of _ \<open>atms_of_mm N\<close>]
-          lit_in_set_iff_atm
-             dest: multi_member_split
-             dest!: simple_clssE)
-    subgoal
-      using entails_too_heavy_clauses_if_le[OF assms(2-5)]
-      by (auto simp: M'_def)
-    subgoal
-      using assms unfolding is_improving_int_def
-      by (auto simp: M'_def lits_of_def image_image
-              dest!: simple_clssE)
-    subgoal
-      using assms unfolding is_improving_int_def
-      by (auto simp: M'_def lits_of_def image_image
-              dest!: simple_clssE)
-    subgoal
-      using assms unfolding is_improving_int_def
-      by (auto simp: M'_def lits_of_def image_image
-              dest!: simple_clssE)
-    done
-qed
+  using entails_conflicting_clauses_if_le[OF assms(2-6)[unfolded M'_def]] assms(7)
+  unfolding conflicting_clss_def
+  by auto
 
 lemma improve_model_still_model:
   assumes
@@ -2729,8 +2765,8 @@ proof (cases rule: improvep.cases)
     using tot[symmetric]
     by (auto simp: total_over_m_def total_over_set_def atm_iff_pos_or_neg_lit)
   have
-    \<open>set_mset I \<Turnstile>m conflicting_clauses (init_clss S) (weight (update_weight_information M' S))\<close>
-    apply (rule entails_conflicting_clauses_if_le)
+      \<open>set_mset I \<Turnstile>m conflicting_clauses (init_clss S) (weight (update_weight_information M' S))\<close>
+    apply (rule entails_conflicting_clauses_if_le'[unfolded conflicting_clss_def])
     using T dist cons tot le imp by (auto intro!: )
 
   then have \<open>set_mset I \<Turnstile>m conflicting_clss (update_weight_information M' S)\<close>
