@@ -5,7 +5,8 @@
 theory Prover_Architectures
   imports Labeled_Lifting_to_Non_Ground_Calculi
 begin
-locale Given_Clause = labeled_lifting_with_red_crit_family Bot_F Inf_F Bot_G Q entails_q Inf_G Red_Inf_q
+
+locale Prover_Architecture = labeled_lifting_with_red_crit_family Bot_F Inf_F Bot_G Q entails_q Inf_G Red_Inf_q
   Red_F_q \<G>_F_q \<G>_Inf_q l Inf_FL
   for
     Bot_F :: "'f set"
@@ -386,5 +387,30 @@ proof -
 qed    
 
 end
+
+locale Given_Clause = Prover_Architecture Bot_F Inf_F Bot_G Q entails_q Inf_G Red_Inf_q
+  Red_F_q \<G>_F_q \<G>_Inf_q l Inf_FL Equiv_F Prec_F Prec_l
+  for
+    Bot_F :: "'f set" and
+    Inf_F :: "'f inference set" and
+    Bot_G :: "'g set" and
+    Q :: "'q itself" and
+    entails_q :: "'q \<Rightarrow> ('g set \<Rightarrow> 'g set \<Rightarrow> bool)" and
+    Inf_G :: \<open>'g inference set\<close> and
+    Red_Inf_q :: "'q \<Rightarrow> ('g set \<Rightarrow> 'g inference set)" and
+    Red_F_q :: "'q \<Rightarrow> ('g set \<Rightarrow> 'g set)" and
+    \<G>_F_q :: "'q \<Rightarrow> 'f \<Rightarrow> 'g set"  and
+    \<G>_Inf_q :: "'q \<Rightarrow> 'f inference \<Rightarrow> 'g inference set" and
+    l :: "'l itself" and
+    Inf_FL :: \<open>('f \<times> 'l) inference set\<close> and
+    Equiv_F :: "('f \<times> 'f) set" and
+    Prec_F :: "'f \<Rightarrow> 'f \<Rightarrow> bool" (infix "\<lless>" 50) and 
+    Prec_l :: "'l \<Rightarrow> 'l \<Rightarrow> bool" (infix "\<sqsubset>l" 50)
+  + fixes
+    active :: "'l"
+  assumes
+    active_minimal: "l2 \<noteq> active \<Longrightarrow> active \<sqsubset>l l2" and
+    at_least_two_labels: "\<exists>l2. active \<sqsubset>l l2" and
+    inf_never_active: "\<iota> \<in> Inf_FL \<Longrightarrow> snd (concl_of \<iota>) \<noteq> active"
 
 end
