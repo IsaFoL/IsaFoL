@@ -412,5 +412,42 @@ locale Given_Clause = Prover_Architecture Bot_F Inf_F Bot_G Q entails_q Inf_G Re
     active_minimal: "l2 \<noteq> active \<Longrightarrow> active \<sqsubset>l l2" and
     at_least_two_labels: "\<exists>l2. active \<sqsubset>l l2" and
     inf_never_active: "\<iota> \<in> Inf_FL \<Longrightarrow> snd (concl_of \<iota>) \<noteq> active"
+begin
+
+definition active_subset :: "('f \<times> 'l) set \<Rightarrow> ('f \<times> 'l) set" where
+  "active_subset M = {CL \<in> M. snd CL \<noteq> active}" 
+
+inductive Given_Clause_step :: "('f \<times> 'l) set \<Rightarrow> ('f \<times> 'l) set \<Rightarrow> bool" (infix "\<Longrightarrow>GC" 50) where
+  process: "N1 = N \<union> M \<Longrightarrow> N2 = N \<union> M' \<Longrightarrow> N \<inter> M = {} \<Longrightarrow>
+    M \<subseteq>  with_labels.Red_F_Q (N \<union> M') \<Longrightarrow>
+    active_subset M' = {} \<Longrightarrow> N1 \<Longrightarrow>GC N2" | 
+  infer: "N1 = N \<union> {(C,L)} \<Longrightarrow> (C,L) \<notin> N \<Longrightarrow> N2 = N \<union> {(C,active)} \<union> M \<Longrightarrow> L \<noteq> active \<Longrightarrow>
+    active_subset M = {} \<Longrightarrow>
+    with_labels.Inf_from2 (active_subset N) {(C,active)} \<subseteq> with_labels.Red_Inf_Q (N \<union> {(C,active)} \<union> M) \<Longrightarrow>
+    N1 \<Longrightarrow>GC N2" 
+
+find_theorems " _ \<or> _ \<Longrightarrow> _" name: HOL
+
+lemma one_step_equiv: "N1 \<Longrightarrow>GC N2 \<Longrightarrow> with_labels.inter_red_crit_calculus.derive N1 N2"
+proof (cases N1 N2 rule: Given_Clause_step.cases)
+  show "N1 \<Longrightarrow>GC N2 \<Longrightarrow> N1 \<Longrightarrow>GC N2" by blast
+next
+  fix N M M'
+  assume
+    gc_step: "N1 \<Longrightarrow>GC N2" and
+    n1_is: "N1 = N \<union> M" and
+    n2_is: "N2 = N \<union> M'" and
+    empty_inter: "N \<inter> M = {}" and
+    m_red: "M \<subseteq> with_labels.Red_F_Q (N \<union> M')" and
+    active_empty: "active_subset M' = {}"
+  show "with_labels.inter_red_crit_calculus.derive N1 N2"
+  sorry
+next
+oops
+
+lemma "chain (\<Longrightarrow>GC) D \<Longrightarrow> chain with_labels.inter_red_crit_calculus.derive D"
+  using one_step_equiv Lazy_List_Chain.chain_mono by blast
+
+end
 
 end

@@ -84,6 +84,9 @@ begin
 definition Inf_from :: "'f set  \<Rightarrow> 'f inference set" where
   "Inf_from N = {\<iota> \<in> Inf. set (prems_of \<iota>) \<subseteq> N}"
 
+definition Inf_from2 :: "'f set \<Rightarrow> 'f set \<Rightarrow> 'f inference set" where
+  "Inf_from2 N M = Inf_from (N \<union> M) - Inf_from (N - M)"
+
 end
 
 locale sound_inference_system = inference_system + consequence_relation +
