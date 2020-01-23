@@ -415,7 +415,10 @@ locale Given_Clause = Prover_Architecture Bot_F Inf_F Bot_G Q entails_q Inf_G Re
 begin
 
 definition active_subset :: "('f \<times> 'l) set \<Rightarrow> ('f \<times> 'l) set" where
-  "active_subset M = {CL \<in> M. snd CL \<noteq> active}" 
+  "active_subset M = {CL \<in> M. snd CL = active}" 
+
+definition non_active_subset :: "('f \<times> 'l) set \<Rightarrow> ('f \<times> 'l) set" where
+  "non_active_subset M = {CL \<in> M. snd CL \<noteq> active}"
 
 inductive Given_Clause_step :: "('f \<times> 'l) set \<Rightarrow> ('f \<times> 'l) set \<Rightarrow> bool" (infix "\<Longrightarrow>GC" 50) where
   process: "N1 = N \<union> M \<Longrightarrow> N2 = N \<union> M' \<Longrightarrow> N \<inter> M = {} \<Longrightarrow>
@@ -427,9 +430,10 @@ inductive Given_Clause_step :: "('f \<times> 'l) set \<Rightarrow> ('f \<times> 
       labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_Inf_Q (N \<union> {(C,active)} \<union> M) \<Longrightarrow>
     N1 \<Longrightarrow>GC N2" 
 
+abbreviation derive :: "('f \<times> 'l) set \<Rightarrow> ('f \<times> 'l) set \<Rightarrow> bool" (infix "\<rhd>RedL" 50) where
+  "derive \<equiv> labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.inter_red_crit_calculus.derive"
 
-lemma one_step_equiv: "N1 \<Longrightarrow>GC N2 \<Longrightarrow>
-  labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.inter_red_crit_calculus.derive N1 N2"
+lemma one_step_equiv: "N1 \<Longrightarrow>GC N2 \<Longrightarrow> N1 \<rhd>RedL N2"
 proof (cases N1 N2 rule: Given_Clause_step.cases)
   show "N1 \<Longrightarrow>GC N2 \<Longrightarrow> N1 \<Longrightarrow>GC N2" by blast
 next
@@ -470,10 +474,34 @@ next
     by blast
 qed
 
+abbreviation fair :: "('f \<times> 'l) set llist \<Rightarrow> bool" where
+  "fair \<equiv> labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.inter_red_crit_calculus.fair"
+
 text \<open>lemma:gc-derivations-are-red-derivations\<close>
-lemma "chain (\<Longrightarrow>GC) D \<Longrightarrow>
-  chain labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.inter_red_crit_calculus.derive D"
+lemma "chain (\<Longrightarrow>GC) D \<Longrightarrow> chain (\<rhd>RedL) D"
   using one_step_equiv Lazy_List_Chain.chain_mono by blast
+
+text \<open>lemma:fair-gc-derivations\<close>
+lemma "chain (\<Longrightarrow>GC) D \<Longrightarrow> llength D > 0 \<Longrightarrow> active_subset (lnth D 0) = {} \<Longrightarrow>
+  non_active_subset (Liminf_llist D) = {} \<Longrightarrow> fair D"
+proof -
+  assume
+    deriv: "chain (\<Longrightarrow>GC) D" and
+    non_empty: "llength D > 0" and
+    init_state: "active_subset (lnth D 0) = {}" and
+    final_state: "non_active_subset (Liminf_llist D) = {}"
+  show "fair D"
+    unfolding labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.inter_red_crit_calculus.fair_def
+  proof
+    fix \<iota>
+    assume i_in: "\<iota> \<in> with_labels.Inf_from (Liminf_llist D)"
+    have "Liminf_llist D = active_subset (Liminf_llist D)"
+      using final_state unfolding non_active_subset_def active_subset_def by blast
+    show "\<iota> \<in>
+      labeled_ord_red_crit_fam.empty_ord_lifted_calc_w_red_crit_family.inter_red_crit_calculus.Sup_Red_Inf_llist D"
+    sorry
+  qed
+qed
 
 end
 
