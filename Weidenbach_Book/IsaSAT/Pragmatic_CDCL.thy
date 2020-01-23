@@ -454,7 +454,7 @@ lemma backtrack_is_cdcl_backtrack:
   apply (cases S; cases T)
   apply (simp add: cdcl_backtrack.simps clauses_def add_mset_eq_add_mset
         cdcl\<^sub>W_restart_mset_reduce_trail_to conj_disj_distribR ex_disj_distrib
-      split: cong: if_cong)
+      cong: if_cong)
   apply (rule disjI1)
   apply (rule_tac x=K in exI)
   apply auto
