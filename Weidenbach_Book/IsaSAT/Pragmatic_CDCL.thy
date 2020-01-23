@@ -239,7 +239,7 @@ inductive pcdcl_core_stgy :: \<open>'v prag_st \<Rightarrow> 'v prag_st \<Righta
 
 section \<open>The new rules\<close>
 
-text \<open>Now the more interesting part\<close>
+text \<open>Now the different part\<close>
 inductive cdcl_subsumed :: \<open>'v prag_st \<Rightarrow> 'v prag_st \<Rightarrow> bool\<close> where
 subsumed_II:
   \<open>cdcl_subsumed (M, N + {#C,C'#}, U, D, NE, UE, NS, US)
@@ -265,6 +265,9 @@ Resolution requires to restart (or a very careful thinking where
 the clause can be used, so for now, we require level 0). The names 'I'
 and 'L' refers to 'irredundant' and 'learnt'.
 
+
+We need the assumption \<^term>\<open>\<not>tautology (C + C')\<close> because learned clauses cannot
+be tautologies.
 \<close>
 
 
@@ -276,11 +279,11 @@ resolution_II:
 resolution_LL:
   \<open>cdcl_resolution (M, N, U + {#add_mset L C, add_mset (-L) C'#}, D, NE, UE, NS, US)
     (M, N, U + {#add_mset L C, add_mset (-L) C', remdups_mset (C + C')#}, D, NE, UE, NS, US)\<close>
- if  \<open>count_decided M = 0\<close> |
+ if  \<open>count_decided M = 0\<close> and \<open>\<not>tautology (C + C')\<close> |
 resolution_IL:
-  \<open>cdcl_resolution (M, N + {#add_mset L C'#}, U + {#add_mset (-L) C'#}, D, NE, UE, NS, US)
-    (M, N + {#add_mset L C'#}, U + {#add_mset (-L) C', remdups_mset (C + C')#}, D, NE, UE, NS, US)\<close>
- if  \<open>count_decided M = 0\<close>
+  \<open>cdcl_resolution (M, N + {#add_mset L C#}, U + {#add_mset (-L) C'#}, D, NE, UE, NS, US)
+    (M, N + {#add_mset L C#}, U + {#add_mset (-L) C', remdups_mset (C + C')#}, D, NE, UE, NS, US)\<close>
+ if  \<open>count_decided M = 0\<close> and \<open>\<not>tautology (C + C')\<close>
 
 lemma cdcl_resolution_still_entailed:
   \<open>cdcl_resolution S T \<Longrightarrow> consistent_interp I \<Longrightarrow> I \<Turnstile>m pget_all_init_clss S \<Longrightarrow> I \<Turnstile>m pget_all_init_clss T\<close>
@@ -309,8 +312,9 @@ learn_clause:
     (M, add_mset C N, U, D, NE, UE, NS, US)\<close>
   if \<open>atms_of C \<subseteq> atms_of_mm (N + NE + US)\<close> and
     \<open>N +NE + NS \<Turnstile>pm C\<close> and
-    \<open>\<not>tautology C\<close>
-    \<open>count_decided M = 0\<close>
+    \<open>\<not>tautology C\<close> and
+    \<open>count_decided M = 0\<close> and
+    \<open>distinct_mset C\<close>
 
 lemma cdcl_learn_clause_still_entailed:
   \<open>cdcl_learn_clause S T \<Longrightarrow> consistent_interp I \<Longrightarrow>
@@ -374,7 +378,7 @@ we could use the subsumed components to store the clauses.
 fun entailed_clss_inv :: \<open>'v prag_st \<Rightarrow> bool\<close> where
   \<open>entailed_clss_inv (M, N, U, D, NE, UE, NS, US) \<longleftrightarrow>
     (\<forall>C \<in># NE + UE.
-      (\<exists>L. L \<in># C \<and> (D = None \<or> count_decided M > 0 \<longrightarrow> get_level M L = 0 \<and> L \<in> lits_of_l M)))\<close>
+      (\<exists>L. L \<in># C \<and> ((D = None \<or> count_decided M > 0) \<longrightarrow> (get_level M L = 0 \<and> L \<in> lits_of_l M))))\<close>
 
 lemmas entailed_clss_inv_def = entailed_clss_inv.simps
 
@@ -681,5 +685,196 @@ lemma cdcl_learn_clause_entailed_clss_inv:
   \<open>cdcl_learn_clause S T \<Longrightarrow> entailed_clss_inv S \<Longrightarrow> entailed_clss_inv T\<close>
   by (cases rule:cdcl_learn_clause.cases, assumption)
     (auto simp: entailed_clss_inv_def)
+
+lemma cdcl_learn_clause_all_struct_inv:
+  assumes
+    \<open>cdcl_learn_clause S T\<close> and
+    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state\<^sub>W_of S)\<close>
+  shows
+    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state\<^sub>W_of T)\<close>
+  using assms
+  by (induction rule: cdcl_learn_clause.induct)
+    (auto 8 3 simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+        cdcl\<^sub>W_restart_mset.no_strange_atm_def
+        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
+        cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def
+        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
+        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def
+        cdcl\<^sub>W_restart_mset.clauses_def
+        cdcl\<^sub>W_restart_mset.reasons_in_clauses_def
+      intro: all_decomposition_implies_mono)
+
+lemma cdcl_subsumed_all_struct_inv:
+  assumes
+    \<open>cdcl_subsumed S T\<close> and
+    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state\<^sub>W_of S)\<close>
+  shows
+    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state\<^sub>W_of T)\<close>
+  using assms
+  apply (induction rule: cdcl_subsumed.induct)
+  subgoal for C C'
+    by (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+          cdcl\<^sub>W_restart_mset.no_strange_atm_def
+          cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
+          cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def
+          cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
+          cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def
+          cdcl\<^sub>W_restart_mset.clauses_def
+          cdcl\<^sub>W_restart_mset.reasons_in_clauses_def
+          insert_commute[of C C']
+        intro: all_decomposition_implies_mono)
+  subgoal for C C'
+    by (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+          cdcl\<^sub>W_restart_mset.no_strange_atm_def
+          cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
+          cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def
+          cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
+          cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def
+          cdcl\<^sub>W_restart_mset.clauses_def
+          cdcl\<^sub>W_restart_mset.reasons_in_clauses_def
+          insert_commute[of C C']
+        intro: all_decomposition_implies_mono)
+  subgoal for C C'
+    by (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+          cdcl\<^sub>W_restart_mset.no_strange_atm_def
+          cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
+          cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def
+          cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
+          cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def
+          cdcl\<^sub>W_restart_mset.clauses_def
+          cdcl\<^sub>W_restart_mset.reasons_in_clauses_def
+          insert_commute[of C C']
+        intro: all_decomposition_implies_mono)
+   done
+
+
+lemma all_decomposition_implies_monoI:
+  \<open>all_decomposition_implies N M \<Longrightarrow> N \<subseteq> N' \<Longrightarrow> all_decomposition_implies N' M\<close>
+  by (metis all_decomposition_implies_union le_iff_sup)
+
+lemma cdcl_resolution_all_struct_inv:
+  assumes
+    \<open>cdcl_resolution S T\<close> and
+    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state\<^sub>W_of S)\<close>
+  shows
+    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state\<^sub>W_of T)\<close>
+  using assms
+  apply (induction rule: cdcl_resolution.induct)
+  subgoal for M N L C C' U D NE UE NS US
+    by (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+          cdcl\<^sub>W_restart_mset.no_strange_atm_def
+          cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
+          cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def
+          cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
+          cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def
+          cdcl\<^sub>W_restart_mset.clauses_def
+          cdcl\<^sub>W_restart_mset.reasons_in_clauses_def
+          insert_commute[of _ \<open>remdups_mset (C + C')\<close>]
+        intro: all_decomposition_implies_monoI)
+  subgoal for M C C' N U L D NE UE NS US
+    by (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+          cdcl\<^sub>W_restart_mset.no_strange_atm_def
+          cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
+          cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def
+          cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
+          cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def
+          cdcl\<^sub>W_restart_mset.clauses_def
+          cdcl\<^sub>W_restart_mset.reasons_in_clauses_def
+          insert_commute[of _ \<open>remdups_mset (C + C')\<close>]
+        intro: all_decomposition_implies_monoI)
+  subgoal for M C C' N L U D NE UE NS US
+    by (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+          cdcl\<^sub>W_restart_mset.no_strange_atm_def
+          cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
+          cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def
+          cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
+          cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def
+          cdcl\<^sub>W_restart_mset.clauses_def
+          cdcl\<^sub>W_restart_mset.reasons_in_clauses_def
+          insert_commute[of _ \<open>remdups_mset (C + C')\<close>]
+        intro: all_decomposition_implies_monoI)
+  done
+
+lemma pcdcl_all_struct_inv:
+  \<open>pcdcl S T \<Longrightarrow>
+   cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state\<^sub>W_of S) \<Longrightarrow>
+   cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state\<^sub>W_of T)\<close>
+  by (induction rule: pcdcl.induct)
+   (blast intro: cdcl_resolution_all_struct_inv cdcl_subsumed_all_struct_inv
+      cdcl_learn_clause_all_struct_inv cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_inv
+    dest!: pcdcl_core_is_cdcl
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_cdcl\<^sub>W_restart)+
+
+definition pcdcl_all_struct_invs :: \<open>_\<close> where
+\<open>pcdcl_all_struct_invs S \<longleftrightarrow>
+  cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state\<^sub>W_of S) \<and>
+  entailed_clss_inv S \<and>
+  psubsumed_invs S\<close>
+
+lemma entailed_clss_inv_Propagated:
+  assumes \<open>entailed_clss_inv (M, N, U, None, NE, UE, NS, US)\<close> and
+    undef: \<open>undefined_lit M L'\<close>
+  shows \<open>entailed_clss_inv (Propagated L' D # M, N, U, None, NE, UE, NS, US)\<close>
+  unfolding entailed_clss_inv_def
+proof (intro conjI impI ballI)
+  fix C
+  assume \<open>C \<in># NE + UE\<close>
+  then obtain L where
+    LC: \<open>L \<in># C\<close> and
+    dec: \<open>get_level M L = 0 \<and> L \<in> lits_of_l M\<close>
+    using assms
+    by (auto simp: entailed_clss_inv_def
+        get_level_cons_if atm_of_eq_atm_of
+      dest!: multi_member_split[of C]
+      split: if_splits)
+  show \<open>\<exists>L. L \<in># C \<and>
+            (None = None \<or> 0 < count_decided (Propagated L' D # M) \<longrightarrow>
+             get_level (Propagated L' D # M) L = 0 \<and> L \<in> lits_of_l (Propagated L' D # M))\<close>
+    apply (rule exI[of _ L])
+    apply (cases \<open>count_decided M = 0\<close>)
+    using count_decided_ge_get_level[of M]
+    using LC dec undef
+    by (auto simp: entailed_clss_inv_def
+        get_level_cons_if atm_of_eq_atm_of
+      split: if_splits dest: in_lits_of_l_defined_litD)
+qed
+
+lemma entailed_clss_inv_ConflictD: \<open>entailed_clss_inv (M, N, U, None, NE, UE, NS, US) \<Longrightarrow>
+  entailed_clss_inv (M, N, U, Some D, NE, UE, NS, US)\<close>
+  by (auto simp: entailed_clss_inv_def)
+
+lemma entailed_clss_inv_Decided:
+  assumes \<open>entailed_clss_inv (M, N, U, None, NE, UE, NS, US)\<close> and
+    undef: \<open>undefined_lit M L'\<close>
+  shows \<open>entailed_clss_inv (Decided L' # M, N, U, None, NE, UE, NS, US)\<close>
+  using assms
+  unfolding entailed_clss_inv_def
+  by (auto 7 3 simp: entailed_clss_inv_def
+        get_level_cons_if atm_of_eq_atm_of
+      split: if_splits dest: in_lits_of_l_defined_litD
+      dest!: multi_member_split[of _ \<open>NE\<close>] multi_member_split[of _ \<open>UE\<close>])
+
+lemma
+  \<open>pcdcl_core S T \<Longrightarrow> entailed_clss_inv S \<Longrightarrow> entailed_clss_inv T\<close>
+  apply (induction rule: pcdcl_core.induct)
+  apply (auto simp: cdcl_conflict.simps
+    cdcl_propagate.simps cdcl_decide.simps
+    cdcl_skip.simps cdcl_resolve.simps
+    cdcl_backtrack.simps
+    get_level_cons_if atm_of_eq_atm_of
+    entailed_clss_inv_Propagated
+    entailed_clss_inv_ConflictD
+    entailed_clss_inv_Decided
+    split: if_splits)
+  oops
+
+lemma pcdcl_all_struct_inv:
+  \<open>pcdcl S T \<Longrightarrow>
+   pcdcl_all_struct_invs S \<Longrightarrow>
+   pcdcl_all_struct_invs T\<close>
+   unfolding pcdcl_all_struct_invs_def
+   apply (intro conjI)
+  apply (simp_all add: pcdcl_all_struct_inv)
+oops
 
 end
