@@ -3,6 +3,17 @@ theory Pragmatic_CDCL
 begin
 
 
+(*TODO Move*)
+lemma remdups_mset_sum_subset:  \<open>C \<subseteq># C' \<Longrightarrow> remdups_mset (C + C') = remdups_mset C'\<close>
+   \<open>C \<subseteq># C' \<Longrightarrow> remdups_mset (C' + C) = remdups_mset C'\<close>
+  apply (metis remdups_mset_def set_mset_mono set_mset_union sup.absorb_iff2)
+  by (metis add.commute le_iff_sup remdups_mset_def set_mset_mono set_mset_union)
+
+lemma remdups_mset_subset_add_mset: \<open>remdups_mset C' \<subseteq># add_mset (L) C'\<close>
+  by (meson distinct_mset_remdups_mset distinct_mset_subset_iff_remdups subset_mset.order_refl subset_mset_trans_add_mset)
+(*END Move*)
+
+
 chapter \<open>Pragmatic CDCL\<close>
 
 text \<open>
@@ -345,6 +356,13 @@ inductive pcdcl :: \<open>'v prag_st \<Rightarrow> 'v prag_st \<Rightarrow> bool
   \<open>cdcl_resolution S T \<Longrightarrow> pcdcl S T\<close> |
   \<open>cdcl_subsumed S T \<Longrightarrow> pcdcl S T\<close>
 
+inductive pcdcl_stgy :: \<open>'v prag_st \<Rightarrow> 'v prag_st \<Rightarrow> bool\<close> for S T :: \<open>'v prag_st\<close> where
+  \<open>pcdcl_core_stgy S T \<Longrightarrow> pcdcl_stgy S T\<close> |
+  \<open>cdcl_learn_clause S T \<Longrightarrow> pcdcl_stgy S T\<close> |
+  \<open>cdcl_resolution S T \<Longrightarrow> pcdcl_stgy S T\<close> |
+  \<open>cdcl_subsumed S T \<Longrightarrow> pcdcl_stgy S T\<close>
+
+
 section \<open>Invariants\<close>
 
 text \<open>
@@ -447,7 +465,7 @@ lemma backtrack_is_cdcl_backtrack:
   apply (cases S; cases T)
   apply (simp add: cdcl_backtrack.simps clauses_def add_mset_eq_add_mset
         cdcl\<^sub>W_restart_mset_reduce_trail_to conj_disj_distribR ex_disj_distrib
-      split: cong: if_cong)
+      cong: if_cong)
   apply (rule disjI1)
   apply (rule_tac x=K in exI)
   apply auto
@@ -977,11 +995,83 @@ lemma pcdcl_entailed_by_init:
   apply (simp_all add: cdcl_learn_clause_entailed_by_init cdcl_subsumed_entailed_by_init
     cdcl_resolution_entailed_by_init)
   by (meson cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_cdcl\<^sub>W_restart
-  cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed pcdcl_all_struct_invs_def pcdcl_core_is_cdcl)
+    cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed pcdcl_all_struct_invs_def pcdcl_core_is_cdcl)
+
+
+
+lemma pcdcl_core_stgy_stgy_invs:
+  assumes
+    confl: \<open>pcdcl_core_stgy S T\<close> and
+    sub: \<open>psubsumed_invs S\<close> and
+    ent: \<open>entailed_clss_inv S\<close> and
+    invs: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state\<^sub>W_of S)\<close> and
+     \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant (state\<^sub>W_of S)\<close>
+  shows \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant (state\<^sub>W_of T)\<close>
+  using assms
+  by (meson cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_cdcl\<^sub>W_stgy_invariant pcdcl_core_stgy_is_cdcl_stgy)
+
+
+lemma cdcl_subsumed_stgy_stgy_invs:
+  assumes
+    confl: \<open>cdcl_subsumed S T\<close> and
+    sub: \<open>psubsumed_invs S\<close> and
+    ent: \<open>entailed_clss_inv S\<close> and
+    invs: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state\<^sub>W_of S)\<close> and
+     \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant (state\<^sub>W_of S)\<close>
+  shows \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant (state\<^sub>W_of T)\<close>
+  using assms
+  by (induction rule: cdcl_subsumed.induct)
+    (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant_def
+    cdcl\<^sub>W_restart_mset.no_smaller_confl_def cdcl\<^sub>W_restart_mset.clauses_def)
+
+lemma cdcl_resolution_stgy_stgy_invs:
+  assumes
+    confl: \<open>cdcl_resolution S T\<close> and
+    sub: \<open>psubsumed_invs S\<close> and
+    ent: \<open>entailed_clss_inv S\<close> and
+    invs: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state\<^sub>W_of S)\<close> and
+     \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant (state\<^sub>W_of S)\<close>
+  shows \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant (state\<^sub>W_of T)\<close>
+  using assms
+  by (induction rule: cdcl_resolution.induct)
+    (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant_def
+    cdcl\<^sub>W_restart_mset.no_smaller_confl_def cdcl\<^sub>W_restart_mset.clauses_def)
+
+
+lemma cdcl_learn_clause_stgy_stgy_invs:
+  assumes
+    confl: \<open>cdcl_learn_clause S T\<close> and
+    sub: \<open>psubsumed_invs S\<close> and
+    ent: \<open>entailed_clss_inv S\<close> and
+    invs: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state\<^sub>W_of S)\<close> and
+     \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant (state\<^sub>W_of S)\<close>
+  shows \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant (state\<^sub>W_of T)\<close>
+  using assms
+  by (induction rule: cdcl_learn_clause.induct)
+    (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant_def
+    cdcl\<^sub>W_restart_mset.no_smaller_confl_def cdcl\<^sub>W_restart_mset.clauses_def)
+
+
+lemma pcdcl_stgy_stgy_invs:
+  assumes
+    confl: \<open>pcdcl_stgy S T\<close> and
+    sub: \<open>psubsumed_invs S\<close> and
+    ent: \<open>entailed_clss_inv S\<close> and
+    invs: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state\<^sub>W_of S)\<close> and
+     \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant (state\<^sub>W_of S)\<close>
+  shows \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant (state\<^sub>W_of T)\<close>
+  using assms
+  apply (induction rule: pcdcl_stgy.induct)
+  subgoal using pcdcl_core_stgy_stgy_invs by blast
+  subgoal using cdcl_learn_clause_stgy_stgy_invs by blast
+  subgoal using cdcl_resolution_stgy_stgy_invs by blast
+  subgoal using cdcl_subsumed_stgy_stgy_invs by blast
+  done
 
 
 section \<open>Higher-level rules\<close>
 
+subsection \<open>Subsumption resolution\<close>
 text \<open>
 
 Subsumption-Resolution rules are the composition of resolution,
@@ -1007,15 +1097,8 @@ subresolution_IL:
     (M, N + {#remdups_mset (C)#}, U + {#add_mset (-L) C',remdups_mset (C)#}, D, NE, UE, add_mset (add_mset (L) C) NS,  US)\<close>
  if  \<open>count_decided M = 0\<close> and \<open>\<not>tautology (C + C')\<close> and  \<open>C' \<subseteq># C\<close>
 
-lemma remdups_mset_sum_subset:  \<open>C \<subseteq># C' \<Longrightarrow> remdups_mset (C + C') = remdups_mset C'\<close>
-   \<open>C \<subseteq># C' \<Longrightarrow> remdups_mset (C' + C) = remdups_mset C'\<close>
-  apply (metis remdups_mset_def set_mset_mono set_mset_union sup.absorb_iff2)
-  by (metis add.commute le_iff_sup remdups_mset_def set_mset_mono set_mset_union)
 
-lemma remdups_mset_subset_add_mset: \<open>remdups_mset C' \<subseteq># add_mset (L) C'\<close>
-  by (meson distinct_mset_remdups_mset distinct_mset_subset_iff_remdups subset_mset.order_refl subset_mset_trans_add_mset)
-
-lemma
+lemma cdcl_subresolution:
   assumes \<open>cdcl_subresolution S T\<close> and
     \<open>pcdcl_all_struct_invs S\<close> and
     \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of S)\<close>
