@@ -317,7 +317,7 @@ proof -
 qed
 
 text \<open>lemma:redundant-labeled-clauses\<close>
-lemma \<open>C \<in> no_labels.Red_F_\<G>_empty (fst ` N) \<or> (\<exists>C' \<in> (fst ` N). C \<lless> C') \<or> (\<exists>(C',L') \<in> N. (L' \<sqsubset>l L \<and> C \<lless>\<doteq> C')) \<Longrightarrow>
+lemma red_labeled_clauses: \<open>C \<in> no_labels.Red_F_\<G>_empty (fst ` N) \<or> (\<exists>C' \<in> (fst ` N). C \<lless> C') \<or> (\<exists>(C',L') \<in> N. (L' \<sqsubset>l L \<and> C \<lless>\<doteq> C')) \<Longrightarrow>
   (C,L) \<in> labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_F_Q N\<close>
 proof -
   assume \<open>C \<in> no_labels.Red_F_\<G>_empty (fst ` N) \<or> (\<exists>C' \<in> (fst ` N). C \<lless> C') \<or> (\<exists>(C',L') \<in> N. (L' \<sqsubset>l L \<and> C \<lless>\<doteq> C'))\<close>
@@ -415,20 +415,25 @@ locale Given_Clause = Prover_Architecture Bot_F Inf_F Bot_G Q entails_q Inf_G Re
 begin
 
 definition active_subset :: "('f \<times> 'l) set \<Rightarrow> ('f \<times> 'l) set" where
-  "active_subset M = {CL \<in> M. snd CL \<noteq> active}" 
+  "active_subset M = {CL \<in> M. snd CL = active}" 
+
+definition non_active_subset :: "('f \<times> 'l) set \<Rightarrow> ('f \<times> 'l) set" where
+  "non_active_subset M = {CL \<in> M. snd CL \<noteq> active}"
 
 inductive Given_Clause_step :: "('f \<times> 'l) set \<Rightarrow> ('f \<times> 'l) set \<Rightarrow> bool" (infix "\<Longrightarrow>GC" 50) where
   process: "N1 = N \<union> M \<Longrightarrow> N2 = N \<union> M' \<Longrightarrow> N \<inter> M = {} \<Longrightarrow>
-    M \<subseteq>  with_labels.Red_F_Q (N \<union> M') \<Longrightarrow>
+    M \<subseteq>  labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_F_Q (N \<union> M') \<Longrightarrow>
     active_subset M' = {} \<Longrightarrow> N1 \<Longrightarrow>GC N2" | 
-  infer: "N1 = N \<union> {(C,L)} \<Longrightarrow> (C,L) \<notin> N \<Longrightarrow> N2 = N \<union> {(C,active)} \<union> M \<Longrightarrow> L \<noteq> active \<Longrightarrow>
+  infer: "N1 = N \<union> {(C,L)} \<Longrightarrow> {(C,L)} \<inter> N = {} \<Longrightarrow> N2 = N \<union> {(C,active)} \<union> M \<Longrightarrow> L \<noteq> active \<Longrightarrow>
     active_subset M = {} \<Longrightarrow>
-    with_labels.Inf_from2 (active_subset N) {(C,active)} \<subseteq> with_labels.Red_Inf_Q (N \<union> {(C,active)} \<union> M) \<Longrightarrow>
+    with_labels.Inf_from2 (active_subset N) {(C,active)} \<subseteq>
+      labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_Inf_Q (N \<union> {(C,active)} \<union> M) \<Longrightarrow>
     N1 \<Longrightarrow>GC N2" 
 
-find_theorems " _ \<or> _ \<Longrightarrow> _" name: HOL
+abbreviation derive :: "('f \<times> 'l) set \<Rightarrow> ('f \<times> 'l) set \<Rightarrow> bool" (infix "\<rhd>RedL" 50) where
+  "derive \<equiv> labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.inter_red_crit_calculus.derive"
 
-lemma one_step_equiv: "N1 \<Longrightarrow>GC N2 \<Longrightarrow> with_labels.inter_red_crit_calculus.derive N1 N2"
+lemma one_step_equiv: "N1 \<Longrightarrow>GC N2 \<Longrightarrow> N1 \<rhd>RedL N2"
 proof (cases N1 N2 rule: Given_Clause_step.cases)
   show "N1 \<Longrightarrow>GC N2 \<Longrightarrow> N1 \<Longrightarrow>GC N2" by blast
 next
@@ -438,15 +443,65 @@ next
     n1_is: "N1 = N \<union> M" and
     n2_is: "N2 = N \<union> M'" and
     empty_inter: "N \<inter> M = {}" and
-    m_red: "M \<subseteq> with_labels.Red_F_Q (N \<union> M')" and
+    m_red: "M \<subseteq> labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_F_Q (N \<union> M')" and
     active_empty: "active_subset M' = {}"
-  show "with_labels.inter_red_crit_calculus.derive N1 N2"
-  sorry
+  have "N1 - N2 \<subseteq> labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_F_Q N2"
+    using n1_is n2_is empty_inter m_red by auto
+  then show "labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.inter_red_crit_calculus.derive N1 N2"
+    unfolding labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.inter_red_crit_calculus.derive.simps by blast
 next
-oops
+  fix N C L M
+  assume
+    gc_step: "N1 \<Longrightarrow>GC N2" and
+    n1_is: "N1 = N \<union> {(C,L)}" and
+    not_active: "L \<noteq> active" and
+    n2_is: "N2 = N \<union> {(C, active)} \<union> M" and
+    empty_inter: "{(C,L)} \<inter> N = {}" and
+    active_empty: "active_subset M = {}" and
+    infs_red: "with_labels.Inf_from2 (active_subset N) {(C, active)} \<subseteq>
+      labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_Inf_Q (N \<union> {(C, active)} \<union> M)"
+  have "(C, active) \<in> N2" using n2_is by auto
+  moreover have "C \<lless>\<doteq> C" using Prec_eq_F_def equiv_F_is_equiv_rel equiv_class_eq_iff by fastforce
+  moreover have "active \<sqsubset>l L" using active_minimal[OF not_active] .  
+  ultimately have "{(C,L)} \<subseteq> labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_F_Q N2"
+    using red_labeled_clauses by blast
+  moreover have "(C,L) \<notin> M \<Longrightarrow> N1 - N2 = {(C,L)}" using n1_is n2_is empty_inter not_active by auto
+  moreover have "(C,L) \<in> M \<Longrightarrow> N1 - N2 = {}" using n1_is n2_is by auto
+  ultimately have "N1 - N2 \<subseteq> labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_F_Q N2"
+    using empty_red_f_equiv[of N2] by blast
+  then show "labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.inter_red_crit_calculus.derive N1 N2"
+    unfolding labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.inter_red_crit_calculus.derive.simps
+    by blast
+qed
 
-lemma "chain (\<Longrightarrow>GC) D \<Longrightarrow> chain with_labels.inter_red_crit_calculus.derive D"
+abbreviation fair :: "('f \<times> 'l) set llist \<Rightarrow> bool" where
+  "fair \<equiv> labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.inter_red_crit_calculus.fair"
+
+text \<open>lemma:gc-derivations-are-red-derivations\<close>
+lemma "chain (\<Longrightarrow>GC) D \<Longrightarrow> chain (\<rhd>RedL) D"
   using one_step_equiv Lazy_List_Chain.chain_mono by blast
+
+text \<open>lemma:fair-gc-derivations\<close>
+lemma "chain (\<Longrightarrow>GC) D \<Longrightarrow> llength D > 0 \<Longrightarrow> active_subset (lnth D 0) = {} \<Longrightarrow>
+  non_active_subset (Liminf_llist D) = {} \<Longrightarrow> fair D"
+proof -
+  assume
+    deriv: "chain (\<Longrightarrow>GC) D" and
+    non_empty: "llength D > 0" and
+    init_state: "active_subset (lnth D 0) = {}" and
+    final_state: "non_active_subset (Liminf_llist D) = {}"
+  show "fair D"
+    unfolding labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.inter_red_crit_calculus.fair_def
+  proof
+    fix \<iota>
+    assume i_in: "\<iota> \<in> with_labels.Inf_from (Liminf_llist D)"
+    have "Liminf_llist D = active_subset (Liminf_llist D)"
+      using final_state unfolding non_active_subset_def active_subset_def by blast
+    show "\<iota> \<in>
+      labeled_ord_red_crit_fam.empty_ord_lifted_calc_w_red_crit_family.inter_red_crit_calculus.Sup_Red_Inf_llist D"
+    sorry
+  qed
+qed
 
 end
 
