@@ -419,15 +419,17 @@ definition active_subset :: "('f \<times> 'l) set \<Rightarrow> ('f \<times> 'l)
 
 inductive Given_Clause_step :: "('f \<times> 'l) set \<Rightarrow> ('f \<times> 'l) set \<Rightarrow> bool" (infix "\<Longrightarrow>GC" 50) where
   process: "N1 = N \<union> M \<Longrightarrow> N2 = N \<union> M' \<Longrightarrow> N \<inter> M = {} \<Longrightarrow>
-    M \<subseteq>  with_labels.Red_F_Q (N \<union> M') \<Longrightarrow>
+    M \<subseteq>  labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_F_Q (N \<union> M') \<Longrightarrow>
     active_subset M' = {} \<Longrightarrow> N1 \<Longrightarrow>GC N2" | 
   infer: "N1 = N \<union> {(C,L)} \<Longrightarrow> {(C,L)} \<inter> N = {} \<Longrightarrow> N2 = N \<union> {(C,active)} \<union> M \<Longrightarrow> L \<noteq> active \<Longrightarrow>
     active_subset M = {} \<Longrightarrow>
-    with_labels.Inf_from2 (active_subset N) {(C,active)} \<subseteq> with_labels.Red_Inf_Q (N \<union> {(C,active)} \<union> M) \<Longrightarrow>
+    with_labels.Inf_from2 (active_subset N) {(C,active)} \<subseteq>
+      labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_Inf_Q (N \<union> {(C,active)} \<union> M) \<Longrightarrow>
     N1 \<Longrightarrow>GC N2" 
 
 
-lemma one_step_equiv: "N1 \<Longrightarrow>GC N2 \<Longrightarrow> with_labels.inter_red_crit_calculus.derive N1 N2"
+lemma one_step_equiv: "N1 \<Longrightarrow>GC N2 \<Longrightarrow>
+  labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.inter_red_crit_calculus.derive N1 N2"
 proof (cases N1 N2 rule: Given_Clause_step.cases)
   show "N1 \<Longrightarrow>GC N2 \<Longrightarrow> N1 \<Longrightarrow>GC N2" by blast
 next
@@ -437,12 +439,12 @@ next
     n1_is: "N1 = N \<union> M" and
     n2_is: "N2 = N \<union> M'" and
     empty_inter: "N \<inter> M = {}" and
-    m_red: "M \<subseteq> with_labels.Red_F_Q (N \<union> M')" and
+    m_red: "M \<subseteq> labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_F_Q (N \<union> M')" and
     active_empty: "active_subset M' = {}"
-  have "N1 - N2 \<subseteq> with_labels.Red_F_Q N2"
+  have "N1 - N2 \<subseteq> labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_F_Q N2"
     using n1_is n2_is empty_inter m_red by auto
-  then show "with_labels.inter_red_crit_calculus.derive N1 N2"
-    unfolding with_labels.inter_red_crit_calculus.derive.simps by blast
+  then show "labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.inter_red_crit_calculus.derive N1 N2"
+    unfolding labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.inter_red_crit_calculus.derive.simps by blast
 next
   fix N C L M
   assume
@@ -453,7 +455,7 @@ next
     empty_inter: "{(C,L)} \<inter> N = {}" and
     active_empty: "active_subset M = {}" and
     infs_red: "with_labels.Inf_from2 (active_subset N) {(C, active)} \<subseteq>
-      with_labels.Red_Inf_Q (N \<union> {(C, active)} \<union> M)"
+      labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_Inf_Q (N \<union> {(C, active)} \<union> M)"
   have "(C, active) \<in> N2" using n2_is by auto
   moreover have "C \<lless>\<doteq> C" using Prec_eq_F_def equiv_F_is_equiv_rel equiv_class_eq_iff by fastforce
   moreover have "active \<sqsubset>l L" using active_minimal[OF not_active] .  
@@ -461,18 +463,16 @@ next
     using red_labeled_clauses by blast
   moreover have "(C,L) \<notin> M \<Longrightarrow> N1 - N2 = {(C,L)}" using n1_is n2_is empty_inter not_active by auto
   moreover have "(C,L) \<in> M \<Longrightarrow> N1 - N2 = {}" using n1_is n2_is by auto
-  ultimately have "N1 - N2 \<subseteq> with_labels.Red_F_Q N2"
-    using empty_red_f_equiv[of N2] 
-  apply (cases "(C,L) \<in> M")
-    apply blast
-  
-  then show "with_labels.inter_red_crit_calculus.derive N1 N2"
-    unfolding with_labels.inter_red_crit_calculus.derive.simps sorry
+  ultimately have "N1 - N2 \<subseteq> labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_F_Q N2"
+    using empty_red_f_equiv[of N2] by blast
+  then show "labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.inter_red_crit_calculus.derive N1 N2"
+    unfolding labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.inter_red_crit_calculus.derive.simps
+    by blast
+qed
 
-
-oops
-
-lemma "chain (\<Longrightarrow>GC) D \<Longrightarrow> chain with_labels.inter_red_crit_calculus.derive D"
+text \<open>lemma:gp-derivations-are-red-derivations\<close>
+lemma "chain (\<Longrightarrow>GC) D \<Longrightarrow>
+  chain labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.inter_red_crit_calculus.derive D"
   using one_step_equiv Lazy_List_Chain.chain_mono by blast
 
 end
