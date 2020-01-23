@@ -470,7 +470,7 @@ next
     by blast
 qed
 
-text \<open>lemma:gp-derivations-are-red-derivations\<close>
+text \<open>lemma:gc-derivations-are-red-derivations\<close>
 lemma "chain (\<Longrightarrow>GC) D \<Longrightarrow>
   chain labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.inter_red_crit_calculus.derive D"
   using one_step_equiv Lazy_List_Chain.chain_mono by blast
