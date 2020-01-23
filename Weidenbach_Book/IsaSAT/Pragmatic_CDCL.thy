@@ -3,6 +3,17 @@ theory Pragmatic_CDCL
 begin
 
 
+(*TODO Move*)
+lemma remdups_mset_sum_subset:  \<open>C \<subseteq># C' \<Longrightarrow> remdups_mset (C + C') = remdups_mset C'\<close>
+   \<open>C \<subseteq># C' \<Longrightarrow> remdups_mset (C' + C) = remdups_mset C'\<close>
+  apply (metis remdups_mset_def set_mset_mono set_mset_union sup.absorb_iff2)
+  by (metis add.commute le_iff_sup remdups_mset_def set_mset_mono set_mset_union)
+
+lemma remdups_mset_subset_add_mset: \<open>remdups_mset C' \<subseteq># add_mset (L) C'\<close>
+  by (meson distinct_mset_remdups_mset distinct_mset_subset_iff_remdups subset_mset.order_refl subset_mset_trans_add_mset)
+(*END Move*)
+
+
 chapter \<open>Pragmatic CDCL\<close>
 
 text \<open>
@@ -1060,6 +1071,7 @@ lemma pcdcl_stgy_stgy_invs:
 
 section \<open>Higher-level rules\<close>
 
+subsection \<open>Subsumption resolution\<close>
 text \<open>
 
 Subsumption-Resolution rules are the composition of resolution,
@@ -1085,15 +1097,8 @@ subresolution_IL:
     (M, N + {#remdups_mset (C)#}, U + {#add_mset (-L) C',remdups_mset (C)#}, D, NE, UE, add_mset (add_mset (L) C) NS,  US)\<close>
  if  \<open>count_decided M = 0\<close> and \<open>\<not>tautology (C + C')\<close> and  \<open>C' \<subseteq># C\<close>
 
-lemma remdups_mset_sum_subset:  \<open>C \<subseteq># C' \<Longrightarrow> remdups_mset (C + C') = remdups_mset C'\<close>
-   \<open>C \<subseteq># C' \<Longrightarrow> remdups_mset (C' + C) = remdups_mset C'\<close>
-  apply (metis remdups_mset_def set_mset_mono set_mset_union sup.absorb_iff2)
-  by (metis add.commute le_iff_sup remdups_mset_def set_mset_mono set_mset_union)
 
-lemma remdups_mset_subset_add_mset: \<open>remdups_mset C' \<subseteq># add_mset (L) C'\<close>
-  by (meson distinct_mset_remdups_mset distinct_mset_subset_iff_remdups subset_mset.order_refl subset_mset_trans_add_mset)
-
-lemma
+lemma cdcl_subresolution:
   assumes \<open>cdcl_subresolution S T\<close> and
     \<open>pcdcl_all_struct_invs S\<close> and
     \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of S)\<close>
