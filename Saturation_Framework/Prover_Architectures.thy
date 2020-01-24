@@ -409,10 +409,14 @@ locale Given_Clause = Prover_Architecture Bot_F Inf_F Bot_G Q entails_q Inf_G Re
   + fixes
     active :: "'l"
   assumes
+    inf_have_premises: "\<iota>F \<in> Inf_F \<Longrightarrow> set (prems_of \<iota>F) \<noteq> {}" and
     active_minimal: "l2 \<noteq> active \<Longrightarrow> active \<sqsubset>l l2" and
     at_least_two_labels: "\<exists>l2. active \<sqsubset>l l2" and
     inf_never_active: "\<iota> \<in> Inf_FL \<Longrightarrow> snd (concl_of \<iota>) \<noteq> active"
 begin
+
+lemma labeled_inf_have_premises: "\<iota> \<in> Inf_FL \<Longrightarrow> set (prems_of \<iota>) \<noteq> {}"
+  using inf_have_premises Inf_FL_to_Inf_F by fastforce
 
 definition active_subset :: "('f \<times> 'l) set \<Rightarrow> ('f \<times> 'l) set" where
   "active_subset M = {CL \<in> M. snd CL = active}" 
@@ -497,6 +501,13 @@ proof -
     assume i_in: "\<iota> \<in> with_labels.Inf_from (Liminf_llist D)"
     have "Liminf_llist D = active_subset (Liminf_llist D)"
       using final_state unfolding non_active_subset_def active_subset_def by blast
+    then have "\<iota> \<in> with_labels.Inf_from (active_subset (Liminf_llist D))" using i_in by simp
+    then obtain C :: 'f where "(C,active) \<in> set (prems_of \<iota>)"
+      using labeled_inf_have_premises i_in unfolding active_subset_def with_labels.Inf_from_def
+      by (smt bot.extremum_uniqueI mem_Collect_eq snd_conv subrelI subset_code(1))
+    then obtain n :: nat where "0 < n" "enat (Suc n) < llength D" "(C,active) \<in> active_subset (lnth D (Suc n))"
+      "(C, active) \<notin> active_subset (lnth D n)" (* n here is n-1 in the paper *)
+      using deriv non_empty init_state sorry
     show "\<iota> \<in>
       labeled_ord_red_crit_fam.empty_ord_lifted_calc_w_red_crit_family.inter_red_crit_calculus.Sup_Red_Inf_llist D"
     sorry
