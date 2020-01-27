@@ -44,3 +44,17 @@ Find `Saturation_Framework` in the IsaFoL folder.
 It contains all the formalized results about the framework in the .thy files.
 You can open any such file in Isabelle (for example using Isabelle/jEdit).
 
+## Where to find what ##
+
+The results in the paper "A Comprehensive Framework for Saturation Theorem Proving" submitted to IJCAR 2020 can be found in the following files:
+
+* Definitions about consequence relations and inference systems (Sect. 2) are in `Consequence_Relations_and_Inference_Systems.thy`
+* Results about refutational completeness and intersection of redundancy criteria (Sect. 2) are in `Calculi.thy`
+* Results about standard lifting, well-founded orderings and intersection of liftings (Sect. 3) are in `Lifting_to_Non_Ground_Calculi.thy`
+* Results regarding the addition of labels (Sect. 3) are in `Labeled_Lifting_to_Non_Ground_Calculi.thy`
+* Results regarding the Given Clause prover architecture (Sect. 4) are in `Prover_Architectures.thy`
+
+The formalization of Sect. 4 is still ongoing. In particular, the Otter and DISCOUNT loops are not yet formalized.
+
+
+
