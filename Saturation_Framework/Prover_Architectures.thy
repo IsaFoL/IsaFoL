@@ -409,7 +409,7 @@ locale Given_Clause = Prover_Architecture Bot_F Inf_F Bot_G Q entails_q Inf_G Re
   + fixes
     active :: "'l"
   assumes
-    inf_have_premises: "\<iota>F \<in> Inf_F \<Longrightarrow> set (prems_of \<iota>F) \<noteq> {}" and
+    inf_have_premises: "\<iota>F \<in> Inf_F \<Longrightarrow> length (prems_of \<iota>F) > 0" and
     active_minimal: "l2 \<noteq> active \<Longrightarrow> active \<sqsubset>l l2" and
     at_least_two_labels: "\<exists>l2. active \<sqsubset>l l2" and
     inf_never_active: "\<iota> \<in> Inf_FL \<Longrightarrow> snd (concl_of \<iota>) \<noteq> active"
@@ -501,13 +501,21 @@ proof -
     assume i_in: "\<iota> \<in> with_labels.Inf_from (Liminf_llist D)"
     have "Liminf_llist D = active_subset (Liminf_llist D)"
       using final_state unfolding non_active_subset_def active_subset_def by blast
-    then have "\<iota> \<in> with_labels.Inf_from (active_subset (Liminf_llist D))" using i_in by simp
-    then obtain C :: 'f where "(C,active) \<in> set (prems_of \<iota>)"
+    then have i_in2: "\<iota> \<in> with_labels.Inf_from (active_subset (Liminf_llist D))" using i_in by simp
+    define m where "m = length (prems_of \<iota>)"
+    then have m_def_F: "m = length (prems_of (to_F \<iota>))" unfolding to_F_def by simp
+    have i_in_F: "to_F \<iota> \<in> Inf_F" using i_in Inf_FL_to_Inf_F unfolding with_labels.Inf_from_def to_F_def by blast
+    then have "m > 0" using m_def_F using inf_have_premises by blast
+    (* have "\<forall>j \<in> {0..<m}. (prems_of \<iota>)!j \<in> active_subset (lnth D k) \<Longrightarrow> (prems_of \<iota>) \<in> *)
+    have "\<forall>j \<in> {0..<m}. (\<exists>nj. (prems_of \<iota>)!j \<notin> active_subset (lnth D nj) \<and>
+      (\<forall>k. k > nj \<longrightarrow> enat k < llength D \<longrightarrow> (prems_of \<iota>)!j \<in> active_subset (lnth D k)))"
+      using init_state i_in2 unfolding Liminf_llist_def sorry
+    (* then obtain C :: 'f where "(C,active) \<in> set (prems_of \<iota>)"
       using labeled_inf_have_premises i_in unfolding active_subset_def with_labels.Inf_from_def
       by (smt bot.extremum_uniqueI mem_Collect_eq snd_conv subrelI subset_code(1))
     then obtain n :: nat where "0 < n" "enat (Suc n) < llength D" "(C,active) \<in> active_subset (lnth D (Suc n))"
       "(C, active) \<notin> active_subset (lnth D n)" (* n here is n-1 in the paper *)
-      using deriv non_empty init_state sorry
+      using deriv non_empty init_state sorry *)
     show "\<iota> \<in>
       labeled_ord_red_crit_fam.empty_ord_lifted_calc_w_red_crit_family.inter_red_crit_calculus.Sup_Red_Inf_llist D"
     sorry
