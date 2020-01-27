@@ -36,7 +36,7 @@ Assuming you have downloaded your AFP directory to `/home/myself/afp`, you shoul
 
 Step 3. Download IsaFoL
 
-    ~/RPx $ git clone https://bitbucket.org/isafol/isafol
+    git clone https://bitbucket.org/isafol/isafol
 
 Step 4. Open the theories:
 
