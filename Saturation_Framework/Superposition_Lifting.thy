@@ -1928,6 +1928,7 @@ proof -
       case (Neq u v)
       then show ?thesis sorry
     qed
+  qed
   ultimately show \<open>\<not> validate_clause (equiv_class_of_trs (\<Union> (trs_of_clause N ` {B \<in> N. B \<prec>G D}))) C'\<close> by blast
 qed
 
