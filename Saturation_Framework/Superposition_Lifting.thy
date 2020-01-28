@@ -30,6 +30,9 @@ typedef ('f, 'v) ground_clause = \<open>{C :: ('f, 'v) clause. ground_cl C}\<clo
 apply(rule_tac x = \<open>{#}\<close> in exI)
   by simp
 
+lemma ground_subclause: \<open>Rep_ground_clause C = C' + C'' \<Longrightarrow> ground_cl C' \<and> ground_cl C''\<close>
+  using Rep_ground_clause [of C] by simp
+
 (* substitutions *)
 
 fun subst_apply_lit :: \<open>('f, 'v) literal \<Rightarrow> ('f, 'v, 'w) gsubst \<Rightarrow> ('f, 'w) literal\<close>
@@ -97,9 +100,6 @@ proof -
   then show ?thesis by auto
 qed
 
-lemma ex_subst_Rep_ground_clause: \<open>\<exists>\<sigma> :: ('f, 'v) subst. ground_cl (subst_apply_cl (Rep_ground_clause C) \<sigma>)\<close>
-  by (smt Rep_ground_clause mem_Collect_eq subst_ground_cl)
-
 (* semantics *)
 
 type_synonym ('f, 'v) trs = \<open>(('f, 'v) term \<times> ('f, 'v) term) set\<close>
@@ -156,9 +156,6 @@ proof -
   qed
   then show ?thesis unfolding validate_clause_def by blast
 qed
-
-lemma validate_subset:
-  \<open>C1 \<subseteq># Rep_ground_clause C2 \<Longrightarrow> validate_clause I C1 \<Longrightarrow> validate_clause I (Rep_ground_clause C2)\<close> sorry
 
 interpretation fo_consequence: consequence_relation \<open>{\<bottom>F}\<close> \<open>(\<Turnstile>F)\<close>
 proof
@@ -1415,6 +1412,16 @@ qed
 lemma ordered_production: \<open>ordered (production N C)\<close>
   unfolding production_def by blast
 
+lemma ground_production: \<open>(lhs, rhs) \<in> production N C \<Longrightarrow> ground_term lhs \<and> ground_term rhs\<close>
+proof -
+  assume \<open>(lhs, rhs) \<in> production N C\<close>
+  then obtain L C C' where L_def: \<open>L = Eq lhs rhs \<or> L = Eq rhs lhs\<close>
+                       and \<open>Rep_ground_clause C = {#L#} + C'\<close>
+    unfolding production_def by blast
+  then have \<open>L \<in># Rep_ground_clause C\<close> by auto
+  with L_def show ?thesis using Rep_ground_clause by force
+qed
+
 lemma ordered_trs_of_clause: \<open>ordered (trs_of_clause N C)\<close>
 proof (rule wf_induct [of "ground_clause_ord"])
   show \<open>wf ground_clause_ord\<close> using wf_ground_clause_ord .
@@ -1745,8 +1752,6 @@ qed
 (* during the construction of the model, a clause that is valid at some point will not be falsified later *)
 (* Corollary 4 *)
 lemma model_construction_monotonic:
-  assumes \<open>saturated N\<close>
-  assumes \<open>\<bottom>G \<notin> N\<close>
   assumes \<open>C \<in> N\<close>
   assumes \<open>validate_clause (equiv_class_of_trs (trs_of_clause N C)) (Rep_ground_clause C)\<close> (is \<open>?valid_upto C\<close>)
   shows \<open>(\<forall>D \<in> N. C \<prec>G D \<longrightarrow> validate_clause (equiv_class_of_trs (trs_of_clause N D)) (Rep_ground_clause C)) \<and>
@@ -1763,7 +1768,7 @@ proof -
       proof -
         assume C_elem: \<open>C \<in> N\<close>
            and valid_upto_C: \<open>?valid_upto C\<close>
-        from ex_subst_Rep_ground_clause obtain \<sigma> :: \<open>('f, 'v) subst\<close> where \<open>ground_cl (subst_apply_cl (Rep_ground_clause C) \<sigma>)\<close>
+        from ex_ground_instance obtain \<sigma> :: \<open>('f, 'v) subst\<close> where \<open>ground_cl (subst_apply_cl (Rep_ground_clause C) \<sigma>)\<close>
           by fast
         with valid_upto_C obtain L where L_elem: \<open>L \<in># Rep_ground_clause C\<close>
                                      and \<open>validate_ground_lit (equiv_class_of_trs (trs_of_clause N C)) (subst_apply_lit L \<sigma>)\<close>
@@ -1879,6 +1884,53 @@ proof -
     unfolding validate_clause_def by metis
 qed
 
+lemma productive_clause_remainder:
+  assumes \<open>(t,s) \<in> production (\<Union>(trs_of_clause N ` {B \<in> N. B \<prec>G C})) C\<close>
+      and \<open>Rep_ground_clause C = {#L#} + C'\<close>
+      and \<open>L = Eq s t \<or> L = Eq t s\<close>
+      and \<open>C \<prec>G D\<close>
+    shows \<open>\<not> validate_clause (equiv_class_of_trs (\<Union> (trs_of_clause N ` {B \<in> N. B \<prec>G D}))) C'\<close>
+proof -
+  from assms(1) obtain L' C'' where C''_nvalid: \<open>\<not> validate_clause (equiv_class_of_trs (insert (t, s) (\<Union> (trs_of_clause N ` {B \<in> N. B \<prec>G C})))) C''\<close>
+                                and C''_def: \<open>Rep_ground_clause C = {#L'#} + C''\<close>
+                                and L'_def: \<open>L' = Eq s t \<or> L' = Eq t s\<close>
+                                and ord: \<open>s \<prec> t\<close>
+    unfolding production_def by blast
+  consider (eq) \<open>L = L'\<close> | (sym) \<open>L \<noteq> L'\<close> by blast
+  then have \<open>C' = C''\<close>
+  proof cases
+    case eq (* L' and C'' are equal to L and C' in the premises *)
+    with C''_def assms(2) show ?thesis by auto
+  next
+    case sym (* L' is symmetric to L, so L must be in C'' *)
+    then have \<open>L \<in># C''\<close> using assms(2) C''_def insert_noteq_member by fastforce
+    moreover have \<open>validate_ground_lit (equiv_class_of_trs (insert (t, s) (\<Union> (trs_of_clause N ` {B \<in> N. B \<prec>G C})))) L\<close> sorry
+    moreover have \<open>subst_apply_lit L \<sigma> = L\<close> for \<sigma>
+      using ground_subclause assms(2) subst_ground_lit [of L \<sigma>] by fastforce
+    ultimately have \<open>validate_clause (equiv_class_of_trs (insert (t, s) (\<Union> (trs_of_clause N ` {B \<in> N. B \<prec>G C})))) C''\<close>
+      unfolding validate_clause_def
+      by (metis (no_types, lifting))
+    then show ?thesis using C''_nvalid by blast (* contradiction *)
+  qed
+  moreover have \<open>\<not> validate_clause (equiv_class_of_trs (\<Union> (trs_of_clause N ` {B \<in> N. B \<prec>G D}))) C''\<close>
+  proof
+    assume \<open>validate_clause (equiv_class_of_trs (\<Union> (trs_of_clause N ` {B \<in> N. B \<prec>G D}))) C''\<close>
+    moreover have \<open>ground_cl (subst_apply_cl C'' Var)\<close>
+      using C''_def ground_subclause subst_ground_cl [of C''] by metis
+    ultimately obtain M where \<open>M \<in># C''\<close>
+                          and valid_M: \<open>validate_ground_lit (equiv_class_of_trs (\<Union> (trs_of_clause N ` {B \<in> N. B \<prec>G D}))) (subst_apply_lit M Var)\<close>
+      unfolding validate_clause_def by blast
+    then show False
+    proof (cases M)
+      case (Eq u v)
+      then show ?thesis sorry
+    next
+      case (Neq u v)
+      then show ?thesis sorry
+    qed
+  ultimately show \<open>\<not> validate_clause (equiv_class_of_trs (\<Union> (trs_of_clause N ` {B \<in> N. B \<prec>G D}))) C'\<close> by blast
+qed
+
 (* Theorem 6 *)
 lemma model_construction:
   assumes \<open>saturated N\<close>
@@ -1934,7 +1986,7 @@ proof -
                   then have \<open>validate_clause (equiv_class_of_trs (trs_of_clause N (Abs_ground_clause B))) (Rep_ground_clause (Abs_ground_clause B))\<close>
                     using ind Rep_ground_clause_inverse by blast
                   then have \<open>validate_clause (equiv_class_of_trs (trs_of_clause N C)) (Rep_ground_clause (Abs_ground_clause B))\<close>
-                    using Abs_B_elem model_construction_monotonic [of N \<open>Abs_ground_clause B\<close>] assms(1,2) C_elem by blast
+                    using Abs_B_elem model_construction_monotonic assms(1,2) C_elem by blast
                   then have \<open>validate_clause (equiv_class_of_trs (trs_of_clause N C)) B\<close>
                     using B_elem Rep_ground_clause Abs_ground_clause_inverse
                     by (smt imageE)
@@ -1944,12 +1996,12 @@ proof -
                 then show ?thesis
                   using entail trs_prop unfolding entail_def by fast
               qed
-              consider (neg_lit) \<open>selection (Rep_ground_clause C) \<noteq> {#} \<or> (\<exists>s t. (Neq s t) \<in># Rep_ground_clause C \<and> (\<forall>L' \<in># Rep_ground_clause C. L' \<prec>L (Neq s t)))\<close>
-                     | (pos_lit) \<open>selection (Rep_ground_clause C) = {#} \<and> (\<forall>s t. (Neq s t) \<in># Rep_ground_clause C \<longrightarrow> (\<exists>L. L \<in># Rep_ground_clause C \<and> (Neq s t) \<preceq>L L))\<close> by blast         
+              consider (neg_lit) \<open>selection (Rep_ground_clause C) \<noteq> {#} \<or> (\<exists>s t. Neq s t \<in># Rep_ground_clause C \<and> (\<forall>L \<in># Rep_ground_clause C. L \<preceq>L Neq s t))\<close>
+                     | (pos_lit) \<open>selection (Rep_ground_clause C) = {#} \<and> (\<forall>s t. Neq s t \<in># Rep_ground_clause C \<longrightarrow> (\<exists>L \<in># Rep_ground_clause C. \<not> L \<preceq>L Neq s t))\<close> by blast        
               then show \<open>?P2 C\<close>
               proof cases
                 case neg_lit
-                then obtain s t where select: \<open>(Neq s t) \<in># selection (Rep_ground_clause C) \<or> (selection (Rep_ground_clause C) = {#} \<and> (Neq s t) \<in># Rep_ground_clause C \<and> (\<forall>L' \<in># Rep_ground_clause C. L' \<prec>L (Neq s t)))\<close>
+                then obtain s t where selection_C: \<open>Neq s t \<in># selection (Rep_ground_clause C) \<or> (selection (Rep_ground_clause C) = {#} \<and> Neq s t \<in># Rep_ground_clause C \<and> (\<forall>L' \<in># Rep_ground_clause C. L' \<preceq>L Neq s t))\<close>
                   using selection_neg_lit
                   by (metis mset_lit.cases multiset_nonemptyE)
                 then have L_elem: \<open>Neq s t \<in># Rep_ground_clause C\<close> using selection_subset
@@ -1986,8 +2038,8 @@ proof -
                       moreover have \<open>(selection ({#Neq s s#} + C') = {#} \<and> (\<forall>M\<in>#C'. subst_apply_lit M ?\<sigma> \<preceq>L subst_apply_lit (Neq s s) ?\<sigma>)) \<or> Neq s s \<in># selection ({#Neq s s#} + C')\<close>
                       proof -
                         consider \<open>(Neq s s) \<in># selection ({#Neq s s#} + C')\<close>
-                               | \<open>selection ({#Neq s s#} + C') = {#} \<and> (\<forall>L' \<in># C'. L' \<prec>L (Neq s s))\<close>
-                          using eq C_def select by auto
+                               | \<open>selection ({#Neq s s#} + C') = {#} \<and> (\<forall>L' \<in># C'. L' \<preceq>L Neq s s)\<close>
+                          using eq C_def selection_C by auto
                         moreover have \<open>subst_apply_lit L ?\<sigma> = L\<close> for L :: \<open>('f, 'v) literal\<close> proof (cases L; auto) qed
                         ultimately show ?thesis by auto
                       qed
@@ -2004,8 +2056,9 @@ proof -
                     then have \<open>validate_clause (equiv_class_of_trs ?trs_smaller) C'\<close>
                       using valid_concl [of \<open>Infer [C] (Abs_ground_clause C')\<close>] inference.sel(2) [of \<open>[C]\<close> \<open>Abs_ground_clause C'\<close>] C'_rep by argo
                     (* C includes C', so its true as well *)
-                    moreover have \<open>C' \<subseteq># Rep_ground_clause C\<close> using C_def by auto
-                    ultimately show ?thesis using validate_subset by blast
+                    moreover have \<open>ground_cl (subst_apply_cl (Rep_ground_clause C) \<sigma>) \<Longrightarrow> ground_cl (subst_apply_cl C' \<sigma>)\<close> for \<sigma> :: \<open>('f,'v) subst\<close> using C_def by auto
+                    moreover have \<open>L \<in># C' \<Longrightarrow> L \<in># Rep_ground_clause C\<close> for L using C_def by auto
+                    ultimately show ?thesis unfolding validate_clause_def by meson
                   next
                     case lt
                     (* s' and t' are introduced to break the symmetry *)
@@ -2039,28 +2092,100 @@ proof -
                       then show ?case by blast
                     qed
                     then obtain lhs rhs u' where repl: \<open>subterm_replace u' t' rhs lhs\<close>
-                                             and \<open>(lhs, rhs) \<in> ?trs_smaller\<close> by blast
-                    then obtain B where \<open>(lhs, rhs) \<in> production (\<Union> (trs_of_clause N ` {A \<in> N. A \<prec>G B})) B\<close>
-                                    and \<open>B \<prec>G C\<close> using trs_of_clause.simps sorry
-                    then obtain L B' where \<open>Rep_ground_clause B = {# L #} + B'\<close>
+                                             and rule_in_trs: \<open>(lhs, rhs) \<in> ?trs_smaller\<close> by blast
+                    (* there is a productive clause B corresponding to that rewrite rule *)
+                    then obtain B where rule_elem: \<open>(lhs, rhs) \<in> production (\<Union> (trs_of_clause N ` {A \<in> N. A \<prec>G B})) B\<close>
+                                    and B_elem: \<open>B \<in> N\<close>
+                                    and B_lt: \<open>B \<prec>G C\<close> using trs_of_clause.simps sorry
+                    then obtain L B' where B_def: \<open>Rep_ground_clause B = {# L #} + B'\<close>
                                        and L_def: \<open>L = Eq lhs rhs \<or> L = Eq rhs lhs\<close>
+                                       and L_max: \<open>\<forall>L'\<in>#B'. L' \<prec>L L\<close>
+                                       and selection_B: \<open>selection (Rep_ground_clause B) = {#}\<close>
                       unfolding production_def by blast
+                    from rule_elem have rule_ground: \<open>ground_term lhs \<and> ground_term rhs\<close> using ground_production by blast
+                    with repl s_t_ground have u'_ground: \<open>ground_term u'\<close> by (meson subterm_replace_ground)
+                    from rule_elem have rule_ord: \<open>rhs \<prec> lhs\<close> unfolding production_def by force
                     let ?\<sigma> = \<open>Var\<close> (* identity substitution *)
-                    have \<open>Infer [{# L #} + B' , {# Neq t' s' #} + C'] (subst_apply_cl ({# Neq u' s' #} + B' + C') ?\<sigma>) \<in> neg_superposition_inferences\<close>
+                    have subst_\<sigma>: \<open>subst_apply_lit L ?\<sigma> = L\<close> for L :: \<open>('f,'v) literal\<close>
+                      by (metis mset_lit.cases subst_apply_lit.simps subst_apply_term_empty)
+                    have ground_concl: \<open>ground_cl ({# Neq u' s' #} + B' + C')\<close>
+                      using s_t_ground u'_ground ground_subclause [of C \<open>{#Neq s t#}\<close> C'] C_def ground_subclause [of B \<open>{#L#}\<close> B'] B_def by auto
+                    (* there exists a positive superposition inference between C and B*)
+                    have \<open>Infer [{# L #} + B' , {# Neq s t #} + C'] (subst_apply_cl ({# Neq u' s' #} + B' + C') ?\<sigma>) \<in> neg_superposition_inferences\<close>
                     proof -
                       have \<open>is_mgu ?\<sigma> {(lhs, lhs)}\<close> by auto
-                      moreover have \<open>L = Eq lhs rhs \<or> L = Eq rhs lhs\<close> using L_def .
-                      moreover have \<open>subterm_replace u' t' rhs lhs\<close> using repl .
-                      moreover have \<open>is_Fun lhs\<close> sorry
-                      moreover have \<open>\<not> lhs \<cdot> ?\<sigma> \<preceq> rhs \<cdot> ?\<sigma>\<close> sorry
-                      moreover have \<open>\<not> t' \<cdot> ?\<sigma> \<preceq> s' \<cdot> ?\<sigma>\<close> sorry
-                      moreover have \<open>subst_apply_lit L ?\<sigma> \<prec>L subst_apply_lit (Neq t' s') ?\<sigma>\<close> sorry
-                      moreover have \<open>(\<forall>M\<in>#B'. subst_apply_lit M ?\<sigma> \<prec>L subst_apply_lit L ?\<sigma>)\<close> sorry
-                      moreover have \<open>(Neq t' s') \<in># selection ({# Neq t' s'#} + C') \<or> selection ({# Neq t' s'#} + C') = {#} \<and> (\<forall>M\<in>#C'. subst_apply_lit M ?\<sigma> \<preceq>L subst_apply_lit (Neq t' s') ?\<sigma>)\<close> sorry
-                      moreover have \<open>selection ({# L #} + B') = {#}\<close> sorry
+                      moreover have \<open>L = Eq lhs rhs \<or> L = Eq rhs lhs\<close>
+                        using L_def .
+                      moreover have \<open>Neq s t = Neq s' t' \<or> Neq s t = Neq t' s'\<close>
+                        using s_t_def by auto
+                      moreover have \<open>subterm_replace u' t' rhs lhs\<close>
+                        using repl .
+                      moreover have \<open>is_Fun lhs\<close>
+                        using rule_ground by auto
+                      moreover have \<open>\<not> lhs \<cdot> ?\<sigma> \<preceq> rhs \<cdot> ?\<sigma>\<close>
+                        using rule_ord subst_ground_term rule_ground term_ord_trans by metis
+                      moreover have \<open>\<not> t' \<cdot> ?\<sigma> \<preceq> s' \<cdot> ?\<sigma>\<close>
+                        using s_t_lt s_t_ground subst_ground_term term_ord_trans by metis
+                      moreover have \<open>subst_apply_lit L ?\<sigma> \<prec>L subst_apply_lit (Neq s t) ?\<sigma>\<close>
+                      proof -
+                        have \<open>({#lhs, rhs#}, {#s', s', t', t'#}) \<in> mult term_ord\<close> sorry
+                        moreover have \<open>mset_lit (subst_apply_lit L ?\<sigma>) = {#lhs, rhs#}\<close>
+                          using L_def by auto
+                        moreover have \<open>mset_lit (subst_apply_lit (Neq s t) ?\<sigma>) = {#s',s',t',t'#}\<close>
+                          using s_t_def by fastforce
+                        ultimately show ?thesis unfolding lit_ord_def inv_image_def by auto
+                      qed
+                      moreover have \<open>(\<forall>M\<in>#B'. subst_apply_lit M ?\<sigma> \<prec>L subst_apply_lit L ?\<sigma>)\<close>
+                        using L_max subst_\<sigma> by auto
+                      moreover have \<open>(Neq s t) \<in># selection ({# Neq s t#} + C') \<or> selection ({# Neq s t#} + C') = {#} \<and> (\<forall>M\<in>#C'. subst_apply_lit M ?\<sigma> \<preceq>L subst_apply_lit (Neq s t) ?\<sigma>)\<close>
+                        using selection_C subst_\<sigma> C_def by auto
+                      moreover have \<open>selection ({# L #} + B') = {#}\<close>
+                        using selection_B B_def by auto
                       ultimately show ?thesis unfolding neg_superposition_inferences_def by blast
                     qed
-                    then show ?thesis sorry
+                    moreover have concl_rep: \<open>Rep_ground_clause (Abs_ground_clause ({# Neq u' s' #} + B' + C')) = {# Neq u' s' #} + B' + C'\<close>
+                      using Abs_ground_clause_inverse ground_concl by blast
+                    ultimately have \<open>Infer [B , C] (Abs_ground_clause ({# Neq u' s' #} + B' + C')) \<in> ground_superposition_inference_system\<close>
+                      using B_def C_def subst_\<sigma> unfolding ground_superposition_inference_system_def by auto
+                    then have \<open>Infer [B , C] (Abs_ground_clause ({# Neq u' s' #} + B' + C')) \<in> ground_inf.Inf_from {B \<in> N. B \<preceq>G C}\<close>
+                      using B_lt B_elem C_elem unfolding ground_inf.Inf_from_def by auto
+                    (* the conclusion of that inference is already true in the model *)
+                    then have \<open>validate_clause (equiv_class_of_trs ?trs_smaller) ({# Neq u' s' #} + B' + C')\<close>
+                      using valid_concl [of \<open>Infer [B , C] (Abs_ground_clause ({# Neq u' s' #} + B' + C'))\<close>] inference.sel(2) [of \<open>[B , C]\<close>] concl_rep by metis
+                    then have \<open>\<exists>L \<in># {# Neq u' s' #} + B' + C'. validate_ground_lit (equiv_class_of_trs ?trs_smaller) L \<and> ground_lit L\<close>
+                      using subst_ground_cl [of \<open>{# Neq u' s' #} + B' + C'\<close>] subst_ground_lit ground_concl
+                      unfolding validate_clause_def
+                      by (metis (no_types, lifting))
+                    then obtain L' where L'_elem: \<open>L' \<in># ({# Neq u' s' #} + B' + C')\<close>
+                                     and L'_ground: \<open>ground_lit L'\<close>
+                                     and L'_valid: \<open>validate_ground_lit (equiv_class_of_trs ?trs_smaller) L'\<close> by blast
+                    from L'_elem consider \<open>L' = Neq u' s'\<close> | \<open>L' \<in># B'\<close> | \<open>L' \<in># C'\<close> by auto
+                    then show ?thesis
+                    proof cases
+                      case 1
+                      with L'_valid have nequiv: \<open>(u', s') \<notin> equiv_class_of_trs ?trs_smaller\<close> using validate_ground_lit.simps(2) by blast
+                      have \<open>(rhs, lhs) \<in> equiv_class_of_trs ?trs_smaller\<close> using rule_in_trs equality_in_equiv_class rule_ground trs_prop by blast
+                      then have \<open>(u', t') \<in> equiv_class_of_trs ?trs_smaller\<close> using trs_prop subterm_replace_interp [of \<open>equiv_class_of_trs ?trs_smaller\<close> u' t' rhs lhs] repl by blast
+                      with nequiv have \<open>(t', s') \<notin> equiv_class_of_trs ?trs_smaller \<and> (s', t') \<notin> equiv_class_of_trs ?trs_smaller\<close>
+                        using equiv_class_trans equiv_class_sym trs_prop unfolding trans_def sym_def by fast
+                      with s_t_equiv s_t_def show ?thesis by blast (* contradiction *)
+                    next
+                      case 2
+                      then have \<open>validate_clause (equiv_class_of_trs ?trs_smaller) B'\<close>
+                        using L'_valid subst_ground_lit [of L'] L'_ground
+                        unfolding validate_clause_def
+                        by (metis (no_types, lifting))
+                      moreover have \<open>\<not> validate_clause (equiv_class_of_trs ?trs_smaller) B'\<close>
+                        using rule_elem B_def productive_clause_remainder [of lhs rhs N B L B' C] B_lt L_def by blast
+                      ultimately show ?thesis by blast (* contradiction *)
+                    next
+                      case 3
+                      then have \<open>L' \<in># Rep_ground_clause C\<close> using C_def by auto
+                      then show ?thesis
+                        unfolding validate_clause_def
+                        using subst_ground_lit [of L'] L'_ground L'_valid
+                        by (metis (no_types, lifting))
+                    qed
                   qed
                 qed
               next
