@@ -179,7 +179,7 @@ lemma labeled_ordered_dynamic_ref_comp:
   labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_Inf_Q labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_F_Q"
   by (rule stat_ref_calc.dynamic_refutational_complete_calculus_axioms)
 
-text "lemma:redundant-labeled-inferences"
+text "lem:redundant-labeled-inferences"
 lemma "\<iota> \<in> Inf_FL \<Longrightarrow> 
   \<iota> \<in> labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_Inf_Q N \<equiv>
   (to_F \<iota>) \<in> no_labels.empty_ord_lifted_calc_w_red_crit_family.Red_Inf_Q (fst ` N)" for \<iota>
@@ -316,7 +316,7 @@ proof -
     by argo
 qed
 
-text \<open>lemma:redundant-labeled-clauses\<close>
+text \<open>lem:redundant-labeled-formulas\<close>
 lemma red_labeled_clauses: \<open>C \<in> no_labels.Red_F_\<G>_empty (fst ` N) \<or> (\<exists>C' \<in> (fst ` N). C \<lless> C') \<or> (\<exists>(C',L') \<in> N. (L' \<sqsubset>l L \<and> C \<lless>\<doteq> C')) \<Longrightarrow>
   (C,L) \<in> labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_F_Q N\<close>
 proof -
@@ -481,11 +481,11 @@ qed
 abbreviation fair :: "('f \<times> 'l) set llist \<Rightarrow> bool" where
   "fair \<equiv> labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.inter_red_crit_calculus.fair"
 
-text \<open>lemma:gc-derivations-are-red-derivations\<close>
+text \<open>lem:gc-derivations-are-red-derivations\<close>
 lemma "chain (\<Longrightarrow>GC) D \<Longrightarrow> chain (\<rhd>RedL) D"
   using one_step_equiv Lazy_List_Chain.chain_mono by blast
 
-text \<open>lemma:fair-gc-derivations\<close>
+text \<open>lem:fair-gc-derivations\<close>
 lemma "chain (\<Longrightarrow>GC) D \<Longrightarrow> llength D > 0 \<Longrightarrow> active_subset (lnth D 0) = {} \<Longrightarrow>
   non_active_subset (Liminf_llist D) = {} \<Longrightarrow> fair D"
 proof -

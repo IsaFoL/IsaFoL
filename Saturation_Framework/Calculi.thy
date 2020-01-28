@@ -30,7 +30,7 @@ begin
 lemma Red_Inf_of_Inf_to_N_subset: "{\<iota> \<in> Inf. (concl_of \<iota> \<in> N)} \<subseteq> Red_Inf N"
   using Red_Inf_of_Inf_to_N by blast 
 
-paragraph \<open>lemma:red-concl-implies-red-inf\<close>
+paragraph \<open>lem:red-concl-implies-red-inf\<close>
 lemma red_concl_to_red_inf: 
   assumes 
     i_in: "\<iota> \<in> Inf" and
@@ -109,7 +109,7 @@ proof -
     by (metis Suc_leI dual_order.order_iff_strict enat_ord_simps(2) less_trans)
 qed
 
-text \<open>lemma:nonpersistent-is-redundant\<close>
+text \<open>lem:nonpersistent-is-redundant\<close>
 lemma Red_in_Sup: 
   assumes deriv: "chain (\<rhd>Red) D"
   shows "Sup_llist D - Liminf_llist D \<subseteq> Red_F (Sup_llist D)"
@@ -129,7 +129,7 @@ proof
   then show "C \<in> Red_F (Sup_llist D)" using equiv_Sup_Liminf[of C] C_in_subset by fast
 qed
 
-text \<open>lemma:redundant-remains-redundant-during-run 1/2\<close>
+text \<open>lem:redundant-remains-redundant-during-run 1/2\<close>
 lemma Red_Inf_subset_Liminf: 
   assumes deriv: \<open>chain (\<rhd>Red) D\<close> and
     i: \<open>enat i < llength D\<close>
@@ -146,7 +146,7 @@ proof -
   then show ?thesis using Red_Inf_Sup_in_Liminf by auto
 qed
 
-text \<open>lemma:redundant-remains-redundant-during-run 2/2\<close>
+text \<open>lem:redundant-remains-redundant-during-run 2/2\<close>
 lemma Red_F_subset_Liminf:
  assumes deriv: \<open>chain (\<rhd>Red) D\<close> and
     i: \<open>enat i < llength D\<close>
@@ -164,7 +164,7 @@ proof -
   then show ?thesis using Red_F_Sup_in_Liminf by auto
 qed
 
-text \<open>lemma:N-i-is-persistent-or-redundant\<close>
+text \<open>lem:N-i-is-persistent-or-redundant\<close>
 lemma i_in_Liminf_or_Red_F:
   assumes 
     deriv: \<open>chain (\<rhd>Red) D\<close> and
@@ -182,7 +182,7 @@ proof (rule,rule)
   then show \<open>C \<in> Red_F (Liminf_llist D)\<close> using Red_F_subset_Liminf[of D "Suc j"] deriv j(2) by blast
 qed
 
-text \<open>lemma:fairness-implies-saturation\<close>
+text \<open>lem:fairness-implies-saturation\<close>
 lemma fair_implies_Liminf_saturated:
   assumes 
     deriv: \<open>chain (\<rhd>Red) D\<close> and
@@ -209,7 +209,7 @@ locale dynamic_refutational_complete_calculus = calculus_with_red_crit +
       \<Longrightarrow> lnth D 0 \<Turnstile> {B} \<Longrightarrow> \<exists>i \<in> {i. enat i < llength D}. \<exists>B'\<in>Bot. B' \<in> lnth D i"
 begin
 
-text \<open>lemma:dynamic-ref-compl-implies-static\<close>
+text \<open>lem:dynamic-ref-compl-implies-static\<close>
 sublocale static_refutational_complete_calculus
 proof
   fix B N
@@ -235,7 +235,7 @@ qed
 
 end
 
-text \<open>lemma:static-ref-compl-implies-dynamic\<close>
+text \<open>lem:static-ref-compl-implies-dynamic\<close>
 text \<open>The assumption that the derivation is not the empty derivation had to be added to the 
   hypotheses of \<^text>\<open>dynamic_refutational_complete\<close> for the proof of lemma 10 to work. Otherwise,
   \<^term>\<open>lnth D 0\<close> is undefined and the first 'have' can't be proven.\<close>
@@ -286,7 +286,7 @@ definition Red_Inf_Q :: "'f set \<Rightarrow> 'f inference set" where
 definition Red_F_Q :: "'f set \<Rightarrow> 'f set" where
   "Red_F_Q N = \<Inter> {X N |X. X \<in> (Red_F_q ` UNIV)}"
 
-paragraph \<open>lemma:intersection-of-red-crit\<close>
+paragraph \<open>lem:intersection-of-red-crit\<close>
 lemma inter_red_crit: "calculus_with_red_crit Bot Inf entails_Q Red_Inf_Q Red_F_Q"
   unfolding calculus_with_red_crit_def calculus_with_red_crit_axioms_def
 proof (intro conjI)
@@ -433,7 +433,7 @@ sublocale inter_red_crit_calculus: calculus_with_red_crit
   and Red_F=Red_F_Q
   using inter_red_crit .
 
-paragraph \<open>lemma:satur-wrt-intersection-of-red\<close>
+paragraph \<open>lem:satur-wrt-intersection-of-red\<close>
 lemma "calculus_with_red_crit.saturated Inf Red_Inf_Q N \<longleftrightarrow>
   (\<forall>qi. calculus_with_red_crit.saturated Inf (Red_Inf_q qi) N)" for N
 proof
@@ -469,7 +469,7 @@ next
   qed
 qed
 
-paragraph \<open>lemma:checking-static-ref-compl-for-intersections\<close>
+paragraph \<open>lem:checking-static-ref-compl-for-intersections\<close>
 lemma
   "\<forall>N. (calculus_with_red_crit.saturated Inf Red_Inf_Q N \<and> (\<forall>B \<in> Bot. B \<notin> N)) \<longrightarrow>
     (\<exists>B \<in> Bot. \<exists>qi. \<not> entails_q qi N {B})
