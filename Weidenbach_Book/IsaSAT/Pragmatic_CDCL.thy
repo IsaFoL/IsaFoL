@@ -9,8 +9,9 @@ lemma remdups_mset_sum_subset:  \<open>C \<subseteq># C' \<Longrightarrow> remdu
   apply (metis remdups_mset_def set_mset_mono set_mset_union sup.absorb_iff2)
   by (metis add.commute le_iff_sup remdups_mset_def set_mset_mono set_mset_union)
 
-lemma remdups_mset_subset_add_mset: \<open>remdups_mset C' \<subseteq># add_mset (L) C'\<close>
-  by (meson distinct_mset_remdups_mset distinct_mset_subset_iff_remdups subset_mset.order_refl subset_mset_trans_add_mset)
+lemma remdups_mset_subset_add_mset: \<open>remdups_mset C' \<subseteq># add_mset L C'\<close>
+  by (meson distinct_mset_remdups_mset distinct_mset_subset_iff_remdups subset_mset.order_refl
+    subset_mset_trans_add_mset)
 (*END Move*)
 
 
@@ -90,6 +91,9 @@ require further thinking:
   SAT solver.
 
 
+TODO:
+  \<^item> deriving unit clauses
+  \<^item> model reconstruction
 \<close>
 type_synonym 'v prag_st =
   \<open>('v, 'v clause) ann_lits \<times> 'v clauses \<times> 'v clauses \<times>
@@ -1075,7 +1079,9 @@ subsection \<open>Subsumption resolution\<close>
 text \<open>
 
 Subsumption-Resolution rules are the composition of resolution,
-subsumption, learning of a clause, and potentially forget.
+subsumption, learning of a clause, and potentially forget. However,
+we have decided to not model the forget, because we would like to map
+the calculus to a version without restarts.
 
 \<close>
 
@@ -1094,7 +1100,8 @@ subresolution_LI:
  if  \<open>count_decided M = 0\<close> and \<open>\<not>tautology (C + C')\<close> and  \<open>C \<subseteq># C'\<close>|
 subresolution_IL:
   \<open>cdcl_subresolution (M, N + {#add_mset L C#}, U + {#add_mset (-L) C'#}, D, NE, UE, NS, US)
-    (M, N + {#remdups_mset (C)#}, U + {#add_mset (-L) C',remdups_mset (C)#}, D, NE, UE, add_mset (add_mset (L) C) NS,  US)\<close>
+    (M, N + {#remdups_mset (C)#}, U + {#add_mset (-L) C',remdups_mset (C)#}, D, NE, UE,
+      add_mset (add_mset (L) C) NS,  US)\<close>
  if  \<open>count_decided M = 0\<close> and \<open>\<not>tautology (C + C')\<close> and  \<open>C' \<subseteq># C\<close>
 
 
@@ -1113,8 +1120,10 @@ proof  (induction rule: cdcl_subresolution.induct)
     apply (rule cdcl_resolution.resolution_II, assumption)
     apply (rule r_into_rtranclp)
     apply (rule pcdcl.intros(4))
-    using cdcl_subsumed.intros(1)[of \<open>remdups_mset (C + C')\<close> \<open>add_mset (- L) C'\<close> M \<open>N + {#add_mset L C#}\<close> U D NE UE NS US]
-    apply (auto simp add: dest!: remdups_mset_sum_subset(1) simp: remdups_mset_subset_add_mset add_mset_commute)
+    using cdcl_subsumed.intros(1)[of \<open>remdups_mset (C + C')\<close> \<open>add_mset (- L) C'\<close> M
+      \<open>N + {#add_mset L C#}\<close> U D NE UE NS US]
+    apply (auto simp add: dest!: remdups_mset_sum_subset(1)
+      simp: remdups_mset_subset_add_mset add_mset_commute)
     done
 next
   case (subresolution_LL M C C' N U L D NE UE NS US)
@@ -1124,8 +1133,10 @@ next
     apply (rule cdcl_resolution.resolution_LL, assumption, assumption)
     apply (rule r_into_rtranclp)
     apply (rule pcdcl.intros(4))
-    using cdcl_subsumed.intros(2)[of \<open>remdups_mset (C + C')\<close> \<open>add_mset (- L) C'\<close> M N \<open>U + {#add_mset L C#}\<close> D NE UE NS US]
-    apply (auto simp add: dest!: remdups_mset_sum_subset(1) simp: remdups_mset_subset_add_mset add_mset_commute)
+    using cdcl_subsumed.intros(2)[of \<open>remdups_mset (C + C')\<close> \<open>add_mset (- L) C'\<close> M N
+      \<open>U + {#add_mset L C#}\<close> D NE UE NS US]
+    apply (auto dest!: remdups_mset_sum_subset(1)
+      simp: remdups_mset_subset_add_mset add_mset_commute)
     done
 next
   case (subresolution_LI M C C' N L U D NE UE NS US)
@@ -1135,8 +1146,10 @@ next
     apply (rule cdcl_resolution.resolution_IL, assumption, assumption)
     apply (rule r_into_rtranclp)
     apply (rule pcdcl.intros(4))
-    using cdcl_subsumed.intros(2)[of \<open>remdups_mset (C + C')\<close> \<open>add_mset (- L) C'\<close> M \<open>N  + {#add_mset L C#}\<close> \<open>U\<close> D NE UE NS US]
-    apply (auto simp add: dest!: remdups_mset_sum_subset(1) simp: remdups_mset_subset_add_mset add_mset_commute)
+    using cdcl_subsumed.intros(2)[of \<open>remdups_mset (C + C')\<close> \<open>add_mset (- L) C'\<close> M
+      \<open>N  + {#add_mset L C#}\<close> \<open>U\<close> D NE UE NS US]
+    apply (auto simp add: dest!: remdups_mset_sum_subset(1)
+      simp: remdups_mset_subset_add_mset add_mset_commute)
     done
 next
   case (subresolution_IL M C C' N L U D NE UE NS US)
@@ -1172,10 +1185,32 @@ next
     apply (rule 2)
     apply (rule r_into_rtranclp)
     apply (rule pcdcl.intros(4))
-    using cdcl_subsumed.intros(1)[of \<open>remdups_mset (C)\<close> \<open>add_mset L C\<close> M \<open>N\<close> \<open>add_mset (remdups_mset (C)) (add_mset (add_mset (- L) C') U)\<close> D NE UE NS US]
-    apply (auto simp add: dest!: remdups_mset_sum_subset(2) simp: remdups_mset_subset_add_mset add_mset_commute)[]
+    using cdcl_subsumed.intros(1)[of \<open>remdups_mset (C)\<close> \<open>add_mset L C\<close> M \<open>N\<close>
+      \<open>add_mset (remdups_mset (C)) (add_mset (add_mset (- L) C') U)\<close> D NE UE NS US]
+    apply (auto simp add: dest!: remdups_mset_sum_subset(2)
+      simp: remdups_mset_subset_add_mset add_mset_commute)[]
     done
 qed
 
+section \<open>Variable elimination\<close>
+
+text \<open>This is a very first attempt to definit Variable elimination in a very general way. However,
+it is not clear how to handle tautologies (because the variable is not elimination in this case).\<close>
+definition elim_var :: \<open>'v \<Rightarrow> 'v clauses \<Rightarrow> 'v clauses\<close> where
+\<open>elim_var L N =
+   {#C \<in># N. L \<notin> atms_of C#} +
+   (\<lambda>(C, D). removeAll_mset (Pos L) (removeAll_mset (Neg L) (C + D))) `#
+     ((filter_mset (\<lambda>C. Pos L \<in># C) N) \<times># (filter_mset (\<lambda>C. Neg L \<in># C) N))\<close>
+
+lemma
+  \<open>L \<notin> atms_of_mm (elim_var L N)\<close>
+  unfolding elim_var_def
+  apply (auto simp: atms_of_ms_def atms_of_def add_mset_eq_add_mset
+      eq_commute[of \<open>_ - _\<close> \<open>add_mset _ _\<close>] in_diff_count
+    dest!: multi_member_split)
+  apply (auto dest!: union_single_eq_member
+     simp: in_diff_count split: if_splits)
+     using literal.exhaust_sel apply blast+
+   done
 
 end
