@@ -111,7 +111,7 @@ definition fun_comp :: \<open>('f, 'v) interp \<Rightarrow> bool\<close>
   where \<open>fun_comp I = (\<forall>f a1 a2. (\<forall>n. (nth a1 n, nth a2 n) \<in> I) \<longrightarrow> length a1 = length a2 \<longrightarrow> (Fun f a1, Fun f a2) \<in> I)\<close>
 
 fun congruence :: \<open>('f, 'v) interp \<Rightarrow> bool\<close>
-  where \<open>congruence I = (refl I \<and> trans I \<and> sym I \<and> fun_comp I)\<close>
+  where \<open>congruence I = (refl_on {t. ground_term t} I \<and> trans I \<and> sym I \<and> fun_comp I)\<close>
 
 fun validate_ground_lit :: \<open>('f, 'v) interp \<Rightarrow> ('f, 'v) literal \<Rightarrow> bool\<close>
   where
@@ -400,36 +400,32 @@ definition ground_superposition_inference_system :: \<open>('f, 'v) ground_claus
 
 (* helper lemmas for soundness of superposition rule *)
 lemma subterm_replace_interp:
-  \<open>congruence I \<Longrightarrow> subterm_replace s t u v \<Longrightarrow> (u, v) \<in> I \<Longrightarrow> (s, t) \<in> I\<close>
+  \<open>congruence I \<Longrightarrow> subterm_replace s t u v \<Longrightarrow> (u, v) \<in> I \<Longrightarrow> ground_term s \<Longrightarrow> ground_term t \<Longrightarrow> (s, t) \<in> I\<close>
 proof -
   assume \<open>congruence I\<close>
-  then have \<open>refl I\<close> and \<open>fun_comp I\<close> by auto
+  then have \<open>refl_on {t. ground_term t} I\<close> and \<open>fun_comp I\<close> by auto
   assume \<open>(u,v) \<in> I\<close>
-  show \<open>subterm_replace s t u v \<Longrightarrow> (s, t) \<in> I\<close>
+  show \<open>subterm_replace s t u v \<Longrightarrow> ground_term s \<Longrightarrow> ground_term t \<Longrightarrow> (s, t) \<in> I\<close>
   proof (induction s arbitrary: t)
-    case (Var x)
-    assume \<open>subterm_replace (Var x) t u v\<close>
-    then show \<open>(Var x, t) \<in> I\<close>
-    proof cases
-      case base
-      then have \<open>(u,v) = (Var x, t)\<close> by auto
-      with \<open>(u,v) \<in> I\<close> show ?thesis by auto
-    qed
+    case (Var x) then show ?case by auto (* vacuous case *)
   next
     case (Fun f args)
     then have \<open>subterm_replace (Fun f args) t u v\<close> by auto
     then show \<open>(Fun f args, t) \<in> I\<close>
     proof cases
       case base
-      then have \<open>(u,v) = (Fun f args, t)\<close> by auto
-      with \<open>(u,v) \<in> I\<close> show ?thesis by auto
+      then have \<open>(u, v) = (Fun f args, t)\<close> by auto
+      with \<open>(u, v) \<in> I\<close> show ?thesis by auto
     next
       case (step s' t' a1 a2)
-      from Fun step have \<open>(s',t') \<in> I\<close> by auto (* apply induction hypothesis *)
+      from Fun step have \<open>(s', t') \<in> I\<close> by auto (* apply induction hypothesis *)
       have \<open>(a1 @ s' # a2) ! n = (a1 @ t' # a2) ! n \<or> ((a1 @ s' # a2) ! n = s' \<and> (a1 @ t' # a2) ! n = t')\<close> for n
         by (simp add: nth_Cons' nth_append)
-      then have \<open>((a1 @ s' # a2) ! n, (a1 @ t' # a2) ! n) \<in> I\<close> for n
-        using \<open>refl I\<close> \<open>(s', t') \<in> I\<close> unfolding refl_on_def by (metis iso_tuple_UNIV_I)
+      moreover have \<open>ground_term ((a1 @ s' # a2) ! n)\<close> for n sorry
+      moreover have \<open>ground_term ((a1 @ t' # a2) ! n)\<close> for n sorry
+      ultimately have \<open>((a1 @ s' # a2) ! n, (a1 @ t' # a2) ! n) \<in> I\<close> for n
+        using \<open>refl_on {t. ground_term t} I\<close> \<open>(s', t') \<in> I\<close> unfolding refl_on_def
+        by (metis (mono_tags, lifting) mem_Collect_eq)
       then have \<open>(Fun f (a1 @ s' # a2), Fun f (a1 @ t' # a2)) \<in> I\<close>
         using \<open>fun_comp I\<close> unfolding fun_comp_def by fastforce
       then show ?thesis using step by auto
@@ -483,7 +479,7 @@ proof -
         (* the grounding of the conclusion is not necessarily a grounding of the premise, so we must extend it *)
         obtain \<upsilon> :: \<open>('f, 'v) subst\<close> where \<open>ground_cl (subst_apply_cl (subst_apply_cl (subst_apply_cl ({# Neq s s' #} + C) \<sigma>) \<tau>) \<upsilon>)\<close>
           using ex_ground_instance by fast
-        then have \<open>ground_cl (subst_apply_cl (subst_apply_cl ({# Neq s s' #} + C) \<sigma>) (\<tau> \<circ>\<^sub>s \<upsilon>))\<close> using subst_cl_comp by metis
+        then have grounding: \<open>ground_cl (subst_apply_cl (subst_apply_cl ({# Neq s s' #} + C) \<sigma>) (\<tau> \<circ>\<^sub>s \<upsilon>))\<close> using subst_cl_comp by metis
         then obtain L where \<open>L \<in># subst_apply_cl ({#Neq s s'#} + C) \<sigma>\<close> and validate_L: \<open>validate_ground_lit I (subst_apply_lit L (\<tau> \<circ>\<^sub>s \<upsilon>))\<close>
           using validate_prem_\<sigma> unfolding validate_clause_def by blast
         then consider (a) \<open>L = subst_apply_lit (Neq s s') \<sigma>\<close> | (b) \<open>L \<in># subst_apply_cl C \<sigma>\<close> by auto
@@ -493,7 +489,8 @@ proof -
           with validate_L have \<open>validate_ground_lit I (Neq (s \<cdot> \<sigma> \<cdot> \<tau> \<cdot> \<upsilon>) (s' \<cdot> \<sigma> \<cdot> \<tau> \<cdot> \<upsilon>))\<close> by auto
           then have \<open>(s \<cdot> \<sigma> \<cdot> \<tau> \<cdot> \<upsilon>, s' \<cdot> \<sigma> \<cdot> \<tau> \<cdot> \<upsilon>) \<notin> I\<close> by auto
           with mgu have \<open>(s \<cdot> \<sigma> \<cdot> \<tau> \<cdot> \<upsilon>, s \<cdot> \<sigma> \<cdot> \<tau> \<cdot> \<upsilon>) \<notin> I\<close> unfolding is_mgu_def unifiers_def by auto
-          moreover from cong have \<open>refl I\<close> by auto
+          moreover from cong have \<open>refl_on {t. ground_term t} I\<close> by auto
+          moreover have \<open>ground_term (s \<cdot> \<sigma> \<cdot> \<tau> \<cdot> \<upsilon>)\<close> using grounding by auto
           ultimately show ?thesis unfolding refl_on_def by blast (* contradiction *)
         next
           case b
@@ -608,7 +605,15 @@ proof -
             using mgu unfolding is_mgu_def unifiers_def by auto
           then have \<open>subterm_replace (vs \<cdot> \<sigma> \<cdot> \<tau> \<cdot> \<upsilon>) (vt \<cdot> \<sigma> \<cdot> \<tau> \<cdot> \<upsilon>) (s \<cdot> \<sigma> \<cdot> \<tau> \<cdot> \<upsilon>) (t \<cdot> \<sigma> \<cdot> \<tau> \<cdot> \<upsilon>)\<close>
             using mgu subterm_replace_stable_subst by blast
-          with s_t_I have vs_vt_I: \<open>(vs \<cdot> \<sigma> \<cdot> \<tau> \<cdot> \<upsilon>, vt \<cdot> \<sigma> \<cdot> \<tau> \<cdot> \<upsilon>) \<in> I\<close> using subterm_replace_interp cong by blast
+          moreover have \<open>ground_term (vs \<cdot> \<sigma> \<cdot> \<tau> \<cdot> \<upsilon>) \<and> ground_term (vt \<cdot> \<sigma> \<cdot> \<tau> \<cdot> \<upsilon>)\<close>
+          proof -
+            have \<open>ground_lit (subst_apply_lit (subst_apply_lit (subst_apply_lit L \<sigma>) \<tau>) \<upsilon>)\<close>
+              by (simp add: subst_lit_comp \<open>ground_cl (subst_apply_cl (subst_apply_cl (add_mset L \<bottom>F + D) \<sigma>) (\<tau> \<circ>\<^sub>s \<upsilon>))\<close>)
+            moreover have \<open>ground_lit (subst_apply_lit (subst_apply_lit (subst_apply_lit L' \<sigma>) \<tau>) \<upsilon>)\<close>
+              using ground_CD subst_ground_lit by fastforce
+            ultimately show ?thesis using L_def by force
+          qed
+          ultimately have vs_vt_I: \<open>(vs \<cdot> \<sigma> \<cdot> \<tau> \<cdot> \<upsilon>, vt \<cdot> \<sigma> \<cdot> \<tau> \<cdot> \<upsilon>) \<in> I\<close> using s_t_I subterm_replace_interp cong by blast
           consider (pos) \<open>(L = Eq vt u \<or> L = Eq u vt) \<and> L' = Eq vs u\<close>
                  | (neg) \<open>(L = Neq vt u \<or> L = Neq u vt) \<and> L' = Neq vs u\<close>
             using L_def by auto
@@ -1299,10 +1304,9 @@ proof -
   qed
 qed
 
-(* TODO prove normalization for non-ground terms as well, or require the TRS to be a congruence only for ground terms? *)
-lemma equiv_class_refl: \<open>ordered S \<Longrightarrow> refl (equiv_class_of_trs S)\<close>
+lemma equiv_class_refl: \<open>ordered S \<Longrightarrow> refl_on {t. ground_term t} (equiv_class_of_trs S)\<close>
   unfolding equiv_class_of_trs_def refl_on_def
-  using ordered_normalizing sorry
+  using ordered_normalizing by auto
 
 lemma equiv_class_sym: \<open>ordered S \<Longrightarrow> sym (equiv_class_of_trs S)\<close>
   unfolding equiv_class_of_trs_def sym_def by blast
@@ -1312,8 +1316,15 @@ lemma equiv_class_trans: \<open>ordered S \<Longrightarrow> trans (equiv_class_o
   using ordered_unique_normal_form by blast
 
 lemma equiv_class_fun_comp: \<open>ordered S \<Longrightarrow> fun_comp (equiv_class_of_trs S)\<close>
-  unfolding fun_comp_def
-  sorry
+proof -
+  assume \<open>ordered S\<close>
+  have \<open>(\<forall>n. (a1 ! n, a2 ! n) \<in> equiv_class_of_trs S) \<Longrightarrow> length a1 = length a2 \<Longrightarrow> (Fun f a1, Fun f a2) \<in> equiv_class_of_trs S\<close> for f a1 a2
+  proof -
+    assume \<open>(\<forall>n. (a1 ! n, a2 ! n) \<in> equiv_class_of_trs S)\<close> and \<open>length a1 = length a2\<close>
+    show \<open>(Fun f a1, Fun f a2) \<in> equiv_class_of_trs S\<close> sorry
+  qed
+  then show ?thesis unfolding fun_comp_def by blast
+qed
 
 lemma equiv_class_fo: \<open>ordered S \<Longrightarrow> congruence (equiv_class_of_trs S)\<close>
   using equiv_class_refl equiv_class_sym equiv_class_trans equiv_class_fun_comp by simp
@@ -1383,7 +1394,7 @@ proof -
     then show ?thesis
     proof cases
       case 1
-      then show ?thesis using ord equiv_class_refl unfolding refl_on_def by simp
+      then show ?thesis using ord equiv_class_refl ground_u ground_v unfolding refl_on_def by simp
     next
       case 2
       then have \<open>rewrite_by_trs S2 u v\<close>
@@ -2373,7 +2384,8 @@ proof -
                       case 1
                       with L'_valid have nequiv: \<open>(u', s') \<notin> equiv_class_of_trs ?trs_upto\<close> using validate_ground_lit.simps(2) by blast
                       have \<open>(rhs, lhs) \<in> equiv_class_of_trs ?trs_upto\<close> using rule_in_trs equality_in_equiv_class rule_ground trs_prop by blast
-                      then have \<open>(u', t') \<in> equiv_class_of_trs ?trs_upto\<close> using trs_prop subterm_replace_interp [of \<open>equiv_class_of_trs ?trs_upto\<close> u' t' rhs lhs] repl by blast
+                      moreover have \<open>ground_term u' \<and> ground_term t'\<close> using L'_ground 1 s_t_ground by auto
+                      ultimately have \<open>(u', t') \<in> equiv_class_of_trs ?trs_upto\<close> using trs_prop subterm_replace_interp [of \<open>equiv_class_of_trs ?trs_upto\<close> u' t' rhs lhs] repl by blast
                       with nequiv have \<open>(t', s') \<notin> equiv_class_of_trs ?trs_upto \<and> (s', t') \<notin> equiv_class_of_trs ?trs_upto\<close>
                         using equiv_class_trans equiv_class_sym trs_prop unfolding trans_def sym_def by fast
                       with s_t_equiv s_t_def show ?thesis by blast (* contradiction *)
