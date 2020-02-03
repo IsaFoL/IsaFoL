@@ -7,7 +7,9 @@ session "CDCL_Extensions" (Weidenbach_Book) = "CDCL"  +
     "HOL-Library"
 
   theories [quick_and_dirty = false, document = true]
+    CDCL_W_BnB
     CDCL_W_Optimal_Model
+    OCDCL
     CDCL_W_Partial_Encoding
     CDCL_W_MaxSAT
     CDCL_W_Partial_Optimal_Model
