@@ -64,7 +64,7 @@ than reserving a space that is large enough directly. However, in this case the 
 is so large that there should not be any difference\<close>
 definition fm_add_new where
  \<open>fm_add_new b C N0 = do {
-    let st = (if b then AStatus IRRED False else AStatus LEARNED False);
+    let st = (if b then AStatus IRRED False False else AStatus LEARNED False False);
     let l = length N0;
     let s = length C - 2;
     let N = (if is_short_clause C then
@@ -118,17 +118,17 @@ where
   \<open>fm_add_new_at_position b i C N = fmupd i (C, b) N\<close>
 
 definition AStatus_IRRED where
-  \<open>AStatus_IRRED = AStatus IRRED False\<close>
+  \<open>AStatus_IRRED = AStatus IRRED False False\<close>
 
 definition AStatus_IRRED2 where
-  \<open>AStatus_IRRED2 = AStatus IRRED True\<close>
+  \<open>AStatus_IRRED2 = AStatus IRRED True False\<close>
 
 definition AStatus_LEARNED where
-  \<open>AStatus_LEARNED = AStatus LEARNED True\<close>
+  \<open>AStatus_LEARNED = AStatus LEARNED True False\<close>
 
 
 definition AStatus_LEARNED2 where
-  \<open>AStatus_LEARNED2 = AStatus LEARNED False\<close>
+  \<open>AStatus_LEARNED2 = AStatus LEARNED False False\<close>
 
 
 definition (in -)fm_add_new_fast where
@@ -212,12 +212,13 @@ lemma valid_arena_append_clause_slice:
     (fmupd (length new_arena + header_size (N \<propto> C)) (N \<propto> C, irred N C) N')
     (insert (length new_arena + header_size (N \<propto> C)) vd')\<close>
 proof -
-  define pos st lbd act used where
+  define pos st lbd act used small where
     \<open>pos = (if is_long_clause (N \<propto> C) then arena_pos old_arena C - 2 else 0)\<close> and
     \<open>st = arena_status old_arena C\<close> and
     \<open>lbd = arena_lbd old_arena C\<close> and
     \<open>act = arena_act old_arena C\<close> and
-    \<open>used = arena_used old_arena C\<close>
+    \<open>used = arena_used old_arena C\<close> and
+    \<open>small = arena_small old_arena C\<close>
   have \<open>2 \<le> length (N \<propto> C)\<close>
     unfolding st_def used_def act_def lbd_def
       append_clause_skeleton_def arena_status_def
@@ -242,16 +243,16 @@ proof -
   have sl: \<open>clause_slice old_arena N C =
      (if is_long_clause (N \<propto> C) then [APos pos]
      else []) @
-     [AStatus st used, AActivity act, ALBD lbd, ASize (length (N \<propto> C) - 2)] @
+     [AStatus st used small, AActivity act, ALBD lbd, ASize (length (N \<propto> C) - 2)] @
      map ALit (N \<propto> C) \<close>
-    unfolding st_def used_def act_def lbd_def
+    unfolding st_def used_def act_def lbd_def small_def
       append_clause_skeleton_def arena_status_def
       xarena_status_def arena_used_def
       arena_act_def xarena_used_def
       xarena_act_def pos_def arena_pos_def
       xarena_pos_def
       arena_lbd_def xarena_lbd_def
-      arena_length_def xarena_length_def
+      arena_length_def xarena_length_def arena_small_def
     using arena_lifting[OF assms(1,3)]
     by (auto simp: is_Status_def is_Pos_def is_Size_def is_LBD_def
       is_Act_def header_size_def 45
@@ -275,14 +276,14 @@ proof -
       auto split: arena_el.splits if_splits
         simp: header_size_def arena_pos_def; fail)+
 
-  then have \<open>valid_arena (append_clause_skeleton pos st used act lbd (N \<propto> C) new_arena)
+  then have \<open>valid_arena (append_clause_skeleton pos st used small act lbd (N \<propto> C) new_arena)
     (fmupd (length new_arena + header_size (N \<propto> C)) (N \<propto> C, irred N C) N')
     (insert (length new_arena + header_size (N \<propto> C)) vd')\<close>
     apply -
     by (rule valid_arena_append_clause_skeleton[OF assms(2), of \<open>N \<propto> C\<close> _ st
-      pos used act lbd]) auto
+      pos used small act lbd]) auto
   moreover have
-    \<open>append_clause_skeleton pos st used act lbd (N \<propto> C) new_arena =
+    \<open>append_clause_skeleton pos st used small act lbd (N \<propto> C) new_arena =
       new_arena @ clause_slice old_arena N C\<close>
     by (auto simp: append_clause_skeleton_def sl)
   ultimately show ?thesis

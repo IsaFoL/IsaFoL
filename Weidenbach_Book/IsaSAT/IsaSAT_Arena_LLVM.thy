@@ -100,6 +100,15 @@ sepref_def xarena_used_impl [llvm_inline] is [] "RETURN o (\<lambda>eli. eli AND
   by sepref
 lemmas [sepref_fr_rules] = xarena_used_impl.refine[FCOMP xarena_used_refine1]
 
+lemma xarena_small_refine1: "(\<lambda>eli. eli AND 0b1000 \<noteq> 0, xarena_small) \<in> [is_Status]\<^sub>f arena_el_rel \<rightarrow> bool_rel"
+  by (auto simp: is_Status_def status_rel_def bitfield_rel_def)
+
+sepref_def xarena_small_impl [llvm_inline] is [] "RETURN o (\<lambda>eli. eli AND 0b1000 \<noteq> 0)" :: "uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn"
+  apply (annot_unat_const "TYPE(32)")
+  by sepref
+
+lemmas [sepref_fr_rules] = xarena_small_impl.refine[FCOMP xarena_small_refine1]
+
 lemma status_eq_refine1: "((=),(=)) \<in> status_rel \<rightarrow> status_rel \<rightarrow> bool_rel"
   by (auto simp: status_rel_def)
 
@@ -110,10 +119,14 @@ sepref_def status_eq_impl [llvm_inline] is [] "uncurry (RETURN oo (=))"
 lemmas [sepref_fr_rules] = status_eq_impl.refine[FCOMP status_eq_refine1]
 
 
-definition "AStatus_impl1 cs used \<equiv> (cs AND unat_const TYPE(32) 0b11) + (if used then unat_const TYPE(32) 0b100 else unat_const TYPE(32) 0b0)"
-lemma AStatus_refine1: "(AStatus_impl1, AStatus) \<in> status_rel \<rightarrow> bool_rel \<rightarrow> arena_el_rel"
+definition AStatus_impl1 where
+    "AStatus_impl1 cs used small \<equiv> (cs AND unat_const TYPE(32) 0b11) + (if used then unat_const TYPE(32) 0b100 else unat_const TYPE(32) 0b0) + (if small then unat_const TYPE(32) 0b1000 else unat_const TYPE(32) 0b0)"
+
+lemma AStatus_refine1: "(AStatus_impl1, AStatus) \<in> status_rel \<rightarrow> bool_rel \<rightarrow> bool_rel \<rightarrow> arena_el_rel"
   by (auto simp: status_rel_def bitfield_rel_def AStatus_impl1_def split: if_splits)
-sepref_def AStatus_impl [llvm_inline] is [] "uncurry (RETURN oo AStatus_impl1)" :: "uint32_nat_assn\<^sup>k *\<^sub>a bool1_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn"
+
+sepref_def AStatus_impl [llvm_inline] is [] "uncurry2 (RETURN ooo AStatus_impl1)"
+  :: "uint32_nat_assn\<^sup>k *\<^sub>a bool1_assn\<^sup>k *\<^sub>a bool1_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn"
   unfolding AStatus_impl1_def
   supply [split] = if_splits
   by sepref
@@ -440,10 +453,14 @@ sepref_def arena_decr_act_impl is "uncurry (RETURN oo arena_decr_act)"
   apply (annot_snat_const "TYPE(64)")
   by sepref
 
+sepref_def mop_arena_decr_act_impl
+  is \<open>uncurry mop_arena_decr_act\<close>
+  :: \<open>sint64_nat_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>d \<rightarrow>\<^sub>a arena_fast_assn\<close>
+  unfolding mop_arena_decr_act_def
+  by sepref
+
 
 paragraph \<open>Mark used\<close>
-
-term mark_used
 
 lemma arena_mark_used_implI:
   assumes "arena_act_pre a b"
@@ -458,7 +475,7 @@ lemma arena_mark_used_implI:
 sepref_register mark_used
 sepref_def mark_used_impl is "uncurry (RETURN oo mark_used)"
   :: "[uncurry arena_act_pre]\<^sub>a arena_fast_assn\<^sup>d *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> arena_fast_assn"
-  unfolding mark_used_def STATUS_SHIFT_def
+  unfolding mark_used_def STATUS_SHIFT_def arena_small_def
   supply [intro] = arena_mark_used_implI
   apply (annot_snat_const "TYPE(64)")
   by sepref
@@ -466,11 +483,44 @@ sepref_def mark_used_impl is "uncurry (RETURN oo mark_used)"
 sepref_register mark_unused
 sepref_def mark_unused_impl is "uncurry (RETURN oo mark_unused)"
   :: "[uncurry arena_act_pre]\<^sub>a arena_fast_assn\<^sup>d *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> arena_fast_assn"
-  unfolding mark_unused_def STATUS_SHIFT_def
+  unfolding mark_unused_def STATUS_SHIFT_def arena_small_def
   supply [intro] = arena_mark_used_implI
   apply (annot_snat_const "TYPE(64)")
   by sepref
 
+sepref_def mop_mark_unused_impl
+  is \<open>uncurry mop_mark_unused\<close>
+    :: "sint64_nat_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>d \<rightarrow>\<^sub>a arena_fast_assn"
+  unfolding mop_mark_unused_def
+  by sepref
+
+sepref_register mark_unsmall
+sepref_def mark_unsmall_impl is "uncurry (RETURN oo mark_unsmall)"
+  :: "[uncurry arena_act_pre]\<^sub>a arena_fast_assn\<^sup>d *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> arena_fast_assn"
+  unfolding mark_unsmall_def STATUS_SHIFT_def arena_small_def
+  supply [intro] = arena_mark_used_implI
+  apply (annot_snat_const "TYPE(64)")
+  by sepref
+
+sepref_def mop_mark_unsmall_impl
+  is \<open>uncurry mop_mark_unsmall\<close>
+    :: "sint64_nat_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>d \<rightarrow>\<^sub>a arena_fast_assn"
+  unfolding mop_mark_unsmall_def
+  by sepref
+
+sepref_register mark_small
+sepref_def mark_small_impl is "uncurry (RETURN oo mark_small)"
+  :: "[uncurry arena_act_pre]\<^sub>a arena_fast_assn\<^sup>d *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> arena_fast_assn"
+  unfolding mark_small_def STATUS_SHIFT_def arena_small_def
+  supply [intro] = arena_mark_used_implI
+  apply (annot_snat_const "TYPE(64)")
+  by sepref
+
+sepref_def mop_mark_small_impl
+  is \<open>uncurry mop_mark_small\<close>
+    :: "sint64_nat_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>d \<rightarrow>\<^sub>a arena_fast_assn"
+  unfolding mop_mark_small_def
+  by sepref
 
 
 paragraph \<open>Marked as used?\<close>
@@ -490,6 +540,24 @@ sepref_def marked_as_used_impl
     :: "[uncurry marked_as_used_pre]\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> bool1_assn"
   supply [intro] = arena_marked_as_used_implI
   unfolding marked_as_used_def STATUS_SHIFT_def
+  apply (annot_snat_const "TYPE(64)")
+  by sepref
+
+lemma arena_marked_as_small_implI:
+  assumes "marked_as_small_pre a b"
+  shows "4 \<le> b" "b - 4 < length a" "is_Status (a ! (b-4))"
+  using assms STATUS_SHIFT_def
+  apply (auto simp: marked_as_small_pre_def marked_as_used_pre_def arena_is_valid_clause_idx_def arena_lifting)
+  subgoal by (metis (full_types) arena_is_valid_clause_vdom_def arena_status_implI(1) insertCI valid_arena_extra_information_mark_to_delete)
+  subgoal by (simp add: less_imp_diff_less valid_arena_def)
+  done
+
+sepref_register mop_marked_as_small
+sepref_def mop_marked_as_small_impl
+  is "uncurry mop_marked_as_small"
+    :: "arena_fast_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k  \<rightarrow>\<^sub>a bool1_assn"
+  supply [intro] = arena_marked_as_small_implI
+  unfolding mop_marked_as_small_def marked_as_small_def STATUS_SHIFT_def
   apply (annot_snat_const "TYPE(64)")
   by sepref
 
@@ -617,6 +685,13 @@ lemmas [sepref_fr_rules] =
   arena_other_watched_as_swap_impl.refine[FCOMP arena_other_watched_as_swap_arena_other_watched',
     unfolded arena_fast_al_unat_assn]
 
+sepref_register mop_decrease_used mop_arena_length
+sepref_def mop_decrease_used_impl
+  is \<open>uncurry mop_decrease_used\<close>
+  :: \<open>sint64_nat_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>d \<rightarrow>\<^sub>a arena_fast_assn\<close>
+  unfolding mop_decrease_used_def
+  by sepref
+
 end
 
 sepref_def mop_arena_length_impl
@@ -643,6 +718,9 @@ export_llvm
   mark_unused_impl
   marked_as_used_impl
   MAX_LENGTH_SHORT_CLAUSE_impl
+  mop_decrease_used_impl
+  mop_mark_small_impl
+
 
 end
 

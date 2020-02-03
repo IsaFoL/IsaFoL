@@ -1390,19 +1390,14 @@ definition mop_mark_garbage_heur :: \<open>nat \<Rightarrow> nat \<Rightarrow> t
     RETURN (mark_garbage_heur C i S)
   })\<close>
 
-definition mark_unused_st_heur :: \<open>nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur\<close> where
-  \<open>mark_unused_st_heur C = (\<lambda>(M', N', D', j, W', vm, clvls, cach, lbd, outl,
-      stats, heur, vdom, avdom, lcount, opts).
-    (M', arena_decr_act (mark_unused N' C) C, D', j, W', vm, clvls, cach,
-      lbd, outl, stats, heur,
-      vdom, avdom, lcount, opts))\<close>
-
-
 definition mop_mark_unused_st_heur :: \<open>nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
-  \<open>mop_mark_unused_st_heur C T = do {
-     ASSERT(arena_act_pre (get_clauses_wl_heur T) C);
-     RETURN (mark_unused_st_heur C T)
-  }\<close>
+  \<open>mop_mark_unused_st_heur C = (\<lambda>(M', N', D', j, W', vm, clvls, cach, lbd, outl,
+  stats, heur, vdom, avdom, lcount, opts). do {
+    N' \<leftarrow> mop_decrease_used C N';
+    RETURN (M', N', D', j, W', vm, clvls, cach,
+      lbd, outl, stats, heur,
+  vdom, avdom, lcount, opts)
+  })\<close>
 
 lemma mop_mark_garbage_heur_alt_def:
   \<open>mop_mark_garbage_heur C i = (\<lambda>(M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
@@ -1415,12 +1410,6 @@ lemma mop_mark_garbage_heur_alt_def:
    })\<close>
   unfolding mop_mark_garbage_heur_def mark_garbage_heur_def
   by (auto intro!: ext)
-
-lemma mark_unused_st_heur_simp[simp]:
-  \<open>get_avdom (mark_unused_st_heur C T) = get_avdom T\<close>
-  \<open>get_vdom (mark_unused_st_heur C T) = get_vdom T\<close>
-  by (cases T; auto simp: mark_unused_st_heur_def; fail)+
-
 
 lemma get_slow_ema_heur_alt_def:
    \<open>RETURN o get_slow_ema_heur = (\<lambda>(M, N0, D, Q, W, vm, clvls, cach, lbd, outl,

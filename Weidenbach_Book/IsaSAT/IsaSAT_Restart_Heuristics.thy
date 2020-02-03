@@ -1108,23 +1108,6 @@ lemma mark_garbage_heur_wl_ana:
       elim!: in_set_upd_cases)
   done
 
-lemma mark_unused_st_heur_ana:
-  assumes
-    \<open>(S, T) \<in> twl_st_heur_restart_ana r\<close> and
-    \<open>C \<in># dom_m (get_clauses_wl T)\<close>
-  shows \<open>(mark_unused_st_heur C S, T) \<in> twl_st_heur_restart_ana r\<close>
-  using assms
-  apply (cases S; cases T)
-   apply (simp add: twl_st_heur_restart_ana_def mark_unused_st_heur_def)
-  apply (auto simp: twl_st_heur_restart_def mark_garbage_heur_def mark_garbage_wl_def
-         learned_clss_l_l_fmdrop size_remove1_mset_If
-     simp: all_init_atms_def all_init_lits_def
-     simp del: all_init_atms_def[symmetric]
-     intro!: valid_arena_mark_unused valid_arena_arena_decr_act
-     dest!: in_set_butlastD in_vdom_m_fmdropD
-     elim!: in_set_upd_cases)
-  done
-
 lemma twl_st_heur_restart_valid_arena[twl_st_heur_restart]:
   assumes
     \<open>(S, T) \<in> twl_st_heur_restart\<close>
@@ -1229,8 +1212,8 @@ where
         ASSERT(clause_not_marked_to_delete_heur_pre (T, C));
         if \<not>clause_not_marked_to_delete_heur T C then RETURN (i, delete_index_vdom_heur i T)
         else do {
-          ASSERT(arena_act_pre (get_clauses_wl_heur T) C);
-          RETURN (i+1, (mark_unused_st_heur C T))
+          T \<leftarrow> mop_mark_unused_st_heur C T;
+          RETURN (i+1, T)
         }
       })
       (i, S);
@@ -1268,8 +1251,58 @@ lemma incr_wasted_st_twl_st[simp]:
   \<open>get_conflict_count_heur (incr_wasted_st C T) = get_conflict_count_heur T\<close>
   by (cases T; auto simp: incr_wasted_st_def)+
 
+lemma valid_arena_arena_act_pre: \<open>valid_arena arena N vdom \<Longrightarrow> i \<in># dom_m N \<Longrightarrow> arena_act_pre arena i\<close>
+  unfolding arena_act_pre_def arena_is_valid_clause_idx_def
+  by auto
+lemma valid_arena_marked_as_small_pre: \<open>valid_arena arena N vdom \<Longrightarrow> i \<in># dom_m N \<Longrightarrow> marked_as_small_pre arena i\<close>
+  unfolding marked_as_small_pre_def arena_is_valid_clause_idx_def
+  by auto
+
+lemma mop_mark_unused_st_heur_restart_ana:
+   \<open>(S, T) \<in> twl_st_heur_restart_ana r \<Longrightarrow> i \<in># dom_m (get_clauses_wl T) \<Longrightarrow>
+    mop_mark_unused_st_heur i S \<le> SPEC (\<lambda>S'. (S', T) \<in> twl_st_heur_restart_ana r \<and>
+    length (get_clauses_wl_heur S') = length (get_clauses_wl_heur S) \<and>
+    length (get_avdom S') = length (get_avdom S))\<close>
+  supply [intro!] = valid_arena_mark_unused valid_arena_mark_unsmall
+  unfolding mop_mark_unused_st_heur_def twl_st_heur_restart_ana_def
+    mop_decrease_used_def mop_marked_as_small_def mop_arena_decr_act_def
+    mop_mark_unsmall_def mop_mark_unused_def
+  apply refine_vcg
+  subgoal
+    by (clarsimp simp add: twl_st_heur_restart_def valid_arena_arena_act_pre
+      valid_arena_marked_as_small_pre valid_arena_arena_decr_act)
+  subgoal
+    by (clarsimp simp add: twl_st_heur_restart_def valid_arena_arena_act_pre
+      valid_arena_marked_as_small_pre valid_arena_arena_decr_act)
+  subgoal
+    by (auto simp add: twl_st_heur_restart_def intro!: valid_arena_arena_act_pre
+      valid_arena_marked_as_small_pre valid_arena_arena_decr_act)
+  subgoal
+    by (clarsimp simp add: twl_st_heur_restart_def valid_arena_arena_act_pre
+      valid_arena_marked_as_small_pre valid_arena_arena_decr_act)
+  subgoal
+    by (clarsimp simp add: twl_st_heur_restart_def valid_arena_arena_act_pre
+      valid_arena_marked_as_small_pre valid_arena_arena_decr_act)
+  subgoal
+    by (clarsimp simp add: twl_st_heur_restart_def valid_arena_arena_act_pre
+      valid_arena_marked_as_small_pre valid_arena_arena_decr_act)
+  subgoal
+    by (auto simp add: twl_st_heur_restart_def intro!: valid_arena_arena_act_pre
+      valid_arena_marked_as_small_pre valid_arena_arena_decr_act)
+  subgoal
+    by (auto simp add: twl_st_heur_restart_def intro!: valid_arena_arena_act_pre
+      valid_arena_marked_as_small_pre valid_arena_arena_decr_act)
+  subgoal
+    by (clarsimp simp add: twl_st_heur_restart_def valid_arena_arena_act_pre
+      valid_arena_marked_as_small_pre valid_arena_arena_decr_act)
+  subgoal
+    by (clarsimp simp add: twl_st_heur_restart_def valid_arena_arena_act_pre
+      valid_arena_marked_as_small_pre valid_arena_arena_decr_act)
+  done
+
+
 lemma mark_clauses_as_unused_wl_D_heur:
-  assumes \<open>(S, T) \<in> twl_st_heur_restart_ana r\<close>
+ assumes \<open>(S, T) \<in> twl_st_heur_restart_ana r\<close>
   shows \<open>mark_clauses_as_unused_wl_D_heur i S \<le> \<Down> (twl_st_heur_restart_ana r) (SPEC ( (=) T))\<close>
 proof -
   have 1: \<open> \<Down> (twl_st_heur_restart_ana r) (SPEC ((=) T)) = do {
@@ -1281,7 +1314,7 @@ proof -
     unfolding mark_clauses_as_unused_wl_D_heur_def 1 mop_arena_length_st_def
     apply (rule Refine_Basic.bind_mono)
     subgoal
-      apply (refine_vcg
+      apply (refine_vcg mop_mark_unused_st_heur_restart_ana[THEN order_trans, of _ T r]
          WHILET_rule[where R = \<open>measure (\<lambda>(i, T). length (get_avdom T) - i)\<close> and
 	   I = \<open>\<lambda>(_, S'). (S', T) \<in> twl_st_heur_restart_ana r \<and> length (get_avdom S') \<le> length(get_avdom S)\<close>])
       subgoal by auto
@@ -1299,9 +1332,12 @@ proof -
         by (auto intro: delete_index_vdom_heur_twl_st_heur_restart_ana)
       subgoal by auto
       subgoal by auto
+      subgoal by auto
+      subgoal y auto
       subgoal
         unfolding arena_is_valid_clause_idx_def
 	  arena_is_valid_clause_vdom_def arena_act_pre_def
+          oops
        by (fastforce simp: twl_st_heur_restart_def twl_st_heur_restart
             dest!: twl_st_heur_restart_anaD)
       subgoal for s a b

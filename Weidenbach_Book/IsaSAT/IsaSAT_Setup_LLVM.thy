@@ -486,13 +486,11 @@ sepref_def marked_as_used_st_fast_code
   by sepref
 
 
-sepref_register mark_unused_st_heur
+sepref_register mop_mark_unused_st_heur
 sepref_def mark_unused_st_fast_code
-  is \<open>uncurry (RETURN oo mark_unused_st_heur)\<close>
-  :: \<open>[\<lambda>(C, S). arena_act_pre (get_clauses_wl_heur S) C]\<^sub>a
-        sint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
-  unfolding mark_unused_st_heur_def isasat_bounded_assn_def
-    arena_act_pre_mark_used[intro!]
+  is \<open>uncurry (mop_mark_unused_st_heur)\<close>
+  :: \<open>sint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
+  unfolding mop_mark_unused_st_heur_def isasat_bounded_assn_def fold_tuple_optimizations
   supply [[goals_limit = 1]]
   by sepref
 
@@ -648,7 +646,7 @@ sepref_def mop_mark_garbage_heur_impl
 sepref_def mop_mark_unused_st_heur_impl
   is \<open>uncurry mop_mark_unused_st_heur\<close>
   :: \<open> sint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
-  unfolding mop_mark_unused_st_heur_def
+  unfolding mop_mark_unused_st_heur_def fold_tuple_optimizations isasat_bounded_assn_def
   by sepref
 
 

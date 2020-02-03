@@ -718,6 +718,7 @@ definition propagate_bt_wl_D_heur
       (N, i) \<leftarrow> fm_add_new b C N0;
       ASSERT(update_lbd_pre ((i, glue), N));
       let N = update_lbd i glue N;
+      N \<leftarrow> (if glue < 6 then mop_mark_small i N else RETURN N);
       ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, y, cach, lbd, outl, stats, heur,
          vdom, avdom, lcount, opts) \<longrightarrow> length_ll W0 (nat_of_lit (-L)) < sint64_max);
       let W = W0[nat_of_lit (- L) := W0 ! nat_of_lit (- L) @ [(i, L', b')]];
@@ -892,6 +893,10 @@ lemma length_list_ge2: \<open>length S \<ge> 2 \<longleftrightarrow> (\<exists>a
   apply (case_tac S')
   by simp_all
 
+lemma arena_act_pre_update_lbdI: \<open>arena_act_pre x1a x2 \<Longrightarrow> arena_act_pre (update_lbd x2 glue x1a) x2\<close>
+  by (auto simp: arena_act_pre_def arena_is_valid_clause_idx_def intro!: valid_arena_update_lbd)
+lemma valid_arena_arena_act_pre: \<open>valid_arena arena N vdom \<Longrightarrow> C \<in># dom_m N \<Longrightarrow> arena_act_pre arena C\<close>
+  by (auto simp: arena_act_pre_def arena_is_valid_clause_idx_def)
 
 lemma backtrack_wl_D_nlit_backtrack_wl_D:
   \<open>(backtrack_wl_D_nlit_heur, backtrack_wl) \<in>
@@ -1795,6 +1800,7 @@ proof -
           (N, i) \<leftarrow> fm_add_new b C N0;
           ASSERT(update_lbd_pre ((i, glue), N));
           let N = update_lbd i glue N;
+          N \<leftarrow> (if glue < 6 then mop_mark_small i N else RETURN N);
           ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, y, cach, lbd, outl, stats, heur,
             vdom, avdom, lcount, opts) \<longrightarrow> length_ll W0 (nat_of_lit (-L)) < sint64_max);
           let W = W0[nat_of_lit (- L) := W0 ! nat_of_lit (- L) @ [(i, L', length C = 2)]];
@@ -1844,6 +1850,7 @@ proof -
                       i \<notin># dom_m N \<and>
                       (\<forall>L\<in>#all_lits_of_mm (mset `# ran_mf N + (NE + UE) + (NS + US)).
                           i \<notin> fst ` set (W L)));
+            _ \<leftarrow> RETURN (); \<^cancel>\<open>lbd empty\<close>
             _ \<leftarrow> RETURN (); \<^cancel>\<open>lbd empty\<close>
             _ \<leftarrow> RETURN (); \<^cancel>\<open>lbd empty\<close>
 	     M2 \<leftarrow> cons_trail_propagate_l (- LK') i M1;
@@ -2080,6 +2087,30 @@ proof -
         literals_are_in_\<L>\<^sub>i\<^sub>n_in_mset_\<L>\<^sub>a\<^sub>l\<^sub>l[of \<open>all_atms_st S'\<close> \<open>mset C\<close> \<open>C!1\<close>]
       unfolding mop_save_phase_heur_def
       by (auto intro!: ASSERT_leI save_phase_heur_preI simp: U' S')
+    have [refine0]: \<open>(x, x')
+       \<in> {((arena', i), N', i').
+          valid_arena arena' N' (insert i (set vdom)) \<and>
+          i = i' \<and>
+          i \<notin># dom_m N \<and>
+          i \<notin> set vdom \<and>
+          length arena' = length arena + header_size D'' + length D''} \<Longrightarrow>
+       x' \<in> {(N', i).
+             N' = fmupd i (D'', False) N \<and>
+             0 < i \<and>
+             i \<notin># dom_m N \<and>
+             (\<forall>L\<in>#all_lits_of_mm (mset `# ran_mf N + (NE + UE) + (NS + US)).
+                 i \<notin> fst ` set (W L))} \<Longrightarrow>
+       x' = (x1, x2) \<Longrightarrow>
+       x = (x1a, x2a) \<Longrightarrow>
+       update_lbd_pre ((x2a, glue), x1a) \<Longrightarrow>
+       (if glue < 6 then mop_mark_small x2a (update_lbd x2a glue x1a)
+        else RETURN (update_lbd x2a glue x1a))
+        \<le> SPEC (\<lambda>c. (c, ()) \<in> {(arena', _). valid_arena arena' (fst x') (insert x2 (set vdom)) \<and>
+            length arena' = length x1a})\<close>
+      for x x' x1 x2 x1a x2a glue D''
+      by (auto split: if_splits simp: mop_mark_small_def
+        intro!: valid_arena_update_lbd ASSERT_leI valid_arena_mark_small arena_act_pre_update_lbdI
+        intro: valid_arena_arena_act_pre)
 
     have arena_le: \<open>length arena + header_size C + length C \<le> 6 + r + uint32_max div 2\<close>
       using r r' le_C_ge by (auto simp: uint32_max_def header_size_def S' U)
@@ -2115,6 +2146,7 @@ proof -
             sint64_max_def uint32_max_def)
       subgoal for x uu x1 x2 vm uua_ glue uub D'' xa x'
         by (auto simp: update_lbd_pre_def arena_is_valid_clause_idx_def)
+      apply assumption+
       subgoal using length_watched_le[of S' S \<open>-lit_of_hd_trail M\<close>] corr SS' uM_\<L>\<^sub>a\<^sub>l\<^sub>l W'_eq S_arena
          by (auto simp: isasat_fast_def length_ll_def S' U lit_of_hd_trail_def simp flip: all_atms_def)
       subgoal using length_watched_le[of S' S \<open>C ! Suc 0\<close>] corr SS' W'_eq S_arena C_1_neq_hd C_Suc1_in
@@ -2547,6 +2579,7 @@ lemma propagate_bt_wl_D_heur_alt_def:
       (N, i) \<leftarrow> fm_add_new_fast b C N0;
       ASSERT(update_lbd_pre ((i, glue), N));
       let N = update_lbd i glue N;
+      N \<leftarrow> (if glue < 6 then mop_mark_small i N else RETURN N);
       ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, y, cach, lbd, outl, stats, heur,
          vdom, avdom, lcount, opts) \<longrightarrow> length_ll W0 (nat_of_lit (-L)) < sint64_max);
       let W = W0[nat_of_lit (- L) := W0 ! nat_of_lit (- L) @ [(i, L', b')]];
