@@ -298,8 +298,7 @@ proof -
       \<open>L \<notin># I\<close>
       by auto
     moreover have \<open>atms_of x \<subseteq> atms_of I\<close>
-      using simple_clssE[OF x] tot
-      atm_iff_pos_or_neg_lit[of a I] atm_iff_pos_or_neg_lit[of a x]
+      using simple_clssE[OF x] tot atm_iff_pos_or_neg_lit[of a I] atm_iff_pos_or_neg_lit[of a x]
       by (auto dest!: multi_member_split)
     ultimately have \<open>-L \<in># I\<close>
       using tot simple_clssE[OF x] atm_of_notin_atms_of_iff
@@ -322,39 +321,35 @@ lemma entails_conflicting_clauses_if_le:
     \<open>is_improving_int M M'' N w\<close>
   shows
     \<open>set_mset I \<Turnstile>m conflicting_clauses N (Some (lit_of `# mset M''))\<close>
-proof -
-  show ?thesis
-    apply (rule entails_too_heavy_clauses_too_heavy_clauses)
-    subgoal using cons by auto
-    subgoal
-      using assms unfolding is_improving_int_def
-      by (auto simp: total_over_m_alt_def M'_def atms_of_def
+  apply (rule entails_too_heavy_clauses_too_heavy_clauses)
+  subgoal using cons by auto
+  subgoal
+    using assms unfolding is_improving_int_def
+    by (auto simp: total_over_m_alt_def M'_def atms_of_def
           atms_too_heavy_clauses_Some eq_commute[of _ \<open>atms_of_mm N\<close>]
           lit_in_set_iff_atm
-             dest: multi_member_split
-             dest!: simple_clssE)
-    subgoal
-      using entails_too_heavy_clauses_if_le[OF assms(2-5)]
-      by (auto simp: M'_def)
-    subgoal
-      using assms unfolding is_improving_int_def
-      by (auto simp: M'_def lits_of_def image_image
-              dest!: simple_clssE)
-    subgoal
-      using assms unfolding is_improving_int_def
-      by (auto simp: M'_def lits_of_def image_image
-              dest!: simple_clssE)
-    subgoal
-      using assms unfolding is_improving_int_def
-      by (auto simp: M'_def lits_of_def image_image
-              dest!: simple_clssE)
-    done
-qed
+        dest: multi_member_split dest!: simple_clssE)
+  subgoal
+    using entails_too_heavy_clauses_if_le[OF assms(2-5)]
+    by (auto simp: M'_def)
+  subgoal
+    using assms unfolding is_improving_int_def
+    by (auto simp: M'_def lits_of_def image_image
+            dest!: simple_clssE)
+  subgoal
+    using assms unfolding is_improving_int_def
+    by (auto simp: M'_def lits_of_def image_image
+            dest!: simple_clssE)
+  subgoal
+    using assms unfolding is_improving_int_def
+    by (auto simp: M'_def lits_of_def image_image
+            dest!: simple_clssE)
+  done
 
 end
 
 
-text \<open>This is one of the version of the weight functions used by Christoph Weidenbach.\<close>
+text \<open>This one is the version of the weight functions used by Christoph Weidenbach.\<close>
 locale ocdcl_weight_WB =
   fixes
     \<nu> :: \<open>'v literal \<Rightarrow> nat\<close>

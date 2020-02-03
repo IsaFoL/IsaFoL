@@ -127,12 +127,6 @@ We later instantiate it with the optimisation calculus from Weidenbach's book.
 
 subsubsection \<open>Helper libraries\<close>
 
-lemma (in -) Neg_atm_of_itself_uminus_iff: \<open>Neg (atm_of xa) \<noteq> - xa \<longleftrightarrow> is_neg xa\<close>
-  by (cases xa) auto
-
-lemma (in -) Pos_atm_of_itself_uminus_iff: \<open>Pos (atm_of xa) \<noteq> - xa \<longleftrightarrow> is_pos xa\<close>
-  by (cases xa)  auto
-
 definition model_on :: \<open>'v partial_interp \<Rightarrow> 'v clauses \<Rightarrow> bool\<close> where
 \<open>model_on I N \<longleftrightarrow> consistent_interp I \<and> atm_of ` I \<subseteq> atms_of_mm N\<close>
 
@@ -250,6 +244,7 @@ locale conflict_driven_clause_learning_with_adding_init_clause_cost\<^sub>W_ops 
         negate_ann_lits M' \<in># conflicting_clss (update_weight_information M' S)\<close>
 begin
 
+paragraph \<open>Conversion to CDCL\<close>
 sublocale conflict_driven_clause_learning\<^sub>W where
   state_eq = state_eq and
   state = state and
@@ -266,6 +261,7 @@ sublocale conflict_driven_clause_learning\<^sub>W where
   apply unfold_locales
   unfolding additional_info'_def additional_info_def by (auto simp: state_prop')
 
+paragraph \<open>Overall simplification on states\<close>
 declare reduce_trail_to_skip_beginning[simp]
 
 lemma state_eq_weight[state_simp, simp]: \<open>S \<sim> T \<Longrightarrow> weight S = weight T\<close>
@@ -339,18 +335,13 @@ lemma
   using additional_info_reduce_trail_to[of M S] unfolding additional_info_weight_additional_info'
   by auto
 
-lemma conflicting_clss_reduce_trail_to[simp]: \<open>conflicting_clss (reduce_trail_to M S) = conflicting_clss S\<close>
+lemma conflicting_clss_reduce_trail_to[simp]:
+  \<open>conflicting_clss (reduce_trail_to M S) = conflicting_clss S\<close>
   unfolding conflicting_clss_def by auto
 
 lemma trail_trail [simp]:
   \<open>CDCL_W_Abstract_State.trail (abs_state S) = trail S\<close>
   by (auto simp: abs_state_def cdcl\<^sub>W_restart_mset_state)
-
-lemma [simp]:
-  \<open>CDCL_W_Abstract_State.trail (cdcl\<^sub>W_restart_mset.reduce_trail_to M (abs_state S)) =
-     trail (reduce_trail_to M S)\<close>
-  by (auto simp: trail_reduce_trail_to_drop
-    cdcl\<^sub>W_restart_mset.trail_reduce_trail_to_drop)
 
 lemma [simp]:
   \<open>CDCL_W_Abstract_State.trail (cdcl\<^sub>W_restart_mset.reduce_trail_to M (abs_state S)) =
@@ -384,6 +375,9 @@ lemma
     \<open>CDCL_W_Abstract_State.init_clss (abs_state (cons_trail K S)) =
       CDCL_W_Abstract_State.init_clss (abs_state S)\<close>
   by (auto simp: abs_state_def cdcl\<^sub>W_restart_mset_state)
+
+
+paragraph \<open>CDCL with branch-and-bound\<close>
 
 inductive conflict_opt :: "'st \<Rightarrow> 'st \<Rightarrow> bool" for S T :: 'st where
 conflict_opt_rule:
