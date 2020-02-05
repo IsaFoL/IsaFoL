@@ -7,6 +7,28 @@ subsubsection \<open>Alternative versions\<close>
 text \<open>We instantiate our more general rules with exactly the rule from Christoph's OCDCL with either
 versions of improve.\<close>
 
+
+subsubsection \<open>Weights\<close>
+
+text \<open>This one is the version of the weight functions used by Christoph Weidenbach.
+  However, we have decided to not instantiate tho calculus with this weight function,
+  because it only a slight restriction.
+\<close>
+locale ocdcl_weight_WB =
+  fixes
+    \<nu> :: \<open>'v literal \<Rightarrow> nat\<close>
+begin
+
+definition \<rho> :: \<open>'v clause \<Rightarrow> nat\<close> where
+  \<open>\<rho> M = (\<Sum>A \<in># M. \<nu> A)\<close>
+
+sublocale ocdcl_weight \<rho>
+  by (unfold_locales)
+    (auto simp: \<rho>_def sum_image_mset_mono)
+
+end
+
+
 subsubsection \<open>Calculus with simple Improve rule\<close>
 
 context conflict_driven_clause_learning\<^sub>W_optimal_weight
