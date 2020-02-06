@@ -327,7 +327,7 @@ locale dpll_optimal_encoding_opt =
     clauses :: \<open>'st \<Rightarrow> 'v clauses\<close> and
     tl_trail :: \<open>'st \<Rightarrow> 'st\<close> and
     cons_trail :: \<open>'v  dpll\<^sub>W_ann_lit \<Rightarrow> 'st \<Rightarrow> 'st\<close> and
-    state_eq  :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<close> (infix "\<sim>" 50) and
+    state_eq  :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<close> (infix \<open>\<sim>\<close> 50) and
     state :: \<open>'st \<Rightarrow> 'v  dpll\<^sub>W_ann_lits \<times> 'v clauses \<times> 'v clause option \<times> 'b\<close> and
     update_additional_info :: \<open>'v clause option \<times> 'b \<Rightarrow> 'st \<Rightarrow> 'st\<close> and
     \<Sigma> \<Delta>\<Sigma> :: \<open>'v set\<close> and
@@ -350,7 +350,7 @@ locale dpll_optimal_encoding =
     clauses :: \<open>'st \<Rightarrow> 'v clauses\<close> and
     tl_trail :: \<open>'st \<Rightarrow> 'st\<close> and
     cons_trail :: \<open>'v  dpll\<^sub>W_ann_lit \<Rightarrow> 'st \<Rightarrow> 'st\<close> and
-    state_eq  :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<close> (infix "\<sim>" 50) and
+    state_eq  :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<close> (infix \<open>\<sim>\<close> 50) and
     state :: \<open>'st \<Rightarrow> 'v  dpll\<^sub>W_ann_lits \<times> 'v clauses \<times> 'v clause option \<times> 'b\<close> and
     update_additional_info :: \<open>'v clause option \<times> 'b \<Rightarrow> 'st \<Rightarrow> 'st\<close> and
     \<Sigma> \<Delta>\<Sigma> :: \<open>'v set\<close> and
@@ -384,10 +384,10 @@ inductive dpll_conflict :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<clos
 if \<open>C \<in># clauses S\<close> and
   \<open>trail S \<Turnstile>as CNot C\<close>
 
-inductive odpll\<^sub>W_core_stgy :: "'st \<Rightarrow> 'st \<Rightarrow> bool" for S T where
-propagate: "dpll_propagate S T \<Longrightarrow> odpll\<^sub>W_core_stgy S T" |
-decided: "odecide S T \<Longrightarrow> no_step dpll_propagate S  \<Longrightarrow> odpll\<^sub>W_core_stgy S T " |
-backtrack: "dpll_backtrack S T \<Longrightarrow> odpll\<^sub>W_core_stgy S T" |
+inductive odpll\<^sub>W_core_stgy :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<close> for S T where
+propagate: \<open>dpll_propagate S T \<Longrightarrow> odpll\<^sub>W_core_stgy S T\<close> |
+decided: \<open>odecide S T \<Longrightarrow> no_step dpll_propagate S  \<Longrightarrow> odpll\<^sub>W_core_stgy S T \<close> |
+backtrack: \<open>dpll_backtrack S T \<Longrightarrow> odpll\<^sub>W_core_stgy S T\<close> |
 backtrack_opt: \<open>bnb.backtrack_opt S T \<Longrightarrow> odpll\<^sub>W_core_stgy S T\<close>
 
 lemma odpll\<^sub>W_core_stgy_clauses:
@@ -577,10 +577,10 @@ abbreviation (input) cut_and_complete_trail :: \<open>'st \<Rightarrow> _\<close
 
 
 (*TODO prove that favouring conflict over propagate works [this is obvious, but still]...*)
-inductive odpll\<^sub>W_core_stgy_count :: "'st \<times> _ \<Rightarrow> 'st \<times> _ \<Rightarrow> bool" where
-propagate: "dpll_propagate S T \<Longrightarrow> odpll\<^sub>W_core_stgy_count (S, C) (T, C)" |
-decided: "odecide S T \<Longrightarrow> no_step dpll_propagate S  \<Longrightarrow> odpll\<^sub>W_core_stgy_count (S, C) (T, C) " |
-backtrack: "dpll_backtrack S T \<Longrightarrow> odpll\<^sub>W_core_stgy_count (S, C) (T, add_mset (cut_and_complete_trail S) C)" |
+inductive odpll\<^sub>W_core_stgy_count :: \<open>'st \<times> _ \<Rightarrow> 'st \<times> _ \<Rightarrow> bool\<close> where
+propagate: \<open>dpll_propagate S T \<Longrightarrow> odpll\<^sub>W_core_stgy_count (S, C) (T, C)\<close> |
+decided: \<open>odecide S T \<Longrightarrow> no_step dpll_propagate S  \<Longrightarrow> odpll\<^sub>W_core_stgy_count (S, C) (T, C) \<close> |
+backtrack: \<open>dpll_backtrack S T \<Longrightarrow> odpll\<^sub>W_core_stgy_count (S, C) (T, add_mset (cut_and_complete_trail S) C)\<close> |
 backtrack_opt: \<open>bnb.backtrack_opt S T \<Longrightarrow> odpll\<^sub>W_core_stgy_count (S, C) (T, add_mset (cut_and_complete_trail S) C)\<close>
 
 
@@ -1183,7 +1183,7 @@ proof -
       show False
         using eq 1(1) multi_member_split[of \<open>Decided L\<close> \<open>mset x\<close>]
         apply auto
-        by (smt "1"(2) lit_of.simps(2) msed_map_invR multiset_partition n_d
+        by (smt 1(2) lit_of.simps(2) msed_map_invR multiset_partition n_d
           no_dup_cannot_not_lit_and_uminus set_mset_mset union_mset_add_mset_left union_single_eq_member y)
     next
       case 2

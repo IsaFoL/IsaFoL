@@ -1194,22 +1194,22 @@ inductive conflict_opt0 :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<clos
 inductive_cases conflict_opt0E: \<open>conflict_opt0 S T\<close>
 
 inductive cdcl_dpll_bnb_r :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<close> for S :: 'st where
-  cdcl_conflict: "conflict S S' \<Longrightarrow> cdcl_dpll_bnb_r S S'" |
-  cdcl_propagate: "propagate S S' \<Longrightarrow> cdcl_dpll_bnb_r S S'" |
-  cdcl_improve: "enc_weight_opt.improvep S S' \<Longrightarrow> cdcl_dpll_bnb_r S S'" |
-  cdcl_conflict_opt0: "conflict_opt0 S S' \<Longrightarrow> cdcl_dpll_bnb_r S S'" |
+  cdcl_conflict: \<open>conflict S S' \<Longrightarrow> cdcl_dpll_bnb_r S S'\<close> |
+  cdcl_propagate: \<open>propagate S S' \<Longrightarrow> cdcl_dpll_bnb_r S S'\<close> |
+  cdcl_improve: \<open>enc_weight_opt.improvep S S' \<Longrightarrow> cdcl_dpll_bnb_r S S'\<close> |
+  cdcl_conflict_opt0: \<open>conflict_opt0 S S' \<Longrightarrow> cdcl_dpll_bnb_r S S'\<close> |
   cdcl_simple_backtrack_conflict_opt:
     \<open>simple_backtrack_conflict_opt S S' \<Longrightarrow> cdcl_dpll_bnb_r S S'\<close> |
-  cdcl_o': "ocdcl\<^sub>W_o_r S S' \<Longrightarrow> cdcl_dpll_bnb_r S S'"
+  cdcl_o': \<open>ocdcl\<^sub>W_o_r S S' \<Longrightarrow> cdcl_dpll_bnb_r S S'\<close>
 
 inductive cdcl_dpll_bnb_r_stgy :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<close> for S :: 'st where
-  cdcl_dpll_bnb_r_conflict: "conflict S S' \<Longrightarrow> cdcl_dpll_bnb_r_stgy S S'" |
-  cdcl_dpll_bnb_r_propagate: "propagate S S' \<Longrightarrow> cdcl_dpll_bnb_r_stgy S S'" |
-  cdcl_dpll_bnb_r_improve: "enc_weight_opt.improvep S S' \<Longrightarrow> cdcl_dpll_bnb_r_stgy S S'" |
-  cdcl_dpll_bnb_r_conflict_opt0: "conflict_opt0 S S' \<Longrightarrow> cdcl_dpll_bnb_r_stgy S S'" |
+  cdcl_dpll_bnb_r_conflict: \<open>conflict S S' \<Longrightarrow> cdcl_dpll_bnb_r_stgy S S'\<close> |
+  cdcl_dpll_bnb_r_propagate: \<open>propagate S S' \<Longrightarrow> cdcl_dpll_bnb_r_stgy S S'\<close> |
+  cdcl_dpll_bnb_r_improve: \<open>enc_weight_opt.improvep S S' \<Longrightarrow> cdcl_dpll_bnb_r_stgy S S'\<close> |
+  cdcl_dpll_bnb_r_conflict_opt0: \<open>conflict_opt0 S S' \<Longrightarrow> cdcl_dpll_bnb_r_stgy S S'\<close> |
   cdcl_dpll_bnb_r_simple_backtrack_conflict_opt:
     \<open>simple_backtrack_conflict_opt S S' \<Longrightarrow> cdcl_dpll_bnb_r_stgy S S'\<close> |
-  cdcl_dpll_bnb_r_other': "ocdcl\<^sub>W_o_r S S' \<Longrightarrow> no_confl_prop_impr S \<Longrightarrow> cdcl_dpll_bnb_r_stgy S S'"
+  cdcl_dpll_bnb_r_other': \<open>ocdcl\<^sub>W_o_r S S' \<Longrightarrow> no_confl_prop_impr S \<Longrightarrow> cdcl_dpll_bnb_r_stgy S S'\<close>
 
 lemma no_dup_dropI:
   \<open>no_dup M \<Longrightarrow> no_dup (drop n M)\<close>

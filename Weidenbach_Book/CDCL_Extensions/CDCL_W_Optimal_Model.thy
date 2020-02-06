@@ -54,7 +54,7 @@ instance optimal_model :: (linorder) linorder
 instantiation optimal_model :: (wellorder) wellorder
 begin
 
-lemma wf_less_optimal_model: "wf {(M :: 'a optimal_model, N). M < N}"
+lemma wf_less_optimal_model: \<open>wf {(M :: 'a optimal_model, N). M < N}\<close>
 proof -
   have 1: \<open>{(M :: 'a optimal_model, N). M < N} =
     map_prod Found Found ` {(M :: 'a, N). M < N} \<union>
@@ -336,20 +336,20 @@ locale conflict_driven_clause_learning\<^sub>W_optimal_weight =
     init_state +
   ocdcl_weight \<rho>
   for
-    state_eq :: "'st \<Rightarrow> 'st \<Rightarrow> bool" (infix "\<sim>" 50) and
+    state_eq :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<close> (infix \<open>\<sim>\<close> 50) and
     state :: "'st \<Rightarrow> ('v, 'v clause) ann_lits \<times> 'v clauses \<times> 'v clauses \<times> 'v clause option \<times>
       'v clause option \<times> 'b" and
-    trail :: "'st \<Rightarrow> ('v, 'v clause) ann_lits" and
-    init_clss :: "'st \<Rightarrow> 'v clauses" and
-    learned_clss :: "'st \<Rightarrow> 'v clauses" and
-    conflicting :: "'st \<Rightarrow> 'v clause option" and
+    trail :: \<open>'st \<Rightarrow> ('v, 'v clause) ann_lits\<close> and
+    init_clss :: \<open>'st \<Rightarrow> 'v clauses\<close> and
+    learned_clss :: \<open>'st \<Rightarrow> 'v clauses\<close> and
+    conflicting :: \<open>'st \<Rightarrow> 'v clause option\<close> and
 
-    cons_trail :: "('v, 'v clause) ann_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
-    tl_trail :: "'st \<Rightarrow> 'st" and
-    add_learned_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
-    remove_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
-    update_conflicting :: "'v clause option \<Rightarrow> 'st \<Rightarrow> 'st" and
-    init_state :: "'v clauses \<Rightarrow> 'st" and
+    cons_trail :: \<open>('v, 'v clause) ann_lit \<Rightarrow> 'st \<Rightarrow> 'st\<close> and
+    tl_trail :: \<open>'st \<Rightarrow> 'st\<close> and
+    add_learned_cls :: \<open>'v clause \<Rightarrow> 'st \<Rightarrow> 'st\<close> and
+    remove_cls :: \<open>'v clause \<Rightarrow> 'st \<Rightarrow> 'st\<close> and
+    update_conflicting :: \<open>'v clause option \<Rightarrow> 'st \<Rightarrow> 'st\<close> and
+    init_state :: \<open>'v clauses \<Rightarrow> 'st\<close> and
     \<rho> :: \<open>'v clause \<Rightarrow> 'a :: {linorder}\<close>  +
   fixes
     update_additional_info :: \<open>'v clause option \<times> 'b \<Rightarrow> 'st \<Rightarrow> 'st\<close>
@@ -399,23 +399,23 @@ definition weight :: \<open>'st \<Rightarrow> 'v clause option\<close> where
 
 lemma
   additional_info_update_additional_info[simp]:
-  "additional_info (update_additional_info w S) = w"
+  \<open>additional_info (update_additional_info w S) = w\<close>
   unfolding additional_info_def using update_additional_info[of S]
   by (cases \<open>state S\<close>; auto; fail)+
 
 lemma
   weight_cons_trail2[simp]: \<open>weight (cons_trail L S) = weight S\<close> and
-  clss_tl_trail2[simp]: "weight (tl_trail S) = weight S" and
+  clss_tl_trail2[simp]: \<open>weight (tl_trail S) = weight S\<close> and
   weight_add_learned_cls_unfolded:
-    "weight (add_learned_cls U S) = weight S"
+    \<open>weight (add_learned_cls U S) = weight S\<close>
     and
-  weight_update_conflicting2[simp]: "weight (update_conflicting D S) = weight S" and
+  weight_update_conflicting2[simp]: \<open>weight (update_conflicting D S) = weight S\<close> and
   weight_remove_cls2[simp]:
-    "weight (remove_cls C S) = weight S" and
+    \<open>weight (remove_cls C S) = weight S\<close> and
   weight_add_learned_cls2[simp]:
-    "weight (add_learned_cls C S) = weight S" and
+    \<open>weight (add_learned_cls C S) = weight S\<close> and
   weight_update_weight_information2[simp]:
-    "weight (update_weight_information M S) = Some (lit_of `# mset M)"
+    \<open>weight (update_weight_information M S) = Some (lit_of `# mset M)\<close>
   by (auto simp: update_weight_information_def weight_def)
 
 

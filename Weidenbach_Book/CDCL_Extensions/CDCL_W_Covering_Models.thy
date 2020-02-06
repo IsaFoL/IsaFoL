@@ -129,20 +129,20 @@ locale conflict_driven_clause_learning\<^sub>W_covering_models =
     init_state +
   covering_models \<rho>
   for
-    state_eq :: "'st \<Rightarrow> 'st \<Rightarrow> bool" (infix "\<sim>" 50) and
+    state_eq :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<close> (infix \<open>\<sim>\<close> 50) and
     state :: "'st \<Rightarrow> ('v, 'v clause) ann_lits \<times> 'v clauses \<times> 'v clauses \<times> 'v clause option \<times>
       'v cov \<times> 'b" and
-    trail :: "'st \<Rightarrow> ('v, 'v clause) ann_lits" and
-    init_clss :: "'st \<Rightarrow> 'v clauses" and
-    learned_clss :: "'st \<Rightarrow> 'v clauses" and
-    conflicting :: "'st \<Rightarrow> 'v clause option" and
+    trail :: \<open>'st \<Rightarrow> ('v, 'v clause) ann_lits\<close> and
+    init_clss :: \<open>'st \<Rightarrow> 'v clauses\<close> and
+    learned_clss :: \<open>'st \<Rightarrow> 'v clauses\<close> and
+    conflicting :: \<open>'st \<Rightarrow> 'v clause option\<close> and
 
-    cons_trail :: "('v, 'v clause) ann_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
-    tl_trail :: "'st \<Rightarrow> 'st" and
-    add_learned_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
-    remove_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
-    update_conflicting :: "'v clause option \<Rightarrow> 'st \<Rightarrow> 'st" and
-    init_state :: "'v clauses \<Rightarrow> 'st" and
+    cons_trail :: \<open>('v, 'v clause) ann_lit \<Rightarrow> 'st \<Rightarrow> 'st\<close> and
+    tl_trail :: \<open>'st \<Rightarrow> 'st\<close> and
+    add_learned_cls :: \<open>'v clause \<Rightarrow> 'st \<Rightarrow> 'st\<close> and
+    remove_cls :: \<open>'v clause \<Rightarrow> 'st \<Rightarrow> 'st\<close> and
+    update_conflicting :: \<open>'v clause option \<Rightarrow> 'st \<Rightarrow> 'st\<close> and
+    init_state :: \<open>'v clauses \<Rightarrow> 'st\<close> and
     \<rho> :: \<open>'v \<Rightarrow> bool\<close>  +
   fixes
     update_additional_info :: \<open>'v cov \<times> 'b \<Rightarrow> 'st \<Rightarrow> 'st\<close>
@@ -192,23 +192,23 @@ definition covering :: \<open>'st \<Rightarrow> 'v cov\<close> where
 
 lemma
   additional_info_update_additional_info[simp]:
-  "additional_info (update_additional_info w S) = w"
+  \<open>additional_info (update_additional_info w S) = w\<close>
   unfolding additional_info_def using update_additional_info[of S]
   by (cases \<open>state S\<close>; auto; fail)+
 
 lemma
   covering_cons_trail2[simp]: \<open>covering (cons_trail L S) = covering S\<close> and
-  clss_tl_trail2[simp]: "covering (tl_trail S) = covering S" and
+  clss_tl_trail2[simp]: \<open>covering (tl_trail S) = covering S\<close> and
   covering_add_learned_cls_unfolded:
-    "covering (add_learned_cls U S) = covering S"
+    \<open>covering (add_learned_cls U S) = covering S\<close>
     and
-  covering_update_conflicting2[simp]: "covering (update_conflicting D S) = covering S" and
+  covering_update_conflicting2[simp]: \<open>covering (update_conflicting D S) = covering S\<close> and
   covering_remove_cls2[simp]:
-    "covering (remove_cls C S) = covering S" and
+    \<open>covering (remove_cls C S) = covering S\<close> and
   covering_add_learned_cls2[simp]:
-    "covering (add_learned_cls C S) = covering S" and
+    \<open>covering (add_learned_cls C S) = covering S\<close> and
   covering_update_covering_information2[simp]:
-    "covering (update_weight_information M S) = add_mset (lit_of `# mset M) (covering S)"
+    \<open>covering (update_weight_information M S) = add_mset (lit_of `# mset M) (covering S)\<close>
   by (auto simp: update_weight_information_def covering_def)
 
 

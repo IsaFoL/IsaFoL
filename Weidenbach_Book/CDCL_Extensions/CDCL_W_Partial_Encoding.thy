@@ -54,10 +54,10 @@ locale optimal_encoding_opt_ops =
     new_vars :: \<open>'v \<Rightarrow> 'v \<times> 'v\<close>
 begin
 
-abbreviation replacement_pos :: \<open>'v \<Rightarrow> 'v\<close> ("(_)\<^sup>\<mapsto>\<^sup>1" 100) where
+abbreviation replacement_pos :: \<open>'v \<Rightarrow> 'v\<close> (\<open>(_)\<^sup>\<mapsto>\<^sup>1\<close> 100) where
   \<open>replacement_pos A \<equiv> fst (new_vars A)\<close>
 
-abbreviation replacement_neg :: \<open>'v \<Rightarrow> 'v\<close> ("(_)\<^sup>\<mapsto>\<^sup>0" 100) where
+abbreviation replacement_neg :: \<open>'v \<Rightarrow> 'v\<close> (\<open>(_)\<^sup>\<mapsto>\<^sup>0\<close> 100) where
   \<open>replacement_neg A \<equiv> snd (new_vars A)\<close>
 
 
@@ -231,21 +231,21 @@ locale optimal_encoding_opt = conflict_driven_clause_learning\<^sub>W_optimal_we
      update_additional_info +
   optimal_encoding_opt_ops \<Sigma> \<Delta>\<Sigma> new_vars
   for
-    state_eq :: "'st \<Rightarrow> 'st \<Rightarrow> bool" (infix "\<sim>" 50) and
+    state_eq :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<close> (infix \<open>\<sim>\<close> 50) and
     state :: "'st \<Rightarrow> ('v, 'v clause) ann_lits \<times> 'v clauses \<times> 'v clauses \<times> 'v clause option \<times>
         'v clause option \<times> 'b" and
-    trail :: "'st \<Rightarrow> ('v, 'v clause) ann_lits" and
-    init_clss :: "'st \<Rightarrow> 'v clauses" and
-    learned_clss :: "'st \<Rightarrow> 'v clauses" and
-    conflicting :: "'st \<Rightarrow> 'v clause option" and
+    trail :: \<open>'st \<Rightarrow> ('v, 'v clause) ann_lits\<close> and
+    init_clss :: \<open>'st \<Rightarrow> 'v clauses\<close> and
+    learned_clss :: \<open>'st \<Rightarrow> 'v clauses\<close> and
+    conflicting :: \<open>'st \<Rightarrow> 'v clause option\<close> and
 
-    cons_trail :: "('v, 'v clause) ann_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
-    tl_trail :: "'st \<Rightarrow> 'st" and
-    add_learned_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
-    remove_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
-    update_conflicting :: "'v clause option \<Rightarrow> 'st \<Rightarrow> 'st" and
+    cons_trail :: \<open>('v, 'v clause) ann_lit \<Rightarrow> 'st \<Rightarrow> 'st\<close> and
+    tl_trail :: \<open>'st \<Rightarrow> 'st\<close> and
+    add_learned_cls :: \<open>'v clause \<Rightarrow> 'st \<Rightarrow> 'st\<close> and
+    remove_cls :: \<open>'v clause \<Rightarrow> 'st \<Rightarrow> 'st\<close> and
+    update_conflicting :: \<open>'v clause option \<Rightarrow> 'st \<Rightarrow> 'st\<close> and
 
-    init_state :: "'v clauses \<Rightarrow> 'st" and
+    init_state :: \<open>'v clauses \<Rightarrow> 'st\<close> and
     update_additional_info :: \<open>'v clause option \<times> 'b \<Rightarrow> 'st \<Rightarrow> 'st\<close> and
     \<Sigma> \<Delta>\<Sigma> :: \<open>'v set\<close> and
     \<rho> :: \<open>'v clause \<Rightarrow> 'a :: {linorder}\<close> and
@@ -683,20 +683,20 @@ locale optimal_encoding = optimal_encoding_opt
     \<Sigma> \<Delta>\<Sigma>
     new_vars \<rho>
   for
-    state_eq :: "'st \<Rightarrow> 'st \<Rightarrow> bool" (infix "\<sim>" 50) and
+    state_eq :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<close> (infix \<open>\<sim>\<close> 50) and
     state :: "'st \<Rightarrow> ('v, 'v clause) ann_lits \<times> 'v clauses \<times> 'v clauses \<times> 'v clause option \<times>
         'v clause option \<times> 'b" and
-    trail :: "'st \<Rightarrow> ('v, 'v clause) ann_lits" and
-    init_clss :: "'st \<Rightarrow> 'v clauses" and
-    learned_clss :: "'st \<Rightarrow> 'v clauses" and
-    conflicting :: "'st \<Rightarrow> 'v clause option" and
-    cons_trail :: "('v, 'v clause) ann_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
-    tl_trail :: "'st \<Rightarrow> 'st" and
-    add_learned_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
-    remove_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" and
-    update_conflicting :: "'v clause option \<Rightarrow> 'st \<Rightarrow> 'st" and
+    trail :: \<open>'st \<Rightarrow> ('v, 'v clause) ann_lits\<close> and
+    init_clss :: \<open>'st \<Rightarrow> 'v clauses\<close> and
+    learned_clss :: \<open>'st \<Rightarrow> 'v clauses\<close> and
+    conflicting :: \<open>'st \<Rightarrow> 'v clause option\<close> and
+    cons_trail :: \<open>('v, 'v clause) ann_lit \<Rightarrow> 'st \<Rightarrow> 'st\<close> and
+    tl_trail :: \<open>'st \<Rightarrow> 'st\<close> and
+    add_learned_cls :: \<open>'v clause \<Rightarrow> 'st \<Rightarrow> 'st\<close> and
+    remove_cls :: \<open>'v clause \<Rightarrow> 'st \<Rightarrow> 'st\<close> and
+    update_conflicting :: \<open>'v clause option \<Rightarrow> 'st \<Rightarrow> 'st\<close> and
 
-    init_state :: "'v clauses \<Rightarrow> 'st" and
+    init_state :: \<open>'v clauses \<Rightarrow> 'st\<close> and
     \<rho> :: \<open>'v clause \<Rightarrow> 'a :: {linorder}\<close> and
     update_additional_info :: \<open>'v clause option \<times> 'b \<Rightarrow> 'st \<Rightarrow> 'st\<close> and
     \<Sigma> \<Delta>\<Sigma> :: \<open>'v set\<close> and
@@ -912,23 +912,23 @@ proof -
 qed
 
 
-inductive ocdcl\<^sub>W_o_r :: "'st \<Rightarrow> 'st \<Rightarrow> bool" for S :: 'st where
-  decide: "odecide S S' \<Longrightarrow> ocdcl\<^sub>W_o_r S S'" |
-  bj: "enc_weight_opt.cdcl_bnb_bj S S' \<Longrightarrow> ocdcl\<^sub>W_o_r S S'"
+inductive ocdcl\<^sub>W_o_r :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<close> for S :: 'st where
+  decide: \<open>odecide S S' \<Longrightarrow> ocdcl\<^sub>W_o_r S S'\<close> |
+  bj: \<open>enc_weight_opt.cdcl_bnb_bj S S' \<Longrightarrow> ocdcl\<^sub>W_o_r S S'\<close>
 
 inductive cdcl_bnb_r :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<close> for S :: 'st where
-  cdcl_conflict: "conflict S S' \<Longrightarrow> cdcl_bnb_r S S'" |
-  cdcl_propagate: "propagate S S' \<Longrightarrow> cdcl_bnb_r S S'" |
-  cdcl_improve: "enc_weight_opt.improvep S S' \<Longrightarrow> cdcl_bnb_r S S'" |
-  cdcl_conflict_opt: "enc_weight_opt.conflict_opt S S' \<Longrightarrow> cdcl_bnb_r S S'" |
-  cdcl_o': "ocdcl\<^sub>W_o_r S S' \<Longrightarrow> cdcl_bnb_r S S'"
+  cdcl_conflict: \<open>conflict S S' \<Longrightarrow> cdcl_bnb_r S S'\<close> |
+  cdcl_propagate: \<open>propagate S S' \<Longrightarrow> cdcl_bnb_r S S'\<close> |
+  cdcl_improve: \<open>enc_weight_opt.improvep S S' \<Longrightarrow> cdcl_bnb_r S S'\<close> |
+  cdcl_conflict_opt: \<open>enc_weight_opt.conflict_opt S S' \<Longrightarrow> cdcl_bnb_r S S'\<close> |
+  cdcl_o': \<open>ocdcl\<^sub>W_o_r S S' \<Longrightarrow> cdcl_bnb_r S S'\<close>
 
 inductive cdcl_bnb_r_stgy :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<close> for S :: 'st where
-  cdcl_bnb_r_conflict: "conflict S S' \<Longrightarrow> cdcl_bnb_r_stgy S S'" |
-  cdcl_bnb_r_propagate: "propagate S S' \<Longrightarrow> cdcl_bnb_r_stgy S S'" |
-  cdcl_bnb_r_improve: "enc_weight_opt.improvep S S' \<Longrightarrow> cdcl_bnb_r_stgy S S'" |
-  cdcl_bnb_r_conflict_opt: "enc_weight_opt.conflict_opt S S' \<Longrightarrow> cdcl_bnb_r_stgy S S'" |
-  cdcl_bnb_r_other': "ocdcl\<^sub>W_o_r S S' \<Longrightarrow> no_confl_prop_impr S \<Longrightarrow> cdcl_bnb_r_stgy S S'"
+  cdcl_bnb_r_conflict: \<open>conflict S S' \<Longrightarrow> cdcl_bnb_r_stgy S S'\<close> |
+  cdcl_bnb_r_propagate: \<open>propagate S S' \<Longrightarrow> cdcl_bnb_r_stgy S S'\<close> |
+  cdcl_bnb_r_improve: \<open>enc_weight_opt.improvep S S' \<Longrightarrow> cdcl_bnb_r_stgy S S'\<close> |
+  cdcl_bnb_r_conflict_opt: \<open>enc_weight_opt.conflict_opt S S' \<Longrightarrow> cdcl_bnb_r_stgy S S'\<close> |
+  cdcl_bnb_r_other': \<open>ocdcl\<^sub>W_o_r S S' \<Longrightarrow> no_confl_prop_impr S \<Longrightarrow> cdcl_bnb_r_stgy S S'\<close>
 
 lemma ocdcl\<^sub>W_o_r_cases[consumes 1, case_names odecode obacktrack skip resolve]:
   assumes

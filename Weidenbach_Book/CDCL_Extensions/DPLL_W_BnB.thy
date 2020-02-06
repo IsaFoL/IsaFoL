@@ -37,7 +37,7 @@ locale dpll_ops =
     clauses :: \<open>'st \<Rightarrow> 'v clauses\<close> and
     tl_trail :: \<open>'st \<Rightarrow> 'st\<close> and
     cons_trail :: \<open>'v  dpll\<^sub>W_ann_lit \<Rightarrow> 'st \<Rightarrow> 'st\<close> and
-    state_eq  :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<close> (infix "\<sim>" 50) and
+    state_eq  :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<close> (infix \<open>\<sim>\<close> 50) and
     state :: \<open>'st \<Rightarrow> 'v  dpll\<^sub>W_ann_lits \<times> 'v clauses \<times> 'b\<close>
 begin
 
@@ -57,12 +57,12 @@ locale bnb_ops =
     clauses :: \<open>'st \<Rightarrow> 'v clauses\<close> and
     tl_trail :: \<open>'st \<Rightarrow> 'st\<close> and
     cons_trail :: \<open>'v  dpll\<^sub>W_ann_lit \<Rightarrow> 'st \<Rightarrow> 'st\<close> and
-    state_eq  :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<close> (infix "\<sim>" 50) and
+    state_eq  :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<close> (infix \<open>\<sim>\<close> 50) and
     state :: \<open>'st \<Rightarrow> 'v  dpll\<^sub>W_ann_lits \<times> 'v clauses \<times> 'a \<times> 'b\<close> and
     weight :: \<open>'st \<Rightarrow> 'a\<close> and
-    update_weight_information :: "'v dpll\<^sub>W_ann_lits \<Rightarrow> 'st \<Rightarrow> 'st" and
-    is_improving_int :: "'v  dpll\<^sub>W_ann_lits \<Rightarrow> 'v  dpll\<^sub>W_ann_lits \<Rightarrow> 'v clauses \<Rightarrow> 'a \<Rightarrow> bool" and
-    conflicting_clauses :: "'v clauses \<Rightarrow> 'a \<Rightarrow> 'v clauses"
+    update_weight_information :: \<open>'v dpll\<^sub>W_ann_lits \<Rightarrow> 'st \<Rightarrow> 'st\<close> and
+    is_improving_int :: \<open>'v  dpll\<^sub>W_ann_lits \<Rightarrow> 'v  dpll\<^sub>W_ann_lits \<Rightarrow> 'v clauses \<Rightarrow> 'a \<Rightarrow> bool\<close> and
+    conflicting_clauses :: \<open>'v clauses \<Rightarrow> 'a \<Rightarrow> 'v clauses\<close>
 begin
 
 
@@ -102,7 +102,7 @@ locale dpll\<^sub>W_state =
     clauses :: \<open>'st \<Rightarrow> 'v clauses\<close> and
     tl_trail :: \<open>'st \<Rightarrow> 'st\<close> and
     cons_trail :: \<open>'v  dpll\<^sub>W_ann_lit \<Rightarrow> 'st \<Rightarrow> 'st\<close> and
-    state_eq  :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<close> (infix "\<sim>" 50) and
+    state_eq  :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<close> (infix \<open>\<sim>\<close> 50) and
     state :: \<open>'st \<Rightarrow> 'v  dpll\<^sub>W_ann_lits \<times> 'v clauses \<times> 'b\<close> +
   assumes
     state_eq_ref[simp, intro]: \<open>S \<sim> S\<close> and
@@ -115,7 +115,7 @@ locale dpll\<^sub>W_state =
         state (cons_trail L st) = (L # M, S')" and
 
     tl_trail:
-      "\<And>S'. state st = (M, S') \<Longrightarrow> state (tl_trail st) = (tl M, S')" and
+      \<open>\<And>S'. state st = (M, S') \<Longrightarrow> state (tl_trail st) = (tl M, S')\<close> and
     state:
        \<open>state S = (trail S, clauses S, additional_info S)\<close>
 begin
@@ -209,14 +209,14 @@ locale bnb =
     tl_trail cons_trail state_eq state weight update_weight_information is_improving_int conflicting_clauses
   for
     weight :: \<open>'st \<Rightarrow> 'a\<close> and
-    update_weight_information :: "'v dpll\<^sub>W_ann_lits \<Rightarrow> 'st \<Rightarrow> 'st" and
-    is_improving_int :: "'v  dpll\<^sub>W_ann_lits \<Rightarrow> 'v  dpll\<^sub>W_ann_lits \<Rightarrow> 'v clauses \<Rightarrow> 'a \<Rightarrow> bool" and
+    update_weight_information :: \<open>'v dpll\<^sub>W_ann_lits \<Rightarrow> 'st \<Rightarrow> 'st\<close> and
+    is_improving_int :: \<open>'v  dpll\<^sub>W_ann_lits \<Rightarrow> 'v  dpll\<^sub>W_ann_lits \<Rightarrow> 'v clauses \<Rightarrow> 'a \<Rightarrow> bool\<close> and
     trail :: \<open>'st \<Rightarrow> 'v  dpll\<^sub>W_ann_lits\<close> and
     clauses :: \<open>'st \<Rightarrow> 'v clauses\<close> and
     tl_trail :: \<open>'st \<Rightarrow> 'st\<close> and
     cons_trail :: \<open>'v  dpll\<^sub>W_ann_lit \<Rightarrow> 'st \<Rightarrow> 'st\<close> and
-    state_eq  :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<close> (infix "\<sim>" 50) and
-    conflicting_clauses :: "'v clauses \<Rightarrow> 'a \<Rightarrow> 'v clauses"and
+    state_eq  :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<close> (infix \<open>\<sim>\<close> 50) and
+    conflicting_clauses :: \<open>'v clauses \<Rightarrow> 'a \<Rightarrow> 'v clauses\<close>and
     state :: \<open>'st \<Rightarrow> 'v  dpll\<^sub>W_ann_lits \<times> 'v clauses \<times> 'a \<times> 'b\<close> +
   assumes
     state_eq_ref[simp, intro]: \<open>S \<sim> S\<close> and
@@ -229,7 +229,7 @@ locale bnb =
         state (cons_trail L st) = (L # M, S')" and
 
     tl_trail:
-      "\<And>S'. state st = (M, S') \<Longrightarrow> state (tl_trail st) = (tl M, S')" and
+      \<open>\<And>S'. state st = (M, S') \<Longrightarrow> state (tl_trail st) = (tl M, S')\<close> and
     update_weight_information:
        \<open>state S = (M, N, w, oth) \<Longrightarrow>
           \<exists>w'. state (update_weight_information M' S) = (M, N, w', oth)\<close> and
@@ -315,15 +315,15 @@ text \<open>
   However, this does not make a difference for the trail, as we backtrack
   to the last decision independantly of the conflict.
 \<close>
-inductive dpll\<^sub>W_core :: "'st \<Rightarrow> 'st \<Rightarrow> bool" for S T where
-propagate: "dpll.dpll_propagate S T \<Longrightarrow> dpll\<^sub>W_core S T" |
-decided: "dpll.dpll_decide S T \<Longrightarrow> dpll\<^sub>W_core S T " |
-backtrack: "dpll.dpll_backtrack S T \<Longrightarrow> dpll\<^sub>W_core S T" |
+inductive dpll\<^sub>W_core :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<close> for S T where
+propagate: \<open>dpll.dpll_propagate S T \<Longrightarrow> dpll\<^sub>W_core S T\<close> |
+decided: \<open>dpll.dpll_decide S T \<Longrightarrow> dpll\<^sub>W_core S T \<close> |
+backtrack: \<open>dpll.dpll_backtrack S T \<Longrightarrow> dpll\<^sub>W_core S T\<close> |
 backtrack_opt: \<open>backtrack_opt S T \<Longrightarrow> dpll\<^sub>W_core S T\<close>
 
 inductive_cases dpll\<^sub>W_coreE: \<open>dpll\<^sub>W_core S T\<close>
 
-inductive dpll\<^sub>W_bound :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
+inductive dpll\<^sub>W_bound :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<close> where
 update_info:
   \<open>is_improving M M' S \<Longrightarrow> T \<sim> (update_weight_information M' S)
    \<Longrightarrow> dpll\<^sub>W_bound S T\<close>
@@ -629,10 +629,10 @@ qed
 
 end
 
-inductive dpll\<^sub>W_core_stgy :: "'st \<Rightarrow> 'st \<Rightarrow> bool" for S T where
-propagate: "dpll.dpll_propagate S T \<Longrightarrow> dpll\<^sub>W_core_stgy S T" |
-decided: "dpll.dpll_decide S T \<Longrightarrow> no_step dpll.dpll_propagate S  \<Longrightarrow> dpll\<^sub>W_core_stgy S T " |
-backtrack: "dpll.dpll_backtrack S T \<Longrightarrow> dpll\<^sub>W_core_stgy S T" |
+inductive dpll\<^sub>W_core_stgy :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<close> for S T where
+propagate: \<open>dpll.dpll_propagate S T \<Longrightarrow> dpll\<^sub>W_core_stgy S T\<close> |
+decided: \<open>dpll.dpll_decide S T \<Longrightarrow> no_step dpll.dpll_propagate S  \<Longrightarrow> dpll\<^sub>W_core_stgy S T \<close> |
+backtrack: \<open>dpll.dpll_backtrack S T \<Longrightarrow> dpll\<^sub>W_core_stgy S T\<close> |
 backtrack_opt: \<open>backtrack_opt S T \<Longrightarrow> dpll\<^sub>W_core_stgy S T\<close>
 
 lemma dpll\<^sub>W_core_stgy_dpll\<^sub>W_core: \<open>dpll\<^sub>W_core_stgy S T \<Longrightarrow> dpll\<^sub>W_core S T\<close>

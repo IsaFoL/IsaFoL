@@ -12,7 +12,7 @@ locale dpll\<^sub>W_state_optimal_weight =
     clauses :: \<open>'st \<Rightarrow> 'v clauses\<close> and
     tl_trail :: \<open>'st \<Rightarrow> 'st\<close> and
     cons_trail :: \<open>'v  dpll\<^sub>W_ann_lit \<Rightarrow> 'st \<Rightarrow> 'st\<close> and
-    state_eq  :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<close> (infix "\<sim>" 50) and
+    state_eq  :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<close> (infix \<open>\<sim>\<close> 50) and
     state :: \<open>'st \<Rightarrow> 'v  dpll\<^sub>W_ann_lits \<times> 'v clauses \<times> 'v clause option \<times> 'b\<close> and
     \<rho> :: \<open>'v clause \<Rightarrow> 'a :: {linorder}\<close> +
   fixes

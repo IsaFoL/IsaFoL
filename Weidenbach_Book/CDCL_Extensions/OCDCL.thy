@@ -46,7 +46,7 @@ pruning_rule:
     \<open>conflicting S = None\<close>
     \<open>T \<sim> update_conflicting (Some (negate_ann_lits (trail S))) S\<close>
 
-inductive oconflict_opt :: "'st \<Rightarrow> 'st \<Rightarrow> bool" for S T :: 'st where
+inductive oconflict_opt :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<close> for S T :: 'st where
 oconflict_opt_rule:
   \<open>oconflict_opt S T\<close>
   if
@@ -54,7 +54,7 @@ oconflict_opt_rule:
     \<open>conflicting S = None\<close>
     \<open>T \<sim> update_conflicting (Some (negate_ann_lits (trail S))) S\<close>
 
-inductive improve :: "'st \<Rightarrow> 'st \<Rightarrow> bool" for S T :: 'st where
+inductive improve :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<close> for S T :: 'st where
 improve_rule:
   \<open>improve S T\<close>
   if
@@ -66,19 +66,19 @@ improve_rule:
 
 text \<open>This is the basic version of the calculus:\<close>
 inductive ocdcl\<^sub>w :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<close> for S :: 'st where (* \htmllink{ocdcl-def} *)
-ocdcl_conflict: "conflict S S' \<Longrightarrow> ocdcl\<^sub>w S S'" |
-ocdcl_propagate: "propagate S S' \<Longrightarrow> ocdcl\<^sub>w S S'" |
-ocdcl_improve: "improve S S' \<Longrightarrow> ocdcl\<^sub>w S S'" |
-ocdcl_conflict_opt: "oconflict_opt S S' \<Longrightarrow> ocdcl\<^sub>w S S'" |
-ocdcl_other': "ocdcl\<^sub>W_o S S' \<Longrightarrow> ocdcl\<^sub>w S S'" |
-ocdcl_pruning: "pruning S S' \<Longrightarrow> ocdcl\<^sub>w S S'"
+ocdcl_conflict: \<open>conflict S S' \<Longrightarrow> ocdcl\<^sub>w S S'\<close> |
+ocdcl_propagate: \<open>propagate S S' \<Longrightarrow> ocdcl\<^sub>w S S'\<close> |
+ocdcl_improve: \<open>improve S S' \<Longrightarrow> ocdcl\<^sub>w S S'\<close> |
+ocdcl_conflict_opt: \<open>oconflict_opt S S' \<Longrightarrow> ocdcl\<^sub>w S S'\<close> |
+ocdcl_other': \<open>ocdcl\<^sub>W_o S S' \<Longrightarrow> ocdcl\<^sub>w S S'\<close> |
+ocdcl_pruning: \<open>pruning S S' \<Longrightarrow> ocdcl\<^sub>w S S'\<close>
 
 inductive ocdcl\<^sub>w_stgy :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<close> for S :: 'st where (* \htmllink{ocdcl-strategy-def} *)
-ocdcl\<^sub>w_conflict: "conflict S S' \<Longrightarrow> ocdcl\<^sub>w_stgy S S'" |
-ocdcl\<^sub>w_propagate: "propagate S S' \<Longrightarrow> ocdcl\<^sub>w_stgy S S'" |
-ocdcl\<^sub>w_improve: "improve S S' \<Longrightarrow> ocdcl\<^sub>w_stgy S S'" |
-ocdcl\<^sub>w_conflict_opt: "conflict_opt S S' \<Longrightarrow> ocdcl\<^sub>w_stgy S S'" |
-ocdcl\<^sub>w_other': "ocdcl\<^sub>W_o S S' \<Longrightarrow> no_confl_prop_impr S \<Longrightarrow> ocdcl\<^sub>w_stgy S S'"
+ocdcl\<^sub>w_conflict: \<open>conflict S S' \<Longrightarrow> ocdcl\<^sub>w_stgy S S'\<close> |
+ocdcl\<^sub>w_propagate: \<open>propagate S S' \<Longrightarrow> ocdcl\<^sub>w_stgy S S'\<close> |
+ocdcl\<^sub>w_improve: \<open>improve S S' \<Longrightarrow> ocdcl\<^sub>w_stgy S S'\<close> |
+ocdcl\<^sub>w_conflict_opt: \<open>conflict_opt S S' \<Longrightarrow> ocdcl\<^sub>w_stgy S S'\<close> |
+ocdcl\<^sub>w_other': \<open>ocdcl\<^sub>W_o S S' \<Longrightarrow> no_confl_prop_impr S \<Longrightarrow> ocdcl\<^sub>w_stgy S S'\<close>
 
 lemma pruning_conflict_opt:
   assumes ocdcl_pruning: \<open>pruning S T\<close> and
@@ -438,20 +438,20 @@ subsubsection \<open>Calculus with generalised Improve rule\<close>
 
 text \<open>Now a version with the more general improve rule:\<close>
 inductive ocdcl\<^sub>w_p :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<close> for S :: 'st where
-ocdcl_conflict: "conflict S S' \<Longrightarrow> ocdcl\<^sub>w_p S S'" |
-ocdcl_propagate: "propagate S S' \<Longrightarrow> ocdcl\<^sub>w_p S S'" |
-ocdcl_improve: "improvep S S' \<Longrightarrow> ocdcl\<^sub>w_p S S'" |
-ocdcl_conflict_opt: "oconflict_opt S S' \<Longrightarrow> ocdcl\<^sub>w_p S S'" |
-ocdcl_other': "ocdcl\<^sub>W_o S S' \<Longrightarrow> ocdcl\<^sub>w_p S S'" |
-ocdcl_pruning: "pruning S S' \<Longrightarrow> ocdcl\<^sub>w_p S S'"
+ocdcl_conflict: \<open>conflict S S' \<Longrightarrow> ocdcl\<^sub>w_p S S'\<close> |
+ocdcl_propagate: \<open>propagate S S' \<Longrightarrow> ocdcl\<^sub>w_p S S'\<close> |
+ocdcl_improve: \<open>improvep S S' \<Longrightarrow> ocdcl\<^sub>w_p S S'\<close> |
+ocdcl_conflict_opt: \<open>oconflict_opt S S' \<Longrightarrow> ocdcl\<^sub>w_p S S'\<close> |
+ocdcl_other': \<open>ocdcl\<^sub>W_o S S' \<Longrightarrow> ocdcl\<^sub>w_p S S'\<close> |
+ocdcl_pruning: \<open>pruning S S' \<Longrightarrow> ocdcl\<^sub>w_p S S'\<close>
 
 inductive ocdcl\<^sub>w_p_stgy :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<close> for S :: 'st where
-ocdcl\<^sub>w_p_conflict: "conflict S S' \<Longrightarrow> ocdcl\<^sub>w_p_stgy S S'" |
-ocdcl\<^sub>w_p_propagate: "propagate S S' \<Longrightarrow> ocdcl\<^sub>w_p_stgy S S'" |
-ocdcl\<^sub>w_p_improve: "improvep S S' \<Longrightarrow> ocdcl\<^sub>w_p_stgy S S'" |
-ocdcl\<^sub>w_p_conflict_opt: "conflict_opt S S' \<Longrightarrow> ocdcl\<^sub>w_p_stgy S S'"|
-ocdcl\<^sub>w_p_pruning: "pruning S S' \<Longrightarrow> ocdcl\<^sub>w_p_stgy S S'" |
-ocdcl\<^sub>w_p_other': "ocdcl\<^sub>W_o S S' \<Longrightarrow> no_confl_prop_impr S \<Longrightarrow> ocdcl\<^sub>w_p_stgy S S'"
+ocdcl\<^sub>w_p_conflict: \<open>conflict S S' \<Longrightarrow> ocdcl\<^sub>w_p_stgy S S'\<close> |
+ocdcl\<^sub>w_p_propagate: \<open>propagate S S' \<Longrightarrow> ocdcl\<^sub>w_p_stgy S S'\<close> |
+ocdcl\<^sub>w_p_improve: \<open>improvep S S' \<Longrightarrow> ocdcl\<^sub>w_p_stgy S S'\<close> |
+ocdcl\<^sub>w_p_conflict_opt: \<open>conflict_opt S S' \<Longrightarrow> ocdcl\<^sub>w_p_stgy S S'\<close>|
+ocdcl\<^sub>w_p_pruning: \<open>pruning S S' \<Longrightarrow> ocdcl\<^sub>w_p_stgy S S'\<close> |
+ocdcl\<^sub>w_p_other': \<open>ocdcl\<^sub>W_o S S' \<Longrightarrow> no_confl_prop_impr S \<Longrightarrow> ocdcl\<^sub>w_p_stgy S S'\<close>
 
 lemma ocdcl\<^sub>w_p_cdcl_bnb:
   assumes \<open>ocdcl\<^sub>w_p S T\<close> and
