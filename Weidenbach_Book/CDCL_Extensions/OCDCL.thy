@@ -106,17 +106,9 @@ proof -
       dest: no_dup_map_lit_of)
   have \<open>negate_ann_lits (trail S) \<in># conflicting_clss S\<close>
     unfolding negate_ann_lits_pNeg_lit_of comp_def mset_map[symmetric]
-    apply (rule pruned_clause_in_conflicting_clss)
-    subgoal using le by fast
-    subgoal using incl by fast
-    subgoal using dist by fast
-    subgoal using cons by fast
-    done
+    by (rule pruned_clause_in_conflicting_clss[OF le incl dist cons]) fast+
   then show \<open>conflict_opt S T\<close>
-    apply (rule conflict_opt.intros)
-    subgoal using ocdcl_pruning by (auto simp: pruning.simps)
-    subgoal using ocdcl_pruning by (auto simp: pruning.simps)
-    done
+    by (rule conflict_opt.intros) (use ocdcl_pruning in \<open>auto simp: pruning.simps\<close>)
 qed
 
 lemma ocdcl_conflict_opt_conflict_opt:
@@ -626,25 +618,16 @@ lemma cdcl_bnb_stgy_no_smaller_propa:
     no_smaller_propa S \<Longrightarrow> no_smaller_propa T\<close>
   apply (induction rule: cdcl_bnb_stgy.induct)
   subgoal
-    by (auto simp: no_smaller_propa_def propagated_cons_eq_append_decide_cons
-        conflict.simps propagate.simps improvep.simps conflict_opt.simps
-        ocdcl\<^sub>W_o.simps no_smaller_propa_tl cdcl_bnb_bj.simps
-        elim!: rulesE)
+    by (auto simp: no_smaller_propa_def propagated_cons_eq_append_decide_cons conflict.simps)
   subgoal
     by (auto simp: no_smaller_propa_def propagated_cons_eq_append_decide_cons
-        conflict.simps propagate.simps improvep.simps conflict_opt.simps
-        ocdcl\<^sub>W_o.simps no_smaller_propa_tl cdcl_bnb_bj.simps
-        elim!: rulesE)
+        propagate.simps no_smaller_propa_tl elim!: rulesE)
   subgoal
     by (auto simp: no_smaller_propa_def propagated_cons_eq_append_decide_cons
-        conflict.simps propagate.simps improvep.simps conflict_opt.simps
-        ocdcl\<^sub>W_o.simps no_smaller_propa_tl cdcl_bnb_bj.simps
-        elim!: rulesE)
+          improvep.simps elim!: rulesE)
   subgoal
     by (auto simp: no_smaller_propa_def propagated_cons_eq_append_decide_cons
-        conflict.simps propagate.simps improvep.simps conflict_opt.simps
-        ocdcl\<^sub>W_o.simps no_smaller_propa_tl cdcl_bnb_bj.simps
-        elim!: rulesE)
+           conflict_opt.simps no_smaller_propa_tl elim!: rulesE)
   subgoal for T
     apply (cases rule: ocdcl\<^sub>W_o.cases, assumption; thin_tac \<open>ocdcl\<^sub>W_o S T\<close>)
     subgoal

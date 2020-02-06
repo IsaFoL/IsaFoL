@@ -299,8 +299,6 @@ proof -
   qed
 qed
 
-
-
 lemma entails_conflicting_clauses_if_le:
   fixes M''
   defines \<open>M' \<equiv> lit_of `# mset M''\<close>
@@ -312,29 +310,14 @@ lemma entails_conflicting_clauses_if_le:
     \<open>is_improving_int M M'' N w\<close>
   shows
     \<open>set_mset I \<Turnstile>m conflicting_clauses N (Some (lit_of `# mset M''))\<close>
-  apply (rule entails_too_heavy_clauses_too_heavy_clauses)
-  subgoal using cons by auto
+  apply (rule entails_too_heavy_clauses_too_heavy_clauses[OF cons])
   subgoal
     using assms unfolding is_improving_int_def
     by (auto simp: total_over_m_alt_def M'_def atms_of_def lit_in_set_iff_atm
           atms_too_heavy_clauses_Some eq_commute[of _ \<open>atms_of_mm N\<close>]
         dest: multi_member_split dest!: simple_clssE)
-  subgoal
-    using entails_too_heavy_clauses_if_le[OF assms(2-5)]
-    by (auto simp: M'_def)
-  subgoal
-    using assms unfolding is_improving_int_def
-    by (auto simp: M'_def lits_of_def image_image
-            dest!: simple_clssE)
-  subgoal
-    using assms unfolding is_improving_int_def
-    by (auto simp: M'_def lits_of_def image_image
-            dest!: simple_clssE)
-  subgoal
-    using assms unfolding is_improving_int_def
-    by (auto simp: M'_def lits_of_def image_image
-            dest!: simple_clssE)
-  done
+  by (use assms  entails_too_heavy_clauses_if_le[OF assms(2-5)] in
+    \<open>auto simp: M'_def lits_of_def image_image is_improving_int_def dest!: simple_clssE\<close>)
 
 end
 
