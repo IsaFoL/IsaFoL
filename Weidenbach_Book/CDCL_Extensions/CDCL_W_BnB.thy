@@ -146,12 +146,12 @@ locale conflict_driven_clause_learning_with_adding_init_clause_cost\<^sub>W_no_s
       \<comment> \<open>get state:\<close>
     init_state
   for
-    state_eq :: "'st \<Rightarrow> 'st \<Rightarrow> bool" (infix "\<sim>" 50) and
-    state :: "'st \<Rightarrow> ('v, 'v clause) ann_lits \<times> 'v clauses \<times> 'v clauses \<times> 'v clause option \<times>
-      'a \<times> 'b" and
-    trail :: "'st \<Rightarrow> ('v, 'v clause) ann_lits" and
-    init_clss :: "'st \<Rightarrow> 'v clauses" and
-    learned_clss :: "'st \<Rightarrow> 'v clauses" and
+    state_eq :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<close> (infix "\<sim>" 50) and
+    state :: \<open>'st \<Rightarrow> ('v, 'v clause) ann_lits \<times> 'v clauses \<times> 'v clauses \<times> 'v clause option \<times>
+      'a \<times> 'b\<close> and
+    trail :: \<open>'st \<Rightarrow> ('v, 'v clause) ann_lits\<close> and
+    init_clss :: \<open>'st \<Rightarrow> 'v clauses\<close> and
+    learned_clss :: \<open>'st \<Rightarrow> 'v clauses\<close> and
     conflicting :: "'st \<Rightarrow> 'v clause option" and
 
     cons_trail :: "('v, 'v clause) ann_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
@@ -204,12 +204,12 @@ locale conflict_driven_clause_learning_with_adding_init_clause_cost\<^sub>W_ops 
       \<comment> \<open>Adding a clause:\<close>
     update_weight_information is_improving_int conflicting_clauses weight
   for
-    state_eq :: "'st \<Rightarrow> 'st \<Rightarrow> bool" (infix "\<sim>" 50) and
+    state_eq :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<close> (infix "\<sim>" 50) and
     state :: "'st \<Rightarrow> ('v, 'v clause) ann_lits \<times> 'v clauses \<times> 'v clauses \<times>  'v clause option \<times>
       'a \<times> 'b" and
-    trail :: "'st \<Rightarrow> ('v, 'v clause) ann_lits" and
-    init_clss :: "'st \<Rightarrow> 'v clauses" and
-    learned_clss :: "'st \<Rightarrow> 'v clauses" and
+    trail :: \<open>'st \<Rightarrow> ('v, 'v clause) ann_lits\<close> and
+    init_clss :: \<open>'st \<Rightarrow> 'v clauses\<close> and
+    learned_clss :: \<open>'st \<Rightarrow> 'v clauses\<close> and
     conflicting :: "'st \<Rightarrow> 'v clause option" and
 
     cons_trail :: "('v, 'v clause) ann_lit \<Rightarrow> 'st \<Rightarrow> 'st" and
@@ -379,7 +379,7 @@ lemma
 
 paragraph \<open>CDCL with branch-and-bound\<close>
 
-inductive conflict_opt :: "'st \<Rightarrow> 'st \<Rightarrow> bool" for S T :: 'st where
+inductive conflict_opt :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<close> for S T :: 'st where
 conflict_opt_rule:
   \<open>conflict_opt S T\<close>
   if
@@ -389,7 +389,7 @@ conflict_opt_rule:
 
 inductive_cases conflict_optE: \<open>conflict_opt S T\<close>
 
-inductive improvep :: "'st \<Rightarrow> 'st \<Rightarrow> bool" for S :: 'st where
+inductive improvep :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<close> for S :: 'st where
 improve_rule:
   \<open>improvep S T\<close>
   if
@@ -478,7 +478,7 @@ fun no_confl_prop_impr where
     no_step propagate S \<and> no_step conflict S\<close>
 
 text \<open>We use a slighlty generalised form of backtrack to make conflict clause minimisation possible.\<close>
-inductive obacktrack :: "'st \<Rightarrow> 'st \<Rightarrow> bool" for S :: 'st where
+inductive obacktrack :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<close> for S :: 'st where
 obacktrack_rule: \<open>
   conflicting S = Some (add_mset L D) \<Longrightarrow>
   (Decided K # M1, M2) \<in> set (get_all_ann_decomposition (trail S)) \<Longrightarrow>
@@ -496,14 +496,14 @@ obacktrack_rule: \<open>
 
 inductive_cases obacktrackE: \<open>obacktrack S T\<close>
 
-inductive cdcl_bnb_bj :: "'st \<Rightarrow> 'st \<Rightarrow> bool" where
+inductive cdcl_bnb_bj :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<close> where
 skip: "skip S S' \<Longrightarrow> cdcl_bnb_bj S S'" |
 resolve: "resolve S S' \<Longrightarrow> cdcl_bnb_bj S S'" |
 backtrack: "obacktrack S S' \<Longrightarrow> cdcl_bnb_bj S S'"
 
 inductive_cases cdcl_bnb_bjE: "cdcl_bnb_bj S T"
 
-inductive ocdcl\<^sub>W_o :: "'st \<Rightarrow> 'st \<Rightarrow> bool" for S :: 'st where
+inductive ocdcl\<^sub>W_o :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<close> for S :: 'st where
 decide: "decide S S' \<Longrightarrow> ocdcl\<^sub>W_o S S'" |
 bj: "cdcl_bnb_bj S S' \<Longrightarrow> ocdcl\<^sub>W_o S S'"
 
@@ -522,7 +522,7 @@ cdcl_bnb_conflict_opt: "conflict_opt S S' \<Longrightarrow> cdcl_bnb_stgy S S'" 
 cdcl_bnb_other': "ocdcl\<^sub>W_o S S' \<Longrightarrow> no_confl_prop_impr S \<Longrightarrow> cdcl_bnb_stgy S S'"
 
 lemma ocdcl\<^sub>W_o_induct[consumes 1, case_names decide skip resolve backtrack]:
-  fixes S :: "'st"
+  fixes S :: 'st
   assumes cdcl\<^sub>W_restart: "ocdcl\<^sub>W_o S T" and
     decideH: "\<And>L T. conflicting S = None \<Longrightarrow> undefined_lit (trail S) L  \<Longrightarrow>
       atm_of L \<in> atms_of_mm (init_clss S) \<Longrightarrow>
@@ -1597,7 +1597,7 @@ lemma ocdcl\<^sub>W_o_no_smaller_propa:
     n_s: \<open>no_confl_prop_impr S\<close>
   shows \<open>no_smaller_propa T\<close>
   using assms(1)
-proof (cases)
+proof cases
   case decide
   show ?thesis
     unfolding no_smaller_propa_def
@@ -1623,16 +1623,12 @@ next
     case skip
     then show ?thesis
       using assms no_smaller_propa_tl[of S T]
-      by (auto simp: cdcl_bnb_bj.simps ocdcl\<^sub>W_o.simps obacktrack.simps
-          resolve.simps
-        elim!: rulesE)
+      by (auto simp: cdcl_bnb_bj.simps ocdcl\<^sub>W_o.simps obacktrack.simps elim!: rulesE)
   next
     case resolve
     then show ?thesis
       using assms no_smaller_propa_tl[of S T]
-      by (auto simp: cdcl_bnb_bj.simps ocdcl\<^sub>W_o.simps obacktrack.simps
-          resolve.simps
-        elim!: rulesE)
+      by (auto simp: cdcl_bnb_bj.simps ocdcl\<^sub>W_o.simps obacktrack.simps elim!: rulesE)
   next
     case backtrack
     have inv_T: "cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state T)"
@@ -1875,19 +1871,9 @@ proof -
   then have ent': \<open>set_mset (clauses T + conflicting_clss T) \<Turnstile>p {#}\<close>
     using confl unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_alt_def
     by auto
+  then show \<open>unsatisfiable (set_mset (clauses T + conflicting_clss T))\<close>
+     unfolding true_clss_cls_def satisfiable_def by auto
 
-  show \<open>unsatisfiable (set_mset (clauses T + conflicting_clss T))\<close>
-  proof
-    assume \<open>satisfiable (set_mset (clauses T + conflicting_clss T))\<close>
-    then obtain I where
-      ent'': \<open>I \<Turnstile>sm clauses T + conflicting_clss T\<close> and
-      tot: \<open>total_over_m I (set_mset (clauses T + conflicting_clss T))\<close> and
-      \<open>consistent_interp I\<close>
-      unfolding satisfiable_def
-      by blast
-    then show \<open>False\<close>
-      using ent' unfolding true_clss_cls_def by auto
-  qed
 qed
 
 end
