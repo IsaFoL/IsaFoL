@@ -479,12 +479,14 @@ proof (rule ccontr)
     N_saturated: "\<forall>N. (calculus_with_red_crit.saturated Inf Red_Inf_Q N \<and> (\<forall>B \<in> Bot. B \<notin> N)) \<longrightarrow>
       (\<exists>B \<in> Bot. \<exists>qi. \<not> entails_q qi N {B})" and
     no_stat_ref_comp: "\<not> static_refutational_complete_calculus Bot Inf (\<Turnstile>Q) Red_Inf_Q Red_F_Q"
-  obtain N1 B1 where B1_in: "B1 \<in> Bot" and N1_saturated: "calculus_with_red_crit.saturated Inf Red_Inf_Q N1" and
+  obtain N1 B1 where B1_in:
+    "B1 \<in> Bot" and N1_saturated: "calculus_with_red_crit.saturated Inf Red_Inf_Q N1" and
     N1_unsat: "N1 \<Turnstile>Q {B1}" and no_B_in_N1: "\<forall>B \<in> Bot. B \<notin> N1"
     using no_stat_ref_comp by (metis inter_red_crit static_refutational_complete_calculus.intro
       static_refutational_complete_calculus_axioms.intro)
   obtain B2 qi where no_qi:"\<not> entails_q qi N1 {B2}" using N_saturated N1_saturated no_B_in_N1 by blast
-  have "N1 \<Turnstile>Q {B2}" using N1_unsat B1_in cons_rel_family_is_cons_rel unfolding consequence_relation_def by metis
+  have "N1 \<Turnstile>Q {B2}" using N1_unsat B1_in cons_rel_family_is_cons_rel
+    unfolding consequence_relation_def by metis
   then have "entails_q qi N1 {B2}" unfolding entails_Q_def by blast
   then show "False" using no_qi by simp
 qed
