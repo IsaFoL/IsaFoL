@@ -850,7 +850,7 @@ next
   then show ?case
     using eq' st' by (auto intro!: exI[of _ N'])
 qed
- 
+
 definition cdcl_bnb_struct_invs :: \<open>'st \<Rightarrow> bool\<close> where
 \<open>cdcl_bnb_struct_invs S \<longleftrightarrow>
    atms_of_mm (conflicting_clss S) \<subseteq> atms_of_mm (init_clss S)\<close>
@@ -2029,6 +2029,39 @@ lemma cdcl_bnb_reasons_in_clauses:
     elim!: rulesE improveE conflict_optE obacktrackE
     dest!: in_set_tlD get_all_ann_decomposition_exists_prepend)
 
+
+lemma cdcl_bnb_pow2_n_learned_clauses:
+  assumes \<open>distinct_mset_mset N\<close>
+    \<open>cdcl_bnb\<^sup>*\<^sup>* (init_state N) T\<close>
+  shows \<open>size (learned_clss T) \<le> 2 ^ (card (atms_of_mm N))\<close>
+proof -
+  have H: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state (init_state N))\<close>
+    using assms apply (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+     cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def
+     cdcl\<^sub>W_restart_mset.reasons_in_clauses_def)
+    using assms by (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+     distinct_mset_mset_conflicting_clss
+     cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def abs_state_def init_clss.simps)
+  then obtain Na where Na: \<open> cdcl\<^sub>W_restart_mset.cdcl\<^sub>W\<^sup>*\<^sup>*
+        (trail (init_state N), init_clss (init_state N) + Na,
+         learned_clss (init_state N), conflicting (init_state N))
+        (abs_state T) \<and>
+       CDCL_W_Abstract_State.init_clss (abs_state T) = init_clss (init_state N) + Na\<close>
+    using rtranclp_cdcl_or_improve_cdclD[OF H assms(2)] by auto
+  moreover have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv ([], N + Na, {#}, None)\<close>
+    using assms Na rtranclp_cdcl_bnb_no_more_init_clss[OF assms(2)]
+    apply (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+     cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def
+     cdcl\<^sub>W_restart_mset.reasons_in_clauses_def)
+    using assms by (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_restart_mset_state
+     distinct_mset_mset_conflicting_clss cdcl\<^sub>W_restart_mset.no_strange_atm_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
+     cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
+     cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def abs_state_def init_clss.simps)
+  ultimately show ?thesis
+    using rtranclp_cdcl_bnb_no_more_init_clss[OF assms(2)]
+    cdcl\<^sub>W_restart_mset.cdcl_pow2_n_learned_clauses2[of \<open>N + Na\<close> \<open>abs_state T\<close>]
+    by (auto simp: init_state.simps abs_state_def cdcl\<^sub>W_restart_mset_state)
+qed
 end
 
 end
