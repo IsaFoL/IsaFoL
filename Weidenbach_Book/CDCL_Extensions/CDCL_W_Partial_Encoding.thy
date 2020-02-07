@@ -911,16 +911,28 @@ proof -
   qed
 qed
 
-theorem full_encoding_OCDCL_correctness: (* \htmllink{ocdcl-partial-enc-correctness} *)
+theorem full_encoding_OCDCL_complexity: (* \htmllink{ocdcl-partial-enc-complexity} *)
   assumes
     st: \<open>full enc_weight_opt.cdcl_bnb_stgy (init_state (penc N)) T\<close> and
     dist: \<open>distinct_mset_mset N\<close> and
     atms: \<open>atms_of_mm N = \<Sigma>\<close>
-  shows \<open>size (learned_clss T) \<le> 4 ^ card \<Sigma>\<close>
+  shows \<open>size (learned_clss T) \<le> 2 ^ (card (atms_of_mm N - \<Delta>\<Sigma>)) * 4^(card \<Delta>\<Sigma>)\<close>
 proof -
-oops
-thm cdcl_pow2_n_learned_clauses2
-find_theorems "2 ^card _"
+  have [simp]: \<open>finite \<Sigma>\<close>
+    unfolding atms[symmetric]
+    by auto
+  have [simp]: \<open>card (atms_of_mm N - \<Delta>\<Sigma> \<union> replacement_pos ` \<Delta>\<Sigma> \<union> replacement_neg ` \<Delta>\<Sigma>) =
+    card (atms_of_mm N - \<Delta>\<Sigma>) + card ( replacement_pos ` \<Delta>\<Sigma>) + card (replacement_neg ` \<Delta>\<Sigma>)\<close>
+    by (subst card_Un_disjoint; auto simp: atms)+
+  have [simp]: \<open>card (replacement_pos ` \<Delta>\<Sigma>) = card \<Delta>\<Sigma>\<close>  \<open>card (replacement_neg ` \<Delta>\<Sigma>) = card \<Delta>\<Sigma>\<close>
+    by (auto intro!: card_image simp: inj_on_def)
+
+  show ?thesis
+    apply (rule order_trans[OF enc_weight_opt.cdcl_bnb_pow2_n_learned_clauses[of \<open>penc N\<close>]])
+    using assms \<Delta>\<Sigma>_\<Sigma> monoid_mult_class.power_mult[of \<open>2 :: nat\<close> \<open>2 :: nat\<close> \<open>card \<Delta>\<Sigma>\<close>, unfolded mult_2]
+    by (auto simp: full_def distinct_mset_penc monoid_mult_class.power_add
+       enc_weight_opt.rtranclp_cdcl_bnb_stgy_cdcl_bnb atms_of_mm_penc_subset2)
+qed
 
 inductive ocdcl\<^sub>W_o_r :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<close> for S :: 'st where
   decide: \<open>odecide S S' \<Longrightarrow> ocdcl\<^sub>W_o_r S S'\<close> |
