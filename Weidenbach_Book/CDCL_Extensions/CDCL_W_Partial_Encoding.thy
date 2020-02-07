@@ -911,6 +911,16 @@ proof -
   qed
 qed
 
+theorem full_encoding_OCDCL_correctness: (* \htmllink{ocdcl-partial-enc-correctness} *)
+  assumes
+    st: \<open>full enc_weight_opt.cdcl_bnb_stgy (init_state (penc N)) T\<close> and
+    dist: \<open>distinct_mset_mset N\<close> and
+    atms: \<open>atms_of_mm N = \<Sigma>\<close>
+  shows \<open>size (learned_clss T) \<le> 4 ^ card \<Sigma>\<close>
+proof -
+oops
+thm cdcl_pow2_n_learned_clauses2
+find_theorems "2 ^card _"
 
 inductive ocdcl\<^sub>W_o_r :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<close> for S :: 'st where
   decide: \<open>odecide S S' \<Longrightarrow> ocdcl\<^sub>W_o_r S S'\<close> |

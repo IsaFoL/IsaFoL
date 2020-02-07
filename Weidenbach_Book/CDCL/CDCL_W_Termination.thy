@@ -1260,6 +1260,171 @@ corollary cdcl_pow2_n_learned_clauses2:
   using assms cdcl_pow2_n_learned_clauses[of \<open>init_state N\<close> T]
   by auto
 
+text \<open>A rather obvious theorem, but can be handy when talking about CDCL with inclusion of new rules.\<close>
+lemma cdcl\<^sub>W_enlarge_clauses:
+  assumes
+    \<open>cdcl\<^sub>W S S'\<close> and
+    \<open>trail T = trail S \<and> init_clss T = init_clss S + N' \<and>
+    learned_clss T = learned_clss S + U' \<and> conflicting T = conflicting S\<close>
+  shows \<open>\<exists>T'. trail T' = trail S' \<and> init_clss T' = init_clss S' + N' \<and>
+    learned_clss T' = learned_clss S' + U' \<and> conflicting T' = conflicting S' \<and>
+    cdcl\<^sub>W T T'\<close>
+proof -
+  note H = exI[of _ \<open>cons_trail (Propagated L C)
+        (reduce_trail_to xx_M
+          (add_learned_cls _ (update_conflicting None T)))\<close> for xx_M L C]
+  show ?thesis
+  using assms
+  apply induction
+  subgoal for S'
+    by (auto simp: cdcl\<^sub>W.simps propagate.simps clauses_def elim!: rulesE)
+     (metis conflicting_cons_trail init_clss_cons_trail learned_clss_cons_trail state_eq_ref 
+      trail_cons_trail)+
+  subgoal for S'
+    apply (auto simp: cdcl\<^sub>W.simps conflict.simps clauses_def elim!: rulesE)
+    apply (metis assms(1) conflicting_update_conflicting init_clss_update_conflicting
+      learned_clss_update_conflicting state_eq_ref trail_update_conflicting)+
+    done
+  subgoal
+    apply (induction rule: cdcl\<^sub>W_o.induct)
+  subgoal for S'
+    apply (auto simp: cdcl\<^sub>W.simps decide.simps clauses_def cdcl\<^sub>W_o.simps elim!: rulesE)
+    by (metis assms(1) conflicting_cons_trail_conflicting init_clss_cons_trail
+      learned_clss_cons_trail state_eq_ref state_eq_trail trail_cons_trail)
+  subgoal for S'
+  apply (induction rule: cdcl\<^sub>W_bj.induct)
+  subgoal for S'
+    by (auto simp: cdcl\<^sub>W.simps skip.simps clauses_def  cdcl\<^sub>W_o.simps cdcl\<^sub>W_bj.simps elim!: rulesE
+      intro!: exI[of _ \<open>tl_trail T\<close>])
+  subgoal for S'
+    apply (auto simp: cdcl\<^sub>W.simps resolve.simps clauses_def cdcl\<^sub>W_o.simps cdcl\<^sub>W_bj.simps elim!: rulesE)
+    by (metis conflicting_update_conflicting init_clss_tl_trail init_clss_update_conflicting learned_clss_tl_trail learned_clss_update_conflicting state_eq_ref trail_tl_trail trail_update_conflicting)
+  subgoal for S'
+    apply (clarsimp simp: cdcl\<^sub>W.simps backtrack.simps clauses_def cdcl\<^sub>W_o.simps cdcl\<^sub>W_bj.simps)
+    apply (rule_tac xx_M8=M1 and L8=L and C8= \<open>add_mset L D'\<close> in H)
+    apply (intro conjI)
+    apply (auto simp: all_conj_distrib)[4]
+    apply (rule disjI2)+
+    apply (rule_tac x=L in exI, rule_tac x=D in exI)
+    apply (intro conjI refl)
+    apply (rule_tac x=K in exI, rule_tac x=M1 in exI)
+    apply auto
+    apply (rule_tac x=D' in exI)
+    by (auto simp: Un_assoc Un_commute ac_simps)
+  done
+  done
+  done
+qed
+
+lemma rtranclp_cdcl\<^sub>W_enlarge_clauses:
+  assumes \<open>trail T = trail S \<and> init_clss T = init_clss S + N' \<and>
+    learned_clss T = learned_clss S + U' \<and> conflicting T = conflicting S\<close> and
+     \<open>rtranclp cdcl\<^sub>W S S'\<close>
+  shows \<open>\<exists>T'. trail T' = trail S' \<and> init_clss T' = init_clss S' + N' \<and>
+    learned_clss T' = learned_clss S' + U' \<and> conflicting T' = conflicting S' \<and>
+    cdcl\<^sub>W\<^sup>*\<^sup>* T T'\<close>
+  using assms(2,1)
+  apply (induction arbitrary: T rule: rtranclp_induct)
+  subgoal by auto
+  subgoal premises p for T U T'
+    using p(3)[of T'] p(1,2,4-)
+    by (auto dest!: cdcl\<^sub>W_enlarge_clauses[of T U _ N' U'])
+  done
+
+lemma cdcl\<^sub>W_clauses_cong:
+  assumes
+    \<open>cdcl\<^sub>W S S'\<close> and
+    \<open>trail T = trail S \<and> set_mset (init_clss T) = set_mset (init_clss S) \<and>
+    set_mset (learned_clss T) = set_mset (learned_clss S) \<and> conflicting T = conflicting S\<close>
+  shows \<open>\<exists>T'. trail T' = trail S' \<and> set_mset (init_clss T') = set_mset (init_clss S') \<and>
+      learned_clss T' = learned_clss T + (learned_clss S' - learned_clss S) \<and> conflicting T' = conflicting S' \<and>
+    cdcl\<^sub>W T T'\<close>
+proof -
+  note H = exI[of _ \<open>cons_trail (Propagated L C)
+        (reduce_trail_to xx_M
+          (add_learned_cls _ (update_conflicting None T)))\<close> for xx_M L C]
+  show ?thesis
+  using assms
+  apply induction
+  subgoal for S'
+    by (auto simp: cdcl\<^sub>W.simps propagate.simps clauses_def elim!: rulesE)
+     (metis conflicting_cons_trail init_clss_cons_trail learned_clss_cons_trail state_eq_ref 
+      trail_cons_trail)+
+  subgoal for S'
+    apply (auto simp: cdcl\<^sub>W.simps conflict.simps clauses_def elim!: rulesE)
+    apply (metis assms(1) conflicting_update_conflicting init_clss_update_conflicting
+      learned_clss_update_conflicting state_eq_ref trail_update_conflicting)+
+    done
+  subgoal
+    apply (induction rule: cdcl\<^sub>W_o.induct)
+  subgoal for S'
+    apply (auto simp: cdcl\<^sub>W.simps decide.simps clauses_def cdcl\<^sub>W_o.simps elim!: rulesE)
+    by (metis assms(1) conflicting_cons_trail_conflicting init_clss_cons_trail
+      learned_clss_cons_trail state_eq_ref state_eq_trail trail_cons_trail)
+  subgoal for S'
+  apply (induction rule: cdcl\<^sub>W_bj.induct)
+  subgoal for S'
+    by (auto simp: cdcl\<^sub>W.simps skip.simps clauses_def  cdcl\<^sub>W_o.simps cdcl\<^sub>W_bj.simps elim!: rulesE
+      intro!: exI[of _ \<open>tl_trail T\<close>])
+  subgoal for S'
+    apply (auto simp: cdcl\<^sub>W.simps resolve.simps clauses_def cdcl\<^sub>W_o.simps cdcl\<^sub>W_bj.simps elim!: rulesE)
+    by (metis conflicting_update_conflicting init_clss_tl_trail init_clss_update_conflicting learned_clss_tl_trail learned_clss_update_conflicting state_eq_ref trail_tl_trail trail_update_conflicting)
+  subgoal for S'
+    apply (clarsimp simp: cdcl\<^sub>W.simps backtrack.simps clauses_def cdcl\<^sub>W_o.simps cdcl\<^sub>W_bj.simps)
+    apply (rule_tac xx_M8=M1 and L8=L and C8= \<open>add_mset L D'\<close> in H)
+    apply (intro conjI)
+    apply (auto simp: all_conj_distrib)[4]
+    apply (rule disjI2)+
+    apply (rule_tac x=L in exI, rule_tac x=D in exI)
+    apply (intro conjI refl)
+    apply (rule_tac x=K in exI, rule_tac x=M1 in exI)
+    apply auto
+    apply (rule_tac x=D' in exI)
+    by (auto simp: Un_assoc Un_commute ac_simps)
+  done
+  done
+  done
+qed
+
+lemma cdcl\<^sub>W_learnel_clss_mono: \<open>cdcl\<^sub>W S T \<Longrightarrow> learned_clss S \<subseteq># learned_clss T\<close>
+  by (auto simp: cdcl\<^sub>W.simps cdcl\<^sub>W_o.simps cdcl\<^sub>W_bj.simps elim!: rulesE)
+
+lemma rtranclp_cdcl\<^sub>W_learned_clauses_mono: \<open>cdcl\<^sub>W\<^sup>*\<^sup>* S T \<Longrightarrow> learned_clss S \<subseteq># learned_clss T\<close>
+  by (induction rule: rtranclp_induct)
+    (auto dest!: cdcl\<^sub>W_learnel_clss_mono)
+
+lemma rtranclp_cdcl\<^sub>W_clauses_cong:
+  assumes \<open>trail T = trail S \<and> set_mset (init_clss T) = set_mset (init_clss S) \<and>
+    set_mset (learned_clss T) = set_mset (learned_clss S) \<and> conflicting T = conflicting S\<close> and
+     \<open>rtranclp cdcl\<^sub>W S S'\<close>
+  shows \<open>\<exists>T'. trail T' = trail S' \<and> set_mset (init_clss T) = set_mset (init_clss S) \<and>
+    learned_clss T' = learned_clss T + (learned_clss S' - learned_clss S) \<and> conflicting T' = conflicting S' \<and>
+    cdcl\<^sub>W\<^sup>*\<^sup>* T T'\<close>
+  using assms(2,1)
+  apply (induction arbitrary: T rule: rtranclp_induct)
+  subgoal by auto
+  subgoal premises p for T U T'
+    using p(3)[of T'] p(1,2,4-) rtranclp_cdcl\<^sub>W_learned_clauses_mono[of S T]
+    apply (auto dest!: cdcl\<^sub>W_clauses_cong[of T U])
+     apply (metis rtranclp_cdcl\<^sub>W_cdcl\<^sub>W_restart rtranclp_cdcl\<^sub>W_restart_init_clss)+
+    apply (metis in_multiset_minus_notin_snd mset_subset_eqD mset_subset_eq_add_right
+      rtranclp_cdcl\<^sub>W_learned_clauses_mono)
+   apply (rule_tac x=T'aa in exI)
+   apply auto
+   by (smt cdcl\<^sub>W_learnel_clss_mono p(2) subset_mset.add_diff_assoc subset_mset.add_diff_assoc2
+     subset_mset.add_diff_inverse union_assoc)
+  done
+
+lemma cdcl\<^sub>W_all_struct_inv_clauses_cong:
+  assumes
+    \<open>cdcl\<^sub>W_all_struct_inv S\<close> and
+    \<open>trail T = trail S \<and> set_mset (init_clss T) = set_mset (init_clss S) \<and>
+    set_mset (learned_clss T) = set_mset (learned_clss S) \<and> conflicting T = conflicting S\<close>
+  shows \<open>cdcl\<^sub>W_all_struct_inv T\<close>
+  using assms
+  by (auto simp: cdcl\<^sub>W_all_struct_inv_def no_strange_atm_def cdcl\<^sub>W_M_level_inv_def
+   distinct_cdcl\<^sub>W_state_def cdcl\<^sub>W_conflicting_def clauses_def cdcl\<^sub>W_learned_clause_def
+  reasons_in_clauses_def)
 end
 
 end

@@ -707,6 +707,150 @@ lemma rtranclp_cdcl_bnb_stgy_all_struct_inv:
   shows \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state T)\<close>
   using assms by induction (auto dest: cdcl_bnb_stgy_all_struct_inv)
 
+
+lemma cdcl_bnb_stgy_cdcl\<^sub>W_or_improve:
+  assumes \<open>cdcl_bnb S T\<close> and \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S)\<close>
+  shows \<open>(\<lambda>S T. cdcl\<^sub>W_restart_mset.cdcl\<^sub>W (abs_state S) (abs_state T) \<or> improvep S T) S T\<close>
+  using assms
+  apply (induction rule: cdcl_bnb.cases)
+  apply (auto dest!: propagate_propagate conflict_conflict
+    intro: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W.intros simp add: cdcl\<^sub>W_restart_mset.W_conflict conflict_opt_conflict
+      cdcl\<^sub>W_o_cdcl\<^sub>W_o cdcl\<^sub>W_restart_mset.W_other)
+  done
+
+
+lemma rtranclp_cdcl_bnb_stgy_cdcl\<^sub>W_or_improve:
+  assumes \<open>rtranclp cdcl_bnb S T\<close> and \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S)\<close>
+  shows \<open>(\<lambda>S T. cdcl\<^sub>W_restart_mset.cdcl\<^sub>W (abs_state S) (abs_state T) \<or> improvep S T)\<^sup>*\<^sup>* S T\<close>
+  using assms
+  apply (induction rule: rtranclp_induct)
+  subgoal by auto
+  subgoal for T U
+    using cdcl_bnb_stgy_cdcl\<^sub>W_or_improve[of T U] rtranclp_cdcl_bnb_stgy_all_struct_inv[of S T]
+    by (smt rtranclp_unfold tranclp_unfold_end)
+  done
+
+lemma eq_diff_subset_iff: \<open>A = B + (A -B) \<longleftrightarrow> B \<subseteq># A\<close>
+  by (metis mset_subset_eq_add_left subset_mset.add_diff_inverse)
+
+lemma cdcl_bnb_conflicting_clss_mono:
+  \<open>cdcl_bnb S T \<Longrightarrow> cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S) \<Longrightarrow> 
+   conflicting_clss S \<subseteq># conflicting_clss T\<close>
+  by (auto simp: cdcl_bnb.simps ocdcl\<^sub>W_o.simps improvep.simps cdcl_bnb_bj.simps
+    obacktrack.simps conflict_opt.simps conflicting_clss_update_weight_information_mono elim!: rulesE)
+
+
+lemma cdcl_or_improve_cdclD:
+  assumes \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S)\<close> and
+    \<open>cdcl_bnb S T\<close>
+  shows \<open>\<exists>N.
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W\<^sup>*\<^sup>* (trail S, init_clss S + N, learned_clss S, conflicting S) (abs_state T) \<and>
+      CDCL_W_Abstract_State.init_clss (abs_state T) = init_clss S + N\<close>
+proof -
+  have inv_T: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state T)\<close>
+    using assms(1) assms(2) cdcl_bnb_stgy_all_struct_inv by blast
+  consider
+     \<open>improvep S T\<close> |
+     \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W (abs_state S) (abs_state T)\<close>
+     using cdcl_bnb_stgy_cdcl\<^sub>W_or_improve[of S T] assms by blast
+  then show ?thesis
+  proof cases
+    case 1
+    then show ?thesis
+      using assms cdcl_bnb_stgy_cdcl\<^sub>W_or_improve[of S T]
+     unfolding abs_state_def cdcl_bnb_no_more_init_clss[of S T, OF assms(2)]
+     by (auto simp: improvep.simps cdcl\<^sub>W_restart_mset_state eq_diff_subset_iff)
+  next
+    case 2
+    let ?S' = \<open>(trail S, init_clss S + (conflicting_clss S) + (conflicting_clss T - conflicting_clss S),
+      learned_clss S, conflicting S)\<close>
+    let ?S'' = \<open>(trail S, init_clss S + conflicting_clss T, learned_clss S, conflicting S)\<close>
+    let ?T' = \<open>(trail T, init_clss T + (conflicting_clss T) + (conflicting_clss T - conflicting_clss S),
+      learned_clss T, conflicting T)\<close>
+    have subs: \<open>conflicting_clss S \<subseteq># conflicting_clss T\<close>
+       using cdcl_bnb_conflicting_clss_mono[of S T] assms by fast
+    then have H[simp]: \<open>set_mset (conflicting_clss T + (conflicting_clss T -
+             conflicting_clss S)) = set_mset (conflicting_clss T)\<close>
+        apply (auto simp flip: multiset_diff_union_assoc[OF subs])
+        apply (subst (asm) multiset_diff_union_assoc[OF subs] set_mset_union)+
+        apply (auto dest: in_diffD)
+        apply (subst multiset_diff_union_assoc[OF subs] set_mset_union)+
+        apply (auto dest: in_diffD)
+        done
+    have [simp]: \<open>set_mset (init_clss T + conflicting_clss T + conflicting_clss T -
+             conflicting_clss S) = set_mset (init_clss T + conflicting_clss T)\<close>
+        by (subst multiset_diff_union_assoc, (rule subs))
+          (simp only: H ac_simps, subst set_mset_union, subst H, simp)
+    have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv ?T'\<close>
+      by (rule cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_clauses_cong[OF inv_T])
+        (auto simp: cdcl\<^sub>W_restart_mset_state eq_diff_subset_iff abs_state_def subs)
+    then have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W ?S' ?T'\<close>
+      using 2 cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_enlarge_clauses[of \<open>abs_state S\<close> \<open>abs_state T\<close> ?S' \<open>conflicting_clss T - conflicting_clss S\<close> \<open>{#}\<close>]
+      by (auto simp: cdcl\<^sub>W_restart_mset_state abs_state_def subs)
+    then have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W ?S'' (abs_state T)\<close>
+      using cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_clauses_cong[of \<open>?S'\<close> ?T' ?S'']
+       cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learnel_clss_mono[of \<open>?S'\<close> ?T']
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_restart_init_clss[OF cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_cdcl\<^sub>W_restart, of \<open>?S'\<close> ?T']
+      unfolding abs_state_def cdcl_bnb_no_more_init_clss[of S T, OF assms(2)]
+      by (auto simp: cdcl\<^sub>W_restart_mset_state abs_state_def subs)
+
+    then show ?thesis
+      by (auto intro!: exI[of _ \<open>conflicting_clss T\<close>] simp: abs_state_def init_clss.simps
+        cdcl_bnb_no_more_init_clss[of S T, OF assms(2)])
+  qed
+qed
+
+lemma rtranclp_cdcl_or_improve_cdclD:
+  assumes \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S)\<close> and
+    \<open>cdcl_bnb\<^sup>*\<^sup>* S T\<close>
+  shows \<open>\<exists>N.
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W\<^sup>*\<^sup>* (trail S, init_clss S + N, learned_clss S, conflicting S) (abs_state T) \<and>
+      CDCL_W_Abstract_State.init_clss (abs_state T) = init_clss S + N\<close>
+  using assms(2,1)
+proof (induction rule: rtranclp_induct)
+  case base
+  then show ?case by (auto intro!: exI[of _ \<open>{#}\<close>] simp: abs_state_def init_clss.simps)
+next
+  case (step T U)
+  then obtain N where
+    st: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W\<^sup>*\<^sup>* (trail S, init_clss S + N, learned_clss S, conflicting S)
+         (abs_state T)\<close> and
+   eq: \<open>CDCL_W_Abstract_State.init_clss (abs_state T) = init_clss S + N\<close>
+    by auto
+  obtain N' where
+    st': \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W\<^sup>*\<^sup>* (trail T, init_clss T + N', learned_clss T, conflicting T)
+         (abs_state U)\<close> and
+   eq': \<open>CDCL_W_Abstract_State.init_clss (abs_state U) = init_clss T + N'\<close>
+     using cdcl_or_improve_cdclD[of T U] rtranclp_cdcl_bnb_stgy_all_struct_inv[of S T] step
+     by (auto simp: cdcl\<^sub>W_restart_mset_state)
+  have inv_T: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state T)\<close>
+    using rtranclp_cdcl_bnb_stgy_all_struct_inv step.hyps(1) step.prems by blast
+  have [simp]: \<open>init_clss S = init_clss T\<close> \<open>init_clss T = init_clss U\<close>
+     using rtranclp_cdcl_bnb_no_more_init_clss[OF step(1)] cdcl_bnb_no_more_init_clss[OF step(2)]
+     by fast+
+  then have \<open>N \<subseteq># N'\<close>
+    using eq eq' inv_T cdcl_bnb_conflicting_clss_mono[of T U] step
+    by (auto simp: abs_state_def init_clss.simps)
+
+  let ?S = \<open>(trail S, init_clss S + N, learned_clss S, conflicting S)\<close>
+  let ?S' = \<open>(trail S, (init_clss S + N) + (N' - N), learned_clss S, conflicting S)\<close>
+  let ?T' = \<open>(trail T, init_clss T + (conflicting_clss T) + (N' - N), learned_clss T, conflicting T)\<close>
+  have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W\<^sup>*\<^sup>* ?S' ?T'\<close>
+    using st eq cdcl\<^sub>W_restart_mset.rtranclp_cdcl\<^sub>W_enlarge_clauses[of ?S' ?S \<open>N' - N\<close> \<open>{#}\<close> \<open>abs_state T\<close>]
+    by (auto simp: cdcl\<^sub>W_restart_mset_state abs_state_def)
+  moreover have \<open>init_clss T + (conflicting_clss T) + (N' - N) = init_clss T + N'\<close>
+    using eq eq' \<open>N \<subseteq># N'\<close>
+    by (auto simp: abs_state_def init_clss.simps)
+
+  ultimately have
+    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W\<^sup>*\<^sup>* (trail S, init_clss S + N', learned_clss S, conflicting S)
+          (abs_state U)\<close>
+    using eq' st' \<open>N \<subseteq># N'\<close> unfolding abs_state_def
+    by auto
+  then show ?case
+    using eq' st' by (auto intro!: exI[of _ N'])
+qed
+ 
 definition cdcl_bnb_struct_invs :: \<open>'st \<Rightarrow> bool\<close> where
 \<open>cdcl_bnb_struct_invs S \<longleftrightarrow>
    atms_of_mm (conflicting_clss S) \<subseteq> atms_of_mm (init_clss S)\<close>
