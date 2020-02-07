@@ -133,7 +133,7 @@ definition model_on :: \<open>'v partial_interp \<Rightarrow> 'v clauses \<Right
 
 subsubsection \<open>CDCL BNB\<close>
 
-locale conflict_driven_clause_learning_with_adding_init_clause_cost\<^sub>W_no_state =
+locale conflict_driven_clause_learning_with_adding_init_clause_bnb\<^sub>W_no_state =
   state\<^sub>W_no_state
     state_eq state
     \<comment> \<open>functions for the state:\<close>
@@ -189,8 +189,8 @@ where
 
 end
 
-locale conflict_driven_clause_learning_with_adding_init_clause_cost\<^sub>W_ops =
-  conflict_driven_clause_learning_with_adding_init_clause_cost\<^sub>W_no_state
+locale conflict_driven_clause_learning_with_adding_init_clause_bnb\<^sub>W_ops =
+  conflict_driven_clause_learning_with_adding_init_clause_bnb\<^sub>W_no_state
     state_eq state
     \<comment> \<open>functions for the state:\<close>
       \<comment> \<open>access functions:\<close>

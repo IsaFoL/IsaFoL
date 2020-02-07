@@ -209,10 +209,6 @@ lemma not_entailed_too_heavy_clauses_ge:
   by (auto simp: too_heavy_clauses_def simple_clss_finite
         image_iff)
 
-lemma pNeg_simple_clss_iff[simp]:
-  \<open>pNeg C \<in> simple_clss N \<longleftrightarrow> C \<in> simple_clss N\<close>
-  by (auto simp: simple_clss_def)
-
 lemma conflicting_clss_incl_init_clauses:
   \<open>atms_of_mm (conflicting_clauses N w) \<subseteq> atms_of_mm (N)\<close>
   unfolding conflicting_clauses_def
@@ -419,7 +415,7 @@ lemma
   by (auto simp: update_weight_information_def weight_def)
 
 
-sublocale conflict_driven_clause_learning_with_adding_init_clause_cost\<^sub>W_no_state
+sublocale conflict_driven_clause_learning_with_adding_init_clause_bnb\<^sub>W_no_state
   where
     state = state and
     trail = trail and
@@ -532,7 +528,7 @@ lemma conflicting_clss_update_weight_information_in2':
   unfolding conflicting_clss_def
   by auto
 
-sublocale conflict_driven_clause_learning_with_adding_init_clause_cost\<^sub>W_ops
+sublocale conflict_driven_clause_learning_with_adding_init_clause_bnb\<^sub>W_ops
   where
     state = state and
     trail = trail and
