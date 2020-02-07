@@ -1,139 +1,9 @@
-theory CDCL_W_BnB
-  imports CDCL.CDCL_W_Abstract_State Weidenbach_Book_Base.Explorer
+theory CDCL_W_T
+  imports Theory_Intf
 begin
 
-section \<open>CDCL Extensions\<close>
 
-text \<open>
-  A counter-example for the original version from the book has been found (see below). There is no
-  simple fix, except taking complete models.
-
-  Based on Dominik Zimmer's thesis, we later reduced the problem of finding partial models to
-  finding total models. We later switched to the more elegant dual rail encoding (thanks to the
-  reviewer).
-\<close>
-
-subsection \<open>Optimisations\<close>
-
-notation image_mset (infixr \<open>`#\<close> 90)
-
-text \<open>The initial version was supposed to work on partial models directly. I found a counterexample
-while writing the proof:
-
-\nitpicking{
-
-\shortrules{Propagate}{$(M;N;U;k;\top;O)$}{$(ML^{C\lor L};N;U;k;\top;O)$}
-
-provided $C\lor L\in (N\cup U)$, $M\models \neg C$, $L$ is undefined in $M$.
-
-\bigskip
-\shortrules{Decide}{$(M;N;U;k;\top;O)$}{$(ML^{k+1};N;U;k+1;\top;O)$}
-
-provided $L$ is undefined in $M$, contained in $N$.
-
-\bigskip
-\shortrules{ConflSat}{$(M;N;U;k;\top;O)$}{$(M;N;U;k;D;O)$}
-
-provided $D\in (N\cup U)$ and $M\models \neg D$.
-
-\bigskip
-\shortrules{ConflOpt}{$(M;N;U;k;\top;O)$}{$(M;N;U;k;\neg M;O)$}
-
-provided $O\neq\epsilon$ and $\operatorname{cost}(M) \geq \operatorname{cost}(O)$.
-
-\bigskip
-\shortrules{Skip}{$(ML^{C\lor L};N;U;k;D;O)$}{$(M;N;U;k;D;O)$}
-
-provided $D\not\in\{\top,\bot\}$ and $\neg L$ does not occur in $D$.
-
-
-\bigskip
-\shortrules{Resolve}{$(ML^{C\lor L};N;U;k;D\lor-(L);O)$}{$(M;N;U;k;D\lor C;O)$}
-
-provided $D$ is of level $k$.
-
-\bigskip
-\shortrules{Backtrack}{$(M_1K^{i+1}M_2;N;U;k;D\lor L;O)$}{$(M_1L^{D\vee L};N;U\cup\{D\lor L\};i;
-  \top;O)$}
-
-provided $L$ is of level $k$ and $D$ is of level $i$.
-
-\bigskip
-\shortrules{Improve}{$(M;N;U;k;\top;O)$}{$(M;N;U;k;\top;M)$}
-
-provided $M\models N$ and $O=\epsilon$ or $\operatorname{cost}(M)<\operatorname{cost}(O)$.
-}
-{This calculus does not always find the model with minimum cost. Take for example the following
-  cost function:
-\[\operatorname{cost}: \left\{
-\begin{array}{c@ {\rightarrow}c}
-P & 3\\
-\neg P & 1\\
-Q & 1\\
-\neg Q & 1\\
-\end{array}
- \right.\]
-and the clauses $N = \{P\lor Q\}$. We can then do the following transitions:
-
-
-$(\epsilon, N, \varnothing, \top, \infty)$
-
-\shortrules{Decide}{}{$(P^1, N, \varnothing, \top, \infty)$}
-
-\shortrules{Improve}{}{$(P^1, N, \varnothing, \top, (P, 3))$}
-
-\shortrules{conflictOpt}{}{$(P^1, N, \varnothing, \neg P, (P, 3))$}
-
-\shortrules{backtrack}{}{$({\neg P}^{\neg P}, N, \{\neg P\}, \top, (P, 3))$}
-
-\shortrules{propagate}{}{$({\neg P}^{\neg P}Q^{P\lor Q}, N, \{\neg P\}, \top, (P, 3))$}
-
-\shortrules{improve}{}{$({\neg P}^{\neg P}Q^{P\lor Q}, N, \{\neg P\}, \top, (\neg P\, Q, 2))$}
-
-\shortrules{conflictOpt}{}{$({\neg P}^{\neg P}Q^{P\lor Q}, N, \{\neg P\}, P \lor \neg Q, (\neg P\,
-  Q, 2))$}
-
-\shortrules{resolve}{}{$({\neg P}^{\neg P}, N, \{\neg P\}, P, (\neg P\, Q, 2))$}
-
-\shortrules{resolve}{}{$(\epsilon, N, \{\neg P\}, \bot, (\neg P\, Q, 3))$}
-
-
-However, the optimal model is $Q$.
-}
-\<close>
-
-text \<open>
-  The idea of the proof (explained of the example of the optimising CDCL) is the following:
-
-  \<^enum> We start with a calculus OCDCL on \<^term>\<open>(M, N, U, D, Op)\<close>.
-
-  \<^enum> This extended to a state \<^term>\<open>(M, N + all_models_of_higher_cost, U, D, Op)\<close>.
-
-  \<^enum> Each transition step of OCDCL is mapped to a step in CDCL over the abstract state. The abstract
-    set of clauses might be unsatisfiable, but we only use it to prove the invariants on the
-    state. Only adding clause cannot be mapped to a transition over the abstract state, but adding
-    clauses does not break the invariants (as long as the additional clauses do not contain
-    duplicate literals).
-
-  \<^enum> The last proofs are done over CDCLopt.
-
-We abstract about how the optimisation is done in the locale below: We define a calculus
-\<^term>\<open>cdcl_bnb\<close> (for branch-and-bounds). It is parametrised by how the conflicting clauses are
-generated and the improvement criterion.
-
-We later instantiate it with the optimisation calculus from Weidenbach's book.
-\<close>
-
-
-subsubsection \<open>Helper libraries\<close>
-
-definition model_on :: \<open>'v partial_interp \<Rightarrow> 'v clauses \<Rightarrow> bool\<close> where
-\<open>model_on I N \<longleftrightarrow> consistent_interp I \<and> atm_of ` I \<subseteq> atms_of_mm N\<close>
-
-
-subsubsection \<open>CDCL BNB\<close>
-
-locale conflict_driven_clause_learning_with_adding_init_clause_bnb\<^sub>W_no_state =
+locale conflict_driven_clause_learning_with_adding_init_clause_cost\<^sub>W_no_state =
   state\<^sub>W_no_state
     state_eq state
     \<comment> \<open>functions for the state:\<close>
@@ -163,13 +33,9 @@ locale conflict_driven_clause_learning_with_adding_init_clause_bnb\<^sub>W_no_st
     init_state :: \<open>'v clauses \<Rightarrow> 'st\<close> +
   fixes
     update_weight_information :: \<open>('v, 'v clause) ann_lits \<Rightarrow> 'st \<Rightarrow> 'st\<close> and
-    is_improving_int :: \<open>('v, 'v clause) ann_lits \<Rightarrow> ('v, 'v clause) ann_lits \<Rightarrow> 'v clauses \<Rightarrow> 'a \<Rightarrow> bool\<close> and
     conflicting_clauses :: \<open>'v clauses \<Rightarrow> 'a \<Rightarrow> 'v clauses\<close> and
     weight :: \<open>'st \<Rightarrow> 'a\<close>
 begin
-
-abbreviation is_improving where
-  \<open>is_improving M M' S \<equiv> is_improving_int M M' (init_clss S) (weight S)\<close>
 
 definition additional_info' :: \<open>'st \<Rightarrow> 'b\<close> where
 \<open>additional_info' S = (\<lambda>(_, _, _, _, _, D). D) (state S)\<close>
@@ -189,8 +55,8 @@ where
 
 end
 
-locale conflict_driven_clause_learning_with_adding_init_clause_bnb\<^sub>W_ops =
-  conflict_driven_clause_learning_with_adding_init_clause_bnb\<^sub>W_no_state
+locale conflict_driven_clause_learning_with_adding_init_clause_cost\<^sub>W_ops =
+  conflict_driven_clause_learning_with_adding_init_clause_cost\<^sub>W_no_state
     state_eq state
     \<comment> \<open>functions for the state:\<close>
       \<comment> \<open>access functions:\<close>
@@ -202,7 +68,7 @@ locale conflict_driven_clause_learning_with_adding_init_clause_bnb\<^sub>W_ops =
       \<comment> \<open>get state:\<close>
     init_state
       \<comment> \<open>Adding a clause:\<close>
-    update_weight_information is_improving_int conflicting_clauses weight
+    update_weight_information conflicting_clauses weight
   for
     state_eq :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<close> (infix \<open>\<sim>\<close> 50) and
     state :: "'st \<Rightarrow> ('v, 'v clause) ann_lits \<times> 'v clauses \<times> 'v clauses \<times>  'v clause option \<times>
@@ -220,8 +86,6 @@ locale conflict_driven_clause_learning_with_adding_init_clause_bnb\<^sub>W_ops =
 
     init_state :: \<open>'v clauses \<Rightarrow> 'st\<close> and
     update_weight_information :: \<open>('v, 'v clause) ann_lits \<Rightarrow> 'st \<Rightarrow> 'st\<close> and
-    is_improving_int :: "('v, 'v clause) ann_lits \<Rightarrow> ('v, 'v clause) ann_lits \<Rightarrow> 'v clauses \<Rightarrow>
-      'a \<Rightarrow> bool" and
     conflicting_clauses :: \<open>'v clauses \<Rightarrow> 'a \<Rightarrow> 'v clauses\<close> and
     weight :: \<open>'st \<Rightarrow> 'a\<close> +
   assumes
@@ -234,14 +98,7 @@ locale conflict_driven_clause_learning_with_adding_init_clause_bnb\<^sub>W_ops =
     atms_of_conflicting_clss:
       \<open>atms_of_mm (conflicting_clss S) \<subseteq> atms_of_mm (init_clss S)\<close> and
     distinct_mset_mset_conflicting_clss:
-      \<open>distinct_mset_mset (conflicting_clss S)\<close> and
-    conflicting_clss_update_weight_information_mono:
-      \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S) \<Longrightarrow> is_improving M M' S \<Longrightarrow>
-        conflicting_clss S \<subseteq># conflicting_clss (update_weight_information M' S)\<close>
-    and
-    conflicting_clss_update_weight_information_in:
-      \<open>is_improving M M' S \<Longrightarrow> 
-        negate_ann_lits M' \<in># conflicting_clss (update_weight_information M' S)\<close>
+      \<open>distinct_mset_mset (conflicting_clss S)\<close>
 begin
 
 paragraph \<open>Conversion to CDCL\<close>
@@ -378,26 +235,92 @@ lemma
 
 
 paragraph \<open>CDCL with branch-and-bound\<close>
+fun delete_levels :: \<open>('v, 'm) ann_lits \<Rightarrow> nat \<Rightarrow> ('v, 'm) ann_lits\<close> where
+  \<open>delete_levels [] _ = []\<close> |
+  \<open>delete_levels (Decided L # M) (Suc n) = delete_levels M n\<close> |
+  \<open>delete_levels (Propagated L C # M) (Suc n) = delete_levels M (Suc n)\<close> |
+  \<open>delete_levels M 0 = M\<close>
+
+lemma [simp]: \<open>delete_levels M 0 = M\<close>
+  by (induction M rule:ann_lit_list_induct) auto
+
+
+lemma delete_levels_dropWhile_Suc:
+  \<open>delete_levels M (Suc n) = delete_levels (tl (dropWhile (Not o is_decided) M)) n\<close>
+  by (induction M rule:ann_lit_list_induct)  auto
+
+definition reduce_trail_to_level :: \<open>nat \<Rightarrow> 'st \<Rightarrow> 'st\<close> where
+  \<open>reduce_trail_to_level k S = reduce_trail_to (delete_levels (trail S) (count_decided (trail S) - k)) S\<close>
+
+lemma delete_levels_Decided_If:
+  \<open>delete_levels (Decided L # xs) k = (if k > 0 then delete_levels xs (k-1) else Decided L # xs)\<close> and
+  delete_levels_Propagated_If:
+  \<open>delete_levels (Propagated L C # xs) k = (if k > 0 then delete_levels xs k else Propagated L C # xs)\<close>
+  by (cases k; auto)+
+
+lemma count_decided_delete_levels[simp]: \<open>count_decided (delete_levels M k) = count_decided M - k\<close>
+  by (induction M arbitrary: k rule: ann_lit_list_induct)
+    (auto simp: delete_levels_Decided_If delete_levels_Propagated_If)
+
+lemma length_delete_levels_le: \<open>length (delete_levels M k) \<le> length M\<close>
+  by (induction M arbitrary: k rule: ann_lit_list_induct)
+   (auto simp: delete_levels_Decided_If le_Suc_eq delete_levels_Propagated_If)
+
+lemma delete_levels_ge_count_decided:
+  \<open>k > count_decided M \<Longrightarrow> delete_levels M k = []\<close>
+  by (induction M k rule: delete_levels.induct) auto
+
+lemma [simp]:
+  \<open>init_clss (reduce_trail_to_level k S) = init_clss S\<close>
+  \<open>learned_clss (reduce_trail_to_level k S) = learned_clss S\<close>
+  \<open>clauses (reduce_trail_to_level k S) = clauses S\<close>
+  \<open>conflicting (reduce_trail_to_level k S) = conflicting S\<close>
+  \<open>conflicting_clss (reduce_trail_to_level k S) = conflicting_clss S\<close>
+  by (auto simp: reduce_trail_to_level_def clauses_def)
+
+lemma [simp]: \<open>(delete_levels (c @ Decided K # c') (Suc (count_decided c))) = c'\<close>
+  by (induction c rule: ann_lit_list_induct)
+    auto
+
+lemma in_trail_reduce_trail_to_levelD:
+  \<open>L \<in> set (trail (reduce_trail_to_level k S)) \<Longrightarrow> L \<in> set (trail S)\<close>
+  by (auto simp: reduce_trail_to_level_def trail_reduce_trail_to_drop dest: in_set_dropD)
+
+lemma in_lits_of_l_trail_reduce_trail_to_levelD:
+  \<open>L \<in> lits_of_l (trail (reduce_trail_to_level k S)) \<Longrightarrow> L \<in> lits_of_l (trail S)\<close>
+  by (auto simp: reduce_trail_to_level_def trail_reduce_trail_to_drop lits_of_def dest: in_set_dropD)
+
+lemma backtrack_lvl_reduce_trail_to:
+  \<open>no_dup (trail S) \<Longrightarrow> k < backtrack_lvl S \<Longrightarrow> backtrack_lvl (reduce_trail_to_level k S) = k\<close>
+  using le_count_decided_decomp[of \<open>trail S\<close> \<open>k\<close>]
+  unfolding reduce_trail_to_level_def
+  by (auto simp: trail_reduce_trail_to_drop length_delete_levels_le
+    delete_levels_ge_count_decided)
+
+lemma consistent_interp_reduce_trail_to:
+  \<open>consistent_interp (lits_of_l (trail S)) \<Longrightarrow>
+   consistent_interp (lits_of_l (trail (reduce_trail_to_level k S)))\<close>
+  by (rule consistent_interp_subset[of _ \<open>lits_of_l (trail S)\<close>])
+    (auto dest!: in_lits_of_l_trail_reduce_trail_to_levelD)
+
+lemma no_dup_reduce_trail_to:
+  \<open>no_dup (trail S) \<Longrightarrow> no_dup (trail (reduce_trail_to_level k S))\<close>
+  using le_count_decided_decomp[of \<open>trail S\<close> \<open>k\<close>]
+  unfolding reduce_trail_to_level_def
+  by (cases \<open>k < backtrac_lvl S\<close>)
+   (auto simp: trail_reduce_trail_to_drop length_delete_levels_le
+    delete_levels_ge_count_decided dest: no_dup_appendD)
 
 inductive conflict_opt :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<close> for S T :: 'st where
 conflict_opt_rule:
   \<open>conflict_opt S T\<close>
   if
-    \<open>negate_ann_lits (trail S) \<in># conflicting_clss S\<close>
+    \<open>C \<in># conflicting_clss S\<close>
     \<open>conflicting S = None\<close>
-    \<open>T \<sim> update_conflicting (Some (negate_ann_lits (trail S))) S\<close>
+    \<open>trail S \<Turnstile>as CNot C\<close>
+    \<open>T \<sim> update_conflicting (Some C) (reduce_trail_to_level (get_maximum_level (trail S) C) S)\<close>
 
 inductive_cases conflict_optE: \<open>conflict_opt S T\<close>
-
-inductive improvep :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<close> for S :: 'st where
-improve_rule:
-  \<open>improvep S T\<close>
-  if
-    \<open>is_improving (trail S) M' S\<close> and
-    \<open>conflicting S = None\<close> and
-    \<open>T \<sim> update_weight_information M' S\<close>
-
-inductive_cases improveE: \<open>improvep S T\<close>
 
 lemma invs_update_weight_information[simp]:
   \<open>no_strange_atm (update_weight_information C S) = (no_strange_atm S)\<close>
@@ -413,57 +336,21 @@ lemma conflict_opt_cdcl\<^sub>W_all_struct_inv:
     inv: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S)\<close>
   shows \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state T)\<close>
   using assms atms_of_conflicting_clss[of T] atms_of_conflicting_clss[of S]
-  by (induction rule: conflict_opt.cases)
-    (auto simp add: cdcl\<^sub>W_restart_mset.no_strange_atm_def
-        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
+    distinct_mset_mset_conflicting_clss[of S]
+  apply (induction rule: conflict_opt.cases)
+  apply (auto 5 2 simp  add: cdcl\<^sub>W_restart_mset.no_strange_atm_def no_dup_reduce_trail_to
+        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def consistent_interp_reduce_trail_to
         cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
         cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_alt_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
         true_annots_true_cls_def_iff_negation_in_model
         in_negate_trial_iff cdcl\<^sub>W_restart_mset_state cdcl\<^sub>W_restart_mset.clauses_def
-        distinct_mset_mset_conflicting_clss abs_state_def
+        abs_state_def
+      dest: in_trail_reduce_trail_to_levelD multi_member_split in_lits_of_l_trail_reduce_trail_to_levelD
       intro!: true_clss_cls_in)
 
-lemma improve_cdcl\<^sub>W_all_struct_inv:
-  assumes \<open>improvep S T\<close> and
-    inv: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S)\<close>
-  shows \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state T)\<close>
-  using assms atms_of_conflicting_clss[of T] atms_of_conflicting_clss[of S]
-proof (induction rule: improvep.cases)
-  case (improve_rule M' T)
-  moreover have \<open>all_decomposition_implies
-     (set_mset (init_clss S) \<union> set_mset (conflicting_clss S) \<union> set_mset (learned_clss S))
-     (get_all_ann_decomposition (trail S)) \<Longrightarrow>
-    all_decomposition_implies
-     (set_mset (init_clss S) \<union> set_mset (conflicting_clss (update_weight_information M' S)) \<union>
-      set_mset (learned_clss S))
-     (get_all_ann_decomposition (trail S))\<close>
-      apply (rule all_decomposition_implies_mono)
-      using improve_rule conflicting_clss_update_weight_information_mono[of S \<open>trail S\<close> M'] inv
-      by (auto dest: multi_member_split)
-   ultimately show ?case
-      using conflicting_clss_update_weight_information_mono[of S \<open>trail S\<close> M']
-      by (auto 6 2 simp add: cdcl\<^sub>W_restart_mset.no_strange_atm_def
-            cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
-            cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
-            cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_alt_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-            true_annots_true_cls_def_iff_negation_in_model
-            in_negate_trial_iff cdcl\<^sub>W_restart_mset_state cdcl\<^sub>W_restart_mset.clauses_def
-            image_Un distinct_mset_mset_conflicting_clss abs_state_def
-          simp del: append_assoc
-          dest: no_dup_appendD consistent_interp_unionD)
-qed
+apply (auto dest!: in_trail_reduce_trail_to_levelD in_lits_of_l_trail_reduce_trail_to_levelD)[3]
 
-text \<open>\<^term>\<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant\<close> is too restrictive:
-  \<^term>\<open>cdcl\<^sub>W_restart_mset.no_smaller_confl\<close> is needed but does not hold(at least, if cannot
-  ensure that conflicts are found as soon as possible).\<close>
-lemma improve_no_smaller_conflict:
-  assumes \<open>improvep S T\<close> and
-    \<open>no_smaller_confl S\<close>
-  shows \<open>no_smaller_confl T\<close> and \<open>conflict_is_false_with_level T\<close>
-  using assms apply (induction rule: improvep.induct)
-  unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant_def
-  by (auto simp: cdcl\<^sub>W_restart_mset_state no_smaller_confl_def cdcl\<^sub>W_restart_mset.clauses_def
-      exists_lit_max_level_in_negate_ann_lits)
+  sorry
 
 lemma conflict_opt_no_smaller_conflict:
   assumes \<open>conflict_opt S T\<close> and
@@ -510,14 +397,12 @@ bj: \<open>cdcl_bnb_bj S S' \<Longrightarrow> ocdcl\<^sub>W_o S S'\<close>
 inductive cdcl_bnb :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<close> for S :: 'st where
 cdcl_conflict: \<open>conflict S S' \<Longrightarrow> cdcl_bnb S S'\<close> |
 cdcl_propagate: \<open>propagate S S' \<Longrightarrow> cdcl_bnb S S'\<close> |
-cdcl_improve: \<open>improvep S S' \<Longrightarrow> cdcl_bnb S S'\<close> |
 cdcl_conflict_opt: \<open>conflict_opt S S' \<Longrightarrow> cdcl_bnb S S'\<close> |
 cdcl_other': \<open>ocdcl\<^sub>W_o S S' \<Longrightarrow> cdcl_bnb S S'\<close>
 
 inductive cdcl_bnb_stgy :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<close> for S :: 'st where
 cdcl_bnb_conflict: \<open>conflict S S' \<Longrightarrow> cdcl_bnb_stgy S S'\<close> |
 cdcl_bnb_propagate: \<open>propagate S S' \<Longrightarrow> cdcl_bnb_stgy S S'\<close> |
-cdcl_bnb_improve: \<open>improvep S S' \<Longrightarrow> cdcl_bnb_stgy S S'\<close> |
 cdcl_bnb_conflict_opt: \<open>conflict_opt S S' \<Longrightarrow> cdcl_bnb_stgy S S'\<close> |
 cdcl_bnb_other': \<open>ocdcl\<^sub>W_o S S' \<Longrightarrow> no_confl_prop_impr S \<Longrightarrow> cdcl_bnb_stgy S S'\<close>
 
@@ -578,7 +463,7 @@ subsubsection \<open>Pluging into normal CDCL\<close>
 lemma cdcl_bnb_no_more_init_clss:
   \<open>cdcl_bnb S S' \<Longrightarrow> init_clss S = init_clss S'\<close>
   by (induction rule: cdcl_bnb.cases)
-    (auto simp: improvep.simps conflict.simps propagate.simps
+    (auto simp: conflict.simps propagate.simps
       conflict_opt.simps ocdcl\<^sub>W_o.simps obacktrack.simps skip.simps resolve.simps cdcl_bnb_bj.simps
       decide.simps)
 
@@ -689,10 +574,6 @@ next
     by (blast dest: propagate_propagate cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy.intros
       intro: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_cdcl\<^sub>W_all_struct_inv)
 next
-  case (cdcl_improve S')
-  then show ?case
-    using improve_cdcl\<^sub>W_all_struct_inv by blast
-next
   case (cdcl_conflict_opt S')
   then show ?case
     using conflict_opt_cdcl\<^sub>W_all_struct_inv by blast
@@ -707,159 +588,14 @@ lemma rtranclp_cdcl_bnb_stgy_all_struct_inv:
   shows \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state T)\<close>
   using assms by induction (auto dest: cdcl_bnb_stgy_all_struct_inv)
 
-
-lemma cdcl_bnb_stgy_cdcl\<^sub>W_or_improve:
-  assumes \<open>cdcl_bnb S T\<close> and \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S)\<close>
-  shows \<open>(\<lambda>S T. cdcl\<^sub>W_restart_mset.cdcl\<^sub>W (abs_state S) (abs_state T) \<or> improvep S T) S T\<close>
-  using assms
-  apply (induction rule: cdcl_bnb.cases)
-  apply (auto dest!: propagate_propagate conflict_conflict
-    intro: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W.intros simp add: cdcl\<^sub>W_restart_mset.W_conflict conflict_opt_conflict
-      cdcl\<^sub>W_o_cdcl\<^sub>W_o cdcl\<^sub>W_restart_mset.W_other)
-  done
-
-
-lemma rtranclp_cdcl_bnb_stgy_cdcl\<^sub>W_or_improve:
-  assumes \<open>rtranclp cdcl_bnb S T\<close> and \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S)\<close>
-  shows \<open>(\<lambda>S T. cdcl\<^sub>W_restart_mset.cdcl\<^sub>W (abs_state S) (abs_state T) \<or> improvep S T)\<^sup>*\<^sup>* S T\<close>
-  using assms
-  apply (induction rule: rtranclp_induct)
-  subgoal by auto
-  subgoal for T U
-    using cdcl_bnb_stgy_cdcl\<^sub>W_or_improve[of T U] rtranclp_cdcl_bnb_stgy_all_struct_inv[of S T]
-    by (smt rtranclp_unfold tranclp_unfold_end)
-  done
-
-lemma eq_diff_subset_iff: \<open>A = B + (A -B) \<longleftrightarrow> B \<subseteq># A\<close>
-  by (metis mset_subset_eq_add_left subset_mset.add_diff_inverse)
-
-lemma cdcl_bnb_conflicting_clss_mono:
-  \<open>cdcl_bnb S T \<Longrightarrow> cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S) \<Longrightarrow> 
-   conflicting_clss S \<subseteq># conflicting_clss T\<close>
-  by (auto simp: cdcl_bnb.simps ocdcl\<^sub>W_o.simps improvep.simps cdcl_bnb_bj.simps
-    obacktrack.simps conflict_opt.simps conflicting_clss_update_weight_information_mono elim!: rulesE)
-
-
-lemma cdcl_or_improve_cdclD:
-  assumes \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S)\<close> and
-    \<open>cdcl_bnb S T\<close>
-  shows \<open>\<exists>N.
-      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W\<^sup>*\<^sup>* (trail S, init_clss S + N, learned_clss S, conflicting S) (abs_state T) \<and>
-      CDCL_W_Abstract_State.init_clss (abs_state T) = init_clss S + N\<close>
-proof -
-  have inv_T: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state T)\<close>
-    using assms(1) assms(2) cdcl_bnb_stgy_all_struct_inv by blast
-  consider
-     \<open>improvep S T\<close> |
-     \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W (abs_state S) (abs_state T)\<close>
-     using cdcl_bnb_stgy_cdcl\<^sub>W_or_improve[of S T] assms by blast
-  then show ?thesis
-  proof cases
-    case 1
-    then show ?thesis
-      using assms cdcl_bnb_stgy_cdcl\<^sub>W_or_improve[of S T]
-     unfolding abs_state_def cdcl_bnb_no_more_init_clss[of S T, OF assms(2)]
-     by (auto simp: improvep.simps cdcl\<^sub>W_restart_mset_state eq_diff_subset_iff)
-  next
-    case 2
-    let ?S' = \<open>(trail S, init_clss S + (conflicting_clss S) + (conflicting_clss T - conflicting_clss S),
-      learned_clss S, conflicting S)\<close>
-    let ?S'' = \<open>(trail S, init_clss S + conflicting_clss T, learned_clss S, conflicting S)\<close>
-    let ?T' = \<open>(trail T, init_clss T + (conflicting_clss T) + (conflicting_clss T - conflicting_clss S),
-      learned_clss T, conflicting T)\<close>
-    have subs: \<open>conflicting_clss S \<subseteq># conflicting_clss T\<close>
-       using cdcl_bnb_conflicting_clss_mono[of S T] assms by fast
-    then have H[simp]: \<open>set_mset (conflicting_clss T + (conflicting_clss T -
-             conflicting_clss S)) = set_mset (conflicting_clss T)\<close>
-        apply (auto simp flip: multiset_diff_union_assoc[OF subs])
-        apply (subst (asm) multiset_diff_union_assoc[OF subs] set_mset_union)+
-        apply (auto dest: in_diffD)
-        apply (subst multiset_diff_union_assoc[OF subs] set_mset_union)+
-        apply (auto dest: in_diffD)
-        done
-    have [simp]: \<open>set_mset (init_clss T + conflicting_clss T + conflicting_clss T -
-             conflicting_clss S) = set_mset (init_clss T + conflicting_clss T)\<close>
-        by (subst multiset_diff_union_assoc, (rule subs))
-          (simp only: H ac_simps, subst set_mset_union, subst H, simp)
-    have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv ?T'\<close>
-      by (rule cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_clauses_cong[OF inv_T])
-        (auto simp: cdcl\<^sub>W_restart_mset_state eq_diff_subset_iff abs_state_def subs)
-    then have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W ?S' ?T'\<close>
-      using 2 cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_enlarge_clauses[of \<open>abs_state S\<close> \<open>abs_state T\<close> ?S' \<open>conflicting_clss T - conflicting_clss S\<close> \<open>{#}\<close>]
-      by (auto simp: cdcl\<^sub>W_restart_mset_state abs_state_def subs)
-    then have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W ?S'' (abs_state T)\<close>
-      using cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_clauses_cong[of \<open>?S'\<close> ?T' ?S'']
-       cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learnel_clss_mono[of \<open>?S'\<close> ?T']
-      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_restart_init_clss[OF cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_cdcl\<^sub>W_restart, of \<open>?S'\<close> ?T']
-      unfolding abs_state_def cdcl_bnb_no_more_init_clss[of S T, OF assms(2)]
-      by (auto simp: cdcl\<^sub>W_restart_mset_state abs_state_def subs)
-
-    then show ?thesis
-      by (auto intro!: exI[of _ \<open>conflicting_clss T\<close>] simp: abs_state_def init_clss.simps
-        cdcl_bnb_no_more_init_clss[of S T, OF assms(2)])
-  qed
-qed
-
-lemma rtranclp_cdcl_or_improve_cdclD:
-  assumes \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S)\<close> and
-    \<open>cdcl_bnb\<^sup>*\<^sup>* S T\<close>
-  shows \<open>\<exists>N.
-      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W\<^sup>*\<^sup>* (trail S, init_clss S + N, learned_clss S, conflicting S) (abs_state T) \<and>
-      CDCL_W_Abstract_State.init_clss (abs_state T) = init_clss S + N\<close>
-  using assms(2,1)
-proof (induction rule: rtranclp_induct)
-  case base
-  then show ?case by (auto intro!: exI[of _ \<open>{#}\<close>] simp: abs_state_def init_clss.simps)
-next
-  case (step T U)
-  then obtain N where
-    st: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W\<^sup>*\<^sup>* (trail S, init_clss S + N, learned_clss S, conflicting S)
-         (abs_state T)\<close> and
-   eq: \<open>CDCL_W_Abstract_State.init_clss (abs_state T) = init_clss S + N\<close>
-    by auto
-  obtain N' where
-    st': \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W\<^sup>*\<^sup>* (trail T, init_clss T + N', learned_clss T, conflicting T)
-         (abs_state U)\<close> and
-   eq': \<open>CDCL_W_Abstract_State.init_clss (abs_state U) = init_clss T + N'\<close>
-     using cdcl_or_improve_cdclD[of T U] rtranclp_cdcl_bnb_stgy_all_struct_inv[of S T] step
-     by (auto simp: cdcl\<^sub>W_restart_mset_state)
-  have inv_T: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state T)\<close>
-    using rtranclp_cdcl_bnb_stgy_all_struct_inv step.hyps(1) step.prems by blast
-  have [simp]: \<open>init_clss S = init_clss T\<close> \<open>init_clss T = init_clss U\<close>
-     using rtranclp_cdcl_bnb_no_more_init_clss[OF step(1)] cdcl_bnb_no_more_init_clss[OF step(2)]
-     by fast+
-  then have \<open>N \<subseteq># N'\<close>
-    using eq eq' inv_T cdcl_bnb_conflicting_clss_mono[of T U] step
-    by (auto simp: abs_state_def init_clss.simps)
-
-  let ?S = \<open>(trail S, init_clss S + N, learned_clss S, conflicting S)\<close>
-  let ?S' = \<open>(trail S, (init_clss S + N) + (N' - N), learned_clss S, conflicting S)\<close>
-  let ?T' = \<open>(trail T, init_clss T + (conflicting_clss T) + (N' - N), learned_clss T, conflicting T)\<close>
-  have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W\<^sup>*\<^sup>* ?S' ?T'\<close>
-    using st eq cdcl\<^sub>W_restart_mset.rtranclp_cdcl\<^sub>W_enlarge_clauses[of ?S' ?S \<open>N' - N\<close> \<open>{#}\<close> \<open>abs_state T\<close>]
-    by (auto simp: cdcl\<^sub>W_restart_mset_state abs_state_def)
-  moreover have \<open>init_clss T + (conflicting_clss T) + (N' - N) = init_clss T + N'\<close>
-    using eq eq' \<open>N \<subseteq># N'\<close>
-    by (auto simp: abs_state_def init_clss.simps)
-
-  ultimately have
-    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W\<^sup>*\<^sup>* (trail S, init_clss S + N', learned_clss S, conflicting S)
-          (abs_state U)\<close>
-    using eq' st' \<open>N \<subseteq># N'\<close> unfolding abs_state_def
-    by auto
-  then show ?case
-    using eq' st' by (auto intro!: exI[of _ N'])
-qed
-
 definition cdcl_bnb_struct_invs :: \<open>'st \<Rightarrow> bool\<close> where
 \<open>cdcl_bnb_struct_invs S \<longleftrightarrow>
    atms_of_mm (conflicting_clss S) \<subseteq> atms_of_mm (init_clss S)\<close>
 
 lemma cdcl_bnb_cdcl_bnb_struct_invs:
   \<open>cdcl_bnb S T \<Longrightarrow> cdcl_bnb_struct_invs S \<Longrightarrow> cdcl_bnb_struct_invs T\<close>
-  using atms_of_conflicting_clss[of \<open>update_weight_information _ S\<close>] apply -
   by (induction rule: cdcl_bnb.induct)
-    (force simp: improvep.simps conflict.simps propagate.simps
+    (force simp: conflict.simps propagate.simps
       conflict_opt.simps ocdcl\<^sub>W_o.simps obacktrack.simps skip.simps resolve.simps
       cdcl_bnb_bj.simps decide.simps cdcl_bnb_struct_invs_def)+
 
@@ -965,14 +701,6 @@ lemma cdcl\<^sub>W_o_no_smaller_confl:
   done
 
 declare cdcl\<^sub>W_restart_mset.conflict_is_false_with_level_def [simp del]
-
-lemma improve_conflict_is_false_with_level:
-  assumes \<open>improvep S T\<close> and \<open>conflict_is_false_with_level S\<close>
-  shows \<open>conflict_is_false_with_level T\<close>
-  using assms
-  by induction (auto simp: cdcl\<^sub>W_restart_mset.conflict_is_false_with_level_def
-        abs_state_def cdcl\<^sub>W_restart_mset_state in_negate_trial_iff Bex_def negate_ann_lits_empty_iff
-        intro!: exI[of _ \<open>-lit_of (hd M)\<close>])
 
 declare conflict_is_false_with_level_def[simp del]
 
@@ -1136,7 +864,7 @@ proof (induction rule: cdcl_bnb_stgy.cases)
     by (rule ocdcl\<^sub>W_o_no_smaller_confl_inv)
      (use cdcl_bnb_other' in \<open>auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def\<close>)
 qed (auto intro: conflict_no_smaller_confl_inv propagate_no_smaller_confl_inv;
-  auto simp: no_smaller_confl_def improvep.simps conflict_opt.simps)+
+  auto simp: no_smaller_confl_def conflict_opt.simps)+
 
 lemma ocdcl\<^sub>W_o_conflict_is_false_with_level_inv:
   assumes
@@ -1205,10 +933,6 @@ next
     using propagate_conflict_is_false_with_level
     by (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def)
 next
-  case (cdcl_bnb_improve S')
-  then show ?case
-    using improve_conflict_is_false_with_level by blast
-next
   case (cdcl_bnb_conflict_opt S')
   then show ?case
     using conflict_opt_no_smaller_conflict(2) by blast
@@ -1232,13 +956,6 @@ lemma either_all_false_or_earliest_decomposition:
   subgoal for a
     by (metis append_Cons append_Nil list.sel(3) tl_append2)
   done
-
-lemma trail_is_improving_Ex_improve:
-  assumes confl: \<open>conflicting S = None\<close> and
-    imp: \<open>is_improving (trail S) M' S\<close>
-  shows \<open>Ex (improvep S)\<close>
-  using assms
-  by (auto simp: improvep.simps intro!: exI)
 
 definition cdcl_bnb_stgy_inv :: \<open>'st \<Rightarrow> bool\<close> where
   \<open>cdcl_bnb_stgy_inv S \<longleftrightarrow> conflict_is_false_with_level S \<and> no_smaller_confl S\<close>
@@ -1285,17 +1002,6 @@ next
     using entailed
     by (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init_def
         elim!: propagateE)
-next
-  case (cdcl_improve S')
-  moreover have \<open>set_mset (CDCL_W_Abstract_State.init_clss (abs_state S)) \<subseteq>
-    set_mset (CDCL_W_Abstract_State.init_clss (abs_state (update_weight_information M' S)))\<close>
-       if \<open>is_improving M M' S\<close> for M M'
-    using that conflicting_clss_update_weight_information_mono[OF all_struct]
-    by (auto simp: abs_state_def cdcl\<^sub>W_restart_mset_state)
-  ultimately show ?case
-    using entailed
-    by (fastforce simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init_def
-        elim!: improveE intro: true_clss_clss_subsetI)
 next
   case (cdcl_other' S') note T = this(1) and o = this(2)
   show ?case
@@ -1355,129 +1061,17 @@ lemma backtrack_imp_obacktrack:
 
 lemma cdcl\<^sub>W_same_weight: \<open>cdcl\<^sub>W S U \<Longrightarrow> weight S = weight U\<close>
   by (induction rule: cdcl\<^sub>W.induct)
-    (auto simp: improvep.simps cdcl\<^sub>W.simps
+    (auto simp: cdcl\<^sub>W.simps
         propagate.simps sim_abs_state_simp abs_state_def cdcl\<^sub>W_restart_mset_state
         clauses_def conflict.simps cdcl\<^sub>W_o.simps decide.simps cdcl\<^sub>W_bj.simps
         skip.simps resolve.simps backtrack.simps)
 
 lemma ocdcl\<^sub>W_o_same_weight: \<open>ocdcl\<^sub>W_o S U \<Longrightarrow> weight S = weight U\<close>
   by (induction rule: ocdcl\<^sub>W_o.induct)
-    (auto simp: improvep.simps cdcl\<^sub>W.simps cdcl_bnb_bj.simps
+    (auto simp: cdcl\<^sub>W.simps cdcl_bnb_bj.simps
         propagate.simps sim_abs_state_simp abs_state_def cdcl\<^sub>W_restart_mset_state
         clauses_def conflict.simps cdcl\<^sub>W_o.simps decide.simps cdcl\<^sub>W_bj.simps
         skip.simps resolve.simps obacktrack.simps)
-
-text \<open>This is a proof artefact: it is easier to reason on \<^term>\<open>improvep\<close> when the set of
-  initial clauses is fixed (here by \<^term>\<open>N\<close>). The next theorem shows that the conclusion
-  is equivalent to not fixing the set of clauses.\<close>
-lemma wf_cdcl_bnb: (* \htmllink{wf_cdcl_bnb} *)
-  assumes improve: \<open>\<And>S T. improvep S T \<Longrightarrow> init_clss S = N \<Longrightarrow> (\<nu> (weight T), \<nu> (weight S)) \<in> R\<close> and
-    wf_R: \<open>wf R\<close>
-  shows \<open>wf {(T, S). cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S) \<and> cdcl_bnb S T \<and>
-      init_clss S = N}\<close>
-    (is \<open>wf ?A\<close>)
-proof -
-  let ?R = \<open>{(T, S). (\<nu> (weight T), \<nu> (weight S)) \<in> R}\<close>
-
-  have \<open>wf {(T, S).  cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv S \<and> cdcl\<^sub>W_restart_mset.cdcl\<^sub>W S T}\<close>
-    by (rule cdcl\<^sub>W_restart_mset.wf_cdcl\<^sub>W)
-  from wf_if_measure_f[OF this, of abs_state]
-  have wf: \<open>wf {(T, S).  cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S) \<and>
-      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W (abs_state S) (abs_state T) \<and> weight S = weight T}\<close>
-    (is \<open>wf ?CDCL\<close>)
-    by (rule wf_subset) auto
-  have \<open>wf (?R \<union> ?CDCL)\<close>
-    apply (rule wf_union_compatible)
-    subgoal by (rule wf_if_measure_f[OF wf_R, of \<open>\<lambda>x. \<nu> (weight x)\<close>])
-    subgoal by (rule wf)
-    subgoal by (auto simp: cdcl\<^sub>W_same_weight)
-    done
-
-  moreover have \<open>?A \<subseteq> ?R \<union> ?CDCL\<close>
-    by (auto dest: cdcl\<^sub>W.intros cdcl\<^sub>W_restart_mset.W_propagate cdcl\<^sub>W_restart_mset.W_other
-          conflict_conflict propagate_propagate decide_decide improve conflict_opt_conflict
-          cdcl\<^sub>W_o_cdcl\<^sub>W_o cdcl\<^sub>W_restart_mset.W_conflict W_conflict cdcl\<^sub>W_o.intros cdcl\<^sub>W.intros
-          cdcl\<^sub>W_o_cdcl\<^sub>W_o
-        simp: cdcl\<^sub>W_same_weight cdcl_bnb.simps ocdcl\<^sub>W_o_same_weight
-        elim: conflict_optE)
-  ultimately show ?thesis
-    by (rule wf_subset)
-qed
-
-corollary wf_cdcl_bnb_fixed_iff:
-  shows \<open>(\<forall>N. wf {(T, S). cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S) \<and> cdcl_bnb S T
-       \<and> init_clss S = N}) \<longleftrightarrow>
-     wf {(T, S). cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S) \<and> cdcl_bnb S T}\<close>
-    (is \<open>(\<forall>N. wf (?A N)) \<longleftrightarrow> wf ?B\<close>)
-proof
-  assume \<open>wf ?B\<close>
-  then show \<open>\<forall>N. wf (?A N)\<close>
-    by (intro allI, rule wf_subset) auto
-next
-  assume \<open>\<forall>N. wf (?A N)\<close>
-  show \<open>wf ?B\<close>
-    unfolding wf_iff_no_infinite_down_chain
-  proof
-    assume \<open>\<exists>f. \<forall>i. (f (Suc i), f i) \<in> ?B\<close>
-    then obtain f where f: \<open>(f (Suc i), f i) \<in> ?B\<close> for i
-      by blast
-    then have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state (f n))\<close> for n
-      by (induction n) auto
-    with f have st: \<open>cdcl_bnb\<^sup>*\<^sup>* (f 0) (f n)\<close> for n
-      apply (induction n)
-      subgoal by auto
-      subgoal by (subst rtranclp_unfold,subst tranclp_unfold_end)
-         auto
-      done
-    let ?N = \<open>init_clss (f 0)\<close>
-    have N: \<open>init_clss (f n) = ?N\<close> for n
-      using st[of n] by (auto dest: rtranclp_cdcl_bnb_no_more_init_clss)
-    have \<open>(f (Suc i), f i) \<in> ?A ?N\<close> for i
-      using f N by auto
-    with \<open>\<forall>N. wf (?A N)\<close> show False
-      unfolding wf_iff_no_infinite_down_chain by blast
-  qed
-qed
-
-text \<open>The following is a slightly more restricted version of the theorem, because it makes it possible
-to add some specific invariant, which can be useful when the proof of the decreasing is complicated.
-\<close>
-lemma wf_cdcl_bnb_with_additional_inv:
-  assumes improve: \<open>\<And>S T. improvep S T \<Longrightarrow> P S \<Longrightarrow> init_clss S = N \<Longrightarrow> (\<nu> (weight T), \<nu> (weight S)) \<in> R\<close> and
-    wf_R: \<open>wf R\<close> and
-    \<open>\<And>S T. cdcl_bnb S T \<Longrightarrow> P S \<Longrightarrow> init_clss S = N \<Longrightarrow> cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S) \<Longrightarrow> P T\<close>
-  shows \<open>wf {(T, S). cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S) \<and> cdcl_bnb S T \<and> P S \<and>
-      init_clss S = N}\<close>
-    (is \<open>wf ?A\<close>)
-proof -
-  let ?R = \<open>{(T, S). (\<nu> (weight T), \<nu> (weight S)) \<in> R}\<close>
-
-  have \<open>wf {(T, S).  cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv S \<and> cdcl\<^sub>W_restart_mset.cdcl\<^sub>W S T}\<close>
-    by (rule cdcl\<^sub>W_restart_mset.wf_cdcl\<^sub>W)
-  from wf_if_measure_f[OF this, of abs_state]
-  have wf: \<open>wf {(T, S).  cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S) \<and>
-      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W (abs_state S) (abs_state T) \<and> weight S = weight T}\<close>
-    (is \<open>wf ?CDCL\<close>)
-    by (rule wf_subset) auto
-  have \<open>wf (?R \<union> ?CDCL)\<close>
-    apply (rule wf_union_compatible)
-    subgoal by (rule wf_if_measure_f[OF wf_R, of \<open>\<lambda>x. \<nu> (weight x)\<close>])
-    subgoal by (rule wf)
-    subgoal by (auto simp: cdcl\<^sub>W_same_weight)
-    done
-
-  moreover have \<open>?A \<subseteq> ?R \<union> ?CDCL\<close>
-    using assms(3) cdcl_bnb.intros(3)
-    by (auto dest: cdcl\<^sub>W.intros cdcl\<^sub>W_restart_mset.W_propagate cdcl\<^sub>W_restart_mset.W_other
-          conflict_conflict propagate_propagate decide_decide improve conflict_opt_conflict
-          cdcl\<^sub>W_o_cdcl\<^sub>W_o cdcl\<^sub>W_restart_mset.W_conflict W_conflict cdcl\<^sub>W_o.intros cdcl\<^sub>W.intros
-          cdcl\<^sub>W_o_cdcl\<^sub>W_o
-        simp: cdcl\<^sub>W_same_weight cdcl_bnb.simps ocdcl\<^sub>W_o_same_weight
-        elim: conflict_optE)
-  ultimately show ?thesis
-    by (rule wf_subset)
-qed
-
 
 lemma conflict_is_false_with_level_abs_iff:
   \<open>cdcl\<^sub>W_restart_mset.conflict_is_false_with_level (abs_state S) \<longleftrightarrow>
@@ -1498,13 +1092,12 @@ lemma cdcl_bnb_no_conflicting_clss_cdcl\<^sub>W:
   assumes \<open>cdcl_bnb S T\<close> and \<open>conflicting_clss T = {#}\<close>
   shows \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W (abs_state S) (abs_state T) \<and> conflicting_clss S = {#}\<close>
   using assms
-  by (auto simp: cdcl_bnb.simps conflict_opt.simps improvep.simps ocdcl\<^sub>W_o.simps
+  by (auto simp: cdcl_bnb.simps conflict_opt.simps ocdcl\<^sub>W_o.simps
       cdcl_bnb_bj.simps
     dest: conflict_conflict propagate_propagate decide_decide skip_skip resolve_resolve
       backtrack_backtrack
     intro: cdcl\<^sub>W_restart_mset.W_conflict cdcl\<^sub>W_restart_mset.W_propagate cdcl\<^sub>W_restart_mset.W_other
-    dest: conflicting_clss_update_weight_information_in
-    elim: conflictE propagateE decideE skipE resolveE improveE obacktrackE)
+    elim: conflictE propagateE decideE skipE resolveE obacktrackE)
 
 lemma rtranclp_cdcl_bnb_no_conflicting_clss_cdcl\<^sub>W:
   assumes \<open>cdcl_bnb\<^sup>*\<^sup>* S T\<close> and \<open>conflicting_clss T = {#}\<close>
@@ -1539,11 +1132,9 @@ proof -
       dest: conflict_conflict propagate_propagate decide_decide skip_skip resolve_resolve
         backtrack_backtrack
       dest: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy.intros cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_o.intros
-      dest: conflicting_clss_update_weight_information_in
         conflict_abs_ex_conflict_no_conflicting
         propagate_abs_ex_propagate_no_conflicting
-      intro: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy.intros(3)
-      elim: improveE)
+      intro: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy.intros(3))
 qed
 
 lemma rtranclp_cdcl_bnb_stgy_no_conflicting_clss_cdcl\<^sub>W_stgy:
@@ -1575,7 +1166,7 @@ lemma no_step_cdcl_bnb_cdcl\<^sub>W:
   shows \<open>no_step cdcl\<^sub>W_restart_mset.cdcl\<^sub>W (abs_state S)\<close>
 proof -
   have ns_confl: \<open>no_step skip S\<close>  \<open>no_step resolve S\<close>  \<open>no_step obacktrack S\<close> and
-    ns_nc: \<open>no_step conflict S\<close> \<open>no_step propagate S\<close> \<open>no_step improvep S\<close> \<open>no_step conflict_opt S\<close>
+    ns_nc: \<open>no_step conflict S\<close> \<open>no_step propagate S\<close> \<open>no_step conflict_opt S\<close>
       \<open>no_step decide S\<close>
     using ns
     by (auto simp: cdcl_bnb.simps ocdcl\<^sub>W_o.simps cdcl_bnb_bj.simps)
@@ -1695,7 +1286,7 @@ proof -
     ns': \<open>no_step cdcl_bnb T\<close>
     using full unfolding full_def apply (blast dest: rtranclp_cdcl_bnb_stgy_cdcl_bnb)+
     using full unfolding full_def
-    by (metis cdcl_bnb.simps cdcl_bnb_conflict cdcl_bnb_conflict_opt cdcl_bnb_improve
+    by (metis cdcl_bnb.simps cdcl_bnb_conflict cdcl_bnb_conflict_opt
       cdcl_bnb_other' cdcl_bnb_propagate no_confl_prop_impr.elims(3))
   have struct_T: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state T)\<close>
     using rtranclp_cdcl_bnb_stgy_all_struct_inv[OF st' all_struct] .
@@ -1888,7 +1479,6 @@ lemma ocdcl\<^sub>W_no_smaller_propa:
   apply (cases)
   subgoal by (auto)
   subgoal by (auto)
-  subgoal by (auto elim!: improveE simp: no_smaller_propa_def)
   subgoal by (auto elim!: conflict_optE simp: no_smaller_propa_def)
   subgoal using ocdcl\<^sub>W_o_no_smaller_propa by fast
   done
@@ -1909,9 +1499,6 @@ proof cases
 next
   case cdcl_bnb_propagate
   then show ?thesis using dist by (auto elim: rulesE)
-next
-  case cdcl_bnb_improve
-  then show ?thesis using dist by (auto elim: improveE)
 next
   case cdcl_bnb_conflict_opt
   then show ?thesis using dist by (auto elim: conflict_optE)
@@ -2022,42 +1609,10 @@ lemma cdcl_bnb_reasons_in_clauses:
   \<open>cdcl_bnb S T \<Longrightarrow> reasons_in_clauses S \<Longrightarrow> reasons_in_clauses T\<close>
   by (auto simp: cdcl_bnb.simps reasons_in_clauses_def ocdcl\<^sub>W_o.simps
         cdcl_bnb_bj.simps get_all_mark_of_propagated_tl_proped
-    elim!: rulesE improveE conflict_optE obacktrackE
+    elim!: rulesE conflict_optE obacktrackE
     dest!: in_set_tlD get_all_ann_decomposition_exists_prepend)
 
-
-lemma cdcl_bnb_pow2_n_learned_clauses:
-  assumes \<open>distinct_mset_mset N\<close>
-    \<open>cdcl_bnb\<^sup>*\<^sup>* (init_state N) T\<close>
-  shows \<open>size (learned_clss T) \<le> 2 ^ (card (atms_of_mm N))\<close>
-proof -
-  have H: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state (init_state N))\<close>
-    using assms apply (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-     cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def
-     cdcl\<^sub>W_restart_mset.reasons_in_clauses_def)
-    using assms by (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-     distinct_mset_mset_conflicting_clss
-     cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def abs_state_def init_clss.simps)
-  then obtain Na where Na: \<open> cdcl\<^sub>W_restart_mset.cdcl\<^sub>W\<^sup>*\<^sup>*
-        (trail (init_state N), init_clss (init_state N) + Na,
-         learned_clss (init_state N), conflicting (init_state N))
-        (abs_state T) \<and>
-       CDCL_W_Abstract_State.init_clss (abs_state T) = init_clss (init_state N) + Na\<close>
-    using rtranclp_cdcl_or_improve_cdclD[OF H assms(2)] by auto
-  moreover have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv ([], N + Na, {#}, None)\<close>
-    using assms Na rtranclp_cdcl_bnb_no_more_init_clss[OF assms(2)]
-    apply (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-     cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def
-     cdcl\<^sub>W_restart_mset.reasons_in_clauses_def)
-    using assms by (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_restart_mset_state
-     distinct_mset_mset_conflicting_clss cdcl\<^sub>W_restart_mset.no_strange_atm_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
-     cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
-     cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def abs_state_def init_clss.simps)
-  ultimately show ?thesis
-    using rtranclp_cdcl_bnb_no_more_init_clss[OF assms(2)]
-    cdcl\<^sub>W_restart_mset.cdcl_pow2_n_learned_clauses2[of \<open>N + Na\<close> \<open>abs_state T\<close>]
-    by (auto simp: init_state.simps abs_state_def cdcl\<^sub>W_restart_mset_state)
-qed
 end
+
 
 end
