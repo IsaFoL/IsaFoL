@@ -228,7 +228,7 @@ sublocale conflict_driven_clause_learning\<^sub>W where
   init_state = init_state
   by unfold_locales
 
-sublocale conflict_driven_clause_learning_with_adding_init_clause_cost\<^sub>W_no_state
+sublocale conflict_driven_clause_learning_with_adding_init_clause_bnb\<^sub>W_no_state
   where
     state = state and
     trail = trail and
@@ -386,7 +386,7 @@ sublocale conflict_driven_clause_learning\<^sub>W where
   init_state = init_state
   by unfold_locales
 
-sublocale conflict_driven_clause_learning_with_adding_init_clause_cost\<^sub>W_ops
+sublocale conflict_driven_clause_learning_with_adding_init_clause_bnb\<^sub>W_ops
   where
     state = state and
     trail = trail and
