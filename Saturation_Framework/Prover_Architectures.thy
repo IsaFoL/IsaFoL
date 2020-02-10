@@ -503,76 +503,81 @@ proof -
     then have m_def_F: "m = length (prems_of (to_F \<iota>))" unfolding to_F_def by simp
     have i_in_F: "to_F \<iota> \<in> Inf_F" using i_in Inf_FL_to_Inf_F unfolding with_labels.Inf_from_def to_F_def by blast
     then have "m > 0" using m_def_F using inf_have_premises by blast
-    then obtain j where j_in: "j \<in> {0..<m}" by simp
-    then obtain C where c_is: "(C,active) = (prems_of \<iota>)!j"
-      using i_in2 unfolding m_def with_labels.Inf_from_def active_subset_def
-      (* Here, the sledghammer insert bug happens that inserts the isar proof instead of the one liner *)
-      by (smt Collect_mem_eq Collect_mono_iff atLeastLessThan_iff nth_mem old.prod.exhaust snd_conv)
-    then have "(C,active) \<in> Liminf_llist D" using j_in i_in unfolding m_def with_labels.Inf_from_def by force
-    then obtain nj where nj_is: "enat nj < llength D" and
-      c_in2: "(C,active) \<in> \<Inter> (lnth D ` {k. nj \<le> k \<and> enat k < llength D})"
-      unfolding Liminf_llist_def using init_state by blast
-    then have c_in3: "\<forall>k. k \<ge> nj \<longrightarrow> enat k < llength D \<longrightarrow> (C,active) \<in> (lnth D k)" by blast
-    have nj_pos: "nj > 0" using init_state c_in2 nj_is unfolding active_subset_def by fastforce
-    (* have "\<forall>j \<in> {0..<m}. (prems_of \<iota>)!j \<in> active_subset (lnth D k) \<Longrightarrow> (prems_of \<iota>) \<in> *)
-    obtain nj_min where nj_min_is: "nj_min = (LEAST nj. enat nj < llength D \<and>
-      (C,active) \<in> \<Inter> (lnth D ` {k. nj \<le> k \<and> enat k < llength D}))" by blast
-    then have in_allk: "\<forall>k. k \<ge> nj_min \<longrightarrow> enat k < llength D \<longrightarrow> (C,active) \<in> (lnth D k)"
-      using c_in3 nj_is c_in2
-      by (metis (mono_tags, lifting) INT_E LeastI_ex
-        \<open>\<And>thesis. (\<And>nj. \<lbrakk>enat nj < llength D; (C, active) \<in> \<Inter> (lnth D ` {k. nj \<le> k \<and> enat k < llength D})\<rbrakk>
-          \<Longrightarrow> thesis) \<Longrightarrow> thesis\<close> mem_Collect_eq)
-    have "nj_min > 0"
-      using nj_is c_in2 nj_pos nj_min_is
-      by (metis (mono_tags, lifting) Collect_empty_eq \<open>(C, active) \<in> Liminf_llist D\<close>
-        \<open>Liminf_llist D = active_subset (Liminf_llist D)\<close>
-        \<open>\<forall>k\<ge>nj_min. enat k < llength D \<longrightarrow> (C, active) \<in> lnth D k\<close> active_subset_def init_state
-        linorder_not_less mem_Collect_eq non_empty zero_enat_def)
-    then obtain njm_prec where nj_prec_is: "Suc njm_prec = nj_min" using gr0_conv_Suc by auto
-    then have njm_prec_njm: "njm_prec < nj_min" by blast
-    have njm_prec_all_suc: "\<forall>k>njm_prec. enat k < llength D \<longrightarrow> (C, active) \<in> lnth D k"
-      using nj_prec_is in_allk by simp
-    have notin_njm_prec: "(C, active) \<notin> lnth D njm_prec"
-    proof (rule ccontr)
-      assume "\<not> (C, active) \<notin> lnth D njm_prec"
-      then have absurd_hyp: "(C, active) \<in> lnth D njm_prec" by simp
-      have prec_smaller: "enat njm_prec < llength D" using nj_min_is nj_prec_is
-        by (smt LeastI_ex Suc_leD \<open>\<And>thesis. (\<And>nj. \<lbrakk>enat nj < llength D;
-          (C, active) \<in> \<Inter> (lnth D ` {k. nj \<le> k \<and> enat k < llength D})\<rbrakk> \<Longrightarrow> thesis) \<Longrightarrow> thesis\<close>
-          enat_ord_simps(1) le_eq_less_or_eq le_less_trans)
-      have "(C,active) \<in> \<Inter> (lnth D ` {k. njm_prec \<le> k \<and> enat k < llength D})"
-        proof -
-          {
-          fix k
-          assume k_in: "njm_prec \<le> k \<and> enat k < llength D"
-          have "k = njm_prec \<Longrightarrow> (C,active) \<in> lnth D k" using absurd_hyp by simp
-          moreover have "njm_prec < k \<Longrightarrow> (C,active) \<in> lnth D k"
-            using nj_prec_is in_allk k_in by simp
-          ultimately have "(C,active) \<in> lnth D k" using k_in by fastforce
-          }
-          then show "(C,active) \<in> \<Inter> (lnth D ` {k. njm_prec \<le> k \<and> enat k < llength D})" by blast
-        qed
-      then have "enat njm_prec < llength D \<and> (C,active) \<in> \<Inter> (lnth D ` {k. njm_prec \<le> k \<and> enat k < llength D})"
-        using prec_smaller by blast
-      then show False
-        using nj_min_is nj_prec_is Orderings.wellorder_class.not_less_Least njm_prec_njm by blast
-    qed
-    then have notin_active_subs_njm_prec: "(C, active) \<notin> active_subset (lnth D njm_prec)"
-      unfolding active_subset_def by blast
-    then have "\<exists>nj. (prems_of \<iota>)!j \<notin> active_subset (lnth D nj) \<and>
-      (\<forall>k. k > nj \<longrightarrow> enat k < llength D \<longrightarrow> (prems_of \<iota>)!j \<in> active_subset (lnth D k))"
-      using c_is njm_prec_all_suc
-      by (metis (mono_tags, lifting) active_subset_def mem_Collect_eq snd_conv)
     have "\<forall>j \<in> {0..<m}. (\<exists>nj. (prems_of \<iota>)!j \<notin> active_subset (lnth D nj) \<and>
       (\<forall>k. k > nj \<longrightarrow> enat k < llength D \<longrightarrow> (prems_of \<iota>)!j \<in> active_subset (lnth D k)))"
     proof clarify
-    
-    (* then obtain C :: 'f where "(C,active) \<in> set (prems_of \<iota>)"
-      using labeled_inf_have_premises i_in unfolding active_subset_def with_labels.Inf_from_def
-      by (smt bot.extremum_uniqueI mem_Collect_eq snd_conv subrelI subset_code(1))
-    then obtain n :: nat where "0 < n" "enat (Suc n) < llength D" "(C,active) \<in> active_subset (lnth D (Suc n))"
-      "(C, active) \<notin> active_subset (lnth D n)" (* n here is n-1 in the paper *)
-      using deriv non_empty init_state sorry *)
+      fix j
+      assume j_in: "j \<in> {0..<m}"
+      then obtain C where c_is: "(C,active) = (prems_of \<iota>)!j"
+        using i_in2 unfolding m_def with_labels.Inf_from_def active_subset_def
+        (* Here, the sledghammer insert bug happens that inserts the isar proof instead of the one liner *)
+        by (smt Collect_mem_eq Collect_mono_iff atLeastLessThan_iff nth_mem old.prod.exhaust snd_conv)
+      then have "(C,active) \<in> Liminf_llist D" using j_in i_in unfolding m_def with_labels.Inf_from_def by force
+      then obtain nj where nj_is: "enat nj < llength D" and
+        c_in2: "(C,active) \<in> \<Inter> (lnth D ` {k. nj \<le> k \<and> enat k < llength D})"
+        unfolding Liminf_llist_def using init_state by blast
+      then have c_in3: "\<forall>k. k \<ge> nj \<longrightarrow> enat k < llength D \<longrightarrow> (C,active) \<in> (lnth D k)" by blast
+      have nj_pos: "nj > 0" using init_state c_in2 nj_is unfolding active_subset_def by fastforce
+      (* have "\<forall>j \<in> {0..<m}. (prems_of \<iota>)!j \<in> active_subset (lnth D k) \<Longrightarrow> (prems_of \<iota>) \<in> *)
+      obtain nj_min where nj_min_is: "nj_min = (LEAST nj. enat nj < llength D \<and>
+        (C,active) \<in> \<Inter> (lnth D ` {k. nj \<le> k \<and> enat k < llength D}))" by blast
+      then have in_allk: "\<forall>k. k \<ge> nj_min \<longrightarrow> enat k < llength D \<longrightarrow> (C,active) \<in> (lnth D k)"
+        using c_in3 nj_is c_in2
+        by (metis (mono_tags, lifting) INT_E LeastI_ex
+          \<open>\<And>thesis. (\<And>nj. \<lbrakk>enat nj < llength D; (C, active) \<in> \<Inter> (lnth D ` {k. nj \<le> k \<and> enat k < llength D})\<rbrakk>
+            \<Longrightarrow> thesis) \<Longrightarrow> thesis\<close> mem_Collect_eq)
+      have "nj_min > 0"
+        using nj_is c_in2 nj_pos nj_min_is
+        by (metis (mono_tags, lifting) Collect_empty_eq \<open>(C, active) \<in> Liminf_llist D\<close>
+          \<open>Liminf_llist D = active_subset (Liminf_llist D)\<close>
+          \<open>\<forall>k\<ge>nj_min. enat k < llength D \<longrightarrow> (C, active) \<in> lnth D k\<close> active_subset_def init_state
+          linorder_not_less mem_Collect_eq non_empty zero_enat_def)
+      then obtain njm_prec where nj_prec_is: "Suc njm_prec = nj_min" using gr0_conv_Suc by auto
+      then have njm_prec_njm: "njm_prec < nj_min" by blast
+      have njm_prec_all_suc: "\<forall>k>njm_prec. enat k < llength D \<longrightarrow> (C, active) \<in> lnth D k"
+        using nj_prec_is in_allk by simp
+      have notin_njm_prec: "(C, active) \<notin> lnth D njm_prec"
+      proof (rule ccontr)
+        assume "\<not> (C, active) \<notin> lnth D njm_prec"
+        then have absurd_hyp: "(C, active) \<in> lnth D njm_prec" by simp
+        have prec_smaller: "enat njm_prec < llength D" using nj_min_is nj_prec_is
+          by (smt LeastI_ex Suc_leD \<open>\<And>thesis. (\<And>nj. \<lbrakk>enat nj < llength D;
+            (C, active) \<in> \<Inter> (lnth D ` {k. nj \<le> k \<and> enat k < llength D})\<rbrakk> \<Longrightarrow> thesis) \<Longrightarrow> thesis\<close>
+            enat_ord_simps(1) le_eq_less_or_eq le_less_trans)
+        have "(C,active) \<in> \<Inter> (lnth D ` {k. njm_prec \<le> k \<and> enat k < llength D})"
+          proof -
+            {
+            fix k
+            assume k_in: "njm_prec \<le> k \<and> enat k < llength D"
+            have "k = njm_prec \<Longrightarrow> (C,active) \<in> lnth D k" using absurd_hyp by simp
+            moreover have "njm_prec < k \<Longrightarrow> (C,active) \<in> lnth D k"
+              using nj_prec_is in_allk k_in by simp
+            ultimately have "(C,active) \<in> lnth D k" using k_in by fastforce
+            }
+            then show "(C,active) \<in> \<Inter> (lnth D ` {k. njm_prec \<le> k \<and> enat k < llength D})" by blast
+          qed
+        then have "enat njm_prec < llength D \<and> (C,active) \<in> \<Inter> (lnth D ` {k. njm_prec \<le> k \<and> enat k < llength D})"
+          using prec_smaller by blast
+        then show False
+          using nj_min_is nj_prec_is Orderings.wellorder_class.not_less_Least njm_prec_njm by blast
+      qed
+      then have notin_active_subs_njm_prec: "(C, active) \<notin> active_subset (lnth D njm_prec)"
+        unfolding active_subset_def by blast
+      then show "\<exists>nj. (prems_of \<iota>)!j \<notin> active_subset (lnth D nj) \<and>
+        (\<forall>k. k > nj \<longrightarrow> enat k < llength D \<longrightarrow> (prems_of \<iota>)!j \<in> active_subset (lnth D k))"
+        using c_is njm_prec_all_suc
+        by (metis (mono_tags, lifting) active_subset_def mem_Collect_eq snd_conv)
+    qed
+    (* TODO: the proof of unicity of nj is needed I think *)
+
+
+    (* the n below in the n-1 from the paper *)
+    define n where "n = (GREATEST nj. (\<exists>j\<in>{0..<m}. (prems_of \<iota>)!j \<notin> active_subset (lnth D nj) \<and>
+      (\<forall>k. k > nj \<longrightarrow> enat k < llength D \<longrightarrow> (prems_of \<iota>)!j \<in> active_subset (lnth D k))))"
+    then obtain j0 where "j0 \<in> {0..<m}" and "(prems_of \<iota>)!j0 \<notin> active_subset (lnth D n) \<and>
+      (\<forall>k. k > n \<longrightarrow> enat k < llength D \<longrightarrow> (prems_of \<iota>)!j0 \<in> active_subset (lnth D k))"
+    apply auto
+    sorry  
     show "\<iota> \<in>
       labeled_ord_red_crit_fam.empty_ord_lifted_calc_w_red_crit_family.inter_red_crit_calculus.Sup_Red_Inf_llist D"
     sorry
