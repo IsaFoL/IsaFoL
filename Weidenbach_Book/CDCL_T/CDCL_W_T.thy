@@ -331,6 +331,38 @@ lemma invs_update_weight_information[simp]:
   unfolding no_strange_atm_def cdcl\<^sub>W_M_level_inv_def distinct_cdcl\<^sub>W_state_def cdcl\<^sub>W_conflicting_def
     cdcl\<^sub>W_learned_clause_alt_def cdcl\<^sub>W_all_struct_inv_def by auto
 
+lemma get_level_delete_levels:
+  \<open>get_level M L < (count_decided M - i) \<Longrightarrow> get_level (delete_levels M i) L = get_level M L\<close>
+  by (induction M i rule: delete_levels.induct)
+    (auto simp add: delete_levels_Decided_If delete_levels_Propagated_If
+    get_level_cons_if atm_of_eq_atm_of split: if_splits)
+lemma get_level_le_still_in_trail:
+  \<open>get_level M L < count_decided M - i \<Longrightarrow> L \<in> lits_of_l M \<Longrightarrow> L \<in> lits_of_l (delete_levels M i)\<close>
+  by (induction M i rule: delete_levels.induct)
+    (auto simp add: delete_levels_Decided_If delete_levels_Propagated_If
+    get_level_cons_if atm_of_eq_atm_of split: if_splits)
+
+lemma ISABELLE_WTF: \<open>n \<le> n - Suc m \<longleftrightarrow> n = 0\<close>
+  by auto
+lemma get_level_le_still_in_trail':
+  \<open>get_level M L \<le> count_decided M - i \<Longrightarrow> count_decided M \<ge> i \<Longrightarrow> L \<in> lits_of_l M \<Longrightarrow> L \<in> lits_of_l (delete_levels M i)\<close>
+  by (induction M i rule: delete_levels.induct)
+    (auto simp add: delete_levels_Decided_If delete_levels_Propagated_If ISABELLE_WTF
+    get_level_cons_if atm_of_eq_atm_of split: if_splits)
+
+lemma conflict_is_conflict_after_trail_reduction:
+  \<open>\<forall>L\<in>#C. - L \<in> lits_of_l (trail S) \<Longrightarrow> no_dup (trail S) \<Longrightarrow>
+          L \<in># C \<Longrightarrow> -L \<in> lits_of_l (trail S) \<Longrightarrow>
+          -L \<in> lits_of_l
+             (trail
+               (reduce_trail_to_level (get_maximum_level (trail S) C) S))\<close>
+  using get_level_le_still_in_trail'[of \<open>trail S\<close> \<open>-L\<close> \<open>backtrack_lvl S - get_maximum_level (trail S) C\<close>]
+    count_decided_ge_get_level[of \<open>trail S\<close> \<open>-L\<close>]
+    count_decided_ge_get_maximum_level[of \<open>trail S\<close> C]
+    le_count_decided_decomp[of \<open>trail S\<close> \<open>get_maximum_level (trail S) C\<close>]
+  unfolding reduce_trail_to_level_def
+  by (auto simp: get_maximum_level_add_mset dest!: multi_member_split)
+
 lemma conflict_opt_cdcl\<^sub>W_all_struct_inv:
   assumes \<open>conflict_opt S T\<close> and
     inv: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S)\<close>
@@ -349,9 +381,11 @@ lemma conflict_opt_cdcl\<^sub>W_all_struct_inv:
       intro!: true_clss_cls_in)
 
 apply (auto dest!: in_trail_reduce_trail_to_levelD in_lits_of_l_trail_reduce_trail_to_levelD)[3]
-
+apply blast
   sorry
 
+
+term \<open>map (*)\<close>
 lemma conflict_opt_no_smaller_conflict:
   assumes \<open>conflict_opt S T\<close> and
     \<open>no_smaller_confl S\<close>
