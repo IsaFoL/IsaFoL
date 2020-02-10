@@ -225,26 +225,6 @@ proof -
     using n_d unfolding arg_cong[OF M, of no_dup] by (auto simp: no_dup_def)
 qed
 
-lemma cut_trail_wrt_clause_backtrack_lvl_length_decided:
-  assumes
-     "backtrack_lvl T = count_decided (trail T)"
-  shows
-    "backtrack_lvl (cut_trail_wrt_clause C (trail T) T) =
-      count_decided (trail (cut_trail_wrt_clause C (trail T) T))"
-  using assms
-proof (induction "trail T" arbitrary:T rule: ann_lit_list_induct)
-  case Nil
-  then show ?case by simp
-next
-  case (Decided L M) note IH = this(1)[of "tl_trail T"] and M = this(2)[symmetric]
-    and bt = this(3)
-  then show ?case by auto
-next
-  case (Propagated L l M) note IH = this(1)[of "tl_trail T"] and M = this(2)[symmetric] and
-    bt = this(3)
-  then show ?case by auto
-qed
-
 lemma cut_trail_wrt_clause_CNot_trail:
   assumes "trail T \<Turnstile>as CNot C"
   shows
@@ -309,27 +289,18 @@ next
   then show ?case by simp force
 qed
 
-text \<open>We can fully run @{term cdcl\<^sub>W_restart_s} or add a clause. Remark that we use @{term cdcl\<^sub>W_restart_s} to avoid
-an explicit @{term skip}, @{term resolve}, and @{term backtrack} normalisation to get rid of the
-conflict @{term C} if possible.\<close>
-inductive incremental_cdcl\<^sub>W :: "'st \<Rightarrow> 'st \<Rightarrow> bool" for S where
-add_confl:
-  "trail S \<Turnstile>asm init_clss S \<Longrightarrow> distinct_mset C \<Longrightarrow> conflicting S = None \<Longrightarrow>
-   trail S \<Turnstile>as CNot C \<Longrightarrow>
-   full cdcl\<^sub>W_stgy
-     (update_conflicting (Some C)
-       (add_init_cls C (cut_trail_wrt_clause C (trail S) S))) T \<Longrightarrow>
-   incremental_cdcl\<^sub>W S T" |
-add_no_confl:
-  "trail S \<Turnstile>asm init_clss S \<Longrightarrow> distinct_mset C \<Longrightarrow> conflicting S = None \<Longrightarrow>
-   \<not>trail S \<Turnstile>as CNot C \<Longrightarrow>
-   full cdcl\<^sub>W_stgy (add_init_cls C S) T \<Longrightarrow>
-   incremental_cdcl\<^sub>W S T"
+text \<open>The following function allows to mark a conflict while backtrack at the correct position.\<close>
+inductive cdcl\<^sub>W_OOO_conflict :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<close> where
+cdcl\<^sub>W_OOO_conflict_rule: \<open>cdcl\<^sub>W_OOO_conflict S T\<close>
+if
+  \<open>trail S \<Turnstile>as CNot C\<close> and
+  \<open>C \<in># clauses S\<close> and
+  \<open>conflicting S = None\<close>
+  \<open>T \<sim> add_new_clause_and_update C S\<close>
 
 lemma cdcl\<^sub>W_all_struct_inv_add_new_clause_and_update_cdcl\<^sub>W_all_struct_inv:
   assumes
     inv_T: "cdcl\<^sub>W_all_struct_inv T" and
-    tr_T_N[simp]: "trail T \<Turnstile>asm N" and
     tr_C[simp]: "trail T \<Turnstile>as CNot C" and
     [simp]: "distinct_mset C"
   shows "cdcl\<^sub>W_all_struct_inv (add_new_clause_and_update C T)" (is "cdcl\<^sub>W_all_struct_inv ?T'")
@@ -368,7 +339,7 @@ proof -
 
   have [simp]: "cdcl\<^sub>W_M_level_inv ?T"
     using M_lev unfolding cdcl\<^sub>W_M_level_inv_def
-    by (auto simp: M_lev cdcl\<^sub>W_M_level_inv_def cut_trail_wrt_clause_backtrack_lvl_length_decided)
+    by (auto simp: M_lev cdcl\<^sub>W_M_level_inv_def)
 
   have [simp]: "\<And>s. s \<in># learned_clss T \<Longrightarrow> \<not>tautology s"
     using inv_T unfolding cdcl\<^sub>W_all_struct_inv_def by auto
@@ -413,6 +384,62 @@ proof -
     using \<open>all_decomposition_implies_m (clauses ?T) (get_all_ann_decomposition (trail ?T))\<close>
     unfolding cdcl\<^sub>W_all_struct_inv_def by (auto simp: add_new_clause_and_update_def)
 qed
+
+lemma cdcl\<^sub>W_OOO_conflict_all_struct_invs:
+  assumes \<open>cdcl\<^sub>W_OOO_conflict S T\<close> and \<open>cdcl\<^sub>W_all_struct_inv S\<close>
+  shows \<open>cdcl\<^sub>W_all_struct_inv T\<close>
+  using assms(1)
+proof (cases rule: cdcl\<^sub>W_OOO_conflict.cases)
+  case (cdcl\<^sub>W_OOO_conflict_rule C)
+  then have \<open>distinct_mset C\<close>
+   using assms(2) unfolding cdcl\<^sub>W_all_struct_inv_def distinct_cdcl\<^sub>W_state_def
+   by (auto simp: clauses_def dest!: multi_member_split)
+  then show ?thesis
+  using cdcl\<^sub>W_all_struct_inv_add_new_clause_and_update_cdcl\<^sub>W_all_struct_inv[of S C]
+   cdcl\<^sub>W_all_struct_inv_cong[of T \<open>add_new_clause_and_update C S\<close>] cdcl\<^sub>W_OOO_conflict_rule
+  by (auto simp: assms)
+qed
+
+lemma \<open>M = trail S \<Longrightarrow> M \<Turnstile>as CNot D \<Longrightarrow>  backtrack_lvl (cut_trail_wrt_clause D M S) = get_maximum_level M D\<close>
+  apply (induction D M S rule: cut_trail_wrt_clause.induct)
+  subgoal by auto
+  subgoal for C L M S
+    using count_decided_ge_get_maximum_level[of \<open>trail S\<close> \<open>C\<close>]
+    apply (cases \<open>trail S\<close>)
+    apply (auto dest!: multi_member_split simp: get_maximum_level_add_mset max_def split: if_splits)
+oops
+(*sorry
+  subgoal for C L u M S
+    using count_decided_ge_get_maximum_level[of \<open>trail S\<close> \<open>C\<close>]
+    apply (cases \<open>trail S\<close>)
+    apply (auto dest!: multi_member_split simp: get_maximum_level_add_mset max_def split: if_splits)
+find_theorems get_maximum_level Cons
+lemma cdcl\<^sub>W_OOO_conflict_conflict_is_false_with_level:
+  assumes \<open>cdcl\<^sub>W_OOO_conflict S T\<close>
+  shows \<open>conflict_is_false_with_level T\<close>
+  using assms
+  unfolding conflict_is_false_with_level_def cdcl\<^sub>W_OOO_conflict.simps
+  apply (auto simp: add_new_clause_and_update_def)
+
+sorry
+thm cdcl\<^sub>W_stgy_invariant_def
+find_theorems cut_trail_wrt_clause backtrack_lvl*)
+text \<open>We can fully run @{term cdcl\<^sub>W_restart_s} or add a clause. Remark that we use @{term cdcl\<^sub>W_restart_s} to avoid
+an explicit @{term skip}, @{term resolve}, and @{term backtrack} normalisation to get rid of the
+conflict @{term C} if possible.\<close>
+inductive incremental_cdcl\<^sub>W :: "'st \<Rightarrow> 'st \<Rightarrow> bool" for S where
+add_confl:
+  "trail S \<Turnstile>asm init_clss S \<Longrightarrow> distinct_mset C \<Longrightarrow> conflicting S = None \<Longrightarrow>
+   trail S \<Turnstile>as CNot C \<Longrightarrow>
+   full cdcl\<^sub>W_stgy
+     (update_conflicting (Some C)
+       (add_init_cls C (cut_trail_wrt_clause C (trail S) S))) T \<Longrightarrow>
+   incremental_cdcl\<^sub>W S T" |
+add_no_confl:
+  "trail S \<Turnstile>asm init_clss S \<Longrightarrow> distinct_mset C \<Longrightarrow> conflicting S = None \<Longrightarrow>
+   \<not>trail S \<Turnstile>as CNot C \<Longrightarrow>
+   full cdcl\<^sub>W_stgy (add_init_cls C S) T \<Longrightarrow>
+   incremental_cdcl\<^sub>W S T"
 
 lemma cdcl\<^sub>W_all_struct_inv_add_new_clause_and_update_cdcl\<^sub>W_stgy_inv:
   assumes
@@ -463,12 +490,6 @@ proof -
         using l by (auto split: if_split_asm
           simp:rev_swap[symmetric] add_new_clause_and_update_def)
 
-      have L': "count_decided(trail (cut_trail_wrt_clause C
-        (trail T) T))
-        = backtrack_lvl (cut_trail_wrt_clause C (trail T) T)"
-        using \<open>cdcl\<^sub>W_all_struct_inv ?T'\<close> unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_M_level_inv_def
-        by (auto simp:add_new_clause_and_update_def)
-
       have [simp]: "no_smaller_confl (update_conflicting (Some C)
         (add_init_cls C (cut_trail_wrt_clause C (trail T) T)))"
         unfolding no_smaller_confl_def
@@ -508,7 +529,7 @@ proof -
               unfolding 1(1)[simplified] by (auto simp: lits_of_def no_dup_def)
         qed
       qed
-      show ?thesis using L L' C
+      show ?thesis using L C
         unfolding cdcl\<^sub>W_stgy_invariant_def cdcl\<^sub>W_all_struct_inv_def
         by (auto simp: add_new_clause_and_update_def get_level_def count_decided_def intro: rev_bexI)
     qed
@@ -617,8 +638,7 @@ proof induction
   then show ?case
     using C conf dist full incremental_cdcl\<^sub>W.add_confl incremental_cdcl\<^sub>W_inv
       incremental_cdcl\<^sub>W_inv inv learned_entailed
-      \<open>full cdcl\<^sub>W_stgy T T\<close> full_cdcl\<^sub>W_stgy_inv_normal_form
-      s_inv tr by blast
+      full_cdcl\<^sub>W_stgy_inv_normal_form s_inv tr by blast
 next
   case (add_no_confl C T) note tr = this(1) and dist = this(2) and conf = this(3) and C = this(4)
     and full = this(5)
@@ -626,7 +646,7 @@ next
   have "full cdcl\<^sub>W_stgy T T"
     using full unfolding full_def by auto
   then show ?case
-    using \<open>full cdcl\<^sub>W_stgy T T\<close> full_cdcl\<^sub>W_stgy_inv_normal_form C conf dist full
+    using full_cdcl\<^sub>W_stgy_inv_normal_form C conf dist full
       incremental_cdcl\<^sub>W.add_no_confl incremental_cdcl\<^sub>W_inv inv learned_entailed
       s_inv tr by blast
 qed

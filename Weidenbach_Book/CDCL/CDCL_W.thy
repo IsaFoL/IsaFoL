@@ -4219,6 +4219,12 @@ definition cdcl\<^sub>W_all_struct_inv where
     all_decomposition_implies_m (clauses S) (get_all_ann_decomposition (trail S)) \<and>
     cdcl\<^sub>W_learned_clause S"
 
+lemma cdcl\<^sub>W_all_struct_inv_cong:
+  \<open>S \<sim> T \<Longrightarrow> cdcl\<^sub>W_all_struct_inv S \<longleftrightarrow> cdcl\<^sub>W_all_struct_inv T\<close>
+  unfolding cdcl\<^sub>W_all_struct_inv_def no_strange_atm_def cdcl\<^sub>W_M_level_inv_def
+    distinct_cdcl\<^sub>W_state_def cdcl\<^sub>W_learned_clause_def reasons_in_clauses_def cdcl\<^sub>W_conflicting_def
+  by auto
+
 lemma cdcl\<^sub>W_all_struct_inv_inv:
   assumes "cdcl\<^sub>W_restart S S'" and "cdcl\<^sub>W_all_struct_inv S"
   shows "cdcl\<^sub>W_all_struct_inv S'"

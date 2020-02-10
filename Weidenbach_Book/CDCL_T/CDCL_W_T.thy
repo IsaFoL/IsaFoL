@@ -129,7 +129,7 @@ lemma state_eq_weight[state_simp, simp]: \<open>S \<sim> T \<Longrightarrow> wei
 
 lemma conflicting_clause_state_eq[state_simp, simp]:
   \<open>S \<sim> T \<Longrightarrow> conflicting_clss S = conflicting_clss T\<close>
-  unfolding conflicting_clss_def by auto
+  unfolding conflicting_clss_def by simp
 
 lemma
   weight_cons_trail[simp]:
@@ -235,81 +235,6 @@ lemma
 
 
 paragraph \<open>CDCL with branch-and-bound\<close>
-fun delete_levels :: \<open>('v, 'm) ann_lits \<Rightarrow> nat \<Rightarrow> ('v, 'm) ann_lits\<close> where
-  \<open>delete_levels [] _ = []\<close> |
-  \<open>delete_levels (Decided L # M) (Suc n) = delete_levels M n\<close> |
-  \<open>delete_levels (Propagated L C # M) (Suc n) = delete_levels M (Suc n)\<close> |
-  \<open>delete_levels M 0 = M\<close>
-
-lemma [simp]: \<open>delete_levels M 0 = M\<close>
-  by (induction M rule:ann_lit_list_induct) auto
-
-
-lemma delete_levels_dropWhile_Suc:
-  \<open>delete_levels M (Suc n) = delete_levels (tl (dropWhile (Not o is_decided) M)) n\<close>
-  by (induction M rule:ann_lit_list_induct)  auto
-
-definition reduce_trail_to_level :: \<open>nat \<Rightarrow> 'st \<Rightarrow> 'st\<close> where
-  \<open>reduce_trail_to_level k S = reduce_trail_to (delete_levels (trail S) (count_decided (trail S) - k)) S\<close>
-
-lemma delete_levels_Decided_If:
-  \<open>delete_levels (Decided L # xs) k = (if k > 0 then delete_levels xs (k-1) else Decided L # xs)\<close> and
-  delete_levels_Propagated_If:
-  \<open>delete_levels (Propagated L C # xs) k = (if k > 0 then delete_levels xs k else Propagated L C # xs)\<close>
-  by (cases k; auto)+
-
-lemma count_decided_delete_levels[simp]: \<open>count_decided (delete_levels M k) = count_decided M - k\<close>
-  by (induction M arbitrary: k rule: ann_lit_list_induct)
-    (auto simp: delete_levels_Decided_If delete_levels_Propagated_If)
-
-lemma length_delete_levels_le: \<open>length (delete_levels M k) \<le> length M\<close>
-  by (induction M arbitrary: k rule: ann_lit_list_induct)
-   (auto simp: delete_levels_Decided_If le_Suc_eq delete_levels_Propagated_If)
-
-lemma delete_levels_ge_count_decided:
-  \<open>k > count_decided M \<Longrightarrow> delete_levels M k = []\<close>
-  by (induction M k rule: delete_levels.induct) auto
-
-lemma [simp]:
-  \<open>init_clss (reduce_trail_to_level k S) = init_clss S\<close>
-  \<open>learned_clss (reduce_trail_to_level k S) = learned_clss S\<close>
-  \<open>clauses (reduce_trail_to_level k S) = clauses S\<close>
-  \<open>conflicting (reduce_trail_to_level k S) = conflicting S\<close>
-  \<open>conflicting_clss (reduce_trail_to_level k S) = conflicting_clss S\<close>
-  by (auto simp: reduce_trail_to_level_def clauses_def)
-
-lemma [simp]: \<open>(delete_levels (c @ Decided K # c') (Suc (count_decided c))) = c'\<close>
-  by (induction c rule: ann_lit_list_induct)
-    auto
-
-lemma in_trail_reduce_trail_to_levelD:
-  \<open>L \<in> set (trail (reduce_trail_to_level k S)) \<Longrightarrow> L \<in> set (trail S)\<close>
-  by (auto simp: reduce_trail_to_level_def trail_reduce_trail_to_drop dest: in_set_dropD)
-
-lemma in_lits_of_l_trail_reduce_trail_to_levelD:
-  \<open>L \<in> lits_of_l (trail (reduce_trail_to_level k S)) \<Longrightarrow> L \<in> lits_of_l (trail S)\<close>
-  by (auto simp: reduce_trail_to_level_def trail_reduce_trail_to_drop lits_of_def dest: in_set_dropD)
-
-lemma backtrack_lvl_reduce_trail_to:
-  \<open>no_dup (trail S) \<Longrightarrow> k < backtrack_lvl S \<Longrightarrow> backtrack_lvl (reduce_trail_to_level k S) = k\<close>
-  using le_count_decided_decomp[of \<open>trail S\<close> \<open>k\<close>]
-  unfolding reduce_trail_to_level_def
-  by (auto simp: trail_reduce_trail_to_drop length_delete_levels_le
-    delete_levels_ge_count_decided)
-
-lemma consistent_interp_reduce_trail_to:
-  \<open>consistent_interp (lits_of_l (trail S)) \<Longrightarrow>
-   consistent_interp (lits_of_l (trail (reduce_trail_to_level k S)))\<close>
-  by (rule consistent_interp_subset[of _ \<open>lits_of_l (trail S)\<close>])
-    (auto dest!: in_lits_of_l_trail_reduce_trail_to_levelD)
-
-lemma no_dup_reduce_trail_to:
-  \<open>no_dup (trail S) \<Longrightarrow> no_dup (trail (reduce_trail_to_level k S))\<close>
-  using le_count_decided_decomp[of \<open>trail S\<close> \<open>k\<close>]
-  unfolding reduce_trail_to_level_def
-  by (cases \<open>k < backtrac_lvl S\<close>)
-   (auto simp: trail_reduce_trail_to_drop length_delete_levels_le
-    delete_levels_ge_count_decided dest: no_dup_appendD)
 
 inductive conflict_opt :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<close> for S T :: 'st where
 conflict_opt_rule:
