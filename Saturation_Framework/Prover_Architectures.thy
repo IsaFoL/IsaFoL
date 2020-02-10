@@ -530,9 +530,9 @@ proof -
         linorder_not_less mem_Collect_eq non_empty zero_enat_def)
     then obtain njm_prec where nj_prec_is: "Suc njm_prec = nj_min" using gr0_conv_Suc by auto
     then have njm_prec_njm: "njm_prec < nj_min" by blast
-    have "\<forall>k>njm_prec. enat k < llength D \<longrightarrow> (C, active) \<in> lnth D k"
+    have njm_prec_all_suc: "\<forall>k>njm_prec. enat k < llength D \<longrightarrow> (C, active) \<in> lnth D k"
       using nj_prec_is in_allk by simp
-    have "(C, active) \<notin> lnth D njm_prec"
+    have notin_njm_prec: "(C, active) \<notin> lnth D njm_prec"
     proof (rule ccontr)
       assume "\<not> (C, active) \<notin> lnth D njm_prec"
       then have absurd_hyp: "(C, active) \<in> lnth D njm_prec" by simp
@@ -557,11 +557,16 @@ proof -
       then show False
         using nj_min_is nj_prec_is Orderings.wellorder_class.not_less_Least njm_prec_njm by blast
     qed
-
+    then have notin_active_subs_njm_prec: "(C, active) \<notin> active_subset (lnth D njm_prec)"
+      unfolding active_subset_def by blast
+    then have "\<exists>nj. (prems_of \<iota>)!j \<notin> active_subset (lnth D nj) \<and>
+      (\<forall>k. k > nj \<longrightarrow> enat k < llength D \<longrightarrow> (prems_of \<iota>)!j \<in> active_subset (lnth D k))"
+      using c_is njm_prec_all_suc
+      by (metis (mono_tags, lifting) active_subset_def mem_Collect_eq snd_conv)
     have "\<forall>j \<in> {0..<m}. (\<exists>nj. (prems_of \<iota>)!j \<notin> active_subset (lnth D nj) \<and>
       (\<forall>k. k > nj \<longrightarrow> enat k < llength D \<longrightarrow> (prems_of \<iota>)!j \<in> active_subset (lnth D k)))"
-      using j_in c_is  
-      using init_state i_in2 unfolding Liminf_llist_def sorry
+    proof clarify
+    
     (* then obtain C :: 'f where "(C,active) \<in> set (prems_of \<iota>)"
       using labeled_inf_have_premises i_in unfolding active_subset_def with_labels.Inf_from_def
       by (smt bot.extremum_uniqueI mem_Collect_eq snd_conv subrelI subset_code(1))
