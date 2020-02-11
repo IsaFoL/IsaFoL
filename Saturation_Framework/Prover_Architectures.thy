@@ -482,7 +482,17 @@ text \<open>lem:gc-derivations-are-red-derivations\<close>
 lemma "chain (\<Longrightarrow>GC) D \<Longrightarrow> chain (\<rhd>RedL) D"
   using one_step_equiv Lazy_List_Chain.chain_mono by blast
 
-lemma "enat n1 < enat n2 \<Longrightarrow> enat n2 < L \<Longrightarrow> enat n1 < L" by (rule HOL.no_atp(15))
+find_theorems  "GREATEST _. _"
+
+lemma "(\<forall>j\<in>I. \<exists>n. P j n) \<Longrightarrow> (\<forall>j\<in>I. P j n1 \<longrightarrow> P j n2 \<longrightarrow> n1 = n2) \<Longrightarrow> finite (I:: nat set) \<Longrightarrow> finite {n. \<exists>j \<in> I. P j n}"
+proof -
+  fix I P
+  assume allj_exn: "\<forall>j\<in>I. \<exists>n. P j n" and
+  uniq_n: "\<forall>j\<in>I. P j n1 \<longrightarrow> P j n2 \<longrightarrow> n1 = n2" and
+  fin_I: "finite (I::nat set)"
+  obtain m where "m = card I" using fin_I by simp
+  show "finite {n. \<exists>j \<in> I. P j n}" sorry
+qed
 
 text \<open>lem:fair-gc-derivations\<close>
 lemma "chain (\<Longrightarrow>GC) D \<Longrightarrow> llength D > 0 \<Longrightarrow> active_subset (lnth D 0) = {} \<Longrightarrow>
@@ -577,12 +587,14 @@ proof -
         using c_is njm_prec_all_suc njm_prec_smaller_d
         by (metis (mono_tags, lifting) active_subset_def mem_Collect_eq snd_conv)
     qed
-    have uniq_nj: "j \<in> {0..<m} \<Longrightarrow> enat nj1 < llength D \<Longrightarrow> enat nj2 < llength D \<Longrightarrow>
-      (prems_of \<iota>)!j \<notin> active_subset (lnth D nj1) \<Longrightarrow>
-      (\<forall>k. k > nj1 \<longrightarrow> enat k < llength D \<longrightarrow> (prems_of \<iota>)!j \<in> active_subset (lnth D k)) \<Longrightarrow>
-      (prems_of \<iota>)!j \<notin> active_subset (lnth D nj2) \<Longrightarrow>
-      (\<forall>k. k > nj2 \<longrightarrow> enat k < llength D \<longrightarrow> (prems_of \<iota>)!j \<in> active_subset (lnth D k)) \<Longrightarrow> nj1=nj2"
-    proof (rule ccontr)
+    have uniq_nj: "j \<in> {0..<m} \<Longrightarrow>
+      (enat nj1 < llength D \<and>
+      (prems_of \<iota>)!j \<notin> active_subset (lnth D nj1) \<and>
+      (\<forall>k. k > nj1 \<longrightarrow> enat k < llength D \<longrightarrow> (prems_of \<iota>)!j \<in> active_subset (lnth D k))) \<Longrightarrow>
+      (enat nj2 < llength D \<and>
+      (prems_of \<iota>)!j \<notin> active_subset (lnth D nj2) \<and>
+      (\<forall>k. k > nj2 \<longrightarrow> enat k < llength D \<longrightarrow> (prems_of \<iota>)!j \<in> active_subset (lnth D k))) \<Longrightarrow> nj1=nj2"
+    proof (clarify, rule ccontr)
       fix j nj1 nj2
       assume "j \<in> {0..<m}" and
         nj1_d: "enat nj1 < llength D" and
@@ -609,12 +621,24 @@ proof -
       qed
       ultimately show False using diff_12 by linarith
     qed
+    find_theorems "\<forall>_.\<exists>_._ \<Longrightarrow> _"
     (* the n below in the n-1 from the paper *)
+    have "\<exists>prem_to_step. \<forall>j\<in>{0..<m}. (enat (prem_to_step j) < llength D \<and>
+      (prems_of \<iota>)!j \<notin> active_subset (lnth D (prem_to_step j)) \<and>
+      (\<forall>k. k > (prem_to_step j) \<longrightarrow> enat k < llength D \<longrightarrow> (prems_of \<iota>)!j \<in> active_subset (lnth D k)))"
+      using Hilbert_Choice.choice exist_nj sorry (* not possible to use Hilbert_Choice.choice because j \<in> {0..<m} is a restriction outside of \<exists>nj *)
+    define nj_set where "nj_set = {nj. (\<exists>j\<in>{0..<m}. enat nj < llength D \<and> (prems_of \<iota>)!j \<notin> active_subset (lnth D nj) \<and>
+      (\<forall>k. k > nj \<longrightarrow> enat k < llength D \<longrightarrow> (prems_of \<iota>)!j \<in> active_subset (lnth D k)))}"
+    then have "finite nj_set" using exist_nj uniq_nj sorry
     define n where "n = (GREATEST nj. enat nj < llength D \<and> (\<exists>j\<in>{0..<m}. (prems_of \<iota>)!j \<notin> active_subset (lnth D nj) \<and>
       (\<forall>k. k > nj \<longrightarrow> enat k < llength D \<longrightarrow> (prems_of \<iota>)!j \<in> active_subset (lnth D k))))"
+    then have "\<exists>j0\<in>{0..<m}. enat n < llength D \<and> (\<exists>j\<in>{0..<m}. (prems_of \<iota>)!j \<notin> active_subset (lnth D n) \<and>
+      (\<forall>k. k > n \<longrightarrow> enat k < llength D \<longrightarrow> (prems_of \<iota>)!j \<in> active_subset (lnth D k)))"
+      using exist_nj uniq_nj sorry
     then obtain j0 where "j0 \<in> {0..<m}" and "(prems_of \<iota>)!j0 \<notin> active_subset (lnth D n) \<and>
       (\<forall>k. k > n \<longrightarrow> enat k < llength D \<longrightarrow> (prems_of \<iota>)!j0 \<in> active_subset (lnth D k))"
-    using uniq_nj exist_nj 
+    (* using uniq_nj exist_nj *) 
+    apply auto
     
     sorry  
     show "\<iota> \<in>
