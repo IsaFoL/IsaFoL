@@ -1,5 +1,5 @@
 theory CDCL_W_Abstract_State
-imports CDCL_W_Full CDCL_W_Restart
+imports CDCL_W_Full CDCL_W_Restart CDCL_W_Incremental
 
 begin
 
@@ -34,6 +34,9 @@ fun tl_trail where
 
 fun add_learned_cls where
 "add_learned_cls C (M, N, U, R) = (M, N, {#C#} + U, R)"
+
+fun add_init_cls where
+"add_init_cls C (M, N, U, R) = (M, {#C#} + N, U, R)"
 
 fun remove_cls where
 "remove_cls C (M, N, U, R) = (M, removeAll_mset C N, removeAll_mset C U, R)"
@@ -146,6 +149,23 @@ proof (induction F S rule: cdcl\<^sub>W_restart_mset.reduce_trail_to.induct)
 qed
 
 
+interpretation cdcl\<^sub>W_restart_mset: state\<^sub>W_adding_init_clause where
+  state = state and
+  trail = trail and
+  init_clss = init_clss and
+  learned_clss = learned_clss and
+  conflicting = conflicting and
+
+  state_eq = state_eq and
+  cons_trail = cons_trail and
+  tl_trail = tl_trail and
+  add_learned_cls = add_learned_cls and
+  remove_cls = remove_cls and
+  update_conflicting = update_conflicting and
+  init_state = init_state and
+  add_init_cls = add_init_cls
+  by unfold_locales (auto simp: state_def cdcl\<^sub>W_restart_mset_state)
+
 lemma full_cdcl\<^sub>W_init_state:
   \<open>full cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy (init_state {#}) S \<longleftrightarrow> S = init_state {#}\<close>
   unfolding full_def rtranclp_unfold
@@ -233,6 +253,6 @@ lemma cdcl\<^sub>W_stgy_cdcl\<^sub>W_init_state:
   \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy\<^sup>*\<^sup>* (init_state {#}) S \<longleftrightarrow> S = init_state {#}\<close>
   unfolding rtranclp_unfold
   by (subst tranclp_unfold_begin)
-     (auto simp: cdcl\<^sub>W_stgy_cdcl\<^sub>W_init_state_empty_no_step simp del: init_state.simps)
+    (auto simp: cdcl\<^sub>W_stgy_cdcl\<^sub>W_init_state_empty_no_step)
 
 end

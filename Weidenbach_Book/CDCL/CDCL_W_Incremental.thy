@@ -68,10 +68,7 @@ locale state\<^sub>W_adding_init_clause_ops =
     update_conflicting :: "'v clause option \<Rightarrow> 'st \<Rightarrow> 'st" and
 
     init_state :: "'v clauses \<Rightarrow> 'st" and
-    add_init_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st" +
-  assumes
-    state_prop[simp]:
-      \<open>state S = (trail S, init_clss S, learned_clss S, conflicting S, additional_info S)\<close>
+    add_init_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st"
 
 locale state\<^sub>W_adding_init_clause =
   state\<^sub>W_adding_init_clause_ops
@@ -84,7 +81,18 @@ locale state\<^sub>W_adding_init_clause =
     cons_trail tl_trail add_learned_cls remove_cls update_conflicting
 
       \<comment> \<open>Some specific states:\<close>
-    init_state add_init_cls
+    init_state add_init_cls +
+   state\<^sub>W
+    state_eq
+    state
+    \<comment> \<open>functions about the state:\<close>
+      \<comment> \<open>getter:\<close>
+    trail init_clss learned_clss conflicting
+      \<comment> \<open>setter:\<close>
+    cons_trail tl_trail add_learned_cls remove_cls update_conflicting
+
+      \<comment> \<open>Some specific states:\<close>
+    init_state
   for
     state_eq :: "'st \<Rightarrow> 'st \<Rightarrow> bool" (infix "\<sim>" 50) and
     state :: "'st \<Rightarrow> ('v, 'v clause) ann_lits \<times> 'v clauses \<times> 'v clauses \<times> 'v clause option \<times>
@@ -103,9 +111,6 @@ locale state\<^sub>W_adding_init_clause =
     init_state :: "'v clauses \<Rightarrow> 'st" and
     add_init_cls :: "'v clause \<Rightarrow> 'st \<Rightarrow> 'st"
 begin
-
-sublocale state\<^sub>W
-  by unfold_locales auto
 
 lemma
   trail_add_init_cls[simp]:
