@@ -482,6 +482,8 @@ text \<open>lem:gc-derivations-are-red-derivations\<close>
 lemma "chain (\<Longrightarrow>GC) D \<Longrightarrow> chain (\<rhd>RedL) D"
   using one_step_equiv Lazy_List_Chain.chain_mono by blast
 
+lemma "enat n1 < enat n2 \<Longrightarrow> enat n2 < L \<Longrightarrow> enat n1 < L" by (rule HOL.no_atp(15))
+
 text \<open>lem:fair-gc-derivations\<close>
 lemma "chain (\<Longrightarrow>GC) D \<Longrightarrow> llength D > 0 \<Longrightarrow> active_subset (lnth D 0) = {} \<Longrightarrow>
   non_active_subset (Liminf_llist D) = {} \<Longrightarrow> fair D"
@@ -503,7 +505,7 @@ proof -
     then have m_def_F: "m = length (prems_of (to_F \<iota>))" unfolding to_F_def by simp
     have i_in_F: "to_F \<iota> \<in> Inf_F" using i_in Inf_FL_to_Inf_F unfolding with_labels.Inf_from_def to_F_def by blast
     then have "m > 0" using m_def_F using inf_have_premises by blast
-    have "\<forall>j \<in> {0..<m}. (\<exists>nj. (prems_of \<iota>)!j \<notin> active_subset (lnth D nj) \<and>
+    have exist_nj: "\<forall>j \<in> {0..<m}. (\<exists>nj. enat nj < llength D \<and> (prems_of \<iota>)!j \<notin> active_subset (lnth D nj) \<and>
       (\<forall>k. k > nj \<longrightarrow> enat k < llength D \<longrightarrow> (prems_of \<iota>)!j \<in> active_subset (lnth D k)))"
     proof clarify
       fix j
@@ -526,6 +528,10 @@ proof -
         by (metis (mono_tags, lifting) INT_E LeastI_ex
           \<open>\<And>thesis. (\<And>nj. \<lbrakk>enat nj < llength D; (C, active) \<in> \<Inter> (lnth D ` {k. nj \<le> k \<and> enat k < llength D})\<rbrakk>
             \<Longrightarrow> thesis) \<Longrightarrow> thesis\<close> mem_Collect_eq)
+      have njm_smaller_D: "enat nj_min < llength D"
+        using nj_min_is
+        by (smt LeastI_ex \<open>\<And>thesis. (\<And>nj. \<lbrakk>enat nj < llength D;
+          (C, active) \<in> \<Inter> (lnth D ` {k. nj \<le> k \<and> enat k < llength D})\<rbrakk> \<Longrightarrow> thesis) \<Longrightarrow> thesis\<close>)
       have "nj_min > 0"
         using nj_is c_in2 nj_pos nj_min_is
         by (metis (mono_tags, lifting) Collect_empty_eq \<open>(C, active) \<in> Liminf_llist D\<close>
@@ -534,6 +540,9 @@ proof -
           linorder_not_less mem_Collect_eq non_empty zero_enat_def)
       then obtain njm_prec where nj_prec_is: "Suc njm_prec = nj_min" using gr0_conv_Suc by auto
       then have njm_prec_njm: "njm_prec < nj_min" by blast
+      then have njm_prec_njm_enat: "enat njm_prec < enat nj_min" by simp
+      have njm_prec_smaller_d: "njm_prec < llength D"
+        using  HOL.no_atp(15)[OF njm_smaller_D njm_prec_njm_enat] .
       have njm_prec_all_suc: "\<forall>k>njm_prec. enat k < llength D \<longrightarrow> (C, active) \<in> lnth D k"
         using nj_prec_is in_allk by simp
       have notin_njm_prec: "(C, active) \<notin> lnth D njm_prec"
@@ -563,20 +572,50 @@ proof -
       qed
       then have notin_active_subs_njm_prec: "(C, active) \<notin> active_subset (lnth D njm_prec)"
         unfolding active_subset_def by blast
-      then show "\<exists>nj. (prems_of \<iota>)!j \<notin> active_subset (lnth D nj) \<and>
+      then show "\<exists>nj. enat nj < llength D \<and> (prems_of \<iota>)!j \<notin> active_subset (lnth D nj) \<and>
         (\<forall>k. k > nj \<longrightarrow> enat k < llength D \<longrightarrow> (prems_of \<iota>)!j \<in> active_subset (lnth D k))"
-        using c_is njm_prec_all_suc
+        using c_is njm_prec_all_suc njm_prec_smaller_d
         by (metis (mono_tags, lifting) active_subset_def mem_Collect_eq snd_conv)
     qed
-    (* TODO: the proof of unicity of nj is needed I think *)
-
-
+    have uniq_nj: "j \<in> {0..<m} \<Longrightarrow> enat nj1 < llength D \<Longrightarrow> enat nj2 < llength D \<Longrightarrow>
+      (prems_of \<iota>)!j \<notin> active_subset (lnth D nj1) \<Longrightarrow>
+      (\<forall>k. k > nj1 \<longrightarrow> enat k < llength D \<longrightarrow> (prems_of \<iota>)!j \<in> active_subset (lnth D k)) \<Longrightarrow>
+      (prems_of \<iota>)!j \<notin> active_subset (lnth D nj2) \<Longrightarrow>
+      (\<forall>k. k > nj2 \<longrightarrow> enat k < llength D \<longrightarrow> (prems_of \<iota>)!j \<in> active_subset (lnth D k)) \<Longrightarrow> nj1=nj2"
+    proof (rule ccontr)
+      fix j nj1 nj2
+      assume "j \<in> {0..<m}" and
+        nj1_d: "enat nj1 < llength D" and
+        nj2_d: "enat nj2 < llength D" and
+        nj1_notin: "prems_of \<iota> ! j \<notin> active_subset (lnth D nj1)" and 
+        k_nj1: "\<forall>k>nj1. enat k < llength D \<longrightarrow> prems_of \<iota> ! j \<in> active_subset (lnth D k)" and
+        nj2_notin: "prems_of \<iota> ! j \<notin> active_subset (lnth D nj2)" and
+        k_nj2: "\<forall>k>nj2. enat k < llength D \<longrightarrow> prems_of \<iota> ! j \<in> active_subset (lnth D k)" and
+        diff_12: "nj1 \<noteq> nj2"
+      have "nj1 < nj2 \<Longrightarrow> False" 
+      proof -
+        assume "nj1 < nj2"
+        then have "prems_of \<iota> ! j \<in> active_subset (lnth D nj2)"
+          using k_nj1 nj2_d by simp
+        then show False using nj2_notin by simp
+      qed
+      moreover have "nj1 > nj2 \<Longrightarrow> False"
+      proof -
+        assume "nj2 < nj1"
+        then have "prems_of \<iota> ! j \<in> active_subset (lnth D nj1)"
+          using k_nj2 nj1_d
+          by simp
+        then show False using nj1_notin by simp
+      qed
+      ultimately show False using diff_12 by linarith
+    qed
     (* the n below in the n-1 from the paper *)
-    define n where "n = (GREATEST nj. (\<exists>j\<in>{0..<m}. (prems_of \<iota>)!j \<notin> active_subset (lnth D nj) \<and>
+    define n where "n = (GREATEST nj. enat nj < llength D \<and> (\<exists>j\<in>{0..<m}. (prems_of \<iota>)!j \<notin> active_subset (lnth D nj) \<and>
       (\<forall>k. k > nj \<longrightarrow> enat k < llength D \<longrightarrow> (prems_of \<iota>)!j \<in> active_subset (lnth D k))))"
     then obtain j0 where "j0 \<in> {0..<m}" and "(prems_of \<iota>)!j0 \<notin> active_subset (lnth D n) \<and>
       (\<forall>k. k > n \<longrightarrow> enat k < llength D \<longrightarrow> (prems_of \<iota>)!j0 \<in> active_subset (lnth D k))"
-    apply auto
+    using uniq_nj exist_nj 
+    
     sorry  
     show "\<iota> \<in>
       labeled_ord_red_crit_fam.empty_ord_lifted_calc_w_red_crit_family.inter_red_crit_calculus.Sup_Red_Inf_llist D"
