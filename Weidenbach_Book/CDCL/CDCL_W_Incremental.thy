@@ -400,30 +400,33 @@ proof (cases rule: cdcl\<^sub>W_OOO_conflict.cases)
   by (auto simp: assms)
 qed
 
-lemma \<open>M = trail S \<Longrightarrow> M \<Turnstile>as CNot D \<Longrightarrow>  backtrack_lvl (cut_trail_wrt_clause D M S) = get_maximum_level M D\<close>
+lemma get_maximum_level_Cons_notin:
+  \<open>- lit_of L \<notin># C \<Longrightarrow> lit_of L \<notin># C \<Longrightarrow> get_maximum_level M C = get_maximum_level (L # M) C\<close>
+  unfolding get_maximum_level_def
+  by (subgoal_tac \<open>get_level (L # M) `# C = get_level M `# C\<close>)
+   (auto intro!: image_mset_cong simp: get_level_cons_if atm_of_eq_atm_of)
+
+lemma backtrack_lvl_cut_trail_wrt_clause_get_maximum_level:
+   \<open>M = trail S \<Longrightarrow> M \<Turnstile>as CNot D \<Longrightarrow> no_dup (trail S) \<Longrightarrow>
+    backtrack_lvl (cut_trail_wrt_clause D M S) = get_maximum_level M D\<close>
   apply (induction D M S rule: cut_trail_wrt_clause.induct)
   subgoal by auto
   subgoal for C L M S
     using count_decided_ge_get_maximum_level[of \<open>trail S\<close> \<open>C\<close>]
-    apply (cases \<open>trail S\<close>)
-    apply (auto dest!: multi_member_split simp: get_maximum_level_add_mset max_def split: if_splits)
-oops
-(*sorry
+      true_annots_lit_of_notin_skip[of \<open>Decided L\<close> M C]
+    by (cases \<open>trail S\<close>)
+      (auto 5 3 dest!: multi_member_split intro: get_maximum_level_Cons_notin
+      simp: get_maximum_level_add_mset max_def Decided_Propagated_in_iff_in_lits_of_l
+      split: if_splits)
   subgoal for C L u M S
     using count_decided_ge_get_maximum_level[of \<open>trail S\<close> \<open>C\<close>]
-    apply (cases \<open>trail S\<close>)
-    apply (auto dest!: multi_member_split simp: get_maximum_level_add_mset max_def split: if_splits)
-find_theorems get_maximum_level Cons
-lemma cdcl\<^sub>W_OOO_conflict_conflict_is_false_with_level:
-  assumes \<open>cdcl\<^sub>W_OOO_conflict S T\<close>
-  shows \<open>conflict_is_false_with_level T\<close>
-  using assms
-  unfolding conflict_is_false_with_level_def cdcl\<^sub>W_OOO_conflict.simps
-  apply (auto simp: add_new_clause_and_update_def)
+      true_annots_lit_of_notin_skip[of \<open>Propagated L u\<close> M C]
+    by (cases \<open>trail S\<close>)
+      (auto 5 3 dest!: multi_member_split intro: get_maximum_level_Cons_notin
+      simp: get_maximum_level_add_mset max_def Decided_Propagated_in_iff_in_lits_of_l
+      split: if_splits)
+  done
 
-sorry
-thm cdcl\<^sub>W_stgy_invariant_def
-find_theorems cut_trail_wrt_clause backtrack_lvl*)
 text \<open>We can fully run @{term cdcl\<^sub>W_restart_s} or add a clause. Remark that we use @{term cdcl\<^sub>W_restart_s} to avoid
 an explicit @{term skip}, @{term resolve}, and @{term backtrack} normalisation to get rid of the
 conflict @{term C} if possible.\<close>
