@@ -295,7 +295,7 @@ next
 qed
 
 text \<open>The following function allows to mark a conflict while backtrack at the correct position.\<close>
-inductive cdcl\<^sub>W_OOO_conflict :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<close> where
+inductive cdcl\<^sub>W_OOO_conflict :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<close> for S :: 'st where
 cdcl\<^sub>W_OOO_conflict_rule: \<open>cdcl\<^sub>W_OOO_conflict S T\<close>
 if
   \<open>trail S \<Turnstile>as CNot C\<close> and
@@ -432,9 +432,43 @@ lemma backtrack_lvl_cut_trail_wrt_clause_get_maximum_level:
       split: if_splits)
   done
 
-text \<open>We can fully run @{term cdcl\<^sub>W_restart_s} or add a clause. Remark that we use @{term cdcl\<^sub>W_restart_s} to avoid
-an explicit @{term skip}, @{term resolve}, and @{term backtrack} normalisation to get rid of the
-conflict @{term C} if possible.\<close>
+lemma get_maximum_level_cut_trail_wrt_clause:
+   \<open>M = trail S \<Longrightarrow> M \<Turnstile>as CNot C \<Longrightarrow> no_dup (trail S) \<Longrightarrow>
+    get_maximum_level (trail (cut_trail_wrt_clause C M S)) C =
+           get_maximum_level M C\<close>
+  apply (induction C M S arbitrary: rule: cut_trail_wrt_clause.induct)
+  subgoal by auto
+  subgoal for C L M S
+    using count_decided_ge_get_maximum_level[of \<open>trail S\<close> \<open>C\<close>]
+      true_annots_lit_of_notin_skip[of \<open>Decided L\<close> M C]
+    by (cases \<open>trail S\<close>)
+     (auto 5 3 dest!: multi_member_split intro: get_maximum_level_Cons_notin
+      simp: get_maximum_level_add_mset max_def Decided_Propagated_in_iff_in_lits_of_l
+      split: if_splits)
+  subgoal for C L u M S
+    using count_decided_ge_get_maximum_level[of \<open>trail S\<close> \<open>C\<close>]
+      true_annots_lit_of_notin_skip[of \<open>Propagated L u\<close> M C]
+    by (cases \<open>trail S\<close>)
+      (auto 5 3 dest!: multi_member_split intro: get_maximum_level_Cons_notin
+      simp: get_maximum_level_add_mset max_def Decided_Propagated_in_iff_in_lits_of_l
+      split: if_splits)
+  done
+
+lemma cdcl\<^sub>W_OOO_conflict_conflict_is_false_with_level:
+  assumes \<open>cdcl\<^sub>W_OOO_conflict S T\<close> and \<open>cdcl\<^sub>W_all_struct_inv S\<close>
+  shows \<open>conflict_is_false_with_level T\<close>
+  using assms
+proof (induction rule: cdcl\<^sub>W_OOO_conflict.induct)
+  case (cdcl\<^sub>W_OOO_conflict_rule C T)
+  have \<open>no_dup (trail S)\<close>
+    using assms(2) unfolding cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_M_level_inv_def by fast
+  with assms(2) cdcl\<^sub>W_OOO_conflict_rule show ?case
+     by (auto simp: backtrack_lvl_cut_trail_wrt_clause_get_maximum_level
+      get_maximum_level_cut_trail_wrt_clause
+      add_new_clause_and_update_def dest!: get_maximum_level_exists_lit_of_max_level[of _ \<open>trail T\<close>])
+qed
+
+text \<open>We can fully run @{term cdcl\<^sub>W_stgy} or add a clause.\<close>
 inductive incremental_cdcl\<^sub>W :: "'st \<Rightarrow> 'st \<Rightarrow> bool" for S where
 add_confl:
   "trail S \<Turnstile>asm init_clss S \<Longrightarrow> distinct_mset C \<Longrightarrow> conflicting S = None \<Longrightarrow>
@@ -564,12 +598,12 @@ proof induction
     using add_confl.hyps(1,2,4) add_new_clause_and_update_def
     cdcl\<^sub>W_all_struct_inv_add_new_clause_and_update_cdcl\<^sub>W_stgy_inv inv s_inv by auto
   case 1 show ?case
-     by (metis add_confl.hyps(1,2,4,5) add_new_clause_and_update_def
+     by (metis add_confl.hyps(2,4,5) add_new_clause_and_update_def
        cdcl\<^sub>W_all_struct_inv_add_new_clause_and_update_cdcl\<^sub>W_all_struct_inv
        rtranclp_cdcl\<^sub>W_all_struct_inv_inv rtranclp_cdcl\<^sub>W_stgy_rtranclp_cdcl\<^sub>W_restart full_def inv)
 
   case 2 show ?case
-    by (metis inv_s_T add_confl.hyps(1,2,4,5) add_new_clause_and_update_def
+    by (metis inv_s_T add_confl.hyps(2,4,5) add_new_clause_and_update_def
       cdcl\<^sub>W_all_struct_inv_add_new_clause_and_update_cdcl\<^sub>W_all_struct_inv full_def inv
       rtranclp_cdcl\<^sub>W_stgy_cdcl\<^sub>W_stgy_invariant)
 
