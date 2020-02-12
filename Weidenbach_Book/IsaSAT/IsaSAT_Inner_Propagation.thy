@@ -525,9 +525,9 @@ where
     let n = 0;
     ASSERT(curry6 isa_set_lookup_conflict_aa_pre M N C D n lbd outl);
     (D, clvls, lbd, outl) \<leftarrow> isa_set_lookup_conflict_aa M N C D n lbd outl;
-    ASSERT(isa_length_trail_pre M);
+    j \<leftarrow> mop_isa_length_trail M;
     ASSERT(arena_act_pre N C);
-    RETURN (M, arena_incr_act N C, D, isa_length_trail M, W, vmtf, clvls, cach, lbd, outl,
+    RETURN (M, arena_incr_act N C, D, j, W, vmtf, clvls, cach, lbd, outl,
       incr_conflict stats, fema, sema)})\<close>
 
 
@@ -950,6 +950,7 @@ lemma set_conflict_wl_alt_def:
   \<open>set_conflict_wl = (\<lambda>C (M, N, D, NE, UE, NS, US, Q, W). do {
      ASSERT(set_conflict_wl_pre C (M, N, D, NE, UE, NS, US, Q, W));
      let D = Some (mset (N \<propto> C));
+     j \<leftarrow> RETURN (length M);
      RETURN (M, N, D, NE, UE, NS, US, {#}, W)
     })\<close>
   unfolding set_conflict_wl_def Let_def by (auto simp: ac_simps)
@@ -1107,25 +1108,26 @@ proof -
   show ?thesis
     supply [[goals_limit=1]]
     apply (intro nres_relI frefI)
+    subgoal for x y
     unfolding uncurry_def RES_RETURN_RES4 set_conflict_wl_alt_def  set_conflict_wl_heur_def
     apply (rewrite at \<open>let _ = 0 in _\<close> Let_def)
-    apply (refine_vcg)
+    apply (refine_vcg mop_isa_length_trail_length_u[of \<open>all_atms_st (snd y)\<close>, THEN fref_to_Down_Id_keep, unfolded length_uint32_nat_def
+         comp_def])
     subgoal by (rule isa_set_lookup_conflict_aa_pre) (auto dest!: set_conflict_wl_pre_set_conflict_wl'_pre)
     apply assumption+
     subgoal by (auto dest!: set_conflict_wl_pre_set_conflict_wl'_pre)
     subgoal for x y
       unfolding arena_act_pre_def arena_is_valid_clause_idx_def
-      by (rule isa_length_trail_pre)
-        (auto simp: twl_st_heur'_def twl_st_heur_def)
-    subgoal for x y
+      by (auto simp: twl_st_heur'_def twl_st_heur_def)
+    subgoal
        unfolding arena_act_pre_def arena_is_valid_clause_idx_def
        by (rule exI[of _ \<open>get_clauses_wl (snd y)\<close>], rule exI[of _ \<open>set (get_vdom (snd x))\<close>])
          (auto simp: twl_st_heur'_def twl_st_heur_def set_conflict_wl'_pre_def  dest!: set_conflict_wl_pre_set_conflict_wl'_pre)
     subgoal
-      by (subst isa_length_trail_length_u[THEN fref_to_Down_unRET_Id])
-       (auto simp: twl_st_heur'_def twl_st_heur_def counts_maximum_level_def ac_simps
-        set_conflict_wl'_pre_def all_atms_def[symmetric]  dest!: set_conflict_wl_pre_set_conflict_wl'_pre
+      by (auto simp: twl_st_heur'_def twl_st_heur_def counts_maximum_level_def ac_simps
+        set_conflict_wl'_pre_def dest!: set_conflict_wl_pre_set_conflict_wl'_pre
 	intro!: valid_arena_arena_incr_act valid_arena_mark_used)
+    done
     done
 qed
 

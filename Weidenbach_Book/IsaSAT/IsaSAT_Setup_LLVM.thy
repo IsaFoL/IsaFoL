@@ -561,6 +561,7 @@ sepref_register opts_reduction_st opts_restart_st
 lemma emag_get_value_alt_def:
   \<open>ema_get_value = (\<lambda>(a, b, c, d). a)\<close>
   by auto
+
 sepref_def ema_get_value_impl
   is \<open>RETURN o ema_get_value\<close>
   :: \<open>ema_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
@@ -575,6 +576,13 @@ sepref_def isasat_length_trail_st_code
   :: \<open>[isa_length_trail_pre o get_trail_wl_heur]\<^sub>a isasat_bounded_assn\<^sup>k  \<rightarrow> sint64_nat_assn\<close>
   supply [[goals_limit=1]]
   unfolding isasat_length_trail_st_alt_def isasat_bounded_assn_def
+  by sepref
+
+sepref_def mop_isasat_length_trail_st_code
+  is \<open>mop_isasat_length_trail_st\<close>
+  :: \<open>isasat_bounded_assn\<^sup>k  \<rightarrow>\<^sub>a sint64_nat_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding mop_isasat_length_trail_st_alt_def isasat_bounded_assn_def
   by sepref
 
 sepref_register get_pos_of_level_in_trail_imp_st

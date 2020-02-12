@@ -256,14 +256,6 @@ sepref_def uint32_nat_assn_impl
   apply (annot_unat_const "TYPE(32)")
   by sepref
 
-
-sepref_def GC_EVERY_impl
-  is \<open>uncurry0 (RETURN GC_EVERY)\<close>
-  :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
-  unfolding GC_EVERY_def
-  by sepref
-
-
 sepref_def get_reductions_count_fast_code
   is \<open>RETURN o get_reductions_count\<close>
   :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
@@ -281,7 +273,7 @@ sepref_def GC_required_heur_fast_code
   is \<open>uncurry GC_required_heur\<close>
   :: \<open>isasat_bounded_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
   supply [[goals_limit=1]] of_nat_snat[sepref_import_param]
-  unfolding GC_required_heur_def GC_EVERY_def
+  unfolding GC_required_heur_def
   apply (annot_snat_const "TYPE(64)")
   by sepref
 

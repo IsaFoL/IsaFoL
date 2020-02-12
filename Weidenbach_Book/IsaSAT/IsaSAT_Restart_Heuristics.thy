@@ -6,28 +6,6 @@ begin
 
 chapter \<open>Restarts\<close>
 
-lemma all_init_atms_alt_def:
-  \<open>set_mset (all_init_atms N NE) = atms_of_mm (mset `# init_clss_lf N) \<union> atms_of_mm NE\<close>
-  unfolding all_init_atms_def all_init_lits_def
-  by (auto simp: in_all_lits_of_mm_ain_atms_of_iff
-      all_lits_of_mm_def atms_of_ms_def image_UN
-      atms_of_def
-    dest!: multi_member_split[of \<open>(_, _)\<close> \<open>ran_m N\<close>]
-    dest: multi_member_split atm_of_lit_in_atms_of
-    simp del: set_image_mset)
-
-lemma in_set_all_init_atms_iff:
-  \<open>y \<in># all_init_atms bu bw \<longleftrightarrow>
-    y \<in> atms_of_mm (mset `# init_clss_lf bu) \<or> y \<in> atms_of_mm bw\<close>
-  by (auto simp: all_atms_def all_lits_def in_all_lits_of_mm_ain_atms_of_iff
-     atm_of_all_lits_of_mm all_init_atms_alt_def
-      simp: in_all_lits_of_mm_ain_atms_of_iff
-      all_lits_of_mm_def atms_of_ms_def image_UN
-      atms_of_def
-    dest!: multi_member_split[of \<open>(_, _)\<close> \<open>ran_m N\<close>]
-    dest: multi_member_split atm_of_lit_in_atms_of
-    simp del: set_image_mset)
-
 lemma twl_st_heur_change_subsumed_clauses:
   assumes \<open>((M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
        vdom, avdom, lcount, opts, old_arena),
@@ -138,22 +116,6 @@ text \<open>
   in a while like CryptoMinisat?)
 \<close>
 
-lemma get_slow_ema_heur_alt_def:
-   \<open>RETURN o get_slow_ema_heur = (\<lambda>(M, N0, D, Q, W, vm, clvls, cach, lbd, outl,
-       stats, (fema, sema, (ccount, _)), lcount). RETURN sema)\<close>
-  by auto
-
-
-lemma get_fast_ema_heur_alt_def:
-   \<open>RETURN o get_fast_ema_heur = (\<lambda>(M, N0, D, Q, W, vm, clvls, cach, lbd, outl,
-       stats, (fema, sema, ccount), lcount). RETURN fema)\<close>
-  by auto
-
-lemma get_learned_count_alt_def:
-   \<open>RETURN o get_learned_count = (\<lambda>(M, N0, D, Q, W, vm, clvls, cach, lbd, outl,
-       stats, _, vdom, avdom, lcount, opts). RETURN lcount)\<close>
-  by auto
-
 definition (in -) find_local_restart_target_level_int_inv where
   \<open>find_local_restart_target_level_int_inv ns cs =
      (\<lambda>(brk, i). i \<le> length cs \<and> length cs < uint32_max)\<close>
@@ -221,8 +183,7 @@ lemma find_local_restart_target_level_int_find_local_restart_target_level:
 definition empty_Q :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
   \<open>empty_Q = (\<lambda>(M, N, D, Q, W, vm, clvls, cach, lbd, outl, stats, (fema, sema, ccount, wasted), vdom,
       lcount). do{
-    ASSERT(isa_length_trail_pre M);
-    let j = isa_length_trail M;
+    j \<leftarrow> mop_isa_length_trail M;
     RETURN (M, N, D, j, W, vm, clvls, cach, lbd, outl, stats, (fema, sema,
        restart_info_restart_done ccount, wasted), vdom, lcount)
   })\<close>
@@ -318,21 +279,24 @@ lemma cdcl_twl_local_restart_wl_D_heur_cdcl_twl_local_restart_wl_D_spec:
   \<open>(cdcl_twl_local_restart_wl_D_heur, cdcl_twl_local_restart_wl_spec) \<in>
     twl_st_heur''' r \<rightarrow>\<^sub>f \<langle>twl_st_heur''' r\<rangle>nres_rel\<close>
 proof -
-  have K: \<open>( (case S of
-               (M, N, D, Q, W, vm, clvls, cach, lbd, outl, stats, (fema, sema,
-                ccount), vdom, lcount) \<Rightarrow>
-                 ASSERT (isa_length_trail_pre M) \<bind>
-                 (\<lambda>_. RES {(M, N, D, isa_length_trail M, W, vm, clvls, cach,
-                            lbd, outl, stats, (fema, sema,
-                            restart_info_restart_done ccount), vdom, lcount)}))) =
-        ((ASSERT (case S of (M, N, D, Q, W, vm, clvls, cach, lbd, outl, stats, (fema, sema,
-                ccount), vdom, lcount) \<Rightarrow> isa_length_trail_pre M)) \<bind>
+
+  have K: \<open>(case S of
+        (M, N, D, Q, W, vm, clvls, cach, lbd, outl, stats, xa, xb) \<Rightarrow>
+          (case xa of
+           (fema, sema, ccount, wasted) \<Rightarrow>
+             \<lambda>(vdom, lcount). do {
+                  j \<leftarrow> mop_isa_length_trail M;
+                  RES {(M, N, D, j, W, vm, clvls, cach, lbd, outl, stats,
+                        (fema, sema, restart_info_restart_done ccount, wasted),
+                        vdom, lcount)}
+                }) xb) =
+        ((ASSERT (isa_length_trail_pre (get_trail_wl_heur S))) \<bind>
          (\<lambda> _. (case S of
-               (M, N, D, Q, W, vm, clvls, cach, lbd, outl, stats, (fema, sema,
-                ccount), vdom, lcount) \<Rightarrow> RES {(M, N, D, isa_length_trail M, W, vm, clvls, cach,
-                            lbd, outl, stats, (fema, sema,
-                            restart_info_restart_done ccount), vdom, lcount)})))\<close> for S
-  by (cases S) auto
+               (M, N, D, Q, W, vm, clvls, cach, lbd, outl, stats, (fema, sema, ccount, wasted), (vdom, lcount)) \<Rightarrow>
+          RES {(M, N, D, isa_length_trail M, W, vm, clvls, cach, lbd, outl, stats,
+                        (fema, sema, restart_info_restart_done ccount, wasted),
+                        vdom, lcount)})))\<close> for S :: twl_st_wl_heur
+  by (cases S) (auto simp: mop_isa_length_trail_def)
 
   have K2: \<open>(case S of
                (a, b) \<Rightarrow> RES (\<Phi> a b)) =
@@ -528,7 +492,7 @@ proof -
        bt bu bv bw bx _ _ "by" bz ca cb cc cd ce cf cg ch ci cj ck cl cm cn co cp
        lvl i vm0
       unfolding RETURN_def RES_RES2_RETURN_RES RES_RES13_RETURN_RES find_decomp_w_ns_def conc_fun_RES
-        RES_RES13_RETURN_RES K K2
+        RES_RES13_RETURN_RES K2 K
       apply (auto simp: intro_spec_iff intro!: ASSERT_leI isa_length_trail_pre)
       apply (auto simp: isa_length_trail_length_u[THEN fref_to_Down_unRET_Id]
         intro: isa_vmtfI trail_pol_no_dup)
@@ -851,9 +815,6 @@ definition max_restart_decision_lvl :: nat where
 
 definition max_restart_decision_lvl_code :: \<open>32 word\<close> where
   \<open>max_restart_decision_lvl_code = 300\<close>
-
-definition GC_EVERY :: \<open>64 word\<close> where
-  \<open>GC_EVERY = 15\<close> \<comment>\<open>hard-coded limit\<close>
 
 fun (in -) get_reductions_count :: \<open>twl_st_wl_heur \<Rightarrow> 64 word\<close> where
   \<open>get_reductions_count (_, _, _, _, _, _, _,_,_,_,
@@ -2297,9 +2258,12 @@ proof (rule SPEC_rule)
 qed
 
 lemma twl_st_heur_restart_isa_length_trail_get_trail_wl:
-  \<open>(S, T) \<in> twl_st_heur_restart_ana r \<Longrightarrow> isa_length_trail (get_trail_wl_heur S) = length (get_trail_wl T)\<close>
-  unfolding isa_length_trail_def twl_st_heur_restart_ana_def twl_st_heur_restart_def trail_pol_def
-  by (cases S) (auto dest: ann_lits_split_reasons_map_lit_of)
+  \<open>(S, T) \<in> twl_st_heur_restart_ana r \<Longrightarrow> mop_isa_length_trail (get_trail_wl_heur S) = RETURN (length (get_trail_wl T))\<close>
+  unfolding isa_length_trail_def twl_st_heur_restart_ana_def twl_st_heur_restart_def trail_pol_alt_def
+    mop_isa_length_trail_def isa_length_trail_pre_def
+  by (subgoal_tac \<open>(case get_trail_wl_heur S of
+            (M', xs, lvls, reasons, k, cs) \<Rightarrow> length M' \<le> uint32_max)\<close>)
+    (cases S;auto dest: ann_lits_split_reasons_map_lit_of intro!: ASSERT_leI; fail)+
 
 lemma twl_st_heur_restart_count_decided_st_alt_def:
   fixes S :: twl_st_wl_heur
@@ -2635,15 +2599,12 @@ proof -
       subgoal for x
         apply clarify
 	apply (frule twl_st_heur_restart_isa_length_trail_get_trail_wl)
-        by (auto simp:  trail_pol_def empty_Q_wl_def
-            isa_length_trail_def
-          dest!: ann_lits_split_reasons_map_lit_of)
+        by (auto simp:  trail_pol_def empty_Q_wl_def mop_isa_length_trail_def)
       subgoal for x
         apply clarify
 	apply (frule twl_st_heur_restart_isa_length_trail_get_trail_wl)
         by (auto simp:  trail_pol_def empty_Q_wl_def
-            isa_length_trail_def
-          dest!: ann_lits_split_reasons_map_lit_of)
+            mop_isa_length_trail_def)
       done
 
     let ?\<A> = \<open>all_init_atms_st y\<close>
@@ -2705,8 +2666,10 @@ proof -
       using Sy by (auto simp: twl_st_heur_restart_count_decided_st_alt_def)
     subgoal
       unfolding empty_Q_def empty_Q_wl_def
+      apply clarify
+      apply (frule twl_st_heur_restart_isa_length_trail_get_trail_wl)
       by refine_vcg
-        (simp_all add: twl_st_heur_restart_isa_length_trail_get_trail_wl)
+        (simp_all add: mop_isa_length_trail_def)
     subgoal
       using Sy' .
     done
@@ -2794,8 +2757,8 @@ lemma remove_one_annot_true_clause_imp_wl_D_heur_remove_one_annot_true_clause_im
       fref_to_Down_curry])
   subgoal by (auto simp: trail_pol_alt_def isa_length_trail_pre_def
     twl_st_heur_restart_def twl_st_heur_restart_ana_def)
-  subgoal by (auto simp: twl_st_heur_restart_isa_length_trail_get_trail_wl
-    twl_st_heur_restart_count_decided_st_alt_def)
+  subgoal by (auto dest: twl_st_heur_restart_isa_length_trail_get_trail_wl
+   simp: twl_st_heur_restart_count_decided_st_alt_def mop_isa_length_trail_def)
   subgoal for x y
     apply (rule order_trans)
     apply (rule get_pos_of_level_in_trail_imp_get_pos_of_level_in_trail_CS[THEN fref_to_Down_curry,
@@ -3667,8 +3630,8 @@ definition arena_header_size :: \<open>arena \<Rightarrow> nat \<Rightarrow> nat
 
 lemma valid_arena_header_size:
   \<open>valid_arena arena N vdom \<Longrightarrow> C \<in># dom_m N \<Longrightarrow> arena_header_size arena C = header_size (N \<propto> C)\<close>
-
   by (auto simp: arena_header_size_def header_size_def arena_lifting)
+
 lemma isasat_GC_clauses_prog_copy_wl_entry:
   assumes \<open>valid_arena arena N vdom0\<close> and
     \<open>valid_arena arena' N' (set vdom)\<close> and

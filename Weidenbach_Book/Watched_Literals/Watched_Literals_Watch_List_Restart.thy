@@ -43,6 +43,15 @@ lemma all_init_atms_alt_def:
     dest: multi_member_split atm_of_lit_in_atms_of
     simp del: set_image_mset)
 
+lemma in_set_all_init_atms_iff:
+  \<open>y \<in># all_init_atms bu bw \<longleftrightarrow>
+    y \<in> atms_of_mm (mset `# init_clss_lf bu) \<or> y \<in> atms_of_mm bw\<close>
+  by (auto simp: all_lits_def atm_of_all_lits_of_mm all_init_atms_alt_def atms_of_def
+        in_all_lits_of_mm_ain_atms_of_iff all_lits_of_mm_def atms_of_ms_def image_UN
+    dest!: multi_member_split[of \<open>(_, _)\<close> \<open>ran_m N\<close>]
+    dest: multi_member_split atm_of_lit_in_atms_of
+    simp del: set_image_mset)
+
 text \<open>To ease the proof, we introduce the following ``alternative'' definitions, that only considers
   variables that are present in the initial clauses (which are never deleted from the set of
   clauses, but only moved to another component).

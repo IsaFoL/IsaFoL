@@ -2,20 +2,6 @@ theory IsaSAT_Backtrack
   imports IsaSAT_Setup IsaSAT_VMTF IsaSAT_Rephase
 begin
 
-(*
-
-save_phase_st
-lemma save_phase_st_spec:
-  \<open>(S, S') \<in> twl_st_heur''' r \<Longrightarrow> save_phase_st S \<le> SPEC(\<lambda>S. (S, S') \<in> twl_st_heur''' r)\<close>
-  unfolding save_phase_st_def
-  apply (cases S')
-  apply (refine_vcg save_phase_heur_spec[THEN order_trans, of \<open>all_atms_st S'\<close>])
-  apply (simp_all add:  twl_st_heur_def)
-  apply (rule isa_length_trail_pre)
-  apply blast
-  done
-
-*)
 
 chapter \<open>Backtrack\<close>
 
@@ -725,8 +711,7 @@ definition propagate_bt_wl_D_heur
          vdom, avdom, lcount, opts) \<longrightarrow> length_ll W (nat_of_lit L') < sint64_max);
       let W = W[nat_of_lit L' := W!nat_of_lit L' @ [(i, -L, b')]];
       lbd \<leftarrow> lbd_empty lbd;
-      ASSERT(isa_length_trail_pre M);
-      let j = isa_length_trail M;
+      j \<leftarrow> mop_isa_length_trail M;
       ASSERT(i \<noteq> DECISION_REASON);
       ASSERT(cons_trail_Propagated_tr_pre ((-L, i), M));
       M \<leftarrow> cons_trail_Propagated_tr (- L) i M;
@@ -754,8 +739,7 @@ definition propagate_unit_bt_wl_D_int
       vm \<leftarrow> isa_vmtf_flush_int M vm;
       glue \<leftarrow> get_LBD lbd;
       lbd \<leftarrow> lbd_empty lbd;
-      ASSERT(isa_length_trail_pre M);
-      let j = isa_length_trail M;
+      j \<leftarrow> mop_isa_length_trail M;
       ASSERT(0 \<noteq> DECISION_REASON);
       ASSERT(cons_trail_Propagated_tr_pre ((- L, 0::nat), M));
       M \<leftarrow> cons_trail_Propagated_tr (- L) 0 M;
@@ -1802,8 +1786,7 @@ proof -
             vdom, avdom, lcount, opts) \<longrightarrow> length_ll W (nat_of_lit L') < sint64_max);
           let W = W[nat_of_lit L' := W!nat_of_lit L' @ [(i, -L, length C = 2)]];
           lbd \<leftarrow> lbd_empty lbd;
-	         ASSERT(isa_length_trail_pre M);
-          let j = isa_length_trail M;
+          j \<leftarrow> mop_isa_length_trail M;
           ASSERT(i \<noteq> DECISION_REASON);
           ASSERT(cons_trail_Propagated_tr_pre ((-L, i), M));
           M \<leftarrow> cons_trail_Propagated_tr (- L) i M;
@@ -1923,8 +1906,9 @@ proof -
       	done
     qed
 
-    have [refine0]: \<open>(isa_length_trail M1', ()) \<in> {(j, _). j = length M1}\<close>
-      by (subst isa_length_trail_length_u[THEN fref_to_Down_unRET_Id, OF _ M1'_M1]) auto
+    have [refine0]: \<open>(mop_isa_length_trail M1') \<le> \<Down> {(j, _). j = length M1} (RETURN ())\<close>
+      by (rule order_trans[OF mop_isa_length_trail_length_u[THEN fref_to_Down_Id_keep, OF _ M1'_M1]])
+         (auto simp: conc_fun_RES RETURN_def)
     have [refine0]: \<open>get_LBD lbd \<le> \<Down> {(_, _). True}(RETURN ())\<close>
       unfolding get_LBD_def by (auto intro!: RES_refine simp: RETURN_def)
     have [refine0]: \<open>RETURN C
@@ -2119,8 +2103,6 @@ proof -
          by (auto simp: isasat_fast_def length_ll_def S' U lit_of_hd_trail_def simp flip: all_atms_def)
       subgoal using length_watched_le[of S' S \<open>C ! Suc 0\<close>] corr SS' W'_eq S_arena C_1_neq_hd C_Suc1_in
          by (auto simp: length_ll_def S' U lit_of_hd_trail_def isasat_fast_def simp flip: all_atms_def)
-      subgoal
-        using M1'_M1 by (rule isa_length_trail_pre)
       subgoal using D' C_1_neq_hd vmtf avdom
         by (auto simp: DECISION_REASON_def
             dest: valid_arena_one_notin_vdomD
@@ -2277,8 +2259,9 @@ proof -
     have [refine0]:
       \<open>lbd_empty lbd \<le> SPEC (\<lambda>c. (c, ()) \<in> {(c, _). c = replicate (length lbd) False})\<close>
       by (auto simp: lbd_empty_def)
-    have [refine0]: \<open>(isa_length_trail M1', ()) \<in> {(j, _). j = length M1}\<close>
-      by (subst isa_length_trail_length_u[THEN fref_to_Down_unRET_Id, OF _ M'M]) auto
+    have [refine0]: \<open>mop_isa_length_trail M1' \<le>  \<Down> {(j, _). j = length M1} (RETURN ())\<close>
+      by (rule order_trans, rule mop_isa_length_trail_length_u[THEN fref_to_Down_Id_keep, OF _ M'M])
+        (auto simp: RETURN_def conc_fun_RES)
 
     have [refine0]: \<open>isa_vmtf_flush_int M1' vm' \<le>
          SPEC(\<lambda>c. (c, ()) \<in> {(vm', _). vm' \<in> isa_vmtf (all_atms_st U') M1})\<close>
@@ -2395,7 +2378,6 @@ proof -
         propagate_unit_bt_wl_alt_def
       apply (rewrite at \<open>let _ = incr_uset _ in _\<close> Let_def)
       apply (refine_rcg cons_trail_Propagated_tr2[where \<A> = \<open>all_atms_st U'\<close>])
-      subgoal using M'M by (rule isa_length_trail_pre)
       subgoal by (auto simp: DECISION_REASON_def)
       subgoal
         using M'M by (rule cons_trail_Propagated_tr_pre)
@@ -2554,8 +2536,7 @@ lemma propagate_bt_wl_D_heur_alt_def:
          vdom, avdom, lcount, opts) \<longrightarrow> length_ll W (nat_of_lit L') < sint64_max);
       let W = W[nat_of_lit L' := W!nat_of_lit L' @ [(i, -L, b')]];
       lbd \<leftarrow> lbd_empty lbd;
-      ASSERT(isa_length_trail_pre M);
-      let j = isa_length_trail M;
+      j \<leftarrow> mop_isa_length_trail M;
       ASSERT(i \<noteq> DECISION_REASON);
       ASSERT(cons_trail_Propagated_tr_pre ((-L, i), M));
       M \<leftarrow> cons_trail_Propagated_tr (- L) i M;

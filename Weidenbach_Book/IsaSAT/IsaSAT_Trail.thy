@@ -460,6 +460,17 @@ lemma isa_length_trail_length_u:
     (auto simp: isa_length_trail_def trail_pol_alt_def
     intro!: ASSERT_leI)
 
+definition mop_isa_length_trail where
+  \<open>mop_isa_length_trail = (\<lambda>(M). do {
+    ASSERT(isa_length_trail_pre M);
+    RETURN (isa_length_trail M)
+  })\<close>
+
+lemma mop_isa_length_trail_length_u:
+  \<open>(mop_isa_length_trail, RETURN o length_uint32_nat) \<in> trail_pol \<A> \<rightarrow>\<^sub>f \<langle>nat_rel\<rangle>nres_rel\<close>
+  by (intro frefI nres_relI)
+    (auto simp: mop_isa_length_trail_def isa_length_trail_def dest: isa_length_trail_pre
+    intro!: ASSERT_leI, auto simp: trail_pol_alt_def)
 
 subsection \<open>Consing elements\<close>
 
