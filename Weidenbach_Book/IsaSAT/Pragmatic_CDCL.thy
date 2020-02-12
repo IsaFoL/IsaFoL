@@ -1123,7 +1123,8 @@ subresolution_LL:
  if  \<open>count_decided M = 0\<close> and \<open>\<not>tautology (C + C')\<close> and  \<open>C \<subseteq># C'\<close>|
 subresolution_LI:
   \<open>cdcl_subresolution (M, N + {#add_mset L C#}, U + {#add_mset (-L) C'#}, D, NE, UE, NS, US)
-    (M, N + {#add_mset L C#}, U + {#remdups_mset (C')#}, D, NE, UE, NS, add_mset (add_mset (-L) C')  US)\<close>
+    (M, N + {#add_mset L C#}, U + {#remdups_mset (C')#}, D, NE, UE, NS,
+      add_mset (add_mset (-L) C') US)\<close>
  if  \<open>count_decided M = 0\<close> and \<open>\<not>tautology (C + C')\<close> and  \<open>C \<subseteq># C'\<close>|
 subresolution_IL:
   \<open>cdcl_subresolution (M, N + {#add_mset L C#}, U + {#add_mset (-L) C'#}, D, NE, UE, NS, US)

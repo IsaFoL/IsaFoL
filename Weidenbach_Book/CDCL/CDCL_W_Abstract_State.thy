@@ -166,6 +166,24 @@ interpretation cdcl\<^sub>W_restart_mset: state\<^sub>W_adding_init_clause where
   add_init_cls = add_init_cls
   by unfold_locales (auto simp: state_def cdcl\<^sub>W_restart_mset_state)
 
+
+interpretation cdcl\<^sub>W_restart_mset: conflict_driven_clause_learning_with_adding_init_clause\<^sub>W where
+  state = state and
+  trail = trail and
+  init_clss = init_clss and
+  learned_clss = learned_clss and
+  conflicting = conflicting and
+
+  state_eq = state_eq and
+  cons_trail = cons_trail and
+  tl_trail = tl_trail and
+  add_learned_cls = add_learned_cls and
+  remove_cls = remove_cls and
+  update_conflicting = update_conflicting and
+  init_state = init_state and
+  add_init_cls = add_init_cls
+  by unfold_locales (auto simp: state_def cdcl\<^sub>W_restart_mset_state)
+
 lemma full_cdcl\<^sub>W_init_state:
   \<open>full cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy (init_state {#}) S \<longleftrightarrow> S = init_state {#}\<close>
   unfolding full_def rtranclp_unfold

@@ -243,7 +243,7 @@ conflict_opt_rule:
     \<open>C \<in># conflicting_clss S\<close>
     \<open>conflicting S = None\<close>
     \<open>trail S \<Turnstile>as CNot C\<close>
-    \<open>T \<sim> update_conflicting (Some C) (reduce_trail_to_level (get_maximum_level (trail S) C) S)\<close>
+    \<open>T \<sim> update_conflicting (Some C) (reduce_trail_wrt_clause C S)\<close>
 
 inductive_cases conflict_optE: \<open>conflict_opt S T\<close>
 
@@ -255,73 +255,77 @@ lemma invs_update_weight_information[simp]:
   \<open>cdcl\<^sub>W_learned_clause (update_weight_information C S) = cdcl\<^sub>W_learned_clause S\<close>
   unfolding no_strange_atm_def cdcl\<^sub>W_M_level_inv_def distinct_cdcl\<^sub>W_state_def cdcl\<^sub>W_conflicting_def
     cdcl\<^sub>W_learned_clause_alt_def cdcl\<^sub>W_all_struct_inv_def by auto
+lemma cut_trail_wrt_clause_simps[simp]:
+    \<open>conflicting_clss (cut_trail_wrt_clause C M S) = conflicting_clss S\<close>
+  by (induction C M S rule: cut_trail_wrt_clause.induct; auto)
 
-lemma get_level_delete_levels:
-  \<open>get_level M L < (count_decided M - i) \<Longrightarrow> get_level (delete_levels M i) L = get_level M L\<close>
-  by (induction M i rule: delete_levels.induct)
-    (auto simp add: delete_levels_Decided_If delete_levels_Propagated_If
-    get_level_cons_if atm_of_eq_atm_of split: if_splits)
-lemma get_level_le_still_in_trail:
-  \<open>get_level M L < count_decided M - i \<Longrightarrow> L \<in> lits_of_l M \<Longrightarrow> L \<in> lits_of_l (delete_levels M i)\<close>
-  by (induction M i rule: delete_levels.induct)
-    (auto simp add: delete_levels_Decided_If delete_levels_Propagated_If
-    get_level_cons_if atm_of_eq_atm_of split: if_splits)
+lemma reduce_trail_wrt_clause_simps[simp]:
+  \<open>conflicting_clss (reduce_trail_wrt_clause C S) = conflicting_clss S\<close>
+  \<open>init_clss (reduce_trail_wrt_clause C S) = init_clss S\<close>
+  \<open>learned_clss (reduce_trail_wrt_clause C S) = learned_clss S\<close>
+  \<open>clauses (reduce_trail_wrt_clause C S) = clauses S\<close>
+  by (auto simp: reduce_trail_wrt_clause_def)
 
 lemma ISABELLE_WTF: \<open>n \<le> n - Suc m \<longleftrightarrow> n = 0\<close>
   by auto
-lemma get_level_le_still_in_trail':
-  \<open>get_level M L \<le> count_decided M - i \<Longrightarrow> count_decided M \<ge> i \<Longrightarrow> L \<in> lits_of_l M \<Longrightarrow> L \<in> lits_of_l (delete_levels M i)\<close>
-  by (induction M i rule: delete_levels.induct)
-    (auto simp add: delete_levels_Decided_If delete_levels_Propagated_If ISABELLE_WTF
-    get_level_cons_if atm_of_eq_atm_of split: if_splits)
+lemma update_conflicting_cut_trail_wrt_clause:
+   \<open>CDCL_W_Abstract_State.update_conflicting D
+     (cdcl\<^sub>W_restart_mset.cut_trail_wrt_clause C M
+       (M, N, U, D')) =
+    (CDCL_W_Abstract_State.trail (cdcl\<^sub>W_restart_mset.cut_trail_wrt_clause C M
+       (M, N, U, D')), N, U, D)\<close>
+   by (induction C M \<open>(M, N, U, D')\<close> rule: cdcl\<^sub>W_restart_mset.cut_trail_wrt_clause.induct)
+    (auto simp: cdcl\<^sub>W_restart_mset_state)
 
-lemma conflict_is_conflict_after_trail_reduction:
-  \<open>\<forall>L\<in>#C. - L \<in> lits_of_l (trail S) \<Longrightarrow> no_dup (trail S) \<Longrightarrow>
-          L \<in># C \<Longrightarrow> -L \<in> lits_of_l (trail S) \<Longrightarrow>
-          -L \<in> lits_of_l
-             (trail
-               (reduce_trail_to_level (get_maximum_level (trail S) C) S))\<close>
-  using get_level_le_still_in_trail'[of \<open>trail S\<close> \<open>-L\<close> \<open>backtrack_lvl S - get_maximum_level (trail S) C\<close>]
-    count_decided_ge_get_level[of \<open>trail S\<close> \<open>-L\<close>]
-    count_decided_ge_get_maximum_level[of \<open>trail S\<close> C]
-    le_count_decided_decomp[of \<open>trail S\<close> \<open>get_maximum_level (trail S) C\<close>]
-  unfolding reduce_trail_to_level_def
-  by (auto simp: get_maximum_level_add_mset dest!: multi_member_split)
+lemma cdcl\<^sub>W_restart_mset_cut_trail_wrt_clause_state_cut_trail_wrt:
+    \<open>(cdcl\<^sub>W_restart_mset.cut_trail_wrt_clause C (trail S)
+       (trail S, init_clss S + conflicting_clss S, learned_clss S, conflicting S)) =
+    abs_state (cut_trail_wrt_clause C (trail S) S)\<close>
+  apply (induction C \<open>trail S\<close> \<open>(trail S, init_clss S + conflicting_clss S, learned_clss S, conflicting S)\<close>
+    arbitrary: S rule: cdcl\<^sub>W_restart_mset.cut_trail_wrt_clause.induct)
+  subgoal by (auto simp: abs_state_def reduce_trail_wrt_clause_def)[]
+  subgoal premises p for C L M S
+    using p(1)[of \<open>tl_trail S\<close>] p(2-)
+    by (auto simp: cdcl\<^sub>W_restart_mset_state eq_commute[of _ \<open>trail S\<close>] abs_state_def)
+  subgoal premises p for C L _ M S
+    using p(1)[of \<open>tl_trail S\<close>] p(2-)
+    by (auto simp: cdcl\<^sub>W_restart_mset_state eq_commute[of _ \<open>trail S\<close>] abs_state_def)
+  done
+
+lemma cdcl\<^sub>W_restart_mset_reduce_trail_wrt_clause_reduce_trail_wrt_clause:
+   \<open>cdcl\<^sub>W_restart_mset.reduce_trail_wrt_clause C
+         (trail S, init_clss S + conflicting_clss S, learned_clss S, conflicting S) =
+    (trail (reduce_trail_wrt_clause C S),
+         init_clss S + conflicting_clss S, learned_clss S, Some C)\<close>
+  unfolding cdcl\<^sub>W_restart_mset.reduce_trail_wrt_clause_def cdcl\<^sub>W_restart_mset_state
+  by (auto simp: cdcl\<^sub>W_restart_mset_state update_conflicting_cut_trail_wrt_clause
+   cdcl\<^sub>W_restart_mset_cut_trail_wrt_clause_state_cut_trail_wrt reduce_trail_wrt_clause_def)
+    (auto simp: abs_state_def cdcl\<^sub>W_restart_mset_state)
+
+lemma conflict_opt_cdcl\<^sub>W_OOO_conflict:
+   \<open>conflict_opt S T \<Longrightarrow>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_OOO_conflict (abs_state S) (abs_state T)\<close>
+   using cdcl\<^sub>W_restart_mset_reduce_trail_wrt_clause_reduce_trail_wrt_clause[of _ S]
+  by (auto simp: conflict_opt.simps cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_OOO_conflict.simps)
+    (auto simp: abs_state_def cdcl\<^sub>W_restart_mset_state_eq_eq
+    cdcl\<^sub>W_restart_mset_reduce_trail_wrt_clause_reduce_trail_wrt_clause)
 
 lemma conflict_opt_cdcl\<^sub>W_all_struct_inv:
   assumes \<open>conflict_opt S T\<close> and
     inv: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S)\<close>
   shows \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state T)\<close>
-  using assms atms_of_conflicting_clss[of T] atms_of_conflicting_clss[of S]
-    distinct_mset_mset_conflicting_clss[of S]
-  apply (induction rule: conflict_opt.cases)
-  apply (auto 5 2 simp  add: cdcl\<^sub>W_restart_mset.no_strange_atm_def no_dup_reduce_trail_to
-        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def consistent_interp_reduce_trail_to
-        cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
-        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_alt_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-        true_annots_true_cls_def_iff_negation_in_model
-        in_negate_trial_iff cdcl\<^sub>W_restart_mset_state cdcl\<^sub>W_restart_mset.clauses_def
-        abs_state_def
-      dest: in_trail_reduce_trail_to_levelD multi_member_split in_lits_of_l_trail_reduce_trail_to_levelD
-      intro!: true_clss_cls_in)
+  using conflict_opt_cdcl\<^sub>W_OOO_conflict[OF assms(1)]
+   cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_OOO_conflict_all_struct_invs inv by blast
 
-apply (auto dest!: in_trail_reduce_trail_to_levelD in_lits_of_l_trail_reduce_trail_to_levelD)[3]
-apply blast
-  sorry
-
-
-term \<open>map (*)\<close>
 lemma conflict_opt_no_smaller_conflict:
-  assumes \<open>conflict_opt S T\<close> and
-    \<open>no_smaller_confl S\<close>
-  shows \<open>no_smaller_confl T\<close> and \<open>conflict_is_false_with_level T\<close>
-  using assms by (induction rule: conflict_opt.induct)
-    (auto simp: cdcl\<^sub>W_restart_mset_state no_smaller_confl_def cdcl\<^sub>W_restart_mset.clauses_def
-      exists_lit_max_level_in_negate_ann_lits cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant_def)
+  assumes \<open>conflict_opt S T\<close> and  \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S)\<close>
+  shows \<open>conflict_is_false_with_level T\<close>
+    using conflict_opt_cdcl\<^sub>W_OOO_conflict[OF assms(1)] assms(2-)
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_OOO_conflict_conflict_is_false_with_level[of \<open>abs_state S\<close>
+      \<open>abs_state T\<close>]
+   by auto
 
-fun no_confl_prop_impr where
-  \<open>no_confl_prop_impr S \<longleftrightarrow>
-    no_step propagate S \<and> no_step conflict S\<close>
+fun no_confl_prop_impr :: \<open>'st \<Rightarrow> bool\<close> where
+  \<open>no_confl_prop_impr S \<longleftrightarrow> no_step propagate S \<and> no_step conflict S\<close>
 
 text \<open>We use a slighlty generalised form of backtrack to make conflict clause minimisation possible.\<close>
 inductive obacktrack :: \<open>'st \<Rightarrow> 'st \<Rightarrow> bool\<close> for S :: 'st where
@@ -430,14 +434,6 @@ lemma rtranclp_cdcl_bnb_no_more_init_clss:
   \<open>cdcl_bnb\<^sup>*\<^sup>* S S' \<Longrightarrow> init_clss S = init_clss S'\<close>
   by (induction rule: rtranclp_induct)
     (auto dest: cdcl_bnb_no_more_init_clss)
-
-lemma conflict_opt_conflict:
-  \<open>conflict_opt S T \<Longrightarrow> cdcl\<^sub>W_restart_mset.conflict (abs_state S) (abs_state T)\<close>
-  by (induction rule: conflict_opt.cases)
-    (auto intro!: cdcl\<^sub>W_restart_mset.conflict_rule[of _ \<open>negate_ann_lits (trail S)\<close>]
-      simp: cdcl\<^sub>W_restart_mset.clauses_def cdcl\<^sub>W_restart_mset_state
-      true_annots_true_cls_def_iff_negation_in_model abs_state_def
-      in_negate_trial_iff)
 
 lemma conflict_conflict:
   \<open>conflict S T \<Longrightarrow> cdcl\<^sub>W_restart_mset.conflict (abs_state S) (abs_state T)\<close>
@@ -810,6 +806,26 @@ next
   qed
 qed
 
+lemma trail_cut_trail_wrt_clause_decomp:
+   \<open>trail (cut_trail_wrt_clause C (trail S) S) = M' @ Decided K # M \<Longrightarrow>
+    \<exists>M'. trail (S) = M' @ Decided K # M\<close>
+  apply (induction C \<open>trail S\<close> S arbitrary: S rule: cut_trail_wrt_clause.induct)
+  subgoal by auto
+  subgoal premises p for C L M S T
+    using p(1)[of \<open>tl_trail T\<close>] p(2-)
+    by (auto simp: eq_commute[of \<open>_ # _\<close> \<open>trail _\<close>] eq_commute[of \<open>_ @ _ # _\<close> \<open>_ # _\<close>]
+      split: if_splits)
+  subgoal premises p for C L _ M S T
+    using p(1)[of \<open>tl_trail T\<close>] p(2-)
+    by (auto simp: eq_commute[of \<open>_ # _\<close> \<open>trail _\<close>] eq_commute[of \<open>_ @ _ # _\<close> \<open>_ # _\<close>]
+      split: if_splits)
+  done
+
+lemma trail_reduce_trail_wrt_clause_decomp:
+    \<open>trail (reduce_trail_wrt_clause C S) = M' @ Decided K # M \<Longrightarrow>
+    \<exists>M'. trail (S) = M' @ Decided K # M\<close>
+  by (auto simp: reduce_trail_wrt_clause_def dest: trail_cut_trail_wrt_clause_decomp)
+
 lemma cdcl_bnb_stgy_no_smaller_confl:
   assumes \<open>cdcl_bnb_stgy S T\<close> and
     \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (abs_state S)\<close> and
@@ -823,7 +839,7 @@ proof (induction rule: cdcl_bnb_stgy.cases)
     by (rule ocdcl\<^sub>W_o_no_smaller_confl_inv)
      (use cdcl_bnb_other' in \<open>auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def\<close>)
 qed (auto intro: conflict_no_smaller_confl_inv propagate_no_smaller_confl_inv;
-  auto simp: no_smaller_confl_def conflict_opt.simps)+
+  auto simp: no_smaller_confl_def conflict_opt.simps dest!: trail_reduce_trail_wrt_clause_decomp)+
 
 lemma ocdcl\<^sub>W_o_conflict_is_false_with_level_inv:
   assumes
@@ -894,7 +910,7 @@ next
 next
   case (cdcl_bnb_conflict_opt S')
   then show ?case
-    using conflict_opt_no_smaller_conflict(2) by blast
+    using conflict_opt_no_smaller_conflict by blast
 next
   case (cdcl_bnb_other' S')
   show ?case
@@ -973,7 +989,8 @@ next
   case (cdcl_conflict_opt S')
   then show ?case
     using entailed
-    by (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init_def
+    by (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init_def abs_state_def
+         init_clss.simps learned_clss.simps
         elim!: conflict_optE)
 qed
 
@@ -1438,7 +1455,8 @@ lemma ocdcl\<^sub>W_no_smaller_propa:
   apply (cases)
   subgoal by (auto)
   subgoal by (auto)
-  subgoal by (auto elim!: conflict_optE simp: no_smaller_propa_def)
+  subgoal by (auto elim!: conflict_optE simp: no_smaller_propa_def
+     dest!: trail_reduce_trail_wrt_clause_decomp)
   subgoal using ocdcl\<^sub>W_o_no_smaller_propa by fast
   done
 
@@ -1564,12 +1582,28 @@ qed
 
 end
 
+lemma get_all_mark_of_propagated_reduce_trail_wrt_clause_subset:
+  \<open>set (get_all_mark_of_propagated (trail (reduce_trail_wrt_clause C S))) \<subseteq>
+  set (get_all_mark_of_propagated (trail S))\<close>
+  apply (induction C \<open>trail S\<close> S arbitrary: S rule: cut_trail_wrt_clause.induct)
+  subgoal by (auto simp: reduce_trail_wrt_clause_def)
+  subgoal premises p for C L M S T
+    using p(1)[of \<open>tl_trail T\<close>] p(2-)
+    by (auto simp: eq_commute[of \<open>_ # _\<close> \<open>trail _\<close>] reduce_trail_wrt_clause_def
+      split: if_splits)
+  subgoal premises p for C L _ M S T
+    using p(1)[of \<open>tl_trail T\<close>] p(2-)
+    by (auto simp: eq_commute[of \<open>_ # _\<close> \<open>trail _\<close>] reduce_trail_wrt_clause_def
+      split: if_splits)
+  done
+
 lemma cdcl_bnb_reasons_in_clauses:
   \<open>cdcl_bnb S T \<Longrightarrow> reasons_in_clauses S \<Longrightarrow> reasons_in_clauses T\<close>
   by (auto simp: cdcl_bnb.simps reasons_in_clauses_def ocdcl\<^sub>W_o.simps
         cdcl_bnb_bj.simps get_all_mark_of_propagated_tl_proped
     elim!: rulesE conflict_optE obacktrackE
-    dest!: in_set_tlD get_all_ann_decomposition_exists_prepend)
+    dest!: in_set_tlD get_all_ann_decomposition_exists_prepend
+      set_mp[OF get_all_mark_of_propagated_reduce_trail_wrt_clause_subset])
 
 end
 
