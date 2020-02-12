@@ -154,6 +154,13 @@ lemma fref_to_Down_curry:
   unfolding fref_def uncurry_def nres_rel_def
   by auto
 
+lemma fref_to_Down_Id_keep:
+  assumes \<open>(f, RETURN o g) \<in> [P]\<^sub>f A \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
+  shows \<open>(\<And>x x'. P x' \<Longrightarrow> (x, x') \<in> A \<Longrightarrow> f x \<le> \<Down> {(x, y). x = y \<and> x = g x'} (RETURN (g x')))\<close>
+  using assms
+  unfolding fref_def uncurry_def nres_rel_def RETURN_def conc_fun_RES
+  by auto
+
 text \<open>This has been moved to theory \<open>Isabelle_LLVM.Sepref_Misc\<close>. However, we cannot import it here
   due to \<open>Refine_Imperative_HOL.Sepref_Misc\<close>. Therefore, we mark the abbreviations as input only
   and hope for the best.\<close>

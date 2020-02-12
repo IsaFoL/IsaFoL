@@ -97,6 +97,7 @@ sepref_def polarity_pol_fast_code
   by sepref
 
 
+sepref_register isa_length_trail
 sepref_def isa_length_trail_fast_code
   is \<open>RETURN o isa_length_trail\<close>
   :: \<open>[\<lambda>_. True]\<^sub>a trail_pol_fast_assn\<^sup>k \<rightarrow> snat_assn' TYPE(64)\<close>
@@ -104,6 +105,11 @@ sepref_def isa_length_trail_fast_code
     trail_pol_fast_assn_def
   by sepref
 
+sepref_def mop_isa_length_trail_fast_code
+  is \<open>mop_isa_length_trail\<close>
+  :: \<open>trail_pol_fast_assn\<^sup>k \<rightarrow>\<^sub>a snat_assn' TYPE(64)\<close>
+  unfolding mop_isa_length_trail_def isa_length_trail_pre_def length_uint32_nat_def
+  by sepref
 
 
 sepref_def cons_trail_Propagated_tr_fast_code

@@ -1499,6 +1499,19 @@ lemma isasat_length_trail_st_alt_def:
   \<open>isasat_length_trail_st = (\<lambda>(M, _). isa_length_trail M)\<close>
   by (auto simp: isasat_length_trail_st_def intro!: ext)
 
+definition mop_isasat_length_trail_st :: \<open>twl_st_wl_heur \<Rightarrow> nat nres\<close> where
+  \<open>mop_isasat_length_trail_st S = do {
+    ASSERT(isa_length_trail_pre (get_trail_wl_heur S));
+    RETURN (isa_length_trail (get_trail_wl_heur S))
+  }\<close>
+
+lemma mop_isasat_length_trail_st_alt_def:
+  \<open>mop_isasat_length_trail_st = (\<lambda>(M, _). do {
+    ASSERT(isa_length_trail_pre M);
+    RETURN (isa_length_trail M)
+  })\<close>
+  by (auto simp: mop_isasat_length_trail_st_def intro!: ext)
+
 
 definition get_pos_of_level_in_trail_imp_st :: \<open>twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> nat nres\<close> where
 \<open>get_pos_of_level_in_trail_imp_st S = get_pos_of_level_in_trail_imp (get_trail_wl_heur S)\<close>
