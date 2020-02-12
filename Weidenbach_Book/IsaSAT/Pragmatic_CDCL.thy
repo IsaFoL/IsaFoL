@@ -353,18 +353,29 @@ lemma cdcl_learn_clause_still_entailed:
     by auto
   done
 
+inductive cdcl_flush_unit :: \<open>'v prag_st \<Rightarrow> 'v prag_st \<Rightarrow> bool\<close> where
+learn_unit_clause_R:
+  \<open>cdcl_flush_unit (M, add_mset {#L#} N, U, D, NE, UE, NS, US)
+    (M, N, U, D, add_mset {#L#} NE, UE, NS, US)\<close>
+  if \<open>get_level M L = 0\<close> \<open>L \<in> lits_of_l M\<close> |
+learn_unit_clause_I:
+  \<open>cdcl_flush_unit (M, N, add_mset {#L#} U, D, NE, UE, NS, US)
+    (M, N, U, D, NE, add_mset {#L#} UE, NS, US)\<close>
+  if \<open>get_level M L = 0\<close> \<open>L \<in> lits_of_l M\<close>
 
 inductive pcdcl :: \<open>'v prag_st \<Rightarrow> 'v prag_st \<Rightarrow> bool\<close> where
   \<open>pcdcl_core S T \<Longrightarrow> pcdcl S T\<close> |
   \<open>cdcl_learn_clause S T \<Longrightarrow> pcdcl S T\<close> |
   \<open>cdcl_resolution S T \<Longrightarrow> pcdcl S T\<close> |
-  \<open>cdcl_subsumed S T \<Longrightarrow> pcdcl S T\<close>
+  \<open>cdcl_subsumed S T \<Longrightarrow> pcdcl S T\<close> |
+  \<open>cdcl_flush_unit S T \<Longrightarrow> pcdcl S T\<close>
 
 inductive pcdcl_stgy :: \<open>'v prag_st \<Rightarrow> 'v prag_st \<Rightarrow> bool\<close> for S T :: \<open>'v prag_st\<close> where
   \<open>pcdcl_core_stgy S T \<Longrightarrow> pcdcl_stgy S T\<close> |
   \<open>cdcl_learn_clause S T \<Longrightarrow> pcdcl_stgy S T\<close> |
   \<open>cdcl_resolution S T \<Longrightarrow> pcdcl_stgy S T\<close> |
-  \<open>cdcl_subsumed S T \<Longrightarrow> pcdcl_stgy S T\<close>
+  \<open>cdcl_subsumed S T \<Longrightarrow> pcdcl_stgy S T\<close>|
+  \<open>cdcl_flush_unit S T \<Longrightarrow> pcdcl_stgy S T\<close>
 
 
 section \<open>Invariants\<close>
@@ -823,14 +834,18 @@ lemma cdcl_resolution_all_struct_inv:
         intro: all_decomposition_implies_monoI)
   done
 
+lemma cdcl_flush_unit_unchanged:
+  \<open>cdcl_flush_unit S T \<Longrightarrow> state\<^sub>W_of S = state\<^sub>W_of T\<close>
+  by (auto simp: cdcl_flush_unit.simps)
+
 lemma pcdcl_all_struct_inv:
   \<open>pcdcl S T \<Longrightarrow>
    cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state\<^sub>W_of S) \<Longrightarrow>
    cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state\<^sub>W_of T)\<close>
   by (induction rule: pcdcl.induct)
-   (blast intro: cdcl_resolution_all_struct_inv cdcl_subsumed_all_struct_inv
+    (blast intro: cdcl_resolution_all_struct_inv cdcl_subsumed_all_struct_inv
       cdcl_learn_clause_all_struct_inv cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_inv
-    dest!: pcdcl_core_is_cdcl
+    dest!: pcdcl_core_is_cdcl subst[OF cdcl_flush_unit_unchanged]
       cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_cdcl\<^sub>W_restart)+
 
 definition pcdcl_all_struct_invs :: \<open>_\<close> where
@@ -924,11 +939,21 @@ lemma pcdcl_core_entails_clss_inv:
     intro: entailed_clss_inv_skip cdcl_backtrack_entailed_clss_inv
     split: if_splits)
 
+lemma cdcl_flush_unit_invs:
+  \<open>cdcl_flush_unit S T \<Longrightarrow> psubsumed_invs S \<Longrightarrow> psubsumed_invs T\<close>
+  \<open>cdcl_flush_unit S T \<Longrightarrow> entailed_clss_inv S \<Longrightarrow> entailed_clss_inv T\<close>
+  \<open>cdcl_flush_unit S T \<Longrightarrow> cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant (state\<^sub>W_of S) \<Longrightarrow>
+     cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant (state\<^sub>W_of T)\<close>
+  by (auto simp: cdcl_flush_unit.simps psubsumed_invs_def entailed_clss_inv_def
+    dest!: multi_member_split dest: cdcl_flush_unit_unchanged)
+
+
 lemma pcdcl_entails_clss_inv:
   \<open>pcdcl S T \<Longrightarrow> entailed_clss_inv S \<Longrightarrow> entailed_clss_inv T\<close>
   by (induction rule: pcdcl.induct)
    (simp_all add: pcdcl_core_entails_clss_inv cdcl_learn_clause_entailed_clss_inv
-    cdcl_resolution_entailed_clss_inv cdcl_subsumed_entailed_clss_inv)
+    cdcl_resolution_entailed_clss_inv cdcl_subsumed_entailed_clss_inv
+   cdcl_flush_unit_invs)
 
 
 lemma pcdcl_core_psubsumed_invs:
@@ -944,7 +969,7 @@ lemma pcdcl_psubsumed_invs:
   \<open>pcdcl S T \<Longrightarrow> psubsumed_invs S \<Longrightarrow> psubsumed_invs T\<close>
   by (induction rule: pcdcl.induct)
     (simp_all add: pcdcl_core_psubsumed_invs cdcl_learn_clause_psubsumed_invs
-    cdcl_resolution_psubsumed_invs cdcl_subsumed_psubsumed_invs)
+    cdcl_resolution_psubsumed_invs cdcl_subsumed_psubsumed_invs cdcl_flush_unit_invs)
 
 lemma pcdcl_all_struct_invs:
   \<open>pcdcl S T \<Longrightarrow>
@@ -968,7 +993,8 @@ lemma cdcl_resolution_entailed_by_init:
   apply (metis (full_types) insert_commute true_clss_clss_insert_l)
   apply (metis (full_types) insert_commute true_clss_clss_insert_l)
   apply (metis add.commute true_clss_cls_or_true_clss_cls_or_not_true_clss_cls_or)
-  by (metis Partial_Herbrand_Interpretation.uminus_lit_swap member_add_mset set_mset_add_mset_insert set_mset_union true_clss_cls_in true_clss_cls_or_true_clss_cls_or_not_true_clss_cls_or)
+  by (metis Partial_Herbrand_Interpretation.uminus_lit_swap member_add_mset set_mset_add_mset_insert
+    set_mset_union true_clss_cls_in true_clss_cls_or_true_clss_cls_or_not_true_clss_cls_or)
 
 lemma cdcl_subsumed_entailed_by_init:
   assumes \<open>cdcl_subsumed S T\<close> and
@@ -997,7 +1023,7 @@ lemma pcdcl_entailed_by_init:
   using assms
   apply (induction rule: pcdcl.induct)
   apply (simp_all add: cdcl_learn_clause_entailed_by_init cdcl_subsumed_entailed_by_init
-    cdcl_resolution_entailed_by_init)
+    cdcl_resolution_entailed_by_init cdcl_flush_unit_unchanged)
   by (meson cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_cdcl\<^sub>W_restart
     cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed pcdcl_all_struct_invs_def pcdcl_core_is_cdcl)
 
@@ -1070,6 +1096,7 @@ lemma pcdcl_stgy_stgy_invs:
   subgoal using cdcl_learn_clause_stgy_stgy_invs by blast
   subgoal using cdcl_resolution_stgy_stgy_invs by blast
   subgoal using cdcl_subsumed_stgy_stgy_invs by blast
+  subgoal by (simp add: cdcl_flush_unit_unchanged)
   done
 
 
