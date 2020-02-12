@@ -44,7 +44,7 @@ proof -
       apply (drule spec[of _ x])
       apply (drule spec[of _ y])
       apply simp
-      apply (rule "weaken_\<Down>'"[of _ \<open>twl_st_heur'' (dom_m (get_clauses_wl y))
+      apply (rule \<open>weaken_\<Down>'\<close>[of _ \<open>twl_st_heur'' (dom_m (get_clauses_wl y))
          (length (get_clauses_wl_heur x))\<close>])
       apply (fastforce simp: twl_st_heur'_def)+
       done
@@ -70,7 +70,7 @@ proof -
       apply (drule spec[of _ x])
       apply (drule spec[of _ y])
       apply simp
-      apply (rule "weaken_\<Down>'"[of _ \<open>twl_st_heur''' (length (get_clauses_wl_heur x))\<close>])
+      apply (rule \<open>weaken_\<Down>'\<close>[of _ \<open>twl_st_heur''' (length (get_clauses_wl_heur x))\<close>])
       apply (fastforce simp: twl_st_heur'_def)+
       done
     done
@@ -95,7 +95,7 @@ proof -
       apply (drule spec[of _ x])
       apply (drule spec[of _ y])
       apply simp
-      apply (rule "weaken_\<Down>'"[of _ \<open>A \<times>\<^sub>r twl_st_heur''' (length (get_clauses_wl_heur x))\<close>])
+      apply (rule \<open>weaken_\<Down>'\<close>[of _ \<open>A \<times>\<^sub>r twl_st_heur''' (length (get_clauses_wl_heur x))\<close>])
       apply (fastforce simp: twl_st_heur'_def)+
       done
     done

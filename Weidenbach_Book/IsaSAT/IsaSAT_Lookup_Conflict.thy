@@ -803,7 +803,7 @@ proof -
     have [simp]: \<open>- D ! a \<notin> set (take (a - init) ?D)\<close>
     proof
       assume \<open>- D ! a \<in> set (take (a - init) (drop init D))\<close>
-      then have "(if is_pos (D ! a) then Neg else Pos) (atm_of (D ! a)) \<in> set D"
+      then have \<open>(if is_pos (D ! a) then Neg else Pos) (atm_of (D ! a)) \<in> set D\<close>
         by (metis (no_types) in_set_dropD in_set_takeD uminus_literal_def)
       then show False
         using a_le_D tauto by force
@@ -866,8 +866,8 @@ proof -
         by (auto simp: in_set_distinct_take_drop_iff)
       have [simp]: \<open>- D ! a \<notin> set (take (a - init) ?D)\<close>
       proof
-        assume "- D ! a \<in> set (take (a - init) (drop init D))"
-        then have "(if is_pos (D ! a) then Neg else Pos) (atm_of (D ! a)) \<in> set D"
+        assume \<open>- D ! a \<in> set (take (a - init) (drop init D))\<close>
+        then have \<open>(if is_pos (D ! a) then Neg else Pos) (atm_of (D ! a)) \<in> set D\<close>
           by (metis (no_types) in_set_dropD in_set_takeD uminus_literal_def)
         then show False
           using a_le_D tauto by force

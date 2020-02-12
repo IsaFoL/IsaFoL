@@ -42,6 +42,6 @@ sepref_definition cdcl_twl_stgy_prog_wl_D_code
 
 
 export_code cdcl_twl_stgy_prog_wl_D_code in SML_imp module_name SAT_Solver
-  file "code/CDCL_Cached_Array_Trail.sml"
+  file \<open>code/CDCL_Cached_Array_Trail.sml\<close>
 
 end

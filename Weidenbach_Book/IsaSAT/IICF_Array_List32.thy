@@ -1,16 +1,16 @@
 theory IICF_Array_List32
 imports
-  "Refine_Imperative_HOL.IICF_List"
+  \<open>Refine_Imperative_HOL.IICF_List\<close>
   Separation_Logic_Imperative_HOL.Array_Blit
   Array_UInt
   WB_Word_Assn
 begin
 
-type_synonym 'a array_list32 = "'a Heap.array \<times> uint32"
+type_synonym 'a array_list32 = \<open>'a Heap.array \<times> uint32\<close>
 
-definition "is_array_list32 l \<equiv> \<lambda>(a,n). \<exists>\<^sub>Al'. a \<mapsto>\<^sub>a l' * \<up>(nat_of_uint32 n \<le> length l' \<and> l = take (nat_of_uint32 n) l' \<and> length l'>0 \<and> nat_of_uint32 n \<le> uint32_max \<and> length l' \<le> uint32_max)"
+definition \<open>is_array_list32 l \<equiv> \<lambda>(a,n). \<exists>\<^sub>Al'. a \<mapsto>\<^sub>a l' * \<up>(nat_of_uint32 n \<le> length l' \<and> l = take (nat_of_uint32 n) l' \<and> length l'>0 \<and> nat_of_uint32 n \<le> uint32_max \<and> length l' \<le> uint32_max)\<close>
 
-lemma is_array_list32_prec[safe_constraint_rules]: "precise is_array_list32"
+lemma is_array_list32_prec[safe_constraint_rules]: \<open>precise is_array_list32\<close>
   unfolding is_array_list32_def[abs_def]
   apply(rule preciseI)
   apply(simp split: prod.splits)
@@ -48,18 +48,18 @@ definition "arl32_copy \<equiv> \<lambda>(a,n). do {
   return (a,n)
 }"
 
-definition arl32_length :: "'a::heap array_list32 \<Rightarrow> uint32 Heap" where
-  "arl32_length \<equiv> \<lambda>(a,n). return (n)"
+definition arl32_length :: \<open>'a::heap array_list32 \<Rightarrow> uint32 Heap\<close> where
+  \<open>arl32_length \<equiv> \<lambda>(a,n). return (n)\<close>
 
-definition arl32_is_empty :: "'a::heap array_list32 \<Rightarrow> bool Heap" where
-  "arl32_is_empty \<equiv> \<lambda>(a,n). return (n=0)"
+definition arl32_is_empty :: \<open>'a::heap array_list32 \<Rightarrow> bool Heap\<close> where
+  \<open>arl32_is_empty \<equiv> \<lambda>(a,n). return (n=0)\<close>
 
-definition arl32_last :: "'a::heap array_list32 \<Rightarrow> 'a Heap" where
+definition arl32_last :: \<open>'a::heap array_list32 \<Rightarrow> 'a Heap\<close> where
   "arl32_last \<equiv> \<lambda>(a,n). do {
     nth_u_code a (n - 1)
   }"
 
-definition arl32_butlast :: "'a::heap array_list32 \<Rightarrow> 'a array_list32 Heap" where
+definition arl32_butlast :: \<open>'a::heap array_list32 \<Rightarrow> 'a array_list32 Heap\<close> where
   "arl32_butlast \<equiv> \<lambda>(a,n). do {
     let n = n - 1;
     len \<leftarrow> length_u_code a;
@@ -70,20 +70,20 @@ definition arl32_butlast :: "'a::heap array_list32 \<Rightarrow> 'a array_list32
       return (a,n)
   }"
 
-definition arl32_get :: "'a::heap array_list32 \<Rightarrow> uint32 \<Rightarrow> 'a Heap" where
-  "arl32_get \<equiv> \<lambda>(a,n) i. nth_u_code a i"
+definition arl32_get :: \<open>'a::heap array_list32 \<Rightarrow> uint32 \<Rightarrow> 'a Heap\<close> where
+  \<open>arl32_get \<equiv> \<lambda>(a,n) i. nth_u_code a i\<close>
 
-definition arl32_set :: "'a::heap array_list32 \<Rightarrow> uint32 \<Rightarrow> 'a \<Rightarrow> 'a array_list32 Heap" where
-  "arl32_set \<equiv> \<lambda>(a,n) i x. do { a \<leftarrow> heap_array_set_u a i x; return (a,n)}"
+definition arl32_set :: \<open>'a::heap array_list32 \<Rightarrow> uint32 \<Rightarrow> 'a \<Rightarrow> 'a array_list32 Heap\<close> where
+  \<open>arl32_set \<equiv> \<lambda>(a,n) i x. do { a \<leftarrow> heap_array_set_u a i x; return (a,n)}\<close>
 
 
-lemma arl32_empty_rule[sep_heap_rules]: "< emp > arl32_empty <is_array_list32 []>"
+lemma arl32_empty_rule[sep_heap_rules]: \<open>< emp > arl32_empty <is_array_list32 []>\<close>
   by (sep_auto simp: arl32_empty_def is_array_list32_def initial_capacity_def uint32_max_def)
 
-lemma arl32_empty_sz_rule[sep_heap_rules]: "< emp > arl32_empty_sz N <is_array_list32 []>"
+lemma arl32_empty_sz_rule[sep_heap_rules]: \<open>< emp > arl32_empty_sz N <is_array_list32 []>\<close>
   by (sep_auto simp: arl32_empty_sz_def is_array_list32_def minimum_capacity_def uint32_max_def)
 
-lemma arl32_copy_rule[sep_heap_rules]: "< is_array_list32 l a > arl32_copy a <\<lambda>r. is_array_list32 l a * is_array_list32 l r>"
+lemma arl32_copy_rule[sep_heap_rules]: \<open>< is_array_list32 l a > arl32_copy a <\<lambda>r. is_array_list32 l a * is_array_list32 l r>\<close>
   by (sep_auto simp: arl32_copy_def is_array_list32_def)
 
 lemma nat_of_uint32_shiftl:  \<open>nat_of_uint32 (xs >> a) = nat_of_uint32 xs >> a\<close>
@@ -244,15 +244,15 @@ lemma arl32_set_rule[sep_heap_rules]: "
   by (sep_auto simp: arl32_set_def is_array_list32_def heap_array_set_u_def  uint32_nat_rel_def
    heap_array_set'_u_def br_def Array.upd'_def split: prod.split simp flip: nat_of_uint32_code)
 
-definition "arl32_assn A \<equiv> hr_comp is_array_list32 (\<langle>the_pure A\<rangle>list_rel)"
-lemmas [safe_constraint_rules] = CN_FALSEI[of is_pure "arl32_assn A" for A]
+definition \<open>arl32_assn A \<equiv> hr_comp is_array_list32 (\<langle>the_pure A\<rangle>list_rel)\<close>
+lemmas [safe_constraint_rules] = CN_FALSEI[of is_pure \<open>arl32_assn A\<close> for A]
 
 
-lemma arl32_assn_comp: "is_pure A \<Longrightarrow> hr_comp (arl32_assn A) (\<langle>B\<rangle>list_rel) = arl32_assn (hr_comp A B)"
+lemma arl32_assn_comp: \<open>is_pure A \<Longrightarrow> hr_comp (arl32_assn A) (\<langle>B\<rangle>list_rel) = arl32_assn (hr_comp A B)\<close>
   unfolding arl32_assn_def
   by (auto simp: hr_comp_the_pure hr_comp_assoc list_rel_compp)
 
-lemma arl32_assn_comp': "hr_comp (arl32_assn id_assn) (\<langle>B\<rangle>list_rel) = arl32_assn (pure B)"
+lemma arl32_assn_comp': \<open>hr_comp (arl32_assn id_assn) (\<langle>B\<rangle>list_rel) = arl32_assn (pure B)\<close>
   by (simp add: arl32_assn_comp)
 
 context
@@ -262,66 +262,66 @@ context
 begin
 
 
-  lemma arl32_empty_hnr_aux: "(uncurry0 arl32_empty,uncurry0 (RETURN op_list_empty)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a is_array_list32"
+  lemma arl32_empty_hnr_aux: \<open>(uncurry0 arl32_empty,uncurry0 (RETURN op_list_empty)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a is_array_list32\<close>
     by sep_auto
   sepref_decl_impl (no_register) arl32_empty: arl32_empty_hnr_aux .
 
-  lemma arl32_empty_sz_hnr_aux: "(uncurry0 (arl32_empty_sz N),uncurry0 (RETURN op_list_empty)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a is_array_list32"
+  lemma arl32_empty_sz_hnr_aux: \<open>(uncurry0 (arl32_empty_sz N),uncurry0 (RETURN op_list_empty)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a is_array_list32\<close>
     by sep_auto
 
   sepref_decl_impl (no_register) arl32_empty_sz: arl32_empty_sz_hnr_aux .
 
-  definition "op_arl32_empty \<equiv> op_list_empty"
-  definition "op_arl32_empty_sz (N::nat) \<equiv> op_list_empty"
+  definition \<open>op_arl32_empty \<equiv> op_list_empty\<close>
+  definition \<open>op_arl32_empty_sz (N::nat) \<equiv> op_list_empty\<close>
 
-  lemma arl32_copy_hnr_aux: "(arl32_copy,RETURN o op_list_copy) \<in> is_array_list32\<^sup>k \<rightarrow>\<^sub>a is_array_list32"
+  lemma arl32_copy_hnr_aux: \<open>(arl32_copy,RETURN o op_list_copy) \<in> is_array_list32\<^sup>k \<rightarrow>\<^sub>a is_array_list32\<close>
     by sep_auto
   sepref_decl_impl arl32_copy: arl32_copy_hnr_aux .
 
-  lemma arl32_append_hnr_aux: "(uncurry arl32_append,uncurry (RETURN oo op_list_append)) \<in> [\<lambda>(xs, x). length xs < uint32_max]\<^sub>a (is_array_list32\<^sup>d *\<^sub>a id_assn\<^sup>k) \<rightarrow> is_array_list32"
+  lemma arl32_append_hnr_aux: \<open>(uncurry arl32_append,uncurry (RETURN oo op_list_append)) \<in> [\<lambda>(xs, x). length xs < uint32_max]\<^sub>a (is_array_list32\<^sup>d *\<^sub>a id_assn\<^sup>k) \<rightarrow> is_array_list32\<close>
     by sep_auto
   sepref_decl_impl arl32_append: arl32_append_hnr_aux
     unfolding fref_param1 by (auto intro!: frefI nres_relI simp: list_rel_imp_same_length)
 
-  lemma arl32_length_hnr_aux: "(arl32_length,RETURN o op_list_length) \<in> is_array_list32\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn"
+  lemma arl32_length_hnr_aux: \<open>(arl32_length,RETURN o op_list_length) \<in> is_array_list32\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
     by (sep_auto simp: uint32_nat_rel_def br_def)
   sepref_decl_impl arl32_length: arl32_length_hnr_aux .
 
-  lemma arl32_is_empty_hnr_aux: "(arl32_is_empty,RETURN o op_list_is_empty) \<in> is_array_list32\<^sup>k \<rightarrow>\<^sub>a bool_assn"
+  lemma arl32_is_empty_hnr_aux: \<open>(arl32_is_empty,RETURN o op_list_is_empty) \<in> is_array_list32\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
     by sep_auto
   sepref_decl_impl arl32_is_empty: arl32_is_empty_hnr_aux .
 
-  lemma arl32_last_hnr_aux: "(arl32_last,RETURN o op_list_last) \<in> [pre_list_last]\<^sub>a is_array_list32\<^sup>k \<rightarrow> id_assn"
+  lemma arl32_last_hnr_aux: \<open>(arl32_last,RETURN o op_list_last) \<in> [pre_list_last]\<^sub>a is_array_list32\<^sup>k \<rightarrow> id_assn\<close>
     by sep_auto
   sepref_decl_impl arl32_last: arl32_last_hnr_aux .
 
-(*  lemma arl32_butlast_hnr_aux: "(arl32_butlast,RETURN o op_list_butlast) \<in> [pre_list_butlast]\<^sub>a is_array_list32\<^sup>d \<rightarrow> is_array_list32"
+(*  lemma arl32_butlast_hnr_aux: \<open>(arl32_butlast,RETURN o op_list_butlast) \<in> [pre_list_butlast]\<^sub>a is_array_list32\<^sup>d \<rightarrow> is_array_list32\<close>
     by sep_auto
   sepref_decl_impl arl32_butlast: arl32_butlast_hnr_aux . *)
 
-  lemma arl32_get_hnr_aux: "(uncurry arl32_get,uncurry (RETURN oo op_list_get)) \<in> [\<lambda>(l,i). i<length l]\<^sub>a (is_array_list32\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k) \<rightarrow> id_assn"
+  lemma arl32_get_hnr_aux: \<open>(uncurry arl32_get,uncurry (RETURN oo op_list_get)) \<in> [\<lambda>(l,i). i<length l]\<^sub>a (is_array_list32\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k) \<rightarrow> id_assn\<close>
     by sep_auto
   sepref_decl_impl arl32_get: arl32_get_hnr_aux .
 
-  lemma arl32_set_hnr_aux: "(uncurry2 arl32_set,uncurry2 (RETURN ooo op_list_set)) \<in> [\<lambda>((l,i),_). i<length l]\<^sub>a (is_array_list32\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a id_assn\<^sup>k) \<rightarrow> is_array_list32"
+  lemma arl32_set_hnr_aux: \<open>(uncurry2 arl32_set,uncurry2 (RETURN ooo op_list_set)) \<in> [\<lambda>((l,i),_). i<length l]\<^sub>a (is_array_list32\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a id_assn\<^sup>k) \<rightarrow> is_array_list32\<close>
     by sep_auto
   sepref_decl_impl arl32_set: arl32_set_hnr_aux .
 
-  sepref_definition arl32_swap is "uncurry2 mop_list_swap" :: "((arl32_assn id_assn)\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a arl32_assn id_assn)"
+  sepref_definition arl32_swap is \<open>uncurry2 mop_list_swap\<close> :: \<open>((arl32_assn id_assn)\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a arl32_assn id_assn)\<close>
     unfolding gen_mop_list_swap[abs_def]
     by sepref
   sepref_decl_impl (ismop) arl32_swap: arl32_swap.refine .
 end
 
 
-interpretation arl32: list_custom_empty "arl32_assn A" arl32_empty op_arl32_empty
+interpretation arl32: list_custom_empty \<open>arl32_assn A\<close> arl32_empty op_arl32_empty
   apply unfold_locales
   apply (rule arl32_empty_hnr)
   by (auto simp: op_arl32_empty_def)
 
-lemma [def_pat_rules]: "op_arl32_empty_sz$N \<equiv> UNPROTECT (op_arl32_empty_sz N)" by simp
+lemma [def_pat_rules]: \<open>op_arl32_empty_sz$N \<equiv> UNPROTECT (op_arl32_empty_sz N)\<close> by simp
 
-interpretation arl32_sz: list_custom_empty "arl32_assn A" "arl32_empty_sz N" "PR_CONST (op_arl32_empty_sz N)"
+interpretation arl32_sz: list_custom_empty \<open>arl32_assn A\<close> \<open>arl32_empty_sz N\<close> \<open>PR_CONST (op_arl32_empty_sz N)\<close>
   apply unfold_locales
   apply (rule arl32_empty_sz_hnr)
   by (auto simp: op_arl32_empty_sz_def)

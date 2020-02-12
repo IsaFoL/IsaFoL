@@ -1,16 +1,16 @@
 theory IICF_Array_List64
 imports
-  "Refine_Imperative_HOL.IICF_List"
+  \<open>Refine_Imperative_HOL.IICF_List\<close>
   Separation_Logic_Imperative_HOL.Array_Blit
   Array_UInt
   WB_Word_Assn
 begin
 
-type_synonym 'a array_list64 = "'a Heap.array \<times> uint64"
+type_synonym 'a array_list64 = \<open>'a Heap.array \<times> uint64\<close>
 
-definition "is_array_list64 l \<equiv> \<lambda>(a,n). \<exists>\<^sub>Al'. a \<mapsto>\<^sub>a l' * \<up>(nat_of_uint64 n \<le> length l' \<and> l = take (nat_of_uint64 n) l' \<and> length l'>0 \<and> nat_of_uint64 n \<le> uint64_max \<and> length l' \<le> uint64_max)"
+definition \<open>is_array_list64 l \<equiv> \<lambda>(a,n). \<exists>\<^sub>Al'. a \<mapsto>\<^sub>a l' * \<up>(nat_of_uint64 n \<le> length l' \<and> l = take (nat_of_uint64 n) l' \<and> length l'>0 \<and> nat_of_uint64 n \<le> uint64_max \<and> length l' \<le> uint64_max)\<close>
 
-lemma is_array_list64_prec[safe_constraint_rules]: "precise is_array_list64"
+lemma is_array_list64_prec[safe_constraint_rules]: \<open>precise is_array_list64\<close>
   unfolding is_array_list64_def[abs_def]
   apply(rule preciseI)
   apply(simp split: prod.splits)
@@ -48,18 +48,18 @@ definition "arl64_copy \<equiv> \<lambda>(a,n). do {
   return (a,n)
 }"
 
-definition arl64_length :: "'a::heap array_list64 \<Rightarrow> uint64 Heap" where
-  "arl64_length \<equiv> \<lambda>(a,n). return (n)"
+definition arl64_length :: \<open>'a::heap array_list64 \<Rightarrow> uint64 Heap\<close> where
+  \<open>arl64_length \<equiv> \<lambda>(a,n). return (n)\<close>
 
-definition arl64_is_empty :: "'a::heap array_list64 \<Rightarrow> bool Heap" where
-  "arl64_is_empty \<equiv> \<lambda>(a,n). return (n=0)"
+definition arl64_is_empty :: \<open>'a::heap array_list64 \<Rightarrow> bool Heap\<close> where
+  \<open>arl64_is_empty \<equiv> \<lambda>(a,n). return (n=0)\<close>
 
-definition arl64_last :: "'a::heap array_list64 \<Rightarrow> 'a Heap" where
+definition arl64_last :: \<open>'a::heap array_list64 \<Rightarrow> 'a Heap\<close> where
   "arl64_last \<equiv> \<lambda>(a,n). do {
     nth_u64_code a (n - 1)
   }"
 
-definition arl64_butlast :: "'a::heap array_list64 \<Rightarrow> 'a array_list64 Heap" where
+definition arl64_butlast :: \<open>'a::heap array_list64 \<Rightarrow> 'a array_list64 Heap\<close> where
   "arl64_butlast \<equiv> \<lambda>(a,n). do {
     let n = n - 1;
     len \<leftarrow> length_u64_code a;
@@ -70,20 +70,20 @@ definition arl64_butlast :: "'a::heap array_list64 \<Rightarrow> 'a array_list64
       return (a,n)
   }"
 
-definition arl64_get :: "'a::heap array_list64 \<Rightarrow> uint64 \<Rightarrow> 'a Heap" where
-  "arl64_get \<equiv> \<lambda>(a,n) i. nth_u64_code a i"
+definition arl64_get :: \<open>'a::heap array_list64 \<Rightarrow> uint64 \<Rightarrow> 'a Heap\<close> where
+  \<open>arl64_get \<equiv> \<lambda>(a,n) i. nth_u64_code a i\<close>
 
-definition arl64_set :: "'a::heap array_list64 \<Rightarrow> uint64 \<Rightarrow> 'a \<Rightarrow> 'a array_list64 Heap" where
-  "arl64_set \<equiv> \<lambda>(a,n) i x. do { a \<leftarrow> heap_array_set_u64 a i x; return (a,n)}"
+definition arl64_set :: \<open>'a::heap array_list64 \<Rightarrow> uint64 \<Rightarrow> 'a \<Rightarrow> 'a array_list64 Heap\<close> where
+  \<open>arl64_set \<equiv> \<lambda>(a,n) i x. do { a \<leftarrow> heap_array_set_u64 a i x; return (a,n)}\<close>
 
 
-lemma arl64_empty_rule[sep_heap_rules]: "< emp > arl64_empty <is_array_list64 []>"
+lemma arl64_empty_rule[sep_heap_rules]: \<open>< emp > arl64_empty <is_array_list64 []>\<close>
   by (sep_auto simp: arl64_empty_def is_array_list64_def initial_capacity_def uint64_max_def)
 
-lemma arl64_empty_sz_rule[sep_heap_rules]: "< emp > arl64_empty_sz N <is_array_list64 []>"
+lemma arl64_empty_sz_rule[sep_heap_rules]: \<open>< emp > arl64_empty_sz N <is_array_list64 []>\<close>
   by (sep_auto simp: arl64_empty_sz_def is_array_list64_def minimum_capacity_def uint64_max_def)
 
-lemma arl64_copy_rule[sep_heap_rules]: "< is_array_list64 l a > arl64_copy a <\<lambda>r. is_array_list64 l a * is_array_list64 l r>"
+lemma arl64_copy_rule[sep_heap_rules]: \<open>< is_array_list64 l a > arl64_copy a <\<lambda>r. is_array_list64 l a * is_array_list64 l r>\<close>
   by (sep_auto simp: arl64_copy_def is_array_list64_def)
 lemma [simp]: \<open>nat_of_uint64 uint64_max_uint64 = uint64_max\<close>
   by (auto simp:  nat_of_uint64_mult_le nat_of_uint64_shiftl uint64_max_uint64_def uint64_max_def)[]
@@ -234,15 +234,15 @@ lemma arl64_set_rule[sep_heap_rules]: "
   by (sep_auto simp: arl64_set_def is_array_list64_def heap_array_set_u64_def  uint64_nat_rel_def
    heap_array_set'_u64_def br_def Array.upd'_def split: prod.split simp flip: nat_of_uint64_code)
 
-definition "arl64_assn A \<equiv> hr_comp is_array_list64 (\<langle>the_pure A\<rangle>list_rel)"
-lemmas [safe_constraint_rules] = CN_FALSEI[of is_pure "arl64_assn A" for A]
+definition \<open>arl64_assn A \<equiv> hr_comp is_array_list64 (\<langle>the_pure A\<rangle>list_rel)\<close>
+lemmas [safe_constraint_rules] = CN_FALSEI[of is_pure \<open>arl64_assn A\<close> for A]
 
 
-lemma arl64_assn_comp: "is_pure A \<Longrightarrow> hr_comp (arl64_assn A) (\<langle>B\<rangle>list_rel) = arl64_assn (hr_comp A B)"
+lemma arl64_assn_comp: \<open>is_pure A \<Longrightarrow> hr_comp (arl64_assn A) (\<langle>B\<rangle>list_rel) = arl64_assn (hr_comp A B)\<close>
   unfolding arl64_assn_def
   by (auto simp: hr_comp_the_pure hr_comp_assoc list_rel_compp)
 
-lemma arl64_assn_comp': "hr_comp (arl64_assn id_assn) (\<langle>B\<rangle>list_rel) = arl64_assn (pure B)"
+lemma arl64_assn_comp': \<open>hr_comp (arl64_assn id_assn) (\<langle>B\<rangle>list_rel) = arl64_assn (pure B)\<close>
   by (simp add: arl64_assn_comp)
 
 context
@@ -252,66 +252,66 @@ context
 begin
 
 
-  lemma arl64_empty_hnr_aux: "(uncurry0 arl64_empty,uncurry0 (RETURN op_list_empty)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a is_array_list64"
+  lemma arl64_empty_hnr_aux: \<open>(uncurry0 arl64_empty,uncurry0 (RETURN op_list_empty)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a is_array_list64\<close>
     by sep_auto
   sepref_decl_impl (no_register) arl64_empty: arl64_empty_hnr_aux .
 
-  lemma arl64_empty_sz_hnr_aux: "(uncurry0 (arl64_empty_sz N),uncurry0 (RETURN op_list_empty)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a is_array_list64"
+  lemma arl64_empty_sz_hnr_aux: \<open>(uncurry0 (arl64_empty_sz N),uncurry0 (RETURN op_list_empty)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a is_array_list64\<close>
     by sep_auto
 
   sepref_decl_impl (no_register) arl64_empty_sz: arl64_empty_sz_hnr_aux .
 
-  definition "op_arl64_empty \<equiv> op_list_empty"
-  definition "op_arl64_empty_sz (N::nat) \<equiv> op_list_empty"
+  definition \<open>op_arl64_empty \<equiv> op_list_empty\<close>
+  definition \<open>op_arl64_empty_sz (N::nat) \<equiv> op_list_empty\<close>
 
-  lemma arl64_copy_hnr_aux: "(arl64_copy,RETURN o op_list_copy) \<in> is_array_list64\<^sup>k \<rightarrow>\<^sub>a is_array_list64"
+  lemma arl64_copy_hnr_aux: \<open>(arl64_copy,RETURN o op_list_copy) \<in> is_array_list64\<^sup>k \<rightarrow>\<^sub>a is_array_list64\<close>
     by sep_auto
   sepref_decl_impl arl64_copy: arl64_copy_hnr_aux .
 
-  lemma arl64_append_hnr_aux: "(uncurry arl64_append,uncurry (RETURN oo op_list_append)) \<in> [\<lambda>(xs, x). length xs < uint64_max]\<^sub>a (is_array_list64\<^sup>d *\<^sub>a id_assn\<^sup>k) \<rightarrow> is_array_list64"
+  lemma arl64_append_hnr_aux: \<open>(uncurry arl64_append,uncurry (RETURN oo op_list_append)) \<in> [\<lambda>(xs, x). length xs < uint64_max]\<^sub>a (is_array_list64\<^sup>d *\<^sub>a id_assn\<^sup>k) \<rightarrow> is_array_list64\<close>
     by sep_auto
   sepref_decl_impl arl64_append: arl64_append_hnr_aux
     unfolding fref_param1 by (auto intro!: frefI nres_relI simp: list_rel_imp_same_length)
 
-  lemma arl64_length_hnr_aux: "(arl64_length,RETURN o op_list_length) \<in> is_array_list64\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn"
+  lemma arl64_length_hnr_aux: \<open>(arl64_length,RETURN o op_list_length) \<in> is_array_list64\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
     by (sep_auto simp: uint64_nat_rel_def br_def)
   sepref_decl_impl arl64_length: arl64_length_hnr_aux .
 
-  lemma arl64_is_empty_hnr_aux: "(arl64_is_empty,RETURN o op_list_is_empty) \<in> is_array_list64\<^sup>k \<rightarrow>\<^sub>a bool_assn"
+  lemma arl64_is_empty_hnr_aux: \<open>(arl64_is_empty,RETURN o op_list_is_empty) \<in> is_array_list64\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
     by sep_auto
   sepref_decl_impl arl64_is_empty: arl64_is_empty_hnr_aux .
 
-  lemma arl64_last_hnr_aux: "(arl64_last,RETURN o op_list_last) \<in> [pre_list_last]\<^sub>a is_array_list64\<^sup>k \<rightarrow> id_assn"
+  lemma arl64_last_hnr_aux: \<open>(arl64_last,RETURN o op_list_last) \<in> [pre_list_last]\<^sub>a is_array_list64\<^sup>k \<rightarrow> id_assn\<close>
     by sep_auto
   sepref_decl_impl arl64_last: arl64_last_hnr_aux .
 
-(*  lemma arl64_butlast_hnr_aux: "(arl64_butlast,RETURN o op_list_butlast) \<in> [pre_list_butlast]\<^sub>a is_array_list64\<^sup>d \<rightarrow> is_array_list64"
+(*  lemma arl64_butlast_hnr_aux: \<open>(arl64_butlast,RETURN o op_list_butlast) \<in> [pre_list_butlast]\<^sub>a is_array_list64\<^sup>d \<rightarrow> is_array_list64\<close>
     by sep_auto
   sepref_decl_impl arl64_butlast: arl64_butlast_hnr_aux . *)
 
-  lemma arl64_get_hnr_aux: "(uncurry arl64_get,uncurry (RETURN oo op_list_get)) \<in> [\<lambda>(l,i). i<length l]\<^sub>a (is_array_list64\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k) \<rightarrow> id_assn"
+  lemma arl64_get_hnr_aux: \<open>(uncurry arl64_get,uncurry (RETURN oo op_list_get)) \<in> [\<lambda>(l,i). i<length l]\<^sub>a (is_array_list64\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k) \<rightarrow> id_assn\<close>
     by sep_auto
   sepref_decl_impl arl64_get: arl64_get_hnr_aux .
 
-  lemma arl64_set_hnr_aux: "(uncurry2 arl64_set,uncurry2 (RETURN ooo op_list_set)) \<in> [\<lambda>((l,i),_). i<length l]\<^sub>a (is_array_list64\<^sup>d *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a id_assn\<^sup>k) \<rightarrow> is_array_list64"
+  lemma arl64_set_hnr_aux: \<open>(uncurry2 arl64_set,uncurry2 (RETURN ooo op_list_set)) \<in> [\<lambda>((l,i),_). i<length l]\<^sub>a (is_array_list64\<^sup>d *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a id_assn\<^sup>k) \<rightarrow> is_array_list64\<close>
     by sep_auto
   sepref_decl_impl arl64_set: arl64_set_hnr_aux .
 
-  sepref_definition arl64_swap is "uncurry2 mop_list_swap" :: "((arl64_assn id_assn)\<^sup>d *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a arl64_assn id_assn)"
+  sepref_definition arl64_swap is \<open>uncurry2 mop_list_swap\<close> :: \<open>((arl64_assn id_assn)\<^sup>d *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a arl64_assn id_assn)\<close>
     unfolding gen_mop_list_swap[abs_def]
     by sepref
   sepref_decl_impl (ismop) arl64_swap: arl64_swap.refine .
 end
 
 
-interpretation arl64: list_custom_empty "arl64_assn A" arl64_empty op_arl64_empty
+interpretation arl64: list_custom_empty \<open>arl64_assn A\<close> arl64_empty op_arl64_empty
   apply unfold_locales
   apply (rule arl64_empty_hnr)
   by (auto simp: op_arl64_empty_def)
 
-lemma [def_pat_rules]: "op_arl64_empty_sz$N \<equiv> UNPROTECT (op_arl64_empty_sz N)" by simp
+lemma [def_pat_rules]: \<open>op_arl64_empty_sz$N \<equiv> UNPROTECT (op_arl64_empty_sz N)\<close> by simp
 
-interpretation arl64_sz: list_custom_empty "arl64_assn A" "arl64_empty_sz N" "PR_CONST (op_arl64_empty_sz N)"
+interpretation arl64_sz: list_custom_empty \<open>arl64_assn A\<close> \<open>arl64_empty_sz N\<close> \<open>PR_CONST (op_arl64_empty_sz N)\<close>
   apply unfold_locales
   apply (rule arl64_empty_sz_hnr)
   by (auto simp: op_arl64_empty_sz_def)

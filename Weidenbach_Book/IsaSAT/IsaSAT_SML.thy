@@ -385,57 +385,57 @@ subsubsection \<open>Code Export\<close>
 definition nth_u_code' where
   [symmetric, code]: \<open>nth_u_code' = nth_u_code\<close>
 
-code_printing constant nth_u_code' \<rightharpoonup> (SML) "(fn/ ()/ =>/ Array.sub/ ((_),/ Word32.toInt (_)))"
+code_printing constant nth_u_code' \<rightharpoonup> (SML) \<open>(fn/ ()/ =>/ Array.sub/ ((_),/ Word32.toInt (_)))\<close>
 
 definition nth_u64_code' where
   [symmetric, code]: \<open>nth_u64_code' = nth_u64_code\<close>
 
-code_printing constant nth_u64_code' \<rightharpoonup> (SML) "(fn/ ()/ =>/ Array.sub/ ((_),/ Word64.toInt ((_))))"
+code_printing constant nth_u64_code' \<rightharpoonup> (SML) \<open>(fn/ ()/ =>/ Array.sub/ ((_),/ Word64.toInt ((_))))\<close>
 
 definition heap_array_set'_u' where
   [symmetric, code]: \<open>heap_array_set'_u' = heap_array_set'_u\<close>
 
 code_printing constant heap_array_set'_u' \<rightharpoonup>
-   (SML) "(fn/ ()/ =>/ Array.update/ ((_),/ (Word32.toInt (_)),/ (_)))"
+   (SML) \<open>(fn/ ()/ =>/ Array.update/ ((_),/ (Word32.toInt (_)),/ (_)))\<close>
 
 definition heap_array_set'_u64' where
   [symmetric, code]: \<open>heap_array_set'_u64' = heap_array_set'_u64\<close>
 
 code_printing constant heap_array_set'_u64' \<rightharpoonup>
-   (SML) "(fn/ ()/ =>/ Array.update/ ((_),/ (Word64.toInt (_)),/ (_)))"
+   (SML) \<open>(fn/ ()/ =>/ Array.update/ ((_),/ (Word64.toInt (_)),/ (_)))\<close>
 
-(* code_printing constant two_uint32 \<rightharpoonup> (SML) "(Word32.fromInt 2)"
+(* code_printing constant two_uint32 \<rightharpoonup> (SML) \<open>(Word32.fromInt 2)\<close>
  *)
 definition length_u_code' where
   [symmetric, code]: \<open>length_u_code' = length_u_code\<close>
 
-code_printing constant length_u_code' \<rightharpoonup> (SML_imp) "(fn/ ()/ =>/ Word32.fromInt (Array.length (_)))"
+code_printing constant length_u_code' \<rightharpoonup> (SML_imp) \<open>(fn/ ()/ =>/ Word32.fromInt (Array.length (_)))\<close>
 
 definition length_aa_u_code' where
   [symmetric, code]: \<open>length_aa_u_code' = length_aa_u_code\<close>
 
 code_printing constant length_aa_u_code' \<rightharpoonup> (SML_imp)
-   "(fn/ ()/ =>/ Word32.fromInt (Array.length (Array.sub/ ((fn/ (a,b)/ =>/ a) (_),/ IntInf.toInt (integer'_of'_nat (_))))))"
+   \<open>(fn/ ()/ =>/ Word32.fromInt (Array.length (Array.sub/ ((fn/ (a,b)/ =>/ a) (_),/ IntInf.toInt (integer'_of'_nat (_))))))\<close>
 
 definition nth_raa_i_u64' where
   [symmetric, code]: \<open>nth_raa_i_u64' = nth_raa_i_u64\<close>
 
 code_printing constant nth_raa_i_u64' \<rightharpoonup> (SML_imp)
-   "(fn/ ()/ =>/ Array.sub (Array.sub/ ((fn/ (a,b)/ =>/ a) (_),/ IntInf.toInt (integer'_of'_nat (_))), Word64.toInt (_)))"
+   \<open>(fn/ ()/ =>/ Array.sub (Array.sub/ ((fn/ (a,b)/ =>/ a) (_),/ IntInf.toInt (integer'_of'_nat (_))), Word64.toInt (_)))\<close>
 
 definition length_u64_code' where
   [symmetric, code]: \<open>length_u64_code' = length_u64_code\<close>
 
 code_printing constant length_u64_code' \<rightharpoonup> (SML_imp)
-   "(fn/ ()/ =>/ Uint64.fromFixedInt (Array.length (_)))"
+   \<open>(fn/ ()/ =>/ Uint64.fromFixedInt (Array.length (_)))\<close>
 
-code_printing constant arl_get_u \<rightharpoonup> (SML) "(fn/ ()/ =>/ Array.sub/ ((fn/ (a,b)/ =>/ a) ((_)),/ Word32.toInt ((_))))"
+code_printing constant arl_get_u \<rightharpoonup> (SML) \<open>(fn/ ()/ =>/ Array.sub/ ((fn/ (a,b)/ =>/ a) ((_)),/ Word32.toInt ((_))))\<close>
 
 definition uint32_of_uint64' where
   [symmetric, code]: \<open>uint32_of_uint64' = uint32_of_uint64\<close>
 
 code_printing constant uint32_of_uint64' \<rightharpoonup> (SML_imp)
-   "Word32.fromLargeWord (_)"
+   \<open>Word32.fromLargeWord (_)\<close>
 
 lemma arl_set_u64_code[code]: \<open>arl_set_u64 a i x =
    Array_upd_u64 i x (fst a) \<bind> (\<lambda>b. return (b, (snd a)))\<close>
@@ -453,11 +453,11 @@ definition arl_get_u64' where
   [symmetric, code]: \<open>arl_get_u64' = arl_get_u64\<close>
 
 code_printing constant arl_get_u64' \<rightharpoonup> (SML)
-"(fn/ ()/ =>/ Array.sub/ ((fn (a,b) => a) (_),/ Word64.toInt (_)))"
+\<open>(fn/ ()/ =>/ Array.sub/ ((fn (a,b) => a) (_),/ Word64.toInt (_)))\<close>
 
 (*TODO this is a copy paste because of the order of the merge *)
-code_printing code_module "Uint64" \<rightharpoonup> (SML) \<open>(* Test that words can handle numbers between 0 and 63 *)
-val _ = if 6 <= Word.wordSize then () else raise (Fail ("wordSize less than 6"));
+code_printing code_module \<open>Uint64\<close> \<rightharpoonup> (SML) \<open>(* Test that words can handle numbers between 0 and 63 *)
+val _ = if 6 <= Word.wordSize then () else raise (Fail (\<open>wordSize less than 6\<close>));
 
 structure Uint64 : sig
   eqtype uint64;
@@ -553,7 +553,7 @@ end (*struct Uint64*)
 export_code IsaSAT_code checking SML_imp
 
 code_printing constant \<comment> \<open>print with line break\<close>
-  println_string \<rightharpoonup> (SML) "ignore/ (print/ ((_) ^ \"\\n\"))"
+  println_string \<rightharpoonup> (SML) \<open>ignore/ (print/ ((_) ^ \\<close>\\n\\<open>))\<close>
 
 export_code IsaSAT_code
     int_of_integer
@@ -562,7 +562,7 @@ export_code IsaSAT_code
     nat_of_integer
     uint32_of_nat
     Version.version
-  in SML_imp module_name SAT_Solver file_prefix "IsaSAT_solver"
+  in SML_imp module_name SAT_Solver file_prefix \<open>IsaSAT_solver\<close>
 
 external_file \<open>code/Unsynchronized.sml\<close>
 external_file \<open>code/IsaSAT.mlb\<close>
@@ -578,21 +578,21 @@ compile_generated_files _
     \<open>code/dimacs_parser.sml\<close>
   where \<open>fn dir =>
     let
-      val exec = Generated_Files.execute (Path.append dir (Path.basic "code"));
-      val _ = exec \<open>rename file\<close> "mv IsaSAT_solver.ML IsaSAT_solver.sml"
+      val exec = Generated_Files.execute (Path.append dir (Path.basic \<open>code\<close>));
+      val _ = exec \<open>rename file\<close> \<open>mv IsaSAT_solver.ML IsaSAT_solver.sml\<close>
       val _ =
         exec \<open>Copy files\<close>
-          ("cp IsaSAT_solver.sml " ^
-            ((File.bash_path \<^path>\<open>$ISAFOL\<close>) ^ "/Weidenbach_Book/code/IsaSAT_solver.sml"));
+          (\<open>cp IsaSAT_solver.sml \<close> ^
+            ((File.bash_path \<^path>\<open>$ISAFOL\<close>) ^ \<open>/Weidenbach_Book/code/IsaSAT_solver.sml\<close>));
       val _ =
         exec \<open>Compilation\<close>
           (File.bash_path \<^path>\<open>$ISABELLE_MLTON\<close> ^
-            " -const 'MLton.safe false' -verbose 1 -default-type int64 -output IsaSAT " ^
-            " -codegen native -inline 700 -cc-opt -O3 IsaSAT.mlb");
+            \<open> -const 'MLton.safe false' -verbose 1 -default-type int64 -output IsaSAT \<close> ^
+            \<open> -codegen native -inline 700 -cc-opt -O3 IsaSAT.mlb\<close>);
       val _ =
         exec \<open>Copy binary files\<close>
-          ("cp IsaSAT " ^
-            File.bash_path \<^path>\<open>$ISAFOL\<close> ^ "/Weidenbach_Book/code/");
+          (\<open>cp IsaSAT \<close> ^
+            File.bash_path \<^path>\<open>$ISAFOL\<close> ^ \<open>/Weidenbach_Book/code/\<close>);
     in () end\<close>
 
 
@@ -603,7 +603,7 @@ export_code IsaSAT_bounded_code
     nat_of_integer
     uint32_of_nat
     Version.version
-  in SML_imp module_name SAT_Solver file_prefix "IsaSAT_solver_bounded"
+  in SML_imp module_name SAT_Solver file_prefix \<open>IsaSAT_solver_bounded\<close>
 
 compile_generated_files _
   external_files
@@ -613,21 +613,21 @@ compile_generated_files _
     \<open>code/dimacs_parser.sml\<close>
   where \<open>fn dir =>
     let
-      val exec = Generated_Files.execute (Path.append dir (Path.basic "code"));
-      val _ = exec \<open>rename file\<close> "mv IsaSAT_solver_bounded.ML IsaSAT_solver_bounded.sml"
+      val exec = Generated_Files.execute (Path.append dir (Path.basic \<open>code\<close>));
+      val _ = exec \<open>rename file\<close> \<open>mv IsaSAT_solver_bounded.ML IsaSAT_solver_bounded.sml\<close>
       val _ =
         exec \<open>Copy files\<close>
-          ("cp IsaSAT_solver_bounded.sml " ^
-   ((File.bash_path \<^path>\<open>$ISAFOL\<close>) ^ "/Weidenbach_Book/code/IsaSAT_solver_bounded.sml"));
+          (\<open>cp IsaSAT_solver_bounded.sml \<close> ^
+   ((File.bash_path \<^path>\<open>$ISAFOL\<close>) ^ \<open>/Weidenbach_Book/code/IsaSAT_solver_bounded.sml\<close>));
       val _ =
         exec \<open>Compilation\<close>
           (File.bash_path \<^path>\<open>$ISABELLE_MLTON\<close> ^
-            " -const 'MLton.safe false' -verbose 1 -default-type int64 -output IsaSAT_bounded " ^
-            " -codegen native -inline 700 -cc-opt -O3 IsaSAT_bounded.mlb");
+            \<open> -const 'MLton.safe false' -verbose 1 -default-type int64 -output IsaSAT_bounded \<close> ^
+            \<open> -codegen native -inline 700 -cc-opt -O3 IsaSAT_bounded.mlb\<close>);
       val _ =
         exec \<open>Copy binary files\<close>
-          ("cp IsaSAT_bounded " ^
-            File.bash_path \<^path>\<open>$ISAFOL\<close> ^ "/Weidenbach_Book/code/");
+          (\<open>cp IsaSAT_bounded \<close> ^
+            File.bash_path \<^path>\<open>$ISAFOL\<close> ^ \<open>/Weidenbach_Book/code/\<close>);
     in () end\<close>
 
 

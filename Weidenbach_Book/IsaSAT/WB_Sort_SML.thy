@@ -84,6 +84,6 @@ sepref_definition full_quicksort_code
   by sepref
 
 text \<open>Export the code\<close>
-export_code \<open>nat_of_integer\<close> \<open>integer_of_nat\<close> \<open>partition_between_code\<close> \<open>full_quicksort_code\<close> in SML_imp module_name IsaQuicksort file "code/quicksort.sml"
+export_code \<open>nat_of_integer\<close> \<open>integer_of_nat\<close> \<open>partition_between_code\<close> \<open>full_quicksort_code\<close> in SML_imp module_name IsaQuicksort file \<open>code/quicksort.sml\<close>
 
 end

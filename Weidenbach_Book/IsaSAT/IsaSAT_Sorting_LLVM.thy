@@ -3,49 +3,49 @@ theory IsaSAT_Sorting_LLVM
     Isabelle_LLVM.Sorting_Introsort
 begin
 
-no_notation WB_More_Refinement.fref ("[_]\<^sub>f _ \<rightarrow> _" [0,60,60] 60)
-no_notation WB_More_Refinement.freft ("_ \<rightarrow>\<^sub>f _" [60,60] 60)
+no_notation WB_More_Refinement.fref (\<open>[_]\<^sub>f _ \<rightarrow> _\<close> [0,60,60] 60)
+no_notation WB_More_Refinement.freft (\<open>_ \<rightarrow>\<^sub>f _\<close> [60,60] 60)
 declare \<alpha>_butlast[simp del]
 
 locale pure_eo_adapter =
-  fixes elem_assn :: "'a \<Rightarrow> 'ai::llvm_rep \<Rightarrow> assn"
-    and wo_assn :: "'a list \<Rightarrow> 'oi::llvm_rep \<Rightarrow> assn"
-    and wo_get_impl :: "'oi \<Rightarrow> 'size::len2 word \<Rightarrow> 'ai llM"
-    and wo_set_impl :: "'oi \<Rightarrow> 'size::len2 word \<Rightarrow> 'ai \<Rightarrow> 'oi llM"
-  assumes pure[safe_constraint_rules]: "is_pure elem_assn"
-      and get_hnr: "(uncurry wo_get_impl,uncurry mop_list_get) \<in> wo_assn\<^sup>k *\<^sub>a snat_assn\<^sup>k \<rightarrow>\<^sub>a elem_assn"
-      and set_hnr: "(uncurry2 wo_set_impl,uncurry2 mop_list_set) \<in> wo_assn\<^sup>d *\<^sub>a snat_assn\<^sup>k *\<^sub>a elem_assn\<^sup>k \<rightarrow>\<^sub>a\<^sub>d (\<lambda>_ ((ai,_),_). cnc_assn (\<lambda>x. x=ai) wo_assn)"
+  fixes elem_assn :: \<open>'a \<Rightarrow> 'ai::llvm_rep \<Rightarrow> assn\<close>
+    and wo_assn :: \<open>'a list \<Rightarrow> 'oi::llvm_rep \<Rightarrow> assn\<close>
+    and wo_get_impl :: \<open>'oi \<Rightarrow> 'size::len2 word \<Rightarrow> 'ai llM\<close>
+    and wo_set_impl :: \<open>'oi \<Rightarrow> 'size::len2 word \<Rightarrow> 'ai \<Rightarrow> 'oi llM\<close>
+  assumes pure[safe_constraint_rules]: \<open>is_pure elem_assn\<close>
+      and get_hnr: \<open>(uncurry wo_get_impl,uncurry mop_list_get) \<in> wo_assn\<^sup>k *\<^sub>a snat_assn\<^sup>k \<rightarrow>\<^sub>a elem_assn\<close>
+      and set_hnr: \<open>(uncurry2 wo_set_impl,uncurry2 mop_list_set) \<in> wo_assn\<^sup>d *\<^sub>a snat_assn\<^sup>k *\<^sub>a elem_assn\<^sup>k \<rightarrow>\<^sub>a\<^sub>d (\<lambda>_ ((ai,_),_). cnc_assn (\<lambda>x. x=ai) wo_assn)\<close>
 begin
 
   lemmas [sepref_fr_rules] = get_hnr set_hnr
 
 
-  definition "only_some_rel \<equiv> {(a, Some a) | a. True} \<union> {(x, None) | x. True}"
+  definition \<open>only_some_rel \<equiv> {(a, Some a) | a. True} \<union> {(x, None) | x. True}\<close>
 
-  definition "eo_assn \<equiv> hr_comp wo_assn (\<langle>only_some_rel\<rangle>list_rel)"
+  definition \<open>eo_assn \<equiv> hr_comp wo_assn (\<langle>only_some_rel\<rangle>list_rel)\<close>
 
-  definition "eo_extract1 p i \<equiv> doN { r \<leftarrow> mop_list_get p i; RETURN (r,p) }"
-  sepref_definition eo_extract_impl is "uncurry eo_extract1"
-    :: "wo_assn\<^sup>d *\<^sub>a (snat_assn' TYPE('size))\<^sup>k \<rightarrow>\<^sub>a elem_assn \<times>\<^sub>a wo_assn"
+  definition \<open>eo_extract1 p i \<equiv> doN { r \<leftarrow> mop_list_get p i; RETURN (r,p) }\<close>
+  sepref_definition eo_extract_impl is \<open>uncurry eo_extract1\<close>
+    :: \<open>wo_assn\<^sup>d *\<^sub>a (snat_assn' TYPE('size))\<^sup>k \<rightarrow>\<^sub>a elem_assn \<times>\<^sub>a wo_assn\<close>
     unfolding eo_extract1_def
     by sepref
 
-  lemma mop_eo_extract_aux: "mop_eo_extract p i = doN { r \<leftarrow> mop_list_get p i; ASSERT (r\<noteq>None \<and> i<length p); RETURN (the r, p[i:=None]) }"
+  lemma mop_eo_extract_aux: \<open>mop_eo_extract p i = doN { r \<leftarrow> mop_list_get p i; ASSERT (r\<noteq>None \<and> i<length p); RETURN (the r, p[i:=None]) }\<close>
     by (auto simp: pw_eq_iff refine_pw_simps)
 
   lemma assign_none_only_some_list_rel:
-    assumes SR[param]: "(a, a') \<in> \<langle>only_some_rel\<rangle>list_rel" and L: "i < length a'"
-      shows "(a, a'[i := None]) \<in> \<langle>only_some_rel\<rangle>list_rel"
+    assumes SR[param]: \<open>(a, a') \<in> \<langle>only_some_rel\<rangle>list_rel\<close> and L: \<open>i < length a'\<close>
+      shows \<open>(a, a'[i := None]) \<in> \<langle>only_some_rel\<rangle>list_rel\<close>
   proof -
-    have "(a[i := a!i], a'[i := None]) \<in> \<langle>only_some_rel\<rangle>list_rel"
+    have \<open>(a[i := a!i], a'[i := None]) \<in> \<langle>only_some_rel\<rangle>list_rel\<close>
       apply (parametricity)
       by (auto simp: only_some_rel_def)
-    also from L list_rel_imp_same_length[OF SR] have "a[i := a!i] = a" by auto
+    also from L list_rel_imp_same_length[OF SR] have \<open>a[i := a!i] = a\<close> by auto
     finally show ?thesis .
   qed
 
 
-  lemma eo_extract1_refine: "(eo_extract1, mop_eo_extract) \<in> \<langle>only_some_rel\<rangle>list_rel \<rightarrow> nat_rel \<rightarrow> \<langle>Id \<times>\<^sub>r \<langle>only_some_rel\<rangle>list_rel\<rangle>nres_rel"
+  lemma eo_extract1_refine: \<open>(eo_extract1, mop_eo_extract) \<in> \<langle>only_some_rel\<rangle>list_rel \<rightarrow> nat_rel \<rightarrow> \<langle>Id \<times>\<^sub>r \<langle>only_some_rel\<rangle>list_rel\<rangle>nres_rel\<close>
     unfolding eo_extract1_def mop_eo_extract_aux
     supply R = mop_list_get.fref[THEN frefD, OF TrueI prod_relI, unfolded uncurry_apply, THEN nres_relD]
     apply (refine_rcg R)
@@ -53,7 +53,7 @@ begin
     apply (clarsimp simp: assign_none_only_some_list_rel)
     by (auto simp: only_some_rel_def)
 
-  lemma eo_list_set_refine: "(mop_list_set, mop_eo_set) \<in> \<langle>only_some_rel\<rangle>list_rel \<rightarrow> Id \<rightarrow> Id \<rightarrow> \<langle>\<langle>only_some_rel\<rangle>list_rel\<rangle>nres_rel"
+  lemma eo_list_set_refine: \<open>(mop_list_set, mop_eo_set) \<in> \<langle>only_some_rel\<rangle>list_rel \<rightarrow> Id \<rightarrow> Id \<rightarrow> \<langle>\<langle>only_some_rel\<rangle>list_rel\<rangle>nres_rel\<close>
     unfolding mop_list_set_alt mop_eo_set_alt
     apply refine_rcg
     apply (simp add: list_rel_imp_same_length)
@@ -63,7 +63,7 @@ begin
     done
 
 
-  lemma set_hnr': "(uncurry2 wo_set_impl,uncurry2 mop_list_set) \<in> wo_assn\<^sup>d *\<^sub>a snat_assn\<^sup>k *\<^sub>a elem_assn\<^sup>k \<rightarrow>\<^sub>a wo_assn"
+  lemma set_hnr': \<open>(uncurry2 wo_set_impl,uncurry2 mop_list_set) \<in> wo_assn\<^sup>d *\<^sub>a snat_assn\<^sup>k *\<^sub>a elem_assn\<^sup>k \<rightarrow>\<^sub>a wo_assn\<close>
     apply (rule hfref_cons[OF set_hnr])
     apply (auto simp: cnc_assn_def entails_lift_extract_simps sep_algebra_simps)
     done
@@ -99,15 +99,15 @@ begin
 
     lemmas eo_set_refine_aux = set_hnr'[FCOMP eo_list_set_refine]
 
-    lemma pure_part_cnc_imp_eq: "pure_part (cnc_assn (\<lambda>x. x = cc) wo_assn a c) \<Longrightarrow> c=cc"
+    lemma pure_part_cnc_imp_eq: \<open>pure_part (cnc_assn (\<lambda>x. x = cc) wo_assn a c) \<Longrightarrow> c=cc\<close>
       by (auto simp: pure_part_def cnc_assn_def pred_lift_extract_simps)
 
     (* TODO: Move *)
-    lemma pure_entails_empty: "is_pure A \<Longrightarrow> A a c \<turnstile> \<box>"
+    lemma pure_entails_empty: \<open>is_pure A \<Longrightarrow> A a c \<turnstile> \<box>\<close>
       by (auto simp: is_pure_def sep_algebra_simps entails_lift_extract_simps)
 
 
-    lemma eo_set_refine: "(uncurry2 wo_set_impl, uncurry2 mop_eo_set) \<in> eo_assn\<^sup>d *\<^sub>a snat_assn\<^sup>k *\<^sub>a elem_assn\<^sup>d \<rightarrow>\<^sub>a\<^sub>d (\<lambda>_ ((ai, _), _). cnc_assn (\<lambda>x. x = ai) eo_assn)"
+    lemma eo_set_refine: \<open>(uncurry2 wo_set_impl, uncurry2 mop_eo_set) \<in> eo_assn\<^sup>d *\<^sub>a snat_assn\<^sup>k *\<^sub>a elem_assn\<^sup>d \<rightarrow>\<^sub>a\<^sub>d (\<lambda>_ ((ai, _), _). cnc_assn (\<lambda>x. x = ai) eo_assn)\<close>
       apply (sepref_to_hnr)
       apply (rule hn_refine_nofailI)
       apply (rule hnr_ceq_assnI)
@@ -127,37 +127,37 @@ begin
 
   end
 
-  lemma id_Some_only_some_rel: "(id, Some) \<in> Id \<rightarrow> only_some_rel"
+  lemma id_Some_only_some_rel: \<open>(id, Some) \<in> Id \<rightarrow> only_some_rel\<close>
     by (auto simp: only_some_rel_def)
 
-  lemma map_some_only_some_rel_iff: "(xs, map Some ys) \<in> \<langle>only_some_rel\<rangle>list_rel \<longleftrightarrow> xs=ys"
+  lemma map_some_only_some_rel_iff: \<open>(xs, map Some ys) \<in> \<langle>only_some_rel\<rangle>list_rel \<longleftrightarrow> xs=ys\<close>
     apply (rule iffI)
     subgoal
-      apply (induction xs "map Some ys" arbitrary: ys rule: list_rel_induct)
+      apply (induction xs \<open>map Some ys\<close> arbitrary: ys rule: list_rel_induct)
       apply (auto simp: only_some_rel_def)
       done
     subgoal
-      apply (rewrite in "(\<hole>,_)" list.map_id[symmetric])
+      apply (rewrite in \<open>(\<hole>,_)\<close> list.map_id[symmetric])
       apply (parametricity add: id_Some_only_some_rel)
       by simp
     done
 
 
-  lemma wo_assn_conv: "wo_assn xs ys = eo_assn (map Some xs) ys"
+  lemma wo_assn_conv: \<open>wo_assn xs ys = eo_assn (map Some xs) ys\<close>
     unfolding eo_assn_def hr_comp_def
     by (auto simp: pred_lift_extract_simps sep_algebra_simps fun_eq_iff map_some_only_some_rel_iff)
 
-  lemma to_eo_conv_refine: "(return, mop_to_eo_conv) \<in> wo_assn\<^sup>d \<rightarrow>\<^sub>a\<^sub>d (\<lambda>_ ai. cnc_assn (\<lambda>x. x = ai) eo_assn)"
+  lemma to_eo_conv_refine: \<open>(return, mop_to_eo_conv) \<in> wo_assn\<^sup>d \<rightarrow>\<^sub>a\<^sub>d (\<lambda>_ ai. cnc_assn (\<lambda>x. x = ai) eo_assn)\<close>
     unfolding mop_to_eo_conv_def cnc_assn_def
     apply sepref_to_hoare
     apply (rewrite wo_assn_conv)
     apply vcg
     done
 
-  lemma "None \<notin> set xs \<longleftrightarrow> (\<exists>ys. xs = map Some ys)"
+  lemma \<open>None \<notin> set xs \<longleftrightarrow> (\<exists>ys. xs = map Some ys)\<close>
     using None_not_in_set_conv by auto
 
-  lemma to_wo_conv_refine: "(return, mop_to_wo_conv) \<in> eo_assn\<^sup>d \<rightarrow>\<^sub>a\<^sub>d (\<lambda>_ ai. cnc_assn (\<lambda>x. x = ai) wo_assn)"
+  lemma to_wo_conv_refine: \<open>(return, mop_to_wo_conv) \<in> eo_assn\<^sup>d \<rightarrow>\<^sub>a\<^sub>d (\<lambda>_ ai. cnc_assn (\<lambda>x. x = ai) wo_assn)\<close>
     unfolding mop_to_wo_conv_def cnc_assn_def eo_assn_def hr_comp_def
     apply sepref_to_hoare
     apply (auto simp add: refine_pw_simps map_some_only_some_rel_iff elim!: None_not_in_set_conv)
@@ -180,7 +180,7 @@ begin
 
 end
 
-lemma al_pure_eo: "is_pure A \<Longrightarrow> pure_eo_adapter A (al_assn A) arl_nth arl_upd"
+lemma al_pure_eo: \<open>is_pure A \<Longrightarrow> pure_eo_adapter A (al_assn A) arl_nth arl_upd\<close>
   apply unfold_locales
   apply assumption
   apply (rule al_nth_hnr_mop; simp)

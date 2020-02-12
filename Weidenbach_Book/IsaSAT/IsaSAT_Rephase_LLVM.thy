@@ -9,7 +9,7 @@ sepref_def rephase_random_impl
   unfolding rephase_random_def
     while_eq_nfoldli[symmetric]
   apply (subst while_upt_while_direct, simp)
-  apply (annot_snat_const "TYPE(64)")
+  apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
 sepref_def rephase_init_impl
@@ -18,7 +18,7 @@ sepref_def rephase_init_impl
   unfolding rephase_init_def
     while_eq_nfoldli[symmetric]
   apply (subst while_upt_while_direct, simp)
-  apply (annot_snat_const "TYPE(64)")
+  apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
 sepref_def copy_phase_impl
@@ -28,7 +28,7 @@ sepref_def copy_phase_impl
     while_eq_nfoldli[symmetric]
   apply (subst while_upt_while_direct, simp)
   unfolding simp_thms(21) \<comment> \<open>remove \<^term>\<open>a \<and> True\<close> from condition\<close>
-  apply (annot_snat_const "TYPE(64)")
+  apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
 definition copy_phase2 where
@@ -41,7 +41,7 @@ sepref_def copy_phase_impl2
     while_eq_nfoldli[symmetric]
   apply (subst while_upt_while_direct, simp)
   unfolding simp_thms(21) \<comment> \<open>remove \<^term>\<open>a \<and> True\<close> from condition\<close>
-  apply (annot_snat_const "TYPE(64)")
+  apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
 

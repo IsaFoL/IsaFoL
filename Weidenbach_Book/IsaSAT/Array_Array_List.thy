@@ -9,13 +9,13 @@ text \<open>
   rules introduced by \<open>sep_auto\<close> cannot lead to proofs.
 \<close>
 
-fun heap_list_all :: "('a \<Rightarrow> 'b \<Rightarrow> assn) \<Rightarrow> 'a list \<Rightarrow> 'b list \<Rightarrow> assn" where
+fun heap_list_all :: \<open>('a \<Rightarrow> 'b \<Rightarrow> assn) \<Rightarrow> 'a list \<Rightarrow> 'b list \<Rightarrow> assn\<close> where
   \<open>heap_list_all R [] [] = emp\<close>
 | \<open>heap_list_all R (x # xs) (y # ys) = R x y * heap_list_all R xs ys\<close>
 | \<open>heap_list_all R _ _ = false\<close>
 
 text \<open>It is often useful to speak about arrays except at one index (e.g., because it is updated).\<close>
-definition heap_list_all_nth:: "('a \<Rightarrow> 'b \<Rightarrow> assn) \<Rightarrow> nat list \<Rightarrow>  'a list \<Rightarrow> 'b list \<Rightarrow> assn" where
+definition heap_list_all_nth:: \<open>('a \<Rightarrow> 'b \<Rightarrow> assn) \<Rightarrow> nat list \<Rightarrow>  'a list \<Rightarrow> 'b list \<Rightarrow> assn\<close> where
   \<open>heap_list_all_nth R is xs ys = foldr ((*)) (map (\<lambda>i. R (xs ! i) (ys ! i)) is) emp\<close>
 
 lemma heap_list_all_nth_emty[simp]: \<open>heap_list_all_nth R [] xs ys = emp\<close>
@@ -53,7 +53,7 @@ lemma heap_list_all_nth_mset_eq:
   assumes \<open>mset is = mset is'\<close>
   shows \<open>heap_list_all_nth R is xs ys = heap_list_all_nth R is' xs ys\<close>
   using assms
-proof (induction "is'" arbitrary: "is")
+proof (induction \<open>is'\<close> arbitrary: \<open>is\<close>)
   case Nil
   then show ?case by auto
 next
@@ -61,7 +61,7 @@ next
   from eq_is have \<open>a \<in> set is\<close>
     by (fastforce dest: mset_eq_setD)
   then obtain ixs iys where
-    "is": \<open>is = ixs @ a # iys\<close>
+    \<open>is\<close>: \<open>is = ixs @ a # iys\<close>
     using eq_is by (meson split_list)
   then have H: \<open>heap_list_all_nth R (ixs @ iys) xs ys = heap_list_all_nth R is' xs ys\<close>
     using IH[of \<open>ixs @ iys\<close>] eq_is by auto
@@ -69,7 +69,7 @@ next
     for xs ys
     by (induction ixs)(auto simp: heap_list_all_nth_Cons star_aci(3))
   show ?case
-    using H[symmetric] by (auto simp: heap_list_all_nth_Cons "is" H')
+    using H[symmetric] by (auto simp: heap_list_all_nth_Cons \<open>is\<close> H')
 qed
 
 lemma heap_list_add_same_length:
@@ -94,7 +94,7 @@ qed
 
 lemma heap_list_all_nth_append:
   \<open>heap_list_all_nth R (is @ is') xs ys = heap_list_all_nth R is xs ys * heap_list_all_nth R is' xs ys\<close>
-  by (induction "is") (auto simp: heap_list_all_nth_Cons star_aci)
+  by (induction \<open>is\<close>) (auto simp: heap_list_all_nth_Cons star_aci)
 
 lemma heap_list_all_heap_list_all_nth_eq:
   \<open>heap_list_all R xs ys = heap_list_all_nth R [0..< length xs] xs ys * \<up>(length xs = length ys)\<close>
@@ -223,7 +223,7 @@ lemma models_heap_list_all_models_nth:
   by (induction R a b arbitrary: as i rule: heap_list_all.induct)
     (auto simp: mod_star_conv nth_Cons elim!: less_SucE split: nat.splits)
 
-definition nth_ll :: "'a list list \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a" where
+definition nth_ll :: \<open>'a list list \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a\<close> where
   \<open>nth_ll l i j = l ! i ! j\<close>
 
 lemma nth_aa_hnr[sepref_fr_rules]:
@@ -314,14 +314,14 @@ proof -
     done
 qed
 
-definition update_aa :: "('a::{heap} array_list) array \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a \<Rightarrow> ('a array_list) array Heap" where
+definition update_aa :: \<open>('a::{heap} array_list) array \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a \<Rightarrow> ('a array_list) array Heap\<close> where
   \<open>update_aa a i j y = do {
       x \<leftarrow> Array.nth a i;
       a' \<leftarrow> arl_set x j y;
       Array.upd i a' a
     }\<close> \<comment> \<open>is the Array.upd really needed?\<close>
 
-definition update_ll :: "'a list list \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a \<Rightarrow> 'a list list" where
+definition update_ll :: \<open>'a list list \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a \<Rightarrow> 'a list list\<close> where
   \<open>update_ll xs i j y = xs[i:= (xs ! i)[j := y]]\<close>
 
 declare nth_rule[sep_heap_rules del]
@@ -376,7 +376,7 @@ lemma update_aa_hnr[sepref_fr_rules]:
 definition set_butlast_ll where
   \<open>set_butlast_ll xs i = xs[i := butlast (xs ! i)]\<close>
 
-definition set_butlast_aa :: "('a::{heap} array_list) array \<Rightarrow> nat \<Rightarrow> ('a array_list) array Heap" where
+definition set_butlast_aa :: \<open>('a::{heap} array_list) array \<Rightarrow> nat \<Rightarrow> ('a array_list) array Heap\<close> where
   \<open>set_butlast_aa a i = do {
       x \<leftarrow> Array.nth a i;
       a' \<leftarrow> arl_butlast x;
@@ -463,13 +463,13 @@ lemma set_butlast_aa_hnr[sepref_fr_rules]:
      [\<lambda>(l,i). i < length l \<and> l ! i \<noteq> []]\<^sub>a (arrayO_assn (arl_assn R))\<^sup>d *\<^sub>a nat_assn\<^sup>k \<rightarrow> (arrayO_assn (arl_assn R))\<close>
   using assms by sepref_to_hoare sep_auto
 
-definition last_aa :: "('a::heap array_list) array \<Rightarrow> nat \<Rightarrow> 'a Heap" where
+definition last_aa :: \<open>('a::heap array_list) array \<Rightarrow> nat \<Rightarrow> 'a Heap\<close> where
   \<open>last_aa xs i = do {
      x \<leftarrow> Array.nth xs i;
      arl_last x
   }\<close>
 
-definition last_ll :: "'a list list \<Rightarrow> nat \<Rightarrow> 'a" where
+definition last_ll :: \<open>'a list list \<Rightarrow> nat \<Rightarrow> 'a\<close> where
   \<open>last_ll xs i = last (xs ! i)\<close>
 
 lemma last_aa_rule[sep_heap_rules]:
@@ -546,7 +546,7 @@ lemma nth_a_hnr[sepref_fr_rules]:
     done
   done
 
- definition swap_aa :: "('a::heap array_list) array \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> ('a array_list) array Heap" where
+ definition swap_aa :: \<open>('a::heap array_list) array \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> ('a array_list) array Heap\<close> where
   \<open>swap_aa xs k i j = do {
     xi \<leftarrow> nth_aa xs k i;
     xj \<leftarrow> nth_aa xs k j;
@@ -660,7 +660,7 @@ lemma of_list_op_list_copy_arrayO[sepref_fr_rules]:
 
 sepref_definition
   arrayO_ara_empty_sz_code
-  is "RETURN o arrayO_ara_empty_sz"
+  is \<open>RETURN o arrayO_ara_empty_sz\<close>
   :: \<open>nat_assn\<^sup>k \<rightarrow>\<^sub>a arrayO_assn (arl_assn (R::'a \<Rightarrow> 'b::{heap, default} \<Rightarrow> assn))\<close>
   unfolding arrayO_ara_empty_sz_def op_list_empty_def[symmetric]
   apply (rewrite at \<open>(#) \<hole>\<close> op_arl_empty_def[symmetric])

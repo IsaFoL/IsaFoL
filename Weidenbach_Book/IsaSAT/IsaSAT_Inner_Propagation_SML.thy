@@ -355,7 +355,7 @@ declare set_conflict_wl_heur_fast_code.refine[sepref_fr_rules]
 
 
 text \<open>Find a less hack-like solution\<close>
-setup \<open>map_theory_claset (fn ctxt => ctxt delSWrapper "split_all_tac")\<close>
+setup \<open>map_theory_claset (fn ctxt => ctxt delSWrapper \<open>split_all_tac\<close>)\<close>
 
 sepref_register update_blit_wl_heur clause_not_marked_to_delete_heur
 sepref_definition unit_propagation_inner_loop_body_wl_heur_code

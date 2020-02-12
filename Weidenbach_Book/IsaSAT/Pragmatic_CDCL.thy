@@ -106,7 +106,7 @@ fun state\<^sub>W_of :: \<open>'v prag_st \<Rightarrow> 'v cdcl\<^sub>W_restart_
 
 declare cdcl\<^sub>W_restart_mset_state[simp]
 
-named_theorems ptwl "Theorems to simplify the state"
+named_theorems ptwl \<open>Theorems to simplify the state\<close>
 
 
 section \<open>Conversion\<close>
@@ -1189,7 +1189,7 @@ next
       using subresolution_IL apply -
       by (rule cdcl_resolution.resolution_IL, assumption, assumption)
   have \<open>pcdcl_all_struct_invs ?B\<close>
-    using "1" pcdcl.intros(3) pcdcl_all_struct_invs subresolution_IL.prems by blast
+    using \<open>1\<close> pcdcl.intros(3) pcdcl_all_struct_invs subresolution_IL.prems by blast
   moreover have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of ?B)\<close>
     using cdcl_resolution_entailed_by_init[OF 1] subresolution_IL by blast
   ultimately have 2: \<open>cdcl_learn_clause

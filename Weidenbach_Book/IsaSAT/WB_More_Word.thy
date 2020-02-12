@@ -1,5 +1,5 @@
 theory WB_More_Word
-  imports "HOL-Word.More_Word" "Isabelle_LLVM.Bits_Natural"
+  imports \<open>HOL-Word.More_Word\<close> \<open>Isabelle_LLVM.Bits_Natural\<close>
 begin
 
 lemma nat_uint_XOR: \<open>nat (uint (a XOR b)) = nat (uint a) XOR nat (uint b)\<close>
@@ -30,13 +30,13 @@ proof -
               ((bin_last a \<or> bin_last b) \<and> (bin_last a \<longrightarrow> \<not> bin_last b)))\<close>
         (is \<open>nat (?n1 BIT ?b) = nat (?n2 BIT ?b)\<close>)
       proof - (* Sledgehammer proof changed to use the more readable ?n1 and ?n2 *)
-        have a1:  "nat ?n1 = nat ?n2"
+        have a1:  \<open>nat ?n1 = nat ?n2\<close>
           using IH Suc by auto
-        have f2: "0 \<le> ?n2"
+        have f2: \<open>0 \<le> ?n2\<close>
           by (simp add: bintr_ge0)
-        have "0 \<le> ?n1"
+        have \<open>0 \<le> ?n1\<close>
           using bintr_ge0 by auto
-        then have "?n2 = ?n1"
+        then have \<open>?n2 = ?n1\<close>
           using f2 a1 by presburger
         then show ?thesis by simp
       qed

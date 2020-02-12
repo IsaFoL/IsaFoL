@@ -32,28 +32,28 @@ abbreviation clauses_l_fmat where
 
 type_synonym vdom = \<open>nat set\<close>
 
-definition fmap_rll :: "(nat, 'a literal list \<times> bool) fmap \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a literal" where
+definition fmap_rll :: \<open>(nat, 'a literal list \<times> bool) fmap \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a literal\<close> where
   [simp]: \<open>fmap_rll l i j = l \<propto> i ! j\<close>
 
-definition fmap_rll_u :: "(nat, 'a literal list \<times> bool) fmap \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a literal" where
+definition fmap_rll_u :: \<open>(nat, 'a literal list \<times> bool) fmap \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a literal\<close> where
   [simp]: \<open>fmap_rll_u  = fmap_rll\<close>
 
-definition fmap_rll_u64 :: "(nat, 'a literal list \<times> bool) fmap \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a literal" where
+definition fmap_rll_u64 :: \<open>(nat, 'a literal list \<times> bool) fmap \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a literal\<close> where
   [simp]: \<open>fmap_rll_u64  = fmap_rll\<close>
 
 
-definition fmap_length_rll_u :: "(nat, 'a literal list \<times> bool) fmap \<Rightarrow> nat \<Rightarrow> nat" where
+definition fmap_length_rll_u :: \<open>(nat, 'a literal list \<times> bool) fmap \<Rightarrow> nat \<Rightarrow> nat\<close> where
   \<open>fmap_length_rll_u l i = length_uint32_nat (l \<propto> i)\<close>
 
 declare fmap_length_rll_u_def[symmetric, isasat_codegen]
-definition fmap_length_rll_u64 :: "(nat, 'a literal list \<times> bool) fmap \<Rightarrow> nat \<Rightarrow> nat" where
+definition fmap_length_rll_u64 :: \<open>(nat, 'a literal list \<times> bool) fmap \<Rightarrow> nat \<Rightarrow> nat\<close> where
   \<open>fmap_length_rll_u64 l i = length_uint32_nat (l \<propto> i)\<close>
 
 
 declare fmap_length_rll_u_def[symmetric, isasat_codegen]
 
 
-definition fmap_length_rll :: "(nat, 'a literal list \<times> bool) fmap \<Rightarrow> nat \<Rightarrow> nat" where
+definition fmap_length_rll :: \<open>(nat, 'a literal list \<times> bool) fmap \<Rightarrow> nat \<Rightarrow> nat\<close> where
   [simp]: \<open>fmap_length_rll l i = length (l \<propto> i)\<close>
 
 definition fmap_swap_ll where

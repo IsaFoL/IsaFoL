@@ -2,10 +2,10 @@ theory LBD_LLVM
   imports LBD IsaSAT_Literals_LLVM
 begin
 (*TODO bundle?*)
-no_notation WB_More_Refinement.fref ("[_]\<^sub>f _ \<rightarrow> _" [0,60,60] 60)
-no_notation WB_More_Refinement.freft ("_ \<rightarrow>\<^sub>f _" [60,60] 60)
+no_notation WB_More_Refinement.fref (\<open>[_]\<^sub>f _ \<rightarrow> _\<close> [0,60,60] 60)
+no_notation WB_More_Refinement.freft (\<open>_ \<rightarrow>\<^sub>f _\<close> [60,60] 60)
 
-type_synonym 'a larray64 = "('a,64) larray"
+type_synonym 'a larray64 = \<open>('a,64) larray\<close>
 type_synonym lbd_assn = \<open>(1 word) larray64 \<times> 32 word \<times> 32 word\<close>
 
 (*TODO use 32*)
@@ -23,8 +23,8 @@ sepref_def level_in_lbd_code
   :: \<open>uint32_nat_assn\<^sup>k *\<^sub>a lbd_int_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
   supply [[goals_limit=1]]
   unfolding level_in_lbd_ref_def short_circuit_conv length_uint32_nat_def
-  apply (rewrite in "\<hole> < _" annot_unat_snat_upcast[where 'l="64"])
-  apply (rewrite in "_ ! \<hole>" annot_unat_snat_upcast[where 'l="64"])
+  apply (rewrite in \<open>\<hole> < _\<close> annot_unat_snat_upcast[where 'l=\<open>64\<close>])
+  apply (rewrite in \<open>_ ! \<hole>\<close> annot_unat_snat_upcast[where 'l=\<open>64\<close>])
   by sepref
 
 
@@ -43,8 +43,8 @@ sepref_def lbd_empty_code
   supply [[goals_limit=1]]
   apply (rewrite at \<open>_ + \<hole>\<close> snat_const_fold[where 'a=64])+
   apply (rewrite at \<open>(_, \<hole>)\<close> snat_const_fold[where 'a=64])
-  apply (annot_unat_const "TYPE(32)")
-  apply (rewrite in "_ \<le> \<hole>" annot_unat_snat_upcast[where 'l="64"])
+  apply (annot_unat_const \<open>TYPE(32)\<close>)
+  apply (rewrite in \<open>_ \<le> \<hole>\<close> annot_unat_snat_upcast[where 'l=\<open>64\<close>])
   by sepref
 
 lemma lbd_empty_hnr[sepref_fr_rules]:
@@ -58,7 +58,7 @@ sepref_def empty_lbd_code
   supply [[goals_limit=1]]
   unfolding empty_lbd_ref_def larray_fold_custom_replicate
   apply (rewrite at \<open>op_larray_custom_replicate \<hole> _\<close> snat_const_fold[where 'a=64])
-  apply (annot_unat_const "TYPE(32)")
+  apply (annot_unat_const \<open>TYPE(32)\<close>)
   by sepref
 
 lemma empty_lbd_ref_empty_lbd:
@@ -95,12 +95,12 @@ sepref_def lbd_write_code
     op_list_grow_init'_alt
   apply (rewrite at \<open>_ + \<hole>\<close> unat_const_fold[where 'a=32])
   apply (rewrite at \<open>_ + \<hole>\<close> unat_const_fold[where 'a=32])
-  apply (rewrite in "If (\<hole> < _)" annot_unat_snat_upcast[where 'l=64])
-  apply (rewrite in "If (_ ! \<hole>)" annot_unat_snat_upcast[where 'l=64])
-  apply (rewrite in "_[ \<hole> := _]" annot_unat_snat_upcast[where 'l=64])
-  apply (rewrite in "op_list_grow_init _ \<hole> _" annot_unat_snat_upcast[where 'l=64])
-  apply (rewrite  at "( _[ \<hole> := _], _, _ + _)" annot_unat_snat_upcast[where 'l=64])
-  apply (annot_unat_const "TYPE(32)")
+  apply (rewrite in \<open>If (\<hole> < _)\<close> annot_unat_snat_upcast[where 'l=64])
+  apply (rewrite in \<open>If (_ ! \<hole>)\<close> annot_unat_snat_upcast[where 'l=64])
+  apply (rewrite in \<open>_[ \<hole> := _]\<close> annot_unat_snat_upcast[where 'l=64])
+  apply (rewrite in \<open>op_list_grow_init _ \<hole> _\<close> annot_unat_snat_upcast[where 'l=64])
+  apply (rewrite  at \<open>( _[ \<hole> := _], _, _ + _)\<close> annot_unat_snat_upcast[where 'l=64])
+  apply (annot_unat_const \<open>TYPE(32)\<close>)
   by sepref
 
 lemma lbd_write_hnr_[sepref_fr_rules]:

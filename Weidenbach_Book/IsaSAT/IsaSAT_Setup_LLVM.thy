@@ -4,15 +4,15 @@ theory IsaSAT_Setup_LLVM
 begin
 
 
-no_notation WB_More_Refinement.fref ("[_]\<^sub>f _ \<rightarrow> _" [0,60,60] 60)
-no_notation WB_More_Refinement.freft ("_ \<rightarrow>\<^sub>f _" [60,60] 60)
+no_notation WB_More_Refinement.fref (\<open>[_]\<^sub>f _ \<rightarrow> _\<close> [0,60,60] 60)
+no_notation WB_More_Refinement.freft (\<open>_ \<rightarrow>\<^sub>f _\<close> [60,60] 60)
 
 
 (*TODO Move*)
-abbreviation "word32_rel \<equiv> word_rel :: (32 word \<times> _) set"
-abbreviation "word64_rel \<equiv> word_rel :: (64 word \<times> _) set"
-abbreviation "word32_assn \<equiv> word_assn :: 32 word \<Rightarrow> _"
-abbreviation "word64_assn \<equiv> word_assn :: 64 word \<Rightarrow> _"
+abbreviation \<open>word32_rel \<equiv> word_rel :: (32 word \<times> _) set\<close>
+abbreviation \<open>word64_rel \<equiv> word_rel :: (64 word \<times> _) set\<close>
+abbreviation \<open>word32_assn \<equiv> word_assn :: 32 word \<Rightarrow> _\<close>
+abbreviation \<open>word64_assn \<equiv> word_assn :: 64 word \<Rightarrow> _\<close>
 
 abbreviation stats_rel :: \<open>(stats \<times> stats) set\<close> where
   \<open>stats_rel \<equiv> word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel
@@ -29,15 +29,15 @@ abbreviation stats_assn :: \<open>stats \<Rightarrow> stats \<Rightarrow> assn\<
 
 
 lemma [sepref_import_param]:
-  "(ema_get_value, ema_get_value) \<in> ema_rel \<rightarrow> word64_rel"
-  "(ema_bitshifting,ema_bitshifting) \<in> word64_rel"
-  "(ema_reinit,ema_reinit) \<in> ema_rel \<rightarrow> ema_rel"
-  "(ema_init,ema_init) \<in> word_rel \<rightarrow> ema_rel"
+  \<open>(ema_get_value, ema_get_value) \<in> ema_rel \<rightarrow> word64_rel\<close>
+  \<open>(ema_bitshifting,ema_bitshifting) \<in> word64_rel\<close>
+  \<open>(ema_reinit,ema_reinit) \<in> ema_rel \<rightarrow> ema_rel\<close>
+  \<open>(ema_init,ema_init) \<in> word_rel \<rightarrow> ema_rel\<close>
   by auto
 
 
 lemma ema_bitshifting_inline[llvm_inline]:
-  "ema_bitshifting = (0x100000000::_::len word)" by (auto simp: ema_bitshifting_def)
+  \<open>ema_bitshifting = (0x100000000::_::len word)\<close> by (auto simp: ema_bitshifting_def)
 
 lemma ema_reinit_inline[llvm_inline]:
   "ema_reinit = (\<lambda>(value, \<alpha>, \<beta>, wait, period).
@@ -46,25 +46,25 @@ lemma ema_reinit_inline[llvm_inline]:
 
 lemmas [llvm_inline] = ema_init_def
 
-sepref_def ema_update_impl is "uncurry (RETURN oo ema_update)"
-  :: "uint32_nat_assn\<^sup>k *\<^sub>a ema_assn\<^sup>k \<rightarrow>\<^sub>a ema_assn"
+sepref_def ema_update_impl is \<open>uncurry (RETURN oo ema_update)\<close>
+  :: \<open>uint32_nat_assn\<^sup>k *\<^sub>a ema_assn\<^sup>k \<rightarrow>\<^sub>a ema_assn\<close>
   unfolding ema_update_def
   apply (rewrite at \<open>let _ = of_nat \<hole> * _ in _\<close> annot_unat_unat_upcast[where 'l = 64])
   apply (rewrite at \<open>let _=_ + _; _=\<hole> in _\<close> fold_COPY)
   (* TODO: The let x=y seems to be inlined, making necessary this COPY! Is this behaviour correct? *)
-  apply (annot_unat_const "TYPE(64)")
+  apply (annot_unat_const \<open>TYPE(64)\<close>)
   supply [[goals_limit = 1]]
   by sepref
 
 lemma [sepref_import_param]:
-  "(incr_propagation,incr_propagation) \<in> stats_rel \<rightarrow> stats_rel"
-  "(incr_conflict,incr_conflict) \<in> stats_rel \<rightarrow> stats_rel"
-  "(incr_decision,incr_decision) \<in> stats_rel \<rightarrow> stats_rel"
-  "(incr_restart,incr_restart) \<in> stats_rel \<rightarrow> stats_rel"
-  "(incr_lrestart,incr_lrestart) \<in> stats_rel \<rightarrow> stats_rel"
-  "(incr_uset,incr_uset) \<in> stats_rel \<rightarrow> stats_rel"
-  "(incr_GC,incr_GC) \<in> stats_rel \<rightarrow> stats_rel"
-  "(add_lbd,add_lbd) \<in> word64_rel \<rightarrow> stats_rel \<rightarrow> stats_rel"
+  \<open>(incr_propagation,incr_propagation) \<in> stats_rel \<rightarrow> stats_rel\<close>
+  \<open>(incr_conflict,incr_conflict) \<in> stats_rel \<rightarrow> stats_rel\<close>
+  \<open>(incr_decision,incr_decision) \<in> stats_rel \<rightarrow> stats_rel\<close>
+  \<open>(incr_restart,incr_restart) \<in> stats_rel \<rightarrow> stats_rel\<close>
+  \<open>(incr_lrestart,incr_lrestart) \<in> stats_rel \<rightarrow> stats_rel\<close>
+  \<open>(incr_uset,incr_uset) \<in> stats_rel \<rightarrow> stats_rel\<close>
+  \<open>(incr_GC,incr_GC) \<in> stats_rel \<rightarrow> stats_rel\<close>
+  \<open>(add_lbd,add_lbd) \<in> word64_rel \<rightarrow> stats_rel \<rightarrow> stats_rel\<close>
   by auto
 
 lemmas [llvm_inline] =
@@ -77,7 +77,7 @@ lemmas [llvm_inline] =
   incr_GC_def
 
 
-abbreviation (input) "restart_info_rel \<equiv> word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel"
+abbreviation (input) \<open>restart_info_rel \<equiv> word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel\<close>
 
 abbreviation (input) restart_info_assn where
   \<open>restart_info_assn \<equiv> word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn\<close>
@@ -87,8 +87,8 @@ lemma restart_info_params[sepref_import_param]:
     restart_info_rel \<rightarrow> restart_info_rel"
   "(restart_info_update_lvl_avg,restart_info_update_lvl_avg) \<in>
     word32_rel \<rightarrow> restart_info_rel \<rightarrow> restart_info_rel"
-  "(restart_info_init,restart_info_init) \<in> restart_info_rel"
-  "(restart_info_restart_done,restart_info_restart_done) \<in> restart_info_rel \<rightarrow> restart_info_rel"
+  \<open>(restart_info_init,restart_info_init) \<in> restart_info_rel\<close>
+  \<open>(restart_info_restart_done,restart_info_restart_done) \<in> restart_info_rel \<rightarrow> restart_info_rel\<close>
   by auto
 
 lemmas [llvm_inline] =
@@ -98,13 +98,13 @@ lemmas [llvm_inline] =
   restart_info_restart_done_def
 
 
-(* TODO: Define vmtf_node_rel, such that sepref sees syntactically an assertion of form "pure ..."*)
-type_synonym vmtf_node_assn = "(64 word \<times> 32 word \<times> 32 word)"
+(* TODO: Define vmtf_node_rel, such that sepref sees syntactically an assertion of form \<open>pure ...\<close>*)
+type_synonym vmtf_node_assn = \<open>(64 word \<times> 32 word \<times> 32 word)\<close>
 
-definition "vmtf_node1_rel \<equiv> { ((a,b,c),(VMTF_Node a b c)) | a b c. True}"
-definition "vmtf_node2_assn \<equiv> uint64_nat_assn \<times>\<^sub>a atom.option_assn \<times>\<^sub>a atom.option_assn"
+definition \<open>vmtf_node1_rel \<equiv> { ((a,b,c),(VMTF_Node a b c)) | a b c. True}\<close>
+definition \<open>vmtf_node2_assn \<equiv> uint64_nat_assn \<times>\<^sub>a atom.option_assn \<times>\<^sub>a atom.option_assn\<close>
 
-definition "vmtf_node_assn \<equiv> hr_comp vmtf_node2_assn vmtf_node1_rel"
+definition \<open>vmtf_node_assn \<equiv> hr_comp vmtf_node2_assn vmtf_node1_rel\<close>
 lemmas [fcomp_norm_unfold] = vmtf_node_assn_def[symmetric]
 
 
@@ -126,37 +126,37 @@ lemmas [sepref_frame_free_rules] = mk_free_is_pure[OF vmtf_node_assn_pure[unfold
 
 
 lemma
-    vmtf_Node_refine1: "(\<lambda>a b c. (a,b,c), VMTF_Node) \<in> Id \<rightarrow> Id \<rightarrow> Id \<rightarrow> vmtf_node1_rel"
-and vmtf_stamp_refine1: "(\<lambda>(a,b,c). a, stamp) \<in> vmtf_node1_rel \<rightarrow> Id"
-and vmtf_get_prev_refine1: "(\<lambda>(a,b,c). b, get_prev) \<in> vmtf_node1_rel \<rightarrow> \<langle>Id\<rangle>option_rel"
-and vmtf_get_next_refine1: "(\<lambda>(a,b,c). c, get_next) \<in> vmtf_node1_rel \<rightarrow> \<langle>Id\<rangle>option_rel"
+    vmtf_Node_refine1: \<open>(\<lambda>a b c. (a,b,c), VMTF_Node) \<in> Id \<rightarrow> Id \<rightarrow> Id \<rightarrow> vmtf_node1_rel\<close>
+and vmtf_stamp_refine1: \<open>(\<lambda>(a,b,c). a, stamp) \<in> vmtf_node1_rel \<rightarrow> Id\<close>
+and vmtf_get_prev_refine1: \<open>(\<lambda>(a,b,c). b, get_prev) \<in> vmtf_node1_rel \<rightarrow> \<langle>Id\<rangle>option_rel\<close>
+and vmtf_get_next_refine1: \<open>(\<lambda>(a,b,c). c, get_next) \<in> vmtf_node1_rel \<rightarrow> \<langle>Id\<rangle>option_rel\<close>
   by (auto simp: vmtf_node1_rel_def)
 
 sepref_def VMTF_Node_impl is []
-  "uncurry2 (RETURN ooo (\<lambda>a b c. (a,b,c)))"
-  :: "uint64_nat_assn\<^sup>k *\<^sub>a (atom.option_assn)\<^sup>k *\<^sub>a (atom.option_assn)\<^sup>k \<rightarrow>\<^sub>a vmtf_node2_assn"
+  \<open>uncurry2 (RETURN ooo (\<lambda>a b c. (a,b,c)))\<close>
+  :: \<open>uint64_nat_assn\<^sup>k *\<^sub>a (atom.option_assn)\<^sup>k *\<^sub>a (atom.option_assn)\<^sup>k \<rightarrow>\<^sub>a vmtf_node2_assn\<close>
   unfolding vmtf_node2_assn_def by sepref
 
 sepref_def VMTF_stamp_impl
-  is [] "RETURN o (\<lambda>(a,b,c). a)"
-  :: "vmtf_node2_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn"
+  is [] \<open>RETURN o (\<lambda>(a,b,c). a)\<close>
+  :: \<open>vmtf_node2_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
   unfolding vmtf_node2_assn_def
   by sepref
 
 sepref_def VMTF_get_prev_impl
-  is [] "RETURN o (\<lambda>(a,b,c). b)"
-  :: "vmtf_node2_assn\<^sup>k \<rightarrow>\<^sub>a atom.option_assn"
+  is [] \<open>RETURN o (\<lambda>(a,b,c). b)\<close>
+  :: \<open>vmtf_node2_assn\<^sup>k \<rightarrow>\<^sub>a atom.option_assn\<close>
   unfolding vmtf_node2_assn_def
   by sepref
 
 sepref_def VMTF_get_next_impl
-  is [] "RETURN o (\<lambda>(a,b,c). c)"
-  :: "vmtf_node2_assn\<^sup>k \<rightarrow>\<^sub>a atom.option_assn"
+  is [] \<open>RETURN o (\<lambda>(a,b,c). c)\<close>
+  :: \<open>vmtf_node2_assn\<^sup>k \<rightarrow>\<^sub>a atom.option_assn\<close>
   unfolding vmtf_node2_assn_def
   by sepref
 
 (* TODO: This should be done automatically! For all structured ID-relations on hr_comp! *)
-lemma workaround_hrcomp_id_norm[fcomp_norm_unfold]: "hr_comp R (\<langle>nat_rel\<rangle>option_rel) = R" by simp
+lemma workaround_hrcomp_id_norm[fcomp_norm_unfold]: \<open>hr_comp R (\<langle>nat_rel\<rangle>option_rel) = R\<close> by simp
 
 lemmas [sepref_fr_rules] =
   VMTF_Node_impl.refine[FCOMP vmtf_Node_refine1]
@@ -172,7 +172,7 @@ type_synonym vmtf_assn = \<open>vmtf_node_assn ptr \<times> 64 word \<times> 32 
 type_synonym vmtf_remove_assn = \<open>vmtf_assn \<times> (32 word array_list64 \<times> 1 word ptr)\<close>
 
 
-abbreviation vmtf_assn :: "_ \<Rightarrow> vmtf_assn \<Rightarrow> assn" where
+abbreviation vmtf_assn :: \<open>_ \<Rightarrow> vmtf_assn \<Rightarrow> assn\<close> where
   \<open>vmtf_assn \<equiv> (array_assn vmtf_node_assn \<times>\<^sub>a uint64_nat_assn \<times>\<^sub>a atom_assn \<times>\<^sub>a atom_assn
     \<times>\<^sub>a atom.option_assn)\<close>
 
@@ -190,47 +190,47 @@ where
 
 paragraph \<open>Options\<close>
 
-type_synonym opts_assn = "1 word \<times> 1 word \<times> 1 word"
+type_synonym opts_assn = \<open>1 word \<times> 1 word \<times> 1 word\<close>
 
 definition opts_assn
   :: \<open>opts \<Rightarrow> opts_assn \<Rightarrow> assn\<close>
 where
   \<open>opts_assn \<equiv> bool1_assn \<times>\<^sub>a bool1_assn \<times>\<^sub>a bool1_assn\<close>
 
-lemma workaround_opt_assn: "RETURN o (\<lambda>(a,b,c). f a b c) = (\<lambda>(a,b,c). RETURN (f a b c))" by auto
+lemma workaround_opt_assn: \<open>RETURN o (\<lambda>(a,b,c). f a b c) = (\<lambda>(a,b,c). RETURN (f a b c))\<close> by auto
 
 sepref_register opts_restart opts_reduce opts_unbounded_mode
 
-sepref_def opts_restart_impl is "RETURN o opts_restart" :: "opts_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn"
+sepref_def opts_restart_impl is \<open>RETURN o opts_restart\<close> :: \<open>opts_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
   unfolding opts_restart_def workaround_opt_assn opts_assn_def
   by sepref
 
-sepref_def opts_reduce_impl is "RETURN o opts_reduce" :: "opts_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn"
+sepref_def opts_reduce_impl is \<open>RETURN o opts_reduce\<close> :: \<open>opts_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
   unfolding opts_reduce_def workaround_opt_assn opts_assn_def
   by sepref
 
-sepref_def opts_unbounded_mode_impl is "RETURN o opts_unbounded_mode" :: "opts_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn"
+sepref_def opts_unbounded_mode_impl is \<open>RETURN o opts_unbounded_mode\<close> :: \<open>opts_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
   unfolding opts_unbounded_mode_def workaround_opt_assn opts_assn_def
   by sepref
 
-abbreviation "watchlist_fast_assn \<equiv> aal_assn' TYPE(64) TYPE(64) watcher_fast_assn"
+abbreviation \<open>watchlist_fast_assn \<equiv> aal_assn' TYPE(64) TYPE(64) watcher_fast_assn\<close>
 
 
 type_synonym vdom_fast_assn = \<open>64 word array_list64\<close>
 abbreviation vdom_fast_assn :: \<open>vdom \<Rightarrow> vdom_fast_assn \<Rightarrow> assn\<close> where
   \<open>vdom_fast_assn \<equiv> arl64_assn sint64_nat_assn\<close>
 
-type_synonym phase_saver_assn = "1 word larray64"
+type_synonym phase_saver_assn = \<open>1 word larray64\<close>
 abbreviation phase_saver_assn :: \<open>phase_saver \<Rightarrow> phase_saver_assn \<Rightarrow> assn\<close> where
   \<open>phase_saver_assn \<equiv> larray64_assn bool1_assn\<close>
 
-type_synonym phase_saver'_assn = "1 word ptr"
+type_synonym phase_saver'_assn = \<open>1 word ptr\<close>
 
 abbreviation phase_saver'_assn :: \<open>phase_saver \<Rightarrow> phase_saver'_assn \<Rightarrow> assn\<close> where
   \<open>phase_saver'_assn \<equiv> array_assn bool1_assn\<close>
 
 (* TODO: Move *)
-type_synonym arena_assn = "(32 word, 64) array_list"
+type_synonym arena_assn = \<open>(32 word, 64) array_list\<close>
 type_synonym heur_assn = \<open>(ema \<times> ema \<times> restart_info \<times> 64 word \<times>
    phase_saver_assn \<times> 64 word \<times> phase_saver'_assn \<times> 64 word \<times> phase_saver'_assn \<times> 64 word \<times> 64 word \<times> 64 word)\<close>
 
@@ -350,7 +350,7 @@ sepref_def access_lit_in_clauses_heur_fast_code
 sepref_register \<open>(=) :: clause_status \<Rightarrow> clause_status \<Rightarrow> _\<close>
 
 
-lemma [def_pat_rules]: "append_ll \<equiv> op_list_list_push_back"
+lemma [def_pat_rules]: \<open>append_ll \<equiv> op_list_list_push_back\<close>
   by (rule eq_reflection) (auto simp: append_ll_def fun_eq_iff)
 
 sepref_register rewatch_heur mop_append_ll mop_arena_length
@@ -377,7 +377,7 @@ sepref_def rewatch_heur_fast_code
   apply (subst while_upt_while_direct, simp)
   unfolding if_not_swap
     FOREACH_cond_def FOREACH_body_def
-  apply (annot_snat_const "TYPE(64)")
+  apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
 
@@ -450,7 +450,7 @@ sepref_def mark_garbage_heur_code2
   supply [[goals_limit = 1]]
   unfolding mark_garbage_heur_def isasat_bounded_assn_def delete_index_and_swap_alt_def
     length_avdom_def fold_tuple_optimizations
-  apply (annot_unat_const "TYPE(64)")
+  apply (annot_unat_const \<open>TYPE(64)\<close>)
   by sepref
 
 sepref_register delete_index_vdom_heur
@@ -592,18 +592,18 @@ sepref_def get_pos_of_level_in_trail_imp_st_code
   :: \<open>isasat_bounded_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k  \<rightarrow>\<^sub>a sint64_nat_assn\<close>
   supply [[goals_limit=1]]
   unfolding get_pos_of_level_in_trail_imp_alt_def isasat_bounded_assn_def
-  apply (rewrite in "_" eta_expand[where f = RETURN])
-  apply (rewrite in "RETURN \<hole>" annot_unat_snat_upcast[where 'l=64])
+  apply (rewrite in \<open>_\<close> eta_expand[where f = RETURN])
+  apply (rewrite in \<open>RETURN \<hole>\<close> annot_unat_snat_upcast[where 'l=64])
   by sepref
 
 
 
-sepref_register neq : "(op_neq :: clause_status \<Rightarrow> _ \<Rightarrow> _)"
-lemma status_neq_refine1: "((\<noteq>),op_neq) \<in> status_rel \<rightarrow> status_rel \<rightarrow> bool_rel"
+sepref_register neq : \<open>(op_neq :: clause_status \<Rightarrow> _ \<Rightarrow> _)\<close>
+lemma status_neq_refine1: \<open>((\<noteq>),op_neq) \<in> status_rel \<rightarrow> status_rel \<rightarrow> bool_rel\<close>
   by (auto simp: status_rel_def)
 
-sepref_def status_neq_impl is [] "uncurry (RETURN oo (\<noteq>))"
-  :: "(unat_assn' TYPE(32))\<^sup>k *\<^sub>a (unat_assn' TYPE(32))\<^sup>k \<rightarrow>\<^sub>a bool1_assn"
+sepref_def status_neq_impl is [] \<open>uncurry (RETURN oo (\<noteq>))\<close>
+  :: \<open>(unat_assn' TYPE(32))\<^sup>k *\<^sub>a (unat_assn' TYPE(32))\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
   by sepref
 
 lemmas [sepref_fr_rules] = status_neq_impl.refine[FCOMP status_neq_refine1]
@@ -650,7 +650,7 @@ sepref_def mop_mark_garbage_heur_impl
   supply [[goals_limit=1]]
   unfolding mop_mark_garbage_heur_alt_def
     clause_not_marked_to_delete_heur_pre_def prod.case isasat_bounded_assn_def
-  apply (annot_unat_const "TYPE(64)")
+  apply (annot_unat_const \<open>TYPE(64)\<close>)
   by sepref
 
 sepref_def mop_mark_unused_st_heur_impl

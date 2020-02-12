@@ -18,7 +18,7 @@ sepref_def nat_lit_eq_impl
 lemma nat_lit_rel: \<open>((=), op_nat_lit_eq) \<in> nat_lit_rel \<rightarrow> nat_lit_rel \<rightarrow> bool_rel\<close>
   by (auto simp: nat_lit_rel_def br_def split: if_splits; presburger)
 
-sepref_register "(=) :: nat literal \<Rightarrow> _ \<Rightarrow> _"
+sepref_register \<open>(=) :: nat literal \<Rightarrow> _ \<Rightarrow> _\<close>
 declare nat_lit_eq_impl.refine[FCOMP nat_lit_rel, sepref_fr_rules]
 (*End Move*)
 
@@ -81,21 +81,21 @@ sepref_def SEEN_FAILED_impl
   is [] \<open>uncurry0 (RETURN 1)\<close>
   :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a minimize_status_ref_assn\<close>
   supply [[goals_limit=1]]
-  apply (annot_snat_const "TYPE(8)")
+  apply (annot_snat_const \<open>TYPE(8)\<close>)
   by sepref
 
 sepref_def SEEN_UNKNOWN_impl
   is [] \<open>uncurry0 (RETURN 0)\<close>
   :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a minimize_status_ref_assn\<close>
   supply [[goals_limit=1]]
-  apply (annot_snat_const "TYPE(8)")
+  apply (annot_snat_const \<open>TYPE(8)\<close>)
   by sepref
 
 sepref_def SEEN_REMOVABLE_impl
   is [] \<open>uncurry0 (RETURN 2)\<close>
   :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a minimize_status_ref_assn\<close>
   supply [[goals_limit=1]]
-  apply (annot_snat_const "TYPE(8)")
+  apply (annot_snat_const \<open>TYPE(8)\<close>)
   by sepref
 
 lemmas [sepref_fr_rules] = SEEN_FAILED_impl.refine[FCOMP SEEN_FAILED_rel]
@@ -218,7 +218,7 @@ sepref_def lookup_clause_assn_is_empty_impl
   is \<open>RETURN o lookup_clause_assn_is_empty\<close>
   :: \<open>conflict_option_rel_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
   unfolding lookup_clause_assn_is_empty_alt_def
-  apply (annot_unat_const "TYPE(32)")
+  apply (annot_unat_const \<open>TYPE(32)\<close>)
   by sepref
 
 
@@ -255,7 +255,7 @@ sepref_register Some_lookup_conflict
 
 type_synonym cach_refinement_l_assn = \<open>8 word ptr \<times> 32 word array_list64\<close>
 
-definition (in -) cach_refinement_l_assn :: "_ \<Rightarrow> cach_refinement_l_assn \<Rightarrow> _" where
+definition (in -) cach_refinement_l_assn :: \<open>_ \<Rightarrow> cach_refinement_l_assn \<Rightarrow> _\<close> where
   \<open>cach_refinement_l_assn \<equiv> array_assn minimize_status_assn \<times>\<^sub>a arl64_assn atom_assn\<close>
 
 sepref_register conflict_min_cach_l
@@ -265,7 +265,7 @@ sepref_def delete_from_lookup_conflict_code
   unfolding delete_from_lookup_conflict_def NOTIN_def[symmetric]
     conflict_option_rel_assn_def
     lookup_clause_rel_assn_def
-  apply (annot_unat_const "TYPE(32)")
+  apply (annot_unat_const \<open>TYPE(32)\<close>)
   by sepref
 
 lemma arena_is_valid_clause_idx_le_uint64_max:
@@ -401,7 +401,7 @@ sepref_def conflict_min_cach_l_code
   is \<open>uncurry (RETURN oo conflict_min_cach_l)\<close>
   :: \<open>[conflict_min_cach_l_pre]\<^sub>a cach_refinement_l_assn\<^sup>k *\<^sub>a atom_assn\<^sup>k \<rightarrow> minimize_status_assn\<close>
   unfolding conflict_min_cach_l_def conflict_min_cach_l_pre_def cach_refinement_l_assn_def
-  apply (rewrite at "nth _" eta_expand)
+  apply (rewrite at \<open>nth _\<close> eta_expand)
   apply (rewrite at \<open> _ ! _\<close> annot_index_of_atm)
   by sepref
 
@@ -532,7 +532,7 @@ sepref_def isa_get_literal_and_remove_of_analyse_wl_fast_code
   isa_get_literal_and_remove_of_analyse_wl_def
   apply (rewrite at \<open>length _ - \<hole>\<close> snat_const_fold[where 'a=64])
   apply (rewrite at \<open>arena_lit _ (_ + \<hole>)\<close> annot_unat_snat_upcast[where 'l = 64])
-  apply (annot_unat_const "TYPE(32)")
+  apply (annot_unat_const \<open>TYPE(32)\<close>)
   by sepref
 
 
@@ -543,7 +543,7 @@ sepref_def ana_lookup_conv_lookup_fast_code
      \<rightarrow> sint64_nat_assn \<times>\<^sub>a sint64_nat_assn \<times>\<^sub>a sint64_nat_assn \<times>\<^sub>a sint64_nat_assn\<close>
   unfolding ana_lookup_conv_lookup_pre_def ana_lookup_conv_lookup_def
   apply (rewrite at \<open>(_, _, \<hole>, _)\<close> annot_unat_snat_upcast[where 'l = 64])
-  apply (annot_snat_const "TYPE(64)")
+  apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
 
@@ -554,7 +554,7 @@ sepref_def lit_redundant_reason_stack_wl_lookup_fast_code
       ana_refinement_fast_assn\<close>
   unfolding lit_redundant_reason_stack_wl_lookup_def lit_redundant_reason_stack_wl_lookup_pre_def
   apply (rewrite at \<open>\<hole> < _\<close> snat_const_fold[where 'a=64])
-  apply (annot_unat_const "TYPE(32)")
+  apply (annot_unat_const \<open>TYPE(32)\<close>)
   by sepref
 
 
@@ -605,7 +605,7 @@ sepref_def lit_redundant_rec_wl_lookup_fast_code
   apply (subst get_propagation_reason_pol_get_propagation_reason_pol_raw)
   apply (rewrite at \<open>get_level_pol _ _ = \<hole>\<close> unat_const_fold[where 'a=32])
   apply (rewrite at \<open>(_, \<hole>, _)\<close> annotate_assn[where A=analyse_refinement_fast_assn])
-  apply (annot_snat_const "TYPE(64)")
+  apply (annot_snat_const \<open>TYPE(64)\<close>)
 
   unfolding nth_rll_def[symmetric]
     fmap_rll_def[symmetric]
@@ -630,7 +630,7 @@ sepref_def lookup_conflict_upd_None_code
   :: \<open>[\<lambda>((n, xs), i). i < length xs \<and> n > 0]\<^sub>a
      lookup_clause_rel_assn\<^sup>d *\<^sub>a sint32_nat_assn\<^sup>k \<rightarrow> lookup_clause_rel_assn\<close>
   unfolding lookup_conflict_upd_None_RETURN_def lookup_clause_rel_assn_def
-  apply (annot_unat_const "TYPE(32)")
+  apply (annot_unat_const \<open>TYPE(32)\<close>)
   by sepref
 
 lemma uint32_max_ge0:  \<open>0 < uint32_max\<close> by (auto simp: uint32_max_def)
@@ -660,7 +660,7 @@ sepref_def conflict_remove1_code
      lookup_clause_rel_assn\<close>
   supply [[goals_limit=2]]
   unfolding lookup_conflict_remove1_def lookup_conflict_remove1_pre_def lookup_clause_rel_assn_def
-  apply (annot_unat_const "TYPE(32)")
+  apply (annot_unat_const \<open>TYPE(32)\<close>)
   by sepref
 
 
@@ -678,7 +678,7 @@ sepref_def minimize_and_extract_highest_lookup_conflict_fast_code
     PR_CONST_def
     minimize_and_extract_highest_lookup_conflict_inv_def
   apply (rewrite at \<open>(_, \<hole>, _, _)\<close> snat_const_fold[where 'a = 64])
-  apply (annot_snat_const "TYPE(64)")
+  apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
 

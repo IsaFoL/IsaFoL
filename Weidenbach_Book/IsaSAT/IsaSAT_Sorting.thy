@@ -34,12 +34,12 @@ definition (in -)valid_sort_clause_score_pre where
              (get_clause_LBD_pre arena C \<and> arena_act_pre arena C)))\<close>
 
 
-definition clause_score_less :: "arena \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> bool" where
+definition clause_score_less :: \<open>arena \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> bool\<close> where
   "clause_score_less arena i j \<longleftrightarrow>
      clause_score_ordering (clause_score_extract arena i) (clause_score_extract arena j)"
 
-definition idx_cdom :: "arena \<Rightarrow> nat set" where
- "idx_cdom arena \<equiv> {i. valid_sort_clause_score_pre_at arena i}"
+definition idx_cdom :: \<open>arena \<Rightarrow> nat set\<close> where
+ \<open>idx_cdom arena \<equiv> {i. valid_sort_clause_score_pre_at arena i}\<close>
 
 definition mop_clause_score_less where
   \<open>mop_clause_score_less arena i j = do {

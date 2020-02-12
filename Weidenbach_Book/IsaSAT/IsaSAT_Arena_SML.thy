@@ -2,11 +2,11 @@ theory IsaSAT_Arena_SML
   imports Refine_Imperative_HOL.IICF IsaSAT_Arena IsaSAT_Literals_SML Watched_Literals.IICF_Array_List64
 begin
 
-no_notation WB_More_Refinement.fref ("[_]\<^sub>f _ \<rightarrow> _" [0,60,60] 60)
-no_notation WB_More_Refinement.freft ("_ \<rightarrow>\<^sub>f _" [60,60] 60)
+no_notation WB_More_Refinement.fref (\<open>[_]\<^sub>f _ \<rightarrow> _\<close> [0,60,60] 60)
+no_notation WB_More_Refinement.freft (\<open>_ \<rightarrow>\<^sub>f _\<close> [60,60] 60)
 
-notation Sepref_Rules.fref ("[_]\<^sub>f _ \<rightarrow> _" [0,60,60] 60)
-notation Sepref_Rules.freft ("_ \<rightarrow>\<^sub>f _" [60,60] 60)
+notation Sepref_Rules.fref (\<open>[_]\<^sub>f _ \<rightarrow> _\<close> [0,60,60] 60)
+notation Sepref_Rules.freft (\<open>_ \<rightarrow>\<^sub>f _\<close> [60,60] 60)
 
 instance clause_status :: heap
 proof standard
@@ -186,7 +186,7 @@ definition isa_arena_swap where
       RETURN (swap arena (C+i) (C+j))
   }\<close>
 
-lemma convert_swap[simp]: "WB_More_Refinement_List.swap = IICF_List.swap"
+lemma convert_swap[simp]: \<open>WB_More_Refinement_List.swap = IICF_List.swap\<close>
   unfolding swap_def WB_More_Refinement_List.swap_def
   by auto
 
@@ -965,13 +965,13 @@ lemma isa_marked_as_used_marked_as_used:
       list_rel_imp_same_length isa_marked_as_used_def
       intro!: ASSERT_leI)
 
-abbreviation arena_el_assn :: "arena_el \<Rightarrow> uint32 \<Rightarrow> assn" where
+abbreviation arena_el_assn :: \<open>arena_el \<Rightarrow> uint32 \<Rightarrow> assn\<close> where
   \<open>arena_el_assn \<equiv> hr_comp uint32_nat_assn arena_el_rel\<close>
 
-abbreviation arena_assn :: "arena_el list \<Rightarrow> uint32 array_list \<Rightarrow> assn" where
+abbreviation arena_assn :: \<open>arena_el list \<Rightarrow> uint32 array_list \<Rightarrow> assn\<close> where
   \<open>arena_assn \<equiv> arl_assn arena_el_assn\<close>
 
-abbreviation arena_fast_assn :: "arena_el list \<Rightarrow> uint32 array_list64 \<Rightarrow> assn" where
+abbreviation arena_fast_assn :: \<open>arena_el list \<Rightarrow> uint32 array_list64 \<Rightarrow> assn\<close> where
   \<open>arena_fast_assn \<equiv> arl64_assn arena_el_assn\<close>
 
 abbreviation status_assn where
@@ -1505,10 +1505,10 @@ context
   notes [simp] = pure_def hn_ctxt_def invalid_assn_def
 begin
 
-definition arl64_get2 :: "'a::heap array_list64 \<Rightarrow> nat \<Rightarrow> 'a Heap" where
-  "arl64_get2 \<equiv> \<lambda>(a,n) i. Array.nth a i"
+definition arl64_get2 :: \<open>'a::heap array_list64 \<Rightarrow> nat \<Rightarrow> 'a Heap\<close> where
+  \<open>arl64_get2 \<equiv> \<lambda>(a,n) i. Array.nth a i\<close>
 thm arl64_get_hnr_aux
-lemma arl64_get2_hnr_aux: "(uncurry arl64_get2,uncurry (RETURN oo op_list_get)) \<in> [\<lambda>(l,i). i<length l]\<^sub>a (is_array_list64\<^sup>k *\<^sub>a nat_assn\<^sup>k) \<rightarrow> id_assn"
+lemma arl64_get2_hnr_aux: \<open>(uncurry arl64_get2,uncurry (RETURN oo op_list_get)) \<in> [\<lambda>(l,i). i<length l]\<^sub>a (is_array_list64\<^sup>k *\<^sub>a nat_assn\<^sup>k) \<rightarrow> id_assn\<close>
     by sepref_to_hoare (sep_auto simp: arl64_get2_def is_array_list64_def)
 
   sepref_decl_impl arl64_get2: arl64_get2_hnr_aux .

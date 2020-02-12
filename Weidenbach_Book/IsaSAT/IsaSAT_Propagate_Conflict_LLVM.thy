@@ -46,7 +46,7 @@ sepref_def unit_propagation_inner_loop_wl_loop_D_fast
     length_ll_fs_def[symmetric]
   unfolding fold_tuple_optimizations
   supply [[goals_limit=1]] unit_propagation_inner_loop_wl_loop_D_heur_fast[intro] length_ll_fs_heur_def[simp]
-  apply (annot_snat_const "TYPE (64)")
+  apply (annot_snat_const \<open>TYPE (64)\<close>)
   by sepref
 
 lemma le_uint64_max_minus_4_uint64_max: \<open>a \<le> sint64_max - 4 \<Longrightarrow> Suc a < max_snat 64\<close>
@@ -105,7 +105,7 @@ sepref_def cut_watch_list_heur2_fast_code
     op_list_list_take_alt_def[symmetric]
     op_list_list_upd_alt_def[symmetric]
   unfolding fold_tuple_optimizations
-  apply (annot_snat_const "TYPE (64)")
+  apply (annot_snat_const \<open>TYPE (64)\<close>)
   by sepref
 
 
@@ -125,7 +125,7 @@ sepref_def select_and_remove_from_literals_to_update_wlfast_code
   unfolding select_and_remove_from_literals_to_update_wl_heur_alt_def isasat_bounded_assn_def
   unfolding fold_tuple_optimizations
   supply [[goals_limit = 1]]
-  apply (annot_snat_const "TYPE (64)")
+  apply (annot_snat_const \<open>TYPE (64)\<close>)
   by sepref
 
 

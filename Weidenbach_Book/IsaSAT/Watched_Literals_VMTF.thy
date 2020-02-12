@@ -423,7 +423,7 @@ lemma vmtf_ns_different_same_neq: \<open>vmtf_ns (b # c # l') m xs \<Longrightar
 
 lemma vmtf_ns_last_next:
   \<open>vmtf_ns (xs @ [x]) m ns \<Longrightarrow> get_next (ns ! x) = None\<close>
-  apply (induction "xs @ [x]" m ns arbitrary: xs x rule: vmtf_ns.induct)
+  apply (induction \<open>xs @ [x]\<close> m ns arbitrary: xs x rule: vmtf_ns.induct)
   subgoal by auto
   subgoal by auto
   subgoal for b l m xs a n xs' n' xsa x
@@ -433,14 +433,14 @@ lemma vmtf_ns_last_next:
 
 lemma vmtf_ns_hd_prev:
   \<open>vmtf_ns (x # xs) m ns \<Longrightarrow> get_prev (ns ! x) = None\<close>
-  apply (induction "x # xs" m ns arbitrary: xs x rule: vmtf_ns.induct)
+  apply (induction \<open>x # xs\<close> m ns arbitrary: xs x rule: vmtf_ns.induct)
   subgoal by auto
   subgoal by auto
   done
 
 lemma vmtf_ns_last_mid_get_next:
   \<open>vmtf_ns (xs @ [x, y] @ zs) m ns \<Longrightarrow> get_next (ns ! x) = Some y\<close>
-  apply (induction "xs @ [x, y] @ zs" m ns arbitrary: xs x rule: vmtf_ns.induct)
+  apply (induction \<open>xs @ [x, y] @ zs\<close> m ns arbitrary: xs x rule: vmtf_ns.induct)
   subgoal by auto
   subgoal by auto
   subgoal for b l m xs a n xs' n' xsa x
@@ -458,7 +458,7 @@ lemma vmtf_ns_last_mid_get_prev:
   assumes \<open>vmtf_ns (xs @ [x, y] @ zs) m ns\<close>
   shows \<open>get_prev (ns ! y) = Some x\<close>
     using assms
-proof (induction "xs @ [x, y] @ zs" m ns arbitrary: xs x rule: vmtf_ns.induct)
+proof (induction \<open>xs @ [x, y] @ zs\<close> m ns arbitrary: xs x rule: vmtf_ns.induct)
   case (Nil st xs)
   then show ?case by auto
 next

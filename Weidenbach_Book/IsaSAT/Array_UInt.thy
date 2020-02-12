@@ -3,8 +3,8 @@ theory Array_UInt
 begin
 
 lemma convert_fref:
-  "WB_More_Refinement.fref = Sepref_Rules.fref"
-  "WB_More_Refinement.freft = Sepref_Rules.freft"
+  \<open>WB_More_Refinement.fref = Sepref_Rules.fref\<close>
+  \<open>WB_More_Refinement.freft = Sepref_Rules.freft\<close>
   unfolding WB_More_Refinement.fref_def Sepref_Rules.fref_def
   by auto
 
@@ -141,11 +141,11 @@ proof -
 qed
 
 
-definition arl_get' :: "'a::heap array_list \<Rightarrow> integer \<Rightarrow> 'a Heap" where
-  [code del]: "arl_get' a i = arl_get a (nat_of_integer i)"
+definition arl_get' :: \<open>'a::heap array_list \<Rightarrow> integer \<Rightarrow> 'a Heap\<close> where
+  [code del]: \<open>arl_get' a i = arl_get a (nat_of_integer i)\<close>
 
-definition arl_get_u :: "'a::heap array_list \<Rightarrow> uint32 \<Rightarrow> 'a Heap" where
-  "arl_get_u \<equiv> \<lambda>a i. arl_get' a (integer_of_uint32 i)"
+definition arl_get_u :: \<open>'a::heap array_list \<Rightarrow> uint32 \<Rightarrow> 'a Heap\<close> where
+  \<open>arl_get_u \<equiv> \<lambda>a i. arl_get' a (integer_of_uint32 i)\<close>
 
 lemma arrayO_arl_get_u_rule[sep_heap_rules]:
   assumes i: \<open>i < length a\<close> and \<open>(i' , i) \<in> uint32_nat_rel\<close>
@@ -159,7 +159,7 @@ lemma arrayO_arl_get_u_rule[sep_heap_rules]:
 definition arl_get_u' where
   [symmetric, code]: \<open>arl_get_u' = arl_get_u\<close>
 
-code_printing constant arl_get_u' \<rightharpoonup> (SML) "(fn/ ()/ =>/ Array.sub/ (fst (_),/ Word32.toInt (_)))"
+code_printing constant arl_get_u' \<rightharpoonup> (SML) \<open>(fn/ ()/ =>/ Array.sub/ (fst (_),/ Word32.toInt (_)))\<close>
 
 lemma arl_get'_nth'[code]: \<open>arl_get' = (\<lambda>(a, n). Array.nth' a)\<close>
   unfolding arl_get_def arl_get'_def Array.nth'_def
@@ -425,8 +425,8 @@ lemma nth_raa_i_uint64_hnr[sepref_fr_rules]:
   using assms
   by sepref_to_hoare (sep_auto simp: uint64_nat_rel_def br_def)
 
-definition arl_get_u64 :: "'a::heap array_list \<Rightarrow> uint64 \<Rightarrow> 'a Heap" where
-  "arl_get_u64 \<equiv> \<lambda>a i. arl_get' a (integer_of_uint64 i)"
+definition arl_get_u64 :: \<open>'a::heap array_list \<Rightarrow> uint64 \<Rightarrow> 'a Heap\<close> where
+  \<open>arl_get_u64 \<equiv> \<lambda>a i. arl_get' a (integer_of_uint64 i)\<close>
 
 
 lemma arl_get_hnr_u64[sepref_fr_rules]:
@@ -836,7 +836,7 @@ lemma delete_index_and_swap_aa_ll_hnr_u[sepref_fr_rules]:
 
 subsubsection \<open>Swap\<close>
 
-definition swap_u_code :: "'a ::heap array \<Rightarrow> uint32 \<Rightarrow> uint32 \<Rightarrow> 'a array Heap" where
+definition swap_u_code :: \<open>'a ::heap array \<Rightarrow> uint32 \<Rightarrow> uint32 \<Rightarrow> 'a array Heap\<close> where
   \<open>swap_u_code xs i j = do {
      ki \<leftarrow> nth_u_code xs i;
      kj \<leftarrow> nth_u_code xs j;
@@ -864,7 +864,7 @@ proof -
       intro!: list_rel_update[of _ _ R true _ _ \<open>(_, {})\<close>, unfolded R] param_nth)
 qed
 
-definition swap_u64_code :: "'a ::heap array \<Rightarrow> uint64 \<Rightarrow> uint64 \<Rightarrow> 'a array Heap" where
+definition swap_u64_code :: \<open>'a ::heap array \<Rightarrow> uint64 \<Rightarrow> uint64 \<Rightarrow> 'a array Heap\<close> where
   \<open>swap_u64_code xs i j = do {
      ki \<leftarrow> nth_u64_code xs i;
      kj \<leftarrow> nth_u64_code xs j;
@@ -893,7 +893,7 @@ proof -
 qed
 
 
-definition swap_aa_u64  :: "('a::{heap,default}) arrayO_raa \<Rightarrow> nat \<Rightarrow> uint64 \<Rightarrow> uint64 \<Rightarrow> 'a arrayO_raa Heap" where
+definition swap_aa_u64  :: \<open>('a::{heap,default}) arrayO_raa \<Rightarrow> nat \<Rightarrow> uint64 \<Rightarrow> uint64 \<Rightarrow> 'a arrayO_raa Heap\<close> where
   \<open>swap_aa_u64 xs k i j = do {
     xi \<leftarrow> arl_get xs k;
     xj \<leftarrow> swap_u64_code xi i j;
@@ -987,7 +987,7 @@ qed
 
 
 definition arl_swap_u_code
-  :: "'a ::heap array_list \<Rightarrow> uint32 \<Rightarrow> uint32 \<Rightarrow> 'a array_list Heap"
+  :: \<open>'a ::heap array_list \<Rightarrow> uint32 \<Rightarrow> uint32 \<Rightarrow> 'a array_list Heap\<close>
 where
   \<open>arl_swap_u_code xs i j = do {
      ki \<leftarrow> arl_get_u xs i;
@@ -1729,7 +1729,7 @@ lemma delete_index_and_swap_aa_i32_u64_ll_hnr_u[sepref_fr_rules]:
 
 paragraph \<open>Swap\<close>
 
-definition swap_aa_i32_u64  :: "('a::{heap,default}) arrayO_raa \<Rightarrow> uint32 \<Rightarrow> uint64 \<Rightarrow> uint64 \<Rightarrow> 'a arrayO_raa Heap" where
+definition swap_aa_i32_u64  :: \<open>('a::{heap,default}) arrayO_raa \<Rightarrow> uint32 \<Rightarrow> uint64 \<Rightarrow> uint64 \<Rightarrow> 'a arrayO_raa Heap\<close> where
   \<open>swap_aa_i32_u64 xs k i j = do {
     xi \<leftarrow> arl_get_u xs k;
     xj \<leftarrow> swap_u64_code xi i j;
@@ -1933,7 +1933,7 @@ lemma bit_lshift_uint64_nat_assn[sepref_fr_rules]:
     uint64_nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
   by sepref_to_hoare (sep_auto simp: uint64_nat_rel_def br_def nat_of_uint64_shiftl)
 
-lemma [code]: "uint32_max_uint32 = 4294967295"
+lemma [code]: \<open>uint32_max_uint32 = 4294967295\<close>
   using nat_of_uint32_uint32_max_uint32
   by (auto simp: uint32_max_uint32_def uint32_max_def)
 

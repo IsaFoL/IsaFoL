@@ -47,7 +47,7 @@ sepref_def empty_conflict_and_extract_clause_heur_fast_code
   apply (rewrite at \<open>\<hole>\<close> in \<open>(_, _, _ + 1)\<close> snat_const_fold[where 'a=64])
   apply (rewrite at \<open>\<hole>\<close> in \<open>(_, _, 1)\<close> snat_const_fold[where 'a=64])
   apply (rewrite at \<open>\<hole>\<close> in \<open>If (length _ = \<hole>)\<close> snat_const_fold[where 'a=64])
-  apply (annot_unat_const "TYPE(32)")
+  apply (annot_unat_const \<open>TYPE(32)\<close>)
   unfolding gen_swap convert_swap
   by sepref
 
@@ -60,7 +60,7 @@ sepref_def empty_cach_code
   :: \<open>cach_refinement_l_assn\<^sup>d \<rightarrow>\<^sub>a cach_refinement_l_assn\<close>
   supply [[goals_limit=1]]
   unfolding empty_cach_ref_set_def comp_def cach_refinement_l_assn_def emptied_list_alt_def
-  apply (annot_snat_const "TYPE(64)")
+  apply (annot_snat_const \<open>TYPE(64)\<close>)
   apply (rewrite at \<open>_[\<hole> := SEEN_UNKNOWN]\<close> value_of_atm_def[symmetric])
   apply (rewrite at \<open>_[\<hole> := SEEN_UNKNOWN]\<close> index_of_atm_def[symmetric])
   by sepref
@@ -120,7 +120,7 @@ sepref_def propagate_unit_bt_wl_D_fast_code
   unfolding propagate_unit_bt_wl_D_int_def isasat_bounded_assn_def
     PR_CONST_def
   unfolding fold_tuple_optimizations
-  apply (annot_snat_const "TYPE(64)")
+  apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
 
@@ -140,7 +140,7 @@ sepref_def propagate_bt_wl_D_fast_codeXX
   apply (rewrite in \<open>add_lbd (of_nat \<hole>) _\<close> annot_unat_unat_upcast[where 'l=64])
   apply (rewrite in \<open>(_ + \<hole>, _)\<close> unat_const_fold[where 'a=64])
   apply (rewrite at \<open>RETURN (_, _, _, _, _, _, \<hole>, _)\<close> unat_const_fold[where 'a=32])
-  apply (annot_snat_const "TYPE(64)")
+  apply (annot_snat_const \<open>TYPE(64)\<close>)
   unfolding fold_tuple_optimizations
   apply (rewrite in \<open>isasat_fast \<hole>\<close> fold_tuple_optimizations[symmetric])+
   by sepref
@@ -177,7 +177,7 @@ sepref_def extract_shorter_conflict_list_heur_st_fast
   unfolding extract_shorter_conflict_list_heur_st_alt_def PR_CONST_def isasat_bounded_assn_def
   unfolding delete_index_and_swap_update_def[symmetric] append_update_def[symmetric]
     fold_tuple_optimizations
-  apply (annot_snat_const "TYPE(64)")
+  apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
 
@@ -202,7 +202,7 @@ sepref_def backtrack_wl_D_fast_code
   unfolding delete_index_and_swap_update_def[symmetric] append_update_def[symmetric]
     append_ll_def[symmetric]
     size_conflict_wl_def[symmetric]
-  apply (annot_snat_const "TYPE(64)")
+  apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
 (* TODO: Move *)

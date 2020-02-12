@@ -5,10 +5,10 @@ theory IsaSAT_Initialisation_LLVM
 begin
 
 
-abbreviation unat_rel32 :: "(32 word \<times> nat) set" where "unat_rel32 \<equiv> unat_rel"
-abbreviation unat_rel64 :: "(64 word \<times> nat) set" where "unat_rel64 \<equiv> unat_rel"
-abbreviation snat_rel32 :: "(32 word \<times> nat) set" where "snat_rel32 \<equiv> snat_rel"
-abbreviation snat_rel64 :: "(64 word \<times> nat) set" where "snat_rel64 \<equiv> snat_rel"
+abbreviation unat_rel32 :: \<open>(32 word \<times> nat) set\<close> where \<open>unat_rel32 \<equiv> unat_rel\<close>
+abbreviation unat_rel64 :: \<open>(64 word \<times> nat) set\<close> where \<open>unat_rel64 \<equiv> unat_rel\<close>
+abbreviation snat_rel32 :: \<open>(32 word \<times> nat) set\<close> where \<open>snat_rel32 \<equiv> snat_rel\<close>
+abbreviation snat_rel64 :: \<open>(64 word \<times> nat) set\<close> where \<open>snat_rel64 \<equiv> snat_rel\<close>
 
 type_synonym (in -)vmtf_assn_option_fst_As =
   \<open>vmtf_node_assn ptr \<times> 64 word \<times> 32 word \<times> 32 word \<times> 32 word\<close>
@@ -72,7 +72,7 @@ sepref_def initialise_VMTF_code
   apply (rewrite at 0 in \<open>VMTF_Node \<hole>\<close> unat_const_fold[where 'a=64])
   apply (rewrite at \<open>VMTF_Node (\<hole> + 1)\<close> annot_snat_unat_conv)
   apply (rewrite at 1 in \<open>VMTF_Node \<hole>\<close> unat_const_fold[where 'a=64])
-  apply (annot_snat_const "TYPE(64)")
+  apply (annot_snat_const \<open>TYPE(64)\<close>)
   apply (rewrite in \<open>list_update _ _ _\<close> annot_index_of_atm)
   apply (rewrite in \<open>if _ then _ else list_update _ _ _\<close> annot_index_of_atm)
   apply (rewrite at \<open>\<hole>\<close> in \<open>_ ! atom.the _\<close> annot_index_of_atm)+
@@ -88,7 +88,7 @@ sepref_def propagate_unit_cls_code
   supply [[goals_limit=1]] DECISION_REASON_def[simp]
   unfolding propagate_unit_cls_heur_def isasat_init_assn_def
     PR_CONST_def
-  apply (annot_snat_const "TYPE(64)")
+  apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
 declare propagate_unit_cls_code.refine[sepref_fr_rules]
@@ -120,7 +120,7 @@ sepref_def set_conflict_unit_code
   supply [[goals_limit=1]]
   unfolding set_conflict_unit_heur_def ISIN_def[symmetric] conflict_option_rel_assn_def
     lookup_clause_rel_assn_def
-  apply (annot_unat_const "TYPE(32)")
+  apply (annot_unat_const \<open>TYPE(32)\<close>)
   by sepref
 
 declare set_conflict_unit_code.refine[sepref_fr_rules]
@@ -190,10 +190,10 @@ sepref_def append_and_length_fast_code
   unfolding fm_add_new_fast_def fm_add_new_def append_and_length_fast_code_pre_def
     fm_add_new_fast'_def op_list_list_llen_alt_def[symmetric] op_list_list_idx_alt_def[symmetric]
     is_short_clause_def header_size_def
-  apply (rewrite at "AActivity \<hole>" unat_const_fold[where 'a=32])+
-  apply (rewrite at "APos \<hole>" unat_const_fold[where 'a=32])+
-  apply (rewrite at "op_list_list_llen _ _ - 2" annot_snat_unat_downcast[where 'l=32])
-  apply (annot_snat_const "TYPE(64)")
+  apply (rewrite at \<open>AActivity \<hole>\<close> unat_const_fold[where 'a=32])+
+  apply (rewrite at \<open>APos \<hole>\<close> unat_const_fold[where 'a=32])+
+  apply (rewrite at \<open>op_list_list_llen _ _ - 2\<close> annot_snat_unat_downcast[where 'l=32])
+  apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
 sepref_register fm_add_new_fast'
@@ -213,7 +213,7 @@ sepref_def add_init_cls_code_b
     delete_index_and_swap_ll_def[symmetric]
     append_ll_def[symmetric] fm_add_new_fast_def[symmetric]
   fm_add_new_fast'_def[symmetric]
-  apply (annot_snat_const "TYPE(64)")
+  apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
 declare
@@ -322,7 +322,7 @@ sepref_def init_dt_step_wl_code_b
     get_conflict_wl_is_None_heur_init_alt_def[symmetric]
     SET_TRUE_def[symmetric] SET_FALSE_def[symmetric] UNSET_def[symmetric]
     tri_bool_eq_def[symmetric]
-  apply (annot_snat_const "TYPE(64)")
+  apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
 declare
@@ -344,7 +344,7 @@ sepref_def init_next_size_impl
   is \<open>RETURN o init_next_size\<close>
   :: \<open>[\<lambda>L. L \<le> uint32_max div 2]\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> sint64_nat_assn\<close>
   unfolding init_next_size_def
-  apply (annot_snat_const "TYPE(64)")
+  apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
 
@@ -364,7 +364,7 @@ sepref_def nat_lit_lits_init_assn_assn_in
   apply (annot_all_atm_idxs)
   apply (rewrite at \<open>op_list_grow_init \<hole>\<close> unat_const_fold[where 'a=64])
   apply (rewrite at \<open>_ < \<hole>\<close> annot_snat_unat_conv)
-  apply (annot_unat_const "TYPE(64)")
+  apply (annot_unat_const \<open>TYPE(64)\<close>)
   by sepref
 
 
@@ -397,8 +397,8 @@ definition extract_atms_cls_i' where
 
 (*TODO Move*)
 lemma aal_assn_boundsD':
-  assumes A: "rdomp (aal_assn' TYPE('l::len2) TYPE('ll::len2) A) xss" and \<open>i < length xss\<close>
-  shows "length (xss ! i) < max_snat LENGTH('ll)"
+  assumes A: \<open>rdomp (aal_assn' TYPE('l::len2) TYPE('ll::len2) A) xss\<close> and \<open>i < length xss\<close>
+  shows \<open>length (xss ! i) < max_snat LENGTH('ll)\<close>
   using aal_assn_boundsD_aux1[OF A] assms
   by auto
 
@@ -411,7 +411,7 @@ sepref_def extract_atms_cls_imp
   apply (subst nfoldli_by_idx[abs_def])
   unfolding nfoldli_upt_by_while
     op_list_list_llen_alt_def[symmetric] op_list_list_idx_alt_def[symmetric]
-  apply (annot_snat_const "TYPE(64)")
+  apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
 declare extract_atms_cls_imp.refine[sepref_fr_rules]
@@ -425,7 +425,7 @@ sepref_def extract_atms_clss_imp
   unfolding nfoldli_upt_by_while Let_def extract_atms_cls_i'_def[symmetric]
     op_list_list_llen_alt_def[symmetric] op_list_list_idx_alt_def[symmetric]
     op_list_list_len_def[symmetric]
-  apply (annot_snat_const "TYPE(64)")
+  apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
 lemma extract_atms_clss_hnr[sepref_fr_rules]:
@@ -445,7 +445,7 @@ sepref_def extract_atms_clss_imp_empty_assn
   apply (rewrite in \<open>(\<hole>, _, _)\<close> annotate_assn[where A=\<open>larray64_assn uint64_nat_assn\<close>])
   apply (rewrite in \<open>(\<hole>, _, _)\<close> snat_const_fold[where 'a=64])
   apply (rewrite in \<open>(_, \<hole>, _)\<close> unat_const_fold[where 'a=32])
-  apply (annot_unat_const "TYPE(64)")
+  apply (annot_unat_const \<open>TYPE(64)\<close>)
   by sepref
 
 lemma extract_atms_clss_imp_empty_assn[sepref_fr_rules]:
@@ -488,7 +488,7 @@ sepref_def init_dt_wl_heur_code_b
   apply (subst nfoldli_by_idx[abs_def])
   unfolding nfoldli_upt_by_while op_list_list_len_def[symmetric] Let_def
     init_dt_step_wl_heur_b'_def[symmetric]
-  apply (annot_snat_const "TYPE(64)")
+  apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
 declare
@@ -571,7 +571,7 @@ sepref_def INITIAL_OUTL_SIZE_impl
   is \<open>uncurry0 (RETURN INITIAL_OUTL_SIZE)\<close>
   :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a sint64_nat_assn\<close>
   unfolding INITIAL_OUTL_SIZE_def
-  apply (annot_snat_const "TYPE(64)")
+  apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
 definition atom_of_value :: \<open>nat \<Rightarrow> nat\<close> where [simp]: \<open>atom_of_value x = x\<close>
@@ -612,7 +612,7 @@ sepref_def finalise_init_code'
   apply (rewrite at \<open>take \<hole>\<close> snat_const_fold[where 'a=64])
   apply (rewrite at \<open>(_, _,_,\<hole>, _,_,_,_,_)\<close> snat_const_fold[where 'a=64])
   apply (rewrite at \<open>(_, _,_,\<hole>, _,_,_)\<close> snat_const_fold[where 'a=64])
-  apply (annot_unat_const "TYPE(64)")
+  apply (annot_unat_const \<open>TYPE(64)\<close>)
   apply (rewrite at \<open>(_, \<hole>, _)\<close> al_fold_custom_empty[where 'l=64])
   apply (rewrite at \<open>(_, \<hole>)\<close> al_fold_custom_empty[where 'l=64])
   apply (rewrite in \<open>take _ \<hole>\<close> al_fold_custom_replicate)
@@ -658,7 +658,7 @@ sepref_def init_trail_D_fast_code
   apply (rewrite in \<open>let _ = _ in _\<close> larray_fold_custom_replicate)
   apply (rewrite at \<open>(_, \<hole>, _)\<close> unat_const_fold[where 'a=32])
   apply (rewrite at \<open>(op_larray_custom_replicate _ \<hole>)\<close> unat_const_fold[where 'a=32])
-  apply (annot_snat_const "TYPE(64)")
+  apply (annot_snat_const \<open>TYPE(64)\<close>)
   supply [[goals_limit = 1]]
   by sepref
 
@@ -686,7 +686,7 @@ sepref_def init_state_wl_D'_code
   apply (rewrite at \<open>let _= \<hole> in RETURN _\<close> annotate_assn[where A = \<open>vdom_fast_assn\<close>])
   apply (rewrite in \<open>let _= \<hole> in RETURN _\<close> al_fold_custom_empty[where 'l=64])
   apply (rewrite at \<open>(_,\<hole>, _ ,_, _, False)\<close> unat_const_fold[where 'a=32])
-  apply (annot_snat_const "TYPE(64)")
+  apply (annot_snat_const \<open>TYPE(64)\<close>)
   apply (rewrite at \<open>RETURN \<hole>\<close> annotate_assn[where A=\<open>isasat_init_assn\<close>, unfolded isasat_init_assn_def
      conflict_option_rel_assn_def cach_refinement_l_assn_def lookup_clause_rel_assn_def])
   by sepref

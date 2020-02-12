@@ -42,8 +42,8 @@ lemma get_prev_ref[sepref_fr_rules]:
 *)
 
 
-definition valid_atoms :: "nat_vmtf_node list \<Rightarrow> nat set" where
- "valid_atoms xs \<equiv> {i. i < length xs}"
+definition valid_atoms :: \<open>nat_vmtf_node list \<Rightarrow> nat set\<close> where
+ \<open>valid_atoms xs \<equiv> {i. i < length xs}\<close>
 
 definition VMTF_score_less where
   \<open>VMTF_score_less xs i j \<longleftrightarrow> stamp (xs ! i) < stamp (xs ! j)\<close>
@@ -69,8 +69,8 @@ sepref_def (in -) mop_VMTF_score_less_impl
 
 
 interpretation VMTF: weak_ordering_on_lt where
-  C = "valid_atoms vs" and
-  less = "VMTF_score_less vs"
+  C = \<open>valid_atoms vs\<close> and
+  less = \<open>VMTF_score_less vs\<close>
   by unfold_locales
    (auto simp: VMTF_score_less_def split: if_splits)
 
@@ -82,12 +82,12 @@ interpretation VMTF: parameterized_weak_ordering valid_atoms VMTF_score_less
 
 
 global_interpretation VMTF: parameterized_sort_impl_context
-  "woarray_assn atom_assn" "eoarray_assn atom_assn" atom_assn
+  \<open>woarray_assn atom_assn\<close> \<open>eoarray_assn atom_assn\<close> atom_assn
   return return
   eo_extract_impl
   array_upd
   valid_atoms VMTF_score_less mop_VMTF_score_less mop_VMTF_score_less_impl
-  "array_assn vmtf_node_assn"
+  \<open>array_assn vmtf_node_assn\<close>
   defines
           VMTF_is_guarded_insert_impl = VMTF.is_guarded_param_insert_impl
       and VMTF_is_unguarded_insert_impl = VMTF.is_unguarded_param_insert_impl
@@ -127,7 +127,7 @@ global_interpretation VMTF: parameterized_sort_impl_context
 
 
 global_interpretation
-  VMTF_it: pure_eo_adapter atom_assn "arl64_assn atom_assn" arl_nth arl_upd
+  VMTF_it: pure_eo_adapter atom_assn \<open>arl64_assn atom_assn\<close> arl_nth arl_upd
   defines VMTF_it_eo_extract_impl = VMTF_it.eo_extract_impl
   apply (rule al_pure_eo)
   by (simp add: safe_constraint_rules)
@@ -188,8 +188,8 @@ lemmas [llvm_inline] = VMTF_it.eo_extract_impl_def[THEN meta_fun_cong, THEN meta
 
 print_named_simpset llvm_inline
 export_llvm
-  "VMTF_heapsort_impl :: _ \<Rightarrow> _ \<Rightarrow> _"
-  "VMTF_introsort_impl :: _ \<Rightarrow> _ \<Rightarrow> _"
+  \<open>VMTF_heapsort_impl :: _ \<Rightarrow> _ \<Rightarrow> _\<close>
+  \<open>VMTF_introsort_impl :: _ \<Rightarrow> _ \<Rightarrow> _\<close>
 
 definition VMTF_sort_scores_raw :: \<open>_\<close> where
   \<open>VMTF_sort_scores_raw = pslice_sort_spec valid_atoms VMTF_score_less\<close>
@@ -218,7 +218,7 @@ sepref_def VMTF_sort_scores_raw_impl
   is \<open>uncurry VMTF_sort_scores\<close>
   :: \<open>(IICF_Array.array_assn vmtf_node_assn)\<^sup>k *\<^sub>a VMTF_it.arr_assn\<^sup>d \<rightarrow>\<^sub>a VMTF_it.arr_assn\<close>
   unfolding VMTF_sort_scores_def
-  apply (annot_snat_const "TYPE(64)")
+  apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
 lemmas[sepref_fr_rules] =
@@ -285,30 +285,30 @@ sepref_def ns_vmtf_dequeue_code
 
 
 sepref_register get_next get_prev stamp
-lemma eq_Some_iff: "x = Some b \<longleftrightarrow> (\<not>is_None x \<and> the x = b)"
+lemma eq_Some_iff: \<open>x = Some b \<longleftrightarrow> (\<not>is_None x \<and> the x = b)\<close>
   by (cases x) auto
 
 lemma hfref_refine_with_pre:
-  assumes "\<And>x. P x \<Longrightarrow> g' x \<le> g x"
-  assumes "(f,g') \<in> [P]\<^sub>a\<^sub>d A \<rightarrow> R"
-  shows "(f,g) \<in> [P]\<^sub>a\<^sub>d A \<rightarrow> R"
+  assumes \<open>\<And>x. P x \<Longrightarrow> g' x \<le> g x\<close>
+  assumes \<open>(f,g') \<in> [P]\<^sub>a\<^sub>d A \<rightarrow> R\<close>
+  shows \<open>(f,g) \<in> [P]\<^sub>a\<^sub>d A \<rightarrow> R\<close>
   using assms(2)[THEN hfrefD] assms(1)
   by (auto intro!: hfrefI intro: hn_refine_ref)
 
 
 lemma isa_vmtf_en_dequeue_preI:
-  assumes "isa_vmtf_en_dequeue_pre ((M,L),(ns, m, fst_As, lst_As, next_search))"
-  shows "fst_As < length ns" "L < length ns" "Suc m < max_unat 64"
-    and "get_next (ns!L) = Some i \<longrightarrow> i < length ns"
-    and "fst_As \<noteq> lst_As \<longrightarrow> get_prev (ns ! lst_As) \<noteq> None"
-    and "get_next (ns ! fst_As) \<noteq> None \<longrightarrow> get_prev (ns ! lst_As) \<noteq> None"
+  assumes \<open>isa_vmtf_en_dequeue_pre ((M,L),(ns, m, fst_As, lst_As, next_search))\<close>
+  shows \<open>fst_As < length ns\<close> \<open>L < length ns\<close> \<open>Suc m < max_unat 64\<close>
+    and \<open>get_next (ns!L) = Some i \<longrightarrow> i < length ns\<close>
+    and \<open>fst_As \<noteq> lst_As \<longrightarrow> get_prev (ns ! lst_As) \<noteq> None\<close>
+    and \<open>get_next (ns ! fst_As) \<noteq> None \<longrightarrow> get_prev (ns ! lst_As) \<noteq> None\<close>
   using assms
   unfolding isa_vmtf_en_dequeue_pre_def vmtf_dequeue_pre_def
   apply (auto simp: max_unat_def uint64_max_def sint64_max_def)
   done
 
 
-find_theorems "_ \<noteq> None \<longleftrightarrow> _"
+find_theorems \<open>_ \<noteq> None \<longleftrightarrow> _\<close>
 
 lemma isa_vmtf_en_dequeue_alt_def2:
    \<open>isa_vmtf_en_dequeue_pre x \<Longrightarrow> uncurry2 (\<lambda>M L vm.
@@ -366,14 +366,14 @@ sepref_register 1 0
 
 
 lemma vmtf_en_dequeue_fast_codeI:
-  assumes "isa_vmtf_en_dequeue_pre ((M, L),(ns,m,fst_As, lst_As, next_search))"
-  shows "Suc m < max_unat 64"
+  assumes \<open>isa_vmtf_en_dequeue_pre ((M, L),(ns,m,fst_As, lst_As, next_search))\<close>
+  shows \<open>Suc m < max_unat 64\<close>
   using assms
   unfolding isa_vmtf_en_dequeue_pre_def max_unat_def uint64_max_def
   by auto
 
 
-schematic_goal mk_free_trail_pol_fast_assn[sepref_frame_free_rules]: "MK_FREE trail_pol_fast_assn ?fr"
+schematic_goal mk_free_trail_pol_fast_assn[sepref_frame_free_rules]: \<open>MK_FREE trail_pol_fast_assn ?fr\<close>
   unfolding trail_pol_fast_assn_def
   by (rule free_thms sepref_frame_free_rules)+ (* TODO: Write a method for that! *)
 
@@ -385,9 +385,9 @@ sepref_def vmtf_en_dequeue_fast_code
 
   supply [[goals_limit = 1]]
   unfolding isa_vmtf_en_dequeue_alt_def2 case_option_split eq_Some_iff
-  apply (rewrite in "if \<hole> then get_next _ else _" short_circuit_conv)
+  apply (rewrite in \<open>if \<hole> then get_next _ else _\<close> short_circuit_conv)
   apply annot_all_atm_idxs
-  apply (annot_unat_const "TYPE(64)")
+  apply (annot_unat_const \<open>TYPE(64)\<close>)
   unfolding atom.fold_option
   unfolding fold_tuple_optimizations
   by sepref
@@ -401,7 +401,7 @@ sepref_def vmtf_rescale_code
   supply vmtf_en_dequeue_pre_def[simp]
   unfolding vmtf_rescale_alt_def update_stamp.simps
   unfolding atom.fold_option
-  apply (annot_unat_const "TYPE(64)")
+  apply (annot_unat_const \<open>TYPE(64)\<close>)
   apply annot_all_atm_idxs
   by sepref
 
@@ -409,7 +409,7 @@ sepref_def vmtf_rescale_code
 sepref_register partition_between_ref
 
 (*lemma partition_between_ref_vmtf_code_aux:
-  "\<lbrakk>(loi,lo)\<in>snat_rel' TYPE(64); (hii,hi)\<in>snat_rel' TYPE(64)\<rbrakk> \<Longrightarrow> lo + (hi - lo) div 2 < max_snat 64"
+  \<open>\<lbrakk>(loi,lo)\<in>snat_rel' TYPE(64); (hii,hi)\<in>snat_rel' TYPE(64)\<rbrakk> \<Longrightarrow> lo + (hi - lo) div 2 < max_snat 64\<close>
   apply sepref_bounds
   apply (drule in_snat_rel_imp_less_max')+
   by auto
@@ -446,7 +446,7 @@ sepref_def isa_vmtf_flush_fast_code
   apply (rewrite at \<open>isa_vmtf_en_dequeue _ (_ ! \<hole>)\<close> annot_unat_snat_conv)
   apply (rewrite at \<open>atoms_hash_del (_ ! \<hole>)\<close> annot_unat_snat_conv)
   apply (rewrite at \<open>take \<hole> _\<close> snat_const_fold[where 'a=64])
-  apply (annot_unat_const "TYPE(64)")
+  apply (annot_unat_const \<open>TYPE(64)\<close>)
   by sepref
 
 
@@ -501,7 +501,7 @@ sepref_def find_decomp_wl_imp_fast_code
   supply [[goals_limit=1]] literals_are_in_\<L>\<^sub>i\<^sub>n_add_mset[simp]
   supply vmtf_unset_pre_def[simp]
   apply (rewrite at \<open>let _ = _ - \<hole> in _\<close> annot_unat_snat_upcast[where 'l=64])
-  apply (annot_snat_const "TYPE(64)")
+  apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
 
@@ -511,7 +511,7 @@ sepref_def vmtf_rescore_fast_code
        vmtf_remove_assn\<close>
   unfolding isa_vmtf_rescore_body_def[abs_def] PR_CONST_def isa_vmtf_rescore_def
   supply [[goals_limit = 1]] fold_is_None[simp]
-  apply (annot_snat_const "TYPE(64)")
+  apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
 
@@ -543,7 +543,7 @@ sepref_def vmtf_mark_to_rescore_clause_fast_code
   unfolding while_eq_nfoldli[symmetric]
   apply (subst while_upt_while_direct, simp)
   unfolding nres_monad3
-  apply (annot_snat_const "TYPE(64)")
+  apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
 
@@ -558,7 +558,7 @@ sepref_def vmtf_mark_to_rescore_also_reasons_fast_code
   unfolding isa_vmtf_mark_to_rescore_also_reasons_def PR_CONST_def
   unfolding while_eq_nfoldli[symmetric]
   apply (subst while_upt_while_direct, simp)
-  apply (annot_snat_const "TYPE(64)")
+  apply (annot_snat_const \<open>TYPE(64)\<close>)
   unfolding  nres_monad3 case_option_split
   by sepref
 

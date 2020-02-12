@@ -94,56 +94,56 @@ lemma extract_model_of_state_stat_alt_def:
      })\<close>
   by (auto simp: extract_model_of_state_stat_def mop_free_def intro!: ext)
 
-schematic_goal mk_free_lookup_clause_rel_assn[sepref_frame_free_rules]: "MK_FREE lookup_clause_rel_assn ?fr"
+schematic_goal mk_free_lookup_clause_rel_assn[sepref_frame_free_rules]: \<open>MK_FREE lookup_clause_rel_assn ?fr\<close>
   unfolding conflict_option_rel_assn_def lookup_clause_rel_assn_def
   by (rule free_thms sepref_frame_free_rules)+ (* TODO: Write a method for that! *)
 
-schematic_goal mk_free_trail_pol_fast_assn[sepref_frame_free_rules]: "MK_FREE conflict_option_rel_assn ?fr"
+schematic_goal mk_free_trail_pol_fast_assn[sepref_frame_free_rules]: \<open>MK_FREE conflict_option_rel_assn ?fr\<close>
   unfolding conflict_option_rel_assn_def
   by (rule free_thms sepref_frame_free_rules)+ (* TODO: Write a method for that! *)
 
 
-schematic_goal mk_free_vmtf_remove_assn[sepref_frame_free_rules]: "MK_FREE vmtf_remove_assn ?fr"
+schematic_goal mk_free_vmtf_remove_assn[sepref_frame_free_rules]: \<open>MK_FREE vmtf_remove_assn ?fr\<close>
   unfolding vmtf_remove_assn_def
   by (rule free_thms sepref_frame_free_rules)+ (* TODO: Write a method for that! *)
 (*cach_refinement_l_assn*)
 
-schematic_goal mk_free_cach_refinement_l_assn[sepref_frame_free_rules]: "MK_FREE cach_refinement_l_assn ?fr"
+schematic_goal mk_free_cach_refinement_l_assn[sepref_frame_free_rules]: \<open>MK_FREE cach_refinement_l_assn ?fr\<close>
   unfolding cach_refinement_l_assn_def
   by (rule free_thms sepref_frame_free_rules)+ (* TODO: Write a method for that! *)
 
-schematic_goal mk_free_lbd_assn[sepref_frame_free_rules]: "MK_FREE lbd_assn ?fr"
+schematic_goal mk_free_lbd_assn[sepref_frame_free_rules]: \<open>MK_FREE lbd_assn ?fr\<close>
   unfolding lbd_assn_def
   by (rule free_thms sepref_frame_free_rules)+ (* TODO: Write a method for that! *)
 
-schematic_goal mk_free_opts_assn[sepref_frame_free_rules]: "MK_FREE opts_assn ?fr"
+schematic_goal mk_free_opts_assn[sepref_frame_free_rules]: \<open>MK_FREE opts_assn ?fr\<close>
   unfolding opts_assn_def
   by (rule free_thms sepref_frame_free_rules)+ (* TODO: Write a method for that! *)
 
-schematic_goal mk_free_heuristic_assn[sepref_frame_free_rules]: "MK_FREE heuristic_assn ?fr"
+schematic_goal mk_free_heuristic_assn[sepref_frame_free_rules]: \<open>MK_FREE heuristic_assn ?fr\<close>
   unfolding heuristic_assn_def
   by (rule free_thms sepref_frame_free_rules)+ (* TODO: Write a method for that! *)
 
 thm array_mk_free
   context
-    fixes l_dummy :: "'l::len2 itself"
-    fixes ll_dummy :: "'ll::len2 itself"
+    fixes l_dummy :: \<open>'l::len2 itself\<close>
+    fixes ll_dummy :: \<open>'ll::len2 itself\<close>
     fixes L LL AA
-    defines [simp]: "L \<equiv> (LENGTH ('l))"
-    defines [simp]: "LL \<equiv> (LENGTH ('ll))"
-    defines [simp]: "AA \<equiv> raw_aal_assn TYPE('l::len2) TYPE('ll::len2)"
+    defines [simp]: \<open>L \<equiv> (LENGTH ('l))\<close>
+    defines [simp]: \<open>LL \<equiv> (LENGTH ('ll))\<close>
+    defines [simp]: \<open>AA \<equiv> raw_aal_assn TYPE('l::len2) TYPE('ll::len2)\<close>
   begin
-    private lemma n_unf: "hr_comp AA (\<langle>\<langle>the_pure A\<rangle>list_rel\<rangle>list_rel) = aal_assn A" unfolding aal_assn_def AA_def ..
+    private lemma n_unf: \<open>hr_comp AA (\<langle>\<langle>the_pure A\<rangle>list_rel\<rangle>list_rel) = aal_assn A\<close> unfolding aal_assn_def AA_def ..
 
     context
       notes [fcomp_norm_unfold] = n_unf
     begin
 
-lemma aal_assn_free[sepref_frame_free_rules]: "MK_FREE AA aal_free"
+lemma aal_assn_free[sepref_frame_free_rules]: \<open>MK_FREE AA aal_free\<close>
   apply rule by vcg
-  sepref_decl_op list_list_free: "\<lambda>_::_ list list. ()" :: "\<langle>\<langle>A\<rangle>list_rel\<rangle>list_rel \<rightarrow> unit_rel" .
+  sepref_decl_op list_list_free: \<open>\<lambda>_::_ list list. ()\<close> :: \<open>\<langle>\<langle>A\<rangle>list_rel\<rangle>list_rel \<rightarrow> unit_rel\<close> .
 
-lemma hn_aal_free_raw: "(aal_free,RETURN o op_list_list_free) \<in> AA\<^sup>d \<rightarrow>\<^sub>a unit_assn"
+lemma hn_aal_free_raw: \<open>(aal_free,RETURN o op_list_list_free) \<in> AA\<^sup>d \<rightarrow>\<^sub>a unit_assn\<close>
     by sepref_to_hoare vcg
 
   sepref_decl_impl aal_free: hn_aal_free_raw
@@ -153,7 +153,7 @@ lemma hn_aal_free_raw: "(aal_free,RETURN o op_list_list_free) \<in> AA\<^sup>d \
 end
 end
 
-schematic_goal mk_free_isasat_init_assn[sepref_frame_free_rules]: "MK_FREE isasat_init_assn ?fr"
+schematic_goal mk_free_isasat_init_assn[sepref_frame_free_rules]: \<open>MK_FREE isasat_init_assn ?fr\<close>
   unfolding isasat_init_assn_def
   by (rule free_thms sepref_frame_free_rules)+ (* TODO: Write a method for that! *)
 
@@ -238,7 +238,7 @@ sepref_def isasat_fast_bound_impl
   is \<open>uncurry0 (RETURN isasat_fast_bound)\<close>
   :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a sint64_nat_assn\<close>
   unfolding isasat_fast_bound_alt_def
-  apply (annot_snat_const "TYPE(64)")
+  apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
 lemmas [sepref_fr_rules] = isasat_fast_bound_impl.refine
@@ -323,7 +323,7 @@ lemma isasat_information_banner_alt_def:
     RETURN (())\<close>
   by (auto simp: isasat_information_banner_def)
 
-schematic_goal mk_free_ghost_assn[sepref_frame_free_rules]: "MK_FREE ghost_assn ?fr"
+schematic_goal mk_free_ghost_assn[sepref_frame_free_rules]: \<open>MK_FREE ghost_assn ?fr\<close>
   unfolding ghost_assn_def
   by (rule free_thms sepref_frame_free_rules)+ (* TODO: Write a method for that! *)
 
@@ -344,7 +344,7 @@ sepref_def IsaSAT_code
    extract_stats_def[simp del]
   apply (rewrite at \<open>extract_atms_clss _ \<hole>\<close> op_extract_list_empty_def[symmetric])
   apply (rewrite at \<open>extract_atms_clss _ \<hole>\<close> op_extract_list_empty_def[symmetric])
-  apply (annot_snat_const "TYPE(64)")
+  apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
 definition default_opts where
@@ -373,7 +373,7 @@ sepref_def IsaSAT_code_wrapped
   :: \<open>(clauses_ll_assn)\<^sup>k \<rightarrow>\<^sub>a sint64_nat_assn\<close>
   supply [[goals_limit=1]] if_splits[split]
   unfolding IsaSAT_bounded_heur_wrapper_def
-  apply (annot_snat_const "TYPE(64)")
+  apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
 
@@ -405,7 +405,7 @@ sepref_definition llvm_version
     String.asciis_of_Literal
   apply (auto simp: String.asciis_of_Literal of_char_of char_of_char nat_of_integer_def
     simp del: list_update.simps replicate.simps)
-  apply (annot_snat_const "TYPE(32)")
+  apply (annot_snat_const \<open>TYPE(32)\<close>)
   unfolding array_fold_custom_replicate
   unfolding hf_pres.simps[symmetric]
   by sepref
@@ -447,7 +447,7 @@ begin
                struct {int32_t dec_lev;
                 CONTROL_STACK cs;};};};};} TRAIL;
   \<close>
-  file "code/isasat_restart.ll"
+  file \<open>code/isasat_restart.ll\<close>
 
 end
 

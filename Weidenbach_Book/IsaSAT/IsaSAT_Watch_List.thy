@@ -33,7 +33,7 @@ lemma map_fun_rel_def:
   \<open>\<langle>R\<rangle>map_fun_rel D = {(m, f). \<forall>(i, j)\<in>D. i < length m \<and> (m ! i, f j) \<in> R}\<close>
   unfolding relAPP_def map_fun_rel_def_internal by auto
 
-definition mop_append_ll :: "'a list list \<Rightarrow> nat literal \<Rightarrow> 'a \<Rightarrow> 'a list list nres" where
+definition mop_append_ll :: \<open>'a list list \<Rightarrow> nat literal \<Rightarrow> 'a \<Rightarrow> 'a list list nres\<close> where
   \<open>mop_append_ll xs i x = do {
      ASSERT(nat_of_lit i < length xs);
      RETURN (append_ll xs (nat_of_lit i) x)

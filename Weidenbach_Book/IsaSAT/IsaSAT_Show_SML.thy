@@ -4,7 +4,7 @@ theory IsaSAT_Show_SML
     IsaSAT_Setup_SML
 begin
 
-instantiation uint64 :: "show"
+instantiation uint64 :: \<open>show\<close>
 begin
 definition shows_prec_uint64 :: \<open>nat \<Rightarrow> uint64 \<Rightarrow> char list \<Rightarrow> char list\<close> where
   \<open>shows_prec_uint64 n m xs = shows_prec n (nat_of_uint64 m) xs\<close>
@@ -17,7 +17,7 @@ instance
       shows_prec_append shows_list_append)
 end
 
-instantiation uint32 :: "show"
+instantiation uint32 :: \<open>show\<close>
 begin
 definition shows_prec_uint32 :: \<open>nat \<Rightarrow> uint32 \<Rightarrow> char list \<Rightarrow> char list\<close> where
   \<open>shows_prec_uint32 n m xs = shows_prec n (nat_of_uint32 m) xs\<close>
@@ -31,7 +31,7 @@ instance
 end
 
 code_printing constant
-  println_string \<rightharpoonup> (SML) "ignore/ (PolyML.print/ ((_) ^ \"\\n\"))"
+  println_string \<rightharpoonup> (SML) \<open>ignore/ (PolyML.print/ ((_) ^ \\<close>\\n\\<open>))\<close>
 
 definition test where
 \<open>test  = println_string\<close>

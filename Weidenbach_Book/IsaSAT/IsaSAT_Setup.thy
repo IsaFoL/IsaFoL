@@ -782,15 +782,15 @@ lemma phase_saving_cong:
 
     (*TODO Move + replace distinct_subseteq_iff*)
 lemma distinct_subseteq_iff2:
-  assumes dist: "distinct_mset M"
-  shows "set_mset M \<subseteq> set_mset N \<longleftrightarrow> M \<subseteq># N"
+  assumes dist: \<open>distinct_mset M\<close>
+  shows \<open>set_mset M \<subseteq> set_mset N \<longleftrightarrow> M \<subseteq># N\<close>
 proof
-  assume "set_mset M \<subseteq> set_mset N"
-  then show "M \<subseteq># N"
+  assume \<open>set_mset M \<subseteq> set_mset N\<close>
+  then show \<open>M \<subseteq># N\<close>
     using dist by (metis distinct_mset_set_mset_ident mset_set_subset_iff)
 next
-  assume "M \<subseteq># N"
-  then show "set_mset M \<subseteq> set_mset N"
+  assume \<open>M \<subseteq># N\<close>
+  then show \<open>set_mset M \<subseteq> set_mset N\<close>
     by (metis set_mset_mono)
 qed
 
@@ -1299,7 +1299,7 @@ lemma length_avdom_alt_def:
   by (intro ext) (auto simp: length_avdom_def)
 
 
-definition clause_is_learned_heur :: "twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> bool"
+definition clause_is_learned_heur :: \<open>twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> bool\<close>
 where
   \<open>clause_is_learned_heur S C \<longleftrightarrow> arena_status (get_clauses_wl_heur S) C = LEARNED\<close>
 
@@ -1321,7 +1321,7 @@ lemma get_the_propagation_reason_heur_alt_def:
 
 
 (* TODO deduplicate arena_lbd = get_clause_LBD *)
-definition clause_lbd_heur :: "twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> nat"
+definition clause_lbd_heur :: \<open>twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> nat\<close>
 where
   \<open>clause_lbd_heur S C = arena_lbd (get_clauses_wl_heur S) C\<close>
 

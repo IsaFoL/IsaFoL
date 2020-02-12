@@ -442,7 +442,7 @@ proof -
     by (metis member_add_mset set_mset_mset)
 
 
-  have stupid: "K \<in># removeAll_mset L D \<longleftrightarrow> K \<noteq> L \<and> K \<in># D" for K L D
+  have stupid: \<open>K \<in># removeAll_mset L D \<longleftrightarrow> K \<noteq> L \<and> K \<in># D\<close> for K L D
     by auto
   have K: \<open>K \<in># remove1_mset L (mset (get_clauses_wl S \<propto> C)) \<Longrightarrow> - K \<notin># the (get_conflict_wl S)\<close> and
      uL_C: \<open>-L \<notin># (mset (get_clauses_wl S \<propto> C))\<close> for K

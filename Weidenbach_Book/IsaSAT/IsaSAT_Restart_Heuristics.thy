@@ -238,7 +238,7 @@ lemma trail_pol_literals_are_in_\<L>\<^sub>i\<^sub>n_trail:
   unfolding literals_are_in_\<L>\<^sub>i\<^sub>n_trail_def trail_pol_def
   by auto
 
-lemma refine_generalise1: "A \<le> B \<Longrightarrow> do {x \<leftarrow> B; C x} \<le> D \<Longrightarrow> do {x \<leftarrow> A; C x} \<le> (D:: 'a nres)"
+lemma refine_generalise1: \<open>A \<le> B \<Longrightarrow> do {x \<leftarrow> B; C x} \<le> D \<Longrightarrow> do {x \<leftarrow> A; C x} \<le> (D:: 'a nres)\<close>
   using Refine_Basic.bind_mono(1) dual_order.trans by blast
 
 lemma refine_generalise2: "A \<le> B \<Longrightarrow> do {x \<leftarrow> do {x \<leftarrow> B; A' x}; C x} \<le> D \<Longrightarrow>
@@ -405,7 +405,7 @@ proof -
 	    (find_decomp_w_ns (all_atms_st (bt, bu, bv, bw, bx, NS, US, by, bz)) bt lvl vm0) \<Longrightarrow> P)\<close>
     for a aa ab ac ad b ae af ag ba ah ai aj ak al am bb an bc ao aq bd ar as at'
        au av aw be ax ay az bf bg bh bi bj bk bl bm bn bo bp bq br bs bt bu bv
-       bw bx "by" bz lvl i x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f
+       bw bx \<open>by\<close> bz lvl i x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f
        x1g x2g x1h x2h x1i x2i P NS US heur
   proof -
     let ?\<A> = \<open>all_atms_st (bt, bu, bv, bw, bx, NS, US, by, bz)\<close>
@@ -489,7 +489,7 @@ proof -
       apply assumption
     subgoal for a aa ab ac ad b ae af ag ba ah ai aj ak al am bb an bc ao ap bd aq ar
        as at au av aw ax ay be az bf bg bh bi bj bk bl bm bn bo bp bq br bs
-       bt bu bv bw bx _ _ "by" bz ca cb cc cd ce cf cg ch ci cj ck cl cm cn co cp
+       bt bu bv bw bx _ _ \<open>by\<close> bz ca cb cc cd ce cf cg ch ci cj ck cl cm cn co cp
        lvl i vm0
       unfolding RETURN_def RES_RES2_RETURN_RES RES_RES13_RETURN_RES find_decomp_w_ns_def conc_fun_RES
         RES_RES13_RETURN_RES K2 K
@@ -825,7 +825,7 @@ definition get_restart_phase :: \<open>twl_st_wl_heur \<Rightarrow> 64 word\<clo
   \<open>get_restart_phase = (\<lambda>(_, _, _, _, _, _, _, _, _, _, _, heur, _).
      current_restart_phase heur)\<close>
 
-definition GC_required_heur :: "twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> bool nres" where
+definition GC_required_heur :: \<open>twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> bool nres\<close> where
   \<open>GC_required_heur S n = do {
     n \<leftarrow> RETURN (full_arena_length_st S);
     wasted \<leftarrow> RETURN (wasted_bytes_st S);
@@ -845,7 +845,7 @@ definition FLAG_GC_restart :: \<open>8 word\<close> where
 definition restart_flag_rel :: \<open>(8 word \<times> restart_type) set\<close> where
   \<open>restart_flag_rel = {(FLAG_no_restart, NO_RESTART), (FLAG_restart, RESTART), (FLAG_GC_restart, GC)}\<close>
 
-definition restart_required_heur :: "twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> 8 word nres" where
+definition restart_required_heur :: \<open>twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> 8 word nres\<close> where
   \<open>restart_required_heur S n = do {
     let opt_red = opts_reduction_st S;
     let opt_res = opts_restart_st S;
@@ -3848,12 +3848,12 @@ definition cdcl_GC_clauses_prog_wl2  where
 
 
 lemma WHILEIT_refine_with_invariant_and_break:
-  assumes R0: "I' x' \<Longrightarrow> (x,x')\<in>R"
-  assumes IREF: "\<And>x x'. \<lbrakk> (x,x')\<in>R; I' x' \<rbrakk> \<Longrightarrow> I x"
-  assumes COND_REF: "\<And>x x'. \<lbrakk> (x,x')\<in>R; I x; I' x' \<rbrakk> \<Longrightarrow> b x = b' x'"
+  assumes R0: \<open>I' x' \<Longrightarrow> (x,x')\<in>R\<close>
+  assumes IREF: \<open>\<And>x x'. \<lbrakk> (x,x')\<in>R; I' x' \<rbrakk> \<Longrightarrow> I x\<close>
+  assumes COND_REF: \<open>\<And>x x'. \<lbrakk> (x,x')\<in>R; I x; I' x' \<rbrakk> \<Longrightarrow> b x = b' x'\<close>
   assumes STEP_REF:
-    "\<And>x x'. \<lbrakk> (x,x')\<in>R; b x; b' x'; I x; I' x' \<rbrakk> \<Longrightarrow> f x \<le> \<Down>R (f' x')"
-  shows "WHILEIT I b f x \<le>\<Down>{(x, x'). (x, x') \<in> R \<and> I x \<and>  I' x' \<and> \<not>b' x'} (WHILEIT I' b' f' x')"
+    \<open>\<And>x x'. \<lbrakk> (x,x')\<in>R; b x; b' x'; I x; I' x' \<rbrakk> \<Longrightarrow> f x \<le> \<Down>R (f' x')\<close>
+  shows \<open>WHILEIT I b f x \<le>\<Down>{(x, x'). (x, x') \<in> R \<and> I x \<and>  I' x' \<and> \<not>b' x'} (WHILEIT I' b' f' x')\<close>
   (is \<open>_ \<le> \<Down>?R' _\<close>)
     apply (subst (2)WHILEIT_add_post_condition)
     apply (refine_vcg WHILEIT_refine_genR[where R'=R and R = ?R'])
@@ -4317,7 +4317,7 @@ abbreviation isasat_GC_clauses_rel where
            arena_is_packed (get_clauses_wl_heur S) (get_clauses_wl T)}\<close>
 
 lemma ref_two_step'': \<open>R \<subseteq> R' \<Longrightarrow> A \<le> B \<Longrightarrow> \<Down> R A \<le>  \<Down> R' B\<close>
-  by (simp add: "weaken_\<Down>" ref_two_step')
+  by (simp add: \<open>weaken_\<Down>\<close> ref_two_step')
 
 lemma isasat_GC_clauses_prog_wl_cdcl_remap_st:
   assumes
@@ -4959,7 +4959,7 @@ definition update_all_phases :: \<open>twl_st_wl_heur \<Rightarrow> nat \<Righta
 
 
 definition restart_prog_wl_D_heur
-  :: "twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> bool \<Rightarrow> (twl_st_wl_heur \<times> nat) nres"
+  :: \<open>twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> bool \<Rightarrow> (twl_st_wl_heur \<times> nat) nres\<close>
 where
   \<open>restart_prog_wl_D_heur S n brk = do {
     b \<leftarrow> restart_required_heur S n;

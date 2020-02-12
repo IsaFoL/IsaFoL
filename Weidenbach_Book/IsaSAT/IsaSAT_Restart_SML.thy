@@ -3,7 +3,7 @@ theory IsaSAT_Restart_SML
 begin
 sepref_register length_avdom
 text \<open>Find a less hack-like solution\<close>
-setup \<open>map_theory_claset (fn ctxt => ctxt delSWrapper "split_all_tac")\<close>
+setup \<open>map_theory_claset (fn ctxt => ctxt delSWrapper \<open>split_all_tac\<close>)\<close>
 
 sepref_register clause_is_learned_heur
 

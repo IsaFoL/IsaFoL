@@ -158,7 +158,7 @@ proof -
     done
 qed
 
-definition update_aa64 :: "('a::{heap} array_list64) array \<Rightarrow> nat \<Rightarrow> uint64 \<Rightarrow> 'a \<Rightarrow> ('a array_list64) array Heap" where
+definition update_aa64 :: \<open>('a::{heap} array_list64) array \<Rightarrow> nat \<Rightarrow> uint64 \<Rightarrow> 'a \<Rightarrow> ('a array_list64) array Heap\<close> where
   \<open>update_aa64 a i j y = do {
       x \<leftarrow> Array.nth a i;
       a' \<leftarrow> arl64_set x j y;
@@ -268,7 +268,7 @@ lemma update_aa_hnr[sepref_fr_rules]:
      [\<lambda>(((l,i), j), x). i < length l \<and> j < length_ll l i]\<^sub>a (arrayO_assn (arl64_assn R))\<^sup>d *\<^sub>a nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a R\<^sup>k \<rightarrow> (arrayO_assn (arl64_assn R))\<close>
   by sepref_to_hoare (sep_auto simp: assms)
 
-definition last_aa64 :: "('a::heap array_list64) array \<Rightarrow> uint64 \<Rightarrow> 'a Heap" where
+definition last_aa64 :: \<open>('a::heap array_list64) array \<Rightarrow> uint64 \<Rightarrow> 'a Heap\<close> where
   \<open>last_aa64 xs i = do {
      x \<leftarrow> nth_u64_code xs i;
      arl64_last x
@@ -371,7 +371,7 @@ proof -
 qed
 
 
-definition swap_aa64 :: "('a::heap array_list64) array \<Rightarrow> nat \<Rightarrow> uint64 \<Rightarrow> uint64 \<Rightarrow> ('a array_list64) array Heap" where
+definition swap_aa64 :: \<open>('a::heap array_list64) array \<Rightarrow> nat \<Rightarrow> uint64 \<Rightarrow> uint64 \<Rightarrow> ('a array_list64) array Heap\<close> where
   \<open>swap_aa64 xs k i j = do {
     xi \<leftarrow> nth_aa64 xs k i;
     xj \<leftarrow> nth_aa64 xs k j;
@@ -505,7 +505,7 @@ lemma of_list_op_list_copy_arrayO[sepref_fr_rules]:
 
 sepref_definition
   arrayO_ara_empty_sz_code
-  is "RETURN o arrayO_ara_empty_sz"
+  is \<open>RETURN o arrayO_ara_empty_sz\<close>
   :: \<open>nat_assn\<^sup>k \<rightarrow>\<^sub>a arrayO_assn (arl64_assn (R::'a \<Rightarrow> 'b::{heap, default} \<Rightarrow> assn))\<close>
   unfolding arrayO_ara_empty_sz_def op_list_empty_def[symmetric]
   apply (rewrite at \<open>(#) \<hole>\<close> op_arl64_empty_def[symmetric])
@@ -695,7 +695,7 @@ proof -
     done
 qed
 
-definition update_aa64_u32 :: "('a::{heap} array_list64) array \<Rightarrow> uint32 \<Rightarrow> uint64 \<Rightarrow> 'a \<Rightarrow> ('a array_list64) array Heap" where
+definition update_aa64_u32 :: \<open>('a::{heap} array_list64) array \<Rightarrow> uint32 \<Rightarrow> uint64 \<Rightarrow> 'a \<Rightarrow> ('a array_list64) array Heap\<close> where
   \<open>update_aa64_u32 a i j y = update_aa64 a (nat_of_uint32 i) j y\<close>
 
 lemma update_aa_u64_u32_code[code]:
@@ -756,8 +756,8 @@ proof -
     done
 qed
 
-definition arl64_get_nat :: "'a::heap array_list64 \<Rightarrow> nat \<Rightarrow> 'a Heap" where
-  "arl64_get_nat \<equiv> \<lambda>(a,n) i. Array.nth a i"
+definition arl64_get_nat :: \<open>'a::heap array_list64 \<Rightarrow> nat \<Rightarrow> 'a Heap\<close> where
+  \<open>arl64_get_nat \<equiv> \<lambda>(a,n) i. Array.nth a i\<close>
 
 lemma arl_get_rule[sep_heap_rules]: "
   i<length l \<Longrightarrow>

@@ -5,10 +5,10 @@ theory IsaSAT_Restart_Heuristics_LLVM
 begin
 
 hide_fact (open) Sepref_Rules.frefI
-no_notation Sepref_Rules.fref ("[_]\<^sub>f\<^sub>d _ \<rightarrow> _" [0,60,60] 60)
-no_notation Sepref_Rules.freft ("_ \<rightarrow>\<^sub>f\<^sub>d _" [60,60] 60)
-no_notation Sepref_Rules.freftnd ("_ \<rightarrow>\<^sub>f _" [60,60] 60)
-no_notation Sepref_Rules.frefnd ("[_]\<^sub>f _ \<rightarrow> _" [0,60,60] 60)
+no_notation Sepref_Rules.fref (\<open>[_]\<^sub>f\<^sub>d _ \<rightarrow> _\<close> [0,60,60] 60)
+no_notation Sepref_Rules.freft (\<open>_ \<rightarrow>\<^sub>f\<^sub>d _\<close> [60,60] 60)
+no_notation Sepref_Rules.freftnd (\<open>_ \<rightarrow>\<^sub>f _\<close> [60,60] 60)
+no_notation Sepref_Rules.frefnd (\<open>[_]\<^sub>f _ \<rightarrow> _\<close> [0,60,60] 60)
 
 sepref_def FLAG_restart_impl
   is \<open>uncurry0 (RETURN FLAG_restart)\<close>
@@ -88,7 +88,7 @@ sepref_def incr_restart_phase_end_impl
   :: \<open>heuristic_assn\<^sup>d \<rightarrow>\<^sub>a heuristic_assn\<close>
   supply[[goals_limit=1]]
   unfolding heuristic_assn_def incr_restart_phase_end_alt_def
-  apply (annot_snat_const "TYPE(64)")
+  apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
 
@@ -128,11 +128,11 @@ sepref_def find_local_restart_target_level_fast_code
   supply [[goals_limit=1]] length_rev[simp del]
   unfolding find_local_restart_target_level_int_def find_local_restart_target_level_int_inv_def
     length_uint32_nat_def vmtf_remove_assn_def trail_pol_fast_assn_def
-  apply (annot_unat_const "TYPE(32)")
-   apply (rewrite at "stamp (\<hole>)" annot_index_of_atm)
-   apply (rewrite in "(_ ! _)" annot_unat_snat_upcast[where 'l=64])
-   apply (rewrite in "(_ ! \<hole>)" annot_unat_snat_upcast[where 'l=64])
-   apply (rewrite in "(\<hole> < length _)" annot_unat_snat_upcast[where 'l=64])
+  apply (annot_unat_const \<open>TYPE(32)\<close>)
+   apply (rewrite at \<open>stamp (\<hole>)\<close> annot_index_of_atm)
+   apply (rewrite in \<open>(_ ! _)\<close> annot_unat_snat_upcast[where 'l=64])
+   apply (rewrite in \<open>(_ ! \<hole>)\<close> annot_unat_snat_upcast[where 'l=64])
+   apply (rewrite in \<open>(\<hole> < length _)\<close> annot_unat_snat_upcast[where 'l=64])
   by sepref
 
 
@@ -215,7 +215,7 @@ sepref_def lbd_sort_clauses_impl
   :: \<open>arena_fast_assn\<^sup>k *\<^sub>a vdom_fast_assn\<^sup>d \<rightarrow>\<^sub>a vdom_fast_assn\<close>
   supply[[goals_limit=1]]
   unfolding lbd_sort_clauses_def
-  apply (annot_snat_const "TYPE(64)")
+  apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
 lemmas [sepref_fr_rules] =
@@ -229,7 +229,7 @@ sepref_def remove_deleted_clauses_from_avdom_fast_code
   supply [[goals_limit=1]]
   unfolding isa_remove_deleted_clauses_from_avdom_def
     convert_swap gen_swap if_conn(4)
-  apply (annot_snat_const "TYPE(64)")
+  apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
 
@@ -253,7 +253,7 @@ sepref_def uint32_nat_assn_impl
   is \<open>uncurry0 (RETURN max_restart_decision_lvl)\<close>
   :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
   unfolding max_restart_decision_lvl_def
-  apply (annot_unat_const "TYPE(32)")
+  apply (annot_unat_const \<open>TYPE(32)\<close>)
   by sepref
 
 sepref_def get_reductions_count_fast_code
@@ -266,7 +266,7 @@ sepref_def get_reductions_count_fast_code
 sepref_register get_reductions_count
 
 lemma of_nat_snat:
-  "(id,of_nat) \<in> snat_rel' TYPE('a::len2) \<rightarrow> word_rel"
+  \<open>(id,of_nat) \<in> snat_rel' TYPE('a::len2) \<rightarrow> word_rel\<close>
   by (auto simp: snat_rel_def snat.rel_def in_br_conv snat_eq_unat)
 
 sepref_def GC_required_heur_fast_code
@@ -274,7 +274,7 @@ sepref_def GC_required_heur_fast_code
   :: \<open>isasat_bounded_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
   supply [[goals_limit=1]] of_nat_snat[sepref_import_param]
   unfolding GC_required_heur_def
-  apply (annot_snat_const "TYPE(64)")
+  apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
 sepref_register ema_get_value get_fast_ema_heur get_slow_ema_heur
@@ -285,7 +285,7 @@ sepref_def restart_required_heur_fast_code
   unfolding restart_required_heur_def
   apply (rewrite in \<open>\<hole> < _\<close> unat_const_fold(3)[where 'a=32])
   apply (rewrite in \<open>(_ >> 32) < \<hole>\<close> annot_unat_unat_upcast[where 'l=64])
-  apply (annot_snat_const "TYPE(64)")
+  apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
 sepref_register isa_trail_nth isasat_trail_nth_st
@@ -315,8 +315,8 @@ sepref_def isasat_replace_annot_in_trail_code
   supply [[goals_limit=1]]
   unfolding isasat_replace_annot_in_trail_def isasat_bounded_assn_def
     trail_pol_fast_assn_def
-  apply (annot_snat_const "TYPE(64)")
-  apply (rewrite at "list_update _ _ _" annot_index_of_atm)
+  apply (annot_snat_const \<open>TYPE(64)\<close>)
+  apply (rewrite at \<open>list_update _ _ _\<close> annot_index_of_atm)
   by sepref
 
 sepref_register mark_garbage_heur2
@@ -327,7 +327,7 @@ sepref_def mark_garbage_heur2_code
   supply [[goals_limit=1]]
   unfolding mark_garbage_heur2_def isasat_bounded_assn_def
     fold_tuple_optimizations
-  apply (annot_unat_const "TYPE(64)")
+  apply (annot_unat_const \<open>TYPE(64)\<close>)
   by sepref
 
 
@@ -341,7 +341,7 @@ sepref_def remove_one_annot_true_clause_one_imp_wl_D_heur_code
     isasat_trail_nth_st_def[symmetric] get_the_propagation_reason_pol_st_def[symmetric]
     fold_tuple_optimizations
   apply (rewrite in \<open>_ = \<hole>\<close> snat_const_fold(1)[where 'a=64])
-  apply (annot_snat_const "TYPE(64)")
+  apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 sepref_register mark_clauses_as_unused_wl_D_heur
 
@@ -361,8 +361,8 @@ sepref_def remove_one_annot_true_clause_imp_wl_D_heur_code
   supply [[goals_limit=1]]
   unfolding remove_one_annot_true_clause_imp_wl_D_heur_def
     isasat_length_trail_st_def[symmetric] get_pos_of_level_in_trail_imp_st_def[symmetric]
-  apply (rewrite at "(\<hole>, _)" annot_unat_snat_upcast[where 'l=64])
-  apply (annot_unat_const "TYPE(32)")
+  apply (rewrite at \<open>(\<hole>, _)\<close> annot_unat_snat_upcast[where 'l=64])
+  apply (annot_unat_const \<open>TYPE(32)\<close>)
   by sepref
 
 
@@ -419,7 +419,7 @@ sepref_def isasat_GC_clauses_prog_copy_wl_entry_code
   supply [[goals_limit=1]] if_splits[split] length_ll_def[simp]
   unfolding isasat_GC_clauses_prog_copy_wl_entry_alt_def nth_rll_def[symmetric]
     length_ll_def[symmetric] if_conn(4)
-  apply (annot_snat_const "TYPE(64)")
+  apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
 sepref_register isasat_GC_clauses_prog_copy_wl_entry
@@ -436,7 +436,7 @@ sepref_def isasat_GC_clauses_prog_single_wl_code
   supply [[goals_limit=1]]
   unfolding isasat_GC_clauses_prog_single_wl_def
     shorten_taken_op_list_list_take
-  apply (annot_snat_const "TYPE(64)")
+  apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
 
@@ -471,7 +471,7 @@ sepref_def isasat_GC_clauses_prog_wl_code
   unfolding isasat_GC_clauses_prog_wl_def isasat_bounded_assn_def
      isasat_GC_clauses_prog_wl2'_def[symmetric] vmtf_remove_assn_def
     atom.fold_option fold_tuple_optimizations
-  apply (annot_snat_const "TYPE(64)")
+  apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
 lemma rewatch_heur_st_pre_alt_def:
@@ -519,8 +519,8 @@ sepref_def number_clss_to_keep_fast_code
   supply [[goals_limit = 1]]
   unfolding number_clss_to_keep_impl_def isasat_bounded_assn_def
     fold_tuple_optimizations
-  apply (rewrite at "If _ _ \<hole>" annot_unat_snat_conv)
-  apply (rewrite at "If (\<hole> \<le>_)" annot_snat_unat_conv)
+  apply (rewrite at \<open>If _ _ \<hole>\<close> annot_unat_snat_conv)
+  apply (rewrite at \<open>If (\<hole> \<le>_)\<close> annot_snat_unat_conv)
   by sepref
 
 lemma number_clss_to_keep_impl_number_clss_to_keep:
@@ -542,7 +542,7 @@ sepref_def mark_clauses_as_unused_wl_D_heur_fast_code
   unfolding mark_clauses_as_unused_wl_D_heur_def
     mark_unused_st_heur_def[symmetric]
     access_vdom_at_def[symmetric] length_avdom_def[symmetric]
-  apply (annot_snat_const "TYPE(64)")
+  apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
 experiment

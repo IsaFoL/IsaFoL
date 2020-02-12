@@ -401,7 +401,7 @@ proof -
 qed
 
 definition isa_empty_conflict_and_extract_clause_heur ::
-  "trail_pol \<Rightarrow> lookup_clause_rel \<Rightarrow> nat literal list \<Rightarrow> (_ \<times> nat literal list \<times> nat) nres"
+  \<open>trail_pol \<Rightarrow> lookup_clause_rel \<Rightarrow> nat literal list \<Rightarrow> (_ \<times> nat literal list \<times> nat) nres\<close>
   where
     \<open>isa_empty_conflict_and_extract_clause_heur M D outl = do {
      let C = replicate (length outl) (outl!0);

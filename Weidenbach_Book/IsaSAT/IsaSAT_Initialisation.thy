@@ -59,7 +59,7 @@ lemma atoms_hash_int_empty_atoms_hash_empty:
   by (intro frefI nres_relI)
     (use Max_less_iff in \<open>auto simp: atoms_hash_rel_def atoms_hash_int_empty_def atoms_hash_empty_def
       in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff Ball_def
-      dest: spec[of _ "Pos _"]\<close>)
+      dest: spec[of _ \<open>Pos _\<close>]\<close>)
 
 definition (in -) distinct_atms_empty where
   \<open>distinct_atms_empty _ = {}\<close>
@@ -1068,7 +1068,7 @@ definition init_dt_wl_heur_b :: \<open>nat clause_l list \<Rightarrow> twl_st_wl
 
 subsection \<open>Extractions of the atoms in the state\<close>
 
-definition init_valid_rep :: "nat list \<Rightarrow> nat set \<Rightarrow> bool" where
+definition init_valid_rep :: \<open>nat list \<Rightarrow> nat set \<Rightarrow> bool\<close> where
   \<open>init_valid_rep xs l \<longleftrightarrow>
       (\<forall>L\<in>l. L < length xs) \<and>
       (\<forall>L \<in> l.  (xs ! L) mod 2 = 1) \<and>
@@ -1897,7 +1897,7 @@ lemma finalise_init_finalise_init:
   subgoal for x y
     using finalise_init_finalise_init_full[of \<open>snd y\<close> \<open>fst x\<close> \<open>snd x\<close> \<open>fst y\<close>]
     by (cases x; cases y)
-      (auto intro: "weaken_\<Down>'")
+      (auto intro: \<open>weaken_\<Down>'\<close>)
   done
 
 definition (in -) init_rll :: \<open>nat \<Rightarrow> (nat, 'v clause_l \<times> bool) fmap\<close> where
@@ -2003,7 +2003,7 @@ proof -
 qed
 
 (*TODO Move *)
-definition [to_relAPP]: "mset_rel A \<equiv> p2rel (rel_mset (rel2p A))"
+definition [to_relAPP]: \<open>mset_rel A \<equiv> p2rel (rel_mset (rel2p A))\<close>
 lemma in_mset_rel_eq_f_iff:
   \<open>(a, b) \<in> \<langle>{(c, a). a = f c}\<rangle>mset_rel \<longleftrightarrow> b = f `# a\<close>
   using ex_mset[of a]

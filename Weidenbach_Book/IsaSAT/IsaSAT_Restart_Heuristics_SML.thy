@@ -627,10 +627,10 @@ context
   notes [intro!] = hfrefI hn_refineI[THEN hn_refine_preI]
   notes [simp] = pure_def hn_ctxt_def invalid_assn_def
 begin
-definition arl64_set_nat :: "'a::heap array_list64 \<Rightarrow> nat \<Rightarrow> 'a \<Rightarrow> 'a array_list64 Heap" where
-  "arl64_set_nat \<equiv> \<lambda>(a,n) i x. do { a \<leftarrow> Array.upd i x a; return (a,n)}"
+definition arl64_set_nat :: \<open>'a::heap array_list64 \<Rightarrow> nat \<Rightarrow> 'a \<Rightarrow> 'a array_list64 Heap\<close> where
+  \<open>arl64_set_nat \<equiv> \<lambda>(a,n) i x. do { a \<leftarrow> Array.upd i x a; return (a,n)}\<close>
 
-  lemma arl64_set_hnr_aux: "(uncurry2 arl64_set_nat,uncurry2 (RETURN ooo op_list_set)) \<in> [\<lambda>((l,i),_). i<length l]\<^sub>a (is_array_list64\<^sup>d *\<^sub>a nat_assn\<^sup>k *\<^sub>a id_assn\<^sup>k) \<rightarrow> is_array_list64"
+  lemma arl64_set_hnr_aux: \<open>(uncurry2 arl64_set_nat,uncurry2 (RETURN ooo op_list_set)) \<in> [\<lambda>((l,i),_). i<length l]\<^sub>a (is_array_list64\<^sup>d *\<^sub>a nat_assn\<^sup>k *\<^sub>a id_assn\<^sup>k) \<rightarrow> is_array_list64\<close>
     by (sep_auto simp: arl64_set_nat_def is_array_list64_def)
   sepref_decl_impl arl64_set_nat: arl64_set_hnr_aux .
 
@@ -890,7 +890,7 @@ lemma isa_arena_length_fast_code2_refine[sepref_fr_rules]:
 lemma rewatch_heur_st_pre_alt_def:
   \<open>rewatch_heur_st_pre S \<longleftrightarrow> (\<forall>i \<in> set (get_vdom S). i \<le> uint64_max)\<close>
   by (auto simp: rewatch_heur_st_pre_def all_set_conv_nth)
-find_theorems "\<forall>x < length _. _" "_!_" "\<forall>_ \<in> set _. _"
+find_theorems \<open>\<forall>x < length _. _\<close> \<open>_!_\<close> \<open>\<forall>_ \<in> set _. _\<close>
 sepref_definition rewatch_heur_st_code
   is \<open>rewatch_heur_st\<close>
   :: \<open>[\<lambda>S. rewatch_heur_st_pre S \<and> length (get_clauses_wl_heur S) \<le> uint64_max]\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>

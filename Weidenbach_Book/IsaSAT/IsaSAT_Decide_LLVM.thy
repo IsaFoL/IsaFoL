@@ -29,24 +29,24 @@ sepref_register find_unassigned_lit_wl_D_heur decide_lit_wl_heur
 sepref_register isa_vmtf_find_next_undef
 
 sepref_def isa_vmtf_find_next_undef_code is
-  "uncurry isa_vmtf_find_next_undef" :: "vmtf_remove_assn\<^sup>k *\<^sub>a trail_pol_fast_assn\<^sup>k \<rightarrow>\<^sub>a atom.option_assn"
+  \<open>uncurry isa_vmtf_find_next_undef\<close> :: \<open>vmtf_remove_assn\<^sup>k *\<^sub>a trail_pol_fast_assn\<^sup>k \<rightarrow>\<^sub>a atom.option_assn\<close>
   unfolding isa_vmtf_find_next_undef_def vmtf_remove_assn_def
   unfolding atom.fold_option
-  apply (rewrite in "WHILEIT _ \<hole>" short_circuit_conv)
+  apply (rewrite in \<open>WHILEIT _ \<hole>\<close> short_circuit_conv)
   supply [[goals_limit = 1]]
   apply annot_all_atm_idxs
   by sepref
 
 sepref_register update_next_search
 sepref_def update_next_search_code is
-  "uncurry (RETURN oo update_next_search)" :: "atom.option_assn\<^sup>k *\<^sub>a vmtf_remove_assn\<^sup>d \<rightarrow>\<^sub>a vmtf_remove_assn"
+  \<open>uncurry (RETURN oo update_next_search)\<close> :: \<open>atom.option_assn\<^sup>k *\<^sub>a vmtf_remove_assn\<^sup>d \<rightarrow>\<^sub>a vmtf_remove_assn\<close>
   unfolding update_next_search_def vmtf_remove_assn_def
   by sepref
 
 sepref_register isa_vmtf_find_next_undef_upd  mop_get_saved_phase_heur
 sepref_def isa_vmtf_find_next_undef_upd_code is
-  "uncurry isa_vmtf_find_next_undef_upd"
-    :: "trail_pol_fast_assn\<^sup>d *\<^sub>a vmtf_remove_assn\<^sup>d \<rightarrow>\<^sub>a (trail_pol_fast_assn \<times>\<^sub>a vmtf_remove_assn) \<times>\<^sub>a atom.option_assn"
+  \<open>uncurry isa_vmtf_find_next_undef_upd\<close>
+    :: \<open>trail_pol_fast_assn\<^sup>d *\<^sub>a vmtf_remove_assn\<^sup>d \<rightarrow>\<^sub>a (trail_pol_fast_assn \<times>\<^sub>a vmtf_remove_assn) \<times>\<^sub>a atom.option_assn\<close>
   unfolding isa_vmtf_find_next_undef_upd_def
   by sepref
 

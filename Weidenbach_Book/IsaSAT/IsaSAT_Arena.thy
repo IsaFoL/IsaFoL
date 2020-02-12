@@ -290,7 +290,7 @@ definition arena_pos where
 definition arena_lit where
   \<open>arena_lit arena i = xarena_lit (arena!i)\<close>
 
-definition "op_incr_mod32 n \<equiv> (n+1 :: nat) mod 2^32"
+definition \<open>op_incr_mod32 n \<equiv> (n+1 :: nat) mod 2^32\<close>
 
 definition arena_incr_act where
   \<open>arena_incr_act arena i = arena[i - ACTIVITY_SHIFT := AActivity (op_incr_mod32 (xarena_act (arena!(i - ACTIVITY_SHIFT))))]\<close>
@@ -1375,7 +1375,7 @@ lemma valid_arena_append_clause:
 
 subsubsection \<open>Refinement Relation\<close>
 
-definition status_rel:: "(nat \<times> clause_status) set" where
+definition status_rel:: \<open>(nat \<times> clause_status) set\<close> where
   \<open>status_rel = {(0, IRRED), (1, LEARNED), (3, DELETED)}\<close>
 
 definition bitfield_rel where

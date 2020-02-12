@@ -1,8 +1,8 @@
 theory IsaSAT_Arena_Sorting_LLVM
   imports IsaSAT_Sorting_LLVM
 begin
-definition idx_cdom :: "arena \<Rightarrow> nat set" where
- "idx_cdom arena \<equiv> {i. valid_sort_clause_score_pre_at arena i}"
+definition idx_cdom :: \<open>arena \<Rightarrow> nat set\<close> where
+ \<open>idx_cdom arena \<equiv> {i. valid_sort_clause_score_pre_at arena i}\<close>
 
 definition mop_clause_score_less where
   \<open>mop_clause_score_less arena i j = do {
@@ -19,7 +19,7 @@ sepref_def (in -) clause_score_extract_code
       arena_fast_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> uint32_nat_assn \<times>\<^sub>a uint32_nat_assn\<close>
   supply [[goals_limit = 1]]
   unfolding clause_score_extract_def valid_sort_clause_score_pre_at_def
-  apply (annot_unat_const "TYPE(32)")
+  apply (annot_unat_const \<open>TYPE(32)\<close>)
   by sepref
 
 sepref_def (in -) clause_score_ordering_code
@@ -38,8 +38,8 @@ sepref_def mop_clause_score_less_impl
 
 
 interpretation LBD: weak_ordering_on_lt where
-  C = "idx_cdom vs" and
-  less = "clause_score_less vs"
+  C = \<open>idx_cdom vs\<close> and
+  less = \<open>clause_score_less vs\<close>
   by unfold_locales
    (auto simp: clause_score_less_def clause_score_extract_def
       clause_score_ordering_def split: if_splits)
@@ -51,12 +51,12 @@ interpretation LBD: parameterized_weak_ordering idx_cdom clause_score_less
      idx_cdom_def clause_score_less_def)
 
 global_interpretation LBD: parameterized_sort_impl_context
-  "woarray_assn snat_assn" "eoarray_assn snat_assn" snat_assn
+  \<open>woarray_assn snat_assn\<close> \<open>eoarray_assn snat_assn\<close> snat_assn
   return return
   eo_extract_impl
   array_upd
   idx_cdom clause_score_less mop_clause_score_less mop_clause_score_less_impl
-  "arena_fast_assn"
+  \<open>arena_fast_assn\<close>
   defines
           LBD_is_guarded_insert_impl = LBD.is_guarded_param_insert_impl
       and LBD_is_unguarded_insert_impl = LBD.is_unguarded_param_insert_impl
@@ -102,12 +102,12 @@ global_interpretation
 
 
 global_interpretation LBD_it: parameterized_sort_impl_context
-  vdom_fast_assn "LBD_it.eo_assn" sint64_nat_assn
+  vdom_fast_assn \<open>LBD_it.eo_assn\<close> sint64_nat_assn
   return return
   LBD_it_eo_extract_impl
   arl_upd
   idx_cdom clause_score_less mop_clause_score_less mop_clause_score_less_impl
-  "arena_fast_assn"
+  \<open>arena_fast_assn\<close>
   defines
           LBD_it_is_guarded_insert_impl = LBD_it.is_guarded_param_insert_impl
       and LBD_it_is_unguarded_insert_impl = LBD_it.is_unguarded_param_insert_impl
@@ -149,7 +149,7 @@ lemmas [llvm_inline] = LBD_it.eo_extract_impl_def[THEN meta_fun_cong, THEN meta_
 
 print_named_simpset llvm_inline
 export_llvm
-  "LBD_heapsort_impl :: _ \<Rightarrow> _ \<Rightarrow> _"
-  "LBD_introsort_impl :: _ \<Rightarrow> _ \<Rightarrow> _"
+  \<open>LBD_heapsort_impl :: _ \<Rightarrow> _ \<Rightarrow> _\<close>
+  \<open>LBD_introsort_impl :: _ \<Rightarrow> _ \<Rightarrow> _\<close>
 
 end

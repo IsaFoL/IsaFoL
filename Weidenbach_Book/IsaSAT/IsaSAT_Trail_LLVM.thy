@@ -3,32 +3,32 @@ imports IsaSAT_Literals_LLVM IsaSAT_Trail
 begin
 
 
-type_synonym tri_bool_assn = "8 word"
+type_synonym tri_bool_assn = \<open>8 word\<close>
 
-definition "tri_bool_rel_aux \<equiv> { (0::nat,None), (2,Some True), (3,Some False) }"
-definition "tri_bool_rel \<equiv> unat_rel' TYPE(8) O tri_bool_rel_aux"
-abbreviation "tri_bool_assn \<equiv> pure tri_bool_rel"
+definition \<open>tri_bool_rel_aux \<equiv> { (0::nat,None), (2,Some True), (3,Some False) }\<close>
+definition \<open>tri_bool_rel \<equiv> unat_rel' TYPE(8) O tri_bool_rel_aux\<close>
+abbreviation \<open>tri_bool_assn \<equiv> pure tri_bool_rel\<close>
 lemmas [fcomp_norm_unfold] = tri_bool_rel_def[symmetric]
 
-lemma tri_bool_UNSET_refine_aux: "(0,UNSET)\<in>tri_bool_rel_aux"
-  and tri_bool_SET_TRUE_refine_aux: "(2,SET_TRUE)\<in>tri_bool_rel_aux"
-  and tri_bool_SET_FALSE_refine_aux: "(3,SET_FALSE)\<in>tri_bool_rel_aux"
-  and tri_bool_eq_refine_aux: "((=),tri_bool_eq) \<in> tri_bool_rel_aux\<rightarrow>tri_bool_rel_aux\<rightarrow>bool_rel"
+lemma tri_bool_UNSET_refine_aux: \<open>(0,UNSET)\<in>tri_bool_rel_aux\<close>
+  and tri_bool_SET_TRUE_refine_aux: \<open>(2,SET_TRUE)\<in>tri_bool_rel_aux\<close>
+  and tri_bool_SET_FALSE_refine_aux: \<open>(3,SET_FALSE)\<in>tri_bool_rel_aux\<close>
+  and tri_bool_eq_refine_aux: \<open>((=),tri_bool_eq) \<in> tri_bool_rel_aux\<rightarrow>tri_bool_rel_aux\<rightarrow>bool_rel\<close>
   by (auto simp: tri_bool_rel_aux_def tri_bool_eq_def)
 
-sepref_def tri_bool_UNSET_impl is [] "uncurry0 (RETURN 0)" :: "unit_assn\<^sup>k \<rightarrow>\<^sub>a unat_assn' TYPE(8)"
-  apply (annot_unat_const "TYPE(8)")
+sepref_def tri_bool_UNSET_impl is [] \<open>uncurry0 (RETURN 0)\<close> :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a unat_assn' TYPE(8)\<close>
+  apply (annot_unat_const \<open>TYPE(8)\<close>)
   by sepref
 
-sepref_def tri_bool_SET_TRUE_impl is [] "uncurry0 (RETURN 2)" :: "unit_assn\<^sup>k \<rightarrow>\<^sub>a unat_assn' TYPE(8)"
-  apply (annot_unat_const "TYPE(8)")
+sepref_def tri_bool_SET_TRUE_impl is [] \<open>uncurry0 (RETURN 2)\<close> :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a unat_assn' TYPE(8)\<close>
+  apply (annot_unat_const \<open>TYPE(8)\<close>)
   by sepref
 
-sepref_def tri_bool_SET_FALSE_impl is [] "uncurry0 (RETURN 3)" :: "unit_assn\<^sup>k \<rightarrow>\<^sub>a unat_assn' TYPE(8)"
-  apply (annot_unat_const "TYPE(8)")
+sepref_def tri_bool_SET_FALSE_impl is [] \<open>uncurry0 (RETURN 3)\<close> :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a unat_assn' TYPE(8)\<close>
+  apply (annot_unat_const \<open>TYPE(8)\<close>)
   by sepref
 
-sepref_def tri_bool_eq_impl [llvm_inline] is [] "uncurry (RETURN oo (=))" :: "(unat_assn' TYPE(8))\<^sup>k *\<^sub>a (unat_assn' TYPE(8))\<^sup>k \<rightarrow>\<^sub>a bool1_assn"
+sepref_def tri_bool_eq_impl [llvm_inline] is [] \<open>uncurry (RETURN oo (=))\<close> :: \<open>(unat_assn' TYPE(8))\<^sup>k *\<^sub>a (unat_assn' TYPE(8))\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
   by sepref
 
 lemmas [sepref_fr_rules] =
@@ -42,9 +42,9 @@ type_synonym trail_pol_fast_assn =
      64 word larray64 \<times> 32 word \<times>
      32 word array_list64\<close>
 
-sepref_def DECISION_REASON_impl is "uncurry0 (RETURN DECISION_REASON)"
-  :: "unit_assn\<^sup>k \<rightarrow>\<^sub>a sint64_nat_assn"
-  unfolding DECISION_REASON_def apply (annot_snat_const "TYPE(64)") by sepref
+sepref_def DECISION_REASON_impl is \<open>uncurry0 (RETURN DECISION_REASON)\<close>
+  :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a sint64_nat_assn\<close>
+  unfolding DECISION_REASON_def apply (annot_snat_const \<open>TYPE(64)\<close>) by sepref
 
 
 definition trail_pol_fast_assn :: \<open>trail_pol \<Rightarrow> trail_pol_fast_assn \<Rightarrow> assn\<close> where
@@ -60,7 +60,7 @@ paragraph \<open>Code generation\<close>
 subparagraph \<open>Conversion between incomplete and complete mode\<close>
 
 
-sepref_def count_decided_pol_impl is "RETURN o count_decided_pol" :: "trail_pol_fast_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn"
+sepref_def count_decided_pol_impl is \<open>RETURN o count_decided_pol\<close> :: \<open>trail_pol_fast_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
   unfolding trail_pol_fast_assn_def count_decided_pol_def
   by sepref
 
@@ -72,8 +72,8 @@ sepref_def get_level_atm_fast_code
   unfolding get_level_atm_pol_def nat_shiftr_div2[symmetric]
      get_level_atm_pol_pre_def trail_pol_fast_assn_def
   supply [[eta_contract = false, show_abbrevs=false]]
-  apply (rewrite at "nth _" eta_expand)
-  apply (rewrite at "nth _ _" annot_index_of_atm)
+  apply (rewrite at \<open>nth _\<close> eta_expand)
+  apply (rewrite at \<open>nth _ _\<close> annot_index_of_atm)
   by sepref
 
 
@@ -147,7 +147,7 @@ sepref_def tl_trail_tr_fast_code
   supply if_splits[split] option.splits[split]
   unfolding tl_trailt_tr_def UNSET_def[symmetric] tl_trailt_tr_pre_def
   unfolding trail_pol_fast_assn_def
-  apply (annot_unat_const "TYPE(32)")
+  apply (annot_unat_const \<open>TYPE(32)\<close>)
   supply [[goals_limit = 1]]
   unfolding fold_tuple_optimizations
   by sepref
@@ -160,8 +160,8 @@ sepref_def tl_trail_proped_tr_fast_code
   supply if_splits[split] option.splits[split]
   unfolding tl_trail_propedt_tr_def UNSET_def[symmetric]
     tl_trail_propedt_tr_pre_def
-  unfolding (*ins_idx_upcast64[where i="atm_of _"]*) trail_pol_fast_assn_def
-  apply (annot_unat_const "TYPE(32)")
+  unfolding (*ins_idx_upcast64[where i=\<open>atm_of _\<close>]*) trail_pol_fast_assn_def
+  apply (annot_unat_const \<open>TYPE(32)\<close>)
   supply [[goals_limit = 1]]
   by sepref
 
@@ -180,8 +180,8 @@ sepref_def cons_trail_Decided_tr_fast_code
   unfolding cons_trail_Decided_tr_def cons_trail_Decided_tr_def trail_pol_fast_assn_def
     SET_TRUE_def[symmetric] SET_FALSE_def[symmetric] cons_trail_Decided_tr_pre_def
   (*unfolding annot_index_atm_of*)
-  apply (annot_unat_const "TYPE(32)")
-  apply (rewrite at "_@[\<hole>]" in "(_,\<hole>)" annot_snat_unat_downcast[where 'l="32"])
+  apply (annot_unat_const \<open>TYPE(32)\<close>)
+  apply (rewrite at \<open>_@[\<hole>]\<close> in \<open>(_,\<hole>)\<close> annot_snat_unat_downcast[where 'l=\<open>32\<close>])
   supply [[goals_limit = 1]]
   unfolding fold_tuple_optimizations
   by sepref
@@ -251,7 +251,7 @@ sepref_def tl_trail_tr_no_CS_fast_code
   supply if_splits[split] option.splits[split]
   unfolding tl_trailt_tr_no_CS_def UNSET_def[symmetric] tl_trailt_tr_no_CS_pre_def
   unfolding (*annot_index_atm_of*) trail_pol_fast_assn_def
-  apply (annot_unat_const "TYPE(32)")
+  apply (annot_unat_const \<open>TYPE(32)\<close>)
   supply [[goals_limit = 1]]
   by sepref
 
@@ -261,7 +261,7 @@ sepref_def trail_conv_back_imp_fast_code
   :: \<open>uint32_nat_assn\<^sup>k *\<^sub>a trail_pol_fast_assn\<^sup>d \<rightarrow>\<^sub>a trail_pol_fast_assn\<close>
   supply [[goals_limit=1]]
   unfolding trail_conv_back_imp_def trail_pol_fast_assn_def
-  apply (rewrite at "take \<hole>" annot_unat_snat_upcast[where 'l=64])
+  apply (rewrite at \<open>take \<hole>\<close> annot_unat_snat_upcast[where 'l=64])
   by sepref
 
 

@@ -9,7 +9,7 @@ sepref_def MINIMUM_DELETION_LBD_impl
   is \<open>uncurry0 (RETURN MINIMUM_DELETION_LBD)\<close>
   :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
   unfolding MINIMUM_DELETION_LBD_def
-  apply (annot_unat_const "TYPE(32)")
+  apply (annot_unat_const \<open>TYPE(32)\<close>)
   by sepref
 
 
@@ -33,7 +33,7 @@ sepref_def mark_to_delete_clauses_wl_D_heur_fast_impl
     mop_arena_length_st_def[symmetric]
   supply [[goals_limit = 1]] of_nat_snat[sepref_import_param]
     length_avdom_def[symmetric, simp] access_vdom_at_def[simp]
-  apply (annot_snat_const "TYPE(64)")
+  apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
 sepref_register cdcl_twl_full_restart_wl_prog_heur
@@ -58,7 +58,7 @@ sepref_def cdcl_twl_full_restart_wl_D_GC_heur_prog_fast_code
   :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   supply [[goals_limit = 1]]
   unfolding cdcl_twl_full_restart_wl_D_GC_heur_prog_def
-  apply (annot_unat_const "TYPE(32)")
+  apply (annot_unat_const \<open>TYPE(32)\<close>)
   by sepref
 
 sepref_register restart_required_heur cdcl_twl_restart_wl_heur
@@ -69,7 +69,7 @@ sepref_def restart_prog_wl_D_heur_fast_code
       isasat_bounded_assn\<^sup>d *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a bool1_assn\<^sup>k \<rightarrow> isasat_bounded_assn \<times>\<^sub>a uint64_nat_assn\<close>
   unfolding restart_prog_wl_D_heur_def
   supply [[goals_limit = 1]]
-  apply (annot_unat_const "TYPE(64)")
+  apply (annot_unat_const \<open>TYPE(64)\<close>)
   by sepref
 
 definition isasat_fast_bound where
@@ -88,7 +88,7 @@ sepref_def isasat_fast_code
   unfolding isasat_fast_alt_def isasat_fast_bound_def[symmetric]
   isasat_fast_bound_alt_def
   supply [[goals_limit = 1]]
-  apply (annot_snat_const "TYPE(64)")
+  apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
 sepref_register cdcl_twl_stgy_restart_prog_bounded_wl_heur
@@ -97,7 +97,7 @@ sepref_def cdcl_twl_stgy_restart_prog_wl_heur_fast_code
   :: \<open>[\<lambda>S. isasat_fast S]\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> bool1_assn \<times>\<^sub>a isasat_bounded_assn\<close>
   unfolding cdcl_twl_stgy_restart_prog_bounded_wl_heur_def
   supply [[goals_limit = 1]] isasat_fast_def[simp]
-  apply (annot_unat_const "TYPE(64)")
+  apply (annot_unat_const \<open>TYPE(64)\<close>)
   by sepref
 
 

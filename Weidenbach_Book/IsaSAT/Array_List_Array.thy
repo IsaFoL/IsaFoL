@@ -179,14 +179,14 @@ proof -
     done
 qed
 
-definition update_raa :: "('a::{heap,default}) arrayO_raa \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a \<Rightarrow> 'a arrayO_raa Heap" where
+definition update_raa :: \<open>('a::{heap,default}) arrayO_raa \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a \<Rightarrow> 'a arrayO_raa Heap\<close> where
   \<open>update_raa a i j y = do {
       x \<leftarrow> arl_get a i;
       a' \<leftarrow> Array.upd j y x;
       arl_set a i a'
     }\<close> \<comment> \<open>is the Array.upd really needed?\<close>
 
-definition update_rll :: "'a list_rll \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a \<Rightarrow> 'a list list" where
+definition update_rll :: \<open>'a list_rll \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a \<Rightarrow> 'a list list\<close> where
   \<open>update_rll xs i j y = xs[i:= (xs ! i)[j := y]]\<close>
 
 declare nth_rule[sep_heap_rules del]
@@ -239,7 +239,7 @@ lemma update_raa_hnr[sepref_fr_rules]:
      [\<lambda>(((l,i), j), x). i < length l \<and> j < length_rll l i]\<^sub>a (arlO_assn (array_assn R))\<^sup>d *\<^sub>a nat_assn\<^sup>k *\<^sub>a nat_assn\<^sup>k *\<^sub>a R\<^sup>k \<rightarrow> (arlO_assn (array_assn R))\<close>
   by sepref_to_hoare (sep_auto simp: assms)
 
- definition swap_aa :: "('a::{heap,default}) arrayO_raa \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a arrayO_raa Heap" where
+ definition swap_aa :: \<open>('a::{heap,default}) arrayO_raa \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a arrayO_raa Heap\<close> where
   \<open>swap_aa xs k i j = do {
     xi \<leftarrow> nth_raa xs k i;
     xj \<leftarrow> nth_raa xs k j;
@@ -455,7 +455,7 @@ lemma arrayO_raa_append_op_list_append[sepref_fr_rules]:
 definition array_of_arl :: \<open>'a list \<Rightarrow> 'a list\<close> where
   \<open>array_of_arl xs = xs\<close>
 
-definition array_of_arl_raa :: "'a::heap array_list \<Rightarrow> 'a array Heap" where
+definition array_of_arl_raa :: \<open>'a::heap array_list \<Rightarrow> 'a array Heap\<close> where
   \<open>array_of_arl_raa = (\<lambda>(a, n). array_shrink a n)\<close>
 
 lemma array_of_arl[sepref_fr_rules]:
@@ -469,7 +469,7 @@ definition "arrayO_raa_empty \<equiv> do {
     return (a,0)
   }"
 
-lemma arrayO_raa_empty_rule[sep_heap_rules]: "< emp > arrayO_raa_empty <\<lambda>r. arlO_assn R [] r>"
+lemma arrayO_raa_empty_rule[sep_heap_rules]: \<open>< emp > arrayO_raa_empty <\<lambda>r. arlO_assn R [] r>\<close>
   by (sep_auto simp: arrayO_raa_empty_def is_array_list_def initial_capacity_def
       arlO_assn_def arl_assn_def)
 
@@ -480,7 +480,7 @@ definition arrayO_raa_empty_sz where
     return (a,0)
   }"
 
-lemma arl_empty_sz_array_rule[sep_heap_rules]: "< emp > arrayO_raa_empty_sz N <\<lambda>r. arlO_assn R [] r>\<^sub>t"
+lemma arl_empty_sz_array_rule[sep_heap_rules]: \<open>< emp > arrayO_raa_empty_sz N <\<lambda>r. arlO_assn R [] r>\<^sub>t\<close>
 proof -
   have [simp]: \<open>(xa \<mapsto>\<^sub>a replicate (max N 16) x) * x \<mapsto>\<^sub>a [] = (xa \<mapsto>\<^sub>a (x # replicate (max N 16 - 1) x)) * x \<mapsto>\<^sub>a []\<close>
     for xa x
@@ -505,10 +505,10 @@ lemma nth_rl_op_list_get:
   by (sep_auto simp: nth_rl_def arlO_assn_def heap_list_all_heap_list_all_nth_eq array_assn_def
       hr_comp_def[abs_def] is_array_def arl_assn_def)
 
-definition arl_of_array :: "'a list list \<Rightarrow> 'a list list" where
+definition arl_of_array :: \<open>'a list list \<Rightarrow> 'a list list\<close> where
   \<open>arl_of_array xs = xs\<close>
 
-definition arl_of_array_raa :: "'a::heap array \<Rightarrow> ('a array_list) Heap" where
+definition arl_of_array_raa :: \<open>'a::heap array \<Rightarrow> ('a array_list) Heap\<close> where
   \<open>arl_of_array_raa xs = do {
      n \<leftarrow> Array.len xs;
      return (xs, n)

@@ -10,7 +10,7 @@ definition cdcl_twl_stgy_restart_abs_wl_heur_inv where
       cdcl_twl_stgy_restart_abs_wl_inv S\<^sub>0' brk T' n)\<close>
 
 definition cdcl_twl_stgy_restart_prog_wl_heur
-   :: "twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres"
+   :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close>
 where
   \<open>cdcl_twl_stgy_restart_prog_wl_heur S\<^sub>0 = do {
     (brk, T, _) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(brk, T, n). cdcl_twl_stgy_restart_abs_wl_heur_inv S\<^sub>0 brk T n\<^esup>
@@ -58,7 +58,7 @@ definition isasat_fast_slow :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heu
    [simp]: \<open>isasat_fast_slow S = RETURN S\<close>
 
 definition cdcl_twl_stgy_restart_prog_early_wl_heur
-   :: "twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres"
+   :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close>
 where
   \<open>cdcl_twl_stgy_restart_prog_early_wl_heur S\<^sub>0 = do {
     ebrk \<leftarrow> RETURN (\<not>isasat_fast S\<^sub>0);
@@ -262,7 +262,7 @@ lemma (in -) isasat_fast_alt_def:
   by (auto intro!:ext)
 
 definition cdcl_twl_stgy_restart_prog_bounded_wl_heur
-   :: "twl_st_wl_heur \<Rightarrow> (bool \<times> twl_st_wl_heur) nres"
+   :: \<open>twl_st_wl_heur \<Rightarrow> (bool \<times> twl_st_wl_heur) nres\<close>
 where
   \<open>cdcl_twl_stgy_restart_prog_bounded_wl_heur S\<^sub>0 = do {
     ebrk \<leftarrow> RETURN (\<not>isasat_fast S\<^sub>0);

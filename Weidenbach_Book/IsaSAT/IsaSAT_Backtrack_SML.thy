@@ -118,7 +118,7 @@ sepref_definition propagate_bt_wl_D_code
 
 sepref_register fm_add_new_fast
 text \<open>Find a less hack-like solution\<close>
-setup \<open>map_theory_claset (fn ctxt => ctxt delSWrapper "split_all_tac")\<close>
+setup \<open>map_theory_claset (fn ctxt => ctxt delSWrapper \<open>split_all_tac\<close>)\<close>
 
 
 sepref_definition propagate_bt_wl_D_fast_code

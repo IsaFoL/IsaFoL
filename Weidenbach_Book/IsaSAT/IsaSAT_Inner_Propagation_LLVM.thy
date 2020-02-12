@@ -35,7 +35,7 @@ sepref_register isa_find_unwatched_wl_st_heur isa_find_unwatched_between isa_fin
 (*TODO dup*)
 sepref_register 0 1
 
-(*lemma "found = None \<longleftrightarrow> is_None (ASSN_ANNOT (snat_option_assn' TYPE(64)) found)"*)
+(*lemma \<open>found = None \<longleftrightarrow> is_None (ASSN_ANNOT (snat_option_assn' TYPE(64)) found)\<close>*)
 
 sepref_def isa_find_unwatched_between_fast_code
   is \<open>uncurry4 isa_find_unset_lit\<close>
@@ -46,7 +46,7 @@ sepref_def isa_find_unwatched_between_fast_code
   unfolding isa_find_unset_lit_def isa_find_unwatched_between_def SET_FALSE_def[symmetric]
     PR_CONST_def
   apply (rewrite in \<open>if \<hole> then _ else _\<close> tri_bool_eq_def[symmetric])
-  apply (annot_snat_const "TYPE (64)")
+  apply (annot_snat_const \<open>TYPE (64)\<close>)
   by sepref
 
 sepref_register mop_arena_pos mop_arena_lit2
@@ -56,8 +56,8 @@ sepref_def mop_arena_pos_impl
   unfolding mop_arena_pos_def
   by sepref
 
-sepref_def swap_lits_impl is "uncurry3 mop_arena_swap"
-  :: "sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>d \<rightarrow>\<^sub>a arena_fast_assn"
+sepref_def swap_lits_impl is \<open>uncurry3 mop_arena_swap\<close>
+  :: \<open>sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>d \<rightarrow>\<^sub>a arena_fast_assn\<close>
   unfolding mop_arena_swap_def swap_lits_pre_def
   unfolding gen_swap
   by sepref
@@ -75,7 +75,7 @@ sepref_def find_unwatched_wl_st_heur_fast_code
   apply (subst isa_find_unset_lit_def[symmetric])
   apply (subst isa_find_unset_lit_def[symmetric])
   apply (subst isa_find_unset_lit_def[symmetric])
-  apply (annot_snat_const "TYPE (64)")
+  apply (annot_snat_const \<open>TYPE (64)\<close>)
   unfolding fold_tuple_optimizations
   by sepref
 
@@ -109,7 +109,7 @@ sepref_def other_watched_wl_heur_impl
   by sepref
 
 sepref_register update_clause_wl_heur
-setup \<open>map_theory_claset (fn ctxt => ctxt delSWrapper "split_all_tac")\<close>
+setup \<open>map_theory_claset (fn ctxt => ctxt delSWrapper \<open>split_all_tac\<close>)\<close>
 
 lemma arena_lit_pre_le2: \<open>
        arena_lit_pre a i \<Longrightarrow> length a \<le> sint64_max \<Longrightarrow> i < max_snat 64\<close>
@@ -135,7 +135,7 @@ sepref_def update_clause_wl_fast_code
     fmap_swap_ll_u64_def[symmetric]
     fmap_swap_ll_def[symmetric]
     PR_CONST_def mop_arena_lit2'_def
-  apply (annot_snat_const "TYPE (64)")
+  apply (annot_snat_const \<open>TYPE (64)\<close>)
   unfolding fold_tuple_optimizations
   by sepref
 (*takes 11s*)
@@ -152,7 +152,7 @@ sepref_def propagate_lit_wl_fast_code
     fmap_swap_ll_u64_def[symmetric]
     save_phase_def
   apply (rewrite at \<open>count_decided_pol _ = \<hole>\<close> unat_const_fold[where 'a=32])
-  apply (annot_snat_const "TYPE (64)")
+  apply (annot_snat_const \<open>TYPE (64)\<close>)
   unfolding fold_tuple_optimizations
   by sepref
 
@@ -186,7 +186,7 @@ sepref_def update_blit_wl_heur_fast_code
   supply [[goals_limit=1]] sint64_max_le_max_snat64[intro]
   unfolding update_blit_wl_heur_def isasat_bounded_assn_def append_ll_def[symmetric]
     op_list_list_upd_alt_def[symmetric]
-  apply (annot_snat_const "TYPE (64)")
+  apply (annot_snat_const \<open>TYPE (64)\<close>)
   by sepref
 
 
@@ -221,7 +221,7 @@ sepref_def set_conflict_wl_heur_fast_code
   supply [[goals_limit=1]]
   unfolding set_conflict_wl_heur_def isasat_bounded_assn_def
     set_conflict_wl_heur_pre_def PR_CONST_def
-  apply (annot_unat_const "TYPE (32)")
+  apply (annot_unat_const \<open>TYPE (32)\<close>)
   unfolding fold_tuple_optimizations
   by sepref
 
@@ -257,7 +257,7 @@ sepref_def pos_of_watched_heur_impl
   :: \<open>isasat_bounded_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow>\<^sub>a sint64_nat_assn\<close>
   supply [[goals_limit=1]]
   unfolding pos_of_watched_heur_def
-  apply (annot_snat_const "TYPE (64)")
+  apply (annot_snat_const \<open>TYPE (64)\<close>)
   by sepref
 
 sepref_def unit_propagation_inner_loop_body_wl_fast_heur_code
@@ -271,7 +271,7 @@ sepref_def unit_propagation_inner_loop_body_wl_fast_heur_code
   unfolding fmap_rll_def[symmetric]
   unfolding option.case_eq_if is_None_alt[symmetric]
     SET_FALSE_def[symmetric] SET_TRUE_def[symmetric] tri_bool_eq_def[symmetric]
-  apply (annot_snat_const "TYPE (64)")
+  apply (annot_snat_const \<open>TYPE (64)\<close>)
   by sepref
 
 sepref_register unit_propagation_inner_loop_body_wl_heur

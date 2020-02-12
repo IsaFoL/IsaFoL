@@ -49,7 +49,7 @@ sepref_def maximum_level_removed_eq_count_dec_fast_code
   is \<open>uncurry (maximum_level_removed_eq_count_dec_heur)\<close>
   :: \<open>unat_lit_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
   unfolding maximum_level_removed_eq_count_dec_heur_def
-  apply (annot_unat_const "TYPE(32)")
+  apply (annot_unat_const \<open>TYPE(32)\<close>)
   by sepref
 
 declare
@@ -98,7 +98,7 @@ lemma tri_bool_is_UNSET_refine_aux:
 sepref_definition is_UNSET_impl
   is \<open>RETURN o (\<lambda>x. x= 0)\<close>
   :: \<open>(unat_assn' TYPE(8))\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
-  apply (annot_unat_const "TYPE(8)")
+  apply (annot_unat_const \<open>TYPE(8)\<close>)
   by sepref
 
 (*lemmas [sepref_fr_rules] = is_UNSET_impl.refine[FCOMP tri_bool_is_UNSET_refine_aux]*)
@@ -227,7 +227,7 @@ sepref_def update_confl_tl_wl_fast_code
   unfolding update_confl_tl_wl_heur_alt_def isasat_bounded_assn_def
     PR_CONST_def
   apply (rewrite at \<open>If (_ = \<hole>)\<close> snat_const_fold[where 'a=64])
-  apply (annot_unat_const "TYPE (32)")
+  apply (annot_unat_const \<open>TYPE (32)\<close>)
   unfolding fold_tuple_optimizations
   by sepref
 

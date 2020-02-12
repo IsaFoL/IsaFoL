@@ -15,7 +15,7 @@ sepref_def cdcl_twl_o_prog_wl_D_fast_code
   unfolding cdcl_twl_o_prog_wl_D_heur_def PR_CONST_def
   unfolding get_conflict_wl_is_None get_conflict_wl_is_None_heur_alt_def[symmetric]
   supply [[goals_limit = 1]] isasat_fast_def[simp]
-  apply (annot_unat_const "TYPE(32)")
+  apply (annot_unat_const \<open>TYPE(32)\<close>)
   by sepref
 
 declare
@@ -45,7 +45,7 @@ sepref_def isasat_fast_impl
   is \<open>RETURN o isasat_fast\<close>
   :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
   unfolding isasat_fast_alt_def
-  apply (annot_snat_const "TYPE(64)")
+  apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
 declare isasat_fast_impl.refine[sepref_fr_rules]
@@ -60,7 +60,7 @@ sepref_def cdcl_twl_stgy_prog_wl_D_code
 
 declare cdcl_twl_stgy_prog_wl_D_code.refine[sepref_fr_rules]
 
-export_llvm cdcl_twl_stgy_prog_wl_D_code file "code/isasat.ll"
+export_llvm cdcl_twl_stgy_prog_wl_D_code file \<open>code/isasat.ll\<close>
 
 
 end
