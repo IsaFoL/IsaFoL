@@ -509,6 +509,7 @@ proof -
   proof
     fix \<iota>
     assume i_in: "\<iota> \<in> with_labels.Inf_from (Liminf_llist D)"
+    have i_in_inf_fl: "\<iota> \<in> Inf_FL" using i_in unfolding with_labels.Inf_from_def by blast
     have "Liminf_llist D = active_subset (Liminf_llist D)"
       using final_state unfolding non_active_subset_def active_subset_def by blast
     then have i_in2: "\<iota> \<in> with_labels.Inf_from (active_subset (Liminf_llist D))" using i_in by simp
@@ -644,21 +645,9 @@ proof -
     obtain C0 where C0_is: "(prems_of \<iota>)!j0 = (C0,active)" using j0_in 
         using i_in2 unfolding m_def with_labels.Inf_from_def active_subset_def
         by (smt Collect_mem_eq Collect_mono_iff atLeastLessThan_iff nth_mem old.prod.exhaust snd_conv)
+    then have C0_prems_i: "(C0,active) \<in> set (prems_of \<iota>)" using in_set_conv_nth j0_in m_def by force
     have C0_in: "(C0,active) \<in> (lnth D (Suc n))" using C0_is j0_allin suc_n_length by (simp add: active_subset_def)
     have C0_notin: "(C0,active) \<notin> (lnth D n)" using C0_is j0_notin unfolding active_subset_def by simp
-
-    (* obtain n where "n = (GREATEST nj. enat nj < llength D \<and> (\<exists>j\<in>{0..<m}. (prems_of \<iota>)!j \<notin> active_subset (lnth D nj) \<and>
-     *   (\<forall>k. k > nj \<longrightarrow> enat k < llength D \<longrightarrow> (prems_of \<iota>)!j \<in> active_subset (lnth D k))))" by simp
-     * 
-     * then have "\<exists>j0\<in>{0..<m}. enat n < llength D \<and> (\<exists>j\<in>{0..<m}. (prems_of \<iota>)!j \<notin> active_subset (lnth D n) \<and>
-     *   (\<forall>k. k > n \<longrightarrow> enat k < llength D \<longrightarrow> (prems_of \<iota>)!j \<in> active_subset (lnth D k)))"
-     *   using exist_nj uniq_nj sorry
-     * then obtain j0 where "j0 \<in> {0..<m}" and "(prems_of \<iota>)!j0 \<notin> active_subset (lnth D n) \<and>
-     *   (\<forall>k. k > n \<longrightarrow> enat k < llength D \<longrightarrow> (prems_of \<iota>)!j0 \<in> active_subset (lnth D k))"
-     * (\* using uniq_nj exist_nj *\) 
-     * apply auto
-     * sorry   *)
-     find_theorems chain name: chain_lnth_rel
     have step_n: "lnth D n \<Longrightarrow>GC lnth D (Suc n)" using deriv chain_lnth_rel n_in unfolding nj_set_def by blast 
     have "\<exists>N C L M. (lnth D n = N \<union> {(C,L)} \<and> {(C,L)} \<inter> N = {} \<and>
       lnth D (Suc n) = N \<union> {(C,active)} \<union> M \<and> L \<noteq> active \<and>
@@ -680,18 +669,41 @@ proof -
         using C0_in C0_notin proc_or_infer j0_in C0_is
         by (smt Un_iff active_subset_def mem_Collect_eq snd_conv sup_bot.right_neutral)
     qed
-    then obtain N M L where "with_labels.Inf_from2 (active_subset N) {(C0, active)} \<subseteq>
+    then obtain N M L where inf_from_subs: "with_labels.Inf_from2 (active_subset N) {(C0, active)} \<subseteq>
       labeled_ord_red_crit_fam.empty_ord_lifted_calc_w_red_crit_family.Red_Inf_Q (N \<union> {(C0, active)} \<union> M)" and
-      "lnth D n = N \<union> {(C0,L)}" and "lnth D (Suc n) = N \<union> {(C0,active)} \<union> M" 
+      nth_d_is: "lnth D n = N \<union> {(C0,L)}" and suc_nth_d_is: "lnth D (Suc n) = N \<union> {(C0,active)} \<union> M" and
+      l_not_active: "L \<noteq> active"
       using C0_in C0_notin j0_in C0_is using active_subset_def by fastforce   
-    have "j \<in> {0..<m} \<Longrightarrow> j \<noteq> j0 \<Longrightarrow> (prems_of \<iota>)!j \<in> (active_subset N)"
+    have "j \<in> {0..<m} \<Longrightarrow> (prems_of \<iota>)!j \<noteq> (prems_of \<iota>)!j0 \<Longrightarrow> (prems_of \<iota>)!j \<in> (active_subset N)" for j
     proof -
       fix j
       assume j_in: "j \<in> {0..<m}" and
-      j_not_j0: "j \<noteq> j0"
-      show "(prems_of \<iota>)!j \<in> (active_subset N)"
-      sorry
+      j_not_j0: "(prems_of \<iota>)!j \<noteq> (prems_of \<iota>)!j0"
+      obtain nj where nj_len: "enat (Suc nj) < llength D" and
+        nj_prems: "(prems_of \<iota>)!j \<notin> active_subset (lnth D nj)" and
+        nj_greater: "(\<forall>k. k > nj \<longrightarrow> enat k < llength D \<longrightarrow> (prems_of \<iota>)!j \<in> active_subset (lnth D k))"
+        using exist_nj j_in by blast
+      then have "nj \<in> nj_set" unfolding nj_set_def using j_in by blast
+      moreover have "nj \<noteq> n"
+      proof (rule ccontr)
+        assume "\<not> nj \<noteq> n"
+        then have "(prems_of \<iota>)!j = (C0,active)"
+          using C0_in C0_notin Given_Clause_step.simps[of "lnth D n" "lnth D (Suc n)"] step_n
+          by (smt Un_iff Un_insert_right nj_greater nj_prems active_subset_def empty_Collect_eq
+            insertE lessI mem_Collect_eq prod.sel(2) suc_n_length)
+        then show False using j_not_j0 C0_is by simp
+      qed
+      ultimately have "nj < n" using n_bigger by force
+      then have "(prems_of \<iota>)!j \<in> (active_subset (lnth D n))"
+        using nj_greater n_in Suc_ile_eq dual_order.strict_implies_order unfolding nj_set_def by blast
+      then show "(prems_of \<iota>)!j \<in> (active_subset N)"
+        using nth_d_is l_not_active unfolding active_subset_def by force
     qed
+    then have "set (prems_of \<iota>) \<subseteq> active_subset N \<union> {(C0, active)}"
+      using C0_prems_i C0_is m_def by (metis Un_iff atLeast0LessThan in_set_conv_nth insertCI lessThan_iff subrelI) 
+    moreover have "\<not> (set (prems_of \<iota>) \<subseteq> active_subset N - {(C0, active)})"  using C0_prems_i by blast
+    ultimately have "\<iota> \<in> with_labels.Inf_from2 (active_subset N) {(C0,active)}"
+      using i_in_inf_fl unfolding with_labels.Inf_from2_def with_labels.Inf_from_def by blast
     show "\<iota> \<in>
       labeled_ord_red_crit_fam.empty_ord_lifted_calc_w_red_crit_family.inter_red_crit_calculus.Sup_Red_Inf_llist D"
       unfolding labeled_ord_red_crit_fam.empty_ord_lifted_calc_w_red_crit_family.inter_red_crit_calculus.Sup_Red_Inf_llist_def
