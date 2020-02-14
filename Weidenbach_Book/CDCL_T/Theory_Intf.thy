@@ -19,6 +19,16 @@ text \<open>
 
   \<^item> A conflict is a subset of the current trail (i.e., conflicts are not expressed using new
   literals) and a conflict is entailed by the set of clause.
+
+
+  For correctness of CDCL(T), we need that the SAT clauses are satisfiable if the set of theory
+  constraints is also satisfiable (i.e., if CDCL cannot find a model, there is none).  This is the
+  correctness of the construction of the initial clauses that are given to the SAT solver. However,
+  CDCL does not care about that.
+
+  The assumption \<^text>\<open>entail_mono\<close> is an artefact from the fact that we do not care at all the notion
+  of theory entailement. It might be possible to write it better (or even define entailment more
+  generally) and reduce some of the mess we have.
 \<close>
 
 locale theory_problem =
@@ -26,9 +36,11 @@ locale theory_problem =
     theory_entails_set :: \<open>'a \<Rightarrow> 'v clauses \<Rightarrow> bool\<close> (infix \<open>\<Turnstile>\<^sub>\<T>\<^sub>s\<close> 90) and
     theory_entails :: \<open>'v literal set \<Rightarrow> 'a \<Rightarrow> bool\<close> (infix \<open>\<Turnstile>\<^sub>\<T>\<close> 90)
   assumes
-    entail_mono: \<open>N \<Turnstile>\<^sub>\<T>\<^sub>s N' \<Longrightarrow> N' \<Turnstile>pm C \<Longrightarrow> N \<Turnstile>\<^sub>\<T>\<^sub>s add_mset C N'\<close> and
-    \<open>consistent_interp I \<Longrightarrow> atm_of ` I = atms_of_mm N' \<Longrightarrow> I \<Turnstile>sm N' \<Longrightarrow>
-      I \<Turnstile>\<^sub>\<T> N \<or> (\<exists>C. I \<Turnstile>s CNot C \<and> N \<Turnstile>\<^sub>\<T>\<^sub>s add_mset C N' \<and> atms_of C \<subseteq> atm_of ` I)\<close>
+    entail_mono: \<open>N \<Turnstile>\<^sub>\<T>\<^sub>s N' \<Longrightarrow> N \<Turnstile>\<^sub>\<T>\<^sub>s {#C#} \<Longrightarrow> N \<Turnstile>\<^sub>\<T>\<^sub>s add_mset C N'\<close> and
+    theory_model_found_or_conflict: \<open>consistent_interp I \<Longrightarrow> atm_of ` I = atms_of_mm N' \<Longrightarrow> I \<Turnstile>sm N' \<Longrightarrow>
+      I \<Turnstile>\<^sub>\<T> N \<or> (\<exists>C. I \<Turnstile>s CNot C \<and> N \<Turnstile>\<^sub>\<T>\<^sub>s {#C#} \<and> atms_of C \<subseteq> atm_of ` I \<and> C \<in> simple_clss (atm_of ` I))\<close>and
+    theory_model_model_sat: \<open>consistent_interp I \<Longrightarrow> atm_of ` I = atms_of_mm N' \<Longrightarrow> N \<Turnstile>\<^sub>\<T>\<^sub>s N' \<Longrightarrow>
+      I \<Turnstile>\<^sub>\<T> N \<Longrightarrow> satisfiable (set_mset N')\<close>
 
 
 section \<open>Theory as black box for solving\<close>
