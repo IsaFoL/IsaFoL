@@ -721,6 +721,59 @@ proof -
   qed
 qed
 
+find_theorems local.derive name: i_in_Liminf
+
+lemma "chain (\<Longrightarrow>GC) D \<Longrightarrow> B \<in> Bot_FL \<Longrightarrow> enat (Suc i) < llength D \<Longrightarrow> B \<in> lnth D i \<Longrightarrow> B \<in> lnth D (Suc i)"
+proof -
+  assume
+    deriv: "chain (\<Longrightarrow>GC) D" and
+    "B \<in> Bot_FL" and
+    suc_i_len: "enat (Suc i) < llength D" and
+    "B \<in> lnth D i"
+  have "chain (\<rhd>RedL) D"
+    using gc_to_red[OF deriv] by simp
+  then have "lnth D i \<rhd>RedL lnth D (Suc i)" by (simp add: suc_i_len chain_lnth_rel)
+  then have "(lnth D i) - (lnth D (Suc i)) \<subseteq> with_labels.Red_F_Q (lnth D (Suc i))"
+sorry
+
+
+  show "B \<in> lnth D (Suc i)" sorry
+qed
+
+lemma "chain (\<Longrightarrow>GC) D \<Longrightarrow> B \<in> Bot_FL \<Longrightarrow> enat (Suc i) < llength D \<Longrightarrow> B \<in> lnth D i \<Longrightarrow> B \<in> Liminf_llist D"
+proof -
+  assume
+    deriv: "chain (\<Longrightarrow>GC) D" and
+    b_in: "B \<in> Bot_FL" and
+    suc_i_len: "enat (Suc i) < llength D" and
+    b_in_d_i: "B \<in> lnth D i"
+  have deriv2: "chain (\<rhd>RedL) D"
+    using gc_to_red[OF deriv] by simp
+  have i_len: "enat i < llength D" using suc_i_len using Suc_ile_eq less_imp_le by blast
+  have "B \<in> labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_F_Q (Liminf_llist D) \<union> Liminf_llist D"
+     using labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.inter_red_crit_calculus.i_in_Liminf_or_Red_F[OF deriv2 i_len]
+       b_in_d_i
+     by blast
+  show "B \<in> Liminf_llist D" sorry
+qed
+
+lemma "chain (\<Longrightarrow>GC) D \<Longrightarrow> B \<in> Bot_FL \<Longrightarrow> (enat i < llength D \<longrightarrow> B \<in> lnth D i) \<Longrightarrow> \<forall>j>i. (enat j < llength D \<longrightarrow> B \<in> lnth D j)"
+proof
+  fix i j D B
+  assume
+    deriv: "chain (\<Longrightarrow>GC) D" and
+    "B \<in> Bot_FL"
+    "(enat i < llength D \<longrightarrow> B \<in> lnth D i)"
+  show "i < j \<longrightarrow> enat j < llength D \<longrightarrow> B \<in> lnth D j"
+  proof clarify
+    assume "i < j" "enat j < llength D"
+    have "chain (\<rhd>RedL) D"
+      using gc_to_red[OF deriv] by simp
+    
+    show "B \<in> lnth D j" sorry
+  qed
+qed
+
 text \<open>thm:gc-completeness\<close>
 theorem "chain (\<Longrightarrow>GC) D \<Longrightarrow> llength D > 0 \<Longrightarrow> active_subset (lnth D 0) = {} \<Longrightarrow>
   non_active_subset (Liminf_llist D) = {} \<Longrightarrow> B \<in> Bot_F \<Longrightarrow>
