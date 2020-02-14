@@ -568,12 +568,6 @@ lemma rtranclp_cdcl_bnb_cdcl_bnb_struct_invs:
   \<open>cdcl_bnb\<^sup>*\<^sup>* S T \<Longrightarrow> cdcl_bnb_struct_invs S \<Longrightarrow> cdcl_bnb_struct_invs T\<close>
   by (induction rule: rtranclp_induct) (auto dest: cdcl_bnb_cdcl_bnb_struct_invs)
 
-lemma cdcl_bnb_stgy_cdcl_bnb: \<open>cdcl_bnb_stgy S T \<Longrightarrow> cdcl_bnb S T\<close>
-  by (auto simp: cdcl_bnb_stgy.simps intro: cdcl_bnb.intros)
-
-lemma rtranclp_cdcl_bnb_stgy_cdcl_bnb: \<open>cdcl_bnb_stgy\<^sup>*\<^sup>* S T \<Longrightarrow> cdcl_bnb\<^sup>*\<^sup>* S T\<close>
-  by (induction rule: rtranclp_induct)
-   (auto dest: cdcl_bnb_stgy_cdcl_bnb)
 
 text \<open>The following does \<^emph>\<open>not\<close> hold, because we cannot guarantee the absence of conflict of
   smaller level after \<^term>\<open>improve\<close> and \<^term>\<open>conflict_opt\<close>.\<close>
