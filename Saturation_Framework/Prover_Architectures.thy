@@ -482,17 +482,18 @@ text \<open>lem:gc-derivations-are-red-derivations\<close>
 lemma "chain (\<Longrightarrow>GC) D \<Longrightarrow> chain (\<rhd>RedL) D"
   using one_step_equiv Lazy_List_Chain.chain_mono by blast
 
-
-lemma "(\<forall>j\<in>I. \<exists>n. P j n) \<Longrightarrow> (\<forall>n1 n2. \<forall>j\<in>I. P j n1 \<longrightarrow> P j n2 \<longrightarrow> n1 = n2) \<Longrightarrow> finite (I:: nat set) \<Longrightarrow> finite {n. \<exists>j \<in> I. P j n}"
+ lemma all_ex_finite_set: "(\<forall>(j::nat)\<in>{0..<m}. \<exists>(n::nat). P j n) \<Longrightarrow>
+  (\<forall>n1 n2. \<forall>j\<in>{0..<m}. P j n1 \<longrightarrow> P j n2 \<longrightarrow> n1 = n2) \<Longrightarrow> finite {n. \<exists>j \<in> {0..<m}. P j n}" for m P
 proof -
-  fix I P
-  assume allj_exn: "\<forall>j\<in>I. \<exists>n. P j n" and
-  uniq_n: "\<forall>n1 n2. \<forall>j\<in>I. P j n1 \<longrightarrow> P j n2 \<longrightarrow> n1 = n2" and
-  fin_I: "finite (I::nat set)"
-  obtain m where "m = card I" using fin_I by simp
-  have "\<forall>j\<in>I. \<exists>!n. P j n" using allj_exn uniq_n by blast
-  then have "card {n. \<exists>j \<in> I. P j n} \<le> card I" sorry
-  then show "finite {n. \<exists>j \<in> I. P j n}" using fin_I  sorry
+  fix m::nat and P:: "nat \<Rightarrow> nat \<Rightarrow> bool"
+  assume
+    allj_exn: "\<forall>j\<in>{0..<m}. \<exists>n. P j n" and
+    uniq_n: "\<forall>n1 n2. \<forall>j\<in>{0..<m}. P j n1 \<longrightarrow> P j n2 \<longrightarrow> n1 = n2"
+  have "{n. \<exists>j \<in> {0..<m}. P j n} = (\<Union>((\<lambda>j. {n. P j n}) ` {0..<m}))" by blast
+  then have imp_finite: "(\<forall>j\<in>{0..<m}. finite {n. P j n}) \<Longrightarrow> finite {n. \<exists>j \<in> {0..<m}. P j n}" using finite_UN[of "{0..<m}" "\<lambda>j. {n. P j n}"] by simp
+  have "\<forall>j\<in>{0..<m}. \<exists>!n. P j n" using allj_exn uniq_n by blast
+  then have "\<forall>j\<in>{0..<m}. finite {n. P j n}" by (metis bounded_nat_set_is_finite lessI mem_Collect_eq)
+  then show "finite {n. \<exists>j \<in> {0..<m}. P j n}" using imp_finite by simp
 qed
 
 text \<open>lem:fair-gc-derivations\<close>
@@ -626,15 +627,21 @@ proof -
       ultimately show False using diff_12 by linarith
     qed
     (* the n below in the n-1 from the paper *)
-    have "\<exists>prem_to_step. \<forall>j\<in>{0..<m}. (enat (prem_to_step j) < llength D \<and>
-      (prems_of \<iota>)!j \<notin> active_subset (lnth D (prem_to_step j)) \<and>
-      (\<forall>k. k > (prem_to_step j) \<longrightarrow> enat k < llength D \<longrightarrow> (prems_of \<iota>)!j \<in> active_subset (lnth D k)))"
-      using Hilbert_Choice.choice exist_nj sorry (* not possible to use Hilbert_Choice.choice because j \<in> {0..<m} is a restriction outside of \<exists>nj *)
     define nj_set where "nj_set = {nj. (\<exists>j\<in>{0..<m}. enat (Suc nj) < llength D \<and>
       (prems_of \<iota>)!j \<notin> active_subset (lnth D nj) \<and>
       (\<forall>k. k > nj \<longrightarrow> enat k < llength D \<longrightarrow> (prems_of \<iota>)!j \<in> active_subset (lnth D k)))}"
-    then have nj_not_empty: "nj_set \<noteq> {}" using m_pos exist_nj sorry
-    then have nj_finite: "finite nj_set" using exist_nj uniq_nj sorry
+    then have nj_not_empty: "nj_set \<noteq> {}"
+    proof -
+      have zero_in: "0 \<in> {0..<m}" using m_pos by simp
+      then obtain n0 where "enat (Suc n0) < llength D" and "prems_of \<iota> ! 0 \<notin> active_subset (lnth D n0)" and
+        "\<forall>k>n0. enat k < llength D \<longrightarrow> prems_of \<iota> ! 0 \<in> active_subset (lnth D k)"
+        using exist_nj by fast
+      then have "n0 \<in> nj_set" unfolding nj_set_def using zero_in by blast
+      then show "nj_set \<noteq> {}" by auto
+    qed
+    have nj_finite: "finite nj_set"
+      using uniq_nj all_ex_finite_set[OF exist_nj]
+      by (metis (no_types, lifting) Suc_ile_eq dual_order.strict_implies_order linorder_neqE_nat nj_set_def)
     have "\<exists>n \<in> nj_set. \<forall>nj \<in> nj_set. nj \<le> n"
       using nj_not_empty nj_finite using Max_ge Max_in by blast
     then obtain n where n_in: "n \<in> nj_set" and n_bigger: "\<forall>nj \<in> nj_set. nj \<le> n" by blast
@@ -704,10 +711,13 @@ proof -
     moreover have "\<not> (set (prems_of \<iota>) \<subseteq> active_subset N - {(C0, active)})"  using C0_prems_i by blast
     ultimately have "\<iota> \<in> with_labels.Inf_from2 (active_subset N) {(C0,active)}"
       using i_in_inf_fl unfolding with_labels.Inf_from2_def with_labels.Inf_from_def by blast
-    show "\<iota> \<in>
+    then have "\<iota> \<in> labeled_ord_red_crit_fam.empty_ord_lifted_calc_w_red_crit_family.Red_Inf_Q (lnth D (Suc n))"
+      using inf_from_subs suc_nth_d_is by fastforce
+    then show "\<iota> \<in>
       labeled_ord_red_crit_fam.empty_ord_lifted_calc_w_red_crit_family.inter_red_crit_calculus.Sup_Red_Inf_llist D"
-      unfolding labeled_ord_red_crit_fam.empty_ord_lifted_calc_w_red_crit_family.inter_red_crit_calculus.Sup_Red_Inf_llist_def
-    sorry
+      using n_in nj_set_def unfolding
+        labeled_ord_red_crit_fam.empty_ord_lifted_calc_w_red_crit_family.inter_red_crit_calculus.Sup_Red_Inf_llist_def 
+      by blast
   qed
 qed
 
