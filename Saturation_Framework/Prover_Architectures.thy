@@ -479,7 +479,7 @@ abbreviation fair :: "('f \<times> 'l) set llist \<Rightarrow> bool" where
   "fair \<equiv> labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.inter_red_crit_calculus.fair"
 
 text \<open>lem:gc-derivations-are-red-derivations\<close>
-lemma "chain (\<Longrightarrow>GC) D \<Longrightarrow> chain (\<rhd>RedL) D"
+lemma gc_to_red: "chain (\<Longrightarrow>GC) D \<Longrightarrow> chain (\<rhd>RedL) D"
   using one_step_equiv Lazy_List_Chain.chain_mono by blast
 
  lemma all_ex_finite_set: "(\<forall>(j::nat)\<in>{0..<m}. \<exists>(n::nat). P j n) \<Longrightarrow>
@@ -497,7 +497,7 @@ proof -
 qed
 
 text \<open>lem:fair-gc-derivations\<close>
-lemma "chain (\<Longrightarrow>GC) D \<Longrightarrow> llength D > 0 \<Longrightarrow> active_subset (lnth D 0) = {} \<Longrightarrow>
+lemma gc_fair: "chain (\<Longrightarrow>GC) D \<Longrightarrow> llength D > 0 \<Longrightarrow> active_subset (lnth D 0) = {} \<Longrightarrow>
   non_active_subset (Liminf_llist D) = {} \<Longrightarrow> fair D"
 proof -
   assume
@@ -721,6 +721,41 @@ proof -
   qed
 qed
 
+text \<open>thm:gc-completeness\<close>
+theorem "chain (\<Longrightarrow>GC) D \<Longrightarrow> llength D > 0 \<Longrightarrow> active_subset (lnth D 0) = {} \<Longrightarrow>
+  non_active_subset (Liminf_llist D) = {} \<Longrightarrow> B \<in> Bot_F \<Longrightarrow>
+  no_labels.entails_\<G>_Q (fst ` (lnth D 0)) {B} \<Longrightarrow> \<exists>B'\<in> Bot_F. (B',active) \<in> Liminf_llist D"
+proof -
+  fix D B
+  assume
+    deriv: "chain (\<Longrightarrow>GC) D" and
+    not_empty_d: "llength D > 0" and
+    init_state: "active_subset (lnth D 0) = {}" and
+    final_state: "non_active_subset (Liminf_llist D) = {}" and
+    b_in: "B \<in> Bot_F" and
+    bot_entailed: "no_labels.entails_\<G>_Q (fst ` (lnth D 0)) {B}"
+  have labeled_b_in: "(B,active) \<in> Bot_FL" unfolding Bot_FL_def using b_in by simp
+  have not_empty_d2: "\<not> lnull D" using not_empty_d by force
+  have labeled_bot_entailed: "entails_\<G>_L_Q  (lnth D 0) {(B,active)}" using labeled_entailment_lifting bot_entailed by fastforce
+  have "fair D" using gc_fair[OF deriv not_empty_d init_state final_state] .
+  then have "\<exists>i \<in> {i. enat i < llength D}. \<exists>B'\<in>Bot_FL. B' \<in> lnth D i"
+    using labeled_ordered_dynamic_ref_comp labeled_b_in not_empty_d2 gc_to_red[OF deriv]
+      labeled_bot_entailed entail_equiv 
+    unfolding dynamic_refutational_complete_calculus_def
+      dynamic_refutational_complete_calculus_axioms_def by blast
+  then obtain i B' L where "enat i < llength D" and "(B',L) \<in> Bot_FL" and bp_in: "(B',L) \<in> lnth D i"
+    unfolding Bot_FL_def by blast
+  then have "\<exists>j. i \<le> j \<longrightarrow> enat j < llength D \<longrightarrow> (B',active) \<in> lnth D j"
+  proof (cases "L = active")
+    case True
+    then show "\<exists>j. i \<le> j \<longrightarrow> enat j < llength D \<longrightarrow> (B',active) \<in> lnth D j" using bp_in by blast
+  next
+    case False
+    then show "\<exists>j. i \<le> j \<longrightarrow> enat j < llength D \<longrightarrow> (B',active) \<in> lnth D j" sorry
+  qed
+  then show "\<exists>B'\<in> Bot_F. (B',active) \<in> Liminf_llist D" 
+    unfolding Liminf_llist_def sorry
+qed
 end
 
 end
