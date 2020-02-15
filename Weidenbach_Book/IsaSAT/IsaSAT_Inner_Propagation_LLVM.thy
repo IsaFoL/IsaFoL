@@ -109,7 +109,7 @@ sepref_def other_watched_wl_heur_impl
   by sepref
 
 sepref_register update_clause_wl_heur
-setup \<open>map_theory_claset (fn ctxt => ctxt delSWrapper \<open>split_all_tac\<close>)\<close>
+setup \<open>map_theory_claset (fn ctxt => ctxt delSWrapper "split_all_tac")\<close>
 
 lemma arena_lit_pre_le2: \<open>
        arena_lit_pre a i \<Longrightarrow> length a \<le> sint64_max \<Longrightarrow> i < max_snat 64\<close>
@@ -244,11 +244,12 @@ sepref_def mop_watched_by_app_heur_code
   by sepref
 
 lemma unit_propagation_inner_loop_wl_loop_D_heur_inv0D: \<open>unit_propagation_inner_loop_wl_loop_D_heur_inv0 L (j, w, S0) \<Longrightarrow>
-   j \<le> length (get_clauses_wl_heur S0) - 4 \<and> w \<le> length (get_clauses_wl_heur S0) - 4\<close>
+    j \<le> length (get_clauses_wl_heur S0) - MIN_HEADER_SIZE \<and>
+    w \<le> length (get_clauses_wl_heur S0) - MIN_HEADER_SIZE\<close>
   unfolding unit_propagation_inner_loop_wl_loop_D_heur_inv0_def prod.case
     unit_propagation_inner_loop_wl_loop_inv_def unit_propagation_inner_loop_l_inv_def
   apply normalize_goal+
-    by (simp only: twl_st_l twl_st twl_st_wl
+  by (simp only: twl_st_l twl_st twl_st_wl
      \<L>\<^sub>a\<^sub>l\<^sub>l_all_atms_all_lits) linarith
 
 

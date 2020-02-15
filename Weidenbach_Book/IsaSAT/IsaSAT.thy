@@ -1515,7 +1515,7 @@ definition IsaSAT_use_fast_mode where
 
 
 definition isasat_fast_init :: \<open>twl_st_wl_heur_init \<Rightarrow> bool\<close> where
-  \<open>isasat_fast_init S \<longleftrightarrow> (length (get_clauses_wl_heur_init S) \<le> sint64_max - (uint32_max div 2 + 6))\<close>
+  \<open>isasat_fast_init S \<longleftrightarrow> (length (get_clauses_wl_heur_init S) \<le> sint64_max - (uint32_max div 2 + MAX_HEADER_SIZE+1))\<close>
 
 definition IsaSAT_heur :: \<open>opts \<Rightarrow> nat clause_l list \<Rightarrow> (bool \<times> nat literal list \<times> stats) nres\<close> where
   \<open>IsaSAT_heur opts CS = do{
@@ -2301,7 +2301,7 @@ proof -
     subgoal by (clarsimp simp add: isasat_fast_init_def convert_state_def)
     apply (rule finalise_init_code2; assumption?)
     subgoal by clarsimp
-    subgoal by (clarsimp simp add: isasat_fast_def isasat_fast_init_def convert_state_def)
+    subgoal by (clarsimp simp add: isasat_fast_def isasat_fast_init_def convert_state_def ac_simps)
     apply (rule_tac r1 = \<open>length (get_clauses_wl_heur Td)\<close> in cdcl_twl_stgy_restart_prog_early_wl_heur_cdcl_twl_stgy_restart_prog_early_wl_D[
       THEN fref_to_Down])
       subgoal by (auto simp: isasat_fast_def sint64_max_def uint64_max_def uint32_max_def)
@@ -4182,7 +4182,7 @@ proof -
     subgoal by (clarsimp simp add: isasat_fast_def isasat_fast_init_def convert_state_def)
     subgoal by (clarsimp simp add: isasat_fast_def isasat_fast_init_def convert_state_def)
     subgoal by clarsimp
-    subgoal by (clarsimp simp add: isasat_fast_def isasat_fast_init_def convert_state_def)
+    subgoal by (clarsimp simp add: isasat_fast_def isasat_fast_init_def convert_state_def ac_simps)
     apply (rule_tac r1 = \<open>length (get_clauses_wl_heur Td)\<close> in
       cdcl_twl_stgy_restart_prog_bounded_wl_heur_cdcl_twl_stgy_restart_prog_bounded_wl_D[THEN fref_to_Down])
     subgoal by (simp add: isasat_fast_def sint64_max_def uint32_max_def

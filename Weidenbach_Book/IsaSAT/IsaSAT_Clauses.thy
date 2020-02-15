@@ -64,12 +64,13 @@ than reserving a space that is large enough directly. However, in this case the 
 is so large that there should not be any difference\<close>
 definition fm_add_new where
  \<open>fm_add_new b C N0 = do {
-    let st = (if b then AStatus IRRED False else AStatus LEARNED False);
-    let l = length N0;
     let s = length C - 2;
+    let lbd = shorten_lbd s;
+    let st = (if b then AStatus IRRED False lbd else AStatus LEARNED False lbd);
+    let l = length N0;
     let N = (if is_short_clause C then
-          (((N0 @ [st]) @ [AActivity 0]) @ [ALBD s]) @ [ASize s]
-          else ((((N0 @ [APos 0]) @ [st]) @ [AActivity 0]) @ [ALBD s]) @ [ASize (s)]);
+          (((N0 @ [st]) @ [AActivity 0])) @ [ASize s]
+          else ((((N0 @ [APos 0]) @ [st]) @ [AActivity 0])) @ [ASize (s)]);
     (i, N) \<leftarrow> WHILE\<^sub>T\<^bsup> \<lambda>(i, N). i < length C \<longrightarrow> length N < header_size C + length N0 + length C\<^esup>
       (\<lambda>(i, N). i < length C)
       (\<lambda>(i, N). do {
@@ -82,7 +83,7 @@ definition fm_add_new where
 
 lemma header_size_Suc_def:
   \<open>header_size C =
-    (if is_short_clause C then Suc (Suc (Suc (Suc 0))) else Suc (Suc (Suc (Suc (Suc 0)))))\<close>
+    (if is_short_clause C then Suc (Suc (Suc 0)) else Suc (Suc (Suc (Suc 0))))\<close>
   unfolding header_size_def
   by auto
 
@@ -152,21 +153,21 @@ definition (in -)five_uint64_nat where
 
 definition append_and_length_fast_code_pre where
   \<open>append_and_length_fast_code_pre \<equiv> \<lambda>((b, C), N). length C \<le> uint32_max+2 \<and> length C \<ge> 2 \<and>
-          length N + length C + 5 \<le> sint64_max\<close>
+          length N + length C + MAX_HEADER_SIZE \<le> sint64_max\<close>
 
 
 lemma fm_add_new_alt_def:
  \<open>fm_add_new b C N0 = do {
-      let st = (if b then AStatus_IRRED else AStatus_LEARNED2);
-      let l = length N0;
       let s = length C - 2;
+      let lbd = shorten_lbd s;
+      let st = (if b then AStatus_IRRED lbd else AStatus_LEARNED2 lbd);
+      let l = length N0;
       let N =
         (if is_short_clause C
-          then (((N0 @ [st]) @ [AActivity 0]) @ [ALBD s]) @
+          then ((N0 @ [st]) @ [AActivity 0]) @
               [ASize s]
-          else ((((N0 @ [APos 0]) @ [st]) @
+          else (((N0 @ [APos 0]) @ [st]) @
                 [AActivity 0]) @
-                [ALBD s]) @
               [ASize s]);
       (i, N) \<leftarrow>
         WHILE\<^sub>T\<^bsup> \<lambda>(i, N). i < length C \<longrightarrow> length N < header_size C + length N0 + length C\<^esup>
@@ -188,12 +189,12 @@ definition fmap_swap_ll_u64 where
 definition fm_mv_clause_to_new_arena where
  \<open>fm_mv_clause_to_new_arena C old_arena new_arena0 = do {
     ASSERT(arena_is_valid_clause_idx old_arena C);
-    ASSERT(C \<ge> (if  (arena_length old_arena C) \<le> 4 then 4 else 5));
-    let st = C - (if  (arena_length old_arena C) \<le> 4 then 4 else 5);
+    ASSERT(C \<ge> (if  (arena_length old_arena C) \<le> 4 then MIN_HEADER_SIZE else MAX_HEADER_SIZE));
+    let st = C - (if  (arena_length old_arena C) \<le> 4 then MIN_HEADER_SIZE else MAX_HEADER_SIZE);
     ASSERT(C +  (arena_length old_arena C) \<le> length old_arena);
     let en = C +  (arena_length old_arena C);
     (i, new_arena) \<leftarrow>
-        WHILE\<^sub>T\<^bsup> \<lambda>(i, new_arena). i < en \<longrightarrow> length new_arena < length new_arena0 + (arena_length old_arena C) + (if  (arena_length old_arena C) \<le> 4 then 4 else 5) \<^esup>
+        WHILE\<^sub>T\<^bsup> \<lambda>(i, new_arena). i < en \<longrightarrow> length new_arena < length new_arena0 + (arena_length old_arena C) + (if  (arena_length old_arena C) \<le> 4 then MIN_HEADER_SIZE else MAX_HEADER_SIZE) \<^esup>
           (\<lambda>(i, new_arena). i < en)
           (\<lambda>(i, new_arena). do {
               ASSERT (i < length old_arena \<and> i < en);
@@ -233,17 +234,17 @@ proof -
       xarena_pos_def
       arena_lbd_def xarena_lbd_def
     using arena_lifting[OF assms(1,3)]
-    by (auto simp: is_Status_def is_Pos_def is_Size_def is_LBD_def
-      is_Act_def)
+    by (auto simp: is_Status_def is_Pos_def is_Size_def is_Act_def)
   have
     45: \<open>4 = (Suc (Suc (Suc (Suc 0))))\<close>
      \<open>5 = Suc (Suc (Suc (Suc (Suc 0))))\<close>
+     \<open>3 = (Suc (Suc (Suc 0)))\<close>
     by auto
   have sl: \<open>clause_slice old_arena N C =
      (if is_long_clause (N \<propto> C) then [APos pos]
      else []) @
-     [AStatus st used, AActivity act, ALBD lbd, ASize (length (N \<propto> C) - 2)] @
-     map ALit (N \<propto> C) \<close>
+     [AStatus st used lbd, AActivity act, ASize (length (N \<propto> C) - 2)] @
+     map ALit (N \<propto> C)\<close>
     unfolding st_def used_def act_def lbd_def
       append_clause_skeleton_def arena_status_def
       xarena_status_def arena_used_def
@@ -253,9 +254,8 @@ proof -
       arena_lbd_def xarena_lbd_def
       arena_length_def xarena_length_def
     using arena_lifting[OF assms(1,3)]
-    by (auto simp: is_Status_def is_Pos_def is_Size_def is_LBD_def
+    by (auto simp: is_Status_def is_Pos_def is_Size_def
       is_Act_def header_size_def 45
-      slice_Suc_nth[of \<open>C - Suc (Suc (Suc (Suc (Suc 0))))\<close>]
       slice_Suc_nth[of \<open>C - Suc (Suc (Suc (Suc 0)))\<close>]
       slice_Suc_nth[of \<open>C - Suc (Suc (Suc 0))\<close>]
       slice_Suc_nth[of \<open>C - Suc (Suc 0)\<close>]
@@ -301,7 +301,7 @@ lemma fm_mv_clause_to_new_arena:
         (insert (length new_arena + header_size (N \<propto> C)) vd'))\<close>
 proof -
   define st and en where
-    \<open>st = C - (if arena_length old_arena C \<le> 4 then 4 else 5)\<close> and
+    \<open>st = C - (if arena_length old_arena C \<le> 4 then MIN_HEADER_SIZE else MAX_HEADER_SIZE)\<close> and
     \<open>en = C + arena_length old_arena C\<close>
   have st:
     \<open>st = C - header_size (N \<propto> C)\<close>

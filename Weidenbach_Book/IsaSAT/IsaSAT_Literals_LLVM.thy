@@ -49,8 +49,8 @@ lemma hn_case_prod_open'[sepref_comb_rules]:
     \<Longrightarrow> hn_refine (hn_ctxt P1 a1' a1 ** hn_ctxt P2 a2' a2 ** \<Gamma>1) (f a1 a2)
           (\<Gamma>2 a1 a2 a1' a2') R (f' a1' a2')"
   assumes FR2: \<open>\<And>a1 a2 a1' a2'. \<Gamma>2 a1 a2 a1' a2' \<turnstile> hn_ctxt P1' a1' a1 ** hn_ctxt P2' a2' a2 ** \<Gamma>1'\<close>
-  shows "hn_refine \<Gamma> (case_prod_open f p) (hn_ctxt (prod_assn P1' P2') p' p ** \<Gamma>1')
-                   R (case_prod_open$(\<lambda>\<^sub>2a b. f' a b)$p')\<open> (is \<close>?G \<Gamma>")
+  shows \<open>hn_refine \<Gamma> (case_prod_open f p) (hn_ctxt (prod_assn P1' P2') p' p ** \<Gamma>1')
+                   R (case_prod_open$(\<lambda>\<^sub>2a b. f' a b)$p')\<close> (is \<open>?G \<Gamma>\<close>)
   unfolding autoref_tag_defs PROTECT2_def
   apply1 (rule hn_refine_cons_pre[OF FR])
   apply1 (cases p; cases p'; simp add: prod_assn_pair_conv[THEN prod_assn_ctxt])
@@ -72,15 +72,15 @@ lemmas fold_tuples = tuple4_def[symmetric] tuple7_def[symmetric] tuple13_def[sym
 
 sepref_register tuple4 tuple7 tuple13
 
-sepref_def \<open>tuple4_impl\<close> [llvm_inline] is \<open>uncurry3 (RETURN oooo tuple4)\<close> ::
+sepref_def tuple4_impl [llvm_inline] is \<open>uncurry3 (RETURN oooo tuple4)\<close> ::
   \<open>A1\<^sup>d *\<^sub>a A2\<^sup>d *\<^sub>a A3\<^sup>d *\<^sub>a A4\<^sup>d \<rightarrow>\<^sub>a A1 \<times>\<^sub>a A2 \<times>\<^sub>a A3 \<times>\<^sub>a A4\<close>
   unfolding tuple4_def by sepref
 
-sepref_def \<open>tuple7_impl\<close> [llvm_inline] is \<open>uncurry6 (RETURN ooooooo tuple7)\<close> ::
+sepref_def tuple7_impl [llvm_inline] is \<open>uncurry6 (RETURN ooooooo tuple7)\<close> ::
   \<open>A1\<^sup>d *\<^sub>a A2\<^sup>d *\<^sub>a A3\<^sup>d *\<^sub>a A4\<^sup>d *\<^sub>a A5\<^sup>d *\<^sub>a A6\<^sup>d *\<^sub>a A7\<^sup>d \<rightarrow>\<^sub>a A1 \<times>\<^sub>a A2 \<times>\<^sub>a A3 \<times>\<^sub>a A4 \<times>\<^sub>a A5 \<times>\<^sub>a A6 \<times>\<^sub>a A7\<close>
   unfolding tuple7_def by sepref
 
-sepref_def \<open>tuple13_impl\<close> [llvm_inline] is \<open>uncurry12 (RETURN o\<^sub>1\<^sub>3 tuple13)\<close> ::
+sepref_def tuple13_impl [llvm_inline] is \<open>uncurry12 (RETURN o\<^sub>1\<^sub>3 tuple13)\<close> ::
   "A1\<^sup>d *\<^sub>a A2\<^sup>d *\<^sub>a A3\<^sup>d *\<^sub>a A4\<^sup>d *\<^sub>a A5\<^sup>d *\<^sub>a A6\<^sup>d *\<^sub>a A7\<^sup>d *\<^sub>a A8\<^sup>d *\<^sub>a A9\<^sup>d *\<^sub>a A10\<^sup>d *\<^sub>a A11\<^sup>d *\<^sub>a A12\<^sup>d *\<^sub>a A13\<^sup>d
   \<rightarrow>\<^sub>a A1 \<times>\<^sub>a A2 \<times>\<^sub>a A3 \<times>\<^sub>a A4 \<times>\<^sub>a A5 \<times>\<^sub>a A6 \<times>\<^sub>a A7 \<times>\<^sub>a A8 \<times>\<^sub>a A9 \<times>\<^sub>a A10 \<times>\<^sub>a A11 \<times>\<^sub>a A12 \<times>\<^sub>a A13"
   unfolding tuple13_def by sepref

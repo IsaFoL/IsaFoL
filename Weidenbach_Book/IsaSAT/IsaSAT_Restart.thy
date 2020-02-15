@@ -162,7 +162,7 @@ proof -
     by (auto simp: twl_st_heur'_def)
   have H: \<open>(xb, x'a)
     \<in> bool_rel \<times>\<^sub>f
-      twl_st_heur'''' (length (get_clauses_wl_heur x1e) + 6 + uint32_max div 2) \<Longrightarrow>
+      twl_st_heur'''' (length (get_clauses_wl_heur x1e) + MAX_HEADER_SIZE+1 + uint32_max div 2) \<Longrightarrow>
     x'a = (x1f, x2f) \<Longrightarrow>
     xb = (x1g, x2g) \<Longrightarrow>
     (x1g, x1f) \<in> bool_rel \<Longrightarrow>
@@ -257,7 +257,7 @@ lemma mark_to_delete_clauses_wl_D_heur_is_Some_iff:
   by auto
 
 lemma (in -) isasat_fast_alt_def:
-  \<open>RETURN o isasat_fast = (\<lambda>(M, N, _). RETURN (length N \<le> sint64_max - (uint32_max div 2 + 6)))\<close>
+  \<open>RETURN o isasat_fast = (\<lambda>(M, N, _). RETURN (length N \<le> sint64_max - (uint32_max div 2 + 5)))\<close>
   unfolding isasat_fast_def
   by (auto intro!:ext)
 
@@ -339,7 +339,7 @@ proof -
     by (auto simp: twl_st_heur'_def)
   have H: \<open>(xb, x'a)
     \<in> bool_rel \<times>\<^sub>f
-      twl_st_heur'''' (length (get_clauses_wl_heur x1e) + 6 + uint32_max div 2) \<Longrightarrow>
+      twl_st_heur'''' (length (get_clauses_wl_heur x1e) + MAX_HEADER_SIZE+1 + uint32_max div 2) \<Longrightarrow>
     x'a = (x1f, x2f) \<Longrightarrow>
     xb = (x1g, x2g) \<Longrightarrow>
     (x1g, x1f) \<in> bool_rel \<Longrightarrow>

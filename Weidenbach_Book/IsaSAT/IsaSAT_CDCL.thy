@@ -44,7 +44,7 @@ proof -
       apply (drule spec[of _ x])
       apply (drule spec[of _ y])
       apply simp
-      apply (rule \<open>weaken_\<Down>'\<close>[of _ \<open>twl_st_heur'' (dom_m (get_clauses_wl y))
+      apply (rule "weaken_\<Down>'"[of _ \<open>twl_st_heur'' (dom_m (get_clauses_wl y))
          (length (get_clauses_wl_heur x))\<close>])
       apply (fastforce simp: twl_st_heur'_def)+
       done
@@ -70,7 +70,7 @@ proof -
       apply (drule spec[of _ x])
       apply (drule spec[of _ y])
       apply simp
-      apply (rule \<open>weaken_\<Down>'\<close>[of _ \<open>twl_st_heur''' (length (get_clauses_wl_heur x))\<close>])
+      apply (rule "weaken_\<Down>'"[of _ \<open>twl_st_heur''' (length (get_clauses_wl_heur x))\<close>])
       apply (fastforce simp: twl_st_heur'_def)+
       done
     done
@@ -95,7 +95,7 @@ proof -
       apply (drule spec[of _ x])
       apply (drule spec[of _ y])
       apply simp
-      apply (rule \<open>weaken_\<Down>'\<close>[of _ \<open>A \<times>\<^sub>r twl_st_heur''' (length (get_clauses_wl_heur x))\<close>])
+      apply (rule "weaken_\<Down>'"[of _ \<open>A \<times>\<^sub>r twl_st_heur''' (length (get_clauses_wl_heur x))\<close>])
       apply (fastforce simp: twl_st_heur'_def)+
       done
     done
@@ -105,7 +105,7 @@ lemma cdcl_twl_o_prog_wl_D_heur_cdcl_twl_o_prog_wl_D:
   \<open>(cdcl_twl_o_prog_wl_D_heur, cdcl_twl_o_prog_wl) \<in>
    {(S, T). (S, T) \<in> twl_st_heur \<and> length (get_clauses_wl_heur S) = r} \<rightarrow>\<^sub>f
      \<langle>bool_rel \<times>\<^sub>f {(S, T). (S, T) \<in> twl_st_heur \<and>
-        length (get_clauses_wl_heur S) \<le> r + 6 + uint32_max div 2}\<rangle>nres_rel\<close>
+        length (get_clauses_wl_heur S) \<le> r + MAX_HEADER_SIZE+1 + uint32_max div 2}\<rangle>nres_rel\<close>
 proof -
   have H: \<open>(x, y) \<in> {(S, T).
                (S, T) \<in> twl_st_heur \<and>

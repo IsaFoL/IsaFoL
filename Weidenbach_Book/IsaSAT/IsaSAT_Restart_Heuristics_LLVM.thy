@@ -389,11 +389,11 @@ lemma isasat_GC_clauses_prog_copy_wl_entry_alt_def:
         let st = arena_status N C;
         if st \<noteq> DELETED then do {
           ASSERT(arena_is_valid_clause_idx N C);
-          ASSERT(length N' + (if arena_length N C > 4 then 5 else 4) + arena_length N C \<le> length N0);
+          ASSERT(length N' + (if arena_length N C > 4 then MAX_HEADER_SIZE else MIN_HEADER_SIZE) + arena_length N C \<le> length N0);
           ASSERT(length N = length N0);
           ASSERT(length vdm < length N0);
           ASSERT(length avdm < length N0);
-          let D = length N' + (if arena_length N C > 4 then 5 else 4);
+          let D = length N' + (if arena_length N C > 4 then MAX_HEADER_SIZE else MIN_HEADER_SIZE);
           N' \<leftarrow> fm_mv_clause_to_new_arena C N N';
           ASSERT(mark_garbage_pre (N, C));
 	  RETURN (i+1, extra_information_mark_to_delete N C, N', vdm @ [D],

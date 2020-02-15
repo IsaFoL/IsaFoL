@@ -609,7 +609,7 @@ text \<open>
   following condition:
 \<close>
 definition isasat_fast :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close> where
-  \<open>isasat_fast S \<longleftrightarrow> (length (get_clauses_wl_heur S) \<le> sint64_max - (uint32_max div 2 + 6))\<close>
+  \<open>isasat_fast S \<longleftrightarrow> (length (get_clauses_wl_heur S) \<le> sint64_max - (uint32_max div 2 + 5))\<close>
 
 lemma isasat_fast_length_leD: \<open>isasat_fast S \<Longrightarrow> length (get_clauses_wl_heur S) \<le> sint64_max\<close>
   by (cases S) (auto simp: isasat_fast_def)
@@ -1128,7 +1128,7 @@ lemma length_watched_le:
     prop_inv: \<open>correct_watching x1\<close> and
     xb_x'a: \<open>(x1a, x1) \<in> twl_st_heur'' \<D>1 r\<close> and
     x2: \<open>x2 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st x1)\<close>
-  shows \<open>length (watched_by x1 x2) \<le> r - 4\<close>
+  shows \<open>length (watched_by x1 x2) \<le> r - 3\<close>
 proof -
   have dist: \<open>distinct_watched (watched_by x1 x2)\<close>
     using prop_inv x2 unfolding all_atms_def all_lits_def
@@ -1165,10 +1165,10 @@ proof -
     by (rule distinct_subseteq_iff[THEN iffD1])
       (use dist[unfolded distinct_watched_alt_def] dist_vdom subset in
          \<open>simp_all flip: distinct_mset_mset_distinct\<close>)
-  have vdom_incl: \<open>set (get_vdom x1a) \<subseteq> {4..< length (get_clauses_wl_heur x1a)}\<close>
+  have vdom_incl: \<open>set (get_vdom x1a) \<subseteq> {3..< length (get_clauses_wl_heur x1a)}\<close>
     using valid_arena_in_vdom_le_arena[OF valid] arena_dom_status_iff[OF valid] by auto
 
-  have \<open>length (get_vdom x1a) \<le> length (get_clauses_wl_heur x1a) - 4\<close>
+  have \<open>length (get_vdom x1a) \<le> length (get_clauses_wl_heur x1a) - 3\<close>
     by (subst distinct_card[OF dist_vdom, symmetric])
       (use card_mono[OF _ vdom_incl] in auto)
   then show ?thesis
@@ -1181,7 +1181,7 @@ lemma length_watched_le2:
     prop_inv: \<open>correct_watching_except i j L x1\<close> and
     xb_x'a: \<open>(x1a, x1) \<in> twl_st_heur'' \<D>1 r\<close> and
     x2: \<open>x2 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st x1)\<close> and diff: \<open>L \<noteq> x2\<close>
-  shows \<open>length (watched_by x1 x2) \<le> r - 4\<close>
+  shows \<open>length (watched_by x1 x2) \<le> r - 3\<close>
 proof -
   from prop_inv diff have dist: \<open>distinct_watched (watched_by x1 x2)\<close>
     using x2 unfolding all_atms_def all_lits_def
@@ -1216,10 +1216,10 @@ proof -
     by (rule distinct_subseteq_iff[THEN iffD1])
       (use dist[unfolded distinct_watched_alt_def] dist_vdom subset in
          \<open>simp_all flip: distinct_mset_mset_distinct\<close>)
-  have vdom_incl: \<open>set (get_vdom x1a) \<subseteq> {4..< length (get_clauses_wl_heur x1a)}\<close>
+  have vdom_incl: \<open>set (get_vdom x1a) \<subseteq> {3..< length (get_clauses_wl_heur x1a)}\<close>
     using valid_arena_in_vdom_le_arena[OF valid] arena_dom_status_iff[OF valid] by auto
 
-  have \<open>length (get_vdom x1a) \<le> length (get_clauses_wl_heur x1a) - 4\<close>
+  have \<open>length (get_vdom x1a) \<le> length (get_clauses_wl_heur x1a) - 3\<close>
     by (subst distinct_card[OF dist_vdom, symmetric])
       (use card_mono[OF _ vdom_incl] in auto)
   then show ?thesis

@@ -843,7 +843,7 @@ lemma pos_of_watched_heur:
 definition unit_propagation_inner_loop_wl_loop_D_heur_inv0 where
   \<open>unit_propagation_inner_loop_wl_loop_D_heur_inv0 L =
    (\<lambda>(j, w, S'). \<exists>S. (S', S) \<in> twl_st_heur \<and> unit_propagation_inner_loop_wl_loop_inv L (j, w, S) \<and>
-      length (watched_by S L) \<le> length (get_clauses_wl_heur S') - 4)\<close>
+      length (watched_by S L) \<le> length (get_clauses_wl_heur S') - MIN_HEADER_SIZE)\<close>
 
 definition other_watched_wl_heur :: \<open>twl_st_wl_heur \<Rightarrow> nat literal \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat literal nres\<close> where
 \<open>other_watched_wl_heur S L C i = do {
@@ -1231,7 +1231,7 @@ definition update_blit_wl_heur_pre where
       intro!: ASSERT_leI ASSERT_refine_right
       simp: vdom_m_update_subset)
   subgoal for aa ab ac ad ae be af ag ah bf aj ak al am an bg ao bh ap aq ar bi at bl
-       bm bn bo bp bq br bs bt bu bv bw bx _ _ _ _ _ _ _ _ \<open>by\<close> bz ca cb ci cj ck cl cm cn co
+       bm bn bo bp bq br bs bt bu bv bw bx _ _ _ _ _ _ _ _"by" bz ca cb ci cj ck cl cm cn co
        cq cr cs ct cv y x
     apply (subgoal_tac \<open>vdom_m (all_atms co (cq + cr + cs + ct))
           (cv(K := (cv K)[ck := (ci, cm, cj)])) co \<subseteq>
@@ -1241,7 +1241,7 @@ definition update_blit_wl_heur_pre where
     apply auto
     done
   subgoal for aa ab ac ad ae be af ag ah bf ai aj ak al am an bg ao bh ap aq ar bi at
-       bl bm bn bo bp bq br bs bt bu bv bw bx _ _ _ _ _ _ _ _ \<open>by\<close> bz ca cb ci cj ck cl cm cn
+       bl bm bn bo bp bq br bs bt bu bv bw bx _ _ _ _ _ _ _ _ "by" bz ca cb ci cj ck cl cm cn
        co cp cq cr cs ct cv x
     apply (subgoal_tac \<open>vdom_m (all_atms co (cq + cr + cs + ct))
          (cv(K := (cv K)[ck := (ci, cm, cj)])) co \<subseteq>
@@ -1356,7 +1356,7 @@ lemma unit_propagation_inner_loop_body_wl_alt_def:
 lemma unit_propagation_inner_loop_body_wl_heur_unit_propagation_inner_loop_body_wl_D:
   \<open>(uncurry3 unit_propagation_inner_loop_body_wl_heur,
     uncurry3 unit_propagation_inner_loop_body_wl)
-    \<in> [\<lambda>(((L, i), j), S). length (watched_by S L) \<le> r - 4 \<and> L = K \<and>
+    \<in> [\<lambda>(((L, i), j), S). length (watched_by S L) \<le> r - MIN_HEADER_SIZE \<and> L = K \<and>
         length (watched_by S L) = s]\<^sub>f
       nat_lit_lit_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f twl_st_heur_up'' \<D> r s K \<rightarrow>
      \<langle>nat_rel \<times>\<^sub>r nat_rel \<times>\<^sub>r twl_st_heur_up'' \<D> r s K\<rangle>nres_rel\<close>
@@ -1500,7 +1500,7 @@ where
 lemma unit_propagation_inner_loop_wl_loop_D_heur_unit_propagation_inner_loop_wl_loop_D:
   \<open>(uncurry unit_propagation_inner_loop_wl_loop_D_heur,
        uncurry unit_propagation_inner_loop_wl_loop)
-   \<in> [\<lambda>(L, S). length (watched_by S L) \<le> r - 4 \<and> L = K \<and> length (watched_by S L) = s \<and>
+   \<in> [\<lambda>(L, S). length (watched_by S L) \<le> r - MIN_HEADER_SIZE \<and> L = K \<and> length (watched_by S L) = s \<and>
          length (watched_by S L) \<le> r]\<^sub>f
      nat_lit_lit_rel \<times>\<^sub>f twl_st_heur_up'' \<D> r s K \<rightarrow>
      \<langle>nat_rel \<times>\<^sub>r nat_rel \<times>\<^sub>r twl_st_heur_up'' \<D> r s K\<rangle>nres_rel\<close>
@@ -1535,7 +1535,7 @@ proof -
   have length: \<open>\<And>x y x1 x2 x1a x2a.
        case y of
        (L, S) \<Rightarrow>
-         length (watched_by S L) \<le> r - 4 \<and>
+         length (watched_by S L) \<le> r - MIN_HEADER_SIZE \<and>
          L = K \<and> length (watched_by S L) = s \<and> length (watched_by S L) \<le> r \<Longrightarrow>
        (x, y) \<in> nat_lit_lit_rel \<times>\<^sub>f twl_st_heur_up'' \<D> r s K \<Longrightarrow>  y = (x1, x2) \<Longrightarrow>
        x = (x1a, x2a) \<Longrightarrow>
@@ -1841,20 +1841,20 @@ definition unit_propagation_inner_loop_wl_D_heur
   :: \<open>nat literal \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
   \<open>unit_propagation_inner_loop_wl_D_heur L S\<^sub>0 = do {
      (j, w, S) \<leftarrow> unit_propagation_inner_loop_wl_loop_D_heur L S\<^sub>0;
-     ASSERT(length (watched_by_int S L) \<le> length (get_clauses_wl_heur S\<^sub>0) - 4);
+     ASSERT(length (watched_by_int S L) \<le> length (get_clauses_wl_heur S\<^sub>0) - MIN_HEADER_SIZE);
      cut_watch_list_heur2 j w L S
   }\<close>
 
 lemma unit_propagation_inner_loop_wl_D_heur_unit_propagation_inner_loop_wl_D:
   \<open>(uncurry unit_propagation_inner_loop_wl_D_heur, uncurry unit_propagation_inner_loop_wl) \<in>
-    [\<lambda>(L, S). length(watched_by S L) \<le> r-4]\<^sub>f
+    [\<lambda>(L, S). length(watched_by S L) \<le> r-MIN_HEADER_SIZE]\<^sub>f
     nat_lit_lit_rel \<times>\<^sub>f twl_st_heur'' \<D> r \<rightarrow> \<langle>twl_st_heur'' \<D> r\<rangle> nres_rel\<close>
 proof -
-  have length_le: \<open>length (watched_by x2b x1b) \<le> r - 4\<close> and
+  have length_le: \<open>length (watched_by x2b x1b) \<le> r - MIN_HEADER_SIZE\<close> and
     length_eq: \<open>length (watched_by x2b x1b) = length (watched_by (snd y) (fst y))\<close> and
     eq: \<open>x1b = fst y\<close>
     if
-      \<open>case y of (L, S) \<Rightarrow> length (watched_by S L) \<le> r-4\<close> and
+      \<open>case y of (L, S) \<Rightarrow> length (watched_by S L) \<le> r-MIN_HEADER_SIZE\<close> and
       \<open>(x, y) \<in> nat_lit_lit_rel \<times>\<^sub>f twl_st_heur'' \<D> r\<close> and
       \<open>y = (x1, x2)\<close> and
       \<open>x = (x1a, x2a)\<close> and
@@ -1963,7 +1963,7 @@ lemma outer_loop_length_watched_le_length_arena:
       \<open>xb = (x1a, x2a)\<close> and
     x2: \<open>x2 \<in># all_lits_st x1\<close> and
     st': \<open>(x2, x1) = (x1b, x2b)\<close>
-  shows \<open>length (watched_by x2b x1b) \<le> r-4\<close>
+  shows \<open>length (watched_by x2b x1b) \<le> r-3\<close>
 proof -
   have \<open>correct_watching x'\<close>
     using prop_inv unfolding unit_propagation_outer_loop_wl_inv_def
@@ -2005,10 +2005,10 @@ proof -
     by (rule distinct_subseteq_iff[THEN iffD1])
       (use dist[unfolded distinct_watched_alt_def] dist_vdom subset in
          \<open>simp_all flip: distinct_mset_mset_distinct\<close>)
-  have vdom_incl: \<open>set (get_vdom x1a) \<subseteq> {4..< length (get_clauses_wl_heur xa)}\<close>
+  have vdom_incl: \<open>set (get_vdom x1a) \<subseteq> {3..< length (get_clauses_wl_heur xa)}\<close>
     using valid_arena_in_vdom_le_arena[OF valid] arena_dom_status_iff[OF valid] by auto
 
-  have \<open>length (get_vdom x1a) \<le> length (get_clauses_wl_heur xa) - 4\<close>
+  have \<open>length (get_vdom x1a) \<le> length (get_clauses_wl_heur xa) - 3\<close>
     by (subst distinct_card[OF dist_vdom, symmetric])
       (use card_mono[OF _ vdom_incl] in auto)
   then show ?thesis
@@ -2052,7 +2052,7 @@ proof -
     apply (simp only: fref_def twl_st_heur'_def nres_rel_def in_pair_collect_simp)
     apply (intro conjI impI allI)
     subgoal for x y
-      apply (rule \<open>weaken_\<Down>'\<close>[of _ \<open>twl_st_heur' (dom_m (get_clauses_wl y))\<close>])
+      apply (rule "weaken_\<Down>'"[of _ \<open>twl_st_heur' (dom_m (get_clauses_wl y))\<close>])
       apply (fastforce simp: twl_st_heur'_def)+
       done
     done

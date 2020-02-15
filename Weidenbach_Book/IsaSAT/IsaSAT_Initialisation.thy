@@ -1897,7 +1897,7 @@ lemma finalise_init_finalise_init:
   subgoal for x y
     using finalise_init_finalise_init_full[of \<open>snd y\<close> \<open>fst x\<close> \<open>snd x\<close> \<open>fst y\<close>]
     by (cases x; cases y)
-      (auto intro: \<open>weaken_\<Down>'\<close>)
+      (auto intro: "weaken_\<Down>'")
   done
 
 definition (in -) init_rll :: \<open>nat \<Rightarrow> (nat, 'v clause_l \<times> bool) fmap\<close> where

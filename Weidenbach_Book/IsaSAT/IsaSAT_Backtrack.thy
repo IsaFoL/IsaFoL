@@ -813,7 +813,7 @@ lemma length_watched_le:
     prop_inv: \<open>correct_watching x1\<close> and
     xb_x'a: \<open>(x1a, x1) \<in> twl_st_heur_conflict_ana\<close> and
     x2: \<open>x2 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st x1)\<close>
-  shows \<open>length (watched_by x1 x2) \<le> length (get_clauses_wl_heur x1a) - 2\<close>
+  shows \<open>length (watched_by x1 x2) \<le> length (get_clauses_wl_heur x1a) - MIN_HEADER_SIZE\<close>
 proof -
   have \<open>correct_watching x1\<close>
     using prop_inv unfolding unit_propagation_outer_loop_wl_inv_def
@@ -854,10 +854,10 @@ proof -
     by (rule distinct_subseteq_iff[THEN iffD1])
       (use dist[unfolded distinct_watched_alt_def] dist_vdom subset in
          \<open>simp_all flip: distinct_mset_mset_distinct\<close>)
-  have vdom_incl: \<open>set (get_vdom x1a) \<subseteq> {4..< length (get_clauses_wl_heur x1a)}\<close>
+  have vdom_incl: \<open>set (get_vdom x1a) \<subseteq> {3..< length (get_clauses_wl_heur x1a)}\<close>
     using valid_arena_in_vdom_le_arena[OF valid] arena_dom_status_iff[OF valid] by auto
 
-  have \<open>length (get_vdom x1a) \<le> length (get_clauses_wl_heur x1a) - 4\<close>
+  have \<open>length (get_vdom x1a) \<le> length (get_clauses_wl_heur x1a) - MIN_HEADER_SIZE\<close>
     by (subst distinct_card[OF dist_vdom, symmetric])
       (use card_mono[OF _ vdom_incl] in auto)
   then show ?thesis
@@ -880,7 +880,7 @@ lemma length_list_ge2: \<open>length S \<ge> 2 \<longleftrightarrow> (\<exists>a
 lemma backtrack_wl_D_nlit_backtrack_wl_D:
   \<open>(backtrack_wl_D_nlit_heur, backtrack_wl) \<in>
   {(S, T). (S, T) \<in> twl_st_heur_conflict_ana \<and> length (get_clauses_wl_heur S) = r} \<rightarrow>\<^sub>f
-  \<langle>{(S, T). (S, T) \<in> twl_st_heur \<and> length (get_clauses_wl_heur S) \<le> 6 + r + uint32_max div 2}\<rangle>nres_rel\<close>
+  \<langle>{(S, T). (S, T) \<in> twl_st_heur \<and> length (get_clauses_wl_heur S) \<le> MAX_HEADER_SIZE+1 + r + uint32_max div 2}\<rangle>nres_rel\<close>
   (is \<open>_ \<in> ?R \<rightarrow>\<^sub>f \<langle>?S\<rangle>nres_rel\<close>)
 proof -
   have backtrack_wl_D_nlit_heur_alt_def: \<open>backtrack_wl_D_nlit_heur S\<^sub>0 =
@@ -2065,7 +2065,7 @@ proof -
       unfolding mop_save_phase_heur_def
       by (auto intro!: ASSERT_leI save_phase_heur_preI simp: U' S')
 
-    have arena_le: \<open>length arena + header_size C + length C \<le> 6 + r + uint32_max div 2\<close>
+    have arena_le: \<open>length arena + header_size C + length C \<le> MAX_HEADER_SIZE+1 + r + uint32_max div 2\<close>
       using r r' le_C_ge by (auto simp: uint32_max_def header_size_def S' U)
     have vm: \<open>vm \<in> isa_vmtf (all_atms N (NE + UE)) M1 \<Longrightarrow>
        vm \<in> isa_vmtf (all_atms N (NE + UE)) (Propagated (- lit_of (hd M)) x2a # M1)\<close> for x2a vm
@@ -2470,7 +2470,7 @@ proof -
                \<in> {(S, T).
                   (S, T) \<in> twl_st_heur \<and>
                   length (get_clauses_wl_heur S)
-                  \<le> 6 + r + uint32_max div 2})\<close> for xb x'
+                  \<le> MAX_HEADER_SIZE+1 + r + uint32_max div 2})\<close> for xb x'
     unfolding save_phase_st_def
     apply (refine_vcg save_phase_heur_spec[THEN order_trans, of \<open>all_atms_st x'\<close>])
     subgoal

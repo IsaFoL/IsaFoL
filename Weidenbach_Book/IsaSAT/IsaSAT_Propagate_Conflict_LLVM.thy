@@ -49,7 +49,7 @@ sepref_def unit_propagation_inner_loop_wl_loop_D_fast
   apply (annot_snat_const \<open>TYPE (64)\<close>)
   by sepref
 
-lemma le_uint64_max_minus_4_uint64_max: \<open>a \<le> sint64_max - 4 \<Longrightarrow> Suc a < max_snat 64\<close>
+lemma le_uint64_max_minus_4_uint64_max: \<open>a \<le> sint64_max - MIN_HEADER_SIZE \<Longrightarrow> Suc a < max_snat 64\<close>
   by (auto simp: sint64_max_def max_snat_def)
 
 definition cut_watch_list_heur2_inv where
@@ -75,13 +75,13 @@ lemma cut_watch_list_heur2_alt_def:
   by auto
 
 lemma cut_watch_list_heur2I:
-  \<open>length (a1'd ! nat_of_lit baa) \<le> sint64_max - 4 \<Longrightarrow>
+  \<open>length (a1'd ! nat_of_lit baa) \<le> sint64_max - MIN_HEADER_SIZE \<Longrightarrow>
        cut_watch_list_heur2_inv baa (length (a1'd ! nat_of_lit baa))
         (a1'e, a1'f, a2'f) \<Longrightarrow>
        a1'f < length_ll a2'f (nat_of_lit baa) \<Longrightarrow>
        ez \<le> bba \<Longrightarrow>
        Suc a1'e < max_snat 64\<close>
-  \<open>length (a1'd ! nat_of_lit baa) \<le> sint64_max - 4 \<Longrightarrow>
+  \<open>length (a1'd ! nat_of_lit baa) \<le> sint64_max - MIN_HEADER_SIZE \<Longrightarrow>
        cut_watch_list_heur2_inv baa (length (a1'd ! nat_of_lit baa))
         (a1'e, a1'f, a2'f) \<Longrightarrow>
        a1'f < length_ll a2'f (nat_of_lit baa) \<Longrightarrow>
@@ -96,7 +96,7 @@ lemma cut_watch_list_heur2I:
 
 sepref_def cut_watch_list_heur2_fast_code
   is \<open>uncurry3 cut_watch_list_heur2\<close>
-  :: \<open>[\<lambda>(((j, w), L), S). length (watched_by_int S L) \<le> sint64_max-4]\<^sub>a
+  :: \<open>[\<lambda>(((j, w), L), S). length (watched_by_int S L) \<le> sint64_max-MIN_HEADER_SIZE]\<^sub>a
      sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a
      isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   supply [[goals_limit=1]] cut_watch_list_heur2I[intro] length_ll_def[simp]

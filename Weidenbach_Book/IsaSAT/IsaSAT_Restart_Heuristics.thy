@@ -405,7 +405,7 @@ proof -
 	    (find_decomp_w_ns (all_atms_st (bt, bu, bv, bw, bx, NS, US, by, bz)) bt lvl vm0) \<Longrightarrow> P)\<close>
     for a aa ab ac ad b ae af ag ba ah ai aj ak al am bb an bc ao aq bd ar as at'
        au av aw be ax ay az bf bg bh bi bj bk bl bm bn bo bp bq br bs bt bu bv
-       bw bx \<open>by\<close> bz lvl i x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f
+       bw bx "by" bz lvl i x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f
        x1g x2g x1h x2h x1i x2i P NS US heur
   proof -
     let ?\<A> = \<open>all_atms_st (bt, bu, bv, bw, bx, NS, US, by, bz)\<close>
@@ -489,7 +489,7 @@ proof -
       apply assumption
     subgoal for a aa ab ac ad b ae af ag ba ah ai aj ak al am bb an bc ao ap bd aq ar
        as at au av aw ax ay be az bf bg bh bi bj bk bl bm bn bo bp bq br bs
-       bt bu bv bw bx _ _ \<open>by\<close> bz ca cb cc cd ce cf cg ch ci cj ck cl cm cn co cp
+       bt bu bv bw bx _ _ "by" bz ca cb cc cd ce cf cg ch ci cj ck cl cm cn co cp
        lvl i vm0
       unfolding RETURN_def RES_RES2_RETURN_RES RES_RES13_RETURN_RES find_decomp_w_ns_def conc_fun_RES
         RES_RES13_RETURN_RES K2 K
@@ -3548,11 +3548,13 @@ where
         let st = arena_status N C;
         if st \<noteq> DELETED then do {
           ASSERT(arena_is_valid_clause_idx N C);
-          ASSERT(length N' + (if arena_length N C > 4 then 5 else 4) + arena_length N C \<le> length N0);
+          ASSERT(length N' +
+            (if arena_length N C > 4 then MAX_HEADER_SIZE else MIN_HEADER_SIZE) +
+            arena_length N C \<le> length N0);
           ASSERT(length N = length N0);
           ASSERT(length vdm < length N0);
           ASSERT(length avdm < length N0);
-          let D = length N' + (if arena_length N C > 4 then 5 else 4);
+          let D = length N' + (if arena_length N C > 4 then MAX_HEADER_SIZE else MIN_HEADER_SIZE);
           N' \<leftarrow> fm_mv_clause_to_new_arena C N N';
           ASSERT(mark_garbage_pre (N, C));
 	  RETURN (i+1, extra_information_mark_to_delete N C, N', vdm @ [D],
@@ -3626,7 +3628,8 @@ proof -
 qed
 
 definition arena_header_size :: \<open>arena \<Rightarrow> nat \<Rightarrow> nat\<close> where
-\<open>arena_header_size arena C = (if arena_length arena C > 4 then 5 else 4)\<close>
+\<open>arena_header_size arena C =
+    (if arena_length arena C > 4 then MAX_HEADER_SIZE else MIN_HEADER_SIZE)\<close>
 
 lemma valid_arena_header_size:
   \<open>valid_arena arena N vdom \<Longrightarrow> C \<in># dom_m N \<Longrightarrow> arena_header_size arena C = header_size (N \<propto> C)\<close>
@@ -4020,7 +4023,7 @@ proof
     by (rule distinct_subseteq_iff[THEN iffD1])
       (use dist[unfolded distinct_watched_alt_def] dist_vdom subset in
          \<open>simp_all flip: distinct_mset_mset_distinct\<close>)
-  have vdom_incl: \<open>set (get_vdom x1a) \<subseteq> {4..< length (get_clauses_wl_heur x1a)}\<close>
+  have vdom_incl: \<open>set (get_vdom x1a) \<subseteq> {MIN_HEADER_SIZE..< length (get_clauses_wl_heur x1a)}\<close>
     using valid_arena_in_vdom_le_arena[OF valid] arena_dom_status_iff[OF valid] by auto
 
   have \<open>length (get_vdom x1a) \<le> length (get_clauses_wl_heur x1a)\<close>
@@ -4317,7 +4320,7 @@ abbreviation isasat_GC_clauses_rel where
            arena_is_packed (get_clauses_wl_heur S) (get_clauses_wl T)}\<close>
 
 lemma ref_two_step'': \<open>R \<subseteq> R' \<Longrightarrow> A \<le> B \<Longrightarrow> \<Down> R A \<le>  \<Down> R' B\<close>
-  by (simp add: \<open>weaken_\<Down>\<close> ref_two_step')
+  by (simp add: "weaken_\<Down>" ref_two_step')
 
 lemma isasat_GC_clauses_prog_wl_cdcl_remap_st:
   assumes
