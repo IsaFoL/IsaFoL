@@ -38,7 +38,7 @@ sepref_def length_clauses_heur_impl
 
 declare length_clauses_heur_impl.refine [sepref_fr_rules]
 
-lemma isasat_fast_alt_def: \<open>isasat_fast S = (length_clauses_heur S \<le> 9223372034707292155)\<close>
+lemma isasat_fast_alt_def: \<open>isasat_fast S = (length_clauses_heur S \<le> 9223372034707292156)\<close>
   by (auto simp: isasat_fast_def sint64_max_def uint32_max_def length_clauses_heur_def)
 
 sepref_def isasat_fast_impl

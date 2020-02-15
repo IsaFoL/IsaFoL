@@ -208,8 +208,6 @@ lemma update_confl_tl_wl_heur_alt_def:
       let nxs = lookup_conflict_remove1 L nxs;
       ASSERT(arena_act_pre N C);
       let N = mark_used N C;
-      ASSERT(arena_act_pre N C);
-      let N = arena_incr_act N C;
       ASSERT(vmtf_unset_pre L' vm);
       ASSERT(tl_trailt_tr_pre M);
       RETURN (False, (tl_trailt_tr M, N, (None_lookup_conflict b nxs), Q, W, isa_vmtf_unset L' vm,

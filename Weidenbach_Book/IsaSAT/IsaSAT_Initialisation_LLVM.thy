@@ -191,7 +191,6 @@ sepref_def append_and_length_fast_code
     fm_add_new_fast'_def op_list_list_llen_alt_def[symmetric] op_list_list_idx_alt_def[symmetric]
     is_short_clause_def header_size_def shorten_lbd_alt_def
   apply (rewrite at \<open>_ AND \<hole>\<close> unat_const_fold[where 'a=32])
-  apply (rewrite at \<open>AActivity \<hole>\<close> unat_const_fold[where 'a=32])+
   apply (rewrite at \<open>APos \<hole>\<close> unat_const_fold[where 'a=32])+
   apply (rewrite at \<open>op_list_list_llen _ _ - 2\<close> annot_snat_unat_downcast[where 'l=32])
   apply (annot_snat_const \<open>TYPE(64)\<close>)

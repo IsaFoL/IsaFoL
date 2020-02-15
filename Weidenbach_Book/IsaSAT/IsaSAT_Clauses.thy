@@ -69,8 +69,8 @@ definition fm_add_new where
     let st = (if b then AStatus IRRED False lbd else AStatus LEARNED False lbd);
     let l = length N0;
     let N = (if is_short_clause C then
-          (((N0 @ [st]) @ [AActivity 0])) @ [ASize s]
-          else ((((N0 @ [APos 0]) @ [st]) @ [AActivity 0])) @ [ASize (s)]);
+          (((N0 @ [st]))) @ [ASize s]
+          else ((((N0 @ [APos 0]) @ [st]))) @ [ASize (s)]);
     (i, N) \<leftarrow> WHILE\<^sub>T\<^bsup> \<lambda>(i, N). i < length C \<longrightarrow> length N < header_size C + length N0 + length C\<^esup>
       (\<lambda>(i, N). i < length C)
       (\<lambda>(i, N). do {
@@ -83,7 +83,7 @@ definition fm_add_new where
 
 lemma header_size_Suc_def:
   \<open>header_size C =
-    (if is_short_clause C then Suc (Suc (Suc 0)) else Suc (Suc (Suc (Suc 0))))\<close>
+    (if is_short_clause C then (Suc (Suc 0)) else (Suc (Suc (Suc 0))))\<close>
   unfolding header_size_def
   by auto
 
@@ -164,10 +164,9 @@ lemma fm_add_new_alt_def:
       let l = length N0;
       let N =
         (if is_short_clause C
-          then ((N0 @ [st]) @ [AActivity 0]) @
+          then ((N0 @ [st])) @
               [ASize s]
-          else (((N0 @ [APos 0]) @ [st]) @
-                [AActivity 0]) @
+          else (((N0 @ [APos 0]) @ [st])) @
               [ASize s]);
       (i, N) \<leftarrow>
         WHILE\<^sub>T\<^bsup> \<lambda>(i, N). i < length C \<longrightarrow> length N < header_size C + length N0 + length C\<^esup>
@@ -213,49 +212,41 @@ lemma valid_arena_append_clause_slice:
     (fmupd (length new_arena + header_size (N \<propto> C)) (N \<propto> C, irred N C) N')
     (insert (length new_arena + header_size (N \<propto> C)) vd')\<close>
 proof -
-  define pos st lbd act used where
+  define pos st lbd used where
     \<open>pos = (if is_long_clause (N \<propto> C) then arena_pos old_arena C - 2 else 0)\<close> and
     \<open>st = arena_status old_arena C\<close> and
     \<open>lbd = arena_lbd old_arena C\<close> and
-    \<open>act = arena_act old_arena C\<close> and
     \<open>used = arena_used old_arena C\<close>
   have \<open>2 \<le> length (N \<propto> C)\<close>
-    unfolding st_def used_def act_def lbd_def
+    unfolding st_def used_def lbd_def
       append_clause_skeleton_def arena_status_def
       xarena_status_def arena_used_def
-      arena_act_def xarena_used_def
-      xarena_act_def
-      arena_lbd_def xarena_lbd_def
-         unfolding st_def used_def act_def lbd_def
-      append_clause_skeleton_def arena_status_def
-      xarena_status_def arena_used_def
-      arena_act_def xarena_used_def
-      xarena_act_def pos_def arena_pos_def
-      xarena_pos_def
+      xarena_used_def
       arena_lbd_def xarena_lbd_def
     using arena_lifting[OF assms(1,3)]
-    by (auto simp: is_Status_def is_Pos_def is_Size_def is_Act_def)
+    by (auto simp: is_Status_def is_Pos_def is_Size_def)
   have
     45: \<open>4 = (Suc (Suc (Suc (Suc 0))))\<close>
      \<open>5 = Suc (Suc (Suc (Suc (Suc 0))))\<close>
      \<open>3 = (Suc (Suc (Suc 0)))\<close>
+     \<open>2 = (Suc (Suc 0))\<close>
     by auto
   have sl: \<open>clause_slice old_arena N C =
      (if is_long_clause (N \<propto> C) then [APos pos]
      else []) @
-     [AStatus st used lbd, AActivity act, ASize (length (N \<propto> C) - 2)] @
+     [AStatus st used lbd, ASize (length (N \<propto> C) - 2)] @
      map ALit (N \<propto> C)\<close>
-    unfolding st_def used_def act_def lbd_def
+    unfolding st_def used_def lbd_def
       append_clause_skeleton_def arena_status_def
       xarena_status_def arena_used_def
-      arena_act_def xarena_used_def
-      xarena_act_def pos_def arena_pos_def
+      xarena_used_def
+      pos_def arena_pos_def
       xarena_pos_def
       arena_lbd_def xarena_lbd_def
       arena_length_def xarena_length_def
     using arena_lifting[OF assms(1,3)]
     by (auto simp: is_Status_def is_Pos_def is_Size_def
-      is_Act_def header_size_def 45
+      header_size_def 45
       slice_Suc_nth[of \<open>C - Suc (Suc (Suc (Suc 0)))\<close>]
       slice_Suc_nth[of \<open>C - Suc (Suc (Suc 0))\<close>]
       slice_Suc_nth[of \<open>C - Suc (Suc 0)\<close>]
@@ -268,21 +259,21 @@ proof -
     \<open>pos \<le> length (N \<propto> C) - 2\<close> and
     \<open>st = IRRED \<longleftrightarrow> irred N C\<close> and
     \<open>st \<noteq> DELETED\<close>
-    unfolding st_def used_def act_def lbd_def pos_def
+    unfolding st_def used_def lbd_def pos_def
       append_clause_skeleton_def st_def
     using arena_lifting[OF assms(1,3)]
     by (cases \<open>is_short_clause (N \<propto> C)\<close>;
       auto split: arena_el.splits if_splits
         simp: header_size_def arena_pos_def; fail)+
 
-  then have \<open>valid_arena (append_clause_skeleton pos st used act lbd (N \<propto> C) new_arena)
+  then have \<open>valid_arena (append_clause_skeleton pos st used lbd (N \<propto> C) new_arena)
     (fmupd (length new_arena + header_size (N \<propto> C)) (N \<propto> C, irred N C) N')
     (insert (length new_arena + header_size (N \<propto> C)) vd')\<close>
     apply -
     by (rule valid_arena_append_clause_skeleton[OF assms(2), of \<open>N \<propto> C\<close> _ st
-      pos used act lbd]) auto
+      pos used lbd]) auto
   moreover have
-    \<open>append_clause_skeleton pos st used act lbd (N \<propto> C) new_arena =
+    \<open>append_clause_skeleton pos st used lbd (N \<propto> C) new_arena =
       new_arena @ clause_slice old_arena N C\<close>
     by (auto simp: append_clause_skeleton_def sl)
   ultimately show ?thesis

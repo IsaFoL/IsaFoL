@@ -211,8 +211,6 @@ sepref_def keep_watch_heur_fast_code
 
 sepref_register isa_set_lookup_conflict_aa set_conflict_wl_heur
 
-sepref_register arena_incr_act
-
 sepref_def set_conflict_wl_heur_fast_code
   is \<open>uncurry set_conflict_wl_heur\<close>
   :: \<open>[\<lambda>(C, S).

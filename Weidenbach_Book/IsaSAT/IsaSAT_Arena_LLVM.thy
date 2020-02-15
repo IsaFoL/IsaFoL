@@ -56,15 +56,6 @@ sepref_def xarena_lbd_impl [llvm_inline]
 
 lemmas [sepref_fr_rules] = xarena_lbd_impl.refine[FCOMP xarena_lbd_refine1]
 
-text \<open>Activity\<close>
-lemma xarena_act_refine1: \<open>(\<lambda>eli. eli, xarena_act) \<in> [is_Act]\<^sub>f arena_el_rel \<rightarrow> nat_rel\<close> by auto
-sepref_def xarena_act_impl [llvm_inline] is [] \<open>RETURN o (\<lambda>eli. eli)\<close> :: \<open>uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close> by sepref
-lemmas [sepref_fr_rules] = xarena_act_impl.refine[FCOMP xarena_act_refine1]
-
-lemma AAct_refine1: \<open>(\<lambda>x. x,AActivity) \<in> nat_rel \<rightarrow> arena_el_rel\<close> by auto
-sepref_def AAct_impl [llvm_inline] is [] \<open>RETURN o (\<lambda>x. x)\<close> :: \<open>uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close> by sepref
-lemmas [sepref_fr_rules] = AAct_impl.refine[FCOMP AAct_refine1]
-
 text \<open>Size\<close>
 lemma xarena_length_refine1: \<open>(\<lambda>eli. eli, xarena_length) \<in> [is_Size]\<^sub>f arena_el_rel \<rightarrow> nat_rel\<close> by auto
 sepref_def xarena_len_impl [llvm_inline] is [] \<open>RETURN o (\<lambda>eli. eli)\<close> :: \<open>uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close> by sepref
@@ -329,7 +320,7 @@ paragraph \<open>Status of the clause\<close>
 
 lemma arena_status_implI:
   assumes \<open>arena_is_valid_clause_vdom a b\<close>
-  shows \<open>3 \<le> b\<close> \<open>b - 3 < length a\<close> \<open>is_Status (a ! (b-3))\<close>
+  shows \<open>2 \<le> b\<close> \<open>b - 2 < length a\<close> \<open>is_Status (a ! (b-2))\<close>
   using assms STATUS_SHIFT_def arena_dom_status_iff
   unfolding arena_is_valid_clause_vdom_def
   by (auto dest: valid_arena_in_vdom_le_arena arena_lifting)
@@ -357,7 +348,7 @@ paragraph \<open>Get LBD\<close>
 
 lemma get_clause_LBD_pre_implI:
   assumes \<open>get_clause_LBD_pre a b\<close>
-  shows \<open>3 \<le> b\<close> \<open>b - 3 < length a\<close> \<open>is_Status (a ! (b-3))\<close>
+  shows \<open>2 \<le> b\<close> \<open>b - 2 < length a\<close> \<open>is_Status (a ! (b-2))\<close>
   using assms arena_dom_status_iff
   unfolding arena_is_valid_clause_vdom_def get_clause_LBD_pre_def
   apply (auto dest: valid_arena_in_vdom_le_arena simp: arena_lifting arena_is_valid_clause_idx_def)
@@ -388,19 +379,18 @@ paragraph \<open>Get Saved Position\<close>
 
 lemma arena_posI:
   assumes \<open>get_saved_pos_pre a b\<close>
-  shows \<open>4 \<le> b\<close>
+  shows \<open>3 \<le> b\<close>
   and \<open>b < length a\<close>
-  and \<open>is_Pos (a ! (b - 4))\<close>
+  and \<open>is_Pos (a ! (b - 3))\<close>
   using POS_SHIFT_def assms is_short_clause_def[of \<open>_ \<propto> b\<close>]
   apply (auto simp: get_saved_pos_pre_def arena_is_valid_clause_idx_def arena_lifting
      MAX_LENGTH_SHORT_CLAUSE_def[symmetric] arena_lifting(11) arena_lifting(4)
      simp del: MAX_LENGTH_SHORT_CLAUSE_def)
-  using arena_lifting(1) arena_lifting(4) header_size_def apply fastforce
-  by (simp add: arena_lifting(11) arena_lifting(4))
+  using arena_lifting(1) arena_lifting(4) header_size_def by fastforce
 
 lemma arena_pos_alt:
   \<open>arena_pos arena i = (
-    let l = xarena_pos (arena!(i - snat_const TYPE(64) 4))
+    let l = xarena_pos (arena!(i - snat_const TYPE(64) 3))
     in snat_const TYPE(64) 2 + op_unat_snat_upcast TYPE(64) l)\<close>
   by (simp add: arena_pos_def POS_SHIFT_def)
 
@@ -416,8 +406,8 @@ paragraph \<open>Update LBD\<close>
 
 lemma update_lbdI:
   assumes \<open>update_lbd_pre ((b, lbd), a)\<close>
-  shows \<open>3 \<le> b\<close>
-  and \<open>b -3 < length a\<close>
+  shows \<open>2 \<le> b\<close>
+  and \<open>b -2 < length a\<close>
   and \<open>arena_is_valid_clause_vdom a b\<close>
   and \<open>get_clause_LBD_pre a b\<close>
   using LBD_SHIFT_def assms
@@ -452,7 +442,7 @@ paragraph \<open>Update Saved Position\<close>
 
 lemma update_posI:
   assumes \<open>isa_update_pos_pre ((b, pos), a)\<close>
-  shows \<open>4 \<le> b\<close> \<open>2 \<le> pos\<close> \<open>b-4 < length a\<close>
+  shows \<open>3 \<le> b\<close> \<open>2 \<le> pos\<close> \<open>b-3 < length a\<close>
   using assms POS_SHIFT_def
   unfolding isa_update_pos_pre_def
   apply (auto simp: arena_is_valid_clause_idx_def arena_lifting)
@@ -524,7 +514,7 @@ lemma DELETED_impl[sepref_import_param]: \<open>(3,DELETED) \<in> status_impl_re
 
 lemma mark_garbageI:
   assumes \<open>mark_garbage_pre (a, b)\<close>
-  shows \<open>3 \<le> b\<close> \<open>b-3 < length a\<close>
+  shows \<open>2 \<le> b\<close> \<open>b-2 < length a\<close>
   using assms STATUS_SHIFT_def
   unfolding mark_garbage_pre_def
   apply (auto simp: arena_is_valid_clause_idx_def arena_lifting)
@@ -540,63 +530,6 @@ sepref_def mark_garbage_impl is \<open>uncurry (RETURN oo extra_information_mark
   by sepref
 
 
-paragraph \<open>Activity\<close>
-
-lemma arena_act_implI:
-  assumes \<open>arena_act_pre a b\<close>
-  shows \<open>2 \<le> b\<close> \<open>b - 2 < length a\<close> \<open>is_Act (a ! (b-2))\<close>
-  using assms ACTIVITY_SHIFT_def
-  by (auto simp: arena_act_pre_def arena_is_valid_clause_idx_def arena_lifting)
-    (simp add: less_imp_diff_less valid_arena_def)
-
-sepref_register arena_act
-sepref_def arena_act_impl
-  is \<open>uncurry (RETURN oo arena_act)\<close>
-    :: \<open>[uncurry arena_act_pre]\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
-  supply [intro] = arena_act_implI
-  unfolding arena_act_def ACTIVITY_SHIFT_def
-  apply (annot_snat_const \<open>TYPE(64)\<close>)
-  by sepref
-
-
-
-paragraph \<open>Increment Activity\<close>
-
-context begin
-
-interpretation llvm_prim_arith_setup .
-
-sepref_register op_incr_mod32
-lemma op_incr_mod32_hnr[sepref_fr_rules]:
-  \<open>(\<lambda>x. ll_add x 1, RETURN o op_incr_mod32) \<in> uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
-  unfolding unat_rel_def unat.rel_def
-  apply sepref_to_hoare
-  apply (simp add: in_br_conv)
-  apply vcg'
-  unfolding op_incr_mod32_def
-  by (simp add: unat_word_ariths)
-
-end
-
-sepref_register arena_incr_act
-sepref_def arena_incr_act_impl is \<open>uncurry (RETURN oo arena_incr_act)\<close>
-  :: \<open>[uncurry arena_act_pre]\<^sub>a arena_fast_assn\<^sup>d *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> arena_fast_assn\<close>
-  unfolding arena_incr_act_def ACTIVITY_SHIFT_def
-  supply [intro] = arena_act_implI
-  apply (annot_snat_const \<open>TYPE(64)\<close>)
-  by sepref
-
-sepref_register arena_decr_act
-sepref_def arena_decr_act_impl is \<open>uncurry (RETURN oo arena_decr_act)\<close>
-  :: \<open>[uncurry arena_act_pre]\<^sub>a arena_fast_assn\<^sup>d *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> arena_fast_assn\<close>
-  unfolding arena_decr_act_def ACTIVITY_SHIFT_def
-  supply [intro] = arena_act_implI
-  apply (rewrite at \<open>_ div \<hole>\<close>  unat_const_fold[where 'a=32])
-  apply (annot_snat_const \<open>TYPE(64)\<close>)
-  by sepref
-
-
-paragraph \<open>Mark used\<close>
 
 lemma bit_shiftr_shiftl_same_le:
   \<open>a << b >> b \<le> a\<close> for a b c :: nat
@@ -615,14 +548,14 @@ lemma valid_arena_arena_lbd_shift_le:
     \<open>valid_arena a N vdom\<close>
   shows \<open>arena_lbd a b << 4 < max_unat 32\<close>
 proof -
-  have \<open>3 \<le> b\<close> \<open>b - 3 < length a\<close> and st: \<open>is_Status (a ! (b-3))\<close>
-    using assms LBD_SHIFT_def by (auto simp: arena_act_pre_def arena_is_valid_clause_idx_def
+  have \<open>2 \<le> b\<close> \<open>b - 2 < length a\<close> and st: \<open>is_Status (a ! (b-2))\<close>
+    using assms LBD_SHIFT_def by (auto simp: arena_is_valid_clause_idx_def
       less_imp_diff_less arena_lifting)
-  then have H: \<open>rdomp arena_el_impl_assn (a ! (b - 3))\<close>
+  then have H: \<open>rdomp arena_el_impl_assn (a ! (b - 2))\<close>
     using rdomp_al_dest'[of arena_el_impl_assn a] assms
     by auto
   then obtain x :: \<open>32 word\<close> and x51 :: \<open>clause_status\<close> and x52 :: \<open>bool\<close> where
-    H: \<open>a ! (b - 3) = AStatus x51 x52 (unat x >> 4)\<close>
+    H: \<open>a ! (b - 2) = AStatus x51 x52 (unat x >> 4)\<close>
       \<open>(unat x AND 3, x51) \<in> status_rel\<close>
       \<open>(unat x, x52) \<in> bitfield_rel 2\<close>
     using st bit_shiftr_shiftl_same_le[of \<open>arena_lbd a b\<close> 4]
@@ -638,7 +571,7 @@ qed
 
 lemma arena_mark_used_implI:
   assumes \<open>arena_act_pre a b\<close>
-  shows \<open>3 \<le> b\<close> \<open>b - 3 < length a\<close> \<open>is_Status (a ! (b-3))\<close>
+  shows \<open>2 \<le> b\<close> \<open>b - 2 < length a\<close> \<open>is_Status (a ! (b-2))\<close>
     \<open>arena_is_valid_clause_vdom a b\<close>
     \<open>get_clause_LBD_pre a b\<close>
     \<open>rdomp (al_assn arena_el_impl_assn) a \<Longrightarrow> arena_lbd a b << 4 < max_unat 32\<close>
@@ -680,7 +613,7 @@ paragraph \<open>Marked as used?\<close>
 
 lemma arena_marked_as_used_implI:
   assumes \<open>marked_as_used_pre a b\<close>
-  shows \<open>3 \<le> b\<close> \<open>b - 3 < length a\<close> \<open>is_Status (a ! (b-3))\<close>
+  shows \<open>2 \<le> b\<close> \<open>b - 2 < length a\<close> \<open>is_Status (a ! (b-2))\<close>
   using assms STATUS_SHIFT_def
   apply (auto simp: marked_as_used_pre_def arena_is_valid_clause_idx_def arena_lifting)
   subgoal using arena_lifting(2) less_imp_diff_less by blast
@@ -840,9 +773,6 @@ export_llvm
   update_lbd_impl
   update_pos_impl
   mark_garbage_impl
-  arena_act_impl
-  arena_incr_act_impl
-  arena_decr_act_impl
   mark_used_impl
   mark_unused_impl
   marked_as_used_impl

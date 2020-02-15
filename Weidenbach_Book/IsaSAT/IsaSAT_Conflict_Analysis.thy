@@ -257,8 +257,6 @@ where
       let (n, xs) = lookup_conflict_remove1 L (n, xs);
       ASSERT(arena_act_pre N C);
       let N = mark_used N C;
-      ASSERT(arena_act_pre N C);
-      let N = arena_incr_act N C;
       ASSERT(vmtf_unset_pre L' vm);
       ASSERT(tl_trailt_tr_pre M);
       RETURN (False, (tl_trailt_tr M, N, (b, (n, xs)), Q, W, isa_vmtf_unset L' vm,
@@ -582,8 +580,6 @@ proof -
       ((b, (n, xs)), clvls, lbd, outl) \<leftarrow> rr L M N C b n xs clvls lbd outl;
       ASSERT(arena_act_pre N C);
       let N = mark_used N C;
-      ASSERT(arena_act_pre N C);
-      let N = arena_incr_act N C;
       ASSERT(vmtf_unset_pre L' vm);
       ASSERT(tl_trailt_tr_pre M);
       RETURN (False, (tl_trailt_tr M, N, (b, (n, xs)), Q, W, isa_vmtf_unset L' vm,
@@ -704,7 +700,6 @@ note [[goals_limit=1]]
          simp: update_confl_tl_wl_pre'_def arena_is_valid_clause_idx_def twl_st_heur_conflict_ana_def)
       apply (rule rr; assumption)
       subgoal by (simp add: arena_act_pre_def)
-      subgoal using arena_act_pre_mark_used by blast
       subgoal by (auto dest!: update_confl_tl_wl_pre_update_confl_tl_wl_pre'
          simp: update_confl_tl_wl_pre'_def arena_is_valid_clause_idx_def twl_st_heur_conflict_ana_def
            intro!: vmtf_unset_pre')
@@ -715,7 +710,7 @@ note [[goals_limit=1]]
              simp: update_confl_tl_wl_pre'_def arena_is_valid_clause_idx_def twl_st_heur_conflict_ana_def
              intro!: tl_trailt_tr_pre)
       subgoal by (clarsimp simp: twl_st_heur_conflict_ana_def update_confl_tl_wl_pre'_def
-           valid_arena_arena_incr_act valid_arena_mark_used subset_mset.sup.commute[of _ \<open>remove1_mset _ _\<close>]
+           valid_arena_mark_used subset_mset.sup.commute[of _ \<open>remove1_mset _ _\<close>]
           tl_trail_tr[THEN fref_to_Down_unRET] resolve_cls_wl'_def isa_vmtf_tl_isa_vmtf no_dup_tlD
           counts_maximum_level_def)
     done

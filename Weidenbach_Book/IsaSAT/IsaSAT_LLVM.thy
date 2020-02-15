@@ -228,9 +228,9 @@ sepref_register to_init_state from_init_state get_conflict_wl_is_None_init extra
   init_dt_wl_heur
 
 definition isasat_fast_bound :: \<open>nat\<close> where
-\<open>isasat_fast_bound = sint64_max - (uint32_max div 2 + 5)\<close>
+\<open>isasat_fast_bound = sint64_max - (uint32_max div 2 + MAX_HEADER_SIZE+1)\<close>
 
-lemma isasat_fast_bound_alt_def: \<open>isasat_fast_bound = 9223372034707292155\<close>
+lemma isasat_fast_bound_alt_def: \<open>isasat_fast_bound = 9223372034707292156\<close>
   unfolding isasat_fast_bound_def sint64_max_def uint32_max_def
   by simp
 
@@ -468,6 +468,5 @@ theorem IsaSAT_full_correctness:
   unfolding model_bounded_assn_def clauses_l_assn_def
   apply auto
   done
-
 
 end

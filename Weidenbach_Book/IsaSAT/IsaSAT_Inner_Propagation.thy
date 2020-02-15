@@ -526,8 +526,7 @@ where
     ASSERT(curry6 isa_set_lookup_conflict_aa_pre M N C D n lbd outl);
     (D, clvls, lbd, outl) \<leftarrow> isa_set_lookup_conflict_aa M N C D n lbd outl;
     j \<leftarrow> mop_isa_length_trail M;
-    ASSERT(arena_act_pre N C);
-    RETURN (M, arena_incr_act N C, D, j, W, vmtf, clvls, cach, lbd, outl,
+    RETURN (M, N, D, j, W, vmtf, clvls, cach, lbd, outl,
       incr_conflict stats, fema, sema)})\<close>
 
 
@@ -1117,16 +1116,12 @@ proof -
     apply assumption+
     subgoal by (auto dest!: set_conflict_wl_pre_set_conflict_wl'_pre)
     subgoal for x y
-      unfolding arena_act_pre_def arena_is_valid_clause_idx_def
+      unfolding arena_is_valid_clause_idx_def
       by (auto simp: twl_st_heur'_def twl_st_heur_def)
-    subgoal
-       unfolding arena_act_pre_def arena_is_valid_clause_idx_def
-       by (rule exI[of _ \<open>get_clauses_wl (snd y)\<close>], rule exI[of _ \<open>set (get_vdom (snd x))\<close>])
-         (auto simp: twl_st_heur'_def twl_st_heur_def set_conflict_wl'_pre_def  dest!: set_conflict_wl_pre_set_conflict_wl'_pre)
     subgoal
       by (auto simp: twl_st_heur'_def twl_st_heur_def counts_maximum_level_def ac_simps
         set_conflict_wl'_pre_def dest!: set_conflict_wl_pre_set_conflict_wl'_pre
-	intro!: valid_arena_arena_incr_act valid_arena_mark_used)
+	intro!: valid_arena_mark_used)
     done
     done
 qed
@@ -1963,7 +1958,7 @@ lemma outer_loop_length_watched_le_length_arena:
       \<open>xb = (x1a, x2a)\<close> and
     x2: \<open>x2 \<in># all_lits_st x1\<close> and
     st': \<open>(x2, x1) = (x1b, x2b)\<close>
-  shows \<open>length (watched_by x2b x1b) \<le> r-3\<close>
+  shows \<open>length (watched_by x2b x1b) \<le> r-MIN_HEADER_SIZE\<close>
 proof -
   have \<open>correct_watching x'\<close>
     using prop_inv unfolding unit_propagation_outer_loop_wl_inv_def
@@ -2005,10 +2000,10 @@ proof -
     by (rule distinct_subseteq_iff[THEN iffD1])
       (use dist[unfolded distinct_watched_alt_def] dist_vdom subset in
          \<open>simp_all flip: distinct_mset_mset_distinct\<close>)
-  have vdom_incl: \<open>set (get_vdom x1a) \<subseteq> {3..< length (get_clauses_wl_heur xa)}\<close>
+  have vdom_incl: \<open>set (get_vdom x1a) \<subseteq> {MIN_HEADER_SIZE..< length (get_clauses_wl_heur xa)}\<close>
     using valid_arena_in_vdom_le_arena[OF valid] arena_dom_status_iff[OF valid] by auto
 
-  have \<open>length (get_vdom x1a) \<le> length (get_clauses_wl_heur xa) - 3\<close>
+  have \<open>length (get_vdom x1a) \<le> length (get_clauses_wl_heur xa) - MIN_HEADER_SIZE\<close>
     by (subst distinct_card[OF dist_vdom, symmetric])
       (use card_mono[OF _ vdom_incl] in auto)
   then show ?thesis

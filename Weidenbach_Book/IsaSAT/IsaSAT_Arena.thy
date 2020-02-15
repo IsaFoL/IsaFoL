@@ -27,7 +27,6 @@ lost (if we iterate over the watch lists) or all (if we iterate over the clauses
 The order in memory is in the following order:
   \<^enum> the saved position (was optional in cadical too; since sr-19, not optional);
   \<^enum> the status;
-  \<^enum> the activity;
   \<^enum> the LBD;
   \<^enum> the size;
   \<^enum> the clause.
@@ -99,13 +98,10 @@ specific headers before the beginning of the clause. Remark that the first offse
 valid. Also remark that the fields are \<^emph>\<open>before\<close> the actual content of the clause.
 \<close>
 definition POS_SHIFT :: nat where
-  \<open>POS_SHIFT = 4\<close>
+  \<open>POS_SHIFT = 3\<close>
 
 definition STATUS_SHIFT :: nat where
-  \<open>STATUS_SHIFT = 3\<close>
-
-definition ACTIVITY_SHIFT :: nat where
-  \<open>ACTIVITY_SHIFT = 2\<close>
+  \<open>STATUS_SHIFT = 2\<close>
 
 abbreviation LBD_SHIFT :: nat where
   \<open>LBD_SHIFT \<equiv> STATUS_SHIFT\<close>
@@ -125,15 +121,15 @@ abbreviation is_long_clause where
   \<open>is_long_clause C \<equiv> \<not>is_short_clause C\<close>
 
 abbreviation (input) MAX_HEADER_SIZE :: \<open>nat\<close> where
-  \<open>MAX_HEADER_SIZE \<equiv> 4\<close>
+  \<open>MAX_HEADER_SIZE \<equiv> 3\<close>
 
 abbreviation (input) MIN_HEADER_SIZE :: \<open>nat\<close> where
-  \<open>MIN_HEADER_SIZE \<equiv> 3\<close>
+  \<open>MIN_HEADER_SIZE \<equiv> 2\<close>
 
 definition header_size :: \<open>nat clause_l \<Rightarrow> nat\<close> where
    \<open>header_size C = (if is_short_clause C then MIN_HEADER_SIZE else MAX_HEADER_SIZE)\<close>
 
-lemmas SHIFTS_def = POS_SHIFT_def STATUS_SHIFT_def ACTIVITY_SHIFT_def SIZE_SHIFT_def
+lemmas SHIFTS_def = POS_SHIFT_def STATUS_SHIFT_def SIZE_SHIFT_def
 
 text \<open>
   In an attempt to avoid unfolding definitions and to not rely on the actual value
@@ -142,40 +138,30 @@ text \<open>
 (*TODO is that still used?*)
 lemma arena_shift_distinct:
   \<open>i >  MIN_HEADER_SIZE \<Longrightarrow> i - SIZE_SHIFT \<noteq> i - LBD_SHIFT\<close>
-  \<open>i >  MIN_HEADER_SIZE \<Longrightarrow> i - SIZE_SHIFT \<noteq> i - ACTIVITY_SHIFT\<close>
   \<open>i >  MIN_HEADER_SIZE \<Longrightarrow> i - SIZE_SHIFT \<noteq> i - STATUS_SHIFT\<close>
-  \<open>i >  MIN_HEADER_SIZE \<Longrightarrow> i - LBD_SHIFT \<noteq> i - ACTIVITY_SHIFT\<close>
-  \<open>i >  MIN_HEADER_SIZE \<Longrightarrow> i - ACTIVITY_SHIFT \<noteq> i - STATUS_SHIFT\<close>
 
   \<open>i > MAX_HEADER_SIZE \<Longrightarrow> i - SIZE_SHIFT \<noteq> i - POS_SHIFT\<close>
   \<open>i >  MAX_HEADER_SIZE \<Longrightarrow> i - LBD_SHIFT \<noteq> i - POS_SHIFT\<close>
-  \<open>i >  MAX_HEADER_SIZE \<Longrightarrow> i - ACTIVITY_SHIFT \<noteq> i - POS_SHIFT\<close>
   \<open>i >  MAX_HEADER_SIZE \<Longrightarrow> i - STATUS_SHIFT \<noteq> i - POS_SHIFT\<close>
 
   \<open>i >  MIN_HEADER_SIZE \<Longrightarrow> j >  MIN_HEADER_SIZE \<Longrightarrow> i - SIZE_SHIFT = j - SIZE_SHIFT \<longleftrightarrow> i = j\<close>
   \<open>i >  MIN_HEADER_SIZE \<Longrightarrow> j >  MIN_HEADER_SIZE \<Longrightarrow> i - LBD_SHIFT = j - LBD_SHIFT \<longleftrightarrow> i = j\<close>
-  \<open>i >  MAX_HEADER_SIZE \<Longrightarrow> j >  MAX_HEADER_SIZE \<Longrightarrow> i - ACTIVITY_SHIFT = j - ACTIVITY_SHIFT \<longleftrightarrow> i = j\<close>
   \<open>i >  MIN_HEADER_SIZE \<Longrightarrow> j >  MIN_HEADER_SIZE \<Longrightarrow> i - STATUS_SHIFT = j - STATUS_SHIFT \<longleftrightarrow> i = j\<close>
   \<open>i >  MAX_HEADER_SIZE \<Longrightarrow> j >  MAX_HEADER_SIZE \<Longrightarrow> i - POS_SHIFT = j - POS_SHIFT \<longleftrightarrow> i = j\<close>
 
   \<open>i \<ge> header_size C \<Longrightarrow> i - SIZE_SHIFT \<noteq> i - LBD_SHIFT\<close>
-  \<open>i \<ge> header_size C \<Longrightarrow> i - SIZE_SHIFT \<noteq> i - ACTIVITY_SHIFT\<close>
   \<open>i \<ge> header_size C \<Longrightarrow> i - SIZE_SHIFT \<noteq> i - STATUS_SHIFT\<close>
-  \<open>i \<ge> header_size C \<Longrightarrow> i - LBD_SHIFT \<noteq> i - ACTIVITY_SHIFT\<close>
-  \<open>i \<ge> header_size C \<Longrightarrow> i - ACTIVITY_SHIFT \<noteq> i - STATUS_SHIFT\<close>
 
   \<open>i \<ge> header_size C \<Longrightarrow> is_long_clause C \<Longrightarrow> i - SIZE_SHIFT \<noteq> i - POS_SHIFT\<close>
   \<open>i \<ge> header_size C \<Longrightarrow> is_long_clause C \<Longrightarrow> i - LBD_SHIFT \<noteq> i - POS_SHIFT\<close>
-  \<open>i \<ge> header_size C \<Longrightarrow> is_long_clause C \<Longrightarrow> i - ACTIVITY_SHIFT \<noteq> i - POS_SHIFT\<close>
   \<open>i \<ge> header_size C \<Longrightarrow> is_long_clause C \<Longrightarrow> i - STATUS_SHIFT \<noteq> i - POS_SHIFT\<close>
 
   \<open>i \<ge> header_size C \<Longrightarrow> j \<ge> header_size C' \<Longrightarrow> i - SIZE_SHIFT = j - SIZE_SHIFT \<longleftrightarrow> i = j\<close>
   \<open>i \<ge> header_size C \<Longrightarrow> j \<ge> header_size C' \<Longrightarrow> i - LBD_SHIFT = j - LBD_SHIFT \<longleftrightarrow> i = j\<close>
-  \<open>i \<ge> header_size C \<Longrightarrow> j \<ge> header_size C' \<Longrightarrow> i - ACTIVITY_SHIFT = j - ACTIVITY_SHIFT \<longleftrightarrow> i = j\<close>
   \<open>i \<ge> header_size C \<Longrightarrow> j \<ge> header_size C' \<Longrightarrow> i - STATUS_SHIFT = j - STATUS_SHIFT \<longleftrightarrow> i = j\<close>
   \<open>i \<ge> header_size C \<Longrightarrow> j \<ge> header_size C' \<Longrightarrow> is_long_clause C \<Longrightarrow> is_long_clause C' \<Longrightarrow>
      i - POS_SHIFT = j - POS_SHIFT \<longleftrightarrow> i = j\<close>
-  unfolding POS_SHIFT_def STATUS_SHIFT_def ACTIVITY_SHIFT_def LBD_SHIFT_def SIZE_SHIFT_def
+  unfolding POS_SHIFT_def STATUS_SHIFT_def LBD_SHIFT_def SIZE_SHIFT_def
     header_size_def
   by (auto split: if_splits simp: is_short_clause_def)
 
@@ -184,7 +170,6 @@ lemma header_size_ge0[simp]: \<open>0 < header_size x1\<close>
 
 datatype arena_el =
   is_Lit: ALit (xarena_lit: \<open>nat literal\<close>) |
-  is_Act: AActivity (xarena_act: nat) |
   is_Size: ASize (xarena_length: nat)  |
   is_Pos: APos (xarena_pos: nat)  |
   is_Status: AStatus (xarena_status: clause_status) (xarena_used: bool) (xarena_lbd: nat)
@@ -200,7 +185,6 @@ definition xarena_active_clause :: \<open>arena \<Rightarrow> nat clause_l \<tim
      is_Status(arena!(header_size C - STATUS_SHIFT)) \<and>
         (xarena_status(arena!(header_size C - STATUS_SHIFT)) = IRRED \<longleftrightarrow> red) \<and>
         (xarena_status(arena!(header_size C - STATUS_SHIFT)) = LEARNED \<longleftrightarrow> \<not>red) \<and>
-     is_Act(arena!(header_size C - ACTIVITY_SHIFT)) \<and>
      is_Size(arena!(header_size C - SIZE_SHIFT)) \<and>
      xarena_length(arena!(header_size C - SIZE_SHIFT)) + 2 = length C \<and>
      drop (header_size C) arena = map ALit C
@@ -217,7 +201,6 @@ lemma xarena_active_clause_alt_def:
      is_Status(arena!(header_size (N\<propto>i) - STATUS_SHIFT)) \<and>
         (xarena_status(arena!(header_size (N\<propto>i) - STATUS_SHIFT)) = IRRED \<longleftrightarrow> irred N i) \<and>
         (xarena_status(arena!(header_size (N\<propto>i) - STATUS_SHIFT)) = LEARNED \<longleftrightarrow> \<not>irred N i) \<and>
-     is_Act(arena!(header_size (N\<propto>i) - ACTIVITY_SHIFT)) \<and>
      is_Size(arena!(header_size (N\<propto>i) - SIZE_SHIFT)) \<and>
      xarena_length(arena!(header_size (N\<propto>i) - SIZE_SHIFT)) + 2 = length (N\<propto>i) \<and>
      drop (header_size (N\<propto>i)) arena = map ALit (N\<propto>i)
@@ -237,7 +220,6 @@ TODO generalise LBD to extract from every clause?\<close>
 definition arena_dead_clause :: \<open>arena \<Rightarrow> bool\<close> where
   \<open>arena_dead_clause arena \<longleftrightarrow>
      is_Status(arena!(MIN_HEADER_SIZE - STATUS_SHIFT)) \<and> xarena_status(arena!(MIN_HEADER_SIZE - STATUS_SHIFT)) = DELETED \<and>
-     is_Act(arena!(MIN_HEADER_SIZE - ACTIVITY_SHIFT)) \<and>
      is_Size(arena!(MIN_HEADER_SIZE - SIZE_SHIFT))
 \<close>
 
@@ -283,20 +265,11 @@ definition arena_length where
 definition arena_lbd where
   \<open>arena_lbd arena i = xarena_lbd (arena!(i - LBD_SHIFT))\<close>
 
-definition arena_act where
-  \<open>arena_act arena i = xarena_act (arena!(i - ACTIVITY_SHIFT))\<close>
-
 definition arena_pos where
   \<open>arena_pos arena i = 2 + xarena_pos (arena!(i - POS_SHIFT))\<close>
 
 definition arena_lit where
   \<open>arena_lit arena i = xarena_lit (arena!i)\<close>
-
-definition \<open>op_incr_mod32 n \<equiv> (n+1 :: nat) mod 2^32\<close>
-
-definition arena_incr_act where
-  \<open>arena_incr_act arena i = arena[i - ACTIVITY_SHIFT := AActivity (op_incr_mod32 (xarena_act (arena!(i - ACTIVITY_SHIFT))))]\<close>
-
 
 
 section \<open>Separation properties\<close>
@@ -355,16 +328,13 @@ proof (rule ccontr)
     \<open>j + (header_size (N \<propto> j) - STATUS_SHIFT) - header_size (N \<propto> j) = j - STATUS_SHIFT\<close>
     \<open>j + (header_size (N \<propto> j) - SIZE_SHIFT) - header_size (N \<propto> j) = j - SIZE_SHIFT\<close>
     \<open>j + (header_size (N \<propto> j) - LBD_SHIFT) - header_size (N \<propto> j) = j - LBD_SHIFT\<close>
-    \<open>j + (header_size (N \<propto> j) - ACTIVITY_SHIFT) - header_size (N \<propto> j) = j - ACTIVITY_SHIFT\<close>
     using Cj2 headerj unfolding POS_SHIFT_def STATUS_SHIFT_def LBD_SHIFT_def SIZE_SHIFT_def
-      ACTIVITY_SHIFT_def
     by (auto simp: header_size_def)
 
    have
     pos: \<open>is_long_clause (N \<propto> j) \<longrightarrow> is_Pos (arena ! (j - POS_SHIFT))\<close> and
     st: \<open>is_Status (arena ! (j - STATUS_SHIFT))\<close> and
-    size: \<open>is_Size (arena ! (j - SIZE_SHIFT))\<close> and
-    act: \<open>is_Act (arena ! (j - ACTIVITY_SHIFT))\<close>
+    size: \<open>is_Size (arena ! (j - SIZE_SHIFT))\<close>
     using 2 j_le j_ge Cj2 headerj
     unfolding xarena_active_clause_def extra_information_mark_to_delete_def prod.case
     by (simp_all add: slice_nth)
@@ -386,19 +356,18 @@ proof (rule ccontr)
       using False ji j_ge i_ge length_Ni unfolding Suc3 Suc4
       by (auto simp: le_Suc_eq header_size_def split: if_splits)
     have H5: \<open>Suc (j - i) \<le> length (N \<propto> i) + 4 \<Longrightarrow> j - i = length (N \<propto> i) \<or>
-       j - i = length (N \<propto> i) + 1 \<or> j - i = length (N \<propto> i) + 2 \<or>
-      (is_long_clause (N \<propto> j) \<and> j = i+length (N \<propto> i) + 3)\<close>
+       j - i = length (N \<propto> i) + 1 \<or>
+      (is_long_clause (N \<propto> j) \<and> j = i+length (N \<propto> i) + 2)\<close>
       using False ji j_ge i_ge length_Ni unfolding Suc3 Suc4
       by (auto simp: le_Suc_eq header_size_def split: if_splits)
     consider
        \<open>is_long_clause (N \<propto> j)\<close> \<open>j - POS_SHIFT = i + length(N\<propto>i) - 1\<close> |
        \<open>j - STATUS_SHIFT = i + length(N\<propto>i) - 1\<close> |
        \<open>j - LBD_SHIFT = i + length(N\<propto>i) - 1\<close> |
-       \<open>j - ACTIVITY_SHIFT = i + length(N\<propto>i) - 1\<close> |
        \<open>j - SIZE_SHIFT = i + length(N\<propto>i) - 1\<close>
       using False ji j_ge i_ge length_Ni
       unfolding header_size_def not_less_eq_eq STATUS_SHIFT_def SIZE_SHIFT_def
-       LBD_SHIFT_def ACTIVITY_SHIFT_def le_Suc_eq POS_SHIFT_def j_i_1
+       LBD_SHIFT_def le_Suc_eq POS_SHIFT_def j_i_1
       apply (cases \<open>is_short_clause (N \<propto> j)\<close>)
       subgoal
         using H4 by auto
@@ -406,8 +375,7 @@ proof (rule ccontr)
         using H5 by auto
       done
     then show False
-      using lit pos st size act
-      by cases auto
+      using lit pos st size by cases auto
   qed
   moreover have False if ji: \<open>j - i < length (N\<propto>i)\<close>
   proof -
@@ -450,13 +418,12 @@ proof (rule ccontr)
     pos: \<open>is_long_clause (N \<propto> i) \<longrightarrow>
        is_Pos (arena ! (i - POS_SHIFT))\<close> and
     status: \<open>is_Status (arena ! (i - STATUS_SHIFT))\<close> and
-    act: \<open>is_Act (arena ! (i - ACTIVITY_SHIFT))\<close> and
     size: \<open>is_Size (arena ! (i - SIZE_SHIFT))\<close> and
     st_init: \<open>(xarena_status (arena ! (i - STATUS_SHIFT)) = IRRED) = (irred N i)\<close> and
     st_learned: \<open>(xarena_status (arena ! (i - STATUS_SHIFT)) = LEARNED) = (\<not> irred N i)\<close>
     using 1 i_ge i_le
     unfolding xarena_active_clause_def extra_information_mark_to_delete_def prod.case
-      unfolding STATUS_SHIFT_def LBD_SHIFT_def ACTIVITY_SHIFT_def SIZE_SHIFT_def POS_SHIFT_def
+      unfolding STATUS_SHIFT_def LBD_SHIFT_def SIZE_SHIFT_def POS_SHIFT_def
      apply (simp_all add: header_size_def slice_nth split: if_splits)
     apply force+
     done
@@ -491,16 +458,14 @@ proof (rule ccontr)
     case 3
     then consider
       \<open>j - STATUS_SHIFT = i - STATUS_SHIFT\<close> |
-      \<open>j - STATUS_SHIFT = i - ACTIVITY_SHIFT\<close> |
       \<open>j - STATUS_SHIFT = i - SIZE_SHIFT\<close> |
       \<open>is_long_clause (N \<propto> i)\<close> and \<open>j - STATUS_SHIFT = i - POS_SHIFT\<close>
       using \<open>j \<ge> i\<close>
-      unfolding STATUS_SHIFT_def LBD_SHIFT_def ACTIVITY_SHIFT_def SIZE_SHIFT_def POS_SHIFT_def
+      unfolding STATUS_SHIFT_def LBD_SHIFT_def SIZE_SHIFT_def POS_SHIFT_def
       by force
     then show False
       apply cases
       subgoal using st status st_init st_learned del by auto
-      subgoal using st act by auto
       subgoal using st size by auto
       subgoal using st pos by auto
       done
@@ -516,8 +481,8 @@ by \<^term>\<open>Suc (Suc (Suc (Suc 0)))\<close>
 lemma minimal_difference_between_invalid_index2:
   assumes \<open>valid_arena arena N vdom\<close> and
     \<open>i \<in># dom_m N\<close> and \<open>j \<notin># dom_m N\<close> and \<open>j < i\<close> and \<open>j \<in> vdom\<close>
-  shows \<open>i - j \<ge> Suc (Suc (Suc 0))\<close> and
-     \<open>is_long_clause (N \<propto> i) \<Longrightarrow> i - j \<ge> Suc (Suc (Suc (Suc 0)))\<close>
+  shows \<open>i - j \<ge> (Suc (Suc 0))\<close> and
+     \<open>is_long_clause (N \<propto> i) \<Longrightarrow> i - j \<ge> (Suc (Suc (Suc 0)))\<close>
 proof -
   let ?Ci = \<open>the (fmlookup N i)\<close>
   let ?Cj = \<open>the (fmlookup N j)\<close>
@@ -542,13 +507,12 @@ proof -
     pos: \<open>is_long_clause (N \<propto> i) \<longrightarrow>
        is_Pos (arena ! (i - POS_SHIFT))\<close> and
     status: \<open>is_Status (arena ! (i - STATUS_SHIFT))\<close> and
-    act: \<open>is_Act (arena ! (i - ACTIVITY_SHIFT))\<close> and
     size: \<open>is_Size (arena ! (i - SIZE_SHIFT))\<close> and
     st_init: \<open>(xarena_status (arena ! (i - STATUS_SHIFT)) = IRRED) \<longleftrightarrow> (irred N i)\<close> and
     st_learned: \<open> (xarena_status (arena ! (i - STATUS_SHIFT)) = LEARNED) \<longleftrightarrow> \<not>irred N i\<close>
     using 1 i_ge i_le
     unfolding xarena_active_clause_def extra_information_mark_to_delete_def prod.case
-      unfolding STATUS_SHIFT_def LBD_SHIFT_def ACTIVITY_SHIFT_def SIZE_SHIFT_def POS_SHIFT_def
+      unfolding STATUS_SHIFT_def LBD_SHIFT_def SIZE_SHIFT_def POS_SHIFT_def
      apply (simp_all add: header_size_def slice_nth split: if_splits)
     apply force+
     done
@@ -556,7 +520,6 @@ proof -
   have
     st: \<open>is_Status (arena ! (j - STATUS_SHIFT))\<close> and
     del: \<open>xarena_status (arena ! (j - STATUS_SHIFT)) = DELETED\<close> and
-    act': \<open>is_Act (arena ! (j - ACTIVITY_SHIFT))\<close> and
     size': \<open>is_Size (arena ! (j - SIZE_SHIFT))\<close>
     using 2 j_le j_ge unfolding arena_dead_clause_def SHIFTS_def
     by (simp_all add: header_size_def slice_nth)
@@ -570,32 +533,30 @@ proof -
     by (auto split: if_splits simp: not_less_eq_eq le_Suc_eq)
 
 
-  show 1: \<open>i - j \<ge> Suc (Suc (Suc 0))\<close> (is ?A)
+  show 1: \<open>i - j \<ge> (Suc (Suc 0))\<close> (is ?A)
   proof (rule ccontr)
     assume False: \<open>\<not>?A\<close>
     consider
         \<open>i - STATUS_SHIFT = j - STATUS_SHIFT\<close> |
-        \<open>i - STATUS_SHIFT = j - ACTIVITY_SHIFT\<close> |
         \<open>i - STATUS_SHIFT = j - SIZE_SHIFT\<close>
       using False \<open>i > j\<close> j_ge i_ge unfolding SHIFTS_def header_size_def 4
       by (auto split: if_splits simp: not_less_eq_eq le_Suc_eq )
     then show False
       apply cases
       subgoal using st status st_init st_learned del by auto
-      subgoal using status act' by auto
       subgoal using status size' by auto
       done
   qed
 
-  show \<open>i - j \<ge> Suc (Suc (Suc (Suc 0)))\<close> (is ?A)
+  show \<open>i - j \<ge> (Suc (Suc (Suc 0)))\<close> (is ?A)
     if long: \<open>is_long_clause (N \<propto> i)\<close>
   proof (rule ccontr)
     assume False: \<open>\<not>?A\<close>
 
-    have [simp]: \<open>a < 4 \<Longrightarrow> a' < 3 \<Longrightarrow> i - Suc a = j - Suc a' \<longleftrightarrow> i - a = j - a'\<close> for a a'
+    have [simp]: \<open>a < 3 \<Longrightarrow> a' < 2 \<Longrightarrow> i - Suc a = j - Suc a' \<longleftrightarrow> i - a = j - a'\<close> for a a'
       using \<open>i > j\<close> j_ge i_ge long
       by (auto split: if_splits simp: not_less_eq_eq le_Suc_eq )
-    have \<open>i - j = Suc (Suc (Suc 0))\<close>
+    have \<open>i - j = (Suc (Suc 0))\<close>
       using 1 \<open>i > j\<close> False j_ge i_ge long unfolding SHIFTS_def header_size_def 4
       by (auto split: if_splits simp: not_less_eq_eq le_Suc_eq)
     then have \<open>i - POS_SHIFT = j - SIZE_SHIFT\<close>
@@ -716,10 +677,8 @@ proof -
          (dead_clause_slice (extra_information_mark_to_delete arena i) (fmdrop i N) i)\<close>
     using dom'[of i, OF i]
     unfolding arena_dead_clause_def xarena_active_clause_alt_def
-      extra_information_mark_to_delete_def apply -
-    by (simp_all add: SHIFTS_def header_size_def Misc.slice_def drop_update_swap min_def
-         split: if_splits)
-       force+
+      extra_information_mark_to_delete_def apply (cases \<open>is_short_clause (N \<propto> i)\<close>)
+    by (simp_all add: SHIFTS_def header_size_def Misc.slice_def drop_update_swap min_def) force+
   ultimately show ?thesis
     using assms unfolding valid_arena_def
     by auto
@@ -740,119 +699,6 @@ lemma valid_arena_remove_from_vdom:
   using assms valid_arena_def
   by (auto dest!: in_diffD)
 
-
-paragraph \<open>Update activity\<close>
-
-definition update_act where
-  \<open>update_act C act arena = arena[C - ACTIVITY_SHIFT := AActivity act]\<close>
-
-lemma clause_slice_update_act:
-  assumes
-    i: \<open>i \<in># dom_m N\<close> and
-    ia: \<open>ia \<in># dom_m N\<close> and
-    dom: \<open>\<forall>i \<in># dom_m N. i < length arena \<and> i \<ge> header_size (N\<propto>i) \<and>
-         xarena_active_clause (clause_slice arena N i) (the (fmlookup N i))\<close>
-  shows
-    \<open>clause_slice (update_act i act arena) N ia =
-      (if ia = i then update_act (header_size (N\<propto>i)) act (clause_slice arena N ia)
-         else clause_slice arena N ia)\<close>
-proof -
-  have ia_ge: \<open>ia \<ge> header_size(N \<propto> ia)\<close> \<open>ia < length arena\<close> and
-   i_ge:  \<open>i \<ge> header_size(N \<propto> i)\<close> \<open>i < length arena\<close>
-    using dom ia i unfolding xarena_active_clause_def
-    by auto
-
-  show ?thesis
-    using minimal_difference_between_valid_index[OF dom i ia] i_ge
-    minimal_difference_between_valid_index[OF dom ia i] ia_ge
-    by (cases \<open>ia < i\<close>)
-     (auto simp: extra_information_mark_to_delete_def STATUS_SHIFT_def drop_update_swap
-       ACTIVITY_SHIFT_def update_act_def
-       Misc.slice_def header_size_def split: if_splits)
-qed
-
-lemma length_update_act[simp]:
-  \<open>length (update_act i act arena) = length arena\<close>
-  by (auto simp: update_act_def)
-
-lemma clause_slice_update_act_dead:
-  assumes
-    i: \<open>i \<in># dom_m N\<close> and
-    ia: \<open>ia \<notin># dom_m N\<close> \<open>ia \<in> vdom\<close> and
-    dom: \<open>valid_arena arena N vdom\<close>
-  shows
-    \<open>arena_dead_clause (dead_clause_slice (update_act i act arena) N ia) =
-      arena_dead_clause (dead_clause_slice arena N ia)\<close>
-proof -
-  have ia_ge: \<open>ia \<ge> MIN_HEADER_SIZE\<close> \<open>ia < length arena\<close> and
-   i_ge:  \<open>i \<ge> header_size(N \<propto> i)\<close> \<open>i < length arena\<close>
-    using dom ia i unfolding valid_arena_def
-    by auto
-  show ?thesis
-    using minimal_difference_between_invalid_index[OF dom i ia(1) _ ia(2)] i_ge ia_ge
-    using minimal_difference_between_invalid_index2[OF dom i ia(1) _ ia(2)] ia_ge
-    by (cases \<open>ia < i\<close>)
-     (auto simp: extra_information_mark_to_delete_def STATUS_SHIFT_def drop_update_swap
-      arena_dead_clause_def update_act_def ACTIVITY_SHIFT_def
-       Misc.slice_def header_size_def split: if_splits)
-qed
-
-lemma xarena_active_clause_update_act_same:
-  assumes
-    \<open>i \<ge> header_size (N \<propto> i)\<close> and
-    \<open>i < length arena\<close> and
-    \<open>xarena_active_clause (clause_slice arena N i)
-     (the (fmlookup N i))\<close>
-  shows \<open>xarena_active_clause (update_act (header_size (N\<propto>i)) act (clause_slice arena N i))
-     (the (fmlookup N i))\<close>
-  using assms
-  by (cases \<open>is_short_clause (N \<propto> i)\<close>)
-    (simp_all add: xarena_active_clause_alt_def update_act_def SHIFTS_def Misc.slice_def
-    header_size_def)
-
-
-lemma valid_arena_update_act:
-  assumes arena: \<open>valid_arena arena N vdom\<close> and i: \<open>i \<in># dom_m N\<close>
-  shows \<open>valid_arena (update_act i act arena) N vdom\<close>
-proof -
-  let ?arena = \<open>update_act i act arena\<close>
-  have [simp]: \<open>i \<notin># remove1_mset i (dom_m N)\<close>
-     \<open>\<And>ia. ia \<notin># remove1_mset i (dom_m N) \<longleftrightarrow> ia =i \<or> (i \<noteq> ia \<and> ia \<notin># dom_m N)\<close>
-    using assms distinct_mset_dom[of N]
-    by (auto dest!: multi_member_split simp: add_mset_eq_add_mset)
-  have
-    dom: \<open>\<forall>i\<in>#dom_m N.
-        i < length arena \<and>
-        header_size (N \<propto> i) \<le> i \<and>
-        xarena_active_clause (clause_slice arena N i) (the (fmlookup N i))\<close> and
-    dom': \<open>\<And>i. i\<in>#dom_m N \<Longrightarrow>
-        i < length arena \<and>
-        header_size (N \<propto> i) \<le> i \<and>
-        xarena_active_clause (clause_slice arena N i) (the (fmlookup N i))\<close>  and
-    vdom: \<open>\<And>i. i\<in>vdom \<longrightarrow> i \<notin># dom_m N \<longrightarrow> MIN_HEADER_SIZE \<le> i \<and> arena_dead_clause (dead_clause_slice arena N i)\<close>
-    using assms unfolding valid_arena_def by auto
-  have \<open>ia\<in>#dom_m N \<Longrightarrow> ia \<noteq> i \<Longrightarrow>
-        ia < length ?arena \<and>
-        header_size (N \<propto> ia) \<le> ia \<and>
-        xarena_active_clause (clause_slice ?arena N ia) (the (fmlookup N ia))\<close> for ia
-    using dom'[of ia] clause_slice_update_act[OF i _ dom, of ia act]
-    by auto
-  moreover have \<open>ia = i \<Longrightarrow>
-        ia < length ?arena \<and>
-        header_size (N \<propto> ia) \<le> ia \<and>
-        xarena_active_clause (clause_slice ?arena N ia) (the (fmlookup N ia))\<close> for ia
-    using dom'[of ia] clause_slice_update_act[OF i _ dom, of ia act] i
-    by (simp add: xarena_active_clause_update_act_same)
-  moreover have \<open>ia\<in>vdom \<longrightarrow>
-        ia \<notin># dom_m N \<longrightarrow>
-        MIN_HEADER_SIZE \<le> ia \<and> arena_dead_clause
-         (dead_clause_slice (update_act i act arena) (fmdrop i N) ia)\<close> for ia
-    using vdom[of ia] clause_slice_update_act_dead[OF i _ _ arena, of ia] i
-    by auto
-  ultimately show ?thesis
-    using assms unfolding valid_arena_def
-    by auto
-qed
 
 paragraph \<open>Update LBD\<close>
 
@@ -1239,23 +1085,23 @@ qed
 paragraph \<open>Learning a clause\<close>
 
 definition append_clause_skeleton where
-  \<open>append_clause_skeleton pos st used act lbd C arena =
+  \<open>append_clause_skeleton pos st used lbd C arena =
     (if is_short_clause C then
-      arena @ (AStatus st used lbd) # AActivity act #
+      arena @ (AStatus st used lbd) #
       ASize (length C - 2) # map ALit C
-    else arena @ APos pos # (AStatus st used lbd) # AActivity act #
+    else arena @ APos pos # (AStatus st used lbd) #
       ASize (length C - 2) # map ALit C)\<close>
 
 definition append_clause where
   \<open>append_clause b C arena =
-    append_clause_skeleton 0 (if b then IRRED else LEARNED) False 0 (shorten_lbd(length C - 2)) C arena\<close>
+    append_clause_skeleton 0 (if b then IRRED else LEARNED) False (shorten_lbd(length C - 2)) C arena\<close>
 
 lemma arena_active_clause_append_clause:
   assumes
     \<open>i \<ge> header_size (N \<propto> i)\<close> and
     \<open>i < length arena\<close> and
     \<open>xarena_active_clause (clause_slice arena N i) (the (fmlookup N i))\<close>
-  shows \<open>xarena_active_clause (clause_slice (append_clause_skeleton pos st used act lbd C arena) N i)
+  shows \<open>xarena_active_clause (clause_slice (append_clause_skeleton pos st used lbd C arena) N i)
      (the (fmlookup N i))\<close>
 proof -
   have \<open>drop (header_size (N \<propto> i)) (clause_slice arena N i) = map ALit (N \<propto> i)\<close> and
@@ -1268,7 +1114,7 @@ proof -
    have \<open>i + length (N \<propto> i) \<le> length arena\<close>
     unfolding xarena_active_clause_alt_def
     by (auto simp add: slice_len_min_If header_size_def is_short_clause_def split: if_splits)
-  then have \<open>clause_slice (append_clause_skeleton pos st used act lbd C arena) N i =
+  then have \<open>clause_slice (append_clause_skeleton pos st used lbd C arena) N i =
     clause_slice arena N i\<close>
     by (auto simp add: append_clause_skeleton_def)
   then show ?thesis
@@ -1276,7 +1122,7 @@ proof -
 qed
 
 lemma length_append_clause[simp]:
-  \<open>length (append_clause_skeleton pos st used act lbd C arena) =
+  \<open>length (append_clause_skeleton pos st used lbd C arena) =
     length arena + length C + header_size C\<close>
   \<open>length (append_clause b C arena) = length arena + length C + header_size C\<close>
   by (auto simp: append_clause_skeleton_def header_size_def
@@ -1287,7 +1133,7 @@ lemma arena_active_clause_append_clause_same: \<open>2 \<le> length C \<Longrigh
     b \<longleftrightarrow> (st = IRRED) \<Longrightarrow>
     xarena_active_clause
      (Misc.slice (length arena) (length arena + header_size C + length C)
-       (append_clause_skeleton pos st used act lbd C arena))
+       (append_clause_skeleton pos st used lbd C arena))
      (the (fmlookup (fmupd (length arena + header_size C) (C, b) N)
        (length arena + header_size C)))\<close>
   unfolding xarena_active_clause_alt_def append_clause_skeleton_def
@@ -1300,13 +1146,13 @@ lemma clause_slice_append_clause:
     dom: \<open>valid_arena arena N vdom\<close> and
     \<open>arena_dead_clause (dead_clause_slice (arena) N ia)\<close>
   shows
-    \<open>arena_dead_clause (dead_clause_slice (append_clause_skeleton pos st used act lbd C arena) N ia)\<close>
+    \<open>arena_dead_clause (dead_clause_slice (append_clause_skeleton pos st used lbd C arena) N ia)\<close>
 proof -
   have ia_ge: \<open>ia \<ge> MIN_HEADER_SIZE\<close> \<open>ia < length arena\<close>
     using dom ia unfolding valid_arena_def
     by auto
   then have \<open>dead_clause_slice (arena) N ia =
-      dead_clause_slice (append_clause_skeleton pos st used act lbd C arena) N ia\<close>
+      dead_clause_slice (append_clause_skeleton pos st used lbd C arena) N ia\<close>
     by (auto simp add: extra_information_mark_to_delete_def drop_update_swap
       append_clause_skeleton_def
       arena_dead_clause_def swap_lits_def SHIFTS_def swap_def ac_simps
@@ -1320,11 +1166,11 @@ lemma valid_arena_append_clause_skeleton:
   assumes arena: \<open>valid_arena arena N vdom\<close> and le_C: \<open>length C \<ge> 2\<close> and
     b: \<open>b \<longleftrightarrow> (st = IRRED)\<close> and st: \<open>st \<noteq> DELETED\<close> and
     pos: \<open>pos \<le> length C - 2\<close>
-  shows \<open>valid_arena (append_clause_skeleton pos st used act lbd C arena)
+  shows \<open>valid_arena (append_clause_skeleton pos st used lbd C arena)
       (fmupd (length arena + header_size C) (C, b) N)
      (insert (length arena + header_size C) vdom)\<close>
 proof -
-  let ?arena = \<open>append_clause_skeleton pos st used act lbd C arena\<close>
+  let ?arena = \<open>append_clause_skeleton pos st used lbd C arena\<close>
   let ?i= \<open>length arena + header_size C\<close>
   let ?N = \<open>(fmupd (length arena + header_size C) (C, b) N)\<close>
   let ?vdom = \<open>insert (length arena + header_size C) vdom\<close>
@@ -1359,7 +1205,7 @@ proof -
   moreover have \<open>ia\<in>vdom \<longrightarrow>
         ia \<notin># dom_m N \<longrightarrow> ia < length (?arena) \<and>
         MIN_HEADER_SIZE \<le> ia \<and> arena_dead_clause (Misc.slice (ia - MIN_HEADER_SIZE) ia (?arena))\<close> for ia
-    using vdom[of ia] clause_slice_append_clause[of ia N vdom arena pos st used act lbd C, OF _ _ arena]
+    using vdom[of ia] clause_slice_append_clause[of ia N vdom arena pos st used lbd C, OF _ _ arena]
       le_C b st
     by auto
   ultimately show ?thesis
@@ -1390,7 +1236,6 @@ definition arena_el_relation where
      AStatus n b lbd \<Rightarrow> (x AND 0b11, n) \<in> status_rel \<and> (x, b) \<in> bitfield_rel 2 \<and> (x >> 4, lbd) \<in> nat_rel
    | APos n \<Rightarrow> (x, n) \<in> nat_rel
    | ASize n \<Rightarrow> (x, n) \<in> nat_rel
-   | AActivity n \<Rightarrow> (x, n) \<in> nat_rel
    | ALit n \<Rightarrow> (x, n) \<in> nat_lit_rel
 )\<close>
 
@@ -1429,11 +1274,11 @@ lemma arena_lifting:
     \<open>i + length (N \<propto> i) \<le> length arena\<close> and
     \<open>is_long_clause (N \<propto> i) \<Longrightarrow> is_Pos (arena ! ( i - POS_SHIFT))\<close> and
     \<open>is_long_clause (N \<propto> i) \<Longrightarrow> arena_pos arena i \<le> arena_length arena i\<close> and
-    \<open>is_Act (arena ! (i - ACTIVITY_SHIFT))\<close> and
+    \<open>True\<close> and
     \<open>is_Status (arena ! (i - STATUS_SHIFT))\<close> and
     \<open>SIZE_SHIFT \<le> i\<close> and
     \<open>LBD_SHIFT \<le> i\<close>
-    \<open>ACTIVITY_SHIFT \<le> i\<close> and
+    \<open>True\<close> and
     \<open>arena_length arena i \<ge> 2\<close> and
     \<open>arena_length arena i \<ge> Suc 0\<close> and
     \<open>arena_length arena i \<ge> 0\<close> and
@@ -1475,7 +1320,6 @@ proof -
        (clause_slice arena N i ! (header_size (N \<propto> i) - STATUS_SHIFT)) =
       LEARNED) =
      (\<not> irred N i)\<close> and
-    act: \<open>is_Act (clause_slice arena N i ! (header_size (N \<propto> i) - ACTIVITY_SHIFT))\<close> and
     size: \<open>is_Size (clause_slice arena N i ! (header_size (N \<propto> i) - SIZE_SHIFT))\<close> and
     size': \<open>Suc (Suc (xarena_length
                 (clause_slice arena N i !
@@ -1522,12 +1366,11 @@ proof -
   if \<open>is_long_clause (N \<propto> i)\<close>
     using pos ge2 i_le i_ge that unfolding arena_pos_def HH
     by (auto simp: SHIFTS_def slice_nth header_size_def)
-  show \<open>is_Act (arena ! (i - ACTIVITY_SHIFT))\<close> and
+  show \<open>True\<close> and \<open>True\<close> and
      \<open>is_Status (arena ! (i - STATUS_SHIFT))\<close>
-    using act ge2 i_le i_ge status unfolding arena_pos_def
+    using ge2 i_le i_ge status unfolding arena_pos_def
     by (auto simp: SHIFTS_def slice_nth header_size_def)
-  show \<open>SIZE_SHIFT \<le> i\<close> and  \<open>LBD_SHIFT \<le> i\<close> and
-    \<open>ACTIVITY_SHIFT \<le> i\<close>
+  show \<open>SIZE_SHIFT \<le> i\<close> and  \<open>LBD_SHIFT \<le> i\<close>
     using i_ge unfolding header_size_def SHIFTS_def by (auto split: if_splits)
   show \<open>j < length (N \<propto> i) \<Longrightarrow> i + j < length arena\<close>
     using i_le_arena by linarith
@@ -1561,11 +1404,10 @@ lemma arena_dom_status_iff:
    i: \<open>i \<in> vdom\<close>
   shows
     \<open>i \<in># dom_m N \<longleftrightarrow> arena_status arena i \<noteq> DELETED\<close> (is \<open>?eq\<close> is \<open>?A \<longleftrightarrow> ?B\<close>) and
-    \<open>is_Act (arena ! (i - ACTIVITY_SHIFT))\<close> (is ?act) and
     \<open>is_Status (arena ! (i - STATUS_SHIFT))\<close> (is ?stat) and
     \<open>MIN_HEADER_SIZE \<le> i\<close> (is ?ge)
 proof -
-  have H1: ?eq ?act ?stat ?ge
+  have H1: ?eq ?stat ?ge
     if \<open>?A\<close>
   proof -
     have
@@ -1577,11 +1419,10 @@ proof -
       \<open>(xarena_status (clause_slice arena N i ! (header_size (N \<propto> i) - STATUS_SHIFT)) = IRRED) =
        irred N i\<close> and
       \<open>(xarena_status (clause_slice arena N i ! (header_size (N \<propto> i) - STATUS_SHIFT)) = LEARNED) =
-        (\<not> irred N i)\<close> and
-      \<open>is_Act (clause_slice arena N i ! (header_size (N \<propto> i) - ACTIVITY_SHIFT)) \<close>
+        (\<not> irred N i)\<close>
       unfolding xarena_active_clause_alt_def arena_status_def
       by blast+
-    then show ?eq and ?act and ?stat and ?ge
+    then show ?eq and ?stat and ?ge
       using i_ge i_le that
       unfolding xarena_active_clause_alt_def arena_status_def
       by (auto simp: SHIFTS_def header_size_def slice_nth split: if_splits)
@@ -1606,18 +1447,18 @@ proof -
       using arena_lifting[OF valid, of i] that
       by auto
   qed
-  moreover have ?act ?stat ?ge if \<open>\<not>?A\<close>
+  moreover have ?stat ?ge if \<open>\<not>?A\<close>
   proof -
     have
       \<open>arena_dead_clause (Misc.slice (i - MIN_HEADER_SIZE) i arena)\<close> and
       i_ge: \<open>MIN_HEADER_SIZE \<le> i\<close> and
       i_le: \<open>i < length arena\<close>
       using assms that unfolding valid_arena_def by blast+
-    then show ?act ?stat ?ge
+    then show ?stat ?ge
       unfolding arena_dead_clause_def
       by (auto simp: SHIFTS_def slice_nth)
   qed
-  ultimately show ?eq and ?act and ?stat and ?ge
+  ultimately show ?eq and ?stat and ?ge
     by blast+
 qed
 
@@ -1642,9 +1483,8 @@ definition arena_is_valid_clause_vdom :: \<open>arena \<Rightarrow> nat \<Righta
   (\<exists>N vdom. valid_arena arena N vdom \<and> (i \<in> vdom \<or> i \<in># dom_m N))\<close>
 
 lemma SHIFTS_alt_def:
-  \<open>POS_SHIFT = Suc (Suc (Suc (Suc 0)))\<close>
-  \<open>STATUS_SHIFT = Suc (Suc (Suc 0))\<close>
-  \<open>ACTIVITY_SHIFT = Suc (Suc 0)\<close>
+  \<open>POS_SHIFT = (Suc (Suc (Suc 0)))\<close>
+  \<open>STATUS_SHIFT = (Suc (Suc 0))\<close>
   \<open>SIZE_SHIFT = Suc 0\<close>
   by (auto simp: SHIFTS_def)
 
@@ -1685,22 +1525,9 @@ definition isa_update_pos_pre where
 definition mark_garbage_pre where
   \<open>mark_garbage_pre = (\<lambda>(arena, C). arena_is_valid_clause_idx arena C)\<close>
 
-
-definition arena_act_pre where
-  \<open>arena_act_pre = arena_is_valid_clause_idx\<close>
-
 lemma length_clause_slice_list_update[simp]:
   \<open>length (clause_slice (arena[i := x]) a b) = length (clause_slice arena a b)\<close>
   by (auto simp: Misc.slice_def)
-
-definition arena_decr_act where
-  \<open>arena_decr_act arena i = arena[i - ACTIVITY_SHIFT :=
-     AActivity (xarena_act (arena!(i - ACTIVITY_SHIFT)) div 2)]\<close>
-
-
-lemma length_arena_decr_act[simp]:
-  \<open>length (arena_decr_act arena C) = length arena\<close>
-  by (auto simp: arena_decr_act_def)
 
 definition mark_used where
   \<open>mark_used arena i =
@@ -1738,8 +1565,6 @@ proof -
    [simp]: \<open>is_long_clause (N \<propto> C) \<Longrightarrow> clause_slice ?arena N C ! (header_size (N \<propto> C) - POS_SHIFT) =
            clause_slice arena N C ! (header_size (N \<propto> C) - POS_SHIFT)\<close> and
    [simp]: \<open>length (clause_slice  ?arena N C) = length (clause_slice arena N C)\<close> and
-   [simp]: \<open>clause_slice ?arena N C ! (header_size (N \<propto> C) - ACTIVITY_SHIFT) =
-           clause_slice arena N C ! (header_size (N \<propto> C) - ACTIVITY_SHIFT)\<close> and
    [simp]: \<open>Misc.slice C (C + length (N \<propto> C)) ?arena =
      Misc.slice C (C + length (N \<propto> C)) arena\<close>
     using C_le C_ge unfolding SHIFTS_def mark_used_def header_size_def arena_lbd_def arena_status_def
@@ -1818,8 +1643,6 @@ proof -
    [simp]: \<open>is_long_clause (N \<propto> C) \<Longrightarrow> clause_slice ?arena N C ! (header_size (N \<propto> C) - POS_SHIFT) =
            clause_slice arena N C ! (header_size (N \<propto> C) - POS_SHIFT)\<close> and
    [simp]: \<open>length (clause_slice  ?arena N C) = length (clause_slice arena N C)\<close> and
-   [simp]: \<open>clause_slice ?arena N C ! (header_size (N \<propto> C) - ACTIVITY_SHIFT) =
-           clause_slice arena N C ! (header_size (N \<propto> C) - ACTIVITY_SHIFT)\<close> and
    [simp]: \<open>Misc.slice C (C + length (N \<propto> C)) ?arena =
      Misc.slice C (C + length (N \<propto> C)) arena\<close>
     using C_le C_ge unfolding SHIFTS_def mark_unused_def header_size_def
@@ -1892,148 +1715,6 @@ proof -
     using assms by (auto simp: valid_arena_def)
   from card_mono[OF _ this] show ?thesis using assms by (auto simp: distinct_card)
 qed
-
-lemma valid_arena_arena_incr_act:
-  assumes C: \<open>C \<in># dom_m N\<close> and valid: \<open>valid_arena arena N vdom\<close>
-  shows
-   \<open>valid_arena (arena_incr_act arena C) N vdom\<close>
-proof -
-  let ?arena = \<open>arena_incr_act arena C\<close>
-  have act: \<open>\<forall>i\<in>#dom_m N.
-     i < length (arena) \<and>
-     header_size (N \<propto> i) \<le> i \<and>
-     xarena_active_clause (clause_slice arena N i)
-      (the (fmlookup N i))\<close> and
-    dead: \<open>\<And>i. i \<in> vdom \<Longrightarrow> i \<notin># dom_m N \<Longrightarrow> i < length arena \<and>
-           MIN_HEADER_SIZE \<le> i \<and> arena_dead_clause (dead_clause_slice arena N i)\<close> and
-    C_ge: \<open>header_size (N \<propto> C) \<le> C\<close> and
-    C_le: \<open>C < length arena\<close> and
-    C_act: \<open>xarena_active_clause (clause_slice arena N C)
-      (the (fmlookup N C))\<close>
-    using assms
-    by (auto simp: valid_arena_def)
-  have
-   [simp]: \<open>clause_slice ?arena N C ! (header_size (N \<propto> C) - STATUS_SHIFT) =
-           clause_slice arena N C ! (header_size (N \<propto> C) - STATUS_SHIFT)\<close> and
-   [simp]: \<open>clause_slice ?arena N C ! (header_size (N \<propto> C) - SIZE_SHIFT) =
-           clause_slice arena N C ! (header_size (N \<propto> C) - SIZE_SHIFT)\<close> and
-   [simp]: \<open>is_long_clause (N \<propto> C) \<Longrightarrow> clause_slice ?arena N C ! (header_size (N \<propto> C) - POS_SHIFT) =
-           clause_slice arena N C ! (header_size (N \<propto> C) - POS_SHIFT)\<close> and
-   [simp]: \<open>length (clause_slice  ?arena N C) = length (clause_slice arena N C)\<close> and
-   [simp]: \<open>is_Act (clause_slice ?arena N C ! (header_size (N \<propto> C) - ACTIVITY_SHIFT))\<close> and
-   [simp]: \<open>Misc.slice C (C + length (N \<propto> C)) ?arena =
-     Misc.slice C (C + length (N \<propto> C)) arena\<close>
-    using C_le C_ge unfolding SHIFTS_def arena_incr_act_def header_size_def
-    by (auto simp: Misc.slice_def drop_update_swap split: if_splits)
-
-  have \<open>xarena_active_clause (clause_slice ?arena N C) (the (fmlookup N C))\<close>
-    using C_act C_le C_ge unfolding xarena_active_clause_alt_def
-    by simp
-
-  then have 1: \<open>xarena_active_clause (clause_slice arena N i) (the (fmlookup N i)) \<Longrightarrow>
-     xarena_active_clause (clause_slice (arena_incr_act arena C) N i) (the (fmlookup N i))\<close>
-    if \<open>i \<in># dom_m N\<close>
-    for i
-    using minimal_difference_between_valid_index[of N arena C i, OF act]
-      minimal_difference_between_valid_index[of N arena i C, OF act] assms
-      that C_ge
-    by (cases \<open>C < i\<close>; cases \<open>C > i\<close>)
-      (auto simp: arena_incr_act_def header_size_def ACTIVITY_SHIFT_def
-      split: if_splits)
-
-  have 2:
-    \<open>arena_dead_clause (Misc.slice (i - MIN_HEADER_SIZE) i ?arena)\<close>
-    if \<open>i \<in> vdom\<close>\<open>i \<notin># dom_m N\<close>\<open>arena_dead_clause (Misc.slice (i - MIN_HEADER_SIZE) i arena)\<close>
-    for i
-  proof -
-    have i_ge: \<open>i \<ge> MIN_HEADER_SIZE\<close> \<open>i < length arena\<close>
-      using that valid unfolding valid_arena_def
-      by auto
-    show ?thesis
-      using dead[of i] that C_le C_ge
-      minimal_difference_between_invalid_index[OF valid, of C i]
-      minimal_difference_between_invalid_index2[OF valid, of C i]
-      by (cases \<open>C < i\<close>; cases \<open>C > i\<close>)
-        (auto simp: arena_incr_act_def header_size_def ACTIVITY_SHIFT_def C
-          split: if_splits)
-  qed
-  show ?thesis
-    using 1 2 valid
-    by (auto simp: valid_arena_def arena_incr_act_def)
-qed
-
-lemma valid_arena_arena_decr_act:
-  assumes C: \<open>C \<in># dom_m N\<close> and valid: \<open>valid_arena arena N vdom\<close>
-  shows
-   \<open>valid_arena (arena_decr_act arena C) N vdom\<close>
-proof -
-  let ?arena = \<open>arena_decr_act arena C\<close>
-  have act: \<open>\<forall>i\<in>#dom_m N.
-     i < length (arena) \<and>
-     header_size (N \<propto> i) \<le> i \<and>
-     xarena_active_clause (clause_slice arena N i)
-      (the (fmlookup N i))\<close> and
-    dead: \<open>\<And>i. i \<in> vdom \<Longrightarrow> i \<notin># dom_m N \<Longrightarrow> i < length arena \<and>
-           MIN_HEADER_SIZE \<le> i \<and> arena_dead_clause (Misc.slice (i - MIN_HEADER_SIZE) i arena)\<close> and
-    C_ge: \<open>header_size (N \<propto> C) \<le> C\<close> and
-    C_le: \<open>C < length arena\<close> and
-    C_act: \<open>xarena_active_clause (clause_slice arena N C)
-      (the (fmlookup N C))\<close>
-    using assms
-    by (auto simp: valid_arena_def)
-  have
-   [simp]: \<open>clause_slice ?arena N C ! (header_size (N \<propto> C) - STATUS_SHIFT) =
-           clause_slice arena N C ! (header_size (N \<propto> C) - STATUS_SHIFT)\<close> and
-   [simp]: \<open>clause_slice ?arena N C ! (header_size (N \<propto> C) - SIZE_SHIFT) =
-           clause_slice arena N C ! (header_size (N \<propto> C) - SIZE_SHIFT)\<close> and
-   [simp]: \<open>is_long_clause (N \<propto> C) \<Longrightarrow> clause_slice ?arena N C ! (header_size (N \<propto> C) - POS_SHIFT) =
-           clause_slice arena N C ! (header_size (N \<propto> C) - POS_SHIFT)\<close> and
-   [simp]: \<open>length (clause_slice  ?arena N C) = length (clause_slice arena N C)\<close> and
-   [simp]: \<open>is_Act (clause_slice ?arena N C ! (header_size (N \<propto> C) - ACTIVITY_SHIFT))\<close> and
-   [simp]: \<open>Misc.slice C (C + length (N \<propto> C)) ?arena =
-     Misc.slice C (C + length (N \<propto> C)) arena\<close>
-    using C_le C_ge unfolding SHIFTS_def arena_decr_act_def header_size_def
-    by (auto simp: Misc.slice_def drop_update_swap split: if_splits)
-
-  have \<open>xarena_active_clause (clause_slice ?arena N C) (the (fmlookup N C))\<close>
-    using C_act C_le C_ge unfolding xarena_active_clause_alt_def
-    by simp
-
-  then have 1: \<open>xarena_active_clause (clause_slice arena N i) (the (fmlookup N i)) \<Longrightarrow>
-     xarena_active_clause (clause_slice (arena_decr_act arena C) N i) (the (fmlookup N i))\<close>
-    if \<open>i \<in># dom_m N\<close>
-    for i
-    using minimal_difference_between_valid_index[of N arena C i, OF act]
-      minimal_difference_between_valid_index[of N arena i C, OF act] assms
-      that C_ge
-    by (cases \<open>C < i\<close>; cases \<open>C > i\<close>)
-      (auto simp: arena_decr_act_def header_size_def ACTIVITY_SHIFT_def
-      split: if_splits)
-
-  have 2:
-    \<open>arena_dead_clause (Misc.slice (i - MIN_HEADER_SIZE) i ?arena)\<close>
-    if \<open>i \<in> vdom\<close>\<open>i \<notin># dom_m N\<close>\<open>arena_dead_clause (Misc.slice (i - MIN_HEADER_SIZE) i arena)\<close>
-    for i
-  proof -
-    have i_ge: \<open>i \<ge> MIN_HEADER_SIZE\<close> \<open>i < length arena\<close>
-      using that valid unfolding valid_arena_def
-      by auto
-    show ?thesis
-      using dead[of i] that C_le C_ge
-      minimal_difference_between_invalid_index[OF valid, of C i]
-      minimal_difference_between_invalid_index2[OF valid, of C i]
-      by (cases \<open>C < i\<close>; cases \<open>C > i\<close>)
-        (auto simp: arena_decr_act_def header_size_def ACTIVITY_SHIFT_def C
-          split: if_splits)
-  qed
-  show ?thesis
-    using 1 2 valid
-    by (auto simp: valid_arena_def)
-qed
-
-lemma length_arena_incr_act[simp]:
-  \<open>length (arena_incr_act arena C) = length arena\<close>
-  by (auto simp: arena_incr_act_def)
 
 
 section \<open>MOP versions of operations\<close>
@@ -2172,5 +1853,8 @@ definition arena_other_watched :: \<open>arena \<Rightarrow> nat literal \<Right
       arena_lit_pre2 S C (1-i));
     mop_arena_lit2 S C (1 - i)
   }\<close>
+
+definition arena_act_pre where
+  \<open>arena_act_pre = arena_is_valid_clause_idx\<close>
 
 end

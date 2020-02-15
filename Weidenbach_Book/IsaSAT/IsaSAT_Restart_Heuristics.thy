@@ -1081,7 +1081,7 @@ lemma mark_unused_st_heur_ana:
          learned_clss_l_l_fmdrop size_remove1_mset_If
      simp: all_init_atms_def all_init_lits_def
      simp del: all_init_atms_def[symmetric]
-     intro!: valid_arena_mark_unused valid_arena_arena_decr_act
+     intro!: valid_arena_mark_unused
      dest!: in_set_butlastD in_vdom_m_fmdropD
      elim!: in_set_upd_cases)
   done
@@ -1214,7 +1214,7 @@ lemma incr_wasted_st:
          learned_clss_l_l_fmdrop size_remove1_mset_If
      simp: all_init_atms_def all_init_lits_def heuristic_rel_def
      simp del: all_init_atms_def[symmetric]
-     intro!: valid_arena_mark_unused valid_arena_arena_decr_act
+     intro!: valid_arena_mark_unused
      dest!: in_set_butlastD in_vdom_m_fmdropD
      elim!: in_set_upd_cases)
   done

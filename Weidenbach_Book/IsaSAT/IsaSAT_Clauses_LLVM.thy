@@ -40,7 +40,6 @@ sepref_def append_and_length_fast_code
        arena_fast_assn \<times>\<^sub>a sint64_nat_assn\<close>
   unfolding fm_add_new_fast_def fm_add_new_def append_and_length_fast_code_pre_def
     shorten_lbd_alt_def
-  apply (rewrite at \<open>AActivity \<hole>\<close> unat_const_fold[where 'a=32])+
   apply (rewrite at \<open>APos \<hole>\<close> unat_const_fold[where 'a=32])+
   apply (rewrite at \<open>length _ - 2\<close> annot_snat_unat_downcast[where 'l=32])
 
@@ -55,7 +54,7 @@ sepref_def append_and_length_fast_code
 sepref_def fm_mv_clause_to_new_arena_fast_code
   is \<open>uncurry2 fm_mv_clause_to_new_arena\<close>
   :: \<open>[\<lambda>((n, arena\<^sub>o), arena). length arena\<^sub>o \<le> sint64_max \<and> length arena + arena_length arena\<^sub>o n +
-         (if arena_length arena\<^sub>o  n \<le> 4 then 3 else MAX_HEADER_SIZE) \<le> sint64_max]\<^sub>a
+         (if arena_length arena\<^sub>o  n \<le> 4 then MIN_HEADER_SIZE else MAX_HEADER_SIZE) \<le> sint64_max]\<^sub>a
        sint64_nat_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>d \<rightarrow> arena_fast_assn\<close>
   supply [[goals_limit=1]] if_splits[split]
   unfolding fm_mv_clause_to_new_arena_def

@@ -247,7 +247,7 @@ lemma mark_unused_st_heur:
          learned_clss_l_l_fmdrop size_remove1_mset_If
      simp: all_init_atms_def all_init_lits_def
      simp del: all_init_atms_def[symmetric]
-     intro!: valid_arena_mark_unused valid_arena_arena_decr_act
+     intro!: valid_arena_mark_unused
      dest!: in_set_butlastD in_vdom_m_fmdropD
      elim!: in_set_upd_cases)
   done
@@ -257,7 +257,7 @@ lemma mark_to_delete_clauses_wl_D_heur_is_Some_iff:
   by auto
 
 lemma (in -) isasat_fast_alt_def:
-  \<open>RETURN o isasat_fast = (\<lambda>(M, N, _). RETURN (length N \<le> sint64_max - (uint32_max div 2 + 5)))\<close>
+  \<open>RETURN o isasat_fast = (\<lambda>(M, N, _). RETURN (length N \<le> sint64_max - (uint32_max div 2 + MAX_HEADER_SIZE + 1)))\<close>
   unfolding isasat_fast_def
   by (auto intro!:ext)
 
