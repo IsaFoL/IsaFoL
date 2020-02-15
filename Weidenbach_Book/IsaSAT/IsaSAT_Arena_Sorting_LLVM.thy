@@ -16,15 +16,15 @@ sepref_register clause_score_extract
 sepref_def (in -) clause_score_extract_code
   is \<open>uncurry (RETURN oo clause_score_extract)\<close>
   :: \<open>[uncurry valid_sort_clause_score_pre_at]\<^sub>a
-      arena_fast_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> uint32_nat_assn \<times>\<^sub>a uint32_nat_assn\<close>
+      arena_fast_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> uint32_nat_assn \<times>\<^sub>a sint64_nat_assn\<close>
   supply [[goals_limit = 1]]
   unfolding clause_score_extract_def valid_sort_clause_score_pre_at_def
-  apply (annot_unat_const \<open>TYPE(32)\<close>)
+  apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
 sepref_def (in -) clause_score_ordering_code
   is \<open>uncurry (RETURN oo clause_score_ordering)\<close>
-  :: \<open>(uint32_nat_assn \<times>\<^sub>a uint32_nat_assn)\<^sup>k *\<^sub>a (uint32_nat_assn \<times>\<^sub>a uint32_nat_assn)\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
+  :: \<open>(uint32_nat_assn \<times>\<^sub>a sint64_nat_assn)\<^sup>k *\<^sub>a (uint32_nat_assn \<times>\<^sub>a sint64_nat_assn)\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
   supply [[goals_limit = 1]]
   unfolding clause_score_ordering_def
   by sepref
@@ -151,5 +151,6 @@ print_named_simpset llvm_inline
 export_llvm
   \<open>LBD_heapsort_impl :: _ \<Rightarrow> _ \<Rightarrow> _\<close>
   \<open>LBD_introsort_impl :: _ \<Rightarrow> _ \<Rightarrow> _\<close>
+
 
 end

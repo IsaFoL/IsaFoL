@@ -428,10 +428,10 @@ lemma update_lbdI:
 
 lemma shorten_lbd_le: \<open>shorten_lbd baa << 4 < max_unat 32\<close>
 proof -
-  have \<open>shorten_lbd baa << 4 \<le> 134217728 << 4\<close>
-    using AND_upper_nat2[of baa 268435456]
+  have \<open>shorten_lbd baa << 4 \<le> 134217727 << 4\<close>
+    using AND_upper_nat2[of baa 134217727]
     by (auto simp: nat_shiftr_div shorten_lbd_def)
-  also have \<open>134217728 << 4 < max_unat 32\<close>
+  also have \<open>134217727 << 4 < max_unat 32\<close>
     by (auto simp: max_unat_def nat_shiftr_div)
   finally show ?thesis .
 qed

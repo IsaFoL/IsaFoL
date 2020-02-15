@@ -184,9 +184,6 @@ sepref_def lower_restart_bound_not_reached_impl
   supply [[goals_limit = 1]]
   by sepref
 
-
-find_theorems sort_spec
-
 definition lbd_sort_clauses_raw :: \<open>arena \<Rightarrow> vdom \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat list nres\<close> where
   \<open>lbd_sort_clauses_raw arena N = pslice_sort_spec idx_cdom clause_score_less arena N\<close>
 

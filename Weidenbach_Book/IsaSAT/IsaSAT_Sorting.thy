@@ -16,8 +16,7 @@ definition (in -) clause_score_extract :: \<open>arena \<Rightarrow> nat \<Right
         largest possible\<close>
      else
        let lbd = arena_lbd arena C in
-       let act = arena_act arena C in
-       (lbd, act)
+       (lbd, C)
   )\<close>
 
 definition valid_sort_clause_score_pre_at where

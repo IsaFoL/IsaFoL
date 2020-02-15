@@ -857,10 +857,10 @@ qed
 paragraph \<open>Update LBD\<close>
 
 definition shorten_lbd :: \<open>nat \<Rightarrow> nat\<close> where
-  \<open>shorten_lbd n = (n AND (2 ^ 27))\<close>
+  \<open>shorten_lbd n = (n AND (2 ^ 27 - 1))\<close>
 
 lemma shorten_lbd_alt_def:
-  \<open>shorten_lbd n = n AND 134217728\<close>
+  \<open>shorten_lbd n = n AND 134217727\<close>
   unfolding shorten_lbd_def by auto
 
 definition update_lbd where
