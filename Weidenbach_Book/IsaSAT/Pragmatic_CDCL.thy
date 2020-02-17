@@ -1189,7 +1189,7 @@ next
       using subresolution_IL apply -
       by (rule cdcl_resolution.resolution_IL, assumption, assumption)
   have \<open>pcdcl_all_struct_invs ?B\<close>
-    using \<open>1\<close> pcdcl.intros(3) pcdcl_all_struct_invs subresolution_IL.prems by blast
+    using 1 pcdcl.intros(3) pcdcl_all_struct_invs subresolution_IL.prems by blast
   moreover have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of ?B)\<close>
     using cdcl_resolution_entailed_by_init[OF 1] subresolution_IL by blast
   ultimately have 2: \<open>cdcl_learn_clause
@@ -1240,5 +1240,44 @@ lemma
      simp: in_diff_count split: if_splits)
      using literal.exhaust_sel apply blast+
    done
+
+ 
+section \<open>Bactrack for unit clause\<close>
+
+text \<open>This is the specific case where we learn a new unit clause and directly add it to the right
+ place.\<close>
+inductive cdcl_backtrack_unit :: \<open>'v prag_st \<Rightarrow> 'v prag_st \<Rightarrow> bool\<close> where
+  \<open>cdcl_backtrack_unit (M, N, U, Some (add_mset L D), NE, UE, NS, US)
+  (Propagated L {#L#} # M1, N, U, None, NE, add_mset {#L#} UE, NS, US)\<close>
+  if
+    \<open>(Decided K # M1, M2) \<in> set (get_all_ann_decomposition M)\<close> and
+    \<open>get_level M L = count_decided M\<close> and
+    \<open>get_level M L = get_maximum_level M {#L#}\<close> and
+    \<open>get_level M K = 1\<close> and
+    \<open>N + U + NE + UE + NS + US \<Turnstile>pm {#L#}\<close>
+
+lemma cdcl_backtrack_unit_is_backtrack:
+  assumes \<open>cdcl_backtrack_unit S U\<close>
+  obtains T where
+    \<open>cdcl_backtrack S T\<close> and
+    \<open>cdcl_flush_unit T U\<close>
+  using assms
+proof (induction rule: cdcl_backtrack_unit.induct)
+  case (1 K M1 M2 M L N U NE UE NS US D) note H =this(1-5) and that = this(6)
+  let ?T = \<open>(Propagated L (add_mset L {#}) # M1, N, add_mset (add_mset L {#}) U, None, NE, UE, NS, US)\<close>
+  have \<open>cdcl_backtrack (M, N, U, Some (add_mset L D), NE, UE, NS, US) ?T\<close>
+    apply (rule cdcl_backtrack.intros[of K M1 M2 _ _ _ 0])
+    using H by auto
+  moreover have \<open>cdcl_flush_unit ?T (Propagated L {#L#} # M1, N, U, None, NE, add_mset {#L#} UE, NS, US)\<close>
+    by (rule cdcl_flush_unit.intros(2))
+      (use H in \<open>auto dest!: get_all_ann_decomposition_exists_prepend simp: get_level_append_if
+       split: if_splits\<close>)
+  ultimately show ?case using that by blast
+qed
+
+lemma cdcl_backtrack_unit_pcdcl_all_struct_invs:
+   \<open>cdcl_backtrack_unit S T \<Longrightarrow> pcdcl_all_struct_invs S \<Longrightarrow> pcdcl_all_struct_invs T\<close>
+  by (auto elim!: cdcl_backtrack_unit_is_backtrack intro: pcdcl_all_struct_invs
+    dest!: pcdcl.intros(1) pcdcl.intros(5)  pcdcl_core.intros(6))
 
 end
