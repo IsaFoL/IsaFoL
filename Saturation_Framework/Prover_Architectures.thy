@@ -721,65 +721,13 @@ proof -
   qed
 qed
 
-find_theorems local.derive name: i_in_Liminf
-
-lemma "chain (\<Longrightarrow>GC) D \<Longrightarrow> B \<in> Bot_FL \<Longrightarrow> enat (Suc i) < llength D \<Longrightarrow> B \<in> lnth D i \<Longrightarrow> B \<in> lnth D (Suc i)"
-proof -
-  assume
-    deriv: "chain (\<Longrightarrow>GC) D" and
-    "B \<in> Bot_FL" and
-    suc_i_len: "enat (Suc i) < llength D" and
-    "B \<in> lnth D i"
-  have "chain (\<rhd>RedL) D"
-    using gc_to_red[OF deriv] by simp
-  then have "lnth D i \<rhd>RedL lnth D (Suc i)" by (simp add: suc_i_len chain_lnth_rel)
-  then have "(lnth D i) - (lnth D (Suc i)) \<subseteq> with_labels.Red_F_Q (lnth D (Suc i))"
-sorry
-
-
-  show "B \<in> lnth D (Suc i)" sorry
-qed
-
-lemma "chain (\<Longrightarrow>GC) D \<Longrightarrow> B \<in> Bot_FL \<Longrightarrow> enat (Suc i) < llength D \<Longrightarrow> B \<in> lnth D i \<Longrightarrow> B \<in> Liminf_llist D"
-proof -
-  assume
-    deriv: "chain (\<Longrightarrow>GC) D" and
-    b_in: "B \<in> Bot_FL" and
-    suc_i_len: "enat (Suc i) < llength D" and
-    b_in_d_i: "B \<in> lnth D i"
-  have deriv2: "chain (\<rhd>RedL) D"
-    using gc_to_red[OF deriv] by simp
-  have i_len: "enat i < llength D" using suc_i_len using Suc_ile_eq less_imp_le by blast
-  have "B \<in> labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_F_Q (Liminf_llist D) \<union> Liminf_llist D"
-     using labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.inter_red_crit_calculus.i_in_Liminf_or_Red_F[OF deriv2 i_len]
-       b_in_d_i
-     by blast
-  show "B \<in> Liminf_llist D" sorry
-qed
-
-lemma "chain (\<Longrightarrow>GC) D \<Longrightarrow> B \<in> Bot_FL \<Longrightarrow> (enat i < llength D \<longrightarrow> B \<in> lnth D i) \<Longrightarrow> \<forall>j>i. (enat j < llength D \<longrightarrow> B \<in> lnth D j)"
-proof
-  fix i j D B
-  assume
-    deriv: "chain (\<Longrightarrow>GC) D" and
-    "B \<in> Bot_FL"
-    "(enat i < llength D \<longrightarrow> B \<in> lnth D i)"
-  show "i < j \<longrightarrow> enat j < llength D \<longrightarrow> B \<in> lnth D j"
-  proof clarify
-    assume "i < j" "enat j < llength D"
-    have "chain (\<rhd>RedL) D"
-      using gc_to_red[OF deriv] by simp
-    
-    show "B \<in> lnth D j" sorry
-  qed
-qed
-
 text \<open>thm:gc-completeness\<close>
+text \<open>The completeness statement below is not identical to that of the paper. The formalization showed that the paper statement was too strong. The following statement corresponds better to what happens in practice and the paper will be updated accordingly before the final version is published\<close>
 theorem "chain (\<Longrightarrow>GC) D \<Longrightarrow> llength D > 0 \<Longrightarrow> active_subset (lnth D 0) = {} \<Longrightarrow>
   non_active_subset (Liminf_llist D) = {} \<Longrightarrow> B \<in> Bot_F \<Longrightarrow>
-  no_labels.entails_\<G>_Q (fst ` (lnth D 0)) {B} \<Longrightarrow> \<exists>B'\<in> Bot_F. (B',active) \<in> Liminf_llist D"
+  no_labels.entails_\<G>_Q (fst ` (lnth D 0)) {B} \<Longrightarrow> \<exists>i. enat i < llength D \<and> (\<exists>BL\<in> Bot_FL. BL \<in> (lnth D i))"
 proof -
-  fix D B
+  fix B
   assume
     deriv: "chain (\<Longrightarrow>GC) D" and
     not_empty_d: "llength D > 0" and
@@ -791,24 +739,13 @@ proof -
   have not_empty_d2: "\<not> lnull D" using not_empty_d by force
   have labeled_bot_entailed: "entails_\<G>_L_Q  (lnth D 0) {(B,active)}" using labeled_entailment_lifting bot_entailed by fastforce
   have "fair D" using gc_fair[OF deriv not_empty_d init_state final_state] .
-  then have "\<exists>i \<in> {i. enat i < llength D}. \<exists>B'\<in>Bot_FL. B' \<in> lnth D i"
+  then have "\<exists>i \<in> {i. enat i < llength D}. \<exists>BL\<in>Bot_FL. BL \<in> lnth D i"
     using labeled_ordered_dynamic_ref_comp labeled_b_in not_empty_d2 gc_to_red[OF deriv]
       labeled_bot_entailed entail_equiv 
     unfolding dynamic_refutational_complete_calculus_def
       dynamic_refutational_complete_calculus_axioms_def by blast
-  then obtain i B' L where "enat i < llength D" and "(B',L) \<in> Bot_FL" and bp_in: "(B',L) \<in> lnth D i"
-    unfolding Bot_FL_def by blast
-  then have "\<exists>j. i \<le> j \<longrightarrow> enat j < llength D \<longrightarrow> (B',active) \<in> lnth D j"
-  proof (cases "L = active")
-    case True
-    then show "\<exists>j. i \<le> j \<longrightarrow> enat j < llength D \<longrightarrow> (B',active) \<in> lnth D j" using bp_in by blast
-  next
-    case False
-    then show "\<exists>j. i \<le> j \<longrightarrow> enat j < llength D \<longrightarrow> (B',active) \<in> lnth D j" sorry
+  then show ?thesis by blast
   qed
-  then show "\<exists>B'\<in> Bot_F. (B',active) \<in> Liminf_llist D" 
-    unfolding Liminf_llist_def sorry
-qed
 end
 
 end
