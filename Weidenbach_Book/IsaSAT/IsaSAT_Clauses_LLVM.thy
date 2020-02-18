@@ -39,13 +39,10 @@ sepref_def append_and_length_fast_code
      bool1_assn\<^sup>k *\<^sub>a clause_ll_assn\<^sup>k *\<^sub>a (arena_fast_assn)\<^sup>d \<rightarrow>
        arena_fast_assn \<times>\<^sub>a sint64_nat_assn\<close>
   unfolding fm_add_new_fast_def fm_add_new_def append_and_length_fast_code_pre_def
-    shorten_lbd_alt_def
   apply (rewrite at \<open>APos \<hole>\<close> unat_const_fold[where 'a=32])+
   apply (rewrite at \<open>length _ - 2\<close> annot_snat_unat_downcast[where 'l=32])
 
-  supply [simp] = fm_add_new_bounds1[simplified] shorten_lbd_le[unfolded shorten_lbd_alt_def]
-  apply (rewrite at \<open>_ AND \<hole>\<close>  unat_const_fold[where 'a=32])
-
+  supply [simp] = fm_add_new_bounds1[simplified] shorten_lbd_le
   apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 

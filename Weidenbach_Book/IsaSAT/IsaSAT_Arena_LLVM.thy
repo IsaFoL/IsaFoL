@@ -426,14 +426,21 @@ proof -
   finally show ?thesis .
 qed
 
-sepref_register update_lbd AStatus
+sepref_register update_lbd AStatus shorten_lbd
+sepref_def shorten_lbd_impl
+  is \<open>RETURN o shorten_lbd\<close>
+    :: \<open>uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+  unfolding shorten_lbd_def
+  apply (annot_unat_const \<open>TYPE(32)\<close>)
+  by sepref
+
+
 sepref_def update_lbd_impl
   is \<open>uncurry2 (RETURN ooo update_lbd)\<close>
     :: \<open>[update_lbd_pre]\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>d  \<rightarrow> arena_fast_assn\<close>
-  unfolding update_lbd_def LBD_SHIFT_def shorten_lbd_alt_def
-  supply [simp] = update_lbdI shorten_lbd_le[unfolded shorten_lbd_alt_def]
+  unfolding update_lbd_def LBD_SHIFT_def
+  supply [simp] = update_lbdI shorten_lbd_le
     and [dest] = arena_posI
-  apply (rewrite at \<open>_ AND \<hole>\<close> unat_const_fold[where 'a=32])
   apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
