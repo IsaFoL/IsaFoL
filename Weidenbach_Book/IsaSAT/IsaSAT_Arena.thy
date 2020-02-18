@@ -5,6 +5,7 @@ theory IsaSAT_Arena
 begin
 chapter \<open>The memory representation: Arenas\<close>
 
+   
 text \<open>
 We implement an ``arena'' memory representation: This is a flat representation of clauses, where
 all clauses and their headers are put one after the other. A lot of the work done here could be done
@@ -702,12 +703,15 @@ lemma valid_arena_remove_from_vdom:
 
 paragraph \<open>Update LBD\<close>
 
-definition shorten_lbd :: \<open>nat \<Rightarrow> nat\<close> where
-  \<open>shorten_lbd n = (n AND (2 ^ 27 - 1))\<close>
+abbreviation MAX_LBD :: \<open>nat\<close> where
+  \<open>MAX_LBD \<equiv> 134217727\<close>
 
-lemma shorten_lbd_alt_def:
-  \<open>shorten_lbd n = n AND 134217727\<close>
-  unfolding shorten_lbd_def by auto
+lemma MAX_LBD_alt_def:
+  \<open>MAX_LBD = (2^27-1)\<close>
+  by auto
+
+definition shorten_lbd :: \<open>nat \<Rightarrow> nat\<close> where
+  \<open>shorten_lbd n = (if n \<ge> MAX_LBD then MAX_LBD else n)\<close>
 
 definition update_lbd where
   \<open>update_lbd C lbd arena = arena[C - LBD_SHIFT := AStatus (arena_status arena C)
