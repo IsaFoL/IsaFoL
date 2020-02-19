@@ -421,14 +421,16 @@ definition active_subset :: "('f \<times> 'l) set \<Rightarrow> ('f \<times> 'l)
 definition non_active_subset :: "('f \<times> 'l) set \<Rightarrow> ('f \<times> 'l) set" where
   "non_active_subset M = {CL \<in> M. snd CL \<noteq> active}"
 
+find_theorems name: Red_Inf_Q_def
+
 inductive Given_Clause_step :: "('f \<times> 'l) set \<Rightarrow> ('f \<times> 'l) set \<Rightarrow> bool" (infix "\<Longrightarrow>GC" 50) where
   process: "N1 = N \<union> M \<Longrightarrow> N2 = N \<union> M' \<Longrightarrow> N \<inter> M = {} \<Longrightarrow>
     M \<subseteq>  labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_F_Q (N \<union> M') \<Longrightarrow>
     active_subset M' = {} \<Longrightarrow> N1 \<Longrightarrow>GC N2" | 
   infer: "N1 = N \<union> {(C,L)} \<Longrightarrow> {(C,L)} \<inter> N = {} \<Longrightarrow> N2 = N \<union> {(C,active)} \<union> M \<Longrightarrow> L \<noteq> active \<Longrightarrow>
     active_subset M = {} \<Longrightarrow>
-    with_labels.Inf_from2 (active_subset N) {(C,active)} \<subseteq>
-      labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_Inf_Q (N \<union> {(C,active)} \<union> M) \<Longrightarrow>
+    no_labels.Non_ground.Inf_from2 (fst ` (active_subset N)) {C} \<subseteq>
+      no_labels.lifted_calc_w_red_crit_family.Red_Inf_Q (fst ` (N \<union> {(C,active)} \<union> M)) \<Longrightarrow>
     N1 \<Longrightarrow>GC N2" 
 
 abbreviation derive :: "('f \<times> 'l) set \<Rightarrow> ('f \<times> 'l) set \<Rightarrow> bool" (infix "\<rhd>RedL" 50) where
@@ -458,9 +460,7 @@ next
     not_active: "L \<noteq> active" and
     n2_is: "N2 = N \<union> {(C, active)} \<union> M" and
     empty_inter: "{(C,L)} \<inter> N = {}" and
-    active_empty: "active_subset M = {}" and
-    infs_red: "with_labels.Inf_from2 (active_subset N) {(C, active)} \<subseteq>
-      labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_Inf_Q (N \<union> {(C, active)} \<union> M)"
+    active_empty: "active_subset M = {}"
   have "(C, active) \<in> N2" using n2_is by auto
   moreover have "C \<lless>\<doteq> C" using Prec_eq_F_def equiv_F_is_equiv_rel equiv_class_eq_iff by fastforce
   moreover have "active \<sqsubset>l L" using active_minimal[OF not_active] .  
@@ -659,8 +659,8 @@ proof -
     have "\<exists>N C L M. (lnth D n = N \<union> {(C,L)} \<and> {(C,L)} \<inter> N = {} \<and>
       lnth D (Suc n) = N \<union> {(C,active)} \<union> M \<and> L \<noteq> active \<and>
       active_subset M = {} \<and>
-      with_labels.Inf_from2 (active_subset N) {(C,active)} \<subseteq>
-      labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_Inf_Q (N \<union> {(C,active)} \<union> M))"
+      no_labels.Non_ground.Inf_from2 (fst ` (active_subset N)) {C} \<subseteq>
+      no_labels.lifted_calc_w_red_crit_family.Red_Inf_Q (fst ` (N \<union> {(C,active)} \<union> M)))"
     proof -
       have proc_or_infer: "(\<exists>N1 N M N2 M'. lnth D n = N1 \<and> lnth D (Suc n) = N2 \<and> N1 = N \<union> M \<and>
          N2 = N \<union> M' \<and> N \<inter> M = {} \<and>
@@ -669,15 +669,15 @@ proof -
        (\<exists>N1 N C L N2 M. lnth D n = N1 \<and> lnth D (Suc n) = N2 \<and> N1 = N \<union> {(C, L)} \<and>
          {(C, L)} \<inter> N = {} \<and> N2 = N \<union> {(C, active)} \<union> M \<and>
          L \<noteq> active \<and> active_subset M = {} \<and>
-         with_labels.Inf_from2 (active_subset N) {(C, active)} \<subseteq>
-         labeled_ord_red_crit_fam.empty_ord_lifted_calc_w_red_crit_family.Red_Inf_Q (N \<union> {(C, active)} \<union> M))"
+         no_labels.Non_ground.Inf_from2 (fst ` (active_subset N)) {C} \<subseteq>
+           no_labels.lifted_calc_w_red_crit_family.Red_Inf_Q (fst ` (N \<union> {(C,active)} \<union> M)))"
         using Given_Clause_step.simps[of "lnth D n" "lnth D (Suc n)"] step_n by blast
       show ?thesis
         using C0_in C0_notin proc_or_infer j0_in C0_is
         by (smt Un_iff active_subset_def mem_Collect_eq snd_conv sup_bot.right_neutral)
     qed
-    then obtain N M L where inf_from_subs: "with_labels.Inf_from2 (active_subset N) {(C0, active)} \<subseteq>
-      labeled_ord_red_crit_fam.empty_ord_lifted_calc_w_red_crit_family.Red_Inf_Q (N \<union> {(C0, active)} \<union> M)" and
+    then obtain N M L where inf_from_subs: "no_labels.Non_ground.Inf_from2 (fst ` (active_subset N)) {C0} \<subseteq>
+      no_labels.lifted_calc_w_red_crit_family.Red_Inf_Q (fst ` (N \<union> {(C0,active)} \<union> M))" and
       nth_d_is: "lnth D n = N \<union> {(C0,L)}" and suc_nth_d_is: "lnth D (Suc n) = N \<union> {(C0,active)} \<union> M" and
       l_not_active: "L \<noteq> active"
       using C0_in C0_notin j0_in C0_is using active_subset_def by fastforce   
@@ -711,13 +711,23 @@ proof -
     moreover have "\<not> (set (prems_of \<iota>) \<subseteq> active_subset N - {(C0, active)})"  using C0_prems_i by blast
     ultimately have "\<iota> \<in> with_labels.Inf_from2 (active_subset N) {(C0,active)}"
       using i_in_inf_fl unfolding with_labels.Inf_from2_def with_labels.Inf_from_def by blast
-    then have "\<iota> \<in> labeled_ord_red_crit_fam.empty_ord_lifted_calc_w_red_crit_family.Red_Inf_Q (lnth D (Suc n))"
-      using inf_from_subs suc_nth_d_is by fastforce
+    then have "to_F \<iota> \<in> no_labels.Non_ground.Inf_from2 (fst ` (active_subset N)) {C0}"
+      unfolding to_F_def with_labels.Inf_from2_def with_labels.Inf_from_def no_labels.Non_ground.Inf_from2_def
+        no_labels.Non_ground.Inf_from_def using Inf_FL_to_Inf_F by force
+    then have "to_F \<iota> \<in> no_labels.lifted_calc_w_red_crit_family.Red_Inf_Q (fst ` (lnth D (Suc n)))"
+      using suc_nth_d_is inf_from_subs by fastforce
+    then have "\<forall>q. \<G>_Inf_q q (to_F \<iota>) \<subseteq> Red_Inf_q q (\<Union> (\<G>_F_q q ` (fst ` (lnth D (Suc n)))))"
+      unfolding to_F_def no_labels.lifted_calc_w_red_crit_family.Red_Inf_Q_def no_labels.Red_Inf_\<G>_q_def
+        no_labels.\<G>_set_q_def
+      by fast
+    then have "\<iota> \<in> with_labels.Red_Inf_Q (lnth D (Suc n))"
+      unfolding to_F_def with_labels.Red_Inf_Q_def Red_Inf_\<G>_L_q_def \<G>_Inf_L_q_def \<G>_set_L_q_def \<G>_F_L_q_def
+      using i_in_inf_fl by auto
     then show "\<iota> \<in>
       labeled_ord_red_crit_fam.empty_ord_lifted_calc_w_red_crit_family.inter_red_crit_calculus.Sup_Red_Inf_llist D"
-      using n_in nj_set_def unfolding
+      unfolding
         labeled_ord_red_crit_fam.empty_ord_lifted_calc_w_red_crit_family.inter_red_crit_calculus.Sup_Red_Inf_llist_def 
-      by blast
+      using red_inf_equiv2 suc_n_length by auto
   qed
 qed
 
