@@ -745,7 +745,107 @@ proof -
     unfolding dynamic_refutational_complete_calculus_def
       dynamic_refutational_complete_calculus_axioms_def by blast
   then show ?thesis by blast
-  qed
+qed
+
 end
+
+locale Lazy_Given_Clause = Prover_Architecture Bot_F Inf_F Bot_G Q entails_q Inf_G Red_Inf_q
+  Red_F_q \<G>_F_q \<G>_Inf_q l Inf_FL Equiv_F Prec_F Prec_l
+  for
+    Bot_F :: "'f set" and
+    Inf_F :: "'f inference set" and
+    Bot_G :: "'g set" and
+    Q :: "'q itself" and
+    entails_q :: "'q \<Rightarrow> ('g set \<Rightarrow> 'g set \<Rightarrow> bool)" and
+    Inf_G :: \<open>'g inference set\<close> and
+    Red_Inf_q :: "'q \<Rightarrow> ('g set \<Rightarrow> 'g inference set)" and
+    Red_F_q :: "'q \<Rightarrow> ('g set \<Rightarrow> 'g set)" and
+    \<G>_F_q :: "'q \<Rightarrow> 'f \<Rightarrow> 'g set"  and
+    \<G>_Inf_q :: "'q \<Rightarrow> 'f inference \<Rightarrow> 'g inference set" and
+    l :: "'l itself" and
+    Inf_FL :: \<open>('f \<times> 'l) inference set\<close> and
+    Equiv_F :: "('f \<times> 'f) set" and
+    Prec_F :: "'f \<Rightarrow> 'f \<Rightarrow> bool" (infix "\<lless>" 50) and 
+    Prec_l :: "'l \<Rightarrow> 'l \<Rightarrow> bool" (infix "\<sqsubset>l" 50)
+  + fixes
+    active :: "'l"
+  assumes
+    inf_have_premises: "\<iota>F \<in> Inf_F \<Longrightarrow> length (prems_of \<iota>F) > 0" and
+    active_minimal: "l2 \<noteq> active \<Longrightarrow> active \<sqsubset>l l2" and
+    at_least_two_labels: "\<exists>l2. active \<sqsubset>l l2" and
+    inf_never_active: "\<iota> \<in> Inf_FL \<Longrightarrow> snd (concl_of \<iota>) \<noteq> active"
+begin
+
+lemma labeled_inf_have_premises: "\<iota> \<in> Inf_FL \<Longrightarrow> set (prems_of \<iota>) \<noteq> {}"
+  using inf_have_premises Inf_FL_to_Inf_F by fastforce
+
+definition active_subset :: "('f \<times> 'l) set \<Rightarrow> ('f \<times> 'l) set" where
+  "active_subset M = {CL \<in> M. snd CL = active}" 
+
+definition non_active_subset :: "('f \<times> 'l) set \<Rightarrow> ('f \<times> 'l) set" where
+  "non_active_subset M = {CL \<in> M. snd CL \<noteq> active}"
+
+inductive Lazy_Given_Clause_step :: "(('f \<times> 'l) inference set) \<times> (('f \<times> 'l) set) \<Rightarrow> (('f \<times> 'l) inference set) \<times> (('f \<times> 'l) set) \<Rightarrow> bool" (infix "\<Longrightarrow>LGC" 50) where
+  process: "N1 = N \<union> M \<Longrightarrow> N2 = N \<union> M' \<Longrightarrow> N \<inter> M = {} \<Longrightarrow>
+    M \<subseteq>  labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_F_Q (N \<union> M') \<Longrightarrow>
+    active_subset M' = {} \<Longrightarrow> (T,N1) \<Longrightarrow>LGC (T,N2)" | 
+  schedule_infer: "T2 = T1 \<union> T' \<Longrightarrow> N1 = N \<union> {(C,L)} \<Longrightarrow> {(C,L)} \<inter> N = {} \<Longrightarrow> N2 = N \<union> {(C,active)} \<Longrightarrow>
+    L \<noteq> active \<Longrightarrow> T' = with_labels.Inf_from2 (active_subset N) {(C,active)} \<Longrightarrow> (T1,N1) \<Longrightarrow>LGC (T2,N2)" |
+  compute_infer: "T1 = T2 \<union> {\<iota>} \<Longrightarrow> T2 \<inter> {\<iota>} = {} \<Longrightarrow> N2 = N1 \<union> M \<Longrightarrow> active_subset M = {} \<Longrightarrow>
+    \<iota> \<in> labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_Inf_Q (N1 \<union> M) \<Longrightarrow>
+    (T1,N1) \<Longrightarrow>LGC (T2,N2)" |
+  delete_orphans: "T1 = T2 \<union> T' \<Longrightarrow> T2 \<inter> T' = {} \<Longrightarrow> T' \<inter> with_labels.Inf_from (active_subset N) = {} \<Longrightarrow>
+    (T1,N) \<Longrightarrow>LGC (T2,N)" 
+
+abbreviation derive :: "('f \<times> 'l) set \<Rightarrow> ('f \<times> 'l) set \<Rightarrow> bool" (infix "\<rhd>RedL" 50) where
+  "derive \<equiv> labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.inter_red_crit_calculus.derive"
+
+lemma one_step_equiv: "(T1,N1) \<Longrightarrow>LGC (T2,N2) \<Longrightarrow> N1 \<rhd>RedL N2"
+proof (cases "(T1,N1)" "(T2,N2)" rule: Lazy_Given_Clause_step.cases)
+  show "(T1,N1) \<Longrightarrow>LGC (T2,N2) \<Longrightarrow> (T1,N1) \<Longrightarrow>LGC (T2,N2)" by blast
+next
+  fix N M M'
+  assume
+    n1_is: "N1 = N \<union> M" and
+    n2_is: "N2 = N \<union> M'" and
+    empty_inter: "N \<inter> M = {}" and
+    m_red: "M \<subseteq> labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_F_Q (N \<union> M')"
+  have "N1 - N2 \<subseteq> labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_F_Q N2"
+    using n1_is n2_is empty_inter m_red by auto
+  then show "N1 \<rhd>RedL N2"
+    unfolding labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.inter_red_crit_calculus.derive.simps by blast
+next
+  fix N C L M
+  assume
+    n1_is: "N1 = N \<union> {(C,L)}" and
+    not_active: "L \<noteq> active" and
+    n2_is: "N2 = N \<union> {(C, active)}"
+  have "(C, active) \<in> N2" using n2_is by auto
+  moreover have "C \<lless>\<doteq> C" using Prec_eq_F_def equiv_F_is_equiv_rel equiv_class_eq_iff by fastforce
+  moreover have "active \<sqsubset>l L" using active_minimal[OF not_active] .  
+  ultimately have "{(C,L)} \<subseteq> labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_F_Q N2"
+    using red_labeled_clauses by blast
+  then have "N1 - N2 \<subseteq> labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_F_Q N2"
+    using empty_red_f_equiv[of N2] using n1_is n2_is by blast
+  then show "N1 \<rhd>RedL N2"
+    unfolding labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.inter_red_crit_calculus.derive.simps
+    by blast
+next
+  fix M
+  assume
+    n2_is: "N2 = N1 \<union> M"
+  have "N1 - N2 \<subseteq> labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_F_Q N2"
+    using n2_is by blast
+  then show "N1 \<rhd>RedL N2"
+    unfolding labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.inter_red_crit_calculus.derive.simps
+    by blast
+next
+  assume n2_is: "N2 = N1"
+  have "N1 - N2 \<subseteq> labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_F_Q N2"
+    using n2_is by blast
+  then show "N1 \<rhd>RedL N2"
+    unfolding labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.inter_red_crit_calculus.derive.simps
+    by blast
+qed
 
 end
