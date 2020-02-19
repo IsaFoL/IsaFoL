@@ -795,17 +795,17 @@ definition active_subset :: "('f \<times> 'l) set \<Rightarrow> ('f \<times> 'l)
 definition non_active_subset :: "('f \<times> 'l) set \<Rightarrow> ('f \<times> 'l) set" where
   "non_active_subset M = {CL \<in> M. snd CL \<noteq> active}"
 
-inductive Lazy_Given_Clause_step :: "(('f \<times> 'l) inference set) \<times> (('f \<times> 'l) set) \<Rightarrow> (('f \<times> 'l) inference set) \<times> (('f \<times> 'l) set) \<Rightarrow> bool" (infix "\<Longrightarrow>LGC" 50) where
+inductive Lazy_Given_Clause_step :: "('f inference set) \<times> (('f \<times> 'l) set) \<Rightarrow> ('f inference set) \<times> (('f \<times> 'l) set) \<Rightarrow> bool" (infix "\<Longrightarrow>LGC" 50) where
   process: "N1 = N \<union> M \<Longrightarrow> N2 = N \<union> M' \<Longrightarrow> N \<inter> M = {} \<Longrightarrow>
     M \<subseteq>  labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_F_Q (N \<union> M') \<Longrightarrow>
     active_subset M' = {} \<Longrightarrow> (T,N1) \<Longrightarrow>LGC (T,N2)" | 
   schedule_infer: "T2 = T1 \<union> T' \<Longrightarrow> N1 = N \<union> {(C,L)} \<Longrightarrow> {(C,L)} \<inter> N = {} \<Longrightarrow> N2 = N \<union> {(C,active)} \<Longrightarrow>
-    L \<noteq> active \<Longrightarrow> T' = with_labels.Inf_from2 (active_subset N) {(C,active)} \<Longrightarrow> (T1,N1) \<Longrightarrow>LGC (T2,N2)" |
+    L \<noteq> active \<Longrightarrow> T' = no_labels.Non_ground.Inf_from2 (fst ` (active_subset N)) {C} \<Longrightarrow> (T1,N1) \<Longrightarrow>LGC (T2,N2)" |
   compute_infer: "T1 = T2 \<union> {\<iota>} \<Longrightarrow> T2 \<inter> {\<iota>} = {} \<Longrightarrow> N2 = N1 \<union> M \<Longrightarrow> active_subset M = {} \<Longrightarrow>
-    \<iota> \<in> labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_Inf_Q (N1 \<union> M) \<Longrightarrow>
+    \<iota> \<in> no_labels.lifted_calc_w_red_crit_family.Red_Inf_Q (fst ` (N1 \<union> M)) \<Longrightarrow>
     (T1,N1) \<Longrightarrow>LGC (T2,N2)" |
-  delete_orphans: "T1 = T2 \<union> T' \<Longrightarrow> T2 \<inter> T' = {} \<Longrightarrow> T' \<inter> with_labels.Inf_from (active_subset N) = {} \<Longrightarrow>
-    (T1,N) \<Longrightarrow>LGC (T2,N)" 
+  delete_orphans: "T1 = T2 \<union> T' \<Longrightarrow> T2 \<inter> T' = {} \<Longrightarrow>
+    T' \<inter> no_labels.Non_ground.Inf_from (fst ` (active_subset N)) = {} \<Longrightarrow> (T1,N) \<Longrightarrow>LGC (T2,N)" 
 
 abbreviation derive :: "('f \<times> 'l) set \<Rightarrow> ('f \<times> 'l) set \<Rightarrow> bool" (infix "\<rhd>RedL" 50) where
   "derive \<equiv> labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.inter_red_crit_calculus.derive"
