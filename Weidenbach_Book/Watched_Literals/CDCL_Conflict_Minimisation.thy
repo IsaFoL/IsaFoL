@@ -1113,9 +1113,8 @@ proof -
         \<open>L \<noteq> -K\<close> \<open>L \<noteq> K\<close>  conflict_min_analysis_stack_distinct_fst[OF cmas]
       apply (auto simp: comp_def entails_CNot_negate_ann_lits
         negate_ann_lits_def lits_of_def uminus_lit_swap
-       simp flip: distinct_mset_image_mset)[3]
-     apply (clarsimp_all simp add: analysis ana')[]
-    using that by (clarsimp_all simp add: analysis ana')[]
+       simp flip: distinct_mset_image_mset)[2]
+    using that by (clarsimp_all simp add: analysis ana')
 
     show ?tauto
       using tauto .

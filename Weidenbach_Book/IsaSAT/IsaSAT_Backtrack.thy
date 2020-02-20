@@ -868,15 +868,6 @@ qed
 definition single_of_mset where
   \<open>single_of_mset D = SPEC(\<lambda>L. D = mset [L])\<close>
 
-(* TODO Move *)
-lemma length_list_ge2: \<open>length S \<ge> 2 \<longleftrightarrow> (\<exists>a b S'. S = [a, b] @ S')\<close>
-  apply (cases S)
-   apply (simp; fail)
-  apply (rename_tac a S')
-  apply (case_tac S')
-  by simp_all
-
-
 lemma backtrack_wl_D_nlit_backtrack_wl_D:
   \<open>(backtrack_wl_D_nlit_heur, backtrack_wl) \<in>
   {(S, T). (S, T) \<in> twl_st_heur_conflict_ana \<and> length (get_clauses_wl_heur S) = r} \<rightarrow>\<^sub>f

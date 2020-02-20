@@ -305,5 +305,111 @@ lemma get_maximum_level_remove_non_max_lvl:
 lemma exists_lit_max_level_in_negate_ann_lits:
   \<open>negate_ann_lits M \<noteq> {#} \<Longrightarrow> \<exists>L\<in>#negate_ann_lits M. get_level M L = count_decided M\<close>
   by (cases \<open>M\<close>) (auto simp: negate_ann_lits_def)
+lemma get_maximum_level_eq_count_decided_iff:
+  \<open>ya \<noteq> {#} \<Longrightarrow> get_maximum_level xa ya = count_decided xa \<longleftrightarrow> (\<exists>L \<in># ya. get_level xa L = count_decided xa)\<close>
+  apply (rule iffI)
+  defer
+  subgoal
+    using count_decided_ge_get_maximum_level[of xa]
+    apply (auto dest!: multi_member_split dest: le_antisym simp: get_maximum_level_add_mset max_def)
+    using le_antisym by blast
+  subgoal
+    using get_maximum_level_exists_lit_of_max_level[of ya xa]
+    by auto
+  done
+
+definition card_max_lvl where
+  \<open>card_max_lvl M C \<equiv> size (filter_mset (\<lambda>L. get_level M L = count_decided M) C)\<close>
+
+lemma card_max_lvl_add_mset: \<open>card_max_lvl M (add_mset L C) =
+  (if get_level M L = count_decided M then 1 else 0) +
+    card_max_lvl M C\<close>
+  by (auto simp: card_max_lvl_def)
+
+lemma card_max_lvl_empty[simp]: \<open>card_max_lvl M {#} = 0\<close>
+  by (auto simp: card_max_lvl_def)
+
+lemma card_max_lvl_all_poss:
+   \<open>card_max_lvl M C = card_max_lvl M (poss (atm_of `# C))\<close>
+  unfolding card_max_lvl_def
+  apply (induction C)
+  subgoal by auto
+  subgoal for L C
+    using get_level_uminus[of M L]
+    by (cases L) (auto)
+  done
+
+lemma card_max_lvl_distinct_cong:
+  assumes
+    \<open>\<And>L. get_level M (Pos L) = count_decided M \<Longrightarrow> (L \<in> atms_of C) \<Longrightarrow> (L \<in> atms_of C')\<close> and
+    \<open>\<And>L. get_level M (Pos L) = count_decided M \<Longrightarrow> (L \<in> atms_of C') \<Longrightarrow> (L \<in> atms_of C)\<close> and
+    \<open>distinct_mset C\<close> \<open>\<not>tautology C\<close> and
+    \<open>distinct_mset C'\<close> \<open>\<not>tautology C'\<close>
+  shows \<open>card_max_lvl M C = card_max_lvl M C'\<close>
+proof -
+  have [simp]: \<open>NO_MATCH (Pos x) L \<Longrightarrow> get_level M L = get_level M (Pos (atm_of L))\<close> for x L
+    by (simp add: get_level_def)
+  have [simp]: \<open>atm_of L \<notin> atms_of C' \<longleftrightarrow> L \<notin># C' \<and> -L \<notin># C'\<close> for L C'
+    by (cases L) (auto simp: atm_iff_pos_or_neg_lit)
+  then have [iff]: \<open>atm_of L \<in> atms_of C' \<longleftrightarrow> L \<in># C' \<or> -L \<in># C'\<close> for L C'
+    by blast
+  have H: \<open>distinct_mset {#L \<in># poss (atm_of `# C). get_level M L = count_decided M#}\<close>
+    if \<open>distinct_mset C\<close> \<open>\<not>tautology C\<close> for C
+    using that by (induction C) (auto simp: tautology_add_mset atm_of_eq_atm_of)
+  show ?thesis
+    apply (subst card_max_lvl_all_poss)
+    apply (subst (2) card_max_lvl_all_poss)
+    unfolding card_max_lvl_def
+    apply (rule arg_cong[of _ _ size])
+    apply (rule distinct_set_mset_eq)
+    subgoal by (rule H) (use assms in fast)+
+    subgoal by (rule H) (use assms in fast)+
+    subgoal using assms by (auto simp: atms_of_def imageI image_iff) blast+
+    done
+qed
+
+lemma get_maximum_level_card_max_lvl_ge1:
+  \<open>count_decided xa > 0 \<Longrightarrow> get_maximum_level xa ya = count_decided xa \<longleftrightarrow> card_max_lvl xa ya > 0\<close>
+  apply (cases \<open>ya = {#}\<close>)
+  subgoal by auto
+  subgoal
+    by (auto simp: card_max_lvl_def get_maximum_level_eq_count_decided_iff dest: multi_member_split
+      dest!: multi_nonempty_split[of \<open>filter_mset _ _\<close>] filter_mset_eq_add_msetD
+      simp flip: nonempty_has_size)
+  done
+
+lemma card_max_lvl_remove_hd_trail_iff:
+  \<open>xa \<noteq> [] \<Longrightarrow> - lit_of (hd xa) \<in># ya \<Longrightarrow> 0 < card_max_lvl xa (remove1_mset (- lit_of (hd xa)) ya) \<longleftrightarrow> Suc 0 < card_max_lvl xa ya\<close>
+  by (cases xa)
+    (auto dest!: multi_member_split simp: card_max_lvl_add_mset)
+
+lemma card_max_lvl_Cons:
+  assumes \<open>no_dup (L # a)\<close> \<open>distinct_mset y\<close>\<open>\<not>tautology y\<close> \<open>\<not>is_decided L\<close>
+  shows \<open>card_max_lvl (L # a) y =
+    (if (lit_of L \<in># y \<or> -lit_of L \<in># y) \<and> count_decided a \<noteq> 0 then card_max_lvl a y + 1
+    else card_max_lvl a y)\<close>
+proof -
+  have [simp]: \<open>count_decided a = 0 \<Longrightarrow> get_level a L = 0\<close> for L
+    by (simp add: count_decided_0_iff)
+  have [simp]: \<open>lit_of L \<notin># A \<Longrightarrow>
+         - lit_of L \<notin># A \<Longrightarrow>
+          {#La \<in># A. La \<noteq> lit_of L \<and> La \<noteq> - lit_of L \<longrightarrow> get_level a La = b#} =
+          {#La \<in># A. get_level a La = b#}\<close> for A b
+    apply (rule filter_mset_cong)
+     apply (rule refl)
+    by auto
+  show ?thesis
+    using assms by (auto simp: card_max_lvl_def get_level_cons_if tautology_add_mset
+        atm_of_eq_atm_of
+        dest!: multi_member_split)
+qed
+
+lemma card_max_lvl_tl:
+  assumes \<open>a \<noteq> []\<close> \<open>distinct_mset y\<close>\<open>\<not>tautology y\<close> \<open>\<not>is_decided (hd a)\<close> \<open>no_dup a\<close>
+   \<open>count_decided a \<noteq> 0\<close>
+  shows \<open>card_max_lvl (tl a) y =
+      (if (lit_of(hd a) \<in># y \<or> -lit_of(hd a) \<in># y)
+        then card_max_lvl a y - 1 else card_max_lvl a y)\<close>
+  using assms by (cases a) (auto simp: card_max_lvl_Cons)
 
 end

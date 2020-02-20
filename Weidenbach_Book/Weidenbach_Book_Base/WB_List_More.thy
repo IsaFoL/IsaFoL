@@ -1394,16 +1394,21 @@ lemma subset_add_mset_notin_subset: \<open>L \<notin># E \<Longrightarrow> E \<s
 lemma remove1_mset_empty_iff: \<open>remove1_mset L N = {#} \<longleftrightarrow> N = {#L#} \<or> N = {#}\<close>
   by (cases \<open>L \<in># N\<close>; cases N) auto
 
-lemma distinct_subseteq_iff :
-  assumes dist: "distinct_mset M" and fin: "distinct_mset N"
-  shows "set_mset M \<subseteq> set_mset N \<longleftrightarrow> M \<subseteq># N"
+lemma mset_set_subset_iff:
+  \<open>mset_set A \<subseteq># I \<longleftrightarrow> infinite A \<or> A \<subseteq> set_mset I\<close>
+  by (metis finite_set_mset finite_set_mset_mset_set mset_set.infinite mset_set_set_mset_subseteq
+    set_mset_mono subset_imp_msubset_mset_set subset_mset.bot.extremum subset_mset.dual_order.trans)
+
+lemma distinct_subseteq_iff:
+  assumes dist: \<open>distinct_mset M\<close>
+  shows \<open>set_mset M \<subseteq> set_mset N \<longleftrightarrow> M \<subseteq># N\<close>
 proof
-  assume "set_mset M \<subseteq> set_mset N"
-  then show "M \<subseteq># N"
-    using dist fin by auto
+  assume \<open>set_mset M \<subseteq> set_mset N\<close>
+  then show \<open>M \<subseteq># N\<close>
+    using dist by (metis distinct_mset_set_mset_ident mset_set_subset_iff)
 next
-  assume "M \<subseteq># N"
-  then show "set_mset M \<subseteq> set_mset N"
+  assume \<open>M \<subseteq># N\<close>
+  then show \<open>set_mset M \<subseteq> set_mset N\<close>
     by (metis set_mset_mono)
 qed
 
@@ -1724,11 +1729,6 @@ lemma sum_mset_inter_restrict:
   \<open>(\<Sum> x \<in># filter_mset P M. f x) = (\<Sum> x \<in># M. if P x then f x else 0)\<close>
   by (induction M) auto
 
-lemma mset_set_subset_iff:
-  \<open>mset_set A \<subseteq># I \<longleftrightarrow> infinite A \<or> A \<subseteq> set_mset I\<close>
-  by (metis finite_set_mset finite_set_mset_mset_set mset_set.infinite mset_set_set_mset_subseteq
-    set_mset_mono subset_imp_msubset_mset_set subset_mset.bot.extremum subset_mset.dual_order.trans)
-
 
 lemma sumset_diff_constant_left:
   assumes \<open>\<And>x. x \<in># A \<Longrightarrow> f x \<le> n\<close>
@@ -1743,7 +1743,6 @@ proof -
     by (induction A) (auto simp: ac_simps)
 qed
 
-
 lemma mset_set_eq_mset_iff: \<open>finite x \<Longrightarrow>  mset_set x = mset xs \<longleftrightarrow> distinct xs \<and> x = set xs\<close>
   apply (auto simp flip: distinct_mset_mset_distinct eq_commute[of _ \<open>mset_set _\<close>]
     simp: distinct_mset_mset_set mset_set_set)
@@ -1757,9 +1756,21 @@ lemma distinct_mset_iff:
       count_add_mset distinct_mset_add_mset distinct_mset_def
       member_add_mset mset_add not_in_iff)
 
-
 lemma diff_add_mset_remove1: \<open>NO_MATCH {#} N \<Longrightarrow> M - add_mset a N = remove1_mset a (M - N)\<close>
   by auto
+
+lemma remdups_mset_sum_subset:  \<open>C \<subseteq># C' \<Longrightarrow> remdups_mset (C + C') = remdups_mset C'\<close>
+   \<open>C \<subseteq># C' \<Longrightarrow> remdups_mset (C' + C) = remdups_mset C'\<close>
+  apply (metis remdups_mset_def set_mset_mono set_mset_union sup.absorb_iff2)
+  by (metis add.commute le_iff_sup remdups_mset_def set_mset_mono set_mset_union)
+
+lemma distinct_mset_subset_iff_remdups:
+  \<open>distinct_mset a \<Longrightarrow> a \<subseteq># b \<longleftrightarrow> a \<subseteq># remdups_mset b\<close>
+  by (simp add: distinct_mset_inter_remdups_mset subset_mset.le_iff_inf)
+
+lemma remdups_mset_subset_add_mset: \<open>remdups_mset C' \<subseteq># add_mset L C'\<close>
+  by (meson distinct_mset_remdups_mset distinct_mset_subset_iff_remdups subset_mset.order_refl
+    subset_mset_trans_add_mset)
 
 
 section \<open>Finite maps and multisets\<close>
@@ -1784,10 +1795,6 @@ lemma in_mset_fset_fmember[simp]: \<open>x \<in># mset_fset N \<longleftrightarr
 
 lemma in_fset_mset_mset[simp]: \<open>x |\<in>| fset_mset N \<longleftrightarrow> x \<in># N\<close>
   by (auto simp: fmember.rep_eq fset_mset_def Abs_fset_inverse)
-
-lemma distinct_mset_subset_iff_remdups:
-  \<open>distinct_mset a \<Longrightarrow> a \<subseteq># b \<longleftrightarrow> a \<subseteq># remdups_mset b\<close>
-  by (simp add: distinct_mset_inter_remdups_mset subset_mset.le_iff_inf)
 
 
 subsubsection \<open>Finite map and multisets\<close>
@@ -1897,7 +1904,7 @@ lemma fmrestrict_set_insert_in:
   \<open>xa  \<in> fset (fmdom N) \<Longrightarrow>
     fmrestrict_set (insert xa l1) N = fmupd xa (the (fmlookup N xa)) (fmrestrict_set l1 N)\<close>
   apply (rule fmap_ext_fmdom)
-   apply (auto simp: fset_fmdom_fmrestrict_set fmember.rep_eq notin_fset dest: fmdom_notD; fail)[]
+   apply (auto simp: fset_fmdom_fmrestrict_set fmember.rep_eq notin_fset; fail)[]
   apply (auto simp: fmlookup_dom_iff; fail)
   done
 
@@ -1905,7 +1912,7 @@ lemma fmrestrict_set_insert_notin:
   \<open>xa  \<notin> fset (fmdom N) \<Longrightarrow>
     fmrestrict_set (insert xa l1) N = fmrestrict_set l1 N\<close>
   by (rule fmap_ext_fmdom)
-     (auto simp: fset_fmdom_fmrestrict_set fmember.rep_eq notin_fset dest: fmdom_notD)
+     (auto simp: fset_fmdom_fmrestrict_set fmember.rep_eq notin_fset)
 
 lemma fmrestrict_set_insert_in_dom_m[simp]:
   \<open>xa  \<in># dom_m N \<Longrightarrow>
@@ -1942,8 +1949,7 @@ proof -
 qed
 
 lemma ran_m_mapsto_upd_notin:
-  assumes
-    NC: \<open>C \<notin># dom_m N\<close>
+  assumes NC: \<open>C \<notin># dom_m N\<close>
   shows \<open>ran_m (fmupd C C' N) = add_mset C' (ran_m N)\<close>
   using NC
   by (auto simp: ran_m_def mset_set.insert_remove image_mset_remove1_mset_if
@@ -1970,6 +1976,7 @@ lemma ran_m_fmdrop_If:
   by (auto simp: ran_m_def image_mset_If_eq_notin[of C _ \<open>\<lambda>x. fst (the x)\<close>]
     dest!: multi_member_split
     intro!: filter_mset_cong2 image_mset_cong2)
+
 
 subsubsection \<open>Compact domain for finite maps\<close>
 
@@ -2094,5 +2101,15 @@ proof -
   show ?thesis
     using assms by (simp only: power_add eq) auto
 qed
+
+lemma eq_insertD: \<open>A = insert a B \<Longrightarrow> a \<in> A \<and> B \<subseteq> A\<close>
+  by auto
+
+lemma length_list_ge2: \<open>length S \<ge> 2 \<longleftrightarrow> (\<exists>a b S'. S = [a, b] @ S')\<close>
+  apply (cases S)
+   apply (simp; fail)
+  apply (rename_tac a S')
+  apply (case_tac S')
+  by simp_all
 
 end

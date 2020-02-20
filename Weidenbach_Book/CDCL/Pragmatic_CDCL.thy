@@ -3,18 +3,6 @@ theory Pragmatic_CDCL
 begin
 
 
-(*TODO Move*)
-lemma remdups_mset_sum_subset:  \<open>C \<subseteq># C' \<Longrightarrow> remdups_mset (C + C') = remdups_mset C'\<close>
-   \<open>C \<subseteq># C' \<Longrightarrow> remdups_mset (C' + C) = remdups_mset C'\<close>
-  apply (metis remdups_mset_def set_mset_mono set_mset_union sup.absorb_iff2)
-  by (metis add.commute le_iff_sup remdups_mset_def set_mset_mono set_mset_union)
-
-lemma remdups_mset_subset_add_mset: \<open>remdups_mset C' \<subseteq># add_mset L C'\<close>
-  by (meson distinct_mset_remdups_mset distinct_mset_subset_iff_remdups subset_mset.order_refl
-    subset_mset_trans_add_mset)
-(*END Move*)
-
-
 chapter \<open>Pragmatic CDCL\<close>
 
 text \<open>

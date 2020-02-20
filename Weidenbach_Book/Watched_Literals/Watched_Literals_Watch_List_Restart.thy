@@ -2380,8 +2380,7 @@ definition cdcl_twl_stgy_restart_abs_wl_D_inv where
 definition cdcl_GC_clauses_pre_wl_D :: \<open>'v twl_st_wl \<Rightarrow> bool\<close> where
 \<open>cdcl_GC_clauses_pre_wl_D S \<longleftrightarrow> (
   \<exists>T. (S, T) \<in> Id \<and> literals_are_\<L>\<^sub>i\<^sub>n' S \<and>
-    cdcl_GC_clauses_pre_wl T
-  )\<close>
+    cdcl_GC_clauses_pre_wl T)\<close>
 
 
 end

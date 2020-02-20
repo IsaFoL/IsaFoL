@@ -18,36 +18,6 @@ definition maximum_level_removed_eq_count_dec_heur where
   \<open>maximum_level_removed_eq_count_dec_heur L S =
       RETURN (get_count_max_lvls_heur S > 1)\<close>
 
-(*TODO Move*)
-lemma get_maximum_level_eq_count_decided_iff:
-  \<open>ya \<noteq> {#} \<Longrightarrow> get_maximum_level xa ya = count_decided xa \<longleftrightarrow> (\<exists>L \<in># ya. get_level xa L = count_decided xa)\<close>
-  apply (rule iffI)
-  defer
-  subgoal
-    using count_decided_ge_get_maximum_level[of xa]
-    apply (auto dest!: multi_member_split dest: le_antisym simp: get_maximum_level_add_mset max_def)
-    using le_antisym by blast
-  subgoal
-    using get_maximum_level_exists_lit_of_max_level[of ya xa]
-    by auto
-  done
-
-lemma get_maximum_level_card_max_lvl_ge1:
-  \<open>count_decided xa > 0 \<Longrightarrow> get_maximum_level xa ya = count_decided xa \<longleftrightarrow> card_max_lvl xa ya > 0\<close>
-  apply (cases \<open>ya = {#}\<close>)
-  subgoal by auto
-  subgoal
-    by (auto simp: card_max_lvl_def get_maximum_level_eq_count_decided_iff dest: multi_member_split
-      dest!: multi_nonempty_split[of \<open>filter_mset _ _\<close>] filter_mset_eq_add_msetD
-      simp flip: nonempty_has_size)
-  done
-
-lemma card_max_lvl_remove_hd_trail_iff:
-  \<open>xa \<noteq> [] \<Longrightarrow> - lit_of (hd xa) \<in># ya \<Longrightarrow> 0 < card_max_lvl xa (remove1_mset (- lit_of (hd xa)) ya) \<longleftrightarrow> Suc 0 < card_max_lvl xa ya\<close>
-  by (cases xa)
-    (auto dest!: multi_member_split simp: card_max_lvl_add_mset)
-
-(*END Move*)
 
 lemma maximum_level_removed_eq_count_dec_heur_maximum_level_removed_eq_count_dec:
   \<open>(uncurry maximum_level_removed_eq_count_dec_heur,
@@ -118,35 +88,6 @@ lemma tl_state_wl_heur_alt_def:
 
 
 
-
-lemma card_max_lvl_Cons:
-  assumes \<open>no_dup (L # a)\<close> \<open>distinct_mset y\<close>\<open>\<not>tautology y\<close> \<open>\<not>is_decided L\<close>
-  shows \<open>card_max_lvl (L # a) y =
-    (if (lit_of L \<in># y \<or> -lit_of L \<in># y) \<and> count_decided a \<noteq> 0 then card_max_lvl a y + 1
-    else card_max_lvl a y)\<close>
-proof -
-  have [simp]: \<open>count_decided a = 0 \<Longrightarrow> get_level a L = 0\<close> for L
-    by (simp add: count_decided_0_iff)
-  have [simp]: \<open>lit_of L \<notin># A \<Longrightarrow>
-         - lit_of L \<notin># A \<Longrightarrow>
-          {#La \<in># A. La \<noteq> lit_of L \<and> La \<noteq> - lit_of L \<longrightarrow> get_level a La = b#} =
-          {#La \<in># A. get_level a La = b#}\<close> for A b
-    apply (rule filter_mset_cong)
-     apply (rule refl)
-    by auto
-  show ?thesis
-    using assms by (auto simp: card_max_lvl_def get_level_cons_if tautology_add_mset
-        atm_of_eq_atm_of
-        dest!: multi_member_split)
-qed
-
-lemma card_max_lvl_tl:
-  assumes \<open>a \<noteq> []\<close> \<open>distinct_mset y\<close>\<open>\<not>tautology y\<close> \<open>\<not>is_decided (hd a)\<close> \<open>no_dup a\<close>
-   \<open>count_decided a \<noteq> 0\<close>
-  shows \<open>card_max_lvl (tl a) y =
-      (if (lit_of(hd a) \<in># y \<or> -lit_of(hd a) \<in># y)
-        then card_max_lvl a y - 1 else card_max_lvl a y)\<close>
-  using assms by (cases a) (auto simp: card_max_lvl_Cons)
 
 definition tl_state_wl_pre where
   \<open>tl_state_wl_pre S \<longleftrightarrow> get_trail_wl S \<noteq> [] \<and>

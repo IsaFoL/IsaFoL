@@ -780,25 +780,11 @@ lemma phase_saving_cong:
   using  \<L>\<^sub>a\<^sub>l\<^sub>l_cong[of \<A> \<B>] atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_cong[of \<A> \<B>]
   by (auto simp: phase_saving_def)
 
-    (*TODO Move + replace distinct_subseteq_iff*)
-lemma distinct_subseteq_iff2:
-  assumes dist: \<open>distinct_mset M\<close>
-  shows \<open>set_mset M \<subseteq> set_mset N \<longleftrightarrow> M \<subseteq># N\<close>
-proof
-  assume \<open>set_mset M \<subseteq> set_mset N\<close>
-  then show \<open>M \<subseteq># N\<close>
-    using dist by (metis distinct_mset_set_mset_ident mset_set_subset_iff)
-next
-  assume \<open>M \<subseteq># N\<close>
-  then show \<open>set_mset M \<subseteq> set_mset N\<close>
-    by (metis set_mset_mono)
-qed
-
 lemma cach_refinement_empty_cong:
   \<open>set_mset \<A> = set_mset \<B> \<Longrightarrow> cach_refinement_empty \<A> = cach_refinement_empty \<B>\<close>
   using  \<L>\<^sub>a\<^sub>l\<^sub>l_cong[of \<A> \<B>] atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_cong[of \<A> \<B>]
   by (force simp: cach_refinement_empty_def cach_refinement_alt_def
-    distinct_subseteq_iff2[symmetric] intro!: ext)
+    distinct_subseteq_iff[symmetric] intro!: ext)
 
 lemma vdom_m_cong:
   \<open>set_mset \<A> = set_mset \<B> \<Longrightarrow> vdom_m \<A> x y = vdom_m \<B> x y\<close>
@@ -874,9 +860,6 @@ lemma access_lit_in_clauses_heur_fast_pre:
       dest!: isasat_fast_length_leD)[]
 
 (*TODO Move*)
-lemma eq_insertD: \<open>A = insert a B \<Longrightarrow> a \<in> A \<and> B \<subseteq> A\<close>
-  by auto
-
 lemma \<L>\<^sub>a\<^sub>l\<^sub>l_add_mset:
   \<open>set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l (add_mset L C)) = insert (Pos L) (insert (Neg L) (set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l C)))\<close>
   by (auto simp: \<L>\<^sub>a\<^sub>l\<^sub>l_def)
