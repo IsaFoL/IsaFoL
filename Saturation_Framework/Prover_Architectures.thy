@@ -865,13 +865,14 @@ lemma gc_to_red: "chain (\<Longrightarrow>LGC) D \<Longrightarrow> chain (\<rhd>
 
 text \<open>lem:fair-lgc-derivations\<close>
 lemma gc_fair: "chain (\<Longrightarrow>LGC) D \<Longrightarrow> llength D > 0 \<Longrightarrow> active_subset (snd (lnth D 0)) = {} \<Longrightarrow>
-  non_active_subset (Liminf_llist (lmap snd D)) = {} \<Longrightarrow> (Liminf_llist (lmap fst D)) = {} \<Longrightarrow> fair (lmap snd D)"
+  non_active_subset (Liminf_llist (lmap snd D)) = {} \<Longrightarrow> Liminf_llist (lmap fst D) = {} \<Longrightarrow> fair (lmap snd D)"
 proof -
   assume
     deriv: "chain (\<Longrightarrow>LGC) D" and
     non_empty: "llength D > 0" and
     init_state: "active_subset (snd (lnth D 0)) = {}" and
-    final_state: "non_active_subset (Liminf_llist (lmap snd D)) = {}"
+    final_state: "non_active_subset (Liminf_llist (lmap snd D)) = {}" and
+    final_schedule: "Liminf_llist (lmap fst D) = {}"
   show "fair (lmap snd D)"
     unfolding labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.inter_red_crit_calculus.fair_def
   proof
@@ -1060,7 +1061,83 @@ proof -
     then have "to_F \<iota> \<in> no_labels.Non_ground.Inf_from2 (fst ` (active_subset N)) {C0}"
       unfolding to_F_def with_labels.Inf_from2_def with_labels.Inf_from_def no_labels.Non_ground.Inf_from2_def
         no_labels.Non_ground.Inf_from_def using Inf_FL_to_Inf_F by force
-    then have "to_F \<iota> \<in> T2" using tp_is t2_is by simp
+    then have i_in_t2: "to_F \<iota> \<in> T2" using tp_is t2_is by simp
+    have "\<exists>p\<ge>n. enat (Suc p) < llength D \<and> to_F \<iota> \<in> (fst (lnth D p)) \<and> to_F \<iota> \<notin> (fst (lnth D (Suc p)))"
+      (* using suc_nth_d_is final_schedule unfolding Liminf_llist_def *)
+    proof (rule ccontr)
+      assume
+        contra: "\<not> (\<exists>p\<ge>n. enat (Suc p) < llength D \<and> to_F \<iota> \<in> (fst (lnth D p)) \<and> to_F \<iota> \<notin> (fst (lnth D (Suc p))))"
+      then have i_in_suc: "p0 \<ge> n \<Longrightarrow> enat (Suc p0) < llength D \<Longrightarrow> to_F \<iota> \<in> (fst (lnth D p0)) \<Longrightarrow>
+        to_F \<iota> \<in> (fst (lnth D (Suc p0)))" for p0
+        by blast 
+      have "p0 \<ge> n \<Longrightarrow> enat (Suc p0) < llength D \<Longrightarrow> to_F \<iota> \<in> (fst (lnth D (Suc p0)))" for p0
+      proof (induct "p0 - n")
+      case 0
+        assume "0 = p0 - n"
+        then have "p0 = n" using "0.prems"(1) diff_is_0_eq le_antisym by metis
+        then show "to_F \<iota> \<in> fst (lnth D (Suc p0))" using i_in_t2 suc_nth_d_is by simp
+      case (Suc x) 
+        assume "x = p0 - n \<Longrightarrow>
+                 n \<le> p0 \<Longrightarrow>
+                 enat (Suc p0) < llength D \<Longrightarrow> to_F \<iota> \<in> fst (lnth D (Suc p0))"
+        then show "to_F \<iota> \<in> fst (lnth D (Suc p0))"
+      have "to_F \<iota> \<in> (fst (lnth D (Suc n)))" using i_in_t2 suc_nth_d_is by simp
+      find_theorems "_ - _" name: induct
+      have "\<forall>j. j \<ge> n \<and> enat (Suc j) < llength D \<longrightarrow> to_F \<iota> \<in> (fst (lnth D (Suc j)))"
+        apply clarify
+      proof (induction)
+
+        fix j
+        assume
+          n_prec_j: "n \<le> j" and
+          suc_j_prec_end_d: "enat (Suc j) < llength D"
+        have "to_F \<iota> \<in> fst (lnth D j)" sorry
+        show "to_F \<iota> \<in> fst (lnth D (Suc j))"
+          using i_in_suc[OF n_prec_j suc_j_prec_end_d] suc_nth_d_is i_in_t2
+sorry
+
+      qed
+        using i_in_t2 suc_nth_d_is sorry
+      have "llength (lmap fst D) = llength D" by force
+      then have "to_F \<iota> \<in> \<Inter> (lnth (lmap fst D) ` {j. (Suc n) \<le> j \<and> enat j < llength (lmap fst D)})"  sorry
+      then have "to_F \<iota> \<in> Liminf_llist (lmap fst D)"
+        unfolding Liminf_llist_def 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     then have "to_F \<iota> \<in> no_labels.lifted_calc_w_red_crit_family.Red_Inf_Q (fst ` (lnth D (Suc n)))"
       using suc_nth_d_is inf_from_subs by fastforce
     then have "\<forall>q. \<G>_Inf_q q (to_F \<iota>) \<subseteq> Red_Inf_q q (\<Union> (\<G>_F_q q ` (fst ` (lnth D (Suc n)))))"
