@@ -1018,55 +1018,39 @@ proof -
     have C0_in: "(C0,active) \<in> (snd (lnth D (Suc n)))" using C0_is j0_allin suc_n_length by (simp add: active_subset_def)
     have C0_notin: "(C0,active) \<notin> (snd (lnth D n))" using C0_is j0_notin unfolding active_subset_def by simp
     have step_n: "lnth D n \<Longrightarrow>LGC lnth D (Suc n)" using deriv chain_lnth_rel n_in unfolding nj_set_def by blast 
-    have "\<exists>N C L M. (lnth D n = N \<union> {(C,L)} \<and> {(C,L)} \<inter> N = {} \<and>
-      lnth D (Suc n) = N \<union> {(C,active)} \<union> M \<and> L \<noteq> active \<and>
-      active_subset M = {} \<and>
-      no_labels.Non_ground.Inf_from2 (fst ` (active_subset N)) {C} \<subseteq>
-      no_labels.lifted_calc_w_red_crit_family.Red_Inf_Q (fst ` (N \<union> {(C,active)} \<union> M)))"
-    proof -
-      have proc_or_infer: "(\<exists>N1 N M N2 M'. lnth D n = N1 \<and> lnth D (Suc n) = N2 \<and> N1 = N \<union> M \<and>
-         N2 = N \<union> M' \<and> N \<inter> M = {} \<and>
-         M \<subseteq> labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_F_Q (N \<union> M') \<and>
-         active_subset M' = {}) \<or>
-       (\<exists>N1 N C L N2 M. lnth D n = N1 \<and> lnth D (Suc n) = N2 \<and> N1 = N \<union> {(C, L)} \<and>
-         {(C, L)} \<inter> N = {} \<and> N2 = N \<union> {(C, active)} \<union> M \<and>
-         L \<noteq> active \<and> active_subset M = {} \<and>
-         no_labels.Non_ground.Inf_from2 (fst ` (active_subset N)) {C} \<subseteq>
-           no_labels.lifted_calc_w_red_crit_family.Red_Inf_Q (fst ` (N \<union> {(C,active)} \<union> M)))"
-        using Given_Clause_step.simps[of "lnth D n" "lnth D (Suc n)"] step_n by blast
-      show ?thesis
-        using C0_in C0_notin proc_or_infer j0_in C0_is
-        by (smt Un_iff active_subset_def mem_Collect_eq snd_conv sup_bot.right_neutral)
-    qed
-    then obtain N M L where inf_from_subs: "no_labels.Non_ground.Inf_from2 (fst ` (active_subset N)) {C0} \<subseteq>
-      no_labels.lifted_calc_w_red_crit_family.Red_Inf_Q (fst ` (N \<union> {(C0,active)} \<union> M))" and
-      nth_d_is: "lnth D n = N \<union> {(C0,L)}" and suc_nth_d_is: "lnth D (Suc n) = N \<union> {(C0,active)} \<union> M" and
-      l_not_active: "L \<noteq> active"
-      using C0_in C0_notin j0_in C0_is using active_subset_def by fastforce   
+    have is_scheduled: "\<exists>T2 T1 T' N1 N C L N2. lnth D n = (T1, N1) \<and> lnth D (Suc n) = (T2, N2) \<and> T2 = T1 \<union> T' \<and>
+      N1 = N \<union> {(C, L)} \<and> {(C, L)} \<inter> N = {} \<and> N2 = N \<union> {(C, active)} \<and> L \<noteq> active \<and>
+      T' = no_labels.Non_ground.Inf_from2 (fst ` active_subset N) {C}"
+      using Lazy_Given_Clause_step.simps[of "lnth D n" "lnth D (Suc n)"] step_n C0_in C0_notin
+      unfolding active_subset_def by fastforce
+    then obtain T2 T1 T' N1 N L N2 where nth_d_is: "lnth D n = (T1, N1)" and
+      suc_nth_d_is: "lnth D (Suc n) = (T2, N2)" and t2_is: "T2 = T1 \<union> T'" and
+      n1_is: "N1 = N \<union> {(C0, L)}" "{(C0, L)} \<inter> N = {}" "N2 = N \<union> {(C0, active)}" and l_not_active: "L \<noteq> active" and
+      tp_is: "T' = no_labels.Non_ground.Inf_from2 (fst ` active_subset N) {C0}"
+      using C0_in C0_notin j0_in C0_is using active_subset_def by fastforce
     have "j \<in> {0..<m} \<Longrightarrow> (prems_of \<iota>)!j \<noteq> (prems_of \<iota>)!j0 \<Longrightarrow> (prems_of \<iota>)!j \<in> (active_subset N)" for j
     proof -
       fix j
       assume j_in: "j \<in> {0..<m}" and
       j_not_j0: "(prems_of \<iota>)!j \<noteq> (prems_of \<iota>)!j0"
       obtain nj where nj_len: "enat (Suc nj) < llength D" and
-        nj_prems: "(prems_of \<iota>)!j \<notin> active_subset (lnth D nj)" and
-        nj_greater: "(\<forall>k. k > nj \<longrightarrow> enat k < llength D \<longrightarrow> (prems_of \<iota>)!j \<in> active_subset (lnth D k))"
+        nj_prems: "(prems_of \<iota>)!j \<notin> active_subset (snd (lnth D nj))" and
+        nj_greater: "(\<forall>k. k > nj \<longrightarrow> enat k < llength D \<longrightarrow> (prems_of \<iota>)!j \<in> active_subset (snd (lnth D k)))"
         using exist_nj j_in by blast
       then have "nj \<in> nj_set" unfolding nj_set_def using j_in by blast
       moreover have "nj \<noteq> n"
       proof (rule ccontr)
         assume "\<not> nj \<noteq> n"
         then have "(prems_of \<iota>)!j = (C0,active)"
-          using C0_in C0_notin Given_Clause_step.simps[of "lnth D n" "lnth D (Suc n)"] step_n
-          by (smt Un_iff Un_insert_right nj_greater nj_prems active_subset_def empty_Collect_eq
-            insertE lessI mem_Collect_eq prod.sel(2) suc_n_length)
+          using C0_in C0_notin Lazy_Given_Clause_step.simps[of "lnth D n" "lnth D (Suc n)"] step_n
+            active_subset_def is_scheduled nj_greater nj_prems suc_n_length by auto 
         then show False using j_not_j0 C0_is by simp
       qed
       ultimately have "nj < n" using n_bigger by force
-      then have "(prems_of \<iota>)!j \<in> (active_subset (lnth D n))"
+      then have "(prems_of \<iota>)!j \<in> (active_subset (snd (lnth D n)))"
         using nj_greater n_in Suc_ile_eq dual_order.strict_implies_order unfolding nj_set_def by blast
       then show "(prems_of \<iota>)!j \<in> (active_subset N)"
-        using nth_d_is l_not_active unfolding active_subset_def by force
+        using nth_d_is l_not_active n1_is unfolding active_subset_def by force
     qed
     then have "set (prems_of \<iota>) \<subseteq> active_subset N \<union> {(C0, active)}"
       using C0_prems_i C0_is m_def by (metis Un_iff atLeast0LessThan in_set_conv_nth insertCI lessThan_iff subrelI) 
@@ -1076,6 +1060,7 @@ proof -
     then have "to_F \<iota> \<in> no_labels.Non_ground.Inf_from2 (fst ` (active_subset N)) {C0}"
       unfolding to_F_def with_labels.Inf_from2_def with_labels.Inf_from_def no_labels.Non_ground.Inf_from2_def
         no_labels.Non_ground.Inf_from_def using Inf_FL_to_Inf_F by force
+    then have "to_F \<iota> \<in> T2" using tp_is t2_is by simp
     then have "to_F \<iota> \<in> no_labels.lifted_calc_w_red_crit_family.Red_Inf_Q (fst ` (lnth D (Suc n)))"
       using suc_nth_d_is inf_from_subs by fastforce
     then have "\<forall>q. \<G>_Inf_q q (to_F \<iota>) \<subseteq> Red_Inf_q q (\<Union> (\<G>_F_q q ` (fst ` (lnth D (Suc n)))))"
