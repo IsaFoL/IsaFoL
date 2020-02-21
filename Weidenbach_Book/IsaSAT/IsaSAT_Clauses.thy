@@ -66,7 +66,7 @@ definition fm_add_new where
  \<open>fm_add_new b C N0 = do {
     let s = length C - 2;
     let lbd = shorten_lbd s;
-    let st = (if b then AStatus IRRED False lbd else AStatus LEARNED False lbd);
+    let st = (if b then AStatus IRRED 0 lbd else AStatus LEARNED 0 lbd);
     let l = length N0;
     let N = (if is_short_clause C then
           (((N0 @ [st]))) @ [ASize s]
@@ -119,17 +119,17 @@ where
   \<open>fm_add_new_at_position b i C N = fmupd i (C, b) N\<close>
 
 definition AStatus_IRRED where
-  \<open>AStatus_IRRED = AStatus IRRED False\<close>
+  \<open>AStatus_IRRED = AStatus IRRED 0\<close>
 
 definition AStatus_IRRED2 where
-  \<open>AStatus_IRRED2 = AStatus IRRED True\<close>
+  \<open>AStatus_IRRED2 = AStatus IRRED 1\<close>
 
 definition AStatus_LEARNED where
-  \<open>AStatus_LEARNED = AStatus LEARNED True\<close>
+  \<open>AStatus_LEARNED = AStatus LEARNED 1\<close>
 
 
 definition AStatus_LEARNED2 where
-  \<open>AStatus_LEARNED2 = AStatus LEARNED False\<close>
+  \<open>AStatus_LEARNED2 = AStatus LEARNED 0\<close>
 
 
 definition (in -)fm_add_new_fast where

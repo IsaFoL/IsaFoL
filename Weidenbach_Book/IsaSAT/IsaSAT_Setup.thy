@@ -1538,7 +1538,7 @@ lemma mop_arena_status_st_alt_def:
   by (auto intro!: ext)
 
 
-definition mop_marked_as_used_st :: \<open>twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> bool nres\<close> where
+definition mop_marked_as_used_st :: \<open>twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> nat nres\<close> where
   \<open>mop_marked_as_used_st S =
     mop_marked_as_used (get_clauses_wl_heur S)\<close>
 

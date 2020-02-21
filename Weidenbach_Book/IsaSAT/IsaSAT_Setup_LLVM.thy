@@ -480,7 +480,7 @@ sepref_register marked_as_used_st
 sepref_def marked_as_used_st_fast_code
   is \<open>uncurry (RETURN oo marked_as_used_st)\<close>
   :: \<open>[\<lambda>(S, C). marked_as_used_pre (get_clauses_wl_heur S) C]\<^sub>a
-       isasat_bounded_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> bool1_assn\<close>
+       isasat_bounded_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> unat_assn' TYPE(2)\<close>
   supply [[goals_limit = 1]]
   unfolding marked_as_used_st_alt_def isasat_bounded_assn_def fold_tuple_optimizations
   by sepref
@@ -676,7 +676,7 @@ sepref_def mop_arena_status_st_impl
 
 sepref_def mop_marked_as_used_st_impl
   is \<open>uncurry mop_marked_as_used_st\<close>
-  :: \<open>isasat_bounded_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
+  :: \<open>isasat_bounded_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a unat_assn' TYPE(2)\<close>
   supply [[goals_limit=1]]
   unfolding mop_marked_as_used_st_alt_def isasat_bounded_assn_def
   by sepref

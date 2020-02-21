@@ -7,8 +7,6 @@ section \<open>Code Generation\<close>
 no_notation WB_More_Refinement.fref (\<open>[_]\<^sub>f _ \<rightarrow> _\<close> [0,60,60] 60)
 no_notation WB_More_Refinement.freft (\<open>_ \<rightarrow>\<^sub>f _\<close> [60,60] 60)
 
-
-
 (* TODO: Let monadify-phase do this automatically? trade-of: goal-size vs. lost information *)
 lemma protected_bind_assoc: \<open>Refine_Basic.bind$(Refine_Basic.bind$m$(\<lambda>\<^sub>2x. f x))$(\<lambda>\<^sub>2y. g y) = Refine_Basic.bind$m$(\<lambda>\<^sub>2x. Refine_Basic.bind$(f x)$(\<lambda>\<^sub>2y. g y))\<close> by simp
 
@@ -46,11 +44,11 @@ lemmas [sepref_fr_rules] = ALit_impl.refine[FCOMP ALit_refine1]
 
 text \<open>LBD\<close>
 
-lemma xarena_lbd_refine1: \<open>(\<lambda>eli. eli >> 4, xarena_lbd) \<in> [is_Status]\<^sub>f arena_el_rel \<rightarrow> nat_rel\<close>
+lemma xarena_lbd_refine1: \<open>(\<lambda>eli. eli >> 5, xarena_lbd) \<in> [is_Status]\<^sub>f arena_el_rel \<rightarrow> nat_rel\<close>
    by (auto simp: is_Status_def)
 
 sepref_def xarena_lbd_impl [llvm_inline]
-   is [] \<open>(RETURN o (\<lambda>eli. eli >> 4))\<close> :: \<open>uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+   is [] \<open>(RETURN o (\<lambda>eli. eli >> 5))\<close> :: \<open>uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
   apply (annot_unat_const \<open>TYPE(32)\<close>)
   by sepref
 
@@ -86,25 +84,11 @@ sepref_def xarena_status_impl [llvm_inline] is [] \<open>RETURN o (\<lambda>eli.
   by sepref
 lemmas [sepref_fr_rules] = xarena_status_impl.refine[FCOMP xarena_status_refine1]
 
-lemma xarena_used_refine1: \<open>(\<lambda>eli. eli AND 0b100 \<noteq> 0, xarena_used) \<in> [is_Status]\<^sub>f arena_el_rel \<rightarrow> bool_rel\<close>
+lemma xarena_used_refine1: \<open>(\<lambda>eli. (eli AND 0b1100) >> 2, xarena_used) \<in> [is_Status]\<^sub>f arena_el_rel \<rightarrow> nat_rel\<close>
   by (auto simp: is_Status_def status_rel_def bitfield_rel_def)
 
-sepref_def xarena_used_impl [llvm_inline] is [] \<open>RETURN o (\<lambda>eli. eli AND 0b100 \<noteq> 0)\<close> :: \<open>uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
-  apply (annot_unat_const \<open>TYPE(32)\<close>)
-  by sepref
-lemmas [sepref_fr_rules] = xarena_used_impl.refine[FCOMP xarena_used_refine1]
-
-lemma status_eq_refine1: \<open>((=),(=)) \<in> status_rel \<rightarrow> status_rel \<rightarrow> bool_rel\<close>
-  by (auto simp: status_rel_def)
-
-sepref_def status_eq_impl [llvm_inline] is [] \<open>uncurry (RETURN oo (=))\<close>
-  :: \<open>(unat_assn' TYPE(32))\<^sup>k *\<^sub>a (unat_assn' TYPE(32))\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
-  by sepref
-
-lemmas [sepref_fr_rules] = status_eq_impl.refine[FCOMP status_eq_refine1]
-
-
-definition \<open>AStatus_impl1 cs used lbd \<equiv> (cs AND unat_const TYPE(32) 0b11) + (if used then unat_const TYPE(32) 0b100 else unat_const TYPE(32) 0b0) + (lbd << unat_const TYPE(32) 4)\<close>
+lemma  is_down'_32_2[simp]: \<open>is_down' UCAST(32 \<rightarrow> 2)\<close>
+  by (auto simp: is_down')
 
 lemma bitAND_mod: \<open>bitAND L (2^n - 1) = L mod (2^n)\<close> for L :: nat
   apply transfer
@@ -120,16 +104,118 @@ lemma nat_ex_numeral: \<open>\<exists>m. n=0 \<or> n = numeral m\<close> for n :
   using llvm_num_const_simps(67) apply blast
   using pred_numeral_inc by blast
 
+lemma xarena_used_implI: \<open>x AND 12 >> 2 < max_unat 2\<close> for x :: nat
+  using nat_ex_numeral[of x]
+  by (auto simp: nat_shiftr_div nat_shifl_div numeral_eq_Suc Suc_numeral max_unat_def
+        less_mult_imp_div_less
+      simp flip: numeral_eq_Suc)
 
+sepref_def xarena_used_impl [llvm_inline] is [] \<open>RETURN o (\<lambda>eli.(eli AND 0b1100) >> 2)\<close> :: \<open>uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a unat_assn' TYPE(2)\<close>
+  supply [simp] = xarena_used_implI
+  apply (annot_unat_const \<open>TYPE(32)\<close>)
+   apply (rewrite at \<open>RETURN o (\<lambda>_. \<hole>)\<close> annot_unat_unat_downcast[where 'l=2])
+  by sepref
+
+lemmas [sepref_fr_rules] = xarena_used_impl.refine[FCOMP xarena_used_refine1]
+
+lemma status_eq_refine1: \<open>((=),(=)) \<in> status_rel \<rightarrow> status_rel \<rightarrow> bool_rel\<close>
+  by (auto simp: status_rel_def)
+
+sepref_def status_eq_impl [llvm_inline] is [] \<open>uncurry (RETURN oo (=))\<close>
+  :: \<open>(unat_assn' TYPE(32))\<^sup>k *\<^sub>a (unat_assn' TYPE(32))\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
+  by sepref
+
+lemmas [sepref_fr_rules] = status_eq_impl.refine[FCOMP status_eq_refine1]
+
+
+definition \<open>AStatus_impl1 cs used lbd \<equiv>
+    (cs AND unat_const TYPE(32) 0b11) + (used << 2) + (lbd << unat_const TYPE(32) 5)\<close>
+
+lemma bang_eq_int:
+  fixes x :: "int"
+  shows "(x = y) = (\<forall>n. x !! n = y !! n)"
+  using bin_eqI by auto
+
+lemma bang_eq_nat:
+  fixes x :: "nat"
+  shows "(x = y) = (\<forall>n. x !! n = y !! n)"
+  using bang_eq_int int_int_eq unfolding test_bit_nat_def by auto
+
+lemma sum_bitAND_shift_pow2:
+  \<open>(a + (b << (n + m))) AND (2^n - 1) = a AND (2^n - 1)\<close> for a b n :: nat
+  unfolding bitAND_mod
+  apply (auto simp: nat_shiftr_div)
+  by (metis mod_mult_self2 power_add semiring_normalization_rules(19))
+
+lemma and_bang_nat: \<open>(x AND y) !! n = (x !! n \<and> y !! n)\<close> for x y n :: nat
+  unfolding bitAND_nat_def test_bit_nat_def
+  by (auto simp: bin_nth_ops)
+
+lemma AND_12_AND_15_AND_12: \<open>a AND 12 = (a AND 15) AND 12\<close> for a :: nat
+proof -
+  have [simp]: \<open>(12::nat) !! n \<Longrightarrow> (15::nat) !! n\<close> for n :: nat
+    by (induction n)
+     (auto simp: test_bit_nat_def bin_nth_numeral_unfold)
+
+  show ?thesis
+    by (subst bang_eq_nat, (subst and_bang_nat)+)
+     (auto simp: and_bang_nat)
+qed
+
+
+lemma AStatus_shift_safe:
+    \<open>c \<ge> 2 \<Longrightarrow> x42 + (x43 << c) AND 3 = x42 AND 3\<close>
+    \<open>(x53 << 2) AND 3 = 0\<close>
+    \<open>x42 + (x43 << 4) AND 12 = x42 AND 12\<close>
+    \<open>x42 + (x43 << 5) AND 12 = x42 AND 12\<close>
+    \<open>Suc (x42 + (x43 << 5)) AND 12 = (Suc x42) AND 12\<close>
+    \<open>Suc ((x42) + (x43 << 5)) AND 3 = Suc x42 AND 3\<close>
+    \<open>Suc (x42 << 2) AND 3 = Suc 0\<close>
+    \<open>x42 \<le> 3 \<Longrightarrow> Suc ((x42 << 2) + (x43 << 5)) >> 5 = x43\<close>
+   for x42 x43 x53 :: nat
+proof -
+  show \<open>c \<ge> 2 \<Longrightarrow> x42 + (x43 << c) AND 3 = x42 AND 3\<close>
+    using sum_bitAND_shift_pow2[of x42 x43 2 \<open>c - 2\<close>]
+    by auto
+
+  show \<open>(x53 << 2) AND 3 = 0\<close>
+    using bitAND_mod[of _ 2]
+    by (auto simp: nat_shiftr_div)
+  have 15: \<open>(15 :: nat) = 2 ^4 -1\<close> by auto
+  show H: \<open>x42 + (x43 << 4) AND 12 = x42 AND 12\<close> for x42 x43 :: nat
+    apply (subst AND_12_AND_15_AND_12)
+    apply (subst (2) AND_12_AND_15_AND_12)
+    unfolding bitAND_mod 15
+    by (auto simp: nat_shiftr_div)
+  from H[of x42 \<open>x43 << 1\<close>] show \<open>x42 + (x43 << 5) AND 12 = x42 AND 12\<close>
+    by (auto simp: nat_shiftr_div ac_simps)
+  from H[of \<open>Suc x42\<close> \<open>x43 << 1\<close>] show \<open>Suc (x42 + (x43 << 5)) AND 12 = (Suc x42) AND 12\<close>
+    by (auto simp: nat_shiftr_div ac_simps)
+  have [simp]: \<open>(a + x53 * 32) mod 4 = (a mod 4)\<close> for a x53 :: nat
+    by (metis (no_types, lifting) add_eq_self_zero cong_exp_iff_simps(1) cong_exp_iff_simps(2)
+     mod_add_eq mod_eq_nat1E mod_mult_right_eq mult_0_right order_refl)
+  note [simp] = this[of \<open>Suc a\<close> for a, simplified]
+  show \<open>Suc ((x42) + (x43 << 5)) AND 3 = Suc x42 AND 3\<close>
+    using bitAND_mod[of _ 2]
+    by (auto simp: nat_shiftr_div)
+  show \<open>Suc (x42 << 2) AND 3 = Suc 0\<close>
+    using bitAND_mod[of _ 2]
+    by (auto simp: nat_shiftr_div mod_Suc)
+  show \<open>x42 \<le> 3 \<Longrightarrow> Suc ((x42 << 2) + (x43 << 5)) >> 5 = x43\<close>
+    by (auto simp: nat_shiftr_div nat_shifl_div)
+qed
+
+  (*
 lemma AStatus_shift_safe: \<open>4 + (x53 << 2) AND 3 = 0\<close> \<open>(x53 << 2) AND 3 = 0\<close>
-   \<open>5 + (x53 << 2) AND 3 = 1\<close> \<open>(x53 << 4) AND 3 = 0\<close>  \<open>4 + (x53 << 4) AND 3 = 0\<close>
-   \<open>5 + (x53 << 4) AND 3 = Suc 0\<close> \<open>Suc (x53 << 4) AND 3 = Suc 0\<close> \<open>3 + (x53 << 4) AND 3 = 3\<close>
-   \<open>7 + (x53 << 4) AND 3 = 3\<close>  \<open>(x53 << 4) AND 4 = 0\<close> \<open>4 + (x53 << 4) AND 4 = 4\<close>
-   \<open>Suc (x53 << 4) AND 4 = 0\<close> \<open>3 + (x53 << 4) AND 4 = 0\<close>
-   \<open>5 + (x53 << 4) AND 4 = 4\<close> \<open>7 + (x53 << 4) AND 4 = 4\<close>
+   \<open>5 + (x53 << 2) AND 3 = 1\<close> \<open>(x53 << 5) AND 3 = 0\<close>  \<open>4 + (x53 << 5) AND 3 = 0\<close>
+   \<open>5 + (x53 << 5) AND 3 = Suc 0\<close> \<open>Suc (x53 << 5) AND 3 = Suc 0\<close> \<open>3 + (x53 << 5) AND 3 = 3\<close>
+   \<open>7 + (x53 << 5) AND 3 = 3\<close>  \<open>(x53 << 5) AND 4 = 0\<close> \<open>4 + (x53 << 5) AND 4 = 4\<close>
+   \<open>Suc (x53 << 5) AND 4 = 0\<close> \<open>3 + (x53 << 5) AND 4 = 0\<close>
+   \<open>5 + (x53 << 5) AND 4 = 4\<close> \<open>7 + (x53 << 4) AND 5 = 4\<close>
    \<open>(7 :: nat) >> (4 :: nat) = 0\<close> \<open>(5 :: nat) >> (4 :: nat) = 0\<close> \<open>(4 :: nat) >> (4 :: nat) = 0\<close>
-   \<open>(3 :: nat) >> (4 :: nat) = 0\<close> \<open>Suc (x53 << 4) >> 4 = x53\<close>
-   for x53 :: nat
+   \<open>(3 :: nat) >> (4 :: nat) = 0\<close> \<open>Suc (x53 << 5) >> 5 = x53\<close>
+    \<open>x42 + (x43 << 5) AND 3 = x42 AND 3\<close>
+   for x42 x43 x53 :: nat
 proof -
   have [simp]: \<open>(a + x53 * 16) mod 4 = (a mod 4)\<close> for a :: nat
     by (metis (no_types, lifting) add_eq_self_zero cong_exp_iff_simps(1) cong_exp_iff_simps(2)
@@ -208,41 +294,155 @@ proof -
     using nat_ex_numeral[of x53]
     by (auto simp: nat_shiftr_div nat_shifl_div numeral_eq_Suc Suc_numeral
       simp flip: numeral_eq_Suc)
+  have H: \<open>nat (a + b) = nat a + nat b\<close> if \<open>a \<ge> 0\<close> \<open>b \<ge> 0\<close> for a b :: int
+    using that by auto
+  show \<open>x42 + (x43 << 4) AND 3 = x42 AND 3\<close>
+    using sum_bitAND_shift_pow2[of x42 x43 2 2]
+    by auto
+
 qed
+*)
+lemma less_unat_AND_shift: \<open>x42 < 2^n \<Longrightarrow> x42 >> n = 0\<close> for x42 :: nat
+  by (auto simp: nat_shifl_div)
 
-lemma [simp]: \<open>(a + (w << n)) >> n = (a >> n) + w\<close> \<open>((w << n)) >> n = w\<close> for w n :: nat
-  by (auto simp: nat_shiftr_div nat_shifl_div)
+lemma [simp]: \<open>(a + (w << n)) >> n = (a >> n) + w\<close> \<open>((w << n)) >> n = w\<close>
+  \<open>n \<le> m \<Longrightarrow> ((w << n)) >> m = w >> (m - n)\<close> 
+  \<open>n \<ge> m \<Longrightarrow> ((w << n)) >> m = w << (n - m)\<close> for w n :: nat
+  apply (auto simp: nat_shiftr_div nat_shifl_div)
+  apply (metis div_mult2_eq le_add_diff_inverse nonzero_mult_div_cancel_right power_add power_eq_0_iff
+    zero_neq_numeral)
+by (smt Groups.mult_ac(2) le_add_diff_inverse nonzero_mult_div_cancel_right power_add power_eq_0_iff semiring_normalization_rules(19) zero_neq_numeral)
 
-lemma AStatus_refine1: \<open>(AStatus_impl1, AStatus) \<in> status_rel \<rightarrow> bool_rel \<rightarrow> nat_rel \<rightarrow> arena_el_rel\<close>
-  by (auto simp: status_rel_def bitfield_rel_def AStatus_impl1_def AStatus_shift_safe split: if_splits)
+lemma less_numeral_pred:
+  \<open>a \<le> numeral b \<longleftrightarrow> a = numeral b \<or> a \<le> pred_numeral b\<close> for a :: nat
+  by (auto simp: numeral_eq_Suc)
+
+lemma nat_shiftl_numeral [simp]:
+  "(numeral w :: nat) << numeral w' = numeral (num.Bit0 w) << pred_numeral w'"
+  by (metis mult_2 nat_shiftr_div numeral_Bit0 numeral_eq_Suc power.simps(2)
+    semiring_normalization_rules(18) semiring_normalization_rules(7))
+
+lemma nat_shiftl_numeral' [simp]:
+  "(numeral w :: nat) << 1 = numeral (num.Bit0 w)"
+  "(1 :: nat) << n = 2 ^ n"
+  using nat_shiftl_numeral[of w num.One, unfolded numeral.numeral_One]
+  by (auto simp: nat_shiftr_div)
+
+lemma shiftr_nat_alt_def: \<open>(a :: nat) >> b = nat (int a >> b)\<close>
+  by (simp add: shiftr_int_def shiftr_nat_def)
+
+lemma nat_shiftr_numeral [simp]:
+  "(1 :: nat) >> numeral w' = 0"
+  "(numeral num.One :: nat) >> numeral w' = 0"
+  "(numeral (num.Bit0 w) :: nat) >> numeral w' = numeral w >> pred_numeral w'"
+  "(numeral (num.Bit1 w) :: nat) >> numeral w' = numeral w >> pred_numeral w'"
+  unfolding shiftr_nat_alt_def
+  by auto
+
+lemma nat_shiftr_numeral_Suc0 [simp]:
+  "(1 :: nat) >> Suc 0 = 0"
+  "(numeral num.One :: nat) >> Suc 0 = 0"
+  "(numeral (num.Bit0 w) :: nat) >> Suc 0 = numeral w"
+  "(numeral (num.Bit1 w) :: nat) >> Suc 0 = numeral w"
+  unfolding shiftr_nat_alt_def
+  by auto
+
+lemma nat_shiftr_numeral1 [simp]:
+  "(1 :: nat) >> 1 = 0"
+  "(numeral num.One :: nat) >> 1 = 0"
+  "(numeral (num.Bit0 w) :: nat) >> 1 = numeral w"
+  "(numeral (num.Bit1 w) :: nat) >> 1 = numeral w"
+  unfolding shiftr_nat_alt_def
+  by auto
+
+lemma nat_numeral_and_one: \<open>(1 :: nat) AND 1 = 1\<close>
+  by simp
+
+lemma AStatus_refine1: \<open>(AStatus_impl1, AStatus) \<in> status_rel \<rightarrow> br id (\<lambda>n. n \<le> 3) \<rightarrow> nat_rel \<rightarrow> arena_el_rel\<close>
+  apply (auto simp: status_rel_def bitfield_rel_def AStatus_impl1_def AStatus_shift_safe br_def
+      less_unat_AND_shift
+    split: if_splits)
+  apply (auto simp: less_numeral_pred le_Suc_eq nat_and_numerals nat_numeral_and_one;
+        auto simp flip: One_nat_def)+
+  done
 
 lemma AStatus_implI:
-  assumes \<open>b << 4 < max_unat 32\<close>
-  shows \<open>b << 4 < max_unat 32 - 7\<close> \<open>(a AND 3) + 4 + (b << 4) < max_unat 32\<close>
-    \<open>(a AND 3) + (b << 4) < max_unat 32\<close>
+  assumes \<open>b << 5 < max_unat 32\<close>
+  shows \<open>b << 5 < max_unat 32 - 7\<close> \<open>(a AND 3) + 4 + (b << 5) < max_unat 32\<close>
+    \<open>(a AND 3) + (b << 5) < max_unat 32\<close>
 proof -
-  show \<open>b << 4 < max_unat 32 - 7\<close>
+  show \<open>b << 5 < max_unat 32 - 7\<close>
     using assms
     by (auto simp: max_unat_def nat_shiftr_div)
-  have \<open>(a AND 3) + 4 + (b << 4) \<le> 7 + (b << 4)\<close>
+  have \<open>(a AND 3) + 4 + (b << 5) \<le> 7 + (b << 5)\<close>
     using AND_upper_nat2[of 3 a]
     by auto
-  also have \<open>7 + (b << 4) < max_unat 32\<close>
-    using \<open>b << 4 < max_unat 32 - 7\<close> by auto
-  finally show \<open>(a AND 3) + 4 + (b << 4) < max_unat 32\<close> .
-  then show \<open>(a AND 3) + (b << 4) < max_unat 32\<close>
+  also have \<open>7 + (b << 5) < max_unat 32\<close>
+    using \<open>b << 5 < max_unat 32 - 7\<close> by auto
+  finally show \<open>(a AND 3) + 4 + (b << 5) < max_unat 32\<close> .
+  then show \<open>(a AND 3) + (b << 5) < max_unat 32\<close>
     by auto
 qed
+
+lemma nat_shiftr_mono: \<open>a < b \<Longrightarrow> a << n < b << n\<close> for a b :: nat
+  by (simp add: nat_shiftr_div)
+
+lemma AStatus_implI3:
+  assumes \<open>(ac :: 2 word, ba) \<in> unat_rel\<close>
+  shows \<open>(a AND (3::nat)) + (ba << (2::nat)) < max_unat (32::nat)\<close> and
+    \<open>b << 5 < max_unat 32 \<Longrightarrow> (a AND 3) + (ba << 2) + (b << 5) < max_unat 32\<close>
+proof -
+  have \<open>ba < 4\<close>
+    using assms unat_lt_max_unat[of ac] by (auto simp: unat_rel_def unat.rel_def br_def
+       max_unat_def)
+  from nat_shiftr_mono[OF this, of 2] have \<open>ba << 2 < 16\<close> by auto
+  moreover have \<open>(a AND (3::nat)) \<le> 3\<close>
+    using AND_upper_nat2[of a 3] by auto
+  ultimately have \<open>(a AND (3::nat)) + (ba << (2::nat)) < 19\<close>
+    by linarith
+  also have \<open>19 \<le> max_unat 32\<close>
+    by (auto simp: max_unat_def)
+  finally show \<open>(a AND (3::nat)) + (ba << (2::nat)) < max_unat (32::nat)\<close> .
+
+  show \<open>(a AND 3) + (ba << 2) + (b << 5) < max_unat 32\<close> if \<open>b << 5 < max_unat 32\<close>
+  proof -
+    have \<open>b << 5 < max_unat 32 - 19\<close>
+      using that
+      by (auto simp: max_unat_def nat_shiftr_div)
+    then show ?thesis
+      using  \<open>(a AND (3::nat)) + (ba << (2::nat)) < 19\<close> by linarith
+  qed
+qed
+
+lemma AStatus_implI2: \<open>(ac :: 2 word, ba) \<in> unat_rel \<Longrightarrow> ba << (2::nat) < max_unat (32::nat)\<close>
+  using order.strict_trans2[OF unat_lt_max_unat[of ac], of \<open>max_unat 28\<close>]
+   by (auto simp: unat_rel_def unat.rel_def br_def max_unat_def nat_shiftr_div
+      intro!: )
+
+lemma is_up_2_32[simp]: \<open>is_up' UCAST(2 \<rightarrow> 32)\<close>
+  by (simp add: is_up')
 
 sepref_def AStatus_impl [llvm_inline] 
   is [] \<open>uncurry2 (RETURN ooo AStatus_impl1)\<close>
-   :: \<open>[\<lambda>((a,b), c). c << 4 < max_unat 32]\<^sub>a
-      uint32_nat_assn\<^sup>k *\<^sub>a bool1_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
+   :: \<open>[\<lambda>((a,b), c). c << 5 < max_unat 32]\<^sub>a
+      uint32_nat_assn\<^sup>k *\<^sub>a (unat_assn' TYPE(2))\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow> uint32_nat_assn\<close>
   unfolding AStatus_impl1_def
-  supply [split] = if_splits and [intro] = AStatus_implI
+  supply [split] = if_splits and [intro] = AStatus_implI AStatus_implI2 AStatus_implI3
+  apply (rewrite in \<open>\<hole> << 2\<close> annot_unat_unat_upcast[where 'l=\<open>32\<close>])
+  apply (annot_unat_const \<open>TYPE(32)\<close>)
   by sepref
 
-lemmas [sepref_fr_rules] = AStatus_impl.refine[FCOMP AStatus_refine1]
+lemma Collect_eq_simps3: \<open>P O {(c, a). a = c \<and> Q c} = {(a, b). (a, b) \<in> P \<and> Q b}\<close>
+   \<open>P O {(c, a). c = a \<and> Q c} = {(a, b). (a, b) \<in> P \<and> Q b}\<close>
+  by auto
+
+lemma unat_rel_2_br: \<open>(((unat_rel :: (2 word \<times> _) set) O br id (\<lambda>n. n \<le> 3))) = ((unat_rel))\<close>
+  apply (auto simp add: unat_rel_def unat.rel_def br_def Collect_eq_simps3 max_unat_def)
+  subgoal for a
+     using unat_lt_max_unat[of \<open>a :: 2 word\<close>] by (auto simp: max_unat_def)
+  done
+
+lemmas [sepref_fr_rules] = AStatus_impl.refine[FCOMP AStatus_refine1, unfolded unat_rel_2_br]
 
 
 
@@ -366,9 +566,9 @@ sepref_def arena_lbd_impl
 
 paragraph \<open>used flag\<close>
 sepref_register arena_used
-sepref_def arena_used
+sepref_def arena_used_impl
   is \<open>uncurry (RETURN oo arena_used)\<close>
-    :: \<open>[uncurry get_clause_LBD_pre]\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> bool1_assn\<close>
+    :: \<open>[uncurry get_clause_LBD_pre]\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> unat_assn' TYPE(2)\<close>
   unfolding arena_used_def LBD_SHIFT_def
   supply [dest] = get_clause_LBD_pre_implI 
   apply (annot_snat_const \<open>TYPE(64)\<close>)
@@ -416,12 +616,12 @@ lemma update_lbdI:
     dest: arena_lifting(10))
   by (simp add: less_imp_diff_less valid_arena_def)
 
-lemma shorten_lbd_le: \<open>shorten_lbd baa << 4 < max_unat 32\<close>
+lemma shorten_lbd_le: \<open>shorten_lbd baa << 5 < max_unat 32\<close>
 proof -
-  have \<open>shorten_lbd baa << 4 \<le> 134217727 << 4\<close>
-    using AND_upper_nat2[of baa 134217727]
+  have \<open>shorten_lbd baa << 5 \<le> 67108863 << 5\<close>
+    using AND_upper_nat2[of baa 67108863]
     by (auto simp: nat_shiftr_div shorten_lbd_def)
-  also have \<open>134217727 << 4 < max_unat 32\<close>
+  also have \<open>67108863 << 5 < max_unat 32\<close>
     by (auto simp: max_unat_def nat_shiftr_div)
   finally show ?thesis .
 qed
@@ -532,6 +732,7 @@ sepref_def mark_garbage_impl is \<open>uncurry (RETURN oo extra_information_mark
   :: \<open>[mark_garbage_pre]\<^sub>a arena_fast_assn\<^sup>d *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> arena_fast_assn\<close>
   unfolding extra_information_mark_to_delete_def STATUS_SHIFT_def
   apply (rewrite at \<open>AStatus _ _ \<hole>\<close> annot_snat_unat_downcast[where 'l=32])
+  apply (rewrite at \<open>AStatus _ \<hole>\<close> unat_const_fold[where 'a=2])
   apply (annot_snat_const \<open>TYPE(64)\<close>)
   supply [simp] = mark_garbageI
   by sepref
@@ -553,7 +754,7 @@ lemma valid_arena_arena_lbd_shift_le:
     \<open>rdomp (al_assn arena_el_impl_assn) a\<close> and
     \<open>b \<in># dom_m N\<close> and
     \<open>valid_arena a N vdom\<close>
-  shows \<open>arena_lbd a b << 4 < max_unat 32\<close>
+  shows \<open>arena_lbd a b << 5 < max_unat 32\<close>
 proof -
   have \<open>2 \<le> b\<close> \<open>b - 2 < length a\<close> and st: \<open>is_Status (a ! (b-2))\<close>
     using assms LBD_SHIFT_def by (auto simp: arena_is_valid_clause_idx_def
@@ -561,17 +762,16 @@ proof -
   then have H: \<open>rdomp arena_el_impl_assn (a ! (b - 2))\<close>
     using rdomp_al_dest'[of arena_el_impl_assn a] assms
     by auto
-  then obtain x :: \<open>32 word\<close> and x51 :: \<open>clause_status\<close> and x52 :: \<open>bool\<close> where
-    H: \<open>a ! (b - 2) = AStatus x51 x52 (unat x >> 4)\<close>
+  then obtain x :: \<open>32 word\<close> and x51 :: \<open>clause_status\<close> and x52 where
+    H: \<open>a ! (b - 2) = AStatus x51 x52 (unat x >> 5)\<close>
       \<open>(unat x AND 3, x51) \<in> status_rel\<close>
-      \<open>(unat x, x52) \<in> bitfield_rel 2\<close>
     using st bit_shiftr_shiftl_same_le[of \<open>arena_lbd a b\<close> 4]
     by (auto simp: arena_el_impl_rel_def unat_rel_def unat.rel_def
       br_def arena_lbd_def LBD_SHIFT_def)
 
   show ?thesis
     apply (rule order.strict_trans1[of _ \<open>unat x\<close>])
-    using bit_shiftl_shiftr_same_le[of \<open>unat x\<close> 4] unat_lt_max_unat[of \<open>x\<close>] H
+    using bit_shiftl_shiftr_same_le[of \<open>unat x\<close> 5] unat_lt_max_unat[of \<open>x\<close>] H
     by (auto simp: arena_el_impl_rel_def unat_rel_def unat.rel_def
       br_def arena_lbd_def LBD_SHIFT_def)
 qed
@@ -581,7 +781,7 @@ lemma arena_mark_used_implI:
   shows \<open>2 \<le> b\<close> \<open>b - 2 < length a\<close> \<open>is_Status (a ! (b-2))\<close>
     \<open>arena_is_valid_clause_vdom a b\<close>
     \<open>get_clause_LBD_pre a b\<close>
-    \<open>rdomp (al_assn arena_el_impl_assn) a \<Longrightarrow> arena_lbd a b << 4 < max_unat 32\<close>
+    \<open>rdomp (al_assn arena_el_impl_assn) a \<Longrightarrow> arena_lbd a b << 5 < max_unat 32\<close>
   using assms STATUS_SHIFT_def valid_arena_arena_lbd_shift_le[of a b]
   apply (auto simp: arena_act_pre_def arena_is_valid_clause_idx_def arena_lifting)
   subgoal by (simp add: less_imp_diff_less valid_arena_def)
@@ -594,7 +794,7 @@ lemma mark_used_alt_def:
   \<open>RETURN oo mark_used =
      (\<lambda>arena i. do {
      lbd \<leftarrow> RETURN (arena_lbd arena i); let status = arena_status arena i;
-     RETURN (arena[i - STATUS_SHIFT := AStatus status True lbd])})\<close>
+     RETURN (arena[i - STATUS_SHIFT := AStatus status (arena_used arena i OR 1) lbd])})\<close>
   by (auto simp: mark_used_def Let_def intro!: ext)
 
 (* TODO: Wrong name for precondition! *)
@@ -603,6 +803,7 @@ sepref_def mark_used_impl is \<open>uncurry (RETURN oo mark_used)\<close>
   :: \<open>[uncurry arena_act_pre]\<^sub>a arena_fast_assn\<^sup>d *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> arena_fast_assn\<close>
   unfolding mark_used_def STATUS_SHIFT_def mark_used_alt_def
   supply [intro] = arena_mark_used_implI
+  apply (rewrite at \<open>_ OR \<hole>\<close> unat_const_fold[where 'a=2])
   apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
@@ -611,7 +812,9 @@ sepref_def mark_unused_impl is \<open>uncurry (RETURN oo mark_unused)\<close>
   :: \<open>[uncurry arena_act_pre]\<^sub>a arena_fast_assn\<^sup>d *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> arena_fast_assn\<close>
   unfolding mark_unused_def STATUS_SHIFT_def
   supply [intro] = arena_mark_used_implI
-  apply (annot_snat_const \<open>TYPE(64)\<close>)
+  apply (rewrite at \<open>_ - \<hole>\<close> snat_const_fold[where 'a=64])
+  apply (rewrite at \<open>_ - \<hole>\<close> snat_const_fold[where 'a=64])
+  apply (annot_unat_const \<open>TYPE(2)\<close>)
   by sepref
 
 
@@ -629,7 +832,7 @@ lemma arena_marked_as_used_implI:
 sepref_register marked_as_used
 sepref_def marked_as_used_impl
   is \<open>uncurry (RETURN oo marked_as_used)\<close>
-    :: \<open>[uncurry marked_as_used_pre]\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> bool1_assn\<close>
+    :: \<open>[uncurry marked_as_used_pre]\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> unat_assn' TYPE(2)\<close>
   supply [intro] = arena_marked_as_used_implI
   unfolding marked_as_used_def STATUS_SHIFT_def
   apply (annot_snat_const \<open>TYPE(64)\<close>)

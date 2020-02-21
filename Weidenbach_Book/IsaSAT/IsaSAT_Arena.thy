@@ -27,19 +27,21 @@ lost (if we iterate over the watch lists) or all (if we iterate over the clauses
 
 The order in memory is in the following order:
   \<^enum> the saved position (was optional in cadical too; since sr-19, not optional);
-  \<^enum> the status;
-  \<^enum> the LBD;
+  \<^enum> the status and LBD;
   \<^enum> the size;
   \<^enum> the clause.
 
 Remark that the information can be compressed to reduce the size in memory:
   \<^enum> the saved position can be skipped for short clauses;
   \<^enum> the LBD will most of the time be much shorter than a 32-bit integer, so only an
-    approximation can be kept and the remaining bits be reused;
-  \<^enum> the activity is not kept by cadical (to use instead a MTF-like scheme).
+    approximation can be kept and the remaining bits be reused for the status;
 
-As we are already wasteful with memory, we implement the first optimisation. Point two can be
-implemented automatically by a (non-standard-compliant) C compiler.
+In previous iteration, we had something a bit simpler:
+  \<^enum> the LBD was in a seperate field, allowing to store the complete LBD (which does not matter).
+  \<^enum> the activity was also stored and used for ties. This was beneficial on some problems (including
+    the \<^text>\<open>eq.atree.braun\<close> problems), but we later decided to remove it to consume less memory.
+    This did not make a difference on the overall benchmark set. For ties, we use a pure MTF-like
+    scheme and keep newer clauses (like CaDiCaL).
 
 
 In our case, the refinement is done in two steps:
@@ -173,7 +175,7 @@ datatype arena_el =
   is_Lit: ALit (xarena_lit: \<open>nat literal\<close>) |
   is_Size: ASize (xarena_length: nat)  |
   is_Pos: APos (xarena_pos: nat)  |
-  is_Status: AStatus (xarena_status: clause_status) (xarena_used: bool) (xarena_lbd: nat)
+  is_Status: AStatus (xarena_status: clause_status) (xarena_used: nat) (xarena_lbd: nat)
 
 type_synonym arena = \<open>arena_el list\<close>
 
@@ -226,7 +228,7 @@ definition arena_dead_clause :: \<open>arena \<Rightarrow> bool\<close> where
 
 text \<open>When marking a clause as garbage, we do not care whether it was used or not.\<close>
 definition extra_information_mark_to_delete where
-  \<open>extra_information_mark_to_delete arena i = arena[i - STATUS_SHIFT := AStatus DELETED False 0]\<close>
+  \<open>extra_information_mark_to_delete arena i = arena[i - STATUS_SHIFT := AStatus DELETED 0 0]\<close>
 
 text \<open>This extracts a single clause from the complete arena.\<close>
 abbreviation clause_slice where
@@ -704,10 +706,10 @@ lemma valid_arena_remove_from_vdom:
 paragraph \<open>Update LBD\<close>
 
 abbreviation MAX_LBD :: \<open>nat\<close> where
-  \<open>MAX_LBD \<equiv> 134217727\<close>
+  \<open>MAX_LBD \<equiv> 67108863\<close>
 
 lemma MAX_LBD_alt_def:
-  \<open>MAX_LBD = (2^27-1)\<close>
+  \<open>MAX_LBD = (2^26-1)\<close>
   by auto
 
 definition shorten_lbd :: \<open>nat \<Rightarrow> nat\<close> where
@@ -1098,7 +1100,7 @@ definition append_clause_skeleton where
 
 definition append_clause where
   \<open>append_clause b C arena =
-    append_clause_skeleton 0 (if b then IRRED else LEARNED) False (shorten_lbd(length C - 2)) C arena\<close>
+    append_clause_skeleton 0 (if b then IRRED else LEARNED) 0 (shorten_lbd(length C - 2)) C arena\<close>
 
 lemma arena_active_clause_append_clause:
   assumes
@@ -1237,7 +1239,7 @@ definition bitfield_rel where
 
 definition arena_el_relation where
 \<open>arena_el_relation x el  = (case el of
-     AStatus n b lbd \<Rightarrow> (x AND 0b11, n) \<in> status_rel \<and> (x, b) \<in> bitfield_rel 2 \<and> (x >> 4, lbd) \<in> nat_rel
+     AStatus n b lbd \<Rightarrow> (x AND 0b11, n) \<in> status_rel \<and> ((x AND 0b1100) >> 2, b) \<in> nat_rel \<and> (x >> 5, lbd) \<in> nat_rel
    | APos n \<Rightarrow> (x, n) \<in> nat_rel
    | ASize n \<Rightarrow> (x, n) \<in> nat_rel
    | ALit n \<Rightarrow> (x, n) \<in> nat_lit_rel
@@ -1535,7 +1537,7 @@ lemma length_clause_slice_list_update[simp]:
 
 definition mark_used where
   \<open>mark_used arena i =
-     arena[i - STATUS_SHIFT := AStatus (arena_status arena i) True (arena_lbd arena i)]\<close>
+     arena[i - STATUS_SHIFT := AStatus (arena_status arena i) ((arena_used arena i) OR 1) (arena_lbd arena i)]\<close>
 
 lemma length_mark_used[simp]: \<open>length (mark_used arena C) = length arena\<close>
   by (auto simp: mark_used_def)
@@ -1563,7 +1565,7 @@ proof -
   have
    [simp]: \<open>clause_slice ?arena N C ! (header_size (N \<propto> C) - STATUS_SHIFT) =
            AStatus (xarena_status (clause_slice arena N C ! (header_size (N \<propto> C) - STATUS_SHIFT)))
-             True (arena_lbd ?arena C)\<close> and
+             ((arena_used arena C) OR 1) (arena_lbd ?arena C)\<close> and
    [simp]: \<open>clause_slice ?arena N C ! (header_size (N \<propto> C) - SIZE_SHIFT) =
            clause_slice arena N C ! (header_size (N \<propto> C) - SIZE_SHIFT)\<close> and
    [simp]: \<open>is_long_clause (N \<propto> C) \<Longrightarrow> clause_slice ?arena N C ! (header_size (N \<propto> C) - POS_SHIFT) =
@@ -1613,7 +1615,8 @@ qed
 
 definition mark_unused where
   \<open>mark_unused arena i =
-     arena[i - STATUS_SHIFT := AStatus (xarena_status (arena!(i - STATUS_SHIFT))) False
+  arena[i - STATUS_SHIFT := AStatus (xarena_status (arena!(i - STATUS_SHIFT)))
+     (if (arena_used arena i) > 0 then arena_used arena i - 1 else 0)
        (arena_lbd arena i)]\<close>
 
 lemma length_mark_unused[simp]: \<open>length (mark_unused arena C) = length arena\<close>
@@ -1624,7 +1627,8 @@ lemma valid_arena_mark_unused:
   shows
    \<open>valid_arena (mark_unused arena C) N vdom\<close>
 proof -
-  let ?arena = \<open>mark_unused arena C\<close>
+  let ?arena = \<open>mark_unused arena C\<close> and
+     ?used = \<open>(if (arena_used arena C) > 0 then arena_used arena C - 1 else 0)\<close>
   have act: \<open>\<forall>i\<in>#dom_m N.
      i < length (arena) \<and>
      header_size (N \<propto> i) \<le> i \<and>
@@ -1641,7 +1645,7 @@ proof -
   have
    [simp]: \<open>clause_slice ?arena N C ! (header_size (N \<propto> C) - STATUS_SHIFT) =
            AStatus (xarena_status (clause_slice arena N C ! (header_size (N \<propto> C) - STATUS_SHIFT)))
-             False (arena_lbd arena C)\<close> and
+             ?used (arena_lbd arena C)\<close> and
    [simp]: \<open>clause_slice ?arena N C ! (header_size (N \<propto> C) - SIZE_SHIFT) =
            clause_slice arena N C ! (header_size (N \<propto> C) - SIZE_SHIFT)\<close> and
    [simp]: \<open>is_long_clause (N \<propto> C) \<Longrightarrow> clause_slice ?arena N C ! (header_size (N \<propto> C) - POS_SHIFT) =
@@ -1689,7 +1693,7 @@ proof -
 qed
 
 
-definition marked_as_used :: \<open>arena \<Rightarrow> nat \<Rightarrow> bool\<close> where
+definition marked_as_used :: \<open>arena \<Rightarrow> nat \<Rightarrow> nat\<close> where
   \<open>marked_as_used arena C =  xarena_used (arena ! (C - STATUS_SHIFT))\<close>
 
 definition marked_as_used_pre where

@@ -32,7 +32,8 @@ sepref_def mark_to_delete_clauses_wl_D_heur_fast_impl
     mop_arena_status_st_def[symmetric]
     mop_arena_length_st_def[symmetric]
   supply [[goals_limit = 1]] of_nat_snat[sepref_import_param]
-    length_avdom_def[symmetric, simp] access_vdom_at_def[simp]
+      length_avdom_def[symmetric, simp] access_vdom_at_def[simp]
+  apply (rewrite at \<open>_ > \<hole>\<close> unat_const_fold[where 'a=2])
   apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 

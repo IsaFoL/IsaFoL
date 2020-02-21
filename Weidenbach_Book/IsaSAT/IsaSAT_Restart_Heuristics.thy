@@ -1316,7 +1316,7 @@ where
 	     lbd > MINIMUM_DELETION_LBD \<and>
              status = LEARNED \<and>
              length \<noteq> 2 \<and>
-	     \<not>used;
+	     used > 0;
           if can_del
           then
             do {
@@ -1424,8 +1424,8 @@ lemma mark_to_delete_clauses_wl_D_heur_alt_def:
                              arena_length (get_clauses_wl_heur T)
                               (get_avdom T ! i) \<noteq>
                              2 \<and>
-                             \<not> marked_as_used (get_clauses_wl_heur T)
-                                (get_avdom T ! i));
+                             marked_as_used (get_clauses_wl_heur T)
+                                (get_avdom T ! i) > 0);
                           if can_del
                           then do {
                                 wasted \<leftarrow> mop_arena_length_st T (get_avdom T ! i);
@@ -1700,7 +1700,7 @@ proof -
     < arena_lbd (get_clauses_wl_heur x2b) (get_avdom x2b ! x1b) \<and>
     arena_status (get_clauses_wl_heur x2b) (get_avdom x2b ! x1b) = LEARNED \<and>
     arena_length (get_clauses_wl_heur x2b) (get_avdom x2b ! x1b) \<noteq> 2 \<and>
-    \<not> marked_as_used (get_clauses_wl_heur x2b) (get_avdom x2b ! x1b)\<close> and
+    marked_as_used (get_clauses_wl_heur x2b) (get_avdom x2b ! x1b) > 0\<close> and
       \<open>can_del\<close> for x y S Sa uu xs l la xa x' x1 x2 x1a x2a x1b x2b D can_del b ba
   proof -
     have \<open>\<not>irred (get_clauses_wl x1a) (x2a ! x1)\<close> and \<open>(x2b, x1a) \<in> twl_st_heur_restart_ana r\<close>
@@ -3031,7 +3031,7 @@ proof -
     < arena_lbd (get_clauses_wl_heur x2b) (get_avdom x2b ! x1b) \<and>
     arena_status (get_clauses_wl_heur x2b) (get_avdom x2b ! x1b) = LEARNED \<and>
     arena_length (get_clauses_wl_heur x2b) (get_avdom x2b ! x1b) \<noteq> 2 \<and>
-    \<not> marked_as_used (get_clauses_wl_heur x2b) (get_avdom x2b ! x1b)\<close> and
+    marked_as_used (get_clauses_wl_heur x2b) (get_avdom x2b ! x1b) > 0\<close> and
       \<open>can_del\<close> for x y S Sa uu xs l la xa x' x1 x2 x1a x2a x1b x2b D can_del b ba
   proof -
     have \<open>\<not>irred (get_clauses_wl x1a) (x2a ! x1)\<close> and \<open>(x2b, x1a) \<in> twl_st_heur_restart_ana r\<close>

@@ -43,6 +43,7 @@ sepref_def append_and_length_fast_code
   apply (rewrite at \<open>length _ - 2\<close> annot_snat_unat_downcast[where 'l=32])
 
   supply [simp] = fm_add_new_bounds1[simplified] shorten_lbd_le
+  apply (rewrite at \<open>AStatus _ \<hole>\<close> unat_const_fold[where 'a=2])+
   apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
