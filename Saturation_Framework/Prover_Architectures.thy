@@ -863,6 +863,28 @@ text \<open>lem:lgc-derivations-are-red-derivations\<close>
 lemma gc_to_red: "chain (\<Longrightarrow>LGC) D \<Longrightarrow> chain (\<rhd>RedL) (lmap snd D)"
   using one_step_equiv Lazy_List_Chain.chain_mono by (smt chain_lmap prod.collapse) 
 
+
+lemma le_principe_dinduction_que_tu_veux:
+"n \<le> m \<Longrightarrow>
+(\<And>m'. n \<le> m' \<Longrightarrow> P m' \<Longrightarrow> P (Suc m')) \<Longrightarrow>
+P n \<Longrightarrow>
+P m"
+using nat_induct_at_least by blast
+(*
+Auto solve_direct: the current goal can be solved directly with
+Nat.dec_induct:
+?i \<le> ?j \<Longrightarrow>
+?P ?i \<Longrightarrow> (\<And>n. ?i \<le> n \<Longrightarrow> n < ?j \<Longrightarrow> ?P n \<Longrightarrow> ?P (Suc n)) \<Longrightarrow> ?P ?j
+Nat.nat_induct_at_least:
+?m \<le> ?n \<Longrightarrow> ?P ?m \<Longrightarrow> (\<And>n. ?m \<le> n \<Longrightarrow> ?P n \<Longrightarrow> ?P (Suc n)) \<Longrightarrow> ?P ?n
+*)
+(* proof -
+ * have "P n" if "m >= n"
+ * using \<open> m >= n \<close>
+ * apply (induction rule: nat_induct_at_least)
+ * apply auto
+ * sorry *)
+
 text \<open>lem:fair-lgc-derivations\<close>
 lemma gc_fair: "chain (\<Longrightarrow>LGC) D \<Longrightarrow> llength D > 0 \<Longrightarrow> active_subset (snd (lnth D 0)) = {} \<Longrightarrow>
   non_active_subset (Liminf_llist (lmap snd D)) = {} \<Longrightarrow> Liminf_llist (lmap fst D) = {} \<Longrightarrow> fair (lmap snd D)"
@@ -1071,48 +1093,40 @@ proof -
         to_F \<iota> \<in> (fst (lnth D (Suc p0)))" for p0
         by blast 
       have "p0 \<ge> n \<Longrightarrow> enat (Suc p0) < llength D \<Longrightarrow> to_F \<iota> \<in> (fst (lnth D (Suc p0)))" for p0
-      proof (induct "p0 - n")
-      case 0
-        assume "0 = p0 - n"
-        then have "p0 = n" using "0.prems"(1) diff_is_0_eq le_antisym by metis
-        then show "to_F \<iota> \<in> fst (lnth D (Suc p0))" using i_in_t2 suc_nth_d_is by simp
-      case (Suc x) 
-        assume "x = p0 - n \<Longrightarrow>
-                 n \<le> p0 \<Longrightarrow>
-                 enat (Suc p0) < llength D \<Longrightarrow> to_F \<iota> \<in> fst (lnth D (Suc p0))"
-        then show "to_F \<iota> \<in> fst (lnth D (Suc p0))"
-      have "to_F \<iota> \<in> (fst (lnth D (Suc n)))" using i_in_t2 suc_nth_d_is by simp
-      find_theorems "_ - _" name: induct
-      have "\<forall>j. j \<ge> n \<and> enat (Suc j) < llength D \<longrightarrow> to_F \<iota> \<in> (fst (lnth D (Suc j)))"
-        apply clarify
-      proof (induction)
-
-        fix j
-        assume
-          n_prec_j: "n \<le> j" and
-          suc_j_prec_end_d: "enat (Suc j) < llength D"
-        have "to_F \<iota> \<in> fst (lnth D j)" sorry
-        show "to_F \<iota> \<in> fst (lnth D (Suc j))"
-          using i_in_suc[OF n_prec_j suc_j_prec_end_d] suc_nth_d_is i_in_t2
-sorry
-
+      proof (induction rule: nat_induct_at_least)
+        case base
+        then show ?case using i_in_t2 suc_nth_d_is by simp
+      next
+        case (Suc p0)
+        assume p_bigger_n: "n \<le> p0" and
+          induct_hyp: "enat (Suc p0) < llength D \<Longrightarrow> to_F \<iota> \<in> fst (lnth D (Suc p0))" and
+          sucsuc_smaller_d: "enat (Suc (Suc p0)) < llength D"
+        have suc_p_bigger_n: "n \<le> (Suc p0)" using p_bigger_n by simp
+        have suc_smaller_d: "enat (Suc p0) < llength D"
+          using sucsuc_smaller_d Suc_ile_eq dual_order.strict_implies_order by blast
+        then have "to_F \<iota> \<in> fst (lnth D (Suc p0))" using induct_hyp by blast
+        then show ?case using i_in_suc[OF suc_p_bigger_n sucsuc_smaller_d] by blast
       qed
-        using i_in_t2 suc_nth_d_is sorry
+     then have i_in_all_bigger_n: "\<forall>j. j \<ge> n \<and> enat (Suc j) < llength D \<longrightarrow> to_F \<iota> \<in> (fst (lnth D (Suc j)))"
+       by presburger
       have "llength (lmap fst D) = llength D" by force
-      then have "to_F \<iota> \<in> \<Inter> (lnth (lmap fst D) ` {j. (Suc n) \<le> j \<and> enat j < llength (lmap fst D)})"  sorry
+      then have "to_F \<iota> \<in> \<Inter> (lnth (lmap fst D) ` {j. (Suc n) \<le> j \<and> enat j < llength (lmap fst D)})"
+        using i_in_all_bigger_n using Suc_le_D by auto
       then have "to_F \<iota> \<in> Liminf_llist (lmap fst D)"
-        unfolding Liminf_llist_def 
-
-
-
-
-
-
-
-
-
-
-
+        unfolding Liminf_llist_def using suc_n_length by auto
+      then show False using final_schedule by fast
+    qed
+    then obtain p where p_greater_n: "p \<ge> n" and p_smaller_d: "enat (Suc p) < llength D" and
+      i_in_p: "to_F \<iota> \<in> (fst (lnth D p))" and i_notin_suc_p: "to_F \<iota> \<notin> (fst (lnth D (Suc p)))"
+      by blast
+    have step_p: "lnth D p \<Longrightarrow>LGC lnth D (Suc p)" using deriv p_smaller_d chain_lnth_rel by blast
+    then have "\<exists>T1 T2 \<iota> N2 N1 M. lnth D p = (T1, N1) \<and> lnth D (Suc p) = (T2, N2) \<and>
+      T1 = T2 \<union> {to_F \<iota>} \<and> T2 \<inter> {to_F \<iota>} = {} \<and> N2 = N1 \<union> M \<and> active_subset M = {} \<and>
+      to_F \<iota> \<in> no_labels.empty_ord_lifted_calc_w_red_crit_family.Red_Inf_Q (fst ` (N1 \<union> M))"
+      using Lazy_Given_Clause_step.simps[of "lnth D p" "lnth D (Suc p)"] step_p i_in_p i_notin_suc_p
+      unfolding active_subset_def 
+       sorry
+      
 
 
 
