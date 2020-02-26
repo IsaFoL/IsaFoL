@@ -1075,7 +1075,7 @@ proof -
       then show "(prems_of \<iota>)!j \<in> (active_subset N)"
         using nth_d_is l_not_active n1_is unfolding active_subset_def by force
     qed
-    then have "set (prems_of \<iota>) \<subseteq> active_subset N \<union> {(C0, active)}"
+    then have prems_i_active: "set (prems_of \<iota>) \<subseteq> active_subset N \<union> {(C0, active)}"
       using C0_prems_i C0_is m_def by (metis Un_iff atLeast0LessThan in_set_conv_nth insertCI lessThan_iff subrelI) 
     moreover have "\<not> (set (prems_of \<iota>) \<subseteq> active_subset N - {(C0, active)})"  using C0_prems_i by blast
     ultimately have "\<iota> \<in> with_labels.Inf_from2 (active_subset N) {(C0,active)}"
@@ -1085,7 +1085,6 @@ proof -
         no_labels.Non_ground.Inf_from_def using Inf_FL_to_Inf_F by force
     then have i_in_t2: "to_F \<iota> \<in> T2" using tp_is t2_is by simp
     have "\<exists>p\<ge>n. enat (Suc p) < llength D \<and> to_F \<iota> \<in> (fst (lnth D p)) \<and> to_F \<iota> \<notin> (fst (lnth D (Suc p)))"
-      (* using suc_nth_d_is final_schedule unfolding Liminf_llist_def *)
     proof (rule ccontr)
       assume
         contra: "\<not> (\<exists>p\<ge>n. enat (Suc p) < llength D \<and> to_F \<iota> \<in> (fst (lnth D p)) \<and> to_F \<iota> \<notin> (fst (lnth D (Suc p))))"
@@ -1107,8 +1106,8 @@ proof -
         then have "to_F \<iota> \<in> fst (lnth D (Suc p0))" using induct_hyp by blast
         then show ?case using i_in_suc[OF suc_p_bigger_n sucsuc_smaller_d] by blast
       qed
-     then have i_in_all_bigger_n: "\<forall>j. j \<ge> n \<and> enat (Suc j) < llength D \<longrightarrow> to_F \<iota> \<in> (fst (lnth D (Suc j)))"
-       by presburger
+      then have i_in_all_bigger_n: "\<forall>j. j \<ge> n \<and> enat (Suc j) < llength D \<longrightarrow> to_F \<iota> \<in> (fst (lnth D (Suc j)))"
+        by presburger
       have "llength (lmap fst D) = llength D" by force
       then have "to_F \<iota> \<in> \<Inter> (lnth (lmap fst D) ` {j. (Suc n) \<le> j \<and> enat j < llength (lmap fst D)})"
         using i_in_all_bigger_n using Suc_le_D by auto
@@ -1121,51 +1120,61 @@ proof -
       by blast
     have step_p: "lnth D p \<Longrightarrow>LGC lnth D (Suc p)" using deriv p_smaller_d chain_lnth_rel by blast
     then have "\<exists>T1 T2 \<iota> N2 N1 M. lnth D p = (T1, N1) \<and> lnth D (Suc p) = (T2, N2) \<and>
-      T1 = T2 \<union> {to_F \<iota>} \<and> T2 \<inter> {to_F \<iota>} = {} \<and> N2 = N1 \<union> M \<and> active_subset M = {} \<and>
-      to_F \<iota> \<in> no_labels.empty_ord_lifted_calc_w_red_crit_family.Red_Inf_Q (fst ` (N1 \<union> M))"
-      using Lazy_Given_Clause_step.simps[of "lnth D p" "lnth D (Suc p)"] step_p i_in_p i_notin_suc_p
-      unfolding active_subset_def 
-       sorry
-      
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    then have "to_F \<iota> \<in> no_labels.lifted_calc_w_red_crit_family.Red_Inf_Q (fst ` (lnth D (Suc n)))"
-      using suc_nth_d_is inf_from_subs by fastforce
-    then have "\<forall>q. \<G>_Inf_q q (to_F \<iota>) \<subseteq> Red_Inf_q q (\<Union> (\<G>_F_q q ` (fst ` (lnth D (Suc n)))))"
+    T1 = T2 \<union> {\<iota>} \<and> T2 \<inter> {\<iota>} = {} \<and> N2 = N1 \<union> M \<and> active_subset M = {} \<and>
+    \<iota> \<in> no_labels.empty_ord_lifted_calc_w_red_crit_family.Red_Inf_Q (fst ` (N1 \<union> M))"
+    proof -
+      have ci_or_do: "(\<exists>T1 T2 \<iota> N2 N1 M. lnth D p = (T1, N1) \<and> lnth D (Suc p) = (T2, N2) \<and>
+        T1 = T2 \<union> {\<iota>} \<and> T2 \<inter> {\<iota>} = {} \<and> N2 = N1 \<union> M \<and> active_subset M = {} \<and>
+        \<iota> \<in> no_labels.empty_ord_lifted_calc_w_red_crit_family.Red_Inf_Q (fst ` (N1 \<union> M))) \<or>
+        (\<exists>T1 T2 T' N. lnth D p = (T1, N) \<and> lnth D (Suc p) = (T2, N) \<and>
+        T1 = T2 \<union> T' \<and> T2 \<inter> T' = {} \<and>
+        T' \<inter> no_labels.Non_ground.Inf_from (fst ` active_subset N) = {})"
+        using Lazy_Given_Clause_step.simps[of "lnth D p" "lnth D (Suc p)"] step_p i_in_p i_notin_suc_p by fastforce
+      then have p_greater_n_strict: "n < p"
+        using nth_d_is suc_nth_d_is t2_is p_greater_n i_in_t2 i_notin_suc_p le_eq_less_or_eq by force
+      have "j \<in> {0..<m} \<Longrightarrow> (prems_of (to_F \<iota>))!j \<in> (fst ` (active_subset (snd (lnth D p))))" for j
+      proof -
+        fix j
+        assume j_in: "j \<in> {0..<m}"
+        obtain nj where nj_len: "enat (Suc nj) < llength D" and
+          nj_prems: "(prems_of \<iota>)!j \<notin> active_subset (snd (lnth D nj))" and
+          nj_greater: "(\<forall>k. k > nj \<longrightarrow> enat k < llength D \<longrightarrow> (prems_of \<iota>)!j \<in> active_subset (snd (lnth D k)))"
+          using exist_nj j_in by blast
+        then have "nj \<in> nj_set" unfolding nj_set_def using j_in by blast
+        then have "nj < p" using n_bigger p_greater_n_strict by fastforce
+        then have "(prems_of \<iota>)!j \<in> (active_subset (snd (lnth D p)))"
+          using nj_greater p_smaller_d Suc_ile_eq dual_order.strict_implies_order by blast
+        then have "fst ((prems_of \<iota>)!j) \<in> (fst ` (active_subset (snd (lnth D p))))"
+          by blast
+        then show "(prems_of (to_F \<iota>))!j \<in> (fst ` (active_subset (snd (lnth D p))))"
+        unfolding to_F_def using j_in m_def by simp
+      qed
+      then have prems_i_active_p: "to_F \<iota> \<in> no_labels.Non_ground.Inf_from (fst ` active_subset (snd (lnth D p)))"
+        using i_in_F unfolding no_labels.Non_ground.Inf_from_def
+        by (smt atLeast0LessThan in_set_conv_nth lessThan_iff m_def_F mem_Collect_eq subsetI)
+      then show "(\<exists>T1 T2 \<iota> N2 N1 M. lnth D p = (T1, N1) \<and> lnth D (Suc p) = (T2, N2) \<and>
+        T1 = T2 \<union> {\<iota>} \<and> T2 \<inter> {\<iota>} = {} \<and> N2 = N1 \<union> M \<and> active_subset M = {} \<and>
+        \<iota> \<in> no_labels.empty_ord_lifted_calc_w_red_crit_family.Red_Inf_Q (fst ` (N1 \<union> M)))"
+        using ci_or_do prems_i_active_p i_in_p i_notin_suc_p unfolding active_subset_def by auto
+    qed
+    then obtain T1p T2p N1p N2p Mp where  "lnth D p = (T1p, N1p)" and suc_p_is: "lnth D (Suc p) = (T2p, N2p)" and
+          "T1p = T2p \<union> {to_F \<iota>}" and "T2p \<inter> {to_F \<iota>} = {}" and n2p_is: "N2p = N1p \<union> Mp"and "active_subset Mp = {}" and
+          i_in_red_inf: "to_F \<iota> \<in> no_labels.empty_ord_lifted_calc_w_red_crit_family.Red_Inf_Q (fst ` (N1p \<union> Mp))"
+          using i_in_p i_notin_suc_p by fastforce
+    have "to_F \<iota> \<in> no_labels.lifted_calc_w_red_crit_family.Red_Inf_Q (fst ` (snd (lnth D (Suc p))))"
+      using i_in_red_inf suc_p_is n2p_is by fastforce
+    then have "\<forall>q. \<G>_Inf_q q (to_F \<iota>) \<subseteq> Red_Inf_q q (\<Union> (\<G>_F_q q ` (fst ` (snd (lnth D (Suc p))))))"
       unfolding to_F_def no_labels.lifted_calc_w_red_crit_family.Red_Inf_Q_def no_labels.Red_Inf_\<G>_q_def
         no_labels.\<G>_set_q_def
       by fast
-    then have "\<iota> \<in> with_labels.Red_Inf_Q (lnth D (Suc n))"
+    then have "\<iota> \<in> with_labels.Red_Inf_Q (snd (lnth D (Suc p)))"
       unfolding to_F_def with_labels.Red_Inf_Q_def Red_Inf_\<G>_L_q_def \<G>_Inf_L_q_def \<G>_set_L_q_def \<G>_F_L_q_def
       using i_in_inf_fl by auto
-    then show "\<iota> \<in>
-      labeled_ord_red_crit_fam.empty_ord_lifted_calc_w_red_crit_family.inter_red_crit_calculus.Sup_Red_Inf_llist D"
+    then show "\<iota> \<in> labeled_ord_red_crit_fam.empty_ord_lifted_calc_w_red_crit_family.inter_red_crit_calculus.Sup_Red_Inf_llist (lmap snd D)"
       unfolding
         labeled_ord_red_crit_fam.empty_ord_lifted_calc_w_red_crit_family.inter_red_crit_calculus.Sup_Red_Inf_llist_def 
-      using red_inf_equiv2 suc_n_length by auto
+      using red_inf_equiv2 suc_n_length p_smaller_d by auto
   qed
 qed
+
 end
