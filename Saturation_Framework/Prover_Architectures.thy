@@ -886,7 +886,7 @@ Nat.nat_induct_at_least:
  * sorry *)
 
 text \<open>lem:fair-lgc-derivations\<close>
-lemma gc_fair: "chain (\<Longrightarrow>LGC) D \<Longrightarrow> llength D > 0 \<Longrightarrow> active_subset (snd (lnth D 0)) = {} \<Longrightarrow>
+lemma lgc_fair: "chain (\<Longrightarrow>LGC) D \<Longrightarrow> llength D > 0 \<Longrightarrow> active_subset (snd (lnth D 0)) = {} \<Longrightarrow>
   non_active_subset (Liminf_llist (lmap snd D)) = {} \<Longrightarrow> Liminf_llist (lmap fst D) = {} \<Longrightarrow> fair (lmap snd D)"
 proof -
   assume
@@ -1175,6 +1175,39 @@ proof -
         labeled_ord_red_crit_fam.empty_ord_lifted_calc_w_red_crit_family.inter_red_crit_calculus.Sup_Red_Inf_llist_def 
       using red_inf_equiv2 suc_n_length p_smaller_d by auto
   qed
+qed
+
+text \<open>thm:lgc-completeness\<close>
+text \<open>The completeness statement below is not identical to that of the paper. The formalization showed that the paper statement was too strong. The following statement corresponds better to what happens in practice and the paper will be updated accordingly before the final version is published\<close>
+theorem "chain (\<Longrightarrow>LGC) D \<Longrightarrow> llength D > 0 \<Longrightarrow> active_subset (snd (lnth D 0)) = {} \<Longrightarrow>
+  non_active_subset (Liminf_llist (lmap snd D)) = {} \<Longrightarrow> Liminf_llist (lmap fst D) = {} \<Longrightarrow> B \<in> Bot_F \<Longrightarrow>
+  no_labels.entails_\<G>_Q (fst ` (snd (lnth D 0))) {B} \<Longrightarrow>
+  \<exists>i. enat i < llength D \<and> (\<exists>BL\<in> Bot_FL. BL \<in> (snd (lnth D i)))"
+proof -
+  fix B
+  assume
+    deriv: "chain (\<Longrightarrow>LGC) D" and
+    not_empty_d: "llength D > 0" and
+    init_state: "active_subset (snd (lnth D 0)) = {}" and
+    final_state: "non_active_subset (Liminf_llist (lmap snd D)) = {}" and
+    final_schedule: "Liminf_llist (lmap fst D) = {}" and
+    b_in: "B \<in> Bot_F" and
+    bot_entailed: "no_labels.entails_\<G>_Q (fst ` (snd (lnth D 0))) {B}"
+  have labeled_b_in: "(B,active) \<in> Bot_FL" unfolding Bot_FL_def using b_in by simp
+  have not_empty_d2: "\<not> lnull (lmap snd D)" using not_empty_d by force
+  have simp_snd_lmap: "lnth (lmap snd D) 0 = snd (lnth D 0)"
+    using lnth_lmap[of 0 D snd] not_empty_d by (simp add: zero_enat_def) 
+  have labeled_bot_entailed: "entails_\<G>_L_Q  (snd (lnth D 0)) {(B,active)}"
+    using labeled_entailment_lifting bot_entailed by fastforce
+  have "fair (lmap snd D)"
+    using lgc_fair[OF deriv not_empty_d init_state final_state final_schedule] .
+  then have "\<exists>i \<in> {i. enat i < llength D}. \<exists>BL\<in>Bot_FL. BL \<in> (snd (lnth D i))"
+    using labeled_ordered_dynamic_ref_comp labeled_b_in not_empty_d2 gc_to_red[OF deriv]
+      labeled_bot_entailed entail_equiv simp_snd_lmap 
+    unfolding dynamic_refutational_complete_calculus_def
+      dynamic_refutational_complete_calculus_axioms_def
+    by (metis (mono_tags, lifting) llength_lmap lnth_lmap mem_Collect_eq)
+  then show ?thesis by blast
 qed
 
 end
