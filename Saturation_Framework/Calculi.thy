@@ -493,6 +493,79 @@ qed
 
 end
 
+locale calculus_with_reduced_red_crit = calculus_with_red_crit Bot Inf entails Red_Inf Red_F
+  for
+    Bot :: "'f set" and
+    Inf :: \<open>'f inference set\<close> and
+    entails :: "'f set \<Rightarrow> 'f set \<Rightarrow> bool" (infix "\<Turnstile>" 50) and
+    Red_Inf :: "'f set \<Rightarrow> 'f inference set" and
+    Red_F :: "'f set \<Rightarrow> 'f set"
+ + assumes
+   inf_in_red_inf: "Inf_from2 UNIV (Red_F N) \<subseteq> Red_Inf N"
+begin
 
+definition reduc_saturated :: "'f set \<Rightarrow> bool" where
+  "reduc_saturated N \<equiv> Inf_from (N - Red_F N) \<subseteq> Red_Inf N"
+
+text \<open>lem:reduced-rc-implies-sat-equiv-reduced-sat\<close>
+lemma sat_eq_reduc_sat: "saturated N \<longleftrightarrow> reduc_saturated N"
+proof
+  fix N
+  assume "saturated N"
+  then show "reduc_saturated N"
+    using Red_Inf_without_redundant_clauses saturated_without_redundant_clauses 
+    unfolding saturated_def reduc_saturated_def
+    by blast
+next
+  fix N
+  assume red_sat_n: "reduc_saturated N"
+  show "saturated N" unfolding saturated_def 
+  proof
+    fix \<iota>
+    assume i_in: "\<iota> \<in> Inf_from N"
+    show "\<iota> \<in> Red_Inf N"
+      using i_in red_sat_n inf_in_red_inf unfolding reduc_saturated_def Inf_from_def Inf_from2_def by blast
+  qed
+qed
+
+end
+
+locale reduc_static_refutational_complete_calculus = calculus_with_reduced_red_crit +
+  assumes reduc_static_refutational_complete: "B \<in> Bot \<Longrightarrow> reduc_saturated N \<Longrightarrow> N \<Turnstile> {B} \<Longrightarrow> \<exists>B'\<in>Bot. B' \<in> N"
+begin
+
+text \<open>cor:reduced-rc-implies-st-ref-comp-equiv-reduced-st-ref-comp 1/2\<close>
+sublocale static_refutational_complete_calculus
+proof
+  fix B N
+  assume
+    bot_elem: \<open>B \<in> Bot\<close> and
+    saturated_N: "saturated N" and
+    refut_N: "N \<Turnstile> {B}"
+  have reduc_saturated_N: "reduc_saturated N" using saturated_N sat_eq_reduc_sat by blast
+  show "\<exists>B'\<in>Bot. B' \<in> N" using reduc_static_refutational_complete[OF bot_elem reduc_saturated_N refut_N] .
+qed
+end
+
+context calculus_with_reduced_red_crit
+begin
+
+text \<open>cor:reduced-rc-implies-st-ref-comp-equiv-reduced-st-ref-comp 2/2\<close>
+lemma "static_refutational_complete_calculus Bot Inf entails Red_Inf Red_F \<Longrightarrow>
+  reduc_static_refutational_complete_calculus Bot Inf entails Red_Inf Red_F"
+proof
+  fix B N
+  assume
+    stat_ref_comp: "static_refutational_complete_calculus Bot Inf (\<Turnstile>) Red_Inf Red_F" and
+    bot_elem: \<open>B \<in> Bot\<close> and
+    saturated_N: "reduc_saturated N" and
+    refut_N: "N \<Turnstile> {B}"
+    find_theorems name: static_refutational_complete
+  have reduc_saturated_N: "saturated N" using saturated_N sat_eq_reduc_sat by blast
+  show "\<exists>B'\<in>Bot. B' \<in> N"
+    using Calculi.static_refutational_complete_calculus.static_refutational_complete[OF stat_ref_comp
+      bot_elem reduc_saturated_N refut_N] .
+qed
+end
 
 end
