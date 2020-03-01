@@ -560,12 +560,77 @@ proof
     bot_elem: \<open>B \<in> Bot\<close> and
     saturated_N: "reduc_saturated N" and
     refut_N: "N \<Turnstile> {B}"
-    find_theorems name: static_refutational_complete
   have reduc_saturated_N: "saturated N" using saturated_N sat_eq_reduc_sat by blast
   show "\<exists>B'\<in>Bot. B' \<in> N"
     using Calculi.static_refutational_complete_calculus.static_refutational_complete[OF stat_ref_comp
       bot_elem reduc_saturated_N refut_N] .
 qed
+end
+
+context calculus_with_red_crit
+begin
+
+definition Red_Red_Inf :: "'f set \<Rightarrow> 'f inference set" where
+  "Red_Red_Inf N = Red_Inf N \<union> Inf_from2 UNIV (Red_F N)"
+
+lemma reduced_calc_is_calc: "calculus_with_red_crit Bot Inf entails Red_Red_Inf Red_F"
+proof
+  fix N
+  show "Red_Red_Inf N \<subseteq> Inf"
+    unfolding Red_Red_Inf_def Inf_from2_def Inf_from_def using Red_Inf_to_Inf by auto
+next
+  fix B N
+  assume
+    b_in: "B \<in> Bot" and
+    n_entails: "N \<Turnstile> {B}"
+  show "N - Red_F N \<Turnstile> {B}"
+    by (simp add: Red_F_Bot b_in n_entails)
+next
+  fix N N' :: "'f set"
+  assume "N \<subseteq> N'"
+  then show "Red_F N \<subseteq> Red_F N'" by (simp add: Red_F_of_subset)
+next
+  fix N N' :: "'f set"
+  assume n_in: "N \<subseteq> N'"
+  then have "Inf_from (UNIV - (Red_F N')) \<subseteq> Inf_from (UNIV - (Red_F N))"
+    using Red_F_of_subset[OF n_in] unfolding Inf_from_def by auto
+  then have "Inf_from2 UNIV (Red_F N) \<subseteq> Inf_from2 UNIV (Red_F N')"
+    unfolding Inf_from2_def by auto
+  then show "Red_Red_Inf N \<subseteq> Red_Red_Inf N'"
+    unfolding Red_Red_Inf_def using Red_Inf_of_subset[OF n_in] by blast
+next
+  fix N N' :: "'f set"
+  assume "N' \<subseteq> Red_F N"
+  then show "Red_F N \<subseteq> Red_F (N - N')" by (simp add: Red_F_of_Red_F_subset)
+next
+  fix N N' :: "'f set"
+  assume np_subs: "N' \<subseteq> Red_F N"
+  have "Red_F N \<subseteq> Red_F (N - N')" by (simp add: Red_F_of_Red_F_subset np_subs)
+  then have "Inf_from (UNIV - (Red_F (N - N'))) \<subseteq> Inf_from (UNIV - (Red_F N))"
+    by (metis Diff_subset Red_F_of_subset eq_iff)
+  then have "Inf_from2 UNIV (Red_F N) \<subseteq> Inf_from2 UNIV (Red_F (N - N'))"
+    unfolding Inf_from2_def by auto
+  then show "Red_Red_Inf N \<subseteq> Red_Red_Inf (N - N')"
+    unfolding Red_Red_Inf_def using Red_Inf_of_Red_F_subset[OF np_subs] by blast
+next
+  fix \<iota> N
+  assume "\<iota> \<in> Inf"
+    "concl_of \<iota> \<in> N"
+  then show "\<iota> \<in> Red_Red_Inf N"
+    by (simp add: Red_Inf_of_Inf_to_N Red_Red_Inf_def)
+qed
+
+lemma inf_subs_reduced_red_inf: "Inf_from2 UNIV (Red_F N) \<subseteq> Red_Red_Inf N"
+  unfolding Red_Red_Inf_def by simp
+
+text \<open>lem:red'-is-reduced-redcrit\<close>
+(* Here, I couldn't use a sublocale as in other cases because this creates an infinitely descending
+ * loop of sublocales in the proof *)
+lemma reduc_calc: "calculus_with_reduced_red_crit Bot Inf entails Red_Red_Inf Red_F"
+  using inf_subs_reduced_red_inf reduced_calc_is_calc
+  by (simp add: calculus_with_reduced_red_crit.intro calculus_with_reduced_red_crit_axioms_def)
+
+
 end
 
 end
