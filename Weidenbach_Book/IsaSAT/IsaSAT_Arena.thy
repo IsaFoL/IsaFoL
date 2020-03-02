@@ -1535,19 +1535,19 @@ lemma length_clause_slice_list_update[simp]:
   \<open>length (clause_slice (arena[i := x]) a b) = length (clause_slice arena a b)\<close>
   by (auto simp: Misc.slice_def)
 
-definition mark_used where
-  \<open>mark_used arena i =
-     arena[i - STATUS_SHIFT := AStatus (arena_status arena i) ((arena_used arena i) OR 1) (arena_lbd arena i)]\<close>
+definition mark_used_raw where
+  \<open>mark_used_raw arena i v =
+     arena[i - STATUS_SHIFT := AStatus (arena_status arena i) ((arena_used arena i) OR v) (arena_lbd arena i)]\<close>
 
-lemma length_mark_used[simp]: \<open>length (mark_used arena C) = length arena\<close>
-  by (auto simp: mark_used_def)
+lemma length_mark_used_raw[simp]: \<open>length (mark_used_raw arena C v) = length arena\<close>
+  by (auto simp: mark_used_raw_def)
 
-lemma valid_arena_mark_used:
+lemma valid_arena_mark_used_raw:
   assumes C: \<open>C \<in># dom_m N\<close> and valid: \<open>valid_arena arena N vdom\<close>
   shows
-   \<open>valid_arena (mark_used arena C) N vdom\<close>
+   \<open>valid_arena (mark_used_raw arena C v) N vdom\<close>
 proof -
-  let ?arena = \<open>mark_used arena C\<close>
+  let ?arena = \<open>mark_used_raw arena C v\<close>
   have act: \<open>\<forall>i\<in>#dom_m N.
      i < length (arena) \<and>
      header_size (N \<propto> i) \<le> i \<and>
@@ -1565,7 +1565,7 @@ proof -
   have
    [simp]: \<open>clause_slice ?arena N C ! (header_size (N \<propto> C) - STATUS_SHIFT) =
            AStatus (xarena_status (clause_slice arena N C ! (header_size (N \<propto> C) - STATUS_SHIFT)))
-             ((arena_used arena C) OR 1) (arena_lbd ?arena C)\<close> and
+             ((arena_used arena C) OR v) (arena_lbd ?arena C)\<close> and
    [simp]: \<open>clause_slice ?arena N C ! (header_size (N \<propto> C) - SIZE_SHIFT) =
            clause_slice arena N C ! (header_size (N \<propto> C) - SIZE_SHIFT)\<close> and
    [simp]: \<open>is_long_clause (N \<propto> C) \<Longrightarrow> clause_slice ?arena N C ! (header_size (N \<propto> C) - POS_SHIFT) =
@@ -1573,7 +1573,7 @@ proof -
    [simp]: \<open>length (clause_slice  ?arena N C) = length (clause_slice arena N C)\<close> and
    [simp]: \<open>Misc.slice C (C + length (N \<propto> C)) ?arena =
      Misc.slice C (C + length (N \<propto> C)) arena\<close>
-    using C_le C_ge unfolding SHIFTS_def mark_used_def header_size_def arena_lbd_def arena_status_def
+    using C_le C_ge unfolding SHIFTS_def mark_used_raw_def header_size_def arena_lbd_def arena_status_def
     by (auto simp: Misc.slice_def drop_update_swap split: if_splits)
 
   have \<open>xarena_active_clause (clause_slice ?arena N C) (the (fmlookup N C))\<close>
@@ -1581,14 +1581,14 @@ proof -
     by simp
 
   then have 1: \<open>xarena_active_clause (clause_slice arena N i) (the (fmlookup N i)) \<Longrightarrow>
-     xarena_active_clause (clause_slice (mark_used arena C) N i) (the (fmlookup N i))\<close>
+     xarena_active_clause (clause_slice ?arena N i) (the (fmlookup N i))\<close>
     if \<open>i \<in># dom_m N\<close>
     for i
     using minimal_difference_between_valid_index[of N arena C i, OF act]
       minimal_difference_between_valid_index[of N arena i C, OF act] assms
       that C_ge
     by (cases \<open>C < i\<close>; cases \<open>C > i\<close>)
-      (auto simp: mark_used_def header_size_def STATUS_SHIFT_def
+      (auto simp: mark_used_raw_def header_size_def STATUS_SHIFT_def
       split: if_splits)
 
   have 2:
@@ -1604,7 +1604,7 @@ proof -
       minimal_difference_between_invalid_index[OF valid, of C i]
       minimal_difference_between_invalid_index2[OF valid, of C i]
       by (cases \<open>C < i\<close>; cases \<open>C > i\<close>)
-        (auto simp: mark_used_def header_size_def STATUS_SHIFT_def C
+        (auto simp: mark_used_raw_def header_size_def STATUS_SHIFT_def C
           split: if_splits)
   qed
   show ?thesis
@@ -1843,6 +1843,12 @@ definition mop_arena_lbd where
     RETURN(arena_lbd arena C)
   }\<close>
 
+definition mop_arena_update_lbd where
+  \<open>mop_arena_update_lbd C glue arena = do {
+    ASSERT(update_lbd_pre ((C, glue), arena));
+    RETURN(update_lbd C glue arena)
+  }\<close>
+
 definition mop_arena_status where
   \<open>mop_arena_status arena C = do {
     ASSERT(arena_is_valid_clause_vdom arena C);
@@ -1864,5 +1870,33 @@ definition arena_other_watched :: \<open>arena \<Rightarrow> nat literal \<Right
 
 definition arena_act_pre where
   \<open>arena_act_pre = arena_is_valid_clause_idx\<close>
+
+definition mark_used :: \<open>arena \<Rightarrow> nat \<Rightarrow> arena\<close> where
+  mark_used_int_def: \<open>mark_used arena C \<equiv> mark_used_raw arena C 1\<close>
+
+lemmas mark_used_def = mark_used_int_def[unfolded mark_used_raw_def]
+
+lemmas valid_arena_mark_used =
+   valid_arena_mark_used_raw[of _ _ _ _ 1, unfolded mark_used_int_def[symmetric]]
+
+definition mark_used2 :: \<open>arena \<Rightarrow> nat \<Rightarrow> arena\<close> where
+  mark_used2_int_def: \<open>mark_used2 arena C \<equiv> mark_used_raw arena C 2\<close>
+
+lemmas mark_used2_def = mark_used2_int_def[unfolded mark_used_raw_def]
+
+lemmas valid_arena_mark_used2 =
+   valid_arena_mark_used_raw[of _ _ _ _ 2, unfolded mark_used2_int_def[symmetric]]
+
+definition mop_arena_mark_used where
+  \<open>mop_arena_mark_used C arena = do {
+    ASSERT(arena_act_pre C arena);
+    RETURN (mark_used C arena)
+  }\<close>
+
+definition mop_arena_mark_used2 where
+  \<open>mop_arena_mark_used2 C arena = do {
+    ASSERT(arena_act_pre C arena);
+    RETURN (mark_used2 C arena)
+  }\<close>
 
 end
