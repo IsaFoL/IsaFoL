@@ -49,6 +49,9 @@ qed
 definition saturated :: "'f set \<Rightarrow> bool" where
   "saturated N \<equiv> Inf_from N \<subseteq> Red_Inf N"
 
+definition reduc_saturated :: "'f set \<Rightarrow> bool" where
+"reduc_saturated N \<equiv> Inf_from (N - Red_F N) \<subseteq> Red_Inf N"
+
 lemma Red_Inf_without_redundant_clauses:
   "Red_Inf (N - Red_F N) = Red_Inf N"
   using Red_Inf_of_subset [of "N - Red_F N" N]
@@ -504,9 +507,6 @@ locale calculus_with_reduced_red_crit = calculus_with_red_crit Bot Inf entails R
    inf_in_red_inf: "Inf_from2 UNIV (Red_F N) \<subseteq> Red_Inf N"
 begin
 
-definition reduc_saturated :: "'f set \<Rightarrow> bool" where
-  "reduc_saturated N \<equiv> Inf_from (N - Red_F N) \<subseteq> Red_Inf N"
-
 text \<open>lem:reduced-rc-implies-sat-equiv-reduced-sat\<close>
 lemma sat_eq_reduc_sat: "saturated N \<longleftrightarrow> reduc_saturated N"
 proof
@@ -636,6 +636,34 @@ interpretation reduc_calc : calculus_with_reduced_red_crit Bot Inf entails Red_R
 text \<open>lem:saturation-red-vs-red'-1\<close>
 lemma "saturated N \<Longrightarrow> reduc_calc.saturated N"
   unfolding saturated_def reduc_calc.saturated_def Red_Red_Inf_def by blast
+
+text \<open>lem:saturaten-red-vs-red'-2 1/2\<close>
+lemma "reduc_saturated N \<longleftrightarrow> reduc_calc.saturated N"
+proof
+  assume red_sat_n: "reduc_saturated N"
+  show "reduc_calc.saturated N"
+    unfolding reduc_calc.saturated_def
+  proof
+    fix \<iota>
+    assume i_in: "\<iota> \<in> Inf_from N"
+    show "\<iota> \<in> Red_Red_Inf N"
+      using i_in red_sat_n unfolding reduc_saturated_def Inf_from2_def Inf_from_def Red_Red_Inf_def by blast
+  qed
+next
+  assume red_sat_n: "reduc_calc.saturated N"
+  show "reduc_saturated N"
+    unfolding reduc_saturated_def
+  proof
+    fix \<iota>
+    assume i_in: "\<iota> \<in> Inf_from (N - Red_F N)"
+    show "\<iota> \<in> Red_Inf N"
+      using i_in red_sat_n unfolding Inf_from_def reduc_calc.saturated_def Red_Red_Inf_def Inf_from2_def by blast
+  qed
+qed
+
+text \<open>lem:saturaten-red-vs-red'-2 2/2\<close>
+lemma "reduc_saturated N \<longleftrightarrow> saturated (N - Red_F N)"
+  unfolding reduc_saturated_def saturated_def by (simp add: Red_Inf_without_redundant_clauses)
 
 end
 
