@@ -630,6 +630,12 @@ lemma reduc_calc: "calculus_with_reduced_red_crit Bot Inf entails Red_Red_Inf Re
   using inf_subs_reduced_red_inf reduced_calc_is_calc
   by (simp add: calculus_with_reduced_red_crit.intro calculus_with_reduced_red_crit_axioms_def)
 
+interpretation reduc_calc : calculus_with_reduced_red_crit Bot Inf entails Red_Red_Inf Red_F
+  using reduc_calc by simp
+
+text \<open>lem:saturation-red-vs-red'-1\<close>
+lemma "saturated N \<Longrightarrow> reduc_calc.saturated N"
+  unfolding saturated_def reduc_calc.saturated_def Red_Red_Inf_def by blast
 
 end
 
