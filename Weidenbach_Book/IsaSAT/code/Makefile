@@ -16,6 +16,20 @@ example:
 	echo "\nsimply print the SAT or UNSAT:\n\n" &&	./IsaSAT AProVE09-21.cnf && echo "\n\n"
 	echo "\n\nwith the model:\n" && ./IsaSAT --verbose AProVE09-21.cnf
 
+# There is no way to print from Isabelle_LLVM
+# Instead we define the printing functions in isasat.c
+# and remove the empty definitions from the ll file
+remove-print:
+	echo "fix printing functions"
+	sed -i -e '/define void @IsaSAT_Show_LLVM_print/,/}/d' isasat_restart.ll
+	sed -i -e 's/declare i8\* @isabelle_llvm_calloc(i64, i64)/declare i8* @isabelle_llvm_calloc(i64, i64)\
+declare void @IsaSAT_Show_LLVM_print_c_impl(i64)\
+declare void @IsaSAT_Show_LLVM_print_char_impl(i64)\
+declare void @IsaSAT_Show_LLVM_print_uint64_impl(i64)\
+declare void @IsaSAT_Show_LLVM_print_open_colour_impl(i64)\
+declare void @IsaSAT_Show_LLVM_print_close_colour_impl(i64)/g' \
+	    isasat_restart.ll
+
 llvm:
 	$(MLTON) -verbose 1 -const 'MLton.safe false' -default-type int64 -output IsaSAT -codegen llvm -inline 700 -cc-opt -fPIC -as-opt --relocation-model=pic -link-opt -fPIC -llvm-llc-opt '--relocation-model=pic -O3' -llvm-opt-opt --relocation-model=pic IsaSAT.mlb
 
