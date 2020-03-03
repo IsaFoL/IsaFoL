@@ -5,22 +5,6 @@ imports
     IsaSAT_Clauses_LLVM
     LBD_LLVM
 begin
-(*TODO Move*)
-
-sepref_decl_op nat_lit_eq: \<open>(=) :: nat literal \<Rightarrow> _ \<Rightarrow> _\<close> ::
-  \<open>(Id :: (nat literal \<times> _) set) \<rightarrow> (Id :: (nat literal \<times> _) set) \<rightarrow> bool_rel\<close> .
-
-sepref_def nat_lit_eq_impl
-  is [] \<open>uncurry (RETURN oo (\<lambda>x y. x = y))\<close>
-  :: \<open>uint32_nat_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
-  by sepref
-
-lemma nat_lit_rel: \<open>((=), op_nat_lit_eq) \<in> nat_lit_rel \<rightarrow> nat_lit_rel \<rightarrow> bool_rel\<close>
-  by (auto simp: nat_lit_rel_def br_def split: if_splits; presburger)
-
-sepref_register \<open>(=) :: nat literal \<Rightarrow> _ \<Rightarrow> _\<close>
-declare nat_lit_eq_impl.refine[FCOMP nat_lit_rel, sepref_fr_rules]
-(*End Move*)
 
 sepref_register set_lookup_conflict_aa
 type_synonym lookup_clause_assn = \<open>32 word \<times> (1 word) ptr\<close>
@@ -296,41 +280,40 @@ sepref_def add_to_lookup_conflict_impl
 
 
 lemma isa_lookup_conflict_merge_alt_def:
-  \<open>isa_lookup_conflict_merge i0  = (\<lambda>M N i zs clvls lbd outl.
+  \<open>isa_lookup_conflict_merge i0  = (\<lambda>M N i zs clvls outl.
  do {
      let xs = the_lookup_conflict zs;
     ASSERT( arena_is_valid_clause_idx N i);
-     (_, clvls, zs, lbd, outl) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(i::nat, clvls :: nat, zs, lbd, outl).
+     (_, clvls, zs, outl) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(i::nat, clvls :: nat, zs, outl).
          length (snd zs) = length (snd xs) \<and>
              Suc (fst zs) \<le> uint32_max \<and> Suc clvls \<le> uint32_max\<^esup>
-       (\<lambda>(j :: nat, clvls, zs, lbd, outl). j < i + arena_length N i)
-       (\<lambda>(j :: nat, clvls, zs, lbd, outl). do {
+       (\<lambda>(j :: nat, clvls, zs, outl). j < i + arena_length N i)
+       (\<lambda>(j :: nat, clvls, zs, outl). do {
            ASSERT(j < length N);
            ASSERT(arena_lit_pre N j);
            ASSERT(get_level_pol_pre (M, arena_lit N j));
 	   ASSERT(get_level_pol M (arena_lit N j) \<le> Suc (uint32_max div 2));
-           let lbd = lbd_write lbd (get_level_pol M (arena_lit N j));
            ASSERT(atm_of (arena_lit N j) < length (snd zs));
            ASSERT(\<not>is_in_lookup_conflict zs (arena_lit N j) \<longrightarrow> length outl < uint32_max);
            let outl = isa_outlearned_add M (arena_lit N j) zs outl;
            let clvls = isa_clvls_add M (arena_lit N j) zs clvls;
            let zs = add_to_lookup_conflict (arena_lit N j) zs;
-           RETURN(Suc j, clvls, zs, lbd, outl)
+           RETURN(Suc j, clvls, zs, outl)
         })
-       (i + i0, clvls, xs, lbd, outl);
-     RETURN (Some_lookup_conflict zs, clvls, lbd, outl)
+       (i + i0, clvls, xs, outl);
+     RETURN (Some_lookup_conflict zs, clvls, outl)
    })\<close>
   unfolding isa_lookup_conflict_merge_def Some_lookup_conflict_def
     the_lookup_conflict_def
   by (auto simp: fun_eq_iff)
 
 sepref_def resolve_lookup_conflict_merge_fast_code
-  is \<open>uncurry6 isa_set_lookup_conflict_aa\<close>
-  :: \<open>[\<lambda>((((((M, N), i), (_, xs)), _), _), out).
+  is \<open>uncurry5 isa_set_lookup_conflict_aa\<close>
+  :: \<open>[\<lambda>(((((M, N), i), (_, xs)), _), out).
          length N \<le> sint64_max]\<^sub>a
       trail_pol_fast_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a conflict_option_rel_assn\<^sup>d *\<^sub>a
-         uint32_nat_assn\<^sup>k *\<^sub>a lbd_assn\<^sup>d *\<^sub>a out_learned_assn\<^sup>d \<rightarrow>
-      conflict_option_rel_assn \<times>\<^sub>a uint32_nat_assn \<times>\<^sub>a lbd_assn \<times>\<^sub>a out_learned_assn\<close>
+         uint32_nat_assn\<^sup>k *\<^sub>a out_learned_assn\<^sup>d \<rightarrow>
+      conflict_option_rel_assn \<times>\<^sub>a uint32_nat_assn \<times>\<^sub>a out_learned_assn\<close>
   supply
     literals_are_in_\<L>\<^sub>i\<^sub>n_trail_get_level_uint32_max[dest]
     arena_is_valid_clause_idx_le_uint64_max[dest]
@@ -362,11 +345,11 @@ lemma arena_is_valid_clause_idx_le_uint64_max2:
   using arena_lengthI(2) less_le_trans by blast
 
 sepref_def resolve_merge_conflict_fast_code
-  is \<open>uncurry6 isa_resolve_merge_conflict_gt2\<close>
-  :: \<open>[uncurry6 (\<lambda>M N i (b, xs) clvls lbd outl. length N \<le> sint64_max)]\<^sub>a
+  is \<open>uncurry5 isa_resolve_merge_conflict_gt2\<close>
+  :: \<open>[uncurry5 (\<lambda>M N i (b, xs) clvls outl. length N \<le> sint64_max)]\<^sub>a
       trail_pol_fast_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a conflict_option_rel_assn\<^sup>d *\<^sub>a
-         uint32_nat_assn\<^sup>k *\<^sub>a lbd_assn\<^sup>d *\<^sub>a out_learned_assn\<^sup>d \<rightarrow>
-      conflict_option_rel_assn \<times>\<^sub>a uint32_nat_assn \<times>\<^sub>a lbd_assn \<times>\<^sub>a out_learned_assn\<close>
+         uint32_nat_assn\<^sup>k *\<^sub>a  out_learned_assn\<^sup>d \<rightarrow>
+      conflict_option_rel_assn \<times>\<^sub>a uint32_nat_assn \<times>\<^sub>a out_learned_assn\<close>
   supply
     literals_are_in_\<L>\<^sub>i\<^sub>n_trail_get_level_uint32_max[dest]
     fmap_length_rll_u_def[simp]
@@ -381,7 +364,7 @@ sepref_def resolve_merge_conflict_fast_code
     is_NOTIN_def[symmetric] add_0_right
   apply (rewrite at \<open>RETURN (\<hole>, _ ,_, _)\<close>  Suc_eq_plus1)
   apply (rewrite at \<open>WHILEIT _ _ _ (_ + \<hole>, _ ,_, _)\<close> snat_const_fold[where 'a = \<open>64\<close>])
-  apply (rewrite at \<open>RETURN (_ + \<hole>, _ ,_, _, _)\<close> snat_const_fold[where 'a = \<open>64\<close>])
+  apply (rewrite at \<open>RETURN (_ + \<hole>, _ ,_, _)\<close> snat_const_fold[where 'a = \<open>64\<close>])
   apply (rewrite in \<open>If _ \<hole>\<close> unat_const_fold[where 'a = \<open>32\<close>])
   supply [[goals_limit = 1]]
   unfolding fold_tuple_optimizations
@@ -546,7 +529,7 @@ sepref_def ana_lookup_conv_lookup_fast_code
   apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
-
+sepref_register arena_lit
 sepref_def lit_redundant_reason_stack_wl_lookup_fast_code
   is \<open>uncurry2 (RETURN ooo lit_redundant_reason_stack_wl_lookup)\<close>
   :: \<open>[uncurry2 lit_redundant_reason_stack_wl_lookup_pre]\<^sub>a
@@ -606,7 +589,6 @@ sepref_def lit_redundant_rec_wl_lookup_fast_code
   apply (rewrite at \<open>get_level_pol _ _ = \<hole>\<close> unat_const_fold[where 'a=32])
   apply (rewrite at \<open>(_, \<hole>, _)\<close> annotate_assn[where A=analyse_refinement_fast_assn])
   apply (annot_snat_const \<open>TYPE(64)\<close>)
-
   unfolding nth_rll_def[symmetric]
     fmap_rll_def[symmetric]
     fmap_length_rll_def[symmetric]
@@ -682,9 +664,8 @@ sepref_def minimize_and_extract_highest_lookup_conflict_fast_code
   by sepref
 
 
-(**)
 lemma isasat_lookup_merge_eq2_alt_def:
-  \<open>isasat_lookup_merge_eq2 L M N C = (\<lambda>zs clvls lbd outl. do {
+  \<open>isasat_lookup_merge_eq2 L M N C = (\<lambda>zs clvls outl. do {
     let zs = the_lookup_conflict zs;
     ASSERT(arena_lit_pre N C);
     ASSERT(arena_lit_pre N (C+1));
@@ -692,7 +673,6 @@ lemma isasat_lookup_merge_eq2_alt_def:
     let L' = (if L0 = L then arena_lit N (C + 1) else L0);
     ASSERT(get_level_pol_pre (M, L'));
     ASSERT(get_level_pol M L' \<le> Suc (uint32_max div 2));
-    let lbd = lbd_write lbd (get_level_pol M L');
     ASSERT(atm_of L' < length (snd zs));
     ASSERT(length outl < uint32_max);
     let outl = isa_outlearned_add M L' zs outl;
@@ -700,17 +680,17 @@ lemma isasat_lookup_merge_eq2_alt_def:
     ASSERT(fst zs < uint32_max);
     let clvls = isa_clvls_add M L' zs clvls;
     let zs = add_to_lookup_conflict L' zs;
-    RETURN(Some_lookup_conflict zs, clvls, lbd, outl)
+    RETURN(Some_lookup_conflict zs, clvls, outl)
   })\<close>
   by (auto simp: the_lookup_conflict_def Some_lookup_conflict_def Let_def
      isasat_lookup_merge_eq2_def fun_eq_iff)
 
 sepref_def isasat_lookup_merge_eq2_fast_code
-  is \<open>uncurry7 isasat_lookup_merge_eq2\<close>
-  :: \<open>[\<lambda>(((((((L, M), NU), _), _), _), _), _). length NU \<le> sint64_max]\<^sub>a
+  is \<open>uncurry6 isasat_lookup_merge_eq2\<close>
+  :: \<open>[\<lambda>((((((L, M), NU), _), _), _), _). length NU \<le> sint64_max]\<^sub>a
      unat_lit_assn\<^sup>k *\<^sub>a trail_pol_fast_assn\<^sup>k  *\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a
-       conflict_option_rel_assn\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a lbd_assn\<^sup>d *\<^sub>a out_learned_assn\<^sup>d \<rightarrow>
-      conflict_option_rel_assn \<times>\<^sub>a uint32_nat_assn \<times>\<^sub>a lbd_assn \<times>\<^sub>a out_learned_assn\<close>
+       conflict_option_rel_assn\<^sup>d *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a out_learned_assn\<^sup>d \<rightarrow>
+      conflict_option_rel_assn \<times>\<^sub>a uint32_nat_assn \<times>\<^sub>a out_learned_assn\<close>
   supply [[goals_limit = 1]]
   unfolding isasat_lookup_merge_eq2_alt_def
     isa_outlearned_add_def isa_clvls_add_def

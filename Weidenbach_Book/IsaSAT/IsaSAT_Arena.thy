@@ -1876,6 +1876,9 @@ definition mark_used :: \<open>arena \<Rightarrow> nat \<Rightarrow> arena\<clos
 
 lemmas mark_used_def = mark_used_int_def[unfolded mark_used_raw_def]
 
+lemmas length_mark_used[simp] =
+  length_mark_used_raw[of _ _ 1, unfolded mark_used_int_def[symmetric]]
+
 lemmas valid_arena_mark_used =
    valid_arena_mark_used_raw[of _ _ _ _ 1, unfolded mark_used_int_def[symmetric]]
 
@@ -1883,6 +1886,9 @@ definition mark_used2 :: \<open>arena \<Rightarrow> nat \<Rightarrow> arena\<clo
   mark_used2_int_def: \<open>mark_used2 arena C \<equiv> mark_used_raw arena C 2\<close>
 
 lemmas mark_used2_def = mark_used2_int_def[unfolded mark_used_raw_def]
+
+lemmas length_mark_used2[simp] =
+  length_mark_used_raw[of _ _ 2, unfolded mark_used2_int_def[symmetric]]
 
 lemmas valid_arena_mark_used2 =
    valid_arena_mark_used_raw[of _ _ _ _ 2, unfolded mark_used2_int_def[symmetric]]

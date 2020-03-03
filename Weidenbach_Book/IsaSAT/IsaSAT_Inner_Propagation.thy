@@ -523,8 +523,8 @@ definition set_conflict_wl_heur
 where
   \<open>set_conflict_wl_heur = (\<lambda>C (M, N, D, Q, W, vmtf, clvls, cach, lbd, outl, stats, fema, sema). do {
     let n = 0;
-    ASSERT(curry6 isa_set_lookup_conflict_aa_pre M N C D n lbd outl);
-    (D, clvls, lbd, outl) \<leftarrow> isa_set_lookup_conflict_aa M N C D n lbd outl;
+    ASSERT(curry5 isa_set_lookup_conflict_aa_pre M N C D n outl);
+    (D, clvls, outl) \<leftarrow> isa_set_lookup_conflict_aa M N C D n outl;
     j \<leftarrow> mop_isa_length_trail M;
     RETURN (M, N, D, j, W, vmtf, clvls, cach, lbd, outl,
       incr_conflict stats, fema, sema)})\<close>
@@ -1003,26 +1003,24 @@ lemma set_conflict_wl_heur_set_conflict_wl':
     nat_rel \<times>\<^sub>r twl_st_heur_up'' \<D> r s K \<rightarrow> \<langle>twl_st_heur_up'' \<D> r s K\<rangle>nres_rel\<close>
 proof -
   have H:
-    \<open>isa_set_lookup_conflict_aa x y z a b c d
-        \<le> \<Down> (option_lookup_clause_rel \<A> \<times>\<^sub>f (nat_rel \<times>\<^sub>f (Id \<times>\<^sub>f Id)))
-           (set_conflict_m x' y' z' a' b' c' d')\<close>
+    \<open>isa_set_lookup_conflict_aa x y z a b d
+        \<le> \<Down> (option_lookup_clause_rel \<A> \<times>\<^sub>f (nat_rel \<times>\<^sub>f Id))
+           (set_conflict_m x' y' z' a' b' d')\<close>
     if
-      \<open>(((((((x, y), z), a), b), c), d), (((((x', y'), z'), a'), b'), c'), d')
+      \<open>(((((((x, y), z), a), b)), d), (((((x', y'), z'), a'), b')), d')
       \<in> trail_pol \<A> \<times>\<^sub>f {(arena, N). valid_arena arena N vdom} \<times>\<^sub>f
         nat_rel \<times>\<^sub>f
         option_lookup_clause_rel \<A> \<times>\<^sub>f
-        nat_rel \<times>\<^sub>f
-        Id \<times>\<^sub>f
-        Id\<close> and
+        nat_rel \<times>\<^sub>f Id\<close> and
         \<open>z' \<in># dom_m y' \<and> a' = None \<and> distinct (y' \<propto> z') \<and>
           literals_are_in_\<L>\<^sub>i\<^sub>n_mm \<A> (mset `# ran_mf y') \<and>
          \<not> tautology (mset (y' \<propto> z')) \<and> b' = 0 \<and> out_learned x' None d' \<and>
 	 isasat_input_bounded \<A>\<close>
       for x x' y y' z z' a a' b b' c c' d d' vdom \<A>
-    by (rule isa_set_lookup_conflict[THEN fref_to_Down_curry6,
+    by (rule isa_set_lookup_conflict[THEN fref_to_Down_curry5,
       unfolded prod.case, OF that(2,1)])
-  have [refine0]: \<open>isa_set_lookup_conflict_aa x1h x1i x1g x1j 0 x1q x1r
-        \<le> \<Down> {((C, n, lbd, outl), D). (C, D) \<in> option_lookup_clause_rel (all_atms_st x2) \<and>
+  have [refine0]: \<open>isa_set_lookup_conflict_aa x1h x1i x1g x1j 0 x1r
+        \<le> \<Down> {((C, n, outl), D). (C, D) \<in> option_lookup_clause_rel (all_atms_st x2) \<and>
 	       n = card_max_lvl x1a (the D) \<and> out_learned x1a D outl}
           (RETURN (Some (mset (x1b \<propto> x1))))\<close>
     if
@@ -1054,7 +1052,7 @@ proof -
   proof -
     show ?thesis
       apply (rule order_trans)
-      apply (rule H[of _ _ _ _ _ _ _ x1a x1b x1g x1c 0 x1q x1r \<open>all_atms_st x2\<close>
+      apply (rule H[of _ _ _ _ _ _ x1a x1b x1g x1c 0 x1r \<open>all_atms_st x2\<close>
          \<open>set (get_vdom (snd x))\<close>])
       subgoal
         using that
@@ -1070,7 +1068,7 @@ proof -
       done
   qed
   have isa_set_lookup_conflict_aa_pre:
-   \<open>curry6 isa_set_lookup_conflict_aa_pre x1h x1i x1g x1j 0 x1q x1r\<close>
+   \<open>curry5 isa_set_lookup_conflict_aa_pre x1h x1i x1g x1j 0 x1r\<close>
     if
       \<open>case y of (x, xa) \<Rightarrow> set_conflict_wl'_pre x xa\<close> and
       \<open>(x, y) \<in> nat_rel \<times>\<^sub>f twl_st_heur_up'' \<D> r s K\<close> and

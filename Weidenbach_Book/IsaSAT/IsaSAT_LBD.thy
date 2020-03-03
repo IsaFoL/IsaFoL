@@ -44,19 +44,17 @@ lemma mark_lbd_from_clause_heur_correctness:
     by (auto simp: trail_pol_alt_def literals_are_in_\<L>\<^sub>i\<^sub>n_in_\<L>\<^sub>a\<^sub>l\<^sub>l simp flip: get_level_get_level_pol)
   done
 
-definition calculate_LBD_st :: \<open>'v twl_st_wl \<Rightarrow> nat \<Rightarrow> ('v twl_st_wl) nres\<close> where
-  \<open>calculate_LBD_st = (\<lambda>S C. SPEC (\<lambda>(T). S = T))\<close>
+definition calculate_LBD_st :: \<open>(nat, nat) ann_lits \<Rightarrow> nat clauses_l \<Rightarrow> nat \<Rightarrow> nat clauses_l nres\<close> where
+  \<open>calculate_LBD_st = (\<lambda>M N C. RETURN N)\<close>
 
 abbreviation TIER_ONE_MAXIMUM where
   \<open>TIER_ONE_MAXIMUM \<equiv> 6\<close>
-definition calculate_LBD_heur_st :: \<open>twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> twl_st_wl_heur nres\<close> where
-  \<open>calculate_LBD_heur_st = (\<lambda>(M, N, D, Q, W, vm, clvls, cach, lbd, outl, stats, heur, vdom, avdom,
-        lcount) C. do{
+definition calculate_LBD_heur_st :: \<open>_ \<Rightarrow> arena \<Rightarrow> lbd \<Rightarrow> nat \<Rightarrow> (arena \<times> lbd) nres\<close> where
+  \<open>calculate_LBD_heur_st = (\<lambda>M N lbd C. do{
      old_glue \<leftarrow> mop_arena_lbd N C;
      if old_glue < TIER_ONE_MAXIMUM then do {
        N \<leftarrow> mop_arena_mark_used2 N C;
-       RETURN (M, N, D, Q, W, vm, clvls, cach, lbd, outl, stats,
-         heur, vdom, avdom, lcount)
+       RETURN (N, lbd)
      }
      else do {
        lbd \<leftarrow> mark_lbd_from_clause_heur M N C lbd;
@@ -64,33 +62,32 @@ definition calculate_LBD_heur_st :: \<open>twl_st_wl_heur \<Rightarrow> nat \<Ri
        lbd \<leftarrow> lbd_empty lbd;
        N \<leftarrow> (if glue < old_glue then mop_arena_update_lbd C glue N else RETURN N);
        N \<leftarrow> (if glue < TIER_ONE_MAXIMUM \<or> old_glue < TIER_ONE_MAXIMUM then mop_arena_mark_used2 N C else mop_arena_mark_used N C);
-       RETURN (M, N, D, Q, W, vm, clvls, cach, lbd, outl, stats,
-         heur, vdom, avdom, lcount)
+       RETURN (N, lbd)
     }})\<close>
 
 
 lemma calculate_LBD_st_alt_def:
-  \<open>calculate_LBD_st = (\<lambda>S C. do {
+  \<open>calculate_LBD_st = (\<lambda>M N C. do {
       old_glue :: nat \<leftarrow> SPEC(\<lambda>_ . True);
       if old_glue < 6 then  do {
-         _ \<leftarrow> RETURN (get_clauses_wl S);
-         SPEC (\<lambda>T. S = T)
+         _ \<leftarrow> RETURN N;
+         RETURN N
       }
       else do {
        lbd::bool list \<leftarrow> SPEC(\<lambda>_. True);
        glue::nat \<leftarrow> get_LBD lbd;
        _::bool list \<leftarrow> lbd_empty lbd;
-       _ \<leftarrow> RETURN (get_clauses_wl S);
-       _ \<leftarrow> RETURN (get_clauses_wl S);
-       SPEC (\<lambda>T. S = T)}
-      })\<close> (is \<open>?A = ?B\<close>)
+       _ \<leftarrow> RETURN N;
+       _ \<leftarrow> RETURN N;
+      RETURN N
+    }})\<close> (is \<open>?A = ?B\<close>)
 proof -
-  have \<open>?A S C \<le> ?B S C\<close> for S C
+  have \<open>?A M N C \<le> ?B M N C\<close> for M N C
     apply (rewrite at \<open>_ \<le> \<hole>\<close> Down_id_eq[symmetric])
     unfolding calculate_LBD_st_def get_LBD_def lbd_empty_def
     by (rule rhs_step_bind_RES)
       (auto intro!: ext rhs_step_bind_RES split: if_splits)
-  also have \<open>?B S C \<le> ?A S C\<close> for S C
+  also have \<open>?B M N C \<le> ?A M N C\<close> for M N C
     unfolding calculate_LBD_st_def get_LBD_def lbd_empty_def
     by (auto intro!: ext rhs_step_bind_RES split: if_splits cong: if_cong)
   finally show ?thesis by blast
@@ -102,98 +99,75 @@ lemma RF_COME_ON: \<open>(x, y) \<in> Id \<Longrightarrow> f x \<le> \<Down> Id 
 
 lemma mop_arena_update_lbd:
   \<open>C \<in># dom_m N \<Longrightarrow> valid_arena arena N vdom \<Longrightarrow>
-     mop_arena_update_lbd C glue arena \<le> SPEC(\<lambda>c. (c, N) \<in> {(c, N'). N'=N \<and> valid_arena c N vdom})\<close>
+     mop_arena_update_lbd C glue arena \<le> SPEC(\<lambda>c. (c, N) \<in> {(c, N'). N'=N \<and> valid_arena c N vdom \<and>
+       length c = length arena})\<close>
   unfolding mop_arena_update_lbd_def
   by (auto simp: update_lbd_pre_def arena_is_valid_clause_idx_def
     intro!: ASSERT_leI valid_arena_update_lbd)
 
 lemma mop_arena_mark_used_valid:
   \<open>C \<in># dom_m N \<Longrightarrow> valid_arena arena N vdom \<Longrightarrow>
-     mop_arena_mark_used arena C \<le> SPEC(\<lambda>c. (c, N) \<in> {(c, N'). N'=N \<and> valid_arena c N vdom})\<close>
+     mop_arena_mark_used arena C \<le> SPEC(\<lambda>c. (c, N) \<in> {(c, N'). N'=N \<and> valid_arena c N vdom \<and>
+       length c = length arena})\<close>
   unfolding mop_arena_mark_used_def
   by (auto simp: arena_act_pre_def arena_is_valid_clause_idx_def
     intro!: ASSERT_leI valid_arena_mark_used)
 
 lemma mop_arena_mark_used2_valid:
   \<open>C \<in># dom_m N \<Longrightarrow> valid_arena arena N vdom \<Longrightarrow>
-     mop_arena_mark_used2 arena C \<le> SPEC(\<lambda>c. (c, N) \<in> {(c, N'). N'=N \<and> valid_arena c N vdom})\<close>
+     mop_arena_mark_used2 arena C \<le> SPEC(\<lambda>c. (c, N) \<in> {(c, N'). N'=N \<and> valid_arena c N vdom \<and>
+       length c = length arena})\<close>
   unfolding mop_arena_mark_used2_def
   by (auto simp: arena_act_pre_def arena_is_valid_clause_idx_def
     intro!: ASSERT_leI valid_arena_mark_used2)
 
+abbreviation twl_st_heur_conflict_ana' :: \<open>nat \<Rightarrow> (twl_st_wl_heur \<times> nat twl_st_wl) set\<close> where
+  \<open>twl_st_heur_conflict_ana' r \<equiv> {(S, T). (S, T) \<in> twl_st_heur_conflict_ana \<and>
+     length (get_clauses_wl_heur S) = r}\<close>
+
 lemma calculate_LBD_heur_st_calculate_LBD_st:
-  \<open>(uncurry calculate_LBD_heur_st, uncurry calculate_LBD_st) \<in>
-    [\<lambda>(S, C). C \<in># dom_m (get_clauses_wl S)]\<^sub>f twl_st_heur \<times>\<^sub>f nat_rel \<rightarrow> \<langle>twl_st_heur\<rangle>nres_rel\<close>
+  assumes \<open>valid_arena arena N vdom\<close>
+    \<open>(M, M') \<in> trail_pol \<A>\<close>
+    \<open>C \<in># dom_m N\<close>
+    \<open>literals_are_in_\<L>\<^sub>i\<^sub>n \<A> (mset (N \<propto> C))\<close> \<open>(C, C') \<in> nat_rel\<close>
+  shows \<open>calculate_LBD_heur_st M arena lbd C \<le>
+     \<Down>{((arena', lbd), N'). valid_arena arena' N' vdom \<and> N = N' \<and> length arena = length arena'}
+       (calculate_LBD_st M' N C')\<close>
 proof -
   have WTF: \<open>(a, b) \<in> R \<Longrightarrow>  b=b' \<Longrightarrow> (a, b') \<in> R\<close> for a a' b b' R
     by auto
   show ?thesis
+    using assms
     unfolding calculate_LBD_heur_st_def calculate_LBD_st_alt_def
-    apply (intro frefI nres_relI)
-    subgoal for x y
-      unfolding uncurry_def
-      apply (refine_vcg mark_lbd_from_clause_heur_correctness[of _ \<open>get_trail_wl (fst y)\<close> 
-       \<open>all_atms_st (fst y)\<close> _ \<open>get_clauses_wl (fst y)\<close> \<open>set (get_vdom (fst x))\<close>]
-        mop_arena_update_lbd[of _ _ _ \<open>set (get_vdom (fst x))\<close>]
-        mop_arena_mark_used_valid[of _ \<open>get_clauses_wl (fst y)\<close> _ \<open>set (get_vdom (fst x))\<close>]
-        mop_arena_mark_used2_valid[of _ \<open>get_clauses_wl (fst y)\<close> _ \<open>set (get_vdom (fst x))\<close>])
-      subgoal
-        unfolding twl_st_heur_def
-        by (auto simp: mop_arena_lbd_def get_clause_LBD_pre_def arena_is_valid_clause_idx_def
-          intro!: ASSERT_leI exI[of _ \<open>get_clauses_wl (fst y)\<close>] exI[of _ \<open>set (get_vdom (fst x))\<close>])
-      subgoal
-        by (auto simp: twl_st_heur_def RETURN_RES_refine_iff)
-
-      subgoal
-        by (force simp: twl_st_heur_def)
-      subgoal
-        by (force simp: twl_st_heur_def)
-      apply (rule WTF, assumption)
-      subgoal
-        by auto
-      subgoal
-        by (auto simp: twl_st_heur_def RETURN_RES_refine_iff)
-
-      subgoal
-        by (force simp: twl_st_heur_def)
-      subgoal
-        by (force simp: twl_st_heur_def)
-      subgoal
-        by auto
-      subgoal
-        by (rule literals_are_in_\<L>\<^sub>i\<^sub>n_mm_literals_are_in_\<L>\<^sub>i\<^sub>n)
-         (auto simp: literals_are_in_\<L>\<^sub>i\<^sub>n_mm_def in_all_lits_of_mm_ain_atms_of_iff
-            \<L>\<^sub>a\<^sub>l\<^sub>l_all_atms_all_lits all_lits_def)
-      apply (rule RF_COME_ON)
-      subgoal
-        by auto
-      apply (rule RF_COME_ON)
-      subgoal
-        by auto
-      subgoal
-        unfolding twl_st_heur_def
-        by (auto simp: mop_arena_lbd_def get_clause_LBD_pre_def arena_is_valid_clause_idx_def
-          intro!: ASSERT_leI exI[of _ \<open>get_clauses_wl (fst y)\<close>] exI[of _ \<open>set (get_vdom (fst x))\<close>])
-      subgoal
-        by (force simp: twl_st_heur_def)
-      subgoal
-        by (force simp: twl_st_heur_def)
-      subgoal
-        by (force simp: twl_st_heur_def)
-      subgoal
-        by (force simp: twl_st_heur_def)
-      apply (rule WTF, assumption)
-      subgoal
-        by auto
-      subgoal
-        by auto
-      subgoal
-        by auto
-      subgoal
-        by auto
-      subgoal
-        by (auto simp: twl_st_heur_def RETURN_RES_refine_iff)
-     done
+    apply (refine_vcg mark_lbd_from_clause_heur_correctness[of _ M'
+       \<A> _ N vdom]
+      mop_arena_update_lbd[of _ _ _ vdom]
+      mop_arena_mark_used_valid[of _ N _ vdom]
+      mop_arena_mark_used2_valid[of _ N _ vdom])
+    subgoal
+      unfolding twl_st_heur_conflict_ana_def
+      by (auto simp: mop_arena_lbd_def get_clause_LBD_pre_def arena_is_valid_clause_idx_def
+        intro!: ASSERT_leI exI[of _ N] exI[of _ vdom])
+    subgoal
+      by (auto simp: twl_st_heur_conflict_ana_def RETURN_RES_refine_iff)
+    subgoal
+      by (force simp: twl_st_heur_conflict_ana_def)
+    apply (rule RF_COME_ON)
+    subgoal
+      by auto
+    apply (rule RF_COME_ON)
+    subgoal
+      by auto
+    subgoal
+      unfolding twl_st_heur_conflict_ana_def
+      by (auto simp: mop_arena_lbd_def get_clause_LBD_pre_def arena_is_valid_clause_idx_def
+        intro!: ASSERT_leI exI[of _ \<open>get_clauses_wl (fst y)\<close>] exI[of _ \<open>set (get_vdom (fst x))\<close>])
+    subgoal
+      by (force simp: twl_st_heur_conflict_ana_def)
+    subgoal
+      by (force simp: twl_st_heur_conflict_ana_def)
+    subgoal
+      by (force simp: twl_st_heur_conflict_ana_def)
    done
 qed
 
@@ -209,6 +183,7 @@ definition mark_lbd_from_list_heur :: \<open>trail_pol \<Rightarrow> nat clause_
   let n = length C;
   nfoldli [1..<n] (\<lambda>_. True)
     (\<lambda>i lbd. do {
+       ASSERT(i < length C);
        let L = C ! i;
        ASSERT(get_level_pol_pre (M, L));
        let lev = get_level_pol M L;
@@ -219,7 +194,7 @@ definition mark_lbd_from_list_heur :: \<open>trail_pol \<Rightarrow> nat clause_
 definition mark_lbd_from_conflict :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
   \<open>mark_lbd_from_conflict = (\<lambda>(M, N, D, Q, W, vm, clvls, cach, lbd, outl, stats, heur, vdom, avdom,
         lcount). do{
-     lbd' \<leftarrow> mark_lbd_from_list_heur M outl lbd;
+     lbd \<leftarrow> mark_lbd_from_list_heur M outl lbd;
      RETURN (M, N, D, Q, W, vm, clvls, cach, lbd, outl, stats,
          heur, vdom, avdom, lcount)
     })\<close>
@@ -232,6 +207,8 @@ lemma mark_lbd_from_list_heur_correctness:
   unfolding mark_lbd_from_list_heur_def
   apply (refine_vcg nfoldli_rule[where I = \<open>\<lambda>_ _ _. True\<close>])
   subgoal by auto
+  subgoal
+    by (auto simp: upt_eq_lel_conv nth_tl)
   subgoal for x l1 l2 \<sigma>
     using literals_are_in_\<L>\<^sub>i\<^sub>n_in_\<L>\<^sub>a\<^sub>l\<^sub>l[of \<A> \<open>tl C\<close> \<open>x - 1\<close>]
     by (auto intro!: get_level_pol_pre  simp: upt_eq_lel_conv nth_tl)
@@ -254,19 +231,19 @@ lemma mark_LBD_st_alt_def:
 lemma mark_lbd_from_conflict_mark_LBD_st:
   \<open>(mark_lbd_from_conflict, mark_LBD_st) \<in>
     [\<lambda>S. get_conflict_wl S \<noteq> None \<and> literals_are_in_\<L>\<^sub>i\<^sub>n (all_atms_st S) (the (get_conflict_wl S))]\<^sub>f
-     twl_st_heur \<rightarrow> \<langle>twl_st_heur\<rangle>nres_rel\<close>
+     twl_st_heur_conflict_ana \<rightarrow> \<langle>twl_st_heur_conflict_ana\<rangle>nres_rel\<close>
   unfolding mark_lbd_from_conflict_def mark_LBD_st_alt_def
   apply (intro frefI nres_relI)
   subgoal for x y
     apply (refine_rcg mark_lbd_from_list_heur_correctness[of _ \<open>get_trail_wl y\<close> \<open>all_atms_st y\<close>,
       THEN order_trans])
     subgoal
-      by (force simp: twl_st_heur_def)
+      by (force simp: twl_st_heur_conflict_ana_def)
     subgoal
       by (rule literals_are_in_\<L>\<^sub>i\<^sub>n_mono[of _ \<open>(the (get_conflict_wl y))\<close>])
-        (auto simp: twl_st_heur_def out_learned_def)
+        (auto simp: twl_st_heur_conflict_ana_def out_learned_def)
     subgoal by auto
-    subgoal by (auto simp: twl_st_heur_def RETURN_RES_refine_iff)
+    subgoal by (auto simp: twl_st_heur_conflict_ana_def RETURN_RES_refine_iff)
     done
   done
 
