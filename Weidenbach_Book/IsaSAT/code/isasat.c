@@ -396,8 +396,8 @@ READ_FILE:
   
   //print_clauses(&clauses);
 
-  printf("c propagations                       redundant                lrestarts                GC        \n"
-	 "c                     conflicts                   reductions             level-0            LBDs \n");
+  printf("c propagations                       redundant                   lrestarts                       GC        \n"
+	 "c                     conflicts                     reductions                 level-0                      LBDs \n");
   int64_t t = IsaSAT_No_Restart_LLVM_IsaSAT_code_wrapped2(clauses);
   if((t & 2) == 0)
     printf("s UNKNOWN\n");
