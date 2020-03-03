@@ -6,11 +6,11 @@ no_notation WB_More_Refinement.fref (\<open>[_]\<^sub>f _ \<rightarrow> _\<close
 no_notation WB_More_Refinement.freft (\<open>_ \<rightarrow>\<^sub>f _\<close> [60,60] 60)
 
 type_synonym 'a larray64 = \<open>('a,64) larray\<close>
-type_synonym lbd_assn = \<open>(1 word) larray64 \<times> 32 word \<times> 32 word\<close>
+type_synonym lbd_assn = \<open>(32 word) larray64 \<times> 32 word \<times> 32 word\<close>
 
 (*TODO use 32*)
 abbreviation lbd_int_assn :: \<open>lbd_ref \<Rightarrow> lbd_assn \<Rightarrow> assn\<close> where
-  \<open>lbd_int_assn \<equiv> larray64_assn bool1_assn \<times>\<^sub>a uint32_nat_assn \<times>\<^sub>a uint32_nat_assn\<close>
+  \<open>lbd_int_assn \<equiv> larray64_assn uint32_nat_assn \<times>\<^sub>a uint32_nat_assn \<times>\<^sub>a uint32_nat_assn\<close>
 
 definition lbd_assn :: \<open>lbd \<Rightarrow> lbd_assn \<Rightarrow> assn\<close> where
   \<open>lbd_assn \<equiv> hr_comp lbd_int_assn lbd_ref\<close>
@@ -36,15 +36,34 @@ lemma level_in_lbd_hnr[sepref_fr_rules]:
   unfolding lbd_assn_def[symmetric]
   by simp
 
-sepref_def lbd_empty_code
-  is [] \<open>lbd_empty_ref\<close>
+sepref_def lbd_empty_loop_code
+  is \<open>lbd_empty_loop_ref\<close>
   :: \<open>lbd_int_assn\<^sup>d  \<rightarrow>\<^sub>a lbd_int_assn\<close>
-  unfolding lbd_empty_ref_def
+  unfolding lbd_empty_loop_ref_def
   supply [[goals_limit=1]]
   apply (rewrite at \<open>_ + \<hole>\<close> snat_const_fold[where 'a=64])+
   apply (rewrite at \<open>(_, \<hole>)\<close> snat_const_fold[where 'a=64])
   apply (annot_unat_const \<open>TYPE(32)\<close>)
-  apply (rewrite in \<open>_ \<le> \<hole>\<close> annot_unat_snat_upcast[where 'l=\<open>64\<close>])
+  by sepref
+
+sepref_def lbd_empty_cheap_code
+  is \<open>lbd_empty_cheap_ref\<close>
+  :: \<open>[\<lambda>(_, stamp, _). stamp < uint32_max]\<^sub>a lbd_int_assn\<^sup>d  \<rightarrow> lbd_int_assn\<close>
+  unfolding lbd_empty_cheap_ref_def
+  supply [[goals_limit=1]]
+  apply (annot_unat_const \<open>TYPE(32)\<close>)
+  by sepref
+
+lemma uint32_max_alt_def: "uint32_max = 4294967295"
+  by (auto simp: uint32_max_def)
+sepref_register lbd_empty_cheap_ref lbd_empty_loop_ref
+
+sepref_def lbd_empty_code
+  is \<open>lbd_empty_ref\<close>
+  :: \<open>lbd_int_assn\<^sup>d  \<rightarrow>\<^sub>a lbd_int_assn\<close>
+  unfolding lbd_empty_ref_def uint32_max_alt_def
+  supply [[goals_limit=1]]
+  apply (annot_unat_const \<open>TYPE(32)\<close>)
   by sepref
 
 lemma lbd_empty_hnr[sepref_fr_rules]:
@@ -96,7 +115,7 @@ sepref_def lbd_write_code
   apply (rewrite at \<open>_ + \<hole>\<close> unat_const_fold[where 'a=32])
   apply (rewrite at \<open>_ + \<hole>\<close> unat_const_fold[where 'a=32])
   apply (rewrite in \<open>If (\<hole> < _)\<close> annot_unat_snat_upcast[where 'l=64])
-  apply (rewrite in \<open>If (_ ! \<hole>)\<close> annot_unat_snat_upcast[where 'l=64])
+  apply (rewrite in \<open>If (_ ! \<hole> = _)\<close> annot_unat_snat_upcast[where 'l=64])
   apply (rewrite in \<open>_[ \<hole> := _]\<close> annot_unat_snat_upcast[where 'l=64])
   apply (rewrite in \<open>op_list_grow_init _ \<hole> _\<close> annot_unat_snat_upcast[where 'l=64])
   apply (rewrite  at \<open>( _[ \<hole> := _], _, _ + _)\<close> annot_unat_snat_upcast[where 'l=64])

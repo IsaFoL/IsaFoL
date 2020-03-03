@@ -360,28 +360,28 @@ definition delete_from_lookup_conflict_pre where
   \<open>delete_from_lookup_conflict_pre \<A> = (\<lambda>(a, b). - a \<notin># b \<and> a \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A> \<and> a \<in># b)\<close>
 
 definition set_conflict_m
-  :: \<open>(nat, nat) ann_lits \<Rightarrow> nat clauses_l \<Rightarrow> nat \<Rightarrow> nat clause option \<Rightarrow> nat \<Rightarrow> lbd \<Rightarrow>
-   out_learned \<Rightarrow> (nat clause option \<times> nat \<times> lbd \<times> out_learned) nres\<close>
+  :: \<open>(nat, nat) ann_lits \<Rightarrow> nat clauses_l \<Rightarrow> nat \<Rightarrow> nat clause option \<Rightarrow> nat \<Rightarrow>
+   out_learned \<Rightarrow> (nat clause option \<times> nat \<times> out_learned) nres\<close>
 where
-\<open>set_conflict_m M N i _ _ _ _ =
-    SPEC (\<lambda>(C, n, lbd, outl). C = Some (mset (N\<propto>i)) \<and> n = card_max_lvl M (mset (N\<propto>i)) \<and>
+\<open>set_conflict_m M N i _ _ _  =
+    SPEC (\<lambda>(C, n, outl). C = Some (mset (N\<propto>i)) \<and> n = card_max_lvl M (mset (N\<propto>i)) \<and>
      out_learned M C outl)\<close>
 
 definition merge_conflict_m
-  :: \<open>(nat, nat) ann_lits \<Rightarrow> nat clauses_l \<Rightarrow> nat \<Rightarrow> nat clause option \<Rightarrow> nat \<Rightarrow> lbd \<Rightarrow>
-  out_learned \<Rightarrow> (nat clause option \<times> nat \<times> lbd \<times> out_learned) nres\<close>
+  :: \<open>(nat, nat) ann_lits \<Rightarrow> nat clauses_l \<Rightarrow> nat \<Rightarrow> nat clause option \<Rightarrow> nat \<Rightarrow>
+  out_learned \<Rightarrow> (nat clause option \<times> nat \<times> out_learned) nres\<close>
 where
-\<open>merge_conflict_m M N i D _ _ _ =
-    SPEC (\<lambda>(C, n, lbd, outl). C = Some (mset (tl (N\<propto>i)) \<union># the D) \<and>
+\<open>merge_conflict_m M N i D _ _ =
+    SPEC (\<lambda>(C, n, outl). C = Some (mset (tl (N\<propto>i)) \<union># the D) \<and>
        n = card_max_lvl M (mset (tl (N\<propto>i)) \<union># the D) \<and>
        out_learned M C outl)\<close>
 
 definition merge_conflict_m_g
   :: \<open>nat \<Rightarrow> (nat, nat) ann_lits \<Rightarrow> nat clause_l \<Rightarrow> nat clause option \<Rightarrow>
-  (nat clause option \<times> nat \<times> lbd \<times> out_learned) nres\<close>
+  (nat clause option \<times> nat \<times> out_learned) nres\<close>
 where
 \<open>merge_conflict_m_g init M Ni D =
-    SPEC (\<lambda>(C, n, lbd, outl). C = Some (mset (drop init (Ni)) \<union># the D) \<and>
+    SPEC (\<lambda>(C, n, outl). C = Some (mset (drop init (Ni)) \<union># the D) \<and>
        n = card_max_lvl M (mset (drop init (Ni)) \<union># the D) \<and>
        out_learned M C outl)\<close>
 
@@ -486,42 +486,41 @@ definition clvls_add
            else clvls))\<close>
 
 definition lookup_conflict_merge
-  :: \<open>nat \<Rightarrow> (nat,nat)ann_lits \<Rightarrow> nat clause_l \<Rightarrow> conflict_option_rel \<Rightarrow> nat \<Rightarrow> lbd \<Rightarrow>
-        out_learned \<Rightarrow> (conflict_option_rel \<times> nat \<times> lbd \<times> out_learned) nres\<close>
+  :: \<open>nat \<Rightarrow> (nat,nat)ann_lits \<Rightarrow> nat clause_l \<Rightarrow> conflict_option_rel \<Rightarrow> nat \<Rightarrow>
+        out_learned \<Rightarrow> (conflict_option_rel \<times> nat \<times> out_learned) nres\<close>
 where
-  \<open>lookup_conflict_merge init M D  = (\<lambda>(b, xs) clvls lbd outl. do {
-     (_, clvls, zs, lbd, outl) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(i::nat, clvls :: nat, zs, lbd, outl).
+  \<open>lookup_conflict_merge init M D  = (\<lambda>(b, xs) clvls outl. do {
+     (_, clvls, zs, outl) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(i::nat, clvls :: nat, zs, outl).
          length (snd zs) = length (snd xs) \<and>
              Suc i \<le> uint32_max \<and> Suc (fst zs) \<le> uint32_max \<and> Suc clvls \<le> uint32_max\<^esup>
-       (\<lambda>(i :: nat, clvls, zs, lbd, outl). i < length_uint32_nat D)
-       (\<lambda>(i :: nat, clvls, zs, lbd, outl). do {
+       (\<lambda>(i :: nat, clvls, zs, outl). i < length_uint32_nat D)
+       (\<lambda>(i :: nat, clvls, zs, outl). do {
            ASSERT(i < length_uint32_nat D);
            ASSERT(Suc i \<le> uint32_max);
-           let lbd = lbd_write lbd (get_level M (D!i));
            ASSERT(\<not>is_in_lookup_conflict zs (D!i) \<longrightarrow> length outl < uint32_max);
            let outl = outlearned_add M (D!i) zs outl;
            let clvls = clvls_add M (D!i) zs clvls;
            let zs = add_to_lookup_conflict (D!i) zs;
-           RETURN(Suc i, clvls, zs, lbd, outl)
+           RETURN(Suc i, clvls, zs, outl)
         })
-       (init, clvls, xs, lbd, outl);
-     RETURN ((False, zs), clvls, lbd, outl)
+       (init, clvls, xs, outl);
+     RETURN ((False, zs), clvls, outl)
    })\<close>
 
 definition resolve_lookup_conflict_aa
-  :: \<open>(nat,nat)ann_lits \<Rightarrow> nat clauses_l \<Rightarrow> nat \<Rightarrow> conflict_option_rel \<Rightarrow> nat \<Rightarrow> lbd \<Rightarrow>
-     out_learned \<Rightarrow> (conflict_option_rel \<times> nat \<times> lbd \<times> out_learned) nres\<close>
+  :: \<open>(nat,nat)ann_lits \<Rightarrow> nat clauses_l \<Rightarrow> nat \<Rightarrow> conflict_option_rel \<Rightarrow> nat \<Rightarrow>
+     out_learned \<Rightarrow> (conflict_option_rel \<times> nat \<times> out_learned) nres\<close>
 where
-  \<open>resolve_lookup_conflict_aa M N i xs clvls lbd outl =
-     lookup_conflict_merge 1 M (N \<propto> i) xs clvls lbd outl\<close>
+  \<open>resolve_lookup_conflict_aa M N i xs clvls outl =
+     lookup_conflict_merge 1 M (N \<propto> i) xs clvls outl\<close>
 
 
 definition set_lookup_conflict_aa
-  :: \<open>(nat,nat)ann_lits \<Rightarrow> nat clauses_l \<Rightarrow> nat \<Rightarrow> conflict_option_rel \<Rightarrow> nat \<Rightarrow> lbd \<Rightarrow>
-  out_learned \<Rightarrow>(conflict_option_rel \<times> nat \<times> lbd \<times> out_learned) nres\<close>
+  :: \<open>(nat,nat)ann_lits \<Rightarrow> nat clauses_l \<Rightarrow> nat \<Rightarrow> conflict_option_rel \<Rightarrow> nat \<Rightarrow>
+  out_learned \<Rightarrow>(conflict_option_rel \<times> nat \<times> out_learned) nres\<close>
 where
-  \<open>set_lookup_conflict_aa M C i xs clvls lbd outl =
-     lookup_conflict_merge 0 M (C\<propto>i) xs clvls lbd outl\<close>
+  \<open>set_lookup_conflict_aa M C i xs clvls outl =
+     lookup_conflict_merge 0 M (C\<propto>i) xs clvls outl\<close>
 
 definition isa_outlearned_add
   :: \<open>trail_pol \<Rightarrow> nat literal \<Rightarrow> nat \<times> bool option list \<Rightarrow> out_learned \<Rightarrow> out_learned\<close> where
@@ -548,30 +547,29 @@ lemma isa_clvls_add_clvls_add:
     count_decided_trail_ref[THEN fref_to_Down_unRET_Id])
 
 definition isa_lookup_conflict_merge
-  :: \<open>nat \<Rightarrow> trail_pol \<Rightarrow> arena \<Rightarrow> nat \<Rightarrow> conflict_option_rel \<Rightarrow> nat \<Rightarrow> lbd \<Rightarrow>
-        out_learned \<Rightarrow> (conflict_option_rel \<times> nat \<times> lbd \<times> out_learned) nres\<close>
+  :: \<open>nat \<Rightarrow> trail_pol \<Rightarrow> arena \<Rightarrow> nat \<Rightarrow> conflict_option_rel \<Rightarrow> nat \<Rightarrow>
+        out_learned \<Rightarrow> (conflict_option_rel \<times> nat \<times> out_learned) nres\<close>
 where
-  \<open>isa_lookup_conflict_merge init M N i  = (\<lambda>(b, xs) clvls lbd outl. do {
+  \<open>isa_lookup_conflict_merge init M N i  = (\<lambda>(b, xs) clvls outl. do {
      ASSERT( arena_is_valid_clause_idx N i);
-     (_, clvls, zs, lbd, outl) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(i::nat, clvls :: nat, zs, lbd, outl).
+     (_, clvls, zs, outl) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(i::nat, clvls :: nat, zs, outl).
          length (snd zs) = length (snd xs) \<and>
              Suc (fst zs) \<le> uint32_max \<and> Suc clvls \<le> uint32_max\<^esup>
-       (\<lambda>(j :: nat, clvls, zs, lbd, outl). j < i + arena_length N i)
-       (\<lambda>(j :: nat, clvls, zs, lbd, outl). do {
+       (\<lambda>(j :: nat, clvls, zs, outl). j < i + arena_length N i)
+       (\<lambda>(j :: nat, clvls, zs, outl). do {
            ASSERT(j < length N);
            ASSERT(arena_lit_pre N j);
            ASSERT(get_level_pol_pre (M, arena_lit N j));
 	   ASSERT(get_level_pol M (arena_lit N j) \<le> Suc (uint32_max div 2));
-           let lbd = lbd_write lbd (get_level_pol M (arena_lit N j));
            ASSERT(atm_of (arena_lit N j) < length (snd zs));
            ASSERT(\<not>is_in_lookup_conflict zs (arena_lit N j) \<longrightarrow> length outl < uint32_max);
            let outl = isa_outlearned_add M (arena_lit N j) zs outl;
            let clvls = isa_clvls_add M (arena_lit N j) zs clvls;
            let zs = add_to_lookup_conflict (arena_lit N j) zs;
-           RETURN(Suc j, clvls, zs, lbd, outl)
+           RETURN(Suc j, clvls, zs, outl)
         })
-       (i+init, clvls, xs, lbd, outl);
-     RETURN ((False, zs), clvls, lbd, outl)
+       (i+init, clvls, xs, outl);
+     RETURN ((False, zs), clvls, outl)
    })\<close>
 
 
@@ -582,11 +580,11 @@ lemma isa_lookup_conflict_merge_lookup_conflict_merge_ext:
     M'M: \<open>(M', M) \<in> trail_pol \<A>\<close> and
     bound: \<open>isasat_input_bounded \<A>\<close>
   shows
-    \<open>isa_lookup_conflict_merge init M' arena i (b, xs) clvls lbd outl \<le> \<Down> Id
-      (lookup_conflict_merge init M (N \<propto> i) (b, xs) clvls lbd outl)\<close>
+    \<open>isa_lookup_conflict_merge init M' arena i (b, xs) clvls outl \<le> \<Down> Id
+      (lookup_conflict_merge init M (N \<propto> i) (b, xs) clvls outl)\<close>
 proof -
-  have [refine0]: \<open>((i + init, clvls, xs, lbd, outl), init, clvls, xs, lbd, outl) \<in>
-     {(k, l). k = l + i} \<times>\<^sub>r nat_rel \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id\<close>
+  have [refine0]: \<open>((i + init, clvls, xs, outl), init, clvls, xs, outl) \<in>
+     {(k, l). k = l + i} \<times>\<^sub>r nat_rel \<times>\<^sub>r Id \<times>\<^sub>r Id\<close>
     by auto
   have \<open>no_dup M\<close>
     using assms by (auto simp: trail_pol_def)
@@ -607,24 +605,24 @@ proof -
     subgoal using valid i
       by (auto simp: arena_lifting arena_lit_pre_def arena_is_valid_clause_idx_and_access_def
         intro!: exI[of _ i])
-    subgoal for x x' x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f x1g x2g
+    subgoal for x x' x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e
       using i literals_are_in_\<L>\<^sub>i\<^sub>n_mm_in_\<L>\<^sub>a\<^sub>l\<^sub>l[of \<A> N i x1] lits valid M'M
       by (auto simp: arena_lifting ac_simps image_image intro!: get_level_pol_pre)
-    subgoal for x x' x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f x1g x2g'
+    subgoal for x x' x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e
       using valid i literals_are_in_\<L>\<^sub>i\<^sub>n_mm_in_\<L>\<^sub>a\<^sub>l\<^sub>l[of \<A> N i x1] lits
       by (auto simp: option_lookup_clause_rel_def lookup_clause_rel_def
         in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff arena_lifting ac_simps get_level_get_level_pol[OF M'M, symmetric]
         isa_outlearned_add_outlearned_add[OF M'M] isa_clvls_add_clvls_add[OF M'M] lev_le)
-    subgoal for x x' x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f x1g x2g
+    subgoal for x x' x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e
       using i literals_are_in_\<L>\<^sub>i\<^sub>n_mm_in_\<L>\<^sub>a\<^sub>l\<^sub>l[of \<A> N i x1] lits valid M'M
       using bxs by (auto simp: option_lookup_clause_rel_def lookup_clause_rel_def
       in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff arena_lifting ac_simps)
-    subgoal for x x' x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f x1g x2g'
+    subgoal for x x' x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e
       using valid i literals_are_in_\<L>\<^sub>i\<^sub>n_mm_in_\<L>\<^sub>a\<^sub>l\<^sub>l[of \<A> N i x1] lits
       by (auto simp: option_lookup_clause_rel_def lookup_clause_rel_def
         in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff arena_lifting ac_simps get_level_get_level_pol[OF M'M]
         isa_outlearned_add_outlearned_add[OF M'M] isa_clvls_add_clvls_add[OF M'M])
-    subgoal for x x' x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f x1g x2g'
+    subgoal for x x' x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e
       using valid i literals_are_in_\<L>\<^sub>i\<^sub>n_mm_in_\<L>\<^sub>a\<^sub>l\<^sub>l[of \<A> N i x1] lits
       by (auto simp: option_lookup_clause_rel_def lookup_clause_rel_def
         in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff arena_lifting ac_simps get_level_get_level_pol[OF M'M]
@@ -649,7 +647,7 @@ definition isa_set_lookup_conflict_aa where
 
 definition isa_set_lookup_conflict_aa_pre where
   \<open>isa_set_lookup_conflict_aa_pre =
-    (\<lambda>((((((M, N), i), (_, xs)), _), _), out). i < length N)\<close>
+    (\<lambda>(((((M, N), i), (_, xs)), _), out). i < length N)\<close>
 
 lemma lookup_conflict_merge'_spec:
   assumes
@@ -664,13 +662,11 @@ lemma lookup_conflict_merge'_spec:
     \<open>out_learned M (Some C) outl\<close> and
     bounded: \<open>isasat_input_bounded \<A>\<close>
   shows
-    \<open>lookup_conflict_merge init M D (b, n, xs) clvls lbd outl \<le>
+    \<open>lookup_conflict_merge init M D (b, n, xs) clvls outl \<le>
       \<Down>(option_lookup_clause_rel \<A> \<times>\<^sub>r Id \<times>\<^sub>r Id)
           (merge_conflict_m_g init M D (Some C))\<close>
      (is \<open>_ \<le>  \<Down> ?Ref ?Spec\<close>)
 proof -
-  define lbd_upd where
-     \<open>lbd_upd lbd i \<equiv> lbd_write lbd (get_level M (D!i))\<close> for lbd i
   let ?D = \<open>drop init D\<close>
   have le_D_le_upper[simp]: \<open>a < length D \<Longrightarrow> Suc (Suc a) \<le> uint32_max\<close> for a
     using simple_clss_size_upper_div2[of \<A> \<open>mset D\<close>] assms by (auto simp: uint32_max_def)
@@ -708,14 +704,14 @@ proof -
         simp: distinct_mset_in_diff in_image_uminus_uminus)
 
   define I where
-     \<open>I xs = (\<lambda>(i, clvls, zs :: lookup_clause_rel, lbd :: lbd, outl :: out_learned).
+     \<open>I xs = (\<lambda>(i, clvls, zs :: lookup_clause_rel, outl :: out_learned).
                      length (snd zs) =
                      length (snd xs) \<and>
                      Suc i \<le> uint32_max \<and>
                      Suc (fst zs) \<le> uint32_max \<and>
                      Suc clvls \<le> uint32_max)\<close>
    for xs :: lookup_clause_rel
-  define I' where \<open>I' = (\<lambda>(i, clvls, zs, lbd :: lbd, outl).
+  define I' where \<open>I' = (\<lambda>(i, clvls, zs, outl).
       lookup_conflict_merge'_step \<A> init M i clvls zs D C outl \<and> i \<ge> init)\<close>
 
   have dist_D: \<open>distinct_mset (mset D)\<close>
@@ -735,24 +731,23 @@ proof -
 
   have
     if_True_I: \<open>I x2 (Suc a, clvls_add M (D ! a) baa aa,
-           add_to_lookup_conflict (D ! a) baa, lbd_upd lbd' a,
+           add_to_lookup_conflict (D ! a) baa,
            outlearned_add M (D ! a) baa outl)\<close> (is ?I) and
     if_true_I': \<open>I' (Suc a, clvls_add M (D ! a) baa aa,
-           add_to_lookup_conflict (D ! a) baa, lbd_upd lbd' a,
+           add_to_lookup_conflict (D ! a) baa,
            outlearned_add M (D ! a) baa outl)\<close> (is ?I')
     if
       I: \<open>I x2 s\<close> and
       I': \<open>I' s\<close> and
-      cond: \<open>case s of (i, clvls, zs, lbd, outl) \<Rightarrow> i < length D\<close> and
-      s: \<open>s = (a, ba)\<close> \<open>ba = (aa, baa2)\<close> \<open>baa2 = (baa, lbdL')\<close> \<open>(b, n, xs) = (x1, x2)\<close>
-      \<open>lbdL' = (lbd', outl)\<close> and
+      cond: \<open>case s of (i, clvls, zs, outl) \<Rightarrow> i < length D\<close> and
+      s: \<open>s = (a, ba)\<close> \<open>ba = (aa, baa2)\<close> \<open>baa2 = (baa, outl)\<close> \<open>(b, n, xs) = (x1, x2)\<close> and
       a_le_D: \<open>a < length D\<close> and
       a_uint32_max: \<open>Suc a \<le> uint32_max\<close>
-    for x1 x2 s a ba aa baa baa2 lbd' lbdL' outl
+    for x1 x2 s a ba aa baa baa2 lbd' lbdL' outl x
   proof -
     have [simp]:
-      \<open>s = (a, aa, baa, lbd', outl)\<close>
-      \<open>ba = (aa, baa, lbd', outl)\<close>
+      \<open>s = (a, aa, baa, outl)\<close>
+      \<open>ba = (aa, baa, outl)\<close>
       \<open>x2 = (n, xs)\<close>
       using s by auto
     obtain ab b where baa[simp]: \<open>baa = (ab, b)\<close> by (cases baa)
@@ -964,20 +959,19 @@ proof -
       \<open>I' s\<close> and
       \<open>s = (a, ba)\<close> and
       \<open>ba = (aa, baa)\<close> and
-      \<open>baa = (ab, bb)\<close> and
-      \<open>bb = (ac, bc)\<close> for x1 x2 s a ba aa baa ab bb ac bc
+      \<open>baa = (ab, bc)\<close> for x1 x2 s a ba aa baa ab bb ac bc
   proof -
     have \<open>mset (tl bc) \<subseteq># (remdups_mset (mset (take (a -init) (drop init D)) + C))\<close> and \<open>init \<le> a\<close>
       using that by (auto simp: I_def I'_def lookup_conflict_merge'_step_def Let_def out_learned_def)
     from size_mset_mono[OF this(1)] this(2) show ?thesis using size_outl_le[of a] dist_C dist_D
       by (auto simp: uint32_max_def distinct_mset_rempdups_union_mset)
   qed
-  show confl: \<open>lookup_conflict_merge init M D (b, n, xs) clvls lbd outl
+  show confl: \<open>lookup_conflict_merge init M D (b, n, xs) clvls outl
     \<le> \<Down> ?Ref (merge_conflict_m_g init M D (Some C))\<close>
     supply [[goals_limit=1]]
     unfolding resolve_lookup_conflict_aa_def lookup_conflict_merge_def
     distinct_mset_rempdups_union_mset[OF dist_D dist_CD] I_def[symmetric] conc_fun_SPEC
-    lbd_upd_def[symmetric] Let_def length_uint32_nat_def merge_conflict_m_g_def
+    Let_def length_uint32_nat_def merge_conflict_m_g_def
     apply (refine_vcg WHILEIT_rule_stronger_inv[where R = \<open>measure (\<lambda>(j, _). length D - j)\<close> and
           I' = I'])
     subgoal by auto
@@ -989,7 +983,7 @@ proof -
       by (auto simp add: uint32_max_def lookup_conflict_merge'_step_def option_lookup_clause_rel_def)
     subgoal by auto
     subgoal unfolding I_def by fast
-    subgoal for x1 x2 s a ba aa baa ab bb ac bc by (rule outl_le)
+    subgoal for x1 x2 s a ba aa baa ab bb by (rule outl_le)
     subgoal by (rule if_True_I)
     subgoal by (rule if_true_I')
     subgoal for b' n' s j zs
@@ -1019,19 +1013,19 @@ proof (standard)
 qed
 
 lemma isa_set_lookup_conflict:
-  \<open>(uncurry6 isa_set_lookup_conflict_aa, uncurry6 set_conflict_m) \<in>
-    [\<lambda>((((((M, N), i), xs), clvls), lbd), outl). i \<in># dom_m N \<and> xs = None \<and> distinct (N \<propto> i) \<and>
+  \<open>(uncurry5 isa_set_lookup_conflict_aa, uncurry5 set_conflict_m) \<in>
+    [\<lambda>(((((M, N), i), xs), clvls), outl). i \<in># dom_m N \<and> xs = None \<and> distinct (N \<propto> i) \<and>
        literals_are_in_\<L>\<^sub>i\<^sub>n_mm \<A> (mset `# ran_mf N) \<and>
        \<not>tautology (mset (N \<propto> i)) \<and> clvls = 0 \<and>
        out_learned M None outl \<and>
        isasat_input_bounded \<A>]\<^sub>f
-    trail_pol \<A> \<times>\<^sub>f {(arena, N). valid_arena arena N vdom} \<times>\<^sub>f nat_rel \<times>\<^sub>f option_lookup_clause_rel \<A> \<times>\<^sub>f nat_rel \<times>\<^sub>f Id
-         \<times>\<^sub>f Id  \<rightarrow>
-      \<langle>option_lookup_clause_rel \<A> \<times>\<^sub>r nat_rel \<times>\<^sub>r Id \<times>\<^sub>r Id \<rangle>nres_rel\<close>
+    trail_pol \<A> \<times>\<^sub>f {(arena, N). valid_arena arena N vdom} \<times>\<^sub>f nat_rel \<times>\<^sub>f
+    option_lookup_clause_rel \<A> \<times>\<^sub>f nat_rel  \<times>\<^sub>f Id  \<rightarrow>
+      \<langle>option_lookup_clause_rel \<A> \<times>\<^sub>r nat_rel \<times>\<^sub>r Id\<rangle>nres_rel\<close>
 proof -
-  have H: \<open>set_lookup_conflict_aa M N i (b, n, xs) clvls lbd outl
+  have H: \<open>set_lookup_conflict_aa M N i (b, n, xs) clvls outl
     \<le> \<Down> (option_lookup_clause_rel \<A> \<times>\<^sub>r Id)
-       (set_conflict_m M N i None clvls lbd outl)\<close>
+       (set_conflict_m M N i None clvls outl)\<close>
     if
       i: \<open>i \<in># dom_m N\<close> and
       ocr: \<open>((b, n, xs), None) \<in> option_lookup_clause_rel \<A>\<close> and
@@ -1054,13 +1048,13 @@ proof -
     have \<open>literals_are_in_\<L>\<^sub>i\<^sub>n \<A> (mset (N \<propto> i))\<close>
       using literals_are_in_\<L>\<^sub>i\<^sub>n_mm_literals_are_in_\<L>\<^sub>i\<^sub>n[OF lits i] .
     then show ?thesis unfolding set_lookup_conflict_aa_def set_conflict_m_def
-      using lookup_conflict_merge'_spec[of False n xs \<open>{#}\<close> \<A> \<open>N\<propto>i\<close> 0 _ 0 outl lbd] that dist T
+      using lookup_conflict_merge'_spec[of False n xs \<open>{#}\<close> \<A> \<open>N\<propto>i\<close> 0 _ 0 outl] that dist T
       by (auto simp: lookup_conflict_merge_normalise uint32_max_def merge_conflict_m_g_def)
   qed
 
-  have H: \<open>isa_set_lookup_conflict_aa M' arena i (b, n, xs) clvls lbd outl
+  have H: \<open>isa_set_lookup_conflict_aa M' arena i (b, n, xs) clvls outl
     \<le> \<Down> (option_lookup_clause_rel \<A> \<times>\<^sub>r Id)
-       (set_conflict_m M N i None clvls lbd outl)\<close>
+       (set_conflict_m M N i None clvls outl)\<close>
     if
       i: \<open>i \<in># dom_m N\<close> and
      ocr: \<open>((b, n, xs), None) \<in> option_lookup_clause_rel \<A>\<close> and
@@ -1085,7 +1079,7 @@ qed
 
 definition merge_conflict_m_pre where
   \<open>merge_conflict_m_pre \<A> =
-  (\<lambda>((((((M, N), i), xs), clvls), lbd), out). i \<in># dom_m N \<and> xs \<noteq> None \<and> distinct (N \<propto> i) \<and>
+  (\<lambda>(((((M, N), i), xs), clvls), out). i \<in># dom_m N \<and> xs \<noteq> None \<and> distinct (N \<propto> i) \<and>
        \<not>tautology (mset (N \<propto> i)) \<and>
        (\<forall>L \<in> set (tl (N \<propto> i)). - L \<notin># the xs) \<and>
        literals_are_in_\<L>\<^sub>i\<^sub>n \<A> (the xs) \<and> clvls = card_max_lvl M (the xs) \<and>
@@ -1097,15 +1091,15 @@ definition isa_resolve_merge_conflict_gt2 where
   \<open>isa_resolve_merge_conflict_gt2 = isa_lookup_conflict_merge 1\<close>
 
 lemma isa_resolve_merge_conflict_gt2:
-  \<open>(uncurry6 isa_resolve_merge_conflict_gt2, uncurry6 merge_conflict_m) \<in>
+  \<open>(uncurry5 isa_resolve_merge_conflict_gt2, uncurry5 merge_conflict_m) \<in>
     [merge_conflict_m_pre \<A>]\<^sub>f
     trail_pol \<A> \<times>\<^sub>f {(arena, N). valid_arena arena N vdom} \<times>\<^sub>f nat_rel \<times>\<^sub>f option_lookup_clause_rel \<A>
-        \<times>\<^sub>f nat_rel \<times>\<^sub>f Id \<times>\<^sub>f Id  \<rightarrow>
-      \<langle>option_lookup_clause_rel \<A> \<times>\<^sub>r nat_rel \<times>\<^sub>r Id \<times>\<^sub>r Id \<rangle>nres_rel\<close>
+        \<times>\<^sub>f nat_rel \<times>\<^sub>f Id \<rightarrow>
+      \<langle>option_lookup_clause_rel \<A> \<times>\<^sub>r nat_rel \<times>\<^sub>r Id\<rangle>nres_rel\<close>
 proof -
-  have H1: \<open>resolve_lookup_conflict_aa M N i (b, n, xs) clvls lbd outl
+  have H1: \<open>resolve_lookup_conflict_aa M N i (b, n, xs) clvls outl
     \<le> \<Down> (option_lookup_clause_rel \<A> \<times>\<^sub>r Id)
-       (merge_conflict_m M N i C clvls lbd outl)\<close>
+       (merge_conflict_m M N i C clvls outl)\<close>
     if
       i: \<open>i \<in># dom_m N\<close> and
       ocr: \<open>((b, n, xs), C) \<in> option_lookup_clause_rel \<A>\<close> and
@@ -1118,7 +1112,7 @@ proof -
      \<open>clvls = card_max_lvl M (the C)\<close> and
      C_None: \<open>C \<noteq> None\<close> and
     bounded: \<open>isasat_input_bounded \<A>\<close>
-    for b n xs N i M clvls lbd outl C
+    for b n xs N i M clvls outl C
   proof -
     have lookup_conflict_merge_normalise:
         \<open>lookup_conflict_merge 1 M C (b, zs) = lookup_conflict_merge 1 M C (False, zs)\<close>
@@ -1127,15 +1121,15 @@ proof -
     have \<open>literals_are_in_\<L>\<^sub>i\<^sub>n \<A> (mset (N \<propto> i))\<close>
       using literals_are_in_\<L>\<^sub>i\<^sub>n_mm_literals_are_in_\<L>\<^sub>i\<^sub>n[OF lits i] .
     then show ?thesis unfolding resolve_lookup_conflict_aa_def merge_conflict_m_def
-      using lookup_conflict_merge'_spec[of b n xs \<open>the C\<close> \<A> \<open>N\<propto>i\<close> clvls M 1 outl lbd] that dist
+      using lookup_conflict_merge'_spec[of b n xs \<open>the C\<close> \<A> \<open>N\<propto>i\<close> clvls M 1 outl] that dist
          not_neg ocr C_None lits'
       by (auto simp: lookup_conflict_merge_normalise uint32_max_def merge_conflict_m_g_def
          drop_Suc)
   qed
 
-  have H2: \<open>isa_resolve_merge_conflict_gt2 M' arena i (b, n, xs) clvls lbd outl
+  have H2: \<open>isa_resolve_merge_conflict_gt2 M' arena i (b, n, xs) clvls outl
     \<le> \<Down> (Id \<times>\<^sub>r Id)
-       (resolve_lookup_conflict_aa M N i (b, n, xs) clvls lbd outl)\<close>
+       (resolve_lookup_conflict_aa M N i (b, n, xs) clvls outl)\<close>
     if
       i: \<open>i \<in># dom_m N\<close> and
       ocr: \<open>((b, n, xs), C) \<in> option_lookup_clause_rel \<A>\<close> and
@@ -3886,13 +3880,12 @@ lemma set_empty_conflict_to_none_hnr:
        set_empty_conflict_to_none_def set_lookup_empty_conflict_to_none_def)
 
 definition lookup_merge_eq2
-  :: \<open>nat literal \<Rightarrow> (nat,nat) ann_lits \<Rightarrow> nat clause_l \<Rightarrow> conflict_option_rel \<Rightarrow> nat \<Rightarrow> lbd \<Rightarrow>
-        out_learned \<Rightarrow> (conflict_option_rel \<times> nat \<times> lbd \<times> out_learned) nres\<close> where
-\<open>lookup_merge_eq2 L M N = (\<lambda>(_, zs) clvls lbd outl. do {
+  :: \<open>nat literal \<Rightarrow> (nat,nat) ann_lits \<Rightarrow> nat clause_l \<Rightarrow> conflict_option_rel \<Rightarrow> nat \<Rightarrow>
+        out_learned \<Rightarrow> (conflict_option_rel \<times> nat \<times> out_learned) nres\<close> where
+\<open>lookup_merge_eq2 L M N = (\<lambda>(_, zs) clvls outl. do {
     ASSERT(length N = 2);
     let L' = (if N ! 0 = L then N ! 1 else N ! 0);
     ASSERT(get_level M L' \<le> Suc (uint32_max div 2));
-    let lbd = lbd_write lbd (get_level M L');
     ASSERT(atm_of L' < length (snd zs));
     ASSERT(length outl < uint32_max);
     let outl = outlearned_add M L' zs outl;
@@ -3900,15 +3893,15 @@ definition lookup_merge_eq2
     ASSERT(fst zs < uint32_max);
     let clvls = clvls_add M L' zs clvls;
     let zs = add_to_lookup_conflict L' zs;
-    RETURN((False, zs), clvls, lbd, outl)
+    RETURN((False, zs), clvls, outl)
   })\<close>
 
 definition merge_conflict_m_eq2
   :: \<open>nat literal \<Rightarrow> (nat, nat) ann_lits \<Rightarrow> nat clause_l \<Rightarrow> nat clause option \<Rightarrow>
-  (nat clause option \<times> nat \<times> lbd \<times> out_learned) nres\<close>
+  (nat clause option \<times> nat \<times> out_learned) nres\<close>
 where
 \<open>merge_conflict_m_eq2 L M Ni D =
-    SPEC (\<lambda>(C, n, lbd, outl). C = Some (remove1_mset L (mset Ni) \<union># the D) \<and>
+    SPEC (\<lambda>(C, n, outl). C = Some (remove1_mset L (mset Ni) \<union># the D) \<and>
        n = card_max_lvl M (remove1_mset L (mset Ni) \<union># the D) \<and>
        out_learned M C outl)\<close>
 
@@ -3928,13 +3921,11 @@ lemma lookup_merge_eq2_spec:
     le2: \<open>length D = 2\<close> and
     L_D: \<open>L \<in> set D\<close>
   shows
-    \<open>lookup_merge_eq2 L M D (b, n, xs) clvls lbd outl \<le>
+    \<open>lookup_merge_eq2 L M D (b, n, xs) clvls outl \<le>
       \<Down>(option_lookup_clause_rel \<A> \<times>\<^sub>r Id \<times>\<^sub>r Id)
           (merge_conflict_m_eq2 L M D (Some C))\<close>
      (is \<open>_ \<le>  \<Down> ?Ref ?Spec\<close>)
 proof -
-  define lbd_upd where
-     \<open>lbd_upd lbd i \<equiv> lbd_write lbd (get_level M (D!i))\<close> for lbd i
   let ?D = \<open>remove1 L D\<close>
   have le_D_le_upper[simp]: \<open>a < length D \<Longrightarrow> Suc (Suc a) \<le> uint32_max\<close> for a
     using simple_clss_size_upper_div2[of \<A> \<open>mset D\<close>] assms by (auto simp: uint32_max_def)
@@ -4016,15 +4007,14 @@ proof -
 qed
 
 definition isasat_lookup_merge_eq2
-  :: \<open>nat literal \<Rightarrow> trail_pol \<Rightarrow> arena \<Rightarrow> nat \<Rightarrow> conflict_option_rel \<Rightarrow> nat \<Rightarrow> lbd \<Rightarrow>
-        out_learned \<Rightarrow> (conflict_option_rel \<times> nat \<times> lbd \<times> out_learned) nres\<close> where
-\<open>isasat_lookup_merge_eq2 L M N C = (\<lambda>(_, zs) clvls lbd outl. do {
+  :: \<open>nat literal \<Rightarrow> trail_pol \<Rightarrow> arena \<Rightarrow> nat \<Rightarrow> conflict_option_rel \<Rightarrow> nat \<Rightarrow>
+        out_learned \<Rightarrow> (conflict_option_rel \<times> nat \<times> out_learned) nres\<close> where
+\<open>isasat_lookup_merge_eq2 L M N C = (\<lambda>(_, zs) clvls outl. do {
     ASSERT(arena_lit_pre N C);
     ASSERT(arena_lit_pre N (C+1));
     let L' = (if arena_lit N C = L then arena_lit N (C + 1) else arena_lit N C);
     ASSERT(get_level_pol_pre (M, L'));
     ASSERT(get_level_pol M L' \<le> Suc (uint32_max div 2));
-    let lbd = lbd_write lbd (get_level_pol M L');
     ASSERT(atm_of L' < length (snd zs));
     ASSERT(length outl < uint32_max);
     let outl = isa_outlearned_add M L' zs outl;
@@ -4032,7 +4022,7 @@ definition isasat_lookup_merge_eq2
     ASSERT(fst zs < uint32_max);
     let clvls = isa_clvls_add M L' zs clvls;
     let zs = add_to_lookup_conflict L' zs;
-    RETURN((False, zs), clvls, lbd, outl)
+    RETURN((False, zs), clvls, outl)
   })\<close>
 
 lemma isasat_lookup_merge_eq2_lookup_merge_eq2:
@@ -4042,8 +4032,8 @@ lemma isasat_lookup_merge_eq2_lookup_merge_eq2:
     M'M: \<open>(M', M) \<in> trail_pol \<A>\<close> and
     bound: \<open>isasat_input_bounded \<A>\<close>
   shows
-    \<open>isasat_lookup_merge_eq2 L M' arena i (b, xs) clvls lbd outl \<le> \<Down> Id
-      (lookup_merge_eq2 L M (N \<propto> i) (b, xs) clvls lbd outl)\<close>
+    \<open>isasat_lookup_merge_eq2 L M' arena i (b, xs) clvls outl \<le> \<Down> Id
+      (lookup_merge_eq2 L M (N \<propto> i) (b, xs) clvls outl)\<close>
 proof -
   define L' where \<open>L' \<equiv> (if arena_lit arena i = L then arena_lit arena (i + 1)
          else arena_lit arena i)\<close>
@@ -4099,7 +4089,7 @@ qed
 
 definition merge_conflict_m_eq2_pre where
   \<open>merge_conflict_m_eq2_pre \<A> =
-  (\<lambda>(((((((L, M), N), i), xs), clvls), lbd), out). i \<in># dom_m N \<and> xs \<noteq> None \<and> distinct (N \<propto> i) \<and>
+  (\<lambda>((((((L, M), N), i), xs), clvls), out). i \<in># dom_m N \<and> xs \<noteq> None \<and> distinct (N \<propto> i) \<and>
        \<not>tautology (mset (N \<propto> i)) \<and>
        (\<forall>K \<in> set (remove1 L (N \<propto> i)). - K \<notin># the xs) \<and>
        literals_are_in_\<L>\<^sub>i\<^sub>n \<A> (the xs) \<and> clvls = card_max_lvl M (the xs) \<and>
@@ -4110,35 +4100,33 @@ definition merge_conflict_m_eq2_pre where
        L \<in> set (N \<propto> i))\<close>
 
 definition merge_conflict_m_g_eq2 :: \<open>_\<close> where
-\<open>merge_conflict_m_g_eq2 L M N i D _ _ _ = merge_conflict_m_eq2 L M (N \<propto> i) D\<close>
+\<open>merge_conflict_m_g_eq2 L M N i D _ _ = merge_conflict_m_eq2 L M (N \<propto> i) D\<close>
 
 lemma isasat_lookup_merge_eq2:
-  \<open>(uncurry7 isasat_lookup_merge_eq2, uncurry7 merge_conflict_m_g_eq2) \<in>
+  \<open>(uncurry6 isasat_lookup_merge_eq2, uncurry6 merge_conflict_m_g_eq2) \<in>
     [merge_conflict_m_eq2_pre \<A>]\<^sub>f
     Id \<times>\<^sub>f trail_pol \<A> \<times>\<^sub>f {(arena, N). valid_arena arena N vdom} \<times>\<^sub>f nat_rel \<times>\<^sub>f option_lookup_clause_rel \<A>
-        \<times>\<^sub>f nat_rel \<times>\<^sub>f Id \<times>\<^sub>f Id  \<rightarrow>
-      \<langle>option_lookup_clause_rel \<A> \<times>\<^sub>r nat_rel \<times>\<^sub>r Id \<times>\<^sub>r Id \<rangle>nres_rel\<close>
+        \<times>\<^sub>f nat_rel \<times>\<^sub>f Id  \<rightarrow>
+      \<langle>option_lookup_clause_rel \<A> \<times>\<^sub>r nat_rel \<times>\<^sub>r Id\<rangle>nres_rel\<close>
 proof -
-  have H1: \<open>isasat_lookup_merge_eq2 a (aa, ab, ac, ad, ae, b) ba bb (af, ag, bc) bd be
+  have H1: \<open>isasat_lookup_merge_eq2 a (aa, ab, ac, ad, ae, b) ba bb (af, ag, bc) be
 	 bf
-	\<le> \<Down> Id (lookup_merge_eq2 a bg (bh \<propto> bb) (af, ag, bc) bd be bf)\<close>
+	\<le> \<Down> Id (lookup_merge_eq2 a bg (bh \<propto> bb) (af, ag, bc) be bf)\<close>
     if
-      \<open>merge_conflict_m_eq2_pre \<A> (((((((ah, bg), bh), bi), bj), bk), bl), bm)\<close> and
-      \<open>((((((((a, aa, ab, ac, ad, ae, b), ba), bb), af, ag, bc), bd), be), bf),
-	((((((ah, bg), bh), bi), bj), bk), bl), bm)
+      \<open>merge_conflict_m_eq2_pre \<A> (((((((ah, bg), bh), bi), bj), bk)), bm)\<close> and
+      \<open>((((((((a, aa, ab, ac, ad, ae, b), ba), bb), af, ag, bc)), be), bf),
+	((((((ah, bg), bh), bi), bj), bk)), bm)
        \<in> Id \<times>\<^sub>f trail_pol \<A> \<times>\<^sub>f {(arena, N). valid_arena arena N vdom} \<times>\<^sub>f       nat_rel \<times>\<^sub>f
 	 option_lookup_clause_rel \<A> \<times>\<^sub>f       nat_rel \<times>\<^sub>f
-	 Id \<times>\<^sub>f
 	 Id\<close>
-     for a aa ab ac ad ae b ba bb af ag bc bd be bf ah bg bh bi bj bk bl bm
+     for a aa ab ac ad ae b ba bb af ag bc bd be bf ah bg bh bi bj bm bk
   proof -
     have
       bi: \<open>bi \<in># dom_m bh\<close> and
       \<open>(bf, bm) \<in> Id\<close> and
       \<open>bj \<noteq> None\<close> and
-      \<open>(be, bl) \<in> Id\<close> and
       \<open>distinct (bh \<propto> bi)\<close> and
-      \<open>(bd, bk) \<in> nat_rel\<close> and
+      \<open>(be, bk) \<in> nat_rel\<close> and
       \<open>\<not> tautology (mset (bh \<propto> bi))\<close> and
       o: \<open>((af, ag, bc), bj) \<in> option_lookup_clause_rel \<A>\<close> and
       \<open>\<forall>K\<in>set (remove1 ah (bh \<propto> bi)). - K \<notin># the bj\<close> and
@@ -4160,18 +4148,16 @@ proof -
       by (rule isasat_lookup_merge_eq2_lookup_merge_eq2[OF valid bi[unfolded st[symmetric]]
         lits o tr bounded])
   qed
-  have H2: \<open>lookup_merge_eq2 a bg (bh \<propto> bb) (af, ag, bc) bd be bf
-	\<le> \<Down> (option_lookup_clause_rel \<A> \<times>\<^sub>f (nat_rel \<times>\<^sub>f (Id \<times>\<^sub>f Id)))
-	(merge_conflict_m_g_eq2 ah bg bh bi bj bk bl bm)\<close>
+  have H2: \<open>lookup_merge_eq2 a bg (bh \<propto> bb) (af, ag, bc) be bf
+	\<le> \<Down> (option_lookup_clause_rel \<A> \<times>\<^sub>f (nat_rel \<times>\<^sub>f Id))
+	(merge_conflict_m_g_eq2 ah bg bh bi bj bl bm)\<close>
     if
-      \<open>merge_conflict_m_eq2_pre \<A>      (((((((ah, bg), bh), bi), bj), bk), bl), bm)\<close> and
-      \<open>((((((((a, aa, ab, ac, ad, ae, b), ba), bb), af, ag, bc), bd), be), bf),
-	((((((ah, bg), bh), bi), bj), bk), bl), bm)
+      \<open>merge_conflict_m_eq2_pre \<A>      (((((((ah, bg), bh), bi), bj)), bl), bm)\<close> and
+      \<open>(((((((a, aa, ab, ac, ad, ae, b), ba), bb), af, ag, bc), be), bf),
+	((((((ah, bg), bh), bi), bj)), bl), bm)
        \<in> Id \<times>\<^sub>f trail_pol \<A> \<times>\<^sub>f {(arena, N). valid_arena arena N vdom} \<times>\<^sub>f       nat_rel \<times>\<^sub>f
-	 option_lookup_clause_rel \<A> \<times>\<^sub>f       nat_rel \<times>\<^sub>f
-	 Id \<times>\<^sub>f
-	 Id\<close>
-    for a aa ab ac ad ae b ba bb af ag bc bd be bf ah bg bh bi bj bk bl bm
+	 option_lookup_clause_rel \<A> \<times>\<^sub>f  nat_rel \<times>\<^sub>f Id\<close>
+    for a aa ab ac ad ae b ba bb af ag bc be bf ah bg bh bi bj bl bm
   proof -
     have
       bi: \<open>bi \<in># dom_m bh\<close> and
@@ -4181,13 +4167,12 @@ proof -
       o: \<open>((af, ag, bc), bj) \<in> option_lookup_clause_rel \<A>\<close> and
       K: \<open>\<forall>K\<in>set (remove1 ah (bh \<propto> bi)). - K \<notin># the bj\<close> and
       st: \<open>bb = bi\<close>
-        \<open>bd = bk\<close>
 	\<open>bf = bm\<close>
 	\<open>be = bl\<close>
         \<open>a = ah\<close> and
       lits_confl: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n \<A> (the bj)\<close> and
       valid: \<open>valid_arena ba bh vdom\<close> and
-      bk: \<open>bk = card_max_lvl bg (the bj)\<close> and
+      bk: \<open>bl = card_max_lvl bg (the bj)\<close> and
       tr: \<open>((aa, ab, ac, ad, ae, b), bg) \<in> trail_pol \<A>\<close> and
       out: \<open>out_learned bg bj bm\<close> and
       \<open>no_dup bg\<close> and
@@ -4221,7 +4206,7 @@ proof -
     unfolding lookup_conflict_merge_def uncurry_def
     apply (intro nres_relI frefI)
     apply clarify
-    subgoal for a aa ab ac ad ae b ba bb af ag bc bd be bf ah bg bh bi bj bk bl bm
+    subgoal for a aa ab ac ad ae b ba bb af ag bc bd bf ah bg bh bi bj bk bl
       apply (rule H1[THEN order_trans]; assumption?)
       apply (subst Down_id_eq)
       apply (rule H2)

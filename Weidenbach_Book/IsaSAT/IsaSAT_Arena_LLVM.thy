@@ -555,7 +555,7 @@ lemma get_clause_LBD_pre_implI:
   using STATUS_SHIFT_def arena_lifting apply auto
   by (meson less_imp_diff_less)
 
-sepref_register arena_lbd
+sepref_register arena_lbd mop_arena_lbd
 sepref_def arena_lbd_impl
   is \<open>uncurry (RETURN oo arena_lbd)\<close>
     :: \<open>[uncurry get_clause_LBD_pre]\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow>uint32_nat_assn\<close>
@@ -563,6 +563,13 @@ sepref_def arena_lbd_impl
   supply [dest] = get_clause_LBD_pre_implI 
   apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
+
+sepref_def mop_arena_lbd_impl
+  is \<open>uncurry mop_arena_lbd\<close>
+  :: \<open>arena_fast_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+  unfolding mop_arena_lbd_def
+  by sepref
+
 
 paragraph \<open>used flag\<close>
 sepref_register arena_used
@@ -643,6 +650,13 @@ sepref_def update_lbd_impl
     and [dest] = arena_posI
   apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
+
+sepref_def mop_arena_update_lbd_impl
+  is \<open>uncurry2 mop_arena_update_lbd\<close>
+    :: \<open>sint64_nat_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>d  \<rightarrow>\<^sub>a arena_fast_assn\<close>
+  unfolding mop_arena_update_lbd_def
+  by sepref
+
 
 
 paragraph \<open>Update Saved Position\<close>
@@ -798,10 +812,18 @@ lemma mark_used_alt_def:
   by (auto simp: mark_used_def Let_def intro!: ext)
 
 (* TODO: Wrong name for precondition! *)
-sepref_register mark_used
+sepref_register mark_used mark_used2
 sepref_def mark_used_impl is \<open>uncurry (RETURN oo mark_used)\<close>
   :: \<open>[uncurry arena_act_pre]\<^sub>a arena_fast_assn\<^sup>d *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> arena_fast_assn\<close>
   unfolding mark_used_def STATUS_SHIFT_def mark_used_alt_def
+  supply [intro] = arena_mark_used_implI
+  apply (rewrite at \<open>_ OR \<hole>\<close> unat_const_fold[where 'a=2])
+  apply (annot_snat_const \<open>TYPE(64)\<close>)
+  by sepref
+
+sepref_def mark_used2_impl is \<open>uncurry (RETURN oo mark_used2)\<close>
+  :: \<open>[uncurry arena_act_pre]\<^sub>a arena_fast_assn\<^sup>d *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> arena_fast_assn\<close>
+  unfolding mark_used2_def STATUS_SHIFT_def mark_used_alt_def
   supply [intro] = arena_mark_used_implI
   apply (rewrite at \<open>_ OR \<hole>\<close> unat_const_fold[where 'a=2])
   apply (annot_snat_const \<open>TYPE(64)\<close>)
@@ -817,6 +839,17 @@ sepref_def mark_unused_impl is \<open>uncurry (RETURN oo mark_unused)\<close>
   apply (annot_unat_const \<open>TYPE(2)\<close>)
   by sepref
 
+sepref_def mop_arena_mark_used_impl
+  is \<open>uncurry mop_arena_mark_used\<close>
+  :: \<open>arena_fast_assn\<^sup>d *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a arena_fast_assn\<close>
+  unfolding mop_arena_mark_used_def
+  by sepref
+
+sepref_def mop_arena_mark_used2_impl
+  is \<open>uncurry mop_arena_mark_used2\<close>
+  :: \<open>arena_fast_assn\<^sup>d *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a arena_fast_assn\<close>
+  unfolding mop_arena_mark_used2_def
+  by sepref
 
 
 paragraph \<open>Marked as used?\<close>
@@ -838,7 +871,7 @@ sepref_def marked_as_used_impl
   apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
-sepref_register MAX_LENGTH_SHORT_CLAUSE
+sepref_register MAX_LENGTH_SHORT_CLAUSE mop_arena_status
 sepref_def MAX_LENGTH_SHORT_CLAUSE_impl is \<open>uncurry0 (RETURN MAX_LENGTH_SHORT_CLAUSE)\<close> :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a sint64_nat_assn\<close>
   unfolding MAX_LENGTH_SHORT_CLAUSE_def
   apply (annot_snat_const \<open>TYPE(64)\<close>)
@@ -972,6 +1005,14 @@ sepref_def mop_arena_length_impl
   unfolding mop_arena_length_def
   by sepref
 
+sepref_def mop_arena_status_impl
+  is \<open>uncurry mop_arena_status\<close>
+  :: \<open>arena_fast_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a status_impl_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding mop_arena_status_def
+  by sepref
+
+
 experiment begin
 export_llvm
   arena_length_impl
@@ -987,7 +1028,7 @@ export_llvm
   mark_unused_impl
   marked_as_used_impl
   MAX_LENGTH_SHORT_CLAUSE_impl
-
+  mop_arena_status_impl
 end
 
 end

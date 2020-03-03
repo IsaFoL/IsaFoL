@@ -50,33 +50,6 @@ lemma init_state_wl_D'_code_isasat: \<open>(hr_comp isasat_init_assn
         (Id \<times>\<^sub>f (\<langle>bool_rel\<rangle>list_rel \<times>\<^sub>f (nat_rel \<times>\<^sub>f (Id \<times>\<^sub>f (Id \<times>\<^sub>f Id))))))))))) = isasat_init_assn\<close>
   by auto
 
-(*
-lemma list_assn_list_mset_rel_clauses_l_assn:
-  \<open>(hr_comp (list_assn (list_assn unat_lit_assn)) (list_mset_rel O \<langle>list_mset_rel\<rangle>IsaSAT_Initialisation.mset_rel)) xs xs'
-     = clauses_l_assn xs xs'\<close>
-proof -
-  have ex_remove_xs:
-    \<open>(\<exists>xs. mset xs = mset x \<and> {#literal_of_nat (nat_of_uint32 x). x \<in># mset xs#} = y) \<longleftrightarrow>
-       ({#literal_of_nat (nat_of_uint32 x). x \<in># mset x#} = y)\<close>
-    for x y
-    by auto
-
-  show ?thesis
-    unfolding list_assn_pure_conv list_mset_assn_pure_conv
-     list_rel_mset_rel_def
-    apply (auto simp: hr_comp_def)
-    apply (auto simp: ent_ex_up_swap list_mset_assn_def pure_def)
-    using ex_mset[of \<open>map (\<lambda>x. literal_of_nat (nat_of_uint32 x)) `# mset xs'\<close>]
-    by (auto simp add: list_mset_rel_def br_def IsaSAT_Initialisation.mset_rel_def unat_lit_rel_def
-        uint32_nat_rel_def nat_lit_rel_def WB_More_Refinement.list_mset_rel_def
-        p2rel_def Collect_eq_comp rel2p_def
-        list_all2_op_eq_map_map_right_iff rel_mset_def rel2p_def[abs_def]
-        list_all2_op_eq_map_right_iff' ex_remove_xs list_rel_def
-        list_all2_op_eq_map_right_iff
-        simp del: literal_of_nat.simps)
-qed
-*)
-
 definition model_assn where
   \<open>model_assn = hr_comp model_stat_assn model_stat_rel\<close>
 
@@ -123,20 +96,19 @@ schematic_goal mk_free_heuristic_assn[sepref_frame_free_rules]: \<open>MK_FREE h
   unfolding heuristic_assn_def
   by (rule free_thms sepref_frame_free_rules)+ (* TODO: Write a method for that! *)
 
-thm array_mk_free
-  context
-    fixes l_dummy :: \<open>'l::len2 itself\<close>
-    fixes ll_dummy :: \<open>'ll::len2 itself\<close>
-    fixes L LL AA
-    defines [simp]: \<open>L \<equiv> (LENGTH ('l))\<close>
-    defines [simp]: \<open>LL \<equiv> (LENGTH ('ll))\<close>
-    defines [simp]: \<open>AA \<equiv> raw_aal_assn TYPE('l::len2) TYPE('ll::len2)\<close>
-  begin
-    private lemma n_unf: \<open>hr_comp AA (\<langle>\<langle>the_pure A\<rangle>list_rel\<rangle>list_rel) = aal_assn A\<close> unfolding aal_assn_def AA_def ..
+context
+  fixes l_dummy :: \<open>'l::len2 itself\<close>
+  fixes ll_dummy :: \<open>'ll::len2 itself\<close>
+  fixes L LL AA
+  defines [simp]: \<open>L \<equiv> (LENGTH ('l))\<close>
+  defines [simp]: \<open>LL \<equiv> (LENGTH ('ll))\<close>
+  defines [simp]: \<open>AA \<equiv> raw_aal_assn TYPE('l::len2) TYPE('ll::len2)\<close>
+begin
+  private lemma n_unf: \<open>hr_comp AA (\<langle>\<langle>the_pure A\<rangle>list_rel\<rangle>list_rel) = aal_assn A\<close> unfolding aal_assn_def AA_def ..
 
-    context
-      notes [fcomp_norm_unfold] = n_unf
-    begin
+context
+  notes [fcomp_norm_unfold] = n_unf
+begin
 
 lemma aal_assn_free[sepref_frame_free_rules]: \<open>MK_FREE AA aal_free\<close>
   apply rule by vcg
@@ -380,10 +352,9 @@ text \<open>The setup to transmit the version is a bit complicated, because
   it LLVM does not support direct export of string
   literals. Therefore, we actually convert the version to an array
   chars (more precisely, of machine words -- ended with 0) that can be read
-  and printed in isasat.
+  and printed by the C layer. Note the conversion must be automatic, because
+  the version depends on the underlying git repository.
 \<close>
-
-
 function array_of_version where
   \<open>array_of_version i str arr =
     (if i \<ge> length str then arr

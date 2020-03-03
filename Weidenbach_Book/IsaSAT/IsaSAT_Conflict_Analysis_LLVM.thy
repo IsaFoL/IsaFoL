@@ -1,5 +1,5 @@
 theory IsaSAT_Conflict_Analysis_LLVM
-imports IsaSAT_Conflict_Analysis IsaSAT_VMTF_LLVM IsaSAT_Setup_LLVM
+imports IsaSAT_Conflict_Analysis IsaSAT_VMTF_LLVM IsaSAT_Setup_LLVM IsaSAT_LBD_LLVM
 begin
 thm fold_tuple_optimizations
 (*
@@ -178,36 +178,36 @@ sepref_register None_lookup_conflict
 declare None_lookup_conflict_impl.refine[sepref_fr_rules]
 
 
-definition extract_valuse_of_lookup_conflict :: \<open>conflict_option_rel \<Rightarrow> bool\<close> where
-\<open>extract_valuse_of_lookup_conflict = (\<lambda>(b, (_, xs)). b)\<close>
+definition extract_values_of_lookup_conflict :: \<open>conflict_option_rel \<Rightarrow> bool\<close> where
+\<open>extract_values_of_lookup_conflict = (\<lambda>(b, (_, xs)). b)\<close>
 
 
-sepref_def extract_valuse_of_lookup_conflict_impl
-  is \<open>RETURN o extract_valuse_of_lookup_conflict\<close>
+sepref_def extract_values_of_lookup_conflict_impl
+  is \<open>RETURN o extract_values_of_lookup_conflict\<close>
   :: \<open>conflict_option_rel_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
-  unfolding extract_valuse_of_lookup_conflict_def conflict_option_rel_assn_def
+  unfolding extract_values_of_lookup_conflict_def conflict_option_rel_assn_def
     lookup_clause_rel_assn_def
   by sepref
 
-sepref_register extract_valuse_of_lookup_conflict
-declare extract_valuse_of_lookup_conflict_impl.refine[sepref_fr_rules]
+sepref_register extract_values_of_lookup_conflict
+declare extract_values_of_lookup_conflict_impl.refine[sepref_fr_rules]
 
 sepref_register isasat_lookup_merge_eq2 update_confl_tl_wl_heur
 
 lemma update_confl_tl_wl_heur_alt_def:
   \<open>update_confl_tl_wl_heur = (\<lambda>L C (M, N, bnxs, Q, W, vm, clvls, cach, lbd, outl, stats). do {
+      (N, lbd) \<leftarrow> calculate_LBD_heur_st M N lbd C;
       ASSERT (clvls \<ge> 1);
       let L' = atm_of L;
       ASSERT(arena_is_valid_clause_idx N C);
-      (bnxs, clvls, lbd, outl) \<leftarrow>
-        if arena_length N C = 2 then isasat_lookup_merge_eq2 L M N C bnxs clvls lbd outl
-        else isa_resolve_merge_conflict_gt2 M N C bnxs clvls lbd outl;
-      let b = extract_valuse_of_lookup_conflict bnxs;
+      (bnxs, clvls, outl) \<leftarrow>
+        if arena_length N C = 2 then isasat_lookup_merge_eq2 L M N C bnxs clvls outl
+        else isa_resolve_merge_conflict_gt2 M N C bnxs clvls outl;
+      let b = extract_values_of_lookup_conflict bnxs;
       let nxs = the_lookup_conflict bnxs;
       ASSERT(curry lookup_conflict_remove1_pre L nxs \<and> clvls \<ge> 1);
       let nxs = lookup_conflict_remove1 L nxs;
       ASSERT(arena_act_pre N C);
-      let N = mark_used N C;
       ASSERT(vmtf_unset_pre L' vm);
       ASSERT(tl_trailt_tr_pre M);
       RETURN (False, (tl_trailt_tr M, N, (None_lookup_conflict b nxs), Q, W, isa_vmtf_unset L' vm,
@@ -215,7 +215,7 @@ lemma update_confl_tl_wl_heur_alt_def:
    })\<close>
   unfolding update_confl_tl_wl_heur_def
   by (auto intro!: ext bind_cong simp: None_lookup_conflict_def the_lookup_conflict_def
-    extract_valuse_of_lookup_conflict_def Let_def)
+    extract_values_of_lookup_conflict_def Let_def)
 
 sepref_def update_confl_tl_wl_fast_code
   is \<open>uncurry2 update_confl_tl_wl_heur\<close>
@@ -257,7 +257,7 @@ begin
     lit_of_last_trail_fast_code
     tl_state_wl_heur_fast_code
     None_lookup_conflict_impl
-    extract_valuse_of_lookup_conflict_impl
+    extract_values_of_lookup_conflict_impl
     update_confl_tl_wl_fast_code
     skip_and_resolve_loop_wl_D_fast
 

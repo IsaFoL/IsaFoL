@@ -241,7 +241,8 @@ sepref_def mop_watched_by_app_heur_code
      nth_rll_def[symmetric]
   by sepref
 
-lemma unit_propagation_inner_loop_wl_loop_D_heur_inv0D: \<open>unit_propagation_inner_loop_wl_loop_D_heur_inv0 L (j, w, S0) \<Longrightarrow>
+lemma unit_propagation_inner_loop_wl_loop_D_heur_inv0D:
+  \<open>unit_propagation_inner_loop_wl_loop_D_heur_inv0 L (j, w, S0) \<Longrightarrow>
     j \<le> length (get_clauses_wl_heur S0) - MIN_HEADER_SIZE \<and>
     w \<le> length (get_clauses_wl_heur S0) - MIN_HEADER_SIZE\<close>
   unfolding unit_propagation_inner_loop_wl_loop_D_heur_inv0_def prod.case

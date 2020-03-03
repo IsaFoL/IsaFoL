@@ -1,5 +1,5 @@
 theory IsaSAT_Conflict_Analysis
-  imports IsaSAT_Setup IsaSAT_VMTF
+  imports IsaSAT_Setup IsaSAT_VMTF IsaSAT_LBD
 begin
 
 paragraph \<open>Skip and resolve\<close>
@@ -137,10 +137,6 @@ lemma mop_tl_state_wl_pre_simps:
     simp flip: image_mset_union all_lits_def all_lits_alt_def2)
   done
 
-abbreviation twl_st_heur_conflict_ana' :: \<open>nat \<Rightarrow> (twl_st_wl_heur \<times> nat twl_st_wl) set\<close> where
-  \<open>twl_st_heur_conflict_ana' r \<equiv> {(S, T). (S, T) \<in> twl_st_heur_conflict_ana \<and>
-     length (get_clauses_wl_heur S) = r}\<close>
-
 lemma tl_state_wl_heur_tl_state_wl:
    \<open>(tl_state_wl_heur, mop_tl_state_wl) \<in>
    [\<lambda>_. True]\<^sub>f twl_st_heur_conflict_ana' r \<rightarrow> \<langle>bool_rel \<times>\<^sub>f twl_st_heur_conflict_ana' r\<rangle>nres_rel\<close>
@@ -188,16 +184,16 @@ definition update_confl_tl_wl_heur
   :: \<open>nat literal \<Rightarrow> nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> (bool \<times> twl_st_wl_heur) nres\<close>
 where
   \<open>update_confl_tl_wl_heur = (\<lambda>L C (M, N, (b, (n, xs)), Q, W, vm, clvls, cach, lbd, outl, stats). do {
+      (N, lbd) \<leftarrow> calculate_LBD_heur_st M N lbd C;
       ASSERT (clvls \<ge> 1);
       let L' = atm_of L;
       ASSERT(arena_is_valid_clause_idx N C);
-      ((b, (n, xs)), clvls, lbd, outl) \<leftarrow>
-        if arena_length N C = 2 then isasat_lookup_merge_eq2 L M N C (b, (n, xs)) clvls lbd outl
-        else isa_resolve_merge_conflict_gt2 M N C (b, (n, xs)) clvls lbd outl;
+      ((b, (n, xs)), clvls, outl) \<leftarrow>
+        if arena_length N C = 2 then isasat_lookup_merge_eq2 L M N C (b, (n, xs)) clvls outl
+        else isa_resolve_merge_conflict_gt2 M N C (b, (n, xs)) clvls outl;
       ASSERT(curry lookup_conflict_remove1_pre L (n, xs) \<and> clvls \<ge> 1);
       let (n, xs) = lookup_conflict_remove1 L (n, xs);
       ASSERT(arena_act_pre N C);
-      let N = mark_used N C;
       ASSERT(vmtf_unset_pre L' vm);
       ASSERT(tl_trailt_tr_pre M);
       RETURN (False, (tl_trailt_tr M, N, (b, (n, xs)), Q, W, isa_vmtf_unset L' vm,
@@ -491,6 +487,9 @@ lemma mset_as_position_remove3:
   by (cases \<open>L \<in># D\<close>; cases \<open>-L \<in># D\<close>)
     (auto dest!: multi_member_split simp: minus_notin_trivial ac_simps add_mset_eq_add_mset tautology_add_mset)
 
+lemma imply_itself: \<open>P \<Longrightarrow> P\<close>
+  by auto
+
 lemma update_confl_tl_wl_heur_update_confl_tl_wl:
   \<open>(uncurry2 (update_confl_tl_wl_heur), uncurry2 mop_update_confl_tl_wl) \<in>
   [\<lambda>_. True]\<^sub>f
@@ -498,29 +497,31 @@ lemma update_confl_tl_wl_heur_update_confl_tl_wl:
 proof -
   have mop_update_confl_tl_wl_alt_def: \<open>mop_update_confl_tl_wl = (\<lambda>L C (M, N, D, NE, UE, WS, Q). do {
       ASSERT(update_confl_tl_wl_pre L C (M, N, D, NE, UE, WS, Q));
+      N \<leftarrow> calculate_LBD_st M N C;
       D \<leftarrow> RETURN (resolve_cls_wl' (M, N, D, NE, UE, WS, Q) C L);
       N \<leftarrow> RETURN N;
       N \<leftarrow> RETURN N;
       RETURN (False, (tl M, N, Some D, NE, UE, WS, Q))
     })\<close>
-  by (auto simp: mop_update_confl_tl_wl_def update_confl_tl_wl_def intro!: ext)
+    by (auto simp: mop_update_confl_tl_wl_def update_confl_tl_wl_def calculate_LBD_st_def
+      intro!: ext)
   define rr where
-  \<open>rr L M N C b n xs clvls lbd outl = do {
-          ((b, (n, xs)), clvls, lbd, outl) \<leftarrow>
-            if arena_length N C = 2 then isasat_lookup_merge_eq2 L M N C (b, (n, xs)) clvls lbd outl
-           else isa_resolve_merge_conflict_gt2 M N C (b, (n, xs)) clvls lbd outl;
+  \<open>rr L M N C b n xs clvls outl = do {
+          ((b, (n, xs)), clvls, outl) \<leftarrow>
+            if arena_length N C = 2 then isasat_lookup_merge_eq2 L M N C (b, (n, xs)) clvls outl
+           else isa_resolve_merge_conflict_gt2 M N C (b, (n, xs)) clvls outl;
          ASSERT(curry lookup_conflict_remove1_pre L (n, xs) \<and> clvls \<ge> 1);
          let (nxs) = lookup_conflict_remove1 L (n, xs);
-         RETURN ((b, (nxs)), clvls, lbd, outl) }\<close>
+         RETURN ((b, (nxs)), clvls, outl) }\<close>
     for  L M N C b n xs clvls lbd outl
   have update_confl_tl_wl_heur_alt_def:
     \<open>update_confl_tl_wl_heur = (\<lambda>L C (M, N, (b, (n, xs)), Q, W, vm, clvls, cach, lbd, outl, stats). do {
+      (N, lbd) \<leftarrow> calculate_LBD_heur_st M N lbd C;
       ASSERT (clvls \<ge> 1);
       let L' = atm_of L;
       ASSERT(arena_is_valid_clause_idx N C);
-      ((b, (n, xs)), clvls, lbd, outl) \<leftarrow> rr L M N C b n xs clvls lbd outl;
+      ((b, (n, xs)), clvls, outl) \<leftarrow> rr L M N C b n xs clvls outl;
       ASSERT(arena_act_pre N C);
-      let N = mark_used N C;
       ASSERT(vmtf_unset_pre L' vm);
       ASSERT(tl_trailt_tr_pre M);
       RETURN (False, (tl_trailt_tr M, N, (b, (n, xs)), Q, W, isa_vmtf_unset L' vm,
@@ -540,8 +541,8 @@ note [[goals_limit=1]]
     update_confl_tl_wl_pre x1 x2 (x1a, x1b, x1c, x1d, x1e, NS, US, x1f, x2f) \<Longrightarrow>
     1 \<le> x1q \<Longrightarrow>
     arena_is_valid_clause_idx x1i x2g \<Longrightarrow>
-    rr x1g x1h x1i x2g x1k x1l x2k x1q x1s x1t
-    \<le> \<Down> {((C, clvls, lbd, outl), D). (C, Some D) \<in> option_lookup_clause_rel (all_atms_st (x1a, x1b, x1c, x1d, x1e, NS, US, x1f, x2f))  \<and>
+    rr x1g x1h x1i x2g x1k x1l x2k x1q x1t
+    \<le> \<Down> {((C, clvls, outl), D). (C, Some D) \<in> option_lookup_clause_rel (all_atms_st (x1a, x1b, x1c, x1d, x1e, NS, US, x1f, x2f))  \<and>
           clvls = card_max_lvl x1a (remove1_mset x1 (mset (x1b \<propto> x2)) \<union># the x1c)  \<and>
          out_learned x1a (Some (remove1_mset x1 (mset (x1b \<propto> x2)) \<union># the x1c)) (outl) \<and>
          size (remove1_mset x1 (mset (x1b \<propto> x2)) \<union># the x1c) =
@@ -549,7 +550,7 @@ note [[goals_limit=1]]
         D = resolve_cls_wl' (x1a, x1b, x1c, x1d, x1e, NS, US, x1f, x2f) x2 x1}
        (RETURN (resolve_cls_wl' (x1a, x1b, x1c, x1d, x1e, NS, US, x1f, x2f) x2 x1))\<close>
      for m n p q ra s t x1 x2 x1a x1b x1c x1d x1e x1f x2f x1g x2g x1h x1i x1k
-       x1l x2k x1m x1n x1p x1q x1r x1s x1t CLS CLS' NS US
+       x1l x2k x1m x1n x1p x1q x1r x1t CLS CLS' NS US x1s
      unfolding rr_def
      apply (refine_vcg lhs_step_If)
      apply (rule isasat_lookup_merge_eq2_lookup_merge_eq2[where
@@ -607,7 +608,109 @@ note [[goals_limit=1]]
          simp: update_confl_tl_wl_pre'_def)
       apply (rule isa_resolve_merge_conflict_gt2[where
          \<A> = \<open>all_atms_st (x1a, x1b, x1c, x1d, x1e, NS, US, x1f, x2f)\<close> and vdom = \<open>set p\<close>,
-       THEN fref_to_Down_curry6, of x1a x1b x2g x1c x1q x1s x1t,
+       THEN fref_to_Down_curry5, of x1a x1b x2g x1c x1q x1t,
+       THEN order_trans])
+     subgoal unfolding merge_conflict_m_pre_def
+       by (auto dest!: update_confl_tl_wl_pre_update_confl_tl_wl_pre'
+         simp: update_confl_tl_wl_pre'_def twl_st_heur_conflict_ana_def counts_maximum_level_def)
+     subgoal by (auto simp: twl_st_heur_conflict_ana_def)
+     subgoal
+        by (auto dest!: update_confl_tl_wl_pre_update_confl_tl_wl_pre'
+         simp: update_confl_tl_wl_pre'_def conc_fun_SPEC lookup_conflict_remove1_pre_def atms_of_def
+           option_lookup_clause_rel_def lookup_clause_rel_def resolve_cls_wl'_def
+           merge_conflict_m_def lookup_conflict_remove1_def subset_mset.sup.commute[of _ \<open>mset (_ \<propto> _)\<close>]
+           remove1_mset_union_distrib1 remove1_mset_union_distrib2
+         intro!: mset_as_position_remove3
+         intro!: ASSERT_leI)
+      done
+    done
+  have rr: \<open>(((x1g, x2g), x1h, x1i, (x1k, x1l, x2k), x1m, x1n, x1o, x1p, x1q,
+         x1r, x1s, l, m, n, p, q, ra, s),
+        (x1, x2), x1a, N, x1c, x1d, x1e, x1f, ha, ia, ja)
+       \<in> nat_lit_lit_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f twl_st_heur_conflict_ana' r \<Longrightarrow>
+       CLS = ((x1, x2), x1a, N, x1c, x1d, x1e, x1f, ha, ia, ja) \<Longrightarrow>
+       CLS' =
+       ((x1g, x2g), x1h, x1i, (x1k, x1l, x2k), x1m, x1n, x1o, x1p, x1q, x1r,
+        x1s, l, m, n, p, q, ra, s) \<Longrightarrow>
+       update_confl_tl_wl_pre x1 x2
+        (x1a, N, x1c, x1d, x1e, x1f, ha, ia, ja) \<Longrightarrow>
+       ((x1t, x2t :: bool list), x1b)
+       \<in> {((arena', lbd), N').
+          valid_arena arena' N'
+           (set (get_vdom
+                  (snd ((x1g, x2g), x1h, x1i, (x1k, x1l, x2k), x1m, x1n,
+                        x1o, x1p, x1q, x1r, x1s, l, m, n, p, q, ra, s)))) \<and>
+          N = N' \<and> length x1i = length arena'} \<Longrightarrow>
+       1 \<le> x1p \<Longrightarrow>
+       arena_is_valid_clause_idx x1t x2g \<Longrightarrow>
+       rr x1g x1h x1t x2g x1k x1l x2k x1p x1s
+       \<le> \<Down> {((C, clvls, outl), D). (C, Some D) \<in> option_lookup_clause_rel (all_atms_st (x1a, x1b, x1c, x1d, x1e, x1f, ha, ia, ja))  \<and>
+          clvls = card_max_lvl x1a (remove1_mset x1 (mset (x1b \<propto> x2)) \<union># the x1c)  \<and>
+         out_learned x1a (Some (remove1_mset x1 (mset (x1b \<propto> x2)) \<union># the x1c)) (outl) \<and>
+         size (remove1_mset x1 (mset (x1b \<propto> x2)) \<union># the x1c) =
+           size ((mset (x1b \<propto> x2)) \<union># the x1c - {#x1, -x1#}) + Suc 0 \<and>
+        D = resolve_cls_wl' (x1a, x1b, x1c, x1d, x1e, x1f, ha, ia, ja) x2 x1}
+       (RETURN (resolve_cls_wl' (x1a, x1b, x1c, x1d, x1e, x1f, ha, ia, ja) x2 x1))\<close>
+   for l m n p q ra s ha ia ja x1 x2 x1a x1b x1c x1d x1e x1f x1g x2g x1h x1i
+       x1k x1l x2k x1m x1n x1o x1p x1q x1r x1s N x1t x2t CLS CLS'
+     unfolding rr_def
+     apply (refine_vcg lhs_step_If)
+     apply (rule isasat_lookup_merge_eq2_lookup_merge_eq2[where
+        vdom = \<open>set (get_vdom (x1h, x1i, (x1k, x1l, x2k), x1m, x1n, x1o, x1p, x1q,
+         x1r, x1s, l, m, n, p, q, ra, s))\<close> and M = x1a and  N = x1b and C = x1c and
+      \<A> = \<open>all_atms_st (x1a, x1b, x1c, x1d, x1e, x1f, ha, ia, ja)\<close>, THEN order_trans])
+     subgoal by (auto simp: twl_st_heur_conflict_ana_def)
+     subgoal by (auto dest!: update_confl_tl_wl_pre_update_confl_tl_wl_pre' simp: update_confl_tl_wl_pre'_def)
+     subgoal by auto
+     subgoal by (auto simp: twl_st_heur_conflict_ana_def)
+     subgoal by (auto simp: twl_st_heur_conflict_ana_def)
+     subgoal by (auto simp: twl_st_heur_conflict_ana_def)
+     subgoal unfolding Down_id_eq
+      apply (rule lookup_merge_eq2_spec[where M = x1a and C = \<open>the x1c\<close> and
+      \<A> = \<open>all_atms_st (x1a, x1b, x1c, x1d, x1e, x1f, ha, ia, ja)\<close>, THEN order_trans])
+      subgoal by (auto dest!: update_confl_tl_wl_pre_update_confl_tl_wl_pre'
+         simp: update_confl_tl_wl_pre'_def twl_st_heur_conflict_ana_def)
+      subgoal by (auto dest!: update_confl_tl_wl_pre_update_confl_tl_wl_pre'
+         simp: update_confl_tl_wl_pre'_def twl_st_heur_conflict_ana_def)
+      subgoal by (auto dest!: update_confl_tl_wl_pre_update_confl_tl_wl_pre'
+         simp: update_confl_tl_wl_pre'_def intro!: literals_are_in_\<L>\<^sub>i\<^sub>n_mm_literals_are_in_\<L>\<^sub>i\<^sub>n)
+      subgoal by (auto dest!: update_confl_tl_wl_pre_update_confl_tl_wl_pre'
+         simp: update_confl_tl_wl_pre'_def twl_st_heur_conflict_ana_def)
+      subgoal by (auto dest!: update_confl_tl_wl_pre_update_confl_tl_wl_pre'
+         simp: update_confl_tl_wl_pre'_def twl_st_heur_conflict_ana_def)
+      subgoal by (auto dest!: update_confl_tl_wl_pre_update_confl_tl_wl_pre'
+         simp: update_confl_tl_wl_pre'_def twl_st_heur_conflict_ana_def)
+      subgoal by (auto dest!: update_confl_tl_wl_pre_update_confl_tl_wl_pre'
+         simp: update_confl_tl_wl_pre'_def twl_st_heur_conflict_ana_def)
+      subgoal by (auto dest!: update_confl_tl_wl_pre_update_confl_tl_wl_pre'
+         simp: update_confl_tl_wl_pre'_def twl_st_heur_conflict_ana_def)
+      subgoal by (auto dest!: update_confl_tl_wl_pre_update_confl_tl_wl_pre'
+         simp: update_confl_tl_wl_pre'_def twl_st_heur_conflict_ana_def counts_maximum_level_def)
+      subgoal by (auto dest!: update_confl_tl_wl_pre_update_confl_tl_wl_pre'
+         simp: update_confl_tl_wl_pre'_def twl_st_heur_conflict_ana_def)
+      subgoal by (auto dest!: update_confl_tl_wl_pre_update_confl_tl_wl_pre'
+         simp: update_confl_tl_wl_pre'_def twl_st_heur_conflict_ana_def)
+      subgoal by (auto dest!: update_confl_tl_wl_pre_update_confl_tl_wl_pre'
+         simp: update_confl_tl_wl_pre'_def arena_lifting twl_st_heur_conflict_ana_def)
+      subgoal by (auto dest!: update_confl_tl_wl_pre_update_confl_tl_wl_pre'
+         simp: update_confl_tl_wl_pre'_def arena_lifting twl_st_heur_conflict_ana_def)
+      subgoal by (auto dest!: update_confl_tl_wl_pre_update_confl_tl_wl_pre'
+         simp: update_confl_tl_wl_pre'_def merge_conflict_m_eq2_def conc_fun_SPEC lookup_conflict_remove1_pre_def
+           atms_of_def
+           option_lookup_clause_rel_def lookup_clause_rel_def resolve_cls_wl'_def lookup_conflict_remove1_def
+           remove1_mset_union_distrib1 remove1_mset_union_distrib2 subset_mset.sup.commute[of _ \<open>remove1_mset _ _\<close>]
+          subset_mset.sup.commute[of _ \<open>mset (_ \<propto> _)\<close>]
+         intro!: mset_as_position_remove3
+         intro!: ASSERT_leI)
+     done
+    subgoal
+      apply (subst (asm) arena_lifting(4)[where vdom = \<open>set n\<close> and N = x1b, symmetric])
+      subgoal by (auto simp: )
+      subgoal by (auto dest!: update_confl_tl_wl_pre_update_confl_tl_wl_pre'
+         simp: update_confl_tl_wl_pre'_def)
+      apply (rule isa_resolve_merge_conflict_gt2[where
+         \<A> = \<open>all_atms_st (x1a, x1b, x1c, x1d, x1e, x1f, ha, ia, ja)\<close> and vdom = \<open>set n\<close>,
+       THEN fref_to_Down_curry5, of x1a x1b x2g x1c x1p x1s,
        THEN order_trans])
      subgoal unfolding merge_conflict_m_pre_def
        by (auto dest!: update_confl_tl_wl_pre_update_confl_tl_wl_pre'
@@ -633,11 +736,26 @@ note [[goals_limit=1]]
       apply (cases CLS'; cases CLS; hypsubst+)
       unfolding uncurry_def update_confl_tl_wl_heur_alt_def comp_def Let_def
         update_confl_tl_wl_def mop_update_confl_tl_wl_alt_def prod.case
-      apply (refine_rcg; remove_dummy_vars)
+      apply (refine_rcg calculate_LBD_heur_st_calculate_LBD_st[where
+        vdom = \<open>set (get_vdom (snd CLS'))\<close> and
+        \<A> = \<open>all_atms_st (snd CLS)\<close>]; remove_dummy_vars)
       subgoal
         by (auto simp: twl_st_heur_conflict_ana_def update_confl_tl_wl_pre'_def
             RES_RETURN_RES RETURN_def counts_maximum_level_def)
       subgoal by (auto dest!: update_confl_tl_wl_pre_update_confl_tl_wl_pre'
+         simp: update_confl_tl_wl_pre'_def arena_is_valid_clause_idx_def twl_st_heur_conflict_ana_def)
+      subgoal by (auto dest!: update_confl_tl_wl_pre_update_confl_tl_wl_pre'
+         simp: update_confl_tl_wl_pre'_def arena_is_valid_clause_idx_def twl_st_heur_conflict_ana_def)
+      subgoal
+        using literals_are_in_\<L>\<^sub>i\<^sub>n_nth[of \<open>snd (fst CLS)\<close> \<open>snd CLS\<close>
+         \<open>all_atms_st (snd CLS)\<close>, simplified]
+        by (auto
+         simp: update_confl_tl_wl_pre'_def arena_is_valid_clause_idx_def twl_st_heur_conflict_ana_def)
+      subgoal by auto
+      subgoal
+        by (auto simp: twl_st_heur_conflict_ana_def update_confl_tl_wl_pre'_def
+            RES_RETURN_RES RETURN_def counts_maximum_level_def)
+      subgoal by (auto intro!: exI[of _ \<open>get_clauses_wl (snd CLS)\<close>] exI[of _ \<open>set (get_vdom (snd CLS'))\<close>]
          simp: update_confl_tl_wl_pre'_def arena_is_valid_clause_idx_def twl_st_heur_conflict_ana_def)
       apply (rule rr; assumption)
       subgoal by (simp add: arena_act_pre_def)
@@ -645,7 +763,7 @@ note [[goals_limit=1]]
          simp: update_confl_tl_wl_pre'_def arena_is_valid_clause_idx_def twl_st_heur_conflict_ana_def
            intro!: vmtf_unset_pre')
       subgoal for m n p q ra s t ha ia ja x1 x2 x1a x1b x1c x1d x1e x1f x1g x2g x1h x1i
-       x1k x1l x2k x1m x1n x1o x1p x1q x1r x1s x1t D x1v x1w x2v x1x x1y
+       x1k x1l x2k x1m x1n x1o x1p x1q x1r x1t D x1v x1w x2v x1x x1y
          by (rule tl_trailt_tr_pre[of x1a _ \<open>all_atms_st (x1a, x1b, x1c, x1d, x1e, x1f, ha, ia, ja)\<close>])
            (clarsimp_all dest!: update_confl_tl_wl_pre_update_confl_tl_wl_pre'
              simp: update_confl_tl_wl_pre'_def arena_is_valid_clause_idx_def twl_st_heur_conflict_ana_def
@@ -735,7 +853,8 @@ where
               b \<leftarrow> maximum_level_removed_eq_count_dec_heur L S;
               if b
               then do {
-                update_confl_tl_wl_heur L C S}
+                update_confl_tl_wl_heur L C S
+              }
               else
                 RETURN (True, S)
             }
@@ -775,6 +894,36 @@ proof -
   done
 qed
 
+lemma skip_and_resolve_loop_wl_alt_def:
+  \<open>skip_and_resolve_loop_wl S\<^sub>0 =
+    do {
+      ASSERT(get_conflict_wl S\<^sub>0 \<noteq> None);
+      (_, S) \<leftarrow>
+        WHILE\<^sub>T\<^bsup>\<lambda>(brk, S). skip_and_resolve_loop_wl_inv S\<^sub>0 brk S\<^esup>
+        (\<lambda>(brk, S). \<not>brk \<and> \<not>is_decided (hd (get_trail_wl S)))
+        (\<lambda>(_, S).
+          do {
+            (L, C) \<leftarrow> mop_hd_trail_wl S;
+            b \<leftarrow> mop_lit_notin_conflict_wl (-L) S;
+            if b then
+              mop_tl_state_wl S
+            else do {
+              b \<leftarrow> mop_maximum_level_removed_wl L S;
+              if b
+              then do {
+                mop_update_confl_tl_wl L C S
+              }
+              else
+                do {RETURN (True, S)}
+           }
+          }
+        )
+        (False, S\<^sub>0);
+      RETURN S
+    }\<close>
+  unfolding skip_and_resolve_loop_wl_def calculate_LBD_st_def
+  by (auto cong: if_cong)
+
 lemma skip_and_resolve_loop_wl_D_heur_skip_and_resolve_loop_wl_D:
   \<open>(skip_and_resolve_loop_wl_D_heur, skip_and_resolve_loop_wl)
     \<in> twl_st_heur_conflict_ana' r \<rightarrow>\<^sub>f \<langle>twl_st_heur_conflict_ana' r\<rangle>nres_rel\<close>
@@ -787,7 +936,7 @@ proof -
 
   show ?thesis
     supply [[goals_limit=1]]
-    unfolding skip_and_resolve_loop_wl_D_heur_def skip_and_resolve_loop_wl_def
+    unfolding skip_and_resolve_loop_wl_D_heur_def skip_and_resolve_loop_wl_alt_def
     apply (intro frefI nres_relI)
     apply (refine_vcg
         update_confl_tl_wl_heur_update_confl_tl_wl[THEN fref_to_Down_curry2, unfolded comp_def]

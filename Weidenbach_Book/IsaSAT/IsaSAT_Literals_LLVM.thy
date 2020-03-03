@@ -368,4 +368,18 @@ sepref_def is_pos_impl is [] \<open>RETURN o (\<lambda>x. x AND 1 = 0)\<close> :
 
 lemmas [sepref_fr_rules] = is_pos_impl.refine[FCOMP is_pos_refine_aux]
 
+sepref_decl_op nat_lit_eq: \<open>(=) :: nat literal \<Rightarrow> _ \<Rightarrow> _\<close> ::
+  \<open>(Id :: (nat literal \<times> _) set) \<rightarrow> (Id :: (nat literal \<times> _) set) \<rightarrow> bool_rel\<close> .
+
+sepref_def nat_lit_eq_impl
+  is [] \<open>uncurry (RETURN oo (\<lambda>x y. x = y))\<close>
+  :: \<open>uint32_nat_assn\<^sup>k *\<^sub>a uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
+  by sepref
+
+lemma nat_lit_rel: \<open>((=), op_nat_lit_eq) \<in> nat_lit_rel \<rightarrow> nat_lit_rel \<rightarrow> bool_rel\<close>
+  by (auto simp: nat_lit_rel_def br_def split: if_splits; presburger)
+
+sepref_register \<open>(=) :: nat literal \<Rightarrow> _ \<Rightarrow> _\<close>
+declare nat_lit_eq_impl.refine[FCOMP nat_lit_rel, sepref_fr_rules]
+
 end
