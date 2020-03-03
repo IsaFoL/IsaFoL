@@ -530,9 +530,18 @@ qed
 
 end
 
-locale reduc_static_refutational_complete_calculus = calculus_with_reduced_red_crit +
+(* because it is possible to have a non-reduced redundancy criterion for a reduced static
+ * refutational complete calculus *)
+locale  reduc_static_refutational_complete_calculus = calculus_with_red_crit +
+  assumes reduc_static_refutational_complete: "B \<in> Bot \<Longrightarrow> reduc_saturated N \<Longrightarrow> N \<Turnstile> {B} \<Longrightarrow> \<exists>B'\<in>Bot. B' \<in> N"
+
+locale reduc_static_refutational_complete_reduc_calculus = calculus_with_reduced_red_crit +
   assumes reduc_static_refutational_complete: "B \<in> Bot \<Longrightarrow> reduc_saturated N \<Longrightarrow> N \<Turnstile> {B} \<Longrightarrow> \<exists>B'\<in>Bot. B' \<in> N"
 begin
+
+sublocale reduc_static_refutational_complete_calculus
+  by (simp add: calculus_with_red_crit_axioms reduc_static_refutational_complete
+    reduc_static_refutational_complete_calculus_axioms.intro reduc_static_refutational_complete_calculus_def)
 
 text \<open>cor:reduced-rc-implies-st-ref-comp-equiv-reduced-st-ref-comp 1/2\<close>
 sublocale static_refutational_complete_calculus
@@ -709,7 +718,7 @@ next
   qed
 qed
         
-text \<open>thm:reduced-stat-ref-compl 3/3 (iv) \<longleftrightarrow> (iii)\<close>
+text \<open>thm:reduced-stat-ref-compl 2/3 (iv) \<longleftrightarrow> (iii)\<close>
 theorem "reduc_static_refutational_complete_calculus Bot Inf entails Red_Red_Inf Red_F \<longleftrightarrow>
   static_refutational_complete_calculus Bot Inf entails Red_Red_Inf Red_F"
   using reduc_calc.stat_ref_comp_imp_red_stat_ref_comp 
@@ -717,24 +726,13 @@ theorem "reduc_static_refutational_complete_calculus Bot Inf entails Red_Red_Inf
     reduc_static_refutational_complete_calculus_axioms_def reduced_calc_is_calc
     static_refutational_complete_calculus.intro static_refutational_complete_calculus_axioms.intro)
 
-find_theorems calculus_with_reduced_red_crit
-
 text \<open>thm:reduced-stat-ref-compl 3/3 (ii) \<longleftrightarrow> (iii)\<close>
 theorem "reduc_static_refutational_complete_calculus Bot Inf entails Red_Inf Red_F \<longleftrightarrow>
   static_refutational_complete_calculus Bot Inf entails Red_Red_Inf Red_F"
   using reduc_calc.calculus_with_red_crit_axioms calculus_with_red_crit_axioms red_sat_eq_red_calc_sat
   unfolding static_refutational_complete_calculus_def static_refutational_complete_calculus_axioms_def
     reduc_static_refutational_complete_calculus_def reduc_static_refutational_complete_calculus_axioms_def
-  
-proof
-  assume
-    stat_ref2: "reduc_static_refutational_complete_calculus Bot Inf entails Red_Inf Red_F"
-  show "static_refutational_complete_calculus Bot Inf entails Red_Red_Inf Red_F"
-    using reduc_calc.calculus_with_red_crit_axioms
-    unfolding static_refutational_complete_calculus_def static_refutational_complete_calculus_axioms_def
-  proof
-    show "\<forall>B N. B \<in> Bot \<longrightarrow> reduc_calc.saturated N \<longrightarrow> N \<Turnstile> {B} \<longrightarrow> (\<exists>B'\<in>Bot. B' \<in> N)"
-    proof clarify
+  by blast
 
 end
 
