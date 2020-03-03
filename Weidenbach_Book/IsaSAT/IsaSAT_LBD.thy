@@ -52,7 +52,9 @@ abbreviation TIER_ONE_MAXIMUM where
 definition calculate_LBD_heur_st :: \<open>_ \<Rightarrow> arena \<Rightarrow> lbd \<Rightarrow> nat \<Rightarrow> (arena \<times> lbd) nres\<close> where
   \<open>calculate_LBD_heur_st = (\<lambda>M N lbd C. do{
      old_glue \<leftarrow> mop_arena_lbd N C;
-     if old_glue < TIER_ONE_MAXIMUM then do {
+     st \<leftarrow> mop_arena_status N C;
+     if st = IRRED then RETURN (N, lbd)
+     else if old_glue < TIER_ONE_MAXIMUM then do {
        N \<leftarrow> mop_arena_mark_used2 N C;
        RETURN (N, lbd)
      }
@@ -69,7 +71,9 @@ definition calculate_LBD_heur_st :: \<open>_ \<Rightarrow> arena \<Rightarrow> l
 lemma calculate_LBD_st_alt_def:
   \<open>calculate_LBD_st = (\<lambda>M N C. do {
       old_glue :: nat \<leftarrow> SPEC(\<lambda>_ . True);
-      if old_glue < 6 then  do {
+      st :: clause_status \<leftarrow> SPEC(\<lambda>_ . True);
+      if st = IRRED then RETURN N
+      else if old_glue < 6 then  do {
          _ \<leftarrow> RETURN N;
          RETURN N
       }
@@ -81,17 +85,9 @@ lemma calculate_LBD_st_alt_def:
        _ \<leftarrow> RETURN N;
       RETURN N
     }})\<close> (is \<open>?A = ?B\<close>)
-proof -
-  have \<open>?A M N C \<le> ?B M N C\<close> for M N C
-    apply (rewrite at \<open>_ \<le> \<hole>\<close> Down_id_eq[symmetric])
-    unfolding calculate_LBD_st_def get_LBD_def lbd_empty_def
-    by (rule rhs_step_bind_RES)
-      (auto intro!: ext rhs_step_bind_RES split: if_splits)
-  also have \<open>?B M N C \<le> ?A M N C\<close> for M N C
-    unfolding calculate_LBD_st_def get_LBD_def lbd_empty_def
-    by (auto intro!: ext rhs_step_bind_RES split: if_splits cong: if_cong)
-  finally show ?thesis by blast
-qed
+  unfolding calculate_LBD_st_def get_LBD_def lbd_empty_def
+  by (auto intro!: ext rhs_step_bind_RES split: if_splits cong: if_cong)
+
 
 (* TODO Move *)
 lemma RF_COME_ON: \<open>(x, y) \<in> Id \<Longrightarrow> f x \<le> \<Down> Id (f y)\<close>
@@ -148,6 +144,14 @@ proof -
       unfolding twl_st_heur_conflict_ana_def
       by (auto simp: mop_arena_lbd_def get_clause_LBD_pre_def arena_is_valid_clause_idx_def
         intro!: ASSERT_leI exI[of _ N] exI[of _ vdom])
+    subgoal
+      unfolding twl_st_heur_conflict_ana_def
+      by (auto simp: mop_arena_status_def arena_is_valid_clause_vdom_def arena_is_valid_clause_idx_def
+        intro!: ASSERT_leI exI[of _ N] exI[of _ vdom])
+    subgoal
+      by (auto simp: twl_st_heur_conflict_ana_def RETURN_RES_refine_iff)
+    subgoal
+      by (auto simp: twl_st_heur_conflict_ana_def RETURN_RES_refine_iff)
     subgoal
       by (auto simp: twl_st_heur_conflict_ana_def RETURN_RES_refine_iff)
     subgoal

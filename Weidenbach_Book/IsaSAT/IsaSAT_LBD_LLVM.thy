@@ -3,7 +3,7 @@ theory IsaSAT_LBD_LLVM
 begin
 
 sepref_register mark_lbd_from_clause_heur get_level_pol mark_lbd_from_list_heur
-  mark_lbd_from_conflict
+  mark_lbd_from_conflict mop_arena_status
 
 sepref_def mark_lbd_from_clause_heur_impl
   is \<open>uncurry3 mark_lbd_from_clause_heur\<close>

@@ -871,7 +871,7 @@ sepref_def marked_as_used_impl
   apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
-sepref_register MAX_LENGTH_SHORT_CLAUSE
+sepref_register MAX_LENGTH_SHORT_CLAUSE mop_arena_status
 sepref_def MAX_LENGTH_SHORT_CLAUSE_impl is \<open>uncurry0 (RETURN MAX_LENGTH_SHORT_CLAUSE)\<close> :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a sint64_nat_assn\<close>
   unfolding MAX_LENGTH_SHORT_CLAUSE_def
   apply (annot_snat_const \<open>TYPE(64)\<close>)
@@ -1005,6 +1005,14 @@ sepref_def mop_arena_length_impl
   unfolding mop_arena_length_def
   by sepref
 
+sepref_def mop_arena_status_impl
+  is \<open>uncurry mop_arena_status\<close>
+  :: \<open>arena_fast_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a status_impl_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding mop_arena_status_def
+  by sepref
+
+
 experiment begin
 export_llvm
   arena_length_impl
@@ -1020,7 +1028,7 @@ export_llvm
   mark_unused_impl
   marked_as_used_impl
   MAX_LENGTH_SHORT_CLAUSE_impl
-
+  mop_arena_status_impl
 end
 
 end
