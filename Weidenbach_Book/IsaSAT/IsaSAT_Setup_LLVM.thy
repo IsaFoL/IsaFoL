@@ -14,18 +14,19 @@ abbreviation \<open>word64_rel \<equiv> word_rel :: (64 word \<times> _) set\<cl
 abbreviation \<open>word32_assn \<equiv> word_assn :: 32 word \<Rightarrow> _\<close>
 abbreviation \<open>word64_assn \<equiv> word_assn :: 64 word \<Rightarrow> _\<close>
 
-abbreviation stats_rel :: \<open>(stats \<times> stats) set\<close> where
-  \<open>stats_rel \<equiv> word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel
-     \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel\<close>
-
 abbreviation ema_rel :: \<open>(ema\<times>ema) set\<close> where
   \<open>ema_rel \<equiv> word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel\<close>
 
 abbreviation ema_assn :: \<open>ema \<Rightarrow> ema \<Rightarrow> assn\<close> where
   \<open>ema_assn \<equiv> word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn\<close>
 
+abbreviation stats_rel :: \<open>(stats \<times> stats) set\<close> where
+  \<open>stats_rel \<equiv> word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel
+     \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r ema_rel\<close>
+
 abbreviation stats_assn :: \<open>stats \<Rightarrow> stats \<Rightarrow> assn\<close> where
-  \<open>stats_assn \<equiv> word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a ema_assn\<close>
+  \<open>stats_assn \<equiv> word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a  word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a
+     word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a ema_assn\<close>
 
 
 lemma [sepref_import_param]:
@@ -64,7 +65,7 @@ lemma [sepref_import_param]:
   \<open>(incr_lrestart,incr_lrestart) \<in> stats_rel \<rightarrow> stats_rel\<close>
   \<open>(incr_uset,incr_uset) \<in> stats_rel \<rightarrow> stats_rel\<close>
   \<open>(incr_GC,incr_GC) \<in> stats_rel \<rightarrow> stats_rel\<close>
-  \<open>(add_lbd,add_lbd) \<in> word64_rel \<rightarrow> stats_rel \<rightarrow> stats_rel\<close>
+  \<open>(add_lbd,add_lbd) \<in> word32_rel \<rightarrow> stats_rel \<rightarrow> stats_rel\<close>
   by auto
 
 lemmas [llvm_inline] =
@@ -568,6 +569,29 @@ sepref_def ema_get_value_impl
   unfolding emag_get_value_alt_def
   by sepref
 
+definition ema_extract_value_coeff :: \<open>nat\<close> where
+  [simp]: \<open>ema_extract_value_coeff = 32\<close>
+
+sepref_register ema_extract_value_coeff
+
+lemma ema_extract_value_32[sepref_fr_rules]:
+  \<open>(uncurry0 (return (32 :: 64 word)), uncurry0 (RETURN ema_extract_value_coeff)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a unat_assn\<close>
+  apply sepref_to_hoare
+  apply vcg
+  apply (auto simp: ENTAILS_def unat_rel_def unat.rel_def br_def pred_lift_merge_simps)
+  by (metis (mono_tags, lifting) entails_def entails_lift_extract_simps(2) frame_thms(2))
+
+lemmas [llvm_inline] = ema_extract_value_coeff_def
+
+lemma emag_extract_value_alt_def:
+  \<open>ema_extract_value = (\<lambda>(a, b, c, d). a >> ema_extract_value_coeff)\<close>
+  by auto
+
+sepref_def ema_extract_value_impl
+  is \<open>RETURN o ema_extract_value\<close>
+  :: \<open>ema_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
+  unfolding emag_extract_value_alt_def ema_extract_value_coeff_def[symmetric]
+  by sepref
 
 sepref_register isasat_length_trail_st
 
@@ -741,7 +765,24 @@ sepref_def mop_save_phase_heur_impl
   apply annot_all_atm_idxs
   by sepref
 
-sepref_register set_zero_wasted mop_save_phase_heur
+
+lemma id_unat[sepref_fr_rules]:
+   \<open>(return o id, RETURN o unat) \<in> word32_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+  apply sepref_to_hoare
+  apply vcg
+  by (auto simp: ENTAILS_def unat_rel_def unat.rel_def br_def pred_lift_merge_simps
+     pred_lift_def pure_true_conv)
+
+sepref_register set_zero_wasted mop_save_phase_heur add_lbd
+
+
+sepref_def add_lbd_impl
+  is \<open>uncurry (RETURN oo add_lbd)\<close>
+  :: \<open>word32_assn\<^sup>k *\<^sub>a stats_assn\<^sup>d \<rightarrow>\<^sub>a stats_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding add_lbd_def
+  by sepref
+
 
 experiment begin
 

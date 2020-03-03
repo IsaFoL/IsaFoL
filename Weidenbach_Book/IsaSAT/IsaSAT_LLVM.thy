@@ -13,11 +13,11 @@ abbreviation  model_stat_assn\<^sub>0 ::
     "bool \<times>
      nat literal list \<times>
      64 word \<times>
-     64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word
+     64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> ema
      \<Rightarrow> 1 word \<times>
        (64 word \<times> 64 word \<times> 32 word ptr) \<times>
        64 word \<times>
-       64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word
+       64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> ema
        \<Rightarrow> llvm_amemory \<Rightarrow> bool"
 where
   \<open>model_stat_assn\<^sub>0 \<equiv> bool1_assn \<times>\<^sub>a (al_assn unat_lit_assn) \<times>\<^sub>a stats_assn\<close>

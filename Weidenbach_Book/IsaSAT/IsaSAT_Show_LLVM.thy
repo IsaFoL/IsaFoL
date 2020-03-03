@@ -38,11 +38,6 @@ sepref_def print_char_impl
   unfolding print_char_def
   by sepref
 
-sepref_def zero_some_stats_impl
-  is \<open>RETURN o zero_some_stats\<close>
-  :: \<open>stats_assn\<^sup>d \<rightarrow>\<^sub>a stats_assn\<close>
-  unfolding zero_some_stats_def
-  by sepref
 
 sepref_def isasat_current_information_impl [llvm_code]
   is \<open>uncurry2 (RETURN ooo isasat_current_information)\<close>

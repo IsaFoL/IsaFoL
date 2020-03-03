@@ -1499,12 +1499,10 @@ definition empty_conflict :: \<open>nat literal list option\<close> where
 definition empty_conflict_code :: \<open>(bool \<times> _ list \<times> stats) nres\<close> where
   \<open>empty_conflict_code = do{
      let M0 = [];
-     RETURN (False, M0, (0, 0, 0, 0, 0, 0, 0,
-        0))}\<close>
+     RETURN (False, M0, (0, 0, 0, 0, 0, 0, 0, ema_fast_init))}\<close>
 
 definition empty_init_code :: \<open>bool \<times> _ list \<times> stats\<close> where
-  \<open>empty_init_code = (True, [], (0, 0, 0, 0,
-    0, 0, 0, 0))\<close>
+  \<open>empty_init_code = (True, [], (0, 0, 0, 0, 0, 0, 0, ema_fast_init))\<close>
 
 
 definition convert_state where
@@ -3687,8 +3685,7 @@ definition IsaSAT_bounded_heur :: \<open>opts \<Rightarrow> nat clause_l list \<
 definition empty_conflict_code' :: \<open>(bool \<times> _ list \<times> stats) nres\<close> where
   \<open>empty_conflict_code' = do{
      let M0 = [];
-     RETURN (False, M0, (0, 0, 0, 0, 0, 0, 0,
-        0))}\<close>
+     RETURN (False, M0, (0, 0, 0, 0, 0, 0, 0, ema_fast_init))}\<close>
 
 
 lemma IsaSAT_bounded_heur_alt_def:

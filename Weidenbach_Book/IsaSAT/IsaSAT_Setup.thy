@@ -20,42 +20,6 @@ text \<open>We here define the last step of our refinement: the step with all th
   does not have a binding to GMP integers.
 \<close>
 
-section \<open>Statistics\<close>
-
-text \<open>
-We do some statistics on the run.
-
-NB: the statistics are not proven correct (especially they might
-overflow), there are just there to look for regressions, do some comparisons (e.g., to conclude that
-we are propagating slower than the other solvers), or to test different option combination.
-\<close>
-type_synonym stats = \<open>64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word\<close>
-
-
-definition incr_propagation :: \<open>stats \<Rightarrow> stats\<close> where
-  \<open>incr_propagation = (\<lambda>(propa, confl, dec). (propa + 1, confl, dec))\<close>
-
-definition incr_conflict :: \<open>stats \<Rightarrow> stats\<close> where
-  \<open>incr_conflict = (\<lambda>(propa, confl, dec). (propa, confl + 1, dec))\<close>
-
-definition incr_decision :: \<open>stats \<Rightarrow> stats\<close> where
-  \<open>incr_decision = (\<lambda>(propa, confl, dec, res). (propa, confl, dec + 1, res))\<close>
-
-definition incr_restart :: \<open>stats \<Rightarrow> stats\<close> where
-  \<open>incr_restart = (\<lambda>(propa, confl, dec, res, lres). (propa, confl, dec, res + 1, lres))\<close>
-
-definition incr_lrestart :: \<open>stats \<Rightarrow> stats\<close> where
-  \<open>incr_lrestart = (\<lambda>(propa, confl, dec, res, lres, uset). (propa, confl, dec, res, lres + 1, uset))\<close>
-
-definition incr_uset :: \<open>stats \<Rightarrow> stats\<close> where
-  \<open>incr_uset = (\<lambda>(propa, confl, dec, res, lres, (uset, gcs)). (propa, confl, dec, res, lres, uset + 1, gcs))\<close>
-
-definition incr_GC :: \<open>stats \<Rightarrow> stats\<close> where
-  \<open>incr_GC = (\<lambda>(propa, confl, dec, res, lres, uset, gcs, lbds). (propa, confl, dec, res, lres, uset, gcs + 1, lbds))\<close>
-
-definition add_lbd :: \<open>64 word \<Rightarrow> stats \<Rightarrow> stats\<close> where
-  \<open>add_lbd lbd = (\<lambda>(propa, confl, dec, res, lres, uset, gcs, lbds). (propa, confl, dec, res, lres, uset, gcs, lbd + lbds))\<close>
-
 
 section \<open>Moving averages\<close>
 
@@ -83,18 +47,6 @@ definition (in -) ema_update :: \<open>nat \<Rightarrow> ema \<Rightarrow> ema\<
        let \<beta> = if \<beta> \<le> \<alpha> then \<alpha> else \<beta> in
        (value, \<alpha>, \<beta>, wait, period))\<close>
 
-definition (in -) ema_update_ref :: \<open>32 word \<Rightarrow> ema \<Rightarrow> ema\<close> where
-  \<open>ema_update_ref = (\<lambda>lbd (value, \<alpha>, \<beta>, wait, period).
-     let lbd = ucast lbd * ema_bitshifting in
-     let value = if lbd > value then value + (\<beta> * (lbd - value) >> 32) else value - (\<beta> * (value - lbd) >> 32) in
-     if \<beta> \<le> \<alpha> \<or> wait > 0 then (value, \<alpha>, \<beta>, wait - 1, period)
-     else
-       let wait = 2 * period + 1 in
-       let period = wait in
-       let \<beta> = \<beta> >> 1 in
-       let \<beta> = if \<beta> \<le> \<alpha> then \<alpha> else \<beta> in
-       (value, \<alpha>, \<beta>, wait, period))\<close>
-
 definition (in -) ema_init :: \<open>64 word \<Rightarrow> ema\<close> where
   \<open>ema_init \<alpha> = (0, \<alpha>, ema_bitshifting, 0, 0)\<close>
 
@@ -103,6 +55,10 @@ fun ema_reinit where
 
 fun ema_get_value :: \<open>ema \<Rightarrow> 64 word\<close> where
   \<open>ema_get_value (v, _) = v\<close>
+
+fun ema_extract_value :: \<open>ema \<Rightarrow> 64 word\<close> where
+  \<open>ema_extract_value (v, _) = v >> 32\<close>
+
 
 text \<open>We use the default values for Cadical: \<^term>\<open>(3 / 10 ^2)\<close> and  \<^term>\<open>(1 / 10 ^ 5)\<close>  in our fixed-point
   version.
@@ -113,6 +69,43 @@ abbreviation ema_fast_init :: ema where
 
 abbreviation ema_slow_init :: ema where
   \<open>ema_slow_init \<equiv> ema_init 429450\<close>
+
+
+section \<open>Statistics\<close>
+
+text \<open>
+We do some statistics on the run.
+
+NB: the statistics are not proven correct (especially they might
+overflow), there are just there to look for regressions, do some comparisons (e.g., to conclude that
+we are propagating slower than the other solvers), or to test different option combination.
+\<close>
+type_synonym stats = \<open>64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> ema\<close>
+
+
+definition incr_propagation :: \<open>stats \<Rightarrow> stats\<close> where
+  \<open>incr_propagation = (\<lambda>(propa, confl, dec). (propa + 1, confl, dec))\<close>
+
+definition incr_conflict :: \<open>stats \<Rightarrow> stats\<close> where
+  \<open>incr_conflict = (\<lambda>(propa, confl, dec). (propa, confl + 1, dec))\<close>
+
+definition incr_decision :: \<open>stats \<Rightarrow> stats\<close> where
+  \<open>incr_decision = (\<lambda>(propa, confl, dec, res). (propa, confl, dec + 1, res))\<close>
+
+definition incr_restart :: \<open>stats \<Rightarrow> stats\<close> where
+  \<open>incr_restart = (\<lambda>(propa, confl, dec, res, lres). (propa, confl, dec, res + 1, lres))\<close>
+
+definition incr_lrestart :: \<open>stats \<Rightarrow> stats\<close> where
+  \<open>incr_lrestart = (\<lambda>(propa, confl, dec, res, lres, uset). (propa, confl, dec, res, lres + 1, uset))\<close>
+
+definition incr_uset :: \<open>stats \<Rightarrow> stats\<close> where
+  \<open>incr_uset = (\<lambda>(propa, confl, dec, res, lres, (uset, gcs)). (propa, confl, dec, res, lres, uset + 1, gcs))\<close>
+
+definition incr_GC :: \<open>stats \<Rightarrow> stats\<close> where
+  \<open>incr_GC = (\<lambda>(propa, confl, dec, res, lres, uset, gcs, lbds). (propa, confl, dec, res, lres, uset, gcs + 1, lbds))\<close>
+
+definition add_lbd :: \<open>32 word \<Rightarrow> stats \<Rightarrow> stats\<close> where
+  \<open>add_lbd lbd = (\<lambda>(propa, confl, dec, res, lres, uset, gcs, lbds). (propa, confl, dec, res, lres, uset, gcs, ema_update (unat lbd) lbds))\<close>
 
 
 section \<open>Information related to restarts\<close>

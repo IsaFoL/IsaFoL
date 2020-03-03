@@ -48,10 +48,6 @@ definition isasat_information_banner :: \<open>_ \<Rightarrow> unit nres\<close>
 \<open>isasat_information_banner _ =
     RETURN (println_string (String.implode (show isasat_banner_content)))\<close>
 
-definition zero_some_stats :: \<open>stats \<Rightarrow> stats\<close> where
-\<open>zero_some_stats = (\<lambda>(propa, confl, decs, frestarts, lrestarts, uset, gcs, lbds).
-     (propa, confl, decs, frestarts, lrestarts, uset, gcs, 0))\<close>
-
 definition print_open_colour :: \<open>64 word \<Rightarrow> unit\<close> where
   \<open>print_open_colour _ = ()\<close>
 
@@ -73,10 +69,10 @@ definition isasat_current_information :: \<open>64 word \<Rightarrow> stats \<Ri
          _ = print_uint64 lrestarts;
          _ = print_uint64 uset;
          _ = print_uint64 gcs;
-         _ = print_uint64 lbds;
+         _ = print_uint64 (ema_extract_value lbds);
          _ = print_close_colour 0
        in
-       zero_some_stats (propa, confl, decs, frestarts, lrestarts, uset, gcs, lbds)}
+         (propa, confl, decs, frestarts, lrestarts, uset, gcs, lbds)}
       else (propa, confl, decs, frestarts, lrestarts, uset, gcs, lbds)
     )\<close>
 
@@ -113,6 +109,7 @@ definition isasat_print_progress :: \<open>64 word \<Rightarrow> 64 word \<Right
          _ = print_uint64 lrestarts;
          _ = print_uint64 uset;
          _ = print_uint64 gcs;
+         _ = print_uint64 (ema_extract_value lbds);
          _ = print_close_colour 0
      in
        ())\<close>

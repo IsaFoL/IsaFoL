@@ -137,7 +137,6 @@ sepref_def propagate_bt_wl_D_fast_codeXX
   unfolding delete_index_and_swap_update_def[symmetric] append_update_def[symmetric]
     append_ll_def[symmetric] append_ll_def[symmetric]
     PR_CONST_def save_phase_def
-  apply (rewrite in \<open>add_lbd (of_nat \<hole>) _\<close> annot_unat_unat_upcast[where 'l=64])
   apply (rewrite in \<open>(_ + \<hole>, _)\<close> unat_const_fold[where 'a=64])
   apply (rewrite at \<open>RETURN (_, _, _, _, _, _, \<hole>, _)\<close> unat_const_fold[where 'a=32])
   apply (annot_snat_const \<open>TYPE(64)\<close>)
@@ -211,7 +210,58 @@ lemmas [llvm_inline] = add_lbd_def
 
 experiment
 begin
+  export_llvm
+    empty_conflict_and_extract_clause_heur_fast_code
+    empty_cach_code
+    update_heuristics_impl
+    update_heuristics_impl
+      isa_vmtf_flush_fast_code
+      get_LBD_code
+      mop_isa_length_trail_fast_code
+    cons_trail_Propagated_tr_fast_code
+      update_heuristics_impl
+vmtf_rescore_fast_code
+append_and_length_fast_code
+    update_lbd_impl
 
+thm propagate_bt_wl_D_fast_codeXX_def
+(*        xd \<leftarrow> update_lbd_impl a2o xb a1o;
+        xe \<leftarrow> uminus_impl ai;
+        xe \<leftarrow> nat_of_lit_rel_impl xe;
+        xe \<leftarrow> aal_push_back a1d xe (a2o, x, xc);
+        xf \<leftarrow> nat_of_lit_rel_impl x;
+        xg \<leftarrow> uminus_impl ai;
+        xc \<leftarrow> aal_push_back xe xf (a2o, xg, xc);
+        xe \<leftarrow> lbd_empty_code a1h;
+        xf \<leftarrow> mop_isa_length_trail_fast_code a1;
+        xg \<leftarrow> uminus_impl ai;
+        xg \<leftarrow> cons_trail_Propagated_tr_fast_code xg a2o a1;
+        xa \<leftarrow> isa_vmtf_flush_fast_code xg xa;
+        xh \<leftarrow> atm_of_impl x;
+        x \<leftarrow> is_pos_impl x;
+        x \<leftarrow> ll_not1 x;
+        x \<leftarrow> mop_save_phase_heur_impl xh x a1k;
+        x \<leftarrow> update_heuristics_impl xb x;
+        xh \<leftarrow> arl_push_back a1l a2o;
+        xi \<leftarrow> arl_push_back a1m a2o;
+        xj \<leftarrow> ll_add a1n 1;
+        tuple13_
+ xa \<leftarrow> vmtf_rescore_fast_code bia a1 a1e;
+ xb \<leftarrow> get_LBD_code a1h;
+ xc \<leftarrow> la_length_impl bia;
+ xc \<leftarrow> ll_icmp_eq xc 2;
+ append_and_length_fast_code 0 bia a1a \<bind>
+                 x \<leftarrow> isa_vmtf_flush_fast_code a1 a1e;
+                 xa \<leftarrow> get_LBD_code a1h;
+                 xb \<leftarrow> lbd_empty_code a1h;
+                 xc \<leftarrow> mop_isa_length_trail_fast_code a1;
+                 xd \<leftarrow> uminus_impl ai;
+                 xd \<leftarrow> cons_trail_Propagated_tr_fast_code xd 0 a1;
+                 xa \<leftarrow> update_heuristics_impl xa a1k;
+                 tuple13_impl xd a1a a1b xc a1d x a1f a1g xb a1i
+                  (incr_uset a1j) xa a2k
+               }))))))))))))
+*)
   export_llvm
     empty_conflict_and_extract_clause_heur_fast_code
     empty_cach_code
