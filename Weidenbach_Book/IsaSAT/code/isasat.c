@@ -282,7 +282,7 @@ void IsaSAT_Show_LLVM_print_close_colour_impl(int64_t c) {
   printf("\e[0m");
 }
 void IsaSAT_Show_LLVM_print_char_impl(int64_t c) {
-  printf("%li", c);
+  printf("%c", (char)c);
 }
 
 _Bool has_suffix (const char * str, const char * suffix) {
@@ -396,8 +396,8 @@ READ_FILE:
   
   //print_clauses(&clauses);
 
-  printf("c propagations                        reductions                     level-0                   LBDs\n"
-	 "c                     conflicts                    lrestarts                       GC\n");
+  printf("c propagations                       redundant                lrestarts                GC        \n"
+	 "c                     conflicts                   reductions             level-0            LBDs \n");
   int64_t t = IsaSAT_No_Restart_LLVM_IsaSAT_code_wrapped2(clauses);
   if((t & 2) == 0)
     printf("s UNKNOWN\n");
