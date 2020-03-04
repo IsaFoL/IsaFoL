@@ -53,7 +53,7 @@ The results in the paper and technical report can be found in the following file
 * Results about refutational completeness and intersection of redundancy criteria (Sect. 2) are in `Calculi.thy`
 * Results about standard lifting, well-founded orderings and intersection of liftings (Sect. 3) are in `Lifting_to_Non_Ground_Calculi.thy`
 * Results regarding the addition of labels (Sect. 3) are in `Labeled_Lifting_to_Non_Ground_Calculi.thy`
-* Results regarding the Given Clause prover architecture (Sect. 4) are in `Prover_Architectures.thy`
+* Results regarding the Given Clause prover and Lazy Given Clause prove architectures (Sect. 4) are in `Prover_Architectures.thy`
 
 In addition, the results in the technical report are annotated in the margin with the same labels as in the .thy files.
 The formalization of Sect. 4 is still ongoing. In particular, the Otter and DISCOUNT loops are not yet formalized.
