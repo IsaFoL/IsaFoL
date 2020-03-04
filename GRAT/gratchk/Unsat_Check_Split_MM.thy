@@ -2,7 +2,7 @@ section \<open>Unsat Checker\<close>
 theory Unsat_Check_Split_MM
 imports Impl_List_Set_Ndj Grat_Basic 
 begin
-(*
+\<^cancel>\<open>
   Test for flexible memory management. 
   Next id can be any free id. 
 
@@ -21,7 +21,7 @@ begin
 
   TODO: Declare max-ids in advance?
 
-*)  
+\<close>  
 
 hide_const (open) Word.slice
 
@@ -34,7 +34,7 @@ text \<open>
 
 \<close>
   
-(*  
+\<^cancel>\<open>  
 subsection \<open>Input Format Specification\<close>    
     
 text \<open>The \<open>unsat_input\<close> locale is an iterator over integers, overlaid with an iteration
@@ -59,7 +59,7 @@ begin
     using wf_trancl[OF wf_WFitem] .
       
 end  
-*)   
+\<close>   
   
   
 subsection \<open>Abstract level\<close>
@@ -185,11 +185,11 @@ definition "cm_invar \<equiv> \<lambda>(CM,RL).
   \<and> (\<forall>l s. RL l = Some s \<longrightarrow> s \<supseteq> {i. \<exists>C. CM i = Some C \<and> l\<in>C})"
 definition "cm_F \<equiv> \<lambda>(CM,RL). ran CM"
   
-definition "cm_ids \<equiv> \<lambda>(CM, RL). dom CM (*\<union> \<Union>ran RL*)"
+definition "cm_ids \<equiv> \<lambda>(CM, RL). dom CM"
 
 context unsat_input begin
   
-(* Map Interface *)
+\<^cancel>\<open> Map Interface \<close>
 definition resolve_id :: "clausemap \<Rightarrow> id \<Rightarrow> (_,var clause) enres" 
   where "resolve_id \<equiv> \<lambda>(CM,RL) i. doE { 
     CHECK (i\<in>dom CM) (mkp_errN STR ''Invalid clause id'' i);
@@ -234,9 +234,9 @@ definition get_rat_candidates
   "get_rat_candidates \<equiv> \<lambda>(CM,RL) A l. doE {
     let l = neg_lit l;
     CHECK (RL l \<noteq> None) (mkp_err STR ''Resolution literal not declared'');
-    (* Get collected candidates *)
+    \<^cancel>\<open> Get collected candidates \<close>
     let cands_raw = the (RL l); 
-    (* Filter out deleted, not containing l, and being blocked *)
+    \<^cancel>\<open> Filter out deleted, not containing l, and being blocked \<close>
     let cands = { i\<in>cands_raw. 
                     \<exists>C. CM i = Some C 
                       \<and> l\<in>C \<and> sem_clause' (C - {l}) A \<noteq> Some True };
@@ -268,7 +268,7 @@ lemma remove_id_correct[THEN ESPEC_trans,refine_vcg]:
   apply fastforce
   done
 
-(* TODO: Move to Misc *)
+\<^cancel>\<open> TODO: Move to Misc \<close>
 lemma rtrancl_inv_image_ss: "(inv_image R f)\<^sup>* \<subseteq> inv_image (R\<^sup>*) f"
 proof (clarify)
   fix a b
@@ -310,8 +310,8 @@ lemma add_clause_correct[THEN ESPEC_trans,refine_vcg]:
           split: option.split 
           solve: asm_rl)
   subgoal by fastforce
-  (*subgoal by (auto; metis (no_types, opaque_lifting) insertCI 
-                          not_Some_eq option.inject)*)
+  \<^cancel>\<open>subgoal by (auto; metis (no_types, hide_lams) insertCI 
+                          not_Some_eq option.inject)\<close>
   done
   
 definition "rat_candidates CM A reslit 
@@ -391,7 +391,7 @@ definition "parse_check_blocked A it \<equiv> doE {EASSERT (it_invar it); ESPEC
       \<and> \<not>is_blocked A C 
       \<and> A' = and_not_C A C))}" 
 
-(*abbreviation "pebERR \<equiv> (STR ''Parsed beyond end'',None,None)::'it error"*)
+\<^cancel>\<open>abbreviation "pebERR \<equiv> (STR ''Parsed beyond end'',None,None)::'it error"\<close>
   
 definition parse_skip_listZ :: "(nat\<times>'prf) \<Rightarrow> (_,nat\<times>'prf) enres" where
   "parse_skip_listZ prf \<equiv> doE {
@@ -423,8 +423,8 @@ definition "check_candidates candidates prf check \<equiv> doE {
         (cand,prf) \<leftarrow> parse_idZ prf;
         ERETURN (candidates,cand,prf)
       } else doE {
-        prf \<leftarrow> parse_skip_listZ prf; (* Skip over unit propagation *)
-        (_,prf) \<leftarrow> parse_prf prf; (* Skip over conflict clause *)
+        prf \<leftarrow> parse_skip_listZ prf; \<^cancel>\<open> Skip over unit propagation \<close>
+        (_,prf) \<leftarrow> parse_prf prf; \<^cancel>\<open> Skip over conflict clause \<close>
         (cand,prf) \<leftarrow> parse_idZ prf;
         ERETURN (candidates,cand,prf)
       }
@@ -454,7 +454,7 @@ lemma check_candidates_rule[THEN ESPEC_trans, zero_var_indexes]:
       ])
   by (auto dest: rtrancl_inv_image_ssI)
 
-(* id id* 0 id, advance iterator by one clause *)
+\<^cancel>\<open> id id* 0 id, advance iterator by one clause \<close>
 definition check_rup_proof :: "state \<Rightarrow> 'it \<Rightarrow> (nat\<times>'prf) \<Rightarrow> (_, state \<times> 'it \<times> (nat\<times>'prf)) enres" where
   "check_rup_proof \<equiv> \<lambda>(CM,A\<^sub>0) it prf. doE {
     (i,prf) \<leftarrow> parse_id prf;
@@ -491,7 +491,7 @@ lemma check_rup_proof_correct[THEN ESPEC_trans, refine_vcg]:
       solve: asm_rl)
   
 
-(* lit id lit* 0 id* 0 (id id* 0 id)* 0 *)
+\<^cancel>\<open> lit id lit* 0 id* 0 (id id* 0 id)* 0 \<close>
 definition check_rat_proof :: "state \<Rightarrow> 'it \<Rightarrow> (nat \<times> 'prf) \<Rightarrow> (_, state \<times> 'it \<times> (nat \<times> 'prf)) enres" where
   "check_rat_proof \<equiv> \<lambda>(CM,A\<^sub>0) it prf. doE {
     (reslit,prf) \<leftarrow> parse_prf_literal prf;
@@ -500,7 +500,7 @@ definition check_rat_proof :: "state \<Rightarrow> 'it \<Rightarrow> (nat \<time
           (mkp_errprf STR ''Resolution literal is false'' prf);
     (i,prf) \<leftarrow> parse_id prf;
     CHECK (i\<notin>cm_ids CM) (mkp_errNprf STR ''Duplicate ID'' i prf);
-    (*(C,it) \<leftarrow> lift_parser parse_clause it;*)
+    \<^cancel>\<open>(C,it) \<leftarrow> lift_parser parse_clause it;\<close>
     (C,A',it) \<leftarrow> parse_check_blocked A\<^sub>0 it;
     CHECK (reslit \<in> C) (mkp_errprf STR ''Resolution literal not in clause'' prf);
     (A',prf) \<leftarrow> apply_units CM A' prf;
@@ -702,8 +702,8 @@ lemma cm_ids_empty[simp]: "cm_ids cm_empty = {}"
 lemma cm_ids_empty_imp_F_empty: "cm_ids CM = {} \<Longrightarrow> cm_F CM = {}"
   unfolding cm_F_def cm_ids_def by (auto simp: ran_def)
   
-(*    
-(* TODO: Can we remove that? *)    
+\<^cancel>\<open>    
+\<^cancel>\<open> TODO: Can we remove that? \<close>    
 definition read_cnf 
   :: "var clause list \<Rightarrow> clausemap \<Rightarrow> (_, clausemap \<times> nat) enres" 
   where "read_cnf L CM \<equiv> doE {
@@ -734,7 +734,7 @@ lemma read_cnf_correct[THEN ESPEC_trans, refine_vcg]:
                 \<and> (\<forall>i\<in>cm_ids CM. i<next_id)"])
   apply (auto simp: SAT_Basic.models_def sat_def cm_ids_empty_imp_F_empty)
   done
-*)
+\<close>
 
 definition "read_clause_check_taut itE it A \<equiv> doE {
   EASSERT (A = Map.empty);
@@ -855,7 +855,7 @@ definition "init_rat_counts prf \<equiv> doE {
   (CM,_,prf) \<leftarrow> EWHILET (\<lambda>(CM,l,prf). l\<noteq>None) (\<lambda>(CM,l,prf). doE {
     EASSERT (l\<noteq>None);
     let l = the l;
-    (_,prf) \<leftarrow> parse_prf prf;  (* Just ignoring count, silently assuming it to be >0. TODO: Add count-down and stop optimization? *)
+    (_,prf) \<leftarrow> parse_prf prf;  \<^cancel>\<open> Just ignoring count, silently assuming it to be >0. TODO: Add count-down and stop optimization? \<close>
     
     let l = neg_lit l;
     CM \<leftarrow> cm_init_lit l CM;
@@ -902,9 +902,9 @@ definition "verify_unsat F_begin F_end it prf \<equiv> doE {
     }) (Some (s,it,prf));
     
   ERETURN ()
-  (*  
+  \<^cancel>\<open>  
   CHECK (is_None s) (mkp_err ''Proof did not contain conflict declaration'')
-  *)
+  \<close>
 }"
 
 lemma verify_unsat_correct: 
@@ -985,7 +985,7 @@ definition "apply_units_bt CM A T prf \<equiv> doE {
 }"
 
 definition "parse_check_blocked_bt A it \<equiv> doE {EASSERT (it_invar it); ESPEC 
-  (\<lambda>_. True (*\<lambda>e. parse_clause it = Inl e*)) 
+  (\<lambda>_. True \<^cancel>\<open>\<lambda>e. parse_clause it = Inl e\<close>) 
   (\<lambda>(C,(A',T'),it'). \<exists>l. 
       lz_string litZ it l it' 
     \<and> it_invar it' 
@@ -1106,10 +1106,10 @@ definition "bt_assign_rel A
 definition "bt_need_bt_rel A\<^sub>0 
   \<equiv> br (\<lambda>_. A\<^sub>0) (\<lambda>(A',T'). T'\<subseteq>dom A' \<and> backtrack A' T' = A\<^sub>0)"
   
-(*definition "bt_anccb_rel A\<^sub>0 \<equiv> 
+\<^cancel>\<open>definition "bt_anccb_rel A\<^sub>0 \<equiv> 
     ({(False,False)} \<times>\<^sub>r Id \<times>\<^sub>r bt_assign_rel A\<^sub>0 \<times>\<^sub>r Id) 
   \<union> ({(True,True)} \<times>\<^sub>r UNIV \<times>\<^sub>r bt_need_bt_rel A\<^sub>0 \<times>\<^sub>r UNIV)"
-*)
+\<close>
 
 lemma bt_rel_simps:
   "((Ai,T),A)\<in>bt_assign_rel A\<^sub>0 \<Longrightarrow> Ai=A \<and> backtrack A T = A\<^sub>0 \<and> T\<subseteq>dom A"
@@ -1207,7 +1207,7 @@ lemma check_rat_proof_bt_refine[refine]:
   unfolding check_rat_proof_bt_def check_rat_proof_def
   apply refine_rcg
   apply refine_dref_type
-  apply (auto simp: bt_in_bta_rel dest!: bt_rel_simps) (* Takes long *)
+  apply (auto simp: bt_in_bta_rel dest!: bt_rel_simps) \<^cancel>\<open> Takes long \<close>
   done
   
 
@@ -1279,7 +1279,7 @@ definition "verify_unsat_bt F_begin F_end it prf \<equiv> doE {
     check_item_bt s it prf
   }) (Some (s,it,prf));
   ERETURN ()
-  (*CHECK (is_None s) (mkp_err ''Proof did not contain conflict declaration'')*)
+  \<^cancel>\<open>CHECK (is_None s) (mkp_err ''Proof did not contain conflict declaration'')\<close>
 }"
 
 lemma verify_unsat_bt_refine[refine]: 
@@ -1328,7 +1328,7 @@ context unsat_input begin
       "\<And>C l s. \<lbrakk>I C s; c s\<rbrakk> \<Longrightarrow> f l s \<le> ESPEC (\<lambda>_. True) (I (insert l C))"
     assumes [simp]: "it_invar cref"
     shows "parse_check_clause cref c f s \<le> ESPEC 
-      ((* TODO: Spec that parsing failed *) \<lambda>_. True) 
+      (\<^cancel>\<open> TODO: Spec that parsing failed \<close> \<lambda>_. True) 
       (\<lambda>(s,it'). \<exists>C. 
           I C s
         \<and> (c s \<longrightarrow> it_invar it' 
@@ -1358,7 +1358,7 @@ context unsat_input begin
     by (fastforce simp: ESPEC_rule_iff next_it_rel_def cref_rel_def)
   
 
-  (* Iterate over already parsed clause *)
+  \<^cancel>\<open> Iterate over already parsed clause \<close>
   definition "iterate_clause cref c f s \<equiv> 
     iterate_lz litZ it_end cref c (\<lambda>x s. f (lit_\<alpha> x) s) s"
   
@@ -1675,7 +1675,7 @@ context unsat_input begin
     assumes [simplified,simp]: "(Ai,A)\<in>Id"
     assumes CR: "(cref,C) \<in> cref_rel"
     assumes [simplified,simp]: "(exli,exl)\<in>Id"
-    (*assumes NBLK: "\<not>is_blocked A (C-{exl})"*)
+    \<^cancel>\<open>assumes NBLK: "\<not>is_blocked A (C-{exl})"\<close>
     shows "and_not_C_excl Ai cref exli 
             \<le>\<Down>\<^sub>E UNIV (Id\<times>\<^sub>rId) (and_not_C_bt A (C-{exl}))"
     unfolding and_not_C_bt_def
@@ -1709,17 +1709,17 @@ context unsat_input begin
       let l = neg_lit l;
       let cands_raw = RL l;
       CHECK (\<not>is_None cands_raw) (mkp_err STR ''Resolution literal not declared'');
-      (* Get collected candidates *)
+      \<^cancel>\<open> Get collected candidates \<close>
       let cands_raw = the cands_raw; 
-      (*EASSERT (distinct cands_raw);*)
-      (* Filter deleted, blocked, and those not containing resolution literal *)
+      \<^cancel>\<open>EASSERT (distinct cands_raw);\<close>
+      \<^cancel>\<open> Filter deleted, blocked, and those not containing resolution literal \<close>
       cands \<leftarrow> enfoldli cands_raw (\<lambda>_. True) (\<lambda>i s. doE {
         let cref = CM i;
         if \<not>is_None cref then doE {
           let cref = the cref;
           lant \<leftarrow> lit_in_clause_and_not_true A cref l;
           if lant then doE {
-            (*EASSERT (i \<notin> s);*)
+            \<^cancel>\<open>EASSERT (i \<notin> s);\<close>
             ERETURN (insert i s)
           } else ERETURN s
         } else ERETURN s
@@ -1727,7 +1727,7 @@ context unsat_input begin
       ERETURN cands
     }"
 
-(*    
+\<^cancel>\<open>    
   xxx: Choice: We could 1) either remove duplicates after 
     all candidates have been gathered, or 2) from RL-list before 
     deleted|blocked|contained check  
@@ -1738,7 +1738,7 @@ context unsat_input begin
         Moreover, we do not expect massive duplicates.
     2) In case of long candidate lists, remdups may be expensive 
       or requires efficient DS.
-*)    
+\<close>    
     
   lemma get_rat_candidates1_refine[refine]:
     assumes CMR: "(CMi,CM)\<in>clausemap1_rel"
@@ -1757,13 +1757,13 @@ context unsat_input begin
           dest!: fun_relD[where x="neg_lit reslit" and x'="neg_lit reslit"]
           elim: option_relE
           )
-    (*subgoal for _ RL _ RLi
+    \<^cancel>\<open>subgoal for _ RL _ RLi
       using CMR
       apply (clarsimp simp: clausemap1_rel_def in_br_conv)
       apply (drule fun_relD[where x="neg_lit reslit" and x'="neg_lit reslit"]; 
              simp)
       apply (auto simp: in_br_conv elim: option_relE)
-      done*)
+      done\<close>
     subgoal premises prems for CM RL CMi RLi cands_raw 
     proof -
       from CMR prems have
@@ -1773,14 +1773,14 @@ context unsat_input begin
       
       define cands_rawi where "cands_rawi = the (RLi (neg_lit reslit))"
       from prems fun_relD[OF RL_ref IdI[of "neg_lit reslit"]] 
-      have [simp]: "cands_raw = set cands_rawi" (*"distinct cands_rawi"*)
+      have [simp]: "cands_raw = set cands_rawi" \<^cancel>\<open>"distinct cands_rawi"\<close>
         unfolding cands_rawi_def by (auto simp: in_br_conv elim: option_relE)
       note cands_rawi_def[symmetric,simp]
       
       show ?thesis
         apply (refine_vcg enfoldli_rule[where I="\<lambda>l1 l2 s. 
-              (*distinct (l1@l2) 
-            \<and>*) s = { i\<in>set l1. \<exists>C. 
+              \<^cancel>\<open>distinct (l1@l2) 
+            \<and>\<close> s = { i\<in>set l1. \<exists>C. 
                       CM i = Some C 
                     \<and> neg_lit reslit\<in>C 
                     \<and> sem_clause' (C - {neg_lit reslit}) A \<noteq> Some True }"])
@@ -1793,7 +1793,7 @@ context unsat_input begin
           apply (subgoal_tac "(the (CMi i), the (CM i)) \<in> cref_rel", assumption)
           subgoal for i l1 l2 
             using fun_relD[OF CM_ref IdI[of i]]
-            by (force elim!: option_relE simp: cref_rel_def in_br_conv) (* Takes some time *)
+            by (force elim!: option_relE simp: cref_rel_def in_br_conv) \<^cancel>\<open> Takes some time \<close>
         solved
         subgoal for i l1 l2 
           using fun_relD[OF CM_ref IdI[of i]]
@@ -1831,10 +1831,10 @@ context unsat_input begin
       }) RL
     }"
   
-  (* XXX: Do we really need mbhd-insert?
+  \<^cancel>\<open> XXX: Do we really need mbhd-insert?
       We iterate over literals of clause, which 
       should not contain duplicates!
-  *)  
+  \<close>  
     
     
   definition "RL_upd cid C RL \<equiv> (\<lambda>l. case RL l of 
@@ -1857,7 +1857,7 @@ context unsat_input begin
   lemma register_clause1_correct[THEN ESPEC_trans, refine_vcg]: 
     assumes CR: "(cref,C)\<in>cref_rel"
     assumes RL: "(RLi,RL)\<in>Id \<rightarrow> \<langle>br set (\<lambda>_. True)\<rangle>option_rel"
-    (*assumes fresh_id: "cid \<notin> \<Union>ran RL"*)
+    \<^cancel>\<open>assumes fresh_id: "cid \<notin> \<Union>ran RL"\<close>
     shows "register_clause1 cid cref RLi 
       \<le> ESPEC (\<lambda>_. False) 
           (\<lambda>RLi'. (RLi', RL_upd cid C RL) \<in> Id \<rightarrow> \<langle>br set (\<lambda>_. True)\<rangle>option_rel)"
@@ -1910,7 +1910,7 @@ context unsat_input begin
       applyS assumption
       applyS (erule fun_relD[rotated, where f=RLi and f'=RL]; 
               auto simp: clausemap1_rel_def)
-      (*applyS (auto simp: cm_ids_def)*)
+      \<^cancel>\<open>applyS (auto simp: cm_ids_def)\<close>
       apply1 clarsimp subgoal for RLi' l
         apply (drule fun_relD[OF _ IdI[of "l"]])
         apply (cases "RLi' l"; cases "RL l"; simp)
@@ -1978,8 +1978,8 @@ context unsat_input begin
       apply refine_rcg
       apply refine_dref_type
       apply (vc_solve)
-      subgoal by (intro refine_dref_RELATES) (* TODO: refine_dref_type should always try to discharge RELATES-goals, 
-                                                even if they do not contain schematic vars *)
+      subgoal by (intro refine_dref_RELATES) \<^cancel>\<open> TODO: refine_dref_type should always try to discharge RELATES-goals, 
+                                                even if they do not contain schematic vars \<close>
       subgoal by refine_vcg auto  
       done
   qed
@@ -2043,7 +2043,7 @@ context unsat_input begin
       supply RELATESI[of "Id \<rightarrow> Id", refine_dref_RELATES]
       apply refine_dref_type
       supply [[goals_limit=1]]
-      apply (vc_solve solve: asm_rl RELATESI) (* Takes its time ... *)
+      apply (vc_solve solve: asm_rl RELATESI) \<^cancel>\<open> Takes its time ... \<close>
       done
   qed
   
@@ -2082,7 +2082,7 @@ context unsat_input begin
   lemma remove_ids1_refine[refine]: 
     "\<lbrakk> (CMi,CM)\<in>clausemap1_rel; (prfi,prf)\<in>Id \<rbrakk> 
       \<Longrightarrow> remove_ids1 CMi prfi \<le>\<Down>\<^sub>E UNIV (clausemap1_rel \<times>\<^sub>r Id) (remove_ids CM prf)"
-    unfolding remove_ids1_def remove_ids_def EWHILET_def (* TODO: Register EWHILET \<le> EWHILEIT refine rule *)
+    unfolding remove_ids1_def remove_ids_def EWHILET_def \<^cancel>\<open> TODO: Register EWHILET \<le> EWHILEIT refine rule \<close>
     supply RELATESI[of clausemap1_rel, refine_dref_RELATES]
     apply refine_rcg
     apply refine_dref_type
@@ -2166,7 +2166,7 @@ context unsat_input begin
         THROW (mkp_errIprf STR ''Invalid item type'' ty prf)
     })"
     unfolding check_item1_def parse_type_def
-    (* Hand-tuned proof to avoid explosion *)  
+    \<^cancel>\<open> Hand-tuned proof to avoid explosion \<close>  
     apply (intro ext)  
     apply (simp split: prod.split)
     apply (intro allI impI)  
@@ -2186,14 +2186,14 @@ context unsat_input begin
     EASSERT (A = Map.empty);
     (t,A) \<leftarrow> iterate_clause cref (\<lambda>(t,A). \<not>t) (\<lambda>l (t,A). doE {
       if (sem_lit' l A = Some False) then ERETURN (True,A)
-      else if sem_lit' l A = Some True then ERETURN (False,A) (* DUP literal. Perhaps check for it? *)
+      else if sem_lit' l A = Some True then ERETURN (False,A) \<^cancel>\<open> DUP literal. Perhaps check for it? \<close>
       else doE {
         EASSERT (sem_lit' l A = None);
         ERETURN (False,assign_lit A l)
       }
     }) (False,A);
 
-    (* Iterate again over clause to reset assignment *)
+    \<^cancel>\<open> Iterate again over clause to reset assignment \<close>
     A \<leftarrow> iterate_clause cref (\<lambda>_. True) (\<lambda>l A. doE {
       let A = A(var_of_lit l := None);
       ERETURN A
@@ -2243,7 +2243,7 @@ context unsat_input begin
       done
   qed
   
-(*    
+\<^cancel>\<open>    
   definition read_cnf1 
     :: "'it list \<Rightarrow> ('it) clausemap1 \<Rightarrow> (_,('it) clausemap1 \<times> nat) enres" 
     where "read_cnf1 L CM \<equiv> doE {
@@ -2285,7 +2285,7 @@ context unsat_input begin
       apply (auto simp: cm_empty_refine)
       done
   qed
-*)  
+\<close>  
 
   definition read_cnf_new1 
     :: "'it \<Rightarrow> 'it \<Rightarrow> 'it clausemap1 \<Rightarrow> (_, 'it clausemap1) enres"    
@@ -2405,7 +2405,7 @@ context unsat_input begin
         check_item1 s it prf
       }) (Some (s,it,prf));
     ERETURN ()  
-    (*CHECK (is_None s) (mkp_err ''Proof did not contain conflict declaration'')*)
+    \<^cancel>\<open>CHECK (is_None s) (mkp_err ''Proof did not contain conflict declaration'')\<close>
   }"
   
   lemma verify_unsat1_refine[refine]: 
@@ -2421,7 +2421,7 @@ context unsat_input begin
 end
 
 subsection \<open>Refinement 2\<close>
-(*
+\<^cancel>\<open>
   id \<rightarrow> nat (already done for verify_unsat1)
   (id \<rightharpoonup> 'a) \<rightarrow> 'a option array, dynamic resizing (iam!?)
 
@@ -2436,7 +2436,7 @@ subsection \<open>Refinement 2\<close>
 
   cref \<rightarrow> nat < N
   proof-item \<rightarrow> nat < N (reference into array)
-*)
+\<close>
 
 
 subsubsection \<open>Getting Out of Exception Monad\<close>
@@ -2452,17 +2452,17 @@ begin
     apply (rule CNV_I)
     done
     
-  (*synth_definition parse_type_bd is [enres_unfolds]: "parse_type prf = \<hole>"  
+  \<^cancel>\<open>synth_definition parse_type_bd is [enres_unfolds]: "parse_type prf = \<hole>"  
     apply (rule CNV_eqD)
     unfolding parse_type_def
     apply opt_enres_unfold
     apply (rule CNV_I)
-    done*)
+    done\<close>
   
   synth_definition check_unit_clause1_bd 
     is [enres_unfolds]: "check_unit_clause1 A cref = \<hole>"
     apply (rule CNV_eqD)
-    unfolding check_unit_clause1_def iterate_clause_def (*iterate_lz_def*)
+    unfolding check_unit_clause1_def iterate_clause_def \<^cancel>\<open>iterate_lz_def\<close>
     apply opt_enres_unfold
     apply (rule CNV_I)
     done
@@ -2528,7 +2528,7 @@ begin
   synth_definition parse_check_blocked1_bd 
     is [enres_unfolds]: "parse_check_blocked1 A cref = \<hole>"
     apply (rule CNV_eqD)
-    unfolding parse_check_blocked1_def parse_check_clause_def (*parse_lz_def*)
+    unfolding parse_check_blocked1_def parse_check_clause_def \<^cancel>\<open>parse_lz_def\<close>
     apply opt_enres_unfold
     apply (rule CNV_I)
     done
@@ -2536,24 +2536,24 @@ begin
   synth_definition check_conflict_clause1_bd 
     is [enres_unfolds]: "check_conflict_clause1 prf\<^sub>0 A cref = \<hole>"
     apply (rule CNV_eqD)
-    unfolding check_conflict_clause1_def iterate_clause_def (*iterate_lz_def*)
+    unfolding check_conflict_clause1_def iterate_clause_def \<^cancel>\<open>iterate_lz_def\<close>
     apply opt_enres_unfold
     apply (rule CNV_I)
     done
   
   synth_definition and_not_C_excl_bd 
     is [enres_breakdown]: "and_not_C_excl A cref exl = enres_lift \<hole>"
-    unfolding and_not_C_excl_def iterate_clause_def (*iterate_lz_def *)
+    unfolding and_not_C_excl_def iterate_clause_def \<^cancel>\<open>iterate_lz_def \<close>
     by opt_enres_unfold
   
   synth_definition lit_in_clause_and_not_true_bd 
     is [enres_breakdown]: "lit_in_clause_and_not_true A cref lc = enres_lift \<hole>"
-    unfolding lit_in_clause_and_not_true_def iterate_clause_def (*iterate_lz_def *)
+    unfolding lit_in_clause_and_not_true_def iterate_clause_def \<^cancel>\<open>iterate_lz_def \<close>
     by opt_enres_unfold
 
   synth_definition lit_in_clause_bd 
     is [enres_breakdown]: "lit_in_clause1 cref lc = enres_lift \<hole>"
-    unfolding lit_in_clause1_def iterate_clause_def (*iterate_lz_def*) 
+    unfolding lit_in_clause1_def iterate_clause_def \<^cancel>\<open>iterate_lz_def\<close> 
     by opt_enres_unfold
       
       
@@ -2567,7 +2567,7 @@ begin
       
   synth_definition add_clause1_bd 
     is [enres_breakdown]: "add_clause1 i it CM = enres_lift \<hole>"
-    unfolding add_clause1_def register_clause1_def iterate_clause_def (*iterate_lz_def*)
+    unfolding add_clause1_def register_clause1_def iterate_clause_def \<^cancel>\<open>iterate_lz_def\<close>
     by opt_enres_unfold
       
   synth_definition check_rup_proof1_bd 
@@ -2584,7 +2584,7 @@ begin
         "check_rat_candidates_part1 CM reslit candidates A prf = \<hole>"
     apply (rule CNV_eqD)
     unfolding check_rat_candidates_part1_def 
-              check_candidates'_def parse_skip_listZ_def (*parse_lz_def*)
+              check_candidates'_def parse_skip_listZ_def \<^cancel>\<open>parse_lz_def\<close>
     apply opt_enres_unfold
     apply (rule CNV_I)
     done
@@ -2606,19 +2606,19 @@ begin
       
   synth_definition is_syn_taut1_bd 
     is [enres_breakdown]: "is_syn_taut1 cref A = enres_lift \<hole>"    
-    unfolding is_syn_taut1_def iterate_clause_def (*iterate_lz_def*)
+    unfolding is_syn_taut1_def iterate_clause_def \<^cancel>\<open>iterate_lz_def\<close>
     by opt_enres_unfold
       
-(*  synth_definition read_cnf1_bd 
+\<^cancel>\<open>  synth_definition read_cnf1_bd 
     is [enres_breakdown]: "read_cnf1 F CM = enres_lift \<hole>"
     unfolding read_cnf1_def
     by opt_enres_unfold
-*)
+\<close>
 
   synth_definition read_clause_check_taut_bd 
     is [enres_unfolds]: "read_clause_check_taut F_end F_begin A = \<hole>"    
     apply (rule CNV_eqD)
-    unfolding read_clause_check_taut_def (*parse_lz_def iterate_lz_def*)
+    unfolding read_clause_check_taut_def \<^cancel>\<open>parse_lz_def iterate_lz_def\<close>
     apply opt_enres_unfold
     apply (rule CNV_I)
     done  
@@ -2640,14 +2640,14 @@ begin
     apply (rule CNV_I)
     done  
       
-  (*synth_definition goto_next_item_bd 
+  \<^cancel>\<open>synth_definition goto_next_item_bd 
     is [enres_unfolds]: "goto_next_item it = \<hole>"   
     apply (rule CNV_eqD)
     unfolding goto_next_item_def
     apply opt_enres_unfold
     apply (rule CNV_I)
     done  
-  *)
+  \<close>
       
   synth_definition verify_unsat1_bd 
     is [enres_unfolds]: "verify_unsat1 F_begin F_end it prf = \<hole>"
@@ -2801,13 +2801,13 @@ declare (in GRAT_loc) is_syn_taut2_loc.refine[extrloc_unfolds]
 concrete_definition is_syn_taut2 uses GRAT_loc.is_syn_taut2_loc_def[unfolded extrloc_unfolds]
 declare (in GRAT_loc) is_syn_taut2.refine[OF GRAT_loc_axioms, extrloc_unfolds]
 
-(*  
+\<^cancel>\<open>  
 concrete_definition (in GRAT_loc) read_cnf2_loc 
   uses read_cnf1_bd_def[unfolded extrloc_unfolds]
 declare (in GRAT_loc) read_cnf2_loc.refine[extrloc_unfolds]
 concrete_definition read_cnf2 uses GRAT_loc.read_cnf2_loc_def[unfolded extrloc_unfolds]
 declare (in GRAT_loc) read_cnf2.refine[OF GRAT_loc_axioms, extrloc_unfolds]
-*)
+\<close>
 
 concrete_definition (in GRAT_loc) read_clause_check_taut2_loc 
   uses read_clause_check_taut_bd_def[unfolded extrloc_unfolds]
@@ -2821,12 +2821,12 @@ declare (in GRAT_loc) read_cnf_new2_loc.refine[extrloc_unfolds]
 concrete_definition read_cnf_new2 uses GRAT_loc.read_cnf_new2_loc_def[unfolded extrloc_unfolds]
 declare (in GRAT_loc) read_cnf_new2.refine[OF GRAT_loc_axioms, extrloc_unfolds]
   
-(*concrete_definition (in GRAT_loc) goto_next_item2_loc 
+\<^cancel>\<open>concrete_definition (in GRAT_loc) goto_next_item2_loc 
   uses goto_next_item_bd_def[unfolded extrloc_unfolds]
 declare (in GRAT_loc) goto_next_item2_loc.refine[extrloc_unfolds]
 concrete_definition goto_next_item2 uses GRAT_loc.goto_next_item2_loc_def[unfolded extrloc_unfolds]
 declare (in GRAT_loc) goto_next_item2.refine[OF GRAT_loc_axioms, extrloc_unfolds]
-*)
+\<close>
 
 concrete_definition (in GRAT_loc) init_rat_counts2_loc 
   uses init_rat_counts1_bd_def[unfolded extrloc_unfolds]
@@ -2842,13 +2842,13 @@ concrete_definition verify_unsat2 uses GRAT_loc.verify_unsat2_loc_def[unfolded e
 declare (in GRAT_loc) verify_unsat2.refine[OF GRAT_loc_axioms, extrloc_unfolds]
 
   
-(*  
+\<^cancel>\<open>  
 concrete_definition (in GRAT_loc) XXX2_loc 
   uses XXX1_bd_def[unfolded extrloc_unfolds]
 declare (in GRAT_loc) XXX2_loc.refine[extrloc_unfolds]
 concrete_definition XXX2 uses GRAT_loc.XXX2_loc_def[unfolded extrloc_unfolds]
 declare (in GRAT_loc) XXX2.refine[OF GRAT_loc_axioms, extrloc_unfolds]
-*)  
+\<close>  
 
 subsubsection \<open>Synthesis of Imperative Code\<close>  
 
@@ -2974,9 +2974,9 @@ begin
   lemmas [sepref_fr_rules] = add_clause3.refine  
     
 
-  (* TODO: Why can we rewrite 1::nat to int-itype? 
+  \<^cancel>\<open> TODO: Why can we rewrite 1::nat to int-itype? 
     Realized this oddity during debugging read_cnf_new2 sepref 
-  *)
+  \<close>
       
   sepref_definition read_cnf_new3 is "uncurry3 read_cnf_new2" 
     :: "liti.a_assn\<^sup>k *\<^sub>a liti.it_assn\<^sup>k *\<^sub>a liti.it_assn\<^sup>k *\<^sub>a cm_assn\<^sup>d 
@@ -3012,7 +3012,7 @@ begin
     :: "liti.a_assn\<^sup>k *\<^sub>a assignment_assn\<^sup>k *\<^sub>a (liti.it_assn)\<^sup>k 
         \<rightarrow>\<^sub>a sum_assn errorp_assn (pure lit_rel)"
     unfolding check_unit_clause2_def
-    supply option.split_asm[split] (* FIXME: Extra setup should not be necessary to translate if (x\<noteq>None) then ... the x *)
+    supply option.split_asm[split] \<^cancel>\<open> FIXME: Extra setup should not be necessary to translate if (x\<noteq>None) then ... the x \<close>
     by sepref
   lemmas [sepref_fr_rules] = check_unit_clause3.refine
   sepref_register check_unit_clause2 
@@ -3040,7 +3040,7 @@ begin
   lemmas [sepref_fr_rules] = apply_units3.refine
       
     
-  (* TODO: Use array-based list instead of list_set_assn! *)  
+  \<^cancel>\<open> TODO: Use array-based list instead of list_set_assn! \<close>  
   sepref_definition apply_units3_bt is "uncurry5 apply_units2_bt"
     :: " liti.a_assn\<^sup>k 
       *\<^sub>a prfn_assn\<^sup>k
@@ -3130,7 +3130,7 @@ begin
   lemmas [sepref_fr_rules] = backtrack3.refine  
 
     
-  (* TODO: Make this a proper operation on CM ?*)  
+  \<^cancel>\<open> TODO: Make this a proper operation on CM ?\<close>  
   lemma not_in_cm_ids_unf: "i\<notin>cm_ids CM \<longleftrightarrow> (case CM of (CM,_) \<Rightarrow> is_None (CM i))"  
     unfolding cm_ids_def by (cases CM) (auto split: option.splits)
     
@@ -3166,7 +3166,7 @@ begin
     \<rightarrow>\<^sub>a errorp_assn +\<^sub>a (assignment_assn \<times>\<^sub>a prfi_assn)"
     unfolding check_rat_candidates_part2_def
     supply [[goals_limit = 1, id_debug]]  
-    by sepref (* Takes looong *)  
+    by sepref \<^cancel>\<open> Takes looong \<close>  
   sepref_register "check_rat_candidates_part2 :: _ \<Rightarrow> _ \<Rightarrow> (nat) clausemap1 \<Rightarrow> _" 
     :: "int list \<Rightarrow> 'prf i_prfn \<Rightarrow> i_cm \<Rightarrow> nat literal \<Rightarrow> nat set \<Rightarrow> i_assignment \<Rightarrow> 'prf i_prfi 
         \<Rightarrow> ('prf i_prfi error + i_assignment \<times> 'prf i_prfi) nres"
@@ -3180,7 +3180,7 @@ begin
     supply [[goals_limit = 1, id_debug]]  
     supply if_splits[split!]
     apply (rewrite not_in_cm_ids_unf)    
-    by sepref (* Takes looong *) 
+    by sepref \<^cancel>\<open> Takes looong \<close> 
   sepref_register check_rat_proof2 
     :: "int list \<Rightarrow> 'prf i_prfn \<Rightarrow> i_state' \<Rightarrow> nat \<Rightarrow> 'prf i_prfi 
       \<Rightarrow> ('prf i_prfi error + i_state' \<times> nat \<times> 'prf i_prfi) nres"
@@ -3208,7 +3208,7 @@ begin
     :: "int list \<Rightarrow> nat \<Rightarrow> i_assignment \<Rightarrow> (bool \<times> i_assignment) nres"    
   lemmas [sepref_fr_rules] = is_syn_taut3.refine  
       
-  (*  
+  \<^cancel>\<open>  
   term read_cnf2    
   sepref_definition read_cnf3 is "uncurry2 read_cnf2" 
     :: "liti.a_assn\<^sup>k *\<^sub>a (list_assn liti.it_assn)\<^sup>k *\<^sub>a cm_assn\<^sup>d 
@@ -3220,13 +3220,13 @@ begin
   sepref_register read_cnf2 
     :: "int list \<Rightarrow> nat list \<Rightarrow> i_cm \<Rightarrow> (i_cm \<times> nat) nres" 
   lemmas [sepref_fr_rules] = read_cnf3.refine  
-  *)
+  \<close>
 
-  (*term goto_next_item2
+  \<^cancel>\<open>term goto_next_item2
   thm goto_next_item2_def
-  (* TODO: frml_end parameter only gets in by assertion! Remove assertion before!
+  \<^cancel>\<open> TODO: frml_end parameter only gets in by assertion! Remove assertion before!
       Currently solved by inlining goto_next_item2
-  *)*)
+  \<close>\<close>
 
   term   init_rat_counts2
   sepref_definition init_rat_counts3 is "uncurry init_rat_counts2" 
@@ -3252,11 +3252,11 @@ begin
       \<rightarrow>\<^sub>a errorp_assn +\<^sub>a unit_assn"  
     unfolding verify_unsat2_def 
     apply (rewrite at "Let (_,\<hole>)" assignment.fold_custom_empty)  
-    (*apply (rewrite at "do {let it\<^sub>0 = \<hole>;
+    \<^cancel>\<open>apply (rewrite at "do {let it\<^sub>0 = \<hole>;
                              _ \<leftarrow> ASSERT (_ \<noteq> None);
-                             let s = the _; _}" fold_COPY)  *)
+                             let s = the _; _}" fold_COPY)  \<close>
     supply [[goals_limit = 1, id_debug]]  
-    supply option.splits[split] (* TODO: The should be translated without extra setup *)  
+    supply option.splits[split] \<^cancel>\<open> TODO: The should be translated without extra setup \<close>  
     by sepref
 
 end      
@@ -3280,7 +3280,7 @@ subsection \<open>Correctness Theorem\<close>
 context GRAT_loc begin  
   
   lemma verify_unsat3_correct_aux[sep_heap_rules]:
-    (*assumes F_ref: "(Fi,F) \<in> \<langle>cref_rel\<rangle>list_rel"*)
+    \<^cancel>\<open>assumes F_ref: "(Fi,F) \<in> \<langle>cref_rel\<rangle>list_rel"\<close>
     assumes SEG: "liti.seg F_begin lst F_end"
     assumes itI[simp]: "it_invar F_end" "it_invar it"
     shows "

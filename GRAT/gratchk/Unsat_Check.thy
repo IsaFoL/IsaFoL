@@ -87,11 +87,11 @@ definition "cm_invar \<equiv> \<lambda>(CM,RL).
   \<and> (\<forall>l s. RL l = Some s \<longrightarrow> s \<supseteq> {i. \<exists>C. CM i = Some C \<and> l\<in>C})"
 definition "cm_F \<equiv> \<lambda>(CM,RL). ran CM"
   
-definition "cm_ids \<equiv> \<lambda>(CM, RL). dom CM \<union> \<Union>ran RL"
+definition "cm_ids \<equiv> \<lambda>(CM, RL). dom CM \<union> \<Union>(ran RL)"
 
 context unsat_input begin
   
-(* Map Interface *)
+\<^cancel>\<open> Map Interface \<close>
 definition resolve_id :: "clausemap \<Rightarrow> id \<Rightarrow> ('it error,var clause) enres" 
   where "resolve_id \<equiv> \<lambda>(CM,RL) i. doE { 
     CHECK (i\<in>dom CM) (mk_errN STR ''Invalid clause id'' i);
@@ -124,7 +124,6 @@ definition add_clause
   :: "id \<Rightarrow> var clause \<Rightarrow> clausemap \<Rightarrow> (_, clausemap) enres"  
   where "add_clause \<equiv> \<lambda>i C (CM,RL). doE {
     EASSERT (\<not>is_syn_taut C);
-    (*CHECK (i\<notin>dom CM) ''Duplicate clause id'';*)
     EASSERT (i\<notin>cm_ids (CM,RL));
     let CM = CM(i \<mapsto> C);
     let RL = (\<lambda>l. case RL l of 
@@ -139,9 +138,9 @@ definition get_rat_candidates
   "get_rat_candidates \<equiv> \<lambda>(CM,RL) A l. doE {
     let l = neg_lit l;
     CHECK (RL l \<noteq> None) (mk_err STR ''Resolution literal not declared'');
-    (* Get collected candidates *)
+    \<^cancel>\<open>Get collected candidates\<close>
     let cands_raw = the (RL l); 
-    (* Filter out deleted, not containing l, and being blocked *)
+    \<^cancel>\<open> Filter out deleted, not containing l, and being blocked \<close>
     let cands = { i\<in>cands_raw. 
                     \<exists>C. CM i = Some C 
                       \<and> l\<in>C \<and> sem_clause' (C - {l}) A \<noteq> Some True };
@@ -357,13 +356,13 @@ lemma check_candidates_rule[THEN ESPEC_trans, zero_var_indexes]:
       ])
   by (auto)
   
-(* id lit* 0 id* 0 id *)
+\<^cancel>\<open> id lit* 0 id* 0 id \<close>
 definition check_rup_proof :: "state \<Rightarrow> 'it \<Rightarrow> (_, state) enres" where
   "check_rup_proof \<equiv> \<lambda>(last_id,CM,A\<^sub>0) it. doE {
     let it\<^sub>0 = it;
     (i,it) \<leftarrow> parse_id it;
     CHECK (i>last_id) (mk_errNit STR ''Ids must be strictly increasing'' i it\<^sub>0);
-    (*(C,it) \<leftarrow> lift_parser parse_clause it;*)
+    \<^cancel>\<open>(C,it) \<leftarrow> lift_parser parse_clause it;\<close>
     (blocked,C,A',it) \<leftarrow> parse_check_blocked A\<^sub>0 it;
     if blocked then doE {
       ERETURN (i,CM,A\<^sub>0)
@@ -400,7 +399,7 @@ lemma check_rup_proof_correct[THEN ESPEC_trans, refine_vcg]:
       solve: asm_rl)
   
 
-(* lit id lit* 0 id* 0 (id id* 0 id)* 0 *)
+\<^cancel>\<open> lit id lit* 0 id* 0 (id id* 0 id)* 0 \<close>
 definition check_rat_proof :: "state \<Rightarrow> 'it \<Rightarrow> (_, state) enres" where
   "check_rat_proof \<equiv> \<lambda>(last_id,CM,A\<^sub>0) it. doE {
     let it\<^sub>0 = it;
@@ -411,7 +410,7 @@ definition check_rat_proof :: "state \<Rightarrow> 'it \<Rightarrow> (_, state) 
           (mk_errit STR ''Resolution literal is false'' it\<^sub>0);
     (i,it) \<leftarrow> parse_id it;
     CHECK (i>last_id) (mk_errNit STR ''Ids must be strictly increasing'' i it\<^sub>0);
-    (*(C,it) \<leftarrow> lift_parser parse_clause it;*)
+    \<^cancel>\<open>(C,it) \<leftarrow> lift_parser parse_clause it;\<close>
     (blocked,C,A',it) \<leftarrow> parse_check_blocked A\<^sub>0 it;
     if blocked then doE {
       ERETURN (i,CM,A\<^sub>0)
@@ -618,7 +617,7 @@ lemma cm_ids_empty[simp]: "cm_ids cm_empty = {}"
 lemma cm_ids_empty_imp_F_empty: "cm_ids CM = {} \<Longrightarrow> cm_F CM = {}"
   unfolding cm_F_def cm_ids_def by (auto simp: ran_def)
   
-(* TODO: Can we remove that? *)    
+\<^cancel>\<open> TODO: Can we remove that? \<close>    
 definition read_cnf 
   :: "var clause list \<Rightarrow> clausemap \<Rightarrow> (_, clausemap \<times> nat) enres" 
   where "read_cnf L CM \<equiv> doE {
@@ -786,7 +785,7 @@ definition "init_rat_counts it\<^sub>0 \<equiv> doE {
     (\<lambda>(CM,it). \<not>at_Z it) 
     (\<lambda>(CM,it). doE {
       (l,it) \<leftarrow> parse_literal it;
-      (_,it) \<leftarrow> parse_int it;  (* Just ignoring count, silently assuming it to be >0. TODO: Add count-down and stop optimization? *)
+      (_,it) \<leftarrow> parse_int it;  \<^cancel>\<open> Just ignoring count, silently assuming it to be >0. TODO: Add count-down and stop optimization? \<close>
       check_not_end it;
       let l = neg_lit l;
       CM \<leftarrow> cm_init_lit l CM;
@@ -922,7 +921,7 @@ definition "apply_units_bt CM A T it \<equiv> doE {
 }"
 
 definition "parse_check_blocked_bt A it \<equiv> doE {EASSERT (it_invar it); ESPEC 
-  (\<lambda>_. True (*\<lambda>e. parse_clause it = Inl e*)) 
+  (\<lambda>_. True \<^cancel>\<open>\<lambda>e. parse_clause it = Inl e\<close>) 
   (\<lambda>(t,C,(A',T'),it'). 
     (t \<longrightarrow> is_backtrack A' T' A)
   \<and> (\<not>t \<longrightarrow> (\<exists>l. lz_string litZ it l it' \<and> it_invar it' \<and> C=clause_\<alpha> l 
@@ -1002,7 +1001,7 @@ definition check_rup_proof_bt :: "state \<Rightarrow> 'it \<Rightarrow> (_, stat
     let it\<^sub>0 = it;
     (i,it) \<leftarrow> parse_id it;
     CHECK (i>last_id) (mk_errNit STR ''Ids must be strictly increasing'' i it\<^sub>0);
-    (*(C,it) \<leftarrow> lift_parser parse_clause it;*)
+    \<^cancel>\<open>(C,it) \<leftarrow> lift_parser parse_clause it;\<close>
     (blocked,C,(A,T),it) \<leftarrow> parse_check_blocked_bt A it;
     if blocked then doE {
       ERETURN (i,CM,backtrack A T)
@@ -1028,7 +1027,7 @@ definition check_rat_proof_bt :: "state \<Rightarrow> 'it \<Rightarrow> (_,state
           (mk_errit STR ''Resolution literal is false'' it\<^sub>0);
     (i,it) \<leftarrow> parse_id it;
     CHECK (i>last_id) (mk_errNit STR ''Ids must be strictly increasing'' i it\<^sub>0);
-    (*(C,it) \<leftarrow> lift_parser parse_clause it;*)
+    \<^cancel>\<open>(C,it) \<leftarrow> lift_parser parse_clause it;\<close>
     (blocked,C,(A,T),it) \<leftarrow> parse_check_blocked_bt A it;
     if blocked then doE {
       ERETURN (i,CM,backtrack A T)
@@ -1167,7 +1166,7 @@ lemma check_rat_proof_bt_refine[refine]:
   unfolding check_rat_proof_bt_def check_rat_proof_def
   apply refine_rcg
   apply refine_dref_type
-  apply (auto simp: bt_anccb_rel_def bt_in_bta_rel dest!: bt_rel_simps) (* Takes long *)
+  apply (auto simp: bt_anccb_rel_def bt_in_bta_rel dest!: bt_rel_simps) \<^cancel>\<open> Takes long \<close>
   done
   
 
@@ -1296,7 +1295,7 @@ context unsat_input begin
       "\<And>C l s. \<lbrakk>I C s; c s\<rbrakk> \<Longrightarrow> f l s \<le> ESPEC (\<lambda>_. True) (I (insert l C))"
     assumes [simp]: "it_invar cref"
     shows "parse_check_clause cref c f s \<le> ESPEC 
-      ((* TODO: Spec that parsing failed *) \<lambda>_. True) 
+      (\<^cancel>\<open> TODO: Spec that parsing failed \<close> \<lambda>_. True) 
       (\<lambda>(s,it'). \<exists>C. 
           I C s
         \<and> (c s \<longrightarrow> it_invar it' 
@@ -1326,7 +1325,7 @@ context unsat_input begin
     by (fastforce simp: ESPEC_rule_iff next_it_rel_def cref_rel_def)
   
 
-  (* Iterate over already parsed clause *)
+  \<^cancel>\<open> Iterate over already parsed clause \<close>
   definition "iterate_clause cref c f s \<equiv> 
     iterate_lz litZ it_end cref c (\<lambda>x s. f (lit_\<alpha> x) s) s"
   
@@ -1648,7 +1647,7 @@ context unsat_input begin
     assumes [simplified,simp]: "(Ai,A)\<in>Id"
     assumes CR: "(cref,C) \<in> cref_rel"
     assumes [simplified,simp]: "(exli,exl)\<in>Id"
-    (*assumes NBLK: "\<not>is_blocked A (C-{exl})"*)
+    \<^cancel>\<open>assumes NBLK: "\<not>is_blocked A (C-{exl})"\<close>
     shows "and_not_C_excl Ai cref exli 
             \<le>\<Down>\<^sub>E UNIV (Id\<times>\<^sub>rId) (and_not_C_bt A (C-{exl}))"
     unfolding and_not_C_bt_def
@@ -1682,10 +1681,10 @@ context unsat_input begin
       let l = neg_lit l;
       let cands_raw = RL l;
       CHECK (\<not>is_None cands_raw) (mk_err STR ''Resolution literal not declared'');
-      (* Get collected candidates *)
+      \<^cancel>\<open> Get collected candidates \<close>
       let cands_raw = the cands_raw; 
       EASSERT (distinct cands_raw);
-      (* Filter deleted, blocked, and those not containing resolution literal *)
+      \<^cancel>\<open> Filter deleted, blocked, and those not containing resolution literal \<close>
       cands \<leftarrow> enfoldli cands_raw (\<lambda>_. True) (\<lambda>i s. doE {
         let cref = CM i;
         if \<not>is_None cref then doE {
@@ -1804,7 +1803,7 @@ context unsat_input begin
   lemma register_clause1_correct[THEN ESPEC_trans, refine_vcg]: 
     assumes CR: "(cref,C)\<in>cref_rel"
     assumes RL: "(RLi,RL)\<in>Id \<rightarrow> \<langle>br set distinct\<rangle>option_rel"
-    assumes fresh_id: "cid \<notin> \<Union>ran RL"
+    assumes fresh_id: "cid \<notin> \<Union>(ran RL)"
     shows "register_clause1 cid cref RLi 
       \<le> ESPEC (\<lambda>_. False) 
           (\<lambda>RLi'. (RLi', RL_upd cid C RL) \<in> Id \<rightarrow> \<langle>br set distinct\<rangle>option_rel)"
@@ -1950,7 +1949,7 @@ context unsat_input begin
             (mk_errit STR ''Resolution literal is false'' it\<^sub>0);
       (i,it) \<leftarrow> parse_id it;
       CHECK (i>last_id) (mk_errNit STR ''Ids must be strictly increasing'' i it\<^sub>0);
-      (*(C,it) \<leftarrow> lift_parser parse_clause it;*)
+      \<^cancel>\<open>(C,it) \<leftarrow> lift_parser parse_clause it;\<close>
       (blocked,cref,(A,T),it) \<leftarrow> parse_check_blocked1 A it;
       if blocked then doE {
         A \<leftarrow> enres_lift (backtrack1 A T);
@@ -1992,7 +1991,7 @@ context unsat_input begin
       supply RELATESI[of "Id \<rightarrow> Id", refine_dref_RELATES]
       apply refine_dref_type
       supply [[goals_limit=1]]
-      apply (vc_solve solve: asm_rl) (* Takes its time ... *)
+      apply (vc_solve solve: asm_rl) \<^cancel>\<open> Takes its time ... \<close>
       done
   qed
   
@@ -2120,7 +2119,7 @@ context unsat_input begin
         THROW (mk_errNit STR ''Invalid item type'' ty it\<^sub>0)
     })"
     unfolding check_item1_def parse_type_def
-    (* Hand-tuned proof to avoid explosion *)  
+    \<^cancel>\<open> Hand-tuned proof to avoid explosion \<close>  
     apply (intro ext)  
     apply (simp split: prod.split)
     apply (intro allI impI)  
@@ -2140,14 +2139,14 @@ context unsat_input begin
     EASSERT (A = Map.empty);
     (t,A) \<leftarrow> iterate_clause cref (\<lambda>(t,A). \<not>t) (\<lambda>l (t,A). doE {
       if (sem_lit' l A = Some False) then ERETURN (True,A)
-      else if sem_lit' l A = Some True then ERETURN (False,A) (* DUP literal. Perhaps check for it? *)
+      else if sem_lit' l A = Some True then ERETURN (False,A) \<^cancel>\<open> DUP literal. Perhaps check for it? \<close>
       else doE {
         EASSERT (sem_lit' l A = None);
         ERETURN (False,assign_lit A l)
       }
     }) (False,A);
 
-    (* Iterate again over clause to reset assignment *)
+    \<^cancel>\<open> Iterate again over clause to reset assignment \<close>
     A \<leftarrow> iterate_clause cref (\<lambda>_. True) (\<lambda>l A. doE {
       let A = A(var_of_lit l := None);
       ERETURN A
@@ -2283,7 +2282,7 @@ context unsat_input begin
       (\<lambda>(CM,it). \<not>at_Z it) 
       (\<lambda>(CM,it). doE {
         (l,it) \<leftarrow> parse_literal it;
-        (_,it) \<leftarrow> parse_int it;  (* Just ignoring count, silently assuming it to be >0. TODO: Add count-down and stop optimization? *)
+        (_,it) \<leftarrow> parse_int it;  \<^cancel>\<open> Just ignoring count, silently assuming it to be >0. TODO: Add count-down and stop optimization? \<close>
         check_not_end it;
         let l = neg_lit l;
         CM \<leftarrow> cm_init_lit1 l CM;
@@ -2315,7 +2314,7 @@ context unsat_input begin
       (\<lambda>(CM,it). \<not>at_Z it) 
       (\<lambda>(CM,it). doE {
         (l,it) \<leftarrow> parse_literal it;
-        (_,it) \<leftarrow> parse_int it;  (* Just ignoring count, silently assuming it to be >0. TODO: Add count-down and stop optimization? *)
+        (_,it) \<leftarrow> parse_int it;  \<^cancel>\<open> Just ignoring count, silently assuming it to be >0. TODO: Add count-down and stop optimization? \<close>
         check_not_end it;
         let l = neg_lit l;
         CM \<leftarrow> cm_init_lit1 l CM;
@@ -2376,7 +2375,7 @@ context unsat_input begin
 end
 
 subsection \<open>Refinement 2\<close>
-(*
+\<^cancel>\<open>
   id \<rightarrow> nat (already done for verify_unsat1)
   (id \<rightharpoonup> 'a) \<rightarrow> 'a option array, dynamic resizing (iam!?)
 
@@ -2391,7 +2390,7 @@ subsection \<open>Refinement 2\<close>
 
   cref \<rightarrow> nat < N
   proof-item \<rightarrow> nat < N (reference into array)
-*)
+\<close>
 
 
 subsubsection \<open>Getting Out of Exception Monad\<close>
@@ -2410,7 +2409,7 @@ begin
   synth_definition check_unit_clause1_bd 
     is [enres_unfolds]: "check_unit_clause1 A cref = \<hole>"
     apply (rule CNV_eqD)
-    unfolding check_unit_clause1_def iterate_clause_def (*iterate_lz_def*)
+    unfolding check_unit_clause1_def iterate_clause_def \<^cancel>\<open>iterate_lz_def\<close>
     apply opt_enres_unfold
     apply (rule CNV_I)
     done
@@ -2476,7 +2475,7 @@ begin
   synth_definition parse_check_blocked1_bd 
     is [enres_unfolds]: "parse_check_blocked1 A cref = \<hole>"
     apply (rule CNV_eqD)
-    unfolding parse_check_blocked1_def parse_check_clause_def (*parse_lz_def*)
+    unfolding parse_check_blocked1_def parse_check_clause_def \<^cancel>\<open>parse_lz_def\<close>
     apply opt_enres_unfold
     apply (rule CNV_I)
     done
@@ -2484,24 +2483,24 @@ begin
   synth_definition check_conflict_clause1_bd 
     is [enres_unfolds]: "check_conflict_clause1 it\<^sub>0 A cref = \<hole>"
     apply (rule CNV_eqD)
-    unfolding check_conflict_clause1_def iterate_clause_def (*iterate_lz_def*)
+    unfolding check_conflict_clause1_def iterate_clause_def \<^cancel>\<open>iterate_lz_def\<close>
     apply opt_enres_unfold
     apply (rule CNV_I)
     done
   
   synth_definition and_not_C_excl_bd 
     is [enres_breakdown]: "and_not_C_excl A cref exl = enres_lift \<hole>"
-    unfolding and_not_C_excl_def iterate_clause_def (*iterate_lz_def *)
+    unfolding and_not_C_excl_def iterate_clause_def \<^cancel>\<open>iterate_lz_def \<close>
     by opt_enres_unfold
   
   synth_definition lit_in_clause_and_not_true_bd 
     is [enres_breakdown]: "lit_in_clause_and_not_true A cref lc = enres_lift \<hole>"
-    unfolding lit_in_clause_and_not_true_def iterate_clause_def (*iterate_lz_def *)
+    unfolding lit_in_clause_and_not_true_def iterate_clause_def \<^cancel>\<open>iterate_lz_def \<close>
     by opt_enres_unfold
 
   synth_definition lit_in_clause_bd 
     is [enres_breakdown]: "lit_in_clause1 cref lc = enres_lift \<hole>"
-    unfolding lit_in_clause1_def iterate_clause_def (*iterate_lz_def*) 
+    unfolding lit_in_clause1_def iterate_clause_def \<^cancel>\<open>iterate_lz_def\<close> 
     by opt_enres_unfold
       
       
@@ -2515,7 +2514,7 @@ begin
       
   synth_definition add_clause1_bd 
     is [enres_breakdown]: "add_clause1 i it CM = enres_lift \<hole>"
-    unfolding add_clause1_def register_clause1_def iterate_clause_def (*iterate_lz_def*)
+    unfolding add_clause1_def register_clause1_def iterate_clause_def \<^cancel>\<open>iterate_lz_def\<close>
     by opt_enres_unfold
       
   synth_definition check_rup_proof1_bd 
@@ -2532,7 +2531,7 @@ begin
         "check_rat_candidates_part1 CM reslit candidates A it = \<hole>"
     apply (rule CNV_eqD)
     unfolding check_rat_candidates_part1_def 
-              check_candidates'_def parse_skip_listZ_def (*parse_lz_def*)
+              check_candidates'_def parse_skip_listZ_def \<^cancel>\<open>parse_lz_def\<close>
     apply opt_enres_unfold
     apply (rule CNV_I)
     done
@@ -2554,7 +2553,7 @@ begin
       
   synth_definition is_syn_taut1_bd 
     is [enres_breakdown]: "is_syn_taut1 cref A = enres_lift \<hole>"    
-    unfolding is_syn_taut1_def iterate_clause_def (*iterate_lz_def*)
+    unfolding is_syn_taut1_def iterate_clause_def \<^cancel>\<open>iterate_lz_def\<close>
     by opt_enres_unfold
       
   synth_definition read_cnf1_bd 
@@ -2565,7 +2564,7 @@ begin
   synth_definition read_clause_check_taut_bd 
     is [enres_unfolds]: "read_clause_check_taut F_end F_begin A = \<hole>"    
     apply (rule CNV_eqD)
-    unfolding read_clause_check_taut_def (*parse_lz_def iterate_lz_def*)
+    unfolding read_clause_check_taut_def \<^cancel>\<open>parse_lz_def iterate_lz_def\<close>
     apply opt_enres_unfold
     apply (rule CNV_I)
     done  
@@ -2773,13 +2772,13 @@ concrete_definition verify_unsat2 uses DB2_loc.verify_unsat2_loc_def[unfolded ex
 declare (in DB2_loc) verify_unsat2.refine[OF DB2_loc_axioms, extrloc_unfolds]
 
   
-(*  
+\<^cancel>\<open>  
 concrete_definition (in DB2_loc) XXX2_loc 
   uses XXX1_bd_def[unfolded extrloc_unfolds]
 declare (in DB2_loc) XXX2_loc.refine[extrloc_unfolds]
 concrete_definition XXX2 uses DB2_loc.XXX2_loc_def[unfolded extrloc_unfolds]
 declare (in DB2_loc) XXX2.refine[OF DB2_loc_axioms, extrloc_unfolds]
-*)  
+\<close>  
 
 subsubsection \<open>Synthesis of Imperative Code\<close>  
   
@@ -2812,9 +2811,9 @@ begin
   lemmas [sepref_fr_rules] = add_clause3.refine  
     
 
-  (* TODO: Why can we rewrite 1::nat to int-itype? 
+  \<^cancel>\<open> TODO: Why can we rewrite 1::nat to int-itype? 
     Realized this oddity during debugging read_cnf_new2 sepref 
-  *)
+  \<close>
       
   sepref_definition read_cnf_new3 is "uncurry3 read_cnf_new2" 
     :: "liti.a_assn\<^sup>k *\<^sub>a liti.it_assn\<^sup>k *\<^sub>a liti.it_assn\<^sup>k *\<^sub>a cm_assn\<^sup>d 
@@ -2849,7 +2848,7 @@ begin
     :: "liti.a_assn\<^sup>k *\<^sub>a assignment_assn\<^sup>k *\<^sub>a (liti.it_assn)\<^sup>k 
         \<rightarrow>\<^sub>a sum_assn error_assn (pure lit_rel)"
     unfolding check_unit_clause2_def
-    supply option.split_asm[split] (* FIXME: Extra setup should not be necessary to translate if (x\<noteq>None) then ... the x *)
+    supply option.split_asm[split] \<^cancel>\<open> FIXME: Extra setup should not be necessary to translate if (x\<noteq>None) then ... the x \<close>
     by sepref
   lemmas [sepref_fr_rules] = check_unit_clause3.refine
   sepref_register check_unit_clause2 
@@ -2876,7 +2875,7 @@ begin
   lemmas [sepref_fr_rules] = apply_units3.refine
       
     
-  (* TODO: Use array-based list instead of list_set_assn! *)  
+  \<^cancel>\<open> TODO: Use array-based list instead of list_set_assn! \<close>  
   sepref_definition apply_units3_bt is "uncurry4 apply_units2_bt"
     :: " liti.a_assn\<^sup>k 
       *\<^sub>a cm_assn\<^sup>k 
@@ -2996,7 +2995,7 @@ begin
     unfolding check_rat_candidates_part2_def
     supply [[goals_limit = 1, id_debug]]  
     apply (rewrite at "Let (\<hole>::nat) _" fold_COPY)  
-    by sepref (* Takes looong *)  
+    by sepref \<^cancel>\<open> Takes looong \<close>  
   sepref_register "check_rat_candidates_part2 :: _ \<Rightarrow> (nat) clausemap1 \<Rightarrow> _" 
     :: "int list \<Rightarrow> i_cm \<Rightarrow> nat literal \<Rightarrow> nat set \<Rightarrow> i_assignment \<Rightarrow> nat 
         \<Rightarrow> (nat error + i_assignment \<times> nat) nres"
@@ -3010,7 +3009,7 @@ begin
     supply [[goals_limit = 1, id_debug]]  
     supply if_splits[split!]
     apply (rewrite at "Let (\<hole>::nat) _" fold_COPY)  
-    by sepref (* Takes looong *) 
+    by sepref \<^cancel>\<open> Takes looong \<close> 
   sepref_register check_rat_proof2 
     :: "int list \<Rightarrow> i_state \<Rightarrow> nat \<Rightarrow> (nat error + i_state) nres"
   lemmas [sepref_fr_rules] = check_rat_proof3.refine  
@@ -3051,9 +3050,9 @@ begin
 
   term goto_next_item2
   thm goto_next_item2_def
-  (* TODO: frml_end parameter only gets in by assertion! Remove assertion before!
+  \<^cancel>\<open> TODO: frml_end parameter only gets in by assertion! Remove assertion before!
       Currently solved by inlining goto_next_item2
-  *)
+  \<close>
 
   sepref_definition init_rat_counts3 is "uncurry init_rat_counts2" 
     :: "liti.a_assn\<^sup>k *\<^sub>a liti.it_assn\<^sup>k \<rightarrow>\<^sub>a error_assn +\<^sub>a cm_assn"
@@ -3081,7 +3080,7 @@ begin
                              _ \<leftarrow> ASSERT (_ \<noteq> None);
                              let s = the _; _}" fold_COPY)  
     supply [[goals_limit = 1, id_debug]]  
-    supply option.splits[split] (* TODO: The should be translated without extra setup *)  
+    supply option.splits[split] \<^cancel>\<open> TODO: The should be translated without extra setup \<close>  
     by sepref
 
 end      
@@ -3105,7 +3104,7 @@ subsection \<open>Correctness Theorem\<close>
 context DB2_loc begin  
   
   lemma verify_unsat3_correct_aux[sep_heap_rules]:
-    (*assumes F_ref: "(Fi,F) \<in> \<langle>cref_rel\<rangle>list_rel"*)
+    \<^cancel>\<open>assumes F_ref: "(Fi,F) \<in> \<langle>cref_rel\<rangle>list_rel"\<close>
     assumes SEG: "liti.seg F_begin lst F_end"
     assumes itI[simp]: "it_invar F_end" "it_invar it"
     shows "
