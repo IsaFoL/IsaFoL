@@ -63,7 +63,7 @@ translations
   "_doE_cons (_doE_let p t) (_doE_final s)"
     \<rightleftharpoons> "_doE_final (let p = t in s)"
   "_doE_block (_doE_final e)" \<rightharpoonup> "e"
-  "(m \<then> n)" \<rightharpoonup> "(m \<bind> (\<lambda>_. n))"
+(*  "(m \<then> n)" \<rightharpoonup> "(m \<bind> (\<lambda>_. n))"*)
 
 
 definition [enres_unfolds]: "CHECK \<Phi> e \<equiv> if \<Phi> then ERETURN () else THROW e"
@@ -241,7 +241,7 @@ lemma eLet_rule':
 definition [enres_unfolds]: "EWHILEIT I c f s \<equiv> WHILEIT 
   (\<lambda>Inl _ \<Rightarrow> True | Inr s \<Rightarrow> I s) 
   (\<lambda>Inl _ \<Rightarrow> False | Inr s \<Rightarrow> c s)
-  (\<lambda>s. ASSERT (\<not>isl s) \<then> (let s = projr s in f s))
+  (\<lambda>s. do {ASSERT (\<not>isl s); let s = projr s; f s})
   (Inr s)"
 
 definition [enres_unfolds]: "EWHILET \<equiv> EWHILEIT (\<lambda>_. True)"

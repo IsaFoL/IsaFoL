@@ -146,10 +146,9 @@ section \<open>Direct Representation of Satisfiable Formulas\<close>
         with SAT obtain x where "x\<in>C'" "\<sigma> x" by auto
         then show "sem_clause C (\<sigma> \<circ> int)"
           unfolding sem_clause_def sem_lit_alt
-          by (auto simp: X2 lit_\<alpha>_def elim!: bexI[rotated])
+          by simp (auto simp: X2 lit_\<alpha>_def intro: bexI[where x=x])
           
-          
-      qed  
+      qed 
       then show "sat (F_\<alpha> l)"
         unfolding sat_def by blast
     next
