@@ -4,8 +4,8 @@ target triple = "x86_64-pc-linux-gnu"
 
 
 
-declare { i1, { i1, i1 } } @IsaSAT_No_Restart_LLVM_default_opts_impl()
-declare { i1, { i1, { { i64, { i64, i32* } }, { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } @IsaSAT_No_Restart_LLVM_IsaSAT_code({ i1, { i1, i1 } } %x1, { i64, { i64, { i64, i32* } }* })
+declare { i1, { i1, i1 } } @IsaSAT_LLVM_default_opts_impl()
+declare { i1, { i1, { { i64, { i64, i32* } }, { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } @IsaSAT_LLVM_IsaSAT_code({ i1, { i1, i1 } } %x1, { i64, { i64, { i64, i32* } }* })
 declare void @LLVM_DS_NArray_narray_free1 (i32*)
 
 declare void @print_propagations (i64)
@@ -15,14 +15,15 @@ declare void @print_reductions (i64)
 declare void @print_local_restarts (i64)
 declare void @print_uset (i64)
 declare void @print_GCs (i64)
+declare void @print_phase ()
 
 
 
 define i64 @IsaSAT_No_Restart_LLVM_IsaSAT_code_wrapped2({ i64, { i64, { i64, i32* } }* } %x) {
 
   start:
-    %x1 = call { i1, { i1, i1 } } @IsaSAT_No_Restart_LLVM_default_opts_impl ()
-    %x2 = call { i1, { i1, { { i64, { i64, i32* } }, { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } @IsaSAT_No_Restart_LLVM_IsaSAT_code ({ i1, { i1, i1 } } %x1, { i64, { i64, { i64, i32* } }* } %x)
+    %x1 = call { i1, { i1, i1 } } @IsaSAT_LLVM_default_opts_impl ()
+    %x2 = call { i1, { i1, { { i64, { i64, i32* } }, { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } @IsaSAT_LLVM_IsaSAT_code ({ i1, { i1, i1 } } %x1, { i64, { i64, { i64, i32* } }* } %x)
     %a1 = extractvalue { i1, { i1, { { i64, { i64, i32* } }, { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } %x2, 0
     %x3 = extractvalue { i1, { i1, { { i64, { i64, i32* } }, { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } %x2, 1
     %a1a = extractvalue { i1, { { i64, { i64, i32* } }, { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } } } } %x3, 0

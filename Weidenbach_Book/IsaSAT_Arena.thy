@@ -2052,10 +2052,13 @@ definition mop_arena_lit where
       RETURN (arena_lit arena s)
   }\<close>
 
-definition mop_arena_lit2 where
+lemma arena_lit_pre_le_lengthD: \<open>arena_lit_pre arena C \<Longrightarrow> C < length arena\<close>
+  apply (auto simp: arena_lit_pre_def arena_is_valid_clause_idx_and_access_def)
+  using arena_lifting(7) nat_le_iff_add by auto
+
+definition mop_arena_lit2 :: \<open>arena \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat literal nres\<close> where
 \<open>mop_arena_lit2 arena i j = do {
   ASSERT(arena_lit_pre arena (i+j));
-  ASSERT(i+j < length arena);
   let s = i+j;
   RETURN (arena_lit arena s)
   }\<close>
@@ -2079,9 +2082,95 @@ lemma [mop_arena_lit]:
    apply (metis arena_is_valid_clause_idx_and_access_def arena_lifting(4) arena_lit_pre_def diff_add_inverse le_add1)+
   done
 
+
+lemma mop_arena_lit2[mop_arena_lit]:
+  assumes valid: \<open>valid_arena arena N vdom\<close> and
+    i: \<open>(C, C') \<in> nat_rel\<close> \<open>(i, i') \<in> nat_rel\<close>
+  shows
+    \<open>mop_arena_lit2 arena C i \<le> \<Down>Id (mop_clauses_at N C' i')\<close>
+  using assms unfolding mop_clauses_swap_def mop_arena_lit2_def mop_clauses_at_def
+  by refine_rcg
+    (auto simp: arena_lifting valid_arena_swap_lits arena_lit_pre_def arena_is_valid_clause_idx_and_access_def
+      intro!: exI[of _ C])
+
+definition mop_arena_lit2' :: \<open>nat set \<Rightarrow> arena \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat literal nres\<close> where
+\<open>mop_arena_lit2' vdom = mop_arena_lit2\<close>
+
+
+
+lemma mop_arena_lit2'[mop_arena_lit]:
+  assumes valid: \<open>valid_arena arena N vdom\<close> and
+    i: \<open>(C, C') \<in> nat_rel\<close> \<open>(i, i') \<in> nat_rel\<close>
+  shows
+    \<open>mop_arena_lit2' vdom arena C i \<le> \<Down>Id (mop_clauses_at N C' i')\<close>
+  using mop_arena_lit2[OF assms]
+  unfolding mop_arena_lit2'_def
+  .
+
 lemma arena_lit_pre2_arena_lit[dest]:
    \<open>arena_lit_pre2 N i j \<Longrightarrow> arena_lit_pre N (i+j)\<close>
   by (auto simp: arena_lit_pre_def arena_lit_pre2_def arena_is_valid_clause_idx_and_access_def
     intro!: exI[of _ i])
+
+definition mop_arena_swap where
+  \<open>mop_arena_swap C i j arena = do {
+      ASSERT(swap_lits_pre C i j arena);
+      RETURN (swap_lits C i j arena)
+  }\<close>
+
+lemma mop_arena_swap[mop_arena_lit]:
+  assumes valid: \<open>valid_arena arena N vdom\<close> and
+    i: \<open>(C, C') \<in> nat_rel\<close> \<open>(i, i') \<in> nat_rel\<close> \<open>(j, j') \<in> nat_rel\<close>
+  shows
+    \<open>mop_arena_swap C i j arena \<le> \<Down>{(N', N). valid_arena N' N vdom} (mop_clauses_swap N C' i' j')\<close>
+  using assms unfolding mop_clauses_swap_def mop_arena_swap_def swap_lits_pre_def
+  by refine_rcg
+    (auto simp: arena_lifting valid_arena_swap_lits)
+
+definition mop_arena_pos :: \<open>arena \<Rightarrow> nat \<Rightarrow> nat nres\<close> where
+\<open>mop_arena_pos arena C = do {
+   ASSERT(get_saved_pos_pre arena C);
+   RETURN (arena_pos arena C)
+}\<close>
+
+definition mop_arena_length :: \<open>arena_el list \<Rightarrow> nat \<Rightarrow> nat nres\<close> where
+\<open>mop_arena_length arena C = do {
+  ASSERT(arena_is_valid_clause_idx arena C);
+  RETURN (arena_length arena C)
+}\<close>
+
+
+lemma mop_arena_length:
+   \<open>(uncurry mop_arena_length, uncurry (RETURN oo (\<lambda>N c. length (N \<propto> c)))) \<in>
+    [\<lambda>(N, i). i \<in># dom_m N]\<^sub>f {(N, N'). valid_arena N N' vdom} \<times>\<^sub>f nat_rel \<rightarrow> \<langle>nat_rel\<rangle>nres_rel\<close>
+  unfolding mop_arena_length_def
+  by (intro frefI nres_relI)
+    (auto 5 3 intro!: ASSERT_leI simp: map_fun_rel_def append_ll_def arena_is_valid_clause_idx_def
+        arena_lifting)
+
+definition mop_arena_lbd where
+  \<open>mop_arena_lbd arena C = do {
+    ASSERT(get_clause_LBD_pre arena C);
+    RETURN(arena_lbd arena C)
+  }\<close>
+
+definition mop_arena_status where
+  \<open>mop_arena_status arena C = do {
+    ASSERT(arena_is_valid_clause_vdom arena C);
+    RETURN(arena_status arena C)
+  }\<close>
+
+definition mop_marked_as_used where
+  \<open>mop_marked_as_used arena C = do {
+    ASSERT(marked_as_used_pre arena C);
+    RETURN(marked_as_used arena C)
+  }\<close>
+
+definition arena_other_watched :: \<open>arena \<Rightarrow> nat literal \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat literal nres\<close> where
+\<open>arena_other_watched S L C i = do {
+    ASSERT(i < 2 \<and> arena_lit S (C + i) = L \<and> arena_lit_pre2 S C i \<and>
+      arena_lit_pre2 S C (1-i));
+    mop_arena_lit2 S C (1 - i)
+  }\<close>
 
 end

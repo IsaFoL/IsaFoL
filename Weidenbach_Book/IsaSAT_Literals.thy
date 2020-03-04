@@ -1,11 +1,9 @@
 theory IsaSAT_Literals
   imports Watched_Literals.WB_More_Refinement "HOL-Word.More_Word"
-     Watched_Literals.Watched_Literals_Watch_List_Domain
+     Watched_Literals.Watched_Literals_Watch_List
      Entailment_Definition.Partial_Herbrand_Interpretation
      Isabelle_LLVM.Bits_Natural (*Watched_Literals.WB_Word*)
 begin
-
-hide_const Autoref_Fix_Rel.CONSTRAINT
 
 subsubsection \<open>Refinement of the Watched Function\<close>
 
@@ -122,7 +120,7 @@ definition sint32_max :: nat where
 definition sint64_max :: nat where
   \<open>sint64_max \<equiv> 2^63-1\<close>
 
-  
+
 context
   fixes \<A>\<^sub>i\<^sub>n :: \<open>nat multiset\<close>
 begin
@@ -521,14 +519,14 @@ type_synonym nat_clauses_l = \<open>nat list list\<close>
 subsubsection \<open>Refinement of the Watched Function\<close>
 
 definition watched_by_nth :: \<open>nat twl_st_wl \<Rightarrow> nat literal \<Rightarrow> nat \<Rightarrow> nat watcher\<close> where
-  \<open>watched_by_nth = (\<lambda>(M, N, D, NE, UE, Q, W) L i. W L ! i)\<close>
+  \<open>watched_by_nth = (\<lambda>(M, N, D, NE, UE, NS, US, Q, W) L i. W L ! i)\<close>
 
 definition watched_app
   :: \<open>(nat literal \<Rightarrow> (nat watcher) list) \<Rightarrow> nat literal \<Rightarrow> nat \<Rightarrow> nat watcher\<close> where
   \<open>watched_app M L i \<equiv> M L ! i\<close>
 
 lemma watched_by_nth_watched_app:
-  \<open>watched_by S K ! w = watched_app ((snd o snd o snd o snd o snd o snd) S) K w\<close>
+  \<open>watched_by S K ! w = watched_app ((snd o snd o snd o snd o snd o snd o snd o snd) S) K w\<close>
   by (cases S) (auto simp: watched_app_def)
 
 
@@ -626,7 +624,7 @@ lemma get_conflict_wl_is_None: \<open>get_conflict_wl S = None \<longleftrightar
   by (cases S) (auto simp: get_conflict_wl_is_None_def split: option.splits)
 
 lemma watched_by_nth_watched_app':
-  \<open>watched_by S K = ((snd o snd o snd o snd o snd o snd) S) K\<close>
+  \<open>watched_by S K = ((snd o snd o snd o snd o snd o snd o snd o snd) S) K\<close>
   by (cases S) (auto simp: watched_app_def)
 
 lemma (in -) hd_decided_count_decided_ge_1:

@@ -30,6 +30,13 @@ typedef ('f, 'v) ground_clause = \<open>{C :: ('f, 'v) clause. ground_cl C}\<clo
 apply(rule_tac x = \<open>{#}\<close> in exI)
   by simp
 
+inductive equiv_lit :: \<open>('f, 'v) literal \<Rightarrow> ('f, 'v) literal \<Rightarrow> bool\<close>
+  where
+    refl: \<open>equiv_lit L L\<close> |
+    sym_pos: \<open>equiv_lit (Eq s t) (Eq t s)\<close> |
+    sym_neg: \<open>equiv_lit (Neq s t) (Neq t s)\<close>
+
+
 (* substitutions *)
 
 fun subst_apply_lit :: \<open>('f, 'v) literal \<Rightarrow> ('f, 'v, 'w) gsubst \<Rightarrow> ('f, 'w) literal\<close>
@@ -89,6 +96,9 @@ proof -
   qed
   then show ?thesis by auto
 qed
+
+lemma ex_subst_Rep_ground_clause: \<open>\<exists>\<sigma> :: ('f, 'v) subst. ground_cl (subst_apply_cl (Rep_ground_clause C) \<sigma>)\<close>
+  by (smt Rep_ground_clause mem_Collect_eq subst_ground_cl)
 
 (* semantics *)
 
@@ -213,9 +223,21 @@ definition lit_ord :: \<open>(('f,'v) literal \<times> ('f,'v) literal) set\<clo
   where
     \<open>lit_ord = inv_image (mult term_ord) mset_lit\<close>
 
+abbreviation lit_lt :: \<open>('f,'v) literal \<Rightarrow> ('f,'v) literal \<Rightarrow> bool\<close> (infix "\<prec>L" 60)
+  where
+  \<open>lit_lt L1 L2 \<equiv> (L1,L2) \<in> lit_ord\<close>
+
+abbreviation lit_le :: \<open>('f,'v) literal \<Rightarrow> ('f,'v) literal \<Rightarrow> bool\<close> (infix "\<preceq>L" 60)
+  where
+  \<open>lit_le L1 L2 \<equiv> (L1,L2) \<in> lit_ord \<or> equiv_lit L1 L2\<close>
+
 definition clause_ord :: \<open>(('f,'v) clause \<times> ('f,'v) clause) set\<close>
   where
     \<open>clause_ord = mult lit_ord\<close>
+
+abbreviation clause_lt :: \<open>('f,'v) clause \<Rightarrow> ('f,'v) clause \<Rightarrow> bool\<close> (infix "\<prec>F" 60)
+  where
+  \<open>clause_lt C1 C2 \<equiv> (C1,C2) \<in> clause_ord\<close>
 
 definition clause_set_ord :: \<open>(('f,'v) clause set \<times> ('f,'v) clause set) set\<close>
   where \<open>clause_set_ord = inv_image (mult clause_ord) mset_set\<close>
@@ -224,33 +246,31 @@ definition ground_clause_ord :: \<open>(('f,'v) ground_clause \<times> ('f,'v) g
   where
     \<open>ground_clause_ord = inv_image clause_ord Rep_ground_clause\<close>
 
+abbreviation ground_clause_lt :: \<open>('f,'v) ground_clause \<Rightarrow> ('f,'v) ground_clause \<Rightarrow> bool\<close> (infix "\<prec>G" 60)
+  where
+  \<open>ground_clause_lt C1 C2 \<equiv> (C1,C2) \<in> ground_clause_ord\<close>
+
 definition ground_clause_set_ord :: \<open>(('f,'v) ground_clause set \<times> ('f,'v) ground_clause set) set\<close>
   where \<open>ground_clause_set_ord = inv_image clause_set_ord (image Rep_ground_clause)\<close>
 
 lemma trans_lit_ord: \<open>trans lit_ord\<close>
-proof -
-  have \<open>(L1, L2) \<in> lit_ord \<Longrightarrow> (L2, L3) \<in> lit_ord \<Longrightarrow> (L1, L3) \<in> lit_ord\<close> for L1 L2 L3
-  proof -
-    assume \<open>(L1, L2) \<in> lit_ord\<close> and \<open>(L2, L3) \<in> lit_ord\<close>
-    then have \<open>(mset_lit L1, mset_lit L2) \<in> mult term_ord\<close> and \<open>(mset_lit L2, mset_lit L3) \<in> mult term_ord\<close>
-      unfolding lit_ord_def by auto
-    then have \<open>(mset_lit L1, mset_lit L3) \<in> mult term_ord\<close> by (simp add: mult_def trancl_def)
-    then show \<open>(L1, L3) \<in> lit_ord\<close> unfolding lit_ord_def by auto
-  qed
-  then show ?thesis unfolding trans_def by blast
+proof
+  fix L1 L2 L3
+  assume \<open>L1 \<prec>L L2\<close> and \<open>L2 \<prec>L L3\<close>
+  then have \<open>(mset_lit L1, mset_lit L2) \<in> mult term_ord\<close> and \<open>(mset_lit L2, mset_lit L3) \<in> mult term_ord\<close>
+    unfolding lit_ord_def by auto
+  then have \<open>(mset_lit L1, mset_lit L3) \<in> mult term_ord\<close> by (simp add: mult_def trancl_def)
+  then show \<open>L1 \<prec>L L3\<close> unfolding lit_ord_def by auto
 qed
 
 lemma trans_ground_clause_ord: \<open>trans (ground_clause_ord)\<close>
-proof -
-  have \<open>(x, y) \<in> ground_clause_ord \<Longrightarrow> (y, z) \<in> ground_clause_ord \<Longrightarrow> (x, z) \<in> ground_clause_ord\<close> for x y z
-  proof -
-    assume \<open>(x, y) \<in> ground_clause_ord\<close> and \<open>(y, z) \<in> ground_clause_ord\<close>
-    then have \<open>(Rep_ground_clause x, Rep_ground_clause y) \<in> clause_ord\<close> and \<open>(Rep_ground_clause y, Rep_ground_clause z) \<in> clause_ord\<close>
-      unfolding ground_clause_ord_def by auto
-    then have \<open>(Rep_ground_clause x, Rep_ground_clause z) \<in> clause_ord\<close> unfolding clause_ord_def by (simp add: mult_def trancl_def)
-    then show \<open>(x, z) \<in> ground_clause_ord\<close> unfolding ground_clause_ord_def by auto
-  qed
-  then show ?thesis unfolding trans_def by blast
+proof
+  fix C1 C2 C3
+  assume \<open>C1 \<prec>G C2\<close> and \<open>C2 \<prec>G C3\<close>
+  then have \<open>Rep_ground_clause C1 \<prec>F Rep_ground_clause C2\<close> and \<open>Rep_ground_clause C2 \<prec>F Rep_ground_clause C3\<close>
+    unfolding ground_clause_ord_def by auto
+  then have \<open>Rep_ground_clause C1 \<prec>F Rep_ground_clause C3\<close> unfolding clause_ord_def by (simp add: mult_def trancl_def)
+  then show \<open>C1 \<prec>G C3\<close> unfolding ground_clause_ord_def by auto
 qed
 
 lemma wf_lit_ord: \<open>wf lit_ord\<close>
@@ -276,6 +296,9 @@ lemma wf_ground_clause_set_ord: \<open>wf ground_clause_set_ord\<close>
 lemma ground_comparison: \<open>ground_term s \<Longrightarrow> ground_term t \<Longrightarrow> \<not> t \<preceq> s \<Longrightarrow> s \<prec> t\<close>
   using term_ord_ground_total
   unfolding total_on_def by blast
+
+lemma lit_ord_ground_total: \<open>ground_lit L1 \<Longrightarrow> ground_lit L2 \<Longrightarrow> L1 \<prec>L L2 \<or> L2 \<prec>L L1 \<or> equiv_lit L1 L2\<close>
+  sorry
 
 (* inferences *)
 
@@ -304,7 +327,7 @@ definition superposition_inferences :: \<open>('f, 'v) clause inference set\<clo
                                                            \<and> \<not> is_Var t'
                                                            \<and> \<not> t \<cdot> \<sigma> \<preceq> s \<cdot> \<sigma>
                                                            \<and> \<not> u \<cdot> \<sigma> \<preceq> vt \<cdot> \<sigma>
-                                                           \<and> (subst_apply_lit (Eq t s) \<sigma>, subst_apply_lit L \<sigma>) \<in> lit_ord}\<close>
+                                                           \<and> subst_apply_lit (Eq t s) \<sigma> \<prec>L subst_apply_lit L \<sigma>}\<close>
 
 abbreviation superposition_inference_system :: \<open>('f, 'v) clause inference set\<close>
   where
@@ -359,7 +382,8 @@ proof -
   qed
 qed
 
-lemma subterm_replace_stable_subst: \<open>subterm_replace s t u v \<Longrightarrow> subterm_replace (s \<cdot> \<sigma>) (t \<cdot> \<sigma>) (u \<cdot> \<sigma>) (v \<cdot> \<sigma>)\<close>
+lemma subterm_replace_stable_subst:
+  \<open>subterm_replace s t u v \<Longrightarrow> subterm_replace (s \<cdot> \<sigma>) (t \<cdot> \<sigma>) (u \<cdot> \<sigma>) (v \<cdot> \<sigma>)\<close>
 proof (induction s arbitrary: t)
   case (Var x)
   then show ?case
@@ -573,12 +597,12 @@ qed
 
 definition Red_ground_clause :: \<open>('f, 'v) ground_clause set \<Rightarrow> ('f, 'v) ground_clause set\<close> where
 \<open>Red_ground_clause N = {C. \<exists>N' \<subseteq> N. finite N' \<and> N' \<Turnstile>G {C}
-                        \<and> (\<forall>D \<in> N'. (D, C) \<in> ground_clause_ord)}\<close>
+                        \<and> (\<forall>D \<in> N'. D \<prec>G C)}\<close>
 
 definition Red_ground_Inf :: \<open>('f, 'v) ground_clause set \<Rightarrow> ('f, 'v) ground_clause inference set\<close> where
 \<open>Red_ground_Inf N = {\<iota>. (Rep_ground_inference \<iota>) \<in> superposition_inference_system
                      \<and> (\<exists>N' \<subseteq> N. finite N' \<and> N' \<Turnstile>G {concl_of \<iota>}
-                     \<and> (\<forall>D \<in> N'. \<exists>P \<in> set (prems_of \<iota>). (D, P) \<in> ground_clause_ord))}\<close>
+                     \<and> (\<forall>D \<in> N'. \<exists>P \<in> set (prems_of \<iota>). D \<prec>G P))}\<close>
 
 lemma Red_ground_clause_entails: \<open>N \<Turnstile>G Red_ground_clause N\<close>
   unfolding ground_entail_def
@@ -597,12 +621,12 @@ qed
 lemma smaller_clause_set:
   assumes \<open>finite N\<close>
   assumes \<open>C \<in> N\<close>
-  assumes \<open>\<forall>C' \<in> N'. (C', C) \<in> clause_ord\<close>
+  assumes \<open>\<forall>C' \<in> N'. C' \<prec>F C\<close>
   shows \<open>(N - {C} \<union> N', N) \<in> clause_set_ord\<close>
 proof -
   have eq: \<open>mset_set (N - {C}) + {#C#} = mset_set N\<close> using assms(1,2)
     using mset_set.remove by fastforce
-  have \<open>\<forall>C'\<in>#mset_set N'. \<exists>D\<in>#{#C#}. (C', D) \<in> clause_ord\<close> using assms(3)
+  have \<open>\<forall>C'\<in>#mset_set N'. \<exists>D\<in>#{#C#}. C' \<prec>F D\<close> using assms(3)
     by (metis elem_mset_set empty_not_add_mset insert_DiffM mset_set.infinite multi_member_last)
   then have \<open>(mset_set (N - {C}) + mset_set N', mset_set (N - {C}) + {#C#}) \<in> mult clause_ord\<close>
     using one_step_implies_mult [of \<open>{#C#}\<close> \<open>mset_set N'\<close> clause_ord \<open>mset_set (N - {C})\<close>] by auto
@@ -619,12 +643,12 @@ qed
 lemma smaller_ground_clause_set:
   assumes \<open>finite N\<close>
   assumes \<open>C \<in> N\<close>
-  assumes \<open>\<forall>C' \<in> N'. (C', C) \<in> ground_clause_ord\<close>
+  assumes \<open>\<forall>C' \<in> N'. C' \<prec>G C\<close>
   shows \<open>(N - {C} \<union> N', N) \<in> ground_clause_set_ord\<close>
 proof -
   from assms(1) have \<open>finite (Rep_ground_clause ` N)\<close> by auto
   moreover from assms(2) have \<open>Rep_ground_clause C \<in> Rep_ground_clause ` N\<close> by auto
-  moreover from assms(3) have \<open>\<forall>C' \<in> (Rep_ground_clause ` N'). (C', Rep_ground_clause C) \<in> clause_ord\<close>
+  moreover from assms(3) have \<open>\<forall>C' \<in> (Rep_ground_clause ` N'). C' \<prec>F Rep_ground_clause C\<close>
     unfolding ground_clause_ord_def by auto
   ultimately have \<open>(Rep_ground_clause ` N - {Rep_ground_clause C} \<union> Rep_ground_clause ` N', Rep_ground_clause ` N) \<in> clause_set_ord\<close>
     using smaller_clause_set by auto
@@ -639,7 +663,7 @@ lemma minimal_Red_ground_clause_subset:
   assumes \<open>C \<in> Red_ground_clause N\<close>
   shows \<open>\<exists>M. M \<subseteq> N \<and> C \<in> Red_ground_clause M \<and> (\<forall>D \<in> M. D \<notin> Red_ground_clause N)\<close>
 proof -
-  from assms obtain NC1 where \<open>NC1 \<subseteq> N \<and> finite NC1 \<and> NC1 \<Turnstile>G {C} \<and> (\<forall>D \<in> NC1. (D, C) \<in> ground_clause_ord)\<close> (is \<open>?P NC1\<close>)
+  from assms obtain NC1 where \<open>NC1 \<subseteq> N \<and> finite NC1 \<and> NC1 \<Turnstile>G {C} \<and> (\<forall>D \<in> NC1. D \<prec>G C)\<close> (is \<open>?P NC1\<close>)
     unfolding Red_ground_clause_def by auto
   then obtain NC0 where NC0_prop: \<open>?P NC0\<close> and NC0_min: \<open>(X, NC0) \<in> ground_clause_set_ord \<Longrightarrow> \<not> (?P X)\<close> for X
     using wfE_min [of \<open>ground_clause_set_ord\<close> \<open>NC1\<close> \<open>{x. ?P x}\<close>] wf_ground_clause_set_ord by auto
@@ -649,7 +673,7 @@ proof -
     then obtain ND1 where ND1_subset: \<open>ND1 \<subseteq> N\<close>
                       and ND1_finite: \<open>finite ND1\<close>
                       and ND1_entails: \<open>ND1 \<Turnstile>G {D}\<close>
-                      and ND1_ord: \<open>\<forall>E \<in> ND1. (E,D) \<in> ground_clause_ord\<close>
+                      and ND1_ord: \<open>\<forall>E \<in> ND1. E \<prec>G D\<close>
       using Red_ground_clause_def by auto
     (* construct a smaller set than NC0 in which C is also redundant. This contradicts the minimality of NC0. *)
     let ?NCC = \<open>NC0 - {D} \<union> ND1\<close>
@@ -666,19 +690,19 @@ proof -
       also have \<open>NC0 \<Turnstile>G {C}\<close> using NC0_prop Red_ground_clause_entails ground_consequence.entail_set_all_formulas by blast
       finally show ?thesis by auto
     qed
-    moreover have \<open>\<forall>E \<in> ?NCC. (E,C) \<in> ground_clause_ord\<close>
+    moreover have \<open>\<forall>E \<in> ?NCC. E \<prec>G C\<close>
     proof
       fix E
       assume \<open>E \<in> ?NCC\<close>
       then consider (a) \<open>E \<in> NC0\<close> | (b) \<open>E \<in> ND1\<close> by blast
-      then show \<open>(E,C) \<in> ground_clause_ord\<close>
+      then show \<open>E \<prec>G C\<close>
       proof cases
         case a
         then show ?thesis using NC0_prop by auto
       next
         case b
-        then have \<open>(E,D) \<in> ground_clause_ord\<close> using ND1_ord by auto
-        also have \<open>(D,C) \<in> ground_clause_ord\<close> using \<open>D \<in> NC0\<close> NC0_prop by auto
+        then have \<open>E \<prec>G D\<close> using ND1_ord by auto
+        also have \<open>D \<prec>G C\<close> using \<open>D \<in> NC0\<close> NC0_prop by auto
         finally show ?thesis using trans_ground_clause_ord by auto
       qed
     qed
@@ -693,7 +717,7 @@ lemma minimal_Red_ground_Inf_subset:
   assumes \<open>\<iota> \<in> Red_ground_Inf N\<close>
   shows \<open>\<exists>M. M \<subseteq> N \<and> \<iota> \<in> Red_ground_Inf M \<and> (\<forall>D \<in> M. D \<notin> Red_ground_clause N)\<close>
 proof -
-  from assms obtain NC1 where \<open>NC1 \<subseteq> N \<and> finite NC1 \<and> NC1 \<Turnstile>G {concl_of \<iota>} \<and> (\<forall>D \<in> NC1. \<exists>P\<in>set (prems_of \<iota>). (D, P) \<in> ground_clause_ord)\<close> (is \<open>?P NC1\<close>)
+  from assms obtain NC1 where \<open>NC1 \<subseteq> N \<and> finite NC1 \<and> NC1 \<Turnstile>G {concl_of \<iota>} \<and> (\<forall>D \<in> NC1. \<exists>P\<in>set (prems_of \<iota>). D \<prec>G P)\<close> (is \<open>?P NC1\<close>)
     unfolding Red_ground_Inf_def by auto
   then obtain NC0 where NC0_prop: \<open>?P NC0\<close> and NC0_min: \<open>(X, NC0) \<in> ground_clause_set_ord \<Longrightarrow> \<not> (?P X)\<close> for X
     using wfE_min [of \<open>ground_clause_set_ord\<close> \<open>NC1\<close> \<open>{x. ?P x}\<close>] wf_ground_clause_set_ord by auto
@@ -703,7 +727,7 @@ proof -
     then obtain ND1 where ND1_subset: \<open>ND1 \<subseteq> N\<close>
                       and ND1_finite: \<open>finite ND1\<close>
                       and ND1_entails: \<open>ND1 \<Turnstile>G {D}\<close>
-                      and ND1_ord: \<open>\<forall>E \<in> ND1. (E,D) \<in> ground_clause_ord\<close>
+                      and ND1_ord: \<open>\<forall>E \<in> ND1. E \<prec>G D\<close>
       using Red_ground_clause_def by auto
     (* construct a smaller set than NC0 in which \<iota> is also redundant. This contradicts the minimality of NC0. *)
     let ?NCC = \<open>NC0 - {D} \<union> ND1\<close>
@@ -720,20 +744,20 @@ proof -
       also have \<open>NC0 \<Turnstile>G {concl_of \<iota>}\<close> using NC0_prop Red_ground_clause_entails ground_consequence.entail_set_all_formulas by blast
       finally show ?thesis by auto
     qed
-    moreover have \<open>\<forall>E \<in> ?NCC. \<exists>P\<in>set (prems_of \<iota>).  (E,P) \<in> ground_clause_ord\<close>
+    moreover have \<open>\<forall>E \<in> ?NCC. \<exists>P\<in>set (prems_of \<iota>).  E \<prec>G P\<close>
     proof
       fix E
       assume \<open>E \<in> ?NCC\<close>
       then consider (a) \<open>E \<in> NC0\<close> | (b) \<open>E \<in> ND1\<close> by blast
-      then show \<open>\<exists>P \<in> set (prems_of \<iota>). (E,P) \<in> ground_clause_ord\<close>
+      then show \<open>\<exists>P \<in> set (prems_of \<iota>). E \<prec>G P\<close>
       proof cases
         case a
         then show ?thesis using NC0_prop by auto
       next
         case b
-        obtain P where P_elem: \<open>P \<in> set (prems_of \<iota>)\<close> and P_prop: \<open>(D,P) \<in> ground_clause_ord\<close> using \<open>D \<in> NC0\<close> NC0_prop by auto
-        from b have \<open>(E,D) \<in> ground_clause_ord\<close> using ND1_ord by auto
-        also have \<open>(D,P) \<in> ground_clause_ord\<close> using P_prop .
+        obtain P where P_elem: \<open>P \<in> set (prems_of \<iota>)\<close> and P_prop: \<open>D \<prec>G P\<close> using \<open>D \<in> NC0\<close> NC0_prop by auto
+        from b have \<open>E \<prec>G D\<close> using ND1_ord by auto
+        also have \<open>D \<prec>G P\<close> using P_prop .
         finally show ?thesis using trans_ground_clause_ord P_elem by auto
       qed
     qed
@@ -827,7 +851,7 @@ qed
 
 lemma exists_premise_greater:
   assumes \<open>\<iota> \<in> ground_superposition_inference_system\<close>
-  shows \<open>\<exists>D \<in> set (prems_of \<iota>). (concl_of \<iota>, D) \<in> ground_clause_ord\<close>
+  shows \<open>\<exists>D \<in> set (prems_of \<iota>). concl_of \<iota> \<prec>G D\<close>
 proof -
   from assms consider (res) \<open>Rep_ground_inference \<iota> \<in> eresolution_inferences\<close>
     | (fact) \<open>Rep_ground_inference \<iota> \<in> efactoring_inferences\<close>
@@ -842,9 +866,9 @@ proof -
     then have \<open>ground_cl C\<close> using Rep_ground_clause [of P] by auto
     then have \<open>Rep_ground_clause (concl_of \<iota>) = C\<close> using subst_ground_cl [of C \<sigma>] concl_def by auto
     then have \<open>Rep_ground_clause (concl_of \<iota>) \<subset># Rep_ground_clause P\<close> using P_def by auto
-    then have \<open>(Rep_ground_clause (concl_of \<iota>), Rep_ground_clause P) \<in> clause_ord\<close>
+    then have \<open>Rep_ground_clause (concl_of \<iota>) \<prec>F Rep_ground_clause P\<close>
       by (simp add: clause_ord_def subset_implies_mult)
-    then have \<open>(concl_of \<iota>, P) \<in> ground_clause_ord\<close> unfolding ground_clause_ord_def by auto
+    then have \<open>concl_of \<iota> \<prec>G P\<close> unfolding ground_clause_ord_def by auto
     then show ?thesis using P_elem by auto
   next
     case fact
@@ -863,7 +887,7 @@ proof -
     from mgu have \<open>u' \<cdot> \<sigma> = u \<cdot> \<sigma>\<close> unfolding is_mgu_def unifiers_def by auto
     with ground have \<open>u' = u\<close> using subst_ground_term by metis
     with ord' ground term_ord_ground_trans have \<open>s \<prec> u' \<and> t \<prec> u'\<close> unfolding trans_def by auto
-    then have \<open>(Neq t s, Eq u' s) \<in> lit_ord\<close>
+    then have \<open>Neq t s \<prec>L Eq u' s\<close>
       using one_step_implies_mult [of \<open>{#u'#}\<close> \<open>{#t,t,s#}\<close> term_ord \<open>{#s#}\<close>] unfolding lit_ord_def by auto
     then have \<open>(Rep_ground_clause (concl_of \<iota>), Rep_ground_clause P) \<in> mult lit_ord\<close>
       using one_step_implies_mult [of \<open>{#Eq u' s#}\<close> \<open>{#Neq t s#}\<close> lit_ord \<open>{#Eq u t#} + C\<close>] concl_def' P_def by auto
@@ -875,7 +899,7 @@ proof -
                                             and L_def: \<open>L = Eq vt u \<and> L' = Eq vs u \<or> L = Neq vt u \<and> L' = Neq vs u\<close>
                                             and subterm: \<open>subterm_replace vs vt s t'\<close>
                                             and mgu: \<open>is_mgu \<sigma> {(t, t')}\<close>
-                                            and lit_ord: \<open>(subst_apply_lit (Eq t s) \<sigma>, subst_apply_lit L \<sigma>) \<in> lit_ord\<close>
+                                            and lit_ord: \<open>subst_apply_lit (Eq t s) \<sigma> \<prec>L subst_apply_lit L \<sigma>\<close>
       unfolding superposition_inferences_def by blast
     then obtain P1 P2 where \<open>P1 \<in> set (prems_of \<iota>)\<close>
                         and \<open>Rep_ground_clause P1 = {#Eq t s#} + C\<close>
@@ -896,7 +920,7 @@ proof -
     then have vs_vt_ord: \<open>vs \<prec> vt\<close>
       using subterm subterm_replace_ord ground ground' \<open>t' = t\<close> by metis
     consider (pos) \<open>L = Eq vt u \<and> L' = Eq vs u\<close> | (neg) \<open>L = Neq vt u \<and> L' = Neq vs u\<close> using L_def by auto
-    then have lit_ord': \<open>(L', L) \<in> lit_ord\<close>
+    then have lit_ord': \<open>L' \<prec>L L\<close>
     proof cases
       case pos
       have \<open>({#vs,u#}, {#vt, u#}) \<in> mult term_ord\<close>
@@ -908,11 +932,11 @@ proof -
         using one_step_implies_mult [of \<open>{#vt,vt#}\<close> \<open>{#vs,vs#}\<close> term_ord \<open>{#u,u#}\<close>] vs_vt_ord by auto
       with neg show ?thesis unfolding lit_ord_def by auto
     qed
-    have \<open>M \<in># {# L' #} + C \<Longrightarrow> (M, L) \<in> lit_ord\<close> for M
+    have \<open>M \<in># {# L' #} + C \<Longrightarrow> M \<prec>L L\<close> for M
     proof -
       assume \<open>M \<in># {# L' #} + C\<close>
       then consider (a) \<open>M = L'\<close> | (b) \<open>M \<in># C\<close> by auto
-      then show \<open>(M, L) \<in> lit_ord\<close>
+      then show \<open>M \<prec>L L\<close>
       proof cases
         case a
         with lit_ord' show ?thesis by auto
@@ -924,7 +948,7 @@ proof -
     then have \<open>({#L'#} + C + D, {#L#} + D) \<in> mult lit_ord\<close>
       using one_step_implies_mult [of \<open>{#L#}\<close> \<open>{#L'#} + C\<close> lit_ord \<open>D\<close>]
       by (simp add: union_commute)
-    then have \<open>(concl_of \<iota>, P2) \<in> ground_clause_ord\<close>
+    then have \<open>concl_of \<iota> \<prec>G P2\<close>
       using concl_def' P2_def
       unfolding ground_clause_ord_def clause_ord_def by auto
     with P2_elem show ?thesis by auto
@@ -937,15 +961,15 @@ lemma Red_Inf_concl_of:
 proof -
   let ?N' = \<open>{concl_of \<iota>}\<close>
   have \<open>?N' \<Turnstile>G {concl_of \<iota>}\<close> by (simp add: ground_consequence.subset_entailed)
-  moreover have \<open>\<forall>D\<in>?N'. \<exists>P\<in>set (prems_of \<iota>). (D, P) \<in> ground_clause_ord\<close>
+  moreover have \<open>\<forall>D\<in>?N'. \<exists>P\<in>set (prems_of \<iota>). D \<prec>G P\<close>
   proof
     fix D
     assume \<open>D \<in> ?N'\<close>
     then have \<open>D = concl_of \<iota>\<close> by auto
     then obtain P where \<open>P \<in> set (prems_of \<iota>)\<close>
-                    and \<open>(D, P) \<in> ground_clause_ord\<close>
+                    and \<open>D \<prec>G P\<close>
       using exists_premise_greater [of \<iota>] assms by blast
-    then show \<open>\<exists>P\<in>set (prems_of \<iota>). (D, P) \<in> ground_clause_ord\<close> by blast
+    then show \<open>\<exists>P\<in>set (prems_of \<iota>). D \<prec>G P\<close> by blast
   qed
   moreover have \<open>Rep_ground_inference \<iota> \<in> superposition_inference_system\<close>
     using assms unfolding ground_superposition_inference_system_def by blast
@@ -1033,24 +1057,233 @@ next
   qed
 qed
 
-function trs_of_clause :: \<open>('f,'v) ground_clause set \<Rightarrow> ('f,'v) ground_clause \<Rightarrow> ('f, 'v) interp\<close>
-     and trs_of_set :: \<open>('f,'v) ground_clause set \<Rightarrow> ('f, 'v) interp\<close>
+inductive rewrite_by_trs :: \<open>('f, 'v) interp \<Rightarrow> ('f, 'v) term \<Rightarrow> ('f, 'v) term \<Rightarrow> bool\<close>
   where
-    \<open>trs_of_clause N C = (if \<not> validate_clause (trs_of_set {}) (Rep_ground_clause C) then {} else {})\<close>
-  | \<open>trs_of_set N = \<Union>{trs_of_clause N C | C . C \<in> N}\<close>
+    refl: \<open>rewrite_by_trs S t t\<close> |
+    eq: \<open>(t, s) \<in> S \<Longrightarrow> rewrite_by_trs S t s\<close> |
+    func: \<open>rewrite_by_trs S t s \<Longrightarrow> rewrite_by_trs S (Fun f (a1 @ t # a2)) (Fun f (a1 @ s # a2))\<close> |
+    trans: \<open>rewrite_by_trs S u t \<Longrightarrow> rewrite_by_trs S t s \<Longrightarrow> rewrite_by_trs S u s\<close> |
+    sym: \<open>rewrite_by_trs S t s \<Longrightarrow> rewrite_by_trs S s t\<close>
 
+definition rewrite_rel_of_trs :: \<open>('f, 'v) interp \<Rightarrow> ('f,'v) interp\<close>
+  where \<open>rewrite_rel_of_trs S = {(s,t) | s t. rewrite_by_trs S s t}\<close>
+
+definition production :: \<open>('f,'v) ground_clause \<Rightarrow> ('f,'v) interp\<close>
+  where \<open>production C = {(t,s) | t s L C'. s \<prec> t
+                                         \<and> C = Abs_ground_clause ({# L #} + C')
+                                         \<and> (L = Eq s t \<or> L = Eq t s)
+                                         \<and> (\<forall>L' \<in># C'. L' \<preceq>L L)}\<close>
+
+context
+  fixes N :: \<open>('f,'v) ground_clause set\<close>
+begin
+
+function trs_of_clause :: \<open>('f,'v) ground_clause \<Rightarrow> ('f, 'v) interp\<close>
+  where
+    \<open>trs_of_clause C = (let trs_smaller = \<Union>(trs_of_clause ` {B \<in> N. B \<prec>G C}) in
+                         (if validate_clause (rewrite_rel_of_trs trs_smaller) (Rep_ground_clause C)
+                          then trs_smaller
+                          else trs_smaller \<union> production C))\<close>
+  by auto
+termination using wf_ground_clause_ord by (rule local.termination [of ground_clause_ord, simplified])
+
+end
+
+definition canonical_interp_ground :: \<open>('f,'v) ground_clause set \<Rightarrow> ('f,'v) interp\<close>
+  where \<open>canonical_interp_ground N = rewrite_rel_of_trs (\<Union>(trs_of_clause N ` N))\<close>
 
 definition canonical_interp :: \<open>('f,'v) clause set \<Rightarrow> ('f,'v) interp\<close>
-  where \<open>canonical_interp N = {}\<close>
+  where \<open>canonical_interp N = canonical_interp_ground (Abs_ground_clause ` N)\<close>
 
-lemma canonical_interp_fo: \<open>congruence (canonical_interp S)\<close> sorry
+lemma rewrite_rel_fo: \<open>congruence (rewrite_rel_of_trs S)\<close>
+proof -
+  have \<open>refl (rewrite_rel_of_trs S)\<close>
+    unfolding rewrite_rel_of_trs_def refl_on_def using rewrite_by_trs.refl by blast
+  moreover have \<open>sym (rewrite_rel_of_trs S)\<close>
+    unfolding rewrite_rel_of_trs_def sym_def using rewrite_by_trs.sym by blast
+  moreover have \<open>trans (rewrite_rel_of_trs S)\<close>
+    unfolding rewrite_rel_of_trs_def trans_def using rewrite_by_trs.trans by blast
+  moreover have \<open>fun_comp (rewrite_rel_of_trs S)\<close>
+  proof -
+    have \<open>length a1 = length a2 \<Longrightarrow> (\<forall>n. (a1 ! n, a2 ! n) \<in> rewrite_rel_of_trs S) \<Longrightarrow> (Fun f a1, Fun f a2) \<in> rewrite_rel_of_trs S\<close> for f a1 a2 sorry
+    then show ?thesis unfolding fun_comp_def by blast
+  qed
+  ultimately show ?thesis by auto
+qed
+
+lemma rewrite_rel_subset:
+  \<open>S1 \<subseteq> S2 \<Longrightarrow> rewrite_rel_of_trs S1 \<subseteq> rewrite_rel_of_trs S2\<close>
+proof -
+  have \<open>rewrite_by_trs S1 s t \<Longrightarrow> S1 \<subseteq> S2 \<Longrightarrow> rewrite_by_trs S2 s t\<close> for s t
+  proof -
+    assume \<open>rewrite_by_trs S1 s t\<close>
+    then show \<open>S1 \<subseteq> S2 \<Longrightarrow> rewrite_by_trs S2 s t\<close>
+    proof (induct rule: rewrite_by_trs.induct)
+      case (refl S t)
+      then show ?case using rewrite_by_trs.refl by blast
+    next
+      case (eq t s S)
+      then show ?case using rewrite_by_trs.eq by blast
+    next
+      case (func S t s f a1 a2)
+      then show ?case using rewrite_by_trs.func by blast
+    next
+      case (trans S u t s)
+      then show ?case using rewrite_by_trs.trans by blast
+    next
+      case (sym S t s)
+      then show ?case using rewrite_by_trs.sym by blast
+    qed
+  qed
+  then show \<open>S1 \<subseteq> S2 \<Longrightarrow> rewrite_rel_of_trs S1 \<subseteq> rewrite_rel_of_trs S2\<close>
+    unfolding rewrite_rel_of_trs_def by auto
+qed
+
+lemma canonical_interp_fo: \<open>congruence (canonical_interp S)\<close>
+  unfolding canonical_interp_def canonical_interp_ground_def using rewrite_rel_fo by blast
+
+lemma ex_max_literal: \<open>ground_cl C \<Longrightarrow> C \<noteq> \<bottom>F \<Longrightarrow> (\<exists>L \<in># C. \<forall>L' \<in># C. L' \<preceq>L L)\<close>
+proof (induction C rule: multiset_induct)
+  case empty (* vacuous case *)
+  then show ?case
+    using Rep_ground_clause_inject by fastforce
+next
+  case (add L1 C1)
+  then have ground_C1: \<open>ground_cl C1\<close> and ground_L1: \<open>ground_lit L1\<close> by auto
+  show \<open>\<exists>L \<in># add_mset L1 C1. \<forall>L' \<in># add_mset L1 C1. L' \<preceq>L L\<close>
+  proof (cases C1)
+    case empty (* singleton clause *)
+    then show ?thesis
+      using equiv_lit.simps by auto
+  next
+    case (add L2 C2)
+    with ground_C1 add.IH obtain Lmax where Lmax_elem: \<open>Lmax \<in># C1\<close>
+                                        and Lmax_def: \<open>\<forall>L'\<in>#C1. L' \<preceq>L Lmax\<close> by auto
+    then consider (a) \<open>Lmax \<prec>L L1\<close> | (b) \<open>L1 \<preceq>L Lmax\<close> using ground_L1 ground_C1 lit_ord_ground_total by metis
+    then show ?thesis
+    proof cases
+      case a
+      then have \<open>\<forall>L'\<in># add_mset L1 C1. L' \<preceq>L L1\<close> using Lmax_def sorry
+      then show ?thesis by auto
+    next
+      case b
+      then have \<open>\<forall>L'\<in># add_mset L1 C1. L' \<preceq>L Lmax\<close> using Lmax_def by auto
+      then show ?thesis using Lmax_elem by auto
+    qed
+  qed
+qed
+
+(* during the construction of the model, a clause that is valid at some point will not be falsified later *)
+lemma canonical_interp_monotonic:
+  assumes \<open>saturated N\<close>
+  assumes \<open>\<bottom>G \<notin> N\<close>
+  assumes \<open>C \<in> N\<close>
+  assumes \<open>validate_clause (rewrite_rel_of_trs (trs_of_clause N C)) (Rep_ground_clause C)\<close> (is "?valid_upto C")
+  shows \<open>validate_clause (canonical_interp_ground N) (Rep_ground_clause C)\<close> (is "?valid C")
+proof -
+  have \<open>C \<in> N \<longrightarrow> ?valid_upto C \<longrightarrow> ?valid C\<close>
+  proof (rule wf_induct [of "ground_clause_ord"])
+    show \<open>wf ground_clause_ord\<close> using wf_ground_clause_ord by auto
+  next
+    show \<open>\<forall>B. B \<prec>G C \<longrightarrow> B \<in> N \<longrightarrow> ?valid_upto B \<longrightarrow> ?valid B \<Longrightarrow> C \<in> N \<longrightarrow> ?valid_upto C \<longrightarrow> ?valid C\<close> for C
+    proof -
+      assume ind: \<open>\<forall>B. B \<prec>G C \<longrightarrow> B \<in> N \<longrightarrow> ?valid_upto B \<longrightarrow> ?valid B\<close>
+      have \<open>C \<in> N \<Longrightarrow> ?valid_upto C \<Longrightarrow> ?valid C\<close>
+      proof -
+        assume C_elem: \<open>C \<in> N\<close>
+           and valid_upto_C: \<open>?valid_upto C\<close>
+        from ex_subst_Rep_ground_clause obtain \<sigma> :: \<open>('f, 'v) subst\<close> where \<open>ground_cl (subst_apply_cl (Rep_ground_clause C) \<sigma>)\<close>
+          by fast
+        with valid_upto_C obtain L where L_elem: \<open>L \<in># Rep_ground_clause C\<close>
+                                     and \<open>validate_ground_lit (rewrite_rel_of_trs (trs_of_clause N C)) (subst_apply_lit L \<sigma>)\<close>
+          unfolding validate_clause_def by blast
+        then have valid_L: \<open>validate_ground_lit (rewrite_rel_of_trs (trs_of_clause N C)) L\<close>
+          using subst_ground_lit [of L \<sigma>] Rep_ground_clause [of C] by (smt mem_Collect_eq)
+        have \<open>validate_ground_lit (canonical_interp_ground N) L\<close>
+        proof (cases L)
+          (* The literal that makes the clause true is positive. It will remain true since rules are only be added to the TRS *)
+          case (Eq s t)
+          with valid_L have \<open>(s, t) \<in> rewrite_rel_of_trs (trs_of_clause N C)\<close>
+            using validate_ground_lit.simps(1) by blast
+          then have \<open>(s, t) \<in> rewrite_rel_of_trs (\<Union>(trs_of_clause N ` N))\<close>
+            using rewrite_rel_subset C_elem by blast
+          then show ?thesis unfolding canonical_interp_ground_def using Eq
+            by (meson validate_ground_lit.simps(1))
+        next
+          case (Neq s t)
+          with valid_L have \<open>(s, t) \<notin> rewrite_rel_of_trs (trs_of_clause N C)\<close>
+            using validate_ground_lit.simps(2) by blast
+          moreover have \<open>rewrite_by_trs (\<Union>(trs_of_clause N ` N)) s t \<Longrightarrow> rewrite_by_trs (trs_of_clause N C) s t\<close> sorry
+          ultimately have \<open>(s, t) \<notin> rewrite_rel_of_trs (\<Union>(trs_of_clause N ` N))\<close>
+            unfolding rewrite_rel_of_trs_def by blast
+          then show ?thesis
+            unfolding canonical_interp_ground_def
+            using Neq validate_ground_lit.simps(2) by blast
+        qed
+        with L_elem show \<open>?valid C\<close>
+          unfolding validate_clause_def
+          using subst_ground_lit [of L]
+          by (smt Rep_ground_clause mem_Collect_eq)
+      qed
+      then show ?thesis by blast
+    qed
+  qed
+  then show ?thesis using assms by blast
+qed
 
 lemma canonical_interp_model:
   assumes \<open>saturated N\<close>
   assumes \<open>\<bottom>G \<notin> N\<close>
   assumes \<open>C \<in> N\<close>
   shows \<open>validate_clause (canonical_interp (Rep_ground_clause ` N)) (Rep_ground_clause C)\<close>
-  sorry
+proof -
+  let ?trs_smaller = "\<Union>(trs_of_clause N ` {B \<in> N. B \<prec>G C})"
+  have "validate_clause (rewrite_rel_of_trs (trs_of_clause N C)) (Rep_ground_clause C)"
+  proof (cases "validate_clause (rewrite_rel_of_trs ?trs_smaller) (Rep_ground_clause C)")
+    (* The clause is already satisfied *)
+    case True
+    then have "trs_of_clause N C = ?trs_smaller" using trs_of_clause.simps [of N C] by presburger
+    then show "validate_clause (rewrite_rel_of_trs (trs_of_clause N C)) (Rep_ground_clause C)" using True by argo
+  next
+    (* The TRS must be augmented with 'production C' *)
+    case False
+    then have trs_def: \<open>trs_of_clause N C = ?trs_smaller \<union> production C\<close> using trs_of_clause.simps [of N C] by presburger
+    from assms have \<open>Rep_ground_clause C \<noteq> \<bottom>F\<close> by (smt Rep_ground_clause_inverse)
+    then obtain L where L_elem: \<open>L \<in># Rep_ground_clause C\<close>
+                    and L_max: \<open>L' \<in># Rep_ground_clause C \<Longrightarrow> L' \<preceq>L L\<close> for L'
+      using ex_max_literal Rep_ground_clause
+      by (smt mem_Collect_eq)
+    then show ?thesis
+    proof (cases L)
+      case (Eq s t)
+      then have \<open>(s,t) \<in> production C \<or> (t,s) \<in> production C \<or> s = t\<close> sorry
+      then have \<open>(s, t) \<in> rewrite_rel_of_trs (trs_of_clause N C)\<close>
+        unfolding rewrite_rel_of_trs_def
+        using rewrite_by_trs.refl rewrite_by_trs.sym rewrite_by_trs.eq trs_def by blast
+      then have \<open>validate_ground_lit (rewrite_rel_of_trs (trs_of_clause N C)) L\<close>
+        using Eq validate_ground_lit.simps(1) by blast
+      then have \<open>validate_ground_lit (rewrite_rel_of_trs (trs_of_clause N C)) (subst_apply_lit L \<sigma>)\<close> for \<sigma>
+        using subst_ground_lit [of L \<sigma>] L_elem Rep_ground_clause [of C]
+        by (metis (mono_tags, lifting) mem_Collect_eq)
+      then show ?thesis
+        using L_elem
+        unfolding validate_clause_def by blast
+    next
+      case (Neq s t)
+      from False L_elem obtain \<sigma> where \<open>ground_cl (subst_apply_cl (Rep_ground_clause C) \<sigma>)\<close>
+                            and \<open>\<not> validate_ground_lit (rewrite_rel_of_trs ?trs_smaller) (subst_apply_lit L \<sigma>)\<close>
+        unfolding validate_clause_def by blast
+      with L_elem Rep_ground_clause have \<open>\<not> validate_ground_lit (rewrite_rel_of_trs ?trs_smaller) L\<close>
+        by (smt mem_Collect_eq subst_ground_lit)
+      then have "(s, t) \<in> rewrite_rel_of_trs ?trs_smaller"
+        using Neq validate_ground_lit.simps(2) by blast
+      then show ?thesis sorry
+    qed
+  qed
+  then have "validate_clause (canonical_interp_ground N) (Rep_ground_clause C)" using assms canonical_interp_monotonic by blast
+  then show ?thesis unfolding canonical_interp_def using Rep_ground_clause_inverse
+    by (smt Collect_cong Collect_mem_eq image_iff)
+qed
 
 interpretation static_refutational_complete_calculus \<open>{\<bottom>G}\<close> \<open>(\<Turnstile>G)\<close> ground_superposition_inference_system \<open>(\<Turnstile>G)\<close> Red_ground_Inf Red_ground_clause
 proof
@@ -1074,7 +1307,7 @@ qed
 (* To ground first-order inferences, we need their unifier *)
 (*datatype 'b fo_inference = Fo_Infer (inf: \<open>'b fclause inference\<close>) (subst: \<open>'b subst\<close>)*)
 
-definition fo_eresolution_inferences :: \<open>'a fclause inference set\<close> where
+definition fo_eresolution_inferences :: \<open>'a clause inference set\<close> where
 \<open>fo_eresolution_inferences = {Infer [P] (fcl_remove_trms C) | P C \<sigma>. \<exists> C'. eresolution (Rep_fclause P) C \<sigma> FirstOrder C'}\<close>
 
 definition fo_efactoring_inferences :: \<open>'a fclause inference set\<close> where

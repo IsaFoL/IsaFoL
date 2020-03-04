@@ -8,9 +8,6 @@ theory IsaSAT_Lookup_Conflict
     IsaSAT_Trail
 begin
 
-hide_const Autoref_Fix_Rel.CONSTRAINT
-
-
 subsubsection \<open>Clauses Encoded as Positions\<close>
 
 text \<open>We use represent the conflict in two data structures close to the one used by the most SAT
@@ -116,8 +113,8 @@ next
     then show ?thesis
       using mset dist
       by (metis (no_types, lifting) add_mset_union assms(2) distinct.simps(2) fold_simps(2)
-       insert_DiffM list_update_id mset.simps(2) mset_as_position_nth set_mset_mset
-       sup_union_right1)
+        insert_DiffM list_update_id mset.simps(2) mset_as_position_nth set_mset_mset
+        sup_union_right1)
   next
     case False
     have [simp]: \<open>length (fold (\<lambda>L xs. xs[atm_of L := Some (is_pos L)]) P xs) = length xs\<close>
@@ -330,6 +327,13 @@ next
       by auto
   qed
 qed
+
+lemma mset_as_position_remove2:
+  \<open>mset_as_position xs D \<Longrightarrow> atm_of L < length xs \<Longrightarrow>
+   mset_as_position (xs[atm_of L := None]) (D - {#L, -L#})\<close>
+  using mset_as_position_remove[of xs D \<open>atm_of (-L)\<close>]
+  by (smt add_mset_commute add_mset_diff_bothsides atm_of_uminus insert_DiffM
+   literal.exhaust_sel minus_notin_trivial2 remove_1_mset_id_iff_notin uminus_not_id')
 
 definition (in -) delete_from_lookup_conflict
    :: \<open>nat literal \<Rightarrow> lookup_clause_rel \<Rightarrow> lookup_clause_rel nres\<close> where
@@ -2298,6 +2302,7 @@ lemma minimize_and_extract_highest_lookup_conflict_iterate_over_conflict:
     NU: \<open>NU \<equiv> get_clauses_wl S\<close> and
     NU'_def: \<open>NU' \<equiv> mset `# ran_mf NU\<close> and
     NUE: \<open>NUE \<equiv> get_unit_learned_clss_wl S + get_unit_init_clss_wl S\<close> and
+    NUS: \<open>NUS \<equiv> get_subsumed_learned_clauses_wl S + get_subsumed_init_clauses_wl S\<close> and
     M': \<open>M' \<equiv> trail S'''\<close>
   assumes
     S_S': \<open>(S, S') \<in> state_wl_l None\<close> and
@@ -2309,8 +2314,8 @@ lemma minimize_and_extract_highest_lookup_conflict_iterate_over_conflict:
     lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail \<A> M\<close> and
     struct_invs: \<open>twl_struct_invs S''\<close> and
     add_inv: \<open>twl_list_invs S'\<close> and
-    cach_init: \<open>conflict_min_analysis_inv M' s' (NU' + NUE) D\<close> and
-    NU_P_D: \<open>NU' + NUE \<Turnstile>pm add_mset K D\<close> and
+    cach_init: \<open>conflict_min_analysis_inv M' s' (NU' + NUE + NUS) D\<close> and
+    NU_P_D: \<open>NU' + NUE + NUS \<Turnstile>pm add_mset K D\<close> and
     lits_D: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n \<A> D\<close> and
     lits_NU: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm \<A> (mset `# ran_mf NU)\<close> and
     K: \<open>K = outl ! 0\<close> and
@@ -2320,16 +2325,18 @@ lemma minimize_and_extract_highest_lookup_conflict_iterate_over_conflict:
     \<open>minimize_and_extract_highest_lookup_conflict \<A> M NU D s' lbd outl \<le>
        \<Down> ({((E, s, outl), E'). E = E' \<and> mset (tl outl) = E \<and> outl ! 0 = K \<and>
                E' \<subseteq># D \<and> outl \<noteq> []})
-           (iterate_over_conflict K M NU' NUE D)\<close>
+           (iterate_over_conflict K M NU' (NUE + NUS) D)\<close>
     (is \<open>_ \<le> \<Down> ?R _\<close>)
 proof -
   let ?UE = \<open>get_unit_learned_clss_wl S\<close>
   let ?NE = \<open>get_unit_init_clss_wl S\<close>
+  let ?US = \<open>get_subsumed_learned_clauses_wl S\<close>
+  let ?NS = \<open>get_subsumed_init_clauses_wl S\<close>
   define N U where
     \<open>N \<equiv> mset `# init_clss_lf NU\<close> and
     \<open>U \<equiv> mset `# learned_clss_lf NU\<close>
   obtain E where
-     S''': \<open>S''' = (M', N + ?NE, U + ?UE, E)\<close>
+     S''': \<open>S''' = (M', N + ?NE + ?NS, U + ?UE + ?US, E)\<close>
     using M' S_S' S'_S'' unfolding S'''_def N_def U_def NU
     by (cases S) (auto simp: state_wl_l_def twl_st_l_def
         mset_take_mset_drop_mset')
@@ -2339,15 +2346,15 @@ proof -
     apply (subst image_mset_union[symmetric])
     apply (subst image_mset_union[symmetric])
     by (auto simp: mset_take_mset_drop_mset')
-  let ?NU = \<open>N + ?NE + U + ?UE\<close>
+  let ?NU = \<open>N + ?NE + ?NS + U + ?UE + ?US\<close>
   have NU'_N_U: \<open>NU' = N + U\<close>
     unfolding NU'_def N_def U_def mset_append[symmetric] image_mset_union[symmetric]
     by auto
   have NU'_NUE: \<open>NU' + NUE = N + get_unit_init_clss_wl S + U + get_unit_learned_clss_wl S\<close>
     unfolding NUE NU'_N_U by (auto simp: ac_simps)
-  have struct_inv_S''': \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (M', N + get_unit_init_clss_wl S,
-          U + get_unit_learned_clss_wl S, E)\<close>
-    using struct_invs unfolding twl_struct_invs_def S'''_def[symmetric] S'''
+  have struct_inv_S''': \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (M', N + (?NE + ?NS),
+          U + (?UE + ?US), E)\<close>
+    using struct_invs unfolding twl_struct_invs_def S'''_def[symmetric] S''' add.assoc
     by fast
   then have n_d: \<open>no_dup M'\<close>
     unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
@@ -2364,7 +2371,7 @@ proof -
             mset (drop i outl') = E \<and>
             mset (tl outl') = F \<and>
             conflict_min_analysis_inv M' cach (?NU) F \<and>
-            NU' + NUE \<Turnstile>pm add_mset K F \<and>
+            ?NU \<Turnstile>pm add_mset K F \<and>
             mset (tl outl') = D' \<and>
             i > 0 \<and> outl' \<noteq> [] \<and>
             outl' ! 0 = K
@@ -2379,8 +2386,8 @@ proof -
     by (cases outl; cases \<open>tl outl\<close>)  (auto simp: highest_lit_def get_maximum_level_add_mset)
    then have init_args_ref: \<open>((D, 1, s', outl), D, D) \<in> R\<close>
     using D'_D cach_init NU_P_D dist_D tauto K
-    unfolding R_def NUE NU'_def NU_N_U
-    by (auto simp: ac_simps drop_Suc outl_nempty)
+    unfolding R_def NUE NU'_def NU_N_U NUS
+    by (auto simp: ac_simps drop_Suc outl_nempty ac_simps)
 
    have init_lo_inv: \<open>minimize_and_extract_highest_lookup_conflict_inv s'\<close>
     if
@@ -2415,10 +2422,10 @@ proof -
   have redundant: \<open>literal_redundant_wl_lookup \<A> M NU nxs cach
           (outl' ! x1d) lbd
       \<le> \<Down> {((s', a', b'), b). b = b' \<and>
-            (b \<longrightarrow> NU' + NUE \<Turnstile>pm remove1_mset L (add_mset K E) \<and>
+            (b \<longrightarrow> ?NU \<Turnstile>pm remove1_mset L (add_mset K E) \<and>
                conflict_min_analysis_inv M' s' ?NU (remove1_mset L E)) \<and>
-            (\<not>b \<longrightarrow> NU' + NUE \<Turnstile>pm add_mset K E \<and> conflict_min_analysis_inv M' s' ?NU E)}
-          (is_literal_redundant_spec K NU' NUE E L)\<close>
+            (\<not>b \<longrightarrow> ?NU \<Turnstile>pm add_mset K E \<and> conflict_min_analysis_inv M' s' ?NU E)}
+          (is_literal_redundant_spec K NU' (NUE+NUS) E L)\<close>
     (is \<open>_ \<le> \<Down> ?red _\<close>)
     if
       R: \<open>(x, x') \<in> R\<close> and
@@ -2441,7 +2448,7 @@ proof -
       \<open>mset (tl outl') \<subseteq># D\<close> and
       \<open>E = mset (tl outl')\<close> and
       cach: \<open>conflict_min_analysis_inv M' cach ?NU E\<close> and
-      NU_P_E: \<open>NU' + NUE \<Turnstile>pm add_mset K (mset (tl outl'))\<close> and
+      NU_P_E: \<open>?NU \<Turnstile>pm add_mset K (mset (tl outl'))\<close> and
       \<open>nxs = mset (tl outl')\<close> and
       \<open>0 < x1d\<close> and
       [simp]: \<open>L = outl'!x1d\<close> and
@@ -2475,13 +2482,15 @@ proof -
         (use bounded S_S' S'_S'' M_x1 struct_invs add_inv \<open>outl' ! x1d \<in># E\<close> \<open>E = nxs\<close> in
           \<open>auto simp: NU\<close>)
 
+    have NU_alt_def: \<open>?NU = N + (?NE + ?NS) + U + (?UE + ?US)\<close>
+         by (auto simp: ac_simps)
     have 3:
        \<open>literal_redundant M' (N + U) nxs cach ?L \<le>
-         literal_redundant_spec M' (N + U + ?NE +  ?UE) nxs ?L\<close>
+         literal_redundant_spec M' (N + U + (?NE + ?NS) + (?UE + ?US)) nxs ?L\<close>
       unfolding \<open>E = nxs\<close>[symmetric]
       apply (rule literal_redundant_spec)
          apply (rule struct_inv_S''')
-      apply (rule cach)
+      apply (rule cach[unfolded NU_alt_def])
        apply (rule \<open>outl' ! x1d \<in># E\<close>)
       apply (rule M'_x1)
       done
@@ -2490,8 +2499,8 @@ proof -
        \<open>literal_redundant M' (NU') nxs cach ?L \<le> literal_redundant_spec M' ?NU nxs ?L\<close>
       by (auto simp: ac_simps NU'_N_U)
 
-    have ent: \<open>NU' + NUE \<Turnstile>pm add_mset (- L) (filter_to_poslev M' L (add_mset K E))\<close>
-      if \<open>NU' + NUE \<Turnstile>pm add_mset (- L) (filter_to_poslev M' L E)\<close>
+    have ent: \<open>?NU \<Turnstile>pm add_mset (- L) (filter_to_poslev M' L (add_mset K E))\<close>
+      if \<open>?NU \<Turnstile>pm add_mset (- L) (filter_to_poslev M' L E)\<close>
       using that by (auto simp: filter_to_poslev_add_mset add_mset_commute)
     show ?thesis
       apply (rule order.trans)
@@ -2506,9 +2515,12 @@ proof -
           conc_fun_SPEC NU'_NUE[symmetric]
       apply (rule SPEC_rule)
       apply clarify
-      using NU_P_E ent \<open>E = nxs\<close> \<open>E = mset (tl outl')\<close>[symmetric] \<open>outl' ! x1d \<in># E\<close>
-      by (auto simp: intro!: entails_uminus_filter_to_poslev_can_remove[of _ _ M']
-          filter_to_poslev_conflict_min_analysis_inv simp del: diff_union_swap2)
+      using NU_P_E ent \<open>E = nxs\<close> \<open>E = mset (tl outl')\<close>[symmetric] \<open>outl' ! x1d \<in># E\<close> NU'_NUE
+      apply (auto intro!: entails_uminus_filter_to_poslev_can_remove[of _ _ M'] NUE NUS ac_simps
+          filter_to_poslev_conflict_min_analysis_inv ac_simps simp del: diff_union_swap2)
+          apply (smt NU'_NUE NUS add.assoc add.commute set_mset_union)
+          apply (smt NU'_NUE NUS add.assoc add.commute set_mset_union)
+          done
   qed
 
   have
@@ -2573,7 +2585,7 @@ proof -
       F: \<open>F = mset (drop i outl')\<close> and
       F': \<open>F' = mset (tl outl')\<close> and
       \<open>conflict_min_analysis_inv M' cach ?NU (mset (tl outl'))\<close> and
-      \<open>NU' + NUE \<Turnstile>pm add_mset K (mset (tl outl'))\<close> and
+      \<open>?NU \<Turnstile>pm add_mset K (mset (tl outl'))\<close> and
       \<open>D' = mset (tl outl')\<close> and
       \<open>0 < i\<close> and
       [simp]: \<open>D' = F'\<close> and
@@ -2594,9 +2606,9 @@ proof -
       using \<open>F \<subseteq># F'\<close>
       by auto
     have \<open>red' = red\<close> and
-      red: \<open>red \<longrightarrow> NU' + NUE \<Turnstile>pm remove1_mset L (add_mset K F') \<and>
+      red: \<open>red \<longrightarrow> ?NU \<Turnstile>pm remove1_mset L (add_mset K F') \<and>
        conflict_min_analysis_inv M' cachr ?NU (remove1_mset L F')\<close> and
-      not_red: \<open>\<not> red \<longrightarrow> NU' + NUE \<Turnstile>pm add_mset K F' \<and> conflict_min_analysis_inv M' cachr ?NU F'\<close>
+      not_red: \<open>\<not> red \<longrightarrow> ?NU \<Turnstile>pm add_mset K F' \<and> conflict_min_analysis_inv M' cachr ?NU F'\<close>
       using cach
       unfolding st
       by auto
@@ -2806,13 +2818,12 @@ lemma conflict_min_cach_set_removable:
     uncurry (RETURN oo conflict_min_cach_set_removable)) \<in>
      [\<lambda>(cach, L). L \<in># \<A>\<^sub>i\<^sub>n \<and> isasat_input_bounded \<A>\<^sub>i\<^sub>n]\<^sub>f cach_refinement \<A>\<^sub>i\<^sub>n \<times>\<^sub>r nat_rel \<rightarrow> \<langle>cach_refinement \<A>\<^sub>i\<^sub>n\<rangle>nres_rel\<close>
   supply isasat_input_bounded_def[simp del]
-  apply (intro frefI nres_relI) (*TODO Proof*)
-  apply   (auto simp: in_cach_refinement_alt_def map_fun_rel_def cach_refinement_list_def
+  by (intro frefI nres_relI)
+    (auto 5 5 simp: in_cach_refinement_alt_def map_fun_rel_def cach_refinement_list_def
         conflict_min_cach_set_removable_l_def cach_refinement_nonull_def
         all_conj_distrib intro!: ASSERT_leI bounded_included_le[of \<A>\<^sub>i\<^sub>n]
       dest!: multi_member_split dest: set_mset_mono
       dest: subset_add_mset_notin_subset_mset)
-  by (fastforce dest: subset_add_mset_notin_subset_mset)+
 
 
 
@@ -3626,6 +3637,7 @@ lemma
     NU: \<open>NU \<equiv> get_clauses_wl S\<close> and
     NU'_def: \<open>NU' \<equiv> mset `# ran_mf NU\<close> and
     NUE: \<open>NUE \<equiv> get_unit_learned_clss_wl S + get_unit_init_clss_wl S\<close> and
+    NUE: \<open>NUS \<equiv> get_subsumed_learned_clauses_wl S + get_subsumed_init_clauses_wl S\<close> and
     M': \<open>M' \<equiv> trail S'''\<close>
   assumes
     S_S': \<open>(S, S') \<in> state_wl_l None\<close> and
@@ -3637,8 +3649,8 @@ lemma
     lits: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail \<A> M\<close> and
     struct_invs: \<open>twl_struct_invs S''\<close> and
     add_inv: \<open>twl_list_invs S'\<close> and
-    cach_init: \<open>conflict_min_analysis_inv M' s' (NU' + NUE) D\<close> and
-    NU_P_D: \<open>NU' + NUE \<Turnstile>pm add_mset K D\<close> and
+    cach_init: \<open>conflict_min_analysis_inv M' s' (NU' + NUE + NUS) D\<close> and
+    NU_P_D: \<open>NU' + NUE + NUS \<Turnstile>pm add_mset K D\<close> and
     lits_D: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n \<A> D\<close> and
     lits_NU: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm \<A> (mset `# ran_mf NU)\<close> and
     K: \<open>K = outl ! 0\<close> and
@@ -3648,16 +3660,16 @@ lemma
     \<open>minimize_and_extract_highest_lookup_conflict \<A> M NU D s' lbd outl \<le>
        \<Down> ({((E, s, outl), E'). E = E' \<and> mset (tl outl) = E \<and> outl!0 = K \<and>
                E' \<subseteq># D})
-         (SPEC (\<lambda>D'. D' \<subseteq># D \<and> NU' + NUE \<Turnstile>pm add_mset K D'))\<close>
+         (SPEC (\<lambda>D'. D' \<subseteq># D \<and> NU' + NUE + NUS \<Turnstile>pm add_mset K D'))\<close>
 proof -
   show ?thesis
     apply (rule order.trans)
      apply (rule minimize_and_extract_highest_lookup_conflict_iterate_over_conflict[OF
-          assms(7-22)[unfolded assms(1-8)],
-          unfolded assms(1-8)[symmetric]])
+          assms(8-23)[unfolded assms(1-9)],
+          unfolded assms(1-9)[symmetric]])
     apply (rule order.trans)
-     apply (rule ref_two_step'[OF iterate_over_conflict_spec[OF NU_P_D dist_D]])
-    by (auto simp: conc_fun_RES)
+     apply (rule ref_two_step'[OF iterate_over_conflict_spec[OF NU_P_D[unfolded add.assoc] dist_D]])
+    by (auto simp: conc_fun_RES ac_simps)
 qed
 
 lemma (in -) lookup_conflict_upd_None_RETURN_def:

@@ -183,7 +183,7 @@ where
 lemma twl_st_l_splitD:
   \<open>(\<And>M N D NE UE Q W. f (M, N, D, NE, UE, Q, W) = P M N D NE UE Q W) \<Longrightarrow>
    f S = P (get_trail_l S) (get_clauses_l S) (get_conflict_l S) (get_unit_init_clauses_l S)
-    (get_unit_learned_clauses_l S) (clauses_to_update_l S) (literals_to_update_l S)\<close>
+    (get_unit_learned_clss_l S) (clauses_to_update_l S) (literals_to_update_l S)\<close>
   by (cases S) auto
 
 lemma twl_st_wl_splitD:

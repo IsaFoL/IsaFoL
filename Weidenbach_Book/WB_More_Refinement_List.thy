@@ -260,4 +260,34 @@ lemma mop_list_nth[refine]:
   \<open>i < length ys \<Longrightarrow> (xs, ys) \<in> \<langle>R\<rangle>list_rel \<Longrightarrow> i = j \<Longrightarrow> mop_list_nth xs i \<le> SPEC(\<lambda>c. (c, ys!j) \<in> R)\<close>
   by (auto simp: param_nth mop_list_nth_def list_rel_imp_same_length intro!: ASSERT_leI)
 
+subsection \<open>Some lemmas to move\<close>
+subsection \<open>List relation\<close>
+
+lemma list_rel_take:
+  \<open>(ba, ab) \<in> \<langle>A\<rangle>list_rel \<Longrightarrow> (take b ba, take b ab) \<in> \<langle>A\<rangle>list_rel\<close>
+  by (auto simp: list_rel_def)
+
+lemma list_rel_update':
+  fixes R
+  assumes rel: \<open>(xs, ys) \<in> \<langle>R\<rangle>list_rel\<close> and
+   h: \<open>(bi, b) \<in> R\<close>
+  shows \<open>(list_update xs ba bi, list_update ys ba b) \<in> \<langle>R\<rangle>list_rel\<close>
+proof -
+  have [simp]: \<open>(bi, b) \<in> R\<close>
+    using h by auto
+  have \<open>length xs = length ys\<close>
+    using assms list_rel_imp_same_length by blast
+
+  then show ?thesis
+    using rel
+    by (induction xs ys arbitrary: ba rule: list_induct2) (auto split: nat.splits)
+qed
+
+
+lemma list_rel_in_find_correspondanceE:
+  assumes \<open>(M, M') \<in> \<langle>R\<rangle>list_rel\<close> and \<open>L \<in> set M\<close>
+  obtains L' where \<open>(L, L') \<in> R\<close> and \<open>L' \<in> set M'\<close>
+  using assms[unfolded in_set_conv_decomp] by (auto simp: list_rel_append1
+      elim!: list_relE3)
+
 end

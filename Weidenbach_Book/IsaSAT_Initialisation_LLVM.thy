@@ -81,13 +81,13 @@ sepref_def initialise_VMTF_code
   by sepref
 
 declare initialise_VMTF_code.refine[sepref_fr_rules]
-
+sepref_register cons_trail_Propagated_tr
 sepref_def propagate_unit_cls_code
   is \<open>uncurry (propagate_unit_cls_heur)\<close>
   :: \<open>unat_lit_assn\<^sup>k *\<^sub>a isasat_init_assn\<^sup>d \<rightarrow>\<^sub>a isasat_init_assn\<close>
   supply [[goals_limit=1]] DECISION_REASON_def[simp]
   unfolding propagate_unit_cls_heur_def isasat_init_assn_def
-    PR_CONST_def cons_trail_Propagated_def[symmetric]
+    PR_CONST_def
   apply (annot_snat_const "TYPE(64)")
   by sepref
 
@@ -107,7 +107,7 @@ sepref_def already_propagated_unit_cls_code
   :: \<open>isasat_init_assn\<^sup>d  \<rightarrow>\<^sub>a isasat_init_assn\<close>
   supply [[goals_limit=1]]
   unfolding already_propagated_unit_cls_heur'_def isasat_init_assn_def
-  PR_CONST_def cons_trail_Propagated_def[symmetric]
+  PR_CONST_def
   by sepref
 
 declare already_propagated_unit_cls_code.refine[sepref_fr_rules]
@@ -130,7 +130,7 @@ sepref_def conflict_propagated_unit_cls_code
   :: \<open>unat_lit_assn\<^sup>k *\<^sub>a isasat_init_assn\<^sup>d  \<rightarrow>\<^sub>a isasat_init_assn\<close>
   supply [[goals_limit=1]]
   unfolding conflict_propagated_unit_cls_heur_def isasat_init_assn_def
-  PR_CONST_def cons_trail_Propagated_def[symmetric]
+  PR_CONST_def
   by sepref
 
 
@@ -205,7 +205,7 @@ sepref_def add_init_cls_code_b
   supply [[goals_limit=1]] append_ll_def[simp]add_init_clss_codebI[intro]
     add_init_cls_code_bI[intro]  add_init_cls_code_bI2[intro]
   unfolding add_init_cls_heur_def add_init_cls_heur_b_def
-  PR_CONST_def cons_trail_Propagated_def[symmetric]
+  PR_CONST_def
   Let_def length_uint64_nat_def add_init_cls_heur_b'_def
   op_list_list_llen_alt_def[symmetric] op_list_list_idx_alt_def[symmetric]
   unfolding isasat_init_assn_def
@@ -224,7 +224,7 @@ sepref_def already_propagated_unit_cls_conflict_code
   :: \<open>unat_lit_assn\<^sup>k *\<^sub>a isasat_init_assn\<^sup>d  \<rightarrow>\<^sub>a isasat_init_assn\<close>
   supply [[goals_limit=1]]
   unfolding already_propagated_unit_cls_conflict_heur_def isasat_init_assn_def
-    PR_CONST_def cons_trail_Propagated_def[symmetric]
+    PR_CONST_def
   by sepref
 
 declare already_propagated_unit_cls_conflict_code.refine[sepref_fr_rules]
@@ -250,8 +250,8 @@ declare set_empty_clause_as_conflict_code.refine[sepref_fr_rules]
 
 definition (in -) add_clause_to_others_heur'
    :: \<open>twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur_init nres\<close> where
-  \<open>add_clause_to_others_heur' = (\<lambda> (M, N, D, Q, WS).
-      RETURN (M, N, D, Q, WS))\<close>
+  \<open>add_clause_to_others_heur' = (\<lambda> (M, N, D, Q, NS, US, WS).
+      RETURN (M, N, D, Q, NS, US, WS))\<close>
 
 lemma add_clause_to_others_heur'_alt: \<open>add_clause_to_others_heur L = add_clause_to_others_heur'\<close>
   unfolding add_clause_to_others_heur'_def add_clause_to_others_heur_def
@@ -317,8 +317,7 @@ sepref_def init_dt_step_wl_code_b
     add_clause_to_others_heur'_alt
   unfolding watched_app_def[symmetric]
   unfolding nth_rll_def[symmetric]
-  unfolding is_Nil_length
-    cons_trail_Propagated_def[symmetric] get_conflict_wl_is_None_init
+  unfolding is_Nil_length get_conflict_wl_is_None_init
     polarity_st_heur_init_alt_def[symmetric]
     get_conflict_wl_is_None_heur_init_alt_def[symmetric]
     SET_TRUE_def[symmetric] SET_FALSE_def[symmetric] UNSET_def[symmetric]
@@ -539,17 +538,18 @@ lemma extract_lits_sorted_hnr[sepref_fr_rules]:
     (is \<open>?c \<in> [?pre]\<^sub>a ?im \<rightarrow> ?f\<close>)
 proof -
   have H: \<open>hrr_comp isasat_atms_ext_rel
-      (\<lambda>_. arl64_assn atom_assn *a unat_assn) (\<lambda>_. lits_with_max_rel) = (\<lambda>_. hr_comp
-      (al_assn atom_assn *a unat_assn) lits_with_max_rel)\<close>
+        (\<lambda>_ _. al_assn atom_assn *a unat_assn) (\<lambda>_. lits_with_max_rel) =
+       (\<lambda>_ _. lits_with_max_assn)\<close>
     by (auto simp: hrr_comp_def intro!: ext)
-  
+
   have H: \<open>?c
     \<in> [comp_PRE isasat_atms_ext_rel (\<lambda>_. True)
          (\<lambda>_ (xs, n, vars). \<forall>x\<in>#mset vars. x < length xs) (\<lambda>_. True)]\<^sub>a
        hrp_comp (isasat_atms_ext_rel_assn\<^sup>d) isasat_atms_ext_rel \<rightarrow> lits_with_max_assn\<close>
     (is \<open>_ \<in> [?pre']\<^sub>a ?im' \<rightarrow> ?f'\<close>)
     using hfref_compI_PRE_aux[OF extract_lits_sorted_code.refine
-      extract_lits_sorted_mset_set[unfolded convert_fref]] unfolding H
+      extract_lits_sorted_mset_set[unfolded convert_fref]]
+      unfolding H
     by auto
 
   have pre: \<open>?pre' x\<close> if \<open>?pre x\<close> for x
@@ -594,7 +594,7 @@ lemma atom_of_value_hnr[sepref_fr_rules]:
   done
 
 sepref_register atom_of_value
-thm sepref_gen_algo_rules
+
 lemma [sepref_gen_algo_rules]: \<open>GEN_ALGO (Pos 0) (is_init unat_lit_assn)\<close>
   by (auto simp: unat_lit_rel_def is_init_def unat_rel_def unat.rel_def
     br_def nat_lit_rel_def GEN_ALGO_def)
@@ -606,13 +606,20 @@ sepref_def finalise_init_code'
   supply  [[goals_limit=1]]
   unfolding finalise_init_code_def isasat_init_assn_def isasat_bounded_assn_def
      INITIAL_OUTL_SIZE_def[symmetric] atom.fold_the vmtf_remove_assn_def
+     heuristic_assn_def
   apply (rewrite at \<open>Pos \<hole>\<close> unat_const_fold[where 'a=32])
   apply (rewrite at \<open>Pos \<hole>\<close> atom_of_value_def[symmetric])
   apply (rewrite at \<open>take \<hole>\<close> snat_const_fold[where 'a=64])
+  apply (rewrite at \<open>(_, _,_,\<hole>, _,_,_,_,_)\<close> snat_const_fold[where 'a=64])
+  apply (rewrite at \<open>(_, _,_,\<hole>, _,_,_)\<close> snat_const_fold[where 'a=64])
   apply (annot_unat_const "TYPE(64)")
   apply (rewrite at \<open>(_, \<hole>, _)\<close> al_fold_custom_empty[where 'l=64])
   apply (rewrite at \<open>(_, \<hole>)\<close> al_fold_custom_empty[where 'l=64])
   apply (rewrite in \<open>take _ \<hole>\<close> al_fold_custom_replicate)
+  apply (rewrite at \<open>replicate _ False\<close> annotate_assn[where A=phase_saver_assn])
+  apply (rewrite in \<open>replicate _ False\<close> larray_fold_custom_replicate)
+  apply (rewrite at \<open>replicate _ False\<close> annotate_assn[where A=phase_saver_assn])
+  apply (rewrite in \<open>replicate _ False\<close> larray_fold_custom_replicate)
   by sepref
 
 declare finalise_init_code'.refine[sepref_fr_rules]
@@ -660,6 +667,7 @@ declare init_trail_D_fast_code.refine[sepref_fr_rules]
 sepref_def init_state_wl_D'_code
   is \<open>init_state_wl_D'\<close>
   :: \<open>(arl64_assn atom_assn *a uint32_nat_assn)\<^sup>k \<rightarrow>\<^sub>a isasat_init_assn\<close>
+  supply[[goals_limit=1]]
   unfolding init_state_wl_D'_def PR_CONST_def init_trail_D_fast_def[symmetric] isasat_init_assn_def
    cach_refinement_l_assn_def Suc_eq_plus1_left conflict_option_rel_assn_def  lookup_clause_rel_assn_def
   apply (rewrite at \<open>let _ = 1 + \<hole> in _\<close> annot_unat_snat_upcast[where 'l=64])
@@ -681,7 +689,6 @@ sepref_def init_state_wl_D'_code
   apply (annot_snat_const "TYPE(64)")
   apply (rewrite at \<open>RETURN \<hole>\<close> annotate_assn[where A=\<open>isasat_init_assn\<close>, unfolded isasat_init_assn_def
      conflict_option_rel_assn_def cach_refinement_l_assn_def lookup_clause_rel_assn_def])
-  supply [[goals_limit = 1]]
   by sepref
 
 declare init_state_wl_D'_code.refine[sepref_fr_rules]

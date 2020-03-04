@@ -31,32 +31,33 @@ definition isa_vmtf_enqueue :: \<open>trail_pol \<Rightarrow> nat \<Rightarrow> 
 \<open>isa_vmtf_enqueue = (\<lambda>M L (ns, m, fst_As, lst_As, next_search). do {
   ASSERT(defined_atm_pol_pre M L);
   de \<leftarrow> RETURN (defined_atm_pol M L);
-  RETURN (case fst_As of
-    None \<Rightarrow>(ns[L := VMTF_Node m fst_As None], m+1, L, L,
-            (if de then None else Some L))
-  | Some fst_As \<Rightarrow>
-     let fst_As' = VMTF_Node (stamp (ns!fst_As)) (Some L) (get_next (ns!fst_As)) in
-      (ns[L := VMTF_Node (m+1) None (Some fst_As), fst_As := fst_As'],
-          m+1, L, the lst_As, (if de then next_search else Some L)))})\<close>
+  case fst_As of
+    None \<Rightarrow>RETURN ((ns[L := VMTF_Node m fst_As None], m+1, L, L,
+            (if de then None else Some L)))
+  | Some fst_As \<Rightarrow> do {
+      let fst_As' = VMTF_Node (stamp (ns!fst_As)) (Some L) (get_next (ns!fst_As));
+      RETURN (ns[L := VMTF_Node (m+1) None (Some fst_As), fst_As := fst_As'],
+          m+1, L, the lst_As, (if de then next_search else Some L))
+   }})\<close>
 
 lemma vmtf_enqueue_alt_def:
   \<open>RETURN ooo vmtf_enqueue = (\<lambda>M L (ns, m, fst_As, lst_As, next_search). do {
     let de = defined_lit M (Pos L);
-    RETURN (case fst_As of
-      None \<Rightarrow> (ns[L := VMTF_Node m fst_As None], m+1, L, L,
+    case fst_As of
+      None \<Rightarrow> RETURN (ns[L := VMTF_Node m fst_As None], m+1, L, L,
 	   (if de then None else Some L))
     | Some fst_As \<Rightarrow>
        let fst_As' = VMTF_Node (stamp (ns!fst_As)) (Some L) (get_next (ns!fst_As)) in
-	(ns[L := VMTF_Node (m+1) None (Some fst_As), fst_As := fst_As'],
-	    m+1, L, the lst_As, (if de then next_search else Some L)))})\<close>
+       RETURN (ns[L := VMTF_Node (m+1) None (Some fst_As), fst_As := fst_As'],
+	    m+1, L, the lst_As, (if de then next_search else Some L))})\<close>
   unfolding vmtf_enqueue_def Let_def
-  by (auto intro!: ext)
+  by (auto intro!: ext split: option.splits)
 
 lemma isa_vmtf_enqueue:
   \<open>(uncurry2 isa_vmtf_enqueue, uncurry2 (RETURN ooo vmtf_enqueue)) \<in>
      [\<lambda>((M, L), _). L \<in># \<A>]\<^sub>f (trail_pol \<A>) \<times>\<^sub>f nat_rel \<times>\<^sub>f Id \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
 proof -
-  have defined_atm_pol: \<open>(defined_atm_pol x1g x2f, defined_lit x1a (Pos x2))	\<in> Id\<close>
+  have defined_atm_pol: \<open>(defined_atm_pol x1g x2f, defined_lit x1a (Pos x2)) \<in> Id\<close>
     if
       \<open>case y of (x, xa) \<Rightarrow> (case x of (M, L) \<Rightarrow> \<lambda>_. L \<in># \<A>) xa\<close> and
       \<open>(x, y) \<in> trail_pol \<A> \<times>\<^sub>f nat_rel \<times>\<^sub>f Id\<close> and    \<open>x1 = (x1a, x2)\<close> and
@@ -88,9 +89,12 @@ proof -
     apply (refine_rcg)
     subgoal by (rule defined_atm_pol_pre) auto
     apply (rule defined_atm_pol; assumption)
+    apply (rule same_in_Id_option_rel)
     subgoal for x y x1 x1a x2 x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x1g x2f x2g x1h x2h
 	 x1i x2i x1j x2j x1k x2k
       by auto
+    subgoal by auto
+    subgoal by auto
     done
 qed
 
@@ -235,12 +239,23 @@ lemma vmtf_rescale_alt_def:
   })\<close>
   unfolding update_stamp.simps Let_def vmtf_rescale_def by auto
 
+definition vmtf_reorder_list_raw where
+  \<open>vmtf_reorder_list_raw = (\<lambda>vm to_remove. do {
+    ASSERT(\<forall>x\<in>set to_remove. x < length vm);
+    reorder_list vm to_remove
+  })\<close>
+
+
+definition vmtf_reorder_list where
+  \<open>vmtf_reorder_list = (\<lambda>(vm, _) to_remove. do {
+    vmtf_reorder_list_raw vm to_remove
+  })\<close>
 
 definition isa_vmtf_flush_int :: \<open>trail_pol \<Rightarrow> _ \<Rightarrow> _ nres\<close> where
 \<open>isa_vmtf_flush_int  = (\<lambda>M (vm, (to_remove, h)). do {
     ASSERT(\<forall>x\<in>set to_remove. x < length (fst vm));
     ASSERT(length to_remove \<le> uint32_max);
-    to_remove' \<leftarrow> reorder_list vm to_remove;
+    to_remove' \<leftarrow> vmtf_reorder_list vm to_remove;
     ASSERT(length to_remove' \<le> uint32_max);
     vm \<leftarrow> (if length to_remove' \<ge> uint64_max - fst (snd vm)
       then vmtf_rescale vm else RETURN vm);
@@ -286,7 +301,7 @@ proof -
     unfolding vmtf_flush_int_def
     by auto
 
-  have reorder_list: \<open>reorder_list x1d x1e
+  have reorder_list: \<open>vmtf_reorder_list x1d x1e
 	\<le> \<Down> Id
 	   (reorder_list x1a x1b)\<close>
     if
@@ -301,7 +316,8 @@ proof -
       \<open>\<forall>x\<in>set x1e. x < length (fst x1d)\<close> and
       \<open>length x1e \<le> uint32_max\<close>
     for x y x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e
-    using that by auto
+    using that unfolding vmtf_reorder_list_def by (cases x1a)
+      (auto intro!: ASSERT_leI simp: reorder_list_def vmtf_reorder_list_raw_def)
 
   have vmtf_rescale: \<open>vmtf_rescale x1d
 	\<le> \<Down> Id
@@ -568,10 +584,10 @@ lemma size_conflict_int_size_conflict:
       lookup_clause_rel_def)
 
 definition rescore_clause
-  :: \<open>nat multiset \<Rightarrow> nat clause_l \<Rightarrow> (nat,nat)ann_lits \<Rightarrow> vmtf_remove_int \<Rightarrow> phase_saver \<Rightarrow>
-    (vmtf_remove_int \<times> phase_saver) nres\<close>
+  :: \<open>nat multiset \<Rightarrow> nat clause_l \<Rightarrow> (nat,nat)ann_lits \<Rightarrow> vmtf_remove_int \<Rightarrow>
+    (vmtf_remove_int) nres\<close>
 where
-  \<open>rescore_clause \<A> C M vm \<phi> = SPEC (\<lambda>(vm', \<phi>' :: bool list). vm' \<in> vmtf \<A> M \<and> phase_saving \<A> \<phi>')\<close>
+  \<open>rescore_clause \<A> C M vm = SPEC (\<lambda>(vm'). vm' \<in> vmtf \<A> M)\<close>
 
 (* TODO ded-uplicate definitions *)
 definition find_decomp_w_ns_pre where
@@ -837,81 +853,79 @@ definition find_decomp_wl_st_int :: \<open>nat \<Rightarrow> twl_st_wl_heur \<Ri
 
 
 definition vmtf_rescore_body
- :: \<open>nat multiset \<Rightarrow> nat clause_l \<Rightarrow> (nat,nat) ann_lits \<Rightarrow> vmtf_remove_int \<Rightarrow> phase_saver \<Rightarrow>
-    (nat \<times> vmtf_remove_int \<times> phase_saver) nres\<close>
+ :: \<open>nat multiset \<Rightarrow> nat clause_l \<Rightarrow> (nat,nat) ann_lits \<Rightarrow> vmtf_remove_int \<Rightarrow>
+    (nat \<times> vmtf_remove_int) nres\<close>
 where
-  \<open>vmtf_rescore_body \<A>\<^sub>i\<^sub>n C _ vm \<phi> = do {
-         WHILE\<^sub>T\<^bsup>\<lambda>(i, vm, \<phi>). i \<le> length C  \<and>
-            (\<forall>c \<in> set C. atm_of c < length \<phi> \<and> atm_of c < length (fst (fst vm)))\<^esup>
-           (\<lambda>(i, vm, \<phi>). i < length C)
-           (\<lambda>(i, vm, \<phi>). do {
+  \<open>vmtf_rescore_body \<A>\<^sub>i\<^sub>n C _ vm = do {
+         WHILE\<^sub>T\<^bsup>\<lambda>(i, vm). i \<le> length C  \<and>
+            (\<forall>c \<in> set C. atm_of c < length (fst (fst vm)))\<^esup>
+           (\<lambda>(i, vm). i < length C)
+           (\<lambda>(i, vm). do {
                ASSERT(i < length C);
                ASSERT(atm_of (C!i) \<in># \<A>\<^sub>i\<^sub>n);
                let vm' = vmtf_mark_to_rescore (atm_of (C!i)) vm;
-               RETURN(i+1, vm', \<phi>)
+               RETURN(i+1, vm')
              })
-           (0, vm, \<phi>)
+           (0, vm)
     }\<close>
 
 definition vmtf_rescore
- :: \<open>nat multiset \<Rightarrow> nat clause_l \<Rightarrow> (nat,nat) ann_lits \<Rightarrow> vmtf_remove_int \<Rightarrow> phase_saver \<Rightarrow>
-       (vmtf_remove_int \<times> phase_saver) nres\<close>
+ :: \<open>nat multiset \<Rightarrow> nat clause_l \<Rightarrow> (nat,nat) ann_lits \<Rightarrow> vmtf_remove_int \<Rightarrow>
+       (vmtf_remove_int) nres\<close>
 where
-  \<open>vmtf_rescore \<A>\<^sub>i\<^sub>n C M vm \<phi> = do {
-      (_, vm, \<phi>) \<leftarrow> vmtf_rescore_body \<A>\<^sub>i\<^sub>n C M vm \<phi>;
-      RETURN (vm, \<phi>)
+  \<open>vmtf_rescore \<A>\<^sub>i\<^sub>n C M vm = do {
+      (_, vm) \<leftarrow> vmtf_rescore_body \<A>\<^sub>i\<^sub>n C M vm;
+      RETURN (vm)
    }\<close>
 
 find_theorems isa_vmtf_mark_to_rescore
 
 definition isa_vmtf_rescore_body
- :: \<open>nat clause_l \<Rightarrow> trail_pol \<Rightarrow> isa_vmtf_remove_int \<Rightarrow> phase_saver \<Rightarrow>
-    (nat \<times> isa_vmtf_remove_int \<times> phase_saver) nres\<close>
+ :: \<open>nat clause_l \<Rightarrow> trail_pol \<Rightarrow> isa_vmtf_remove_int \<Rightarrow>
+    (nat \<times> isa_vmtf_remove_int) nres\<close>
 where
-  \<open>isa_vmtf_rescore_body C _ vm \<phi> = do {
-         WHILE\<^sub>T\<^bsup>\<lambda>(i, vm, \<phi>). i \<le> length C  \<and>
-            (\<forall>c \<in> set C. atm_of c < length \<phi> \<and> atm_of c < length (fst (fst vm)))\<^esup>
-           (\<lambda>(i, vm, \<phi>). i < length C)
-           (\<lambda>(i, vm, \<phi>). do {
+  \<open>isa_vmtf_rescore_body C _ vm = do {
+         WHILE\<^sub>T\<^bsup>\<lambda>(i, vm). i \<le> length C  \<and>
+            (\<forall>c \<in> set C. atm_of c < length (fst (fst vm)))\<^esup>
+           (\<lambda>(i, vm). i < length C)
+           (\<lambda>(i, vm). do {
                ASSERT(i < length C);
                ASSERT(isa_vmtf_mark_to_rescore_pre (atm_of (C!i)) vm);
                let vm' = isa_vmtf_mark_to_rescore (atm_of (C!i)) vm;
-               RETURN(i+1, vm', \<phi>)
+               RETURN(i+1, vm')
              })
-           (0, vm, \<phi>)
+           (0, vm)
     }\<close>
 
 definition isa_vmtf_rescore
- :: \<open>nat clause_l \<Rightarrow> trail_pol \<Rightarrow> isa_vmtf_remove_int \<Rightarrow> phase_saver \<Rightarrow>
-       (isa_vmtf_remove_int \<times> phase_saver) nres\<close>
+ :: \<open>nat clause_l \<Rightarrow> trail_pol \<Rightarrow> isa_vmtf_remove_int \<Rightarrow>
+       (isa_vmtf_remove_int) nres\<close>
 where
-  \<open>isa_vmtf_rescore C M vm \<phi> = do {
-      (_, vm, \<phi>) \<leftarrow> isa_vmtf_rescore_body C M vm \<phi>;
-      RETURN (vm, \<phi>)
+  \<open>isa_vmtf_rescore C M vm = do {
+      (_, vm) \<leftarrow> isa_vmtf_rescore_body C M vm;
+      RETURN (vm)
     }\<close>
 
 lemma vmtf_rescore_score_clause:
-  \<open>(uncurry3 (vmtf_rescore \<A>), uncurry3 (rescore_clause \<A>)) \<in>
-     [\<lambda>(((C, M), vm), \<phi>). literals_are_in_\<L>\<^sub>i\<^sub>n \<A> (mset C) \<and> vm \<in> vmtf \<A> M \<and> phase_saving \<A> \<phi>]\<^sub>f
-     (\<langle>Id\<rangle>list_rel \<times>\<^sub>f Id \<times>\<^sub>f Id \<times>\<^sub>f Id) \<rightarrow> \<langle>Id \<times>\<^sub>f Id\<rangle> nres_rel\<close>
+  \<open>(uncurry2 (vmtf_rescore \<A>), uncurry2 (rescore_clause \<A>)) \<in>
+     [\<lambda>((C, M), vm). literals_are_in_\<L>\<^sub>i\<^sub>n \<A> (mset C) \<and> vm \<in> vmtf \<A> M]\<^sub>f
+     (\<langle>Id\<rangle>list_rel \<times>\<^sub>f Id \<times>\<^sub>f Id) \<rightarrow> \<langle>Id\<rangle> nres_rel\<close>
 proof -
-  have H: \<open>vmtf_rescore_body \<A> C M vm \<phi> \<le>
-        SPEC (\<lambda>(n :: nat, vm', \<phi>' :: bool list). phase_saving \<A> \<phi>' \<and> vm' \<in> vmtf \<A> M)\<close>
-    if M: \<open>vm \<in> vmtf \<A> M\<close>\<open>phase_saving \<A> \<phi>\<close> and C: \<open>\<forall>c\<in>set C. atm_of c \<in> atms_of (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>)\<close>
+  have H: \<open>vmtf_rescore_body \<A> C M vm \<le>
+        SPEC (\<lambda>(n :: nat, vm').  vm' \<in> vmtf \<A> M)\<close>
+    if M: \<open>vm \<in> vmtf \<A> M\<close> and C: \<open>\<forall>c\<in>set C. atm_of c \<in> atms_of (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>)\<close>
     for C vm \<phi> M
     unfolding vmtf_rescore_body_def vmtf_mark_to_rescore_def
     apply (refine_vcg WHILEIT_rule_stronger_inv[where R = \<open>measure (\<lambda>(i, _). length C - i)\<close> and
-       I' = \<open>\<lambda>(i, vm', \<phi>'). phase_saving \<A> \<phi>' \<and> vm' \<in> vmtf \<A> M\<close>])
+       I' = \<open>\<lambda>(i, vm'). vm' \<in> vmtf \<A> M\<close>])
     subgoal by auto
     subgoal by auto
     subgoal using C M by (auto simp: vmtf_def phase_saving_def)
     subgoal using C M by auto
     subgoal using M by auto
-    subgoal by auto
     subgoal using C by (auto simp: atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n)
-    subgoal using C unfolding phase_saving_def by auto
-    subgoal unfolding phase_saving_def by auto
-    subgoal using C unfolding phase_saving_def by auto
+    subgoal using C by auto
+    subgoal using C by auto
     subgoal using C by (auto simp: vmtf_append_remove_iff')
     subgoal by auto
     done
@@ -933,8 +947,8 @@ proof -
 qed
 
 lemma isa_vmtf_rescore_body:
-  \<open>(uncurry3 (isa_vmtf_rescore_body), uncurry3 (vmtf_rescore_body \<A>)) \<in> [\<lambda>_. isasat_input_bounded \<A>]\<^sub>f
-     (Id \<times>\<^sub>f trail_pol \<A> \<times>\<^sub>f (Id \<times>\<^sub>f distinct_atoms_rel \<A>) \<times>\<^sub>f Id) \<rightarrow> \<langle>Id \<times>\<^sub>r (Id \<times>\<^sub>f distinct_atoms_rel \<A>) \<times>\<^sub>r Id\<rangle> nres_rel\<close>
+  \<open>(uncurry2 (isa_vmtf_rescore_body), uncurry2 (vmtf_rescore_body \<A>)) \<in> [\<lambda>_. isasat_input_bounded \<A>]\<^sub>f
+     (Id \<times>\<^sub>f trail_pol \<A> \<times>\<^sub>f (Id \<times>\<^sub>f distinct_atoms_rel \<A>)) \<rightarrow> \<langle>Id \<times>\<^sub>r (Id \<times>\<^sub>f distinct_atoms_rel \<A>)\<rangle> nres_rel\<close>
 proof -
   show ?thesis
     unfolding isa_vmtf_rescore_body_def vmtf_rescore_body_def uncurry_def
@@ -942,13 +956,13 @@ proof -
     apply refine_rcg
     subgoal by auto
     subgoal by auto
-    subgoal for x y x1 x1a x1b x2 x2a x2b x1c x1d x1e x2c x2d x2e xa x' x1f x2f x1g x2g
-      by (cases x1g) auto
+    subgoal for x y x1 x1a x1b x2 x2a x2b x1c x1d x1e x2c x1g x2g
+      by (cases x2g) auto
     subgoal by auto
     subgoal by auto
-    subgoal for x y x1 x1a x1b x2 x2a x2b x1c x1d x1e x2c x2d x2e xa x' x1f x2f x1g x2g
+    subgoal for x y x1 x1a x1b x2 x2a x2b x1c x1d x1e x2c x2d x2e x1g x2g
       unfolding isa_vmtf_mark_to_rescore_pre_def
-      by (cases x1g)
+      by (cases x2e)
         (auto intro!: atms_hash_insert_pre)
     subgoal
       by (auto intro!:  isa_vmtf_mark_to_rescore_vmtf_mark_to_rescore[THEN fref_to_Down_unRET_uncurry])
@@ -956,13 +970,13 @@ proof -
 qed
 
 lemma isa_vmtf_rescore:
-  \<open>(uncurry3 (isa_vmtf_rescore), uncurry3 (vmtf_rescore \<A>)) \<in> [\<lambda>_. isasat_input_bounded \<A>]\<^sub>f
-     (Id \<times>\<^sub>f trail_pol \<A> \<times>\<^sub>f (Id \<times>\<^sub>f distinct_atoms_rel \<A>) \<times>\<^sub>f Id) \<rightarrow> \<langle>(Id \<times>\<^sub>f distinct_atoms_rel \<A>) \<times>\<^sub>f Id\<rangle> nres_rel\<close>
+  \<open>(uncurry2 (isa_vmtf_rescore), uncurry2 (vmtf_rescore \<A>)) \<in> [\<lambda>_. isasat_input_bounded \<A>]\<^sub>f
+     (Id \<times>\<^sub>f trail_pol \<A> \<times>\<^sub>f (Id \<times>\<^sub>f distinct_atoms_rel \<A>)) \<rightarrow> \<langle>(Id \<times>\<^sub>f distinct_atoms_rel \<A>)\<rangle> nres_rel\<close>
 proof -
   show ?thesis
     unfolding isa_vmtf_rescore_def vmtf_rescore_def uncurry_def
     apply (intro frefI nres_relI)
-    apply (refine_rcg isa_vmtf_rescore_body[THEN fref_to_Down_curry3])
+    apply (refine_rcg isa_vmtf_rescore_body[THEN fref_to_Down_curry2])
     subgoal by auto
     subgoal by auto
     done
