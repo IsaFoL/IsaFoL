@@ -676,7 +676,7 @@ lemma red_sat_eq_sat: "reduc_saturated N \<longleftrightarrow> saturated (N - Re
   unfolding reduc_saturated_def saturated_def by (simp add: Red_Inf_without_redundant_clauses)
 
 text \<open>thm:reduced-stat-ref-compl 1/3 (i) \<longleftrightarrow> (iii)\<close>
-theorem "static_refutational_complete_calculus Bot Inf entails Red_Inf Red_F \<longleftrightarrow>
+theorem stat_is_stat_red: "static_refutational_complete_calculus Bot Inf entails Red_Inf Red_F \<longleftrightarrow>
   static_refutational_complete_calculus Bot Inf entails Red_Red_Inf Red_F"
 proof
   assume
@@ -720,7 +720,7 @@ next
 qed
         
 text \<open>thm:reduced-stat-ref-compl 2/3 (iv) \<longleftrightarrow> (iii)\<close>
-theorem "reduc_static_refutational_complete_calculus Bot Inf entails Red_Red_Inf Red_F \<longleftrightarrow>
+theorem red_stat_red_is_stat_red: "reduc_static_refutational_complete_calculus Bot Inf entails Red_Red_Inf Red_F \<longleftrightarrow>
   static_refutational_complete_calculus Bot Inf entails Red_Red_Inf Red_F"
   using reduc_calc.stat_ref_comp_imp_red_stat_ref_comp 
   by (metis reduc_calc.sat_eq_reduc_sat reduc_static_refutational_complete_calculus.axioms(2)
@@ -728,7 +728,7 @@ theorem "reduc_static_refutational_complete_calculus Bot Inf entails Red_Red_Inf
     static_refutational_complete_calculus.intro static_refutational_complete_calculus_axioms.intro)
 
 text \<open>thm:reduced-stat-ref-compl 3/3 (ii) \<longleftrightarrow> (iii)\<close>
-theorem "reduc_static_refutational_complete_calculus Bot Inf entails Red_Inf Red_F \<longleftrightarrow>
+theorem red_stat_is_stat_red: "reduc_static_refutational_complete_calculus Bot Inf entails Red_Inf Red_F \<longleftrightarrow>
   static_refutational_complete_calculus Bot Inf entails Red_Red_Inf Red_F"
   using reduc_calc.calculus_with_red_crit_axioms calculus_with_red_crit_axioms red_sat_eq_red_calc_sat
   unfolding static_refutational_complete_calculus_def static_refutational_complete_calculus_axioms_def
@@ -737,6 +737,9 @@ theorem "reduc_static_refutational_complete_calculus Bot Inf entails Red_Inf Red
 
 definition Sup_Red_F_llist :: "'f set llist \<Rightarrow> 'f set" where
 "Sup_Red_F_llist D = (\<Union>i \<in> {i. enat i < llength D}. Red_F (lnth D i))"
+
+lemma Sup_Red_F_unit: "Sup_Red_F_llist (LCons X LNil) = Red_F X" 
+using Sup_Red_F_llist_def enat_0_iff(1) by simp
 
 lemma sup_red_f_in_red_liminf: "chain derive D \<Longrightarrow> Sup_Red_F_llist D \<subseteq> Red_F (Liminf_llist D)"
 proof
@@ -770,7 +773,7 @@ definition reduc_fair :: "'f set llist \<Rightarrow> bool" where
 "reduc_fair D \<equiv> Inf_from (Liminf_llist D - (Sup_Red_F_llist D)) \<subseteq> Sup_Red_Inf_llist D"
 
 text \<open>lem:red-fairness-implies-red-saturation\<close>
-lemma "chain derive D \<Longrightarrow> reduc_fair D \<Longrightarrow> reduc_saturated (Liminf_llist D)"
+lemma reduc_fair_imp_Liminf_reduc_sat: "chain derive D \<Longrightarrow> reduc_fair D \<Longrightarrow> reduc_saturated (Liminf_llist D)"
   unfolding reduc_saturated_def
 proof -
   fix D
@@ -784,6 +787,127 @@ proof -
   then show "Inf_from (Liminf_llist D - Red_F (Liminf_llist D)) \<subseteq> Red_Inf (Liminf_llist D)"
     using sup_red_inf_in_red_liminf[OF deriv] by fast
 qed
+
+end
+
+locale reduc_dynamic_refutational_complete_calculus = calculus_with_red_crit +
+  assumes
+    reduc_dynamic_refutational_complete: "B \<in> Bot \<Longrightarrow> \<not> lnull D \<Longrightarrow> chain derive D \<Longrightarrow> reduc_fair D
+      \<Longrightarrow> lnth D 0 \<Turnstile> {B} \<Longrightarrow> \<exists>i \<in> {i. enat i < llength D}. \<exists> B'\<in>Bot. B' \<in> lnth D i"
+begin
+
+sublocale reduc_static_refutational_complete_calculus
+proof
+  fix B N
+  assume 
+    bot_elem: \<open>B \<in> Bot\<close> and
+    saturated_N: "reduc_saturated N" and
+    refut_N: "N \<Turnstile> {B}"
+  define D where "D = LCons N LNil"
+  have[simp]: \<open>\<not> lnull D\<close> by (auto simp: D_def)
+  have deriv_D: \<open>chain (\<rhd>Red) D\<close> by (simp add: chain.chain_singleton D_def)
+  have liminf_is_N: "Liminf_llist D = N" by (simp add: D_def Liminf_llist_LCons)
+  have head_D: "N = lnth D 0" by (simp add: D_def)
+  have "Sup_Red_F_llist D = Red_F N" by (simp add: D_def Sup_Red_F_unit)
+  moreover have "Sup_Red_Inf_llist D = Red_Inf N" by (simp add: D_def Sup_Red_Inf_unit)
+  ultimately have fair_D: "reduc_fair D"
+    using saturated_N liminf_is_N unfolding reduc_fair_def reduc_saturated_def 
+    by (simp add: reduc_fair_def reduc_saturated_def liminf_is_N)
+  obtain i B' where B'_is_bot: \<open>B' \<in> Bot\<close> and B'_in: "B' \<in> (lnth D i)" and \<open>i < llength D\<close>
+    using reduc_dynamic_refutational_complete[of B D] bot_elem fair_D head_D saturated_N deriv_D refut_N
+    by auto
+  then have "i = 0"
+    by (auto simp: D_def enat_0_iff)
+  show \<open>\<exists>B'\<in>Bot. B' \<in> N\<close>
+    using B'_is_bot B'_in unfolding \<open>i = 0\<close> head_D[symmetric] by auto
+qed
+
+end
+
+sublocale reduc_static_refutational_complete_calculus \<subseteq> reduc_dynamic_refutational_complete_calculus
+proof
+  fix B D
+  assume
+    bot_elem: \<open>B \<in> Bot\<close> and
+    deriv: \<open>chain (\<rhd>Red) D\<close> and
+    fair: \<open>reduc_fair D\<close> and
+    unsat: \<open>(lnth D 0) \<Turnstile> {B}\<close> and
+    non_empty: \<open>\<not> lnull D\<close>
+    have subs: \<open>(lnth D 0) \<subseteq> Sup_llist D\<close>
+      using lhd_subset_Sup_llist[of D] non_empty by (simp add: lhd_conv_lnth)
+    have \<open>Sup_llist D \<Turnstile> {B}\<close> 
+      using unsat subset_entailed[OF subs] entails_trans[of "Sup_llist D" "lnth D 0"] by auto
+    then have Sup_no_Red: \<open>Sup_llist D - Red_F (Sup_llist D) \<Turnstile> {B}\<close>
+      using bot_elem Red_F_Bot by auto
+    have Sup_no_Red_in_Liminf: \<open>Sup_llist D - Red_F (Sup_llist D) \<subseteq> Liminf_llist D\<close>
+      using deriv Red_in_Sup by auto
+    have Liminf_entails_Bot: \<open>Liminf_llist D \<Turnstile> {B}\<close>
+      using Sup_no_Red subset_entailed[OF Sup_no_Red_in_Liminf] entails_trans by blast
+    have \<open>reduc_saturated (Liminf_llist D)\<close> 
+    using deriv fair reduc_fair_imp_Liminf_reduc_sat unfolding reduc_saturated_def
+      by auto
+   then have \<open>\<exists>B'\<in>Bot. B' \<in> (Liminf_llist D)\<close> 
+     using bot_elem reduc_static_refutational_complete Liminf_entails_Bot
+     by auto
+   then show \<open>\<exists>i\<in>{i. enat i < llength D}. \<exists>B'\<in>Bot. B' \<in> lnth D i\<close>
+     unfolding Liminf_llist_def by auto
+qed
+
+context calculus_with_red_crit
+begin
+
+lemma dyn_equiv_stat: "dynamic_refutational_complete_calculus Bot Inf entails Red_Inf Red_F =
+  static_refutational_complete_calculus Bot Inf entails Red_Inf Red_F" 
+proof
+  assume "dynamic_refutational_complete_calculus Bot Inf entails Red_Inf Red_F"
+  then interpret dynamic_refutational_complete_calculus Bot Inf entails Red_Inf Red_F
+    by simp
+  show "static_refutational_complete_calculus Bot Inf entails Red_Inf Red_F"
+    by (simp add: static_refutational_complete_calculus_axioms)
+next
+  assume "static_refutational_complete_calculus Bot Inf entails Red_Inf Red_F" 
+  then interpret static_refutational_complete_calculus Bot Inf entails Red_Inf Red_F
+    by simp
+  show "dynamic_refutational_complete_calculus Bot Inf entails Red_Inf Red_F"
+    by (simp add: dynamic_refutational_complete_calculus_axioms)
+qed
+
+lemma red_dyn_equiv_red_stat: "reduc_dynamic_refutational_complete_calculus Bot Inf entails Red_Inf Red_F =
+  reduc_static_refutational_complete_calculus Bot Inf entails Red_Inf Red_F" 
+proof
+  assume "reduc_dynamic_refutational_complete_calculus Bot Inf entails Red_Inf Red_F"
+  then interpret reduc_dynamic_refutational_complete_calculus Bot Inf entails Red_Inf Red_F
+    by simp
+  show "reduc_static_refutational_complete_calculus Bot Inf entails Red_Inf Red_F"
+    by (simp add: reduc_static_refutational_complete_calculus_axioms)
+next
+  assume "reduc_static_refutational_complete_calculus Bot Inf entails Red_Inf Red_F" 
+  then interpret reduc_static_refutational_complete_calculus Bot Inf entails Red_Inf Red_F
+    by simp
+  show "reduc_dynamic_refutational_complete_calculus Bot Inf entails Red_Inf Red_F"
+    by (simp add: reduc_dynamic_refutational_complete_calculus_axioms)
+qed
+
+interpretation reduc_calc : calculus_with_reduced_red_crit Bot Inf entails Red_Red_Inf Red_F
+using reduc_calc by simp
+
+text \<open>thm:reduced-dyn-ref-compl 1/3 (v) \<longleftrightarrow> (vii)\<close>
+theorem "dynamic_refutational_complete_calculus Bot Inf entails Red_Inf Red_F \<longleftrightarrow>
+  dynamic_refutational_complete_calculus Bot Inf entails Red_Red_Inf Red_F"
+  using dyn_equiv_stat stat_is_stat_red reduc_calc.dyn_equiv_stat by meson
+   
+text \<open>thm:reduced-dyn-ref-compl 2/3 (viii) \<longleftrightarrow> (vii)\<close>
+theorem "reduc_dynamic_refutational_complete_calculus Bot Inf entails Red_Red_Inf Red_F \<longleftrightarrow>
+  dynamic_refutational_complete_calculus Bot Inf entails Red_Red_Inf Red_F"
+  using red_dyn_equiv_red_stat dyn_equiv_stat red_stat_red_is_stat_red
+  by (simp add: reduc_calc.dyn_equiv_stat reduc_calc.red_dyn_equiv_red_stat)
+
+text \<open>thm:reduced-dyn-ref-compl 3/3 (vi) \<longleftrightarrow> (vii)\<close>
+theorem "reduc_dynamic_refutational_complete_calculus Bot Inf entails Red_Inf Red_F \<longleftrightarrow>
+  dynamic_refutational_complete_calculus Bot Inf entails Red_Red_Inf Red_F"
+  using red_dyn_equiv_red_stat dyn_equiv_stat red_stat_is_stat_red
+    reduc_calc.dyn_equiv_stat reduc_calc.red_dyn_equiv_red_stat
+  by blast
 
 end
 
