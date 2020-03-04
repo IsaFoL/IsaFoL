@@ -21,6 +21,7 @@ CMake Binary=file:///usr/bin/cmake
 Environment Profile=
 Extra Arguments=
 Install Directory=file:///usr/local
+Runtime=Host System
 
 [CMake][CMake Build Directory 2]
 Build Directory Path=file:///home/lammich/devel/isabelle/isafol/GRAT/gratgen/profile

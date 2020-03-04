@@ -62,7 +62,7 @@ subsection \<open>Pretty-Printing Literals\<close>
     by (induction l) auto
   
   lemma map_map_lit_\<gamma>_\<alpha>_eq[simp]: 
-    "0 \<notin> \<Union>set (map set l) \<Longrightarrow> map (map (lit_\<gamma> \<circ> lit_\<alpha>)) l = l"
+    "0 \<notin> \<Union>(set (map set l)) \<Longrightarrow> map (map (lit_\<gamma> \<circ> lit_\<alpha>)) l = l"
     by (induction l) auto  
       
   lemma lit_invar_\<gamma>_iff[simp]: "lit_invar (lit_\<gamma> l) \<longleftrightarrow> var_of_lit l \<noteq> 0"
@@ -147,6 +147,8 @@ section \<open>Direct Representation of Satisfiable Formulas\<close>
         then show "sem_clause C (\<sigma> \<circ> int)"
           unfolding sem_clause_def sem_lit_alt
           by (auto simp: X2 lit_\<alpha>_def elim!: bexI[rotated])
+          
+          
       qed  
       then show "sat (F_\<alpha> l)"
         unfolding sat_def by blast

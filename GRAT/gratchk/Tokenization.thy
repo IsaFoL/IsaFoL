@@ -47,8 +47,8 @@ begin
     by (metis in_set_conv_decomp list_match_lel_lel)
       
   lemma concat_sep_unique:
-    assumes "Z \<notin> \<Union>set (map set ls1)" 
-    assumes "Z \<notin> \<Union>set (map set ls2)" 
+    assumes "Z \<notin> \<Union>(set (map set ls1))" 
+    assumes "Z \<notin> \<Union>(set (map set ls2))" 
     assumes "concat_sep Z ls1 = concat_sep Z ls2"
     shows "ls1 = ls2"    
     using assms
@@ -61,7 +61,7 @@ begin
     by (induction l rule: tokenize.induct) (auto split: list.splits)
       
   lemma tokenize_complete: 
-    "\<lbrakk>l\<noteq>[] \<longrightarrow> last l = Z\<rbrakk> \<Longrightarrow> Z \<notin> \<Union>set (map set (tokenize Z l))"
+    "\<lbrakk>l\<noteq>[] \<longrightarrow> last l = Z\<rbrakk> \<Longrightarrow> Z \<notin> \<Union>(set (map set (tokenize Z l)))"
     by (induction l rule: tokenize.induct) (auto split: list.splits)
 
   lemma tokenize_complete_set: 
@@ -71,7 +71,7 @@ begin
       
   lemma unique_tokenization: 
     "\<lbrakk> l\<noteq>[] \<longrightarrow> last l = Z \<rbrakk> 
-    \<Longrightarrow> \<exists>!ls. (Z\<notin>\<Union>set (map set ls) \<and> concat_sep Z ls = l)"
+    \<Longrightarrow> \<exists>!ls. (Z\<notin>\<Union>(set (map set ls)) \<and> concat_sep Z ls = l)"
     apply (frule concat_tokenize_id)
     apply (frule tokenize_complete)
     apply (rule ex1I[where a="tokenize Z l"])
@@ -98,7 +98,7 @@ begin
     to persuade yourself that the right-hand side is well-defined.
   \<close>
   theorem tokenize_spec: "\<lbrakk> l\<noteq>[] \<longrightarrow> last l = Z \<rbrakk> 
-    \<Longrightarrow> tokenize Z l = (THE ls. Z\<notin>\<Union>set (map set ls) \<and> concat_sep Z ls = l)"
+    \<Longrightarrow> tokenize Z l = (THE ls. Z\<notin>\<Union>(set (map set ls)) \<and> concat_sep Z ls = l)"
     apply (frule theI'[OF unique_tokenization])
     by (metis (no_types, lifting) concat_sep_unique concat_tokenize_id 
               tokenize_complete)
@@ -106,12 +106,12 @@ begin
       
   lemma unique_tokenize_presentation:              
     assumes "l\<noteq>[] \<longrightarrow> last l = Z"
-    shows "\<exists>!ls. (Z\<notin>\<Union>set (map set ls) \<and> concat_sep Z ls = l)"
-      and "tokenize Z l = (THE ls. Z\<notin>\<Union>set (map set ls) \<and> concat_sep Z ls = l)"
+    shows "\<exists>!ls. (Z\<notin>\<Union>(set (map set ls)) \<and> concat_sep Z ls = l)"
+      and "tokenize Z l = (THE ls. Z\<notin>\<Union>(set (map set ls)) \<and> concat_sep Z ls = l)"
       using unique_tokenization[OF assms] tokenize_spec[OF assms] .
               
   lemma tokenize_concat_id: 
-    "\<lbrakk> Z \<notin> \<Union>set (map set ls) \<rbrakk> \<Longrightarrow> tokenize Z (concat_sep Z ls) = ls"
+    "\<lbrakk> Z \<notin> \<Union>(set (map set ls)) \<rbrakk> \<Longrightarrow> tokenize Z (concat_sep Z ls) = ls"
     by (induction ls) (auto simp: tokenize_NZZ)  
 
 
