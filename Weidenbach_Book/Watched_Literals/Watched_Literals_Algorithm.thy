@@ -142,7 +142,7 @@ proof -
 
   have uL: \<open>- L \<in> lits_of_l M\<close> and
     all_struct: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state\<^sub>W_of S)\<close>
-    using inv x_WS unfolding twl_struct_invs_def S by auto
+    using inv x_WS unfolding twl_struct_invs_def S pcdcl_all_struct_invs_def by auto
 
   have \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of S)\<close> and
     \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv (state\<^sub>W_of S)\<close>
@@ -629,9 +629,10 @@ proof -
     \<open>atms_of_mm (get_all_clss (M, N, U, None, NE, UE, NS, US, {#}, {#})) = atms_of_mm (clauses N + NE + NS)\<close>
     for L
   proof -
-    have \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of S)\<close> and unit: \<open>entailed_clss_inv S\<close>
+    have \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of S)\<close> and unit: \<open>entailed_clss_inv (pstate\<^sub>W_of S)\<close>
       using twl unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-      by fast+
+        pcdcl_all_struct_invs_def
+      by auto
     then show
       \<open>atm_of L \<in> atms_of_ms (clause ` set_mset U) \<Longrightarrow> atm_of L \<in> atms_of_mm (clauses N + NE + NS)\<close>
       \<open>atms_of_mm (get_all_clss (M, N, U, None, NE, UE, NS, US, {#}, {#})) = atms_of_mm (clauses N + NE + NS)\<close>
@@ -820,7 +821,8 @@ proof (refine_vcg WHILEIT_rule[where R = \<open>measure (\<lambda>(brk, S). Suc 
 
   have neg: \<open>get_trail S \<Turnstile>as CNot (the (get_conflict S))\<close> if \<open>get_conflict S \<noteq> None\<close>
       using assms that unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def by (cases S, auto simp add: cdcl\<^sub>W_restart_mset_state)
+        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def pcdcl_all_struct_invs_def
+      by (cases S, auto simp add: cdcl\<^sub>W_restart_mset_state)
   then have \<open>get_trail S \<noteq> []\<close> if \<open>get_conflict S \<noteq> Some {#}\<close>
     using that assms by auto
   then show \<open>skip_and_resolve_loop_inv S (False, S)\<close>
@@ -864,7 +866,7 @@ proof (refine_vcg WHILEIT_rule[where R = \<open>measure (\<lambda>(brk, S). Suc 
        \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv (state\<^sub>W_of T)\<close> and
        alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of T)\<close>
     using twl D D' M unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-    by fast+
+      pcdcl_all_struct_invs_def by auto
   then have \<open>M \<Turnstile>as CNot D'\<close> and n_d: \<open>no_dup M\<close> and
     confl_proped: \<open>\<And>L mark a b.
         a @ Propagated L mark # b = trail (state\<^sub>W_of T) \<longrightarrow>
@@ -897,7 +899,7 @@ proof (refine_vcg WHILEIT_rule[where R = \<open>measure (\<lambda>(brk, S). Suc 
       using twl o_S_T stgy_S twl_stgy_S cdcl_twl_o_twl_stgy_invs by blast
     moreover have \<open>tl M \<noteq> []\<close>
       using twl_T D D' unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
+        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def pcdcl_all_struct_invs_def
       by (auto simp: cdcl\<^sub>W_restart_mset_state T tl_state_def)
     moreover have \<open>- lit_of (hd M) \<in># all_lits_of_mm (clauses (get_clauses T) + unit_clss T +
          subsumed_clauses T)\<close> \<open>is_proped (hd M)\<close>
@@ -929,7 +931,7 @@ proof (refine_vcg WHILEIT_rule[where R = \<open>measure (\<lambda>(brk, S). Suc 
 
     have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting (state\<^sub>W_of T)\<close>
       using twl D D' M unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-      by fast
+        pcdcl_all_struct_invs_def by auto
     then have \<open>L \<in># C\<close> \<open>M' \<Turnstile>as CNot (remove1_mset L C)\<close> \<open>M \<Turnstile>as CNot D'\<close>
       using M
       unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
@@ -957,7 +959,7 @@ proof (refine_vcg WHILEIT_rule[where R = \<open>measure (\<lambda>(brk, S). Suc 
     moreover {
       have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting (state\<^sub>W_of ?T)\<close>
       using twl_T D D' M unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-       by fast
+      pcdcl_all_struct_invs_def by auto
       then have \<open>tl M \<Turnstile>as CNot ?D\<close>
         using M unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
         by (auto simp add: cdcl\<^sub>W_restart_mset_state T update_confl_tl_def)
@@ -1163,7 +1165,6 @@ definition backtrack :: \<open>'v twl_st \<Rightarrow> 'v twl_st nres\<close> wh
     }
   \<close>
 
-
 lemma
   assumes confl: \<open>get_conflict S \<noteq> None\<close> \<open>get_conflict S \<noteq> Some {#}\<close> and
     w_q: \<open>clauses_to_update S = {#}\<close> and p: \<open>literals_to_update S = {#}\<close> and
@@ -1181,7 +1182,8 @@ proof -
   let ?S = \<open>state\<^sub>W_of S\<close>
   have inv_s: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant ?S\<close> and
     inv: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv ?S\<close>
-    using twl_struct twl_stgy unfolding twl_struct_invs_def twl_stgy_invs_def by fast+
+    using twl_struct twl_stgy unfolding pcdcl_all_struct_invs_def twl_struct_invs_def
+      twl_stgy_invs_def by auto
   let ?D' = \<open>the (conflicting ?S)\<close>
   have M_CNot_D': \<open>trail ?S \<Turnstile>as CNot ?D'\<close> and
      dist: \<open>distinct_mset ?D'\<close>
@@ -1195,11 +1197,11 @@ proof -
    have all_struct:
       \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state\<^sub>W_of S)\<close>
       using twl_struct
-      by (auto simp: twl_struct_invs_def)
+      by (auto simp: twl_struct_invs_def pcdcl_all_struct_invs_def)
     then have uL_D: \<open>- lit_of (hd (get_trail S)) \<in># the (get_conflict S)\<close>
       using cdcl\<^sub>W_restart_mset.no_step_skip_hd_in_conflicting[of
           \<open>state\<^sub>W_of S\<close>] ns_s ns_r confl twl_stgy
-      by (auto simp: twl_st twl_stgy_invs_def)
+      by (auto simp: twl_st twl_stgy_invs_def pcdcl_all_struct_invs_def)
 
   show ?spec
     unfolding backtrack_def extract_shorter_conflict_def reduce_trail_bt_def
@@ -1258,7 +1260,8 @@ proof -
     let ?S' = \<open>state\<^sub>W_of S\<close>
     have inv_s: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant ?S'\<close> and
       inv: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv ?S'\<close>
-      using twl_struct twl_stgy unfolding twl_struct_invs_def twl_stgy_invs_def by fast+
+      using twl_struct twl_stgy unfolding twl_struct_invs_def twl_stgy_invs_def
+        pcdcl_all_struct_invs_def by auto
     have Q: \<open>Q = {#}\<close> and WS: \<open>WS = {#}\<close>
       using w_q p unfolding S by auto
     have M_CNot_D': \<open>M \<Turnstile>as CNot D'\<close>

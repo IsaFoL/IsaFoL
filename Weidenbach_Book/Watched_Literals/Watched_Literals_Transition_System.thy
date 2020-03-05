@@ -253,6 +253,14 @@ lemma subsumed_clauses_simps[simp]:
   \<open>subsumed_clauses (set_clauses_to_update K S) = subsumed_clauses S\<close>
   by (cases S; auto; fail)+
 
+lemma [twl_st,simp]:
+  \<open>trail (state_of (pstate\<^sub>W_of S)) = get_trail S\<close>
+  \<open>trail (state\<^sub>W_of S) = get_trail S\<close>
+  \<open>conflicting (state_of (pstate\<^sub>W_of S)) = get_conflict S\<close>
+  \<open>conflicting (state\<^sub>W_of S) = get_conflict S\<close>
+  \<open>conflicting (state_of T) = pget_conflict T\<close>
+  by (cases S; cases T; auto simp: state\<^sub>W_of_def; fail)+
+
 text \<open>
   The invariant on the clauses is the following:
   \<^item> the structure is correct (the watched part is of length exactly two).
