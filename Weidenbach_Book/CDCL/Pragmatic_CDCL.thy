@@ -2,7 +2,6 @@ theory Pragmatic_CDCL
   imports CDCL.CDCL_W_Restart CDCL.CDCL_W_Abstract_State
 begin
 
-
 chapter \<open>Pragmatic CDCL\<close>
 
 text \<open>
@@ -1469,5 +1468,419 @@ lemma pcdcl_stgy_conflict_non_zero_unless_level_0:
   subgoal
     by (auto simp: cdcl_flush_unit.simps cdcl\<^sub>W_restart_mset.conflict_non_zero_unless_level_0_def)
   done
+
+
+section \<open>Restarts\<close>
+
+inductive pcdcl_restart :: \<open>'v prag_st \<Rightarrow> 'v prag_st \<Rightarrow> bool\<close> where
+restart_trail:
+   \<open>pcdcl_restart (M, N, U, None, NE, UE, NS, US)
+        (M', N', U', None, NE + NE', UE + UE', NS, {#})\<close>
+  if
+    \<open>(Decided K # M', M2) \<in> set (get_all_ann_decomposition M)\<close> and
+    \<open>U' + UE' \<subseteq># U\<close> and
+    \<open>N = N' + NE'\<close> and
+    \<open>\<forall>E\<in>#NE'+UE'. \<exists>L\<in>#E. L \<in> lits_of_l M' \<and> get_level M' L = 0\<close>
+    \<open>\<forall>L E. Propagated L E \<in> set M' \<longrightarrow> E \<in># (N + U') + NE + UE + UE'\<close> |
+restart_clauses:
+   \<open>pcdcl_restart (M, N, U, None, NE, UE, NS, US)
+      (M, N', U', None, NE + NE', UE + UE', NS, US')\<close>
+  if
+    \<open>U' + UE' \<subseteq># U\<close> and
+    \<open>N = N' + NE'\<close> and
+    \<open>\<forall>E\<in>#NE'+UE'. \<exists>L\<in>#E. L \<in> lits_of_l M \<and> get_level M L = 0\<close>
+    \<open>\<forall>L E. Propagated L E \<in> set M \<longrightarrow> E \<in># (N + U') + NE + UE + UE'\<close>
+    \<open>US' = {#}\<close>
+
+(*TODO Taken from Misc*)
+lemma mset_le_incr_right1: "a\<subseteq>#(b::'a multiset) \<Longrightarrow> a\<subseteq>#b+c" using mset_subset_eq_mono_add[of a b "{#}" c, simplified] .
+
+lemma pcdcl_restart_cdcl\<^sub>W_stgy:
+  fixes S V :: \<open>'v prag_st\<close>
+  assumes
+    \<open>pcdcl_restart S V\<close> and
+    \<open>pcdcl_all_struct_invs S\<close> and
+    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant (state_of S)\<close> and
+    \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa (state_of S)\<close>
+  shows
+    \<open>\<exists>T. cdcl\<^sub>W_restart_mset.restart (state_of S) T \<and> cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy\<^sup>*\<^sup>* T (state_of V) \<and>
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_restart\<^sup>*\<^sup>* (state_of S) (state_of V)\<close>
+  using assms
+proof (induction rule: pcdcl_restart.induct)
+  case (restart_trail K M' M2 M U' UE' U N N' NE' NE UE NS US)
+  note decomp = this(1) and learned = this(2) and N = this(3) and
+    has_true = this(4) and kept = this(5) and inv = this(6) and stgy_invs = this(7) and
+    smaller_propa = this(8)
+  let ?S = \<open>(M, N, U, None, NE, UE, NS, US)\<close>
+  let ?T = \<open>([], N + NE + NS,  U' + UE + UE', None)\<close>
+  let ?V = \<open>(M', N, U', None, NE, UE + UE', NS, {#})\<close>
+  have restart: \<open>cdcl\<^sub>W_restart_mset.restart (state_of ?S) ?T\<close>
+    using learned
+    by (auto simp: cdcl\<^sub>W_restart_mset.restart.simps state_def clauses_def cdcl\<^sub>W_restart_mset_state
+        intro: mset_le_incr_right1)
+  have struct_invs:
+      \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state_of ?S)\<close>
+    using inv unfolding  pcdcl_all_struct_invs_def by auto
+
+  have drop_M_M': \<open>drop (length M - length M') M = M'\<close>
+    using decomp by (auto)
+  have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy\<^sup>*\<^sup>* ?T
+      (drop (length M - length M') M, N + NE + NS,
+        U' + UE + UE', None)\<close> for n
+    apply (rule after_fast_restart_replay[of M \<open>N + NE + NS\<close>
+          \<open>U+UE+US\<close> _
+          \<open>U' + UE + UE'\<close>])
+    subgoal using struct_invs by simp
+    subgoal using stgy_invs by simp
+    subgoal using smaller_propa by simp
+    subgoal using kept unfolding drop_M_M' by (auto simp add: ac_simps)
+    subgoal using learned
+      by (auto
+        intro: mset_le_incr_right1)
+    done
+  then have st: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy\<^sup>*\<^sup>* ?T (state_of ?V)\<close>
+    unfolding drop_M_M' by (simp add: ac_simps)
+  moreover have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_restart\<^sup>*\<^sup>* (state_of ?S) (state_of ?V)\<close>
+    using restart st
+    by (auto dest!: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_rf.intros cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_restart.intros
+          cdcl\<^sub>W_restart_mset.rtranclp_cdcl\<^sub>W_stgy_rtranclp_cdcl\<^sub>W_restart)
+  ultimately show ?case
+    using restart unfolding N state_of.simps image_mset_union add.assoc state_of.simps
+      add.commute[of \<open>NE'\<close>]
+    by fast
+next
+  case (restart_clauses U' UE' U N N' NE' M NE UE US' NS US)
+  note learned = this(1) and N = this(2) and has_true = this(3) and kept = this(4) and
+    US = this(5) and inv = this(6) and stgy_invs = this(7) and  smaller_propa = this(8)
+  let ?S = \<open>(M, N, U, None, NE, UE, NS, US) :: 'v prag_st\<close>
+  let ?T = \<open>([], N + NE + NS, U' + UE + UE' + US', None)\<close>
+  let ?V = \<open>(M, N, U', None, NE, UE + UE', NS, US') :: 'v prag_st\<close>
+  have restart: \<open>cdcl\<^sub>W_restart_mset.restart (state_of ?S) ?T\<close>
+    using learned US
+    by (auto simp: cdcl\<^sub>W_restart_mset.restart.simps state_def clauses_def cdcl\<^sub>W_restart_mset_state
+        intro: mset_le_incr_right1
+        split: if_splits)
+
+  have struct_invs:
+      \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state_of ?S)\<close>
+    using inv unfolding pcdcl_all_struct_invs_def by auto
+
+  have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy\<^sup>*\<^sup>* ?T
+      (drop (length M - length M) M, N + NE+NS,
+        U' + UE+ UE'+US', None)\<close> for n
+    apply (rule after_fast_restart_replay[of M \<open>N + NE+NS\<close>
+           \<open>U+UE+US\<close> _
+          \<open>U' + UE + UE'+US'\<close>])
+    subgoal using struct_invs by simp
+    subgoal using stgy_invs by simp
+    subgoal using smaller_propa by simp
+    subgoal using kept by (auto simp add: ac_simps)
+    subgoal using learned US
+      by (auto
+        intro: mset_le_incr_right1
+        split: if_splits)
+    done
+  then have st: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy\<^sup>*\<^sup>* ?T (state_of ?V)\<close>
+    by (simp add: ac_simps)
+  moreover have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_restart\<^sup>*\<^sup>* (state_of ?S) (state_of ?V)\<close>
+    using restart st
+    by (auto dest!: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_rf.intros cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_restart.intros
+          cdcl\<^sub>W_restart_mset.rtranclp_cdcl\<^sub>W_stgy_rtranclp_cdcl\<^sub>W_restart)
+  ultimately show ?case
+    using restart unfolding N state_of.simps image_mset_union add.assoc add.commute[of \<open>NE'\<close>]
+    by fast
+qed
+
+lemma pcdcl_restart_cdcl\<^sub>W:
+  assumes
+    \<open>pcdcl_restart S V\<close> and
+    \<open>pcdcl_all_struct_invs S\<close>
+  shows
+    \<open>\<exists>T. cdcl\<^sub>W_restart_mset.restart (state_of S) T \<and> cdcl\<^sub>W_restart_mset.cdcl\<^sub>W\<^sup>*\<^sup>* T (state_of V)\<close>
+  using assms
+proof (induction rule: pcdcl_restart.induct)
+  case (restart_trail K M' M2 M U' UE' U N N' NE' NE UE NS US)
+  note decomp = this(1) and learned = this(2) and N = this(3) and
+    has_true = this(4) and kept = this(5) and inv = this(6)
+  let ?S = \<open>(M, N, U, None, NE, UE, NS, US)\<close>
+  let ?T = \<open>([], N + NE + NS, U' + UE + UE', None)\<close>
+  let ?V = \<open>(M', N, U', None, NE, UE + UE', NS, {#})\<close>
+  have restart: \<open>cdcl\<^sub>W_restart_mset.restart (state_of ?S) ?T\<close>
+    using learned
+    by (auto simp: cdcl\<^sub>W_restart_mset.restart.simps state_def clauses_def cdcl\<^sub>W_restart_mset_state
+        intro: mset_le_incr_right1)
+  have struct_invs:
+      \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state_of ?S)\<close> 
+    using inv unfolding pcdcl_all_struct_invs_def by auto
+  have drop_M_M': \<open>drop (length M - length M') M = M'\<close>
+    using decomp by (auto)
+  have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W\<^sup>*\<^sup>* ?T
+      (drop (length M - length M') M,  N + NE + NS,
+          U' + UE+ UE', None)\<close> for n
+    apply (rule after_fast_restart_replay_no_stgy[of M
+      \<open>N + NE + NS\<close> \<open>U+UE+US\<close> _
+          \<open>U' + UE + UE'\<close>])
+    subgoal using struct_invs by simp
+    subgoal using kept unfolding drop_M_M' by (auto simp add: ac_simps)
+    subgoal using learned
+      by (auto
+        intro: mset_le_incr_right1)
+    done
+  then have st: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W\<^sup>*\<^sup>* ?T (state_of ?V)\<close>
+    unfolding drop_M_M' by (simp add: ac_simps)
+  then show ?case
+    using restart by (auto simp: ac_simps N)
+next
+  case (restart_clauses U' UE' U N N' NE' M NE UE US' NS US)
+  note learned = this(1) and N = this(2) and has_true = this(3) and kept = this(4) and
+    US = this(5) and inv = this(6)
+  let ?S = \<open>(M, N, U, None, NE, UE,NS, US)\<close>
+  let ?T = \<open>([], N + NE + NS, U' + UE + UE' + US', None)\<close>
+  let ?V = \<open>(M, N, U', None, NE, UE + UE', NS, US')\<close>
+  have restart: \<open>cdcl\<^sub>W_restart_mset.restart (state_of ?S) ?T\<close>
+    using learned US
+    by (auto simp: cdcl\<^sub>W_restart_mset.restart.simps state_def clauses_def cdcl\<^sub>W_restart_mset_state
+        intro: mset_le_incr_right1 split: if_splits)
+  have struct_invs:
+      \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state_of ?S)\<close> 
+    using inv unfolding pcdcl_all_struct_invs_def by fast+
+  have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W\<^sup>*\<^sup>* ?T
+      (drop (length M - length M) M, N + NE + NS,
+          U' + UE+ UE' + US', None)\<close> for n
+    apply (rule after_fast_restart_replay_no_stgy[of M
+          \<open>N + NE + NS\<close> \<open>U+ UE + US\<close> _
+          \<open>U' + UE+ UE' + US'\<close>])
+    subgoal using struct_invs by simp
+    subgoal using kept by (auto simp add: ac_simps)
+    subgoal
+     using learned US by (auto
+        intro: mset_le_incr_right1 split: if_splits)
+    done
+  then have st: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W\<^sup>*\<^sup>* ?T (state_of ?V)\<close>
+    by (simp add: ac_simps)
+  then show ?case
+    using restart by (auto simp: ac_simps N)
+qed
+
+lemma pcdcl_restart_pcdcl_all_struct_invs:
+  fixes S V :: \<open>'v prag_st\<close>
+  assumes
+    \<open>pcdcl_restart S V\<close> and
+    \<open>pcdcl_all_struct_invs S\<close>
+  shows 
+    \<open>pcdcl_all_struct_invs V\<close>
+  using assms pcdcl_restart_cdcl\<^sub>W[OF assms(1,2)] apply -
+  apply normalize_goal+
+  subgoal for T
+    using cdcl\<^sub>W_restart_mset.rtranclp_cdcl\<^sub>W_all_struct_inv_inv[of \<open>state_of S\<close> \<open>state_of V\<close>]
+        cdcl\<^sub>W_restart_mset.rtranclp_cdcl\<^sub>W_cdcl\<^sub>W_restart[of T \<open>state_of V\<close>]
+        cdcl\<^sub>W_restart_mset.rtranclp_cdcl\<^sub>W_cdcl\<^sub>W_restart
+       converse_rtranclp_into_rtranclp[of cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_restart \<open>state_of S\<close> T \<open>state_of V\<close>] apply -
+    apply (cases rule: pcdcl_restart.cases, assumption)
+    subgoal
+      using get_all_ann_decomposition_lvl0_still[of _ _ _ \<open>pget_trail S\<close>]
+      apply (auto simp: pcdcl_all_struct_invs_def dest!: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_rf.restart
+        cdcl\<^sub>W_restart_mset.rf)
+      by (auto 7 3 simp: entailed_clss_inv_def psubsumed_invs_def dest!: multi_member_split)
+    subgoal
+      apply (auto simp: pcdcl_all_struct_invs_def dest!: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_rf.restart
+        cdcl\<^sub>W_restart_mset.rf)
+      by (auto 7 3 simp: entailed_clss_inv_def psubsumed_invs_def dest!: multi_member_split)
+    done
+  done
+
+text \<open>
+TODO: rename to \<^term>\<open>full\<^sub>t\<close> or something along that line.
+\<close>
+definition full2 :: "('a \<Rightarrow> 'a \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> 'a \<Rightarrow> bool) \<Rightarrow> 'a \<Rightarrow> 'a \<Rightarrow> bool" where
+"full2 transf transf2 = (\<lambda>S S'. rtranclp transf S S' \<and> no_step transf2 S')"
+
+definition pcdcl_final_state :: \<open>'v prag_st \<Rightarrow> bool\<close> where
+  \<open>pcdcl_final_state S \<longleftrightarrow> no_step pcdcl_core S \<or>
+     (count_decided (pget_trail S) = 0 \<and> pget_conflict S \<noteq> None)\<close>
+
+context twl_restart_ops
+begin
+text \<open>
+  The following definition diverges from our previous attempt... mostly because we barely used it
+  anyway. The problem was that we need to stop in final states which was not covered in the previous
+  form.
+
+  The main issue is the termination of the calculus. Between two restarts we allow very
+  abstract inprocessing that makes it possible to add clauses.
+
+
+
+work-arounds:
+   - assume the clause set is distinct. You don't want that, although that probably works if
+     the reduction is done in the normal order.
+   - restricts rule to SR only. No clear way to extend it to vivification
+   - bound the number of clauses you can learn. Still not obvious how to get termination from that.
+     Reasonable in practice (take \<^term>\<open>(2::nat) ^ 128\<close> is sufficient), but you still have to make sure
+     that adding teh clause one fater one does not break proof.
+
+ \<close>
+inductive pcdcl_stgy_restart :: \<open>'v prag_st \<times> nat \<Rightarrow> 'v prag_st \<times> nat \<Rightarrow> bool\<close> where
+restart_step:
+  \<open>pcdcl_stgy_restart (S, n) (V, Suc n)\<close>
+  if
+    \<open>pcdcl_tcore_stgy\<^sup>+\<^sup>+ S T\<close> and
+    \<open>size (pget_all_learned_clss T) > f n\<close> and
+    \<open>pcdcl_restart T U\<close> and
+    \<open>pcdcl_stgy\<^sup>*\<^sup>* U V\<close> and
+    \<open>pget_conflict S = None\<close> and
+    \<open>size (pget_init_clauses U) \<le> size (pget_init_clauses V)\<close> |
+restart_full:
+ \<open>pcdcl_stgy_restart (S, n) (T, Suc n)\<close>
+ if
+    \<open>pcdcl_tcore_stgy\<^sup>+\<^sup>+ S T\<close> and
+    \<open>pcdcl_final_state T\<close>
+
+
+end
+
+context twl_restart
+begin
+
+theorem wf_cdcl_twl_stgy_restart:
+  \<open>wf {(T, S :: 'v prag_st \<times> nat). pcdcl_all_struct_invs (fst S) \<and> pcdcl_stgy_restart S T}\<close>
+proof (rule ccontr)
+  assume \<open>\<not> ?thesis\<close>
+  then obtain g :: \<open>nat \<Rightarrow> 'v prag_st \<times> nat\<close> where
+    g: \<open>\<And>i. pcdcl_stgy_restart (g i) (g (Suc i))\<close> and
+    inv: \<open>\<And>i. pcdcl_all_struct_invs (fst (g i))\<close>
+    unfolding wf_iff_no_infinite_down_chain by fast
+
+  have H: False if \<open>no_step pcdcl_tcore_stgy (fst (g i))\<close> for i
+    using g[of i] that
+    unfolding pcdcl_stgy_restart.simps pcdcl_final_state_def
+    by (metis fst_conv tranclp_unfold_begin)
+
+  have snd_g: \<open>snd (g i) = i + snd (g 0)\<close> for i
+    apply (induction i)
+    subgoal by auto
+    subgoal for i
+      using g[of \<open>i\<close>] by (auto simp: pcdcl_stgy_restart.simps tranclp_unfold_begin
+        pcdcl_final_state_def)
+    done
+  then have snd_g_0: \<open>\<And>i. i > 0 \<Longrightarrow> snd (g i) = i + snd (g 0)\<close>
+    by blast
+  have unbounded_f_g: \<open>unbounded (\<lambda>i. f (snd (g i)))\<close>
+    using f unfolding bounded_def by (metis add.commute f less_or_eq_imp_le snd_g
+        not_bounded_nat_exists_larger not_le le_iff_add)
+
+  have \<open>\<exists>h. pcdcl_stgy\<^sup>+\<^sup>+ (fst (g i)) (h) \<and>
+         size (pget_all_learned_clss (h)) > f (snd (g i)) \<and>
+         pcdcl_restart (h) (fst (g (i+1)))\<close>
+    for i
+    using g[of i] H[of \<open>Suc i\<close>]
+    unfolding pcdcl_stgy_restart.simps full1_def Suc_eq_plus1[symmetric]
+    by force
+  then obtain h :: \<open>nat \<Rightarrow> 'v twl_st\<close> where
+    pcdcl: \<open>pcdcl_stgy\<^sup>+\<^sup>+ (fst (g i)) (h i)\<close> and
+    size_h_g: \<open>size (get_all_learned_clss (h i)) > f (snd (g i))\<close> and
+    res: \<open>pcdcl_restart (h i) (fst (g (i+1)))\<close> for i
+    by metis
+
+  obtain k where
+    f_g_k: \<open>f (snd (g k)) >
+       card (simple_clss (atms_of_mm (init_clss (state\<^sub>W_of (h 0))))) +
+           size (get_all_learned_clss (fst (g 0)))\<close>
+    using not_bounded_nat_exists_larger[OF unbounded_f_g] by blast
+  have pcdcl: \<open>pcdcl_stgy\<^sup>*\<^sup>* (fst (g i)) (h i)\<close> for i
+    using pcdcl[of i] by auto
+  have W_g_h: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy\<^sup>*\<^sup>* (state\<^sub>W_of (fst (g i))) (state\<^sub>W_of (h i))\<close> for i
+    by (rule rtranclp_pcdcl_stgy_cdcl\<^sub>W_stgy[OF pcdcl]) (rule inv)
+  have tranclp_g: \<open>pcdcl_stgy_restart\<^sup>*\<^sup>* (g 0) (g i)\<close> for i
+    apply (induction i)
+    subgoal by auto
+    subgoal for i using g[of i] by auto
+    done
+
+  have dist_all_g:
+    \<open>distinct_mset (get_all_learned_clss (fst (g i)) - get_all_learned_clss (fst (g 0)))\<close>
+    for i
+    apply (rule rtranclp_pcdcl_stgy_restart_new_abs[OF tranclp_g])
+    subgoal using inv .
+    subgoal by simp
+    done
+
+  have dist_h: \<open>distinct_mset (get_all_learned_clss (h i) - get_all_learned_clss (fst (g 0)))\<close>
+    (is \<open>distinct_mset (?U i)\<close>)
+    for i
+    unfolding learned_clss_get_all_learned_clss[symmetric]
+    apply (rule cdcl\<^sub>W_restart_mset.rtranclp_cdcl\<^sub>W_stgy_distinct_mset_clauses_new_abs[OF W_g_h])
+    subgoal using inv[of i] unfolding pcdcl_all_struct_invs_def by fast
+    subgoal using inv[of i] unfolding pcdcl_all_struct_invs_def by fast
+    subgoal using dist_all_g[of i] distinct_mset_minus
+      unfolding learned_clss_get_all_learned_clss by auto
+    done
+  have dist_diff: \<open>distinct_mset (c + (Ca + C) - ai) \<Longrightarrow>
+       distinct_mset (c - ai)\<close> for c Ca C ai
+    by (metis add_diff_cancel_right' cancel_ab_semigroup_add_class.diff_right_commute
+        distinct_mset_minus)
+
+  have \<open>get_all_learned_clss (fst (g (Suc i))) \<subseteq># get_all_learned_clss (h i)\<close> for i
+    using res[of i] by (auto simp: pcdcl_restart.simps
+        dest!: image_mset_subseteq_mono[of _ _ clause]
+        intro: mset_le_incr_right1
+        split: if_splits)
+
+  have h_g: \<open>init_clss (state\<^sub>W_of (h i)) = init_clss (state\<^sub>W_of (fst (g i)))\<close> for i
+    using cdcl\<^sub>W_restart_mset.rtranclp_cdcl\<^sub>W_stgy_no_more_init_clss[OF W_g_h[of i]] ..
+
+  have h_g_Suc: \<open>init_clss (state\<^sub>W_of (h i)) = init_clss (state\<^sub>W_of (fst (g (Suc i))))\<close> for i
+    using res[of i] by (auto simp: pcdcl_restart.simps init_clss.simps)
+  have init_g_0: \<open>init_clss (state\<^sub>W_of (fst (g i))) = init_clss (state\<^sub>W_of (fst (g 0)))\<close> for i
+    apply (induction i)
+    subgoal ..
+    subgoal for j
+      using h_g[of j] h_g_Suc[of j] by simp
+    done
+  then have K: \<open>init_clss (state\<^sub>W_of (h i)) = init_clss (state\<^sub>W_of (fst (g 0)))\<close> for i
+    using h_g[of i] by simp
+
+  have incl: \<open>set_mset (get_all_learned_clss (h i)) \<subseteq>
+         simple_clss (atms_of_mm (init_clss (state\<^sub>W_of (h i))))\<close> for i
+    unfolding learned_clss_get_all_learned_clss[symmetric]
+    apply (rule cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_new_learned_in_all_simple_clss[of \<open>state\<^sub>W_of (fst (g i))\<close>])
+    subgoal by (rule rtranclp_pcdcl_stgy_cdcl\<^sub>W_stgy[OF pcdcl]) (rule inv)
+    subgoal using inv[of i]  unfolding pcdcl_all_struct_invs_def by fast
+    done
+  have incl: \<open>set_mset (get_all_learned_clss (h i)) \<subseteq>
+         simple_clss (atms_of_mm (init_clss (state\<^sub>W_of (h i))))\<close>  (is \<open>set_mset (?V i) \<subseteq> _\<close>) for i
+    using incl[of i] by (cases \<open>h i\<close>) (auto dest: in_diffD)
+
+  have incl_init: \<open>set_mset (?U i) \<subseteq> simple_clss (atms_of_mm (init_clss (state\<^sub>W_of (h i))))\<close> for i
+    using incl[of i] by (auto dest: in_diffD)
+  have size_U_atms: \<open>size (?U i) \<le> card (simple_clss (atms_of_mm (init_clss (state\<^sub>W_of (h i)))))\<close> for i
+    apply (subst distinct_mset_size_eq_card[OF dist_h])
+    apply (rule card_mono[OF _ incl_init])
+    by (auto simp: simple_clss_finite)
+  have S:
+    \<open>size (?V i) - size (get_all_learned_clss (fst (g 0))) \<le>
+      card (simple_clss (atms_of_mm (init_clss (state\<^sub>W_of (h i)))))\<close> for i
+    apply (rule order.trans)
+     apply (rule diff_size_le_size_Diff)
+    apply (rule size_U_atms)
+    done
+  have S:
+    \<open>size (?V i) \<le>
+      card (simple_clss (atms_of_mm (init_clss (state\<^sub>W_of (h i))))) +
+       size (get_all_learned_clss (fst (g 0)))\<close> for i
+    using S[of i] by auto
+
+  have H: \<open>card (simple_clss (atms_of_mm (init_clss (state\<^sub>W_of (h k))))) +
+         size (get_all_learned_clss (fst (g 0))) > f (k + snd (g 0))\<close> for k
+    using S[of k] size_h_g[of k] unfolding snd_g[symmetric]
+    by force
+
+  show False
+    using H[of k] f_g_k unfolding snd_g[symmetric]
+    unfolding K
+    by linarith
+qed
+
+end
 
 end
