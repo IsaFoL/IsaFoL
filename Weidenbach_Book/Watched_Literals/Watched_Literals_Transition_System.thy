@@ -24,7 +24,7 @@ text \<open>
      literal).
 
   To overcome the issue, we decided to inherite not from CDCL, but from a different calculus devised
-  exactly to express an more realistic calculus for SAT solvers.
+  exactly to express a more realistic calculus for SAT solvers.
 \<close>
 
 

@@ -1140,8 +1140,8 @@ subresolution_LI:
  if  \<open>count_decided M = 0\<close> and \<open>\<not>tautology (C + C')\<close> and  \<open>C \<subseteq># C'\<close>|
 subresolution_IL:
   \<open>cdcl_subresolution (M, N + {#add_mset L C#}, U + {#add_mset (-L) C'#}, D, NE, UE, NS, US)
-    (M, N + {#remdups_mset (C)#}, U + {#add_mset (-L) C',remdups_mset (C)#}, D, NE, UE,
-      add_mset (add_mset (L) C) NS,  US)\<close>
+    (M, N + {#remdups_mset C#}, U + {#add_mset (-L) C', remdups_mset C#}, D, NE, UE,
+      add_mset (add_mset L C) NS,  US)\<close>
  if  \<open>count_decided M = 0\<close> and \<open>\<not>tautology (C + C')\<close> and  \<open>C' \<subseteq># C\<close>
 
 
@@ -1325,6 +1325,13 @@ inductive pcdcl_tcore_stgy :: \<open>'v prag_st \<Rightarrow> 'v prag_st \<Right
   \<open>cdcl_subsumed S T \<Longrightarrow> pcdcl_tcore_stgy S T\<close>|
   \<open>cdcl_flush_unit S T \<Longrightarrow> pcdcl_tcore_stgy S T\<close> |
   \<open>cdcl_backtrack_unit S T \<Longrightarrow> pcdcl_tcore_stgy S T\<close>
+
+lemma pcdcl_tcore_stgy_pcdcl_tcoreD: \<open>pcdcl_tcore_stgy S T \<Longrightarrow> pcdcl_tcore S T\<close>
+  using pcdcl_core_stgy_pcdcl pcdcl_tcore.simps pcdcl_tcore_stgy.simps by blast
+
+lemma rtranclp_pcdcl_tcore_stgy_pcdcl_tcoreD:
+   \<open>pcdcl_tcore_stgy\<^sup>*\<^sup>* S T \<Longrightarrow> pcdcl_tcore\<^sup>*\<^sup>* S T\<close>
+  by (induction rule: rtranclp_induct) (auto dest: pcdcl_tcore_stgy_pcdcl_tcoreD)
 
 
 definition pcdcl_core_measure :: \<open>_\<close> where
@@ -1534,9 +1541,7 @@ proof (induction rule: pcdcl_restart.induct)
     subgoal using stgy_invs by simp
     subgoal using smaller_propa by simp
     subgoal using kept unfolding drop_M_M' by (auto simp add: ac_simps)
-    subgoal using learned
-      by (auto
-        intro: mset_le_incr_right1)
+    subgoal using learned by (auto intro: mset_le_incr_right1)
     done
   then have st: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy\<^sup>*\<^sup>* ?T (state_of ?V)\<close>
     unfolding drop_M_M' by (simp add: ac_simps)
@@ -1706,8 +1711,10 @@ text \<open>
   anyway. The problem was that we need to stop in final states which was not covered in the previous
   form.
 
-  The main issue is the termination of the calculus. Between two restarts we allow very
-  abstract inprocessing that makes it possible to add clauses.
+  The main issue is the termination of the calculus. Between two restarts we
+  allow very abstract inprocessing that makes it possible to add clauses.
+  However, this means that we can add the same clause over and over and that
+  have reached the bound (or subsume these clauses).
 
 
 
@@ -1718,78 +1725,280 @@ work-arounds:
    - bound the number of clauses you can learn. Still not obvious how to get termination from that.
      Reasonable in practice (take \<^term>\<open>(2::nat) ^ 128\<close> is sufficient), but you still have to make sure
      that adding teh clause one fater one does not break proof.
+   - count only the new clause
 
+      TODO: add a forget rule in \<^term>\<open>pcdcl_stgy\<close> instead of having it in restart.
+
+      TODO: add a boolean if we have reached a final state
  \<close>
-inductive pcdcl_stgy_restart :: \<open>'v prag_st \<times> nat \<Rightarrow> 'v prag_st \<times> nat \<Rightarrow> bool\<close> where
+inductive pcdcl_stgy_restart :: \<open>'v prag_st \<times> nat \<times> bool \<Rightarrow> 'v prag_st \<times> nat \<times> bool \<Rightarrow> bool\<close> where
 restart_step:
-  \<open>pcdcl_stgy_restart (S, n) (V, Suc n)\<close>
+  \<open>pcdcl_stgy_restart (S, n, True) (V, Suc n, True)\<close>
   if
     \<open>pcdcl_tcore_stgy\<^sup>+\<^sup>+ S T\<close> and
     \<open>size (pget_all_learned_clss T) > f n\<close> and
+    \<open>size (pget_all_learned_clss T) > size (pget_all_learned_clss S)\<close> and
     \<open>pcdcl_restart T U\<close> and
     \<open>pcdcl_stgy\<^sup>*\<^sup>* U V\<close> and
     \<open>pget_conflict S = None\<close> and
     \<open>size (pget_init_clauses U) \<le> size (pget_init_clauses V)\<close> |
+restart_noGC_step:
+  \<open>pcdcl_stgy_restart (S, n, True) (V, Suc n, True)\<close>
+  if
+    \<open>pcdcl_tcore_stgy\<^sup>+\<^sup>+ S T\<close> and
+    \<open>size (pget_all_learned_clss T) > size (pget_all_learned_clss S)\<close> and
+    \<open>pcdcl_restart T U\<close> and
+    \<open>size (pget_all_learned_clss T) = size (pget_all_learned_clss U)\<close> and
+    \<open>pcdcl_stgy\<^sup>*\<^sup>* U V\<close> and
+    \<open>pget_conflict S = None\<close> and
+    \<open>size (pget_init_clauses U) \<le> size (pget_init_clauses V)\<close> |
 restart_full:
- \<open>pcdcl_stgy_restart (S, n) (T, Suc n)\<close>
+ \<open>pcdcl_stgy_restart (S, n, True) (T, Suc n, False)\<close>
  if
     \<open>pcdcl_tcore_stgy\<^sup>+\<^sup>+ S T\<close> and
     \<open>pcdcl_final_state T\<close>
 
+lemma (in -) pcdcl_tcore_conflict_final_state_still:
+  assumes
+    \<open>pcdcl_tcore S T\<close> and
+    \<open>count_decided (pget_trail S) = 0 \<and> pget_conflict S \<noteq> None\<close>
+    shows \<open>count_decided (pget_trail T) = 0 \<and> pget_conflict T \<noteq> None \<and>
+       pget_all_learned_clss S = pget_all_learned_clss T\<close>
+  using assms
+  by (auto simp: pcdcl_tcore.simps pcdcl_core.simps cdcl_conflict.simps cdcl_propagate.simps
+    cdcl_decide.simps cdcl_skip.simps cdcl_resolve.simps cdcl_backtrack.simps cdcl_subsumed.simps
+    cdcl_backtrack_unit.simps cdcl_flush_unit.simps)
+
+
+lemma (in -) rtranclp_pcdcl_tcore_conflict_final_state_still:
+  assumes
+    \<open>pcdcl_tcore\<^sup>*\<^sup>* S T\<close> and
+    \<open>count_decided (pget_trail S) = 0 \<and> pget_conflict S \<noteq> None\<close>
+  shows
+    \<open>count_decided (pget_trail T) = 0 \<and> pget_conflict T \<noteq> None \<and>
+    pget_all_learned_clss S = pget_all_learned_clss T\<close>
+  using assms
+  by (induction rule: rtranclp_induct) (auto simp: pcdcl_tcore_conflict_final_state_still)
 
 end
+
+lemma pcdcl_tcore_no_core_no_learned:
+  assumes \<open>pcdcl_tcore S T\<close> and
+    \<open>no_step pcdcl_core S\<close>
+  shows \<open>pget_all_learned_clss S = pget_all_learned_clss T\<close>
+  using assms
+  by (cases T)
+    (auto simp: pcdcl_tcore.simps cdcl_subsumed.simps cdcl_flush_unit.simps pcdcl_core.simps
+      dest: pcdcl_core.intros(6) elim!:  cdcl_backtrack_unit_is_backtrack[of S])
+
+lemma (in -) pcdcl_tcore_no_step_final_state_still:
+  assumes
+    \<open>pcdcl_tcore S T\<close> and
+    \<open>no_step pcdcl_core S\<close>
+  shows \<open>no_step pcdcl_core T\<close>
+proof -
+  have \<open>cdcl_subsumed S T \<or> cdcl_backtrack_unit S T \<or> cdcl_flush_unit S T\<close>
+    using assms unfolding pcdcl_tcore.simps by fast
+  then have dist: \<open>cdcl_subsumed S T \<or> cdcl_flush_unit S T\<close>
+    using assms(2) cdcl_backtrack_unit_is_backtrack pcdcl_core.intros(6) by blast
+  then have \<open>\<exists>U. cdcl_resolve T U \<Longrightarrow> \<exists>T. cdcl_resolve S T\<close>
+    by (metis cdcl_flush_unit_unchanged cdcl_resolve_is_resolve resolve_is_cdcl_resolve
+      state_of_cdcl_subsumed)
+  moreover have \<open>\<exists>U. cdcl_skip T U \<Longrightarrow> \<exists>T. cdcl_skip S T\<close>
+    using dist
+    by (metis cdcl_flush_unit_unchanged cdcl_skip_is_skip skip_is_cdcl_skip
+      state_of_cdcl_subsumed)
+   moreover have \<open>\<exists>U. cdcl_backtrack T U \<Longrightarrow> \<exists>T. cdcl_backtrack S T\<close>
+    using dist
+    by (metis backtrack_is_cdcl_backtrack cdcl_backtrack_is_backtrack cdcl_flush_unit_unchanged
+      state_of_cdcl_subsumed)
+   moreover have \<open>\<exists>U. cdcl_conflict T U \<Longrightarrow> \<exists>T. cdcl_conflict S T\<close>
+    using dist
+    by (cases S)
+     (auto simp: pcdcl_tcore.simps pcdcl_core.simps cdcl_conflict.simps cdcl_propagate.simps
+        cdcl_decide.simps cdcl_skip.simps cdcl_resolve.simps cdcl_backtrack.simps cdcl_subsumed.simps
+        cdcl_backtrack_unit.simps cdcl_flush_unit.simps)
+   moreover have \<open>\<exists>U. cdcl_propagate T U \<Longrightarrow> \<exists>T. cdcl_propagate S T\<close>
+    using dist
+    by (cases S)
+      (auto 5 3 simp: pcdcl_tcore.simps pcdcl_core.simps cdcl_conflict.simps cdcl_propagate.simps
+        cdcl_decide.simps cdcl_skip.simps cdcl_resolve.simps cdcl_backtrack.simps cdcl_subsumed.simps
+        cdcl_backtrack_unit.simps cdcl_flush_unit.simps)
+   moreover have \<open>\<exists>U. cdcl_decide T U \<Longrightarrow> \<exists>T. cdcl_decide S T\<close>
+    using dist
+    by (cases S)
+      (auto simp: pcdcl_tcore.simps pcdcl_core.simps cdcl_conflict.simps cdcl_propagate.simps
+        cdcl_decide.simps cdcl_skip.simps cdcl_resolve.simps cdcl_backtrack.simps cdcl_subsumed.simps
+        cdcl_backtrack_unit.simps cdcl_flush_unit.simps)
+   ultimately have \<open>pcdcl_core T S' \<Longrightarrow> False\<close> for S'
+     using assms(2) unfolding pcdcl_core.simps
+     by (elim disjE) metis+
+   then show ?thesis
+     by blast
+qed
+
+lemma (in -) rtranclp_pcdcl_tcore_no_step_final_state_still:
+  assumes
+    \<open>pcdcl_tcore\<^sup>*\<^sup>* S T\<close> and
+    \<open>no_step pcdcl_core S\<close>
+  shows \<open>no_step pcdcl_core T\<close>
+  using assms by (induction rule: rtranclp_induct) (blast dest!: pcdcl_tcore_no_step_final_state_still)+
+
+lemma rtranclp_pcdcl_tcore_no_core_no_learned:
+  assumes \<open>pcdcl_tcore\<^sup>*\<^sup>* S T\<close> and
+    \<open>no_step pcdcl_core S\<close>
+  shows \<open>pget_all_learned_clss S = pget_all_learned_clss T\<close>
+  using assms rtranclp_pcdcl_tcore_no_step_final_state_still[OF assms]
+  by (induction rule: rtranclp_induct)
+    (simp_all add: pcdcl_tcore_no_core_no_learned rtranclp_pcdcl_tcore_no_step_final_state_still)
+
+
+lemma no_step_pcdcl_core_stgy_pcdcl_coreD:
+   \<open>no_step pcdcl_core_stgy S \<Longrightarrow> no_step pcdcl_core S\<close>
+  using pcdcl_core.simps pcdcl_core_stgy.simps by blast
+
+lemma rtranclp_pcdcl_tcore_stgy_no_core_no_learned:
+  assumes \<open>pcdcl_tcore_stgy\<^sup>*\<^sup>* S T\<close> and
+    \<open>no_step pcdcl_core S\<close>
+  shows \<open>pget_all_learned_clss S = pget_all_learned_clss T\<close>
+  using rtranclp_pcdcl_tcore_stgy_pcdcl_tcoreD[OF assms(1)] assms(2)
+  by (blast intro: rtranclp_pcdcl_tcore_no_core_no_learned)
+
 
 context twl_restart
 begin
 
 theorem wf_cdcl_twl_stgy_restart:
-  \<open>wf {(T, S :: 'v prag_st \<times> nat). pcdcl_all_struct_invs (fst S) \<and> pcdcl_stgy_restart S T}\<close>
+  \<open>wf {(T, S :: 'v prag_st \<times> nat \<times> bool). pcdcl_all_struct_invs (fst S) \<and> pcdcl_stgy_restart S T}\<close>
 proof (rule ccontr)
   assume \<open>\<not> ?thesis\<close>
-  then obtain g :: \<open>nat \<Rightarrow> 'v prag_st \<times> nat\<close> where
+  then obtain g :: \<open>nat \<Rightarrow> 'v prag_st \<times> nat \<times> bool\<close> where
     g: \<open>\<And>i. pcdcl_stgy_restart (g i) (g (Suc i))\<close> and
     inv: \<open>\<And>i. pcdcl_all_struct_invs (fst (g i))\<close>
     unfolding wf_iff_no_infinite_down_chain by fast
 
-  have H: False if \<open>no_step pcdcl_tcore_stgy (fst (g i))\<close> for i
-    using g[of i] that
-    unfolding pcdcl_stgy_restart.simps pcdcl_final_state_def
-    by (metis fst_conv tranclp_unfold_begin)
+  have [simp]: \<open>NO_MATCH True c \<Longrightarrow> g i = (a, b, c) \<longleftrightarrow> g i = (a, b, True) \<and> c = True\<close> for i a b c
+    using g[of i]
+    by (auto simp: pcdcl_stgy_restart.simps)
 
-  have snd_g: \<open>snd (g i) = i + snd (g 0)\<close> for i
+  have H: False if \<open>pcdcl_final_state (fst (g i))\<close> for i
+    using g[of i] that rtranclp_pcdcl_tcore_conflict_final_state_still[of \<open>fst (g i)\<close>]
+    unfolding pcdcl_stgy_restart.simps pcdcl_final_state_def
+    apply (elim disjE)
+    subgoal
+        apply normalize_goal+
+        apply (simp add: tranclp_into_rtranclp)
+       apply (drule tranclp_into_rtranclp)
+       apply (drule rtranclp_pcdcl_tcore_stgy_no_core_no_learned)
+          apply simp
+          apply simp
+       done
+    subgoal
+        apply normalize_goal+
+        apply (simp add: tranclp_into_rtranclp)
+        done
+    subgoal
+        apply normalize_goal+
+        apply (simp add: tranclp_into_rtranclp)
+       apply (drule tranclp_into_rtranclp)
+       apply (drule rtranclp_pcdcl_tcore_stgy_no_core_no_learned)
+          apply simp
+          apply simp
+       done
+    subgoal
+        apply normalize_goal+
+        apply (elim disjE)
+       apply (drule tranclp_into_rtranclp)
+       apply (drule rtranclp_pcdcl_tcore_stgy_no_core_no_learned)
+          apply (simp )
+          apply simp
+          apply simp
+       done
+    subgoal
+        apply normalize_goal+
+        apply (simp add: tranclp_into_rtranclp)
+        done
+    subgoal
+        apply normalize_goal+
+        apply (elim disjE)
+       apply (drule tranclp_into_rtranclp)
+    apply force
+    apply force
+      done
+    done
+
+  let ?snd = \<open>\<lambda>i. fst (snd i)\<close>
+  have snd_g: \<open>?snd (g i) = i + ?snd (g 0)\<close> for i
     apply (induction i)
     subgoal by auto
     subgoal for i
       using g[of \<open>i\<close>] by (auto simp: pcdcl_stgy_restart.simps tranclp_unfold_begin
         pcdcl_final_state_def)
+
     done
-  then have snd_g_0: \<open>\<And>i. i > 0 \<Longrightarrow> snd (g i) = i + snd (g 0)\<close>
+  then have snd_g_0: \<open>\<And>i. i > 0 \<Longrightarrow> ?snd (g i) = i + ?snd (g 0)\<close>
     by blast
-  have unbounded_f_g: \<open>unbounded (\<lambda>i. f (snd (g i)))\<close>
+  have unbounded_f_g: \<open>unbounded (\<lambda>i. f (?snd (g i)))\<close>
     using f unfolding bounded_def by (metis add.commute f less_or_eq_imp_le snd_g
         not_bounded_nat_exists_larger not_le le_iff_add)
 
-  have \<open>\<exists>h. pcdcl_stgy\<^sup>+\<^sup>+ (fst (g i)) (h) \<and>
-         size (pget_all_learned_clss (h)) > f (snd (g i)) \<and>
-         pcdcl_restart (h) (fst (g (i+1)))\<close>
+  have ex: \<open>(\<forall>i. \<exists>h h' :: 'v prag_st. P h h' (g i) (g (i+1))) \<Longrightarrow>
+      (\<exists>h h' :: nat \<Rightarrow> 'v prag_st. \<forall>i. P (h i) (h' i) (g i) (g (i+1)))\<close> for P
+    apply (rule exI[of _ \<open>\<lambda>i. SOME h. \<exists>h'. P h h' (g i) (g (i+1))\<close>])
+    apply (rule exI[of _ \<open>\<lambda>i. SOME h'. P (SOME h. \<exists>h'. P h h' (g i) (g (i+1))) h' (g i) (g (i+1))\<close>])
+    by (smt verit_sko_ex')
+  let ?P = \<open>\<lambda>hi h'i gi gi1. pcdcl_tcore_stgy\<^sup>+\<^sup>+ (fst (gi)) (hi) \<and>
+         (size (pget_all_learned_clss (hi)) > f (?snd (gi)) \<or>
+          size (pget_all_learned_clss (hi)) > size (pget_all_learned_clss (fst (gi)))) \<and>
+         pcdcl_restart (hi) (h'i) \<and>
+         pcdcl_stgy\<^sup>*\<^sup>* (h'i) (fst (gi1))\<close>
+  have \<open>\<exists>h h'. pcdcl_tcore_stgy\<^sup>+\<^sup>+ (fst (g i)) (h) \<and>
+         (size (pget_all_learned_clss h) > f (?snd (g i)) \<or>
+          size (pget_all_learned_clss h) > size (pget_all_learned_clss (fst (g i)))) \<and>
+         pcdcl_restart h h' \<and>
+         pcdcl_stgy\<^sup>*\<^sup>* h' (fst (g (i+1)))\<close>
     for i
     using g[of i] H[of \<open>Suc i\<close>]
     unfolding pcdcl_stgy_restart.simps full1_def Suc_eq_plus1[symmetric]
-    by force
-  then obtain h :: \<open>nat \<Rightarrow> 'v twl_st\<close> where
-    pcdcl: \<open>pcdcl_stgy\<^sup>+\<^sup>+ (fst (g i)) (h i)\<close> and
-    size_h_g: \<open>size (get_all_learned_clss (h i)) > f (snd (g i))\<close> and
-    res: \<open>pcdcl_restart (h i) (fst (g (i+1)))\<close> for i
-    by metis
-
+    apply (elim disjE)
+    apply normalize_goal+
+    apply force
+    apply normalize_goal+
+    apply (metis fst_conv)
+    apply normalize_goal+
+    apply (metis fst_conv)
+    done
+  then have \<open>\<forall>i. \<exists>h h'. ?P (h i) (h' i) (g i) (g (i+1))\<close>
+     by meson
+  from ex[of ?P]
+  have ex: \<open>\<exists>h h' :: nat \<Rightarrow> 'v prag_st. \<forall>i :: nat. (pcdcl_tcore_stgy\<^sup>+\<^sup>+ (fst (g i)) (h i) \<and>
+         (size (pget_all_learned_clss (h i)) > f (?snd (g i)) \<or>
+          size (pget_all_learned_clss (h i)) > size (pget_all_learned_clss (fst (g i)))) \<and>
+         pcdcl_restart (h i) (h' i) \<and>
+         pcdcl_stgy\<^sup>*\<^sup>* (h' i) (fst (g (i+1))))\<close>
+    using \<open>\<forall>i. \<exists>h h'. ?P (h i) (h' i) (g i) (g (i+1))\<close> by blast
+  then obtain h h' where
+    pcdcl: \<open>pcdcl_tcore_stgy\<^sup>+\<^sup>+ (fst (g i)) (h i)\<close> and
+    \<open>size (pget_all_learned_clss (h i)) > f (?snd (g i)) \<or>
+          size (pget_all_learned_clss (h i)) > size (pget_all_learned_clss (fst (g i)))\<close> and
+    \<open>pcdcl_restart (h i) (h' i)\<close>
+    \<open>pcdcl_stgy\<^sup>*\<^sup>* (h' i) (fst (g (i+1)))\<close> for i
+    by blast
   obtain k where
-    f_g_k: \<open>f (snd (g k)) >
-       card (simple_clss (atms_of_mm (init_clss (state\<^sub>W_of (h 0))))) +
-           size (get_all_learned_clss (fst (g 0)))\<close>
+    f_g_k: \<open>f (?snd (g k)) >
+       card (simple_clss (atms_of_mm (init_clss (state_of (h 0))))) +
+           size (pget_all_learned_clss (fst (g 0)))\<close>
     using not_bounded_nat_exists_larger[OF unbounded_f_g] by blast
-  have pcdcl: \<open>pcdcl_stgy\<^sup>*\<^sup>* (fst (g i)) (h i)\<close> for i
+  have pcdcl: \<open>pcdcl_tcore_stgy\<^sup>*\<^sup>* (fst (g i)) (h i)\<close> for i
     using pcdcl[of i] by auto
-  have W_g_h: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy\<^sup>*\<^sup>* (state\<^sub>W_of (fst (g i))) (state\<^sub>W_of (h i))\<close> for i
+
+(*TODO: proof
+
+Idea: we do not care about adding clauses N since we count only clauses in U!
+
+*)
+  have W_g_h: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy\<^sup>*\<^sup>* (state_of (fst (g i))) (state_of (h i))\<close> for i
+    
     by (rule rtranclp_pcdcl_stgy_cdcl\<^sub>W_stgy[OF pcdcl]) (rule inv)
   have tranclp_g: \<open>pcdcl_stgy_restart\<^sup>*\<^sup>* (g 0) (g i)\<close> for i
     apply (induction i)
@@ -1798,7 +2007,7 @@ proof (rule ccontr)
     done
 
   have dist_all_g:
-    \<open>distinct_mset (get_all_learned_clss (fst (g i)) - get_all_learned_clss (fst (g 0)))\<close>
+    \<open>distinct_mset (pget_all_learned_clss (fst (g i)) - pget_all_learned_clss (fst (g 0)))\<close>
     for i
     apply (rule rtranclp_pcdcl_stgy_restart_new_abs[OF tranclp_g])
     subgoal using inv .
