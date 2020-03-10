@@ -20,13 +20,60 @@ locale standard_lifting = Non_ground: inference_system Inf_F +
     Red_F_G :: \<open>'g set \<Rightarrow> 'g set\<close>
   + fixes
     \<G>_F :: \<open>'f \<Rightarrow> 'g set\<close> and
-    \<G>_Inf :: \<open>'f inference \<Rightarrow> 'g inference set\<close>
+    \<G>_Inf :: \<open>'f inference \<Rightarrow> 'g inference set option\<close>
   assumes
     Bot_F_not_empty: "Bot_F \<noteq> {}" and
     Bot_map_not_empty: \<open>B \<in> Bot_F \<Longrightarrow> \<G>_F B \<noteq> {}\<close> and
     Bot_map: \<open>B \<in> Bot_F \<Longrightarrow> \<G>_F B \<subseteq> Bot_G\<close> and
     Bot_cond: \<open>\<G>_F C \<inter> Bot_G \<noteq> {} \<longrightarrow> C \<in> Bot_F\<close> and
-    inf_map: \<open>\<iota> \<in> Inf_F \<Longrightarrow> \<G>_Inf \<iota> \<subseteq> Red_Inf_G (\<G>_F (concl_of \<iota>))\<close>
+    inf_map: \<open>\<iota> \<in> Inf_F \<Longrightarrow> \<G>_Inf \<iota> \<noteq> None \<Longrightarrow> the (\<G>_Inf \<iota>) \<subseteq> Red_Inf_G (\<G>_F (concl_of \<iota>))\<close>
+
+locale strong_standard_lifting =  Non_ground: inference_system Inf_F +
+  Ground: calculus_with_red_crit Bot_G Inf_G entails_G Red_Inf_G Red_F_G
+  for
+    Bot_F :: \<open>'f set\<close> and
+    Inf_F :: \<open>'f inference set\<close> and
+    Bot_G :: \<open>'g set\<close> and
+    Inf_G ::  \<open>'g inference set\<close> and
+    entails_G ::  \<open>'g set  \<Rightarrow> 'g set  \<Rightarrow> bool\<close> (infix "\<Turnstile>G" 50) and
+    Red_Inf_G :: \<open>'g set \<Rightarrow> 'g inference set\<close> and
+    Red_F_G :: \<open>'g set \<Rightarrow> 'g set\<close>
+  + fixes
+    \<G>_F :: \<open>'f \<Rightarrow> 'g set\<close> and
+    \<G>_Inf :: \<open>'f inference \<Rightarrow> 'g inference set option\<close>
+  assumes
+    Bot_F_not_empty: "Bot_F \<noteq> {}" and
+    Bot_map_not_empty: \<open>B \<in> Bot_F \<Longrightarrow> \<G>_F B \<noteq> {}\<close> and
+    Bot_map: \<open>B \<in> Bot_F \<Longrightarrow> \<G>_F B \<subseteq> Bot_G\<close> and
+    Bot_cond: \<open>\<G>_F C \<inter> Bot_G \<noteq> {} \<longrightarrow> C \<in> Bot_F\<close> and
+    inf_map: \<open>\<iota> \<in> Inf_F \<Longrightarrow> \<G>_Inf \<iota> \<noteq> None \<Longrightarrow> concl_of ` (the (\<G>_Inf \<iota>)) \<subseteq> (\<G>_F (concl_of \<iota>))\<close>
+begin
+
+find_theorems name: Ground
+
+sublocale standard_lifting
+proof
+  show "Bot_F \<noteq> {}" using Bot_F_not_empty .
+next
+  fix B
+  assume b_in: "B \<in> Bot_F"
+  show "\<G>_F B \<noteq> {}" using Bot_map_not_empty[OF b_in] .
+next
+  fix B
+  assume b_in: "B \<in> Bot_F"
+  show "\<G>_F B \<subseteq> Bot_G" using Bot_map[OF b_in] .
+next
+  show "\<And>C. \<G>_F C \<inter> Bot_G \<noteq> {} \<longrightarrow> C \<in> Bot_F" using Bot_cond .
+next
+  fix \<iota>
+  assume i_in: "\<iota> \<in> Inf_F" and
+    some_g: "\<G>_Inf \<iota> \<noteq> None"
+  show "the (\<G>_Inf \<iota>) \<subseteq> Red_Inf_G (\<G>_F (concl_of \<iota>))" using inf_map
+oops
+
+end
+
+context standard_lifting
 begin
 
 abbreviation \<G>_set :: \<open>'f set \<Rightarrow> 'g set\<close> where
@@ -95,7 +142,7 @@ locale lifting_with_wf_ordering_family =
     Red_Inf_G :: \<open>'g set \<Rightarrow> 'g inference set\<close> and
     Red_F_G :: \<open>'g set \<Rightarrow> 'g set\<close> and
     \<G>_F :: "'f \<Rightarrow> 'g set" and
-    \<G>_Inf :: "'f inference \<Rightarrow> 'g inference set"
+    \<G>_Inf :: "'f inference \<Rightarrow> 'g inference set option"
   + fixes
     Prec_F_g :: \<open>'g \<Rightarrow> 'f \<Rightarrow> 'f \<Rightarrow> bool\<close>
   assumes
