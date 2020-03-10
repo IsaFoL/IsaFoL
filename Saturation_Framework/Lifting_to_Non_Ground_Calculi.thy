@@ -68,7 +68,7 @@ next
   fix \<iota>
   assume i_in: "\<iota> \<in> Inf_F" and
     some_g: "\<G>_Inf \<iota> \<noteq> None"
-  show "the (\<G>_Inf \<iota>) \<subseteq> Red_Inf_G (\<G>_F (concl_of \<iota>))" using inf_map
+  show "the (\<G>_Inf \<iota>) \<subseteq> Red_Inf_G (\<G>_F (concl_of \<iota>))" using inf_map[OF i_in some_g] 
 oops
 
 end
