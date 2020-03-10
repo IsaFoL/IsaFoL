@@ -1009,11 +1009,70 @@ proof (rule ccontr)
       wellorder_class.LeastI_ex[of \<open>\<lambda>j. j > f' i \<and> ?snd (g (Suc j)) = Suc (?snd (g j))\<close>]
     unfolding f_Suc[symmetric, of i]
     by (auto)
-  have in_between: \<open>j \<ge> f' i \<Longrightarrow> Suc j < f' (Suc i) \<Longrightarrow> ?snd (g (Suc j)) = (?snd (g (f' i)))\<close> for j i
+
+  have H: \<open>f' (Suc i) + k < f' (Suc (Suc i)) \<Longrightarrow> k > 0 \<Longrightarrow>
+    ?snd (g (Suc (f' (Suc i) + k))) =  ?snd (g (f' (Suc i) + k))\<close> for k i
+    using not_less_Least[of \<open>f' (Suc i) + k\<close>
+      \<open>\<lambda>j. j > f' ((Suc i)) \<and> ?snd (g (Suc j)) = Suc (?snd (g j))\<close>]
+      g[of \<open>f' (Suc i) + k\<close>] unfolding f_Suc[symmetric]
+    by (auto simp: pcdcl_stgy_restart.simps)
+
+  have in_between: \<open>k \<ge> 1 \<Longrightarrow> f' (Suc i) + k < f' (Suc (Suc i)) \<Longrightarrow>
+    ?snd (g (Suc (f' (Suc i) + k))) =  ?snd (g (Suc (f' (Suc i))))\<close> for k i
+    apply (induction rule:nat_induct_at_least)
+    subgoal
+      using H[of i 1] by auto
+    subgoal for k
+      using H[of i \<open>Suc k\<close>]
+      by auto
+    done
+  have f'_steps: \<open>?snd (g ((f' (Suc (Suc i))))) =  1 + ?snd (g ((f' (Suc i))))\<close> for i
+    using f'[of \<open>Suc i\<close>] f'[of \<open>i\<close>] in_between[of \<open>f' (Suc (Suc i)) - f' (Suc i) - 1\<close> \<open>i\<close>]
+    apply (cases \<open>f' (Suc (Suc i)) - Suc (f' (Suc i)) = 0\<close>)
+    apply auto
+    by (metis Suc_lessI f'(1) f'(2) leD)
+  have \<open>?snd (g ((f' (Suc (Suc i))))) =  Suc i + ?snd (g ((f' (Suc 0))))\<close> for i
+    apply (induction i)
+    subgoal
+      using f'_steps[of 0] by auto
+    subgoal for i
+      using f'_steps[of \<open>Suc i\<close>]
+      by auto
+    done
+
+  have \<open>?snd (?f' (Suc (Suc i))) = 2 + i + ?snd (?f' i)\<close> for i
+    using not_less_Least[of \<open>f' (Suc i) + k\<close>
+        \<open>\<lambda>j. j > f' ((Suc i)) \<and> ?snd (g (Suc j)) = Suc (?snd (g j))\<close> for k]
+      g[of \<open>f' (Suc (Suc i))\<close>] unfolding f_Suc[symmetric]
+    apply (auto simp: pcdcl_stgy_restart.simps)
+    sorry
+  have \<open>?snd (?f' i) = i + ?snd (g 0)\<close> for i
+    apply auto
+    sorry
+  let ?N = \<open>atms_of_mm (pget_all_init_clss (fst (g 0)))\<close>
+  have \<open>unbounded (\<lambda>n. f (Suc n + ?snd (g 0)))\<close>
+    unfolding bounded_def
+    apply clarsimp
+    subgoal for b
+      using not_bounded_nat_exists_larger[OF f, of b \<open>Suc (?snd (g 0))\<close>]
+      by (metis Suc_lessD add.commute less_iff_Suc_add less_le_not_le)
+    done
+  then obtain n where
+    \<open>f (Suc n+ ?snd (g 0)) > 4 ^ (card ?N)\<close>
+    using not_less unfolding bounded_def by blast
+  obtain Tn where
+    \<open>pcdcl_tcore_stgy\<^sup>+\<^sup>+ (fst (?f' (Suc n))) Tn\<close> and
+    \<open>f (Suc n + fst (snd (g 0))) + size (pget_all_learned_clss (fst (?f' (Suc n)))) < size (pget_all_learned_clss Tn)\<close>
+    using g[of \<open>f' (Suc n)\<close>] f'(1)[of \<open>n\<close>] unfolding pcdcl_stgy_restart.simps
+    apply auto
+      
+
+
+  have in_between: \<open>j \<ge> f' (Suc i) \<Longrightarrow> Suc j < f' (Suc (Suc i)) \<Longrightarrow> ?snd (g (Suc j)) = (?snd (g (f' (Suc i))))\<close> for j i
     apply (induction rule:nat_induct_at_least)
     subgoal
       using not_less_Least[of \<open>Suc (f' (i))\<close> \<open>\<lambda>j. j > f' i \<and> ?snd (g (Suc j)) = Suc (?snd (g j))\<close>]
-        g[of \<open>(f' i)\<close>] unfolding f_Suc[symmetric]
+        g[of \<open>(f' (Suc i))\<close>] unfolding f_Suc[symmetric]
       apply simp
       apply (auto simp: pcdcl_stgy_restart.simps pcdcl_stgy_only_restart.simps)
       sorry
@@ -1041,13 +1100,12 @@ apply (simp only: snd_f')
         using 
       using f'[of \<open>Suc i\<close>]
       using snd_f'[of \<open>Suc i\<close>] in_between[of \<open>Suc i\<close> \<open>f' (Suc i)\<close>] f'[of \<open>Suc i\<close>]
+      
       apply simp
       apply (auto simp: pcdcl_stgy_restart.simps)
 sledgehammer        
         using \<open>fst (snd (g (Suc (f' (Suc 0))))) = Suc 0 + fst (snd (g 0))\<close> f'(1) apply auto
     by (induction i) (auto simp: f')
-
-  let ?N = \<open>atms_of_mm (pget_all_init_clss (fst (g 0)))\<close>
   have fin_N: \<open>finite ?N\<close>
     by auto
   have \<open>atms_of_mm (pget_all_init_clss (fst (g (Suc i)))) = atms_of_mm (pget_all_init_clss (fst (g i)))\<close> for i
@@ -1055,41 +1113,6 @@ sledgehammer
     sorry
   then have [simp]: \<open>NO_MATCH 0 i \<Longrightarrow> atms_of_mm (pget_all_init_clss (fst (g i))) = atms_of_mm (pget_all_init_clss (fst (g 0)))\<close> for i
     by (induction i) auto
-
-  have \<open>unbounded (\<lambda>n. f (n + ?snd (g 0)))\<close>
-    unfolding bounded_def
-    apply clarsimp
-    subgoal for b
-      using not_bounded_nat_exists_larger[OF f, of b \<open>?snd (g 0)\<close>]
-      by (metis add.commute leD less_imp_add_positive)
-    done
-  then obtain n where
-    \<open>f (n+ ?snd (g 0)) > 4 ^ (card ?N)\<close>
-    using not_less unfolding bounded_def by blast
-  obtain Tn where
-    \<open>pcdcl_tcore_stgy\<^sup>+\<^sup>+ (fst (?f' n)) Tn\<close> and
-    \<open>f (n + fst (snd (g 0))) + size (pget_all_learned_clss (fst (?f' n))) < size (pget_all_learned_clss Tn)\<close>
-    using g[of \<open>f' n\<close>] snd_f'[of n] f'(1)[of \<open>n\<close>] unfolding pcdcl_stgy_restart.simps
-    apply auto
-try0
-  have \<open>set_mset (pget_all_learned_clss (fst (g j))) \<subseteq> {C. atms_of C \<subseteq> ?N \<and> distinct_mset C}\<close> for j
-    using inv[of j]
-    by (auto simp: pcdcl_all_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-        simple_clss_def cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def
-        cdcl\<^sub>W_restart_mset.no_strange_atm_def
-      dest!: multi_member_split)
-
-  from card_mono[OF _ this] have \<open>card (set_mset (pget_all_learned_clss (fst (g j)))) \<le> 4 ^ (card ?N)\<close> for j
-    using card_simple_clss_with_tautology[OF fin_N] le_trans by blast
-  then have  \<open>card (set_mset (pget_all_learned_clss (fst (g j)) - pget_all_learned_clss (fst (g 0)))) \<le> 4 ^ (card ?N)\<close> for j
-    by (meson card_mono finite_set_mset in_diffD le_trans subsetI)
-  then have card_bound: \<open>size (pget_all_learned_clss (fst (g j)) - pget_all_learned_clss (fst (g 0))) \<le> 4 ^ (card ?N)\<close> for j
-      by (subst (asm) distinct_mset_size_eq_card[symmetric])
-        (auto simp:  )
-  with card_bound[of \<open>f' n\<close>]
-  show False
-    using g[of n] apply (auto simp: pcdcl_stgy_restart.simps)
-  apply 
 
 (*Now same stuff as above with distinct_mset*)
 oops
