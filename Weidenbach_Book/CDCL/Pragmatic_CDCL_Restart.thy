@@ -976,42 +976,120 @@ proof (rule ccontr)
   let ?snd = \<open>\<lambda>i. fst (snd i)\<close>
   have n_mono: \<open>?snd (g (Suc i)) = Suc (?snd (g i)) \<or> ?snd (g (Suc i)) = ?snd (g i)\<close> for i
     using g[of i] by (auto simp: pcdcl_stgy_restart.simps)
-  have will_eventually_GC: \<open>\<exists>i>j. ?snd (g i) = Suc (?snd (g j))\<close> for j
+  have will_eventually_GC: \<open>\<exists>i>j. ?snd (g (Suc i)) = Suc (?snd (g i))\<close> for j
   proof (rule ccontr)
     assume mono: \<open>\<not> ?thesis\<close>
-    have neq: \<open>?snd (g i) = ?snd (g j)\<close> if \<open>i \<ge> j\<close> for i
+    have neq: \<open>?snd (g (Suc i)) = ?snd (g (Suc j))\<close> if \<open>i \<ge> Suc j\<close> for i
       using that
       apply (induction rule:nat_induct_at_least)
-      apply auto[]
-      by (metis le_imp_less_Suc mono n_mono)
+      using le_Suc_eq mono n_mono apply auto[1]
+      by (metis Suc_leD le_imp_less_Suc le_SucI mono n_mono)
 
-    define f where \<open>f i = fst (g (i + j))\<close> for i
+    define f where \<open>f i = fst (g (Suc i + j))\<close> for i
     have
       g: \<open>pcdcl_stgy_only_restart (f i) (f (Suc i))\<close> and
       inv: \<open>pcdcl_all_struct_invs (f i)\<close> and
       inv': \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa (state_of (f i))\<close> for i
-      using g[of \<open>i+j\<close>] inv[of \<open>i+j\<close>] inv'[of \<open>i+j\<close>] neq[of \<open>i+j\<close>] neq[of \<open>Suc (i+j)\<close>] H[of \<open>i+j\<close>]
-        (* TODO Proof *)
-      apply (auto simp: f_def pcdcl_stgy_restart.simps
-        pcdcl_stgy_only_restart.simps)
-      apply (metis fst_conv less_Suc_eq n_not_Suc_n snd_conv)+
-      done
+      using g[of \<open>Suc (i+j)\<close>] inv[of \<open>Suc (i+j)\<close>] inv'[of \<open>Suc (i+j)\<close>] neq[of \<open>i+j\<close>] neq[of \<open>Suc (i+j)\<close>]
+        H[of \<open>i+j\<close>]
+      by (fastforce simp: f_def pcdcl_stgy_restart.simps
+        pcdcl_stgy_only_restart.simps Suc_le_eq)+
     then show False
       using wf_pcdcl_stgy_only_restart unfolding wf_iff_no_infinite_down_chain by blast
   qed
-  define f where \<open>f \<equiv> rec_nat 0 (\<lambda>_ n. LEAST i. i > n \<and> ?snd (g i) = Suc (?snd (g n)))\<close>
-  then have [simp]: \<open>f 0 = 0\<close> and f_Suc: \<open>f (Suc n) = (LEAST i. i > f n \<and> ?snd (g i) = Suc (?snd (g (f n))))\<close> for n
+
+  define f' where \<open>f' \<equiv> rec_nat 0 (\<lambda>_ n. LEAST i. i > n \<and> ?snd (g (Suc i)) = Suc (?snd (g i)))\<close>
+  then have [simp]: \<open>f' 0 = 0\<close> and f_Suc: \<open>f' (Suc n) = (LEAST i. i > f' n \<and> ?snd (g (Suc i)) = Suc (?snd (g i)))\<close> for n
     by auto
-  let ?f = \<open>\<lambda>i. g (f i)\<close>
+  let ?f' = \<open>\<lambda>i. g (f' i)\<close>
   have
-    f: \<open>?snd (?f (Suc i)) = Suc (?snd (?f i))\<close>
-      \<open>f i < f (Suc i)\<close> for i
-    using will_eventually_GC[of \<open>f i\<close>]
-      wellorder_class.LeastI_ex[of \<open>\<lambda>j. j > f i \<and> ?snd (g j) = Suc (?snd (g (f i)))\<close>]
-    using f_Suc[symmetric, of i]
+    f': \<open>?snd (g (Suc (f' (Suc i)))) = Suc (fst (snd (g (f' (Suc i)))))\<close>
+      \<open>f' i < f' (Suc i)\<close> for i
+    using will_eventually_GC[of \<open>f' i\<close>]
+      wellorder_class.LeastI_ex[of \<open>\<lambda>j. j > f' i \<and> ?snd (g (Suc j)) = Suc (?snd (g j))\<close>]
+    unfolding f_Suc[symmetric, of i]
     by (auto)
-  have [simp]: \<open>?snd (?f (i)) = i + ?snd (g 0)\<close> for i
-    by (induction i) (auto simp: f)
+  have in_between: \<open>j \<ge> f' i \<Longrightarrow> Suc j < f' (Suc i) \<Longrightarrow> ?snd (g (Suc j)) = (?snd (g (f' i)))\<close> for j i
+    apply (induction rule:nat_induct_at_least)
+    subgoal
+      using not_less_Least[of \<open>Suc (f' (i))\<close> \<open>\<lambda>j. j > f' i \<and> ?snd (g (Suc j)) = Suc (?snd (g j))\<close>]
+        g[of \<open>(f' i)\<close>] unfolding f_Suc[symmetric]
+      apply simp
+      apply (auto simp: pcdcl_stgy_restart.simps pcdcl_stgy_only_restart.simps)
+      sorry
+    subgoal for j
+      using not_less_Least[of \<open>Suc j\<close> \<open>\<lambda>j. j > f' i \<and> ?snd (g (Suc j)) = Suc (?snd (g j))\<close>]
+        g[of \<open>Suc j\<close>] unfolding f_Suc[symmetric]
+      by (auto simp: pcdcl_stgy_restart.simps pcdcl_stgy_only_restart.simps)
+    done
+  have snd_f': \<open>?snd (g (Suc (f' (Suc i)))) = Suc (?snd (g (f' (Suc i))))\<close> for i
+    using f'[of i] g[of \<open>f' (Suc i)\<close>] in_between[of i \<open>f' (Suc i)\<close>]
+    by simp
+  have snd_f': \<open>?snd (g (Suc (f' (Suc i)))) = (i) + ?snd (g 0)\<close> for i
+    apply (subst f')
+    apply (induction i)
+    subgoal using snd_f'[of 0] in_between[of \<open>0\<close> \<open>f' (Suc 0) - 1\<close>]
+      apply (cases \<open>f' (Suc 0)\<close>) apply auto
+      sorry
+    subgoal for i
+supply [simp] = snd_f'
+      using f'(1)[of \<open>Suc i\<close>, simplified]
+supply [simp del] = snd_f'
+      apply (simp add:)
+apply (subst snd_f')
+apply (simp only: snd_f')
+        using 
+      using f'[of \<open>Suc i\<close>]
+      using snd_f'[of \<open>Suc i\<close>] in_between[of \<open>Suc i\<close> \<open>f' (Suc i)\<close>] f'[of \<open>Suc i\<close>]
+      apply simp
+      apply (auto simp: pcdcl_stgy_restart.simps)
+sledgehammer        
+        using \<open>fst (snd (g (Suc (f' (Suc 0))))) = Suc 0 + fst (snd (g 0))\<close> f'(1) apply auto
+    by (induction i) (auto simp: f')
+
+  let ?N = \<open>atms_of_mm (pget_all_init_clss (fst (g 0)))\<close>
+  have fin_N: \<open>finite ?N\<close>
+    by auto
+  have \<open>atms_of_mm (pget_all_init_clss (fst (g (Suc i)))) = atms_of_mm (pget_all_init_clss (fst (g i)))\<close> for i
+    using g[of i]
+    sorry
+  then have [simp]: \<open>NO_MATCH 0 i \<Longrightarrow> atms_of_mm (pget_all_init_clss (fst (g i))) = atms_of_mm (pget_all_init_clss (fst (g 0)))\<close> for i
+    by (induction i) auto
+
+  have \<open>unbounded (\<lambda>n. f (n + ?snd (g 0)))\<close>
+    unfolding bounded_def
+    apply clarsimp
+    subgoal for b
+      using not_bounded_nat_exists_larger[OF f, of b \<open>?snd (g 0)\<close>]
+      by (metis add.commute leD less_imp_add_positive)
+    done
+  then obtain n where
+    \<open>f (n+ ?snd (g 0)) > 4 ^ (card ?N)\<close>
+    using not_less unfolding bounded_def by blast
+  obtain Tn where
+    \<open>pcdcl_tcore_stgy\<^sup>+\<^sup>+ (fst (?f' n)) Tn\<close> and
+    \<open>f (n + fst (snd (g 0))) + size (pget_all_learned_clss (fst (?f' n))) < size (pget_all_learned_clss Tn)\<close>
+    using g[of \<open>f' n\<close>] snd_f'[of n] f'(1)[of \<open>n\<close>] unfolding pcdcl_stgy_restart.simps
+    apply auto
+try0
+  have \<open>set_mset (pget_all_learned_clss (fst (g j))) \<subseteq> {C. atms_of C \<subseteq> ?N \<and> distinct_mset C}\<close> for j
+    using inv[of j]
+    by (auto simp: pcdcl_all_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+        simple_clss_def cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def
+        cdcl\<^sub>W_restart_mset.no_strange_atm_def
+      dest!: multi_member_split)
+
+  from card_mono[OF _ this] have \<open>card (set_mset (pget_all_learned_clss (fst (g j)))) \<le> 4 ^ (card ?N)\<close> for j
+    using card_simple_clss_with_tautology[OF fin_N] le_trans by blast
+  then have  \<open>card (set_mset (pget_all_learned_clss (fst (g j)) - pget_all_learned_clss (fst (g 0)))) \<le> 4 ^ (card ?N)\<close> for j
+    by (meson card_mono finite_set_mset in_diffD le_trans subsetI)
+  then have card_bound: \<open>size (pget_all_learned_clss (fst (g j)) - pget_all_learned_clss (fst (g 0))) \<le> 4 ^ (card ?N)\<close> for j
+      by (subst (asm) distinct_mset_size_eq_card[symmetric])
+        (auto simp:  )
+  with card_bound[of \<open>f' n\<close>]
+  show False
+    using g[of n] apply (auto simp: pcdcl_stgy_restart.simps)
+  apply 
 
 (*Now same stuff as above with distinct_mset*)
 oops
