@@ -342,7 +342,7 @@ inductive cdcl_learn_clause :: \<open>'v prag_st \<Rightarrow> 'v prag_st \<Righ
 learn_clause:
   \<open>cdcl_learn_clause (M, N, U, D, NE, UE, NS, US)
     (M, add_mset C N, U, D, NE, UE, NS, US)\<close>
-  if \<open>atms_of C \<subseteq> atms_of_mm (N + NE + US)\<close> and
+  if \<open>atms_of C \<subseteq> atms_of_mm (N + NE + NS)\<close> and
     \<open>N +NE + NS \<Turnstile>pm C\<close> and
     \<open>\<not>tautology C\<close> and
     \<open>count_decided M = 0\<close> and
@@ -352,7 +352,7 @@ lemma cdcl_learn_clause_still_entailed:
   \<open>cdcl_learn_clause S T \<Longrightarrow> consistent_interp I \<Longrightarrow>
     I \<Turnstile>m pget_all_init_clss S \<Longrightarrow> I \<Turnstile>m pget_all_init_clss T\<close>
   apply (induction rule: cdcl_learn_clause.induct)
-  subgoal for C N NE US NS M U D UE
+  subgoal for C N NE NS M U D UE US
     using true_clss_cls_true_clss_true_cls[of \<open>set_mset (N+NE+NS)\<close> C I]
     by auto
   done
@@ -1246,10 +1246,9 @@ next
     apply -
     apply (rule cdcl_learn_clause.intros[of \<open>remdups_mset (C+C')\<close>])
     using subresolution_IL(1-3)
-    apply (auto simp: pcdcl_all_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+    by (auto simp: pcdcl_all_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
       cdcl\<^sub>W_restart_mset.no_strange_atm_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def
        cdcl\<^sub>W_restart_mset.clauses_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init_def)
-    by (meson in_mono lits_subseteq_imp_atms_subseteq set_mset_mono)
   show ?case using subresolution_IL apply -
     apply (rule converse_rtranclp_into_rtranclp)
     apply (rule pcdcl.intros(3)[OF 1])
