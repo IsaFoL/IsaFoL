@@ -3,7 +3,37 @@ imports Pragmatic_CDCL
 begin
 
 section \<open>Restarts\<close>
+text \<open>
 
+  While refactoring the code (or more precisely, creating the PCDCL version with restarts), I
+  realised that the restarts as specified in my thesis are not exactly as I want to have them and
+  not how they are implemented in SAT solvers. The problem is that I introduced both restart and
+  garbage collection at the same time, but they have a different termination criterion:
+
+    \<^item> Restarts are always applicable as long you have learned at least one clause since the last
+    restart.
+    \<^item> GC must be applied after longer and longer time intervals.
+
+
+  In the version from the thesis, I use the second criterion to justify termination for both
+  criteria. Due to the implementation, it did not really make a difference for small number of
+  conflicts, but limited the ability to restart after many conflicts have been generated. I don't
+  know if performance will change, as I already observed that changing the restart heuristic can
+  have dramatic effects, but fixing it is always better, because it only gives more freedom to
+  the implementation (including to not change anything).
+
+  The first criterion does not allow deleting clauses (including the useless US component as I did
+  previously). The termination in both cases comes from non-relearning of clauses.
+
+  The proofs changed dramatically (and become much more messy) but that was expected, because the
+  base calculus has changed a lot (new clauses can be learned).
+
+  Another difference is that after restarting, I allow anything following a CDCL run to
+  happen. Proving that this terminates is delayed to the concrete implementation (e.g., vivification
+  or HBR) and does not matter of the overall termination proof (but is obviously important in
+  when generating code!).
+
+\<close>
 inductive pcdcl_restart :: \<open>'v prag_st \<Rightarrow> 'v prag_st \<Rightarrow> bool\<close> where
 restart_trail:
    \<open>pcdcl_restart (M, N, U, None, NE, UE, NS, US)
@@ -57,8 +87,8 @@ proof (induction rule: pcdcl_restart.induct)
   let ?V = \<open>(M', N, U', None, NE, UE + UE', NS, {#})\<close>
   have restart: \<open>cdcl\<^sub>W_restart_mset.restart (state_of ?S) ?T\<close>
     using learned
-    by (auto simp: cdcl\<^sub>W_restart_mset.restart.simps state_def clauses_def cdcl\<^sub>W_restart_mset_state
-        intro: mset_le_incr_right1)
+    by (auto simp: cdcl\<^sub>W_restart_mset.restart.simps state_def clauses_def
+          intro: mset_le_incr_right1)
   have struct_invs:
       \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state_of ?S)\<close>
     using inv unfolding  pcdcl_all_struct_invs_def by auto
@@ -371,20 +401,7 @@ text \<open>
   However, this means that we can add the same clause over and over and that
   have reached the bound (or subsume these clauses).
 
-
-
-work-arounds:
-   - assume the clause set is distinct. You don't want that, although that probably works if
-     the reduction is done in the normal order.
-   - restricts rule to SR only. No clear way to extend it to vivification
-   - bound the number of clauses you can learn. Still not obvious how to get termination from that.
-     Reasonable in practice (take \<^term>\<open>(2::nat) ^ 128\<close> is sufficient), but you still have to make sure
-     that adding teh clause one fater one does not break proof.
-   - count only the new clause
-
-      TODO: add a forget rule in \<^term>\<open>pcdcl_stgy\<close> instead of having it in restart.
-
-      TODO: add a boolean if we have reached a final state
+  TODO: add a forget rule in \<^term>\<open>pcdcl_stgy\<close> instead of having it in restart.
  \<close>
 
 inductive pcdcl_stgy_restart :: \<open>'v prag_st \<times> nat \<times> bool \<Rightarrow> 'v prag_st \<times> nat \<times> bool \<Rightarrow> bool\<close> where
@@ -1090,9 +1107,10 @@ proof (rule ccontr)
     using g[of \<open>f' (Suc (Suc n))\<close>] f'(1)[of \<open>Suc n\<close>] snd_f'_0[of n] unfolding pcdcl_stgy_restart.simps
     by auto
 
-  have [simp]: \<open>atms_of_mm (pget_all_init_clss (fst (g (Suc i)))) = atms_of_mm (pget_all_init_clss (fst (g i)))\<close> for i
+  have \<open>atms_of_mm (pget_all_init_clss (fst (g (Suc i)))) = atms_of_mm (pget_all_init_clss (fst (g i)))\<close> for i
     using pcdcl_stgy_restart_pget_all_init_clss[OF g[of i]] by simp
-  then have [simp]: \<open>NO_MATCH 0 i \<Longrightarrow> atms_of_mm (pget_all_init_clss (fst (g i))) = atms_of_mm (pget_all_init_clss (fst (g 0)))\<close> for i
+  then have [simp]: \<open>NO_MATCH 0 i \<Longrightarrow>
+      atms_of_mm (pget_all_init_clss (fst (g i))) = atms_of_mm (pget_all_init_clss (fst (g 0)))\<close> for i
     by (induction i) auto
 
   have inv_Tn: \<open>pcdcl_all_struct_invs Tn\<close>
@@ -1112,7 +1130,7 @@ proof (rule ccontr)
   have fin_N: \<open>finite ?N\<close>
     by auto
   have \<open>pget_all_init_clss Tn = pget_all_init_clss (fst (g (f' (Suc (Suc n)))))\<close>
-    by (metis \<open>pcdcl_tcore_stgy\<^sup>+\<^sup>+ (fst (g (f' (Suc (Suc n))))) Tn\<close> rtranclp_pcdcl_tcore_stgy_pget_all_init_clss tranclp_into_rtranclp)
+    by (metis Tn rtranclp_pcdcl_tcore_stgy_pget_all_init_clss tranclp_into_rtranclp)
   then have \<open>set_mset (pget_all_learned_clss Tn) \<subseteq> {C. atms_of C \<subseteq> ?N \<and> distinct_mset C}\<close>
     using inv_Tn by (auto simp: pcdcl_all_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
         simple_clss_def cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def
@@ -1120,13 +1138,14 @@ proof (rule ccontr)
       dest!: multi_member_split)
   from card_mono[OF _ this] have \<open>card (set_mset (pget_all_learned_clss Tn)) \<le> 4 ^ (card ?N)\<close>
     using card_simple_clss_with_tautology[OF fin_N] by simp
-  then have \<open>card (set_mset (pget_all_learned_clss Tn- pget_all_learned_clss (fst (g (f' (Suc (Suc n))))))) \<le> 4 ^ (card ?N)\<close>
+  then have \<open>card (set_mset (pget_all_learned_clss Tn
+        - pget_all_learned_clss (fst (?f' (Suc (Suc n)))))) \<le> 4 ^ (card ?N)\<close>
     by (meson card_mono finite_set_mset in_diffD le_trans subsetI)
-  then have \<open>size (pget_all_learned_clss Tn- pget_all_learned_clss (fst (g (f' (Suc (Suc n)))))) \<le> 4 ^ (card ?N)\<close>
+  then have \<open>size (pget_all_learned_clss Tn - pget_all_learned_clss (fst (g (f' (Suc (Suc n))))))
+     \<le> 4 ^ (card ?N)\<close>
     using dist by (subst (asm) distinct_mset_size_eq_card[symmetric]) auto
   then show False
-    using f bound
-    by (meson diff_size_le_size_Diff leD le_less_trans less_diff_conv less_imp_le_nat)
+    using f bound by (meson diff_size_le_size_Diff leD le_less_trans less_diff_conv less_imp_le_nat)
 qed
 
 end
