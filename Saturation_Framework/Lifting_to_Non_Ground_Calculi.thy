@@ -291,24 +291,31 @@ proof
     then have not_none_in: \<open>\<forall>\<iota>' \<in> the (\<G>_Inf \<iota>). \<iota>' \<in> Red_Inf_G (\<G>_set (N - N'))\<close>
       using not_none N'_in_Red_F_N 
       by (meson Diff_mono Ground.Red_Inf_of_subset \<G>_subset subset_iff subset_refl)
+    then have "the (\<G>_Inf \<iota>) \<subseteq> Red_Inf_G (\<G>_set (N - N'))" by blast
   }
   moreover {
     assume none: "\<G>_Inf \<iota> = None"
-    have "\<G>_F (concl_of \<iota>) \<subseteq> (\<G>_set N \<union> Red_F_G (\<G>_set N))"
+    have ground_concl_subs: "\<G>_F (concl_of \<iota>) \<subseteq> (\<G>_set N \<union> Red_F_G (\<G>_set N))"
       using none i_in_Red_Inf_N unfolding Red_Inf_\<G>_def by blast 
-    then have "D \<in> \<G>_F (concl_of \<iota>) \<Longrightarrow> D \<in> \<G>_set N - Red_F_G (\<G>_set N) \<or> D \<in> Red_F_G (\<G>_set N)"
+    then have d_in_imp12: "D \<in> \<G>_F (concl_of \<iota>) \<Longrightarrow> D \<in> \<G>_set N - Red_F_G (\<G>_set N) \<or> D \<in> Red_F_G (\<G>_set N)"
       by blast 
-    have "D \<in> \<G>_set N - Red_F_G (\<G>_set N) \<Longrightarrow> D \<in> \<G>_set (N - N')"
+    have d_in_imp1: "D \<in> \<G>_set N - Red_F_G (\<G>_set N) \<Longrightarrow> D \<in> \<G>_set (N - N')"
       using not_red_map_in_map_not_red N'_in_Red_F_N by blast
-    have "D \<in> Red_F_G (\<G>_set N) \<Longrightarrow> D \<in> Red_F_G (\<G>_set N - Red_F_G (\<G>_set N))"
+    have d_in_imp_d_in: "D \<in> Red_F_G (\<G>_set N) \<Longrightarrow> D \<in> Red_F_G (\<G>_set N - Red_F_G (\<G>_set N))"
       using Ground.Red_F_of_Red_F_subset[of "Red_F_G (\<G>_set N)" "\<G>_set N"] by blast 
-    have "\<G>_set N - Red_F_G (\<G>_set N) \<subseteq> \<G>_set (N - Red_F_\<G> N)"
+    have g_subs1: "\<G>_set N - Red_F_G (\<G>_set N) \<subseteq> \<G>_set (N - Red_F_\<G> N)"
       using not_red_map_in_map_not_red unfolding Red_F_\<G>_def by auto
-    then have "D \<in> Red_F_G (\<G>_set N) \<Longrightarrow> D \<in> Red_F_G (\<G>_set (N - N'))"
-    sorry
+    have g_subs2: "\<G>_set (N - Red_F_\<G> N) \<subseteq> \<G>_set (N - N')"
+      using N'_in_Red_F_N by blast
+    have d_in_imp2: "D \<in> Red_F_G (\<G>_set N) \<Longrightarrow> D \<in> Red_F_G (\<G>_set (N - N'))"
+      using Ground.Red_F_of_subset Ground.Red_F_of_subset[OF g_subs1]
+        Ground.Red_F_of_subset[OF g_subs2] d_in_imp_d_in by blast
+    have "\<G>_F (concl_of \<iota>) \<subseteq> (\<G>_set (N - N') \<union> Red_F_G (\<G>_set (N - N')))"
+      using d_in_imp12 d_in_imp1 d_in_imp2
+      by (smt Ground.Red_F_of_Red_F_subset Ground.Red_F_of_subset UnCI UnE Un_Diff_cancel2
+        ground_concl_subs g_subs1 g_subs2 subset_iff)
   }
-  ultimately show \<open>\<iota> \<in> Red_Inf_\<G> (N - N')\<close>
-    unfolding Red_Inf_\<G>_def using i_in sorry
+  ultimately show \<open>\<iota> \<in> Red_Inf_\<G> (N - N')\<close> using i_in unfolding Red_Inf_\<G>_def by auto 
 qed
 
 text \<open>lem:concl-contained-implies-red-inf\<close>
@@ -324,7 +331,7 @@ proof -
     using concl_i_in Ground.Red_Inf_of_subset by blast
   moreover have "\<iota> \<in> Inf_F \<Longrightarrow> \<G>_Inf \<iota> = None \<Longrightarrow> concl_of \<iota> \<in> N \<Longrightarrow> \<G>_F (concl_of \<iota>) \<subseteq> \<G>_set N"
     by blast
-  ultimately show ?thesis using i_in unfolding Red_Inf_\<G>_def sorry
+  ultimately show ?thesis using i_in concl_i_in unfolding Red_Inf_\<G>_def by auto 
 qed
 
 text \<open>thm:FRedsqsubset-is-red-crit\<close>
@@ -346,9 +353,12 @@ qed
 lemma "calculus_with_red_crit Bot_F Inf_F entails_\<G> Red_Inf_\<G> Red_F_\<G>"
   using lifted_calculus_with_red_crit.calculus_with_red_crit_axioms .
 
+lemma grounded_inf_in_ground_inf: "\<iota> \<in> Inf_F \<Longrightarrow> \<G>_Inf \<iota> \<noteq> None \<Longrightarrow> the (\<G>_Inf \<iota>) \<subseteq> Inf_G"
+  using inf_map Ground.Red_Inf_to_Inf by blast
+
 end
 
-locale strong_standard_lifting =  Non_ground: inference_system Inf_F +
+locale strong_standard_lifting = Non_ground: inference_system Inf_F +
   Ground: calculus_with_red_crit Bot_G Inf_G entails_G Red_Inf_G Red_F_G
   for
     Bot_F :: \<open>'f set\<close> and
@@ -366,7 +376,8 @@ locale strong_standard_lifting =  Non_ground: inference_system Inf_F +
     Bot_map_not_empty: \<open>B \<in> Bot_F \<Longrightarrow> \<G>_F B \<noteq> {}\<close> and
     Bot_map: \<open>B \<in> Bot_F \<Longrightarrow> \<G>_F B \<subseteq> Bot_G\<close> and
     Bot_cond: \<open>\<G>_F C \<inter> Bot_G \<noteq> {} \<longrightarrow> C \<in> Bot_F\<close> and
-    inf_map: \<open>\<iota> \<in> Inf_F \<Longrightarrow> \<G>_Inf \<iota> \<noteq> None \<Longrightarrow> concl_of ` (the (\<G>_Inf \<iota>)) \<subseteq> (\<G>_F (concl_of \<iota>))\<close>
+    strong_inf_map: \<open>\<iota> \<in> Inf_F \<Longrightarrow> \<G>_Inf \<iota> \<noteq> None \<Longrightarrow> concl_of ` (the (\<G>_Inf \<iota>)) \<subseteq> (\<G>_F (concl_of \<iota>))\<close> and
+    inf_map_in_Inf: \<open>\<iota> \<in> Inf_F \<Longrightarrow> \<G>_Inf \<iota> \<noteq> None \<Longrightarrow> the (\<G>_Inf \<iota>) \<subseteq> Inf_G\<close>
 begin
 
 sublocale standard_lifting
@@ -389,10 +400,13 @@ next
   show "the (\<G>_Inf \<iota>) \<subseteq> Red_Inf_G (\<G>_F (concl_of \<iota>))" 
   proof
     fix \<iota>G
-    assume "\<iota>G \<in> the (\<G>_Inf \<iota>)"
-    then have ig_in: "\<iota>G \<in> Inf_G"  
-    show "\<iota>G \<in> Red_Inf_G (\<G>_F (concl_of \<iota>))"  using inf_map[OF i_in some_g] Ground.Red_Inf_of_Inf_to_N
-oops
+    assume ig_in1: "\<iota>G \<in> the (\<G>_Inf \<iota>)" 
+    then have ig_in2: "\<iota>G \<in> Inf_G" using inf_map_in_Inf[OF i_in some_g] by blast 
+    show "\<iota>G \<in> Red_Inf_G (\<G>_F (concl_of \<iota>))"
+      using strong_inf_map[OF i_in some_g] Ground.Red_Inf_of_Inf_to_N[OF ig_in2]
+        ig_in1 by blast
+  qed
+qed
 
 end
 
@@ -428,7 +442,7 @@ locale lifting_equivalence_with_empty_order =
     Red_F_G \<G>_F \<G>_Inf "\<lambda>g. Empty_Order"
   for
     \<G>_F :: \<open>'f \<Rightarrow> 'g set\<close> and
-    \<G>_Inf :: \<open>'f inference \<Rightarrow> 'g inference set\<close> and
+    \<G>_Inf :: \<open>'f inference \<Rightarrow> 'g inference set option\<close> and
     Bot_F :: \<open>'f set\<close> and
     Inf_F :: \<open>'f inference set\<close> and
     Bot_G :: \<open>'g set\<close> and
@@ -506,7 +520,7 @@ locale standard_lifting_with_red_crit_family = Non_ground: inference_system Inf_
   + fixes
     Bot_F :: "'f set" and
     \<G>_F_q :: "'q \<Rightarrow> 'f \<Rightarrow> 'g set" and
-    \<G>_Inf_q :: "'q \<Rightarrow> 'f inference \<Rightarrow> 'g inference set" and
+    \<G>_Inf_q :: "'q \<Rightarrow> 'f inference \<Rightarrow> 'g inference set option" and
     Prec_F_g :: "'g \<Rightarrow> 'f \<Rightarrow> 'f \<Rightarrow> bool"
   assumes
     standard_lifting_family: "lifting_with_wf_ordering_family Bot_F Inf_F Bot_G (entails_q q)
@@ -516,7 +530,7 @@ begin
 definition \<G>_set_q :: "'q \<Rightarrow> 'f set \<Rightarrow> 'g set" where
   "\<G>_set_q q N \<equiv> UNION N (\<G>_F_q q)"
 
-definition Red_Inf_\<G>_q :: "'q \<Rightarrow> 'f set \<Rightarrow> 'f inference set" where
+definition Red_Inf_\<G>_q :: "'q \<Rightarrow> 'f set \<Rightarrow> 'f inference set option" where
   "Red_Inf_\<G>_q q N = {\<iota> \<in> Inf_F. \<G>_Inf_q q \<iota> \<subseteq> Red_Inf_q q (\<G>_set_q q N)}"
 
 definition Red_Inf_\<G>_Q :: "'f set \<Rightarrow> 'f inference set" where
