@@ -334,7 +334,7 @@ proof -
   ultimately show ?thesis using i_in concl_i_in unfolding Red_Inf_\<G>_def by auto 
 qed
 
-text \<open>thm:FRedsqsubset-is-red-crit\<close>
+text \<open>thm:FRedsqsubset-is-red-crit and also thm:lifted-red-crit if ordering empty\<close>
 sublocale lifted_calculus_with_red_crit: calculus_with_red_crit 
   where
     Bot = Bot_F and Inf = Inf_F and entails = entails_\<G> and
@@ -355,6 +355,29 @@ lemma "calculus_with_red_crit Bot_F Inf_F entails_\<G> Red_Inf_\<G> Red_F_\<G>"
 
 lemma grounded_inf_in_ground_inf: "\<iota> \<in> Inf_F \<Longrightarrow> \<G>_Inf \<iota> \<noteq> None \<Longrightarrow> the (\<G>_Inf \<iota>) \<subseteq> Inf_G"
   using inf_map Ground.Red_Inf_to_Inf by blast
+
+text \<open>lem:sat-wrt-finf\<close>
+lemma "lifted_calculus_with_red_crit.saturated N \<Longrightarrow> Ground.Inf_from (\<G>_set N) \<subseteq>
+  ({\<iota>. \<exists>\<iota>'\<in> Non_ground.Inf_from N. \<G>_Inf \<iota>' \<noteq> None \<and> \<iota> \<in> the (\<G>_Inf \<iota>')} \<union> Red_Inf_G (\<G>_set N)) \<Longrightarrow>
+  Ground.saturated (\<G>_set N)"
+proof -
+  fix N
+  assume
+    "lifted_calculus_with_red_crit.saturated N" and
+    inf_grounded_in: "Ground.Inf_from (\<G>_set N) \<subseteq>
+    ({\<iota>. \<exists>\<iota>'\<in> Non_ground.Inf_from N. \<G>_Inf \<iota>' \<noteq> None \<and> \<iota> \<in> the (\<G>_Inf \<iota>')} \<union> Red_Inf_G (\<G>_set N))"
+  show "Ground.saturated (\<G>_set N)" unfolding Ground.saturated_def
+  proof
+    fix \<iota>
+    assume i_in: "\<iota> \<in> Ground.Inf_from (\<G>_set N)"
+    {
+      assume "\<iota> \<in> {\<iota>. \<exists>\<iota>'\<in> Non_ground.Inf_from N. \<G>_Inf \<iota>' \<noteq> None \<and> \<iota> \<in> the (\<G>_Inf \<iota>')}"
+      then obtain \<iota>' where "\<iota>'\<in> Non_ground.Inf_from N" "\<G>_Inf \<iota>' \<noteq> None" "\<iota> \<in> the (\<G>_Inf \<iota>')" by blast 
+      then have "\<iota> \<in> Red_Inf_G (\<G>_set N)" sorry
+    }
+    then show "\<iota> \<in> Red_Inf_G (\<G>_set N)" using inf_grounded_in i_in by blast 
+  qed
+qed
 
 end
 
@@ -530,8 +553,9 @@ begin
 definition \<G>_set_q :: "'q \<Rightarrow> 'f set \<Rightarrow> 'g set" where
   "\<G>_set_q q N \<equiv> UNION N (\<G>_F_q q)"
 
-definition Red_Inf_\<G>_q :: "'q \<Rightarrow> 'f set \<Rightarrow> 'f inference set option" where
-  "Red_Inf_\<G>_q q N = {\<iota> \<in> Inf_F. \<G>_Inf_q q \<iota> \<subseteq> Red_Inf_q q (\<G>_set_q q N)}"
+definition Red_Inf_\<G>_q :: "'q \<Rightarrow> 'f set \<Rightarrow> 'f inference set" where
+  "Red_Inf_\<G>_q q N = {\<iota> \<in> Inf_F. (\<G>_Inf_q q \<iota> \<noteq> None \<and> the (\<G>_Inf_q q \<iota>) \<subseteq> Red_Inf_q q (\<G>_set_q q N))
+  \<or> (\<G>_Inf_q q \<iota> = None \<and> \<G>_F_q q (concl_of \<iota>) \<subseteq> (\<G>_set_q q N \<union> Red_F_q q (\<G>_set_q q N)))}"
 
 definition Red_Inf_\<G>_Q :: "'f set \<Rightarrow> 'f inference set" where
   "Red_Inf_\<G>_Q N = \<Inter> {X N |X. X \<in> (Red_Inf_\<G>_q ` UNIV)}"

@@ -647,7 +647,7 @@ text \<open>lem:saturation-red-vs-red'-1\<close>
 lemma sat_imp_red_calc_sat: "saturated N \<Longrightarrow> reduc_calc.saturated N"
   unfolding saturated_def reduc_calc.saturated_def Red_Red_Inf_def by blast
 
-text \<open>lem:saturaten-red-vs-red'-2 1/2 (i) \<longleftrightarrow> (ii)\<close>
+text \<open>lem:saturation-red-vs-red'-2 1/2 (i) \<longleftrightarrow> (ii)\<close>
 lemma red_sat_eq_red_calc_sat: "reduc_saturated N \<longleftrightarrow> reduc_calc.saturated N"
 proof
   assume red_sat_n: "reduc_saturated N"
@@ -671,7 +671,7 @@ next
   qed
 qed
 
-text \<open>lem:saturaten-red-vs-red'-2 2/2 (i) \<longleftrightarrow> (iii)\<close>
+text \<open>lem:saturation-red-vs-red'-2 2/2 (i) \<longleftrightarrow> (iii)\<close>
 lemma red_sat_eq_sat: "reduc_saturated N \<longleftrightarrow> saturated (N - Red_F N)"
   unfolding reduc_saturated_def saturated_def by (simp add: Red_Inf_without_redundant_clauses)
 
