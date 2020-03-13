@@ -1,5 +1,5 @@
 chapter Weidenbach_Book
-
+(*
 session "CDCL_no_Sepref" (Weidenbach_Book) = "HOL"  +
   description \<open>This session is the same as the CDCL session, but des not import
   the Refinement Framework.
@@ -31,6 +31,7 @@ session "CDCL_no_Sepref" (Weidenbach_Book) = "HOL"  +
   document_files
     "root.tex"
     "biblio.bib"
+*)
 
 session "CDCL" (Weidenbach_Book) = "Isabelle_LLVM"  +
   description \<open>This session the CDCL calculi (Weidenbach and Nieuwenhuis et al.) and the links between

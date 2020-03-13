@@ -1,5 +1,5 @@
 theory CDCL_W_BnB
-  imports CDCL.CDCL_W_Abstract_State Weidenbach_Book_Base.Explorer
+  imports CDCL.CDCL_W_Abstract_State
 begin
 
 section \<open>CDCL Extensions\<close>

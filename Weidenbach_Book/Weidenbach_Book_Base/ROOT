@@ -8,6 +8,8 @@ session "Weidenbach_Book_Base" (Weidenbach_Book) = "Sepref_IICF" +
     "HOL-Eisbach"
     "HOL-Library"
     Nested_Multisets_Ordinals
+  directories
+    "../../lib"
   theories [document = false]
     "HOL-Library.Code_Target_Numeral"
     "HOL-Library.Multiset"

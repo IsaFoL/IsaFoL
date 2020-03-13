@@ -1,6 +1,5 @@
 theory Watched_Literals_List_Restart
   imports Watched_Literals_List Watched_Literals_Algorithm_Restart
-    Weidenbach_Book_Base.Explorer
 begin
 
 text \<open>

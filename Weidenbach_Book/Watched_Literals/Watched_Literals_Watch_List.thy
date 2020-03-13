@@ -1,5 +1,5 @@
 theory Watched_Literals_Watch_List
-  imports Watched_Literals_List Watched_Literals_All_Literals Weidenbach_Book_Base.Explorer
+  imports Watched_Literals_List Watched_Literals_All_Literals
 begin
 
 

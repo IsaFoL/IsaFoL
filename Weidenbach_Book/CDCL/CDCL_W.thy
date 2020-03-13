@@ -1673,7 +1673,7 @@ next
     assume a2: "
       (\<Union>x\<in>set_mset (learned_clss S). atms_of x) \<subseteq> (\<Union>x\<in>set_mset (init_clss S). atms_of x)"
     assume "xa \<in># D"
-    then have "atm_of xa \<in> UNION (set_mset (init_clss S)) atms_of"
+    then have "atm_of xa \<in> \<Union>(atms_of ` (set_mset (init_clss S)))"
       using a2 a1 by (metis (no_types) Un_iff atm_of_lit_in_atms_of atms_of_def subset_Un_eq)
     then have "\<exists>m\<in>set_mset (init_clss S). atm_of xa \<in> atms_of m"
       by blast

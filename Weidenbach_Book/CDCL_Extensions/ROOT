@@ -5,6 +5,7 @@ session "CDCL_Extensions" (Weidenbach_Book) = "CDCL"  +
   options [document = pdf, document_output = "output"]
   sessions
     "HOL-Library"
+    Weidenbach_Book_Base
 
   theories [quick_and_dirty = false, document = true]
     CDCL_W_BnB
