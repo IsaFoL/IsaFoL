@@ -231,7 +231,7 @@ next
     using restart by (auto simp: ac_simps N)
 qed
 
-lemma pcdcl_restart_pcdcl_all_struct_invs:
+lemma (in -) pcdcl_restart_pcdcl_all_struct_invs:
   fixes S V :: \<open>'v prag_st\<close>
   assumes
     \<open>pcdcl_restart S V\<close> and
@@ -257,6 +257,33 @@ lemma pcdcl_restart_pcdcl_all_struct_invs:
       by (auto 7 3 simp: entailed_clss_inv_def psubsumed_invs_def dest!: multi_member_split)
     done
   done
+lemma (in conflict_driven_clause_learning_with_adding_init_clause\<^sub>W) restart_no_smaller_propa:
+  \<open>restart S T \<Longrightarrow> no_smaller_propa S \<Longrightarrow> no_smaller_propa T\<close>
+  by (induction rule: restart.induct)
+   (auto simp: restart.simps no_smaller_propa_def state_prop)
+
+
+lemma (in -) pcdcl_restart_no_smaller_propa:
+  fixes S V :: \<open>'v prag_st\<close>
+  assumes
+    \<open>pcdcl_restart S V\<close> and
+    \<open>pcdcl_all_struct_invs S\<close> and
+    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant (state_of S)\<close> and
+    \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa (state_of S)\<close>
+  shows 
+    \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa (state_of V)\<close>
+  using assms pcdcl_restart_cdcl\<^sub>W_stgy[OF assms(1,2,3,4)]
+    pcdcl_restart_pcdcl_all_struct_invs[OF assms(1,2)] apply -
+  apply normalize_goal+
+	subgoal for T
+    using cdcl\<^sub>W_restart_mset.restart_no_smaller_propa[of \<open>state_of S\<close> T]
+      cdcl\<^sub>W_restart_mset.rtranclp_cdcl\<^sub>W_stgy_no_smaller_propa[of T \<open>state_of V\<close>]
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_inv[of \<open>state_of S\<close> T,
+      OF cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_restart.rf,
+      OF cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_rf.restart]
+    by (auto simp: pcdcl_all_struct_invs_def)
+  done
+
 
 lemma pcdcl_restart_only_cdcl\<^sub>W_stgy:
   fixes S V :: \<open>'v prag_st\<close>
@@ -378,13 +405,6 @@ lemma pcdcl_restart_only_pcdcl_all_struct_invs:
     done
   done
 
-
-text \<open>
-TODO: rename to \<^term>\<open>full\<^sub>t\<close> or something along that line.
-\<close>
-definition full2 :: "('a \<Rightarrow> 'a \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> 'a \<Rightarrow> bool) \<Rightarrow> 'a \<Rightarrow> 'a \<Rightarrow> bool" where
-"full2 transf transf2 = (\<lambda>S S'. rtranclp transf S S' \<and> no_step transf2 S')"
-
 definition pcdcl_final_state :: \<open>'v prag_st \<Rightarrow> bool\<close> where
   \<open>pcdcl_final_state S \<longleftrightarrow> no_step pcdcl_core S \<or>
      (count_decided (pget_trail S) = 0 \<and> pget_conflict S \<noteq> None)\<close>
@@ -425,6 +445,7 @@ restart_full:
  if
     \<open>pcdcl_tcore_stgy\<^sup>+\<^sup>+ S T\<close> and
     \<open>pcdcl_final_state T\<close>
+end
 
 lemma (in -) pcdcl_tcore_conflict_final_state_still:
   assumes
@@ -447,8 +468,6 @@ lemma (in -) rtranclp_pcdcl_tcore_conflict_final_state_still:
     pget_all_learned_clss S = pget_all_learned_clss T\<close>
   using assms
   by (induction rule: rtranclp_induct) (auto simp: pcdcl_tcore_conflict_final_state_still)
-
-end
 
 lemma pcdcl_tcore_no_core_no_learned:
   assumes \<open>pcdcl_tcore S T\<close> and
@@ -531,8 +550,6 @@ lemma rtranclp_pcdcl_tcore_stgy_no_core_no_learned:
   shows \<open>pget_all_learned_clss S = pget_all_learned_clss T\<close>
   using rtranclp_pcdcl_tcore_stgy_pcdcl_tcoreD[OF assms(1)] assms(2)
   by (blast intro: rtranclp_pcdcl_tcore_no_core_no_learned)
-
-thm wf_union_compatible
 
 inductive pcdcl_stgy_only_restart for S where
  restart_noGC_step:
@@ -645,20 +662,20 @@ proof cases
     unfolding pcdcl_all_struct_invs_def
     by (auto dest!: tranclp_into_rtranclp)
 
- then have dist: \<open>distinct_mset (learned_clss (state_of T) - (A))\<close>
-   apply (rule cdcl\<^sub>W_restart_mset.rtranclp_cdcl\<^sub>W_stgy_distinct_mset_clauses_new_abs)
-   subgoal using invs unfolding pcdcl_all_struct_invs_def by fast
-   subgoal using propa unfolding pcdcl_all_struct_invs_def by fast
-   subgoal using dist by (cases S) simp
-   done
- have [simp]: \<open>pget_all_learned_clss U = pget_all_learned_clss T\<close>
-   by (use res in \<open>auto simp: pcdcl_restart_only.simps\<close>)
- have \<open>distinct_mset (learned_clss (state_of U) - A)\<close>
-   apply (rule distinct_mset_mono[OF _ dist])
-   by (simp add: assms(1) diff_le_mono2_mset pcdcl_stgy_only_restart_init_learned
-     pcdcl_stgy_only_restart_psubsumed_learned_clauses subset_mset.add_mono)
- then show \<open>?thesis\<close>
-   using res by (auto simp add: pcdcl_restart_only.simps)
+  then have dist: \<open>distinct_mset (learned_clss (state_of T) - (A))\<close>
+    apply (rule cdcl\<^sub>W_restart_mset.rtranclp_cdcl\<^sub>W_stgy_distinct_mset_clauses_new_abs)
+    subgoal using invs unfolding pcdcl_all_struct_invs_def by fast
+    subgoal using propa unfolding pcdcl_all_struct_invs_def by fast
+    subgoal using dist by (cases S) simp
+    done
+  have [simp]: \<open>pget_all_learned_clss U = pget_all_learned_clss T\<close>
+    by (use res in \<open>auto simp: pcdcl_restart_only.simps\<close>)
+  have \<open>distinct_mset (learned_clss (state_of U) - A)\<close>
+    apply (rule distinct_mset_mono[OF _ dist])
+    by (simp add: assms(1) diff_le_mono2_mset pcdcl_stgy_only_restart_init_learned
+      pcdcl_stgy_only_restart_psubsumed_learned_clauses subset_mset.add_mono)
+  then show \<open>?thesis\<close>
+    using res by (auto simp add: pcdcl_restart_only.simps)
 qed
 
 
@@ -977,48 +994,12 @@ proof (rule ccontr)
 
   have H: False if \<open>pcdcl_final_state (fst (g i))\<close> for i
     using g[of i] that rtranclp_pcdcl_tcore_conflict_final_state_still[of \<open>fst (g i)\<close>]
-    unfolding pcdcl_stgy_restart.simps pcdcl_final_state_def
-    apply (elim disjE)
-    subgoal
-        apply normalize_goal+
-        apply (simp add: tranclp_into_rtranclp)
-       apply (drule tranclp_into_rtranclp)
-       apply (drule rtranclp_pcdcl_tcore_stgy_no_core_no_learned)
-          apply simp
-          apply simp
-       done
-    subgoal
-        apply normalize_goal+
-        apply (simp add: tranclp_into_rtranclp)
-        done
-    subgoal
-        apply normalize_goal+
-        apply (simp add: tranclp_into_rtranclp)
-       apply (drule tranclp_into_rtranclp)
-       apply (drule rtranclp_pcdcl_tcore_stgy_no_core_no_learned)
-          apply simp
-          apply simp
-       done
-    subgoal
-        apply normalize_goal+
-        apply (elim disjE)
-       apply (drule tranclp_into_rtranclp)
-       apply (drule rtranclp_pcdcl_tcore_stgy_no_core_no_learned)
-          apply (simp )
-          apply simp
-          apply simp
-       done
-    subgoal
-        apply normalize_goal+
-        apply (simp add: tranclp_into_rtranclp)
-        done
-    subgoal
-        apply normalize_goal+
-        apply (elim disjE)
-       apply (drule tranclp_into_rtranclp)
-    apply force
-    apply force
-      done
+    unfolding pcdcl_stgy_restart.simps pcdcl_final_state_def apply -
+    apply (elim disjE; normalize_goal+)
+    apply (((drule tranclp_into_rtranclp rtranclp_pcdcl_tcore_stgy_no_core_no_learned)+;
+      simp add: tranclp_into_rtranclp)+)[5]
+    apply ((drule tranclp_into_rtranclp)+;
+      force simp add: tranclp_into_rtranclp)
     done
 
   let ?snd = \<open>\<lambda>i. fst (snd i)\<close>
@@ -1047,7 +1028,8 @@ proof (rule ccontr)
   qed
 
   define f' where \<open>f' \<equiv> rec_nat 0 (\<lambda>_ n. LEAST i. i > n \<and> ?snd (g (Suc i)) = Suc (?snd (g i)))\<close>
-  then have [simp]: \<open>f' 0 = 0\<close> and f_Suc: \<open>f' (Suc n) = (LEAST i. i > f' n \<and> ?snd (g (Suc i)) = Suc (?snd (g i)))\<close> for n
+  then have [simp]: \<open>f' 0 = 0\<close> and f_Suc: \<open>f' (Suc n) = (LEAST i. i > f' n \<and> ?snd (g (Suc i)) =
+      Suc (?snd (g i)))\<close> for n
     by auto
   let ?f' = \<open>\<lambda>i. g (f' i)\<close>
   have
@@ -1103,8 +1085,10 @@ proof (rule ccontr)
 
   obtain Tn where
     Tn: \<open>pcdcl_tcore_stgy\<^sup>+\<^sup>+ (fst (?f' (Suc (Suc n)))) Tn\<close> and
-    bound: \<open>f (?n) + size (pget_all_learned_clss (fst (?f' (Suc (Suc n))))) < size (pget_all_learned_clss Tn)\<close>
-    using g[of \<open>f' (Suc (Suc n))\<close>] f'(1)[of \<open>Suc n\<close>] snd_f'_0[of n] unfolding pcdcl_stgy_restart.simps
+    bound: \<open>f (?n) + size (pget_all_learned_clss (fst (?f' (Suc (Suc n)))))
+       < size (pget_all_learned_clss Tn)\<close>
+    using g[of \<open>f' (Suc (Suc n))\<close>] f'(1)[of \<open>Suc n\<close>] snd_f'_0[of n]
+    unfolding pcdcl_stgy_restart.simps
     by auto
 
   have \<open>atms_of_mm (pget_all_init_clss (fst (g (Suc i)))) = atms_of_mm (pget_all_init_clss (fst (g i)))\<close> for i
@@ -1126,6 +1110,7 @@ proof (rule ccontr)
    subgoal using inv' unfolding pcdcl_all_struct_invs_def by fast
    subgoal by simp
    done
+
 
   have fin_N: \<open>finite ?N\<close>
     by auto

@@ -1,5 +1,5 @@
 theory Watched_Literals_Transition_System_Restart
-  imports Watched_Literals_Transition_System
+  imports CDCL.Pragmatic_CDCL_Restart Watched_Literals_Transition_System
 begin
 
 
@@ -50,17 +50,20 @@ restart_clauses:
 
 inductive_cases cdcl_twl_restartE: \<open>cdcl_twl_restart S T\<close>
 
+lemma cdcl_twl_restart_pcdcl: \<open>cdcl_twl_restart S T \<Longrightarrow> pcdcl_restart (pstate\<^sub>W_of S) (pstate\<^sub>W_of T)\<close>
+  by (induction rule: cdcl_twl_restart.induct)
+    (auto simp add: pcdcl_restart.simps dest: image_mset_subseteq_mono) 
 
 lemma cdcl_twl_restart_twl_struct_invs:
   assumes
     \<open>cdcl_twl_restart S T\<close> and
     \<open>twl_struct_invs S\<close>
   shows \<open>twl_struct_invs T\<close>
-  using assms
+  using assms cdcl_twl_restart_pcdcl[OF assms(1)]
 proof (induction rule: cdcl_twl_restart.induct)
   case (restart_trail K M' M2 M U' UE' U N N' NE' NE UE NS US Q)
   note decomp = this(1) and learned' = this(2) and N = this(3) and
-    has_true = this(4) and kept = this(5) and inv = this(6)
+    has_true = this(4) and kept = this(5) and inv = this(6) and st' = this(7)
   let ?S = \<open>(M, N, U, None, NE, UE, NS, US, {#}, Q)\<close>
   let ?S' = \<open>(M', N', U', None, NE+ clauses NE', UE + clauses UE', NS, {#}, {#}, {#})\<close>
   have learned: \<open>U' \<subseteq># U\<close>
@@ -68,8 +71,7 @@ proof (induction rule: cdcl_twl_restart.induct)
   have
     twl_st_inv: \<open>twl_st_inv ?S\<close> and
     \<open>valid_enqueued ?S\<close> and
-    struct_inv: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv
-      (state\<^sub>W_of ?S)\<close> and
+    struct_inv: \<open>pcdcl_all_struct_invs (pstate\<^sub>W_of ?S)\<close> and
     smaller: \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa
       (state\<^sub>W_of ?S)\<close> and
     \<open>twl_st_exception_inv ?S\<close> and
@@ -80,11 +82,9 @@ proof (induction rule: cdcl_twl_restart.induct)
     \<open>get_conflict ?S \<noteq> None \<longrightarrow>
      clauses_to_update ?S = {#} \<and>
      literals_to_update ?S = {#}\<close> and
-    unit: \<open>entailed_clss_inv ?S\<close> and
     to_upd: \<open>clauses_to_update_inv ?S\<close> and
-    past: \<open>past_invs ?S\<close> and
-    subs: \<open>subsumed_clauses_inv ?S\<close>
-    using inv unfolding twl_struct_invs_def by clarify+
+    past: \<open>past_invs ?S\<close>
+    using inv unfolding twl_struct_invs_def pcdcl_all_struct_invs_def by clarsimp+
   have
     ex: \<open>(\<forall>C\<in>#N + U. twl_lazy_update M' C \<and>
            watched_literals_false_of_max_level M' C \<and>
@@ -103,42 +103,14 @@ proof (induction rule: cdcl_twl_restart.induct)
      by auto
    have n_d: \<open>no_dup M\<close>
      using struct_inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-       cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def by (auto simp: trail.simps)
+       cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def pcdcl_all_struct_invs_def
+     by (auto simp: trail.simps)
    obtain M3 where
      M: \<open>M = M3 @ M2 @ Decided K # M'\<close>
      using decomp by blast
    define M3' where \<open>M3' = M3 @ M2\<close>
    then have M3': \<open>M = M3' @ Decided K # M'\<close>
      unfolding M by auto
-   have entailed_clss_inv: \<open>entailed_clss_inv ?S'\<close>
-     unfolding entailed_clss_inv.simps
-   proof
-     fix C
-     assume \<open>C \<in># NE + clauses NE' + (UE + clauses UE')\<close>
-     moreover have \<open>L \<in> lits_of_l M \<and> get_level M L = 0 \<Longrightarrow>L \<in> lits_of_l M' \<and> get_level M' L = 0\<close>
-       for L
-       using n_d
-       by (cases \<open>undefined_lit M3' L\<close>)
-         (auto simp: M3' atm_of_eq_atm_of get_level_cons_if
-           dest: in_lits_of_l_defined_litD split: if_splits)
-     ultimately obtain L where
-       lev_L: \<open>get_level M' L = 0\<close>
-       \<open>L \<in> lits_of_l M'\<close> and
-       C: \<open>L \<in># C\<close>
-       using unit has_true by auto blast+
-     then have \<open>L \<in> lits_of_l M'\<close>
-       apply (cases \<open>defined_lit M3' L\<close>)
-       using n_d unfolding M3' by (auto simp: get_level_cons_if split: if_splits
-           dest: in_lits_of_l_defined_litD)
-     moreover have \<open>get_level M' L = 0\<close>
-       apply (cases \<open>defined_lit M3' L\<close>)
-       using n_d lev_L unfolding M3' by (auto simp: get_level_cons_if split: if_splits
-           dest: in_lits_of_l_defined_litD)
-     ultimately show \<open>\<exists>L. L \<in># C \<and>
-             (None = None \<or> 0 < count_decided M' \<longrightarrow>
-              get_level M' L = 0 \<and> L \<in> lits_of_l M')\<close>
-       using C by blast
-   qed
    have a: \<open>N \<subseteq># N\<close> and NN': \<open>N' \<subseteq># N\<close> using N by auto
    have past_invs: \<open>past_invs ?S'\<close>
      unfolding past_invs.simps
@@ -182,6 +154,39 @@ proof (induction rule: cdcl_twl_restart.induct)
 
    have [simp]: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W \<le> cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_restart\<close>
      using cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_cdcl\<^sub>W_restart by blast
+   have struct_inv': \<open>pcdcl_all_struct_invs
+     (pstate\<^sub>W_of
+     (M', N', U', None, NE + clauses NE', UE + clauses UE', NS, {#}, {#},
+     {#}))\<close>
+     using pcdcl_restart_pcdcl_all_struct_invs[OF st' struct_inv] by simp
+   have smaller': \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa
+     (state\<^sub>W_of
+     (M', N', U', None, NE + clauses NE', UE + clauses UE', NS, {#}, {#},
+     {#}))\<close>
+     using pcdcl_restart_only_no_smaller_propa[OF st']
+     sorry
+   show ?case
+     unfolding twl_struct_invs_def
+     apply (intro conjI)
+     subgoal
+       using twl_st_inv_subsumed_mono[OF _ twl_st_inv_mono[OF learned NN' twl_st_inv']]
+       by (auto simp: ac_simps N)
+     subgoal by simp
+     subgoal by (rule struct_inv')
+     subgoal by (rule smaller')
+     subgoal by (rule twl_st_exception_inv_subsumed_mono[OF _ twl_st_exception_inv_mono[OF learned NN' excp_inv]])
+       auto
+     subgoal using no_dup_q by auto
+     subgoal using dist by auto
+     subgoal by (rule confl_cands_enqueued_subsumed_mono[OF _ confl_cands_enqueued_mono[OF learned NN' conf_cands]])
+       auto
+     subgoal by (rule propa_cands_enqueued_subsumed_mono[OF _ propa_cands_enqueued_mono[OF learned NN' propa_cands]])
+       auto
+     subgoal by simp
+     subgoal by (rule clss_to_upd)
+     subgoal by (rule past_invs)
+     done
+       next
 
    obtain T' where
      res: \<open>cdcl\<^sub>W_restart_mset.restart (state\<^sub>W_of ?S) T'\<close> and

@@ -1519,4 +1519,11 @@ lemma pcdcl_stgy_conflict_non_zero_unless_level_0:
   done
 
 
+text \<open>
+  TODO: rename to \<^term>\<open>full\<^sub>t\<close> or something along that line.
+  \<close>
+definition full2 :: "('a \<Rightarrow> 'a \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> 'a \<Rightarrow> bool) \<Rightarrow> 'a \<Rightarrow> 'a \<Rightarrow> bool" where
+  "full2 transf transf2 = (\<lambda>S S'. rtranclp transf S S' \<and> no_step transf2 S')"
+
+
 end
