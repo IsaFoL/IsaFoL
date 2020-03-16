@@ -357,13 +357,13 @@ lemma grounded_inf_in_ground_inf: "\<iota> \<in> Inf_F \<Longrightarrow> \<G>_In
   using inf_map Ground.Red_Inf_to_Inf by blast
 
 text \<open>lem:sat-wrt-finf\<close>
-lemma "lifted_calculus_with_red_crit.saturated N \<Longrightarrow> Ground.Inf_from (\<G>_set N) \<subseteq>
+lemma sat_imp_ground_sat: "lifted_calculus_with_red_crit.saturated N \<Longrightarrow> Ground.Inf_from (\<G>_set N) \<subseteq>
   ({\<iota>. \<exists>\<iota>'\<in> Non_ground.Inf_from N. \<G>_Inf \<iota>' \<noteq> None \<and> \<iota> \<in> the (\<G>_Inf \<iota>')} \<union> Red_Inf_G (\<G>_set N)) \<Longrightarrow>
   Ground.saturated (\<G>_set N)"
 proof -
   fix N
   assume
-    "lifted_calculus_with_red_crit.saturated N" and
+    sat_n: "lifted_calculus_with_red_crit.saturated N" and
     inf_grounded_in: "Ground.Inf_from (\<G>_set N) \<subseteq>
     ({\<iota>. \<exists>\<iota>'\<in> Non_ground.Inf_from N. \<G>_Inf \<iota>' \<noteq> None \<and> \<iota> \<in> the (\<G>_Inf \<iota>')} \<union> Red_Inf_G (\<G>_set N))"
   show "Ground.saturated (\<G>_set N)" unfolding Ground.saturated_def
@@ -373,10 +373,46 @@ proof -
     {
       assume "\<iota> \<in> {\<iota>. \<exists>\<iota>'\<in> Non_ground.Inf_from N. \<G>_Inf \<iota>' \<noteq> None \<and> \<iota> \<in> the (\<G>_Inf \<iota>')}"
       then obtain \<iota>' where "\<iota>'\<in> Non_ground.Inf_from N" "\<G>_Inf \<iota>' \<noteq> None" "\<iota> \<in> the (\<G>_Inf \<iota>')" by blast 
-      then have "\<iota> \<in> Red_Inf_G (\<G>_set N)" sorry
+      then have "\<iota> \<in> Red_Inf_G (\<G>_set N)"
+        using Red_Inf_\<G>_def sat_n unfolding lifted_calculus_with_red_crit.saturated_def by auto 
     }
     then show "\<iota> \<in> Red_Inf_G (\<G>_set N)" using inf_grounded_in i_in by blast 
   qed
+qed
+
+text \<open>thm:finf-complete\<close>
+theorem
+  assumes
+    stat_ref_G: "static_refutational_complete_calculus Bot_G Inf_G entails_G Red_Inf_G Red_F_G" and
+    sat_n_imp: "\<And>N. (lifted_calculus_with_red_crit.saturated N \<Longrightarrow> Ground.Inf_from (\<G>_set N) \<subseteq>
+    ({\<iota>. \<exists>\<iota>'\<in> Non_ground.Inf_from N. \<G>_Inf \<iota>' \<noteq> None \<and> \<iota> \<in> the (\<G>_Inf \<iota>')} \<union> Red_Inf_G (\<G>_set N)))"
+  shows
+    "static_refutational_complete_calculus Bot_F Inf_F entails_\<G> Red_Inf_\<G> Red_F_\<G>"
+proof
+  fix B N
+  assume
+    b_in: "B \<in> Bot_F" and
+    sat_n: "lifted_calculus_with_red_crit.saturated N" and
+    n_entails_bot: "N \<Turnstile>\<G> {B}"
+  have ground_n_entails: "\<G>_set N \<Turnstile>G \<G>_F B"
+    using n_entails_bot unfolding entails_\<G>_def by simp
+  then obtain BG where bg_in1: "BG \<in> \<G>_F B" 
+    using Bot_map_not_empty[OF b_in] by blast
+  then have bg_in: "BG \<in> Bot_G"
+    using Bot_map[OF b_in] by blast
+  have ground_n_entails_bot: "\<G>_set N \<Turnstile>G {BG}"
+    using ground_n_entails bg_in1 Ground.entail_set_all_formulas by blast
+  have "Ground.Inf_from (\<G>_set N) \<subseteq>
+    ({\<iota>. \<exists>\<iota>'\<in> Non_ground.Inf_from N. \<G>_Inf \<iota>' \<noteq> None \<and> \<iota> \<in> the (\<G>_Inf \<iota>')} \<union> Red_Inf_G (\<G>_set N))"
+    using sat_n_imp[OF sat_n] .
+  have "Ground.saturated (\<G>_set N)"
+    using sat_imp_ground_sat[OF sat_n sat_n_imp[OF sat_n]] .
+  then have "\<exists>BG'\<in>Bot_G. BG' \<in> (\<G>_set N)"
+    using stat_ref_G Ground.calculus_with_red_crit_axioms bg_in ground_n_entails_bot
+    unfolding static_refutational_complete_calculus_def static_refutational_complete_calculus_axioms_def
+    by blast
+  then show "\<exists>B'\<in> Bot_F. B' \<in> N"
+    using bg_in Bot_cond Bot_map_not_empty Bot_cond by blast 
 qed
 
 end
