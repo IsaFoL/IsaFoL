@@ -754,6 +754,21 @@ proof -
   using empty_ord_lifted_calc_w_red_crit_family.inter_red_crit by simp
 qed
 
+text \<open>thm:intersect-finf-complete\<close>
+theorem
+  assumes
+    stat_ref_G: "\<And>q. static_refutational_complete_calculus Bot_G Inf_G (entails_q q) (Red_Inf_q q) (Red_F_q q)" and
+      sat_n_imp: "\<And>N. (empty_ord_lifted_calc_w_red_crit_family.inter_red_crit_calculus.saturated N \<Longrightarrow>
+        \<exists>q. Ground_family.Inf_from (\<G>_set_q q N) \<subseteq>
+        ({\<iota>. \<exists>\<iota>'\<in> Non_ground.Inf_from N. \<G>_Inf_q q \<iota>' \<noteq> None \<and> \<iota> \<in> the (\<G>_Inf_q q \<iota>')} \<union> Red_Inf_q q (\<G>_set_q q N)))"
+  shows
+    "static_refutational_complete_calculus Bot_F Inf_F entails_\<G>_Q Red_Inf_\<G>_Q Red_F_\<G>_empty"
+sorry
+
+
+
+
+
 text "lem:intersect-saturation-indep-of-sqsubset"
 lemma "lifted_calc_w_red_crit_family.inter_red_crit_calculus.saturated N =
   empty_ord_lifted_calc_w_red_crit_family.inter_red_crit_calculus.saturated N "
