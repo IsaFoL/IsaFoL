@@ -612,7 +612,7 @@ definition Red_F_\<G>_g :: "'f set \<Rightarrow> 'f set" where
 definition entails_\<G>_q :: "'q \<Rightarrow> 'f set \<Rightarrow> 'f set \<Rightarrow> bool" where
   "entails_\<G>_q q N1 N2 \<equiv> entails_q q (\<G>_set_q q N1) (\<G>_set_q q N2)"
 
-definition entails_\<G>_Q :: "'f set \<Rightarrow> 'f set \<Rightarrow> bool" where
+definition entails_\<G>_Q :: "'f set \<Rightarrow> 'f set \<Rightarrow> bool" (infix "\<Turnstile>\<inter>" 50) where
   "entails_\<G>_Q N1 N2 \<equiv> \<forall>q. entails_\<G>_q q N1 N2"
 
 lemma red_crit_lifting_family:
@@ -742,7 +742,7 @@ sublocale empty_ord_lifted_calc_w_red_crit_family:
   using cons_rel_fam_Q_lem red_crit_lifting_family_empty_ord
   by (simp add: calculus_with_red_crit_family.intro calculus_with_red_crit_family_axioms_def)
 
-lemma "calculus_with_red_crit Bot_F Inf_F entails_\<G>_Q Red_Inf_\<G>_Q Red_F_\<G>_empty"
+lemma inter_calc: "calculus_with_red_crit Bot_F Inf_F entails_\<G>_Q Red_Inf_\<G>_Q Red_F_\<G>_empty"
 proof -
   have "lifted_calc_w_red_crit_family.entails_Q = entails_\<G>_Q"
     unfolding entails_\<G>_Q_def lifted_calc_w_red_crit_family.entails_Q_def by simp
@@ -763,7 +763,48 @@ theorem
         ({\<iota>. \<exists>\<iota>'\<in> Non_ground.Inf_from N. \<G>_Inf_q q \<iota>' \<noteq> None \<and> \<iota> \<in> the (\<G>_Inf_q q \<iota>')} \<union> Red_Inf_q q (\<G>_set_q q N)))"
   shows
     "static_refutational_complete_calculus Bot_F Inf_F entails_\<G>_Q Red_Inf_\<G>_Q Red_F_\<G>_empty"
-sorry
+    using inter_calc
+    unfolding static_refutational_complete_calculus_def static_refutational_complete_calculus_axioms_def
+proof (standard, clarify)
+  fix B N
+  assume
+    b_in: "B \<in> Bot_F" and
+    sat_n: "calculus_with_red_crit.saturated Inf_F Red_Inf_\<G>_Q N" and
+    entails_bot: "N \<Turnstile>\<inter> {B}"
+  interpret calculus_with_red_crit Bot_F Inf_F entails_\<G>_Q Red_Inf_\<G>_Q Red_F_\<G>_empty
+    using inter_calc by blast 
+  have "empty_ord_lifted_calc_w_red_crit_family.Red_Inf_Q = Red_Inf_\<G>_Q"
+    unfolding Red_Inf_\<G>_Q_def lifted_calc_w_red_crit_family.Red_Inf_Q_def by simp 
+  then have empty_ord_sat_n: "empty_ord_lifted_calc_w_red_crit_family.inter_red_crit_calculus.saturated N"
+    using sat_n 
+    unfolding saturated_def empty_ord_lifted_calc_w_red_crit_family.inter_red_crit_calculus.saturated_def
+    by simp 
+  then obtain q where inf_subs: "Ground_family.Inf_from (\<G>_set_q q N) \<subseteq>
+    ({\<iota>. \<exists>\<iota>'\<in> Non_ground.Inf_from N. \<G>_Inf_q q \<iota>' \<noteq> None \<and> \<iota> \<in> the (\<G>_Inf_q q \<iota>')} \<union> Red_Inf_q q (\<G>_set_q q N))"
+    using sat_n_imp[of N] by blast  
+  interpret q_calc: calculus_with_red_crit Bot_F Inf_F "entails_\<G>_q q" "Red_Inf_\<G>_q q" "Red_F_\<G>_q_g q"
+    using lifted_calc_w_red_crit_family.all_red_crit[of q] .
+  have n_q_sat: "q_calc.saturated N" using lifted_calc_w_red_crit_family.sat_int_to_sat_q empty_ord_sat_n by simp 
+  interpret lifted_q_calc: lifting_with_wf_ordering_family Bot_F Inf_F Bot_G "entails_q q" Inf_G "Red_Inf_q q" "Red_F_q q" "\<G>_F_q q" "\<G>_Inf_q q"
+    by (simp add: standard_lifting_family)
+  have "lifted_q_calc.empty_order_lifting.lifted_calculus_with_red_crit.saturated N"
+    using n_q_sat unfolding Red_Inf_\<G>_q_def \<G>_set_q_def lifted_q_calc.empty_order_lifting.Red_Inf_\<G>_def
+      lifted_q_calc.lifted_calculus_with_red_crit.saturated_def q_calc.saturated_def by auto
+  then have ground_sat_n: "lifted_q_calc.Ground.saturated (\<G>_set_q q N)"
+    using lifted_q_calc.sat_imp_ground_sat[of N] inf_subs unfolding \<G>_set_q_def by blast 
+  have "entails_\<G>_q q N {B}" using entails_bot unfolding entails_\<G>_Q_def by simp
+  then have ground_n_entails_bot: "entails_q q (\<G>_set_q q N) (\<G>_set_q q {B})" unfolding entails_\<G>_q_def .
+  interpret static_refutational_complete_calculus Bot_G Inf_G "entails_q q" "Red_Inf_q q" "Red_F_q q"
+    using stat_ref_G[of q] .
+  obtain BG where bg_in: "BG \<in> \<G>_F_q q B" 
+    using lifted_q_calc.Bot_map_not_empty[OF b_in] by blast
+  then have "BG \<in> Bot_G" using lifted_q_calc.Bot_map[OF b_in] by blast 
+  then have "\<exists>BG'\<in>Bot_G. BG' \<in> \<G>_set_q q N"
+    using ground_sat_n ground_n_entails_bot static_refutational_complete[of BG, OF _ ground_sat_n] 
+      bg_in lifted_q_calc.Ground.entail_set_all_formulas[of "\<G>_set_q q N" "\<G>_set_q q {B}"] unfolding \<G>_set_q_def
+    by simp
+  then show "\<exists>B'\<in> Bot_F. B' \<in> N" using lifted_q_calc.Bot_cond unfolding \<G>_set_q_def by blast
+qed
 
 
 

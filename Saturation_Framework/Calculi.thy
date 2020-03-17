@@ -438,7 +438,7 @@ sublocale inter_red_crit_calculus: calculus_with_red_crit
   using inter_red_crit .
 
 paragraph \<open>lem:satur-wrt-intersection-of-red\<close>
-lemma "calculus_with_red_crit.saturated Inf Red_Inf_Q N \<longleftrightarrow>
+lemma sat_int_to_sat_q: "calculus_with_red_crit.saturated Inf Red_Inf_Q N \<longleftrightarrow>
   (\<forall>qi. calculus_with_red_crit.saturated Inf (Red_Inf_q qi) N)" for N
 proof
   fix N
