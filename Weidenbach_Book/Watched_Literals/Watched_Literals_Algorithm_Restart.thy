@@ -6,19 +6,19 @@ context twl_restart_ops
 begin
 
 text \<open>Restarts are never necessary\<close>
-definition restart_required :: "'v twl_st \<Rightarrow> nat \<Rightarrow> bool nres" where
-  \<open>restart_required S n = SPEC (\<lambda>b. b \<longrightarrow> size (get_learned_clss S) > f n)\<close>
+definition restart_required :: "'v twl_st \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> bool nres" where
+  \<open>restart_required S m n = SPEC (\<lambda>b. b \<longrightarrow> size (get_learned_clss S) - m > f n)\<close>
 
 definition (in -) restart_prog_pre :: \<open>'v twl_st \<Rightarrow> bool \<Rightarrow> bool\<close> where
   \<open>restart_prog_pre S brk \<longleftrightarrow> twl_struct_invs S \<and> twl_stgy_invs S \<and>
     (\<not>brk \<longrightarrow> get_conflict S = None)\<close>
 
 definition restart_prog
-  :: "'v twl_st \<Rightarrow> nat \<Rightarrow> bool \<Rightarrow> ('v twl_st \<times> nat) nres"
+  :: "'v twl_st \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> bool \<Rightarrow> ('v twl_st \<times> nat) nres"
 where
-  \<open>restart_prog S n brk = do {
+  \<open>restart_prog S m n brk = do {
      ASSERT(restart_prog_pre S brk);
-     b \<leftarrow> restart_required S n;
+     b \<leftarrow> restart_required S m n;
      b2 \<leftarrow> SPEC(\<lambda>_. True);
      if b2 \<and> b \<and> \<not>brk then do {
        T \<leftarrow> SPEC(\<lambda>T. cdcl_twl_restart S T);
@@ -35,8 +35,9 @@ where
 
 definition cdcl_twl_stgy_restart_prog_inv where
   \<open>cdcl_twl_stgy_restart_prog_inv S\<^sub>0 brk T n \<equiv> twl_struct_invs T \<and> twl_stgy_invs T \<and>
-      (brk \<longrightarrow> final_twl_state T) \<and> cdcl_twl_stgy_restart_with_leftovers (S\<^sub>0, 0) (T, n) \<and>
-         clauses_to_update T = {#} \<and> (\<not>brk \<longrightarrow> get_conflict T = None)\<close>
+    (brk \<longrightarrow> final_twl_state T) \<and>
+    cdcl_twl_stgy_restart_with_leftovers (S\<^sub>0, 0, True) (T, n, brk) \<and>
+   clauses_to_update T = {#} \<and> (\<not>brk \<longrightarrow> get_conflict T = None)\<close>
 
 definition cdcl_twl_stgy_restart_prog :: "'v twl_st \<Rightarrow> 'v twl_st nres" where
   \<open>cdcl_twl_stgy_restart_prog S\<^sub>0 =

@@ -262,7 +262,8 @@ lemma (in conflict_driven_clause_learning_with_adding_init_clause\<^sub>W) resta
   by (induction rule: restart.induct)
    (auto simp: restart.simps no_smaller_propa_def state_prop)
 
-
+text \<open>The next theorem does not use the existence of the decomposition to prove
+a much stronger version.\<close>
 lemma (in -) pcdcl_restart_no_smaller_propa:
   fixes S V :: \<open>'v prag_st\<close>
   assumes
@@ -284,6 +285,19 @@ lemma (in -) pcdcl_restart_no_smaller_propa:
     by (auto simp: pcdcl_all_struct_invs_def)
   done
 
+
+
+lemma pcdcl_restart_no_smaller_propa':
+  fixes S V :: \<open>'v prag_st\<close>
+  assumes
+    \<open>pcdcl_restart S V\<close> and
+    \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa (state_of S)\<close>
+  shows 
+    \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa (state_of V)\<close>
+  using assms
+  by (induction rule: pcdcl_restart.induct)
+   (auto simp: cdcl\<^sub>W_restart_mset.no_smaller_propa_def clauses_def
+      dest!: get_all_ann_decomposition_exists_prepend)
 
 lemma pcdcl_restart_only_cdcl\<^sub>W_stgy:
   fixes S V :: \<open>'v prag_st\<close>
@@ -429,21 +443,19 @@ restart_step:
   \<open>pcdcl_stgy_restart (S, n, True) (V, Suc n, True)\<close>
   if
     \<open>pcdcl_tcore_stgy\<^sup>+\<^sup>+ S T\<close> and
-    \<open>size (pget_all_learned_clss T) > f n + size (pget_all_learned_clss S)\<close> and
+    \<open>size (pget_all_learned_clss T) - size (pget_all_learned_clss S) > f n\<close> and
     \<open>pcdcl_restart T U\<close> and
-    \<open>pcdcl_stgy\<^sup>*\<^sup>* U V\<close> and
-    \<open>pget_conflict S = None\<close> |
+    \<open>pcdcl_stgy\<^sup>*\<^sup>* U V\<close> |
 restart_noGC_step:
   \<open>pcdcl_stgy_restart (S, n, True) (U, n, True)\<close>
   if
     \<open>pcdcl_tcore_stgy\<^sup>+\<^sup>+ S T\<close> and
     \<open>size (pget_all_learned_clss T) > size (pget_all_learned_clss S)\<close> and
-    \<open>pcdcl_restart_only T U\<close> and
-    \<open>pget_conflict S = None\<close> |
+    \<open>pcdcl_restart_only T U\<close> |
 restart_full:
  \<open>pcdcl_stgy_restart (S, n, True) (T, n, False)\<close>
  if
-    \<open>pcdcl_tcore_stgy\<^sup>+\<^sup>+ S T\<close> and
+    \<open>pcdcl_tcore_stgy\<^sup>*\<^sup>* S T\<close> and
     \<open>pcdcl_final_state T\<close>
 end
 
@@ -557,8 +569,7 @@ inductive pcdcl_stgy_only_restart for S where
   if
     \<open>pcdcl_tcore_stgy\<^sup>+\<^sup>+ S T\<close> and
     \<open>size (pget_all_learned_clss T) > size (pget_all_learned_clss S)\<close> and
-    \<open>pcdcl_restart_only T U\<close> and
-    \<open>pget_conflict S = None\<close>
+    \<open>pcdcl_restart_only T U\<close>
 
 lemma pcdcl_tcore_stgy_step_or_unchanged:
    \<open>pcdcl_tcore_stgy S T \<Longrightarrow> pcdcl_core_stgy\<^sup>*\<^sup>* S T \<or> state_of S = state_of T \<or>
@@ -991,7 +1002,9 @@ proof (rule ccontr)
   have [simp]: \<open>NO_MATCH True c \<Longrightarrow> g i = (a, b, c) \<longleftrightarrow> g i = (a, b, True) \<and> c = True\<close> for i a b c
     using g[of i]
     by (auto simp: pcdcl_stgy_restart.simps)
-
+  have H: \<open>snd (snd (g i)) = True\<close> for i
+    by (cases \<open>g i\<close>) auto
+(*
   have H: False if \<open>pcdcl_final_state (fst (g i))\<close> for i
     using g[of i] that rtranclp_pcdcl_tcore_conflict_final_state_still[of \<open>fst (g i)\<close>]
     unfolding pcdcl_stgy_restart.simps pcdcl_final_state_def apply -
@@ -1001,7 +1014,7 @@ proof (rule ccontr)
     apply ((drule tranclp_into_rtranclp)+;
       force simp add: tranclp_into_rtranclp)
     done
-
+*)
   let ?snd = \<open>\<lambda>i. fst (snd i)\<close>
   have n_mono: \<open>?snd (g (Suc i)) = Suc (?snd (g i)) \<or> ?snd (g (Suc i)) = ?snd (g i)\<close> for i
     using g[of i] by (auto simp: pcdcl_stgy_restart.simps)
@@ -1019,8 +1032,8 @@ proof (rule ccontr)
       g: \<open>pcdcl_stgy_only_restart (f i) (f (Suc i))\<close> and
       inv: \<open>pcdcl_all_struct_invs (f i)\<close> and
       inv': \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa (state_of (f i))\<close> for i
-      using g[of \<open>Suc (i+j)\<close>] inv[of \<open>Suc (i+j)\<close>] inv'[of \<open>Suc (i+j)\<close>] neq[of \<open>i+j\<close>] neq[of \<open>Suc (i+j)\<close>]
-        H[of \<open>i+j\<close>]
+      using g[of \<open>Suc (i+j)\<close>] inv[of \<open>Suc (i+j)\<close>] inv'[of \<open>Suc (i+j)\<close>] neq[of \<open>i+j\<close>]
+        neq[of \<open>Suc (i+j)\<close>] H[of \<open>i+j+1\<close>]
       by (fastforce simp: f_def pcdcl_stgy_restart.simps
         pcdcl_stgy_only_restart.simps Suc_le_eq)+
     then show False
