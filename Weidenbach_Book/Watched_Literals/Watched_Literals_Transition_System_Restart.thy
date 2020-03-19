@@ -795,8 +795,10 @@ lemma rtranclp_cdcl_twl_stgy_restart_cdcl\<^sub>W_restart_stgy:
 
 
 definition (in twl_restart_ops) cdcl_twl_stgy_restart_with_leftovers where
-  \<open>cdcl_twl_stgy_restart_with_leftovers S U \<longleftrightarrow>
-     (\<exists>T. cdcl_twl_stgy_restart\<^sup>*\<^sup>* S (T, snd U) \<and> cdcl_twl_stgy\<^sup>*\<^sup>* T (fst U))\<close>
+  \<open>cdcl_twl_stgy_restart_with_leftovers S m U \<longleftrightarrow>
+    (\<exists>T. cdcl_twl_stgy_restart\<^sup>*\<^sup>* S (T, snd U) \<and>
+      cdcl_twl_stgy\<^sup>*\<^sup>* T (fst U) \<and>
+      m = size (get_all_learned_clss T))\<close>
 
 lemma cdcl_twl_stgy_size_get_all_learned:
   \<open>cdcl_twl_stgy S T \<Longrightarrow> size (get_all_learned_clss S) \<le> size (get_all_learned_clss T)\<close>
@@ -825,7 +827,6 @@ lemma cdcl_twl_stgy_restart_cdcl_twl_stgy_cdcl_twl_stgy_restart2:
       dest: rtranclp_tranclp_tranclp
         rtranclp_tranclp_tranclp[of _ S T]
       rtranclp_cdcl_twl_stgy_size_get_all_learned)
-
 
 definition cdcl_twl_stgy_restart_with_leftovers1 where
   \<open>cdcl_twl_stgy_restart_with_leftovers1 S U \<longleftrightarrow>
@@ -976,7 +977,7 @@ lemma cdcl_twl_stgy_restart_with_leftovers_twl_struct_invs:
      by (metis fst_conv rtranclp_cdcl_twl_stgy_restart_twl_struct_invs
        rtranclp_cdcl_twl_stgy_twl_struct_invs)   
   done
-
+(*
 lemma rtranclp_cdcl_twl_stgy_restart_with_leftovers_twl_struct_invs:
   \<open>cdcl_twl_stgy_restart_with_leftovers\<^sup>*\<^sup>* S T \<Longrightarrow> twl_struct_invs (fst S) \<Longrightarrow>
     twl_struct_invs (fst T)\<close>
@@ -986,7 +987,7 @@ lemma rtranclp_cdcl_twl_stgy_restart_with_leftovers_twl_struct_invs:
     using cdcl_twl_stgy_restart_with_leftovers_twl_struct_invs[of T U]
     by auto
   done
-
+*)
 
 lemma (in -) cdcl_twl_stgy_restart_only_twl_stgy_invs:
   assumes
@@ -1040,8 +1041,9 @@ lemma cdcl_twl_stgy_restart_with_leftovers_twl_stgy_invs:
     by (metis fst_conv rtranclp_cdcl_twl_stgy_restart_twl_stgy_invs rtranclp_cdcl_twl_stgy_restart_twl_struct_invs rtranclp_cdcl_twl_stgy_twl_stgy_invs)
   done
 
+(*
 lemma rtranclp_cdcl_twl_stgy_restart_with_leftovers_twl_stgy_invs:
-  \<open>cdcl_twl_stgy_restart_with_leftovers\<^sup>*\<^sup>* S T \<Longrightarrow> twl_struct_invs (fst S) \<Longrightarrow>
+  \<open>cdcl_twl_stgy_restart_with_leftovers\<^sup>*\<^sup>* S m T \<Longrightarrow> twl_struct_invs (fst S) \<Longrightarrow>
     twl_stgy_invs (fst S) \<Longrightarrow> twl_stgy_invs (fst T)\<close>
   apply (induction rule: rtranclp_induct)
   subgoal by auto
@@ -1050,7 +1052,7 @@ lemma rtranclp_cdcl_twl_stgy_restart_with_leftovers_twl_stgy_invs:
       rtranclp_cdcl_twl_stgy_restart_with_leftovers_twl_struct_invs[of S T]
     by auto
   done
-
+*)
 (*
 lemma rtranclp_cdcl_twl_stgy_restart_with_leftovers_cdcl\<^sub>W_restart_stgy:
   \<open>cdcl_twl_stgy_restart_with_leftovers\<^sup>*\<^sup>* S T \<Longrightarrow> twl_struct_invs (fst S) \<Longrightarrow> twl_stgy_invs (fst S) \<Longrightarrow>
