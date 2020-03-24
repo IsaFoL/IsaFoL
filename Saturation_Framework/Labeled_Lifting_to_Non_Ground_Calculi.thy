@@ -17,7 +17,7 @@ locale labeled_lifting_w_wf_ord_family =
     Red_Inf_G :: "'g set \<Rightarrow> 'g inference set" and
     Red_F_G :: "'g set \<Rightarrow> 'g set" and
     \<G>_F :: "'f \<Rightarrow> 'g set" and
-    \<G>_Inf :: "'f inference \<Rightarrow> 'g inference set" and
+    \<G>_Inf :: "'f inference \<Rightarrow> 'g inference set option" and
     Prec_F :: "'g \<Rightarrow> 'f \<Rightarrow> 'f \<Rightarrow> bool"  (infix "\<sqsubset>" 50)
   + fixes
     l :: \<open>'l itself\<close> and
@@ -37,7 +37,7 @@ definition Bot_FL :: \<open>('f \<times> 'l) set\<close> where \<open>Bot_FL = B
 
 definition \<G>_F_L :: \<open>('f \<times> 'l) \<Rightarrow> 'g set\<close> where \<open>\<G>_F_L CL = \<G>_F (fst CL)\<close>
 
-definition \<G>_Inf_L :: \<open>('f \<times> 'l) inference \<Rightarrow> 'g inference set\<close> where \<open>\<G>_Inf_L \<iota>\<^sub>F\<^sub>L = \<G>_Inf (to_F \<iota>\<^sub>F\<^sub>L)\<close>
+definition \<G>_Inf_L :: \<open>('f \<times> 'l) inference \<Rightarrow> 'g inference set option\<close> where \<open>\<G>_Inf_L \<iota>\<^sub>F\<^sub>L = \<G>_Inf (to_F \<iota>\<^sub>F\<^sub>L)\<close>
 
 (* definition entails_sound_FL :: \<open>('f \<times> 'l) set \<Rightarrow> ('f \<times> 'l) set \<Rightarrow> bool\<close> (infix "|\<approx>FL" 50) where \<open>CL1 |\<approx>FL
 CL2 \<equiv> fst ` CL1 |\<approx>F fst ` CL2\<close> *)
@@ -65,8 +65,10 @@ next
     by (metis SigmaE UNIV_I UNIV_Times_UNIV mem_Sigma_iff prod.sel(1))
 next
   fix \<iota>
-  assume \<open>\<iota> \<in> Inf_FL\<close>
-  then show "\<G>_Inf_L \<iota> \<subseteq> Red_Inf_G (\<G>_F_L (concl_of \<iota>))"
+  assume
+    i_in: \<open>\<iota> \<in> Inf_FL\<close> and
+    ground_not_none: \<open>\<G>_Inf_L \<iota> \<noteq> None\<close>
+  then show "the (\<G>_Inf_L \<iota>) \<subseteq> Red_Inf_G (\<G>_F_L (concl_of \<iota>))"
     unfolding \<G>_Inf_L_def \<G>_F_L_def to_F_def using inf_map Inf_FL_to_Inf_F by fastforce
 qed
 
@@ -185,7 +187,7 @@ locale labeled_lifting_with_red_crit_family = no_labels: standard_lifting_with_r
     Red_Inf_q :: "'q \<Rightarrow> 'g set \<Rightarrow> 'g inference set" and
     Red_F_q :: "'q \<Rightarrow> 'g set \<Rightarrow> 'g set" and
     \<G>_F_q :: "'q \<Rightarrow> 'f \<Rightarrow> 'g set" and
-    \<G>_Inf_q :: "'q \<Rightarrow> 'f inference \<Rightarrow> 'g inference set"
+    \<G>_Inf_q :: "'q \<Rightarrow> 'f inference \<Rightarrow> 'g inference set option"
   + fixes
     l :: "'l itself" and
     Inf_FL :: \<open>('f \<times> 'l) inference set\<close>
@@ -201,14 +203,15 @@ definition Bot_FL :: \<open>('f \<times> 'l) set\<close> where \<open>Bot_FL = B
 
 definition \<G>_F_L_q :: \<open>'q \<Rightarrow> ('f \<times> 'l) \<Rightarrow> 'g set\<close> where \<open>\<G>_F_L_q q CL = \<G>_F_q q (fst CL)\<close>
 
-definition \<G>_Inf_L_q :: \<open>'q \<Rightarrow> ('f \<times> 'l) inference \<Rightarrow> 'g inference set\<close> where
+definition \<G>_Inf_L_q :: \<open>'q \<Rightarrow> ('f \<times> 'l) inference \<Rightarrow> 'g inference set option\<close> where
   \<open>\<G>_Inf_L_q q \<iota>\<^sub>F\<^sub>L = \<G>_Inf_q q (to_F \<iota>\<^sub>F\<^sub>L)\<close>
 
 definition \<G>_set_L_q :: "'q \<Rightarrow> ('f \<times> 'l) set \<Rightarrow> 'g set" where
   "\<G>_set_L_q q N \<equiv> UNION N (\<G>_F_L_q q)"
 
 definition Red_Inf_\<G>_L_q :: "'q \<Rightarrow> ('f \<times> 'l) set \<Rightarrow> ('f \<times> 'l) inference set" where
-  "Red_Inf_\<G>_L_q q N = {\<iota> \<in> Inf_FL. \<G>_Inf_L_q q \<iota> \<subseteq> Red_Inf_q q (\<G>_set_L_q q N)}"
+  "Red_Inf_\<G>_L_q q N = {\<iota> \<in> Inf_FL. ((\<G>_Inf_L_q q \<iota>) \<noteq> None \<and> the (\<G>_Inf_L_q q \<iota>) \<subseteq> Red_Inf_q q (\<G>_set_L_q q N))
+    \<or> ((\<G>_Inf_L_q q \<iota> = None) \<and> \<G>_F_L_q q (concl_of \<iota>) \<subseteq> (\<G>_set_L_q q N \<union> Red_F_q q (\<G>_set_L_q q N)))}"
 
 definition Red_Inf_\<G>_L_Q :: "('f \<times> 'l) set \<Rightarrow> ('f \<times> 'l) inference set" where
   "Red_Inf_\<G>_L_Q N = \<Inter> {X N |X. X \<in> (Red_Inf_\<G>_L_q ` UNIV)}"
@@ -332,10 +335,18 @@ proof clarify
   have i_in_q: "\<iota> \<in> Red_Inf_\<G>_L_q q NL" using i_in_inter image_eqI by blast
   then have i_in: "\<iota> \<in> Inf_FL" unfolding Red_Inf_\<G>_L_q_def by blast
   have to_F_in: "to_F \<iota> \<in> Inf_F" unfolding to_F_def using Inf_FL_to_Inf_F[OF i_in] .
-  have subs_red: "\<G>_Inf_L_q q \<iota> \<subseteq> Red_Inf_q q (\<G>_set_L_q q NL)"
+  have rephrase1: "(\<Union>CL\<in>NL. \<G>_F_q q (fst CL)) = (\<Union> (\<G>_F_q q ` fst ` NL))" by blast
+  have rephrase2: "fst (concl_of \<iota>) = concl_of (to_F \<iota>)"
+    unfolding concl_of_def to_F_def by simp
+  have subs_red: "((\<G>_Inf_L_q q \<iota>) \<noteq> None \<and> the (\<G>_Inf_L_q q \<iota>) \<subseteq> Red_Inf_q q (\<G>_set_L_q q NL))
+    \<or> ((\<G>_Inf_L_q q \<iota> = None) \<and> \<G>_F_L_q q (concl_of \<iota>) \<subseteq> (\<G>_set_L_q q NL \<union> Red_F_q q (\<G>_set_L_q q NL)))"
     using i_in_q unfolding Red_Inf_\<G>_L_q_def by blast
-  then have "\<G>_Inf_q q (to_F \<iota>) \<subseteq> Red_Inf_q q (no_labels.\<G>_set_q q (fst ` NL))"
-    unfolding \<G>_Inf_L_q_def \<G>_set_L_q_def no_labels.\<G>_set_q_def \<G>_F_L_q_def by simp
+  then have to_F_subs_red: "((\<G>_Inf_q q (to_F \<iota>)) \<noteq> None \<and>
+      the (\<G>_Inf_q q (to_F \<iota>)) \<subseteq> Red_Inf_q q (no_labels.\<G>_set_q q (fst ` NL)))
+    \<or> ((\<G>_Inf_q q (to_F \<iota>) = None) \<and>
+      \<G>_F_q q (concl_of (to_F \<iota>)) \<subseteq> (no_labels.\<G>_set_q q (fst ` NL) \<union> Red_F_q q (no_labels.\<G>_set_q q (fst ` NL))))"
+    unfolding \<G>_Inf_L_q_def \<G>_set_L_q_def no_labels.\<G>_set_q_def \<G>_F_L_q_def
+    using rephrase1 rephrase2 by metis
   then show "to_F \<iota> \<in> no_labels.Red_Inf_\<G>_q q (fst ` NL)"
     using to_F_in unfolding no_labels.Red_Inf_\<G>_q_def by simp
 qed

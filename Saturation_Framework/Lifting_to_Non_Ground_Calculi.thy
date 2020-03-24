@@ -806,10 +806,6 @@ proof (standard, clarify)
   then show "\<exists>B'\<in> Bot_F. B' \<in> N" using lifted_q_calc.Bot_cond unfolding \<G>_set_q_def by blast
 qed
 
-
-
-
-
 text "lem:intersect-saturation-indep-of-sqsubset"
 lemma "lifted_calc_w_red_crit_family.inter_red_crit_calculus.saturated N =
   empty_ord_lifted_calc_w_red_crit_family.inter_red_crit_calculus.saturated N "

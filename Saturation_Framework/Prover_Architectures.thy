@@ -18,7 +18,7 @@ locale Prover_Architecture = labeled_lifting_with_red_crit_family Bot_F Inf_F Bo
     and Red_Inf_q :: "'q \<Rightarrow> ('g set \<Rightarrow> 'g inference set)"
     and Red_F_q :: "'q \<Rightarrow> ('g set \<Rightarrow> 'g set)"
     and \<G>_F_q :: "'q \<Rightarrow> 'f \<Rightarrow> 'g set" 
-    and \<G>_Inf_q :: "'q \<Rightarrow> 'f inference \<Rightarrow> 'g inference set"
+    and \<G>_Inf_q :: "'q \<Rightarrow> 'f inference \<Rightarrow> 'g inference set option"
     and l :: "'l itself"
     and Inf_FL :: \<open>('f \<times> 'l) inference set\<close>
   + fixes
@@ -205,21 +205,26 @@ proof -
         then have i0_in2: "\<iota>0 \<in> to_F ` (labeled_ord_red_crit_fam.Red_Inf_\<G>_q q0 N)"
           using x0_is by argo
         then obtain \<iota>0_FL where i0_FL_in: "\<iota>0_FL \<in> Inf_FL" and i0_to_i0_FL: "\<iota>0 = to_F \<iota>0_FL" and
-          subs1: "\<G>_Inf_L_q q0 \<iota>0_FL \<subseteq> Red_Inf_q q0 (labeled_ord_red_crit_fam.\<G>_set_q q0 N)"
-          unfolding labeled_ord_red_crit_fam.Red_Inf_\<G>_q_def by blast
+          subs1: "((\<G>_Inf_L_q q0 \<iota>0_FL) \<noteq> None \<and>
+            the (\<G>_Inf_L_q q0 \<iota>0_FL) \<subseteq> Red_Inf_q q0 (labeled_ord_red_crit_fam.\<G>_set_q q0 N))
+            \<or> ((\<G>_Inf_L_q q0 \<iota>0_FL = None) \<and>
+            \<G>_F_L_q q0 (concl_of \<iota>0_FL) \<subseteq> (labeled_ord_red_crit_fam.\<G>_set_q q0 N \<union> Red_F_q q0 (labeled_ord_red_crit_fam.\<G>_set_q q0 N)))"
+          (* subs1: "the (\<G>_Inf_L_q q0 \<iota>0_FL) \<subseteq> Red_Inf_q q0 (labeled_ord_red_crit_fam.\<G>_set_q q0 N)" *)
+          unfolding labeled_ord_red_crit_fam.Red_Inf_\<G>_q_def by blast 
         have i0_in3: "\<iota>0 \<in> Inf_F"
           using i0_to_i0_FL Inf_FL_to_Inf_F[OF i0_FL_in] unfolding to_F_def by blast
         {
-          assume "\<G>_Inf_q q0 \<iota>0 \<noteq> {}"
-          then obtain \<iota>1 where i1_in: "\<iota>1 \<in> \<G>_Inf_q q0 \<iota>0" by blast
-          have "\<G>_Inf_q q0 \<iota>0 \<subseteq> Red_Inf_q q0 (no_labels.\<G>_set_q q0 (fst ` N))"
-            using subs1 i0_to_i0_FL
+          assume
+            not_none: "\<G>_Inf_q q0 \<iota>0 \<noteq> None" and
+            "the (\<G>_Inf_q q0 \<iota>0) \<noteq> {}"
+          then obtain \<iota>1 where i1_in: "\<iota>1 \<in> the (\<G>_Inf_q q0 \<iota>0)" by blast
+          have "the (\<G>_Inf_q q0 \<iota>0) \<subseteq> Red_Inf_q q0 (no_labels.\<G>_set_q q0 (fst ` N))"
+            using subs1 i0_to_i0_FL not_none
             unfolding no_labels.\<G>_set_q_def labeled_ord_red_crit_fam.\<G>_set_q_def
-              \<G>_Inf_L_q_def \<G>_F_L_q_def
-            by simp
+              \<G>_Inf_L_q_def \<G>_F_L_q_def by auto
         }
         then show "\<iota>0 \<in> no_labels.Red_Inf_\<G>_q q0 (fst ` N)" 
-          unfolding no_labels.Red_Inf_\<G>_q_def using i0_in3 by blast
+          unfolding no_labels.Red_Inf_\<G>_q_def using i0_in3 sorry (* by blast *)
        qed 
      next
        show "no_labels.Red_Inf_\<G>_q q0 (fst ` N) \<subseteq> to_F ` X0 N"
