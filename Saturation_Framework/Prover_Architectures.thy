@@ -208,9 +208,12 @@ proof -
           subs1: "((\<G>_Inf_L_q q0 \<iota>0_FL) \<noteq> None \<and>
             the (\<G>_Inf_L_q q0 \<iota>0_FL) \<subseteq> Red_Inf_q q0 (labeled_ord_red_crit_fam.\<G>_set_q q0 N))
             \<or> ((\<G>_Inf_L_q q0 \<iota>0_FL = None) \<and>
-            \<G>_F_L_q q0 (concl_of \<iota>0_FL) \<subseteq> (labeled_ord_red_crit_fam.\<G>_set_q q0 N \<union> Red_F_q q0 (labeled_ord_red_crit_fam.\<G>_set_q q0 N)))"
+            \<G>_F_L_q q0 (concl_of \<iota>0_FL) \<subseteq>
+              (labeled_ord_red_crit_fam.\<G>_set_q q0 N \<union> Red_F_q q0 (labeled_ord_red_crit_fam.\<G>_set_q q0 N)))"
           (* subs1: "the (\<G>_Inf_L_q q0 \<iota>0_FL) \<subseteq> Red_Inf_q q0 (labeled_ord_red_crit_fam.\<G>_set_q q0 N)" *)
           unfolding labeled_ord_red_crit_fam.Red_Inf_\<G>_q_def by blast 
+        have concl_swap: "fst (concl_of \<iota>0_FL) = concl_of \<iota>0"
+          unfolding concl_of_def i0_to_i0_FL to_F_def by simp 
         have i0_in3: "\<iota>0 \<in> Inf_F"
           using i0_to_i0_FL Inf_FL_to_Inf_F[OF i0_FL_in] unfolding to_F_def by blast
         {
@@ -223,8 +226,17 @@ proof -
             unfolding no_labels.\<G>_set_q_def labeled_ord_red_crit_fam.\<G>_set_q_def
               \<G>_Inf_L_q_def \<G>_F_L_q_def by auto
         }
-        then show "\<iota>0 \<in> no_labels.Red_Inf_\<G>_q q0 (fst ` N)" 
-          unfolding no_labels.Red_Inf_\<G>_q_def using i0_in3 sorry (* by blast *)
+        moreover {
+          assume
+            is_none: "\<G>_Inf_q q0 \<iota>0 = None"
+          then have "\<G>_F_q q0 (concl_of \<iota>0) \<subseteq> no_labels.\<G>_set_q q0 (fst ` N)
+            \<union> Red_F_q q0 (no_labels.\<G>_set_q q0 (fst ` N))"
+            using subs1 i0_to_i0_FL concl_swap
+            unfolding no_labels.\<G>_set_q_def labeled_ord_red_crit_fam.\<G>_set_q_def
+              \<G>_Inf_L_q_def \<G>_F_L_q_def by simp 
+        }
+        ultimately show "\<iota>0 \<in> no_labels.Red_Inf_\<G>_q q0 (fst ` N)" 
+          unfolding no_labels.Red_Inf_\<G>_q_def using i0_in3 by auto 
        qed 
      next
        show "no_labels.Red_Inf_\<G>_q q0 (fst ` N) \<subseteq> to_F ` X0 N"
