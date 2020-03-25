@@ -248,11 +248,17 @@ proof -
          obtain \<iota>0_FL where i0_FL_in: "\<iota>0_FL \<in> Inf_FL" and i0_to_i0_FL: "\<iota>0 = to_F \<iota>0_FL"
            using Inf_F_to_Inf_FL[OF i0_in2] unfolding to_F_def
            by (metis Ex_list_of_length fst_conv inference.exhaust_sel inference.inject map_fst_zip)
-         have subs1: "\<G>_Inf_L_q q0 \<iota>0_FL \<subseteq> Red_Inf_q q0 (labeled_ord_red_crit_fam.\<G>_set_q q0 N)"
-           using i0_in i0_to_i0_FL
+         have concl_swap: "fst (concl_of \<iota>0_FL) = concl_of \<iota>0"
+           unfolding concl_of_def i0_to_i0_FL to_F_def by simp 
+         have subs1: "((\<G>_Inf_L_q q0 \<iota>0_FL) \<noteq> None \<and>
+           the (\<G>_Inf_L_q q0 \<iota>0_FL) \<subseteq> Red_Inf_q q0 (labeled_ord_red_crit_fam.\<G>_set_q q0 N))
+           \<or> ((\<G>_Inf_L_q q0 \<iota>0_FL = None) \<and>
+           \<G>_F_L_q q0 (concl_of \<iota>0_FL) \<subseteq>
+           (labeled_ord_red_crit_fam.\<G>_set_q q0 N \<union> Red_F_q q0 (labeled_ord_red_crit_fam.\<G>_set_q q0 N)))"
+           using i0_in i0_to_i0_FL concl_swap
            unfolding no_labels.Red_Inf_\<G>_q_def \<G>_Inf_L_q_def no_labels.\<G>_set_q_def
              labeled_ord_red_crit_fam.\<G>_set_q_def \<G>_F_L_q_def
-           by simp
+           by simp 
          then have "\<iota>0_FL \<in> labeled_ord_red_crit_fam.Red_Inf_\<G>_q q0 N"
            using i0_FL_in unfolding labeled_ord_red_crit_fam.Red_Inf_\<G>_q_def
            by simp
@@ -286,12 +292,14 @@ proof -
         fix q0 \<iota>1
         assume
           i1_in: "\<iota>1 \<in> labeled_ord_red_crit_fam.Red_Inf_\<G>_q q0 N"
-        then have i1_in2: "\<iota>1 \<in> Inf_FL"
-          unfolding labeled_ord_red_crit_fam.Red_Inf_\<G>_q_def by blast
-        then have "to_F \<iota>1 \<in> Inf_F"
+        have i1_in2: "\<iota>1 \<in> Inf_FL"
+          using i1_in unfolding labeled_ord_red_crit_fam.Red_Inf_\<G>_q_def by blast
+          then have to_F_i1_in: "to_F \<iota>1 \<in> Inf_F"
           using Inf_FL_to_Inf_F unfolding to_F_def by simp
+        have concl_swap: "fst (concl_of \<iota>1) = concl_of (to_F \<iota>1)"
+          unfolding concl_of_def to_F_def by simp 
         then have i1_to_F_in: "to_F \<iota>1 \<in> no_labels.Red_Inf_\<G>_q q0 (fst ` N)"
-          using i1_in
+          using i1_in to_F_i1_in
           unfolding labeled_ord_red_crit_fam.Red_Inf_\<G>_q_def no_labels.Red_Inf_\<G>_q_def
             \<G>_Inf_L_q_def labeled_ord_red_crit_fam.\<G>_set_q_def no_labels.\<G>_set_q_def \<G>_F_L_q_def
             by force
@@ -306,12 +314,17 @@ proof -
         assume
           i1_in: "\<iota>1 \<in> {\<iota>0_FL \<in> Inf_FL. to_F \<iota>0_FL \<in> no_labels.Red_Inf_\<G>_q q0 (fst ` N)}"
         then have i1_in2: "\<iota>1 \<in> Inf_FL" by blast
-        then have "to_F \<iota>1 \<in> Inf_F"
+        then have to_F_i1_in: "to_F \<iota>1 \<in> Inf_F"
           using Inf_FL_to_Inf_F unfolding to_F_def by simp
-        then have "\<G>_Inf_L_q q0 \<iota>1 \<subseteq> Red_Inf_q q0 (labeled_ord_red_crit_fam.\<G>_set_q q0 N)"
-          using i1_in
-          unfolding no_labels.Red_Inf_\<G>_q_def \<G>_Inf_L_q_def labeled_ord_red_crit_fam.\<G>_set_q_def
-            no_labels.\<G>_set_q_def \<G>_F_L_q_def
+        have concl_swap: "fst (concl_of \<iota>1) = concl_of (to_F \<iota>1)"
+          unfolding concl_of_def to_F_def by simp 
+        then have "((\<G>_Inf_L_q q0 \<iota>1) \<noteq> None \<and>
+          the (\<G>_Inf_L_q q0 \<iota>1) \<subseteq> Red_Inf_q q0 (labeled_ord_red_crit_fam.\<G>_set_q q0 N))
+          \<or> ((\<G>_Inf_L_q q0 \<iota>1 = None) \<and>
+          \<G>_F_L_q q0 (concl_of \<iota>1) \<subseteq>
+          (labeled_ord_red_crit_fam.\<G>_set_q q0 N \<union> Red_F_q q0 (labeled_ord_red_crit_fam.\<G>_set_q q0 N)))"
+          using i1_in unfolding no_labels.Red_Inf_\<G>_q_def \<G>_Inf_L_q_def
+            labeled_ord_red_crit_fam.\<G>_set_q_def no_labels.\<G>_set_q_def \<G>_F_L_q_def
           by auto
         then show "\<iota>1 \<in> labeled_ord_red_crit_fam.Red_Inf_\<G>_q q0 N"
           using i1_in2 unfolding labeled_ord_red_crit_fam.Red_Inf_\<G>_q_def
@@ -323,7 +336,7 @@ proof -
       unfolding labeled_ord_red_crit_fam.Red_Inf_\<G>_q_def
         no_labels.Red_Inf_\<G>_q_def \<G>_Inf_L_q_def labeled_ord_red_crit_fam.\<G>_set_q_def
         no_labels.\<G>_set_q_def \<G>_F_L_q_def
-      by blast
+      by auto 
     then show "\<iota> \<in> labeled_ord_red_crit_fam.empty_ord_lifted_calc_w_red_crit_family.Red_Inf_Q N"
       unfolding labeled_ord_red_crit_fam.empty_ord_lifted_calc_w_red_crit_family.Red_Inf_Q_def
       by blast
@@ -414,7 +427,7 @@ locale Given_Clause = Prover_Architecture Bot_F Inf_F Bot_G Q entails_q Inf_G Re
     Red_Inf_q :: "'q \<Rightarrow> ('g set \<Rightarrow> 'g inference set)" and
     Red_F_q :: "'q \<Rightarrow> ('g set \<Rightarrow> 'g set)" and
     \<G>_F_q :: "'q \<Rightarrow> 'f \<Rightarrow> 'g set"  and
-    \<G>_Inf_q :: "'q \<Rightarrow> 'f inference \<Rightarrow> 'g inference set" and
+    \<G>_Inf_q :: "'q \<Rightarrow> 'f inference \<Rightarrow> 'g inference set option" and
     l :: "'l itself" and
     Inf_FL :: \<open>('f \<times> 'l) inference set\<close> and
     Equiv_F :: "('f \<times> 'f) set" and
@@ -731,10 +744,12 @@ proof -
         no_labels.Non_ground.Inf_from_def using Inf_FL_to_Inf_F by force
     then have "to_F \<iota> \<in> no_labels.lifted_calc_w_red_crit_family.Red_Inf_Q (fst ` (lnth D (Suc n)))"
       using suc_nth_d_is inf_from_subs by fastforce
-    then have "\<forall>q. \<G>_Inf_q q (to_F \<iota>) \<subseteq> Red_Inf_q q (\<Union> (\<G>_F_q q ` (fst ` (lnth D (Suc n)))))"
+    then have "\<forall>q. (\<G>_Inf_q q (to_F \<iota>) \<noteq> None \<and> the (\<G>_Inf_q q (to_F \<iota>)) \<subseteq> Red_Inf_q q (\<Union> (\<G>_F_q q ` (fst ` (lnth D (Suc n))))))
+      \<or> (\<G>_Inf_q q (to_F \<iota>) = None \<and>
+      \<G>_F_q q (concl_of (to_F \<iota>)) \<subseteq> (\<Union> (\<G>_F_q q ` (fst ` (lnth D (Suc n))))) \<union> Red_F_q q (\<Union> (\<G>_F_q q ` (fst ` (lnth D (Suc n))))))"
       unfolding to_F_def no_labels.lifted_calc_w_red_crit_family.Red_Inf_Q_def no_labels.Red_Inf_\<G>_q_def
         no_labels.\<G>_set_q_def
-      by fast
+      by fastforce
     then have "\<iota> \<in> with_labels.Red_Inf_Q (lnth D (Suc n))"
       unfolding to_F_def with_labels.Red_Inf_Q_def Red_Inf_\<G>_L_q_def \<G>_Inf_L_q_def \<G>_set_L_q_def \<G>_F_L_q_def
       using i_in_inf_fl by auto
