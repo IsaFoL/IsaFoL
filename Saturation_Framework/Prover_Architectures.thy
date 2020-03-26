@@ -1058,7 +1058,6 @@ proof -
         qed
         ultimately show False using diff_12 by linarith
       qed
-      (* the n below in the n-1 from the paper *)
             have nj_not_empty: "nj_set \<noteq> {}"
       proof -
         have zero_in: "0 \<in> {0..<m}" using m_pos by simp
