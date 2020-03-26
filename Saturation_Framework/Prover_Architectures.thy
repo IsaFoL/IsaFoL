@@ -1267,8 +1267,9 @@ qed
 text \<open>thm:lgc-completeness\<close>
 text \<open>The completeness statement below is not identical to that of the paper. The formalization showed that the paper statement was too strong. The following statement corresponds better to what happens in practice and the paper will be updated accordingly before the final version is published\<close>
 theorem "chain (\<Longrightarrow>LGC) D \<Longrightarrow> llength D > 0 \<Longrightarrow> active_subset (snd (lnth D 0)) = {} \<Longrightarrow>
-  non_active_subset (Liminf_llist (lmap snd D)) = {} \<Longrightarrow> Liminf_llist (lmap fst D) = {} \<Longrightarrow> B \<in> Bot_F \<Longrightarrow>
-  no_labels.entails_\<G>_Q (fst ` (snd (lnth D 0))) {B} \<Longrightarrow>
+  non_active_subset (Liminf_llist (lmap snd D)) = {} \<Longrightarrow>
+  (\<forall>\<iota> \<in> Inf_F. length (prems_of \<iota>) = 0 \<longrightarrow> \<iota> \<in> (fst (lnth D 0))) \<Longrightarrow>
+  Liminf_llist (lmap fst D) = {} \<Longrightarrow> B \<in> Bot_F \<Longrightarrow> no_labels.entails_\<G>_Q (fst ` (snd (lnth D 0))) {B} \<Longrightarrow>
   \<exists>i. enat i < llength D \<and> (\<exists>BL\<in> Bot_FL. BL \<in> (snd (lnth D i)))"
 proof -
   fix B
@@ -1277,6 +1278,7 @@ proof -
     not_empty_d: "llength D > 0" and
     init_state: "active_subset (snd (lnth D 0)) = {}" and
     final_state: "non_active_subset (Liminf_llist (lmap snd D)) = {}" and
+    no_prems_init_active: "\<forall>\<iota> \<in> Inf_F. length (prems_of \<iota>) = 0 \<longrightarrow> \<iota> \<in> (fst (lnth D 0))" and
     final_schedule: "Liminf_llist (lmap fst D) = {}" and
     b_in: "B \<in> Bot_F" and
     bot_entailed: "no_labels.entails_\<G>_Q (fst ` (snd (lnth D 0))) {B}"
@@ -1287,7 +1289,7 @@ proof -
   have labeled_bot_entailed: "entails_\<G>_L_Q  (snd (lnth D 0)) {(B,active)}"
     using labeled_entailment_lifting bot_entailed by fastforce
   have "fair (lmap snd D)"
-    using lgc_fair[OF deriv not_empty_d init_state final_state final_schedule] .
+    using lgc_fair[OF deriv not_empty_d init_state final_state no_prems_init_active final_schedule] .
   then have "\<exists>i \<in> {i. enat i < llength D}. \<exists>BL\<in>Bot_FL. BL \<in> (snd (lnth D i))"
     using labeled_ordered_dynamic_ref_comp labeled_b_in not_empty_d2 gc_to_red[OF deriv]
       labeled_bot_entailed entail_equiv simp_snd_lmap 
