@@ -23,16 +23,13 @@ lemma entail_set_all_formulas: "N1 \<Turnstile> N2 \<longleftrightarrow> (\<fora
   by (meson all_formulas_entailed empty_subsetI insert_subset subset_entailed entails_trans)
 
 lemma entail_union: "N \<Turnstile> N1 \<and> N \<Turnstile> N2 \<longleftrightarrow> N \<Turnstile> N1 \<union> N2"
-  apply (subst entail_set_all_formulas)
-  apply (subst (2) entail_set_all_formulas)
-  apply (subst (3) entail_set_all_formulas)
-  by auto
+  using entail_set_all_formulas[of N N1] entail_set_all_formulas[of N N2]
+    entail_set_all_formulas[of N "N1 \<union> N2"] by blast 
 
 lemma entail_unions: "(\<forall>i \<in> I. N \<Turnstile> Ni i) \<longleftrightarrow> N \<Turnstile> UNION I Ni"
-  apply (subst entail_set_all_formulas)
-  apply (subst (2) entail_set_all_formulas)
-  apply (rule Complete_Lattices.UN_ball_bex_simps(2)[of Ni I "\<lambda>C. N \<Turnstile> {C}", symmetric]) 
-  done
+  using entail_set_all_formulas[of N "\<Union> (Ni ` I)"] entail_set_all_formulas[of N]
+    Complete_Lattices.UN_ball_bex_simps(2)[of Ni I "\<lambda>C. N \<Turnstile> {C}", symmetric] 
+  by meson
 
 lemma entail_all_bot: "(\<exists>B \<in> Bot. N \<Turnstile> {B}) \<Longrightarrow> (\<forall>B' \<in> Bot. N \<Turnstile> {B'})"
   using bot_implies_all entails_trans by blast

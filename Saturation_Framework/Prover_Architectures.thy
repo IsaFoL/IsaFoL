@@ -896,28 +896,6 @@ text \<open>lem:lgc-derivations-are-red-derivations\<close>
 lemma gc_to_red: "chain (\<Longrightarrow>LGC) D \<Longrightarrow> chain (\<rhd>RedL) (lmap snd D)"
   using one_step_equiv Lazy_List_Chain.chain_mono by (smt chain_lmap prod.collapse) 
 
-
-lemma le_principe_dinduction_que_tu_veux:
-"n \<le> m \<Longrightarrow>
-(\<And>m'. n \<le> m' \<Longrightarrow> P m' \<Longrightarrow> P (Suc m')) \<Longrightarrow>
-P n \<Longrightarrow>
-P m"
-using nat_induct_at_least by blast
-(*
-Auto solve_direct: the current goal can be solved directly with
-Nat.dec_induct:
-?i \<le> ?j \<Longrightarrow>
-?P ?i \<Longrightarrow> (\<And>n. ?i \<le> n \<Longrightarrow> n < ?j \<Longrightarrow> ?P n \<Longrightarrow> ?P (Suc n)) \<Longrightarrow> ?P ?j
-Nat.nat_induct_at_least:
-?m \<le> ?n \<Longrightarrow> ?P ?m \<Longrightarrow> (\<And>n. ?m \<le> n \<Longrightarrow> ?P n \<Longrightarrow> ?P (Suc n)) \<Longrightarrow> ?P ?n
-*)
-(* proof -
- * have "P n" if "m >= n"
- * using \<open> m >= n \<close>
- * apply (induction rule: nat_induct_at_least)
- * apply auto
- * sorry *)
-
 text \<open>lem:fair-lgc-derivations\<close>
 lemma lgc_fair: "chain (\<Longrightarrow>LGC) D \<Longrightarrow> llength D > 0 \<Longrightarrow> active_subset (snd (lnth D 0)) = {} \<Longrightarrow>
   non_active_subset (Liminf_llist (lmap snd D)) = {} \<Longrightarrow> (\<forall>\<iota> \<in> Inf_F. length (prems_of \<iota>) = 0 \<longrightarrow> \<iota> \<in> (fst (lnth D 0))) \<Longrightarrow>

@@ -107,9 +107,11 @@ proof -
   then have l_prop: "l < j \<and> l \<ge> k \<and> C \<in> (lnth D l)" using Max_in[of ?S, OF _ nempty] unfolding l_def by auto 
   then have "C \<in> lnth D l - lnth D (Suc l)" using j gt_Max_notin[OF _ nempty, of "Suc l"] 
     unfolding l_def[symmetric] by (auto intro: Suc_lessI)
-  then show ?thesis apply (rule bexI[of _ l]) using l_prop j 
-    apply auto 
-    by (metis Suc_leI dual_order.order_iff_strict enat_ord_simps(2) less_trans)
+  then show ?thesis
+  proof (rule bexI[of _ l])
+    show "l \<in> {i. enat (Suc i) < llength D}"
+      using l_prop j by (clarify, metis Suc_leI dual_order.order_iff_strict enat_ord_simps(2) less_trans)
+  qed
 qed
 
 text \<open>lem:nonpersistent-is-redundant\<close>
