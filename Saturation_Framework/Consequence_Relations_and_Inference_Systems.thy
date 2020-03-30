@@ -85,9 +85,3 @@ definition Inf_from2 :: "'f set \<Rightarrow> 'f set \<Rightarrow> 'f inference 
   "Inf_from2 N M = Inf_from (N \<union> M) - Inf_from (N - M)"
 
 end
-
-locale sound_inference_system = inference_system + consequence_relation +
-  assumes
-    soundness: \<open>\<iota> \<in> Inf \<Longrightarrow> set (prems_of \<iota>) \<Turnstile> {concl_of \<iota>}\<close>
-
-end
