@@ -85,3 +85,5 @@ definition Inf_from2 :: "'f set \<Rightarrow> 'f set \<Rightarrow> 'f inference 
   "Inf_from2 N M = Inf_from (N \<union> M) - Inf_from (N - M)"
 
 end
+
+end
