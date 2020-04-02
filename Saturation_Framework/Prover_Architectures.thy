@@ -346,7 +346,7 @@ proof -
     by argo
 qed
 
-text \<open>lem:redundant-labeled-formulas\<close>
+(* lem:redundant-labeled-formulas *)
 lemma red_labeled_clauses: \<open>C \<in> no_labels.Red_F_\<G>_empty (fst ` N) \<or> (\<exists>C' \<in> (fst ` N). C \<lless> C') \<or> (\<exists>(C',L') \<in> N. (L' \<sqsubset>l L \<and> C \<lless>\<doteq> C')) \<Longrightarrow>
   (C,L) \<in> labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_F_Q N\<close>
 proof -
@@ -506,7 +506,7 @@ qed
 abbreviation fair :: "('f \<times> 'l) set llist \<Rightarrow> bool" where
   "fair \<equiv> labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.inter_red_crit_calculus.fair"
 
-text \<open>lem:gc-derivations-are-red-derivations\<close>
+(* lem:gc-derivations-are-red-derivations *)
 lemma gc_to_red: "chain (\<Longrightarrow>GC) D \<Longrightarrow> chain (\<rhd>RedL) D"
   using one_step_equiv Lazy_List_Chain.chain_mono by blast
 
@@ -524,7 +524,7 @@ proof -
   then show "finite {n. \<exists>j \<in> {0..<m}. P j n}" using imp_finite by simp
 qed
 
-text \<open>lem:fair-gc-derivations\<close>
+(* lem:fair-gc-derivations *)
 lemma gc_fair: "chain (\<Longrightarrow>GC) D \<Longrightarrow> llength D > 0 \<Longrightarrow> active_subset (lnth D 0) = {} \<Longrightarrow>
   non_active_subset (Liminf_llist D) = {} \<Longrightarrow> fair D"
 proof -
@@ -759,7 +759,7 @@ proof -
   qed
 qed
 
-text \<open>thm:gc-completeness\<close>
+(* thm:gc-completeness *)
 text \<open>The completeness statement below is not identical to that of the paper. The formalization showed that the paper statement was too strong. The following statement corresponds better to what happens in practice and the paper will be updated accordingly before the final version is published\<close>
 theorem "chain (\<Longrightarrow>GC) D \<Longrightarrow> llength D > 0 \<Longrightarrow> active_subset (lnth D 0) = {} \<Longrightarrow>
   non_active_subset (Liminf_llist D) = {} \<Longrightarrow> B \<in> Bot_F \<Longrightarrow>
@@ -892,11 +892,11 @@ qed
 abbreviation fair :: "('f \<times> 'l) set llist \<Rightarrow> bool" where
   "fair \<equiv> labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.inter_red_crit_calculus.fair"
 
-text \<open>lem:lgc-derivations-are-red-derivations\<close>
+(* lem:lgc-derivations-are-red-derivations *)
 lemma gc_to_red: "chain (\<Longrightarrow>LGC) D \<Longrightarrow> chain (\<rhd>RedL) (lmap snd D)"
   using one_step_equiv Lazy_List_Chain.chain_mono by (smt chain_lmap prod.collapse) 
 
-text \<open>lem:fair-lgc-derivations\<close>
+(* lem:fair-lgc-derivations *)
 lemma lgc_fair: "chain (\<Longrightarrow>LGC) D \<Longrightarrow> llength D > 0 \<Longrightarrow> active_subset (snd (lnth D 0)) = {} \<Longrightarrow>
   non_active_subset (Liminf_llist (lmap snd D)) = {} \<Longrightarrow> (\<forall>\<iota> \<in> Inf_F. length (prems_of \<iota>) = 0 \<longrightarrow> \<iota> \<in> (fst (lnth D 0))) \<Longrightarrow>
   Liminf_llist (lmap fst D) = {} \<Longrightarrow> fair (lmap snd D)"
@@ -1241,8 +1241,7 @@ proof -
   qed
 qed
 
-text \<open>thm:lgc-completeness\<close>
-text \<open>The completeness statement below is not identical to that of the paper. The formalization showed that the paper statement was too strong. The following statement corresponds better to what happens in practice and the paper will be updated accordingly before the final version is published\<close>
+(* thm:lgc-completeness *)
 theorem "chain (\<Longrightarrow>LGC) D \<Longrightarrow> llength D > 0 \<Longrightarrow> active_subset (snd (lnth D 0)) = {} \<Longrightarrow>
   non_active_subset (Liminf_llist (lmap snd D)) = {} \<Longrightarrow>
   (\<forall>\<iota> \<in> Inf_F. length (prems_of \<iota>) = 0 \<longrightarrow> \<iota> \<in> (fst (lnth D 0))) \<Longrightarrow>

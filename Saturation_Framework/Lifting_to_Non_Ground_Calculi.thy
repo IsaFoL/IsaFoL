@@ -50,7 +50,7 @@ proof -
   then show ?thesis using r_trans Ground.entails_trans[of sB "{B}"] by auto
 qed
 
-text \<open>lem:derived-consequence-relation\<close>
+(* lem:derived-consequence-relation *)
 sublocale lifted_consequence_relation: consequence_relation  
   where Bot=Bot_F and entails=entails_\<G>
 proof
@@ -120,7 +120,7 @@ lemma Prec_trans:
 lemma prop_nested_in_set: "D \<in> P C \<Longrightarrow> C \<in> {C. \<forall>D \<in> P C. A D \<or> B C D} \<Longrightarrow> A D \<or> B C D"
   by blast
 
-text \<open>lem:wolog-C'-nonredundant\<close>
+(* lem:wolog-C'-nonredundant *)
 lemma Red_F_\<G>_equiv_def: 
   \<open>Red_F_\<G> N = {C. \<forall>Di \<in> \<G>_F C. Di \<in> Red_F_G (\<G>_set N) \<or>
     (\<exists>E \<in> (N - Red_F_\<G> N). Prec_F_g Di E C \<and> Di \<in> \<G>_F E)}\<close>
@@ -172,7 +172,7 @@ next
   show \<open>C \<in> Red_F_\<G> N\<close> unfolding Red_F_\<G>_def using only_if by auto
 qed
 
-text \<open>lem:lifting-main-technical\<close>
+(* lem:lifting-main-technical *)
 lemma not_red_map_in_map_not_red: \<open>\<G>_set N - Red_F_G (\<G>_set N) \<subseteq> \<G>_set (N - Red_F_\<G> N)\<close>
 proof
   fix D
@@ -207,7 +207,7 @@ proof
   show \<open>D \<in> \<G>_set (N - Red_F_\<G> N)\<close> using D_in_C C_not_in C_in_N by blast
 qed
 
-text \<open>lem:nonredundant-entails-redundant\<close>
+(* lem:nonredundant-entails-redundant *)
 lemma Red_F_Bot_F: \<open>B \<in> Bot_F \<Longrightarrow> N \<Turnstile>\<G> {B} \<Longrightarrow> N - Red_F_\<G> N \<Turnstile>\<G> {B}\<close>
 proof -
   fix B N
@@ -223,16 +223,16 @@ proof -
   then show \<open>N - Red_F_\<G> N \<Turnstile>\<G> {B}\<close> using Bot_map unfolding entails_\<G>_def by simp
 qed
 
-text \<open>lem:redundancy-monotonic-addition 1/2\<close>
+(* lem:redundancy-monotonic-addition 1/2 *)
 lemma Red_F_of_subset_F: \<open>N \<subseteq> N' \<Longrightarrow> Red_F_\<G> N \<subseteq> Red_F_\<G> N'\<close>
   using Ground.Red_F_of_subset unfolding Red_F_\<G>_def by (smt Collect_mono \<G>_subset subset_iff)
 
-text \<open>lem:redundancy-monotonic-addition 2/2\<close>
+(* lem:redundancy-monotonic-addition 2/2 *)
 lemma Red_Inf_of_subset_F: \<open>N \<subseteq> N' \<Longrightarrow> Red_Inf_\<G> N \<subseteq> Red_Inf_\<G> N'\<close>
   using Collect_mono \<G>_subset subset_iff Ground.Red_Inf_of_subset unfolding Red_Inf_\<G>_def
   by (smt Ground.Red_F_of_subset Un_iff)
 
-text \<open>lem:redundancy-monotonic-deletion-forms\<close>
+(* lem:redundancy-monotonic-deletion-forms *)
 lemma Red_F_of_Red_F_subset_F: \<open>N' \<subseteq> Red_F_\<G> N \<Longrightarrow> Red_F_\<G> N \<subseteq> Red_F_\<G> (N - N')\<close>
 proof
   fix N N' C
@@ -271,7 +271,7 @@ proof
   qed
 qed
 
-text \<open>lem:redundancy-monotonic-deletion-infs\<close>
+(* lem:redundancy-monotonic-deletion-infs *)
 lemma Red_Inf_of_Red_F_subset_F: \<open>N' \<subseteq> Red_F_\<G> N \<Longrightarrow> Red_Inf_\<G> N \<subseteq> Red_Inf_\<G> (N - N') \<close>
 proof
   fix N N' \<iota>
@@ -318,7 +318,7 @@ proof
   ultimately show \<open>\<iota> \<in> Red_Inf_\<G> (N - N')\<close> using i_in unfolding Red_Inf_\<G>_def by auto 
 qed
 
-text \<open>lem:concl-contained-implies-red-inf\<close>
+(* lem:concl-contained-implies-red-inf *)
 lemma Red_Inf_of_Inf_to_N_F: 
   assumes
     i_in: \<open>\<iota> \<in> Inf_F\<close> and
@@ -334,7 +334,7 @@ proof -
   ultimately show ?thesis using i_in concl_i_in unfolding Red_Inf_\<G>_def by auto 
 qed
 
-text \<open>thm:FRedsqsubset-is-red-crit and also thm:lifted-red-crit if ordering empty\<close>
+(* thm:FRedsqsubset-is-red-crit and also thm:lifted-red-crit if ordering empty *)
 sublocale lifted_calculus_with_red_crit: calculus_with_red_crit 
   where
     Bot = Bot_F and Inf = Inf_F and entails = entails_\<G> and
@@ -356,7 +356,7 @@ lemma "calculus_with_red_crit Bot_F Inf_F entails_\<G> Red_Inf_\<G> Red_F_\<G>"
 lemma grounded_inf_in_ground_inf: "\<iota> \<in> Inf_F \<Longrightarrow> \<G>_Inf \<iota> \<noteq> None \<Longrightarrow> the (\<G>_Inf \<iota>) \<subseteq> Inf_G"
   using inf_map Ground.Red_Inf_to_Inf by blast
 
-text \<open>lem:sat-wrt-finf\<close>
+(* lem:sat-wrt-finf *)
 lemma sat_imp_ground_sat: "lifted_calculus_with_red_crit.saturated N \<Longrightarrow> Ground.Inf_from (\<G>_set N) \<subseteq>
   ({\<iota>. \<exists>\<iota>'\<in> Non_ground.Inf_from N. \<G>_Inf \<iota>' \<noteq> None \<and> \<iota> \<in> the (\<G>_Inf \<iota>')} \<union> Red_Inf_G (\<G>_set N)) \<Longrightarrow>
   Ground.saturated (\<G>_set N)"
@@ -380,7 +380,7 @@ proof -
   qed
 qed
 
-text \<open>thm:finf-complete\<close>
+(* thm:finf-complete *)
 theorem
   assumes
     stat_ref_G: "static_refutational_complete_calculus Bot_G Inf_G entails_G Red_Inf_G Red_F_G" and
@@ -522,12 +522,12 @@ qed
 context lifting_equivalence_with_empty_order
 begin
 
-text "lem:saturation-indep-of-sqsubset"
+(* lem:saturation-indep-of-sqsubset *)
 lemma saturated_empty_order_equiv_saturated:
   "any_order_lifting.lifted_calculus_with_red_crit.saturated N =
     empty_order_lifting.lifted_calculus_with_red_crit.saturated N" by standard
 
-text "lem:static-ref-compl-indep-of-sqsubset"
+(* lem:static-ref-compl-indep-of-sqsubset *)
 lemma static_empty_order_equiv_static:
   "static_refutational_complete_calculus Bot_F Inf_F
     any_order_lifting.entails_\<G> empty_order_lifting.Red_Inf_\<G> empty_order_lifting.Red_F_\<G> =
@@ -536,7 +536,7 @@ lemma static_empty_order_equiv_static:
   unfolding static_refutational_complete_calculus_def
   by (rule iffI) (standard,(standard)[],simp)+
    
-text "thm:FRedsqsubset-is-dyn-ref-compl"
+(* thm:FRedsqsubset-is-dyn-ref-compl *)
 theorem static_to_dynamic:
   "static_refutational_complete_calculus Bot_F Inf_F
     any_order_lifting.entails_\<G> empty_order_lifting.Red_Inf_\<G> empty_order_lifting.Red_F_\<G> =
@@ -717,7 +717,7 @@ proof -
   have "consequence_relation_family.entails_Q entails_\<G>_q = entails_\<G>_Q"
     unfolding entails_\<G>_Q_def cons_rel_fam.entails_Q_def by (simp add: entails_\<G>_q_def)
   then show "consequence_relation Bot_F entails_\<G>_Q"
-    using consequence_relation_family.cons_rel_family_is_cons_rel[OF cons_rel_fam_Q_lem] by simp
+  using consequence_relation_family.intersect_cons_rel_family[OF cons_rel_fam_Q_lem] by simp
 qed
 
 sublocale lifted_calc_w_red_crit_family:
@@ -754,7 +754,7 @@ proof -
   using empty_ord_lifted_calc_w_red_crit_family.inter_red_crit by simp
 qed
 
-text \<open>thm:intersect-finf-complete\<close>
+(* thm:intersect-finf-complete *)
 theorem
   assumes
     stat_ref_G: "\<And>q. static_refutational_complete_calculus Bot_G Inf_G (entails_q q) (Red_Inf_q q) (Red_F_q q)" and
@@ -806,12 +806,12 @@ proof (standard, clarify)
   then show "\<exists>B'\<in> Bot_F. B' \<in> N" using lifted_q_calc.Bot_cond unfolding \<G>_set_q_def by blast
 qed
 
-text "lem:intersect-saturation-indep-of-sqsubset"
+(* lem:intersect-saturation-indep-of-sqsubset *)
 lemma "lifted_calc_w_red_crit_family.inter_red_crit_calculus.saturated N =
   empty_ord_lifted_calc_w_red_crit_family.inter_red_crit_calculus.saturated N "
   by simp
 
-text "lem:intersect-static-ref-compl-indep-of-sqsubset"
+(* lem:intersect-static-ref-compl-indep-of-sqsubset *)
 lemma static_empty_ord_inter_equiv_static_inter:
   "static_refutational_complete_calculus Bot_F Inf_F lifted_calc_w_red_crit_family.entails_Q
     lifted_calc_w_red_crit_family.Red_Inf_Q lifted_calc_w_red_crit_family.Red_F_Q =
@@ -821,7 +821,7 @@ lemma static_empty_ord_inter_equiv_static_inter:
   by (simp add: empty_ord_lifted_calc_w_red_crit_family.inter_red_crit_calculus.calculus_with_red_crit_axioms
     lifted_calc_w_red_crit_family.inter_red_crit_calculus.calculus_with_red_crit_axioms)
 
-text "thm:intersect-static-ref-compl-is-dyn-ref-compl-with-order"
+(* thm:intersect-static-ref-compl-is-dyn-ref-compl-with-order *)
 theorem "static_refutational_complete_calculus Bot_F Inf_F lifted_calc_w_red_crit_family.entails_Q
     empty_ord_lifted_calc_w_red_crit_family.Red_Inf_Q empty_ord_lifted_calc_w_red_crit_family.Red_F_Q =
   dynamic_refutational_complete_calculus Bot_F Inf_F lifted_calc_w_red_crit_family.entails_Q

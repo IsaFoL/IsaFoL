@@ -42,7 +42,7 @@ definition \<G>_Inf_L :: \<open>('f \<times> 'l) inference \<Rightarrow> 'g infe
 (* definition entails_sound_FL :: \<open>('f \<times> 'l) set \<Rightarrow> ('f \<times> 'l) set \<Rightarrow> bool\<close> (infix "|\<approx>FL" 50) where \<open>CL1 |\<approx>FL
 CL2 \<equiv> fst ` CL1 |\<approx>F fst ` CL2\<close> *)
 
-text \<open>lem:labeled-grounding-function\<close>
+(* lem:labeled-grounding-function *)
 sublocale labeled_standard_lifting: standard_lifting
   where
     Bot_F = Bot_FL and
@@ -87,7 +87,7 @@ qed
 
 notation "labeled_standard_lifting.entails_\<G>" (infix "\<Turnstile>\<G>L" 50)
 
-text \<open>lem:labeled-consequence\<close>
+(* lem:labeled-consequence *)
 lemma labeled_entailment_lifting: "NL1 \<Turnstile>\<G>L NL2 \<longleftrightarrow> fst ` NL1 \<Turnstile>\<G> fst ` NL2"
   unfolding labeled_standard_lifting.entails_\<G>_def \<G>_F_L_def entails_\<G>_def by auto
 
@@ -97,7 +97,7 @@ lemma red_inf_impl: "\<iota> \<in> labeled_lifting_w_empty_ord_family.Red_Inf_\<
   unfolding labeled_lifting_w_empty_ord_family.Red_Inf_\<G>_def Red_Inf_\<G>_def \<G>_Inf_L_def \<G>_F_L_def to_F_def
   using Inf_FL_to_Inf_F by auto
 
-text \<open>lem:labeled-saturation\<close>
+(* lem:labeled-saturation *)
 lemma labeled_saturation_lifting:
   "labeled_lifting_w_empty_ord_family.lifted_calculus_with_red_crit.saturated NL \<Longrightarrow>
     empty_order_lifting.lifted_calculus_with_red_crit.saturated (fst ` NL)"
@@ -127,7 +127,7 @@ proof clarify
   ultimately show "\<iota> \<in> Red_Inf_\<G> (fst ` NL)" by (auto intro:red_inf_impl)
 qed
 
-text "lem:labeled-static-ref-compl"
+(* lem:labeled-static-ref-compl *)
 lemma "static_refutational_complete_calculus Bot_F Inf_F (\<Turnstile>\<G>) Red_Inf_\<G> Red_F_\<G> \<Longrightarrow>
   static_refutational_complete_calculus Bot_FL Inf_FL (\<Turnstile>\<G>L)
     labeled_lifting_w_empty_ord_family.Red_Inf_\<G> labeled_lifting_w_empty_ord_family.Red_F_\<G>"
@@ -317,7 +317,7 @@ sublocale with_labels: calculus_with_red_crit_family Bot_FL Inf_FL Q entails_\<G
 
 notation "no_labels.entails_\<G>_Q" (infix "\<Turnstile>\<inter>" 50)
 
-text \<open>lem:labeled-consequence-intersection\<close>
+(* lem:labeled-consequence-intersection *)
 lemma labeled_entailment_lifting: "NL1 \<Turnstile>\<inter>L NL2 \<longleftrightarrow> fst ` NL1 \<Turnstile>\<inter> fst ` NL2"
   unfolding no_labels.entails_\<G>_Q_def no_labels.entails_\<G>_q_def no_labels.\<G>_set_q_def
     entails_\<G>_L_Q_def entails_\<G>_L_q_def \<G>_set_L_q_def \<G>_F_L_q_def
@@ -351,7 +351,7 @@ proof clarify
     using to_F_in unfolding no_labels.Red_Inf_\<G>_q_def by simp
 qed
 
-text \<open>lem:labeled-saturation-intersection\<close>
+(* lem:labeled-saturation-intersection *)
 lemma labeled_family_saturation_lifting: "with_labels.inter_red_crit_calculus.saturated NL \<Longrightarrow>
   no_labels.lifted_calc_w_red_crit_family.inter_red_crit_calculus.saturated (fst ` NL)"
   unfolding with_labels.inter_red_crit_calculus.saturated_def
@@ -381,7 +381,7 @@ proof clarify
     by (auto intro:red_inf_impl)
 qed
 
-text "thm:labeled-static-ref-compl-intersection"
+(* thm:labeled-static-ref-compl-intersection *)
 theorem labeled_static_ref: "static_refutational_complete_calculus Bot_F Inf_F (\<Turnstile>\<inter>)
   no_labels.empty_ord_lifted_calc_w_red_crit_family.Red_Inf_Q
   no_labels.empty_ord_lifted_calc_w_red_crit_family.Red_F_Q

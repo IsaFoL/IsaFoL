@@ -49,8 +49,8 @@ begin
 definition entails_Q :: "'f set \<Rightarrow> 'f set \<Rightarrow> bool" (infix "\<Turnstile>Q" 50) where
   "(N1 \<Turnstile>Q N2) = (\<forall>q. entails_q q N1 N2)"
 
-paragraph \<open>lem:intersection-of-conseq-rel\<close>
-lemma cons_rel_family_is_cons_rel: "consequence_relation Bot entails_Q"
+(* lem:intersection-of-conseq-rel *)
+lemma intersect_cons_rel_family: "consequence_relation Bot entails_Q"
   unfolding consequence_relation_def
 proof (intro conjI)
   show \<open>Bot \<noteq> {}\<close> using Bot_not_empty .
