@@ -91,7 +91,7 @@ notation "labeled_standard_lifting.entails_\<G>" (infix "\<Turnstile>\<G>L" 50)
 lemma labeled_entailment_lifting: "NL1 \<Turnstile>\<G>L NL2 \<longleftrightarrow> fst ` NL1 \<Turnstile>\<G> fst ` NL2"
   unfolding labeled_standard_lifting.entails_\<G>_def \<G>_F_L_def entails_\<G>_def by auto
 
-lemma subset_fst: "A \<subseteq> fst ` AB \<Longrightarrow> \<forall>x \<in> A. \<exists>y. (x,y) \<in> AB" by fastforce
+lemma (in-) subset_fst: "A \<subseteq> fst ` AB \<Longrightarrow> \<forall>x \<in> A. \<exists>y. (x,y) \<in> AB" by fastforce
 
 lemma red_inf_impl: "\<iota> \<in> labeled_lifting_w_empty_ord_family.Red_Inf_\<G> NL \<Longrightarrow> to_F \<iota> \<in> Red_Inf_\<G> (fst ` NL)"
   unfolding labeled_lifting_w_empty_ord_family.Red_Inf_\<G>_def Red_Inf_\<G>_def \<G>_Inf_L_def \<G>_F_L_def to_F_def
@@ -128,7 +128,7 @@ proof clarify
 qed
 
 (* lem:labeled-static-ref-compl *)
-lemma "static_refutational_complete_calculus Bot_F Inf_F (\<Turnstile>\<G>) Red_Inf_\<G> Red_F_\<G> \<Longrightarrow>
+lemma stat_ref_comp_to_labeled_sta_ref_comp: "static_refutational_complete_calculus Bot_F Inf_F (\<Turnstile>\<G>) Red_Inf_\<G> Red_F_\<G> \<Longrightarrow>
   static_refutational_complete_calculus Bot_FL Inf_FL (\<Turnstile>\<G>L)
     labeled_lifting_w_empty_ord_family.Red_Inf_\<G> labeled_lifting_w_empty_ord_family.Red_F_\<G>"
   unfolding static_refutational_complete_calculus_def

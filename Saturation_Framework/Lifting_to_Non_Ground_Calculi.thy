@@ -350,7 +350,7 @@ proof
   show \<open>\<iota> \<in> Inf_F \<Longrightarrow> concl_of \<iota> \<in> N \<Longrightarrow> \<iota> \<in> Red_Inf_\<G> N\<close> using Red_Inf_of_Inf_to_N_F by simp
 qed
 
-lemma "calculus_with_red_crit Bot_F Inf_F entails_\<G> Red_Inf_\<G> Red_F_\<G>"
+lemma lifted_calc_is_calc: "calculus_with_red_crit Bot_F Inf_F entails_\<G> Red_Inf_\<G> Red_F_\<G>"
   using lifted_calculus_with_red_crit.calculus_with_red_crit_axioms .
 
 lemma grounded_inf_in_ground_inf: "\<iota> \<in> Inf_F \<Longrightarrow> \<G>_Inf \<iota> \<noteq> None \<Longrightarrow> the (\<G>_Inf \<iota>) \<subseteq> Inf_G"
@@ -381,7 +381,7 @@ proof -
 qed
 
 (* thm:finf-complete *)
-theorem
+theorem stat_ref_comp_to_non_ground:
   assumes
     stat_ref_G: "static_refutational_complete_calculus Bot_G Inf_G entails_G Red_Inf_G Red_F_G" and
     sat_n_imp: "\<And>N. (lifted_calculus_with_red_crit.saturated N \<Longrightarrow> Ground.Inf_from (\<G>_set N) \<subseteq>
@@ -725,7 +725,7 @@ sublocale lifted_calc_w_red_crit_family:
   using cons_rel_fam_Q_lem red_crit_lifting_family
   by (simp add: calculus_with_red_crit_family.intro calculus_with_red_crit_family_axioms_def)
 
-lemma "calculus_with_red_crit Bot_F Inf_F entails_\<G>_Q Red_Inf_\<G>_Q Red_F_\<G>_g"
+lemma lifted_calc_family_is_calc: "calculus_with_red_crit Bot_F Inf_F entails_\<G>_Q Red_Inf_\<G>_Q Red_F_\<G>_g"
 proof -
   have "lifted_calc_w_red_crit_family.entails_Q = entails_\<G>_Q"
     unfolding entails_\<G>_Q_def lifted_calc_w_red_crit_family.entails_Q_def by simp
@@ -755,7 +755,7 @@ proof -
 qed
 
 (* thm:intersect-finf-complete *)
-theorem
+theorem stat_ref_comp_to_non_ground_fam_inter:
   assumes
     stat_ref_G: "\<And>q. static_refutational_complete_calculus Bot_G Inf_G (entails_q q) (Red_Inf_q q) (Red_F_q q)" and
       sat_n_imp: "\<And>N. (empty_ord_lifted_calc_w_red_crit_family.inter_red_crit_calculus.saturated N \<Longrightarrow>
@@ -807,7 +807,7 @@ proof (standard, clarify)
 qed
 
 (* lem:intersect-saturation-indep-of-sqsubset *)
-lemma "lifted_calc_w_red_crit_family.inter_red_crit_calculus.saturated N =
+lemma sat_eq_sat_empty_order: "lifted_calc_w_red_crit_family.inter_red_crit_calculus.saturated N =
   empty_ord_lifted_calc_w_red_crit_family.inter_red_crit_calculus.saturated N "
   by simp
 
@@ -822,7 +822,7 @@ lemma static_empty_ord_inter_equiv_static_inter:
     lifted_calc_w_red_crit_family.inter_red_crit_calculus.calculus_with_red_crit_axioms)
 
 (* thm:intersect-static-ref-compl-is-dyn-ref-compl-with-order *)
-theorem "static_refutational_complete_calculus Bot_F Inf_F lifted_calc_w_red_crit_family.entails_Q
+theorem stat_eq_dyn_ref_comp_fam_inter: "static_refutational_complete_calculus Bot_F Inf_F lifted_calc_w_red_crit_family.entails_Q
     empty_ord_lifted_calc_w_red_crit_family.Red_Inf_Q empty_ord_lifted_calc_w_red_crit_family.Red_F_Q =
   dynamic_refutational_complete_calculus Bot_F Inf_F lifted_calc_w_red_crit_family.entails_Q
     lifted_calc_w_red_crit_family.Red_Inf_Q lifted_calc_w_red_crit_family.Red_F_Q"  (is "?static=?dynamic")

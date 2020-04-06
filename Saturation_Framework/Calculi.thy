@@ -30,7 +30,7 @@ begin
 lemma Red_Inf_of_Inf_to_N_subset: "{\<iota> \<in> Inf. (concl_of \<iota> \<in> N)} \<subseteq> Red_Inf N"
   using Red_Inf_of_Inf_to_N by blast 
 
-paragraph \<open>lem:red-concl-implies-red-inf\<close>
+(* lem:red-concl-implies-red-inf *)
 lemma red_concl_to_red_inf: 
   assumes 
     i_in: "\<iota> \<in> Inf" and
@@ -209,13 +209,9 @@ end
 locale static_refutational_complete_calculus = calculus_with_red_crit +
   assumes static_refutational_complete: "B \<in> Bot \<Longrightarrow> saturated N \<Longrightarrow> N \<Turnstile> {B} \<Longrightarrow> \<exists>B'\<in>Bot. B' \<in> N"
 
-text \<open>In the definition of dynamic refutational completeness the assumption that the derivation term\<open>D\<close>
-  is not the empty derivation is implicit in the companion report. It needs to be explicit here, otherwise
-  \<^term>\<open>lnth D 0\<close> can be undefined and this creates problems in some proofs, e.g. when proving that a static
-  refutational complete calculus is dynamic refutational.\<close>
 locale dynamic_refutational_complete_calculus = calculus_with_red_crit +
   assumes
-      dynamic_refutational_complete: "B \<in> Bot \<Longrightarrow> \<not> lnull D \<Longrightarrow> chain (\<rhd>Red) D \<Longrightarrow> fair D 
+    dynamic_refutational_complete: "B \<in> Bot \<Longrightarrow> chain (\<rhd>Red) D \<Longrightarrow> fair D 
       \<Longrightarrow> lnth D 0 \<Turnstile> {B} \<Longrightarrow> \<exists>i \<in> {i. enat i < llength D}. \<exists>B'\<in>Bot. B' \<in> lnth D i"
 begin
 
@@ -253,8 +249,8 @@ proof
     bot_elem: \<open>B \<in> Bot\<close> and
     deriv: \<open>chain (\<rhd>Red) D\<close> and
     fair: \<open>fair D\<close> and
-    unsat: \<open>(lnth D 0) \<Turnstile> {B}\<close> and
-    non_empty: \<open>\<not> lnull D\<close>
+    unsat: \<open>(lnth D 0) \<Turnstile> {B}\<close>
+    have non_empty: \<open>\<not> lnull D\<close> using chain_not_lnull[OF deriv] .
     have subs: \<open>(lnth D 0) \<subseteq> Sup_llist D\<close>
       using lhd_subset_Sup_llist[of D] non_empty by (simp add: lhd_conv_lnth)
     have \<open>Sup_llist D \<Turnstile> {B}\<close> 
@@ -293,7 +289,7 @@ definition Red_Inf_Q :: "'f set \<Rightarrow> 'f inference set" where
 definition Red_F_Q :: "'f set \<Rightarrow> 'f set" where
   "Red_F_Q N = \<Inter> {X N |X. X \<in> (Red_F_q ` UNIV)}"
 
-paragraph \<open>lem:intersection-of-red-crit\<close>
+(* lem:intersection-of-red-crit *)
 lemma inter_red_crit: "calculus_with_red_crit Bot Inf entails_Q Red_Inf_Q Red_F_Q"
   unfolding calculus_with_red_crit_def calculus_with_red_crit_axioms_def
 proof (intro conjI)
@@ -440,7 +436,7 @@ sublocale inter_red_crit_calculus: calculus_with_red_crit
   and Red_F=Red_F_Q
   using inter_red_crit .
 
-paragraph \<open>lem:satur-wrt-intersection-of-red\<close>
+(* lem:satur-wrt-intersection-of-red *)
 lemma sat_int_to_sat_q: "calculus_with_red_crit.saturated Inf Red_Inf_Q N \<longleftrightarrow>
   (\<forall>qi. calculus_with_red_crit.saturated Inf (Red_Inf_q qi) N)" for N
 proof
@@ -476,8 +472,8 @@ next
   qed
 qed
 
-paragraph \<open>lem:checking-static-ref-compl-for-intersections\<close>
-lemma
+(* lem:checking-static-ref-compl-for-intersections *)
+lemma stat_ref_comp_from_bot_in_sat:
   "\<forall>N. (calculus_with_red_crit.saturated Inf Red_Inf_Q N \<and> (\<forall>B \<in> Bot. B \<notin> N)) \<longrightarrow>
     (\<exists>B \<in> Bot. \<exists>qi. \<not> entails_q qi N {B})
     \<Longrightarrow> static_refutational_complete_calculus Bot Inf entails_Q Red_Inf_Q Red_F_Q"
@@ -637,8 +633,9 @@ lemma inf_subs_reduced_red_inf: "Inf_from2 UNIV (Red_F N) \<subseteq> Red_Red_In
   unfolding Red_Red_Inf_def by simp
 
 (* lem:red'-is-reduced-redcrit *)
-(* Here, I couldn't use a sublocale as in other cases because this creates an infinitely descending
- * loop of sublocales in the proof *)
+text \<open>The following is a lemma and not a sublocale as was previously used in similar cases.
+  Here, a sublocale cannot be used because it would create an infinitely descending
+  loop of sublocales. \<close>
 lemma reduc_calc: "calculus_with_reduced_red_crit Bot Inf entails Red_Red_Inf Red_F"
   using inf_subs_reduced_red_inf reduced_calc_is_calc
   by (simp add: calculus_with_reduced_red_crit.intro calculus_with_reduced_red_crit_axioms_def)
@@ -795,7 +792,7 @@ end
 
 locale reduc_dynamic_refutational_complete_calculus = calculus_with_red_crit +
   assumes
-    reduc_dynamic_refutational_complete: "B \<in> Bot \<Longrightarrow> \<not> lnull D \<Longrightarrow> chain derive D \<Longrightarrow> reduc_fair D
+    reduc_dynamic_refutational_complete: "B \<in> Bot \<Longrightarrow> chain derive D \<Longrightarrow> reduc_fair D
       \<Longrightarrow> lnth D 0 \<Turnstile> {B} \<Longrightarrow> \<exists>i \<in> {i. enat i < llength D}. \<exists> B'\<in>Bot. B' \<in> lnth D i"
 begin
 
@@ -834,8 +831,8 @@ proof
     bot_elem: \<open>B \<in> Bot\<close> and
     deriv: \<open>chain (\<rhd>Red) D\<close> and
     fair: \<open>reduc_fair D\<close> and
-    unsat: \<open>(lnth D 0) \<Turnstile> {B}\<close> and
-    non_empty: \<open>\<not> lnull D\<close>
+    unsat: \<open>(lnth D 0) \<Turnstile> {B}\<close>
+    have non_empty: \<open>\<not> lnull D\<close> using chain_not_lnull[OF deriv] .
     have subs: \<open>(lnth D 0) \<subseteq> Sup_llist D\<close>
       using lhd_subset_Sup_llist[of D] non_empty by (simp add: lhd_conv_lnth)
     have \<open>Sup_llist D \<Turnstile> {B}\<close> 
@@ -895,18 +892,18 @@ interpretation reduc_calc : calculus_with_reduced_red_crit Bot Inf entails Red_R
 using reduc_calc by simp
 
 (* thm:reduced-dyn-ref-compl 1/3 (v) \<longleftrightarrow> (vii) *)
-theorem "dynamic_refutational_complete_calculus Bot Inf entails Red_Inf Red_F \<longleftrightarrow>
+theorem dyn_ref_eq_dyn_ref_red: "dynamic_refutational_complete_calculus Bot Inf entails Red_Inf Red_F \<longleftrightarrow>
   dynamic_refutational_complete_calculus Bot Inf entails Red_Red_Inf Red_F"
   using dyn_equiv_stat stat_is_stat_red reduc_calc.dyn_equiv_stat by meson
    
 (* thm:reduced-dyn-ref-compl 2/3 (viii) \<longleftrightarrow> (vii) *)
-theorem "reduc_dynamic_refutational_complete_calculus Bot Inf entails Red_Red_Inf Red_F \<longleftrightarrow>
+theorem red_dyn_ref_red_eq_dyn_ref_red: "reduc_dynamic_refutational_complete_calculus Bot Inf entails Red_Red_Inf Red_F \<longleftrightarrow>
   dynamic_refutational_complete_calculus Bot Inf entails Red_Red_Inf Red_F"
   using red_dyn_equiv_red_stat dyn_equiv_stat red_stat_red_is_stat_red
   by (simp add: reduc_calc.dyn_equiv_stat reduc_calc.red_dyn_equiv_red_stat)
 
 (* thm:reduced-dyn-ref-compl 3/3 (vi) \<longleftrightarrow> (vii) *)
-theorem "reduc_dynamic_refutational_complete_calculus Bot Inf entails Red_Inf Red_F \<longleftrightarrow>
+theorem red_dyn_ref_eq_dyn_ref_red: "reduc_dynamic_refutational_complete_calculus Bot Inf entails Red_Inf Red_F \<longleftrightarrow>
   dynamic_refutational_complete_calculus Bot Inf entails Red_Red_Inf Red_F"
   using red_dyn_equiv_red_stat dyn_equiv_stat red_stat_is_stat_red
     reduc_calc.dyn_equiv_stat reduc_calc.red_dyn_equiv_red_stat
