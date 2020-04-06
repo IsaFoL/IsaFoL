@@ -1,6 +1,5 @@
 (*  Title:       Labeled Lifting to Non-Ground Calculi of the Saturation Framework
-    Author:      Sophie Tourret <stourret at mpi-inf.mpg.de>, 2019
-*)
+ *  Author:      Sophie Tourret <stourret at mpi-inf.mpg.de>, 2019-2020 *)
 
 theory Labeled_Lifting_to_Non_Ground_Calculi
   imports Lifting_to_Non_Ground_Calculi
@@ -31,16 +30,11 @@ begin
 definition to_F :: \<open>('f \<times> 'l) inference \<Rightarrow> 'f inference\<close> where
   \<open>to_F \<iota>\<^sub>F\<^sub>L = Infer (map fst (prems_of \<iota>\<^sub>F\<^sub>L)) (fst (concl_of \<iota>\<^sub>F\<^sub>L))\<close>
 
-text \<open>The set FL is implicitly defined as \<^term>\<open>UNIV::('f\<times>'l) set\<close> and the function \<^term>\<open>proj_1\<close> is
-  implicitly defined as \<^term>\<open>(`) fst\<close>.\<close>
 definition Bot_FL :: \<open>('f \<times> 'l) set\<close> where \<open>Bot_FL = Bot_F \<times> UNIV\<close>
 
 definition \<G>_F_L :: \<open>('f \<times> 'l) \<Rightarrow> 'g set\<close> where \<open>\<G>_F_L CL = \<G>_F (fst CL)\<close>
 
 definition \<G>_Inf_L :: \<open>('f \<times> 'l) inference \<Rightarrow> 'g inference set option\<close> where \<open>\<G>_Inf_L \<iota>\<^sub>F\<^sub>L = \<G>_Inf (to_F \<iota>\<^sub>F\<^sub>L)\<close>
-
-(* definition entails_sound_FL :: \<open>('f \<times> 'l) set \<Rightarrow> ('f \<times> 'l) set \<Rightarrow> bool\<close> (infix "|\<approx>FL" 50) where \<open>CL1 |\<approx>FL
-CL2 \<equiv> fst ` CL1 |\<approx>F fst ` CL2\<close> *)
 
 (* lem:labeled-grounding-function *)
 sublocale labeled_standard_lifting: standard_lifting
@@ -115,7 +109,6 @@ proof clarify
     using that subset_fst[OF i_prems] unfolding Lli_def by (meson nth_mem someI_ex)
   define Ll where "Ll \<equiv> map Lli [0..<length (prems_of \<iota>)]"
   have Ll_length: "length Ll = length (prems_of \<iota>)" unfolding Ll_def by auto
-    (* "\<exists>L0. Infer (zip (prems_of \<iota>) Ll) (concl_of \<iota>, L0) \<in> Inf_FL" and *)
   have subs_NL: "set (zip (prems_of \<iota>) Ll) \<subseteq> NL" unfolding Ll_def by (auto simp:in_set_zip)
   obtain L0 where L0: "Infer (zip (prems_of \<iota>) Ll) (concl_of \<iota>, L0) \<in> Inf_FL"
     using Inf_F_to_Inf_FL[OF i_in Ll_length] ..

@@ -1,6 +1,5 @@
 (*  Title:       Lifting to Non-Ground Calculi of the Saturation Framework
-    Author:      Sophie Tourret <stourret at mpi-inf.mpg.de>, 2018-2019
-*)
+ *  Author:      Sophie Tourret <stourret at mpi-inf.mpg.de>, 2018-2020 *)
 
 theory Lifting_to_Non_Ground_Calculi
   imports
@@ -30,7 +29,7 @@ locale standard_lifting = Non_ground: inference_system Inf_F +
 begin
 
 abbreviation \<G>_set :: \<open>'f set \<Rightarrow> 'g set\<close> where
-  \<open>\<G>_set N \<equiv> UNION N \<G>_F\<close> (*  \<Union>C \<in> N. \<G>_F C *)
+  \<open>\<G>_set N \<equiv> UNION N \<G>_F\<close>
 
 lemma \<G>_subset: \<open>N1 \<subseteq> N2 \<Longrightarrow> \<G>_set N1 \<subseteq> \<G>_set N2\<close> by auto
 
@@ -278,7 +277,6 @@ proof
   assume
     N'_in_Red_F_N: \<open>N' \<subseteq> Red_F_\<G> N\<close> and
     i_in_Red_Inf_N: \<open>\<iota> \<in> Red_Inf_\<G> N\<close>
-  (* have some_ginf_i: "\<G>_Inf \<iota> \<noteq> None" using i_in_Red_Inf_N unfolding Red_Inf_\<G>_def by blast  *)
   have i_in: \<open>\<iota> \<in> Inf_F\<close> using i_in_Red_Inf_N unfolding Red_Inf_\<G>_def by blast
   {
     assume not_none: "\<G>_Inf \<iota> \<noteq> None"
@@ -493,7 +491,6 @@ proof -
       lifting_with_wf_ordering_family_axioms.intro lifting_with_wf_ordering_family_def)
 qed
 
-(* TODO: there may be a way to merge this locale with the previous one *)
 locale lifting_equivalence_with_empty_order =
   any_order_lifting: lifting_with_wf_ordering_family Bot_F Inf_F Bot_G entails_G Inf_G Red_Inf_G
     Red_F_G \<G>_F \<G>_Inf Prec_F_g +

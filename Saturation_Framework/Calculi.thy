@@ -1,6 +1,5 @@
 (*  Title:       Calculi of the Saturation Framework
-    Author:      Sophie Tourret <stourret at mpi-inf.mpg.de>, 2018-2019
-*)
+ *   Author:      Sophie Tourret <stourret at mpi-inf.mpg.de>, 2018-2020 *)
 
 theory Calculi
   imports
@@ -530,8 +529,6 @@ qed
 
 end
 
-(* because it is possible to have a non-reduced redundancy criterion for a reduced static
- * refutational complete calculus *)
 locale  reduc_static_refutational_complete_calculus = calculus_with_red_crit +
   assumes reduc_static_refutational_complete: "B \<in> Bot \<Longrightarrow> reduc_saturated N \<Longrightarrow> N \<Turnstile> {B} \<Longrightarrow> \<exists>B'\<in>Bot. B' \<in> N"
 

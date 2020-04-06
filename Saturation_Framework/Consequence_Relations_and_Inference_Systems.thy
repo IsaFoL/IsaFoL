@@ -1,6 +1,5 @@
 (*  Title:       Consequence Relations and Inference Systems of the Saturation Framework
-    Author:      Sophie Tourret <stourret at mpi-inf.mpg.de>, 2018-2019
-*)
+ *   Author:      Sophie Tourret <stourret at mpi-inf.mpg.de>, 2018-2020 *)
 
 theory Consequence_Relations_and_Inference_Systems
   imports
