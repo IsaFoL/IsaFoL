@@ -1,0 +1,21 @@
+chapter AFP
+
+session "Saturation_Framework" (AFP) = HOL +
+  options [document = pdf, document_output = "output",
+    document_variants = "document:outline=/proof,/ML"]
+  sessions
+    "HOL-Library"
+    Ordered_Resolution_Prover
+    Well_Quasi_Orders
+  theories [document = false]
+    "Ordered_Resolution_Prover.Lazy_List_Liminf"
+    "Ordered_Resolution_Prover.Lazy_List_Chain"
+  theories [document = true]
+    Consequence_Relations_and_Inference_Systems
+    Calculi
+    Lifting_to_Non_Ground_Calculi
+    Labeled_Lifting_to_Non_Ground_Calculi
+    Prover_Architectures
+  document_files
+    "root.tex"
+    "root.tex"
