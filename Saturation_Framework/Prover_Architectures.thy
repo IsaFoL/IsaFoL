@@ -3,6 +3,8 @@
 
 section \<open>Prover Architectures\<close>
 
+text \<open>This section covers all the results presented in the fourth section of the report. This is where abstract architectures of provers are defined and proven dynamically refutationally complete.\<close>
+
 theory Prover_Architectures
   imports Labeled_Lifting_to_Non_Ground_Calculi
 begin

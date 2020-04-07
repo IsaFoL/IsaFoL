@@ -3,6 +3,8 @@
 
 section \<open>Labeled Liftings\<close>
 
+text \<open>This section formalizes the extension of the lifting results to labeled calculi. This corresponds to section 3.4 of the report.\<close>
+
 theory Labeled_Lifting_to_Non_Ground_Calculi
   imports Lifting_to_Non_Ground_Calculi
 begin

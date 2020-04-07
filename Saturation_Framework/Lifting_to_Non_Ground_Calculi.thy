@@ -3,6 +3,8 @@
 
 section \<open>Lifting to Non-ground Calculi\<close>
 
+text \<open>The section 3.1 to 3.3 of the report are covered by the current section. Various forms of lifting are proven correct. These allow to obtain the dynamic refutational completeness of a non-ground calculus from the static refutational completeness of its ground counterpart.\<close>
+
 theory Lifting_to_Non_Ground_Calculi
   imports
     Calculi
@@ -421,7 +423,7 @@ qed
 
 end
 
-subsection \<open>Variation on a Theme\<close>
+subsection \<open>Strong Standard Lifting\<close>
 
 locale strong_standard_lifting = Non_ground: inference_system Inf_F +
   Ground: calculus_with_red_crit Bot_G Inf_G entails_G Red_Inf_G Red_F_G
@@ -475,7 +477,7 @@ qed
 
 end
 
-subsection \<open>Lifting with an Empty Order\<close>
+subsection \<open>Using an Empty Order to Obtain Results with Orderings\<close>
 
 definition Empty_Order :: \<open>'f \<Rightarrow> 'f \<Rightarrow> bool\<close> where
   "Empty_Order C1 C2 \<equiv> False" 

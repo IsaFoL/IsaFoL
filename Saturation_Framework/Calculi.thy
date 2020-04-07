@@ -3,6 +3,8 @@
 
 section \<open>Calculi\<close>
 
+text \<open>In this section, the section 2.2 to 2.4 of the report are covered. This includes results on calculi equipped with a redundancy criterion or with a family of redundancy criteria, as well as a proof that various notions of redundancy are equivalent\<close>
+
 theory Calculi
   imports
     Consequence_Relations_and_Inference_Systems
@@ -272,6 +274,8 @@ proof
    then show \<open>\<exists>i\<in>{i. enat i < llength D}. \<exists>B'\<in>Bot. B' \<in> lnth D i\<close>
      unfolding Liminf_llist_def by auto
 qed
+
+subsection \<open>Calculus with a Family of Redundancy Criteria\<close>
 
 locale calculus_with_red_crit_family = inference_system Inf + consequence_relation_family Bot Q entails_q
   for
