@@ -7,7 +7,7 @@ theory Labeled_Lifting_to_Non_Ground_Calculi
   imports Lifting_to_Non_Ground_Calculi
 begin
 
-subsection \<open>Labeled Lifting of a Calculus with a Family of Well-founded Orderings\<close>
+subsection \<open>Labeled Lifting with a Family of Well-founded Orderings\<close>
 
 locale labeled_lifting_w_wf_ord_family =
   lifting_with_wf_ordering_family Bot_F Inf_F Bot_G entails_G Inf_G Red_Inf_G Red_F_G \<G>_F \<G>_Inf Prec_F
@@ -172,7 +172,7 @@ qed
 
 end
 
-subsection \<open>Labeled Lifting of a Calculus with a Family of Redundancy Criteria\<close>
+subsection \<open>Labeled Lifting with a Family of Redundancy Criteria\<close>
 
 locale labeled_lifting_with_red_crit_family = no_labels: standard_lifting_with_red_crit_family Inf_F
   Bot_G Inf_G Q entails_q Red_Inf_q Red_F_q Bot_F \<G>_F_q \<G>_Inf_q "\<lambda>g. Empty_Order"

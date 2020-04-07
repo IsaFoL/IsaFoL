@@ -1,7 +1,11 @@
 (*  Title:       Consequence Relations and Inference Systems of the Saturation Framework
  *   Author:      Sophie Tourret <stourret at mpi-inf.mpg.de>, 2018-2020 *)
 
+
+
 section \<open>Consequence Relations and Inference Systems\<close>
+
+text \<open>This section introduces the most basic notions upon which the framework is built: consequence relations and inference systems. It also defines the notion of a family of consequence relations. This correspond to section 2.1 of the report.\<close>
 
 theory Consequence_Relations_and_Inference_Systems
   imports
