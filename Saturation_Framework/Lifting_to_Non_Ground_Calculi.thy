@@ -1,11 +1,15 @@
 (*  Title:       Lifting to Non-Ground Calculi of the Saturation Framework
  *  Author:      Sophie Tourret <stourret at mpi-inf.mpg.de>, 2018-2020 *)
 
+section \<open>Lifting to Non-ground Calculi\<close>
+
 theory Lifting_to_Non_Ground_Calculi
   imports
     Calculi
     Well_Quasi_Orders.Minimal_Elements
 begin
+
+subsection \<open>Standard Lifting\<close>
 
 locale standard_lifting = Non_ground: inference_system Inf_F +
   Ground: calculus_with_red_crit Bot_G Inf_G entails_G Red_Inf_G Red_F_G
@@ -82,6 +86,8 @@ next
 qed
 
 end
+
+subsection \<open>Lifting with a Family of Well-founded Orderings\<close>
 
 locale lifting_with_wf_ordering_family =
   standard_lifting Bot_F Inf_F Bot_G Inf_G entails_G Red_Inf_G Red_F_G \<G>_F \<G>_Inf
@@ -415,6 +421,8 @@ qed
 
 end
 
+subsection \<open>Variation on a Theme\<close>
+
 locale strong_standard_lifting = Non_ground: inference_system Inf_F +
   Ground: calculus_with_red_crit Bot_G Inf_G entails_G Red_Inf_G Red_F_G
   for
@@ -466,6 +474,8 @@ next
 qed
 
 end
+
+subsection \<open>Lifting with an Empty Order\<close>
 
 definition Empty_Order :: \<open>'f \<Rightarrow> 'f \<Rightarrow> bool\<close> where
   "Empty_Order C1 C2 \<equiv> False" 
@@ -563,6 +573,8 @@ qed
 
 end
 
+subsection \<open>Lifting with a Family of Redundancy Criteria\<close>
+
 locale standard_lifting_with_red_crit_family = Non_ground: inference_system Inf_F
   + Ground_family: calculus_with_red_crit_family Bot_G Inf_G Q entails_q Red_Inf_q Red_F_q
   for
@@ -629,7 +641,6 @@ proof -
   ultimately show "calculus_with_red_crit Bot_F Inf_F (entails_\<G>_q q) (Red_Inf_\<G>_q q) (Red_F_\<G>_q_g q)"
     using wf_lift.lifted_calculus_with_red_crit.calculus_with_red_crit_axioms by simp
 qed
-
 
 lemma red_crit_lifting_family_empty_ord:
   "calculus_with_red_crit Bot_F Inf_F (entails_\<G>_q q) (Red_Inf_\<G>_q q) (Red_F_\<G>_empty_q q)"

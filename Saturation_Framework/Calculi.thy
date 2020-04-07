@@ -1,12 +1,16 @@
 (*  Title:       Calculi of the Saturation Framework
  *   Author:      Sophie Tourret <stourret at mpi-inf.mpg.de>, 2018-2020 *)
 
+section \<open>Calculi\<close>
+
 theory Calculi
   imports
     Consequence_Relations_and_Inference_Systems
     Ordered_Resolution_Prover.Lazy_List_Liminf
     Ordered_Resolution_Prover.Lazy_List_Chain
 begin
+
+subsection \<open>Calculus with Redundancy Criterion\<close>
 
 locale calculus_with_red_crit = inference_system Inf + consequence_relation Bot entails
   for
@@ -494,6 +498,8 @@ proof (rule ccontr)
 qed
 
 end
+
+subsection \<open>Variations on a Theme\<close>
 
 locale calculus_with_reduced_red_crit = calculus_with_red_crit Bot Inf entails Red_Inf Red_F
   for

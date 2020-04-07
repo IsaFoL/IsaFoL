@@ -1,10 +1,14 @@
 (*  Title:       Consequence Relations and Inference Systems of the Saturation Framework
  *   Author:      Sophie Tourret <stourret at mpi-inf.mpg.de>, 2018-2020 *)
 
+section \<open>Consequence Relations and Inference Systems\<close>
+
 theory Consequence_Relations_and_Inference_Systems
   imports
     Main
 begin
+
+subsection \<open>Consequence Relations\<close>
 
 locale consequence_relation =
   fixes
@@ -34,6 +38,8 @@ lemma entail_all_bot: "(\<exists>B \<in> Bot. N \<Turnstile> {B}) \<Longrightarr
   using bot_implies_all entails_trans by blast
 
 end
+
+subsection \<open>Consequence Relation Family\<close>
 
 locale consequence_relation_family =
   fixes
@@ -68,6 +74,8 @@ next
 qed
 
 end
+
+subsection \<open>Inference System\<close>
 
 datatype 'f inference =
   Infer (prems_of: "'f list") (concl_of: "'f")
