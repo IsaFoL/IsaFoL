@@ -3,7 +3,9 @@
 
 section \<open>Prover Architectures\<close>
 
-text \<open>This section covers all the results presented in the fourth section of the report. This is where abstract architectures of provers are defined and proven dynamically refutationally complete.\<close>
+text \<open>This section covers all the results presented in the section 4 of the report.
+  This is where abstract architectures of provers are defined and proven
+  dynamically refutationally complete.\<close>
 
 theory Prover_Architectures
   imports Labeled_Lifting_to_Non_Ground_Calculi
@@ -11,8 +13,8 @@ begin
 
 subsection \<open>Generic Prover Architecture\<close>
 
-locale Prover_Architecture = labeled_lifting_with_red_crit_family Bot_F Inf_F Bot_G Q entails_q Inf_G Red_Inf_q
-  Red_F_q \<G>_F_q \<G>_Inf_q l Inf_FL
+locale Prover_Architecture = labeled_lifting_with_red_crit_family Bot_F Inf_F Bot_G Q entails_q Inf_G
+  Red_Inf_q Red_F_q \<G>_F_q \<G>_Inf_q l Inf_FL
   for
     Bot_F :: "'f set"
     and Inf_F :: "'f inference set"
@@ -155,7 +157,7 @@ lemma empty_red_f_equiv: "labeled_ord_red_crit_fam.empty_ord_lifted_calc_w_red_c
   with_labels.Red_F_Q N"
   unfolding labeled_ord_red_crit_fam.empty_ord_lifted_calc_w_red_crit_family.Red_F_Q_def
     with_labels.Red_F_Q_def labeled_ord_red_crit_fam.Red_F_\<G>_empty_q_def Red_F_\<G>_empty_L_q_def
-    labeled_ord_red_crit_fam.\<G>_set_q_def \<G>_set_L_q_def Empty_Order_def Labeled_Empty_Order_def
+    labeled_ord_red_crit_fam.\<G>_set_q_def \<G>_set_L_q_def Labeled_Empty_Order_def
   by simp
 
 lemma empty_red_f_equiv2: "labeled_ord_red_crit_fam.empty_ord_lifted_calc_w_red_crit_family.Red_F_Q =
@@ -364,7 +366,7 @@ proof -
     then have "C \<in> no_labels.Red_F_\<G>_empty_q q (fst ` N)" for q
       unfolding no_labels.Red_F_\<G>_empty_def by fast
     then have g_in_red: "\<G>_F_q q C \<subseteq> Red_F_q q (no_labels.\<G>_set_q q (fst ` N))" for q
-      unfolding no_labels.Red_F_\<G>_empty_q_def Empty_Order_def by blast
+      unfolding no_labels.Red_F_\<G>_empty_q_def by blast
     have "no_labels.\<G>_set_q q (fst ` N) = labeled_ord_red_crit_fam.\<G>_set_q q N" for q
       unfolding no_labels.\<G>_set_q_def labeled_ord_red_crit_fam.\<G>_set_q_def \<G>_F_L_q_def by simp
     then have "\<G>_F_L_q q (C,L) \<subseteq> Red_F_q q (labeled_ord_red_crit_fam.\<G>_set_q q N)" for q

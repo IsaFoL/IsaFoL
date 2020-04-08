@@ -1,8 +1,6 @@
 (*  Title:       Consequence Relations and Inference Systems of the Saturation Framework
  *   Author:      Sophie Tourret <stourret at mpi-inf.mpg.de>, 2018-2020 *)
 
-
-
 section \<open>Consequence Relations and Inference Systems\<close>
 
 text \<open>This section introduces the most basic notions upon which the framework is built: consequence relations and inference systems. It also defines the notion of a family of consequence relations. This corresponds to section 2.1 of the report.\<close>
@@ -43,7 +41,7 @@ lemma entail_all_bot: "(\<exists>B \<in> Bot. N \<Turnstile> {B}) \<Longrightarr
 
 end
 
-subsection \<open>Consequence Relation Family\<close>
+subsection \<open>Families of Consequence Relations\<close>
 
 locale consequence_relation_family =
   fixes
@@ -79,7 +77,7 @@ qed
 
 end
 
-subsection \<open>Inference System\<close>
+subsection \<open>Inference Systems\<close>
 
 datatype 'f inference =
   Infer (prems_of: "'f list") (concl_of: "'f")

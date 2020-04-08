@@ -3,7 +3,10 @@
 
 section \<open>Calculi\<close>
 
-text \<open>In this section, the section 2.2 to 2.4 of the report are covered. This includes results on calculi equipped with a redundancy criterion or with a family of redundancy criteria, as well as a proof that various notions of redundancy are equivalent\<close>
+text \<open>In this section, the section 2.2 to 2.4 of the report are covered. This
+  includes results on calculi equipped with a redundancy criterion or with a
+  family of redundancy criteria, as well as a proof that various notions of
+  redundancy are equivalent\<close>
 
 theory Calculi
   imports
@@ -12,7 +15,7 @@ theory Calculi
     Ordered_Resolution_Prover.Lazy_List_Chain
 begin
 
-subsection \<open>Calculus with Redundancy Criterion\<close>
+subsection \<open>Calculi with a Redundancy Criterion\<close>
 
 locale calculus_with_red_crit = inference_system Inf + consequence_relation Bot entails
   for
@@ -275,7 +278,7 @@ proof
      unfolding Liminf_llist_def by auto
 qed
 
-subsection \<open>Calculus with a Family of Redundancy Criteria\<close>
+subsection \<open>Calculi with a Family of Redundancy Criteria\<close>
 
 locale calculus_with_red_crit_family = inference_system Inf + consequence_relation_family Bot Q entails_q
   for
@@ -642,7 +645,7 @@ lemma inf_subs_reduced_red_inf: "Inf_from2 UNIV (Red_F N) \<subseteq> Red_Red_In
 (* lem:red'-is-reduced-redcrit *)
 text \<open>The following is a lemma and not a sublocale as was previously used in similar cases.
   Here, a sublocale cannot be used because it would create an infinitely descending
-  loop of sublocales. \<close>
+  chain of sublocales. \<close>
 lemma reduc_calc: "calculus_with_reduced_red_crit Bot Inf entails Red_Red_Inf Red_F"
   using inf_subs_reduced_red_inf reduced_calc_is_calc
   by (simp add: calculus_with_reduced_red_crit.intro calculus_with_reduced_red_crit_axioms_def)
@@ -904,7 +907,8 @@ theorem dyn_ref_eq_dyn_ref_red: "dynamic_refutational_complete_calculus Bot Inf 
   using dyn_equiv_stat stat_is_stat_red reduc_calc.dyn_equiv_stat by meson
    
 (* thm:reduced-dyn-ref-compl 2/3 (viii) \<longleftrightarrow> (vii) *)
-theorem red_dyn_ref_red_eq_dyn_ref_red: "reduc_dynamic_refutational_complete_calculus Bot Inf entails Red_Red_Inf Red_F \<longleftrightarrow>
+theorem red_dyn_ref_red_eq_dyn_ref_red: "reduc_dynamic_refutational_complete_calculus Bot Inf
+  entails Red_Red_Inf Red_F \<longleftrightarrow>
   dynamic_refutational_complete_calculus Bot Inf entails Red_Red_Inf Red_F"
   using red_dyn_equiv_red_stat dyn_equiv_stat red_stat_red_is_stat_red
   by (simp add: reduc_calc.dyn_equiv_stat reduc_calc.red_dyn_equiv_red_stat)

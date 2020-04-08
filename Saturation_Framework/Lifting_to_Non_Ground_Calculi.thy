@@ -3,7 +3,10 @@
 
 section \<open>Lifting to Non-ground Calculi\<close>
 
-text \<open>The section 3.1 to 3.3 of the report are covered by the current section. Various forms of lifting are proven correct. These allow to obtain the dynamic refutational completeness of a non-ground calculus from the static refutational completeness of its ground counterpart.\<close>
+text \<open>The section 3.1 to 3.3 of the report are covered by the current section.
+  Various forms of lifting are proven correct. These allow to obtain the dynamic
+  refutational completeness of a non-ground calculus from the static refutational
+  completeness of its ground counterpart.\<close>
 
 theory Lifting_to_Non_Ground_Calculi
   imports
@@ -85,6 +88,61 @@ next
   assume
     \<open>N1 \<Turnstile>\<G> N2\<close> and \<open>N2 \<Turnstile>\<G> N3\<close>
   then show \<open>N1 \<Turnstile>\<G> N3\<close> using entails_\<G>_def Ground.entails_trans by blast
+qed
+
+end
+
+subsection \<open>Strong Standard Lifting\<close>
+
+(* rmk:strong-standard-lifting *)
+locale strong_standard_lifting = Non_ground: inference_system Inf_F +
+  Ground: calculus_with_red_crit Bot_G Inf_G entails_G Red_Inf_G Red_F_G
+  for
+    Bot_F :: \<open>'f set\<close> and
+    Inf_F :: \<open>'f inference set\<close> and
+    Bot_G :: \<open>'g set\<close> and
+    Inf_G ::  \<open>'g inference set\<close> and
+    entails_G ::  \<open>'g set  \<Rightarrow> 'g set  \<Rightarrow> bool\<close> (infix "\<Turnstile>G" 50) and
+    Red_Inf_G :: \<open>'g set \<Rightarrow> 'g inference set\<close> and
+    Red_F_G :: \<open>'g set \<Rightarrow> 'g set\<close>
+  + fixes
+    \<G>_F :: \<open>'f \<Rightarrow> 'g set\<close> and
+    \<G>_Inf :: \<open>'f inference \<Rightarrow> 'g inference set option\<close>
+  assumes
+    Bot_F_not_empty: "Bot_F \<noteq> {}" and
+    Bot_map_not_empty: \<open>B \<in> Bot_F \<Longrightarrow> \<G>_F B \<noteq> {}\<close> and
+    Bot_map: \<open>B \<in> Bot_F \<Longrightarrow> \<G>_F B \<subseteq> Bot_G\<close> and
+    Bot_cond: \<open>\<G>_F C \<inter> Bot_G \<noteq> {} \<longrightarrow> C \<in> Bot_F\<close> and
+    strong_inf_map: \<open>\<iota> \<in> Inf_F \<Longrightarrow> \<G>_Inf \<iota> \<noteq> None \<Longrightarrow> concl_of ` (the (\<G>_Inf \<iota>)) \<subseteq> (\<G>_F (concl_of \<iota>))\<close> and
+    inf_map_in_Inf: \<open>\<iota> \<in> Inf_F \<Longrightarrow> \<G>_Inf \<iota> \<noteq> None \<Longrightarrow> the (\<G>_Inf \<iota>) \<subseteq> Inf_G\<close>
+begin
+
+sublocale standard_lifting
+proof
+  show "Bot_F \<noteq> {}" using Bot_F_not_empty .
+next
+  fix B
+  assume b_in: "B \<in> Bot_F"
+  show "\<G>_F B \<noteq> {}" using Bot_map_not_empty[OF b_in] .
+next
+  fix B
+  assume b_in: "B \<in> Bot_F"
+  show "\<G>_F B \<subseteq> Bot_G" using Bot_map[OF b_in] .
+next
+  show "\<And>C. \<G>_F C \<inter> Bot_G \<noteq> {} \<longrightarrow> C \<in> Bot_F" using Bot_cond .
+next
+  fix \<iota>
+  assume i_in: "\<iota> \<in> Inf_F" and
+    some_g: "\<G>_Inf \<iota> \<noteq> None"
+  show "the (\<G>_Inf \<iota>) \<subseteq> Red_Inf_G (\<G>_F (concl_of \<iota>))" 
+  proof
+    fix \<iota>G
+    assume ig_in1: "\<iota>G \<in> the (\<G>_Inf \<iota>)" 
+    then have ig_in2: "\<iota>G \<in> Inf_G" using inf_map_in_Inf[OF i_in some_g] by blast 
+    show "\<iota>G \<in> Red_Inf_G (\<G>_F (concl_of \<iota>))"
+      using strong_inf_map[OF i_in some_g] Ground.Red_Inf_of_Inf_to_N[OF ig_in2]
+        ig_in1 by blast
+  qed
 qed
 
 end
@@ -423,63 +481,7 @@ qed
 
 end
 
-subsection \<open>Strong Standard Lifting\<close>
-
-locale strong_standard_lifting = Non_ground: inference_system Inf_F +
-  Ground: calculus_with_red_crit Bot_G Inf_G entails_G Red_Inf_G Red_F_G
-  for
-    Bot_F :: \<open>'f set\<close> and
-    Inf_F :: \<open>'f inference set\<close> and
-    Bot_G :: \<open>'g set\<close> and
-    Inf_G ::  \<open>'g inference set\<close> and
-    entails_G ::  \<open>'g set  \<Rightarrow> 'g set  \<Rightarrow> bool\<close> (infix "\<Turnstile>G" 50) and
-    Red_Inf_G :: \<open>'g set \<Rightarrow> 'g inference set\<close> and
-    Red_F_G :: \<open>'g set \<Rightarrow> 'g set\<close>
-  + fixes
-    \<G>_F :: \<open>'f \<Rightarrow> 'g set\<close> and
-    \<G>_Inf :: \<open>'f inference \<Rightarrow> 'g inference set option\<close>
-  assumes
-    Bot_F_not_empty: "Bot_F \<noteq> {}" and
-    Bot_map_not_empty: \<open>B \<in> Bot_F \<Longrightarrow> \<G>_F B \<noteq> {}\<close> and
-    Bot_map: \<open>B \<in> Bot_F \<Longrightarrow> \<G>_F B \<subseteq> Bot_G\<close> and
-    Bot_cond: \<open>\<G>_F C \<inter> Bot_G \<noteq> {} \<longrightarrow> C \<in> Bot_F\<close> and
-    strong_inf_map: \<open>\<iota> \<in> Inf_F \<Longrightarrow> \<G>_Inf \<iota> \<noteq> None \<Longrightarrow> concl_of ` (the (\<G>_Inf \<iota>)) \<subseteq> (\<G>_F (concl_of \<iota>))\<close> and
-    inf_map_in_Inf: \<open>\<iota> \<in> Inf_F \<Longrightarrow> \<G>_Inf \<iota> \<noteq> None \<Longrightarrow> the (\<G>_Inf \<iota>) \<subseteq> Inf_G\<close>
-begin
-
-sublocale standard_lifting
-proof
-  show "Bot_F \<noteq> {}" using Bot_F_not_empty .
-next
-  fix B
-  assume b_in: "B \<in> Bot_F"
-  show "\<G>_F B \<noteq> {}" using Bot_map_not_empty[OF b_in] .
-next
-  fix B
-  assume b_in: "B \<in> Bot_F"
-  show "\<G>_F B \<subseteq> Bot_G" using Bot_map[OF b_in] .
-next
-  show "\<And>C. \<G>_F C \<inter> Bot_G \<noteq> {} \<longrightarrow> C \<in> Bot_F" using Bot_cond .
-next
-  fix \<iota>
-  assume i_in: "\<iota> \<in> Inf_F" and
-    some_g: "\<G>_Inf \<iota> \<noteq> None"
-  show "the (\<G>_Inf \<iota>) \<subseteq> Red_Inf_G (\<G>_F (concl_of \<iota>))" 
-  proof
-    fix \<iota>G
-    assume ig_in1: "\<iota>G \<in> the (\<G>_Inf \<iota>)" 
-    then have ig_in2: "\<iota>G \<in> Inf_G" using inf_map_in_Inf[OF i_in some_g] by blast 
-    show "\<iota>G \<in> Red_Inf_G (\<G>_F (concl_of \<iota>))"
-      using strong_inf_map[OF i_in some_g] Ground.Red_Inf_of_Inf_to_N[OF ig_in2]
-        ig_in1 by blast
-  qed
-qed
-
-end
-
-subsection \<open>Using an Empty Order to Obtain Results with Orderings\<close>
-
-definition Empty_Order :: \<open>'f \<Rightarrow> 'f \<Rightarrow> bool\<close> where
+abbreviation Empty_Order where
   "Empty_Order C1 C2 \<equiv> False" 
 
 lemma any_to_empty_order_lifting:
@@ -495,7 +497,7 @@ proof -
       \<G>_Inf Prec_F_g
     by auto
   have empty_wf: "minimal_element ((\<lambda>g. Empty_Order) g) UNIV"
-    by (simp add: lift_g.all_wf Empty_Order_def minimal_element.intro po_on_def transp_on_def wfp_on_def
+    by (simp add: lift_g.all_wf minimal_element.intro po_on_def transp_on_def wfp_on_def
       wfp_on_imp_irreflp_on)
   then show "lifting_with_wf_ordering_family Bot_F Inf_F Bot_G entails_G Inf_G Red_Inf_G Red_F_G
     \<G>_F \<G>_Inf (\<lambda>g. Empty_Order)"
@@ -523,9 +525,9 @@ locale lifting_equivalence_with_empty_order =
 sublocale lifting_with_wf_ordering_family \<subseteq> lifting_equivalence_with_empty_order
 proof
   show "po_on Empty_Order UNIV"
-    unfolding Empty_Order_def po_on_def by (simp add: transp_onI wfp_on_imp_irreflp_on)
+    unfolding po_on_def by (simp add: transp_onI wfp_on_imp_irreflp_on)
   show "wfp_on Empty_Order UNIV"
-    unfolding wfp_on_def Empty_Order_def by simp
+    unfolding wfp_on_def by simp
 qed
 
 context lifting_equivalence_with_empty_order

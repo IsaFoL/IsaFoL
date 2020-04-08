@@ -3,7 +3,8 @@
 
 section \<open>Labeled Liftings\<close>
 
-text \<open>This section formalizes the extension of the lifting results to labeled calculi. This corresponds to section 3.4 of the report.\<close>
+text \<open>This section formalizes the extension of the lifting results to labeled
+  calculi. This corresponds to section 3.4 of the report.\<close>
 
 theory Labeled_Lifting_to_Non_Ground_Calculi
   imports Lifting_to_Non_Ground_Calculi
@@ -72,7 +73,7 @@ next
     unfolding \<G>_Inf_L_def \<G>_F_L_def to_F_def using inf_map Inf_FL_to_Inf_F by fastforce
 qed
 
-definition Labeled_Empty_Order :: \<open> ('f \<times> 'l) \<Rightarrow> ('f \<times> 'l) \<Rightarrow> bool\<close> where
+abbreviation Labeled_Empty_Order :: \<open> ('f \<times> 'l) \<Rightarrow> ('f \<times> 'l) \<Rightarrow> bool\<close> where
   "Labeled_Empty_Order C1 C2 \<equiv> False" 
 
 sublocale labeled_lifting_w_empty_ord_family :
@@ -80,9 +81,9 @@ sublocale labeled_lifting_w_empty_ord_family :
     \<G>_F_L \<G>_Inf_L "\<lambda>g. Labeled_Empty_Order" 
 proof
   show "po_on Labeled_Empty_Order UNIV"
-    unfolding Labeled_Empty_Order_def po_on_def by (simp add: transp_onI wfp_on_imp_irreflp_on)
+    unfolding po_on_def by (simp add: transp_onI wfp_on_imp_irreflp_on)
   show "wfp_on Labeled_Empty_Order UNIV"
-    unfolding wfp_on_def Labeled_Empty_Order_def by simp
+    unfolding wfp_on_def by simp
 qed
 
 notation "labeled_standard_lifting.entails_\<G>" (infix "\<Turnstile>\<G>L" 50)
@@ -150,7 +151,7 @@ next
     fix Bl :: \<open>'f \<times> 'l\<close> and Nl :: \<open>('f \<times> 'l) set\<close>
     assume 
       Bl_in: \<open>Bl \<in> Bot_FL\<close> and
-      Nl_sat: \<open>labeled_lifting_w_empty_ord_family.empty_order_lifting.lifted_calculus_with_red_crit.saturated Nl\<close> and
+      Nl_sat: \<open>labeled_lifting_w_empty_ord_family.lifted_calculus_with_red_crit.saturated Nl\<close> and
       Nl_entails_Bl: \<open>Nl \<Turnstile>\<G>L {Bl}\<close>
     have static_axioms: "B \<in> Bot_F \<longrightarrow> empty_order_lifting.lifted_calculus_with_red_crit.saturated N \<longrightarrow>
       N \<Turnstile>\<G> {B} \<longrightarrow> (\<exists>B'\<in>Bot_F. B' \<in> N)" for B N
