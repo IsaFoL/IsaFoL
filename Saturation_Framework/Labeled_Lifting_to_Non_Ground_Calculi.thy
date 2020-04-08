@@ -74,11 +74,11 @@ next
 qed
 
 abbreviation Labeled_Empty_Order :: \<open> ('f \<times> 'l) \<Rightarrow> ('f \<times> 'l) \<Rightarrow> bool\<close> where
-  "Labeled_Empty_Order C1 C2 \<equiv> False" 
+  "Labeled_Empty_Order C1 C2 \<equiv> False"
 
 sublocale labeled_lifting_w_empty_ord_family :
   lifting_with_wf_ordering_family Bot_FL Inf_FL Bot_G entails_G Inf_G Red_Inf_G Red_F_G
-    \<G>_F_L \<G>_Inf_L "\<lambda>g. Labeled_Empty_Order" 
+    \<G>_F_L \<G>_Inf_L "\<lambda>g. Labeled_Empty_Order"
 proof
   show "po_on Labeled_Empty_Order UNIV"
     unfolding po_on_def by (simp add: transp_onI wfp_on_imp_irreflp_on)
@@ -149,7 +149,7 @@ next
     unfolding static_refutational_complete_calculus_axioms_def
   proof (intro conjI impI allI)
     fix Bl :: \<open>'f \<times> 'l\<close> and Nl :: \<open>('f \<times> 'l) set\<close>
-    assume 
+    assume
       Bl_in: \<open>Bl \<in> Bot_FL\<close> and
       Nl_sat: \<open>labeled_lifting_w_empty_ord_family.lifted_calculus_with_red_crit.saturated Nl\<close> and
       Nl_entails_Bl: \<open>Nl \<Turnstile>\<G>L {Bl}\<close>
@@ -160,7 +160,7 @@ next
     have B_in: "B \<in> Bot_F" using Bl_in Bot_FL_def B_def SigmaE by force
     define N where "N = fst ` Nl"
     have N_sat: "empty_order_lifting.lifted_calculus_with_red_crit.saturated N"
-      using N_def Nl_sat labeled_saturation_lifting by blast 
+      using N_def Nl_sat labeled_saturation_lifting by blast
     have N_entails_B: "N \<Turnstile>\<G> {B}"
       using Nl_entails_Bl unfolding labeled_entailment_lifting N_def B_def by force
     have "\<exists>B' \<in> Bot_F. B' \<in> N" using B_in N_sat N_entails_B static_axioms[of B N] by blast
@@ -219,7 +219,7 @@ definition Red_Inf_\<G>_L_Q :: "('f \<times> 'l) set \<Rightarrow> ('f \<times> 
   "Red_Inf_\<G>_L_Q N = \<Inter> {X N |X. X \<in> (Red_Inf_\<G>_L_q ` UNIV)}"
 
 definition Labeled_Empty_Order :: \<open> ('f \<times> 'l) \<Rightarrow> ('f \<times> 'l) \<Rightarrow> bool\<close> where
-  "Labeled_Empty_Order C1 C2 \<equiv> False" 
+  "Labeled_Empty_Order C1 C2 \<equiv> False"
 
 definition Red_F_\<G>_empty_L_q :: "'q \<Rightarrow> ('f \<times> 'l) set \<Rightarrow> ('f \<times> 'l) set" where
   "Red_F_\<G>_empty_L_q q N = {C. \<forall>D \<in> \<G>_F_L_q q C. D \<in> Red_F_q q (\<G>_set_L_q q N) \<or>
@@ -303,7 +303,7 @@ proof -
     "Red_F_\<G>_empty_L_q q"
     using all_lifted_red_crit .
   show "consequence_relation Bot_FL (entails_\<G>_L_q q)"
-    using q_red_crit.consequence_relation_axioms . 
+    using q_red_crit.consequence_relation_axioms .
 qed
 
 sublocale labeled_cons_rel_family: consequence_relation_family Bot_FL Q entails_\<G>_L_q
@@ -315,7 +315,7 @@ sublocale with_labels: calculus_with_red_crit_family Bot_FL Inf_FL Q entails_\<G
   Red_F_\<G>_empty_L_q
   using calculus_with_red_crit_family.intro[OF labeled_cons_rel_family.consequence_relation_family_axioms]
     all_lifted_cons_rel
-  by (simp add: all_lifted_red_crit calculus_with_red_crit_family_axioms_def) 
+  by (simp add: all_lifted_red_crit calculus_with_red_crit_family_axioms_def)
 
 notation "no_labels.entails_\<G>_Q" (infix "\<Turnstile>\<inter>" 50)
 

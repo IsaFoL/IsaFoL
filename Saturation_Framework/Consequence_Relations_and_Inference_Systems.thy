@@ -29,11 +29,11 @@ lemma entail_set_all_formulas: "N1 \<Turnstile> N2 \<longleftrightarrow> (\<fora
 
 lemma entail_union: "N \<Turnstile> N1 \<and> N \<Turnstile> N2 \<longleftrightarrow> N \<Turnstile> N1 \<union> N2"
   using entail_set_all_formulas[of N N1] entail_set_all_formulas[of N N2]
-    entail_set_all_formulas[of N "N1 \<union> N2"] by blast 
+    entail_set_all_formulas[of N "N1 \<union> N2"] by blast
 
 lemma entail_unions: "(\<forall>i \<in> I. N \<Turnstile> Ni i) \<longleftrightarrow> N \<Turnstile> UNION I Ni"
   using entail_set_all_formulas[of N "\<Union> (Ni ` I)"] entail_set_all_formulas[of N]
-    Complete_Lattices.UN_ball_bex_simps(2)[of Ni I "\<lambda>C. N \<Turnstile> {C}", symmetric] 
+    Complete_Lattices.UN_ball_bex_simps(2)[of Ni I "\<lambda>C. N \<Turnstile> {C}", symmetric]
   by meson
 
 lemma entail_all_bot: "(\<exists>B \<in> Bot. N \<Turnstile> {B}) \<Longrightarrow> (\<forall>B' \<in> Bot. N \<Turnstile> {B'})"

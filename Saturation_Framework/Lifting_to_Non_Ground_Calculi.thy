@@ -45,7 +45,7 @@ lemma \<G>_subset: \<open>N1 \<subseteq> N2 \<Longrightarrow> \<G>_set N1 \<subs
 definition entails_\<G>  :: \<open>'f set \<Rightarrow> 'f set \<Rightarrow> bool\<close> (infix "\<Turnstile>\<G>" 50) where
   \<open>N1 \<Turnstile>\<G> N2 \<equiv> \<G>_set N1 \<Turnstile>G \<G>_set N2\<close>
 
-lemma subs_Bot_G_entails: 
+lemma subs_Bot_G_entails:
   assumes
     not_empty: \<open>sB \<noteq> {}\<close> and
     in_bot: \<open>sB \<subseteq> Bot_G\<close>
@@ -59,12 +59,12 @@ proof -
 qed
 
 (* lem:derived-consequence-relation *)
-sublocale lifted_consequence_relation: consequence_relation  
+sublocale lifted_consequence_relation: consequence_relation
   where Bot=Bot_F and entails=entails_\<G>
 proof
   show "Bot_F \<noteq> {}" using Bot_F_not_empty .
 next
-  show \<open>B\<in>Bot_F \<Longrightarrow> {B} \<Turnstile>\<G> N\<close> for B N 
+  show \<open>B\<in>Bot_F \<Longrightarrow> {B} \<Turnstile>\<G> N\<close> for B N
   proof -
     assume \<open>B \<in> Bot_F\<close>
     then show \<open>{B} \<Turnstile>\<G> N\<close>
@@ -74,14 +74,14 @@ next
   qed
 next
   fix N1 N2 :: \<open>'f set\<close>
-  assume 
+  assume
     \<open>N2 \<subseteq> N1\<close>
   then show \<open>N1 \<Turnstile>\<G> N2\<close> using entails_\<G>_def \<G>_subset Ground.subset_entailed by auto
 next
   fix N1 N2
   assume
     N1_entails_C: \<open>\<forall>C \<in> N2. N1 \<Turnstile>\<G> {C}\<close>
-  show \<open>N1 \<Turnstile>\<G> N2\<close> using Ground.all_formulas_entailed N1_entails_C entails_\<G>_def 
+  show \<open>N1 \<Turnstile>\<G> N2\<close> using Ground.all_formulas_entailed N1_entails_C entails_\<G>_def
     by (smt UN_E UN_I Ground.entail_set_all_formulas singletonI)
 next
   fix N1 N2 N3
@@ -134,11 +134,11 @@ next
   fix \<iota>
   assume i_in: "\<iota> \<in> Inf_F" and
     some_g: "\<G>_Inf \<iota> \<noteq> None"
-  show "the (\<G>_Inf \<iota>) \<subseteq> Red_Inf_G (\<G>_F (concl_of \<iota>))" 
+  show "the (\<G>_Inf \<iota>) \<subseteq> Red_Inf_G (\<G>_F (concl_of \<iota>))"
   proof
     fix \<iota>G
-    assume ig_in1: "\<iota>G \<in> the (\<G>_Inf \<iota>)" 
-    then have ig_in2: "\<iota>G \<in> Inf_G" using inf_map_in_Inf[OF i_in some_g] by blast 
+    assume ig_in1: "\<iota>G \<in> the (\<G>_Inf \<iota>)"
+    then have ig_in2: "\<iota>G \<in> Inf_G" using inf_map_in_Inf[OF i_in some_g] by blast
     show "\<iota>G \<in> Red_Inf_G (\<G>_F (concl_of \<iota>))"
       using strong_inf_map[OF i_in some_g] Ground.Red_Inf_of_Inf_to_N[OF ig_in2]
         ig_in1 by blast
@@ -174,8 +174,8 @@ definition Red_Inf_\<G> :: "'f set \<Rightarrow> 'f inference set" where
 definition Red_F_\<G> :: "'f set \<Rightarrow> 'f set" where
   \<open>Red_F_\<G> N = {C. \<forall>D \<in> \<G>_F C. D \<in> Red_F_G (\<G>_set N) \<or> (\<exists>E \<in> N. Prec_F_g D E C \<and> D \<in> \<G>_F E)}\<close>
 
-lemma Prec_trans: 
-  assumes 
+lemma Prec_trans:
+  assumes
     \<open>Prec_F_g D A B\<close> and
     \<open>Prec_F_g D B C\<close>
   shows
@@ -186,12 +186,12 @@ lemma prop_nested_in_set: "D \<in> P C \<Longrightarrow> C \<in> {C. \<forall>D 
   by blast
 
 (* lem:wolog-C'-nonredundant *)
-lemma Red_F_\<G>_equiv_def: 
+lemma Red_F_\<G>_equiv_def:
   \<open>Red_F_\<G> N = {C. \<forall>Di \<in> \<G>_F C. Di \<in> Red_F_G (\<G>_set N) \<or>
     (\<exists>E \<in> (N - Red_F_\<G> N). Prec_F_g Di E C \<and> Di \<in> \<G>_F E)}\<close>
 proof (rule;clarsimp)
   fix C D
-  assume 
+  assume
     C_in: \<open>C \<in> Red_F_\<G> N\<close> and
     D_in: \<open>D \<in> \<G>_F C\<close> and
     not_sec_case: \<open>\<forall>E \<in> N - Red_F_\<G> N. Prec_F_g D E C \<longrightarrow> D \<notin> \<G>_F E\<close>
@@ -199,11 +199,11 @@ proof (rule;clarsimp)
     (\<exists>E\<in>N. Prec_F_g Di E C \<and> Di \<in> \<G>_F E)}"
     using C_in unfolding Red_F_\<G>_def .
   have neg_not_sec_case: \<open>\<not> (\<exists>E\<in>N - Red_F_\<G> N. Prec_F_g D E C \<and> D \<in> \<G>_F E)\<close>
-    using not_sec_case by clarsimp 
-  have unfol_C_D: \<open>D \<in> Red_F_G (\<G>_set N) \<or> (\<exists>E\<in>N. Prec_F_g D E C \<and> D \<in> \<G>_F E)\<close> 
+    using not_sec_case by clarsimp
+  have unfol_C_D: \<open>D \<in> Red_F_G (\<G>_set N) \<or> (\<exists>E\<in>N. Prec_F_g D E C \<and> D \<in> \<G>_F E)\<close>
     using prop_nested_in_set[of D \<G>_F C "\<lambda>x. x \<in> Red_F_G (\<Union> (\<G>_F ` N))"
       "\<lambda>x y. \<exists>E \<in> N. Prec_F_g y E x \<and> y \<in> \<G>_F E", OF D_in C_in_unfolded] by blast
-  show \<open>D \<in> Red_F_G (\<G>_set N)\<close> 
+  show \<open>D \<in> Red_F_G (\<G>_set N)\<close>
   proof (rule ccontr)
     assume contrad: \<open>D \<notin> Red_F_G (\<G>_set N)\<close>
     have non_empty: \<open>\<exists>E\<in>N. Prec_F_g D E C \<and> D \<in> \<G>_F E\<close> using contrad unfol_C_D by auto
@@ -213,7 +213,7 @@ proof (rule;clarsimp)
     obtain F :: 'f where F: \<open>F = min_elt B\<close> by auto
     then have D_in_F: \<open>D \<in> \<G>_F F\<close> unfolding B_def using non_empty
       by (smt Sup_UNIV Sup_upper UNIV_I contra_subsetD empty_iff empty_subsetI mem_Collect_eq
-        min_elt_mem unfol_C_D) 
+        min_elt_mem unfol_C_D)
     have F_prec: \<open>Prec_F_g D F C\<close> using F min_elt_mem[of B, OF _ B_non_empty] unfolding B_def by auto
     have F_not_in: \<open>F \<notin> Red_F_\<G> N\<close>
     proof
@@ -228,7 +228,7 @@ proof (rule;clarsimp)
     qed
     have \<open>F \<in> N\<close> using F by (metis B_def B_non_empty mem_Collect_eq min_elt_mem top_greatest)
     then have \<open>F \<in> N - Red_F_\<G> N\<close> using F_not_in by auto
-    then show \<open>False\<close> 
+    then show \<open>False\<close>
       using D_in_F neg_not_sec_case F_prec by blast
   qed
 next
@@ -249,9 +249,9 @@ proof
   have exist_C: \<open>\<exists>C. C \<in> N \<and> D \<in> \<G>_F C\<close> using D_in by auto
   define B where \<open>B = {C \<in> N. D \<in> \<G>_F C}\<close>
   obtain C where C: \<open>C = min_elt B\<close> by auto
-  have C_in_N: \<open>C \<in> N\<close> 
+  have C_in_N: \<open>C \<in> N\<close>
     using exist_C by (metis B_def C empty_iff mem_Collect_eq min_elt_mem top_greatest)
-  have D_in_C: \<open>D \<in> \<G>_F C\<close> 
+  have D_in_C: \<open>D \<in> \<G>_F C\<close>
     using exist_C by (metis B_def C empty_iff mem_Collect_eq min_elt_mem top_greatest)
   have C_not_in: \<open>C \<notin> Red_F_\<G> N\<close>
   proof
@@ -264,8 +264,8 @@ proof
         then show \<open>False\<close> using D_not_in by simp
       next
         assume \<open>\<exists>E\<in>N. Prec_F_g D E C \<and> D \<in> \<G>_F E\<close>
-        then show \<open>False\<close> 
-          using C by (metis (no_types, lifting) B_def UNIV_I empty_iff mem_Collect_eq 
+        then show \<open>False\<close>
+          using C by (metis (no_types, lifting) B_def UNIV_I empty_iff mem_Collect_eq
               min_elt_minimal top_greatest)
       qed
   qed
@@ -279,8 +279,8 @@ proof -
   assume
     B_in: \<open>B \<in> Bot_F\<close> and
     N_entails: \<open>N \<Turnstile>\<G> {B}\<close>
-  then have to_bot: \<open>\<G>_set N - Red_F_G (\<G>_set N) \<Turnstile>G \<G>_F B\<close> 
-    using Ground.Red_F_Bot Bot_map unfolding entails_\<G>_def 
+  then have to_bot: \<open>\<G>_set N - Red_F_G (\<G>_set N) \<Turnstile>G \<G>_F B\<close>
+    using Ground.Red_F_Bot Bot_map unfolding entails_\<G>_def
       by (smt cSup_singleton Ground.entail_set_all_formulas image_insert image_is_empty subsetCE)
   have from_f: \<open>\<G>_set (N - Red_F_\<G> N) \<Turnstile>G \<G>_set N - Red_F_G (\<G>_set N)\<close>
     using Ground.subset_entailed[OF not_red_map_in_map_not_red] by blast
@@ -301,7 +301,7 @@ lemma Red_Inf_of_subset_F: \<open>N \<subseteq> N' \<Longrightarrow> Red_Inf_\<G
 lemma Red_F_of_Red_F_subset_F: \<open>N' \<subseteq> Red_F_\<G> N \<Longrightarrow> Red_F_\<G> N \<subseteq> Red_F_\<G> (N - N')\<close>
 proof
   fix N N' C
-  assume 
+  assume
     N'_in_Red_F_N: \<open>N' \<subseteq> Red_F_\<G> N\<close> and
     C_in_red_F_N: \<open>C \<in> Red_F_\<G> N\<close>
   have lem8: \<open>\<forall>D \<in> \<G>_F C. D \<in> Red_F_G (\<G>_set N) \<or> (\<exists>E \<in> (N - Red_F_\<G> N). Prec_F_g D E C \<and> D \<in> \<G>_F E)\<close>
@@ -317,7 +317,7 @@ proof
       assume \<open>D \<in> Red_F_G (\<G>_set N)\<close>
       then have \<open>D \<in> Red_F_G (\<G>_set N - Red_F_G (\<G>_set N))\<close>
         using Ground.Red_F_of_Red_F_subset[of "Red_F_G (\<G>_set N)" "\<G>_set N"] by auto
-      then have \<open>D \<in> Red_F_G (\<G>_set (N - Red_F_\<G> N))\<close> 
+      then have \<open>D \<in> Red_F_G (\<G>_set (N - Red_F_\<G> N))\<close>
         using Ground.Red_F_of_subset[OF not_red_map_in_map_not_red[of N]] by auto
       then have \<open>D \<in> Red_F_G (\<G>_set (N - N'))\<close>
         using N'_in_Red_F_N \<G>_subset[of "N - Red_F_\<G> N" "N - N'"]
@@ -325,10 +325,10 @@ proof
       then show ?thesis by blast
     next
       assume \<open>\<exists>E\<in>N - Red_F_\<G> N. Prec_F_g D E C \<and> D \<in> \<G>_F E\<close>
-      then obtain E where 
-        E_in: \<open>E\<in>N - Red_F_\<G> N\<close> and 
-        E_prec_C: \<open>Prec_F_g D E C\<close> and 
-        D_in: \<open>D \<in> \<G>_F E\<close> 
+      then obtain E where
+        E_in: \<open>E\<in>N - Red_F_\<G> N\<close> and
+        E_prec_C: \<open>Prec_F_g D E C\<close> and
+        D_in: \<open>D \<in> \<G>_F E\<close>
         by auto
       have \<open>E \<in> N - N'\<close> using E_in N'_in_Red_F_N by blast
       then show ?thesis using E_prec_C D_in by blast
@@ -347,26 +347,26 @@ proof
   {
     assume not_none: "\<G>_Inf \<iota> \<noteq> None"
     have \<open>\<forall>\<iota>' \<in> the (\<G>_Inf \<iota>). \<iota>' \<in> Red_Inf_G (\<G>_set N)\<close>
-      using not_none i_in_Red_Inf_N unfolding Red_Inf_\<G>_def by auto 
-    then have \<open>\<forall>\<iota>' \<in> the (\<G>_Inf \<iota>). \<iota>' \<in> Red_Inf_G (\<G>_set N - Red_F_G (\<G>_set N))\<close> 
+      using not_none i_in_Red_Inf_N unfolding Red_Inf_\<G>_def by auto
+    then have \<open>\<forall>\<iota>' \<in> the (\<G>_Inf \<iota>). \<iota>' \<in> Red_Inf_G (\<G>_set N - Red_F_G (\<G>_set N))\<close>
       using not_none Ground.Red_Inf_of_Red_F_subset by blast
     then have ip_in_Red_Inf_G: \<open>\<forall>\<iota>' \<in> the (\<G>_Inf \<iota>). \<iota>' \<in> Red_Inf_G (\<G>_set (N - Red_F_\<G> N))\<close>
       using not_none Ground.Red_Inf_of_subset[OF not_red_map_in_map_not_red[of N]] by auto
     then have not_none_in: \<open>\<forall>\<iota>' \<in> the (\<G>_Inf \<iota>). \<iota>' \<in> Red_Inf_G (\<G>_set (N - N'))\<close>
-      using not_none N'_in_Red_F_N 
+      using not_none N'_in_Red_F_N
       by (meson Diff_mono Ground.Red_Inf_of_subset \<G>_subset subset_iff subset_refl)
     then have "the (\<G>_Inf \<iota>) \<subseteq> Red_Inf_G (\<G>_set (N - N'))" by blast
   }
   moreover {
     assume none: "\<G>_Inf \<iota> = None"
     have ground_concl_subs: "\<G>_F (concl_of \<iota>) \<subseteq> (\<G>_set N \<union> Red_F_G (\<G>_set N))"
-      using none i_in_Red_Inf_N unfolding Red_Inf_\<G>_def by blast 
+      using none i_in_Red_Inf_N unfolding Red_Inf_\<G>_def by blast
     then have d_in_imp12: "D \<in> \<G>_F (concl_of \<iota>) \<Longrightarrow> D \<in> \<G>_set N - Red_F_G (\<G>_set N) \<or> D \<in> Red_F_G (\<G>_set N)"
-      by blast 
+      by blast
     have d_in_imp1: "D \<in> \<G>_set N - Red_F_G (\<G>_set N) \<Longrightarrow> D \<in> \<G>_set (N - N')"
       using not_red_map_in_map_not_red N'_in_Red_F_N by blast
     have d_in_imp_d_in: "D \<in> Red_F_G (\<G>_set N) \<Longrightarrow> D \<in> Red_F_G (\<G>_set N - Red_F_G (\<G>_set N))"
-      using Ground.Red_F_of_Red_F_subset[of "Red_F_G (\<G>_set N)" "\<G>_set N"] by blast 
+      using Ground.Red_F_of_Red_F_subset[of "Red_F_G (\<G>_set N)" "\<G>_set N"] by blast
     have g_subs1: "\<G>_set N - Red_F_G (\<G>_set N) \<subseteq> \<G>_set (N - Red_F_\<G> N)"
       using not_red_map_in_map_not_red unfolding Red_F_\<G>_def by auto
     have g_subs2: "\<G>_set (N - Red_F_\<G> N) \<subseteq> \<G>_set (N - N')"
@@ -379,11 +379,11 @@ proof
       by (smt Ground.Red_F_of_Red_F_subset Ground.Red_F_of_subset UnCI UnE Un_Diff_cancel2
         ground_concl_subs g_subs1 g_subs2 subset_iff)
   }
-  ultimately show \<open>\<iota> \<in> Red_Inf_\<G> (N - N')\<close> using i_in unfolding Red_Inf_\<G>_def by auto 
+  ultimately show \<open>\<iota> \<in> Red_Inf_\<G> (N - N')\<close> using i_in unfolding Red_Inf_\<G>_def by auto
 qed
 
 (* lem:concl-contained-implies-red-inf *)
-lemma Red_Inf_of_Inf_to_N_F: 
+lemma Red_Inf_of_Inf_to_N_F:
   assumes
     i_in: \<open>\<iota> \<in> Inf_F\<close> and
     concl_i_in: \<open>concl_of \<iota> \<in> N\<close>
@@ -395,11 +395,11 @@ proof -
     using concl_i_in Ground.Red_Inf_of_subset by blast
   moreover have "\<iota> \<in> Inf_F \<Longrightarrow> \<G>_Inf \<iota> = None \<Longrightarrow> concl_of \<iota> \<in> N \<Longrightarrow> \<G>_F (concl_of \<iota>) \<subseteq> \<G>_set N"
     by blast
-  ultimately show ?thesis using i_in concl_i_in unfolding Red_Inf_\<G>_def by auto 
+  ultimately show ?thesis using i_in concl_i_in unfolding Red_Inf_\<G>_def by auto
 qed
 
 (* thm:FRedsqsubset-is-red-crit and also thm:lifted-red-crit if ordering empty *)
-sublocale lifted_calculus_with_red_crit: calculus_with_red_crit 
+sublocale lifted_calculus_with_red_crit: calculus_with_red_crit
   where
     Bot = Bot_F and Inf = Inf_F and entails = entails_\<G> and
     Red_Inf = Red_Inf_\<G> and Red_F = Red_F_\<G>
@@ -436,11 +436,11 @@ proof -
     assume i_in: "\<iota> \<in> Ground.Inf_from (\<G>_set N)"
     {
       assume "\<iota> \<in> {\<iota>. \<exists>\<iota>'\<in> Non_ground.Inf_from N. \<G>_Inf \<iota>' \<noteq> None \<and> \<iota> \<in> the (\<G>_Inf \<iota>')}"
-      then obtain \<iota>' where "\<iota>'\<in> Non_ground.Inf_from N" "\<G>_Inf \<iota>' \<noteq> None" "\<iota> \<in> the (\<G>_Inf \<iota>')" by blast 
+      then obtain \<iota>' where "\<iota>'\<in> Non_ground.Inf_from N" "\<G>_Inf \<iota>' \<noteq> None" "\<iota> \<in> the (\<G>_Inf \<iota>')" by blast
       then have "\<iota> \<in> Red_Inf_G (\<G>_set N)"
-        using Red_Inf_\<G>_def sat_n unfolding lifted_calculus_with_red_crit.saturated_def by auto 
+        using Red_Inf_\<G>_def sat_n unfolding lifted_calculus_with_red_crit.saturated_def by auto
     }
-    then show "\<iota> \<in> Red_Inf_G (\<G>_set N)" using inf_grounded_in i_in by blast 
+    then show "\<iota> \<in> Red_Inf_G (\<G>_set N)" using inf_grounded_in i_in by blast
   qed
 qed
 
@@ -460,7 +460,7 @@ proof
     n_entails_bot: "N \<Turnstile>\<G> {B}"
   have ground_n_entails: "\<G>_set N \<Turnstile>G \<G>_F B"
     using n_entails_bot unfolding entails_\<G>_def by simp
-  then obtain BG where bg_in1: "BG \<in> \<G>_F B" 
+  then obtain BG where bg_in1: "BG \<in> \<G>_F B"
     using Bot_map_not_empty[OF b_in] by blast
   then have bg_in: "BG \<in> Bot_G"
     using Bot_map[OF b_in] by blast
@@ -476,13 +476,13 @@ proof
     unfolding static_refutational_complete_calculus_def static_refutational_complete_calculus_axioms_def
     by blast
   then show "\<exists>B'\<in> Bot_F. B' \<in> N"
-    using bg_in Bot_cond Bot_map_not_empty Bot_cond by blast 
+    using bg_in Bot_cond Bot_map_not_empty Bot_cond by blast
 qed
 
 end
 
 abbreviation Empty_Order where
-  "Empty_Order C1 C2 \<equiv> False" 
+  "Empty_Order C1 C2 \<equiv> False"
 
 lemma any_to_empty_order_lifting:
   "lifting_with_wf_ordering_family Bot_F Inf_F Bot_G entails_G Inf_G Red_Inf_G Red_F_G \<G>_F
@@ -546,7 +546,7 @@ lemma static_empty_order_equiv_static:
       any_order_lifting.Red_Inf_\<G> any_order_lifting.Red_F_\<G>"
   unfolding static_refutational_complete_calculus_def
   by (rule iffI) (standard,(standard)[],simp)+
-   
+
 (* thm:FRedsqsubset-is-dyn-ref-compl *)
 theorem static_to_dynamic:
   "static_refutational_complete_calculus Bot_F Inf_F
@@ -563,7 +563,7 @@ proof
   interpret static_refutational_complete_calculus Bot_F Inf_F any_order_lifting.entails_\<G>
     any_order_lifting.Red_Inf_\<G> any_order_lifting.Red_F_\<G>
     using static_general .
-  show "?dynamic" by standard 
+  show "?dynamic" by standard
 next
   assume dynamic_gen: ?dynamic
   interpret dynamic_refutational_complete_calculus Bot_F Inf_F any_order_lifting.entails_\<G>
@@ -596,7 +596,7 @@ locale standard_lifting_with_red_crit_family = Non_ground: inference_system Inf_
     Prec_F_g :: "'g \<Rightarrow> 'f \<Rightarrow> 'f \<Rightarrow> bool"
   assumes
     standard_lifting_family: "lifting_with_wf_ordering_family Bot_F Inf_F Bot_G (entails_q q)
-      Inf_G (Red_Inf_q q) (Red_F_q q) (\<G>_F_q q) (\<G>_Inf_q q) Prec_F_g" 
+      Inf_G (Red_Inf_q q) (Red_F_q q) (\<G>_F_q q) (\<G>_Inf_q q) Prec_F_g"
 begin
 
 definition \<G>_set_q :: "'q \<Rightarrow> 'f set \<Rightarrow> 'g set" where
@@ -668,7 +668,7 @@ qed
 lemma cons_rel_fam_Q_lem: \<open>consequence_relation_family Bot_F entails_\<G>_q\<close>
 proof
   show "Bot_F \<noteq> {}"
-    using standard_lifting_family 
+    using standard_lifting_family
     by (meson ex_in_conv lifting_with_wf_ordering_family.axioms(1) standard_lifting.Bot_F_not_empty)
 next
   fix qi
@@ -742,7 +742,7 @@ proof -
   have "lifted_calc_w_red_crit_family.entails_Q = entails_\<G>_Q"
     unfolding entails_\<G>_Q_def lifted_calc_w_red_crit_family.entails_Q_def by simp
   moreover have "lifted_calc_w_red_crit_family.Red_Inf_Q = Red_Inf_\<G>_Q"
-    unfolding Red_Inf_\<G>_Q_def lifted_calc_w_red_crit_family.Red_Inf_Q_def by simp 
+    unfolding Red_Inf_\<G>_Q_def lifted_calc_w_red_crit_family.Red_Inf_Q_def by simp
   moreover have "lifted_calc_w_red_crit_family.Red_F_Q = Red_F_\<G>_g"
     unfolding Red_F_\<G>_g_def lifted_calc_w_red_crit_family.Red_F_Q_def by simp
   ultimately show "calculus_with_red_crit Bot_F Inf_F entails_\<G>_Q Red_Inf_\<G>_Q Red_F_\<G>_g"
@@ -759,7 +759,7 @@ proof -
   have "lifted_calc_w_red_crit_family.entails_Q = entails_\<G>_Q"
     unfolding entails_\<G>_Q_def lifted_calc_w_red_crit_family.entails_Q_def by simp
   moreover have "empty_ord_lifted_calc_w_red_crit_family.Red_Inf_Q = Red_Inf_\<G>_Q"
-    unfolding Red_Inf_\<G>_Q_def lifted_calc_w_red_crit_family.Red_Inf_Q_def by simp 
+    unfolding Red_Inf_\<G>_Q_def lifted_calc_w_red_crit_family.Red_Inf_Q_def by simp
   moreover have "empty_ord_lifted_calc_w_red_crit_family.Red_F_Q = Red_F_\<G>_empty"
     unfolding Red_F_\<G>_empty_def empty_ord_lifted_calc_w_red_crit_family.Red_F_Q_def by simp
   ultimately show "calculus_with_red_crit Bot_F Inf_F entails_\<G>_Q Red_Inf_\<G>_Q Red_F_\<G>_empty"
@@ -784,35 +784,35 @@ proof (standard, clarify)
     sat_n: "calculus_with_red_crit.saturated Inf_F Red_Inf_\<G>_Q N" and
     entails_bot: "N \<Turnstile>\<inter> {B}"
   interpret calculus_with_red_crit Bot_F Inf_F entails_\<G>_Q Red_Inf_\<G>_Q Red_F_\<G>_empty
-    using inter_calc by blast 
+    using inter_calc by blast
   have "empty_ord_lifted_calc_w_red_crit_family.Red_Inf_Q = Red_Inf_\<G>_Q"
-    unfolding Red_Inf_\<G>_Q_def lifted_calc_w_red_crit_family.Red_Inf_Q_def by simp 
+    unfolding Red_Inf_\<G>_Q_def lifted_calc_w_red_crit_family.Red_Inf_Q_def by simp
   then have empty_ord_sat_n: "empty_ord_lifted_calc_w_red_crit_family.inter_red_crit_calculus.saturated N"
-    using sat_n 
+    using sat_n
     unfolding saturated_def empty_ord_lifted_calc_w_red_crit_family.inter_red_crit_calculus.saturated_def
-    by simp 
+    by simp
   then obtain q where inf_subs: "Ground_family.Inf_from (\<G>_set_q q N) \<subseteq>
     ({\<iota>. \<exists>\<iota>'\<in> Non_ground.Inf_from N. \<G>_Inf_q q \<iota>' \<noteq> None \<and> \<iota> \<in> the (\<G>_Inf_q q \<iota>')} \<union> Red_Inf_q q (\<G>_set_q q N))"
-    using sat_n_imp[of N] by blast  
+    using sat_n_imp[of N] by blast
   interpret q_calc: calculus_with_red_crit Bot_F Inf_F "entails_\<G>_q q" "Red_Inf_\<G>_q q" "Red_F_\<G>_q_g q"
     using lifted_calc_w_red_crit_family.all_red_crit[of q] .
-  have n_q_sat: "q_calc.saturated N" using lifted_calc_w_red_crit_family.sat_int_to_sat_q empty_ord_sat_n by simp 
+  have n_q_sat: "q_calc.saturated N" using lifted_calc_w_red_crit_family.sat_int_to_sat_q empty_ord_sat_n by simp
   interpret lifted_q_calc: lifting_with_wf_ordering_family Bot_F Inf_F Bot_G "entails_q q" Inf_G "Red_Inf_q q" "Red_F_q q" "\<G>_F_q q" "\<G>_Inf_q q"
     by (simp add: standard_lifting_family)
   have "lifted_q_calc.empty_order_lifting.lifted_calculus_with_red_crit.saturated N"
     using n_q_sat unfolding Red_Inf_\<G>_q_def \<G>_set_q_def lifted_q_calc.empty_order_lifting.Red_Inf_\<G>_def
       lifted_q_calc.lifted_calculus_with_red_crit.saturated_def q_calc.saturated_def by auto
   then have ground_sat_n: "lifted_q_calc.Ground.saturated (\<G>_set_q q N)"
-    using lifted_q_calc.sat_imp_ground_sat[of N] inf_subs unfolding \<G>_set_q_def by blast 
+    using lifted_q_calc.sat_imp_ground_sat[of N] inf_subs unfolding \<G>_set_q_def by blast
   have "entails_\<G>_q q N {B}" using entails_bot unfolding entails_\<G>_Q_def by simp
   then have ground_n_entails_bot: "entails_q q (\<G>_set_q q N) (\<G>_set_q q {B})" unfolding entails_\<G>_q_def .
   interpret static_refutational_complete_calculus Bot_G Inf_G "entails_q q" "Red_Inf_q q" "Red_F_q q"
     using stat_ref_G[of q] .
-  obtain BG where bg_in: "BG \<in> \<G>_F_q q B" 
+  obtain BG where bg_in: "BG \<in> \<G>_F_q q B"
     using lifted_q_calc.Bot_map_not_empty[OF b_in] by blast
-  then have "BG \<in> Bot_G" using lifted_q_calc.Bot_map[OF b_in] by blast 
+  then have "BG \<in> Bot_G" using lifted_q_calc.Bot_map[OF b_in] by blast
   then have "\<exists>BG'\<in>Bot_G. BG' \<in> \<G>_set_q q N"
-    using ground_sat_n ground_n_entails_bot static_refutational_complete[of BG, OF _ ground_sat_n] 
+    using ground_sat_n ground_n_entails_bot static_refutational_complete[of BG, OF _ ground_sat_n]
       bg_in lifted_q_calc.Ground.entail_set_all_formulas[of "\<G>_set_q q N" "\<G>_set_q q {B}"] unfolding \<G>_set_q_def
     by simp
   then show "\<exists>B'\<in> Bot_F. B' \<in> N" using lifted_q_calc.Bot_cond unfolding \<G>_set_q_def by blast
@@ -848,7 +848,7 @@ proof
   interpret static_refutational_complete_calculus Bot_F Inf_F lifted_calc_w_red_crit_family.entails_Q
     lifted_calc_w_red_crit_family.Red_Inf_Q lifted_calc_w_red_crit_family.Red_F_Q
     using static_general .
-  show "?dynamic" by standard 
+  show "?dynamic" by standard
 next
   assume dynamic_gen: ?dynamic
   interpret dynamic_refutational_complete_calculus Bot_F Inf_F lifted_calc_w_red_crit_family.entails_Q
