@@ -6,6 +6,11 @@ target triple = "x86_64-pc-linux-gnu"
 
 declare void @isabelle_llvm_free(i8*)
 declare i8* @isabelle_llvm_calloc(i64, i64)
+declare void @IsaSAT_Show_LLVM_print_c_impl(i64)
+declare void @IsaSAT_Show_LLVM_print_char_impl(i64)
+declare void @IsaSAT_Show_LLVM_print_uint64_impl(i64)
+declare void @IsaSAT_Show_LLVM_print_open_colour_impl(i64)
+declare void @IsaSAT_Show_LLVM_print_close_colour_impl(i64)
 
 
 define i32 @LBD_LLVM_get_LBD_code({ { i64, i32* }, { i32, i32 } } %x) {
@@ -1301,11 +1306,6 @@ define i32 @IsaSAT_Literals_LLVM_Pos_impl(i32 %x) {
     ret i32 %x1
 }
 
-define void @IsaSAT_Show_LLVM_print_c_impl(i64 %x) {
-
-  start:
-    ret void
-}
 
 define { { i64, i32* }, { i32, i32 } } @LBD_LLVM_lbd_empty_cheap_code({ { i64, i32* }, { i32, i32 } } %x) {
 
@@ -2119,11 +2119,6 @@ define { i64, { i32, i32 } } @IsaSAT_Setup_LLVM_VMTF_Node_impl(i64 %x, i32 %x1, 
     ret { i64, { i32, i32 } } %x5
 }
 
-define void @IsaSAT_Show_LLVM_print_char_impl(i64 %x) {
-
-  start:
-    ret void
-}
 
 define i2 @IsaSAT_Arena_LLVM_arena_used_impl({ i64, { i64, i32* } } %x, i64 %x1) {
 
@@ -2421,11 +2416,6 @@ define i1 @IsaSAT_Setup_LLVM_opts_reduce_impl({ i1, { i1, i1 } } %x) {
     ret i1 %a1a
 }
 
-define void @IsaSAT_Show_LLVM_print_uint64_impl(i64 %x) {
-
-  start:
-    ret void
-}
 
 define { { i64, { i32, i32 } }*, { i64, { i32, { i32, i32 } } } } @IsaSAT_VMTF_LLVM_vmtf_rescale_code({ { i64, { i32, i32 } }*, { i64, { i32, { i32, i32 } } } } %x) {
 
@@ -3823,11 +3813,6 @@ define i32 @IsaSAT_Setup_LLVM_mop_arena_lbd_st_impl({ { { i64, { i64, i32* } }, 
     ret i32 %x17
 }
 
-define void @IsaSAT_Show_LLVM_print_open_colour_impl(i64 %x) {
-
-  start:
-    ret void
-}
 
 define i1 @IsaSAT_Trail_LLVM_defined_atm_fast_code({ { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } } %x, i32 %x1) {
 
@@ -4673,11 +4658,6 @@ define { i64, { i64, { i64, { i64, { i32, i1 } }* } }* } @IsaSAT_Setup_LLVM_rewa
     ret { i64, { i64, { i64, { i64, { i32, i1 } }* } }* } %x8
 }
 
-define void @IsaSAT_Show_LLVM_print_close_colour_impl(i64 %x) {
-
-  start:
-    ret void
-}
 
 define i32 @count_decided_st_heur_pol_fast({ { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } } %x) {
 

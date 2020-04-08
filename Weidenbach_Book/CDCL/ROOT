@@ -67,6 +67,9 @@ session "CDCL" (Weidenbach_Book) = "Isabelle_LLVM"  +
     CDCL_Abstract_Clause_Representation
     CDCL_W_Abstract_State
 
+    Pragmatic_CDCL
+    Pragmatic_CDCL_Restart
+
   document_files
     "root.tex"
     "biblio.bib"

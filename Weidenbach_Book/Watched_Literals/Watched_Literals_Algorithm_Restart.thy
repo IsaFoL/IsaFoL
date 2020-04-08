@@ -75,11 +75,11 @@ lemma (in twl_restart)
                    (T, m, na) \<Rightarrow> RETURN (brk', T, m, na))
                   \<le> SPEC
                       (\<lambda>s'. (case s' of
-  (brk, T, m, n) \<Rightarrow>
+  (brk, T, m, n'') \<Rightarrow>
     twl_struct_invs T \<and>
     twl_stgy_invs T \<and>
     (brk \<longrightarrow> final_twl_state T) \<and>
-    cdcl_twl_stgy_restart_with_leftovers (S, 0, \<not>brk) (T, n, \<not>brk) \<and>
+    cdcl_twl_stgy_restart_with_leftovers (S, 0, \<not>brk) m (T, n'', \<not>brk) \<and>
     clauses_to_update T = {#} \<and>
     (\<not> brk \<longrightarrow> get_conflict T = None)) \<and>
  (s', brk, T, n)
@@ -106,10 +106,9 @@ proof -
     struct_invs_T: \<open>twl_struct_invs T\<close> and
     \<open>twl_stgy_invs T\<close> and
     \<open>brk \<longrightarrow> final_twl_state T\<close> and
-    twl_res: \<open>cdcl_twl_stgy_restart_with_leftovers (S, 0, True) (T, n, True)\<close> and
+    twl_res: \<open>cdcl_twl_stgy_restart_with_leftovers (S, 0, True) m (T, n, True)\<close> and
     \<open>clauses_to_update T = {#}\<close> and
-    confl: \<open>\<not> brk \<longrightarrow> get_conflict T = None\<close> and
-    m: \<open>m = size (get_all_learned_clss T)\<close>
+    confl: \<open>\<not> brk \<longrightarrow> get_conflict T = None\<close>
     using inv unfolding cdcl_twl_stgy_restart_prog_inv_def prod.case by fast+
   have
     cdcl_o: \<open>cdcl_twl_o\<^sup>*\<^sup>* S' U\<close> and
@@ -125,17 +124,25 @@ proof -
   have \<open>cdcl_twl_stgy\<^sup>*\<^sup>* T U\<close>
     by (meson \<open>cdcl_twl_o\<^sup>*\<^sup>* S' U\<close> assms(5) rtranclp_cdcl_twl_cp_stgyD rtranclp_cdcl_twl_o_stgyD
         rtranclp_trans)
+  from twl_res obtain Ta where
+    STa: \<open>cdcl_twl_stgy_restart\<^sup>*\<^sup>* (S, 0, True) (Ta, n, True)\<close> and
+    TaT: \<open>cdcl_twl_stgy\<^sup>*\<^sup>* Ta T\<close> and
+    m: \<open>m = size (get_all_learned_clss Ta)\<close>
+    unfolding cdcl_twl_stgy_restart_with_leftovers_def prod.case snd_conv fst_conv
+    by blast
   have
     twl_restart_after_restart:
-      \<open>cdcl_twl_stgy_restart (T, n, \<not>False) (W, Suc n, \<not>False)\<close> and
+      \<open>cdcl_twl_stgy_restart (Ta, n, \<not>False) (W, Suc n, \<not>False)\<close> and
     rtranclp_twl_restart_after_restart:
       \<open>cdcl_twl_stgy_restart\<^sup>*\<^sup>* (S, 0, \<not>False) (W, n + 1, \<not>False)\<close> and
     cdcl_twl_stgy_restart_with_leftovers_after_restart:
-      \<open>cdcl_twl_stgy_restart_with_leftovers (S, 0, \<not>False) (W, n + 1, \<not>False)\<close> and
+      \<open>cdcl_twl_stgy_restart_with_leftovers (S, 0, \<not>False) (size (get_all_learned_clss W))
+        (W, n + 1, \<not>False)\<close> and
     cdcl_twl_stgy_restart_with_leftovers_after_restart_T_V:
-      \<open>cdcl_twl_stgy_restart_with_leftovers (T, n, \<not>False) (W, Suc n, \<not>False)\<close> and
+    \<open>cdcl_twl_stgy_restart_with_leftovers (Ta, n, \<not>False) (size (get_all_learned_clss W))
+         (W, Suc n, \<not>False)\<close> and
     cdcl_twl_stgy_restart_with_leftovers1_after_restart:
-      \<open>cdcl_twl_stgy_restart_with_leftovers1 (T, n, \<not>False) (W, Suc n, \<not>False)\<close>
+      \<open>cdcl_twl_stgy_restart_with_leftovers1 (Ta, n, \<not>False) (W, Suc n, \<not>False)\<close>
     if
       f: \<open>True \<longrightarrow> f (snd (U, n)) < size (get_all_learned_clss (fst (U, n))) - m\<close> and
       res: \<open>cdcl_twl_restart U V\<close> and
@@ -147,45 +154,49 @@ proof -
       using lits_to_update lits_to_upd_U by auto
     then have \<open>cdcl_twl_o\<^sup>+\<^sup>+ S' U\<close>
       using \<open>cdcl_twl_o\<^sup>*\<^sup>* S' U\<close> unfolding rtranclp_unfold by auto
-    then have st: \<open>cdcl_twl_stgy\<^sup>+\<^sup>+ T U\<close>
+    then have st: \<open>cdcl_twl_stgy\<^sup>+\<^sup>+ Ta U\<close>
+      using TaT
       by (meson local.cp rtranclp_cdcl_twl_cp_stgyD rtranclp_tranclp_tranclp
           tranclp_cdcl_twl_o_stgyD)
 
     show twl_res_T_V[unfolded not_False_eq_True]:
-      \<open>cdcl_twl_stgy_restart (T, n, \<not>False) (W, Suc n, \<not>False)\<close>
+      \<open>cdcl_twl_stgy_restart (Ta, n, \<not>False) (W, Suc n, \<not>False)\<close>
       unfolding not_False_eq_True
       apply (rule cdcl_twl_stgy_restart.restart_step[of _ U _ V])
       subgoal by (rule st)
       subgoal using f unfolding m by simp
       subgoal by (rule res)
-      subgoal using pre by simp 
+      subgoal using pre by simp
       done
-    show \<open>cdcl_twl_stgy_restart_with_leftovers (T, n, \<not>False) (W, Suc n, \<not>False)\<close>
+    show \<open>cdcl_twl_stgy_restart_with_leftovers (Ta, n, \<not>False)
+        (size (get_all_learned_clss W)) (W, Suc n, \<not>False)\<close>
       unfolding not_False_eq_True cdcl_twl_stgy_restart_with_leftovers_def
       by (rule exI[of _ \<open>W\<close>])(auto simp: twl_res_T_V)
     show \<open>cdcl_twl_stgy_restart\<^sup>*\<^sup>* (S, 0, \<not>False) (W, n + 1, \<not>False)\<close>
-      using twl_res twl_res_T_V
+      using twl_res twl_res_T_V STa
       unfolding cdcl_twl_stgy_restart_with_leftovers_def apply -
       by (auto dest: cdcl_twl_stgy_restart_cdcl_twl_stgy_cdcl_twl_stgy_restart)
-    then show  \<open>cdcl_twl_stgy_restart_with_leftovers (S, 0, \<not>False) (W, n + 1, \<not>False)\<close>
+    then show  \<open>cdcl_twl_stgy_restart_with_leftovers (S, 0, \<not>False) (size (get_all_learned_clss W))
+        (W, n + 1, \<not>False)\<close>
       unfolding cdcl_twl_stgy_restart_with_leftovers_def apply -
       by (rule exI[of _ W]) auto
-    show \<open>cdcl_twl_stgy_restart_with_leftovers1 (T, n, \<not>False) (W, Suc n, \<not>False)\<close>
+    show \<open>cdcl_twl_stgy_restart_with_leftovers1 (Ta, n, \<not>False) (W, Suc n, \<not>False)\<close>
       using twl_res_T_V
       unfolding cdcl_twl_stgy_restart_with_leftovers1_def not_False_eq_True
       by fast
   qed
+  let ?m = \<open>\<lambda>W. (size (get_all_learned_clss W))\<close>
   have
     twl_restart_after_restart_only:
-      \<open>cdcl_twl_stgy_restart (T, n, \<not>False) (V, n, \<not>False)\<close> and
+      \<open>cdcl_twl_stgy_restart (Ta, n, \<not>False) (V, n, \<not>False)\<close> and
     rtranclp_twl_restart_after_restart_only:
       \<open>cdcl_twl_stgy_restart\<^sup>*\<^sup>* (S, 0, \<not>False) (V, n, \<not>False)\<close> and
     cdcl_twl_stgy_restart_with_leftovers_after_restart_only:
-      \<open>cdcl_twl_stgy_restart_with_leftovers (S, 0, \<not>False) (V, n, \<not>False)\<close> and
+      \<open>cdcl_twl_stgy_restart_with_leftovers (S, 0, \<not>False) (?m V) (V, n, \<not>False)\<close> and
     cdcl_twl_stgy_restart_with_leftovers_after_restart_T_V:
-      \<open>cdcl_twl_stgy_restart_with_leftovers (T, n, \<not>False) (V, n, \<not>False)\<close> and
+      \<open>cdcl_twl_stgy_restart_with_leftovers (Ta, n, \<not>False) (?m V) (V, n, \<not>False)\<close> and
     cdcl_twl_stgy_restart_with_leftovers1_after_restart_only:
-      \<open>cdcl_twl_stgy_restart_with_leftovers1 (T, n, \<not>False) (V, n, \<not>False)\<close>
+      \<open>cdcl_twl_stgy_restart_with_leftovers1 (Ta, n, \<not>False) (V, n, \<not>False)\<close>
     if
       f: \<open>True \<longrightarrow> m < size (get_all_learned_clss U)\<close> and
       res: \<open>cdcl_twl_restart_only U V\<close> and
@@ -196,30 +207,30 @@ proof -
       using lits_to_update lits_to_upd_U by auto
     then have \<open>cdcl_twl_o\<^sup>+\<^sup>+ S' U\<close>
       using \<open>cdcl_twl_o\<^sup>*\<^sup>* S' U\<close> unfolding rtranclp_unfold by auto
-    then have st: \<open>cdcl_twl_stgy\<^sup>+\<^sup>+ T U\<close>
+    then have st: \<open>cdcl_twl_stgy\<^sup>+\<^sup>+ Ta U\<close> and st2: \<open>cdcl_twl_stgy\<^sup>+\<^sup>+ T U\<close>
+      using TaT
       by (meson local.cp rtranclp_cdcl_twl_cp_stgyD rtranclp_tranclp_tranclp
-          tranclp_cdcl_twl_o_stgyD)
+          tranclp_cdcl_twl_o_stgyD)+
 
     show twl_res_T_V[unfolded not_False_eq_True]:
-      \<open>cdcl_twl_stgy_restart (T, n, \<not>False) (V, n, \<not>False)\<close>
+      \<open>cdcl_twl_stgy_restart (Ta, n, \<not>False) (V, n, \<not>False)\<close>
       unfolding not_False_eq_True
       apply (rule cdcl_twl_stgy_restart.restart_noGC[of _ U])
       subgoal by (rule st)
       subgoal using f unfolding m by simp
       subgoal by (rule res)
       done
-    show \<open>cdcl_twl_stgy_restart_with_leftovers (T, n, \<not>False) (V, n, \<not>False)\<close>
+    show \<open>cdcl_twl_stgy_restart_with_leftovers (Ta, n, \<not>False) (?m V) (V, n, \<not>False)\<close>
       unfolding not_False_eq_True cdcl_twl_stgy_restart_with_leftovers_def
       by (rule exI[of _ \<open>V\<close>])(auto simp: twl_res_T_V)
     show \<open>cdcl_twl_stgy_restart\<^sup>*\<^sup>* (S, 0, \<not>False) (V, n, \<not>False)\<close>
-      using twl_res twl_res_T_V
+      using twl_res twl_res_T_V TaT STa
       unfolding cdcl_twl_stgy_restart_with_leftovers_def apply -
-      by (metis (no_types, lifting) cdcl_twl_stgy_restart_cdcl_twl_stgy_cdcl_twl_stgy_restart2
-        fst_conv rtranclp.simps snd_conv)
-    then show  \<open>cdcl_twl_stgy_restart_with_leftovers (S, 0, \<not>False) (V, n, \<not>False)\<close>
+      by auto
+    then show  \<open>cdcl_twl_stgy_restart_with_leftovers (S, 0, \<not>False) (?m V) (V, n, \<not>False)\<close>
       unfolding cdcl_twl_stgy_restart_with_leftovers_def apply -
       by (rule exI[of _ V]) auto
-    show \<open>cdcl_twl_stgy_restart_with_leftovers1 (T, n, \<not>False) (V, n, \<not>False)\<close>
+    show \<open>cdcl_twl_stgy_restart_with_leftovers1 (Ta, n, \<not>False) (V, n, \<not>False)\<close>
       using twl_res_T_V
       unfolding cdcl_twl_stgy_restart_with_leftovers1_def not_False_eq_True
       by fast
@@ -227,27 +238,22 @@ proof -
 
   have
     rtranclp_twl_restart_after_restart_S_U:
-      \<open>cdcl_twl_stgy_restart_with_leftovers (S, 0, True) (U, n, True)\<close> and
+      \<open>cdcl_twl_stgy_restart_with_leftovers (S, 0, True) m (U, n, True)\<close> and
     rtranclp_twl_restart_after_restart_T_U:
-      \<open>cdcl_twl_stgy_restart_with_leftovers (T, n, True) (U, n, True)\<close>
+      \<open>cdcl_twl_stgy_restart_with_leftovers (Ta, n, True) m (U, n, True)\<close>
   proof -
-    obtain Ta where
-      S_Ta: \<open>cdcl_twl_stgy_restart\<^sup>*\<^sup>* (S, 0, True) (Ta, snd (T, n), True)\<close>
-      \<open>cdcl_twl_stgy\<^sup>*\<^sup>* Ta (fst (T, n))\<close>
-      using twl_res unfolding cdcl_twl_stgy_restart_with_leftovers_def
-      by auto
-    then have \<open>cdcl_twl_stgy\<^sup>*\<^sup>* Ta (fst (U, n))\<close>
-      using \<open>cdcl_twl_stgy\<^sup>*\<^sup>* T U\<close> by auto
-    then show \<open>cdcl_twl_stgy_restart_with_leftovers (S, 0, True) (U, n, True)\<close>
-      using S_Ta unfolding cdcl_twl_stgy_restart_with_leftovers_def
+    have TaU: \<open>cdcl_twl_stgy\<^sup>*\<^sup>* Ta (fst (U, n))\<close>
+      using TaT \<open>cdcl_twl_stgy\<^sup>*\<^sup>* T U\<close> by auto
+    then show \<open>cdcl_twl_stgy_restart_with_leftovers (S, 0, True) m (U, n, True)\<close>
+      using STa m unfolding cdcl_twl_stgy_restart_with_leftovers_def
       by fastforce
-    show \<open>cdcl_twl_stgy_restart_with_leftovers (T, n, True) (U, n, True)\<close>
-      using \<open>cdcl_twl_stgy\<^sup>*\<^sup>* T U\<close> unfolding cdcl_twl_stgy_restart_with_leftovers_def
+    show \<open>cdcl_twl_stgy_restart_with_leftovers (Ta, n, True) m (U, n, True)\<close>
+      using \<open>cdcl_twl_stgy\<^sup>*\<^sup>* T U\<close> TaU m unfolding cdcl_twl_stgy_restart_with_leftovers_def
       by fastforce
   qed
   have
     rtranclp_twl_restart_after_restart_brk:
-      \<open>cdcl_twl_stgy_restart_with_leftovers (S, 0, True) (U, n, True)\<close>
+      \<open>cdcl_twl_stgy_restart_with_leftovers (S, 0, True) m (U, n, True)\<close>
     if
       [simp]: \<open>brk = True\<close>
   proof -
@@ -262,7 +268,7 @@ proof -
         (final) \<open>get_conflict U \<noteq> None\<close>
       using cdcl_twl_stgy_restart.intros(3)[of T U]
       by (auto dest!: cdcl_twl_stgy_restart.intros)
-    then show \<open>cdcl_twl_stgy_restart_with_leftovers (S, 0, True) (U, n, True)\<close>
+    then show \<open>cdcl_twl_stgy_restart_with_leftovers (S, 0, True) m (U, n, True)\<close>
     proof cases
       case step
       then show ?thesis
@@ -273,7 +279,6 @@ proof -
       case final
       then show ?thesis
         using twl_res \<open>cdcl_twl_stgy\<^sup>*\<^sup>* T U\<close>  unfolding cdcl_twl_stgy_restart_with_leftovers_def
-        using cdcl_twl_stgy_restart_cdcl_twl_stgy_cdcl_twl_stgy_restart2[of T n _ U] apply -
         by fastforce
     qed
   qed
@@ -308,11 +313,12 @@ proof -
     subgoal by (rule cdcl_twl_stgy_restart_with_leftovers_after_restart_only)
     subgoal by (auto simp add: cdcl_twl_restart_only.simps)
     subgoal by (auto simp add: cdcl_twl_restart_only.simps)
-    subgoal by (auto intro!: struct_invs_S struct_invs_T
+    subgoal apply (auto intro!: struct_invs_S struct_invs_T
       cdcl_twl_stgy_restart_with_leftovers1_after_restart_only[unfolded not_False_eq_True])
+      sorry
     subgoal by (rule struct_invs')
     subgoal by (rule stgy_invs)
-    subgoal by simp 
+    subgoal by simp
     subgoal
       by (rule cdcl_twl_stgy_restart_with_leftovers_after_restart, simp)
     subgoal
@@ -379,10 +385,9 @@ proof -
     struct_invs_T: \<open>twl_struct_invs T\<close> and
     \<open>twl_stgy_invs T\<close> and
     \<open>brk \<longrightarrow> final_twl_state T\<close> and
-    twl_res: \<open>cdcl_twl_stgy_restart_with_leftovers (S, 0, True) (T, n, True)\<close> and
+    twl_res: \<open>cdcl_twl_stgy_restart_with_leftovers (S, 0, True) m (T, n, True)\<close> and
     \<open>clauses_to_update T = {#}\<close> and
-    confl: \<open>\<not> brk \<longrightarrow> get_conflict T = None\<close> and
-    m: \<open>m = size (get_all_learned_clss T)\<close>
+    confl: \<open>\<not> brk \<longrightarrow> get_conflict T = None\<close>
     using inv unfolding cdcl_twl_stgy_restart_prog_inv_def by fast+
 
   have
@@ -399,17 +404,25 @@ proof -
   have \<open>cdcl_twl_stgy\<^sup>*\<^sup>* T U\<close>
     by (meson \<open>cdcl_twl_o\<^sup>*\<^sup>* S' U\<close> assms(5) rtranclp_cdcl_twl_cp_stgyD rtranclp_cdcl_twl_o_stgyD
         rtranclp_trans)
+  from twl_res obtain Ta where
+    STa: \<open>cdcl_twl_stgy_restart\<^sup>*\<^sup>* (S, 0, True) (Ta, n, True)\<close> and
+    TaT: \<open>cdcl_twl_stgy\<^sup>*\<^sup>* Ta T\<close> and
+    m: \<open>m = size (get_all_learned_clss Ta)\<close>
+    unfolding cdcl_twl_stgy_restart_with_leftovers_def prod.case snd_conv fst_conv
+    by blast
+
+  let ?m = \<open>\<lambda>W. (size (get_all_learned_clss W))\<close>
   have
     twl_restart_after_restart:
-      \<open>cdcl_twl_stgy_restart (T, n, True) (W, Suc n, True)\<close> and
+      \<open>cdcl_twl_stgy_restart (Ta, n, True) (W, Suc n, True)\<close> and
     rtranclp_twl_restart_after_restart:
       \<open>cdcl_twl_stgy_restart\<^sup>*\<^sup>* (S, 0, True) (W, n + 1, True)\<close> and
     cdcl_twl_stgy_restart_with_leftovers_after_restart:
-      \<open>cdcl_twl_stgy_restart_with_leftovers (S, 0, True) (W, n + 1, True)\<close> and
+      \<open>cdcl_twl_stgy_restart_with_leftovers (S, 0, True) (?m W) (W, n + 1, True)\<close> and
     cdcl_twl_stgy_restart_with_leftovers_after_restart_T_W:
-      \<open>cdcl_twl_stgy_restart_with_leftovers (T, n, True) (W, Suc n, True)\<close> and
+      \<open>cdcl_twl_stgy_restart_with_leftovers (Ta, n, True) (?m W) (W, Suc n, True)\<close> and
     cdcl_twl_stgy_restart_with_leftovers1_after_restart:
-      \<open>cdcl_twl_stgy_restart_with_leftovers1 (T, n, True) (W, Suc n, True)\<close>
+      \<open>cdcl_twl_stgy_restart_with_leftovers1 (Ta, n, True) (W, Suc n, True)\<close>
     if
       f: \<open>True \<longrightarrow> f (snd (U, n)) < size (get_all_learned_clss (fst (U, n))) - m\<close> and
       res: \<open>cdcl_twl_restart U V\<close> and
@@ -421,107 +434,106 @@ proof -
       using lits_to_update lits_to_upd_U by auto
     then have \<open>cdcl_twl_o\<^sup>+\<^sup>+ S' U\<close>
       using \<open>cdcl_twl_o\<^sup>*\<^sup>* S' U\<close> unfolding rtranclp_unfold by auto
-    then have st: \<open>cdcl_twl_stgy\<^sup>+\<^sup>+ T U\<close>
+    then have st: \<open>cdcl_twl_stgy\<^sup>+\<^sup>+ Ta U\<close> and st': \<open>cdcl_twl_stgy\<^sup>+\<^sup>+ T U\<close>
+      using TaT
       by (meson local.cp rtranclp_cdcl_twl_cp_stgyD rtranclp_tranclp_tranclp
-          tranclp_cdcl_twl_o_stgyD)
+          tranclp_cdcl_twl_o_stgyD)+
 
-    show twl_res_T_V: \<open>cdcl_twl_stgy_restart (T, n, True) (W, Suc n, True)\<close>
+    show twl_res_T_V: \<open>cdcl_twl_stgy_restart (Ta, n, True) (W, Suc n, True)\<close>
       apply (rule cdcl_twl_stgy_restart.restart_step[of _ U _ V])
       subgoal by (rule st)
       subgoal using f unfolding m by simp
       subgoal by (rule res)
       subgoal by (rule inp)
       done
-    show \<open>cdcl_twl_stgy_restart_with_leftovers (T, n, True) (W, Suc n, True)\<close>
+    show \<open>cdcl_twl_stgy_restart_with_leftovers (Ta, n, True) (?m W) (W, Suc n, True)\<close>
       unfolding cdcl_twl_stgy_restart_with_leftovers_def
       by (rule exI[of _ \<open>W\<close>])(auto simp: twl_res_T_V)
     show \<open>cdcl_twl_stgy_restart\<^sup>*\<^sup>* (S, 0, True) (W, n + 1, True)\<close>
-      using twl_res twl_res_T_V
-      unfolding cdcl_twl_stgy_restart_with_leftovers_def
+      using twl_res twl_res_T_V STa
+      unfolding cdcl_twl_stgy_restart_with_leftovers_def apply -
       by (auto dest: cdcl_twl_stgy_restart_cdcl_twl_stgy_cdcl_twl_stgy_restart)
-    then show  \<open>cdcl_twl_stgy_restart_with_leftovers (S, 0, True) (W, n + 1, True)\<close>
+    then show  \<open>cdcl_twl_stgy_restart_with_leftovers (S, 0, True) (?m W) (W, n + 1, True)\<close>
       unfolding cdcl_twl_stgy_restart_with_leftovers_def apply -
       by (rule exI[of _ W]) auto
-    show \<open>cdcl_twl_stgy_restart_with_leftovers1 (T, n, True) (W, Suc n, True)\<close>
+    show \<open>cdcl_twl_stgy_restart_with_leftovers1 (Ta, n, True) (W, Suc n, True)\<close>
       using twl_res_T_V
       unfolding cdcl_twl_stgy_restart_with_leftovers1_def
       by fast
   qed
   have
     twl_restart_after_restart_only:
-      \<open>cdcl_twl_stgy_restart (T, n, True) (W, n, True)\<close> and
+      \<open>cdcl_twl_stgy_restart (Ta, n, \<not>False) (V, n, \<not>False)\<close> and
     rtranclp_twl_restart_after_restart_only:
-      \<open>cdcl_twl_stgy_restart\<^sup>*\<^sup>* (S, 0, True) (W, n, True)\<close> and
+      \<open>cdcl_twl_stgy_restart\<^sup>*\<^sup>* (S, 0, \<not>False) (V, n, \<not>False)\<close> and
     cdcl_twl_stgy_restart_with_leftovers_after_restart_only:
-      \<open>cdcl_twl_stgy_restart_with_leftovers (S, 0, True) (W, n, True)\<close> and
-    cdcl_twl_stgy_restart_with_leftovers_after_restart_T_W:
-      \<open>cdcl_twl_stgy_restart_with_leftovers (T, n, True) (W, n, True)\<close> and
+      \<open>cdcl_twl_stgy_restart_with_leftovers (S, 0, \<not>False) (?m V) (V, n, \<not>False)\<close> and
+    cdcl_twl_stgy_restart_with_leftovers_after_restart_T_V:
+      \<open>cdcl_twl_stgy_restart_with_leftovers (Ta, n, \<not>False) (?m V) (V, n, \<not>False)\<close> and
     cdcl_twl_stgy_restart_with_leftovers1_after_restart_only:
-      \<open>cdcl_twl_stgy_restart_with_leftovers1 (T, n, True) (W, n, True)\<close>
+      \<open>cdcl_twl_stgy_restart_with_leftovers1 (Ta, n, \<not>False) (V, n, \<not>False)\<close>
     if
-      f: \<open>True \<longrightarrow> size (get_all_learned_clss (fst (U, n))) > m\<close> and
-      res: \<open>cdcl_twl_restart_only U W\<close> and
+      f: \<open>True \<longrightarrow> m < size (get_all_learned_clss U)\<close> and
+      res: \<open>cdcl_twl_restart_only U V\<close> and
       [unfolded brk, simp]: \<open>brk' = False\<close>
-    for V W
+    for V
   proof -
     have \<open>S' \<noteq> U\<close>
       using lits_to_update lits_to_upd_U by auto
     then have \<open>cdcl_twl_o\<^sup>+\<^sup>+ S' U\<close>
       using \<open>cdcl_twl_o\<^sup>*\<^sup>* S' U\<close> unfolding rtranclp_unfold by auto
-    then have st: \<open>cdcl_twl_stgy\<^sup>+\<^sup>+ T U\<close>
+    then have st: \<open>cdcl_twl_stgy\<^sup>+\<^sup>+ Ta U\<close> and st2: \<open>cdcl_twl_stgy\<^sup>+\<^sup>+ T U\<close>
+      using TaT
       by (meson local.cp rtranclp_cdcl_twl_cp_stgyD rtranclp_tranclp_tranclp
-          tranclp_cdcl_twl_o_stgyD)
+          tranclp_cdcl_twl_o_stgyD)+
 
-    show twl_res_T_V: \<open>cdcl_twl_stgy_restart (T, n, True) (W, n, True)\<close>
+    show twl_res_T_V[unfolded not_False_eq_True]:
+      \<open>cdcl_twl_stgy_restart (Ta, n, \<not>False) (V, n, \<not>False)\<close>
+      unfolding not_False_eq_True
       apply (rule cdcl_twl_stgy_restart.restart_noGC[of _ U])
       subgoal by (rule st)
       subgoal using f unfolding m by simp
       subgoal by (rule res)
       done
-    show \<open>cdcl_twl_stgy_restart_with_leftovers (T, n, True) (W, n, True)\<close>
-      unfolding cdcl_twl_stgy_restart_with_leftovers_def
-      by (rule exI[of _ \<open>W\<close>])(auto simp: twl_res_T_V)
-    show \<open>cdcl_twl_stgy_restart\<^sup>*\<^sup>* (S, 0, True) (W, n, True)\<close>
-      using twl_res twl_res_T_V
-      unfolding cdcl_twl_stgy_restart_with_leftovers_def
-      by (auto dest: cdcl_twl_stgy_restart_cdcl_twl_stgy_cdcl_twl_stgy_restart2)
-    then show  \<open>cdcl_twl_stgy_restart_with_leftovers (S, 0, True) (W, n, True)\<close>
+    show \<open>cdcl_twl_stgy_restart_with_leftovers (Ta, n, \<not>False) (?m V) (V, n, \<not>False)\<close>
+      unfolding not_False_eq_True cdcl_twl_stgy_restart_with_leftovers_def
+      by (rule exI[of _ \<open>V\<close>])(auto simp: twl_res_T_V)
+    show \<open>cdcl_twl_stgy_restart\<^sup>*\<^sup>* (S, 0, \<not>False) (V, n, \<not>False)\<close>
+      using twl_res twl_res_T_V TaT STa
       unfolding cdcl_twl_stgy_restart_with_leftovers_def apply -
-      by (rule exI[of _ W]) auto
-    show \<open>cdcl_twl_stgy_restart_with_leftovers1 (T, n, True) (W, n, True)\<close>
+      by auto
+    then show  \<open>cdcl_twl_stgy_restart_with_leftovers (S, 0, \<not>False) (?m V) (V, n, \<not>False)\<close>
+      unfolding cdcl_twl_stgy_restart_with_leftovers_def apply -
+      by (rule exI[of _ V]) auto
+    show \<open>cdcl_twl_stgy_restart_with_leftovers1 (Ta, n, \<not>False) (V, n, \<not>False)\<close>
       using twl_res_T_V
-      unfolding cdcl_twl_stgy_restart_with_leftovers1_def
+      unfolding cdcl_twl_stgy_restart_with_leftovers1_def not_False_eq_True
       by fast
   qed
   have
     rtranclp_twl_restart_after_restart_S_U:
-      \<open>cdcl_twl_stgy_restart_with_leftovers (S, 0, True) (U, n, True)\<close> and
+      \<open>cdcl_twl_stgy_restart_with_leftovers (S, 0, True) m (U, n, True)\<close> and
     rtranclp_twl_restart_after_restart_T_U:
-      \<open>cdcl_twl_stgy_restart_with_leftovers (T, n, True) (U, n, True)\<close>
+      \<open>cdcl_twl_stgy_restart_with_leftovers (Ta, n, True) m (U, n, True)\<close>
   proof -
-    obtain Ta where
-      S_Ta: \<open>cdcl_twl_stgy_restart\<^sup>*\<^sup>* (S, 0, True) (Ta, snd (T, n, True))\<close>
-      \<open>cdcl_twl_stgy\<^sup>*\<^sup>* Ta (fst (T, m))\<close>
-      using twl_res unfolding cdcl_twl_stgy_restart_with_leftovers_def
-      by auto
-    then have \<open>cdcl_twl_stgy\<^sup>*\<^sup>* Ta (fst (U, m))\<close>
-      using \<open>cdcl_twl_stgy\<^sup>*\<^sup>* T U\<close> by auto
-    then show \<open>cdcl_twl_stgy_restart_with_leftovers (S, 0, True) (U, n, True)\<close>
-      using S_Ta unfolding cdcl_twl_stgy_restart_with_leftovers_def
+    have TaU: \<open>cdcl_twl_stgy\<^sup>*\<^sup>* Ta (fst (U, n))\<close>
+      using TaT \<open>cdcl_twl_stgy\<^sup>*\<^sup>* T U\<close> by auto
+    then show \<open>cdcl_twl_stgy_restart_with_leftovers (S, 0, True) m (U, n, True)\<close>
+      using STa m unfolding cdcl_twl_stgy_restart_with_leftovers_def
       by fastforce
-    show \<open>cdcl_twl_stgy_restart_with_leftovers (T, n, True) (U, n, True)\<close>
-      using \<open>cdcl_twl_stgy\<^sup>*\<^sup>* T U\<close> unfolding cdcl_twl_stgy_restart_with_leftovers_def
+    show \<open>cdcl_twl_stgy_restart_with_leftovers (Ta, n, True) m (U, n, True)\<close>
+      using \<open>cdcl_twl_stgy\<^sup>*\<^sup>* T U\<close> TaU m unfolding cdcl_twl_stgy_restart_with_leftovers_def
       by fastforce
   qed
   have
     rtranclp_twl_restart_after_restart_brk:
-      \<open>cdcl_twl_stgy_restart_with_leftovers (S, 0, True) (U, n, True)\<close>
+      \<open>cdcl_twl_stgy_restart_with_leftovers (S, 0, True) m (U, n, True)\<close>
     if
       [simp]: \<open>brk = True\<close>
   proof -
     have \<open>full cdcl_twl_stgy T U \<or> get_conflict U \<noteq> None\<close>
       using brk'_no_step \<open>cdcl_twl_stgy\<^sup>*\<^sup>* T U\<close>
-      unfolding full_def final_twl_state_def by auto
+      unfolding rtranclp_unfold full_def final_twl_state_def by auto
     then have \<open>(cdcl_twl_stgy\<^sup>*\<^sup>* T U \<and> pcdcl_twl_final_state U) \<or> get_conflict U \<noteq> None\<close>
       unfolding full_def pcdcl_twl_final_state_def
       by auto
@@ -530,7 +542,7 @@ proof -
         (final) \<open>get_conflict U \<noteq> None\<close>
       using cdcl_twl_stgy_restart.intros(3)[of T U]
       by (auto dest!: cdcl_twl_stgy_restart.intros)
-    then show \<open>cdcl_twl_stgy_restart_with_leftovers (S, 0, True) (U, n, True)\<close>
+    then show \<open>cdcl_twl_stgy_restart_with_leftovers (S, 0, True) m (U, n, True)\<close>
     proof cases
       case step
       then show ?thesis
@@ -541,7 +553,6 @@ proof -
       case final
       then show ?thesis
         using twl_res \<open>cdcl_twl_stgy\<^sup>*\<^sup>* T U\<close>  unfolding cdcl_twl_stgy_restart_with_leftovers_def
-        using cdcl_twl_stgy_restart_cdcl_twl_stgy_cdcl_twl_stgy_restart2[of T n _ U] apply -
         by fastforce
     qed
   qed
@@ -564,7 +575,7 @@ proof -
         simp: rtranclp_unfold
         dest: rtranclp_tranclp_tranclp tranclp_trans)
 
-  have H[simp]: \<open>brk = False\<close> \<open>ebrk = False\<close>
+  have H[simp]: \<open>brk = False\<close>
     using cond by auto
   show ?B
     unfolding restart_prog_def restart_required_def
@@ -576,10 +587,9 @@ proof -
       subgoal using cdcl_twl_restart_only_twl_struct_invs struct_invs_U by blast
       subgoal using cdcl_twl_stgy_restart_only_twl_stgy_invs stgy_invs_U by blast
       subgoal by simp
-      subgoal by (rule cdcl_twl_stgy_restart_with_leftovers_after_restart_only) simp_all
+      subgoal by (rule cdcl_twl_stgy_restart_with_leftovers_after_restart_only[unfolded not_False_eq_True]) simp_all
       subgoal by (auto simp: cdcl_twl_restart_only.simps)
       subgoal by (auto simp: cdcl_twl_restart_only.simps)
-      subgoal by simp
       done
     subgoal
       using rtranclp_twl_restart_after_restart_T_U
@@ -594,7 +604,6 @@ proof -
       subgoal by (rule cdcl_twl_stgy_restart_with_leftovers_after_restart) simp_all
       subgoal by simp
       subgoal by (simp add: res_no_confl)
-      subgoal by simp
       done
     subgoal
       using cdcl_twl_stgy_restart_with_leftovers1_T_U brk'_eq
@@ -605,64 +614,35 @@ proof -
     subgoal
       using inv
       unfolding cdcl_twl_stgy_restart_prog_inv_def
+      by (simp add: struct_invs_U stgy_invs_U clss_to_upd_U lits_to_upd_U
+        confl_U rtranclp_twl_restart_after_restart_S_U)
+    subgoal
+      using inv cdcl_twl_stgy_restart_with_leftovers1_T_U H brk brk'_eq
+      unfolding cdcl_twl_stgy_restart_prog_inv_def
       apply (simp add: struct_invs_U stgy_invs_U clss_to_upd_U lits_to_upd_U
         confl_U rtranclp_twl_restart_after_restart_S_U)
-      apply auto
-      by (auto intro: rtranclp_twl_restart_after_restart_brk
-        rtranclp_twl_restart_after_restart_S_U)
-      sorry
-      subgoal
-           
-      apply (intro conjI)
-      subgoal by (rule struct_invs')
-
-      subgoal by (rule stgy_invs)
-      subgoal unfolding H by fast
-      subgoal by (rule cdcl_twl_stgy_restart_with_leftovers_after_restart) simp_all
-      subgoal by (rule res_no_clss_to_upd)
-      subgoal by (simp add: res_no_confl)
-    done
-    subgoal
-     using cdcl_twl_stgy_restart_with_leftovers1_T_U brk'_eq
-     by (auto simp: twl_restart_after_restart struct_invs_S struct_invs_T
-	cdcl_twl_stgy_restart_with_leftovers_after_restart_T_V struct_invs_U
-	rtranclp_twl_restart_after_restart_brk rtranclp_twl_restart_after_restart_T_U
-	cdcl_twl_stgy_restart_with_leftovers1_after_restart
-	brk'_no_step clss_to_upd_U restart_prog_pre_def rtranclp_twl_restart_after_restart_S_U
-	twl_restart_ops.cdcl_twl_stgy_restart_prog_inv_def)
-    subgoal
-     using cdcl_twl_stgy_restart_with_leftovers1_T_U brk'_eq
-     by (auto simp: twl_restart_after_restart struct_invs_S struct_invs_T
-	cdcl_twl_stgy_restart_with_leftovers_after_restart_T_V struct_invs_U
-	rtranclp_twl_restart_after_restart_brk rtranclp_twl_restart_after_restart_T_U
-	cdcl_twl_stgy_restart_with_leftovers1_after_restart
-	brk'_no_step clss_to_upd_U restart_prog_pre_def rtranclp_twl_restart_after_restart_S_U
-	twl_restart_ops.cdcl_twl_stgy_restart_prog_inv_def)
-    subgoal
-     using cdcl_twl_stgy_restart_with_leftovers1_T_U brk'_eq
-     by (auto simp: twl_restart_after_restart struct_invs_S struct_invs_T
-	cdcl_twl_stgy_restart_with_leftovers_after_restart_T_V struct_invs_U
-	rtranclp_twl_restart_after_restart_brk rtranclp_twl_restart_after_restart_T_U
-	cdcl_twl_stgy_restart_with_leftovers1_after_restart)
+      by auto
     done
 qed
 
-lemma cdcl_twl_stgy_restart_with_leftovers_refl: \<open>cdcl_twl_stgy_restart_with_leftovers S S\<close>
+lemma cdcl_twl_stgy_restart_with_leftovers_refl:
+  \<open>cdcl_twl_stgy_restart_with_leftovers (S, a) (size (get_all_learned_clss S)) (S, a)\<close>
   unfolding cdcl_twl_stgy_restart_with_leftovers_def
-  by (rule exI[of _ \<open>fst S\<close>]) auto
+  by (rule exI[of _ \<open>S\<close>]) auto
 
-(* declare restart_prog_spec[THEN order_trans, refine_vcg] *)
+(* declare restart_prog_spec[THEN order_trans, refine_vcg] 
 lemma (in twl_restart) cdcl_twl_stgy_restart_prog_spec:
   assumes \<open>twl_struct_invs S\<close> and \<open>twl_stgy_invs S\<close> and \<open>clauses_to_update S = {#}\<close> and
     \<open>get_conflict S = None\<close>
   shows
-    \<open>cdcl_twl_stgy_restart_prog S \<le> SPEC(\<lambda>T. \<exists>n. cdcl_twl_stgy_restart_with_leftovers (S, 0) (T, n) \<and>
+    \<open>cdcl_twl_stgy_restart_prog S \<le> SPEC(\<lambda>T.
+       \<exists>m n. cdcl_twl_stgy_restart_with_leftovers (S, 0, True) m (T, n, True) \<and>
         final_twl_state T)\<close>
     (is \<open>_ \<le> SPEC(\<lambda>T. ?P T)\<close>)
 proof -
   have final_prop: \<open>?P T\<close>
     if
-     inv: \<open>case (brk, T, n) of  (brk, T, m) \<Rightarrow> cdcl_twl_stgy_restart_prog_inv S brk T m\<close> and
+     inv: \<open>case (brk, T, n) of  (brk, T, m, n) \<Rightarrow> cdcl_twl_stgy_restart_prog_inv S brk T m n\<close> and
       \<open>\<not> (case (brk, T, n) of (brk, uu_) \<Rightarrow> \<not> brk)\<close>
     for brk T n
   proof -
@@ -711,12 +691,11 @@ proof -
     subgoal by (rule final_prop[unfolded cdcl_twl_stgy_restart_prog_inv_def])
     done
 qed
-
 definition cdcl_twl_stgy_restart_prog_early :: "'v twl_st \<Rightarrow> 'v twl_st nres" where
   \<open>cdcl_twl_stgy_restart_prog_early S\<^sub>0 =
   do {
     ebrk \<leftarrow> RES UNIV;
-    (ebrk, brk, T, n) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(ebrk, brk, T, n). cdcl_twl_stgy_restart_prog_inv S\<^sub>0 brk T n\<^esup>
+    (ebrk, brk, T, n) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(ebrk, brk, T, m, n). cdcl_twl_stgy_restart_prog_inv S\<^sub>0 brk T m n\<^esup>
       (\<lambda>(ebrk, brk, _). \<not>brk \<and> \<not>ebrk)
       (\<lambda>(ebrk, brk, S, n).
       do {
@@ -820,21 +799,22 @@ proof -
     done
 qed
 
+*)
 definition cdcl_twl_stgy_restart_prog_bounded :: "'v twl_st \<Rightarrow> (bool \<times> 'v twl_st) nres" where
   \<open>cdcl_twl_stgy_restart_prog_bounded S\<^sub>0 =
   do {
     ebrk \<leftarrow> RES UNIV;
-    (ebrk, brk, T, n) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(ebrk, brk, T, n). cdcl_twl_stgy_restart_prog_inv S\<^sub>0 brk T n\<^esup>
+    (ebrk, brk, T, n) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(ebrk, brk, T, m, n). cdcl_twl_stgy_restart_prog_inv S\<^sub>0 brk T m n\<^esup>
       (\<lambda>(ebrk, brk, _). \<not>brk \<and> \<not>ebrk)
-      (\<lambda>(ebrk, brk, S, n).
+      (\<lambda>(ebrk, brk, S, m, n).
       do {
         T \<leftarrow> unit_propagation_outer_loop S;
         (brk, T) \<leftarrow> cdcl_twl_o_prog T;
-        (T, n) \<leftarrow> restart_prog T n brk;
+        (T, m, n) \<leftarrow> restart_prog T m n brk;
 	ebrk \<leftarrow> RES UNIV;
-        RETURN (ebrk, brk, T, n)
+        RETURN (ebrk, brk, T, m, n)
       })
-      (ebrk, False, S\<^sub>0, 0);
+      (ebrk, False, S\<^sub>0, size (get_all_learned_clss S\<^sub>0), 0);
     RETURN (brk, T)
   }\<close>
 
@@ -842,10 +822,11 @@ lemma (in twl_restart) cdcl_twl_stgy_prog_bounded_spec:
   assumes \<open>twl_struct_invs S\<close> and \<open>twl_stgy_invs S\<close> and \<open>clauses_to_update S = {#}\<close> and
     \<open>get_conflict S = None\<close>
   shows
-    \<open>cdcl_twl_stgy_restart_prog_bounded S \<le> SPEC(\<lambda>(brk, T). \<exists>n. cdcl_twl_stgy_restart_with_leftovers (S, 0) (T, n) \<and>
+    \<open>cdcl_twl_stgy_restart_prog_bounded S \<le> SPEC(\<lambda>(brk, T). \<exists>m n. cdcl_twl_stgy_restart_with_leftovers (S, 0, True) m (T, n) \<and>
         (brk \<longrightarrow> final_twl_state T))\<close>
     (is \<open>_ \<le> SPEC ?P\<close>)
 proof -
+(*
   have final_prop: \<open>?P (brk, T)\<close>
     if
      inv: \<open>case (brk, T, n) of  (brk, T, m) \<Rightarrow> cdcl_twl_stgy_restart_prog_inv S brk T m\<close>
@@ -869,19 +850,23 @@ proof -
       subgoal by (rule_tac x=S' in exI) auto
       subgoal by auto
       done
-  qed
+  qed*)
+thm cdcl_twl_stgy_restart_prog_inv_def
+thm wf_cdcl_twl_stgy_restart_measure_early
   show ?thesis
     supply RETURN_as_SPEC_refine[refine2 del]
     unfolding cdcl_twl_stgy_restart_prog_bounded_def full_def
     apply (refine_vcg
         WHILEIT_rule[where
-           R = \<open>{((ebrk, brkT, T, n), (ebrk, brkS, S, m)).
-                     twl_struct_invs S \<and> cdcl_twl_stgy_restart_with_leftovers1 (S, m) (T, n)} \<union>
+           R = \<open>{((ebrk, brkT, T, n, n'), (ebrk, brkS, S, m, m')).
+                  twl_struct_invs S \<and> cdcl_twl_stgy_restart_with_leftovers1 (S, m, brkS)
+                  (T, n, brkT)} \<union>
                 {((ebrkT, brkT, T), (ebrkS, brkS, S)). S = T \<and> (ebrkT \<or> brkT) \<and> (\<not>brkS \<and> \<not>ebrkS)}\<close>];
         remove_dummy_vars)
-    subgoal by (rule wf_cdcl_twl_stgy_restart_measure_early)
+    subgoal
+      by (rule wf_cdcl_twl_stgy_restart_measure_early)
     subgoal using assms unfolding cdcl_twl_stgy_restart_prog_inv_def
-      by (fast intro: cdcl_twl_stgy_restart_with_leftovers_refl)
+      by (auto intro: cdcl_twl_stgy_restart_with_leftovers_refl)
     subgoal unfolding cdcl_twl_stgy_restart_prog_inv_def by fast
     subgoal unfolding cdcl_twl_stgy_restart_prog_inv_def by fast
     subgoal unfolding cdcl_twl_stgy_restart_prog_inv_def by fast
@@ -889,7 +874,7 @@ proof -
     subgoal unfolding cdcl_twl_stgy_restart_prog_inv_def
       by (simp add: no_step_cdcl_twl_cp_no_step_cdcl\<^sub>W_cp)
     subgoal by fast
-    subgoal for ebrk brk T m x ac bc
+    subgoal for ebrk brk T m x ac bc ad bd
       by (rule restart_prog_early_spec)
     subgoal
       unfolding cdcl_twl_stgy_restart_prog_inv_def prod.case

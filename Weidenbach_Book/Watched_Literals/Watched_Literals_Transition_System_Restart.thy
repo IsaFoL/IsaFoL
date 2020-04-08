@@ -732,6 +732,11 @@ theorem wf_cdcl_twl_stgy_restart:
     by (auto dest!: cdcl_twl_stgy_restart_pcdcl)
   done
 
+theorem wf_cdcl_twl_stgy_restart:
+  \<open>wf {(U, T :: 'v twl_st \<times> nat \<times> bool). twl_struct_invs (fst S) \<and>
+     cdcl_twl_stgy_restart\<^sup>*\<^sup>* S T \<and> cdcl_twl_stgy\<^sup>*\<^sup>* (fst T) (fst U) \<and> snd T = snd U}\<close>
+  oops
+
 end
 
 abbreviation state\<^sub>W_of_restart where
@@ -924,16 +929,39 @@ proof (rule wf_union_compatible)
   qed
 qed
 
+find_theorems wf \<open>_ _\<close>
 lemma (in twl_restart) wf_cdcl_twl_stgy_restart_measure_early:
-  \<open>wf ({((ebrk, brkT, T, n), ebrk, brkS, S, m).
-  twl_struct_invs S \<and> cdcl_twl_stgy_restart_with_leftovers1 (S, m) (T, n)} \<union>
-  {((ebrkT, brkT, T), (ebrkS, brkS, S)). S = T \<and> (ebrkT \<or> brkT) \<and> (\<not>brkS \<and> \<not>ebrkS)})\<close>
+  \<open>wf ({((ebrk, brkT, T, n, n'::nat), ebrk, brkS, S, m, m'::nat).
+         twl_struct_invs S \<and>
+         cdcl_twl_stgy_restart_with_leftovers1 (S, m, brkS) (T, n, brkT)} \<union>
+        {((ebrkT, brkT, T), ebrkS, brkS, S).
+         S = T \<and> (ebrkT \<or> brkT) \<and> \<not> brkS \<and> \<not> ebrkS})\<close>
   (is \<open>wf (?TWL \<union> ?BOOL)\<close>)
 proof (rule wf_union_compatible)
+  have H: \<open>wf {((a, b, c, d), (a', b', c', d')). P a a' b b' c c' d d'} \<longleftrightarrow>
+    wf {(((a, b, c), d), ((a', b', c'), d')). P a a' b b' c c' d d'}\<close> for P
+    apply (rule iffI)
+    apply (subst arg_cong[of _ \<open>map_prod (\<lambda>(a,b,c,d). ((a,b,c), d)) (\<lambda>(a,b,c,d). ((a,b,c),d)) ` 
+      {((a, b, c, d), a', b', c', d'). P a a' b b' c c' d d'}\<close> wf])
+    apply force
+    apply (rule wf_map_prod_image)
+    apply assumption
+    apply (simp add: inj_on_def; fail)
+    apply (subst arg_cong[of _ \<open>map_prod (\<lambda>((a,b,c),d). (a,b,c, d)) (\<lambda>((a,b,c),d). (a,b,c,d)) ` 
+      {(((a, b, c), d), (a', b', c'), d'). P a a' b b' c c' d d'}\<close> wf])
+    apply force
+    apply (rule wf_map_prod_image)
+    apply assumption
+    apply (simp add: inj_on_def; fail)
+    done
+
   show \<open>wf ?TWL\<close>
+    supply [[show_types]]
     apply (rule wf_subset)
-    apply (rule wf_snd_wf_pair)
-     apply (rule wf_snd_wf_pair[OF wf_cdcl_twl_stgy_restart_with_leftovers1])
+    apply (subst H)
+    apply (rule wf_fst_wf_pair)
+      apply (rule wf_snd_wf_pair[OF wf_cdcl_twl_stgy_restart_with_leftovers1])
+        thm wf_snd_wf_pair[OF wf_cdcl_twl_stgy_restart_with_leftovers1]
     by auto
   show \<open>?TWL O ?BOOL \<subseteq> ?TWL\<close>
     by auto
@@ -968,7 +996,7 @@ lemma cdcl_twl_stgy_restart_with_leftovers_cdcl\<^sub>W_restart_stgy:
   done
 *)
 lemma cdcl_twl_stgy_restart_with_leftovers_twl_struct_invs:
-  \<open>cdcl_twl_stgy_restart_with_leftovers S T \<Longrightarrow> twl_struct_invs (fst S) \<Longrightarrow>
+  \<open>cdcl_twl_stgy_restart_with_leftovers S n T \<Longrightarrow> twl_struct_invs (fst S) \<Longrightarrow>
     twl_struct_invs (fst T)\<close>
   unfolding cdcl_twl_stgy_restart_with_leftovers_def
   apply (rule exE)
@@ -1032,13 +1060,14 @@ lemma rtranclp_cdcl_twl_stgy_restart_twl_stgy_invs:
     intro: cdcl_twl_stgy_restart_twl_stgy_invs)
 
 lemma cdcl_twl_stgy_restart_with_leftovers_twl_stgy_invs:
-  \<open>cdcl_twl_stgy_restart_with_leftovers S T \<Longrightarrow> twl_struct_invs (fst S) \<Longrightarrow>
+  \<open>cdcl_twl_stgy_restart_with_leftovers S n T \<Longrightarrow> twl_struct_invs (fst S) \<Longrightarrow>
     twl_stgy_invs (fst S) \<Longrightarrow> twl_stgy_invs (fst T)\<close>
   unfolding cdcl_twl_stgy_restart_with_leftovers_def
   apply (rule exE)
   apply assumption
   subgoal for S'
-    by (metis fst_conv rtranclp_cdcl_twl_stgy_restart_twl_stgy_invs rtranclp_cdcl_twl_stgy_restart_twl_struct_invs rtranclp_cdcl_twl_stgy_twl_stgy_invs)
+    by (metis fst_conv rtranclp_cdcl_twl_stgy_restart_twl_stgy_invs
+      rtranclp_cdcl_twl_stgy_restart_twl_struct_invs rtranclp_cdcl_twl_stgy_twl_stgy_invs)
   done
 
 (*
