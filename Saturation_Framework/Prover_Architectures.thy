@@ -11,9 +11,9 @@ theory Prover_Architectures
   imports Labeled_Lifting_to_Non_Ground_Calculi
 begin
 
-subsection \<open>Generic Prover Architecture\<close>
+subsection \<open>Basis of the Prover Architectures\<close>
 
-locale Prover_Architecture = labeled_lifting_with_red_crit_family Bot_F Inf_F Bot_G Q entails_q Inf_G
+locale Prover_Architecture_Basis = labeled_lifting_with_red_crit_family Bot_F Inf_F Bot_G Q entails_q Inf_G
   Red_Inf_q Red_F_q \<G>_F_q \<G>_Inf_q l Inf_FL
   for
     Bot_F :: "'f set"
@@ -426,7 +426,7 @@ end
 
 subsection \<open>Given Clause Architecture\<close>
 
-locale Given_Clause = Prover_Architecture Bot_F Inf_F Bot_G Q entails_q Inf_G Red_Inf_q
+locale Given_Clause = Prover_Architecture_Basis Bot_F Inf_F Bot_G Q entails_q Inf_G Red_Inf_q
   Red_F_q \<G>_F_q \<G>_Inf_q l Inf_FL Equiv_F Prec_F Prec_l
   for
     Bot_F :: "'f set" and
@@ -813,7 +813,7 @@ end
 
 subsection \<open>Lazy Given Clause Architecture\<close>
 
-locale Lazy_Given_Clause = Prover_Architecture Bot_F Inf_F Bot_G Q entails_q Inf_G Red_Inf_q
+locale Lazy_Given_Clause = Prover_Architecture_Basis Bot_F Inf_F Bot_G Q entails_q Inf_G Red_Inf_q
   Red_F_q \<G>_F_q \<G>_Inf_q l Inf_FL Equiv_F Prec_F Prec_l
   for
     Bot_F :: "'f set" and
