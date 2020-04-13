@@ -6,6 +6,8 @@
    From: The isabelle-dev mailing list. "Re: [isabelle-dev] The coming release of Isabelle2017"
    Link: http://www.mail-archive.com/isabelle-dev@mailbroy.informatik.tu-muenchen.de/msg07448.html
 
+Remark that a similar version (with fewer variants) is now in Isabelle in the theory
+"HOL-ex.Sketch_and_Explore".
 *)
 
 theory Explorer
@@ -79,13 +81,13 @@ ML \<open>
 
 signature EXPLORER =
 sig
-  datatype explore = HAVE_IF | ASSUME_SHOW | ASSUMES_SHOWS | CONTEXT
-  val explore: explore -> Toplevel.state -> Proof.state
+  datatype explore_kind = HAVE_IF | ASSUME_SHOW | ASSUMES_SHOWS | CONTEXT
+  val explore: explore_kind -> Toplevel.state -> Proof.state
 end
 
 structure Explorer: EXPLORER =
 struct
-datatype explore = HAVE_IF | ASSUME_SHOW | ASSUMES_SHOWS | CONTEXT
+datatype explore_kind = HAVE_IF | ASSUME_SHOW | ASSUMES_SHOWS | CONTEXT
 
 fun split_clause t =
   let
@@ -357,14 +359,30 @@ fun generate_context_proof ctxt enclosure (cFIXES fixes) =
   | generate_context_proof ctxt enclosure (cLemma (fixes, assms, shows)) =
     hd (generate_text ASSUMES_SHOWS ctxt enclosure [(fixes, assms, shows)])
 
-fun explore aim st  =
+(*
+  We cannot reuse ATP_Util.maybe_quote because it does not support selecting the
+  quoting function. But, this is a copy-paste of that function.
+*)
+val unquote_tvar = perhaps (try (unprefix "'"))
+val unquery_var = perhaps (try (unprefix "?"))
+
+val is_long_identifier = forall Symbol_Pos.is_identifier o Long_Name.explode
+fun maybe_quote_with keywords quote y =
+  let val s = YXML.content_of y in
+    y |> ((not (is_long_identifier (unquote_tvar s)) andalso
+           not (is_long_identifier (unquery_var s))) orelse
+           Keyword.is_literal keywords s) ? quote
+  end
+
+fun explore aim st =
   let
     val thy = Toplevel.theory_of st
     val quote_type = Explorer_Lib.default_raw_params thy |> snd
+    val ctxt = Toplevel.presentation_context st
     val enclosure =
       (case quote_type of
-         Explorer_Lib.GUILLEMOTS => cartouche
-       | Explorer_Lib.QUOTES => quote)
+         Explorer_Lib.GUILLEMOTS => maybe_quote_with (Thy_Header.get_keywords' ctxt) cartouche
+       | Explorer_Lib.QUOTES => maybe_quote_with (Thy_Header.get_keywords' ctxt) quote)
     val st = Toplevel.proof_of st
     val { context, facts = _, goal } = Proof.goal st;
     val goal_props = Logic.strip_imp_prems (Thm.prop_of goal);
@@ -381,8 +399,8 @@ fun explore aim st  =
         else cat_lines (generate_text aim context enclosure clauses);
     val message = Active.sendback_markup_properties [] text;
   in
-    (st
-     |> tap (fn _ => Output.information ("Proof outline with cases:\n" ^ message)))
+    st
+    |> tap (fn _ => Output.information ("Proof outline with cases:\n" ^ message))
   end
 
 end
@@ -526,7 +544,7 @@ text \<open>And switch back\<close>
 setup Explorer_Lib.switch_to_cartouches
 
 lemma
-  "distinct xs \<Longrightarrow> P xs \<Longrightarrow> length (filter (\<lambda>x. x = y) xs) \<le> 1" for xs
+  "distinct xs \<Longrightarrow> P xs \<Longrightarrow> sh \<Longrightarrow> length (filter (\<lambda>x. x = y) xs) \<le> 1" for xs
   apply (induct xs)
 (*   apply simp_all
   apply auto *)
