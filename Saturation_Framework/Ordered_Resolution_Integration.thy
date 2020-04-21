@@ -640,7 +640,8 @@ proof (intro disj_imp[THEN iffD2] impI)
     using eq_imply_B neq_imply_B by auto
 qed
 
-(* TODO: move in Standard_Redundancy.thy in AFP Ordered_Resolution_Prover *)
+(* TODO: Starting with Isabelle2021, this will corresponds to
+   "Standard_Redundancy.tautology_redundant_infer". Use that instead. *)
 lemma tauto_concl_redundant:
   assumes
     pos: \<open>Pos A \<in># concl_of \<iota>\<close> and
@@ -922,8 +923,8 @@ apply (induction L rule: rev_induct)
 apply (auto simp: atLeast0_lessThan_Suc nth_append intro!: image_mset_cong)
 done
 
-(* TODO: on the long term, should replace ord_resolve_rename_lifting in the
-   ordered resolution prover in the AFP *)
+(* TODO: Starting with Isabelle2021, this will corresponds to
+   "FO_Ordered_Resolution.ord_resolve_rename_lifting". Use that instead. *)
 lemma ord_resolve_rename_lifting_with_length:
   assumes
     sel_stable: "\<And>\<rho> C. is_renaming \<rho> \<Longrightarrow> S (C \<cdot> \<rho>) = S C \<cdot> \<rho>" and
