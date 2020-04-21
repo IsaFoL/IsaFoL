@@ -1,20 +1,20 @@
 # A Comprehensive Framework for Saturation Theorem Proving #
 
 [This directory](https://bitbucket.org/isafol/isafol/src/master/Saturation_Framework/) contains some files related to the mechanization of a framework for formal refutational completeness proofs of abstract provers that implement saturation calculi.
-[This Afchive of Formal Proof entry](https://www.isa-afp.org/entries/Saturation_Framework.html) contains most of the mechanized framework.
+[This Archive of Formal Proof entry](https://www.isa-afp.org/entries/Saturation_Framework.html) contains most of the mechanized framework.
 [This paper](http://matryoshka.gforge.inria.fr/pubs/saturate_paper.pdf) and [this technical report](http://matryoshka.gforge.inria.fr/pubs/saturate_report.pdf) explain the theory behind it.
 
 Isabelle2020 is necessary to process the theory files.
 
 
-## Authors of the mechanization ##
+## Authors of the Mechanization ##
 
 * framework: [Sophie Tourret](mailto:stourret mpi-inf.mpg.de)
 * integration of superposition: [Simon Robillard](mailto:simon.robillard imt-atlantique.fr)
 * integration of ordered resolution: [Sophie Tourret](mailto:stourret mpi-inf.mpg.de)
 
 
-## Authors of the framework ##
+## Authors of the Framework ##
 
 * [Uwe Waldmann](mailto:uwe mpi-inf.mpg.de)
 * [Sophie Tourret](mailto:stourret mpi-inf.mpg.de)
@@ -43,7 +43,7 @@ Step 4. Open the theories:
 Find `Saturation_Framework` in the IsaFoL folder. It contains all the formalized results about the framework in the .thy files. You can open any such file in Isabelle (for example using Isabelle/jEdit).
 
 
-## Where to find what ##
+## Outline ##
 
 The results in the paper and technical report can be found in the following files:
 
@@ -53,4 +53,11 @@ The results in the paper and technical report can be found in the following file
 * Results regarding the addition of labels (Sect. 3) are in `Labeled_Lifting_to_Non_Ground_Calculi.thy`
 * Results regarding the Given Clause prover and Lazy Given Clause prove architectures (Sect. 4) are in `Prover_Architectures.thy`
 
-In addition, the results in the technical report are annotated in the margin with the same labels as in the .thy files. The formalization of Sect. 4 is still ongoing. In particular, the Otter and DISCOUNT loops are not yet formalized.
+In addition, the results in the technical report are annotated in the margin with the same labels as in the `.thy` files.
+
+
+## Entry in the Archive of Formal Proofs ##
+
+* [A Comprehensive Framework for Saturation Theorem Proving](https://www.isa-afp.org/entries/Saturation_Framework.shtml)
+  S. Tourret
+  Archive of Formal Proofs, Formal proof development.
