@@ -2,7 +2,7 @@
  *  Author:      Sophie Tourret <stourret at mpi-inf.mpg.de>, 2020 *)
 
 theory Soundness_Related
-  imports Consequence_Relations_and_Inference_Systems
+  imports Saturation_Framework.Consequence_Relations_and_Inference_Systems
 begin
 
 locale sound_inference_system = inference_system + consequence_relation +

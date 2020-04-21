@@ -1,23 +1,11 @@
 chapter Saturation_Framework
 
-session "Saturation_Framework_bare" = "HOL-Library" +
+session "Saturation_Framework_Extended" = Saturation_Framework +
   sessions
     Ordered_Resolution_Prover
+    First_Order_Terms
     Well_Quasi_Orders
-  theories [document = false]
-    "../lib/Explorer"
- 
-session "Saturation_Framework" = "HOL-Library" +
-  sessions
-    Ordered_Resolution_Prover (* not for the framework itself but for integration of ordered resolution *)
-    Well_Quasi_Orders
-  theories [document = false]
-    "../lib/Explorer"
-  (* theories [document = pdf, quick_and_dirty = true]
-    Consequence_Relations_and_Inference_Systems
-    Calculi
-    Lifting_to_Non_Ground_Calculi
-    Labeled_Lifting_to_Non_Ground_Calculi
-    Prover_Architectures *)
-  document_files
-    root.tex
+  theories
+    Ordered_Resolution_Integration
+    Superposition_Lifting
+    Soundness_Related

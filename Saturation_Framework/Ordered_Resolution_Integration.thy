@@ -6,10 +6,11 @@ subsection \<open>Application of the saturation framework to Bachmair and Ganzin
 
 theory Ordered_Resolution_Integration
 imports
-  Prover_Architectures
+  Saturation_Framework.Prover_Architectures
   Soundness_Related
   Ordered_Resolution_Prover.FO_Ordered_Resolution_Prover
 begin
+
 context FO_resolution_prover
 begin
 
@@ -1622,6 +1623,5 @@ definition entails_all_\<G>  :: \<open>'a clause set \<Rightarrow> 'a clause set
   \<open>Red_Inf_all_\<G> N = {\<iota> \<in> Inf_F. \<G>_Inf \<iota> \<subseteq> Red_Inf_G (\<G>_set N)}\<close> *)
   
 end
-
 
 end
