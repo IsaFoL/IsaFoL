@@ -12,6 +12,7 @@ Isabelle2020 is necessary to process the theory files.
 * framework: [Sophie Tourret](mailto:stourret mpi-inf.mpg.de)
 * integration of superposition: [Simon Robillard](mailto:simon.robillard imt-atlantique.fr)
 * integration of ordered resolution: [Sophie Tourret](mailto:stourret mpi-inf.mpg.de)
+* counterexample-reduction and standard redundancy: [Jasmin Blanchette](mailto:j.c.blanchette vu.nl)
 
 
 ## Authors of the Framework ##
