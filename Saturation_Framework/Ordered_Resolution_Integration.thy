@@ -13,7 +13,7 @@ begin
 
 context FO_resolution_prover
 begin
-
+  
 abbreviation Bot_F :: "'a clause set" where "Bot_F \<equiv> {{#}}"
 
 definition entails_sound_F :: "'a clause set \<Rightarrow> 'a clause set \<Rightarrow> bool" (infix "|\<approx>F" 50)  where
@@ -914,7 +914,7 @@ proof -
     qed
 qed
 
-lemma union_G_F_ground: \<open>is_ground_clss (UNION M \<G>_F)\<close>
+lemma union_G_F_ground: \<open>is_ground_clss (\<Union> (\<G>_F ` M))\<close>
   unfolding \<G>_F_def by (simp add: grounding_ground grounding_of_clss_def is_ground_clss_def)
 
 lemma mset_upto_length_list: \<open>{# L ! x. x \<in># mset_set {0..<(length L)}#} = mset L\<close>
@@ -1384,10 +1384,10 @@ qed
 lemma subst_Cons_nth: \<open>i < length ((C \<cdot> \<sigma>) # (Cs \<cdot>\<cdot>cl \<sigma>s)) \<Longrightarrow> ((C # Cs) ! i) \<cdot> ((\<sigma> # \<sigma>s) ! i) = ((C \<cdot> \<sigma>) # (Cs \<cdot>\<cdot>cl \<sigma>s)) ! i\<close>
 by (auto simp: nth_Cons' simp del: subst_cls_lists_length)
 
-lemma lifting_in_framework: \<open>\<iota>' \<in> Inf_from (UNION M \<G>_F) \<Longrightarrow> \<exists>\<iota>. \<iota> \<in> sound_F.Inf_from M \<and> \<iota>' \<in> the (\<G>_Inf \<iota>)\<close>
+lemma lifting_in_framework: \<open>\<iota>' \<in> Inf_from (\<Union> (\<G>_F ` M)) \<Longrightarrow> \<exists>\<iota>. \<iota> \<in> sound_F.Inf_from M \<and> \<iota>' \<in> the (\<G>_Inf \<iota>)\<close>
 proof -
-  assume i'_in: \<open>\<iota>' \<in> Inf_from (UNION M \<G>_F)\<close>
-  have prems_i'_in: \<open>set (inference.prems_of \<iota>') \<subseteq> UNION M \<G>_F\<close> using i'_in unfolding Inf_from_def by blast
+  assume i'_in: \<open>\<iota>' \<in> Inf_from (\<Union> (\<G>_F ` M))\<close>
+  have prems_i'_in: \<open>set (inference.prems_of \<iota>') \<subseteq> \<Union> (\<G>_F ` M)\<close> using i'_in unfolding Inf_from_def by blast
   have i'_Inf_G: \<open>\<iota>' \<in> Inf_G\<close> using i'_in unfolding Inf_from_def by blast
   then obtain \<iota>'_RP where i'_RP_is: \<open>same_inf \<iota>'_RP \<iota>'\<close> and i'_RP_in: \<open>\<iota>'_RP \<in> gr.ord_\<Gamma>\<close>
     unfolding Inf_G_def same_inf_def by force
@@ -1400,7 +1400,8 @@ proof -
     using i'_RP_is unfolding same_inf_def side_prems_of_def prems_of_def
     by (metis add_mset_add_single insertCI set_mset_add_mset_insert set_mset_mset subsetI)
   then have ground_CAs: \<open>is_ground_cls_list CAs\<close>
-    using prems_i'_in union_G_F_ground is_ground_cls_list_def is_ground_clss_def by auto
+    using prems_i'_in union_G_F_ground is_ground_cls_list_def is_ground_clss_def
+    by auto
   have DA_is: \<open>main_prem_of \<iota>'_RP = DA\<close> using is_inf unfolding main_prem_of_def by simp
   then have DA_in: \<open>DA \<in> set (inference.prems_of \<iota>')\<close>
     using i'_RP_is unfolding same_inf_def by (metis add.commute multi_member_this set_mset_mset)
@@ -1618,7 +1619,7 @@ find_theorems name: calc_G
 end
 
 definition entails_all_\<G>  :: \<open>'a clause set \<Rightarrow> 'a clause set \<Rightarrow> bool\<close> (infix "\<Turnstile>\<G>" 50) where
-  \<open>N1 \<Turnstile>\<G> N2 \<equiv> UNION N1 grounding_of_cls \<Turnstile>G UNION N2 grounding_of_cls\<close>
+  \<open>N1 \<Turnstile>\<G> N2 \<equiv> \<Union> (grounding_of_cls ` N1) \<Turnstile>G \<Union> (grounding_of_cls ` N2)\<close>
 
 (* definition Red_Inf_all_\<G> :: "'a clause set \<Rightarrow> 'a clause inference set" where
   \<open>Red_Inf_all_\<G> N = {\<iota> \<in> Inf_F. \<G>_Inf \<iota> \<subseteq> Red_Inf_G (\<G>_set N)}\<close> *)
