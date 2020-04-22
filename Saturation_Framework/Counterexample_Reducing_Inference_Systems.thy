@@ -93,7 +93,7 @@ An abstract version of Corollary 3.10 does not hold without some conditions, acc
 corollary saturated_complete:
   assumes
     satur: "saturated N" and
-    unsat: "\<And>M. (\<And>B. B \<in> Bot \<Longrightarrow> \<not> M \<Turnstile> {B}) \<Longrightarrow> \<not> M \<Turnstile> N"
+    unsat: "N \<Turnstile> Bot"
   shows "N \<inter> Bot \<noteq> {}"
   oops
 
