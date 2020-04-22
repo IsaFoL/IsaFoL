@@ -224,43 +224,38 @@ lemma saturated_complete_if:
     satur: "saturated N" and
     bot_ni_n: "N \<inter> Bot = {}"
   shows "I_of N \<Turnstile> N"
-proof -
-  have "I_of N \<Turnstile> N"
-  proof (rule ccontr)
-    assume "\<not> I_of N \<Turnstile> N"
-    then obtain D :: 'f where
-      d_in_n: "D \<in> N" and
-      d_cex: "\<not> I_of N \<Turnstile> {D}" and
-      d_min: "\<And>C. C \<in> N \<Longrightarrow> C < D \<Longrightarrow> I_of N \<Turnstile> {C}"
-      using ex_min_cex by blast
-    then obtain \<iota> :: "'f inference" where
-      \<iota>_in: "\<iota> \<in> Inf" and
-      \<iota>_mprem: "D = main_prem_of \<iota>" and
-      sprem_subs_n: "side_prems_of \<iota> \<subseteq> N" and
-      sprem_true: "I_of N \<Turnstile> side_prems_of \<iota>" and
-      concl_cex: "\<not> I_of N \<Turnstile> {concl_of \<iota>}" and
-      concl_lt_d: "concl_of \<iota> < D"
-      using Inf_cex_reducing[OF bot_ni_n] not_le by metis
-    have "\<iota> \<in> Red_Inf N"
-      by (rule subsetD[OF satur[unfolded saturated_def Inf_from_def]],
-          simp add: \<iota>_in set_prems_of)
-        (use \<iota>_mprem d_in_n sprem_subs_n in blast)
-    then have "\<iota> \<in> Red_Inf N"
-      using Red_Inf_without_red_F by blast
-    then obtain DD :: "'f set" where
-      dd_subs_n: "DD \<subseteq> N" and
-      dd_cc_ent_d: "DD \<union> side_prems_of \<iota> \<Turnstile> {concl_of \<iota>}" and
-      dd_lt_d: "\<forall>C \<in> DD. C < D"
-      unfolding Red_Inf_def redundant_infer_def \<iota>_mprem by blast
-    from dd_subs_n dd_lt_d have "I_of N \<Turnstile> DD"
-      using d_min by (meson ex_min_cex subset_iff)
-    then have "I_of N \<Turnstile> {concl_of \<iota>}"
-      using entails_trans dd_cc_ent_d entail_union sprem_true by blast
-    then show False
-      using concl_cex by auto
-  qed
-  then show ?thesis
-    using Red_F_model by blast
+proof (rule ccontr)
+  assume "\<not> I_of N \<Turnstile> N"
+  then obtain D :: 'f where
+    d_in_n: "D \<in> N" and
+    d_cex: "\<not> I_of N \<Turnstile> {D}" and
+    d_min: "\<And>C. C \<in> N \<Longrightarrow> C < D \<Longrightarrow> I_of N \<Turnstile> {C}"
+    using ex_min_cex by blast
+  then obtain \<iota> :: "'f inference" where
+    \<iota>_in: "\<iota> \<in> Inf" and
+    \<iota>_mprem: "D = main_prem_of \<iota>" and
+    sprem_subs_n: "side_prems_of \<iota> \<subseteq> N" and
+    sprem_true: "I_of N \<Turnstile> side_prems_of \<iota>" and
+    concl_cex: "\<not> I_of N \<Turnstile> {concl_of \<iota>}" and
+    concl_lt_d: "concl_of \<iota> < D"
+    using Inf_cex_reducing[OF bot_ni_n] not_le by metis
+  have "\<iota> \<in> Red_Inf N"
+    by (rule subsetD[OF satur[unfolded saturated_def Inf_from_def]],
+        simp add: \<iota>_in set_prems_of)
+      (use \<iota>_mprem d_in_n sprem_subs_n in blast)
+  then have "\<iota> \<in> Red_Inf N"
+    using Red_Inf_without_red_F by blast
+  then obtain DD :: "'f set" where
+    dd_subs_n: "DD \<subseteq> N" and
+    dd_cc_ent_d: "DD \<union> side_prems_of \<iota> \<Turnstile> {concl_of \<iota>}" and
+    dd_lt_d: "\<forall>C \<in> DD. C < D"
+    unfolding Red_Inf_def redundant_infer_def \<iota>_mprem by blast
+  from dd_subs_n dd_lt_d have "I_of N \<Turnstile> DD"
+    using d_min by (meson ex_min_cex subset_iff)
+  then have "I_of N \<Turnstile> {concl_of \<iota>}"
+    using entails_trans dd_cc_ent_d entail_union sprem_true by blast
+  then show False
+    using concl_cex by auto
 qed
 
 end
