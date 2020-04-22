@@ -25,11 +25,13 @@ abbreviation side_prems_of :: "'f inference \<Rightarrow> 'f list" where
   "side_prems_of \<iota> \<equiv> butlast (prems_of \<iota>)"
 
 locale calculus_with_std_red_crit = inference_system Inf + consequence_relation Bot entails
-  for
-    Bot :: "('f :: wellorder) set" and
-    Inf :: \<open>'f inference set\<close> and
-    entails :: "'f set \<Rightarrow> 'f set \<Rightarrow> bool" (infix "\<Turnstile>" 50) +
-  assumes Inf_has_prem: "\<iota> \<in> Inf \<Longrightarrow> prems_of \<iota> \<noteq> []"
+    for
+      Inf :: "('f :: wellorder) inference set" and
+      Bot :: "'f set" and
+      entails :: "'f set \<Rightarrow> 'f set \<Rightarrow> bool" (infix "\<Turnstile>" 50) +
+  assumes
+    Inf_has_prem: "\<iota> \<in> Inf \<Longrightarrow> prems_of \<iota> \<noteq> []" and
+    Inf_reductive: "\<iota> \<in> Inf \<Longrightarrow> concl_of \<iota> < main_prem_of \<iota>"
 begin
 
 definition redundant_infer :: "'f set \<Rightarrow> 'f inference \<Rightarrow> bool" where
@@ -191,75 +193,38 @@ lemma Red_F_model: "I \<Turnstile> N - Red_F N \<Longrightarrow> I \<Turnstile> 
 lemma Red_F_Bot: "B \<in> Bot \<Longrightarrow> N \<Turnstile> {B} \<Longrightarrow> N - Red_F N \<Turnstile> {B}"
   using Red_F_model entails_trans subset_entailed by blast
 
-lemma Red_Inf_of_Inf_to_N: "\<iota> \<in> Inf \<Longrightarrow> concl_of \<iota> \<in> N \<Longrightarrow> \<iota> \<in> Red_Inf N" sorry
-
-
-
-sublocale redundancy_criterion Inf Red_F Red_Inf
-  by unfold_locales (rule Red_Inf_to_Inf, (elim Red_F_of_subset Red_Inf_of_subset Red_F_indep Red_Inf_indep Red_F_sat)+)
-
-end
-
-locale standard_redundancy_criterion_reductive =
-  standard_redundancy_criterion + reductive_inference_system
-begin
+lemma Red_Inf_of_Inf_to_N:
+  assumes
+    in_\<iota>: "\<iota> \<in> Inf" and
+    concl_in: "concl_of \<iota> \<in> N"
+  shows "\<iota> \<in> Red_Inf N"
+proof -
+  have "concl_of \<iota> \<in> N \<Longrightarrow> redundant_infer N \<iota>"
+    using Inf_reductive redundant_infer_def entail_union in_\<iota> by blast
+  then show "\<iota> \<in> Red_Inf N"
+    by (simp add: Red_Inf_def concl_in in_\<iota>)
+qed
 
 text \<open>
 The following corresponds to Theorems 4.7 and 4.8:
 \<close>
 
-lemma Red_Inf_effective:
-  assumes
-    in_\<iota>: "\<iota> \<in> Inf" and
-    concl_of_in_n_un_rf_n: "concl_of \<iota> \<in> N \<union> Red_F N"
-  shows "\<iota> \<in> Red_Inf N"
-proof -
-  obtain CC D E where
-    \<iota>: "\<iota> = Infer CC D E"
-    by (cases \<iota>)
-  then have cc: "CC = side_prems_of \<iota>" and d: "D = main_prem_of \<iota>" and e: "E = concl_of \<iota>"
-    unfolding \<iota> by simp_all
-  note e_in_n_un_rf_n = concl_of_in_n_un_rf_n[folded e]
-
-  {
-    assume "E \<in> N"
-    moreover have "E < D"
-      using Inf_reductive e d in_\<iota> by auto
-    ultimately have
-      "set_mset {#E#} \<subseteq> N" and "\<forall>I. I \<Turnstile>m {#E#} + CC \<longrightarrow> I \<Turnstile> E" and "\<forall>D'. D' \<in># {#E#} \<longrightarrow> D' < D"
-      by simp_all
-    then have "redundant_infer N \<iota>"
-      using redundant_infer_def cc d e by blast
-  }
-  moreover
-  {
-    assume "E \<in> Red_F N"
-    then obtain DD where
-      dd_sset: "set_mset DD \<subseteq> N" and
-      dd_imp_e: "\<forall>I. I \<Turnstile>m DD \<longrightarrow> I \<Turnstile> E" and
-      dd_lt_e: "\<forall>C'. C' \<in># DD \<longrightarrow> C' < E"
-      unfolding Red_F_def by blast
-    from dd_lt_e have "\<forall>Da. Da \<in># DD \<longrightarrow> Da < D"
-      using d e in_\<iota> Inf_reductive less_trans by blast
-    then have "redundant_infer N \<iota>"
-      using redundant_infer_def dd_sset dd_imp_e cc d e by blast
-  }
-  ultimately show "\<iota> \<in> Red_Inf N"
-    using in_\<iota> e_in_n_un_rf_n unfolding Red_Inf_def by blast
-qed
-
-sublocale effective_redundancy_criterion Inf Red_F Red_Inf
-  unfolding effective_redundancy_criterion_def
-  by (intro conjI redundancy_criterion_axioms, unfold_locales, rule Red_Inf_effective)
-
-lemma contradiction_Red_F: "{#} \<in> N \<Longrightarrow> Red_Inf N = Inf"
-  unfolding Red_Inf_def redundant_infer_def using Inf_reductive le_multiset_empty_right
-  by (force intro: exI[of _ "{#{#}#}"] le_multiset_empty_left)
+sublocale calculus_with_red_crit Bot Inf "(\<Turnstile>)" Red_Inf Red_F
+  by (unfold_locales, fact Red_Inf_to_Inf, fact Red_F_Bot, fact Red_F_of_subset,
+      fact Red_Inf_of_subset, fact Red_F_indep, fact Red_Inf_of_Red_F_subset,
+      fact Red_Inf_of_Inf_to_N)
 
 end
 
-locale standard_redundancy_criterion_counterex_reducing =
-  standard_redundancy_criterion + counterex_reducing_inference_system
+locale cex_red_calculus_with_std_red_crit = calculus_with_std_red_crit Inf
+    for
+      Inf :: "('f :: wellorder) inference set" +
+  fixes I_of :: "'f set \<Rightarrow> 'f set"
+  assumes Inf_cex_reducing:
+    "N \<inter> Bot = {} \<Longrightarrow> main_prem_of \<iota> \<in> N \<Longrightarrow> \<not> I_of N \<Turnstile> {main_prem_of \<iota>} \<Longrightarrow>
+     (\<And>C. C \<in> N \<Longrightarrow> \<not> I_of N \<Turnstile> {C} \<Longrightarrow> main_prem_of \<iota> \<le> C) \<Longrightarrow>
+     \<exists>CC \<subseteq> N. finite CC \<and> I_of N \<Turnstile> CC \<and> \<iota> \<in> Inf \<and> \<not> I_of N \<Turnstile> {concl_of \<iota>}
+       \<and> concl_of \<iota> < main_prem_of \<iota>"
 begin
 
 text \<open>
@@ -268,9 +233,9 @@ The following result corresponds to Theorem 4.9.
 
 lemma saturated_upto_complete_if:
   assumes
-    satur: "saturated_upto N" and
-    unsat: "\<not> satisfiable N"
-  shows "{#} \<in> N"
+    satur: "saturated N" and
+    unsat: "N \<Turnstile> Bot"
+  shows "\<exists>B \<in> Bot. B \<in> N"
 proof (rule ccontr)
   assume ec_ni_n: "{#} \<notin> N"
 
@@ -322,7 +287,7 @@ proof (rule ccontr)
 qed
 
 theorem saturated_upto_complete:
-  assumes "saturated_upto N"
+  assumes "saturated N"
   shows "\<not> satisfiable N \<longleftrightarrow> {#} \<in> N"
   using assms saturated_upto_complete_if true_clss_def by auto
 
