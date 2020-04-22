@@ -7,7 +7,7 @@
 
 section \<open>The Standard Redundancy Criterion (Revisited)\<close>
 
-theory Standard_Redundancy
+theory Standard_Redundancy_Criterion
   imports Counterexample_Reducing_Inference_Systems
 begin
 
@@ -219,7 +219,7 @@ text \<open>
 The following result loosely corresponds to Theorem 4.9.
 \<close>
 
-lemma saturated_upto_complete_if:
+lemma saturated_complete_if:
   assumes
     satur: "saturated N" and
     bot_ni_n: "N \<inter> Bot = {}"
