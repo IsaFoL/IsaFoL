@@ -30,8 +30,7 @@ lemma set_prems_of:
   by clarsimp (metis Un_insert_right append_Nil2 append_butlast_last_id list.set(2) set_append)
 
 locale cex_red_inference_system = inference_system Inf + consequence_relation
-  for
-    Inf :: "('f :: wellorder) inference set" +
+  for Inf :: "('f :: wellorder) inference set" +
   fixes I_of :: "'f set \<Rightarrow> 'f set"
   assumes Inf_cex_reducing:
     "N \<inter> Bot = {} \<Longrightarrow> D \<in> N \<Longrightarrow> \<not> I_of N \<Turnstile> {D} \<Longrightarrow> (\<And>C. C \<in> N \<Longrightarrow> \<not> I_of N \<Turnstile> {C} \<Longrightarrow> D \<le> C) \<Longrightarrow>
@@ -61,8 +60,7 @@ Theorem 4.4 (generalizes Theorems 3.9 and 3.16):
 
 locale cex_red_inference_system_with_triv_red_crit =
   cex_red_inference_system _ _ Inf + calculus_with_red_crit _ Inf _ "\<lambda>_. {}" "\<lambda>_. {}"
-  for
-    Inf :: "('f :: wellorder) inference set"
+  for Inf :: "('f :: wellorder) inference set"
 begin
 
 theorem saturated_model:
@@ -72,12 +70,12 @@ theorem saturated_model:
   shows "I_of N \<Turnstile> N"
 proof (rule ccontr)
   assume "\<not> I_of N \<Turnstile> N"
-  then obtain D where
+  then obtain D :: 'f where
     d_in_n: "D \<in> N" and
     d_cex: "\<not> I_of N \<Turnstile> {D}" and
     d_min: "\<And>C. C \<in> N \<Longrightarrow> C < D \<Longrightarrow> I_of N \<Turnstile> {C}"
     by (meson ex_min_cex)
-  then obtain \<iota> where
+  then obtain \<iota> :: "'f inference" where
     \<iota>_inf: "\<iota> \<in> Inf" and
     concl_cex: "\<not> I_of N \<Turnstile> {concl_of \<iota>}" and
     concl_lt_d: "concl_of \<iota> < D"

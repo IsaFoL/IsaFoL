@@ -61,7 +61,7 @@ proof -
     (\<forall>DD'. set_mset DD' \<subseteq> N \<and> set_mset DD' \<union> CC \<Turnstile> E \<and> (\<forall>D' \<in># DD'. D' < D) \<longrightarrow> DD \<le> DD')"
     using wf_eq_minimal[THEN iffD1, rule_format, OF wf_less_multiset, OF dd0]
     unfolding not_le[symmetric] by blast
-  then obtain DD where
+  then obtain DD :: "'f multiset" where
     dd_subs_n: "set_mset DD \<subseteq> N" and
     ddcc_ent_e: "set_mset DD \<union> CC \<Turnstile> E" and
     dd_lt_d: "\<forall>D' \<in># DD. D' < D" and
@@ -81,7 +81,7 @@ proof -
       dd'_lt_da: "\<forall>D' \<in># DD'. D' < Da"
       unfolding Red_F_def mem_Collect_eq by (metis finite_set_mset_mset_set)
 
-    define DDa where
+    define DDa :: "'f multiset" where
       "DDa = DD - {#Da#} + DD'"
 
     have "set_mset DDa \<subseteq> N"
@@ -89,9 +89,11 @@ proof -
       by (meson contra_subsetD in_diffD subsetI union_iff)
     moreover have "set_mset DDa \<union> CC \<Turnstile> E"
       by (rule subset_entailed_strong[of _ "{Da}"],
-          metis DDa_def dd'_ent_da entail_union entails_trans order_refl set_mset_union subset_entailed,
-          smt DDa_def da_in_dd ddcc_ent_e entails_trans insert_DiffM2 set_mset_add_mset_insert set_mset_empty set_mset_union subset_entailed sup_assoc sup_commute sup_ge1)
-    moreover have "\<forall>D'. D' \<in># DDa \<longrightarrow> D' < D"
+          metis DDa_def dd'_ent_da entail_union entails_trans order_refl set_mset_union
+            subset_entailed,
+          smt DDa_def da_in_dd ddcc_ent_e entails_trans insert_DiffM2 set_mset_add_mset_insert
+            set_mset_empty set_mset_union subset_entailed sup_assoc sup_commute sup_ge1)
+    moreover have "\<forall>D' \<in># DDa. D' < D"
       using dd_lt_d dd'_lt_da da_in_dd unfolding DDa_def
       by (metis insert_DiffM2 order.strict_trans union_iff)
     moreover have "DDa < DD"
@@ -113,7 +115,7 @@ lemma Red_F_subs_Red_F_diff_Red_F: "Red_F N \<subseteq> Red_F (N - Red_F N)"
 proof
   fix C
   assume c_rf: "C \<in> Red_F N"
-  then obtain CC where
+  then obtain CC :: "'f set" where
     cc_fin: "finite CC" and
     cc_subs: "CC \<subseteq> N - Red_F N" and
     cc_ent_c: "CC \<Turnstile> {C}" and
@@ -158,7 +160,7 @@ proof
     dd_ent: "DD \<union> CC \<Turnstile> {E}" and
     dd_lt_d: "\<forall>C \<in> DD. C < D"
     using \<iota>_ri unfolding Red_Inf_def redundant_infer_def CC_def D_def E_def by blast
-  obtain DD' where
+  obtain DD' :: "'f set" where
     "DD' \<subseteq> N - Red_F N" and "finite DD'" and "DD' \<union> CC \<Turnstile> {E}" and "\<forall>D' \<in> DD'. D' < D"
     using wlog_non_Red_F[OF dd_sub dd_fin dd_ent dd_lt_d] by blast
   then show "\<iota> \<in> Red_Inf (N - Red_F N)"
@@ -210,8 +212,7 @@ end
 
 locale cex_red_calculus_with_std_red_crit =
   calculus_with_std_red_crit Inf + cex_red_inference_system _ _ Inf
-    for
-      Inf :: "('f :: wellorder) inference set"
+  for Inf :: "('f :: wellorder) inference set"
 begin
 
 text \<open>
@@ -224,57 +225,43 @@ lemma saturated_upto_complete_if:
     bot_ni_n: "N \<inter> Bot = {}"
   shows "I_of N \<Turnstile> N"
 proof -
-  define M where
-    "M = N - Red_F N"
-
-  have bot_ni_m: "M \<inter> Bot = {}"
-    unfolding M_def using bot_ni_n by fast
-
-  have "I_of M \<Turnstile> M"
+  have "I_of N \<Turnstile> N"
   proof (rule ccontr)
-    assume "\<not> I_of M \<Turnstile> M"
-    then obtain D where
-      d_in_m: "D \<in> M" and
-      d_cex: "\<not> I_of M \<Turnstile> {D}" and
-      d_min: "\<And>C. C \<in> M \<Longrightarrow> C < D \<Longrightarrow> I_of M \<Turnstile> {C}"
+    assume "\<not> I_of N \<Turnstile> N"
+    then obtain D :: 'f where
+      d_in_n: "D \<in> N" and
+      d_cex: "\<not> I_of N \<Turnstile> {D}" and
+      d_min: "\<And>C. C \<in> N \<Longrightarrow> C < D \<Longrightarrow> I_of N \<Turnstile> {C}"
       using ex_min_cex by blast
-    then obtain \<iota> where
+    then obtain \<iota> :: "'f inference" where
       \<iota>_in: "\<iota> \<in> Inf" and
       \<iota>_mprem: "D = main_prem_of \<iota>" and
-      sprem_subs_m: "side_prems_of \<iota> \<subseteq> M" and
-      sprem_true: "I_of M \<Turnstile> side_prems_of \<iota>" and
-      concl_cex: "\<not> I_of M \<Turnstile> {concl_of \<iota>}" and
+      sprem_subs_n: "side_prems_of \<iota> \<subseteq> N" and
+      sprem_true: "I_of N \<Turnstile> side_prems_of \<iota>" and
+      concl_cex: "\<not> I_of N \<Turnstile> {concl_of \<iota>}" and
       concl_lt_d: "concl_of \<iota> < D"
-      using Inf_cex_reducing[OF bot_ni_m] not_le by metis
+      using Inf_cex_reducing[OF bot_ni_n] not_le by metis
     have "\<iota> \<in> Red_Inf N"
       by (rule subsetD[OF satur[unfolded saturated_def Inf_from_def]],
           simp add: \<iota>_in set_prems_of)
-        (use M_def \<iota>_mprem d_in_m sprem_subs_m in blast)
-    then have "\<iota> \<in> Red_Inf M"
-      unfolding M_def using Red_Inf_without_red_F by blast
-    then obtain DD where
-      dd_subs_m: "DD \<subseteq> M" and
-      dd_cc_ent_d: "DD + CC \<Turnstile> E" and
-      dd_lt_d: "\<forall>C. C \<in># DD \<longrightarrow> C < D"
-      unfolding Red_Inf_def redundant_infer_def cc d e by blast
-    from dd_subs_m dd_lt_d have "I_of M \<Turnstile>m DD"
-      sorry
-(*      using d_min unfolding true_cls_mset_def by (metis contra_subsetD) *)
-    then have "I_of M \<Turnstile> E"
-      using dd_cc_ent_d cc_true by auto
+        (use \<iota>_mprem d_in_n sprem_subs_n in blast)
+    then have "\<iota> \<in> Red_Inf N"
+      using Red_Inf_without_red_F by blast
+    then obtain DD :: "'f set" where
+      dd_subs_n: "DD \<subseteq> N" and
+      dd_cc_ent_d: "DD \<union> side_prems_of \<iota> \<Turnstile> {concl_of \<iota>}" and
+      dd_lt_d: "\<forall>C \<in> DD. C < D"
+      unfolding Red_Inf_def redundant_infer_def \<iota>_mprem by blast
+    from dd_subs_n dd_lt_d have "I_of N \<Turnstile> DD"
+      using d_min by (meson ex_min_cex subset_iff)
+    then have "I_of N \<Turnstile> {concl_of \<iota>}"
+      using entails_trans dd_cc_ent_d entail_union sprem_true by blast
     then show False
-      using e_cex by auto
+      using concl_cex by auto
   qed
-  then have "I_of M \<Turnstile>s N"
-    using M_def Red_F_model by blast
-  then show False
-    using unsat by blast
+  then show ?thesis
+    using Red_F_model by blast
 qed
-
-theorem saturated_upto_complete:
-  assumes "saturated N"
-  shows "\<not> satisfiable N \<longleftrightarrow> {#} \<in> N"
-  using assms saturated_upto_complete_if true_clss_def by auto
 
 end
 
