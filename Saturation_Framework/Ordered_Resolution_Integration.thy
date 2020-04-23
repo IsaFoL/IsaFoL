@@ -1,6 +1,5 @@
-(*  Title:       Dynamic_Completeness_Lifting
-Author:      Sophie Tourret <stourret at mpi-inf.mpg.de>, 2018
-*)
+(*  Title:       Ordered_Resolution_Integration
+ *  Author:      Sophie Tourret <stourret at mpi-inf.mpg.de>, 2018-2020 *)
 
 subsection \<open>Application of the saturation framework to Bachmair and Ganzinger's Resolution Prover, as formalize in the Ordered_Resolution_Prover theory in the AFP.\<close>
 
