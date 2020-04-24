@@ -1,5 +1,6 @@
-chapter Functional_Ordered_Resolution_Prover
+chapter Executable_Ordered_Resolution_Prover
 
+(*
 session Functional_Ordered_Resolution_Prover_Base = "HOL-Library" +
   options [document=false]
   sessions
@@ -26,8 +27,9 @@ session Functional_Ordered_Resolution_Prover_Base = "HOL-Library" +
     First_Order_Terms.Subsumption
     First_Order_Terms.Matching
     TRS.Term_More
+*)
 
-session Executable_Functional_Ordered_Resolution_Prover = Functional_Ordered_Resolution_Prover_Base +
+session Executable_Functional_Ordered_Resolution_Prover = Functional_Ordered_Resolution_Prover +
   options [document = pdf, document_output = "output",
     document_variants = "document:outline=/proof,/ML" (*,
     timeout=200 *)]
