@@ -639,7 +639,7 @@ proof (intro disj_imp[THEN iffD2] impI)
     using eq_imply_B neq_imply_B by auto
 qed
 
-(* TODO: Starting with Isabelle2021, this will corresponds to
+(* TODO: Starting with Isabelle2021, this will correspond to
    "Standard_Redundancy.tautology_redundant_infer". Use that instead. *)
 lemma tauto_concl_redundant:
   assumes
@@ -922,7 +922,7 @@ apply (induction L rule: rev_induct)
 apply (auto simp: atLeast0_lessThan_Suc nth_append intro!: image_mset_cong)
 done
 
-(* TODO: Starting with Isabelle2021, this will corresponds to
+(* TODO: Starting with Isabelle2021, this will correspond to
    "FO_Ordered_Resolution.ord_resolve_rename_lifting". Use that instead. *)
 lemma ord_resolve_rename_lifting_with_length:
   assumes
