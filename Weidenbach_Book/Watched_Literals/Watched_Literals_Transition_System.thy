@@ -1,6 +1,6 @@
 theory Watched_Literals_Transition_System
-  imports WB_More_Refinement CDCL.CDCL_W_Abstract_State
-    CDCL.CDCL_W_Restart
+  imports More_Sepref.WB_More_Refinement CDCL.CDCL_W_Abstract_State
+    CDCL.CDCL_W_Restart 
 begin
 
 chapter \<open>Two-Watched Literals\<close>

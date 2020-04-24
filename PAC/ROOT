@@ -9,6 +9,7 @@ session PAC_Checker = "Sepref_IICF" +
      Weidenbach_Book_Base
      Show
      "HOL-ex"
+     More_Refinement_Libs
    theories
      Weidenbach_Book_Base.WB_List_More
      WB_Sort

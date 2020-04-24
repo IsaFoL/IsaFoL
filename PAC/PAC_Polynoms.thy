@@ -348,10 +348,12 @@ lemma poly_of_vars_remdups_mset:
   \<open>poly_of_vars (remdups_mset (xs)) - (poly_of_vars xs)
     \<in> More_Modules.ideal polynom_bool\<close>
   apply (induction xs)
-  apply (auto dest!: simp: ideal.span_zero)
-  apply (metis (no_types, lifting) diff_add_cancel ideal.span_diff insert_DiffM
-    linordered_field_class.sign_simps(11) X2_X_polynom_bool_mult_in
-    poly_of_vars_simps(1))
+   apply (auto dest!: simp: ideal.span_zero)
+   apply (drule multi_member_split)
+   apply auto
+    apply (drule multi_member_split)
+    apply (smt X2_X_polynom_bool_mult_in diff_add_cancel diff_diff_eq2 ideal.span_diff)
+   apply (smt X2_X_polynom_bool_mult_in diff_add_eq group_eq_aux ideal.span_add_eq)
   by (metis ideal.span_scale right_diff_distrib')
 
 lemma polynom_of_mset_mult_map:

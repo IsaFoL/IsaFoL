@@ -2,7 +2,7 @@ theory PAC_Checker_Synthesis
   imports PAC_Checker WB_Sort PAC_Checker_Relation
     PAC_Checker_Init
     PAC_Version
-    "../Weidenbach_Book/Watched_Literals/WB_More_Refinement_Loops"
+    "More_Refinement_Libs.WB_More_Refinement_Loops"
 begin
 
 section \<open>Code Synthesis of the Checker\<close>

@@ -64,8 +64,9 @@ next
 
   show ?case
     using IH(1)[of m] le(2-)
-    by (auto simp: less_Suc_eq word_less_nat_alt
+    apply (auto simp: less_Suc_eq word_less_nat_alt
       simp del: unat_lt2p)
+    by (metis le(3) one_less_numeral_iff power_Suc power_strict_increasing_iff semiring_norm(76))
 qed
 
 lemma pow2_mono_word_le:
@@ -169,15 +170,21 @@ proof -
   show ?C if \<open>n AND (2^32 - 1) = 0\<close>
   proof -
     note H' =  test_bit_bl[of \<open>n AND (2^32 - 1)\<close> m for m, unfolded word_size, simplified]
-    have [simp]: \<open>(n AND 4294967295) !! m = False\<close> for m
+    have H''[simp]: \<open>(n AND 4294967295) !! m = False\<close> for m
       using that by auto
+    have H'':\<open>rev (to_bl (n && 0xFFFFFFFF)) ! m = False\<close> if \<open>m < 64\<close> for m
+      using test_bit_bl[of \<open>n && 0xFFFFFFFF\<close> \<open>m\<close>]
+      apply (simp only: word_size H'')
+      apply (clarsimp simp add: that)
+      done
     show ?thesis
       using H H'[of 0]
       H'[of 32] H'[of 31] H'[of 30] H'[of 29] H'[of 28] H'[of 27] H'[of 26] H'[of 25] H'[of 24]
       H'[of 23] H'[of 22] H'[of 21] H'[of 20] H'[of 19] H'[of 18] H'[of 17] H'[of 16] H'[of 15]
       H'[of 14] H'[of 13] H'[of 12] H'[of 11] H'[of 10] H'[of 9] H'[of 8] H'[of 7] H'[of 6]
       H'[of 5] H'[of 4] H'[of 3] H'[of 2] H'[of 1]
-      unfolding unat_def word_size that
+      unfolding unat_def word_size H'' test_bit_bl
+      apply (simp only: H'')
       by (clarsimp simp add: word_size bl_word_and word_add_rbl)
   qed
 qed
@@ -570,9 +577,8 @@ lemma uint32_mod_232_eq:
   shows \<open>xi = xi mod 2^32\<close>
 proof -
   have H: \<open>nat_of_uint32 (xi mod 2 ^ 32) = nat_of_uint32 xi\<close>
+    supply transferred = transfer_pow_uint32
     apply transfer
-    prefer 2
-      apply (rule transfer_pow_uint32)
     subgoal for xi
       using uint_word_ariths(1)[of xi 0]
       supply [[show_types]]
@@ -808,9 +814,8 @@ lemma transfer_pow_uint64: \<open>Transfer.Rel (rel_fun cr_uint64 (rel_fun (=) c
   done
 
 lemma shiftl_t2n_uint64: \<open>n << m = n * 2 ^ m\<close> for n :: uint64
-  apply transfer
-  prefer 2 apply (rule transfer_pow_uint64)
-  by (auto simp: shiftl_t2n)
+  supply transfer_pow_uint64[transferred]
+  by transfer (auto simp: shiftl_t2n)
 
 
 lemma mod2_bin_last: \<open>a mod 2 = 0 \<longleftrightarrow> \<not>bin_last a\<close>

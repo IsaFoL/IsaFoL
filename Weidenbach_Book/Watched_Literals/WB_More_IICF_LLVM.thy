@@ -2,7 +2,7 @@ theory WB_More_IICF_LLVM
 imports
   Isabelle_LLVM.IICF
   Isabelle_LLVM.Sepref_HOL_Bindings
-  WB_More_Refinement
+  More_Sepref.WB_More_Refinement
 begin
 
 paragraph \<open>This is not part of the multiset setup\<close>

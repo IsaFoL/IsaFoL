@@ -1,6 +1,6 @@
 theory IsaSAT_Arena
   imports
-    Watched_Literals.WB_More_Refinement_List
+    More_Sepref.WB_More_Refinement_List
     IsaSAT_Literals
 begin
 chapter \<open>The memory representation: Arenas\<close>

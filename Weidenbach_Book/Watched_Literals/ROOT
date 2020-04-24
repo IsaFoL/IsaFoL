@@ -6,10 +6,9 @@ session "Watched_Literals" (Weidenbach_Book) = "Isabelle_LLVM"  +
     CDCL
     "HOL-Eisbach"
     Sepref_IICF
+    More_Refinement_Libs
+    More_Sepref
   theories [quick_and_dirty = false, document = true]
-    WB_More_Refinement_Loops
-    WB_More_Refinement
-    WB_More_Refinement_List
     WB_More_IICF_LLVM
     WB_Sort
     Watched_Literals_Transition_System

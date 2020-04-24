@@ -1,6 +1,6 @@
 theory IsaSAT_Setup_LLVM
   imports IsaSAT_Setup IsaSAT_Watch_List_LLVM IsaSAT_Lookup_Conflict_LLVM
-    Watched_Literals.WB_More_Refinement IsaSAT_Clauses_LLVM LBD_LLVM
+    More_Sepref.WB_More_Refinement IsaSAT_Clauses_LLVM LBD_LLVM
 begin
 
 

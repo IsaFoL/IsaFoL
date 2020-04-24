@@ -799,7 +799,7 @@ lemma ideal_insert':
 
 lemma ideal_mult_right_in:
   \<open>a \<in> ideal A \<Longrightarrow> a * b \<in> More_Modules.ideal A\<close>
-  by (metis ideal.span_scale linordered_field_class.sign_simps(5))
+  by (metis ideal.span_scale mult.commute)
 
 lemma ideal_mult_right_in2:
   \<open>a \<in> ideal A \<Longrightarrow> b * a \<in> More_Modules.ideal A\<close>

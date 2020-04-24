@@ -1,6 +1,6 @@
 (* Correctness proof contributed by Maximilian Wuttke *)
 theory WB_Sort
-  imports WB_More_Refinement WB_More_Refinement_List "HOL-Library.Rewrite"
+  imports More_Sepref.WB_More_Refinement More_Sepref.WB_More_Refinement_List "HOL-Library.Rewrite"
 begin
 
 chapter \<open>Sorting\<close>
