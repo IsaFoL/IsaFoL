@@ -16,10 +16,6 @@ This material is partly based on Section 4.2.2 (``The Standard Redundancy Criter
 and Ganzinger's chapter, but adapted to the saturation framework of Waldmann et al.
 \<close>
 
-(* TODO: Move to "Consequence_Relations_and_Inference_Systems.thy"? *)
-lemma (in consequence_relation) subset_entailed_strong: "N1 \<Turnstile> N2 \<Longrightarrow> N1 \<union> N2 \<Turnstile> N3 \<Longrightarrow> N1 \<Turnstile> N3"
-  by (meson entail_union entails_trans order_refl subset_entailed)
-
 locale calculus_with_std_red_crit = inference_system Inf + consequence_relation Bot entails
   for
     Inf :: "('f :: wellorder) inference set" and
