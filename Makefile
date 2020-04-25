@@ -78,9 +78,9 @@ doc:
 	cp -R $(ISABELLE2020_HOME)/Weidenbach_Book $(DESTINATION)/current || :
 	cp -R $(ISABELLE2020_HOME)/Saturation_Framework $(DESTINATION)/current || :
 	cp -R $(ISABELLE2019_HOME)/Functional_Ordered_Resolution_Prover $(DESTINATION)/current || :
-	cp -R $(ISABELLE2019_HOME)/PAC_Checker $(DESTINATION)/current || :
+	cp -R $(ISABELLE2020_HOME)/PAC_Checker $(DESTINATION)/current || :
 	find $(DESTINATION)/current -name "*.html" -exec sed -i -e "s|(\* *\\\\htmllink{\(.*\)} *\*)|<a id=\"\1\"></a>|g" {} \;
-	./add_dates.pl --noverbose --unsafe --isabelle="Isabelle2019" --isafol="$(ISAFOL_version)" --html="$(DESTINATION)/current" --afp="$(AFP2019_version)"
+	./add_dates.pl --noverbose --unsafe --isabelle="Isabelle2020" --isafol="$(ISAFOL_version)" --html="$(DESTINATION)/current" --afp="$(AFP2020_version)"
 
 refs:
 	../isafol-private/Other/update_refs.pl  --unsafe
