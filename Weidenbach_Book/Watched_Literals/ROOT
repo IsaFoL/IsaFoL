@@ -20,6 +20,7 @@ session "Watched_Literals" (Weidenbach_Book) = "Isabelle_LLVM"  +
     Watched_Literals_Watch_List_Restart
     Watched_Literals_Watch_List_Initialisation
     CDCL_Conflict_Minimisation
+    (* WB_Word_Assn *)
 
   document_files
     "root.tex"

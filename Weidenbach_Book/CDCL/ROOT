@@ -33,7 +33,7 @@ session "CDCL_no_Sepref" (Weidenbach_Book) = "HOL"  +
     "biblio.bib"
 *)
 
-session "CDCL" (Weidenbach_Book) = "Isabelle_LLVM"  +
+session "CDCL" (Weidenbach_Book) = "HOL"  +
   description \<open>This session the CDCL calculi (Weidenbach and Nieuwenhuis et al.) and the links between
   both. It also contains a very simple implementation based on lists and two extensions (restart and
   incremental).
