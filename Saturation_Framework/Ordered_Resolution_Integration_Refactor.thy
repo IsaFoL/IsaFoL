@@ -84,12 +84,10 @@ abbreviation Bot_G :: "'a clause set" where
 
 context
   fixes M :: "'a clause set"
-  assumes sel_stable: "\<And>\<rho> C. is_renaming \<rho> \<Longrightarrow> S (C \<cdot> \<rho>) = S C \<cdot> \<rho>"
 begin
 
 interpretation gr: selection "S_M S M"
-  using S_M_selects_subseteq S_M_selects_neg_lits selection_axioms
-  by unfold_locales auto
+  using selection_axioms by unfold_locales (fact S_M_selects_subseteq S_M_selects_neg_lits)+
 
 interpretation gr: ground_resolution_with_selection "S_M S M"
   by unfold_locales
@@ -225,22 +223,12 @@ definition \<G>_Inf :: \<open>'a clause inference \<Rightarrow> 'a clause infere
 
 interpretation F: standard_lifting Bot_F Inf_F Bot_G Inf_G entails_G G.Red_Inf G.Red_F \<G>_F \<G>_Inf
 proof
-  show \<open>Bot_G \<noteq> {}\<close>
-    by simp
-next
-  fix B
-  assume \<open>B \<in> Bot_G\<close>
-  then show \<open>\<G>_F B \<noteq> {}\<close> by simp
-next
-  fix B
-  assume \<open>B \<in> Bot_G\<close>
-  then show \<open>\<G>_F B \<subseteq> Bot_G\<close> by simp
-next
   fix C
   show \<open>\<G>_F C \<inter> Bot_G \<noteq> {} \<longrightarrow> C \<in> Bot_G\<close>
-  proof (intro impI)
+  proof
     assume \<open>\<G>_F C \<inter> Bot_G \<noteq> {}\<close>
-    then show \<open>C \<in> Bot_G\<close> by (simp add: grounding_of_cls_def)
+    then show \<open>C \<in> Bot_G\<close>
+      by (simp add: grounding_of_cls_def)
   qed
 next
   fix \<iota>
@@ -251,13 +239,14 @@ next
   proof
     fix \<iota>'
     assume i'_in: \<open>\<iota>' \<in> the (\<G>_Inf \<iota>)\<close>
-    then have i'_in2: \<open>\<iota>' \<in> Inf_G\<close> unfolding \<G>_Inf_def g_def by auto
+    then have i'_in2: \<open>\<iota>' \<in> Inf_G\<close>
+      unfolding \<G>_Inf_def g_def by auto
     have concl_in: \<open>concl_of \<iota>' \<in> \<G>_F (concl_of \<iota>)\<close>
       using i'_in unfolding \<G>_Inf_def grounding_of_cls_def by auto
     show \<open>\<iota>' \<in> G.Red_Inf (\<G>_F (concl_of \<iota>))\<close>
       using standard_lifting.inf_map i'_in2 concl_in by (simp add: G.Red_Inf_of_Inf_to_N)
   qed
-qed
+qed auto
 
 abbreviation entails_\<G>_F :: "'a clause set \<Rightarrow> 'a clause set \<Rightarrow> bool" (infix "\<Turnstile>\<G>" 50) where
   "N1 \<Turnstile>\<G> N2 \<equiv> F.entails_\<G> N1 N2"
@@ -382,7 +371,7 @@ proof -
     qed
 qed
 
-lemma union_G_F_ground: \<open>is_ground_clss (\<Union> (\<G>_F ` M))\<close>
+lemma union_G_F_ground: \<open>is_ground_clss (\<Union> (\<G>_F ` N))\<close>
   by (simp add: grounding_ground grounding_of_clss_def is_ground_clss_def)
 
 lemma lifting_in_framework:
@@ -435,20 +424,14 @@ proof -
 
   have i_Inf_F: \<open>\<iota> \<in> Inf_F\<close>
     unfolding \<iota>_def Inf_F_def using ngr_res by auto
+
+  have "\<exists>\<rho> \<rho>s. \<iota>\<^sub>0 = Infer ((CAs0 @ [DA0]) \<cdot>\<cdot>cl \<rho>s) (E0 \<cdot> \<rho>)
+    \<and> is_ground_subst_list \<rho>s \<and> is_ground_subst \<rho> \<and> Infer ((CAs0 @ [DA0]) \<cdot>\<cdot>cl \<rho>s) (E0 \<cdot> \<rho>) \<in> Inf_G"
+    by (rule exI[of _ \<eta>2], rule exI[of _ "\<eta>s @ [\<eta>]"], use ground_ns in
+        \<open>auto intro: ground_n ground_n2 \<iota>\<^sub>0_Inf_G[unfolded \<iota>\<^sub>0_is']
+           simp: \<iota>\<^sub>0_is' is_ground_subst_list_def\<close>)
   then have \<open>\<iota>\<^sub>0 \<in> the (\<G>_Inf \<iota>)\<close>
-    unfolding \<G>_Inf_def \<iota>_def CAs0_is[symmetric] DA0_is[symmetric] E0_is[symmetric]
-    (* FIXME: cleanup *)
-    apply (auto simp: \<iota>_def)
-    apply (rule_tac x = \<eta>2 in exI)
-    apply (rule_tac x = "\<eta>s @ [\<eta>]" in exI)
-    apply (auto simp:is_ground_subst_list_def)
-    apply (rule \<iota>\<^sub>0_is')
-    apply (rule ground_n)
-    using ground_ns is_ground_subst_list_def apply blast
-    apply (rule ground_n2)
-    apply (unfold \<iota>\<^sub>0_is'[symmetric])
-    apply (rule \<iota>\<^sub>0_Inf_G)
-    done
+    unfolding \<G>_Inf_def \<iota>_def CAs0_is[symmetric] DA0_is[symmetric] E0_is[symmetric] by simp
   moreover have \<open>\<iota> \<in> F.Inf_from M\<close>
     using prems_in i_Inf_F unfolding F.Inf_from_def \<iota>_def by simp
   ultimately show ?thesis
@@ -488,8 +471,6 @@ proof
     b_in: \<open>B \<in> Bot_G\<close> and
     n_sat: \<open>F.lifted_calculus_with_red_crit.saturated N\<close> and
     ent_b: \<open>N \<Turnstile>\<G> {B}\<close>
-
-    thm lifting_in_framework
 
   have \<open>B = {#}\<close>
     using b_in by simp
