@@ -12,6 +12,14 @@ imports
   Soundness_Related
 begin
 
+section \<open>Setup\<close>
+
+hide_const (open) Inference_System.Infer Inference_System.main_prem_of
+  Inference_System.side_prems_of Inference_System.prems_of Inference_System.concl_of
+
+
+section \<open>Core Development\<close>
+
 context FO_resolution_prover
 begin
   
@@ -51,7 +59,7 @@ next
     unfolding entails_F_def by (simp add: subst_clss_def true_clss_def)
 qed (auto simp: entails_F_def)
 
-interpretation sound_F: sound_inference_system Inf_F Bot_F entails_F 
+interpretation F: sound_inference_system Inf_F Bot_F entails_F 
 proof
   fix \<iota>
   assume i_in: "\<iota> \<in> Inf_F"
@@ -224,7 +232,7 @@ definition subst_inf :: \<open>'a clause inference \<Rightarrow> 's \<Rightarrow
   \<open>\<iota> \<cdot>i \<sigma> = Infer (map (\<lambda>A. A \<cdot> \<sigma>) (prems_of \<iota>)) (concl_of \<iota> \<cdot> \<sigma>)\<close>
 
 definition \<G>_Inf :: \<open>'a clause inference \<Rightarrow> 'a clause inference set option\<close> where
-  \<open>\<G>_Inf \<iota> = Some {Infer ((prems_of \<iota>) \<cdot>\<cdot>cl \<rho>s) (concl_of \<iota> \<cdot> \<rho>)|\<rho> \<rho>s.
+  \<open>\<G>_Inf \<iota> = Some {Infer (prems_of \<iota> \<cdot>\<cdot>cl \<rho>s) (concl_of \<iota> \<cdot> \<rho>)|\<rho> \<rho>s.
      is_ground_subst_list \<rho>s \<and> is_ground_subst \<rho>
      \<and> Infer (prems_of \<iota> \<cdot>\<cdot>cl \<rho>s) (concl_of \<iota> \<cdot> \<rho>) \<in> Inf_G}\<close>
 
@@ -394,12 +402,6 @@ qed
 lemma union_G_F_ground: \<open>is_ground_clss (\<Union> (\<G>_F ` M))\<close>
   unfolding \<G>_F_def by (simp add: grounding_ground grounding_of_clss_def is_ground_clss_def)
 
-lemma mset_upto_length_list: \<open>{# L ! x. x \<in># mset_set {0..<(length L)}#} = mset L\<close>
-apply (subst eq_commute)
-apply (induction L rule: rev_induct)
-apply (auto simp: atLeast0_lessThan_Suc nth_append intro!: image_mset_cong)
-done
-
 (* TODO: Starting with Isabelle2021, this will correspond to
    "FO_Ordered_Resolution.ord_resolve_rename_lifting". Use that instead. *)
 lemma ord_resolve_rename_lifting_with_length:
@@ -454,8 +456,9 @@ proof (cases rule: ord_resolve.cases)
     "Cs0 \<cdot>\<cdot>cl \<eta>s0 = Cs"
     "\<forall>i < n. CAs0 ! i = Cs0 ! i + poss (AAs0 ! i)"
     "length AAs0 = n"
-    using ord_resolve_obtain_clauses[of S M CAs DA, OF res_e select grounding n(2) \<open>DA = D + negs (mset As)\<close>
-      \<open>\<forall>i<n. CAs ! i = Cs ! i + poss (AAs ! i)\<close> \<open>length Cs = n\<close> \<open>length AAs = n\<close>, of thesis] by blast
+    using ord_resolve_obtain_clauses[of S M CAs DA, OF res_e select grounding n(2)
+      \<open>DA = D + negs (mset As)\<close> \<open>\<forall>i<n. CAs ! i = Cs ! i + poss (AAs ! i)\<close> \<open>length Cs = n\<close>
+      \<open>length AAs = n\<close>, of thesis] by blast
 
   note n = \<open>length CAs0 = n\<close> \<open>length \<eta>s0 = n\<close> \<open>length As0 = n\<close> \<open>length AAs0 = n\<close> \<open>length Cs0 = n\<close> n
 
@@ -831,215 +834,83 @@ proof (cases rule: ord_resolve.cases)
   by blast
 qed
 
-lemma inf_eq: \<open>prems_of \<iota> = prems_of \<iota>' \<Longrightarrow>
-  concl_of \<iota> = concl_of \<iota>' \<Longrightarrow>
-  \<iota> = \<iota>'\<close> for \<iota> \<iota>'
-proof -
-  fix \<iota> \<iota>'
-  assume
-    prems: \<open>prems_of \<iota> = prems_of \<iota>'\<close> and
-    concl: \<open>concl_of \<iota> = concl_of \<iota>'\<close>
-  obtain Pi Ci where i_is: \<open>\<iota> = Infer Pi Ci\<close>
-    using exhaust by auto
-  obtain Pi' Ci' where i'_is: \<open>\<iota>' = Infer Pi' Ci'\<close>
-    using exhaust by auto
-  have prems_eq: \<open>Pi = Pi'\<close> using prems unfolding prems_of_def i_is i'_is by simp
-  have concl_eq: \<open>Ci = Ci'\<close> using concl unfolding concl_of_def i_is i'_is by simp  
-  show \<open>\<iota> = \<iota>'\<close> using i_is i'_is prems_eq concl_eq by simp
-qed
+(* TODO: Move to @{thy Abstract_Substitution}. *)
+lemma subst_of_nth[simp]: \<open>i < length (Cs \<cdot>\<cdot>cl \<sigma>s) \<Longrightarrow> (Cs \<cdot>\<cdot>cl \<sigma>s) ! i = (Cs ! i) \<cdot> (\<sigma>s ! i)\<close>
+  unfolding subst_cls_lists_def by auto
 
-lemma subst_of_nth [simp]: \<open>i < length (Cs \<cdot>\<cdot>cl \<sigma>s) \<Longrightarrow> (Cs \<cdot>\<cdot>cl \<sigma>s) ! i = (Cs ! i) \<cdot> (\<sigma>s ! i)\<close>
-proof auto
-  fix i
-  assume
-    len_cs: \<open>i < length Cs\<close> and
-    len_ss: \<open>i < length \<sigma>s\<close>
-  show \<open>(Cs \<cdot>\<cdot>cl \<sigma>s) ! i = Cs ! i \<cdot> \<sigma>s! i\<close>
-    using len_cs len_ss unfolding subst_cls_lists_def by auto
-qed
-
-lemma subst_Cons_nth: \<open>i < length ((C \<cdot> \<sigma>) # (Cs \<cdot>\<cdot>cl \<sigma>s)) \<Longrightarrow> ((C # Cs) ! i) \<cdot> ((\<sigma> # \<sigma>s) ! i) = ((C \<cdot> \<sigma>) # (Cs \<cdot>\<cdot>cl \<sigma>s)) ! i\<close>
+(* TODO: Move to @{thy Abstract_Substitution}. *)
+lemma subst_Cons_nth:
+  \<open>i < length ((C \<cdot> \<sigma>) # (Cs \<cdot>\<cdot>cl \<sigma>s)) \<Longrightarrow>
+   ((C # Cs) ! i) \<cdot> ((\<sigma> # \<sigma>s) ! i) = ((C \<cdot> \<sigma>) # (Cs \<cdot>\<cdot>cl \<sigma>s)) ! i\<close>
 by (auto simp: nth_Cons' simp del: subst_cls_lists_length)
 
-lemma lifting_in_framework: \<open>\<iota>' \<in> Inf_from (\<Union> (\<G>_F ` M)) \<Longrightarrow> \<exists>\<iota>. \<iota> \<in> sound_F.Inf_from M \<and> \<iota>' \<in> the (\<G>_Inf \<iota>)\<close>
+lemma lifting_in_framework:
+  \<open>\<iota>\<^sub>0 \<in> G.Inf_from (\<Union> (\<G>_F ` M)) \<Longrightarrow> \<exists>\<iota>. \<iota> \<in> F.Inf_from M \<and> \<iota>\<^sub>0 \<in> the (\<G>_Inf \<iota>)\<close>
 proof -
-  assume i'_in: \<open>\<iota>' \<in> Inf_from (\<Union> (\<G>_F ` M))\<close>
-  have prems_i'_in: \<open>set (prems_of \<iota>') \<subseteq> \<Union> (\<G>_F ` M)\<close> using i'_in unfolding Inf_from_def by blast
-  have i'_Inf_G: \<open>\<iota>' \<in> Inf_G\<close> using i'_in unfolding Inf_from_def by blast
-  then obtain \<iota>'_RP where i'_RP_is: \<open>same_inf \<iota>'_RP \<iota>'\<close> and i'_RP_in: \<open>\<iota>'_RP \<in> gr.ord_\<Gamma>\<close>
-    unfolding Inf_G_def same_inf_def by force
+  assume i\<^sub>0_in: \<open>\<iota>\<^sub>0 \<in> G.Inf_from (\<Union> (\<G>_F ` M))\<close>
+  have prems_i\<^sub>0_in: \<open>set (prems_of \<iota>\<^sub>0) \<subseteq> \<Union> (\<G>_F ` M)\<close>
+    using i\<^sub>0_in unfolding G.Inf_from_def by blast
+  have i\<^sub>0_Inf_G: \<open>\<iota>\<^sub>0 \<in> Inf_G\<close>
+    using i\<^sub>0_in unfolding G.Inf_from_def by blast
   then obtain CAs DA AAs As E where
     gr_res: \<open>gr.ord_resolve CAs DA AAs As E\<close> and
-    is_inf: \<open>\<iota>'_RP = Inference_System.Infer (mset CAs) DA E\<close>
-    unfolding gr.ord_\<Gamma>_def by blast
-  have CAs_is: \<open>side_prems_of \<iota>'_RP = mset CAs\<close> using is_inf unfolding side_prems_of_def by simp
-  then have CAs_in: \<open>set CAs \<subseteq> set (prems_of \<iota>')\<close>
-    using i'_RP_is unfolding same_inf_def side_prems_of_def prems_of_def
-    sorry
+    i\<^sub>0: \<open>\<iota>\<^sub>0 = Infer (CAs @ [DA]) E\<close>
+    unfolding Inf_G_def by auto
+
+  have CAs_is: \<open>side_prems_of \<iota>\<^sub>0 = CAs\<close>
+    using i\<^sub>0 unfolding side_prems_of_def by simp
+  then have CAs_in: \<open>set CAs \<subseteq> set (prems_of \<iota>\<^sub>0)\<close>
+    by (simp add: i\<^sub>0 subsetI)
   then have ground_CAs: \<open>is_ground_cls_list CAs\<close>
-    using prems_i'_in union_G_F_ground is_ground_cls_list_def is_ground_clss_def
-    by auto
-  have DA_is: \<open>main_prem_of \<iota>'_RP = DA\<close> using is_inf unfolding main_prem_of_def by simp
-  then have DA_in: \<open>DA \<in> set (prems_of \<iota>')\<close>
-    using i'_RP_is sorry
+    using prems_i\<^sub>0_in union_G_F_ground is_ground_cls_list_def is_ground_clss_def by auto
+  have DA_is: \<open>main_prem_of \<iota>\<^sub>0 = DA\<close>
+    using i\<^sub>0 unfolding main_prem_of_def by simp
+  then have DA_in: \<open>DA \<in> set (prems_of \<iota>\<^sub>0)\<close>
+    using i\<^sub>0 by simp
   then have ground_DA: \<open>is_ground_cls DA\<close>
-    using prems_i'_in union_G_F_ground is_ground_clss_def by auto
+    using prems_i\<^sub>0_in union_G_F_ground is_ground_clss_def by auto
   obtain \<sigma> where grounded_res: \<open>ord_resolve (S_M S M) CAs DA AAs As \<sigma> E\<close>
-    using gr_res_is_res[OF ground_DA ground_CAs gr_res] by auto
+    using gr_ord_resolve_imp_ord_resolve[OF ground_DA ground_CAs gr_res] by auto
   have prems_ground: \<open>{DA} \<union> set CAs \<subseteq> grounding_of_clss M\<close>
-    using prems_i'_in CAs_in DA_in unfolding grounding_of_clss_def \<G>_F_def by fast
+    using prems_i\<^sub>0_in CAs_in DA_in unfolding grounding_of_clss_def \<G>_F_def by fast
   obtain \<eta>s \<eta> \<eta>2 CAs0 DA0 AAs0 As0 E0 \<tau> where
     ground_n: "is_ground_subst \<eta>" and
     ground_ns: "is_ground_subst_list \<eta>s" and
-    ground_ns2: "is_ground_subst \<eta>2" and
+    ground_n2: "is_ground_subst \<eta>2" and
     ngr_res: "ord_resolve_rename S CAs0 DA0 AAs0 As0 \<tau> E0" and
     CAs0_is: "CAs0 \<cdot>\<cdot>cl \<eta>s = CAs" and
     DA0_is: "DA0 \<cdot> \<eta> = DA" and
     E0_is: "E0 \<cdot> \<eta>2 = E"  and
     prems_in: "{DA0} \<union> set CAs0 \<subseteq> M" and
     len_CAs0: "length CAs0 = length CAs"
-    using ord_resolve_rename_lifting_with_length[OF sel_stable grounded_res selection_axioms prems_ground] by metis
-  define \<iota>_RP where \<open>\<iota>_RP = Infer (mset CAs0) DA0 E0\<close>
-  then have i_RP_in: \<open>\<iota>_RP \<in> ord_FO_\<Gamma> S\<close> using ngr_res unfolding ord_FO_\<Gamma>_def by blast
-  define PAs where \<open>PAs = prems_of \<iota>'\<close>
-  then have mset_PAs_is: \<open>mset PAs = mset CAs + {# DA #}\<close>
-    using i'_RP_is is_inf sorry
-  define PAs' where \<open>PAs' = DA # CAs\<close>
-  then have mset_PAs': \<open>mset PAs' = mset PAs\<close> using mset_PAs_is by simp
-  then have len_PAs: \<open>length PAs = length PAs'\<close> by (metis size_mset)
-  define n where \<open>n = length PAs\<close>
-  then have len_ns: \<open>length \<eta>s >= n - 1\<close> using CAs0_is PAs'_def len_PAs by fastforce
-  have len_PAs': \<open>length PAs' = n\<close> using n_def len_PAs by simp
-  (*then have len_DA0_CAs0: \<open>length (DA0 # CAs0) = n\<close> using DA0_is CAs0_is unfolding PAs'_def sledgehammer*)
-  have exist_map: \<open>\<exists>map_i. (\<forall>i. i < n \<longrightarrow> PAs!i = PAs'!(map_i i)) \<and> inj_on map_i {0..<n} \<and>
-          map_i ` {0..<n} \<subseteq> {0..<length PAs}\<close> if \<open>n \<le> length PAs\<close>
-    using that
-  proof (induct n)
-    case 0
-    then show ?case by auto
-  next
-    case (Suc m) note _ = this(1) and small_enough = this(2)
-    then obtain map_i where [simp]:\<open>(\<And>i. i < m \<Longrightarrow> PAs!i = PAs'!(map_i i))\<close> and
-        inj: \<open>inj_on map_i {0..<m}\<close> and
-        im_incl: \<open>map_i ` {0..<m} \<subseteq> {0..<n}\<close> 
-        by (force simp: n_def len_PAs)
-    define j where \<open>j \<equiv> SOME i. i < length PAs \<and> PAs!m = PAs'!i \<and> i \<notin> map_i ` {0..<m}\<close>
-    have cut_n_m: \<open>mset_set {0..<n} = mset_set (map_i ` {0..<m}) + (mset_set {0..<n} - mset_set (map_i ` {0..<m}))\<close>
-      by (subst subset_mset.add_diff_inverse)
-       (use im_incl in \<open>auto simp: image_iff\<close>)
-    have \<open>PAs!m \<in># mset PAs - mset (take m PAs)\<close>
-      apply (subst(2) append_take_drop_id[symmetric,of _ m])
-      apply (subst mset_append)
-      by (use small_enough in \<open>auto simp: in_set_drop_conv_nth\<close>)
-    also have \<open>mset PAs - mset (take m PAs) = mset PAs' - mset (map (\<lambda>i. PAs'!(map_i i)) [0..<m])\<close>
-      apply (subst map_cong[OF refl, of _ _ "\<lambda>i. PAs!i"])
-      using small_enough
-      by (auto simp: min_def mset_PAs' take_map_nth_alt_def)
-    finally have \<open>\<exists>i. i < length PAs \<and> PAs!m = PAs'!i \<and> i \<notin> map_i ` {0..<m}\<close>
-      apply (subst (asm)(2) map_nth[symmetric])
-      unfolding mset_map mset_upt len_PAs' apply (subst (asm) cut_n_m)
-      by (auto simp: image_mset_mset_set[symmetric] inj in_distinct_mset_diff_iff dist len_PAs n_def
-        dest!: distinct_mem_diff_mset) 
-    then have \<open>PAs!m = PAs'!j\<close> and j_notin: \<open>j \<notin> map_i ` {0..<m}\<close> and \<open>j < length PAs\<close>
-      using someI[of \<open>\<lambda>i. i < length PAs \<and> PAs!m = PAs'!i \<and> i \<notin> map_i ` {0..<m}\<close>]
-      unfolding j_def[symmetric]
-      by blast+
-    moreover have \<open>inj_on (map_i(m := j)) {0..<Suc m}\<close>
-      unfolding inj_on_def
-      apply (intro ballI)
-      subgoal for x y
-        using inj_onD[OF inj, of x y] j_notin by auto
-      done
-    ultimately show ?case
-      apply -
-      apply (rule exI[of _ \<open>map_i (m:=j)\<close>])
-      using inj im_incl by (auto simp flip: fun_upd_def simp: len_PAs n_def less_Suc_eq image_subset_iff)
-  qed
-  then obtain map_i where map_i_def: \<open>i < n \<Longrightarrow> PAs!i = PAs'!(map_i i)\<close> and len_map_i: \<open>i < n \<Longrightarrow> (map_i i) < n\<close> and
-     inj: \<open>inj_on map_i {0..<n}\<close> for i
-    unfolding len_PAs n_def by fastforce
-  have [simp]: \<open>map_i ` {0..<n} = {0..<n}\<close>
-    apply (rule endo_inj_surj) using len_map_i inj by auto
-  have ground_n_ns: \<open>is_ground_subst_list (\<eta> # \<eta>s)\<close>
-    using ground_n ground_ns unfolding is_ground_subst_list_def by simp
-  obtain \<rho>s where len_rs: \<open>length \<rho>s = n\<close> and rs_def: \<open>i < n \<Longrightarrow> \<rho>s!i = (\<eta> # \<eta>s)!(map_i i)\<close> for i  
-    apply (rule that[of \<open>map (\<lambda>i. (\<eta> # \<eta>s)!(map_i i)) [0..<n]\<close>])
-    by (auto simp: n_def)
-  have \<open>i < n \<Longrightarrow> is_ground_subst (\<rho>s!i)\<close> for i using rs_def ground_n_ns unfolding is_ground_subst_list_def
-  proof (cases "map_i i = 0")
-    assume
-      i_smaller_n: \<open>i < n\<close> and
-      rs_def2: \<open>\<And>i. i < n \<Longrightarrow> \<rho>s ! i = (\<eta> # \<eta>s) ! map_i i\<close> and
-      gr_subst_list_def: \<open>Ball (set (\<eta> # \<eta>s)) is_ground_subst\<close> and
-      i_maps_to: \<open>map_i i = 0\<close>
-    have \<open>\<rho>s ! i = \<eta>\<close> by (simp add: i_smaller_n i_maps_to rs_def2)
-    then show \<open>is_ground_subst (\<rho>s ! i)\<close> using ground_n by simp
-  next
-    assume
-      i_smaller_n: \<open>i < n\<close> and
-      rs_def2: \<open>\<And>i. i < n \<Longrightarrow> \<rho>s ! i = (\<eta> # \<eta>s) ! map_i i\<close> and
-      gr_subst_list_def: \<open>Ball (set (\<eta> # \<eta>s)) is_ground_subst\<close> and
-      i_nmaps_to: \<open>map_i i \<noteq> 0\<close>
-    have rs_nth: \<open>\<rho>s ! i = \<eta>s ! (map_i i - 1)\<close>
-      using i_smaller_n i_nmaps_to rs_def2 by simp
-    define j where \<open>j = map_i i - 1\<close>
-    have \<open>j \<in> {0..<(n-1)}\<close> using j_def i_nmaps_to i_smaller_n len_map_i by force
-    then have \<open>is_ground_subst (\<eta>s ! j)\<close> using ground_ns len_ns unfolding is_ground_subst_list_def by fastforce
-    then show \<open>is_ground_subst (\<rho>s ! i)\<close> using rs_nth j_def unfolding is_ground_subst_list_def by simp
-  qed
-  then have ground_rs: \<open>is_ground_subst_list \<rho>s\<close> using len_rs unfolding is_ground_subst_list_def set_conv_nth by auto
-  have mset_list_map_i: \<open>add_mset DA0 (mset CAs0) = {#(DA0 # CAs0) ! map_i x. x \<in># mset_set {0..<n}#}\<close> (is "?A = ?B")
-  proof -
-    have len_DA0_CAs0: \<open>length (DA0 # CAs0) = n\<close> using len_CAs0 len_PAs' unfolding PAs'_def by simp 
-    have map_i_surj: \<open>mset_set {0..<n} = image_mset map_i (mset_set {0..<n})\<close>
-      using image_mset_mset_set[OF inj] by simp
-    have \<open>?B = {#(DA0 # CAs0) ! x. x \<in># image_mset map_i (mset_set {0..<n})#}\<close> by simp
-    then have \<open>?B = {#(DA0 # CAs0) ! x. x \<in># mset_set {0..<n}#}\<close> by (simp add: map_i_surj[symmetric])
-    then have \<open>?B = mset (DA0 # CAs0)\<close> using mset_upto_length_list[of "DA0 # CAs0"] len_DA0_CAs0 by auto
-    then show ?thesis by simp
-  qed
-  obtain \<iota> where len_prems_i: \<open>length (prems_of \<iota>) = n\<close> and
-    i_is: \<open>same_inf \<iota>_RP \<iota>\<close> and
-    i_prems_order: \<open>\<And>i. i < n \<Longrightarrow> (prems_of \<iota>)!i = (DA0 # CAs0)!(map_i i)\<close>
-    apply (rule that[of \<open>Infer (map (\<lambda>i. (DA0 # CAs0)!(map_i i)) [0..<n]) E0\<close>])
-    using \<iota>_RP_def mset_list_map_i sorry
-  then have i_Inf_F: \<open>\<iota> \<in> Inf_F\<close> using i_RP_in unfolding Inf_F_def by blast
-  have inf_from_cond: \<open>set (prems_of \<iota>) \<subseteq> {DA0} \<union> set CAs0\<close>
-    using i_is \<iota>_RP_def unfolding prems_of_def sorry
-  then have prems_of_i_in_M: \<open>set (prems_of \<iota>) \<subseteq> M\<close> using prems_in by blast
-  have \<open>prems_of \<iota>' =
-    prems_of \<iota> \<cdot>\<cdot>cl \<rho>s\<close>
-  proof (rule nth_equalityI)
-    show \<open>length (prems_of \<iota>') = length (prems_of \<iota> \<cdot>\<cdot>cl \<rho>s)\<close>
-      using len_prems_i len_rs unfolding n_def PAs_def subst_cls_lists_def by simp
-  next
-    fix i
-    have len_eq: \<open>length (prems_of \<iota>') = length (prems_of \<iota> \<cdot>\<cdot>cl \<rho>s)\<close>
-      using len_prems_i len_rs unfolding n_def PAs_def subst_cls_lists_def by simp
-    then have \<open>\<forall>i<length (prems_of \<iota>'). (prems_of \<iota> \<cdot>\<cdot>cl \<rho>s) ! i =
-      ((prems_of \<iota>) ! i) \<cdot> (\<rho>s ! i)\<close>
-      using subst_of_nth by auto   
-    then have \<open>\<forall>i<length (prems_of \<iota>'). (prems_of \<iota> \<cdot>\<cdot>cl \<rho>s) ! i =
-       ((DA0 # CAs0) ! (map_i i)) \<cdot> ((\<eta> # \<eta>s) ! (map_i i))\<close>
-       using i_prems_order rs_def unfolding n_def PAs_def by presburger 
-    show \<open>i<length (prems_of \<iota>') \<Longrightarrow> prems_of \<iota>' ! i = (prems_of \<iota> \<cdot>\<cdot>cl \<rho>s) ! i\<close>
-      using len_map_i len_prems_i i_prems_order map_i_def DA0_is CAs0_is rs_def len_rs
-        arg_cong[OF mset_PAs_is, of size]  unfolding PAs'_def n_def PAs_def by (auto simp: subst_Cons_nth)
-  qed
-  then have \<open>\<iota>' = Infer
-    (prems_of \<iota> \<cdot>\<cdot>cl \<rho>s)
-    (concl_of \<iota> \<cdot> \<eta>2) \<close>
-    using inf_eq[of \<iota>' "Infer
-      (prems_of \<iota> \<cdot>\<cdot>cl \<rho>s)
-      (concl_of \<iota> \<cdot> \<eta>2)"] i_is E0_is \<iota>_RP_def is_inf i'_RP_is
-    unfolding same_inf_def concl_of_def concl_of_def by auto
-  then have \<open>\<iota>' \<in> the (\<G>_Inf \<iota>)\<close>
-    unfolding \<G>_Inf_def using prems_of_i_in_M i'_Inf_G is_inf i_is ground_ns2 CAs0_is DA0_is E0_is
-    i'_RP_is \<iota>_RP_def ground_rs
-    by auto 
-  then have \<open>\<iota> \<in> sound_F.Inf_from M \<and> \<iota>' \<in> the (\<G>_Inf \<iota>)\<close> unfolding sound_F.Inf_from_def
-    using inf_from_cond prems_in i_Inf_F by auto
-  then show \<open> \<exists>\<iota>. \<iota> \<in> sound_F.Inf_from M \<and> \<iota>' \<in> the (\<G>_Inf \<iota>)\<close> by blast
+    using ord_resolve_rename_lifting_with_length[OF sel_stable grounded_res selection_axioms
+        prems_ground] by metis
+
+  have \<iota>\<^sub>0': "\<iota>\<^sub>0 = Infer ((CAs0 @ [DA0]) \<cdot>\<cdot>cl (\<eta>s @ [\<eta>])) (E0 \<cdot> \<eta>2)"
+    sorry
+
+  define \<iota> :: "'a clause inference" where
+    "\<iota> = Infer (CAs0 @ [DA0]) E0"
+
+  have i_Inf_F: \<open>\<iota> \<in> Inf_F\<close>
+    unfolding \<iota>_def Inf_F_def using ngr_res by auto
+  then have \<open>\<iota>\<^sub>0 \<in> the (\<G>_Inf \<iota>)\<close>
+    unfolding \<G>_Inf_def \<iota>_def CAs0_is[symmetric] DA0_is[symmetric] E0_is[symmetric]
+    apply (auto simp: \<iota>_def)
+    apply (rule_tac x = \<eta>2 in exI)
+    apply (rule_tac x = "\<eta>s @ [\<eta>]" in exI)
+    apply (auto simp:is_ground_subst_list_def)
+    apply (rule \<iota>\<^sub>0')
+    apply (rule ground_n)
+    using ground_ns is_ground_subst_list_def apply blast
+    apply (rule ground_n2)
+    apply (unfold \<iota>\<^sub>0'[symmetric])
+    apply (rule i\<^sub>0_Inf_G)
+    done
+  moreover have \<open>\<iota> \<in> F.Inf_from M\<close>
+    using prems_in i_Inf_F unfolding F.Inf_from_def \<iota>_def by simp
+  ultimately show ?thesis
+    by blast
 qed
 
 interpretation src: lifting_with_wf_ordering_family Bot_F Inf_F Bot_G entails_G Inf_G G.Red_Inf G.Red_F \<G>_F \<G>_Inf "\<lambda>g. Empty_Order"
@@ -1085,7 +956,7 @@ proof
   proof
     fix \<iota>'
     assume i_in: \<open>\<iota>' \<in> Inf_from (\<G>_standard_lifting.\<G>_set N)\<close>
-    obtain \<iota> where \<open>\<iota> \<in> sound_F.Inf_from N\<close> \<open>\<iota>' \<in> the (\<G>_Inf \<iota>)\<close> using i_in lifting_in_framework sorry
+    obtain \<iota> where \<open>\<iota> \<in> F.Inf_from N\<close> \<open>\<iota>' \<in> the (\<G>_Inf \<iota>)\<close> using i_in lifting_in_framework sorry
     show \<open>\<iota>' \<in> G.Red_Inf (\<G>_standard_lifting.\<G>_set N)\<close> using i_in n_sat unfolding src.lifted_calculus_with_red_crit.saturated_def sorry
     oops
 
