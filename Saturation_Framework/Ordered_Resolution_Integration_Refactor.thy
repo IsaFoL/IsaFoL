@@ -14,8 +14,23 @@ begin
 
 section \<open>Setup\<close>
 
+hide_type (open) Inference_System.inference
+
 hide_const (open) Inference_System.Infer Inference_System.main_prem_of
   Inference_System.side_prems_of Inference_System.prems_of Inference_System.concl_of
+
+
+section \<open>Library\<close>
+
+context substitution
+begin
+
+lemma subst_cls_lists_append[simp]:
+  "length Cs = length \<sigma>s \<Longrightarrow> length Cs' = length \<sigma>s' \<Longrightarrow>
+   (Cs @ Cs') \<cdot>\<cdot>cl (\<sigma>s @ \<sigma>s') = Cs \<cdot>\<cdot>cl \<sigma>s @ Cs' \<cdot>\<cdot>cl \<sigma>s'"
+  unfolding subst_cls_lists_def by auto
+
+end
 
 
 section \<open>Core Development\<close>
@@ -415,10 +430,10 @@ lemma ord_resolve_rename_lifting_with_length:
     "is_ground_subst_list \<eta>s"
     "is_ground_subst \<eta>2"
     "ord_resolve_rename S CAs0 DA0 AAs0 As0 \<tau> E0"
-    (* In the previous proofs we have CAs and DA on lhs of equality... which is better? *)
     "CAs0 \<cdot>\<cdot>cl \<eta>s = CAs" "DA0 \<cdot> \<eta> = DA" "E0 \<cdot> \<eta>2 = E" 
     "{DA0} \<union> set CAs0 \<subseteq> M"
     "length CAs0 = length CAs"
+    "length \<eta>s = length CAs"
   using res_e
 proof (cases rule: ord_resolve.cases)
   case (ord_resolve n Cs D)
@@ -816,7 +831,11 @@ proof (cases rule: ord_resolve.cases)
       using that e0'\<phi>e make_ground_subst by auto
   qed
 
-  have \<open>length CAs0 = length CAs\<close> using n by simp
+  have \<open>length CAs0 = length CAs\<close>
+    using n by simp
+
+  have \<open>length \<eta>s0 = length CAs\<close>
+    using n by simp
 
   \<comment> \<open>Wrap up the proof\<close>
   have "ord_resolve S (CAs0 \<cdot>\<cdot>cl \<rho>s) (DA0 \<cdot> \<rho>) (AAs0 \<cdot>\<cdot>aml \<rho>s) (As0 \<cdot>al \<rho>) \<tau> E0'"
@@ -830,7 +849,7 @@ proof (cases rule: ord_resolve.cases)
   then show thesis
     using that[of \<eta>0 \<eta>s0 \<eta>2 CAs0 DA0] \<open>is_ground_subst \<eta>0\<close> \<open>is_ground_subst_list \<eta>s0\<close>
       \<open>is_ground_subst \<eta>2\<close> \<open>CAs0 \<cdot>\<cdot>cl \<eta>s0 = CAs\<close> \<open>DA0 \<cdot> \<eta>0 = DA\<close> \<open>E0' \<cdot> \<eta>2 = E\<close> \<open>DA0 \<in> M\<close>
-      \<open>\<forall>CA \<in> set CAs0. CA \<in> M\<close> \<open>length CAs0 = length CAs\<close>
+      \<open>\<forall>CA \<in> set CAs0. CA \<in> M\<close> \<open>length CAs0 = length CAs\<close> \<open>length \<eta>s0 = length CAs\<close>
   by blast
 qed
 
@@ -882,12 +901,15 @@ proof -
     DA0_is: "DA0 \<cdot> \<eta> = DA" and
     E0_is: "E0 \<cdot> \<eta>2 = E"  and
     prems_in: "{DA0} \<union> set CAs0 \<subseteq> M" and
-    len_CAs0: "length CAs0 = length CAs"
+    len_CAs0: "length CAs0 = length CAs" and
+    len_ns: "length \<eta>s = length CAs"
     using ord_resolve_rename_lifting_with_length[OF sel_stable grounded_res selection_axioms
         prems_ground] by metis
 
+  have len_CAs0': "length CAs0 = length \<eta>s"
+    using len_CAs0 len_ns by simp
   have \<iota>\<^sub>0': "\<iota>\<^sub>0 = Infer ((CAs0 @ [DA0]) \<cdot>\<cdot>cl (\<eta>s @ [\<eta>])) (E0 \<cdot> \<eta>2)"
-    sorry
+    unfolding i\<^sub>0 by (auto simp: len_CAs0' CAs0_is[symmetric] DA0_is[symmetric] E0_is[symmetric])
 
   define \<iota> :: "'a clause inference" where
     "\<iota> = Infer (CAs0 @ [DA0]) E0"
