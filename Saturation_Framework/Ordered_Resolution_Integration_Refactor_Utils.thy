@@ -12,13 +12,26 @@ context substitution
 begin
 
 (* TODO: Move to @{thy Abstract_Substitution}. *)
+lemma strictly_subsumes_irrefl: "\<not> strictly_subsumes C C"
+  unfolding strictly_subsumes_def by blast
+
+(* TODO: Move to @{thy Abstract_Substitution}. *)
+lemma strictly_subsumes_antisym: "strictly_subsumes C D \<Longrightarrow> \<not> strictly_subsumes D C"
+  unfolding strictly_subsumes_def by blast
+
+(* TODO: Move to @{thy Abstract_Substitution}. *)
+lemma strictly_subsumes_trans:
+  "strictly_subsumes C D \<Longrightarrow> strictly_subsumes D E \<Longrightarrow> strictly_subsumes C E"
+  unfolding strictly_subsumes_def using subsumes_trans by blast
+
+(* TODO: Move to @{thy Abstract_Substitution}. *)
 lemma subst_of_nth[simp]: \<open>i < length (Cs \<cdot>\<cdot>cl \<sigma>s) \<Longrightarrow> (Cs \<cdot>\<cdot>cl \<sigma>s) ! i = (Cs ! i) \<cdot> (\<sigma>s ! i)\<close>
   unfolding subst_cls_lists_def by auto
 
 (* TODO: Move to @{thy Abstract_Substitution}. *)
 lemma subst_Cons_nth:
   \<open>i < length ((C \<cdot> \<sigma>) # (Cs \<cdot>\<cdot>cl \<sigma>s)) \<Longrightarrow>
-   ((C # Cs) ! i) \<cdot> ((\<sigma> # \<sigma>s) ! i) = ((C \<cdot> \<sigma>) # (Cs \<cdot>\<cdot>cl \<sigma>s)) ! i\<close>
+   (C # Cs) ! i \<cdot> (\<sigma> # \<sigma>s) ! i = ((C \<cdot> \<sigma>) # (Cs \<cdot>\<cdot>cl \<sigma>s)) ! i\<close>
 by (auto simp: nth_Cons' simp del: subst_cls_lists_length)
 
 (* TODO: Move to @{thy Abstract_Substitution}. *)
@@ -26,6 +39,10 @@ lemma subst_cls_lists_append[simp]:
   "length Cs = length \<sigma>s \<Longrightarrow> length Cs' = length \<sigma>s' \<Longrightarrow>
    (Cs @ Cs') \<cdot>\<cdot>cl (\<sigma>s @ \<sigma>s') = Cs \<cdot>\<cdot>cl \<sigma>s @ Cs' \<cdot>\<cdot>cl \<sigma>s'"
   unfolding subst_cls_lists_def by auto
+
+(* TODO: Move to @{thy Abstract_Substitution}. *)
+lemma wf_strictly_subsumes: "wfP strictly_subsumes"
+  using strictly_subsumes_has_minimum by (metis equals0D wfP_eq_minimal)
 
 end
 

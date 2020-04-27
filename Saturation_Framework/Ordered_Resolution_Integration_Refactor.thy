@@ -439,25 +439,20 @@ proof -
 qed
 
 interpretation F: lifting_with_wf_ordering_family Bot_F Inf_F Bot_G entails_G Inf_G G.Red_Inf
-  G.Red_F \<G>_F \<G>_Inf "\<lambda>g. Empty_Order"
+  G.Red_F \<G>_F \<G>_Inf "\<lambda>g. strictly_subsumes"
 proof
-  show "po_on Empty_Order UNIV"
-    unfolding po_on_def by (simp add: transp_onI wfp_on_imp_irreflp_on)
+  show "po_on strictly_subsumes UNIV"
+    unfolding po_on_def irreflp_on_def transp_on_def
+    using strictly_subsumes_irrefl strictly_subsumes_trans by blast
 next
-  show "wfp_on Empty_Order UNIV"
-    unfolding wfp_on_def by simp
+  show "wfp_on strictly_subsumes UNIV"
+    unfolding wfp_on_def
+    using wf_iff_no_infinite_down_chain[THEN iffD1, OF wf_strictly_subsumes[unfolded wfP_def]]
+    by simp
 qed
 
-lemma inf_F_to_inf_G: \<open>\<iota> \<in> Inf_F \<Longrightarrow> the (\<G>_Inf \<iota>) \<subseteq> Inf_G\<close> for \<iota>
-proof
-  fix \<iota>'
-  assume
-    i_in: \<open>\<iota> \<in> Inf_F\<close> and
-    i'_in: \<open>\<iota>' \<in> the (\<G>_Inf \<iota>)\<close>
-  have g_some: \<open>\<G>_Inf \<iota> \<noteq> None\<close> unfolding \<G>_Inf_def by simp
-  then show \<open>\<iota>' \<in> Inf_G\<close>
-    using i_in i'_in unfolding \<G>_Inf_def by auto
-qed
+lemma inf_F_to_inf_G: \<open>\<iota> \<in> Inf_F \<Longrightarrow> the (\<G>_Inf \<iota>) \<subseteq> Inf_G\<close>
+  unfolding \<G>_Inf_def by auto
 
 lemma inf_G_in_inf_F: \<open>Inf_G \<subseteq> Inf_F\<close>
   unfolding Inf_G_def Inf_F_def
