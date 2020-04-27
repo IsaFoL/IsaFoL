@@ -22,11 +22,11 @@ concrete instances of Section 3.
 abbreviation main_prem_of :: "'f inference \<Rightarrow> 'f" where
   "main_prem_of \<iota> \<equiv> last (prems_of \<iota>)"
 
-abbreviation side_prems_of :: "'f inference \<Rightarrow> 'f set" where
-  "side_prems_of \<iota> \<equiv> set (butlast (prems_of \<iota>))"
+abbreviation side_prems_of :: "'f inference \<Rightarrow> 'f list" where
+  "side_prems_of \<iota> \<equiv> butlast (prems_of \<iota>)"
 
-lemma set_prems_of:
-  "set (prems_of \<iota>) = (if prems_of \<iota> = [] then {} else {main_prem_of \<iota>} \<union> side_prems_of \<iota>)"
+lemma set_prems_of[simp]:
+  "set (prems_of \<iota>) = (if prems_of \<iota> = [] then {} else {main_prem_of \<iota>} \<union> set (side_prems_of \<iota>))"
   by clarsimp (metis Un_insert_right append_Nil2 append_butlast_last_id list.set(2) set_append)
 
 locale cex_red_inference_system = inference_system Inf + consequence_relation
@@ -34,7 +34,7 @@ locale cex_red_inference_system = inference_system Inf + consequence_relation
   fixes I_of :: "'f set \<Rightarrow> 'f set"
   assumes Inf_cex_reducing:
     "N \<inter> Bot = {} \<Longrightarrow> D \<in> N \<Longrightarrow> \<not> I_of N \<Turnstile> {D} \<Longrightarrow> (\<And>C. C \<in> N \<Longrightarrow> \<not> I_of N \<Turnstile> {C} \<Longrightarrow> D \<le> C) \<Longrightarrow>
-     \<exists>\<iota> \<in> Inf. main_prem_of \<iota> = D \<and> side_prems_of \<iota> \<subseteq> N \<and> I_of N \<Turnstile> side_prems_of \<iota> \<and>
+     \<exists>\<iota> \<in> Inf. main_prem_of \<iota> = D \<and> set (side_prems_of \<iota>) \<subseteq> N \<and> I_of N \<Turnstile> set (side_prems_of \<iota>) \<and>
        \<not> I_of N \<Turnstile> {concl_of \<iota>} \<and> concl_of \<iota> < D"
 begin
 

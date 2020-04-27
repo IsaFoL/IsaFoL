@@ -28,7 +28,7 @@ begin
 
 definition redundant_infer :: "'f set \<Rightarrow> 'f inference \<Rightarrow> bool" where
   "redundant_infer N \<iota> \<longleftrightarrow>
-   (\<exists>DD \<subseteq> N. finite DD \<and> DD \<union> side_prems_of \<iota> \<Turnstile> {concl_of \<iota>} \<and> (\<forall>D \<in> DD. D < main_prem_of \<iota>))"
+   (\<exists>DD \<subseteq> N. finite DD \<and> DD \<union> set (side_prems_of \<iota>) \<Turnstile> {concl_of \<iota>} \<and> (\<forall>D \<in> DD. D < main_prem_of \<iota>))"
 
 definition Red_Inf :: "'f set \<Rightarrow> 'f inference set" where
 "Red_Inf N = {\<iota> \<in> Inf. redundant_infer N \<iota>}"
@@ -145,7 +145,7 @@ proof
   fix \<iota>
   assume \<iota>_ri: "\<iota> \<in> Red_Inf N"
   define CC :: "'f set" where
-    "CC = side_prems_of \<iota>"
+    "CC = set (side_prems_of \<iota>)"
   define D :: 'f where
     "D = main_prem_of \<iota>"
   define E :: 'f where
@@ -230,20 +230,19 @@ proof (rule ccontr)
   then obtain \<iota> :: "'f inference" where
     \<iota>_in: "\<iota> \<in> Inf" and
     \<iota>_mprem: "D = main_prem_of \<iota>" and
-    sprem_subs_n: "side_prems_of \<iota> \<subseteq> N" and
-    sprem_true: "I_of N \<Turnstile> side_prems_of \<iota>" and
+    sprem_subs_n: "set (side_prems_of \<iota>) \<subseteq> N" and
+    sprem_true: "I_of N \<Turnstile> set (side_prems_of \<iota>)" and
     concl_cex: "\<not> I_of N \<Turnstile> {concl_of \<iota>}" and
     concl_lt_d: "concl_of \<iota> < D"
     using Inf_cex_reducing[OF bot_ni_n] not_le by metis
   have "\<iota> \<in> Red_Inf N"
-    by (rule subsetD[OF satur[unfolded saturated_def Inf_from_def]],
-        simp add: \<iota>_in set_prems_of)
+    by (rule subsetD[OF satur[unfolded saturated_def Inf_from_def]], simp add: \<iota>_in)
       (use \<iota>_mprem d_in_n sprem_subs_n in blast)
   then have "\<iota> \<in> Red_Inf N"
     using Red_Inf_without_red_F by blast
   then obtain DD :: "'f set" where
     dd_subs_n: "DD \<subseteq> N" and
-    dd_cc_ent_d: "DD \<union> side_prems_of \<iota> \<Turnstile> {concl_of \<iota>}" and
+    dd_cc_ent_d: "DD \<union> set (side_prems_of \<iota>) \<Turnstile> {concl_of \<iota>}" and
     dd_lt_d: "\<forall>C \<in> DD. C < D"
     unfolding Red_Inf_def redundant_infer_def \<iota>_mprem by blast
   from dd_subs_n dd_lt_d have "I_of N \<Turnstile> DD"
