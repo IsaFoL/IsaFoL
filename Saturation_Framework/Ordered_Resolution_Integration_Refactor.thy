@@ -259,6 +259,9 @@ next
   qed
 qed
 
+abbreviation entails_\<G>_F :: "'a clause set \<Rightarrow> 'a clause set \<Rightarrow> bool" (infix "\<Turnstile>\<G>" 50) where
+  "N1 \<Turnstile>\<G> N2 \<equiv> F.entails_\<G> N1 N2"
+
 text \<open>This proof is based on part of the proof of
 @{thm FO_Ordered_Resolution_Prover.FO_resolution_prover.RP_saturated_if_fair}.\<close>
 
@@ -434,6 +437,7 @@ proof -
     unfolding \<iota>_def Inf_F_def using ngr_res by auto
   then have \<open>\<iota>\<^sub>0 \<in> the (\<G>_Inf \<iota>)\<close>
     unfolding \<G>_Inf_def \<iota>_def CAs0_is[symmetric] DA0_is[symmetric] E0_is[symmetric]
+    (* FIXME: cleanup *)
     apply (auto simp: \<iota>_def)
     apply (rule_tac x = \<eta>2 in exI)
     apply (rule_tac x = "\<eta>s @ [\<eta>]" in exI)
@@ -454,8 +458,11 @@ qed
 interpretation F: lifting_with_wf_ordering_family Bot_F Inf_F Bot_G entails_G Inf_G G.Red_Inf
   G.Red_F \<G>_F \<G>_Inf "\<lambda>g. Empty_Order"
 proof
-  show "po_on Empty_Order UNIV" unfolding po_on_def by (simp add: transp_onI wfp_on_imp_irreflp_on)
-  show "wfp_on Empty_Order UNIV" unfolding wfp_on_def by simp
+  show "po_on Empty_Order UNIV"
+    unfolding po_on_def by (simp add: transp_onI wfp_on_imp_irreflp_on)
+next
+  show "wfp_on Empty_Order UNIV"
+    unfolding wfp_on_def by simp
 qed
 
 lemma inf_F_to_inf_G: \<open>\<iota> \<in> Inf_F \<Longrightarrow> the (\<G>_Inf \<iota>) \<subseteq> Inf_G\<close> for \<iota>
@@ -474,26 +481,43 @@ lemma inf_G_in_inf_F: \<open>Inf_G \<subseteq> Inf_F\<close>
   apply auto
   sorry
 
-interpretation F: static_refutational_complete_calculus Bot_F Inf_F F.entails_\<G> F.Red_Inf_\<G>
-  F.Red_F_\<G>
+interpretation F: static_refutational_complete_calculus Bot_F Inf_F "(\<Turnstile>\<G>)" F.Red_Inf_\<G> F.Red_F_\<G>
 proof
   fix B N
   assume
-    b_in: \<open>B \<in> Bot_F\<close> and
-    n_sat: \<open>src.lifted_calculus_with_red_crit.saturated N\<close> and
-    ent_b: \<open>F.entails_\<G> N {B}\<close>
-  have \<open>B = {#}\<close> using b_in by simp
+    b_in: \<open>B \<in> Bot_G\<close> and
+    n_sat: \<open>F.lifted_calculus_with_red_crit.saturated N\<close> and
+    ent_b: \<open>N \<Turnstile>\<G> {B}\<close>
+
+    thm lifting_in_framework
+
+  have \<open>B = {#}\<close>
+    using b_in by simp
   have gn_sat: \<open>G.saturated (F.\<G>_set N)\<close>
     unfolding G.saturated_def
   proof
+    fix \<iota>
+    assume \<iota>_in: \<open>\<iota> \<in> G.Inf_from (\<Union> (\<G>_F ` N))\<close>
+
+    obtain \<iota>' where
+      "\<iota>' \<in> F.Inf_from M"
+      "\<iota> \<in> the (\<G>_Inf \<iota>')"
+      using \<iota>_in lifting_in_framework
+
+    show "\<iota> \<in> G.Red_Inf (\<Union> (\<G>_F ` N))"
+      sorry
+
+(*
     fix \<iota>'
     assume i_in: \<open>\<iota>' \<in> F.Inf_from (F.\<G>_set N)\<close>
     obtain \<iota> where \<open>\<iota> \<in> F.Inf_from N\<close> \<open>\<iota>' \<in> the (\<G>_Inf \<iota>)\<close> using i_in lifting_in_framework sorry
     show \<open>\<iota>' \<in> G.Red_Inf (F.\<G>_set N)\<close> using i_in n_sat unfolding src.lifted_calculus_with_red_crit.saturated_def sorry
     oops
+*)
 
-find_theorems name: G
 
+  show "\<exists>B' \<in> Bot_G. B' \<in> N"
+    sorry
 end
 
 definition entails_all_\<G>  :: \<open>'a clause set \<Rightarrow> 'a clause set \<Rightarrow> bool\<close> (infix "\<Turnstile>\<G>" 50) where
