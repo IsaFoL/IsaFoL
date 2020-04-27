@@ -38,7 +38,7 @@ definition Inf_F :: "'a clause inference set" where
 lemma Inf_F_has_prem: "\<iota> \<in> Inf_F \<Longrightarrow> prems_of \<iota> \<noteq> []"
   unfolding Inf_F_def by force
 
-interpretation calc_F: consequence_relation Bot_F entails_F
+interpretation F: consequence_relation Bot_F entails_F
 proof
   fix N2 N1 :: "'a clause set"
   assume "N2 \<subseteq> N1"
@@ -106,7 +106,7 @@ lemma Inf_G_reductive: "\<iota> \<in> Inf_G \<Longrightarrow> concl_of \<iota> <
 definition entails_G :: "'a clause set \<Rightarrow> 'a clause set \<Rightarrow> bool" (infix "\<Turnstile>G" 50) where
   "entails_G S1 S2 \<longleftrightarrow> (\<forall>I. I \<Turnstile>s S1 \<longrightarrow> I \<Turnstile>s S2)"
 
-interpretation calc_G: consequence_relation Bot_G entails_G
+interpretation G: consequence_relation Bot_G entails_G
 proof
   fix N2 N1 :: "'a clause set"
   assume "N2 \<subseteq> N1"
@@ -119,7 +119,7 @@ next
     unfolding entails_G_def by (meson gr.ex_min_counterex true_clss_singleton)
 qed (auto simp: entails_G_def)
 
-interpretation calc_G: sound_inference_system Inf_G Bot_G entails_G
+interpretation G: sound_inference_system Inf_G Bot_G entails_G
 proof
   fix \<iota>
   assume i_in: "\<iota> \<in> Inf_G"
@@ -197,424 +197,22 @@ proof -
     by (auto intro: bexI[OF _ i_in])
 qed
 
-interpretation calc_G: cex_red_calculus_with_std_red_crit Bot_G entails_G
+interpretation G: cex_red_calculus_with_std_red_crit Bot_G entails_G
   "\<lambda>N. clss_of_interp (ground_resolution_with_selection.INTERP (S_M S M) N)" Inf_G
   by (unfold_locales, fact Inf_G_has_prem, fact Inf_G_reductive, fact Inf_G_cex_reducing)
 
-abbreviation Red_Inf_G :: "'a clause set \<Rightarrow> 'a clause inference set" where
-  "Red_Inf_G \<equiv> calc_G.Red_Inf"
-
-abbreviation Red_F_G :: "'a clause set \<Rightarrow> 'a clause set" where
-  "Red_F_G \<equiv> calc_G.Red_F"
-
-(* TODO: Move me. *)
-lemma inf_from_subs: "gr.inferences_from (N - M) \<subseteq> gr.inferences_from N"
-  by (simp add: gr.inferences_from_mono)
-
-lemma same_inf_inf_from_subs:
-  \<open>{\<iota>. \<exists> \<iota>_RP \<in> gr.inferences_from (N - Red_F_G N). same_inf \<iota>_RP \<iota>} \<subseteq> Inf_from N\<close> (is "?sI \<subseteq> _")
-proof
-  fix \<iota>
-  assume
-    i_in: \<open>\<iota> \<in> ?sI\<close>
-  obtain \<iota>_RP where i_RP_from: \<open>\<iota>_RP \<in> gr.inferences_from N\<close> and i_to_i_RP: \<open>same_inf \<iota>_RP \<iota>\<close>
-    using inf_from_subs i_in by (smt Diff_subset gr.inferences_from_mono mem_Collect_eq subsetCE)
-  have \<open>set_mset (prems_of \<iota>_RP) \<subseteq> N\<close> using i_RP_from unfolding gr.inferences_from_def infer_from_def by fast
-  then have i_from: \<open>set (prems_of \<iota>) \<subseteq> N\<close>
-    using i_to_i_RP unfolding same_inf_def by fastforce
-  have \<open>\<iota> \<in> Inf_G\<close>
-    using i_RP_from i_to_i_RP unfolding gr.inferences_from_def Inf_G_def same_inf_def by force
-  then show \<open>\<iota> \<in> Inf_from N\<close> using i_from unfolding Inf_from_def by fast
-qed
-
-(*lemma conv_inf_inf_from_commute: \<open>conv_inf ` gr.inferences_from (N - sr.Rf N) \<subseteq> Inf_from N\<close> 
-proof
-  fix \<iota>
-  assume
-    i_in: \<open>\<iota> \<in> conv_inf ` gr.inferences_from (N - sr.Rf N)\<close>
-  have \<open>\<iota> \<in> conv_inf ` gr.inferences_from N\<close>
-  proof - (* rebuild by sledgehammer *)
-    have "gr.inferences_from (N - sr.Rf N) \<subseteq> gr.inferences_from N"
-      by (simp add: Diff_subset gr.inferences_from_mono)
-    then show ?thesis
-      using i_in by blast
-  qed
-  then obtain \<iota>_RP where i_RP_from: \<open>\<iota>_RP \<in> gr.inferences_from N\<close> and i_to_i_RP: \<open>\<iota> = conv_inf \<iota>_RP\<close> by fast
-  have \<open>set_mset (prems_of \<iota>_RP) \<subseteq> N\<close> using i_RP_from unfolding gr.inferences_from_def infer_from_def by fast
-  then have i_from: \<open>set (prems_of \<iota>) \<subseteq> N\<close> using i_to_i_RP unfolding conv_inf_def by auto
-  have \<open>\<iota> \<in> Inf_G\<close> using i_RP_from i_to_i_RP unfolding gr.inferences_from_def Inf_G_def by blast
-  then show \<open>\<iota> \<in> Inf_from N\<close> using i_from unfolding Inf_from_def by fast
-qed
-*)
-
-lemma \<open>gr.eligible As D \<Longrightarrow> mset As = mset As' \<Longrightarrow> gr.eligible As' D\<close>
-  unfolding gr.eligible.simps
-  by (cases As; cases As')
-    (auto simp: add_mset_eq_add_mset eq_commute[of "add_mset _ _" "mset _"] image_mset_remove1_mset_if)
-
-(* FIXME: taken from AFP: Automatic_Refinement/Lib/Misc.thy *)
-lemma in_set_drop_conv_nth: "x\<in>set (drop n l) \<longleftrightarrow> (\<exists>i. n\<le>i \<and> i<length l \<and> x = l!i)"
-  apply (clarsimp simp: in_set_conv_nth)
-  apply safe
-  apply simp
-  apply (metis le_add2 less_diff_conv add.commute)
-  apply (rule_tac x="i-n" in exI)
-  apply auto []
-  done
-
-(* FIXME: taken from Mathias Fleury's isafol/Weidenbach_Book/WB_List_More.thy *)
-lemma take_map_nth_alt_def: \<open>take n xs = map ((!) xs) [0..<min n (length xs)]\<close>
-proof (induction xs rule: rev_induct)
-  case Nil
-  then show ?case by auto
-next
-  case (snoc x xs) note IH = this
-  show ?case
-  proof (cases \<open>n < length (xs @ [x])\<close>)
-    case True
-    then show ?thesis
-      using IH by (auto simp: min_def nth_append)
-  next
-    case False
-    have [simp]:
-      \<open>map (\<lambda>a. if a < length xs then xs ! a else [x] ! (a - length xs)) [0..<length xs] =
-       map (\<lambda>a. xs ! a) [0..<length xs]\<close> for xs and x :: 'b
-      by (rule map_cong) auto
-    show ?thesis
-      using IH False by (auto simp: nth_append min_def)
-  qed
-qed
-
-(* FIXME: taken from Mathias Fleury's isafol/Weidenbach_Book/WB_List_More.thy *)
-lemma inj_on_image_mset_eq_iff:
-  assumes inj: \<open>inj_on f (set_mset (K + K'))\<close>
-  shows \<open>image_mset f K' = image_mset f K \<longleftrightarrow> K' = K\<close> (is \<open>?A = ?B\<close>)
-proof
-  assume ?B
-  then show ?A by auto
-next
-  assume ?A
-  then show ?B
-    using inj
-  proof(induction K arbitrary: K')
-    case empty
-    then show ?case by auto
-  next
-    case (add x K) note IH = this(1) and H = this(2) and inj = this(3)
-
-    obtain K1 x' where
-      K': \<open>K' = add_mset x' K1\<close> and
-      f_xx': \<open>f x' = f x\<close> and
-      K1_K: \<open>image_mset f K1 = image_mset f K\<close>
-      using H by (auto dest!: msed_map_invR)
-    moreover have \<open>K1 = K\<close>
-      apply (rule IH[OF K1_K])
-      using inj by (auto simp: K')
-    moreover have \<open>x = x'\<close>
-      using inj f_xx' by (auto simp: K')
-    ultimately show ?case by fast
-  qed
-qed
-
-lemma dist: \<open>distinct_mset (mset_set {0..<n})\<close> for n :: nat
-  apply (subst atLeastLessThan_upt, subst mset_set_set)
-  apply auto[]
-  apply (subst distinct_mset_mset_distinct)
-  apply auto
-done
-
-(* FIXME: Move to Multiset_More.thy *)
-lemma in_distinct_mset_diff_iff:
-  \<open>distinct_mset K \<Longrightarrow>  x \<in># K - N \<longleftrightarrow> x \<notin># N \<and> x \<in># K\<close>
-  using distinct_mem_diff_mset[of K x N]
-  by (auto dest: in_diffD multi_member_split)
-
-lemma shuffle_ord_resolve_side_prems:
-  assumes
-    res: \<open>gr.ord_resolve CAs D AAs As E\<close> and
-    mset_CAs: \<open>mset CAs = mset CAs'\<close>
-  shows \<open>(\<exists>AAs' As'. mset AAs = mset AAs' \<and> mset As = mset As' \<and> gr.ord_resolve CAs' D AAs' As' E)\<close>
-  using assms
-proof -
-  obtain Cs Da n where
-    D_eq: \<open>D = Da + negs (mset As)\<close> and
-    E_eq: \<open>E = \<Union>#(mset Cs) + Da\<close> and
-    len_CAs: \<open>length CAs = n\<close> and
-    len_Cs: \<open>length Cs = n\<close> and
-    len_AAs: \<open>length AAs = n\<close> and
-    len_As: \<open>length As = n\<close> and
-    not_null: \<open>n \<noteq> 0\<close> and
-    CAs_eq: \<open>\<forall>i<n. CAs ! i = Cs ! i + poss (AAs ! i)\<close> and
-    AAs_nempty: \<open>\<forall>i<n. AAs ! i \<noteq> {#}\<close> and
-    in_AAs: \<open>\<forall>i<n. \<forall>A\<in>#AAs ! i. A = As ! i\<close> and
-    eligible: \<open>gr.eligible As (Da + negs (mset As))\<close> and
-    max: \<open>\<forall>i<n. gr.strictly_maximal_wrt (As ! i) (Cs ! i)\<close> and
-    S_empty: \<open>\<forall>i<n. (S_M S M) (CAs ! i) = {#}\<close>
-    using res unfolding gr.ord_resolve.simps by auto
-  have x_in_equiv: \<open>x \<in># mset CAs' \<Longrightarrow> x \<in># mset CAs\<close> for x using mset_CAs by simp
-  have len_CAs': \<open>length CAs' = n\<close> using len_CAs mset_CAs using mset_eq_length by fastforce
-  have exist_map: \<open>\<exists>map_i. (\<forall>i. i < n \<longrightarrow> CAs'!i = CAs!(map_i i)) \<and> inj_on map_i {0..<n} \<and>
-          map_i ` {0..<n} \<subseteq> {0..<length CAs'}\<close> if \<open>n \<le> length CAs'\<close>
-    using that
-  proof (induct n)
-    case 0
-    then show ?case by auto
-  next
-    case (Suc m) note _ = this(1) and small_enough = this(2)
-    then obtain map_i where [simp]:\<open>(\<And>i. i < m \<Longrightarrow> CAs'!i = CAs!(map_i i))\<close> and
-        inj: \<open>inj_on map_i {0..<m}\<close> and
-        im_incl: \<open>map_i ` {0..<m} \<subseteq> {0..<n}\<close> 
-       by (force simp: len_CAs')
-    define j where \<open>j \<equiv> SOME i. i < length CAs' \<and> CAs'!m = CAs!i \<and> i \<notin> map_i ` {0..<m}\<close>
-    have cut_n_m: \<open>mset_set {0..<n} = mset_set (map_i ` {0..<m}) + (mset_set {0..<n} - mset_set (map_i ` {0..<m}))\<close>
-      by (subst subset_mset.add_diff_inverse)
-       (use im_incl in \<open>auto simp: image_iff\<close>)
-    have \<open>CAs'!m \<in># mset CAs' - mset (take m CAs')\<close>
-      apply (subst(2) append_take_drop_id[symmetric,of _ m])
-      apply (subst mset_append)
-      by (use small_enough in \<open>auto simp: in_set_drop_conv_nth\<close>)
-    also have \<open>mset CAs' - mset (take m CAs') = mset CAs - mset (map (\<lambda>i. CAs!(map_i i)) [0..<m])\<close>
-      apply (subst map_cong[OF refl, of _ _ "\<lambda>i. CAs'!i"])
-      using small_enough by (auto simp: min_def mset_CAs take_map_nth_alt_def)
-    finally have \<open>\<exists>i. i < length CAs' \<and> CAs'!m = CAs!i \<and> i \<notin> map_i ` {0..<m}\<close>
-      apply (subst (asm)(2) map_nth[symmetric])
-      unfolding mset_map mset_upt len_CAs apply (subst (asm) cut_n_m)
-      by (auto simp: image_mset_mset_set[symmetric] inj in_distinct_mset_diff_iff dist len_CAs'
-        dest!: distinct_mem_diff_mset) 
-    then have \<open>CAs'!m = CAs!j\<close> and j_notin: \<open>j \<notin> map_i ` {0..<m}\<close> and \<open>j < length CAs'\<close>
-      using someI[of \<open>\<lambda>i. i < length CAs' \<and> CAs'!m = CAs!i \<and> i \<notin> map_i ` {0..<m}\<close>]
-      unfolding j_def[symmetric]
-      by blast+
-    moreover have \<open>inj_on (map_i(m := j)) {0..<Suc m}\<close>
-      unfolding inj_on_def
-      apply (intro ballI)
-      subgoal for x y
-        using inj_onD[OF inj, of x y] j_notin by auto
-      done
-    ultimately show ?case
-      apply -
-      apply (rule exI[of _ \<open>map_i (m:=j)\<close>])
-      using inj im_incl by (auto simp flip: fun_upd_def simp: len_CAs' less_Suc_eq image_subset_iff)
-  qed
-  then obtain map_i where map_i_def: \<open>i < n \<Longrightarrow> CAs'!i = CAs!(map_i i)\<close> and len_map_i: \<open>i < n \<Longrightarrow> (map_i i) < n\<close> and
-     inj: \<open>inj_on map_i {0..<n}\<close> for i
-    unfolding len_CAs' by fastforce
-  have [simp]: \<open>map_i ` {0..<n} = {0..<n}\<close>
-    apply (rule endo_inj_surj) using len_map_i inj by auto
-  have eq: \<open>mset_set {0..<length AAs} = image_mset map_i (mset_set {0..<length AAs})\<close>
-    apply (rule distinct_set_mset_eq)
-    by (use inj len_map_i in \<open>auto simp: len_AAs len_CAs len_CAs' dist distinct_image_mset_inj\<close>)
-  obtain AAs' where len_AAs': \<open>length AAs' = n\<close> and AAs'_def: \<open>i < n \<Longrightarrow> AAs'!i = AAs!(map_i i)\<close> for i
-    apply (rule that[of \<open>map (\<lambda>i. AAs!(map_i i)) [0..<n]\<close>])
-    by (auto simp: len_AAs)
-  then have [simp]: \<open>mset AAs' = mset AAs\<close> using map_i_def mset_CAs len_CAs
-    apply (subst map_nth[symmetric], subst (5) map_nth[symmetric])
-    unfolding mset_map mset_upt
-    apply (subst eq)
-    apply (auto intro!: image_mset_cong simp: len_AAs len_AAs' len_CAs len_CAs')
-    done
-  obtain As' where len_As': \<open>length As' = n\<close> and As'_def: \<open>i < n \<Longrightarrow> As'!i = As!(map_i i)\<close> for i  
-    apply (rule that[of \<open>map (\<lambda>i. As!(map_i i)) [0..<n]\<close>])
-    by (auto simp: len_As)
-  then have [simp]: \<open>mset As' = mset As\<close> using map_i_def mset_CAs len_CAs
-    apply (subst map_nth[symmetric], subst (5) map_nth[symmetric])
-    unfolding mset_map mset_upt len_AAs len_As
-    apply (subst eq[unfolded len_AAs])
-    apply (auto intro!: image_mset_cong simp: len_AAs len_AAs' len_CAs len_CAs')
-    done
-  obtain Cs' where len_Cs': \<open>length Cs' = n\<close> and Cs'_def: \<open>i < n \<Longrightarrow> Cs'!i = Cs!(map_i i)\<close> for i  
-    apply (rule that[of \<open>map (\<lambda>i. Cs!(map_i i)) [0..<n]\<close>])
-    by (auto simp: len_Cs)
-  then have [simp]: \<open>mset Cs' = mset Cs\<close> using map_i_def mset_CAs len_CAs
-    apply (subst map_nth[symmetric], subst (5) map_nth[symmetric])
-    unfolding mset_map mset_upt len_AAs len_Cs
-    apply (subst eq[unfolded len_AAs])
-    apply (auto intro!: image_mset_cong simp: len_AAs len_Cs' len_CAs len_Cs)
-    done
-  have eligible': \<open>gr.eligible As' (Da + negs (mset As))\<close>
-    using len_map_i As'_def eligible unfolding gr.eligible.simps by (auto simp: len_As len_As')
-  have \<open>gr.ord_resolve CAs' D AAs' As' E\<close>
-    apply (unfold gr.ord_resolve.simps, rule exI[of _ CAs'], rule exI[of _ n], rule exI[of _ Cs'],
-      rule exI[of _ AAs'], rule exI[of _ As'], rule exI[of _ Da])
-    using CAs_eq AAs_nempty in_AAs eligible' max S_empty As'_def AAs'_def map_i_def len_map_i Cs'_def
-    by (auto simp: len_CAs' len_AAs' len_As' len_Cs not_null D_eq E_eq len_Cs')
-  then show ?thesis 
-    apply -
-    apply (rule exI[of _ AAs'], rule exI[of _ As'])
-    by (auto)
-qed
-
-lemma negs_eq: \<open>negs A = negs B \<Longrightarrow> A = B\<close> by (metis literal.inject(2) multiset.inj_map_strong)
-
-lemma shift_indices: \<open>(\<forall>i\<in>{Suc 0..<Suc (length list)}. list ! (i - Suc 0) = lista ! (i - Suc 0)) \<Longrightarrow> \<forall>i\<in>{0..<length list}. list!i  = lista!i\<close> by force
-
-lemma pos_not_in_negs: \<open>Pos x \<in># X \<Longrightarrow> X = Y + negs Z \<Longrightarrow> Pos x \<in># Y\<close> by fastforce
-lemma neg_not_in_poss: \<open>Neg x \<in># X \<Longrightarrow> X = Y + poss Z \<Longrightarrow> Neg x \<in># Y\<close> by fastforce
-
-lemma main_prem_eq_or_tauto:
-  assumes
-    i_in: \<open>\<iota> \<in> gr.ord_\<Gamma>\<close> and
-    i'_in: \<open>\<iota>' \<in> gr.ord_\<Gamma>\<close> and
-    prems_eq: \<open>prems_of \<iota> = prems_of \<iota>'\<close> and
-    concl_eq: \<open>concl_of \<iota> = concl_of \<iota>'\<close>
-  shows
-    \<open>main_prem_of \<iota> = main_prem_of \<iota>' \<or> (\<exists>A. Pos A \<in># concl_of \<iota> \<and> Neg A \<in># concl_of \<iota>)\<close> (is \<open>?A \<or> ?B\<close>)
-proof (intro disj_imp[THEN iffD2] impI)
-  assume
-    contra: \<open>\<not> ?A\<close>
-  then have \<open>\<iota> \<noteq> \<iota>'\<close> by blast
-  obtain CAs1 AAs1 As1 where i_inf: \<open>gr.ord_resolve CAs1 (main_prem_of \<iota>) AAs1 As1 (concl_of \<iota>)\<close> and
-    CAs1_i: \<open>mset CAs1 = side_prems_of \<iota>\<close> using i_in unfolding gr.ord_\<Gamma>_def by force
-  obtain CAs2 AAs2 As2 where i'_inf: \<open>gr.ord_resolve CAs2 (main_prem_of \<iota>') AAs2 As2 (concl_of \<iota>')\<close> and
-    CAs2_i': \<open>mset CAs2 = side_prems_of \<iota>'\<close> using i'_in unfolding gr.ord_\<Gamma>_def by force
-  obtain CAm where CAm_i: \<open>CAm + {#main_prem_of \<iota>#} = mset CAs2\<close> and CAm_i': \<open>CAm + {#main_prem_of \<iota>'#} = mset CAs1\<close>
-    using CAs1_i CAs2_i' prems_eq unfolding prems_of_def side_prems_of_def
-    by (smt add.commute add_right_imp_eq contra insert_DiffM2 multi_member_this remove1_mset_add_mset_If
-      union_mset_add_mset_right)
-  obtain CAs where CAs_is: \<open>mset CAs = CAm\<close> by (metis list_of_mset_exi)
-  obtain AAs3 As3 where A3_is: \<open>gr.ord_resolve (main_prem_of \<iota>' # CAs) (main_prem_of \<iota>) AAs3 As3 (concl_of \<iota>)\<close>
-    using shuffle_ord_resolve_side_prems i_inf CAm_i' CAs_is by (metis add_mset_add_single mset.simps(2))
-  obtain AAs4 As4 where A4_is: \<open>gr.ord_resolve (main_prem_of \<iota> # CAs) (main_prem_of \<iota>') AAs4 As4 (concl_of \<iota>')\<close>  
-    using shuffle_ord_resolve_side_prems i'_inf CAm_i CAs_is by (metis add_mset_add_single mset.simps(2))
-  have len_AAs_eq: \<open>length AAs3 = length AAs4\<close>
-    using A3_is A4_is CAs_is CAm_i CAm_i' CAs1_i CAs2_i' unfolding gr.ord_resolve.simps by force
-  then have len_As_eq: \<open>length As3 = length As4\<close>
-    using A3_is A4_is unfolding gr.ord_resolve.simps by force
-  define n where n_is: \<open>n = length AAs3\<close>
-  then have len_AAs4: \<open>n = length AAs4\<close> using len_AAs_eq by simp
-  then have len_As4: \<open>n = length As4\<close> using A4_is unfolding gr.ord_resolve.simps by force
-  then have len_As3: \<open>n = length As3\<close> using len_As_eq by simp
-  then have n_not_null: \<open>n \<noteq> 0\<close> using A3_is unfolding gr.ord_resolve.simps by force
-  obtain D3 Cs3 where
-    main3: \<open>main_prem_of \<iota> = D3 + negs (mset As3)\<close> and
-    concl_i_is: \<open>concl_of \<iota> = \<Union># (mset Cs3) + D3\<close> and
-    len_Cs3: \<open>length Cs3 = n\<close> and
-    CAs_i3: \<open>\<forall>i<n. (main_prem_of \<iota>' # CAs) ! i = Cs3 ! i + poss (AAs3 ! i)\<close> and
-    AAs3_nempty: \<open>\<forall>i<n. AAs3 ! i \<noteq> {#}\<close> and
-    AAs3_i: \<open>\<forall>i<n. \<forall>A\<in>#AAs3 ! i. A = As3 ! i\<close> and
-    eligible3: \<open>gr.eligible As3 (D3 + negs (mset As3))\<close> and
-    max3: \<open>\<forall>i<n. gr.strictly_maximal_wrt (As3 ! i) (Cs3 ! i)\<close> and
-    sel_empty3: \<open>\<forall>i<n. (S_M S M) (Cs3 ! i + poss (AAs3 ! i)) = {#}\<close>
-    using A3_is n_is unfolding gr.ord_resolve.simps by auto
-  obtain D4 Cs4 where
-    main4: \<open>main_prem_of \<iota>' = D4 + negs (mset As4)\<close> and
-    concl_i'_is: \<open>concl_of \<iota>' = \<Union># (mset Cs4) + D4\<close> and
-    len_Cs4: \<open>length Cs4 = n\<close> and
-    CAs_i4: \<open>\<forall>i<n. (main_prem_of \<iota> # CAs) ! i = Cs4 ! i + poss (AAs4 ! i)\<close> and
-    AAs4_nempty: \<open>\<forall>i<n. AAs4 ! i \<noteq> {#}\<close> and
-    AAs4_i: \<open>\<forall>i<n. \<forall>A\<in>#AAs4 ! i. A = As4 ! i\<close> and
-    eligible4: \<open>gr.eligible As4 (D4 + negs (mset As4))\<close> and
-    max4: \<open>\<forall>i<n. gr.strictly_maximal_wrt (As4 ! i) (Cs4 ! i)\<close> and
-    sel_empty4: \<open>\<forall>i<n. (S_M S M) (Cs4 ! i + poss (AAs4 ! i)) = {#}\<close>
-    using A4_is len_AAs4 unfolding gr.ord_resolve.simps by auto
-  have As_eq: \<open>\<forall>i \<in> {1..<n}. As3!i = As4!i\<close>
-    using main3 eligible3 sel_empty4 CAs_i3 CAs_i4 AAs3_i AAs4_i max3 max4 unfolding gr.strictly_maximal_wrt_def
-    by (metis atLeastLessThan_iff empty_iff gr.eligible.cases image_mset_is_empty_iff len_As3 len_As_eq
-      length_greater_0_conv linorder_not_le nth_Cons_0 nth_mem_mset set_mset_empty)
-  then have AAs_eq: \<open>\<forall>i \<in> {1..<n}. AAs3!i = AAs4!i\<close>
-    using main3 eligible3 sel_empty4 CAs_i3 CAs_i4 AAs3_i AAs4_i max3 max4 unfolding gr.strictly_maximal_wrt_def
-    by (metis atLeastLessThan_iff empty_iff gr.eligible.cases image_mset_is_empty_iff in_mset_conv_nth len_AAs4
-      len_AAs_eq len_As3 len_As_eq length_greater_0_conv linorder_not_le nth_Cons_0 set_mset_empty)
-  then have Cs_eq: \<open>\<forall>i \<in> {1..<n}. Cs3!i = Cs4!i\<close>
-    using CAs_i3 CAs_i4 by fastforce
-  then have \<open>\<Union># (mset Cs3) - Cs3!0 = \<Union># (mset Cs4) - Cs4!0\<close> using Cs_eq len_Cs3 len_Cs4
-    apply (cases Cs3; cases Cs4)
-    by (force intro!: arg_cong[of _ _ sum_list] list_eq_iff_nth_eq[THEN iffD2])+
-  then have CsD_eq: \<open>Cs3!0 + D3 = Cs4!0 + D4\<close> using concl_i_is concl_i'_is concl_eq len_Cs3 len_Cs4
-    apply (cases Cs3; cases Cs4)
-    by force+
-  have \<open>tl As3 = tl As4\<close> using len_As3 len_As4 As_eq by (auto simp: nth_tl intro!:list_eq_iff_nth_eq[THEN iffD2])
-  then have \<open>negs (mset As3) - negs {# As3!0 #} = negs (mset As4) - negs {# As4!0 #}\<close>
-    apply (cases As3; cases As4)
-    using len_As3 len_As4 n_not_null As_eq negs_eq by auto
-  then have \<open>negs {#As3!0#} + D3 \<noteq> negs {# As4!0 #} + D4\<close>
-    using contra len_As3 len_As4 unfolding main3 main4 
-    apply (cases As3; cases As4)
-    by auto
-  have main_i: \<open>D3 + negs (mset As3) = Cs4!0 + poss (AAs4!0)\<close> using main3 CAs_i4 n_not_null by force
-  have main_i': \<open>D4 + negs (mset As4) = Cs3!0 + poss (AAs3!0)\<close> using main4 CAs_i3 n_not_null by force
-  have pos4_in_poss: \<open>Pos (As4!0) \<in># poss (AAs4!0)\<close>
-    apply (cases AAs4)
-    using n_not_null len_AAs4 apply blast
-    using AAs4_i AAs4_nempty len_AAs4 by fastforce
-  have neg4_in_negs: \<open>Neg (As4!0) \<in># negs (mset As4)\<close> using len_As4 n_not_null by auto
-  have eq_imply_B: \<open>D3 = D4 \<Longrightarrow> ?B\<close>
-  proof -
-    assume \<open>D3 = D4\<close>
-    then have Cs_hd_eq: \<open>Cs3!0 = Cs4!0\<close> using CsD_eq by simp
-    have \<open>Pos (As4!0) \<in># D3\<close> using pos4_in_poss main_i pos_not_in_negs by (metis union_iff)
-    then have pos4: \<open>Pos (As4!0) \<in># concl_of \<iota>\<close> using concl_i_is by simp
-    have \<open>Neg (As4!0) \<in># Cs3!0\<close> using neg4_in_negs neg_not_in_poss main_i' Cs_hd_eq by (metis union_iff)
-    then have neg4: \<open>Neg (As4!0) \<in># concl_of \<iota>\<close>
-      unfolding concl_i_is apply (cases Cs3)
-      using n_not_null len_Cs3 by auto
-    show \<open>?B\<close> using pos4 neg4 concl_i_is
-      apply (rule_tac x="As4!0" in exI) by auto
-  qed
-  have neq_imply_B: \<open>\<not> D3 = D4 \<Longrightarrow> ?B\<close>
-  proof -
-    assume \<open>\<not> D3 = D4\<close>
-    define D where D_is: \<open>D = D3 \<inter># D4\<close>
-    define D3' where D3'_is: \<open>D3' = D3 - D4\<close>
-    define D4' where D4'_is: \<open>D4' = D4 - D3\<close>
-    have inter_D: \<open>D3' \<inter># D4' = {#}\<close>
-      using diff_intersect_sym_diff[of D3 D4] D3'_is D4'_is by force
-    have D3_div: \<open>D + D3' = D3\<close>
-      by (auto simp: D_is D3'_is multiset_inter_def)
-    have D4_div: \<open>D + D4' = D4\<close>
-      apply (auto simp: D_is D4'_is multiset_inter_def)
-      by (metis D3'_is D_is D3_div add_diff_cancel_left' subset_mset.add_diff_assoc2 subset_mset.inf_le1
-        sup_subset_mset_def union_diff_inter_eq_sup)
-    have CsD_eq2: \<open>Cs3!0 + D3' = Cs4!0 + D4'\<close>
-      using CsD_eq by (auto simp: D3_div[THEN sym] D4_div[THEN sym])
-    then have D3'_subs: \<open>D3' \<subseteq># Cs4!0\<close>
-      using inter_D
-      by (metis CsD_eq D3'_is mset_subset_eq_add_right subset_eq_diff_conv)
-    have D4'_subs: \<open>D4' \<subseteq># Cs3!0\<close>
-      using inter_D
-      by (metis CsD_eq D4'_is mset_subset_eq_add_right subset_eq_diff_conv)
-    define C3 where C3_is: \<open>C3 = Cs3!0 - D4'\<close>
-    define C4 where C4_is: \<open>C4 = Cs4!0 - D3'\<close>
-    have C_eq: \<open>C3 = C4\<close>
-      apply (simp add: C3_is C4_is)
-      using CsD_eq2 by (metis add_diff_cancel_right' cancel_ab_semigroup_add_class.diff_right_commute)
-    have Cs30_div: \<open>Cs3!0 = C3 + D4'\<close> using C3_is D4'_subs by simp 
-    have Cs40_div: \<open>Cs4!0 = C3 + D3'\<close> using C4_is D3'_subs by (simp add: C_eq)
-    have \<open>D3 + negs (mset As3) +  D4 + negs (mset As4) = Cs4 ! 0 + poss (AAs4 ! 0) + Cs3 ! 0 + poss (AAs3 ! 0)\<close>
-      using main_i main_i' by simp
-    then have sum_concl_eq: \<open>D + D + negs (mset As3) + negs (mset As4) = C3 + C3 + poss (AAs3!0) + poss (AAs4!0)\<close>
-      unfolding D3_div[THEN sym] D4_div[THEN sym] Cs30_div Cs40_div
-      by (smt C_eq ab_semigroup_add_class.add_ac(1) add.commute add.left_commute add_right_imp_eq
-        multi_union_self_other_eq union_assoc union_commute union_lcomm)
-    then have \<open>Pos (As4!0) \<in># D\<close> using pos4_in_poss pos_not_in_negs by (metis union_iff)
-    then have pos4': \<open>Pos (As4!0) \<in># concl_of \<iota>\<close> using concl_i_is by (simp add: D3_div[THEN sym])
-    have \<open>Neg (As4!0) \<in># C3\<close> using sum_concl_eq neg4_in_negs neg_not_in_poss by (metis union_iff)
-    then have \<open>Neg (As4!0) \<in># Cs3!0\<close> using C3_is by (simp add: C_eq Cs30_div)
-    then have neg4': \<open>Neg (As4!0) \<in># concl_of \<iota>\<close>
-      unfolding concl_i_is apply (cases Cs3)
-      using n_not_null len_Cs3 by auto
-    show \<open>?B\<close> using pos4' neg4' concl_i_is
-      apply (rule_tac x="As4!0" in exI)
-      by auto
-  qed
-  show ?B
-    apply (rule_tac P="D3 = D4" in case_split)
-    using eq_imply_B neq_imply_B by auto
-qed
-
-interpretation calc_G: static_refutational_complete_calculus Bot_G Inf_G entails_G Red_Inf_G
-  Red_F_G
+interpretation G: static_refutational_complete_calculus Bot_G Inf_G entails_G G.Red_Inf
+  G.Red_F
 proof
   fix B N
   assume
     B_in: \<open>B \<in> Bot_G\<close> and
-    N_sat: \<open>calc_G.saturated N\<close> and
+    N_sat: \<open>G.saturated N\<close> and
     N_unsat: \<open>N \<Turnstile>G {B}\<close>
   have B_is: \<open>B = {#}\<close>
     using B_in by simp
   have \<open>{#} \<in> N\<close>
-    using calc_G.saturated_complete_if[OF N_sat] N_unsat unfolding B_is entails_G_def true_clss_def
-    by fast
+    using G.saturated_complete_if[OF N_sat] N_unsat unfolding B_is entails_G_def by force
   then show \<open>\<exists>B'\<in>Bot_G. B' \<in> N\<close>
     by simp
 qed
@@ -622,22 +220,16 @@ qed
 definition \<G>_F :: \<open>'a clause \<Rightarrow> 'a clause set\<close> where
   \<open>\<G>_F C = grounding_of_cls C\<close>
 
-definition subst_inf :: \<open>'a clause inference \<Rightarrow> 's
-                          \<Rightarrow> 'a clause inference\<close> (infixl "\<cdot>inf" 67) where
-  \<open>\<iota> \<cdot>inf \<sigma> = Infer
-    (map (\<lambda> A. A \<cdot> \<sigma>) (prems_of \<iota>))
-    ((concl_of \<iota>) \<cdot> \<sigma>)\<close>
+definition subst_inf :: \<open>'a clause inference \<Rightarrow> 's \<Rightarrow> 'a clause inference\<close> (infixl "\<cdot>i" 67) where
+  \<open>\<iota> \<cdot>i \<sigma> = Infer (map (\<lambda>A. A \<cdot> \<sigma>) (prems_of \<iota>)) (concl_of \<iota> \<cdot> \<sigma>)\<close>
 
-definition \<G>_Inf :: \<open>'a clause inference
-                      \<Rightarrow> 'a clause inference set option\<close> where
-  \<open>\<G>_Inf \<iota> = Some {Infer
-    ((prems_of \<iota>) \<cdot>\<cdot>cl \<rho>s) ((concl_of \<iota>) \<cdot> \<rho>)
-    |\<rho> \<rho>s. is_ground_subst_list \<rho>s \<and> is_ground_subst \<rho> \<and>
-    Infer ((prems_of \<iota>) \<cdot>\<cdot>cl \<rho>s)
-    ((concl_of \<iota>) \<cdot> \<rho>)  \<in> Inf_G }\<close>
+definition \<G>_Inf :: \<open>'a clause inference \<Rightarrow> 'a clause inference set option\<close> where
+  \<open>\<G>_Inf \<iota> = Some {Infer ((prems_of \<iota>) \<cdot>\<cdot>cl \<rho>s) (concl_of \<iota> \<cdot> \<rho>)|\<rho> \<rho>s.
+     is_ground_subst_list \<rho>s \<and> is_ground_subst \<rho>
+     \<and> Infer (prems_of \<iota> \<cdot>\<cdot>cl \<rho>s) (concl_of \<iota> \<cdot> \<rho>) \<in> Inf_G}\<close>
 
-interpretation \<G>_standard_lifting: standard_lifting Bot_F Inf_F Bot_G Inf_G entails_G Red_Inf_G
-  Red_F_G \<G>_F \<G>_Inf
+interpretation \<G>_standard_lifting: standard_lifting Bot_F Inf_F Bot_G Inf_G entails_G G.Red_Inf
+  G.Red_F \<G>_F \<G>_Inf
 proof
   show \<open>Bot_G \<noteq> {}\<close>
     by simp
@@ -667,63 +259,46 @@ next
   assume
     i_in: \<open>\<iota> \<in> Inf_F\<close> and
     g_def: \<open>\<G>_Inf \<iota> \<noteq> None\<close>
-  show \<open>the (\<G>_Inf \<iota>) \<subseteq> Red_Inf_G (\<G>_F (concl_of \<iota>))\<close>
+  show \<open>the (\<G>_Inf \<iota>) \<subseteq> G.Red_Inf (\<G>_F (concl_of \<iota>))\<close>
   proof
     fix \<iota>'
     assume i'_in: \<open>\<iota>' \<in> the (\<G>_Inf \<iota>)\<close>
     then have i'_in2: \<open>\<iota>' \<in> Inf_G\<close> unfolding \<G>_Inf_def g_def by auto 
-    have concl_in: \<open>concl_of \<iota>' \<in>
-      \<G>_F (concl_of \<iota>)\<close>
+    have concl_in: \<open>concl_of \<iota>' \<in> \<G>_F (concl_of \<iota>)\<close>
       using i'_in subst_inf_def unfolding \<G>_Inf_def \<G>_F_def grounding_of_cls_def by auto
-    show \<open>\<iota>' \<in> Red_Inf_G (\<G>_F (concl_of \<iota>))\<close>
-      using standard_lifting.inf_map i'_in2 concl_in
-      by (simp add: calc_G.Red_Inf_of_Inf_to_N)
+    show \<open>\<iota>' \<in> G.Red_Inf (\<G>_F (concl_of \<iota>))\<close>
+      using standard_lifting.inf_map i'_in2 concl_in by (simp add: G.Red_Inf_of_Inf_to_N)
   qed
 qed
 
-lemma ground_subclauses_no_ctxt:
-  assumes
-    "\<forall>i < length CAs. CAs ! i = Cs ! i + poss (AAs ! i)" and
-    "length Cs = length CAs" and
-    "is_ground_cls_list CAs"
-  shows "is_ground_cls_list Cs"
-  unfolding is_ground_cls_list_def
-  by (metis assms in_set_conv_nth is_ground_cls_list_def is_ground_cls_union)
+text \<open>This proof is based on part of the proof of @{thm RP_saturated_if_fair}.\<close>
 
-lemma ground_ord_resolve_ground_no_ctxt: 
-  assumes 
-    CAs_p: "gr.ord_resolve CAs DA AAs As E" and
-    ground_cas: "is_ground_cls_list CAs" and
-    ground_da: "is_ground_cls DA"
-  shows "is_ground_cls E"
-proof -
-  have a1: "atms_of E \<subseteq> (\<Union>CA \<in> set CAs. atms_of CA) \<union> atms_of DA"
-    using gr.ord_resolve_atms_of_concl_subset[of CAs DA _ _ E] CAs_p by auto
-  {
-    fix L :: "'a literal"
-    assume "L \<in># E"
-    then have "atm_of L \<in> atms_of E"
-      by (meson atm_of_lit_in_atms_of)
-    then have "is_ground_atm (atm_of L)"
-      using a1 ground_cas ground_da is_ground_cls_imp_is_ground_atm is_ground_cls_list_def
-      by auto
-  }
-  then show ?thesis
-    unfolding is_ground_cls_def is_ground_lit_def by simp
-qed
-
-lemma gr_res_is_res:
+lemma gr_ord_resolve_imp_ord_resolve:
   \<open>is_ground_cls DA \<Longrightarrow> is_ground_cls_list CAs \<Longrightarrow> gr.ord_resolve CAs DA AAs As E \<Longrightarrow>
-    \<exists>\<sigma>. ord_resolve (S_M S M) CAs DA AAs As \<sigma> E\<close>
+  \<exists>\<sigma>. ord_resolve (S_M S M) CAs DA AAs As \<sigma> E\<close>
 proof -
   assume
     ground_DA: \<open>is_ground_cls DA\<close> and
     ground_CAs: \<open>is_ground_cls_list CAs\<close> and
     gr_res: \<open>gr.ord_resolve CAs DA AAs As E\<close>
   have ground_E: "is_ground_cls E"
-      using ground_ord_resolve_ground_no_ctxt gr_res ground_DA ground_CAs
-      by auto
-  show "\<exists>\<sigma>. ord_resolve (S_M S M) CAs DA AAs As \<sigma> E" using gr_res
+  proof -
+    {
+      fix L :: "'a literal"
+      assume "L \<in># E"
+      then have "atm_of L \<in> atms_of E"
+        by (meson atm_of_lit_in_atms_of)
+      moreover have "atms_of E \<subseteq> (\<Union>CA \<in> set CAs. atms_of CA) \<union> atms_of DA"
+        using gr.ord_resolve_atms_of_concl_subset[of CAs DA _ _ E] gr_res by auto
+      ultimately have "is_ground_atm (atm_of L)"
+        using ground_CAs ground_DA is_ground_cls_imp_is_ground_atm is_ground_cls_list_def by auto
+    }
+    then show ?thesis
+      unfolding is_ground_cls_def is_ground_lit_def by simp
+  qed
+
+  show "\<exists>\<sigma>. ord_resolve (S_M S M) CAs DA AAs As \<sigma> E"
+    using gr_res
   proof (cases rule: gr.ord_resolve.cases)
     case (ord_resolve n Cs D)
       note DA = this(1) and e = this(2) and cas_len = this(3) and cs_len = this(4) and
@@ -756,10 +331,11 @@ proof -
         using ord_resolve by simp
       have ground_cs: "\<forall>i < n. is_ground_cls (Cs ! i)"
         using ord_resolve(8) ord_resolve(3,4) ground_CAs
-        using ground_subclauses_no_ctxt[of CAs Cs AAs] unfolding is_ground_cls_list_def by auto
+        unfolding is_ground_cls_list_def by (metis in_set_conv_nth is_ground_cls_union)
       have ground_set_as: "is_ground_atms (set As)"
         using ord_resolve(1) ground_DA
-        by (metis atms_of_negs is_ground_cls_union set_mset_mset is_ground_cls_is_ground_atms_atms_of)
+        by (metis atms_of_negs is_ground_cls_union set_mset_mset
+            is_ground_cls_is_ground_atms_atms_of)
       then have ground_mset_as: "is_ground_atm_mset (mset As)"
         unfolding is_ground_atm_mset_def is_ground_atms_def by auto
       have ground_as: "is_ground_atm_list As"
@@ -1466,7 +1042,7 @@ proof -
   then show \<open> \<exists>\<iota>. \<iota> \<in> sound_F.Inf_from M \<and> \<iota>' \<in> the (\<G>_Inf \<iota>)\<close> by blast
 qed
 
-interpretation src: lifting_with_wf_ordering_family Bot_F Inf_F Bot_G entails_G Inf_G Red_Inf_G Red_F_G \<G>_F \<G>_Inf "\<lambda>g. Empty_Order"
+interpretation src: lifting_with_wf_ordering_family Bot_F Inf_F Bot_G entails_G Inf_G G.Red_Inf G.Red_F \<G>_F \<G>_Inf "\<lambda>g. Empty_Order"
 proof
   show "po_on Empty_Order UNIV" unfolding po_on_def by (simp add: transp_onI wfp_on_imp_irreflp_on)
   show "wfp_on Empty_Order UNIV" unfolding wfp_on_def by simp
@@ -1504,16 +1080,16 @@ proof
     n_sat: \<open>src.lifted_calculus_with_red_crit.saturated N\<close> and
     ent_b: \<open>\<G>_standard_lifting.entails_\<G> N {B}\<close>
   have \<open>B = {#}\<close> using b_in by simp
-  have gn_sat: \<open>calc_G.saturated (\<G>_standard_lifting.\<G>_set N)\<close>
-    unfolding calc_G.saturated_def
+  have gn_sat: \<open>G.saturated (\<G>_standard_lifting.\<G>_set N)\<close>
+    unfolding G.saturated_def
   proof
     fix \<iota>'
     assume i_in: \<open>\<iota>' \<in> Inf_from (\<G>_standard_lifting.\<G>_set N)\<close>
     obtain \<iota> where \<open>\<iota> \<in> sound_F.Inf_from N\<close> \<open>\<iota>' \<in> the (\<G>_Inf \<iota>)\<close> using i_in lifting_in_framework sorry
-    show \<open>\<iota>' \<in> Red_Inf_G (\<G>_standard_lifting.\<G>_set N)\<close> using i_in n_sat unfolding src.lifted_calculus_with_red_crit.saturated_def sorry
+    show \<open>\<iota>' \<in> G.Red_Inf (\<G>_standard_lifting.\<G>_set N)\<close> using i_in n_sat unfolding src.lifted_calculus_with_red_crit.saturated_def sorry
     oops
 
-find_theorems name: calc_G
+find_theorems name: G
 
 end
 
@@ -1521,7 +1097,7 @@ definition entails_all_\<G>  :: \<open>'a clause set \<Rightarrow> 'a clause set
   \<open>N1 \<Turnstile>\<G> N2 \<equiv> \<Union> (grounding_of_cls ` N1) \<Turnstile>G \<Union> (grounding_of_cls ` N2)\<close>
 
 (* definition Red_Inf_all_\<G> :: "'a clause set \<Rightarrow> 'a clause inference set" where
-  \<open>Red_Inf_all_\<G> N = {\<iota> \<in> Inf_F. \<G>_Inf \<iota> \<subseteq> Red_Inf_G (\<G>_set N)}\<close> *)
+  \<open>Red_Inf_all_\<G> N = {\<iota> \<in> Inf_F. \<G>_Inf \<iota> \<subseteq> G.Red_Inf (\<G>_set N)}\<close> *)
   
 end
 
