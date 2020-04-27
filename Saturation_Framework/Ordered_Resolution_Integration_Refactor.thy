@@ -952,18 +952,10 @@ proof
     using i_in i'_in unfolding \<G>_Inf_def by auto
 qed
 
-lemma inf_G_in_inf_F: \<open>Inf_G \<subseteq> Inf_F\<close> 
-proof
-  fix \<iota>
-  assume i_in: \<open>\<iota> \<in> Inf_G\<close>
-  obtain \<iota>_RP where i_RP_in: \<open>\<iota>_RP \<in> gr.ord_\<Gamma>\<close> and i_i_RP: \<open>same_inf \<iota>_RP \<iota>\<close> using i_in unfolding Inf_G_def by blast
-  have \<open>\<iota>_RP \<in> ord_FO_\<Gamma> S\<close> using i_RP_in unfolding gr.ord_\<Gamma>_def ord_FO_\<Gamma>_def sorry
-  show \<open>\<iota> \<in> Inf_F\<close> unfolding Inf_F_def gr.ord_resolve.simps ord_resolve_rename.simps
+lemma inf_G_in_inf_F: \<open>Inf_G \<subseteq> Inf_F\<close>
+  unfolding Inf_G_def Inf_F_def
   apply auto
   sorry
-  oops
-
-find_theorems  gr.ord_\<Gamma>
 
 interpretation static_refutational_complete_calculus Bot_F Inf_F \<G>_standard_lifting.entails_\<G> src.Red_Inf_\<G> src.Red_F_\<G>
 proof
