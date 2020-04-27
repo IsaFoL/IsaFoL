@@ -169,7 +169,7 @@ lemma Red_Inf_eq_Red_Inf_diff_Red_F: "Red_Inf N = Red_Inf (N - Red_F N)"
 lemma Red_Inf_to_Inf: "Red_Inf N \<subseteq> Inf"
   unfolding Red_Inf_def by blast
 
-lemma Red_F_indep: "N' \<subseteq> Red_F N \<Longrightarrow> Red_F N \<subseteq> Red_F (N - N')"
+lemma Red_F_of_Red_F_subset: "N' \<subseteq> Red_F N \<Longrightarrow> Red_F N \<subseteq> Red_F (N - N')"
   by (metis Diff_mono Red_F_eq_Red_F_diff_Red_F Red_F_of_subset order_refl)
 
 lemma Red_Inf_of_Red_F_subset: "N' \<subseteq> Red_F N \<Longrightarrow> Red_Inf N \<subseteq> Red_Inf (N - N')"
@@ -201,7 +201,7 @@ The following corresponds to Theorems 4.7 and 4.8:
 
 sublocale calculus_with_red_crit Bot Inf "(\<Turnstile>)" Red_Inf Red_F
   by (unfold_locales, fact Red_Inf_to_Inf, fact Red_F_Bot, fact Red_F_of_subset,
-      fact Red_Inf_of_subset, fact Red_F_indep, fact Red_Inf_of_Red_F_subset,
+      fact Red_Inf_of_subset, fact Red_F_of_Red_F_subset, fact Red_Inf_of_Red_F_subset,
       fact Red_Inf_of_Inf_to_N)
 
 end

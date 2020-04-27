@@ -646,13 +646,7 @@ lemma tauto_concl_redundant:
     pos: \<open>Pos A \<in># concl_of \<iota>\<close> and
     neg: \<open>Neg A \<in># concl_of \<iota>\<close>
   shows \<open>sr.redundant_infer N \<iota>\<close>
-proof -
-  have \<open>set_mset {#} \<subseteq> N\<close> by simp
-  moreover have \<open>I \<Turnstile>m {#} + side_prems_of \<iota> \<longrightarrow> I \<Turnstile> inference.concl_of \<iota>\<close> using pos neg by blast
-  moreover have \<open>D \<in># {#} \<longrightarrow> D < main_prem_of \<iota>\<close> by force
-  ultimately show \<open>sr.redundant_infer N \<iota>\<close>
-    by (metis empty_iff neg neg_literal_notin_imp_true_cls pos pos_literal_in_imp_true_cls set_mset_empty)
-qed
+  using neg pos sr.tautology_redundant_infer by blast
 
 lemma conv_saturation:
   assumes \<open>gr_calc.saturated N\<close>
