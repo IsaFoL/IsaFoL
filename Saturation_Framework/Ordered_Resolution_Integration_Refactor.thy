@@ -15,7 +15,8 @@ begin
 context FO_resolution_prover
 begin
   
-abbreviation Bot_F :: "'a clause set" where "Bot_F \<equiv> {{#}}"
+abbreviation Bot_F :: "'a clause set" where
+  "Bot_F \<equiv> {{#}}"
 
 definition entails_F :: "'a clause set \<Rightarrow> 'a clause set \<Rightarrow> bool" (infix "\<Turnstile>F" 50) where
   "S1 \<Turnstile>F S2 \<longleftrightarrow>
@@ -78,7 +79,8 @@ proof
     unfolding entails_F_def by simp
 qed
 
-abbreviation Bot_G :: "'a clause set" where "Bot_G \<equiv> {{#}}"
+abbreviation Bot_G :: "'a clause set" where
+  "Bot_G \<equiv> {{#}}"
 
 context
   fixes M :: "'a clause set"
@@ -140,22 +142,63 @@ proof
     unfolding entails_G_def by simp
 qed
 
+definition clss_of_interp :: "'b set \<Rightarrow> 'b literal multiset set" where
+  "clss_of_interp I = {{#(if A \<in> I then Pos else Neg) A#} |A. True}"
+
+lemma true_clss_of_interp_iff_equal[simp]: "J \<Turnstile>s clss_of_interp I \<longleftrightarrow> J = I"
+  unfolding clss_of_interp_def true_clss_def true_cls_def true_lit_def by force
+
+lemma entails_G_iff_models[simp]: "clss_of_interp I \<Turnstile>G CC \<longleftrightarrow> I \<Turnstile>s CC"
+  unfolding entails_G_def by simp
+
 lemma Inf_G_cex_reducing:
   assumes
-    "N \<inter> Bot_G = {}"
-    "D \<in> N"
-    "\<not> {{#Pos C#} |C. C \<in> gr.INTERP N} \<Turnstile>G {D}"
-    "\<And>C. C \<in> N \<Longrightarrow> \<not> {{#Pos C#} |C. C \<in> gr.INTERP N} \<Turnstile>G {C} \<Longrightarrow> D \<le> C"
+    bot_ni_n: "N \<inter> Bot_G = {}" and
+    d_in_n: "D \<in> N" and
+    n_ent_d: "\<not> clss_of_interp (gr.INTERP N) \<Turnstile>G {D}" and
+    d_min: "\<And>C. C \<in> N \<Longrightarrow> \<not> clss_of_interp (gr.INTERP N) \<Turnstile>G {C} \<Longrightarrow> D \<le> C"
   shows "\<exists>\<iota> \<in> Inf_G.
     main_prem_of \<iota> = D \<and> set (side_prems_of \<iota>) \<subseteq> N
-    \<and> {{#Pos C#} |C. C \<in> gr.INTERP N} \<Turnstile>G set (side_prems_of \<iota>)
-    \<and> \<not> {{#Pos C#} |C. C \<in> gr.INTERP N} \<Turnstile>G {concl_of \<iota>}
+    \<and> clss_of_interp (gr.INTERP N) \<Turnstile>G set (side_prems_of \<iota>)
+    \<and> \<not> clss_of_interp (gr.INTERP N) \<Turnstile>G {concl_of \<iota>}
     \<and> concl_of \<iota> < D"
-  using gr.ord_resolve_counterex_reducing
-  sorry
+proof -
+  have "{#} \<notin> N"
+    using bot_ni_n by blast
+  moreover have "\<not> gr.INTERP N \<Turnstile> D"
+    using n_ent_d by simp
+  moreover have "C \<in> N \<Longrightarrow> \<not> gr.INTERP N \<Turnstile> C \<Longrightarrow> D \<le> C" for C
+    using d_min[of C] by simp
+  ultimately obtain CAs AAs As E where
+    cas_sub: "set CAs \<subseteq> N" and
+    cas_true: "gr.INTERP N \<Turnstile>m mset CAs" and
+    cas_prod: "\<And>CA. CA \<in> set CAs \<Longrightarrow> gr.production N CA \<noteq> {}" and
+    res: "gr.ord_resolve CAs D AAs As E" and
+    e_false: "\<not> gr.INTERP N \<Turnstile> E" and
+    e_lt_d: "E < D"
+    using d_in_n gr.ord_resolve_counterex_reducing by blast
+
+  define \<iota> where
+    "\<iota> = Infer (CAs @ [D]) E"
+
+  have i_in: "\<iota> \<in> Inf_G"
+    unfolding Inf_G_def \<iota>_def using res by blast
+  have "main_prem_of \<iota> = D"
+    unfolding \<iota>_def by simp 
+  moreover have "set (side_prems_of \<iota>) \<subseteq> N"
+    unfolding \<iota>_def using cas_sub by simp
+  moreover have "clss_of_interp (gr.INTERP N) \<Turnstile>G set (side_prems_of \<iota>)"
+    unfolding \<iota>_def using cas_true by (simp add: true_clss_def true_cls_mset_def)
+  moreover have "\<not> clss_of_interp (gr.INTERP N) \<Turnstile>G {inference.concl_of \<iota>}"
+    unfolding \<iota>_def using e_false by simp
+  moreover have "inference.concl_of \<iota> < D"
+    unfolding \<iota>_def using e_lt_d by simp
+  ultimately show ?thesis
+    by (auto intro: bexI[OF _ i_in])
+qed
 
 interpretation calc_G: cex_red_calculus_with_std_red_crit Bot_G entails_G
-  "\<lambda>N. {{#Pos C#} | C. C \<in> ground_resolution_with_selection.INTERP (S_M S M) N}" Inf_G
+  "\<lambda>N. clss_of_interp (ground_resolution_with_selection.INTERP (S_M S M) N)" Inf_G
   by (unfold_locales, fact Inf_G_has_prem, fact Inf_G_reductive, fact Inf_G_cex_reducing)
 
 abbreviation Red_Inf_G :: "'a clause set \<Rightarrow> 'a clause inference set" where
