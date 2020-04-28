@@ -21,70 +21,18 @@ hide_const (open) Inference_System.Infer Inference_System.main_prem_of
   Inference_System.side_prems_of Inference_System.prems_of Inference_System.concl_of
 
 
-subsection \<open>Core Development\<close>
-
 context FO_resolution_prover
 begin
 
-abbreviation Bot_F :: "'a clause set" where
-  "Bot_F \<equiv> {{#}}"
 
-definition entails_F :: "'a clause set \<Rightarrow> 'a clause set \<Rightarrow> bool" (infix "\<Turnstile>F" 50) where
-  "N1 \<Turnstile>F N2 \<longleftrightarrow>
-  (\<forall>I \<eta>. (\<forall>\<sigma>. is_ground_subst \<sigma> \<longrightarrow> I \<Turnstile>s N1 \<cdot>cs \<sigma>) \<longrightarrow> is_ground_subst \<eta> \<longrightarrow> I \<Turnstile>s N2 \<cdot>cs \<eta>)"
-
-definition Inf_F :: "'a clause inference set" where
-  "Inf_F = {Infer (CAs @ [DA]) E | CAs DA AAs As \<sigma> E. ord_resolve_rename S CAs DA AAs As \<sigma> E}"
-
-lemma Inf_F_has_prem: "\<iota> \<in> Inf_F \<Longrightarrow> prems_of \<iota> \<noteq> []"
-  unfolding Inf_F_def by force
-
-interpretation F: consequence_relation Bot_F entails_F
-proof
-  fix N2 N1 :: "'a clause set"
-  assume "N2 \<subseteq> N1"
-  then show "N1 \<Turnstile>F N2"
-    unfolding entails_F_def by (metis subst_clss_union sup.orderE true_clss_union)
-next
-  fix N2 N1 :: "'a clause set"
-  assume "\<forall>C \<in> N2. N1 \<Turnstile>F {C}"
-  then show "N1 \<Turnstile>F N2"
-    unfolding entails_F_def by (simp add: subst_clss_def true_clss_def)
-qed (auto simp: entails_F_def)
-
-interpretation F: sound_inference_system Inf_F Bot_F entails_F
-proof
-  fix \<iota>
-  assume i_in: "\<iota> \<in> Inf_F"
-  moreover
-  {
-    fix I \<eta>
-    assume
-      I_entails_prems: "\<forall>\<sigma>. is_ground_subst \<sigma> \<longrightarrow> I \<Turnstile>s set (prems_of \<iota>) \<cdot>cs \<sigma>" and
-      \<eta>_gr: "is_ground_subst \<eta>"
-    obtain CAs AAs As \<sigma> where
-      the_inf: "ord_resolve_rename S CAs (main_prem_of \<iota>) AAs As \<sigma> (concl_of \<iota>)" and
-      CAs: "CAs = side_prems_of \<iota>"
-      using i_in unfolding Inf_F_def by auto
-    have prems: "mset (prems_of \<iota>) = mset (side_prems_of \<iota>) + {#main_prem_of \<iota>#}"
-      by (metis Inf_F_has_prem[OF i_in] add.right_neutral append_Cons append_Nil2
-          append_butlast_last_id mset.simps(2) mset_rev mset_single_iff_right rev_append
-          rev_is_Nil_conv union_mset_add_mset_right)
-    have "I \<Turnstile> concl_of \<iota> \<cdot> \<eta>"
-      using ord_resolve_rename_sound[OF the_inf, of I \<eta>, OF _ \<eta>_gr]
-      unfolding CAs prems[symmetric] using I_entails_prems
-      by (metis set_mset_mset set_mset_subst_cls_mset_subst_clss true_clss_set_mset)
-  }
-  ultimately show "set (inference.prems_of \<iota>) \<Turnstile>F {concl_of \<iota>}"
-    unfolding entails_F_def by simp
-qed
-
-abbreviation Bot_G :: "'a clause set" where
-  "Bot_G \<equiv> {{#}}"
+subsection \<open>Ground Layer\<close>
 
 context
   fixes M :: "'a clause set"
 begin
+
+abbreviation Bot_G :: "'a clause set" where
+  "Bot_G \<equiv> {{#}}"
 
 interpretation gr: selection "S_M S M"
   using selection_axioms by unfold_locales (fact S_M_selects_subseteq S_M_selects_neg_lits)+
@@ -221,6 +169,62 @@ definition \<G>_Inf :: \<open>'a clause inference \<Rightarrow> 'a clause infere
      is_ground_subst_list \<rho>s \<and> is_ground_subst \<rho>
      \<and> Infer (prems_of \<iota> \<cdot>\<cdot>cl \<rho>s) (concl_of \<iota> \<cdot> \<rho>) \<in> Inf_G}\<close>
 
+
+section \<open>First-Order Layer\<close>
+
+abbreviation Bot_F :: "'a clause set" where
+  "Bot_F \<equiv> {{#}}"
+
+definition entails_F :: "'a clause set \<Rightarrow> 'a clause set \<Rightarrow> bool" (infix "\<Turnstile>F" 50) where
+  "N1 \<Turnstile>F N2 \<longleftrightarrow>
+  (\<forall>I \<eta>. (\<forall>\<sigma>. is_ground_subst \<sigma> \<longrightarrow> I \<Turnstile>s N1 \<cdot>cs \<sigma>) \<longrightarrow> is_ground_subst \<eta> \<longrightarrow> I \<Turnstile>s N2 \<cdot>cs \<eta>)"
+
+definition Inf_F :: "'a clause inference set" where
+  "Inf_F = {Infer (CAs @ [DA]) E | CAs DA AAs As \<sigma> E. ord_resolve_rename S CAs DA AAs As \<sigma> E}"
+
+lemma Inf_F_has_prem: "\<iota> \<in> Inf_F \<Longrightarrow> prems_of \<iota> \<noteq> []"
+  unfolding Inf_F_def by force
+
+interpretation F: consequence_relation Bot_F entails_F
+proof
+  fix N2 N1 :: "'a clause set"
+  assume "N2 \<subseteq> N1"
+  then show "N1 \<Turnstile>F N2"
+    unfolding entails_F_def by (metis subst_clss_union sup.orderE true_clss_union)
+next
+  fix N2 N1 :: "'a clause set"
+  assume "\<forall>C \<in> N2. N1 \<Turnstile>F {C}"
+  then show "N1 \<Turnstile>F N2"
+    unfolding entails_F_def by (simp add: subst_clss_def true_clss_def)
+qed (auto simp: entails_F_def)
+
+interpretation F: sound_inference_system Inf_F Bot_F entails_F
+proof
+  fix \<iota>
+  assume i_in: "\<iota> \<in> Inf_F"
+  moreover
+  {
+    fix I \<eta>
+    assume
+      I_entails_prems: "\<forall>\<sigma>. is_ground_subst \<sigma> \<longrightarrow> I \<Turnstile>s set (prems_of \<iota>) \<cdot>cs \<sigma>" and
+      \<eta>_gr: "is_ground_subst \<eta>"
+    obtain CAs AAs As \<sigma> where
+      the_inf: "ord_resolve_rename S CAs (main_prem_of \<iota>) AAs As \<sigma> (concl_of \<iota>)" and
+      CAs: "CAs = side_prems_of \<iota>"
+      using i_in unfolding Inf_F_def by auto
+    have prems: "mset (prems_of \<iota>) = mset (side_prems_of \<iota>) + {#main_prem_of \<iota>#}"
+      by (metis Inf_F_has_prem[OF i_in] add.right_neutral append_Cons append_Nil2
+          append_butlast_last_id mset.simps(2) mset_rev mset_single_iff_right rev_append
+          rev_is_Nil_conv union_mset_add_mset_right)
+    have "I \<Turnstile> concl_of \<iota> \<cdot> \<eta>"
+      using ord_resolve_rename_sound[OF the_inf, of I \<eta>, OF _ \<eta>_gr]
+      unfolding CAs prems[symmetric] using I_entails_prems
+      by (metis set_mset_mset set_mset_subst_cls_mset_subst_clss true_clss_set_mset)
+  }
+  ultimately show "set (inference.prems_of \<iota>) \<Turnstile>F {concl_of \<iota>}"
+    unfolding entails_F_def by simp
+qed
+
 interpretation F: standard_lifting Bot_F Inf_F Bot_G Inf_G entails_G G.Red_Inf G.Red_F \<G>_F \<G>_Inf
 proof
   fix C
@@ -247,7 +251,7 @@ qed auto
 abbreviation entails_\<G>_F :: "'a clause set \<Rightarrow> 'a clause set \<Rightarrow> bool" (infix "\<Turnstile>\<G>" 50) where
   "N1 \<Turnstile>\<G> N2 \<equiv> F.entails_\<G> N1 N2"
 
-lemma union_G_F_ground: \<open>is_ground_clss (\<Union> (\<G>_F ` N))\<close>
+lemma union_\<G>_F_ground: \<open>is_ground_clss (\<Union> (\<G>_F ` N))\<close>
   by (simp add: grounding_ground grounding_of_clss_def is_ground_clss_def)
 
 lemma lifting_in_framework:
@@ -266,11 +270,11 @@ proof -
   have CAs_in: \<open>set CAs \<subseteq> set (prems_of \<iota>\<^sub>0)\<close>
     by (simp add: \<iota>\<^sub>0_is subsetI)
   then have ground_CAs: \<open>is_ground_cls_list CAs\<close>
-    using prems_\<iota>\<^sub>0_in union_G_F_ground is_ground_cls_list_def is_ground_clss_def by auto
+    using prems_\<iota>\<^sub>0_in union_\<G>_F_ground is_ground_cls_list_def is_ground_clss_def by auto
   have DA_in: \<open>DA \<in> set (prems_of \<iota>\<^sub>0)\<close>
     using \<iota>\<^sub>0_is by simp
   then have ground_DA: \<open>is_ground_cls DA\<close>
-    using prems_\<iota>\<^sub>0_in union_G_F_ground is_ground_clss_def by auto
+    using prems_\<iota>\<^sub>0_in union_\<G>_F_ground is_ground_clss_def by auto
   obtain \<sigma> where
     grounded_res: \<open>ord_resolve (S_M S M) CAs DA AAs As \<sigma> E\<close>
     using ground_ord_resolve_imp_ord_resolve[OF ground_DA ground_CAs
@@ -356,25 +360,28 @@ proof
       "\<iota>' \<in> F.Inf_from M"
       "\<iota> \<in> the (\<G>_Inf \<iota>')"
       using \<iota>_in lifting_in_framework
+      oops
 
+(*
     show "\<iota> \<in> G.Red_Inf (\<Union> (\<G>_F ` N))"
       sorry
 
-(*
     fix \<iota>'
     assume i_in: \<open>\<iota>' \<in> F.Inf_from (F.\<G>_set N)\<close>
     obtain \<iota> where \<open>\<iota> \<in> F.Inf_from N\<close> \<open>\<iota>' \<in> the (\<G>_Inf \<iota>)\<close> using i_in lifting_in_framework sorry
     show \<open>\<iota>' \<in> G.Red_Inf (F.\<G>_set N)\<close> using i_in n_sat unfolding src.lifted_calculus_with_red_crit.saturated_def sorry
     oops
-*)
 
 
   show "\<exists>B' \<in> Bot_G. B' \<in> N"
     sorry
+*)
 end
 
+(*
 definition entails_all_\<G>  :: \<open>'a clause set \<Rightarrow> 'a clause set \<Rightarrow> bool\<close> (infix "\<Turnstile>\<G>" 50) where
   \<open>N1 \<Turnstile>\<G> N2 \<longleftrightarrow> \<Union> (grounding_of_cls ` N1) \<Turnstile>G \<Union> (grounding_of_cls ` N2)\<close>
+*)
 
 (* definition Red_Inf_all_\<G> :: "'a clause set \<Rightarrow> 'a clause inference set" where
   \<open>Red_Inf_all_\<G> N = {\<iota> \<in> Inf_F. \<G>_Inf \<iota> \<subseteq> G.Red_Inf (\<G>_set N)}\<close> *)
