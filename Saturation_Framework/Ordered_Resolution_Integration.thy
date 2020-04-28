@@ -1,12 +1,12 @@
-(*  Title:       Ordered_Resolution_Integration_Refactor
+(*  Title:       Ordered_Resolution_Integration
  *  Author:      Sophie Tourret <stourret at mpi-inf.mpg.de>, 2018-2020
  *  Author:      Jasmin Blanchette <j.c.blanchette at vu.nl>, 2020 *)
 
 section \<open>Application of the saturation framework to Bachmair and Ganzinger's RP\<close>
 
-theory Ordered_Resolution_Integration_Refactor
+theory Ordered_Resolution_Integration
   imports
-    Ordered_Resolution_Integration_Refactor_Utils
+    Ordered_Resolution_Integration_Utils
     Saturation_Framework.Prover_Architectures
     Clausal_Inference_Systems
     Soundness_Related
@@ -15,10 +15,10 @@ begin
 
 subsection \<open>Setup\<close>
 
-no_notation true_lit (infix "|\<approx>l" 50)
+no_notation true_lit (infix "\<Turnstile>l" 50)
 no_notation true_cls (infix "\<Turnstile>" 50)
-no_notation true_clss (infix "|\<approx>s" 50)
-no_notation true_cls_mset (infix "|\<approx>m" 50)
+no_notation true_clss (infix "\<Turnstile>s" 50)
+no_notation true_cls_mset (infix "\<Turnstile>m" 50)
 
 hide_type (open) Inference_System.inference
 
@@ -108,23 +108,15 @@ interpretation G: clausal_cex_red_calculus_with_std_red_crit Bot_G entails_G Inf
 interpretation G: static_refutational_complete_calculus Bot_G Inf_G "(\<Turnstile>)" G.Red_Inf G.Red_F
   by unfold_locales (use G.clausal_saturated_complete entails_G_def in blast)
 
-abbreviation \<G>_F :: \<open>'a clause \<Rightarrow> 'a clause set\<close> where
-  \<open>\<G>_F \<equiv> grounding_of_cls\<close>
 
-definition \<G>_Inf :: \<open>'a clause inference \<Rightarrow> 'a clause inference set option\<close> where
-  \<open>\<G>_Inf \<iota> = Some {Infer (prems_of \<iota> \<cdot>\<cdot>cl \<rho>s) (concl_of \<iota> \<cdot> \<rho>) |\<rho> \<rho>s.
-     is_ground_subst_list \<rho>s \<and> is_ground_subst \<rho>
-     \<and> Infer (prems_of \<iota> \<cdot>\<cdot>cl \<rho>s) (concl_of \<iota> \<cdot> \<rho>) \<in> Inf_G}\<close>
-
-
-section \<open>First-OGrder Layer\<close>
+section \<open>First-Order Layer\<close>
 
 abbreviation Bot_F :: "'a clause set" where
   "Bot_F \<equiv> {{#}}"
 
 definition entails_F :: "'a clause set \<Rightarrow> 'a clause set \<Rightarrow> bool" (infix "\<Turnstile>F" 50) where
   "N1 \<Turnstile>F N2 \<longleftrightarrow>
-  (\<forall>I \<eta>. (\<forall>\<sigma>. is_ground_subst \<sigma> \<longrightarrow> I |\<approx>s N1 \<cdot>cs \<sigma>) \<longrightarrow> is_ground_subst \<eta> \<longrightarrow> I |\<approx>s N2 \<cdot>cs \<eta>)"
+  (\<forall>I. (\<forall>\<sigma>. is_ground_subst \<sigma> \<longrightarrow> I |\<approx>s N1 \<cdot>cs \<sigma>) \<longrightarrow> (\<forall>\<sigma>. is_ground_subst \<sigma> \<longrightarrow> I |\<approx>s N2 \<cdot>cs \<sigma>))"
 
 definition Inf_F :: "'a clause inference set" where
   "Inf_F = {Infer (CAs @ [DA]) E | CAs DA AAs As \<sigma> E. ord_resolve_rename S CAs DA AAs As \<sigma> E}"
@@ -171,6 +163,16 @@ proof
   ultimately show "set (inference.prems_of \<iota>) \<Turnstile>F {concl_of \<iota>}"
     unfolding entails_F_def by simp
 qed
+
+abbreviation \<G>_F :: \<open>'a clause \<Rightarrow> 'a clause set\<close> where
+  \<open>\<G>_F \<equiv> grounding_of_cls\<close>
+
+definition \<G>_Inf :: \<open>'a clause inference \<Rightarrow> 'a clause inference set option\<close> where
+  \<open>\<G>_Inf \<iota> = Some {Infer (prems_of \<iota> \<cdot>\<cdot>cl \<rho>s) (concl_of \<iota> \<cdot> \<rho>) |\<rho> \<rho>s.
+     is_ground_subst_list \<rho>s \<and> is_ground_subst \<rho>
+     \<and> Infer (prems_of \<iota> \<cdot>\<cdot>cl \<rho>s) (concl_of \<iota> \<cdot> \<rho>) \<in> Inf_G}\<close>
+
+(* TODO: interpretation F: standard_lifting_with_red_crit_family Inf_F Bot_G Inf_G *)
 
 interpretation F: standard_lifting Bot_F Inf_F Bot_G Inf_G entails_G G.Red_Inf G.Red_F \<G>_F \<G>_Inf
 proof

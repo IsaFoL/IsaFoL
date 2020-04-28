@@ -1,10 +1,10 @@
-(*  Title:       Ordered_Resolution_Integration_Refactor_Utils
+(*  Title:       Ordered_Resolution_Integration_Utils
  *  Author:      Sophie Tourret <stourret at mpi-inf.mpg.de>, 2018-2020
  *  Author:      Jasmin Blanchette <j.c.blanchette at vu.nl>, 2020 *)
 
 section \<open>Libraries for the application of the saturation framework to Bachmair and Ganzinger's RP\<close>
 
-theory Ordered_Resolution_Integration_Refactor_Utils
+theory Ordered_Resolution_Integration_Utils
   imports Ordered_Resolution_Prover.FO_Ordered_Resolution_Prover
 begin
 
