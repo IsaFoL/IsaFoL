@@ -1,11 +1,11 @@
-(*  Title:       The Standard Redundancy Criterion (Revisited)
+(*  Title:       The Standard Redundancy Criterion
     Author:      Jasmin Blanchette <j.c.blanchette at vu.nl>, 2014, 2017, 2020
     Author:      Dmitriy Traytel <traytel at inf.ethz.ch>, 2014
     Author:      Anders Schlichtkrull <andschl at dtu.dk>, 2017
     Maintainer:  Jasmin Blanchette <j.c.blanchette at vu.nl>
 *)
 
-section \<open>The Standard Redundancy Criterion (Revisited)\<close>
+section \<open>The Standard Redundancy Criterion\<close>
 
 theory Standard_Redundancy_Criterion
   imports Counterexample_Reducing_Inference_Systems
@@ -215,7 +215,7 @@ text \<open>
 The following result loosely corresponds to Theorem 4.9.
 \<close>
 
-lemma saturated_complete:
+lemma saturated_model:
   assumes
     satur: "saturated N" and
     bot_ni_n: "N \<inter> Bot = {}"
@@ -252,6 +252,18 @@ proof (rule ccontr)
   then show False
     using concl_cex by auto
 qed
+
+text \<open>
+A more precise abstract version of Theorem 4.9 does not hold without some conditions, according to
+Nitpick:
+\<close>
+
+corollary saturated_complete:
+  assumes
+    satur: "saturated N" and
+    unsat: "N \<Turnstile> Bot"
+  shows "N \<inter> Bot \<noteq> {}"
+  oops
 
 end
 

@@ -1,3 +1,10 @@
+(*  Title:       Clausal Inference Systems
+    Author:      Jasmin Blanchette <j.c.blanchette at vu.nl>, 2020
+    Maintainer:  Jasmin Blanchette <j.c.blanchette at vu.nl>
+*)
+
+section \<open>Clausal Inference Systems\<close>
+
 theory Clausal_Inference_Systems
   imports
     Standard_Redundancy_Criterion
@@ -128,12 +135,20 @@ locale clausal_cex_red_calculus_with_std_red_crit =
     clausal_I_of :: "'a clause set \<Rightarrow> 'a set"
 begin
 
-lemma clausal_saturated_complete:
+lemma clausal_saturated_model:
   assumes
-    satur: "saturated N" and
-    bot_ni_n: "{#} \<notin> N"
+    "saturated N" and
+    "{#} \<notin> N"
   shows "clausal_I_of N |\<approx>s N"
-    using saturated_complete[OF satur] by (simp add: Bot_def bot_ni_n)
+    using assms saturated_model by (simp add: Bot_def)
+
+corollary clausal_saturated_complete:
+  assumes
+    "saturated N" and
+    "\<forall>I. \<not> I |\<approx>s N"
+  shows "{#} \<in> N"
+  using assms clausal_saturated_model by blast
+
 end
 
 end
