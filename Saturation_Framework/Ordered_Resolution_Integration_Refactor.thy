@@ -247,107 +247,6 @@ qed auto
 abbreviation entails_\<G>_F :: "'a clause set \<Rightarrow> 'a clause set \<Rightarrow> bool" (infix "\<Turnstile>\<G>" 50) where
   "N1 \<Turnstile>\<G> N2 \<equiv> F.entails_\<G> N1 N2"
 
-text \<open>This proof is based on part of the proof of
-@{thm FO_Ordered_Resolution_Prover.FO_resolution_prover.RP_saturated_if_fair}.\<close>
-
-lemma gr_ord_resolve_imp_ord_resolve:
-  assumes
-    ground_DA: \<open>is_ground_cls DA\<close> and
-    ground_CAs: \<open>is_ground_cls_list CAs\<close> and
-    gr_res: \<open>gr.ord_resolve CAs DA AAs As E\<close>
-  shows \<open>\<exists>\<sigma>. ord_resolve (S_M S M) CAs DA AAs As \<sigma> E\<close>
-proof -
-  show ?thesis
-    using gr_res
-  proof (cases rule: gr.ord_resolve.cases)
-    case (ord_resolve n Cs D)
-      note DA = this(1) and e = this(2) and cas_len = this(3) and cs_len = this(4) and
-        aas_len = this(5) and as_len = this(6) and nz = this(7) and cas = this(8) and
-        aas_not_empt = this(9) and as_aas = this(10) and eligibility = this(11) and
-        str_max = this(12) and sel_empt = this(13)
-
-      have len_aas_len_as: "length AAs = length As"
-        using aas_len as_len by auto
-
-      from as_aas have "\<forall>i<n. \<forall>A \<in># add_mset (As ! i) (AAs ! i). A = As ! i"
-        using ord_resolve by simp
-      then have "\<forall>i < n. card (set_mset (add_mset (As ! i) (AAs ! i))) \<le> Suc 0"
-        using all_the_same by metis
-      then have "\<forall>i < length AAs. card (set_mset (add_mset (As ! i) (AAs ! i))) \<le> Suc 0"
-        using aas_len by auto
-      then have "\<forall>AA \<in> set (map2 add_mset As AAs). card (set_mset AA) \<le> Suc 0"
-        using set_map2_ex[of AAs As add_mset, OF len_aas_len_as] by auto
-      then have "is_unifiers id_subst (set_mset ` set (map2 add_mset As AAs))"
-        unfolding is_unifiers_def is_unifier_def by auto
-      moreover have "finite (set_mset ` set (map2 add_mset As AAs))"
-        by auto
-      moreover have "\<forall>AA \<in> set_mset ` set (map2 add_mset As AAs). finite AA"
-        by auto
-      ultimately obtain \<sigma> where
-        \<sigma>_p: "Some \<sigma> = mgu (set_mset ` set (map2 add_mset As AAs))"
-        using mgu_complete by metis
-
-      have ground_elig: "gr.eligible As (D + negs (mset As))"
-        using ord_resolve by simp
-      have ground_cs: "\<forall>i < n. is_ground_cls (Cs ! i)"
-        using ord_resolve(8) ord_resolve(3,4) ground_CAs
-        unfolding is_ground_cls_list_def by (metis in_set_conv_nth is_ground_cls_union)
-      have ground_set_as: "is_ground_atms (set As)"
-        using ord_resolve(1) ground_DA
-        by (metis atms_of_negs is_ground_cls_union set_mset_mset
-            is_ground_cls_is_ground_atms_atms_of)
-      then have ground_mset_as: "is_ground_atm_mset (mset As)"
-        unfolding is_ground_atm_mset_def is_ground_atms_def by auto
-      have ground_as: "is_ground_atm_list As"
-        using ground_set_as is_ground_atm_list_def is_ground_atms_def by auto
-      have ground_d: "is_ground_cls D"
-        using ground_DA ord_resolve by simp
-
-      from as_len nz have atms:
-        "atms_of D \<union> set As \<noteq> {}"
-        "finite (atms_of D \<union> set As)"
-        by auto
-      then have "Max (atms_of D \<union> set As) \<in> atms_of D \<union> set As"
-        using Max_in by metis
-      then have is_ground_Max: "is_ground_atm (Max (atms_of D \<union> set As))"
-        using ground_d ground_mset_as is_ground_cls_imp_is_ground_atm
-        unfolding is_ground_atm_mset_def by auto
-
-      have "maximal_wrt (Max (atms_of D \<union> set As)) (D + negs (mset As))"
-        unfolding maximal_wrt_def
-        by clarsimp (metis atms Max_less_iff UnCI ground_d ground_set_as infinite_growing
-            is_ground_Max is_ground_atms_def is_ground_cls_imp_is_ground_atm less_atm_ground)
-      moreover have
-        "Max (atms_of D \<union> set As) \<cdot>a \<sigma> = Max (atms_of D \<union> set As)"
-        "D \<cdot> \<sigma> + negs (mset As \<cdot>am \<sigma>) = D + negs (mset As)"
-        using ground_elig is_ground_Max ground_mset_as ground_d by auto
-      ultimately have fo_elig:
-        "eligible (S_M S M) \<sigma> As (D + negs (mset As))"
-        using ground_elig unfolding gr.eligible.simps gr.maximal_wrt_def eligible.simps by auto
-
-      have "\<forall>i < n. gr.strictly_maximal_wrt (As ! i) (Cs ! i)"
-        using ord_resolve by simp
-      then have "\<forall>i < n. strictly_maximal_wrt (As ! i) (Cs ! i)"
-        unfolding gr.strictly_maximal_wrt_def strictly_maximal_wrt_def
-        using ground_as[unfolded is_ground_atm_list_def] ground_cs as_len less_atm_ground
-        by clarsimp (fastforce simp: is_ground_cls_as_atms)+
-      then have ll: "\<forall>i < n. strictly_maximal_wrt (As ! i \<cdot>a \<sigma>) (Cs ! i \<cdot> \<sigma>)"
-        by (simp add: ground_as ground_cs as_len)
-
-      have m: "\<forall>i < n. S_M S M (CAs ! i) = {#}"
-        using ord_resolve by simp
-
-      have ground_e: "is_ground_cls E"
-        using ground_d ground_cs unfolding e is_ground_cls_def
-        by simp (metis cs_len in_set_conv_nth)
-
-      show ?thesis
-        using m DA e ground_e
-          ord_resolve.intros[OF cas_len cs_len aas_len as_len nz cas aas_not_empt \<sigma>_p fo_elig ll]
-        by auto
-    qed
-qed
-
 lemma union_G_F_ground: \<open>is_ground_clss (\<Union> (\<G>_F ` N))\<close>
   by (simp add: grounding_ground grounding_of_clss_def is_ground_clss_def)
 
@@ -374,7 +273,8 @@ proof -
     using prems_\<iota>\<^sub>0_in union_G_F_ground is_ground_clss_def by auto
   obtain \<sigma> where
     grounded_res: \<open>ord_resolve (S_M S M) CAs DA AAs As \<sigma> E\<close>
-    using gr_ord_resolve_imp_ord_resolve[OF ground_DA ground_CAs gr_res] by auto
+    using gr_ord_resolve_imp_ord_resolve[OF ground_DA ground_CAs
+        gr.ground_resolution_with_selection_axioms gr_res] by auto
   have prems_ground: \<open>{DA} \<union> set CAs \<subseteq> grounding_of_clss M\<close>
     using prems_\<iota>\<^sub>0_in CAs_in DA_in unfolding grounding_of_clss_def by fast
   obtain \<eta>s \<eta> \<eta>2 CAs0 DA0 AAs0 As0 E0 \<tau> where
