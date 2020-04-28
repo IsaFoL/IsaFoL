@@ -50,10 +50,16 @@ lemma Inf_G_has_prem: "\<iota> \<in> Inf_G \<Longrightarrow> prems_of \<iota> \<
 lemma Inf_G_reductive: "\<iota> \<in> Inf_G \<Longrightarrow> concl_of \<iota> < main_prem_of \<iota>"
   unfolding Inf_G_def by (auto dest: gr.ord_resolve_reductive)
 
-interpretation G: clausal_consequence_relation
-  .
+abbreviation Bot_G :: "'a clause set" where
+  "Bot_G \<equiv> {{#}}"
 
-interpretation G: sound_inference_system Inf_G G.Bot G.entails
+definition entails_G (infix "\<Turnstile>" 50) where
+  "N1 \<Turnstile> N2 \<longleftrightarrow> (\<forall>I. I |\<approx>s N1 \<longrightarrow> I |\<approx>s N2)"
+
+interpretation G: clausal_consequence_relation Bot_G "(\<Turnstile>)"
+  by unfold_locales (auto simp: entails_G_def)
+
+interpretation G: sound_inference_system Inf_G Bot_G entails_G
 proof
   fix \<iota>
   assume i_in: "\<iota> \<in> Inf_G"
@@ -71,10 +77,10 @@ proof
           true_clss_insert true_clss_set_mset)
   }
   ultimately show "set (inference.prems_of \<iota>) \<Turnstile> {concl_of \<iota>}"
-    unfolding G.entails_def by simp
+    unfolding entails_G_def by simp
 qed
 
-interpretation G: clausal_cex_red_inference_system Inf_G gr.INTERP
+interpretation G: clausal_cex_red_inference_system entails_G Bot_G Inf_G gr.INTERP
 proof
   fix N D
   assume
@@ -96,21 +102,11 @@ proof
     by (metis (mono_tags, lifting) gr.ex_min_counterex gr.productive_imp_INTERP mem_Collect_eq)
 qed
 
-interpretation G: cex_red_calculus_with_std_red_crit G.Bot G.entails G.I_of Inf_G
+interpretation G: clausal_cex_red_calculus_with_std_red_crit Bot_G entails_G Inf_G gr.INTERP
   by (unfold_locales, fact Inf_G_has_prem, fact Inf_G_reductive)
 
-interpretation G: static_refutational_complete_calculus G.Bot Inf_G "(\<Turnstile>)" G.Red_Inf G.Red_F
-proof
-  fix B N
-  assume
-    B_in: \<open>B \<in> G.Bot\<close> and
-    N_sat: \<open>G.saturated N\<close> and
-    N_unsat: \<open>N \<Turnstile> {B}\<close>
-  have \<open>{#} \<in> N\<close>
-    using B_in G.saturated_complete_if[OF N_sat] N_unsat unfolding G.entails_def by force
-  then show \<open>\<exists>B' \<in> G.Bot. B' \<in> N\<close>
-    by simp
-qed
+interpretation G: static_refutational_complete_calculus Bot_G Inf_G "(\<Turnstile>)" G.Red_Inf G.Red_F
+  by unfold_locales (use G.clausal_saturated_complete entails_G_def in blast)
 
 abbreviation \<G>_F :: \<open>'a clause \<Rightarrow> 'a clause set\<close> where
   \<open>\<G>_F \<equiv> grounding_of_cls\<close>
@@ -121,7 +117,7 @@ definition \<G>_Inf :: \<open>'a clause inference \<Rightarrow> 'a clause infere
      \<and> Infer (prems_of \<iota> \<cdot>\<cdot>cl \<rho>s) (concl_of \<iota> \<cdot> \<rho>) \<in> Inf_G}\<close>
 
 
-section \<open>First-Order Layer\<close>
+section \<open>First-OGrder Layer\<close>
 
 abbreviation Bot_F :: "'a clause set" where
   "Bot_F \<equiv> {{#}}"
@@ -176,10 +172,10 @@ proof
     unfolding entails_F_def by simp
 qed
 
-interpretation F: standard_lifting Bot_F Inf_F G.Bot Inf_G G.entails G.Red_Inf G.Red_F \<G>_F \<G>_Inf
+interpretation F: standard_lifting Bot_F Inf_F Bot_G Inf_G entails_G G.Red_Inf G.Red_F \<G>_F \<G>_Inf
 proof
   fix C
-  show \<open>\<G>_F C \<inter> G.Bot \<noteq> {} \<longrightarrow> C \<in> G.Bot\<close>
+  show \<open>\<G>_F C \<inter> Bot_G \<noteq> {} \<longrightarrow> C \<in> Bot_G\<close>
     by (simp add: grounding_of_cls_def)
 next
   fix \<iota>
@@ -270,7 +266,7 @@ proof -
     by blast
 qed
 
-interpretation F: lifting_with_wf_ordering_family Bot_F Inf_F G.Bot G.entails Inf_G G.Red_Inf
+interpretation F: lifting_with_wf_ordering_family Bot_F Inf_F Bot_G entails_G Inf_G G.Red_Inf
   G.Red_F \<G>_F \<G>_Inf "\<lambda>g. strictly_subsumes"
 proof
   show "po_on strictly_subsumes UNIV"
@@ -294,7 +290,7 @@ interpretation F: static_refutational_complete_calculus Bot_F Inf_F "(\<Turnstil
 proof
   fix B N
   assume
-    b_in: \<open>B \<in> G.Bot\<close> and
+    b_in: \<open>B \<in> Bot_G\<close> and
     n_sat: \<open>F.lifted_calculus_with_red_crit.saturated N\<close> and
     ent_b: \<open>N \<Turnstile>\<G> {B}\<close>
 

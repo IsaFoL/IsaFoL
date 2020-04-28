@@ -27,14 +27,14 @@ no_notation true_cls_mset (infix "\<Turnstile>m" 50)
 
 subsection \<open>Consequence Relation\<close>
 
-locale clausal_consequence_relation
+locale clausal_consequence_relation =
+  fixes
+    Bot :: "'a clause set" and
+    entails :: "'a clause set \<Rightarrow> 'a clause set \<Rightarrow> bool" (infix "\<Turnstile>" 50)
+  assumes
+    Bot_def: "Bot = {{#}}" and
+    entails_def: "N1 \<Turnstile> N2 \<longleftrightarrow> (\<forall>I. I |\<approx>s N1 \<longrightarrow> I |\<approx>s N2)"
 begin
-
-abbreviation Bot :: "'a clause set" where
-  "Bot \<equiv> {{#}}"
-
-definition entails :: "'a clause set \<Rightarrow> 'a clause set \<Rightarrow> bool" (infix "\<Turnstile>" 50) where
-  "N1 \<Turnstile> N2 \<longleftrightarrow> (\<forall>I. I |\<approx>s N1 \<longrightarrow> I |\<approx>s N2)"
 
 sublocale consequence_relation Bot entails
 proof
@@ -47,13 +47,29 @@ next
   assume "\<forall>C \<in> N2. N1 \<Turnstile> {C}"
   then show "N1 \<Turnstile> N2"
     unfolding entails_def true_clss_singleton by (simp add: true_clss_def)
-qed (auto simp: entails_def)
+qed (auto simp: Bot_def entails_def)
 
 end
 
-locale clausal_cex_red_inference_system = inference_system Inf + clausal_consequence_relation
-  for Inf :: "('a :: wellorder) clause inference set" +
-  fixes clausal_I_of :: "'a clause set \<Rightarrow> 'a interp"
+
+subsection \<open>Counterexample-Reducing Inference Systems\<close>
+
+definition clss_of_interp :: "'a set \<Rightarrow> 'a literal multiset set" where
+  "clss_of_interp I = {{#(if A \<in> I then Pos else Neg) A#} |A. True}"
+
+lemma true_clss_of_interp_iff_equal[simp]: "J |\<approx>s clss_of_interp I \<longleftrightarrow> J = I"
+  unfolding clss_of_interp_def true_clss_def true_cls_def true_lit_def by force
+
+lemma (in clausal_consequence_relation) entails_iff_models[simp]:
+  "clss_of_interp I \<Turnstile> CC \<longleftrightarrow> I |\<approx>s CC"
+  unfolding entails_def by simp
+
+locale clausal_cex_red_inference_system = inference_system Inf + clausal_consequence_relation Bot
+  for
+    Bot :: "('a :: wellorder) clause set" and
+    Inf :: "'a clause inference set" +
+  fixes
+    clausal_I_of :: "'a clause set \<Rightarrow> 'a interp"
   assumes clausal_Inf_cex_reducing:
     "{#} \<notin> N \<Longrightarrow> D \<in> N \<Longrightarrow> \<not> clausal_I_of N |\<approx> D \<Longrightarrow>
      (\<And>C. C \<in> N \<Longrightarrow> \<not> clausal_I_of N |\<approx> C \<Longrightarrow> D \<le> C) \<Longrightarrow>
@@ -61,17 +77,8 @@ locale clausal_cex_red_inference_system = inference_system Inf + clausal_consequ
         \<and> \<not> clausal_I_of N |\<approx> E \<and> E < D"
 begin
 
-definition clss_of_interp :: "'a set \<Rightarrow> 'a literal multiset set" where
-  "clss_of_interp I = {{#(if A \<in> I then Pos else Neg) A#} |A. True}"
-
 abbreviation I_of :: "'a clause set \<Rightarrow> 'a clause set" where
   "I_of N \<equiv> clss_of_interp (clausal_I_of N)"
-
-lemma true_clss_of_interp_iff_equal[simp]: "J |\<approx>s clss_of_interp I \<longleftrightarrow> J = I"
-  unfolding clss_of_interp_def true_clss_def true_cls_def true_lit_def by force
-
-lemma entails_iff_models[simp]: "clss_of_interp I \<Turnstile> CC \<longleftrightarrow> I |\<approx>s CC"
-  unfolding entails_def by simp
 
 lemma Inf_cex_reducing:
   assumes
@@ -86,7 +93,7 @@ lemma Inf_cex_reducing:
     \<and> concl_of \<iota> < D"
 proof -
   have "{#} \<notin> N"
-    using bot_ni_n by blast
+    using bot_ni_n Bot_def by blast
   moreover note d_in_n
   moreover have "\<not> clausal_I_of N |\<approx> D"
     using n_ent_d by simp
@@ -106,6 +113,27 @@ qed
 sublocale cex_red_inference_system Bot entails Inf I_of
   by unfold_locales (fact Inf_cex_reducing)
 
+end
+
+
+subsection \<open>Counterexample-Reducing Calculi Equipped with a Standard Redundancy Criterion\<close>
+
+locale clausal_cex_red_calculus_with_std_red_crit =
+  cex_red_calculus_with_std_red_crit Bot entails "\<lambda>N. clss_of_interp (clausal_I_of N)" Inf +
+  clausal_cex_red_inference_system entails Bot Inf clausal_I_of
+  for
+    Bot :: "('a :: wellorder) clause set" and
+    entails :: "'a clause set \<Rightarrow> 'a clause set \<Rightarrow> bool" (infix "\<Turnstile>" 50) and
+    Inf :: "'a clause inference set" and
+    clausal_I_of :: "'a clause set \<Rightarrow> 'a set"
+begin
+
+lemma clausal_saturated_complete:
+  assumes
+    satur: "saturated N" and
+    bot_ni_n: "{#} \<notin> N"
+  shows "clausal_I_of N |\<approx>s N"
+    using saturated_complete[OF satur] by (simp add: Bot_def bot_ni_n)
 end
 
 end

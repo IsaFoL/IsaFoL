@@ -215,7 +215,7 @@ text \<open>
 The following result loosely corresponds to Theorem 4.9.
 \<close>
 
-lemma saturated_complete_if:
+lemma saturated_complete:
   assumes
     satur: "saturated N" and
     bot_ni_n: "N \<inter> Bot = {}"
