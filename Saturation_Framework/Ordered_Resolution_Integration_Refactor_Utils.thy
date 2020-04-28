@@ -8,43 +8,34 @@ theory Ordered_Resolution_Integration_Refactor_Utils
   imports Ordered_Resolution_Prover.FO_Ordered_Resolution_Prover
 begin
 
-(* TODO: Move to @{thy Multiset_More}. *)
-lemma in_mset_sum_list_iff[simp]: "a \<in># sum_list \<A> \<longleftrightarrow> (\<exists>A \<in> set \<A>. a \<in># A)"
-  by (metis in_mset_sum_list in_mset_sum_list2)
-
 context substitution
 begin
 
-(* TODO: Move to @{thy Abstract_Substitution}. *)
-lemma strictly_subsumes_irrefl: "\<not> strictly_subsumes C C"
-  unfolding strictly_subsumes_def by blast
-
-(* TODO: Move to @{thy Abstract_Substitution}. *)
-lemma strictly_subsumes_antisym: "strictly_subsumes C D \<Longrightarrow> \<not> strictly_subsumes D C"
-  unfolding strictly_subsumes_def by blast
-
-(* TODO: Move to @{thy Abstract_Substitution}. *)
-lemma strictly_subsumes_trans:
-  "strictly_subsumes C D \<Longrightarrow> strictly_subsumes D E \<Longrightarrow> strictly_subsumes C E"
-  unfolding strictly_subsumes_def using subsumes_trans by blast
-
-(* TODO: Move to @{thy Abstract_Substitution}. *)
-lemma subst_of_nth[simp]: \<open>i < length (Cs \<cdot>\<cdot>cl \<sigma>s) \<Longrightarrow> (Cs \<cdot>\<cdot>cl \<sigma>s) ! i = (Cs ! i) \<cdot> (\<sigma>s ! i)\<close>
-  unfolding subst_cls_lists_def by auto
-
-(* TODO: Move to @{thy Abstract_Substitution}. *)
-lemma subst_Cons_nth:
-  \<open>i < length ((C \<cdot> \<sigma>) # (Cs \<cdot>\<cdot>cl \<sigma>s)) \<Longrightarrow>
-   (C # Cs) ! i \<cdot> (\<sigma> # \<sigma>s) ! i = ((C \<cdot> \<sigma>) # (Cs \<cdot>\<cdot>cl \<sigma>s)) ! i\<close>
-by (auto simp: nth_Cons' simp del: subst_cls_lists_length)
-
-(* TODO: Move to @{thy Abstract_Substitution}. *)
+(* TODO: Starting with Isabelle2021, this will be in @{thy Abstract_Substitution}. Use that
+   instead. *)
 lemma subst_cls_lists_append[simp]:
   "length Cs = length \<sigma>s \<Longrightarrow> length Cs' = length \<sigma>s' \<Longrightarrow>
    (Cs @ Cs') \<cdot>\<cdot>cl (\<sigma>s @ \<sigma>s') = Cs \<cdot>\<cdot>cl \<sigma>s @ Cs' \<cdot>\<cdot>cl \<sigma>s'"
   unfolding subst_cls_lists_def by auto
 
-(* TODO: Move to @{thy Abstract_Substitution}. *)
+(* TODO: Starting with Isabelle2021, this will be in @{thy Abstract_Substitution}. Use that
+   instead. *)
+lemma strictly_subsumes_irrefl: "\<not> strictly_subsumes C C"
+  unfolding strictly_subsumes_def by blast
+
+(* TODO: Starting with Isabelle2021, this will be in @{thy Abstract_Substitution}. Use that
+   instead. *)
+lemma strictly_subsumes_antisym: "strictly_subsumes C D \<Longrightarrow> \<not> strictly_subsumes D C"
+  unfolding strictly_subsumes_def by blast
+
+(* TODO: Starting with Isabelle2021, this will be in @{thy Abstract_Substitution}. Use that
+   instead. *)
+lemma strictly_subsumes_trans:
+  "strictly_subsumes C D \<Longrightarrow> strictly_subsumes D E \<Longrightarrow> strictly_subsumes C E"
+  unfolding strictly_subsumes_def using subsumes_trans by blast
+
+(* TODO: Starting with Isabelle2021, this will be in @{thy Abstract_Substitution}. Use that
+   instead. *)
 lemma wf_strictly_subsumes: "wfP strictly_subsumes"
   using strictly_subsumes_has_minimum by (metis equals0D wfP_eq_minimal)
 
@@ -56,7 +47,8 @@ begin
 text \<open>This proof is based on part of the proof of
 @{thm FO_Ordered_Resolution_Prover.FO_resolution_prover.RP_saturated_if_fair}.\<close>
 
-(* TODO: Move to @{thy FO_Ordered_Resolution_Prover} and use it there *)
+(* TODO: Starting with Isabelle2021, this will correspond to
+   "FO_Ordered_Resolution_Prover.ground_ord_resolve_imp_ord_resolve". Use that instead. *)
 lemma ground_ord_resolve_imp_ord_resolve:
   assumes
     ground_da: \<open>is_ground_cls DA\<close> and
@@ -138,7 +130,7 @@ proof (cases rule: ground_resolution_with_selection.ord_resolve.cases[OF gr gr_r
 
   have ground_e: "is_ground_cls E"
     using ground_d ground_cs unfolding e is_ground_cls_def
-    by simp (metis cs_len in_set_conv_nth)
+    by simp (metis cs_len in_mset_sum_list2 in_set_conv_nth)
 
   show ?thesis
     using cas da aas as e ground_e ord_resolve.intros[OF cas_len cs_len aas_len as_len nz casi
