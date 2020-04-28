@@ -8,12 +8,17 @@ theory Ordered_Resolution_Integration_Refactor
   imports
     Ordered_Resolution_Integration_Refactor_Utils
     Saturation_Framework.Prover_Architectures
-    Standard_Redundancy_Criterion
+    Clausal_Inference_Systems
     Soundness_Related
 begin
 
 
 subsection \<open>Setup\<close>
+
+no_notation true_lit (infix "|\<approx>l" 50)
+no_notation true_cls (infix "\<Turnstile>" 50)
+no_notation true_clss (infix "|\<approx>s" 50)
+no_notation true_cls_mset (infix "|\<approx>m" 50)
 
 hide_type (open) Inference_System.inference
 
@@ -21,18 +26,14 @@ hide_const (open) Inference_System.Infer Inference_System.main_prem_of
   Inference_System.side_prems_of Inference_System.prems_of Inference_System.concl_of
 
 
+subsection \<open>Ground Layer\<close>
+
 context FO_resolution_prover
 begin
-
-
-subsection \<open>Ground Layer\<close>
 
 context
   fixes M :: "'a clause set"
 begin
-
-abbreviation Bot_G :: "'a clause set" where
-  "Bot_G \<equiv> {{#}}"
 
 interpretation gr: selection "S_M S M"
   using selection_axioms by unfold_locales (fact S_M_selects_subseteq S_M_selects_neg_lits)+
@@ -49,115 +50,65 @@ lemma Inf_G_has_prem: "\<iota> \<in> Inf_G \<Longrightarrow> prems_of \<iota> \<
 lemma Inf_G_reductive: "\<iota> \<in> Inf_G \<Longrightarrow> concl_of \<iota> < main_prem_of \<iota>"
   unfolding Inf_G_def by (auto dest: gr.ord_resolve_reductive)
 
-definition entails_G :: "'a clause set \<Rightarrow> 'a clause set \<Rightarrow> bool" (infix "\<Turnstile>G" 50) where
-  "N1 \<Turnstile>G N2 \<longleftrightarrow> (\<forall>I. I \<Turnstile>s N1 \<longrightarrow> I \<Turnstile>s N2)"
+interpretation G: clausal_consequence_relation
+  .
 
-interpretation G: consequence_relation Bot_G entails_G
-proof
-  fix N2 N1 :: "'a clause set"
-  assume "N2 \<subseteq> N1"
-  then show "N1 \<Turnstile>G N2"
-    unfolding entails_G_def using true_clss_mono by blast
-next
-  fix N2 N1 :: "'a clause set"
-  assume "\<forall>C \<in> N2. N1 \<Turnstile>G {C}"
-  then show "N1 \<Turnstile>G N2"
-    unfolding entails_G_def by (meson gr.ex_min_counterex true_clss_singleton)
-qed (auto simp: entails_G_def)
-
-interpretation G: sound_inference_system Inf_G Bot_G entails_G
+interpretation G: sound_inference_system Inf_G G.Bot G.entails
 proof
   fix \<iota>
   assume i_in: "\<iota> \<in> Inf_G"
   moreover
   {
     fix I
-    assume I_entails_prems: "I \<Turnstile>s set (prems_of \<iota>)"
+    assume I_ent_prems: "I |\<approx>s set (prems_of \<iota>)"
     obtain CAs AAs As where
       the_inf: "gr.ord_resolve CAs (main_prem_of \<iota>) AAs As (concl_of \<iota>)" and
       CAs: "CAs = side_prems_of \<iota>"
       using i_in unfolding Inf_G_def by auto
-    then have "I \<Turnstile> concl_of \<iota>"
+    then have "I |\<approx> concl_of \<iota>"
       using gr.ord_resolve_sound[of CAs "main_prem_of \<iota>" AAs As "concl_of \<iota>" I]
-      by (metis I_entails_prems Inf_G_has_prem i_in insert_is_Un set_mset_mset set_prems_of
+      by (metis I_ent_prems Inf_G_has_prem i_in insert_is_Un set_mset_mset set_prems_of
           true_clss_insert true_clss_set_mset)
   }
-  ultimately show "set (inference.prems_of \<iota>) \<Turnstile>G {concl_of \<iota>}"
-    unfolding entails_G_def by simp
+  ultimately show "set (inference.prems_of \<iota>) \<Turnstile> {concl_of \<iota>}"
+    unfolding G.entails_def by simp
 qed
 
-definition clss_of_interp :: "'b set \<Rightarrow> 'b literal multiset set" where
-  "clss_of_interp I = {{#(if A \<in> I then Pos else Neg) A#} |A. True}"
-
-lemma true_clss_of_interp_iff_equal[simp]: "J \<Turnstile>s clss_of_interp I \<longleftrightarrow> J = I"
-  unfolding clss_of_interp_def true_clss_def true_cls_def true_lit_def by force
-
-lemma entails_G_iff_models[simp]: "clss_of_interp I \<Turnstile>G CC \<longleftrightarrow> I \<Turnstile>s CC"
-  unfolding entails_G_def by simp
-
-lemma Inf_G_cex_reducing:
-  assumes
-    bot_ni_n: "N \<inter> Bot_G = {}" and
-    d_in_n: "D \<in> N" and
-    n_ent_d: "\<not> clss_of_interp (gr.INTERP N) \<Turnstile>G {D}" and
-    d_min: "\<And>C. C \<in> N \<Longrightarrow> \<not> clss_of_interp (gr.INTERP N) \<Turnstile>G {C} \<Longrightarrow> D \<le> C"
-  shows "\<exists>\<iota> \<in> Inf_G.
-    main_prem_of \<iota> = D \<and> set (side_prems_of \<iota>) \<subseteq> N
-    \<and> clss_of_interp (gr.INTERP N) \<Turnstile>G set (side_prems_of \<iota>)
-    \<and> \<not> clss_of_interp (gr.INTERP N) \<Turnstile>G {concl_of \<iota>}
-    \<and> concl_of \<iota> < D"
-proof -
-  have "{#} \<notin> N"
-    using bot_ni_n by blast
-  moreover have "\<not> gr.INTERP N \<Turnstile> D"
-    using n_ent_d by simp
-  moreover have "C \<in> N \<Longrightarrow> \<not> gr.INTERP N \<Turnstile> C \<Longrightarrow> D \<le> C" for C
-    using d_min[of C] by simp
-  ultimately obtain CAs AAs As E where
-    cas_sub: "set CAs \<subseteq> N" and
-    cas_true: "gr.INTERP N \<Turnstile>m mset CAs" and
-    cas_prod: "\<And>CA. CA \<in> set CAs \<Longrightarrow> gr.production N CA \<noteq> {}" and
-    res: "gr.ord_resolve CAs D AAs As E" and
-    e_false: "\<not> gr.INTERP N \<Turnstile> E" and
-    e_lt_d: "E < D"
-    using d_in_n gr.ord_resolve_counterex_reducing by blast
-
-  define \<iota> where
-    "\<iota> = Infer (CAs @ [D]) E"
-
-  have i_in: "\<iota> \<in> Inf_G"
-    unfolding Inf_G_def \<iota>_def using res by blast
-  have "main_prem_of \<iota> = D"
-    unfolding \<iota>_def by simp
-  moreover have "set (side_prems_of \<iota>) \<subseteq> N"
-    unfolding \<iota>_def using cas_sub by simp
-  moreover have "clss_of_interp (gr.INTERP N) \<Turnstile>G set (side_prems_of \<iota>)"
-    unfolding \<iota>_def using cas_true by (simp add: true_clss_def true_cls_mset_def)
-  moreover have "\<not> clss_of_interp (gr.INTERP N) \<Turnstile>G {inference.concl_of \<iota>}"
-    unfolding \<iota>_def using e_false by simp
-  moreover have "inference.concl_of \<iota> < D"
-    unfolding \<iota>_def using e_lt_d by simp
-  ultimately show ?thesis
-    by (auto intro: bexI[OF _ i_in])
+interpretation G: clausal_cex_red_inference_system Inf_G gr.INTERP
+proof
+  fix N D
+  assume
+    "{#} \<notin> N" and
+    "D \<in> N" and
+    "\<not> gr.INTERP N |\<approx> D" and
+    "\<And>C. C \<in> N \<Longrightarrow> \<not> gr.INTERP N |\<approx> C \<Longrightarrow> D \<le> C"
+  then obtain CAs AAs As E where
+    "set CAs \<subseteq> N" and
+    "gr.INTERP N |\<approx>m mset CAs" and
+    "\<And>CA. CA \<in> set CAs \<Longrightarrow> gr.production N CA \<noteq> {}" and
+    "gr.ord_resolve CAs D AAs As E" and
+    "\<not> gr.INTERP N |\<approx> E" and
+    "E < D"
+    using gr.ord_resolve_counterex_reducing by blast
+  then show "\<exists>Cs E. set Cs \<subseteq> N \<and> gr.INTERP N |\<approx>s set Cs \<and> Infer (Cs @ [D]) E \<in> Inf_G
+    \<and> \<not> gr.INTERP N |\<approx> E \<and> E < D"
+    unfolding Inf_G_def
+    by (metis (mono_tags, lifting) gr.ex_min_counterex gr.productive_imp_INTERP mem_Collect_eq)
 qed
 
-interpretation G: cex_red_calculus_with_std_red_crit Bot_G entails_G
-  "\<lambda>N. clss_of_interp (gr.INTERP N)" Inf_G
-  by (unfold_locales, fact Inf_G_has_prem, fact Inf_G_reductive, fact Inf_G_cex_reducing)
+interpretation G: cex_red_calculus_with_std_red_crit G.Bot G.entails G.I_of Inf_G
+  by (unfold_locales, fact Inf_G_has_prem, fact Inf_G_reductive)
 
-interpretation G: static_refutational_complete_calculus Bot_G Inf_G "(\<Turnstile>G)" G.Red_Inf
-  G.Red_F
+interpretation G: static_refutational_complete_calculus G.Bot Inf_G "(\<Turnstile>)" G.Red_Inf G.Red_F
 proof
   fix B N
   assume
-    B_in: \<open>B \<in> Bot_G\<close> and
+    B_in: \<open>B \<in> G.Bot\<close> and
     N_sat: \<open>G.saturated N\<close> and
-    N_unsat: \<open>N \<Turnstile>G {B}\<close>
-  have \<open>B = {#}\<close>
-    using B_in by simp
-  then have \<open>{#} \<in> N\<close>
-    using G.saturated_complete_if[OF N_sat] N_unsat unfolding entails_G_def by force
-  then show \<open>\<exists>B' \<in> Bot_G. B' \<in> N\<close>
+    N_unsat: \<open>N \<Turnstile> {B}\<close>
+  have \<open>{#} \<in> N\<close>
+    using B_in G.saturated_complete_if[OF N_sat] N_unsat unfolding G.entails_def by force
+  then show \<open>\<exists>B' \<in> G.Bot. B' \<in> N\<close>
     by simp
 qed
 
@@ -177,7 +128,7 @@ abbreviation Bot_F :: "'a clause set" where
 
 definition entails_F :: "'a clause set \<Rightarrow> 'a clause set \<Rightarrow> bool" (infix "\<Turnstile>F" 50) where
   "N1 \<Turnstile>F N2 \<longleftrightarrow>
-  (\<forall>I \<eta>. (\<forall>\<sigma>. is_ground_subst \<sigma> \<longrightarrow> I \<Turnstile>s N1 \<cdot>cs \<sigma>) \<longrightarrow> is_ground_subst \<eta> \<longrightarrow> I \<Turnstile>s N2 \<cdot>cs \<eta>)"
+  (\<forall>I \<eta>. (\<forall>\<sigma>. is_ground_subst \<sigma> \<longrightarrow> I |\<approx>s N1 \<cdot>cs \<sigma>) \<longrightarrow> is_ground_subst \<eta> \<longrightarrow> I |\<approx>s N2 \<cdot>cs \<eta>)"
 
 definition Inf_F :: "'a clause inference set" where
   "Inf_F = {Infer (CAs @ [DA]) E | CAs DA AAs As \<sigma> E. ord_resolve_rename S CAs DA AAs As \<sigma> E}"
@@ -206,7 +157,7 @@ proof
   {
     fix I \<eta>
     assume
-      I_entails_prems: "\<forall>\<sigma>. is_ground_subst \<sigma> \<longrightarrow> I \<Turnstile>s set (prems_of \<iota>) \<cdot>cs \<sigma>" and
+      I_entails_prems: "\<forall>\<sigma>. is_ground_subst \<sigma> \<longrightarrow> I |\<approx>s set (prems_of \<iota>) \<cdot>cs \<sigma>" and
       \<eta>_gr: "is_ground_subst \<eta>"
     obtain CAs AAs As \<sigma> where
       the_inf: "ord_resolve_rename S CAs (main_prem_of \<iota>) AAs As \<sigma> (concl_of \<iota>)" and
@@ -216,7 +167,7 @@ proof
       by (metis Inf_F_has_prem[OF i_in] add.right_neutral append_Cons append_Nil2
           append_butlast_last_id mset.simps(2) mset_rev mset_single_iff_right rev_append
           rev_is_Nil_conv union_mset_add_mset_right)
-    have "I \<Turnstile> concl_of \<iota> \<cdot> \<eta>"
+    have "I |\<approx> concl_of \<iota> \<cdot> \<eta>"
       using ord_resolve_rename_sound[OF the_inf, of I \<eta>, OF _ \<eta>_gr]
       unfolding CAs prems[symmetric] using I_entails_prems
       by (metis set_mset_mset set_mset_subst_cls_mset_subst_clss true_clss_set_mset)
@@ -225,10 +176,10 @@ proof
     unfolding entails_F_def by simp
 qed
 
-interpretation F: standard_lifting Bot_F Inf_F Bot_G Inf_G entails_G G.Red_Inf G.Red_F \<G>_F \<G>_Inf
+interpretation F: standard_lifting Bot_F Inf_F G.Bot Inf_G G.entails G.Red_Inf G.Red_F \<G>_F \<G>_Inf
 proof
   fix C
-  show \<open>\<G>_F C \<inter> Bot_G \<noteq> {} \<longrightarrow> C \<in> Bot_G\<close>
+  show \<open>\<G>_F C \<inter> G.Bot \<noteq> {} \<longrightarrow> C \<in> G.Bot\<close>
     by (simp add: grounding_of_cls_def)
 next
   fix \<iota>
@@ -319,7 +270,7 @@ proof -
     by blast
 qed
 
-interpretation F: lifting_with_wf_ordering_family Bot_F Inf_F Bot_G entails_G Inf_G G.Red_Inf
+interpretation F: lifting_with_wf_ordering_family Bot_F Inf_F G.Bot G.entails Inf_G G.Red_Inf
   G.Red_F \<G>_F \<G>_Inf "\<lambda>g. strictly_subsumes"
 proof
   show "po_on strictly_subsumes UNIV"
@@ -327,9 +278,8 @@ proof
     using strictly_subsumes_irrefl strictly_subsumes_trans by blast
 next
   show "wfp_on strictly_subsumes UNIV"
-    unfolding wfp_on_def
     using wf_iff_no_infinite_down_chain[THEN iffD1, OF wf_strictly_subsumes[unfolded wfP_def]]
-    by simp
+    unfolding wfp_on_def by simp
 qed
 
 lemma inf_F_to_inf_G: \<open>\<iota> \<in> Inf_F \<Longrightarrow> the (\<G>_Inf \<iota>) \<subseteq> Inf_G\<close>
@@ -344,7 +294,7 @@ interpretation F: static_refutational_complete_calculus Bot_F Inf_F "(\<Turnstil
 proof
   fix B N
   assume
-    b_in: \<open>B \<in> Bot_G\<close> and
+    b_in: \<open>B \<in> G.Bot\<close> and
     n_sat: \<open>F.lifted_calculus_with_red_crit.saturated N\<close> and
     ent_b: \<open>N \<Turnstile>\<G> {B}\<close>
 
@@ -373,14 +323,14 @@ proof
     oops
 
 
-  show "\<exists>B' \<in> Bot_G. B' \<in> N"
+  show "\<exists>B' \<in> Bot. B' \<in> N"
     sorry
 *)
 end
 
 (*
 definition entails_all_\<G>  :: \<open>'a clause set \<Rightarrow> 'a clause set \<Rightarrow> bool\<close> (infix "\<Turnstile>\<G>" 50) where
-  \<open>N1 \<Turnstile>\<G> N2 \<longleftrightarrow> \<Union> (grounding_of_cls ` N1) \<Turnstile>G \<Union> (grounding_of_cls ` N2)\<close>
+  \<open>N1 \<Turnstile>\<G> N2 \<longleftrightarrow> \<Union> (grounding_of_cls ` N1) \<Turnstile> \<Union> (grounding_of_cls ` N2)\<close>
 *)
 
 (* definition Red_Inf_all_\<G> :: "'a clause set \<Rightarrow> 'a clause inference set" where
