@@ -197,7 +197,7 @@ interpretation G: cex_red_calculus_with_std_red_crit Bot_G entails_G
   "\<lambda>N. clss_of_interp (gr.INTERP N)" Inf_G
   by (unfold_locales, fact Inf_G_has_prem, fact Inf_G_reductive, fact Inf_G_cex_reducing)
 
-interpretation G: static_refutational_complete_calculus Bot_G Inf_G entails_G G.Red_Inf
+interpretation G: static_refutational_complete_calculus Bot_G Inf_G "(\<Turnstile>G)" G.Red_Inf
   G.Red_F
 proof
   fix B N
@@ -225,11 +225,7 @@ interpretation F: standard_lifting Bot_F Inf_F Bot_G Inf_G entails_G G.Red_Inf G
 proof
   fix C
   show \<open>\<G>_F C \<inter> Bot_G \<noteq> {} \<longrightarrow> C \<in> Bot_G\<close>
-  proof
-    assume \<open>\<G>_F C \<inter> Bot_G \<noteq> {}\<close>
-    then show \<open>C \<in> Bot_G\<close>
-      by (simp add: grounding_of_cls_def)
-  qed
+    by (simp add: grounding_of_cls_def)
 next
   fix \<iota>
   assume
@@ -323,39 +319,34 @@ proof -
       have ground_d: "is_ground_cls D"
         using ground_DA ord_resolve by simp
 
-      from as_len nz have "atms_of D \<union> set As \<noteq> {}" "finite (atms_of D \<union> set As)"
+      from as_len nz have atms:
+        "atms_of D \<union> set As \<noteq> {}"
+        "finite (atms_of D \<union> set As)"
         by auto
       then have "Max (atms_of D \<union> set As) \<in> atms_of D \<union> set As"
         using Max_in by metis
       then have is_ground_Max: "is_ground_atm (Max (atms_of D \<union> set As))"
         using ground_d ground_mset_as is_ground_cls_imp_is_ground_atm
         unfolding is_ground_atm_mset_def by auto
-      then have Max\<sigma>_is_Max: "\<forall>\<sigma>. Max (atms_of D \<union> set As) \<cdot>a \<sigma> = Max (atms_of D \<union> set As)"
-        by auto
 
-      have ann1: "maximal_wrt (Max (atms_of D \<union> set As)) (D + negs (mset As))"
+      have "maximal_wrt (Max (atms_of D \<union> set As)) (D + negs (mset As))"
         unfolding maximal_wrt_def
-        by clarsimp (metis Max_less_iff UnCI \<open>atms_of D \<union> set As \<noteq> {}\<close>
-            \<open>finite (atms_of D \<union> set As)\<close> ground_d ground_set_as infinite_growing is_ground_Max
-            is_ground_atms_def is_ground_cls_imp_is_ground_atm less_atm_ground)
-
-      from ground_elig have ann2:
+        by clarsimp (metis atms Max_less_iff UnCI ground_d ground_set_as infinite_growing
+            is_ground_Max is_ground_atms_def is_ground_cls_imp_is_ground_atm less_atm_ground)
+      moreover have
         "Max (atms_of D \<union> set As) \<cdot>a \<sigma> = Max (atms_of D \<union> set As)"
         "D \<cdot> \<sigma> + negs (mset As \<cdot>am \<sigma>) = D + negs (mset As)"
-        using is_ground_Max ground_mset_as ground_d by auto
-
-      from ground_elig have fo_elig:
+        using ground_elig is_ground_Max ground_mset_as ground_d by auto
+      ultimately have fo_elig:
         "eligible (S_M S M) \<sigma> As (D + negs (mset As))"
-        unfolding gr.eligible.simps eligible.simps gr.maximal_wrt_def using ann1 ann2
-        by auto
+        using ground_elig unfolding gr.eligible.simps gr.maximal_wrt_def eligible.simps by auto
 
-      have l: "\<forall>i < n. gr.strictly_maximal_wrt (As ! i) (Cs ! i)"
+      have "\<forall>i < n. gr.strictly_maximal_wrt (As ! i) (Cs ! i)"
         using ord_resolve by simp
       then have "\<forall>i < n. strictly_maximal_wrt (As ! i) (Cs ! i)"
         unfolding gr.strictly_maximal_wrt_def strictly_maximal_wrt_def
         using ground_as[unfolded is_ground_atm_list_def] ground_cs as_len less_atm_ground
         by clarsimp (fastforce simp: is_ground_cls_as_atms)+
-
       then have ll: "\<forall>i < n. strictly_maximal_wrt (As ! i \<cdot>a \<sigma>) (Cs ! i \<cdot> \<sigma>)"
         by (simp add: ground_as ground_cs as_len)
 
@@ -364,6 +355,7 @@ proof -
 
       have ground_e: "is_ground_cls (\<Union># (mset Cs) + D)"
         using ground_d ground_cs ground_E e by simp
+
       show ?thesis
         using m DA e ground_e
           ord_resolve.intros[OF cas_len cs_len aas_len as_len nz cas aas_not_empt \<sigma>_p fo_elig ll]
