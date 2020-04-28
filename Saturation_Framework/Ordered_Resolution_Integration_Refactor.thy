@@ -257,23 +257,7 @@ lemma gr_ord_resolve_imp_ord_resolve:
     gr_res: \<open>gr.ord_resolve CAs DA AAs As E\<close>
   shows \<open>\<exists>\<sigma>. ord_resolve (S_M S M) CAs DA AAs As \<sigma> E\<close>
 proof -
-  have ground_E: "is_ground_cls E"
-  proof -
-    {
-      fix L :: "'a literal"
-      assume "L \<in># E"
-      then have "atm_of L \<in> atms_of E"
-        by (meson atm_of_lit_in_atms_of)
-      moreover have "atms_of E \<subseteq> (\<Union>CA \<in> set CAs. atms_of CA) \<union> atms_of DA"
-        using gr.ord_resolve_atms_of_concl_subset[of CAs DA _ _ E] gr_res by auto
-      ultimately have "is_ground_atm (atm_of L)"
-        using ground_CAs ground_DA is_ground_cls_imp_is_ground_atm is_ground_cls_list_def by auto
-    }
-    then show ?thesis
-      unfolding is_ground_cls_def is_ground_lit_def by simp
-  qed
-
-  show "\<exists>\<sigma>. ord_resolve (S_M S M) CAs DA AAs As \<sigma> E"
+  show ?thesis
     using gr_res
   proof (cases rule: gr.ord_resolve.cases)
     case (ord_resolve n Cs D)
@@ -353,8 +337,9 @@ proof -
       have m: "\<forall>i < n. S_M S M (CAs ! i) = {#}"
         using ord_resolve by simp
 
-      have ground_e: "is_ground_cls (\<Union># (mset Cs) + D)"
-        using ground_d ground_cs ground_E e by simp
+      have ground_e: "is_ground_cls E"
+        using ground_d ground_cs unfolding e is_ground_cls_def
+        by simp (metis cs_len in_set_conv_nth)
 
       show ?thesis
         using m DA e ground_e

@@ -8,6 +8,10 @@ theory Ordered_Resolution_Integration_Refactor_Utils
   imports Ordered_Resolution_Prover.FO_Ordered_Resolution_Prover
 begin
 
+(* TODO: Move to @{thy Multiset_More}. *)
+lemma in_mset_sum_list_iff[simp]: "a \<in># sum_list \<A> \<longleftrightarrow> (\<exists>A \<in> set \<A>. a \<in># A)"
+  by (metis in_mset_sum_list in_mset_sum_list2)
+
 context substitution
 begin
 
