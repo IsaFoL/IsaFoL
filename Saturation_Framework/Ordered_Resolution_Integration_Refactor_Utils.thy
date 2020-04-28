@@ -57,14 +57,13 @@ text \<open>This proof is based on part of the proof of
 @{thm FO_Ordered_Resolution_Prover.FO_resolution_prover.RP_saturated_if_fair}.\<close>
 
 (* TODO: Move to @{thy FO_Ordered_Resolution_Prover} and use it there *)
-(* FIXME: generalize S_M S M *)
-lemma gr_ord_resolve_imp_ord_resolve:
+lemma ground_ord_resolve_imp_ord_resolve:
   assumes
     ground_da: \<open>is_ground_cls DA\<close> and
     ground_cas: \<open>is_ground_cls_list CAs\<close> and
-    gr: "ground_resolution_with_selection (S_M S M)" and
-    gr_res: \<open>ground_resolution_with_selection.ord_resolve (S_M S M) CAs DA AAs As E\<close>
-  shows \<open>\<exists>\<sigma>. ord_resolve (S_M S M) CAs DA AAs As \<sigma> E\<close>
+    gr: "ground_resolution_with_selection S_G" and
+    gr_res: \<open>ground_resolution_with_selection.ord_resolve S_G CAs DA AAs As E\<close>
+  shows \<open>\<exists>\<sigma>. ord_resolve S_G CAs DA AAs As \<sigma> E\<close>
 proof (cases rule: ground_resolution_with_selection.ord_resolve.cases[OF gr gr_res])
   case (1 CAs n Cs AAs As D)
   note cas = this(1) and da = this(2) and aas = this(3) and as = this(4) and e = this(5) and
@@ -93,7 +92,7 @@ proof (cases rule: ground_resolution_with_selection.ord_resolve.cases[OF gr gr_r
     \<sigma>_p: "Some \<sigma> = mgu (set_mset ` set (map2 add_mset As AAs))"
     using mgu_complete by metis
 
-  have ground_elig: "ground_resolution_with_selection.eligible (S_M S M) As (D + negs (mset As))"
+  have ground_elig: "ground_resolution_with_selection.eligible S_G As (D + negs (mset As))"
     using eligibility by simp
   have ground_cs: "\<forall>i < n. is_ground_cls (Cs ! i)"
     using cas cas_len cs_len casi ground_cas nth_mem unfolding is_ground_cls_list_def by force
@@ -122,11 +121,10 @@ proof (cases rule: ground_resolution_with_selection.ord_resolve.cases[OF gr gr_r
     by clarsimp (metis atms Max_less_iff UnCI ground_d ground_set_as infinite_growing
         is_ground_Max is_ground_atms_def is_ground_cls_imp_is_ground_atm less_atm_ground)
   moreover have
-    "Max (atms_of D \<union> set As) \<cdot>a \<sigma> = Max (atms_of D \<union> set As)"
+    "Max (atms_of D \<union> set As) \<cdot>a \<sigma> = Max (atms_of D \<union> set As)" and
     "D \<cdot> \<sigma> + negs (mset As \<cdot>am \<sigma>) = D + negs (mset As)"
     using ground_elig is_ground_Max ground_mset_as ground_d by auto
-  ultimately have fo_elig:
-    "eligible (S_M S M) \<sigma> As (D + negs (mset As))"
+  ultimately have fo_elig: "eligible S_G \<sigma> As (D + negs (mset As))"
     using ground_elig unfolding ground_resolution_with_selection.eligible.simps[OF gr]
       ground_resolution_with_selection.maximal_wrt_def[OF gr] eligible.simps
     by auto

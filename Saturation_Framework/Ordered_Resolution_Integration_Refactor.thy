@@ -273,7 +273,7 @@ proof -
     using prems_\<iota>\<^sub>0_in union_G_F_ground is_ground_clss_def by auto
   obtain \<sigma> where
     grounded_res: \<open>ord_resolve (S_M S M) CAs DA AAs As \<sigma> E\<close>
-    using gr_ord_resolve_imp_ord_resolve[OF ground_DA ground_CAs
+    using ground_ord_resolve_imp_ord_resolve[OF ground_DA ground_CAs
         gr.ground_resolution_with_selection_axioms gr_res] by auto
   have prems_ground: \<open>{DA} \<union> set CAs \<subseteq> grounding_of_clss M\<close>
     using prems_\<iota>\<^sub>0_in CAs_in DA_in unfolding grounding_of_clss_def by fast
