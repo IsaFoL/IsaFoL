@@ -188,8 +188,8 @@ datatype label =
 definition Inf_FL :: "('a clause \<times> label) inference set" where
   "Inf_FL = {Infer (zip Cs Ls) (D, New) |Cs D Ls. Infer Cs D \<in> Inf_F \<and> length Ls = length Cs}"
 
-definition Equiv_F :: "('a clause \<times> 'a clause) set" where
-  "Equiv_F = {(C, D) |C D. subsumes C D \<and> subsumes D C}"
+abbreviation Equiv_F :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" where
+  "Equiv_F C D \<equiv> subsumes C D \<and> subsumes D C"
 
 abbreviation Prec_F :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" where
   "Prec_F \<equiv> subsumes"
@@ -210,8 +210,49 @@ next
   show "consequence_relation Bot_F (\<Turnstile>F)"
     by (fact F.consequence_relation_axioms)
 
-  show "calculus_with_red_crit Bot_F (Inf_G N) (\<Turnstile>F) (Red_Inf_q N) (Red_F_q N)"
+  show "calculus_with_red_crit Bot_F (Inf_G N) (\<Turnstile>F) (Red_Inf_G N) Red_F_G"
     sorry
+
+  show "lifting_with_wf_ordering_family Bot_F Inf_F Bot_F (\<Turnstile>F) (Inf_G N) (Red_Inf_G N) Red_F_G \<G>_F
+    (\<G>_Inf N) (\<lambda>g. Empty_Order)"
+    sorry
+next
+  fix \<iota> and ls :: "label list"
+  assume
+    "\<iota> \<in> Inf_F"
+    "length ls = length (prems_of \<iota>)"
+  show "\<exists>l. Infer (zip (prems_of \<iota>) ls) (concl_of \<iota>, l) \<in> Inf_FL"
+    sorry
+next
+  fix \<iota>
+  assume "\<iota> \<in> Inf_FL"
+  show "Infer (map fst (prems_of \<iota>)) (fst (concl_of \<iota>)) \<in> Inf_F"
+    sorry
+next
+  show "equivp Equiv_F"
+    sorry
+next
+  show "po_on Prec_F UNIV"
+    sorry
+next
+  show "wfp_on Prec_F UNIV"
+    sorry
+next
+  show "po_on Prec_l UNIV"
+    sorry
+next
+  show "wfp_on Prec_l UNIV"
+    sorry
+next
+  show "\<And>C1 D1 C2 D2. Equiv_F C1 D1 \<Longrightarrow> Equiv_F C2 D2 \<Longrightarrow> Prec_F C1 C2 \<Longrightarrow> Prec_F D1 D2"
+    sorry
+next
+  show "\<And>q C1 C2. q \<in> UNIV \<Longrightarrow> Equiv_F C1 C2 \<Longrightarrow> \<G>_F C1 = \<G>_F C2"
+    sorry
+next
+  show "\<And>q C2 C1. q \<in> UNIV \<Longrightarrow> Prec_F C2 C1 \<Longrightarrow> \<G>_F C1 \<subseteq> \<G>_F C2"
+    sorry
+
 qed
 
 
