@@ -6,7 +6,7 @@ section \<open>Application of the saturation framework to Bachmair and Ganzinger
 
 theory Ordered_Resolution_Integration
   imports
-    Ordered_Resolution_Integration_Utils
+    Ordered_Resolution_Prover.FO_Ordered_Resolution_Prover
     Saturation_Framework.Prover_Architectures
     Clausal_Inference_Systems
     Soundness_Related
@@ -44,7 +44,7 @@ interpretation gr: ground_resolution_with_selection "S_M S M"
 definition Inf_G :: "'a clause inference set" where
   "Inf_G = {Infer (CAs @ [DA]) E | CAs DA AAs As E. gr.ord_resolve CAs DA AAs As E}"
 
-lemma Inf_G_has_prem: "\<iota> \<in> Inf_G \<Longrightarrow> prems_of \<iota> \<noteq> []"
+lemma Inf_G_have_prems: "\<iota> \<in> Inf_G \<Longrightarrow> prems_of \<iota> \<noteq> []"
   unfolding Inf_G_def by auto
 
 lemma Inf_G_reductive: "\<iota> \<in> Inf_G \<Longrightarrow> concl_of \<iota> < main_prem_of \<iota>"
@@ -59,7 +59,7 @@ definition entails_G (infix "\<Turnstile>" 50) where
 interpretation G: clausal_consequence_relation Bot_G "(\<Turnstile>)"
   by unfold_locales (auto simp: entails_G_def)
 
-interpretation G: sound_inference_system Inf_G Bot_G entails_G
+interpretation G: sound_inference_system Inf_G Bot_G "(\<Turnstile>)"
 proof
   fix \<iota>
   assume i_in: "\<iota> \<in> Inf_G"
@@ -73,14 +73,14 @@ proof
       using i_in unfolding Inf_G_def by auto
     then have "I |\<approx> concl_of \<iota>"
       using gr.ord_resolve_sound[of CAs "main_prem_of \<iota>" AAs As "concl_of \<iota>" I]
-      by (metis I_ent_prems Inf_G_has_prem i_in insert_is_Un set_mset_mset set_prems_of
+      by (metis I_ent_prems Inf_G_have_prems i_in insert_is_Un set_mset_mset set_prems_of
           true_clss_insert true_clss_set_mset)
   }
   ultimately show "set (inference.prems_of \<iota>) \<Turnstile> {concl_of \<iota>}"
     unfolding entails_G_def by simp
 qed
 
-interpretation G: clausal_cex_red_inference_system entails_G Bot_G Inf_G gr.INTERP
+interpretation G: clausal_cex_red_inference_system "(\<Turnstile>)" Bot_G Inf_G gr.INTERP
 proof
   fix N D
   assume
@@ -102,14 +102,22 @@ proof
     by (metis (mono_tags, lifting) gr.ex_min_counterex gr.productive_imp_INTERP mem_Collect_eq)
 qed
 
-interpretation G: clausal_cex_red_calculus_with_std_red_crit Bot_G entails_G Inf_G gr.INTERP
-  by (unfold_locales, fact Inf_G_has_prem, fact Inf_G_reductive)
+interpretation G: clausal_cex_red_calculus_with_std_red_crit Bot_G "(\<Turnstile>)" Inf_G gr.INTERP
+  by (unfold_locales, fact Inf_G_have_prems, fact Inf_G_reductive)
+
+definition Red_Inf_G :: "'a clause set \<Rightarrow> 'a clause inference set" where
+  "Red_Inf_G = G.Red_Inf"
+
+definition Red_F_G :: "'a clause set \<Rightarrow> 'a clause set" where
+  "Red_F_G = G.Red_F"
 
 interpretation G: static_refutational_complete_calculus Bot_G Inf_G "(\<Turnstile>)" G.Red_Inf G.Red_F
   by unfold_locales (use G.clausal_saturated_complete entails_G_def in blast)
 
+end
 
-section \<open>First-Order Layer\<close>
+
+subsection \<open>First-Order Layer\<close>
 
 abbreviation Bot_F :: "'a clause set" where
   "Bot_F \<equiv> {{#}}"
@@ -121,10 +129,10 @@ definition entails_F :: "'a clause set \<Rightarrow> 'a clause set \<Rightarrow>
 definition Inf_F :: "'a clause inference set" where
   "Inf_F = {Infer (CAs @ [DA]) E | CAs DA AAs As \<sigma> E. ord_resolve_rename S CAs DA AAs As \<sigma> E}"
 
-lemma Inf_F_has_prem: "\<iota> \<in> Inf_F \<Longrightarrow> prems_of \<iota> \<noteq> []"
+lemma Inf_F_have_prems: "\<iota> \<in> Inf_F \<Longrightarrow> prems_of \<iota> \<noteq> []"
   unfolding Inf_F_def by force
 
-interpretation F: consequence_relation Bot_F entails_F
+interpretation F: consequence_relation Bot_F "(\<Turnstile>F)"
 proof
   fix N2 N1 :: "'a clause set"
   assume "N2 \<subseteq> N1"
@@ -137,7 +145,7 @@ next
     unfolding entails_F_def by (simp add: subst_clss_def true_clss_def)
 qed (auto simp: entails_F_def)
 
-interpretation F: sound_inference_system Inf_F Bot_F entails_F
+interpretation F: sound_inference_system Inf_F Bot_F "(\<Turnstile>F)"
 proof
   fix \<iota>
   assume i_in: "\<iota> \<in> Inf_F"
@@ -152,7 +160,7 @@ proof
       CAs: "CAs = side_prems_of \<iota>"
       using i_in unfolding Inf_F_def by auto
     have prems: "mset (prems_of \<iota>) = mset (side_prems_of \<iota>) + {#main_prem_of \<iota>#}"
-      by (metis Inf_F_has_prem[OF i_in] add.right_neutral append_Cons append_Nil2
+      by (metis Inf_F_have_prems[OF i_in] add.right_neutral append_Cons append_Nil2
           append_butlast_last_id mset.simps(2) mset_rev mset_single_iff_right rev_append
           rev_is_Nil_conv union_mset_add_mset_right)
     have "I |\<approx> concl_of \<iota> \<cdot> \<eta>"
@@ -167,14 +175,67 @@ qed
 abbreviation \<G>_F :: \<open>'a clause \<Rightarrow> 'a clause set\<close> where
   \<open>\<G>_F \<equiv> grounding_of_cls\<close>
 
-definition \<G>_Inf :: \<open>'a clause inference \<Rightarrow> 'a clause inference set option\<close> where
-  \<open>\<G>_Inf \<iota> = Some {Infer (prems_of \<iota> \<cdot>\<cdot>cl \<rho>s) (concl_of \<iota> \<cdot> \<rho>) |\<rho> \<rho>s.
+definition \<G>_Inf :: \<open>'a clause set \<Rightarrow> 'a clause inference \<Rightarrow> 'a clause inference set option\<close> where
+  \<open>\<G>_Inf N \<iota> = Some {Infer (prems_of \<iota> \<cdot>\<cdot>cl \<rho>s) (concl_of \<iota> \<cdot> \<rho>) |\<rho> \<rho>s.
      is_ground_subst_list \<rho>s \<and> is_ground_subst \<rho>
-     \<and> Infer (prems_of \<iota> \<cdot>\<cdot>cl \<rho>s) (concl_of \<iota> \<cdot> \<rho>) \<in> Inf_G}\<close>
+     \<and> Infer (prems_of \<iota> \<cdot>\<cdot>cl \<rho>s) (concl_of \<iota> \<cdot> \<rho>) \<in> Inf_G N}\<close>
+
+datatype label =
+  New
+| Processed
+| Active
+
+definition Inf_FL :: "('a clause \<times> label) inference set" where
+  "Inf_FL = {Infer (zip Cs Ls) (D, New) |Cs D Ls. Infer Cs D \<in> Inf_F \<and> length Ls = length Cs}"
+
+definition Equiv_F :: "('a clause \<times> 'a clause) set" where
+  "Equiv_F = {(C, D) |C D. subsumes C D \<and> subsumes D C}"
+
+abbreviation Prec_F :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" where
+  "Prec_F \<equiv> subsumes"
+
+fun Prec_l :: "label \<Rightarrow> label \<Rightarrow> bool" where
+  "Prec_l Active l \<longleftrightarrow> l \<noteq> Active"
+| "Prec_l Processed l \<longleftrightarrow> l \<noteq> Processed"
+| "Prec_l New l \<longleftrightarrow> False"
+
+interpretation GC: Given_Clause Bot_F Inf_F Bot_G UNIV "\<lambda>N. (\<Turnstile>F)" Inf_G Red_Inf_G "\<lambda>N. Red_F_G"
+  "\<lambda>N. \<G>_F" \<G>_Inf Inf_FL Equiv_F Prec_F Prec_l Active
+proof (unfold_locales; (intro ballI)?)
+  show "(UNIV :: 'a clause set set) \<noteq> {}"
+    sorry
+next
+  fix N :: "'a clause set"
+
+  show "consequence_relation Bot_F (\<Turnstile>F)"
+    by (fact F.consequence_relation_axioms)
+
+  show "calculus_with_red_crit Bot_F (Inf_G N) (\<Turnstile>F) (Red_Inf_q N) (Red_F_q N)"
+    sorry
+qed
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 (* TODO: interpretation F: standard_lifting_with_red_crit_family Inf_F Bot_G Inf_G *)
 
-interpretation F: standard_lifting Bot_F Inf_F Bot_G Inf_G entails_G G.Red_Inf G.Red_F \<G>_F \<G>_Inf
+interpretation F: standard_lifting Bot_F Inf_F Bot_G Inf_G "(\<Turnstile>)" G.Red_Inf G.Red_F \<G>_F \<G>_Inf
 proof
   fix C
   show \<open>\<G>_F C \<inter> Bot_G \<noteq> {} \<longrightarrow> C \<in> Bot_G\<close>
@@ -268,7 +329,7 @@ proof -
     by blast
 qed
 
-interpretation F: lifting_with_wf_ordering_family Bot_F Inf_F Bot_G entails_G Inf_G G.Red_Inf
+interpretation F: lifting_with_wf_ordering_family Bot_F Inf_F Bot_G "(\<Turnstile>G)" Inf_G G.Red_Inf
   G.Red_F \<G>_F \<G>_Inf "\<lambda>g. strictly_subsumes"
 proof
   show "po_on strictly_subsumes UNIV"
@@ -324,7 +385,6 @@ proof
   show "\<exists>B' \<in> Bot. B' \<in> N"
     sorry
 *)
-end
 
 (*
 definition entails_all_\<G>  :: \<open>'a clause set \<Rightarrow> 'a clause set \<Rightarrow> bool\<close> (infix "\<Turnstile>\<G>" 50) where
@@ -333,6 +393,9 @@ definition entails_all_\<G>  :: \<open>'a clause set \<Rightarrow> 'a clause set
 
 (* definition Red_Inf_all_\<G> :: "'a clause set \<Rightarrow> 'a clause inference set" where
   \<open>Red_Inf_all_\<G> N = {\<iota> \<in> Inf_F. \<G>_Inf \<iota> \<subseteq> G.Red_Inf (\<G>_set N)}\<close> *)
+
+
+
 
 end
 

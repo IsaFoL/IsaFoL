@@ -42,7 +42,7 @@ the argument.
 \<close>
 
 lemma Red_F_of_subset: "N \<subseteq> N' \<Longrightarrow> Red_F N \<subseteq> Red_F N'"
-  unfolding Red_F_def by auto
+  unfolding Red_F_def by fast
 
 lemma wlog_non_Red_F:
   assumes "DD0 \<subseteq> N" "finite DD0" "DD0 \<union> CC \<Turnstile> E" "\<forall>D' \<in> DD0. D' < D"
@@ -64,7 +64,7 @@ proof -
     d_min: "\<forall>DD'. set_mset DD' \<subseteq> N \<and> set_mset DD' \<union> CC \<Turnstile> E \<and> (\<forall>D' \<in># DD'. D' < D) \<longrightarrow> DD \<le> DD'"
     by blast
 
-  have "\<forall>Da. Da \<in># DD \<longrightarrow> Da \<notin> Red_F N"
+  have "\<forall>Da \<in># DD. Da \<notin> Red_F N"
   proof clarify
     fix Da
     assume
