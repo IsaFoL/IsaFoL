@@ -188,22 +188,31 @@ datatype label =
 definition Inf_FL :: "('a clause \<times> label) inference set" where
   "Inf_FL = {Infer (zip Cs Ls) (D, New) |Cs D Ls. Infer Cs D \<in> Inf_F \<and> length Ls = length Cs}"
 
-abbreviation Equiv_F :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" where
-  "Equiv_F C D \<equiv> subsumes C D \<and> subsumes D C"
+abbreviation Equiv_F :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" (infix "\<doteq>" 50) where
+  "C \<doteq> D \<equiv> subsumes C D \<and> subsumes D C"
 
-abbreviation Prec_F :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" where
-  "Prec_F \<equiv> subsumes"
+abbreviation Prec_F :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" (infix "\<prec>\<cdot>" 50) where
+  "Prec_F \<equiv> strictly_subsumes"
 
-fun Prec_l :: "label \<Rightarrow> label \<Rightarrow> bool" where
-  "Prec_l Active l \<longleftrightarrow> l \<noteq> Active"
-| "Prec_l Processed l \<longleftrightarrow> l \<noteq> Processed"
-| "Prec_l New l \<longleftrightarrow> False"
+fun Prec_l :: "label \<Rightarrow> label \<Rightarrow> bool" (infix "\<sqsubset>l" 50) where
+  "Active \<sqsubset>l l \<longleftrightarrow> l \<noteq> Active"
+| "Processed \<sqsubset>l l \<longleftrightarrow> l = New"
+| "New \<sqsubset>l l \<longleftrightarrow> False"
+
+lemma irrefl_Prec_l: "\<not> l \<sqsubset>l l"
+  by (cases l) auto
+
+lemma trans_Prec_l: "l1 \<sqsubset>l l2 \<Longrightarrow> l2 \<sqsubset>l l3 \<Longrightarrow> l1 \<sqsubset>l l3"
+  by (cases l1; cases l2; cases l3) auto
+
+lemma wf_Prec_l: "wfP (\<sqsubset>l)"
+  by (metis Prec_l.elims(2) Prec_l.simps(3) not_accp_down wfP_accp_iff)
 
 interpretation F: standard_lifting_with_red_crit_family Inf_F Bot_G UNIV Inf_G "\<lambda>N. (\<Turnstile>F)" Red_Inf_G
-    "\<lambda>N. Red_F_G" Bot_F "\<lambda>N. \<G>_F" \<G>_Inf "\<lambda>C. Prec_F"
+    "\<lambda>N. Red_F_G" Bot_F "\<lambda>N. \<G>_F" \<G>_Inf "\<lambda>C. (\<prec>\<cdot>)"
 proof (unfold_locales; (intro ballI)?)
   show "UNIV \<noteq> {}"
-    sorry
+    by (rule UNIV_not_empty)
 next
   show "consequence_relation Bot_F (\<Turnstile>F)"
     by (fact F.consequence_relation_axioms)
@@ -214,7 +223,7 @@ next
 next
   fix N
   show "lifting_with_wf_ordering_family Bot_F Inf_F Bot_F (\<Turnstile>F) (Inf_G N) (Red_Inf_G N) Red_F_G \<G>_F
-    (\<G>_Inf N) (\<lambda>C. Prec_F)"
+    (\<G>_Inf N) (\<lambda>C. (\<prec>\<cdot>))"
     sorry
 qed
 
@@ -255,7 +264,7 @@ next
     unfolding F.entails_\<G>_Q_def F.entails_\<G>_q_def using F.entails_trans by blast
 qed
 
-(*
+(* FIXME:
 proof
   fix C
   show \<open>\<G>_F C \<inter> Bot_G \<noteq> {} \<longrightarrow> C \<in> Bot_G\<close>
@@ -280,7 +289,7 @@ qed auto
 *)
 
 interpretation GC: Given_Clause Bot_F Inf_F Bot_G UNIV "\<lambda>N. (\<Turnstile>F)" Inf_G Red_Inf_G "\<lambda>N. Red_F_G"
-  "\<lambda>N. \<G>_F" \<G>_Inf Inf_FL Equiv_F Prec_F Prec_l Active
+  "\<lambda>N. \<G>_F" \<G>_Inf Inf_FL "(\<doteq>)" "(\<prec>\<cdot>)" "(\<sqsubset>l)" Active
 proof (unfold_locales; (intro ballI)?)
   fix N :: "'a clause set"
   show "lifting_with_wf_ordering_family Bot_F Inf_F Bot_F (\<Turnstile>F) (Inf_G N) (Red_Inf_G N) Red_F_G \<G>_F
@@ -291,44 +300,51 @@ next
   assume
     "\<iota> \<in> Inf_F"
     "length ls = length (prems_of \<iota>)"
-  show "\<exists>l. Infer (zip (prems_of \<iota>) ls) (concl_of \<iota>, l) \<in> Inf_FL"
-    sorry
+  then show "\<exists>l. Infer (zip (prems_of \<iota>) ls) (concl_of \<iota>, l) \<in> Inf_FL"
+    unfolding Inf_FL_def by force
 next
   fix \<iota>
   assume "\<iota> \<in> Inf_FL"
-  show "Infer (map fst (prems_of \<iota>)) (fst (concl_of \<iota>)) \<in> Inf_F"
-    sorry
+  then show "Infer (map fst (prems_of \<iota>)) (fst (concl_of \<iota>)) \<in> Inf_F"
+    unfolding Inf_FL_def by auto
 next
-  show "equivp Equiv_F"
-    sorry
+  show "equivp (\<doteq>)"
+    unfolding equivp_def by (meson subsumes_refl subsumes_trans)
 next
-  show "po_on Prec_F UNIV"
-    sorry
+  show "po_on (\<prec>\<cdot>) UNIV"
+    unfolding po_on_def irreflp_on_def transp_on_def
+    using strictly_subsumes_irrefl strictly_subsumes_trans by blast
 next
-  show "wfp_on Prec_F UNIV"
-    sorry
+  show "wfp_on (\<prec>\<cdot>) UNIV"
+    unfolding wfp_on_UNIV by (simp add: wf_strictly_subsumes)
 next
-  show "po_on Prec_l UNIV"
-    sorry
+  show "po_on (\<sqsubset>l) UNIV"
+    unfolding po_on_def irreflp_on_def transp_on_def using irrefl_Prec_l trans_Prec_l by blast
 next
-  show "wfp_on Prec_l UNIV"
-    sorry
+  show "wfp_on (\<sqsubset>l) UNIV"
+    unfolding wfp_on_UNIV by (rule wf_Prec_l)
 next
   fix C1 D1 C2 D2
   assume
-    "Equiv_F C1 D1"
-    "Equiv_F C2 D2"
-    "Prec_F C1 C2"
-  show "Prec_F D1 D2"
-    sorry
+    "C1 \<doteq> D1"
+    "C2 \<doteq> D2"
+    "C1 \<prec>\<cdot> C2"
+  then show "D1 \<prec>\<cdot> D2"
+    by (meson strictly_subsumes_def subsumes_trans)
 next
   fix N C1 C2
-  show "Equiv_F C1 C2 \<Longrightarrow> \<G>_F C1 = \<G>_F C2"
-    sorry
+  assume "C1 \<doteq> C2"
+  then show "\<G>_F C1 \<subseteq> \<G>_F C2"
+    unfolding subsumes_def grounding_of_cls_def
+    by clarsimp (metis is_ground_comp_subst strict_subset_subst_strictly_subsumes
+        strictly_subsumes_neq strictly_subsumes_trans subset_mset.antisym_conv2 subst_cls_comp_subst
+        subst_cls_id_subst)
 next
   fix N C2 C1
-  assume "Prec_F C2 C1"
-  show "\<G>_F C1 \<subseteq> \<G>_F C2"
+  assume "C2 \<prec>\<cdot> C1"
+  then show "\<G>_F C1 \<subseteq> \<G>_F C2"
+    unfolding strictly_subsumes_def subsumes_def grounding_of_cls_def
+    apply clarsimp
     sorry
 next
   fix N
