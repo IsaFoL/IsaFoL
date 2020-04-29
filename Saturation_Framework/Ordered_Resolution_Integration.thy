@@ -199,20 +199,90 @@ fun Prec_l :: "label \<Rightarrow> label \<Rightarrow> bool" where
 | "Prec_l Processed l \<longleftrightarrow> l \<noteq> Processed"
 | "Prec_l New l \<longleftrightarrow> False"
 
+interpretation F: standard_lifting_with_red_crit_family Inf_F Bot_G UNIV Inf_G "\<lambda>N. (\<Turnstile>F)" Red_Inf_G
+    "\<lambda>N. Red_F_G" Bot_F "\<lambda>N. \<G>_F" \<G>_Inf "\<lambda>C. Prec_F"
+proof (unfold_locales; (intro ballI)?)
+  show "UNIV \<noteq> {}"
+    sorry
+next
+  show "consequence_relation Bot_F (\<Turnstile>F)"
+    by (fact F.consequence_relation_axioms)
+next
+  fix N
+  show "calculus_with_red_crit Bot_F (Inf_G N) (\<Turnstile>F) (Red_Inf_G N) Red_F_G"
+    sorry
+next
+  fix N
+  show "lifting_with_wf_ordering_family Bot_F Inf_F Bot_F (\<Turnstile>F) (Inf_G N) (Red_Inf_G N) Red_F_G \<G>_F
+    (\<G>_Inf N) (\<lambda>C. Prec_F)"
+    sorry
+qed
+
+abbreviation entails_\<G>_Q_F :: "'a clause set \<Rightarrow> 'a clause set \<Rightarrow> bool" (infix "\<Turnstile>\<G>" 50) where
+  "(\<Turnstile>\<G>) \<equiv> F.entails_\<G>_Q"
+
+interpretation F: consequence_relation Bot_F "(\<Turnstile>\<G>)"
+proof
+  show "Bot_F \<noteq> {}"
+    by (rule F.bot_not_empty)
+next
+  fix B N1
+  assume "B \<in> Bot_F"
+  then show "{B} \<Turnstile>\<G> N1"
+    unfolding F.entails_\<G>_Q_def
+    using F.lifted_calc_w_red_crit_family.entails_Q_def
+      F.lifted_calc_w_red_crit_family.inter_red_crit_calculus.bot_entails_all by blast
+next
+  fix N2 N1 :: "'a clause set"
+  assume "N2 \<subseteq> N1"
+  then show "N1 \<Turnstile>\<G> N2"
+    unfolding F.entails_\<G>_Q_def
+    using F.lifted_calc_w_red_crit_family.entails_Q_def
+      F.lifted_calc_w_red_crit_family.inter_red_crit_calculus.subset_entailed by blast
+next
+  fix N2 N1
+  assume "\<forall>C \<in> N2. N1 \<Turnstile>\<G> {C}"
+  then show "N1 \<Turnstile>\<G> N2"
+    unfolding F.entails_\<G>_Q_def
+    using F.lifted_calc_w_red_crit_family.q_cons_rel consequence_relation.entail_set_all_formulas
+    by blast
+next
+  fix N1 N2 N3
+  assume
+    "N1 \<Turnstile>\<G> N2"
+    "N2 \<Turnstile>\<G> N3"
+  then show "N1 \<Turnstile>\<G> N3"
+    unfolding F.entails_\<G>_Q_def F.entails_\<G>_q_def using F.entails_trans by blast
+qed
+
+(*
+proof
+  fix C
+  show \<open>\<G>_F C \<inter> Bot_G \<noteq> {} \<longrightarrow> C \<in> Bot_G\<close>
+    by (simp add: grounding_of_cls_def)
+next
+  fix \<iota>
+  assume
+    i_in: \<open>\<iota> \<in> Inf_F\<close> and
+    g_def: \<open>\<G>_Inf \<iota> \<noteq> None\<close>
+  show \<open>the (\<G>_Inf \<iota>) \<subseteq> G.Red_Inf (\<G>_F (concl_of \<iota>))\<close>
+  proof
+    fix \<iota>'
+    assume i'_in: \<open>\<iota>' \<in> the (\<G>_Inf \<iota>)\<close>
+    then have i'_in2: \<open>\<iota>' \<in> Inf_G\<close>
+      unfolding \<G>_Inf_def g_def by auto
+    have concl_in: \<open>concl_of \<iota>' \<in> \<G>_F (concl_of \<iota>)\<close>
+      using i'_in unfolding \<G>_Inf_def grounding_of_cls_def by auto
+    show \<open>\<iota>' \<in> G.Red_Inf (\<G>_F (concl_of \<iota>))\<close>
+      using standard_lifting.inf_map i'_in2 concl_in by (simp add: G.Red_Inf_of_Inf_to_N)
+  qed
+qed auto
+*)
+
 interpretation GC: Given_Clause Bot_F Inf_F Bot_G UNIV "\<lambda>N. (\<Turnstile>F)" Inf_G Red_Inf_G "\<lambda>N. Red_F_G"
   "\<lambda>N. \<G>_F" \<G>_Inf Inf_FL Equiv_F Prec_F Prec_l Active
 proof (unfold_locales; (intro ballI)?)
-  show "(UNIV :: 'a clause set set) \<noteq> {}"
-    sorry
-next
   fix N :: "'a clause set"
-
-  show "consequence_relation Bot_F (\<Turnstile>F)"
-    by (fact F.consequence_relation_axioms)
-
-  show "calculus_with_red_crit Bot_F (Inf_G N) (\<Turnstile>F) (Red_Inf_G N) Red_F_G"
-    sorry
-
   show "lifting_with_wf_ordering_family Bot_F Inf_F Bot_F (\<Turnstile>F) (Inf_G N) (Red_Inf_G N) Red_F_G \<G>_F
     (\<G>_Inf N) (\<lambda>g. Empty_Order)"
     sorry
@@ -244,14 +314,24 @@ next
   show "wfp_on Prec_l UNIV"
     sorry
 next
-  show "\<And>C1 D1 C2 D2. Equiv_F C1 D1 \<Longrightarrow> Equiv_F C2 D2 \<Longrightarrow> Prec_F C1 C2 \<Longrightarrow> Prec_F D1 D2"
+  fix C1 D1 C2 D2
+  assume
+    "Equiv_F C1 D1"
+    "Equiv_F C2 D2"
+    "Prec_F C1 C2"
+  show "Prec_F D1 D2"
     sorry
 next
-  show "\<And>q C1 C2. q \<in> UNIV \<Longrightarrow> Equiv_F C1 C2 \<Longrightarrow> \<G>_F C1 = \<G>_F C2"
+  fix N C1 C2
+  show "Equiv_F C1 C2 \<Longrightarrow> \<G>_F C1 = \<G>_F C2"
     sorry
 next
-  show "\<And>q C2 C1. q \<in> UNIV \<Longrightarrow> Prec_F C2 C1 \<Longrightarrow> \<G>_F C1 \<subseteq> \<G>_F C2"
+  fix N C2 C1
+  assume "Prec_F C2 C1"
+  show "\<G>_F C1 \<subseteq> \<G>_F C2"
     sorry
+next
+
 
 qed
 
@@ -274,30 +354,6 @@ qed
 
 
 
-(* TODO: interpretation F: standard_lifting_with_red_crit_family Inf_F Bot_G Inf_G *)
-
-interpretation F: standard_lifting Bot_F Inf_F Bot_G Inf_G "(\<Turnstile>)" G.Red_Inf G.Red_F \<G>_F \<G>_Inf
-proof
-  fix C
-  show \<open>\<G>_F C \<inter> Bot_G \<noteq> {} \<longrightarrow> C \<in> Bot_G\<close>
-    by (simp add: grounding_of_cls_def)
-next
-  fix \<iota>
-  assume
-    i_in: \<open>\<iota> \<in> Inf_F\<close> and
-    g_def: \<open>\<G>_Inf \<iota> \<noteq> None\<close>
-  show \<open>the (\<G>_Inf \<iota>) \<subseteq> G.Red_Inf (\<G>_F (concl_of \<iota>))\<close>
-  proof
-    fix \<iota>'
-    assume i'_in: \<open>\<iota>' \<in> the (\<G>_Inf \<iota>)\<close>
-    then have i'_in2: \<open>\<iota>' \<in> Inf_G\<close>
-      unfolding \<G>_Inf_def g_def by auto
-    have concl_in: \<open>concl_of \<iota>' \<in> \<G>_F (concl_of \<iota>)\<close>
-      using i'_in unfolding \<G>_Inf_def grounding_of_cls_def by auto
-    show \<open>\<iota>' \<in> G.Red_Inf (\<G>_F (concl_of \<iota>))\<close>
-      using standard_lifting.inf_map i'_in2 concl_in by (simp add: G.Red_Inf_of_Inf_to_N)
-  qed
-qed auto
 
 abbreviation entails_\<G>_F :: "'a clause set \<Rightarrow> 'a clause set \<Rightarrow> bool" (infix "\<Turnstile>\<G>" 50) where
   "N1 \<Turnstile>\<G> N2 \<equiv> F.entails_\<G> N1 N2"
