@@ -331,8 +331,75 @@ next
   show "\<G>_F C1 \<subseteq> \<G>_F C2"
     sorry
 next
-
-
+  fix N
+  show "F.empty_ord_lifted_calc_w_red_crit_family.Red_Inf_Q N \<subseteq> Inf_F"
+    using F.lifted_calc_w_red_crit_family.inter_red_crit_calculus.Red_Inf_to_Inf by blast
+next
+  fix B N
+  assume
+    "B \<in> Bot_F"
+    "N \<Turnstile>\<G> {B}"
+  then show "N - F.empty_ord_lifted_calc_w_red_crit_family.Red_F_Q N \<Turnstile>\<G> {B}"
+    by (metis (no_types, lifting) F.Red_F_\<G>_empty_def
+        F.empty_ord_lifted_calc_w_red_crit_family.Red_F_Q_def
+        F.inter_calc calculus_with_red_crit.Red_F_Bot)
+next
+  fix N N' :: "'a clause set"
+  assume "N \<subseteq> N'"
+  then show "F.empty_ord_lifted_calc_w_red_crit_family.Red_F_Q N
+    \<subseteq> F.empty_ord_lifted_calc_w_red_crit_family.Red_F_Q N'"
+    by (simp add: F.empty_ord_lifted_calc_w_red_crit_family.inter_red_crit_calculus.Red_F_of_subset)
+next
+  fix N N' :: "'a clause set"
+  assume "N \<subseteq> N'"
+  then show "F.empty_ord_lifted_calc_w_red_crit_family.Red_Inf_Q N
+    \<subseteq> F.empty_ord_lifted_calc_w_red_crit_family.Red_Inf_Q N'"
+    by (simp add: F.lifted_calc_w_red_crit_family.inter_red_crit_calculus.Red_Inf_of_subset)
+next
+  fix N' N
+  assume "N' \<subseteq> F.empty_ord_lifted_calc_w_red_crit_family.Red_F_Q N"
+  then show "F.empty_ord_lifted_calc_w_red_crit_family.Red_F_Q N
+    \<subseteq> F.empty_ord_lifted_calc_w_red_crit_family.Red_F_Q (N - N')"
+    by (simp add: F.empty_ord_lifted_calc_w_red_crit_family.inter_red_crit_calculus.Red_F_of_Red_F_subset)
+next
+  fix N' N
+  assume "N' \<subseteq> F.empty_ord_lifted_calc_w_red_crit_family.Red_F_Q N"
+  then show "F.empty_ord_lifted_calc_w_red_crit_family.Red_Inf_Q N
+    \<subseteq> F.empty_ord_lifted_calc_w_red_crit_family.Red_Inf_Q (N - N')"
+    by (simp add: F.empty_ord_lifted_calc_w_red_crit_family.inter_red_crit_calculus.Red_Inf_of_Red_F_subset)
+next
+  fix \<iota> N
+  assume
+    "\<iota> \<in> Inf_F"
+    "concl_of \<iota> \<in> N"
+  then show "\<iota> \<in> F.empty_ord_lifted_calc_w_red_crit_family.Red_Inf_Q N"
+    by (simp add: F.lifted_calc_w_red_crit_family.inter_red_crit_calculus.Red_Inf_of_Inf_to_N)
+next
+  fix B N
+  assume
+    "B \<in> Bot_F"
+    "F.empty_ord_lifted_calc_w_red_crit_family.inter_red_crit_calculus.saturated N"
+    "N \<Turnstile>\<G> {B}"
+  show "\<exists>B' \<in> Bot_F. B' \<in> N"
+    sorry
+next
+  fix \<iota>
+  assume "\<iota> \<in> Inf_F"
+  then show "prems_of \<iota> \<noteq> []"
+    by (simp add: Inf_F_have_prems)
+next
+  fix l
+  assume "l \<noteq> Active"
+  then show "Prec_l Active l"
+    by simp
+next
+  show "\<exists>l. Prec_l Active l"
+    using Prec_l.simps(1) by blast
+next
+  fix \<iota>
+  assume "\<iota> \<in> Inf_FL"
+  then show "snd (concl_of \<iota>) \<noteq> Active"
+    unfolding Inf_FL_def by auto
 qed
 
 
