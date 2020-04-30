@@ -189,10 +189,10 @@ definition Inf_FL :: "('a clause \<times> label) inference set" where
   "Inf_FL = {Infer (zip Cs Ls) (D, New) |Cs D Ls. Infer Cs D \<in> Inf_F \<and> length Ls = length Cs}"
 
 abbreviation Equiv_F :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" (infix "\<doteq>" 50) where
-  "C \<doteq> D \<equiv> subsumes C D \<and> subsumes D C"
+  "C \<doteq> D \<equiv> generalizes C D \<and> generalizes D C"
 
 abbreviation Prec_F :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" (infix "\<prec>\<cdot>" 50) where
-  "Prec_F \<equiv> strictly_subsumes"
+  "C \<prec>\<cdot> D \<equiv> strictly_generalizes C D"
 
 fun Prec_l :: "label \<Rightarrow> label \<Rightarrow> bool" (infix "\<sqsubset>l" 50) where
   "Active \<sqsubset>l l \<longleftrightarrow> l \<noteq> Active"
@@ -209,7 +209,7 @@ lemma wf_Prec_l: "wfP (\<sqsubset>l)"
   by (metis Prec_l.elims(2) Prec_l.simps(3) not_accp_down wfP_accp_iff)
 
 interpretation F: standard_lifting_with_red_crit_family Inf_F Bot_G UNIV Inf_G "\<lambda>N. (\<Turnstile>F)" Red_Inf_G
-    "\<lambda>N. Red_F_G" Bot_F "\<lambda>N. \<G>_F" \<G>_Inf "\<lambda>C. (\<prec>\<cdot>)"
+    "\<lambda>N. Red_F_G" Bot_F "\<lambda>N. \<G>_F" \<G>_Inf "\<lambda>D. Empty_Order"
 proof (unfold_locales; (intro ballI)?)
   show "UNIV \<noteq> {}"
     by (rule UNIV_not_empty)
@@ -217,13 +217,47 @@ next
   show "consequence_relation Bot_F (\<Turnstile>F)"
     by (fact F.consequence_relation_axioms)
 next
-  fix N
-  show "calculus_with_red_crit Bot_F (Inf_G N) (\<Turnstile>F) (Red_Inf_G N) Red_F_G"
-    sorry
+  fix M
+  show "calculus_with_red_crit Bot_F (Inf_G M) (\<Turnstile>F) (Red_Inf_G M) Red_F_G"
+  proof
+    fix N
+    show "Red_Inf_G M N \<subseteq> Inf_G M"
+      sorry
+  next
+    fix B N
+    assume
+      "B \<in> Bot_F"
+      "N \<Turnstile>F {B}"
+    show "N - Red_F_G N \<Turnstile>F {B}"
+      sorry
+  next
+    fix N N' :: "'a clause set"
+    assume "N \<subseteq> N'"
+
+    show "Red_F_G N \<subseteq> Red_F_G N'"
+      sorry
+    show "Red_Inf_G M N \<subseteq> Red_Inf_G M N'"
+      sorry
+  next
+    fix N' N
+    assume "N' \<subseteq> Red_F_G N"
+
+    show "Red_F_G N \<subseteq> Red_F_G (N - N')"
+      sorry
+    show "Red_Inf_G M N \<subseteq> Red_Inf_G M (N - N')"
+      sorry
+  next
+    fix \<iota> N
+    assume
+      "\<iota> \<in> Inf_G M"
+      "concl_of \<iota> \<in> N"
+    show "\<iota> \<in> Red_Inf_G M N"
+      sorry
+  qed
 next
-  fix N
-  show "lifting_with_wf_ordering_family Bot_F Inf_F Bot_F (\<Turnstile>F) (Inf_G N) (Red_Inf_G N) Red_F_G \<G>_F
-    (\<G>_Inf N) (\<lambda>C. (\<prec>\<cdot>))"
+  fix M
+  show "lifting_with_wf_ordering_family Bot_F Inf_F Bot_F (\<Turnstile>F) (Inf_G M) (Red_Inf_G M) Red_F_G \<G>_F
+    (\<G>_Inf M) (\<lambda>D. Empty_Order)"
     sorry
 qed
 
@@ -288,14 +322,9 @@ next
 qed auto
 *)
 
-interpretation GC: Given_Clause Bot_F Inf_F Bot_G UNIV "\<lambda>N. (\<Turnstile>F)" Inf_G Red_Inf_G "\<lambda>N. Red_F_G"
-  "\<lambda>N. \<G>_F" \<G>_Inf Inf_FL "(\<doteq>)" "(\<prec>\<cdot>)" "(\<sqsubset>l)" Active
-proof (unfold_locales; (intro ballI)?)
-  fix N :: "'a clause set"
-  show "lifting_with_wf_ordering_family Bot_F Inf_F Bot_F (\<Turnstile>F) (Inf_G N) (Red_Inf_G N) Red_F_G \<G>_F
-    (\<G>_Inf N) (\<lambda>g. Empty_Order)"
-    sorry
-next
+interpretation F: labeled_lifting_with_red_crit_family Bot_F Inf_F Bot_G UNIV
+  "\<lambda>N. (\<Turnstile>F)" Inf_G Red_Inf_G "\<lambda>N. Red_F_G" "\<lambda>N. \<G>_F" \<G>_Inf Inf_FL
+proof
   fix \<iota> and ls :: "label list"
   assume
     "\<iota> \<in> Inf_F"
@@ -307,16 +336,20 @@ next
   assume "\<iota> \<in> Inf_FL"
   then show "Infer (map fst (prems_of \<iota>)) (fst (concl_of \<iota>)) \<in> Inf_F"
     unfolding Inf_FL_def by auto
-next
+qed
+
+interpretation F: Given_Clause Bot_F Inf_F Bot_G UNIV "\<lambda>N. (\<Turnstile>F)" Inf_G Red_Inf_G "\<lambda>N. Red_F_G"
+  "\<lambda>N. \<G>_F" \<G>_Inf Inf_FL "(\<doteq>)" "(\<prec>\<cdot>)" "(\<sqsubset>l)" Active
+proof (unfold_locales; (intro ballI)?)
   show "equivp (\<doteq>)"
-    unfolding equivp_def by (meson subsumes_refl subsumes_trans)
+    unfolding equivp_def by (meson generalizes_refl generalizes_trans)
 next
   show "po_on (\<prec>\<cdot>) UNIV"
     unfolding po_on_def irreflp_on_def transp_on_def
-    using strictly_subsumes_irrefl strictly_subsumes_trans by blast
+    using strictly_generalizes_irrefl strictly_generalizes_trans by auto
 next
   show "wfp_on (\<prec>\<cdot>) UNIV"
-    unfolding wfp_on_UNIV by (simp add: wf_strictly_subsumes)
+    unfolding wfp_on_UNIV by (metis wf_strictly_generalizes)
 next
   show "po_on (\<sqsubset>l) UNIV"
     unfolding po_on_def irreflp_on_def transp_on_def using irrefl_Prec_l trans_Prec_l by blast
@@ -330,22 +363,19 @@ next
     "C2 \<doteq> D2"
     "C1 \<prec>\<cdot> C2"
   then show "D1 \<prec>\<cdot> D2"
-    by (meson strictly_subsumes_def subsumes_trans)
+    by (smt antisym size_mset_mono size_subst strictly_generalizes_def generalizes_def generalizes_trans)
 next
   fix N C1 C2
   assume "C1 \<doteq> C2"
   then show "\<G>_F C1 \<subseteq> \<G>_F C2"
-    unfolding subsumes_def grounding_of_cls_def
-    by clarsimp (metis is_ground_comp_subst strict_subset_subst_strictly_subsumes
-        strictly_subsumes_neq strictly_subsumes_trans subset_mset.antisym_conv2 subst_cls_comp_subst
-        subst_cls_id_subst)
+    unfolding generalizes_def grounding_of_cls_def
+    by clarsimp (metis is_ground_comp_subst subst_cls_comp_subst)
 next
   fix N C2 C1
   assume "C2 \<prec>\<cdot> C1"
   then show "\<G>_F C1 \<subseteq> \<G>_F C2"
-    unfolding strictly_subsumes_def subsumes_def grounding_of_cls_def
-    apply clarsimp
-    sorry
+    unfolding strictly_generalizes_def generalizes_def grounding_of_cls_def
+    by clarsimp (metis is_ground_comp_subst subst_cls_comp_subst)
 next
   fix N
   show "F.empty_ord_lifted_calc_w_red_crit_family.Red_Inf_Q N \<subseteq> Inf_F"
@@ -425,6 +455,59 @@ qed
 
 
 
+(*
+interpretation F: static_refutational_complete_calculus Bot_F Inf_F "(\<Turnstile>\<G>)" F.Red_Inf_\<G> F.Red_F_\<G>
+proof
+  fix B N
+  assume
+    b_in: \<open>B \<in> Bot_G\<close> and
+    n_sat: \<open>F.lifted_calculus_with_red_crit.saturated N\<close> and
+    ent_b: \<open>N \<Turnstile>\<G> {B}\<close>
+
+  have \<open>B = {#}\<close>
+    using b_in by simp
+  have gn_sat: \<open>G.saturated (F.\<G>_set N)\<close>
+    unfolding G.saturated_def
+  proof
+    fix \<iota>
+    assume \<iota>_in: \<open>\<iota> \<in> G.Inf_from (\<Union> (\<G>_F ` N))\<close>
+
+    obtain \<iota>' where
+      "\<iota>' \<in> F.Inf_from M"
+      "\<iota> \<in> the (\<G>_Inf \<iota>')"
+      using \<iota>_in lifting_in_framework
+      oops
+ 
+(*
+    show "\<iota> \<in> G.Red_Inf (\<Union> (\<G>_F ` N))"
+      sorry
+
+    fix \<iota>'
+    assume i_in: \<open>\<iota>' \<in> F.Inf_from (F.\<G>_set N)\<close>
+    obtain \<iota> where \<open>\<iota> \<in> F.Inf_from N\<close> \<open>\<iota>' \<in> the (\<G>_Inf \<iota>)\<close> using i_in lifting_in_framework sorry
+    show \<open>\<iota>' \<in> G.Red_Inf (F.\<G>_set N)\<close> using i_in n_sat unfolding src.lifted_calculus_with_red_crit.saturated_def sorry
+    oops
+
+
+  show "\<exists>B' \<in> Bot. B' \<in> N"
+    sorry
+*)
+
+(*
+definition entails_all_\<G>  :: \<open>'a clause set \<Rightarrow> 'a clause set \<Rightarrow> bool\<close> (infix "\<Turnstile>\<G>" 50) where
+  \<open>N1 \<Turnstile>\<G> N2 \<longleftrightarrow> \<Union> (grounding_of_cls ` N1) \<Turnstile> \<Union> (grounding_of_cls ` N2)\<close>
+*)
+
+(* definition Red_Inf_all_\<G> :: "'a clause set \<Rightarrow> 'a clause inference set" where
+  \<open>Red_Inf_all_\<G> N = {\<iota> \<in> Inf_F. \<G>_Inf \<iota> \<subseteq> G.Red_Inf (\<G>_set N)}\<close> *)
+
+
+
+
+end
+ 
+
+*)
 
 
 
@@ -433,13 +516,6 @@ qed
 
 
 
-
-
-
-
-
-abbreviation entails_\<G>_F :: "'a clause set \<Rightarrow> 'a clause set \<Rightarrow> bool" (infix "\<Turnstile>\<G>" 50) where
-  "N1 \<Turnstile>\<G> N2 \<equiv> F.entails_\<G> N1 N2"
 
 lemma union_\<G>_F_ground: \<open>is_ground_clss (\<Union> (\<G>_F ` N))\<close>
   by (simp add: grounding_ground grounding_of_clss_def is_ground_clss_def)
@@ -509,74 +585,6 @@ proof -
     by blast
 qed
 
-interpretation F: lifting_with_wf_ordering_family Bot_F Inf_F Bot_G "(\<Turnstile>G)" Inf_G G.Red_Inf
-  G.Red_F \<G>_F \<G>_Inf "\<lambda>g. strictly_subsumes"
-proof
-  show "po_on strictly_subsumes UNIV"
-    unfolding po_on_def irreflp_on_def transp_on_def
-    using strictly_subsumes_irrefl strictly_subsumes_trans by blast
-next
-  show "wfp_on strictly_subsumes UNIV"
-    using wf_iff_no_infinite_down_chain[THEN iffD1, OF wf_strictly_subsumes[unfolded wfP_def]]
-    unfolding wfp_on_def by simp
-qed
 
-lemma inf_F_to_inf_G: \<open>\<iota> \<in> Inf_F \<Longrightarrow> the (\<G>_Inf \<iota>) \<subseteq> Inf_G\<close>
-  unfolding \<G>_Inf_def by auto
-
-lemma inf_G_in_inf_F: \<open>Inf_G \<subseteq> Inf_F\<close>
-  unfolding Inf_G_def Inf_F_def
-  apply auto
-  sorry
-
-interpretation F: static_refutational_complete_calculus Bot_F Inf_F "(\<Turnstile>\<G>)" F.Red_Inf_\<G> F.Red_F_\<G>
-proof
-  fix B N
-  assume
-    b_in: \<open>B \<in> Bot_G\<close> and
-    n_sat: \<open>F.lifted_calculus_with_red_crit.saturated N\<close> and
-    ent_b: \<open>N \<Turnstile>\<G> {B}\<close>
-
-  have \<open>B = {#}\<close>
-    using b_in by simp
-  have gn_sat: \<open>G.saturated (F.\<G>_set N)\<close>
-    unfolding G.saturated_def
-  proof
-    fix \<iota>
-    assume \<iota>_in: \<open>\<iota> \<in> G.Inf_from (\<Union> (\<G>_F ` N))\<close>
-
-    obtain \<iota>' where
-      "\<iota>' \<in> F.Inf_from M"
-      "\<iota> \<in> the (\<G>_Inf \<iota>')"
-      using \<iota>_in lifting_in_framework
-      oops
-
-(*
-    show "\<iota> \<in> G.Red_Inf (\<Union> (\<G>_F ` N))"
-      sorry
-
-    fix \<iota>'
-    assume i_in: \<open>\<iota>' \<in> F.Inf_from (F.\<G>_set N)\<close>
-    obtain \<iota> where \<open>\<iota> \<in> F.Inf_from N\<close> \<open>\<iota>' \<in> the (\<G>_Inf \<iota>)\<close> using i_in lifting_in_framework sorry
-    show \<open>\<iota>' \<in> G.Red_Inf (F.\<G>_set N)\<close> using i_in n_sat unfolding src.lifted_calculus_with_red_crit.saturated_def sorry
-    oops
-
-
-  show "\<exists>B' \<in> Bot. B' \<in> N"
-    sorry
-*)
-
-(*
-definition entails_all_\<G>  :: \<open>'a clause set \<Rightarrow> 'a clause set \<Rightarrow> bool\<close> (infix "\<Turnstile>\<G>" 50) where
-  \<open>N1 \<Turnstile>\<G> N2 \<longleftrightarrow> \<Union> (grounding_of_cls ` N1) \<Turnstile> \<Union> (grounding_of_cls ` N2)\<close>
-*)
-
-(* definition Red_Inf_all_\<G> :: "'a clause set \<Rightarrow> 'a clause inference set" where
-  \<open>Red_Inf_all_\<G> N = {\<iota> \<in> Inf_F. \<G>_Inf \<iota> \<subseteq> G.Red_Inf (\<G>_set N)}\<close> *)
-
-
-
-
-end
 
 end
