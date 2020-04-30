@@ -31,10 +31,10 @@ definition redundant_infer :: "'f set \<Rightarrow> 'f inference \<Rightarrow> b
    (\<exists>DD \<subseteq> N. finite DD \<and> DD \<union> set (side_prems_of \<iota>) \<Turnstile> {concl_of \<iota>} \<and> (\<forall>D \<in> DD. D < main_prem_of \<iota>))"
 
 definition Red_Inf :: "'f set \<Rightarrow> 'f inference set" where
-"Red_Inf N = {\<iota> \<in> Inf. redundant_infer N \<iota>}"
+  "Red_Inf N = {\<iota> \<in> Inf. redundant_infer N \<iota>}"
 
 definition Red_F :: "'f set \<Rightarrow> 'f set" where
-"Red_F N = {C. (\<exists>DD \<subseteq> N. finite DD \<and> DD \<Turnstile> {C} \<and> (\<forall>D \<in> DD. D < C))}"
+  "Red_F N = {C. (\<exists>DD \<subseteq> N. finite DD \<and> DD \<Turnstile> {C} \<and> (\<forall>D \<in> DD. D < C))}"
 
 text \<open>
 The following results correspond to Lemma 4.5. The lemma \<open>wlog_non_Red_F\<close> generalizes the core of

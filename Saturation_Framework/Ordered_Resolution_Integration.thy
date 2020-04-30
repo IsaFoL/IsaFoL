@@ -50,16 +50,16 @@ lemma Inf_G_have_prems: "\<iota> \<in> Inf_G \<Longrightarrow> prems_of \<iota> 
 lemma Inf_G_reductive: "\<iota> \<in> Inf_G \<Longrightarrow> concl_of \<iota> < main_prem_of \<iota>"
   unfolding Inf_G_def by (auto dest: gr.ord_resolve_reductive)
 
-abbreviation Bot_G :: "'a clause set" where
-  "Bot_G \<equiv> {{#}}"
+abbreviation Bot :: "'a clause set" where
+  "Bot \<equiv> {{#}}"
 
 definition entails_G (infix "\<Turnstile>" 50) where
   "N1 \<Turnstile> N2 \<longleftrightarrow> (\<forall>I. I |\<approx>s N1 \<longrightarrow> I |\<approx>s N2)"
 
-interpretation G: clausal_consequence_relation Bot_G "(\<Turnstile>)"
+interpretation G: clausal_consequence_relation Bot "(\<Turnstile>)"
   by unfold_locales (auto simp: entails_G_def)
 
-interpretation G: sound_inference_system Inf_G Bot_G "(\<Turnstile>)"
+interpretation G: sound_inference_system Inf_G Bot "(\<Turnstile>)"
 proof
   fix \<iota>
   assume i_in: "\<iota> \<in> Inf_G"
@@ -80,7 +80,7 @@ proof
     unfolding entails_G_def by simp
 qed
 
-interpretation G: clausal_cex_red_inference_system "(\<Turnstile>)" Bot_G Inf_G gr.INTERP
+interpretation G: clausal_cex_red_inference_system "(\<Turnstile>)" Bot Inf_G gr.INTERP
 proof
   fix N D
   assume
@@ -102,8 +102,13 @@ proof
     by (metis (mono_tags, lifting) gr.ex_min_counterex gr.productive_imp_INTERP mem_Collect_eq)
 qed
 
-interpretation G: clausal_cex_red_calculus_with_std_red_crit Bot_G "(\<Turnstile>)" Inf_G gr.INTERP
+interpretation G: clausal_cex_red_calculus_with_std_red_crit Bot "(\<Turnstile>)" Inf_G gr.INTERP
   by (unfold_locales, fact Inf_G_have_prems, fact Inf_G_reductive)
+
+interpretation G: static_refutational_complete_calculus Bot Inf_G "(\<Turnstile>)" G.Red_Inf G.Red_F
+  by unfold_locales (use G.clausal_saturated_complete entails_G_def in blast)
+
+text \<open>Note the important results to keep them beyond the context's scope.\<close>
 
 definition Red_Inf_G :: "'a clause set \<Rightarrow> 'a clause inference set" where
   "Red_Inf_G = G.Red_Inf"
@@ -111,16 +116,21 @@ definition Red_Inf_G :: "'a clause set \<Rightarrow> 'a clause inference set" wh
 definition Red_F_G :: "'a clause set \<Rightarrow> 'a clause set" where
   "Red_F_G = G.Red_F"
 
-interpretation G: static_refutational_complete_calculus Bot_G Inf_G "(\<Turnstile>)" G.Red_Inf G.Red_F
-  by unfold_locales (use G.clausal_saturated_complete entails_G_def in blast)
+lemmas G_defs = Red_Inf_G_def Red_F_G_def
+
+lemmas clausal_consequence_relation_G = G.clausal_consequence_relation_axioms
+lemmas sound_inference_system_G = G.sound_inference_system_axioms
+lemmas clausal_cex_red_inference_system_G = G.clausal_cex_red_inference_system_axioms
+lemmas calculus_with_red_crit_G = G.calculus_with_red_crit_axioms[folded G_defs]
+lemmas clausal_cex_red_calculus_with_std_red_crit_G =
+  G.clausal_cex_red_calculus_with_std_red_crit_axioms
+lemmas static_refutational_complete_calculus_G =
+  G.static_refutational_complete_calculus_axioms[folded G_defs]
 
 end
 
 
 subsection \<open>First-Order Layer\<close>
-
-abbreviation Bot_F :: "'a clause set" where
-  "Bot_F \<equiv> {{#}}"
 
 definition entails_F :: "'a clause set \<Rightarrow> 'a clause set \<Rightarrow> bool" (infix "\<Turnstile>F" 50) where
   "N1 \<Turnstile>F N2 \<longleftrightarrow>
@@ -132,7 +142,7 @@ definition Inf_F :: "'a clause inference set" where
 lemma Inf_F_have_prems: "\<iota> \<in> Inf_F \<Longrightarrow> prems_of \<iota> \<noteq> []"
   unfolding Inf_F_def by force
 
-interpretation F: consequence_relation Bot_F "(\<Turnstile>F)"
+interpretation F: consequence_relation Bot "(\<Turnstile>F)"
 proof
   fix N2 N1 :: "'a clause set"
   assume "N2 \<subseteq> N1"
@@ -145,7 +155,7 @@ next
     unfolding entails_F_def by (simp add: subst_clss_def true_clss_def)
 qed (auto simp: entails_F_def)
 
-interpretation F: sound_inference_system Inf_F Bot_F "(\<Turnstile>F)"
+interpretation F: sound_inference_system Inf_F Bot "(\<Turnstile>F)"
 proof
   fix \<iota>
   assume i_in: "\<iota> \<in> Inf_F"
@@ -208,25 +218,26 @@ lemma trans_Prec_l: "l1 \<sqsubset>l l2 \<Longrightarrow> l2 \<sqsubset>l l3 \<L
 lemma wf_Prec_l: "wfP (\<sqsubset>l)"
   by (metis Prec_l.elims(2) Prec_l.simps(3) not_accp_down wfP_accp_iff)
 
-interpretation F: standard_lifting_with_red_crit_family Inf_F Bot_G UNIV Inf_G "\<lambda>N. (\<Turnstile>F)" Red_Inf_G
-    "\<lambda>N. Red_F_G" Bot_F "\<lambda>N. \<G>_F" \<G>_Inf "\<lambda>D. Empty_Order"
+interpretation F: standard_lifting_with_red_crit_family Inf_F Bot UNIV Inf_G "\<lambda>N. (\<Turnstile>F)" Red_Inf_G
+    "\<lambda>N. Red_F_G" Bot "\<lambda>N. \<G>_F" \<G>_Inf "\<lambda>D. Empty_Order"
 proof (unfold_locales; (intro ballI)?)
   show "UNIV \<noteq> {}"
     by (rule UNIV_not_empty)
 next
-  show "consequence_relation Bot_F (\<Turnstile>F)"
+  show "consequence_relation Bot (\<Turnstile>F)"
     by (fact F.consequence_relation_axioms)
 next
   fix M
-  show "calculus_with_red_crit Bot_F (Inf_G M) (\<Turnstile>F) (Red_Inf_G M) Red_F_G"
+
+  show calc_F: "calculus_with_red_crit Bot (Inf_G M) (\<Turnstile>F) (Red_Inf_G M) Red_F_G"
   proof
     fix N
     show "Red_Inf_G M N \<subseteq> Inf_G M"
-      sorry
+      by (rule calculus_with_red_crit.Red_Inf_to_Inf[OF calculus_with_red_crit_G])
   next
     fix B N
     assume
-      "B \<in> Bot_F"
+      "B \<in> Bot"
       "N \<Turnstile>F {B}"
     show "N - Red_F_G N \<Turnstile>F {B}"
       sorry
@@ -254,23 +265,55 @@ next
     show "\<iota> \<in> Red_Inf_G M N"
       sorry
   qed
-next
-  fix M
-  show "lifting_with_wf_ordering_family Bot_F Inf_F Bot_F (\<Turnstile>F) (Inf_G M) (Red_Inf_G M) Red_F_G \<G>_F
+
+  show "lifting_with_wf_ordering_family Bot Inf_F Bot (\<Turnstile>F) (Inf_G M) (Red_Inf_G M) Red_F_G \<G>_F
     (\<G>_Inf M) (\<lambda>D. Empty_Order)"
-    sorry
+    unfolding lifting_with_wf_ordering_family_def standard_lifting_def standard_lifting_axioms_def
+      lifting_with_wf_ordering_family_axioms_def
+  proof (intro allI impI conjI)
+    show "calculus_with_red_crit Bot (Inf_G M) (\<Turnstile>F) (Red_Inf_G M) Red_F_G"
+      by (rule calc_F)
+  next
+    show "Bot \<noteq> {}"
+      sorry
+  next
+    fix B
+    assume "B \<in> Bot"
+    show "\<G>_F B \<noteq> {}"
+      sorry
+  next
+    fix B
+    assume "B \<in> Bot"
+    show "\<G>_F B \<subseteq> Bot"
+      sorry
+  next
+    fix C
+    assume "\<G>_F C \<inter> Bot \<noteq> {}"
+    show "C \<in> Bot"
+      sorry
+  next
+    fix \<iota>
+    assume
+      "\<iota> \<in> Inf_F"
+      "\<G>_Inf M \<iota> \<noteq> None"
+    show "the (\<G>_Inf M \<iota>) \<subseteq> Red_Inf_G M (\<G>_F (concl_of \<iota>))"
+      sorry
+    next
+      show "minimal_element Empty_Order UNIV"
+        sorry 
+  qed
 qed
 
 abbreviation entails_\<G>_Q_F :: "'a clause set \<Rightarrow> 'a clause set \<Rightarrow> bool" (infix "\<Turnstile>\<G>" 50) where
   "(\<Turnstile>\<G>) \<equiv> F.entails_\<G>_Q"
 
-interpretation F: consequence_relation Bot_F "(\<Turnstile>\<G>)"
+interpretation F: consequence_relation Bot "(\<Turnstile>\<G>)"
 proof
-  show "Bot_F \<noteq> {}"
+  show "Bot \<noteq> {}"
     by (rule F.bot_not_empty)
 next
   fix B N1
-  assume "B \<in> Bot_F"
+  assume "B \<in> Bot"
   then show "{B} \<Turnstile>\<G> N1"
     unfolding F.entails_\<G>_Q_def
     using F.lifted_calc_w_red_crit_family.entails_Q_def
@@ -301,7 +344,7 @@ qed
 (* FIXME:
 proof
   fix C
-  show \<open>\<G>_F C \<inter> Bot_G \<noteq> {} \<longrightarrow> C \<in> Bot_G\<close>
+  show \<open>\<G>_F C \<inter> Bot \<noteq> {} \<longrightarrow> C \<in> Bot\<close>
     by (simp add: grounding_of_cls_def)
 next
   fix \<iota>
@@ -322,7 +365,7 @@ next
 qed auto
 *)
 
-interpretation F: labeled_lifting_with_red_crit_family Bot_F Inf_F Bot_G UNIV
+interpretation F: labeled_lifting_with_red_crit_family Bot Inf_F Bot UNIV
   "\<lambda>N. (\<Turnstile>F)" Inf_G Red_Inf_G "\<lambda>N. Red_F_G" "\<lambda>N. \<G>_F" \<G>_Inf Inf_FL
 proof
   fix \<iota> and ls :: "label list"
@@ -338,7 +381,7 @@ next
     unfolding Inf_FL_def by auto
 qed
 
-interpretation F: Given_Clause Bot_F Inf_F Bot_G UNIV "\<lambda>N. (\<Turnstile>F)" Inf_G Red_Inf_G "\<lambda>N. Red_F_G"
+interpretation F: Given_Clause Bot Inf_F Bot UNIV "\<lambda>N. (\<Turnstile>F)" Inf_G Red_Inf_G "\<lambda>N. Red_F_G"
   "\<lambda>N. \<G>_F" \<G>_Inf Inf_FL "(\<doteq>)" "(\<prec>\<cdot>)" "(\<sqsubset>l)" Active
 proof (unfold_locales; (intro ballI)?)
   show "equivp (\<doteq>)"
@@ -383,7 +426,7 @@ next
 next
   fix B N
   assume
-    "B \<in> Bot_F"
+    "B \<in> Bot"
     "N \<Turnstile>\<G> {B}"
   then show "N - F.empty_ord_lifted_calc_w_red_crit_family.Red_F_Q N \<Turnstile>\<G> {B}"
     by (metis (no_types, lifting) F.Red_F_\<G>_empty_def
@@ -423,10 +466,10 @@ next
 next
   fix B N
   assume
-    "B \<in> Bot_F"
+    "B \<in> Bot"
     "F.empty_ord_lifted_calc_w_red_crit_family.inter_red_crit_calculus.saturated N"
     "N \<Turnstile>\<G> {B}"
-  show "\<exists>B' \<in> Bot_F. B' \<in> N"
+  show "\<exists>B' \<in> Bot. B' \<in> N"
     sorry
 next
   fix \<iota>
@@ -456,11 +499,11 @@ qed
 
 
 (*
-interpretation F: static_refutational_complete_calculus Bot_F Inf_F "(\<Turnstile>\<G>)" F.Red_Inf_\<G> F.Red_F_\<G>
+interpretation F: static_refutational_complete_calculus Bot Inf_F "(\<Turnstile>\<G>)" F.Red_Inf_\<G> F.Red_F_\<G>
 proof
   fix B N
   assume
-    b_in: \<open>B \<in> Bot_G\<close> and
+    b_in: \<open>B \<in> Bot\<close> and
     n_sat: \<open>F.lifted_calculus_with_red_crit.saturated N\<close> and
     ent_b: \<open>N \<Turnstile>\<G> {B}\<close>
 
