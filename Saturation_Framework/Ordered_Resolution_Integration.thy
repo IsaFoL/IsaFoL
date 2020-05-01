@@ -312,12 +312,11 @@ next
     \<subseteq> {\<iota>. \<exists>\<iota>' \<in> F.Non_ground.Inf_from M. (\<exists>y. \<G>_Inf q \<iota>' = Some y) \<and> \<iota> \<in> the (\<G>_Inf q \<iota>')} \<union>
                 G.Red_Inf q (F.\<G>_set_q q M)"
     using G_Inf_from_imp_F_Inf_from
+    (* FIXME: Clean up proof. *)
     apply auto
     apply (rule exI[of _ M])
     apply auto
-    sledgehammer
-
-    sorry
+    using F.Ground_family.Inf_from_q_def F.\<G>_set_q_def \<G>_Inf_def by fastforce
 qed
 
 
