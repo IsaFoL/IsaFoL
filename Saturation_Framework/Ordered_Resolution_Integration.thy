@@ -15,11 +15,11 @@ begin
 
 subsection \<open>Library\<close>
 
-lemma po_on_Empty_Order: "po_on Empty_Order UNIV"
+lemma po_on_Empty_Order[simp]: "po_on Empty_Order UNIV"
   unfolding po_on_def irreflp_on_def transp_on_def by auto
 
 lemma wfp_on_Empty_Order: "wfp_on Empty_Order UNIV"
-  by auto
+  by simp
 
 (* FIXME: needed? *)
 lemma (in substitution) union_grounding_of_cls_ground: "is_ground_clss (\<Union> (grounding_of_cls ` N))"
@@ -131,7 +131,6 @@ definition Inf_F :: "'a clause inference set" where
 lemma Inf_F_have_prems: "\<iota> \<in> Inf_F \<Longrightarrow> prems_of \<iota> \<noteq> []"
   unfolding Inf_F_def by force
 
-
 interpretation F: standard_lifting_with_red_crit_family Inf_F Bot UNIV Inf_G "\<lambda>N. (\<Turnstile>)" G.Red_Inf
   "\<lambda>N. G.Red_F" Bot "\<lambda>N. \<G>_F" \<G>_Inf "\<lambda>D. Empty_Order"
 proof (unfold_locales; (intro ballI)?)
@@ -185,8 +184,7 @@ next
       using Inf_G_reductive by fastforce
   next
     show "lifting_with_wf_ordering_family_axioms (\<lambda>D. Empty_Order)"
-      unfolding lifting_with_wf_ordering_family_axioms_def minimal_element_def
-      by (simp add: po_on_Empty_Order)
+      unfolding lifting_with_wf_ordering_family_axioms_def minimal_element_def by simp
   qed
 qed
 
@@ -235,6 +233,7 @@ proof
     using entails_\<G>_iff_all_interps_ground_substs by auto
 qed
 
+(* FIXME: Needed below? *)
 lemma G_Inf_from_imp_F_Inf_from:
   "\<iota>\<^sub>0 \<in> G.Inf_from M (\<Union> (\<G>_F ` M)) \<Longrightarrow> \<exists>\<iota>. \<iota> \<in> F.Non_ground.Inf_from M \<and> \<iota>\<^sub>0 \<in> the (\<G>_Inf M \<iota>)"
 proof -
@@ -312,16 +311,17 @@ next
   show "\<exists>q. F.Ground_family.Inf_from_q q (F.\<G>_set_q q M)
     \<subseteq> {\<iota>. \<exists>\<iota>' \<in> F.Non_ground.Inf_from M. (\<exists>y. \<G>_Inf q \<iota>' = Some y) \<and> \<iota> \<in> the (\<G>_Inf q \<iota>')} \<union>
                 G.Red_Inf q (F.\<G>_set_q q M)"
+    using G_Inf_from_imp_F_Inf_from
+    apply auto
+    apply (rule exI[of _ M])
+    apply auto
+    sledgehammer
+
     sorry
 qed
 
-find_theorems name: F.static_empty_ord_inter_equiv
 
-interpretation F: static_refutational_complete_calculus Bot Inf_F "(\<Turnstile>\<G>)" F.Red_Inf_\<G>_Q F.Red_F_\<G>_g
-  using F.static_empty_ord_inter_equiv_static_inter
-    F.static_refutational_complete_calculus_axioms
-  sorry
-
+subsection \<open>Given Clause Layer\<close>
 
 datatype label =
   New
@@ -485,5 +485,53 @@ next
   then show "snd (concl_of \<iota>) \<noteq> Active"
     unfolding Inf_FL_def by auto
 qed
+
+
+subsection \<open>RP Layer\<close>
+
+context
+  fixes Sts :: "'a state llist"
+  assumes deriv: "chain (\<leadsto>) Sts"
+begin
+
+interpretation sq: selection "S_Q Sts"
+  unfolding S_Q_def[OF deriv] using S_M_selects_subseteq S_M_selects_neg_lits selection_axioms
+  by unfold_locales auto
+
+interpretation gd: ground_resolution_with_selection "S_Q Sts"
+  by unfold_locales
+
+interpretation src: standard_redundancy_criterion_reductive gd.ord_\<Gamma>
+  by unfold_locales
+
+interpretation src: standard_redundancy_criterion_counterex_reducing gd.ord_\<Gamma>
+  "ground_resolution_with_selection.INTERP (S_Q Sts)"
+  by unfold_locales
+
+theorem RP_saturated_if_fair:
+  assumes
+    fair: "fair_state_seq Sts" and
+    empty_Q0: "Q_of_state (lhd Sts) = {}"
+  shows "src.saturated_upto (Liminf_llist (lmap grounding_of_state Sts))"
+  sorry
+
+corollary RP_complete_if_fair:
+  assumes
+    fair: "fair_state_seq Sts" and
+    empty_Q0: "Q_of_state (lhd Sts) = {}" and
+    unsat: "\<not> satisfiable (grounding_of_state (lhd Sts))"
+  shows "{#} \<in> Q_of_state (Liminf_state Sts)"
+proof -
+  have "\<not> satisfiable (Liminf_llist (lmap grounding_of_state Sts))"
+    unfolding sr_ext.sat_limit_iff[OF ground_derive_chain]
+    by (rule unsat[folded lhd_lmap_Sts[of grounding_of_state]])
+  moreover have "sr.saturated_upto (Liminf_llist (lmap grounding_of_state Sts))"
+    by (rule RP_saturated_if_fair[OF fair empty_Q0, simplified])
+  ultimately have "{#} \<in> Liminf_llist (lmap grounding_of_state Sts)"
+    using sr.saturated_upto_complete_if by auto
+  then show ?thesis
+    using empty_clause_in_Q_of_Liminf_state fair by auto
+qed
+
 
 end
