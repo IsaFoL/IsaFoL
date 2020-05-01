@@ -328,7 +328,29 @@ proof -
     by blast
 qed
 
+interpretation F: static_refutational_complete_calculus Bot Inf_F "(\<Turnstile>\<G>)" F.Red_Inf_\<G>_Q
+  F.Red_F_\<G>_empty
+proof (rule F.stat_ref_comp_to_non_ground_fam_inter; clarsimp)
+  show "\<And>M. static_refutational_complete_calculus Bot (Inf_G M) (\<Turnstile>) (G.Red_Inf M) G.Red_F"
+    by (fact G.static_refutational_complete_calculus_axioms)
+next
+  fix M
+  assume "F.empty_ord_lifted_calc_w_red_crit_family.inter_red_crit_calculus.saturated M"
+  show "\<exists>q. F.Ground_family.Inf_from_q q (F.\<G>_set_q q M)
+    \<subseteq> {\<iota>. \<exists>\<iota>' \<in> F.Non_ground.Inf_from M. (\<exists>y. \<G>_Inf q \<iota>' = Some y) \<and> \<iota> \<in> the (\<G>_Inf q \<iota>')} \<union>
+                G.Red_Inf q (F.\<G>_set_q q M)"
+    sorry
+qed
+
+find_theorems name: F.static_empty_ord_inter_equiv
+
 interpretation F: static_refutational_complete_calculus Bot Inf_F "(\<Turnstile>\<G>)" F.Red_Inf_\<G>_Q F.Red_F_\<G>_g
+  using F.static_empty_ord_inter_equiv_static_inter
+    F.static_refutational_complete_calculus_axioms
+  sorry
+
+
+interpretation Fx: static_refutational_complete_calculus Bot Inf_F "(\<Turnstile>\<G>)" F.Red_Inf_\<G>_Q F.Red_F_\<G>_g
 proof
   fix B N
   assume
