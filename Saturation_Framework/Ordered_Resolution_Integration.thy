@@ -131,33 +131,6 @@ definition Inf_F :: "'a clause inference set" where
 lemma Inf_F_have_prems: "\<iota> \<in> Inf_F \<Longrightarrow> prems_of \<iota> \<noteq> []"
   unfolding Inf_F_def by force
 
-datatype label =
-  New
-| Processed
-| Active
-
-definition Inf_FL :: "('a clause \<times> label) inference set" where
-  "Inf_FL = {Infer (zip Cs Ls) (D, New) |Cs D Ls. Infer Cs D \<in> Inf_F \<and> length Ls = length Cs}"
-
-abbreviation Equiv_F :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" (infix "\<doteq>" 50) where
-  "C \<doteq> D \<equiv> generalizes C D \<and> generalizes D C"
-
-abbreviation Prec_F :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" (infix "\<prec>\<cdot>" 50) where
-  "C \<prec>\<cdot> D \<equiv> strictly_generalizes C D"
-
-fun Prec_l :: "label \<Rightarrow> label \<Rightarrow> bool" (infix "\<sqsubset>l" 50) where
-  "Active \<sqsubset>l l \<longleftrightarrow> l \<noteq> Active"
-| "Processed \<sqsubset>l l \<longleftrightarrow> l = New"
-| "New \<sqsubset>l l \<longleftrightarrow> False"
-
-lemma irrefl_Prec_l: "\<not> l \<sqsubset>l l"
-  by (cases l) auto
-
-lemma trans_Prec_l: "l1 \<sqsubset>l l2 \<Longrightarrow> l2 \<sqsubset>l l3 \<Longrightarrow> l1 \<sqsubset>l l3"
-  by (cases l1; cases l2; cases l3) auto
-
-lemma wf_Prec_l: "wfP (\<sqsubset>l)"
-  by (metis Prec_l.elims(2) Prec_l.simps(3) not_accp_down wfP_accp_iff)
 
 interpretation F: standard_lifting_with_red_crit_family Inf_F Bot UNIV Inf_G "\<lambda>N. (\<Turnstile>)" G.Red_Inf
   "\<lambda>N. G.Red_F" Bot "\<lambda>N. \<G>_F" \<G>_Inf "\<lambda>D. Empty_Order"
@@ -350,29 +323,35 @@ interpretation F: static_refutational_complete_calculus Bot Inf_F "(\<Turnstile>
   sorry
 
 
-interpretation Fx: static_refutational_complete_calculus Bot Inf_F "(\<Turnstile>\<G>)" F.Red_Inf_\<G>_Q F.Red_F_\<G>_g
-proof
-  fix B N
-  assume
-    b_in: \<open>B \<in> Bot\<close> and
-    n_sat: \<open>F.lifted_calc_w_red_crit.saturated N\<close> and
-    ent_b: \<open>N \<Turnstile>\<G> {B}\<close>
+datatype label =
+  New
+| Processed
+| Active
 
-  have \<open>B = {#}\<close>
-    using b_in by simp
-(*
-  have gn_sat: \<open>G.saturated (F.\<G>_set N)\<close>
-    unfolding G.saturated_def
-  proof
-    fix \<iota>
-    assume \<iota>_in: \<open>\<iota> \<in> G.Inf_from (\<Union> (\<G>_F ` N))\<close>
-*)
+definition Inf_FL :: "('a clause \<times> label) inference set" where
+  "Inf_FL = {Infer (zip Cs Ls) (D, New) |Cs D Ls. Infer Cs D \<in> Inf_F \<and> length Ls = length Cs}"
 
-  show "\<exists>B' \<in> Bot. B' \<in> N"
-    sorry
-qed
+abbreviation Equiv_F :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" (infix "\<doteq>" 50) where
+  "C \<doteq> D \<equiv> generalizes C D \<and> generalizes D C"
 
-interpretation F: labeled_lifting_with_red_crit_family Bot Inf_F Bot UNIV
+abbreviation Prec_F :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" (infix "\<prec>\<cdot>" 50) where
+  "C \<prec>\<cdot> D \<equiv> strictly_generalizes C D"
+
+fun Prec_l :: "label \<Rightarrow> label \<Rightarrow> bool" (infix "\<sqsubset>l" 50) where
+  "Active \<sqsubset>l l \<longleftrightarrow> l \<noteq> Active"
+| "Processed \<sqsubset>l l \<longleftrightarrow> l = New"
+| "New \<sqsubset>l l \<longleftrightarrow> False"
+
+lemma irrefl_Prec_l: "\<not> l \<sqsubset>l l"
+  by (cases l) auto
+
+lemma trans_Prec_l: "l1 \<sqsubset>l l2 \<Longrightarrow> l2 \<sqsubset>l l3 \<Longrightarrow> l1 \<sqsubset>l l3"
+  by (cases l1; cases l2; cases l3) auto
+
+lemma wf_Prec_l: "wfP (\<sqsubset>l)"
+  by (metis Prec_l.elims(2) Prec_l.simps(3) not_accp_down wfP_accp_iff)
+
+interpretation FL: labeled_lifting_with_red_crit_family Bot Inf_F Bot UNIV
   "\<lambda>N. (\<Turnstile>)" Inf_G G.Red_Inf "\<lambda>N. G.Red_F" "\<lambda>N. \<G>_F" \<G>_Inf Inf_FL
 proof
   fix \<iota> and ls :: "label list"
@@ -388,7 +367,12 @@ next
     unfolding Inf_FL_def by auto
 qed
 
-interpretation F: Given_Clause Bot Inf_F Bot UNIV "\<lambda>N. (\<Turnstile>)" Inf_G G.Red_Inf "\<lambda>N. G.Red_F"
+abbreviation
+  entails_\<G>_L :: "('a clause \<times> label) set \<Rightarrow> ('a clause \<times> label) set \<Rightarrow> bool" (infix "\<Turnstile>\<G>L" 50)
+where
+  "(\<Turnstile>\<G>L) \<equiv> FL.entails_\<G>_L_Q"
+
+interpretation GC: Given_Clause Bot Inf_F Bot UNIV "\<lambda>N. (\<Turnstile>)" Inf_G G.Red_Inf "\<lambda>N. G.Red_F"
   "\<lambda>N. \<G>_F" \<G>_Inf Inf_FL "(\<doteq>)" "(\<prec>\<cdot>)" "(\<sqsubset>l)" Active
 proof (unfold_locales; (intro ballI)?)
   show "equivp (\<doteq>)"
