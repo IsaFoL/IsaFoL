@@ -196,14 +196,15 @@ lemma entails_\<G>_iff_Union_grounding_of_cls:
     grounding_of_cls_def
   by (auto simp: true_clss_def)
 
+lemma true_Union_grounding_of_cls_iff_true_all_interps_ground_substs:
+  "I |\<approx>s (\<Union>C \<in> N. {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>}) \<longleftrightarrow> (\<forall>\<sigma>. is_ground_subst \<sigma> \<longrightarrow> I |\<approx>s N \<cdot>cs \<sigma>)"
+  unfolding true_clss_def subst_clss_def by blast
+
 lemma entails_\<G>_iff_all_interps_ground_substs:
   "N1 \<Turnstile>\<G> N2 \<longleftrightarrow>
   (\<forall>I. (\<forall>\<sigma>. is_ground_subst \<sigma> \<longrightarrow> I |\<approx>s N1 \<cdot>cs \<sigma>) \<longrightarrow> (\<forall>\<sigma>. is_ground_subst \<sigma> \<longrightarrow> I |\<approx>s N2 \<cdot>cs \<sigma>))"
-  unfolding F.entails_\<G>_Q_def F.entails_\<G>_q_def F.\<G>_set_q_def entails_G_def image_def
-    grounding_of_cls_def
-  unfolding entails_\<G>_iff_Union_grounding_of_cls
-  apply auto
-  sorry
+  unfolding F.entails_\<G>_Q_def F.entails_\<G>_q_def F.\<G>_set_q_def entails_G_def
+    grounding_of_cls_def true_Union_grounding_of_cls_iff_true_all_interps_ground_substs by blast
 
 interpretation F: sound_inference_system Inf_F Bot "(\<Turnstile>\<G>)"
 proof
@@ -488,7 +489,13 @@ next
     unfolding Inf_FL_def by auto
 qed
 
-notation GC.Given_Clause_step (infix "\<Longrightarrow>GC" 50)
+notation GC.step (infix "\<Longrightarrow>GC" 50)
+
+abbreviation Red_Inf_Q_GC :: "('a clause \<times> label) set \<Rightarrow> ('a clause \<times> label) inference set" where
+  "Red_Inf_Q_GC \<equiv> GC.labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_Inf_Q"
+
+abbreviation Red_F_Q_GC :: "('a clause \<times> label) set \<Rightarrow> ('a clause \<times> label) set" where
+  "Red_F_Q_GC \<equiv> GC.labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_F_Q"
 
 
 subsection \<open>RP Layer\<close>
@@ -513,18 +520,67 @@ definition lclss_of_state :: "'a state \<Rightarrow> ('a clause \<times> label) 
    \<union> (\<lambda>C. (C, Old)) ` Q_of_state St"
 
 lemma RP_step_imp_GC_step: "St \<leadsto> St' \<Longrightarrow> lclss_of_state St \<Longrightarrow>GC lclss_of_state St'"
-  sorry
-
-lemma "GC.labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.inter_red_crit_calculus.derive = (\<rhd>RedFL)"
-  sorry
+proof (induction rule: RP.induct)
+  case (tautology_deletion A C N P Q)
+  show ?case
+    apply (rule GC.step.process[of _ "lclss_of_state (N, P, Q)" "{(C, New)}" _ "{}"])
+    apply (auto simp: lclss_of_state_def GC.active_subset_def)
+    sorry
+next
+  case (forward_subsumption D P Q C N)
+  show ?case
+    apply (rule GC.step.process[of _ "lclss_of_state (N, P, Q)" "{(C, New)}" _ "{}"])
+    apply (auto simp: lclss_of_state_def GC.active_subset_def)
+    sorry
+next
+  case (backward_subsumption_P D N C P Q)
+  show ?case
+    apply (rule GC.step.process[of _ "lclss_of_state (N, P, Q)" "{(C, Processed)}" _ "{}"])
+    apply (auto simp: lclss_of_state_def GC.active_subset_def)
+    sorry
+next
+  case (backward_subsumption_Q D N C P Q)
+  show ?case
+    apply (rule GC.step.process[of _ "lclss_of_state (N, P, Q)" "{(C, Old)}" _ "{}"])
+    apply (auto simp: lclss_of_state_def GC.active_subset_def)
+    sorry
+next
+  case (forward_reduction D L' P Q L \<sigma> C N)
+  show ?case
+    apply (rule GC.step.process[of _ "lclss_of_state (N, P, Q)" "{(C + {#L#}, New)}" _ "{(C, New)}"])
+    apply (auto simp: lclss_of_state_def GC.active_subset_def)
+    sorry
+next
+  case (backward_reduction_P D L' N L \<sigma> C P Q)
+  show ?case
+    apply (rule GC.step.process[of _ "lclss_of_state (N, P, Q)" "{(C + {#L#}, Processed)}" _ "{(C, Processed)}"])
+    apply (auto simp: lclss_of_state_def GC.active_subset_def)
+    sorry
+next
+  case (backward_reduction_Q D L' N L \<sigma> C P Q)
+  show ?case
+    apply (rule GC.step.process[of _ "lclss_of_state (N, P, Q)" "{(C + {#L#}, Old)}" _ "{(C, Processed)}"])
+    apply (auto simp: lclss_of_state_def GC.active_subset_def)
+    sorry
+next
+  case (clause_processing N C P Q)
+  show ?case
+    apply (rule GC.step.process[of _ "lclss_of_state (N, P, Q)" "{(C, New)}" _ "{(C, Processed)}"])
+    apply (auto simp: lclss_of_state_def GC.active_subset_def)
+    sorry
+next
+  case (inference_computation N Q C P)
+  show ?case
+    apply (rule GC.step.infer[of _ "lclss_of_state ({}, P, Q)" C Processed _ "lclss_of_state (N, {}, {})"])
+    apply (auto simp: lclss_of_state_def GC.active_subset_def)
+    sorry
+qed
 
 lemma RP_step_imp_LF_step: "St \<leadsto> St' \<Longrightarrow> lclss_of_state St \<rhd>RedFL lclss_of_state St'"
   sorry
 
-lemma RP_derivation_imp_LF_derivation:
-  assumes "chain (\<leadsto>) Sts"
-  shows "chain (\<rhd>RedFL) (lmap lclss_of_state Sts)"
-  by (rule chain_lmap[OF _ assms]) (use RP_step_imp_LF_step in blast)
+lemma RP_derivation_imp_LF_derivation: "chain (\<leadsto>) Sts \<Longrightarrow> chain (\<rhd>RedFL) (lmap lclss_of_state Sts)"
+  using chain_lmap RP_step_imp_LF_step by blast
 
 lemma RP_fair_imp_LF_fair:
   assumes
@@ -538,7 +594,7 @@ lemma GC_saturated_imp_LF_saturated:
    src.saturated_upto Sts (Liminf_llist (lmap grounding_of_state Sts))"
   sorry
 
-theorem RP_saturated_if_fair_v2:
+theorem RP_saturated_if_fair_w_satur_frmwk:
   assumes
     deriv: "chain (\<leadsto>) Sts" and
     fair: "fair_state_seq Sts" and
@@ -549,7 +605,7 @@ theorem RP_saturated_if_fair_v2:
       RP_derivation_imp_LF_derivation[OF deriv]
       RP_fair_imp_LF_fair[OF fair empty_Q0])
 
-corollary RP_complete_if_fair_v2:
+corollary RP_complete_if_fair_w_satur_frmwk:
   assumes
     deriv: "chain (\<leadsto>) Sts" and
     fair: "fair_state_seq Sts" and
