@@ -188,8 +188,7 @@ next
   qed
 qed
 
-abbreviation entails_\<G> :: "'a clause set \<Rightarrow> 'a clause set \<Rightarrow> bool" (infix "\<Turnstile>\<G>" 50) where
-  "(\<Turnstile>\<G>) \<equiv> F.entails_\<G>_Q"
+notation F.entails_\<G>_Q (infix "\<Turnstile>\<G>" 50)
 
 lemma entails_\<G>_iff_Union_grounding_of_cls:
   "N1 \<Turnstile>\<G> N2 \<longleftrightarrow> \<Union> (grounding_of_cls ` N1) \<Turnstile> \<Union> (grounding_of_cls ` N2)"
@@ -325,7 +324,7 @@ subsection \<open>Given Clause Layer\<close>
 datatype label =
   New
 | Processed
-| Active
+| Old
 
 definition Inf_FL :: "('a clause \<times> label) inference set" where
   "Inf_FL = {Infer (zip Cs Ls) (D, New) |Cs D Ls. Infer Cs D \<in> Inf_F \<and> length Ls = length Cs}"
@@ -337,7 +336,7 @@ abbreviation Prec_F :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" (i
   "C \<prec>\<cdot> D \<equiv> strictly_generalizes C D"
 
 fun Prec_l :: "label \<Rightarrow> label \<Rightarrow> bool" (infix "\<sqsubset>l" 50) where
-  "Active \<sqsubset>l l \<longleftrightarrow> l \<noteq> Active"
+  "Old \<sqsubset>l l \<longleftrightarrow> l \<noteq> Old"
 | "Processed \<sqsubset>l l \<longleftrightarrow> l = New"
 | "New \<sqsubset>l l \<longleftrightarrow> False"
 
@@ -366,13 +365,17 @@ next
     unfolding Inf_FL_def by auto
 qed
 
-abbreviation
-  entails_\<G>_L :: "('a clause \<times> label) set \<Rightarrow> ('a clause \<times> label) set \<Rightarrow> bool" (infix "\<Turnstile>\<G>L" 50)
-where
-  "(\<Turnstile>\<G>L) \<equiv> FL.entails_\<G>_L_Q"
+notation FL.entails_\<G>_L_Q (infix "\<Turnstile>\<G>L" 50)
+notation FL.with_labels.inter_red_crit_calculus.derive (infix "\<rhd>RedFL" 50)
+
+abbreviation saturated_FL :: "('a clause \<times> label) set \<Rightarrow> bool" where
+  "saturated_FL \<equiv> FL.with_labels.inter_red_crit_calculus.saturated"
+
+abbreviation fair_FL :: "('a clause \<times> label) set llist \<Rightarrow> bool" where
+  "fair_FL \<equiv> FL.with_labels.inter_red_crit_calculus.fair"
 
 interpretation GC: Given_Clause Bot Inf_F Bot UNIV "\<lambda>N. (\<Turnstile>)" Inf_G G.Red_Inf "\<lambda>N. G.Red_F"
-  "\<lambda>N. \<G>_F" \<G>_Inf Inf_FL "(\<doteq>)" "(\<prec>\<cdot>)" "(\<sqsubset>l)" Active
+  "\<lambda>N. \<G>_F" \<G>_Inf Inf_FL "(\<doteq>)" "(\<prec>\<cdot>)" "(\<sqsubset>l)" Old
 proof (unfold_locales; (intro ballI)?)
   show "equivp (\<doteq>)"
     unfolding equivp_def by (meson generalizes_refl generalizes_trans)
@@ -472,65 +475,96 @@ next
     by (simp add: Inf_F_have_prems)
 next
   fix l
-  assume "l \<noteq> Active"
-  then show "Prec_l Active l"
+  assume "l \<noteq> Old"
+  then show "Prec_l Old l"
     by simp
 next
-  show "\<exists>l. Prec_l Active l"
+  show "\<exists>l. Prec_l Old l"
     using Prec_l.simps(1) by blast
 next
   fix \<iota>
   assume "\<iota> \<in> Inf_FL"
-  then show "snd (concl_of \<iota>) \<noteq> Active"
+  then show "snd (concl_of \<iota>) \<noteq> Old"
     unfolding Inf_FL_def by auto
 qed
+
+notation GC.Given_Clause_step (infix "\<Longrightarrow>GC" 50)
 
 
 subsection \<open>RP Layer\<close>
 
-context
-  fixes Sts :: "'a state llist"
-  assumes deriv: "chain (\<leadsto>) Sts"
-begin
-
 interpretation sq: selection "S_Q Sts"
-  unfolding S_Q_def[OF deriv] using S_M_selects_subseteq S_M_selects_neg_lits selection_axioms
+  unfolding S_Q_def using S_M_selects_subseteq S_M_selects_neg_lits selection_axioms
   by unfold_locales auto
 
 interpretation gd: ground_resolution_with_selection "S_Q Sts"
   by unfold_locales
 
-interpretation src: standard_redundancy_criterion_reductive gd.ord_\<Gamma>
+interpretation src: standard_redundancy_criterion_reductive "gd.ord_\<Gamma> Sts"
   by unfold_locales
 
-interpretation src: standard_redundancy_criterion_counterex_reducing gd.ord_\<Gamma>
+interpretation src: standard_redundancy_criterion_counterex_reducing "gd.ord_\<Gamma> Sts"
   "ground_resolution_with_selection.INTERP (S_Q Sts)"
   by unfold_locales
 
-theorem RP_saturated_if_fair:
+definition lclss_of_state :: "'a state \<Rightarrow> ('a clause \<times> label) set" where
+  "lclss_of_state St \<equiv>
+   (\<lambda>C. (C, New)) ` N_of_state St \<union> (\<lambda>C. (C, Processed)) ` P_of_state St
+   \<union> (\<lambda>C. (C, Old)) ` Q_of_state St"
+
+lemma RP_step_imp_GC_step: "St \<leadsto> St' \<Longrightarrow> lclss_of_state St \<Longrightarrow>GC lclss_of_state St'"
+  sorry
+
+lemma "GC.labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.inter_red_crit_calculus.derive = (\<rhd>RedFL)"
+  sorry
+
+lemma RP_step_imp_LF_step: "St \<leadsto> St' \<Longrightarrow> lclss_of_state St \<rhd>RedFL lclss_of_state St'"
+  sorry
+
+lemma RP_derivation_imp_LF_derivation:
+  assumes "chain (\<leadsto>) Sts"
+  shows "chain (\<rhd>RedFL) (lmap lclss_of_state Sts)"
+  by (rule chain_lmap[OF _ assms]) (use RP_step_imp_LF_step in blast)
+
+lemma RP_fair_imp_LF_fair:
   assumes
     fair: "fair_state_seq Sts" and
     empty_Q0: "Q_of_state (lhd Sts) = {}"
-  shows "src.saturated_upto (Liminf_llist (lmap grounding_of_state Sts))"
+  shows "fair_FL (lmap lclss_of_state Sts)"
   sorry
 
-corollary RP_complete_if_fair:
+lemma GC_saturated_imp_LF_saturated:
+  "saturated_FL (Liminf_llist (lmap lclss_of_state Sts)) \<Longrightarrow>
+   src.saturated_upto Sts (Liminf_llist (lmap grounding_of_state Sts))"
+  sorry
+
+theorem RP_saturated_if_fair_v2:
   assumes
+    deriv: "chain (\<leadsto>) Sts" and
+    fair: "fair_state_seq Sts" and
+    empty_Q0: "Q_of_state (lhd Sts) = {}"
+  shows "src.saturated_upto Sts (Liminf_llist (lmap grounding_of_state Sts))"
+  by (rule GC_saturated_imp_LF_saturated)
+    (intro FL.with_labels.inter_red_crit_calculus.fair_implies_Liminf_saturated
+      RP_derivation_imp_LF_derivation[OF deriv]
+      RP_fair_imp_LF_fair[OF fair empty_Q0])
+
+corollary RP_complete_if_fair_v2:
+  assumes
+    deriv: "chain (\<leadsto>) Sts" and
     fair: "fair_state_seq Sts" and
     empty_Q0: "Q_of_state (lhd Sts) = {}" and
     unsat: "\<not> satisfiable (grounding_of_state (lhd Sts))"
   shows "{#} \<in> Q_of_state (Liminf_state Sts)"
 proof -
   have "\<not> satisfiable (Liminf_llist (lmap grounding_of_state Sts))"
-    unfolding sr_ext.sat_limit_iff[OF ground_derive_chain]
-    by (rule unsat[folded lhd_lmap_Sts[of grounding_of_state]])
-  moreover have "sr.saturated_upto (Liminf_llist (lmap grounding_of_state Sts))"
-    by (rule RP_saturated_if_fair[OF fair empty_Q0, simplified])
+    sorry
+  moreover have "src.saturated_upto Sts (Liminf_llist (lmap grounding_of_state Sts))"
+    sorry
   ultimately have "{#} \<in> Liminf_llist (lmap grounding_of_state Sts)"
-    using sr.saturated_upto_complete_if by auto
+    sorry
   then show ?thesis
-    using empty_clause_in_Q_of_Liminf_state fair by auto
+    using empty_clause_in_Q_of_Liminf_state[OF deriv fair] by auto
 qed
-
 
 end
