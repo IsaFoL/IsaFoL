@@ -37,8 +37,31 @@ subsection \<open>Consequence Relation\<close>
 abbreviation entails_clss :: "'a clause set \<Rightarrow> 'a clause set \<Rightarrow> bool" (infix "|\<approx>\<approx>" 50) where
   "N1 |\<approx>\<approx> N2 \<equiv> \<forall>I. I |\<approx>s N1 \<longrightarrow> I |\<approx>s N2"
 
-interpretation clausal_consequence_relation:
-  compact_consequence_relation "{{#}} :: ('a :: wellorder) clause set" "(|\<approx>\<approx>)"
+lemma entails_iff_unsatisfiable:
+  "CC |\<approx>\<approx> {D} \<longleftrightarrow> \<not> satisfiable (CC \<union> {{#- L#} |L. L \<in># D})" (is "_ \<longleftrightarrow> _ (_ \<union> ?NegD)")
+proof
+  assume "CC |\<approx>\<approx> {D}"
+  then have "\<not> I |\<approx>s CC \<union> ?NegD" for I
+    unfolding true_clss_def true_cls_def true_lit_def if_distribR HOL.if_bool_eq_conj
+    apply (erule_tac x = I in allE)
+    apply (simp add: ball_Un)
+    apply auto
+    using is_pos_neg_not_is_pos apply fastforce
+    using is_pos_neg_not_is_pos by fastforce
+  then show "\<not> satisfiable (CC \<union> ?NegD)"
+    by auto
+next
+  assume "\<not> satisfiable (CC \<union> ?NegD)"
+  then have "\<not> I |\<approx>s CC \<union> ?NegD" for I
+    by auto
+  then show "CC |\<approx>\<approx> {D}"
+    unfolding true_clss_def true_cls_def true_lit_def if_distribR HOL.if_bool_eq_conj
+    apply (simp only: ball_Un)
+    apply auto
+    using is_pos_neg_not_is_pos by fastforce
+qed
+
+interpretation consequence_relation "{{#}}" "(|\<approx>\<approx>)"
 proof
   fix N2 N1 :: "'a clause set"
   assume "N2 \<subseteq> N1"
@@ -49,14 +72,19 @@ next
   assume "\<forall>C \<in> N2. N1 |\<approx>\<approx> {C}"
   then show "N1 |\<approx>\<approx> N2"
     unfolding true_clss_singleton by (simp add: true_clss_def)
-next
-  fix CC DD :: "'a clause set"
-  assume "CC |\<approx>\<approx> DD"
-  then show "\<exists>CC' \<subseteq> CC. finite CC' \<and> CC' |\<approx>\<approx> DD"
-    using clausal_logic_compact[of CC]
-
-    sorry
 qed auto
+
+interpretation compact_consequence_relation "{{#}} :: ('a :: wellorder) clause set" "(|\<approx>\<approx>)"
+proof
+  fix CC and D :: "'a clause"
+  assume "CC |\<approx>\<approx> {D}"
+  then show "\<exists>CC' \<subseteq> CC. finite CC' \<and> CC' |\<approx>\<approx> {D}"
+    unfolding entails_iff_unsatisfiable
+    apply (subst (asm) clausal_logic_compact)
+    apply (erule exE)
+    apply (rule_tac x = "DD - {{#- L#} |L. L \<in># D}" in exI)
+    by auto
+qed
 
 
 subsection \<open>Counterexample-Reducing Inference Systems\<close>

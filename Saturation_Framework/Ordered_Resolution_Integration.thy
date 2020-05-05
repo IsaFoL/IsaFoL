@@ -28,10 +28,10 @@ lemma (in substitution) union_grounding_of_cls_ground: "is_ground_clss (\<Union>
 
 subsection \<open>Setup\<close>
 
-no_notation true_lit (infix "\<Turnstile>l" 50)
-no_notation true_cls (infix "\<Turnstile>" 50)
-no_notation true_clss (infix "\<Turnstile>s" 50)
-no_notation true_cls_mset (infix "\<Turnstile>m" 50)
+no_notation true_lit (infix "|\<approx>\<approx>l" 50)
+no_notation true_cls (infix "|\<approx>\<approx>" 50)
+no_notation true_clss (infix "|\<approx>\<approx>s" 50)
+no_notation true_cls_mset (infix "|\<approx>\<approx>m" 50)
 
 hide_type (open) Inference_System.inference
 
@@ -56,9 +56,7 @@ lemma Inf_G_have_prems: "\<iota> \<in> Inf_G M \<Longrightarrow> prems_of \<iota
 lemma Inf_G_reductive: "\<iota> \<in> Inf_G M \<Longrightarrow> concl_of \<iota> < main_prem_of \<iota>"
   unfolding Inf_G_def by (auto dest: gr.ord_resolve_reductive)
 
-notation entails_clss (infix "\<Turnstile>" 50)
-
-interpretation G: sound_inference_system "Inf_G M" "{{#}}" "(\<Turnstile>)"
+interpretation G: sound_inference_system "Inf_G M" "{{#}}" "(|\<approx>\<approx>)"
 proof
   fix \<iota>
   assume i_in: "\<iota> \<in> Inf_G M"
@@ -75,7 +73,7 @@ proof
       by (metis I_ent_prems Inf_G_have_prems i_in insert_is_Un set_mset_mset set_prems_of
           true_clss_insert true_clss_set_mset)
   }
-  ultimately show "set (inference.prems_of \<iota>) \<Turnstile> {concl_of \<iota>}"
+  ultimately show "set (inference.prems_of \<iota>) |\<approx>\<approx> {concl_of \<iota>}"
     by simp
 qed
 
@@ -105,8 +103,9 @@ interpretation G: clausal_cex_red_calculus_with_std_red_crit "Inf_G M" "gr.INTER
   apply unfold_locales
   by (unfold_locales, fact Inf_G_have_prems, fact Inf_G_reductive)
 
-interpretation G: static_refutational_complete_calculus Bot "Inf_G M" "(\<Turnstile>)" "G.Red_Inf M" G.Red_F
-  by unfold_locales (use G.clausal_saturated_complete entails_G_def in blast)
+interpretation G: static_refutational_complete_calculus "{{#}}" "Inf_G M" "(|\<approx>\<approx>)" "G.Red_Inf M"
+  G.Red_F
+  by unfold_locales (use G.clausal_saturated_complete in blast)
 
 
 subsection \<open>First-Order Layer\<close>
@@ -125,41 +124,41 @@ definition Inf_F :: "'a clause inference set" where
 lemma Inf_F_have_prems: "\<iota> \<in> Inf_F \<Longrightarrow> prems_of \<iota> \<noteq> []"
   unfolding Inf_F_def by force
 
-interpretation F: standard_lifting_with_red_crit_family Inf_F Bot UNIV Inf_G "\<lambda>N. (\<Turnstile>)" G.Red_Inf
-  "\<lambda>N. G.Red_F" Bot "\<lambda>N. \<G>_F" \<G>_Inf "\<lambda>D. Empty_Order"
+interpretation F: standard_lifting_with_red_crit_family Inf_F "{{#}}" UNIV Inf_G "\<lambda>N. (|\<approx>\<approx>)"
+  G.Red_Inf "\<lambda>N. G.Red_F" "{{#}}" "\<lambda>N. \<G>_F" \<G>_Inf "\<lambda>D. Empty_Order"
 proof (unfold_locales; (intro ballI)?)
   show "UNIV \<noteq> {}"
     by (rule UNIV_not_empty)
 next
-  show "consequence_relation Bot (\<Turnstile>)"
-    by (fact G.consequence_relation_axioms)
+  show "consequence_relation {{#}} (|\<approx>\<approx>)"
+    by (fact consequence_relation_axioms)
 next
-  show "\<And>M. calculus_with_red_crit Bot (Inf_G M) (\<Turnstile>) (G.Red_Inf M) G.Red_F"
+  show "\<And>M. calculus_with_red_crit {{#}} (Inf_G M) (|\<approx>\<approx>) (G.Red_Inf M) G.Red_F"
     by (fact G.calculus_with_red_crit_axioms)
 next
-  show "\<And>M. lifting_with_wf_ordering_family Bot Inf_F Bot (\<Turnstile>) (Inf_G M) (G.Red_Inf M) G.Red_F \<G>_F
+  show "\<And>M. lifting_with_wf_ordering_family {{#}} Inf_F {{#}} (|\<approx>\<approx>) (Inf_G M) (G.Red_Inf M) G.Red_F \<G>_F
     (\<G>_Inf M) (\<lambda>D. Empty_Order)"
     unfolding lifting_with_wf_ordering_family_def standard_lifting_def standard_lifting_axioms_def
   proof (intro allI impI conjI)
-    show "\<And>M. calculus_with_red_crit Bot (Inf_G M) (\<Turnstile>) (G.Red_Inf M) G.Red_F"
+    show "\<And>M. calculus_with_red_crit {{#}} (Inf_G M) (|\<approx>\<approx>) (G.Red_Inf M) G.Red_F"
       by (fact G.calculus_with_red_crit_axioms)
   next
-    show "Bot \<noteq> {}"
+    show "{{#}} \<noteq> {}"
       by auto
   next
-    fix B
-    assume "B \<in> Bot"
+    fix B :: "'a clause"
+    assume "B \<in> {{#}}"
     then show "\<G>_F B \<noteq> {}"
       unfolding grounding_of_cls_def by (simp add: ex_ground_subst)
   next
-    fix B
-    assume "B \<in> Bot"
-    then show "\<G>_F B \<subseteq> Bot"
+    fix B :: "'a clause"
+    assume "B \<in> {{#}}"
+    then show "\<G>_F B \<subseteq> {{#}}"
       unfolding grounding_of_cls_def using is_ground_cls_empty is_ground_subst_cls by blast
   next
     fix C
-    assume "\<G>_F C \<inter> Bot \<noteq> {}"
-    then show "C \<in> Bot"
+    assume "\<G>_F C \<inter> {{#}} \<noteq> {}"
+    then show "C \<in> {{#}}"
       unfolding grounding_of_cls_def by auto
   next
     fix M \<iota>
@@ -167,14 +166,12 @@ next
       \<iota>_in: "\<iota> \<in> Inf_F" and
       g_inf_some: "\<G>_Inf M \<iota> \<noteq> None"
 
-    (* FIXME: Clean up *)
     show "the (\<G>_Inf M \<iota>) \<subseteq> G.Red_Inf M (\<G>_F (concl_of \<iota>))"
       unfolding \<G>_Inf_def G.Red_Inf_def G.redundant_infer_def
       apply clarsimp
       apply (rule_tac x = "{concl_of \<iota> \<cdot> \<rho>}" in exI)
       unfolding grounding_of_cls_def
       apply auto
-       apply (simp add: G.subset_entailed)
       using Inf_G_reductive by fastforce
   next
     show "lifting_with_wf_ordering_family_axioms (\<lambda>D. Empty_Order)"
@@ -182,12 +179,11 @@ next
   qed
 qed
 
-notation F.entails_\<G>_Q (infix "\<Turnstile>\<G>" 50)
+notation F.entails_\<G>_Q (infix "|\<approx>\<approx>\<G>" 50)
 
 lemma entails_\<G>_iff_Union_grounding_of_cls:
-  "N1 \<Turnstile>\<G> N2 \<longleftrightarrow> \<Union> (grounding_of_cls ` N1) \<Turnstile> \<Union> (grounding_of_cls ` N2)"
-  unfolding F.entails_\<G>_Q_def F.entails_\<G>_q_def F.\<G>_set_q_def entails_G_def image_def
-    grounding_of_cls_def
+  "N1 |\<approx>\<approx>\<G> N2 \<longleftrightarrow> \<Union> (grounding_of_cls ` N1) |\<approx>\<approx> \<Union> (grounding_of_cls ` N2)"
+  unfolding F.entails_\<G>_Q_def F.entails_\<G>_q_def F.\<G>_set_q_def image_def grounding_of_cls_def
   by (auto simp: true_clss_def)
 
 lemma true_Union_grounding_of_cls_iff_true_all_interps_ground_substs:
@@ -195,12 +191,12 @@ lemma true_Union_grounding_of_cls_iff_true_all_interps_ground_substs:
   unfolding true_clss_def subst_clss_def by blast
 
 lemma entails_\<G>_iff_all_interps_ground_substs:
-  "N1 \<Turnstile>\<G> N2 \<longleftrightarrow>
+  "N1 |\<approx>\<approx>\<G> N2 \<longleftrightarrow>
   (\<forall>I. (\<forall>\<sigma>. is_ground_subst \<sigma> \<longrightarrow> I |\<approx>s N1 \<cdot>cs \<sigma>) \<longrightarrow> (\<forall>\<sigma>. is_ground_subst \<sigma> \<longrightarrow> I |\<approx>s N2 \<cdot>cs \<sigma>))"
-  unfolding F.entails_\<G>_Q_def F.entails_\<G>_q_def F.\<G>_set_q_def entails_G_def
-    grounding_of_cls_def true_Union_grounding_of_cls_iff_true_all_interps_ground_substs by blast
+  unfolding F.entails_\<G>_Q_def F.entails_\<G>_q_def F.\<G>_set_q_def grounding_of_cls_def
+    true_Union_grounding_of_cls_iff_true_all_interps_ground_substs by blast
 
-interpretation F: sound_inference_system Inf_F Bot "(\<Turnstile>\<G>)"
+interpretation F: sound_inference_system Inf_F "{{#}}" "(|\<approx>\<approx>\<G>)"
 proof
   fix \<iota>
   assume i_in: "\<iota> \<in> Inf_F"
@@ -223,7 +219,7 @@ proof
       unfolding CAs prems[symmetric] using I_entails_prems
       by (metis set_mset_mset set_mset_subst_cls_mset_subst_clss true_clss_set_mset)
   }
-  ultimately show "set (inference.prems_of \<iota>) \<Turnstile>\<G> {concl_of \<iota>}"
+  ultimately show "set (inference.prems_of \<iota>) |\<approx>\<approx>\<G> {concl_of \<iota>}"
     using entails_\<G>_iff_all_interps_ground_substs by auto
 qed
 
@@ -293,10 +289,10 @@ proof -
     by blast
 qed
 
-interpretation F: static_refutational_complete_calculus Bot Inf_F "(\<Turnstile>\<G>)" F.Red_Inf_\<G>_Q
+interpretation F: static_refutational_complete_calculus "{{#}}" Inf_F "(|\<approx>\<approx>\<G>)" F.Red_Inf_\<G>_Q
   F.Red_F_\<G>_empty
 proof (rule F.stat_ref_comp_to_non_ground_fam_inter; clarsimp)
-  show "\<And>M. static_refutational_complete_calculus Bot (Inf_G M) (\<Turnstile>) (G.Red_Inf M) G.Red_F"
+  show "\<And>M. static_refutational_complete_calculus {{#}} (Inf_G M) (|\<approx>\<approx>) (G.Red_Inf M) G.Red_F"
     by (fact G.static_refutational_complete_calculus_axioms)
 next
   fix M
@@ -305,7 +301,6 @@ next
     \<subseteq> {\<iota>. \<exists>\<iota>' \<in> F.Non_ground.Inf_from M. (\<exists>y. \<G>_Inf q \<iota>' = Some y) \<and> \<iota> \<in> the (\<G>_Inf q \<iota>')} \<union>
                 G.Red_Inf q (F.\<G>_set_q q M)"
     using G_Inf_from_imp_F_Inf_from
-    (* FIXME: Clean up proof. *)
     apply auto
     apply (rule exI[of _ M])
     apply auto
@@ -343,8 +338,8 @@ lemma trans_Prec_l: "l1 \<sqsubset>l l2 \<Longrightarrow> l2 \<sqsubset>l l3 \<L
 lemma wf_Prec_l: "wfP (\<sqsubset>l)"
   by (metis Prec_l.elims(2) Prec_l.simps(3) not_accp_down wfP_accp_iff)
 
-interpretation FL: labeled_lifting_with_red_crit_family Bot Inf_F Bot UNIV "\<lambda>N. (\<Turnstile>)" Inf_G
-  G.Red_Inf "\<lambda>N. G.Red_F" "\<lambda>N. \<G>_F" \<G>_Inf Inf_FL
+interpretation FL: labeled_lifting_with_red_crit_family "{{#}}" Inf_F "{{#}}" UNIV "\<lambda>N. (|\<approx>\<approx>)"
+  Inf_G G.Red_Inf "\<lambda>N. G.Red_F" "\<lambda>N. \<G>_F" \<G>_Inf Inf_FL
 proof
   fix \<iota> and ls :: "label list"
   assume
@@ -359,7 +354,7 @@ next
     unfolding Inf_FL_def by auto
 qed
 
-notation FL.entails_\<G>_L_Q (infix "\<Turnstile>\<G>L" 50)
+notation FL.entails_\<G>_L_Q (infix "|\<approx>\<approx>\<G>L" 50)
 notation FL.with_labels.inter_red_crit_calculus.derive (infix "\<rhd>RedFL" 50)
 
 abbreviation saturated_FL :: "('a clause \<times> label) set \<Rightarrow> bool" where
@@ -368,8 +363,8 @@ abbreviation saturated_FL :: "('a clause \<times> label) set \<Rightarrow> bool"
 abbreviation fair_FL :: "('a clause \<times> label) set llist \<Rightarrow> bool" where
   "fair_FL \<equiv> FL.with_labels.inter_red_crit_calculus.fair"
 
-interpretation GC: Given_Clause Bot Inf_F Bot UNIV "\<lambda>N. (\<Turnstile>)" Inf_G G.Red_Inf "\<lambda>N. G.Red_F"
-  "\<lambda>N. \<G>_F" \<G>_Inf Inf_FL "(\<doteq>)" "(\<prec>\<cdot>)" "(\<sqsubset>l)" Old
+interpretation GC: Given_Clause "{{#}}" Inf_F "{{#}}" UNIV "\<lambda>N. (|\<approx>\<approx>)" Inf_G G.Red_Inf
+  "\<lambda>N. G.Red_F" "\<lambda>N. \<G>_F" \<G>_Inf Inf_FL "(\<doteq>)" "(\<prec>\<cdot>)" "(\<sqsubset>l)" Old
 proof (unfold_locales; (intro ballI)?)
   show "equivp (\<doteq>)"
     unfolding equivp_def by (meson generalizes_refl generalizes_trans)
@@ -413,9 +408,9 @@ next
 next
   fix B N
   assume
-    "B \<in> Bot"
-    "N \<Turnstile>\<G> {B}"
-  then show "N - F.empty_ord_lifted_calc_w_red_crit_family.Red_F_Q N \<Turnstile>\<G> {B}"
+    "B \<in> {{#}}"
+    "N |\<approx>\<approx>\<G> {B}"
+  then show "N - F.empty_ord_lifted_calc_w_red_crit_family.Red_F_Q N |\<approx>\<approx>\<G> {B}"
     by (metis (no_types, lifting) F.Red_F_\<G>_empty_def
         F.empty_ord_lifted_calc_w_red_crit_family.Red_F_Q_def
         F.inter_calc calculus_with_red_crit.Red_F_Bot)
@@ -453,10 +448,10 @@ next
 next
   fix B N
   assume
-    bot: "B \<in> Bot" and
+    bot: "B \<in> {{#}}" and
     satur: "F.empty_ord_lifted_calc_w_red_crit_family.inter_red_crit_calculus.saturated N" and
-    unsat: "N \<Turnstile>\<G> {B}"
-  show "\<exists>B' \<in> Bot. B' \<in> N"
+    unsat: "N |\<approx>\<approx>\<G> {B}"
+  show "\<exists>B' \<in> {{#}}. B' \<in> N"
     (* FIXME: Clean up. *)
     apply (rule F.static_refutational_complete[OF bot _ unsat])
     unfolding F.lifted_calc_w_red_crit.saturated_def
@@ -604,7 +599,7 @@ proof -
       apply (rule_tac x = "{fst Dl \<cdot> \<sigma> \<cdot> \<sigma>'}" in exI)
       apply auto
       apply (metis is_ground_comp_subst subst_cls_comp_subst)
-      unfolding entails_G_def true_clss_def true_cls_def
+      unfolding true_clss_def true_cls_def
       apply clarsimp
       apply (meson Melem_subst_cls mset_subset_eqD)
       by (metis False size_subst subset_imp_less_mset subset_mset.le_less subst_subset_mono)
@@ -616,7 +611,7 @@ proof -
        apply auto
     using d_sub'_c unfolding Red_F_Q_GC_eq
      apply auto
-       apply (meson G.Red_F_of_subset SUP_upper d_in subset_iff)
+    apply (metis (no_types, lifting) G.Red_F_of_subset SUP_upper d_in subset_iff)
       apply (smt GC.Prec_FL_def GC.equiv_F_grounding GC.prec_F_grounding UNIV_witness d_in in_mono)
     by (simp add: GC.active_subset_def)+
 qed
@@ -635,7 +630,6 @@ proof (rule GC.step.process[of _ N "{Cl}" _ "{Dl}"])
     apply clarsimp
     apply (rule_tac x = "{fst Dl \<cdot> \<sigma>}" in exI)
     apply auto
-    unfolding entails_G_def
     using subst_subset_mono[OF d_sub_c]
     using true_clss_subclause
      apply fast
@@ -714,8 +708,8 @@ proof (induction rule: RP.induct)
       "Neg (A \<cdot>a \<theta>) \<in># C\<theta>"
       "Pos (A \<cdot>a \<theta>) \<in># C\<theta>"
       using tauto Neg_Melem_subst_atm_subst_cls Pos_Melem_subst_atm_subst_cls by auto
-    then have "{} \<Turnstile> {C\<theta>}"
-      unfolding entails_G_def true_clss_def true_cls_def true_lit_def if_distrib_fun
+    then have "{} |\<approx>\<approx> {C\<theta>}"
+      unfolding true_clss_def true_cls_def true_lit_def if_distrib_fun
       by (metis (full_types) literal.disc(1,2) literal.sel(1,2) singletonD)
     then show ?thesis
       unfolding G.Red_F_def
@@ -732,8 +726,8 @@ proof (induction rule: RP.induct)
     apply (unfold image_Un image_comp[of fst])
     apply (unfold image_Un[symmetric])
     apply simp
-    using c\<theta>_red
-    by (metis G.Red_F_of_subset UnionE emptyE image_is_empty subset_eq)
+    using c\<theta>_red[of _ "lclss_of_state (N, P, Q)"] unfolding lclss_of_state_def
+    by auto
 next
   case (forward_subsumption D P Q C N)
   note d_in = this(1) and d_sub_c = this(2)
