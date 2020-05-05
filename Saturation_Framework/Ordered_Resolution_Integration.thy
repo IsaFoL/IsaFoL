@@ -354,14 +354,8 @@ next
     unfolding Inf_FL_def by auto
 qed
 
-notation FL.entails_\<G>_L_Q (infix "|\<approx>\<approx>\<G>L" 50)
-notation FL.with_labels.inter_red_crit_calculus.derive (infix "\<rhd>RedFL" 50)
-
 abbreviation saturated_FL :: "('a clause \<times> label) set \<Rightarrow> bool" where
   "saturated_FL \<equiv> FL.with_labels.inter_red_crit_calculus.saturated"
-
-abbreviation fair_FL :: "('a clause \<times> label) set llist \<Rightarrow> bool" where
-  "fair_FL \<equiv> FL.with_labels.inter_red_crit_calculus.fair"
 
 interpretation GC: Given_Clause "{{#}}" Inf_F "{{#}}" UNIV "\<lambda>N. (|\<approx>\<approx>)" Inf_G G.Red_Inf
   "\<lambda>N. G.Red_F" "\<lambda>N. \<G>_F" \<G>_Inf Inf_FL "(\<doteq>)" "(\<prec>\<cdot>)" "(\<sqsubset>l)" Old
@@ -478,27 +472,15 @@ next
 qed
 
 notation GC.Prec_FL (infix "\<sqsubset>" 50)
-
 notation GC.step (infix "\<Longrightarrow>GC" 50)
+notation GC.labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.inter_red_crit_calculus.derive
+  (infix "\<rhd>RedFL" 50)
 
 abbreviation Red_Inf_Q_GC :: "('a clause \<times> label) set \<Rightarrow> ('a clause \<times> label) inference set" where
   "Red_Inf_Q_GC \<equiv> GC.labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_Inf_Q"
 
 abbreviation Red_F_Q_GC :: "('a clause \<times> label) set \<Rightarrow> ('a clause \<times> label) set" where
   "Red_F_Q_GC \<equiv> GC.labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_F_Q"
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 subsection \<open>RP Layer\<close>
@@ -830,16 +812,51 @@ next
 qed
 
 lemma RP_step_imp_LF_step: "St \<leadsto> St' \<Longrightarrow> lclss_of_state St \<rhd>RedFL lclss_of_state St'"
-  sorry
+  by (rule GC.one_step_equiv) (rule RP_step_imp_GC_step)
 
 lemma RP_derivation_imp_LF_derivation: "chain (\<leadsto>) Sts \<Longrightarrow> chain (\<rhd>RedFL) (lmap lclss_of_state Sts)"
   using chain_lmap RP_step_imp_LF_step by blast
 
+
+lemma lclss_Liminf_commute:
+  "lclss_of_state (Liminf_state Sts) = Liminf_llist (lmap lclss_of_state Sts)"
+  unfolding Liminf_state_def
+  thm lclss_of_state
+  sorry
+
+
+
+
 lemma RP_fair_imp_LF_fair:
   assumes
+    deriv: "chain (\<leadsto>) Sts" and
     fair: "fair_state_seq Sts" and
     empty_Q0: "Q_of_state (lhd Sts) = {}"
-  shows "fair_FL (lmap lclss_of_state Sts)"
+  shows "GC.fair (lmap lclss_of_state Sts)"
+proof (rule GC.gc_fair)
+  show "chain (\<Longrightarrow>GC) (lmap lclss_of_state Sts)"
+    using deriv RP_step_imp_GC_step chain_lmap by blast
+next
+  show "GC.active_subset (lnth (lmap lclss_of_state Sts) 0) = {}"
+    using empty_Q0 unfolding GC.active_subset_def
+    using chain_not_lnull[OF deriv]
+    apply (cases Sts)
+    apply auto
+    done
+next
+  show "GC.non_active_subset (Liminf_llist (lmap lclss_of_state Sts)) = {}"
+    using fair unfolding fair_state_seq_def GC.non_active_subset_def
+    apply auto
+    unfolding Liminf_state_def Liminf_llist_def
+    apply auto
+
+    sorry
+qed
+
+
+
+  using fair_state_seq_def FL.with_labels.inter_red_crit_calculus.fair_def
+
   sorry
 
 lemma GC_saturated_imp_LF_saturated:
@@ -877,7 +894,7 @@ theorem RP_saturated_if_fair_w_satur_frmwk:
   by (rule GC_saturated_imp_LF_saturated)
     (intro FL.with_labels.inter_red_crit_calculus.fair_implies_Liminf_saturated
       RP_derivation_imp_LF_derivation[OF deriv]
-      RP_fair_imp_LF_fair[OF fair empty_Q0])
+      RP_fair_imp_GC_fair[OF deriv fair empty_Q0])
 
 corollary RP_complete_if_fair_w_satur_frmwk:
   assumes
