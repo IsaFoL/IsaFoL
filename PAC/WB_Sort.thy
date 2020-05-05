@@ -278,7 +278,7 @@ lemma sorted_sublist_wrt_snoc':
   apply (auto simp add: nat_le_eq_or_lt)
   subgoal by (simp add: sublist_single)
   apply (auto simp add: sublist_snoc sublist_el sorted_wrt_append)
-  by (metis less_diff_conv linorder_neqE_nat linordered_field_class.sign_simps(2) not_add_less1)
+  by (metis ab_semigroup_add_class.add.commute leI less_diff_conv nat_le_eq_or_lt not_add_less1)
 
 
 lemma sorted_sublist_wrt_snoc:

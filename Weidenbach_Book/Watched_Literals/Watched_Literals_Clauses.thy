@@ -1,5 +1,5 @@
 theory Watched_Literals_Clauses
-imports WB_More_Refinement_List Watched_Literals_Transition_System
+imports More_Sepref.WB_More_Refinement_List Watched_Literals_Transition_System
 begin
 
 type_synonym 'v clause_l = \<open>'v literal list\<close>

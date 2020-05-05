@@ -929,7 +929,7 @@ proof (rule wf_union_compatible)
   qed
 qed
 
-find_theorems wf \<open>_ _\<close>
+(*
 lemma (in twl_restart) wf_cdcl_twl_stgy_restart_measure_early:
   \<open>wf ({((ebrk, brkT, T, n, n'::nat), ebrk, brkS, S, m, m'::nat).
          twl_struct_invs S \<and>
@@ -978,7 +978,7 @@ proof (rule wf_union_compatible)
       by auto
   qed
 qed
-
+*)
 (*
 lemma cdcl_twl_stgy_restart_with_leftovers_cdcl\<^sub>W_restart_stgy:
   \<open>cdcl_twl_stgy_restart_with_leftovers S T \<Longrightarrow> twl_struct_invs (fst S) \<Longrightarrow>  twl_stgy_invs (fst S) \<Longrightarrow>
@@ -1096,5 +1096,7 @@ lemma rtranclp_cdcl_twl_stgy_restart_with_leftovers_cdcl\<^sub>W_restart_stgy:
   done
 *)
 end
+
+
 
 end

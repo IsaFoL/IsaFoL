@@ -1,7 +1,7 @@
 theory WB_Word_Assn
 imports  Refine_Imperative_HOL.IICF
-  WB_Word Isabelle_LLVM.Bits_Natural
-  WB_More_Refinement WB_More_IICF_SML
+  More_Sepref.WB_Word Isabelle_LLVM.Bits_Natural
+  More_Sepref.WB_More_Refinement WB_More_IICF_SML
 begin
 
 context includes natural.lifting begin

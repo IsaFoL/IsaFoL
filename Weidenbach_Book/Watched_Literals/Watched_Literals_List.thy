@@ -1,5 +1,5 @@
 theory Watched_Literals_List
-  imports WB_More_Refinement_List Watched_Literals_Algorithm CDCL.DPLL_CDCL_W_Implementation
+  imports More_Sepref.WB_More_Refinement_List Watched_Literals_Algorithm CDCL.DPLL_CDCL_W_Implementation
     Watched_Literals_Clauses
 begin
 

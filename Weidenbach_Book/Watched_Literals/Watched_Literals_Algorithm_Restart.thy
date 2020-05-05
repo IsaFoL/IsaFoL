@@ -41,6 +41,12 @@ definition cdcl_twl_stgy_restart_prog_inv where
     cdcl_twl_stgy_restart_with_leftovers (S\<^sub>0, 0, True) m (T, n, True) \<and>
     clauses_to_update T = {#} \<and> (\<not>brk \<longrightarrow> get_conflict T = None)\<close>
 
+lemma
+  \<open>wf {((brk, T, m, n), (brk', S\<^sub>0, m', n')).
+       twl_struct_invs T \<and> twl_stgy_invs T \<and>
+    cdcl_twl_stgy_restart_with_leftovers (S\<^sub>0, 0, True) m (T, n, True)}\<close>
+  oops
+
 definition cdcl_twl_stgy_restart_prog :: "'v twl_st \<Rightarrow> 'v twl_st nres" where
   \<open>cdcl_twl_stgy_restart_prog S\<^sub>0 =
   do {

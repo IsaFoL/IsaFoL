@@ -1,6 +1,6 @@
 theory Watched_Literals_Algorithm
   imports
-    WB_More_Refinement
+    More_Sepref.WB_More_Refinement
     Watched_Literals_Transition_System
     Watched_Literals_All_Literals
 begin

@@ -3,7 +3,10 @@
 *)
 
 theory Superposition_Lifting
-  imports Calculi "HOL-Library.Multiset" First_Order_Terms.Unification
+  imports
+    Saturation_Framework.Calculi
+    "HOL-Library.Multiset"
+    First_Order_Terms.Unification
 begin
 
 (* literals, clauses *)

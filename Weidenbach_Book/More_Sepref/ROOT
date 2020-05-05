@@ -1,0 +1,14 @@
+session "More_Sepref" (Weidenbach_Book) = "Isabelle_LLVM"  +
+  description \<open>This session contains some libraries for Refinement.\<close>
+  options [document = pdf, document_output = "output"]
+  sessions
+    "HOL-Library"
+    Sepref_IICF
+    "HOL-Eisbach"
+    More_Refinement_Libs
+    Weidenbach_Book_Base
+    Isabelle_LLVM
+  theories [quick_and_dirty = false, document = false]
+    WB_More_Refinement
+    WB_More_Refinement_List
+    WB_Word

@@ -1,17 +1,18 @@
-(*  Title:       Dynamic_Completeness_Lifting
-Author:      Sophie Tourret <stourret at mpi-inf.mpg.de>, 2018
-*)
+(*  Title:       Ordered_Resolution_Integration
+ *  Author:      Sophie Tourret <stourret at mpi-inf.mpg.de>, 2018-2020 *)
 
 subsection \<open>Application of the saturation framework to Bachmair and Ganzinger's Resolution Prover, as formalize in the Ordered_Resolution_Prover theory in the AFP.\<close>
 
 theory Ordered_Resolution_Integration
 imports
-  Prover_Architectures
+  Saturation_Framework.Prover_Architectures
+  Soundness_Related
   Ordered_Resolution_Prover.FO_Ordered_Resolution_Prover
 begin
+
 context FO_resolution_prover
 begin
-
+  
 abbreviation Bot_F :: "'a clause set" where "Bot_F \<equiv> {{#}}"
 
 definition entails_sound_F :: "'a clause set \<Rightarrow> 'a clause set \<Rightarrow> bool" (infix "|\<approx>F" 50)  where
@@ -41,7 +42,7 @@ definition Inf_F :: "'a clause Consequence_Relations_and_Inference_Systems.infer
 lemma conv_inf_in_Inf_F: \<open>conv_inf ` (ord_FO_\<Gamma> S) \<subseteq> Inf_F\<close>
   unfolding conv_inf_def Inf_F_def same_inf_def by auto
 
-interpretation sound_F: Consequence_Relations_and_Inference_Systems.sound_inference_system Bot_F entails_sound_F Inf_F 
+interpretation sound_F: Soundness_Related.sound_inference_system Inf_F Bot_F entails_sound_F 
 proof -
   { text \<open>proof of @{locale Consequence_Relations_and_Inference_Systems.consequence_relation}, \<open>subset_entailed\<close> assumption\<close>
     fix N1 N2 I \<eta>
@@ -65,7 +66,7 @@ proof -
     then have "I \<Turnstile>s N2 \<cdot>cs \<eta>" by (simp add: subst_clss_def true_clss_def)
   }
   moreover
-  { text \<open>proof of @{locale Consequence_Relations_and_Inference_Systems.sound_inference_system}, soundness assumption\<close>
+  { text \<open>proof of @{locale Soundness_Related.sound_inference_system}, soundness assumption\<close>
     fix \<iota> I \<eta>
     assume
       i_in: "\<iota> \<in> Inf_F" and
@@ -87,15 +88,16 @@ proof -
     then have "I \<Turnstile> (Consequence_Relations_and_Inference_Systems.inference.concl_of \<iota>) \<cdot> \<eta>" 
       using concl by simp
   }
-  ultimately show "Consequence_Relations_and_Inference_Systems.sound_inference_system Bot_F (|\<approx>F) Inf_F"
-    unfolding Consequence_Relations_and_Inference_Systems.sound_inference_system_def
+  ultimately show "Soundness_Related.sound_inference_system Inf_F Bot_F (|\<approx>F)"
+    unfolding Soundness_Related.sound_inference_system_def
       consequence_relation_def entails_sound_F_def
-      Consequence_Relations_and_Inference_Systems.sound_inference_system_axioms_def
+      Soundness_Related.sound_inference_system_axioms_def
     apply (intro conjI)
     subgoal by simp
-    subgoal by blast
+    subgoal by (metis singletonD subst_cls_empty subst_clss_single true_cls_empty true_clss_singleton)
     subgoal by auto
-    subgoal by blast
+    subgoal by (simp add: substitution_ops.subst_clss_def true_clss_def)
+    subgoal by auto
     subgoal by auto
     done
 qed
@@ -124,7 +126,7 @@ definition entails_G :: "'a clause set \<Rightarrow> 'a clause set \<Rightarrow>
 abbreviation entails_sound_G :: "'a clause set \<Rightarrow> 'a clause set \<Rightarrow> bool" (infix "|\<approx>G" 50)  where
   "S1 |\<approx>G S2 \<equiv> entails_G S1 S2"
 
-interpretation Consequence_Relations_and_Inference_Systems.sound_inference_system Bot_G entails_sound_G Inf_G
+interpretation Soundness_Related.sound_inference_system Inf_G Bot_G entails_sound_G
 proof -
   {
     fix N1 N2 I
@@ -163,10 +165,10 @@ proof -
         the_inf mset_CAs gr.ground_resolution_with_selection_axioms by fastforce
     then have "I \<Turnstile> Consequence_Relations_and_Inference_Systems.inference.concl_of \<iota>" using concl by auto
   }
-  ultimately show "Consequence_Relations_and_Inference_Systems.sound_inference_system Bot_G (|\<approx>G) Inf_G"
-    unfolding Consequence_Relations_and_Inference_Systems.sound_inference_system_def
+  ultimately show "Soundness_Related.sound_inference_system Inf_G Bot_G (|\<approx>G)"
+    unfolding Soundness_Related.sound_inference_system_def
       consequence_relation_def entails_G_def
-      Consequence_Relations_and_Inference_Systems.sound_inference_system_axioms_def
+      Soundness_Related.sound_inference_system_axioms_def
     by auto
 qed
 
@@ -176,7 +178,7 @@ abbreviation entails_comp_G :: "'a clause set \<Rightarrow> 'a clause set \<Righ
 interpretation Consequence_Relations_and_Inference_Systems.consequence_relation Bot_G entails_comp_G
   by (rule consequence_relation_axioms)
 
-interpretation Consequence_Relations_and_Inference_Systems.sound_inference_system Bot_G entails_comp_G Inf_G
+interpretation Soundness_Related.sound_inference_system Inf_G Bot_G entails_comp_G
   by (rule sound_inference_system_axioms)
 
 interpretation sr: standard_redundancy_criterion_reductive gr.ord_\<Gamma>
@@ -192,16 +194,13 @@ definition Red_Inf_G :: "'a clause set \<Rightarrow> 'a clause Consequence_Relat
 definition Red_F_G :: "'a clause set \<Rightarrow> 'a clause set" where
   "Red_F_G S1 \<equiv> sr.Rf S1"
 
-interpretation gr_calc: Consequence_Relations_and_Inference_Systems.calculus Bot_G entails_sound_G Inf_G
-  entails_comp_G Red_Inf_G Red_F_G
-  unfolding calculus_def
+interpretation gr_calc: calculus_with_red_crit Bot_G Inf_G entails_comp_G Red_Inf_G Red_F_G
+  unfolding calculus_with_red_crit_def
 proof (intro conjI)
-  show \<open>Consequence_Relations_and_Inference_Systems.sound_inference_system Bot_G (\<Turnstile>G) Inf_G\<close>
-    by (rule sound_inference_system_axioms)
-next
   show \<open>consequence_relation Bot_G (\<Turnstile>G)\<close> by (rule consequence_relation_axioms)
 next
-  show \<open>calculus_axioms Bot_G Inf_G (\<Turnstile>G) Red_Inf_G Red_F_G\<close> unfolding calculus_axioms_def
+  show \<open>calculus_with_red_crit_axioms Bot_G Inf_G (\<Turnstile>G) Red_Inf_G Red_F_G\<close>
+    unfolding calculus_with_red_crit_axioms_def
   proof (intro conjI allI impI)
     fix N
     show \<open>Red_Inf_G N \<subseteq> Inf_G\<close> unfolding Inf_G_def Red_Inf_G_def same_inf_def using sr.Ri_subset_\<Gamma> by force
@@ -376,7 +375,7 @@ lemma shuffle_ord_resolve_side_prems:
 proof -
   obtain Cs Da n where
     D_eq: \<open>D = Da + negs (mset As)\<close> and
-    E_eq: \<open>E = \<Union>#mset Cs + Da\<close> and
+    E_eq: \<open>E = \<Union>#(mset Cs) + Da\<close> and
     len_CAs: \<open>length CAs = n\<close> and
     len_Cs: \<open>length Cs = n\<close> and
     len_AAs: \<open>length AAs = n\<close> and
@@ -388,7 +387,7 @@ proof -
     eligible: \<open>gr.eligible As (Da + negs (mset As))\<close> and
     max: \<open>\<forall>i<n. gr.strictly_maximal_wrt (As ! i) (Cs ! i)\<close> and
     S_empty: \<open>\<forall>i<n. (S_M S M) (CAs ! i) = {#}\<close>
- using res unfolding gr.ord_resolve.simps by auto
+    using res unfolding gr.ord_resolve.simps by auto
   have x_in_equiv: \<open>x \<in># mset CAs' \<Longrightarrow> x \<in># mset CAs\<close> for x using mset_CAs by simp
   have len_CAs': \<open>length CAs' = n\<close> using len_CAs mset_CAs using mset_eq_length by fastforce
   have exist_map: \<open>\<exists>map_i. (\<forall>i. i < n \<longrightarrow> CAs'!i = CAs!(map_i i)) \<and> inj_on map_i {0..<n} \<and>
@@ -525,7 +524,7 @@ proof (intro disj_imp[THEN iffD2] impI)
   then have n_not_null: \<open>n \<noteq> 0\<close> using A3_is unfolding gr.ord_resolve.simps by force
   obtain D3 Cs3 where
     main3: \<open>main_prem_of \<iota> = D3 + negs (mset As3)\<close> and
-    concl_i_is: \<open>concl_of \<iota> = \<Union># mset Cs3 + D3\<close> and
+    concl_i_is: \<open>concl_of \<iota> = \<Union># (mset Cs3) + D3\<close> and
     len_Cs3: \<open>length Cs3 = n\<close> and
     CAs_i3: \<open>\<forall>i<n. (main_prem_of \<iota>' # CAs) ! i = Cs3 ! i + poss (AAs3 ! i)\<close> and
     AAs3_nempty: \<open>\<forall>i<n. AAs3 ! i \<noteq> {#}\<close> and
@@ -536,7 +535,7 @@ proof (intro disj_imp[THEN iffD2] impI)
     using A3_is n_is unfolding gr.ord_resolve.simps by auto
   obtain D4 Cs4 where
     main4: \<open>main_prem_of \<iota>' = D4 + negs (mset As4)\<close> and
-    concl_i'_is: \<open>concl_of \<iota>' = \<Union># mset Cs4 + D4\<close> and
+    concl_i'_is: \<open>concl_of \<iota>' = \<Union># (mset Cs4) + D4\<close> and
     len_Cs4: \<open>length Cs4 = n\<close> and
     CAs_i4: \<open>\<forall>i<n. (main_prem_of \<iota> # CAs) ! i = Cs4 ! i + poss (AAs4 ! i)\<close> and
     AAs4_nempty: \<open>\<forall>i<n. AAs4 ! i \<noteq> {#}\<close> and
@@ -555,7 +554,7 @@ proof (intro disj_imp[THEN iffD2] impI)
       len_AAs_eq len_As3 len_As_eq length_greater_0_conv linorder_not_le nth_Cons_0 set_mset_empty)
   then have Cs_eq: \<open>\<forall>i \<in> {1..<n}. Cs3!i = Cs4!i\<close>
     using CAs_i3 CAs_i4 by fastforce
-  then have \<open>\<Union># mset Cs3 - Cs3!0 = \<Union># mset Cs4 - Cs4!0\<close> using Cs_eq len_Cs3 len_Cs4
+  then have \<open>\<Union># (mset Cs3) - Cs3!0 = \<Union># (mset Cs4) - Cs4!0\<close> using Cs_eq len_Cs3 len_Cs4
     apply (cases Cs3; cases Cs4)
     by (force intro!: arg_cong[of _ _ sum_list] list_eq_iff_nth_eq[THEN iffD2])+
   then have CsD_eq: \<open>Cs3!0 + D3 = Cs4!0 + D4\<close> using concl_i_is concl_i'_is concl_eq len_Cs3 len_Cs4
@@ -640,7 +639,8 @@ proof (intro disj_imp[THEN iffD2] impI)
     using eq_imply_B neq_imply_B by auto
 qed
 
-(* TODO: move in Standard_Redundancy.thy in AFP Ordered_Resolution_Prover *)
+(* TODO: Starting with Isabelle2021, this will correspond to
+   "Standard_Redundancy.tautology_redundant_infer". Use that instead. *)
 lemma tauto_concl_redundant:
   assumes
     pos: \<open>Pos A \<in># concl_of \<iota>\<close> and
@@ -702,8 +702,8 @@ lemma conv_saturation:
   ultimately show \<open>False\<close> by simp
 qed
 
-interpretation calc_G: Consequence_Relations_and_Inference_Systems.static_refutational_complete_calculus Bot_G
-  entails_sound_G Inf_G entails_comp_G Red_Inf_G Red_F_G
+interpretation calc_G: static_refutational_complete_calculus Bot_G Inf_G entails_comp_G Red_Inf_G
+  Red_F_G
   proof
   fix B N
   assume
@@ -727,16 +727,19 @@ definition subst_inf :: \<open>'a clause Consequence_Relations_and_Inference_Sys
     ((Consequence_Relations_and_Inference_Systems.concl_of \<iota>) \<cdot> \<sigma>)\<close>
 
 definition \<G>_Inf :: \<open>'a clause Consequence_Relations_and_Inference_Systems.inference
-                      \<Rightarrow> 'a clause Consequence_Relations_and_Inference_Systems.inference set\<close> where
-  \<open>\<G>_Inf \<iota> = {Consequence_Relations_and_Inference_Systems.inference.Infer
+                      \<Rightarrow> 'a clause Consequence_Relations_and_Inference_Systems.inference set option\<close> where
+  \<open>\<G>_Inf \<iota> = Some {Consequence_Relations_and_Inference_Systems.inference.Infer
     ((inference.prems_of \<iota>) \<cdot>\<cdot>cl \<rho>s) ((Consequence_Relations_and_Inference_Systems.concl_of \<iota>) \<cdot> \<rho>)
     |\<rho> \<rho>s. is_ground_subst_list \<rho>s \<and> is_ground_subst \<rho> \<and>
     Consequence_Relations_and_Inference_Systems.inference.Infer ((inference.prems_of \<iota>) \<cdot>\<cdot>cl \<rho>s)
     ((Consequence_Relations_and_Inference_Systems.concl_of \<iota>) \<cdot> \<rho>)  \<in> Inf_G }\<close>
 
-interpretation \<G>: grounding_function Bot_F entails_sound_F Inf_F Bot_G entails_sound_G Inf_G
-  entails_comp_G Red_Inf_G Red_F_G \<G>_F \<G>_Inf
+interpretation \<G>_standard_lifting: standard_lifting Bot_F Inf_F Bot_G Inf_G entails_comp_G Red_Inf_G
+  Red_F_G \<G>_F \<G>_Inf
 proof
+  show \<open>Bot_G \<noteq> {}\<close>
+    by simp
+next
   fix B
   assume \<open>B \<in> Bot_G\<close>
   then have \<open>B = {#}\<close> by simp
@@ -759,17 +762,19 @@ next
   qed
 next
   fix \<iota>
-  assume i_in: \<open>\<iota> \<in> Inf_F\<close>
-  show \<open>\<G>_Inf \<iota> \<subseteq> Red_Inf_G (\<G>_F (Consequence_Relations_and_Inference_Systems.inference.concl_of \<iota>))\<close>
+  assume
+    i_in: \<open>\<iota> \<in> Inf_F\<close> and
+    g_def: \<open>\<G>_Inf \<iota> \<noteq> None\<close>
+  show \<open>the (\<G>_Inf \<iota>) \<subseteq> Red_Inf_G (\<G>_F (Consequence_Relations_and_Inference_Systems.inference.concl_of \<iota>))\<close>
   proof
     fix \<iota>'
-    assume i'_in: \<open>\<iota>' \<in> \<G>_Inf \<iota>\<close>
-    then have i'_in2: \<open>\<iota>' \<in> Inf_G\<close>unfolding \<G>_Inf_def by blast
+    assume i'_in: \<open>\<iota>' \<in> the (\<G>_Inf \<iota>)\<close>
+    then have i'_in2: \<open>\<iota>' \<in> Inf_G\<close> unfolding \<G>_Inf_def g_def by auto 
     have concl_in: \<open>Consequence_Relations_and_Inference_Systems.inference.concl_of \<iota>' \<in>
       \<G>_F (Consequence_Relations_and_Inference_Systems.inference.concl_of \<iota>)\<close>
       using i'_in subst_inf_def unfolding \<G>_Inf_def \<G>_F_def grounding_of_cls_def by auto
     show \<open>\<iota>' \<in> Red_Inf_G (\<G>_F (Consequence_Relations_and_Inference_Systems.inference.concl_of \<iota>))\<close>
-      using Consequence_Relations_and_Inference_Systems.grounding_function.inf_map i'_in2 concl_in
+      using standard_lifting.inf_map i'_in2 concl_in
       by (simp add: gr_calc.Red_Inf_of_Inf_to_N)
   qed
 qed
@@ -899,7 +904,7 @@ proof -
       have m: "\<forall>i < n. S_M S M (CAs ! i) = {#}"
         using ord_resolve by simp
  
-      have ground_e: "is_ground_cls (\<Union>#mset Cs + D)"
+      have ground_e: "is_ground_cls (\<Union># (mset Cs) + D)"
         using ground_d ground_cs ground_E e by simp
       show ?thesis
         using m DA e ground_e
@@ -908,7 +913,7 @@ proof -
     qed
 qed
 
-lemma union_G_F_ground: \<open>is_ground_clss (UNION M \<G>_F)\<close>
+lemma union_G_F_ground: \<open>is_ground_clss (\<Union> (\<G>_F ` M))\<close>
   unfolding \<G>_F_def by (simp add: grounding_ground grounding_of_clss_def is_ground_clss_def)
 
 lemma mset_upto_length_list: \<open>{# L ! x. x \<in># mset_set {0..<(length L)}#} = mset L\<close>
@@ -917,8 +922,8 @@ apply (induction L rule: rev_induct)
 apply (auto simp: atLeast0_lessThan_Suc nth_append intro!: image_mset_cong)
 done
 
-(* TODO: on the long term, should replace ord_resolve_rename_lifting in the
-   ordered resolution prover in the AFP *)
+(* TODO: Starting with Isabelle2021, this will correspond to
+   "FO_Ordered_Resolution.ord_resolve_rename_lifting". Use that instead. *)
 lemma ord_resolve_rename_lifting_with_length:
   assumes
     sel_stable: "\<And>\<rho> C. is_renaming \<rho> \<Longrightarrow> S (C \<cdot> \<rho>) = S C \<cdot> \<rho>" and
@@ -1113,9 +1118,9 @@ proof (cases rule: ord_resolve.cases)
     show "length (As0' \<cdot>al \<eta>) = length As"
       using n by auto
   next
-    show "\<forall>i<length (As0' \<cdot>al \<eta>). (As0' \<cdot>al \<eta>) ! i = As ! i"
-    proof (rule, rule)
-      fix i :: "nat"
+    fix i
+    show "i<length (As0' \<cdot>al \<eta>) \<Longrightarrow> (As0' \<cdot>al \<eta>) ! i = As ! i"
+    proof - 
       assume a: "i < length (As0' \<cdot>al \<eta>)"
       have A_eq: "\<forall>A. A \<in> atms_of DA0' \<longrightarrow> A \<cdot>a \<eta>0' = A \<cdot>a \<eta>"
         using \<eta>_p_atm n by force
@@ -1154,9 +1159,9 @@ proof (cases rule: ord_resolve.cases)
     show "length (Cs0' \<cdot>cl \<eta>) = length Cs"
       using n by auto
   next
-    show "\<forall>i<length (Cs0' \<cdot>cl \<eta>). (Cs0' \<cdot>cl \<eta>) ! i = Cs ! i"
-    proof (rule, rule) (* FIXME: Clean up this mess. *)
-      fix i
+    fix i
+    show "i<length (Cs0' \<cdot>cl \<eta>) \<Longrightarrow> (Cs0' \<cdot>cl \<eta>) ! i = Cs ! i"
+    proof -
       assume "i < length (Cs0' \<cdot>cl \<eta>)"
       then have a: "i < n"
         using n by force
@@ -1179,9 +1184,9 @@ proof (cases rule: ord_resolve.cases)
     show "length (AAs0' \<cdot>aml \<eta>) = length AAs"
       using n by auto
   next
-    show "\<forall>i<length (AAs0' \<cdot>aml \<eta>). (AAs0' \<cdot>aml \<eta>) ! i = AAs ! i"
-    proof (rule, rule)
-      fix i :: "nat"
+    fix i
+    show "i<length (AAs0' \<cdot>aml \<eta>) \<Longrightarrow> (AAs0' \<cdot>aml \<eta>) ! i = AAs ! i"
+    proof -
       assume a: "i < length (AAs0' \<cdot>aml \<eta>)"
       then have "i < n"
         using n by force
@@ -1295,7 +1300,7 @@ proof (cases rule: ord_resolve.cases)
 
   \<comment> \<open>Resolve the lifted clauses\<close>
   define E0' where
-    "E0' = ((\<Union># mset Cs0') + D0') \<cdot> \<tau>"
+    "E0' = ((\<Union># (mset Cs0')) + D0') \<cdot> \<tau>"
 
   have res_e0': "ord_resolve S CAs0' DA0' AAs0' As0' \<tau> E0'"
     using ord_resolve.intros[of CAs0' n Cs0' AAs0' As0' \<tau> S D0',
@@ -1306,11 +1311,11 @@ proof (cases rule: ord_resolve.cases)
   \<comment> \<open>Prove resolvent instantiates to ground resolvent\<close>
   have e0'\<phi>e: "E0' \<cdot> \<phi> = E"
   proof -
-    have "E0' \<cdot> \<phi> = ((\<Union># mset Cs0') + D0') \<cdot> (\<tau> \<odot> \<phi>)"
+    have "E0' \<cdot> \<phi> = ((\<Union># (mset Cs0')) + D0') \<cdot> (\<tau> \<odot> \<phi>)"
       unfolding E0'_def by auto
-    also have "\<dots> = (\<Union># mset Cs0' + D0') \<cdot> (\<eta> \<odot> \<sigma>)"
+    also have "\<dots> = (\<Union># (mset Cs0') + D0') \<cdot> (\<eta> \<odot> \<sigma>)"
       using \<tau>\<phi> by auto
-    also have "\<dots> = (\<Union># mset Cs + D) \<cdot> \<sigma>"
+    also have "\<dots> = (\<Union># (mset Cs) + D) \<cdot> \<sigma>"
       using \<open>Cs0' \<cdot>cl \<eta> = Cs\<close> \<open>D0' \<cdot> \<eta> = D\<close> by auto
     also have "\<dots> = E"
       using e by auto
@@ -1378,10 +1383,10 @@ qed
 lemma subst_Cons_nth: \<open>i < length ((C \<cdot> \<sigma>) # (Cs \<cdot>\<cdot>cl \<sigma>s)) \<Longrightarrow> ((C # Cs) ! i) \<cdot> ((\<sigma> # \<sigma>s) ! i) = ((C \<cdot> \<sigma>) # (Cs \<cdot>\<cdot>cl \<sigma>s)) ! i\<close>
 by (auto simp: nth_Cons' simp del: subst_cls_lists_length)
 
-lemma lifting_in_framework: \<open>\<iota>' \<in> Inf_from (UNION M \<G>_F) \<Longrightarrow> \<exists>\<iota>. \<iota> \<in> sound_F.Inf_from M \<and> \<iota>' \<in> \<G>_Inf \<iota>\<close>
+lemma lifting_in_framework: \<open>\<iota>' \<in> Inf_from (\<Union> (\<G>_F ` M)) \<Longrightarrow> \<exists>\<iota>. \<iota> \<in> sound_F.Inf_from M \<and> \<iota>' \<in> the (\<G>_Inf \<iota>)\<close>
 proof -
-  assume i'_in: \<open>\<iota>' \<in> Inf_from (UNION M \<G>_F)\<close>
-  have prems_i'_in: \<open>set (inference.prems_of \<iota>') \<subseteq> UNION M \<G>_F\<close> using i'_in unfolding Inf_from_def by blast
+  assume i'_in: \<open>\<iota>' \<in> Inf_from (\<Union> (\<G>_F ` M))\<close>
+  have prems_i'_in: \<open>set (inference.prems_of \<iota>') \<subseteq> \<Union> (\<G>_F ` M)\<close> using i'_in unfolding Inf_from_def by blast
   have i'_Inf_G: \<open>\<iota>' \<in> Inf_G\<close> using i'_in unfolding Inf_from_def by blast
   then obtain \<iota>'_RP where i'_RP_is: \<open>same_inf \<iota>'_RP \<iota>'\<close> and i'_RP_in: \<open>\<iota>'_RP \<in> gr.ord_\<Gamma>\<close>
     unfolding Inf_G_def same_inf_def by force
@@ -1394,7 +1399,8 @@ proof -
     using i'_RP_is unfolding same_inf_def side_prems_of_def prems_of_def
     by (metis add_mset_add_single insertCI set_mset_add_mset_insert set_mset_mset subsetI)
   then have ground_CAs: \<open>is_ground_cls_list CAs\<close>
-    using prems_i'_in union_G_F_ground is_ground_cls_list_def is_ground_clss_def by auto
+    using prems_i'_in union_G_F_ground is_ground_cls_list_def is_ground_clss_def
+    by auto
   have DA_is: \<open>main_prem_of \<iota>'_RP = DA\<close> using is_inf unfolding main_prem_of_def by simp
   then have DA_in: \<open>DA \<in> set (inference.prems_of \<iota>')\<close>
     using i'_RP_is unfolding same_inf_def by (metis add.commute multi_member_this set_mset_mset)
@@ -1531,6 +1537,7 @@ proof -
     show \<open>length (inference.prems_of \<iota>') = length (inference.prems_of \<iota> \<cdot>\<cdot>cl \<rho>s)\<close>
       using len_prems_i len_rs unfolding n_def PAs_def subst_cls_lists_def by simp
   next
+    fix i
     have len_eq: \<open>length (inference.prems_of \<iota>') = length (inference.prems_of \<iota> \<cdot>\<cdot>cl \<rho>s)\<close>
       using len_prems_i len_rs unfolding n_def PAs_def subst_cls_lists_def by simp
     then have \<open>\<forall>i<length (inference.prems_of \<iota>'). (inference.prems_of \<iota> \<cdot>\<cdot>cl \<rho>s) ! i =
@@ -1539,7 +1546,7 @@ proof -
     then have \<open>\<forall>i<length (inference.prems_of \<iota>'). (inference.prems_of \<iota> \<cdot>\<cdot>cl \<rho>s) ! i =
        ((DA0 # CAs0) ! (map_i i)) \<cdot> ((\<eta> # \<eta>s) ! (map_i i))\<close>
        using i_prems_order rs_def unfolding n_def PAs_def by presburger 
-    show \<open>\<forall>i<length (inference.prems_of \<iota>'). inference.prems_of \<iota>' ! i = (inference.prems_of \<iota> \<cdot>\<cdot>cl \<rho>s) ! i\<close>
+    show \<open>i<length (inference.prems_of \<iota>') \<Longrightarrow> inference.prems_of \<iota>' ! i = (inference.prems_of \<iota> \<cdot>\<cdot>cl \<rho>s) ! i\<close>
       using len_map_i len_prems_i i_prems_order map_i_def DA0_is CAs0_is rs_def len_rs
         arg_cong[OF mset_PAs_is, of size]  unfolding PAs'_def n_def PAs_def by (auto simp: subst_Cons_nth)
   qed
@@ -1550,59 +1557,60 @@ proof -
       (Consequence_Relations_and_Inference_Systems.inference.prems_of \<iota> \<cdot>\<cdot>cl \<rho>s)
       (Consequence_Relations_and_Inference_Systems.inference.concl_of \<iota> \<cdot> \<eta>2)"] i_is E0_is \<iota>_RP_def is_inf i'_RP_is
     unfolding same_inf_def concl_of_def Consequence_Relations_and_Inference_Systems.inference.concl_of_def by auto
-  then have \<open>\<iota>' \<in> \<G>_Inf \<iota>\<close>
+  then have \<open>\<iota>' \<in> the (\<G>_Inf \<iota>)\<close>
     unfolding \<G>_Inf_def using prems_of_i_in_M i'_Inf_G is_inf i_is ground_ns2 CAs0_is DA0_is E0_is
-    i'_RP_is \<iota>_RP_def ground_rs by blast
-  then have \<open>\<iota> \<in> sound_F.Inf_from M \<and> \<iota>' \<in> \<G>_Inf \<iota>\<close> unfolding sound_F.Inf_from_def
+    i'_RP_is \<iota>_RP_def ground_rs
+    by auto 
+  then have \<open>\<iota> \<in> sound_F.Inf_from M \<and> \<iota>' \<in> the (\<G>_Inf \<iota>)\<close> unfolding sound_F.Inf_from_def
     using inf_from_cond prems_in i_Inf_F by auto
-  then show \<open> \<exists>\<iota>. \<iota> \<in> sound_F.Inf_from M \<and> \<iota>' \<in> \<G>_Inf \<iota>\<close> by blast
+  then show \<open> \<exists>\<iota>. \<iota> \<in> sound_F.Inf_from M \<and> \<iota>' \<in> the (\<G>_Inf \<iota>)\<close> by blast
 qed
 
-interpretation src: redundancy_criterion_lifting \<G>_F \<G>_Inf Bot_F entails_sound_F Inf_F Bot_G entails_sound_G entails_comp_G Inf_G Red_Inf_G Red_F_G Empty_Order
+interpretation src: lifting_with_wf_ordering_family Bot_F Inf_F Bot_G entails_comp_G Inf_G Red_Inf_G Red_F_G \<G>_F \<G>_Inf "\<lambda>g. Empty_Order"
 proof
-  show "po_on Empty_Order UNIV" unfolding Empty_Order_def po_on_def by (simp add: transp_onI wfp_on_imp_irreflp_on)
-  show "wfp_on Empty_Order UNIV" unfolding wfp_on_def Empty_Order_def by simp
+  show "po_on Empty_Order UNIV" unfolding po_on_def by (simp add: transp_onI wfp_on_imp_irreflp_on)
+  show "wfp_on Empty_Order UNIV" unfolding wfp_on_def by simp
 qed
 
-
-
-lemma inf_F_to_inf_G: \<open>\<iota> \<in> Inf_F \<Longrightarrow> \<G>_Inf \<iota> \<subseteq> Inf_G\<close> for \<iota>
+lemma inf_F_to_inf_G: \<open>\<iota> \<in> Inf_F \<Longrightarrow> the (\<G>_Inf \<iota>) \<subseteq> Inf_G\<close> for \<iota>
 proof
   fix \<iota>'
   assume
     i_in: \<open>\<iota> \<in> Inf_F\<close> and
-    i'_in: \<open>\<iota>' \<in> \<G>_Inf \<iota>\<close>
-  show \<open>\<iota>' \<in> Inf_G\<close>
-    using i_in i'_in unfolding \<G>_Inf_def by blast
+    i'_in: \<open>\<iota>' \<in> the (\<G>_Inf \<iota>)\<close>
+  have g_some: \<open>\<G>_Inf \<iota> \<noteq> None\<close> unfolding \<G>_Inf_def by simp 
+  then show \<open>\<iota>' \<in> Inf_G\<close>
+    using i_in i'_in unfolding \<G>_Inf_def by auto
 qed
-
 
 lemma inf_G_in_inf_F: \<open>Inf_G \<subseteq> Inf_F\<close> 
 proof
   fix \<iota>
   assume i_in: \<open>\<iota> \<in> Inf_G\<close>
   obtain \<iota>_RP where i_RP_in: \<open>\<iota>_RP \<in> gr.ord_\<Gamma>\<close> and i_i_RP: \<open>same_inf \<iota>_RP \<iota>\<close> using i_in unfolding Inf_G_def by blast
-  have \<open>\<iota>_RP \<in> ord_FO_\<Gamma> S\<close> using i_RP_in unfolding gr.ord_\<Gamma>_def ord_FO_\<Gamma>_def
-  show \<open>\<iota> \<in> Inf_F\<close> unfolding Inf_F_def gr.ord_resolve.simps ord_resolve_rename.simps apply auto sorry
+  have \<open>\<iota>_RP \<in> ord_FO_\<Gamma> S\<close> using i_RP_in unfolding gr.ord_\<Gamma>_def ord_FO_\<Gamma>_def sorry
+  show \<open>\<iota> \<in> Inf_F\<close> unfolding Inf_F_def gr.ord_resolve.simps ord_resolve_rename.simps
+  apply auto
+  sorry
   oops
 
 find_theorems  gr.ord_\<Gamma>
 
-interpretation static_refutational_complete_calculus Bot_F entails_sound_F Inf_F \<G>.entails_\<G> src.Red_Inf_\<G> src.Red_F_\<G>
+interpretation static_refutational_complete_calculus Bot_F Inf_F \<G>_standard_lifting.entails_\<G> src.Red_Inf_\<G> src.Red_F_\<G>
 proof
   fix B N
   assume
     b_in: \<open>B \<in> Bot_F\<close> and
-    n_sat: \<open>src.lifted_calculus.saturated N\<close> and
-    ent_b: \<open>\<G>.entails_\<G> N {B}\<close>
+    n_sat: \<open>src.lifted_calculus_with_red_crit.saturated N\<close> and
+    ent_b: \<open>\<G>_standard_lifting.entails_\<G> N {B}\<close>
   have \<open>B = {#}\<close> using b_in by simp
-  have gn_sat: \<open>gr_calc.saturated (\<G>.\<G>_set N)\<close>
+  have gn_sat: \<open>gr_calc.saturated (\<G>_standard_lifting.\<G>_set N)\<close>
     unfolding gr_calc.saturated_def
   proof
     fix \<iota>'
-    assume i_in: \<open>\<iota>' \<in> Inf_from (\<G>.\<G>_set N)\<close>
-    obtain \<iota> where \<open>\<iota> \<in> sound_F.Inf_from N\<close> \<open>\<iota>' \<in> \<G>_Inf \<iota>\<close> using i_in lifting_in_framework sorry
-    show \<open>\<iota>' \<in> Red_Inf_G (\<G>.\<G>_set N)\<close> using i_in n_sat unfolding src.lifted_calculus.saturated_def sorry
+    assume i_in: \<open>\<iota>' \<in> Inf_from (\<G>_standard_lifting.\<G>_set N)\<close>
+    obtain \<iota> where \<open>\<iota> \<in> sound_F.Inf_from N\<close> \<open>\<iota>' \<in> the (\<G>_Inf \<iota>)\<close> using i_in lifting_in_framework sorry
+    show \<open>\<iota>' \<in> Red_Inf_G (\<G>_standard_lifting.\<G>_set N)\<close> using i_in n_sat unfolding src.lifted_calculus_with_red_crit.saturated_def sorry
     oops
 
 find_theorems name: calc_G
@@ -1610,12 +1618,11 @@ find_theorems name: calc_G
 end
 
 definition entails_all_\<G>  :: \<open>'a clause set \<Rightarrow> 'a clause set \<Rightarrow> bool\<close> (infix "\<Turnstile>\<G>" 50) where
-  \<open>N1 \<Turnstile>\<G> N2 \<equiv> UNION N1 grounding_of_cls \<Turnstile>G UNION N2 grounding_of_cls\<close>
+  \<open>N1 \<Turnstile>\<G> N2 \<equiv> \<Union> (grounding_of_cls ` N1) \<Turnstile>G \<Union> (grounding_of_cls ` N2)\<close>
 
 (* definition Red_Inf_all_\<G> :: "'a clause set \<Rightarrow> 'a clause inference set" where
   \<open>Red_Inf_all_\<G> N = {\<iota> \<in> Inf_F. \<G>_Inf \<iota> \<subseteq> Red_Inf_G (\<G>_set N)}\<close> *)
   
 end
-
 
 end

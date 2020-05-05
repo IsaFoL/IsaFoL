@@ -10,9 +10,9 @@ theory WB_More_Refinement
     *)
     \<comment> \<open>don't import \<open>Refine_Monadic.Monadic\<close>, that imports too much.\<close>
     Isabelle_LLVM.Sepref_Misc
-    WB_More_Refinement_Loops
+    More_Refinement_Libs.WB_More_Refinement_Loops
     WB_More_Refinement_List
-      \<comment> \<open>TODO: replace by a Isabelle\_LLVM.More\_Notations to fix \<^file>\<open>WB_More_IICF_SML.thy\<close>\<close>
+      \<comment> \<open>TODO: replace by a Isabelle\_LLVM.More\_Notations to fix \<^text>\<open>WB_More_IICF_SML.thy\<close>\<close>
 begin
 
 chapter \<open>More Theorems on Refinement\<close>

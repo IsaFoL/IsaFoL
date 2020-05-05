@@ -1,8 +1,8 @@
 theory CDCL_Conflict_Minimisation
   imports
     Watched_Literals_Watch_List
-    WB_More_Refinement
-    WB_More_Refinement_List "List-Index.List_Index"
+    More_Sepref.WB_More_Refinement
+    More_Sepref.WB_More_Refinement_List "List-Index.List_Index"
 begin
 
 chapter \<open>Conflict Minimisation\<close>
