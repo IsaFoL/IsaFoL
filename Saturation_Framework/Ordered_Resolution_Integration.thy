@@ -665,6 +665,7 @@ qed (auto simp: GC.active_subset_def)
 lemma gc_inference_step:
   assumes
     l_ne: "l \<noteq> Old" and
+    m_fin: "finite M" and
     m_passiv: "GC.active_subset M = {}" and
     m_sup: "fst ` M \<supseteq> concl_of ` F.Non_ground.Inf_from2 (fst ` GC.active_subset N) {C}"
   shows "N \<union> {(C, l)} \<Longrightarrow>GC N \<union> {(C, Old)} \<union> M"
@@ -672,42 +673,36 @@ proof (rule GC.step.infer[of _ N C l _ M])
   show "F.Non_ground.Inf_from2 (fst ` GC.active_subset N) {C}
     \<subseteq> F.empty_ord_lifted_calc_w_red_crit_family.Red_Inf_Q (fst ` (N \<union> {(C, Old)} \<union> M))"
     unfolding F.empty_ord_lifted_calc_w_red_crit_family.Red_Inf_Q_def F.Red_Inf_\<G>_Q_def[symmetric]
-    apply (rule subsetI)
-    apply (rule mem_F_Red_Inf_\<G>_Q_eq_because_G_Red_Inf)
-    unfolding F.Non_ground.Inf_from2_def F.Non_ground.Inf_from_def apply auto[1]
-    unfolding GC.active_subset_def
-    apply clarsimp
-    using option.discI[OF \<G>_Inf_def]
-    apply clarsimp
-    apply (case_tac "prems_of x = []")
-    apply clarsimp+
-unfolding G.Red_Inf_def G.redundant_infer_def
-  apply clarsimp
-  apply (intro conjI)
-  (* Sledgehammer-generated *)
-  subgoal proof -
-    fix x :: "'a literal multiset inference" and Ma :: "'a literal multiset set" and xa :: "'a literal multiset" and xb :: "'a literal multiset inference"
-    assume a1: "x \<in> Inf_F"
-    assume a2: "\<And>M \<iota>. \<exists>y. \<G>_Inf M \<iota> = Some y"
-    assume a3: "xb \<in> the (\<G>_Inf Ma x)"
-    have "\<forall>M. x \<in> Inf_F \<and> (\<forall>Ma. \<G>_Inf Ma x \<noteq> None \<and> the (\<G>_Inf Ma x) \<subseteq> G.Red_Inf Ma (\<Union> (\<G>_F ` insert (concl_of x) M)) \<or> \<G>_Inf Ma x = None \<and> \<G>_F (concl_of x) \<subseteq> \<Union> (\<G>_F ` insert (concl_of x) M) \<union> G.Red_F (\<Union> (\<G>_F ` insert (concl_of x) M)))"
-      using a1 F.lifted_calc_w_red_crit.Red_Inf_of_Inf_to_N F_Red_Inf_\<G>_Q_eq by blast
-    then show "xb \<in> Inf_G Ma"
-      using a3 a2 by (metis (no_types) G.Red_Inf_to_Inf option.discI subsetD)
+  proof
+    fix \<iota>
+    assume \<iota>_in_if2: "\<iota> \<in> F.Non_ground.Inf_from2 (fst ` GC.active_subset N) {C}"
+
+    have \<iota>_in: "\<iota> \<in> Inf_F"
+      using \<iota>_in_if2 unfolding F.Non_ground.Inf_from2_def F.Non_ground.Inf_from_def by auto
+
+    show "\<iota> \<in> F.Red_Inf_\<G>_Q (fst ` (N \<union> {(C, Old)} \<union> M))"
+    proof (rule mem_F_Red_Inf_\<G>_Q_eq_because_G_Red_Inf[OF \<iota>_in], intro allI conjI subsetI)
+      fix Ma \<iota>'
+      assume "\<iota>' \<in> the (\<G>_Inf Ma \<iota>)"
+      then obtain \<rho> \<rho>s where
+        \<iota>': "\<iota>' = Infer (prems_of \<iota> \<cdot>\<cdot>cl \<rho>s) (concl_of \<iota> \<cdot> \<rho>)" and
+        gr_\<rho>s: "is_ground_subst_list \<rho>s" and
+        gr_\<rho>: "is_ground_subst \<rho>" and
+        in_inf: "Infer (prems_of \<iota> \<cdot>\<cdot>cl \<rho>s) (concl_of \<iota> \<cdot> \<rho>) \<in> Inf_G Ma"
+        unfolding \<G>_Inf_def by auto
+
+      show "\<iota>' \<in> G.Red_Inf Ma (\<Union> (\<G>_F ` fst ` (N \<union> {(C, Old)} \<union> M)))"
+        using \<iota>_in_if2 m_sup unfolding \<iota>' G.Red_Inf_def G.redundant_infer_def
+        apply clarsimp
+        apply (intro conjI)
+        apply (rule in_inf)
+        apply (rule exI[of _ "fst ` M"])
+        apply (intro conjI)
+
+        apply simp
+        sorry
+    qed (auto simp: option.discI[OF \<G>_Inf_def])
   qed
-  apply (rule_tac x = "{concl_of xb}" in exI)
-  apply (intro conjI)
-  apply clarsimp
-  apply simp_all
-  defer
-  apply (simp add: G.entails_def)
-  using Inf_G_reductive \<open>\<And>xb xa x Ma. \<lbrakk>x \<in> Inf_F; xa = main_prem_of x \<or> xa \<in> set (side_prems_of x); \<And>M \<iota>. \<exists>y. \<G>_Inf M \<iota> = Some y; xa \<in> fst ` {CL \<in> N. snd CL = Old} \<longrightarrow> xa = C; xb \<in> the (\<G>_Inf Ma x); prems_of x \<noteq> []; main_prem_of x = C \<or> main_prem_of x \<in> fst ` {CL \<in> N. snd CL = Old}; set (side_prems_of x) \<subseteq> insert C (fst ` {CL \<in> N. snd CL = Old})\<rbrakk> \<Longrightarrow> xb \<in> Inf_G Ma\<close> apply blast
-  apply (rename_tac \<iota> Ma Ca \<iota>')
-  unfolding \<G>_Inf_def
-  apply clarsimp
-  sorry
-
-
 qed (use l_ne m_passiv in auto)
 
 lemma RP_step_imp_GC_step: "St \<leadsto> St' \<Longrightarrow> lclss_of_state St \<Longrightarrow>GC lclss_of_state St'"
