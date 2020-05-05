@@ -655,16 +655,63 @@ proof (rule GC.step.process[of _ N "{(C, New)}" _ "{(C, Processed)}"])
     using GC.labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.inter_red_crit_calculus.Red_F_of_subset by blast
 qed (auto simp: GC.active_subset_def)
 
+lemma RP_inferences_between_eq_F_Inf_from2:
+  "Inference_System.concl_of ` inference_system.inferences_between (ord_FO_\<Gamma> S) N C =
+   concl_of ` F.Non_ground.Inf_from2 N {C}" (is "?rp = ?f")
+proof (intro set_eqI iffI)
+  fix E
+  assume e_in:
+    "E \<in> Inference_System.concl_of ` inference_system.inferences_between (ord_FO_\<Gamma> S) N C"
+
+  obtain CAs DA AAs As \<sigma> where
+    e_res: "ord_resolve_rename S CAs DA AAs As \<sigma> E" and
+    cd_sub: "set CAs \<union> {DA} \<subseteq> N \<union> {C}" and
+    c_in: "C \<in> set CAs \<union> {DA}"
+    using e_in
+    unfolding inference_system.inferences_between_def infer_from_def ord_FO_\<Gamma>_def
+    apply auto
+    done
+
+  show "E \<in> concl_of ` F.Non_ground.Inf_from2 N {C}"
+    unfolding F.Non_ground.Inf_from2_alt F.Non_ground.Inf_from_def Inf_F_def
+      inference_system.Inf_from2_alt inference_system.Inf_from_def
+    apply (auto simp: image_def Bex_def)
+    apply (rule_tac x = "Infer (CAs @ [DA]) E" in exI)
+    apply auto
+    using e_res cd_sub c_in apply auto done
+next
+  fix E
+  assume e_in: "E \<in> concl_of ` F.Non_ground.Inf_from2 N {C}"
+
+  obtain CAs DA AAs As \<sigma> where
+    e_res: "ord_resolve_rename S CAs DA AAs As \<sigma> E" and
+    cd_sub: "set CAs \<union> {DA} \<subseteq> N \<union> {C}" and
+    c_in: "C \<in> set CAs \<union> {DA}"
+    using e_in
+    unfolding F.Non_ground.Inf_from2_alt F.Non_ground.Inf_from_def Inf_F_def
+      inference_system.Inf_from2_alt inference_system.Inf_from_def
+    apply (auto simp: image_def Bex_def)
+    done
+
+  show "E \<in> concls_of (inference_system.inferences_between (ord_FO_\<Gamma> S) N C)"
+    unfolding inference_system.inferences_between_def infer_from_def ord_FO_\<Gamma>_def
+    using e_res cd_sub c_in
+    apply (clarsimp simp: image_def Bex_def)
+    apply (rule_tac x = "Inference_System.Infer (mset CAs) DA E" in exI)
+    apply auto
+    done
+qed
+
 lemma gc_inference_step:
   assumes
     l_ne: "l \<noteq> Old" and
     m_passiv: "GC.active_subset M = {}" and
-    m_sup: "fst ` M \<supseteq> concls_of (inference_system.inferences_between (ord_FO_\<Gamma> S) Q C)"
+    m_sup: "fst ` M \<supseteq> concls_of (inference_system.inferences_between (ord_FO_\<Gamma> S)
+      (fst ` GC.active_subset N) C)"
   shows "N \<union> {(C, l)} \<Longrightarrow>GC N \<union> {(C, Old)} \<union> M"
 proof (rule GC.step.infer[of _ N C l _ M])
   have m_sup': "fst ` M \<supseteq> concl_of ` F.Non_ground.Inf_from2 (fst ` GC.active_subset N) {C}"
-    using m_sup
-    sorry
+    using m_sup unfolding RP_inferences_between_eq_F_Inf_from2 .
 
   show "F.Non_ground.Inf_from2 (fst ` GC.active_subset N) {C}
     \<subseteq> F.empty_ord_lifted_calc_w_red_crit_family.Red_Inf_Q (fst ` (N \<union> {(C, Old)} \<union> M))"
@@ -676,28 +723,14 @@ proof (rule GC.step.infer[of _ N C l _ M])
     have \<iota>_in: "\<iota> \<in> Inf_F"
       using \<iota>_in_if2 unfolding F.Non_ground.Inf_from2_def F.Non_ground.Inf_from_def by auto
 
-    show "\<iota> \<in> F.Red_Inf_\<G>_Q (fst ` (N \<union> {(C, Old)} \<union> M))"
-    proof (rule mem_F_Red_Inf_\<G>_Q_eq_because_G_Red_Inf[OF \<iota>_in], intro allI conjI subsetI)
-      fix Ma \<iota>'
-      assume "\<iota>' \<in> the (\<G>_Inf Ma \<iota>)"
-      then obtain \<rho> \<rho>s where
-        \<iota>': "\<iota>' = Infer (prems_of \<iota> \<cdot>\<cdot>cl \<rho>s) (concl_of \<iota> \<cdot> \<rho>)" and
-        gr_\<rho>s: "is_ground_subst_list \<rho>s" and
-        gr_\<rho>: "is_ground_subst \<rho>" and
-        in_inf: "Infer (prems_of \<iota> \<cdot>\<cdot>cl \<rho>s) (concl_of \<iota> \<cdot> \<rho>) \<in> Inf_G Ma"
-        unfolding \<G>_Inf_def by auto
-
-      show "\<iota>' \<in> G.Red_Inf Ma (\<Union> (\<G>_F ` fst ` (N \<union> {(C, Old)} \<union> M)))"
-        using \<iota>_in_if2 m_sup' unfolding \<iota>' G.Red_Inf_def G.redundant_infer_def
-        apply clarsimp
-        apply (intro conjI)
-        apply (rule in_inf)
-        apply (rule exI[of _ "\<Union> (\<G>_F ` fst ` M)"])
-        apply (intro conjI)
-        apply auto[1]
-        apply clarsimp
-        sorry
-    qed (auto simp: option.discI[OF \<G>_Inf_def])
+    have "concl_of \<iota> \<in> fst ` M"
+      using m_sup'
+      apply (auto simp: image_def Collect_mono_iff F.Non_ground.Inf_from2_alt)
+      using \<iota>_in_if2 m_sup' by auto
+    then have "concl_of \<iota> \<in> fst ` (N \<union> {(C, Old)} \<union> M)"
+      by auto
+    then show "\<iota> \<in> F.Red_Inf_\<G>_Q (fst ` (N \<union> {(C, Old)} \<union> M))"
+      by (rule F.Red_Inf_of_Inf_to_N[OF \<iota>_in])
   qed
 qed (use l_ne m_passiv in auto)
 
@@ -787,7 +820,7 @@ next
   note n = this(1)
   show ?case
     apply (auto simp: GC.active_subset_def)
-    apply (rule gc_inference_step[of Processed "lclss_of_state (N, {}, {})" "fst ` lclss_of_state ({}, {}, Q)" C "lclss_of_state ({}, P, Q)",
+    apply (rule gc_inference_step[of Processed "lclss_of_state (N, {}, {})" "lclss_of_state ({}, P, Q)" C,
         simplified])
     unfolding n apply (auto simp: GC.active_subset_def)
     unfolding inference_system.inferences_between_def image_def mem_Collect_eq lclss_of_state_def

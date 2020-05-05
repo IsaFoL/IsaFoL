@@ -25,7 +25,7 @@ abbreviation main_prem_of :: "'f inference \<Rightarrow> 'f" where
 abbreviation side_prems_of :: "'f inference \<Rightarrow> 'f list" where
   "side_prems_of \<iota> \<equiv> butlast (prems_of \<iota>)"
 
-lemma set_prems_of[simp]:
+lemma set_prems_of:
   "set (prems_of \<iota>) = (if prems_of \<iota> = [] then {} else {main_prem_of \<iota>} \<union> set (side_prems_of \<iota>))"
   by clarsimp (metis Un_insert_right append_Nil2 append_butlast_last_id list.set(2) set_append)
 
