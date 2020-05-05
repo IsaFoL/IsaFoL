@@ -554,13 +554,31 @@ lemma Red_F_Q_GC_eq:
     FL.\<G>_F_L_q_def
   by auto
 
-lemma in_Red_F_Q_GC_because_G_Red_F:
+lemma mem_Red_F_Q_GC_because_G_Red_F:
   "(\<forall>D \<in> \<G>_F (fst Cl). D \<in> G.Red_F (\<Union> (\<G>_F ` fst ` N))) \<Longrightarrow> Cl \<in> Red_F_Q_GC N"
   unfolding Red_F_Q_GC_eq by auto
 
-lemma in_Red_F_Q_GC_because_Prec_FL:
+lemma mem_Red_F_Q_GC_because_Prec_FL:
   "(\<forall>D \<in> \<G>_F (fst Cl). \<exists>El \<in> N. El \<sqsubset> Cl \<and> D \<in> \<G>_F (fst El)) \<Longrightarrow> Cl \<in> Red_F_Q_GC N"
   unfolding Red_F_Q_GC_eq by auto
+
+lemma Red_Inf_Q_GC_eq:
+  "Red_Inf_Q_GC N =
+   {\<iota> \<in> Inf_FL. \<forall>M.
+      \<G>_Inf M (FL.to_F \<iota>) \<noteq> None \<and> the (\<G>_Inf M (FL.to_F \<iota>)) \<subseteq> G.Red_Inf M (\<Union>Cl \<in> N. \<G>_F (fst Cl))
+      \<or> \<G>_Inf M (FL.to_F \<iota>) = None
+        \<and> \<G>_F (fst (concl_of \<iota>)) \<subseteq> (\<Union>Cl \<in> N. \<G>_F (fst Cl)) \<union> G.Red_F (\<Union>Cl \<in> N. \<G>_F (fst Cl))}"
+  unfolding GC.labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_Inf_Q_def
+    GC.labeled_ord_red_crit_fam.Red_Inf_\<G>_q_def GC.labeled_ord_red_crit_fam.\<G>_set_q_def
+    FL.\<G>_Inf_L_q_def FL.\<G>_F_L_q_def
+  by auto
+
+lemma mem_Red_Inf_Q_GC_because_G_Red_Inf:
+  "\<iota> \<in> Inf_FL \<Longrightarrow>
+  (\<forall>M. \<G>_Inf M (FL.to_F \<iota>) \<noteq> None
+     \<and> the (\<G>_Inf M (FL.to_F \<iota>)) \<subseteq> G.Red_Inf M (\<Union>Cl \<in> N. \<G>_F (fst Cl))) \<Longrightarrow>
+  \<iota> \<in> Red_Inf_Q_GC N"
+  unfolding Red_Inf_Q_GC_eq by auto
 
 lemma gc_subsumption_step:
   assumes
@@ -586,7 +604,7 @@ proof -
       apply (unfold strictly_subsumes_def subsumes_def)
       by (metis size_subst strict_subset_subst_strictly_subsumes strictly_subsumes_antisym subset_mset.antisym_conv2)
     have "Cl \<in> Red_F_Q_GC {Dl}"
-      apply (rule in_Red_F_Q_GC_because_G_Red_F)
+      apply (rule mem_Red_F_Q_GC_because_G_Red_F)
       apply (unfold G.Red_F_def)
       apply clarsimp
       using d_ssub_c
@@ -613,6 +631,60 @@ proof -
       apply (smt GC.Prec_FL_def GC.equiv_F_grounding GC.prec_F_grounding UNIV_witness d_in in_mono)
     by (simp add: GC.active_subset_def)+
 qed
+
+lemma gc_reduction_step:
+  assumes
+    passiv: "snd Dl \<noteq> Old" and
+    d_sub_c: "fst Dl \<subset># fst Cl"
+  shows "N \<union> {Cl} \<Longrightarrow>GC N \<union> {Dl}"
+proof (rule GC.step.process[of _ N "{Cl}" _ "{Dl}"])
+  have "Cl \<in> Red_F_Q_GC {Dl}"
+    apply (rule mem_Red_F_Q_GC_because_G_Red_F)
+    apply (unfold G.Red_F_def)
+    apply clarsimp
+    unfolding grounding_of_cls_def
+    apply clarsimp
+    apply (rule_tac x = "{fst Dl \<cdot> \<sigma>}" in exI)
+    apply auto
+    unfolding entails_G_def
+    using subst_subset_mono[OF d_sub_c]
+    using true_clss_subclause
+     apply fast
+    using subst_subset_mono[OF d_sub_c]
+    by (simp add: subset_imp_less_mset)
+  then show "{Cl} \<subseteq> Red_F_Q_GC (N \<union> {Dl})"
+    using GC.labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.inter_red_crit_calculus.Red_F_of_subset by blast
+qed (auto simp: GC.active_subset_def passiv)
+
+lemma gc_processing_step: "N \<union> {(C, New)} \<Longrightarrow>GC N \<union> {(C, Processed)}"
+proof (rule GC.step.process[of _ N "{(C, New)}" _ "{(C, Processed)}"])
+  have "(C, New) \<in> Red_F_Q_GC {(C, Processed)}"
+    apply (rule mem_Red_F_Q_GC_because_Prec_FL)
+    unfolding GC.Prec_FL_def
+    apply auto
+    by (simp add: generalizes_refl)
+  then show "{(C, New)} \<subseteq> Red_F_Q_GC (N \<union> {(C, Processed)})"
+    using GC.labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.inter_red_crit_calculus.Red_F_of_subset by blast
+qed (auto simp: GC.active_subset_def)
+
+lemma gc_inference_step:
+  assumes
+    l_ne: "l \<noteq> Old" and
+    m_passiv: "GC.active_subset M = {}" and
+    m_sup: "fst ` M \<supseteq> concl_of ` F.Non_ground.Inf_from2 (fst ` GC.active_subset N) {C}"
+  shows "N \<union> {(C, l)} \<Longrightarrow>GC N \<union> {(C, Old)} \<union> M"
+proof (rule GC.step.infer[of _ N C l _ M])
+  show "F.Non_ground.Inf_from2 (fst ` GC.active_subset N) {C}
+    \<subseteq> F.empty_ord_lifted_calc_w_red_crit_family.Red_Inf_Q (fst ` (N \<union> {(C, Old)} \<union> M))"
+    using m_sup
+    unfolding F.empty_ord_lifted_calc_w_red_crit_family.Red_Inf_Q_def GC.active_subset_def
+    apply auto
+    unfolding image_def F.Red_Inf_\<G>_q_def F.Non_ground.Inf_from2_def
+    apply (auto dest!: subsetD)
+
+    apply clarsimp
+    sorry
+qed (use l_ne m_passiv in auto)
 
 lemma RP_step_imp_GC_step: "St \<leadsto> St' \<Longrightarrow> lclss_of_state St \<Longrightarrow>GC lclss_of_state St'"
 proof (induction rule: RP.induct)
@@ -644,7 +716,7 @@ proof (induction rule: RP.induct)
   show ?case
     apply (rule GC.step.process[of _ "lclss_of_state (N, P, Q)" "{(C, New)}" _ "{}"])
     apply (auto simp: lclss_of_state_def GC.active_subset_def)
-    apply (rule in_Red_F_Q_GC_because_G_Red_F)
+    apply (rule mem_Red_F_Q_GC_because_G_Red_F)
     apply (unfold image_Un image_comp[of fst])
     apply (unfold image_Un[symmetric])
     apply simp
@@ -680,27 +752,21 @@ next
 next
   case (forward_reduction D L' P Q L \<sigma> C N)
   show ?case
-    apply (rule GC.step.process[of _ "lclss_of_state (N, P, Q)" "{(C + {#L#}, New)}" _ "{(C, New)}"])
-    apply (auto simp: lclss_of_state_def GC.active_subset_def)
-    sorry
+    using gc_reduction_step[of "(C, New)" "(C + {#L#}, New)" "lclss_of_state (N, P, Q)"] by auto
 next
   case (backward_reduction_P D L' N L \<sigma> C P Q)
   show ?case
-    apply (rule GC.step.process[of _ "lclss_of_state (N, P, Q)" "{(C + {#L#}, Processed)}" _ "{(C, Processed)}"])
-    apply (auto simp: lclss_of_state_def GC.active_subset_def)
-    sorry
+    using gc_reduction_step[of "(C, Processed)" "(C + {#L#}, Processed)" "lclss_of_state (N, P, Q)"]
+    by auto
 next
   case (backward_reduction_Q D L' N L \<sigma> C P Q)
   show ?case
-    apply (rule GC.step.process[of _ "lclss_of_state (N, P, Q)" "{(C + {#L#}, Old)}" _ "{(C, Processed)}"])
-    apply (auto simp: lclss_of_state_def GC.active_subset_def)
-    sorry
+    using gc_reduction_step[of "(C, Processed)" "(C + {#L#}, Old)" "lclss_of_state (N, P, Q)"]
+    by auto
 next
   case (clause_processing N C P Q)
   show ?case
-    apply (rule GC.step.process[of _ "lclss_of_state (N, P, Q)" "{(C, New)}" _ "{(C, Processed)}"])
-    apply (auto simp: lclss_of_state_def GC.active_subset_def)
-    sorry
+    using gc_processing_step[of "lclss_of_state (N, P, Q)" C] by auto
 next
   case (inference_computation N Q C P)
   show ?case
