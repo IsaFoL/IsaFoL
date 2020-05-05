@@ -528,6 +528,11 @@ lemma insert_lclss_of_state[simp]:
   "insert (C, Old) (lclss_of_state (N, P, Q)) = lclss_of_state (N, P, Q \<union> {C})"
   unfolding lclss_of_state_def image_def by auto
 
+lemma union_lclss_of_state[simp]:
+  "lclss_of_state (N1, P1, Q1) \<union> lclss_of_state (N2, P2, Q2) =
+   lclss_of_state (N1 \<union> N2, P1 \<union> P2, Q1 \<union> Q2)"
+  unfolding lclss_of_state_def by auto
+
 lemma mem_lclss_of_state[simp]:
   "(C, New) \<in> lclss_of_state (N, P, Q) \<longleftrightarrow> C \<in> N"
   "(C, Processed) \<in> lclss_of_state (N, P, Q) \<longleftrightarrow> C \<in> P"
@@ -654,9 +659,13 @@ lemma gc_inference_step:
   assumes
     l_ne: "l \<noteq> Old" and
     m_passiv: "GC.active_subset M = {}" and
-    m_sup: "fst ` M \<supseteq> concl_of ` F.Non_ground.Inf_from2 (fst ` GC.active_subset N) {C}"
+    m_sup: "fst ` M \<supseteq> concls_of (inference_system.inferences_between (ord_FO_\<Gamma> S) Q C)"
   shows "N \<union> {(C, l)} \<Longrightarrow>GC N \<union> {(C, Old)} \<union> M"
 proof (rule GC.step.infer[of _ N C l _ M])
+  have m_sup': "fst ` M \<supseteq> concl_of ` F.Non_ground.Inf_from2 (fst ` GC.active_subset N) {C}"
+    using m_sup
+    sorry
+
   show "F.Non_ground.Inf_from2 (fst ` GC.active_subset N) {C}
     \<subseteq> F.empty_ord_lifted_calc_w_red_crit_family.Red_Inf_Q (fst ` (N \<union> {(C, Old)} \<union> M))"
     unfolding F.empty_ord_lifted_calc_w_red_crit_family.Red_Inf_Q_def F.Red_Inf_\<G>_Q_def[symmetric]
@@ -679,14 +688,14 @@ proof (rule GC.step.infer[of _ N C l _ M])
         unfolding \<G>_Inf_def by auto
 
       show "\<iota>' \<in> G.Red_Inf Ma (\<Union> (\<G>_F ` fst ` (N \<union> {(C, Old)} \<union> M)))"
-        using \<iota>_in_if2 m_sup unfolding \<iota>' G.Red_Inf_def G.redundant_infer_def
+        using \<iota>_in_if2 m_sup' unfolding \<iota>' G.Red_Inf_def G.redundant_infer_def
         apply clarsimp
         apply (intro conjI)
         apply (rule in_inf)
-        apply (rule exI[of _ "fst ` M"])
+        apply (rule exI[of _ "\<Union> (\<G>_F ` fst ` M)"])
         apply (intro conjI)
-
-        apply simp
+        apply auto[1]
+        apply clarsimp
         sorry
     qed (auto simp: option.discI[OF \<G>_Inf_def])
   qed
@@ -775,10 +784,16 @@ next
     using gc_processing_step[of "lclss_of_state (N, P, Q)" C] by auto
 next
   case (inference_computation N Q C P)
+  note n = this(1)
   show ?case
-    apply (rule GC.step.infer[of _ "lclss_of_state ({}, P, Q)" C Processed _ "lclss_of_state (N, {}, {})"])
-    apply (auto simp: lclss_of_state_def GC.active_subset_def)
-    sorry
+    apply (auto simp: GC.active_subset_def)
+    apply (rule gc_inference_step[of Processed "lclss_of_state (N, {}, {})" "fst ` lclss_of_state ({}, {}, Q)" C "lclss_of_state ({}, P, Q)",
+        simplified])
+    unfolding n apply (auto simp: GC.active_subset_def)
+    unfolding inference_system.inferences_between_def image_def mem_Collect_eq lclss_of_state_def
+      infer_from_def
+    apply auto
+    done
 qed
 
 lemma RP_step_imp_LF_step: "St \<leadsto> St' \<Longrightarrow> lclss_of_state St \<rhd>RedFL lclss_of_state St'"
