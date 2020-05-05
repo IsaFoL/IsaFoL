@@ -27,24 +27,15 @@ locale compact_consequence_relation = consequence_relation Bot entails
     entails_compact: "CC \<Turnstile> {D} \<Longrightarrow> \<exists>CC' \<subseteq> CC. finite CC' \<and> CC' \<Turnstile> {D}"
 begin
 
-lemma entails_compact_strong:
-  assumes
-    "finite DD" and
-    "CC \<Turnstile> DD"
-  shows "\<exists>CC' \<subseteq> CC. finite CC' \<and> CC' \<Turnstile> DD"
-  sorry
-
-lemma entails_compact_strong_union:
-  assumes
-    e_fin: "finite EE" and
-    cd_ent: "CC \<union> DD \<Turnstile> EE"
-  shows "\<exists>CC' \<subseteq> CC. finite CC' \<and> CC' \<union> DD \<Turnstile> EE"
+lemma entails_compact_union:
+  assumes cd_ent: "CC \<union> DD \<Turnstile> {E}"
+  shows "\<exists>CC' \<subseteq> CC. finite CC' \<and> CC' \<union> DD \<Turnstile> {E}"
 proof -
   obtain CCDD' where
     cd1_fin: "finite CCDD'" and
     cd1_sub: "CCDD' \<subseteq> CC \<union> DD" and
-    cd1_ent: "CCDD' \<Turnstile> EE"
-    using entails_compact_strong[OF e_fin cd_ent] by blast
+    cd1_ent: "CCDD' \<Turnstile> {E}"
+    using entails_compact[OF cd_ent] by blast
 
   define CC' where
     "CC' = CCDD' - DD"
@@ -52,7 +43,7 @@ proof -
     unfolding CC'_def using cd1_sub by blast
   moreover have "finite CC'"
     unfolding CC'_def using cd1_fin by blast
-  moreover have "CC' \<union> DD \<Turnstile> EE"
+  moreover have "CC' \<union> DD \<Turnstile> {E}"
     unfolding CC'_def using cd1_ent
     by (metis Un_Diff_cancel2 Un_upper1 entails_trans subset_entailed)
   ultimately show ?thesis
@@ -91,32 +82,31 @@ lemma Red_F_of_subset: "N \<subseteq> N' \<Longrightarrow> Red_F N \<subseteq> R
 
 lemma wlog_non_Red_F:
   assumes
-    ee_fin: "finite EE" and
     dd0_sub: "DD0 \<subseteq> N" and
-    dd0_ent: "DD0 \<union> CC \<Turnstile> EE" and
+    dd0_ent: "DD0 \<union> CC \<Turnstile> {E}" and
     dd0_lt: "\<forall>D' \<in> DD0. D' < D"
-  shows "\<exists>DD \<subseteq> N - Red_F N. DD \<union> CC \<Turnstile> EE \<and> (\<forall>D' \<in> DD. D' < D)"
+  shows "\<exists>DD \<subseteq> N - Red_F N. DD \<union> CC \<Turnstile> {E} \<and> (\<forall>D' \<in> DD. D' < D)"
 proof -
   obtain DD1 where
     "finite DD1" and
     "DD1 \<subseteq> N" and
-    "DD1 \<union> CC \<Turnstile> EE" and
+    "DD1 \<union> CC \<Turnstile> {E}" and
     "\<forall>D' \<in> DD1. D' < D"
-    using entails_compact_strong_union[OF ee_fin dd0_ent] dd0_lt dd0_sub by fast
+    using entails_compact_union[OF dd0_ent] dd0_lt dd0_sub by fast
   then obtain DD2 :: "'f multiset" where
-    "set_mset DD2 \<subseteq> N \<and> set_mset DD2 \<union> CC \<Turnstile> EE \<and> (\<forall>D' \<in> set_mset DD2. D' < D)"
+    "set_mset DD2 \<subseteq> N \<and> set_mset DD2 \<union> CC \<Turnstile> {E} \<and> (\<forall>D' \<in> set_mset DD2. D' < D)"
     using assms by (metis finite_set_mset_mset_set)
-  hence dd2: "DD2 \<in> {DD. set_mset DD \<subseteq> N \<and> set_mset DD \<union> CC \<Turnstile> EE \<and> (\<forall>D' \<in> set_mset DD. D' < D)}"
+  hence dd2: "DD2 \<in> {DD. set_mset DD \<subseteq> N \<and> set_mset DD \<union> CC \<Turnstile> {E} \<and> (\<forall>D' \<in> set_mset DD. D' < D)}"
     by blast
-  have "\<exists>DD. set_mset DD \<subseteq> N \<and> set_mset DD \<union> CC \<Turnstile> EE \<and> (\<forall>D' \<in># DD. D' < D) \<and>
-    (\<forall>DDa1. set_mset DDa1 \<subseteq> N \<and> set_mset DDa1 \<union> CC \<Turnstile> EE \<and> (\<forall>D' \<in># DDa1. D' < D) \<longrightarrow> DD \<le> DDa1)"
+  have "\<exists>DD. set_mset DD \<subseteq> N \<and> set_mset DD \<union> CC \<Turnstile> {E} \<and> (\<forall>D' \<in># DD. D' < D) \<and>
+    (\<forall>DDa1. set_mset DDa1 \<subseteq> N \<and> set_mset DDa1 \<union> CC \<Turnstile> {E} \<and> (\<forall>D' \<in># DDa1. D' < D) \<longrightarrow> DD \<le> DDa1)"
     using wf_eq_minimal[THEN iffD1, rule_format, OF wf_less_multiset, OF dd2]
     unfolding not_le[symmetric] by blast
   then obtain DD :: "'f multiset" where
     dd_subs_n: "set_mset DD \<subseteq> N" and
-    ddcc_ent_e: "set_mset DD \<union> CC \<Turnstile> EE" and
+    ddcc_ent_e: "set_mset DD \<union> CC \<Turnstile> {E}" and
     dd_lt_d: "\<forall>D' \<in># DD. D' < D" and
-    d_min: "\<forall>DDa1. set_mset DDa1 \<subseteq> N \<and> set_mset DDa1 \<union> CC \<Turnstile> EE
+    d_min: "\<forall>DDa1. set_mset DDa1 \<subseteq> N \<and> set_mset DDa1 \<union> CC \<Turnstile> {E}
       \<and> (\<forall>D' \<in># DDa1. D' < D) \<longrightarrow> DD \<le> DDa1"
     by blast
 
@@ -145,7 +135,7 @@ proof -
     have "set_mset DDa \<subseteq> N"
       unfolding DDa_def using dd_subs_n dda1_subs_n
       by (meson contra_subsetD in_diffD subsetI union_iff)
-    moreover have "set_mset DDa \<union> CC \<Turnstile> EE"
+    moreover have "set_mset DDa \<union> CC \<Turnstile> {E}"
       by (rule subset_entailed_strong[of _ "{Da}"],
           metis DDa_def dda1_ent_da entail_union entails_trans order_refl set_mset_union
             subset_entailed,
@@ -174,7 +164,7 @@ proof -
     dd_lt: "\<forall>D \<in> DD. D < C"
     using assms[unfolded Red_F_def mem_Collect_eq] by fast
   show ?thesis
-    by (rule wlog_non_Red_F[of "{C}" _ _ "{}", of DD N C, simplified, OF dd_sub dd_ent dd_lt])
+    by (rule wlog_non_Red_F[of "DD" N "{}" C C, simplified, OF dd_sub dd_ent dd_lt])
 qed
 
 lemma Red_F_subs_Red_F_diff_Red_F: "Red_F N \<subseteq> Red_F (N - Red_F N)"
@@ -226,7 +216,7 @@ proof
     using \<iota>_ri unfolding Red_Inf_def redundant_infer_def CC_def D_def E_def by blast
   obtain DDa1 :: "'f set" where
     "DDa1 \<subseteq> N - Red_F N" and "DDa1 \<union> CC \<Turnstile> {E}" and "\<forall>D' \<in> DDa1. D' < D"
-    using wlog_non_Red_F[OF _ dd_sub dd_ent dd_lt_d] by blast
+    using wlog_non_Red_F[OF dd_sub dd_ent dd_lt_d] by blast
   then show "\<iota> \<in> Red_Inf (N - Red_F N)"
     using \<iota>_ri unfolding Red_Inf_def redundant_infer_def CC_def D_def E_def by blast
 qed
