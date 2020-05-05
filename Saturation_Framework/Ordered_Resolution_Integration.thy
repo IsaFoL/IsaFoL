@@ -56,16 +56,9 @@ lemma Inf_G_have_prems: "\<iota> \<in> Inf_G M \<Longrightarrow> prems_of \<iota
 lemma Inf_G_reductive: "\<iota> \<in> Inf_G M \<Longrightarrow> concl_of \<iota> < main_prem_of \<iota>"
   unfolding Inf_G_def by (auto dest: gr.ord_resolve_reductive)
 
-abbreviation Bot :: "'a clause set" where
-  "Bot \<equiv> {{#}}"
+notation entails_clss (infix "\<Turnstile>" 50)
 
-definition entails_G (infix "\<Turnstile>" 50) where
-  "N1 \<Turnstile> N2 \<longleftrightarrow> (\<forall>I. I |\<approx>s N1 \<longrightarrow> I |\<approx>s N2)"
-
-interpretation G: clausal_consequence_relation Bot "(\<Turnstile>)"
-  by unfold_locales (auto simp: entails_G_def)
-
-interpretation G: sound_inference_system "Inf_G M" Bot "(\<Turnstile>)"
+interpretation G: sound_inference_system "Inf_G M" "{{#}}" "(\<Turnstile>)"
 proof
   fix \<iota>
   assume i_in: "\<iota> \<in> Inf_G M"
@@ -83,10 +76,10 @@ proof
           true_clss_insert true_clss_set_mset)
   }
   ultimately show "set (inference.prems_of \<iota>) \<Turnstile> {concl_of \<iota>}"
-    unfolding entails_G_def by simp
+    by simp
 qed
 
-interpretation G: clausal_cex_red_inference_system "(\<Turnstile>)" Bot "Inf_G M" "gr.INTERP M"
+interpretation G: clausal_cex_red_inference_system "Inf_G M" "gr.INTERP M"
 proof
   fix N D
   assume
@@ -108,7 +101,8 @@ proof
     by (metis (mono_tags, lifting) gr.ex_min_counterex gr.productive_imp_INTERP mem_Collect_eq)
 qed
 
-interpretation G: clausal_cex_red_calculus_with_std_red_crit Bot "(\<Turnstile>)" "Inf_G M" "gr.INTERP M"
+interpretation G: clausal_cex_red_calculus_with_std_red_crit "Inf_G M" "gr.INTERP M"
+  apply unfold_locales
   by (unfold_locales, fact Inf_G_have_prems, fact Inf_G_reductive)
 
 interpretation G: static_refutational_complete_calculus Bot "Inf_G M" "(\<Turnstile>)" "G.Red_Inf M" G.Red_F
@@ -665,7 +659,6 @@ qed (auto simp: GC.active_subset_def)
 lemma gc_inference_step:
   assumes
     l_ne: "l \<noteq> Old" and
-    m_fin: "finite M" and
     m_passiv: "GC.active_subset M = {}" and
     m_sup: "fst ` M \<supseteq> concl_of ` F.Non_ground.Inf_from2 (fst ` GC.active_subset N) {C}"
   shows "N \<union> {(C, l)} \<Longrightarrow>GC N \<union> {(C, Old)} \<union> M"

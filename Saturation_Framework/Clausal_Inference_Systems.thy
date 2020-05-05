@@ -7,8 +7,8 @@ section \<open>Clausal Inference Systems\<close>
 
 theory Clausal_Inference_Systems
   imports
+    Ordered_Resolution_Prover.Unordered_Ground_Resolution
     Standard_Redundancy_Criterion
-    Ordered_Resolution_Prover.Herbrand_Interpretation
 begin
 
 
@@ -34,29 +34,29 @@ no_notation true_cls_mset (infix "\<Turnstile>m" 50)
 
 subsection \<open>Consequence Relation\<close>
 
-locale clausal_consequence_relation =
-  fixes
-    Bot :: "'a clause set" and
-    entails :: "'a clause set \<Rightarrow> 'a clause set \<Rightarrow> bool" (infix "\<Turnstile>" 50)
-  assumes
-    Bot_def: "Bot = {{#}}" and
-    entails_def: "N1 \<Turnstile> N2 \<longleftrightarrow> (\<forall>I. I |\<approx>s N1 \<longrightarrow> I |\<approx>s N2)"
-begin
+abbreviation entails_clss :: "'a clause set \<Rightarrow> 'a clause set \<Rightarrow> bool" (infix "|\<approx>\<approx>" 50) where
+  "N1 |\<approx>\<approx> N2 \<equiv> \<forall>I. I |\<approx>s N1 \<longrightarrow> I |\<approx>s N2"
 
-sublocale consequence_relation Bot entails
+interpretation clausal_consequence_relation:
+  compact_consequence_relation "{{#}} :: ('a :: wellorder) clause set" "(|\<approx>\<approx>)"
 proof
   fix N2 N1 :: "'a clause set"
   assume "N2 \<subseteq> N1"
-  then show "N1 \<Turnstile> N2"
-    unfolding entails_def using true_clss_mono by blast
+  then show "N1 |\<approx>\<approx> N2"
+    using true_clss_mono by blast
 next
   fix N2 N1 :: "'a clause set"
-  assume "\<forall>C \<in> N2. N1 \<Turnstile> {C}"
-  then show "N1 \<Turnstile> N2"
-    unfolding entails_def true_clss_singleton by (simp add: true_clss_def)
-qed (auto simp: Bot_def entails_def)
+  assume "\<forall>C \<in> N2. N1 |\<approx>\<approx> {C}"
+  then show "N1 |\<approx>\<approx> N2"
+    unfolding true_clss_singleton by (simp add: true_clss_def)
+next
+  fix CC DD :: "'a clause set"
+  assume "CC |\<approx>\<approx> DD"
+  then show "\<exists>CC' \<subseteq> CC. finite CC' \<and> CC' |\<approx>\<approx> DD"
+    using clausal_logic_compact[of CC]
 
-end
+    sorry
+qed auto
 
 
 subsection \<open>Counterexample-Reducing Inference Systems\<close>
@@ -67,16 +67,13 @@ definition clss_of_interp :: "'a set \<Rightarrow> 'a literal multiset set" wher
 lemma true_clss_of_interp_iff_equal[simp]: "J |\<approx>s clss_of_interp I \<longleftrightarrow> J = I"
   unfolding clss_of_interp_def true_clss_def true_cls_def true_lit_def by force
 
-lemma (in clausal_consequence_relation) entails_iff_models[simp]:
-  "clss_of_interp I \<Turnstile> CC \<longleftrightarrow> I |\<approx>s CC"
-  unfolding entails_def by simp
+lemma entails_iff_models[simp]:
+  "clss_of_interp I |\<approx>\<approx> CC \<longleftrightarrow> I |\<approx>s CC"
+  by simp
 
-locale clausal_cex_red_inference_system = inference_system Inf + clausal_consequence_relation Bot
-  for
-    Bot :: "('a :: wellorder) clause set" and
-    Inf :: "'a clause inference set" +
-  fixes
-    clausal_I_of :: "'a clause set \<Rightarrow> 'a interp"
+locale clausal_cex_red_inference_system = inference_system Inf
+  for Inf :: "('a :: wellorder) clause inference set" +
+  fixes clausal_I_of :: "'a clause set \<Rightarrow> 'a interp"
   assumes clausal_Inf_cex_reducing:
     "{#} \<notin> N \<Longrightarrow> D \<in> N \<Longrightarrow> \<not> clausal_I_of N |\<approx> D \<Longrightarrow>
      (\<And>C. C \<in> N \<Longrightarrow> \<not> clausal_I_of N |\<approx> C \<Longrightarrow> D \<le> C) \<Longrightarrow>
@@ -89,18 +86,18 @@ abbreviation I_of :: "'a clause set \<Rightarrow> 'a clause set" where
 
 lemma Inf_cex_reducing:
   assumes
-    bot_ni_n: "N \<inter> Bot = {}" and
+    bot_ni_n: "N \<inter> {{#}} = {}" and
     d_in_n: "D \<in> N" and
-    n_ent_d: "\<not> I_of N \<Turnstile> {D}" and
-    d_min: "\<And>C. C \<in> N \<Longrightarrow> \<not> I_of N \<Turnstile> {C} \<Longrightarrow> D \<le> C"
+    n_ent_d: "\<not> I_of N |\<approx>\<approx> {D}" and
+    d_min: "\<And>C. C \<in> N \<Longrightarrow> \<not> I_of N |\<approx>\<approx> {C} \<Longrightarrow> D \<le> C"
   shows "\<exists>\<iota> \<in> Inf.
     main_prem_of \<iota> = D \<and> set (side_prems_of \<iota>) \<subseteq> N
-    \<and> I_of N \<Turnstile> set (side_prems_of \<iota>)
-    \<and> \<not> I_of N \<Turnstile> {concl_of \<iota>}
+    \<and> I_of N |\<approx>\<approx> set (side_prems_of \<iota>)
+    \<and> \<not> I_of N |\<approx>\<approx> {concl_of \<iota>}
     \<and> concl_of \<iota> < D"
 proof -
   have "{#} \<notin> N"
-    using bot_ni_n Bot_def by blast
+    using bot_ni_n by auto
   moreover note d_in_n
   moreover have "\<not> clausal_I_of N |\<approx> D"
     using n_ent_d by simp
@@ -113,11 +110,15 @@ proof -
     "\<not> clausal_I_of N |\<approx> E" and
     "E < D"
     using clausal_Inf_cex_reducing by metis
-  thus ?thesis
+  then show "\<exists>\<iota> \<in> Inf.
+    main_prem_of \<iota> = D \<and> set (side_prems_of \<iota>) \<subseteq> N
+    \<and> I_of N |\<approx>\<approx> set (side_prems_of \<iota>)
+    \<and> \<not> I_of N |\<approx>\<approx> {concl_of \<iota>}
+    \<and> concl_of \<iota> < D"
     using snoc_eq_iff_butlast by fastforce
 qed
 
-sublocale cex_red_inference_system Bot entails Inf I_of
+sublocale cex_red_inference_system "{{#}}" "(|\<approx>\<approx>)" Inf I_of
   by unfold_locales (fact Inf_cex_reducing)
 
 end
@@ -126,21 +127,22 @@ end
 subsection \<open>Counterexample-Reducing Calculi Equipped with a Standard Redundancy Criterion\<close>
 
 locale clausal_cex_red_calculus_with_std_red_crit =
-  cex_red_calculus_with_std_red_crit Bot entails "\<lambda>N. clss_of_interp (clausal_I_of N)" Inf +
-  clausal_cex_red_inference_system entails Bot Inf clausal_I_of
+  calculus_with_std_red_crit Inf "{{#}}" "(|\<approx>\<approx>)" +
+  clausal_cex_red_inference_system Inf clausal_I_of
   for
-    Bot :: "('a :: wellorder) clause set" and
-    entails :: "'a clause set \<Rightarrow> 'a clause set \<Rightarrow> bool" (infix "\<Turnstile>" 50) and
-    Inf :: "'a clause inference set" and
+    Inf :: "('a :: wellorder) clause inference set" and
     clausal_I_of :: "'a clause set \<Rightarrow> 'a set"
 begin
 
+sublocale cex_red_calculus_with_std_red_crit "{{#}}" "(|\<approx>\<approx>)" I_of
+  by unfold_locales
+
 lemma clausal_saturated_model:
   assumes
-    "saturated N" and
+    "saturated N"
     "{#} \<notin> N"
   shows "clausal_I_of N |\<approx>s N"
-    using assms saturated_model by (simp add: Bot_def)
+  using assms by (simp add: saturated_model[simplified])
 
 corollary clausal_saturated_complete:
   assumes

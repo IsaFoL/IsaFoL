@@ -16,7 +16,52 @@ This material is partly based on Section 4.2.2 (``The Standard Redundancy Criter
 and Ganzinger's chapter, but adapted to the saturation framework of Waldmann et al.
 \<close>
 
-locale calculus_with_std_red_crit = inference_system Inf + consequence_relation Bot entails
+
+subsection \<open>Criterion\<close>
+
+locale compact_consequence_relation = consequence_relation Bot entails
+  for
+    Bot :: "'f set" and
+    entails :: "'f set \<Rightarrow> 'f set \<Rightarrow> bool" (infix "\<Turnstile>" 50) +
+  assumes
+    entails_compact: "CC \<Turnstile> {D} \<Longrightarrow> \<exists>CC' \<subseteq> CC. finite CC' \<and> CC' \<Turnstile> {D}"
+begin
+
+lemma entails_compact_strong:
+  assumes
+    "finite DD" and
+    "CC \<Turnstile> DD"
+  shows "\<exists>CC' \<subseteq> CC. finite CC' \<and> CC' \<Turnstile> DD"
+  sorry
+
+lemma entails_compact_strong_union:
+  assumes
+    e_fin: "finite EE" and
+    cd_ent: "CC \<union> DD \<Turnstile> EE"
+  shows "\<exists>CC' \<subseteq> CC. finite CC' \<and> CC' \<union> DD \<Turnstile> EE"
+proof -
+  obtain CCDD' where
+    cd1_fin: "finite CCDD'" and
+    cd1_sub: "CCDD' \<subseteq> CC \<union> DD" and
+    cd1_ent: "CCDD' \<Turnstile> EE"
+    using entails_compact_strong[OF e_fin cd_ent] by blast
+
+  define CC' where
+    "CC' = CCDD' - DD"
+  have "CC' \<subseteq> CC"
+    unfolding CC'_def using cd1_sub by blast
+  moreover have "finite CC'"
+    unfolding CC'_def using cd1_fin by blast
+  moreover have "CC' \<union> DD \<Turnstile> EE"
+    unfolding CC'_def using cd1_ent
+    by (metis Un_Diff_cancel2 Un_upper1 entails_trans subset_entailed)
+  ultimately show ?thesis
+    by blast
+qed
+
+end
+
+locale calculus_with_std_red_crit = inference_system Inf + compact_consequence_relation Bot entails
   for
     Inf :: "('f :: wellorder) inference set" and
     Bot :: "'f set" and
@@ -28,13 +73,13 @@ begin
 
 definition redundant_infer :: "'f set \<Rightarrow> 'f inference \<Rightarrow> bool" where
   "redundant_infer N \<iota> \<longleftrightarrow>
-   (\<exists>DD \<subseteq> N. finite DD \<and> DD \<union> set (side_prems_of \<iota>) \<Turnstile> {concl_of \<iota>} \<and> (\<forall>D \<in> DD. D < main_prem_of \<iota>))"
+   (\<exists>DD \<subseteq> N. DD \<union> set (side_prems_of \<iota>) \<Turnstile> {concl_of \<iota>} \<and> (\<forall>D \<in> DD. D < main_prem_of \<iota>))"
 
 definition Red_Inf :: "'f set \<Rightarrow> 'f inference set" where
   "Red_Inf N = {\<iota> \<in> Inf. redundant_infer N \<iota>}"
 
 definition Red_F :: "'f set \<Rightarrow> 'f set" where
-  "Red_F N = {C. (\<exists>DD \<subseteq> N. finite DD \<and> DD \<Turnstile> {C} \<and> (\<forall>D \<in> DD. D < C))}"
+  "Red_F N = {C. (\<exists>DD \<subseteq> N. DD \<Turnstile> {C} \<and> (\<forall>D \<in> DD. D < C))}"
 
 text \<open>
 The following results correspond to Lemma 4.5. The lemma \<open>wlog_non_Red_F\<close> generalizes the core of
@@ -45,23 +90,34 @@ lemma Red_F_of_subset: "N \<subseteq> N' \<Longrightarrow> Red_F N \<subseteq> R
   unfolding Red_F_def by fast
 
 lemma wlog_non_Red_F:
-  assumes "DD0 \<subseteq> N" "finite DD0" "DD0 \<union> CC \<Turnstile> E" "\<forall>D' \<in> DD0. D' < D"
-  shows "\<exists>DD \<subseteq> N - Red_F N. finite DD \<and> DD \<union> CC \<Turnstile> E \<and> (\<forall>D' \<in> DD. D' < D)"
+  assumes
+    ee_fin: "finite EE" and
+    dd0_sub: "DD0 \<subseteq> N" and
+    dd0_ent: "DD0 \<union> CC \<Turnstile> EE" and
+    dd0_lt: "\<forall>D' \<in> DD0. D' < D"
+  shows "\<exists>DD \<subseteq> N - Red_F N. DD \<union> CC \<Turnstile> EE \<and> (\<forall>D' \<in> DD. D' < D)"
 proof -
-  from assms obtain DD0 :: "'f multiset" where
-    "set_mset DD0 \<subseteq> N \<and> set_mset DD0 \<union> CC \<Turnstile> E \<and> (\<forall>D' \<in> set_mset DD0. D' < D)"
-    by (metis (no_types) finite_set_mset_mset_set)
-  hence dd0: "DD0 \<in> {DD. set_mset DD \<subseteq> N \<and> set_mset DD \<union> CC \<Turnstile> E \<and> (\<forall>D' \<in> set_mset DD. D' < D)}"
+  obtain DD1 where
+    "finite DD1" and
+    "DD1 \<subseteq> N" and
+    "DD1 \<union> CC \<Turnstile> EE" and
+    "\<forall>D' \<in> DD1. D' < D"
+    using entails_compact_strong_union[OF ee_fin dd0_ent] dd0_lt dd0_sub by fast
+  then obtain DD2 :: "'f multiset" where
+    "set_mset DD2 \<subseteq> N \<and> set_mset DD2 \<union> CC \<Turnstile> EE \<and> (\<forall>D' \<in> set_mset DD2. D' < D)"
+    using assms by (metis finite_set_mset_mset_set)
+  hence dd2: "DD2 \<in> {DD. set_mset DD \<subseteq> N \<and> set_mset DD \<union> CC \<Turnstile> EE \<and> (\<forall>D' \<in> set_mset DD. D' < D)}"
     by blast
-  have "\<exists>DD. set_mset DD \<subseteq> N \<and> set_mset DD \<union> CC \<Turnstile> E \<and> (\<forall>D' \<in># DD. D' < D) \<and>
-    (\<forall>DD'. set_mset DD' \<subseteq> N \<and> set_mset DD' \<union> CC \<Turnstile> E \<and> (\<forall>D' \<in># DD'. D' < D) \<longrightarrow> DD \<le> DD')"
-    using wf_eq_minimal[THEN iffD1, rule_format, OF wf_less_multiset, OF dd0]
+  have "\<exists>DD. set_mset DD \<subseteq> N \<and> set_mset DD \<union> CC \<Turnstile> EE \<and> (\<forall>D' \<in># DD. D' < D) \<and>
+    (\<forall>DDa1. set_mset DDa1 \<subseteq> N \<and> set_mset DDa1 \<union> CC \<Turnstile> EE \<and> (\<forall>D' \<in># DDa1. D' < D) \<longrightarrow> DD \<le> DDa1)"
+    using wf_eq_minimal[THEN iffD1, rule_format, OF wf_less_multiset, OF dd2]
     unfolding not_le[symmetric] by blast
   then obtain DD :: "'f multiset" where
     dd_subs_n: "set_mset DD \<subseteq> N" and
-    ddcc_ent_e: "set_mset DD \<union> CC \<Turnstile> E" and
+    ddcc_ent_e: "set_mset DD \<union> CC \<Turnstile> EE" and
     dd_lt_d: "\<forall>D' \<in># DD. D' < D" and
-    d_min: "\<forall>DD'. set_mset DD' \<subseteq> N \<and> set_mset DD' \<union> CC \<Turnstile> E \<and> (\<forall>D' \<in># DD'. D' < D) \<longrightarrow> DD \<le> DD'"
+    d_min: "\<forall>DDa1. set_mset DDa1 \<subseteq> N \<and> set_mset DDa1 \<union> CC \<Turnstile> EE
+      \<and> (\<forall>D' \<in># DDa1. D' < D) \<longrightarrow> DD \<le> DDa1"
     by blast
 
   have "\<forall>Da \<in># DD. Da \<notin> Red_F N"
@@ -71,30 +127,36 @@ proof -
       da_in_dd: "Da \<in># DD" and
       da_rf: "Da \<in> Red_F N"
 
-    from da_rf obtain DD' :: "'f multiset" where
-      dd'_subs_n: "set_mset DD' \<subseteq> N" and
-      dd'_ent_da: "set_mset DD' \<Turnstile> {Da}" and
-      dd'_lt_da: "\<forall>D' \<in># DD'. D' < Da"
-      unfolding Red_F_def mem_Collect_eq by (metis finite_set_mset_mset_set)
+    obtain DDa0 where
+      "DDa0 \<subseteq> N"
+      "finite DDa0"
+      "DDa0 \<Turnstile> {Da}"
+      "\<forall>D \<in> DDa0. D < Da"
+      using da_rf unfolding Red_F_def mem_Collect_eq by (meson entails_compact in_mono subset_trans)
+    then obtain DDa1 :: "'f multiset" where
+      dda1_subs_n: "set_mset DDa1 \<subseteq> N" and
+      dda1_ent_da: "set_mset DDa1 \<Turnstile> {Da}" and
+      dda1_lt_da: "\<forall>D' \<in># DDa1. D' < Da"
+      by (metis finite_set_mset_mset_set)
 
     define DDa :: "'f multiset" where
-      "DDa = DD - {#Da#} + DD'"
+      "DDa = DD - {#Da#} + DDa1"
 
     have "set_mset DDa \<subseteq> N"
-      unfolding DDa_def using dd_subs_n dd'_subs_n
+      unfolding DDa_def using dd_subs_n dda1_subs_n
       by (meson contra_subsetD in_diffD subsetI union_iff)
-    moreover have "set_mset DDa \<union> CC \<Turnstile> E"
+    moreover have "set_mset DDa \<union> CC \<Turnstile> EE"
       by (rule subset_entailed_strong[of _ "{Da}"],
-          metis DDa_def dd'_ent_da entail_union entails_trans order_refl set_mset_union
+          metis DDa_def dda1_ent_da entail_union entails_trans order_refl set_mset_union
             subset_entailed,
           smt DDa_def da_in_dd ddcc_ent_e entails_trans insert_DiffM2 set_mset_add_mset_insert
             set_mset_empty set_mset_union subset_entailed sup_assoc sup_commute sup_ge1)
     moreover have "\<forall>D' \<in># DDa. D' < D"
-      using dd_lt_d dd'_lt_da da_in_dd unfolding DDa_def
+      using dd_lt_d dda1_lt_da da_in_dd unfolding DDa_def
       by (metis insert_DiffM2 order.strict_trans union_iff)
     moreover have "DDa < DD"
       unfolding DDa_def
-      by (meson da_in_dd dd'_lt_da mset_lt_single_right_iff single_subset_iff union_le_diff_plus)
+      by (meson da_in_dd dda1_lt_da mset_lt_single_right_iff single_subset_iff union_le_diff_plus)
     ultimately show False
       using d_min unfolding less_eq_multiset_def by (auto intro!: antisym)
   qed
@@ -103,16 +165,23 @@ proof -
 qed
 
 lemma Red_F_imp_ex_non_Red_F:
-  assumes "C \<in> Red_F N"
-  shows "\<exists>CC \<subseteq> N - Red_F N. finite CC \<and> CC \<Turnstile> {C} \<and> (\<forall>C' \<in> CC. C' < C)"
-  using assms by (auto simp: Red_F_def intro: wlog_non_Red_F[of _ _ "{}", simplified])
+  assumes c_in: "C \<in> Red_F N"
+  shows "\<exists>CC \<subseteq> N - Red_F N. CC \<Turnstile> {C} \<and> (\<forall>C' \<in> CC. C' < C)"
+proof -
+  obtain DD :: "'f set" where
+    dd_sub: "DD \<subseteq> N" and
+    dd_ent: "DD \<Turnstile> {C}" and
+    dd_lt: "\<forall>D \<in> DD. D < C"
+    using assms[unfolded Red_F_def mem_Collect_eq] by fast
+  show ?thesis
+    by (rule wlog_non_Red_F[of "{C}" _ _ "{}", of DD N C, simplified, OF dd_sub dd_ent dd_lt])
+qed
 
 lemma Red_F_subs_Red_F_diff_Red_F: "Red_F N \<subseteq> Red_F (N - Red_F N)"
 proof
   fix C
   assume c_rf: "C \<in> Red_F N"
   then obtain CC :: "'f set" where
-    cc_fin: "finite CC" and
     cc_subs: "CC \<subseteq> N - Red_F N" and
     cc_ent_c: "CC \<Turnstile> {C}" and
     cc_lt_c: "\<forall>C' \<in> CC. C' < C"
@@ -120,14 +189,14 @@ proof
   have "\<forall>D \<in> CC. D \<notin> Red_F N"
     using cc_subs by fast
   then have cc_nr:
-    "\<forall>C \<in> CC. \<forall>DD \<subseteq> N. finite DD \<longrightarrow> DD \<Turnstile> {C} \<longrightarrow> (\<exists>D \<in> DD. \<not> D < C)"
+    "\<forall>C \<in> CC. \<forall>DD \<subseteq> N. DD \<Turnstile> {C} \<longrightarrow> (\<exists>D \<in> DD. \<not> D < C)"
     unfolding Red_F_def by simp
   have "CC \<subseteq> N"
     using cc_subs by auto
-  then have "CC \<subseteq> N - {C. \<exists>DD \<subseteq> N. finite DD \<and> DD \<Turnstile> {C} \<and> (\<forall>D \<in> DD. D < C)}"
+  then have "CC \<subseteq> N - {C. \<exists>DD \<subseteq> N. DD \<Turnstile> {C} \<and> (\<forall>D \<in> DD. D < C)}"
     using cc_nr by blast
   then show "C \<in> Red_F (N - Red_F N)"
-    using cc_fin cc_ent_c cc_lt_c unfolding Red_F_def by blast
+    using cc_ent_c cc_lt_c unfolding Red_F_def by blast
 qed
 
 lemma Red_F_eq_Red_F_diff_Red_F: "Red_F N = Red_F (N - Red_F N)"
@@ -152,13 +221,12 @@ proof
     "E = concl_of \<iota>"
   obtain DD :: "'f set" where
     dd_sub: "DD \<subseteq> N" and
-    dd_fin: "finite DD" and
     dd_ent: "DD \<union> CC \<Turnstile> {E}" and
     dd_lt_d: "\<forall>C \<in> DD. C < D"
     using \<iota>_ri unfolding Red_Inf_def redundant_infer_def CC_def D_def E_def by blast
-  obtain DD' :: "'f set" where
-    "DD' \<subseteq> N - Red_F N" and "finite DD'" and "DD' \<union> CC \<Turnstile> {E}" and "\<forall>D' \<in> DD'. D' < D"
-    using wlog_non_Red_F[OF dd_sub dd_fin dd_ent dd_lt_d] by blast
+  obtain DDa1 :: "'f set" where
+    "DDa1 \<subseteq> N - Red_F N" and "DDa1 \<union> CC \<Turnstile> {E}" and "\<forall>D' \<in> DDa1. D' < D"
+    using wlog_non_Red_F[OF _ dd_sub dd_ent dd_lt_d] by blast
   then show "\<iota> \<in> Red_Inf (N - Red_F N)"
     using \<iota>_ri unfolding Red_Inf_def redundant_infer_def CC_def D_def E_def by blast
 qed
@@ -189,8 +257,8 @@ lemma Red_Inf_of_Inf_to_N:
 proof -
   have "concl_of \<iota> \<in> N \<Longrightarrow> redundant_infer N \<iota>"
     unfolding redundant_infer_def
-    by (metis Inf_reductive empty_iff empty_subsetI entail_union finite.emptyI finite_insert in_\<iota>
-        insert_iff insert_subset subset_entailed subset_refl)
+    by (metis (no_types) Inf_reductive empty_iff empty_subsetI entail_union in_\<iota> insert_iff
+        insert_subset subset_entailed subset_refl)
   then show "\<iota> \<in> Red_Inf N"
     by (simp add: Red_Inf_def concl_in in_\<iota>)
 qed
@@ -210,6 +278,9 @@ locale cex_red_calculus_with_std_red_crit =
   calculus_with_std_red_crit Inf + cex_red_inference_system _ _ Inf
   for Inf :: "('f :: wellorder) inference set"
 begin
+
+
+subsection \<open>Completeness\<close>
 
 text \<open>
 The following result loosely corresponds to Theorem 4.9.
