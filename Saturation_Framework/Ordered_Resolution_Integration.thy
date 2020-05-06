@@ -15,11 +15,6 @@ begin
 
 subsection \<open>Setup\<close>
 
-no_notation true_lit (infix "|\<approx>\<approx>l" 50)
-no_notation true_cls (infix "|\<approx>\<approx>" 50)
-no_notation true_clss (infix "|\<approx>\<approx>s" 50)
-no_notation true_cls_mset (infix "|\<approx>\<approx>m" 50)
-
 hide_type (open) Inference_System.inference
 
 hide_const (open) Inference_System.Infer Inference_System.main_prem_of
