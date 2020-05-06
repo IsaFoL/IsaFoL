@@ -37,7 +37,6 @@ subsection \<open>Consequence Relation\<close>
 abbreviation entails_clss :: "'a clause set \<Rightarrow> 'a clause set \<Rightarrow> bool" (infix "|\<approx>\<approx>" 50) where
   "N1 |\<approx>\<approx> N2 \<equiv> \<forall>I. I |\<approx>s N1 \<longrightarrow> I |\<approx>s N2"
 
-(* FIXME: Move to Herbrand_Interpretation.thy" *)
 lemma entails_iff_unsatisfiable:
   "CC |\<approx>\<approx> {D} \<longleftrightarrow> \<not> satisfiable (CC \<union> {{#- L#} |L. L \<in># D})" (is "_ \<longleftrightarrow> _ (_ \<union> ?NegD)")
 proof
