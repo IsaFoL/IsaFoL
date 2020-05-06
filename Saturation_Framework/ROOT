@@ -9,4 +9,4 @@ session "Saturation_Framework_Extended" = Saturation_Framework +
     Ordered_Resolution_Integration
     Superposition_Lifting
     Soundness_Related
-    Standard_Redundancy
+    Standard_Redundancy_Criterion
