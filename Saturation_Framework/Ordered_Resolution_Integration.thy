@@ -11,7 +11,7 @@ theory Ordered_Resolution_Integration
     Clausal_Inference_Systems
     Soundness_Related
 begin
-
+                                                                                                             
 
 subsection \<open>Setup\<close>
 
@@ -67,7 +67,7 @@ interpretation gr: ground_resolution_with_selection "S_M S M"
   using selection_axioms by unfold_locales (fact S_M_selects_subseteq S_M_selects_neg_lits)+
 
 definition Inf_G :: "'a clause set \<Rightarrow> 'a clause inference set" where
-  "Inf_G M = {Infer (CAs @ [DA]) E | CAs DA AAs As E. gr.ord_resolve M CAs DA AAs As E}"
+  "Inf_G M = {Infer (CAs @ [DA]) E |CAs DA AAs As E. gr.ord_resolve M CAs DA AAs As E}"
 
 lemma Inf_G_have_prems: "\<iota> \<in> Inf_G M \<Longrightarrow> prems_of \<iota> \<noteq> []"
   unfolding Inf_G_def by auto
@@ -132,7 +132,7 @@ subsection \<open>First-Order Layer\<close>
 abbreviation \<G>_F :: \<open>'a clause \<Rightarrow> 'a clause set\<close> where
   \<open>\<G>_F \<equiv> grounding_of_cls\<close>
 
-lemmas \<G>_F = grounding_of_cls_def
+lemmas \<G>_F_def = grounding_of_cls_def
 
 definition \<G>_Inf :: \<open>'a clause set \<Rightarrow> 'a clause inference \<Rightarrow> 'a clause inference set option\<close> where
   \<open>\<G>_Inf M \<iota> = Some {Infer (prems_of \<iota> \<cdot>\<cdot>cl \<rho>s) (concl_of \<iota> \<cdot> \<rho>) |\<rho> \<rho>s.
@@ -157,8 +157,8 @@ next
   show "\<And>M. calculus_with_red_crit {{#}} (Inf_G M) (|\<approx>\<approx>) (G.Red_Inf M) G.Red_F"
     by (fact G.calculus_with_red_crit_axioms)
 next
-  show "\<And>M. lifting_with_wf_ordering_family {{#}} Inf_F {{#}} (|\<approx>\<approx>) (Inf_G M) (G.Red_Inf M) G.Red_F \<G>_F
-    (\<G>_Inf M) (\<lambda>D. Empty_Order)"
+  show "\<And>M. lifting_with_wf_ordering_family {{#}} Inf_F {{#}} (|\<approx>\<approx>) (Inf_G M) (G.Red_Inf M)
+    G.Red_F \<G>_F (\<G>_Inf M) (\<lambda>D. Empty_Order)"
     unfolding lifting_with_wf_ordering_family_def standard_lifting_def standard_lifting_axioms_def
   proof (intro allI impI conjI)
     show "\<And>M. calculus_with_red_crit {{#}} (Inf_G M) (|\<approx>\<approx>) (G.Red_Inf M) G.Red_F"
@@ -170,17 +170,17 @@ next
     fix B :: "'a clause"
     assume "B \<in> {{#}}"
     then show "\<G>_F B \<noteq> {}"
-      unfolding \<G>_F by (simp add: ex_ground_subst)
+      unfolding \<G>_F_def by (simp add: ex_ground_subst)
   next
     fix B :: "'a clause"
     assume "B \<in> {{#}}"
     then show "\<G>_F B \<subseteq> {{#}}"
-      unfolding \<G>_F using is_ground_cls_empty is_ground_subst_cls by blast
+      unfolding \<G>_F_def using is_ground_cls_empty is_ground_subst_cls by blast
   next
     fix C
     assume "\<G>_F C \<inter> {{#}} \<noteq> {}"
     then show "C \<in> {{#}}"
-      unfolding \<G>_F by auto
+      unfolding \<G>_F_def by auto
   next
     fix M \<iota>
     assume
@@ -191,7 +191,7 @@ next
       unfolding \<G>_Inf_def G.Red_Inf_def G.redundant_infer_def
       apply clarsimp
       apply (rule_tac x = "{concl_of \<iota> \<cdot> \<rho>}" in exI)
-      unfolding \<G>_F
+      unfolding \<G>_F_def
       apply auto
       using Inf_G_reductive by fastforce
   next
@@ -203,8 +203,8 @@ qed
 notation F.entails_\<G>_Q (infix "|\<approx>\<approx>\<G>" 50)
 
 lemma entails_\<G>_iff_Union_grounding_of_cls:
-  "N1 |\<approx>\<approx>\<G> N2 \<longleftrightarrow> \<Union> (grounding_of_cls ` N1) |\<approx>\<approx> \<Union> (grounding_of_cls ` N2)"
-  unfolding F.entails_\<G>_Q_def F.entails_\<G>_q_def F.\<G>_set_q_def image_def \<G>_F
+  "N1 |\<approx>\<approx>\<G> N2 \<longleftrightarrow> \<Union> (\<G>_F ` N1) |\<approx>\<approx> \<Union> (\<G>_F ` N2)"
+  unfolding F.entails_\<G>_Q_def F.entails_\<G>_q_def F.\<G>_set_q_def image_def \<G>_F_def
   by (auto simp: true_clss_def)
 
 lemma true_Union_grounding_of_cls_iff_true_all_interps_ground_substs:
@@ -214,7 +214,7 @@ lemma true_Union_grounding_of_cls_iff_true_all_interps_ground_substs:
 lemma entails_\<G>_iff_all_interps_ground_substs:
   "N1 |\<approx>\<approx>\<G> N2 \<longleftrightarrow>
   (\<forall>I. (\<forall>\<sigma>. is_ground_subst \<sigma> \<longrightarrow> I |\<approx>s N1 \<cdot>cs \<sigma>) \<longrightarrow> (\<forall>\<sigma>. is_ground_subst \<sigma> \<longrightarrow> I |\<approx>s N2 \<cdot>cs \<sigma>))"
-  unfolding F.entails_\<G>_Q_def F.entails_\<G>_q_def F.\<G>_set_q_def \<G>_F
+  unfolding F.entails_\<G>_Q_def F.entails_\<G>_q_def F.\<G>_set_q_def \<G>_F_def
     true_Union_grounding_of_cls_iff_true_all_interps_ground_substs by blast
 
 interpretation F: sound_inference_system Inf_F "{{#}}" "(|\<approx>\<approx>\<G>)"
@@ -365,6 +365,7 @@ lemma trans_Prec_l: "l1 \<sqsubset>l l2 \<Longrightarrow> l2 \<sqsubset>l l3 \<L
 lemma wf_Prec_l: "wfP (\<sqsubset>l)"
   by (metis Prec_l.elims(2) Prec_l.simps(3) not_accp_down wfP_accp_iff)
 
+(* TODO: Break down *)
 interpretation GC: Given_Clause "{{#}}" Inf_F "{{#}}" UNIV "\<lambda>N. (|\<approx>\<approx>)" Inf_G G.Red_Inf
   "\<lambda>N. G.Red_F" "\<lambda>N. \<G>_F" \<G>_Inf Inf_FL "(\<doteq>)" "(\<prec>\<cdot>)" "(\<sqsubset>l)" Old
 proof (unfold_locales; (intro ballI)?)
@@ -407,13 +408,13 @@ next
   fix N C1 C2
   assume "C1 \<doteq> C2"
   then show "\<G>_F C1 \<subseteq> \<G>_F C2"
-    unfolding generalizes_def \<G>_F
+    unfolding generalizes_def \<G>_F_def
     by clarsimp (metis is_ground_comp_subst subst_cls_comp_subst)
 next
   fix N C2 C1
   assume "C2 \<prec>\<cdot> C1"
   then show "\<G>_F C1 \<subseteq> \<G>_F C2"
-    unfolding strictly_generalizes_def generalizes_def \<G>_F
+    unfolding strictly_generalizes_def generalizes_def \<G>_F_def
     by clarsimp (metis is_ground_comp_subst subst_cls_comp_subst)
 next
   fix N
@@ -466,7 +467,6 @@ next
     satur: "F.empty_ord_lifted_calc_w_red_crit_family.inter_red_crit_calculus.saturated N" and
     unsat: "N |\<approx>\<approx>\<G> {B}"
   show "\<exists>B' \<in> {{#}}. B' \<in> N"
-    (* FIXME: Clean up. *)
     apply (rule F.static_refutational_complete[OF bot _ unsat])
     unfolding F.lifted_calc_w_red_crit.saturated_def
     using satur unfolding F.empty_ord_lifted_calc_w_red_crit_family.inter_red_crit_calculus.saturated_def
@@ -559,7 +559,7 @@ interpretation src: standard_redundancy_criterion_counterex_reducing "gd.ord_\<G
   by unfold_locales
 
 definition lclss_of_state :: "'a state \<Rightarrow> ('a clause \<times> label) set" where
-  "lclss_of_state St \<equiv>
+  "lclss_of_state St =
    (\<lambda>C. (C, New)) ` N_of_state St \<union> (\<lambda>C. (C, Processed)) ` P_of_state St
    \<union> (\<lambda>C. (C, Old)) ` Q_of_state St"
 
@@ -583,8 +583,10 @@ lemma mem_lclss_of_state[simp]:
 definition infer_RP_of :: "'a clause inference \<Rightarrow> 'a inference_RP" where
   "infer_RP_of \<iota> = Infer_RP (mset (side_prems_of \<iota>)) (main_prem_of \<iota>) (concl_of \<iota>)"
 
+(* FIXME: list_of_mset hyperresolution
 definition infer_of_RP :: "'a inference_RP \<Rightarrow> 'a clause inference" where
   "infer_of_RP \<iota> = Infer (list_of_mset (side_prems_of_RP \<iota>) @ [main_prem_of_RP \<iota>]) (concl_of_RP \<iota>)"
+*)
 
 lemma gc_subsumption_step:
   assumes
@@ -616,7 +618,7 @@ proof -
       using d_ssub_c
       apply (unfold strictly_subsumes_def subsumes_def)
       apply clarsimp
-      unfolding \<G>_F
+      unfolding \<G>_F_def
       apply clarsimp
       apply (rule_tac x = "{fst Dl \<cdot> \<sigma> \<cdot> \<sigma>'}" in exI)
       apply auto
@@ -648,7 +650,7 @@ proof (rule GC.step.process[of _ N "{Cl}" _ "{Dl}"])
     apply (rule mem_Red_F_Q_GC_because_G_Red_F)
     apply (unfold G.Red_F_def)
     apply clarsimp
-    unfolding \<G>_F
+    unfolding \<G>_F_def
     apply clarsimp
     apply (rule_tac x = "{fst Dl \<cdot> \<sigma>}" in exI)
     apply auto
@@ -750,7 +752,7 @@ proof (rule GC.step.infer[of _ N C l _ M])
   qed
 qed (use l_ne m_passiv in auto)
 
-lemma step_RP_imp_GC_step: "St \<leadsto> St' \<Longrightarrow> lclss_of_state St \<Longrightarrow>GC lclss_of_state St'"
+lemma step_RP_imp_step_GC: "St \<leadsto> St' \<Longrightarrow> lclss_of_state St \<Longrightarrow>GC lclss_of_state St'"
 proof (induction rule: RP.induct)
   case (tautology_deletion A C N P Q)
   note tauto = this
@@ -761,7 +763,7 @@ proof (induction rule: RP.induct)
   proof -
     obtain \<theta> where
       "C\<theta> = C \<cdot> \<theta>"
-       using in_g unfolding \<G>_F by blast
+       using in_g unfolding \<G>_F_def by blast
     then have compl_lits:
       "Neg (A \<cdot>a \<theta>) \<in># C\<theta>"
       "Pos (A \<cdot>a \<theta>) \<in># C\<theta>"
@@ -846,35 +848,77 @@ next
 qed                                               
 
 lemma step_RP_imp_step: "St \<leadsto> St' \<Longrightarrow> lclss_of_state St \<rhd>RedFL lclss_of_state St'"
-  by (rule GC.one_step_equiv) (rule step_RP_imp_GC_step)
+  by (rule GC.one_step_equiv) (rule step_RP_imp_step_GC)
 
 lemma derivation_RP_imp_derivation: "chain (\<leadsto>) Sts \<Longrightarrow> chain (\<rhd>RedFL) (lmap lclss_of_state Sts)"
   using chain_lmap step_RP_imp_step by blast
 
-lemma "lmap (\<lambda>x. h (f x) (g x)) xs = lmap (\<lambda>(x, y). h x y) (lzip (lmap f xs) (lmap g xs))"
-  sorry
+lemma Liminf_llist_lmap_image:
+  assumes f_inj: "inj_on f (Sup_llist (lmap g xs))"
+  shows "Liminf_llist (lmap (\<lambda>x. f ` g x) xs) = f ` Liminf_llist (lmap g xs)" (is "?lhs = ?rhs")
+proof
+  show "?lhs \<subseteq> ?rhs"
+  proof
+    fix x
+    assume "x \<in> Liminf_llist (lmap (\<lambda>x. f ` g x) xs)"
+    then obtain i where
+      i_lt: "enat i < llength xs" and
+      x_in_fgj: "\<forall>j. i \<le> j \<longrightarrow> enat j < llength xs \<longrightarrow> x \<in> f ` g (lnth xs j)"
+      unfolding Liminf_llist_def by auto
 
+    have ex_in_gi: "\<exists>y. y \<in> g (lnth xs i) \<and> x = f y"
+      using f_inj unfolding inj_on_def Sup_llist_def
+      apply auto
+      using i_lt x_in_fgj by auto
+
+    have ex_in_in_gj: "\<exists>y. \<forall>j. i \<le> j \<longrightarrow> enat j < llength xs \<longrightarrow> y \<in> g (lnth xs j) \<and> x = f y"
+      apply (rule exI[of _ "SOME y. y \<in> g (lnth xs i) \<and> x = f y"])
+      using someI_ex[OF ex_in_gi]
+      using x_in_fgj
+      apply auto
+      using f_inj unfolding inj_on_def Sup_llist_def
+      apply auto
+      using i_lt x_in_fgj
+      apply auto
+      by (metis (no_types, lifting) imageE)
+
+    have "x \<in> f ` (\<Inter>x \<in> {j. i \<le> j \<and> enat j < llength xs}. g (lnth xs x))"
+      unfolding image_def mem_Collect_eq
+      using ex_in_in_gj
+      using i_lt unfolding Bex_def Inter_iff
+      by auto
+    then show "x \<in> f ` Liminf_llist (lmap g xs)"
+      unfolding Liminf_llist_def
+      apply auto
+      apply (simp add: image_Union)
+      using i_lt by auto
+  qed
+next
+  show "?rhs \<subseteq> ?lhs"
+    using image_Liminf_llist_subset[of f "lmap g xs", unfolded llist.map_comp] by auto
+qed
+
+lemma Liminf_llist_lmap_union:
+  assumes "\<forall>x \<in> lset xs. \<forall>Y \<in> lset xs. g x \<inter> h Y = {}"
+  shows "Liminf_llist (lmap (\<lambda>x. g x \<union> h x) xs) = Liminf_llist (lmap g xs) \<union> Liminf_llist (lmap h xs)"
+  unfolding Liminf_llist_def
+  sorry
 
 lemma lclss_Liminf_commute:
   "lclss_of_state (Liminf_state Sts) = Liminf_llist (lmap lclss_of_state Sts)"
-  (is "?lim_st = ?lim_lab")
-proof (intro equalityI subsetI)
-  fix Cl
-  assume "Cl \<in> ?lim_st"
-  then show "Cl \<in> ?lim_lab"
-    unfolding Liminf_state_def lclss_of_state_def
-    apply auto
-    sorry
-next
-  fix Cl
-  assume "Cl \<in> ?lim_lab"
-  then show "Cl \<in> ?lim_st"
-    unfolding Liminf_state_def lclss_of_state_def
-    sorry
-qed
-
-
-
+  apply (subst (2) lclss_of_state_def[abs_def])
+  apply (subst Liminf_llist_lmap_union)
+  defer
+  apply (subst Liminf_llist_lmap_union)
+  defer
+  apply (subst (1 2 3) Liminf_llist_lmap_image)
+       defer
+       defer
+       defer
+  unfolding lclss_of_state_def Liminf_state_def
+  apply auto
+  apply (meson Pair_inject inj_onI)+
+  done
 
 lemma fair_RP_imp_fair:
   assumes
@@ -1024,7 +1068,7 @@ theorem RP_saturated_if_fair_w_satur_frmwk:
   apply (rule GC.labeled_ord_red_crit_fam.lifted_calc_w_red_crit.fair_implies_Liminf_saturated)
   apply (rule derivation_RP_imp_derivation[OF deriv])
   using fair_RP_imp_fair[OF chain_not_lnull[OF deriv] fair empty_Q0]
-  using GC.gc_fair step_RP_imp_GC_step chain_lmap deriv by blast
+  using GC.gc_fair step_RP_imp_step_GC chain_lmap deriv by blast
 
 corollary RP_complete_if_fair_w_satur_frmwk:
   assumes
