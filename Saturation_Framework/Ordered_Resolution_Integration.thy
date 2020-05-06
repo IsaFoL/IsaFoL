@@ -853,6 +853,7 @@ lemma step_RP_imp_step: "St \<leadsto> St' \<Longrightarrow> lclss_of_state St \
 lemma derivation_RP_imp_derivation: "chain (\<leadsto>) Sts \<Longrightarrow> chain (\<rhd>RedFL) (lmap lclss_of_state Sts)"
   using chain_lmap step_RP_imp_step by blast
 
+(* FIXME: Move me. *)
 lemma Liminf_llist_lmap_image:
   assumes f_inj: "inj_on f (Sup_llist (lmap g xs))"
   shows "Liminf_llist (lmap (\<lambda>x. f ` g x) xs) = f ` Liminf_llist (lmap g xs)" (is "?lhs = ?rhs")
@@ -898,11 +899,13 @@ next
     using image_Liminf_llist_subset[of f "lmap g xs", unfolded llist.map_comp] by auto
 qed
 
+(* FIXME: Move me. *)
 lemma Liminf_llist_lmap_union:
   assumes "\<forall>x \<in> lset xs. \<forall>Y \<in> lset xs. g x \<inter> h Y = {}"
   shows "Liminf_llist (lmap (\<lambda>x. g x \<union> h x) xs) = Liminf_llist (lmap g xs) \<union> Liminf_llist (lmap h xs)"
-  unfolding Liminf_llist_def
-  sorry
+  using assms unfolding Liminf_llist_def
+  apply auto
+  by (metis disjoint_iff_not_equal in_lset_conv_lnth)
 
 lemma lclss_Liminf_commute:
   "lclss_of_state (Liminf_state Sts) = Liminf_llist (lmap lclss_of_state Sts)"
@@ -974,9 +977,9 @@ next
     done
 qed
 
-(*
+(* FIXME
 lemma "G.redundant_infer (\<Union>Cl \<in> Liminf_llist Nls. \<G>_F (fst Cl)) \<Longrightarrow> src.redundant_infer (Liminf_llist gSts)"
-  sorry
+
   thm image_Liminf_llist_subset
 *)
 
