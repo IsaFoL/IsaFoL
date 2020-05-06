@@ -13,19 +13,6 @@ theory Ordered_Resolution_Integration
 begin
 
 
-subsection \<open>Library\<close>
-
-lemma po_on_Empty_Order[simp]: "po_on Empty_Order UNIV"
-  unfolding po_on_def irreflp_on_def transp_on_def by auto
-
-lemma wfp_on_Empty_Order: "wfp_on Empty_Order UNIV"
-  by simp
-
-(* FIXME: needed? *)
-lemma (in substitution) union_grounding_of_cls_ground: "is_ground_clss (\<Union> (grounding_of_cls ` N))"
-  by (simp add: grounding_ground grounding_of_clss_def is_ground_clss_def)
-
-
 subsection \<open>Setup\<close>
 
 no_notation true_lit (infix "|\<approx>\<approx>l" 50)
@@ -37,6 +24,43 @@ hide_type (open) Inference_System.inference
 
 hide_const (open) Inference_System.Infer Inference_System.main_prem_of
   Inference_System.side_prems_of Inference_System.prems_of Inference_System.concl_of
+  Inference_System.concls_of Inference_System.infer_from
+
+type_synonym 'a inference_RP = "'a Inference_System.inference"
+
+abbreviation Infer_RP  :: "'a clause multiset \<Rightarrow> 'a clause \<Rightarrow> 'a clause \<Rightarrow> 'a inference_RP" where
+  "Infer_RP \<equiv> Inference_System.Infer"
+
+abbreviation side_prems_of_RP :: "'a inference_RP \<Rightarrow> 'a clause multiset" where
+  "side_prems_of_RP \<equiv> Inference_System.side_prems_of"
+
+abbreviation main_prem_of_RP :: "'a inference_RP \<Rightarrow> 'a clause" where
+  "main_prem_of_RP \<equiv> Inference_System.main_prem_of"
+
+abbreviation concl_of_RP :: "'a inference_RP \<Rightarrow> 'a clause" where
+  "concl_of_RP \<equiv> Inference_System.concl_of"
+
+abbreviation prems_of_RP :: "'a inference_RP \<Rightarrow> 'a clause multiset" where
+  "prems_of_RP \<equiv> Inference_System.prems_of"
+
+abbreviation concls_of_RP :: "'a inference_RP set \<Rightarrow> 'a clause set" where
+  "concls_of_RP \<equiv> Inference_System.concls_of"
+
+abbreviation infer_from_RP :: "'a clause set \<Rightarrow> 'a inference_RP \<Rightarrow> bool" where
+  "infer_from_RP \<equiv> Inference_System.infer_from"
+
+
+subsection \<open>Library\<close>
+
+lemma po_on_Empty_Order[simp]: "po_on Empty_Order UNIV"
+  unfolding po_on_def irreflp_on_def transp_on_def by auto
+
+lemma wfp_on_Empty_Order: "wfp_on Empty_Order UNIV"
+  by simp
+
+(* FIXME: needed? *)
+lemma (in substitution) union_grounding_of_cls_ground: "is_ground_clss (\<Union> (grounding_of_cls ` N))"
+  by (simp add: grounding_ground grounding_of_clss_def is_ground_clss_def)
 
 
 subsection \<open>Ground Layer\<close>
@@ -338,9 +362,9 @@ lemma trans_Prec_l: "l1 \<sqsubset>l l2 \<Longrightarrow> l2 \<sqsubset>l l3 \<L
 lemma wf_Prec_l: "wfP (\<sqsubset>l)"
   by (metis Prec_l.elims(2) Prec_l.simps(3) not_accp_down wfP_accp_iff)
 
-interpretation FL: labeled_lifting_with_red_crit_family "{{#}}" Inf_F "{{#}}" UNIV "\<lambda>N. (|\<approx>\<approx>)"
-  Inf_G G.Red_Inf "\<lambda>N. G.Red_F" "\<lambda>N. \<G>_F" \<G>_Inf Inf_FL
-proof
+interpretation GC: Given_Clause "{{#}}" Inf_F "{{#}}" UNIV "\<lambda>N. (|\<approx>\<approx>)" Inf_G G.Red_Inf
+  "\<lambda>N. G.Red_F" "\<lambda>N. \<G>_F" \<G>_Inf Inf_FL "(\<doteq>)" "(\<prec>\<cdot>)" "(\<sqsubset>l)" Old
+proof (unfold_locales; (intro ballI)?)
   fix \<iota> and ls :: "label list"
   assume
     "\<iota> \<in> Inf_F"
@@ -352,14 +376,7 @@ next
   assume "\<iota> \<in> Inf_FL"
   then show "Infer (map fst (prems_of \<iota>)) (fst (concl_of \<iota>)) \<in> Inf_F"
     unfolding Inf_FL_def by auto
-qed
-
-abbreviation saturated_FL :: "('a clause \<times> label) set \<Rightarrow> bool" where
-  "saturated_FL \<equiv> FL.with_labels.inter_red_crit_calculus.saturated"
-
-interpretation GC: Given_Clause "{{#}}" Inf_F "{{#}}" UNIV "\<lambda>N. (|\<approx>\<approx>)" Inf_G G.Red_Inf
-  "\<lambda>N. G.Red_F" "\<lambda>N. \<G>_F" \<G>_Inf Inf_FL "(\<doteq>)" "(\<prec>\<cdot>)" "(\<sqsubset>l)" Old
-proof (unfold_locales; (intro ballI)?)
+next
   show "equivp (\<doteq>)"
     unfolding equivp_def by (meson generalizes_refl generalizes_trans)
 next
@@ -473,8 +490,10 @@ qed
 
 notation GC.Prec_FL (infix "\<sqsubset>" 50)
 notation GC.step (infix "\<Longrightarrow>GC" 50)
-notation GC.labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.inter_red_crit_calculus.derive
-  (infix "\<rhd>RedFL" 50)
+notation GC.labeled_ord_red_crit_fam.lifted_calc_w_red_crit.derive (infix "\<rhd>RedFL" 50)
+
+abbreviation saturated_GC :: "('a clause \<times> label) set \<Rightarrow> bool" where
+  "saturated_GC \<equiv> GC.labeled_ord_red_crit_fam.lifted_calc_w_red_crit.saturated"
 
 abbreviation Red_Inf_Q_GC :: "('a clause \<times> label) set \<Rightarrow> ('a clause \<times> label) inference set" where
   "Red_Inf_Q_GC \<equiv> GC.labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_Inf_Q"
@@ -527,7 +546,7 @@ lemma Red_F_Q_GC_eq:
       D \<in> G.Red_F (\<Union> (\<G>_F ` fst ` N)) \<or> (\<exists>E \<in> N. E \<sqsubset> C \<and> D \<in> \<G>_F (fst E))}"
   unfolding GC.labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_F_Q_def
     GC.labeled_ord_red_crit_fam.Red_F_\<G>_q_g_def GC.labeled_ord_red_crit_fam.\<G>_set_q_def
-    FL.\<G>_F_L_q_def
+    GC.\<G>_F_L_q_def
   by auto
 
 lemma mem_Red_F_Q_GC_because_G_Red_F:
@@ -638,12 +657,11 @@ proof (rule GC.step.process[of _ N "{(C, New)}" _ "{(C, Processed)}"])
 qed (auto simp: GC.active_subset_def)
 
 lemma RP_inferences_between_eq_F_Inf_from2:
-  "Inference_System.concl_of ` inference_system.inferences_between (ord_FO_\<Gamma> S) N C =
+  "concl_of_RP ` inference_system.inferences_between (ord_FO_\<Gamma> S) N C =
    concl_of ` F.Non_ground.Inf_from2 N {C}" (is "?rp = ?f")
 proof (intro set_eqI iffI)
   fix E
-  assume e_in:
-    "E \<in> Inference_System.concl_of ` inference_system.inferences_between (ord_FO_\<Gamma> S) N C"
+  assume e_in: "E \<in> concl_of_RP ` inference_system.inferences_between (ord_FO_\<Gamma> S) N C"
 
   obtain CAs DA AAs As \<sigma> where
     e_res: "ord_resolve_rename S CAs DA AAs As \<sigma> E" and
@@ -675,11 +693,11 @@ next
     apply (auto simp: image_def Bex_def)
     done
 
-  show "E \<in> concls_of (inference_system.inferences_between (ord_FO_\<Gamma> S) N C)"
+  show "E \<in> concl_of_RP ` inference_system.inferences_between (ord_FO_\<Gamma> S) N C"
     unfolding inference_system.inferences_between_def infer_from_def ord_FO_\<Gamma>_def
     using e_res cd_sub c_in
     apply (clarsimp simp: image_def Bex_def)
-    apply (rule_tac x = "Inference_System.Infer (mset CAs) DA E" in exI)
+    apply (rule_tac x = "Infer_RP (mset CAs) DA E" in exI)
     apply auto
     done
 qed
@@ -688,8 +706,8 @@ lemma gc_inference_step:
   assumes
     l_ne: "l \<noteq> Old" and
     m_passiv: "GC.active_subset M = {}" and
-    m_sup: "fst ` M \<supseteq> concls_of (inference_system.inferences_between (ord_FO_\<Gamma> S)
-      (fst ` GC.active_subset N) C)"
+    m_sup: "fst ` M \<supseteq> concl_of_RP ` inference_system.inferences_between (ord_FO_\<Gamma> S)
+      (fst ` GC.active_subset N) C"
   shows "N \<union> {(C, l)} \<Longrightarrow>GC N \<union> {(C, Old)} \<union> M"
 proof (rule GC.step.infer[of _ N C l _ M])
   have m_sup': "fst ` M \<supseteq> concl_of ` F.Non_ground.Inf_from2 (fst ` GC.active_subset N) {C}"
@@ -809,7 +827,7 @@ next
       infer_from_def
     apply auto
     done
-qed
+qed                                               
 
 lemma RP_step_imp_LF_step: "St \<leadsto> St' \<Longrightarrow> lclss_of_state St \<rhd>RedFL lclss_of_state St'"
   by (rule GC.one_step_equiv) (rule RP_step_imp_GC_step)
@@ -820,26 +838,25 @@ lemma RP_derivation_imp_LF_derivation: "chain (\<leadsto>) Sts \<Longrightarrow>
 
 lemma lclss_Liminf_commute:
   "lclss_of_state (Liminf_state Sts) = Liminf_llist (lmap lclss_of_state Sts)"
-  unfolding Liminf_state_def
-  thm lclss_of_state
+  unfolding Liminf_state_def lclss_of_state_def Liminf_llist_def image_def
+  apply auto
   sorry
 
 
 
 
-lemma RP_fair_imp_LF_fair:
+lemma RP_fair_imp_GC_fair:
   assumes
-    deriv: "chain (\<leadsto>) Sts" and
+    nnul: "\<not> lnull Sts" and
     fair: "fair_state_seq Sts" and
     empty_Q0: "Q_of_state (lhd Sts) = {}"
-  shows "GC.fair (lmap lclss_of_state Sts)"
-proof (rule GC.gc_fair)
-  show "chain (\<Longrightarrow>GC) (lmap lclss_of_state Sts)"
-    using deriv RP_step_imp_GC_step chain_lmap by blast
-next
+  shows
+    "GC.active_subset (lnth (lmap lclss_of_state Sts) 0) = {}" and
+    "GC.non_active_subset (Liminf_llist (lmap lclss_of_state Sts)) = {}"
+proof -
   show "GC.active_subset (lnth (lmap lclss_of_state Sts) 0) = {}"
     using empty_Q0 unfolding GC.active_subset_def
-    using chain_not_lnull[OF deriv]
+    using nnul
     apply (cases Sts)
     apply auto
     done
@@ -847,22 +864,37 @@ next
   show "GC.non_active_subset (Liminf_llist (lmap lclss_of_state Sts)) = {}"
     using fair unfolding fair_state_seq_def GC.non_active_subset_def
     apply auto
-    unfolding Liminf_state_def Liminf_llist_def
-    apply auto
+    unfolding lclss_Liminf_commute[symmetric]
+    by (metis (no_types, lifting) Liminf_state_def N_of_state_Liminf P_of_state_Liminf empty_iff
+        label.exhaust mem_lclss_of_state(1) mem_lclss_of_state(2))
+qed
+
+definition RP_infer_of_GC :: "'a clause inference \<Rightarrow> 'a inference_RP" where
+  "RP_infer_of_GC \<iota> = Infer_RP (mset (side_prems_of \<iota>)) (main_prem_of \<iota>) (concl_of \<iota>)"
+
+lemma GC_saturated_imp_RP_saturated:
+  "saturated_GC (Liminf_llist (lmap lclss_of_state Sts)) \<Longrightarrow>
+   src.saturated_upto Sts (Liminf_llist (lmap grounding_of_state Sts))"
+  unfolding GC.labeled_ord_red_crit_fam.lifted_calc_w_red_crit.saturated_def src.saturated_upto_def
+proof -
+  fix \<iota>
+
+  define Nls where
+    "Nls = lmap lclss_of_state Sts"
+  define gSts where
+    "gSts = lmap grounding_of_state Sts"
+
+  assume gc_satur: "GC.with_labels.Inf_from (Liminf_llist Nls)
+    \<subseteq> GC.labeled_ord_red_crit_fam.Red_Inf_\<G>_Q (Liminf_llist Nls)"
+
+  term "src.Ri Sts (Liminf_llist gSts)"
+
+
+  show "gd.inferences_from Sts (Liminf_llist gSts - src.Rf (Liminf_llist gSts))
+    \<subseteq> src.Ri Sts (Liminf_llist gSts)"
 
     sorry
 qed
-
-
-
-  using fair_state_seq_def FL.with_labels.inter_red_crit_calculus.fair_def
-
-  sorry
-
-lemma GC_saturated_imp_LF_saturated:
-  "saturated_FL (Liminf_llist (lmap lclss_of_state Sts)) \<Longrightarrow>
-   src.saturated_upto Sts (Liminf_llist (lmap grounding_of_state Sts))"
-  sorry
 
 theorem RP_sound_w_satur_frmwk:
   assumes
@@ -891,10 +923,11 @@ theorem RP_saturated_if_fair_w_satur_frmwk:
     fair: "fair_state_seq Sts" and
     empty_Q0: "Q_of_state (lhd Sts) = {}"
   shows "src.saturated_upto Sts (Liminf_llist (lmap grounding_of_state Sts))"
-  by (rule GC_saturated_imp_LF_saturated)
-    (intro FL.with_labels.inter_red_crit_calculus.fair_implies_Liminf_saturated
-      RP_derivation_imp_LF_derivation[OF deriv]
-      RP_fair_imp_GC_fair[OF deriv fair empty_Q0])
+  apply (rule GC_saturated_imp_RP_saturated)
+  apply (rule GC.labeled_ord_red_crit_fam.lifted_calc_w_red_crit.fair_implies_Liminf_saturated)
+  apply (rule RP_derivation_imp_LF_derivation[OF deriv])
+  using RP_fair_imp_GC_fair[OF chain_not_lnull[OF deriv] fair empty_Q0]
+  using GC.gc_fair RP_step_imp_GC_step chain_lmap deriv by blast
 
 corollary RP_complete_if_fair_w_satur_frmwk:
   assumes
