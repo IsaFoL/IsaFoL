@@ -19,6 +19,29 @@ locale compact_consequence_relation = consequence_relation +
     entails_compact: "CC \<Turnstile> {D} \<Longrightarrow> \<exists>CC' \<subseteq> CC. finite CC' \<and> CC' \<Turnstile> {D}"
 begin
 
+lemma entails_compact_union:
+  assumes cd_ent: "CC \<union> DD \<Turnstile> {E}"
+  shows "\<exists>CC' \<subseteq> CC. finite CC' \<and> CC' \<union> DD \<Turnstile> {E}"
+proof -
+  obtain CCDD' where
+    cd1_fin: "finite CCDD'" and
+    cd1_sub: "CCDD' \<subseteq> CC \<union> DD" and
+    cd1_ent: "CCDD' \<Turnstile> {E}"
+    using entails_compact[OF cd_ent] by blast
+
+  define CC' where
+    "CC' = CCDD' - DD"
+  have "CC' \<subseteq> CC"
+    unfolding CC'_def using cd1_sub by blast
+  moreover have "finite CC'"
+    unfolding CC'_def using cd1_fin by blast
+  moreover have "CC' \<union> DD \<Turnstile> {E}"
+    unfolding CC'_def using cd1_ent
+    by (metis Un_Diff_cancel2 Un_upper1 entails_trans subset_entailed)
+  ultimately show ?thesis
+    by blast
+qed
+
 lemma chain_entails_derive_consist_preserving:
   assumes
     chain_ent: "chain (\<Turnstile>) Ns" and

@@ -6,7 +6,7 @@ theory Soundness
   imports Consistency_Preservation
 begin
 
-locale sound_calculus_with_red_crit = calculus_with_red_crit +
+locale sound_inference_system = inference_system + consequence_relation +
   assumes
     sound: \<open>\<iota> \<in> Inf \<Longrightarrow> set (prems_of \<iota>) \<Turnstile> {concl_of \<iota>}\<close>
 begin

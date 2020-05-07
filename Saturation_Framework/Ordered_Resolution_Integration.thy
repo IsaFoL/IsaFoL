@@ -118,13 +118,8 @@ proof
     by (metis (mono_tags, lifting) gr.ex_min_counterex gr.productive_imp_INTERP mem_Collect_eq)
 qed
 
-lemma "\<And>CC D. CC \<TTurnstile>e {D} \<Longrightarrow> \<exists>CC'\<subseteq>CC. finite CC' \<and> CC' \<TTurnstile>e {D}"
-
 interpretation G: clausal_cex_red_calculus_with_std_red_crit "Inf_G M" "gr.INTERP M"
-  apply unfold_locales
-  solve_direct
-
-  by (unfold_locales, fact subset_entailed, fact Inf_G_have_prems, fact Inf_G_reductive)
+  by (unfold_locales, fact Inf_G_have_prems, fact Inf_G_reductive)
 
 interpretation G: static_refutational_complete_calculus "{{#}}" "Inf_G M" "(\<TTurnstile>e)" "G.Red_Inf M"
   G.Red_F
@@ -1057,6 +1052,7 @@ proof -
   then have "\<not> satisfiable (Liminf_llist (lmap grounding_of_state Sts))"
     using true_clss_def by auto
   then have "\<not> satisfiable (lhd (lmap grounding_of_state Sts))"
+
     using sr_ext.sat_limit_iff ground_derive_chain deriv by blast
   then show ?thesis
     using chain_not_lnull deriv by fastforce
