@@ -96,8 +96,7 @@ qed
 
 end
 
-locale consist_preserving_calculus_with_red_crit =
-  calculus_with_red_crit + compact_consequence_relation
+locale compact_calculus_with_red_crit = calculus_with_red_crit + compact_consequence_relation
 begin
 
 text \<open>
@@ -106,12 +105,11 @@ This corresponds to Lemma 4.2:
 
 lemma
   assumes
-    chain_ent: "chain (\<Turnstile>) Ns" and
     chain_red: "chain (\<rhd>Red) Ns"
   shows
     Red_F_Sup_subset_Red_F_Liminf: "Red_F (Sup_llist Ns) \<subseteq> Red_F (Liminf_llist Ns)" and
     Red_Inf_Sup_subset_Red_Inf_Liminf: "Red_Inf (Sup_llist Ns) \<subseteq> Red_Inf (Liminf_llist Ns)" and
-    sat_limit_iff: "Liminf_llist Ns \<Turnstile> Bot \<longleftrightarrow> lhd Ns \<Turnstile> Bot"
+    unsat_limit_iff: "chain (\<Turnstile>) Ns \<Longrightarrow> Liminf_llist Ns \<Turnstile> Bot \<longleftrightarrow> lhd Ns \<Turnstile> Bot"
 proof -
   {
     fix C i j
@@ -148,31 +146,36 @@ proof -
   }
   then have lu_ll: "Sup_llist Ns - Red_F (Sup_llist Ns) \<subseteq> Liminf_llist Ns"
     unfolding Sup_llist_def Liminf_llist_def by blast
-  have rf: "Red_F (Sup_llist Ns - Red_F (Sup_llist Ns)) \<subseteq> Red_F (Liminf_llist Ns)"
-    using lu_ll by (simp add: Red_F_of_subset)
-  have ri: "Red_Inf (Sup_llist Ns - Red_F (Sup_llist Ns)) \<subseteq> Red_Inf (Liminf_llist Ns)"
-    using lu_ll by (simp add: Red_Inf_of_subset)
-  show "Red_F (Sup_llist Ns) \<subseteq> Red_F (Liminf_llist Ns)"
-    using rf Red_F_of_Red_F_subset by auto
-  show "Red_Inf (Sup_llist Ns) \<subseteq> Red_Inf (Liminf_llist Ns)"
-    using Red_Inf_without_red_F ri by auto
 
-  show "Liminf_llist Ns \<Turnstile> Bot \<longleftrightarrow> lhd Ns \<Turnstile> Bot"
-  proof
-    assume "Liminf_llist Ns \<Turnstile> Bot"
-    then have "Sup_llist Ns \<Turnstile> Bot"
-      using Liminf_llist_subset_Sup_llist by (metis entails_trans subset_entailed)
-    then show "lhd Ns \<Turnstile> Bot"
-      using chain_ent chain_entails_derive_consist_preserving by blast
-  next
-    assume "lhd Ns \<Turnstile> Bot"
-    then have "Sup_llist Ns \<Turnstile> Bot"
-      by (meson chain_ent chain_not_lnull entails_trans lhd_subset_Sup_llist subset_entailed)
-    then have "Sup_llist Ns - Red_F (Sup_llist Ns) \<Turnstile> Bot"
-      using Red_F_Bot entail_set_all_formulas by blast
-    then show "Liminf_llist Ns \<Turnstile> Bot"
-      using entails_trans lu_ll subset_entailed by blast
-  qed
+  have "Red_F (Sup_llist Ns - Red_F (Sup_llist Ns)) \<subseteq> Red_F (Liminf_llist Ns)"
+    using lu_ll by (simp add: Red_F_of_subset)
+  then show "Red_F (Sup_llist Ns) \<subseteq> Red_F (Liminf_llist Ns)"
+    using Red_F_of_Red_F_subset by auto
+
+  have "Red_Inf (Sup_llist Ns - Red_F (Sup_llist Ns)) \<subseteq> Red_Inf (Liminf_llist Ns)"
+    using lu_ll by (simp add: Red_Inf_of_subset)
+  then show "Red_Inf (Sup_llist Ns) \<subseteq> Red_Inf (Liminf_llist Ns)"
+    using Red_Inf_without_red_F  by auto
+
+  {
+    assume chain_ent: "chain (\<Turnstile>) Ns"
+    show "Liminf_llist Ns \<Turnstile> Bot \<longleftrightarrow> lhd Ns \<Turnstile> Bot"
+    proof
+      assume "Liminf_llist Ns \<Turnstile> Bot"
+      then have "Sup_llist Ns \<Turnstile> Bot"
+        using Liminf_llist_subset_Sup_llist by (metis entails_trans subset_entailed)
+      then show "lhd Ns \<Turnstile> Bot"
+        using chain_ent chain_entails_derive_consist_preserving by blast
+    next
+      assume "lhd Ns \<Turnstile> Bot"
+      then have "Sup_llist Ns \<Turnstile> Bot"
+        by (meson chain_ent chain_not_lnull entails_trans lhd_subset_Sup_llist subset_entailed)
+      then have "Sup_llist Ns - Red_F (Sup_llist Ns) \<Turnstile> Bot"
+        using Red_F_Bot entail_set_all_formulas by blast
+      then show "Liminf_llist Ns \<Turnstile> Bot"
+        using entails_trans lu_ll subset_entailed by blast
+    qed
+  }
 qed
 
 lemma

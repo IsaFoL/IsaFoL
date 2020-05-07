@@ -165,6 +165,9 @@ begin
 sublocale cex_red_calculus_with_std_red_crit "{{#}}" "(\<TTurnstile>e)" I_of
   by unfold_locales
 
+sublocale compact_calculus_with_red_crit "{{#}}" Inf "(\<TTurnstile>e)" Red_Inf Red_F
+  by unfold_locales
+
 lemma clausal_saturated_model:
   assumes
     "saturated N"

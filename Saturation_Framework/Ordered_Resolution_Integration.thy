@@ -15,6 +15,11 @@ begin
 
 subsection \<open>Setup\<close>
 
+no_notation true_lit (infix "\<Turnstile>l" 50)
+no_notation true_cls (infix "\<Turnstile>" 50)
+no_notation true_clss (infix "\<Turnstile>s" 50)
+no_notation true_cls_mset (infix "\<Turnstile>m" 50)
+
 hide_type (open) Inference_System.inference
 
 hide_const (open) Inference_System.Infer Inference_System.main_prem_of
@@ -23,7 +28,7 @@ hide_const (open) Inference_System.Infer Inference_System.main_prem_of
 
 type_synonym 'a inference_RP = "'a Inference_System.inference"
 
-abbreviation Infer_RP  :: "'a clause multiset \<Rightarrow> 'a clause \<Rightarrow> 'a clause \<Rightarrow> 'a inference_RP" where
+abbreviation Infer_RP :: "'a clause multiset \<Rightarrow> 'a clause \<Rightarrow> 'a clause \<Rightarrow> 'a inference_RP" where
   "Infer_RP \<equiv> Inference_System.Infer"
 
 abbreviation side_prems_of_RP :: "'a inference_RP \<Rightarrow> 'a clause multiset" where
@@ -120,6 +125,9 @@ qed
 
 interpretation G: clausal_cex_red_calculus_with_std_red_crit "Inf_G M" "gr.INTERP M"
   by (unfold_locales, fact Inf_G_have_prems, fact Inf_G_reductive)
+
+abbreviation derive_G (infix "\<rhd>RedG" 50) where
+  "(\<rhd>RedG) \<equiv> G.derive"
 
 interpretation G: static_refutational_complete_calculus "{{#}}" "Inf_G M" "(\<TTurnstile>e)" "G.Red_Inf M"
   G.Red_F
@@ -494,7 +502,7 @@ notation GC.Prec_FL (infix "\<sqsubset>" 50)
 notation GC.step (infix "\<Longrightarrow>GC" 50)
 
 abbreviation derive_GC (infix "\<rhd>RedFL" 50) where
-  "Nl1 \<rhd>RedFL Nl2 \<equiv> GC.labeled_ord_red_crit_fam.lifted_calc_w_red_crit.derive Nl1 Nl2"
+  "(\<rhd>RedFL) \<equiv> GC.labeled_ord_red_crit_fam.lifted_calc_w_red_crit.derive"
 
 abbreviation saturated_GC :: "('a clause \<times> label) set \<Rightarrow> bool" where
   "saturated_GC \<equiv> GC.labeled_ord_red_crit_fam.lifted_calc_w_red_crit.saturated"
@@ -561,6 +569,9 @@ definition lclss_of_state :: "'a state \<Rightarrow> ('a clause \<times> label) 
   "lclss_of_state St =
    (\<lambda>C. (C, New)) ` N_of_state St \<union> (\<lambda>C. (C, Processed)) ` P_of_state St
    \<union> (\<lambda>C. (C, Old)) ` Q_of_state St"
+
+lemma image_fst_lclss_of_state[simp]: "fst ` lclss_of_state St = clss_of_state St"
+  unfolding lclss_of_state_def by (auto simp: image_Un image_comp)
 
 lemma insert_lclss_of_state[simp]:
   "insert (C, New) (lclss_of_state (N, P, Q)) = lclss_of_state (N \<union> {C}, P, Q)"
@@ -1030,15 +1041,49 @@ proof
     apply auto
     using \<gamma>_in_inf_rp gd.inferences_from_def apply auto[1]
 *)
-
-    thm src.redundant_infer_def
-    thm G.redundant_infer_def
-
-
-
     sorry
 qed
-find_theorems name: sat_limit_iff
+
+lemma RP_satisfiable_iff_not_entails_Bot: "satisfiable N \<longleftrightarrow> \<not> N \<TTurnstile>e {{#}}"
+  by simp
+
+lemma FL_derive_imp_G_derive:
+  "lclss_of_state St \<rhd>RedFL lclss_of_state St' \<Longrightarrow>
+   G.derive (grounding_of_state St) (grounding_of_state St')"
+  unfolding G.derive.simps GC.labeled_ord_red_crit_fam.lifted_calc_w_red_crit.derive.simps
+proof (clarify, intro exI conjI; (rule refl)?)
+  assume sub_lc: "lclss_of_state St - lclss_of_state St'
+    \<subseteq> GC.labeled_ord_red_crit_fam.Red_F_\<G>_g (lclss_of_state St')"
+
+  have sub_flc: "fst ` lclss_of_state St - fst ` lclss_of_state St'
+    \<subseteq> fst ` GC.labeled_ord_red_crit_fam.Red_F_\<G>_g (lclss_of_state St')"
+    apply (rule subset_trans[OF image_diff_subset])
+    apply (rule image_mono)
+    apply (rule sub_lc)
+    done
+
+  have sub_c: "clss_of_state St - clss_of_state St'
+    \<subseteq> fst ` GC.labeled_ord_red_crit_fam.Red_F_\<G>_g (lclss_of_state St')"
+    using sub_flc by simp
+
+  have "grounding_of_state St - grounding_of_state St'
+    \<subseteq> grounding_of_clss (fst ` GC.labeled_ord_red_crit_fam.Red_F_\<G>_g (lclss_of_state St'))"
+    unfolding grounding_of_clss_def
+    using subset_trans[OF image_diff_subset]
+    apply (rule )
+
+    apply (rule image_mono)
+    apply (rule sub_lc)
+
+
+    using image_mono
+    sorry
+  also have "... \<subseteq> G.Red_F (grounding_of_state St')"
+    sorry
+  finally show "grounding_of_state St - grounding_of_state St' \<subseteq> G.Red_F (grounding_of_state St')"
+    .
+qed
+
 theorem RP_sound_w_satur_frmwk:
   assumes
     deriv: "chain (\<leadsto>) Sts" and
@@ -1052,8 +1097,16 @@ proof -
   then have "\<not> satisfiable (Liminf_llist (lmap grounding_of_state Sts))"
     using true_clss_def by auto
   then have "\<not> satisfiable (lhd (lmap grounding_of_state Sts))"
-
-    using sr_ext.sat_limit_iff ground_derive_chain deriv by blast
+  proof -
+    have chain_gred: "chain G.derive (lmap grounding_of_state Sts)"
+      sorry
+    have chain_ent: "chain (\<TTurnstile>e) (lmap grounding_of_state Sts)"
+      by (smt RP_model chain_lmap deriv)
+    show ?thesis
+      apply (subst RP_satisfiable_iff_not_entails_Bot)
+      using G.unsat_limit_iff[OF chain_gred chain_ent]
+      using \<open>\<not> satisfiable (Liminf_llist (lmap (\<lambda>St. grounding_of_clss (N_of_state St \<union> P_of_state St \<union> Q_of_state St)) Sts))\<close> by auto
+  qed
   then show ?thesis
     using chain_not_lnull deriv by fastforce
 qed
