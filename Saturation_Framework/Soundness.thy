@@ -1,9 +1,9 @@
-(*  Title:       Sound Calculi
+(*  Title:       Soundness Results
  *  Author:      Sophie Tourret <stourret at mpi-inf.mpg.de>, 2020
  *  Author:      Jasmin Blanchette <j.c.blanchette at vu.nl>, 2020 *)
 
-theory Sound_Calculi
-  imports Consistency_Preserving_Inference_Systems
+theory Soundness
+  imports Consistency_Preservation
 begin
 
 locale sound_calculus_with_red_crit = calculus_with_red_crit +
@@ -21,9 +21,6 @@ proof -
   then show ?thesis
     using n_cons entails_trans_strong by blast
 qed
-
-sublocale consist_preserving_calculus_with_red_crit
-  by unfold_locales (erule Inf_consist_preserving)
 
 end
 

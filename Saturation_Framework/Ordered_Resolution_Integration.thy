@@ -9,7 +9,7 @@ theory Ordered_Resolution_Integration
     Ordered_Resolution_Prover.FO_Ordered_Resolution_Prover
     Saturation_Framework.Prover_Architectures
     Clausal_Inference_Systems
-    Sound_Inference_Systems
+    Soundness
 begin
 
 

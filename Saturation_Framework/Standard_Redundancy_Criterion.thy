@@ -10,7 +10,7 @@ section \<open>The Standard Redundancy Criterion\<close>
 theory Standard_Redundancy_Criterion
   imports
     Counterexample_Reducing_Inference_Systems
-    Consistency_Preserving_Inference_Systems
+    Consistency_Preservation
 begin
 
 text \<open>
@@ -21,8 +21,7 @@ and Ganzinger's chapter, but adapted to the saturation framework of Waldmann et 
 
 subsection \<open>Criterion\<close>
 
-locale calculus_with_std_red_crit = inference_system Inf + consequence_relation Bot entails +
-    compact_preconsequence_relation entails
+locale calculus_with_std_red_crit = inference_system Inf + compact_consequence_relation Bot entails
   for
     Inf :: "('f :: wellorder) inference set" and
     Bot :: "'f set" and

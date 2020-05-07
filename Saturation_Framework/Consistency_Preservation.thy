@@ -1,20 +1,20 @@
-(*  Title:       Consistency-Preserving Calculi
+(*  Title:       Consistency Preservation Results
     Author:      Jasmin Blanchette <j.c.blanchette at vu.nl>, 2014, 2017, 2020
     Author:      Dmitriy Traytel <traytel at inf.ethz.ch>, 2014
     Author:      Anders Schlichtkrull <andschl at dtu.dk>, 2017
     Maintainer:  Anders Schlichtkrull <andschl at dtu.dk>
 *)
 
-section \<open>Consistency-Preserving Calculi\<close>
+section \<open>Consistency Preservation Results\<close>
 
-theory Consistency_Preserving_Inference_Systems
+theory Consistency_Preservation
   imports
     Saturation_Framework.Calculi
     Open_Induction.Restricted_Predicates
 begin
 
 
-locale consist_preserving_calculus_with_red_crit = calculus_with_red_crit +
+locale compact_consequence_relation = consequence_relation +
   assumes
     entails_compact: "CC \<Turnstile> {D} \<Longrightarrow> \<exists>CC' \<subseteq> CC. finite CC' \<and> CC' \<Turnstile> {D}"
 begin
@@ -71,6 +71,12 @@ proof -
     using entails_compact by (metis bot_entails_all bot_sat entail_set_all_formulas entails_trans)
 qed
 
+end
+
+locale consist_preserving_calculus_with_red_crit =
+  calculus_with_red_crit + compact_consequence_relation
+begin
+
 text \<open>
 This corresponds to Lemma 4.2:
 \<close>
@@ -81,7 +87,7 @@ lemma
     chain_red: "chain (\<rhd>Red) Ns"
   shows
     Red_F_Sup_subset_Red_F_Liminf: "Red_F (Sup_llist Ns) \<subseteq> Red_F (Liminf_llist Ns)" and
-    Red_I_Sup_subset_Red_I_Liminf: "Red_Inf (Sup_llist Ns) \<subseteq> Red_Inf (Liminf_llist Ns)" and
+    Red_Inf_Sup_subset_Red_Inf_Liminf: "Red_Inf (Sup_llist Ns) \<subseteq> Red_Inf (Liminf_llist Ns)" and
     sat_limit_iff: "Liminf_llist Ns \<Turnstile> Bot \<longleftrightarrow> lhd Ns \<Turnstile> Bot"
 proof -
   {
@@ -150,7 +156,7 @@ lemma
   assumes "chain (\<rhd>Red) Ns"
   shows
     Red_F_limit_Sup: "Red_F (Liminf_llist Ns) = Red_F (Sup_llist Ns)" and
-    Red_I_limit_Sup: "Red_Inf (Liminf_llist Ns) = Red_Inf (Sup_llist Ns)"
+    Red_Inf_limit_Sup: "Red_Inf (Liminf_llist Ns) = Red_Inf (Sup_llist Ns)"
   by (metis assms Liminf_llist_subset_Sup_llist Red_F_of_Red_F_subset Red_F_of_subset Red_in_Sup
       double_diff order_refl subset_antisym)
    (metis assms Liminf_llist_subset_Sup_llist Red_Inf_of_Red_F_subset Red_Inf_of_subset Red_in_Sup
