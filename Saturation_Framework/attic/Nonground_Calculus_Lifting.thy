@@ -10,10 +10,10 @@ locale nonground_static_refutational_complete_calculus = grounding_function Bot_
   static_refutational_complete_calculus Bot_G entails_sound_G Inf_G entails_comp_G Red_Inf_G Red_F_G
   for
     Bot_F :: \<open>'f set\<close> and
-    entails_sound_F ::  \<open>'f set \<Rightarrow> 'f set \<Rightarrow> bool\<close> (infix "|\<approx>F" 50) and
+    entails_sound_F ::  \<open>'f set \<Rightarrow> 'f set \<Rightarrow> bool\<close> (infix "\<TTurnstile>F" 50) and
     Inf_F :: \<open>'f inference set\<close> and
     Bot_G :: \<open>'g set\<close> and
-    entails_sound_G ::  \<open>'g set  \<Rightarrow> 'g set  \<Rightarrow> bool\<close> (infix "|\<approx>G" 50) and
+    entails_sound_G ::  \<open>'g set  \<Rightarrow> 'g set  \<Rightarrow> bool\<close> (infix "\<TTurnstile>G" 50) and
     Inf_G ::  \<open>'g inference set\<close> and
     entails_comp_G ::  \<open>'g set  \<Rightarrow> 'g set  \<Rightarrow> bool\<close> (infix "\<Turnstile>G" 50) and
     Red_Inf_G :: \<open>'g set \<Rightarrow> 'g inference set\<close> and

@@ -9,9 +9,9 @@ theory Ordered_Resolution_Integration
     Ordered_Resolution_Prover.FO_Ordered_Resolution_Prover
     Saturation_Framework.Prover_Architectures
     Clausal_Inference_Systems
-    Soundness_Related
+    Sound_Inference_Systems
 begin
-                                                                                                             
+
 
 subsection \<open>Setup\<close>
 
@@ -75,24 +75,24 @@ lemma Inf_G_have_prems: "\<iota> \<in> Inf_G M \<Longrightarrow> prems_of \<iota
 lemma Inf_G_reductive: "\<iota> \<in> Inf_G M \<Longrightarrow> concl_of \<iota> < main_prem_of \<iota>"
   unfolding Inf_G_def by (auto dest: gr.ord_resolve_reductive)
 
-interpretation G: sound_inference_system "Inf_G M" "{{#}}" "(|\<approx>\<approx>)"
+interpretation G: sound_inference_system "Inf_G M" "{{#}}" "(\<TTurnstile>e)"
 proof
   fix \<iota>
   assume i_in: "\<iota> \<in> Inf_G M"
   moreover
   {
     fix I
-    assume I_ent_prems: "I |\<approx>s set (prems_of \<iota>)"
+    assume I_ent_prems: "I \<TTurnstile>s set (prems_of \<iota>)"
     obtain CAs AAs As where
       the_inf: "gr.ord_resolve M CAs (main_prem_of \<iota>) AAs As (concl_of \<iota>)" and
       CAs: "CAs = side_prems_of \<iota>"
       using i_in unfolding Inf_G_def by auto
-    then have "I |\<approx> concl_of \<iota>"
+    then have "I \<TTurnstile> concl_of \<iota>"
       using gr.ord_resolve_sound[of M CAs "main_prem_of \<iota>" AAs As "concl_of \<iota>" I]
       by (metis I_ent_prems Inf_G_have_prems i_in insert_is_Un set_mset_mset set_prems_of
           true_clss_insert true_clss_set_mset)
   }
-  ultimately show "set (inference.prems_of \<iota>) |\<approx>\<approx> {concl_of \<iota>}"
+  ultimately show "set (inference.prems_of \<iota>) \<TTurnstile>e {concl_of \<iota>}"
     by simp
 qed
 
@@ -102,27 +102,31 @@ proof
   assume
     "{#} \<notin> N" and
     "D \<in> N" and
-    "\<not> gr.INTERP M N |\<approx> D" and
-    "\<And>C. C \<in> N \<Longrightarrow> \<not> gr.INTERP M N |\<approx> C \<Longrightarrow> D \<le> C"
+    "\<not> gr.INTERP M N \<TTurnstile> D" and
+    "\<And>C. C \<in> N \<Longrightarrow> \<not> gr.INTERP M N \<TTurnstile> C \<Longrightarrow> D \<le> C"
   then obtain CAs AAs As E where
     "set CAs \<subseteq> N" and
-    "gr.INTERP M N |\<approx>m mset CAs" and
+    "gr.INTERP M N \<TTurnstile>m mset CAs" and
     "\<And>CA. CA \<in> set CAs \<Longrightarrow> gr.production M N CA \<noteq> {}" and
     "gr.ord_resolve M CAs D AAs As E" and
-    "\<not> gr.INTERP M N |\<approx> E" and
+    "\<not> gr.INTERP M N \<TTurnstile> E" and
     "E < D"
     using gr.ord_resolve_counterex_reducing by blast
-  then show "\<exists>Cs E. set Cs \<subseteq> N \<and> gr.INTERP M N |\<approx>s set Cs \<and> Infer (Cs @ [D]) E \<in> Inf_G M
-    \<and> \<not> gr.INTERP M N |\<approx> E \<and> E < D"
+  then show "\<exists>Cs E. set Cs \<subseteq> N \<and> gr.INTERP M N \<TTurnstile>s set Cs \<and> Infer (Cs @ [D]) E \<in> Inf_G M
+    \<and> \<not> gr.INTERP M N \<TTurnstile> E \<and> E < D"
     unfolding Inf_G_def
     by (metis (mono_tags, lifting) gr.ex_min_counterex gr.productive_imp_INTERP mem_Collect_eq)
 qed
 
+lemma "\<And>CC D. CC \<TTurnstile>e {D} \<Longrightarrow> \<exists>CC'\<subseteq>CC. finite CC' \<and> CC' \<TTurnstile>e {D}"
+
 interpretation G: clausal_cex_red_calculus_with_std_red_crit "Inf_G M" "gr.INTERP M"
   apply unfold_locales
-  by (unfold_locales, fact Inf_G_have_prems, fact Inf_G_reductive)
+  solve_direct
 
-interpretation G: static_refutational_complete_calculus "{{#}}" "Inf_G M" "(|\<approx>\<approx>)" "G.Red_Inf M"
+  by (unfold_locales, fact subset_entailed, fact Inf_G_have_prems, fact Inf_G_reductive)
+
+interpretation G: static_refutational_complete_calculus "{{#}}" "Inf_G M" "(\<TTurnstile>e)" "G.Red_Inf M"
   G.Red_F
   by unfold_locales (use G.clausal_saturated_complete in blast)
 
@@ -145,23 +149,23 @@ definition Inf_F :: "'a clause inference set" where
 lemma Inf_F_have_prems: "\<iota> \<in> Inf_F \<Longrightarrow> prems_of \<iota> \<noteq> []"
   unfolding Inf_F_def by force
 
-interpretation F: standard_lifting_with_red_crit_family Inf_F "{{#}}" UNIV Inf_G "\<lambda>N. (|\<approx>\<approx>)"
+interpretation F: standard_lifting_with_red_crit_family Inf_F "{{#}}" UNIV Inf_G "\<lambda>N. (\<TTurnstile>e)"
   G.Red_Inf "\<lambda>N. G.Red_F" "{{#}}" "\<lambda>N. \<G>_F" \<G>_Inf "\<lambda>D. Empty_Order"
 proof (unfold_locales; (intro ballI)?)
   show "UNIV \<noteq> {}"
     by (rule UNIV_not_empty)
 next
-  show "consequence_relation {{#}} (|\<approx>\<approx>)"
+  show "consequence_relation {{#}} (\<TTurnstile>e)"
     by (fact consequence_relation_axioms)
 next
-  show "\<And>M. calculus_with_red_crit {{#}} (Inf_G M) (|\<approx>\<approx>) (G.Red_Inf M) G.Red_F"
+  show "\<And>M. calculus_with_red_crit {{#}} (Inf_G M) (\<TTurnstile>e) (G.Red_Inf M) G.Red_F"
     by (fact G.calculus_with_red_crit_axioms)
 next
-  show "\<And>M. lifting_with_wf_ordering_family {{#}} Inf_F {{#}} (|\<approx>\<approx>) (Inf_G M) (G.Red_Inf M)
+  show "\<And>M. lifting_with_wf_ordering_family {{#}} Inf_F {{#}} (\<TTurnstile>e) (Inf_G M) (G.Red_Inf M)
     G.Red_F \<G>_F (\<G>_Inf M) (\<lambda>D. Empty_Order)"
     unfolding lifting_with_wf_ordering_family_def standard_lifting_def standard_lifting_axioms_def
   proof (intro allI impI conjI)
-    show "\<And>M. calculus_with_red_crit {{#}} (Inf_G M) (|\<approx>\<approx>) (G.Red_Inf M) G.Red_F"
+    show "\<And>M. calculus_with_red_crit {{#}} (Inf_G M) (\<TTurnstile>e) (G.Red_Inf M) G.Red_F"
       by (fact G.calculus_with_red_crit_axioms)
   next
     show "{{#}} \<noteq> {}"
@@ -200,24 +204,24 @@ next
   qed
 qed
 
-notation F.entails_\<G>_Q (infix "|\<approx>\<approx>\<G>" 50)
+notation F.entails_\<G>_Q (infix "\<TTurnstile>e\<G>" 50)
 
 lemma entails_\<G>_iff_Union_grounding_of_cls:
-  "N1 |\<approx>\<approx>\<G> N2 \<longleftrightarrow> \<Union> (\<G>_F ` N1) |\<approx>\<approx> \<Union> (\<G>_F ` N2)"
+  "N1 \<TTurnstile>e\<G> N2 \<longleftrightarrow> \<Union> (\<G>_F ` N1) \<TTurnstile>e \<Union> (\<G>_F ` N2)"
   unfolding F.entails_\<G>_Q_def F.entails_\<G>_q_def F.\<G>_set_q_def image_def \<G>_F_def
   by (auto simp: true_clss_def)
 
 lemma true_Union_grounding_of_cls_iff_true_all_interps_ground_substs:
-  "I |\<approx>s (\<Union>C \<in> N. {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>}) \<longleftrightarrow> (\<forall>\<sigma>. is_ground_subst \<sigma> \<longrightarrow> I |\<approx>s N \<cdot>cs \<sigma>)"
+  "I \<TTurnstile>s (\<Union>C \<in> N. {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>}) \<longleftrightarrow> (\<forall>\<sigma>. is_ground_subst \<sigma> \<longrightarrow> I \<TTurnstile>s N \<cdot>cs \<sigma>)"
   unfolding true_clss_def subst_clss_def by blast
 
 lemma entails_\<G>_iff_all_interps_ground_substs:
-  "N1 |\<approx>\<approx>\<G> N2 \<longleftrightarrow>
-  (\<forall>I. (\<forall>\<sigma>. is_ground_subst \<sigma> \<longrightarrow> I |\<approx>s N1 \<cdot>cs \<sigma>) \<longrightarrow> (\<forall>\<sigma>. is_ground_subst \<sigma> \<longrightarrow> I |\<approx>s N2 \<cdot>cs \<sigma>))"
+  "N1 \<TTurnstile>e\<G> N2 \<longleftrightarrow>
+  (\<forall>I. (\<forall>\<sigma>. is_ground_subst \<sigma> \<longrightarrow> I \<TTurnstile>s N1 \<cdot>cs \<sigma>) \<longrightarrow> (\<forall>\<sigma>. is_ground_subst \<sigma> \<longrightarrow> I \<TTurnstile>s N2 \<cdot>cs \<sigma>))"
   unfolding F.entails_\<G>_Q_def F.entails_\<G>_q_def F.\<G>_set_q_def \<G>_F_def
     true_Union_grounding_of_cls_iff_true_all_interps_ground_substs by blast
 
-interpretation F: sound_inference_system Inf_F "{{#}}" "(|\<approx>\<approx>\<G>)"
+interpretation F: sound_inference_system Inf_F "{{#}}" "(\<TTurnstile>e\<G>)"
 proof
   fix \<iota>
   assume i_in: "\<iota> \<in> Inf_F"
@@ -225,7 +229,7 @@ proof
   {
     fix I \<eta>
     assume
-      I_entails_prems: "\<forall>\<sigma>. is_ground_subst \<sigma> \<longrightarrow> I |\<approx>s set (prems_of \<iota>) \<cdot>cs \<sigma>" and
+      I_entails_prems: "\<forall>\<sigma>. is_ground_subst \<sigma> \<longrightarrow> I \<TTurnstile>s set (prems_of \<iota>) \<cdot>cs \<sigma>" and
       \<eta>_gr: "is_ground_subst \<eta>"
     obtain CAs AAs As \<sigma> where
       the_inf: "ord_resolve_rename S CAs (main_prem_of \<iota>) AAs As \<sigma> (concl_of \<iota>)" and
@@ -235,12 +239,12 @@ proof
       by (metis Inf_F_have_prems[OF i_in] add.right_neutral append_Cons append_Nil2
           append_butlast_last_id mset.simps(2) mset_rev mset_single_iff_right rev_append
           rev_is_Nil_conv union_mset_add_mset_right)
-    have "I |\<approx> concl_of \<iota> \<cdot> \<eta>"
+    have "I \<TTurnstile> concl_of \<iota> \<cdot> \<eta>"
       using ord_resolve_rename_sound[OF the_inf, of I \<eta>, OF _ \<eta>_gr]
       unfolding CAs prems[symmetric] using I_entails_prems
       by (metis set_mset_mset set_mset_subst_cls_mset_subst_clss true_clss_set_mset)
   }
-  ultimately show "set (inference.prems_of \<iota>) |\<approx>\<approx>\<G> {concl_of \<iota>}"
+  ultimately show "set (inference.prems_of \<iota>) \<TTurnstile>e\<G> {concl_of \<iota>}"
     using entails_\<G>_iff_all_interps_ground_substs by auto
 qed
 
@@ -310,10 +314,10 @@ proof -
     by blast
 qed
 
-interpretation F: static_refutational_complete_calculus "{{#}}" Inf_F "(|\<approx>\<approx>\<G>)" F.Red_Inf_\<G>_Q
+interpretation F: static_refutational_complete_calculus "{{#}}" Inf_F "(\<TTurnstile>e\<G>)" F.Red_Inf_\<G>_Q
   F.Red_F_\<G>_empty
 proof (rule F.stat_ref_comp_to_non_ground_fam_inter; clarsimp)
-  show "\<And>M. static_refutational_complete_calculus {{#}} (Inf_G M) (|\<approx>\<approx>) (G.Red_Inf M) G.Red_F"
+  show "\<And>M. static_refutational_complete_calculus {{#}} (Inf_G M) (\<TTurnstile>e) (G.Red_Inf M) G.Red_F"
     by (fact G.static_refutational_complete_calculus_axioms)
 next
   fix M
@@ -366,7 +370,7 @@ lemma wf_Prec_l: "wfP (\<sqsubset>l)"
   by (metis Prec_l.elims(2) Prec_l.simps(3) not_accp_down wfP_accp_iff)
 
 (* TODO: Break down *)
-interpretation GC: Given_Clause "{{#}}" Inf_F "{{#}}" UNIV "\<lambda>N. (|\<approx>\<approx>)" Inf_G G.Red_Inf
+interpretation GC: Given_Clause "{{#}}" Inf_F "{{#}}" UNIV "\<lambda>N. (\<TTurnstile>e)" Inf_G G.Red_Inf
   "\<lambda>N. G.Red_F" "\<lambda>N. \<G>_F" \<G>_Inf Inf_FL "(\<doteq>)" "(\<prec>\<cdot>)" "(\<sqsubset>l)" Old
 proof (unfold_locales; (intro ballI)?)
   fix \<iota> and ls :: "label list"
@@ -424,8 +428,8 @@ next
   fix B N
   assume
     "B \<in> {{#}}"
-    "N |\<approx>\<approx>\<G> {B}"
-  then show "N - F.empty_ord_lifted_calc_w_red_crit_family.Red_F_Q N |\<approx>\<approx>\<G> {B}"
+    "N \<TTurnstile>e\<G> {B}"
+  then show "N - F.empty_ord_lifted_calc_w_red_crit_family.Red_F_Q N \<TTurnstile>e\<G> {B}"
     by (metis (no_types, lifting) F.Red_F_\<G>_empty_def
         F.empty_ord_lifted_calc_w_red_crit_family.Red_F_Q_def
         F.inter_calc calculus_with_red_crit.Red_F_Bot)
@@ -465,7 +469,7 @@ next
   assume
     bot: "B \<in> {{#}}" and
     satur: "F.empty_ord_lifted_calc_w_red_crit_family.inter_red_crit_calculus.saturated N" and
-    unsat: "N |\<approx>\<approx>\<G> {B}"
+    unsat: "N \<TTurnstile>e\<G> {B}"
   show "\<exists>B' \<in> {{#}}. B' \<in> N"
     apply (rule F.static_refutational_complete[OF bot _ unsat])
     unfolding F.lifted_calc_w_red_crit.saturated_def
@@ -768,7 +772,7 @@ proof (induction rule: RP.induct)
       "Neg (A \<cdot>a \<theta>) \<in># C\<theta>"
       "Pos (A \<cdot>a \<theta>) \<in># C\<theta>"
       using tauto Neg_Melem_subst_atm_subst_cls Pos_Melem_subst_atm_subst_cls by auto
-    then have "{} |\<approx>\<approx> {C\<theta>}"
+    then have "{} \<TTurnstile>e {C\<theta>}"
       unfolding true_clss_def true_cls_def true_lit_def if_distrib_fun
       by (metis (full_types) literal.disc(1,2) literal.sel(1,2) singletonD)
     then show ?thesis
@@ -949,7 +953,7 @@ qed
 
 lemma redundant_infer_RP_alt:
   "src.redundant_infer N \<gamma> \<longleftrightarrow>
-   (\<exists>DD. DD \<subseteq> N \<and> DD \<union> set_mset (side_prems_of_RP \<gamma>) |\<approx>\<approx> {concl_of_RP \<gamma>}
+   (\<exists>DD. DD \<subseteq> N \<and> DD \<union> set_mset (side_prems_of_RP \<gamma>) \<TTurnstile>e {concl_of_RP \<gamma>}
       \<and> (\<forall>D \<in> DD. D < main_prem_of_RP \<gamma>))"
   (is "?lhs \<longleftrightarrow> ?rhs")
 proof
@@ -960,13 +964,13 @@ next
   assume ?rhs
   then obtain DD0 where
     "DD0 \<subseteq> N" and
-    "DD0 \<union> set_mset (side_prems_of_RP \<gamma>) |\<approx>\<approx> {concl_of_RP \<gamma>}" and
+    "DD0 \<union> set_mset (side_prems_of_RP \<gamma>) \<TTurnstile>e {concl_of_RP \<gamma>}" and
     "\<forall>D \<in> DD0. D < main_prem_of_RP \<gamma>"
     by blast
   then obtain DD where
     "finite DD" and
     "DD \<subseteq> N" and
-    "DD \<union> set_mset (side_prems_of_RP \<gamma>) |\<approx>\<approx> {concl_of_RP \<gamma>}" and
+    "DD \<union> set_mset (side_prems_of_RP \<gamma>) \<TTurnstile>e {concl_of_RP \<gamma>}" and
     "\<forall>D \<in> DD. D < main_prem_of_RP \<gamma>"
     using entails_compact_union[of DD0 "set_mset (side_prems_of_RP \<gamma>)" "concl_of_RP \<gamma>"] by fast
   then show ?lhs

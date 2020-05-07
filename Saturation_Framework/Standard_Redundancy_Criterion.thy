@@ -8,7 +8,9 @@
 section \<open>The Standard Redundancy Criterion\<close>
 
 theory Standard_Redundancy_Criterion
-  imports Counterexample_Reducing_Inference_Systems
+  imports
+    Counterexample_Reducing_Inference_Systems
+    Consistency_Preserving_Inference_Systems
 begin
 
 text \<open>
@@ -19,40 +21,8 @@ and Ganzinger's chapter, but adapted to the saturation framework of Waldmann et 
 
 subsection \<open>Criterion\<close>
 
-locale compact_consequence_relation = consequence_relation Bot entails
-  for
-    Bot :: "'f set" and
-    entails :: "'f set \<Rightarrow> 'f set \<Rightarrow> bool" (infix "\<Turnstile>" 50) +
-  assumes
-    entails_compact: "CC \<Turnstile> {D} \<Longrightarrow> \<exists>CC' \<subseteq> CC. finite CC' \<and> CC' \<Turnstile> {D}"
-begin
-
-lemma entails_compact_union:
-  assumes cd_ent: "CC \<union> DD \<Turnstile> {E}"
-  shows "\<exists>CC' \<subseteq> CC. finite CC' \<and> CC' \<union> DD \<Turnstile> {E}"
-proof -
-  obtain CCDD' where
-    cd1_fin: "finite CCDD'" and
-    cd1_sub: "CCDD' \<subseteq> CC \<union> DD" and
-    cd1_ent: "CCDD' \<Turnstile> {E}"
-    using entails_compact[OF cd_ent] by blast
-
-  define CC' where
-    "CC' = CCDD' - DD"
-  have "CC' \<subseteq> CC"
-    unfolding CC'_def using cd1_sub by blast
-  moreover have "finite CC'"
-    unfolding CC'_def using cd1_fin by blast
-  moreover have "CC' \<union> DD \<Turnstile> {E}"
-    unfolding CC'_def using cd1_ent
-    by (metis Un_Diff_cancel2 Un_upper1 entails_trans subset_entailed)
-  ultimately show ?thesis
-    by blast
-qed
-
-end
-
-locale calculus_with_std_red_crit = inference_system Inf + compact_consequence_relation Bot entails
+locale calculus_with_std_red_crit = inference_system Inf + consequence_relation Bot entails +
+    compact_preconsequence_relation entails
   for
     Inf :: "('f :: wellorder) inference set" and
     Bot :: "'f set" and
@@ -139,7 +109,7 @@ proof -
       unfolding DDa_def using dd_subs_n dda1_subs_n
       by (meson contra_subsetD in_diffD subsetI union_iff)
     moreover have "set_mset DDa \<union> CC \<Turnstile> {E}"
-      by (rule subset_entailed_strong[of _ "{Da}"],
+      by (rule entails_trans_strong[of _ "{Da}"],
           metis DDa_def dda1_ent_da entail_union entails_trans order_refl set_mset_union
             subset_entailed,
           smt DDa_def da_in_dd ddcc_ent_e entails_trans insert_DiffM2 set_mset_add_mset_insert

@@ -19,8 +19,8 @@ begin
 
 abbreviation Bot_F :: "'a clause set" where "Bot_F \<equiv> {{#}}"
 
-definition entails_sound_F :: "'a clause set \<Rightarrow> 'a clause set \<Rightarrow> bool" (infix "|\<approx>F" 50)  where
-  "S1 |\<approx>F S2 \<equiv> (\<forall>I \<eta>. (\<forall>\<sigma>. is_ground_subst \<sigma> \<longrightarrow> I \<Turnstile>s S1 \<cdot>cs \<sigma>)  \<longrightarrow> is_ground_subst \<eta>  \<longrightarrow> I \<Turnstile>s S2 \<cdot>cs \<eta>)" (*\<forall>I. I \<Turnstile>s S1 \<longrightarrow> I \<Turnstile>s S2"*)
+definition entails_sound_F :: "'a clause set \<Rightarrow> 'a clause set \<Rightarrow> bool" (infix "\<TTurnstile>F" 50)  where
+  "S1 \<TTurnstile>F S2 \<equiv> (\<forall>I \<eta>. (\<forall>\<sigma>. is_ground_subst \<sigma> \<longrightarrow> I \<Turnstile>s S1 \<cdot>cs \<sigma>)  \<longrightarrow> is_ground_subst \<eta>  \<longrightarrow> I \<Turnstile>s S2 \<cdot>cs \<eta>)" (*\<forall>I. I \<Turnstile>s S1 \<longrightarrow> I \<Turnstile>s S2"*)
 
 definition (in -) list_mset :: "'b multiset \<Rightarrow> 'b list" where
   "list_mset M = (SOME L. mset L = M)"
@@ -92,7 +92,7 @@ proof -
     then have "I \<Turnstile> (Saturation_Framework_Preliminaries.inference.concl_of \<iota>) \<cdot> \<eta>" 
       using concl by simp
   }
-  ultimately show "Saturation_Framework_Preliminaries.sound_inference_system Bot_F (|\<approx>F) Inf_F"
+  ultimately show "Saturation_Framework_Preliminaries.sound_inference_system Bot_F (\<TTurnstile>F) Inf_F"
     unfolding Saturation_Framework_Preliminaries.sound_inference_system_def
       consequence_relation_def entails_sound_F_def
       Saturation_Framework_Preliminaries.sound_inference_system_axioms_def
@@ -126,8 +126,8 @@ definition Inf_G :: "'a clause Saturation_Framework_Preliminaries.inference set"
 definition entails_G :: "'a clause set \<Rightarrow> 'a clause set \<Rightarrow> bool"  where
   "entails_G S1 S2 \<equiv> \<forall>I. I \<Turnstile>s S1 \<longrightarrow> I \<Turnstile>s S2"
 
-abbreviation entails_sound_G :: "'a clause set \<Rightarrow> 'a clause set \<Rightarrow> bool" (infix "|\<approx>G" 50)  where
-  "S1 |\<approx>G S2 \<equiv> entails_G S1 S2"
+abbreviation entails_sound_G :: "'a clause set \<Rightarrow> 'a clause set \<Rightarrow> bool" (infix "\<TTurnstile>G" 50)  where
+  "S1 \<TTurnstile>G S2 \<equiv> entails_G S1 S2"
 
 interpretation Saturation_Framework_Preliminaries.sound_inference_system Bot_G entails_sound_G Inf_G
 proof -
@@ -168,7 +168,7 @@ proof -
         the_inf mset_CAs gr.ground_resolution_with_selection_axioms by fastforce
     then have "I \<Turnstile> Saturation_Framework_Preliminaries.inference.concl_of \<iota>" using concl by auto
   }
-  ultimately show "Saturation_Framework_Preliminaries.sound_inference_system Bot_G (|\<approx>G) Inf_G"
+  ultimately show "Saturation_Framework_Preliminaries.sound_inference_system Bot_G (\<TTurnstile>G) Inf_G"
     unfolding Saturation_Framework_Preliminaries.sound_inference_system_def
       consequence_relation_def entails_G_def
       Saturation_Framework_Preliminaries.sound_inference_system_axioms_def
