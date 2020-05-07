@@ -1039,14 +1039,12 @@ proof
 
     sorry
 qed
-
+find_theorems name: sat_limit_iff
 theorem RP_sound_w_satur_frmwk:
   assumes
     deriv: "chain (\<leadsto>) Sts" and
     "{#} \<in> clss_of_state (Liminf_state Sts)"
   shows "\<not> satisfiable (grounding_of_state (lhd Sts))"
-  sorry
-(*
 proof -
   from assms have "{#} \<in> grounding_of_state (Liminf_state Sts)"
     unfolding grounding_of_clss_def by (force intro: ex_ground_subst)
@@ -1059,7 +1057,6 @@ proof -
   then show ?thesis
     using chain_not_lnull deriv by fastforce
 qed
-*)
 
 theorem RP_saturated_if_fair_w_satur_frmwk:
   assumes
