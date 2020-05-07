@@ -1,11 +1,12 @@
-(*  Title:       Calculi of the Saturation Framework
- *  Author:      Sophie Tourret <stourret at mpi-inf.mpg.de>, 2020 *)
+(*  Title:       Sound Calculi
+ *  Author:      Sophie Tourret <stourret at mpi-inf.mpg.de>, 2020
+ *  Author:      Jasmin Blanchette <j.c.blanchette at vu.nl>, 2020 *)
 
-theory Sound_Inference_Systems
+theory Sound_Calculi
   imports Consistency_Preserving_Inference_Systems
 begin
 
-locale sound_inference_system = inference_system + consequence_relation +
+locale sound_calculus_with_red_crit = calculus_with_red_crit +
   assumes
     sound: \<open>\<iota> \<in> Inf \<Longrightarrow> set (prems_of \<iota>) \<Turnstile> {concl_of \<iota>}\<close>
 begin
@@ -21,7 +22,7 @@ proof -
     using n_cons entails_trans_strong by blast
 qed
 
-sublocale consist_preserving_inference_system
+sublocale consist_preserving_calculus_with_red_crit
   by unfold_locales (erule Inf_consist_preserving)
 
 end
