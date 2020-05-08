@@ -207,10 +207,10 @@ next
   qed
 qed
 
-notation F.entails_\<G>_Q (infix "\<TTurnstile>e\<G>" 50)
+notation F.entails_\<G>_Q (infix "\<TTurnstile>\<G>e" 50)
 
-lemma entails_\<G>_iff_Union_grounding_of_cls:
-  "N1 \<TTurnstile>e\<G> N2 \<longleftrightarrow> \<Union> (\<G>_F ` N1) \<TTurnstile>e \<Union> (\<G>_F ` N2)"
+lemma entails_\<G>_iff:
+  "N1 \<TTurnstile>\<G>e N2 \<longleftrightarrow> \<Union> (\<G>_F ` N1) \<TTurnstile>e \<Union> (\<G>_F ` N2)"
   unfolding F.entails_\<G>_Q_def F.entails_\<G>_q_def F.\<G>_set_q_def image_def \<G>_F_def
   by (auto simp: true_clss_def)
 
@@ -219,12 +219,12 @@ lemma true_Union_grounding_of_cls_iff_true_all_interps_ground_substs:
   unfolding true_clss_def subst_clss_def by blast
 
 lemma entails_\<G>_iff_all_interps_ground_substs:
-  "N1 \<TTurnstile>e\<G> N2 \<longleftrightarrow>
+  "N1 \<TTurnstile>\<G>e N2 \<longleftrightarrow>
   (\<forall>I. (\<forall>\<sigma>. is_ground_subst \<sigma> \<longrightarrow> I \<TTurnstile>s N1 \<cdot>cs \<sigma>) \<longrightarrow> (\<forall>\<sigma>. is_ground_subst \<sigma> \<longrightarrow> I \<TTurnstile>s N2 \<cdot>cs \<sigma>))"
   unfolding F.entails_\<G>_Q_def F.entails_\<G>_q_def F.\<G>_set_q_def \<G>_F_def
     true_Union_grounding_of_cls_iff_true_all_interps_ground_substs by blast
 
-interpretation F: sound_inference_system Inf_F "{{#}}" "(\<TTurnstile>e\<G>)"
+interpretation F: sound_inference_system Inf_F "{{#}}" "(\<TTurnstile>\<G>e)"
 proof
   fix \<iota>
   assume i_in: "\<iota> \<in> Inf_F"
@@ -247,7 +247,7 @@ proof
       unfolding CAs prems[symmetric] using I_entails_prems
       by (metis set_mset_mset set_mset_subst_cls_mset_subst_clss true_clss_set_mset)
   }
-  ultimately show "set (inference.prems_of \<iota>) \<TTurnstile>e\<G> {concl_of \<iota>}"
+  ultimately show "set (inference.prems_of \<iota>) \<TTurnstile>\<G>e {concl_of \<iota>}"
     using entails_\<G>_iff_all_interps_ground_substs by auto
 qed
 
@@ -317,7 +317,7 @@ proof -
     by blast
 qed
 
-interpretation F: static_refutational_complete_calculus "{{#}}" Inf_F "(\<TTurnstile>e\<G>)" F.Red_Inf_\<G>_Q
+interpretation F: static_refutational_complete_calculus "{{#}}" Inf_F "(\<TTurnstile>\<G>e)" F.Red_Inf_\<G>_Q
   F.Red_F_\<G>_empty
 proof (rule F.stat_ref_comp_to_non_ground_fam_inter; clarsimp)
   show "\<And>M. static_refutational_complete_calculus {{#}} (Inf_G M) (\<TTurnstile>e) (G.Red_Inf M) G.Red_F"
@@ -431,8 +431,8 @@ next
   fix B N
   assume
     "B \<in> {{#}}"
-    "N \<TTurnstile>e\<G> {B}"
-  then show "N - F.empty_ord_lifted_calc_w_red_crit_family.Red_F_Q N \<TTurnstile>e\<G> {B}"
+    "N \<TTurnstile>\<G>e {B}"
+  then show "N - F.empty_ord_lifted_calc_w_red_crit_family.Red_F_Q N \<TTurnstile>\<G>e {B}"
     by (metis (no_types, lifting) F.Red_F_\<G>_empty_def
         F.empty_ord_lifted_calc_w_red_crit_family.Red_F_Q_def
         F.inter_calc calculus_with_red_crit.Red_F_Bot)
@@ -472,7 +472,7 @@ next
   assume
     bot: "B \<in> {{#}}" and
     satur: "F.empty_ord_lifted_calc_w_red_crit_family.inter_red_crit_calculus.saturated N" and
-    unsat: "N \<TTurnstile>e\<G> {B}"
+    unsat: "N \<TTurnstile>\<G>e {B}"
   show "\<exists>B' \<in> {{#}}. B' \<in> N"
     apply (rule F.static_refutational_complete[OF bot _ unsat])
     unfolding F.lifted_calc_w_red_crit.saturated_def
@@ -499,31 +499,33 @@ next
 qed
 
 notation GC.Prec_FL (infix "\<sqsubset>" 50)
+notation GC.entails_\<G>_L_Q (infix "\<TTurnstile>\<G>Le" 50)
 notation GC.step (infix "\<Longrightarrow>GC" 50)
 
+lemmas GC_entails_\<G>_L_Q_iff = GC.labeled_entailment_lifting
+
 abbreviation derive_GC (infix "\<rhd>RedFL" 50) where
-  "(\<rhd>RedFL) \<equiv> GC.labeled_ord_red_crit_fam.lifted_calc_w_red_crit.derive"
+  "(\<rhd>RedFL) \<equiv> GC.lifted_calc_w_red_crit.derive"
 
 abbreviation saturated_GC :: "('a clause \<times> label) set \<Rightarrow> bool" where
-  "saturated_GC \<equiv> GC.labeled_ord_red_crit_fam.lifted_calc_w_red_crit.saturated"
+  "saturated_GC \<equiv> GC.lifted_calc_w_red_crit.saturated"
 
 abbreviation Red_Inf_Q_GC :: "('a clause \<times> label) set \<Rightarrow> ('a clause \<times> label) inference set" where
-  "Red_Inf_Q_GC \<equiv> GC.labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_Inf_Q"
+  "Red_Inf_Q_GC \<equiv> GC.lifted_calc_w_red_crit_family.Red_Inf_Q"
 
 abbreviation Red_F_Q_GC :: "('a clause \<times> label) set \<Rightarrow> ('a clause \<times> label) set" where
-  "Red_F_Q_GC \<equiv> GC.labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_F_Q"
+  "Red_F_Q_GC \<equiv> GC.lifted_calc_w_red_crit_family.Red_F_Q"
 
-lemmas derive_GC_simps = GC.labeled_ord_red_crit_fam.lifted_calc_w_red_crit.derive.simps
-lemmas saturated_GC_def = GC.labeled_ord_red_crit_fam.lifted_calc_w_red_crit.saturated_def
-lemmas Red_Inf_Q_GC_def = GC.labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_Inf_Q_def
-lemmas Red_F_Q_GC_def = GC.labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_F_Q_def
+lemmas derive_GC_simps = GC.lifted_calc_w_red_crit.derive.simps
+lemmas saturated_GC_def = GC.lifted_calc_w_red_crit.saturated_def
+lemmas Red_Inf_Q_GC_def = GC.lifted_calc_w_red_crit_family.Red_Inf_Q_def
+lemmas Red_F_Q_GC_def = GC.lifted_calc_w_red_crit_family.Red_F_Q_def
 
 lemma Red_F_Q_GC_eq:
   "Red_F_Q_GC N =
    {C. \<forall>D \<in> \<G>_F (fst C).
       D \<in> G.Red_F (\<Union> (\<G>_F ` fst ` N)) \<or> (\<exists>E \<in> N. E \<sqsubset> C \<and> D \<in> \<G>_F (fst E))}"
-  unfolding GC.labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.Red_F_Q_def
-    GC.labeled_ord_red_crit_fam.Red_F_\<G>_q_g_def GC.labeled_ord_red_crit_fam.\<G>_set_q_def
+  unfolding GC.lifted_calc_w_red_crit_family.Red_F_Q_def GC.Red_F_\<G>_q_g_def GC.\<G>_set_q_def
     GC.\<G>_F_L_q_def
   by auto
 
@@ -543,10 +545,24 @@ lemma F_Red_Inf_\<G>_Q_eq:
   unfolding F.Red_Inf_\<G>_Q_def F.Red_Inf_\<G>_q_def F.\<G>_set_q_def by auto
 
 lemma mem_F_Red_Inf_\<G>_Q_eq_because_G_Red_Inf:
-  "\<iota> \<in> Inf_F \<Longrightarrow>
-  (\<forall>M. \<G>_Inf M \<iota> \<noteq> None \<and> the (\<G>_Inf M \<iota>) \<subseteq> G.Red_Inf M (\<Union> (\<G>_F ` N))) \<Longrightarrow>
+  "\<iota> \<in> Inf_F \<Longrightarrow> (\<forall>M. \<G>_Inf M \<iota> \<noteq> None \<and> the (\<G>_Inf M \<iota>) \<subseteq> G.Red_Inf M (\<Union> (\<G>_F ` N))) \<Longrightarrow>
   \<iota> \<in> F.Red_Inf_\<G>_Q N"
   unfolding F_Red_Inf_\<G>_Q_eq by auto
+
+interpretation GC2: compact_consequence_relation GC.Bot_FL "(\<TTurnstile>\<G>Le)"
+  apply unfold_locales
+  sorry
+
+interpretation GC2: calculus_with_red_crit GC.Bot_FL Inf_FL "(\<TTurnstile>\<G>Le)" GC.Red_Inf_\<G>_L_Q
+  GC.Red_F_\<G>_empty_L
+  apply unfold_locales
+  find_theorems "GC.Red_Inf_\<G>_L_Q ?N \<subseteq> Inf_FL"
+  sorry
+
+interpretation GC2: compact_calculus_with_red_crit GC.Bot_FL Inf_FL "(\<TTurnstile>\<G>Le)" GC.Red_Inf_\<G>_L_Q
+  GC.Red_F_\<G>_empty_L
+  apply unfold_locales
+  done
 
 
 subsection \<open>RP Layer\<close>
@@ -670,7 +686,7 @@ proof (rule GC.step.process[of _ N "{Cl}" _ "{Dl}"])
     using subst_subset_mono[OF d_sub_c]
     by (simp add: subset_imp_less_mset)
   then show "{Cl} \<subseteq> Red_F_Q_GC (N \<union> {Dl})"
-    using GC.labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.inter_red_crit_calculus.Red_F_of_subset by blast
+    using GC.lifted_calc_w_red_crit_family.inter_red_crit_calculus.Red_F_of_subset by blast
 qed (auto simp: GC.active_subset_def passiv)
 
 lemma gc_processing_step: "N \<union> {(C, New)} \<Longrightarrow>GC N \<union> {(C, Processed)}"
@@ -681,7 +697,7 @@ proof (rule GC.step.process[of _ N "{(C, New)}" _ "{(C, Processed)}"])
     apply auto
     by (simp add: generalizes_refl)
   then show "{(C, New)} \<subseteq> Red_F_Q_GC (N \<union> {(C, Processed)})"
-    using GC.labeled_ord_red_crit_fam.lifted_calc_w_red_crit_family.inter_red_crit_calculus.Red_F_of_subset by blast
+    using GC.lifted_calc_w_red_crit_family.inter_red_crit_calculus.Red_F_of_subset by blast
 qed (auto simp: GC.active_subset_def)
 
 lemma RP_inferences_between_eq_F_Inf_from2:
@@ -1015,8 +1031,7 @@ proof
 
   have \<gamma>_in_inf_gc: "\<gamma> \<in> infer_RP_of ` infer_of_FL ` GC.with_labels.Inf_from (Liminf_llist Nls)"
     sorry
-  then have \<gamma>_in_red_gc:
-    "\<gamma> \<in> infer_RP_of ` infer_of_FL ` GC.labeled_ord_red_crit_fam.Red_Inf_\<G>_Q (Liminf_llist Nls)"
+  then have \<gamma>_in_red_gc: "\<gamma> \<in> infer_RP_of ` infer_of_FL ` GC.Red_Inf_\<G>_Q (Liminf_llist Nls)"
     using satur_gc[unfolded saturated_GC_def]
     unfolding image_def
     using Nls_def by blast
@@ -1024,12 +1039,11 @@ proof
 
 
   then show "\<gamma> \<in> src.Ri Sts (Liminf_llist gSts)"
-    unfolding GC.labeled_ord_red_crit_fam.Red_Inf_\<G>_Q_def GC.labeled_ord_red_crit_fam.Red_Inf_\<G>_q_def
-      GC.\<G>_Inf_L_q_def \<G>_Inf_def
+    unfolding GC.Red_Inf_\<G>_Q_def GC.Red_Inf_\<G>_q_def GC.\<G>_Inf_L_q_def \<G>_Inf_def
     apply auto
     unfolding infer_of_FL_def infer_RP_of_def GC.to_F_def
     apply auto
-    unfolding Inf_FL_def Inf_F_def Infer_FL_of_def G.Red_Inf_def GC.labeled_ord_red_crit_fam.\<G>_set_q_def
+    unfolding Inf_FL_def Inf_F_def Infer_FL_of_def G.Red_Inf_def GC.\<G>_set_q_def
       GC.\<G>_F_L_q_def
     apply (subst (asm) Inf_G_def)
     apply auto
@@ -1044,64 +1058,47 @@ proof
     sorry
 qed
 
-lemma RP_satisfiable_iff_not_entails_Bot: "satisfiable N \<longleftrightarrow> \<not> N \<TTurnstile>e {{#}}"
-  by simp
-
-lemma FL_derive_imp_G_derive:
-  "lclss_of_state St \<rhd>RedFL lclss_of_state St' \<Longrightarrow>
-   G.derive (grounding_of_state St) (grounding_of_state St')"
-  unfolding G.derive.simps GC.labeled_ord_red_crit_fam.lifted_calc_w_red_crit.derive.simps
-proof (clarify, intro exI conjI; (rule refl)?)
-  assume sub_lc: "lclss_of_state St - lclss_of_state St'
-    \<subseteq> GC.labeled_ord_red_crit_fam.Red_F_\<G>_g (lclss_of_state St')"
-
-  have sub_flc: "fst ` lclss_of_state St - fst ` lclss_of_state St'
-    \<subseteq> fst ` GC.labeled_ord_red_crit_fam.Red_F_\<G>_g (lclss_of_state St')"
-    apply (rule subset_trans[OF image_diff_subset])
-    apply (rule image_mono)
-    apply (rule sub_lc)
-    done
-
-  have sub_c: "clss_of_state St - clss_of_state St'
-    \<subseteq> fst ` GC.labeled_ord_red_crit_fam.Red_F_\<G>_g (lclss_of_state St')"
-    using sub_flc by simp
-
-  have "grounding_of_state St - grounding_of_state St'
-    \<subseteq> grounding_of_clss (fst ` GC.labeled_ord_red_crit_fam.Red_F_\<G>_g (lclss_of_state St'))"
-    unfolding grounding_of_clss_def
-    using subset_trans[OF image_diff_subset]
-    apply (rule )
-
-    apply (rule image_mono)
-    apply (rule sub_lc)
-
-
-    using image_mono
-    sorry
-  also have "... \<subseteq> G.Red_F (grounding_of_state St')"
-    sorry
-  finally show "grounding_of_state St - grounding_of_state St' \<subseteq> G.Red_F (grounding_of_state St')"
-    .
-qed
-
 theorem RP_sound_w_satur_frmwk:
   assumes
     deriv: "chain (\<leadsto>) Sts" and
-    "{#} \<in> clss_of_state (Liminf_state Sts)"
+    bot_in: "{#} \<in> clss_of_state (Liminf_state Sts)"
   shows "\<not> satisfiable (grounding_of_state (lhd Sts))"
 proof -
-  from assms have "{#} \<in> grounding_of_state (Liminf_state Sts)"
-    unfolding grounding_of_clss_def by (force intro: ex_ground_subst)
-  then have "{#} \<in> Liminf_llist (lmap grounding_of_state Sts)"
-    using grounding_of_state_Liminf_state_subseteq by auto
-  then have "\<not> satisfiable (Liminf_llist (lmap grounding_of_state Sts))"
-    using true_clss_def by auto
-  then have "\<not> satisfiable (lhd (lmap grounding_of_state Sts))"
+  have "clss_of_state (Liminf_state Sts) \<TTurnstile>\<G>e {{#}}"
+    using F.cons_rel_Q.subset_entailed bot_in by auto
+  then have "fst ` Liminf_llist (lmap lclss_of_state Sts) \<TTurnstile>\<G>e {{#}}"
+    by (metis image_fst_lclss_of_state lclss_Liminf_commute)
+  then have "Liminf_llist (lmap lclss_of_state Sts) \<TTurnstile>\<G>Le {({#}, undefined)}"
+    by (simp add: GC.labeled_entailment_lifting)
+  then have "lhd (lmap lclss_of_state Sts) \<TTurnstile>\<G>Le {({#}, undefined)}"
+    using G.unsat_limit_iff
+
+    sorry
+  then have "lclss_of_state (lhd Sts) \<TTurnstile>\<G>Le {({#}, undefined)}"
+    using chain_not_lnull deriv by fastforce
+  then have "clss_of_state (lhd Sts) \<TTurnstile>\<G>e {{#}}"
+    by (simp add: GC.labeled_entailment_lifting)
+  then have "grounding_of_state (lhd Sts) \<TTurnstile>e {{#}}"
+    using RP_sound bot_in deriv by blast
+  then show ?thesis
+    unfolding entails_\<G>_iff
+ by simp
+
+
+
+
+
+  have "\<not> satisfiable (Liminf_llist (lmap clss_of_state Sts))"
+
+    sorry
+  then have "\<not> satisfiable (lhd (lmap clss_of_state Sts))"
   proof -
-    have chain_gred: "chain G.derive (lmap grounding_of_state Sts)"
+    have chain_gred: "chain G.derive (lmap clss_of_state Sts)"
       sorry
-    have chain_ent: "chain (\<TTurnstile>e) (lmap grounding_of_state Sts)"
-      by (smt RP_model chain_lmap deriv)
+    have chain_ent: "chain (\<TTurnstile>e) (lmap clss_of_state Sts)"
+      thm RP_model
+(*      by (smt RP_model chain_lmap deriv) *)
+      sorry
     show ?thesis
       apply (subst RP_satisfiable_iff_not_entails_Bot)
       using G.unsat_limit_iff[OF chain_gred chain_ent]
@@ -1118,7 +1115,7 @@ theorem RP_saturated_if_fair_w_satur_frmwk:
     empty_Q0: "Q_of_state (lhd Sts) = {}"
   shows "src.saturated_upto Sts (Liminf_llist (lmap grounding_of_state Sts))"
   apply (rule saturated_imp_saturated_RP)
-  apply (rule GC.labeled_ord_red_crit_fam.lifted_calc_w_red_crit.fair_implies_Liminf_saturated)
+  apply (rule GC.lifted_calc_w_red_crit.fair_implies_Liminf_saturated)
   apply (rule derivation_RP_imp_derivation[OF deriv])
   using fair_RP_imp_fair[OF chain_not_lnull[OF deriv] fair empty_Q0]
   using GC.gc_fair step_RP_imp_step_GC chain_lmap deriv by blast
