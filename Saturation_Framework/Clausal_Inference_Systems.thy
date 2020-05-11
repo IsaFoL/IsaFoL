@@ -14,16 +14,16 @@ begin
 
 subsection \<open>Setup\<close>
 
-abbreviation true_lit_curvy :: "'a interp \<Rightarrow> 'a literal \<Rightarrow> bool" (infix "\<TTurnstile>l" 50) where
+abbreviation true_lit_thick :: "'a interp \<Rightarrow> 'a literal \<Rightarrow> bool" (infix "\<TTurnstile>l" 50) where
   "I \<TTurnstile>l L \<equiv> I \<Turnstile>l L"
 
-abbreviation true_cls_curvy :: "'a interp \<Rightarrow> 'a clause \<Rightarrow> bool" (infix "\<TTurnstile>" 50) where
+abbreviation true_cls_thick :: "'a interp \<Rightarrow> 'a clause \<Rightarrow> bool" (infix "\<TTurnstile>" 50) where
   "I \<TTurnstile> C \<equiv> I \<Turnstile> C"
 
-abbreviation true_clss_curvy :: "'a interp \<Rightarrow> 'a clause set \<Rightarrow> bool" (infix "\<TTurnstile>s" 50) where
+abbreviation true_clss_thick :: "'a interp \<Rightarrow> 'a clause set \<Rightarrow> bool" (infix "\<TTurnstile>s" 50) where
   "I \<TTurnstile>s \<C> \<equiv> I \<Turnstile>s \<C>"
 
-abbreviation true_cls_mset_curvy :: "'a interp \<Rightarrow> 'a clause multiset \<Rightarrow> bool" (infix "\<TTurnstile>m" 50) where
+abbreviation true_cls_mset_thick :: "'a interp \<Rightarrow> 'a clause multiset \<Rightarrow> bool" (infix "\<TTurnstile>m" 50) where
   "I \<TTurnstile>m \<C> \<equiv> I \<Turnstile>m \<C>"
 
 no_notation true_lit (infix "\<Turnstile>l" 50)

@@ -55,9 +55,6 @@ subsection \<open>Library\<close>
 lemma po_on_empty_rel[simp]: "po_on (\<lambda>_ _. False) UNIV"
   unfolding po_on_def irreflp_on_def transp_on_def by auto
 
-lemma wfp_on_empty_rel: "wfp_on (\<lambda>_ _. False) UNIV"
-  by simp
-
 (* FIXME: needed? *)
 lemma (in substitution) union_grounding_of_cls_ground: "is_ground_clss (\<Union> (grounding_of_cls ` N))"
   by (simp add: grounding_ground grounding_of_clss_def is_ground_clss_def)
@@ -209,18 +206,12 @@ qed
 
 notation F.entails_\<G>_Q (infix "\<TTurnstile>\<G>e" 50)
 
-lemma entails_\<G>_iff: "N1 \<TTurnstile>\<G>e N2 \<longleftrightarrow> \<Union> (\<G>_F ` N1) \<TTurnstile>e \<Union> (\<G>_F ` N2)"
+lemma F_entails_\<G>_Q_iff: "N1 \<TTurnstile>\<G>e N2 \<longleftrightarrow> \<Union> (\<G>_F ` N1) \<TTurnstile>e \<Union> (\<G>_F ` N2)"
   unfolding F.entails_\<G>_Q_def by simp
 
 lemma true_Union_grounding_of_cls_iff_true_all_interps_ground_substs:
   "I \<TTurnstile>s (\<Union>C \<in> N. {C \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>}) \<longleftrightarrow> (\<forall>\<sigma>. is_ground_subst \<sigma> \<longrightarrow> I \<TTurnstile>s N \<cdot>cs \<sigma>)"
   unfolding true_clss_def subst_clss_def by blast
-
-lemma entails_\<G>_iff_all_interps_ground_substs:
-  "N1 \<TTurnstile>\<G>e N2 \<longleftrightarrow>
-  (\<forall>I. (\<forall>\<sigma>. is_ground_subst \<sigma> \<longrightarrow> I \<TTurnstile>s N1 \<cdot>cs \<sigma>) \<longrightarrow> (\<forall>\<sigma>. is_ground_subst \<sigma> \<longrightarrow> I \<TTurnstile>s N2 \<cdot>cs \<sigma>))"
-  unfolding F.entails_\<G>_Q_def \<G>_F_def true_Union_grounding_of_cls_iff_true_all_interps_ground_substs
-  by blast
 
 interpretation F: sound_inference_system Inf_F "{{#}}" "(\<TTurnstile>\<G>e)"
 proof
@@ -246,7 +237,9 @@ proof
       by (metis set_mset_mset set_mset_subst_cls_mset_subst_clss true_clss_set_mset)
   }
   ultimately show "set (inference.prems_of \<iota>) \<TTurnstile>\<G>e {concl_of \<iota>}"
-    using entails_\<G>_iff_all_interps_ground_substs by auto
+    unfolding F.entails_\<G>_Q_def \<G>_F_def
+      true_Union_grounding_of_cls_iff_true_all_interps_ground_substs
+    by auto
 qed
 
 lemma G_Inf_from_imp_F_Inf_from:
@@ -450,24 +443,6 @@ lemmas GC_entails_\<G>_L_Q_iff = GC.labeled_entailment_lifting
 abbreviation derive_GC (infix "\<rhd>RedFL" 50) where
   "(\<rhd>RedFL) \<equiv> GC.derive"
 
-abbreviation saturated_GC :: "('a clause \<times> label) set \<Rightarrow> bool" where
-  "saturated_GC \<equiv> GC.saturated"
-
-lemmas derive_GC_simps = GC.derive.simps
-lemmas saturated_GC_def = GC.saturated_def
-
-lemma F_Red_Inf_\<G>_Q_eq:
-  "F.Red_Inf_\<G>_Q N =
-   {\<iota> \<in> Inf_F. \<forall>M.
-      \<G>_Inf M \<iota> \<noteq> None \<and> the (\<G>_Inf M \<iota>) \<subseteq> G.Red_Inf M (\<Union> (\<G>_F ` N))
-      \<or> \<G>_Inf M \<iota> = None \<and> \<G>_F (concl_of \<iota>) \<subseteq> \<Union> (\<G>_F ` N) \<union> G.Red_F (\<Union> (\<G>_F ` N))}"
-  unfolding F.Red_Inf_\<G>_Q_def F.Red_Inf_\<G>_q_def by auto
-
-lemma mem_F_Red_Inf_\<G>_Q_eq_because_G_Red_Inf:
-  "\<iota> \<in> Inf_F \<Longrightarrow> (\<forall>M. \<G>_Inf M \<iota> \<noteq> None \<and> the (\<G>_Inf M \<iota>) \<subseteq> G.Red_Inf M (\<Union> (\<G>_F ` N))) \<Longrightarrow>
-  \<iota> \<in> F.Red_Inf_\<G>_Q N"
-  unfolding F_Red_Inf_\<G>_Q_eq by auto
-
 lemma GC_Red_F_Q_eq:
   "GC.Red_F_Q N =
    {C. \<forall>D \<in> \<G>_F (fst C).
@@ -494,7 +469,7 @@ proof
     apply (subst (asm) GC.entail_set_all_formulas)
     by auto
   then have "\<not> satisfiable (\<Union>CL \<in> CCl. \<G>_F (fst CL))"
-    sorry
+    unfolding GC_entails_\<G>_L_Q_iff F_entails_\<G>_Q_iff by auto
   then obtain DD where
     d_sub: "DD \<subseteq> (\<Union>Cl \<in> CCl. \<G>_F (fst Cl))" and
     d_fin: "finite DD" and
@@ -832,70 +807,23 @@ next
       infer_from_def
     apply auto
     done
-qed                                               
+qed
+
+
+subsection \<open>Alternative Derivation of Previous RP Results\<close>
+
+lemma derivation_RP_imp_derivation_GC: "chain (\<leadsto>) Sts \<Longrightarrow> chain (\<Longrightarrow>GC) (lmap lclss_of_state Sts)"
+  using chain_lmap step_RP_imp_step_GC by blast
 
 lemma step_RP_imp_step: "St \<leadsto> St' \<Longrightarrow> lclss_of_state St \<rhd>RedFL lclss_of_state St'"
   by (rule GC.one_step_equiv) (rule step_RP_imp_step_GC)
 
-lemma derivation_RP_imp_derivation: "chain (\<leadsto>) Sts \<Longrightarrow> chain (\<rhd>RedFL) (lmap lclss_of_state Sts)"
+lemma derivation_RP_imp_derivation_RedFL: "chain (\<leadsto>) Sts \<Longrightarrow> chain (\<rhd>RedFL) (lmap lclss_of_state Sts)"
   using chain_lmap step_RP_imp_step by blast
 
-(* FIXME: Move me. *)
-lemma Liminf_llist_lmap_image:
-  assumes f_inj: "inj_on f (Sup_llist (lmap g xs))"
-  shows "Liminf_llist (lmap (\<lambda>x. f ` g x) xs) = f ` Liminf_llist (lmap g xs)" (is "?lhs = ?rhs")
-proof
-  show "?lhs \<subseteq> ?rhs"
-  proof
-    fix x
-    assume "x \<in> Liminf_llist (lmap (\<lambda>x. f ` g x) xs)"
-    then obtain i where
-      i_lt: "enat i < llength xs" and
-      x_in_fgj: "\<forall>j. i \<le> j \<longrightarrow> enat j < llength xs \<longrightarrow> x \<in> f ` g (lnth xs j)"
-      unfolding Liminf_llist_def by auto
-
-    have ex_in_gi: "\<exists>y. y \<in> g (lnth xs i) \<and> x = f y"
-      using f_inj unfolding inj_on_def Sup_llist_def
-      apply auto
-      using i_lt x_in_fgj by auto
-
-    have ex_in_in_gj: "\<exists>y. \<forall>j. i \<le> j \<longrightarrow> enat j < llength xs \<longrightarrow> y \<in> g (lnth xs j) \<and> x = f y"
-      apply (rule exI[of _ "SOME y. y \<in> g (lnth xs i) \<and> x = f y"])
-      using someI_ex[OF ex_in_gi]
-      using x_in_fgj
-      apply auto
-      using f_inj unfolding inj_on_def Sup_llist_def
-      apply auto
-      using i_lt x_in_fgj
-      apply auto
-      by (metis (no_types, lifting) imageE)
-
-    have "x \<in> f ` (\<Inter>x \<in> {j. i \<le> j \<and> enat j < llength xs}. g (lnth xs x))"
-      unfolding image_def mem_Collect_eq
-      using ex_in_in_gj
-      using i_lt unfolding Bex_def Inter_iff
-      by auto
-    then show "x \<in> f ` Liminf_llist (lmap g xs)"
-      unfolding Liminf_llist_def
-      apply auto
-      apply (simp add: image_Union)
-      using i_lt by auto
-  qed
-next
-  show "?rhs \<subseteq> ?lhs"
-    using image_Liminf_llist_subset[of f "lmap g xs", unfolded llist.map_comp] by auto
-qed
-
-(* FIXME: Move me. *)
-lemma Liminf_llist_lmap_union:
-  assumes "\<forall>x \<in> lset xs. \<forall>Y \<in> lset xs. g x \<inter> h Y = {}"
-  shows "Liminf_llist (lmap (\<lambda>x. g x \<union> h x) xs) = Liminf_llist (lmap g xs) \<union> Liminf_llist (lmap h xs)"
-  using assms unfolding Liminf_llist_def
-  apply auto
-  by (metis disjoint_iff_not_equal in_lset_conv_lnth)
-
 lemma lclss_Liminf_commute:
-  "lclss_of_state (Liminf_state Sts) = Liminf_llist (lmap lclss_of_state Sts)"
+  "Liminf_llist (lmap lclss_of_state Sts) = lclss_of_state (Liminf_state Sts)"
+  apply (rule sym)
   apply (subst (2) lclss_of_state_def[abs_def])
   apply (subst Liminf_llist_lmap_union)
   defer
@@ -917,7 +845,7 @@ lemma fair_RP_imp_fair:
     empty_Q0: "Q_of_state (lhd Sts) = {}"
   shows
     "GC.active_subset (lnth (lmap lclss_of_state Sts) 0) = {}" and
-    "GC.non_active_subset (Liminf_llist (lmap lclss_of_state Sts)) = {}"
+    "GC.passive_subset (Liminf_llist (lmap lclss_of_state Sts)) = {}"
 proof -
   show "GC.active_subset (lnth (lmap lclss_of_state Sts) 0) = {}"
     using empty_Q0 unfolding GC.active_subset_def
@@ -926,10 +854,10 @@ proof -
     apply auto
     done
 next
-  show "GC.non_active_subset (Liminf_llist (lmap lclss_of_state Sts)) = {}"
-    using fair unfolding fair_state_seq_def GC.non_active_subset_def
+  show "GC.passive_subset (Liminf_llist (lmap lclss_of_state Sts)) = {}"
+    using fair unfolding fair_state_seq_def GC.passive_subset_def
     apply auto
-    unfolding lclss_Liminf_commute[symmetric]
+    unfolding lclss_Liminf_commute
     by (metis (no_types, lifting) Liminf_state_def N_of_state_Liminf P_of_state_Liminf empty_iff
         label.exhaust mem_lclss_of_state(1) mem_lclss_of_state(2))
 qed
@@ -971,7 +899,7 @@ lemma "G.redundant_infer (\<Union>Cl \<in> Liminf_llist Nls. \<G>_F (fst Cl)) \<
 *)
 
 lemma saturated_imp_saturated_RP:
-  assumes satur_gc: "saturated_GC (Liminf_llist (lmap lclss_of_state Sts))"
+  assumes satur_gc: "GC.saturated (Liminf_llist (lmap lclss_of_state Sts))"
   shows "src.saturated_upto Sts (Liminf_llist (lmap grounding_of_state Sts))"
   unfolding src.saturated_upto_def
 proof
@@ -993,7 +921,7 @@ proof
   have \<gamma>_in_inf_gc: "\<gamma> \<in> infer_RP_of ` infer_of_FL ` GC.Inf_from (Liminf_llist Nls)"
     sorry
   then have \<gamma>_in_red_gc: "\<gamma> \<in> infer_RP_of ` infer_of_FL ` GC.Red_Inf_\<G>_Q (Liminf_llist Nls)"
-    using satur_gc[unfolded saturated_GC_def]
+    using satur_gc[unfolded GC.saturated_def]
     unfolding image_def
     using Nls_def by blast
 
@@ -1029,26 +957,23 @@ proof -
   then have "fst ` Liminf_llist (lmap lclss_of_state Sts) \<TTurnstile>\<G>e {{#}}"
     by (metis image_fst_lclss_of_state lclss_Liminf_commute)
   then have "Liminf_llist (lmap lclss_of_state Sts) \<TTurnstile>\<G>Le GC.Bot_FL"
-    by (simp add: GC.labeled_entailment_lifting)
+    using GC.labeled_entailment_lifting by simp
   then have "lhd (lmap lclss_of_state Sts) \<TTurnstile>\<G>Le GC.Bot_FL"
     apply -
     apply (subst (asm) GC.unsat_limit_iff)
-    using deriv derivation_RP_imp_derivation apply auto[1]
+    using deriv derivation_RP_imp_derivation_RedFL apply auto[1]
     defer
-    sorry
+    apply blast
+    by (smt F_entails_\<G>_Q_iff GC_entails_\<G>_L_Q_iff RP_model chain_lmap deriv grounding_of_clss_def
+        image_fst_lclss_of_state)
   then have "lclss_of_state (lhd Sts) \<TTurnstile>\<G>Le GC.Bot_FL"
     using chain_not_lnull deriv by fastforce
   then have "clss_of_state (lhd Sts) \<TTurnstile>\<G>e {{#}}"
-  proof -
-    have "\<forall>A. \<not> A \<TTurnstile>s \<Union> (\<G>_F ` (N_of_state (lhd Sts) \<union> P_of_state (lhd Sts) \<union> Q_of_state (lhd Sts)))"
-      by (metis (no_types) RP_sound bot_in deriv substitution_ops.grounding_of_clss_def)
-    then show ?thesis
-      using entails_\<G>_iff by blast
-  qed
+    unfolding GC.entails_\<G>_L_Q_def F.entails_\<G>_Q_def lclss_of_state_def by auto
   then have "grounding_of_state (lhd Sts) \<TTurnstile>e {{#}}"
-    using RP_sound bot_in deriv by blast
+    using F_entails_\<G>_Q_iff grounding_of_clss_def by auto
   then show ?thesis
-    unfolding entails_\<G>_iff
+    unfolding F_entails_\<G>_Q_iff
     by simp
 qed
 
@@ -1060,7 +985,7 @@ theorem RP_saturated_if_fair_w_satur_frmwk:
   shows "src.saturated_upto Sts (Liminf_llist (lmap grounding_of_state Sts))"
   apply (rule saturated_imp_saturated_RP)
   apply (rule GC.fair_implies_Liminf_saturated)
-  apply (rule derivation_RP_imp_derivation[OF deriv])
+  apply (rule derivation_RP_imp_derivation_RedFL[OF deriv])
   using fair_RP_imp_fair[OF chain_not_lnull[OF deriv] fair empty_Q0]
   using GC.gc_fair step_RP_imp_step_GC chain_lmap deriv
   by blast
@@ -1073,14 +998,40 @@ corollary RP_complete_if_fair_w_satur_frmwk:
     unsat: "\<not> satisfiable (grounding_of_state (lhd Sts))"
   shows "{#} \<in> Q_of_state (Liminf_state Sts)"
 proof -
-  have "\<not> satisfiable (Liminf_llist (lmap grounding_of_state Sts))"
-    sorry
-  moreover have "src.saturated_upto Sts (Liminf_llist (lmap grounding_of_state Sts))"
-    sorry
-  ultimately have "{#} \<in> Liminf_llist (lmap grounding_of_state Sts)"
-    sorry
+  have gc_deriv: "chain (\<Longrightarrow>GC) (lmap lclss_of_state Sts)"
+    by (rule derivation_RP_imp_derivation_GC[OF deriv])
+  have
+    init: "GC.active_subset (lnth (lmap lclss_of_state Sts) 0) = {}" and
+    final: "GC.passive_subset (Liminf_llist (lmap lclss_of_state Sts)) = {}"
+    by (rule fair_RP_imp_fair[OF chain_not_lnull[OF deriv] fair empty_Q0])+
+  have gc_unsat: "fst ` lnth (lmap lclss_of_state Sts) 0 \<TTurnstile>\<G>e {{#}}"
+  proof -
+    have len: "llength Sts > 0"
+      by (rule chain_length_pos[OF deriv])
+    have fst_lcls: "fst ` lnth (lmap lclss_of_state Sts) 0 = lnth (lmap clss_of_state Sts) 0"
+      using len zero_enat_def by auto
+    show ?thesis
+      unfolding fst_lcls
+      using unsat
+      unfolding F_entails_\<G>_Q_iff
+      apply auto
+      unfolding lnth_lmap[OF len[unfolded zero_enat_def]]
+      apply (simp add: lnth_0_conv_lhd[OF chain_not_lnull[OF deriv]])
+      unfolding true_clss_def
+      apply auto
+      apply (erule_tac x = I in allE)
+      apply (erule bexE)
+      unfolding grounding_of_clss_def
+      apply auto
+      done
+  qed
+  have "\<exists>BL \<in> {{#}} \<times> UNIV. BL \<in> Liminf_llist (lmap lclss_of_state Sts)"
+    using GC.gc_complete_Liminf[OF gc_deriv init final _ gc_unsat] by blast
   then show ?thesis
-    using empty_clause_in_Q_of_Liminf_state[OF deriv fair] by auto
+    unfolding lclss_Liminf_commute
+    unfolding lclss_of_state_def
+    using fair[unfolded fair_state_seq_def]
+    by auto
 qed
 
 end
