@@ -544,6 +544,23 @@ lemma mem_lclss_of_state[simp]:
   "(C, Old) \<in> lclss_of_state (N, P, Q) \<longleftrightarrow> C \<in> Q"
   unfolding lclss_of_state_def image_def by auto
 
+lemma lclss_Liminf_commute:
+  "Liminf_llist (lmap lclss_of_state Sts) = lclss_of_state (Liminf_state Sts)"
+  apply (rule sym)
+  apply (subst (2) lclss_of_state_def[abs_def])
+  apply (subst Liminf_llist_lmap_union)
+  defer
+  apply (subst Liminf_llist_lmap_union)
+  defer
+  apply (subst (1 2 3) Liminf_llist_lmap_image)
+       defer
+       defer
+       defer
+  unfolding lclss_of_state_def Liminf_state_def
+  apply auto
+  apply (meson Pair_inject inj_onI)+
+  done
+
 definition infer_RP_of :: "'a clause inference \<Rightarrow> 'a inference_RP" where
   "infer_RP_of \<iota> = Infer_RP (mset (side_prems_of \<iota>)) (main_prem_of \<iota>) (concl_of \<iota>)"
 
@@ -809,9 +826,6 @@ next
     done
 qed
 
-
-subsection \<open>Alternative Derivation of Previous RP Results\<close>
-
 lemma derivation_RP_imp_derivation_GC: "chain (\<leadsto>) Sts \<Longrightarrow> chain (\<Longrightarrow>GC) (lmap lclss_of_state Sts)"
   using chain_lmap step_RP_imp_step_GC by blast
 
@@ -821,22 +835,91 @@ lemma step_RP_imp_step: "St \<leadsto> St' \<Longrightarrow> lclss_of_state St \
 lemma derivation_RP_imp_derivation_RedFL: "chain (\<leadsto>) Sts \<Longrightarrow> chain (\<rhd>RedFL) (lmap lclss_of_state Sts)"
   using chain_lmap step_RP_imp_step by blast
 
-lemma lclss_Liminf_commute:
-  "Liminf_llist (lmap lclss_of_state Sts) = lclss_of_state (Liminf_state Sts)"
-  apply (rule sym)
-  apply (subst (2) lclss_of_state_def[abs_def])
-  apply (subst Liminf_llist_lmap_union)
-  defer
-  apply (subst Liminf_llist_lmap_union)
-  defer
-  apply (subst (1 2 3) Liminf_llist_lmap_image)
-       defer
-       defer
-       defer
-  unfolding lclss_of_state_def Liminf_state_def
-  apply auto
-  apply (meson Pair_inject inj_onI)+
-  done
+theorem RP_sound_new_statement:
+  assumes
+    deriv: "chain (\<leadsto>) Sts" and
+    bot_in: "{#} \<in> clss_of_state (Liminf_state Sts)"
+  shows "grounding_of_state (lhd Sts) \<TTurnstile>e {{#}}"
+proof -
+  have "clss_of_state (Liminf_state Sts) \<TTurnstile>\<G>e {{#}}"
+    using F.subset_entailed bot_in by auto
+  then have "fst ` Liminf_llist (lmap lclss_of_state Sts) \<TTurnstile>\<G>e {{#}}"
+    by (metis image_fst_lclss_of_state lclss_Liminf_commute)
+  then have "Liminf_llist (lmap lclss_of_state Sts) \<TTurnstile>\<G>Le GC.Bot_FL"
+    using GC.labeled_entailment_lifting by simp
+  then have "lhd (lmap lclss_of_state Sts) \<TTurnstile>\<G>Le GC.Bot_FL"
+    apply -
+    apply (subst (asm) GC.unsat_limit_iff)
+    using deriv derivation_RP_imp_derivation_RedFL apply auto[1]
+    defer
+    apply blast
+    by (smt F_entails_\<G>_Q_iff GC_entails_\<G>_L_Q_iff RP_model chain_lmap deriv grounding_of_clss_def
+        image_fst_lclss_of_state)
+  then have "lclss_of_state (lhd Sts) \<TTurnstile>\<G>Le GC.Bot_FL"
+    using chain_not_lnull deriv by fastforce
+  then have "clss_of_state (lhd Sts) \<TTurnstile>\<G>e {{#}}"
+    unfolding GC.entails_\<G>_L_Q_def F.entails_\<G>_Q_def lclss_of_state_def by auto
+  then show ?thesis
+    using F_entails_\<G>_Q_iff grounding_of_clss_def by auto
+qed
+
+theorem RP_saturated_if_fair_new_statement:
+  assumes
+    deriv: "chain (\<leadsto>) Sts" and
+    init: "GC.active_subset (lnth (lmap lclss_of_state Sts) 0) = {}" and
+    final: "GC.passive_subset (Liminf_llist (lmap lclss_of_state Sts)) = {}"
+  shows "GC.saturated (Liminf_llist (lmap lclss_of_state Sts))"
+proof -
+  have gc_deriv: "chain (\<Longrightarrow>GC) (lmap lclss_of_state Sts)"
+    by (rule derivation_RP_imp_derivation_GC[OF deriv])
+  show ?thesis
+    by (rule GC.fair_implies_Liminf_saturated[OF GC.gc_to_red[OF gc_deriv]
+          GC.gc_fair[OF gc_deriv init final]])
+qed
+
+corollary RP_complete_if_fair_new_statement:
+  assumes
+    deriv: "chain (\<leadsto>) Sts" and
+    init: "GC.active_subset (lnth (lmap lclss_of_state Sts) 0) = {}" and
+    final: "GC.passive_subset (Liminf_llist (lmap lclss_of_state Sts)) = {}" and
+    unsat: "grounding_of_state (lhd Sts) \<TTurnstile>e {{#}}"
+  shows "{#} \<in> Q_of_state (Liminf_state Sts)"
+proof -
+  have gc_deriv: "chain (\<Longrightarrow>GC) (lmap lclss_of_state Sts)"
+    by (rule derivation_RP_imp_derivation_GC[OF deriv])
+  have fst_unsat: "fst ` lnth (lmap lclss_of_state Sts) 0 \<TTurnstile>\<G>e {{#}}"
+  proof -
+    have len: "llength Sts > 0"
+      by (rule chain_length_pos[OF deriv])
+    have fst_lcls: "fst ` lnth (lmap lclss_of_state Sts) 0 = lnth (lmap clss_of_state Sts) 0"
+      using len zero_enat_def by auto
+    show ?thesis
+      unfolding fst_lcls
+      using unsat
+      unfolding F_entails_\<G>_Q_iff
+      apply auto
+      unfolding lnth_lmap[OF len[unfolded zero_enat_def]]
+      apply (simp add: lnth_0_conv_lhd[OF chain_not_lnull[OF deriv]])
+      unfolding true_clss_def
+      apply auto
+      apply (erule_tac x = I in allE)
+      apply (erule bexE)
+      unfolding grounding_of_clss_def
+      by (metis UN_E)
+  qed
+  have "\<exists>BL \<in> {{#}} \<times> UNIV. BL \<in> Liminf_llist (lmap lclss_of_state Sts)"
+    using GC.gc_complete_Liminf[OF gc_deriv init final _ fst_unsat] by blast
+  then show ?thesis
+    unfolding lclss_Liminf_commute
+    unfolding lclss_of_state_def
+    using final[unfolded GC.passive_subset_def]
+    apply auto
+    using Liminf_state_def lclss_Liminf_commute apply fastforce
+    using Liminf_state_def lclss_Liminf_commute by fastforce
+qed
+
+
+subsection \<open>Alternative Derivation of Previous RP Results\<close>
 
 lemma fair_RP_imp_fair:
   assumes
@@ -946,92 +1029,34 @@ proof
     sorry
 qed
 
-theorem RP_sound_w_satur_frmwk:
+theorem RP_sound_old_statement:
   assumes
     deriv: "chain (\<leadsto>) Sts" and
     bot_in: "{#} \<in> clss_of_state (Liminf_state Sts)"
   shows "\<not> satisfiable (grounding_of_state (lhd Sts))"
-proof -
-  have "clss_of_state (Liminf_state Sts) \<TTurnstile>\<G>e {{#}}"
-    using F.subset_entailed bot_in by auto
-  then have "fst ` Liminf_llist (lmap lclss_of_state Sts) \<TTurnstile>\<G>e {{#}}"
-    by (metis image_fst_lclss_of_state lclss_Liminf_commute)
-  then have "Liminf_llist (lmap lclss_of_state Sts) \<TTurnstile>\<G>Le GC.Bot_FL"
-    using GC.labeled_entailment_lifting by simp
-  then have "lhd (lmap lclss_of_state Sts) \<TTurnstile>\<G>Le GC.Bot_FL"
-    apply -
-    apply (subst (asm) GC.unsat_limit_iff)
-    using deriv derivation_RP_imp_derivation_RedFL apply auto[1]
-    defer
-    apply blast
-    by (smt F_entails_\<G>_Q_iff GC_entails_\<G>_L_Q_iff RP_model chain_lmap deriv grounding_of_clss_def
-        image_fst_lclss_of_state)
-  then have "lclss_of_state (lhd Sts) \<TTurnstile>\<G>Le GC.Bot_FL"
-    using chain_not_lnull deriv by fastforce
-  then have "clss_of_state (lhd Sts) \<TTurnstile>\<G>e {{#}}"
-    unfolding GC.entails_\<G>_L_Q_def F.entails_\<G>_Q_def lclss_of_state_def by auto
-  then have "grounding_of_state (lhd Sts) \<TTurnstile>e {{#}}"
-    using F_entails_\<G>_Q_iff grounding_of_clss_def by auto
-  then show ?thesis
-    unfolding F_entails_\<G>_Q_iff
-    by simp
-qed
+  using RP_sound_new_statement[OF deriv bot_in] unfolding F_entails_\<G>_Q_iff by simp
 
-theorem RP_saturated_if_fair_w_satur_frmwk:
+theorem RP_saturated_if_fair_old_statement:
   assumes
     deriv: "chain (\<leadsto>) Sts" and
     fair: "fair_state_seq Sts" and
     empty_Q0: "Q_of_state (lhd Sts) = {}"
   shows "src.saturated_upto Sts (Liminf_llist (lmap grounding_of_state Sts))"
   apply (rule saturated_imp_saturated_RP)
-  apply (rule GC.fair_implies_Liminf_saturated)
-  apply (rule derivation_RP_imp_derivation_RedFL[OF deriv])
-  using fair_RP_imp_fair[OF chain_not_lnull[OF deriv] fair empty_Q0]
-  using GC.gc_fair step_RP_imp_step_GC chain_lmap deriv
-  by blast
+  apply (rule RP_saturated_if_fair_new_statement)
+  apply (rule deriv)
+  using fair_RP_imp_fair[OF chain_not_lnull[OF deriv] fair empty_Q0] .
 
-corollary RP_complete_if_fair_w_satur_frmwk:
+corollary RP_complete_if_fair_old_statement:
   assumes
     deriv: "chain (\<leadsto>) Sts" and
     fair: "fair_state_seq Sts" and
     empty_Q0: "Q_of_state (lhd Sts) = {}" and
     unsat: "\<not> satisfiable (grounding_of_state (lhd Sts))"
   shows "{#} \<in> Q_of_state (Liminf_state Sts)"
-proof -
-  have gc_deriv: "chain (\<Longrightarrow>GC) (lmap lclss_of_state Sts)"
-    by (rule derivation_RP_imp_derivation_GC[OF deriv])
-  have
-    init: "GC.active_subset (lnth (lmap lclss_of_state Sts) 0) = {}" and
-    final: "GC.passive_subset (Liminf_llist (lmap lclss_of_state Sts)) = {}"
-    by (rule fair_RP_imp_fair[OF chain_not_lnull[OF deriv] fair empty_Q0])+
-  have gc_unsat: "fst ` lnth (lmap lclss_of_state Sts) 0 \<TTurnstile>\<G>e {{#}}"
-  proof -
-    have len: "llength Sts > 0"
-      by (rule chain_length_pos[OF deriv])
-    have fst_lcls: "fst ` lnth (lmap lclss_of_state Sts) 0 = lnth (lmap clss_of_state Sts) 0"
-      using len zero_enat_def by auto
-    show ?thesis
-      unfolding fst_lcls
-      using unsat
-      unfolding F_entails_\<G>_Q_iff
-      apply auto
-      unfolding lnth_lmap[OF len[unfolded zero_enat_def]]
-      apply (simp add: lnth_0_conv_lhd[OF chain_not_lnull[OF deriv]])
-      unfolding true_clss_def
-      apply auto
-      apply (erule_tac x = I in allE)
-      apply (erule bexE)
-      unfolding grounding_of_clss_def
-      apply auto
-      done
-  qed
-  have "\<exists>BL \<in> {{#}} \<times> UNIV. BL \<in> Liminf_llist (lmap lclss_of_state Sts)"
-    using GC.gc_complete_Liminf[OF gc_deriv init final _ gc_unsat] by blast
-  then show ?thesis
-    unfolding lclss_Liminf_commute
-    unfolding lclss_of_state_def
-    using fair[unfolded fair_state_seq_def]
-    by auto
-qed
+  apply (rule RP_complete_if_fair_new_statement)
+  apply (rule deriv)
+  apply (rule fair_RP_imp_fair[OF chain_not_lnull[OF deriv] fair empty_Q0])+
+  using unsat unfolding F_entails_\<G>_Q_iff by auto
 
 end
