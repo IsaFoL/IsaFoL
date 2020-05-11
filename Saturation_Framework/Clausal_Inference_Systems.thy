@@ -37,10 +37,10 @@ subsection \<open>Consequence Relation\<close>
 abbreviation entails_clss :: "'a clause set \<Rightarrow> 'a clause set \<Rightarrow> bool" (infix "\<TTurnstile>e" 50) where
   "N1 \<TTurnstile>e N2 \<equiv> \<forall>I. I \<TTurnstile>s N1 \<longrightarrow> I \<TTurnstile>s N2"
 
-lemma entails_iff_unsatisfiable:
-  "CC \<TTurnstile>e {D} \<longleftrightarrow> \<not> satisfiable (CC \<union> {{#- L#} |L. L \<in># D})" (is "_ \<longleftrightarrow> _ (_ \<union> ?NegD)")
+lemma entails_iff_unsatisfiable_single:
+  "CC \<TTurnstile>e {E} \<longleftrightarrow> \<not> satisfiable (CC \<union> {{#- L#} |L. L \<in># E})" (is "_ \<longleftrightarrow> _ (_ \<union> ?NegD)")
 proof
-  assume "CC \<TTurnstile>e {D}"
+  assume "CC \<TTurnstile>e {E}"
   then have "\<not> I \<TTurnstile>s CC \<union> ?NegD" for I
     unfolding true_clss_def true_cls_def true_lit_def if_distribR HOL.if_bool_eq_conj
     apply (erule_tac x = I in allE)
@@ -54,11 +54,22 @@ next
   assume "\<not> satisfiable (CC \<union> ?NegD)"
   then have "\<not> I \<TTurnstile>s CC \<union> ?NegD" for I
     by auto
-  then show "CC \<TTurnstile>e {D}"
+  then show "CC \<TTurnstile>e {E}"
     unfolding true_clss_def true_cls_def true_lit_def if_distribR HOL.if_bool_eq_conj
     apply (simp only: ball_Un)
     apply auto
     using is_pos_neg_not_is_pos by fastforce
+qed
+
+lemma entails_iff_unsatisfiable:
+  "CC \<TTurnstile>e EE \<longleftrightarrow> (\<forall>E \<in> EE. \<not> satisfiable (CC \<union> {{#- L#} |L. L \<in># E}))" (is "?lhs = ?rhs")
+proof -
+  have "?lhs \<longleftrightarrow> (\<forall>E \<in> EE. CC \<TTurnstile>e {E})"
+    unfolding true_clss_def by auto
+  also have "... \<longleftrightarrow> ?rhs"
+    unfolding entails_iff_unsatisfiable_single by auto
+  finally show ?thesis
+    .
 qed
 
 interpretation consequence_relation "{{#}}" "(\<TTurnstile>e)"
@@ -74,16 +85,46 @@ next
     unfolding true_clss_singleton by (simp add: true_clss_def)
 qed auto
 
+interpretation refute_compact_consequence_relation "{{#}} :: ('a :: wellorder) clause set" "(\<TTurnstile>e)"
+  by unfold_locales (use clausal_logic_compact in auto)
+
 interpretation compact_consequence_relation "{{#}} :: ('a :: wellorder) clause set" "(\<TTurnstile>e)"
 proof
-  fix CC and D :: "'a clause"
-  assume "CC \<TTurnstile>e {D}"
-  then show "\<exists>CC' \<subseteq> CC. finite CC' \<and> CC' \<TTurnstile>e {D}"
+  fix CC EE :: "'a clause set"
+  assume
+    fin_e: "finite EE" and
+    c_ent_e: "CC \<TTurnstile>e EE"
+
+  have "\<forall>E \<in> EE. \<not> satisfiable (CC \<union> {{#- L#} |L. L \<in># E})"
+    using c_ent_e[unfolded entails_iff_unsatisfiable] .
+  then have "\<forall>E \<in> EE. \<exists>DD \<subseteq> CC \<union> {{#- L#} |L. L \<in># E}. finite DD \<and> \<not> satisfiable DD"
+    by (subst (asm) clausal_logic_compact)
+  then obtain DD_of where
+    d_of: "\<forall>E \<in> EE. DD_of E \<subseteq> CC \<union> {{#- L#} |L. L \<in># E} \<and> finite (DD_of E)
+      \<and> \<not> satisfiable (DD_of E)"
+    by moura
+
+  define CC' where
+    "CC' = (\<Union>E \<in> EE. DD_of E - {{#- L#} |L. L \<in># E})"
+
+  have "CC' \<subseteq> CC"
+    unfolding CC'_def using d_of by auto
+  moreover have c'_fin: "finite CC'"
+    unfolding CC'_def using d_of fin_e by blast
+  moreover have "CC' \<TTurnstile>e EE"
     unfolding entails_iff_unsatisfiable
-    apply (subst (asm) clausal_logic_compact)
-    apply (erule exE)
-    apply (rule_tac x = "DD - {{#- L#} |L. L \<in># D}" in exI)
-    by auto
+    apply (rule ballI)
+    subgoal for E
+      apply (rule unsatisfiable_mono[of "DD_of E"])
+      using d_of[rule_format, THEN conjunct1, of E]
+      unfolding CC'_def
+      apply auto[1]
+      using d_of
+      apply auto
+      done
+    done
+  ultimately show "\<exists>CC' \<subseteq> CC. finite CC' \<and> CC' \<TTurnstile>e EE"
+    by blast
 qed
 
 
@@ -165,7 +206,7 @@ begin
 sublocale cex_red_calculus_with_std_red_crit "{{#}}" "(\<TTurnstile>e)" I_of
   by unfold_locales
 
-sublocale compact_calculus_with_red_crit "{{#}}" Inf "(\<TTurnstile>e)" Red_Inf Red_F
+sublocale refute_compact_calculus_with_red_crit "{{#}}" Inf "(\<TTurnstile>e)" Red_Inf Red_F
   by unfold_locales
 
 lemma clausal_saturated_model:

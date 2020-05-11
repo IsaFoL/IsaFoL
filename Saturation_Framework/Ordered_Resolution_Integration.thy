@@ -482,11 +482,51 @@ lemma mem_GC_Red_F_Q_because_Prec_FL:
   "(\<forall>D \<in> \<G>_F (fst Cl). \<exists>El \<in> N. El \<sqsubset> Cl \<and> D \<in> \<G>_F (fst El)) \<Longrightarrow> Cl \<in> GC.Red_F_Q N"
   unfolding GC_Red_F_Q_eq by auto
 
-interpretation GC: compact_calculus_with_red_crit GC.Bot_FL Inf_FL "(\<TTurnstile>\<G>Le)" GC.Red_Inf_Q
-  GC.Red_F_Q
-  apply unfold_locales
-  sorry
+interpretation GC: refute_compact_consequence_relation GC.Bot_FL "(\<TTurnstile>\<G>Le)"
+proof
+  fix CCl
+  assume unsat: "CCl \<TTurnstile>\<G>Le GC.Bot_FL"
 
+  let ?bot = "({#}, undefined)"
+
+  have "CCl \<TTurnstile>\<G>Le {?bot}"
+    using unsat
+    apply (subst (asm) GC.entail_set_all_formulas)
+    by auto
+  then have "\<not> satisfiable (\<Union>CL \<in> CCl. \<G>_F (fst CL))"
+    sorry
+  then obtain DD where
+    d_sub: "DD \<subseteq> (\<Union>Cl \<in> CCl. \<G>_F (fst Cl))" and
+    d_fin: "finite DD" and
+    d_unsat: "\<forall>I. \<not> I \<TTurnstile>s DD"
+    unfolding clausal_logic_compact[of "\<Union>CL \<in> CCl. \<G>_F (fst CL)"] by blast
+
+  define CCl' :: "('a clause \<times> label) set" where
+    "CCl' = {SOME Cl. Cl \<in> CCl \<and> D \<in> \<G>_F (fst Cl) |D. D \<in> DD}"
+
+  have ex_in_cl: "\<exists>Cl. Cl \<in> CCl \<and> D \<in> \<G>_F (fst Cl)" if "D \<in> DD" for D
+    using that d_sub by blast
+  then have "DD \<subseteq> (\<Union>Cl \<in> CCl'. \<G>_F (fst Cl))"
+    using ex_in_cl unfolding CCl'_def
+    apply auto
+    by (metis (no_types, lifting) eq_fst_iff ex_in_cl someI_ex)
+  have "CCl' \<subseteq> CCl"
+    unfolding CCl'_def
+    apply clarsimp
+    using someI_ex[OF ex_in_cl]
+    by blast
+  moreover have "finite CCl'"
+    unfolding CCl'_def using d_fin by simp
+  moreover have "CCl' \<TTurnstile>\<G>Le GC.Bot_FL"
+    unfolding CCl'_def using d_unsat ex_in_cl
+    by (metis (no_types, lifting) CCl'_def GC.entails_\<G>_L_Q_def \<open>DD \<subseteq> (\<Union>Cl\<in>CCl'. \<G>_F (fst Cl))\<close> subsetD true_clss_def)
+  ultimately show "\<exists>CCl' \<subseteq> CCl. finite CCl' \<and> CCl' \<TTurnstile>\<G>Le GC.Bot_FL"
+    by blast
+qed
+
+interpretation GC: refute_compact_calculus_with_red_crit GC.Bot_FL Inf_FL "(\<TTurnstile>\<G>Le)" GC.Red_Inf_Q
+  GC.Red_F_Q
+  ..
 
 subsection \<open>RP Layer\<close>
 
@@ -915,7 +955,7 @@ next
     "DD \<subseteq> N" and
     "DD \<union> set_mset (side_prems_of_RP \<gamma>) \<TTurnstile>e {concl_of_RP \<gamma>}" and
     "\<forall>D \<in> DD. D < main_prem_of_RP \<gamma>"
-    using entails_compact_union[of DD0 "set_mset (side_prems_of_RP \<gamma>)" "concl_of_RP \<gamma>"] by fast
+    using entails_compact_union[of "{concl_of_RP \<gamma>}" DD0 "set_mset (side_prems_of_RP \<gamma>)"] by fast
   then show ?lhs
     unfolding src.redundant_infer_def
     apply -
@@ -995,7 +1035,6 @@ proof -
     apply (subst (asm) GC.unsat_limit_iff)
     using deriv derivation_RP_imp_derivation apply auto[1]
     defer
-    apply blast
     sorry
   then have "lclss_of_state (lhd Sts) \<TTurnstile>\<G>Le GC.Bot_FL"
     using chain_not_lnull deriv by fastforce

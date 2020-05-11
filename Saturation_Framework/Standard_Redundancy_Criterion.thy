@@ -19,6 +19,41 @@ and Ganzinger's chapter, but adapted to the saturation framework of Waldmann et 
 \<close>
 
 
+subsection \<open>Compactness\<close>
+
+locale compact_consequence_relation = consequence_relation +
+  assumes
+    entails_compact: "finite EE \<Longrightarrow> CC \<Turnstile> EE \<Longrightarrow> \<exists>CC' \<subseteq> CC. finite CC' \<and> CC' \<Turnstile> EE"
+begin
+
+lemma entails_compact_union:
+  assumes
+    fin_e: "finite EE" and
+    cd_ent: "CC \<union> DD \<Turnstile> EE"
+  shows "\<exists>CC' \<subseteq> CC. finite CC' \<and> CC' \<union> DD \<Turnstile> EE"
+proof -
+  obtain CCDD' where
+    cd1_fin: "finite CCDD'" and
+    cd1_sub: "CCDD' \<subseteq> CC \<union> DD" and
+    cd1_ent: "CCDD' \<Turnstile> EE"
+    using entails_compact[OF fin_e cd_ent] by blast
+
+  define CC' where
+    "CC' = CCDD' - DD"
+  have "CC' \<subseteq> CC"
+    unfolding CC'_def using cd1_sub by blast
+  moreover have "finite CC'"
+    unfolding CC'_def using cd1_fin by blast
+  moreover have "CC' \<union> DD \<Turnstile> EE"
+    unfolding CC'_def using cd1_ent
+    by (metis Un_Diff_cancel2 Un_upper1 entails_trans subset_entailed)
+  ultimately show ?thesis
+    by blast
+qed
+
+end
+
+
 subsection \<open>Criterion\<close>
 
 locale calculus_with_std_red_crit = inference_system Inf + compact_consequence_relation Bot entails
@@ -64,7 +99,7 @@ proof -
     "DD1 \<subseteq> N" and
     "DD1 \<union> CC \<Turnstile> {E}" and
     "\<forall>D' \<in> DD1. D' < D"
-    using entails_compact_union[OF dd0_ent] dd0_lt dd0_sub by fast
+    using entails_compact_union[OF _ dd0_ent] dd0_lt dd0_sub by fast
   then obtain DD2 :: "'f multiset" where
     "set_mset DD2 \<subseteq> N \<and> set_mset DD2 \<union> CC \<Turnstile> {E} \<and> (\<forall>D' \<in> set_mset DD2. D' < D)"
     using assms by (metis finite_set_mset_mset_set)
@@ -94,7 +129,8 @@ proof -
       "finite DDa0"
       "DDa0 \<Turnstile> {Da}"
       "\<forall>D \<in> DDa0. D < Da"
-      using da_rf unfolding Red_F_def mem_Collect_eq by (meson entails_compact in_mono subset_trans)
+      using da_rf unfolding Red_F_def mem_Collect_eq
+      by (smt entails_compact finite.emptyI finite.insertI subset_iff)
     then obtain DDa1 :: "'f multiset" where
       dda1_subs_n: "set_mset DDa1 \<subseteq> N" and
       dda1_ent_da: "set_mset DDa1 \<Turnstile> {Da}" and

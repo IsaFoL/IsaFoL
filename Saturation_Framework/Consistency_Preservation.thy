@@ -13,34 +13,10 @@ theory Consistency_Preservation
     Open_Induction.Restricted_Predicates
 begin
 
-
-locale compact_consequence_relation = consequence_relation +
+locale refute_compact_consequence_relation = consequence_relation +
   assumes
-    entails_compact: "CC \<Turnstile> {D} \<Longrightarrow> \<exists>CC' \<subseteq> CC. finite CC' \<and> CC' \<Turnstile> {D}"
+    entails_refute_compact: "CC \<Turnstile> Bot \<Longrightarrow> \<exists>CC' \<subseteq> CC. finite CC' \<and> CC' \<Turnstile> Bot"
 begin
-
-lemma entails_compact_union:
-  assumes cd_ent: "CC \<union> DD \<Turnstile> {E}"
-  shows "\<exists>CC' \<subseteq> CC. finite CC' \<and> CC' \<union> DD \<Turnstile> {E}"
-proof -
-  obtain CCDD' where
-    cd1_fin: "finite CCDD'" and
-    cd1_sub: "CCDD' \<subseteq> CC \<union> DD" and
-    cd1_ent: "CCDD' \<Turnstile> {E}"
-    using entails_compact[OF cd_ent] by blast
-
-  define CC' where
-    "CC' = CCDD' - DD"
-  have "CC' \<subseteq> CC"
-    unfolding CC'_def using cd1_sub by blast
-  moreover have "finite CC'"
-    unfolding CC'_def using cd1_fin by blast
-  moreover have "CC' \<union> DD \<Turnstile> {E}"
-    unfolding CC'_def using cd1_ent
-    by (metis Un_Diff_cancel2 Un_upper1 entails_trans subset_entailed)
-  ultimately show ?thesis
-    by blast
-qed
 
 lemma chain_entails_derive_consist_preserving:
   assumes
@@ -91,12 +67,13 @@ proof -
       using dd_sset entails_trans subset_entailed unfolding Sup_upto_llist_def by blast
   }
   then show ?thesis
-    using entails_compact by (metis bot_entails_all bot_sat entail_set_all_formulas entails_trans)
+    using entails_refute_compact by auto
 qed
 
 end
 
-locale compact_calculus_with_red_crit = calculus_with_red_crit + compact_consequence_relation
+locale refute_compact_calculus_with_red_crit =
+  calculus_with_red_crit + refute_compact_consequence_relation
 begin
 
 text \<open>
