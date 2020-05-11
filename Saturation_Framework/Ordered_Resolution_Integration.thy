@@ -457,6 +457,7 @@ lemma mem_GC_Red_F_Q_because_Prec_FL:
   "(\<forall>D \<in> \<G>_F (fst Cl). \<exists>El \<in> N. El \<sqsubset> Cl \<and> D \<in> \<G>_F (fst El)) \<Longrightarrow> Cl \<in> GC.Red_F_Q N"
   unfolding GC_Red_F_Q_eq by auto
 
+(* FIXME: Easier proof? Cf. Schlichtkrull et al. *)
 interpretation GC: refute_compact_consequence_relation GC.Bot_FL "(\<TTurnstile>\<G>Le)"
 proof
   fix CCl
@@ -563,11 +564,6 @@ lemma lclss_Liminf_commute:
 
 definition infer_RP_of :: "'a clause inference \<Rightarrow> 'a inference_RP" where
   "infer_RP_of \<iota> = Infer_RP (mset (side_prems_of \<iota>)) (main_prem_of \<iota>) (concl_of \<iota>)"
-
-(* FIXME: list_of_mset hyperresolution
-definition infer_of_RP :: "'a inference_RP \<Rightarrow> 'a clause inference" where
-  "infer_of_RP \<iota> = Infer (list_of_mset (side_prems_of_RP \<iota>) @ [main_prem_of_RP \<iota>]) (concl_of_RP \<iota>)"
-*)
 
 lemma gc_subsumption_step:
   assumes
