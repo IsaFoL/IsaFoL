@@ -138,10 +138,13 @@ abbreviation \<G>_F :: \<open>'a clause \<Rightarrow> 'a clause set\<close> wher
 
 lemmas \<G>_F_def = grounding_of_cls_def
 
-definition \<G>_Inf :: \<open>'a clause set \<Rightarrow> 'a clause inference \<Rightarrow> 'a clause inference set option\<close> where
-  \<open>\<G>_Inf M \<iota> = Some {Infer (prems_of \<iota> \<cdot>\<cdot>cl \<rho>s) (concl_of \<iota> \<cdot> \<rho>) |\<rho> \<rho>s.
+definition \<G>_Inf :: \<open>'a clause set \<Rightarrow> 'a clause inference \<Rightarrow> 'a clause inference set\<close> where
+  \<open>\<G>_Inf M \<iota> = {Infer (prems_of \<iota> \<cdot>\<cdot>cl \<rho>s) (concl_of \<iota> \<cdot> \<rho>) |\<rho> \<rho>s.
      is_ground_subst_list \<rho>s \<and> is_ground_subst \<rho>
      \<and> Infer (prems_of \<iota> \<cdot>\<cdot>cl \<rho>s) (concl_of \<iota> \<cdot> \<rho>) \<in> Inf_G M}\<close>
+
+abbreviation \<G>_Inf_opt :: \<open>'a clause set \<Rightarrow> 'a clause inference \<Rightarrow> 'a clause inference set option\<close> where
+  \<open>\<G>_Inf_opt M \<iota> \<equiv> Some (\<G>_Inf M \<iota>)\<close>
 
 definition Inf_F :: "'a clause inference set" where
   "Inf_F = {Infer (CAs @ [DA]) E | CAs DA AAs As \<sigma> E. ord_resolve_rename S CAs DA AAs As \<sigma> E}"
@@ -150,7 +153,7 @@ lemma Inf_F_have_prems: "\<iota> \<in> Inf_F \<Longrightarrow> prems_of \<iota> 
   unfolding Inf_F_def by force
 
 interpretation F: standard_lifting_with_red_crit_family Inf_F "{{#}}" UNIV Inf_G "\<lambda>N. (\<TTurnstile>e)"
-  G.Red_Inf "\<lambda>N. G.Red_F" "{{#}}" "\<lambda>N. \<G>_F" \<G>_Inf "\<lambda>D C C'. False"
+  G.Red_Inf "\<lambda>N. G.Red_F" "{{#}}" "\<lambda>N. \<G>_F" \<G>_Inf_opt "\<lambda>D C C'. False"
 proof (unfold_locales; (intro ballI)?)
   show "UNIV \<noteq> {}"
     by (rule UNIV_not_empty)
@@ -162,7 +165,7 @@ next
     by (fact G.calculus_with_red_crit_axioms)
 next
   show "\<And>M. lifting_with_wf_ordering_family {{#}} Inf_F {{#}} (\<TTurnstile>e) (Inf_G M) (G.Red_Inf M)
-    G.Red_F \<G>_F (\<G>_Inf M) (\<lambda>D C C'. False)"
+    G.Red_F \<G>_F (\<G>_Inf_opt M) (\<lambda>D C C'. False)"
     unfolding lifting_with_wf_ordering_family_def standard_lifting_def standard_lifting_axioms_def
   proof (intro allI impI conjI)
     show "\<And>M. calculus_with_red_crit {{#}} (Inf_G M) (\<TTurnstile>e) (G.Red_Inf M) G.Red_F"
@@ -187,11 +190,9 @@ next
       unfolding \<G>_F_def by auto
   next
     fix M \<iota>
-    assume
-      \<iota>_in: "\<iota> \<in> Inf_F" and
-      g_inf_some: "\<G>_Inf M \<iota> \<noteq> None"
+    assume \<iota>_in: "\<iota> \<in> Inf_F"
 
-    show "the (\<G>_Inf M \<iota>) \<subseteq> G.Red_Inf M (\<G>_F (concl_of \<iota>))"
+    show "the (\<G>_Inf_opt M \<iota>) \<subseteq> G.Red_Inf M (\<G>_F (concl_of \<iota>))"
       unfolding \<G>_Inf_def G.Red_Inf_def G.redundant_infer_def
       apply clarsimp
       apply (rule_tac x = "{concl_of \<iota> \<cdot> \<rho>}" in exI)
@@ -242,8 +243,8 @@ proof
     by auto
 qed
 
-lemma G_Inf_from_imp_F_Inf_from:
-  "\<iota>\<^sub>0 \<in> G.Inf_from M (\<Union> (\<G>_F ` M)) \<Longrightarrow> \<exists>\<iota>. \<iota> \<in> F.Inf_from M \<and> \<iota>\<^sub>0 \<in> the (\<G>_Inf M \<iota>)"
+lemma G_Inf_overapproximates_F_Inf:
+  "\<iota>\<^sub>0 \<in> G.Inf_from M (\<Union> (\<G>_F ` M)) \<Longrightarrow> \<exists>\<iota>. \<iota> \<in> F.Inf_from M \<and> \<iota>\<^sub>0 \<in> \<G>_Inf M \<iota>"
 proof -
   assume \<iota>\<^sub>0_in: "\<iota>\<^sub>0 \<in> G.Inf_from M (\<Union> (\<G>_F ` M))"
   have prems_\<iota>\<^sub>0_in: "set (prems_of \<iota>\<^sub>0) \<subseteq> \<Union> (\<G>_F ` M)"
@@ -300,7 +301,7 @@ proof -
     by (rule exI[of _ \<eta>2], rule exI[of _ "\<eta>s @ [\<eta>]"], use ground_ns in
         \<open>auto intro: ground_n ground_n2 \<iota>\<^sub>0_Inf_G[unfolded \<iota>\<^sub>0_is']
            simp: \<iota>\<^sub>0_is' is_ground_subst_list_def\<close>)
-  then have \<open>\<iota>\<^sub>0 \<in> the (\<G>_Inf M \<iota>)\<close>
+  then have \<open>\<iota>\<^sub>0 \<in> \<G>_Inf M \<iota>\<close>
     unfolding \<G>_Inf_def \<iota>_def CAs0_is[symmetric] DA0_is[symmetric] E0_is[symmetric] by simp
   moreover have \<open>\<iota> \<in> F.Inf_from M\<close>
     using prems_in i_Inf_F unfolding F.Inf_from_def \<iota>_def by simp
@@ -314,14 +315,13 @@ proof (rule F.stat_ref_comp_to_non_ground_fam_inter; clarsimp)
   show "\<And>M. static_refutational_complete_calculus {{#}} (Inf_G M) (\<TTurnstile>e) (G.Red_Inf M) G.Red_F"
     by (fact G.static_refutational_complete_calculus_axioms)
 next
-  fix M
-  assume "F.saturated M"
-  show "\<exists>q. F.ground.Inf_from_q q (F.\<G>_set_q q M)
-    \<subseteq> {\<iota>. \<exists>\<iota>' \<in> F.Inf_from M. (\<exists>y. \<G>_Inf q \<iota>' = Some y) \<and> \<iota> \<in> the (\<G>_Inf q \<iota>')}
-      \<union> G.Red_Inf q (F.\<G>_set_q q M)"
-    using G_Inf_from_imp_F_Inf_from
+  fix N
+  assume "F.saturated N"
+  show "\<exists>M. F.ground.Inf_from_q M (\<Union> (\<G>_F ` N)) \<subseteq> {\<iota>. \<exists>\<iota>' \<in> F.Inf_from N. \<iota> \<in> \<G>_Inf M \<iota>'}
+    \<union> G.Red_Inf M (\<Union> (\<G>_F ` N))"
+    using G_Inf_overapproximates_F_Inf
     apply auto
-    apply (rule exI[of _ M])
+    apply (rule exI[of _ N])
     apply auto
     using F.ground.Inf_from_q_def \<G>_Inf_def by fastforce
 qed
@@ -339,9 +339,6 @@ definition Infer_FL_of :: "'a clause inference \<Rightarrow> ('a clause \<times>
 
 definition Inf_FL :: "('a clause \<times> label) inference set" where
   "Inf_FL = (\<Union>\<iota> \<in> Inf_F. Infer_FL_of \<iota>)"
-
-definition infer_of_FL :: "('a clause \<times> label) inference \<Rightarrow> 'a clause inference" where
-  "infer_of_FL \<iota> = Infer (map fst (prems_of \<iota>)) (fst (concl_of \<iota>))"
 
 abbreviation Equiv_F :: "'a clause \<Rightarrow> 'a clause \<Rightarrow> bool" (infix "\<doteq>" 50) where
   "C \<doteq> D \<equiv> generalizes C D \<and> generalizes D C"
@@ -365,7 +362,7 @@ lemma wf_Prec_l: "wfP (\<sqsubset>l)"
 
 (* TODO: Break down *)
 interpretation GC: Given_Clause "{{#}}" Inf_F "{{#}}" UNIV "\<lambda>N. (\<TTurnstile>e)" Inf_G G.Red_Inf
-  "\<lambda>N. G.Red_F" "\<lambda>N. \<G>_F" \<G>_Inf Inf_FL "(\<doteq>)" "(\<prec>\<cdot>)" "(\<sqsubset>l)" Old
+  "\<lambda>N. G.Red_F" "\<lambda>N. \<G>_F" \<G>_Inf_opt Inf_FL "(\<doteq>)" "(\<prec>\<cdot>)" "(\<sqsubset>l)" Old
 proof (unfold_locales; (intro ballI)?)
   fix \<iota> and ls :: "label list"
   assume
@@ -436,12 +433,19 @@ qed
 
 notation GC.Prec_FL (infix "\<sqsubset>" 50)
 notation GC.entails_\<G>_L_Q (infix "\<TTurnstile>\<G>Le" 50)
+notation GC.derive (infix "\<rhd>RedFL" 50)
 notation GC.step (infix "\<Longrightarrow>GC" 50)
 
 lemmas GC_entails_\<G>_L_Q_iff = GC.labeled_entailment_lifting
 
-abbreviation derive_GC (infix "\<rhd>RedFL" 50) where
-  "(\<rhd>RedFL) \<equiv> GC.derive"
+(* FIXME: Needed? *)
+lemma F_Red_Inf_\<G>_Q_eq:
+  "F.Red_Inf_\<G>_Q N = {\<iota> \<in> Inf_F. \<forall>M. \<G>_Inf M \<iota> \<subseteq> G.Red_Inf M (\<Union> (\<G>_F ` N))}"
+  unfolding F.Red_Inf_\<G>_Q_def F.Red_Inf_\<G>_q_def by auto
+
+lemma GC_Red_Inf_Q_eq:
+  "GC.Red_Inf_Q Nl = {\<iota> \<in> Inf_FL. \<forall>M. the (GC.\<G>_Inf_L_q M \<iota>) \<subseteq> G.Red_Inf M (\<Union> (\<G>_F ` fst ` Nl))}"
+  unfolding GC.Red_Inf_Q_def GC.Red_Inf_\<G>_q_def by auto
 
 lemma GC_Red_F_Q_eq:
   "GC.Red_F_Q N =
@@ -457,7 +461,6 @@ lemma mem_GC_Red_F_Q_because_Prec_FL:
   "(\<forall>D \<in> \<G>_F (fst Cl). \<exists>El \<in> N. El \<sqsubset> Cl \<and> D \<in> \<G>_F (fst El)) \<Longrightarrow> Cl \<in> GC.Red_F_Q N"
   unfolding GC_Red_F_Q_eq by auto
 
-(* FIXME: Easier proof? Cf. Schlichtkrull et al. *)
 interpretation GC: refute_compact_consequence_relation GC.Bot_FL "(\<TTurnstile>\<G>Le)"
 proof
   fix CCl
@@ -503,6 +506,7 @@ qed
 interpretation GC: refute_compact_calculus_with_red_crit GC.Bot_FL Inf_FL "(\<TTurnstile>\<G>Le)" GC.Red_Inf_Q
   GC.Red_F_Q
   ..
+
 
 subsection \<open>RP Layer\<close>
 
@@ -562,8 +566,8 @@ lemma lclss_Liminf_commute:
   apply (meson Pair_inject inj_onI)+
   done
 
-definition infer_RP_of :: "'a clause inference \<Rightarrow> 'a inference_RP" where
-  "infer_RP_of \<iota> = Infer_RP (mset (side_prems_of \<iota>)) (main_prem_of \<iota>) (concl_of \<iota>)"
+definition RP_infer_of :: "'a clause inference \<Rightarrow> 'a inference_RP" where
+  "RP_infer_of \<iota> = Infer_RP (mset (side_prems_of \<iota>)) (main_prem_of \<iota>) (concl_of \<iota>)"
 
 lemma gc_subsumption_step:
   assumes
@@ -971,13 +975,87 @@ next
     done
 qed
 
-(* FIXME
-lemma "G.redundant_infer (\<Union>Cl \<in> Liminf_llist Nls. \<G>_F (fst Cl)) \<Longrightarrow> src.redundant_infer (Liminf_llist gSts)"
+thm src.redundant_infer_def
+thm G.redundant_infer_def
 
-  thm image_Liminf_llist_subset
-*)
+lemma new_redundant_infer_imp_old_redundant_infer:
+  assumes "G.redundant_infer N \<iota>"
+  shows "src.redundant_infer N (RP_infer_of \<iota>)"
+  sorry
 
-lemma saturated_imp_saturated_RP:
+lemma saturated_imp_saturated_RP_xxx:
+  assumes satur_gc: "GC.saturated (Liminf_llist (lmap lclss_of_state Sts))"
+  shows "src.saturated_upto Sts (Liminf_llist (lmap grounding_of_state Sts))"
+proof -
+  define Nls where
+    "Nls = lmap lclss_of_state Sts"
+  define Ns where
+    "Ns = lmap clss_of_state Sts"
+  define gSts where
+    "gSts = lmap grounding_of_state Sts"
+
+  define Nl_lim where
+    "Nl_lim = Liminf_llist Nls"
+  define gSt_lim where
+    "gSt_lim = Liminf_llist gSts"
+
+  have gst_nl_lim: "gSt_lim = (\<Union>Cl \<in> Nl_lim. \<G>_F (fst Cl))"
+    sorry
+
+  have "gd.inferences_from Sts gSt_lim \<subseteq> src.Ri Sts gSt_lim"
+  proof
+    fix \<gamma>
+    assume \<gamma>_in_inf_rp: "\<gamma> \<in> gd.inferences_from Sts gSt_lim"
+
+    obtain M where
+      \<gamma>_in_inf_gc: "\<gamma> \<in> RP_infer_of ` \<Union> (\<G>_Inf M ` GC.to_F ` GC.Inf_from Nl_lim)"
+      sorry
+
+    then have \<gamma>_in_red_gc: "\<gamma> \<in> RP_infer_of ` \<Union> (\<G>_Inf M ` GC.to_F ` GC.Red_Inf_\<G>_Q Nl_lim)"
+      using satur_gc[unfolded GC.saturated_def]
+      unfolding image_def using Nl_lim_def Nls_def by blast
+    then obtain \<iota> \<iota>' where
+      "\<gamma> = RP_infer_of \<iota>" and
+      "\<iota> \<in> \<G>_Inf M (GC.to_F \<iota>')" and
+      "\<iota>' \<in> Inf_FL" and
+      "\<G>_Inf M (GC.to_F \<iota>') \<subseteq> G.Red_Inf M (\<Union>Nl \<in> Nl_lim. \<G>_F (fst Nl))"
+      unfolding GC_Red_Inf_Q_eq by auto
+
+
+    show "\<gamma> \<in> src.Ri Sts gSt_lim"
+      unfolding src.Ri_def GC_Red_Inf_Q_eq
+      apply simp
+      unfolding G.Red_Inf_def
+      unfolding gst_nl_lim[symmetric]
+      apply auto
+      defer
+      apply (rule new_redundant_infer_imp_old_redundant_infer)
+      subgoal for \<iota>
+        unfolding infer_of_FL_def Inf_FL_def Infer_FL_of_def
+        apply auto
+        subgoal for Cls D
+        proof -
+          assume "Infer (map fst Cls) D \<in> Inf_F"
+          obtain M where
+            "Infer (map fst Cls) D \<in> the (GC.\<G>_Inf_L_q M (Infer Cls (D, New)))"
+            sorry
+          then have "Infer (map fst Cls) D \<in> Inf_G M G.redundant_infer gSt_lim \<iota>} \<Longrightarrow>
+        \<Longrightarrow> \<iota> = Infer Cls (D, New) \<Longrightarrow> G.redundant_infer gSt_lim (Infer (map fst Cls) D)
+
+        unfolding \<G>_Inf_def GC.to_F_def
+        apply auto
+
+
+
+      sorry
+    sorry
+  qed
+  then show ?thesis
+    unfolding gSt_lim_def gSts_def src.saturated_upto_def
+    by (meson Diff_subset gd.inferences_from_mono subset_trans)
+qed
+
+lemma saturated_imp_saturated_RP_xxx:
   assumes satur_gc: "GC.saturated (Liminf_llist (lmap lclss_of_state Sts))"
   shows "src.saturated_upto Sts (Liminf_llist (lmap grounding_of_state Sts))"
   unfolding src.saturated_upto_def
@@ -997,9 +1075,9 @@ proof
 
   assume \<gamma>_in_inf_rp: "\<gamma> \<in> gd.inferences_from Sts (Liminf_llist gSts - src.Rf (Liminf_llist gSts))"
 
-  have \<gamma>_in_inf_gc: "\<gamma> \<in> infer_RP_of ` infer_of_FL ` GC.Inf_from (Liminf_llist Nls)"
+  have \<gamma>_in_inf_gc: "\<gamma> \<in> RP_infer_of ` infer_of_FL ` GC.Inf_from (Liminf_llist Nls)"
     sorry
-  then have \<gamma>_in_red_gc: "\<gamma> \<in> infer_RP_of ` infer_of_FL ` GC.Red_Inf_\<G>_Q (Liminf_llist Nls)"
+  then have \<gamma>_in_red_gc: "\<gamma> \<in> RP_infer_of ` infer_of_FL ` GC.Red_Inf_\<G>_Q (Liminf_llist Nls)"
     using satur_gc[unfolded GC.saturated_def]
     unfolding image_def
     using Nls_def by blast
@@ -1009,7 +1087,7 @@ proof
   then show "\<gamma> \<in> src.Ri Sts (Liminf_llist gSts)"
     unfolding GC.Red_Inf_\<G>_Q_def GC.Red_Inf_\<G>_q_def \<G>_Inf_def
     apply auto
-    unfolding infer_of_FL_def infer_RP_of_def GC.to_F_def
+    unfolding infer_of_FL_def RP_infer_of_def GC.to_F_def
     apply auto
     unfolding Inf_FL_def Inf_F_def Infer_FL_of_def G.Red_Inf_def
     apply (subst (asm) Inf_G_def)
