@@ -983,8 +983,13 @@ qed
 
 lemma new_redundant_infer_imp_old_redundant_infer:
   assumes "G.redundant_infer N \<iota>"
-  shows "src.redundant_infer N (RP_infer_of \<iota>)" (* FIXME *)
-  sorry
+  shows "src.redundant_infer N (RP_infer_of \<iota>)"
+  using assms
+  unfolding redundant_infer_RP_alt
+  unfolding G.redundant_infer_def RP_infer_of_def
+  by simp
+
+term src.saturated_upto
 
 lemma saturated_imp_saturated_RP:
   assumes
@@ -992,36 +997,53 @@ lemma saturated_imp_saturated_RP:
     no_passive: "GC.passive_subset (Liminf_llist (lmap lclss_of_state Sts)) = {}"
   shows "src.saturated_upto Sts (grounding_of_state (Liminf_state Sts))"
 proof -
-  define Uls where
-    "Uls = lmap lclss_of_state Sts"
-  define Us where
-    "Us = lmap clss_of_state Sts"
-  define Qs where
-    "Qs = lmap Q_of_state Sts"
-
-  define St where
-    "St = Liminf_state Sts"
   define Q where
-    "Q = Liminf_llist Qs"
+    "Q = Liminf_llist (lmap Q_of_state Sts)"
   define Ql where
     "Ql = (\<lambda>C. (C, Old)) ` Q"
   define G where
     "G = \<Union> (\<G>_F ` Q)"
 
-  note defs = Uls_def Us_def Qs_def St_def Q_def Ql_def G_def
+  note defs = Q_def Ql_def G_def
 
-  have limus_eq: "Liminf_llist Us = Q"
-    unfolding Us_def Q_def Qs_def
-    using lclss_Liminf_commute
-    sorry
-  have limuls_eq: "Liminf_llist Uls = Ql"
-    sorry
-  have clst_eq: "clss_of_state St = Q"
-    sorry
+  have limuls_eq: "Liminf_llist (lmap lclss_of_state Sts) = Ql"
+    unfolding Ql_def Q_def
+    using no_passive[unfolded GC.passive_subset_def]
+    apply simp
+  proof - (* sledgehammer *)
+    assume a1: "\<forall>a b. (a, b) \<in> Liminf_llist (lmap lclss_of_state Sts) \<longrightarrow> b = Old"
+    obtain mm :: "'a literal multiset set \<Rightarrow> 'a literal multiset" where
+      f2: "\<forall>M. {} = M \<or> mm M \<in> M"
+      by (metis (no_types) equals0I)
+    have f3: "\<forall>ps. Liminf_llist (lmap lclss_of_state ps) = lclss_of_state (Liminf_llist (lmap N_of_state ps), Liminf_llist (lmap P_of_state ps), Liminf_llist (lmap Q_of_state ps))"
+      using Liminf_state_def lclss_Liminf_commute by presburger
+    then have f4: "Liminf_llist (lmap P_of_state Sts) = {}"
+      using f2 a1 by (metis (no_types) label.simps(5) mem_lclss_of_state(2))
+    have "Liminf_llist (lmap N_of_state Sts) = {}"
+      using f3 f2 a1 by (metis (no_types) label.simps(3) mem_lclss_of_state(1))
+    then show "Liminf_llist (lmap lclss_of_state Sts) = (\<lambda>m. (m, Old)) ` Liminf_llist (lmap Q_of_state Sts)"
+      using f4 f3 by (simp add: lclss_of_state_def)
+  qed
+  have clst_eq: "clss_of_state (Liminf_state Sts) = Q"
+    unfolding Q_def
+  proof - (* sledgehammer *)
+    have f1: "Q_of_state (Liminf_state Sts) = Q"
+      using Liminf_state_def Q_def Q_of_state.simps by presburger
+    then have f2: "Ql \<union> ((\<lambda>m. (m, New)) ` N_of_state (Liminf_state Sts) \<union> (\<lambda>m. (m, Processed)) ` P_of_state (Liminf_state Sts)) = lclss_of_state (Liminf_state Sts)"
+      by (simp add: Ql_def lclss_of_state_def sup_commute)
+    have f3: "lclss_of_state ({}, {}, Q_of_state (Liminf_state Sts)) = {} \<union> Ql"
+      using f1 by (simp add: Ql_def lclss_of_state_def)
+    have "Ql = (\<lambda>m. (m, New)) ` N_of_state (Liminf_state Sts) \<union> (\<lambda>m. (m, Processed)) ` P_of_state (Liminf_state Sts) \<union> (Ql \<union> {})"
+      using f1 lclss_Liminf_commute lclss_of_state_def limuls_eq by auto
+    then have "N_of_state (Liminf_state Sts) \<union> P_of_state (Liminf_state Sts) \<union> Q_of_state (Liminf_state Sts) = fst ` lclss_of_state ({}, {}, Q_of_state (Liminf_state Sts))"
+      using f3 f2 by (simp add: sup_commute)
+    then show "N_of_state (Liminf_state Sts) \<union> P_of_state (Liminf_state Sts) \<union> Q_of_state (Liminf_state Sts) = Liminf_llist (lmap Q_of_state Sts)"
+      by (simp add: Liminf_state_def)
+  qed
   have gflimuls_eq: "(\<Union>Cl \<in> Ql. \<G>_F (fst Cl)) = G"
-    sorry
+    unfolding Ql_def G_def by auto
 
-  note simps = defs[symmetric] limus_eq limuls_eq clst_eq gflimuls_eq
+  note simps = defs[symmetric] limuls_eq clst_eq gflimuls_eq
 
   have "gd.inferences_from Sts G \<subseteq> src.Ri Sts G"
   proof
@@ -1035,7 +1057,7 @@ proof -
         RP_infer_of_def
       apply atomize_elim
       apply auto
-      unfolding gd.ord_\<Gamma>_def Inf_G_def unfolding Us_def
+      unfolding gd.ord_\<Gamma>_def Inf_G_def
       apply auto
       apply (rule_tac x = "Infer (CAs @ [DA]) E" in exI)
       apply (intro conjI)
@@ -1101,9 +1123,11 @@ theorem RP_sound_old_statement:
   shows "\<not> satisfiable (grounding_of_state (lhd Sts))"
   using RP_sound_new_statement[OF deriv bot_in] unfolding F_entails_\<G>_Q_iff by simp
 
-text \<open>The theorem below is stated more weakly than the original theorem in RP: The grounding of the
+text \<open>FIXME: The theorem below is stated more weakly than the original theorem in RP: The grounding of the
 limit might be a strict subset of the limit of the groundings. See also
 @{thm [source] grounding_of_state_Liminf_state_subseteq}.\<close>
+
+thm grounding_of_state_Liminf_state_subseteq
 
 theorem RP_saturated_if_fair_old_statement_altered:
   assumes
