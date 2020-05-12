@@ -1015,40 +1015,25 @@ proof -
       using satur_gc[unfolded GC.saturated_def]
       unfolding image_def using Nl_lim_def Nls_def by blast
     then obtain \<iota> \<iota>' where
-      "\<gamma> = RP_infer_of \<iota>" and
-      "\<iota> \<in> \<G>_Inf M (GC.to_F \<iota>')" and
-      "\<iota>' \<in> Inf_FL" and
-      "\<G>_Inf M (GC.to_F \<iota>') \<subseteq> G.Red_Inf M (\<Union>Nl \<in> Nl_lim. \<G>_F (fst Nl))"
-      unfolding GC_Red_Inf_Q_eq by auto
+      \<gamma>: "\<gamma> = RP_infer_of \<iota>" and
+      \<iota>_in_\<iota>': "\<iota> \<in> \<G>_Inf M (GC.to_F \<iota>')" and
+      \<iota>_red: "\<iota> \<in> G.Red_Inf M gSt_lim" and
+      \<iota>'_in: "\<iota>' \<in> Inf_FL"
+      unfolding GC_Red_Inf_Q_eq by (auto simp: gst_nl_lim)
 
+    have \<iota>_red': "G.redundant_infer gSt_lim \<iota>"
+      using \<iota>_red unfolding G.Red_Inf_def by auto
+
+    have \<gamma>_in_res: "\<gamma> \<in> gd.ord_\<Gamma> Sts"
+      using \<gamma>_in_inf_rp gd.inferences_from_def by blast
+
+    have \<gamma>_red: "src.redundant_infer gSt_lim \<gamma>"
+      unfolding \<gamma>
+      apply (rule new_redundant_infer_imp_old_redundant_infer)
+      by (rule \<iota>_red')
 
     show "\<gamma> \<in> src.Ri Sts gSt_lim"
-      unfolding src.Ri_def GC_Red_Inf_Q_eq
-      apply simp
-      unfolding G.Red_Inf_def
-      unfolding gst_nl_lim[symmetric]
-      apply auto
-      defer
-      apply (rule new_redundant_infer_imp_old_redundant_infer)
-      subgoal for \<iota>
-        unfolding infer_of_FL_def Inf_FL_def Infer_FL_of_def
-        apply auto
-        subgoal for Cls D
-        proof -
-          assume "Infer (map fst Cls) D \<in> Inf_F"
-          obtain M where
-            "Infer (map fst Cls) D \<in> the (GC.\<G>_Inf_L_q M (Infer Cls (D, New)))"
-            sorry
-          then have "Infer (map fst Cls) D \<in> Inf_G M G.redundant_infer gSt_lim \<iota>} \<Longrightarrow>
-        \<Longrightarrow> \<iota> = Infer Cls (D, New) \<Longrightarrow> G.redundant_infer gSt_lim (Infer (map fst Cls) D)
-
-        unfolding \<G>_Inf_def GC.to_F_def
-        apply auto
-
-
-
-      sorry
-    sorry
+      unfolding src.Ri_def using \<gamma>_in_res \<gamma>_red by auto
   qed
   then show ?thesis
     unfolding gSt_lim_def gSts_def src.saturated_upto_def
