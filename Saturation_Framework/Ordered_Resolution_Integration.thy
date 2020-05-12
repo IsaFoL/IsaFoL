@@ -49,6 +49,8 @@ abbreviation concls_of_RP :: "'a inference_RP set \<Rightarrow> 'a clause set" w
 abbreviation infer_from_RP :: "'a clause set \<Rightarrow> 'a inference_RP \<Rightarrow> bool" where
   "infer_from_RP \<equiv> Inference_System.infer_from"
 
+lemmas infer_from_RP_def = Inference_System.infer_from_def
+
 
 subsection \<open>Library\<close>
 
@@ -921,6 +923,9 @@ qed
 
 subsection \<open>Alternative Derivation of Previous RP Results\<close>
 
+definition infer_of_RP :: "'a inference_RP \<Rightarrow> 'a clause inference" where
+  "infer_of_RP \<gamma> = Infer (list_of_mset (side_prems_of_RP \<gamma>) @ [main_prem_of_RP \<gamma>]) (concl_of_RP \<gamma>)"
+
 lemma fair_RP_imp_fair:
   assumes
     nnul: "\<not> lnull Sts" and
@@ -983,109 +988,105 @@ lemma new_redundant_infer_imp_old_redundant_infer:
   shows "src.redundant_infer N (RP_infer_of \<iota>)"
   sorry
 
-lemma saturated_imp_saturated_RP_xxx:
-  assumes satur_gc: "GC.saturated (Liminf_llist (lmap lclss_of_state Sts))"
+lemma saturated_imp_saturated_RP:
+  assumes
+    satur_gc: "GC.saturated (Liminf_llist (lmap lclss_of_state Sts))" and
+    no_passive: "GC.passive_subset (Liminf_llist (lmap lclss_of_state Sts)) = {}"
   shows "src.saturated_upto Sts (Liminf_llist (lmap grounding_of_state Sts))"
 proof -
   define Nls where
     "Nls = lmap lclss_of_state Sts"
   define Ns where
     "Ns = lmap clss_of_state Sts"
+  define Qs where
+    "Qs = lmap Q_of_state Sts"
   define gSts where
     "gSts = lmap grounding_of_state Sts"
 
-  define Nl_lim where
-    "Nl_lim = Liminf_llist Nls"
-  define gSt_lim where
-    "gSt_lim = Liminf_llist gSts"
+  define Nl where
+    "Nl = Liminf_llist Nls"
+  define N where
+    "N = Liminf_llist Ns"
+  define Q where
+    "Q = Liminf_llist Qs"
+  define gSt where
+    "gSt = Liminf_llist gSts"
 
-  have gst_nl_lim: "gSt_lim = (\<Union>Cl \<in> Nl_lim. \<G>_F (fst Cl))"
+  have gst_nl: "gSt = (\<Union>Cl \<in> Nl. \<G>_F (fst Cl))"
     sorry
 
-  have "gd.inferences_from Sts gSt_lim \<subseteq> src.Ri Sts gSt_lim"
+  have "gd.inferences_from Sts gSt \<subseteq> src.Ri Sts gSt"
   proof
     fix \<gamma>
-    assume \<gamma>_in_inf_rp: "\<gamma> \<in> gd.inferences_from Sts gSt_lim"
+    assume \<gamma>_in_inf_rp: "\<gamma> \<in> gd.inferences_from Sts gSt"
 
-    obtain M where
-      \<gamma>_in_inf_gc: "\<gamma> \<in> RP_infer_of ` \<Union> (\<G>_Inf M ` GC.to_F ` GC.Inf_from Nl_lim)"
+    define \<iota> where
+      "\<iota> = infer_of_RP \<gamma>"
+
+    have \<iota>_in_inf: "\<iota> \<in> G.Inf_from Q (\<Union> (\<G>_F ` Q))"
+      using \<gamma>_in_inf_rp unfolding \<iota>_def gd.inferences_from_def infer_from_RP_def G.Inf_from_def 
+        RP_infer_of_def
+      apply auto
+      unfolding gd.ord_\<Gamma>_def Inf_G_def unfolding N_def Ns_def
+      apply auto
+      unfolding S_Q_def Q_def Qs_def Liminf_state_def Q_of_state.simps infer_of_RP_def
+      apply simp
+      term list_of_mset
       sorry
 
-    then have \<gamma>_in_red_gc: "\<gamma> \<in> RP_infer_of ` \<Union> (\<G>_Inf M ` GC.to_F ` GC.Red_Inf_\<G>_Q Nl_lim)"
+    obtain \<iota> where
+      \<iota>: "\<iota> \<in> G.Inf_from N (\<Union> (\<G>_F ` N))" and
+      \<gamma>: "\<gamma> = RP_infer_of \<iota>"
+      apply atomize_elim
+      apply (rule exI[of _ "infer_of_RP \<gamma>"])
+      using \<gamma>_in_inf_rp unfolding gd.inferences_from_def infer_from_RP_def G.Inf_from_def 
+        RP_infer_of_def
+      apply auto
+      sorry
+
+    obtain \<iota>' where
+      \<iota>': "\<iota>' \<in> F.Inf_from N" and
+      \<iota>_in_\<iota>': "\<iota> \<in> \<G>_Inf N \<iota>'"
+      using G_Inf_overapproximates_F_Inf[OF \<iota>] by blast
+
+
+
+    obtain M where
+      \<gamma>_in_inf_gc: "\<gamma> \<in> RP_infer_of ` \<Union> (\<G>_Inf M ` GC.to_F ` GC.Inf_from Nl)"
+      apply atomize_elim
+      using \<gamma>_in_inf_rp[unfolded gd.inferences_from_def infer_from_RP_def, simplified]
+
+      using  G_Inf_overapproximates_F_Inf
+
+      unfolding GC.Inf_from_def GC.to_F_def \<G>_Inf_def  RP_infer_of_def
+      sorry
+    then have \<gamma>_in_red_gc: "\<gamma> \<in> RP_infer_of ` \<Union> (\<G>_Inf M ` GC.to_F ` GC.Red_Inf_\<G>_Q Nl)"
       using satur_gc[unfolded GC.saturated_def]
-      unfolding image_def using Nl_lim_def Nls_def by blast
+      unfolding image_def using Nl_def Nls_def by blast
     then obtain \<iota> \<iota>' where
       \<gamma>: "\<gamma> = RP_infer_of \<iota>" and
       \<iota>_in_\<iota>': "\<iota> \<in> \<G>_Inf M (GC.to_F \<iota>')" and
-      \<iota>_red: "\<iota> \<in> G.Red_Inf M gSt_lim" and
+      \<iota>_red: "\<iota> \<in> G.Red_Inf M gSt" and
       \<iota>'_in: "\<iota>' \<in> Inf_FL"
-      unfolding GC_Red_Inf_Q_eq by (auto simp: gst_nl_lim)
+      unfolding GC_Red_Inf_Q_eq by (auto simp: gst_nl)
 
-    have \<iota>_red': "G.redundant_infer gSt_lim \<iota>"
+    have \<iota>_red': "G.redundant_infer gSt \<iota>"
       using \<iota>_red unfolding G.Red_Inf_def by auto
 
     have \<gamma>_in_res: "\<gamma> \<in> gd.ord_\<Gamma> Sts"
       using \<gamma>_in_inf_rp gd.inferences_from_def by blast
 
-    have \<gamma>_red: "src.redundant_infer gSt_lim \<gamma>"
+    have \<gamma>_red: "src.redundant_infer gSt \<gamma>"
       unfolding \<gamma>
       apply (rule new_redundant_infer_imp_old_redundant_infer)
       by (rule \<iota>_red')
 
-    show "\<gamma> \<in> src.Ri Sts gSt_lim"
+    show "\<gamma> \<in> src.Ri Sts gSt"
       unfolding src.Ri_def using \<gamma>_in_res \<gamma>_red by auto
   qed
   then show ?thesis
-    unfolding gSt_lim_def gSts_def src.saturated_upto_def
+    unfolding gSt_def gSts_def src.saturated_upto_def
     by (meson Diff_subset gd.inferences_from_mono subset_trans)
-qed
-
-lemma saturated_imp_saturated_RP_xxx:
-  assumes satur_gc: "GC.saturated (Liminf_llist (lmap lclss_of_state Sts))"
-  shows "src.saturated_upto Sts (Liminf_llist (lmap grounding_of_state Sts))"
-  unfolding src.saturated_upto_def
-proof
-  fix \<gamma> :: "'a inference_RP"
-
-  define Nls where
-    "Nls = lmap lclss_of_state Sts"
-  define Ns where
-    "Ns = lmap clss_of_state Sts"
-  define gSts where
-    "gSts = lmap grounding_of_state Sts"
-
-  (* FIXME: needed? *)
-  have lmap_fst_nls: "lmap ((`) fst) Nls = Ns"
-    unfolding Nls_def Ns_def lclss_of_state_def by (simp add: llist.map_comp image_Un image_comp)
-
-  assume \<gamma>_in_inf_rp: "\<gamma> \<in> gd.inferences_from Sts (Liminf_llist gSts - src.Rf (Liminf_llist gSts))"
-
-  have \<gamma>_in_inf_gc: "\<gamma> \<in> RP_infer_of ` infer_of_FL ` GC.Inf_from (Liminf_llist Nls)"
-    sorry
-  then have \<gamma>_in_red_gc: "\<gamma> \<in> RP_infer_of ` infer_of_FL ` GC.Red_Inf_\<G>_Q (Liminf_llist Nls)"
-    using satur_gc[unfolded GC.saturated_def]
-    unfolding image_def
-    using Nls_def by blast
-
-
-
-  then show "\<gamma> \<in> src.Ri Sts (Liminf_llist gSts)"
-    unfolding GC.Red_Inf_\<G>_Q_def GC.Red_Inf_\<G>_q_def \<G>_Inf_def
-    apply auto
-    unfolding infer_of_FL_def RP_infer_of_def GC.to_F_def
-    apply auto
-    unfolding Inf_FL_def Inf_F_def Infer_FL_of_def G.Red_Inf_def
-    apply (subst (asm) Inf_G_def)
-    apply auto
-    apply (subst (asm) Inf_G_def)
-    apply auto
-    unfolding src.Ri_def
-    unfolding redundant_infer_RP_alt
-(*
-    apply auto
-    using \<gamma>_in_inf_rp gd.inferences_from_def apply auto[1]
-*)
-    sorry
 qed
 
 theorem RP_sound_old_statement:
@@ -1101,10 +1102,14 @@ theorem RP_saturated_if_fair_old_statement:
     fair: "fair_state_seq Sts" and
     empty_Q0: "Q_of_state (lhd Sts) = {}"
   shows "src.saturated_upto Sts (Liminf_llist (lmap grounding_of_state Sts))"
-  apply (rule saturated_imp_saturated_RP)
-  apply (rule RP_saturated_if_fair_new_statement)
-  apply (rule deriv)
-  using fair_RP_imp_fair[OF chain_not_lnull[OF deriv] fair empty_Q0] .
+proof -
+  note fair' = fair_RP_imp_fair[OF chain_not_lnull[OF deriv] fair empty_Q0]
+  show ?thesis
+    apply (rule saturated_imp_saturated_RP[OF fair'(1)])
+    apply (rule RP_saturated_if_fair_new_statement)
+    apply (rule deriv)
+    by (rule fair')+
+qed
 
 corollary RP_complete_if_fair_old_statement:
   assumes
