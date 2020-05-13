@@ -14,8 +14,10 @@ theory Standard_Redundancy_Criterion
 begin
 
 text \<open>
-This material is partly based on Section 4.2.2 (``The Standard Redundancy Criterion'') of Bachmair
-and Ganzinger's chapter, but adapted to the saturation framework of Waldmann et al.
+The standard redundancy criterion can be defined uniformly for all inference systems equipped with
+a compact consequence relation. The essence of the refutational completeness argument can be carried
+out abstractly. This material is partly based on Section 4.2 of Bachmair and Ganzinger's
+\emph{Handbook} chapter, but adapted to the saturation framework of Waldmann et al.
 \<close>
 
 
@@ -54,7 +56,7 @@ qed
 end
 
 
-subsection \<open>Criterion\<close>
+subsection \<open>The Redundancy Criterion\<close>
 
 locale calculus_with_std_red_crit = inference_system Inf + compact_consequence_relation Bot entails
   for
@@ -106,15 +108,14 @@ proof -
   hence dd2: "DD2 \<in> {DD. set_mset DD \<subseteq> N \<and> set_mset DD \<union> CC \<Turnstile> {E} \<and> (\<forall>D' \<in> set_mset DD. D' < D)}"
     by blast
   have "\<exists>DD. set_mset DD \<subseteq> N \<and> set_mset DD \<union> CC \<Turnstile> {E} \<and> (\<forall>D' \<in># DD. D' < D) \<and>
-    (\<forall>DDa1. set_mset DDa1 \<subseteq> N \<and> set_mset DDa1 \<union> CC \<Turnstile> {E} \<and> (\<forall>D' \<in># DDa1. D' < D) \<longrightarrow> DD \<le> DDa1)"
+    (\<forall>DDa. set_mset DDa \<subseteq> N \<and> set_mset DDa \<union> CC \<Turnstile> {E} \<and> (\<forall>D' \<in># DDa. D' < D) \<longrightarrow> DD \<le> DDa)"
     using wf_eq_minimal[THEN iffD1, rule_format, OF wf_less_multiset, OF dd2]
     unfolding not_le[symmetric] by blast
   then obtain DD :: "'f multiset" where
     dd_subs_n: "set_mset DD \<subseteq> N" and
     ddcc_ent_e: "set_mset DD \<union> CC \<Turnstile> {E}" and
     dd_lt_d: "\<forall>D' \<in># DD. D' < D" and
-    d_min: "\<forall>DDa1. set_mset DDa1 \<subseteq> N \<and> set_mset DDa1 \<union> CC \<Turnstile> {E}
-      \<and> (\<forall>D' \<in># DDa1. D' < D) \<longrightarrow> DD \<le> DDa1"
+    d_min: "\<forall>DDa. set_mset DDa \<subseteq> N \<and> set_mset DDa \<union> CC \<Turnstile> {E} \<and> (\<forall>D' \<in># DDa. D' < D) \<longrightarrow> DD \<le> DDa"
     by blast
 
   have "\<forall>Da \<in># DD. Da \<notin> Red_F N"
@@ -170,7 +171,7 @@ proof -
     dd_sub: "DD \<subseteq> N" and
     dd_ent: "DD \<Turnstile> {C}" and
     dd_lt: "\<forall>D \<in> DD. D < C"
-    using assms[unfolded Red_F_def mem_Collect_eq] by fast
+    using c_in[unfolded Red_F_def] by fast
   show ?thesis
     by (rule wlog_non_Red_F[of "DD" N "{}" C C, simplified, OF dd_sub dd_ent dd_lt])
 qed
@@ -201,7 +202,7 @@ lemma Red_F_eq_Red_F_diff_Red_F: "Red_F N = Red_F (N - Red_F N)"
   by (simp add: Red_F_of_subset Red_F_subs_Red_F_diff_Red_F set_eq_subset)
 
 text \<open>
-The following results correspond to Lemma 4.6.
+The following results correspond to Lemma 4.6. It also uses \<open>wlog_non_Red_F\<close>.
 \<close>
 
 lemma Red_Inf_of_subset: "N \<subseteq> N' \<Longrightarrow> Red_Inf N \<subseteq> Red_Inf N'"
@@ -222,8 +223,8 @@ proof
     dd_ent: "DD \<union> CC \<Turnstile> {E}" and
     dd_lt_d: "\<forall>C \<in> DD. C < D"
     using \<iota>_ri unfolding Red_Inf_def redundant_infer_def CC_def D_def E_def by blast
-  obtain DDa1 :: "'f set" where
-    "DDa1 \<subseteq> N - Red_F N" and "DDa1 \<union> CC \<Turnstile> {E}" and "\<forall>D' \<in> DDa1. D' < D"
+  obtain DDa :: "'f set" where
+    "DDa \<subseteq> N - Red_F N" and "DDa \<union> CC \<Turnstile> {E}" and "\<forall>D' \<in> DDa. D' < D"
     using wlog_non_Red_F[OF dd_sub dd_ent dd_lt_d] by blast
   then show "\<iota> \<in> Red_Inf (N - Red_F N)"
     using \<iota>_ri unfolding Red_Inf_def redundant_infer_def CC_def D_def E_def by blast
@@ -242,7 +243,8 @@ lemma Red_Inf_of_Red_F_subset: "N' \<subseteq> Red_F N \<Longrightarrow> Red_Inf
   by (metis Diff_mono Red_Inf_eq_Red_Inf_diff_Red_F Red_Inf_of_subset order_refl)
 
 lemma Red_F_model: "M \<Turnstile> N - Red_F N \<Longrightarrow> M \<Turnstile> N"
-  by (metis DiffI Red_F_imp_ex_non_Red_F entail_set_all_formulas entails_trans subset_entailed)
+  by (metis (no_types) DiffI Red_F_imp_ex_non_Red_F entail_set_all_formulas entails_trans
+      subset_entailed)
 
 lemma Red_F_Bot: "B \<in> Bot \<Longrightarrow> N \<Turnstile> {B} \<Longrightarrow> N - Red_F N \<Turnstile> {B}"
   using Red_F_model entails_trans subset_entailed by blast
@@ -278,7 +280,7 @@ locale cex_red_calculus_with_std_red_crit =
 begin
 
 
-subsection \<open>Completeness\<close>
+subsection \<open>Refutational Completeness\<close>
 
 text \<open>
 The following result loosely corresponds to Theorem 4.9.
@@ -304,6 +306,7 @@ proof (rule ccontr)
     concl_cex: "\<not> I_of N \<Turnstile> {concl_of \<iota>}" and
     concl_lt_d: "concl_of \<iota> < D"
     using Inf_cex_reducing[OF bot_ni_n] not_le by metis
+  thm Inf_cex_reducing
   have "\<iota> \<in> Red_Inf N"
     by (rule subsetD[OF satur[unfolded saturated_def Inf_from_def]],
         simp add: \<iota>_in Inf_set_prems_of)
@@ -324,7 +327,7 @@ proof (rule ccontr)
 qed
 
 text \<open>
-A more precise abstract version of Theorem 4.9 does not hold without some conditions, according to
+A more faithful abstract version of Theorem 4.9 does not hold without some conditions, according to
 Nitpick:
 \<close>
 

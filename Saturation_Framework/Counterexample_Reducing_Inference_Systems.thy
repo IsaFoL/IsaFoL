@@ -14,9 +14,10 @@ theory Counterexample_Reducing_Inference_Systems
 begin
 
 text \<open>
-Refutational completeness can be established once and for all for counterexample-reducing inference
-systems. The material formalized here draws from both the general framework of Section 4.2 and the
-concrete instances of Section 3.
+Counterexample-reducing inference systems enjoy a ``smallest counterexample'' property that is
+useful to prove refutational completeness. The material formalized here draws from Section 4.2 of
+Bachmair and Ganzinger's \emph{Handbook} chapter but is adapted to the saturation framework of
+Waldmann et al.
 \<close>
 
 abbreviation main_prem_of :: "'f inference \<Rightarrow> 'f" where
@@ -43,7 +44,7 @@ lemma ex_min_cex:
   assumes "\<not> I \<Turnstile> N"
   shows "\<exists>C \<in> N. \<not> I \<Turnstile> {C} \<and> (\<forall>D \<in> N. D < C \<longrightarrow> I \<Turnstile> {D})"
 proof -
-  obtain C :: 'f where
+  obtain C where
     "C \<in> N" and "\<not> I \<Turnstile> {C}"
     using assms all_formulas_entailed by blast
   then have c_in: "C \<in> {C \<in> N. \<not> I \<Turnstile> {C}}"
@@ -79,7 +80,7 @@ proof (rule ccontr)
     \<iota>_inf: "\<iota> \<in> Inf" and
     concl_cex: "\<not> I_of N \<Turnstile> {concl_of \<iota>}" and
     concl_lt_d: "concl_of \<iota> < D"
-    using Inf_cex_reducing[OF bot_ni_n] by fastforce
+    using Inf_cex_reducing[OF bot_ni_n] by force
   have "concl_of \<iota> \<in> N"
     using \<iota>_inf Red_Inf_of_Inf_to_N by blast
   then show False
