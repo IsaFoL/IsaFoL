@@ -8,6 +8,7 @@ section \<open>Clausal Inference Systems\<close>
 theory Clausal_Inference_Systems
   imports
     Ordered_Resolution_Prover.Unordered_Ground_Resolution
+    Consistency_Preservation
     Standard_Redundancy_Criterion
 begin
 

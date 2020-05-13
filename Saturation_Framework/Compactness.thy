@@ -74,21 +74,6 @@ theorem saturate_sound: "C \<in> saturate CC \<Longrightarrow> I \<Turnstile>s C
 
 end
 
-context sat_preserving_inference_system
-begin
-
-text \<open>
-This result surely holds, but we have yet to prove it. The challenge is: Every time a new clause is
-introduced, we also get a new interpretation (by the definition of
-\<open>sat_preserving_inference_system\<close>). But the interpretation we want here is then the one that
-exists "at the limit". Maybe we can use compactness to prove it.
-\<close>
-
-theorem saturate_sat_preserving: "satisfiable CC \<Longrightarrow> satisfiable (saturate CC)"
-  oops
-
-end
-
 locale sound_counterex_reducing_inference_system =
   counterex_reducing_inference_system + sound_inference_system
 begin

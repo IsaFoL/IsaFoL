@@ -8,9 +8,7 @@
 section \<open>The Standard Redundancy Criterion\<close>
 
 theory Standard_Redundancy_Criterion
-  imports
-    Counterexample_Reducing_Inference_Systems
-    Consistency_Preservation
+  imports Counterexample_Reducing_Inference_Systems
 begin
 
 text \<open>

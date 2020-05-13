@@ -13,6 +13,13 @@ theory Consistency_Preservation
     Open_Induction.Restricted_Predicates
 begin
 
+text \<open>
+Assuming compactness of the consequence relation, the limit of a derivation based on a redundancy
+criterion is satisfiable if and only if the initial set is satisfiable. This material is partly
+based on Section 4.1 of Bachmair and Ganzinger's \emph{Handbook} chapter, but adapted to the
+saturation framework of Waldmann et al.
+\<close>
+
 locale refute_compact_consequence_relation = consequence_relation +
   assumes
     entails_refute_compact: "CC \<Turnstile> Bot \<Longrightarrow> \<exists>CC' \<subseteq> CC. finite CC' \<and> CC' \<Turnstile> Bot"
@@ -81,8 +88,7 @@ This corresponds to Lemma 4.2:
 \<close>
 
 lemma
-  assumes
-    chain_red: "chain (\<rhd>Red) Ns"
+  assumes chain_red: "chain (\<rhd>Red) Ns"
   shows
     Red_F_Sup_subset_Red_F_Liminf: "Red_F (Sup_llist Ns) \<subseteq> Red_F (Liminf_llist Ns)" and
     Red_Inf_Sup_subset_Red_Inf_Liminf: "Red_Inf (Sup_llist Ns) \<subseteq> Red_Inf (Liminf_llist Ns)" and
