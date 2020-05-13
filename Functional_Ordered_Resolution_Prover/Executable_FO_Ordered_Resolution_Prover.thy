@@ -165,13 +165,13 @@ definition prover :: "((nat, nat) Term.term literal list \<times> nat) list \<Ri
 theorem prover_complete_refutation: "prover N \<longleftrightarrow> satisfiable (RP.grounded_N0 N)"
   unfolding prover_def St0_def
   using RP.deterministic_RP_complete[of N 0] RP.deterministic_RP_refutation[of N 0]
-  by (auto simp: grounding_of_clss_def grounding_of_cls_def ex_ground_subst
+  by (force simp: grounding_of_clss_def grounding_of_cls_def ex_ground_subst
     split: option.splits if_splits)
 
 definition string_literal_of_nat :: "nat \<Rightarrow> String.literal" where
   "string_literal_of_nat n = String.implode (show n)"
 
-export_code prover Fun Var Pos Neg string_literal_of_nat "0::nat" "Suc" in SML module_name RPx file "RPx.sml"
+export_code prover Fun Var Pos Neg string_literal_of_nat "0::nat" "Suc" in SML module_name RPx
 
 abbreviation "\<pp> \<equiv> Fun 42"
 abbreviation "\<aa> \<equiv> Fun 0 []"
