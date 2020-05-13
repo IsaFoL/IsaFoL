@@ -4,7 +4,7 @@
 
 section \<open>Application of the Saturation Framework to Bachmair and Ganzinger's RP\<close>
 
-theory Ordered_Resolution_Integration
+theory FO_Ordered_Resolution_Prover_Revisited
   imports
     Ordered_Resolution_Prover.FO_Ordered_Resolution_Prover
     Saturation_Framework.Prover_Architectures
