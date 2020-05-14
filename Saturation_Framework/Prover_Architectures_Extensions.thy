@@ -9,6 +9,20 @@ begin
 
 text \<open>TODO.\<close>
 
+
+section \<open>Library\<close>
+
+context prover_architecture_basis
+begin
+
+lemma in_Inf_FL_imp_to_F_in_Inf_F: "\<iota> \<in> Inf_FL \<Longrightarrow> to_F \<iota> \<in> Inf_F"
+  by (simp add: Inf_FL_to_Inf_F to_F_def)
+
+end
+
+
+section \<open>Given Clause Procedure\<close>
+
 context given_clause
 begin
 
@@ -97,18 +111,25 @@ qed
 
 end
 
+
+section \<open>Lazy Given Clause\<close>
+
 context lazy_given_clause
 begin
 
+definition from_F :: "'f inference \<Rightarrow> ('f \<times> 'l) inference set" where
+  "from_F \<iota> = {\<iota>' \<in> Inf_FL. to_F \<iota>' = \<iota>}"
+
 fun invar :: "'f inference set \<times> ('f \<times> 'l) set \<Rightarrow> bool" where
-  "invar (T, N) \<longleftrightarrow> no_labels.Inf_from (fst ` active_subset N) \<subseteq> T \<union> no_labels.Red_Inf_Q (fst ` N)"
+  "invar (T, N) \<longleftrightarrow> Inf_from (active_subset N) \<subseteq> \<Union> (from_F ` T) \<union> Red_Inf_Q N"
 
 lemma lgc_invar_init:
   assumes
-    "T = {\<iota>. \<iota> \<in> Inf_F \<and> prems_of \<iota> = []}" and
-    "active_subset N = {}"
+    t: "T = {\<iota>. \<iota> \<in> Inf_F \<and> prems_of \<iota> = []}" and
+    n_pas: "active_subset N = {}"
   shows "invar (T, N)"
-  unfolding assms invar.simps no_labels.Inf_from_def by auto
+  unfolding invar.simps n_pas Inf_from_def from_F_def t
+  by (auto intro: in_Inf_FL_imp_to_F_in_Inf_F simp: to_F_def)
 
 lemma lgc_invar_step:
   assumes
@@ -120,26 +141,24 @@ proof induction
   case (process N1 N M N2 M' T)
   note n1 = this(1) and n2 = this(2) and m_red = this(3) and m'_pas = this(4) and inv = this(5)
 
-  let ?Tlcs = "(\<lambda>C. (C, undefined)) ` concl_of ` T"
-
   have "Inf_from (active_subset N2) \<subseteq> Inf_from (active_subset N1)"
     unfolding n1 n2 Inf_from_def using m'_pas by auto
-  also have "... \<subseteq> Red_Inf_\<G>_Q (?Tlcs \<union> N1)"
+  also have "... \<subseteq> \<Union> (from_F ` T) \<union> Red_Inf_\<G>_Q N1"
     by (rule inv[unfolded invar.simps])
-  also have "... \<subseteq> Red_Inf_\<G>_Q (?Tlcs \<union> N1 \<union> N2)"
-    unfolding n1 n2 using Red_Inf_of_subset by auto
-  also have "... \<subseteq> Red_Inf_\<G>_Q (?Tlcs \<union> N2)"
+  also have "... \<subseteq> \<Union> (from_F ` T) \<union> Red_Inf_\<G>_Q (N1 \<union> N2)"
+    unfolding n1 n2 by (rule Un_mono[OF order.refl Red_Inf_of_subset]) blast
+  also have "... \<subseteq> \<Union> (from_F ` T) \<union> Red_Inf_\<G>_Q N2"
   proof
     fix \<iota>
-    assume \<iota>_in: "\<iota> \<in> Red_Inf_\<G>_Q (?Tlcs \<union> N1 \<union> N2)"
-    have "Red_F_\<G>_Q N2 \<subseteq> Red_F_\<G>_Q (?Tlcs \<union> N1 \<union> N2)"
+    assume \<iota>_in: "\<iota> \<in> \<Union> (from_F ` T) \<union> Red_Inf_\<G>_Q (N1 \<union> N2)"
+    have "Red_F_\<G>_Q N2 \<subseteq> Red_F_\<G>_Q (N1 \<union> N2)"
       by (simp add: Red_F_of_subset)
-    then have m_red': "M \<subseteq> Red_F_\<G>_Q (?Tlcs \<union> N1 \<union> N2)"
+    then have m_red': "M \<subseteq> Red_F_\<G>_Q (N1 \<union> N2)"
       using m_red unfolding n1 n2 by blast
-    have "\<iota> \<in> Red_Inf_\<G>_Q (?Tlcs \<union> N1 \<union> N2 - M)"
+    have "\<iota> \<in> \<Union> (from_F ` T) \<union> Red_Inf_\<G>_Q (N1 \<union> N2 - M)"
       using \<iota>_in Red_Inf_of_Red_F_subset[OF m_red'] unfolding n1 n2 by blast
-    then show "\<iota> \<in> Red_Inf_\<G>_Q (?Tlcs \<union> N2)"
-      using Red_Inf_of_subset[of "?Tlcs \<union> N1 \<union> N2 - M" "?Tlcs \<union> N2"] unfolding n1 n2 by auto
+    then show "\<iota> \<in> \<Union> (from_F ` T) \<union> Red_Inf_\<G>_Q N2"
+      using Red_Inf_of_subset[of "N1 \<union> N2 - M" N2] unfolding n1 n2 by auto
   qed
   finally show ?case
     unfolding invar.simps .
