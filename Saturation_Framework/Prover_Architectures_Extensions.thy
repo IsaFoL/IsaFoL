@@ -18,6 +18,9 @@ begin
 lemma in_Inf_FL_imp_to_F_in_Inf_F: "\<iota> \<in> Inf_FL \<Longrightarrow> to_F \<iota> \<in> Inf_F"
   by (simp add: Inf_FL_to_Inf_F to_F_def)
 
+lemma in_Inf_from_imp_to_F_in_Inf_from: "\<iota> \<in> Inf_from N \<Longrightarrow> to_F \<iota> \<in> no_labels.Inf_from (fst ` N)"
+  unfolding Inf_from_def no_labels.Inf_from_def to_F_def by (auto intro:  Inf_FL_to_Inf_F)
+
 end
 
 
@@ -178,26 +181,12 @@ next
     fix \<iota>
     assume \<iota>_inff: "\<iota> \<in> Inf_from (active_subset N)"
 
-    note \<iota>_inf = Inf_if_Inf_from[OF \<iota>_inff]
-    hence F\<iota>_inf: "to_F \<iota> \<in> Inf_F"
-      by (simp add: Inf_FL_to_Inf_F \<iota>_inf to_F_def)
-
-    have F\<iota>_inff: "to_F \<iota> \<in> no_labels.Inf_from (fst ` active_subset N)"
-      using \<iota>_inff using F\<iota>_inf unfolding to_F_def Inf_from_def no_labels.Inf_from_def by auto
-
-    have "\<iota> \<in> Red_Inf_\<G>_Q ((\<lambda>C. (C, undefined)) ` concl_of ` T1 \<union> N)"
-      using \<iota>_inff inv[unfolded invar.simps] by auto
-    then have "to_F \<iota> \<in> no_labels.Red_Inf_\<G>_Q (concl_of ` T1 \<union> fst ` N)"
-      sorry
-    then have "to_F \<iota> \<in> no_labels.Red_Inf_\<G>_Q (concl_of ` T2 \<union> fst ` N)"
-      unfolding t1 using t'_orph F\<iota>_inff
-
-
-      unfolding no_labels.Red_Inf_Q_def no_labels.Inf_from_def
-      sorry
-    then show "\<iota> \<in> Red_Inf_\<G>_Q ((\<lambda>C. (C, undefined)) ` concl_of ` T2 \<union> N)"
-      apply (subst labeled_red_inf_eq_red_inf[OF \<iota>_inf])
-      by (simp add: image_Un image_comp)
+    have "to_F \<iota> \<notin> T'"
+      using t'_orph \<iota>_inff in_Inf_from_imp_to_F_in_Inf_from by blast
+    hence "\<iota> \<notin> \<Union> (from_F ` T')"
+      unfolding from_F_def by auto
+    then show "\<iota> \<in> \<Union> (from_F ` T2) \<union> Red_Inf_\<G>_Q N"
+      using \<iota>_inff inv unfolding t1 by auto
   qed
 qed
 
