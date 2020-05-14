@@ -8,7 +8,7 @@ theory FO_Ordered_Resolution_Prover_Revisited
   imports
     Ordered_Resolution_Prover.FO_Ordered_Resolution_Prover
     Saturation_Framework.Prover_Architectures
-    Clausal_Inference_Systems
+    Clausal_Calculi
     Soundness
 begin
 
@@ -32,26 +32,13 @@ hide_const (open) Inference_System.Infer Inference_System.main_prem_of
 
 type_synonym 'a old_inference = "'a Inference_System.inference"
 
-abbreviation old_Infer :: "'a clause multiset \<Rightarrow> 'a clause \<Rightarrow> 'a clause \<Rightarrow> 'a old_inference" where
-  "old_Infer \<equiv> Inference_System.Infer"
-
-abbreviation old_side_prems_of :: "'a old_inference \<Rightarrow> 'a clause multiset" where
-  "old_side_prems_of \<equiv> Inference_System.side_prems_of"
-
-abbreviation old_main_prem_of :: "'a old_inference \<Rightarrow> 'a clause" where
-  "old_main_prem_of \<equiv> Inference_System.main_prem_of"
-
-abbreviation old_concl_of :: "'a old_inference \<Rightarrow> 'a clause" where
-  "old_concl_of \<equiv> Inference_System.concl_of"
-
-abbreviation old_prems_of :: "'a old_inference \<Rightarrow> 'a clause multiset" where
-  "old_prems_of \<equiv> Inference_System.prems_of"
-
-abbreviation old_concls_of :: "'a old_inference set \<Rightarrow> 'a clause set" where
-  "old_concls_of \<equiv> Inference_System.concls_of"
-
-abbreviation old_infer_from :: "'a clause set \<Rightarrow> 'a old_inference \<Rightarrow> bool" where
-  "old_infer_from \<equiv> Inference_System.infer_from"
+abbreviation "old_Infer \<equiv> Inference_System.Infer"
+abbreviation "old_side_prems_of \<equiv> Inference_System.side_prems_of"
+abbreviation "old_main_prem_of \<equiv> Inference_System.main_prem_of"
+abbreviation "old_concl_of \<equiv> Inference_System.concl_of"
+abbreviation "old_prems_of \<equiv> Inference_System.prems_of"
+abbreviation "old_concls_of \<equiv> Inference_System.concls_of"
+abbreviation "old_infer_from \<equiv> Inference_System.infer_from"
 
 lemmas old_infer_from_def = Inference_System.infer_from_def
 
@@ -350,7 +337,7 @@ lemma trans_L_Prec: "l1 \<sqsubset>l l2 \<Longrightarrow> l2 \<sqsubset>l l3 \<L
 lemma wf_L_Prec: "wfP (\<sqsubset>l)"
   by (metis L_Prec.elims(2) L_Prec.simps(3) not_accp_down wfP_accp_iff)
 
-interpretation FL: Given_Clause "{{#}}" F_Inf "{{#}}" UNIV "\<lambda>N. (\<TTurnstile>e)" G_Inf G.Red_Inf
+interpretation FL: given_clause "{{#}}" F_Inf "{{#}}" UNIV "\<lambda>N. (\<TTurnstile>e)" G_Inf G.Red_Inf
   "\<lambda>N. G.Red_F" "\<lambda>N. \<G>_F" \<G>_Inf_opt FL_Inf "(\<doteq>)" "(\<prec>\<cdot>)" "(\<sqsubset>l)" Old
 proof (unfold_locales; (intro ballI)?)
   show "equivp (\<doteq>)"
@@ -549,7 +536,7 @@ proof -
   proof (cases "size (fst Dl) = size (fst Cl)")
     case True
     then have "Dl \<sqsubset> Cl"
-      apply (unfold FL.Prec_FL_def Prover_Architecture_Basis.Prec_FL_def)
+      apply (unfold FL.Prec_FL_def)
       apply (unfold generalizes_def strictly_generalizes_def)
       using d_sub_c
       apply (unfold strictly_subsumes_def subsumes_def)

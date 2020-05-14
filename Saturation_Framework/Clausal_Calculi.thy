@@ -1,11 +1,11 @@
-(*  Title:       Clausal Inference Systems
+(*  Title:       Clausal Calculi
     Author:      Jasmin Blanchette <j.c.blanchette at vu.nl>, 2020
     Maintainer:  Jasmin Blanchette <j.c.blanchette at vu.nl>
 *)
 
-section \<open>Clausal Inference Systems\<close>
+section \<open>Clausal Calculi\<close>
 
-theory Clausal_Inference_Systems
+theory Clausal_Calculi
   imports
     Ordered_Resolution_Prover.Unordered_Ground_Resolution
     Consistency_Preservation

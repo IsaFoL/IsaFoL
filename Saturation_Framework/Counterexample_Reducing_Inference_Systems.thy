@@ -35,7 +35,8 @@ locale cex_red_inference_system = inference_system Inf + consequence_relation
   fixes I_of :: "'f set \<Rightarrow> 'f set"
   assumes Inf_cex_reducing:
     "N \<inter> Bot = {} \<Longrightarrow> D \<in> N \<Longrightarrow> \<not> I_of N \<Turnstile> {D} \<Longrightarrow> (\<And>C. C \<in> N \<Longrightarrow> \<not> I_of N \<Turnstile> {C} \<Longrightarrow> D \<le> C) \<Longrightarrow>
-     \<exists>\<iota> \<in> Inf. main_prem_of \<iota> = D \<and> set (side_prems_of \<iota>) \<subseteq> N \<and> I_of N \<Turnstile> set (side_prems_of \<iota>)
+     \<exists>\<iota> \<in> Inf. prems_of \<iota> \<noteq> [] \<and> main_prem_of \<iota> = D \<and> set (side_prems_of \<iota>) \<subseteq> N \<and> I_of N
+         \<Turnstile> set (side_prems_of \<iota>)
        \<and> \<not> I_of N \<Turnstile> {concl_of \<iota>} \<and> concl_of \<iota> < D"
 begin
 

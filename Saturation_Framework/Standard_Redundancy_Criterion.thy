@@ -77,7 +77,7 @@ definition Red_Inf :: "'f set \<Rightarrow> 'f inference set" where
   "Red_Inf N = {\<iota> \<in> Inf. redundant_infer N \<iota>}"
 
 definition Red_F :: "'f set \<Rightarrow> 'f set" where
-  "Red_F N = {C. (\<exists>DD \<subseteq> N. DD \<Turnstile> {C} \<and> (\<forall>D \<in> DD. D < C))}"
+  "Red_F N = {C. \<exists>DD \<subseteq> N. DD \<Turnstile> {C} \<and> (\<forall>D \<in> DD. D < C)}"
 
 text \<open>
 The following results correspond to Lemma 4.5. The lemma \<open>wlog_non_Red_F\<close> generalizes the core of
@@ -304,7 +304,6 @@ proof (rule ccontr)
     concl_cex: "\<not> I_of N \<Turnstile> {concl_of \<iota>}" and
     concl_lt_d: "concl_of \<iota> < D"
     using Inf_cex_reducing[OF bot_ni_n] not_le by metis
-  thm Inf_cex_reducing
   have "\<iota> \<in> Red_Inf N"
     by (rule subsetD[OF satur[unfolded saturated_def Inf_from_def]],
         simp add: \<iota>_in Inf_set_prems_of)
