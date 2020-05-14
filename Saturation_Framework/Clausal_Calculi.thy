@@ -157,11 +157,8 @@ lemma Inf_cex_reducing:
     d_in_n: "D \<in> N" and
     n_ent_d: "\<not> I_of N \<TTurnstile>e {D}" and
     d_min: "\<And>C. C \<in> N \<Longrightarrow> \<not> I_of N \<TTurnstile>e {C} \<Longrightarrow> D \<le> C"
-  shows "\<exists>\<iota> \<in> Inf.
-    main_prem_of \<iota> = D \<and> set (side_prems_of \<iota>) \<subseteq> N
-    \<and> I_of N \<TTurnstile>e set (side_prems_of \<iota>)
-    \<and> \<not> I_of N \<TTurnstile>e {concl_of \<iota>}
-    \<and> concl_of \<iota> < D"
+  shows "\<exists>\<iota> \<in> Inf. prems_of \<iota> \<noteq> [] \<and> main_prem_of \<iota> = D \<and> set (side_prems_of \<iota>) \<subseteq> N
+    \<and> I_of N \<TTurnstile>e set (side_prems_of \<iota>)  \<and> \<not> I_of N \<TTurnstile>e {concl_of \<iota>} \<and> concl_of \<iota> < D"
 proof -
   have "{#} \<notin> N"
     using bot_ni_n by auto
@@ -202,19 +199,11 @@ sublocale cex_red_calculus_with_std_red_crit "{{#}}" "(\<TTurnstile>e)" I_of
 sublocale refute_compact_calculus_with_red_crit "{{#}}" Inf "(\<TTurnstile>e)" Red_Inf Red_F
   by unfold_locales
 
-lemma clausal_saturated_model:
-  assumes
-    "saturated N"
-    "{#} \<notin> N"
-  shows "clausal_I_of N \<TTurnstile>s N"
-  using assms by (simp add: saturated_model[simplified])
+lemma clausal_saturated_model: "saturated N \<Longrightarrow> {#} \<notin> N \<Longrightarrow> clausal_I_of N \<TTurnstile>s N"
+  by (simp add: saturated_model[simplified])
 
-corollary clausal_saturated_complete:
-  assumes
-    "saturated N" and
-    "\<forall>I. \<not> I \<TTurnstile>s N"
-  shows "{#} \<in> N"
-  using assms clausal_saturated_model by blast
+corollary clausal_saturated_complete: "saturated N \<Longrightarrow> (\<forall>I. \<not> I \<TTurnstile>s N) \<Longrightarrow> {#} \<in> N"
+  using clausal_saturated_model by blast
 
 end
 
