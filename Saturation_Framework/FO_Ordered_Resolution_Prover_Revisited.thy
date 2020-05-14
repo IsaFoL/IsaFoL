@@ -230,8 +230,7 @@ proof -
   assume \<iota>\<^sub>0_in: "\<iota>\<^sub>0 \<in> G.Inf_from M (\<Union> (\<G>_F ` M))"
   have prems_\<iota>\<^sub>0_in: "set (prems_of \<iota>\<^sub>0) \<subseteq> \<Union> (\<G>_F ` M)"
     using \<iota>\<^sub>0_in unfolding G.Inf_from_def by simp
-  have \<iota>\<^sub>0_G_Inf: \<open>\<iota>\<^sub>0 \<in> G_Inf M\<close>
-    using \<iota>\<^sub>0_in unfolding G.Inf_from_def inference_system.Inf_from_def by blast
+  note \<iota>\<^sub>0_G_Inf = G.Inf_if_Inf_from[OF \<iota>\<^sub>0_in]
   then obtain CAs DA AAs As E where
     gr_res: \<open>gr.ord_resolve M CAs DA AAs As E\<close> and
     \<iota>\<^sub>0_is: \<open>\<iota>\<^sub>0 = Infer (CAs @ [DA]) E\<close>
@@ -624,11 +623,10 @@ proof (intro set_eqI iffI)
     using e_in unfolding inference_system.inferences_between_def infer_from_def ord_FO_\<Gamma>_def by auto
 
   show "E \<in> concl_of ` F.Inf_from2 N {C}"
-    unfolding F.Inf_from2_alt F.Inf_from_def F_Inf_def inference_system.Inf_from2_alt
-      inference_system.Inf_from_def
+    unfolding F.Inf_from2_alt F.Inf_from_def
     apply (auto simp: image_def)
     apply (rule_tac x = "Infer (CAs @ [DA]) E" in exI)
-    using e_res cd_sub c_in by auto
+    using e_res cd_sub c_in F_Inf_def by auto
 next
   fix E
   assume e_in: "E \<in> concl_of ` F.Inf_from2 N {C}"
@@ -665,8 +663,7 @@ proof (rule FL.step.infer[of _ N C l _ M])
     fix \<iota>
     assume \<iota>_in_if2: "\<iota> \<in> F.Inf_from2 (fst ` FL.active_subset N) {C}"
 
-    have \<iota>_in: "\<iota> \<in> F_Inf"
-      using \<iota>_in_if2 unfolding F.Inf_from2_def F.Inf_from_def by auto
+    note \<iota>_in = F.Inf_if_Inf_from2[OF \<iota>_in_if2]
 
     have "concl_of \<iota> \<in> fst ` M"
       using m_sup' \<iota>_in_if2 m_sup' by (auto simp: image_def Collect_mono_iff F.Inf_from2_alt)
@@ -942,12 +939,12 @@ proof -
   have "gd.inferences_from Sts G \<subseteq> src.Ri Sts G"
   proof
     fix \<gamma>
-    assume \<gamma>_in_inf: "\<gamma> \<in> gd.inferences_from Sts G"
+    assume \<gamma>_inf: "\<gamma> \<in> gd.inferences_from Sts G"
 
     obtain \<iota> where
-      \<iota>_in_inff: "\<iota> \<in> G.Inf_from Q G" and
+      \<iota>_inff: "\<iota> \<in> G.Inf_from Q G" and
       \<gamma>: "\<gamma> = old_infer_of \<iota>"
-      using \<gamma>_in_inf unfolding gd.inferences_from_def old_infer_from_def G.Inf_from_def 
+      using \<gamma>_inf unfolding gd.inferences_from_def old_infer_from_def G.Inf_from_def 
         old_infer_of_def
       apply atomize_elim
       apply auto
@@ -963,24 +960,23 @@ proof -
     done
 
     obtain \<iota>' where
-      \<iota>'_in_inff: "\<iota>' \<in> F.Inf_from Q" and
+      \<iota>'_inff: "\<iota>' \<in> F.Inf_from Q" and
       \<iota>_in_\<iota>': "\<iota> \<in> \<G>_Inf Q \<iota>'"
-      using G_Inf_overapproximates_F_Inf \<iota>_in_inff unfolding G_def by blast
+      using G_Inf_overapproximates_F_Inf \<iota>_inff unfolding G_def by blast
 
-    have \<iota>'_in_inf: "\<iota>' \<in> F_Inf"
-      using F.Inf_from_def \<iota>'_in_inff by blast
+    note \<iota>'_inf = F.Inf_if_Inf_from[OF \<iota>'_inff]
 
     let ?olds = "replicate (length (prems_of \<iota>')) Old"
 
     obtain \<iota>'' and l0 where
       \<iota>'': "\<iota>'' = Infer (zip (prems_of \<iota>') ?olds) (concl_of \<iota>', l0)" and
-      \<iota>''_in_inf: "\<iota>'' \<in> FL_Inf"
-      using FL.Inf_F_to_Inf_FL[OF \<iota>'_in_inf, of ?olds, simplified] by blast
+      \<iota>''_inf: "\<iota>'' \<in> FL_Inf"
+      using FL.Inf_F_to_Inf_FL[OF \<iota>'_inf, of ?olds, simplified] by blast
 
     have "set (prems_of \<iota>'') \<subseteq> Ql"
-      using \<iota>'_in_inff[unfolded F.Inf_from_def, simplified] unfolding \<iota>'' Ql_def by auto
+      using \<iota>'_inff[unfolded F.Inf_from_def, simplified] unfolding \<iota>'' Ql_def by auto
     then have "\<iota>'' \<in> FL.Inf_from Ql"
-      unfolding FL.Inf_from_def using \<iota>''_in_inf by simp
+      unfolding FL.Inf_from_def using \<iota>''_inf by simp
     moreover have "\<iota>' = FL.to_F \<iota>''"
       unfolding \<iota>'' unfolding FL.to_F_def by simp
     ultimately have "\<iota> \<in> G.Red_Inf Q G"
@@ -992,7 +988,7 @@ proof -
     then have \<gamma>_red: "src.redundant_infer G \<gamma>"
       unfolding \<gamma> by (rule new_redundant_infer_imp_old_redundant_infer)
     moreover have "\<gamma> \<in> gd.ord_\<Gamma> Sts"
-      using \<gamma>_in_inf gd.inferences_from_def by blast
+      using \<gamma>_inf gd.inferences_from_def by blast
     ultimately show "\<gamma> \<in> src.Ri Sts G"
       unfolding src.Ri_def by auto
   qed
