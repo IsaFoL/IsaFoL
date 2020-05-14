@@ -167,7 +167,35 @@ proof induction
     unfolding invar.simps .
 next
   case (schedule_infer T2 T1 T' N1 N C L N2)
-  show ?case sorry
+  note t2 = this(1) and n1 = this(2) and n2 = this(3) and l_pas = this(4) and t' = this(5) and
+    inv = this(6)
+
+  have act: "active_subset (N \<union> {(C, L)}) = active_subset N"
+    using l_pas by auto
+
+  show ?case
+    unfolding invar.simps t2 n1 n2
+  proof
+    fix \<iota>
+    assume \<iota>_inff: "\<iota> \<in> Inf_from (active_subset (N \<union> {(C, active)}))"
+
+    note \<iota>_inf = Inf_if_Inf_from[OF \<iota>_inff]
+
+    have "to_F \<iota> \<in> no_labels.Inf_from (fst ` active_subset N \<union> {C})"
+      using \<iota>_inff in_Inf_from_imp_to_F_in_Inf_from by fastforce
+    then have "to_F \<iota> \<in> T' \<union> no_labels.Inf_from (fst ` active_subset N)"
+      unfolding t' no_labels.Inf_from_def no_labels.Inf_from2_def by blast
+    then have "\<iota> \<in> \<Union> (from_F ` T') \<union> Inf_from (active_subset (N \<union> {(C, L)}))"
+      unfolding t' act from_F_def
+      using \<iota>_inf
+      apply auto
+      using Inf_if_Inf_from \<open>\<iota> \<in> Inf_from (active_subset (N \<union> {(C, active)}))\<close> apply blast
+      sorry
+    then have "\<iota> \<in> \<Union> (from_F ` T') \<union> \<Union> (from_F ` T1) \<union> Red_Inf_\<G>_Q (N \<union> {(C, L)})"
+      using inv[unfolded invar.simps t2 n1 n2] by blast
+    show "\<iota> \<in> \<Union> (from_F ` (T1 \<union> T')) \<union> Red_Inf_\<G>_Q (N \<union> {(C, active)})"
+      sorry
+  qed
 next
   case (compute_infer T1 T2 \<iota> N2 N1 M)
   show ?case sorry
