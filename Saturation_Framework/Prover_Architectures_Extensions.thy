@@ -13,7 +13,7 @@ context given_clause
 begin
 
 abbreviation invar :: "('f \<times> 'l) set \<Rightarrow> bool" where
-  "invar N \<equiv> saturated_wrt N (active_subset N)"
+  "invar N \<equiv> Inf_from (active_subset N) \<subseteq> Red_Inf_Q N"
 
 lemma gc_invar_init: "active_subset N = {} \<Longrightarrow> invar N"
   unfolding Inf_from_def using labeled_inf_have_prems by auto
@@ -101,35 +101,14 @@ context lazy_given_clause
 begin
 
 fun invar :: "'f inference set \<times> ('f \<times> 'l) set \<Rightarrow> bool" where
-  "invar (T, N) = saturated_wrt (((\<lambda>C. (C, undefined)) ` concl_of ` T) \<union> N) (active_subset N)"
+  "invar (T, N) \<longleftrightarrow> no_labels.Inf_from (fst ` active_subset N) \<subseteq> T \<union> no_labels.Red_Inf_Q (fst ` N)"
 
 lemma lgc_invar_init:
   assumes
-    t: "T = {\<iota>. \<iota> \<in> Inf_F \<and> prems_of \<iota> = []}" and
-    n_pas: "active_subset N = {}"
+    "T = {\<iota>. \<iota> \<in> Inf_F \<and> prems_of \<iota> = []}" and
+    "active_subset N = {}"
   shows "invar (T, N)"
-proof -
-  show ?thesis
-    unfolding invar.simps n_pas
-  proof
-    fix \<iota>
-    assume \<iota>_inff: "\<iota> \<in> Inf_from {}"
-
-    note \<iota>_inf = Inf_if_Inf_from[OF \<iota>_inff]
-    have F\<iota>_inf: "to_F \<iota> \<in> Inf_F"
-      by (simp add: Inf_FL_to_Inf_F \<iota>_inf to_F_def)
-    have "prems_of \<iota> = []"
-      using \<iota>_inff unfolding Inf_from_def by auto
-    then have F\<iota>_no_prems: "prems_of (to_F \<iota>) = []"
-      unfolding to_F_def by auto
-    have "to_F \<iota> \<in> no_labels.Red_Inf_\<G>_Q (concl_of ` T)"
-      unfolding t using no_labels.Red_Inf_of_Inf_to_N[OF F\<iota>_inf] F\<iota>_inf F\<iota>_no_prems by auto
-    then have "to_F \<iota> \<in> no_labels.Red_Inf_\<G>_Q (concl_of ` T \<union> fst ` N)"
-      using no_labels.Red_Inf_of_subset by blast
-    then show "\<iota> \<in> Red_Inf_\<G>_Q ((\<lambda>C. (C, undefined)) ` concl_of ` T \<union> N)"
-      by (simp add: image_comp image_Un labeled_red_inf_eq_red_inf[OF \<iota>_inf])
-  qed
-qed
+  unfolding assms invar.simps no_labels.Inf_from_def by auto
 
 lemma lgc_invar_step:
   assumes
