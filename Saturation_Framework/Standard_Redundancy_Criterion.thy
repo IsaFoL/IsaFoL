@@ -66,9 +66,6 @@ locale calculus_with_std_red_crit = inference_system Inf + compact_consequence_r
     Inf_reductive: "\<iota> \<in> Inf \<Longrightarrow> concl_of \<iota> < main_prem_of \<iota>"
 begin
 
-lemma Inf_set_prems_of: "\<iota> \<in> Inf \<Longrightarrow> set (prems_of \<iota>) = {main_prem_of \<iota>} \<union> set (side_prems_of \<iota>)"
-  using set_prems_of Inf_has_prem by metis
-
 definition redundant_infer :: "'f set \<Rightarrow> 'f inference \<Rightarrow> bool" where
   "redundant_infer N \<iota> \<longleftrightarrow>
    (\<exists>DD \<subseteq> N. DD \<union> set (side_prems_of \<iota>) \<Turnstile> {concl_of \<iota>} \<and> (\<forall>D \<in> DD. D < main_prem_of \<iota>))"
@@ -306,7 +303,7 @@ proof (rule ccontr)
     using Inf_cex_reducing[OF bot_ni_n] not_le by metis
   have "\<iota> \<in> Red_Inf N"
     by (rule subsetD[OF satur[unfolded saturated_def Inf_from_def]],
-        simp add: \<iota>_in Inf_set_prems_of)
+        simp add: \<iota>_in set_prems_of Inf_has_prem)
       (use \<iota>_mprem d_in_n sprem_subs_n  in blast)
   then have "\<iota> \<in> Red_Inf N"
     using Red_Inf_without_red_F by blast
