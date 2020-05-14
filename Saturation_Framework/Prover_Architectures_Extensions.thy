@@ -7,7 +7,8 @@ theory Prover_Architectures_Extensions
   imports Saturation_Framework.Prover_Architectures
 begin
 
-text \<open>TODO.\<close>
+text \<open>The given clause and lazy given clause procedures satisfy a key saturation invariant. This
+provides an alternative way to study them.\<close>
 
 
 section \<open>Library\<close>
@@ -106,8 +107,9 @@ next
       then have "\<iota> \<in> Red_Inf_\<G>_Q (N \<union> {(C, L)})"
         using inv[unfolded n1 n2] by blast
       then show ?thesis
-        by (smt Un_insert_right Un_upper2 image_insert labeled_red_inf_eq_red_inf le_sup_iff
-            Red_Inf_of_subset Red_Inf_to_Inf prod.sel(1) subsetD subset_Un_eq)
+        using labeled_red_inf_eq_red_inf[OF \<iota>_inf]
+        by (smt Un_insert_right Un_upper2 image_insert le_sup_iff Red_Inf_of_subset prod.sel(1)
+            subsetD subset_Un_eq)
     qed
   qed
 qed
@@ -169,36 +171,80 @@ next
   case (schedule_infer T2 T1 T' N1 N C L N2)
   note t2 = this(1) and n1 = this(2) and n2 = this(3) and l_pas = this(4) and t' = this(5) and
     inv = this(6)
-
-  have act: "active_subset (N \<union> {(C, L)}) = active_subset N"
-    using l_pas by auto
-
   show ?case
     unfolding invar.simps t2 n1 n2
   proof
     fix \<iota>
     assume \<iota>_inff: "\<iota> \<in> Inf_from (active_subset (N \<union> {(C, active)}))"
 
-    note \<iota>_inf = Inf_if_Inf_from[OF \<iota>_inff]
+    have \<iota>_inf: "\<iota> \<in> Inf_FL"
+      using \<iota>_inff unfolding Inf_from_def by auto
+    then have F\<iota>_inf: "to_F \<iota> \<in> Inf_F"
+      using Inf_FL_to_Inf_F[folded to_F_def] by fastforce
 
-    have "to_F \<iota> \<in> no_labels.Inf_from (fst ` active_subset N \<union> {C})"
-      using \<iota>_inff in_Inf_from_imp_to_F_in_Inf_from by fastforce
-    then have "to_F \<iota> \<in> T' \<union> no_labels.Inf_from (fst ` active_subset N)"
-      unfolding t' no_labels.Inf_from_def no_labels.Inf_from2_def by blast
-    then have "\<iota> \<in> \<Union> (from_F ` T') \<union> Inf_from (active_subset (N \<union> {(C, L)}))"
-      unfolding t' act from_F_def
-      using \<iota>_inf
-      apply auto
-      using Inf_if_Inf_from \<open>\<iota> \<in> Inf_from (active_subset (N \<union> {(C, active)}))\<close> apply blast
-      sorry
-    then have "\<iota> \<in> \<Union> (from_F ` T') \<union> \<Union> (from_F ` T1) \<union> Red_Inf_\<G>_Q (N \<union> {(C, L)})"
-      using inv[unfolded invar.simps t2 n1 n2] by blast
+    have F\<iota>_inff:
+      "to_F \<iota> \<in> no_labels.Inf_from (fst ` (active_subset (N \<union> {(C, active)})))"
+      using \<iota>_inff F\<iota>_inf unfolding to_F_def Inf_from_def no_labels.Inf_from_def by auto
+
     show "\<iota> \<in> \<Union> (from_F ` (T1 \<union> T')) \<union> Red_Inf_\<G>_Q (N \<union> {(C, active)})"
-      sorry
+    proof (cases "to_F \<iota> \<in> no_labels.Inf_from2 (fst ` active_subset N) {C}")
+      case True
+      then have "\<iota> \<in> \<Union> (from_F ` (T1 \<union> T'))"
+        unfolding t' from_F_def using \<iota>_inf by auto
+      then show ?thesis
+        by blast
+    next
+      case False
+      then have "to_F \<iota> \<in> no_labels.Inf_from (fst ` active_subset N)"
+        using F\<iota>_inff unfolding no_labels.Inf_from_def no_labels.Inf_from2_def by auto
+      then have "\<iota> \<in> Inf_from (active_subset (N \<union> {(C, L)}))"
+        using l_pas
+        apply auto
+        unfolding to_F_def Inf_from_def no_labels.Inf_from_def using \<iota>_inf
+        apply auto
+        by (smt Inf_from_def \<iota>_inff active_subset_def imageE image_subset_iff in_mono mem_Collect_eq prod.collapse)
+      then have "\<iota> \<in> \<Union> (from_F ` (T1 \<union> T')) \<union> Red_Inf_\<G>_Q (N \<union> {(C, L)})"
+        using inv[unfolded invar.simps n1 n2] by blast
+      then show ?thesis
+        using labeled_red_inf_eq_red_inf[OF \<iota>_inf] by simp
+    qed
   qed
 next
   case (compute_infer T1 T2 \<iota> N2 N1 M)
-  show ?case sorry
+  note t1 = this(1) and n2 = this(2) and m_pas = this(3) and \<iota>_red = this(4) and inv = this(5)
+  show ?case
+    unfolding invar.simps n2
+  proof
+    fix \<iota>'
+    assume \<iota>'_inff: "\<iota>' \<in> Inf_from (active_subset (N1 \<union> M))"
+
+    have \<iota>'_bef: "\<iota>' \<in> \<Union> (from_F ` (T2 \<union> {\<iota>})) \<union> Red_Inf_\<G>_Q N1"
+      using \<iota>'_inff inv[unfolded invar.simps t1] m_pas by auto
+    then show "\<iota>' \<in> \<Union> (from_F ` T2) \<union> Red_Inf_\<G>_Q (N1 \<union> M)"
+    proof (cases "\<iota>' \<in> \<Union> (from_F ` (T2 \<union> {\<iota>}))")
+      case \<iota>'_in_t2_or_\<iota>: True
+      then show ?thesis
+      proof (cases "\<iota>' \<in> from_F \<iota>")
+        case \<iota>'_in_\<iota>: True
+        then have "\<iota>' \<in> Red_Inf_\<G>_Q (N1 \<union> M)"
+          using \<iota>_red from_F_def labeled_red_inf_eq_red_inf by auto
+        then show ?thesis
+          by auto
+      next
+        case False
+        then have "\<iota>' \<in> \<Union> (from_F ` T2)"
+          using \<iota>'_in_t2_or_\<iota> by auto
+        then show ?thesis
+          by auto
+      qed
+    next
+      case False
+      then have "\<iota>' \<in> Red_Inf_\<G>_Q N1"
+        using \<iota>'_bef by simp
+      then show ?thesis
+        by (metis (no_types, lifting) UnCI local.Red_Inf_of_subset subset_iff)
+    qed
+  qed
 next
   case (delete_orphans T1 T2 T' N)
   note t1 = this(1) and t'_orph = this(2) and inv = this(3)
