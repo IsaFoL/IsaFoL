@@ -11,20 +11,6 @@ text \<open>The given clause and lazy given clause procedures satisfy a key satu
 provides an alternative way to study them.\<close>
 
 
-section \<open>Library\<close>
-
-context prover_architecture_basis
-begin
-
-lemma in_Inf_FL_imp_to_F_in_Inf_F: "\<iota> \<in> Inf_FL \<Longrightarrow> to_F \<iota> \<in> Inf_F"
-  by (simp add: Inf_FL_to_Inf_F to_F_def)
-
-lemma in_Inf_from_imp_to_F_in_Inf_from: "\<iota> \<in> Inf_from N \<Longrightarrow> to_F \<iota> \<in> no_labels.Inf_from (fst ` N)"
-  unfolding Inf_from_def no_labels.Inf_from_def to_F_def by (auto intro: Inf_FL_to_Inf_F)
-
-end
-
-
 section \<open>Given Clause Procedure\<close>
 
 context given_clause
@@ -180,8 +166,6 @@ lemma gc_Liminf_saturated_new_proof:
   shows "saturated (Liminf_llist Ns)"
   unfolding saturated_def
 proof -
-  note red = gc_to_red[OF gc]
-
   have inf_init: "Inf_from (active_subset (lnth Ns 0)) = {}"
     unfolding init Inf_from_def by (simp add: labeled_inf_have_prems)
 
@@ -189,7 +173,8 @@ proof -
     using lim unfolding active_subset_def passive_subset_def
     by (smt Collect_empty_eq mem_Collect_eq set_eq_subset subsetI)
   also have "... \<subseteq> Red_Inf_\<G>_Q (Liminf_llist Ns)" (is "_ \<subseteq> ?rhs")
-    using invar_Liminf_llist[OF red] gc_invar[OF gc init, unfolded inf_init, OF empty_subsetI]
+    using invar_Liminf_llist[OF gc_to_red[OF gc]]
+      gc_invar[OF gc init, unfolded inf_init, OF empty_subsetI]
     by blast
   finally show "?lhs \<subseteq> ?rhs"
     .
@@ -209,17 +194,17 @@ definition from_F :: "'f inference \<Rightarrow> ('f \<times> 'l) inference set"
 definition invar :: "'f inference set \<times> ('f \<times> 'l) set \<Rightarrow> bool" where
   "invar TN \<longleftrightarrow> Inf_from (active_subset (snd TN)) \<subseteq> \<Union> (from_F ` (fst TN)) \<union> Red_Inf_\<G>_Q (snd TN)"
 
-definition
+abbreviation
   Liminf_state :: "('f inference set \<times> ('f \<times> 'l) set) llist \<Rightarrow> 'f inference set \<times> ('f \<times> 'l) set"
 where
-  "Liminf_state TNs = (Liminf_llist (lmap fst TNs), Liminf_llist (lmap snd TNs))"
+  "Liminf_state TNs \<equiv> (Liminf_llist (lmap fst TNs), Liminf_llist (lmap snd TNs))"
 
 lemma invar_Liminf_llist:
   assumes
     red: "chain (\<rhd>RedL) (lmap snd TNs)" and
     invar: "\<forall>i. enat i < llength TNs \<longrightarrow> invar (lnth TNs i)"
   shows "invar (Liminf_state TNs)"
-  unfolding Liminf_state_def invar_def prod.sel
+  unfolding invar_def prod.sel
 proof
   fix \<iota>
   assume \<iota>_inff: "\<iota> \<in> Inf_from (active_subset (Liminf_llist (lmap snd TNs)))"
@@ -401,7 +386,6 @@ next
 next
   case (delete_orphans T1 T2 T' N)
   note t1 = this(1) and t'_orph = this(2) and inv = this(3)
-
   show ?case
     unfolding invar_def prod.sel
   proof
@@ -449,17 +433,15 @@ lemma lgc_Liminf_saturated_new_proof:
   shows "saturated (Liminf_llist (lmap snd TNs))"
   unfolding saturated_def
 proof -
-  note red = lgc_to_red[OF lgc]
-
   have "Inf_from (Liminf_llist (lmap snd TNs)) =
     Inf_from (active_subset (Liminf_llist (lmap snd TNs)))" (is "?lhs = _")
     using n_lim unfolding active_subset_def passive_subset_def
     by (smt Collect_empty_eq mem_Collect_eq set_eq_subset subsetI)
   also have "... \<subseteq> \<Union> (from_F ` Liminf_llist (lmap fst TNs))
-    \<union> Red_Inf_\<G>_Q (Liminf_llist (lmap snd TNs))" (is "_ \<subseteq> ?rhs")
-    using invar_Liminf_llist[OF red]
+    \<union> Red_Inf_\<G>_Q (Liminf_llist (lmap snd TNs))"
+    using invar_Liminf_llist[OF lgc_to_red[OF lgc]]
       lgc_invar[OF lgc n_init t_init lgc_invar_init[OF n_init t_init]]
-    unfolding Liminf_state_def invar_def by auto
+    unfolding invar_def by auto
   also have "... = Red_Inf_\<G>_Q (Liminf_llist (lmap snd TNs))" (is "_ = ?rhs")
     unfolding t_lim by auto
   finally show "?lhs \<subseteq> ?rhs"
