@@ -36,38 +36,41 @@ abbreviation invar :: "('f \<times> 'l) set \<Rightarrow> bool" where
 lemma invar_Liminf_llist:
   assumes
     deriv: "chain (\<rhd>RedL) Ns" and
-    invar: "\<forall>i. invar (lnth Ns i)"
+    invar: "\<forall>i. enat i < llength Ns \<longrightarrow> invar (lnth Ns i)"
   shows "invar (Liminf_llist Ns)"
-proof -
-  have fair: "fair Ns"
-    unfolding fair_def
-  proof
-    fix \<iota>
-    assume \<iota>_inff: "\<iota> \<in> Inf_from (Liminf_llist Ns)"
-    note \<iota>_inf = Inf_if_Inf_from[OF \<iota>_inff]
-    obtain i where
-      "enat i < llength Ns" and
-      "set (prems_of \<iota>) \<subseteq> \<Inter> (lnth Ns ` {j. i \<le> j \<and> enat j < llength Ns})"
-      using \<iota>_inff[unfolded Liminf_llist_def Inf_from_def, simplified]
-      apply auto
+proof
+  fix \<iota>
+  assume \<iota>_inff: "\<iota> \<in> Inf_from (active_subset (Liminf_llist Ns))"
 
-    then obtain i where
-      "enat i < llength Ns" and
-      "\<iota> \<in> Inf_from (\<Inter> (lnth Ns ` {j. i \<le> j \<and> enat j < llength Ns}))"
-      sorry
+  define As where
+    "As = lmap active_subset Ns"
 
-    show "\<iota> \<in> Sup_Red_Inf_llist Ns"
-      sorry
-  qed
+  have act_ns: "active_subset (Liminf_llist Ns) = Liminf_llist As"
+    unfolding As_def active_subset_def by (rule Liminf_set_filter_commute[symmetric])
 
-  have "Inf_from (active_subset (Liminf_llist Ns)) \<subseteq> Inf_from (Liminf_llist Ns)"
-    unfolding active_subset_def by (auto intro!: Inf_from_mono)
-  also have "... \<subseteq> Red_Inf_\<G>_Q (Liminf_llist Ns)"
-    by (rule fair_implies_Liminf_saturated[OF deriv fair, unfolded saturated_def])
-  finally show ?thesis
-    .
+  note \<iota>_inf = Inf_if_Inf_from[OF \<iota>_inff]
+  note \<iota>_inff' = \<iota>_inff[unfolded act_ns]
+  note fin = finite_set[of "prems_of \<iota>"]
+
+  have nnil: "\<not> lnull As"
+    unfolding As_def using chain_not_lnull[OF deriv] by auto
+  have prems_in_lim: "set (prems_of \<iota>) \<subseteq> Liminf_llist As"
+    using \<iota>_inff'[unfolded Inf_from_def] by simp
+
+  obtain i where
+    i_lt: "enat i < llength As" and
+    prems_sub: "set (prems_of \<iota>) \<subseteq> \<Inter> (lnth As ` {j. i \<le> j \<and> enat j < llength As})"
+    using finite_subset_Liminf_llist_imp_exists_index[OF nnil fin prems_in_lim] by blast
+
+  have prems_sub_i: "set (prems_of \<iota>) \<subseteq> lnth As i"
+    using prems_sub i_lt by auto
+  then have "\<iota> \<in> Inf_from (active_subset (lnth Ns i))"
+    using i_lt \<iota>_inf unfolding Inf_from_def As_def by auto
+  then have "\<iota> \<in> Red_Inf_\<G>_Q (lnth Ns i)"
+    using i_lt[unfolded As_def] invar by auto
+  then show "\<iota> \<in> Red_Inf_\<G>_Q (Liminf_llist Ns)"
+    using deriv i_in_Liminf_or_Red_F[of Ns i] i_lt[unfolded As_def] Red_Inf_subset_Liminf by auto
 qed
-
 
 lemma gc_invar_init: "active_subset N = {} \<Longrightarrow> invar N"
   unfolding Inf_from_def using labeled_inf_have_prems by auto
@@ -148,6 +151,50 @@ next
             subsetD subset_Un_eq)
     qed
   qed
+qed
+
+lemma gc_invar:
+  assumes
+    gc: "chain (\<Longrightarrow>GC) Ns" and
+    init: "active_subset (lnth Ns 0) = {}" and
+    invar: "invar (lnth Ns 0)" and
+    i_lt: "enat i < llength Ns"
+  shows "invar (lnth Ns i)"
+  using i_lt
+proof (induct i)
+  case 0
+  then show ?case
+    using gc_invar_init[OF init] unfolding lnth_0_conv_lhd[OF chain_not_lnull[OF gc]] by auto
+next
+  case (Suc i)
+  note ih = this(1) and Si_lt = this(2)
+  have i_lt: "enat i < llength Ns"
+    using Si_lt Suc_ile_eq less_le by blast
+  show ?case
+    by (rule gc_invar_step[OF ih[OF i_lt]]) (simp add: chain_lnth_rel gc Si_lt)
+qed
+
+lemma gc_Liminf_saturated_again:
+  assumes
+    gc: "chain (\<Longrightarrow>GC) Ns" and
+    init: "active_subset (lnth Ns 0) = {}" and
+    final: "passive_subset (Liminf_llist Ns) = {}"
+  shows "saturated (Liminf_llist Ns)"
+  unfolding saturated_def
+proof -
+  note red = gc_to_red[OF gc]
+
+  have inf_init: "Inf_from (active_subset (lnth Ns 0)) = {}"
+    unfolding init Inf_from_def by (simp add: labeled_inf_have_prems)
+
+  have "Inf_from (Liminf_llist Ns) = Inf_from (active_subset (Liminf_llist Ns))" (is "?lhs = _")
+    using final unfolding active_subset_def passive_subset_def
+    by (smt Collect_empty_eq mem_Collect_eq set_eq_subset subsetI)
+  also have "... \<subseteq> Red_Inf_\<G>_Q (Liminf_llist Ns)" (is "_ \<subseteq> ?rhs")
+    using invar_Liminf_llist[OF red] gc_invar[OF gc init, unfolded inf_init, OF empty_subsetI]
+    by blast
+  finally show "?lhs \<subseteq> ?rhs"
+    .
 qed
 
 end
