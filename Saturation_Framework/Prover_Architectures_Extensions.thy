@@ -35,7 +35,7 @@ abbreviation invar :: "('f \<times> 'l) set \<Rightarrow> bool" where
 
 lemma invar_Liminf_llist:
   assumes
-    deriv: "chain (\<rhd>RedL) Ns" and
+    red: "chain (\<rhd>RedL) Ns" and
     invar: "\<forall>i. enat i < llength Ns \<longrightarrow> invar (lnth Ns i)"
   shows "invar (Liminf_llist Ns)"
 proof
@@ -52,24 +52,23 @@ proof
   note \<iota>_inff' = \<iota>_inff[unfolded act_ns]
   note fin = finite_set[of "prems_of \<iota>"]
 
-  have nnil: "\<not> lnull As"
-    unfolding As_def using chain_not_lnull[OF deriv] by auto
-  have prems_in_lim: "set (prems_of \<iota>) \<subseteq> Liminf_llist As"
+  have "\<not> lnull As"
+    unfolding As_def using chain_not_lnull[OF red] by auto
+  moreover have "set (prems_of \<iota>) \<subseteq> Liminf_llist As"
     using \<iota>_inff'[unfolded Inf_from_def] by simp
-
-  obtain i where
+  ultimately obtain i where
     i_lt: "enat i < llength As" and
-    prems_sub: "set (prems_of \<iota>) \<subseteq> \<Inter> (lnth As ` {j. i \<le> j \<and> enat j < llength As})"
-    using finite_subset_Liminf_llist_imp_exists_index[OF nnil fin prems_in_lim] by blast
+    prems_sub_ge_i: "set (prems_of \<iota>) \<subseteq> \<Inter> (lnth As ` {j. i \<le> j \<and> enat j < llength As})"
+    using finite_subset_Liminf_llist_imp_exists_index by blast
 
-  have prems_sub_i: "set (prems_of \<iota>) \<subseteq> lnth As i"
-    using prems_sub i_lt by auto
+  have "set (prems_of \<iota>) \<subseteq> lnth As i"
+    using prems_sub_ge_i i_lt by auto
   then have "\<iota> \<in> Inf_from (active_subset (lnth Ns i))"
     using i_lt \<iota>_inf unfolding Inf_from_def As_def by auto
   then have "\<iota> \<in> Red_Inf_\<G>_Q (lnth Ns i)"
     using i_lt[unfolded As_def] invar by auto
   then show "\<iota> \<in> Red_Inf_\<G>_Q (Liminf_llist Ns)"
-    using deriv i_in_Liminf_or_Red_F[of Ns i] i_lt[unfolded As_def] Red_Inf_subset_Liminf by auto
+    using red i_in_Liminf_or_Red_F[of Ns i] i_lt[unfolded As_def] Red_Inf_subset_Liminf by auto
 qed
 
 lemma gc_invar_init: "active_subset N = {} \<Longrightarrow> invar N"
@@ -97,14 +96,15 @@ proof induct
     assume \<iota>_in: "\<iota> \<in> Red_Inf_\<G>_Q (N1 \<union> N2)"
     have "Red_F_\<G>_Q N2 \<subseteq> Red_F_\<G>_Q (N1 \<union> N2)"
       by (simp add: Red_F_of_subset)
-    then have m_red': "M \<subseteq> Red_F_\<G>_Q (N1 \<union> N2)"
+    then have "M \<subseteq> Red_F_\<G>_Q (N1 \<union> N2)"
       using m_red unfolding n1 n2 by blast
-    have "\<iota> \<in> Red_Inf_\<G>_Q (N1 \<union> N2 - M)"
-      using \<iota>_in Red_Inf_of_Red_F_subset[OF m_red'] unfolding n1 n2 by blast
+    then have "\<iota> \<in> Red_Inf_\<G>_Q (N1 \<union> N2 - M)"
+      using \<iota>_in Red_Inf_of_Red_F_subset unfolding n1 n2 by blast
     then show "\<iota> \<in> Red_Inf_\<G>_Q N2"
       using Red_Inf_of_subset[of "N1 \<union> N2 - M" N2] unfolding n1 n2 by auto
   qed
-  finally show ?case .
+  finally show ?case
+    .
 next
   case (infer N1 N C L N2 M)
   note n1 = this(1) and n2 = this(2) and l_pas = this(3) and m_pas = this(4) and
@@ -142,7 +142,8 @@ next
         apply auto
         unfolding to_F_def Inf_from_def no_labels.Inf_from_def using \<iota>_inf
         apply auto
-        by (smt Inf_from_def \<iota>_inff active_subset_def imageE image_subset_iff in_mono mem_Collect_eq prod.collapse)
+        by (smt Inf_from_def \<iota>_inff active_subset_def imageE image_subset_iff in_mono mem_Collect_eq
+            prod.collapse)
       then have "\<iota> \<in> Red_Inf_\<G>_Q (N \<union> {(C, L)})"
         using inv[unfolded n1 n2] by blast
       then show ?thesis
@@ -218,7 +219,7 @@ where
 
 lemma invar_Liminf_llist:
   assumes
-    deriv: "chain (\<rhd>RedL) (lmap snd TNs)" and
+    red: "chain (\<rhd>RedL) (lmap snd TNs)" and
     invar: "\<forall>i. enat i < llength TNs \<longrightarrow> invar (lnth TNs i)"
   shows "invar (Liminf_state TNs)"
   unfolding Liminf_state_def invar_def prod.sel
@@ -236,27 +237,53 @@ proof
   note \<iota>_inff' = \<iota>_inff[unfolded act_ns]
   note fin = finite_set[of "prems_of \<iota>"]
 
-  have nnil: "\<not> lnull As"
-    unfolding As_def using chain_not_lnull[OF deriv] by auto
-  have prems_in_lim: "set (prems_of \<iota>) \<subseteq> Liminf_llist As"
+  have
+    as_nnil: "\<not> lnull As" and
+    ts_nnil: "\<not> lnull (lmap fst TNs)"
+    unfolding As_def using chain_not_lnull[OF red] by auto
+
+  have "set (prems_of \<iota>) \<subseteq> Liminf_llist As"
     using \<iota>_inff'[unfolded Inf_from_def] by simp
+  then obtain i where
+    i_lt_as: "enat i < llength As" and
+    prems_sub_ge_i: "set (prems_of \<iota>) \<subseteq> \<Inter> (lnth As ` {j. i \<le> j \<and> enat j < llength As})"
+    using finite_subset_Liminf_llist_imp_exists_index[OF as_nnil fin] by blast
 
-  obtain i where
-    i_lt: "enat i < llength As" and
-    prems_sub: "set (prems_of \<iota>) \<subseteq> \<Inter> (lnth As ` {j. i \<le> j \<and> enat j < llength As})"
-    using finite_subset_Liminf_llist_imp_exists_index[OF nnil fin prems_in_lim] by blast
-
-  have prems_sub_i: "set (prems_of \<iota>) \<subseteq> lnth As i"
-    using prems_sub i_lt by auto
-  then have "\<iota> \<in> Inf_from (active_subset (lnth (lmap snd TNs) i))"
-    using i_lt \<iota>_inf unfolding Inf_from_def As_def by auto
-  then have "\<iota> \<in> \<Union> (from_F ` lnth (lmap fst TNs) i) \<union> Red_Inf_\<G>_Q (lnth (lmap snd TNs) i)"
-    using i_lt[unfolded As_def, simplified] invar unfolding invar_def by auto
-  then show "\<iota> \<in> \<Union> (from_F ` Liminf_llist (lmap fst TNs))
+  show "\<iota> \<in> \<Union> (from_F ` Liminf_llist (lmap fst TNs))
     \<union> Red_Inf_\<G>_Q (Liminf_llist (lmap snd TNs))"
-    using deriv i_in_Liminf_or_Red_F[of "lmap snd TNs" i]
-      i_lt[unfolded As_def, simplified] Red_Inf_subset_Liminf
-    sorry
+  proof (cases "\<iota> \<in> \<Union> (from_F ` Liminf_llist (lmap fst TNs))")
+    case \<iota>_ni_lim: False
+
+    have F\<iota>_ni_lim: "to_F \<iota> \<notin> Liminf_llist (lmap fst TNs)"
+      using \<iota>_inf \<iota>_ni_lim unfolding from_F_def by auto
+    obtain i' where
+      i_le_i': "i \<le> i'" and
+      i'_lt_as: "enat i' < llength As" and
+      F\<iota>_ni_i': "to_F \<iota> \<notin> lnth (lmap fst TNs) i'"
+      using i_lt_as not_Liminf_llist_imp_exists_index[OF ts_nnil F\<iota>_ni_lim, of i] unfolding As_def
+      by auto
+
+    have \<iota>_ni_i': "\<iota> \<notin> \<Union> (from_F ` fst (lnth TNs i'))"
+      using F\<iota>_ni_i' i'_lt_as[unfolded As_def] unfolding from_F_def by auto
+
+    have "set (prems_of \<iota>) \<subseteq> \<Inter> (lnth As ` {j. i' \<le> j \<and> enat j < llength As})"
+      using prems_sub_ge_i i_le_i' by auto
+    then have "set (prems_of \<iota>) \<subseteq> lnth As i'"
+      using i'_lt_as by auto
+    then have "\<iota> \<in> Inf_from (active_subset (snd (lnth TNs i')))"
+      using i'_lt_as \<iota>_inf unfolding Inf_from_def As_def by auto
+    then have \<iota>_in_i': "\<iota> \<in> \<Union> (from_F ` fst (lnth TNs i')) \<union> Red_Inf_\<G>_Q (snd (lnth TNs i'))"
+      using i'_lt_as[unfolded As_def] invar[unfolded invar_def] by auto
+    then have "\<iota> \<in> Red_Inf_\<G>_Q (snd (lnth TNs i'))"
+      using \<iota>_ni_i' by auto
+    then have "\<iota> \<in> Red_Inf_\<G>_Q (Liminf_llist (lmap snd TNs))"
+      using \<iota>_in_i' i_in_Liminf_or_Red_F[of _ i', OF red]
+        i'_lt_as[unfolded As_def, simplified] Red_Inf_subset_Liminf[OF red]
+      by auto
+    then show ?thesis
+      using red i_in_Liminf_or_Red_F[of "lmap snd TNs" i] i_lt_as[unfolded As_def]
+        Red_Inf_subset_Liminf by auto
+  qed fast
 qed
 
 lemma lgc_invar_init:
@@ -289,10 +316,10 @@ proof induction
     assume \<iota>_in: "\<iota> \<in> \<Union> (from_F ` T) \<union> Red_Inf_\<G>_Q (N1 \<union> N2)"
     have "Red_F_\<G>_Q N2 \<subseteq> Red_F_\<G>_Q (N1 \<union> N2)"
       by (simp add: Red_F_of_subset)
-    then have m_red': "M \<subseteq> Red_F_\<G>_Q (N1 \<union> N2)"
+    then have "M \<subseteq> Red_F_\<G>_Q (N1 \<union> N2)"
       using m_red unfolding n1 n2 by blast
-    have "\<iota> \<in> \<Union> (from_F ` T) \<union> Red_Inf_\<G>_Q (N1 \<union> N2 - M)"
-      using \<iota>_in Red_Inf_of_Red_F_subset[OF m_red'] unfolding n1 n2 by blast
+    then have "\<iota> \<in> \<Union> (from_F ` T) \<union> Red_Inf_\<G>_Q (N1 \<union> N2 - M)"
+      using \<iota>_in Red_Inf_of_Red_F_subset unfolding n1 n2 by blast
     then show "\<iota> \<in> \<Union> (from_F ` T) \<union> Red_Inf_\<G>_Q N2"
       using Red_Inf_of_subset[of "N1 \<union> N2 - M" N2] unfolding n1 n2 by auto
   qed
@@ -333,7 +360,8 @@ next
         apply auto
         unfolding to_F_def Inf_from_def no_labels.Inf_from_def using \<iota>_inf
         apply auto
-        by (smt Inf_from_def \<iota>_inff active_subset_def imageE image_subset_iff in_mono mem_Collect_eq prod.collapse)
+        by (smt Inf_from_def \<iota>_inff active_subset_def imageE image_subset_iff in_mono mem_Collect_eq
+            prod.collapse)
       then have "\<iota> \<in> \<Union> (from_F ` (T1 \<union> T')) \<union> Red_Inf_\<G>_Q (N \<union> {(C, L)})"
         using inv[unfolded invar_def n1 n2] by auto
       then show ?thesis
@@ -428,11 +456,6 @@ lemma lgc_Liminf_saturated_new_proof:
   unfolding saturated_def
 proof -
   note red = lgc_to_red[OF lgc]
-
-  thm invar_Liminf_llist[OF red, unfolded invar_def, simplified]
-  thm lgc_invar[OF lgc, unfolded invar_def, simplified]
-
-  thm invar_def
 
   have "Inf_from (Liminf_llist (lmap snd TNs)) =
     Inf_from (active_subset (Liminf_llist (lmap snd TNs)))" (is "?lhs = _")
