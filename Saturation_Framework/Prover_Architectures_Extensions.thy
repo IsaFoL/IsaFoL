@@ -164,21 +164,21 @@ lemma gc_invar:
 proof (induct i)
   case 0
   then show ?case
-    using gc_invar_init[OF init] unfolding lnth_0_conv_lhd[OF chain_not_lnull[OF gc]] by auto
+    using gc_invar_init[OF init] by auto
 next
   case (Suc i)
   note ih = this(1) and Si_lt = this(2)
   have i_lt: "enat i < llength Ns"
     using Si_lt Suc_ile_eq less_le by blast
   show ?case
-    by (rule gc_invar_step[OF ih[OF i_lt]]) (simp add: chain_lnth_rel gc Si_lt)
+    by (rule gc_invar_step[OF ih[OF i_lt]]) (rule chain_lnth_rel[OF gc Si_lt])
 qed
 
-lemma gc_Liminf_saturated_again:
+lemma gc_Liminf_saturated_new_proof:
   assumes
     gc: "chain (\<Longrightarrow>GC) Ns" and
     init: "active_subset (lnth Ns 0) = {}" and
-    final: "passive_subset (Liminf_llist Ns) = {}"
+    lim: "passive_subset (Liminf_llist Ns) = {}"
   shows "saturated (Liminf_llist Ns)"
   unfolding saturated_def
 proof -
@@ -188,7 +188,7 @@ proof -
     unfolding init Inf_from_def by (simp add: labeled_inf_have_prems)
 
   have "Inf_from (Liminf_llist Ns) = Inf_from (active_subset (Liminf_llist Ns))" (is "?lhs = _")
-    using final unfolding active_subset_def passive_subset_def
+    using lim unfolding active_subset_def passive_subset_def
     by (smt Collect_empty_eq mem_Collect_eq set_eq_subset subsetI)
   also have "... \<subseteq> Red_Inf_\<G>_Q (Liminf_llist Ns)" (is "_ \<subseteq> ?rhs")
     using invar_Liminf_llist[OF red] gc_invar[OF gc init, unfolded inf_init, OF empty_subsetI]
@@ -208,22 +208,70 @@ begin
 definition from_F :: "'f inference \<Rightarrow> ('f \<times> 'l) inference set" where
   "from_F \<iota> = {\<iota>' \<in> Inf_FL. to_F \<iota>' = \<iota>}"
 
-fun invar :: "'f inference set \<times> ('f \<times> 'l) set \<Rightarrow> bool" where
-  "invar (T, N) \<longleftrightarrow> Inf_from (active_subset N) \<subseteq> \<Union> (from_F ` T) \<union> Red_Inf_\<G>_Q N"
+definition invar :: "'f inference set \<times> ('f \<times> 'l) set \<Rightarrow> bool" where
+  "invar TN \<longleftrightarrow> Inf_from (active_subset (snd TN)) \<subseteq> \<Union> (from_F ` (fst TN)) \<union> Red_Inf_\<G>_Q (snd TN)"
+
+definition
+  Liminf_state :: "('f inference set \<times> ('f \<times> 'l) set) llist \<Rightarrow> 'f inference set \<times> ('f \<times> 'l) set"
+where
+  "Liminf_state TNs = (Liminf_llist (lmap fst TNs), Liminf_llist (lmap snd TNs))"
+
+lemma invar_Liminf_llist:
+  assumes
+    deriv: "chain (\<rhd>RedL) (lmap snd TNs)" and
+    invar: "\<forall>i. enat i < llength TNs \<longrightarrow> invar (lnth TNs i)"
+  shows "invar (Liminf_state TNs)"
+  unfolding Liminf_state_def invar_def prod.sel
+proof
+  fix \<iota>
+  assume \<iota>_inff: "\<iota> \<in> Inf_from (active_subset (Liminf_llist (lmap snd TNs)))"
+
+  define As where
+    "As = lmap active_subset (lmap snd TNs)"
+
+  have act_ns: "active_subset (Liminf_llist (lmap snd TNs)) = Liminf_llist As"
+    unfolding As_def active_subset_def by (rule Liminf_set_filter_commute[symmetric])
+
+  note \<iota>_inf = Inf_if_Inf_from[OF \<iota>_inff]
+  note \<iota>_inff' = \<iota>_inff[unfolded act_ns]
+  note fin = finite_set[of "prems_of \<iota>"]
+
+  have nnil: "\<not> lnull As"
+    unfolding As_def using chain_not_lnull[OF deriv] by auto
+  have prems_in_lim: "set (prems_of \<iota>) \<subseteq> Liminf_llist As"
+    using \<iota>_inff'[unfolded Inf_from_def] by simp
+
+  obtain i where
+    i_lt: "enat i < llength As" and
+    prems_sub: "set (prems_of \<iota>) \<subseteq> \<Inter> (lnth As ` {j. i \<le> j \<and> enat j < llength As})"
+    using finite_subset_Liminf_llist_imp_exists_index[OF nnil fin prems_in_lim] by blast
+
+  have prems_sub_i: "set (prems_of \<iota>) \<subseteq> lnth As i"
+    using prems_sub i_lt by auto
+  then have "\<iota> \<in> Inf_from (active_subset (lnth (lmap snd TNs) i))"
+    using i_lt \<iota>_inf unfolding Inf_from_def As_def by auto
+  then have "\<iota> \<in> \<Union> (from_F ` lnth (lmap fst TNs) i) \<union> Red_Inf_\<G>_Q (lnth (lmap snd TNs) i)"
+    using i_lt[unfolded As_def, simplified] invar unfolding invar_def by auto
+  then show "\<iota> \<in> \<Union> (from_F ` Liminf_llist (lmap fst TNs))
+    \<union> Red_Inf_\<G>_Q (Liminf_llist (lmap snd TNs))"
+    using deriv i_in_Liminf_or_Red_F[of "lmap snd TNs" i]
+      i_lt[unfolded As_def, simplified] Red_Inf_subset_Liminf
+    sorry
+qed
 
 lemma lgc_invar_init:
   assumes
-    t: "T = {\<iota>. \<iota> \<in> Inf_F \<and> prems_of \<iota> = []}" and
-    n_pas: "active_subset N = {}"
-  shows "invar (T, N)"
-  unfolding invar.simps n_pas Inf_from_def from_F_def t
-  by (auto intro: in_Inf_FL_imp_to_F_in_Inf_F simp: to_F_def)
+    n_init: "active_subset (snd TN) = {}" and
+    t_init: "\<forall>\<iota> \<in> Inf_F. length (prems_of \<iota>) = 0 \<longrightarrow> \<iota> \<in> fst TN"
+  shows "invar TN"
+  unfolding n_init invar_def prod.sel Inf_from_def from_F_def using t_init
+  by (fastforce dest: Inf_FL_to_Inf_F in_Inf_FL_imp_to_F_in_Inf_F simp: to_F_def)
 
 lemma lgc_invar_step:
   assumes
-    invar: "invar (T1, N1)" and
-    step: "(T1, N1) \<Longrightarrow>LGC (T2, N2)"
-  shows "invar (T2, N2)"
+    invar: "invar TN1" and
+    step: "TN1 \<Longrightarrow>LGC TN2"
+  shows "invar TN2"
   using step invar
 proof induction
   case (process N1 N M N2 M' T)
@@ -232,7 +280,7 @@ proof induction
   have "Inf_from (active_subset N2) \<subseteq> Inf_from (active_subset N1)"
     unfolding n1 n2 Inf_from_def using m'_pas by auto
   also have "... \<subseteq> \<Union> (from_F ` T) \<union> Red_Inf_\<G>_Q N1"
-    by (rule inv[unfolded invar.simps])
+    using inv unfolding invar_def by simp
   also have "... \<subseteq> \<Union> (from_F ` T) \<union> Red_Inf_\<G>_Q (N1 \<union> N2)"
     unfolding n1 n2 by (rule Un_mono[OF order.refl Red_Inf_of_subset]) blast
   also have "... \<subseteq> \<Union> (from_F ` T) \<union> Red_Inf_\<G>_Q N2"
@@ -249,13 +297,13 @@ proof induction
       using Red_Inf_of_subset[of "N1 \<union> N2 - M" N2] unfolding n1 n2 by auto
   qed
   finally show ?case
-    unfolding invar.simps .
+    unfolding invar_def by simp
 next
   case (schedule_infer T2 T1 T' N1 N C L N2)
   note t2 = this(1) and n1 = this(2) and n2 = this(3) and l_pas = this(4) and t' = this(5) and
     inv = this(6)
   show ?case
-    unfolding invar.simps t2 n1 n2
+    unfolding invar_def prod.sel t2 n1 n2
   proof
     fix \<iota>
     assume \<iota>_inff: "\<iota> \<in> Inf_from (active_subset (N \<union> {(C, active)}))"
@@ -287,7 +335,7 @@ next
         apply auto
         by (smt Inf_from_def \<iota>_inff active_subset_def imageE image_subset_iff in_mono mem_Collect_eq prod.collapse)
       then have "\<iota> \<in> \<Union> (from_F ` (T1 \<union> T')) \<union> Red_Inf_\<G>_Q (N \<union> {(C, L)})"
-        using inv[unfolded invar.simps n1 n2] by blast
+        using inv[unfolded invar_def n1 n2] by auto
       then show ?thesis
         using labeled_red_inf_eq_red_inf[OF \<iota>_inf] by simp
     qed
@@ -296,13 +344,13 @@ next
   case (compute_infer T1 T2 \<iota> N2 N1 M)
   note t1 = this(1) and n2 = this(2) and m_pas = this(3) and \<iota>_red = this(4) and inv = this(5)
   show ?case
-    unfolding invar.simps n2
+    unfolding invar_def prod.sel n2
   proof
     fix \<iota>'
     assume \<iota>'_inff: "\<iota>' \<in> Inf_from (active_subset (N1 \<union> M))"
 
     have \<iota>'_bef: "\<iota>' \<in> \<Union> (from_F ` (T2 \<union> {\<iota>})) \<union> Red_Inf_\<G>_Q N1"
-      using \<iota>'_inff inv[unfolded invar.simps t1] m_pas by auto
+      using \<iota>'_inff inv[unfolded invar_def t1] m_pas by auto
     then show "\<iota>' \<in> \<Union> (from_F ` T2) \<union> Red_Inf_\<G>_Q (N1 \<union> M)"
     proof (cases "\<iota>' \<in> \<Union> (from_F ` (T2 \<union> {\<iota>}))")
       case \<iota>'_in_t2_or_\<iota>: True
@@ -333,7 +381,7 @@ next
   note t1 = this(1) and t'_orph = this(2) and inv = this(3)
 
   show ?case
-    unfolding invar.simps
+    unfolding invar_def prod.sel
   proof
     fix \<iota>
     assume \<iota>_inff: "\<iota> \<in> Inf_from (active_subset N)"
@@ -343,8 +391,62 @@ next
     hence "\<iota> \<notin> \<Union> (from_F ` T')"
       unfolding from_F_def by auto
     then show "\<iota> \<in> \<Union> (from_F ` T2) \<union> Red_Inf_\<G>_Q N"
-      using \<iota>_inff inv unfolding t1 by auto
+      using \<iota>_inff inv unfolding t1 invar_def by auto
   qed
+qed
+
+lemma lgc_invar:
+  assumes
+    lgc: "chain (\<Longrightarrow>LGC) TNs" and
+    n_init: "active_subset (snd (lnth TNs 0)) = {}" and
+    t_init: "\<forall>\<iota> \<in> Inf_F. length (prems_of \<iota>) = 0 \<longrightarrow> \<iota> \<in> fst (lnth TNs 0)" and
+    invar: "invar (lnth TNs 0)" and
+    i_lt: "enat i < llength TNs"
+  shows "invar (lnth TNs i)"
+  using i_lt
+proof (induct i)
+  case 0
+  then show ?case
+    using lgc_invar_init[OF n_init t_init] unfolding invar_def by auto
+next
+  case (Suc i)
+  note ih = this(1) and Si_lt = this(2)
+  have i_lt: "enat i < llength TNs"
+    using Si_lt Suc_ile_eq less_le by blast
+  show ?case
+    by (rule lgc_invar_step[OF ih[OF i_lt]]) (rule chain_lnth_rel[OF lgc Si_lt])
+qed
+
+lemma lgc_Liminf_saturated_new_proof:
+  assumes
+    lgc: "chain (\<Longrightarrow>LGC) TNs" and
+    n_init: "active_subset (snd (lnth TNs 0)) = {}" and
+    n_lim: "passive_subset (Liminf_llist (lmap snd TNs)) = {}" and
+    t_init: "\<forall>\<iota> \<in> Inf_F. length (prems_of \<iota>) = 0 \<longrightarrow> \<iota> \<in> fst (lnth TNs 0)" and
+    t_lim: "Liminf_llist (lmap fst TNs) = {}"
+  shows "saturated (Liminf_llist (lmap snd TNs))"
+  unfolding saturated_def
+proof -
+  note red = lgc_to_red[OF lgc]
+
+  thm invar_Liminf_llist[OF red, unfolded invar_def, simplified]
+  thm lgc_invar[OF lgc, unfolded invar_def, simplified]
+
+  thm invar_def
+
+  have "Inf_from (Liminf_llist (lmap snd TNs)) =
+    Inf_from (active_subset (Liminf_llist (lmap snd TNs)))" (is "?lhs = _")
+    using n_lim unfolding active_subset_def passive_subset_def
+    by (smt Collect_empty_eq mem_Collect_eq set_eq_subset subsetI)
+  also have "... \<subseteq> \<Union> (from_F ` Liminf_llist (lmap fst TNs))
+    \<union> Red_Inf_\<G>_Q (Liminf_llist (lmap snd TNs))" (is "_ \<subseteq> ?rhs")
+    using invar_Liminf_llist[OF red]
+      lgc_invar[OF lgc n_init t_init lgc_invar_init[OF n_init t_init]]
+    unfolding Liminf_state_def invar_def by auto
+  also have "... = Red_Inf_\<G>_Q (Liminf_llist (lmap snd TNs))" (is "_ = ?rhs")
+    unfolding t_lim by auto
+  finally show "?lhs \<subseteq> ?rhs"
+    .
 qed
 
 end
