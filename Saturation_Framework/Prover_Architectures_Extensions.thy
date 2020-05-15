@@ -138,12 +138,9 @@ next
       then have "to_F \<iota> \<in> no_labels.Inf_from (fst ` active_subset N)"
         using F\<iota>_inff unfolding no_labels.Inf_from_def no_labels.Inf_from2_def by auto
       then have "\<iota> \<in> Inf_from (active_subset (N \<union> {(C, L)}))"
-        using l_pas
-        apply auto
-        unfolding to_F_def Inf_from_def no_labels.Inf_from_def using \<iota>_inf
-        apply auto
-        by (smt Inf_from_def \<iota>_inff active_subset_def imageE image_subset_iff in_mono mem_Collect_eq
-            prod.collapse)
+        using \<iota>_inf l_pas unfolding to_F_def Inf_from_def no_labels.Inf_from_def
+        by clarsimp (smt \<iota>_inff[unfolded Inf_from_def] active_subset_def imageE image_subset_iff
+            in_mono mem_Collect_eq prod.collapse)
       then have "\<iota> \<in> Red_Inf_\<G>_Q (N \<union> {(C, L)})"
         using inv[unfolded n1 n2] by blast
       then show ?thesis
@@ -356,12 +353,9 @@ next
       then have "to_F \<iota> \<in> no_labels.Inf_from (fst ` active_subset N)"
         using F\<iota>_inff unfolding no_labels.Inf_from_def no_labels.Inf_from2_def by auto
       then have "\<iota> \<in> Inf_from (active_subset (N \<union> {(C, L)}))"
-        using l_pas
-        apply auto
-        unfolding to_F_def Inf_from_def no_labels.Inf_from_def using \<iota>_inf
-        apply auto
-        by (smt Inf_from_def \<iota>_inff active_subset_def imageE image_subset_iff in_mono mem_Collect_eq
-            prod.collapse)
+        using \<iota>_inf l_pas unfolding to_F_def Inf_from_def no_labels.Inf_from_def
+        by clarsimp (smt \<iota>_inff[unfolded Inf_from_def] active_subset_def imageE image_subset_iff
+            in_mono mem_Collect_eq prod.collapse)
       then have "\<iota> \<in> \<Union> (from_F ` (T1 \<union> T')) \<union> Red_Inf_\<G>_Q (N \<union> {(C, L)})"
         using inv[unfolded invar_def n1 n2] by auto
       then show ?thesis
