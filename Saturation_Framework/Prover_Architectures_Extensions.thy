@@ -20,7 +20,7 @@ lemma in_Inf_FL_imp_to_F_in_Inf_F: "\<iota> \<in> Inf_FL \<Longrightarrow> to_F 
   by (simp add: Inf_FL_to_Inf_F to_F_def)
 
 lemma in_Inf_from_imp_to_F_in_Inf_from: "\<iota> \<in> Inf_from N \<Longrightarrow> to_F \<iota> \<in> no_labels.Inf_from (fst ` N)"
-  unfolding Inf_from_def no_labels.Inf_from_def to_F_def by (auto intro:  Inf_FL_to_Inf_F)
+  unfolding Inf_from_def no_labels.Inf_from_def to_F_def by (auto intro: Inf_FL_to_Inf_F)
 
 end
 
@@ -31,7 +31,43 @@ context given_clause
 begin
 
 abbreviation invar :: "('f \<times> 'l) set \<Rightarrow> bool" where
-  "invar N \<equiv> Inf_from (active_subset N) \<subseteq> Red_Inf_Q N"
+  "invar N \<equiv> Inf_from (active_subset N) \<subseteq> Red_Inf_\<G>_Q N"
+
+lemma invar_Liminf_llist:
+  assumes
+    deriv: "chain (\<rhd>RedL) Ns" and
+    invar: "\<forall>i. invar (lnth Ns i)"
+  shows "invar (Liminf_llist Ns)"
+proof -
+  have fair: "fair Ns"
+    unfolding fair_def
+  proof
+    fix \<iota>
+    assume \<iota>_inff: "\<iota> \<in> Inf_from (Liminf_llist Ns)"
+    note \<iota>_inf = Inf_if_Inf_from[OF \<iota>_inff]
+    obtain i where
+      "enat i < llength Ns" and
+      "set (prems_of \<iota>) \<subseteq> \<Inter> (lnth Ns ` {j. i \<le> j \<and> enat j < llength Ns})"
+      using \<iota>_inff[unfolded Liminf_llist_def Inf_from_def, simplified]
+      apply auto
+
+    then obtain i where
+      "enat i < llength Ns" and
+      "\<iota> \<in> Inf_from (\<Inter> (lnth Ns ` {j. i \<le> j \<and> enat j < llength Ns}))"
+      sorry
+
+    show "\<iota> \<in> Sup_Red_Inf_llist Ns"
+      sorry
+  qed
+
+  have "Inf_from (active_subset (Liminf_llist Ns)) \<subseteq> Inf_from (Liminf_llist Ns)"
+    unfolding active_subset_def by (auto intro!: Inf_from_mono)
+  also have "... \<subseteq> Red_Inf_\<G>_Q (Liminf_llist Ns)"
+    by (rule fair_implies_Liminf_saturated[OF deriv fair, unfolded saturated_def])
+  finally show ?thesis
+    .
+qed
+
 
 lemma gc_invar_init: "active_subset N = {} \<Longrightarrow> invar N"
   unfolding Inf_from_def using labeled_inf_have_prems by auto
@@ -126,7 +162,7 @@ definition from_F :: "'f inference \<Rightarrow> ('f \<times> 'l) inference set"
   "from_F \<iota> = {\<iota>' \<in> Inf_FL. to_F \<iota>' = \<iota>}"
 
 fun invar :: "'f inference set \<times> ('f \<times> 'l) set \<Rightarrow> bool" where
-  "invar (T, N) \<longleftrightarrow> Inf_from (active_subset N) \<subseteq> \<Union> (from_F ` T) \<union> Red_Inf_Q N"
+  "invar (T, N) \<longleftrightarrow> Inf_from (active_subset N) \<subseteq> \<Union> (from_F ` T) \<union> Red_Inf_\<G>_Q N"
 
 lemma lgc_invar_init:
   assumes

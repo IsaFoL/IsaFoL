@@ -381,7 +381,7 @@ qed (auto simp: FL_Inf_def FL_Infer_of_def F_Inf_have_prems)
 
 notation FL.Prec_FL (infix "\<sqsubset>" 50)
 notation FL.entails_\<G>_L_Q (infix "\<TTurnstile>\<G>Le" 50)
-notation FL.derive (infix "\<rhd>RedFL" 50)
+notation FL.derive (infix "\<rhd>RedL" 50)
 notation FL.step (infix "\<Longrightarrow>GC" 50)
 
 lemma FL_Red_F_Q_eq:
@@ -740,12 +740,12 @@ qed
 lemma RP_derivation_imp_GC_derivation: "chain (\<leadsto>) Sts \<Longrightarrow> chain (\<Longrightarrow>GC) (lmap lclss_of_state Sts)"
   using chain_lmap RP_step_imp_GC_step by blast
 
-lemma RP_step_imp_RedFL_step: "St \<leadsto> St' \<Longrightarrow> lclss_of_state St \<rhd>RedFL lclss_of_state St'"
+lemma RP_step_imp_derive_step: "St \<leadsto> St' \<Longrightarrow> lclss_of_state St \<rhd>RedL lclss_of_state St'"
   by (rule FL.one_step_equiv) (rule RP_step_imp_GC_step)
 
-lemma RP_derivation_imp_RedFL_derivation:
-  "chain (\<leadsto>) Sts \<Longrightarrow> chain (\<rhd>RedFL) (lmap lclss_of_state Sts)"
-  using chain_lmap RP_step_imp_RedFL_step by blast
+lemma RP_derivation_imp_derive_derivation:
+  "chain (\<leadsto>) Sts \<Longrightarrow> chain (\<rhd>RedL) (lmap lclss_of_state Sts)"
+  using chain_lmap RP_step_imp_derive_step by blast
 
 theorem RP_sound_new_statement:
   assumes
@@ -762,7 +762,7 @@ proof -
   then have "lhd (lmap lclss_of_state Sts) \<TTurnstile>\<G>Le FL.Bot_FL"
     apply -
     apply (subst (asm) FL.unsat_limit_iff)
-    using deriv RP_derivation_imp_RedFL_derivation
+    using deriv RP_derivation_imp_derive_derivation
       apply simp
     apply (smt F_entails_\<G>_Q_iff FL.labeled_entailment_lifting RP_model chain_lmap deriv \<G>_Fs_def
         image_fst_lclss_of_state)
