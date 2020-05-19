@@ -480,21 +480,50 @@ lemma mem_lclss_of_state[simp]:
   unfolding lclss_of_state_def image_def by auto
 
 lemma lclss_Liminf_commute:
-  "Liminf_llist (lmap lclss_of_state Sts) = lclss_of_state (Liminf_state Sts)"
-  apply (rule sym)
-  apply (subst (2) lclss_of_state_def[abs_def])
-  apply (subst Liminf_llist_lmap_union)
-  defer
-  apply (subst Liminf_llist_lmap_union)
-  defer
-  apply (subst (1 2 3) Liminf_llist_lmap_image)
-       defer
-       defer
-       defer
-  unfolding lclss_of_state_def Liminf_state_def
-  apply auto
-  apply (meson Pair_inject inj_onI)+
-  done
+ "Liminf_llist (lmap lclss_of_state Sts) = lclss_of_state (Liminf_state Sts)"
+proof -
+  have \<open>Liminf_llist (lmap lclss_of_state Sts) =
+    (\<lambda>C. (C, New)) ` Liminf_llist (lmap N_of_state Sts) \<union>
+    (\<lambda>C. (C, Processed)) ` Liminf_llist (lmap P_of_state Sts) \<union>
+    (\<lambda>C. (C, Old)) ` Liminf_llist (lmap Q_of_state Sts)\<close>
+  proof -
+    have \<open>inj_on (\<lambda>C. (C, Old)) (Sup_llist (lmap Q_of_state Sts))\<close>
+      by (meson Pair_inject inj_onI)
+    moreover have \<open>inj_on (\<lambda>C. (C, Processed)) (Sup_llist (lmap P_of_state Sts))\<close>
+      by (meson Pair_inject inj_onI)
+    moreover have \<open>inj_on (\<lambda>C. (C, New)) (Sup_llist (lmap N_of_state Sts))\<close>
+      by (meson Pair_inject inj_onI)
+    moreover have \<open> \<forall>x\<in>lset Sts. \<forall>Y\<in>lset Sts. ((\<lambda>C. (C, New)) ` N_of_state x \<union>
+      (\<lambda>C. (C, Processed)) ` P_of_state x) \<inter> (\<lambda>C. (C, Old)) ` Q_of_state Y = {}\<close>
+      by auto
+    moreover have \<open> \<forall>x\<in>lset Sts. \<forall>Y\<in>lset Sts. (\<lambda>C. (C, New)) ` N_of_state x \<inter>
+      (\<lambda>C. (C, Processed)) ` P_of_state Y = {}\<close>
+      by auto
+    ultimately show ?thesis
+      unfolding lclss_of_state_def[abs_def]
+      using Liminf_llist_lmap_union Liminf_llist_lmap_image
+     by (smt llist.map_cong)
+ qed
+ then show ?thesis
+   unfolding lclss_of_state_def Liminf_state_def by auto
+qed
+
+(* lemma lclss_Liminf_commute:
+ *   "Liminf_llist (lmap lclss_of_state Sts) = lclss_of_state (Liminf_state Sts)"
+ *   apply (rule sym)
+ *   apply (subst (2) lclss_of_state_def[abs_def])
+ *   apply (subst Liminf_llist_lmap_union)
+ *   defer
+ *   apply (subst Liminf_llist_lmap_union)
+ *   defer
+ *   apply (subst (1 2 3) Liminf_llist_lmap_image)
+ *        defer
+ *        defer
+ *        defer
+ *   unfolding lclss_of_state_def Liminf_state_def
+ *   apply auto
+ *   apply (meson Pair_inject inj_onI)+
+ *   done *)
 
 lemma GC_tautology_step:
   assumes tauto: "Neg A \<in># C" "Pos A \<in># C"
@@ -524,6 +553,7 @@ proof -
     apply (rule mem_FL_Red_F_Q_because_G_Red_F)
     using c\<theta>_red[of _ "lclss_of_state (N, P, Q)"] unfolding lclss_of_state_def by auto
 qed
+
 
 lemma GC_subsumption_step:
   assumes
