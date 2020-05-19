@@ -6,7 +6,11 @@ session "Saturation_Framework_Extended" = Saturation_Framework +
     First_Order_Terms
     Well_Quasi_Orders
   theories
-    Ordered_Resolution_Integration
+    FO_Ordered_Resolution_Prover_Revisited
+    Clausal_Calculi
+    Compactness
+    Consistency_Preservation
+    Counterexample_Reducing_Inference_Systems
+    Soundness
     Superposition_Lifting
-    Soundness_Related
     Standard_Redundancy_Criterion
