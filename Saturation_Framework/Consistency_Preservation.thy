@@ -40,7 +40,8 @@ proof -
   {
     fix DD
     assume fin: "finite DD" and sset_lun: "DD \<subseteq> Sup_llist Ns"
-    then obtain k where dd_sset: "DD \<subseteq> Sup_upto_llist Ns k"
+    then obtain k where
+      dd_sset: "DD \<subseteq> Sup_upto_llist Ns (enat k)"
       using finite_Sup_llist_imp_Sup_upto_llist by blast
     have "\<not> Sup_upto_llist Ns k \<Turnstile> Bot"
     proof (induct k)
@@ -52,8 +53,8 @@ proof -
       show ?case
       proof (cases "enat (Suc k) \<ge> llength Ns")
         case True
-        then have "Sup_upto_llist Ns k = Sup_upto_llist Ns (Suc k)"
-          unfolding Sup_upto_llist_def using le_Suc_eq not_less by blast
+        then have "Sup_upto_llist Ns (enat k) = Sup_upto_llist Ns (Suc k)"
+          unfolding Sup_upto_llist_def using le_Suc_eq by auto
         then show ?thesis
           using Suc by simp
       next
