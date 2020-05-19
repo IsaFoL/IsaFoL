@@ -16,15 +16,16 @@ section \<open>Given Clause Procedure\<close>
 context given_clause
 begin
 
-abbreviation invar :: "('f \<times> 'l) set \<Rightarrow> bool" where
-  "invar N \<equiv> Inf_from (active_subset N) \<subseteq> Red_Inf_\<G>_Q N"
+abbreviation invar :: "('f \<times> 'l) set llist \<Rightarrow> enat \<Rightarrow> bool" where
+  "invar Ns i \<equiv>
+   Inf_from (active_subset (Liminf_upto_llist Ns i)) \<subseteq> Sup_upto_llist (lmap Red_Inf_\<G>_Q Ns) i"
 
-lemma invar_Liminf_llist:
+lemma invar_at_limit:
   assumes
-    red: "chain (\<rhd>RedL) Ns" and
-    invar: "\<forall>i. enat i < llength Ns \<longrightarrow> invar (lnth Ns i)"
-  shows "invar (Liminf_llist Ns)"
-proof
+    nnil: "\<not> lnull Ns" and
+    invar: "\<forall>i. enat i < llength Ns \<longrightarrow> invar Ns (enat i)"
+  shows "invar Ns \<infinity>"
+proof (intro subsetI, unfold Liminf_upto_llist_infinity Sup_upto_llist_infinity)
   fix \<iota>
   assume \<iota>_inff: "\<iota> \<in> Inf_from (active_subset (Liminf_llist Ns))"
 
@@ -36,126 +37,135 @@ proof
 
   note \<iota>_inf = Inf_if_Inf_from[OF \<iota>_inff]
   note \<iota>_inff' = \<iota>_inff[unfolded act_ns]
-  note fin = finite_set[of "prems_of \<iota>"]
 
   have "\<not> lnull As"
-    unfolding As_def using chain_not_lnull[OF red] by auto
+    unfolding As_def using nnil by auto
   moreover have "set (prems_of \<iota>) \<subseteq> Liminf_llist As"
     using \<iota>_inff'[unfolded Inf_from_def] by simp
   ultimately obtain i where
-    i_lt: "enat i < llength As" and
+    i_lt_as: "enat i < llength As" and
     prems_sub_ge_i: "set (prems_of \<iota>) \<subseteq> \<Inter> (lnth As ` {j. i \<le> j \<and> enat j < llength As})"
     using finite_subset_Liminf_llist_imp_exists_index by blast
 
+  note i_lt_ns = i_lt_as[unfolded As_def, simplified]
+
   have "set (prems_of \<iota>) \<subseteq> lnth As i"
-    using prems_sub_ge_i i_lt by auto
+    using prems_sub_ge_i i_lt_as by auto
   then have "\<iota> \<in> Inf_from (active_subset (lnth Ns i))"
-    using i_lt \<iota>_inf unfolding Inf_from_def As_def by auto
-  then have "\<iota> \<in> Red_Inf_\<G>_Q (lnth Ns i)"
-    using i_lt[unfolded As_def] invar by auto
-  then show "\<iota> \<in> Red_Inf_\<G>_Q (Liminf_llist Ns)"
-    using red i_in_Liminf_or_Red_F[of Ns i] i_lt[unfolded As_def] Red_Inf_subset_Liminf by auto
+    using i_lt_as \<iota>_inf unfolding Inf_from_def As_def by auto
+  then have "\<iota> \<in> Sup_upto_llist (lmap Red_Inf_\<G>_Q Ns) (enat i)"
+    using nnil i_lt_ns invar by auto
+  then show "\<iota> \<in> Sup_llist (lmap Red_Inf_\<G>_Q Ns)"
+    using Sup_upto_llist_subset_Sup_llist by fastforce
 qed
 
-lemma gc_invar_init: "active_subset N = {} \<Longrightarrow> invar N"
+lemma gc_invar_init: "\<not> lnull Ns \<Longrightarrow> active_subset (lnth Ns 0) = {} \<Longrightarrow> invar Ns 0"
   unfolding Inf_from_def using labeled_inf_have_prems by auto
 
 lemma gc_invar_step:
   assumes
-    invar: "invar N1" and
-    step: "N1 \<Longrightarrow>GC N2"
-  shows "invar N2"
-  using step invar
-proof induct
-  case (process N1 N M N2 M')
-  note n1 = this(1) and n2 = this(2) and m_red = this(3) and m'_pas = this(4) and inv = this(5)
+    Si_lt: "enat (Suc i) < llength Ns" and
+    invar: "invar Ns i" and
+    step: "lnth Ns i \<Longrightarrow>GC lnth Ns (Suc i)"
+  shows "invar Ns (Suc i)"
+  using step Si_lt invar
+proof cases
+  have i_lt: "enat i < llength Ns"
+    using Si_lt Suc_ile_eq order.strict_implies_order by blast
+  have lim_i: "Liminf_upto_llist Ns (enat i) = lnth Ns i"
+    using i_lt by auto
+  have lim_Si: "Liminf_upto_llist Ns (enat (Suc i)) = lnth Ns (Suc i)"
+    using Si_lt by auto
 
-  have "Inf_from (active_subset N2) \<subseteq> Inf_from (active_subset N1)"
-    unfolding n1 n2 Inf_from_def using m'_pas by auto
-  also have "... \<subseteq> Red_Inf_\<G>_Q N1"
-    by (rule inv)
-  also have "... \<subseteq> Red_Inf_\<G>_Q (N1 \<union> N2)"
-    unfolding n1 n2 using Red_Inf_of_subset by auto
-  also have "... \<subseteq> Red_Inf_\<G>_Q N2"
-  proof
-    fix \<iota>
-    assume \<iota>_in: "\<iota> \<in> Red_Inf_\<G>_Q (N1 \<union> N2)"
-    have "Red_F_\<G>_Q N2 \<subseteq> Red_F_\<G>_Q (N1 \<union> N2)"
-      by (simp add: Red_F_of_subset)
-    then have "M \<subseteq> Red_F_\<G>_Q (N1 \<union> N2)"
-      using m_red unfolding n1 n2 by blast
-    then have "\<iota> \<in> Red_Inf_\<G>_Q (N1 \<union> N2 - M)"
-      using \<iota>_in Red_Inf_of_Red_F_subset unfolding n1 n2 by blast
-    then show "\<iota> \<in> Red_Inf_\<G>_Q N2"
-      using Red_Inf_of_subset[of "N1 \<union> N2 - M" N2] unfolding n1 n2 by auto
-  qed
-  finally show ?case
-    .
-next
-  case (infer N1 N C L N2 M)
-  note n1 = this(1) and n2 = this(2) and l_pas = this(3) and m_pas = this(4) and
-    inff_red = this(5) and inv = this(6)
-  show ?case
-    unfolding n1 n2
-  proof
-    fix \<iota>
-    assume \<iota>_inff: "\<iota> \<in> Inf_from (active_subset (N \<union> {(C, active)} \<union> M))"
+  {
+    case (process N M M')
+    note ni = this(1) and nSi = this(2) and m_red = this(3) and m'_pas = this(4)
 
-    have \<iota>_inf: "\<iota> \<in> Inf_FL"
-      using \<iota>_inff unfolding Inf_from_def by auto
-    then have F\<iota>_inf: "to_F \<iota> \<in> Inf_F"
-      using Inf_FL_to_Inf_F[folded to_F_def] by fastforce
+    have "Inf_from (active_subset (N \<union> M')) \<subseteq> Inf_from (active_subset (N \<union> M))"
+      using m'_pas by (metis active_subset_union boolean_algebra_cancel.sup0 Inf_from_mono
+          subset_Un_eq sup_left_idem)
+    also have "\<dots> \<subseteq> Sup_upto_llist (lmap Red_Inf_\<G>_Q Ns) (enat i)"
+      using invar unfolding lim_i ni by auto
+    also have "\<dots> \<subseteq> Sup_upto_llist (lmap Red_Inf_\<G>_Q Ns) (enat (Suc i))"
+      by simp
+    finally show ?thesis
+      unfolding lim_Si nSi .
+  next
+    case (infer N C L M)
+    note ni = this(1) and nSi = this(2) and l_pas = this(3) and m_pas = this(4) and
+      inff_red = this(5)
 
-    have "\<iota> \<in> Inf_from (active_subset (N \<union> {(C, active)}))"
-      using \<iota>_inff m_pas by simp
-    then have F\<iota>_inff:
-      "to_F \<iota> \<in> no_labels.Inf_from (fst ` (active_subset (N \<union> {(C, active)})))"
-      using F\<iota>_inf unfolding to_F_def Inf_from_def no_labels.Inf_from_def by auto
+    {
+      fix \<iota>
+      assume \<iota>_inff: "\<iota> \<in> Inf_from (active_subset (N \<union> {(C, active)} \<union> M))"
 
-    show "\<iota> \<in> Red_Inf_\<G>_Q (N \<union> {(C, active)} \<union> M)"
-    proof (cases "to_F \<iota> \<in> no_labels.Inf_from2 (fst ` active_subset N) {C}")
-      case True
-      then have "to_F \<iota> \<in> no_labels.Red_Inf_\<G>_Q (fst ` (N \<union> {(C, active)} \<union> M))"
-        using inff_red by auto
-      then show ?thesis
-        by (subst labeled_red_inf_eq_red_inf[OF \<iota>_inf])
-    next
-      case False
-      then have "to_F \<iota> \<in> no_labels.Inf_from (fst ` active_subset N)"
-        using F\<iota>_inff unfolding no_labels.Inf_from_def no_labels.Inf_from2_def by auto
-      then have "\<iota> \<in> Inf_from (active_subset (N \<union> {(C, L)}))"
-        using \<iota>_inf l_pas unfolding to_F_def Inf_from_def no_labels.Inf_from_def
-        by clarsimp (smt \<iota>_inff[unfolded Inf_from_def] active_subset_def imageE image_subset_iff
-            in_mono mem_Collect_eq prod.collapse)
-      then have "\<iota> \<in> Red_Inf_\<G>_Q (N \<union> {(C, L)})"
-        using inv[unfolded n1 n2] by blast
-      then show ?thesis
-        using labeled_red_inf_eq_red_inf[OF \<iota>_inf]
-        by (smt Un_insert_right Un_upper2 image_insert le_sup_iff Red_Inf_of_subset prod.sel(1)
-            subsetD subset_Un_eq)
-    qed
-  qed
+      have \<iota>_inf: "\<iota> \<in> Inf_FL"
+        using \<iota>_inff unfolding Inf_from_def by auto
+      then have F\<iota>_inf: "to_F \<iota> \<in> Inf_F"
+        using Inf_FL_to_Inf_F[folded to_F_def] by fastforce
+
+      have "\<iota> \<in> Inf_from (active_subset (N \<union> {(C, active)}))"
+        using \<iota>_inff m_pas by simp
+      then have F\<iota>_inff:
+        "to_F \<iota> \<in> no_labels.Inf_from (fst ` (active_subset (N \<union> {(C, active)})))"
+        using F\<iota>_inf unfolding to_F_def Inf_from_def no_labels.Inf_from_def by auto
+
+      have "\<iota> \<in> Sup_upto_llist (lmap Red_Inf_\<G>_Q Ns) (enat (Suc i))"
+      proof (cases "to_F \<iota> \<in> no_labels.Inf_from2 (fst ` active_subset N) {C}")
+        case True
+        then have "to_F \<iota> \<in> no_labels.Red_Inf_\<G>_Q (fst ` (N \<union> {(C, active)} \<union> M))"
+          using inff_red by auto
+        then have "\<iota> \<in> Red_Inf_\<G>_Q (N \<union> {(C, active)} \<union> M)"
+          by (subst labeled_red_inf_eq_red_inf[OF \<iota>_inf])
+        then show ?thesis
+          using Si_lt using nSi by auto
+      next
+        case False
+        then have "to_F \<iota> \<in> no_labels.Inf_from (fst ` active_subset N)"
+          using F\<iota>_inff unfolding no_labels.Inf_from_def no_labels.Inf_from2_def by auto
+        then have "\<iota> \<in> Inf_from (active_subset (N \<union> {(C, L)}))"
+          using \<iota>_inf l_pas unfolding to_F_def Inf_from_def no_labels.Inf_from_def
+          by clarsimp (smt \<iota>_inff[unfolded Inf_from_def] active_subset_def imageE image_subset_iff
+              in_mono mem_Collect_eq prod.collapse)
+        then show ?thesis
+          using invar unfolding lim_i ni by auto
+      qed
+    }
+    then show ?thesis
+      unfolding lim_Si nSi by blast
+  }
 qed
 
 lemma gc_invar:
   assumes
     gc: "chain (\<Longrightarrow>GC) Ns" and
     init: "active_subset (lnth Ns 0) = {}" and
-    invar: "invar (lnth Ns 0)" and
-    i_lt: "enat i < llength Ns"
-  shows "invar (lnth Ns i)"
+    i_lt: "i < llength Ns"
+  shows "invar Ns i"
   using i_lt
 proof (induct i)
-  case 0
-  then show ?case
-    using gc_invar_init[OF init] by auto
-next
-  case (Suc i)
-  note ih = this(1) and Si_lt = this(2)
-  have i_lt: "enat i < llength Ns"
-    using Si_lt Suc_ile_eq less_le by blast
+  case (enat i)
+  note i_lt = this
   show ?case
-    by (rule gc_invar_step[OF ih[OF i_lt]]) (rule chain_lnth_rel[OF gc Si_lt])
+    using i_lt
+  proof (induct i)
+    case 0
+    then show ?case
+      using gc_invar_init[OF chain_not_lnull[OF gc] init] by (simp add: enat_0)
+  next
+    case (Suc i)
+    note ih = this(1) and Si_lt = this(2)
+    have i_lt: "enat i < llength Ns"
+      using Si_lt Suc_ile_eq less_le by blast
+    show ?case
+      by (rule gc_invar_step[OF Si_lt ih[OF i_lt] chain_lnth_rel[OF gc Si_lt]])
+  qed
+next
+  case infinity
+  then have False
+    by simp
+  thus ?case
+    ..
 qed
 
 lemma gc_Liminf_saturated_new_proof:
@@ -166,16 +176,13 @@ lemma gc_Liminf_saturated_new_proof:
   shows "saturated (Liminf_llist Ns)"
   unfolding saturated_def
 proof -
-  have inf_init: "Inf_from (active_subset (lnth Ns 0)) = {}"
-    unfolding init Inf_from_def by (simp add: labeled_inf_have_prems)
-
-  have "Inf_from (Liminf_llist Ns) = Inf_from (active_subset (Liminf_llist Ns))" (is "?lhs = _")
+  have "Inf_from (Liminf_llist Ns) \<subseteq> Inf_from (active_subset (Liminf_llist Ns))" (is "?lhs \<subseteq> _")
     using lim unfolding active_subset_def passive_subset_def
-    by (smt Collect_empty_eq mem_Collect_eq set_eq_subset subsetI)
+    by (metis (no_types, lifting) Inf_from_mono empty_Collect_eq mem_Collect_eq subsetI)
+  also have "... \<subseteq> Sup_llist (lmap Red_Inf_\<G>_Q Ns)"
+    using invar_at_limit[OF chain_not_lnull[OF gc]] gc_invar[OF gc init] by fastforce
   also have "... \<subseteq> Red_Inf_\<G>_Q (Liminf_llist Ns)" (is "_ \<subseteq> ?rhs")
-    using invar_Liminf_llist[OF gc_to_red[OF gc]]
-      gc_invar[OF gc init, unfolded inf_init, OF empty_subsetI]
-    by blast
+    by (simp add: sup_red_inf_in_red_liminf[OF gc_to_red[OF gc]])
   finally show "?lhs \<subseteq> ?rhs"
     .
 qed

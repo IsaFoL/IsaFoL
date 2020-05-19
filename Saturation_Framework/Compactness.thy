@@ -8,7 +8,7 @@
 section \<open>Compactness\<close>
 
 theory Compactness
-  imports Sound_Inference_Systems
+  imports Soundness
 begin
 
 text \<open>
