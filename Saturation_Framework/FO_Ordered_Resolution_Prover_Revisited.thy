@@ -459,7 +459,7 @@ definition lclss_of_state :: "'a state \<Rightarrow> ('a clause \<times> label) 
    (\<lambda>C. (C, New)) ` N_of_state St \<union> (\<lambda>C. (C, Processed)) ` P_of_state St
    \<union> (\<lambda>C. (C, Old)) ` Q_of_state St"
 
-lemma image_fst_lclss_of_state[simp]: "fst ` lclss_of_state St = clss_of_state St"
+lemma image_hd_lclss_of_state[simp]: "fst ` lclss_of_state St = clss_of_state St"
   unfolding lclss_of_state_def by (auto simp: image_Un image_comp)
 
 lemma insert_lclss_of_state[simp]:
@@ -786,7 +786,7 @@ proof -
   have "clss_of_state (Liminf_state Sts) \<TTurnstile>\<G>e {{#}}"
     using F.subset_entailed bot_in by auto
   then have "fst ` Liminf_llist (lmap lclss_of_state Sts) \<TTurnstile>\<G>e {{#}}"
-    by (metis image_fst_lclss_of_state lclss_Liminf_commute)
+    by (metis image_hd_lclss_of_state lclss_Liminf_commute)
   then have "Liminf_llist (lmap lclss_of_state Sts) \<TTurnstile>\<G>Le FL.Bot_FL"
     using FL.labeled_entailment_lifting by simp
   then have "lhd (lmap lclss_of_state Sts) \<TTurnstile>\<G>Le FL.Bot_FL"
@@ -795,7 +795,7 @@ proof -
     using deriv RP_derivation_imp_derive_derivation
       apply simp
     apply (smt F_entails_\<G>_Q_iff FL.labeled_entailment_lifting RP_model chain_lmap deriv \<G>_Fs_def
-        image_fst_lclss_of_state)
+        image_hd_lclss_of_state)
     by blast
   then have "lclss_of_state (lhd Sts) \<TTurnstile>\<G>Le FL.Bot_FL"
     using chain_not_lnull deriv by fastforce
@@ -806,54 +806,59 @@ qed
 theorem RP_saturated_if_fair_new_statement:
   assumes
     deriv: "chain (\<leadsto>) Sts" and
-    init: "FL.active_subset (lnth (lmap lclss_of_state Sts) 0) = {}" and
+    init: "FL.active_subset (lclss_of_state (lhd Sts)) = {}" and
     final: "FL.passive_subset (Liminf_llist (lmap lclss_of_state Sts)) = {}"
   shows "FL.saturated (Liminf_llist (lmap lclss_of_state Sts))"
 proof -
+  note nnil = chain_not_lnull[OF deriv]
   have gc_deriv: "chain (\<Longrightarrow>GC) (lmap lclss_of_state Sts)"
     by (rule RP_derivation_imp_GC_derivation[OF deriv])
   show ?thesis
-    by (rule FL.fair_implies_Liminf_saturated[OF FL.gc_to_red[OF gc_deriv]
-          FL.gc_fair[OF gc_deriv init final]])
+    using nnil init final
+      FL.fair_implies_Liminf_saturated[OF FL.gc_to_red[OF gc_deriv] FL.gc_fair[OF gc_deriv]]
+    by simp
 qed
 
 corollary RP_complete_if_fair_new_statement:
   assumes
     deriv: "chain (\<leadsto>) Sts" and
-    init: "FL.active_subset (lnth (lmap lclss_of_state Sts) 0) = {}" and
+    init: "FL.active_subset (lclss_of_state (lhd Sts)) = {}" and
     final: "FL.passive_subset (Liminf_llist (lmap lclss_of_state Sts)) = {}" and
     unsat: "grounding_of_state (lhd Sts) \<TTurnstile>e {{#}}"
   shows "{#} \<in> Q_of_state (Liminf_state Sts)"
 proof -
+  note nnil = chain_not_lnull[OF deriv]
+  note len = chain_length_pos[OF deriv]
+
   have gc_deriv: "chain (\<Longrightarrow>GC) (lmap lclss_of_state Sts)"
     by (rule RP_derivation_imp_GC_derivation[OF deriv])
-  have fst_unsat: "fst ` lnth (lmap lclss_of_state Sts) 0 \<TTurnstile>\<G>e {{#}}"
+  have hd_unsat: "fst ` lhd (lmap lclss_of_state Sts) \<TTurnstile>\<G>e {{#}}"
   proof -
-    have len: "llength Sts > 0"
-      by (rule chain_length_pos[OF deriv])
-    have fst_lcls: "fst ` lnth (lmap lclss_of_state Sts) 0 = lnth (lmap clss_of_state Sts) 0"
+    have hd_lcls: "fst ` lhd (lmap lclss_of_state Sts) = lhd (lmap clss_of_state Sts)"
       using len zero_enat_def by auto
     show ?thesis
-      unfolding fst_lcls
+      unfolding hd_lcls
       using unsat
       unfolding F_entails_\<G>_Q_iff
       apply auto
-      unfolding lnth_lmap[OF len[unfolded zero_enat_def]]
-      apply (simp add: lnth_0_conv_lhd[OF chain_not_lnull[OF deriv]])
       unfolding true_clss_def
       apply auto
       apply (erule_tac x = I in allE)
       apply (erule bexE)
       unfolding \<G>_Fs_def
-      by (metis UN_E)
+      by (metis (mono_tags, lifting) UN_E chain_length_pos gc_deriv i0_less llength_eq_0 llength_lmap llist.map_sel(1))
   qed
+
+  have "\<exists>BL \<in> {{#}} \<times> UNIV. BL \<in> Liminf_llist (lmap lclss_of_state Sts)"
+    apply (rule FL.gc_complete_Liminf[OF gc_deriv])
+    apply (simp add: init nnil)
+    using final apply blast
+    apply simp
+    using hd_unsat by blast
   then show ?thesis
-    using FL.gc_complete_Liminf[OF gc_deriv init final _ fst_unsat]
-    unfolding lclss_Liminf_commute
-    unfolding lclss_of_state_def
-    using final[unfolded FL.passive_subset_def]
+    unfolding Liminf_state_def lclss_Liminf_commute
     apply auto
-    using Liminf_state_def lclss_Liminf_commute apply fastforce
+    using final[unfolded FL.passive_subset_def]
     using Liminf_state_def lclss_Liminf_commute by fastforce
 qed
 
@@ -866,10 +871,10 @@ lemma old_fair_imp_new_fair:
     fair: "fair_state_seq Sts" and
     empty_Q0: "Q_of_state (lhd Sts) = {}"
   shows
-    "FL.active_subset (lnth (lmap lclss_of_state Sts) 0) = {}"
+    "FL.active_subset (lclss_of_state (lhd Sts)) = {}"
     "FL.passive_subset (Liminf_llist (lmap lclss_of_state Sts)) = {}"
 proof -
-  show "FL.active_subset (lnth (lmap lclss_of_state Sts) 0) = {}"
+  show "FL.active_subset (lclss_of_state (lhd Sts)) = {}"
     using nnul empty_Q0 unfolding FL.active_subset_def by (cases Sts) auto
 next
   show "FL.passive_subset (Liminf_llist (lmap lclss_of_state Sts)) = {}"

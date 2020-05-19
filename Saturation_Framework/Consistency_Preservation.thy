@@ -27,15 +27,12 @@ begin
 
 lemma chain_entails_derive_consist_preserving:
   assumes
-    chain_ent: "chain (\<Turnstile>) Ns" and
+    ent: "chain (\<Turnstile>) Ns" and
     n0_sat: "\<not> lhd Ns \<Turnstile> Bot"
   shows "\<not> Sup_llist Ns \<Turnstile> Bot"
 proof -
   have bot_sat: "\<not> {} \<Turnstile> Bot"
     using n0_sat by (meson empty_subsetI entails_trans subset_entailed)
-
-  have ns0: "lnth Ns 0 = lhd Ns"
-    using chain_ent by (metis chain_not_lnull lhd_conv_lnth)
 
   {
     fix DD
@@ -47,7 +44,7 @@ proof -
     proof (induct k)
       case 0
       then show ?case
-        using ns0 n0_sat bot_sat unfolding Sup_upto_llist_def by auto
+        using lhd_conv_lnth[OF chain_not_lnull[OF ent], symmetric] n0_sat bot_sat by auto
     next
       case (Suc k)
       show ?case
@@ -60,7 +57,7 @@ proof -
       next
         case False
         then have "lnth Ns k \<Turnstile> lnth Ns (Suc k)"
-          using chain_ent chain_lnth_rel by fastforce
+          using ent chain_lnth_rel by fastforce
         show ?thesis
           apply (rule notI)
           unfolding Sup_upto_llist_Suc
@@ -142,18 +139,18 @@ proof -
     using Red_Inf_without_red_F  by auto
 
   {
-    assume chain_ent: "chain (\<Turnstile>) Ns"
+    assume ent: "chain (\<Turnstile>) Ns"
     show "Liminf_llist Ns \<Turnstile> Bot \<longleftrightarrow> lhd Ns \<Turnstile> Bot"
     proof
       assume "Liminf_llist Ns \<Turnstile> Bot"
       then have "Sup_llist Ns \<Turnstile> Bot"
         using Liminf_llist_subset_Sup_llist by (metis entails_trans subset_entailed)
       then show "lhd Ns \<Turnstile> Bot"
-        using chain_ent chain_entails_derive_consist_preserving by blast
+        using ent chain_entails_derive_consist_preserving by blast
     next
       assume "lhd Ns \<Turnstile> Bot"
       then have "Sup_llist Ns \<Turnstile> Bot"
-        by (meson chain_ent chain_not_lnull entails_trans lhd_subset_Sup_llist subset_entailed)
+        by (meson ent chain_not_lnull entails_trans lhd_subset_Sup_llist subset_entailed)
       then have "Sup_llist Ns - Red_F (Sup_llist Ns) \<Turnstile> Bot"
         using Red_F_Bot entail_set_all_formulas by blast
       then show "Liminf_llist Ns \<Turnstile> Bot"

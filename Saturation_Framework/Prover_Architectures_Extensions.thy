@@ -63,7 +63,7 @@ qed
 lemma gc_invar_init:
   assumes
     "\<not> lnull Ns" and
-    "active_subset (lnth Ns 0) = {}"
+    "active_subset (lhd Ns) = {}"
   shows "invar Ns 0"
   using assms labeled_inf_have_prems unfolding invar_def Inf_from_def by auto
 
@@ -144,7 +144,7 @@ qed
 lemma gc_invar:
   assumes
     gc: "chain (\<Longrightarrow>GC) Ns" and
-    init: "active_subset (lnth Ns 0) = {}" and
+    init: "active_subset (lhd Ns) = {}" and
     i_lt: "i < llength Ns"
   shows "invar Ns i"
   using i_lt
@@ -170,7 +170,7 @@ qed simp
 lemma gc_fair_new_proof:
   assumes
     gc: "chain (\<Longrightarrow>GC) Ns" and
-    init: "active_subset (lnth Ns 0) = {}" and
+    init: "active_subset (lhd Ns) = {}" and
     lim: "passive_subset (Liminf_llist Ns) = {}"
   shows "fair Ns"
   unfolding fair_def
@@ -281,12 +281,25 @@ qed
 
 lemma lgc_invar_init:
   assumes
-    "\<not> lnull TNs" and
-    "active_subset (lnth (lmap snd TNs) 0) = {}" and
-    "\<forall>\<iota> \<in> Inf_F. length (prems_of \<iota>) = 0 \<longrightarrow> \<iota> \<in> lnth (lmap fst TNs) 0"
+    nnil: "\<not> lnull TNs" and
+    n_init: "active_subset (snd (lhd TNs)) = {}" and
+    t_init: "\<forall>\<iota> \<in> Inf_F. length (prems_of \<iota>) = 0 \<longrightarrow> \<iota> \<in> fst (lhd TNs)"
   shows "invar TNs 0"
-  using assms unfolding invar_def Inf_from_def
-  by (simp add: from_F_def) (use in_Inf_FL_imp_to_F_in_Inf_F to_F_def in fastforce)
+  unfolding invar_def
+proof -
+  have "Inf_from (active_subset (Liminf_upto_llist (lmap snd TNs) 0)) =
+    Inf_from {}" (is "?lhs = _")
+    using nnil n_init by auto
+  also have "... \<subseteq> \<Union> (from_F ` fst (lhd TNs))"
+    using t_init Inf_FL_to_Inf_F unfolding Inf_from_def from_F_def to_F_def by force
+  also have "... \<subseteq> \<Union> (from_F ` fst (lhd TNs)) \<union> Red_Inf_\<G>_Q (snd (lhd TNs))"
+    by fast
+  also have "... = \<Union> (from_F ` Liminf_upto_llist (lmap fst TNs) 0)
+    \<union> Sup_upto_llist (lmap (Red_Inf_\<G>_Q \<circ> snd) TNs) 0" (is "_ = ?rhs")
+    using nnil by auto
+  finally show "?lhs \<subseteq> ?rhs"
+    .
+qed
 
 lemma lgc_invar_step:
   assumes
@@ -466,8 +479,8 @@ qed
 lemma lgc_invar:
   assumes
     lgc: "chain (\<Longrightarrow>LGC) TNs" and
-    n_init: "active_subset (lnth (lmap snd TNs) 0) = {}" and
-    t_init: "\<forall>\<iota> \<in> Inf_F. length (prems_of \<iota>) = 0 \<longrightarrow> \<iota> \<in> lnth (lmap fst TNs) 0" and
+    n_init: "active_subset (snd (lhd TNs)) = {}" and
+    t_init: "\<forall>\<iota> \<in> Inf_F. length (prems_of \<iota>) = 0 \<longrightarrow> \<iota> \<in> fst (lhd TNs)" and
     i_lt: "i < llength TNs"
   shows "invar TNs i"
   using i_lt
@@ -493,9 +506,9 @@ qed simp
 lemma lgc_fair_new_proof:
   assumes
     lgc: "chain (\<Longrightarrow>LGC) TNs" and
-    n_init: "active_subset (lnth (lmap snd TNs) 0) = {}" and
+    n_init: "active_subset (snd (lhd TNs)) = {}" and
     n_lim: "passive_subset (Liminf_llist (lmap snd TNs)) = {}" and
-    t_init: "\<forall>\<iota> \<in> Inf_F. length (prems_of \<iota>) = 0 \<longrightarrow> \<iota> \<in> lnth (lmap fst TNs) 0" and
+    t_init: "\<forall>\<iota> \<in> Inf_F. length (prems_of \<iota>) = 0 \<longrightarrow> \<iota> \<in> fst (lhd TNs)" and
     t_lim: "Liminf_llist (lmap fst TNs) = {}"
   shows "fair (lmap snd TNs)"
   unfolding fair_def llist.map_comp
