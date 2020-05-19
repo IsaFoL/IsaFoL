@@ -167,22 +167,20 @@ proof (induct i)
   qed
 qed simp
 
-lemma gc_Liminf_saturated_new_proof:
+lemma gc_fair_new_proof:
   assumes
     gc: "chain (\<Longrightarrow>GC) Ns" and
     init: "active_subset (lnth Ns 0) = {}" and
     lim: "passive_subset (Liminf_llist Ns) = {}"
-  shows "saturated (Liminf_llist Ns)"
-  unfolding saturated_def
+  shows "fair Ns"
+  unfolding fair_def
 proof -
   have "Inf_from (Liminf_llist Ns) \<subseteq> Inf_from (active_subset (Liminf_llist Ns))" (is "?lhs \<subseteq> _")
     using lim unfolding active_subset_def passive_subset_def
     by (metis (no_types, lifting) Inf_from_mono empty_Collect_eq mem_Collect_eq subsetI)
-  also have "... \<subseteq> Sup_llist (lmap Red_Inf_\<G>_Q Ns)"
+  also have "... \<subseteq> Sup_llist (lmap Red_Inf_\<G>_Q Ns)" (is "_ \<subseteq> ?rhs")
     using invar_infinity[OF chain_not_lnull[OF gc]] gc_invar[OF gc init]
     unfolding invar_def by fastforce
-  also have "... \<subseteq> Red_Inf_\<G>_Q (Liminf_llist Ns)" (is "_ \<subseteq> ?rhs")
-    by (simp add: sup_red_inf_in_red_liminf[OF gc_to_red[OF gc]])
   finally show "?lhs \<subseteq> ?rhs"
     .
 qed
@@ -492,15 +490,15 @@ proof (induct i)
   qed
 qed simp
 
-lemma lgc_Liminf_saturated_new_proof:
+lemma lgc_fair_new_proof:
   assumes
     lgc: "chain (\<Longrightarrow>LGC) TNs" and
     n_init: "active_subset (lnth (lmap snd TNs) 0) = {}" and
     n_lim: "passive_subset (Liminf_llist (lmap snd TNs)) = {}" and
     t_init: "\<forall>\<iota> \<in> Inf_F. length (prems_of \<iota>) = 0 \<longrightarrow> \<iota> \<in> lnth (lmap fst TNs) 0" and
     t_lim: "Liminf_llist (lmap fst TNs) = {}"
-  shows "saturated (Liminf_llist (lmap snd TNs))"
-  unfolding saturated_def
+  shows "fair (lmap snd TNs)"
+  unfolding fair_def llist.map_comp
 proof -
   have "Inf_from (Liminf_llist (lmap snd TNs))
     \<subseteq> Inf_from (active_subset (Liminf_llist (lmap snd TNs)))" (is "?lhs \<subseteq> _")
@@ -510,11 +508,8 @@ proof -
     \<union> Sup_llist (lmap (Red_Inf_\<G>_Q \<circ> snd) TNs)"
     using invar_infinity[OF chain_not_lnull[OF lgc]] lgc_invar[OF lgc n_init t_init]
     unfolding invar_def by fastforce
-  also have "... \<subseteq> Sup_llist (lmap (Red_Inf_\<G>_Q \<circ> snd) TNs)"
+  also have "... \<subseteq> Sup_llist (lmap (Red_Inf_\<G>_Q \<circ> snd) TNs)" (is "_ \<subseteq> ?rhs")
     using t_lim by auto
-  also have "... \<subseteq> Red_Inf_\<G>_Q (Liminf_llist (lmap snd TNs))" (is "_ \<subseteq> ?rhs")
-    unfolding llist.map_comp[symmetric]
-    by (simp add: sup_red_inf_in_red_liminf[OF lgc_to_red[OF lgc]])
   finally show "?lhs \<subseteq> ?rhs"
     .
 qed
