@@ -548,10 +548,24 @@ proof -
   qed
 
   show ?thesis
-    apply (rule FL.step.process[of _ "lclss_of_state (N, P, Q)" "{(C, New)}" _ "{}"])
-    apply (auto simp: lclss_of_state_def FL.active_subset_def)
-    apply (rule mem_FL_Red_F_Q_because_G_Red_F)
-    using c\<theta>_red[of _ "lclss_of_state (N, P, Q)"] unfolding lclss_of_state_def by auto
+  proof (rule FL.step.process[of _ "lclss_of_state (N, P, Q)" "{(C, New)}" _ "{}"])
+    show \<open>lclss_of_state (N \<union> {C}, P, Q) = lclss_of_state (N, P, Q) \<union> {(C, New)}\<close>
+      unfolding lclss_of_state_def by auto
+  next
+    show \<open>lclss_of_state (N, P, Q) = lclss_of_state (N, P, Q) \<union> {}\<close>
+      unfolding lclss_of_state_def by auto
+  next
+    show \<open>{(C, New)} \<subseteq> FL.Red_F_\<G>_Q (lclss_of_state (N, P, Q) \<union> {})\<close>
+      using mem_FL_Red_F_Q_because_G_Red_F c\<theta>_red[of _ "lclss_of_state (N, P, Q)"]
+      unfolding lclss_of_state_def by auto
+  next
+    show \<open>FL.active_subset {} = {}\<close>
+      unfolding FL.active_subset_def by auto
+  qed
+    (* apply (rule FL.step.process[of _ "lclss_of_state (N, P, Q)" "{(C, New)}" _ "{}"])
+     * apply (auto simp: lclss_of_state_def FL.active_subset_def)
+     * apply (rule mem_FL_Red_F_Q_because_G_Red_F)
+     * using c\<theta>_red[of _ "lclss_of_state (N, P, Q)"] unfolding lclss_of_state_def by auto *)
 qed
 
 
@@ -564,19 +578,25 @@ proof -
   have d_sub'_c: "Cl \<in> FL.Red_F_Q {Dl} \<or> Dl \<sqsubset> Cl"
   proof (cases "size (fst Dl) = size (fst Cl)")
     case True
+      assume sizes_eq: \<open>size (fst Dl) = size (fst Cl)\<close>
+      have \<open>size (fst Dl) = size (fst Cl) \<Longrightarrow>
+        strictly_subsumes (fst Dl) (fst Cl) \<or> subsumes (fst Dl) (fst Cl) \<and> snd Dl \<sqsubset>l snd Cl \<Longrightarrow>
+        Dl \<sqsubset> Cl\<close>
+        unfolding FL.Prec_FL_def
+        unfolding generalizes_def strictly_generalizes_def strictly_subsumes_def subsumes_def
+        by (metis size_subst subset_mset.order_refl subseteq_mset_size_eql)
     then have "Dl \<sqsubset> Cl"
-      apply (unfold FL.Prec_FL_def)
-      apply (unfold generalizes_def strictly_generalizes_def)
-      using d_sub_c
-      apply (unfold strictly_subsumes_def subsumes_def)
-      by (metis size_subst subset_mset.order_refl subseteq_mset_size_eql)
+      using sizes_eq d_sub_c by auto
+      (* apply (unfold FL.Prec_FL_def)
+       * apply (unfold generalizes_def strictly_generalizes_def strictly_subsumes_def subsumes_def)
+       * by (metis size_subst subset_mset.order_refl subseteq_mset_size_eql) *)
     then show ?thesis
       by (rule disjI2)
   next
     case False
     then have d_ssub_c: "strictly_subsumes (fst Dl) (fst Cl)"
-      using d_sub_c
-      apply (unfold strictly_subsumes_def subsumes_def)
+      using d_sub_c unfolding strictly_subsumes_def subsumes_def
+      (* apply (unfold strictly_subsumes_def subsumes_def) *)
       by (metis size_subst strict_subset_subst_strictly_subsumes strictly_subsumes_antisym
           subset_mset.antisym_conv2)
     have "Cl \<in> FL.Red_F_Q {Dl}"
