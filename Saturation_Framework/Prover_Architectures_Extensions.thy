@@ -34,7 +34,7 @@ proof (intro subsetI, unfold Liminf_upto_llist_infinity Sup_upto_llist_infinity)
     "As = lmap active_subset Ns"
 
   have act_ns: "active_subset (Liminf_llist Ns) = Liminf_llist As"
-    unfolding As_def active_subset_def by (rule Liminf_set_filter_commute[symmetric])
+    unfolding As_def active_subset_def Liminf_set_filter_commute[symmetric] ..
 
   note \<iota>_inf = Inf_if_Inf_from[OF \<iota>_inff]
   note \<iota>_inff' = \<iota>_inff[unfolded act_ns]
@@ -112,7 +112,7 @@ proof cases
       have "\<iota> \<in> Inf_from (active_subset (N \<union> {(C, active)}))"
         using \<iota>_inff m_pas by simp
       then have F\<iota>_inff:
-        "to_F \<iota> \<in> no_labels.Inf_from (fst ` (active_subset (N \<union> {(C, active)})))"
+        "to_F \<iota> \<in> no_labels.Inf_from (fst ` active_subset (N \<union> {(C, active)}))"
         using F\<iota>_inf unfolding to_F_def Inf_from_def no_labels.Inf_from_def by auto
 
       have "\<iota> \<in> Sup_upto_llist (lmap Red_Inf_\<G>_Q Ns) (enat (Suc i))"
@@ -150,9 +150,7 @@ lemma gc_invar:
   using i_lt
 proof (induct i)
   case (enat i)
-  note i_lt = this
-  show ?case
-    using i_lt
+  then show ?case
   proof (induct i)
     case 0
     then show ?case
@@ -230,19 +228,10 @@ proof (intro subsetI, unfold Liminf_upto_llist_infinity Sup_upto_llist_infinity)
     prems_sub_ge_i: "set (prems_of \<iota>) \<subseteq> \<Inter> (lnth As ` {j. i \<le> j \<and> enat j < llength As})"
     using finite_subset_Liminf_llist_imp_exists_index by blast
 
-  note i_lt_ns = i_lt_as[unfolded As_def, simplified]
-
   have ts_nnil: "\<not> lnull (lmap fst TNs)"
     using As_def nnil by simp
 
-  have "set (prems_of \<iota>) \<subseteq> lnth As i"
-    using prems_sub_ge_i i_lt_as by auto
-  then have "\<iota> \<in> Inf_from (active_subset (lnth (lmap snd TNs) i))"
-    using i_lt_as \<iota>_inf unfolding Inf_from_def As_def by auto
-  then have "\<iota> \<in> \<Union> (from_F ` Liminf_upto_llist (lmap fst TNs) (enat i))
-    \<union> Sup_upto_llist (lmap (Red_Inf_\<G>_Q \<circ> snd) TNs) (enat i)"
-    using nnil i_lt_ns invar[unfolded invar_def] by auto
-  then show "\<iota> \<in> \<Union> (from_F ` Liminf_llist (lmap fst TNs))
+  show "\<iota> \<in> \<Union> (from_F ` Liminf_llist (lmap fst TNs))
     \<union> Sup_llist (lmap (Red_Inf_\<G>_Q \<circ> snd) TNs)"
   proof -
     {
@@ -486,9 +475,7 @@ lemma lgc_invar:
   using i_lt
 proof (induct i)
   case (enat i)
-  note i_lt = this
-  show ?case
-    using i_lt
+  then show ?case
   proof (induct i)
     case 0
     then show ?case
@@ -515,8 +502,7 @@ lemma lgc_fair_new_proof:
 proof -
   have "Inf_from (Liminf_llist (lmap snd TNs))
     \<subseteq> Inf_from (active_subset (Liminf_llist (lmap snd TNs)))" (is "?lhs \<subseteq> _")
-    using t_lim unfolding active_subset_def passive_subset_def
-    by (smt Inf_from_mono empty_Collect_eq mem_Collect_eq n_lim passive_subset_def subsetI)
+    by (rule Inf_from_mono) (use n_lim passive_subset_def active_subset_def in blast)
   also have "... \<subseteq> \<Union> (from_F ` Liminf_upto_llist (lmap fst TNs) \<infinity>)
     \<union> Sup_llist (lmap (Red_Inf_\<G>_Q \<circ> snd) TNs)"
     using invar_infinity[OF chain_not_lnull[OF lgc]] lgc_invar[OF lgc n_init t_init]
