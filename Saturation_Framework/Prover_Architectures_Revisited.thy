@@ -1,14 +1,14 @@
-(*  Title:       Extensions to the Prover Architectures of the Saturation Framework
+(*  Title:       New Fairness Proofs for the Prover Architectures of the Saturation Framework
  *  Author:      Jasmin Blanchette <j.c.blanchette at vu.nl>, 2020 *)
 
-section \<open>Extensions to the Prover Architectures of the Saturation Framework\<close>
+section \<open>New Fairness Proofs for the Prover Architectures of the Saturation Framework\<close>
 
-theory Prover_Architectures_Extensions
+theory Prover_Architectures_Revisited
   imports Saturation_Framework.Prover_Architectures
 begin
 
-text \<open>The given clause and lazy given clause procedures satisfy a key saturation invariant. This
-provides an alternative way to study them.\<close>
+text \<open>The given clause and lazy given clause procedures satisfy a key invariant. This
+provides an alternative way to prove fairness and hence saturation of the limit.\<close>
 
 
 section \<open>Given Clause Procedure\<close>
