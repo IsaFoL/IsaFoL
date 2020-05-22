@@ -6,7 +6,7 @@ session "Saturation_Framework_Extended" = Saturation_Framework +
     First_Order_Terms
     Well_Quasi_Orders
   theories
-    (* FO_Ordered_Resolution_Prover_Revisited *)
+    FO_Ordered_Resolution_Prover_Revisited
     Clausal_Calculi
     Compactness
     Consistency_Preservation
