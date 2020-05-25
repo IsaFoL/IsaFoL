@@ -600,7 +600,36 @@ proof -
       by (metis size_subst strict_subset_subst_strictly_subsumes strictly_subsumes_antisym
           subset_mset.antisym_conv2)
     have "Cl \<in> FL.Red_F_Q {Dl}"
-      apply (rule mem_FL_Red_F_Q_because_G_Red_F)
+    proof (rule mem_FL_Red_F_Q_because_G_Red_F)
+      show \<open>\<forall>D\<in>\<G>_F (fst Cl). D \<in> G.Red_F (\<Union> (\<G>_F ` fst ` {Dl}))\<close>
+        using d_ssub_c 
+        unfolding G.Red_F_def strictly_subsumes_def subsumes_def \<G>_F_def
+      proof clarsimp
+        fix \<sigma> \<sigma>'
+        assume
+          fst_not_in: \<open>\<forall>\<sigma>. \<not> fst Cl \<cdot> \<sigma> \<subseteq># fst Dl\<close> and
+          fst_in: \<open>fst Dl \<cdot> \<sigma> \<subseteq># fst Cl\<close> and
+          gr_sig: \<open>is_ground_subst \<sigma>'\<close>
+        have \<open>{fst Dl \<cdot> \<sigma> \<cdot> \<sigma>'} \<subseteq> {fst Dl \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>}\<close>
+          using gr_sig
+          by (metis (mono_tags, lifting) is_ground_comp_subst mem_Collect_eq singletonD subsetI
+              subst_cls_comp_subst)
+        moreover have \<open>\<forall>I. I \<TTurnstile>s {fst Dl \<cdot> \<sigma> \<cdot> \<sigma>'} \<longrightarrow> I \<TTurnstile> fst Cl \<cdot> \<sigma>'\<close>
+          using fst_in
+          by (meson subst_cls_mono_mset true_clss_insert true_clss_subclause)
+        moreover have \<open>\<forall>D\<in>{fst Dl \<cdot> \<sigma> \<cdot> \<sigma>'}. D < fst Cl \<cdot> \<sigma>'\<close>
+          using fst_not_in fst_in gr_sig
+        proof clarify
+          show \<open>\<forall>\<sigma>. \<not> fst Cl \<cdot> \<sigma> \<subseteq># fst Dl \<Longrightarrow> fst Dl \<cdot> \<sigma> \<subseteq># fst Cl \<Longrightarrow> is_ground_subst \<sigma>' \<Longrightarrow>
+            fst Dl \<cdot> \<sigma> \<cdot> \<sigma>' < fst Cl \<cdot> \<sigma>'\<close>
+            by (metis False size_subst subset_imp_less_mset subset_mset.le_less subst_subset_mono)
+        qed
+        ultimately show \<open>\<exists>DD\<subseteq>{fst Dl \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>}. (\<forall>I. I \<TTurnstile>s DD \<longrightarrow> I \<TTurnstile> fst Cl \<cdot> \<sigma>')
+           \<and> (\<forall>D\<in>DD. D < fst Cl \<cdot> \<sigma>')\<close>
+          by blast
+      qed
+    qed
+(*   apply (rule mem_FL_Red_F_Q_because_G_Red_F)
       apply (unfold G.Red_F_def)
       apply clarsimp
       using d_ssub_c
@@ -614,18 +643,38 @@ proof -
       unfolding true_clss_def true_cls_def
       apply clarsimp
       apply (meson Melem_subst_cls mset_subset_eqD)
-      by (metis False size_subst subset_imp_less_mset subset_mset.le_less subst_subset_mono)
+      by (metis False size_subst subset_imp_less_mset subset_mset.le_less subst_subset_mono) *)
     then show ?thesis
       by (rule disjI1)
   qed
   show ?thesis
-    apply (rule FL.step.process[of _ N "{Cl}" _ "{}"])
+  proof (rule FL.step.process[of _ N "{Cl}" _ "{}"], simp+)
+    show \<open>Cl \<in> FL.Red_F_\<G>_Q N\<close> using d_sub'_c unfolding FL_Red_F_Q_eq
+    proof -
+      have \<open>\<And>D. D \<in> \<G>_F (fst Cl) \<Longrightarrow> \<forall>E\<in>N. E \<sqsubset> Cl \<longrightarrow> D \<notin> \<G>_F (fst E) \<Longrightarrow> 
+        \<forall>D\<in>\<G>_F (fst Cl). D \<in> G.Red_F (\<G>_F (fst Dl)) \<or> Dl \<sqsubset> Cl \<and> D \<in> \<G>_F (fst Dl) \<Longrightarrow>
+        D \<in> G.Red_F (\<Union>a\<in>N. \<G>_F (fst a))\<close>
+        by (metis (no_types, lifting) G.Red_F_of_subset SUP_upper d_in subset_iff)
+      moreover have \<open>\<And>D. D \<in> \<G>_F (fst Cl) \<Longrightarrow> \<forall>E\<in>N. E \<sqsubset> Cl \<longrightarrow> D \<notin> \<G>_F (fst E) \<Longrightarrow> Dl \<sqsubset> Cl \<Longrightarrow> 
+        D \<in> G.Red_F (\<Union>a\<in>N. \<G>_F (fst a))\<close>
+        by (smt FL.Prec_FL_def FL.equiv_F_grounding FL.prec_F_grounding UNIV_witness d_in in_mono)
+      ultimately show \<open>Cl \<in> {C. \<forall>D\<in>\<G>_F (fst C). D \<in> G.Red_F (\<Union> (\<G>_F ` fst ` {Dl})) \<or>
+        (\<exists>E\<in>{Dl}. E \<sqsubset> C \<and> D \<in> \<G>_F (fst E))} \<or> Dl \<sqsubset> Cl \<Longrightarrow>
+        Cl \<in> {C. \<forall>D\<in>\<G>_F (fst C). D \<in> G.Red_F (\<Union> (\<G>_F ` fst ` N)) \<or>
+        (\<exists>E\<in>N. E \<sqsubset> C \<and> D \<in> \<G>_F (fst E))}\<close>
+        by auto
+    qed
+  next
+    show \<open>FL.active_subset {} = {}\<close>
+      unfolding FL.active_subset_def by simp
+  qed
+(*    apply (rule FL.step.process[of _ N "{Cl}" _ "{}"])
        apply auto
     using d_sub'_c unfolding FL_Red_F_Q_eq
      apply auto
     apply (metis (no_types, lifting) G.Red_F_of_subset SUP_upper d_in subset_iff)
       apply (smt FL.Prec_FL_def FL.equiv_F_grounding FL.prec_F_grounding UNIV_witness d_in in_mono)
-    by (simp add: FL.active_subset_def)+
+    by (simp add: FL.active_subset_def)+ *)
 qed
 
 lemma GC_reduction_step:
