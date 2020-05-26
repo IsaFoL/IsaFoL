@@ -5307,7 +5307,7 @@ proof -
     N_U_D: \<open>set_mset N \<union> set_mset U \<Turnstile>p D\<close>
     using assms
     by (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def all_decomposition_implies_def
-        S clauses_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def cdcl\<^sub>W_restart_mset_state
+        S clauses_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
         cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init_def
         cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_alt_def)
   have \<open>set_mset N \<union> set_mset U \<Turnstile>ps CNot D\<close>
@@ -5318,7 +5318,7 @@ proof -
     by (rule true_clss_clss_CNot_true_clss_cls_unsatisfiable)
 
   then show ?thesis
-    by (auto simp: S clauses_def cdcl\<^sub>W_restart_mset_state dest: satisfiable_decreasing)
+    by (auto simp: S clauses_def dest: satisfiable_decreasing)
 qed
 
 lemma conflict_of_level_unsatisfiable2:
@@ -5332,7 +5332,7 @@ proof -
     by (cases S) (use confl in \<open>auto simp: cdcl\<^sub>W_restart_mset_state\<close>)
   have [simp]: \<open>get_all_ann_decomposition M = [([], M)]\<close>
     by (rule no_decision_get_all_ann_decomposition)
-      (use dec in \<open>auto simp: count_decided_def filter_empty_conv S cdcl\<^sub>W_restart_mset_state\<close>)
+      (use dec in \<open>auto simp: count_decided_def filter_empty_conv S\<close>)
   have
     M_D: \<open>M \<Turnstile>as CNot D\<close> and
     N_U_M: \<open>set_mset N \<union> set_mset U \<Turnstile>ps unmark_l M\<close> and
@@ -5340,7 +5340,7 @@ proof -
     N_U_D: \<open>set_mset N \<union> set_mset U \<Turnstile>p D\<close>
     using assms
     by (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def all_decomposition_implies_def
-        S clauses_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def cdcl\<^sub>W_restart_mset_state
+        S clauses_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def 
         cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init_def
         cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_alt_def)
   have \<open>set_mset N \<union> set_mset U \<Turnstile>ps CNot D\<close>
@@ -5351,7 +5351,9 @@ proof -
     by (rule true_clss_clss_CNot_true_clss_cls_unsatisfiable)
 
   then show ?thesis
-    by (auto simp: S clauses_def cdcl\<^sub>W_restart_mset_state dest: satisfiable_decreasing)
+    by (auto simp: S clauses_def dest: satisfiable_decreasing)
 qed
+
+
 
 end
