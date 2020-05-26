@@ -684,18 +684,39 @@ lemma GC_reduction_step:
   shows "N \<union> {Cl} \<Longrightarrow>GC N \<union> {Dl}"
 proof (rule FL.step.process[of _ N "{Cl}" _ "{Dl}"])
   have "Cl \<in> FL.Red_F_Q {Dl}"
-    apply (rule mem_FL_Red_F_Q_because_G_Red_F)
-    apply (unfold G.Red_F_def)
-    apply clarsimp
-    unfolding \<G>_F_def
-    apply clarsimp
-    apply (rule_tac x = "{fst Dl \<cdot> \<sigma>}" in exI)
-    apply auto
-    using subst_subset_mono[OF d_sub_c]
-    using true_clss_subclause
-     apply fast
-    using subst_subset_mono[OF d_sub_c]
-    by (simp add: subset_imp_less_mset)
+  proof (rule mem_FL_Red_F_Q_because_G_Red_F)
+    show \<open>\<forall>D\<in>\<G>_F (fst Cl). D \<in> G.Red_F (\<Union> (\<G>_F ` fst ` {Dl}))\<close>
+      using d_sub_c unfolding G.Red_F_def strictly_subsumes_def subsumes_def \<G>_F_def
+    proof clarsimp
+      fix \<sigma>
+      assume
+        fst_not_in: \<open>\<not> fst Cl \<subseteq># fst Dl\<close> and
+        fst_in: \<open>fst Dl \<subseteq># fst Cl\<close> and
+        gr_sig: \<open>is_ground_subst \<sigma>\<close>
+      have \<open>{fst Dl \<cdot> \<sigma>} \<subseteq> {fst Dl \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>}\<close>
+        using gr_sig by blast
+      moreover have \<open>fst Dl \<cdot> \<sigma> < fst Cl \<cdot> \<sigma>\<close>
+        using subst_subset_mono[OF d_sub_c, of \<sigma>] gr_sig
+        by (simp add: subset_imp_less_mset)
+      moreover have \<open>\<forall>I. I \<TTurnstile> fst Dl \<cdot> \<sigma> \<longrightarrow> I \<TTurnstile> fst Cl \<cdot> \<sigma>\<close>
+        using subst_subset_mono[OF d_sub_c] true_clss_subclause by fast
+      ultimately show \<open>\<exists>DD\<subseteq>{fst Dl \<cdot> \<sigma> |\<sigma>. is_ground_subst \<sigma>}. (\<forall>I. I \<TTurnstile>s DD \<longrightarrow> I \<TTurnstile> fst Cl \<cdot> \<sigma>)
+        \<and> (\<forall>D\<in>DD. D < fst Cl \<cdot> \<sigma>)\<close>
+        by blast
+    qed
+  qed
+  (*  apply (rule mem_FL_Red_F_Q_because_G_Red_F)
+      apply (unfold G.Red_F_def)
+      apply clarsimp
+      unfolding \<G>_F_def
+      apply clarsimp
+      apply (rule_tac x = "{fst Dl \<cdot> \<sigma>}" in exI)
+      apply auto
+      using subst_subset_mono[OF d_sub_c]
+      using true_clss_subclause
+       apply fast
+      using subst_subset_mono[OF d_sub_c]
+      by (simp add: subset_imp_less_mset) *)
   then show "{Cl} \<subseteq> FL.Red_F_Q (N \<union> {Dl})"
     using FL.Red_F_of_subset by blast
 qed (auto simp: FL.active_subset_def young)
@@ -723,9 +744,18 @@ proof (intro set_eqI iffI)
 
   show "E \<in> concl_of ` F.Inf_from2 N {C}"
     unfolding F.Inf_from2_alt F.Inf_from_def
-    apply (auto simp: image_def)
-    apply (rule_tac x = "Infer (CAs @ [DA]) E" in exI)
-    using e_res cd_sub c_in F_Inf_def by auto
+  proof -
+    have \<open>Infer (CAs @ [DA]) E \<in> F_Inf \<and> set (prems_of (Infer (CAs @ [DA]) E)) \<subseteq> insert C N \<and>
+      C \<in> set (prems_of (Infer (CAs @ [DA]) E)) \<and> E = concl_of (Infer (CAs @ [DA]) E)\<close>
+      using e_res cd_sub c_in F_Inf_def by auto
+    then show \<open>E \<in> concl_of ` {\<iota> \<in> F_Inf. \<iota> \<in> {\<iota> \<in> F_Inf. set (prems_of \<iota>) \<subseteq> N \<union> {C}} \<and>
+      set (prems_of \<iota>) \<inter> {C} \<noteq> {}}\<close>
+      by (smt Un_insert_right boolean_algebra_cancel.sup0 disjoint_insert(2) mem_Collect_eq image_def)
+  qed
+(*unfolding F.Inf_from2_alt F.Inf_from_def
+  apply (auto simp: image_def)
+  apply (rule_tac x = "Infer (CAs @ [DA]) E" in exI)
+  using e_res cd_sub c_in F_Inf_def by auto *)
 next
   fix E
   assume e_in: "E \<in> concl_of ` F.Inf_from2 N {C}"
@@ -741,9 +771,10 @@ next
   show "E \<in> old_concl_of ` inference_system.inferences_between (ord_FO_\<Gamma> S) N C"
     unfolding inference_system.inferences_between_def infer_from_def ord_FO_\<Gamma>_def
     using e_res cd_sub c_in
-    apply (clarsimp simp: image_def Bex_def)
+    by (clarsimp simp: image_def Bex_def, rule_tac x = "old_Infer (mset CAs) DA E" in exI, auto)
+   (* apply (clarsimp simp: image_def Bex_def)
     apply (rule_tac x = "old_Infer (mset CAs) DA E" in exI)
-    by auto
+    by auto *)
 qed
 
 lemma GC_inference_step:
