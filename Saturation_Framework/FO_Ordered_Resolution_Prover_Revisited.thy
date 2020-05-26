@@ -858,13 +858,26 @@ next
   case (inference_computation N Q C P)
   note n = this(1)
   show ?case
-    apply (auto simp: FL.active_subset_def)
+  proof -
+    have \<open>FL.active_subset (lclss_of_state (N, {}, {})) = {}\<close> 
+      unfolding n by (auto simp: FL.active_subset_def)
+    moreover have \<open>old_concls_of (inference_system.inferences_between (ord_FO_\<Gamma> S) 
+      (fst ` FL.active_subset (lclss_of_state ({}, P, Q))) C) \<subseteq> N\<close>
+      unfolding n inference_system.inferences_between_def image_def mem_Collect_eq lclss_of_state_def
+      infer_from_def by (auto simp: FL.active_subset_def)
+    ultimately have \<open>lclss_of_state ({}, insert C P, Q) \<Longrightarrow>GC lclss_of_state (N, P, insert C Q)\<close>
+      using GC_inference_step[of Processed "lclss_of_state (N, {}, {})"
+        "lclss_of_state ({}, P, Q)" C, simplified] by blast
+    then show ?case 
+      by (auto simp: FL.active_subset_def)
+(*  apply (auto simp: FL.active_subset_def)
     apply (rule GC_inference_step[of Processed "lclss_of_state (N, {}, {})"
           "lclss_of_state ({}, P, Q)" C, simplified])
     unfolding n apply (auto simp: FL.active_subset_def)
     unfolding inference_system.inferences_between_def image_def mem_Collect_eq lclss_of_state_def
       infer_from_def
-    by auto
+    by auto *)
+  qed
 qed
 
 lemma RP_derivation_imp_GC_derivation: "chain (\<leadsto>) Sts \<Longrightarrow> chain (\<Longrightarrow>GC) (lmap lclss_of_state Sts)"
@@ -890,13 +903,24 @@ proof -
   then have "Liminf_llist (lmap lclss_of_state Sts) \<TTurnstile>\<G>Le FL.Bot_FL"
     using FL.labeled_entailment_lifting by simp
   then have "lhd (lmap lclss_of_state Sts) \<TTurnstile>\<G>Le FL.Bot_FL"
-    apply -
+  proof -
+    assume entails_lim: \<open>FL.entails_\<G>_Q (Liminf_llist (lmap lclss_of_state Sts)) ({{#}} \<times> UNIV)\<close>
+    have \<open>chain (\<rhd>RedL) (lmap lclss_of_state Sts)\<close>
+      using deriv RP_derivation_imp_derive_derivation by simp
+    moreover have \<open>chain FL.entails_\<G>_Q (lmap lclss_of_state Sts)\<close>
+      by (smt F_entails_\<G>_Q_iff FL.labeled_entailment_lifting RP_model chain_lmap deriv \<G>_Fs_def
+        image_hd_lclss_of_state)
+    ultimately show \<open>FL.entails_\<G>_Q (lhd (lmap lclss_of_state Sts)) ({{#}} \<times> UNIV)\<close>
+      using entails_lim FL.unsat_limit_iff by blast
+  qed
+(*  apply -
     apply (subst (asm) FL.unsat_limit_iff)
     using deriv RP_derivation_imp_derive_derivation
       apply simp
     apply (smt F_entails_\<G>_Q_iff FL.labeled_entailment_lifting RP_model chain_lmap deriv \<G>_Fs_def
         image_hd_lclss_of_state)
     by blast
+*)
   then have "lclss_of_state (lhd Sts) \<TTurnstile>\<G>Le FL.Bot_FL"
     using chain_not_lnull deriv by fastforce
   then show ?thesis
