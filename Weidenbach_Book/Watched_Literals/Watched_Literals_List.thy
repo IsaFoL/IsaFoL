@@ -33,7 +33,7 @@ lemma twl_struct_invs_no_alien_in_trail:
     L \<in># all_lits_of_mm (clauses (get_clauses S) +
        unit_clss S + subsumed_clauses S)\<close>
   using assms by (cases S)
-   (auto simp: twl_struct_invs_def
+   (auto simp: twl_struct_invs_def pcdcl_all_struct_invs_def
     cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
     cdcl\<^sub>W_restart_mset.no_strange_atm_def trail.simps
     init_clss.simps learned_clss.simps
@@ -97,6 +97,10 @@ fun get_subsumed_learned_clauses_l :: \<open>'v twl_st_l \<Rightarrow> 'v clause
 
 fun get_subsumed_clauses_l :: \<open>'v twl_st_l \<Rightarrow> 'v clauses\<close> where
   \<open>get_subsumed_clauses_l (M, N, D, NE, UE, NS, US, WS, Q) = NS + US\<close>
+
+abbreviation get_all_clss_l :: \<open>'v twl_st_l \<Rightarrow> 'v clause multiset\<close> where
+  \<open>get_all_clss_l S \<equiv>
+     mset `# ran_mf (get_clauses_l S) + get_unit_clauses_l S + get_subsumed_clauses_l S\<close>
 
 (*TODo rename*)
 abbreviation get_all_init_clss_l :: \<open>'v twl_st_l \<Rightarrow> 'v clauses\<close> where
@@ -544,6 +548,7 @@ lemma [twl_st_l]:
     \<open>subsumed_init_clauses T = get_subsumed_init_clauses_l S\<close>
     \<open>subsumed_learned_clauses T = get_subsumed_learned_clauses_l S\<close>
     \<open>subsumed_clauses T = get_subsumed_clauses_l S\<close>
+    \<open>get_all_clss T = get_all_clss_l S\<close>
   using assms unfolding twl_st_l_def all_clss_lf_ran_m[symmetric]
   by (auto split: option.splits simp: trail.simps clauses_def mset_take_mset_drop_mset')
 
@@ -969,7 +974,7 @@ proof -
   have inv: \<open>twl_st_inv S'\<close> and
     cdcl_inv: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state\<^sub>W_of S')\<close> and
     valid: \<open>valid_enqueued S'\<close>
-    using struct_invs WS by (auto simp: twl_struct_invs_def)
+    using struct_invs WS by (auto simp: twl_struct_invs_def pcdcl_all_struct_invs_def)
   have
     w_q_inv: \<open>clauses_to_update_inv S'\<close> and
     dist: \<open>distinct_queued S'\<close> and
@@ -979,7 +984,7 @@ proof -
     using struct_invs unfolding twl_struct_invs_def by fast+
   have dist_C: \<open>distinct (get_clauses_l S \<propto> C)\<close>
     using cdcl_inv SS' C_N_U unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-      cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_alt_def
+      cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_alt_def pcdcl_all_struct_invs_def
     by (auto simp: ran_m_def dest!: multi_member_split)
 
   let ?M = \<open>get_trail_l S\<close>
@@ -1116,7 +1121,7 @@ proof -
   have inv: \<open>twl_st_inv S'\<close> and
     cdcl_inv: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state\<^sub>W_of S')\<close> and
     valid: \<open>valid_enqueued S'\<close>
-    using struct_invs WS by (auto simp: twl_struct_invs_def)
+    using struct_invs WS by (auto simp: twl_struct_invs_def pcdcl_all_struct_invs_def)
   have
     w_q_inv: \<open>clauses_to_update_inv S'\<close> and
     dist: \<open>distinct_queued S'\<close> and
@@ -2306,13 +2311,14 @@ lemma clauses_in_unit_clss_have_level0:
 proof -
   have
     all_struct: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state\<^sub>W_of T)\<close> and
-    ent: \<open>entailed_clss_inv T\<close>
+    ent: \<open>entailed_clss_inv (pstate\<^sub>W_of T)\<close>
     using struct_invs unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+      pcdcl_all_struct_invs_def state\<^sub>W_of_def[symmetric]
     by fast+
   obtain K where
     \<open>K \<in># C\<close> and lev_K: \<open>get_level (get_trail T) K = 0\<close> and K_M: \<open>K \<in> lits_of_l (get_trail T)\<close>
-    using ent C count_dec by (cases T; cases \<open>get_conflict T\<close>) auto
-    thm entailed_clss_inv.simps
+    using ent C count_dec by (cases T; cases \<open>get_conflict T\<close>) (auto simp: entailed_clss_inv.simps)
+
   obtain M1 M2 where
     M: \<open>get_trail T = M2 @ Propagated L C # M1\<close>
     using LC_T by (blast elim: in_set_list_format)
@@ -2324,7 +2330,7 @@ proof -
     using M unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
     by (auto simp: twl_st)
   moreover have n_d: \<open>no_dup (get_trail T)\<close>
-    using lev_inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def by (simp add: twl_st)
+    using lev_inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def by simp
   ultimately have \<open>L = K\<close>
     using \<open>K \<in># C\<close> M K_M
     by (auto dest!: multi_member_split simp: add_mset_eq_add_mset
@@ -2405,6 +2411,7 @@ proof -
       TT': \<open>(T,T') \<in> twl_st_l None\<close> and
       struct_invs: \<open>twl_struct_invs T'\<close>
       using loop_inv brk_TT' unfolding twl_struct_invs_def skip_and_resolve_loop_inv_def brkT brkT'
+        prod.simps state\<^sub>W_of_def[symmetric] pcdcl_all_struct_invs_def
       by auto
     moreover have \<open>Suc 0 \<le> backtrack_lvl (state\<^sub>W_of T')\<close>
       using count_dec TT' by (auto simp: trail.simps)

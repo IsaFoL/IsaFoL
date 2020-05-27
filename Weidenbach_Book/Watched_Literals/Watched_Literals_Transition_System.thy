@@ -236,18 +236,21 @@ fun pstate\<^sub>W_of :: \<open>'v twl_st \<Rightarrow> 'v prag_st\<close> where
 
 named_theorems twl_st \<open>Conversions simp rules\<close>
 
-lemma [twl_st]: \<open>pget_trail (pstate\<^sub>W_of S') = get_trail S'\<close>
+lemma [twl_st,simp]: \<open>pget_trail (pstate\<^sub>W_of S') = get_trail S'\<close>
   by (cases S') (auto simp: trail.simps)
 
-lemma [twl_st]: \<open>pget_conflict (pstate\<^sub>W_of S') = get_conflict S'\<close>
+lemma [twl_st,simp]: \<open>pget_conflict (pstate\<^sub>W_of S') = get_conflict S'\<close>
   by (cases S') (auto simp: conflicting.simps)
+
+lemma [twl_st,simp]: \<open>cdcl\<^sub>W_restart_mset.clauses (state_of (pstate\<^sub>W_of S')) = get_all_clss S'\<close>
+  by (cases S') (auto simp: clauses_def)
 
 text \<open>TODO: could also be an abbreviation.\<close>
 definition state\<^sub>W_of :: \<open>'v twl_st \<Rightarrow> 'v cdcl\<^sub>W_restart_mset\<close> where
   \<open>state\<^sub>W_of S = state_of (pstate\<^sub>W_of S)\<close>
 
 
-lemma subsumed_clauses_simps[simp]:
+lemma subsumed_clauses_simps[twl_st,simp]:
   \<open>subsumed_init_clauses (set_clauses_to_update K S) = subsumed_init_clauses S\<close>
   \<open>subsumed_learned_clauses (set_clauses_to_update K S) = subsumed_learned_clauses S\<close>
   \<open>subsumed_clauses (set_clauses_to_update K S) = subsumed_clauses S\<close>
