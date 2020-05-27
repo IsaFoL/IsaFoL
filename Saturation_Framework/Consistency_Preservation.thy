@@ -56,16 +56,24 @@ proof -
           using Suc by simp
       next
         case False
-        then have "lnth Ns k \<Turnstile> lnth Ns (Suc k)"
+        then have entail_succ: "lnth Ns k \<Turnstile> lnth Ns (Suc k)"
           using ent chain_lnth_rel by fastforce
         show ?thesis
-          apply (rule notI)
+        proof
+          assume \<open>Sup_upto_llist Ns (enat (Suc k)) \<Turnstile> Bot\<close>
+          then show False unfolding Sup_upto_llist_Suc using False 
+              entails_trans_strong[rotated, of "Sup_upto_llist Ns (enat k)" 
+                "(if enat (Suc k) < llength Ns then lnth Ns (Suc k) else {})" Bot]
+            by (metis (full_types) Suc.hyps Suc_ile_eq entail_succ empty_subsetI entails_trans
+                less_imp_le lnth_subset_Sup_upto_llist subset_entailed)
+        qed
+(*        apply (rule notI)
           unfolding Sup_upto_llist_Suc
           apply (drule entails_trans_strong[rotated])
           apply auto
           apply (meson False Suc_ile_eq \<open>lnth Ns k \<Turnstile> lnth Ns (Suc k)\<close> entails_trans le_cases lnth_subset_Sup_upto_llist subset_entailed)
           using False apply auto[1]
-          by (simp add: Suc.hyps)
+          by (simp add: Suc.hyps)*)
       qed
     qed
     then have "\<not> DD \<Turnstile> Bot"
