@@ -106,7 +106,6 @@ proof -
     done
 qed
 
-
 lemma valid_trail_reduction_Propagated_inD:
   \<open>valid_trail_reduction M M' \<Longrightarrow> Propagated L C \<in> set M' \<Longrightarrow> \<exists>C'. Propagated L C' \<in> set M\<close>
   by (induction rule: valid_trail_reduction.induct)
@@ -400,7 +399,7 @@ proof -
       using ST
       by (cases T) (auto simp: twl_st_l_def)
     have \<open>no_dup TM\<close>
-      using struct_invs unfolding T twl_struct_invs_def
+      using struct_invs unfolding T twl_struct_invs_def pcdcl_all_struct_invs_def
           cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
           cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
       by (simp add: trail.simps)
@@ -637,15 +636,15 @@ definition (in -) restart_abs_l_pre :: \<open>'v twl_st_l \<Rightarrow> bool \<R
 context twl_restart_ops
 begin
 
-definition restart_required_l :: "'v twl_st_l \<Rightarrow> nat \<Rightarrow> bool nres" where
-  \<open>restart_required_l S n = SPEC (\<lambda>b. b \<longrightarrow> size (get_learned_clss_l S) > f n)\<close>
+definition restart_required_l :: "'v twl_st_l \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> bool nres" where
+  \<open>restart_required_l S m n = SPEC (\<lambda>b. b \<longrightarrow> size (get_all_learned_clss_l S) - m > f n)\<close>
 
 definition restart_abs_l
-  :: "'v twl_st_l \<Rightarrow> nat \<Rightarrow> bool \<Rightarrow> ('v twl_st_l \<times> nat) nres"
+  :: "'v twl_st_l \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> bool \<Rightarrow> ('v twl_st_l \<times> nat) nres"
 where
-  \<open>restart_abs_l S n brk = do {
+  \<open>restart_abs_l S m n brk = do {
      ASSERT(restart_abs_l_pre S brk);
-     b \<leftarrow> restart_required_l S n;
+     b \<leftarrow> restart_required_l S m n;
      b2 \<leftarrow> SPEC (\<lambda>(_ ::bool). True);
      if b \<and> b2 \<and> \<not>brk then do {
        T \<leftarrow> SPEC(\<lambda>T. cdcl_twl_restart_l S T);
@@ -665,8 +664,8 @@ lemma (in -)[twl_st_l]:
   by (auto simp: get_learned_clss_l_def twl_st_l_def)
 
 lemma restart_required_l_restart_required:
-  \<open>(uncurry restart_required_l, uncurry restart_required) \<in>
-     {(S, S'). (S, S') \<in> twl_st_l None \<and> twl_list_invs S} \<times>\<^sub>f nat_rel \<rightarrow>\<^sub>f
+  \<open>(uncurry2 restart_required_l, uncurry2 restart_required) \<in>
+     {(S, S'). (S, S') \<in> twl_st_l None \<and> twl_list_invs S} \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<rightarrow>\<^sub>f
     \<langle>bool_rel\<rangle> nres_rel\<close>
   unfolding restart_required_l_def restart_required_def uncurry_def
   by (intro frefI nres_relI) (auto simp: twl_st_l_def get_learned_clss_l_def)

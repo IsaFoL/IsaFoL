@@ -102,6 +102,9 @@ abbreviation get_all_clss_l :: \<open>'v twl_st_l \<Rightarrow> 'v clause multis
   \<open>get_all_clss_l S \<equiv>
      mset `# ran_mf (get_clauses_l S) + get_unit_clauses_l S + get_subsumed_clauses_l S\<close>
 
+abbreviation get_all_learned_clss_l :: \<open>'v twl_st_l \<Rightarrow> 'v clause multiset\<close> where
+  \<open>get_all_learned_clss_l S \<equiv> mset `# get_learned_clss_l S + get_unit_learned_clss_l S + get_subsumed_learned_clauses_l S\<close>
+
 (*TODo rename*)
 abbreviation get_all_init_clss_l :: \<open>'v twl_st_l \<Rightarrow> 'v clauses\<close> where
   \<open>get_all_init_clss_l S \<equiv> mset `# ran_mf (get_clauses_l S) +
