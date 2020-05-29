@@ -449,7 +449,7 @@ restart_step:
   \<open>cdcl_twl_stgy_restart (S, n, True) (V, Suc n, True)\<close>
   if
     \<open>cdcl_twl_stgy\<^sup>+\<^sup>+ S T\<close> and
-    \<open>size (get_all_learned_clss T) - size (get_all_learned_clss S) > f n\<close> and
+    \<open>size (get_all_learned_clss T) > f n\<close> and
     \<open>cdcl_twl_restart T U\<close> and
     \<open>cdcl_twl_stgy\<^sup>*\<^sup>* U V\<close>
     \<open>clauses_to_update V = {#}\<close>
@@ -471,7 +471,7 @@ lemma cdcl_twl_stgy_restart_induct[consumes 1, case_names restart_step restart_n
   assumes
     \<open>cdcl_twl_stgy_restart (S, m, b) (T, n, b')\<close> and
     \<open>\<And>T U V. cdcl_twl_stgy\<^sup>+\<^sup>+ S T \<Longrightarrow> n = Suc m \<Longrightarrow>
-      f m < size (get_all_learned_clss T) - size (get_all_learned_clss S) \<Longrightarrow>
+      f m < size (get_all_learned_clss T) \<Longrightarrow>
       cdcl_twl_restart T U \<Longrightarrow> cdcl_twl_stgy\<^sup>*\<^sup>* U V \<Longrightarrow>
       clauses_to_update V = {#} \<Longrightarrow> get_conflict V = None \<Longrightarrow>
       P S m True V (Suc m) True\<close> and

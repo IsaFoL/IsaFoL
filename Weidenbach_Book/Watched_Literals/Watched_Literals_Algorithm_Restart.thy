@@ -5,6 +5,13 @@ begin
 context twl_restart_ops
 begin
 
+text \<open>
+  In the transition system we need to talk about the intermediate state from which we have
+  to remember of learned clauses. Therefore, we have introduce an intermediate function that
+  stores the state in order to be able to relate it to the function. We initially tried to keep
+  it existentially, but this would allow to change the intermediate state each time and we did
+  not manage to write the proof.
+\<close>
 text \<open>Restarts are never necessary\<close>
 definition restart_required :: "'v twl_st \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> bool nres" where
   \<open>restart_required S m n = SPEC (\<lambda>b. b \<longrightarrow> size (get_all_learned_clss S) - m > f n)\<close>
