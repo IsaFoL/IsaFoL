@@ -1409,6 +1409,10 @@ qed
 
 lemmas wf_pcdcl_tcore = wf_subset[OF wf_pcdcl_core_measure pcdcl_tcore_in_pcdcl_core_measure]
 
+lemma wf_pcdcl_tcore_stgy: \<open>wf {(T, S). pcdcl_all_struct_invs S \<and> pcdcl_tcore_stgy S T}\<close>
+  by (rule wf_subset[OF wf_pcdcl_tcore])
+    (auto simp add: pcdcl_tcore_stgy_pcdcl_tcoreD)
+
 lemma pcdcl_tcore_pcdcl: \<open>pcdcl_tcore S T \<Longrightarrow> pcdcl\<^sup>*\<^sup>* S T\<close>
   by (induction rule: pcdcl_tcore.induct)
    (fastforce dest: pcdcl.intros dest!: pcdcl_core.intros elim!: cdcl_backtrack_unit_is_backtrack)+
