@@ -1366,7 +1366,6 @@ proof (rule ccontr)
         Suc (current_restart_count (g i)))\<close> for n
       by auto
     let ?f' = \<open>\<lambda>i. g (f' i)\<close>
-    define f where \<open>f i = current_state (g (Suc i + j))\<close> for i
     have will_eventually_Restart:
       \<open>j' > j \<Longrightarrow> \<exists>ia>j'. current_restart_count (g (Suc ia)) \<noteq> (current_restart_count (g ia))\<close> for j'
       by (rule will_eventually_Restart)
@@ -1407,7 +1406,7 @@ proof (rule ccontr)
       apply (auto elim!: pcdcl_stgy_restart.cases)
       apply (smt fst_conv less_trans mono snd_conv)+
       done
-    have [iff]: \<open>\<not> f' i < f' (Suc i) - Suc 0 \<longleftrightarrow> f' i = f' (Suc i) - Suc 0\<close> for i
+    have f'_less_diff[iff]: \<open>\<not> f' i < f' (Suc i) - Suc 0 \<longleftrightarrow> f' i = f' (Suc i) - Suc 0\<close> for i
       using fii[of i] by auto
     have same_res': \<open>k < f' (Suc i) \<Longrightarrow> k > f' i \<Longrightarrow> last_restart_state (g (Suc (k))) = last_restart_state (g (Suc (f' i)))\<close> for i k
       apply (induction "k - f' i" arbitrary: k)
@@ -1440,16 +1439,31 @@ proof (rule ccontr)
     have curr_last: \<open>current_state (g (Suc (f' (Suc i)))) = last_restart_state (g (Suc (f' (Suc i))))\<close> for i
       using f'[of i] g[of \<open>f' (Suc i)\<close>]
       by (auto elim!: pcdcl_stgy_restart.cases)
+    have tcore_stgy': \<open>Suc (f' i) \<le> f' (Suc i) - Suc 0 \<Longrightarrow>pcdcl_tcore_stgy\<^sup>*\<^sup>* (current_state (g (Suc (f' i)))) (current_state (g (f' (Suc i) - 1)))\<close> for i
+      using tcore_stgy[of \<open>f' (Suc i) - 1\<close> i] fii[of i] fii0[of i]
+      by (auto)
+    have [iff]: \<open>f' (Suc i) < f' (Suc i) - Suc 0 \<longleftrightarrow> False \<close> for i
+      using fii[of i] by (cases \<open>f' (Suc i)\<close>) auto
     have tcore_stgy: \<open>pcdcl_tcore_stgy\<^sup>*\<^sup>* (current_state (g (Suc (f' i)))) (current_state (g (f' (Suc i))))\<close> for i
       using tcore_stgy[of \<open>f' (Suc i)\<close> i] fii[of i] fii0[of i]
       by (auto)
     moreover have
       \<open>size (pget_all_learned_clss (current_state (g (Suc (f' (Suc i)))))) < size (pget_all_learned_clss (current_state (g (f' (Suc (Suc i))))))\<close> and
       \<open>pcdcl_restart_only (current_state (g (f' (Suc (Suc i))))) (current_state (g (Suc (f' (Suc (Suc i))))))\<close> for i
-      using f'[of \<open>Suc i\<close>] g[of \<open>f' (Suc (Suc i))\<close>] curr_last[of i, symmetric]
-        same_res'[of \<open>f' (Suc i)\<close> \<open>Suc i\<close>]
-      apply (auto elim!: pcdcl_stgy_restart.cases)
-        by (smt One_nat_def Suc_diff_Suc \<open>\<And>i. (\<not> f' i < f' (Suc i) - Suc 0) = (f' i = f' (Suc i) - Suc 0)\<close> diff_Suc_1 diff_Suc_Suc diff_Suc_less fii fst_conv neq0_conv not_less_zero pget_all_learned_clss.simps same_res' size_union snd_conv)
+      defer
+      subgoal SS
+        using f'[of \<open>Suc i\<close>] g[of \<open>f' (Suc (Suc i))\<close>] curr_last[of i, symmetric]
+          same_res'[of \<open>f' (Suc i)\<close> \<open>Suc i\<close>]
+          rtranclp_pcdcl_tcore_stgy_pget_all_learned_clss_mono[OF tcore_stgy[of \<open>Suc i\<close>]]
+        apply (auto elim!: pcdcl_stgy_restart.cases simp: )
+        done
+      subgoal
+        using f'[of \<open>Suc i\<close>] g[of \<open>f' (Suc (Suc i))\<close>] curr_last[of i, symmetric]
+          same_res'[of \<open>f' (Suc (Suc i)) - 1\<close> \<open>Suc (i)\<close>] fii[of \<open>Suc i\<close>]
+          rtranclp_pcdcl_tcore_stgy_pget_all_learned_clss_mono[OF tcore_stgy[of \<open>Suc i\<close>]]
+        by (cases \<open>f' (Suc i) < f' (Suc (Suc i)) - Suc 0\<close>)
+          (auto elim!: pcdcl_stgy_restart.cases simp: pcdcl_restart_only.simps)
+      done
     ultimately have \<open>pcdcl_stgy_only_restart (current_state (g (Suc (f' (Suc i))))) (current_state (g (Suc (f' (Suc (Suc i))))))\<close> for i
       by (rule restart_noGC_stepI)
     moreover have \<open>pcdcl_all_struct_invs (current_state (g (Suc (f' (Suc i))))) \<and>
