@@ -1270,6 +1270,22 @@ lemma rtranclp_pcdcl_stgy_restart_mono:
     by auto
   done
 
+text \<open>
+
+The termination proof contains the usual boilerplate that hide the real argument. The idea of the
+proof is to consider an infinite chain of \<^term>\<open>pcdcl_stgy_restart\<close>. From it:
+
+   \<^item> We know that have eventually to do a restart, as \<^term>\<open>pcdcl_tcore_stgy\<close> terminates.
+
+   \<^item> Then, if there are no GC, as we will eventually restart we can extract a sequence of
+   \<^term>\<open>pcdcl_stgy_only_restart\<close>. That terminates, so we have to eventually GC.
+
+  \<^item> Finally, as \<^term>\<open>f\<close> is unbounded, at some we have learned more clauses that admissible.
+
+The proof is make more complicated by the extraction of the subsequences: we derive the subsequence
+of indices \<^term>\<open>f'\<close>, then by induction we prove properties on the subsequence.
+
+\<close>
 theorem wf_cdcl_twl_stgy_restart:
   \<open>wf {(T, S :: 'v prag_st_restart). pcdcl_stgy_restart_inv S \<and> pcdcl_stgy_restart S T}\<close>
 proof (rule ccontr)
@@ -1289,13 +1305,6 @@ proof (rule ccontr)
     unfolding pcdcl_stgy_restart_inv_alt_def
     by (simp_all add: prod.case_eq_if)
 
-  (* have [simp]: \<open>atms_of_mm (pget_all_init_clss (current_state (g i))) =
-   *   atms_of_mm (pget_all_init_clss (last_restart_state (g i)))\<close> for i
-   *   using rest_decomp[of i] apply -
-   *   apply(elim disjE)
-   *   apply (auto dest: rtranclp_pcdcl_stgy_only_restart_pget_all_init_clss)[]
-   *   apply normalize_goal+
-   *   by (simp add: rtranclp_pcdcl_stgy_only_restart_pget_all_init_clss rtranclp_pcdcl_tcore_stgy_pget_all_init_clss) *)
 
   have [simp]: \<open>NO_MATCH True c \<Longrightarrow> g i = (a, a', a'', b, b', c) \<longleftrightarrow> g i = (a, a', a'', b, b', True) \<and> c = True\<close>
     for i a b c a' a'' b'
@@ -1400,12 +1409,9 @@ proof (rule ccontr)
       by fast+
 
     have same_res: \<open>k < f' (Suc i) \<Longrightarrow> k > f' i \<Longrightarrow> last_restart_state (g (Suc (k))) = last_restart_state (g (k))\<close> for i k
-      (*TODO Proof*)
-      using wellorder_class.not_less_Least[of \<open>k\<close> \<open>\<lambda>j. j > f' (i) \<and> current_restart_count (g (Suc j)) = Suc (current_restart_count (g j))\<close>] g[of k] neq[of k] fj[of i] mono
-      unfolding f_Suc[symmetric, of ]
-      apply (auto elim!: pcdcl_stgy_restart.cases)
-      apply (smt fst_conv less_trans mono snd_conv)+
-      done
+      using wellorder_class.not_less_Least[of \<open>k\<close> \<open>\<lambda>j. j > f' (i) \<and> current_restart_count (g (Suc j)) = Suc (current_restart_count (g j))\<close>]
+        g[of k] neq[of k] fj[of i] neq[of k] neq[of \<open>k - 1\<close>] unfolding f_Suc[symmetric]
+      by (cases \<open>Suc j \<le> k - Suc 0\<close>) (auto elim!: pcdcl_stgy_restart.cases)
     have f'_less_diff[iff]: \<open>\<not> f' i < f' (Suc i) - Suc 0 \<longleftrightarrow> f' i = f' (Suc i) - Suc 0\<close> for i
       using fii[of i] by auto
     have same_res': \<open>k < f' (Suc i) \<Longrightarrow> k > f' i \<Longrightarrow> last_restart_state (g (Suc (k))) = last_restart_state (g (Suc (f' i)))\<close> for i k
@@ -1418,21 +1424,17 @@ proof (rule ccontr)
       done
 
     have tcore_stgy: \<open>k < f' (Suc i) \<Longrightarrow> k > f' i \<Longrightarrow> pcdcl_tcore_stgy (current_state (g k)) (current_state (g (Suc k)))\<close> for i k
-      using same_res[of k i] neq[of \<open>k\<close>] fj[of i] g[of \<open>k\<close>] mono
-      apply (auto simp: pcdcl_stgy_restart.simps)
-      apply (smt fst_conv lessI less_trans snd_conv)
-      using pcdcl_restart_only.cases by blast
+      using same_res[of k i] neq[of \<open>k\<close>] fj[of i] g[of \<open>k\<close>] mono neq[of \<open>k - 1\<close>]
+      by (subgoal_tac \<open>Suc j \<le> k - Suc 0\<close>)
+        (auto simp: pcdcl_stgy_restart.simps elim: pcdcl_restart_only.cases)
+
     have tcore_stgy: \<open>k \<le> f' (Suc i) \<Longrightarrow> k \<ge> Suc (f' i) \<Longrightarrow> pcdcl_tcore_stgy\<^sup>*\<^sup>* (current_state (g (Suc (f' i)))) (current_state (g k))\<close> for i k
       apply (induction "k - Suc (f' i)" arbitrary: k)
       subgoal by auto
       subgoal premises p for x k
-        using p(1)[of \<open>k-1\<close>] p(2-) tcore_stgy[of k i]
-        apply (cases k; cases \<open>f' i < k\<close>)
-        apply (auto simp: same_res less_Suc_eq_le Suc_diff_le order_class.order.order_iff_strict)
-        apply (metis (no_types, lifting) Suc_diff_Suc Suc_lessD old.nat.inject rtranclp.simps tcore_stgy)
-        apply (meson Suc_lessD lessI r_into_rtranclp tcore_stgy)+
-        apply (metis (no_types, lifting) Suc_diff_Suc Suc_lessD lessI old.nat.inject rtranclp.simps tcore_stgy)
-        by (metis lessI r_into_rtranclp tcore_stgy)
+        using p(1)[of \<open>k-1\<close>] p(2-) tcore_stgy[of \<open>k-1\<close> i]
+        by (cases k; cases \<open>f' i < k\<close>)
+          (force simp: same_res less_Suc_eq_le Suc_diff_le order_class.order.order_iff_strict)+
       done
     have fii0: \<open>(f' i) \<le> f' (Suc i) - Suc 0\<close> for i
       using fii[of i] fj[of i] by auto
@@ -1589,9 +1591,10 @@ proof (rule ccontr)
     unfolding bounded_def
     apply clarsimp
     subgoal for b
-      using not_bounded_nat_exists_larger[OF f, of b \<open>(Suc (current_number (g (f' (Suc (Suc 0))))))\<close>]
-      apply (auto simp: less_iff_Suc_add ac_simps)
-      by (smt Groups.add_ac(2) add.right_neutral add_Suc less_add_Suc2 linorder_not_less snd_f'_0)
+      using not_bounded_nat_exists_larger[OF f, of b \<open>((current_number (g (f' (Suc (Suc 0))))))\<close>] apply -
+      apply normalize_goal+
+      apply (rename_tac n, rule_tac x = \<open>n - (Suc (current_number (g (f' ((Suc 0))))))\<close> in exI)
+      by (auto simp: snd_f'_0 intro: exI[of _ \<open>_ - (Suc (current_number (g (f' ((Suc 0))))))\<close>])
     done
   ultimately show False
     using le_eq_less_or_eq unfolding bounded_def by blast
