@@ -444,55 +444,62 @@ text \<open>
   are still fulfilled afterwards, but we currently restrict to be some CDCL steps (TODO: generalise
   to also include restarts) and add requirements on the output.
 \<close>
-type_synonym 'v twl_st_restart = \<open>'v twl_st \<times> 'v twl_st \<times>nat \<times> bool\<close>
+type_synonym 'v twl_st_restart = \<open>'v twl_st \<times> 'v twl_st \<times> 'v twl_st \<times> nat \<times> nat \<times> bool\<close>
 inductive cdcl_twl_stgy_restart :: \<open>'v twl_st_restart \<Rightarrow> 'v twl_st_restart  \<Rightarrow> bool\<close> where
+step:
+ \<open>cdcl_twl_stgy_restart (R, S, T, m, n, True) (R, S, U, m, n, True)\<close>
+ if
+   \<open>cdcl_twl_stgy T U\<close> |
 restart_step:
-  \<open>cdcl_twl_stgy_restart (R, S, n, True) (V, V, Suc n, True)\<close>
+  \<open>cdcl_twl_stgy_restart (R, S, T, m, n, True) (V, V, V, m, Suc n, True)\<close>
   if
-    \<open>cdcl_twl_stgy\<^sup>+\<^sup>+ S T\<close> and
     \<open>size (get_all_learned_clss T) - size (get_all_learned_clss R) > f n\<close> and
     \<open>cdcl_twl_restart T U\<close> and
     \<open>cdcl_twl_stgy\<^sup>*\<^sup>* U V\<close>
     \<open>clauses_to_update V = {#}\<close>
     \<open>get_conflict V = None\<close> |
 restart_noGC:
-  \<open>cdcl_twl_stgy_restart (R, S, n, True) (R, U, n, True)\<close>
+  \<open>cdcl_twl_stgy_restart (R, S, T, m, n, True) (R, U, U, Suc m, n, True)\<close>
   if
-    \<open>cdcl_twl_stgy\<^sup>+\<^sup>+ S T\<close> and
     \<open>size (get_all_learned_clss T) > size (get_all_learned_clss S)\<close> and
     \<open>cdcl_twl_restart_only T U\<close> |
 restart_full:
- \<open>cdcl_twl_stgy_restart (R, S, n, True) (R, T, n, False)\<close>
+ \<open>cdcl_twl_stgy_restart (R, S, T, m, n, True) (R, S, T, m, n, False)\<close>
  if
-   \<open>cdcl_twl_stgy\<^sup>*\<^sup>* S T\<close> and
    \<open>pcdcl_twl_final_state T\<close>
-
 
 lemma cdcl_twl_stgy_restart_induct[consumes 1, case_names restart_step restart_noGC full]:
   assumes
-    \<open>cdcl_twl_stgy_restart (R, S, m, b) (T, T', n, b')\<close> and
-    \<open>\<And>T U V. cdcl_twl_stgy\<^sup>+\<^sup>+ S T \<Longrightarrow> n = Suc m \<Longrightarrow>
-      f m < size (get_all_learned_clss T) - size (get_all_learned_clss R) \<Longrightarrow>
+    \<open>cdcl_twl_stgy_restart (R, S, T, m, n, b) (R', S', T', m', n', b')\<close> and
+    \<open>\<And>R S T U. cdcl_twl_stgy T U \<Longrightarrow> m' = m \<Longrightarrow> n' = n \<Longrightarrow> b \<Longrightarrow> b' \<Longrightarrow>  P R S T m n True R S U m n True\<close> and
+    \<open>\<And>R S T U V. 
+      f n < size (get_all_learned_clss T) - size (get_all_learned_clss R) \<Longrightarrow>
       cdcl_twl_restart T U \<Longrightarrow> cdcl_twl_stgy\<^sup>*\<^sup>* U V \<Longrightarrow>
-      clauses_to_update V = {#} \<Longrightarrow> get_conflict V = None \<Longrightarrow>
-      P R S m True V V (Suc m) True\<close> and
-    \<open>\<And>T U. cdcl_twl_stgy\<^sup>+\<^sup>+ S T \<Longrightarrow> n = m \<Longrightarrow>
-      size (get_all_learned_clss S) < size (get_all_learned_clss T) \<Longrightarrow>
-      cdcl_twl_restart_only T U \<Longrightarrow> P R S m True R U m True\<close> and
-    \<open>\<And>T'. cdcl_twl_stgy\<^sup>*\<^sup>* S T' \<Longrightarrow> n = m \<Longrightarrow> pcdcl_twl_final_state T' \<Longrightarrow> P R S m True R T' m False\<close>
-  shows \<open>P R S m b T T' n b'\<close>
+      clauses_to_update V = {#} \<Longrightarrow> get_conflict V = None \<Longrightarrow> m' = m \<Longrightarrow> n' = Suc n \<Longrightarrow>
+      P R S T m n True V V V m (Suc n) True\<close>and
+    \<open>\<And>R S T U. 
+      size (get_all_learned_clss T) > size (get_all_learned_clss S) \<Longrightarrow>
+      cdcl_twl_restart_only T U \<Longrightarrow> m' = Suc m \<Longrightarrow> n' = n \<Longrightarrow>
+    P R S T m n True R U U (Suc m) n True\<close>
+    \<open>pcdcl_twl_final_state T \<Longrightarrow> R' = R \<Longrightarrow> S' = S \<Longrightarrow> T' = T \<Longrightarrow> P R S T m n True R S T m n False\<close>
+  shows \<open>P R S T m n b R' S' T' m' n' b'\<close>
   using assms(1)
   apply (cases rule: cdcl_twl_stgy_restart.cases)
-  subgoal for U V
-    using assms(2)[of U]
+  subgoal
+    using assms(2)[of T T' R S]
     by simp
   subgoal for U
-    using assms(3)[of ]
+    using assms(3)[of T R U R' S]
     by simp
   subgoal
     using assms(4)[of ]
     by simp
+  subgoal
+    using assms(5)[of ]
+    by simp
   done
+
+
 
 lemma tranclp_cdcl_twl_stgy_cdcl\<^sub>W_stgy2:
   \<open>cdcl_twl_stgy\<^sup>+\<^sup>+ S T \<Longrightarrow>
@@ -522,45 +529,46 @@ lemma pcdcl_twl_final_state_pcdcl:
   twl_struct_invs S \<Longrightarrow> pcdcl_final_state (pstate\<^sub>W_of S)\<close>
   using no_step_cdcl_twl_stgy_no_step_cdcl\<^sub>W_stgy[of S]
   unfolding pcdcl_twl_final_state_def pcdcl_final_state_def
-  by (auto simp add: twl_st no_step_pcdcl_core_stgy_pcdcl_coreD)
+  by (auto simp add: no_step_pcdcl_core_stgy_pcdcl_coreD)
 
-lemma cdcl_twl_stgy_restart_pcdcl:
-  \<open>cdcl_twl_stgy_restart (S :: 'v twl_st, S', m, g) (T, T', n, h) \<Longrightarrow>
-  twl_struct_invs S \<Longrightarrow> twl_struct_invs S' \<Longrightarrow>
-  pcdcl_stgy_restart (pstate\<^sub>W_of S, pstate\<^sub>W_of S', m, g) (pstate\<^sub>W_of T, pstate\<^sub>W_of T', n, h)\<close>
-  apply (induction rule: cdcl_twl_stgy_restart_induct)
-  subgoal for T U V
-    apply (rule pcdcl_stgy_restart.intros(1)[of _ \<open>pstate\<^sub>W_of T\<close>])
-    defer
-    apply simp
-    apply (rule cdcl_twl_restart_pcdcl)
-    apply assumption
-    apply (auto dest: cdcl_twl_restart_twl_struct_invs rtranclp_cdcl_twl_stgy_cdcl\<^sub>W_stgy
-      rtranclp_cdcl_twl_stgy_twl_struct_invs rtranclp_pcdcl_tcore_stgy_pcdcl_stgy' tranclp_into_rtranclp)[]
-    apply (rule tranclp_cdcl_twl_stgy_cdcl\<^sub>W_stgy2)
-    apply assumption+
-    apply auto
-      sledgehammer
-    apply simp
-    apply (meson cdcl_twl_restart_twl_struct_invs rtranclp_cdcl_twl_stgy_cdcl\<^sub>W_stgy rtranclp_cdcl_twl_stgy_twl_struct_invs rtranclp_pcdcl_tcore_stgy_pcdcl_stgy' tranclp_into_rtranclp)
-    done
-  subgoal
-    apply (rule pcdcl_stgy_restart.intros(2))
-    apply (rule tranclp_cdcl_twl_stgy_cdcl\<^sub>W_stgy3)
-    apply assumption+
-    apply simp
-    apply (rule cdcl_twl_restart_only_cdcl)
-    apply assumption
-    done
-  subgoal
-    apply (rule pcdcl_stgy_restart.intros(3))
-    apply (simp_all add: rtranclp_cdcl_twl_stgy_cdcl\<^sub>W_stgy
-      rtranclp_cdcl_twl_stgy_twl_struct_invs pcdcl_twl_final_state_pcdcl)
-    done
+lemma pcdcl_stgy_restart_stepI:
+  \<open>pcdcl_tcore_stgy\<^sup>*\<^sup>* T T' \<Longrightarrow> pcdcl_stgy_restart\<^sup>*\<^sup>* (R, S, T, m, n, True) (R, S, T', m, n, True)\<close>
+  apply (induction rule: rtranclp_induct)
+  subgoal by auto
+  subgoal for V W
+    by (auto dest!: pcdcl_stgy_restart.intros(1)[of _ _ R S m n])
   done
 
+lemma cdcl_twl_stgy_restart_pcdcl:
+  \<open>cdcl_twl_stgy_restart (R, S :: 'v twl_st, T, m, n, g) (R', S', T', m', n', h) \<Longrightarrow>
+  twl_struct_invs R \<Longrightarrow> twl_struct_invs S \<Longrightarrow> twl_struct_invs T \<Longrightarrow>
+  pcdcl_stgy_restart\<^sup>*\<^sup>* (pstate\<^sub>W_of R, pstate\<^sub>W_of S, pstate\<^sub>W_of T, m, n, g)
+      (pstate\<^sub>W_of R', pstate\<^sub>W_of S', pstate\<^sub>W_of T', m', n', h)\<close>
+  apply (induction rule: cdcl_twl_stgy_restart_induct)
+  subgoal for R S T U
+    by (drule cdcl_twl_stgy_cdcl\<^sub>W_stgy)
+      (simp add: pcdcl_stgy_restart_stepI)+
+  subgoal
+    apply (rule r_into_rtranclp)
+    apply (rule pcdcl_stgy_restart.intros(2))
+    apply simp
+    apply (rule cdcl_twl_restart_pcdcl, assumption)
+    using cdcl_twl_restart_twl_struct_invs rtranclp_cdcl_twl_stgy_cdcl\<^sub>W_stgy rtranclp_pcdcl_tcore_stgy_pcdcl_stgy' by blast
+  subgoal
+    apply (rule r_into_rtranclp)
+    apply (rule pcdcl_stgy_restart.intros(3))
+    apply simp
+    apply (rule cdcl_twl_restart_only_cdcl, assumption)
+    done
+  subgoal
+    apply (rule r_into_rtranclp)
+    apply (rule pcdcl_stgy_restart.intros(4))
+    by (simp add: twl_restart_ops.pcdcl_twl_final_state_pcdcl)
+  done
+ 
+
 lemma rtranclp_cdcl_twl_stgy_restart_clauses_to_update:
-  \<open>cdcl_twl_stgy_restart\<^sup>*\<^sup>* S T \<Longrightarrow> clauses_to_update (fst S) = {#} \<Longrightarrow> snd (snd T) \<Longrightarrow>
+  \<open>cdcl_twl_stgy_restart\<^sup>*\<^sup>* S T \<Longrightarrow> clauses_to_update (fst S) = {#} \<Longrightarrow>
   clauses_to_update (fst T) = {#}\<close>
    apply (induction rule: rtranclp_induct)
    subgoal by auto
@@ -568,7 +576,7 @@ lemma rtranclp_cdcl_twl_stgy_restart_clauses_to_update:
    done
 
 lemma rtranclp_cdcl_twl_stgy_restart_get_conflict:
-  \<open>cdcl_twl_stgy_restart\<^sup>*\<^sup>* S T \<Longrightarrow> get_conflict (fst S) = None \<Longrightarrow> snd (snd T) \<Longrightarrow>
+  \<open>cdcl_twl_stgy_restart\<^sup>*\<^sup>* S T \<Longrightarrow> get_conflict (fst S) = None \<Longrightarrow>
   get_conflict (fst T) = None\<close>
    apply (induction rule: rtranclp_induct)
    subgoal by auto
@@ -578,8 +586,10 @@ lemma rtranclp_cdcl_twl_stgy_restart_get_conflict:
 lemma cdcl_twl_stgy_restart_twl_struct_invs:
   assumes
     \<open>cdcl_twl_stgy_restart S T\<close> and
-    \<open>twl_struct_invs (fst S)\<close>
-  shows \<open>twl_struct_invs (fst T)\<close>
+    \<open>twl_struct_invs (fst S)\<close> and
+    \<open>twl_struct_invs (fst (snd S))\<close> and
+    \<open>twl_struct_invs (fst (snd (snd S)))\<close>
+  shows \<open>twl_struct_invs (fst T) \<and> twl_struct_invs (fst (snd T)) \<and> twl_struct_invs (fst (snd (snd T)))\<close>
   using assms
   by (induction rule: cdcl_twl_stgy_restart.induct)
     (auto simp add: full1_def intro: rtranclp_cdcl_twl_stgy_twl_struct_invs
@@ -591,11 +601,13 @@ lemma cdcl_twl_stgy_restart_twl_struct_invs:
 lemma rtranclp_cdcl_twl_stgy_restart_twl_struct_invs:
   assumes
     \<open>cdcl_twl_stgy_restart\<^sup>*\<^sup>* S T\<close> and
-    \<open>twl_struct_invs (fst S)\<close>
-  shows \<open>twl_struct_invs (fst T)\<close>
+    \<open>twl_struct_invs (fst S)\<close> and
+    \<open>twl_struct_invs (fst (snd S))\<close> and
+    \<open>twl_struct_invs (fst (snd (snd S)))\<close>
+  shows \<open>twl_struct_invs (fst T) \<and> twl_struct_invs (fst (snd T)) \<and> twl_struct_invs (fst (snd (snd T)))\<close>
   using assms
   by (induction)
-     (auto intro: cdcl_twl_stgy_restart_twl_struct_invs)
+     (auto dest!: cdcl_twl_stgy_restart_twl_struct_invs)
 (*
 lemma cdcl_twl_stgy_restart_twl_stgy_invs:
   assumes
@@ -745,39 +757,174 @@ lemma rtranclp_cdcl_twl_stgy_restart_new_abs:
   subgoal by (auto intro: cdcl_twl_stgy_restart_new rtranclp_cdcl_twl_stgy_restart_twl_struct_invs)
   done
     *)
+
+lemma cdcl_twl_stgy_cdcl\<^sub>W_stgy_restart2:
+  assumes \<open>cdcl_twl_stgy_restart (S, T, U, m, n, g) (S', T', U', m', n', g')\<close>
+    and twl: \<open>twl_struct_invs U\<close>
+  shows \<open>pcdcl_stgy_restart (pstate\<^sub>W_of S, pstate\<^sub>W_of T, pstate\<^sub>W_of U, m, n, g)
+       (pstate\<^sub>W_of S', pstate\<^sub>W_of T', pstate\<^sub>W_of U', m', n', g') \<or>
+    (S = S' \<and> T = T' \<and> m = m' \<and> n = n' \<and> g = g' \<and>
+      pstate\<^sub>W_of U = pstate\<^sub>W_of U' \<and> (literals_to_update_measure U', literals_to_update_measure U)
+    \<in> lexn less_than 2)\<close>
+  using assms(1,2)
+  apply (induction rule: cdcl_twl_stgy_restart_induct)
+  subgoal for R S T U
+    by (drule  cdcl_twl_stgy_cdcl\<^sub>W_stgy2)
+      (auto simp add: pcdcl_stgy_restart.step)
+  subgoal
+    apply (rule disjI1)
+    apply (rule pcdcl_stgy_restart.intros(2))
+    apply simp
+    apply (rule cdcl_twl_restart_pcdcl, assumption)
+    using cdcl_twl_restart_twl_struct_invs rtranclp_cdcl_twl_stgy_cdcl\<^sub>W_stgy rtranclp_pcdcl_tcore_stgy_pcdcl_stgy' by blast
+  subgoal
+    apply (rule disjI1)
+    apply (rule pcdcl_stgy_restart.intros(3))
+    apply simp
+    apply (rule cdcl_twl_restart_only_cdcl, assumption)
+    done
+  subgoal
+    apply (rule disjI1)
+    apply (rule pcdcl_stgy_restart.intros(4))
+    by (simp add: twl_restart_ops.pcdcl_twl_final_state_pcdcl)
+  done
+
+abbreviation state\<^sub>W_of_restart where
+  \<open>state\<^sub>W_of_restart \<equiv> (\<lambda>(S, T, U, n, b). (state\<^sub>W_of S, state\<^sub>W_of T, state\<^sub>W_of U, n))\<close>
+
+definition twl_restart_inv :: \<open>'v twl_st_restart \<Rightarrow> bool\<close> where
+  \<open>twl_restart_inv = (\<lambda>(Q, R, S, m, n). twl_struct_invs Q \<and> twl_struct_invs R \<and> twl_struct_invs S \<and>
+   pcdcl_stgy_restart_inv (pstate\<^sub>W_of Q, pstate\<^sub>W_of R, pstate\<^sub>W_of S, m, n))\<close>
+
+lemma cdcl_twl_stgy_restart_twl_restart_inv:
+  \<open>cdcl_twl_stgy_restart S T \<Longrightarrow> twl_restart_inv S \<Longrightarrow> twl_restart_inv T\<close>
+  apply (induction rule: cdcl_twl_stgy_restart.induct)
+  subgoal for T U R S m n
+    using cdcl_twl_stgy_cdcl\<^sub>W_stgy_restart2[of R S T m n True R S U m n True]
+    unfolding twl_restart_inv_def
+    by (auto intro: cdcl_twl_stgy_twl_struct_invs
+      simp: pcdcl_stgy_restart_pcdcl_stgy_restart_inv cdcl_twl_stgy_restart.intros)
+  subgoal for T R n U V S m
+    using cdcl_twl_stgy_cdcl\<^sub>W_stgy_restart2[of R S T m n True V V V m \<open>Suc n\<close> True]
+    unfolding twl_restart_inv_def
+    by (auto intro: cdcl_twl_stgy_twl_struct_invs
+      simp: pcdcl_stgy_restart_pcdcl_stgy_restart_inv cdcl_twl_stgy_restart.intros
+      cdcl_twl_restart_twl_struct_invs rtranclp_cdcl_twl_stgy_twl_struct_invs)
+  subgoal for T S U R m n
+    using cdcl_twl_stgy_cdcl\<^sub>W_stgy_restart2[of R S T m n True R U U \<open>Suc m\<close> n True]
+    unfolding twl_restart_inv_def
+    by (auto intro: cdcl_twl_stgy_twl_struct_invs
+      simp: pcdcl_stgy_restart_pcdcl_stgy_restart_inv cdcl_twl_stgy_restart.intros
+      cdcl_twl_restart_only_twl_struct_invs)
+  subgoal
+    unfolding twl_restart_inv_def pcdcl_stgy_restart_inv_def prod.simps by blast
+  done
+
+lemma rtranclp_cdcl_twl_stgy_restart_twl_restart_inv:
+  \<open>cdcl_twl_stgy_restart\<^sup>*\<^sup>* S T \<Longrightarrow> twl_restart_inv S \<Longrightarrow> twl_restart_inv T\<close>
+  by (induction rule: rtranclp_induct)
+    (auto simp: cdcl_twl_stgy_restart_twl_restart_inv)
+
+definition twl_stgy_restart_inv :: \<open>'v twl_st_restart \<Rightarrow> bool\<close> where
+  \<open>twl_stgy_restart_inv = (\<lambda>(Q, R, S, m, n). twl_stgy_invs Q \<and> twl_stgy_invs R \<and> twl_stgy_invs S)\<close>
+lemma cdcl_twl_restart_only_twl_stgy_invs:
+  \<open>cdcl_twl_restart_only S T \<Longrightarrow> twl_stgy_invs S \<Longrightarrow> twl_stgy_invs T\<close>
+  by (auto simp: cdcl_twl_restart_only.simps twl_stgy_invs_def
+    cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant_def cdcl\<^sub>W_restart_mset.no_smaller_confl_def
+    cdcl\<^sub>W_restart_mset.conflict_non_zero_unless_level_0_def
+    dest!: get_all_ann_decomposition_exists_prepend)
+
+lemma cdcl_twl_stgy_restart_twl_stgy_invs:
+  assumes
+    \<open>cdcl_twl_stgy_restart S T\<close> and
+    \<open>twl_restart_inv S\<close> and
+    \<open>twl_stgy_invs (fst S)\<close> and
+    \<open>twl_stgy_invs (fst (snd S))\<close> and
+    \<open>twl_stgy_invs (fst (snd (snd S)))\<close>
+  shows \<open>twl_stgy_invs (fst T) \<and> twl_stgy_invs (fst (snd T)) \<and> twl_stgy_invs (fst (snd (snd T)))\<close>
+  using assms
+  apply (induction rule: cdcl_twl_stgy_restart.induct)
+  subgoal for T U R S m n
+    using rtranclp_cdcl_twl_stgy_twl_stgy_invs[of T U]
+    by (auto simp: twl_restart_inv_def)
+  subgoal for T R n U V S m
+    using cdcl_twl_restart_twl_stgy_invs[of T U]
+    by (auto simp: twl_restart_inv_def
+      intro: cdcl_twl_restart_twl_struct_invs rtranclp_cdcl_twl_stgy_twl_stgy_invs)
+  subgoal for T S U R m n
+    using cdcl_twl_restart_only_twl_stgy_invs[of T U]
+    by (auto simp: twl_restart_inv_def)
+  subgoal
+    by auto
+  done
+
+lemma rtranclp_cdcl_twl_stgy_restart_twl_stgy_invs:
+  assumes
+    \<open>cdcl_twl_stgy_restart\<^sup>*\<^sup>* S T\<close> and
+    \<open>twl_restart_inv S\<close> and
+    \<open>twl_stgy_invs (fst S)\<close> and
+    \<open>twl_stgy_invs (fst (snd S))\<close> and
+    \<open>twl_stgy_invs (fst (snd (snd S)))\<close>
+  shows \<open>twl_stgy_invs (fst T) \<and> twl_stgy_invs (fst (snd T)) \<and> twl_stgy_invs (fst (snd (snd T)))\<close>
+  using assms
+  apply (induction rule: rtranclp_induct)
+  subgoal by auto
+  subgoal for T U
+    using cdcl_twl_stgy_restart_twl_stgy_invs[of T U]
+      rtranclp_cdcl_twl_stgy_restart_twl_restart_inv[of S T]
+    by (auto dest!: )
+  done
+
+lemma cdcl_twl_stgy_restart_twl_stgy_restart_inv:
+  \<open>cdcl_twl_stgy_restart S T \<Longrightarrow> twl_restart_inv S \<Longrightarrow> twl_stgy_restart_inv S \<Longrightarrow>
+  twl_stgy_restart_inv T\<close>
+  using cdcl_twl_stgy_restart_twl_stgy_invs[of S T] unfolding twl_stgy_restart_inv_def
+  by auto
+
+lemma rtranclp_cdcl_twl_stgy_restart_twl_stgy_restart_inv:
+  \<open>cdcl_twl_stgy_restart\<^sup>*\<^sup>* S T \<Longrightarrow> twl_restart_inv S \<Longrightarrow> twl_stgy_restart_inv S \<Longrightarrow>
+  twl_stgy_restart_inv T\<close>
+  using rtranclp_cdcl_twl_stgy_restart_twl_stgy_invs[of S T] unfolding twl_stgy_restart_inv_def
+  by auto
+
 end
+
 
 context twl_restart
 begin
 
 theorem wf_cdcl_twl_stgy_restart:
-  \<open>wf {(T, S :: 'v twl_st \<times> nat \<times> bool). twl_struct_invs (fst S) \<and> cdcl_twl_stgy_restart S T}\<close>
-  apply (rule wf_subset[OF wf_if_measure_f[OF wf_cdcl_twl_stgy_restart],
-    of _ \<open>\<lambda>(S, m, g). (pstate\<^sub>W_of S, m, g)\<close>])
-  apply rule
-  apply clarify
-  apply (intro conjI)
-  subgoal
-    unfolding twl_struct_invs_def
-    by simp
-  subgoal
-    unfolding twl_struct_invs_def
-    by simp
-  subgoal
-    by (auto dest!: cdcl_twl_stgy_restart_pcdcl)
-  done
-
-
-
-theorem wf_cdcl_twl_stgy_restart:
-  \<open>wf {(U, T :: 'v twl_st \<times> nat \<times> bool). twl_struct_invs (fst S) \<and>
-     cdcl_twl_stgy_restart\<^sup>*\<^sup>* S T \<and> cdcl_twl_stgy\<^sup>*\<^sup>* (fst T) (fst U) \<and> snd T = snd U}\<close>
-  oops
+  \<open>wf {(T, S :: 'v twl_st_restart). twl_restart_inv S \<and> cdcl_twl_stgy_restart S T}\<close> (is \<open>wf ?S\<close>)
+proof -
+  have \<open>?S \<subseteq>
+    {((S', T', U', m', n', g'), (S, T, U, m, n, g)).
+        pcdcl_stgy_restart_inv (pstate\<^sub>W_of S, pstate\<^sub>W_of T, pstate\<^sub>W_of U, m, n, g) \<and>
+        pcdcl_stgy_restart (pstate\<^sub>W_of S, pstate\<^sub>W_of T, pstate\<^sub>W_of U, m, n, g)
+           (pstate\<^sub>W_of S', pstate\<^sub>W_of T', pstate\<^sub>W_of U', m', n', g')} \<union>
+    {((S', T', U', m', n', g'), (S, T, U, m, n, g)).
+        pcdcl_stgy_restart_inv (pstate\<^sub>W_of S, pstate\<^sub>W_of T, pstate\<^sub>W_of U, m, n, g) \<and>
+        S = S' \<and> T = T' \<and> m = m' \<and> n = n' \<and> g = g' \<and>
+      pstate\<^sub>W_of U = pstate\<^sub>W_of U' \<and> (literals_to_update_measure U', literals_to_update_measure U)
+      \<in> lexn less_than 2}\<close> (is \<open>_ \<subseteq> ?A \<union> ?B\<close>)
+    by (auto dest!: cdcl_twl_stgy_cdcl\<^sub>W_stgy_restart2 simp: twl_restart_inv_def)
+  moreover have \<open>wf (?A \<union> ?B)\<close>
+    apply (rule wf_union_compatible)
+    subgoal
+      by (rule wf_subset[OF wf_if_measure_f[OF wf_cdcl_twl_stgy_restart],
+        of _ \<open>\<lambda>(S, T, U, m, g). (pstate\<^sub>W_of S, pstate\<^sub>W_of T, pstate\<^sub>W_of U, m, g)\<close>]) auto
+    subgoal
+      by (rule wf_subset[OF wf_if_measure_f[OF ],
+        of \<open>(lexn less_than 2)\<close>  _ \<open>\<lambda>(S, T, U, m, g). literals_to_update_measure (U)\<close>])
+        (auto intro!: wf_lexn)
+    subgoal
+      by auto
+    done
+  ultimately show ?thesis
+    by (blast intro: wf_subset)
+qed
 
 end
 
-abbreviation state\<^sub>W_of_restart where
-  \<open>state\<^sub>W_of_restart \<equiv> (\<lambda>(S, n, b). (state\<^sub>W_of S, n))\<close>
 
 context twl_restart_ops
 begin
@@ -811,36 +958,24 @@ lemma cdcl_twl_stgy_restart_cdcl\<^sub>W_restart_stgy:
     by (auto dest!: tranclp_into_rtranclp simp: full1_def)
   done
 
-lemma rtranclp_cdcl_twl_stgy_restart_twl_stgy_invs:
-  assumes
-    \<open>cdcl_twl_stgy_restart\<^sup>*\<^sup>* S T\<close> and
-    \<open>twl_struct_invs (fst S)\<close> and
-    \<open>twl_stgy_invs (fst S)\<close>
-  shows \<open>twl_stgy_invs (fst T)\<close>
-  using assms
-  by (induction rule: rtranclp_induct)
-    (auto intro: cdcl_twl_stgy_restart_twl_stgy_invs
-        rtranclp_cdcl_twl_stgy_restart_twl_struct_invs)
-  
-lemma rtranclp_cdcl_twl_stgy_restart_cdcl\<^sub>W_restart_stgy:
-  \<open>cdcl_twl_stgy_restart\<^sup>*\<^sup>* S T \<Longrightarrow> twl_struct_invs (fst S) \<Longrightarrow>  twl_stgy_invs (fst S) \<Longrightarrow>
-    cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_restart_stgy\<^sup>*\<^sup>* (state\<^sub>W_of_restart S) (state\<^sub>W_of_restart T)\<close>
-  apply (induction rule: rtranclp_induct)
-  subgoal by auto
-  subgoal for T U
-    using rtranclp_cdcl_twl_stgy_restart_twl_struct_invs[of S T]
-       rtranclp_cdcl_twl_stgy_restart_twl_stgy_invs[of S T]
-       cdcl_twl_stgy_restart_cdcl\<^sub>W_restart_stgy[of T U]
-    by (auto dest!: tranclp_into_rtranclp)
-  done
     *)
 
-
-definition (in twl_restart_ops) cdcl_twl_stgy_restart_with_leftovers where
-  \<open>cdcl_twl_stgy_restart_with_leftovers S m T U \<longleftrightarrow>
-    (cdcl_twl_stgy_restart\<^sup>*\<^sup>* S (T, snd U) \<and>
-      cdcl_twl_stgy\<^sup>*\<^sup>* T (fst U) \<and>
-      m = size (get_all_learned_clss T))\<close>
+(* lemma rtranclp_cdcl_twl_stgy_restart_cdcl\<^sub>W_restart_stgy:
+ *   \<open>cdcl_twl_stgy_restart\<^sup>*\<^sup>* S T \<Longrightarrow> twl_struct_invs (fst S) \<Longrightarrow>  twl_stgy_invs (fst S) \<Longrightarrow>
+ *     cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_restart_stgy\<^sup>*\<^sup>* (state\<^sub>W_of_restart S) (state\<^sub>W_of_restart T)\<close>
+ *   apply (induction rule: rtranclp_induct)
+ *   subgoal by auto
+ *   subgoal for T U
+ *     using rtranclp_cdcl_twl_stgy_restart_twl_struct_invs[of S T]
+ *        rtranclp_cdcl_twl_stgy_restart_twl_stgy_invs[of S T]
+ *        cdcl_twl_stgy_restart_cdcl\<^sub>W_restart_stgy[of T U]
+ *     by (auto dest!: tranclp_into_rtranclp)
+ *   done *)
+(* definition (in twl_restart_ops) cdcl_twl_stgy_restart_with_leftovers where
+ *   \<open>cdcl_twl_stgy_restart_with_leftovers S m T U \<longleftrightarrow>
+ *     (cdcl_twl_stgy_restart\<^sup>*\<^sup>* S (T, snd U) \<and>
+ *       cdcl_twl_stgy\<^sup>*\<^sup>* T (fst U) \<and>
+ *       m = size (get_all_learned_clss T))\<close> *)
 
 lemma cdcl_twl_stgy_size_get_all_learned:
   \<open>cdcl_twl_stgy S T \<Longrightarrow> size (get_all_learned_clss S) \<le> size (get_all_learned_clss T)\<close>
@@ -852,7 +987,7 @@ lemma rtranclp_cdcl_twl_stgy_size_get_all_learned:
   \<open>cdcl_twl_stgy\<^sup>*\<^sup>* S T \<Longrightarrow> size (get_all_learned_clss S) \<le> size (get_all_learned_clss T)\<close>
   by (induction rule: rtranclp_induct)
     (auto dest!: cdcl_twl_stgy_size_get_all_learned)
-
+(*
 lemma cdcl_twl_stgy_restart_cdcl_twl_stgy_cdcl_twl_stgy_restart:
   \<open>cdcl_twl_stgy_restart (T, m, b) (V, Suc m, b) \<Longrightarrow>
        cdcl_twl_stgy\<^sup>*\<^sup>* S T \<Longrightarrow> cdcl_twl_stgy_restart (S, m, b) (V, Suc m, b)\<close>
@@ -869,11 +1004,7 @@ lemma cdcl_twl_stgy_restart_cdcl_twl_stgy_cdcl_twl_stgy_restart2:
       dest: rtranclp_tranclp_tranclp
         rtranclp_tranclp_tranclp[of _ S T]
       rtranclp_cdcl_twl_stgy_size_get_all_learned)
-
-definition cdcl_twl_stgy_restart_with_leftovers1 where
-  \<open>cdcl_twl_stgy_restart_with_leftovers1 S U \<longleftrightarrow>
-     cdcl_twl_stgy_restart S U \<or>
-    (cdcl_twl_stgy\<^sup>+\<^sup>+ (fst S) (fst U) \<and> snd S = snd U \<and> snd (snd S))\<close>
+*)
 
 (*TODO Move*)
 lemma (in -) wf_trancl_iff: \<open>wf (r\<^sup>+) \<longleftrightarrow> wf r\<close>
@@ -903,6 +1034,7 @@ proof -
     done
 qed
 
+(*
 lemma cdcl_twl_stgy_restart_cdcl_twl_stgy_restart_compatible:
   assumes
     \<open>twl_struct_invs (ba1)\<close>
@@ -918,56 +1050,62 @@ lemma cdcl_twl_stgy_restart_cdcl_twl_stgy_restart_compatible:
   apply (metis (full_types) assms(2) cdcl_twl_stgy_restart_cdcl_twl_stgy_cdcl_twl_stgy_restart2
     tranclp_into_rtranclp)
   by (meson cdcl_twl_stgy_restart.restart_full tranclp_into_rtranclp tranclp_rtranclp_tranclp)
-
-lemma (in twl_restart) wf_cdcl_twl_stgy_restart_with_leftovers1:
-  \<open>wf {(T :: 'v twl_st \<times> nat \<times> bool, S).
-        twl_struct_invs (fst S) \<and> cdcl_twl_stgy_restart_with_leftovers1 S T}\<close>
-  (is \<open>wf ?S\<close>)
-proof -
-  have S: \<open>?S = {(T :: 'v twl_st \<times> nat \<times> bool, S).
-      twl_struct_invs (fst S) \<and> cdcl_twl_stgy_restart  S T}\<union>
-    {(T :: 'v twl_st \<times> nat \<times> bool, S). cdcl_twl_stgy\<^sup>+\<^sup>+ (fst S) (fst T) \<and>
-       (twl_struct_invs (fst S) \<and> snd S = snd T \<and> snd (snd S))}\<close>
-    (is \<open>_ = ?R \<union> ?T\<close>)
-    by (auto simp: cdcl_twl_stgy_restart_with_leftovers1_def)
-  have \<open>wf ?R\<close>
-    using wf_cdcl_twl_stgy_restart by blast
-  moreover have \<open>wf ?T\<close>
-    by (rule wf_if_measure_in_wf[OF tranclp_wf_cdcl_twl_stgy, of _ fst])
-      simp
-  moreover have \<open>?R O ?T \<subseteq> ?R\<close>
-    by (auto simp add: intro: cdcl_twl_stgy_restart_cdcl_twl_stgy_restart_compatible)
-  ultimately show ?thesis
-    unfolding S
-    by (rule wf_union_compatible)
-qed
+*)
 
 
-lemma (in twl_restart) wf_cdcl_twl_stgy_restart_measure:
-  \<open>wf ({((brkT, T, n), brkS, S, m).
-  twl_struct_invs S \<and> cdcl_twl_stgy_restart_with_leftovers1 (S, m) (T, n)} \<union>
-  {((brkT, T), brkS, S). S = T \<and> brkT \<and> \<not> brkS})\<close>
-  (is \<open>wf (?TWL \<union> ?BOOL)\<close>)
-proof (rule wf_union_compatible)
-  show \<open>wf ?TWL\<close>
-    apply (rule wf_subset)
-    apply (rule wf_snd_wf_pair[OF wf_cdcl_twl_stgy_restart_with_leftovers1])
-    by auto
-  show \<open>?TWL O ?BOOL \<subseteq> ?TWL\<close>
-    by auto
-
-  show \<open>wf ?BOOL\<close>
-    unfolding wf_iff_no_infinite_down_chain
-  proof clarify
-    fix f :: \<open>nat \<Rightarrow> bool \<times> 'b\<close>
-    assume H: \<open>\<forall>i. (f (Suc i), f i) \<in> {((brkT, T), brkS, S). S = T \<and> brkT \<and> \<not> brkS}\<close>
-    then have \<open>(f (Suc 0), f 0) \<in> {((brkT, T), brkS, S). S = T \<and> brkT \<and> \<not> brkS}\<close> and
-      \<open>(f (Suc 1), f 1) \<in> {((brkT, T), brkS, S). S = T \<and> brkT \<and> \<not> brkS}\<close>
-      by presburger+
-    then show False
-      by auto
-  qed
-qed
+(*     find_theorems cdcl_twl_stgy_restart pcdcl_stgy_restart
+ *     thm wf_if_measure_in_wf[OF tranclp_wf_cdcl_twl_stgy, of _ fst]
+ * lemma (in twl_restart) wf_cdcl_twl_stgy_restart_with_leftovers1:
+ *   \<open>wf {(T :: 'v twl_st_restart, S).
+ *         twl_struct_invs (fst S) \<and> cdcl_twl_stgy_restart S T}\<close>
+ *   (is \<open>wf ?S\<close>)
+ * proof -
+ *   thm cdcl_twl_stgy_restart_pcdcl
+ *   have S: \<open>?S = {(T :: 'v twl_st_restart, S).
+ *       twl_struct_invs (fst S) \<and> cdcl_twl_stgy_restart  S T} \<union>
+ *     {(T :: 'v twl_st_restart, S). cdcl_twl_stgy\<^sup>+\<^sup>+ (fst S) (fst T) \<and>
+ *        (twl_struct_invs (fst S) \<and> snd S = snd T)}\<close>
+ *     (is \<open>_ = ?R \<union> ?T\<close>)
+ *     by (auto simp: cdcl_twl_stgy_restart_with_leftovers1_def)
+ *   have \<open>wf ?R\<close>
+ *     using wf_cdcl_twl_stgy_restart by blast
+ *   moreover have \<open>wf ?T\<close>
+ *     by (rule wf_if_measure_in_wf[OF tranclp_wf_cdcl_twl_stgy, of _ fst])
+ *       simp
+ *   moreover have \<open>?R O ?T \<subseteq> ?R\<close>
+ *     by (auto simp add: intro: cdcl_twl_stgy_restart_cdcl_twl_stgy_restart_compatible)
+ *   ultimately show ?thesis
+ *     oops
+ *     unfolding S
+ *     by (rule wf_union_compatible)
+ * qed
+ * 
+ * 
+ * lemma (in twl_restart) wf_cdcl_twl_stgy_restart_measure:
+ *   \<open>wf ({((brkT, T, n), brkS, S, m).
+ *   twl_struct_invs S \<and> cdcl_twl_stgy_restart_with_leftovers1 (S, m) (T, n)} \<union>
+ *   {((brkT, T), brkS, S). S = T \<and> brkT \<and> \<not> brkS})\<close>
+ *   (is \<open>wf (?TWL \<union> ?BOOL)\<close>)
+ * proof (rule wf_union_compatible)
+ *   show \<open>wf ?TWL\<close>
+ *     apply (rule wf_subset)
+ *     apply (rule wf_snd_wf_pair[OF wf_cdcl_twl_stgy_restart_with_leftovers1])
+ *     by auto
+ *   show \<open>?TWL O ?BOOL \<subseteq> ?TWL\<close>
+ *     by auto
+ * 
+ *   show \<open>wf ?BOOL\<close>
+ *     unfolding wf_iff_no_infinite_down_chain
+ *   proof clarify
+ *     fix f :: \<open>nat \<Rightarrow> bool \<times> 'b\<close>
+ *     assume H: \<open>\<forall>i. (f (Suc i), f i) \<in> {((brkT, T), brkS, S). S = T \<and> brkT \<and> \<not> brkS}\<close>
+ *     then have \<open>(f (Suc 0), f 0) \<in> {((brkT, T), brkS, S). S = T \<and> brkT \<and> \<not> brkS}\<close> and
+ *       \<open>(f (Suc 1), f 1) \<in> {((brkT, T), brkS, S). S = T \<and> brkT \<and> \<not> brkS}\<close>
+ *       by presburger+
+ *     then show False
+ *       by auto
+ *   qed
+ * qed *)
 
 (*
 lemma (in twl_restart) wf_cdcl_twl_stgy_restart_measure_early:
@@ -1035,18 +1173,18 @@ lemma cdcl_twl_stgy_restart_with_leftovers_cdcl\<^sub>W_restart_stgy:
       by (cases T) auto
   done
 *)
-lemma cdcl_twl_stgy_restart_with_leftovers_twl_struct_invs:
-  \<open>cdcl_twl_stgy_restart_with_leftovers S n T U \<Longrightarrow> twl_struct_invs (fst S) \<Longrightarrow>
-    twl_struct_invs (fst U)\<close>
-  unfolding cdcl_twl_stgy_restart_with_leftovers_def
-  by (metis fst_conv rtranclp_cdcl_twl_stgy_restart_twl_struct_invs
-    rtranclp_cdcl_twl_stgy_twl_struct_invs)   
-
-lemma cdcl_twl_stgy_restart_with_leftovers_twl_struct_invs2:
-  \<open>cdcl_twl_stgy_restart_with_leftovers S n T U \<Longrightarrow> twl_struct_invs (fst S) \<Longrightarrow>
-  twl_struct_invs (T)\<close>
-  unfolding cdcl_twl_stgy_restart_with_leftovers_def
-  by (metis fst_conv rtranclp_cdcl_twl_stgy_restart_twl_struct_invs)
+(* lemma cdcl_twl_stgy_restart_with_leftovers_twl_struct_invs:
+ *   \<open>cdcl_twl_stgy_restart_with_leftovers S n T U \<Longrightarrow> twl_struct_invs (fst S) \<Longrightarrow>
+ *     twl_struct_invs (fst U)\<close>
+ *   unfolding cdcl_twl_stgy_restart_with_leftovers_def
+ *   by (metis fst_conv rtranclp_cdcl_twl_stgy_restart_twl_struct_invs
+ *     rtranclp_cdcl_twl_stgy_twl_struct_invs)   
+ * 
+ * lemma cdcl_twl_stgy_restart_with_leftovers_twl_struct_invs2:
+ *   \<open>cdcl_twl_stgy_restart_with_leftovers S n T U \<Longrightarrow> twl_struct_invs (fst S) \<Longrightarrow>
+ *   twl_struct_invs (T)\<close>
+ *   unfolding cdcl_twl_stgy_restart_with_leftovers_def
+ *   by (metis fst_conv rtranclp_cdcl_twl_stgy_restart_twl_struct_invs) *)
  
 (*
 lemma rtranclp_cdcl_twl_stgy_restart_with_leftovers_twl_struct_invs:
@@ -1074,40 +1212,40 @@ lemma (in -) cdcl_twl_stgy_restart_only_twl_stgy_invs:
       cdcl\<^sub>W_restart_mset.conflict_non_zero_unless_level_0_def
       dest!: get_all_ann_decomposition_exists_prepend)
 
-lemma cdcl_twl_stgy_restart_twl_stgy_invs:
-  assumes
-    \<open>cdcl_twl_stgy_restart S T\<close> and
-    \<open>twl_struct_invs (fst S)\<close> and
-    \<open>twl_stgy_invs (fst S)\<close>
-  shows \<open>twl_stgy_invs (fst T)\<close>
-  using assms
-  by (induction rule: cdcl_twl_stgy_restart.induct)
-   (auto simp add: full1_def intro: rtranclp_cdcl_twl_stgy_twl_struct_invs
-    dest: cdcl_twl_restart_twl_struct_invs rtranclp_cdcl_twl_stgy_twl_stgy_invs
-    rtranclp_cdcl_twl_stgy_twl_struct_invs
-    cdcl_twl_restart_only_twl_struct_invs
-    cdcl_twl_stgy_restart_only_twl_stgy_invs
-    cdcl_twl_restart_twl_stgy_invs
-    dest!: tranclp_into_rtranclp)
-
-lemma rtranclp_cdcl_twl_stgy_restart_twl_stgy_invs:
-  assumes
-    \<open>cdcl_twl_stgy_restart\<^sup>*\<^sup>* S T\<close> and
-    \<open>twl_struct_invs (fst S)\<close> and
-    \<open>twl_stgy_invs (fst S)\<close>
-  shows \<open>twl_stgy_invs (fst T)\<close>
-  using assms
-  by (induction rule: rtranclp_induct)
-   (auto
-    dest: rtranclp_cdcl_twl_stgy_restart_twl_struct_invs
-    intro: cdcl_twl_stgy_restart_twl_stgy_invs)
-
-lemma cdcl_twl_stgy_restart_with_leftovers_twl_stgy_invs:
-  \<open>cdcl_twl_stgy_restart_with_leftovers S n T U \<Longrightarrow> twl_struct_invs (fst S) \<Longrightarrow>
-    twl_stgy_invs (fst S) \<Longrightarrow> twl_stgy_invs (fst U)\<close>
-  unfolding cdcl_twl_stgy_restart_with_leftovers_def
-  by (metis fst_conv rtranclp_cdcl_twl_stgy_restart_twl_stgy_invs
-   rtranclp_cdcl_twl_stgy_restart_twl_struct_invs rtranclp_cdcl_twl_stgy_twl_stgy_invs)
+(* lemma cdcl_twl_stgy_restart_twl_stgy_invs:
+ *   assumes
+ *     \<open>cdcl_twl_stgy_restart S T\<close> and
+ *     \<open>twl_struct_invs (fst S)\<close> and
+ *     \<open>twl_stgy_invs (fst S)\<close>
+ *   shows \<open>twl_stgy_invs (fst T)\<close>
+ *   using assms
+ *   by (induction rule: cdcl_twl_stgy_restart.induct)
+ *    (auto simp add: full1_def intro: rtranclp_cdcl_twl_stgy_twl_struct_invs
+ *     dest: cdcl_twl_restart_twl_struct_invs rtranclp_cdcl_twl_stgy_twl_stgy_invs
+ *     rtranclp_cdcl_twl_stgy_twl_struct_invs
+ *     cdcl_twl_restart_only_twl_struct_invs
+ *     cdcl_twl_stgy_restart_only_twl_stgy_invs
+ *     cdcl_twl_restart_twl_stgy_invs
+ *     dest!: tranclp_into_rtranclp)
+ * 
+ * lemma rtranclp_cdcl_twl_stgy_restart_twl_stgy_invs:
+ *   assumes
+ *     \<open>cdcl_twl_stgy_restart\<^sup>*\<^sup>* S T\<close> and
+ *     \<open>twl_struct_invs (fst S)\<close> and
+ *     \<open>twl_stgy_invs (fst S)\<close>
+ *   shows \<open>twl_stgy_invs (fst T)\<close>
+ *   using assms
+ *   by (induction rule: rtranclp_induct)
+ *    (auto
+ *     dest: rtranclp_cdcl_twl_stgy_restart_twl_struct_invs
+ *     intro: cdcl_twl_stgy_restart_twl_stgy_invs)
+ * 
+ * lemma cdcl_twl_stgy_restart_with_leftovers_twl_stgy_invs:
+ *   \<open>cdcl_twl_stgy_restart_with_leftovers S n T U \<Longrightarrow> twl_struct_invs (fst S) \<Longrightarrow>
+ *     twl_stgy_invs (fst S) \<Longrightarrow> twl_stgy_invs (fst U)\<close>
+ *   unfolding cdcl_twl_stgy_restart_with_leftovers_def
+ *   by (metis fst_conv rtranclp_cdcl_twl_stgy_restart_twl_stgy_invs
+ *    rtranclp_cdcl_twl_stgy_restart_twl_struct_invs rtranclp_cdcl_twl_stgy_twl_stgy_invs) *)
 
 (*
 lemma rtranclp_cdcl_twl_stgy_restart_with_leftovers_twl_stgy_invs:

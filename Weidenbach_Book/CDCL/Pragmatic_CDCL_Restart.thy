@@ -1048,7 +1048,7 @@ lemma rtranclp_pcdcl_stgy_pget_all_init_clss:
   by (induction rule: rtranclp_induct)
     (auto dest!: pcdcl_stgy_pget_all_init_clss)
 
-context twl_restart
+context twl_restart_ops
 begin
 
 lemma pcdcl_stgy_restart_pget_all_init_clss:
@@ -1270,6 +1270,10 @@ lemma rtranclp_pcdcl_stgy_restart_mono:
     by auto
   done
 
+end
+
+
+
 text \<open>
 
 The termination proof contains the usual boilerplate that hide the real argument. The idea of the
@@ -1286,6 +1290,9 @@ The proof is make more complicated by the extraction of the subsequences: we der
 of indices \<^term>\<open>f'\<close>, then by induction we prove properties on the subsequence.
 
 \<close>
+context twl_restart
+begin
+
 theorem wf_cdcl_twl_stgy_restart:
   \<open>wf {(T, S :: 'v prag_st_restart). pcdcl_stgy_restart_inv S \<and> pcdcl_stgy_restart S T}\<close>
 proof (rule ccontr)
