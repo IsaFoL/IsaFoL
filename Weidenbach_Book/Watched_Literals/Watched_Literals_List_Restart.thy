@@ -636,27 +636,30 @@ definition (in -) restart_abs_l_pre :: \<open>'v twl_st_l \<Rightarrow> bool \<R
 context twl_restart_ops
 begin
 
+definition GC_required_l :: "'v twl_st_l \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> bool nres" where
+  \<open>GC_required_l S m n = SPEC (\<lambda>b. b \<longrightarrow> size (get_all_learned_clss_l S) - m > f n)\<close>
+
 definition restart_required_l :: "'v twl_st_l \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> bool nres" where
-  \<open>restart_required_l S m n = SPEC (\<lambda>b. b \<longrightarrow> size (get_all_learned_clss_l S) - m > f n)\<close>
+  \<open>restart_required_l S m n = SPEC (\<lambda>b. b \<longrightarrow> size (get_all_learned_clss_l S) > m)\<close>
 
 definition restart_abs_l
-  :: "'v twl_st_l \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> bool \<Rightarrow> ('v twl_st_l \<times> nat) nres"
+  :: "'v twl_st_l \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> bool \<Rightarrow> ('v twl_st_l \<times> nat \<times> nat \<times> nat) nres"
 where
-  \<open>restart_abs_l S m n brk = do {
+  \<open>restart_abs_l S m p n brk = do {
      ASSERT(restart_abs_l_pre S brk);
-     b \<leftarrow> restart_required_l S m n;
-     b2 \<leftarrow> SPEC (\<lambda>(_ ::bool). True);
-     if b \<and> b2 \<and> \<not>brk then do {
+     b \<leftarrow> GC_required_l S m n;
+     b2 \<leftarrow> restart_required_l S p n;
+     if b2 \<and>  \<not>brk then do {
        T \<leftarrow> SPEC(\<lambda>T. cdcl_twl_restart_l S T);
-       RETURN (T, n + 1)
+       RETURN (T, m, size (get_all_learned_clss_l T),  n + 1)
      }
      else
      if b \<and> \<not>brk then do {
        T \<leftarrow> SPEC(\<lambda>T. cdcl_twl_restart_l S T);
-       RETURN (T, n + 1)
+       RETURN (T, size (get_all_learned_clss_l T), size (get_all_learned_clss_l T), n + 1)
      }
      else
-       RETURN (S, n)
+       RETURN (S, m, p, n)
    }\<close>
 
 lemma (in -)[twl_st_l]:
@@ -670,22 +673,53 @@ lemma restart_required_l_restart_required:
   unfolding restart_required_l_def restart_required_def uncurry_def
   by (intro frefI nres_relI) (auto simp: twl_st_l_def get_learned_clss_l_def)
 
-
+lemma GC_required_l_GC_required:
+  \<open>(uncurry2 GC_required_l, uncurry2 GC_required) \<in>
+     {(S, S'). (S, S') \<in> twl_st_l None \<and> twl_list_invs S} \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<rightarrow>\<^sub>f
+    \<langle>bool_rel\<rangle> nres_rel\<close>
+  unfolding GC_required_l_def GC_required_def uncurry_def
+  by (intro frefI nres_relI) (auto simp: twl_st_l_def get_learned_clss_l_def)
+(*
+  {(((((S, p), m), n), brk), (((((last_GC, last_Restart), S'), m'), n'), brk')).
+     (S, S') \<in> twl_st_l None \<and> twl_list_invs S \<and> clauses_to_update_l S = {#} \<and>
+     p = size(pget_all_learned_clss_l last_GC) \<and>
+    m = size(pget_all_learned_clss_l last_Restart) \<and>
+    n = n' \<and>
+   (brk \<longleftrightarrow> brk')} \<rightarrow>\<^sub>f
+    \<langle>{((S, p, m, n, brk), (last_GC, last_Restart, S', m', n', brk')).
+     (S, S') \<in> twl_st_l None \<and> twl_list_invs S \<and> clauses_to_update_l S = {#} \<and>
+     p = size(pget_all_learned_clss_l last_GC) \<and>
+    m = size(pget_all_learned_clss_l last_Restart) \<and>
+    n = n' \<and>
+   (brk \<longleftrightarrow> brk')}\<rangle> nres_rel\<close>
+*)
 lemma restart_abs_l_restart_prog:
-  \<open>(uncurry2 restart_abs_l, uncurry2 restart_prog) \<in>
-     {(S, S'). (S, S') \<in> twl_st_l None \<and> twl_list_invs S \<and> clauses_to_update_l S = {#}}
-        \<times>\<^sub>f nat_rel  \<times>\<^sub>f bool_rel \<rightarrow>\<^sub>f
-    \<langle>{(S, S'). (S, S') \<in> twl_st_l None \<and> twl_list_invs S \<and> clauses_to_update_l S = {#}}
-        \<times>\<^sub>f nat_rel\<rangle> nres_rel\<close>
+  \<open>(uncurry4 restart_abs_l, uncurry5 restart_prog) \<in>
+  {(((((S :: 'v twl_st_l, p :: nat), m :: nat), n :: nat), brk :: bool),
+     (((((last_GC :: 'v twl_st, last_Restart :: 'v twl_st), S' :: 'v twl_st), m' :: nat), n' :: nat), brk' :: bool)).
+     (S, S') \<in> twl_st_l None \<and> twl_list_invs S \<and> clauses_to_update_l S = {#} \<and>
+     p = size(get_all_learned_clss last_GC) \<and>
+    m = size(get_all_learned_clss last_Restart) \<and>
+    n = n' \<and>
+   (brk \<longleftrightarrow> brk')} \<rightarrow>\<^sub>f
+    \<langle>{((S :: 'v twl_st_l, p :: nat, m :: nat, n :: nat),
+     (last_GC :: 'v twl_st, last_Restart :: 'v twl_st, S' :: 'v twl_st, m' :: nat, n' :: nat)).
+     (S, S') \<in> twl_st_l None \<and> twl_list_invs S \<and> clauses_to_update_l S = {#} \<and>
+     p = size(get_all_learned_clss last_GC) \<and>
+    m = size(get_all_learned_clss last_Restart) \<and>
+    n = n'}\<rangle> nres_rel\<close>
+   supply [[goals_limit=1]]
     unfolding restart_abs_l_def restart_prog_def uncurry_def
     apply (intro frefI nres_relI)
     apply (refine_rcg
-      restart_required_l_restart_required[THEN fref_to_Down_curry]
+      restart_required_l_restart_required[THEN fref_to_Down_curry2]
+      GC_required_l_GC_required[THEN fref_to_Down_curry2]
       cdcl_twl_restart_l_cdcl_twl_restart)
     subgoal for Snb Snb'
-     unfolding restart_abs_l_pre_def
-     by (rule exI[of _ \<open>fst (fst (Snb'))\<close>]) simp
-    subgoal by simp
+      unfolding restart_abs_l_pre_def
+      by (rule exI[of _ \<open>snd (fst (fst (fst (Snb'))))\<close>]) simp
+    subgoal by auto
+    subgoal by auto
     subgoal by auto  \<comment> \<open>If condition\<close>
     subgoal by simp
     subgoal by simp
