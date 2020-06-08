@@ -304,7 +304,7 @@ restart_trail:
        mset (N \<propto> E') \<in># NE + mset `# NE' + UE + mset `# UE'\<close> and
     \<open>\<forall>L E E'. Propagated L E \<in> set M' \<longrightarrow> Propagated L E' \<in> set M \<longrightarrow> E' = 0 \<longrightarrow> E = 0\<close> and
     \<open>0 \<notin># dom_m N'\<close> and
-    \<open>if length M = length M' then Q = Q' else Q' = {#}\<close>and
+    \<open>if length M = length M' then Q = Q' else Q' = {#}\<close> and
     \<open>US' = {#}\<close>
 
 lemma cdcl_twl_restart_l_list_invs:
@@ -375,7 +375,7 @@ lemma cdcl_twl_restart_l_cdcl_twl_restart:
     list_invs: \<open>twl_list_invs S\<close> and
     struct_invs: \<open>twl_struct_invs T\<close>
   shows \<open>SPEC (cdcl_twl_restart_l S) \<le> \<Down> {(S, S'). (S, S') \<in> twl_st_l None \<and> twl_list_invs S \<and>
-         clauses_to_update_l S = {#}}
+         clauses_to_update_l S = {#} \<and> get_conflict_l S = None}
      (SPEC (cdcl_twl_restart T))\<close>
 proof -
   have [simp]: \<open>set (watched_l x) \<union> set (unwatched_l x) = set x\<close> for x
@@ -621,12 +621,49 @@ proof -
   qed
   moreover have \<open>cdcl_twl_restart_l S S' \<Longrightarrow> twl_list_invs S'\<close> for S'
     by (rule cdcl_twl_restart_l_list_invs) (use list_invs in fast)+
-  moreover have \<open>cdcl_twl_restart_l S S' \<Longrightarrow> clauses_to_update_l S' = {#}\<close> for S'
+  moreover have \<open>cdcl_twl_restart_l S S' \<Longrightarrow> clauses_to_update_l S' = {#} \<and> get_conflict_l S' = None\<close> for S'
     by (auto simp: cdcl_twl_restart_l.simps)
   ultimately show ?thesis
     by (blast intro!: RES_refine)
 qed
 
+inductive cdcl_twl_restart_only_l :: \<open>'v twl_st_l \<Rightarrow> 'v twl_st_l \<Rightarrow> bool\<close> where
+restart_trail:
+   \<open>cdcl_twl_restart_only_l (M, N, None, NE, UE, NS, US, {#}, Q)
+  (M', N, None, NE, UE, NS, US, {#}, {#})\<close>
+  if
+    \<open>(Decided K # M', M2) \<in> set (get_all_ann_decomposition M)\<close> |
+norestart_trail:
+   \<open>cdcl_twl_restart_only_l (M, N, None, NE, UE, NS, US, {#}, Q)
+        (M, N, None, NE, UE, NS, US, {#}, Q)\<close>
+
+lemma cdcl_twl_restart_only_l_cdcl_twl_restart_only:
+  assumes ST: \<open>(S, T) \<in> twl_st_l None\<close> and
+    list_invs: \<open>twl_list_invs S\<close> and
+    struct_invs: \<open>twl_struct_invs T\<close>
+  shows \<open>SPEC (cdcl_twl_restart_only_l S) \<le> \<Down> {(S, S'). (S, S') \<in> twl_st_l None \<and> twl_list_invs S \<and>
+         clauses_to_update_l S = {#}}
+    (SPEC (cdcl_twl_restart_only T))\<close>
+  using assms apply -
+  apply (rule RES_refine)
+  apply (rule_tac x= \<open>(\<lambda>(M, N, U, C, NE, UE, NS, US, WS, Q).
+    (drop (length (get_trail_l S) - length (get_trail_l s)) M, N, U, C, NE, UE, NS, US, {#},
+    (if literals_to_update_l s = {#} then {#} else Q))) T\<close> in bexI)
+  subgoal
+    by (cases T)
+      (auto simp: cdcl_twl_restart_only_l.simps cdcl_twl_restart_only.simps
+      valid_trail_reduction.simps twl_list_invs_def twl_st_l_def
+      convert_lits_l_decomp_ex convert_lits_l_imp_same_length
+      intro!: RES_refine)
+  subgoal
+    apply (cases T)
+    apply (auto simp: cdcl_twl_restart_only_l.simps cdcl_twl_restart_only.simps
+      valid_trail_reduction.simps twl_list_invs_def twl_st_l_def
+      convert_lits_l_decomp_ex convert_lits_l_imp_same_length
+      intro!: RES_refine)
+    using convert_lits_l_decomp_ex(1) apply blast+
+    done
+  done
 
 definition (in -) restart_abs_l_pre :: \<open>'v twl_st_l \<Rightarrow> bool \<Rightarrow> bool\<close> where
   \<open>restart_abs_l_pre S brk \<longleftrightarrow>
@@ -650,12 +687,13 @@ where
      b \<leftarrow> GC_required_l S m n;
      b2 \<leftarrow> restart_required_l S p n;
      if b2 \<and>  \<not>brk then do {
-       T \<leftarrow> SPEC(\<lambda>T. cdcl_twl_restart_l S T);
-       RETURN (T, m, size (get_all_learned_clss_l T),  n + 1)
+       T \<leftarrow> SPEC(\<lambda>T. cdcl_twl_restart_only_l S T);
+       RETURN (T, m, size (get_all_learned_clss_l T),  n)
      }
      else
      if b \<and> \<not>brk then do {
        T \<leftarrow> SPEC(\<lambda>T. cdcl_twl_restart_l S T);
+       T \<leftarrow> RETURN T;
        RETURN (T, size (get_all_learned_clss_l T), size (get_all_learned_clss_l T), n + 1)
      }
      else
@@ -692,7 +730,10 @@ lemma GC_required_l_GC_required:
     m = size(pget_all_learned_clss_l last_Restart) \<and>
     n = n' \<and>
    (brk \<longleftrightarrow> brk')}\<rangle> nres_rel\<close>
-*)
+    *)
+lemma \<open>size (get_learned_clss_l T) = size (learned_clss_l (get_clauses_l T))\<close>
+  by (auto simp: get_learned_clss_l_def)
+
 lemma restart_abs_l_restart_prog:
   \<open>(uncurry4 restart_abs_l, uncurry5 restart_prog) \<in>
   {(((((S :: 'v twl_st_l, p :: nat), m :: nat), n :: nat), brk :: bool),
@@ -708,12 +749,30 @@ lemma restart_abs_l_restart_prog:
      p = size(get_all_learned_clss last_GC) \<and>
     m = size(get_all_learned_clss last_Restart) \<and>
     n = n'}\<rangle> nres_rel\<close>
+proof -
+  have [refine]: \<open>RETURN T
+    \<le> \<Down> ({(S, T). (S, T) \<in> twl_st_l None \<and> twl_list_invs S \<and>
+       clauses_to_update_l S = {#} \<and> get_conflict_l S = None})
+       (SPEC
+         (\<lambda>U. cdcl_twl_stgy\<^sup>*\<^sup>* Ta U \<and>
+    clauses_to_update U = {#} \<and> get_conflict U = None))\<close>
+    if \<open>(T, Ta) \<in> twl_st_l None\<close> \<open>clauses_to_update_l T = {#}\<close>
+      \<open>get_conflict_l T = None\<close> \<open>twl_list_invs T\<close>
+    for T Ta
+    using that apply -
+    apply (rule RETURN_RES_refine)
+    apply (rule_tac x=Ta in exI)
+    apply (auto intro!: RETURN_RES_refine)
+    done
+
+  show ?thesis
    supply [[goals_limit=1]]
     unfolding restart_abs_l_def restart_prog_def uncurry_def
     apply (intro frefI nres_relI)
     apply (refine_rcg
       restart_required_l_restart_required[THEN fref_to_Down_curry2]
       GC_required_l_GC_required[THEN fref_to_Down_curry2]
+      cdcl_twl_restart_only_l_cdcl_twl_restart_only
       cdcl_twl_restart_l_cdcl_twl_restart)
     subgoal for Snb Snb'
       unfolding restart_abs_l_pre_def
@@ -722,57 +781,80 @@ lemma restart_abs_l_restart_prog:
     subgoal by auto
     subgoal by auto  \<comment> \<open>If condition\<close>
     subgoal by simp
-    subgoal by simp
-    subgoal unfolding restart_prog_pre_def by meson
+    subgoal unfolding restart_prog_pre_def by auto
+    subgoal unfolding restart_prog_pre_def by auto
+    subgoal by (auto simp: get_learned_clss_l_def)
+    subgoal by auto
+    subgoal by auto
+    subgoal unfolding restart_prog_pre_def by auto
+    subgoal unfolding restart_prog_pre_def by auto
     subgoal by auto
     subgoal by auto
     subgoal by auto
     subgoal by auto
-    subgoal unfolding restart_prog_pre_def by meson
-    subgoal by auto
+    subgoal by (auto simp: get_learned_clss_l_def)
     subgoal by auto
     done
+qed
 
 
-definition cdcl_twl_stgy_restart_abs_l_inv where
-  \<open>cdcl_twl_stgy_restart_abs_l_inv S\<^sub>0 brk T n \<equiv>
-    (\<exists>S\<^sub>0' T'.
+definition cdcl_twl_stgy_restart_abs_l_inv :: \<open>'v twl_st_l \<Rightarrow> bool \<times> 'v twl_st_l \<times> nat \<times> nat \<times> nat \<Rightarrow> bool\<close> where
+  \<open>cdcl_twl_stgy_restart_abs_l_inv S\<^sub>0 \<equiv> (\<lambda>(brk, T, p, m, n).
+    (\<exists>S\<^sub>0' T' T'' T'''  m.
        (S\<^sub>0, S\<^sub>0') \<in> twl_st_l None \<and>
-       (T, T') \<in> twl_st_l None \<and>
-       cdcl_twl_stgy_restart_prog_inv S\<^sub>0' brk T' n \<and>
+       (T, T''') \<in> twl_st_l None \<and>
+       cdcl_twl_stgy_restart_prog_inv S\<^sub>0' (brk, T', T'', T''', m, n) \<and>
        clauses_to_update_l T  = {#} \<and>
-       twl_list_invs T)\<close>
+       twl_list_invs T \<and>
+       p = size (get_all_learned_clss T') \<and>
+       m = size (get_all_learned_clss T'')))\<close>
 
 definition cdcl_twl_stgy_restart_abs_l :: "'v twl_st_l \<Rightarrow> 'v twl_st_l nres" where
   \<open>cdcl_twl_stgy_restart_abs_l S\<^sub>0 =
   do {
-    (brk, T, _) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(brk, T, n). cdcl_twl_stgy_restart_abs_l_inv S\<^sub>0 brk T n\<^esup>
+    (brk, T, _, _, _) \<leftarrow> WHILE\<^sub>T\<^bsup>cdcl_twl_stgy_restart_abs_l_inv S\<^sub>0\<^esup>
       (\<lambda>(brk, _). \<not>brk)
-      (\<lambda>(brk, S, n).
+      (\<lambda>(brk, S, m, p, n).
       do {
         T \<leftarrow> unit_propagation_outer_loop_l S;
         (brk, T) \<leftarrow> cdcl_twl_o_prog_l T;
-        (T, n) \<leftarrow> restart_abs_l T n brk;
-        RETURN (brk, T, n)
+        (T, m, p, n) \<leftarrow> restart_abs_l T p m n brk;
+        RETURN (brk, T, m, p, n)
       })
-      (False, S\<^sub>0, 0);
+      (False, S\<^sub>0, size (get_all_learned_clss_l S\<^sub>0), size (get_all_learned_clss_l S\<^sub>0), 0);
     RETURN T
   }\<close>
 
 lemma cdcl_twl_stgy_restart_abs_l_cdcl_twl_stgy_restart_abs_l:
   \<open>(cdcl_twl_stgy_restart_abs_l, cdcl_twl_stgy_restart_prog) \<in>
-     {(S, S'). (S, S') \<in> twl_st_l None \<and> twl_list_invs S \<and>
+     {(S :: 'v twl_st_l, S'). (S, S') \<in> twl_st_l None \<and> twl_list_invs S \<and>
        clauses_to_update_l S  = {#}} \<rightarrow>\<^sub>f
       \<langle>{(S, S'). (S, S') \<in> twl_st_l None \<and> twl_list_invs S}\<rangle> nres_rel\<close>
   unfolding cdcl_twl_stgy_restart_abs_l_def cdcl_twl_stgy_restart_prog_def uncurry_def
   apply (intro frefI nres_relI)
-  apply (refine_rcg WHILEIT_refine[where R = \<open>{((brk :: bool, S, n :: nat), (brk', S', n')).
-      (S, S') \<in> twl_st_l None \<and> twl_list_invs S \<and> brk = brk' \<and> n = n' \<and>
-        clauses_to_update_l S = {#}}\<close>]
+  apply (refine_rcg WHILEIT_refine[where R =
+     \<open>{((brk :: bool, S :: 'v twl_st_l, p, m, n), (brk', last_GC, last_Restart, S', m', n')).
+       (S, S') \<in> twl_st_l None \<and>
+       twl_list_invs S \<and>
+       clauses_to_update_l S = {#} \<and>
+       p = size (get_all_learned_clss last_GC) \<and>
+       m = size (get_all_learned_clss last_Restart) \<and>
+       n = n' \<and>
+       brk =
+       brk'}\<close>]
       unit_propagation_outer_loop_l_spec[THEN fref_to_Down]
       cdcl_twl_o_prog_l_spec[THEN fref_to_Down]
       restart_abs_l_restart_prog[THEN fref_to_Down_curry2])
-  subgoal by simp
+  subgoal by (auto simp add: get_learned_clss_l_def)
+  subgoal for x y xa x'
+    unfolding cdcl_twl_stgy_restart_abs_l_inv_def case_prod_beta
+    apply (rule_tac x=y in exI)
+    apply (rule_tac x=\<open>fst (snd x')\<close> in exI)
+    apply (rule_tac x = \<open>size (get_all_learned_clss (fst (snd x')))\<close> in exI)
+    apply auto
+    by auto
+find_theorems case_prod fst snd
+oops
   subgoal for x y xa x' x1 x2 x1a x2a
     unfolding cdcl_twl_stgy_restart_abs_l_inv_def
     apply (rule_tac x=y in exI)
