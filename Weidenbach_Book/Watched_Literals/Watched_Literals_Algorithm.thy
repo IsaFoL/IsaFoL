@@ -1541,9 +1541,15 @@ declare backtrack_spec[THEN order_trans, refine_vcg]
 
 subsection \<open>Full loop\<close>
 
+definition cdcl_twl_o_prog_pre :: \<open>'v twl_st \<Rightarrow> bool\<close> where
+  \<open>cdcl_twl_o_prog_pre S' \<longleftrightarrow>
+     no_step cdcl_twl_cp S' \<and> twl_struct_invs S' \<and> twl_stgy_invs S' \<and>
+      clauses_to_update S' = {#} \<and> literals_to_update S' = {#}\<close>
+
 definition cdcl_twl_o_prog :: \<open>'v twl_st \<Rightarrow> (bool \<times> 'v twl_st) nres\<close> where
   \<open>cdcl_twl_o_prog S =
     do {
+      ASSERT(cdcl_twl_o_prog_pre S);
       if get_conflict S = None
       then decide_or_skip S
       else do {
@@ -1614,6 +1620,7 @@ proof -
     unfolding cdcl_twl_o_prog_def
     apply (refine_vcg decide_or_skip_spec[THEN order_trans]; remove_dummy_vars)
     \<comment> \<open>initial invariants\<close>
+    subgoal using assms unfolding cdcl_twl_o_prog_pre_def by auto
     subgoal using assms by auto
     subgoal using assms by auto
     subgoal using assms by auto

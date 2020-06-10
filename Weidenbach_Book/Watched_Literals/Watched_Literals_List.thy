@@ -680,6 +680,12 @@ lemma twl_st_l_mark_of_is_proped:
      cases \<open>hd (get_trail y)\<close>)
    (auto simp: twl_st_l_def convert_lit.simps)
 
+lemma [simp]:
+  \<open>get_clauses_l (set_literals_to_update_l L T) = get_clauses_l T\<close>
+  \<open>get_unit_clauses_l (set_literals_to_update_l L T) = get_unit_clauses_l T\<close>
+  \<open>get_subsumed_clauses_l (set_literals_to_update_l L T) = get_subsumed_clauses_l T\<close>
+  by (cases T; auto; fail)+
+
 fun equality_except_trail :: \<open>'v twl_st_l \<Rightarrow> 'v twl_st_l \<Rightarrow> bool\<close> where
 \<open>equality_except_trail (M, N, D, NE, UE, NS, US, WS, Q) (M', N', D', NE', UE', NS', US', WS', Q') \<longleftrightarrow>
     N = N' \<and> D = D' \<and> NE = NE' \<and> UE = UE' \<and> NS = NS' \<and> US = US' \<and> WS = WS' \<and> Q = Q'\<close>
@@ -1904,10 +1910,10 @@ lemma cdcl_twl_cp_in_trail_stays_in_l:
 
 lemma unit_propagation_inner_loop_l:
   \<open>(uncurry unit_propagation_inner_loop_l, unit_propagation_inner_loop) \<in>
-  {((L, S), S'). (S, S') \<in> twl_st_l (Some L) \<and> twl_struct_invs S' \<and>
-     twl_stgy_invs S' \<and> twl_list_invs S \<and> -L \<in> lits_of_l (get_trail_l S)} \<rightarrow>\<^sub>f
+  {((L, S), S'). (S, S') \<in> twl_st_l (Some L) \<and> twl_list_invs S \<and> -L \<in> lits_of_l (get_trail_l S) \<and>
+     L  \<in># all_lits_of_mm (get_all_init_clss_l S)} \<rightarrow>\<^sub>f
   \<langle>{(T, T'). (T, T') \<in> twl_st_l None \<and> clauses_to_update_l T = {#} \<and>
-    twl_list_invs T \<and> twl_struct_invs T' \<and> twl_stgy_invs T'}\<rangle> nres_rel\<close>
+    twl_list_invs T}\<rangle> nres_rel\<close>
   (is \<open>?unit_prop_inner \<in> ?A \<rightarrow>\<^sub>f \<langle>?B\<rangle>nres_rel\<close>)
 proof -
   have SPEC_remove: \<open>select_from_clauses_to_update S
@@ -1930,15 +1936,14 @@ proof -
       apply (rewrite in \<open>let _ = set_clauses_to_update _ _ in _\<close> Let_def)
       apply (refine_vcg set_mset_clauses_to_update_l_set_mset_clauses_to_update_spec
         WHILEIT_refine_genR[where
-           R = \<open>{(T, T'). (T, T') \<in> twl_st_l None \<and> twl_list_invs T  \<and> clauses_to_update_l T = {#}
-                  \<and> twl_struct_invs T' \<and> twl_stgy_invs T'}
+           R = \<open>{(T, T'). (T, T') \<in> twl_st_l None \<and> twl_list_invs T \<and> clauses_to_update_l T = {#}}
               \<times>\<^sub>f nat_rel\<close> and
            R' = \<open>{(T, T'). (T, T') \<in> twl_st_l (Some (fst LS)) \<and> twl_list_invs T}
           \<times>\<^sub>f nat_rel\<close>]
           unit_propagation_inner_loop_body_l_unit_propagation_inner_loop_body[THEN fref_to_Down_curry2]
         SPEC_remove;
         remove_dummy_vars)
-      subgoal for x1 x2 using twl_struct_invs_no_alien_in_trail[of S' \<open>-x1\<close>]
+      subgoal for x1 x2
         by (auto simp add: in_all_lits_of_mm_uminus_iff twl_st_l
          mset_take_mset_drop_mset')
       subgoal by simp
@@ -2103,16 +2108,26 @@ qed
 
 lemma unit_propagation_outer_loop_l_spec:
   \<open>(unit_propagation_outer_loop_l, unit_propagation_outer_loop) \<in>
-  {(S, S'). (S, S') \<in> twl_st_l None \<and> twl_struct_invs S' \<and>
-    twl_stgy_invs S' \<and> twl_list_invs S \<and> clauses_to_update_l S = {#} \<and>
-    get_conflict_l S = None} \<rightarrow>\<^sub>f
-  \<langle>{(T, T'). (T, T') \<in> twl_st_l None \<and>
-    (twl_list_invs T \<and> twl_struct_invs T' \<and> twl_stgy_invs T' \<and>
-          clauses_to_update_l T = {#}) \<and>
-    literals_to_update T' = {#} \<and> clauses_to_update T' = {#} \<and>
-    no_step cdcl_twl_cp T'}\<rangle> nres_rel\<close>
+  {(S, S'). (S, S') \<in> twl_st_l None \<and> twl_list_invs S \<and> clauses_to_update_l S = {#}} \<rightarrow>\<^sub>f
+  \<langle>{(S, S').
+          (S, S') \<in> twl_st_l None \<and>
+          clauses_to_update_l S = {#} \<and>
+          twl_list_invs S}\<rangle> nres_rel\<close>
   (is \<open>_ \<in> ?R \<rightarrow>\<^sub>f ?I\<close> is \<open>_ \<in> _ \<rightarrow>\<^sub>f \<langle>?B\<rangle> nres_rel\<close>)
 proof -
+  have twl_struct_invs_no_alien_in_trail: \<open>unit_propagation_outer_loop_l_inv T \<Longrightarrow>
+    -x2a \<in> lits_of_l (get_trail_l T) \<Longrightarrow>
+    x2a
+    \<in># all_lits_of_mm
+        ({#mset (fst x). x \<in># ran_m (get_clauses_l T)#} +
+         get_unit_clauses_l T +
+         get_subsumed_clauses_l
+          T)\<close> for T x2a
+    unfolding unit_propagation_outer_loop_l_inv_def
+    apply normalize_goal+
+    by (drule  twl_struct_invs_no_alien_in_trail[of _ \<open>-x2a\<close>])
+      (simp_all add: mset_take_mset_drop_mset' in_all_lits_of_mm_uminus_iff)
+
   have H:
     \<open>select_and_remove_from_literals_to_update x
        \<le> \<Down> {((S', L'), (L, S)). L = L' \<and>  S' = set_clauses_to_update_l (clause_to_update L x)
@@ -2131,14 +2146,12 @@ proof -
     x2 \<in># literals_to_update_l T \<Longrightarrow> - x2 \<in> lits_of_l (get_trail_l T)\<close>
     for S S' T T' L L' C x2
     by (auto simp: unit_propagation_outer_loop_l_inv_def twl_st_l_def twl_struct_invs_def)
-  have H:
+  show H:
     \<open>(unit_propagation_outer_loop_l, unit_propagation_outer_loop) \<in>?R \<rightarrow>\<^sub>f
       \<langle>{(S, S').
           (S, S') \<in> twl_st_l None \<and>
           clauses_to_update_l S = {#} \<and>
-          twl_list_invs S \<and>
-          twl_struct_invs S' \<and>
-          twl_stgy_invs S'}\<rangle> nres_rel\<close>
+          twl_list_invs S}\<rangle> nres_rel\<close>
     unfolding unit_propagation_outer_loop_l_def unit_propagation_outer_loop_def fref_param1[symmetric]
     apply (refine_vcg unit_propagation_inner_loop_l[THEN fref_to_Down_curry_left]
        H)
@@ -2146,33 +2159,17 @@ proof -
     subgoal unfolding unit_propagation_outer_loop_l_inv_def by fastforce
     subgoal by auto
     subgoal by simp
-    subgoal by fast
     subgoal for S S' T T' L L' C x2
       by (auto simp add: twl_st_of_clause_to_update twl_list_invs_set_clauses_to_update_iff
           intro: cdcl_twl_cp_twl_struct_invs cdcl_twl_cp_twl_stgy_invs
           distinct_mset_clause_to_update H'
           dest: in_clause_to_updateD)
-    done
-  have B: \<open>?B = {(T, T'). (T, T') \<in> {(T, T'). (T, T') \<in> twl_st_l None \<and>
-                   twl_list_invs T \<and>
-                    twl_struct_invs T' \<and>
-                    twl_stgy_invs T' \<and> clauses_to_update_l T = {#} } \<and>
-                   T' \<in> {T'. literals_to_update T' = {#} \<and>
-                   clauses_to_update T' = {#} \<and>
-                   (\<forall>S'. \<not> cdcl_twl_cp T' S')}}\<close>
-    by auto
-  show ?thesis
-    unfolding B
-    apply (rule refine_add_inv_generalised)
-    subgoal
-      using H apply -
-      apply (match_spec; (match_fun_rel; match_fun_rel?)+)
-       apply blast+
-      done
-    subgoal for S S'
-      apply (rule weaken_SPEC[OF unit_propagation_outer_loop[of S']])
-      apply ((solves auto)+)[4]
-      using no_step_cdcl_twl_cp_no_step_cdcl\<^sub>W_cp by blast
+    subgoal for S S' T T' L L' C x2 x1a x2a
+      using twl_struct_invs_no_alien_in_trail[of T \<open>snd L\<close>] H'[of T \<open>snd L\<close>]
+      by (auto simp add: twl_st_of_clause_to_update twl_list_invs_set_clauses_to_update_iff
+          intro: cdcl_twl_cp_twl_struct_invs cdcl_twl_cp_twl_stgy_invs
+          distinct_mset_clause_to_update 
+          dest: in_clause_to_updateD)
     done
 qed
 
@@ -3100,23 +3097,17 @@ lemma twl_st_lE:
 
 lemma "weaken_\<Down>'": \<open>f \<le> \<Down> R' g \<Longrightarrow> R' \<subseteq> R \<Longrightarrow> f \<le> \<Down> R g\<close>
   by (meson pw_ref_iff subset_eq)
-
+(*
+       clauses_to_update_l S = {#} \<and> literals_to_update_l S = {#} \<and> no_step cdcl_twl_cp S' \<and>
+       twl_struct_invs S' \<and> twl_stgy_invs S' \<and>*) 
 lemma cdcl_twl_o_prog_l_spec:
   \<open>(cdcl_twl_o_prog_l, cdcl_twl_o_prog) \<in>
-    {(S, S'). (S, S') \<in> twl_st_l None \<and>
-       clauses_to_update_l S = {#} \<and> literals_to_update_l S = {#} \<and> no_step cdcl_twl_cp S' \<and>
-       twl_struct_invs S' \<and> twl_stgy_invs S' \<and> twl_list_invs S} \<rightarrow>\<^sub>f
+    {(S, S'). (S, S') \<in> twl_st_l None \<and> twl_list_invs S \<and> clauses_to_update_l S = {#}} \<rightarrow>\<^sub>f
     \<langle>{((brk, T), (brk', T')). (T, T') \<in> twl_st_l None \<and> brk = brk' \<and> twl_list_invs T \<and>
-      clauses_to_update_l T = {#} \<and>
-      (get_conflict_l T \<noteq> None \<longrightarrow> count_decided (get_trail_l T) = 0)\<and>
-       twl_struct_invs T' \<and> twl_stgy_invs T'}\<rangle> nres_rel\<close>
+      clauses_to_update_l T = {#}}\<rangle> nres_rel\<close>
   (is \<open> _ \<in> ?R \<rightarrow>\<^sub>f ?I\<close> is \<open> _ \<in> ?R \<rightarrow>\<^sub>f \<langle>?J\<rangle>nres_rel\<close>)
 proof -
-  have twl_prog:
-    \<open>(cdcl_twl_o_prog_l, cdcl_twl_o_prog) \<in> ?R \<rightarrow>\<^sub>f
-      \<langle>{((brk, S), (brk', S')).
-         (brk = brk' \<and> (S, S') \<in> twl_st_l None) \<and> twl_list_invs S \<and>
-         clauses_to_update_l S = {#}}\<rangle> nres_rel\<close>
+  show ?thesis
      (is \<open>_ \<in> _ \<rightarrow>\<^sub>f \<langle>?I'\<rangle> nres_rel\<close>)
     supply [[goals_limit=3]]
     unfolding cdcl_twl_o_prog_l_def cdcl_twl_o_prog_def
@@ -3126,42 +3117,18 @@ proof -
         skip_and_resolve_loop_l_spec[THEN fref_to_Down]
         backtrack_l_spec[THEN fref_to_Down]; remove_dummy_vars)
     subgoal for S S'
-      unfolding cdcl_twl_o_prog_l_pre_def by (rule exI[of _ S']) (force simp: twl_st_l)
+      unfolding cdcl_twl_o_prog_l_pre_def cdcl_twl_o_prog_pre_def by (rule exI[of _ S']) (force simp: twl_st_l)
     subgoal by auto
-    subgoal by simp
+    subgoal unfolding cdcl_twl_o_prog_pre_def by auto
     subgoal by auto
     subgoal by auto
-    subgoal by auto
+    subgoal unfolding cdcl_twl_o_prog_pre_def by auto
     subgoal by auto
     subgoal by auto
     subgoal by auto
     subgoal by auto
     subgoal by auto
     done
-  have set: \<open>{((a,b), (a', b')). P a b a' b'} = {(a, b). P (fst a) (snd a) (fst b) (snd b)}\<close> for P
-    by auto
-  have SPEC_Id: \<open>SPEC \<Phi> = \<Down> {(T, T'). \<Phi> T} (SPEC \<Phi>)\<close> for \<Phi>
-    unfolding conc_fun_RES
-    by auto
-  show bt': ?thesis
-  proof (intro frefI nres_relI)
-    fix S S'
-    assume SS': \<open>(S, S') \<in> ?R\<close>
-    have \<open>cdcl_twl_o_prog S' \<le> SPEC (cdcl_twl_o_prog_spec S')\<close>
-      by (rule cdcl_twl_o_prog_spec[of S']) (use SS' in auto)
-    moreover have \<open>cdcl_twl_o_prog_l S \<le> \<Down> ?I' (cdcl_twl_o_prog S')\<close>
-      by (rule twl_prog[unfolded fref_param1[symmetric], "to_\<Down>"])
-        (use SS' in auto)
-    ultimately show \<open>cdcl_twl_o_prog_l S \<le> \<Down> ?J (cdcl_twl_o_prog S')\<close>
-      apply -
-      unfolding set
-      apply (subst(asm) SPEC_Id)
-      apply unify_Down_invs2+
-      apply ("match_\<Down>")
-      subgoal by (clarsimp simp del: split_paired_All simp: twl_st_l_def)
-      subgoal by simp
-      done
-  qed
 qed
 
 
@@ -3196,11 +3163,8 @@ definition cdcl_twl_stgy_prog_l :: \<open>'v twl_st_l \<Rightarrow> 'v twl_st_l 
 
 lemma cdcl_twl_stgy_prog_l_spec:
   \<open>(cdcl_twl_stgy_prog_l, cdcl_twl_stgy_prog) \<in>
-    {(S, S'). (S, S') \<in> twl_st_l None  \<and> twl_list_invs S \<and>
-       clauses_to_update_l S = {#} \<and>
-       twl_struct_invs S' \<and> twl_stgy_invs S'} \<rightarrow>\<^sub>f
-    \<langle>{(T, T'). (T, T') \<in> {(T, T'). (T, T') \<in> twl_st_l None \<and> twl_list_invs T \<and>
-      twl_struct_invs T' \<and> twl_stgy_invs T'} \<and> True}\<rangle> nres_rel\<close>
+    {(S, S'). (S, S') \<in> twl_st_l None  \<and> twl_list_invs S \<and> clauses_to_update_l S = {#}} \<rightarrow>\<^sub>f
+    \<langle>{(T, T'). (T, T') \<in> {(T, T'). (T, T') \<in> twl_st_l None \<and> twl_list_invs T} \<and> True}\<rangle> nres_rel\<close>
   (is \<open> _ \<in> ?R \<rightarrow>\<^sub>f ?I\<close> is \<open> _ \<in> ?R \<rightarrow>\<^sub>f \<langle>?J\<rangle>nres_rel\<close>)
 proof -
   have R: \<open>(a, b) \<in> ?R \<Longrightarrow>
@@ -3295,11 +3259,8 @@ definition cdcl_twl_stgy_prog_break_l :: \<open>'v twl_st_l \<Rightarrow> 'v twl
 
 lemma cdcl_twl_stgy_prog_break_l_spec:
   \<open>(cdcl_twl_stgy_prog_break_l, cdcl_twl_stgy_prog_break) \<in>
-    {(S, S'). (S, S') \<in> twl_st_l None  \<and> twl_list_invs S \<and>
-       clauses_to_update_l S = {#} \<and>
-       twl_struct_invs S' \<and> twl_stgy_invs S'} \<rightarrow>\<^sub>f
-    \<langle>{(T, T'). (T, T') \<in> {(T, T'). (T, T') \<in> twl_st_l None \<and> twl_list_invs T \<and>
-      twl_struct_invs T' \<and> twl_stgy_invs T'} \<and> True}\<rangle> nres_rel\<close>
+    {(S, S'). (S, S') \<in> twl_st_l None  \<and> twl_list_invs S \<and> clauses_to_update_l S = {#}} \<rightarrow>\<^sub>f
+    \<langle>{(T, T'). (T, T') \<in> {(T, T'). (T, T') \<in> twl_st_l None \<and> twl_list_invs T} \<and> True}\<rangle> nres_rel\<close>
   (is \<open> _ \<in> ?R \<rightarrow>\<^sub>f ?I\<close> is \<open> _ \<in> ?R \<rightarrow>\<^sub>f \<langle>?J\<rangle>nres_rel\<close>)
 proof -
   have R: \<open>(a, b) \<in> ?R \<Longrightarrow> (bb, bb') \<in> bool_rel \<Longrightarrow>
@@ -3368,11 +3329,8 @@ definition cdcl_twl_stgy_prog_early_l :: \<open>'v twl_st_l \<Rightarrow> (bool 
 
 lemma cdcl_twl_stgy_prog_early_l_spec:
   \<open>(cdcl_twl_stgy_prog_early_l, cdcl_twl_stgy_prog_early) \<in>
-    {(S, S'). (S, S') \<in> twl_st_l None  \<and> twl_list_invs S \<and>
-       clauses_to_update_l S = {#} \<and>
-       twl_struct_invs S' \<and> twl_stgy_invs S'} \<rightarrow>\<^sub>f
-    \<langle>bool_rel \<times>\<^sub>r {(T, T'). (T, T') \<in> {(T, T'). (T, T') \<in> twl_st_l None \<and> twl_list_invs T \<and>
-      twl_struct_invs T' \<and> twl_stgy_invs T'} \<and> True}\<rangle> nres_rel\<close>
+    {(S, S'). (S, S') \<in> twl_st_l None  \<and> twl_list_invs S \<and> clauses_to_update_l S = {#}} \<rightarrow>\<^sub>f
+    \<langle>bool_rel \<times>\<^sub>r {(T, T'). (T, T') \<in> {(T, T'). (T, T') \<in> twl_st_l None \<and> twl_list_invs T} \<and> True}\<rangle> nres_rel\<close>
   (is \<open> _ \<in> ?R \<rightarrow>\<^sub>f ?I\<close> is \<open> _ \<in> ?R \<rightarrow>\<^sub>f \<langle>?J\<rangle>nres_rel\<close>)
 proof -
   have R: \<open>(a, b) \<in> ?R \<Longrightarrow> (bb, bb') \<in> bool_rel \<Longrightarrow>
