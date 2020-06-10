@@ -370,6 +370,64 @@ lemma rtranclp_cdcl_twl_restart_l_list_invs:
     \<open>twl_list_invs T\<close>
   using assms by induction (auto intro: cdcl_twl_restart_l_list_invs)
 
+
+inductive cdcl_twl_restart_only_l :: \<open>'v twl_st_l \<Rightarrow> 'v twl_st_l \<Rightarrow> bool\<close> where
+restart_trail:
+   \<open>cdcl_twl_restart_only_l (M, N, None, NE, UE, NS, US, {#}, Q)
+       (M'', N, None, NE, UE, NS, US, {#}, {#})\<close>
+  if
+    \<open>(Decided K # M'', M') \<in> set (get_all_ann_decomposition M)\<close> |
+no_restart:
+   \<open>cdcl_twl_restart_only_l (M, N, None, NE, UE, NS, US, {#}, Q)
+       (M, N, None, NE, UE, NS, US, {#}, Q)\<close>
+
+lemma cdcl_twl_restart_only_l_list_invs:
+  assumes
+    \<open>cdcl_twl_restart_only_l S T\<close> and
+    \<open>twl_list_invs S\<close>
+  shows
+    \<open>twl_list_invs T\<close>
+  using assms
+  by (induction rule: cdcl_twl_restart_only_l.induct)
+    (auto simp: twl_list_invs_def valid_trail_reduction.simps)
+
+
+lemma cdcl_twl_restart_only_l_cdcl_twl_restart_only:
+  assumes
+    \<open>cdcl_twl_restart_only_l S T\<close> and
+    ST: \<open>(S, S') \<in> twl_st_l None\<close>
+  shows \<open>\<exists>T'. (T, T') \<in> twl_st_l None \<and> cdcl_twl_restart_only S' T'\<close>
+  apply (rule_tac x = \<open>(\<lambda>(M, N, U, C, NE, UE, NS, US, WS, Q).
+    (drop (length (get_trail S') - length (get_trail_l T)) M, N, U, C, NE, UE, NS, US, WS,
+    literals_to_update_l T)) S'\<close>
+    in exI)
+  using assms
+  apply (induction rule: cdcl_twl_restart_only_l.induct)
+  apply (cases S')
+  subgoal for K M'' M' M N NE UE NS US Q a b c d e f g h i
+    using convert_lits_l_decomp_ex(1)[of K M'' M' M \<open>get_trail S'\<close> N \<open>NE + UE\<close>]
+    by (auto simp: twl_st_l_def convert_lits_l_decomp_ex
+      intro: cdcl_twl_restart_only.intros(1))
+  subgoal
+    by (auto simp: twl_st_l_def convert_lits_l_imp_same_length
+      intro: cdcl_twl_restart_only.intros(2))
+  done
+
+lemma cdcl_twl_restart_only_l_cdcl_twl_restart_only_spec:
+  assumes ST: \<open>(S, T) \<in> twl_st_l None\<close> \<open>twl_list_invs S\<close>
+  shows \<open>SPEC (cdcl_twl_restart_only_l S) \<le> \<Down> {(S, S'). (S, S') \<in> twl_st_l None \<and> twl_list_invs S \<and>
+         clauses_to_update_l S = {#} \<and> get_conflict_l S = None}
+    (SPEC (cdcl_twl_restart_only T))\<close>
+  apply (rule RES_refine)
+  subgoal premises p for s
+    using cdcl_twl_restart_only_l_cdcl_twl_restart_only[of S s, OF p(1)[simplified] assms(1)]
+      cdcl_twl_restart_only_l_list_invs[of S s, OF p(1)[simplified]] p assms(2)
+    apply - apply normalize_goal+
+    apply (rule_tac x= x in bexI)
+    apply (auto simp: cdcl_twl_restart_only_l.simps)
+    done
+  done
+
 lemma cdcl_twl_restart_l_cdcl_twl_restart:
   assumes ST: \<open>(S, T) \<in> twl_st_l None\<close> and
     list_invs: \<open>twl_list_invs S\<close> and
@@ -627,43 +685,6 @@ proof -
     by (blast intro!: RES_refine)
 qed
 
-inductive cdcl_twl_restart_only_l :: \<open>'v twl_st_l \<Rightarrow> 'v twl_st_l \<Rightarrow> bool\<close> where
-restart_trail:
-   \<open>cdcl_twl_restart_only_l (M, N, None, NE, UE, NS, US, {#}, Q)
-  (M', N, None, NE, UE, NS, US, {#}, {#})\<close>
-  if
-    \<open>(Decided K # M', M2) \<in> set (get_all_ann_decomposition M)\<close> |
-norestart_trail:
-   \<open>cdcl_twl_restart_only_l (M, N, None, NE, UE, NS, US, {#}, Q)
-        (M, N, None, NE, UE, NS, US, {#}, Q)\<close>
-
-lemma cdcl_twl_restart_only_l_cdcl_twl_restart_only:
-  assumes ST: \<open>(S, T) \<in> twl_st_l None\<close> and
-    list_invs: \<open>twl_list_invs S\<close> and
-    struct_invs: \<open>twl_struct_invs T\<close>
-  shows \<open>SPEC (cdcl_twl_restart_only_l S) \<le> \<Down> {(S, S'). (S, S') \<in> twl_st_l None \<and> twl_list_invs S \<and>
-         clauses_to_update_l S = {#}}
-    (SPEC (cdcl_twl_restart_only T))\<close>
-  using assms apply -
-  apply (rule RES_refine)
-  apply (rule_tac x= \<open>(\<lambda>(M, N, U, C, NE, UE, NS, US, WS, Q).
-    (drop (length (get_trail_l S) - length (get_trail_l s)) M, N, U, C, NE, UE, NS, US, {#},
-    (if literals_to_update_l s = {#} then {#} else Q))) T\<close> in bexI)
-  subgoal
-    by (cases T)
-      (auto simp: cdcl_twl_restart_only_l.simps cdcl_twl_restart_only.simps
-      valid_trail_reduction.simps twl_list_invs_def twl_st_l_def
-      convert_lits_l_decomp_ex convert_lits_l_imp_same_length
-      intro!: RES_refine)
-  subgoal
-    apply (cases T)
-    apply (auto simp: cdcl_twl_restart_only_l.simps cdcl_twl_restart_only.simps
-      valid_trail_reduction.simps twl_list_invs_def twl_st_l_def
-      convert_lits_l_decomp_ex convert_lits_l_imp_same_length
-      intro!: RES_refine)
-    using convert_lits_l_decomp_ex(1) apply blast+
-    done
-  done
 
 definition (in -) restart_abs_l_pre :: \<open>'v twl_st_l \<Rightarrow> bool \<Rightarrow> bool\<close> where
   \<open>restart_abs_l_pre S brk \<longleftrightarrow>
@@ -770,7 +791,8 @@ proof -
       restart_required_l_restart_required[THEN fref_to_Down_curry2]
       GC_required_l_GC_required[THEN fref_to_Down_curry2]
       cdcl_twl_restart_only_l_cdcl_twl_restart_only
-      cdcl_twl_restart_l_cdcl_twl_restart)
+      cdcl_twl_restart_l_cdcl_twl_restart
+      cdcl_twl_restart_only_l_cdcl_twl_restart_only_spec)
     subgoal for Snb Snb'
       unfolding restart_abs_l_pre_def
       by (rule exI[of _ \<open>fst (fst (fst (fst (Snb'))))\<close>])
@@ -779,7 +801,6 @@ proof -
     subgoal by auto
     subgoal by auto  \<comment> \<open>If condition\<close>
     subgoal by simp
-    subgoal unfolding restart_prog_pre_def by auto
     subgoal unfolding restart_prog_pre_def by auto
     subgoal by (auto simp: get_learned_clss_l_def)
     subgoal by auto
@@ -794,7 +815,7 @@ proof -
     subgoal by auto
     done
 qed
-term cdcl_twl_stgy_restart_prog_inv
+
 
 definition cdcl_twl_stgy_restart_abs_l_inv :: \<open>'v twl_st_l \<Rightarrow> bool \<times> 'v twl_st_l \<times> nat \<times> nat \<times> nat \<Rightarrow> bool\<close> where
   \<open>cdcl_twl_stgy_restart_abs_l_inv S\<^sub>0 \<equiv> (\<lambda>(brk, T, last_GC, last_Restart, n).
@@ -1588,6 +1609,7 @@ proof -
   have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting (state\<^sub>W_of T)\<close> and
     lev_inv: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv (state\<^sub>W_of T)\<close>
     using struct_invs unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+      pcdcl_all_struct_invs_def state\<^sub>W_of_def
     by fast+
 
   have n_d: \<open>no_dup (get_trail_l S)\<close>
@@ -1634,6 +1656,7 @@ proof -
   have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting (state\<^sub>W_of T)\<close> and
     lev_inv: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv (state\<^sub>W_of T)\<close>
     using struct_invs unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+      pcdcl_all_struct_invs_def state\<^sub>W_of_def
     by fast+
   then have \<open>La \<in># mset (get_clauses_l S \<propto> C)\<close> and
     \<open>M1' \<Turnstile>as CNot (remove1_mset La (mset (get_clauses_l S \<propto> C)))\<close>
@@ -1679,6 +1702,7 @@ proof -
   have n_d: \<open>no_dup (get_trail_l S)\<close>
     using n_d unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
       cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
+      pcdcl_all_struct_invs_def state\<^sub>W_of_def
     by (auto simp: twl_st twl_st_l)
 
   show ?thesis
@@ -1880,6 +1904,23 @@ definition replace_annot_l_pre :: \<open>'v literal \<Rightarrow> nat \<Rightarr
    Propagated L C \<in> set (get_trail_l S) \<and> C > 0 \<and>
    (\<exists>i. remove_one_annot_true_clause_one_imp_pre i S)\<close>
 
+lemma (in -)[simp]:
+  \<open>(S, T) \<in> twl_st_l b \<Longrightarrow> (\<lambda>x. atm_of (lit_of x)) ` set (get_trail T) = (\<lambda>x. atm_of (lit_of x)) ` set (get_trail_l S)\<close>
+  apply (cases S; cases T; cases b)
+  apply (auto simp: twl_st_l_def dest: in_convert_lits_lD)
+  apply (metis (mono_tags, lifting) defined_lit_convert_lits_l defined_lit_map rev_image_eqI)
+  by (metis (mono_tags, lifting) defined_lit_convert_lits_l defined_lit_map rev_image_eqI)
+
+lemma [twl_st_l,simp]:
+  \<open>(S, T) \<in> twl_st_l b \<Longrightarrow> pget_all_init_clss (pstate\<^sub>W_of T) = (get_all_init_clss_l S)\<close>
+  by (cases S; cases T; cases b)
+   (auto simp: twl_st_l_def mset_take_mset_drop_mset' get_init_clss_l_def)
+
+lemma [twl_st_l,simp]:
+  \<open>(S, T) \<in> twl_st_l b \<Longrightarrow> pget_all_learned_clss (pstate\<^sub>W_of T) = (get_all_learned_clss_l S)\<close>
+  by (cases S; cases T; cases b)
+   (auto simp: twl_st_l_def mset_take_mset_drop_mset' get_learned_clss_l_def)
+
 lemma replace_annot_l_pre_alt_def:
   \<open>replace_annot_l_pre L C S \<longleftrightarrow>
    (Propagated L C \<in> set (get_trail_l S) \<and> C > 0 \<and>
@@ -1899,14 +1940,21 @@ proof -
       using pre unfolding replace_annot_l_pre_def
         remove_one_annot_true_clause_one_imp_pre_def
       by fast
-    have \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of T)\<close>
+    have alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of T)\<close>
       using struct unfolding twl_struct_invs_def
         cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+      pcdcl_all_struct_invs_def state\<^sub>W_of_def
       by fast
-    then show \<open>?thesis\<close>
+   moreover have \<open>atm_of L \<in> atms_of_ms (mset ` set_mset (get_init_clss_l S)) \<union>
+      atms_of_mm (get_unit_init_clauses_l S) \<union>
+      atms_of_mm (get_subsumed_init_clauses_l S)\<close>
+      using ST LC alien unfolding cdcl\<^sub>W_restart_mset.no_strange_atm_def
+      by (auto simp: twl_st twl_st_l in_all_lits_of_mm_ain_atms_of_iff
+        lits_of_def image_image)
+    ultimately show \<open>?thesis\<close>
       using ST LC unfolding cdcl\<^sub>W_restart_mset.no_strange_atm_def
       by (auto simp: twl_st twl_st_l in_all_lits_of_mm_ain_atms_of_iff
-         lits_of_def image_image)
+        lits_of_def image_image get_init_clss_l_def)
   qed
   then show \<open>?thesis\<close>
     by (auto simp: replace_annot_l_pre_def)
@@ -2029,7 +2077,7 @@ proof -
     using rtranclp_cdcl_twl_restart_twl_struct_invs struct_invs xT' by blast
   then show \<open>no_dup (get_trail_l U)\<close>
     unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def pcdcl_all_struct_invs_def state\<^sub>W_of_def
     using UT' by (simp add: twl_st)
   from no_dup_same_annotD[OF this]
   show ?A
@@ -2040,7 +2088,7 @@ proof -
    show \<open>no_dup (get_trail_l S)\<close>
      using Sx struct_invs
     unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def pcdcl_all_struct_invs_def state\<^sub>W_of_def
     by (simp add: twl_st)
 qed
 
@@ -2230,7 +2278,7 @@ proof -
       by blast
     have n_d: \<open>no_dup (get_trail_l U)\<close>
       using Ux struct_x unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-         cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
+         cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def pcdcl_all_struct_invs_def state\<^sub>W_of_def
         by (auto simp: twl_st twl_st_l)
     have SU': \<open>remove_one_annot_true_clause\<^sup>*\<^sup>* S V\<close>
       using SU UU' unfolding U by simp
@@ -2470,6 +2518,7 @@ proof -
   then have n_d: \<open>no_dup (get_trail_l T)\<close>
     unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
+      pcdcl_all_struct_invs_def state\<^sub>W_of_def
     by (auto simp: twl_st twl_st_l)
 
   have D: \<open>D = None\<close> and WS: \<open>WS = {#}\<close>
@@ -3603,6 +3652,7 @@ proof -
       using ST struct_invs unfolding twl_struct_invs_def
           cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
           cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
+          pcdcl_all_struct_invs_def state\<^sub>W_of_def
       by (simp add: twl_st twl_st_l)
     have subs_U': \<open>get_subsumed_learned_clauses_l U' = {#}\<close>
       using rem unfolding tranclp_unfold_end
@@ -3634,19 +3684,18 @@ definition (in -) cdcl_twl_local_restart_l_spec :: \<open>'v twl_st_l \<Rightarr
       ASSERT(restart_abs_l_pre (M, N, D, NE, UE, NS, US, W, Q) False);
       (M, Q) \<leftarrow> SPEC(\<lambda>(M', Q'). (\<exists>K M2. (Decided K # M', M2) \<in> set (get_all_ann_decomposition M) \<and>
             Q' = {#}) \<or> (M' = M \<and> Q' = Q));
-      RETURN (M, N, D, NE, UE, NS, {#}, W, Q)
+      RETURN (M, N, D, NE, UE, NS, US, W, Q)
    })\<close>
 
 definition cdcl_twl_restart_l_prog where
 \<open>cdcl_twl_restart_l_prog S = do {
-   b \<leftarrow> SPEC(\<lambda>_. True);
-   if b then cdcl_twl_local_restart_l_spec S else cdcl_twl_full_restart_l_prog S
+   cdcl_twl_local_restart_l_spec S
   }\<close>
 
 
 lemma cdcl_twl_local_restart_l_spec_cdcl_twl_restart_l:
   assumes inv: \<open>restart_abs_l_pre S False\<close>
-  shows \<open>cdcl_twl_local_restart_l_spec S \<le> SPEC (cdcl_twl_restart_l S)\<close>
+  shows \<open>cdcl_twl_local_restart_l_spec S \<le> SPEC (cdcl_twl_restart_only_l S)\<close>
 proof -
   obtain T where
     ST: \<open>(S, T) \<in> twl_st_l None\<close> and
@@ -3664,7 +3713,7 @@ proof -
   obtain M N D NE UE NS US W Q where
     S: \<open>S = (M, N, D, NE, UE, NS, US, W, Q)\<close>
     by (cases S)
-  have restart: \<open>cdcl_twl_restart_l S (M', N, D, NE, UE, NS, {#}, W, Q')\<close>
+  have restart: \<open>cdcl_twl_restart_only_l S (M', N, D, NE, UE, NS, US, W, Q')\<close>
     if decomp': \<open>(\<exists>K M2. (Decided K # M', M2) \<in> set (get_all_ann_decomposition M) \<and>
             Q' = {#}) \<or> (M' = M \<and> Q' = Q)\<close>
     for M' K M2 Q'
@@ -3680,12 +3729,94 @@ proof -
       have valid: \<open>valid_trail_reduction M M'\<close>
         by (use valid_trail_reduction.keep_red[of M'] in \<open>auto simp: S\<close>)
       have
+        S1: \<open>S = (M', N, None, NE, UE, NS, US, {#}, Q)\<close> and
+        S2 : \<open>(M', N, D, NE, UE, NS, US, W, Q') =
+          (M', N, None, NE, UE, NS, US, {#}, Q)\<close>
+        using confl upd unfolding S
+        by auto
+      show ?thesis
+        unfolding S[symmetric] S1 S2
+        by (rule cdcl_twl_restart_only_l.intros(2))
+    next
+      case decomp note decomp = this(1) and Q = this(2)
+      have valid: \<open>valid_trail_reduction M M'\<close>
+        by (use valid_trail_reduction.backtrack_red[OF decomp, of M'] in \<open>auto simp: S\<close>)
+      have
         S1: \<open>S = (M, N, None, NE, UE, NS, US, {#}, Q)\<close> and
+        S2 : \<open>(M', N, D, NE, UE, NS, US, W, Q') = (M', N, None, NE, UE,
+          NS, US, {#}, {#})\<close>
+        using confl upd unfolding S Q
+        by auto
+
+      show ?thesis
+        unfolding S[symmetric] S1 S2
+        by (rule cdcl_twl_restart_only_l.intros)
+         (rule decomp)
+    qed
+  qed
+  show ?thesis
+    apply (subst S)
+    unfolding cdcl_twl_local_restart_l_spec_def prod.case RES_RETURN_RES2 less_eq_nres.simps
+      uncurry_def
+    apply (rule ASSERT_leI)
+    using assms[unfolded S] apply assumption
+    apply clarsimp
+    apply (rule restart)
+    apply simp
+    done
+qed
+
+definition (in -) cdcl_twl_local_restart_l_spec0 :: \<open>'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close> where
+  \<open>cdcl_twl_local_restart_l_spec0 = (\<lambda>(M, N, D, NE, UE, NS, US, W, Q). do {
+      ASSERT(restart_abs_l_pre (M, N, D, NE, UE, NS, US, W, Q) False);
+      (M, Q) \<leftarrow> SPEC(\<lambda>(M', Q'). (\<exists>K M2. (Decided K # M', M2) \<in> set (get_all_ann_decomposition M) \<and>
+            Q' = {#} \<and> count_decided M' = 0) \<or> (M' = M \<and> Q' = Q \<and> count_decided M' = 0));
+      RETURN (M, N, D, NE, UE, NS, {#}, W, Q)
+   })\<close>
+
+
+lemma cdcl_twl_local_restart_l_spec0_cdcl_twl_restart_l:
+  assumes inv: \<open>restart_abs_l_pre S False\<close>
+  shows \<open>cdcl_twl_local_restart_l_spec0 S \<le> SPEC (\<lambda>T. cdcl_twl_restart_l S T \<and> count_decided (get_trail_l T) = 0)\<close>
+proof -
+  obtain T where
+    ST: \<open>(S, T) \<in> twl_st_l None\<close> and
+    struct_invs: \<open>twl_struct_invs T\<close> and
+    list_invs: \<open>twl_list_invs S\<close> and
+    upd: \<open>clauses_to_update_l S = {#}\<close> and
+    stgy_invs: \<open>twl_stgy_invs T\<close> and
+    confl: \<open>get_conflict_l S = None\<close>
+    using inv unfolding restart_abs_l_pre_def restart_prog_pre_def
+    apply - apply normalize_goal+
+    by (auto simp: twl_st_l twl_st)
+  have S: \<open>S = (get_trail_l S, snd S)\<close>
+    by (cases S) auto
+
+  obtain M N D NE UE NS US W Q where
+    S: \<open>S = (M, N, D, NE, UE, NS, US, W, Q)\<close>
+    by (cases S)
+  have restart: \<open>cdcl_twl_restart_l S (M', N, D, NE, UE, NS, {#}, W, Q')\<close> (is ?A)
+    if decomp': \<open>(\<exists>K M2. (Decided K # M', M2) \<in> set (get_all_ann_decomposition M) \<and>
+            Q' = {#}) \<or> (M' = M \<and> Q' = Q)\<close>
+    for M' K M2 Q'
+  proof -
+    consider
+      (nope) \<open>M = M'\<close> and \<open>Q' = Q\<close> |
+      (decomp) K M2 where \<open>(Decided K # M', M2) \<in> set (get_all_ann_decomposition M)\<close> and
+        \<open>Q' = {#}\<close>
+      using decomp' by auto
+    then show ?A
+    proof cases
+      case [simp]: nope
+      have valid: \<open>valid_trail_reduction M M'\<close>
+        by (use valid_trail_reduction.keep_red[of M'] in \<open>auto simp: S\<close>)
+      have
+        S1: \<open>S = (M', N, None, NE, UE, NS, US, {#}, Q)\<close> and
         S2 : \<open>(M', N, D, NE, UE, NS, {#}, W, Q') =
           (M', N, None, NE + mset `# {#}, UE + mset `# {#}, NS, {#}, {#}, Q)\<close>
         using confl upd unfolding S
         by auto
-      have
+     have
         \<open>\<forall>C\<in>#clauses_to_update_l S. C \<in># dom_m (get_clauses_l S)\<close> and
         dom0: \<open>0 \<notin># dom_m (get_clauses_l S)\<close> and
         annot: \<open>\<And>L C. Propagated L C \<in> set (get_trail_l S) \<Longrightarrow>
@@ -3697,7 +3828,8 @@ proof -
         using list_invs unfolding twl_list_invs_def S[symmetric] by auto
       have n_d: \<open>no_dup M\<close>
         using struct_invs ST unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-          cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def by (auto simp: twl_st_l twl_st S)
+          cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def pcdcl_all_struct_invs_def
+        by (auto simp: twl_st_l twl_st S)
       have propa_MM: \<open>Propagated L E \<in> set M \<Longrightarrow> Propagated L E' \<in> set M' \<Longrightarrow> E=E'\<close> for L E E'
         using n_d
         by (auto simp: S twl_list_invs_def
@@ -3709,7 +3841,7 @@ proof -
       show ?thesis
         unfolding S[symmetric] S1 S2
         apply (rule cdcl_twl_restart_l.intros)
-        subgoal by (rule valid)
+        subgoal by (auto)
         subgoal by auto
         subgoal by auto
         subgoal by auto
@@ -3725,6 +3857,13 @@ proof -
       have valid: \<open>valid_trail_reduction M M'\<close>
         by (use valid_trail_reduction.backtrack_red[OF decomp, of M'] in \<open>auto simp: S\<close>)
       have
+        S1: \<open>S = (M, N, None, NE, UE, NS, US, {#}, Q)\<close> and
+        S2 : \<open>(M', N, D, NE, UE, NS, {#}, W, Q') = (M', N, None, NE + mset `# {#}, UE + mset `# {#},
+          NS, {#}, {#}, {#})\<close>
+        using confl upd unfolding S Q
+        by auto
+
+     have
         \<open>\<forall>C\<in>#clauses_to_update_l S. C \<in># dom_m (get_clauses_l S)\<close> and
         dom0: \<open>0 \<notin># dom_m (get_clauses_l S)\<close> and
         annot: \<open>\<And>L C. Propagated L C \<in> set (get_trail_l S) \<Longrightarrow>
@@ -3734,20 +3873,15 @@ proof -
             (length (get_clauses_l S \<propto> C) > 2 \<longrightarrow> L = get_clauses_l S \<propto> C ! 0))\<close> and
         \<open>distinct_mset (clauses_to_update_l S)\<close>
         using list_invs unfolding twl_list_invs_def S[symmetric] by auto
-      obtain M3 where M: \<open>M = M3 @ Decided K # M'\<close>
-        using decomp by auto
       have n_d: \<open>no_dup M\<close>
         using struct_invs ST unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-          cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def by (auto simp: twl_st_l twl_st S)
-      have
-        S1: \<open>S = (M, N, None, NE, UE, NS, US, {#}, Q)\<close> and
-        S2 : \<open>(M', N, D, NE, UE, NS, {#}, W, Q') = (M', N, None, NE + mset `# {#}, UE + mset `# {#},
-          NS, {#}, {#}, {#})\<close>
-        using confl upd unfolding S Q
-        by auto
-      have propa_MM: \<open>Propagated L E \<in> set M \<Longrightarrow> Propagated L E' \<in> set M' \<Longrightarrow> E=E'\<close> for L E E'
-        using n_d unfolding M
-        by (auto simp: S twl_list_invs_def
+          cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def pcdcl_all_struct_invs_def
+        by (auto simp: twl_st_l twl_st S)
+      obtain M3 where M: \<open>M = M3 @ Decided K # M'\<close>
+        using decomp by auto
+      have propa_MM: \<open>Propagated L E \<in> set M' \<Longrightarrow> Propagated L E' \<in> set M \<Longrightarrow> E=E'\<close> for L E E'
+        using n_d
+        by (auto simp: S twl_list_invs_def M
             dest!: split_list[of \<open>Propagated L E\<close> M]
             split_list[of \<open>Propagated L E'\<close> M]
             dest: no_dup_same_annotD
@@ -3771,31 +3905,16 @@ proof -
   qed
   show ?thesis
     apply (subst S)
-    unfolding cdcl_twl_local_restart_l_spec_def prod.case RES_RETURN_RES2 less_eq_nres.simps
+    unfolding cdcl_twl_local_restart_l_spec0_def prod.case RES_RETURN_RES2 less_eq_nres.simps
       uncurry_def
     apply (rule ASSERT_leI)
     using assms[unfolded S] apply assumption
     apply clarsimp
+    apply (rule conjI)
     apply (rule restart)
-    apply simp
+    apply auto
     done
 qed
-
-definition (in -) cdcl_twl_local_restart_l_spec0 :: \<open>'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close> where
-  \<open>cdcl_twl_local_restart_l_spec0 = (\<lambda>(M, N, D, NE, UE, NS, US, W, Q). do {
-      ASSERT(restart_abs_l_pre (M, N, D, NE, UE, NS, US, W, Q) False);
-      (M, Q) \<leftarrow> SPEC(\<lambda>(M', Q'). (\<exists>K M2. (Decided K # M', M2) \<in> set (get_all_ann_decomposition M) \<and>
-            Q' = {#} \<and> count_decided M' = 0) \<or> (M' = M \<and> Q' = Q \<and> count_decided M' = 0));
-      RETURN (M, N, D, NE, UE, NS, {#}, W, Q)
-   })\<close>
-
-lemma cdcl_twl_local_restart_l_spec0_cdcl_twl_local_restart_l_spec:
-  \<open>cdcl_twl_local_restart_l_spec0 S \<le> \<Down>{(S, S'). S = S' \<and> count_decided (get_trail_l S) = 0}
-    (cdcl_twl_local_restart_l_spec S)\<close>
-  unfolding cdcl_twl_local_restart_l_spec0_def
-    cdcl_twl_local_restart_l_spec_def
-    by refine_vcg (auto simp: RES_RETURN_RES2)
-
 
 definition cdcl_twl_full_restart_l_GC_prog_pre
   :: \<open>'v twl_st_l \<Rightarrow> bool\<close>
@@ -3983,7 +4102,7 @@ proof -
     length (get_trail_l S) = length (get_trail_l S')\<close>
   have n_d: \<open>no_dup (get_trail_l S)\<close>
     using struct_invs ST unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def pcdcl_all_struct_invs_def
     by (simp add: twl_st)
   then have alt_def: \<open>SPEC (\<lambda>T. cdcl_twl_restart_l S T) \<ge> do {
     S' \<leftarrow> SPEC (\<lambda>S'. ?f1 S S');
@@ -4152,7 +4271,11 @@ proof -
       cdcl_twl_restart_l_cdcl_twl_restart_l_is_cdcl_twl_restart_l[of S U V]
       cdcl_twl_restart_l_cdcl_twl_restart_l_is_cdcl_twl_restart_l[of S V W] that
     by fast
-
+  have abs_pre: \<open>restart_abs_l_pre S False\<close>
+    using assms unfolding cdcl_twl_full_restart_l_GC_prog_pre_def restart_abs_l_pre_def
+      restart_prog_pre_def apply -
+    apply (rule exI[of _ S'])
+    by fastforce
   show ?thesis
     unfolding cdcl_twl_full_restart_l_GC_prog_def
     apply (rule order_trans)
@@ -4163,13 +4286,8 @@ proof -
       using assms unfolding cdcl_twl_full_restart_l_GC_prog_pre_def
       by fastforce
     subgoal
-      by (rule cdcl_twl_local_restart_l_spec0_cdcl_twl_local_restart_l_spec[THEN order_trans],
-        subst (3) Down_id_eq[symmetric],
-	rule order_trans,
-        rule ref_two_step',
-        rule cdcl_twl_local_restart_l_spec_cdcl_twl_restart_l,
-        unfold restart_abs_l_pre_def, rule exI[of _ S'])
-       (use assms in \<open>auto simp: restart_prog_pre_def conc_fun_RES\<close>)
+      by (rule cdcl_twl_local_restart_l_spec0_cdcl_twl_restart_l[THEN order_trans, OF abs_pre])
+        auto
     subgoal
       by (rule 1)
     subgoal for  T T' U U'
@@ -4184,31 +4302,35 @@ proof -
 qed
 
 
+ 
 context twl_restart_ops
 begin
 
 definition restart_prog_l
-  :: "'v twl_st_l \<Rightarrow> nat \<Rightarrow> bool \<Rightarrow> ('v twl_st_l \<times> nat) nres"
+  :: "'v twl_st_l \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> bool \<Rightarrow> ('v twl_st_l \<times> nat \<times> nat \<times> nat) nres"
 where
-  \<open>restart_prog_l S n brk = do {
+  \<open>restart_prog_l S last_GC last_Restart n brk = do {
      ASSERT(restart_abs_l_pre S brk);
-     b \<leftarrow> restart_required_l S n;
-     b2 \<leftarrow> SPEC(\<lambda>_. True);
-     if b2 \<and> b \<and> \<not>brk then do {
-       T \<leftarrow> cdcl_twl_full_restart_l_GC_prog S;
-       RETURN (T, n + 1)
+     b \<leftarrow> GC_required_l S last_GC n;
+     b2 \<leftarrow> restart_required_l S last_Restart n;
+     if b2 \<and> \<not>brk then do {
+       T \<leftarrow> cdcl_twl_restart_l_prog S;
+       RETURN (T, last_GC, size (get_all_learned_clss_l T), n)
      }
      else if b \<and> \<not>brk then do {
-       T \<leftarrow> cdcl_twl_restart_l_prog S;
-       RETURN (T, n + 1)
+       b \<leftarrow> SPEC(\<lambda>_. True);
+       T \<leftarrow> (if b then cdcl_twl_full_restart_l_prog S else cdcl_twl_full_restart_l_GC_prog S);
+       RETURN (T, size (get_all_learned_clss_l T), size (get_all_learned_clss_l T), n + 1)
      }
      else
-       RETURN (S, n)
+       RETURN (S, last_GC, last_Restart, n)
    }\<close>
 
 
 lemma restart_prog_l_restart_abs_l:
-  \<open>(uncurry2 restart_prog_l, uncurry2 restart_abs_l) \<in> Id \<times>\<^sub>f nat_rel \<times>\<^sub>f bool_rel \<rightarrow>\<^sub>f \<langle>Id\<rangle>nres_rel\<close>
+  \<open>(uncurry4 restart_prog_l, uncurry4 restart_abs_l)
+  \<in> Id  \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel\<times>\<^sub>f nat_rel \<times>\<^sub>f bool_rel \<rightarrow>\<^sub>f
+    \<langle>Id  \<times>\<^sub>r nat_rel \<times>\<^sub>r nat_rel \<times>\<^sub>r nat_rel\<rangle>nres_rel\<close>
 proof -
   have cdcl_twl_full_restart_l_prog:
     \<open>cdcl_twl_full_restart_l_prog S \<le> SPEC (\<lambda>T. cdcl_twl_restart_l S T)\<close>
@@ -4258,16 +4380,39 @@ proof -
       by (rule cdcl_twl_full_restart_l_GC_prog_cdcl_twl_restart_l[unfolded Down_id_eq, OF ST list_invs
         struct_invs confl upd stgy_invs])
   qed
+   
+  have restart_abs_l_alt_def:
+  \<open>restart_abs_l S last_GC last_Restart n brk = do {
+     ASSERT(restart_abs_l_pre S brk);
+     b \<leftarrow> GC_required_l S last_GC n;
+     b2 \<leftarrow> restart_required_l S last_Restart n;
+     if b2 \<and>  \<not>brk then do {
+       T \<leftarrow> SPEC(\<lambda>T. cdcl_twl_restart_only_l S T);
+       RETURN (T, last_GC, size (get_all_learned_clss_l T), n)
+     }
+     else
+     if b \<and> \<not>brk then do {
+       _ \<leftarrow> SPEC(\<lambda>b :: bool. True);
+       T \<leftarrow> SPEC(\<lambda>T. cdcl_twl_restart_l S T);
+       RETURN (T, size (get_all_learned_clss_l T), size (get_all_learned_clss_l T), n + 1)
+     }
+     else
+       RETURN (S, last_GC, last_Restart, n)
+       }\<close> for  S last_GC last_Restart n brk
+     unfolding restart_abs_l_def
+     by (auto cong: if_cong)
 
-  have \<open>restart_prog_l S n brk \<le> \<Down> Id (restart_abs_l S n brk)\<close> for S n brk
-    unfolding restart_prog_l_def restart_abs_l_def restart_required_l_def cdcl_twl_restart_l_prog_def
+term restart_abs_l
+  have \<open>restart_prog_l S p m n brk \<le> \<Down> Id (restart_abs_l S p m n brk)\<close> for S n brk p m
+    unfolding restart_prog_l_def restart_abs_l_alt_def restart_required_l_def cdcl_twl_restart_l_prog_def
     apply (refine_vcg)
     subgoal by auto
-    subgoal by (rule cdcl_twl_full_restart_l_GC_prog)
+    subgoal
+      by (rule cdcl_twl_local_restart_l_spec_cdcl_twl_restart_l) auto
     subgoal by auto
     subgoal by auto
-    subgoal by (rule cdcl_twl_local_restart_l_spec_cdcl_twl_restart_l) auto
     subgoal by (rule cdcl_twl_full_restart_l_prog) auto
+    subgoal by (rule cdcl_twl_full_restart_l_GC_prog) auto
     subgoal by auto
     done
   then show ?thesis
@@ -4281,28 +4426,28 @@ definition cdcl_twl_stgy_restart_abs_early_l :: "'v twl_st_l \<Rightarrow> 'v tw
   \<open>cdcl_twl_stgy_restart_abs_early_l S\<^sub>0 =
   do {
     ebrk \<leftarrow> RES UNIV;
-    (_, brk, T, n) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(ebrk, brk, T, n). cdcl_twl_stgy_restart_abs_l_inv S\<^sub>0 brk T n\<^esup>
+    (_, brk, T, last_GC, last_Restart, n) \<leftarrow> WHILE\<^sub>T\<^bsup>cdcl_twl_stgy_restart_abs_l_inv S\<^sub>0 o snd\<^esup>
       (\<lambda>(ebrk, brk, _). \<not>brk \<and> \<not>ebrk)
-      (\<lambda>(_, brk, S, n).
+      (\<lambda>(_, brk, S, last_GC, last_Restart,n).
       do {
         T \<leftarrow> unit_propagation_outer_loop_l S;
         (brk, T) \<leftarrow> cdcl_twl_o_prog_l T;
-        (T, n) \<leftarrow> restart_abs_l T n brk;
+        (T, last_GC, last_Restart,n) \<leftarrow> restart_abs_l T last_GC last_Restart n brk;
 	ebrk \<leftarrow> RES UNIV;
-        RETURN (ebrk, brk, T, n)
+        RETURN (ebrk, brk, T, last_GC, last_Restart,n)
       })
-      (ebrk, False, S\<^sub>0, 0);
+      (ebrk, False, S\<^sub>0, size (get_all_learned_clss_l S\<^sub>0), size (get_all_learned_clss_l S\<^sub>0), 0);
     if \<not>brk then do {
-      (brk, T, _) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(brk, T, n). cdcl_twl_stgy_restart_abs_l_inv S\<^sub>0 brk T n\<^esup>
+      (brk, T, last_GC, last_Restart, _) \<leftarrow> WHILE\<^sub>T\<^bsup>cdcl_twl_stgy_restart_abs_l_inv S\<^sub>0\<^esup>
       (\<lambda>(brk, _). \<not>brk)
-      (\<lambda>(brk, S, n).
+      (\<lambda>(brk, S, last_GC, last_Restart, n).
       do {
         T \<leftarrow> unit_propagation_outer_loop_l S;
         (brk, T) \<leftarrow> cdcl_twl_o_prog_l T;
-        (T, n) \<leftarrow> restart_abs_l T n brk;
-        RETURN (brk, T, n)
+        (T, last_GC, last_Restart,n) \<leftarrow> restart_abs_l T last_GC last_Restart n brk;
+        RETURN (brk, T, last_GC, last_Restart, n)
       })
-      (False, T, n);
+      (False, T, last_GC, last_Restart, n);
       RETURN T
     } else RETURN T
   }\<close>
@@ -4311,33 +4456,33 @@ definition cdcl_twl_stgy_restart_abs_bounded_l :: "'v twl_st_l \<Rightarrow> (bo
   \<open>cdcl_twl_stgy_restart_abs_bounded_l S\<^sub>0 =
   do {
     ebrk \<leftarrow> RES UNIV;
-    (_, brk, T, n) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(ebrk, brk, T, n). cdcl_twl_stgy_restart_abs_l_inv S\<^sub>0 brk T n\<^esup>
+    (_, brk, T, n) \<leftarrow> WHILE\<^sub>T\<^bsup>cdcl_twl_stgy_restart_abs_l_inv S\<^sub>0 o snd\<^esup>
       (\<lambda>(ebrk, brk, _). \<not>brk \<and> \<not>ebrk)
-      (\<lambda>(_, brk, S, n).
+      (\<lambda>(_, brk, S, last_GC, last_Restart, n).
       do {
         T \<leftarrow> unit_propagation_outer_loop_l S;
         (brk, T) \<leftarrow> cdcl_twl_o_prog_l T;
-        (T, n) \<leftarrow> restart_abs_l T n brk;
+        (T, last_GC, last_Restart, n) \<leftarrow> restart_abs_l T last_GC last_Restart n brk;
 	ebrk \<leftarrow> RES UNIV;
-        RETURN (ebrk, brk, T, n)
+        RETURN (ebrk, brk, T, last_GC, last_Restart, n)
       })
-      (ebrk, False, S\<^sub>0, 0);
+      (ebrk, False, S\<^sub>0, size (get_all_learned_clss_l S\<^sub>0), size (get_all_learned_clss_l S\<^sub>0), 0);
     RETURN (brk, T)
   }\<close>
 
 definition cdcl_twl_stgy_restart_prog_l :: "'v twl_st_l \<Rightarrow> 'v twl_st_l nres" where
   \<open>cdcl_twl_stgy_restart_prog_l S\<^sub>0 =
   do {
-    (brk, T, n) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(brk, T, n). cdcl_twl_stgy_restart_abs_l_inv S\<^sub>0 brk T n\<^esup>
+    (brk, T, last_GC, last_Restart, n) \<leftarrow> WHILE\<^sub>T\<^bsup>cdcl_twl_stgy_restart_abs_l_inv S\<^sub>0\<^esup>
       (\<lambda>(brk, _). \<not>brk)
-      (\<lambda>(brk, S, n).
+      (\<lambda>(brk, S, last_GC, last_Restart, n).
       do {
 	T \<leftarrow> unit_propagation_outer_loop_l S;
 	(brk, T) \<leftarrow> cdcl_twl_o_prog_l T;
-	(T, n) \<leftarrow> restart_prog_l T n brk;
-	RETURN (brk, T, n)
+	(T, last_GC, last_Restart, n) \<leftarrow> restart_prog_l T last_GC last_Restart n brk;
+	RETURN (brk, T, last_GC, last_Restart, n)
       })
-      (False, S\<^sub>0, 0);
+      (False, S\<^sub>0, size (get_all_learned_clss_l S\<^sub>0), size (get_all_learned_clss_l S\<^sub>0), 0);
     RETURN T
   }\<close>
 
@@ -4346,28 +4491,28 @@ definition cdcl_twl_stgy_restart_prog_early_l :: "'v twl_st_l \<Rightarrow> 'v t
   \<open>cdcl_twl_stgy_restart_prog_early_l S\<^sub>0 =
   do {
     ebrk \<leftarrow> RES UNIV;
-    (ebrk, brk, T, n) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(ebrk, brk, T, n). cdcl_twl_stgy_restart_abs_l_inv S\<^sub>0 brk T n\<^esup>
+    (ebrk, brk, T, last_GC, last_Restart, n) \<leftarrow> WHILE\<^sub>T\<^bsup>cdcl_twl_stgy_restart_abs_l_inv S\<^sub>0 o snd\<^esup>
       (\<lambda>(ebrk, brk, _). \<not>brk \<and> \<not>ebrk)
-      (\<lambda>(ebrk, brk, S, n).
+      (\<lambda>(ebrk, brk, S, last_GC, last_Restart, n).
       do {
         T \<leftarrow> unit_propagation_outer_loop_l S;
         (brk, T) \<leftarrow> cdcl_twl_o_prog_l T;
-        (T, n) \<leftarrow> restart_prog_l T n brk;
+        (T, n) \<leftarrow> restart_prog_l T last_GC last_Restart n brk;
 	ebrk \<leftarrow> RES UNIV;
         RETURN (ebrk, brk, T, n)
       })
-      (ebrk, False, S\<^sub>0, 0);
+      (ebrk, False, S\<^sub>0, size (get_all_learned_clss_l S\<^sub>0), size (get_all_learned_clss_l S\<^sub>0), 0);
     if \<not>brk then do {
-      (brk, T, n) \<leftarrow> WHILE\<^sub>T\<^bsup>\<lambda>(brk, T, n). cdcl_twl_stgy_restart_abs_l_inv S\<^sub>0 brk T n\<^esup>
+      (brk, T, n) \<leftarrow> WHILE\<^sub>T\<^bsup>cdcl_twl_stgy_restart_abs_l_inv S\<^sub>0\<^esup>
 	(\<lambda>(brk, _). \<not>brk)
-	(\<lambda>(brk, S, n).
+	(\<lambda>(brk, S, last_GC, last_Restart, n).
 	do {
 	  T \<leftarrow> unit_propagation_outer_loop_l S;
 	  (brk, T) \<leftarrow> cdcl_twl_o_prog_l T;
-	  (T, n) \<leftarrow> restart_prog_l T n brk;
-	  RETURN (brk, T, n)
+	  (T, last_GC, last_Restart, n) \<leftarrow> restart_prog_l T last_GC last_Restart n brk;
+	  RETURN (brk, T, last_GC, last_Restart, n)
 	})
-	(False, T, n);
+	(False, T, last_GC, last_Restart, n);
       RETURN T
     }
     else RETURN T
@@ -4395,14 +4540,13 @@ proof -
     unfolding cdcl_twl_stgy_restart_prog_early_l_def cdcl_twl_stgy_restart_prog_def uncurry_def
       cdcl_twl_stgy_restart_abs_early_l_def
     apply (intro frefI nres_relI)
-    apply (refine_rcg WHILEIT_refine[where R = \<open>{((brk :: bool, S, n :: nat), (brk', S', n')).
-        (S, S') \<in> Id \<and> brk = brk' \<and> n = n'}\<close>]
-	WHILEIT_refine[where R = \<open>{((ebrk :: bool, brk :: bool, S, n :: nat), (ebrk', brk', S', n')).
-        (S, S') \<in> Id \<and> brk = brk' \<and> n = n' \<and> ebrk = ebrk'}\<close> ]
+    apply (refine_rcg WHILEIT_refine[where R = \<open>bool_rel \<times>\<^sub>r Id \<times>\<^sub>r nat_rel \<times>\<^sub>r nat_rel \<times>\<^sub>r nat_rel\<close>]
+	WHILEIT_refine[where R = \<open>bool_rel \<times>\<^sub>r bool_rel \<times>\<^sub>r Id \<times>\<^sub>r nat_rel \<times>\<^sub>r nat_rel \<times>\<^sub>r nat_rel\<close> ]
         unit_propagation_outer_loop_l_spec[THEN fref_to_Down]
         cdcl_twl_o_prog_l_spec[THEN fref_to_Down]
         restart_abs_l_restart_prog[THEN fref_to_Down_curry2]
-        restart_prog_l_restart_abs_l[THEN fref_to_Down_curry2])
+        restart_prog_l_restart_abs_l[THEN fref_to_Down_curry4])
+    subgoal by auto
     subgoal by auto
     subgoal for x y xa x' x1 x2 x1a x2a
       by fastforce
@@ -4417,7 +4561,6 @@ proof -
     subgoal
        unfolding cdcl_twl_stgy_restart_prog_inv_def cdcl_twl_stgy_restart_abs_l_inv_def
        by (auto simp: twl_st)
-    subgoal by auto
     subgoal by auto
     subgoal by auto
     subgoal by auto

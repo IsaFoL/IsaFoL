@@ -89,6 +89,9 @@ fun get_unit_init_clauses :: \<open>'v twl_st_l \<Rightarrow> 'v clauses\<close>
 definition get_learned_clss_l :: \<open>'v twl_st_l \<Rightarrow> 'v clause_l multiset\<close> where
   \<open>get_learned_clss_l S = learned_clss_lf (get_clauses_l S)\<close>
 
+definition get_init_clss_l :: \<open>'v twl_st_l \<Rightarrow> 'v clause_l multiset\<close> where
+  \<open>get_init_clss_l S = init_clss_lf (get_clauses_l S)\<close>
+
 fun get_subsumed_init_clauses_l :: \<open>'v twl_st_l \<Rightarrow> 'v clauses\<close> where
   \<open>get_subsumed_init_clauses_l (M, N, D, NE, UE, NS, US, WS, Q) = NS\<close>
 
@@ -102,13 +105,11 @@ abbreviation get_all_clss_l :: \<open>'v twl_st_l \<Rightarrow> 'v clause multis
   \<open>get_all_clss_l S \<equiv>
      mset `# ran_mf (get_clauses_l S) + get_unit_clauses_l S + get_subsumed_clauses_l S\<close>
 
+abbreviation get_all_init_clss_l :: \<open>'v twl_st_l \<Rightarrow> 'v clause multiset\<close> where
+  \<open>get_all_init_clss_l S \<equiv> mset `# get_init_clss_l S + get_unit_init_clauses_l S + get_subsumed_init_clauses_l S\<close>
+
 abbreviation get_all_learned_clss_l :: \<open>'v twl_st_l \<Rightarrow> 'v clause multiset\<close> where
   \<open>get_all_learned_clss_l S \<equiv> mset `# get_learned_clss_l S + get_unit_learned_clss_l S + get_subsumed_learned_clauses_l S\<close>
-
-(*TODo rename*)
-abbreviation get_all_init_clss_l :: \<open>'v twl_st_l \<Rightarrow> 'v clauses\<close> where
-  \<open>get_all_init_clss_l S \<equiv> mset `# ran_mf (get_clauses_l S) +
-    get_unit_clauses_l S + get_subsumed_clauses_l S\<close>
 
 lemma state_decomp_to_state:
   \<open>(case S of (M, N, U, D, NE, UE, NS, US, WS, Q) \<Rightarrow> P M N U D NE UE NS US WS Q) =
@@ -767,7 +768,7 @@ lemma polarity_spec':
 
 definition mop_polarity_l :: \<open>'v twl_st_l \<Rightarrow> 'v literal \<Rightarrow> bool option nres\<close> where
 \<open>mop_polarity_l S L = do {
-    ASSERT(L \<in># all_lits_of_mm (get_all_init_clss_l S));
+    ASSERT(L \<in># all_lits_of_mm (get_all_clss_l S));
     ASSERT(no_dup (get_trail_l S));
     RETURN(polarity (get_trail_l S) L)
 }\<close>
@@ -802,7 +803,7 @@ definition cons_trail_propagate_l where
 definition propagate_lit_l :: \<open>'v literal \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close> where
   \<open>propagate_lit_l = (\<lambda>L' C i (M, N, D, NE, UE, NS, US, WS, Q). do {
       ASSERT(C \<in># dom_m N);
-      ASSERT(L' \<in># all_lits_of_mm (get_all_init_clss_l (M, N, D, NE, UE, NS, US, WS, Q)));
+      ASSERT(L' \<in># all_lits_of_mm (get_all_clss_l (M, N, D, NE, UE, NS, US, WS, Q)));
       ASSERT(i \<le> 1);
       M \<leftarrow> cons_trail_propagate_l L' C M;
       N \<leftarrow> (if length (N \<propto> C) > 2 then mop_clauses_swap N C 0 (Suc 0 - i) else RETURN N);
@@ -1388,7 +1389,7 @@ proof -
      using that unfolding mset_append
      by (auto simp: S)
     ultimately show
-       \<open>K \<in># all_lits_of_mm (get_all_init_clss_l (M, N, D, NE, UE, NS, US, remove1_mset C WS, Q))\<close>
+       \<open>K \<in># all_lits_of_mm (get_all_clss_l (M, N, D, NE, UE, NS, US, remove1_mset C WS, Q))\<close>
        \<open>j \<le> 1\<close>
        \<open>do {
                M \<leftarrow> cons_trail_propagate_l K C M;
@@ -1870,7 +1871,7 @@ definition unit_propagation_inner_loop_body_l_with_skip where
 
 definition unit_propagation_inner_loop_l :: \<open>'v literal \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close> where
   \<open>unit_propagation_inner_loop_l L S\<^sub>0 = do {
-    ASSERT(L \<in># all_lits_of_mm (get_all_init_clss_l S\<^sub>0));
+    ASSERT(L \<in># all_lits_of_mm (get_all_clss_l S\<^sub>0));
     n \<leftarrow> SPEC(\<lambda>_::nat. True);
     (S, n) \<leftarrow> WHILE\<^sub>T\<^bsup>unit_propagation_inner_loop_l_inv L\<^esup>
       (\<lambda>(S, n). clauses_to_update_l S \<noteq> {#} \<or> n > 0)
@@ -1911,7 +1912,7 @@ lemma cdcl_twl_cp_in_trail_stays_in_l:
 lemma unit_propagation_inner_loop_l:
   \<open>(uncurry unit_propagation_inner_loop_l, unit_propagation_inner_loop) \<in>
   {((L, S), S'). (S, S') \<in> twl_st_l (Some L) \<and> twl_list_invs S \<and> -L \<in> lits_of_l (get_trail_l S) \<and>
-     L  \<in># all_lits_of_mm (get_all_init_clss_l S)} \<rightarrow>\<^sub>f
+     L  \<in># all_lits_of_mm (get_all_clss_l S)} \<rightarrow>\<^sub>f
   \<langle>{(T, T'). (T, T') \<in> twl_st_l None \<and> clauses_to_update_l T = {#} \<and>
     twl_list_invs T}\<rangle> nres_rel\<close>
   (is \<open>?unit_prop_inner \<in> ?A \<rightarrow>\<^sub>f \<langle>?B\<rangle>nres_rel\<close>)
@@ -2667,7 +2668,7 @@ lemma extract_shorter_conflict_l_alt_def:
     SPEC(\<lambda>T.
      \<exists>D'. D' \<subseteq># the (get_conflict_l S) \<and> equality_except_conflict_l S T \<and>
       get_conflict_l T = Some D' \<and>
-     get_all_init_clss_l S \<Turnstile>pm D' \<and>
+     get_all_clss_l S \<Turnstile>pm D' \<and>
      -lit_of (hd (get_trail_l S)) \<in># D') }\<close>
   by (cases S) (auto simp: extract_shorter_conflict_l_def
     mset_take_mset_drop_mset mset_take_mset_drop_mset' Un_assoc
@@ -2691,8 +2692,8 @@ definition propagate_bt_l_pre where
 definition propagate_bt_l :: \<open>'v literal \<Rightarrow> 'v literal \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close> where
   \<open>propagate_bt_l = (\<lambda>L L' (M, N, D, NE, UE, NS, US, WS, Q). do {
     ASSERT(propagate_bt_l_pre L L' (M, N, D, NE, UE, NS, US, WS, Q));
-    ASSERT(L \<in># all_lits_of_mm (get_all_init_clss_l (M, N, D, NE, UE, NS, US, WS, Q)));
-    ASSERT(L' \<in># all_lits_of_mm (get_all_init_clss_l (M, N, D, NE, UE, NS, US, WS, Q)));
+    ASSERT(L \<in># all_lits_of_mm (get_all_clss_l (M, N, D, NE, UE, NS, US, WS, Q)));
+    ASSERT(L' \<in># all_lits_of_mm (get_all_clss_l (M, N, D, NE, UE, NS, US, WS, Q)));
     D'' \<leftarrow> list_of_mset (the D);
     i \<leftarrow> get_fresh_index N;
     M \<leftarrow> cons_trail_propagate_l (-L) i M;
@@ -2707,7 +2708,7 @@ definition propagate_unit_bt_l_pre where
 
 definition propagate_unit_bt_l :: \<open>'v literal \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close> where
   \<open>propagate_unit_bt_l = (\<lambda>L (M, N, D, NE, UE, NS, US, WS, Q). do {
-    ASSERT(L \<in># all_lits_of_mm (get_all_init_clss_l (M, N, D, NE, UE, NS, US, WS, Q)));
+    ASSERT(L \<in># all_lits_of_mm (get_all_clss_l (M, N, D, NE, UE, NS, US, WS, Q)));
     ASSERT(propagate_unit_bt_l_pre L (M, N, D, NE, UE, NS, US, WS, Q));
     M \<leftarrow> cons_trail_propagate_l (-L) 0 M;
     RETURN (M, N, None, NE, add_mset (the D) UE, NS, US, WS, {#L#})})\<close>
