@@ -158,7 +158,9 @@ proof -
     by (rule wf_union_compatible)
 qed
 
-definition cdcl_twl_stgy_restart_prog_bounded_int :: "'v twl_st \<Rightarrow> (bool \<times> 'v twl_st) nres" where
+definition (in twl_restart_ops) cdcl_twl_stgy_restart_prog_bounded_int
+     :: "'v twl_st \<Rightarrow> (bool \<times> 'v twl_st) nres"
+where
   \<open>cdcl_twl_stgy_restart_prog_bounded_int S\<^sub>0 =
   do {
     ebrk \<leftarrow> RES UNIV;
@@ -623,6 +625,80 @@ lemma (in twl_restart) cdcl_twl_stgy_restart_prog_spec:
   apply simp
   apply (rule order_trans[OF ref_two_step'])
   apply (rule cdcl_twl_stgy_restart_prog_int_spec[OF assms])
+  by auto
+
+definition (in twl_restart_ops) cdcl_twl_stgy_restart_prog_bounded
+   :: "'v twl_st \<Rightarrow> (bool \<times> 'v twl_st) nres"
+where
+  \<open>cdcl_twl_stgy_restart_prog_bounded S\<^sub>0 =
+  do {
+    ebrk \<leftarrow> RES UNIV;
+    (ebrk, _, T, _, _, _) \<leftarrow> WHILE\<^sub>T\<^bsup>cdcl_twl_stgy_restart_prog_inv S\<^sub>0 o snd\<^esup>
+      (\<lambda>(ebrk, brk, _). \<not>brk \<and> \<not>ebrk)
+      (\<lambda>(ebrk, brk, S, last_GC, last_Restart, n).
+      do {
+        T \<leftarrow> unit_propagation_outer_loop S;
+        (brk, T) \<leftarrow> cdcl_twl_o_prog T;
+        (T, last_GC, last_Restart, n) \<leftarrow> restart_prog T last_GC last_Restart n brk;
+	ebrk \<leftarrow> RES UNIV;
+        RETURN (ebrk, brk, T, last_GC, last_Restart, n)
+      })
+      (ebrk, False, S\<^sub>0, size (get_all_learned_clss S\<^sub>0), size (get_all_learned_clss S\<^sub>0), 0);
+    RETURN (ebrk, T)
+  }\<close>
+
+
+lemma cdcl_twl_stgy_restart_prog_bounded_cdcl_twl_stgy_restart_prog_bounded_int:
+  \<open>(cdcl_twl_stgy_restart_prog_bounded, cdcl_twl_stgy_restart_prog_bounded_int) \<in> Id \<rightarrow>\<^sub>f \<langle>Id\<rangle>nres_rel\<close>
+proof -
+  have this_is_the_identity: \<open>x \<le> \<Down>Id (x')\<close> if \<open>x = x'\<close> for x x'
+    using that by auto
+  show ?thesis
+    unfolding cdcl_twl_stgy_restart_prog_bounded_def cdcl_twl_stgy_restart_prog_bounded_int_def
+      uncurry_def
+    apply (intro frefI nres_relI)
+    apply (refine_rcg
+      WHILEIT_refine[where R = \<open>{((ebrk :: bool, brk :: bool,  S :: 'v twl_st, last_GC, last_Restart, n),
+     (ebrk', brk', last_GC', last_Restart', S', m', n')).
+    S = S' \<and> last_GC = size (get_all_learned_clss last_GC') \<and>
+    last_Restart = size (get_all_learned_clss last_Restart') \<and>
+      n = n' \<and> brk = brk' \<and> ebrk = ebrk'}\<close>]
+      restart_prog_spec[THEN fref_to_Down_curry4_5])
+    subgoal
+      by auto
+    subgoal
+      unfolding cdcl_twl_stgy_restart_prog_inv_def by force
+    subgoal
+      by auto
+    apply (rule this_is_the_identity)
+    subgoal
+      by auto
+    apply (rule this_is_the_identity)
+    subgoal
+      by auto
+    subgoal
+      by simp
+    subgoal
+      by simp
+    subgoal
+      by simp
+    done
+qed
+
+lemma (in twl_restart) cdcl_twl_stgy_prog_bounded_spec:
+  assumes \<open>twl_struct_invs S\<close> and \<open>twl_stgy_invs S\<close> and \<open>clauses_to_update S = {#}\<close> and
+    \<open>get_conflict S = None\<close>
+  shows
+    \<open>cdcl_twl_stgy_restart_prog_bounded S \<le> SPEC(\<lambda>(brk, T).
+      \<exists> R' S' m n b. (cdcl_twl_stgy_restart\<^sup>*\<^sup>* (S, S, S, 0, 0, True) (R', S', T, m, n, b) \<and>
+        (\<not>brk \<longrightarrow> final_twl_state T)))\<close>
+    (is \<open>_ \<le> SPEC ?P\<close>)
+  apply (rule order_trans)
+  apply (rule cdcl_twl_stgy_restart_prog_bounded_cdcl_twl_stgy_restart_prog_bounded_int[THEN fref_to_Down, of _ S])
+  apply simp
+  apply simp
+  apply (rule order_trans[OF ref_two_step'])
+  apply (rule cdcl_twl_stgy_prog_bounded_int_spec[OF assms])
   by auto
 
 end
