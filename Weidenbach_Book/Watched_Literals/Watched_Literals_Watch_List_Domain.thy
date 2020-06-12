@@ -44,23 +44,23 @@ definition cons_trail_propagate_wl_D where
 }\<close>
 
 definition propagate_lit_wl_D :: \<open>nat literal \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat twl_st_wl \<Rightarrow> nat twl_st_wl nres\<close> where
-  \<open>propagate_lit_wl_D = (\<lambda>L' C i (M, N, D, NE, UE, Q, W). do {
+  \<open>propagate_lit_wl_D = (\<lambda>L' C i (M, N, D, NE, UE, NS, US, Q, W). do {
       ASSERT(D = None);
-      ASSERT(L' \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st (M, N, D, NE, UE, Q, W)));
+      ASSERT(L' \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st (M, N, D, NE, UE, NS, US, Q, W)));
       ASSERT(C \<in># dom_m N);
       M \<leftarrow> cons_trail_propagate_wl_D L' C M;
       N \<leftarrow> mop_clauses_swap N C 0 (Suc 0 - i);
-      RETURN (M, N, D, NE, UE, add_mset (-L') Q, W)
+      RETURN (M, N, D, NE, UE, NS, US, add_mset (-L') Q, W)
    })\<close>
 
 
 definition propagate_lit_wl_D_bin :: \<open>nat literal \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat twl_st_wl \<Rightarrow> nat twl_st_wl nres\<close> where
-  \<open>propagate_lit_wl_D_bin = (\<lambda>L' C i (M, N,  D, NE, UE, Q, W). do {
+  \<open>propagate_lit_wl_D_bin = (\<lambda>L' C i (M, N,  D, NE, UE, NS, US, Q, W). do {
       ASSERT(D = None);
-      ASSERT(L' \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st (M, N,  D, NE, UE, Q, W)));
+      ASSERT(L' \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st (M, N,  D, NE, UE, NS, US, Q, W)));
       ASSERT(C \<in># dom_m N);
       M \<leftarrow> cons_trail_propagate_wl_D L' C M;
-      RETURN (M, N, D, NE, UE, add_mset (-L') Q, W)
+      RETURN (M, N, D, NE, UE, NS, US, add_mset (-L') Q, W)
    })\<close>
 
 
