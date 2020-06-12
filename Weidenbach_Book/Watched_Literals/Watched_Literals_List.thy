@@ -83,9 +83,6 @@ fun get_unit_learned_clss_l :: \<open>'v twl_st_l \<Rightarrow> 'v clauses\<clos
 fun get_init_clauses :: \<open>'v twl_st \<Rightarrow> 'v twl_clss\<close> where
   \<open>get_init_clauses (M, N, U, D, NE, UE, NS, US, WS, Q) = N\<close>
 
-fun get_unit_init_clauses :: \<open>'v twl_st_l \<Rightarrow> 'v clauses\<close> where
-  \<open>get_unit_init_clauses (M, N, D, NE, UE, NS, US, WS, Q) = NE\<close>
-
 definition get_learned_clss_l :: \<open>'v twl_st_l \<Rightarrow> 'v clause_l multiset\<close> where
   \<open>get_learned_clss_l S = learned_clss_lf (get_clauses_l S)\<close>
 
@@ -558,7 +555,7 @@ lemma [twl_st_l]:
 
 lemma (in -) [twl_st_l]:
  \<open>(S, T)\<in>twl_st_l b \<Longrightarrow>
-   get_all_init_clss T = mset `# init_clss_lf (get_clauses_l S) + get_unit_init_clauses S +
+   get_all_init_clss T = mset `# init_clss_lf (get_clauses_l S) + get_unit_init_clauses_l S +
      subsumed_init_clauses T\<close>
  \<open>(S, T)\<in>twl_st_l b \<Longrightarrow> get_all_learned_clss T = mset `# learned_clss_lf (get_clauses_l S) +
    get_unit_learned_clss_l S + get_subsumed_learned_clauses_l S\<close>

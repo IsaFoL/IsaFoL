@@ -56,6 +56,11 @@ fun get_subsumed_learned_clauses_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v clau
 abbreviation get_subsumed_clauses_wl  :: \<open>'v twl_st_wl \<Rightarrow> 'v clauses\<close> where
   \<open>get_subsumed_clauses_wl S \<equiv> get_subsumed_init_clauses_wl S + get_subsumed_learned_clauses_wl S\<close>
 
+definition get_learned_clss_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v clause_l multiset\<close> where
+  \<open>get_learned_clss_wl S = learned_clss_lf (get_clauses_wl S)\<close>
+
+abbreviation get_all_learned_clss_wl :: \<open>'v twl_st_wl \<Rightarrow> 'v clause multiset\<close> where
+  \<open>get_all_learned_clss_wl S \<equiv> mset `# get_learned_clss_wl S + get_unit_learned_clss_wl S + get_subsumed_learned_clauses_wl S\<close>
 
 lemma get_unit_clauses_wl_alt_def:
   \<open>get_unit_clauses_wl S = get_unit_init_clss_wl S + get_unit_learned_clss_wl S\<close>
@@ -64,9 +69,9 @@ lemma get_unit_clauses_wl_alt_def:
 fun get_watched_wl :: \<open>'v twl_st_wl \<Rightarrow> ('v literal \<Rightarrow> 'v watched)\<close> where
   \<open>get_watched_wl (_, _, _, _, _, _, _, _, W) = W\<close>
 
-definition get_learned_clss_wl where
-  \<open>get_learned_clss_wl S = learned_clss_lf (get_clauses_wl S)\<close>
 
+abbreviation get_init_clss_wl where
+  \<open>get_init_clss_wl S \<equiv> init_clss_lf (get_clauses_wl S)\<close>
 
 section \<open>Watch List Function\<close>
 
@@ -581,10 +586,11 @@ lemma [twl_st_wl]:
     \<open>get_subsumed_init_clauses_l T = get_subsumed_init_clauses_wl S\<close>
     \<open>get_subsumed_learned_clauses_l T = get_subsumed_learned_clauses_wl S\<close>
     \<open>get_subsumed_clauses_l T = get_subsumed_clauses_wl S\<close>
+    \<open>get_init_clss_l T = get_init_clss_wl S\<close>
   using assms unfolding state_wl_l_def all_clss_lf_ran_m[symmetric]
-  by (cases S; cases T; cases L; auto split: option.splits simp: trail.simps; fail)+
+  by (cases S; cases T; cases L; auto split: option.splits simp: get_init_clss_l_def; fail)+
 
-lemma [twl_st_l]:
+lemma [twl_st_wl]:
   \<open>(a, a') \<in> state_wl_l None \<Longrightarrow>
         get_learned_clss_l a' = get_learned_clss_wl a\<close>
   unfolding state_wl_l_def by (cases a; cases a')
@@ -657,7 +663,8 @@ proof -
     confl: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting (state\<^sub>W_of U)\<close> and
     M_lev: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv (state\<^sub>W_of U)\<close> and
     dist: \<open>cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state (state\<^sub>W_of U)\<close>
-   using struct unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+    using struct unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+      pcdcl_all_struct_invs_def state\<^sub>W_of_def
    by fast+
 
   show lits_trail: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_trail \<A>\<^sub>i\<^sub>n (get_trail_wl x2)\<close>
@@ -670,7 +677,8 @@ proof -
         simp del: all_clss_l_ran_m union_filter_mset_complement
         simp: twl_st twl_st_l twl_st_wl all_lits_of_mm_union lits_of_def
         convert_lits_l_def image_image in_all_lits_of_mm_ain_atms_of_iff
-        get_unit_clauses_wl_alt_def Un_assoc ac_simps)
+        get_unit_clauses_wl_alt_def Un_assoc ac_simps
+      simp flip: state\<^sub>W_of_def)
 
   {
     assume conf: \<open>get_conflict_wl x2 \<noteq> None\<close>
@@ -685,7 +693,8 @@ proof -
          image_image in_all_lits_of_mm_ain_atms_of_iff
         in_all_lits_of_m_ain_atms_of_iff
         get_unit_clauses_wl_alt_def
-        simp del: all_clss_l_ran_m)
+        simp del: all_clss_l_ran_m
+      simp flip: state\<^sub>W_of_def)
 
     have M_confl: \<open>get_trail_wl x2 \<Turnstile>as CNot (the (get_conflict_wl x2))\<close>
       using confl conf x2_T T_U unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
@@ -2111,7 +2120,7 @@ proof -
   have n_d: \<open>no_dup (get_trail_wl S)\<close>
     using inner_loop_inv unfolding unit_propagation_inner_loop_wl_loop_inv_def prod.case
       unit_propagation_inner_loop_l_inv_def twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def apply -
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def pcdcl_all_struct_invs_def apply -
     by normalize_goal+ (simp only: twl_st_wl twl_st_l twl_st)
 
   have pos_of_watched: \<open>((N, C, L), (N', C', L')) \<in> Id \<Longrightarrow> pos_of_watched N C L \<le> \<Down> nat_rel (pos_of_watched N' C' L')\<close>
@@ -2476,7 +2485,7 @@ proof -
     unfolding unit_propagation_inner_loop_wl_loop_inv_def
       unit_propagation_inner_loop_l_inv_def twl_struct_invs_def
    unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def prod.case
-     cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+     cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def pcdcl_all_struct_invs_def state\<^sub>W_of_def
    by normalize_goal+
      (simp only: twl_st_l twl_st_wl twl_st)
   have
@@ -2536,6 +2545,7 @@ proof -
         lev: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv (state\<^sub>W_of T')\<close> and
         dist: \<open>cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state (state\<^sub>W_of T')\<close>
       using struct_invs unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+        pcdcl_all_struct_invs_def state\<^sub>W_of_def
       by blast+
     have n_d: \<open>no_dup (trail (state\<^sub>W_of T'))\<close>
        using lev unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def by auto
@@ -3939,13 +3949,15 @@ proof -
       struct_invs: \<open>twl_struct_invs R\<close>
       using inv_l unfolding unit_propagation_outer_loop_l_inv_def by blast
     have [simp]: (* \<open>trail (state\<^sub>W_of R) = convert_lits_l N M\<close> *)
-       \<open>init_clss (state\<^sub>W_of R) = mset `# (init_clss_lf N) + NE + NS\<close>
-      using S_R S by (auto simp: twl_st S' twl_st_wl)
+      \<open>init_clss (state\<^sub>W_of R) = mset `# (init_clss_lf N) + NE + NS\<close>
+      \<open>atm_of ` lits_of_l (get_trail R) = atm_of ` lits_of_l M\<close>
+      using S_R S by (auto simp: twl_st S' twl_st_wl simp flip: state\<^sub>W_of_def)
     have
       no_dup_q: \<open>no_duplicate_queued R\<close> and
       alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of R)\<close>
       using struct_invs that by (auto simp: twl_struct_invs_def
-          cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def)
+          cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+        pcdcl_all_struct_invs_def state\<^sub>W_of_def)
     then have H1: \<open>L \<in># all_lits_of_mm (mset `# ran_mf N + (NE + UE) + (NS + US))\<close> if LQ: \<open>L \<in># Q\<close> for L
     proof -
       have [simp]: \<open>(f o g) ` I = f ` g ` I\<close> for f g I
@@ -3972,18 +3984,18 @@ proof -
            (\<Union>x\<in>set_mset NS. atms_of x)\<close>
           using that alien unfolding cdcl\<^sub>W_restart_mset.no_strange_atm_def
           by (auto simp: S' cdcl\<^sub>W_restart_mset.no_strange_atm_def cdcl\<^sub>W_restart_mset_state
-              all_lits_of_mm_def atms_of_ms_def)
-          then have \<open>atm_of ` lits_of_l M \<subseteq> (\<Union>x\<in>set_mset (init_clss_lf N). atm_of ` set x) \<union>
-           (\<Union>x\<in>set_mset NE. atms_of x) \<union>
-           (\<Union>x\<in>set_mset NS. atms_of x)\<close>
-          unfolding image_Un[symmetric]
-            set_append[symmetric]
-            append_take_drop_id
-            .
-          then have \<open>atm_of ` lits_of_l M \<subseteq> atms_of_mm (mset `# init_clss_lf N + NE + NS)\<close>
-            by (smt UN_Un Un_iff append_take_drop_id atms_of_ms_def atms_of_ms_mset_unfold set_append
-                set_image_mset set_mset_mset set_mset_union subset_eq)
-          }
+              all_lits_of_mm_def atms_of_ms_def simp flip: state\<^sub>W_of_def)
+        then have \<open>atm_of ` lits_of_l M \<subseteq> (\<Union>x\<in>set_mset (init_clss_lf N). atm_of ` set x) \<union>
+         (\<Union>x\<in>set_mset NE. atms_of x) \<union>
+         (\<Union>x\<in>set_mset NS. atms_of x)\<close>
+        unfolding image_Un[symmetric]
+          set_append[symmetric]
+          append_take_drop_id
+          .
+        then have \<open>atm_of ` lits_of_l M \<subseteq> atms_of_mm (mset `# init_clss_lf N + NE + NS)\<close>
+          by (smt UN_Un Un_iff append_take_drop_id atms_of_ms_def atms_of_ms_mset_unfold set_append
+              set_image_mset set_mset_mset set_mset_union subset_eq)
+      }
       ultimately have \<open>atm_of L \<in> atms_of_mm (mset `# ran_mf N + NE + NS)\<close>
         using that
         unfolding all_lits_of_mm_union atms_of_ms_union all_clss_lf_ran_m[symmetric]
