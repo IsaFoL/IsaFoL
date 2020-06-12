@@ -93,9 +93,12 @@ fun clauses_to_update_l_init :: \<open>'v twl_st_l_init \<Rightarrow> 'v clauses
 fun other_clauses_l_init :: \<open>'v twl_st_l_init \<Rightarrow> 'v clauses\<close> where
   \<open>other_clauses_l_init ((_, _, _, _, _, _, _), OC) = OC\<close>
 
+fun pstate\<^sub>W_of_init :: "'v twl_st_init \<Rightarrow> 'v prag_st" where
+\<open>pstate\<^sub>W_of_init ((M, N, U, C, NE, UE, NS, US, Q), OC) =
+  (M, clause `# N + OC, clause `# U, C, NE, UE, NS, US)\<close>
+
 fun state\<^sub>W_of_init :: "'v twl_st_init \<Rightarrow> 'v cdcl\<^sub>W_restart_mset" where
-"state\<^sub>W_of_init ((M, N, U, C, NE, UE, NS, US, Q), OC) =
-  (M, clause `# N + NE + NS + OC, clause `# U + UE + US, C)"
+"state\<^sub>W_of_init (S) = state_of (pstate\<^sub>W_of_init S)"
 
 fun get_subsumed_init_clauses_l_init :: \<open>'v twl_st_l_init \<Rightarrow> 'v clauses\<close> where
   \<open>get_subsumed_init_clauses_l_init ((_, _, _, _, _, NS, US, _, _), _) = NS\<close>
@@ -180,7 +183,7 @@ definition twl_struct_invs_init :: \<open>'v twl_st_init \<Rightarrow> bool\<clo
   \<open>twl_struct_invs_init S \<longleftrightarrow>
     (twl_st_inv (fst S) \<and>
     valid_enqueued (fst S) \<and>
-    cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state\<^sub>W_of_init S) \<and>
+    pcdcl_all_struct_invs (pstate\<^sub>W_of_init S) \<and>
     cdcl\<^sub>W_restart_mset.no_smaller_propa (state\<^sub>W_of_init S) \<and>
     twl_st_exception_inv (fst S) \<and>
     no_duplicate_queued (fst S) \<and>
@@ -188,10 +191,8 @@ definition twl_struct_invs_init :: \<open>'v twl_st_init \<Rightarrow> bool\<clo
     confl_cands_enqueued (fst S) \<and>
     propa_cands_enqueued (fst S) \<and>
     (get_conflict_init S \<noteq> None \<longrightarrow> clauses_to_update_init S = {#} \<and> literals_to_update_init S = {#}) \<and>
-    entailed_clss_inv (fst S) \<and>
     clauses_to_update_inv (fst S) \<and>
-    past_invs (fst S)) \<and>
-    subsumed_clauses_inv (fst S)
+    past_invs (fst S))
   \<close>
 
 lemma state\<^sub>W_of_state\<^sub>W_of_init:
@@ -203,7 +204,7 @@ lemma twl_struct_invs_init_twl_struct_invs:
   unfolding twl_struct_invs_def twl_struct_invs_init_def
   apply (subst state\<^sub>W_of_state\<^sub>W_of_init; assumption?)+
   apply (intro iffI impI conjI)
-  by (clarsimp simp: twl_st_init)+
+  by (cases W; clarsimp simp: twl_st_init)+
 
 lemma twl_struct_invs_init_add_mset:
   assumes \<open>twl_struct_invs_init (S, QC)\<close> and [simp]: \<open>distinct_mset C\<close> and
@@ -213,7 +214,7 @@ proof -
   have
     st_inv: \<open>twl_st_inv S\<close> and
     valid: \<open>valid_enqueued S\<close> and
-    struct: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state\<^sub>W_of_init (S, QC))\<close> and
+    struct: \<open>pcdcl_all_struct_invs (pstate\<^sub>W_of_init (S, QC))\<close> and
     smaller: \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa (state\<^sub>W_of_init (S, QC))\<close> and
     excep: \<open>twl_st_exception_inv S\<close> and
     no_dup: \<open>no_duplicate_queued S\<close> and
@@ -221,10 +222,8 @@ proof -
     cands_confl: \<open>confl_cands_enqueued S\<close> and
     cands_propa: \<open>propa_cands_enqueued S\<close> and
     confl: \<open>get_conflict S \<noteq> None \<longrightarrow> clauses_to_update S = {#} \<and> literals_to_update S = {#}\<close> and
-    unit: \<open>entailed_clss_inv S\<close> and
     to_upd: \<open>clauses_to_update_inv S\<close> and
-    past: \<open>past_invs S\<close> and
-    subs: \<open>subsumed_clauses_inv S\<close>
+    past: \<open>past_invs S\<close>
     using assms unfolding twl_struct_invs_init_def fst_conv
     by (auto simp add: twl_st_init)
 
@@ -235,10 +234,11 @@ proof -
     subgoal by (rule valid)
     subgoal using struct count_dec no_dup
       by (cases S)
-        (auto 5 5 simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def clauses_def
+        (auto 5 4 simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def clauses_def
           cdcl\<^sub>W_restart_mset_state cdcl\<^sub>W_restart_mset.no_strange_atm_def
-          cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_alt_def
-          cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
+          cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_alt_def psubsumed_invs_def
+        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def pcdcl_all_struct_invs_def
+           entailed_clss_inv_def
           cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def cdcl\<^sub>W_restart_mset.reasons_in_clauses_def
           cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def all_decomposition_implies_def)
     subgoal using smaller count_dec by (cases S)(auto simp: cdcl\<^sub>W_restart_mset.no_smaller_propa_def clauses_def
@@ -249,10 +249,8 @@ proof -
     subgoal by (rule cands_confl)
     subgoal by (rule cands_propa)
     subgoal using confl by (auto simp: twl_st_init)
-    subgoal by (rule unit)
     subgoal by (rule to_upd)
     subgoal by (rule past)
-    subgoal by (rule subs)
     done
 qed
 
@@ -317,7 +315,7 @@ definition init_dt_step :: \<open>'v clause_l \<Rightarrow> 'v twl_st_l_init \<R
 definition init_dt :: \<open>'v clause_l list \<Rightarrow> 'v twl_st_l_init \<Rightarrow> 'v twl_st_l_init nres\<close> where
   \<open>init_dt CS S = nfoldli CS (\<lambda>_. True) init_dt_step S\<close>
 
-definition   init_dt_pre where
+definition init_dt_pre where
   \<open>init_dt_pre CS SOC \<longleftrightarrow>
     (\<exists>T. (SOC, T) \<in> twl_st_l_init \<and>
       (\<forall>C \<in> set CS. distinct C) \<and>
@@ -369,9 +367,10 @@ proof -
   obtain M N U D NE UE Q OC WS NS US  where
     T: \<open>T = ((M, N, U, D, NE, UE, NS, US, WS, Q), OC)\<close>
     by (cases T) auto
-  have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (M, clauses N + NE + NS + OC, clauses U + UE + US, D)\<close>
-    using invs unfolding T twl_struct_invs_init_def by auto
-  then have [simp]:
+  have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (M, clauses N + NE + NS + OC, clauses U + UE + US, D)\<close> and
+    smaller: \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa (M, clauses N + NE + NS + OC, clauses U + UE + US, D)\<close>
+    using invs unfolding T twl_struct_invs_init_def pcdcl_all_struct_invs_def by (auto simp: ac_simps)
+  then have
    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (M, add_mset (mset a) (clauses N + NE + NS + OC),
       clauses U + UE + US, D)\<close>
     using dist
@@ -381,20 +380,21 @@ proof -
        cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def all_decomposition_implies_def
        clauses_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_alt_def
        cdcl\<^sub>W_restart_mset.reasons_in_clauses_def)
+  then have \<open>pcdcl_all_struct_invs (M, add_mset (mset a) (clauses N + OC), clauses U, D, NE, UE, NS, US)\<close>
+    using invs unfolding T twl_struct_invs_init_def pcdcl_all_struct_invs_def
+    by (auto simp: ac_simps entailed_clss_inv_def psubsumed_invs_def)
 
-  have \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa (M, clauses N + NE + NS + OC, clauses U + UE + US, D)\<close>
-    using invs unfolding T twl_struct_invs_init_def by auto
-  then have [simp]:
+  moreover have
      \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa (M, add_mset (mset a) (clauses N + NE + NS + OC),
         clauses U + UE + US, D)\<close>
-    using lev
+    using lev smaller
     by (auto simp: cdcl\<^sub>W_restart_mset.no_smaller_propa_def cdcl\<^sub>W_restart_mset_state
         clauses_def T count_decided_0_iff)
-  show ?twl_struct_invs_init
+  ultimately show ?twl_struct_invs_init
     using invs
     unfolding twl_struct_invs_init_def T
     unfolding fst_conv add_to_other_init.simps state\<^sub>W_of_init.simps get_conflict.simps
-    by clarsimp
+    by (clarsimp simp: ac_simps)
 qed
 
 
@@ -491,16 +491,15 @@ lemma twl_struct_invs_init_init_state:
     wf: \<open>\<forall>C \<in># get_clauses (fst T). struct_wf_twl_cls C\<close> and
     MQ: \<open>literals_to_update_init T = uminus `# lit_of `# mset (get_trail_init T)\<close> and
     WS: \<open>clauses_to_update_init T = {#}\<close> and
-    struct_invs: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state\<^sub>W_of_init T)\<close> and
+    struct_invs: \<open>pcdcl_all_struct_invs (pstate\<^sub>W_of_init T)\<close> and
     \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa (state\<^sub>W_of_init T)\<close> and
-    \<open>entailed_clss_inv (fst T)\<close> and
     \<open>get_conflict_init T \<noteq> None \<longrightarrow> clauses_to_update_init T = {#} \<and> literals_to_update_init T = {#}\<close>
-    \<open>subsumed_clauses_inv (fst T)\<close>
   shows \<open>twl_struct_invs_init T\<close>
 proof -
   have n_d: \<open>no_dup (get_trail_init T)\<close>
     using struct_invs unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def by (cases T) (auto simp: trail.simps)
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def pcdcl_all_struct_invs_def
+    by (cases T) (auto simp: trail.simps)
   then show ?thesis
     using invariants_init_state[OF lev wf MQ WS n_d] assms unfolding twl_struct_invs_init_def
     by fast+
@@ -520,19 +519,23 @@ proof -
   obtain M N U D NE UE Q NS US OC WS where
     T: \<open>T = ((M, N, U, D, NE, UE, NS, US, WS, Q), OC)\<close>
     by (cases T) auto
-  have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (M, clauses N + NE + NS + OC, clauses U + UE + US, D)\<close>
-    using invs unfolding T twl_struct_invs_init_def by auto
+  have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (M, clauses N + OC + NE + NS, clauses U + UE + US, D)\<close>
+    using invs unfolding T twl_struct_invs_init_def pcdcl_all_struct_invs_def by (auto simp: ac_simps)
   then have [simp]:
-   \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (M, add_mset (mset a) (clauses N + NE + NS + OC),
+   \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (M, add_mset (mset a) (OC + clauses N + NE + NS),
       clauses U + UE + US, D)\<close>
     using twl_struct_invs_init_add_to_other_init[OF dist lev invs]
-    unfolding T twl_struct_invs_init_def
-    by simp
-
-  have \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa (M, clauses N + NE + NS + OC, clauses U + UE + US, D)\<close>
+    unfolding T twl_struct_invs_init_def pcdcl_all_struct_invs_def
+    by (simp add: ac_simps)
+  then have invs': \<open>pcdcl_all_struct_invs
+                 (M,  clauses N + OC, clauses U, D, add_mset (mset a) NE, UE,
+    NS, US)\<close>
+    using invs count_decided_ge_get_level[of M] lev ex unfolding twl_struct_invs_init_def pcdcl_all_struct_invs_def
+    by (auto simp: psubsumed_invs_def entailed_clss_inv_def T ac_simps)
+  have \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa (M, clauses N + OC + NE + NS, clauses U + UE + US, D)\<close>
     using invs unfolding T twl_struct_invs_init_def by auto
   then have [simp]:
-     \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa (M, add_mset (mset a) (clauses N + NE + NS + OC),
+     \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa (M, add_mset (mset a) (clauses N + OC + NE + NS),
         clauses U + UE + US, D)\<close>
     using lev
     by (auto simp: cdcl\<^sub>W_restart_mset.no_smaller_propa_def cdcl\<^sub>W_restart_mset_state
@@ -550,11 +553,8 @@ proof -
     \<open>past_invs (M, N, U, D, add_mset (mset a) NE, UE, NS, US, WS, Q) \<longleftrightarrow>
         past_invs (M, N, U, D, NE, UE, NS, US, WS, Q)\<close>
     by (cases D; auto simp: twl_st_inv.simps twl_exception_inv.simps past_invs.simps; fail)+
-  have [simp]: \<open>entailed_clss_inv (M, N, U, D, add_mset (mset a) NE, UE, NS, US, WS, Q) \<longleftrightarrow>
-     entailed_clss_inv (M, N, U, D, NE, UE, NS, US, WS, Q)\<close>
-    using ex count_decided_ge_get_level[of M] lev by (cases D) (auto simp: T)
   show ?all_struct
-    using invs ex
+    using invs ex invs'
     unfolding twl_struct_invs_init_def T
     unfolding fst_conv add_to_other_init.simps state\<^sub>W_of_init.simps get_conflict.simps
     by (clarsimp simp del: entailed_clss_inv.simps)
@@ -574,10 +574,11 @@ proof -
   obtain M N U D NE UE Q OC WS NS US where
     T: \<open>T = ((M, N, U, D, NE, UE, NS, US, WS, Q), OC)\<close>
     by (cases T) auto
-  have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (M, clauses N + NE + NS + OC, clauses U + UE + US, D)\<close>
-    using invs unfolding T twl_struct_invs_init_def by auto
+  have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (M, clauses N + OC + NE + NS, clauses U + UE + US, D)\<close> and
+     pinvs: \<open>pcdcl_all_struct_invs (pstate\<^sub>W_of_init ((M, N, U, D, NE, UE, NS, US, WS, Q), OC))\<close>
+    using invs unfolding T twl_struct_invs_init_def pcdcl_all_struct_invs_def by auto
   then have [simp]:
-   \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (M, add_mset (mset C) (clauses N + NE + NS + OC),
+   \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (M, add_mset (mset C) (clauses N + OC+ NE + NS),
         clauses U + UE + US, Some (mset C))\<close>
     using dist ex
     unfolding T twl_struct_invs_init_def
@@ -587,11 +588,14 @@ proof -
        cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def all_decomposition_implies_def
        clauses_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_alt_def
        true_annots_true_cls_def_iff_negation_in_model)
-
-  have \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa (M, clauses N + NE + NS + OC, clauses U + UE + US, D)\<close>
+  then have H: \<open>pcdcl_all_struct_invs (pstate\<^sub>W_of_init ((M, N, U, Some (mset C), add_mset (mset C) NE, UE, NS, US, WS, Q), OC))\<close>
+    using pinvs ex count_decided_ge_get_level[of M] lev nempty
+    unfolding pcdcl_all_struct_invs_def entailed_clss_inv_def psubsumed_invs_def
+    by (auto simp: entailed_clss_inv_def T)
+  have \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa (M, clauses N + OC + NE + NS, clauses U + UE + US, D)\<close>
     using invs unfolding T twl_struct_invs_init_def by auto
   then have [simp]:
-     \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa (M, add_mset (mset C) (clauses N + NE + NS + OC),
+     \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa (M, add_mset (mset C) (clauses N + OC + NE + NS),
         clauses U + UE + US, Some (mset C))\<close>
     using lev
     by (auto simp: cdcl\<^sub>W_restart_mset.no_smaller_propa_def cdcl\<^sub>W_restart_mset_state
@@ -605,10 +609,9 @@ proof -
     \<open>clauses_to_update_inv (M, N, U, D, NE, UE, NS, US, WS, Q) \<Longrightarrow> clauses_to_update_inv ?T\<close>
     \<open>past_invs (M, N, U, D, NE, UE, NS, US, WS, Q) \<Longrightarrow> past_invs ?T\<close>
     by (auto simp: twl_st_inv.simps twl_exception_inv.simps past_invs.simps; fail)+
-  have [simp]: \<open>entailed_clss_inv (M, N, U, D, NE, UE, NS, US, WS, Q) \<Longrightarrow> entailed_clss_inv ?T\<close>
-    using ex count_decided_ge_get_level[of M] lev nempty by (auto simp: T)
+
   show ?all_struct
-    using invs ex
+    using invs ex H
     unfolding twl_struct_invs_init_def T
     unfolding fst_conv add_to_other_init.simps state\<^sub>W_of_init.simps get_conflict.simps
     by (clarsimp simp del: entailed_clss_inv.simps)
@@ -639,15 +642,16 @@ proof -
      (a \<noteq> [] \<and> hd a = Propagated L mark \<and> tl a @ Propagated L' mark' # b = M)\<close>
     for a mark mark' L' b
     using undef by (cases a) (auto simp: T atm_of_eq_atm_of)
-  have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (M, clauses N + NE + NS + OC, clauses U + UE + US,  None)\<close> and
+  have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (M, clauses N + OC + NE + NS, clauses U + UE + US,  None)\<close> and
     excep: \<open>twl_st_exception_inv (M, N, U, None, NE, UE, NS, US, WS, ?Q)\<close> and
-    st_inv: \<open>twl_st_inv (M, N, U, None, NE, UE, NS, US, WS, ?Q)\<close>
-    using invs confl unfolding T twl_struct_invs_init_def by auto
+    st_inv: \<open>twl_st_inv (M, N, U, None, NE, UE, NS, US, WS, ?Q)\<close> and
+    pinvs: \<open>pcdcl_all_struct_invs (pstate\<^sub>W_of_init T)\<close>
+    using invs confl unfolding T twl_struct_invs_init_def pcdcl_all_struct_invs_def by auto
   then have [simp]:
-   \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (M, add_mset {#L#} (clauses N + NE + NS + OC),
-     clauses U + UE + US, None)\<close> and
-   n_d: \<open>no_dup M\<close>
-    by (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (M, add_mset {#L#} (clauses N + OC + NE + NS),
+       clauses U + UE + US, None)\<close> and
+    n_d: \<open>no_dup M\<close>
+    by (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def T
        cdcl\<^sub>W_restart_mset.no_strange_atm_def cdcl\<^sub>W_restart_mset_state
        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
        cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def all_decomposition_implies_def
@@ -655,16 +659,19 @@ proof -
        cdcl\<^sub>W_restart_mset.reasons_in_clauses_def)
   then have [simp]:
    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (Propagated L {#L#} # M,
-        add_mset {#L#} (clauses N + NE + NS + OC), clauses U + UE + US, None)\<close>
+        add_mset {#L#} (clauses N + OC + NE + NS), clauses U + UE + US, None)\<close>
     using undef by (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def T H
         cdcl\<^sub>W_restart_mset.no_strange_atm_def cdcl\<^sub>W_restart_mset_state
         cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
         cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def all_decomposition_implies_def
         clauses_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_alt_def
-        consistent_interp_insert_iff)
+      consistent_interp_insert_iff)
+  then have pinvs': \<open>pcdcl_all_struct_invs (pstate\<^sub>W_of_init (propagate_unit_init L T))\<close>
+    using pinvs lev count_decided_ge_get_level[of \<open>Propagated L {#L#} # M\<close>] unfolding pcdcl_all_struct_invs_def T
+    by (auto simp: entailed_clss_inv_def psubsumed_invs_def)
   have [iff]: \<open>Propagated L {#L#} # M = M' @ Decided K # Ma \<longleftrightarrow> False\<close> for M' K Ma
     using lev by (cases M') (auto simp: count_decided_0_iff T)
-  have \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa (M, clauses N + NE + NS + OC, clauses U + UE + US, None)\<close>
+  have \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa (M, clauses N + OC + NE + NS, clauses U + UE + US, None)\<close>
     using invs confl unfolding T twl_struct_invs_init_def by auto
   then have [simp]:
      \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa (Propagated L {#L#} # M, add_mset {#L#} (clauses N + NE + NS + OC),
@@ -673,10 +680,10 @@ proof -
     by (auto simp: cdcl\<^sub>W_restart_mset.no_smaller_propa_def cdcl\<^sub>W_restart_mset_state
         clauses_def T count_decided_0_iff)
 
-  have \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa (M, clauses N + NE + NS + OC, clauses U + UE + US, None)\<close>
-    using invs confl unfolding T twl_struct_invs_init_def by auto
+  have \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa (M, clauses N  + OC + NE + NS, clauses U + UE + US, None)\<close>
+    using invs confl unfolding T twl_struct_invs_init_def pcdcl_all_struct_invs_def by auto
   then have [simp]:
-     \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa (Propagated L {#L#} # M, add_mset {#L#} (clauses N + NE + NS + OC),
+     \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa (Propagated L {#L#} # M, add_mset {#L#} (clauses N + OC + NE + NS),
         clauses U + UE + US, None)\<close>
     using lev
     by (auto simp: cdcl\<^sub>W_restart_mset.no_smaller_propa_def cdcl\<^sub>W_restart_mset_state
@@ -686,22 +693,15 @@ proof -
 
   have struct: \<open>struct_wf_twl_cls C\<close> if \<open>C \<in># N + U\<close> for C
     using st_inv that by (simp add: twl_st_inv.simps)
-  have \<open>entailed_clss_inv (fst T)\<close> \<open>subsumed_clauses_inv (fst T)\<close>
-    using invs unfolding T twl_struct_invs_init_def fst_conv by fast+
-  then have ent: \<open>entailed_clss_inv (fst (propagate_unit_init L T))\<close> and
-    subs: \<open>subsumed_clauses_inv (fst (propagate_unit_init L T))\<close>
-    using lev by (auto simp: T get_level_cons_if)
   show \<open>twl_struct_invs_init (propagate_unit_init L T)\<close>
     apply (rule twl_struct_invs_init_init_state)
     subgoal using lev by (auto simp: T)
     subgoal using struct by (auto simp: T)
     subgoal using MQ by (auto simp: T)
     subgoal using WS by (auto simp: T)
-    subgoal by (simp add: T)
+    subgoal using pinvs' by (simp add: T)
     subgoal by (auto simp: T)
-    subgoal by (rule ent)
     subgoal by (auto simp: T)
-    subgoal by (rule subs)
     done
 qed
 
@@ -746,9 +746,9 @@ lemma [twl_st_l_init]:
 
 lemma entailed_clss_inv_add_to_unit_init_clauses:
   \<open>count_decided (get_trail_init T) = 0 \<Longrightarrow> C \<noteq> [] \<Longrightarrow> hd C \<in> lits_of_l (get_trail_init T) \<Longrightarrow>
-     entailed_clss_inv (fst T) \<Longrightarrow> entailed_clss_inv (fst (add_to_unit_init_clauses (mset C) T))\<close>
+     entailed_clss_inv (pstate\<^sub>W_of_init T) \<Longrightarrow> entailed_clss_inv (pstate\<^sub>W_of_init  (add_to_unit_init_clauses (mset C) T))\<close>
   using count_decided_ge_get_level[of \<open>get_trail_init T\<close>]
-  by (cases T; cases C; auto simp: twl_st_inv.simps twl_exception_inv.simps)
+  by (cases T; cases C; auto simp: twl_st_inv.simps twl_exception_inv.simps entailed_clss_inv_def)
 
 lemma convert_lits_l_no_decision_iff: \<open>(S, T) \<in> convert_lits_l M N \<Longrightarrow>
         (\<forall>s\<in>set T. \<not> is_decided s) \<longleftrightarrow>
@@ -1048,10 +1048,12 @@ proof -
   obtain M N U D NE UE Q OC NS US where
     T: \<open>T = ((M, N, U, D, NE, UE, NS, US, {#}, Q), OC)\<close>
     using WS by (cases T) auto
-  have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (M, clauses N + NE + NS + OC, clauses U + UE + US, D)\<close>
-    using invs unfolding T twl_struct_invs_init_def by auto
-  then have [simp]:
-   \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (M, add_mset {#} (clauses N + NE + NS + OC),
+  let ?T = \<open>(M, N, U, Some {#}, NE, UE, NS, US, {#}, {#})\<close>
+  have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (M, clauses N + OC + NE + NS, clauses U + UE + US, D)\<close> and
+    pinvs: \<open>pcdcl_all_struct_invs (pstate\<^sub>W_of_init ((M, N, U, D, NE, UE, NS, US, {#}, Q), OC))\<close>
+    using invs unfolding T twl_struct_invs_init_def pcdcl_all_struct_invs_def by auto
+  then have
+   \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (M, add_mset {#} (clauses N + OC + NE + NS),
         clauses U + UE + US, Some {#})\<close>
     unfolding T twl_struct_invs_init_def
     by (auto 5 5 simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
@@ -1060,16 +1062,18 @@ proof -
        cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def all_decomposition_implies_def
        clauses_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_alt_def
        true_annots_true_cls_def_iff_negation_in_model)
-
-  have \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa (M, clauses N + NE + NS + OC, clauses U + UE + US, D)\<close>
+  then have pinvs: \<open>pcdcl_all_struct_invs (pstate\<^sub>W_of_init (?T, add_mset {#} OC))\<close>
+    using pinvs count_decided_ge_get_level[of M] lev
+    unfolding pcdcl_all_struct_invs_def
+    by (auto simp: T psubsumed_invs_def entailed_clss_inv_def)
+  have \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa (M, clauses N + OC + NE + NS, clauses U + UE + US, D)\<close>
     using invs unfolding T twl_struct_invs_init_def by auto
   then have [simp]:
-     \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa (M, add_mset {#} (clauses N + NE + NS + OC),
+     \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa (M, add_mset {#} (clauses N + OC + NE + NS),
         clauses U + UE + US, Some {#})\<close>
     using lev
     by (auto simp: cdcl\<^sub>W_restart_mset.no_smaller_propa_def cdcl\<^sub>W_restart_mset_state
         clauses_def T count_decided_0_iff)
-  let ?T = \<open>(M, N, U, Some {#}, NE, UE, NS, US, {#}, {#})\<close>
 
   have [simp]: \<open>confl_cands_enqueued ?T\<close>
     \<open>propa_cands_enqueued ?T\<close>
@@ -1078,10 +1082,9 @@ proof -
     \<open>clauses_to_update_inv (M, N, U, D, NE, UE, NS, US, {#}, Q) \<Longrightarrow> clauses_to_update_inv ?T\<close>
     \<open>past_invs (M, N, U, D, NE, UE, NS, US, {#}, Q) \<Longrightarrow> past_invs ?T\<close>
     by (auto simp: twl_st_inv.simps twl_exception_inv.simps past_invs.simps; fail)+
-  have [simp]: \<open>entailed_clss_inv (M, N, U, D, NE, UE, NS, US, {#}, Q) \<Longrightarrow> entailed_clss_inv ?T\<close>
-    using count_decided_ge_get_level[of M] lev by (auto simp: T)
+
   show ?all_struct
-    using invs
+    using invs pinvs
     unfolding twl_struct_invs_init_def T
     unfolding fst_conv add_to_other_init.simps state\<^sub>W_of_init.simps get_conflict.simps
     by (clarsimp simp del: entailed_clss_inv.simps)
@@ -1171,14 +1174,18 @@ proof -
     T: \<open>T = ((M, N, U, None, NE, UE, NS, US, WS, uminus `# lit_of `# mset M), OC)\<close>
     using confl MQ by (cases T) auto
   let ?Q = \<open>uminus `# lit_of `# mset M\<close>
+
+  let ?S = \<open>(M, N, U, None, NE, UE, NS, US, WS, ?Q)\<close>
   have [simp]: \<open>get_all_ann_decomposition M = [([], M)]\<close>
     by (rule no_decision_get_all_ann_decomposition) (use lev in \<open>auto simp: T count_decided_0_iff\<close>)
-  have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (M, (clauses N + NE + NS + OC), clauses U + UE + US,  None)\<close> and
+  have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (M, (clauses N + OC + NE + NS), clauses U + UE + US,  None)\<close> and
     excep: \<open>twl_st_exception_inv (M, N, U, None, NE, UE, NS, US, WS, ?Q)\<close> and
-    st_inv: \<open>twl_st_inv (M, N, U, None, NE, UE, NS, US, WS, ?Q)\<close>
-    using invs confl unfolding T twl_struct_invs_init_def by auto
+    st_inv: \<open>twl_st_inv (M, N, U, None, NE, UE, NS, US, WS, ?Q)\<close> and
+    pinvs: \<open>pcdcl_all_struct_invs
+       (pstate\<^sub>W_of_init ((M, N, U, None, NE, UE, NS, US, WS, uminus `# lit_of `# mset M), OC))\<close>
+    using invs confl unfolding T twl_struct_invs_init_def pcdcl_all_struct_invs_def by auto
   then have [simp]:
-   \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (M, add_mset (mset C) (clauses N + NE + NS + OC),
+   \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (M, add_mset (mset C) (clauses N + OC + NE + NS),
      clauses U + UE + US, None)\<close> and
    n_d: \<open>no_dup M\<close>
     using dist_C
@@ -1186,35 +1193,31 @@ proof -
        cdcl\<^sub>W_restart_mset.no_strange_atm_def cdcl\<^sub>W_restart_mset_state
        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
        cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def all_decomposition_implies_def
-       clauses_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_alt_def)
-  have \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa (M, clauses N + NE + NS + OC, clauses U + UE + US, None)\<close>
+      clauses_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_alt_def)
+  then have pinvs': \<open>pcdcl_all_struct_invs (pstate\<^sub>W_of_init (add_to_clauses_init C T))\<close>
+    using invs unfolding T twl_struct_invs_init_def pcdcl_all_struct_invs_def
+    by (auto simp: entailed_clss_inv_def psubsumed_invs_def mset_take_mset_drop_mset')
+  have \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa (M, clauses N + OC + NE + NS, clauses U + UE + US, None)\<close>
     using invs confl unfolding T twl_struct_invs_init_def by auto
   then have [simp]:
-     \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa (M, add_mset (mset C) (clauses N + NE + NS + OC),
+     \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa (M, add_mset (mset C) (clauses N + OC + NE + NS),
         clauses U + UE + US,  None)\<close>
     using lev
     by (auto simp: cdcl\<^sub>W_restart_mset.no_smaller_propa_def cdcl\<^sub>W_restart_mset_state
         clauses_def T count_decided_0_iff)
 
-  let ?S = \<open>(M, N, U, None, NE, UE, NS, US, WS, ?Q)\<close>
-
   have struct: \<open>struct_wf_twl_cls C\<close> if \<open>C \<in># N + U\<close> for C
     using st_inv that by (simp add: twl_st_inv.simps)
-  have \<open>entailed_clss_inv (fst T)\<close> and subs: \<open>subsumed_clauses_inv (fst T)\<close>
-    using invs unfolding T twl_struct_invs_init_def fst_conv by fast+
-  then have ent: \<open>entailed_clss_inv (fst (add_to_clauses_init C T))\<close>
-    using lev by (auto simp: T get_level_cons_if)
+
   show \<open>twl_struct_invs_init (add_to_clauses_init C T)\<close>
     apply (rule twl_struct_invs_init_init_state)
     subgoal using lev by (auto simp: T)
     subgoal using struct dist_C le_2 by (auto simp: T mset_take_mset_drop_mset')
     subgoal using MQ by (auto simp: T)
     subgoal using WS by (auto simp: T)
-    subgoal by (simp add: T mset_take_mset_drop_mset')
+    subgoal using pinvs' by (simp add: T mset_take_mset_drop_mset')
     subgoal by (auto simp: T mset_take_mset_drop_mset')
-    subgoal by (rule ent)
     subgoal by (auto simp: T)
-    subgoal using subs by (auto simp: T)
     done
 qed
 
@@ -1531,10 +1534,10 @@ lemma init_dt_pre_empty_state:
       cdcl\<^sub>W_restart_mset.no_strange_atm_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
       cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
       cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_alt_def cdcl\<^sub>W_restart_mset.no_smaller_propa_def
-      past_invs.simps clauses_def
-      cdcl\<^sub>W_restart_mset_state twl_list_invs_def
+      past_invs.simps clauses_def pcdcl_all_struct_invs_def
+      cdcl\<^sub>W_restart_mset_state twl_list_invs_def psubsumed_invs_def
       twl_stgy_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant_def
-      cdcl\<^sub>W_restart_mset.no_smaller_confl_def
+      cdcl\<^sub>W_restart_mset.no_smaller_confl_def entailed_clss_inv_def
       cdcl\<^sub>W_restart_mset.conflict_non_zero_unless_level_0_def)
 
 lemma twl_init_invs:
@@ -1547,9 +1550,9 @@ lemma twl_init_invs:
       cdcl\<^sub>W_restart_mset.no_strange_atm_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
       cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
       cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_alt_def cdcl\<^sub>W_restart_mset.no_smaller_propa_def
-      past_invs.simps clauses_def
-      cdcl\<^sub>W_restart_mset_state twl_list_invs_def
+      past_invs.simps clauses_def pcdcl_all_struct_invs_def
+      cdcl\<^sub>W_restart_mset_state twl_list_invs_def psubsumed_invs_def
       twl_stgy_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant_def
-      cdcl\<^sub>W_restart_mset.no_smaller_confl_def
+      cdcl\<^sub>W_restart_mset.no_smaller_confl_def entailed_clss_inv_def
       cdcl\<^sub>W_restart_mset.conflict_non_zero_unless_level_0_def)
 end

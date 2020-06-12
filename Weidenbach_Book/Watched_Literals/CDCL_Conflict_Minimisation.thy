@@ -1509,6 +1509,7 @@ proof -
   have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting (state\<^sub>W_of T)\<close> and
     lev_inv: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv (state\<^sub>W_of T)\<close>
     using struct_invs unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+      pcdcl_all_struct_invs_def state\<^sub>W_of_def
     by fast+
 
   have n_d: \<open>no_dup (get_trail_l S)\<close>
@@ -1584,6 +1585,7 @@ proof -
     no_smaller_propa: \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa S'''\<close> and
     struct_invs: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv S'''\<close>
     using struct_invs unfolding twl_struct_invs_def S'''_def[symmetric]
+      pcdcl_all_struct_invs_def state\<^sub>W_of_def[symmetric]
     by fast+
   have annots: \<open>set (get_all_mark_of_propagated (trail S''')) \<subseteq>
      set_mset (cdcl\<^sub>W_restart_mset.clauses S''')\<close>
@@ -1975,6 +1977,7 @@ proof -
     no_smaller_propa: \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa S'''\<close> and
     struct_invs': \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv S'''\<close>
     using struct_invs unfolding twl_struct_invs_def S'''_def[symmetric]
+      pcdcl_all_struct_invs_def state\<^sub>W_of_def[symmetric]
     by fast+
   have annots: \<open>set (get_all_mark_of_propagated (trail S''')) \<subseteq>
      set_mset (cdcl\<^sub>W_restart_mset.clauses S''')\<close>
