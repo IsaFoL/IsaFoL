@@ -219,23 +219,22 @@ proof (intro subsetI, unfold Liminf_upto_llist_infinity Sup_upto_llist_infinity)
   note \<iota>_inf = Inf_if_Inf_from[OF \<iota>_inff]
   note \<iota>_inff' = \<iota>_inff[unfolded act_ns]
 
-  have "\<not> lnull As"
-    unfolding As_def using nnil by auto
-  moreover have "set (prems_of \<iota>) \<subseteq> Liminf_llist As"
-    using \<iota>_inff'[unfolded Inf_from_def] by simp
-  ultimately obtain i where
-    i_lt_as: "enat i < llength As" and
-    prems_sub_ge_i: "set (prems_of \<iota>) \<subseteq> (\<Inter>j \<in> {j. i \<le> j \<and> enat j < llength As}. lnth As j)"
-    using finite_subset_Liminf_llist_imp_exists_index by blast
-
-  have ts_nnil: "\<not> lnull (lmap fst TNs)"
-    using As_def nnil by simp
-
-  show "\<iota> \<in> \<Union> (from_F ` Liminf_llist (lmap fst TNs))
-    \<union> Sup_llist (lmap (Red_Inf_\<G>_Q \<circ> snd) TNs)"
+  show "\<iota> \<in> \<Union> (from_F ` Liminf_llist (lmap fst TNs)) \<union> Sup_llist (lmap (Red_Inf_\<G>_Q \<circ> snd) TNs)"
   proof -
     {
       assume \<iota>_ni_lim: "\<iota> \<notin> \<Union> (from_F ` Liminf_llist (lmap fst TNs))"
+
+      have "\<not> lnull As"
+        unfolding As_def using nnil by auto
+      moreover have "set (prems_of \<iota>) \<subseteq> Liminf_llist As"
+        using \<iota>_inff'[unfolded Inf_from_def] by simp
+      ultimately obtain i where
+        i_lt_as: "enat i < llength As" and
+        prems_sub_ge_i: "set (prems_of \<iota>) \<subseteq> (\<Inter>j \<in> {j. i \<le> j \<and> enat j < llength As}. lnth As j)"
+        using finite_subset_Liminf_llist_imp_exists_index by blast
+
+      have ts_nnil: "\<not> lnull (lmap fst TNs)"
+        using As_def nnil by simp
 
       have F\<iota>_ni_lim: "to_F \<iota> \<notin> Liminf_llist (lmap fst TNs)"
         using \<iota>_inf \<iota>_ni_lim unfolding from_F_def by auto
@@ -255,11 +254,8 @@ proof (intro subsetI, unfold Liminf_upto_llist_infinity Sup_upto_llist_infinity)
         using i'_lt_as by auto
       then have "\<iota> \<in> Inf_from (active_subset (snd (lnth TNs i')))"
         using i'_lt_as \<iota>_inf unfolding Inf_from_def As_def by auto
-      then have \<iota>_in_i': "\<iota> \<in> \<Union> (from_F ` fst (lnth TNs i'))
-        \<union> Sup_upto_llist (lmap (Red_Inf_\<G>_Q \<circ> snd) TNs) (enat i')"
-        using i'_lt_as[unfolded As_def] invar[unfolded lgc_invar_def] by auto
-      then have "\<iota> \<in> Sup_upto_llist (lmap (Red_Inf_\<G>_Q \<circ> snd) TNs) (enat i')"
-        using \<iota>_ni_i' by auto
+      then have \<iota>_in_i': "\<iota> \<in> Sup_upto_llist (lmap (Red_Inf_\<G>_Q \<circ> snd) TNs) (enat i')"
+        using \<iota>_ni_i' i'_lt_as[unfolded As_def] invar[unfolded lgc_invar_def] by auto
       then have "\<iota> \<in> Sup_llist (lmap (Red_Inf_\<G>_Q \<circ> snd) TNs)"
         using Sup_upto_llist_subset_Sup_llist by fastforce
     }

@@ -9,7 +9,7 @@ section \<open>Consistency Preservation Results\<close>
 
 theory Consistency_Preservation
   imports
-    Saturation_Framework.Calculi
+    Saturation_Framework.Calculus
     Open_Induction.Restricted_Predicates
 begin
 
@@ -67,13 +67,6 @@ proof -
             by (metis (full_types) Suc.hyps Suc_ile_eq entail_succ empty_subsetI entails_trans
                 less_imp_le lnth_subset_Sup_upto_llist subset_entailed)
         qed
-(*        apply (rule notI)
-          unfolding Sup_upto_llist_Suc
-          apply (drule entails_trans_strong[rotated])
-          apply auto
-          apply (meson False Suc_ile_eq \<open>lnth Ns k \<Turnstile> lnth Ns (Suc k)\<close> entails_trans le_cases lnth_subset_Sup_upto_llist subset_entailed)
-          using False apply auto[1]
-          by (simp add: Suc.hyps)*)
       qed
     qed
     then have "\<not> DD \<Turnstile> Bot"
@@ -85,8 +78,7 @@ qed
 
 end
 
-locale refute_compact_calculus_with_red_crit =
-  calculus_with_red_crit + refute_compact_consequence_relation
+locale refute_compact_calculus_with_red_crit = calculus + refute_compact_consequence_relation
 begin
 
 text \<open>

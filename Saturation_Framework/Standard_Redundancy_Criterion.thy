@@ -9,7 +9,7 @@ section \<open>Counterexample-Reducing Inference Systems and the Standard Redund
 
 theory Standard_Redundancy_Criterion
   imports
-    Saturation_Framework.Calculi
+    Saturation_Framework.Calculus
     "HOL-Library.Multiset_Order"
 begin
 
@@ -70,7 +70,7 @@ Theorem 4.4 (generalizes Theorems 3.9 and 3.16):
 \<close>
 
 locale cex_red_inference_system_with_triv_red_crit =
-  cex_red_inference_system _ _ Inf + calculus_with_red_crit _ Inf _ "\<lambda>_. {}" "\<lambda>_. {}"
+  cex_red_inference_system _ _ Inf + calculus _ Inf _ "\<lambda>_. {}" "\<lambda>_. {}"
   for Inf :: "('f :: wellorder) inference set"
 begin
 
@@ -354,7 +354,7 @@ text \<open>
 The following corresponds to Theorems 4.7 and 4.8:
 \<close>
 
-sublocale calculus_with_red_crit Bot Inf "(\<Turnstile>)" Red_Inf Red_F
+sublocale calculus Bot Inf "(\<Turnstile>)" Red_Inf Red_F
   by (unfold_locales, fact Red_Inf_to_Inf, fact Red_F_Bot, fact Red_F_of_subset,
       fact Red_Inf_of_subset, fact Red_F_of_Red_F_subset, fact Red_Inf_of_Red_F_subset,
       fact Red_Inf_of_Inf_to_N)
