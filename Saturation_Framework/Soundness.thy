@@ -1,6 +1,9 @@
-(*  Title:       Soundness Results
- *  Author:      Sophie Tourret <stourret at mpi-inf.mpg.de>, 2020
- *  Author:      Jasmin Blanchette <j.c.blanchette at vu.nl>, 2020 *)
+(*  Title:       Soundness
+    Author:      Sophie Tourret <stourret at mpi-inf.mpg.de>, 2020
+    Author:      Jasmin Blanchette <j.c.blanchette at vu.nl>, 2020
+*)
+
+section \<open>Soundness\<close>
 
 theory Soundness
   imports Consistency_Preservation

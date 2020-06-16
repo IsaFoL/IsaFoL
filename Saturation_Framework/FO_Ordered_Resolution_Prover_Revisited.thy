@@ -1,6 +1,7 @@
 (*  Title:       Application of the Saturation Framework to Bachmair and Ganzinger's RP
- *  Author:      Sophie Tourret <stourret at mpi-inf.mpg.de>, 2018-2020
- *  Author:      Jasmin Blanchette <j.c.blanchette at vu.nl>, 2020 *)
+    Author:      Sophie Tourret <stourret at mpi-inf.mpg.de>, 2018-2020
+    Author:      Jasmin Blanchette <j.c.blanchette at vu.nl>, 2020
+*)
 
 section \<open>Application of the Saturation Framework to Bachmair and Ganzinger's RP\<close>
 
@@ -1127,5 +1128,7 @@ next
   show \<open>\<G>_Fs (N_of_state (lhd Sts) \<union> P_of_state (lhd Sts) \<union> Q_of_state (lhd Sts)) \<TTurnstile>e {{#}}\<close>
     using unsat unfolding F_entails_\<G>_Q_iff by auto
 qed (rule old_fair_imp_new_fair[OF chain_not_lnull[OF deriv] fair empty_Q0])+
+
+end
 
 end

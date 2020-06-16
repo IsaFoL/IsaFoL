@@ -1,6 +1,5 @@
 (*  Title:       Clausal Calculi
     Author:      Jasmin Blanchette <j.c.blanchette at vu.nl>, 2020
-    Maintainer:  Jasmin Blanchette <j.c.blanchette at vu.nl>
 *)
 
 section \<open>Clausal Calculi\<close>

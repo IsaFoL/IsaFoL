@@ -1,5 +1,6 @@
 (*  Title:       New Fairness Proofs for the Given Clause Prover Architectures
- *  Author:      Jasmin Blanchette <j.c.blanchette at vu.nl>, 2020 *)
+    Author:      Jasmin Blanchette <j.c.blanchette at vu.nl>, 2020
+*)
 
 section \<open>New Fairness Proofs for the Given Clause Prover Architectures\<close>
 
