@@ -1,13 +1,13 @@
-(*  Title:       New Fairness Proofs for the Prover Architectures of the Saturation Framework
+(*  Title:       New Fairness Proofs for the Given Clause Prover Architectures
  *  Author:      Jasmin Blanchette <j.c.blanchette at vu.nl>, 2020 *)
 
-section \<open>New Fairness Proofs for the Prover Architectures of the Saturation Framework\<close>
+section \<open>New Fairness Proofs for the Given Clause Prover Architectures\<close>
 
-theory Prover_Architectures_Revisited
-  imports Saturation_Framework.Prover_Architectures
+theory Given_Clause_Architectures_Revisited
+  imports Saturation_Framework.Given_Clause_Architectures
 begin
 
-text \<open>The given clause and lazy given clause procedures satisfy a key invariant. This
+text \<open>The given clause and lazy given clause procedures satisfy key invariants. This
 provides an alternative way to prove fairness and hence saturation of the limit.\<close>
 
 

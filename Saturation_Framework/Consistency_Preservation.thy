@@ -20,9 +20,9 @@ based on Section 4.1 of Bachmair and Ganzinger's \emph{Handbook} chapter, but ad
 saturation framework of Waldmann et al.
 \<close>
 
-locale refute_compact_consequence_relation = consequence_relation +
+locale refutationally_compact_consequence_relation = consequence_relation +
   assumes
-    entails_refute_compact: "CC \<Turnstile> Bot \<Longrightarrow> \<exists>CC' \<subseteq> CC. finite CC' \<and> CC' \<Turnstile> Bot"
+    entails_refutationally_compact: "CC \<Turnstile> Bot \<Longrightarrow> \<exists>CC' \<subseteq> CC. finite CC' \<and> CC' \<Turnstile> Bot"
 begin
 
 lemma chain_entails_derive_consist_preserving:
@@ -61,8 +61,8 @@ proof -
         show ?thesis
         proof
           assume \<open>Sup_upto_llist Ns (enat (Suc k)) \<Turnstile> Bot\<close>
-          then show False unfolding Sup_upto_llist_Suc using False 
-              entails_trans_strong[rotated, of "Sup_upto_llist Ns (enat k)" 
+          then show False unfolding Sup_upto_llist_Suc using False
+              entails_trans_strong[rotated, of "Sup_upto_llist Ns (enat k)"
                 "(if enat (Suc k) < llength Ns then lnth Ns (Suc k) else {})" Bot]
             by (metis (full_types) Suc.hyps Suc_ile_eq entail_succ empty_subsetI entails_trans
                 less_imp_le lnth_subset_Sup_upto_llist subset_entailed)
@@ -73,12 +73,12 @@ proof -
       using dd_sset entails_trans subset_entailed unfolding Sup_upto_llist_def by blast
   }
   then show ?thesis
-    using entails_refute_compact by auto
+    using entails_refutationally_compact by auto
 qed
 
 end
 
-locale refute_compact_calculus_with_red_crit = calculus + refute_compact_consequence_relation
+locale refutationally_compact_calculus = calculus + refutationally_compact_consequence_relation
 begin
 
 text \<open>

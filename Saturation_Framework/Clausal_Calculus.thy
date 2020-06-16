@@ -5,7 +5,7 @@
 
 section \<open>Clausal Calculi\<close>
 
-theory Clausal_Calculi
+theory Clausal_Calculus
   imports
     Ordered_Resolution_Prover.Unordered_Ground_Resolution
     Consistency_Preservation
@@ -83,7 +83,8 @@ proof
     unfolding true_clss_singleton by (simp add: true_clss_def)
 qed (auto intro: true_clss_mono)
 
-interpretation refute_compact_consequence_relation "{{#}} :: ('a :: wellorder) clause set" "(\<TTurnstile>e)"
+interpretation refutationally_compact_consequence_relation "{{#}} :: ('a :: wellorder) clause set"
+  "(\<TTurnstile>e)"
   by unfold_locales (use clausal_logic_compact in auto)
 
 interpretation compact_consequence_relation "{{#}} :: ('a :: wellorder) clause set" "(\<TTurnstile>e)"
@@ -138,10 +139,10 @@ lemma true_clss_of_interp_iff_equal[simp]: "J \<TTurnstile>s clss_of_interp I \<
 lemma entails_iff_models[simp]: "clss_of_interp I \<TTurnstile>e CC \<longleftrightarrow> I \<TTurnstile>s CC"
   by simp
 
-locale clausal_cex_red_inference_system = inference_system Inf
+locale clausal_counterex_reducing_inference_system = inference_system Inf
   for Inf :: "('a :: wellorder) clause inference set" +
   fixes clausal_I_of :: "'a clause set \<Rightarrow> 'a interp"
-  assumes clausal_Inf_cex_reducing:
+  assumes clausal_Inf_counterex_reducing:
     "{#} \<notin> N \<Longrightarrow> D \<in> N \<Longrightarrow> \<not> clausal_I_of N \<TTurnstile> D \<Longrightarrow>
      (\<And>C. C \<in> N \<Longrightarrow> \<not> clausal_I_of N \<TTurnstile> C \<Longrightarrow> D \<le> C) \<Longrightarrow>
      \<exists>Cs E. set Cs \<subseteq> N \<and> clausal_I_of N \<TTurnstile>s set Cs \<and> Infer (Cs @ [D]) E \<in> Inf
@@ -151,7 +152,7 @@ begin
 abbreviation I_of :: "'a clause set \<Rightarrow> 'a clause set" where
   "I_of N \<equiv> clss_of_interp (clausal_I_of N)"
 
-lemma Inf_cex_reducing:
+lemma Inf_counterex_reducing:
   assumes
     bot_ni_n: "N \<inter> {{#}} = {}" and
     d_in_n: "D \<in> N" and
@@ -173,30 +174,31 @@ proof -
     "Infer (Cs @ [D]) E \<in> Inf" and
     "\<not> clausal_I_of N \<TTurnstile> E" and
     "E < D"
-    using clausal_Inf_cex_reducing by metis
+    using clausal_Inf_counterex_reducing by metis
   then show ?thesis
     using snoc_eq_iff_butlast by fastforce
 qed
 
-sublocale cex_red_inference_system "{{#}}" "(\<TTurnstile>e)" Inf I_of
-  by unfold_locales (fact Inf_cex_reducing)
+sublocale counterex_reducing_inference_system "{{#}}" "(\<TTurnstile>e)" Inf I_of
+  by unfold_locales (fact Inf_counterex_reducing)
 
 end
 
 
 subsection \<open>Counterexample-Reducing Calculi Equipped with a Standard Redundancy Criterion\<close>
 
-locale clausal_cex_red_calculus_with_std_red_crit =
-  calculus_with_std_red_crit Inf "{{#}}" "(\<TTurnstile>e)" + clausal_cex_red_inference_system Inf clausal_I_of
+locale clausal_counterex_reducing_calculus_with_standard_redundancy =
+  calculus_with_standard_redundancy Inf "{{#}}" "(\<TTurnstile>e)" +
+  clausal_counterex_reducing_inference_system Inf clausal_I_of
   for
     Inf :: "('a :: wellorder) clause inference set" and
     clausal_I_of :: "'a clause set \<Rightarrow> 'a set"
 begin
 
-sublocale cex_red_calculus_with_std_red_crit "{{#}}" "(\<TTurnstile>e)" I_of
+sublocale counterex_reducing_calculus_with_standard_redundancy "{{#}}" "(\<TTurnstile>e)" I_of
   by unfold_locales
 
-sublocale refute_compact_calculus_with_red_crit "{{#}}" Inf "(\<TTurnstile>e)" Red_Inf Red_F
+sublocale refutationally_compact_calculus "{{#}}" Inf "(\<TTurnstile>e)" Red_Inf Red_F
   by unfold_locales
 
 lemma clausal_saturated_model: "saturated N \<Longrightarrow> {#} \<notin> N \<Longrightarrow> clausal_I_of N \<TTurnstile>s N"

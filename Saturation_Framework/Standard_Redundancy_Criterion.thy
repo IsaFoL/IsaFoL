@@ -39,17 +39,17 @@ lemma set_prems_of:
   "set (prems_of \<iota>) = (if prems_of \<iota> = [] then {} else {main_prem_of \<iota>} \<union> set (side_prems_of \<iota>))"
   by clarsimp (metis Un_insert_right append_Nil2 append_butlast_last_id list.set(2) set_append)
 
-locale cex_red_inference_system = inference_system Inf + consequence_relation
+locale counterex_reducing_inference_system = inference_system Inf + consequence_relation
   for Inf :: "('f :: wellorder) inference set" +
   fixes I_of :: "'f set \<Rightarrow> 'f set"
-  assumes Inf_cex_reducing:
+  assumes Inf_counterex_reducing:
     "N \<inter> Bot = {} \<Longrightarrow> D \<in> N \<Longrightarrow> \<not> I_of N \<Turnstile> {D} \<Longrightarrow> (\<And>C. C \<in> N \<Longrightarrow> \<not> I_of N \<Turnstile> {C} \<Longrightarrow> D \<le> C) \<Longrightarrow>
      \<exists>\<iota> \<in> Inf. prems_of \<iota> \<noteq> [] \<and> main_prem_of \<iota> = D \<and> set (side_prems_of \<iota>) \<subseteq> N \<and> I_of N
          \<Turnstile> set (side_prems_of \<iota>)
        \<and> \<not> I_of N \<Turnstile> {concl_of \<iota>} \<and> concl_of \<iota> < D"
 begin
 
-lemma ex_min_cex:
+lemma ex_min_counterex:
   fixes N :: "('f :: wellorder) set"
   assumes "\<not> I \<Turnstile> N"
   shows "\<exists>C \<in> N. \<not> I \<Turnstile> {C} \<and> (\<forall>D \<in> N. D < C \<longrightarrow> I \<Turnstile> {D})"
@@ -69,8 +69,8 @@ text \<open>
 Theorem 4.4 (generalizes Theorems 3.9 and 3.16):
 \<close>
 
-locale cex_red_inference_system_with_triv_red_crit =
-  cex_red_inference_system _ _ Inf + calculus _ Inf _ "\<lambda>_. {}" "\<lambda>_. {}"
+locale counterex_reducing_inference_system_with_trivial_redundancy =
+  counterex_reducing_inference_system _ _ Inf + calculus _ Inf _ "\<lambda>_. {}" "\<lambda>_. {}"
   for Inf :: "('f :: wellorder) inference set"
 begin
 
@@ -85,12 +85,12 @@ proof (rule ccontr)
     d_in_n: "D \<in> N" and
     d_cex: "\<not> I_of N \<Turnstile> {D}" and
     d_min: "\<And>C. C \<in> N \<Longrightarrow> C < D \<Longrightarrow> I_of N \<Turnstile> {C}"
-    by (meson ex_min_cex)
+    by (meson ex_min_counterex)
   then obtain \<iota> :: "'f inference" where
     \<iota>_inf: "\<iota> \<in> Inf" and
     concl_cex: "\<not> I_of N \<Turnstile> {concl_of \<iota>}" and
     concl_lt_d: "concl_of \<iota> < D"
-    using Inf_cex_reducing[OF bot_ni_n] by force
+    using Inf_counterex_reducing[OF bot_ni_n] by force
   have "concl_of \<iota> \<in> N"
     using \<iota>_inf Red_Inf_of_Inf_to_N by blast
   then show False
@@ -146,9 +146,10 @@ qed
 end
 
 
-subsection \<open>The Redundancy Criterion\<close>
+subsection \<open>The Standard Redundancy Criterion\<close>
 
-locale calculus_with_std_red_crit = inference_system Inf + compact_consequence_relation Bot entails
+locale calculus_with_standard_redundancy =
+  inference_system Inf + compact_consequence_relation Bot entails
   for
     Inf :: "('f :: wellorder) inference set" and
     Bot :: "'f set" and
@@ -361,8 +362,8 @@ sublocale calculus Bot Inf "(\<Turnstile>)" Red_Inf Red_F
 
 end
 
-locale cex_red_calculus_with_std_red_crit =
-  calculus_with_std_red_crit Inf + cex_red_inference_system _ _ Inf
+locale counterex_reducing_calculus_with_standard_redundancy =
+  calculus_with_standard_redundancy Inf + counterex_reducing_inference_system _ _ Inf
   for Inf :: "('f :: wellorder) inference set"
 begin
 
@@ -384,7 +385,7 @@ proof (rule ccontr)
     d_in_n: "D \<in> N" and
     d_cex: "\<not> I_of N \<Turnstile> {D}" and
     d_min: "\<And>C. C \<in> N \<Longrightarrow> C < D \<Longrightarrow> I_of N \<Turnstile> {C}"
-    using ex_min_cex by blast
+    using ex_min_counterex by blast
   then obtain \<iota> :: "'f inference" where
     \<iota>_in: "\<iota> \<in> Inf" and
     \<iota>_mprem: "D = main_prem_of \<iota>" and
@@ -392,7 +393,7 @@ proof (rule ccontr)
     sprem_true: "I_of N \<Turnstile> set (side_prems_of \<iota>)" and
     concl_cex: "\<not> I_of N \<Turnstile> {concl_of \<iota>}" and
     concl_lt_d: "concl_of \<iota> < D"
-    using Inf_cex_reducing[OF bot_ni_n] not_le by metis
+    using Inf_counterex_reducing[OF bot_ni_n] not_le by metis
   have "\<iota> \<in> Red_Inf N"
     by (rule subsetD[OF satur[unfolded saturated_def Inf_from_def]],
         simp add: \<iota>_in set_prems_of Inf_has_prem)
@@ -405,7 +406,7 @@ proof (rule ccontr)
     dd_lt_d: "\<forall>C \<in> DD. C < D"
     unfolding Red_Inf_def redundant_infer_def \<iota>_mprem by blast
   from dd_subs_n dd_lt_d have "I_of N \<Turnstile> DD"
-    using d_min by (meson ex_min_cex subset_iff)
+    using d_min by (meson ex_min_counterex subset_iff)
   then have "I_of N \<Turnstile> {concl_of \<iota>}"
     using entails_trans dd_cc_ent_d entail_union sprem_true by blast
   then show False

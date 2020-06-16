@@ -1012,7 +1012,7 @@ proof -
     then have \<open>ground_cl ({#Lit False (Upair t s)#} + {#L'#} + C)\<close> using L'_def by auto
     then have concl_def': \<open>Rep_ground_clause (concl_of \<iota>) = {#Lit False (Upair t s)#} + {#L'#} + C\<close>
       using subst_ground_cl concl_def by metis
-    have ord': \<open>s \<prec> u\<close> 
+    have ord': \<open>s \<prec> u\<close>
       using ground ord subst_ground_term term_ord_ground_total unfolding total_on_def
     by (metis (mono_tags, lifting) mem_Collect_eq)
     moreover have \<open>t \<preceq> s\<close>
@@ -1039,7 +1039,7 @@ proof -
     then have \<open>Lit False (Upair t s) \<prec>L L\<close> using L_def unfolding lit_ord_def
       by (smt add_mset_add_single case_prodI inv_image_def mem_Collect_eq mset_lit.simps mset_upair union_mset_add_mset_left union_mset_add_mset_right)
     then have \<open>(Rep_ground_clause (concl_of \<iota>), Rep_ground_clause P) \<in> mult lit_ord\<close>
-      using one_step_implies_mult [of \<open>{#L#}\<close> \<open>{#Lit False (Upair t s)#}\<close> lit_ord \<open>{#L'#} + C\<close>] concl_def' P_def 
+      using one_step_implies_mult [of \<open>{#L#}\<close> \<open>{#Lit False (Upair t s)#}\<close> lit_ord \<open>{#L'#} + C\<close>] concl_def' P_def
       by (simp add: union_commute)
     then show ?thesis using P_elem unfolding ground_clause_ord_def clause_ord_def by auto
   next
@@ -1550,7 +1550,7 @@ qed
 
 lemma ordered_canonical_trs: \<open>ordered (\<Union> (trs_of_clause S ` S))\<close>
   using ordered_trs_of_clause by fast
- 
+
 lemma canonical_interp_fo: \<open>Rep_fo_interp (canonical_interp S) = equiv_class_of_trs (\<Union> (trs_of_clause (Abs_ground_clause ` S) ` Abs_ground_clause ` S))\<close>
   unfolding canonical_interp_def canonical_interp_ground_def
   using equiv_class_fo ordered_canonical_trs by blast
@@ -1908,7 +1908,7 @@ next
             using rule_elem' unfolding production_def by blast
           then have \<open>irreducible (trs_of_clause N C) s\<close> sorry
           then have \<open>s = t\<close> sorry
-          then show False sorry 
+          then show False sorry
         qed
         ultimately show ?thesis sorry
       qed
@@ -2276,7 +2276,7 @@ proof -
               have subst_\<sigma>: \<open>subst_apply_lit L ?\<sigma> = L\<close> for L :: \<open>('f,'v) literal\<close>
                 by (metis mset_lit.cases subst_apply_lit.simps subst_apply_term_empty)
               consider (neg_lit) \<open>selection (Rep_ground_clause C) \<noteq> {#} \<or> (\<exists>s t. Neq s t \<in># Rep_ground_clause C \<and> (\<forall>L \<in># Rep_ground_clause C. L \<preceq>L Neq s t))\<close>
-                     | (pos_lit) \<open>selection (Rep_ground_clause C) = {#} \<and> (\<forall>s t. Neq s t \<in># Rep_ground_clause C \<longrightarrow> (\<exists>L \<in># Rep_ground_clause C. \<not> L \<preceq>L Neq s t))\<close> by blast        
+                     | (pos_lit) \<open>selection (Rep_ground_clause C) = {#} \<and> (\<forall>s t. Neq s t \<in># Rep_ground_clause C \<longrightarrow> (\<exists>L \<in># Rep_ground_clause C. \<not> L \<preceq>L Neq s t))\<close> by blast
               then show \<open>?P2 C\<close>
               proof cases
                 case neg_lit
@@ -3103,7 +3103,7 @@ proof -
           by (metis substs_preserve_ground_clause)
         then show \<open>validate_clause I D\<close> by auto
       qed
-      then show ?thesis by auto    
+      then show ?thesis by auto
     qed
   qed
 qed
@@ -3181,7 +3181,7 @@ proof
           and \<open>P \<in> \<G>_set N\<close>
         unfolding ground_eresolution_inferences_def by auto
       then obtain P' \<theta>
-        where P'_elem: \<open>P' \<in> N\<close>    
+        where P'_elem: \<open>P' \<in> N\<close>
           and P_subst: \<open>subst_fclause \<theta> P' = P\<close>
           and grounding_\<theta>: \<open>grounding_subst \<theta> P'\<close>
         unfolding grounding_clause_def by blast

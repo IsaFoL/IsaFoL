@@ -7,10 +7,4 @@ session "Saturation_Framework_Extended" = Saturation_Framework +
     Well_Quasi_Orders
   theories
     FO_Ordered_Resolution_Prover_Revisited
-    Clausal_Calculi
-    Compactness
-    Consistency_Preservation
-    (* Counterexample_Reducing_Inference_Systems *)
-    Soundness
-    Superposition_Lifting
-    Standard_Redundancy_Criterion
+    Given_Clause_Architectures_Revisited

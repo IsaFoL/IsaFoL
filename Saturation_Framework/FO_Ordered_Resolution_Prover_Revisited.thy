@@ -8,7 +8,7 @@ theory FO_Ordered_Resolution_Prover_Revisited
   imports
     Ordered_Resolution_Prover.FO_Ordered_Resolution_Prover
     Saturation_Framework.Given_Clause_Architectures
-    Clausal_Calculi
+    Clausal_Calculus
     Soundness
 begin
 
@@ -88,7 +88,7 @@ proof
     by simp
 qed
 
-interpretation G: clausal_cex_red_inference_system "G_Inf M" "gr.INTERP M"
+interpretation G: clausal_counterex_reducing_inference_system "G_Inf M" "gr.INTERP M"
 proof
   fix N D
   assume
@@ -110,7 +110,8 @@ proof
     by (metis (mono_tags, lifting) gr.ex_min_counterex gr.productive_imp_INTERP mem_Collect_eq)
 qed
 
-interpretation G: clausal_cex_red_calculus_with_std_red_crit "G_Inf M" "gr.INTERP M"
+interpretation G: clausal_counterex_reducing_calculus_with_standard_redundancy "G_Inf M"
+  "gr.INTERP M"
   by (unfold_locales, fact G_Inf_have_prems, fact G_Inf_reductive)
 
 interpretation G: statically_complete_calculus "{{#}}" "G_Inf M" "(\<TTurnstile>e)" "G.Red_Inf M" G.Red_F
@@ -392,7 +393,7 @@ lemma mem_FL_Red_F_Q_because_Prec_FL:
   "(\<forall>D \<in> \<G>_F (fst Cl). \<exists>El \<in> N. El \<sqsubset> Cl \<and> D \<in> \<G>_F (fst El)) \<Longrightarrow> Cl \<in> FL.Red_F_Q N"
   unfolding FL_Red_F_Q_eq by auto
 
-interpretation FL: refute_compact_consequence_relation FL.Bot_FL "(\<TTurnstile>\<G>Le)"
+interpretation FL: refutationally_compact_consequence_relation FL.Bot_FL "(\<TTurnstile>\<G>Le)"
 proof
   fix CCl
   assume unsat: "CCl \<TTurnstile>\<G>Le FL.Bot_FL"
@@ -427,7 +428,7 @@ proof
     by blast
 qed
 
-interpretation FL: refute_compact_calculus_with_red_crit FL.Bot_FL FL_Inf "(\<TTurnstile>\<G>Le)" FL.Red_Inf_Q
+interpretation FL: refutationally_compact_calculus FL.Bot_FL FL_Inf "(\<TTurnstile>\<G>Le)" FL.Red_Inf_Q
   FL.Red_F_Q
   ..
 
@@ -603,11 +604,11 @@ proof -
   proof (rule FL.step.process[of _ N "{Cl}" _ "{}"], simp+)
     show \<open>Cl \<in> FL.Red_F_\<G>_Q N\<close> using d_sub'_c unfolding FL_Red_F_Q_eq
     proof -
-      have \<open>\<And>D. D \<in> \<G>_F (fst Cl) \<Longrightarrow> \<forall>E\<in>N. E \<sqsubset> Cl \<longrightarrow> D \<notin> \<G>_F (fst E) \<Longrightarrow> 
+      have \<open>\<And>D. D \<in> \<G>_F (fst Cl) \<Longrightarrow> \<forall>E\<in>N. E \<sqsubset> Cl \<longrightarrow> D \<notin> \<G>_F (fst E) \<Longrightarrow>
         \<forall>D\<in>\<G>_F (fst Cl). D \<in> G.Red_F (\<G>_F (fst Dl)) \<or> Dl \<sqsubset> Cl \<and> D \<in> \<G>_F (fst Dl) \<Longrightarrow>
         D \<in> G.Red_F (\<Union>a\<in>N. \<G>_F (fst a))\<close>
         by (metis (no_types, lifting) G.Red_F_of_subset SUP_upper d_in subset_iff)
-      moreover have \<open>\<And>D. D \<in> \<G>_F (fst Cl) \<Longrightarrow> \<forall>E\<in>N. E \<sqsubset> Cl \<longrightarrow> D \<notin> \<G>_F (fst E) \<Longrightarrow> Dl \<sqsubset> Cl \<Longrightarrow> 
+      moreover have \<open>\<And>D. D \<in> \<G>_F (fst Cl) \<Longrightarrow> \<forall>E\<in>N. E \<sqsubset> Cl \<longrightarrow> D \<notin> \<G>_F (fst E) \<Longrightarrow> Dl \<sqsubset> Cl \<Longrightarrow>
         D \<in> G.Red_F (\<Union>a\<in>N. \<G>_F (fst a))\<close>
         by (smt FL.Prec_FL_def FL.equiv_F_grounding FL.prec_F_grounding UNIV_witness d_in in_mono)
       ultimately show \<open>Cl \<in> {C. \<forall>D\<in>\<G>_F (fst C). D \<in> G.Red_F (\<Union> (\<G>_F ` fst ` {Dl})) \<or>
@@ -785,16 +786,16 @@ next
   note n = this(1)
   show ?case
   proof -
-    have \<open>FL.active_subset (lclss_of_state (N, {}, {})) = {}\<close> 
+    have \<open>FL.active_subset (lclss_of_state (N, {}, {})) = {}\<close>
       unfolding n by (auto simp: FL.active_subset_def)
-    moreover have \<open>old_concls_of (inference_system.inferences_between (ord_FO_\<Gamma> S) 
+    moreover have \<open>old_concls_of (inference_system.inferences_between (ord_FO_\<Gamma> S)
       (fst ` FL.active_subset (lclss_of_state ({}, P, Q))) C) \<subseteq> N\<close>
       unfolding n inference_system.inferences_between_def image_def mem_Collect_eq lclss_of_state_def
       infer_from_def by (auto simp: FL.active_subset_def)
     ultimately have \<open>lclss_of_state ({}, insert C P, Q) \<Longrightarrow>GC lclss_of_state (N, P, insert C Q)\<close>
       using GC_inference_step[of Processed "lclss_of_state (N, {}, {})"
         "lclss_of_state ({}, P, Q)" C, simplified] by blast
-    then show ?case 
+    then show ?case
       by (auto simp: FL.active_subset_def)
   qed
 qed
@@ -878,8 +879,8 @@ proof -
       show "Ball (\<Union> (\<G>_F ` lhd (lmap (\<lambda>St. N_of_state St \<union> P_of_state St \<union> Q_of_state St) Sts)))
         ((\<TTurnstile>) I) \<longrightarrow> Ball (\<Union> (\<G>_F ` {{#}})) ((\<TTurnstile>) I)"
         using unsat unfolding \<G>_Fs_def
-        by (metis (no_types, lifting) chain_length_pos gc_deriv gr.ex_min_counterex i0_less 
-            llength_eq_0 llength_lmap llength_lmap llist.map_sel(1) true_cls_empty 
+        by (metis (no_types, lifting) chain_length_pos gc_deriv gr.ex_min_counterex i0_less
+            llength_eq_0 llength_lmap llength_lmap llist.map_sel(1) true_cls_empty
             true_clss_singleton)
     qed
   qed
@@ -902,6 +903,7 @@ proof -
     using final[unfolded FL.passive_subset_def] Liminf_state_def lclss_Liminf_commute by fastforce
 qed
 
+
 subsection \<open>Alternative Derivation of Previous RP Results\<close>
 
 lemma old_fair_imp_new_fair:
@@ -919,7 +921,7 @@ next
   show "FL.passive_subset (Liminf_llist (lmap lclss_of_state Sts)) = {}"
     using fair unfolding fair_state_seq_def FL.passive_subset_def
   proof
-    assume 
+    assume
       \<open>N_of_state (Liminf_state Sts) = {}\<close> and
       \<open>P_of_state (Liminf_state Sts) = {}\<close>
     then show \<open>{CL \<in> Liminf_llist (lmap lclss_of_state Sts). snd CL \<noteq> Old} = {}\<close>
@@ -951,7 +953,7 @@ next
     using entails_compact_union[of "{old_concl_of \<gamma>}" DD0 "set_mset (old_side_prems_of \<gamma>)"] by fast
   show ?lhs unfolding src.redundant_infer_def
   proof
-    show \<open>set_mset (mset_set DD) \<subseteq> N \<and> 
+    show \<open>set_mset (mset_set DD) \<subseteq> N \<and>
       (\<forall>I. I \<TTurnstile>m mset_set DD + old_side_prems_of \<gamma> \<longrightarrow> I \<TTurnstile> old_concl_of \<gamma>) \<and>
       (\<forall>D. D \<in># mset_set DD \<longrightarrow> D < old_main_prem_of \<gamma>)\<close>
       using fin_dd dd_in dd_un all_dd by auto
@@ -1027,14 +1029,14 @@ proof -
     obtain \<iota> where
       \<iota>_inff: "\<iota> \<in> G.Inf_from Q G" and
       \<gamma>: "\<gamma> = old_infer_of \<iota>"
-      using \<gamma>_inf unfolding gd.inferences_from_def old_infer_from_def G.Inf_from_def 
+      using \<gamma>_inf unfolding gd.inferences_from_def old_infer_from_def G.Inf_from_def
         old_infer_of_def
     proof (atomize_elim, clarify)
-      assume 
+      assume
         g_is: \<open>\<gamma> \<in> gd.ord_\<Gamma> Sts\<close> and
         prems_in: \<open>set_mset (old_side_prems_of \<gamma> + {#old_main_prem_of \<gamma>#}) \<subseteq> G\<close>
       obtain CAs DA AAs As E where main_in: \<open>DA \<in> G\<close> and side_in: \<open>set CAs \<subseteq> G\<close> and
-        g_is2: \<open>\<gamma> = old_Infer (mset CAs) DA E\<close> and 
+        g_is2: \<open>\<gamma> = old_Infer (mset CAs) DA E\<close> and
         ord_res: \<open>gd.ord_resolve Sts CAs DA AAs As E\<close>
         using g_is prems_in unfolding gd.ord_\<Gamma>_def by auto
       define \<iota>_\<gamma> where "\<iota>_\<gamma> = Infer (CAs @ [DA]) E"
