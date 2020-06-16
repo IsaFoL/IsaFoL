@@ -12,7 +12,7 @@ text \<open>The given clause and lazy given clause procedures satisfy key invari
 provides an alternative way to prove fairness and hence saturation of the limit.\<close>
 
 
-section \<open>Given Clause Procedure\<close>
+subsection \<open>Given Clause Procedure\<close>
 
 context given_clause
 begin
@@ -187,7 +187,7 @@ qed
 end
 
 
-section \<open>Lazy Given Clause\<close>
+subsection \<open>Lazy Given Clause\<close>
 
 context lazy_given_clause
 begin

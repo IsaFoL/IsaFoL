@@ -15,14 +15,9 @@ begin
 text \<open>
 The standard redundancy criterion can be defined uniformly for all inference systems equipped with
 a compact consequence relation. The essence of the refutational completeness argument can be carried
-out abstractly for counterexample-reducing inference systems. This material is partly based on
-Section 4.2 of Bachmair and Ganzinger's \emph{Handbook} chapter, but adapted to the saturation
-framework of Waldmann et al.
-
-Counterexample-reducing inference systems enjoy a ``smallest counterexample'' property that is
-useful to prove refutational completeness. The material formalized here draws from Section 4.2 of
-Bachmair and Ganzinger's \emph{Handbook} chapter but is adapted to the saturation framework of
-Waldmann et al.
+out abstractly for counterexample-reducing inference systems, which enjoy a ``smallest
+counterexample'' property. This material is partly based on Section 4.2 of Bachmair and Ganzinger's
+\emph{Handbook} chapter, but adapted to the saturation framework of Waldmann et al.
 \<close>
 
 

@@ -3,7 +3,7 @@
     Author:      Jasmin Blanchette <j.c.blanchette at vu.nl>, 2020
 *)
 
-section \<open>Application of the Saturation Framework to Bachmair and Ganzinger's RP\<close>
+section \<open>Application of the Saturation Framework to Bachmair and Ganzinger's \textsf{RP}\<close>
 
 theory FO_Ordered_Resolution_Prover_Revisited
   imports
@@ -13,8 +13,8 @@ theory FO_Ordered_Resolution_Prover_Revisited
     Soundness
 begin
 
-text \<open>The main results about Bachmair and Ganzinger's RP prover, as established in Section 4.3 of
-their \emph{Handbook} chapter and formalized by Schlichtkrull et al., are reproved here using
+text \<open>The main results about Bachmair and Ganzinger's \textsf{RP} prover, as established in Section 4.3 of
+their \emph{Handbook} chapter and formalized by Schlichtkrull et al., are re-proved here using
 the saturation framework of Waldmann et al.\<close>
 
 
@@ -434,7 +434,7 @@ interpretation FL: refutationally_compact_calculus FL.Bot_FL FL_Inf "(\<TTurnsti
   ..
 
 
-subsection \<open>RP Layer\<close>
+subsection \<open>\textsf{RP} Layer\<close>
 
 interpretation sq: selection "S_Q Sts"
   unfolding S_Q_def using S_M_selects_subseteq S_M_selects_neg_lits selection_axioms
@@ -905,7 +905,7 @@ proof -
 qed
 
 
-subsection \<open>Alternative Derivation of Previous RP Results\<close>
+subsection \<open>Alternative Derivation of Previous \textsf{RP} Results\<close>
 
 lemma old_fair_imp_new_fair:
   assumes
@@ -1096,9 +1096,9 @@ theorem RP_sound_old_statement:
   shows "\<not> satisfiable (grounding_of_state (lhd Sts))"
   using RP_sound_new_statement[OF deriv bot_in] unfolding F_entails_\<G>_Q_iff \<G>_Fs_def by simp
 
-text \<open>The theorem below is stated differently than the original theorem in RP: The grounding of the
-limit might be a strict subset of the limit of the groundings. Because saturation is neither
-monotone nor antimonotone, the two results are incomparable. See also
+text \<open>The theorem below is stated differently than the original theorem in \textsf{RP}:
+The grounding of the limit might be a strict subset of the limit of the groundings. Because
+saturation is neither monotone nor antimonotone, the two results are incomparable. See also
 @{thm [source] grounding_of_state_Liminf_state_subseteq}.\<close>
 
 theorem RP_saturated_if_fair_old_statement_altered:

@@ -9,6 +9,11 @@ theory Soundness
   imports Consistency_Preservation
 begin
 
+text \<open>
+Although consistency-preservation usually suffices, soundness is a more precise concept and is
+sometimes useful.
+\<close>
+
 locale sound_inference_system = inference_system + consequence_relation +
   assumes
     sound: \<open>\<iota> \<in> Inf \<Longrightarrow> set (prems_of \<iota>) \<Turnstile> {concl_of \<iota>}\<close>
