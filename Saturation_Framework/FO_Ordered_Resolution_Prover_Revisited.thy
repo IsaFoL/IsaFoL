@@ -570,8 +570,7 @@ proof -
     have "Cl \<in> FL.Red_F_Q {Dl}"
     proof (rule mem_FL_Red_F_Q_because_G_Red_F)
       show \<open>\<forall>D\<in>\<G>_F (fst Cl). D \<in> G.Red_F (\<Union> (\<G>_F ` fst ` {Dl}))\<close>
-        using d_ssub_c 
-        unfolding G.Red_F_def strictly_subsumes_def subsumes_def \<G>_F_def
+        using d_ssub_c unfolding G.Red_F_def strictly_subsumes_def subsumes_def \<G>_F_def
       proof clarsimp
         fix \<sigma> \<sigma>'
         assume
