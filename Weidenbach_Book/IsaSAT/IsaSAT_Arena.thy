@@ -5,7 +5,7 @@ theory IsaSAT_Arena
 begin
 chapter \<open>The memory representation: Arenas\<close>
 
-   
+
 text \<open>
 We implement an ``arena'' memory representation: This is a flat representation of clauses, where
 all clauses and their headers are put one after the other. A lot of the work done here could be done

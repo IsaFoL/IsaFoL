@@ -910,7 +910,7 @@ proof -
   moreover have \<open>wf (?A \<union> ?B)\<close>
     apply (rule wf_union_compatible)
     subgoal
-      by (rule wf_subset[OF wf_if_measure_f[OF wf_cdcl_twl_stgy_restart],
+      by (rule wf_subset[OF wf_if_measure_f[OF wf_pcdcl_twl_stgy_restart],
         of _ \<open>\<lambda>(S, T, U, m, g). (pstate\<^sub>W_of S, pstate\<^sub>W_of T, pstate\<^sub>W_of U, m, g)\<close>]) auto
     subgoal
       by (rule wf_subset[OF wf_if_measure_f[OF ],

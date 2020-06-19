@@ -981,8 +981,8 @@ proof -
       using D' not_none S_T by (auto simp: option_lookup_clause_rel_def S state_wl_l_def)
     have all_struct:
       \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (state\<^sub>W_of U)\<close>
-      using struct_invs
-      by (auto simp: twl_struct_invs_def)
+      using struct_invs unfolding twl_struct_invs_def pcdcl_all_struct_invs_def
+      by auto
     have
       \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of U)\<close> and
       lev_inv: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv (state\<^sub>W_of U)\<close> and
@@ -1009,7 +1009,8 @@ proof -
       apply (rule cdcl\<^sub>W_restart_mset.no_skip_no_resolve_single_highest_level)
       subgoal using nss unfolding S by simp
       subgoal using nsr unfolding S by simp
-      subgoal using struct_invs unfolding twl_struct_invs_def S by simp
+      subgoal using struct_invs unfolding twl_struct_invs_def 
+        pcdcl_all_struct_invs_def state\<^sub>W_of_def[symmetric] S by simp
       subgoal using stgy_invs unfolding twl_stgy_invs_def S by simp
       subgoal using not_none S_T T_U by (simp add: twl_st)
       subgoal using not_empty not_none S_T T_U by (auto simp add: twl_st)

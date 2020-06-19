@@ -2349,6 +2349,7 @@ proof -
   have struct_inv_S''': \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv (M', N + (?NE + ?NS),
           U + (?UE + ?US), E)\<close>
     using struct_invs unfolding twl_struct_invs_def S'''_def[symmetric] S''' add.assoc
+      pcdcl_all_struct_invs_def state\<^sub>W_of_def[symmetric]
     by fast
   then have n_d: \<open>no_dup M'\<close>
     unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
@@ -3561,7 +3562,6 @@ proof -
 	   to be instantiated.\<close>
     done
 qed
-
 
 
 lemma iterate_over_conflict_spec:

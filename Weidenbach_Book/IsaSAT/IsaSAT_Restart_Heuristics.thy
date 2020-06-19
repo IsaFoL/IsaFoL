@@ -106,6 +106,8 @@ lemma unbounded_id: \<open>unbounded (id :: nat \<Rightarrow> nat)\<close>
 global_interpretation twl_restart_ops id
   by unfold_locales
 
+thm twl_restart.wf_cdcl_twl_stgy_restart
+
 global_interpretation twl_restart id
   by standard (rule unbounded_id)
 
@@ -250,11 +252,11 @@ lemma cdcl_twl_local_restart_wl_D_spec_int:
       ASSERT(restart_abs_wl_pre (M, N, D, NE, UE, NS, US, Q, W) False);
       i \<leftarrow> SPEC(\<lambda>_. True);
       if i
-      then RETURN (M, N, D, NE, UE, NS, {#}, Q, W)
+      then RETURN (M, N, D, NE, UE, NS, US, Q, W)
       else do {
         (M, Q') \<leftarrow> SPEC(\<lambda>(M', Q'). (\<exists>K M2. (Decided K # M', M2) \<in> set (get_all_ann_decomposition M) \<and>
               Q' = {#}) \<or> (M' = M \<and> Q' = Q));
-        RETURN (M, N, D, NE, UE, NS, {#}, Q', W)
+        RETURN (M, N, D, NE, UE, NS, US, Q', W)
      }
    })\<close>
 proof -
@@ -349,6 +351,7 @@ proof -
 
    have alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of U)\<close>
      using struct unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+       pcdcl_all_struct_invs_def state\<^sub>W_of_def
      by fast+
    then show ?A and ?B
       subgoal
@@ -504,12 +507,12 @@ proof -
 	apply (rule_tac x=aja in exI)
 	apply (auto simp: isa_length_trail_length_u[THEN fref_to_Down_unRET_Id]
 	  intro: isa_vmtfI trail_pol_no_dup)
-      apply (rule trail_pol_cong)
-      apply assumption
-      apply fast
-      apply (rule isa_vmtf_cong)
-      apply assumption
-      apply (fast intro: isa_vmtfI)
+      (* apply (rule trail_pol_cong)
+       * apply assumption
+       * apply fast
+       * apply (rule isa_vmtf_cong)
+       * apply assumption
+       * apply (fast intro: isa_vmtfI) *)
       done
     done
 qed
@@ -1947,24 +1950,22 @@ lemma cdcl_twl_full_restart_wl_prog_heur_cdcl_twl_full_restart_wl_prog_D:
 
 definition cdcl_twl_restart_wl_heur where
 \<open>cdcl_twl_restart_wl_heur S = do {
-    let b = lower_restart_bound_not_reached S;
+cdcl_twl_local_restart_wl_D_heur S
+  }\<close>
+(*    let b = lower_restart_bound_not_reached S;
     if b then cdcl_twl_local_restart_wl_D_heur S
     else cdcl_twl_full_restart_wl_prog_heur S
-  }\<close>
+*)
 
-
+(* TODO replace with cdcl_twl_local_restart_wl_spec *)
 lemma cdcl_twl_restart_wl_heur_cdcl_twl_restart_wl_D_prog:
   \<open>(cdcl_twl_restart_wl_heur, cdcl_twl_restart_wl_prog) \<in>
     twl_st_heur''' r \<rightarrow>\<^sub>f \<langle>twl_st_heur''' r\<rangle>nres_rel\<close>
   unfolding cdcl_twl_restart_wl_prog_def cdcl_twl_restart_wl_heur_def
-  apply (intro frefI nres_relI)
-  apply (refine_rcg
+  by (intro frefI nres_relI)
+    (refine_rcg lhs_step_If
     cdcl_twl_local_restart_wl_D_heur_cdcl_twl_local_restart_wl_D_spec[THEN fref_to_Down]
     cdcl_twl_full_restart_wl_prog_heur_cdcl_twl_full_restart_wl_prog_D[THEN fref_to_Down])
-  subgoal by auto
-  subgoal by auto
-  done
-
 
 definition isasat_replace_annot_in_trail
   :: \<open>nat literal \<Rightarrow> nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close>

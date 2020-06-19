@@ -1293,7 +1293,7 @@ of indices \<^term>\<open>f'\<close>, then by induction we prove properties on t
 context twl_restart
 begin
 
-theorem wf_cdcl_twl_stgy_restart:
+theorem wf_pcdcl_twl_stgy_restart:
   \<open>wf {(T, S :: 'v prag_st_restart). pcdcl_stgy_restart_inv S \<and> pcdcl_stgy_restart S T}\<close>
 proof (rule ccontr)
   assume \<open>\<not> ?thesis\<close>

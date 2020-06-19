@@ -5,7 +5,6 @@ theory IsaSAT_Literals
      Isabelle_LLVM.Bits_Natural (*Watched_Literals.WB_Word*)
 begin
 
-
 chapter \<open>Refinement of Literals\<close>
 
 

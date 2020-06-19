@@ -129,9 +129,9 @@ proof -
        apply - apply normalize_goal+
        by blast
 
-    have \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of U)\<close> and
-        unit: \<open>entailed_clss_inv U\<close>
+    have \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of U)\<close>
       using inv unfolding twl_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+        pcdcl_all_struct_invs_def state\<^sub>W_of_def
       by fast+
     then show ?A
       using \<A>\<^sub>i\<^sub>n confl S_T T_U unfolding is_\<L>\<^sub>a\<^sub>l\<^sub>l_alt_def state_wl_l_def twl_st_l_def
