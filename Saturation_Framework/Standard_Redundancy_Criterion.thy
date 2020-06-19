@@ -107,12 +107,12 @@ end
 
 subsection \<open>Compactness\<close>
 
-locale compact_consequence_relation = consequence_relation +
+locale concl_compact_consequence_relation = consequence_relation +
   assumes
-    entails_compact: "finite EE \<Longrightarrow> CC \<Turnstile> EE \<Longrightarrow> \<exists>CC' \<subseteq> CC. finite CC' \<and> CC' \<Turnstile> EE"
+    entails_concl_compact: "finite EE \<Longrightarrow> CC \<Turnstile> EE \<Longrightarrow> \<exists>CC' \<subseteq> CC. finite CC' \<and> CC' \<Turnstile> EE"
 begin
 
-lemma entails_compact_union:
+lemma entails_concl_compact_union:
   assumes
     fin_e: "finite EE" and
     cd_ent: "CC \<union> DD \<Turnstile> EE"
@@ -122,7 +122,7 @@ proof -
     cd1_fin: "finite CCDD'" and
     cd1_sub: "CCDD' \<subseteq> CC \<union> DD" and
     cd1_ent: "CCDD' \<Turnstile> EE"
-    using entails_compact[OF fin_e cd_ent] by blast
+    using entails_concl_compact[OF fin_e cd_ent] by blast
 
   define CC' where
     "CC' = CCDD' - DD"
@@ -143,7 +143,7 @@ end
 subsection \<open>The Standard Redundancy Criterion\<close>
 
 locale calculus_with_standard_redundancy =
-  inference_system Inf + compact_consequence_relation Bot entails
+  inference_system Inf + concl_compact_consequence_relation Bot entails
   for
     Inf :: "('f :: wellorder) inference set" and
     Bot :: "'f set" and
@@ -183,7 +183,7 @@ proof -
     "DD1 \<subseteq> N" and
     "DD1 \<union> CC \<Turnstile> {E}" and
     "\<forall>D' \<in> DD1. D' < D"
-    using entails_compact_union[OF _ dd0_ent] dd0_lt dd0_sub by fast
+    using entails_concl_compact_union[OF _ dd0_ent] dd0_lt dd0_sub by fast
   then obtain DD2 :: "'f multiset" where
     "set_mset DD2 \<subseteq> N \<and> set_mset DD2 \<union> CC \<Turnstile> {E} \<and> (\<forall>D' \<in> set_mset DD2. D' < D)"
     using assms by (metis finite_set_mset_mset_set)
@@ -213,7 +213,7 @@ proof -
       "DDa0 \<Turnstile> {Da}"
       "\<forall>D \<in> DDa0. D < Da"
       using da_rf unfolding Red_F_def mem_Collect_eq
-      by (smt entails_compact finite.emptyI finite.insertI subset_iff)
+      by (smt entails_concl_compact finite.emptyI finite.insertI subset_iff)
     then obtain DDa1 :: "'f multiset" where
       dda1_subs_n: "set_mset DDa1 \<subseteq> N" and
       dda1_ent_da: "set_mset DDa1 \<Turnstile> {Da}" and

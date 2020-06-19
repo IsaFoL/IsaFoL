@@ -82,11 +82,10 @@ proof
     unfolding true_clss_singleton by (simp add: true_clss_def)
 qed (auto intro: true_clss_mono)
 
-interpretation refutationally_compact_consequence_relation "{{#}} :: ('a :: wellorder) clause set"
-  "(\<TTurnstile>e)"
+interpretation compact_consequence_relation "{{#}} :: ('a :: wellorder) clause set" "(\<TTurnstile>e)"
   by unfold_locales (use clausal_logic_compact in auto)
 
-interpretation compact_consequence_relation "{{#}} :: ('a :: wellorder) clause set" "(\<TTurnstile>e)"
+interpretation concl_compact_consequence_relation "{{#}} :: ('a :: wellorder) clause set" "(\<TTurnstile>e)"
 proof
   fix CC EE :: "'a clause set"
   assume

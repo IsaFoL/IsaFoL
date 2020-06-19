@@ -1,10 +1,10 @@
-(*  Title:       Consistency Preservation Results
+(*  Title:       Consistency Preservation
     Author:      Jasmin Blanchette <j.c.blanchette at vu.nl>, 2014, 2017, 2020
     Author:      Dmitriy Traytel <traytel at inf.ethz.ch>, 2014
     Author:      Anders Schlichtkrull <andschl at dtu.dk>, 2017
 *)
 
-section \<open>Consistency Preservation Results\<close>
+section \<open>Consistency Preservation\<close>
 
 theory Consistency_Preservation
   imports
@@ -19,9 +19,9 @@ based on Section 4.1 of Bachmair and Ganzinger's \emph{Handbook} chapter, but ad
 saturation framework of Waldmann et al.
 \<close>
 
-locale refutationally_compact_consequence_relation = consequence_relation +
+locale compact_consequence_relation = consequence_relation +
   assumes
-    entails_refutationally_compact: "CC \<Turnstile> Bot \<Longrightarrow> \<exists>CC' \<subseteq> CC. finite CC' \<and> CC' \<Turnstile> Bot"
+    entails_compact: "CC \<Turnstile> Bot \<Longrightarrow> \<exists>CC' \<subseteq> CC. finite CC' \<and> CC' \<Turnstile> Bot"
 begin
 
 lemma chain_entails_derive_consist_preserving:
@@ -72,12 +72,12 @@ proof -
       using dd_sset entails_trans subset_entailed unfolding Sup_upto_llist_def by blast
   }
   then show ?thesis
-    using entails_refutationally_compact by auto
+    using entails_compact by auto
 qed
 
 end
 
-locale refutationally_compact_calculus = calculus + refutationally_compact_consequence_relation
+locale refutationally_compact_calculus = calculus + compact_consequence_relation
 begin
 
 text \<open>

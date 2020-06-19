@@ -394,7 +394,7 @@ lemma mem_FL_Red_F_Q_because_Prec_FL:
   "(\<forall>D \<in> \<G>_F (fst Cl). \<exists>El \<in> N. El \<sqsubset> Cl \<and> D \<in> \<G>_F (fst El)) \<Longrightarrow> Cl \<in> FL.Red_F_Q N"
   unfolding FL_Red_F_Q_eq by auto
 
-interpretation FL: refutationally_compact_consequence_relation FL.Bot_FL "(\<TTurnstile>\<G>Le)"
+interpretation FL: compact_consequence_relation FL.Bot_FL "(\<TTurnstile>\<G>Le)"
 proof
   fix CCl
   assume unsat: "CCl \<TTurnstile>\<G>Le FL.Bot_FL"
@@ -951,7 +951,8 @@ next
     dd_in: "DD \<subseteq> N" and
     dd_un: "DD \<union> set_mset (old_side_prems_of \<gamma>) \<TTurnstile>e {old_concl_of \<gamma>}" and
     all_dd: "\<forall>D \<in> DD. D < old_main_prem_of \<gamma>"
-    using entails_compact_union[of "{old_concl_of \<gamma>}" DD0 "set_mset (old_side_prems_of \<gamma>)"] by fast
+    using entails_concl_compact_union[of "{old_concl_of \<gamma>}" DD0 "set_mset (old_side_prems_of \<gamma>)"]
+    by fast
   show ?lhs unfolding src.redundant_infer_def
   proof
     show \<open>set_mset (mset_set DD) \<subseteq> N \<and>
