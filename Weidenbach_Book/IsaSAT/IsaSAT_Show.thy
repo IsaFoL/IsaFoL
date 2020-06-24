@@ -54,9 +54,9 @@ definition print_open_colour :: \<open>64 word \<Rightarrow> unit\<close> where
 definition print_close_colour :: \<open>64 word \<Rightarrow> unit\<close> where
   \<open>print_close_colour _ = ()\<close>
 
-definition isasat_current_information :: \<open>64 word \<Rightarrow> stats \<Rightarrow> _ \<Rightarrow> stats\<close> where
+definition isasat_current_information :: \<open>64 word \<Rightarrow> stats \<Rightarrow> clss_size \<Rightarrow> stats\<close> where
 \<open>isasat_current_information =
-   (\<lambda>curr_phase (propa, confl, decs, frestarts, lrestarts, uset, gcs, lbds) lcount.
+   (\<lambda>curr_phase (propa, confl, decs, frestarts, lrestarts, uset, gcs, lbds) (lcount, _).
      if confl AND 8191 = 8191 \<comment> \<open>\<^term>\<open>8191 = 8192 - 1\<close>, i.e., we print when all first bits are 1.\<close>
      then do{
        let _ = print_c propa;
@@ -95,9 +95,9 @@ lemma isasat_current_status_id:
   by (intro frefI nres_relI)
     (auto simp: twl_st_heur_def isasat_current_status_def)
 
-definition isasat_print_progress :: \<open>64 word \<Rightarrow> 64 word \<Rightarrow> stats \<Rightarrow> _ \<Rightarrow> unit\<close> where
+definition isasat_print_progress :: \<open>64 word \<Rightarrow> 64 word \<Rightarrow> stats \<Rightarrow> clss_size \<Rightarrow> unit\<close> where
 \<open>isasat_print_progress c curr_phase =
-   (\<lambda>(propa, confl, decs, frestarts, lrestarts, uset, gcs, lbds) lcount.
+   (\<lambda>(propa, confl, decs, frestarts, lrestarts, uset, gcs, lbds) (lcount, _).
      let
          _ = print_c propa;
          _ = if curr_phase = 1 then print_open_colour 33 else ();

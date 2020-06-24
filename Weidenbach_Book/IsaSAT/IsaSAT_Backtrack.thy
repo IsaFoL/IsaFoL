@@ -701,7 +701,7 @@ definition propagate_bt_wl_D_heur
       ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, y, cach, lbd, outl, stats, heur,
         vdom, avdom, lcount, opts) \<longrightarrow> append_and_length_fast_code_pre ((b, C), N0));
       ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, y, cach, lbd, outl, stats, heur,
-        vdom, avdom, lcount, opts) \<longrightarrow> lcount < sint64_max);
+        vdom, avdom, lcount, opts) \<longrightarrow> clss_size_lcount lcount < sint64_max);
       (N, i) \<leftarrow> fm_add_new b C N0;
       ASSERT(update_lbd_pre ((i, glue), N));
       let N = update_lbd i glue N;
@@ -719,9 +719,9 @@ definition propagate_bt_wl_D_heur
       vm \<leftarrow> isa_vmtf_flush_int M vm;
       heur \<leftarrow> mop_save_phase_heur (atm_of L') (is_neg L') heur;
       RETURN (M, N, D, j, W, vm, 0,
-         cach, lbd, outl, add_lbd (of_nat glue) stats, update_heuristics glue heur, vdom @ [ i],
+         cach, lbd, outl, add_lbd (of_nat glue) stats, update_heuristics glue heur, vdom @ [i],
           avdom @ [i],
-          lcount + 1, opts)
+          clss_size_incr_lcount lcount, opts)
     })\<close>
 
 definition (in -) lit_of_hd_trail_st_heur :: \<open>twl_st_wl_heur \<Rightarrow> nat literal nres\<close> where
@@ -736,7 +736,7 @@ definition propagate_unit_bt_wl_D_int
   :: \<open>nat literal \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close>
   where
     \<open>propagate_unit_bt_wl_D_int = (\<lambda>L (M, N, D, Q, W, vm, clvls, cach, lbd, outl, stats,
-        heur, vdom). do {
+        heur, vdom, avdom, lcount, opts, old_arena). do {
       vm \<leftarrow> isa_vmtf_flush_int M vm;
       glue \<leftarrow> get_LBD lbd;
       lbd \<leftarrow> lbd_empty lbd;
@@ -746,7 +746,7 @@ definition propagate_unit_bt_wl_D_int
       M \<leftarrow> cons_trail_Propagated_tr (- L) 0 M;
       let stats = incr_uset stats;
       RETURN (M, N, D, j, W, vm, clvls, cach, lbd, outl, stats,
-        (update_heuristics glue heur), vdom)})\<close>
+        (update_heuristics glue heur), vdom, avdom, clss_size_incr_lcountUE lcount, opts, old_arena)})\<close>
 
 
 paragraph \<open>Full function\<close>
@@ -941,7 +941,7 @@ proof -
     obtain M' W' vm clvls cach lbd outl stats heur avdom vdom lcount D' arena b Q' opts where
       S': \<open>S' = (M', arena, (b, D'), Q', W', vm, clvls, cach, lbd, outl, stats, heur, vdom,
         avdom, lcount, opts)\<close>
-      using S'_S by (cases S') (auto simp: twl_st_heur_conflict_ana_def S)
+      using S'_S by (cases S') (fastforce simp: twl_st_heur_conflict_ana_def S)
     have
       M'_M: \<open>(M', M) \<in> trail_pol (all_atms_st S)\<close>  and
       \<open>(W', W) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 (all_atms_st S))\<close> and
@@ -950,7 +950,7 @@ proof -
       \<open>clvls \<in> counts_maximum_level M D\<close> and
       cach_empty: \<open>cach_refinement_empty (all_atms_st S) cach\<close> and
       outl: \<open>out_learned M D outl\<close> and
-      lcount: \<open>lcount = size (learned_clss_l N)\<close> and
+      lcount: \<open>lcount = clss_size N NE UE NS US\<close> and
       \<open>vdom_m (all_atms_st S) W N \<subseteq> set vdom\<close> and
       D': \<open>((b, D'), D) \<in> option_lookup_clause_rel (all_atms_st S)\<close> and
       arena: \<open>valid_arena arena N (set vdom)\<close> and
@@ -1732,7 +1732,7 @@ proof -
       \<open>length outl = Suc 0\<close> and
       outl: \<open>out_learned M1 None outl\<close> and
       vdom: \<open>vdom_m (all_atms_st U') W N \<subseteq> set vdom\<close> and
-      lcount: \<open>lcount = size (learned_clss_l N)\<close> and
+      lcount: \<open>lcount = clss_size N NE UE NS US\<close> and
       vdom_m: \<open>vdom_m (all_atms_st U') W N \<subseteq> set vdom\<close> and
       D': \<open>(D', None) \<in> option_lookup_clause_rel (all_atms_st U')\<close> and
       valid: \<open>valid_arena arena N (set vdom)\<close> and
@@ -1782,7 +1782,7 @@ proof -
           ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, y, cach, lbd, outl, stats, heur,
             vdom, avdom, lcount, opts) \<longrightarrow> append_and_length_fast_code_pre ((b, C), N0));
           ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, y, cach, lbd, outl, stats, heur,
-             vdom, avdom, lcount, opts) \<longrightarrow> lcount < sint64_max);
+             vdom, avdom, lcount, opts) \<longrightarrow> clss_size_lcount lcount < sint64_max);
           (N, i) \<leftarrow> fm_add_new b C N0;
           ASSERT(update_lbd_pre ((i, glue), N));
           let N = update_lbd i glue N;
@@ -1801,7 +1801,7 @@ proof -
           heur \<leftarrow> mop_save_phase_heur (atm_of L') (is_neg L') heur;
           RETURN (M, N, D, j, W, vm, 0,
             cach, lbd, outl, add_lbd (of_nat glue) stats, update_heuristics glue heur, vdom @ [ i],
-              avdom @ [i], Suc lcount, opts)
+              avdom @ [i], clss_size_incr_lcount lcount, opts)
       })\<close>
       unfolding propagate_bt_wl_D_heur_def Let_def
       by auto
@@ -2220,7 +2220,7 @@ proof -
            vdom, avdom, lcount, opts, [])\<close> and
         avdom: \<open>mset avdom \<subseteq># mset vdom\<close> and
         r': \<open>length (get_clauses_wl_heur U) = r\<close>
-      using UU' find_decomp r by (cases U) (auto simp: U' T' twl_st_heur_bt_def)
+      using UU' find_decomp r by (cases U) (fastforce simp: U' T' twl_st_heur_bt_def)
     have
       M'M: \<open>(M1', M1) \<in> trail_pol (all_atms_st U')\<close> and
       W'W: \<open>(W', W) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0  (all_atms_st U'))\<close> and
@@ -2229,7 +2229,7 @@ proof -
       empty_cach: \<open>cach_refinement_empty  (all_atms_st U') cach\<close> and
       \<open>length outl = Suc 0\<close> and
       outl: \<open>out_learned M1 None outl\<close> and
-      lcount: \<open>lcount = size (learned_clss_l N)\<close> and
+      lcount: \<open>lcount = clss_size N NE UE NS US\<close> and
       vdom: \<open>vdom_m (all_atms_st U') W N \<subseteq> set vdom\<close> and
       valid: \<open>valid_arena arena N (set vdom)\<close> and
       D': \<open>(D', None) \<in> option_lookup_clause_rel (all_atms_st U')\<close> and
@@ -2532,7 +2532,7 @@ lemma propagate_bt_wl_D_heur_alt_def:
       ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, y, cach, lbd, outl, stats, heur,
          vdom, avdom, lcount, opts) \<longrightarrow> append_and_length_fast_code_pre ((b, C), N0));
       ASSERT(isasat_fast (M, N0, D, Q, W0, vm0, y, cach, lbd, outl, stats, heur,
-         vdom, avdom, lcount, opts) \<longrightarrow> lcount < sint64_max);
+         vdom, avdom, lcount, opts) \<longrightarrow> clss_size_lcount lcount < sint64_max);
       (N, i) \<leftarrow> fm_add_new_fast b C N0;
       ASSERT(update_lbd_pre ((i, glue), N));
       let N = update_lbd i glue N;
@@ -2552,7 +2552,7 @@ lemma propagate_bt_wl_D_heur_alt_def:
       RETURN (M, N, D, j, W, vm, 0,
          cach, lbd, outl, add_lbd (of_nat glue) stats, update_heuristics glue heur, vdom @ [i],
           avdom @ [i],
-          lcount + 1, opts)
+          clss_size_incr_lcount lcount, opts)
     })\<close>
   unfolding propagate_bt_wl_D_heur_def Let_def by (auto intro!: ext)
 

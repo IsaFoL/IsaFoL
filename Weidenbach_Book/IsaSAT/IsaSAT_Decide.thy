@@ -341,7 +341,7 @@ proof -
     apply (rule lit_of_found_atm; assumption)
     subgoal for a aa ab ac ad b ae af ag ba ah ai aj ak al am bb an bc ao ap aq bd ar
        as at au av aw ax ay az be bf bg bh bi bj bk bl bm bn bo bp bq br bs
-       bt bu bv bw bx _ _ _ _ _ _ _ _ _ _ _ "by" bz ca cb cc cd ce cf cg ch ci _ _ x L x1 x1a x2 x2a La Lb
+       bt bu bv bw bx _ _ _ _ _ _ _ _ _ _ _ _ _ _ "by" bz ca cb cc cd ce cf cg ch ci _ _ x L x1 x1a x2 x2a La Lb
       by (cases L)
        (clarsimp_all simp: twl_st_heur_def unassigned_atm_def atm_of_eq_atm_of uminus_\<A>\<^sub>i\<^sub>n_iff
           simp del: twl_st_of_wl.simps dest!: atms intro!: RETURN_RES_refine;

@@ -276,6 +276,91 @@ definition size_conflict_int :: \<open>conflict_option_rel \<Rightarrow> nat\<cl
   \<open>size_conflict_int = (\<lambda>(_, n, _). n)\<close>
 
 
+subsection \<open>Number of clauses\<close>
+
+type_synonym clss_size = \<open>nat \<times> nat \<times> nat \<times> nat\<close>
+
+definition clss_size
+  :: \<open>'v clauses_l \<Rightarrow> 'v clauses \<Rightarrow> 'v clauses \<Rightarrow> 'v clauses \<Rightarrow> 'v clauses \<Rightarrow> clss_size\<close>
+where
+  \<open>clss_size N NE UE NS US =
+     (size (learned_clss_lf N), size (NE + NS), size UE, size US)\<close>
+
+definition clss_size_lcount :: \<open>clss_size \<Rightarrow> nat\<close> where
+  \<open>clss_size_lcount = (\<lambda>(lcount, lcountNES, lcountUE, lcountUS). lcount)\<close>
+
+definition clss_size_incr_lcount :: \<open>clss_size \<Rightarrow> clss_size\<close> where
+  \<open>clss_size_incr_lcount =
+     (\<lambda>(lcount, lcountNES, lcountUE, lcountUS). (lcount + 1, lcountNES, lcountUE, lcountUS))\<close>
+
+definition clss_size_decr_lcount :: \<open>clss_size \<Rightarrow> clss_size\<close> where
+  \<open>clss_size_decr_lcount =
+     (\<lambda>(lcount, lcountNES, lcountUE, lcountUS). (lcount - 1, lcountNES, lcountUE, lcountUS))\<close>
+
+definition clss_size_incr_lcountNES :: \<open>clss_size \<Rightarrow> clss_size\<close> where
+  \<open>clss_size_incr_lcountNES =
+     (\<lambda>(lcount, lcountNES, lcountUE, lcountUS). (lcount, lcountNES + 1, lcountUE, lcountUS))\<close>
+
+definition clss_size_incr_lcountUE :: \<open>clss_size \<Rightarrow> clss_size\<close> where
+  \<open>clss_size_incr_lcountUE =
+     (\<lambda>(lcount, lcountNES, lcountUE, lcountUS). (lcount, lcountNES, lcountUE + 1, lcountUS))\<close>
+
+definition clss_size_incr_lcountUS :: \<open>clss_size \<Rightarrow> clss_size\<close> where
+  \<open>clss_size_incr_lcountUS =
+     (\<lambda>(lcount, lcountNES, lcountUE, lcountUS). (lcount, lcountNES, lcountUE, lcountUS + 1))\<close>
+
+definition clss_size_resetUS :: \<open>clss_size \<Rightarrow> clss_size\<close> where
+  \<open>clss_size_resetUS =
+     (\<lambda>(lcount, lcountNES, lcountUE, lcountUS). (lcount, lcountNES, lcountUE, 0))\<close>
+
+definition clss_size_allcount :: \<open>clss_size \<Rightarrow> nat\<close> where
+  \<open>clss_size_allcount =
+    (\<lambda>(lcount, lcountNES, lcountUE, lcountUS). lcount + lcountNES + lcountUE + lcountUS)\<close>
+
+lemma clss_size_add_simp[simp]:
+  \<open>clss_size N (add_mset D NE) UE NS US = clss_size_incr_lcountNES (clss_size N NE UE NS US)\<close>
+  \<open>clss_size N NE UE (add_mset D NS) US = clss_size_incr_lcountNES (clss_size N NE UE NS US)\<close>
+  \<open>clss_size N NE (add_mset D UE) NS US = clss_size_incr_lcountUE (clss_size N NE UE NS US)\<close>
+  by (auto simp: clss_size_def ran_m_fmdrop_If clss_size_decr_lcount_def
+    clss_size_incr_lcountUE_def
+    clss_size_incr_lcountNES_def size_remove1_mset_If clss_size_resetUS_def)
+
+lemma clss_size_upd_simp[simp]:
+  \<open>C \<in># dom_m N \<Longrightarrow>  clss_size (N(C \<hookrightarrow> C')) NE UE NS US = clss_size N NE UE NS US\<close>
+  \<open>C \<notin># dom_m N \<Longrightarrow> \<not>snd D \<Longrightarrow> clss_size (fmupd C D N) NE UE NS US = clss_size_incr_lcount (clss_size N NE UE NS US)\<close>
+  \<open>C \<notin># dom_m N \<Longrightarrow> snd D \<Longrightarrow> clss_size (fmupd C D N) NE UE NS US = (clss_size N NE UE NS US)\<close>
+  by (auto simp: clss_size_def learned_clss_l_fmupd_if clss_size_incr_lcount_def)
+
+lemma clss_size_del_simp[simp]:
+  \<open>C \<in># dom_m N \<Longrightarrow> \<not>irred N C \<Longrightarrow> clss_size (fmdrop C N) NE UE NS US = clss_size_decr_lcount (clss_size N NE UE NS US)\<close>
+  \<open>C \<in># dom_m N \<Longrightarrow> irred N C \<Longrightarrow> clss_size (fmdrop C N) NE UE NS US = (clss_size N NE UE NS US)\<close>
+  by (auto simp: clss_size_def ran_m_fmdrop_If clss_size_decr_lcount_def
+    clss_size_incr_lcountNES_def size_remove1_mset_If clss_size_resetUS_def)
+
+
+lemma clss_size_lcount_clss_size[simp]:
+  \<open>clss_size_lcount (clss_size N NE UE NS US) = size (learned_clss_l N)\<close>
+  \<open>clss_size_allcount (clss_size N NE UE NS US) = size (learned_clss_l N) + size NE + size UE + size NS + size US\<close>
+  by (auto simp: clss_size_lcount_def clss_size_def clss_size_allcount_def)
+
+lemma clss_size_resetUS_simp[simp]:
+  \<open>clss_size_resetUS (clss_size_decr_lcount (clss_size baa da ea fa ga)) =
+     clss_size_decr_lcount (clss_size baa da ea fa {#})\<close>
+  \<open>clss_size_resetUS (clss_size_incr_lcount (clss_size baa da ea fa ga)) =
+     clss_size_incr_lcount (clss_size baa da ea fa {#})\<close>
+  \<open>clss_size_resetUS (clss_size_incr_lcountNES (clss_size baa da ea fa ga)) =
+     clss_size_incr_lcountNES (clss_size baa da ea fa {#})\<close>
+  \<open>clss_size_resetUS (clss_size_incr_lcountUE (clss_size baa da ea fa ga)) =
+     clss_size_incr_lcountUE (clss_size baa da ea fa {#})\<close>
+  \<open>clss_size_resetUS (clss_size N NE UE NS US) = (clss_size N NE UE NS {#})\<close>
+  by (auto simp: clss_size_resetUS_def clss_size_decr_lcount_def clss_size_def
+    clss_size_incr_lcount_def clss_size_incr_lcountUE_def clss_size_incr_lcountNES_def)
+
+lemma [simp]: \<open>clss_size_resetUS (clss_size_incr_lcountUE st) =
+         clss_size_incr_lcountUE (clss_size_resetUS st)\<close>
+  by (solves \<open>cases st; auto simp: clss_size_incr_lcountUE_def clss_size_resetUS_def\<close>)+
+
+
 section \<open>Full state\<close>
 
 text \<open>\<^emph>\<open>heur\<close> stands for heuristic.\<close>
@@ -286,7 +371,7 @@ type_synonym twl_st_wl_heur =
   \<open>trail_pol \<times> arena \<times>
     conflict_option_rel \<times> nat \<times> (nat watcher) list list \<times> isa_vmtf_remove_int \<times>
     nat \<times> conflict_min_cach_l \<times> lbd \<times> out_learned \<times> stats \<times> restart_heuristics \<times>
-    vdom \<times> vdom \<times> nat \<times> opts \<times> arena\<close>
+    vdom \<times> vdom \<times> clss_size \<times> opts \<times> arena\<close>
 
 
 paragraph \<open>Accessors\<close>
@@ -362,7 +447,7 @@ fun get_vdom :: \<open>twl_st_wl_heur \<Rightarrow> nat list\<close> where
 fun get_avdom :: \<open>twl_st_wl_heur \<Rightarrow> nat list\<close> where
   \<open>get_avdom (_, _, _, _, _, _, _, _, _, _, _, _, _, vdom, _) = vdom\<close>
 
-fun get_learned_count :: \<open>twl_st_wl_heur \<Rightarrow> nat\<close> where
+fun get_learned_count :: \<open>twl_st_wl_heur \<Rightarrow> clss_size\<close> where
   \<open>get_learned_count (_, _, _, _, _, _, _, _, _, _, _, _, _, _, lcount, _) = lcount\<close>
 
 fun get_ops :: \<open>twl_st_wl_heur \<Rightarrow> opts\<close> where
@@ -481,7 +566,6 @@ lemma isa_vmtf_consD2:
      f \<in> isa_vmtf \<A> (L # M)\<close>
   by (auto simp: isa_vmtf_def dest: vmtf_consD)
 
-
 text \<open>\<^term>\<open>vdom\<close> is an upper bound on all the address of the clauses that are used in the
 state. \<^term>\<open>avdom\<close> includes the active clauses.
 \<close>
@@ -501,7 +585,7 @@ definition twl_st_heur :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\<cl
     clvls \<in> counts_maximum_level M D \<and>
     cach_refinement_empty (all_atms N (NE + UE + NS + US)) cach \<and>
     out_learned M D outl \<and>
-    lcount = size (learned_clss_lf N) \<and>
+    lcount = clss_size N NE UE NS US \<and>
     vdom_m (all_atms N (NE + UE + NS + US))  W N \<subseteq> set vdom \<and>
     mset avdom \<subseteq># mset vdom \<and>
     distinct vdom \<and>
@@ -548,7 +632,7 @@ where
     clvls \<in> counts_maximum_level M D \<and>
     cach_refinement_empty (all_atms N (NE + UE + NS + US)) cach \<and>
     out_learned M D outl \<and>
-    lcount = size (learned_clss_lf N) \<and>
+    lcount = clss_size N NE UE NS US \<and>
     vdom_m (all_atms N (NE + UE + NS + US)) W N \<subseteq> set vdom \<and>
     mset avdom \<subseteq># mset vdom \<and>
     distinct vdom \<and>
@@ -586,7 +670,7 @@ definition twl_st_heur_bt :: \<open>(twl_st_wl_heur \<times> nat twl_st_wl) set\
     clvls \<in> counts_maximum_level M None \<and>
     cach_refinement_empty (all_atms N (NE + UE + NS + US)) cach \<and>
     out_learned M None outl \<and>
-    lcount = size (learned_clss_l N) \<and>
+    lcount = clss_size N NE UE NS US \<and>
     vdom_m (all_atms N (NE + UE + NS + US)) W N \<subseteq> set vdom \<and>
     mset avdom \<subseteq># mset vdom \<and>
     distinct vdom \<and>
@@ -1331,20 +1415,35 @@ lemma access_vdom_at_alt_def:
 definition access_vdom_at_pre where
   \<open>access_vdom_at_pre S i \<longleftrightarrow> i < length (get_avdom S)\<close>
 
-
+(*TODO check which of theses variants are used!*)
 definition mark_garbage_heur :: \<open>nat \<Rightarrow> nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur\<close> where
   \<open>mark_garbage_heur C i = (\<lambda>(M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
        vdom, avdom, lcount, opts, old_arena).
     (M', extra_information_mark_to_delete N' C, D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
-       vdom, delete_index_and_swap avdom i, lcount - 1, opts, old_arena))\<close>
+       vdom, delete_index_and_swap avdom i, clss_size_decr_lcount lcount, opts, old_arena))\<close>
 
 definition mark_garbage_heur2 :: \<open>nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
   \<open>mark_garbage_heur2 C = (\<lambda>(M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
        vdom, avdom, lcount, opts). do{
     let st = arena_status N' C = IRRED;
-    ASSERT(\<not>st \<longrightarrow> lcount \<ge> 1);
+    ASSERT(\<not>st \<longrightarrow> clss_size_lcount lcount \<ge> 1);
     RETURN (M', extra_information_mark_to_delete N' C, D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
-       vdom, avdom, if st then lcount else lcount - 1, opts) })\<close>
+       vdom, avdom, if st then lcount else clss_size_decr_lcount lcount, opts) })\<close>
+
+definition mark_garbage_heur3 :: \<open>nat \<Rightarrow> nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur\<close> where
+  \<open>mark_garbage_heur3 C i = (\<lambda>(M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
+       vdom, avdom, lcount, opts, old_arena).
+    (M', extra_information_mark_to_delete N' C, D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
+       vdom, delete_index_and_swap avdom i, clss_size_resetUS (clss_size_decr_lcount lcount), opts, old_arena))\<close>
+definition mark_garbage_heur4 :: \<open>nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
+  \<open>mark_garbage_heur4 C = (\<lambda>(M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
+       vdom, avdom, lcount, opts). do{
+    let st = arena_status N' C = IRRED;
+    ASSERT(\<not>st \<longrightarrow> clss_size_lcount lcount \<ge> 1);
+    RETURN (M', extra_information_mark_to_delete N' C, D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
+      vdom, avdom,
+      if st then clss_size_resetUS (clss_size_incr_lcountNES lcount) else
+        clss_size_resetUS (clss_size_incr_lcountUE (clss_size_decr_lcount lcount)), opts) })\<close>
 
 definition delete_index_vdom_heur :: \<open>nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur\<close>where
   \<open>delete_index_vdom_heur = (\<lambda>i (M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur, vdom, avdom, lcount).
@@ -1362,8 +1461,14 @@ lemma arena_act_pre_mark_used:
 
 definition mop_mark_garbage_heur :: \<open>nat \<Rightarrow> nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
   \<open>mop_mark_garbage_heur C i = (\<lambda>S. do {
-    ASSERT(mark_garbage_pre (get_clauses_wl_heur S, C) \<and> get_learned_count S \<ge> 1 \<and> i < length (get_avdom S));
+    ASSERT(mark_garbage_pre (get_clauses_wl_heur S, C) \<and> clss_size_lcount (get_learned_count S) \<ge> 1 \<and> i < length (get_avdom S));
     RETURN (mark_garbage_heur C i S)
+  })\<close>
+
+definition mop_mark_garbage_heur3 :: \<open>nat \<Rightarrow> nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
+  \<open>mop_mark_garbage_heur3 C i = (\<lambda>S. do {
+    ASSERT(mark_garbage_pre (get_clauses_wl_heur S, C) \<and> clss_size_lcount (get_learned_count S) \<ge> 1 \<and> i < length (get_avdom S));
+    RETURN (mark_garbage_heur3 C i S)
   })\<close>
 
 definition mark_unused_st_heur :: \<open>nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur\<close> where
@@ -1384,10 +1489,10 @@ lemma mop_mark_garbage_heur_alt_def:
   \<open>mop_mark_garbage_heur C i = (\<lambda>(M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
        vdom, avdom, lcount, opts, old_arena). do {
     ASSERT(mark_garbage_pre (get_clauses_wl_heur (M', N', D', j, W', vm, clvls, cach, lbd, outl,
-       stats, heur, vdom, avdom, lcount, opts, old_arena), C) \<and> lcount \<ge> 1 \<and> i < length avdom);
+       stats, heur, vdom, avdom, lcount, opts, old_arena), C) \<and> clss_size_lcount lcount \<ge> 1 \<and> i < length avdom);
     RETURN (M', extra_information_mark_to_delete N' C, D', j, W', vm, clvls, cach, lbd, outl,
       stats, heur,
-       vdom, delete_index_and_swap avdom i, lcount - 1, opts, old_arena)
+       vdom, delete_index_and_swap avdom i, clss_size_decr_lcount lcount, opts, old_arena)
    })\<close>
   unfolding mop_mark_garbage_heur_def mark_garbage_heur_def
   by (auto intro!: ext)
@@ -1431,10 +1536,11 @@ text \<open>
 \<close>
 definition incr_restart_stat :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
   \<open>incr_restart_stat = (\<lambda>(M, N, D, Q, W, vm, clvls, cach, lbd, outl, stats, (fast_ema, slow_ema,
-       res_info, wasted), vdom, avdom, lcount). do{
+       res_info, wasted), vdom, avdom, lcount, opts, old_arena). do{
      RETURN (M, N, D, Q, W, vm, clvls, cach, lbd, outl, incr_restart stats,
        (fast_ema, slow_ema,
-       restart_info_restart_done res_info, wasted), vdom, avdom, lcount)
+       restart_info_restart_done res_info, wasted), vdom, avdom,
+       clss_size_resetUS lcount, opts, old_arena)
   })\<close>
 
 definition incr_lrestart_stat :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
