@@ -289,6 +289,12 @@ where
 definition clss_size_lcount :: \<open>clss_size \<Rightarrow> nat\<close> where
   \<open>clss_size_lcount = (\<lambda>(lcount, lcountNES, lcountUE, lcountUS). lcount)\<close>
 
+definition clss_size_lcountUE :: \<open>clss_size \<Rightarrow> nat\<close> where
+  \<open>clss_size_lcountUE = (\<lambda>(lcount, lcountNES, lcountUE, lcountUS). lcountUE)\<close>
+
+definition clss_size_lcountUS :: \<open>clss_size \<Rightarrow> nat\<close> where
+  \<open>clss_size_lcountUS = (\<lambda>(lcount, lcountNES, lcountUE, lcountUS). lcountUS)\<close>
+
 definition clss_size_incr_lcount :: \<open>clss_size \<Rightarrow> clss_size\<close> where
   \<open>clss_size_incr_lcount =
      (\<lambda>(lcount, lcountNES, lcountUE, lcountUS). (lcount + 1, lcountNES, lcountUE, lcountUS))\<close>
