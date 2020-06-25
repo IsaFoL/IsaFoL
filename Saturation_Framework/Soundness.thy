@@ -27,7 +27,7 @@ proof -
     using sound unfolding Inf_from_def image_def Bex_def mem_Collect_eq
     by (smt all_formulas_entailed entails_trans mem_Collect_eq subset_entailed)
   then show ?thesis
-    using n_cons entails_trans_strong by blast
+    using n_cons entails_trans using subset_entailed_strong by blast
 qed
 
 end
