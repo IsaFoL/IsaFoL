@@ -9,7 +9,6 @@ section \<open>Consistency Preservation\<close>
 theory Consistency_Preservation
   imports
     Saturation_Framework.Calculi
-    Open_Induction.Restricted_Predicates
 begin
 
 text \<open>
