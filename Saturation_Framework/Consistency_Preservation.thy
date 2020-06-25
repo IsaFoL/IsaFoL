@@ -8,7 +8,7 @@ section \<open>Consistency Preservation\<close>
 
 theory Consistency_Preservation
   imports
-    Saturation_Framework.Calculus
+    Saturation_Framework.Calculi
     Open_Induction.Restricted_Predicates
 begin
 
@@ -37,19 +37,20 @@ proof -
     fix DD
     assume fin: "finite DD" and sset_lun: "DD \<subseteq> Sup_llist Ns"
     then obtain k where
-      dd_sset: "DD \<subseteq> Sup_upto_llist Ns (enat k)"
+      dd_sset: "DD \<subseteq> Sup_upto_llist Ns k"
       using finite_Sup_llist_imp_Sup_upto_llist by blast
     have "\<not> Sup_upto_llist Ns k \<Turnstile> Bot"
     proof (induct k)
       case 0
       then show ?case
+        unfolding Sup_upto_llist_def
         using lhd_conv_lnth[OF chain_not_lnull[OF ent], symmetric] n0_sat bot_sat by auto
     next
       case (Suc k)
       show ?case
       proof (cases "enat (Suc k) \<ge> llength Ns")
         case True
-        then have "Sup_upto_llist Ns (enat k) = Sup_upto_llist Ns (Suc k)"
+        then have "Sup_upto_llist Ns k = Sup_upto_llist Ns (Suc k)"
           unfolding Sup_upto_llist_def using le_Suc_eq by auto
         then show ?thesis
           using Suc by simp
@@ -57,15 +58,16 @@ proof -
         case False
         then have entail_succ: "lnth Ns k \<Turnstile> lnth Ns (Suc k)"
           using ent chain_lnth_rel by fastforce
-        show ?thesis
-        proof
-          assume \<open>Sup_upto_llist Ns (enat (Suc k)) \<Turnstile> Bot\<close>
-          then show False unfolding Sup_upto_llist_Suc using False
-              entails_trans_strong[rotated, of "Sup_upto_llist Ns (enat k)"
-                "(if enat (Suc k) < llength Ns then lnth Ns (Suc k) else {})" Bot]
-            by (metis (full_types) Suc.hyps Suc_ile_eq entail_succ empty_subsetI entails_trans
-                less_imp_le lnth_subset_Sup_upto_llist subset_entailed)
-        qed
+        from False have lt: "enat (Suc k) < llength Ns \<and> enat k < llength Ns"
+          by (meson Suc_ile_eq le_cases not_le)
+        have "{i. enat i < llength Ns \<and> i \<le> Suc k} = {i. enat i < llength Ns \<and> i \<le> k} \<union> {i. enat i < llength Ns \<and> i = Suc k}" by auto
+        then have "Sup_upto_llist Ns (Suc k) = Sup_upto_llist Ns k \<union> lnth Ns (Suc k)" using lt unfolding Sup_upto_llist_def by blast
+        moreover have "Sup_upto_llist Ns k \<Turnstile> lnth Ns (Suc k)"
+          using entail_succ subset_entailed [of "lnth Ns k" "Sup_upto_llist Ns k"] lt unfolding Sup_upto_llist_def
+          by (simp add: entail_succ UN_upper entails_trans)
+        ultimately have "Sup_upto_llist Ns k \<Turnstile> Sup_upto_llist Ns (Suc k)"
+          using entail_union subset_entailed by fastforce
+        then show ?thesis using Suc.hyps using entails_trans by blast
       qed
     qed
     then have "\<not> DD \<Turnstile> Bot"
@@ -77,7 +79,7 @@ qed
 
 end
 
-locale refutationally_compact_calculus = calculus + compact_consequence_relation
+locale refutationally_compact_calculus = calculus_with_red_crit + compact_consequence_relation
 begin
 
 text \<open>
