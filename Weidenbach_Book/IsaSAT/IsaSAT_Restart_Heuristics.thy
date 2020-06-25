@@ -846,14 +846,14 @@ definition FLAG_restart :: \<open>8 word\<close> where
   \<open>FLAG_restart = 1\<close>
 
 definition FLAG_Reduce_restart :: \<open>8 word\<close> where
-  \<open>FLAG_Reduce_restart = 2\<close>
+  \<open>FLAG_Reduce_restart = 3\<close>
 
 definition FLAG_GC_restart :: \<open>8 word\<close> where
   \<open>FLAG_GC_restart = 2\<close>
 
 definition restart_flag_rel :: \<open>(8 word \<times> restart_type) set\<close> where
   \<open>restart_flag_rel = {(FLAG_no_restart, NO_RESTART), (FLAG_restart, RESTART), (FLAG_GC_restart, GC),
-  (FLAG_Reduce_restart, RESTART)}\<close>
+  (FLAG_Reduce_restart, GC)}\<close>
 
 
 definition restart_required_heur :: \<open>twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 8 word nres\<close> where
@@ -881,7 +881,7 @@ definition restart_required_heur :: \<open>twl_st_wl_heur \<Rightarrow> nat \<Ri
       let ccount = get_conflict_count_since_last_restart_heur S;
       let min_reached = (ccount > minimum_number_between_restarts);
       let level = count_decided_st_heur S;
-      let should_reduce = (opt_red \<and> \<not>upper_restart_bound_not_reached S);
+      let should_reduce = (opt_red \<and> \<not>upper_restart_bound_not_reached S \<and> can_GC);
       let should_restart = ((opt_res) \<and>
          limit > fema \<and> min_reached \<and> can_res \<and>
         level > 2 \<and> \<^cancel>\<open>This comment from Marijn Heule seems not to help:
@@ -889,10 +889,10 @@ definition restart_required_heur :: \<open>twl_st_wl_heur \<Rightarrow> nat \<Ri
         of_nat level > (shiftr fema 32));
       GC_required \<leftarrow> GC_required_heur S n;
       if should_reduce
-      then if GC_required \<and> can_GC
+      then if GC_required
         then RETURN FLAG_GC_restart
-        else RETURN FLAG_restart
-          else if should_restart
+        else RETURN FLAG_Reduce_restart
+      else if should_restart
       then RETURN FLAG_restart
       else RETURN FLAG_no_restart
      }
@@ -5014,10 +5014,17 @@ where
        T \<leftarrow> cdcl_twl_restart_wl_heur S;
        RETURN (T, last_GC, learned_clss_count T, n)
     }
-    else if \<not>brk \<and> b = FLAG_GC_restart
+    else if \<not>brk \<and> b \<noteq> FLAG_no_restart
     then do {
-       T \<leftarrow> cdcl_twl_full_restart_wl_D_GC_heur_prog S;
-       RETURN (T, learned_clss_count T, learned_clss_count T, n+1)
+       if b = FLAG_Reduce_restart
+       then do {
+         T \<leftarrow> cdcl_twl_full_restart_wl_prog_heur S;
+         RETURN (T, learned_clss_count T, learned_clss_count T, n+1)
+       }
+       else do {
+         T \<leftarrow> cdcl_twl_full_restart_wl_D_GC_heur_prog S;
+         RETURN (T, learned_clss_count T, learned_clss_count T, n+1)
+       }
     }
     else update_all_phases S last_GC last_Restart n
   }\<close>
@@ -5027,9 +5034,9 @@ lemma restart_required_heur_restart_required_wl0:
     twl_st_heur''' r \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<rightarrow>\<^sub>f \<langle>restart_flag_rel\<rangle>nres_rel\<close>
     unfolding restart_required_heur_def restart_required_wl_def uncurry_def Let_def
       restart_flag_rel_def  FLAG_GC_restart_def FLAG_restart_def FLAG_no_restart_def
-      GC_required_heur_def
+      GC_required_heur_def FLAG_Reduce_restart_def
     by (intro frefI nres_relI)
-     (auto simp: twl_st_heur_def get_learned_clss_wl_def RETURN_RES_refine_iff
+     (auto simp add: twl_st_heur_def get_learned_clss_wl_def RETURN_RES_refine_iff
       clss_size_def clss_size_lcount_def clss_size_lcountUE_def
       clss_size_lcountUS_def)
 
@@ -5088,42 +5095,80 @@ lemma learned_clss_count_twl_st_heur: \<open>(T, Ta) \<in> twl_st_heur \<Longrig
   by (auto simp: twl_st_heur_def clss_size_def learned_clss_count_def
     clss_size_lcount_def clss_size_lcountUE_def clss_size_lcountUS_def
     get_learned_clss_wl_def)
+
+lemma restart_prog_wl_D_heur_alt_def:
+  \<open>restart_prog_wl_D_heur S last_GC last_Restart n brk = do {
+    b \<leftarrow> restart_required_heur S last_GC last_Restart n;
+    if \<not>brk \<and> b = FLAG_restart
+    then do {
+       T \<leftarrow> cdcl_twl_restart_wl_heur S;
+       RETURN (T, last_GC, learned_clss_count T, n)
+    }
+    else if \<not>brk \<and> b \<noteq> FLAG_no_restart
+    then do {
+       let b = b;
+       T \<leftarrow> (if b = FLAG_Reduce_restart
+          then cdcl_twl_full_restart_wl_prog_heur S
+          else  cdcl_twl_full_restart_wl_D_GC_heur_prog S);
+       RETURN (T, learned_clss_count T, learned_clss_count T, n+1)
+    }
+    else update_all_phases S last_GC last_Restart n
+  }\<close>
+   unfolding restart_prog_wl_D_heur_def Let_def Pair4.simps
+   by (auto intro: bind_cong[OF refl])
+
+(*TODO Move*)
+lemma cdcl_twl_full_restart_wl_prog_heur_cdcl_twl_full_restart_wl_prog_D2:
+  \<open>(cdcl_twl_full_restart_wl_prog_heur, cdcl_twl_full_restart_wl_prog) \<in>
+     twl_st_heur''' r \<rightarrow>\<^sub>f \<langle>twl_st_heur'''' r\<rangle>nres_rel\<close>
+  apply (intro frefI nres_relI)
+  apply (rule order_trans[OF cdcl_twl_full_restart_wl_prog_heur_cdcl_twl_full_restart_wl_prog_D[THEN fref_to_Down]])
+  apply fast
+  apply assumption
+  apply (rule conc_fun_R_mono)
+  by auto
+
 lemma restart_prog_wl_D_heur_restart_prog_wl_D:
   \<open>(uncurry4 restart_prog_wl_D_heur, uncurry4 restart_prog_wl) \<in>
   twl_st_heur''' r \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f bool_rel  \<rightarrow>\<^sub>f
   \<langle>twl_st_heur'''' r \<times>\<^sub>r nat_rel \<times>\<^sub>r nat_rel \<times>\<^sub>r nat_rel\<rangle>nres_rel\<close>
 proof -
-  have [refine0]: \<open>GC_required_heur S n \<le> SPEC (\<lambda>_. True)\<close> for S n
-    by (auto simp: GC_required_heur_def)
+  have [refine0]: \<open>RETURN b \<le> \<Down>{(c, c'). c' \<longleftrightarrow> (c = FLAG_Reduce_restart)} (SPEC (\<lambda>_::bool. True))\<close> for b
+    by (auto simp: GC_required_heur_def RETURN_RES_refine_iff)
   show ?thesis
-   supply RETURN_as_SPEC_refine[refine2 del] learned_clss_count_twl_st_heur[simp]
-    unfolding restart_prog_wl_D_heur_def restart_prog_wl_def uncurry_def
+    supply RETURN_as_SPEC_refine[refine2 del] learned_clss_count_twl_st_heur[simp]
+    unfolding restart_prog_wl_D_heur_alt_def restart_prog_wl_def uncurry_def
+       Pair4.simps[symmetric]
     apply (intro frefI nres_relI)
     apply (refine_rcg
         restart_required_heur_restart_required_wl0[where r=r, THEN fref_to_Down_curry3]
         cdcl_twl_restart_wl_heur_cdcl_twl_restart_wl_D_prog[where r=r, THEN fref_to_Down]
         cdcl_twl_full_restart_wl_D_GC_heur_prog[where r=r, THEN fref_to_Down]
-        update_all_phases_Pair[where r=r, THEN fref_to_Down_curry, unfolded comp_def])
+        update_all_phases_Pair[where r=r, THEN fref_to_Down_curry3, unfolded comp_def]
+        cdcl_twl_full_restart_wl_prog_heur_cdcl_twl_full_restart_wl_prog_D2[where r=r, THEN fref_to_Down])
     subgoal by auto
     subgoal by (auto simp: restart_flag_rel_def FLAG_GC_restart_def FLAG_restart_def
-      FLAG_no_restart_def)
+      FLAG_no_restart_def FLAG_Reduce_restart_def)
     subgoal by auto
     subgoal by auto
     subgoal by (auto simp: restart_flag_rel_def FLAG_GC_restart_def FLAG_restart_def
-      FLAG_no_restart_def)
+      FLAG_no_restart_def FLAG_Reduce_restart_def)
     subgoal by auto
     subgoal by auto
+    subgoal
+      by auto
+    subgoal
+      by auto
     subgoal
       by auto
     done
  qed
 
-
 lemma restart_prog_wl_D_heur_restart_prog_wl_D2:
-  \<open>(uncurry3 restart_prog_wl_D_heur, uncurry3 restart_prog_wl) \<in>
-  twl_st_heur \<times>\<^sub>f nat_rel \<times>\<^sub>f bool_rel \<rightarrow>\<^sub>f \<langle>twl_st_heur \<times>\<^sub>f nat_rel\<rangle>nres_rel\<close>
+  \<open>(uncurry4 restart_prog_wl_D_heur, uncurry4 restart_prog_wl) \<in>
+  twl_st_heur \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f bool_rel \<rightarrow>\<^sub>f \<langle>twl_st_heur \<times>\<^sub>r nat_rel \<times>\<^sub>r nat_rel \<times>\<^sub>r nat_rel\<rangle>nres_rel\<close>
   apply (intro frefI nres_relI)
-  apply (rule_tac r2 = \<open>length(get_clauses_wl_heur (fst (fst x)))\<close> and x'1 = \<open>y\<close> in
+  apply (rule_tac r2 = \<open>length(get_clauses_wl_heur (fst (fst (fst (fst x)))))\<close> in
     order_trans[OF restart_prog_wl_D_heur_restart_prog_wl_D[THEN fref_to_Down]])
   apply fast
   apply (auto intro!: conc_fun_R_mono)
