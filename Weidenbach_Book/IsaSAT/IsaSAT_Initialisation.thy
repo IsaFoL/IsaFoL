@@ -876,9 +876,9 @@ where
 definition already_propagated_unit_cls_conflict_heur
   :: \<open>nat literal \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur_init nres\<close>
 where
-  \<open>already_propagated_unit_cls_conflict_heur = (\<lambda>L (M, N, D, Q, oth). do {
+  \<open>already_propagated_unit_cls_conflict_heur = (\<lambda>L (M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, vdom, failed, lcount). do {
      ASSERT (isa_length_trail_pre M);
-     RETURN (M, N, D, isa_length_trail M, oth)
+     RETURN (M, N, D, isa_length_trail M, W, vm, \<phi>, clvls, cach, lbd, vdom, failed, clss_size_incr_lcountNES lcount)
   })\<close>
 
 lemma already_propagated_unit_cls_conflict_heur_already_propagated_unit_cls_conflict:
@@ -1538,11 +1538,15 @@ definition init_state_wl_heur :: \<open>nat multiset \<Rightarrow> twl_st_wl_heu
     cach \<leftarrow> SPEC (cach_refinement_empty \<A>);
     let lbd = empty_lbd;
     let vdom = [];
-    RETURN (M, [], D, 0, W, vm, \<phi>, 0, cach, lbd, vdom, False)}\<close>
+    let lcount = (0,0,0,0);
+    RETURN (M, [], D, 0, W, vm, \<phi>, 0, cach, lbd, vdom, False, lcount)}\<close>
 
 definition init_state_wl_heur_fast where
   \<open>init_state_wl_heur_fast = init_state_wl_heur\<close>
 
+(* TODO Move *)
+lemma clss_size_empty [simp]: \<open>clss_size fmempty {#} {#} {#} {#} = (0, 0, 0 ,0)\<close>
+  by (auto simp: clss_size_def)
 
 lemma init_state_wl_heur_init_state_wl:
   \<open>(\<lambda>_. (init_state_wl_heur \<A>), \<lambda>_. (RETURN init_state_wl)) \<in>
@@ -1639,8 +1643,8 @@ proof -
     T: \<open>T = ((M,N, D, NE, UE, NS, US, Q), OC)\<close>
     by (cases T) auto
 
-  obtain M' N' D' j W vm \<phi> clvls cach lbd vdom where
-    S: \<open>S = (M', N', D', j, W, vm, \<phi>, clvls, cach, lbd, vdom, False)\<close>
+  obtain M' N' D' j W vm \<phi> clvls cach lbd vdom lcount where
+    S: \<open>S = (M', N', D', j, W, vm, \<phi>, clvls, cach, lbd, vdom, False, lcount)\<close>
     using failed by (cases S) auto
 
   have valid: \<open>valid_arena N' N (set vdom)\<close> and
@@ -1893,13 +1897,12 @@ text \<open>The value 160 is random (but larger than the default 16 for array li
 definition finalise_init_code :: \<open>opts \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur nres\<close> where
   \<open>finalise_init_code opts =
     (\<lambda>(M', N', D', Q', W', ((ns, m, fst_As, lst_As, next_search), to_remove), \<phi>, clvls, cach,
-       lbd, vdom, _). do {
+       lbd, vdom, _, lcount). do {
      ASSERT(lst_As \<noteq> None \<and> fst_As \<noteq> None);
      let init_stats = (0::64 word, 0::64 word, 0::64 word, 0::64 word, 0::64 word, 0::64 word, 0::64 word, ema_fast_init);
      let fema = ema_fast_init;
      let sema = ema_slow_init;
      let ccount = restart_info_init;
-     let lcount = 0;
     RETURN (M', N', D', Q', W', ((ns, m, the fst_As, the lst_As, next_search), to_remove),
        clvls, cach, lbd, take 1(replicate 160 (Pos 0)), init_stats,
         (fema, sema, ccount, 0, \<phi>, 0, replicate (length \<phi>) False, 0, replicate (length \<phi>) False, 10000, 1000, 1), vdom, [], lcount, opts, [])
@@ -1987,7 +1990,8 @@ definition init_state_wl_D' :: \<open>nat list \<times> nat \<Rightarrow>  (trai
      let cach = (replicate n SEEN_UNKNOWN, []);
      let lbd = empty_lbd;
      let vdom = [];
-     RETURN (M, N, D, 0, WS, vm, \<phi>, 0, cach, lbd, vdom, False)
+     let lcount = (0, 0, 0, 0);
+     RETURN (M, N, D, 0, WS, vm, \<phi>, 0, cach, lbd, vdom, False, lcount)
   })\<close>
 
 lemma init_trail_D_ref:
@@ -2069,7 +2073,7 @@ lemma init_state_wl_D0:
       lits_with_max_rel O \<langle>Id\<rangle>mset_rel \<rightarrow>
       \<langle>Id \<times>\<^sub>r Id \<times>\<^sub>r
          Id \<times>\<^sub>r nat_rel \<times>\<^sub>r \<langle>\<langle>Id\<rangle>list_rel\<rangle>list_rel \<times>\<^sub>r
-           Id \<times>\<^sub>r \<langle>bool_rel\<rangle>list_rel \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id\<rangle>nres_rel\<close>
+           Id \<times>\<^sub>r \<langle>bool_rel\<rangle>list_rel \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id \<times>\<^sub>r Id\<rangle>nres_rel\<close>
   (is \<open>?C \<in> [?Pre]\<^sub>f ?arg \<rightarrow> \<langle>?im\<rangle>nres_rel\<close>)
 proof -
   have init_state_wl_heur_alt_def: \<open>init_state_wl_heur \<A>\<^sub>i\<^sub>n = do {
@@ -2082,7 +2086,8 @@ proof -
     cach \<leftarrow> SPEC (cach_refinement_empty \<A>\<^sub>i\<^sub>n);
     let lbd = empty_lbd;
     let vdom = [];
-    RETURN (M, N, D, 0, W, vm, \<phi>, 0, cach, lbd, vdom, False)}\<close> for \<A>\<^sub>i\<^sub>n
+    let lcount = (0, 0, 0, 0);
+    RETURN (M, N, D, 0, W, vm, \<phi>, 0, cach, lbd, vdom, False, lcount)}\<close> for \<A>\<^sub>i\<^sub>n
     unfolding init_state_wl_heur_def Let_def by auto
 
   have tr: \<open>distinct_mset \<A>\<^sub>i\<^sub>n \<and> (\<forall>L\<in>#\<A>\<^sub>i\<^sub>n. L < b) \<Longrightarrow>
