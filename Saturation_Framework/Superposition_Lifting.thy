@@ -112,6 +112,7 @@ qed
 
 (* semantics *)
 
+(* unfortunately, it is not possible to define a type for ordered TRS, as the definition would rely on fixed type arguments *)
 type_synonym ('f, 'v) trs = \<open>(('f, 'v) term \<times> ('f, 'v) term) set\<close>
 
 type_synonym ('f, 'v) interp = \<open>(('f, 'v) term \<times> ('f, 'v) term) set\<close>
@@ -1226,7 +1227,7 @@ definition irreducible :: \<open>('f, 'v) trs \<Rightarrow> ('f, 'v) term \<Righ
 definition normal_form :: \<open>('f, 'v) trs \<Rightarrow> ('f, 'v) term \<Rightarrow> ('f, 'v) term \<Rightarrow> bool\<close>
   where \<open>normal_form TRS t s = (irreducible TRS s \<and> (s = t \<or> rewrite_by_trs TRS t s))\<close>
 
-definition equiv_class_of_trs :: \<open>('f, 'v) trs \<Rightarrow> ('f,'v) interp\<close>
+definition equiv_class_of_trs :: \<open>('f, 'v) trs \<Rightarrow> ('f, 'v) interp\<close>
   where \<open>equiv_class_of_trs S = {(s,t) | s t. ground_term s \<and> ground_term t \<and> (\<exists>u. normal_form S s u \<and> normal_form S t u)}\<close>
 
 abbreviation ordered :: \<open>('f, 'v) trs \<Rightarrow> bool\<close>
@@ -2055,20 +2056,24 @@ qed
 (* Corollary 5 *)
 lemma productive_clause_satisfied:
   assumes \<open>production (\<Union>(trs_of_clause N ` {B \<in> N. B \<prec>G C})) C \<noteq> {}\<close>
-  shows \<open>validate_clause (equiv_class_of_trs (trs_of_clause N C)) (Rep_ground_clause C)\<close>
+  shows \<open>validate_clause (Abs_fo_interp (equiv_class_of_trs (trs_of_clause N C))) (Rep_ground_clause C)\<close>
 proof -
   from assms obtain t s where ts_elem: \<open>(t, s) \<in> production (\<Union>(trs_of_clause N ` {B \<in> N. B \<prec>G C})) C\<close> by fast
-  then obtain L C' where L_def: \<open>L = Eq s t \<or> L = Eq t s\<close>
+  then obtain L C' where L_def: \<open>L = Lit True (Upair t s)\<close>
                      and C_def: \<open>Rep_ground_clause C = {# L #} + C'\<close> unfolding production_def by blast
   from ts_elem have rewrite: \<open>(t, s) \<in> trs_of_clause N C\<close>
     by (metis (no_types, lifting) Un_iff trs_of_clause.simps)
   from C_def have L_elem: \<open>L \<in># Rep_ground_clause C\<close> by auto
   then have L_ground: \<open>ground_lit L\<close> using C_def Rep_ground_clause by fast
   then have \<open>ground_term s \<and> ground_term t\<close> using L_def by force
-  then have \<open>(t, s) \<in> equiv_class_of_trs (trs_of_clause N C) \<and> (s, t) \<in> equiv_class_of_trs (trs_of_clause N C)\<close>
+  then have \<open>(t, s) \<in> equiv_class_of_trs (trs_of_clause N C)\<close>
     using rewrite eql_in_equiv_class ordered_trs_of_clause by presburger
-  then have \<open>validate_ground_lit (equiv_class_of_trs (trs_of_clause N C)) L\<close>
-    using L_def validate_ground_lit.simps(1) by blast
+  then have \<open>validate_eq (Abs_fo_interp (equiv_class_of_trs (trs_of_clause N C))) (Upair t s)\<close>
+    unfolding validate_eq_def map_fun_def id_def comp_def
+    using equiv_class_fo [of \<open>trs_of_clause N C\<close>] ordered_trs_of_clause [of N C]
+    by (metis validate_eq.abs_eq validate_eq.rep_eq Uprod.Upair.abs_eq)
+  then have \<open>validate_ground_lit (Abs_fo_interp (equiv_class_of_trs (trs_of_clause N C))) L\<close>
+    using L_def validate_ground_lit.simps(1) by metis
   then show ?thesis
     using L_elem L_ground subst_ground_lit
     unfolding validate_clause_def by metis
@@ -2076,134 +2081,120 @@ qed
 
 lemma productive_clause_remainder:
   assumes \<open>(t,s) \<in> production (\<Union>(trs_of_clause N ` {B \<in> N. B \<prec>G C})) C\<close>
-      and \<open>Rep_ground_clause C = {#L#} + C'\<close>
-      and \<open>L = Eq s t \<or> L = Eq t s\<close>
+      and \<open>Rep_ground_clause C = {#Lit True (Upair t s)#} + C'\<close>
       and \<open>C \<prec>G D\<close>
       and \<open>C \<in> N\<close>
       and \<open>D \<in> N\<close>
-    shows \<open>\<not> validate_clause (equiv_class_of_trs (\<Union> (trs_of_clause N ` {B \<in> N. B \<prec>G D}))) C'\<close>
+    shows \<open>\<not> validate_clause (Abs_fo_interp (equiv_class_of_trs (\<Union> (trs_of_clause N ` {B \<in> N. B \<prec>G D})))) C'\<close>
 proof -
   let ?trs_upto = \<open>\<lambda>C. \<Union> (trs_of_clause N ` {B \<in> N. B \<prec>G C})\<close>
-  from assms(1) obtain L' C'' where C''_nvalid: \<open>\<not> validate_clause (equiv_class_of_trs (insert (t, s) (?trs_upto C))) C''\<close>
-                                and C_nvalid: \<open>\<not> validate_clause (equiv_class_of_trs (?trs_upto C)) (Rep_ground_clause C)\<close>
+  from assms(1) obtain L' C'' where C''_nvalid: \<open>\<not> validate_clause (Abs_fo_interp (equiv_class_of_trs (insert (t, s) (?trs_upto C)))) C''\<close>
+                                and C_nvalid: \<open>\<not> validate_clause (Abs_fo_interp (equiv_class_of_trs (?trs_upto C))) (Rep_ground_clause C)\<close>
                                 and C_def: \<open>Rep_ground_clause C = {#L'#} + C''\<close>
                                 and L'_max: \<open>\<forall>L''\<in>#C''. L'' \<prec>L L'\<close>
-                                and L'_def: \<open>L' = Eq s t \<or> L' = Eq t s\<close>
+                                and L'_def: \<open>L' = Lit True (Upair t s)\<close>
                                 and ord: \<open>s \<prec> t\<close>
                                 and s_t_ground: \<open>ground_term s \<and> ground_term t\<close>
     using ground_production
     unfolding production_def by blast
-  (* the witnesses C' and L'' are not guaranteed to be the same clause and literal as the ones
-     in the premises, we must prove it first *)
   have \<open>C' = C''\<close>
-  proof (rule ccontr)
-    assume \<open>C' \<noteq> C''\<close> (* L' is symmetric to L, so L must be in C'' *)
-    then have \<open>L \<in># C''\<close> using assms(2) C_def insert_noteq_member by fastforce
-    moreover have \<open>validate_ground_lit (equiv_class_of_trs (insert (t, s) (?trs_upto C))) L\<close>
-    proof -
-      have \<open>ordered (insert (t, s) (?trs_upto C))\<close>
-        using ord ordered_trs_of_clause by blast
-      then have \<open>(s, t) \<in> equiv_class_of_trs (insert (t, s) (?trs_upto C)) \<and> (t, s) \<in> equiv_class_of_trs (insert (t, s) (?trs_upto C))\<close>
-        using eql_in_equiv_class s_t_ground by blast
-      then show ?thesis using assms(3) validate_ground_lit.simps(1) by blast
-    qed
-    moreover have \<open>subst_apply_lit L \<sigma> = L\<close> for \<sigma>
-      using ground_subclause assms(2) subst_ground_lit [of L \<sigma>] by fastforce
-    ultimately have \<open>validate_clause (equiv_class_of_trs (insert (t, s) (?trs_upto C))) C''\<close>
-      unfolding validate_clause_def
-      by (metis (no_types, lifting))
-    then show False using C''_nvalid by blast
-  qed
-  moreover have \<open>\<not> validate_clause (equiv_class_of_trs (?trs_upto D)) C''\<close>
+    using assms(2) L'_def C_def by auto
+  moreover have \<open>\<not> validate_clause (Abs_fo_interp (equiv_class_of_trs (?trs_upto D))) C''\<close>
   proof
-    assume \<open>validate_clause (equiv_class_of_trs (?trs_upto D)) C''\<close>
+    assume \<open>validate_clause (Abs_fo_interp (equiv_class_of_trs (?trs_upto D))) C''\<close>
     moreover have \<open>ground_cl (subst_apply_cl C'' Var)\<close>
       using C_def ground_subclause subst_ground_cl [of C''] by metis
     (* consider the literal M that makes the clause true *)
     ultimately obtain M where M_elem: \<open>M \<in># C''\<close>
-                          and \<open>validate_ground_lit (equiv_class_of_trs (?trs_upto D)) (subst_apply_lit M Var)\<close>
+                          and \<open>validate_ground_lit (Abs_fo_interp (equiv_class_of_trs (?trs_upto D))) (subst_apply_lit M Var)\<close>
       unfolding validate_clause_def by blast
     moreover have subst_M: \<open>subst_apply_lit M \<sigma> = M\<close> for \<sigma>
       using subst_ground_lit ground_subclause C_def M_elem by fast
-    ultimately have valid_M: \<open>validate_ground_lit (equiv_class_of_trs (?trs_upto D)) M\<close>
+    ultimately have valid_M: \<open>validate_ground_lit (Abs_fo_interp (equiv_class_of_trs (?trs_upto D))) M\<close>
       by metis
     have \<open>ground_cl C''\<close> using C_def ground_subclause by blast
-    then have nvalid_M: \<open>\<not> validate_ground_lit (equiv_class_of_trs (insert (t, s) (?trs_upto C))) M\<close>
+    then have nvalid_M: \<open>\<not> validate_ground_lit (Abs_fo_interp (equiv_class_of_trs (insert (t, s) (?trs_upto C)))) M\<close>
       using C''_nvalid subst_M M_elem unfolding validate_clause_def
       by (metis (no_types, lifting))
     have M_elem': \<open>M \<in># Rep_ground_clause C\<close>
       using M_elem C_def by auto
-    then have nvalid_M_2: \<open>\<not> validate_ground_lit (equiv_class_of_trs (?trs_upto C)) M\<close>
+    then have nvalid_M_2: \<open>\<not> validate_ground_lit (Abs_fo_interp (equiv_class_of_trs (?trs_upto C))) M\<close>
       using C_nvalid C_def subst_M unfolding validate_clause_def
       by (metis (no_types, lifting))
     show False
     proof (cases M)
-      case (Eq u v)
-      from valid_M have \<open>(u, v) \<in> equiv_class_of_trs (?trs_upto D)\<close>
-        using Eq validate_ground_lit.simps(1) by blast
-      then obtain u' where nf_u: \<open>normal_form (?trs_upto D) u u'\<close>
-                       and nf_v: \<open>normal_form (?trs_upto D) v u'\<close>
-                       and u_v_ground: \<open>ground_term u \<and> ground_term v\<close>
-        unfolding equiv_class_of_trs_def by blast
-      have \<open>(lhs, rhs) \<in> ?trs_upto D - insert (t, s) (?trs_upto C) \<Longrightarrow> u \<prec> lhs \<and> v \<prec> lhs\<close> for lhs rhs
-      proof -
-        assume \<open>(lhs, rhs) \<in> ?trs_upto D - insert (t, s) (?trs_upto C)\<close>
-        then obtain D' where rule_elem: \<open>(lhs, rhs) \<in> trs_of_clause N D'\<close>
-                         and \<open>D' \<in> N\<close>
-                         and \<open>D' \<prec>G D\<close>
-                         and rule_nelem: \<open>(lhs, rhs) \<notin> insert (t, s) (?trs_upto C)\<close> by fast
-        then obtain D'' where \<open>(lhs, rhs) \<in> production (?trs_upto D'') D''\<close>
-                          and \<open>D'' \<preceq>G D'\<close>
-                          and D''_elem: \<open>D'' \<in> N\<close> using ex_productive_clause by meson
-        then have \<open>(lhs, rhs) \<in> trs_of_clause N D''\<close> using trs_of_clause.simps [of N D'']
-          by (metis (no_types, lifting) Un_iff)
-        then have \<open>\<not> D'' \<prec>G C\<close> using rule_nelem D''_elem by blast
-        then consider (eq_lit) \<open>{# mset_lit L. L \<in># Rep_ground_clause C #} = {# mset_lit L. L \<in># Rep_ground_clause D'' #}\<close> | (gt_lit) \<open>C \<prec>G D''\<close>
-          using ground_clause_ord_total by blast
-        then show \<open>u \<prec> lhs \<and> v \<prec> lhs\<close>
-        proof cases
-          case eq_lit
-          then show ?thesis sorry
-        next
-          case gt_lit
-          then show ?thesis sorry
+      case (Lit p u v)
+      show ?thesis
+      proof (cases p)
+        case True
+        then have \<open>validate_eq (Abs_fo_interp (equiv_class_of_trs (\<Union> (trs_of_clause N ` {B \<in> N. B \<prec>G D})))) (Upair u v)\<close>
+          using valid_M validate_ground_lit.simps Lit
+          by (metis (no_types, lifting))
+        then have \<open>(u, v) \<in> equiv_class_of_trs (?trs_upto D)\<close>
+          by (metis (no_types, lifting) UN_E Upair.abs_eq equiv_class_fo ordered_trs_of_clause validate_eq.abs_eq)
+        then obtain u' where nf_u: \<open>normal_form (?trs_upto D) u u'\<close>
+                         and nf_v: \<open>normal_form (?trs_upto D) v u'\<close>
+                         and u_v_ground: \<open>ground_term u \<and> ground_term v\<close>
+          unfolding equiv_class_of_trs_def by blast
+        have \<open>(lhs, rhs) \<in> ?trs_upto D - insert (t, s) (?trs_upto C) \<Longrightarrow> u \<prec> lhs \<and> v \<prec> lhs\<close> for lhs rhs
+        proof -
+          assume \<open>(lhs, rhs) \<in> ?trs_upto D - insert (t, s) (?trs_upto C)\<close>
+          then obtain D' where rule_elem: \<open>(lhs, rhs) \<in> trs_of_clause N D'\<close>
+                           and \<open>D' \<in> N\<close>
+                           and \<open>D' \<prec>G D\<close>
+                           and rule_nelem: \<open>(lhs, rhs) \<notin> insert (t, s) (?trs_upto C)\<close> by fast
+          then obtain D'' where \<open>(lhs, rhs) \<in> production (?trs_upto D'') D''\<close>
+                            and \<open>D'' \<preceq>G D'\<close>
+                            and D''_elem: \<open>D'' \<in> N\<close> using ex_productive_clause by meson
+          then have \<open>(lhs, rhs) \<in> trs_of_clause N D''\<close> using trs_of_clause.simps [of N D'']
+            by (metis (no_types, lifting) Un_iff)
+          then have \<open>\<not> D'' \<prec>G C\<close> using rule_nelem D''_elem by blast
+          then consider (eq_lit) \<open>{# mset_lit L. L \<in># Rep_ground_clause C #} = {# mset_lit L. L \<in># Rep_ground_clause D'' #}\<close> | (gt_lit) \<open>C \<prec>G D''\<close>
+            using ground_clause_ord_total by blast
+          then show \<open>u \<prec> lhs \<and> v \<prec> lhs\<close>
+          proof cases
+            case eq_lit
+            then show ?thesis sorry
+          next
+            case gt_lit
+            then show ?thesis sorry
+          qed
         qed
-      qed
-      have \<open>rewrite_by_trs (?trs_upto D) u u' \<Longrightarrow> rewrite_by_trs (insert (t, s) (?trs_upto C)) u u'\<close>
-      proof -
-        assume \<open>rewrite_by_trs (?trs_upto D) u u'\<close>
-        then show \<open>rewrite_by_trs (insert (t, s) (?trs_upto C)) u u'\<close>
-        proof (induct)
-          case (eq t s S)
-          then show ?case sorry
-        next
-          case (func S t s f a1 a2)
-          then show ?case sorry
-        next
-          case (trans S u t s)
-          then show ?case sorry
+        have \<open>rewrite_by_trs (?trs_upto D) u u' \<Longrightarrow> rewrite_by_trs (insert (t, s) (?trs_upto C)) u u'\<close>
+        proof -
+          assume \<open>rewrite_by_trs (?trs_upto D) u u'\<close>
+          then show \<open>rewrite_by_trs (insert (t, s) (?trs_upto C)) u u'\<close>
+          proof (induct)
+            case (eq t s S)
+            then show ?case sorry
+          next
+            case (func S t s f a1 a2)
+            then show ?case sorry
+          next
+            case (trans S u t s)
+            then show ?case sorry
+          qed
         qed
+        have \<open>ordered (insert (t, s) (?trs_upto C))\<close> sorry
+        moreover have \<open>ground_term u'\<close> using Lit M_elem sorry
+        ultimately obtain u'' where \<open>normal_form (insert (t, s) (?trs_upto C)) u' u''\<close> using ordered_normalizing by blast
+        have \<open>normal_form (insert (t, s) (?trs_upto C)) u u'' \<and> normal_form (insert (t, s) (?trs_upto C)) v u''\<close> sorry
+        then show False using nvalid_M Lit u_v_ground validate_ground_lit.simps(1) unfolding equiv_class_of_trs_def sorry
+      next
+        case False
+        with nvalid_M_2 have \<open>(u, v) \<in> equiv_class_of_trs (?trs_upto C)\<close>
+          using validate_ground_lit.simps sorry
+        moreover have \<open>?trs_upto C \<subseteq> ?trs_upto D\<close>
+          using assms(4,5)
+          by (smt UN_least UN_upper mem_Collect_eq transE trans_ground_clause_ord)
+        moreover have \<open>ordered (?trs_upto D)\<close>
+          using ordered_trs_of_clause by blast
+        ultimately have \<open>(u, v) \<in> equiv_class_of_trs (?trs_upto D)\<close>
+          using assms(4,5) equiv_class_subset [of \<open>?trs_upto D\<close> \<open>?trs_upto C\<close>] by blast
+        then show False using valid_M Neq validate_ground_lit.simps(2)
+          by (metis (no_types, lifting))
       qed
-      have \<open>ordered (insert (t, s) (?trs_upto C))\<close> sorry
-      moreover have \<open>ground_term u'\<close> using Eq M_elem sorry
-      ultimately obtain u'' where \<open>normal_form (insert (t, s) (?trs_upto C)) u' u''\<close> using ordered_normalizing by blast
-      have \<open>normal_form (insert (t, s) (?trs_upto C)) u u'' \<and> normal_form (insert (t, s) (?trs_upto C)) v u''\<close> sorry
-      then show False using nvalid_M Eq u_v_ground validate_ground_lit.simps(1) unfolding equiv_class_of_trs_def by blast
-    next
-      case (Neq u v)
-      with nvalid_M_2 have \<open>(u, v) \<in> equiv_class_of_trs (?trs_upto C)\<close>
-        using validate_ground_lit.simps(2) by fast
-      moreover have \<open>?trs_upto C \<subseteq> ?trs_upto D\<close>
-        using assms(4,5)
-        by (smt UN_least UN_upper mem_Collect_eq transE trans_ground_clause_ord)
-      moreover have \<open>ordered (?trs_upto D)\<close>
-        using ordered_trs_of_clause by blast
-      ultimately have \<open>(u, v) \<in> equiv_class_of_trs (?trs_upto D)\<close>
-        using assms(4,5) equiv_class_subset [of \<open>?trs_upto D\<close> \<open>?trs_upto C\<close>] by blast
-      then show False using valid_M Neq validate_ground_lit.simps(2)
-        by (metis (no_types, lifting))
     qed
-  qed
   ultimately show \<open>\<not> validate_clause (equiv_class_of_trs (\<Union> (trs_of_clause N ` {B \<in> N. B \<prec>G D}))) C'\<close> by blast
 qed
 
