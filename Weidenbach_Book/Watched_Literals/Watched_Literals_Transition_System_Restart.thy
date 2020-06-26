@@ -565,7 +565,7 @@ lemma cdcl_twl_stgy_restart_pcdcl:
     apply (rule pcdcl_stgy_restart.intros(4))
     by (simp add: twl_restart_ops.pcdcl_twl_final_state_pcdcl)
   done
- 
+
 
 lemma rtranclp_cdcl_twl_stgy_restart_clauses_to_update:
   \<open>cdcl_twl_stgy_restart\<^sup>*\<^sup>* S T \<Longrightarrow> clauses_to_update (fst S) = {#} \<Longrightarrow>
