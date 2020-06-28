@@ -608,6 +608,20 @@ lemma rtranclp_cdcl_twl_stgy_restart_twl_struct_invs:
   using assms
   by (induction)
      (auto dest!: cdcl_twl_stgy_restart_twl_struct_invs)
+
+
+lemma rtranclp_cdcl_twl_stgy_restart_pcdcl:
+  \<open>cdcl_twl_stgy_restart\<^sup>*\<^sup>* (R, S :: 'v twl_st, T, m, n, g) (R', S', T', m', n', h) \<Longrightarrow>
+  twl_struct_invs R \<Longrightarrow> twl_struct_invs S \<Longrightarrow> twl_struct_invs T \<Longrightarrow>
+  pcdcl_stgy_restart\<^sup>*\<^sup>* (pstate\<^sub>W_of R, pstate\<^sub>W_of S, pstate\<^sub>W_of T, m, n, g)
+      (pstate\<^sub>W_of R', pstate\<^sub>W_of S', pstate\<^sub>W_of T', m', n', h)\<close>
+  apply (induction rule: rtranclp_induct[of r \<open>(_, _, _, _, _, _)\<close> \<open>(_, _, _, _, _, _)\<close>, split_format(complete), of for r])
+  subgoal by auto
+  subgoal for R' S' T' m' n' g' R'' S'' T'' m'' n'' g''
+    using rtranclp_cdcl_twl_stgy_restart_twl_struct_invs[of \<open>(R, S, T, m, n, g)\<close> \<open>(R', S', T', m', n', g')\<close>]
+    by (auto dest: cdcl_twl_stgy_restart_pcdcl)
+  done
+
 (*
 lemma cdcl_twl_stgy_restart_twl_stgy_invs:
   assumes
