@@ -52,6 +52,17 @@ lemma in_set_all_init_atms_iff:
     dest: multi_member_split atm_of_lit_in_atms_of
     simp del: set_image_mset)
 
+lemma all_init_atms_fmdrop_add_mset_unit:
+  \<open>C \<in># dom_m baa \<Longrightarrow> irred baa C \<Longrightarrow>
+    all_init_atms (fmdrop C baa) (add_mset (mset (baa \<propto> C)) da) =
+   all_init_atms baa da\<close>
+  \<open>C \<in># dom_m baa \<Longrightarrow> \<not>irred baa C \<Longrightarrow>
+    all_init_atms (fmdrop C baa) da =
+   all_init_atms baa da\<close>
+  by (auto simp del: all_init_atms_def[symmetric]
+    simp: all_init_atms_def all_init_lits_def
+      init_clss_l_fmdrop_irrelev image_mset_remove1_mset_if)
+
 text \<open>To ease the proof, we introduce the following ``alternative'' definitions, that only considers
   variables that are present in the initial clauses (which are never deleted from the set of
   clauses, but only moved to another component).
@@ -2362,20 +2373,6 @@ proof -
 qed
 
 
-
-(* TODO Move *)
-
-lemma all_init_atms_fmdrop_add_mset_unit:
-  \<open>C \<in># dom_m baa \<Longrightarrow> irred baa C \<Longrightarrow>
-    all_init_atms (fmdrop C baa) (add_mset (mset (baa \<propto> C)) da) =
-   all_init_atms baa da\<close>
-  \<open>C \<in># dom_m baa \<Longrightarrow> \<not>irred baa C \<Longrightarrow>
-    all_init_atms (fmdrop C baa) da =
-   all_init_atms baa da\<close>
-  by (auto simp del: all_init_atms_def[symmetric]
-    simp: all_init_atms_def all_init_lits_def
-      init_clss_l_fmdrop_irrelev image_mset_remove1_mset_if)
-
 lemma cdcl_GC_clauses_prog_wl2:
   assumes \<open>((M, N0, D, NE, UE, NS, US, Q, WS), S) \<in> state_wl_l None \<and>
     correct_watching'' (M, N0, D, NE, UE, NS, US, Q, WS) \<and> cdcl_GC_clauses_pre S \<and>
@@ -2401,6 +2398,7 @@ proof -
     apply (fastforce dest: rtranclp_GC_remap_all_init_lits)
     done
 qed
+
 
 (* TODO: Kill -- seems unused*)
 (*

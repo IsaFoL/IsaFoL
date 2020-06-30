@@ -1812,8 +1812,8 @@ lemma cdcl_twl_stgy_prog_spec: (* \htmllink{cdcl_twl_stgy_prog_spec} *)
   assumes \<open>twl_struct_invs S\<close> and \<open>twl_stgy_invs S\<close> and \<open>clauses_to_update S = {#}\<close> and
     \<open>get_conflict S = None\<close>
   shows
-    \<open>cdcl_twl_stgy_prog S \<le> conclusive_TWL_run S\<close>
-  unfolding cdcl_twl_stgy_prog_def full_def conclusive_TWL_run_def
+    \<open>cdcl_twl_stgy_prog S \<le> conclusive_TWL_norestart_run S\<close>
+  unfolding cdcl_twl_stgy_prog_def full_def conclusive_TWL_norestart_run_def
   apply (refine_vcg WHILEIT_rule[where
      R = \<open>{((brkT, T), (brkS, S)). twl_struct_invs S \<and> cdcl_twl_stgy\<^sup>+\<^sup>+ S T} \<union>
           {((brkT, T), (brkS, S)). S = T \<and> brkT \<and> \<not>brkS}\<close>];
@@ -1896,9 +1896,9 @@ lemma cdcl_twl_stgy_prog_break_spec:
   assumes \<open>twl_struct_invs S\<close> and \<open>twl_stgy_invs S\<close> and \<open>clauses_to_update S = {#}\<close> and
     \<open>get_conflict S = None\<close>
   shows
-    \<open>cdcl_twl_stgy_prog_break S \<le> conclusive_TWL_run S\<close>
-  unfolding cdcl_twl_stgy_prog_break_def full_def conclusive_TWL_run_def
-  apply (refine_vcg cdcl_twl_stgy_prog_spec[unfolded conclusive_TWL_run_def]
+    \<open>cdcl_twl_stgy_prog_break S \<le> conclusive_TWL_norestart_run S\<close>
+  unfolding cdcl_twl_stgy_prog_break_def full_def conclusive_TWL_norestart_run_def
+  apply (refine_vcg cdcl_twl_stgy_prog_spec[unfolded conclusive_TWL_norestart_run_def]
        WHILEIT_rule[where
      R = \<open>{((bT, brkT, T), (bS, brkS, S)). twl_struct_invs S \<and> cdcl_twl_stgy\<^sup>+\<^sup>+ S T} \<union>
           {((bT, brkT, T), (bS, brkS, S)). S = T \<and> brkT \<and> \<not>brkS}\<close>];
@@ -1965,8 +1965,8 @@ lemma cdcl_twl_stgy_prog_early_spec:
   assumes \<open>twl_struct_invs S\<close> and \<open>twl_stgy_invs S\<close> and \<open>clauses_to_update S = {#}\<close> and
     \<open>get_conflict S = None\<close>
   shows
-    \<open>cdcl_twl_stgy_prog_early S \<le> partial_conclusive_TWL_run S\<close>
-  unfolding cdcl_twl_stgy_prog_early_def full_def partial_conclusive_TWL_run_def
+    \<open>cdcl_twl_stgy_prog_early S \<le> partial_conclusive_TWL_norestart_run S\<close>
+  unfolding cdcl_twl_stgy_prog_early_def full_def partial_conclusive_TWL_norestart_run_def
   apply (refine_vcg
        WHILEIT_rule[where
      R = \<open>{((bT, brkT, T), (bS, brkS, S)). twl_struct_invs S \<and> cdcl_twl_stgy\<^sup>+\<^sup>+ S T} \<union>

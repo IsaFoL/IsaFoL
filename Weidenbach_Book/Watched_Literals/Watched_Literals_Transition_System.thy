@@ -5282,11 +5282,11 @@ definition final_twl_state where
   \<open>final_twl_state S \<longleftrightarrow>
       no_step cdcl_twl_stgy S \<or> (get_conflict S \<noteq> None \<and> count_decided (get_trail S) = 0)\<close>
 
-definition partial_conclusive_TWL_run :: \<open>'v twl_st \<Rightarrow> (bool \<times> 'v twl_st) nres\<close> where
-  \<open>partial_conclusive_TWL_run S = SPEC(\<lambda>(b, T). b \<longrightarrow>   cdcl_twl_stgy\<^sup>*\<^sup>* S T \<and> final_twl_state T)\<close>
+definition partial_conclusive_TWL_norestart_run :: \<open>'v twl_st \<Rightarrow> (bool \<times> 'v twl_st) nres\<close> where
+  \<open>partial_conclusive_TWL_norestart_run S = SPEC(\<lambda>(b, T). b \<longrightarrow>   cdcl_twl_stgy\<^sup>*\<^sup>* S T \<and> final_twl_state T)\<close>
 
-definition conclusive_TWL_run :: \<open>'v twl_st \<Rightarrow> 'v twl_st nres\<close> where
-  \<open>conclusive_TWL_run S = SPEC(\<lambda>T. cdcl_twl_stgy\<^sup>*\<^sup>* S T \<and> final_twl_state T)\<close>
+definition conclusive_TWL_norestart_run :: \<open>'v twl_st \<Rightarrow> 'v twl_st nres\<close> where
+  \<open>conclusive_TWL_norestart_run S = SPEC(\<lambda>T. cdcl_twl_stgy\<^sup>*\<^sup>* S T \<and> final_twl_state T)\<close>
 
 
 lemma conflict_of_level_unsatisfiable:

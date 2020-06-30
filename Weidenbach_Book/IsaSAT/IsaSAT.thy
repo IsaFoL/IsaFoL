@@ -27,26 +27,27 @@ text \<open>
   We cannot use \<^term>\<open>cdcl_twl_stgy_restart\<close> since we do not always end in a final state
   for \<^term>\<open>cdcl_twl_stgy\<close>.
 \<close>
-definition conclusive_TWL_run :: \<open>'v twl_st \<Rightarrow> 'v twl_st nres\<close> where
-  \<open>conclusive_TWL_run S =
-    SPEC(\<lambda>T. \<exists>T0 T0' n n'. cdcl_twl_stgy_restart\<^sup>*\<^sup>* (S, S, S, n) (T0, T0', T, n') \<and> final_twl_state T)\<close>
+abbreviation conclusive_TWL_run_bounded where
+  \<open>conclusive_TWL_run_bounded S \<equiv> partial_conclusive_TWL_run S\<close>
 
-definition conclusive_TWL_run_bounded :: \<open>'v twl_st \<Rightarrow> (bool \<times> 'v twl_st) nres\<close> where
-  \<open>conclusive_TWL_run_bounded S =
-    SPEC(\<lambda>(brk, T). \<exists>T0 T0' n n'. cdcl_twl_stgy_restart\<^sup>*\<^sup>* (S, S, S, n) (T0, T0', T, n') \<and>
-       (\<not>brk \<longrightarrow> final_twl_state T))\<close>
+(* definition conclusive_TWL_run_bounded :: \<open>'v twl_st \<Rightarrow> (bool \<times> 'v twl_st) nres\<close> where
+ *   \<open>conclusive_TWL_run_bounded S =
+ *     SPEC(\<lambda>(brk, T). \<exists>T0 T0' n n'. cdcl_twl_stgy_restart\<^sup>*\<^sup>* (S, S, S, n) (T0, T0', T, n') \<and>
+ *        (\<not>brk \<longrightarrow> final_twl_state T))\<close> *)
 
-text \<open>To get a full CDCL run:
-  \<^item> either we fully apply \<^term>\<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy\<close> (up to restarts)
-  \<^item> or we can stop early.
+text \<open>
+  Before introducing the pragmatic CDCL version, we expressed the specification all the level
+  up to Weidenbach's CDCL, but now we stop at the pragmatic CDCL. Technically, we could actually
+  skip the part on the calculus and simply use the conclusive part (no conflict and model, 
+  conflict and unsat), but this version is nicer on paper to highlight the refinement approach.
 \<close>
-definition conclusive_CDCL_run where
+definition conclusive_CDCL_run :: \<open>'v clauses \<Rightarrow> 'v prag_st \<Rightarrow> 'v prag_st \<Rightarrow> bool\<close> where
   \<open>conclusive_CDCL_run CS T U \<longleftrightarrow>
-      (\<exists>n n'. cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_restart_stgy\<^sup>*\<^sup>* (T, n) (U, n') \<and>
-              no_step cdcl\<^sub>W_restart_mset.cdcl\<^sub>W (U)) \<or>
-          (CS \<noteq> {#} \<and> conflicting U \<noteq> None \<and> count_decided (trail U) = 0 \<and>
-          unsatisfiable (set_mset CS))\<close>
-term cdcl_twl_stgy_restart_prog_bounded
+       (pget_conflict U = None \<longrightarrow> (consistent_interp (lits_of_l (pget_trail U)) \<and> 
+             pget_trail U \<Turnstile>as (set_mset CS))) \<and>
+       (pget_conflict U \<noteq> None \<longrightarrow> (CS \<noteq> {#} \<and> count_decided (pget_trail U) = 0 \<and>
+          unsatisfiable (set_mset CS)))\<close>
+
 lemma cdcl_twl_stgy_restart_restart_prog_spec: \<open>twl_struct_invs S \<Longrightarrow>
   twl_stgy_invs S \<Longrightarrow>
   clauses_to_update S = {#} \<Longrightarrow>
@@ -67,11 +68,8 @@ lemma cdcl_twl_stgy_restart_prog_bounded_spec: \<open>twl_struct_invs S \<Longri
   cdcl_twl_stgy_restart_prog_bounded S \<le> conclusive_TWL_run_bounded S\<close>
   apply (rule order_trans)
   apply (rule cdcl_twl_stgy_prog_bounded_spec; assumption?)
-  unfolding conclusive_TWL_run_bounded_def twl_restart_def
-  apply (rule SPEC_rule)
-  unfolding case_prod_beta
-  apply normalize_goal+
-  by blast
+  by auto
+
 (* find_theorems cdcl_twl_stgy_restart_prog_bounded
  * lemma cdcl_twl_stgy_restart_restart_prog_early_spec: \<open>twl_struct_invs S \<Longrightarrow>
  *   twl_stgy_invs S \<Longrightarrow>
@@ -102,6 +100,395 @@ lemma rtranclp_cdcl\<^sub>W_cdcl\<^sub>W_init_state:
       simp del: init_state.simps
        dest: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_cdcl\<^sub>W cdcl\<^sub>W_ex_cdcl\<^sub>W_stgy)
 
+lemma rtranclp_pcdcl_core_is_cdcl:
+  \<open>pcdcl_core\<^sup>*\<^sup>* S T \<Longrightarrow> cdcl\<^sub>W_restart_mset.cdcl\<^sub>W\<^sup>*\<^sup>* (state_of S) (state_of T)\<close>
+  by (induction rule: rtranclp.induct)
+    (auto dest: pcdcl_core_is_cdcl)
+
+lemma pcdcl_tcore_is_cdclD:
+  \<open>pcdcl_tcore T T' \<Longrightarrow>
+    cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_restart\<^sup>*\<^sup>* (state_of T) (state_of T')\<close>
+  by (induction rule: pcdcl_tcore.induct)
+    (auto intro: pcdcl_restart.intros dest!: pcdcl_core_is_cdcl
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_cdcl\<^sub>W_restart pcdcl_tcore_stgy_pcdcl_tcoreD
+      state_of_cdcl_subsumed cdcl_flush_unit_unchanged
+      cdcl_backtrack_unit_is_CDCL_backtrack)
+
+fun pinit_state :: \<open>'v clauses \<Rightarrow> 'v prag_st\<close> where
+"pinit_state N = ([], N, {#}, None, {#}, {#}, {#}, {#})"
+
+lemma get_all_clss_alt_def:
+  \<open>get_all_clss S = get_all_init_clss S + get_all_learned_clss S\<close>
+  by (cases S) (auto simp: ac_simps clauses_def)
+
+lemma rtranclp_pcdcl_entailed_by_init:
+  assumes \<open>pcdcl\<^sup>*\<^sup>* S T\<close> and
+    \<open>pcdcl_all_struct_invs S\<close> and
+    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state_of S)\<close>
+  shows \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state_of T)\<close>
+  using assms
+  by (induction rule: rtranclp_induct)
+   (auto dest!: pcdcl_entailed_by_init
+    intro: rtranclp_pcdcl_all_struct_invs)
+
+lemma pcdcl_restart_entailed_by_init:
+  assumes \<open>pcdcl_restart S T\<close> and
+    \<open>pcdcl_all_struct_invs S\<close> and
+    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state_of S)\<close>
+  shows \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state_of T)\<close>
+  using assms
+  apply (induction rule: pcdcl_restart.induct)
+  subgoal
+    by (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init_def
+      subset_mset.le_iff_add ac_simps)
+  subgoal
+    by (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init_def
+      subset_mset.le_iff_add ac_simps)
+  done
+    
+lemma pcdcl_restart_only_entailed_by_init:
+  assumes \<open>pcdcl_restart_only S T\<close> and
+    \<open>pcdcl_all_struct_invs S\<close> and
+    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state_of S)\<close>
+  shows \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state_of T)\<close>
+  using assms
+  apply (induction rule: pcdcl_restart_only.induct)
+  subgoal
+    by (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init_def
+      subset_mset.le_iff_add ac_simps)
+  done
+
+lemma pcdcl_stgy_restart_entailed_by_init:
+  assumes \<open>pcdcl_stgy_restart (R1, R2, S, m, n, f) (R1', R2', T, m', n', f')\<close> and
+    \<open>pcdcl_all_struct_invs S\<close> and
+    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state_of S)\<close>
+  shows \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state_of T)\<close>
+  using assms
+  apply (induction \<open>(R1, R2, S, m, n, f)\<close> \<open>(R1', R2', T, m', n', f')\<close> rule: pcdcl_stgy_restart.induct)
+  subgoal
+    using pcdcl_tcore_stgy_pcdcl_stgy' rtranclp_pcdcl_entailed_by_init rtranclp_pcdcl_stgy_pcdcl
+    by blast
+  subgoal for U
+    using pcdcl_restart_entailed_by_init[of S U]
+    by (auto dest!: pcdcl_tcore_stgy_pcdcl_stgy' rtranclp_pcdcl_entailed_by_init
+      rtranclp_pcdcl_stgy_pcdcl
+      dest: pcdcl_restart_pcdcl_all_struct_invs)
+  subgoal
+    using pcdcl_restart_only_entailed_by_init[of S U]
+    by (auto dest!: pcdcl_tcore_stgy_pcdcl_stgy' rtranclp_pcdcl_entailed_by_init
+      rtranclp_pcdcl_stgy_pcdcl
+      dest: pcdcl_restart_only_entailed_by_init)
+  subgoal
+    by auto
+  done
+
+lemma pcdcl_stgy_restart_pcdcl_all_struct_invs:
+  assumes \<open>pcdcl_stgy_restart (R1, R2, S, m, n, f) (R1', R2', T, m', n', f')\<close> and
+    \<open>pcdcl_all_struct_invs S\<close>
+  shows \<open>pcdcl_all_struct_invs T\<close>
+  using assms
+  apply (induction \<open>(R1, R2, S, m, n, f)\<close> \<open>(R1', R2', T, m', n', f')\<close> rule: pcdcl_stgy_restart.induct)
+  apply (simp_all add: pcdcl_tcore_stgy_all_struct_invs pcdcl_restart_pcdcl_all_struct_invs
+    rtranclp_pcdcl_all_struct_invs rtranclp_pcdcl_stgy_pcdcl)
+  using pcdcl_restart_pcdcl_all_struct_invs rtranclp_pcdcl_all_struct_invs rtranclp_pcdcl_stgy_pcdcl apply blast
+  using pcdcl_restart_only_pcdcl_all_struct_invs by blast
+    
+lemma rtranclp_pcdcl_stgy_restart_pcdcl_all_struct_invs:
+  assumes \<open>pcdcl_stgy_restart\<^sup>*\<^sup>* (R1, R2, S, m, n, f) (R1', R2', T, m', n', f')\<close> and
+    \<open>pcdcl_all_struct_invs S\<close>
+  shows \<open>pcdcl_all_struct_invs T\<close>
+  using assms
+  by (induction rule: rtranclp_induct[of r \<open>(_, _, _, _, _, _)\<close> \<open>(_, _, _, _, _, _)\<close>, split_format(complete), of for r])
+    (auto dest!: pcdcl_stgy_restart_pcdcl_all_struct_invs)
+
+lemma rtranclp_pcdcl_stgy_restart_entailed_by_init:
+  assumes \<open>pcdcl_stgy_restart\<^sup>*\<^sup>* (R1, R2, S, m, n, f) (R1', R2', T, m', n', f')\<close> and
+    \<open>pcdcl_all_struct_invs S\<close> and
+    \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state_of S)\<close>
+  shows \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state_of T)\<close>
+  using assms
+  by (induction rule: rtranclp_induct[of r \<open>(_, _, _, _, _, _)\<close> \<open>(_, _, _, _, _, _)\<close>, split_format(complete), of for r])
+   (auto dest!: pcdcl_stgy_restart_entailed_by_init rtranclp_pcdcl_stgy_restart_pcdcl_all_struct_invs)
+
+lemma pcdcl_core_entailed_iff:
+  \<open>pcdcl_core S T \<Longrightarrow> M \<Turnstile>m pget_all_init_clss T \<longleftrightarrow> M \<Turnstile>m pget_all_init_clss S\<close>
+  by (induction rule: pcdcl_core.induct)
+   (auto simp: cdcl_conflict.simps cdcl_propagate.simps cdcl_skip.simps
+    cdcl_decide.simps cdcl_resolve.simps cdcl_backtrack.simps)
+
+lemma pcdcl_entailed_iff:
+  \<open>pcdcl S T \<Longrightarrow> consistent_interp M \<Longrightarrow> total_over_set M (atms_of_mm (pget_all_init_clss T)) \<Longrightarrow> M \<Turnstile>m pget_all_init_clss T \<longleftrightarrow> M \<Turnstile>m pget_all_init_clss S\<close>
+  apply (induction rule: pcdcl.induct)
+  subgoal
+    by (auto simp: pcdcl_core_entailed_iff)
+  subgoal
+    by (auto simp: cdcl_learn_clause.simps true_clss_cls_def total_over_m_def
+      dest: spec[of _ M])
+  subgoal
+    by (auto simp: cdcl_resolution.simps total_over_m_def consistent_interp_def)
+  subgoal
+    by (auto simp: cdcl_subsumed.simps)
+  subgoal
+    by (auto simp: cdcl_flush_unit.simps)
+  done
+
+lemma pcdcl_core_same_init_vars:
+  \<open>pcdcl_core S T \<Longrightarrow> atms_of_mm (pget_all_init_clss S) = atms_of_mm (pget_all_init_clss T)\<close>
+  by (induction rule: pcdcl_core.induct)
+   (auto simp: cdcl_conflict.simps cdcl_propagate.simps cdcl_skip.simps
+    cdcl_decide.simps cdcl_resolve.simps cdcl_backtrack.simps)
+
+lemma pcdcl_same_init_vars:
+  \<open>pcdcl S T \<Longrightarrow> atms_of_mm (pget_all_init_clss S) = atms_of_mm (pget_all_init_clss T)\<close>
+  apply (induction rule: pcdcl.induct)
+  subgoal
+    by (auto simp: pcdcl_core_same_init_vars)
+  subgoal
+    by (auto simp: cdcl_learn_clause.simps)
+  subgoal
+    by (auto simp: cdcl_resolution.simps)
+  subgoal
+    by (auto simp: cdcl_subsumed.simps)
+  subgoal
+    by (auto simp: cdcl_flush_unit.simps)
+  done
+  
+lemma rtranclp_pcdcl_same_init_vars:
+  \<open>pcdcl\<^sup>*\<^sup>* S T \<Longrightarrow> atms_of_mm (pget_all_init_clss S) = atms_of_mm (pget_all_init_clss T)\<close>
+  by (induction rule: rtranclp_induct)
+    (auto dest: pcdcl_same_init_vars)
+
+lemma pcdcl_restart_same_init_vars:
+  \<open>pcdcl_restart S T \<Longrightarrow> atms_of_mm (pget_all_init_clss S) = atms_of_mm (pget_all_init_clss T)\<close>
+  by (induction rule: pcdcl_restart.induct) auto
+
+lemma pcdcl_restart_only_same_init_vars:
+  \<open>pcdcl_restart_only S T \<Longrightarrow> atms_of_mm (pget_all_init_clss S) = atms_of_mm (pget_all_init_clss T)\<close>
+  by (induction rule: pcdcl_restart_only.induct) auto
+
+lemma rtranclp_pcdcl_entailed_iff:
+  \<open>pcdcl\<^sup>*\<^sup>* S T \<Longrightarrow> consistent_interp M \<Longrightarrow> total_over_set M (atms_of_mm (pget_all_init_clss T)) \<Longrightarrow> M \<Turnstile>m pget_all_init_clss T \<longleftrightarrow> M \<Turnstile>m pget_all_init_clss S\<close>
+  apply (induction rule: rtranclp_induct)
+  subgoal by auto
+  subgoal for T U
+    using rtranclp_pcdcl_same_init_vars[of S T] pcdcl_same_init_vars[of T U]
+    by (auto dest!: pcdcl_entailed_iff[of _ _ M] simp del: atms_of_ms_union)
+  done
+    
+    
+lemma pcdcl_restart_entailed_iff:
+  \<open>pcdcl_restart S T \<Longrightarrow> M \<Turnstile>m pget_all_init_clss T \<longleftrightarrow> M \<Turnstile>m pget_all_init_clss S\<close>
+  by (induction rule: pcdcl_restart.induct) (auto)
+
+lemma pcdcl_restart_only_entailed_iff:
+  \<open>pcdcl_restart_only S T \<Longrightarrow> M \<Turnstile>m pget_all_init_clss T \<longleftrightarrow> M \<Turnstile>m pget_all_init_clss S\<close>
+  by (induction rule: pcdcl_restart_only.induct) (auto)
+
+
+lemma pcdcl_stgy_restart_same_init_vars:
+  \<open>pcdcl_stgy_restart  (R1, R2, S, m, n, f) (R1', R2', T, m', n', f') \<Longrightarrow>
+     atms_of_mm (pget_all_init_clss S) = atms_of_mm (pget_all_init_clss T)\<close>
+  apply (induction \<open>(R1, R2, S, m, n, f)\<close> \<open>(R1', R2', T, m', n', f')\<close> rule: pcdcl_stgy_restart.induct)
+  subgoal
+    by (auto dest!: pcdcl_restart_only_entailed_iff pcdcl_restart_entailed_iff
+      dest!: rtranclp_pcdcl_stgy_pcdcl pcdcl_tcore_stgy_pcdcl_stgy'
+      rtranclp_pcdcl_stgy_pcdcl simp: rtranclp_pcdcl_same_init_vars)
+  subgoal
+    by (auto simp: pcdcl_restart_same_init_vars rtranclp_pcdcl_same_init_vars
+      dest!: rtranclp_pcdcl_stgy_pcdcl pcdcl_tcore_stgy_pcdcl_stgy'
+      rtranclp_pcdcl_stgy_pcdcl)
+  subgoal
+    by (auto simp: pcdcl_restart_only_same_init_vars)
+  subgoal
+    by auto
+  done
+
+lemma rtranclp_pcdcl_stgy_restart_same_init_vars:
+  \<open>pcdcl_stgy_restart\<^sup>*\<^sup>*  (R1, R2, S, m, n, f) (R1', R2', T, m', n', f') \<Longrightarrow>
+     atms_of_mm (pget_all_init_clss S) = atms_of_mm (pget_all_init_clss T)\<close>
+  apply (induction rule: rtranclp_induct[of r \<open>(_, _, _, _, _, _)\<close> \<open>(_, _, _, _, _, _)\<close>, split_format(complete), of for r])
+  subgoal
+    by (auto dest!: pcdcl_restart_only_entailed_iff pcdcl_restart_entailed_iff
+      dest!: rtranclp_pcdcl_stgy_pcdcl pcdcl_tcore_stgy_pcdcl_stgy'
+      rtranclp_pcdcl_stgy_pcdcl simp: rtranclp_pcdcl_same_init_vars)
+  subgoal
+    by (auto dest!: pcdcl_stgy_restart_same_init_vars)
+  done
+
+lemma pcdcl_stgy_restart_entailed_iff:
+  \<open>pcdcl_stgy_restart  (R1, R2, S, m, n, f) (R1', R2', T, m', n', f') \<Longrightarrow>
+  consistent_interp M \<Longrightarrow> total_over_set M (atms_of_mm (pget_all_init_clss T)) \<Longrightarrow>
+  M \<Turnstile>m pget_all_init_clss T \<longleftrightarrow> M \<Turnstile>m pget_all_init_clss S\<close>
+  by (induction \<open>(R1, R2, S, m, n, f)\<close> \<open>(R1', R2', T, m', n', f')\<close> rule: pcdcl_stgy_restart.induct)
+   (auto dest!: pcdcl_restart_only_entailed_iff pcdcl_restart_entailed_iff
+    dest!: rtranclp_pcdcl_stgy_pcdcl pcdcl_tcore_stgy_pcdcl_stgy'
+      rtranclp_pcdcl_stgy_pcdcl rtranclp_pcdcl_entailed_iff)
+
+lemma rtranclp_pcdcl_restart_entailed_iff:
+  \<open>pcdcl_stgy_restart\<^sup>*\<^sup>*  (R1, R2, S, m, n, f) (R1', R2', T, m', n', f') \<Longrightarrow>
+  consistent_interp M \<Longrightarrow> total_over_set M (atms_of_mm (pget_all_init_clss T)) \<Longrightarrow>
+  M \<Turnstile>m pget_all_init_clss T \<longleftrightarrow> M \<Turnstile>m pget_all_init_clss S\<close>
+  apply (induction rule: rtranclp_induct[of r \<open>(_, _, _, _, _, _)\<close> \<open>(_, _, _, _, _, _)\<close>, split_format(complete), of for r])
+  subgoal by auto
+  subgoal for T U
+    apply (frule pcdcl_stgy_restart_entailed_iff; assumption?)
+    apply (frule rtranclp_pcdcl_stgy_restart_same_init_vars)
+    apply (frule pcdcl_stgy_restart_same_init_vars)
+    by (auto dest: )
+  done
+
+lemma [simp]: \<open>pget_all_init_clss (pstate\<^sub>W_of S) = (get_all_init_clss S)\<close>
+  by (cases S) auto
+
+lemma empty_entails_novars_iff: \<open>atms_of_mm S = {} \<Longrightarrow> {} \<Turnstile>ps set_mset S \<longleftrightarrow> S = {#}\<close>
+  unfolding true_clss_clss_def
+  by (cases S) (auto simp: satisfiable_def total_over_m_def intro: Ex_consistent_interp)
+
+lemma
+  assumes
+    struct: \<open>twl_struct_invs S\<close> and
+    stgy: \<open>twl_stgy_invs S\<close> and
+    init: \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state\<^sub>W_of S)\<close>
+  shows \<open>conclusive_TWL_run S
+    \<le> \<Down> (br pstate\<^sub>W_of (\<lambda>_. True))
+       (SPEC
+         (conclusive_CDCL_run (get_all_init_clss S) (pstate\<^sub>W_of S)))\<close>
+  unfolding conclusive_TWL_run_def
+proof (rule RES_refine)
+  fix s
+  assume \<open>s \<in> {Ta.
+             \<exists>T0 T0' n'.
+                cdcl_twl_stgy_restart\<^sup>*\<^sup>* (S, S, S, 0, 0, True) (T0, T0', Ta, n') \<and>
+    final_twl_state Ta}\<close>
+  then obtain T0 T0' m' n' f' where
+    st: \<open>cdcl_twl_stgy_restart\<^sup>*\<^sup>* (S, S, S, 0, 0, True) (T0, T0', s, m', n', f')\<close> and
+    final: \<open>final_twl_state s\<close>
+    by fast
+  have pcdcl_invs: \<open>pcdcl_all_struct_invs (pstate\<^sub>W_of S)\<close>
+    using struct unfolding twl_struct_invs_def by auto
+  from rtranclp_cdcl_twl_stgy_restart_pcdcl[OF st struct struct struct]
+  have pcdcl: \<open>pcdcl_stgy_restart\<^sup>*\<^sup>* (pstate\<^sub>W_of S, pstate\<^sub>W_of S, pstate\<^sub>W_of S, 0, 0, True)
+    (pstate\<^sub>W_of T0, pstate\<^sub>W_of T0', pstate\<^sub>W_of s, m', n', f')\<close> .
+  have struct_invs_s: \<open>twl_struct_invs s\<close>
+    using rtranclp_cdcl_twl_stgy_restart_twl_struct_invs[OF st] struct
+    by auto
+  have alien: \<open>cdcl\<^sub>W_restart_mset.no_strange_atm (state\<^sub>W_of s)\<close>
+    using struct_invs_s unfolding twl_struct_invs_def pcdcl_all_struct_invs_def
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
+    by auto
+  then have atms_eq: \<open>atms_of_mm (get_all_clss s) = atms_of_mm (pget_all_init_clss (pstate\<^sub>W_of s))\<close>
+    unfolding cdcl\<^sub>W_restart_mset.no_strange_atm_def
+    by (cases s) (auto)
+  have stgy_invs_s: \<open>twl_stgy_invs s\<close>
+    using rtranclp_cdcl_twl_stgy_restart_twl_stgy_invs[OF st] stgy struct
+    by (auto simp: twl_restart_inv_def pcdcl_stgy_restart_inv_def
+      twl_struct_invs_def)
+  have H1: \<open>consistent_interp (lits_of_l (get_trail s))\<close>
+      \<open>get_trail s \<Turnstile>asm get_all_init_clss S\<close>
+    if confl: \<open>get_conflict s = None\<close>
+  proof -
+    have \<open>no_step cdcl_twl_stgy s\<close>
+      using confl final unfolding final_twl_state_def
+      by blast
+    then have \<open>no_step pcdcl_core_stgy (pstate\<^sub>W_of s)\<close>
+      by (rule no_step_cdcl_twl_stgy_no_step_cdcl\<^sub>W_stgy[OF _ struct_invs_s])
+    then have nss: \<open>no_step cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy (state_of (pstate\<^sub>W_of s))\<close>
+      by (rule no_step_pcdcl_core_stgy_is_cdcl_stgy)
+        (use struct_invs_s in \<open>auto simp: twl_struct_invs_def pcdcl_all_struct_invs_def\<close>)
+    show \<open>consistent_interp (lits_of_l (get_trail s))\<close>
+      using struct_invs_s unfolding twl_struct_invs_def pcdcl_all_struct_invs_def
+        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
+      by auto
+    moreover {
+      have nss': \<open>no_step cdcl\<^sub>W_restart_mset.cdcl\<^sub>W (state\<^sub>W_of s)\<close>
+        using nss by (auto dest: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_Ex_cdcl\<^sub>W_stgy)
+      have \<open>total_over_set (lits_of_l (get_trail s))
+       (atms_of_mm (pget_all_init_clss (pstate\<^sub>W_of s)))\<close>
+       using cdcl\<^sub>W_restart_mset.no_step_cdcl\<^sub>W_total[of \<open>(state\<^sub>W_of s)\<close>, OF nss']
+         confl struct_invs_s atms_eq unfolding twl_struct_invs_def pcdcl_all_struct_invs_def
+         cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def total_over_m_def
+       by auto
+    }
+    ultimately show \<open>get_trail s \<Turnstile>asm get_all_init_clss S\<close>
+      using struct_invs_s rtranclp_pcdcl_restart_entailed_iff[OF pcdcl, of \<open>lits_of_l  (get_trail s)\<close>]
+        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_final_state_conclusive2[OF nss] confl
+      unfolding twl_struct_invs_def pcdcl_all_struct_invs_def
+        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+      by (auto simp: get_all_clss_alt_def true_annots_true_cls)
+  qed
+
+  have H2: \<open>cdcl\<^sub>W_restart_mset.clauses (state_of (pstate\<^sub>W_of s)) \<Turnstile>pm T\<close>
+    if \<open>conflicting (state\<^sub>W_of s) = Some T\<close>
+    for T
+    using struct_invs_s that unfolding twl_struct_invs_def pcdcl_all_struct_invs_def
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def
+    by auto
+  then have H3: \<open>get_conflict s \<noteq> None \<Longrightarrow> get_all_init_clss s \<noteq> {#}\<close>
+    using rtranclp_pcdcl_stgy_restart_entailed_by_init[OF pcdcl pcdcl_invs] init
+      alien
+    by (force simp: get_all_clss_alt_def cdcl\<^sub>W_restart_mset.no_strange_atm_def
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init_def empty_entails_novars_iff)
+  have H4:
+     \<open>unsatisfiable (set_mset (get_all_init_clss S))\<close>
+    if confl: \<open>get_conflict s \<noteq> None\<close> \<open>count_decided (get_trail s) = 0\<close>
+  proof -
+    have \<open>unsatisfiable (set_mset (init_clss (state\<^sub>W_of s)))\<close>
+      by (rule conflict_of_level_unsatisfiable[of \<open>state\<^sub>W_of s\<close>])
+       (use confl struct_invs_s init
+          rtranclp_pcdcl_stgy_restart_entailed_by_init[OF pcdcl pcdcl_invs]
+        in \<open>auto simp: twl_struct_invs_def pcdcl_all_struct_invs_def
+          cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def\<close>)
+    then show \<open>unsatisfiable (set_mset (get_all_init_clss S))\<close>
+      using rtranclp_pcdcl_restart_entailed_iff[OF pcdcl]
+        rtranclp_pcdcl_stgy_restart_same_init_vars[OF pcdcl]
+      by (auto simp: satisfiable_def total_over_m_def)
+  qed
+ 
+  have H5: False
+    if confl: \<open>get_conflict s \<noteq> None\<close> \<open>count_decided (get_trail s) \<noteq> 0\<close>
+  proof -
+    have \<open>no_step cdcl_twl_stgy s\<close>
+      using confl final unfolding final_twl_state_def
+      by auto
+
+    then have \<open>no_step pcdcl_core_stgy (pstate\<^sub>W_of s)\<close>
+      by (rule no_step_cdcl_twl_stgy_no_step_cdcl\<^sub>W_stgy[OF _ struct_invs_s])
+    then have nss: \<open>no_step cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy (state_of (pstate\<^sub>W_of s))\<close>
+      by (rule no_step_pcdcl_core_stgy_is_cdcl_stgy)
+        (use struct_invs_s in \<open>auto simp: twl_struct_invs_def pcdcl_all_struct_invs_def\<close>)
+    show False
+      using struct_invs_s rtranclp_pcdcl_restart_entailed_iff[OF pcdcl, of \<open>lits_of_l  (get_trail s)\<close>]
+        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_final_state_conclusive2[OF nss] confl
+        stgy_invs_s
+      unfolding twl_struct_invs_def pcdcl_all_struct_invs_def
+        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+        twl_stgy_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant_def
+        cdcl\<^sub>W_restart_mset.conflict_non_zero_unless_level_0_def
+      by (auto simp: get_all_clss_alt_def true_annots_true_cls)
+  qed
+
+  show \<open>\<exists>s'\<in>Collect (conclusive_CDCL_run (get_all_init_clss S) (pstate\<^sub>W_of S)).
+    (s, s') \<in> (br pstate\<^sub>W_of (\<lambda>_. True))\<close>
+    apply (rule_tac x = \<open>pstate\<^sub>W_of s\<close> in bexI)
+    apply (solves \<open>auto simp: br_def\<close>)
+    unfolding conclusive_CDCL_run_def mem_Collect_eq
+    apply (rule conjI)
+    apply (rule exI[of _ \<open>pstate\<^sub>W_of T0\<close>])
+    apply (rule exI[of _ \<open>pstate\<^sub>W_of T0'\<close>])
+    apply (rule exI[of _ 0])
+    apply (rule exI[of _ m'])
+    apply (rule exI[of _ 0])
+    apply (rule exI[of _ n'])
+    apply (rule exI[of _ True])
+    apply (rule exI[of _ f'])
+    apply (use pcdcl in \<open>auto\<close>)[]
+    using H1 H2 H3 H4 H5
+    apply (cases \<open>count_decided (get_trail s) = 0\<close>)
+    apply force+
+    done
+qed
+
 definition init_state_l :: \<open>'v twl_st_l_init\<close> where
   \<open>init_state_l = (([], fmempty, None, {#}, {#}, {#}, {#}, {#}, {#}), {#})\<close>
 
@@ -124,9 +511,9 @@ lemma init_dt_pre_init:
 
 
 text \<open>This is the specification of the SAT solver:\<close>
-definition SAT :: \<open>nat clauses \<Rightarrow> nat cdcl\<^sub>W_restart_mset nres\<close> where
+definition SAT :: \<open>nat clauses \<Rightarrow> nat prag_st nres\<close> where
   \<open>SAT CS = do{
-    let T = init_state CS;
+    let T = pinit_state CS;
     SPEC (conclusive_CDCL_run CS T)
   }\<close>
 
@@ -226,12 +613,12 @@ lemma [twl_st_init,simp]:
 
 lemma SAT0_SAT:
   assumes \<open>Multiset.Ball (mset `# mset CS) distinct_mset\<close>
-  shows \<open>SAT0 CS \<le> \<Down> {(S, T). T = state\<^sub>W_of S} (SAT (mset `# mset CS))\<close>
+  shows \<open>SAT0 CS \<le> \<Down> {(S, T). T = pstate\<^sub>W_of S} (SAT (mset `# mset CS))\<close>
 proof -
   have conflict_during_init: \<open>RETURN (fst T)
-	\<le> \<Down> {(S, T). T = state\<^sub>W_of S}
+	\<le> \<Down> {(S, T). T = pstate\<^sub>W_of S}
 	   (SPEC (conclusive_CDCL_run (mset `# mset CS)
-	       (init_state (mset `# mset CS))))\<close>
+	       (pinit_state (mset `# mset CS))))\<close>
     if
       spec: \<open>T \<in> Collect (init_dt_spec0 CS (to_init_state0 init_state0))\<close> and
       confl: \<open>get_conflict (fst T) \<noteq> None\<close>
@@ -298,7 +685,7 @@ proof -
     show ?thesis
       unfolding conclusive_CDCL_run_def
       apply (rule RETURN_SPEC_refine)
-      apply (rule exI[of _ \<open>state\<^sub>W_of (fst T)\<close>])
+      apply (rule exI[of _ \<open>pstate\<^sub>W_of (fst T)\<close>])
       apply (intro conjI)
       subgoal
         by auto
@@ -2362,7 +2749,7 @@ definition model_if_satisfiable :: \<open>nat clauses \<Rightarrow> nat literal 
 definition SAT' :: \<open>nat clauses \<Rightarrow> nat literal list option nres\<close> where
   \<open>SAT' CS = do {
      T \<leftarrow> SAT CS;
-     RETURN(if conflicting T = None then Some (map lit_of (trail T)) else None)
+     RETURN (if conflicting T = None then Some (map lit_of (trail T)) else None)
   }
 \<close>
 

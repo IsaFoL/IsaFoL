@@ -348,12 +348,9 @@ lemma (in twl_restart) cdcl_twl_stgy_prog_bounded_int_spec:
   assumes \<open>twl_struct_invs S\<close> and \<open>twl_stgy_invs S\<close> and \<open>clauses_to_update S = {#}\<close> and
     \<open>get_conflict S = None\<close>
   shows
-    \<open>cdcl_twl_stgy_restart_prog_bounded_int S \<le> SPEC(\<lambda>(brk, T).
-      \<exists> R' S' m n b. (cdcl_twl_stgy_restart\<^sup>*\<^sup>* (S, S, S, 0, 0, True) (R', S', T, m, n, b) \<and>
-        (\<not>brk \<longrightarrow> final_twl_state T)))\<close>
-    (is \<open>_ \<le> SPEC ?P\<close>)
+    \<open>cdcl_twl_stgy_restart_prog_bounded_int S \<le> partial_conclusive_TWL_run S\<close>
   supply RETURN_as_SPEC_refine[refine2 del]
-  unfolding cdcl_twl_stgy_restart_prog_bounded_int_def full_def
+  unfolding cdcl_twl_stgy_restart_prog_bounded_int_def full_def partial_conclusive_TWL_run_def
   apply (refine_vcg
     WHILEIT_rule[where
     R = \<open>cdcl_algo_termination_early_rel\<close>];
@@ -385,9 +382,7 @@ lemma (in twl_restart) cdcl_twl_stgy_prog_bounded_int_spec:
   subgoal for x brk T U m n ebrk V
     apply (rule_tac x=T in exI)
     apply (rule_tac x=U in exI)
-    apply (rule_tac x=m in exI)
-    apply (rule_tac x=n in exI)
-    apply (rule_tac x=\<open>\<not>brk\<close> in exI)
+    apply (rule_tac x= \<open>(m, n, \<not>brk)\<close> in exI)
     by (auto simp add: cdcl_twl_stgy_restart_prog_int_inv_def)
   done
 
@@ -397,12 +392,7 @@ lemma cdcl_twl_stgy_restart_prog_int_spec:
   assumes \<open>twl_struct_invs S\<close> and \<open>twl_stgy_invs S\<close> and \<open>clauses_to_update S = {#}\<close> and
     \<open>get_conflict S = None\<close>
   shows
-    \<open>cdcl_twl_stgy_restart_prog_int S \<le> SPEC(\<lambda>T.
-       \<exists>R' S' m n b.
-              cdcl_twl_stgy_restart\<^sup>*\<^sup>* (S, S, S, 0, 0, True)
-               (R', S', T, m, n, b) \<and>
-        final_twl_state T)\<close>
-    (is \<open>_ \<le> SPEC(\<lambda>T. ?P T)\<close>)
+    \<open>cdcl_twl_stgy_restart_prog_int S \<le> conclusive_TWL_run S\<close>
 proof -
   define RETURN_FALSE where \<open>RETURN_FALSE = RETURN False\<close>
   have cdcl_twl_stgy_restart_prog_alt_def:
@@ -458,7 +448,7 @@ proof -
     apply (rule order_trans[OF ref_early])
     apply (rule order_trans[OF ref_two_step'])
     apply (rule cdcl_twl_stgy_prog_bounded_int_spec[OF assms])
-    unfolding conc_fun_RES by fastforce
+    unfolding conc_fun_RES partial_conclusive_TWL_run_def conclusive_TWL_run_def by fastforce
 qed
 
 end
@@ -614,11 +604,7 @@ lemma (in twl_restart) cdcl_twl_stgy_restart_prog_spec:
   assumes \<open>twl_struct_invs S\<close> and \<open>twl_stgy_invs S\<close> and \<open>clauses_to_update S = {#}\<close> and
     \<open>get_conflict S = None\<close>
   shows
-    \<open>cdcl_twl_stgy_restart_prog S \<le> SPEC(\<lambda>T.
-       \<exists>R' S' m n b.
-              cdcl_twl_stgy_restart\<^sup>*\<^sup>* (S, S, S, 0, 0, True)
-               (R', S', T, m, n, b) \<and>
-        final_twl_state T)\<close>
+    \<open>cdcl_twl_stgy_restart_prog S \<le> conclusive_TWL_run S\<close>
   apply (rule order_trans)
   apply (rule cdcl_twl_stgy_restart_prog_cdcl_twl_stgy_restart_prog_int[THEN fref_to_Down, of _ S])
   apply simp
@@ -689,10 +675,7 @@ lemma (in twl_restart) cdcl_twl_stgy_prog_bounded_spec:
   assumes \<open>twl_struct_invs S\<close> and \<open>twl_stgy_invs S\<close> and \<open>clauses_to_update S = {#}\<close> and
     \<open>get_conflict S = None\<close>
   shows
-    \<open>cdcl_twl_stgy_restart_prog_bounded S \<le> SPEC(\<lambda>(brk, T).
-      \<exists> R' S' m n b. (cdcl_twl_stgy_restart\<^sup>*\<^sup>* (S, S, S, 0, 0, True) (R', S', T, m, n, b) \<and>
-        (\<not>brk \<longrightarrow> final_twl_state T)))\<close>
-    (is \<open>_ \<le> SPEC ?P\<close>)
+    \<open>cdcl_twl_stgy_restart_prog_bounded S \<le> partial_conclusive_TWL_run S\<close>
   apply (rule order_trans)
   apply (rule cdcl_twl_stgy_restart_prog_bounded_cdcl_twl_stgy_restart_prog_bounded_int[THEN fref_to_Down, of _ S])
   apply simp

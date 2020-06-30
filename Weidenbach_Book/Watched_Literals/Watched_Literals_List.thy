@@ -3209,7 +3209,7 @@ lemma cdcl_twl_stgy_prog_l_spec_final:
   assumes
     \<open>cdcl_twl_stgy_prog_l_pre S S'\<close>
   shows
-    \<open>cdcl_twl_stgy_prog_l S \<le> \<Down> (twl_st_l None) (conclusive_TWL_run S')\<close>
+    \<open>cdcl_twl_stgy_prog_l S \<le> \<Down> (twl_st_l None) (conclusive_TWL_norestart_run S')\<close>
   apply (rule order_trans[OF cdcl_twl_stgy_prog_l_spec[THEN refine_pair_to_SPEC,
           of S S']])
   subgoal using assms unfolding cdcl_twl_stgy_prog_l_pre_def by auto
@@ -3226,7 +3226,7 @@ lemma cdcl_twl_stgy_prog_l_spec_final':
     \<open>cdcl_twl_stgy_prog_l_pre S S'\<close>
   shows
     \<open>cdcl_twl_stgy_prog_l S \<le> \<Down> {(S, T). (S, T) \<in> twl_st_l None \<and> twl_list_invs S \<and>
-       twl_struct_invs S' \<and> twl_stgy_invs S'} (conclusive_TWL_run S')\<close>
+       twl_struct_invs S' \<and> twl_stgy_invs S'} (conclusive_TWL_norestart_run S')\<close>
   apply (rule order_trans[OF cdcl_twl_stgy_prog_l_spec[THEN refine_pair_to_SPEC,
           of S S']])
   subgoal using assms unfolding cdcl_twl_stgy_prog_l_pre_def by auto
@@ -3295,7 +3295,7 @@ lemma cdcl_twl_stgy_prog_break_l_spec_final:
   assumes
     \<open>cdcl_twl_stgy_prog_l_pre S S'\<close>
   shows
-    \<open>cdcl_twl_stgy_prog_break_l S \<le> \<Down> (twl_st_l None) (conclusive_TWL_run S')\<close>
+    \<open>cdcl_twl_stgy_prog_break_l S \<le> \<Down> (twl_st_l None) (conclusive_TWL_norestart_run S')\<close>
   apply (rule order_trans[OF cdcl_twl_stgy_prog_break_l_spec[THEN refine_pair_to_SPEC,
           of S S']])
   subgoal using assms unfolding cdcl_twl_stgy_prog_l_pre_def by auto
@@ -3377,7 +3377,7 @@ lemma cdcl_twl_stgy_prog_early_l_spec_final:
   assumes
     \<open>cdcl_twl_stgy_prog_l_pre S S'\<close>
   shows
-    \<open>cdcl_twl_stgy_prog_early_l S \<le> \<Down> (bool_rel \<times>\<^sub>r twl_st_l None) (partial_conclusive_TWL_run S')\<close>
+    \<open>cdcl_twl_stgy_prog_early_l S \<le> \<Down> (bool_rel \<times>\<^sub>r twl_st_l None) (partial_conclusive_TWL_norestart_run S')\<close>
   apply (rule order_trans[OF cdcl_twl_stgy_prog_early_l_spec[THEN refine_pair_to_SPEC2,
           of S S']])
   subgoal using assms unfolding cdcl_twl_stgy_prog_l_pre_def by auto

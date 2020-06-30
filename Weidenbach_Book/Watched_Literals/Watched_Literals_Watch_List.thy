@@ -5178,7 +5178,7 @@ lemma cdcl_twl_stgy_prog_wl_spec_final:
   assumes
     \<open>cdcl_twl_stgy_prog_wl_pre S S'\<close>
   shows
-    \<open>cdcl_twl_stgy_prog_wl S \<le> \<Down> (state_wl_l None O twl_st_l None) (conclusive_TWL_run S')\<close>
+    \<open>cdcl_twl_stgy_prog_wl S \<le> \<Down> (state_wl_l None O twl_st_l None) (conclusive_TWL_norestart_run S')\<close>
 proof -
   obtain T where T: \<open>(S, T) \<in> state_wl_l None\<close> \<open>cdcl_twl_stgy_prog_l_pre T S'\<close> \<open>correct_watching S\<close> \<open>blits_in_\<L>\<^sub>i\<^sub>n S\<close>
     using assms unfolding cdcl_twl_stgy_prog_wl_pre_def by blast
@@ -5267,7 +5267,7 @@ lemma cdcl_twl_stgy_prog_break_wl_spec_final:
   assumes
     \<open>cdcl_twl_stgy_prog_wl_pre S S'\<close>
   shows
-    \<open>cdcl_twl_stgy_prog_break_wl S \<le> \<Down> (state_wl_l None O twl_st_l None) (conclusive_TWL_run S')\<close>
+    \<open>cdcl_twl_stgy_prog_break_wl S \<le> \<Down> (state_wl_l None O twl_st_l None) (conclusive_TWL_norestart_run S')\<close>
 proof -
   obtain T where T: \<open>(S, T) \<in> state_wl_l None\<close> \<open>cdcl_twl_stgy_prog_l_pre T S'\<close> \<open>correct_watching S\<close> \<open>blits_in_\<L>\<^sub>i\<^sub>n S\<close>
     using assms unfolding cdcl_twl_stgy_prog_wl_pre_def by blast
@@ -5352,7 +5352,7 @@ lemma cdcl_twl_stgy_prog_early_wl_spec_final:
   assumes
     \<open>cdcl_twl_stgy_prog_wl_pre S S'\<close>
   shows
-    \<open>cdcl_twl_stgy_prog_early_wl S \<le> \<Down> (bool_rel \<times>\<^sub>r (state_wl_l None O twl_st_l None)) (partial_conclusive_TWL_run S')\<close>
+    \<open>cdcl_twl_stgy_prog_early_wl S \<le> \<Down> (bool_rel \<times>\<^sub>r (state_wl_l None O twl_st_l None)) (partial_conclusive_TWL_norestart_run S')\<close>
 proof -
   obtain T where T: \<open>(S, T) \<in> state_wl_l None\<close> \<open>cdcl_twl_stgy_prog_l_pre T S'\<close> \<open>correct_watching S\<close> \<open>blits_in_\<L>\<^sub>i\<^sub>n S\<close>
     using assms unfolding cdcl_twl_stgy_prog_wl_pre_def by blast
