@@ -819,10 +819,10 @@ qed
 
 definition cdcl_twl_stgy_restart_abs_l_inv :: \<open>'v twl_st_l \<Rightarrow> bool \<times> 'v twl_st_l \<times> nat \<times> nat \<times> nat \<Rightarrow> bool\<close> where
   \<open>cdcl_twl_stgy_restart_abs_l_inv S\<^sub>0 \<equiv> (\<lambda>(brk, T, last_GC, last_Restart, n).
-    (\<exists>S\<^sub>0' T'.
+    (\<exists>S\<^sub>0' T' n'.
        (T, T') \<in> twl_st_l None \<and>
        (S\<^sub>0, S\<^sub>0') \<in> twl_st_l None \<and>
-       cdcl_twl_stgy_restart_prog_inv S\<^sub>0' (brk, T', last_GC, last_Restart, n) \<and>
+       cdcl_twl_stgy_restart_prog_inv (S\<^sub>0', n') (brk, T', last_GC, last_Restart, n) \<and>
        clauses_to_update_l T = {#} \<and>
        twl_list_invs T))\<close>
 
@@ -864,6 +864,7 @@ lemma cdcl_twl_stgy_restart_abs_l_cdcl_twl_stgy_restart_abs_l:
     unfolding cdcl_twl_stgy_restart_abs_l_inv_def case_prod_beta
     apply (rule_tac x=y in exI)
     apply (rule_tac x=\<open>fst (snd x')\<close> in exI)
+    apply (rule_tac x=0 in exI)
     by (auto simp: prod_rel_fst_snd_iff)
   subgoal by auto
   subgoal
@@ -4884,6 +4885,59 @@ lemma cdcl_twl_stgy_restart_abs_bounded_l_cdcl_twl_stgy_restart_abs_bounded_l:
   subgoal by auto
   subgoal by (auto simp: prod_rel_fst_snd_iff)
   done
+
+
+lemma cdcl_twl_stgy_restart_abs_early_l_cdcl_twl_stgy_restart_abs_early:
+  \<open>(cdcl_twl_stgy_restart_abs_early_l, cdcl_twl_stgy_restart_prog_early)
+  \<in> {(S :: 'v twl_st_l, S'). (S, S') \<in> twl_st_l None \<and> twl_list_invs S \<and>
+       clauses_to_update_l S  = {#}} \<rightarrow>\<^sub>f \<langle>twl_st_l None\<rangle>nres_rel\<close>
+proof -
+  show ?thesis
+    unfolding cdcl_twl_stgy_restart_abs_early_l_def cdcl_twl_stgy_restart_prog_early_def
+    apply (intro frefI nres_relI)
+    apply (refine_rcg
+      WHILEIT_refine[where R = \<open>bool_rel \<times>\<^sub>r bool_rel \<times>\<^sub>r {(S, S'). (S, S') \<in> twl_st_l None \<and>
+           twl_list_invs S \<and> clauses_to_update_l S  = {#}} \<times>\<^sub>r nat_rel \<times>\<^sub>r nat_rel \<times>\<^sub>r nat_rel\<close>]
+        unit_propagation_outer_loop_l_spec[THEN fref_to_Down]
+        cdcl_twl_o_prog_l_spec[THEN fref_to_Down]
+         restart_abs_l_restart_prog[THEN fref_to_Down_curry4]
+     WHILEIT_refine[where R =
+       \<open>bool_rel \<times>\<^sub>r {(S :: 'v twl_st_l, S'). (S, S') \<in> twl_st_l None \<and> twl_list_invs S \<and>
+         clauses_to_update_l S  = {#}} \<times>\<^sub>r nat_rel \<times>\<^sub>r nat_rel \<times>\<^sub>r nat_rel\<close>])
+    subgoal by (auto simp add: get_all_learned_clss_alt_def)
+    subgoal for x y ebrk ebrka xa x'
+      unfolding cdcl_twl_stgy_restart_abs_l_inv_def comp_def case_prod_beta
+      apply (rule_tac x=y in exI)
+      apply (rule_tac x=\<open>fst (snd (snd x'))\<close> in exI)
+      by (auto simp: prod_rel_fst_snd_iff)
+    subgoal by (auto simp: prod_rel_fst_snd_iff)
+    subgoal
+      unfolding cdcl_twl_stgy_restart_prog_inv_def
+        cdcl_twl_stgy_restart_abs_l_inv_def
+      apply (simp only: prod.case)
+      apply (normalize_goal)+
+      by (simp add: twl_st_l twl_st)
+    subgoal by (auto simp: twl_st_l twl_st)
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal for x y ebrk ebrka xa x' x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f
+         x1g x2g x1h x2h x1i x2i xb x'a
+      unfolding cdcl_twl_stgy_restart_abs_l_inv_def comp_def case_prod_beta
+      apply (rule_tac x= \<open>y\<close> in exI)
+      apply (rule_tac x=\<open>fst (snd x'a)\<close> in exI)
+      apply (rule_tac x= \<open>x2d\<close> in exI)
+      by (auto simp: prod_rel_fst_snd_iff)
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    done
+qed
 
 lemma cdcl_twl_stgy_restart_prog_bounded_l_cdcl_twl_stgy_restart_abs_bounded_l:
   \<open>(cdcl_twl_stgy_restart_prog_bounded_l, cdcl_twl_stgy_restart_abs_bounded_l) \<in> {(S, S').

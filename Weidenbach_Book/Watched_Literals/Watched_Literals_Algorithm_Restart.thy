@@ -43,24 +43,24 @@ where
    }\<close>
 
 fun cdcl_twl_stgy_restart_prog_int_inv where
-  \<open>cdcl_twl_stgy_restart_prog_int_inv S\<^sub>0 (brk, R, S, T, m, n) \<longleftrightarrow>
-    twl_restart_inv (S\<^sub>0, S\<^sub>0, S\<^sub>0, 0, 0, True) \<and>
-    twl_stgy_restart_inv (S\<^sub>0, S\<^sub>0, S\<^sub>0, 0, 0, True) \<and>
+  \<open>cdcl_twl_stgy_restart_prog_int_inv (S\<^sub>0, T\<^sub>0, U\<^sub>0, m\<^sub>0, n\<^sub>0) (brk, R, S, T, m, n) \<longleftrightarrow>
+    twl_restart_inv (S\<^sub>0, T\<^sub>0, U\<^sub>0, m\<^sub>0, n\<^sub>0, True) \<and>
+    twl_stgy_restart_inv (S\<^sub>0, T\<^sub>0, U\<^sub>0, m\<^sub>0, n\<^sub>0, True) \<and>
     (brk \<longrightarrow> final_twl_state T) \<and>
-    cdcl_twl_stgy_restart\<^sup>*\<^sup>* (S\<^sub>0, S\<^sub>0, S\<^sub>0, 0, 0, True) (R, S, T, m, n, \<not>brk) \<and>
+    cdcl_twl_stgy_restart\<^sup>*\<^sup>* (S\<^sub>0, T\<^sub>0, U\<^sub>0, m\<^sub>0, n\<^sub>0, True) (R, S, T, m, n, \<not>brk) \<and>
     clauses_to_update T = {#} \<and> (\<not>brk \<longrightarrow> get_conflict T = None)\<close>
 
 lemmas cdcl_twl_stgy_restart_prog_int_inv_def[simp del] =
   cdcl_twl_stgy_restart_prog_int_inv.simps
 
 lemma cdcl_twl_stgy_restart_prog_int_inv_alt_def:
-  \<open>cdcl_twl_stgy_restart_prog_int_inv S\<^sub>0 (brk, R, S, T, m, n) \<longleftrightarrow>
-    twl_restart_inv (S\<^sub>0, S\<^sub>0, S\<^sub>0, 0, 0, True) \<and>
-    twl_stgy_restart_inv (S\<^sub>0, S\<^sub>0, S\<^sub>0, 0, 0, True) \<and>
+  \<open>cdcl_twl_stgy_restart_prog_int_inv (S\<^sub>0, T\<^sub>0, U\<^sub>0, m\<^sub>0, n\<^sub>0) (brk, R, S, T, m, n) \<longleftrightarrow>
+    twl_restart_inv (S\<^sub>0, T\<^sub>0, U\<^sub>0, m\<^sub>0, n\<^sub>0, True) \<and>
+    twl_stgy_restart_inv (S\<^sub>0, T\<^sub>0, U\<^sub>0, m\<^sub>0, n\<^sub>0, True) \<and>
     twl_stgy_restart_inv (R, S, T, m, n, \<not>brk) \<and>
     twl_restart_inv (R, S, T, m, n, \<not>brk) \<and>
     (brk \<longrightarrow> final_twl_state T) \<and>
-    cdcl_twl_stgy_restart\<^sup>*\<^sup>* (S\<^sub>0, S\<^sub>0, S\<^sub>0, 0, 0, True) (R, S, T, m, n, \<not>brk) \<and>
+    cdcl_twl_stgy_restart\<^sup>*\<^sup>* (S\<^sub>0, T\<^sub>0, U\<^sub>0, m\<^sub>0, n\<^sub>0, True) (R, S, T, m, n, \<not>brk) \<and>
   clauses_to_update T = {#} \<and> (\<not>brk \<longrightarrow> get_conflict T = None)\<close>
   unfolding cdcl_twl_stgy_restart_prog_int_inv_def
   by (auto dest: rtranclp_cdcl_twl_stgy_restart_twl_restart_inv
@@ -75,10 +75,12 @@ text \<open>
 
   This state is not needed at all in the execution and will be removed in the next refinement step.
 \<close>
-definition cdcl_twl_stgy_restart_prog_int :: "'v twl_st \<Rightarrow> 'v twl_st nres" where
-  \<open>cdcl_twl_stgy_restart_prog_int S\<^sub>0 =
+definition cdcl_twl_stgy_restart_prog_intg
+  :: "nat \<Rightarrow> nat \<Rightarrow> 'v twl_st \<Rightarrow>'v twl_st \<Rightarrow>'v twl_st \<Rightarrow> 'v twl_st nres"
+where
+  \<open>cdcl_twl_stgy_restart_prog_intg m\<^sub>0 n\<^sub>0 S\<^sub>0 T\<^sub>0 U\<^sub>0 =
   do {
-    (brk, _, _, T, _, _) \<leftarrow> WHILE\<^sub>T\<^bsup>cdcl_twl_stgy_restart_prog_int_inv S\<^sub>0\<^esup>
+    (brk, _, _, T, _, _) \<leftarrow> WHILE\<^sub>T\<^bsup>cdcl_twl_stgy_restart_prog_int_inv (S\<^sub>0, T\<^sub>0, U\<^sub>0, m\<^sub>0, n\<^sub>0)\<^esup>
       (\<lambda>(brk, _). \<not>brk)
       (\<lambda>(brk, S, S', S'', m,  n).
       do {
@@ -87,9 +89,14 @@ definition cdcl_twl_stgy_restart_prog_int :: "'v twl_st \<Rightarrow> 'v twl_st 
         (S, S', T, m', n') \<leftarrow> restart_prog_int S S' T m n brk;
         RETURN (brk, S, S', T, m', n')
       })
-      (False, S\<^sub>0, S\<^sub>0, S\<^sub>0, 0, 0);
+      (False, S\<^sub>0, T\<^sub>0, U\<^sub>0, m\<^sub>0, n\<^sub>0);
     RETURN T
   }\<close>
+
+abbreviation cdcl_twl_stgy_restart_prog_int where
+  \<open>cdcl_twl_stgy_restart_prog_int S \<equiv> cdcl_twl_stgy_restart_prog_intg 0 0 S S S\<close>
+
+lemmas cdcl_twl_stgy_restart_prog_int_def = cdcl_twl_stgy_restart_prog_intg_def
 
 (* abbreviation cdcl_algo_termination_rel :: \<open>((bool \<times> 'v twl_st \<times> nat \<times> nat\<times> nat) \<times> _) set\<close> where
  *   \<open>cdcl_algo_termination_rel \<equiv>
@@ -158,13 +165,13 @@ proof -
     by (rule wf_union_compatible)
 qed
 
-definition (in twl_restart_ops) cdcl_twl_stgy_restart_prog_bounded_int
-     :: "'v twl_st \<Rightarrow> (bool \<times> 'v twl_st) nres"
+definition (in twl_restart_ops) cdcl_twl_stgy_restart_prog_bounded_intg
+     :: "nat \<Rightarrow> nat \<Rightarrow> 'v twl_st \<Rightarrow> 'v twl_st \<Rightarrow> 'v twl_st \<Rightarrow> (bool \<times> 'v twl_st) nres"
 where
-  \<open>cdcl_twl_stgy_restart_prog_bounded_int S\<^sub>0 =
+  \<open>cdcl_twl_stgy_restart_prog_bounded_intg m n S\<^sub>0 T\<^sub>0 U\<^sub>0 =
   do {
     ebrk \<leftarrow> RES UNIV;
-    (ebrk, _, _, _, T, _, _) \<leftarrow> WHILE\<^sub>T\<^bsup>cdcl_twl_stgy_restart_prog_int_inv S\<^sub>0 o snd\<^esup>
+    (ebrk, _, _, _, T, _, _) \<leftarrow> WHILE\<^sub>T\<^bsup>cdcl_twl_stgy_restart_prog_int_inv (S\<^sub>0, T\<^sub>0, U\<^sub>0, m, n) o snd\<^esup>
       (\<lambda>(ebrk, brk, _). \<not>brk \<and> \<not>ebrk)
       (\<lambda>(ebrk, brk, Q, R, S, m, n).
       do {
@@ -174,15 +181,19 @@ where
 	ebrk \<leftarrow> RES UNIV;
         RETURN (ebrk, brk, Q, R, T, m, n)
       })
-      (ebrk, False, S\<^sub>0, S\<^sub>0, S\<^sub>0, 0, 0);
+      (ebrk, False, S\<^sub>0, T\<^sub>0, U\<^sub>0, m, n);
     RETURN (ebrk, T)
   }\<close>
 
+abbreviation (in twl_restart_ops) cdcl_twl_stgy_restart_prog_bounded_int where
+  \<open>cdcl_twl_stgy_restart_prog_bounded_int S \<equiv> cdcl_twl_stgy_restart_prog_bounded_intg 0 0 S S S\<close>
+
+lemmas cdcl_twl_stgy_restart_prog_bounded_int_def = cdcl_twl_stgy_restart_prog_bounded_intg_def
 
 lemma restart_prog_bounded_spec:
   assumes
     \<open>iebrk \<in> UNIV\<close> and
-    inv: \<open>(cdcl_twl_stgy_restart_prog_int_inv S\<^sub>0 \<circ> snd) (ebrk, brk, S, T, U, m, n)\<close> and
+    inv: \<open>(cdcl_twl_stgy_restart_prog_int_inv (S\<^sub>0, T\<^sub>0, U\<^sub>0, m\<^sub>0, n\<^sub>0) \<circ> snd) (ebrk, brk, S, T, U, m, n)\<close> and
     cond: \<open>case (ebrk, brk, S, T, U, m, n) of
      (ebrk, brk, uu_) \<Rightarrow> \<not> brk \<and> \<not> ebrk\<close> and
     other_inv: \<open>cdcl_twl_o_prog_spec V (brkW, W)\<close> and
@@ -198,7 +209,7 @@ lemma restart_prog_bounded_spec:
                                 RETURN (ebrk, brkW, Q, R, T, m, n)
                               })
                  \<le> SPEC
-                    (\<lambda>s'. (cdcl_twl_stgy_restart_prog_int_inv S\<^sub>0 \<circ> snd) s' \<and>
+                    (\<lambda>s'. (cdcl_twl_stgy_restart_prog_int_inv (S\<^sub>0, T\<^sub>0, U\<^sub>0, m\<^sub>0, n\<^sub>0) \<circ> snd) s' \<and>
                           (s', ebrk, brk, S, T, U, m, n)
                           \<in> cdcl_algo_termination_early_rel))\<close>
     (is \<open>_ \<le> SPEC (\<lambda>x. _ \<le> SPEC(\<lambda>s. ?I s \<and> _ \<in> ?term))\<close>)
@@ -220,19 +231,21 @@ proof -
     by (auto simp: cdcl_twl_restart.simps)
 
   have
-    struct_invs_S0: \<open>twl_struct_invs S\<^sub>0\<close> and
+    struct_invs_S0: \<open>twl_struct_invs S\<^sub>0\<close> \<open>twl_struct_invs T\<^sub>0\<close> \<open>twl_struct_invs U\<^sub>0\<close> and
     struct_invs_S: \<open>twl_struct_invs S\<close> and
     struct_invs_T: \<open>twl_struct_invs T\<close> and
     struct_invs_U: \<open>twl_struct_invs U\<close> and
-    twl_stgy_invs_S0: \<open>twl_stgy_invs S\<^sub>0\<close> and
+    twl_stgy_invs_S0: \<open>twl_stgy_invs S\<^sub>0\<close>\<open>twl_stgy_invs T\<^sub>0\<close>\<open>twl_stgy_invs U\<^sub>0\<close> and
     twl_stgy_invs_S: \<open>twl_stgy_invs S\<close> and
     twl_stgy_invs_T: \<open>twl_stgy_invs T\<close> and
     twl_stgy_invs_U: \<open>twl_stgy_invs U\<close> and
     \<open>brk \<longrightarrow> final_twl_state U\<close> and
-    twl_res: \<open>cdcl_twl_stgy_restart\<^sup>*\<^sup>* (S\<^sub>0, S\<^sub>0, S\<^sub>0, 0, 0, True) (S, T, U, m, n, \<not> brk)\<close> and
+    twl_res: \<open>cdcl_twl_stgy_restart\<^sup>*\<^sup>* (S\<^sub>0, T\<^sub>0, U\<^sub>0, m\<^sub>0, n\<^sub>0, True) (S, T, U, m, n, \<not> brk)\<close> and
     clss_T: \<open>clauses_to_update U = {#}\<close> and
     confl: \<open>\<not> brk \<longrightarrow> get_conflict U = None\<close> and
-    STU_inv: \<open>pcdcl_stgy_restart_inv (pstate\<^sub>W_of S, pstate\<^sub>W_of T, pstate\<^sub>W_of U, m, n, \<not> brk)\<close>
+    STU_inv: \<open>pcdcl_stgy_restart_inv (pstate\<^sub>W_of S, pstate\<^sub>W_of T, pstate\<^sub>W_of U, m, n, \<not> brk)\<close> and
+    [simp]: \<open>twl_restart_inv (S\<^sub>0, T\<^sub>0, U\<^sub>0, m\<^sub>0, n\<^sub>0, True)\<close>
+      \<open>twl_stgy_restart_inv (S\<^sub>0, T\<^sub>0, U\<^sub>0, m\<^sub>0, n\<^sub>0, True)\<close>
     using inv unfolding cdcl_twl_stgy_restart_prog_int_inv_alt_def prod.case comp_def snd_conv
       twl_restart_inv_def twl_stgy_restart_inv_def by fast+
 
@@ -253,10 +266,7 @@ proof -
 
   have restart_W: \<open>restart_prog_pre W brkW\<close>
     using struct_invs_W stgy_invs_W confl_W unfolding restart_prog_pre_def by auto
-  have [simp]: \<open>twl_restart_inv (S\<^sub>0, S\<^sub>0, S\<^sub>0, 0, 0, True)\<close> \<open>twl_stgy_restart_inv (S\<^sub>0, S\<^sub>0, S\<^sub>0, 0, 0, True)\<close>
-    using struct_invs_S0 twl_stgy_invs_S0
-    by (auto simp: twl_restart_inv_def twl_stgy_restart_inv_def pcdcl_stgy_restart_inv_def
-      twl_struct_invs_def)
+
   have UW: \<open>cdcl_twl_stgy_restart\<^sup>*\<^sup>* (S, T, U, m, n, True) (S, T, W, m, n, True)\<close>
     apply (rule cdcl_twl_stgy_restart_rtranclpI)
     by (meson \<open>cdcl_twl_stgy\<^sup>*\<^sup>* V W\<close> assms(6) rtranclp_cdcl_twl_cp_stgyD rtranclp_trans)
@@ -345,12 +355,15 @@ qed
 
 
 lemma (in twl_restart) cdcl_twl_stgy_prog_bounded_int_spec:
-  assumes \<open>twl_struct_invs S\<close> and \<open>twl_stgy_invs S\<close> and \<open>clauses_to_update S = {#}\<close> and
-    \<open>get_conflict S = None\<close>
+  fixes n :: nat
+  assumes \<open>twl_restart_inv (S, T, U, m, n, False)\<close> and
+    \<open>twl_stgy_restart_inv (S, T, U, m, n, False)\<close> and
+    \<open>clauses_to_update U = {#}\<close> and
+    \<open>get_conflict U = None\<close>
   shows
-    \<open>cdcl_twl_stgy_restart_prog_bounded_int S \<le> partial_conclusive_TWL_run S\<close>
+    \<open>cdcl_twl_stgy_restart_prog_bounded_intg m n S T U \<le> partial_conclusive_TWL_run2 m n S T U\<close>
   supply RETURN_as_SPEC_refine[refine2 del]
-  unfolding cdcl_twl_stgy_restart_prog_bounded_int_def full_def partial_conclusive_TWL_run_def
+  unfolding cdcl_twl_stgy_restart_prog_bounded_intg_def full_def partial_conclusive_TWL_run2_def
   apply (refine_vcg
     WHILEIT_rule[where
     R = \<open>cdcl_algo_termination_early_rel\<close>];
@@ -388,18 +401,20 @@ lemma (in twl_restart) cdcl_twl_stgy_prog_bounded_int_spec:
 
 
 lemma cdcl_twl_stgy_restart_prog_int_spec:
-  fixes S :: \<open>'v twl_st\<close>
-  assumes \<open>twl_struct_invs S\<close> and \<open>twl_stgy_invs S\<close> and \<open>clauses_to_update S = {#}\<close> and
-    \<open>get_conflict S = None\<close>
+  fixes S\<^sub>0 :: \<open>'v twl_st\<close>
+  assumes \<open>twl_restart_inv (S\<^sub>0, T\<^sub>0, U\<^sub>0, m\<^sub>0, n\<^sub>0, False)\<close> and
+    \<open>twl_stgy_restart_inv (S\<^sub>0, T\<^sub>0, U\<^sub>0, m\<^sub>0, n\<^sub>0, False)\<close> and
+    \<open>clauses_to_update U\<^sub>0 = {#}\<close> and
+    \<open>get_conflict U\<^sub>0 = None\<close>
   shows
-    \<open>cdcl_twl_stgy_restart_prog_int S \<le> conclusive_TWL_run S\<close>
+    \<open>cdcl_twl_stgy_restart_prog_intg m\<^sub>0 n\<^sub>0 S\<^sub>0 T\<^sub>0 U\<^sub>0 \<le> conclusive_TWL_run2 m\<^sub>0 n\<^sub>0 S\<^sub>0 T\<^sub>0 U\<^sub>0\<close>
 proof -
   define RETURN_FALSE where \<open>RETURN_FALSE = RETURN False\<close>
   have cdcl_twl_stgy_restart_prog_alt_def:
-    \<open>cdcl_twl_stgy_restart_prog_int S\<^sub>0 =
+    \<open>cdcl_twl_stgy_restart_prog_intg m\<^sub>0 n\<^sub>0 S\<^sub>0 T\<^sub>0 U\<^sub>0 =
     do {
     _ \<leftarrow> RETURN False;
-    (brk, _, _, T, _, _) \<leftarrow> WHILE\<^sub>T\<^bsup>cdcl_twl_stgy_restart_prog_int_inv S\<^sub>0\<^esup>
+    (brk, _, _, T, _, _) \<leftarrow> WHILE\<^sub>T\<^bsup>cdcl_twl_stgy_restart_prog_int_inv (S\<^sub>0, T\<^sub>0, U\<^sub>0, m\<^sub>0, n\<^sub>0)\<^esup>
       (\<lambda>(brk, _). \<not>brk)
       (\<lambda>(brk, S, S', S'', m,  n).
       do {
@@ -409,17 +424,17 @@ proof -
         _ \<leftarrow> RETURN_FALSE;
         RETURN (brk, S, S', T, m', n')
       })
-      (False, S\<^sub>0, S\<^sub>0, S\<^sub>0, 0, 0);
+      (False, S\<^sub>0, T\<^sub>0, U\<^sub>0, m\<^sub>0, n\<^sub>0);
     RETURN T
-    }\<close> for S\<^sub>0 :: \<open>'v twl_st\<close>
+    }\<close>
     unfolding cdcl_twl_stgy_restart_prog_int_def RETURN_FALSE_def
     by auto
 
   have [refine]: \<open>RETURN False \<le> \<Down> {(b, b'). (b = b') \<and> \<not>b} (RES UNIV)\<close>
      \<open>RETURN_FALSE \<le> \<Down> {(b, b'). (b = b') \<and> \<not>b} (RES UNIV)\<close>
     by (auto intro!: RETURN_RES_refine simp: RETURN_FALSE_def)
-   have [refine]: \<open>((False, S, S, S, (0::nat), (0 :: nat)), ebrk, False, S, S,
-     S, 0, 0) \<in> {(T, (b, S)). S = T \<and> \<not>b}\<close>
+   have [refine]: \<open>((False, S\<^sub>0, T\<^sub>0, U\<^sub>0, (m\<^sub>0::nat), (n\<^sub>0 :: nat)), ebrk, False, S\<^sub>0, T\<^sub>0, U\<^sub>0,
+      m\<^sub>0, n\<^sub>0) \<in> {(T, (b, S)). S = T \<and> \<not>b}\<close>
      if \<open>(u, ebrk) \<in> {(b, b'). (b = b') \<and> \<not>b}\<close> for ebrk u
      using that
      by auto
@@ -427,9 +442,9 @@ proof -
      for x x'
      using that by auto
 
-  have ref_early: \<open>cdcl_twl_stgy_restart_prog_int S \<le> \<Down>{((S), (ebrk, T)). S = T \<and> \<not>ebrk}
-       (cdcl_twl_stgy_restart_prog_bounded_int S)\<close>
-    unfolding cdcl_twl_stgy_restart_prog_alt_def cdcl_twl_stgy_restart_prog_bounded_int_def
+  have ref_early: \<open>cdcl_twl_stgy_restart_prog_intg m\<^sub>0 n\<^sub>0 S\<^sub>0 T\<^sub>0 U\<^sub>0 \<le> \<Down>{((S), (ebrk, T)). S = T \<and> \<not>ebrk}
+       (cdcl_twl_stgy_restart_prog_bounded_intg m\<^sub>0 n\<^sub>0 S\<^sub>0 T\<^sub>0 U\<^sub>0)\<close>
+    unfolding cdcl_twl_stgy_restart_prog_alt_def cdcl_twl_stgy_restart_prog_bounded_intg_def
     apply refine_rcg
     apply assumption
     subgoal by auto
@@ -448,7 +463,7 @@ proof -
     apply (rule order_trans[OF ref_early])
     apply (rule order_trans[OF ref_two_step'])
     apply (rule cdcl_twl_stgy_prog_bounded_int_spec[OF assms])
-    unfolding conc_fun_RES partial_conclusive_TWL_run_def conclusive_TWL_run_def by fastforce
+    unfolding conc_fun_RES partial_conclusive_TWL_run2_def conclusive_TWL_run2_def by fastforce
 qed
 
 end
@@ -524,23 +539,25 @@ proof -
     done
 qed
 
-fun cdcl_twl_stgy_restart_prog_inv:: "'v twl_st \<Rightarrow> (bool \<times> 'v twl_st \<times> nat \<times> nat \<times>nat) \<Rightarrow> bool" where
- [simp del]: \<open>cdcl_twl_stgy_restart_prog_inv S\<^sub>0 (brk, T, last_GC, last_Restart, n) \<longleftrightarrow>
-    (\<exists>last_GC' last_Restart' m. last_GC = size (get_all_learned_clss last_GC') \<and>
+fun cdcl_twl_stgy_restart_prog_inv:: "'v twl_st \<times> nat \<Rightarrow> (bool \<times> 'v twl_st \<times> nat \<times> nat \<times>nat) \<Rightarrow> bool" where
+ [simp del]: \<open>cdcl_twl_stgy_restart_prog_inv (S\<^sub>0, n\<^sub>0)(brk, T, last_GC, last_Restart, n) \<longleftrightarrow>
+    (\<exists>last_GC' last_Restart' m m\<^sub>0 T\<^sub>0 U\<^sub>0. last_GC = size (get_all_learned_clss last_GC') \<and>
       last_Restart = size (get_all_learned_clss last_Restart') \<and>
-     cdcl_twl_stgy_restart_prog_int_inv S\<^sub>0 (brk, last_GC', last_Restart', T, m, n))\<close>
+     cdcl_twl_stgy_restart_prog_int_inv (T\<^sub>0, U\<^sub>0, S\<^sub>0, m\<^sub>0, n\<^sub>0) (brk, last_GC', last_Restart', T, m, n))\<close>
 
 lemma cdcl_twl_stgy_restart_prog_inv_def:
-  \<open>cdcl_twl_stgy_restart_prog_inv S\<^sub>0 = (\<lambda>(brk, T, last_GC, last_Restart, n).
-    (\<exists>last_GC' last_Restart' m. last_GC = size (get_all_learned_clss last_GC') \<and>
+  \<open>cdcl_twl_stgy_restart_prog_inv= (\<lambda>(S\<^sub>0, n\<^sub>0) (brk, T, last_GC, last_Restart, n).
+    (\<exists>last_GC' last_Restart' m m\<^sub>0 T\<^sub>0 U\<^sub>0. last_GC = size (get_all_learned_clss last_GC') \<and>
       last_Restart = size (get_all_learned_clss last_Restart') \<and>
-  cdcl_twl_stgy_restart_prog_int_inv S\<^sub>0 (brk, last_GC', last_Restart', T, m, n)))\<close>
+  cdcl_twl_stgy_restart_prog_int_inv (T\<^sub>0, U\<^sub>0, S\<^sub>0, m\<^sub>0, n\<^sub>0) (brk, last_GC', last_Restart', T, m, n)))\<close>
   by (force intro!: ext simp: cdcl_twl_stgy_restart_prog_inv.simps)
 
-definition cdcl_twl_stgy_restart_prog :: "'v twl_st \<Rightarrow> 'v twl_st nres" where
-  \<open>cdcl_twl_stgy_restart_prog S\<^sub>0 =
+definition cdcl_twl_stgy_restart_progg
+  :: "nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'v twl_st \<Rightarrow> 'v twl_st nres"
+where
+  \<open>cdcl_twl_stgy_restart_progg n\<^sub>0 last_GC last_Restart S\<^sub>0 =
   do {
-    (brk, T, _, _, _) \<leftarrow> WHILE\<^sub>T\<^bsup>cdcl_twl_stgy_restart_prog_inv S\<^sub>0\<^esup>
+    (brk, T, _, _, _) \<leftarrow> WHILE\<^sub>T\<^bsup>cdcl_twl_stgy_restart_prog_inv (S\<^sub>0, n\<^sub>0)\<^esup>
       (\<lambda>(brk, _). \<not>brk)
       (\<lambda>(brk, S'', S, S', n).
       do {
@@ -549,10 +566,15 @@ definition cdcl_twl_stgy_restart_prog :: "'v twl_st \<Rightarrow> 'v twl_st nres
         (T, S, S', n') \<leftarrow> restart_prog T S S' n brk;
         RETURN (brk, T, S, S', n')
       })
-      (False, S\<^sub>0, size (get_all_learned_clss S\<^sub>0), size (get_all_learned_clss S\<^sub>0), 0);
+      (False, S\<^sub>0, last_GC, last_Restart, n\<^sub>0);
     RETURN T
   }\<close>
 
+abbreviation cdcl_twl_stgy_restart_prog where
+  \<open>cdcl_twl_stgy_restart_prog S \<equiv>
+     cdcl_twl_stgy_restart_progg 0 (size (get_all_learned_clss S)) (size (get_all_learned_clss S)) S\<close>
+
+lemmas cdcl_twl_stgy_restart_prog_def = cdcl_twl_stgy_restart_progg_def
 
 lemma (in -) fref_to_Down_curry4_5:
   \<open>(uncurry4 f, uncurry5 g) \<in> [P]\<^sub>f A \<rightarrow> \<langle>B\<rangle>nres_rel \<Longrightarrow>
@@ -562,14 +584,13 @@ lemma (in -) fref_to_Down_curry4_5:
   unfolding fref_def uncurry_def nres_rel_def
   by auto
 
-lemma cdcl_twl_stgy_restart_prog_cdcl_twl_stgy_restart_prog_int:
-  \<open>(cdcl_twl_stgy_restart_prog, cdcl_twl_stgy_restart_prog_int) \<in> Id \<rightarrow>\<^sub>f \<langle>Id\<rangle>nres_rel\<close>
+lemma cdcl_twl_stgy_restart_progg_cdcl_twl_stgy_restart_prog_intg:
+  \<open>cdcl_twl_stgy_restart_progg n\<^sub>0 (size (get_all_learned_clss T)) (size (get_all_learned_clss U)) S \<le> \<Down>Id (cdcl_twl_stgy_restart_prog_intg m\<^sub>0 n\<^sub>0 T U S)\<close>
 proof -
   have this_is_the_identity: \<open>x \<le> \<Down>Id (x')\<close> if \<open>x = x'\<close> for x x'
     using that by auto
   show ?thesis
     unfolding cdcl_twl_stgy_restart_prog_def cdcl_twl_stgy_restart_prog_int_def uncurry_def
-    apply (intro frefI nres_relI)
     apply (refine_rcg
       WHILEIT_refine[where R = \<open>{((brk :: bool,  S :: 'v twl_st, last_GC, last_Restart, n),
      (brk', last_GC', last_Restart', S', m', n')).
@@ -595,31 +616,57 @@ proof -
       by simp
     subgoal
       by simp
+    subgoal
+      by simp
+    done
+qed
+
+lemma cdcl_twl_stgy_restart_prog_cdcl_twl_stgy_restart_prog_int:
+  \<open>(cdcl_twl_stgy_restart_prog, cdcl_twl_stgy_restart_prog_int) \<in> Id \<rightarrow>\<^sub>f \<langle>Id\<rangle>nres_rel\<close>
+proof -
+  show ?thesis
+    unfolding uncurry_def Down_id_eq
+    apply (intro frefI nres_relI)
+    apply (rule order_trans[OF cdcl_twl_stgy_restart_progg_cdcl_twl_stgy_restart_prog_intg])
+    apply auto
     done
 qed
 
 
+lemma (in twl_restart) cdcl_twl_stgy_restart_prog_specg:
+  fixes S\<^sub>0 :: \<open>'v twl_st\<close>
+  assumes \<open>twl_restart_inv (T\<^sub>0, U\<^sub>0, S\<^sub>0, m\<^sub>0, n\<^sub>0, False)\<close> and
+    \<open>twl_stgy_restart_inv (T\<^sub>0, U\<^sub>0, S\<^sub>0,  m\<^sub>0, n\<^sub>0, False)\<close> and
+    \<open>clauses_to_update S\<^sub>0 = {#}\<close> and
+    \<open>get_conflict S\<^sub>0 = None\<close>
+  shows
+    \<open>cdcl_twl_stgy_restart_progg n\<^sub>0 (size (get_all_learned_clss T\<^sub>0)) (size (get_all_learned_clss U\<^sub>0)) S\<^sub>0 \<le> conclusive_TWL_run2 m\<^sub>0 n\<^sub>0 T\<^sub>0 U\<^sub>0 S\<^sub>0\<close>
+  apply (rule order_trans)
+  apply (rule cdcl_twl_stgy_restart_progg_cdcl_twl_stgy_restart_prog_intg[of _ _ _ _ m\<^sub>0])
+  apply simp
+  apply (rule cdcl_twl_stgy_restart_prog_int_spec[OF assms])
+  done
+
 lemma (in twl_restart) cdcl_twl_stgy_restart_prog_spec:
   fixes S :: \<open>'v twl_st\<close>
-  assumes \<open>twl_struct_invs S\<close> and \<open>twl_stgy_invs S\<close> and \<open>clauses_to_update S = {#}\<close> and
+  assumes
+    \<open>twl_struct_invs S\<close> and \<open>twl_stgy_invs S\<close> and \<open>clauses_to_update S = {#}\<close> and
     \<open>get_conflict S = None\<close>
   shows
     \<open>cdcl_twl_stgy_restart_prog S \<le> conclusive_TWL_run S\<close>
-  apply (rule order_trans)
-  apply (rule cdcl_twl_stgy_restart_prog_cdcl_twl_stgy_restart_prog_int[THEN fref_to_Down, of _ S])
-  apply simp
-  apply simp
-  apply (rule order_trans[OF ref_two_step'])
-  apply (rule cdcl_twl_stgy_restart_prog_int_spec[OF assms])
-  by auto
+  by (rule order_trans[OF cdcl_twl_stgy_restart_prog_specg[of _ _ _ 0]])
+   (use assms in \<open>force simp: twl_restart_inv_def pcdcl_stgy_restart_inv_def
+      twl_struct_invs_def twl_stgy_restart_inv_def conclusive_TWL_run2_def
+      conclusive_TWL_run_def\<close>)+
 
-definition (in twl_restart_ops) cdcl_twl_stgy_restart_prog_bounded
-   :: "'v twl_st \<Rightarrow> (bool \<times> 'v twl_st) nres"
+
+definition (in twl_restart_ops) cdcl_twl_stgy_restart_prog_boundedg
+   :: "nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'v twl_st \<Rightarrow> (bool \<times> 'v twl_st) nres"
 where
-  \<open>cdcl_twl_stgy_restart_prog_bounded S\<^sub>0 =
+  \<open>cdcl_twl_stgy_restart_prog_boundedg n\<^sub>0 last_GC last_Restart S\<^sub>0=
   do {
     ebrk \<leftarrow> RES UNIV;
-    (ebrk, _, T, _, _, _) \<leftarrow> WHILE\<^sub>T\<^bsup>cdcl_twl_stgy_restart_prog_inv S\<^sub>0 o snd\<^esup>
+    (ebrk, _, T, _, _, _) \<leftarrow> WHILE\<^sub>T\<^bsup>cdcl_twl_stgy_restart_prog_inv (S\<^sub>0, n\<^sub>0) o snd\<^esup>
       (\<lambda>(ebrk, brk, _). \<not>brk \<and> \<not>ebrk)
       (\<lambda>(ebrk, brk, S, last_GC, last_Restart, n).
       do {
@@ -629,20 +676,26 @@ where
 	ebrk \<leftarrow> RES UNIV;
         RETURN (ebrk, brk, T, last_GC, last_Restart, n)
       })
-      (ebrk, False, S\<^sub>0, size (get_all_learned_clss S\<^sub>0), size (get_all_learned_clss S\<^sub>0), 0);
+      (ebrk, False, S\<^sub>0, last_GC, last_Restart, n\<^sub>0);
     RETURN (ebrk, T)
   }\<close>
 
+abbreviation cdcl_twl_stgy_restart_prog_bounded where
+ \<open>cdcl_twl_stgy_restart_prog_bounded S \<equiv> cdcl_twl_stgy_restart_prog_boundedg 0 (size (get_all_learned_clss S))
+      (size (get_all_learned_clss S)) S\<close>
 
-lemma cdcl_twl_stgy_restart_prog_bounded_cdcl_twl_stgy_restart_prog_bounded_int:
-  \<open>(cdcl_twl_stgy_restart_prog_bounded, cdcl_twl_stgy_restart_prog_bounded_int) \<in> Id \<rightarrow>\<^sub>f \<langle>Id\<rangle>nres_rel\<close>
+lemmas cdcl_twl_stgy_restart_prog_bounded_def =
+  cdcl_twl_stgy_restart_prog_boundedg_def
+
+lemma cdcl_twl_stgy_restart_prog_boundedg_cdcl_twl_stgy_restart_prog_bounded_intg:
+  \<open>cdcl_twl_stgy_restart_prog_boundedg n\<^sub>0 (size (get_all_learned_clss T\<^sub>0))
+      (size (get_all_learned_clss U\<^sub>0)) S \<le> \<Down>Id (cdcl_twl_stgy_restart_prog_bounded_intg m\<^sub>0 n\<^sub>0 T\<^sub>0 U\<^sub>0 S)\<close>
 proof -
   have this_is_the_identity: \<open>x \<le> \<Down>Id (x')\<close> if \<open>x = x'\<close> for x x'
     using that by auto
   show ?thesis
-    unfolding cdcl_twl_stgy_restart_prog_bounded_def cdcl_twl_stgy_restart_prog_bounded_int_def
+    unfolding cdcl_twl_stgy_restart_prog_bounded_def cdcl_twl_stgy_restart_prog_bounded_intg_def
       uncurry_def
-    apply (intro frefI nres_relI)
     apply (refine_rcg
       WHILEIT_refine[where R = \<open>{((ebrk :: bool, brk :: bool,  S :: 'v twl_st, last_GC, last_Restart, n),
      (ebrk', brk', last_GC', last_Restart', S', m', n')).
@@ -652,8 +705,15 @@ proof -
       restart_prog_spec[THEN fref_to_Down_curry4_5])
     subgoal
       by auto
-    subgoal
-      unfolding cdcl_twl_stgy_restart_prog_inv_def by force
+    subgoal for ebrk ebrka x x'
+      unfolding cdcl_twl_stgy_restart_prog_inv_def prod.case case_prod_beta comp_def
+      apply (rule exI[of _ \<open>fst (snd (snd ((x'))))\<close>])
+      apply (rule exI[of _ \<open>fst (snd (snd (snd ((x')))))\<close>])
+      apply (rule_tac exI[of _ \<open>fst (snd (snd (snd (snd (snd (x'))))))\<close>])
+      apply (rule_tac exI[of _ m\<^sub>0])
+      apply (rule_tac exI[of _ T\<^sub>0])
+      apply (rule_tac exI[of _ U\<^sub>0])
+      by simp
     subgoal
       by auto
     apply (rule this_is_the_identity)
@@ -668,6 +728,21 @@ proof -
       by simp
     subgoal
       by simp
+    subgoal
+      by simp
+    done
+qed
+
+lemma cdcl_twl_stgy_restart_prog_bounded_cdcl_twl_stgy_restart_prog_bounded_int:
+  \<open>(cdcl_twl_stgy_restart_prog_bounded, cdcl_twl_stgy_restart_prog_bounded_int) \<in> Id \<rightarrow>\<^sub>f \<langle>Id\<rangle>nres_rel\<close>
+proof -
+  have this_is_the_identity: \<open>x \<le> \<Down>Id (x')\<close> if \<open>x = x'\<close> for x x'
+    using that by auto
+  show ?thesis
+    unfolding uncurry_def
+    apply (intro frefI nres_relI)
+    apply (rule order_trans[OF cdcl_twl_stgy_restart_prog_boundedg_cdcl_twl_stgy_restart_prog_bounded_intg])
+    apply (auto simp add: )
     done
 qed
 
@@ -681,10 +756,182 @@ lemma (in twl_restart) cdcl_twl_stgy_prog_bounded_spec:
   apply simp
   apply simp
   apply (rule order_trans[OF ref_two_step'])
-  apply (rule cdcl_twl_stgy_prog_bounded_int_spec[OF assms])
-  by auto
+  apply (rule cdcl_twl_stgy_prog_bounded_int_spec)
+  apply ((use assms in \<open>auto simp: twl_restart_inv_def pcdcl_stgy_restart_inv_def
+    twl_struct_invs_def twl_stgy_restart_inv_def partial_conclusive_TWL_run2_def
+    partial_conclusive_TWL_run_def\<close>)+)[4]
+  unfolding partial_conclusive_TWL_run2_def partial_conclusive_TWL_run_def
+  by fastforce
+
+
+definition cdcl_twl_stgy_restart_prog_early_intg
+  :: "'v twl_st \<Rightarrow>'v twl_st \<Rightarrow>'v twl_st \<Rightarrow> 'v twl_st nres"
+where
+  \<open>cdcl_twl_stgy_restart_prog_early_intg S\<^sub>0 T\<^sub>0 U\<^sub>0=
+  do {
+    ebrk \<leftarrow> RES UNIV;
+    (ebrk, brk, last_GC, last_Restart, T,m, n) \<leftarrow> WHILE\<^sub>T\<^bsup>cdcl_twl_stgy_restart_prog_int_inv (S\<^sub>0, T\<^sub>0, U\<^sub>0, 0, 0) o snd\<^esup>
+      (\<lambda>(ebrk, brk, _). \<not>brk \<and> \<not>ebrk)
+      (\<lambda>(ebrk, brk, last_GC, last_Restart, S, m, n).
+      do {
+        T \<leftarrow> unit_propagation_outer_loop S;
+        (brk, T) \<leftarrow> cdcl_twl_o_prog T;
+        (last_GC, last_Restart, T, m, n) \<leftarrow> restart_prog_int last_GC last_Restart T m n brk;
+	ebrk \<leftarrow> RES UNIV;
+        RETURN (ebrk, brk, last_GC, last_Restart, T, m, n)
+      })
+      (ebrk, False, S\<^sub>0, T\<^sub>0, U\<^sub>0, 0, 0);
+    if \<not>brk then do {
+      (brk, last_GC, last_Restart, T, _, _) \<leftarrow> WHILE\<^sub>T\<^bsup>cdcl_twl_stgy_restart_prog_int_inv (last_GC, last_Restart, T, m, n)\<^esup>
+	(\<lambda>(brk, _). \<not>brk)
+	(\<lambda>(brk, last_GC, last_Restart, S, m, n).
+	do {
+	  T \<leftarrow> unit_propagation_outer_loop S;
+	  (brk, T) \<leftarrow> cdcl_twl_o_prog T;
+	  (last_GC, last_Restart, T, m, n) \<leftarrow> restart_prog_int last_GC last_Restart T m n brk;
+	  RETURN (brk, last_GC, last_Restart, T, m, n)
+	})
+	(False, last_GC, last_Restart, T, m, n);
+      RETURN T
+    }
+    else RETURN T
+  }\<close>
+
+lemmas cdcl_twl_stgy_restart_prog_early_int_def =
+  cdcl_twl_stgy_restart_prog_early_intg_def
+
+lemma cdcl_twl_stgy_restart_prog_early_intg_alt_def:
+  \<open>cdcl_twl_stgy_restart_prog_early_intg S\<^sub>0  T\<^sub>0 U\<^sub>0 =
+  do {
+    ebrk \<leftarrow> RES UNIV;
+    (ebrk, brk, last_GC, last_Restart, T,m, n) \<leftarrow> WHILE\<^sub>T\<^bsup>cdcl_twl_stgy_restart_prog_int_inv (S\<^sub>0, T\<^sub>0, U\<^sub>0, 0, 0) o snd\<^esup>
+      (\<lambda>(ebrk, brk, _). \<not>brk \<and> \<not>ebrk)
+      (\<lambda>(ebrk, brk, last_GC, last_Restart, S, m, n).
+      do {
+        T \<leftarrow> unit_propagation_outer_loop S;
+        (brk, T) \<leftarrow> cdcl_twl_o_prog T;
+        (last_GC, last_Restart, T, m, n) \<leftarrow> restart_prog_int last_GC last_Restart T m n brk;
+	ebrk \<leftarrow> RES UNIV;
+        RETURN (ebrk, brk, last_GC, last_Restart, T, m, n)
+      })
+      (ebrk, False, S\<^sub>0, T\<^sub>0, U\<^sub>0, 0, 0);
+    if \<not>brk then do {
+        cdcl_twl_stgy_restart_prog_intg m n last_GC last_Restart T
+      } else RETURN T
+  }\<close>
+   unfolding cdcl_twl_stgy_restart_prog_intg_def cdcl_twl_stgy_restart_prog_early_intg_def
+   by (auto intro!: bind_cong[OF refl])
+
+definition cdcl_twl_stgy_restart_prog_early :: "'v twl_st \<Rightarrow> 'v twl_st nres" where
+  \<open>cdcl_twl_stgy_restart_prog_early S\<^sub>0 =
+  do {
+    ebrk \<leftarrow> RES UNIV;
+    (ebrk, brk, T, last_GC, last_Restart, n) \<leftarrow> WHILE\<^sub>T\<^bsup>cdcl_twl_stgy_restart_prog_inv (S\<^sub>0, 0) o snd\<^esup>
+      (\<lambda>(ebrk, brk, _). \<not>brk \<and> \<not>ebrk)
+      (\<lambda>(ebrk, brk, S, last_GC, last_Restart, n).
+      do {
+        T \<leftarrow> unit_propagation_outer_loop S;
+        (brk, T) \<leftarrow> cdcl_twl_o_prog T;
+        (T, last_GC, last_Restart, n) \<leftarrow> restart_prog T last_GC last_Restart n brk;
+	ebrk \<leftarrow> RES UNIV;
+        RETURN (ebrk, brk, T, last_GC, last_Restart, n)
+      })
+      (ebrk, False, S\<^sub>0, size (get_all_learned_clss S\<^sub>0), size (get_all_learned_clss S\<^sub>0), 0);
+    if \<not>brk then do {
+      (brk, T, last_GC, last_Restart, _) \<leftarrow> WHILE\<^sub>T\<^bsup>cdcl_twl_stgy_restart_prog_inv (S\<^sub>0, n)\<^esup>
+	(\<lambda>(brk, _). \<not>brk)
+	(\<lambda>(brk, S, last_GC, last_Restart, n).
+	do {
+	  T \<leftarrow> unit_propagation_outer_loop S;
+	  (brk, T) \<leftarrow> cdcl_twl_o_prog T;
+	  (T, last_GC, last_Restart, n) \<leftarrow> restart_prog T last_GC last_Restart n brk;
+	  RETURN (brk, T, last_GC, last_Restart, n)
+	})
+	(False, T, last_GC, last_Restart, n);
+      RETURN T
+    }
+    else RETURN T
+  }\<close>
+
+abbreviation cdcl_twl_stgy_restart_prog_early_int where
+  \<open>cdcl_twl_stgy_restart_prog_early_int S \<equiv> cdcl_twl_stgy_restart_prog_early_intg S S S\<close>
+
+
+lemma (in twl_restart) cdcl_twl_stgy_prog_early_spec:
+  assumes \<open>twl_struct_invs S\<close> and \<open>twl_stgy_invs S\<close> and \<open>clauses_to_update S = {#}\<close> and
+    \<open>get_conflict S = None\<close>
+  shows
+    \<open>cdcl_twl_stgy_restart_prog_early_int S \<le> conclusive_TWL_run S\<close>
+proof -
+  show ?thesis
+    unfolding cdcl_twl_stgy_restart_prog_early_intg_alt_def conclusive_TWL_run_def
+    apply (refine_vcg
+      cdcl_twl_stgy_restart_prog_int_spec[THEN order_trans]
+      WHILEIT_rule[where
+      R = \<open>cdcl_algo_termination_early_rel\<close>];
+      remove_dummy_vars)
+    subgoal
+      by (rule wf_cdcl_algo_termination_early_rel)
+    subgoal
+      using assms by (auto simp: cdcl_twl_stgy_restart_prog_int_inv_def twl_restart_inv_def
+        twl_struct_invs_def pcdcl_stgy_restart_inv_def twl_stgy_restart_inv_def)
+    subgoal
+      by (auto simp: cdcl_twl_stgy_restart_prog_int_inv_def twl_stgy_restart_inv_def
+        twl_restart_inv_def
+        dest!: rtranclp_cdcl_twl_stgy_restart_twl_restart_inv)
+    subgoal
+      by (auto simp: cdcl_twl_stgy_restart_prog_int_inv_def twl_stgy_restart_inv_def)
+    subgoal
+      by (auto simp: cdcl_twl_stgy_restart_prog_int_inv_def twl_stgy_restart_inv_def)
+    subgoal
+      by (auto simp: cdcl_twl_stgy_restart_prog_int_inv_def twl_stgy_restart_inv_def
+        twl_restart_inv_def
+        dest: rtranclp_cdcl_twl_stgy_restart_twl_stgy_invs)
+    subgoal
+      by (auto simp: cdcl_twl_stgy_restart_prog_int_inv_def twl_stgy_restart_inv_def
+        twl_restart_inv_def no_step_cdcl_twl_cp_no_step_cdcl\<^sub>W_cp
+        dest: rtranclp_cdcl_twl_stgy_restart_twl_restart_inv)
+    subgoal by fast
+    subgoal
+      by (rule restart_prog_bounded_spec)
+    subgoal
+      by (auto simp: cdcl_twl_stgy_restart_prog_int_inv_alt_def twl_restart_inv_def
+        twl_stgy_restart_inv_def pcdcl_stgy_restart_inv_def)
+    subgoal
+      by (auto simp: cdcl_twl_stgy_restart_prog_int_inv_alt_def twl_restart_inv_def
+        twl_stgy_restart_inv_def pcdcl_stgy_restart_inv_def)
+    subgoal
+      by (auto simp: cdcl_twl_stgy_restart_prog_int_inv_alt_def twl_restart_inv_def
+        twl_stgy_restart_inv_def pcdcl_stgy_restart_inv_def)
+    subgoal
+      by (auto simp: cdcl_twl_stgy_restart_prog_int_inv_alt_def twl_restart_inv_def
+        twl_stgy_restart_inv_def pcdcl_stgy_restart_inv_def)
+    subgoal for x a aa ab ac ad ae be
+      unfolding conclusive_TWL_run2_def cdcl_twl_stgy_restart_prog_int_inv_def
+        cdcl_twl_stgy_restart_prog_int_inv_alt_def comp_def snd_conv
+      apply (rule SPEC_rule)
+      apply normalize_goal+
+      apply (rule_tac x=xb in exI)
+      apply (rule_tac x=xc in exI)
+      apply (rule_tac x=xd in exI)
+      apply (rule_tac x=0 in exI)
+      apply (rule_tac x=0 in exI)
+      apply auto
+      done
+    subgoal for x a aa ab ac ad ae be
+      unfolding conclusive_TWL_run2_def cdcl_twl_stgy_restart_prog_int_inv_def
+        cdcl_twl_stgy_restart_prog_int_inv_alt_def comp_def snd_conv
+      apply normalize_goal+
+      apply (rule_tac x=ab in exI)
+      apply (rule_tac x=ac in exI)
+      apply (rule_tac x= \<open>(ae, be, \<not>aa)\<close> in exI)
+      apply (rule_tac x=0 in exI)
+      apply (rule_tac x=0 in exI)
+      apply auto
+      done
+    done
+qed
 
 end
 
 end
-

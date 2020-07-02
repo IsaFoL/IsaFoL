@@ -1288,13 +1288,22 @@ lemma rtranclp_cdcl_twl_stgy_restart_with_leftovers_cdcl\<^sub>W_restart_stgy:
 *)
 
 definition partial_conclusive_TWL_run :: \<open>'v twl_st \<Rightarrow> (bool \<times> 'v twl_st) nres\<close> where
-  \<open>partial_conclusive_TWL_run S = SPEC(\<lambda>(b, T). \<exists>R1 R2 m.
-       cdcl_twl_stgy_restart\<^sup>*\<^sup>* (S, S, S, 0, 0, True) (R1, R2, T, m) \<and> (\<not>b \<longrightarrow> final_twl_state T))\<close>
+  \<open>partial_conclusive_TWL_run S = SPEC(\<lambda>(b, T). \<exists>R1 R2 m m\<^sub>0 n\<^sub>0.
+       cdcl_twl_stgy_restart\<^sup>*\<^sup>* (S, S, S, m\<^sub>0, n\<^sub>0, True) (R1, R2, T, m) \<and> (\<not>b \<longrightarrow> final_twl_state T))\<close>
+
+definition partial_conclusive_TWL_run2
+  :: \<open>nat \<Rightarrow> nat \<Rightarrow> 'v twl_st \<Rightarrow> 'v twl_st \<Rightarrow> 'v twl_st \<Rightarrow> (bool \<times> 'v twl_st) nres\<close>
+where
+  \<open>partial_conclusive_TWL_run2  m\<^sub>0 n\<^sub>0 S\<^sub>0 T\<^sub>0 U\<^sub>0 = SPEC(\<lambda>(b, T). \<exists>R1 R2 m.
+       cdcl_twl_stgy_restart\<^sup>*\<^sup>* (S\<^sub>0, T\<^sub>0, U\<^sub>0, m\<^sub>0, n\<^sub>0, True) (R1, R2, T, m) \<and> (\<not>b \<longrightarrow> final_twl_state T))\<close>
 
 definition conclusive_TWL_run :: \<open>'v twl_st \<Rightarrow> 'v twl_st nres\<close> where
-  \<open>conclusive_TWL_run S = SPEC(\<lambda>T. (\<exists>R1 R2 m.
-       cdcl_twl_stgy_restart\<^sup>*\<^sup>* (S, S, S, 0, 0, True) (R1, R2, T, m) \<and> final_twl_state T))\<close>
+  \<open>conclusive_TWL_run S = SPEC(\<lambda>T. (\<exists>R1 R2 m m\<^sub>0 n\<^sub>0.
+       cdcl_twl_stgy_restart\<^sup>*\<^sup>* (S, S, S, m\<^sub>0, n\<^sub>0, True) (R1, R2, T, m) \<and> final_twl_state T))\<close>
 
+definition conclusive_TWL_run2 :: \<open>nat \<Rightarrow> nat \<Rightarrow> 'v twl_st \<Rightarrow> 'v twl_st \<Rightarrow> 'v twl_st \<Rightarrow> 'v twl_st nres\<close> where
+  \<open>conclusive_TWL_run2 m\<^sub>0 n\<^sub>0 S\<^sub>0 T\<^sub>0 U\<^sub>0 = SPEC(\<lambda>T. (\<exists>R1 R2 m.
+       cdcl_twl_stgy_restart\<^sup>*\<^sup>* (S\<^sub>0, T\<^sub>0, U\<^sub>0, m\<^sub>0, n\<^sub>0, True) (R1, R2, T, m) \<and> final_twl_state T))\<close>
 end
 
 end
