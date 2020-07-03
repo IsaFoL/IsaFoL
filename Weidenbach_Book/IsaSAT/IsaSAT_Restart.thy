@@ -90,7 +90,7 @@ where
         get_old_arena T = []);
     if \<not>brk then do {
        T \<leftarrow> isasat_fast_slow T;
-       (brk, T, _) \<leftarrow> WHILE\<^sub>T\<^bsup>cdcl_twl_stgy_restart_abs_wl_heur_inv S\<^sub>0\<^esup>
+       (brk, T, _) \<leftarrow> WHILE\<^sub>T\<^bsup>cdcl_twl_stgy_restart_abs_wl_heur_inv T\<^esup>
 	         (\<lambda>(brk, _). \<not>brk)
 	         (\<lambda>(brk, S, last_GC, last_Restart, n).
 	         do {
@@ -129,7 +129,7 @@ thm cdcl_twl_stgy_restart_prog_early_wl_def
             size (get_all_learned_clss_wl S\<^sub>0),0);
       if \<not>brk then do {
         T \<leftarrow> RETURN T;
-	(brk, T, _) \<leftarrow> WHILE\<^sub>T\<^bsup>cdcl_twl_stgy_restart_abs_wl_inv S\<^sub>0\<^esup>
+	(brk, T, _) \<leftarrow> WHILE\<^sub>T\<^bsup>cdcl_twl_stgy_restart_abs_wl_inv T\<^esup>
 	  (\<lambda>(brk, _). \<not>brk)
 	  (\<lambda>(brk, S, last_GC, last_Res, n).
 	  do {
@@ -279,8 +279,6 @@ thm cdcl_twl_stgy_restart_prog_early_wl_def
          (twl_st_heur \<times>\<^sub>f (nat_rel \<times>\<^sub>f (nat_rel \<times>\<^sub>f nat_rel)))\<close> and
       \<open>case xb of (brk, uu_) \<Rightarrow> \<not> brk\<close> and
       \<open>case x'a of (brk, uu_) \<Rightarrow> \<not> brk\<close> and
-      \<open>cdcl_twl_stgy_restart_abs_wl_heur_inv x xb\<close> and
-      \<open>cdcl_twl_stgy_restart_abs_wl_inv y x'a\<close> and
       \<open>x2j = (x1k, x2k)\<close> and
       \<open>x2i = (x1j, x2j)\<close> and
       \<open>x2h = (x1i, x2i)\<close> and
@@ -346,7 +344,7 @@ thm cdcl_twl_stgy_restart_prog_early_wl_def
       x2f x1g x2g T Ta xb x'a
       unfolding cdcl_twl_stgy_restart_abs_wl_heur_inv_def prod.case prod_rel_fst_snd_iff
         case_prod_beta
-      apply (rule_tac x=y in exI)
+      apply (rule_tac x= \<open>x1b\<close> in exI)
       apply (rule_tac x= \<open>fst (snd x'a)\<close> in exI)
       apply (case_tac xb; case_tac x'a)
       by simp
