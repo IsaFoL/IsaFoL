@@ -1013,7 +1013,7 @@ proof -
     done
 qed
 
-lemma (in twl_restart) cdcl_twl_stgy_prog_early_spec:
+lemma (in twl_restart) cdcl_twl_stgy_restart_prog_early_spec:
   assumes \<open>twl_struct_invs S\<close> and \<open>twl_stgy_invs S\<close> and \<open>clauses_to_update S = {#}\<close> and
     \<open>get_conflict S = None\<close>
   shows

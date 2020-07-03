@@ -4560,7 +4560,7 @@ definition cdcl_twl_stgy_restart_abs_early_l :: "'v twl_st_l \<Rightarrow> 'v tw
       })
       (ebrk, False, S\<^sub>0, size (get_all_learned_clss_l S\<^sub>0), size (get_all_learned_clss_l S\<^sub>0), 0);
     if \<not>brk then do {
-      (brk, T, last_GC, last_Restart, _) \<leftarrow> WHILE\<^sub>T\<^bsup>cdcl_twl_stgy_restart_abs_l_inv S\<^sub>0\<^esup>
+      (brk, T, last_GC, last_Restart, _) \<leftarrow> WHILE\<^sub>T\<^bsup>cdcl_twl_stgy_restart_abs_l_inv T\<^esup>
       (\<lambda>(brk, _). \<not>brk)
       (\<lambda>(brk, S, last_GC, last_Restart, n).
       do {
@@ -4625,7 +4625,7 @@ definition cdcl_twl_stgy_restart_prog_early_l :: "'v twl_st_l \<Rightarrow> 'v t
       })
       (ebrk, False, S\<^sub>0, size (get_all_learned_clss_l S\<^sub>0), size (get_all_learned_clss_l S\<^sub>0), 0);
     if \<not>brk then do {
-      (brk, T, n) \<leftarrow> WHILE\<^sub>T\<^bsup>cdcl_twl_stgy_restart_abs_l_inv S\<^sub>0\<^esup>
+      (brk, T, n) \<leftarrow> WHILE\<^sub>T\<^bsup>cdcl_twl_stgy_restart_abs_l_inv T\<^esup>
 	(\<lambda>(brk, _). \<not>brk)
 	(\<lambda>(brk, S, last_GC, last_Restart, n).
 	do {
@@ -4925,7 +4925,7 @@ proof -
     subgoal for x y ebrk ebrka xa x' x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f
          x1g x2g x1h x2h x1i x2i xb x'a
       unfolding cdcl_twl_stgy_restart_abs_l_inv_def comp_def case_prod_beta
-      apply (rule_tac x= \<open>y\<close> in exI)
+      apply (rule_tac x= \<open>x1b\<close> in exI)
       apply (rule_tac x=\<open>fst (snd x'a)\<close> in exI)
       apply (rule_tac x= \<open>x2d\<close> in exI)
       by (auto simp: prod_rel_fst_snd_iff)

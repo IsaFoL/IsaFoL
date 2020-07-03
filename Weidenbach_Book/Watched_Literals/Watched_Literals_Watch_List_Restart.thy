@@ -1910,7 +1910,7 @@ where
       })
       (ebrk, False, S\<^sub>0::'v twl_st_wl, size (get_all_learned_clss_wl S\<^sub>0), size (get_all_learned_clss_wl S\<^sub>0), 0);
     if \<not> brk then do {
-      (brk, T, _, _, _) \<leftarrow> WHILE\<^sub>T\<^bsup>cdcl_twl_stgy_restart_abs_wl_inv S\<^sub>0\<^esup>
+      (brk, T, _, _, _) \<leftarrow> WHILE\<^sub>T\<^bsup>cdcl_twl_stgy_restart_abs_wl_inv T\<^esup>
         (\<lambda>(brk, _). \<not>brk)
         (\<lambda>(brk, S, last_GC, last_Restart, n).
           do {
