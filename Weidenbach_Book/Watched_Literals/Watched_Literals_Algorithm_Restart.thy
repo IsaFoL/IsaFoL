@@ -838,7 +838,7 @@ definition cdcl_twl_stgy_restart_prog_early :: "'v twl_st \<Rightarrow> 'v twl_s
       })
       (ebrk, False, S\<^sub>0, size (get_all_learned_clss S\<^sub>0), size (get_all_learned_clss S\<^sub>0), 0);
     if \<not>brk then do {
-      (brk, T, last_GC, last_Restart, _) \<leftarrow> WHILE\<^sub>T\<^bsup>cdcl_twl_stgy_restart_prog_inv (S\<^sub>0, n)\<^esup>
+      (brk, T, last_GC, last_Restart, _) \<leftarrow> WHILE\<^sub>T\<^bsup>cdcl_twl_stgy_restart_prog_inv (T, n)\<^esup>
 	(\<lambda>(brk, _). \<not>brk)
 	(\<lambda>(brk, S, last_GC, last_Restart, n).
 	do {
@@ -857,7 +857,7 @@ abbreviation cdcl_twl_stgy_restart_prog_early_int where
   \<open>cdcl_twl_stgy_restart_prog_early_int S \<equiv> cdcl_twl_stgy_restart_prog_early_intg S S S\<close>
 
 
-lemma (in twl_restart) cdcl_twl_stgy_prog_early_spec:
+lemma (in twl_restart) cdcl_twl_stgy_prog_early_int_spec:
   assumes \<open>twl_struct_invs S\<close> and \<open>twl_stgy_invs S\<close> and \<open>clauses_to_update S = {#}\<close> and
     \<open>get_conflict S = None\<close>
   shows
@@ -931,6 +931,97 @@ proof -
       done
     done
 qed
+
+lemma cdcl_twl_stgy_restart_prog_early_cdcl_twl_stgy_restart_prog_early:
+  \<open>cdcl_twl_stgy_restart_prog_early S \<le> \<Down>Id (cdcl_twl_stgy_restart_prog_early_int S)\<close>
+proof -
+  have this_is_the_identity: \<open>x \<le> \<Down>Id (x')\<close> if \<open>x = x'\<close> for x x'
+    using that by auto
+  show ?thesis
+    unfolding cdcl_twl_stgy_restart_prog_early_def cdcl_twl_stgy_restart_prog_early_int_def
+      uncurry_def
+    apply (refine_rcg
+      WHILEIT_refine[where R = \<open>{((ebrk :: bool, brk :: bool,  S :: 'v twl_st, last_GC, last_Restart, n),
+     (ebrk', brk', last_GC', last_Restart', S', m', n')).
+    S = S' \<and> last_GC = size (get_all_learned_clss last_GC') \<and>
+    last_Restart = size (get_all_learned_clss last_Restart') \<and>
+      n = n' \<and> brk = brk' \<and> ebrk = ebrk'}\<close>]
+      WHILEIT_refine[where R = \<open>{((brk :: bool,  S :: 'v twl_st, last_GC, last_Restart, n),
+     (brk', last_GC', last_Restart', S', m', n')).
+    S = S' \<and> last_GC = size (get_all_learned_clss last_GC') \<and>
+    last_Restart = size (get_all_learned_clss last_Restart') \<and>
+      n = n' \<and> brk = brk'}\<close>]
+      restart_prog_spec[THEN fref_to_Down_curry4_5])
+    subgoal
+      by auto
+    subgoal for ebrk ebrka x x'
+      unfolding cdcl_twl_stgy_restart_prog_inv_def prod.case case_prod_beta comp_def
+      apply (rule exI[of _ \<open>fst (snd (snd ((x'))))\<close>])
+      apply (rule exI[of _ \<open>fst (snd (snd (snd ((x')))))\<close>])
+      apply (rule_tac exI[of _ \<open>fst (snd (snd (snd (snd (snd (x'))))))\<close>])
+      apply (rule_tac exI[of _ 0])
+      apply (rule_tac exI[of _ S])
+      apply (rule_tac exI[of _ S])
+      by simp
+    subgoal
+      by auto
+    apply (rule this_is_the_identity)
+    subgoal
+      by auto
+    apply (rule this_is_the_identity)
+    subgoal
+      by auto
+    subgoal
+      by simp
+    subgoal
+      by simp
+    subgoal
+      by simp
+    subgoal
+      by simp
+    subgoal
+      by auto
+    subgoal for ebrk ebrka x x' x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f x1g x2g x1h
+      x2h x1i x2i x1j x2j xa x'a
+      unfolding cdcl_twl_stgy_restart_prog_inv_def prod.case case_prod_beta comp_def
+      apply (rule exI[of _ \<open>fst (snd (((x'a))))\<close>])
+      apply (rule exI[of _ \<open>fst (snd (snd (((x'a)))))\<close>])
+      apply (rule_tac exI[of _ \<open>fst ((snd (snd (snd (snd (x'a))))))\<close>])
+      apply (rule_tac exI[of _ x1e])
+      apply (rule_tac exI[of _ x1b])
+      apply (rule_tac exI[of _ x1c])
+      apply (cases x'a)
+      by simp
+    subgoal
+      by auto
+    apply (rule this_is_the_identity)
+    subgoal
+      by auto
+    apply (rule this_is_the_identity)
+    subgoal
+      by auto
+    subgoal
+      by simp
+    subgoal
+      by simp
+    subgoal
+      by simp
+    subgoal
+      by simp
+    subgoal
+      by simp
+    done
+qed
+
+lemma (in twl_restart) cdcl_twl_stgy_prog_early_spec:
+  assumes \<open>twl_struct_invs S\<close> and \<open>twl_stgy_invs S\<close> and \<open>clauses_to_update S = {#}\<close> and
+    \<open>get_conflict S = None\<close>
+  shows
+    \<open>cdcl_twl_stgy_restart_prog_early S \<le> conclusive_TWL_run S\<close>
+  apply (rule order_trans[OF cdcl_twl_stgy_restart_prog_early_cdcl_twl_stgy_restart_prog_early])
+  apply (subst Down_id_eq)
+  apply (rule cdcl_twl_stgy_prog_early_int_spec[OF assms])
+  done
 
 end
 
