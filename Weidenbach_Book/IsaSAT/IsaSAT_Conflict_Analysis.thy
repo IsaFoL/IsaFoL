@@ -815,7 +815,8 @@ definition skip_and_resolve_loop_wl_D_heur_inv where
  \<open>skip_and_resolve_loop_wl_D_heur_inv S\<^sub>0' =
     (\<lambda>(brk, S'). \<exists>S S\<^sub>0. (S', S) \<in> twl_st_heur_conflict_ana \<and> (S\<^sub>0', S\<^sub>0) \<in> twl_st_heur_conflict_ana \<and>
       skip_and_resolve_loop_wl_inv S\<^sub>0 brk S \<and>
-       length (get_clauses_wl_heur S') = length (get_clauses_wl_heur S\<^sub>0'))\<close>
+      length (get_clauses_wl_heur S') = length (get_clauses_wl_heur S\<^sub>0') \<and>
+       get_learned_count S' = get_learned_count S\<^sub>0')\<close>
 
 definition update_confl_tl_wl_heur_pre
    :: \<open>(nat \<times> nat literal) \<times> twl_st_wl_heur \<Rightarrow> bool\<close>
@@ -1072,9 +1073,7 @@ lemma
   done
 
 lemma isasat_fast_after_skip_and_resolve_loop_wl_D_heur_inv:
-  \<open>isasat_fast x \<Longrightarrow> get_learned_count x = get_learned_count a2' \<Longrightarrow>
-       skip_and_resolve_loop_wl_D_heur_inv x
-        (False, a2') \<Longrightarrow> isasat_fast a2'\<close>
+  \<open>isasat_fast x \<Longrightarrow> skip_and_resolve_loop_wl_D_heur_inv x (False, a2') \<Longrightarrow> isasat_fast a2'\<close>
   unfolding skip_and_resolve_loop_wl_D_heur_inv_def isasat_fast_def
   by auto
 

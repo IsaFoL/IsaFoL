@@ -17,6 +17,7 @@ where
         then do {
           T \<leftarrow> skip_and_resolve_loop_wl_D_heur S;
           ASSERT(length (get_clauses_wl_heur S) = length (get_clauses_wl_heur T));
+          ASSERT(get_learned_count S = get_learned_count T);
           U \<leftarrow> backtrack_wl_D_nlit_heur T;
           U \<leftarrow> isasat_current_status U; \<comment> \<open>Print some information every once in a while\<close>
           RETURN (False, U)

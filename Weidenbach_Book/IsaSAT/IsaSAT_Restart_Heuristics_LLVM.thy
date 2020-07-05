@@ -121,9 +121,6 @@ sepref_def update_restart_phases_impl
   by sepref
 
 (*TODO Move*)
-schematic_goal mk_free_lookup_clause_rel_assn[sepref_frame_free_rules]: \<open>MK_FREE lcount_assn ?fr\<close>
-  unfolding lcount_assn_def
-  by (rule free_thms sepref_frame_free_rules)+ (* TODO: Write a method for that! *)
 
 sepref_def update_all_phases_impl
   is \<open>uncurry3 update_all_phases\<close>
@@ -286,45 +283,6 @@ sepref_def GC_required_heur_fast_code
 
 sepref_register ema_get_value get_fast_ema_heur get_slow_ema_heur
 
-(* TODO Move *)
-lemma clss_size_lcountUE_alt_def:
-  \<open>RETURN o clss_size_lcountUE = (\<lambda>(lcount, lcountNES, lcountUE, lcountUS). RETURN lcountUE)\<close>
-  by (auto simp: clss_size_lcountUE_def)
-
-sepref_def clss_size_lcountUEt_fast_code
-  is \<open>RETURN o clss_size_lcountUE\<close>
-  :: \<open>lcount_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
-  unfolding lcount_assn_def clss_size_lcountUE_alt_def clss_size_lcount_def
-  by sepref
-
-lemma clss_size_lcountUS_alt_def:
-  \<open>RETURN o clss_size_lcountUS = (\<lambda>(lcount, lcountNES, lcountUE, lcountUS). RETURN lcountUS)\<close>
-  by (auto simp: clss_size_lcountUS_def)
-
-sepref_def clss_size_lcountUSt_fast_code
-  is \<open>RETURN o clss_size_lcountUS\<close>
-  :: \<open>lcount_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
-  unfolding lcount_assn_def clss_size_lcountUS_alt_def clss_size_lcount_def
-  by sepref
-
-lemma clss_size_lcountNES_alt_def:
-  \<open>RETURN o clss_size_lcountNES = (\<lambda>(lcount, lcountNES, lcountUE, lcountUS). RETURN lcountNES)\<close>
-  by (auto simp: clss_size_lcountNES_def)
-
-sepref_def clss_size_lcountNESt_fast_code
-  is \<open>RETURN o clss_size_lcountNES\<close>
-  :: \<open>lcount_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
-  unfolding lcount_assn_def clss_size_lcountNES_alt_def clss_size_lcount_def
-  by sepref
-
-lemma clss_size_allcount_alt_def:
-  \<open>clss_size_allcount S = clss_size_lcountNES S +  clss_size_lcountUS S + clss_size_lcountUE S + 
-    clss_size_lcount S\<close>
-  by (cases S) (auto simp: clss_size_allcount_def clss_size_lcountNES_def clss_size_lcountUS_def
-    clss_size_lcount_def clss_size_lcountUE_def)
-  
-sepref_register clss_size_lcountUE clss_size_lcountUS clss_size_lcountNES
-(*END Move*)
 sepref_def restart_required_heur_fast_code
   is \<open>uncurry3 restart_required_heur\<close>
   :: \<open>[\<lambda>(((S, _), _), _). isasat_fast S]\<^sub>a isasat_bounded_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k*\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow> word_assn\<close>
@@ -333,13 +291,6 @@ sepref_def restart_required_heur_fast_code
   apply (rewrite in \<open>\<hole> < _\<close> unat_const_fold(3)[where 'a=32])
   apply (rewrite in \<open>(_ >> 32) < \<hole>\<close> annot_unat_unat_upcast[where 'l=64])
   apply (annot_snat_const \<open>TYPE(64)\<close>)
-apply sepref_dbg_keep
-apply sepref_dbg_trans_keep
-apply sepref_dbg_trans_step_keep
-apply sepref_dbg_side_unfold
-subgoal
-apply auto
-sorry
   by sepref
 
 sepref_register isa_trail_nth isasat_trail_nth_st
@@ -373,7 +324,7 @@ sepref_def isasat_replace_annot_in_trail_code
   apply (rewrite at \<open>list_update _ _ _\<close> annot_index_of_atm)
   by sepref
 
-sepref_register mark_garbage_heur2
+sepref_register mark_garbage_heur2 mark_garbage_heur4
 sepref_def mark_garbage_heur2_code
   is \<open>uncurry mark_garbage_heur2\<close>
   :: \<open>[\<lambda>(C, S). mark_garbage_pre (get_clauses_wl_heur S, C) \<and> arena_is_valid_clause_vdom (get_clauses_wl_heur S) C]\<^sub>a
@@ -381,7 +332,15 @@ sepref_def mark_garbage_heur2_code
   supply [[goals_limit=1]]
   unfolding mark_garbage_heur2_def isasat_bounded_assn_def
     fold_tuple_optimizations
-  apply (annot_unat_const \<open>TYPE(64)\<close>)
+  by sepref
+
+sepref_def mark_garbage_heur4_code
+  is \<open>uncurry mark_garbage_heur4\<close>
+  :: \<open>[\<lambda>(C, S). mark_garbage_pre (get_clauses_wl_heur S, C) \<and> arena_is_valid_clause_vdom (get_clauses_wl_heur S) C \<and> isasat_fast S]\<^sub>a
+     sint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
+  supply [[goals_limit=1]] isasat_fast_countD[dest]
+  unfolding mark_garbage_heur4_def isasat_bounded_assn_def
+    fold_tuple_optimizations
   by sepref
 
 
@@ -389,13 +348,21 @@ sepref_register remove_one_annot_true_clause_one_imp_wl_D_heur
 term mark_garbage_heur2
 sepref_def remove_one_annot_true_clause_one_imp_wl_D_heur_code
   is \<open>uncurry remove_one_annot_true_clause_one_imp_wl_D_heur\<close>
-  :: \<open>sint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a sint64_nat_assn \<times>\<^sub>a isasat_bounded_assn\<close>
+  :: \<open>[\<lambda>(C, S). isasat_fast S]\<^sub>a
+       sint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> sint64_nat_assn \<times>\<^sub>a isasat_bounded_assn\<close>
   supply [[goals_limit=1]]
   unfolding remove_one_annot_true_clause_one_imp_wl_D_heur_def
     isasat_trail_nth_st_def[symmetric] get_the_propagation_reason_pol_st_def[symmetric]
     fold_tuple_optimizations
   apply (rewrite in \<open>_ = \<hole>\<close> snat_const_fold(1)[where 'a=64])
   apply (annot_snat_const \<open>TYPE(64)\<close>)
+apply sepref_dbg_keep
+apply sepref_dbg_trans_keep
+apply sepref_dbg_trans_step_keep
+apply sepref_dbg_side_unfold
+subgoal
+apply auto
+oops
   by sepref
 sepref_register mark_clauses_as_unused_wl_D_heur
 

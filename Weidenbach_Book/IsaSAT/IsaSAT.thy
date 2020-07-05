@@ -1791,7 +1791,9 @@ definition IsaSAT_use_fast_mode where
 
 
 definition isasat_fast_init :: \<open>twl_st_wl_heur_init \<Rightarrow> bool\<close> where
-  \<open>isasat_fast_init S \<longleftrightarrow> (length (get_clauses_wl_heur_init S) \<le> sint64_max - (uint32_max div 2 + MAX_HEADER_SIZE+1))\<close>
+  \<open>isasat_fast_init S \<longleftrightarrow>
+      (length (get_clauses_wl_heur_init S) \<le> sint64_max - (uint32_max div 2 + MAX_HEADER_SIZE+1) \<and>
+       clss_size_allcount (get_learned_count_init S) < sint64_max)\<close>
 
 definition IsaSAT_heur :: \<open>opts \<Rightarrow> nat clause_l list \<Rightarrow> (bool \<times> nat literal list \<times> stats) nres\<close> where
   \<open>IsaSAT_heur opts CS = do{
@@ -2395,7 +2397,9 @@ proof -
   have finalise_init_code2: \<open>finalise_init_code b Tb
 	\<le> SPEC (\<lambda>c. (c, finalise_init Tc) \<in>  {(S', T').
              (S', T') \<in> twl_st_heur \<and>
-             get_clauses_wl_heur_init Tb = get_clauses_wl_heur S'})\<close>
+             get_clauses_wl_heur_init Tb = get_clauses_wl_heur S' \<and>
+            get_learned_count_init Tb = get_learned_count S'})\<close>
+     (is \<open>_ \<le> SPEC (\<lambda>c. _ \<in> ?P)\<close>)
   if
     Ta: \<open>(T, Ta)
      \<in> twl_st_heur_parsing_no_WL (mset_set (extract_atms_clss CS {})) False O
@@ -2480,16 +2484,14 @@ proof -
         THEN order_trans])
       by (use 1 2 learned 4 T in \<open>auto simp: from_init_state_def convert_state_def\<close>)
   qed
+
   have isasat_fast: \<open>isasat_fast Td\<close>
    if
      fast: \<open>\<not> \<not> isasat_fast_init
 	   (convert_state (virtual_copy (mset_set (extract_atms_clss CS {})))
 	     T)\<close> and
      Tb: \<open>(Tb, Tc) \<in> ?TT T Ta\<close> and
-     Td: \<open>(Td, Te)
-      \<in> {(S', T').
-	 (S', T') \<in> twl_st_heur \<and>
-	 get_clauses_wl_heur_init Tb = get_clauses_wl_heur S'}\<close>
+     Td: \<open>(Td, Te) \<in> (?P Tb)\<close>
     for uu ba S T Ta baa uua uub Tb Tc Td Te
   proof -
      show ?thesis

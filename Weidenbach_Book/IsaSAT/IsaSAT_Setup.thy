@@ -698,13 +698,13 @@ text \<open>
   following condition:
 \<close>
 definition isasat_fast :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close> where
-  \<open>isasat_fast S \<longleftrightarrow> (length (get_clauses_wl_heur S) \<le> sint64_max - (uint32_max div 2 + MAX_HEADER_SIZE+1) \<and> clss_size_allcount (get_learned_count S) < sint64_max)\<close>
+  \<open>isasat_fast S \<longleftrightarrow> (length (get_clauses_wl_heur S) \<le> sint64_max - (uint32_max div 2 + MAX_HEADER_SIZE+1) \<and> clss_size_allcount (get_learned_count S) < uint64_max)\<close>
 
 lemma isasat_fast_length_leD: \<open>isasat_fast S \<Longrightarrow> length (get_clauses_wl_heur S) \<le> sint64_max\<close> and
   isasat_fast_countD:
-    \<open>isasat_fast S \<Longrightarrow> clss_size_lcountUS (get_learned_count S) < sint64_max\<close>
-    \<open>isasat_fast S \<Longrightarrow> clss_size_lcountUE (get_learned_count S) < sint64_max\<close>
-    \<open>isasat_fast S \<Longrightarrow> clss_size_lcountNES (get_learned_count S) < sint64_max\<close>
+    \<open>isasat_fast S \<Longrightarrow> clss_size_lcountUS (get_learned_count S) < uint64_max\<close>
+    \<open>isasat_fast S \<Longrightarrow> clss_size_lcountUE (get_learned_count S) < uint64_max\<close>
+    \<open>isasat_fast S \<Longrightarrow> clss_size_lcountNES (get_learned_count S) < uint64_max\<close>
   by (solves \<open>cases S; auto simp: isasat_fast_def clss_size_lcountUS_def
     clss_size_lcountUE_def clss_size_lcountNES_def
     clss_size_allcount_def\<close>)+

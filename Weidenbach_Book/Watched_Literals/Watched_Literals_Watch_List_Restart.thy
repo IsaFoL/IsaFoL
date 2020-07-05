@@ -1290,14 +1290,14 @@ lemma cdcl_twl_full_restart_wl_prog_cdcl_full_twl_restart_l_prog:
   subgoal by (auto simp: state_wl_l_def mark_to_delete_clauses_wl_post_def)
   done
 
-definition (in -) restart_abs_wl_pre :: \<open>'v twl_st_wl \<Rightarrow> bool \<Rightarrow> bool\<close> where
-  \<open>restart_abs_wl_pre S brk \<longleftrightarrow>
-    (\<exists>S'. (S, S') \<in> state_wl_l None \<and> restart_abs_l_pre S' brk
+definition (in -) restart_abs_wl_pre :: \<open>'v twl_st_wl \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> bool \<Rightarrow> bool\<close> where
+  \<open>restart_abs_wl_pre S last_GC last_Restart brk \<longleftrightarrow>
+    (\<exists>S'. (S, S') \<in> state_wl_l None \<and> restart_abs_l_pre S' last_GC last_Restart brk
       \<and> correct_watching S \<and> blits_in_\<L>\<^sub>i\<^sub>n S)\<close>
 
 definition (in -) cdcl_twl_local_restart_wl_spec :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
   \<open>cdcl_twl_local_restart_wl_spec = (\<lambda>(M, N, D, NE, UE, NS, US, Q, W). do {
-      ASSERT(restart_abs_wl_pre (M, N, D, NE, UE, NS, US, Q, W) False);
+      ASSERT(\<exists>last_GC last_Restart. restart_abs_wl_pre (M, N, D, NE, UE, NS, US, Q, W) last_GC last_Restart False);
       (M, Q) \<leftarrow> SPEC(\<lambda>(M', Q'). (\<exists>K M2. (Decided K # M', M2) \<in> set (get_all_ann_decomposition M) \<and>
             Q' = {#}) \<or> (M' = M \<and> Q' = Q));
       RETURN (M, N, D, NE, UE, NS, US, Q, W)
@@ -1309,8 +1309,8 @@ lemma cdcl_twl_local_restart_wl_spec_cdcl_twl_local_restart_l_spec:
       \<langle>{(S, T). (S, T) \<in> state_wl_l None \<and> correct_watching S \<and> blits_in_\<L>\<^sub>i\<^sub>n S}\<rangle>nres_rel\<close>
 proof -
   have H: \<open>set_mset (all_lits N (NE + UE + NS)) = set_mset (all_lits N (NE + UE + NS + US))\<close>
-    if pre: \<open>restart_abs_wl_pre (M, N, D, NE, UE, NS, US, Q, W) brk\<close>
-     for M N D NE UE NS US W Q brk
+    if pre: \<open>restart_abs_wl_pre (M, N, D, NE, UE, NS, US, Q, W) last_GC last_Restart brk\<close>
+     for M N D NE UE NS US W Q brk last_GC last_Restart
   proof -
     obtain x xa where
       Sx: \<open>((M, N, D, NE, UE, NS, US, Q, W), x) \<in> state_wl_l None\<close> and
@@ -1404,9 +1404,12 @@ context twl_restart_ops
 begin
 
 definition (in twl_restart_ops) restart_required_wl  :: \<open>'v twl_st_wl \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> restart_type nres\<close> where
-\<open>restart_required_wl S last_GC last_Restart n = SPEC (\<lambda>b.
+\<open>restart_required_wl S last_GC last_Restart n =  do {
+  ASSERT(size (get_all_learned_clss_wl S) \<ge> last_GC);
+  ASSERT(size (get_all_learned_clss_wl S) \<ge> last_Restart);
+  SPEC (\<lambda>b.
   (b = GC \<longrightarrow> f n < size (get_all_learned_clss_wl S) - last_GC) \<and>
-  (b = RESTART \<longrightarrow> last_Restart < size (get_all_learned_clss_wl S)))\<close>
+  (b = RESTART \<longrightarrow> last_Restart < size (get_all_learned_clss_wl S)))}\<close>
 
 definition (in twl_restart_ops) cdcl_twl_stgy_restart_abs_wl_inv
    :: \<open>'v twl_st_wl \<Rightarrow> bool \<times> 'v twl_st_wl \<times> nat \<times> nat \<times> nat \<Rightarrow> bool\<close> where
@@ -1492,7 +1495,7 @@ definition cdcl_twl_full_restart_wl_GC_prog_post :: \<open>'v twl_st_wl \<Righta
 
 definition (in -) restart_abs_wl_pre2 :: \<open>'v twl_st_wl \<Rightarrow> bool \<Rightarrow> bool\<close> where
   \<open>restart_abs_wl_pre2 S brk \<longleftrightarrow>
-    (\<exists>S'. (S, S') \<in> state_wl_l None \<and> restart_abs_l_pre S' brk
+    (\<exists>S' last_GC last_Restart. (S, S') \<in> state_wl_l None \<and> restart_abs_l_pre S' last_GC last_Restart brk
       \<and> correct_watching'' S \<and> literals_are_\<L>\<^sub>i\<^sub>n' S)\<close>
 
 definition (in -) cdcl_twl_local_restart_wl_spec0 :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl nres\<close> where
@@ -1719,7 +1722,7 @@ definition (in twl_restart_ops) restart_prog_wl
   :: "'v twl_st_wl \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> bool \<Rightarrow> ('v twl_st_wl \<times> nat \<times> nat \<times> nat) nres"
 where
   \<open>restart_prog_wl S last_GC last_Restart n brk = do {
-     ASSERT(restart_abs_wl_pre S brk);
+     ASSERT(restart_abs_wl_pre S last_GC last_Restart brk);
      b \<leftarrow> restart_required_wl S last_GC last_Restart n;
       if b = RESTART \<and> \<not>brk then do {
        T \<leftarrow> cdcl_twl_restart_wl_prog S;
@@ -1736,7 +1739,7 @@ where
 
 lemma restart_prog_wl_alt_def:
  \<open>restart_prog_wl S last_GC last_Restart n brk = do {
-     ASSERT(restart_abs_wl_pre S brk);
+     ASSERT(restart_abs_wl_pre S last_GC last_Restart brk);
      b \<leftarrow> restart_required_wl S last_GC last_Restart n;
      let _ = (b = RESTART);
       if b = RESTART \<and> \<not>brk then do {
@@ -1755,7 +1758,7 @@ lemma restart_prog_wl_alt_def:
   by auto
 
 lemma restart_abs_wl_pre_blits_in_\<L>\<^sub>i\<^sub>n:
-  assumes pre: \<open>restart_abs_wl_pre x1c b\<close> and
+  assumes pre: \<open>restart_abs_wl_pre x1c last_GC last_Restart b\<close> and
     \<open>blits_in_\<L>\<^sub>i\<^sub>n x1c\<close>
   shows \<open>literals_are_\<L>\<^sub>i\<^sub>n' x1c\<close>
 proof -
@@ -1801,13 +1804,20 @@ lemma cdcl_twl_full_restart_wl_prog_cdcl_twl_restart_l_prog:
       \<langle>{(S, T).  (S, T) \<in> state_wl_l None \<and> correct_watching S \<and> blits_in_\<L>\<^sub>i\<^sub>n S} \<times>\<^sub>r nat_rel\<times>\<^sub>r nat_rel\<times>\<^sub>r nat_rel\<rangle>nres_rel\<close>
     (is \<open>_ \<in> ?R \<times>\<^sub>f _ \<times>\<^sub>f _ \<times>\<^sub>f _ \<times>\<^sub>f _  \<rightarrow>\<^sub>f \<langle>?R'\<rangle>nres_rel\<close>)
 proof -
+  have [simp]: \<open>size (learned_clss_l (get_clauses_wl a)) = size ((get_learned_clss_wl a))\<close> for a
+    by (cases a, auto simp: get_learned_clss_wl_def)
   have [refine0]:
     \<open>restart_required_wl a b c d \<le> \<Down> {(b, b'). (b' = (b = GC)) \<and>
     (b = RESTART \<longrightarrow> size (get_all_learned_clss_wl a) > c)} (GC_required_l a' b' d')\<close>
     (is \<open>_ \<le> \<Down> ?GC _\<close>)
     if \<open>(a, a') \<in> ?R\<close> and \<open>(b, b') \<in> nat_rel\<close> \<open>(d, d') \<in> nat_rel\<close>
-    for a a' b b' c c' d d' e e'
-    using that unfolding restart_required_wl_def GC_required_l_def apply -
+      \<open>restart_abs_wl_pre a b c brk\<close>
+    for a a' b b' c c' d d' e e' brk
+    using that unfolding restart_abs_wl_pre_def GC_required_l_def restart_abs_l_pre_def
+      restart_required_wl_def restart_prog_pre_def apply -
+    apply (refine_rcg)
+    subgoal by auto
+    subgoal by normalize_goal+ simp
     by (rule RES_refine, rule_tac x= \<open>s = GC\<close> in bexI)
      auto
   have [refine0]: \<open>RETURN (b = RESTART) \<le> \<Down>bool_rel (restart_required_l a' c d)\<close>
@@ -1815,7 +1825,7 @@ proof -
     for a a' b b' c c' d d' e e'
     using that
     unfolding restart_required_l_def
-    by auto
+    by refine_rcg auto
   show ?thesis
     unfolding uncurry_def restart_prog_wl_alt_def restart_prog_l_def rewatch_clauses_def
     apply (intro frefI nres_relI)

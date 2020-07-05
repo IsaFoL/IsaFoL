@@ -147,10 +147,10 @@ sepref_def propagate_unit_bt_wl_D_fast_code
 
 lemma
   isasat_fast_countD2:
-    \<open>isasat_fast S \<Longrightarrow> clss_size_lcount (get_learned_count S) \<le> sint64_max\<close>
-    \<open>isasat_fast S \<Longrightarrow> clss_size_lcountUS (get_learned_count S) \<le> sint64_max\<close>
-    \<open>isasat_fast S \<Longrightarrow> clss_size_lcountUE (get_learned_count S) \<le> sint64_max\<close>
-    \<open>isasat_fast S \<Longrightarrow> clss_size_lcountNES (get_learned_count S) \<le> sint64_max\<close>
+    \<open>isasat_fast S \<Longrightarrow> clss_size_lcount (get_learned_count S) < uint64_max\<close>
+    \<open>isasat_fast S \<Longrightarrow> clss_size_lcountUS (get_learned_count S) < uint64_max\<close>
+    \<open>isasat_fast S \<Longrightarrow> clss_size_lcountUE (get_learned_count S) < uint64_max\<close>
+    \<open>isasat_fast S \<Longrightarrow> clss_size_lcountNES (get_learned_count S) < uint64_max\<close>
   by (solves \<open>cases S; auto simp: isasat_fast_def clss_size_lcountUS_def
     clss_size_lcountUE_def clss_size_lcountNES_def sint64_max_def
     clss_size_allcount_def clss_size_lcount_def\<close>)+

@@ -12,19 +12,27 @@ text \<open>
 \<close>
 text \<open>Restarts are never necessary\<close>
 definition GC_required :: "'v twl_st \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> bool nres" where
-  \<open>GC_required S last_GC_learnt_clss n = SPEC (\<lambda>b. b \<longrightarrow> size (get_all_learned_clss S) - last_GC_learnt_clss > f n)\<close>
-definition restart_required :: "'v twl_st \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> bool nres" where
-  \<open>restart_required S last_Restart_learnt_clss n = SPEC (\<lambda>b. b \<longrightarrow> size (get_all_learned_clss S) > last_Restart_learnt_clss)\<close>
+  \<open>GC_required S last_GC_learnt_clss n = do {
+     ASSERT(size (get_all_learned_clss S) \<ge> last_GC_learnt_clss);
+     SPEC (\<lambda>b. b \<longrightarrow> size (get_all_learned_clss S) - last_GC_learnt_clss > f n)}\<close>
 
-definition (in -) restart_prog_pre :: \<open>'v twl_st \<Rightarrow> bool \<Rightarrow> bool\<close> where
-  \<open>restart_prog_pre S brk \<longleftrightarrow> twl_struct_invs S \<and> twl_stgy_invs S \<and>
-    (\<not>brk \<longrightarrow> get_conflict S = None)\<close>
+definition restart_required :: "'v twl_st \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> bool nres" where
+  \<open>restart_required S last_Restart_learnt_clss n = do {
+    ASSERT(size (get_all_learned_clss S) \<ge> last_Restart_learnt_clss);
+    SPEC (\<lambda>b. b \<longrightarrow> size (get_all_learned_clss S) > last_Restart_learnt_clss)
+  }\<close>
+
+definition (in -) restart_prog_pre_int :: \<open>'v twl_st \<Rightarrow> 'v twl_st \<Rightarrow> 'v twl_st \<Rightarrow> bool \<Rightarrow> bool\<close> where
+  \<open>restart_prog_pre_int last_GC last_Restart S brk \<longleftrightarrow> twl_struct_invs S \<and> twl_stgy_invs S \<and>
+    (\<not>brk \<longrightarrow> get_conflict S = None) \<and>
+    size (get_all_learned_clss S) \<ge> size (get_all_learned_clss last_Restart) \<and>
+    size (get_all_learned_clss S) \<ge> size (get_all_learned_clss last_GC)\<close>
 
 definition restart_prog_int
   :: \<open>'v twl_st \<Rightarrow> 'v twl_st \<Rightarrow> 'v twl_st \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> bool \<Rightarrow> ('v twl_st \<times> 'v twl_st \<times> 'v twl_st \<times> nat \<times> nat) nres\<close>
 where
   \<open>restart_prog_int last_GC last_Restart S m n brk = do {
-     ASSERT(restart_prog_pre S brk);
+     ASSERT(restart_prog_pre_int last_GC last_Restart S brk);
      b \<leftarrow> GC_required S (size (get_all_learned_clss last_GC))  n;
      b2 \<leftarrow> restart_required S  (size (get_all_learned_clss last_Restart))  n;
      if b2 \<and> \<not>brk then do {
@@ -190,6 +198,44 @@ abbreviation (in twl_restart_ops) cdcl_twl_stgy_restart_prog_bounded_int where
 
 lemmas cdcl_twl_stgy_restart_prog_bounded_int_def = cdcl_twl_stgy_restart_prog_bounded_intg_def
 
+lemma pcdcl_core_stgy_get_all_learned_clss:
+  \<open>pcdcl_core_stgy T U \<Longrightarrow>
+  size (pget_all_learned_clss T) \<le> size (pget_all_learned_clss U)\<close>
+  by (induction rule: pcdcl_core_stgy.induct)
+   (cases T; cases U; auto simp: cdcl_conflict.simps cdcl_propagate.simps cdcl_decide.simps
+    cdcl_skip.simps cdcl_resolve.simps cdcl_backtrack.simps
+    dest!: arg_cong[of \<open>clauses _\<close> \<open>_\<close> size])+
+
+lemma cdcl_twl_cp_get_all_learned_clss:
+  \<open>cdcl_twl_cp T U \<Longrightarrow>
+    size (get_all_learned_clss T) = size (get_all_learned_clss U)\<close>
+  by (induction rule: cdcl_twl_cp.induct)
+   (auto simp: update_clauses.simps dest!: multi_member_split)
+
+lemma rtranclp_cdcl_twl_cp_get_all_learned_clss:
+  \<open>cdcl_twl_cp\<^sup>*\<^sup>* T U \<Longrightarrow>
+    size (get_all_learned_clss T) = size (get_all_learned_clss U)\<close>
+  by (induction rule:rtranclp_induct)
+   (auto  dest: cdcl_twl_cp_get_all_learned_clss)
+
+lemma cdcl_twl_o_get_all_learned_clss:
+  \<open>cdcl_twl_o T U \<Longrightarrow>
+    size (get_all_learned_clss T) \<le> size (get_all_learned_clss U)\<close>
+  by (induction rule: cdcl_twl_o.induct)
+   (auto simp: update_clauses.simps dest!: multi_member_split)
+
+lemma rtranclp_cdcl_twl_o_get_all_learned_clss:
+  \<open>cdcl_twl_o\<^sup>*\<^sup>* T U \<Longrightarrow>
+    size (get_all_learned_clss T) \<le> size (get_all_learned_clss U)\<close>
+  by (induction rule:rtranclp_induct)
+   (auto  dest: cdcl_twl_o_get_all_learned_clss)
+
+lemma rtranclp_pcdcl_stgy_only_restart_pget_all_learned_clss_mono:
+  \<open>pcdcl_stgy_only_restart\<^sup>*\<^sup>* S T \<Longrightarrow>
+    size (pget_all_learned_clss S) \<le> size (pget_all_learned_clss T)\<close>
+  by (induction rule:rtranclp_induct)
+   (auto  dest: pcdcl_stgy_only_restart_pget_all_learned_clss_mono)
+
 lemma restart_prog_bounded_spec:
   assumes
     \<open>iebrk \<in> UNIV\<close> and
@@ -264,8 +310,14 @@ proof -
     by (meson cdcl_o assms(5) rtranclp_cdcl_twl_cp_stgyD rtranclp_cdcl_twl_o_stgyD
       rtranclp_trans)
 
-  have restart_W: \<open>restart_prog_pre W brkW\<close>
-    using struct_invs_W stgy_invs_W confl_W unfolding restart_prog_pre_def by auto
+  have \<open>size (get_all_learned_clss T) \<le> size (get_all_learned_clss W)\<close>
+     \<open>size (get_all_learned_clss S) \<le> size (get_all_learned_clss W)\<close>
+    using STU_inv assms(6) cdcl_o unfolding pcdcl_stgy_restart_inv_def
+    by (auto dest!: rtranclp_pcdcl_tcore_stgy_pget_all_learned_clss_mono
+      rtranclp_cdcl_twl_cp_get_all_learned_clss rtranclp_cdcl_twl_o_get_all_learned_clss
+      rtranclp_pcdcl_stgy_only_restart_pget_all_learned_clss_mono)
+  then have restart_W: \<open>restart_prog_pre_int S T W brkW\<close>
+    using struct_invs_W stgy_invs_W confl_W unfolding restart_prog_pre_int_def by auto
 
   have UW: \<open>cdcl_twl_stgy_restart\<^sup>*\<^sup>* (S, T, U, m, n, True) (S, T, W, m, n, True)\<close>
     apply (rule cdcl_twl_stgy_restart_rtranclpI)
@@ -273,7 +325,7 @@ proof -
   have restart_only: \<open>?I (ebrk', False, S, X, X, Suc m, n)\<close> (is ?A) and
     restart_only_term: \<open>((ebrk', False, S, X, X, Suc m, n), ebrk, brk, S, T, U, m, n) \<in> ?term\<close> (is ?B)
     if 
-      \<open>restart_prog_pre W False\<close> and
+      \<open>restart_prog_pre_int S T W False\<close> and
       less: \<open>True \<longrightarrow>
       size (get_all_learned_clss T) < size (get_all_learned_clss W)\<close> and
       WX: \<open>cdcl_twl_restart_only W X\<close> and
@@ -295,7 +347,7 @@ proof -
   have GC: \<open>?I (ebrk', False, Y, Y, Y, m, Suc n)\<close> (is ?A) and
     GC_term: \<open>((ebrk', False, Y, Y, Y, m, Suc n), ebrk, brk, S, T, U, m, n) \<in> ?term\<close> (is ?B)
     if 
-      \<open>restart_prog_pre W False\<close> and
+      \<open>restart_prog_pre_int S T W False\<close> and
       less: \<open>True \<longrightarrow> f n < size (get_all_learned_clss W) - size (get_all_learned_clss S)\<close> and
       WX: \<open>cdcl_twl_restart W X\<close> and
       \<open>ebrk' \<in> UNIV\<close> and
@@ -342,6 +394,8 @@ proof -
     unfolding restart_prog_int_def restart_required_def GC_required_def
     apply (refine_vcg; remove_dummy_vars)
     subgoal by (rule restart_W)
+    subgoal by (auto simp: restart_prog_pre_int_def)
+    subgoal by (auto simp: restart_prog_pre_int_def)
     subgoal by (rule restart_only)
     subgoal by (rule restart_only_term)
     subgoal by (rule GC)
@@ -471,11 +525,17 @@ end
 context twl_restart_ops
 begin
 
+definition (in -) restart_prog_pre :: \<open>'v twl_st \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> bool \<Rightarrow> bool\<close> where
+  \<open>restart_prog_pre S last_GC last_Restart  brk \<longleftrightarrow> twl_struct_invs S \<and> twl_stgy_invs S \<and>
+    (\<not>brk \<longrightarrow> get_conflict S = None) \<and>
+    size (get_all_learned_clss S) \<ge> last_Restart \<and>
+    size (get_all_learned_clss S) \<ge> last_GC\<close>
+
 definition restart_prog
   :: \<open>'v twl_st \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> bool \<Rightarrow> ('v twl_st \<times> nat \<times> nat \<times> nat) nres\<close>
 where
   \<open>restart_prog S last_GC last_Restart n brk = do {
-     ASSERT(restart_prog_pre S brk);
+     ASSERT(restart_prog_pre S last_GC last_Restart brk);
      b \<leftarrow> GC_required S last_GC  n;
      b2 \<leftarrow> restart_required S  last_Restart  n;
      if b2 \<and> \<not>brk then do {
@@ -513,7 +573,7 @@ proof -
     apply (intro frefI nres_relI)
     apply refine_rcg
     subgoal
-      by auto
+      by (auto simp: restart_prog_pre_def restart_prog_pre_int_def)
     apply (rule this_is_the_identity)
     subgoal
       by auto

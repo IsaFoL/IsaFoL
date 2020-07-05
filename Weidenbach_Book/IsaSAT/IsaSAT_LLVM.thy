@@ -1,6 +1,7 @@
 theory IsaSAT_LLVM
   imports  Version IsaSAT_CDCL_LLVM
-    IsaSAT_Initialisation_LLVM Version IsaSAT
+    IsaSAT_Initialisation_LLVM Version
+    (* IsaSAT *)
     IsaSAT_Restart_LLVM
 begin
 

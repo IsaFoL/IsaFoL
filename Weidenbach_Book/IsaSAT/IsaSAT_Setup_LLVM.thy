@@ -249,12 +249,6 @@ abbreviation phase_heur_assn where
 definition lcount_assn :: \<open>clss_size \<Rightarrow> _ \<Rightarrow> assn\<close> where
   \<open>lcount_assn \<equiv> uint64_nat_assn \<times>\<^sub>a uint64_nat_assn \<times>\<^sub>a uint64_nat_assn \<times>\<^sub>a uint64_nat_assn\<close>
 
-
-lemma [sepref_frame_free_rules]:
-  \<open>CONSTRAINT Sepref_Basic.is_pure lcount_assn\<close>
-  unfolding lcount_assn_def
-  by auto
-
 lemma [safe_constraint_rules]:
   \<open>CONSTRAINT Sepref_Basic.is_pure lcount_assn\<close>
   unfolding lcount_assn_def
@@ -577,7 +571,7 @@ lemma clss_size_incr_lcountUS_alt_def:
 
 sepref_def clss_size_incr_lcountUS_fast_code
   is \<open>RETURN o clss_size_incr_lcountUS\<close>
-  :: \<open>[\<lambda>S. clss_size_lcountUS S < max_snat 64]\<^sub>a lcount_assn\<^sup>d \<rightarrow> lcount_assn\<close>
+  :: \<open>[\<lambda>S. clss_size_lcountUS S < uint64_max]\<^sub>a lcount_assn\<^sup>d \<rightarrow> lcount_assn\<close>
   unfolding clss_size_incr_lcountUS_alt_def lcount_assn_def clss_size_lcountUS_def
   apply (annot_unat_const \<open>TYPE(64)\<close>)
   by sepref
@@ -589,7 +583,7 @@ lemma clss_size_incr_lcountUE_alt_def:
 
 sepref_def clss_size_incr_lcountUE_fast_code
   is \<open>RETURN o clss_size_incr_lcountUE\<close>
-  :: \<open>[\<lambda>S. clss_size_lcountUE S < max_snat 64]\<^sub>a lcount_assn\<^sup>d \<rightarrow> lcount_assn\<close>
+  :: \<open>[\<lambda>S. clss_size_lcountUE S < uint64_max]\<^sub>a lcount_assn\<^sup>d \<rightarrow> lcount_assn\<close>
   unfolding clss_size_incr_lcountUE_alt_def lcount_assn_def clss_size_lcountUE_def
   apply (annot_unat_const \<open>TYPE(64)\<close>)
   by sepref
@@ -601,22 +595,62 @@ lemma clss_size_incr_lcountNES_alt_def:
 
 sepref_def clss_size_incr_lcountNES_fast_code
   is \<open>RETURN o clss_size_incr_lcountNES\<close>
-  :: \<open>[\<lambda>S. clss_size_lcountNES S < max_snat 64]\<^sub>a lcount_assn\<^sup>d \<rightarrow> lcount_assn\<close>
+  :: \<open>[\<lambda>S. clss_size_lcountNES S < uint64_max]\<^sub>a lcount_assn\<^sup>d \<rightarrow> lcount_assn\<close>
   unfolding clss_size_incr_lcountNES_alt_def lcount_assn_def clss_size_lcountNES_def
   apply (annot_unat_const \<open>TYPE(64)\<close>)
   by sepref
 
+schematic_goal mk_free_lookup_clause_rel_assn[sepref_frame_free_rules]: \<open>MK_FREE lcount_assn ?fr\<close>
+  unfolding lcount_assn_def
+  by (rule free_thms sepref_frame_free_rules)+ (* TODO: Write a method for that! *)
 
-lemma clss_size_incr_allcount_alt_def:
-  \<open>RETURN o clss_size_allcount =
-  (\<lambda>(lcount, lcountNES, lcountUE, lcountUS). RETURN (lcount + lcountNES + lcountUE + lcountUS))\<close>
-  by (auto simp: clss_size_allcount_def)
+lemma clss_size_lcountUE_alt_def:
+  \<open>RETURN o clss_size_lcountUE = (\<lambda>(lcount, lcountNES, lcountUE, lcountUS). RETURN lcountUE)\<close>
+  by (auto simp: clss_size_lcountUE_def)
 
-sepref_def clss_size_allcount_fast_code
-  is \<open>RETURN o clss_size_allcount\<close>
-  :: \<open>[\<lambda>S. clss_size_allcount S < max_snat 64]\<^sub>a lcount_assn\<^sup>d \<rightarrow> uint64_nat_assn\<close>
-  unfolding clss_size_incr_allcount_alt_def lcount_assn_def clss_size_allcount_def
+sepref_def clss_size_lcountUE_fast_code
+  is \<open>RETURN o clss_size_lcountUE\<close>
+  :: \<open>lcount_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
+  unfolding lcount_assn_def clss_size_lcountUE_alt_def clss_size_lcount_def
   by sepref
+
+lemma clss_size_lcountUS_alt_def:
+  \<open>RETURN o clss_size_lcountUS = (\<lambda>(lcount, lcountNES, lcountUE, lcountUS). RETURN lcountUS)\<close>
+  by (auto simp: clss_size_lcountUS_def)
+
+sepref_def clss_size_lcountUSt_fast_code
+  is \<open>RETURN o clss_size_lcountUS\<close>
+  :: \<open>lcount_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
+  unfolding lcount_assn_def clss_size_lcountUS_alt_def clss_size_lcount_def
+  by sepref
+
+lemma clss_size_lcountNES_alt_def:
+  \<open>RETURN o clss_size_lcountNES = (\<lambda>(lcount, lcountNES, lcountUE, lcountUS). RETURN lcountNES)\<close>
+  by (auto simp: clss_size_lcountNES_def)
+
+sepref_def clss_size_lcountNES_fast_code
+  is \<open>RETURN o clss_size_lcountNES\<close>
+  :: \<open>lcount_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
+  unfolding lcount_assn_def clss_size_lcountNES_alt_def clss_size_lcount_def
+  by sepref
+
+lemma clss_size_allcount_alt_def:
+  \<open>clss_size_allcount S = clss_size_lcountNES S +  clss_size_lcountUS S + clss_size_lcountUE S + 
+    clss_size_lcount S\<close>
+  by (cases S) (auto simp: clss_size_allcount_def clss_size_lcountNES_def clss_size_lcountUS_def
+    clss_size_lcount_def clss_size_lcountUE_def)
+  
+sepref_register clss_size_lcountUE clss_size_lcountUS clss_size_lcountNES
+(* lemma clss_size_incr_allcount_alt_def:
+ *   \<open>RETURN o clss_size_allcount =
+ *   (\<lambda>(lcount, lcountNES, lcountUE, lcountUS). RETURN (lcount + lcountNES + lcountUE + lcountUS))\<close>
+ *   by (auto simp: clss_size_allcount_def)
+ * 
+ * sepref_def clss_size_allcount_fast_code
+ *   is \<open>RETURN o clss_size_allcount\<close>
+ *   :: \<open>[\<lambda>S. clss_size_allcount S < max_snat 64]\<^sub>a lcount_assn\<^sup>d \<rightarrow> uint64_nat_assn\<close>
+ *   unfolding clss_size_incr_allcount_alt_def lcount_assn_def clss_size_allcount_def
+ *   by sepref *)
 
 
 lemma clss_size_decr_lcount_alt_def:

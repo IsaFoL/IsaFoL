@@ -82,37 +82,49 @@ sepref_def initialise_VMTF_code
   supply [[goals_limit = 1]]
   by sepref
 
+term clss_size_lcountNES
+
+
 declare initialise_VMTF_code.refine[sepref_fr_rules]
 sepref_register cons_trail_Propagated_tr
 sepref_def propagate_unit_cls_code
-  is \<open>uncurry (propagate_unit_cls_heur)\<close>
+  is \<open>uncurry (propagate_unit_cls_heur_b)\<close>
   :: \<open>unat_lit_assn\<^sup>k *\<^sub>a isasat_init_assn\<^sup>d \<rightarrow>\<^sub>a isasat_init_assn\<close>
   supply [[goals_limit=1]] DECISION_REASON_def[simp]
-  unfolding propagate_unit_cls_heur_def isasat_init_assn_def
+  unfolding propagate_unit_cls_heur_def isasat_init_assn_def propagate_unit_cls_heur_b_def
     PR_CONST_def
   apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
 declare propagate_unit_cls_code.refine[sepref_fr_rules]
 
-definition already_propagated_unit_cls_heur' where
-  \<open>already_propagated_unit_cls_heur' = (\<lambda>(M, N, D, Q, oth).
-     RETURN (M, N, D, Q, oth))\<close>
+(*TODO Move*)
+
+definition already_propagated_unit_cls_heur'
+   :: \<open>bool \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur_init nres\<close>
+where
+  \<open>already_propagated_unit_cls_heur' = (\<lambda>unbdd (M, N, D, j, W, vm, \<phi>, clvls, cach, lbd, vdom, failed, lcount).
+     if unbdd \<or> (\<not>failed \<and> clss_size_lcountNES lcount < uint64_max)
+     then do {
+       RETURN (M, N, D, j, W, vm, \<phi>, clvls, cach, lbd, vdom, failed, clss_size_incr_lcountNES lcount)
+      } else
+       RETURN (M, N, D, j, W, vm, \<phi>, clvls, cach, lbd, vdom, True, lcount))\<close>
 
 lemma already_propagated_unit_cls_heur'_alt:
-  \<open>already_propagated_unit_cls_heur L = already_propagated_unit_cls_heur'\<close>
-  unfolding already_propagated_unit_cls_heur_def already_propagated_unit_cls_heur'_def
+  \<open>already_propagated_unit_cls_heur unbd L = already_propagated_unit_cls_heur' unbd\<close>
+  unfolding already_propagated_unit_cls_heur'_def already_propagated_unit_cls_heur_def
   by auto
 
+definition already_propagated_unit_cls_heur_b where
+  \<open>already_propagated_unit_cls_heur_b = already_propagated_unit_cls_heur' False\<close>
+
 sepref_def already_propagated_unit_cls_code
-  is \<open>already_propagated_unit_cls_heur'\<close>
+  is \<open>already_propagated_unit_cls_heur_b\<close>
   :: \<open>isasat_init_assn\<^sup>d  \<rightarrow>\<^sub>a isasat_init_assn\<close>
   supply [[goals_limit=1]]
   unfolding already_propagated_unit_cls_heur'_def isasat_init_assn_def
-  PR_CONST_def
+  PR_CONST_def already_propagated_unit_cls_heur_b_def
   by sepref
-
-declare already_propagated_unit_cls_code.refine[sepref_fr_rules]
 
 
 sepref_def set_conflict_unit_code
@@ -127,12 +139,16 @@ sepref_def set_conflict_unit_code
 
 declare set_conflict_unit_code.refine[sepref_fr_rules]
 
+(*TODo Move*)
+definition conflict_propagated_unit_cls_heur_b :: \<open>_\<close> where
+  \<open>conflict_propagated_unit_cls_heur_b = conflict_propagated_unit_cls_heur False\<close>
+
 sepref_def conflict_propagated_unit_cls_code
-  is \<open>uncurry (conflict_propagated_unit_cls_heur)\<close>
+  is \<open>uncurry (conflict_propagated_unit_cls_heur_b)\<close>
   :: \<open>unat_lit_assn\<^sup>k *\<^sub>a isasat_init_assn\<^sup>d  \<rightarrow>\<^sub>a isasat_init_assn\<close>
   supply [[goals_limit=1]]
   unfolding conflict_propagated_unit_cls_heur_def isasat_init_assn_def
-  PR_CONST_def
+    conflict_propagated_unit_cls_heur_b_def PR_CONST_def
   by sepref
 
 
@@ -317,6 +333,7 @@ sepref_def init_dt_step_wl_code_b
     already_propagated_unit_cls_heur'_alt
     add_init_cls_heur_b'_def[symmetric] add_clause_to_others_heur'_def[symmetric]
     add_clause_to_others_heur'_alt
+    already_propagated_unit_cls_heur'_b_def[symmetric]
   unfolding watched_app_def[symmetric]
   unfolding nth_rll_def[symmetric]
   unfolding is_Nil_length get_conflict_wl_is_None_init

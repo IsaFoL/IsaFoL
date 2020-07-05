@@ -686,25 +686,31 @@ proof -
 qed
 
 
-definition (in -) restart_abs_l_pre :: \<open>'v twl_st_l \<Rightarrow> bool \<Rightarrow> bool\<close> where
-  \<open>restart_abs_l_pre S brk \<longleftrightarrow>
-    (\<exists>S'. (S, S') \<in> twl_st_l None \<and> restart_prog_pre S' brk
+definition (in -) restart_abs_l_pre :: \<open>'v twl_st_l \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> bool \<Rightarrow> bool\<close> where
+  \<open>restart_abs_l_pre S last_GC last_Restart brk \<longleftrightarrow>
+    (\<exists>S'. (S, S') \<in> twl_st_l None \<and> restart_prog_pre S' last_GC last_Restart brk
       \<and> twl_list_invs S \<and> clauses_to_update_l S = {#})\<close>
 
 context twl_restart_ops
 begin
 
 definition GC_required_l :: "'v twl_st_l \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> bool nres" where
-  \<open>GC_required_l S m n = SPEC (\<lambda>b. b \<longrightarrow> size (get_all_learned_clss_l S) - m > f n)\<close>
+  \<open>GC_required_l S m n = do {
+     ASSERT(size (get_all_learned_clss_l S) \<ge> m);
+     SPEC (\<lambda>b. b \<longrightarrow> size (get_all_learned_clss_l S) - m > f n)
+  }\<close>
 
 definition restart_required_l :: "'v twl_st_l \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> bool nres" where
-  \<open>restart_required_l S m n = SPEC (\<lambda>b. b \<longrightarrow> size (get_all_learned_clss_l S) > m)\<close>
+  \<open>restart_required_l S m n =  do {
+     ASSERT(size (get_all_learned_clss_l S) \<ge> m);
+     SPEC (\<lambda>b. b \<longrightarrow> size (get_all_learned_clss_l S) > m)
+   }\<close>
 
 definition restart_abs_l
   :: "'v twl_st_l \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> bool \<Rightarrow> ('v twl_st_l \<times> nat \<times> nat \<times> nat) nres"
 where
   \<open>restart_abs_l S last_GC last_Restart n brk = do {
-     ASSERT(restart_abs_l_pre S brk);
+     ASSERT(restart_abs_l_pre S last_GC last_Restart brk);
      b \<leftarrow> GC_required_l S last_GC n;
      b2 \<leftarrow> restart_required_l S last_Restart n;
      if b2 \<and>  \<not>brk then do {
@@ -730,14 +736,14 @@ lemma restart_required_l_restart_required:
      {(S, S'). (S, S') \<in> twl_st_l None \<and> twl_list_invs S} \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<rightarrow>\<^sub>f
     \<langle>bool_rel\<rangle> nres_rel\<close>
   unfolding restart_required_l_def restart_required_def uncurry_def
-  by (intro frefI nres_relI) (auto simp: twl_st_l_def get_learned_clss_l_def)
+  by (intro frefI nres_relI) (refine_rcg, auto simp: twl_st_l_def get_learned_clss_l_def)
 
 lemma GC_required_l_GC_required:
   \<open>(uncurry2 GC_required_l, uncurry2 GC_required) \<in>
      {(S, S'). (S, S') \<in> twl_st_l None \<and> twl_list_invs S} \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<rightarrow>\<^sub>f
     \<langle>bool_rel\<rangle> nres_rel\<close>
   unfolding GC_required_l_def GC_required_def uncurry_def
-  by (intro frefI nres_relI) (auto simp: twl_st_l_def get_learned_clss_l_def)
+  by (intro frefI nres_relI) (refine_rcg, auto simp: twl_st_l_def get_learned_clss_l_def)
 (*
   {(((((S, p), m), n), brk), (((((last_GC, last_Restart), S'), m'), n'), brk')).
      (S, S') \<in> twl_st_l None \<and> twl_list_invs S \<and> clauses_to_update_l S = {#} \<and>
@@ -3682,7 +3688,7 @@ qed
 
 definition (in -) cdcl_twl_local_restart_l_spec :: \<open>'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close> where
   \<open>cdcl_twl_local_restart_l_spec = (\<lambda>(M, N, D, NE, UE, NS, US, W, Q). do {
-      ASSERT(restart_abs_l_pre (M, N, D, NE, UE, NS, US, W, Q) False);
+      ASSERT(\<exists>last_GC last_Restart. restart_abs_l_pre (M, N, D, NE, UE, NS, US, W, Q) last_GC last_Restart False);
       (M, Q) \<leftarrow> SPEC(\<lambda>(M', Q'). (\<exists>K M2. (Decided K # M', M2) \<in> set (get_all_ann_decomposition M) \<and>
             Q' = {#}) \<or> (M' = M \<and> Q' = Q));
       RETURN (M, N, D, NE, UE, NS, US, W, Q)
@@ -3695,7 +3701,7 @@ definition cdcl_twl_restart_l_prog where
 
 
 lemma cdcl_twl_local_restart_l_spec_cdcl_twl_restart_l:
-  assumes inv: \<open>restart_abs_l_pre S False\<close>
+  assumes inv: \<open>restart_abs_l_pre S last_GC last_Restart False\<close>
   shows \<open>cdcl_twl_local_restart_l_spec S \<le> 
    \<Down>  {(S, T). (S, T) \<in> Id \<and> twl_list_invs S}(SPEC (cdcl_twl_restart_only_l S))\<close>
 proof -
@@ -3766,7 +3772,7 @@ proof -
     unfolding cdcl_twl_local_restart_l_spec_def prod.case RES_RETURN_RES2 less_eq_nres.simps
       uncurry_def
     apply (rule ASSERT_leI)
-    using assms[unfolded S] apply assumption
+    subgoal using assms unfolding S by fast
     apply (rule RES_refine)
     apply clarsimp
     apply (rule restart)
@@ -3776,7 +3782,7 @@ qed
 
 definition (in -) cdcl_twl_local_restart_l_spec0 :: \<open>'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close> where
   \<open>cdcl_twl_local_restart_l_spec0 = (\<lambda>(M, N, D, NE, UE, NS, US, W, Q). do {
-      ASSERT(restart_abs_l_pre (M, N, D, NE, UE, NS, US, W, Q) False);
+      ASSERT(\<exists>last_GC last_Restart. restart_abs_l_pre (M, N, D, NE, UE, NS, US, W, Q) last_GC last_Restart False);
       (M, Q) \<leftarrow> SPEC(\<lambda>(M', Q'). (\<exists>K M2. (Decided K # M', M2) \<in> set (get_all_ann_decomposition M) \<and>
             Q' = {#} \<and> count_decided M' = 0) \<or> (M' = M \<and> Q' = Q \<and> count_decided M' = 0));
       RETURN (M, N, D, NE, UE, NS, {#}, W, Q)
@@ -3784,7 +3790,7 @@ definition (in -) cdcl_twl_local_restart_l_spec0 :: \<open>'v twl_st_l \<Rightar
 
 
 lemma cdcl_twl_local_restart_l_spec0_cdcl_twl_restart_l:
-  assumes inv: \<open>restart_abs_l_pre S False\<close>
+  assumes inv: \<open>restart_abs_l_pre S last_GC last_Restart False\<close>
   shows \<open>cdcl_twl_local_restart_l_spec0 S \<le> SPEC (\<lambda>T. cdcl_twl_restart_l S T \<and> count_decided (get_trail_l T) = 0)\<close>
 proof -
   obtain T where
@@ -3916,7 +3922,7 @@ proof -
     unfolding cdcl_twl_local_restart_l_spec0_def prod.case RES_RETURN_RES2 less_eq_nres.simps
       uncurry_def
     apply (rule ASSERT_leI)
-    using assms[unfolded S] apply assumption
+    subgoal using assms[unfolded S] by fast
     apply clarsimp
     apply (rule conjI)
     apply (rule restart)
@@ -4098,7 +4104,8 @@ lemma cdcl_twl_full_restart_l_GC_prog_cdcl_twl_restart_l:
     struct_invs: \<open>twl_struct_invs S'\<close> and
     confl: \<open>get_conflict_l S = None\<close> and
     upd: \<open>clauses_to_update_l S = {#}\<close> and
-    stgy_invs: \<open>twl_stgy_invs S'\<close>
+    stgy_invs: \<open>twl_stgy_invs S'\<close> and
+    abs_pre: \<open>restart_prog_pre S' last_GC last_Restart brk\<close>
   shows \<open>cdcl_twl_full_restart_l_GC_prog S \<le> \<Down> Id (SPEC (\<lambda>T. cdcl_twl_restart_l S T))\<close>
 proof -
   let ?f = \<open>(\<lambda>S T. cdcl_twl_restart_l S T)\<close>
@@ -4279,11 +4286,11 @@ proof -
       cdcl_twl_restart_l_cdcl_twl_restart_l_is_cdcl_twl_restart_l[of S U V]
       cdcl_twl_restart_l_cdcl_twl_restart_l_is_cdcl_twl_restart_l[of S V W] that
     by fast
-  have abs_pre: \<open>restart_abs_l_pre S False\<close>
+  have abs_pre: \<open>restart_abs_l_pre S last_GC last_Restart False\<close>
     using assms unfolding cdcl_twl_full_restart_l_GC_prog_pre_def restart_abs_l_pre_def
       restart_prog_pre_def apply -
     apply (rule exI[of _ S'])
-    by fastforce
+    by auto
   show ?thesis
     unfolding cdcl_twl_full_restart_l_GC_prog_def
     apply (rule order_trans)
@@ -4310,7 +4317,6 @@ proof -
 qed
 
 
- 
 context twl_restart_ops
 begin
 
@@ -4318,7 +4324,7 @@ definition restart_prog_l
   :: "'v twl_st_l \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> bool \<Rightarrow> ('v twl_st_l \<times> nat \<times> nat \<times> nat) nres"
 where
   \<open>restart_prog_l S last_GC last_Restart n brk = do {
-     ASSERT(restart_abs_l_pre S brk);
+     ASSERT(restart_abs_l_pre S last_GC last_Restart brk);
      b \<leftarrow> GC_required_l S last_GC n;
      b2 \<leftarrow> restart_required_l S last_Restart n;
      if b2 \<and> \<not>brk then do {
@@ -4343,12 +4349,12 @@ proof -
   have cdcl_twl_full_restart_l_prog:
     \<open>cdcl_twl_full_restart_l_prog S \<le> SPEC (\<lambda>T. cdcl_twl_restart_l S T)\<close>
     if
-      inv: \<open>restart_abs_l_pre S brk\<close> and
+      inv: \<open>restart_abs_l_pre S last_GC last_Restart brk\<close> and
       \<open>(b, ba) \<in> bool_rel\<close> and
       \<open>b \<in> {b. b \<longrightarrow> f n < size ( S)}\<close> and
       \<open>ba \<in> {b. b \<longrightarrow> f n < size ( S)}\<close> and
       brk: \<open>\<not>brk\<close>
-    for b ba S brk n
+    for b ba S brk n last_GC last_Restart
   proof -
     obtain T where
       ST: \<open>(S, T) \<in> twl_st_l None\<close> and
@@ -4370,9 +4376,9 @@ proof -
   have cdcl_twl_full_restart_l_GC_prog:
     \<open>cdcl_twl_full_restart_l_GC_prog S \<le> SPEC (cdcl_twl_restart_l S)\<close>
     if
-      inv: \<open>restart_abs_l_pre S brk\<close> and
+      inv: \<open>restart_abs_l_pre S last_GC last_Restart brk\<close> and
       brk: \<open>ba \<and> b2a \<and> \<not> brk\<close>
-    for ba b2a brk S
+    for ba b2a brk S last_GC last_Restart
   proof -
     obtain T where
       ST: \<open>(S, T) \<in> twl_st_l None\<close> and
@@ -4380,18 +4386,19 @@ proof -
       list_invs: \<open>twl_list_invs S\<close> and
       upd: \<open>clauses_to_update_l S = {#}\<close> and
       stgy_invs: \<open>twl_stgy_invs T\<close> and
-      confl: \<open>get_conflict_l S = None\<close>
+      confl: \<open>get_conflict_l S = None\<close> and
+      inv2: \<open>restart_prog_pre T last_GC last_Restart brk\<close>
       using inv brk unfolding restart_abs_l_pre_def restart_prog_pre_def
       apply - apply normalize_goal+
       by (auto simp: twl_st)
     show ?thesis
       by (rule cdcl_twl_full_restart_l_GC_prog_cdcl_twl_restart_l[unfolded Down_id_eq, OF ST list_invs
-        struct_invs confl upd stgy_invs])
+        struct_invs confl upd stgy_invs inv2])
   qed
 
   have restart_abs_l_alt_def:
   \<open>restart_abs_l S last_GC last_Restart n brk = do {
-     ASSERT(restart_abs_l_pre S brk);
+     ASSERT(restart_abs_l_pre S last_GC last_Restart brk);
      b \<leftarrow> GC_required_l S last_GC n;
      b2 \<leftarrow> restart_required_l S last_Restart n;
      if b2 \<and>  \<not>brk then do {
@@ -4448,12 +4455,12 @@ proof -
   have cdcl_twl_full_restart_l_prog:
     \<open>cdcl_twl_full_restart_l_prog S \<le> SPEC (\<lambda>T. cdcl_twl_restart_l S T)\<close>
     if
-      inv: \<open>restart_abs_l_pre S brk\<close> and
+      inv: \<open>restart_abs_l_pre S last_GC last_Restart brk\<close> and
       \<open>(b, ba) \<in> bool_rel\<close> and
       \<open>b \<in> {b. b \<longrightarrow> f n < size ( S)}\<close> and
       \<open>ba \<in> {b. b \<longrightarrow> f n < size ( S)}\<close> and
       brk: \<open>\<not>brk\<close>
-    for b ba S brk n
+    for b ba S brk n last_GC last_Restart
   proof -
     obtain T where
       ST: \<open>(S, T) \<in> twl_st_l None\<close> and
@@ -4475,9 +4482,9 @@ proof -
   have cdcl_twl_full_restart_l_GC_prog:
     \<open>cdcl_twl_full_restart_l_GC_prog S \<le> SPEC (cdcl_twl_restart_l S)\<close>
     if
-      inv: \<open>restart_abs_l_pre S brk\<close> and
+      inv: \<open>restart_abs_l_pre S last_GC last_Restart brk\<close> and
       brk: \<open>ba \<and> b2a \<and> \<not> brk\<close>
-    for ba b2a brk S
+    for ba b2a brk S last_GC last_Restart
   proof -
     obtain T where
       ST: \<open>(S, T) \<in> twl_st_l None\<close> and
@@ -4485,18 +4492,19 @@ proof -
       list_invs: \<open>twl_list_invs S\<close> and
       upd: \<open>clauses_to_update_l S = {#}\<close> and
       stgy_invs: \<open>twl_stgy_invs T\<close> and
-      confl: \<open>get_conflict_l S = None\<close>
+      confl: \<open>get_conflict_l S = None\<close> and
+      inv2: \<open>restart_prog_pre T last_GC last_Restart brk\<close>
       using inv brk unfolding restart_abs_l_pre_def restart_prog_pre_def
       apply - apply normalize_goal+
       by (auto simp: twl_st)
     show ?thesis
       by (rule cdcl_twl_full_restart_l_GC_prog_cdcl_twl_restart_l[unfolded Down_id_eq, OF ST list_invs
-        struct_invs confl upd stgy_invs])
+        struct_invs confl upd stgy_invs inv2])
   qed
 
   have restart_abs_l_alt_def:
   \<open>restart_abs_l S last_GC last_Restart n brk = do {
-     ASSERT(restart_abs_l_pre S brk);
+     ASSERT(restart_abs_l_pre S last_GC last_Restart brk);
      b \<leftarrow> GC_required_l S last_GC n;
      b2 \<leftarrow> restart_required_l S last_Restart n;
      if b2 \<and>  \<not>brk then do {

@@ -466,6 +466,9 @@ fun (in -) get_vdom_heur_init :: \<open>twl_st_wl_heur_init \<Rightarrow> nat li
 fun (in -) is_failed_heur_init :: \<open>twl_st_wl_heur_init \<Rightarrow> bool\<close> where
   \<open>is_failed_heur_init (_, _, _, _, _, _, _, _, _, _, _, failed, _) = failed\<close>
 
+fun (in -) get_learned_count_init :: \<open>twl_st_wl_heur_init \<Rightarrow> clss_size\<close> where
+  \<open>get_learned_count_init (_, _, _, _, _, _, _, _, _, _, _, failed, lcount) = lcount\<close>
+
 definition propagate_unit_cls
   :: \<open>nat literal \<Rightarrow> nat twl_st_wl_init \<Rightarrow> nat twl_st_wl_init\<close>
 where
@@ -473,11 +476,18 @@ where
      ((Propagated L 0 # M, N, D, add_mset {#L#} NE, UE, Q), OC))\<close>
 
 definition propagate_unit_cls_heur
- :: \<open>nat literal \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur_init nres\<close>
+ :: \<open>bool \<Rightarrow> nat literal \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur_init nres\<close>
 where
-  \<open>propagate_unit_cls_heur = (\<lambda>L (M, N, D, j, W, vm, \<phi>, clvls, cach, lbd, vdom, failed, lcount). do {
-     M \<leftarrow> cons_trail_Propagated_tr L 0 M;
-     RETURN (M, N, D, j, W, vm, \<phi>, clvls, cach, lbd, vdom, failed, clss_size_incr_lcountNES lcount)})\<close>
+  \<open>propagate_unit_cls_heur = (\<lambda>unbdd L (M, N, D, j, W, vm, \<phi>, clvls, cach, lbd, vdom, failed, lcount).
+     if unbdd \<or> clss_size_lcountNES lcount < uint64_max
+     then  do {
+        M \<leftarrow> cons_trail_Propagated_tr L 0 M;
+       RETURN (M, N, D, j, W, vm, \<phi>, clvls, cach, lbd, vdom, failed, clss_size_incr_lcountNES lcount)
+     }
+    else do {
+        M \<leftarrow> cons_trail_Propagated_tr L 0 M;
+      RETURN (M, N, D, j, W, vm, \<phi>, clvls, cach, lbd, vdom, True, lcount)
+     })\<close>
 
 fun get_unit_clauses_init_wl :: \<open>'v twl_st_wl_init \<Rightarrow> 'v clauses\<close> where
   \<open>get_unit_clauses_init_wl ((M, N, D, NE, UE, Q), OC) = NE + UE\<close>
@@ -503,7 +513,7 @@ lemma DECISION_REASON0[simp]: \<open>DECISION_REASON \<noteq> 0\<close>
   by (auto simp: DECISION_REASON_def)
 
 lemma propagate_unit_cls_heur_propagate_unit_cls:
-  \<open>(uncurry propagate_unit_cls_heur, uncurry (propagate_unit_init_wl)) \<in>
+  \<open>(uncurry (propagate_unit_cls_heur unbdd), uncurry (propagate_unit_init_wl)) \<in>
    [\<lambda>(L, S). undefined_lit (get_trail_init_wl S) L \<and> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>]\<^sub>f
     Id \<times>\<^sub>r twl_st_heur_parsing_no_WL \<A> unbdd \<rightarrow> \<langle>twl_st_heur_parsing_no_WL \<A> unbdd\<rangle> nres_rel\<close>
   unfolding  twl_st_heur_parsing_no_WL_def propagate_unit_cls_heur_def propagate_unit_init_wl_def
@@ -516,6 +526,18 @@ lemma propagate_unit_cls_heur_propagate_unit_cls:
   subgoal by auto
   subgoal by  (auto intro!: isa_vmtf_init_consD
     simp: all_lits_of_mm_add_mset all_lits_of_m_add_mset uminus_\<A>\<^sub>i\<^sub>n_iff)
+  subgoal by auto
+  subgoal by auto
+  subgoal
+    by  (auto intro!: isa_vmtf_init_consD
+    simp: all_lits_of_mm_add_mset all_lits_of_m_add_mset uminus_\<A>\<^sub>i\<^sub>n_iff
+      cons_trail_propagate_l_def)
+  subgoal by auto
+  subgoal by auto
+  subgoal
+    by  (auto intro!: isa_vmtf_init_consD
+    simp: all_lits_of_mm_add_mset all_lits_of_m_add_mset uminus_\<A>\<^sub>i\<^sub>n_iff
+      cons_trail_propagate_l_def)
   done
 
 definition already_propagated_unit_cls
@@ -909,15 +931,20 @@ where
      ((M, N, D, add_mset {#L#} NE, UE, NS, US, {#}), OC))\<close>
 
 definition already_propagated_unit_cls_conflict_heur
-  :: \<open>nat literal \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur_init nres\<close>
+  :: \<open>bool \<Rightarrow> nat literal \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur_init nres\<close>
 where
-  \<open>already_propagated_unit_cls_conflict_heur = (\<lambda>L (M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, vdom, failed, lcount). do {
+  \<open>already_propagated_unit_cls_conflict_heur = (\<lambda>unbdd L (M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, vdom, failed, lcount). if unbdd \<or> (\<not>failed \<and> clss_size_lcountNES lcount < uint64_max)
+    then do {
      ASSERT (isa_length_trail_pre M);
      RETURN (M, N, D, isa_length_trail M, W, vm, \<phi>, clvls, cach, lbd, vdom, failed, clss_size_incr_lcountNES lcount)
+  }
+   else do {
+     ASSERT (isa_length_trail_pre M);
+     RETURN (M, N, D, isa_length_trail M, W, vm, \<phi>, clvls, cach, lbd, vdom, True, lcount)
   })\<close>
 
 lemma already_propagated_unit_cls_conflict_heur_already_propagated_unit_cls_conflict:
-  \<open>(uncurry already_propagated_unit_cls_conflict_heur,
+  \<open>(uncurry (already_propagated_unit_cls_conflict_heur unbdd),
      uncurry (RETURN oo already_propagated_unit_cls_conflict)) \<in>
    [\<lambda>(L, S). L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>]\<^sub>f Id \<times>\<^sub>r twl_st_heur_parsing_no_WL \<A> unbdd \<rightarrow>
      \<langle>twl_st_heur_parsing_no_WL \<A> unbdd\<rangle> nres_rel\<close>
@@ -998,7 +1025,7 @@ where
           ASSERT(polarity_pol_pre (get_trail_wl_heur_init S) L);
           let val_L = polarity_pol (get_trail_wl_heur_init S) L;
           if val_L = None
-          then propagate_unit_cls_heur L S
+          then propagate_unit_cls_heur unbdd L S
           else
             if val_L = Some True
             then already_propagated_unit_cls_heur unbdd C S
@@ -1141,6 +1168,12 @@ definition init_dt_step_wl_heur_unb :: \<open>nat clause_l \<Rightarrow> twl_st_
 
 definition init_dt_wl_heur_unb :: \<open>nat clause_l list \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur_init nres\<close> where
 \<open>init_dt_wl_heur_unb = init_dt_wl_heur True\<close>
+
+definition propagate_unit_cls_heur_b :: \<open>nat literal \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur_init nres\<close> where
+  \<open>propagate_unit_cls_heur_b = propagate_unit_cls_heur False\<close>
+
+definition already_propagated_unit_cls_conflict_heur_b :: \<open>nat literal \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur_init nres\<close> where
+  \<open>already_propagated_unit_cls_conflict_heur_b = already_propagated_unit_cls_conflict_heur False\<close>
 
 definition init_dt_step_wl_heur_b :: \<open>nat clause_l \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> (twl_st_wl_heur_init) nres\<close> where
 \<open>init_dt_step_wl_heur_b = init_dt_step_wl_heur False\<close>
@@ -1963,7 +1996,8 @@ lemma finalise_init_finalise_init_full:
   all_atms_st S \<noteq> {#} \<Longrightarrow> size (learned_clss_l (get_clauses_wl S)) = 0 \<Longrightarrow>
   ((ops', T), ops, S) \<in> Id \<times>\<^sub>f twl_st_heur_post_parsing_wl True \<Longrightarrow>
   finalise_init_code ops' T \<le> \<Down> {(S', T'). (S', T') \<in> twl_st_heur \<and>
-    get_clauses_wl_heur_init T = get_clauses_wl_heur S'} (RETURN (finalise_init S))\<close>
+    get_clauses_wl_heur_init T = get_clauses_wl_heur S' \<and> 
+     get_learned_count_init T = get_learned_count S'} (RETURN (finalise_init S))\<close>
   apply (cases S; cases T)
   apply (simp add: finalise_init_code_def)
   apply (auto simp: finalise_init_def twl_st_heur_def twl_st_heur_parsing_no_WL_def
