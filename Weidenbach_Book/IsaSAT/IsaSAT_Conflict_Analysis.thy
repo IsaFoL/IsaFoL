@@ -139,7 +139,8 @@ lemma mop_tl_state_wl_pre_simps:
 
 lemma tl_state_wl_heur_tl_state_wl:
    \<open>(tl_state_wl_heur, mop_tl_state_wl) \<in>
-   [\<lambda>_. True]\<^sub>f twl_st_heur_conflict_ana' r \<rightarrow> \<langle>bool_rel \<times>\<^sub>f twl_st_heur_conflict_ana' r\<rangle>nres_rel\<close>
+  [\<lambda>_. True]\<^sub>f twl_st_heur_conflict_ana' r lcount \<rightarrow>
+    \<langle>bool_rel \<times>\<^sub>f twl_st_heur_conflict_ana' r lcount\<rangle>nres_rel\<close>
   supply [[goals_limit=1]]
   unfolding tl_state_wl_heur_def mop_tl_state_wl_def
   apply (intro frefI nres_relI)
@@ -494,7 +495,8 @@ lemma imply_itself: \<open>P \<Longrightarrow> P\<close>
 lemma update_confl_tl_wl_heur_update_confl_tl_wl:
   \<open>(uncurry2 (update_confl_tl_wl_heur), uncurry2 mop_update_confl_tl_wl) \<in>
   [\<lambda>_. True]\<^sub>f
-   Id \<times>\<^sub>f nat_rel \<times>\<^sub>f twl_st_heur_conflict_ana' r \<rightarrow> \<langle>bool_rel \<times>\<^sub>f twl_st_heur_conflict_ana' r\<rangle>nres_rel\<close>
+   Id \<times>\<^sub>f nat_rel \<times>\<^sub>f twl_st_heur_conflict_ana' r lcount \<rightarrow>
+    \<langle>bool_rel \<times>\<^sub>f twl_st_heur_conflict_ana' r lcount\<rangle>nres_rel\<close>
 proof -
   have mop_update_confl_tl_wl_alt_def: \<open>mop_update_confl_tl_wl = (\<lambda>L C (M, N, D, NE, UE, WS, Q). do {
       ASSERT(update_confl_tl_wl_pre L C (M, N, D, NE, UE, WS, Q));
@@ -534,7 +536,7 @@ note [[goals_limit=1]]
   have rr: \<open>(((x1g, x2g), x1h, x1i, (x1k, x1l, x2k), x1m, x1n, x1p, x1q, x1r,
       x1s, x1t, m, n, p, q, ra, s, t),
      (x1, x2), x1a, x1b, x1c, x1d, x1e, NS, US, x1f, x2f)
-    \<in> nat_lit_lit_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f twl_st_heur_conflict_ana' r \<Longrightarrow>
+    \<in> nat_lit_lit_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f twl_st_heur_conflict_ana' r lcount \<Longrightarrow>
     CLS = ((x1, x2), x1a, x1b, x1c, x1d, x1e, NS, US, x1f, x2f) \<Longrightarrow>
     CLS' =
     ((x1g, x2g), x1h, x1i, (x1k, x1l, x2k), x1m, x1n, x1p, x1q, x1r,
@@ -628,7 +630,7 @@ note [[goals_limit=1]]
   have rr: \<open>(((x1g, x2g), x1h, x1i, (x1k, x1l, x2k), x1m, x1n, x1o, x1p, x1q,
          x1r, x1s, l, m, n, p, q, ra, s),
         (x1, x2), x1a, N, x1c, x1d, x1e, x1f, ha, ia, ja)
-       \<in> nat_lit_lit_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f twl_st_heur_conflict_ana' r \<Longrightarrow>
+       \<in> nat_lit_lit_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f twl_st_heur_conflict_ana' r lcount \<Longrightarrow>
        CLS = ((x1, x2), x1a, N, x1c, x1d, x1e, x1f, ha, ia, ja) \<Longrightarrow>
        CLS' =
        ((x1g, x2g), x1h, x1i, (x1k, x1l, x2k), x1m, x1n, x1o, x1p, x1q, x1r,
@@ -798,7 +800,7 @@ definition is_decided_hd_trail_wl_heur :: \<open>twl_st_wl_heur \<Rightarrow> bo
 
 lemma is_decided_hd_trail_wl_heur_hd_get_trail:
   \<open>(RETURN o is_decided_hd_trail_wl_heur, RETURN o (\<lambda>M. is_decided (hd (get_trail_wl M))))
-   \<in> [\<lambda>M. get_trail_wl M \<noteq> []]\<^sub>f twl_st_heur_conflict_ana' r \<rightarrow> \<langle>bool_rel\<rangle> nres_rel\<close>
+   \<in> [\<lambda>M. get_trail_wl M \<noteq> []]\<^sub>f twl_st_heur_conflict_ana' r lcount \<rightarrow> \<langle>bool_rel\<rangle> nres_rel\<close>
    by (intro frefI nres_relI)
      (auto simp: is_decided_hd_trail_wl_heur_def twl_st_heur_conflict_ana_def neq_Nil_conv
         trail_pol_def ann_lits_split_reasons_def is_decided_no_proped_iff last_trail_pol_def
@@ -927,14 +929,20 @@ lemma skip_and_resolve_loop_wl_alt_def:
 
 lemma skip_and_resolve_loop_wl_D_heur_skip_and_resolve_loop_wl_D:
   \<open>(skip_and_resolve_loop_wl_D_heur, skip_and_resolve_loop_wl)
-    \<in> twl_st_heur_conflict_ana' r \<rightarrow>\<^sub>f \<langle>twl_st_heur_conflict_ana' r\<rangle>nres_rel\<close>
+    \<in> twl_st_heur_conflict_ana' r lcount \<rightarrow>\<^sub>f \<langle>twl_st_heur_conflict_ana' r lcount\<rangle>nres_rel\<close>
 proof -
-  have H[refine0]: \<open>(x, y) \<in> twl_st_heur_conflict_ana \<Longrightarrow>
+  have H[refine0]: \<open>(x, y) \<in> twl_st_heur_conflict_ana' r lcount  \<Longrightarrow>
            ((False, x), False, y)
            \<in> bool_rel \<times>\<^sub>f
-              twl_st_heur_conflict_ana' (length (get_clauses_wl_heur x))\<close> for x y
+              twl_st_heur_conflict_ana' r lcount\<close> for x y
     by auto
-
+  have H1: \<open>(xa, x')
+    \<in> bool_rel \<times>\<^sub>f
+      twl_st_heur_conflict_ana' r lcount \<Longrightarrow>
+    case x' of (x, xa) \<Rightarrow> skip_and_resolve_loop_wl_inv y x xa \<Longrightarrow>
+    xa = (x1, x2) \<Longrightarrow>
+      x' = (x1a, x2a) \<Longrightarrow> (x2, x2a) \<in> twl_st_heur_conflict_ana' r lcount\<close> for xa x' x1 x2 x1a x2a y
+   by auto
   show ?thesis
     supply [[goals_limit=1]]
     unfolding skip_and_resolve_loop_wl_D_heur_def skip_and_resolve_loop_wl_alt_def
@@ -945,7 +953,6 @@ proof -
           [THEN fref_to_Down_curry] lit_and_ann_of_propagated_st_heur_lit_and_ann_of_propagated_st[THEN fref_to_Down]
        tl_state_wl_heur_tl_state_wl[THEN fref_to_Down]
        atm_is_in_conflict_st_heur_is_in_conflict_st[THEN fref_to_Down_curry])
-   subgoal by fast
    subgoal for S T brkS brkT
      unfolding skip_and_resolve_loop_wl_D_heur_inv_def
      apply (subst case_prod_beta)
@@ -963,7 +970,7 @@ proof -
        unfolding prod.case
        apply normalize_goal+
        by (auto simp: )
-    subgoal by auto
+    apply (rule H1; assumption)
     subgoal by auto
     done
    subgoal by auto
@@ -1058,8 +1065,14 @@ lemma skip_and_resolve_loop_wl_DI:
   apply (clarsimp_all dest!: multi_member_split simp: ann_lits_split_reasons_def)
   done
 
+lemma
+  \<open>cdcl_twl_o S T \<Longrightarrow> size (get_all_learned_clss T) \<le> 1 + size (get_all_learned_clss S)\<close>
+  apply (induction rule: cdcl_twl_o.induct)
+  apply auto
+  done
+
 lemma isasat_fast_after_skip_and_resolve_loop_wl_D_heur_inv:
-  \<open>isasat_fast x \<Longrightarrow>
+  \<open>isasat_fast x \<Longrightarrow> get_learned_count x = get_learned_count a2' \<Longrightarrow>
        skip_and_resolve_loop_wl_D_heur_inv x
         (False, a2') \<Longrightarrow> isasat_fast a2'\<close>
   unfolding skip_and_resolve_loop_wl_D_heur_inv_def isasat_fast_def

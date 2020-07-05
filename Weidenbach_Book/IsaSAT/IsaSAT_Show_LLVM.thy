@@ -41,9 +41,9 @@ sepref_def print_char_impl
 
 sepref_def isasat_current_information_impl [llvm_code]
   is \<open>uncurry2 (RETURN ooo isasat_current_information)\<close>
-  :: \<open>word_assn\<^sup>k *\<^sub>a stats_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a stats_assn\<close>
+  :: \<open>word_assn\<^sup>k *\<^sub>a stats_assn\<^sup>k *\<^sub>a lcount_assn\<^sup>k \<rightarrow>\<^sub>a stats_assn\<close>
   unfolding isasat_current_information_def
-    isasat_current_information_def
+    isasat_current_information_def lcount_assn_def
   by sepref
 
 declare isasat_current_information_impl.refine[sepref_fr_rules]
@@ -70,11 +70,9 @@ sepref_def isasat_current_status_fast_code
 
 sepref_def isasat_print_progress_impl
   is \<open>uncurry3 (RETURN oooo isasat_print_progress)\<close>
-  :: \<open>word_assn\<^sup>k *\<^sub>a word_assn\<^sup>k *\<^sub>a stats_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a unit_assn\<close>
-  unfolding isasat_print_progress_def
+  :: \<open>word_assn\<^sup>k *\<^sub>a word_assn\<^sup>k *\<^sub>a stats_assn\<^sup>k *\<^sub>a lcount_assn\<^sup>k \<rightarrow>\<^sub>a unit_assn\<close>
+  unfolding isasat_print_progress_def lcount_assn_def
   by sepref
-
-term isasat_current_progress
 
 sepref_def isasat_current_progress_impl
   is \<open>uncurry isasat_current_progress\<close>

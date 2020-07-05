@@ -27,8 +27,9 @@ where
   \<close>
 
 lemma twl_st_heur''D_twl_st_heurD:
-  assumes H: \<open>(\<And>\<D> r. f \<in> twl_st_heur'' \<D> r \<rightarrow>\<^sub>f \<langle>twl_st_heur'' \<D> r\<rangle> nres_rel)\<close>
-  shows \<open>f \<in> twl_st_heur \<rightarrow>\<^sub>f \<langle>twl_st_heur\<rangle> nres_rel\<close>  (is \<open>_ \<in> ?A B\<close>)
+  assumes H: \<open>(\<And>\<D> r. f \<in> twl_st_heur'' \<D> r lcount \<rightarrow>\<^sub>f \<langle>twl_st_heur'' \<D> r lcount\<rangle> nres_rel)\<close>
+  shows \<open>f \<in> {(S, T). (S, T) \<in> twl_st_heur \<and> get_learned_count S = lcount} \<rightarrow>\<^sub>f
+        \<langle>{(S, T). (S, T) \<in> twl_st_heur \<and> get_learned_count S = lcount}\<rangle> nres_rel\<close>  (is \<open>_ \<in> ?A B\<close>)
 proof -
   obtain f1 f2 where f: \<open>f = (f1, f2)\<close>
     by (cases f) auto
@@ -45,7 +46,7 @@ proof -
       apply (drule spec[of _ y])
       apply simp
       apply (rule "weaken_\<Down>'"[of _ \<open>twl_st_heur'' (dom_m (get_clauses_wl y))
-         (length (get_clauses_wl_heur x))\<close>])
+        (length (get_clauses_wl_heur x)) lcount\<close>])
       apply (fastforce simp: twl_st_heur'_def)+
       done
     done
@@ -117,6 +118,9 @@ proof -
                length (get_clauses_wl_heur S) =
                length (get_clauses_wl_heur x)}\<close> for x y
     by (auto simp: twl_st_heur_state_simp twl_st_heur_twl_st_heur_conflict_ana)
+   have H2: \<open>(x, y) \<in> twl_st_heur''' r \<Longrightarrow>
+          (x, y) \<in> twl_st_heur_conflict_ana' r (get_learned_count x)\<close> for x y
+    by (auto simp: twl_st_heur_state_simp twl_st_heur_twl_st_heur_conflict_ana)
   show ?thesis
     unfolding cdcl_twl_o_prog_wl_D_heur_def cdcl_twl_o_prog_wl_def
       get_conflict_wl_is_None
@@ -132,6 +136,7 @@ proof -
     apply (assumption)
     subgoal by (rule conc_fun_R_mono) auto
     subgoal by (auto simp: twl_st_heur_state_simp twl_st_heur_count_decided_st_alt_def)
+    apply (rule H2; assumption)
     subgoal by (auto simp: twl_st_heur_state_simp twl_st_heur_twl_st_heur_conflict_ana)
     subgoal by (auto simp: twl_st_heur_state_simp)
     apply assumption
@@ -173,7 +178,8 @@ where
 
 theorem unit_propagation_outer_loop_wl_D_heur_unit_propagation_outer_loop_wl_D:
   \<open>(unit_propagation_outer_loop_wl_D_heur, unit_propagation_outer_loop_wl) \<in>
-    twl_st_heur \<rightarrow>\<^sub>f \<langle>twl_st_heur\<rangle> nres_rel\<close>
+    {(S, T). (S, T) \<in> twl_st_heur \<and> get_learned_count S = lcount} \<rightarrow>\<^sub>f
+       \<langle>{(S, T). (S, T) \<in> twl_st_heur \<and> get_learned_count S = lcount}\<rangle> nres_rel\<close>
   using twl_st_heur''D_twl_st_heurD[OF
      unit_propagation_outer_loop_wl_D_heur_unit_propagation_outer_loop_wl_D']
   .
@@ -181,15 +187,13 @@ theorem unit_propagation_outer_loop_wl_D_heur_unit_propagation_outer_loop_wl_D:
 lemma cdcl_twl_stgy_prog_wl_D_heur_cdcl_twl_stgy_prog_wl_D:
   \<open>(cdcl_twl_stgy_prog_wl_D_heur, cdcl_twl_stgy_prog_wl) \<in> twl_st_heur \<rightarrow>\<^sub>f \<langle>twl_st_heur\<rangle>nres_rel\<close>
 proof -
-  have H: \<open>(x, y) \<in> {(S, T).
+  have H[refine0]: \<open>(x, y) \<in> {(S, T).
                (S, T) \<in> twl_st_heur \<and>
                length (get_clauses_wl_heur S) =
                length (get_clauses_wl_heur x)} \<Longrightarrow>
            (x, y)
            \<in> {(S, T).
-               (S, T) \<in> twl_st_heur_conflict_ana \<and>
-               length (get_clauses_wl_heur S) =
-               length (get_clauses_wl_heur x)}\<close> for x y
+               (S, T) \<in> twl_st_heur \<and> get_learned_count S = get_learned_count x}\<close> for x y
     by (auto simp: twl_st_heur_state_simp twl_st_heur_twl_st_heur_conflict_ana)
   show ?thesis
     unfolding cdcl_twl_stgy_prog_wl_D_heur_def cdcl_twl_stgy_prog_wl_def
@@ -264,13 +268,14 @@ proof -
     (x1e, x1b)
     \<in> twl_st_heur''
         (dom_m (get_clauses_wl x1b))
-        (length (get_clauses_wl_heur x1e))\<close>
+        (length (get_clauses_wl_heur x1e))
+        (get_learned_count x1e)\<close>
     for x1e x1b
     by (auto simp: twl_st_heur'_def)
-  have twl_st_heur''': \<open>(x1e, x1b) \<in> twl_st_heur'' \<D> r \<Longrightarrow>
+  have twl_st_heur''': \<open>(x1e, x1b) \<in> twl_st_heur'' \<D> r lcount \<Longrightarrow>
     (x1e, x1b)
     \<in> twl_st_heur''' r\<close>
-    for x1e x1b r \<D>
+    for x1e x1b r \<D> lcount
     by (auto simp: twl_st_heur'_def)
   have H: \<open>SPEC (\<lambda>_::bool. True) = RES UNIV\<close> by auto
   show ?thesis

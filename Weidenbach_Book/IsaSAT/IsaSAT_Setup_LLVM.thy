@@ -125,7 +125,6 @@ lemmas [simp] = vmtf_node_assn_pure[unfolded CONSTRAINT_def]
 
 lemmas [sepref_frame_free_rules] = mk_free_is_pure[OF vmtf_node_assn_pure[unfolded CONSTRAINT_def]]
 
-
 lemma
     vmtf_Node_refine1: \<open>(\<lambda>a b c. (a,b,c), VMTF_Node) \<in> Id \<rightarrow> Id \<rightarrow> Id \<rightarrow> vmtf_node1_rel\<close>
 and vmtf_stamp_refine1: \<open>(\<lambda>(a,b,c). a, stamp) \<in> vmtf_node1_rel \<rightarrow> Id\<close>
@@ -240,12 +239,26 @@ type_synonym twl_st_wll_trail_fast =
     64 word \<times> watched_wl_uint32 \<times> vmtf_remove_assn \<times>
     32 word \<times> cach_refinement_l_assn \<times> lbd_assn \<times> out_learned_assn \<times> stats \<times>
     heur_assn \<times>
-    vdom_fast_assn \<times> vdom_fast_assn \<times> 64 word \<times> opts_assn \<times> arena_assn\<close>
+    vdom_fast_assn \<times> vdom_fast_assn \<times> (64 word \<times> 64 word \<times> 64 word \<times> 64 word) \<times> opts_assn \<times> arena_assn\<close>
 
 
 abbreviation phase_heur_assn where
   \<open>phase_heur_assn \<equiv> phase_saver_assn \<times>\<^sub>a sint64_nat_assn \<times>\<^sub>a phase_saver'_assn \<times>\<^sub>a sint64_nat_assn \<times>\<^sub>a
      phase_saver'_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn\<close>
+
+definition lcount_assn :: \<open>clss_size \<Rightarrow> _ \<Rightarrow> assn\<close> where
+  \<open>lcount_assn \<equiv> uint64_nat_assn \<times>\<^sub>a uint64_nat_assn \<times>\<^sub>a uint64_nat_assn \<times>\<^sub>a uint64_nat_assn\<close>
+
+
+lemma [sepref_frame_free_rules]:
+  \<open>CONSTRAINT Sepref_Basic.is_pure lcount_assn\<close>
+  unfolding lcount_assn_def
+  by auto
+
+lemma [safe_constraint_rules]:
+  \<open>CONSTRAINT Sepref_Basic.is_pure lcount_assn\<close>
+  unfolding lcount_assn_def
+  by auto
 
 definition heuristic_assn :: \<open>restart_heuristics \<Rightarrow> heur_assn \<Rightarrow> assn\<close> where
   \<open>heuristic_assn = ema_assn \<times>\<^sub>a
@@ -268,7 +281,7 @@ definition isasat_bounded_assn :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wll
   heuristic_assn \<times>\<^sub>a
   vdom_fast_assn \<times>\<^sub>a
   vdom_fast_assn \<times>\<^sub>a
-  uint64_nat_assn \<times>\<^sub>a
+  lcount_assn \<times>\<^sub>a
   opts_assn \<times>\<^sub>a arena_fast_assn\<close>
 
 
@@ -446,11 +459,12 @@ sepref_register mark_garbage_heur
 sepref_def mark_garbage_heur_code2
   is \<open>uncurry2 (RETURN ooo mark_garbage_heur)\<close>
   :: \<open>[\<lambda>((C, i), S). mark_garbage_pre (get_clauses_wl_heur S, C) \<and> i < length_avdom S \<and>
-         get_learned_count S \<ge> 1]\<^sub>a
+         clss_size_lcount (get_learned_count S) \<ge> 1]\<^sub>a
        sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   supply [[goals_limit = 1]]
   unfolding mark_garbage_heur_def isasat_bounded_assn_def delete_index_and_swap_alt_def
-    length_avdom_def fold_tuple_optimizations
+    length_avdom_def fold_tuple_optimizations clss_size_decr_lcount_def clss_size_lcount_def
+    lcount_assn_def
   apply (annot_unat_const \<open>TYPE(64)\<close>)
   by sepref
 
@@ -518,11 +532,104 @@ sepref_def get_conflict_count_since_last_restart_heur_fast_code
 
 sepref_def get_learned_count_fast_code
   is \<open>RETURN o get_learned_count\<close>
-  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
+  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a lcount_assn\<close>
   unfolding get_learned_count_alt_def isasat_bounded_assn_def
   by sepref
 
-sepref_register incr_restart_stat
+sepref_register clss_size_lcount get_learned_count_number
+
+sepref_def clss_size_lcount_fast_code
+  is \<open>RETURN o clss_size_lcount\<close>
+  :: \<open>lcount_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
+  unfolding clss_size_lcount_def lcount_assn_def
+  by sepref
+
+
+lemma get_learned_count_number_alt_def:
+   \<open>RETURN o get_learned_count_number = (\<lambda>(M, N0, D, Q, W, vm, clvls, cach, lbd, outl,
+       stats, _, vdom, avdom, (lcount, _), opts). RETURN (lcount))\<close>
+  by (auto simp: clss_size_lcount_def intro!: ext)
+
+sepref_def get_learned_count_number_fast_code
+  is \<open>RETURN o get_learned_count_number\<close>
+  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
+  unfolding isasat_bounded_assn_def get_learned_count_number_alt_def lcount_assn_def
+  by sepref
+
+sepref_register incr_restart_stat clss_size_resetUS
+
+lemma clss_size_resetUS_alt_def:
+  \<open>RETURN o clss_size_resetUS =
+  (\<lambda>(lcount, lcountNES, lcountUE, lcountUS). RETURN (lcount, lcountNES, lcountUE, 0))\<close>
+  by (auto simp: clss_size_resetUS_def)
+
+sepref_def clss_size_resetUS_fast_code
+  is \<open>RETURN o clss_size_resetUS\<close>
+  :: \<open>lcount_assn\<^sup>d \<rightarrow>\<^sub>a lcount_assn\<close>
+  unfolding clss_size_resetUS_alt_def lcount_assn_def
+  apply (annot_unat_const \<open>TYPE(64)\<close>)
+  by sepref
+
+lemma clss_size_incr_lcountUS_alt_def:
+  \<open>RETURN o clss_size_incr_lcountUS =
+  (\<lambda>(lcount, lcountNES, lcountUE, lcountUS). RETURN (lcount, lcountNES, lcountUE, lcountUS + 1))\<close>
+  by (auto simp: clss_size_incr_lcountUS_def)
+
+sepref_def clss_size_incr_lcountUS_fast_code
+  is \<open>RETURN o clss_size_incr_lcountUS\<close>
+  :: \<open>[\<lambda>S. clss_size_lcountUS S < max_snat 64]\<^sub>a lcount_assn\<^sup>d \<rightarrow> lcount_assn\<close>
+  unfolding clss_size_incr_lcountUS_alt_def lcount_assn_def clss_size_lcountUS_def
+  apply (annot_unat_const \<open>TYPE(64)\<close>)
+  by sepref
+
+lemma clss_size_incr_lcountUE_alt_def:
+  \<open>RETURN o clss_size_incr_lcountUE =
+  (\<lambda>(lcount, lcountNES, lcountUE, lcountUS). RETURN (lcount, lcountNES, lcountUE + 1, lcountUS))\<close>
+  by (auto simp: clss_size_incr_lcountUE_def)
+
+sepref_def clss_size_incr_lcountUE_fast_code
+  is \<open>RETURN o clss_size_incr_lcountUE\<close>
+  :: \<open>[\<lambda>S. clss_size_lcountUE S < max_snat 64]\<^sub>a lcount_assn\<^sup>d \<rightarrow> lcount_assn\<close>
+  unfolding clss_size_incr_lcountUE_alt_def lcount_assn_def clss_size_lcountUE_def
+  apply (annot_unat_const \<open>TYPE(64)\<close>)
+  by sepref
+
+lemma clss_size_incr_lcountNES_alt_def:
+  \<open>RETURN o clss_size_incr_lcountNES =
+  (\<lambda>(lcount, lcountNES, lcountUE, lcountUS). RETURN (lcount, lcountNES + 1, lcountUE , lcountUS))\<close>
+  by (auto simp: clss_size_incr_lcountNES_def)
+
+sepref_def clss_size_incr_lcountNES_fast_code
+  is \<open>RETURN o clss_size_incr_lcountNES\<close>
+  :: \<open>[\<lambda>S. clss_size_lcountNES S < max_snat 64]\<^sub>a lcount_assn\<^sup>d \<rightarrow> lcount_assn\<close>
+  unfolding clss_size_incr_lcountNES_alt_def lcount_assn_def clss_size_lcountNES_def
+  apply (annot_unat_const \<open>TYPE(64)\<close>)
+  by sepref
+
+
+lemma clss_size_incr_allcount_alt_def:
+  \<open>RETURN o clss_size_allcount =
+  (\<lambda>(lcount, lcountNES, lcountUE, lcountUS). RETURN (lcount + lcountNES + lcountUE + lcountUS))\<close>
+  by (auto simp: clss_size_allcount_def)
+
+sepref_def clss_size_allcount_fast_code
+  is \<open>RETURN o clss_size_allcount\<close>
+  :: \<open>[\<lambda>S. clss_size_allcount S < max_snat 64]\<^sub>a lcount_assn\<^sup>d \<rightarrow> uint64_nat_assn\<close>
+  unfolding clss_size_incr_allcount_alt_def lcount_assn_def clss_size_allcount_def
+  by sepref
+
+
+lemma clss_size_decr_lcount_alt_def:
+  \<open>RETURN o clss_size_decr_lcount =
+  (\<lambda>(lcount, lcountNES, lcountUE, lcountUS). RETURN (lcount - 1, lcountNES, lcountUE, lcountUS))\<close>
+  by (auto simp: clss_size_decr_lcount_def)
+
+sepref_def clss_size_decr_lcount_fast_code
+  is \<open>RETURN o clss_size_decr_lcount\<close>
+  :: \<open>[\<lambda>S. clss_size_lcount S \<ge> 1]\<^sub>a lcount_assn\<^sup>d \<rightarrow> lcount_assn\<close>
+  unfolding lcount_assn_def clss_size_decr_lcount_alt_def clss_size_lcount_def
+  apply (annot_unat_const \<open>TYPE(64)\<close>)
+  by sepref
 
 sepref_def incr_restart_stat_fast_code
   is \<open>incr_restart_stat\<close>
@@ -532,7 +639,8 @@ sepref_def incr_restart_stat_fast_code
     heuristic_assn_def fold_tuple_optimizations
   by sepref
 
-sepref_register incr_lrestart_stat
+sepref_register incr_lrestart_stat clss_size_decr_lcount clss_size_allcount clss_size_incr_lcountNES
+    clss_size_incr_lcountUE clss_size_incr_lcountUS
 
 sepref_def incr_lrestart_stat_fast_code
   is \<open>incr_lrestart_stat\<close>
@@ -674,7 +782,6 @@ sepref_def mop_mark_garbage_heur_impl
   supply [[goals_limit=1]]
   unfolding mop_mark_garbage_heur_alt_def
     clause_not_marked_to_delete_heur_pre_def prod.case isasat_bounded_assn_def
-  apply (annot_unat_const \<open>TYPE(64)\<close>)
   by sepref
 
 sepref_def mop_mark_unused_st_heur_impl

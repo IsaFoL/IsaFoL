@@ -117,9 +117,11 @@ lemma mop_arena_mark_used2_valid:
   by (auto simp: arena_act_pre_def arena_is_valid_clause_idx_def
     intro!: ASSERT_leI valid_arena_mark_used2)
 
-abbreviation twl_st_heur_conflict_ana' :: \<open>nat \<Rightarrow> (twl_st_wl_heur \<times> nat twl_st_wl) set\<close> where
-  \<open>twl_st_heur_conflict_ana' r \<equiv> {(S, T). (S, T) \<in> twl_st_heur_conflict_ana \<and>
-     length (get_clauses_wl_heur S) = r}\<close>
+abbreviation twl_st_heur_conflict_ana'
+  :: \<open>nat \<Rightarrow> clss_size \<Rightarrow> (twl_st_wl_heur \<times> nat twl_st_wl) set\<close>
+where
+  \<open>twl_st_heur_conflict_ana' r lcount \<equiv> {(S, T). (S, T) \<in> twl_st_heur_conflict_ana \<and>
+     length (get_clauses_wl_heur S) = r \<and> get_learned_count S = lcount}\<close>
 
 lemma calculate_LBD_heur_st_calculate_LBD_st:
   assumes \<open>valid_arena arena N vdom\<close>

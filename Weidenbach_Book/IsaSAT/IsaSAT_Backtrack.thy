@@ -760,10 +760,12 @@ definition backtrack_wl_D_nlit_heur
       ASSERT(fst (get_trail_wl_heur S\<^sub>0) \<noteq> []);
       L \<leftarrow> lit_of_hd_trail_st_heur S\<^sub>0;
       (S, n, C) \<leftarrow> extract_shorter_conflict_list_heur_st S\<^sub>0;
-      ASSERT(get_clauses_wl_heur S = get_clauses_wl_heur S\<^sub>0);
+      ASSERT(get_clauses_wl_heur S = get_clauses_wl_heur S\<^sub>0 \<and>
+           get_learned_count S = get_learned_count S\<^sub>0);
       S \<leftarrow> find_decomp_wl_st_int n S;
 
-      ASSERT(get_clauses_wl_heur S = get_clauses_wl_heur S\<^sub>0);
+      ASSERT(get_clauses_wl_heur S = get_clauses_wl_heur S\<^sub>0 \<and>
+           get_learned_count S = get_learned_count S\<^sub>0);
       if size C > 1
       then do {
         S \<leftarrow> propagate_bt_wl_D_heur L C S;
@@ -881,9 +883,11 @@ proof -
       ASSERT(fst (get_trail_wl_heur S\<^sub>0) \<noteq> []);
       L \<leftarrow> lit_of_hd_trail_st_heur S\<^sub>0;
       (S, n, C) \<leftarrow> extract_shorter_conflict_list_heur_st S\<^sub>0;
-      ASSERT(get_clauses_wl_heur S = get_clauses_wl_heur S\<^sub>0);
+      ASSERT(get_clauses_wl_heur S = get_clauses_wl_heur S\<^sub>0 \<and>
+           get_learned_count S = get_learned_count S\<^sub>0);
       S \<leftarrow> find_decomp_wl_st_int n S;
-      ASSERT(get_clauses_wl_heur S = get_clauses_wl_heur S\<^sub>0);
+      ASSERT(get_clauses_wl_heur S = get_clauses_wl_heur S\<^sub>0 \<and>
+           get_learned_count S = get_learned_count S\<^sub>0);
 
       if size C > 1
       then do {
@@ -913,6 +917,7 @@ proof -
               get_conflict_wl T \<noteq> None\<and>
               equality_except_conflict_wl T S \<and>
               get_clauses_wl_heur T' = get_clauses_wl_heur S' \<and>
+              get_learned_count T' = get_learned_count S' \<and>
               (1 < length C \<longrightarrow>
                 highest_lit (get_trail_wl T) (mset (tl C))
                 (Some (C ! 1, get_level (get_trail_wl T) (C ! 1)))) \<and>
@@ -1478,7 +1483,8 @@ proof -
       \<le> \<Down>  {(U, U''). (U, U'') \<in> twl_st_heur_bt \<and> equality_except_trail_wl U'' T' \<and>
        (\<exists>K M2. (Decided K # (get_trail_wl U''), M2) \<in> set (get_all_ann_decomposition (get_trail_wl T')) \<and>
           get_level (get_trail_wl T') K = get_maximum_level (get_trail_wl T') (the (get_conflict_wl T') - {#-lit_of (hd (get_trail_wl T'))#}) + 1 \<and>
-          get_clauses_wl_heur U = get_clauses_wl_heur S) \<and>
+          get_clauses_wl_heur U = get_clauses_wl_heur S \<and>
+          get_learned_count U = get_learned_count S) \<and>
 	  (get_trail_wl U'', get_vmtf_heur U) \<in> (Id \<times>\<^sub>f (Id \<times>\<^sub>f (distinct_atoms_rel (all_atms_st T'))\<inverse>)) ``
 	    (Collect (find_decomp_w_ns_prop (all_atms_st T') (get_trail_wl T') n (get_vmtf_heur T)))}
           (find_decomp_wl LK' T')\<close>
@@ -1523,7 +1529,8 @@ proof -
       n: \<open>n < count_decided (get_trail_wl T')\<close> and
       bounded: \<open>isasat_input_bounded (all_atms_st T')\<close> and
       T_T': \<open>(T, del_conflict_wl T') \<in> twl_st_heur_bt\<close> and
-      n2: \<open>n = get_maximum_level M (remove1_mset (- lit_of (hd M)) (the D))\<close>
+      n2: \<open>n = get_maximum_level M (remove1_mset (- lit_of (hd M)) (the D))\<close> and
+      lcount: \<open>get_learned_count T = get_learned_count S\<close>
       using TT' KK' by (auto simp: T T' twl_st_heur_bt_def del_conflict_wl_def simp flip: all_atms_def
           simp del: isasat_input_bounded_def)
     have [simp]: \<open>get_trail_wl S' = M\<close>
@@ -1556,7 +1563,7 @@ proof -
       subgoal using bounded .
       unfolding find_decomp_w_ns_def conc_fun_RES
        apply (rule order.refl)
-      using T_T' n_d (*TODO Tune proof*)
+      using T_T' n_d lcount (*TODO Tune proof*)
       apply (cases \<open>get_vmtf_heur T\<close>)
       apply (auto simp: find_decomp_wl_def twl_st_heur_bt_def T T' del_conflict_wl_def
           dest: no_dup_appendD
@@ -2497,7 +2504,11 @@ proof -
     subgoal by (rule trail_nempty)
     subgoal for x y xa S x1 x2 x1a x2a
       by (auto simp: twl_st_heur_state_simp equality_except_conflict_wl_get_clauses_wl)
+    subgoal for x y xa S x1 x2 x1a x2a
+      by (auto simp: twl_st_heur_state_simp equality_except_conflict_wl_get_clauses_wl)
     apply (rule find_decomp_wl_nlit; assumption)
+    subgoal by (auto simp: twl_st_heur_state_simp equality_except_conflict_wl_get_clauses_wl
+          equality_except_trail_wl_get_clauses_wl)
     subgoal by (auto simp: twl_st_heur_state_simp equality_except_conflict_wl_get_clauses_wl
           equality_except_trail_wl_get_clauses_wl)
     subgoal for x y L La xa S x1 x2 x1a x2a Sa Sb

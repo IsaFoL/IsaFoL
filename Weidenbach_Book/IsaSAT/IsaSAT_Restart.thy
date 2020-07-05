@@ -31,6 +31,11 @@ lemma cdcl_twl_stgy_restart_prog_wl_heur_cdcl_twl_stgy_restart_prog_wl_D:
   \<open>(cdcl_twl_stgy_restart_prog_wl_heur, cdcl_twl_stgy_restart_prog_wl) \<in>
     twl_st_heur \<rightarrow>\<^sub>f \<langle>twl_st_heur\<rangle>nres_rel\<close>
 proof -
+  have [refine0]: \<open>(x1e, x1a) \<in> twl_st_heur \<Longrightarrow> (x1e, x1a)
+       \<in> {(S, T).
+          (S, T) \<in> twl_st_heur \<and>
+          get_learned_count S = get_learned_count x1e}\<close> for x1e x1a
+    by auto
   show ?thesis
     unfolding cdcl_twl_stgy_restart_prog_wl_heur_def cdcl_twl_stgy_restart_prog_wl_def
     apply (intro frefI nres_relI)
@@ -161,13 +166,14 @@ thm cdcl_twl_stgy_restart_prog_early_wl_def
     (x1e, x1b)
     \<in> twl_st_heur''
         (dom_m (get_clauses_wl x1b))
-        (length (get_clauses_wl_heur x1e))\<close>
+        (length (get_clauses_wl_heur x1e))
+        (get_learned_count x1e)\<close>
     for x1e x1b
     by (auto simp: twl_st_heur'_def)
-  have twl_st_heur''': \<open>(x1e, x1b) \<in> twl_st_heur'' \<D> r \<Longrightarrow>
+  have twl_st_heur''': \<open>(x1e, x1b) \<in> twl_st_heur'' \<D> r lcount \<Longrightarrow>
     (x1e, x1b)
     \<in> twl_st_heur''' r\<close>
-    for x1e x1b r \<D>
+    for x1e x1b r \<D> lcount
     by (auto simp: twl_st_heur'_def)
   have H: \<open>(xb, x'a)
     \<in> bool_rel \<times>\<^sub>f
@@ -230,7 +236,7 @@ thm cdcl_twl_stgy_restart_prog_early_wl_def
       \<open>length (get_clauses_wl_heur x1g) \<le> uint64_max\<close> and
       \<open>(T, Ta)
        \<in> twl_st_heur'' (dom_m (get_clauses_wl x1b))
-          (length (get_clauses_wl_heur x1g))\<close> and
+          (length (get_clauses_wl_heur x1g)) lcount\<close> and
       \<open>length (get_clauses_wl_heur T) \<le> uint64_max\<close> and
       \<open>length (get_clauses_wl_heur T) = length (get_clauses_wl_heur x1g)\<close> and
       \<open>(xb, x'a)
@@ -241,7 +247,7 @@ thm cdcl_twl_stgy_restart_prog_early_wl_def
       \<open>xb = (x1k, x2k)\<close> and
       \<open>length (get_clauses_wl_heur x2k) \<le> uint64_max\<close>
     for x y ebrk ebrka xa x' x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f
-      x2f x1g x2g x1h x2h x1i x2i T Ta xb x'a x1j x2j x1k x2k
+      x2f x1g x2g x1h x2h x1i x2i T Ta xb x'a x1j x2j x1k x2k lcount
     using that by auto
   have H4: \<open>(((((x2q, x1n), x1o), x2o), x1q), (((x2p, x1j), x1k), x2k), x1p)
         \<in> twl_st_heur''' (length (get_clauses_wl_heur x2q)) \<times>\<^sub>f
@@ -289,7 +295,7 @@ thm cdcl_twl_stgy_restart_prog_early_wl_def
       \<open>xb = (x1l, x2l)\<close> and
       \<open>(Tb, Tc)
        \<in> twl_st_heur'' (dom_m (get_clauses_wl x1i))
-          (length (get_clauses_wl_heur x1m))\<close> and
+          (length (get_clauses_wl_heur x1m)) lcount\<close> and
       \<open>(xc, x'b)
        \<in> bool_rel \<times>\<^sub>f
          twl_st_heur''''
@@ -298,7 +304,7 @@ thm cdcl_twl_stgy_restart_prog_early_wl_def
       \<open>xc = (x1q, x2q)\<close>
     for x y ebrk ebrka xa x' x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f
        x2f x1g x2g T Ta xb x'a x1h x2h x1i x2i x1j x2j x1k x2k x1l x2l x1m
-       x2m x1n x2n x1o x2o Tb Tc xc x'b x1p x2p x1q x2q
+       x2m x1n x2n x1o x2o Tb Tc xc x'b x1p x2p x1q x2q lcount
     using that by auto
 
   show ?thesis
@@ -381,7 +387,9 @@ lemma mark_to_delete_clauses_wl_D_heur_is_Some_iff:
   by auto
 
 lemma (in -) isasat_fast_alt_def:
-  \<open>RETURN o isasat_fast = (\<lambda>(M, N, _). RETURN (length N \<le> sint64_max - (uint32_max div 2 + MAX_HEADER_SIZE + 1)))\<close>
+  \<open>RETURN o isasat_fast = (\<lambda>(M, N, D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
+       vdom, avdom, lcount, opts, old_arena). RETURN (length N \<le> sint64_max - (uint32_max div 2 + MAX_HEADER_SIZE + 1) \<and>
+     clss_size_allcount lcount < sint64_max))\<close>
   unfolding isasat_fast_def
   by (auto intro!:ext)
 
@@ -456,13 +464,14 @@ thm cdcl_twl_stgy_restart_prog_bounded_wl_def
     (x1e, x1b)
     \<in> twl_st_heur''
         (dom_m (get_clauses_wl x1b))
-        (length (get_clauses_wl_heur x1e))\<close>
+        (length (get_clauses_wl_heur x1e))
+         (get_learned_count x1e)\<close>
     for x1e x1b
     by (auto simp: twl_st_heur'_def)
-  have twl_st_heur''': \<open>(x1e, x1b) \<in> twl_st_heur'' \<D> r \<Longrightarrow>
+  have twl_st_heur''': \<open>(x1e, x1b) \<in> twl_st_heur'' \<D> r lcount \<Longrightarrow>
     (x1e, x1b)
     \<in> twl_st_heur''' r\<close>
-    for x1e x1b r \<D>
+    for x1e x1b r \<D> lcount
     by (auto simp: twl_st_heur'_def)
   have H: \<open>(xb, x'a)
     \<in> bool_rel \<times>\<^sub>f
@@ -553,7 +562,7 @@ thm cdcl_twl_stgy_restart_prog_bounded_wl_def
       \<open>xb = (x1l, x2l)\<close> and
       \<open>(Tb, Tc)
        \<in> twl_st_heur'' (dom_m (get_clauses_wl x1i))
-          (length (get_clauses_wl_heur x1m))\<close> and
+          (length (get_clauses_wl_heur x1m)) lcount\<close> and
       \<open>(xc, x'b)
        \<in> bool_rel \<times>\<^sub>f
          twl_st_heur''''
@@ -562,7 +571,7 @@ thm cdcl_twl_stgy_restart_prog_bounded_wl_def
       \<open>xc = (x1q, x2q)\<close>
     for x y ebrk ebrka xa x' x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f
        x2f x1g x2g T Ta xb x'a x1h x2h x1i x2i x1j x2j x1k x2k x1l x2l x1m
-       x2m x1n x2n x1o x2o Tb Tc xc x'b x1p x2p x1q x2q
+       x2m x1n x2n x1o x2o Tb Tc xc x'b x1p x2p x1q x2q lcount
     using that by auto
 
   show ?thesis

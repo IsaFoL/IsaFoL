@@ -112,32 +112,62 @@ sepref_def update_heuristics_impl
   unfolding update_heuristics_def heuristic_assn_def
   by sepref
 
+(*TODO Move*)
+sepref_def clss_size_incr_lcountUE_fast_code
+  is \<open>RETURN o clss_size_incr_lcountUE\<close>
+  :: \<open>[\<lambda>S. clss_size_lcountUE S \<le> max_snat 64]\<^sub>a lcount_assn\<^sup>d \<rightarrow> lcount_assn\<close>
+  unfolding clss_size_incr_lcountUE_alt_def lcount_assn_def clss_size_lcountUE_def
+  apply (annot_unat_const \<open>TYPE(64)\<close>)
+  by sepref
+
+lemma clss_size_incr_lcount_alt_def:
+  \<open>RETURN o clss_size_incr_lcount =
+  (\<lambda>(lcount, lcountNES, lcountUE, lcountUS). RETURN (lcount + 1, lcountNES, lcountUE, lcountUS))\<close>
+  by (auto simp: clss_size_incr_lcount_def)
+
+sepref_register clss_size_incr_lcount
+sepref_def clss_size_incr_lcount_fast_code
+  is \<open>RETURN o clss_size_incr_lcount\<close>
+  :: \<open>[\<lambda>S. clss_size_lcount S \<le> max_snat 64]\<^sub>a lcount_assn\<^sup>d \<rightarrow> lcount_assn\<close>
+  unfolding clss_size_incr_lcount_alt_def lcount_assn_def clss_size_lcount_def
+  apply (annot_unat_const \<open>TYPE(64)\<close>)
+  by sepref
+
 sepref_register cons_trail_Propagated_tr
 sepref_def propagate_unit_bt_wl_D_fast_code
   is \<open>uncurry propagate_unit_bt_wl_D_int\<close>
-  :: \<open>unat_lit_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
+  :: \<open>[\<lambda>(L, S). isasat_fast S]\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   supply [[goals_limit = 1]] vmtf_flush_def[simp] image_image[simp] uminus_\<A>\<^sub>i\<^sub>n_iff[simp]
+    isasat_fast_countD[dest]
   unfolding propagate_unit_bt_wl_D_int_def isasat_bounded_assn_def
     PR_CONST_def
   unfolding fold_tuple_optimizations
   apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
+lemma
+  isasat_fast_countD2:
+    \<open>isasat_fast S \<Longrightarrow> clss_size_lcount (get_learned_count S) \<le> sint64_max\<close>
+    \<open>isasat_fast S \<Longrightarrow> clss_size_lcountUS (get_learned_count S) \<le> sint64_max\<close>
+    \<open>isasat_fast S \<Longrightarrow> clss_size_lcountUE (get_learned_count S) \<le> sint64_max\<close>
+    \<open>isasat_fast S \<Longrightarrow> clss_size_lcountNES (get_learned_count S) \<le> sint64_max\<close>
+  by (solves \<open>cases S; auto simp: isasat_fast_def clss_size_lcountUS_def
+    clss_size_lcountUE_def clss_size_lcountNES_def sint64_max_def
+    clss_size_allcount_def clss_size_lcount_def\<close>)+
 
 sepref_def propagate_bt_wl_D_fast_codeXX
   is \<open>uncurry2 propagate_bt_wl_D_heur\<close>
   :: \<open>[\<lambda>((L, C), S). isasat_fast S]\<^sub>a
       unat_lit_assn\<^sup>k *\<^sub>a clause_ll_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
-
   supply [[goals_limit = 1]] append_ll_def[simp] isasat_fast_length_leD[dest]
     propagate_bt_wl_D_fast_code_isasat_fastI2[intro] length_ll_def[simp]
     propagate_bt_wl_D_fast_code_isasat_fastI3[intro]
+    isasat_fast_countD2[dest]
   unfolding propagate_bt_wl_D_heur_alt_def
     isasat_bounded_assn_def
   unfolding delete_index_and_swap_update_def[symmetric] append_update_def[symmetric]
     append_ll_def[symmetric] append_ll_def[symmetric]
     PR_CONST_def save_phase_def
-  apply (rewrite in \<open>(_ + \<hole>, _)\<close> unat_const_fold[where 'a=64])
   apply (rewrite at \<open>RETURN (_, _, _, _, _, _, \<hole>, _)\<close> unat_const_fold[where 'a=32])
   apply (annot_snat_const \<open>TYPE(64)\<close>)
   unfolding fold_tuple_optimizations

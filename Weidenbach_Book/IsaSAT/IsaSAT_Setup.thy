@@ -289,6 +289,9 @@ where
 definition clss_size_lcount :: \<open>clss_size \<Rightarrow> nat\<close> where
   \<open>clss_size_lcount = (\<lambda>(lcount, lcountNES, lcountUE, lcountUS). lcount)\<close>
 
+definition clss_size_lcountNES :: \<open>clss_size \<Rightarrow> nat\<close> where
+  \<open>clss_size_lcountNES = (\<lambda>(lcount, lcountNES, lcountUE, lcountUS). lcountNES)\<close>
+
 definition clss_size_lcountUE :: \<open>clss_size \<Rightarrow> nat\<close> where
   \<open>clss_size_lcountUE = (\<lambda>(lcount, lcountNES, lcountUE, lcountUS). lcountUE)\<close>
 
@@ -455,6 +458,9 @@ fun get_avdom :: \<open>twl_st_wl_heur \<Rightarrow> nat list\<close> where
 
 fun get_learned_count :: \<open>twl_st_wl_heur \<Rightarrow> clss_size\<close> where
   \<open>get_learned_count (_, _, _, _, _, _, _, _, _, _, _, _, _, _, lcount, _) = lcount\<close>
+
+fun get_learned_count_number :: \<open>twl_st_wl_heur \<Rightarrow> nat\<close> where
+  \<open>get_learned_count_number (_, _, _, _, _, _, _, _, _, _, _, _, _, _, lcount, _) = clss_size_lcount lcount\<close>
 
 fun get_ops :: \<open>twl_st_wl_heur \<Rightarrow> opts\<close> where
   \<open>get_ops (_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, opts, _) = opts\<close>
@@ -692,10 +698,16 @@ text \<open>
   following condition:
 \<close>
 definition isasat_fast :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close> where
-  \<open>isasat_fast S \<longleftrightarrow> (length (get_clauses_wl_heur S) \<le> sint64_max - (uint32_max div 2 + MAX_HEADER_SIZE+1))\<close>
+  \<open>isasat_fast S \<longleftrightarrow> (length (get_clauses_wl_heur S) \<le> sint64_max - (uint32_max div 2 + MAX_HEADER_SIZE+1) \<and> clss_size_allcount (get_learned_count S) < sint64_max)\<close>
 
-lemma isasat_fast_length_leD: \<open>isasat_fast S \<Longrightarrow> length (get_clauses_wl_heur S) \<le> sint64_max\<close>
-  by (cases S) (auto simp: isasat_fast_def)
+lemma isasat_fast_length_leD: \<open>isasat_fast S \<Longrightarrow> length (get_clauses_wl_heur S) \<le> sint64_max\<close> and
+  isasat_fast_countD:
+    \<open>isasat_fast S \<Longrightarrow> clss_size_lcountUS (get_learned_count S) < sint64_max\<close>
+    \<open>isasat_fast S \<Longrightarrow> clss_size_lcountUE (get_learned_count S) < sint64_max\<close>
+    \<open>isasat_fast S \<Longrightarrow> clss_size_lcountNES (get_learned_count S) < sint64_max\<close>
+  by (solves \<open>cases S; auto simp: isasat_fast_def clss_size_lcountUS_def
+    clss_size_lcountUE_def clss_size_lcountNES_def
+    clss_size_allcount_def\<close>)+
 
 
 section \<open>Lift Operations to State\<close>
@@ -1178,21 +1190,21 @@ definition convert_wlists_to_nat_conv :: \<open>'a list list \<Rightarrow> 'a li
   \<open>convert_wlists_to_nat_conv = id\<close>
 
 abbreviation twl_st_heur''
-   :: \<open>nat multiset \<Rightarrow> nat \<Rightarrow> (twl_st_wl_heur \<times> nat twl_st_wl) set\<close>
+   :: \<open>nat multiset \<Rightarrow> nat \<Rightarrow> clss_size \<Rightarrow> (twl_st_wl_heur \<times> nat twl_st_wl) set\<close>
 where
-\<open>twl_st_heur'' \<D> r \<equiv> {(S, T). (S, T) \<in> twl_st_heur' \<D> \<and>
-           length (get_clauses_wl_heur S) = r}\<close>
+\<open>twl_st_heur'' \<D> r lcount \<equiv> {(S, T). (S, T) \<in> twl_st_heur' \<D> \<and>
+           length (get_clauses_wl_heur S) = r \<and> get_learned_count S = lcount}\<close>
 
 abbreviation twl_st_heur_up''
-   :: \<open>nat multiset \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat literal \<Rightarrow> (twl_st_wl_heur \<times> nat twl_st_wl) set\<close>
+   :: \<open>nat multiset \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat literal \<Rightarrow> clss_size \<Rightarrow> (twl_st_wl_heur \<times> nat twl_st_wl) set\<close>
 where
-  \<open>twl_st_heur_up'' \<D> r s L \<equiv> {(S, T). (S, T) \<in> twl_st_heur'' \<D> r \<and>
+  \<open>twl_st_heur_up'' \<D> r s L lcount \<equiv> {(S, T). (S, T) \<in> twl_st_heur'' \<D> r lcount \<and>
      length (watched_by T L) = s \<and> s \<le> r}\<close>
 
 lemma length_watched_le:
   assumes
     prop_inv: \<open>correct_watching x1\<close> and
-    xb_x'a: \<open>(x1a, x1) \<in> twl_st_heur'' \<D>1 r\<close> and
+    xb_x'a: \<open>(x1a, x1) \<in> twl_st_heur'' \<D>1 r lcount\<close> and
     x2: \<open>x2 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st x1)\<close>
   shows \<open>length (watched_by x1 x2) \<le> r - MIN_HEADER_SIZE\<close>
 proof -
@@ -1245,7 +1257,7 @@ qed
 lemma length_watched_le2:
   assumes
     prop_inv: \<open>correct_watching_except i j L x1\<close> and
-    xb_x'a: \<open>(x1a, x1) \<in> twl_st_heur'' \<D>1 r\<close> and
+    xb_x'a: \<open>(x1a, x1) \<in> twl_st_heur'' \<D>1 r lcount\<close> and
     x2: \<open>x2 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st x1)\<close> and diff: \<open>L \<noteq> x2\<close>
   shows \<open>length (watched_by x1 x2) \<le> r - MIN_HEADER_SIZE\<close>
 proof -
@@ -1310,7 +1322,7 @@ lemma mop_watched_by_app_heur_mop_watched_by_at:
 
 lemma mop_watched_by_app_heur_mop_watched_by_at'':
    \<open>(uncurry2 mop_watched_by_app_heur, uncurry2 mop_watched_by_at) \<in>
-    twl_st_heur_up'' \<D> r s K \<times>\<^sub>f nat_lit_lit_rel \<times>\<^sub>f nat_rel \<rightarrow>\<^sub>f \<langle>Id\<rangle>nres_rel\<close>
+    twl_st_heur_up'' \<D> r s K lcount \<times>\<^sub>f nat_lit_lit_rel \<times>\<^sub>f nat_rel \<rightarrow>\<^sub>f \<langle>Id\<rangle>nres_rel\<close>
   by (rule fref_mono[THEN set_mp, OF _ _ _ mop_watched_by_app_heur_mop_watched_by_at])
     (auto simp: \<L>\<^sub>a\<^sub>l\<^sub>l_all_atms_all_lits twl_st_heur'_def map_fun_rel_def)
 
@@ -1346,7 +1358,7 @@ lemma mop_polarity_st_heur_mop_polarity_wl:
 
 lemma mop_polarity_st_heur_mop_polarity_wl'':
    \<open>(uncurry mop_polarity_st_heur, uncurry mop_polarity_wl) \<in>
-   [\<lambda>_. True]\<^sub>f twl_st_heur_up'' \<D> r s K \<times>\<^sub>r Id \<rightarrow> \<langle>\<langle>bool_rel\<rangle>option_rel\<rangle>nres_rel\<close>
+   [\<lambda>_. True]\<^sub>f twl_st_heur_up'' \<D> r s K lcount \<times>\<^sub>r Id \<rightarrow> \<langle>\<langle>bool_rel\<rangle>option_rel\<rangle>nres_rel\<close>
   by (rule fref_mono[THEN set_mp, OF _ _ _ mop_polarity_st_heur_mop_polarity_wl])
     (auto simp: \<L>\<^sub>a\<^sub>l\<^sub>l_all_atms_all_lits twl_st_heur'_def map_fun_rel_def)
 

@@ -44,12 +44,14 @@ lemmas [sepref_fr_rules] = distinct_atms_empty_code.refine atoms_hash_empty_code
 type_synonym (in -)twl_st_wll_trail_init =
   \<open>trail_pol_fast_assn \<times> arena_assn \<times> option_lookup_clause_assn \<times>
     64 word \<times> watched_wl_uint32 \<times> vmtf_remove_assn_option_fst_As \<times> phase_saver_assn \<times>
-    32 word \<times> cach_refinement_l_assn \<times> lbd_assn \<times> vdom_fast_assn \<times> 1 word\<close>
+    32 word \<times> cach_refinement_l_assn \<times> lbd_assn \<times> vdom_fast_assn \<times> 1 word \<times> 
+    (64 word \<times> 64 word \<times> 64 word \<times> 64 word)\<close>
 
 definition isasat_init_assn
   :: \<open>twl_st_wl_heur_init \<Rightarrow> trail_pol_fast_assn \<times> arena_assn \<times> option_lookup_clause_assn \<times>
        64 word \<times> watched_wl_uint32 \<times> _ \<times> phase_saver_assn \<times>
-       32 word \<times> cach_refinement_l_assn \<times> lbd_assn \<times> vdom_fast_assn \<times> 1 word \<Rightarrow> assn\<close>
+  32 word \<times> cach_refinement_l_assn \<times> lbd_assn \<times> vdom_fast_assn \<times> 1 word \<times>
+  (64 word \<times> 64 word \<times> 64 word \<times> 64 word) \<Rightarrow> assn\<close>
 where
 \<open>isasat_init_assn =
   trail_pol_fast_assn \<times>\<^sub>a arena_fast_assn \<times>\<^sub>a
@@ -61,7 +63,7 @@ where
   cach_refinement_l_assn \<times>\<^sub>a
   lbd_assn \<times>\<^sub>a
   vdom_fast_assn \<times>\<^sub>a
-  bool1_assn\<close>
+  bool1_assn \<times>\<^sub>a lcount_assn\<close>
 
 sepref_def initialise_VMTF_code
   is \<open>uncurry initialise_VMTF\<close>

@@ -28,6 +28,12 @@ sepref_def FLAG_GC_restart_impl
   unfolding FLAG_GC_restart_def
   by sepref
 
+sepref_def FLAG_Reduce_restart_impl
+  is \<open>uncurry0 (RETURN FLAG_Reduce_restart)\<close>
+  :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
+  unfolding FLAG_Reduce_restart_def
+  by sepref
+
 lemma current_restart_phase_alt_def:
   \<open>current_restart_phase = (\<lambda>(fast_ema, slow_ema,
     (ccount, ema_lvl, restart_phase, end_of_phase), _).
@@ -114,12 +120,16 @@ sepref_def update_restart_phases_impl
     fold_tuple_optimizations
   by sepref
 
+(*TODO Move*)
+schematic_goal mk_free_lookup_clause_rel_assn[sepref_frame_free_rules]: \<open>MK_FREE lcount_assn ?fr\<close>
+  unfolding lcount_assn_def
+  by (rule free_thms sepref_frame_free_rules)+ (* TODO: Write a method for that! *)
+
 sepref_def update_all_phases_impl
-  is \<open>uncurry update_all_phases\<close>
-  :: \<open>isasat_bounded_assn\<^sup>d *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a
-     isasat_bounded_assn \<times>\<^sub>a uint64_nat_assn\<close>
+  is \<open>uncurry3 update_all_phases\<close>
+  :: \<open>isasat_bounded_assn\<^sup>d *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a
+     isasat_bounded_assn \<times>\<^sub>a uint64_nat_assn \<times>\<^sub>a uint64_nat_assn \<times>\<^sub>a uint64_nat_assn\<close>
   unfolding update_all_phases_def
-    fold_tuple_optimizations
   by sepref
 
 sepref_def find_local_restart_target_level_fast_code
@@ -275,14 +285,61 @@ sepref_def GC_required_heur_fast_code
   by sepref
 
 sepref_register ema_get_value get_fast_ema_heur get_slow_ema_heur
+
+(* TODO Move *)
+lemma clss_size_lcountUE_alt_def:
+  \<open>RETURN o clss_size_lcountUE = (\<lambda>(lcount, lcountNES, lcountUE, lcountUS). RETURN lcountUE)\<close>
+  by (auto simp: clss_size_lcountUE_def)
+
+sepref_def clss_size_lcountUEt_fast_code
+  is \<open>RETURN o clss_size_lcountUE\<close>
+  :: \<open>lcount_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
+  unfolding lcount_assn_def clss_size_lcountUE_alt_def clss_size_lcount_def
+  by sepref
+
+lemma clss_size_lcountUS_alt_def:
+  \<open>RETURN o clss_size_lcountUS = (\<lambda>(lcount, lcountNES, lcountUE, lcountUS). RETURN lcountUS)\<close>
+  by (auto simp: clss_size_lcountUS_def)
+
+sepref_def clss_size_lcountUSt_fast_code
+  is \<open>RETURN o clss_size_lcountUS\<close>
+  :: \<open>lcount_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
+  unfolding lcount_assn_def clss_size_lcountUS_alt_def clss_size_lcount_def
+  by sepref
+
+lemma clss_size_lcountNES_alt_def:
+  \<open>RETURN o clss_size_lcountNES = (\<lambda>(lcount, lcountNES, lcountUE, lcountUS). RETURN lcountNES)\<close>
+  by (auto simp: clss_size_lcountNES_def)
+
+sepref_def clss_size_lcountNESt_fast_code
+  is \<open>RETURN o clss_size_lcountNES\<close>
+  :: \<open>lcount_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
+  unfolding lcount_assn_def clss_size_lcountNES_alt_def clss_size_lcount_def
+  by sepref
+
+lemma clss_size_allcount_alt_def:
+  \<open>clss_size_allcount S = clss_size_lcountNES S +  clss_size_lcountUS S + clss_size_lcountUE S + 
+    clss_size_lcount S\<close>
+  by (cases S) (auto simp: clss_size_allcount_def clss_size_lcountNES_def clss_size_lcountUS_def
+    clss_size_lcount_def clss_size_lcountUE_def)
+  
+sepref_register clss_size_lcountUE clss_size_lcountUS clss_size_lcountNES
+(*END Move*)
 sepref_def restart_required_heur_fast_code
-  is \<open>uncurry restart_required_heur\<close>
-  :: \<open>isasat_bounded_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
-  supply [[goals_limit=1]]
+  is \<open>uncurry3 restart_required_heur\<close>
+  :: \<open>[\<lambda>(((S, _), _), _). isasat_fast S]\<^sub>a isasat_bounded_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k*\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow> word_assn\<close>
+  supply [[goals_limit=1]] isasat_fast_def[simp] clss_size_allcount_alt_def[simp]
   unfolding restart_required_heur_def
   apply (rewrite in \<open>\<hole> < _\<close> unat_const_fold(3)[where 'a=32])
   apply (rewrite in \<open>(_ >> 32) < \<hole>\<close> annot_unat_unat_upcast[where 'l=64])
   apply (annot_snat_const \<open>TYPE(64)\<close>)
+apply sepref_dbg_keep
+apply sepref_dbg_trans_keep
+apply sepref_dbg_trans_step_keep
+apply sepref_dbg_side_unfold
+subgoal
+apply auto
+sorry
   by sepref
 
 sepref_register isa_trail_nth isasat_trail_nth_st

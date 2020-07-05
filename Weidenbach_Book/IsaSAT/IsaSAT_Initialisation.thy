@@ -149,7 +149,8 @@ where
       set_mset
        (all_lits_of_mm
           ({#mset (fst x). x \<in># ran_m N#} + NE + UE + NS + US)) \<subseteq> set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>) \<and>
-       mset vdom = dom_m N)) \<and>
+        mset vdom = dom_m N \<and>
+       lcount = clss_size N NE UE NS US)) \<and>
     (M', M) \<in> trail_pol \<A> \<and>
     (D',  D) \<in> option_lookup_clause_rel \<A> \<and>
     j \<le> length M \<and>
@@ -160,8 +161,7 @@ where
     cach_refinement_empty \<A> cach \<and>
     (W', empty_watched \<A>) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 \<A>) \<and>
     isasat_input_bounded \<A> \<and>
-    distinct vdom \<and>
-    lcount = clss_size N NE UE NS US
+    distinct vdom
   }\<close>
 
 
@@ -525,13 +525,17 @@ where
      ((M, N, D, add_mset {#L#} NE, UE, Q), OC))\<close>
 
 definition already_propagated_unit_cls_heur
-   :: \<open>nat clause_l \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur_init nres\<close>
+   :: \<open>bool \<Rightarrow> nat clause_l \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur_init nres\<close>
 where
-  \<open>already_propagated_unit_cls_heur = (\<lambda>L (M, N, D, j, W, vm, \<phi>, clvls, cach, lbd, vdom, failed, lcount).
-     RETURN (M, N, D, j, W, vm, \<phi>, clvls, cach, lbd, vdom, failed, clss_size_incr_lcountNES lcount))\<close>
+  \<open>already_propagated_unit_cls_heur = (\<lambda>unbdd L (M, N, D, j, W, vm, \<phi>, clvls, cach, lbd, vdom, failed, lcount).
+     if unbdd \<or> (\<not>failed \<and> clss_size_lcountNES lcount < uint64_max)
+     then do {
+       RETURN (M, N, D, j, W, vm, \<phi>, clvls, cach, lbd, vdom, failed, clss_size_incr_lcountNES lcount)
+      } else
+       RETURN (M, N, D, j, W, vm, \<phi>, clvls, cach, lbd, vdom, True, lcount))\<close>
 
 lemma already_propagated_unit_cls_heur_already_propagated_unit_cls:
-  \<open>(uncurry already_propagated_unit_cls_heur, uncurry (RETURN oo already_propagated_unit_init_wl)) \<in>
+  \<open>(uncurry (already_propagated_unit_cls_heur unbdd), uncurry (RETURN oo already_propagated_unit_init_wl)) \<in>
   [\<lambda>(C, S). literals_are_in_\<L>\<^sub>i\<^sub>n \<A> C]\<^sub>f
   list_mset_rel \<times>\<^sub>r twl_st_heur_parsing_no_WL \<A> unbdd \<rightarrow> \<langle>twl_st_heur_parsing_no_WL \<A> unbdd\<rangle> nres_rel\<close>
   by (intro frefI nres_relI)
@@ -561,17 +565,25 @@ where
      ((M, N, set_conflict_unit L D, add_mset {#L#} NE, UE, NS, US, {#}), OC))\<close>
 
 definition conflict_propagated_unit_cls_heur
-  :: \<open>nat literal \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur_init nres\<close>
+  :: \<open>bool \<Rightarrow> nat literal \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur_init nres\<close>
 where
-  \<open>conflict_propagated_unit_cls_heur = (\<lambda>L (M, N, D, j, W, vm, \<phi>, clvls, cach, lbd, vdom, failed, lcount). do {
-     ASSERT(atm_of L < length (snd (snd D)));
-     D \<leftarrow> set_conflict_unit_heur L D;
-     ASSERT(isa_length_trail_pre M);
-     RETURN (M, N, D, isa_length_trail M, W, vm, \<phi>, clvls, cach, lbd, vdom, failed, clss_size_incr_lcountNES lcount)
-    })\<close>
+  \<open>conflict_propagated_unit_cls_heur = (\<lambda>unbdd L (M, N, D, j, W, vm, \<phi>, clvls, cach, lbd, vdom, failed, lcount). 
+    if unbdd \<or> (\<not>failed \<and> clss_size_lcountNES lcount < uint64_max)
+    then do {
+       ASSERT(atm_of L < length (snd (snd D)));
+       D \<leftarrow> set_conflict_unit_heur L D;
+       ASSERT(isa_length_trail_pre M);
+       RETURN (M, N, D, isa_length_trail M, W, vm, \<phi>, clvls, cach, lbd, vdom, failed, clss_size_incr_lcountNES lcount)
+      }
+   else  do {
+       ASSERT(atm_of L < length (snd (snd D)));
+       D \<leftarrow> set_conflict_unit_heur L D;
+       ASSERT(isa_length_trail_pre M);
+       RETURN (M, N, D, isa_length_trail M, W, vm, \<phi>, clvls, cach, lbd, vdom, True, lcount)
+      })\<close>
 
 lemma conflict_propagated_unit_cls_heur_conflict_propagated_unit_cls:
-  \<open>(uncurry conflict_propagated_unit_cls_heur, uncurry (RETURN oo set_conflict_init_wl)) \<in>
+  \<open>(uncurry (conflict_propagated_unit_cls_heur unbdd), uncurry (RETURN oo set_conflict_init_wl)) \<in>
    [\<lambda>(L, S). L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A> \<and> get_conflict_init_wl S = None]\<^sub>f
       nat_lit_lit_rel \<times>\<^sub>r twl_st_heur_parsing_no_WL \<A> unbdd \<rightarrow> \<langle>twl_st_heur_parsing_no_WL \<A> unbdd\<rangle> nres_rel\<close>
 proof -
@@ -596,12 +608,35 @@ proof -
       unfolding conc_fun_RETURN
       by (auto simp: set_conflict_unit_def)
     done
-
   show ?thesis
     supply RETURN_as_SPEC_refine[refine2 del]
     unfolding set_conflict_init_wl_alt_def conflict_propagated_unit_cls_heur_def uncurry_def
     apply (intro frefI nres_relI)
-    apply (refine_rcg)
+    apply (refine_rcg lhs_step_If)
+    subgoal
+      by (auto simp: twl_st_heur_parsing_no_WL_def option_lookup_clause_rel_def
+        lookup_clause_rel_def atms_of_def)
+    subgoal
+      by auto
+    subgoal
+      by auto
+    subgoal
+      by (auto simp: twl_st_heur_parsing_no_WL_def conflict_propagated_unit_cls_heur_def conflict_propagated_unit_cls_def
+        image_image set_conflict_unit_def
+        intro!: set_conflict_unit_heur_set_conflict_unit[THEN fref_to_Down_curry])
+    subgoal
+      by auto
+    subgoal
+      by (auto simp: twl_st_heur_parsing_no_WL_def conflict_propagated_unit_cls_heur_def
+          conflict_propagated_unit_cls_def
+        intro!: isa_length_trail_pre)
+    subgoal
+      by (auto simp: twl_st_heur_parsing_no_WL_def conflict_propagated_unit_cls_heur_def
+        conflict_propagated_unit_cls_def
+        image_image set_conflict_unit_def all_lits_of_mm_add_mset all_lits_of_m_add_mset uminus_\<A>\<^sub>i\<^sub>n_iff
+	isa_length_trail_length_u[THEN fref_to_Down_unRET_Id]
+        intro!: set_conflict_unit_heur_set_conflict_unit[THEN fref_to_Down_curry]
+	  isa_length_trail_pre)
     subgoal
       by (auto simp: twl_st_heur_parsing_no_WL_def option_lookup_clause_rel_def
         lookup_clause_rel_def atms_of_def)
@@ -966,8 +1001,8 @@ where
           then propagate_unit_cls_heur L S
           else
             if val_L = Some True
-            then already_propagated_unit_cls_heur C S
-            else conflict_propagated_unit_cls_heur L S
+            then already_propagated_unit_cls_heur unbdd C S
+            else conflict_propagated_unit_cls_heur unbdd L S
         }
         else do {
           ASSERT(length C \<ge> 2);
