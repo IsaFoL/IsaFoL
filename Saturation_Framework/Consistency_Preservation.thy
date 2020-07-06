@@ -36,9 +36,9 @@ proof -
     fix DD
     assume fin: "finite DD" and sset_lun: "DD \<subseteq> Sup_llist Ns"
     then obtain k where
-      dd_sset: "DD \<subseteq> Sup_upto_llist Ns k"
+      dd_sset: "DD \<subseteq> Sup_upto_llist Ns (enat k)"
       using finite_Sup_llist_imp_Sup_upto_llist by blast
-    have "\<not> Sup_upto_llist Ns k \<Turnstile> Bot"
+    have "\<not> Sup_upto_llist Ns (enat k) \<Turnstile> Bot"
     proof (induct k)
       case 0
       then show ?case
@@ -49,7 +49,7 @@ proof -
       show ?case
       proof (cases "enat (Suc k) \<ge> llength Ns")
         case True
-        then have "Sup_upto_llist Ns k = Sup_upto_llist Ns (Suc k)"
+        then have "Sup_upto_llist Ns (enat k) = Sup_upto_llist Ns (enat (Suc k))"
           unfolding Sup_upto_llist_def using le_Suc_eq by auto
         then show ?thesis
           using Suc by simp
@@ -59,11 +59,14 @@ proof -
           using ent chain_lnth_rel by fastforce
         from False have lt: "enat (Suc k) < llength Ns \<and> enat k < llength Ns"
           by (meson Suc_ile_eq le_cases not_le)
-        have "{i. enat i < llength Ns \<and> i \<le> Suc k} = {i. enat i < llength Ns \<and> i \<le> k} \<union> {i. enat i < llength Ns \<and> i = Suc k}" by auto
-        then have "Sup_upto_llist Ns (Suc k) = Sup_upto_llist Ns k \<union> lnth Ns (Suc k)" using lt unfolding Sup_upto_llist_def by blast
+        have "{i. enat i < llength Ns \<and> i \<le> Suc k} =
+          {i. enat i < llength Ns \<and> i \<le> k} \<union> {i. enat i < llength Ns \<and> i = Suc k}" by auto
+        then have "Sup_upto_llist Ns (enat (Suc k)) =
+          Sup_upto_llist Ns (enat k) \<union> lnth Ns (Suc k)"
+          using lt unfolding Sup_upto_llist_def enat_ord_code(1) by blast
         moreover have "Sup_upto_llist Ns k \<Turnstile> lnth Ns (Suc k)"
-          using entail_succ subset_entailed [of "lnth Ns k" "Sup_upto_llist Ns k"] lt unfolding Sup_upto_llist_def
-          by (simp add: entail_succ UN_upper entails_trans)
+          using entail_succ subset_entailed [of "lnth Ns k" "Sup_upto_llist Ns k"] lt
+          unfolding Sup_upto_llist_def by (simp add: entail_succ UN_upper entails_trans)
         ultimately have "Sup_upto_llist Ns k \<Turnstile> Sup_upto_llist Ns (Suc k)"
           using entail_union subset_entailed by fastforce
         then show ?thesis using Suc.hyps using entails_trans by blast
@@ -78,7 +81,7 @@ qed
 
 end
 
-locale refutationally_compact_calculus = calculus_with_red_crit + compact_consequence_relation
+locale refutationally_compact_calculus = calculus + compact_consequence_relation
 begin
 
 text \<open>
