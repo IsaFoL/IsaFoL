@@ -4,7 +4,7 @@
 
 theory Superposition_Lifting
 imports
-    Saturation_Framework.Calculi Soundness
+    Saturation_Framework.Calculus Soundness
     "HOL-Library.Multiset" "HOL-Library.Uprod"
     First_Order_Terms.Unification
 begin

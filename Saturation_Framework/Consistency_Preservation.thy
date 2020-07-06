@@ -8,7 +8,7 @@ section \<open>Consistency Preservation\<close>
 
 theory Consistency_Preservation
   imports
-    Saturation_Framework.Calculi
+    Saturation_Framework.Calculus
 begin
 
 text \<open>
