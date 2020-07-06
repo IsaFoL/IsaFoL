@@ -90,10 +90,10 @@ definition isasat_current_status :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_w
 
 lemma isasat_current_status_id:
   \<open>(isasat_current_status, RETURN o id) \<in>
-  {(S, T). (S, T) \<in> twl_st_heur \<and> length (get_clauses_wl_heur S) \<le> r}  \<rightarrow>\<^sub>f
-   \<langle>{(S, T). (S, T) \<in> twl_st_heur \<and> length (get_clauses_wl_heur S) \<le> r}\<rangle>nres_rel\<close>
+  {(S, T). (S, T) \<in> twl_st_heur \<and> length (get_clauses_wl_heur S) \<le> r \<and> learned_clss_count S \<le> u}  \<rightarrow>\<^sub>f
+   \<langle>{(S, T). (S, T) \<in> twl_st_heur \<and> length (get_clauses_wl_heur S) \<le> r \<and> learned_clss_count S \<le> u}\<rangle>nres_rel\<close>
   by (intro frefI nres_relI)
-    (auto simp: twl_st_heur_def isasat_current_status_def)
+    (auto simp: twl_st_heur_def isasat_current_status_def learned_clss_count_def)
 
 definition isasat_print_progress :: \<open>64 word \<Rightarrow> 64 word \<Rightarrow> stats \<Rightarrow> clss_size \<Rightarrow> unit\<close> where
 \<open>isasat_print_progress c curr_phase =

@@ -122,7 +122,7 @@ sepref_def clss_size_incr_lcountUE_fast_code
 
 lemma clss_size_incr_lcount_alt_def:
   \<open>RETURN o clss_size_incr_lcount =
-  (\<lambda>(lcount, lcountNES, lcountUE, lcountUS). RETURN (lcount + 1, lcountNES, lcountUE, lcountUS))\<close>
+  (\<lambda>(lcount,  lcountUE, lcountUS). RETURN (lcount + 1, lcountUE, lcountUS))\<close>
   by (auto simp: clss_size_incr_lcount_def)
 
 sepref_register clss_size_incr_lcount
@@ -132,6 +132,7 @@ sepref_def clss_size_incr_lcount_fast_code
   unfolding clss_size_incr_lcount_alt_def lcount_assn_def clss_size_lcount_def
   apply (annot_unat_const \<open>TYPE(64)\<close>)
   by sepref
+(*END Move*)
 
 sepref_register cons_trail_Propagated_tr
 sepref_def propagate_unit_bt_wl_D_fast_code
@@ -145,16 +146,6 @@ sepref_def propagate_unit_bt_wl_D_fast_code
   apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
-lemma
-  isasat_fast_countD2:
-    \<open>isasat_fast S \<Longrightarrow> clss_size_lcount (get_learned_count S) < uint64_max\<close>
-    \<open>isasat_fast S \<Longrightarrow> clss_size_lcountUS (get_learned_count S) < uint64_max\<close>
-    \<open>isasat_fast S \<Longrightarrow> clss_size_lcountUE (get_learned_count S) < uint64_max\<close>
-    \<open>isasat_fast S \<Longrightarrow> clss_size_lcountNES (get_learned_count S) < uint64_max\<close>
-  by (solves \<open>cases S; auto simp: isasat_fast_def clss_size_lcountUS_def
-    clss_size_lcountUE_def clss_size_lcountNES_def sint64_max_def
-    clss_size_allcount_def clss_size_lcount_def\<close>)+
-
 sepref_def propagate_bt_wl_D_fast_codeXX
   is \<open>uncurry2 propagate_bt_wl_D_heur\<close>
   :: \<open>[\<lambda>((L, C), S). isasat_fast S]\<^sub>a
@@ -162,7 +153,7 @@ sepref_def propagate_bt_wl_D_fast_codeXX
   supply [[goals_limit = 1]] append_ll_def[simp] isasat_fast_length_leD[dest]
     propagate_bt_wl_D_fast_code_isasat_fastI2[intro] length_ll_def[simp]
     propagate_bt_wl_D_fast_code_isasat_fastI3[intro]
-    isasat_fast_countD2[dest]
+    isasat_fast_countD[dest]
   unfolding propagate_bt_wl_D_heur_alt_def
     isasat_bounded_assn_def
   unfolding delete_index_and_swap_update_def[symmetric] append_update_def[symmetric]
@@ -222,12 +213,24 @@ sepref_def lit_of_hd_trail_st_heur_fast_code
   unfolding lit_of_hd_trail_st_heur_alt_def isasat_bounded_assn_def
   by sepref
 
+lemma get_learned_count_learned_clss_countD2:
+  \<open>get_learned_count S = (get_learned_count T) \<Longrightarrow>
+       learned_clss_count S \<le> learned_clss_count T\<close>
+  by (cases S; cases T) (auto simp: learned_clss_count_def)
+
+lemma backtrack_wl_D_nlit_heurI:
+  \<open>isasat_fast x \<Longrightarrow>
+       get_clauses_wl_heur xc = get_clauses_wl_heur x \<Longrightarrow>
+       get_learned_count xc = get_learned_count x \<Longrightarrow> isasat_fast xc\<close>
+  by (auto simp: isasat_fast_def dest: get_learned_count_learned_clss_countD2)
+
 sepref_register save_phase_st
 sepref_def backtrack_wl_D_fast_code
   is \<open>backtrack_wl_D_nlit_heur\<close>
   :: \<open>[isasat_fast]\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   supply [[goals_limit=1]]
-    size_conflict_wl_def[simp] isasat_fast_length_leD[intro] isasat_fast_def[simp]
+    size_conflict_wl_def[simp] isasat_fast_length_leD[intro] backtrack_wl_D_nlit_heurI[intro]
+    isasat_fast_countD[dest] IsaSAT_Setup.isasat_fast_length_leD[dest]
   unfolding backtrack_wl_D_nlit_heur_def PR_CONST_def
   unfolding delete_index_and_swap_update_def[symmetric] append_update_def[symmetric]
     append_ll_def[symmetric]

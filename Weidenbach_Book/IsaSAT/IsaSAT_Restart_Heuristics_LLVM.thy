@@ -285,8 +285,9 @@ sepref_register ema_get_value get_fast_ema_heur get_slow_ema_heur
 
 sepref_def restart_required_heur_fast_code
   is \<open>uncurry3 restart_required_heur\<close>
-  :: \<open>[\<lambda>(((S, _), _), _). isasat_fast S]\<^sub>a isasat_bounded_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k*\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow> word_assn\<close>
+  :: \<open>[\<lambda>(((S, _), _), _). learned_clss_count S \<le> uint64_max]\<^sub>a isasat_bounded_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k*\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow> word_assn\<close>
   supply [[goals_limit=1]] isasat_fast_def[simp] clss_size_allcount_alt_def[simp]
+    learned_clss_count_def[simp]
   unfolding restart_required_heur_def
   apply (rewrite in \<open>\<hole> < _\<close> unat_const_fold(3)[where 'a=32])
   apply (rewrite in \<open>(_ >> 32) < \<hole>\<close> annot_unat_unat_upcast[where 'l=64])
@@ -336,34 +337,34 @@ sepref_def mark_garbage_heur2_code
 
 sepref_def mark_garbage_heur4_code
   is \<open>uncurry mark_garbage_heur4\<close>
-  :: \<open>[\<lambda>(C, S). mark_garbage_pre (get_clauses_wl_heur S, C) \<and> arena_is_valid_clause_vdom (get_clauses_wl_heur S) C \<and> isasat_fast S]\<^sub>a
+  :: \<open>[\<lambda>(C, S). mark_garbage_pre (get_clauses_wl_heur S, C) \<and> arena_is_valid_clause_vdom (get_clauses_wl_heur S) C \<and>
+        learned_clss_count S \<le> uint64_max]\<^sub>a
      sint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
-  supply [[goals_limit=1]] isasat_fast_countD[dest]
+  supply [[goals_limit=1]] isasat_fast_countD[dest] learned_clss_count_def[simp]
   unfolding mark_garbage_heur4_def isasat_bounded_assn_def
     fold_tuple_optimizations
   by sepref
 
-
 sepref_register remove_one_annot_true_clause_one_imp_wl_D_heur
-term mark_garbage_heur2
+
+lemma remove_one_annot_true_clause_one_imp_wl_D_heurI:
+  \<open>isasat_fast b \<Longrightarrow>
+       learned_clss_count xb \<le> learned_clss_count b \<Longrightarrow>
+        learned_clss_count xb \<le> uint64_max\<close>
+ by (auto simp: isasat_fast_def)
+
 sepref_def remove_one_annot_true_clause_one_imp_wl_D_heur_code
   is \<open>uncurry remove_one_annot_true_clause_one_imp_wl_D_heur\<close>
-  :: \<open>[\<lambda>(C, S). isasat_fast S]\<^sub>a
+  :: \<open>[\<lambda>(C, S). learned_clss_count S \<le> uint64_max]\<^sub>a
        sint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> sint64_nat_assn \<times>\<^sub>a isasat_bounded_assn\<close>
-  supply [[goals_limit=1]]
+  supply [[goals_limit=1]] remove_one_annot_true_clause_one_imp_wl_D_heurI[intro]
   unfolding remove_one_annot_true_clause_one_imp_wl_D_heur_def
     isasat_trail_nth_st_def[symmetric] get_the_propagation_reason_pol_st_def[symmetric]
     fold_tuple_optimizations
   apply (rewrite in \<open>_ = \<hole>\<close> snat_const_fold(1)[where 'a=64])
   apply (annot_snat_const \<open>TYPE(64)\<close>)
-apply sepref_dbg_keep
-apply sepref_dbg_trans_keep
-apply sepref_dbg_trans_step_keep
-apply sepref_dbg_side_unfold
-subgoal
-apply auto
-oops
   by sepref
+
 sepref_register mark_clauses_as_unused_wl_D_heur
 
 sepref_def access_vdom_at_fast_code
@@ -376,10 +377,23 @@ sepref_def access_vdom_at_fast_code
 
 sepref_register remove_one_annot_true_clause_imp_wl_D_heur
 
+lemma remove_one_annot_true_clause_imp_wl_D_heurI:
+  \<open>learned_clss_count x \<le> uint64_max \<Longrightarrow>
+       remove_one_annot_true_clause_imp_wl_D_heur_inv x (a1', a2') \<Longrightarrow>
+       learned_clss_count a2' \<le> uint64_max\<close>
+  by (auto simp: isasat_fast_def remove_one_annot_true_clause_imp_wl_D_heur_inv_def)
+
+sepref_def empty_US_heur_code
+  is \<open>RETURN o empty_US_heur\<close>
+  :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
+  unfolding empty_US_heur_def isasat_bounded_assn_def
+  by sepref
+
 sepref_def remove_one_annot_true_clause_imp_wl_D_heur_code
   is \<open>remove_one_annot_true_clause_imp_wl_D_heur\<close>
-  :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
-  supply [[goals_limit=1]]
+  :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> sint64_max \<and> 
+          learned_clss_count S \<le> uint64_max]\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
+  supply [[goals_limit=1]] remove_one_annot_true_clause_imp_wl_D_heurI[intro]
   unfolding remove_one_annot_true_clause_imp_wl_D_heur_def
     isasat_length_trail_st_def[symmetric] get_pos_of_level_in_trail_imp_st_def[symmetric]
   apply (rewrite at \<open>(\<hole>, _)\<close> annot_unat_snat_upcast[where 'l=64])
@@ -509,9 +523,16 @@ sepref_def rewatch_heur_st_code
 
 sepref_register isasat_GC_clauses_wl_D
 
+lemma get_clauses_wl_heur_empty_US[simp]:
+    \<open>get_clauses_wl_heur (empty_US_heur xc) = get_clauses_wl_heur xc\<close> and
+  get_vdom_empty_US[simp]:
+    \<open>get_vdom (empty_US_heur xc) = get_vdom xc\<close>
+  by (cases xc; auto simp: empty_US_heur_def; fail)+
+
 sepref_def isasat_GC_clauses_wl_D_code
   is \<open>isasat_GC_clauses_wl_D\<close>
-  :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
+  :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a
+      isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   supply [[goals_limit=1]] isasat_GC_clauses_wl_D_rewatch_pre[intro!]
   unfolding isasat_GC_clauses_wl_D_def
   by sepref

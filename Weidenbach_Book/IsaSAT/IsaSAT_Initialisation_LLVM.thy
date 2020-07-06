@@ -51,7 +51,7 @@ definition isasat_init_assn
   :: \<open>twl_st_wl_heur_init \<Rightarrow> trail_pol_fast_assn \<times> arena_assn \<times> option_lookup_clause_assn \<times>
        64 word \<times> watched_wl_uint32 \<times> _ \<times> phase_saver_assn \<times>
   32 word \<times> cach_refinement_l_assn \<times> lbd_assn \<times> vdom_fast_assn \<times> 1 word \<times>
-  (64 word \<times> 64 word \<times> 64 word \<times> 64 word) \<Rightarrow> assn\<close>
+  (64 word \<times> 64 word \<times> 64 word) \<Rightarrow> assn\<close>
 where
 \<open>isasat_init_assn =
   trail_pol_fast_assn \<times>\<^sub>a arena_fast_assn \<times>\<^sub>a
@@ -82,8 +82,6 @@ sepref_def initialise_VMTF_code
   supply [[goals_limit = 1]]
   by sepref
 
-term clss_size_lcountNES
-
 
 declare initialise_VMTF_code.refine[sepref_fr_rules]
 sepref_register cons_trail_Propagated_tr
@@ -104,11 +102,7 @@ definition already_propagated_unit_cls_heur'
    :: \<open>bool \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur_init nres\<close>
 where
   \<open>already_propagated_unit_cls_heur' = (\<lambda>unbdd (M, N, D, j, W, vm, \<phi>, clvls, cach, lbd, vdom, failed, lcount).
-     if unbdd \<or> (\<not>failed \<and> clss_size_lcountNES lcount < uint64_max)
-     then do {
-       RETURN (M, N, D, j, W, vm, \<phi>, clvls, cach, lbd, vdom, failed, clss_size_incr_lcountNES lcount)
-      } else
-       RETURN (M, N, D, j, W, vm, \<phi>, clvls, cach, lbd, vdom, True, lcount))\<close>
+     RETURN (M, N, D, j, W, vm, \<phi>, clvls, cach, lbd, vdom, failed, lcount))\<close>
 
 lemma already_propagated_unit_cls_heur'_alt:
   \<open>already_propagated_unit_cls_heur unbd L = already_propagated_unit_cls_heur' unbd\<close>
@@ -238,11 +232,11 @@ declare
    add_init_cls_code_b.refine[sepref_fr_rules]
 
 sepref_def already_propagated_unit_cls_conflict_code
-  is \<open>uncurry already_propagated_unit_cls_conflict_heur\<close>
+  is \<open>uncurry already_propagated_unit_cls_conflict_heur_b\<close>
   :: \<open>unat_lit_assn\<^sup>k *\<^sub>a isasat_init_assn\<^sup>d  \<rightarrow>\<^sub>a isasat_init_assn\<close>
   supply [[goals_limit=1]]
   unfolding already_propagated_unit_cls_conflict_heur_def isasat_init_assn_def
-    PR_CONST_def
+    PR_CONST_def already_propagated_unit_cls_conflict_heur_b_def
   by sepref
 
 declare already_propagated_unit_cls_conflict_code.refine[sepref_fr_rules]
@@ -333,7 +327,9 @@ sepref_def init_dt_step_wl_code_b
     already_propagated_unit_cls_heur'_alt
     add_init_cls_heur_b'_def[symmetric] add_clause_to_others_heur'_def[symmetric]
     add_clause_to_others_heur'_alt
-    already_propagated_unit_cls_heur'_b_def[symmetric]
+    already_propagated_unit_cls_heur_b_def[symmetric]
+    propagate_unit_cls_heur_b_def[symmetric]
+    conflict_propagated_unit_cls_heur_b_def[symmetric]
   unfolding watched_app_def[symmetric]
   unfolding nth_rll_def[symmetric]
   unfolding is_Nil_length get_conflict_wl_is_None_init
@@ -387,7 +383,6 @@ sepref_def nat_lit_lits_init_assn_assn_in
   by sepref
 
 
-find_theorems nfoldli WHILET
 lemma [sepref_fr_rules]:
   \<open>(uncurry nat_lit_lits_init_assn_assn_in,  uncurry (RETURN \<circ>\<circ> op_set_insert))
   \<in> [\<lambda>(a, b). a \<le> uint32_max div 2]\<^sub>a
@@ -631,7 +626,6 @@ sepref_def finalise_init_code'
   apply (rewrite at \<open>take \<hole>\<close> snat_const_fold[where 'a=64])
   apply (rewrite at \<open>(_, _,_,\<hole>, _,_,_,_,_)\<close> snat_const_fold[where 'a=64])
   apply (rewrite at \<open>(_, _,_,\<hole>, _,_,_)\<close> snat_const_fold[where 'a=64])
-  apply (annot_unat_const \<open>TYPE(64)\<close>)
   apply (rewrite at \<open>(_, \<hole>, _)\<close> al_fold_custom_empty[where 'l=64])
   apply (rewrite at \<open>(_, \<hole>)\<close> al_fold_custom_empty[where 'l=64])
   apply (rewrite in \<open>take _ \<hole>\<close> al_fold_custom_replicate)
@@ -688,26 +682,30 @@ sepref_def init_state_wl_D'_code
   :: \<open>(arl64_assn atom_assn \<times>\<^sub>a uint32_nat_assn)\<^sup>k \<rightarrow>\<^sub>a isasat_init_assn\<close>
   supply[[goals_limit=1]]
   unfolding init_state_wl_D'_def PR_CONST_def init_trail_D_fast_def[symmetric] isasat_init_assn_def
-   cach_refinement_l_assn_def Suc_eq_plus1_left conflict_option_rel_assn_def  lookup_clause_rel_assn_def
+    cach_refinement_l_assn_def Suc_eq_plus1_left conflict_option_rel_assn_def  lookup_clause_rel_assn_def
+    lcount_assn_def
   apply (rewrite at \<open>let _ = 1 + \<hole> in _\<close> annot_unat_snat_upcast[where 'l=64])
   apply (rewrite at \<open>let _ = (_, \<hole>) in _\<close> al_fold_custom_empty[where 'l=64])
   apply (rewrite at \<open>let _ = (\<hole>,_) in _\<close> annotate_assn[where A= \<open>array_assn minimize_status_assn\<close>])
   apply (rewrite at \<open>let _ = (_, \<hole>) in _\<close> annotate_assn[where A= \<open>arl64_assn atom_assn\<close>])
   apply (rewrite in \<open>replicate _ []\<close> aal_fold_custom_empty(1)[where 'l=64 and 'll=64])
   apply (rewrite at \<open>let _= _; _= \<hole> in _\<close> annotate_assn[where A=\<open>watchlist_fast_assn\<close>])
-  apply (rewrite at \<open>let _= \<hole>; _=_;_=_;_ = _ in RETURN _\<close> annotate_assn[where A=\<open>phase_saver_assn\<close>])
-  apply (rewrite in \<open>let _= \<hole>; _=_;_=_;_ = _ in RETURN _\<close> larray_fold_custom_replicate)
+  apply (rewrite at \<open>let _= \<hole>; _=_;_=_;_ = _; _ = _ in RETURN _\<close> annotate_assn[where A=\<open>phase_saver_assn\<close>])
+  apply (rewrite in \<open>let _= \<hole>; _=_;_=_;_ = _; _= _ in RETURN _\<close> larray_fold_custom_replicate)
   apply (rewrite in \<open>let _= (True, _, \<hole>) in  _\<close> array_fold_custom_replicate)
   unfolding array_fold_custom_replicate
   apply (rewrite at \<open>let _ = \<hole> in let _ = (True, _, _) in _\<close> al_fold_custom_empty[where 'l=64])
   apply (rewrite in \<open>let _= (True, \<hole>, _) in _\<close> unat_const_fold[where 'a=32])
   apply (rewrite at \<open>let _ = \<hole> in _\<close> annotate_assn[where A=\<open>arena_fast_assn\<close>])
-  apply (rewrite at \<open>let _= \<hole> in RETURN _\<close> annotate_assn[where A = \<open>vdom_fast_assn\<close>])
-  apply (rewrite in \<open>let _= \<hole> in RETURN _\<close> al_fold_custom_empty[where 'l=64])
-  apply (rewrite at \<open>(_,\<hole>, _ ,_, _, False)\<close> unat_const_fold[where 'a=32])
+  apply (rewrite at \<open>let _= \<hole>; _ = _ in RETURN _\<close> annotate_assn[where A = \<open>vdom_fast_assn\<close>])
+  apply (rewrite in \<open>let _= \<hole>; _ = _ in RETURN _\<close> al_fold_custom_empty[where 'l=64])
+  apply (rewrite at \<open>(_,\<hole>, _ ,_, _, False, _)\<close> unat_const_fold[where 'a=32])
+  apply (rewrite at \<open>let _ = (\<hole>, _, _) in RETURN _\<close> unat_const_fold[where 'a=64])
+  apply (rewrite at \<open>let _ = (_, \<hole>, _) in RETURN _\<close> unat_const_fold[where 'a=64])
+  apply (rewrite at \<open>let _ = ( _, _, \<hole>) in RETURN _\<close> unat_const_fold[where 'a=64])
   apply (annot_snat_const \<open>TYPE(64)\<close>)
   apply (rewrite at \<open>RETURN \<hole>\<close> annotate_assn[where A=\<open>isasat_init_assn\<close>, unfolded isasat_init_assn_def
-     conflict_option_rel_assn_def cach_refinement_l_assn_def lookup_clause_rel_assn_def])
+     conflict_option_rel_assn_def cach_refinement_l_assn_def lookup_clause_rel_assn_def lcount_assn_def])
   by sepref
 
 declare init_state_wl_D'_code.refine[sepref_fr_rules]

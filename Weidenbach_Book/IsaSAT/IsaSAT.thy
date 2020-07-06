@@ -1790,10 +1790,14 @@ definition IsaSAT_use_fast_mode where
   \<open>IsaSAT_use_fast_mode = True\<close>
 
 
+definition learned_clss_count_init :: \<open>twl_st_wl_heur_init \<Rightarrow> nat\<close> where
+  \<open>learned_clss_count_init S = clss_size_lcount (get_learned_count_init S) +
+    clss_size_lcountUE (get_learned_count_init S) + clss_size_lcountUS (get_learned_count_init S)\<close>
+
 definition isasat_fast_init :: \<open>twl_st_wl_heur_init \<Rightarrow> bool\<close> where
   \<open>isasat_fast_init S \<longleftrightarrow>
       (length (get_clauses_wl_heur_init S) \<le> sint64_max - (uint32_max div 2 + MAX_HEADER_SIZE+1) \<and>
-       clss_size_allcount (get_learned_count_init S) < sint64_max)\<close>
+       learned_clss_count_init S < uint64_max)\<close>
 
 definition IsaSAT_heur :: \<open>opts \<Rightarrow> nat clause_l list \<Rightarrow> (bool \<times> nat literal list \<times> stats) nres\<close> where
   \<open>IsaSAT_heur opts CS = do{
@@ -2008,6 +2012,7 @@ abbreviation rewatch_heur_st_rewatch_st_rel where
     {(S,T). (S, T) \<in> twl_st_heur_parsing (mset_set (extract_atms_clss CS {})) True \<and>
          get_clauses_wl_heur_init S = get_clauses_wl_heur_init U \<and>
 	 get_conflict_wl_heur_init S = get_conflict_wl_heur_init U \<and>
+         get_learned_count_init S = get_learned_count_init U \<and>
          get_clauses_wl (fst T) = get_clauses_wl (fst V) \<and>
 	 get_conflict_wl (fst T) = get_conflict_wl (fst V) \<and>
 	 get_subsumed_init_clauses_wl (fst T) = get_subsumed_init_clauses_wl (fst V) \<and>
@@ -2494,10 +2499,19 @@ proof -
      Td: \<open>(Td, Te) \<in> (?P Tb)\<close>
     for uu ba S T Ta baa uua uub Tb Tc Td Te
   proof -
-     show ?thesis
-       using fast Td Tb
-       by (auto simp: convert_state_def isasat_fast_init_def sint64_max_def
-         uint32_max_def uint64_max_def isasat_fast_def)
+    have \<open>get_learned_count_init Tb = get_learned_count Td \<Longrightarrow>
+      learned_clss_count_init Tb = learned_clss_count Td\<close>
+      by (cases Tb; cases Td; auto simp: learned_clss_count_init_def
+        learned_clss_count_def)
+     moreover have \<open>get_learned_count Td = get_learned_count_init T \<Longrightarrow>
+      learned_clss_count Td = learned_clss_count_init T\<close>
+      by (cases Td; cases T; auto simp: learned_clss_count_init_def
+        learned_clss_count_def clss_size_lcountUS_def clss_size_lcountUE_def
+        clss_size_lcount_def)
+     ultimately show ?thesis
+       using fast Td Tb unfolding mem_Collect_eq prod.case isasat_fast_init_def
+       by (auto simp add: isasat_fast_def
+         convert_state_def)
   qed
   define init_succesfull where \<open>init_succesfull T = RETURN (is_failed_heur_init T \<or> \<not>isasat_fast_init T)\<close> for T
   define init_succesfull2 where \<open>init_succesfull2 = SPEC (\<lambda>_ :: bool. True)\<close>
@@ -2580,10 +2594,12 @@ proof -
       by (rule rewatch_heur_st_fast_pre2; assumption?) (simp_all add: convert_state_def)
     apply (rule rewatch_heur_st_rewatch_st3; assumption?)
     subgoal by auto
-    subgoal by (clarsimp simp add: isasat_fast_init_def convert_state_def)
+    subgoal by (clarsimp simp add: isasat_fast_init_def convert_state_def
+      learned_clss_count_init_def)
     apply (rule finalise_init_code2; assumption?)
     subgoal by clarsimp
-    subgoal by (clarsimp simp add: isasat_fast_def isasat_fast_init_def convert_state_def ac_simps)
+    subgoal by (clarsimp simp add: isasat_fast_def isasat_fast_init_def convert_state_def ac_simps
+      learned_clss_count_init_def learned_clss_count_def)
     apply (rule_tac r1 = \<open>length (get_clauses_wl_heur Td)\<close> in cdcl_twl_stgy_restart_prog_early_wl_heur_cdcl_twl_stgy_restart_prog_early_wl_D[
       THEN fref_to_Down])
       subgoal by (auto simp: isasat_fast_def sint64_max_def uint64_max_def uint32_max_def)
@@ -4107,7 +4123,9 @@ proof -
   have finalise_init_code2: \<open>finalise_init_code b Tb
 	\<le> SPEC (\<lambda>c. (c, finalise_init Tc) \<in>  {(S', T').
              (S', T') \<in> twl_st_heur \<and>
-             get_clauses_wl_heur_init Tb = get_clauses_wl_heur S'})\<close>
+             get_clauses_wl_heur_init Tb = get_clauses_wl_heur S' \<and>
+            get_learned_count_init Tb = get_learned_count S'})\<close>
+     (is \<open>_ \<le> SPEC (\<lambda>c. _ \<in> ?P)\<close>)
   if
     Ta: \<open>(T, Ta)
      \<in> twl_st_heur_parsing_no_WL (mset_set (extract_atms_clss CS {})) False O
@@ -4196,16 +4214,22 @@ proof -
 	   (convert_state (virtual_copy (mset_set (extract_atms_clss CS {})))
 	     T)\<close> and
      Tb: \<open>(Tb, Tc) \<in> ?TT T Ta\<close> and
-     Td: \<open>(Td, Te)
-      \<in> {(S', T').
-	 (S', T') \<in> twl_st_heur \<and>
-	 get_clauses_wl_heur_init Tb = get_clauses_wl_heur S'}\<close>
+     Td: \<open>(Td, Te) \<in> ?P Tb\<close>
     for uu ba S T Ta baa uua uub Tb Tc Td Te
   proof -
-     show ?thesis
-       using fast Td Tb
-       by (auto simp: convert_state_def isasat_fast_init_def sint64_max_def
-         uint32_max_def uint64_max_def isasat_fast_def)
+    have \<open>get_learned_count_init Tb = get_learned_count Td \<Longrightarrow>
+      learned_clss_count_init Tb = learned_clss_count Td\<close>
+      by (cases Tb; cases Td; auto simp: learned_clss_count_init_def
+        learned_clss_count_def)
+     moreover have \<open>get_learned_count Td = get_learned_count_init T \<Longrightarrow>
+      learned_clss_count Td = learned_clss_count_init T\<close>
+      by (cases Td; cases T; auto simp: learned_clss_count_init_def
+        learned_clss_count_def clss_size_lcountUS_def clss_size_lcountUE_def
+        clss_size_lcount_def)
+     ultimately show ?thesis
+       using fast Td Tb unfolding mem_Collect_eq prod.case isasat_fast_init_def
+       by (auto simp add: isasat_fast_def
+         convert_state_def)
   qed
   define init_succesfull where \<open>init_succesfull T = RETURN ((isasat_fast_init T \<and> \<not> is_failed_heur_init T))\<close> for T
   define init_succesfull2 where \<open>init_succesfull2 = SPEC (\<lambda>_ :: bool. True)\<close>
@@ -4271,13 +4295,14 @@ proof -
         (clarsimp_all simp add: convert_state_def)
     apply (rule rewatch_heur_st_rewatch_st3[unfolded virtual_copy_def id_apply]; assumption?)
     subgoal by auto
-    subgoal by (clarsimp simp add: isasat_fast_init_def convert_state_def)
+    subgoal by (clarsimp simp add: isasat_fast_init_def convert_state_def learned_clss_count_init_def)
     apply (rule finalise_init_code2; assumption?)
     subgoal by clarsimp
     subgoal by (clarsimp simp add: isasat_fast_def isasat_fast_init_def convert_state_def)
     subgoal by (clarsimp simp add: isasat_fast_def isasat_fast_init_def convert_state_def)
     subgoal by clarsimp
-    subgoal by (clarsimp simp add: isasat_fast_def isasat_fast_init_def convert_state_def ac_simps)
+    subgoal by (clarsimp simp add: isasat_fast_def isasat_fast_init_def convert_state_def ac_simps
+      learned_clss_count_init_def learned_clss_count_def)
     apply (rule_tac r1 = \<open>length (get_clauses_wl_heur Td)\<close> in
       cdcl_twl_stgy_restart_prog_bounded_wl_heur_cdcl_twl_stgy_restart_prog_bounded_wl_D[THEN fref_to_Down])
     subgoal by (simp add: isasat_fast_def sint64_max_def uint32_max_def

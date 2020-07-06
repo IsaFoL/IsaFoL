@@ -149,8 +149,7 @@ where
       set_mset
        (all_lits_of_mm
           ({#mset (fst x). x \<in># ran_m N#} + NE + UE + NS + US)) \<subseteq> set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>) \<and>
-        mset vdom = dom_m N \<and>
-       lcount = clss_size N NE UE NS US)) \<and>
+        mset vdom = dom_m N)) \<and>
     (M', M) \<in> trail_pol \<A> \<and>
     (D',  D) \<in> option_lookup_clause_rel \<A> \<and>
     j \<le> length M \<and>
@@ -161,7 +160,8 @@ where
     cach_refinement_empty \<A> cach \<and>
     (W', empty_watched \<A>) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 \<A>) \<and>
     isasat_input_bounded \<A> \<and>
-    distinct vdom
+    distinct vdom \<and>
+    lcount = clss_size N NE UE NS US
   }\<close>
 
 
@@ -188,8 +188,8 @@ where
        ({#mset (fst x). x \<in># ran_m N#} + NE + UE + NS + US)) \<subseteq> set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>) \<and>
     (W', W) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0  \<A>) \<and>
     isasat_input_bounded \<A> \<and>
-    distinct vdom) \<and>
-    lcount = clss_size N NE UE NS US)
+    distinct vdom \<and>
+    lcount = clss_size N NE UE NS US))
   }\<close>
 
 
@@ -479,14 +479,9 @@ definition propagate_unit_cls_heur
  :: \<open>bool \<Rightarrow> nat literal \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur_init nres\<close>
 where
   \<open>propagate_unit_cls_heur = (\<lambda>unbdd L (M, N, D, j, W, vm, \<phi>, clvls, cach, lbd, vdom, failed, lcount).
-     if unbdd \<or> clss_size_lcountNES lcount < uint64_max
-     then  do {
+     do {
         M \<leftarrow> cons_trail_Propagated_tr L 0 M;
-       RETURN (M, N, D, j, W, vm, \<phi>, clvls, cach, lbd, vdom, failed, clss_size_incr_lcountNES lcount)
-     }
-    else do {
-        M \<leftarrow> cons_trail_Propagated_tr L 0 M;
-      RETURN (M, N, D, j, W, vm, \<phi>, clvls, cach, lbd, vdom, True, lcount)
+       RETURN (M, N, D, j, W, vm, \<phi>, clvls, cach, lbd, vdom, failed, lcount)
      })\<close>
 
 fun get_unit_clauses_init_wl :: \<open>'v twl_st_wl_init \<Rightarrow> 'v clauses\<close> where
@@ -526,18 +521,6 @@ lemma propagate_unit_cls_heur_propagate_unit_cls:
   subgoal by auto
   subgoal by  (auto intro!: isa_vmtf_init_consD
     simp: all_lits_of_mm_add_mset all_lits_of_m_add_mset uminus_\<A>\<^sub>i\<^sub>n_iff)
-  subgoal by auto
-  subgoal by auto
-  subgoal
-    by  (auto intro!: isa_vmtf_init_consD
-    simp: all_lits_of_mm_add_mset all_lits_of_m_add_mset uminus_\<A>\<^sub>i\<^sub>n_iff
-      cons_trail_propagate_l_def)
-  subgoal by auto
-  subgoal by auto
-  subgoal
-    by  (auto intro!: isa_vmtf_init_consD
-    simp: all_lits_of_mm_add_mset all_lits_of_m_add_mset uminus_\<A>\<^sub>i\<^sub>n_iff
-      cons_trail_propagate_l_def)
   done
 
 definition already_propagated_unit_cls
@@ -549,12 +532,8 @@ where
 definition already_propagated_unit_cls_heur
    :: \<open>bool \<Rightarrow> nat clause_l \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur_init nres\<close>
 where
-  \<open>already_propagated_unit_cls_heur = (\<lambda>unbdd L (M, N, D, j, W, vm, \<phi>, clvls, cach, lbd, vdom, failed, lcount).
-     if unbdd \<or> (\<not>failed \<and> clss_size_lcountNES lcount < uint64_max)
-     then do {
-       RETURN (M, N, D, j, W, vm, \<phi>, clvls, cach, lbd, vdom, failed, clss_size_incr_lcountNES lcount)
-      } else
-       RETURN (M, N, D, j, W, vm, \<phi>, clvls, cach, lbd, vdom, True, lcount))\<close>
+  \<open>already_propagated_unit_cls_heur = (\<lambda>unbdd L (M, N, D, j, W, vm, \<phi>, clvls, cach, lbd, vdom, failed).
+     RETURN (M, N, D, j, W, vm, \<phi>, clvls, cach, lbd, vdom, failed))\<close>
 
 lemma already_propagated_unit_cls_heur_already_propagated_unit_cls:
   \<open>(uncurry (already_propagated_unit_cls_heur unbdd), uncurry (RETURN oo already_propagated_unit_init_wl)) \<in>
@@ -590,19 +569,12 @@ definition conflict_propagated_unit_cls_heur
   :: \<open>bool \<Rightarrow> nat literal \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur_init nres\<close>
 where
   \<open>conflict_propagated_unit_cls_heur = (\<lambda>unbdd L (M, N, D, j, W, vm, \<phi>, clvls, cach, lbd, vdom, failed, lcount). 
-    if unbdd \<or> (\<not>failed \<and> clss_size_lcountNES lcount < uint64_max)
-    then do {
+     do {
        ASSERT(atm_of L < length (snd (snd D)));
        D \<leftarrow> set_conflict_unit_heur L D;
        ASSERT(isa_length_trail_pre M);
-       RETURN (M, N, D, isa_length_trail M, W, vm, \<phi>, clvls, cach, lbd, vdom, failed, clss_size_incr_lcountNES lcount)
-      }
-   else  do {
-       ASSERT(atm_of L < length (snd (snd D)));
-       D \<leftarrow> set_conflict_unit_heur L D;
-       ASSERT(isa_length_trail_pre M);
-       RETURN (M, N, D, isa_length_trail M, W, vm, \<phi>, clvls, cach, lbd, vdom, True, lcount)
-      })\<close>
+       RETURN (M, N, D, isa_length_trail M, W, vm, \<phi>, clvls, cach, lbd, vdom, failed, lcount)
+   })\<close>
 
 lemma conflict_propagated_unit_cls_heur_conflict_propagated_unit_cls:
   \<open>(uncurry (conflict_propagated_unit_cls_heur unbdd), uncurry (RETURN oo set_conflict_init_wl)) \<in>
@@ -635,30 +607,6 @@ proof -
     unfolding set_conflict_init_wl_alt_def conflict_propagated_unit_cls_heur_def uncurry_def
     apply (intro frefI nres_relI)
     apply (refine_rcg lhs_step_If)
-    subgoal
-      by (auto simp: twl_st_heur_parsing_no_WL_def option_lookup_clause_rel_def
-        lookup_clause_rel_def atms_of_def)
-    subgoal
-      by auto
-    subgoal
-      by auto
-    subgoal
-      by (auto simp: twl_st_heur_parsing_no_WL_def conflict_propagated_unit_cls_heur_def conflict_propagated_unit_cls_def
-        image_image set_conflict_unit_def
-        intro!: set_conflict_unit_heur_set_conflict_unit[THEN fref_to_Down_curry])
-    subgoal
-      by auto
-    subgoal
-      by (auto simp: twl_st_heur_parsing_no_WL_def conflict_propagated_unit_cls_heur_def
-          conflict_propagated_unit_cls_def
-        intro!: isa_length_trail_pre)
-    subgoal
-      by (auto simp: twl_st_heur_parsing_no_WL_def conflict_propagated_unit_cls_heur_def
-        conflict_propagated_unit_cls_def
-        image_image set_conflict_unit_def all_lits_of_mm_add_mset all_lits_of_m_add_mset uminus_\<A>\<^sub>i\<^sub>n_iff
-	isa_length_trail_length_u[THEN fref_to_Down_unRET_Id]
-        intro!: set_conflict_unit_heur_set_conflict_unit[THEN fref_to_Down_curry]
-	  isa_length_trail_pre)
     subgoal
       by (auto simp: twl_st_heur_parsing_no_WL_def option_lookup_clause_rel_def
         lookup_clause_rel_def atms_of_def)
@@ -933,14 +881,9 @@ where
 definition already_propagated_unit_cls_conflict_heur
   :: \<open>bool \<Rightarrow> nat literal \<Rightarrow> twl_st_wl_heur_init \<Rightarrow> twl_st_wl_heur_init nres\<close>
 where
-  \<open>already_propagated_unit_cls_conflict_heur = (\<lambda>unbdd L (M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, vdom, failed, lcount). if unbdd \<or> (\<not>failed \<and> clss_size_lcountNES lcount < uint64_max)
-    then do {
+  \<open>already_propagated_unit_cls_conflict_heur = (\<lambda>unbdd L (M, N, D, Q, W, vm, \<phi>, clvls, cach, lbd, vdom, failed, lcount). do {
      ASSERT (isa_length_trail_pre M);
-     RETURN (M, N, D, isa_length_trail M, W, vm, \<phi>, clvls, cach, lbd, vdom, failed, clss_size_incr_lcountNES lcount)
-  }
-   else do {
-     ASSERT (isa_length_trail_pre M);
-     RETURN (M, N, D, isa_length_trail M, W, vm, \<phi>, clvls, cach, lbd, vdom, True, lcount)
+     RETURN (M, N, D, isa_length_trail M, W, vm, \<phi>, clvls, cach, lbd, vdom, failed, lcount)
   })\<close>
 
 lemma already_propagated_unit_cls_conflict_heur_already_propagated_unit_cls_conflict:
@@ -1606,14 +1549,14 @@ definition init_state_wl_heur :: \<open>nat multiset \<Rightarrow> twl_st_wl_heu
     cach \<leftarrow> SPEC (cach_refinement_empty \<A>);
     let lbd = empty_lbd;
     let vdom = [];
-    let lcount = (0,0,0,0);
+    let lcount = (0,0,0);
     RETURN (M, [], D, 0, W, vm, \<phi>, 0, cach, lbd, vdom, False, lcount)}\<close>
 
 definition init_state_wl_heur_fast where
   \<open>init_state_wl_heur_fast = init_state_wl_heur\<close>
 
 (* TODO Move *)
-lemma clss_size_empty [simp]: \<open>clss_size fmempty {#} {#} {#} {#} = (0, 0, 0 ,0)\<close>
+lemma clss_size_empty [simp]: \<open>clss_size fmempty {#} {#} {#} {#} = (0, 0 ,0)\<close>
   by (auto simp: clss_size_def)
 
 lemma init_state_wl_heur_init_state_wl:
@@ -2059,7 +2002,7 @@ definition init_state_wl_D' :: \<open>nat list \<times> nat \<Rightarrow>  (trai
      let cach = (replicate n SEEN_UNKNOWN, []);
      let lbd = empty_lbd;
      let vdom = [];
-     let lcount = (0, 0, 0, 0);
+     let lcount = (0, 0, 0);
      RETURN (M, N, D, 0, WS, vm, \<phi>, 0, cach, lbd, vdom, False, lcount)
   })\<close>
 
@@ -2155,7 +2098,7 @@ proof -
     cach \<leftarrow> SPEC (cach_refinement_empty \<A>\<^sub>i\<^sub>n);
     let lbd = empty_lbd;
     let vdom = [];
-    let lcount = (0, 0, 0, 0);
+    let lcount = (0, 0, 0);
     RETURN (M, N, D, 0, W, vm, \<phi>, 0, cach, lbd, vdom, False, lcount)}\<close> for \<A>\<^sub>i\<^sub>n
     unfolding init_state_wl_heur_def Let_def by auto
 

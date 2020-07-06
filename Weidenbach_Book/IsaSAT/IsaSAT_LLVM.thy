@@ -1,7 +1,7 @@
 theory IsaSAT_LLVM
   imports  Version IsaSAT_CDCL_LLVM
     IsaSAT_Initialisation_LLVM Version
-    (* IsaSAT *)
+    IsaSAT
     IsaSAT_Restart_LLVM
 begin
 
@@ -48,7 +48,7 @@ lemma init_state_wl_D'_code_isasat: \<open>(hr_comp isasat_init_assn
      (Id \<times>\<^sub>f
       (nat_rel \<times>\<^sub>f
        (\<langle>\<langle>Id\<rangle>list_rel\<rangle>list_rel \<times>\<^sub>f
-        (Id \<times>\<^sub>f (\<langle>bool_rel\<rangle>list_rel \<times>\<^sub>f (nat_rel \<times>\<^sub>f (Id \<times>\<^sub>f (Id \<times>\<^sub>f Id))))))))))) = isasat_init_assn\<close>
+        (Id \<times>\<^sub>f (\<langle>bool_rel\<rangle>list_rel \<times>\<^sub>f (nat_rel \<times>\<^sub>f (Id \<times>\<^sub>f (Id \<times>\<^sub>f (Id \<times>\<^sub>f Id)))))))))))) = isasat_init_assn\<close>
   by auto
 
 definition model_assn where

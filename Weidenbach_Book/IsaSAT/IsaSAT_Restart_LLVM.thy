@@ -13,7 +13,28 @@ sepref_def MINIMUM_DELETION_LBD_impl
   by sepref
 
 
-sepref_register delete_index_and_swap mop_mark_garbage_heur
+sepref_register delete_index_and_swap mop_mark_garbage_heur mop_mark_garbage_heur3
+
+(*TODO Move*)
+lemma mop_mark_garbage_heur3_alt_def:
+  \<open>mop_mark_garbage_heur3 C i = (\<lambda>(M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
+       vdom, avdom, lcount, opts, old_arena). do {
+    ASSERT(mark_garbage_pre (get_clauses_wl_heur (M', N', D', j, W', vm, clvls, cach, lbd, outl,
+       stats, heur, vdom, avdom, lcount, opts, old_arena), C) \<and> clss_size_lcount lcount \<ge> 1 \<and> i < length avdom);
+    RETURN (M', extra_information_mark_to_delete N' C, D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
+       vdom, delete_index_and_swap avdom i, clss_size_resetUS (clss_size_decr_lcount lcount), opts, old_arena)
+   })\<close>
+  unfolding mop_mark_garbage_heur3_def mark_garbage_heur3_def
+  by (auto intro!: ext)
+
+sepref_def mop_mark_garbage_heur_impl
+  is \<open>uncurry2 mop_mark_garbage_heur3\<close>
+  :: \<open>[\<lambda>((C, i), S). length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a
+      sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding mop_mark_garbage_heur3_alt_def
+    clause_not_marked_to_delete_heur_pre_def prod.case isasat_bounded_assn_def
+  by sepref
 
 sepref_def mark_to_delete_clauses_wl_D_heur_fast_impl
   is \<open>mark_to_delete_clauses_wl_D_heur\<close>
@@ -24,7 +45,7 @@ sepref_def mark_to_delete_clauses_wl_D_heur_fast_impl
     clause_is_learned_heur_def[symmetric]
     clause_lbd_heur_def[symmetric]
     access_length_heur_def[symmetric]
-    short_circuit_conv mark_to_delete_clauses_wl_D_heur_is_Some_iff
+    mark_to_delete_clauses_wl_D_heur_is_Some_iff
     marked_as_used_st_def[symmetric] if_conn(4)
     fold_tuple_optimizations
     mop_arena_lbd_st_def[symmetric]
@@ -33,6 +54,7 @@ sepref_def mark_to_delete_clauses_wl_D_heur_fast_impl
     mop_arena_length_st_def[symmetric]
   supply [[goals_limit = 1]] of_nat_snat[sepref_import_param]
       length_avdom_def[symmetric, simp] access_vdom_at_def[simp]
+  apply (rewrite in \<open>let _ = \<hole> in _\<close> short_circuit_conv)+
   apply (rewrite at \<open>_ > \<hole>\<close> unat_const_fold[where 'a=2])
   apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
@@ -56,7 +78,8 @@ sepref_def cdcl_twl_restart_wl_heur_fast_code
 
 sepref_def cdcl_twl_full_restart_wl_D_GC_heur_prog_fast_code
   is \<open>cdcl_twl_full_restart_wl_D_GC_heur_prog\<close>
-  :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
+  :: \<open>[\<lambda>S. length (get_clauses_wl_heur S) \<le> sint64_max \<and> learned_clss_count S \<le> uint64_max]\<^sub>a
+     isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
   supply [[goals_limit = 1]]
   unfolding cdcl_twl_full_restart_wl_D_GC_heur_prog_def
   apply (annot_unat_const \<open>TYPE(32)\<close>)
@@ -65,9 +88,11 @@ sepref_def cdcl_twl_full_restart_wl_D_GC_heur_prog_fast_code
 sepref_register restart_required_heur cdcl_twl_restart_wl_heur
 
 sepref_def restart_prog_wl_D_heur_fast_code
-  is \<open>uncurry2 (restart_prog_wl_D_heur)\<close>
-  :: \<open>[\<lambda>((S, n), _). length (get_clauses_wl_heur S) \<le> sint64_max \<and> n < uint64_max]\<^sub>a
-      isasat_bounded_assn\<^sup>d *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a bool1_assn\<^sup>k \<rightarrow> isasat_bounded_assn \<times>\<^sub>a uint64_nat_assn\<close>
+  is \<open>uncurry4 (restart_prog_wl_D_heur)\<close>
+  :: \<open>[\<lambda>((((S, _), _), n), _). length (get_clauses_wl_heur S) \<le> sint64_max \<and> 
+         learned_clss_count S < uint64_max \<and> n < uint64_max]\<^sub>a
+      isasat_bounded_assn\<^sup>d *\<^sub>a uint64_nat_assn\<^sup>k  *\<^sub>a uint64_nat_assn\<^sup>k  *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a
+        bool1_assn\<^sup>k \<rightarrow> isasat_bounded_assn \<times>\<^sub>a uint64_nat_assn \<times>\<^sub>a uint64_nat_assn \<times>\<^sub>a uint64_nat_assn\<close>
   unfolding restart_prog_wl_D_heur_def
   supply [[goals_limit = 1]]
   apply (annot_unat_const \<open>TYPE(64)\<close>)
@@ -87,7 +112,10 @@ sepref_def isasat_fast_code
   is \<open>RETURN o isasat_fast\<close>
   :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
   unfolding isasat_fast_alt_def isasat_fast_bound_def[symmetric]
-  isasat_fast_bound_alt_def
+    isasat_fast_bound_alt_def
+  apply (rewrite at \<open>_ < \<hole> - _\<close> unat_const_fold[where 'a=64])+
+  apply (rewrite at \<open>_ + _ < \<hole>\<close> unat_const_fold[where 'a=64])+
+  unfolding short_circuit_conv
   supply [[goals_limit = 1]]
   apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
@@ -99,6 +127,12 @@ sepref_def cdcl_twl_stgy_restart_prog_wl_heur_fast_code
   unfolding cdcl_twl_stgy_restart_prog_bounded_wl_heur_def
   supply [[goals_limit = 1]] isasat_fast_def[simp]
   apply (annot_unat_const \<open>TYPE(64)\<close>)
+apply sepref_dbg_keep
+apply sepref_dbg_trans_keep
+apply sepref_dbg_trans_step_keep
+apply sepref_dbg_side_unfold
+subgoal
+oops
   by sepref
 
 

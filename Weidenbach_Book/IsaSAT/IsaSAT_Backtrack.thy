@@ -871,10 +871,20 @@ qed
 definition single_of_mset where
   \<open>single_of_mset D = SPEC(\<lambda>L. D = mset [L])\<close>
 
+(*TODO Move*)
+lemma clss_size_lcount_incr_lcount_simps[simp]:
+  \<open>clss_size_lcount (clss_size_incr_lcount S) = Suc (clss_size_lcount S)\<close>
+  \<open>clss_size_lcountUE (clss_size_incr_lcount S) = (clss_size_lcountUE S)\<close>
+  \<open>clss_size_lcountUS (clss_size_incr_lcount S) = (clss_size_lcountUS S)\<close>
+  by (cases S; auto simp: clss_size_lcount_def clss_size_incr_lcount_def
+    clss_size_lcountUE_def clss_size_lcountUS_def; fail)+
+
 lemma backtrack_wl_D_nlit_backtrack_wl_D:
   \<open>(backtrack_wl_D_nlit_heur, backtrack_wl) \<in>
-  {(S, T). (S, T) \<in> twl_st_heur_conflict_ana \<and> length (get_clauses_wl_heur S) = r} \<rightarrow>\<^sub>f
-  \<langle>{(S, T). (S, T) \<in> twl_st_heur \<and> length (get_clauses_wl_heur S) \<le> MAX_HEADER_SIZE+1 + r + uint32_max div 2}\<rangle>nres_rel\<close>
+  {(S, T). (S, T) \<in> twl_st_heur_conflict_ana \<and> length (get_clauses_wl_heur S) = r \<and>
+       learned_clss_count S \<le> u} \<rightarrow>\<^sub>f
+  \<langle>{(S, T). (S, T) \<in> twl_st_heur \<and> length (get_clauses_wl_heur S) \<le> MAX_HEADER_SIZE+1 + r + uint32_max div 2 \<and>
+       learned_clss_count S \<le> Suc u}\<rangle>nres_rel\<close>
   (is \<open>_ \<in> ?R \<rightarrow>\<^sub>f \<langle>?S\<rangle>nres_rel\<close>)
 proof -
   have backtrack_wl_D_nlit_heur_alt_def: \<open>backtrack_wl_D_nlit_heur S\<^sub>0 =
@@ -1682,7 +1692,8 @@ proof -
       uM_\<L>\<^sub>a\<^sub>l\<^sub>l: \<open>-lit_of (hd (get_trail_wl S')) \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st S')\<close> and
       lits: \<open>literals_are_\<L>\<^sub>i\<^sub>n (all_atms_st T') T'\<close> and
       tr_nempty: \<open>get_trail_wl T' \<noteq> []\<close> and
-      r: \<open>length (get_clauses_wl_heur S) = r\<close> \<open>length (get_clauses_wl_heur T) = r\<close> and
+      r: \<open>length (get_clauses_wl_heur S) = r\<close> \<open>length (get_clauses_wl_heur T) = r\<close>
+        \<open>get_learned_count T = get_learned_count S\<close> \<open>learned_clss_count S \<le> u\<close> and
       corr: \<open>correct_watching S'\<close>
       using \<open>(TnC, T') \<in> ?shorter S' S\<close>  \<open>1 < length C\<close> \<open>(S, S') \<in> ?R\<close>
       by auto
@@ -1694,10 +1705,13 @@ proof -
            (remove1_mset (- lit_of (hd (get_trail_wl T')))
              (the (get_conflict_wl T'))))\<close> and
       decomp: \<open>(Decided K # get_trail_wl U', M2) \<in> set (get_all_ann_decomposition (get_trail_wl T'))\<close> and
-      r': \<open>length (get_clauses_wl_heur U) = r\<close> and
+      r': \<open>length (get_clauses_wl_heur U) = r\<close> 
+        \<open>get_learned_count U = get_learned_count T\<close>
+        \<open>learned_clss_count U \<le> u\<close> and
       S_arena: \<open>get_clauses_wl_heur U = get_clauses_wl_heur S\<close>
-      using find_decomp r
-      by auto
+      using find_decomp r get_learned_count_learned_clss_countD2[of U T]
+        get_learned_count_learned_clss_countD2[of T S]
+      by (auto dest: )
 
     obtain M N NE UE Q NS US W where
       T': \<open>T' = (M, N, Some (mset C), NE, UE, NS, US, Q, W)\<close> and
@@ -2137,16 +2151,17 @@ proof -
       subgoal
         supply All_atms_rew[simp]
         unfolding twl_st_heur_def
-        using D' C_1_neq_hd vmtf avdom M1'_M1 bounded nempty r arena_le
+        using D' C_1_neq_hd vmtf avdom M1'_M1 bounded nempty r r' arena_le
         by (clarsimp simp add: propagate_bt_wl_D_heur_def twl_st_heur_def
             Let_def T' U' U rescore_clause_def S' map_fun_rel_def
             list_of_mset2_def vmtf_flush_def RES_RES2_RETURN_RES RES_RETURN_RES uminus_\<A>\<^sub>i\<^sub>n_iff
             get_fresh_index_def RES_RETURN_RES2 RES_RES_RETURN_RES2 lit_of_hd_trail_def
             RES_RES_RETURN_RES lbd_empty_def get_LBD_def DECISION_REASON_def
-            all_atms_def[symmetric] All_atms_rew
+            all_atms_def[symmetric] All_atms_rew learned_clss_count_def
             intro!: valid_arena_update_lbd
             simp del: isasat_input_bounded_def isasat_input_nempty_def
-            dest: valid_arena_one_notin_vdomD)
+          dest: valid_arena_one_notin_vdomD
+            get_learned_count_learned_clss_countD)
            (intro conjI, clarsimp_all
             intro!: valid_arena_update_lbd
             simp del: isasat_input_bounded_def isasat_input_nempty_def
@@ -2227,7 +2242,12 @@ proof -
            vdom, avdom, lcount, opts, [])\<close> and
         avdom: \<open>mset avdom \<subseteq># mset vdom\<close> and
         r': \<open>length (get_clauses_wl_heur U) = r\<close>
-      using UU' find_decomp r by (cases U) (fastforce simp: U' T' twl_st_heur_bt_def)
+            \<open>get_learned_count U = get_learned_count S\<close>
+            \<open>learned_clss_count U \<le> u\<close>
+      using SS' UU' find_decomp r \<open>(TnC, T') \<in> ?shorter S' S\<close>
+        get_learned_count_learned_clss_countD2[of U S]
+      by (cases U) (auto simp: U' T' twl_st_heur_bt_def
+        dest: )
     have
       M'M: \<open>(M1', M1) \<in> trail_pol (all_atms_st U')\<close> and
       W'W: \<open>(W', W) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0  (all_atms_st U'))\<close> and
@@ -2417,7 +2437,8 @@ proof -
        using bounded nempty dist_vdom r' heur
        by (auto simp: U U' lit_of_hd_trail_st_heur_def RETURN_def
            single_of_mset_def vmtf_flush_def twl_st_heur_def lbd_empty_def get_LBD_def
-           RES_RES2_RETURN_RES RES_RETURN_RES S' uminus_\<A>\<^sub>i\<^sub>n_iff RES_RES_RETURN_RES
+         RES_RES2_RETURN_RES RES_RETURN_RES S' uminus_\<A>\<^sub>i\<^sub>n_iff RES_RES_RETURN_RES
+         learned_clss_count_def
            DECISION_REASON_def hd_SM All_atms_rew all_atms_def[symmetric]
            intro!: ASSERT_refine_left RES_refine exI[of _ \<open>-lit_of (hd M)\<close>]
            intro!: isa_vmtf_consD2
@@ -2484,7 +2505,8 @@ proof -
                \<in> {(S, T).
                   (S, T) \<in> twl_st_heur \<and>
                   length (get_clauses_wl_heur S)
-                  \<le> MAX_HEADER_SIZE+1 + r + uint32_max div 2})\<close> for xb x'
+                  \<le> MAX_HEADER_SIZE+1 + r + uint32_max div 2 \<and>
+                  learned_clss_count S \<le> Suc u})\<close> for xb x'
     unfolding save_phase_st_def
     apply (refine_vcg save_phase_heur_spec[THEN order_trans, of \<open>all_atms_st x'\<close>])
     subgoal
@@ -2493,7 +2515,7 @@ proof -
     subgoal
       by (auto simp: twl_st_heur_def)
     subgoal
-      by (auto simp: twl_st_heur_def)
+      by (auto simp: twl_st_heur_def learned_clss_count_def)
     done
   show ?thesis
     supply [[goals_limit=1]]
@@ -2502,6 +2524,7 @@ proof -
     apply (refine_rcg shorter)
     subgoal by (rule inv)
     subgoal by (rule trail_nempty)
+    subgoal by auto
     subgoal for x y xa S x1 x2 x1a x2a
       by (auto simp: twl_st_heur_state_simp equality_except_conflict_wl_get_clauses_wl)
     subgoal for x y xa S x1 x2 x1a x2a

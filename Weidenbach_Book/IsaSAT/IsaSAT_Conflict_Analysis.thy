@@ -1072,9 +1072,14 @@ lemma
   apply auto
   done
 
+
+lemma get_learned_count_learned_clss_countD:
+  \<open>get_learned_count a2' = get_learned_count x \<Longrightarrow> learned_clss_count a2' = learned_clss_count x\<close>
+  by (cases a2'; cases x; auto simp: learned_clss_count_def)
+
 lemma isasat_fast_after_skip_and_resolve_loop_wl_D_heur_inv:
   \<open>isasat_fast x \<Longrightarrow> skip_and_resolve_loop_wl_D_heur_inv x (False, a2') \<Longrightarrow> isasat_fast a2'\<close>
   unfolding skip_and_resolve_loop_wl_D_heur_inv_def isasat_fast_def
-  by auto
+  by (auto dest: get_learned_count_learned_clss_countD)
 
 end

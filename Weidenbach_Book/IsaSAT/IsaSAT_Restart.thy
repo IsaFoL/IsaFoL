@@ -391,7 +391,8 @@ lemma (in -) isasat_fast_alt_def:
        vdom, avdom, lcount, opts, old_arena). RETURN (length N \<le> sint64_max - (uint32_max div 2 + MAX_HEADER_SIZE + 1) \<and>
      clss_size_allcount lcount < uint64_max))\<close>
   unfolding isasat_fast_def
-  by (auto intro!:ext)
+  by (auto intro!: ext simp: learned_clss_count_def clss_size_allcount_def clss_size_lcount_def
+    clss_size_lcountUS_def clss_size_lcountUE_def)
 
 definition cdcl_twl_stgy_restart_prog_bounded_wl_heur
    :: \<open>twl_st_wl_heur \<Rightarrow> (bool \<times> twl_st_wl_heur) nres\<close>
@@ -410,8 +411,9 @@ where
         T \<leftarrow> unit_propagation_outer_loop_wl_D_heur S;
         ASSERT(length (get_clauses_wl_heur T) \<le> sint64_max);
         ASSERT(length (get_clauses_wl_heur T) = length (get_clauses_wl_heur S));
+        ASSERT(learned_clss_count T \<le> learned_clss_count S);
         (brk, T) \<leftarrow> cdcl_twl_o_prog_wl_D_heur T;
-        ASSERT(length (get_clauses_wl_heur T) \<le> sint64_max);
+        ASSERT(length (get_clauses_wl_heur T) \<le> sint64_max \<and> learned_clss_count T \<le> learned_clss_count S);
         (T, last_GC, last_Restart, n) \<leftarrow> restart_prog_wl_D_heur T last_GC last_Restart n brk;
 	ebrk \<leftarrow> RETURN (\<not>(isasat_fast T \<and> n < uint64_max));
         RETURN (ebrk, brk, T, last_GC, last_Restart, n)
@@ -601,8 +603,10 @@ thm cdcl_twl_stgy_restart_prog_bounded_wl_def
     apply (rule twl_st_heur''; auto; fail)
     subgoal by auto
     subgoal by auto
+    subgoal by (auto dest: get_learned_count_learned_clss_countD)
     apply (rule twl_st_heur'''; assumption)
     subgoal by (auto simp: isasat_fast_def uint64_max_def uint32_max_def sint64_max_def)
+    subgoal by auto
     apply (rule H'''; assumption)
     subgoal
       by (auto simp: isasat_fast_def uint64_max_def uint32_max_def sint64_max_def)

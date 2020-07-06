@@ -278,61 +278,53 @@ definition size_conflict_int :: \<open>conflict_option_rel \<Rightarrow> nat\<cl
 
 subsection \<open>Number of clauses\<close>
 
-type_synonym clss_size = \<open>nat \<times> nat \<times> nat \<times> nat\<close>
+type_synonym clss_size = \<open>nat \<times> nat \<times> nat\<close>
 
 definition clss_size
   :: \<open>'v clauses_l \<Rightarrow> 'v clauses \<Rightarrow> 'v clauses \<Rightarrow> 'v clauses \<Rightarrow> 'v clauses \<Rightarrow> clss_size\<close>
 where
   \<open>clss_size N NE UE NS US =
-     (size (learned_clss_lf N), size (NE + NS), size UE, size US)\<close>
+     (size (learned_clss_lf N), size UE, size US)\<close>
 
 definition clss_size_lcount :: \<open>clss_size \<Rightarrow> nat\<close> where
-  \<open>clss_size_lcount = (\<lambda>(lcount, lcountNES, lcountUE, lcountUS). lcount)\<close>
-
-definition clss_size_lcountNES :: \<open>clss_size \<Rightarrow> nat\<close> where
-  \<open>clss_size_lcountNES = (\<lambda>(lcount, lcountNES, lcountUE, lcountUS). lcountNES)\<close>
+  \<open>clss_size_lcount = (\<lambda>(lcount, lcountUE, lcountUS). lcount)\<close>
 
 definition clss_size_lcountUE :: \<open>clss_size \<Rightarrow> nat\<close> where
-  \<open>clss_size_lcountUE = (\<lambda>(lcount, lcountNES, lcountUE, lcountUS). lcountUE)\<close>
+  \<open>clss_size_lcountUE = (\<lambda>(lcount, lcountUE, lcountUS). lcountUE)\<close>
 
 definition clss_size_lcountUS :: \<open>clss_size \<Rightarrow> nat\<close> where
-  \<open>clss_size_lcountUS = (\<lambda>(lcount, lcountNES, lcountUE, lcountUS). lcountUS)\<close>
+  \<open>clss_size_lcountUS = (\<lambda>(lcount, lcountUE, lcountUS). lcountUS)\<close>
 
 definition clss_size_incr_lcount :: \<open>clss_size \<Rightarrow> clss_size\<close> where
   \<open>clss_size_incr_lcount =
-     (\<lambda>(lcount, lcountNES, lcountUE, lcountUS). (lcount + 1, lcountNES, lcountUE, lcountUS))\<close>
+     (\<lambda>(lcount, lcountUE, lcountUS). (lcount + 1, lcountUE, lcountUS))\<close>
 
 definition clss_size_decr_lcount :: \<open>clss_size \<Rightarrow> clss_size\<close> where
   \<open>clss_size_decr_lcount =
-     (\<lambda>(lcount, lcountNES, lcountUE, lcountUS). (lcount - 1, lcountNES, lcountUE, lcountUS))\<close>
-
-definition clss_size_incr_lcountNES :: \<open>clss_size \<Rightarrow> clss_size\<close> where
-  \<open>clss_size_incr_lcountNES =
-     (\<lambda>(lcount, lcountNES, lcountUE, lcountUS). (lcount, lcountNES + 1, lcountUE, lcountUS))\<close>
+     (\<lambda>(lcount, lcountUE, lcountUS). (lcount - 1, lcountUE, lcountUS))\<close>
 
 definition clss_size_incr_lcountUE :: \<open>clss_size \<Rightarrow> clss_size\<close> where
   \<open>clss_size_incr_lcountUE =
-     (\<lambda>(lcount, lcountNES, lcountUE, lcountUS). (lcount, lcountNES, lcountUE + 1, lcountUS))\<close>
+     (\<lambda>(lcount, lcountUE, lcountUS). (lcount, lcountUE + 1, lcountUS))\<close>
 
 definition clss_size_incr_lcountUS :: \<open>clss_size \<Rightarrow> clss_size\<close> where
   \<open>clss_size_incr_lcountUS =
-     (\<lambda>(lcount, lcountNES, lcountUE, lcountUS). (lcount, lcountNES, lcountUE, lcountUS + 1))\<close>
+     (\<lambda>(lcount, lcountUE, lcountUS). (lcount, lcountUE, lcountUS + 1))\<close>
 
 definition clss_size_resetUS :: \<open>clss_size \<Rightarrow> clss_size\<close> where
   \<open>clss_size_resetUS =
-     (\<lambda>(lcount, lcountNES, lcountUE, lcountUS). (lcount, lcountNES, lcountUE, 0))\<close>
+     (\<lambda>(lcount, lcountUE, lcountUS). (lcount, lcountUE, 0))\<close>
 
 definition clss_size_allcount :: \<open>clss_size \<Rightarrow> nat\<close> where
   \<open>clss_size_allcount =
-    (\<lambda>(lcount, lcountNES, lcountUE, lcountUS). lcount + lcountNES + lcountUE + lcountUS)\<close>
+    (\<lambda>(lcount, lcountUE, lcountUS). lcount + lcountUE + lcountUS)\<close>
 
 lemma clss_size_add_simp[simp]:
-  \<open>clss_size N (add_mset D NE) UE NS US = clss_size_incr_lcountNES (clss_size N NE UE NS US)\<close>
-  \<open>clss_size N NE UE (add_mset D NS) US = clss_size_incr_lcountNES (clss_size N NE UE NS US)\<close>
   \<open>clss_size N NE (add_mset D UE) NS US = clss_size_incr_lcountUE (clss_size N NE UE NS US)\<close>
+  \<open>clss_size N (add_mset C NE) UE NS US = clss_size N NE UE NS US\<close>
+  \<open>clss_size N NE UE (add_mset C NS) US = clss_size N NE UE NS US\<close>
   by (auto simp: clss_size_def ran_m_fmdrop_If clss_size_decr_lcount_def
-    clss_size_incr_lcountUE_def
-    clss_size_incr_lcountNES_def size_remove1_mset_If clss_size_resetUS_def)
+    clss_size_incr_lcountUE_def size_remove1_mset_If clss_size_resetUS_def)
 
 lemma clss_size_upd_simp[simp]:
   \<open>C \<in># dom_m N \<Longrightarrow>  clss_size (N(C \<hookrightarrow> C')) NE UE NS US = clss_size N NE UE NS US\<close>
@@ -344,12 +336,12 @@ lemma clss_size_del_simp[simp]:
   \<open>C \<in># dom_m N \<Longrightarrow> \<not>irred N C \<Longrightarrow> clss_size (fmdrop C N) NE UE NS US = clss_size_decr_lcount (clss_size N NE UE NS US)\<close>
   \<open>C \<in># dom_m N \<Longrightarrow> irred N C \<Longrightarrow> clss_size (fmdrop C N) NE UE NS US = (clss_size N NE UE NS US)\<close>
   by (auto simp: clss_size_def ran_m_fmdrop_If clss_size_decr_lcount_def
-    clss_size_incr_lcountNES_def size_remove1_mset_If clss_size_resetUS_def)
+     size_remove1_mset_If clss_size_resetUS_def)
 
 
 lemma clss_size_lcount_clss_size[simp]:
   \<open>clss_size_lcount (clss_size N NE UE NS US) = size (learned_clss_l N)\<close>
-  \<open>clss_size_allcount (clss_size N NE UE NS US) = size (learned_clss_l N) + size NE + size UE + size NS + size US\<close>
+  \<open>clss_size_allcount (clss_size N NE UE NS US) = size (learned_clss_l N) + size UE + size US\<close>
   by (auto simp: clss_size_lcount_def clss_size_def clss_size_allcount_def)
 
 lemma clss_size_resetUS_simp[simp]:
@@ -357,17 +349,40 @@ lemma clss_size_resetUS_simp[simp]:
      clss_size_decr_lcount (clss_size baa da ea fa {#})\<close>
   \<open>clss_size_resetUS (clss_size_incr_lcount (clss_size baa da ea fa ga)) =
      clss_size_incr_lcount (clss_size baa da ea fa {#})\<close>
-  \<open>clss_size_resetUS (clss_size_incr_lcountNES (clss_size baa da ea fa ga)) =
-     clss_size_incr_lcountNES (clss_size baa da ea fa {#})\<close>
   \<open>clss_size_resetUS (clss_size_incr_lcountUE (clss_size baa da ea fa ga)) =
      clss_size_incr_lcountUE (clss_size baa da ea fa {#})\<close>
   \<open>clss_size_resetUS (clss_size N NE UE NS US) = (clss_size N NE UE NS {#})\<close>
   by (auto simp: clss_size_resetUS_def clss_size_decr_lcount_def clss_size_def
-    clss_size_incr_lcount_def clss_size_incr_lcountUE_def clss_size_incr_lcountNES_def)
+    clss_size_incr_lcount_def clss_size_incr_lcountUE_def)
 
 lemma [simp]: \<open>clss_size_resetUS (clss_size_incr_lcountUE st) =
          clss_size_incr_lcountUE (clss_size_resetUS st)\<close>
   by (solves \<open>cases st; auto simp: clss_size_incr_lcountUE_def clss_size_resetUS_def\<close>)+
+
+lemma clss_size_lcount_simps2[simp]:
+  \<open>clss_size_lcount (clss_size_resetUS S) = clss_size_lcount S\<close>
+  \<open>clss_size_lcountUE (clss_size_resetUS S) = clss_size_lcountUE S\<close>
+  \<open>clss_size_lcountUS (clss_size_resetUS S) = 0\<close>
+
+
+  \<open>clss_size_lcount (clss_size_incr_lcountUE S) = clss_size_lcount S\<close>
+  \<open>clss_size_lcountUE (clss_size_incr_lcountUE S) = Suc (clss_size_lcountUE S)\<close>
+  \<open>clss_size_lcountUS (clss_size_incr_lcountUE S) = clss_size_lcountUS S\<close>
+
+
+  \<open>clss_size_lcount (clss_size_decr_lcount S) = clss_size_lcount S - 1\<close>
+  \<open>clss_size_lcountUE (clss_size_decr_lcount S) = clss_size_lcountUE S\<close>
+  \<open>clss_size_lcountUS (clss_size_decr_lcount S) = clss_size_lcountUS S\<close>
+
+  \<open>clss_size_incr_lcountUE (clss_size_decr_lcount S) =
+        clss_size_decr_lcount (clss_size_incr_lcountUE S)\<close>
+  \<open>clss_size_resetUS (clss_size_decr_lcount S) = 
+     clss_size_decr_lcount (clss_size_resetUS S)\<close>
+  \<open>clss_size_resetUS (clss_size_incr_lcountUE S) = clss_size_incr_lcountUE (clss_size_resetUS S)\<close>
+  by (solves \<open>cases S; auto simp: clss_size_lcount_def clss_size_resetUS_def
+    clss_size_lcountUE_def clss_size_lcountUS_def
+    clss_size_incr_lcountUE_def clss_size_decr_lcount_def\<close>)+
+
 
 
 section \<open>Full state\<close>
@@ -619,11 +634,32 @@ lemma twl_st_heur_state_simp:
        nat_of_lit C < length(get_watched_wl_heur S)\<close>
   using assms unfolding twl_st_heur_def by (auto simp: map_fun_rel_def ac_simps)
 
+definition learned_clss_count :: \<open>twl_st_wl_heur \<Rightarrow> nat\<close> where
+  \<open>learned_clss_count S = clss_size_lcount (get_learned_count S) +
+    clss_size_lcountUE (get_learned_count S) + clss_size_lcountUS (get_learned_count S)\<close>
+
+lemma get_learned_count_learned_clss_countD:
+  \<open>get_learned_count S = clss_size_resetUS (get_learned_count T) \<Longrightarrow>
+       learned_clss_count S \<le> learned_clss_count T\<close>
+  by (cases S; cases T) (auto simp: learned_clss_count_def)
+
+lemma get_learned_count_learned_clss_countD2:
+  \<open>get_learned_count S = (get_learned_count T) \<Longrightarrow>
+       learned_clss_count S = learned_clss_count T\<close>
+  by (cases S; cases T) (auto simp: learned_clss_count_def)
+
 abbreviation twl_st_heur'''
    :: \<open>nat \<Rightarrow> (twl_st_wl_heur \<times> nat twl_st_wl) set\<close>
 where
 \<open>twl_st_heur''' r \<equiv> {(S, T). (S, T) \<in> twl_st_heur \<and>
            length (get_clauses_wl_heur S) = r}\<close>
+
+abbreviation twl_st_heur''''u
+   :: \<open>nat \<Rightarrow> nat \<Rightarrow> (twl_st_wl_heur \<times> nat twl_st_wl) set\<close>
+where
+\<open>twl_st_heur''''u r u \<equiv> {(S, T). (S, T) \<in> twl_st_heur \<and>
+           length (get_clauses_wl_heur S) = r \<and>
+           learned_clss_count S \<le> u}\<close>
 
 definition twl_st_heur' :: \<open>nat multiset \<Rightarrow> (twl_st_wl_heur \<times> nat twl_st_wl) set\<close> where
 \<open>twl_st_heur' N = {(S, S'). (S, S') \<in> twl_st_heur \<and> dom_m (get_clauses_wl S') = N}\<close>
@@ -698,16 +734,17 @@ text \<open>
   following condition:
 \<close>
 definition isasat_fast :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close> where
-  \<open>isasat_fast S \<longleftrightarrow> (length (get_clauses_wl_heur S) \<le> sint64_max - (uint32_max div 2 + MAX_HEADER_SIZE+1) \<and> clss_size_allcount (get_learned_count S) < uint64_max)\<close>
+  \<open>isasat_fast S \<longleftrightarrow> (length (get_clauses_wl_heur S) \<le> sint64_max - (uint32_max div 2 + MAX_HEADER_SIZE+1) \<and>
+  learned_clss_count S < uint64_max)\<close>
 
 lemma isasat_fast_length_leD: \<open>isasat_fast S \<Longrightarrow> length (get_clauses_wl_heur S) \<le> sint64_max\<close> and
   isasat_fast_countD:
+    \<open>isasat_fast S \<Longrightarrow> clss_size_lcount (get_learned_count S) < uint64_max\<close>
     \<open>isasat_fast S \<Longrightarrow> clss_size_lcountUS (get_learned_count S) < uint64_max\<close>
     \<open>isasat_fast S \<Longrightarrow> clss_size_lcountUE (get_learned_count S) < uint64_max\<close>
-    \<open>isasat_fast S \<Longrightarrow> clss_size_lcountNES (get_learned_count S) < uint64_max\<close>
   by (solves \<open>cases S; auto simp: isasat_fast_def clss_size_lcountUS_def
-    clss_size_lcountUE_def clss_size_lcountNES_def
-    clss_size_allcount_def\<close>)+
+    clss_size_lcountUE_def clss_size_lcount_def
+    clss_size_allcount_def learned_clss_count_def\<close>)+
 
 
 section \<open>Lift Operations to State\<close>
@@ -1460,7 +1497,7 @@ definition mark_garbage_heur4 :: \<open>nat \<Rightarrow> twl_st_wl_heur \<Right
     ASSERT(\<not>st \<longrightarrow> clss_size_lcount lcount \<ge> 1);
     RETURN (M', extra_information_mark_to_delete N' C, D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
       vdom, avdom,
-      if st then clss_size_resetUS (clss_size_incr_lcountNES lcount) else
+      if st then clss_size_resetUS lcount else
         clss_size_resetUS (clss_size_incr_lcountUE (clss_size_decr_lcount lcount)), opts) })\<close>
 
 definition delete_index_vdom_heur :: \<open>nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur\<close>where
@@ -1706,5 +1743,22 @@ lemma clause_not_marked_to_delete_heur_alt_def:
   \<open>RETURN \<circ>\<circ> clause_not_marked_to_delete_heur = (\<lambda>(M, arena, D, oth) C.
      RETURN (arena_status arena C \<noteq> DELETED))\<close>
   unfolding clause_not_marked_to_delete_heur_def by (auto intro!: ext)
+
+
+lemma learned_clss_count_twl_st_heur: \<open>(T, Ta) \<in> twl_st_heur \<Longrightarrow>
+                      learned_clss_count T =
+                      size (get_learned_clss_wl Ta) +
+                      size (get_unit_learned_clss_wl Ta) +
+  size (get_subsumed_learned_clauses_wl Ta)\<close>
+  by (auto simp: twl_st_heur_def clss_size_def learned_clss_count_def
+    clss_size_lcount_def clss_size_lcountUE_def clss_size_lcountUS_def
+    get_learned_clss_wl_def)
+
+
+lemma clss_size_allcount_alt_def:
+  \<open>clss_size_allcount S = clss_size_lcountUS S + clss_size_lcountUE S + 
+    clss_size_lcount S\<close>
+  by (cases S) (auto simp: clss_size_allcount_def clss_size_lcountUS_def
+    clss_size_lcount_def clss_size_lcountUE_def)
 
 end

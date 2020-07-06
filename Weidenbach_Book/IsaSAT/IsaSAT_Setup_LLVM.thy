@@ -239,7 +239,7 @@ type_synonym twl_st_wll_trail_fast =
     64 word \<times> watched_wl_uint32 \<times> vmtf_remove_assn \<times>
     32 word \<times> cach_refinement_l_assn \<times> lbd_assn \<times> out_learned_assn \<times> stats \<times>
     heur_assn \<times>
-    vdom_fast_assn \<times> vdom_fast_assn \<times> (64 word \<times> 64 word \<times> 64 word \<times> 64 word) \<times> opts_assn \<times> arena_assn\<close>
+    vdom_fast_assn \<times> vdom_fast_assn \<times> (64 word \<times> 64 word \<times> 64 word) \<times> opts_assn \<times> arena_assn\<close>
 
 
 abbreviation phase_heur_assn where
@@ -247,7 +247,7 @@ abbreviation phase_heur_assn where
      phase_saver'_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn\<close>
 
 definition lcount_assn :: \<open>clss_size \<Rightarrow> _ \<Rightarrow> assn\<close> where
-  \<open>lcount_assn \<equiv> uint64_nat_assn \<times>\<^sub>a uint64_nat_assn \<times>\<^sub>a uint64_nat_assn \<times>\<^sub>a uint64_nat_assn\<close>
+  \<open>lcount_assn \<equiv> uint64_nat_assn \<times>\<^sub>a uint64_nat_assn \<times>\<^sub>a uint64_nat_assn\<close>
 
 lemma [safe_constraint_rules]:
   \<open>CONSTRAINT Sepref_Basic.is_pure lcount_assn\<close>
@@ -554,7 +554,7 @@ sepref_register incr_restart_stat clss_size_resetUS
 
 lemma clss_size_resetUS_alt_def:
   \<open>RETURN o clss_size_resetUS =
-  (\<lambda>(lcount, lcountNES, lcountUE, lcountUS). RETURN (lcount, lcountNES, lcountUE, 0))\<close>
+  (\<lambda>(lcount, lcountUE, lcountUS). RETURN (lcount, lcountUE, 0))\<close>
   by (auto simp: clss_size_resetUS_def)
 
 sepref_def clss_size_resetUS_fast_code
@@ -566,7 +566,7 @@ sepref_def clss_size_resetUS_fast_code
 
 lemma clss_size_incr_lcountUS_alt_def:
   \<open>RETURN o clss_size_incr_lcountUS =
-  (\<lambda>(lcount, lcountNES, lcountUE, lcountUS). RETURN (lcount, lcountNES, lcountUE, lcountUS + 1))\<close>
+  (\<lambda>(lcount, lcountUE, lcountUS). RETURN (lcount, lcountUE, lcountUS + 1))\<close>
   by (auto simp: clss_size_incr_lcountUS_def)
 
 sepref_def clss_size_incr_lcountUS_fast_code
@@ -578,7 +578,7 @@ sepref_def clss_size_incr_lcountUS_fast_code
 
 lemma clss_size_incr_lcountUE_alt_def:
   \<open>RETURN o clss_size_incr_lcountUE =
-  (\<lambda>(lcount, lcountNES, lcountUE, lcountUS). RETURN (lcount, lcountNES, lcountUE + 1, lcountUS))\<close>
+  (\<lambda>(lcount, lcountUE, lcountUS). RETURN (lcount, lcountUE + 1, lcountUS))\<close>
   by (auto simp: clss_size_incr_lcountUE_def)
 
 sepref_def clss_size_incr_lcountUE_fast_code
@@ -588,24 +588,12 @@ sepref_def clss_size_incr_lcountUE_fast_code
   apply (annot_unat_const \<open>TYPE(64)\<close>)
   by sepref
 
-lemma clss_size_incr_lcountNES_alt_def:
-  \<open>RETURN o clss_size_incr_lcountNES =
-  (\<lambda>(lcount, lcountNES, lcountUE, lcountUS). RETURN (lcount, lcountNES + 1, lcountUE , lcountUS))\<close>
-  by (auto simp: clss_size_incr_lcountNES_def)
-
-sepref_def clss_size_incr_lcountNES_fast_code
-  is \<open>RETURN o clss_size_incr_lcountNES\<close>
-  :: \<open>[\<lambda>S. clss_size_lcountNES S < uint64_max]\<^sub>a lcount_assn\<^sup>d \<rightarrow> lcount_assn\<close>
-  unfolding clss_size_incr_lcountNES_alt_def lcount_assn_def clss_size_lcountNES_def
-  apply (annot_unat_const \<open>TYPE(64)\<close>)
-  by sepref
-
 schematic_goal mk_free_lookup_clause_rel_assn[sepref_frame_free_rules]: \<open>MK_FREE lcount_assn ?fr\<close>
   unfolding lcount_assn_def
   by (rule free_thms sepref_frame_free_rules)+ (* TODO: Write a method for that! *)
 
 lemma clss_size_lcountUE_alt_def:
-  \<open>RETURN o clss_size_lcountUE = (\<lambda>(lcount, lcountNES, lcountUE, lcountUS). RETURN lcountUE)\<close>
+  \<open>RETURN o clss_size_lcountUE = (\<lambda>(lcount, lcountUE, lcountUS). RETURN lcountUE)\<close>
   by (auto simp: clss_size_lcountUE_def)
 
 sepref_def clss_size_lcountUE_fast_code
@@ -615,7 +603,7 @@ sepref_def clss_size_lcountUE_fast_code
   by sepref
 
 lemma clss_size_lcountUS_alt_def:
-  \<open>RETURN o clss_size_lcountUS = (\<lambda>(lcount, lcountNES, lcountUE, lcountUS). RETURN lcountUS)\<close>
+  \<open>RETURN o clss_size_lcountUS = (\<lambda>(lcount, lcountUE, lcountUS). RETURN lcountUS)\<close>
   by (auto simp: clss_size_lcountUS_def)
 
 sepref_def clss_size_lcountUSt_fast_code
@@ -624,38 +612,29 @@ sepref_def clss_size_lcountUSt_fast_code
   unfolding lcount_assn_def clss_size_lcountUS_alt_def clss_size_lcount_def
   by sepref
 
-lemma clss_size_lcountNES_alt_def:
-  \<open>RETURN o clss_size_lcountNES = (\<lambda>(lcount, lcountNES, lcountUE, lcountUS). RETURN lcountNES)\<close>
-  by (auto simp: clss_size_lcountNES_def)
-
-sepref_def clss_size_lcountNES_fast_code
-  is \<open>RETURN o clss_size_lcountNES\<close>
-  :: \<open>lcount_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
-  unfolding lcount_assn_def clss_size_lcountNES_alt_def clss_size_lcount_def
+sepref_def learned_clss_count_fast_code
+  is \<open>RETURN o learned_clss_count\<close>
+  :: \<open>[\<lambda>S. learned_clss_count S \<le> uint64_max]\<^sub>a isasat_bounded_assn\<^sup>k \<rightarrow> uint64_nat_assn\<close>
+  unfolding clss_size_allcount_alt_def learned_clss_count_def
   by sepref
 
-lemma clss_size_allcount_alt_def:
-  \<open>clss_size_allcount S = clss_size_lcountNES S +  clss_size_lcountUS S + clss_size_lcountUE S + 
-    clss_size_lcount S\<close>
-  by (cases S) (auto simp: clss_size_allcount_def clss_size_lcountNES_def clss_size_lcountUS_def
-    clss_size_lcount_def clss_size_lcountUE_def)
-  
-sepref_register clss_size_lcountUE clss_size_lcountUS clss_size_lcountNES
-(* lemma clss_size_incr_allcount_alt_def:
- *   \<open>RETURN o clss_size_allcount =
- *   (\<lambda>(lcount, lcountNES, lcountUE, lcountUS). RETURN (lcount + lcountNES + lcountUE + lcountUS))\<close>
- *   by (auto simp: clss_size_allcount_def)
- * 
- * sepref_def clss_size_allcount_fast_code
- *   is \<open>RETURN o clss_size_allcount\<close>
- *   :: \<open>[\<lambda>S. clss_size_allcount S < max_snat 64]\<^sub>a lcount_assn\<^sup>d \<rightarrow> uint64_nat_assn\<close>
- *   unfolding clss_size_incr_allcount_alt_def lcount_assn_def clss_size_allcount_def
- *   by sepref *)
+sepref_register clss_size_lcountUE clss_size_lcountUS learned_clss_count clss_size_allcount
+
+lemma clss_size_incr_allcount_alt_def:
+  \<open>RETURN o clss_size_allcount =
+  (\<lambda>(lcount, lcountUE, lcountUS). RETURN (lcount + lcountUE + lcountUS))\<close>
+  by (auto simp: clss_size_allcount_def)
+
+sepref_def clss_size_allcount_fast_code
+  is \<open>RETURN o clss_size_allcount\<close>
+  :: \<open>[\<lambda>S. clss_size_allcount S < max_snat 64]\<^sub>a lcount_assn\<^sup>d \<rightarrow> uint64_nat_assn\<close>
+  unfolding clss_size_incr_allcount_alt_def lcount_assn_def clss_size_allcount_def
+  by sepref
 
 
 lemma clss_size_decr_lcount_alt_def:
   \<open>RETURN o clss_size_decr_lcount =
-  (\<lambda>(lcount, lcountNES, lcountUE, lcountUS). RETURN (lcount - 1, lcountNES, lcountUE, lcountUS))\<close>
+  (\<lambda>(lcount, lcountUE, lcountUS). RETURN (lcount - 1, lcountUE, lcountUS))\<close>
   by (auto simp: clss_size_decr_lcount_def)
 
 sepref_def clss_size_decr_lcount_fast_code
@@ -673,7 +652,7 @@ sepref_def incr_restart_stat_fast_code
     heuristic_assn_def fold_tuple_optimizations
   by sepref
 
-sepref_register incr_lrestart_stat clss_size_decr_lcount clss_size_allcount clss_size_incr_lcountNES
+sepref_register incr_lrestart_stat clss_size_decr_lcount
     clss_size_incr_lcountUE clss_size_incr_lcountUS
 
 sepref_def incr_lrestart_stat_fast_code

@@ -98,7 +98,8 @@ lemma vmtf_find_next_undef_upd:
 lemma find_unassigned_lit_wl_D'_find_unassigned_lit_wl_D:
   \<open>(find_unassigned_lit_wl_D_heur, find_unassigned_lit_wl) \<in>
      [find_unassigned_lit_wl_D_heur_pre]\<^sub>f
-    twl_st_heur''' r \<rightarrow> \<langle>{((T, L), (T', L')). (T, T') \<in> twl_st_heur''' r  \<and> L = L' \<and>
+    {(S, T). (S, T) \<in> twl_st_heur''' r \<and> learned_clss_count S = u} \<rightarrow>
+     \<langle>{((T, L), (T', L')). (T, T') \<in> twl_st_heur''' r  \<and> L = L' \<and> learned_clss_count T = u \<and>
          (L \<noteq> None \<longrightarrow> undefined_lit (get_trail_wl T') (the L) \<and> the L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st T')) \<and>
          get_conflict_wl T' = None}\<rangle>nres_rel\<close>
 proof -
@@ -341,11 +342,11 @@ proof -
     apply (rule lit_of_found_atm; assumption)
     subgoal for a aa ab ac ad b ae af ag ba ah ai aj ak al am bb an bc ao ap aq bd ar
        as at au av aw ax ay az be bf bg bh bi bj bk bl bm bn bo bp bq br bs
-       bt bu bv bw bx _ _ _ _ _ _ _ _ _ _ _ _ _ _ "by" bz ca cb cc cd ce cf cg ch ci _ _ x L x1 x1a x2 x2a La Lb
+       bt bu bv bw bx _ _ _ _ _ _ _ _ _ _ _ _ _ "by" bz ca cb cc cd ce cf cg ch ci _ _ x L x1 x1a x2 x2a La Lb
       by (cases L)
-       (clarsimp_all simp: twl_st_heur_def unassigned_atm_def atm_of_eq_atm_of uminus_\<A>\<^sub>i\<^sub>n_iff
-          simp del: twl_st_of_wl.simps dest!: atms intro!: RETURN_RES_refine;
-          auto simp: atm_of_eq_atm_of uminus_\<A>\<^sub>i\<^sub>n_iff)+
+       (clarsimp_all simp: twl_st_heur_def unassigned_atm_def atm_of_eq_atm_of uminus_\<A>\<^sub>i\<^sub>n_iff learned_clss_count_def
+          simp del: twl_st_of_wl.simps dest!: atms intro!: RETURN_RES_refine; 
+        auto simp: atm_of_eq_atm_of uminus_\<A>\<^sub>i\<^sub>n_iff)+
     done
 qed
 
@@ -398,7 +399,10 @@ where
 \<close>
 
 lemma decide_wl_or_skip_D_heur_decide_wl_or_skip_D:
-  \<open>(decide_wl_or_skip_D_heur, decide_wl_or_skip) \<in> twl_st_heur''' r \<rightarrow>\<^sub>f \<langle>bool_rel \<times>\<^sub>f twl_st_heur''' r\<rangle> nres_rel\<close>
+  \<open>(decide_wl_or_skip_D_heur, decide_wl_or_skip) \<in>
+    {(S, T). (S, T) \<in> twl_st_heur''' r \<and> learned_clss_count S =u} \<rightarrow>\<^sub>f
+    \<langle>bool_rel \<times>\<^sub>f {(S, T). (S, T) \<in> twl_st_heur''' r \<and> learned_clss_count S =u}\<rangle> nres_rel\<close>
+  (is \<open>_ \<in> ?A \<rightarrow>\<^sub>f _\<close>)
 proof -
   have [simp]:
     \<open>rev (cons_trail_Decided L M) = rev M @ [Decided L]\<close>
@@ -413,12 +417,12 @@ proof -
                   RETURN (False, T)}
 		\<le> SPEC
 		   (\<lambda>c. (c, False, decide_lit_wl x'a x1)
-			\<in> bool_rel \<times>\<^sub>f twl_st_heur''' r))\<close>
+			\<in> bool_rel \<times>\<^sub>f ?A))\<close>
     if
-      \<open>(x, y) \<in> twl_st_heur''' r\<close> and
+      \<open>(x, y) \<in> {(S, T). (S, T) \<in> twl_st_heur''' r \<and> learned_clss_count S = u}\<close> and
       \<open>(xa, x')
        \<in> {((T, L), T', L').
-	  (T, T') \<in> twl_st_heur''' r \<and>
+	  (T, T') \<in> ?A \<and>
 	  L = L' \<and>
 	  (L \<noteq> None \<longrightarrow>
 	   undefined_lit (get_trail_wl T') (the L) \<and>
@@ -450,7 +454,7 @@ proof -
 	   isa_length_trail_length_u[THEN fref_to_Down_unRET_Id] out_learned_def
 	  intro!: cons_trail_Decided_tr[THEN fref_to_Down_unRET_uncurry]
 	    isa_vmtf_consD2)
-        by (auto simp add: twl_st_heur_def all_atms_def[symmetric]
+        by (auto simp add: twl_st_heur_def all_atms_def[symmetric] learned_clss_count_def
 	   isa_length_trail_length_u[THEN fref_to_Down_unRET_Id] out_learned_def
 	  intro!: cons_trail_Decided_tr[THEN fref_to_Down_unRET_uncurry]
 	    isa_vmtf_consD2)
@@ -470,7 +474,7 @@ proof -
     unfolding decide_wl_or_skip_D_heur_def decide_wl_or_skip_alt_def decide_wl_or_skip_pre_def
      decide_l_or_skip_pre_def twl_st_of_wl.simps[symmetric]
     apply (intro nres_relI frefI same_in_Id_option_rel)
-    apply (refine_vcg find_unassigned_lit_wl_D'_find_unassigned_lit_wl_D[of r, THEN fref_to_Down])
+    apply (refine_vcg find_unassigned_lit_wl_D'_find_unassigned_lit_wl_D[of r u, THEN fref_to_Down])
     subgoal for x y
       unfolding decide_wl_or_skip_pre_def find_unassigned_lit_wl_D_heur_pre_def
 	decide_wl_or_skip_pre_def decide_l_or_skip_pre_def decide_or_skip_pre_def
@@ -478,11 +482,12 @@ proof -
        apply (rule_tac x = xa in exI)
        apply (rule_tac x = xb in exI)
        apply auto
-      done
+       done
     apply (rule same_in_Id_option_rel)
     subgoal by (auto simp del: simp: twl_st_heur_def)
-    subgoal by (auto simp del: simp: twl_st_heur_def)
-    apply (rule final; assumption?)
+    subgoal by auto
+      apply (rule final; assumption?)
+      apply auto
     done
  qed
 

@@ -105,9 +105,10 @@ qed
 
 lemma cdcl_twl_o_prog_wl_D_heur_cdcl_twl_o_prog_wl_D:
   \<open>(cdcl_twl_o_prog_wl_D_heur, cdcl_twl_o_prog_wl) \<in>
-   {(S, T). (S, T) \<in> twl_st_heur \<and> length (get_clauses_wl_heur S) = r} \<rightarrow>\<^sub>f
+   {(S, T). (S, T) \<in> twl_st_heur \<and> length (get_clauses_wl_heur S) = r \<and> learned_clss_count S = u} \<rightarrow>\<^sub>f
      \<langle>bool_rel \<times>\<^sub>f {(S, T). (S, T) \<in> twl_st_heur \<and>
-        length (get_clauses_wl_heur S) \<le> r + MAX_HEADER_SIZE+1 + uint32_max div 2}\<rangle>nres_rel\<close>
+        length (get_clauses_wl_heur S) \<le> r + MAX_HEADER_SIZE+1 + uint32_max div 2  \<and> 
+           learned_clss_count S \<le> Suc u}\<rangle>nres_rel\<close>
 proof -
   have H: \<open>(x, y) \<in> {(S, T).
                (S, T) \<in> twl_st_heur \<and>
@@ -119,29 +120,48 @@ proof -
                length (get_clauses_wl_heur S) =
                length (get_clauses_wl_heur x)}\<close> for x y
     by (auto simp: twl_st_heur_state_simp twl_st_heur_twl_st_heur_conflict_ana)
-   have H2: \<open>(x, y) \<in> twl_st_heur''' r \<Longrightarrow>
+   have H2: \<open>(x, y) \<in> {(S, T).
+     (S, T) \<in> twl_st_heur \<and>
+     length (get_clauses_wl_heur S) = r \<and> learned_clss_count S = u} \<Longrightarrow>
           (x, y) \<in> twl_st_heur_conflict_ana' r (get_learned_count x)\<close> for x y
-    by (auto simp: twl_st_heur_state_simp twl_st_heur_twl_st_heur_conflict_ana)
+     by (auto simp: twl_st_heur_state_simp twl_st_heur_twl_st_heur_conflict_ana)
+   have H3: \<open>(x, y)
+     \<in> {(S, T).
+     (S, T) \<in> twl_st_heur \<and>
+     length (get_clauses_wl_heur S) = r \<and> learned_clss_count S = u} \<Longrightarrow>
+     (x, y) \<in> {(S, T). (S, T) \<in> twl_st_heur''' r \<and> learned_clss_count S = u}\<close> for x y
+     by auto
+ have UUa: \<open>(U, Ua)
+       \<in> {(S, T).
+          (S, T) \<in> twl_st_heur \<and>
+          length (get_clauses_wl_heur S) \<le> 3 + 1 + r + uint32_max div 2 \<and>
+          learned_clss_count S \<le> Suc u} \<Longrightarrow>
+       (U,  Ua)
+       \<in> {(S, Tb).
+          (S, Tb) \<in> twl_st_heur \<and>
+     length (get_clauses_wl_heur S) \<le> 3 + 1 + r + uint32_max div 2 \<and> learned_clss_count S \<le> Suc u}\<close> for U Ua
+   by auto
   show ?thesis
     unfolding cdcl_twl_o_prog_wl_D_heur_def cdcl_twl_o_prog_wl_def
       get_conflict_wl_is_None
     apply (intro frefI nres_relI)
     apply (refine_vcg
-        decide_wl_or_skip_D_heur_decide_wl_or_skip_D[where r=r, THEN fref_to_Down, THEN order_trans]
+        decide_wl_or_skip_D_heur_decide_wl_or_skip_D[where r=r and u=u, THEN fref_to_Down, THEN order_trans]
         skip_and_resolve_loop_wl_D_heur_skip_and_resolve_loop_wl_D[where r=r, THEN fref_to_Down]
-        backtrack_wl_D_nlit_backtrack_wl_D[where r=r, THEN fref_to_Down]
+        backtrack_wl_D_nlit_backtrack_wl_D[where r=r and u=u, THEN fref_to_Down]
         isasat_current_status_id[THEN fref_to_Down, THEN order_trans])
     subgoal
       by (auto simp: twl_st_heur_state_simp
           get_conflict_wl_is_None_heur_get_conflict_wl_is_None[THEN fref_to_Down_unRET_Id])
-    apply (assumption)
+    apply (rule H3; assumption)
     subgoal by (rule conc_fun_R_mono) auto
     subgoal by (auto simp: twl_st_heur_state_simp twl_st_heur_count_decided_st_alt_def)
     apply (rule H2; assumption)
     subgoal by (auto simp: twl_st_heur_state_simp twl_st_heur_twl_st_heur_conflict_ana)
     subgoal by (auto simp: twl_st_heur_state_simp)
-    apply assumption
-    subgoal by (auto simp: conc_fun_RES RETURN_def)
+    subgoal by (auto simp: twl_st_heur_state_simp dest!: get_learned_count_learned_clss_countD2)
+    apply (rule UUa; assumption)
+    subgoal by (auto simp: conc_fun_RES RETURN_def learned_clss_count_def)
     subgoal by (auto simp: twl_st_heur_state_simp)
     done
 qed
@@ -259,7 +279,8 @@ where
 lemma cdcl_twl_stgy_restart_prog_early_wl_heur_cdcl_twl_stgy_restart_prog_early_wl_D:
   assumes r: \<open>r \<le> sint64_max\<close>
   shows \<open>(cdcl_twl_stgy_prog_bounded_wl_heur, cdcl_twl_stgy_prog_early_wl) \<in>
-   twl_st_heur''' r \<rightarrow>\<^sub>f \<langle>bool_rel \<times>\<^sub>r twl_st_heur\<rangle>nres_rel\<close>
+    {(S,T). (S, T) \<in> twl_st_heur''' r} \<rightarrow>\<^sub>f
+    \<langle>bool_rel \<times>\<^sub>r  twl_st_heur\<rangle>nres_rel\<close>
 proof -
   have A[refine0]: \<open>RETURN (isasat_fast x) \<le> \<Down>
       {(b, b'). b = b' \<and> (b = (isasat_fast x))} (RES UNIV)\<close>
@@ -275,9 +296,14 @@ proof -
     by (auto simp: twl_st_heur'_def)
   have twl_st_heur''': \<open>(x1e, x1b) \<in> twl_st_heur'' \<D> r lcount \<Longrightarrow>
     (x1e, x1b)
-    \<in> twl_st_heur''' r\<close>
+    \<in> {(S, Taa).
+          (S, Taa) \<in> twl_st_heur \<and>
+          length (get_clauses_wl_heur S) = r \<and>
+          learned_clss_count S = (\<lambda>(a,b,c). a + b + c) (lcount)}\<close>
     for x1e x1b r \<D> lcount
-    by (auto simp: twl_st_heur'_def)
+    by (auto simp: twl_st_heur'_def learned_clss_count_def
+      clss_size_lcountUE_def clss_size_lcount_def clss_size_lcountUS_def
+      split: prod.splits)
   have H: \<open>SPEC (\<lambda>_::bool. True) = RES UNIV\<close> by auto
   show ?thesis
     supply[[goals_limit=1]] isasat_fast_length_leD[dest] twl_st_heur'_def[simp]
@@ -289,14 +315,17 @@ proof -
         unit_propagation_outer_loop_wl_D_heur_unit_propagation_outer_loop_wl_D'[THEN fref_to_Down]
         WHILEIT_refine[where R = \<open>{((ebrk, brk, T), (ebrk', brk', T')).
 	    (ebrk = ebrk') \<and> (brk = brk') \<and> (T, T')  \<in> twl_st_heur \<and>
-	      (ebrk \<longrightarrow> isasat_fast T) \<and> length (get_clauses_wl_heur T) \<le> sint64_max}\<close>])
+	      (ebrk \<longrightarrow> isasat_fast T) \<and> (length (get_clauses_wl_heur T) \<le> sint64_max)}\<close>])
     subgoal using r by auto
     subgoal by fast
     subgoal by auto
     apply (rule twl_st_heur''; auto; fail)
-    subgoal by (auto simp: isasat_fast_def)
+    subgoal by (auto simp: isasat_fast_def dest: get_learned_count_learned_clss_countD)
     apply (rule twl_st_heur'''; assumption)
-    subgoal by (auto simp: isasat_fast_def sint64_max_def uint32_max_def)
+    subgoal
+      apply clarsimp
+      by (auto simp: isasat_fast_def sint64_max_def uint32_max_def
+      dest: )
     subgoal by auto
     done
 qed
