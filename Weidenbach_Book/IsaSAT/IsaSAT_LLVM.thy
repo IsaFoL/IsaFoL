@@ -7,6 +7,35 @@ begin
 
 chapter \<open>Code of Full IsaSAT\<close>
 
+(*TODO Move*)
+definition default_opts :: opts where
+  \<open>default_opts = IsaOptions True True True 50 11 4\<close>
+
+definition default_opts2 :: opts_ref where
+  \<open>default_opts2 = (True, True, True, 50, 11, 4)\<close>
+
+definition IsaOptions_rel :: \<open>bool \<Rightarrow> bool \<Rightarrow> bool \<Rightarrow> 64 word \<Rightarrow> 64 word \<Rightarrow> nat \<Rightarrow> opts_ref \<close> where
+  \<open>IsaOptions_rel a b c d e f = (a, b, c, d, e, f)\<close>
+
+lemma IsaOptions_rel:
+  \<open>(uncurry5 (RETURN oooooo IsaOptions_rel), uncurry5 (RETURN oooooo IsaOptions)) \<in>
+     bool_rel \<times>\<^sub>f bool_rel \<times>\<^sub>f  bool_rel \<times>\<^sub>f  word_rel \<times>\<^sub>f word_rel \<times>\<^sub>f  nat_rel \<rightarrow> \<langle>opts_rel\<rangle>nres_rel\<close>
+  by (auto intro!: frefI nres_relI simp: opts_rel_def IsaOptions_rel_def)
+
+sepref_def IsaOptions_rel_impl
+  is \<open>uncurry5 (RETURN oooooo IsaOptions_rel)\<close>
+  :: \<open>bool1_assn\<^sup>k *\<^sub>a bool1_assn\<^sup>k *\<^sub>a bool1_assn\<^sup>k *\<^sub>a word_assn\<^sup>k *\<^sub>a word_assn\<^sup>k *\<^sub>a (snat_assn' (TYPE(64)))\<^sup>k \<rightarrow>\<^sub>a
+        opts_rel_assn\<close>
+  unfolding IsaOptions_rel_def opts_rel_assn_def
+  by sepref
+
+sepref_register IsaOptions
+
+lemmas [sepref_fr_rules] =
+    IsaOptions_rel_impl.refine[FCOMP IsaOptions_rel, unfolded opts_assn_def[symmetric]]
+
+(*END Move*)
+
 abbreviation  model_stat_assn where
   \<open>model_stat_assn \<equiv> bool1_assn \<times>\<^sub>a (arl64_assn unat_lit_assn) \<times>\<^sub>a stats_assn\<close>
 
@@ -325,29 +354,84 @@ sepref_def IsaSAT_code
   apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
-definition default_opts :: opts where
-  \<open>default_opts = IsaOptions True True True 50 11 4\<close>
+definition print_propa :: \<open>64 word \<Rightarrow> unit\<close> where
+  \<open>print_propa _ = ()\<close>
 
-definition default_opts2 :: opts_ref where
-  \<open>default_opts2 = (True, True, True, 50, 11, 4)\<close>
+definition print_confl :: \<open>64 word \<Rightarrow> unit\<close> where
+  \<open>print_confl _ = ()\<close>
 
-sepref_def default_opts_impl
-  is \<open>uncurry0 (RETURN default_opts2)\<close>
-  :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a opts_rel_assn\<close>
-  unfolding opts_rel_assn_def default_opts2_def
-  apply (annot_snat_const \<open>TYPE(64)\<close>)
+definition print_dec :: \<open>64 word \<Rightarrow> unit\<close> where
+  \<open>print_dec _ = ()\<close>
+
+definition print_res :: \<open>64 word \<Rightarrow> unit\<close> where
+  \<open>print_res _ = ()\<close>
+
+definition print_lres :: \<open>64 word \<Rightarrow> unit\<close> where
+  \<open>print_lres _ = ()\<close>
+
+definition print_uset :: \<open>64 word \<Rightarrow> unit\<close> where
+  \<open>print_uset _ = ()\<close>
+
+definition print_gcs :: \<open>64 word \<Rightarrow> unit\<close> where
+  \<open>print_gcs _ = ()\<close>
+
+definition print_lbds :: \<open>64 word \<Rightarrow> unit\<close> where
+  \<open>print_lbds _ = ()\<close>
+
+sepref_def print_propa_impl
+  is \<open>RETURN o print_propa\<close>
+  :: \<open>word_assn\<^sup>k \<rightarrow>\<^sub>a unit_assn\<close>
+  unfolding print_propa_def
   by sepref
 
-lemma default_opts2_default_opts:
-  \<open>(default_opts2, default_opts) \<in> opts_rel\<close>
-  by (auto simp: default_opts2_def default_opts_def opts_rel_def)
+sepref_def print_confl_impl
+  is \<open>RETURN o print_confl\<close>
+  :: \<open>word_assn\<^sup>k \<rightarrow>\<^sub>a unit_assn\<close>
+  unfolding print_confl_def
+  by sepref
 
-lemmas [sepref_fr_rules] =
-  default_opts_impl.refine[FCOMP default_opts2_default_opts, unfolded opts_assn_def[symmetric]]
+sepref_def print_dec_impl
+  is \<open>RETURN o print_dec\<close>
+  :: \<open>word_assn\<^sup>k \<rightarrow>\<^sub>a unit_assn\<close>
+  unfolding print_dec_def
+  by sepref
 
-definition IsaSAT_bounded_heur_wrapper :: \<open>_ \<Rightarrow> (nat) nres\<close>where
-  \<open>IsaSAT_bounded_heur_wrapper C = do {
-      (b, (b', _)) \<leftarrow> IsaSAT_bounded_heur default_opts C;
+sepref_def print_res_impl
+  is \<open>RETURN o print_res\<close>
+  :: \<open>word_assn\<^sup>k \<rightarrow>\<^sub>a unit_assn\<close>
+  unfolding print_res_def
+  by sepref
+
+sepref_def print_lres_impl
+  is \<open>RETURN o print_lres\<close>
+  :: \<open>word_assn\<^sup>k \<rightarrow>\<^sub>a unit_assn\<close>
+  unfolding print_lres_def
+  by sepref
+
+sepref_def print_uset_impl
+  is \<open>RETURN o print_uset\<close>
+  :: \<open>word_assn\<^sup>k \<rightarrow>\<^sub>a unit_assn\<close>
+  unfolding print_uset_def
+  by sepref
+
+sepref_def print_gc_impl
+  is \<open>RETURN o print_gcs\<close>
+  :: \<open>word_assn\<^sup>k \<rightarrow>\<^sub>a unit_assn\<close>
+  unfolding print_gcs_def
+  by sepref
+
+definition IsaSAT_bounded_heur_wrapper :: \<open>nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 64 word \<Rightarrow> 64 word \<Rightarrow> nat \<Rightarrow> _ \<Rightarrow> (nat) nres\<close>where
+  \<open>IsaSAT_bounded_heur_wrapper red res unbdd mini res1 res2 C = do {
+      let opts = IsaOptions (res \<noteq> 0) (res \<noteq> 0)
+         (unbdd \<noteq> 0) mini res1 res2;
+      (b, (b', (_, propa, confl, dec, res, lres, uset, gcs, d))) \<leftarrow> IsaSAT_bounded_heur (opts) C;
+      let _ = print_propa propa; 
+      let _ = print_confl confl;
+      let _ = print_dec dec;
+      let _ = print_res res;
+      let _ = print_lres lres;
+      let _ = print_uset uset;
+      let _ = print_gcs gcs;
       RETURN ((if b then 2 else 0) + (if b' then 1 else 0))
   }\<close>
 
@@ -358,8 +442,9 @@ text \<open>
 \<close>
 sepref_register IsaSAT_bounded_heur default_opts
 sepref_def IsaSAT_code_wrapped
-  is \<open>IsaSAT_bounded_heur_wrapper\<close>
-  :: \<open>(clauses_ll_assn)\<^sup>k \<rightarrow>\<^sub>a sint64_nat_assn\<close>
+  is \<open>uncurry6 IsaSAT_bounded_heur_wrapper\<close>
+  :: \<open>snat64_assn\<^sup>k *\<^sub>a snat64_assn\<^sup>k *\<^sub>a snat64_assn\<^sup>k *\<^sub>a word64_assn\<^sup>k *\<^sub>a word64_assn\<^sup>k *\<^sub>a
+      (snat_assn' (TYPE(64)))\<^sup>k *\<^sub>a (clauses_ll_assn)\<^sup>k \<rightarrow>\<^sub>a sint64_nat_assn\<close>
   supply [[goals_limit=1]] if_splits[split]
   unfolding IsaSAT_bounded_heur_wrapper_def
   apply (annot_snat_const \<open>TYPE(64)\<close>)
@@ -409,12 +494,12 @@ begin
     update_clause_wl_fast_code_def
 
   export_llvm
-    IsaSAT_code_wrapped is \<open>int64_t IsaSAT_code_wrapped(CLAUSES)\<close>
     llvm_version is \<open>STRING_VERSION llvm_version\<close>
-    default_opts_impl
     IsaSAT_code
     count_decided_pol_impl is \<open>uint32_t count_decided_st_heur_pol_fast(TRAIL)\<close>
     arena_lit_impl is \<open>uint32_t arena_lit_impl(ARENA, int64_t)\<close>
+    IsaSAT_code_wrapped is \<open>int64_t IsaSAT_wrapped(int64_t, int64_t, int64_t,
+        int64_t, int64_t, int64_t, CLAUSES)\<close>
   defines \<open>
      typedef struct {int64_t size; struct {int64_t used; uint32_t *clause;};} CLAUSE;
      typedef struct {int64_t num_clauses; CLAUSE *clauses;} CLAUSES;

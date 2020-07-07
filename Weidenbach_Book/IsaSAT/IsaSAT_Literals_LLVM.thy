@@ -5,6 +5,10 @@ begin
 (* TODO: Move *)
 lemma inline_ho[llvm_inline]: \<open>doM { f \<leftarrow> return f; m f } = m f\<close> for f :: \<open>_ \<Rightarrow> _\<close> by simp
 
+abbreviation \<open>word32_rel \<equiv> word_rel :: (32 word \<times> _) set\<close>
+abbreviation \<open>word64_rel \<equiv> word_rel :: (64 word \<times> _) set\<close>
+abbreviation \<open>word32_assn \<equiv> word_assn :: 32 word \<Rightarrow> _\<close>
+abbreviation \<open>word64_assn \<equiv> word_assn :: 64 word \<Rightarrow> _\<close>
 
 
 (* TODO: Move

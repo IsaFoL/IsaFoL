@@ -1,5 +1,5 @@
 theory IsaSAT_Watch_List
-  imports IsaSAT_Literals
+  imports IsaSAT_Literals IsaSAT_Clauses Watched_Literals.Watched_Literals_Watch_List_Initialisation
 begin
 
 chapter \<open>Refinement of the Watched Function\<close>
@@ -96,5 +96,138 @@ lemma nth_ll_watched_app:
   by (fastforce simp: fref_def map_fun_rel_def prod_rel_def nres_rel_def p2rel_def br_def
       nat_lit_rel_def)
 
+
+
+
+section \<open>Rewatch\<close>
+
+definition rewatch_heur where
+\<open>rewatch_heur vdom arena W = do {
+  let _ = vdom;
+  nfoldli [0..<length vdom] (\<lambda>_. True)
+   (\<lambda>i W. do {
+      ASSERT(i < length vdom);
+      let C = vdom ! i;
+      ASSERT(arena_is_valid_clause_vdom arena C);
+      if arena_status arena C \<noteq> DELETED
+      then do {
+        L1 \<leftarrow> mop_arena_lit2 arena C 0;
+        L2 \<leftarrow> mop_arena_lit2 arena C 1;
+        n \<leftarrow> mop_arena_length arena C;
+        let b = (n = 2);
+        ASSERT(length (W ! (nat_of_lit L1)) < length arena);
+        W \<leftarrow> mop_append_ll W L1 (C, L2, b);
+        ASSERT(length (W ! (nat_of_lit L2)) < length arena);
+        W \<leftarrow> mop_append_ll W L2 (C, L1, b);
+        RETURN W
+      }
+      else RETURN W
+    })
+   W
+  }\<close>
+
+lemma rewatch_heur_rewatch:
+  assumes
+    valid: \<open>valid_arena arena N vdom\<close> and \<open>set xs \<subseteq> vdom\<close> and \<open>distinct xs\<close> and \<open>set_mset (dom_m N) \<subseteq> set xs\<close> and
+    \<open>(W, W') \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 \<A>)\<close> and lall: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm \<A> (mset `# ran_mf N)\<close> and
+    \<open>vdom_m \<A> W' N \<subseteq> set_mset (dom_m N)\<close>
+  shows
+    \<open>rewatch_heur xs arena W \<le> \<Down> ({(W, W'). (W, W') \<in>\<langle>Id\<rangle>map_fun_rel (D\<^sub>0 \<A>) \<and> vdom_m \<A> W' N \<subseteq> set_mset (dom_m N)}) (rewatch N W')\<close>
+proof -
+  have [refine0]: \<open>(xs, xsa) \<in> Id \<Longrightarrow>
+     ([0..<length xs], [0..<length xsa]) \<in> \<langle>{(x, x'). x = x' \<and> x < length xsa \<and> xs!x \<in> vdom}\<rangle>list_rel\<close>
+    for xsa
+    using assms unfolding list_rel_def
+    by (auto simp: list_all2_same)
+  show ?thesis
+    unfolding rewatch_heur_def rewatch_def
+    apply (subst (2) nfoldli_nfoldli_list_nth)
+    apply (refine_vcg mop_arena_lit[OF valid] mop_append_ll[of \<A>, THEN fref_to_Down_curry2, unfolded comp_def]
+       mop_arena_length[of vdom, THEN fref_to_Down_curry, unfolded comp_def])
+    subgoal
+      using assms by fast
+    subgoal
+      using assms by fast
+    subgoal
+      using assms by fast
+    subgoal by fast
+    subgoal by auto
+    subgoal
+      using assms
+      unfolding arena_is_valid_clause_vdom_def
+      by blast
+    subgoal
+      using assms
+      by (auto simp: arena_dom_status_iff)
+    subgoal for xsa xi x si s
+      using assms
+      by auto
+    subgoal by simp
+    subgoal by linarith
+    subgoal for xsa xi x si s
+      using assms
+      unfolding arena_lit_pre_def
+      by (auto)
+    subgoal by simp
+    subgoal by simp
+    subgoal by simp
+    subgoal for xsa xi x si s
+      using assms
+      unfolding arena_is_valid_clause_idx_and_access_def
+        arena_is_valid_clause_idx_def
+      by (auto simp: arena_is_valid_clause_idx_and_access_def
+          intro!: exI[of _ N] exI[of _ vdom])
+    subgoal for xsa xi x si s
+      using valid_arena_size_dom_m_le_arena[OF assms(1)] assms
+         literals_are_in_\<L>\<^sub>i\<^sub>n_mm_in_\<L>\<^sub>a\<^sub>l\<^sub>l[OF lall, of  \<open>xs ! xi\<close> 0]
+      by (auto simp: map_fun_rel_def arena_lifting)
+    subgoal for xsa xi x si s
+      using valid_arena_size_dom_m_le_arena[OF assms(1)] assms
+         literals_are_in_\<L>\<^sub>i\<^sub>n_mm_in_\<L>\<^sub>a\<^sub>l\<^sub>l[OF lall, of  \<open>xs ! xi\<close> 0]
+      by (auto simp: map_fun_rel_def arena_lifting)
+    subgoal using assms by (simp add: arena_lifting)
+    subgoal for xsa xi x si s
+      using literals_are_in_\<L>\<^sub>i\<^sub>n_mm_in_\<L>\<^sub>a\<^sub>l\<^sub>l[OF lall, of  \<open>xs ! xi\<close> 1]
+      assms valid_arena_size_dom_m_le_arena[OF assms(1)]
+      by (auto simp: arena_lifting append_ll_def map_fun_rel_def)
+    subgoal for xsa xi x si s
+      using literals_are_in_\<L>\<^sub>i\<^sub>n_mm_in_\<L>\<^sub>a\<^sub>l\<^sub>l[OF lall, of  \<open>xs ! xi\<close> 1]
+        assms
+      by (auto simp: arena_lifting append_ll_def map_fun_rel_def)
+    subgoal for xsa xi x si s
+      using assms
+      by (auto simp: arena_lifting append_ll_def map_fun_rel_def)
+    subgoal for xsa xi x si s
+      using assms
+      by (auto simp: arena_lifting append_ll_def map_fun_rel_def)
+    done
+qed
+
+lemma rewatch_heur_alt_def:
+\<open>rewatch_heur vdom arena W = do {
+  let _ = vdom;
+  nfoldli [0..<length vdom] (\<lambda>_. True)
+   (\<lambda>i W. do {
+      ASSERT(i < length vdom);
+      let C = vdom ! i;
+      ASSERT(arena_is_valid_clause_vdom arena C);
+      if arena_status arena C \<noteq> DELETED
+      then do {
+        L1 \<leftarrow> mop_arena_lit2 arena C 0;
+        L2 \<leftarrow> mop_arena_lit2 arena C 1;
+        n \<leftarrow> mop_arena_length arena C;
+        let b = (n = 2);
+        ASSERT(length (W ! (nat_of_lit L1)) < length arena);
+        W \<leftarrow> mop_append_ll W L1 (C, L2, b);
+        ASSERT(length (W ! (nat_of_lit L2)) < length arena);
+        W \<leftarrow> mop_append_ll W L2 (C, L1, b);
+        RETURN W
+      }
+      else RETURN W
+    })
+   W
+  }\<close>
+  unfolding Let_def rewatch_heur_def
+  by auto
 
 end

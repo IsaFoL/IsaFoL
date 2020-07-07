@@ -5,6 +5,9 @@ theory IsaSAT_Setup
     IsaSAT_Lookup_Conflict
     IsaSAT_Clauses IsaSAT_Arena IsaSAT_Watch_List LBD
     IsaSAT_Options
+    IsaSAT_Rephase
+    IsaSAT_EMA
+    IsaSAT_Stats
 begin
 
 chapter \<open>Complete state\<close>
@@ -20,224 +23,6 @@ text \<open>We here define the last step of our refinement: the step with all th
   We have successfully killed all natural numbers when generating LLVM. However, the LLVM binding
   does not have a binding to GMP integers.
 \<close>
-
-
-section \<open>Moving averages\<close>
-
-text \<open>We use (at least hopefully) the variant of EMA-14 implemented in Cadical, but with fixed-point
-calculation (\<^term>\<open>1 :: nat\<close> is \<^term>\<open>(1 :: nat) >> 32\<close>).
-
-Remark that the coefficient \<^term>\<open>\<beta>\<close> already should not take care of the fixed-point conversion of the glue.
-Otherwise, \<^term>\<open>value\<close> is wrongly updated.
-\<close>
-type_synonym ema = \<open>64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word\<close>
-
-definition ema_bitshifting where
-  \<open>ema_bitshifting = (1 << 32)\<close>
-
-
-definition (in -) ema_update :: \<open>nat \<Rightarrow> ema \<Rightarrow> ema\<close> where
-  \<open>ema_update = (\<lambda>lbd (value, \<alpha>, \<beta>, wait, period).
-     let lbd = (of_nat lbd) * ema_bitshifting in
-     let value = if lbd > value then value + (\<beta> * (lbd - value) >> 32) else value - (\<beta> * (value - lbd) >> 32) in
-     if \<beta> \<le> \<alpha> \<or> wait > 0 then (value, \<alpha>, \<beta>, wait - 1, period)
-     else
-       let wait = 2 * period + 1 in
-       let period = wait in
-       let \<beta> = \<beta> >> 1 in
-       let \<beta> = if \<beta> \<le> \<alpha> then \<alpha> else \<beta> in
-       (value, \<alpha>, \<beta>, wait, period))\<close>
-
-definition (in -) ema_init :: \<open>64 word \<Rightarrow> ema\<close> where
-  \<open>ema_init \<alpha> = (0, \<alpha>, ema_bitshifting, 0, 0)\<close>
-
-fun ema_reinit where
-  \<open>ema_reinit (value, \<alpha>, \<beta>, wait, period) = (value, \<alpha>, 1 << 32, 0, 0)\<close>
-
-fun ema_get_value :: \<open>ema \<Rightarrow> 64 word\<close> where
-  \<open>ema_get_value (v, _) = v\<close>
-
-fun ema_extract_value :: \<open>ema \<Rightarrow> 64 word\<close> where
-  \<open>ema_extract_value (v, _) = v >> 32\<close>
-
-
-text \<open>We use the default values for Cadical: \<^term>\<open>(3 / 10 ^2)\<close> and  \<^term>\<open>(1 / 10 ^ 5)\<close>  in our fixed-point
-  version.
-\<close>
-
-abbreviation ema_fast_init :: ema where
-  \<open>ema_fast_init \<equiv> ema_init (128849010)\<close>
-
-abbreviation ema_slow_init :: ema where
-  \<open>ema_slow_init \<equiv> ema_init 429450\<close>
-
-
-section \<open>Statistics\<close>
-
-text \<open>
-We do some statistics on the run.
-
-NB: the statistics are not proven correct (especially they might
-overflow), there are just there to look for regressions, do some comparisons (e.g., to conclude that
-we are propagating slower than the other solvers), or to test different option combination.
-\<close>
-type_synonym stats = \<open>64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> ema\<close>
-
-
-definition incr_propagation :: \<open>stats \<Rightarrow> stats\<close> where
-  \<open>incr_propagation = (\<lambda>(propa, confl, dec). (propa + 1, confl, dec))\<close>
-
-definition incr_conflict :: \<open>stats \<Rightarrow> stats\<close> where
-  \<open>incr_conflict = (\<lambda>(propa, confl, dec). (propa, confl + 1, dec))\<close>
-
-definition incr_decision :: \<open>stats \<Rightarrow> stats\<close> where
-  \<open>incr_decision = (\<lambda>(propa, confl, dec, res). (propa, confl, dec + 1, res))\<close>
-
-definition incr_restart :: \<open>stats \<Rightarrow> stats\<close> where
-  \<open>incr_restart = (\<lambda>(propa, confl, dec, res, lres). (propa, confl, dec, res + 1, lres))\<close>
-
-definition incr_lrestart :: \<open>stats \<Rightarrow> stats\<close> where
-  \<open>incr_lrestart = (\<lambda>(propa, confl, dec, res, lres, uset). (propa, confl, dec, res, lres + 1, uset))\<close>
-
-definition incr_uset :: \<open>stats \<Rightarrow> stats\<close> where
-  \<open>incr_uset = (\<lambda>(propa, confl, dec, res, lres, (uset, gcs)). (propa, confl, dec, res, lres, uset + 1, gcs))\<close>
-
-definition incr_GC :: \<open>stats \<Rightarrow> stats\<close> where
-  \<open>incr_GC = (\<lambda>(propa, confl, dec, res, lres, uset, gcs, lbds). (propa, confl, dec, res, lres, uset, gcs + 1, lbds))\<close>
-
-definition add_lbd :: \<open>32 word \<Rightarrow> stats \<Rightarrow> stats\<close> where
-  \<open>add_lbd lbd = (\<lambda>(propa, confl, dec, res, lres, uset, gcs, lbds). (propa, confl, dec, res, lres, uset, gcs, ema_update (unat lbd) lbds))\<close>
-
-
-section \<open>Information related to restarts\<close>
-
-definition NORMAL_PHASE :: \<open>64 word\<close> where
-  \<open>NORMAL_PHASE = 0\<close>
-
-definition QUIET_PHASE :: \<open>64 word\<close> where
-  \<open>QUIET_PHASE = 1\<close>
-
-definition DEFAULT_INIT_PHASE :: \<open>64 word\<close> where
-  \<open>DEFAULT_INIT_PHASE = 10000\<close>
-
-
-type_synonym restart_info = \<open>64 word \<times> 64 word \<times> 64 word \<times> 64 word \<times> 64 word\<close>
-
-definition incr_conflict_count_since_last_restart :: \<open>restart_info \<Rightarrow> restart_info\<close> where
-  \<open>incr_conflict_count_since_last_restart = (\<lambda>(ccount, ema_lvl, restart_phase, end_of_phase, length_phase).
-    (ccount + 1, ema_lvl, restart_phase, end_of_phase, length_phase))\<close>
-
-definition restart_info_update_lvl_avg :: \<open>32 word \<Rightarrow> restart_info \<Rightarrow> restart_info\<close> where
-  \<open>restart_info_update_lvl_avg = (\<lambda>lvl (ccount, ema_lvl). (ccount, ema_lvl))\<close>
-
-definition restart_info_init :: \<open>restart_info\<close> where
-  \<open>restart_info_init = (0, 0, NORMAL_PHASE, DEFAULT_INIT_PHASE, 1000)\<close>
-
-definition restart_info_restart_done :: \<open>restart_info \<Rightarrow> restart_info\<close> where
-  \<open>restart_info_restart_done = (\<lambda>(ccount, lvl_avg). (0, lvl_avg))\<close>
-
-
-section \<open>Phase saving\<close>
-
-type_synonym phase_save_heur = \<open>phase_saver \<times> nat \<times> phase_saver \<times> nat \<times> phase_saver \<times> 64 word \<times> 64 word \<times> 64 word\<close>
-
-definition phase_save_heur_rel :: \<open>nat multiset \<Rightarrow> phase_save_heur \<Rightarrow> bool\<close> where
-\<open>phase_save_heur_rel \<A> = (\<lambda>(\<phi>, target_assigned, target, best_assigned, best,
-    end_of_phase, curr_phase). phase_saving \<A> \<phi> \<and>
-  phase_saving \<A> target \<and> phase_saving \<A> best \<and> length \<phi> = length best \<and>
-  length target = length best)\<close>
-
-definition end_of_rephasing_phase :: \<open>phase_save_heur \<Rightarrow> 64 word\<close> where
-  \<open>end_of_rephasing_phase = (\<lambda>(\<phi>, target_assigned, target, best_assigned, best, end_of_phase, curr_phase,
-     length_phase). end_of_phase)\<close>
-
-
-definition phase_current_rephasing_phase :: \<open>phase_save_heur \<Rightarrow> 64 word\<close> where
-  \<open>phase_current_rephasing_phase =
-    (\<lambda>(\<phi>, target_assigned, target, best_assigned, best, end_of_phase, curr_phase, length_phase). curr_phase)\<close>
-
-
-
-section \<open>Heuristics\<close>
-
-type_synonym restart_heuristics = \<open>ema \<times> ema \<times> restart_info \<times> 64 word \<times> phase_save_heur\<close>
-
-fun fast_ema_of :: \<open>restart_heuristics \<Rightarrow> ema\<close> where
-  \<open>fast_ema_of (fast_ema, slow_ema, restart_info, wasted, \<phi>) = fast_ema\<close>
-
-fun slow_ema_of :: \<open>restart_heuristics \<Rightarrow> ema\<close> where
-  \<open>slow_ema_of (fast_ema, slow_ema, restart_info, wasted, \<phi>) = slow_ema\<close>
-
-fun restart_info_of :: \<open>restart_heuristics \<Rightarrow> restart_info\<close> where
-  \<open>restart_info_of (fast_ema, slow_ema, restart_info, wasted, \<phi>) = restart_info\<close>
-
-fun current_restart_phase :: \<open>restart_heuristics \<Rightarrow> 64 word\<close> where
-  \<open>current_restart_phase (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase, end_of_phase), wasted, \<phi>) =
-    restart_phase\<close>
-
-fun incr_restart_phase :: \<open>restart_heuristics \<Rightarrow> restart_heuristics\<close> where
-  \<open>incr_restart_phase (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase, end_of_phase), wasted, \<phi>) =
-    (fast_ema, slow_ema, (ccount, ema_lvl, restart_phase XOR 1, end_of_phase), wasted, \<phi>)\<close>
-
-fun incr_wasted :: \<open>64 word \<Rightarrow> restart_heuristics \<Rightarrow> restart_heuristics\<close> where
-  \<open>incr_wasted waste (fast_ema, slow_ema, res_info, wasted, \<phi>) =
-    (fast_ema, slow_ema, res_info, wasted + waste, \<phi>)\<close>
-
-fun set_zero_wasted :: \<open>restart_heuristics \<Rightarrow> restart_heuristics\<close> where
-  \<open>set_zero_wasted (fast_ema, slow_ema, res_info, wasted, \<phi>) =
-    (fast_ema, slow_ema, res_info, 0, \<phi>)\<close>
-
-fun wasted_of :: \<open>restart_heuristics \<Rightarrow> 64 word\<close> where
-  \<open>wasted_of (fast_ema, slow_ema, res_info, wasted, \<phi>) = wasted\<close>
-
-definition heuristic_rel :: \<open>nat multiset \<Rightarrow> restart_heuristics \<Rightarrow> bool\<close> where
-  \<open>heuristic_rel \<A> = (\<lambda>(fast_ema, slow_ema, res_info, wasted, \<phi>). phase_save_heur_rel \<A> \<phi>)\<close>
-
-definition save_phase_heur :: \<open>nat \<Rightarrow> bool \<Rightarrow> restart_heuristics \<Rightarrow> restart_heuristics\<close> where
-\<open>save_phase_heur L b = (\<lambda>(fast_ema, slow_ema, res_info, wasted, (\<phi>, target, best)).
-    (fast_ema, slow_ema, res_info, wasted, (\<phi>[L := b], target, best)))\<close>
-
-definition save_phase_heur_pre :: \<open>nat \<Rightarrow> bool \<Rightarrow> restart_heuristics \<Rightarrow> bool\<close> where
-\<open>save_phase_heur_pre L b = (\<lambda>(fast_ema, slow_ema, res_info, wasted, (\<phi>, _)). L < length \<phi>)\<close>
-
-definition mop_save_phase_heur :: \<open>nat \<Rightarrow> bool \<Rightarrow> restart_heuristics \<Rightarrow> restart_heuristics nres\<close> where
-\<open>mop_save_phase_heur L b heur = do {
-   ASSERT(save_phase_heur_pre L b heur);
-   RETURN (save_phase_heur L b heur)
-}\<close>
-
-definition get_saved_phase_heur_pre :: \<open>nat \<Rightarrow> restart_heuristics \<Rightarrow> bool\<close> where
-\<open>get_saved_phase_heur_pre L = (\<lambda>(fast_ema, slow_ema, res_info, wasted, (\<phi>, _)). L < length \<phi>)\<close>
-
-definition get_saved_phase_heur :: \<open>nat \<Rightarrow> restart_heuristics \<Rightarrow> bool\<close> where
-\<open>get_saved_phase_heur L = (\<lambda>(fast_ema, slow_ema, res_info, wasted, (\<phi>, _)). \<phi>!L)\<close>
-
-definition current_rephasing_phase :: \<open>restart_heuristics \<Rightarrow> 64 word\<close> where
-\<open>current_rephasing_phase = (\<lambda>(fast_ema, slow_ema, res_info, wasted, \<phi>). phase_current_rephasing_phase \<phi>)\<close>
-
-definition mop_get_saved_phase_heur :: \<open>nat \<Rightarrow> restart_heuristics \<Rightarrow> bool nres\<close> where
-\<open>mop_get_saved_phase_heur L heur = do {
-   ASSERT(get_saved_phase_heur_pre L heur);
-   RETURN (get_saved_phase_heur L heur)
-}\<close>
-
-
-definition end_of_rephasing_phase_heur :: \<open>restart_heuristics \<Rightarrow> 64 word\<close> where
-  \<open>end_of_rephasing_phase_heur =
-    (\<lambda>(fast_ema, slow_ema, res_info, wasted, phasing). end_of_rephasing_phase phasing)\<close>
-
-
-lemma heuristic_relI[intro!]:
-  \<open>heuristic_rel \<A> heur \<Longrightarrow> heuristic_rel \<A> (incr_wasted wast heur)\<close>
-  \<open>heuristic_rel \<A> heur \<Longrightarrow> heuristic_rel \<A> (set_zero_wasted heur)\<close>
-  \<open>heuristic_rel \<A> heur \<Longrightarrow> heuristic_rel \<A> (incr_restart_phase heur)\<close>
-  \<open>heuristic_rel \<A> heur \<Longrightarrow> heuristic_rel \<A> (save_phase_heur L b heur)\<close>
-  by (clarsimp_all simp: heuristic_rel_def save_phase_heur_def phase_save_heur_rel_def phase_saving_def)
-
-lemma save_phase_heur_preI:
-  \<open>heuristic_rel \<A> heur \<Longrightarrow> a \<in># \<A> \<Longrightarrow> save_phase_heur_pre a b heur\<close>
-  by (auto simp: heuristic_rel_def phase_saving_def save_phase_heur_pre_def
-     phase_save_heur_rel_def atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n)
 
 
 section \<open>VMTF\<close>
@@ -259,114 +44,6 @@ definition size_conflict :: \<open>nat clause option \<Rightarrow> nat\<close> w
 
 definition size_conflict_int :: \<open>conflict_option_rel \<Rightarrow> nat\<close> where
   \<open>size_conflict_int = (\<lambda>(_, n, _). n)\<close>
-
-
-subsection \<open>Number of clauses\<close>
-
-type_synonym clss_size = \<open>nat \<times> nat \<times> nat\<close>
-
-definition clss_size
-  :: \<open>'v clauses_l \<Rightarrow> 'v clauses \<Rightarrow> 'v clauses \<Rightarrow> 'v clauses \<Rightarrow> 'v clauses \<Rightarrow> clss_size\<close>
-where
-  \<open>clss_size N NE UE NS US =
-     (size (learned_clss_lf N), size UE, size US)\<close>
-
-definition clss_size_lcount :: \<open>clss_size \<Rightarrow> nat\<close> where
-  \<open>clss_size_lcount = (\<lambda>(lcount, lcountUE, lcountUS). lcount)\<close>
-
-definition clss_size_lcountUE :: \<open>clss_size \<Rightarrow> nat\<close> where
-  \<open>clss_size_lcountUE = (\<lambda>(lcount, lcountUE, lcountUS). lcountUE)\<close>
-
-definition clss_size_lcountUS :: \<open>clss_size \<Rightarrow> nat\<close> where
-  \<open>clss_size_lcountUS = (\<lambda>(lcount, lcountUE, lcountUS). lcountUS)\<close>
-
-definition clss_size_incr_lcount :: \<open>clss_size \<Rightarrow> clss_size\<close> where
-  \<open>clss_size_incr_lcount =
-     (\<lambda>(lcount, lcountUE, lcountUS). (lcount + 1, lcountUE, lcountUS))\<close>
-
-definition clss_size_decr_lcount :: \<open>clss_size \<Rightarrow> clss_size\<close> where
-  \<open>clss_size_decr_lcount =
-     (\<lambda>(lcount, lcountUE, lcountUS). (lcount - 1, lcountUE, lcountUS))\<close>
-
-definition clss_size_incr_lcountUE :: \<open>clss_size \<Rightarrow> clss_size\<close> where
-  \<open>clss_size_incr_lcountUE =
-     (\<lambda>(lcount, lcountUE, lcountUS). (lcount, lcountUE + 1, lcountUS))\<close>
-
-definition clss_size_incr_lcountUS :: \<open>clss_size \<Rightarrow> clss_size\<close> where
-  \<open>clss_size_incr_lcountUS =
-     (\<lambda>(lcount, lcountUE, lcountUS). (lcount, lcountUE, lcountUS + 1))\<close>
-
-definition clss_size_resetUS :: \<open>clss_size \<Rightarrow> clss_size\<close> where
-  \<open>clss_size_resetUS =
-     (\<lambda>(lcount, lcountUE, lcountUS). (lcount, lcountUE, 0))\<close>
-
-definition clss_size_allcount :: \<open>clss_size \<Rightarrow> nat\<close> where
-  \<open>clss_size_allcount =
-    (\<lambda>(lcount, lcountUE, lcountUS). lcount + lcountUE + lcountUS)\<close>
-
-lemma clss_size_add_simp[simp]:
-  \<open>clss_size N NE (add_mset D UE) NS US = clss_size_incr_lcountUE (clss_size N NE UE NS US)\<close>
-  \<open>clss_size N (add_mset C NE) UE NS US = clss_size N NE UE NS US\<close>
-  \<open>clss_size N NE UE (add_mset C NS) US = clss_size N NE UE NS US\<close>
-  by (auto simp: clss_size_def ran_m_fmdrop_If clss_size_decr_lcount_def
-    clss_size_incr_lcountUE_def size_remove1_mset_If clss_size_resetUS_def)
-
-lemma clss_size_upd_simp[simp]:
-  \<open>C \<in># dom_m N \<Longrightarrow>  clss_size (N(C \<hookrightarrow> C')) NE UE NS US = clss_size N NE UE NS US\<close>
-  \<open>C \<notin># dom_m N \<Longrightarrow> \<not>snd D \<Longrightarrow> clss_size (fmupd C D N) NE UE NS US = clss_size_incr_lcount (clss_size N NE UE NS US)\<close>
-  \<open>C \<notin># dom_m N \<Longrightarrow> snd D \<Longrightarrow> clss_size (fmupd C D N) NE UE NS US = (clss_size N NE UE NS US)\<close>
-  by (auto simp: clss_size_def learned_clss_l_fmupd_if clss_size_incr_lcount_def)
-
-lemma clss_size_del_simp[simp]:
-  \<open>C \<in># dom_m N \<Longrightarrow> \<not>irred N C \<Longrightarrow> clss_size (fmdrop C N) NE UE NS US = clss_size_decr_lcount (clss_size N NE UE NS US)\<close>
-  \<open>C \<in># dom_m N \<Longrightarrow> irred N C \<Longrightarrow> clss_size (fmdrop C N) NE UE NS US = (clss_size N NE UE NS US)\<close>
-  by (auto simp: clss_size_def ran_m_fmdrop_If clss_size_decr_lcount_def
-     size_remove1_mset_If clss_size_resetUS_def)
-
-
-lemma clss_size_lcount_clss_size[simp]:
-  \<open>clss_size_lcount (clss_size N NE UE NS US) = size (learned_clss_l N)\<close>
-  \<open>clss_size_allcount (clss_size N NE UE NS US) = size (learned_clss_l N) + size UE + size US\<close>
-  by (auto simp: clss_size_lcount_def clss_size_def clss_size_allcount_def)
-
-lemma clss_size_resetUS_simp[simp]:
-  \<open>clss_size_resetUS (clss_size_decr_lcount (clss_size baa da ea fa ga)) =
-     clss_size_decr_lcount (clss_size baa da ea fa {#})\<close>
-  \<open>clss_size_resetUS (clss_size_incr_lcount (clss_size baa da ea fa ga)) =
-     clss_size_incr_lcount (clss_size baa da ea fa {#})\<close>
-  \<open>clss_size_resetUS (clss_size_incr_lcountUE (clss_size baa da ea fa ga)) =
-     clss_size_incr_lcountUE (clss_size baa da ea fa {#})\<close>
-  \<open>clss_size_resetUS (clss_size N NE UE NS US) = (clss_size N NE UE NS {#})\<close>
-  by (auto simp: clss_size_resetUS_def clss_size_decr_lcount_def clss_size_def
-    clss_size_incr_lcount_def clss_size_incr_lcountUE_def)
-
-lemma [simp]: \<open>clss_size_resetUS (clss_size_incr_lcountUE st) =
-         clss_size_incr_lcountUE (clss_size_resetUS st)\<close>
-  by (solves \<open>cases st; auto simp: clss_size_incr_lcountUE_def clss_size_resetUS_def\<close>)+
-
-lemma clss_size_lcount_simps2[simp]:
-  \<open>clss_size_lcount (clss_size_resetUS S) = clss_size_lcount S\<close>
-  \<open>clss_size_lcountUE (clss_size_resetUS S) = clss_size_lcountUE S\<close>
-  \<open>clss_size_lcountUS (clss_size_resetUS S) = 0\<close>
-
-
-  \<open>clss_size_lcount (clss_size_incr_lcountUE S) = clss_size_lcount S\<close>
-  \<open>clss_size_lcountUE (clss_size_incr_lcountUE S) = Suc (clss_size_lcountUE S)\<close>
-  \<open>clss_size_lcountUS (clss_size_incr_lcountUE S) = clss_size_lcountUS S\<close>
-
-
-  \<open>clss_size_lcount (clss_size_decr_lcount S) = clss_size_lcount S - 1\<close>
-  \<open>clss_size_lcountUE (clss_size_decr_lcount S) = clss_size_lcountUE S\<close>
-  \<open>clss_size_lcountUS (clss_size_decr_lcount S) = clss_size_lcountUS S\<close>
-
-  \<open>clss_size_incr_lcountUE (clss_size_decr_lcount S) =
-        clss_size_decr_lcount (clss_size_incr_lcountUE S)\<close>
-  \<open>clss_size_resetUS (clss_size_decr_lcount S) = 
-     clss_size_decr_lcount (clss_size_resetUS S)\<close>
-  \<open>clss_size_resetUS (clss_size_incr_lcountUE S) = clss_size_incr_lcountUE (clss_size_resetUS S)\<close>
-  by (solves \<open>cases S; auto simp: clss_size_lcount_def clss_size_resetUS_def
-    clss_size_lcountUE_def clss_size_lcountUS_def
-    clss_size_incr_lcountUE_def clss_size_decr_lcount_def\<close>)+
 
 
 
@@ -469,89 +146,6 @@ fun get_old_arena :: \<open>twl_st_wl_heur \<Rightarrow> arena\<close> where
   \<open>get_old_arena (_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, old_arena) = old_arena\<close>
 
 
-section \<open>Virtual domain\<close>
-
-text \<open>The virtual domain is composed of the addressable (and accessible) elements, i.e.,
-  the domain and all the deleted clauses that are still present in the watch lists.
-\<close>
-definition vdom_m :: \<open>nat multiset \<Rightarrow> (nat literal \<Rightarrow> (nat \<times> _) list) \<Rightarrow> (nat, 'b) fmap \<Rightarrow> nat set\<close> where
-  \<open>vdom_m \<A> W N = \<Union>(((`) fst) ` set ` W ` set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>)) \<union> set_mset (dom_m N)\<close>
-
-lemma vdom_m_simps[simp]:
-  \<open>bh \<in># dom_m N \<Longrightarrow> vdom_m \<A> W (N(bh \<hookrightarrow> C)) = vdom_m \<A> W N\<close>
-  \<open>bh \<notin># dom_m N \<Longrightarrow> vdom_m \<A> W (N(bh \<hookrightarrow> C)) = insert bh (vdom_m \<A> W N)\<close>
-  by (force simp: vdom_m_def split: if_splits)+
-
-lemma vdom_m_simps2[simp]:
-  \<open>i \<in># dom_m N \<Longrightarrow> vdom_m \<A> (W(L := W L @ [(i, C)])) N = vdom_m \<A> W N\<close>
-  \<open>bi \<in># dom_m ax \<Longrightarrow> vdom_m \<A> (bp(L:= bp L @ [(bi, av')])) ax = vdom_m \<A> bp ax\<close>
-  by (force simp: vdom_m_def split: if_splits)+
-
-lemma vdom_m_simps3[simp]:
-  \<open>fst biav' \<in># dom_m ax \<Longrightarrow> vdom_m \<A> (bp(L:= bp L @ [biav'])) ax = vdom_m \<A> bp ax\<close>
-  by (cases biav'; auto simp: dest: multi_member_split[of L] split: if_splits)
-
-text \<open>What is the difference with the next lemma?\<close>
-lemma [simp]:
-  \<open>bf \<in># dom_m ax \<Longrightarrow> vdom_m \<A> bj (ax(bf \<hookrightarrow> C')) = vdom_m \<A> bj (ax)\<close>
-  by (force simp: vdom_m_def split: if_splits)+
-
-lemma vdom_m_simps4[simp]:
-  \<open>i \<in># dom_m N \<Longrightarrow>
-     vdom_m \<A> (W (L1 := W L1 @ [(i, C1)], L2 := W L2 @ [(i, C2)])) N = vdom_m \<A> W N\<close>
- by (auto simp: vdom_m_def image_iff dest: multi_member_split split: if_splits)
-
-text \<open>This is @{thm vdom_m_simps4} if the assumption of distinctness is not present in the context.\<close>
-lemma vdom_m_simps4'[simp]:
-  \<open>i \<in># dom_m N \<Longrightarrow>
-     vdom_m \<A> (W (L1 := W L1 @ [(i, C1), (i, C2)])) N = vdom_m \<A> W N\<close>
-  by (auto simp: vdom_m_def image_iff dest: multi_member_split split: if_splits)
-
-text \<open>We add a spurious dependency to the parameter of the locale:\<close>
-definition empty_watched :: \<open>nat multiset \<Rightarrow> nat literal \<Rightarrow> (nat \<times> nat literal \<times> bool) list\<close> where
-  \<open>empty_watched \<A> = (\<lambda>_. [])\<close>
-
-lemma vdom_m_empty_watched[simp]:
-  \<open>vdom_m \<A> (empty_watched \<A>') N = set_mset (dom_m N)\<close>
-  by (auto simp: vdom_m_def empty_watched_def)
-
-text \<open>The following rule makes the previous one not applicable. Therefore, we do not mark this lemma as
-simp.\<close>
-lemma vdom_m_simps5:
-  \<open>i \<notin># dom_m N \<Longrightarrow> vdom_m \<A> W (fmupd i C N) = insert i (vdom_m \<A> W N)\<close>
-  by (force simp: vdom_m_def image_iff dest: multi_member_split split: if_splits)
-
-lemma in_watch_list_in_vdom:
-  assumes \<open>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<close> and \<open>w < length (watched_by S L)\<close>
-  shows \<open>fst (watched_by S L ! w) \<in> vdom_m \<A> (get_watched_wl S) (get_clauses_wl S)\<close>
-  using assms
-  unfolding vdom_m_def
-  by (cases S) (auto dest: multi_member_split)
-
-lemma in_watch_list_in_vdom':
-  assumes \<open>L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<close> and \<open>A \<in> set (watched_by S L)\<close>
-  shows \<open>fst A \<in> vdom_m \<A> (get_watched_wl S) (get_clauses_wl S)\<close>
-  using assms
-  unfolding vdom_m_def
-  by (cases S) (auto dest: multi_member_split)
-
-lemma in_dom_in_vdom[simp]:
-  \<open>x \<in># dom_m N \<Longrightarrow> x \<in> vdom_m \<A> W N\<close>
-  unfolding vdom_m_def
-  by (auto dest: multi_member_split)
-
-lemma in_vdom_m_upd:
-  \<open>x1f \<in> vdom_m \<A> (g(x1e := (g x1e)[x2 := (x1f, x2f)])) b\<close>
-  if \<open>x2 < length (g x1e)\<close> and \<open>x1e \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<close>
-  using that
-  unfolding vdom_m_def
-  by (auto dest!: multi_member_split intro!: set_update_memI img_fst)
-
-
-lemma in_vdom_m_fmdropD:
-  \<open>x \<in> vdom_m \<A> ga (fmdrop C baa) \<Longrightarrow> x \<in> (vdom_m \<A> ga baa)\<close>
-  unfolding vdom_m_def
-  by (auto dest: in_diffD)
 
 definition cach_refinement_empty where
   \<open>cach_refinement_empty \<A> cach \<longleftrightarrow>
@@ -1018,137 +612,6 @@ proof
 qed
 
 
-section \<open>Rewatch\<close>
-
-definition rewatch_heur where
-\<open>rewatch_heur vdom arena W = do {
-  let _ = vdom;
-  nfoldli [0..<length vdom] (\<lambda>_. True)
-   (\<lambda>i W. do {
-      ASSERT(i < length vdom);
-      let C = vdom ! i;
-      ASSERT(arena_is_valid_clause_vdom arena C);
-      if arena_status arena C \<noteq> DELETED
-      then do {
-        L1 \<leftarrow> mop_arena_lit2 arena C 0;
-        L2 \<leftarrow> mop_arena_lit2 arena C 1;
-        n \<leftarrow> mop_arena_length arena C;
-        let b = (n = 2);
-        ASSERT(length (W ! (nat_of_lit L1)) < length arena);
-        W \<leftarrow> mop_append_ll W L1 (C, L2, b);
-        ASSERT(length (W ! (nat_of_lit L2)) < length arena);
-        W \<leftarrow> mop_append_ll W L2 (C, L1, b);
-        RETURN W
-      }
-      else RETURN W
-    })
-   W
-  }\<close>
-
-lemma rewatch_heur_rewatch:
-  assumes
-    valid: \<open>valid_arena arena N vdom\<close> and \<open>set xs \<subseteq> vdom\<close> and \<open>distinct xs\<close> and \<open>set_mset (dom_m N) \<subseteq> set xs\<close> and
-    \<open>(W, W') \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0 \<A>)\<close> and lall: \<open>literals_are_in_\<L>\<^sub>i\<^sub>n_mm \<A> (mset `# ran_mf N)\<close> and
-    \<open>vdom_m \<A> W' N \<subseteq> set_mset (dom_m N)\<close>
-  shows
-    \<open>rewatch_heur xs arena W \<le> \<Down> ({(W, W'). (W, W') \<in>\<langle>Id\<rangle>map_fun_rel (D\<^sub>0 \<A>) \<and> vdom_m \<A> W' N \<subseteq> set_mset (dom_m N)}) (rewatch N W')\<close>
-proof -
-  have [refine0]: \<open>(xs, xsa) \<in> Id \<Longrightarrow>
-     ([0..<length xs], [0..<length xsa]) \<in> \<langle>{(x, x'). x = x' \<and> x < length xsa \<and> xs!x \<in> vdom}\<rangle>list_rel\<close>
-    for xsa
-    using assms unfolding list_rel_def
-    by (auto simp: list_all2_same)
-  show ?thesis
-    unfolding rewatch_heur_def rewatch_def
-    apply (subst (2) nfoldli_nfoldli_list_nth)
-    apply (refine_vcg mop_arena_lit[OF valid] mop_append_ll[of \<A>, THEN fref_to_Down_curry2, unfolded comp_def]
-       mop_arena_length[of vdom, THEN fref_to_Down_curry, unfolded comp_def])
-    subgoal
-      using assms by fast
-    subgoal
-      using assms by fast
-    subgoal
-      using assms by fast
-    subgoal by fast
-    subgoal by auto
-    subgoal
-      using assms
-      unfolding arena_is_valid_clause_vdom_def
-      by blast
-    subgoal
-      using assms
-      by (auto simp: arena_dom_status_iff)
-    subgoal for xsa xi x si s
-      using assms
-      by auto
-    subgoal by simp
-    subgoal by linarith
-    subgoal for xsa xi x si s
-      using assms
-      unfolding arena_lit_pre_def
-      by (auto)
-    subgoal by simp
-    subgoal by simp
-    subgoal by simp
-    subgoal for xsa xi x si s
-      using assms
-      unfolding arena_is_valid_clause_idx_and_access_def
-        arena_is_valid_clause_idx_def
-      by (auto simp: arena_is_valid_clause_idx_and_access_def
-          intro!: exI[of _ N] exI[of _ vdom])
-    subgoal for xsa xi x si s
-      using valid_arena_size_dom_m_le_arena[OF assms(1)] assms
-         literals_are_in_\<L>\<^sub>i\<^sub>n_mm_in_\<L>\<^sub>a\<^sub>l\<^sub>l[OF lall, of  \<open>xs ! xi\<close> 0]
-      by (auto simp: map_fun_rel_def arena_lifting)
-    subgoal for xsa xi x si s
-      using valid_arena_size_dom_m_le_arena[OF assms(1)] assms
-         literals_are_in_\<L>\<^sub>i\<^sub>n_mm_in_\<L>\<^sub>a\<^sub>l\<^sub>l[OF lall, of  \<open>xs ! xi\<close> 0]
-      by (auto simp: map_fun_rel_def arena_lifting)
-    subgoal using assms by (simp add: arena_lifting)
-    subgoal for xsa xi x si s
-      using literals_are_in_\<L>\<^sub>i\<^sub>n_mm_in_\<L>\<^sub>a\<^sub>l\<^sub>l[OF lall, of  \<open>xs ! xi\<close> 1]
-      assms valid_arena_size_dom_m_le_arena[OF assms(1)]
-      by (auto simp: arena_lifting append_ll_def map_fun_rel_def)
-    subgoal for xsa xi x si s
-      using literals_are_in_\<L>\<^sub>i\<^sub>n_mm_in_\<L>\<^sub>a\<^sub>l\<^sub>l[OF lall, of  \<open>xs ! xi\<close> 1]
-        assms
-      by (auto simp: arena_lifting append_ll_def map_fun_rel_def)
-    subgoal for xsa xi x si s
-      using assms
-      by (auto simp: arena_lifting append_ll_def map_fun_rel_def)
-    subgoal for xsa xi x si s
-      using assms
-      by (auto simp: arena_lifting append_ll_def map_fun_rel_def)
-    done
-qed
-
-lemma rewatch_heur_alt_def:
-\<open>rewatch_heur vdom arena W = do {
-  let _ = vdom;
-  nfoldli [0..<length vdom] (\<lambda>_. True)
-   (\<lambda>i W. do {
-      ASSERT(i < length vdom);
-      let C = vdom ! i;
-      ASSERT(arena_is_valid_clause_vdom arena C);
-      if arena_status arena C \<noteq> DELETED
-      then do {
-        L1 \<leftarrow> mop_arena_lit2 arena C 0;
-        L2 \<leftarrow> mop_arena_lit2 arena C 1;
-        n \<leftarrow> mop_arena_length arena C;
-        let b = (n = 2);
-        ASSERT(length (W ! (nat_of_lit L1)) < length arena);
-        W \<leftarrow> mop_append_ll W L1 (C, L2, b);
-        ASSERT(length (W ! (nat_of_lit L2)) < length arena);
-        W \<leftarrow> mop_append_ll W L2 (C, L1, b);
-        RETURN W
-      }
-      else RETURN W
-    })
-   W
-  }\<close>
-  unfolding Let_def rewatch_heur_def
-  by auto
-
 lemma arena_lit_pre_le_sint64_max:
  \<open>length ba \<le> sint64_max \<Longrightarrow>
        arena_lit_pre ba a \<Longrightarrow> a \<le> sint64_max\<close>
@@ -1347,13 +810,6 @@ lemma mop_watched_by_app_heur_mop_watched_by_at'':
     twl_st_heur_up'' \<D> r s K lcount \<times>\<^sub>f nat_lit_lit_rel \<times>\<^sub>f nat_rel \<rightarrow>\<^sub>f \<langle>Id\<rangle>nres_rel\<close>
   by (rule fref_mono[THEN set_mp, OF _ _ _ mop_watched_by_app_heur_mop_watched_by_at])
     (auto simp: \<L>\<^sub>a\<^sub>l\<^sub>l_all_atms_all_lits twl_st_heur'_def map_fun_rel_def)
-
-
-definition mop_polarity_pol :: \<open>trail_pol \<Rightarrow> nat literal \<Rightarrow> bool option nres\<close> where
-  \<open>mop_polarity_pol = (\<lambda>M L. do {
-    ASSERT(polarity_pol_pre M L);
-    RETURN (polarity_pol M L)
-  })\<close>
 
 definition polarity_st_pre :: \<open>nat twl_st_wl \<times> nat literal \<Rightarrow> bool\<close> where
   \<open>polarity_st_pre \<equiv> \<lambda>(S, L). L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l (all_atms_st S)\<close>
@@ -1761,5 +1217,45 @@ lemma clss_size_allcount_alt_def:
     clss_size_lcount S\<close>
   by (cases S) (auto simp: clss_size_allcount_def clss_size_lcountUS_def
     clss_size_lcount_def clss_size_lcountUE_def)
+
+definition isasat_trail_nth_st :: \<open>twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> nat literal nres\<close> where
+\<open>isasat_trail_nth_st S i = isa_trail_nth (get_trail_wl_heur S) i\<close>
+
+lemma isasat_trail_nth_st_alt_def:
+  \<open>isasat_trail_nth_st = (\<lambda>(M, _) i.  isa_trail_nth M i)\<close>
+  by (auto simp: isasat_trail_nth_st_def intro!: ext)
+
+definition get_the_propagation_reason_pol_st :: \<open>twl_st_wl_heur \<Rightarrow> nat literal \<Rightarrow> nat option nres\<close> where
+\<open>get_the_propagation_reason_pol_st S i = get_the_propagation_reason_pol (get_trail_wl_heur S) i\<close>
+
+lemma get_the_propagation_reason_pol_st_alt_def:
+  \<open>get_the_propagation_reason_pol_st = (\<lambda>(M, _) i.  get_the_propagation_reason_pol M i)\<close>
+  by (auto simp: get_the_propagation_reason_pol_st_def intro!: ext)
+
+definition empty_US_heur :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur\<close> where
+  \<open>empty_US_heur = (\<lambda>(M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
+       vdom, avdom, lcount, opts, old_arena).
+  (M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
+       vdom, avdom, clss_size_resetUS lcount, opts, old_arena)
+  )\<close>
+
+definition empty_Q_wl  :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl\<close> where
+\<open>empty_Q_wl = (\<lambda>(M', N, D, NE, UE, NS, US, _, W). (M', N, D, NE, UE, NS, {#}, {#}, W))\<close>
+
+definition empty_Q_wl2  :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl\<close> where
+\<open>empty_Q_wl2 = (\<lambda>(M', N, D, NE, UE, NS, US, _, W). (M', N, D, NE, UE, NS, US, {#}, W))\<close>
+
+definition empty_US_heur_wl  :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl\<close> where
+\<open>empty_US_heur_wl = (\<lambda>(M', N, D, NE, UE, NS, US, Q, W). (M', N, D, NE, UE, NS, {#}, Q, W))\<close>
+
+lemma incr_wasted_st_twl_st[simp]:
+  \<open>get_avdom (incr_wasted_st w T) = get_avdom T\<close>
+  \<open>get_vdom (incr_wasted_st w T) = get_vdom T\<close>
+  \<open>get_trail_wl_heur (incr_wasted_st w T) = get_trail_wl_heur T\<close>
+  \<open>get_clauses_wl_heur (incr_wasted_st C T) = get_clauses_wl_heur T\<close>
+  \<open>get_conflict_wl_heur (incr_wasted_st C T) = get_conflict_wl_heur T\<close>
+  \<open>get_learned_count (incr_wasted_st C T) = get_learned_count T\<close>
+  \<open>get_conflict_count_heur (incr_wasted_st C T) = get_conflict_count_heur T\<close>
+  by (cases T; auto simp: incr_wasted_st_def; fail)+
 
 end

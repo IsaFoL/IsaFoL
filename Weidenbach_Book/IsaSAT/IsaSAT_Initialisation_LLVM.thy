@@ -1,7 +1,7 @@
 theory IsaSAT_Initialisation_LLVM
-  imports IsaSAT_Setup_LLVM IsaSAT_VMTF_LLVM Watched_Literals.Watched_Literals_Watch_List_Initialisation
+  imports  IsaSAT_VMTF_LLVM Watched_Literals.Watched_Literals_Watch_List_Initialisation
   Watched_Literals.Watched_Literals_Watch_List_Initialisation
-    IsaSAT_Initialisation
+    IsaSAT_Initialisation IsaSAT_Setup_LLVM
 begin
 
 

@@ -1,6 +1,6 @@
 theory IsaSAT_Backtrack_LLVM
   imports IsaSAT_Backtrack IsaSAT_VMTF_State_LLVM IsaSAT_Lookup_Conflict_LLVM
-    IsaSAT_Rephase_LLVM IsaSAT_LBD_LLVM
+    IsaSAT_Rephase_State_LLVM IsaSAT_LBD_LLVM
 begin
 
 lemma isa_empty_conflict_and_extract_clause_heur_alt_def:

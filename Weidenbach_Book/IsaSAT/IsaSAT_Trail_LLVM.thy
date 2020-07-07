@@ -283,6 +283,14 @@ schematic_goal mk_free_trail_pol_fast_assn[sepref_frame_free_rules]: \<open>MK_F
   unfolding trail_pol_fast_assn_def
   by (rule free_thms sepref_frame_free_rules)+ (* TODO: Write a method for that! *)
 
+(*TODO Move*)
+
+sepref_def polarity_pol_fast
+  is \<open>uncurry (mop_polarity_pol)\<close>
+  :: \<open>trail_pol_fast_assn\<^sup>k *\<^sub>a unat_lit_assn\<^sup>k \<rightarrow>\<^sub>a tri_bool_assn\<close>
+  unfolding mop_polarity_pol_def trail_pol_fast_assn_def
+    polarity_pol_def polarity_pol_pre_def
+  by sepref
 
 experiment begin
 

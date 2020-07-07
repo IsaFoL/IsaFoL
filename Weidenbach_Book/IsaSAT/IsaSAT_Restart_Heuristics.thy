@@ -1,6 +1,6 @@
 theory IsaSAT_Restart_Heuristics
 imports
-  Watched_Literals.WB_Sort Watched_Literals.Watched_Literals_Watch_List_Restart IsaSAT_Rephase
+  Watched_Literals.WB_Sort Watched_Literals.Watched_Literals_Watch_List_Restart IsaSAT_Rephase_State
   IsaSAT_Setup IsaSAT_VMTF IsaSAT_Sorting
 begin
 
@@ -1240,16 +1240,6 @@ lemma incr_wasted_st:
      elim!: in_set_upd_cases)
   done
 
-lemma incr_wasted_st_twl_st[simp]:
-  \<open>get_avdom (incr_wasted_st w T) = get_avdom T\<close>
-  \<open>get_vdom (incr_wasted_st w T) = get_vdom T\<close>
-  \<open>get_trail_wl_heur (incr_wasted_st w T) = get_trail_wl_heur T\<close>
-  \<open>get_clauses_wl_heur (incr_wasted_st C T) = get_clauses_wl_heur T\<close>
-  \<open>get_conflict_wl_heur (incr_wasted_st C T) = get_conflict_wl_heur T\<close>
-  \<open>get_learned_count (incr_wasted_st C T) = get_learned_count T\<close>
-  \<open>get_conflict_count_heur (incr_wasted_st C T) = get_conflict_count_heur T\<close>
-  by (cases T; auto simp: incr_wasted_st_def; fail)+
-
 lemma [simp]:
   \<open>learned_clss_count (delete_index_vdom_heur C T) = learned_clss_count T\<close>
   \<open>learned_clss_count (mark_unused_st_heur C T) = learned_clss_count T\<close>
@@ -2247,13 +2237,6 @@ definition empty_US  :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl\<close> w
 \<open>empty_US = (\<lambda>(M', N, D, NE, UE, NS, US, Q, W). (M', N, D, NE, UE, NS, US, Q, W))\<close>
 
 
-definition empty_US_heur :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur\<close> where
-  \<open>empty_US_heur = (\<lambda>(M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
-       vdom, avdom, lcount, opts, old_arena).
-  (M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
-       vdom, avdom, clss_size_resetUS lcount, opts, old_arena)
-  )\<close>
-
 definition remove_one_annot_true_clause_imp_wl_D_heur :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close>
 where
 \<open>remove_one_annot_true_clause_imp_wl_D_heur = (\<lambda>S. do {
@@ -2590,15 +2573,6 @@ definition find_decomp_wl0 :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl \<R
 	 (\<exists>K M2. (Decided K # M', M2) \<in> set (get_all_ann_decomposition M) \<and>
 	    count_decided M' = 0) \<and>
 	  (N', D', NE', UE', NS, US, Q', W') = (N, D, NE, UE, NS', US', Q, W))\<close>
-
-definition empty_Q_wl  :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl\<close> where
-\<open>empty_Q_wl = (\<lambda>(M', N, D, NE, UE, NS, US, _, W). (M', N, D, NE, UE, NS, {#}, {#}, W))\<close>
-
-definition empty_Q_wl2  :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl\<close> where
-\<open>empty_Q_wl2 = (\<lambda>(M', N, D, NE, UE, NS, US, _, W). (M', N, D, NE, UE, NS, US, {#}, W))\<close>
-
-definition empty_US_heur_wl  :: \<open>'v twl_st_wl \<Rightarrow> 'v twl_st_wl\<close> where
-\<open>empty_US_heur_wl = (\<lambda>(M', N, D, NE, UE, NS, US, Q, W). (M', N, D, NE, UE, NS, {#}, Q, W))\<close>
 
 (*TODO Move clean: cdcl_twl_local_restart_wl_spec0 vs cdcl_twl_local_restart_wl_spec is mess*)
 lemma cdcl_twl_local_restart_wl_spec0_alt_def:
@@ -5315,20 +5289,6 @@ lemma restart_prog_wl_D_heur_restart_prog_wl_D2:
   apply fast
   apply (auto intro!: conc_fun_R_mono)
   done
-
-definition isasat_trail_nth_st :: \<open>twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> nat literal nres\<close> where
-\<open>isasat_trail_nth_st S i = isa_trail_nth (get_trail_wl_heur S) i\<close>
-
-lemma isasat_trail_nth_st_alt_def:
-  \<open>isasat_trail_nth_st = (\<lambda>(M, _) i.  isa_trail_nth M i)\<close>
-  by (auto simp: isasat_trail_nth_st_def intro!: ext)
-
-definition get_the_propagation_reason_pol_st :: \<open>twl_st_wl_heur \<Rightarrow> nat literal \<Rightarrow> nat option nres\<close> where
-\<open>get_the_propagation_reason_pol_st S i = get_the_propagation_reason_pol (get_trail_wl_heur S) i\<close>
-
-lemma get_the_propagation_reason_pol_st_alt_def:
-  \<open>get_the_propagation_reason_pol_st = (\<lambda>(M, _) i.  get_the_propagation_reason_pol M i)\<close>
-  by (auto simp: get_the_propagation_reason_pol_st_def intro!: ext)
 
 
 definition rewatch_heur_st_pre :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close> where

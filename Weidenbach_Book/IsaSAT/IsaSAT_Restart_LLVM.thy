@@ -1,5 +1,5 @@
 theory IsaSAT_Restart_LLVM
-  imports IsaSAT_Restart IsaSAT_Restart_Heuristics_LLVM IsaSAT_CDCL_LLVM
+  imports IsaSAT_Restart IsaSAT_Restart_Heuristics_LLVM IsaSAT_CDCL_LLVM IsaSAT_Garbage_Collect_LLVM
 begin
 
 

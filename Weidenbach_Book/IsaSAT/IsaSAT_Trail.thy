@@ -1249,4 +1249,12 @@ lemma lit_of_last_trail_pol_lit_of_last_trail_no_CS:
      ann_lits_split_reasons_def hd_map rev_map[symmetric] last_rev
       intro!: frefI nres_relI)
 
+(*TODO Move*)
+
+definition mop_polarity_pol :: \<open>trail_pol \<Rightarrow> nat literal \<Rightarrow> bool option nres\<close> where
+  \<open>mop_polarity_pol = (\<lambda>M L. do {
+    ASSERT(polarity_pol_pre M L);
+    RETURN (polarity_pol M L)
+  })\<close>
+
 end

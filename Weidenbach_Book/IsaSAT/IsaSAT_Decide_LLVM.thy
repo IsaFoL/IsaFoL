@@ -1,5 +1,5 @@
 theory IsaSAT_Decide_LLVM
-  imports IsaSAT_Decide IsaSAT_VMTF_State_LLVM IsaSAT_Setup_LLVM IsaSAT_Rephase_LLVM
+  imports IsaSAT_Decide IsaSAT_VMTF_State_LLVM IsaSAT_Setup_LLVM IsaSAT_Rephase_State_LLVM
 begin
 
 

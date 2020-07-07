@@ -1,5 +1,5 @@
 theory IsaSAT_Backtrack
-  imports IsaSAT_Setup IsaSAT_VMTF IsaSAT_Rephase IsaSAT_LBD
+  imports IsaSAT_Setup IsaSAT_VMTF IsaSAT_Rephase_State IsaSAT_LBD
 begin
 
 

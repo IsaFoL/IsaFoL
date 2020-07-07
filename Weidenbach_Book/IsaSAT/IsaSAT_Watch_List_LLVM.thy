@@ -1,10 +1,41 @@
 theory IsaSAT_Watch_List_LLVM
-  imports IsaSAT_Watch_List IsaSAT_Literals_LLVM
+  imports IsaSAT_Watch_List IsaSAT_Literals_LLVM IsaSAT_Arena_Sorting_LLVM
 begin
 
 type_synonym watched_wl_uint32
   = \<open>(64,(64 word \<times> 32 word \<times> 1 word),64)array_array_list\<close>
 
 abbreviation \<open>watcher_fast_assn \<equiv> sint64_nat_assn \<times>\<^sub>a unat_lit_assn \<times>\<^sub>a bool1_assn   \<close>
+abbreviation \<open>watchlist_fast_assn \<equiv> aal_assn' TYPE(64) TYPE(64) watcher_fast_assn\<close>
+
+lemma [def_pat_rules]: \<open>append_ll \<equiv> op_list_list_push_back\<close>
+  by (rule eq_reflection) (auto simp: append_ll_def fun_eq_iff)
+
+sepref_register mop_append_ll mop_arena_length
+
+sepref_def mop_append_ll_impl
+  is \<open>uncurry2 mop_append_ll\<close>
+  :: \<open>[\<lambda>((W, i), _). length (W ! (nat_of_lit i)) < sint64_max]\<^sub>a
+    watchlist_fast_assn\<^sup>d *\<^sub>a unat_lit_assn\<^sup>k *\<^sub>a watcher_fast_assn\<^sup>k \<rightarrow> watchlist_fast_assn\<close>
+  unfolding mop_append_ll_def
+  by sepref
+
+sepref_def rewatch_heur_fast_code
+  is \<open>uncurry2 (rewatch_heur)\<close>
+  :: \<open>[\<lambda>((vdom, arena), W). (\<forall>x \<in> set vdom. x \<le> sint64_max) \<and> length arena \<le> sint64_max \<and>
+        length vdom \<le> sint64_max]\<^sub>a
+        vdom_fast_assn\<^sup>k *\<^sub>a arena_fast_assn\<^sup>k *\<^sub>a watchlist_fast_assn\<^sup>d \<rightarrow> watchlist_fast_assn\<close>
+  supply [[goals_limit=1]]
+     arena_lit_pre_le_sint64_max[dest] arena_is_valid_clause_idx_le_uint64_max[dest]
+  supply [simp] = append_ll_def
+  supply [dest] = arena_lit_implI(1)
+  unfolding rewatch_heur_alt_def Let_def PR_CONST_def
+  unfolding while_eq_nfoldli[symmetric]
+  apply (subst while_upt_while_direct, simp)
+  unfolding if_not_swap
+    FOREACH_cond_def FOREACH_body_def
+  apply (annot_snat_const \<open>TYPE(64)\<close>)
+  by sepref
+
 
 end
