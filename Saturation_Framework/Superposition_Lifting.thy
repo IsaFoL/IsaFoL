@@ -230,7 +230,7 @@ qed
 locale superposition =
   fixes term_ord :: \<open>(('f,'v) term \<times> ('f,'v) term) set\<close>
     and selection :: \<open>('f, 'v) clause \<Rightarrow> ('f, 'v) literal multiset\<close>
-  assumes term_ord_trans: \<open>(s,t) \<in> term_ord \<Longrightarrow> (t,u) \<in> term_ord \<Longrightarrow> \<not> ((u,s) \<in> term_ord \<or> u = s)\<close>
+  assumes term_ord_trans: \<open>trans term_ord\<close>
       and term_ord_antisym: \<open>(s,t) \<in> term_ord \<Longrightarrow> (t,s) \<in> term_ord \<Longrightarrow> s = t\<close>
       and term_ord_term_comp: \<open>(s, t) \<in> term_ord \<Longrightarrow> \<not> ((Fun f (a1 @ t # a2), Fun f (a1 @ s # a2)) \<in> term_ord \<or> Fun f (a1 @ t # a2) = Fun f (a1 @ s # a2))\<close>
       and term_ord_subterm_comp: \<open>s \<in> set argl \<Longrightarrow> \<not> ((Fun f argl, s) \<in> term_ord \<or> Fun f argl = s)\<close>
@@ -258,9 +258,63 @@ is \<open>\<lambda> (x, y). {#x, y#}\<close>
 lemma mset_upair [simp]: \<open>mset_pair (Upair s t) = {#s, t#}\<close>
   by (simp add: Upair.abs_eq mset_pair.abs_eq)
 
+lemma mset_pair_size: \<open>size (mset_pair (Upair s t)) = 2\<close>
+  by auto
+
 fun mset_lit :: \<open>('f,'v) literal \<Rightarrow> ('f,'v) term multiset\<close>
   where
     \<open>mset_lit (Lit p e) = (if p then mset_pair e else mset_pair e + mset_pair e)\<close>
+
+lemma mset_lit_inj: \<open>mset_lit L1 = mset_lit L2 \<Longrightarrow> L1 = L2\<close>
+proof -
+  have inj: \<open>mset_lit (Lit p1 (Upair s t)) = mset_lit (Lit p2 (Upair u v)) \<Longrightarrow> p1 = p2 \<and> (Upair s t) = (Upair u v)\<close> for p1 p2 s t u v
+  proof -
+    assume eq: \<open>mset_lit (Lit p1 (Upair s t)) = mset_lit (Lit p2 (Upair u v))\<close>
+    have pol: \<open>p1 = p2\<close>
+    proof (rule ccontr)
+      assume \<open>p1 \<noteq> p2\<close>
+      then have \<open>size (mset_lit (Lit p1 (Upair s t))) \<noteq> size (mset_lit (Lit p2 (Upair u v)))\<close> using mset_lit.simps mset_pair_size by auto
+      then show False using eq by auto
+    qed
+    have \<open>(Upair s t) = (Upair u v)\<close>
+    proof (cases p1)
+      case True
+      then have \<open>{#s,t#} = {#u,v#}\<close>
+        using eq mset_lit.simps pol by auto
+      then show ?thesis
+        by (metis Upair_inject add_mset_eq_single add_mset_remove_trivial diff_union_swap)
+    next
+      case False
+      then have \<open>{#s,s,t,t#} = {#u,u,v,v#}\<close>
+        using eq mset_lit.simps pol
+        by (metis add_mset_add_single add_mset_commute mset_upair union_mset_add_mset_right)
+      then show ?thesis
+        by (smt Upair_inject add_mset_eq_single add_mset_remove_trivial diff_union_swap)
+    qed
+    then show ?thesis using pol by auto
+  qed
+  show \<open>mset_lit L1 = mset_lit L2 \<Longrightarrow> L1 = L2\<close>
+  proof -
+    assume \<open>mset_lit L1 = mset_lit L2\<close>
+    then show \<open>L1 = L2\<close>
+    proof (cases L1 rule: literal_exhaust_1)
+      case (Lit p1 s t)
+      then show \<open>mset_lit L1 = mset_lit L2 \<Longrightarrow> L1 = Lit p1 (Upair s t) \<Longrightarrow> L1 = L2\<close>
+      proof (cases L2 rule: literal_exhaust_1)
+        case (Lit p2 u v)
+        then show \<open>mset_lit L1 = mset_lit L2 \<Longrightarrow> L1 = Lit p1 (Upair s t) \<Longrightarrow> L1 = Lit p1 (Upair s t) \<Longrightarrow> L2 = Lit p2 (Upair u v) \<Longrightarrow> L1 = L2\<close>
+          using inj by auto
+      qed
+    qed
+  qed
+qed
+
+lemma ground_mset_lit: \<open>ground_lit L \<Longrightarrow> t \<in># mset_lit L \<Longrightarrow> ground_term t\<close>
+proof (cases L rule: literal_exhaust_1)
+  case (Lit p u v)
+  then show \<open>ground_lit L \<Longrightarrow> t \<in># mset_lit L \<Longrightarrow> L = Lit p (Upair u v) \<Longrightarrow> ground_term t\<close>
+    by (metis equals0D ground_lit_upair insert_iff mset_lit.simps mset_upair set_mset_add_mset_insert set_mset_empty union_iff)
+qed
 
 definition lit_ord :: \<open>(('f,'v) literal \<times> ('f,'v) literal) set\<close>
   where
@@ -299,9 +353,6 @@ abbreviation ground_clause_le :: \<open>('f,'v) ground_clause \<Rightarrow> ('f,
 
 definition ground_clause_set_ord :: \<open>(('f,'v) ground_clause set \<times> ('f,'v) ground_clause set) set\<close>
   where \<open>ground_clause_set_ord = inv_image clause_set_ord (image Rep_ground_clause)\<close>
-
-lemma term_ord_ground_trans: \<open>ground_term s \<Longrightarrow> ground_term t \<Longrightarrow> ground_term u \<Longrightarrow> s \<prec> t \<Longrightarrow> t \<prec> u \<Longrightarrow> s \<prec> u\<close>
-  using term_ord_trans term_ord_ground_total unfolding total_on_def by blast
 
 lemma term_ord_ground_term_comp: \<open>ground_term (Fun f (a1 @ s # a2)) \<Longrightarrow> ground_term (Fun f (a1 @ t # a2)) \<Longrightarrow> s \<prec> t \<Longrightarrow> Fun f (a1 @ s # a2) \<prec> Fun f (a1 @ t # a2)\<close>
   by (smt mem_Collect_eq superposition.term_ord_term_comp superposition_axioms term_ord_ground_total total_on_def)
@@ -343,22 +394,11 @@ lemma wf_ground_clause_set_ord: \<open>wf ground_clause_set_ord\<close>
   unfolding ground_clause_set_ord_def
   using wf_clause_set_ord wf_inv_image by blast
 
-lemma lit_ord_ground_total: \<open>ground_lit L1 \<Longrightarrow> ground_lit L2 \<Longrightarrow> L1 \<prec>L L2 \<or> L2 \<preceq>L L1\<close>
-proof -
-  have \<open>ground_term s \<Longrightarrow> ground_term t \<Longrightarrow> ground_term u \<Longrightarrow> ground_term v \<Longrightarrow> Lit p1 (Upair s t) \<prec>L Lit p2 (Upair u v) \<or> Lit p2 (Upair u v) \<preceq>L Lit p1 (Upair s t)\<close> for s t u v p1 p2 sorry
-  then show \<open>ground_lit L1 \<Longrightarrow> ground_lit L2 \<Longrightarrow> L1 \<prec>L L2 \<or> L2 \<preceq>L L1\<close>
-    by (metis ground_lit_upair literal_exhaust_1)
-qed
-
-lemma clause_ord_distinct: \<open>C1 \<prec>F C2 \<Longrightarrow> C1 \<noteq> C2\<close>
-  using clause_ord_def wf_clause_ord by auto
-
-lemma clause_ord_asymmetric: \<open>C1 \<prec>F C2 \<Longrightarrow> \<not> C2 \<prec>F C1\<close>
-  unfolding clause_ord_def
-  using clause_ord_def wf_clause_ord wf_not_sym by fastforce
-
-definition ground_term_ord :: \<open>(('f, 'v) term \<times> ('f, 'v) term) set\<close>
-  where \<open>ground_term_ord = {(s,t). ground_term s \<and> ground_term t \<and> s \<prec> t}\<close>
+lemma mult_max:
+  assumes \<open>\<forall>x \<in># N. (x, y) \<in> ord\<close>
+  assumes \<open>y \<in># M\<close>
+  shows \<open>(N, M) \<in> mult ord\<close>
+  by (metis (no_types, hide_lams) add.left_neutral assms empty_iff mult_def one_step_implies_mult set_mset_empty)
 
 lemma max_in_mset: \<open>trans R \<Longrightarrow> total_on (set_mset M) R \<Longrightarrow> M \<noteq> {#} \<Longrightarrow> (\<exists>y \<in># M. \<forall>x \<in># M. x = y \<or> (x, y) \<in> R)\<close>
 proof -
@@ -391,72 +431,105 @@ proof -
   qed
 qed
 
-lemma ground_clause_ord_total: \<open>C1 \<prec>G C2 \<or> C2 \<preceq>G C1\<close>
+lemma mult_total: \<open>irrefl R \<Longrightarrow> trans R \<Longrightarrow> total_on S R \<Longrightarrow> total_on {x. set_mset x \<subseteq> S} (mult R)\<close>
 proof -
-  have \<open>size (C + D) = n \<Longrightarrow> ground_cl C \<Longrightarrow> ground_cl D \<Longrightarrow> (C, D) \<in> clause_ord \<or> (D, C) \<in> clause_ord \<or> D = C\<close> for n C D
-  proof (induct n arbitrary: C D rule: less_induct)
-    case (less x)
-    consider (no_inter) \<open>C \<inter># D = {#}\<close> | (inter) \<open>size ((C - D) + (D - C)) < size (C + D)\<close>
-      by (metis add_less_cancel_left diff_intersect_left_idem diff_less less_imp_diff_less multiset_inter_commute nonempty_has_size size_Diff_subset_Int size_union subset_mset.add_diff_assoc2 subset_mset.inf.cobounded1 subset_mset.inf_bot_right)
+  assume ir: \<open>irrefl R\<close> and tr: \<open>trans R\<close> and total: \<open>total_on S R\<close>
+  have constr: \<open>set_mset M \<subseteq> S \<Longrightarrow> set_mset N \<subseteq> S \<Longrightarrow> M = N \<or> (M,N) \<in> mult R \<or> (N,M) \<in> mult R\<close> for M N
+  proof (induct \<open>size (M + N)\<close> arbitrary: M N rule: less_induct)
+    case (less M N)
+    consider (no_inter) \<open>M \<inter># N = {#}\<close> | (inter) \<open>size ((M - N) + (N - M)) < size (M + N)\<close>
+      by (smt add_less_cancel_right diff_less nonempty_has_size size_Diff_subset_Int size_Un_Int size_union subset_mset.inf_bot_right subset_mset.inf_commute sup_subset_mset_def trans_less_add1)
     then show ?case
     proof cases
       case no_inter
-      consider (empty) \<open>C = {#} \<or> D = {#}\<close> | (no_empty) \<open>C \<noteq> {#} \<and> D \<noteq> {#}\<close> by auto
+      consider (empty) \<open>M = {#} \<or> N = {#}\<close> | (no_empty) \<open>M \<noteq> {#} \<and> N \<noteq> {#}\<close> by auto
       then show ?thesis
       proof cases
         case empty
         then show ?thesis
-          by (metis add_cancel_left_left clause_ord_def empty_iff one_step_implies_mult set_mset_empty)
+          by (metis add_cancel_left_left empty_iff one_step_implies_mult set_mset_empty)
       next
         case no_empty
-        have \<open>total_on (set_mset C) lit_ord\<close>
-          by (meson less.prems(2) lit_ord_ground_total total_on_def)
-        then obtain mc where mc_elem: \<open>mc \<in># C\<close> and mc_max: \<open>\<forall>x \<in># C. x \<preceq>L mc\<close>
-          using max_in_mset [of lit_ord C] trans_lit_ord no_empty by blast
-        have \<open>total_on (set_mset D) lit_ord\<close>
-          by (meson less.prems(3) lit_ord_ground_total total_on_def)
-        then obtain md where md_elem: \<open>md \<in># D\<close> and md_max: \<open>\<forall>x \<in># D. x \<preceq>L md\<close>
-          using max_in_mset [of lit_ord D] trans_lit_ord no_empty by blast
-        consider \<open>mc \<prec>L md\<close> | \<open>md \<prec>L mc\<close> | \<open>mc = md\<close>
-          using lit_ord_ground_total less mc_elem md_elem by metis
+        have \<open>total_on (set_mset M) R\<close>
+          by (meson subsetD total_on_def total less)
+        then obtain m where m_elem: \<open>m \<in># M\<close> and m_max: \<open>\<forall>x \<in># M. x = m \<or> (x, m) \<in> R\<close>
+          using max_in_mset [of R M] tr no_empty by blast
+        have \<open>total_on (set_mset N) R\<close>
+          by (meson subsetD total_on_def total less)
+        then obtain n where n_elem: \<open>n \<in># N\<close> and n_max: \<open>\<forall>x \<in># N. x = n \<or> (x, n) \<in> R\<close>
+          using max_in_mset [of R N] tr no_empty by blast
+        consider (lt) \<open>(m,n) \<in> R\<close> | (gt) \<open>(n,m) \<in> R\<close> | (eq) \<open>m = n\<close>
+          by (meson total less m_elem n_elem subsetD total_on_def)
         then show ?thesis
         proof cases
-          case 1
+          case lt
           then show ?thesis
-            using one_step_implies_mult [of D C lit_ord \<open>{#}\<close>] mc_max md_max md_elem
-            by (metis add.left_neutral clause_ord_def no_empty transD trans_lit_ord)
+            using one_step_implies_mult [of N M R \<open>{#}\<close>] m_max n_max n_elem
+            by (metis add.left_neutral no_empty transD tr)
         next
-          case 2
+          case gt
           then show ?thesis
-            using one_step_implies_mult [of C D lit_ord \<open>{#}\<close>] mc_max md_max mc_elem
-            by (metis add.left_neutral clause_ord_def no_empty transD trans_lit_ord)
+            using one_step_implies_mult [of M N R \<open>{#}\<close>] m_max n_max m_elem
+            by (metis add.left_neutral no_empty transD tr)
         next
-          case 3
-          then show ?thesis using no_inter mc_elem md_elem
+          case eq
+          then show ?thesis using no_inter m_elem n_elem
             by (meson disjunct_not_in)
         qed
       qed
     next
       case inter
-      have \<open>ground_cl (C - D) \<and> ground_cl (D - C)\<close> using less
-        by (meson in_diffD)
-      with less inter consider \<open>C - D \<prec>F D - C \<or> D - C \<prec>F C - D\<close> | \<open>C - D = D - C\<close> by metis
+      with less consider \<open>(M - N, N - M) \<in> mult R \<or> (N - M, M - N) \<in> mult R\<close> | \<open>M - N = N - M\<close>
+        by (meson in_diffD subsetD subsetI)
       then show ?thesis
       proof cases
         case 1
-        have \<open>irrefl lit_ord\<close>
-          by (simp add: irrefl_def wf_lit_ord)
-        then show ?thesis
-          using 1 mult_cancel_max trans_lit_ord unfolding clause_ord_def by auto
+        then show ?thesis using ir
+          using mult_cancel_max tr by auto
       next
         case 2
         then show ?thesis
-          by (metis diff_intersect_left_idem multiset_inter_commute subset_mset.diff_add subset_mset.inf.cobounded1)
+          by (metis add.commute add_right_imp_eq diff_intersect_left_idem subset_mset.add_diff_assoc subset_mset.inf_sup_ord(1) sup_subset_mset_def union_diff_inter_eq_sup)
       qed
     qed
   qed
-  then show ?thesis unfolding ground_clause_ord_def inv_image_def using Rep_ground_clause [of \<open>C1\<close>] Rep_ground_clause [of \<open>C2\<close>]
-    by (metis (mono_tags, lifting) Rep_ground_clause_inject case_prodI mem_Collect_eq)
+  then show \<open>total_on {x. set_mset x \<subseteq> S} (mult R)\<close>
+    unfolding total_on_def by blast
+qed
+
+lemma lit_ord_ground_total: \<open>total_on {L. ground_lit L} lit_ord\<close>
+proof -
+  have gr: \<open>ground_lit L \<Longrightarrow> set_mset (mset_lit L) \<subseteq> {t. ground_term t}\<close> for L
+    using ground_mset_lit by auto
+  have \<open>total_on {x. set_mset x \<subseteq> {t. ground_term t}} (mult term_ord)\<close>
+    using mult_total [of term_ord \<open>{t. ground_term t}\<close>] term_ord_ground_total term_ord_trans wf_term_ord
+    by (simp add: irreflI)
+  then have \<open>ground_lit L1 \<Longrightarrow> ground_lit L2 \<Longrightarrow> (mset_lit L1, mset_lit L2) \<in> mult term_ord \<or> (mset_lit L2, mset_lit L1) \<in> mult term_ord \<or> L1 = L2\<close> for L1 L2
+    using gr mset_lit_inj unfolding total_on_def by blast
+  then show ?thesis unfolding lit_ord_def inv_image_def total_on_def by auto
+qed
+
+lemma clause_ord_distinct: \<open>C1 \<prec>F C2 \<Longrightarrow> C1 \<noteq> C2\<close>
+  using clause_ord_def wf_clause_ord by auto
+
+lemma clause_ord_asymmetric: \<open>C1 \<prec>F C2 \<Longrightarrow> \<not> C2 \<prec>F C1\<close>
+  unfolding clause_ord_def
+  using clause_ord_def wf_clause_ord wf_not_sym by fastforce
+
+definition ground_term_ord :: \<open>(('f, 'v) term \<times> ('f, 'v) term) set\<close>
+  where \<open>ground_term_ord = {(s,t). ground_term s \<and> ground_term t \<and> s \<prec> t}\<close>
+
+lemma ground_clause_ord_total: \<open>total ground_clause_ord\<close>
+proof -
+  have \<open>set_mset (Rep_ground_clause C) \<subseteq> {L. ground_lit L}\<close> for C :: \<open>('f,'v) ground_clause\<close>
+    using Rep_ground_clause by fast
+  moreover have \<open>total_on {x. set_mset x \<subseteq> {L. ground_lit L}} (mult lit_ord)\<close>
+    using Rep_ground_clause mult_total [of lit_ord \<open>{L. ground_lit L}\<close>]
+          trans_lit_ord lit_ord_ground_total wf_lit_ord
+    by (simp add: irreflI)
+  ultimately show ?thesis
+    unfolding ground_clause_ord_def inv_image_def clause_ord_def total_on_def
+    by (simp add: Rep_ground_clause_inject)
 qed
 
 lemma ground_clause_ord_distinct: \<open>C1 \<prec>G C2 \<Longrightarrow> C1 \<noteq> C2\<close>
@@ -466,12 +539,6 @@ lemma ground_clause_ord_distinct: \<open>C1 \<prec>G C2 \<Longrightarrow> C1 \<n
 lemma ground_clause_ord_asymmetric: \<open>C1 \<prec>G C2 \<Longrightarrow> \<not> C2 \<prec>G C1\<close>
   unfolding ground_clause_ord_def
   using ground_clause_ord_def wf_ground_clause_ord wf_not_sym by fastforce
-
-lemma mult_max:
-  assumes \<open>\<forall>x \<in># N. (x, y) \<in> ord\<close>
-  assumes \<open>y \<in># M\<close>
-  shows \<open>(N, M) \<in> mult ord\<close>
-  by (metis (no_types, hide_lams) add.left_neutral assms empty_iff mult_def one_step_implies_mult set_mset_empty)
 
 (* inferences *)
 
@@ -1069,7 +1136,7 @@ proof -
     then have gr: \<open>ground_term v \<and> ground_term t \<and> ground_term (Fun f (a1 @ t # a2))\<close> by auto
     have \<open>v \<preceq> t\<close> using gr step by blast
     moreover have \<open>t \<prec> Fun f (a1 @ t # a2)\<close> using gr term_ord_ground_subterm_comp by blast
-    ultimately show ?case using gr using term_ord_ground_trans by blast
+    ultimately show ?case using term_ord_trans unfolding trans_def by blast
   qed
   then show ?thesis using assms by blast
 qed
@@ -1134,7 +1201,7 @@ proof -
         by (simp add: wf_lit_ord wf_not_sym)
     qed
     ultimately have \<open>s \<prec> u \<and> t \<prec> u\<close>
-      using ground term_ord_ground_trans by auto
+      using term_ord_trans unfolding trans_def by auto
     then have \<open>({#t, t, s, s#}, {#u, s#}) \<in> mult term_ord\<close>
       using one_step_implies_mult [of \<open>{#u#}\<close> \<open>{#t,t,s#}\<close> term_ord \<open>{#s#}\<close>] by auto
     then have \<open>Lit False (Upair t s) \<prec>L L\<close> using L_def unfolding lit_ord_def
@@ -1255,7 +1322,7 @@ proof (rule fo_consequence.all_formulas_entailed)
   qed
 qed
 
-interpretation calculus_with_red_crit \<open>{\<bottom>G}\<close> ground_superposition_inference_system \<open>(\<Turnstile>G)\<close> Red_ground_Inf Red_ground_clause
+interpretation calculus \<open>{\<bottom>G}\<close> ground_superposition_inference_system \<open>(\<Turnstile>G)\<close> Red_ground_Inf Red_ground_clause
 proof
   show \<open>Red_ground_Inf N \<subseteq> ground_superposition_inference_system\<close> for N
     unfolding Red_ground_Inf_def ground_superposition_inference_system_def by auto
@@ -1357,7 +1424,7 @@ proof (induct rule: rewrite_by_trs.induct)
       moreover have le: \<open>t \<cdot> ?\<sigma> \<preceq> s' \<cdot> ?\<sigma>\<close>
         using nlt grounding term_ord_ground_total unfolding total_on_def by blast
       ultimately show \<open>\<not> Fun f args \<cdot> ?\<sigma> \<prec> t \<cdot> ?\<sigma>\<close>
-        using le term_ord_trans by blast
+        using le term_ord_trans nlt unfolding trans_def by blast
     qed
     then show \<open>\<not> ground_term s \<Longrightarrow> \<not> s \<prec> t\<close> using term_ord_stable_grounding grounding by blast
   qed
@@ -1386,7 +1453,8 @@ proof -
   next
     case (trans S u t s)
     then have ground: \<open>ground_term s \<and> ground_term t \<and> ground_term u\<close> using ordered_trs_preserve_groundness by simp
-    moreover have \<open>\<not> u \<preceq> s\<close> using term_ord_trans trans ground by blast
+    moreover have \<open>\<not> u \<preceq> s\<close> using term_ord_trans trans ground unfolding trans_def
+      by (meson wf_not_sym wf_term_ord)
     then show ?case
       using ground term_ord_ground_total
       unfolding total_on_def by blast
@@ -1672,7 +1740,7 @@ next
     case (add L2 C2)
     with ground_C1 add.IH obtain Lmax where Lmax_elem: \<open>Lmax \<in># C1\<close>
                                         and Lmax_def: \<open>\<forall>L'\<in>#C1. L' \<preceq>L Lmax\<close> by auto
-    then consider (a) \<open>Lmax \<prec>L L1\<close> | (b) \<open>L1 \<preceq>L Lmax\<close> using ground_L1 ground_C1 lit_ord_ground_total by metis
+    then consider (a) \<open>Lmax \<prec>L L1\<close> | (b) \<open>L1 \<preceq>L Lmax\<close> using ground_L1 ground_C1 lit_ord_ground_total unfolding total_on_def by blast
     then show ?thesis
     proof cases
       case a
@@ -1705,7 +1773,7 @@ next
   have \<open>t \<prec> Fun f (a1 @ t # a2) \<and> ground_term t\<close>
     using term_ord_ground_subterm_comp func by auto
   then have \<open>u \<prec> Fun f (a1 @ t # a2)\<close>
-    using le term_ord_ground_trans func ground_u by blast
+    using le term_ord_trans func ground_u unfolding trans_def by blast
   then show ?case using rule_elem ground_u by blast
 next
   case (trans S u t s)
@@ -1731,7 +1799,7 @@ proof -
     assume \<open>\<not> (ur \<prec> t \<and> ul \<prec> t)\<close>
     then have \<open>t \<preceq> ur \<or> t \<preceq> ul\<close> using ground term_ord_ground_total unfolding total_on_def by blast
     then consider \<open>(s \<prec> ur \<and> t \<prec> ur) \<or> (s \<prec> ul \<and> t \<prec> ul)\<close> | \<open>s \<prec> ur \<and> t = ur\<close> | \<open>s \<prec> ul \<and> t = ul\<close>
-      using lt ground term_ord_ground_trans by auto
+      using lt ground term_ord_trans unfolding trans_def by meson
     then have \<open>({#s, t#}, {#ul, ul, ur, ur#}) \<in> mult term_ord\<close>
     proof cases
       case 1
@@ -1784,7 +1852,7 @@ proof -
     assume \<open>\<not> (ur \<preceq> t \<and> ul \<preceq> t)\<close>
     then have \<open>t \<prec> ur \<or> t \<prec> ul\<close> using ground term_ord_ground_total unfolding total_on_def by blast
     then have \<open>(s \<prec> ur \<and> t \<prec> ur) \<or> (s \<prec> ul \<and> t \<prec> ul)\<close>
-      using lt ground term_ord_ground_trans by auto
+      using lt ground term_ord_trans unfolding trans_def by auto
     then have \<open>({#s, t#}, {#ul, ur#}) \<in> mult term_ord\<close>
       using mult_max [of \<open>{#s, t#}\<close>] by auto
     then have \<open>L \<prec>L Lit True (Upair ul ur)\<close> using L_def
@@ -1851,14 +1919,14 @@ proof -
     case (func TRS t' s' f a1 a2)
     then have \<open>ground_term t'\<close> by auto
     have \<open>t' \<prec> Fun f (a1 @ t' # a2)\<close> using func term_ord_ground_subterm_comp by blast
-    then have \<open>t' \<preceq> t\<close> using func \<open>ground_term t'\<close> \<open>ground_term t\<close> term_ord_ground_trans by blast
+    then have \<open>t' \<preceq> t\<close> using func \<open>ground_term t'\<close> \<open>ground_term t\<close> term_ord_trans unfolding trans_def by blast
     then show ?case using rewrite_by_trs.func func \<open>ground_term t'\<close> by blast
   next
     case (trans TRS u' t' s')
     then have \<open>ground_term t'\<close>
       using ordered_trs_preserve_groundness by blast
     then have \<open>t' \<prec> u'\<close> using trans ordered_rewriting by metis
-    with trans have \<open>t' \<preceq> t\<close> using \<open>ground_term t\<close> \<open>ground_term t'\<close> term_ord_ground_trans by blast
+    with trans have \<open>t' \<preceq> t\<close> using \<open>ground_term t\<close> \<open>ground_term t'\<close> term_ord_trans unfolding trans_def by blast
     with trans show ?case using \<open>ground_term t'\<close> rewrite_by_trs.trans by blast
   qed
   then show ?thesis using assms by blast
@@ -1911,7 +1979,7 @@ next
       have C_lt: \<open>C \<prec>G B'\<close>
       proof (rule ccontr)
         assume \<open>\<not> C \<prec>G B'\<close>
-        then consider (lt) \<open>B' \<prec>G C\<close> | (eq) \<open>B' = C\<close> using ground_clause_ord_total by blast
+        then consider (lt) \<open>B' \<prec>G C\<close> | (eq) \<open>B' = C\<close> using ground_clause_ord_total unfolding total_on_def by blast
         then have \<open>(lhs, rhs) \<in> trs_of_clause N C\<close>
         proof cases
           case lt
@@ -1992,7 +2060,7 @@ next
         proof (rule ccontr)
           assume \<open>\<not> C \<preceq>G D'\<close>
           then have D'_lt: \<open>D' \<prec>G C\<close>
-            using ground_clause_ord_total by blast
+            using ground_clause_ord_total unfolding total_on_def by blast
           have \<open>(lhs, rhs) \<in> trs_of_clause N D'\<close>
             using trs_of_clause.simps [of N D'] rule_elem'
             by (metis (no_types, lifting) Un_iff)
@@ -2242,14 +2310,14 @@ proof -
         then have \<open>(lhs, rhs) \<in> trs_of_clause N D''\<close> using trs_of_clause.simps [of N D'']
           by (metis (no_types, lifting) Un_iff)
         then have \<open>\<not> D'' \<prec>G C\<close> using rule_nelem D''_elem by blast
-        then consider (eq_lit) \<open>{# mset_lit L. L \<in># Rep_ground_clause C #} = {# mset_lit L. L \<in># Rep_ground_clause D'' #}\<close> | (gt_lit) \<open>C \<prec>G D''\<close>
-          using ground_clause_ord_total by blast
+        then consider (eq) \<open>C = D''\<close> | (gt) \<open>C \<prec>G D''\<close>
+          using ground_clause_ord_total unfolding total_on_def by blast
         then show \<open>u \<prec> lhs \<and> v \<prec> lhs\<close>
         proof cases
-          case eq_lit
+          case eq
           then show ?thesis sorry
         next
-          case gt_lit
+          case gt
           then show ?thesis sorry
         qed
       qed
@@ -2440,8 +2508,8 @@ proof -
                     (* the normal form u of s and t is strictly smaller than the largest of the two
                        terms, so there is a rewrite rule is the TRS that can be used to rewrite
                        that larger term *)
-                    then have \<open>u \<noteq> t'\<close> using s_t_lt s_t_ground
-                      using term_ord_trans by blast
+                    then have \<open>u \<noteq> t'\<close> using s_t_lt term_ord_trans unfolding trans_def
+                      by (meson wf_not_sym wf_term_ord)
                     then have \<open>rewrite_by_trs ?trs_upto t' u\<close>
                       using nf_t unfolding normal_form_def by blast
                     then have \<open>\<exists>lhs rhs u'. subterm_replace u' t' rhs lhs \<and> (lhs, rhs) \<in> ?trs_upto\<close>
@@ -2487,14 +2555,16 @@ proof -
                       moreover have \<open>is_Fun lhs\<close>
                         using rule_ground by auto
                       moreover have \<open>\<not> lhs \<cdot> ?\<sigma> \<preceq> rhs \<cdot> ?\<sigma>\<close>
-                        using rule_ord subst_ground_term rule_ground term_ord_trans by metis
+                        using rule_ord subst_ground_term rule_ground term_ord_trans unfolding trans_def
+                        by (metis wf_not_sym wf_term_ord)
                       moreover have \<open>\<not> t' \<cdot> ?\<sigma> \<preceq> s' \<cdot> ?\<sigma>\<close>
-                        using s_t_lt s_t_ground subst_ground_term term_ord_trans by metis
+                        using s_t_lt s_t_ground subst_ground_term term_ord_trans unfolding trans_def
+                        by (metis wf_not_sym wf_term_ord)
                       moreover have \<open>subst_apply_lit L ?\<sigma> \<prec>L subst_apply_lit (Lit False (Upair s t)) ?\<sigma>\<close>
                       proof -
                         have \<open>lhs \<preceq> t'\<close> using subterm_replace_ord repl rule_ground s_t_ground subterm_replace_ord_2 by metis
                         then have \<open>lhs \<preceq> t' \<and> rhs \<prec> t'\<close> using rule_ord
-                          using rule_ground s_t_ground term_ord_ground_trans by blast
+                          using rule_ground s_t_ground term_ord_trans unfolding trans_def by blast
                         then consider (eq) \<open>lhs = t' \<and> rhs \<prec> t'\<close> | (lt) \<open>lhs \<prec> t' \<and> rhs \<prec> t'\<close> by blast
                         then have \<open>({#lhs, rhs#}, {#s', s', t', t'#}) \<in> mult term_ord\<close>
                         proof cases
@@ -2637,7 +2707,7 @@ proof -
                         have \<open>is_mgu ?\<sigma> {(t', t')}\<close> by auto
                         moreover have \<open>L = Lit True (Upair t' s')\<close> using L_def by auto
                         moreover have \<open>\<not> t' \<cdot> ?\<sigma> \<preceq> s' \<cdot> ?\<sigma>\<close> using s_t_ord
-                          by (metis subst_apply_term_empty term_ord_trans)
+                          by (metis subst_apply_term_empty wf_not_sym wf_term_ord)
                         moreover have \<open>selection ({#L#} + {#L#} + C'') = {#}\<close> using pos_lit C_def C'_def Pos by auto
                         moreover have \<open>M \<in># {#L#} + C'' \<Longrightarrow> subst_apply_lit M ?\<sigma> \<preceq>L subst_apply_lit L ?\<sigma>\<close> for M
                           using L_max C'_def C_def subst_\<sigma> by auto
@@ -2729,7 +2799,7 @@ theorem canonical_interp_model:
   shows \<open>validate_clause (canonical_interp_ground N) (Rep_ground_clause C)\<close>
   using model_construction model_construction_monotonic assms by blast
 
-interpretation static_refutational_complete_calculus \<open>{\<bottom>G}\<close> ground_superposition_inference_system \<open>(\<Turnstile>G)\<close> Red_ground_Inf Red_ground_clause
+interpretation statically_complete_calculus \<open>{\<bottom>G}\<close> ground_superposition_inference_system \<open>(\<Turnstile>G)\<close> Red_ground_Inf Red_ground_clause
 proof
   have \<open>saturated N \<Longrightarrow> \<forall>C \<in> N. C \<notin> {\<bottom>G} \<Longrightarrow> B \<in> {\<bottom>G} \<Longrightarrow> \<not> N \<Turnstile>G {B}\<close> for B N
   proof
