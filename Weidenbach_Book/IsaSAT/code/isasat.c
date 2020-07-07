@@ -399,12 +399,15 @@ READ_FILE:
   printf("c propagations                       redundant                   lrestarts                       GC        \n"
 	 "c                     conflicts                     reductions                 level-0                      LBDs \n");
   int64_t t = IsaSAT_No_Restart_LLVM_IsaSAT_code_wrapped2(clauses);
-  if((t & 2) == 0)
+  _Bool interrupted = t & 2;
+  _Bool satisfiable = t & 1;
+  fflush(stdout);
+  if(interrupted)
     printf("s UNKNOWN\n");
-  if (t & 1)
+  else if (satisfiable)
     printf("s UNSATISFIABLE\n");
   else
     printf("s SATISFIABLE\n");
-  free_clauses(&clauses);
+  // free_clauses(&clauses);
   return 0;
 }

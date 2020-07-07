@@ -80,6 +80,5 @@ define i64 @IsaSAT_No_Restart_LLVM_IsaSAT_code_wrapped2({ i64, { i64, { i64, i32
     %b5 = extractvalue { i64, { i64, i64 } } %b4, 1
     %c_19 = extractvalue { i64, i64 } %b5, 0
     call void @print_GCs(i64 %c_19)
-    %c_21 = extractvalue { i64, i64 } %b5, 1
     ret i64 %r
 }
