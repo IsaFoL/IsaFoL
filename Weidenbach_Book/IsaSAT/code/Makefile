@@ -22,12 +22,20 @@ example:
 remove-print:
 	echo "fix printing functions"
 	sed -i -e '/define void @IsaSAT_Show_LLVM_print/,/}/d' isasat_restart.ll
+	sed -i -e '/define void @IsaSAT_LLVM_print/,/}/d' isasat_restart.ll
 	sed -i -e 's/declare i8\* @isabelle_llvm_calloc(i64, i64)/declare i8* @isabelle_llvm_calloc(i64, i64)\
 declare void @IsaSAT_Show_LLVM_print_c_impl(i64)\
 declare void @IsaSAT_Show_LLVM_print_char_impl(i64)\
 declare void @IsaSAT_Show_LLVM_print_uint64_impl(i64)\
 declare void @IsaSAT_Show_LLVM_print_open_colour_impl(i64)\
-declare void @IsaSAT_Show_LLVM_print_close_colour_impl(i64)/g' \
+declare void @IsaSAT_Show_LLVM_print_close_colour_impl(i64)\
+declare void @IsaSAT_LLVM_print_propa_impl(i64)\
+declare void @IsaSAT_LLVM_print_confl_impl(i64)\
+declare void @IsaSAT_LLVM_print_dec_impl(i64)\
+declare void @IsaSAT_LLVM_print_res_impl(i64)\
+declare void @IsaSAT_LLVM_print_lres_impl(i64)\
+declare void @IsaSAT_LLVM_print_uset_impl(i64)\
+declare void @IsaSAT_LLVM_print_gc_impl(i64)/g' \
 	    isasat_restart.ll
 
 llvm:
@@ -38,16 +46,16 @@ clean:
 
 isallvm:
 #	llvm-as -disable-output isasat_no_restart.ll
-	$(CLANG) $(CFLAGS) -flto -O3 isasat.c "lib_isabelle_llvm.c"  isasat_restart.ll isasat_wrapper.ll -o isasat_llvm
+	$(CLANG) $(CFLAGS) -flto -O3 isasat.c "lib_isabelle_llvm.c"  isasat_restart.ll -o isasat_llvm
 
 isallvm-prof:
 #	llvm-as -disable-output isasat_no_restart.ll
-	$(CLANG) -std=c11 -Wall -Wextra -inline-threshold=6000 -O2 -lprofiler isasat.c "lib_isabelle_llvm.c"  isasat_restart.ll isasat_wrapper.ll -o isasat_llvm
+	$(CLANG) -std=c11 -Wall -Wextra -inline-threshold=6000 -O2 -lprofiler isasat.c "lib_isabelle_llvm.c"  isasat_restart.ll -o isasat_llvm
 
 
 isallvm-sanit:
 #	llvm-as -disable-output isasat_no_restart.ll
-	$(CLANG) $(CFLAGS) -fsanitize=undefined -fsanitize=address -fno-sanitize-recover=undefined -Wall -Wextra -g isasat.c "lib_isabelle_llvm.c"  isasat_wrapper.ll isasat_restart.ll -o isasat_llvm
+	$(CLANG) $(CFLAGS) -fsanitize=undefined -fsanitize=address -fno-sanitize-recover=undefined -Wall -Wextra -g isasat.c "lib_isabelle_llvm.c" isasat_restart.ll -o isasat_llvm
 
 isallvm-gdb:
 	$(CLANG) -std=c11 -O2 -g -Wall -Wextra -g isasat.c "lib_isabelle_llvm.c"  isasat_restart.ll isasat_wrapper.ll -o isasat_llvm

@@ -224,33 +224,34 @@ typedef struct R {
   int64_t  sat;
 } R;
 
-int64_t IsaSAT_No_Restart_LLVM_IsaSAT_code_wrapped2(CLAUSES);
+int64_t IsaSAT_wrapped(int64_t, int64_t, int64_t,
+			       int64_t, int64_t, int64_t, CLAUSES);
 
-void print_propagations(int64_t props) {
+void IsaSAT_LLVM_print_propa_impl(int64_t props) {
   printf("\nc propagations %ld\n", props);
 }
 
-void print_conflicts(int64_t props) {
+void IsaSAT_LLVM_print_confl_impl(int64_t props) {
   printf("c conflicts %ld\n", props);
 }
 
-void print_decisions(int64_t props) {
+void IsaSAT_LLVM_print_dec_impl(int64_t props) {
   printf("c decisions %ld\n", props);
 }
 
-void print_reductions(int64_t props) {
+void IsaSAT_LLVM_print_res_impl(int64_t props) {
   printf("c reductions %ld\n", props);
 }
 
-void print_local_restarts(int64_t props) {
+void IsaSAT_LLVM_print_lres_impl(int64_t props) {
   printf("c local_restarts %ld\n", props);
 }
 
-void print_uset(int64_t props) {
+void IsaSAT_LLVM_print_uset_impl(int64_t props) {
   printf("c uset %ld\n", props);
 }
 
-void print_GCs(int64_t props) {
+void IsaSAT_LLVM_print_gc_impl(int64_t props) {
   printf("c GCs %ld\n", props);
 }
 
@@ -398,7 +399,7 @@ READ_FILE:
 
   printf("c propagations                       redundant                   lrestarts                       GC        \n"
 	 "c                     conflicts                     reductions                 level-0                      LBDs \n");
-  int64_t t = IsaSAT_No_Restart_LLVM_IsaSAT_code_wrapped2(clauses);
+  int64_t t = IsaSAT_wrapped(1, 1, 1, 50, 17, 4, clauses);
   _Bool interrupted = t & 2;
   _Bool satisfiable = t & 1;
   fflush(stdout);
