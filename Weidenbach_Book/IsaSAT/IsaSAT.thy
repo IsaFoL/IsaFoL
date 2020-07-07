@@ -2812,8 +2812,8 @@ proof -
     apply (intro frefI nres_relI)
     unfolding uncurry_def
     apply clarify
-    subgoal for o1 o2 o3 CS o1' o2' o3' CS'
-    apply (rule IsaSAT_heur_model_if_sat[THEN order_trans, of CS _ \<open>(o1, o2, o3)\<close>])
+    subgoal for opt1 CS opt2 CS'
+    apply (rule IsaSAT_heur_model_if_sat[THEN order_trans, of CS _ \<open>opt1\<close>])
     subgoal by (auto simp: list_mset_rel_def mset_rel_def br_def
       br_def mset_rel_def p2rel_def rel_mset_def
         rel2p_def[abs_def] list_all2_op_eq_map_right_iff')
@@ -4403,8 +4403,8 @@ proof -
     apply (intro frefI nres_relI)
     unfolding uncurry_def
     apply clarify
-    subgoal for o1 o2 o3 CS o1' o2' o3' CS'
-    apply (rule IsaSAT_bounded_heur_model_if_sat[THEN order_trans, of CS _ \<open>(o1, o2, o3)\<close>])
+    subgoal for opt1 CS opt2 CS'
+    apply (rule IsaSAT_bounded_heur_model_if_sat[THEN order_trans, of CS _  opt1])
     subgoal by (auto simp: list_mset_rel_def mset_rel_def br_def
       br_def mset_rel_def p2rel_def rel_mset_def
         rel2p_def[abs_def] list_all2_op_eq_map_right_iff')

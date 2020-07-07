@@ -4,6 +4,7 @@ theory IsaSAT_Setup
     Watched_Literals.Watched_Literals_Watch_List_Initialisation
     IsaSAT_Lookup_Conflict
     IsaSAT_Clauses IsaSAT_Arena IsaSAT_Watch_List LBD
+    IsaSAT_Options
 begin
 
 chapter \<open>Complete state\<close>
@@ -242,22 +243,6 @@ lemma save_phase_heur_preI:
 section \<open>VMTF\<close>
 
 type_synonym (in -) isa_vmtf_remove_int = \<open>vmtf \<times> (nat list \<times> bool list)\<close>
-
-
-section \<open>Options\<close>
-
-type_synonym opts = \<open>bool \<times> bool \<times> bool\<close>
-
-
-definition opts_restart where
-  \<open>opts_restart = (\<lambda>(a, b, c). a)\<close>
-
-definition opts_reduce where
-  \<open>opts_reduce = (\<lambda>(a, b, c). b)\<close>
-
-definition opts_unbounded_mode where
-  \<open>opts_unbounded_mode = (\<lambda>(a, b, c). c)\<close>
-
 
 type_synonym out_learned = \<open>nat clause_l\<close>
 
@@ -1628,6 +1613,22 @@ definition opts_restart_st :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close> w
 definition opts_reduction_st :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close> where
   \<open>opts_reduction_st = (\<lambda>(M, N0, D, Q, W, vm, clvls, cach, lbd, outl,
        stats, heur, vdom, avdom, lcount, opts, _). (opts_reduce opts))\<close>
+
+definition opts_unbounded_mode_st :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close> where
+  \<open>opts_unbounded_mode_st = (\<lambda>(M, N0, D, Q, W, vm, clvls, cach, lbd, outl,
+       stats, heur, vdom, avdom, lcount, opts, _). (opts_unbounded_mode opts))\<close>
+
+definition opts_minimum_between_restart_st :: \<open>twl_st_wl_heur \<Rightarrow> 64 word\<close> where
+  \<open>opts_minimum_between_restart_st = (\<lambda>(M, N0, D, Q, W, vm, clvls, cach, lbd, outl,
+       stats, heur, vdom, avdom, lcount, opts, _). (opts_minimum_between_restart opts))\<close>
+
+definition opts_restart_coeff1_st :: \<open>twl_st_wl_heur \<Rightarrow> 64 word\<close> where
+  \<open>opts_restart_coeff1_st = (\<lambda>(M, N0, D, Q, W, vm, clvls, cach, lbd, outl,
+       stats, heur, vdom, avdom, lcount, opts, _). (opts_restart_coeff1 opts))\<close>
+
+definition opts_restart_coeff2_st :: \<open>twl_st_wl_heur \<Rightarrow> nat\<close> where
+  \<open>opts_restart_coeff2_st = (\<lambda>(M, N0, D, Q, W, vm, clvls, cach, lbd, outl,
+       stats, heur, vdom, avdom, lcount, opts, _). (opts_restart_coeff2 opts))\<close>
 
 definition isasat_length_trail_st :: \<open>twl_st_wl_heur \<Rightarrow> nat\<close> where
   \<open>isasat_length_trail_st S = isa_length_trail (get_trail_wl_heur S)\<close>

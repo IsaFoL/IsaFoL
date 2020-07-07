@@ -1,6 +1,8 @@
 theory IsaSAT_Setup_LLVM
   imports IsaSAT_Setup IsaSAT_Watch_List_LLVM IsaSAT_Lookup_Conflict_LLVM
     More_Sepref.WB_More_Refinement IsaSAT_Clauses_LLVM LBD_LLVM
+    IsaSAT_Options_LLVM IsaSAT_VMTF_Setup_LLVM
+    IsaSAT_Arena_Sorting_LLVM
 begin
 
 
@@ -99,126 +101,10 @@ lemmas [llvm_inline] =
   restart_info_restart_done_def
 
 
-(* TODO: Define vmtf_node_rel, such that sepref sees syntactically an assertion of form \<open>pure ...\<close>*)
-type_synonym vmtf_node_assn = \<open>(64 word \<times> 32 word \<times> 32 word)\<close>
-
-definition \<open>vmtf_node1_rel \<equiv> { ((a,b,c),(VMTF_Node a b c)) | a b c. True}\<close>
-definition \<open>vmtf_node2_assn \<equiv> uint64_nat_assn \<times>\<^sub>a atom.option_assn \<times>\<^sub>a atom.option_assn\<close>
-
-definition \<open>vmtf_node_assn \<equiv> hr_comp vmtf_node2_assn vmtf_node1_rel\<close>
-lemmas [fcomp_norm_unfold] = vmtf_node_assn_def[symmetric]
-
-
-lemma vmtf_node_assn_pure[safe_constraint_rules]: \<open>CONSTRAINT is_pure vmtf_node_assn\<close>
-  unfolding vmtf_node_assn_def vmtf_node2_assn_def
-  by solve_constraint
-
-
-(*
-
-  TODO: Test whether this setup is safe in general?
-    E.g., synthesize destructors when side-tac can prove is_pure.
-
-lemmas [sepref_frame_free_rules] = mk_free_is_pure
-lemmas [simp] = vmtf_node_assn_pure[unfolded CONSTRAINT_def]
-*)
-
-lemmas [sepref_frame_free_rules] = mk_free_is_pure[OF vmtf_node_assn_pure[unfolded CONSTRAINT_def]]
-
-lemma
-    vmtf_Node_refine1: \<open>(\<lambda>a b c. (a,b,c), VMTF_Node) \<in> Id \<rightarrow> Id \<rightarrow> Id \<rightarrow> vmtf_node1_rel\<close>
-and vmtf_stamp_refine1: \<open>(\<lambda>(a,b,c). a, stamp) \<in> vmtf_node1_rel \<rightarrow> Id\<close>
-and vmtf_get_prev_refine1: \<open>(\<lambda>(a,b,c). b, get_prev) \<in> vmtf_node1_rel \<rightarrow> \<langle>Id\<rangle>option_rel\<close>
-and vmtf_get_next_refine1: \<open>(\<lambda>(a,b,c). c, get_next) \<in> vmtf_node1_rel \<rightarrow> \<langle>Id\<rangle>option_rel\<close>
-  by (auto simp: vmtf_node1_rel_def)
-
-sepref_def VMTF_Node_impl is []
-  \<open>uncurry2 (RETURN ooo (\<lambda>a b c. (a,b,c)))\<close>
-  :: \<open>uint64_nat_assn\<^sup>k *\<^sub>a (atom.option_assn)\<^sup>k *\<^sub>a (atom.option_assn)\<^sup>k \<rightarrow>\<^sub>a vmtf_node2_assn\<close>
-  unfolding vmtf_node2_assn_def by sepref
-
-sepref_def VMTF_stamp_impl
-  is [] \<open>RETURN o (\<lambda>(a,b,c). a)\<close>
-  :: \<open>vmtf_node2_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
-  unfolding vmtf_node2_assn_def
-  by sepref
-
-sepref_def VMTF_get_prev_impl
-  is [] \<open>RETURN o (\<lambda>(a,b,c). b)\<close>
-  :: \<open>vmtf_node2_assn\<^sup>k \<rightarrow>\<^sub>a atom.option_assn\<close>
-  unfolding vmtf_node2_assn_def
-  by sepref
-
-sepref_def VMTF_get_next_impl
-  is [] \<open>RETURN o (\<lambda>(a,b,c). c)\<close>
-  :: \<open>vmtf_node2_assn\<^sup>k \<rightarrow>\<^sub>a atom.option_assn\<close>
-  unfolding vmtf_node2_assn_def
-  by sepref
-
-(* TODO: This should be done automatically! For all structured ID-relations on hr_comp! *)
-lemma workaround_hrcomp_id_norm[fcomp_norm_unfold]: \<open>hr_comp R (\<langle>nat_rel\<rangle>option_rel) = R\<close> by simp
-
-lemmas [sepref_fr_rules] =
-  VMTF_Node_impl.refine[FCOMP vmtf_Node_refine1]
-  VMTF_stamp_impl.refine[FCOMP vmtf_stamp_refine1]
-  VMTF_get_prev_impl.refine[FCOMP vmtf_get_prev_refine1]
-  VMTF_get_next_impl.refine[FCOMP vmtf_get_next_refine1]
-
-
-
-
-type_synonym vmtf_assn = \<open>vmtf_node_assn ptr \<times> 64 word \<times> 32 word \<times> 32 word \<times> 32 word\<close>
-
-type_synonym vmtf_remove_assn = \<open>vmtf_assn \<times> (32 word array_list64 \<times> 1 word ptr)\<close>
-
-
-abbreviation vmtf_assn :: \<open>_ \<Rightarrow> vmtf_assn \<Rightarrow> assn\<close> where
-  \<open>vmtf_assn \<equiv> (array_assn vmtf_node_assn \<times>\<^sub>a uint64_nat_assn \<times>\<^sub>a atom_assn \<times>\<^sub>a atom_assn
-    \<times>\<^sub>a atom.option_assn)\<close>
-
-abbreviation atoms_hash_assn :: \<open>bool list \<Rightarrow> 1 word ptr \<Rightarrow> assn\<close> where
-  \<open>atoms_hash_assn \<equiv> array_assn bool1_assn\<close>
-
-abbreviation distinct_atoms_assn where
-  \<open>distinct_atoms_assn \<equiv> arl64_assn atom_assn \<times>\<^sub>a atoms_hash_assn\<close>
-
-definition vmtf_remove_assn
-  :: \<open>isa_vmtf_remove_int \<Rightarrow> vmtf_remove_assn \<Rightarrow> assn\<close>
-where
-  \<open>vmtf_remove_assn \<equiv> vmtf_assn \<times>\<^sub>a distinct_atoms_assn\<close>
-
 
 paragraph \<open>Options\<close>
 
-type_synonym opts_assn = \<open>1 word \<times> 1 word \<times> 1 word\<close>
-
-definition opts_assn
-  :: \<open>opts \<Rightarrow> opts_assn \<Rightarrow> assn\<close>
-where
-  \<open>opts_assn \<equiv> bool1_assn \<times>\<^sub>a bool1_assn \<times>\<^sub>a bool1_assn\<close>
-
-lemma workaround_opt_assn: \<open>RETURN o (\<lambda>(a,b,c). f a b c) = (\<lambda>(a,b,c). RETURN (f a b c))\<close> by auto
-
-sepref_register opts_restart opts_reduce opts_unbounded_mode
-
-sepref_def opts_restart_impl is \<open>RETURN o opts_restart\<close> :: \<open>opts_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
-  unfolding opts_restart_def workaround_opt_assn opts_assn_def
-  by sepref
-
-sepref_def opts_reduce_impl is \<open>RETURN o opts_reduce\<close> :: \<open>opts_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
-  unfolding opts_reduce_def workaround_opt_assn opts_assn_def
-  by sepref
-
-sepref_def opts_unbounded_mode_impl is \<open>RETURN o opts_unbounded_mode\<close> :: \<open>opts_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
-  unfolding opts_unbounded_mode_def workaround_opt_assn opts_assn_def
-  by sepref
-
 abbreviation \<open>watchlist_fast_assn \<equiv> aal_assn' TYPE(64) TYPE(64) watcher_fast_assn\<close>
-
-
-type_synonym vdom_fast_assn = \<open>64 word array_list64\<close>
-abbreviation vdom_fast_assn :: \<open>vdom \<Rightarrow> vdom_fast_assn \<Rightarrow> assn\<close> where
-  \<open>vdom_fast_assn \<equiv> arl64_assn sint64_nat_assn\<close>
 
 type_synonym phase_saver_assn = \<open>1 word larray64\<close>
 abbreviation phase_saver_assn :: \<open>phase_saver \<Rightarrow> phase_saver_assn \<Rightarrow> assn\<close> where
@@ -670,15 +556,39 @@ sepref_def opts_restart_st_fast_code
   unfolding opts_restart_st_def isasat_bounded_assn_def
   by sepref
 
-
 sepref_def opts_reduction_st_fast_code
   is \<open>RETURN o opts_reduction_st\<close>
   :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
   unfolding opts_reduction_st_def isasat_bounded_assn_def
   by sepref
 
-sepref_register opts_reduction_st opts_restart_st
+sepref_def opts_unbounded_mode_st_fast_code
+  is \<open>RETURN o opts_unbounded_mode_st\<close>
+  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding opts_unbounded_mode_st_def isasat_bounded_assn_def
+  by sepref
 
+sepref_def opts_minimum_between_restart_st_fast_code
+  is \<open>RETURN o opts_minimum_between_restart_st\<close>
+  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
+  unfolding opts_minimum_between_restart_st_def isasat_bounded_assn_def
+  by sepref
+
+sepref_def opts_restart_coeff1_st_fast_code
+  is \<open>RETURN o opts_restart_coeff1_st\<close>
+  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
+  unfolding opts_restart_coeff1_st_def isasat_bounded_assn_def
+  by sepref
+
+sepref_def opts_restart_coeff2_st_fast_code
+  is \<open>RETURN o opts_restart_coeff2_st\<close>
+  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a snat_assn' (TYPE(64))\<close>
+  unfolding opts_restart_coeff2_st_def isasat_bounded_assn_def
+  by sepref
+
+sepref_register opts_reduction_st opts_restart_st opts_restart_coeff2_st opts_restart_coeff1_st
+    opts_minimum_between_restart_st opts_unbounded_mode_st
 
 lemma emag_get_value_alt_def:
   \<open>ema_get_value = (\<lambda>(a, b, c, d). a)\<close>
@@ -741,17 +651,6 @@ sepref_def get_pos_of_level_in_trail_imp_st_code
   apply (rewrite in \<open>RETURN \<hole>\<close> annot_unat_snat_upcast[where 'l=64])
   by sepref
 
-
-
-sepref_register neq : \<open>(op_neq :: clause_status \<Rightarrow> _ \<Rightarrow> _)\<close>
-lemma status_neq_refine1: \<open>((\<noteq>),op_neq) \<in> status_rel \<rightarrow> status_rel \<rightarrow> bool_rel\<close>
-  by (auto simp: status_rel_def)
-
-sepref_def status_neq_impl is [] \<open>uncurry (RETURN oo (\<noteq>))\<close>
-  :: \<open>(unat_assn' TYPE(32))\<^sup>k *\<^sub>a (unat_assn' TYPE(32))\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
-  by sepref
-
-lemmas [sepref_fr_rules] = status_neq_impl.refine[FCOMP status_neq_refine1]
 
 lemma clause_not_marked_to_delete_heur_alt_def:
   \<open>RETURN oo clause_not_marked_to_delete_heur = (\<lambda>(M, arena, D, oth) C.
@@ -912,9 +811,6 @@ export_llvm
   VMTF_stamp_impl
   VMTF_get_prev_impl
   VMTF_get_next_impl
-  opts_restart_impl
-  opts_reduce_impl
-  opts_unbounded_mode_impl
   get_conflict_wl_is_None_fast_code
   isa_count_decided_st_fast_code
   polarity_st_heur_pol_fast
@@ -923,6 +819,8 @@ export_llvm
   rewatch_heur_fast_code
   rewatch_heur_st_fast_code
   set_zero_wasted_impl
+  opts_restart_st_fast_code
+  opts_unbounded_mode_st_fast_code
 
 end
 

@@ -1,5 +1,5 @@
 theory IsaSAT_Sorting_LLVM
-  imports IsaSAT_Sorting IsaSAT_Setup_LLVM
+  imports IsaSAT_Sorting
     Isabelle_LLVM.Sorting_Introsort
 begin
 
