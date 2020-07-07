@@ -215,15 +215,25 @@ sepref_def isasat_fast_bound_impl
 
 lemmas [sepref_fr_rules] = isasat_fast_bound_impl.refine
 
+thm isasat_fast_alt_def
 lemma isasat_fast_init_alt_def:
-  \<open>RETURN o isasat_fast_init = (\<lambda>(M, N, _). RETURN (length N \<le> isasat_fast_bound))\<close>
-  by (auto simp: isasat_fast_init_def uint64_max_def uint32_max_def isasat_fast_bound_def intro!: ext)
+  \<open>RETURN o isasat_fast_init = (\<lambda>(M, N, _, _, _, _, _, _, _, _, _, failed, lcount).
+     RETURN (length N \<le> isasat_fast_bound \<and>
+     (clss_size_lcount (lcount) < 18446744073709551615 - clss_size_lcountUE (lcount) \<and> 
+      clss_size_lcount (lcount) + clss_size_lcountUE (lcount) < 18446744073709551615 - clss_size_lcountUS (lcount) \<and>
+      clss_size_lcount (lcount) + clss_size_lcountUE (lcount) + clss_size_lcountUS (lcount) < 18446744073709551615)))\<close>
+  by (auto simp: isasat_fast_init_def uint64_max_def uint32_max_def isasat_fast_bound_def
+    clss_size_lcountUS_def clss_size_lcountUE_def clss_size_lcount_def learned_clss_count_init_def
+  intro!: ext)
 
 sepref_def isasat_fast_init_code
   is \<open>RETURN o isasat_fast_init\<close>
   :: \<open>isasat_init_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
   supply [[goals_limit=1]]
   unfolding isasat_fast_init_alt_def isasat_init_assn_def isasat_fast_bound_def[symmetric]
+  apply (rewrite at \<open>_ < \<hole> - _\<close> unat_const_fold[where 'a=64])+
+  apply (rewrite at \<open>_ + _ < \<hole>\<close> unat_const_fold[where 'a=64])+
+  unfolding  short_circuit_conv
   by sepref
 
 declare isasat_fast_init_code.refine[sepref_fr_rules]
@@ -252,7 +262,7 @@ lemma [sepref_fr_rules]: \<open>(init_state_wl_D'_code, init_state_wl_heur_fast)
 
 
 lemma is_failed_heur_init_alt_def:
-  \<open>is_failed_heur_init = (\<lambda>(_, _, _, _, _, _, _, _, _, _, _, failed). failed)\<close>
+  \<open>is_failed_heur_init = (\<lambda>(_, _, _, _, _, _, _, _, _, _, _, failed, _). failed)\<close>
   by (auto)
 
 sepref_def is_failed_heur_init_impl
@@ -425,7 +435,7 @@ end
 definition model_bounded_assn where
   \<open>model_bounded_assn =
    hr_comp (bool1_assn \<times>\<^sub>a model_stat_assn\<^sub>0)
-   {((b, m), (b', m')). b=b' \<and> (b \<longrightarrow> (m,m') \<in> model_stat_rel)}\<close>
+   {((b, m), (b', m')). b=b' \<and> (\<not>b \<longrightarrow> (m,m') \<in> model_stat_rel)}\<close>
 
 definition clauses_l_assn where
   \<open>clauses_l_assn = hr_comp (IICF_Array_of_Array_List.aal_assn unat_lit_assn)

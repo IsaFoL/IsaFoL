@@ -90,7 +90,7 @@ sepref_register restart_required_heur cdcl_twl_restart_wl_heur
 sepref_def restart_prog_wl_D_heur_fast_code
   is \<open>uncurry4 (restart_prog_wl_D_heur)\<close>
   :: \<open>[\<lambda>((((S, _), _), n), _). length (get_clauses_wl_heur S) \<le> sint64_max \<and> 
-         learned_clss_count S < uint64_max \<and> n < uint64_max]\<^sub>a
+         learned_clss_count S \<le> uint64_max \<and> n < uint64_max]\<^sub>a
       isasat_bounded_assn\<^sup>d *\<^sub>a uint64_nat_assn\<^sup>k  *\<^sub>a uint64_nat_assn\<^sup>k  *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a
         bool1_assn\<^sup>k \<rightarrow> isasat_bounded_assn \<times>\<^sub>a uint64_nat_assn \<times>\<^sub>a uint64_nat_assn \<times>\<^sub>a uint64_nat_assn\<close>
   unfolding restart_prog_wl_D_heur_def
@@ -120,19 +120,39 @@ sepref_def isasat_fast_code
   apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
+lemma cdcl_twl_stgy_restart_prog_bounded_wl_heurI1:
+  assumes
+    \<open>isasat_fast a1'b\<close>
+    \<open>learned_clss_count a2'e \<le> Suc (learned_clss_count a1'b)\<close>
+  shows \<open>learned_clss_count a2'e \<le> uint64_max\<close>
+  using assms
+  by (auto simp: isasat_fast_def)
+
+lemma cdcl_twl_stgy_restart_prog_bounded_wl_heurI2:
+  \<open>isasat_fast x \<Longrightarrow> learned_clss_count x \<le> uint64_max\<close>
+  by (auto simp: isasat_fast_def)
+
+
+lemma cdcl_twl_stgy_restart_prog_bounded_wl_heurI3:
+  assumes
+    \<open>isasat_fast S\<close>
+    \<open>length (get_clauses_wl_heur T) \<le> length (get_clauses_wl_heur S)\<close>
+    \<open>learned_clss_count T \<le> (learned_clss_count S)\<close>
+  shows \<open>isasat_fast T\<close>
+  using assms
+  by (auto simp: isasat_fast_def)
+
+term \<open>length (get_clauses_wl_heur T)\<close>
 sepref_register cdcl_twl_stgy_restart_prog_bounded_wl_heur
 sepref_def cdcl_twl_stgy_restart_prog_wl_heur_fast_code
   is \<open>cdcl_twl_stgy_restart_prog_bounded_wl_heur\<close>
   :: \<open>[\<lambda>S. isasat_fast S]\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> bool1_assn \<times>\<^sub>a isasat_bounded_assn\<close>
   unfolding cdcl_twl_stgy_restart_prog_bounded_wl_heur_def
-  supply [[goals_limit = 1]] isasat_fast_def[simp]
+  supply [[goals_limit = 1]] isasat_fast_countD[dest] 
+  supply [dest] = cdcl_twl_stgy_restart_prog_bounded_wl_heurI1
+    cdcl_twl_stgy_restart_prog_bounded_wl_heurI2 
+  supply [intro] = cdcl_twl_stgy_restart_prog_bounded_wl_heurI3
   apply (annot_unat_const \<open>TYPE(64)\<close>)
-apply sepref_dbg_keep
-apply sepref_dbg_trans_keep
-apply sepref_dbg_trans_step_keep
-apply sepref_dbg_side_unfold
-subgoal
-oops
   by sepref
 
 
