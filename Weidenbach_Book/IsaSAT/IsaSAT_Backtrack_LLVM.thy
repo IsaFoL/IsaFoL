@@ -1,5 +1,5 @@
 theory IsaSAT_Backtrack_LLVM
-  imports IsaSAT_Backtrack IsaSAT_VMTF_LLVM IsaSAT_Lookup_Conflict_LLVM
+  imports IsaSAT_Backtrack IsaSAT_VMTF_State_LLVM IsaSAT_Lookup_Conflict_LLVM
     IsaSAT_Rephase_LLVM IsaSAT_LBD_LLVM
 begin
 

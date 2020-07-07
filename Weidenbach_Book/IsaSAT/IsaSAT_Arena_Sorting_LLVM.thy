@@ -1,6 +1,11 @@
 theory IsaSAT_Arena_Sorting_LLVM
-  imports IsaSAT_Sorting_LLVM
+  imports IsaSAT_Sorting_LLVM IsaSAT_Arena_LLVM
 begin
+
+type_synonym vdom_fast_assn = \<open>64 word array_list64\<close>
+abbreviation vdom_fast_assn :: \<open>vdom \<Rightarrow> vdom_fast_assn \<Rightarrow> assn\<close> where
+  \<open>vdom_fast_assn \<equiv> arl64_assn sint64_nat_assn\<close>
+
 definition idx_cdom :: \<open>arena \<Rightarrow> nat set\<close> where
  \<open>idx_cdom arena \<equiv> {i. valid_sort_clause_score_pre_at arena i}\<close>
 
@@ -11,7 +16,7 @@ definition mop_clause_score_less where
     RETURN (clause_score_ordering (clause_score_extract arena i) (clause_score_extract arena j))
   }\<close>
 
-sepref_register clause_score_extract
+sepref_register clause_score_extract arena_status arena_lbd uint32_max DELETED
 
 sepref_def (in -) clause_score_extract_code
   is \<open>uncurry (RETURN oo clause_score_extract)\<close>
@@ -151,6 +156,5 @@ print_named_simpset llvm_inline
 export_llvm
   \<open>LBD_heapsort_impl :: _ \<Rightarrow> _ \<Rightarrow> _\<close>
   \<open>LBD_introsort_impl :: _ \<Rightarrow> _ \<Rightarrow> _\<close>
-
 
 end

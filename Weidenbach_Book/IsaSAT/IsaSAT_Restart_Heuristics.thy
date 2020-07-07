@@ -499,15 +499,15 @@ proof -
       apply assumption
     subgoal for a aa ab ac ad b ae af ag ba ah ai aj ak al am bb an bc ao ap bd aq ar
        as at au av aw ax ay be az bf bg bh bi bj bk bl bm bn bo bp bq br bs
-       bt bu bv bw bx _ _ _ _ _ _ _ "by" bz ca cb cc cd ce cf cg ch ci cj ck cl cm cn co cp
+       bt bu bv bw bx _ _ _ _ _ _ "by" bz ca cb cc cd ce cf cg ch ci cj ck cl cm cn co cp
        lvl i vm0
       unfolding RETURN_def RES_RES2_RETURN_RES RES_RES13_RETURN_RES find_decomp_w_ns_def conc_fun_RES
         RES_RES13_RETURN_RES K2 K
       apply (auto simp: intro_spec_iff intro!: ASSERT_leI isa_length_trail_pre)
       apply (auto simp: isa_length_trail_length_u[THEN fref_to_Down_unRET_Id]
         intro: isa_vmtfI trail_pol_no_dup)
-      apply (frule twl_st_heur_change_subsumed_clauses[where US' = \<open>co\<close> and NS' = cn and
-        lcount' = \<open>(cb, cc, cd)\<close>])
+      apply (frule twl_st_heur_change_subsumed_clauses[where US' = \<open>cn\<close> and NS' = cm and
+        lcount' = \<open>(cc, cd, ce)\<close>])
       apply (solves \<open>auto dest: H(2)\<close>)[]
       apply (solves \<open>auto simp: twl_st_heur_def\<close>)[]
       apply (frule H(2))
@@ -883,10 +883,10 @@ definition restart_required_heur :: \<open>twl_st_wl_heur \<Rightarrow> nat \<Ri
     }
     else do {
       let sema = ema_get_value (get_slow_ema_heur S);
-      let limit = (shiftr (11 * sema) (4::nat));
+      let limit = (shiftr ((opts_restart_coeff1_st S) * sema) 4);
       let fema = ema_get_value (get_fast_ema_heur S);
       let ccount = get_conflict_count_since_last_restart_heur S;
-      let min_reached = (ccount > minimum_number_between_restarts);
+      let min_reached = (ccount > opts_minimum_between_restart_st S);
       let level = count_decided_st_heur S;
       let should_reduce = (opt_red \<and> \<not>upper_restart_bound_not_reached S \<and> can_GC);
       let should_restart = ((opt_res) \<and>

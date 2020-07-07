@@ -89,10 +89,6 @@ schematic_goal mk_free_lbd_assn[sepref_frame_free_rules]: \<open>MK_FREE lbd_ass
   unfolding lbd_assn_def
   by (rule free_thms sepref_frame_free_rules)+ (* TODO: Write a method for that! *)
 
-schematic_goal mk_free_opts_assn[sepref_frame_free_rules]: \<open>MK_FREE opts_assn ?fr\<close>
-  unfolding opts_assn_def
-  by (rule free_thms sepref_frame_free_rules)+ (* TODO: Write a method for that! *)
-
 schematic_goal mk_free_heuristic_assn[sepref_frame_free_rules]: \<open>MK_FREE heuristic_assn ?fr\<close>
   unfolding heuristic_assn_def
   by (rule free_thms sepref_frame_free_rules)+ (* TODO: Write a method for that! *)
@@ -329,14 +325,25 @@ sepref_def IsaSAT_code
   apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
-definition default_opts where
-  \<open>default_opts = (True, True, True)\<close>
+definition default_opts :: opts where
+  \<open>default_opts = IsaOptions True True True 50 11 4\<close>
+
+definition default_opts2 :: opts_ref where
+  \<open>default_opts2 = (True, True, True, 50, 11, 4)\<close>
 
 sepref_def default_opts_impl
-  is \<open>uncurry0 (RETURN default_opts)\<close>
-  :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a opts_assn\<close>
-  unfolding opts_assn_def default_opts_def
+  is \<open>uncurry0 (RETURN default_opts2)\<close>
+  :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a opts_rel_assn\<close>
+  unfolding opts_rel_assn_def default_opts2_def
+  apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
+
+lemma default_opts2_default_opts:
+  \<open>(default_opts2, default_opts) \<in> opts_rel\<close>
+  by (auto simp: default_opts2_def default_opts_def opts_rel_def)
+
+lemmas [sepref_fr_rules] =
+  default_opts_impl.refine[FCOMP default_opts2_default_opts, unfolded opts_assn_def[symmetric]]
 
 definition IsaSAT_bounded_heur_wrapper :: \<open>_ \<Rightarrow> (nat) nres\<close>where
   \<open>IsaSAT_bounded_heur_wrapper C = do {
@@ -406,7 +413,6 @@ begin
     llvm_version is \<open>STRING_VERSION llvm_version\<close>
     default_opts_impl
     IsaSAT_code
-    opts_restart_impl
     count_decided_pol_impl is \<open>uint32_t count_decided_st_heur_pol_fast(TRAIL)\<close>
     arena_lit_impl is \<open>uint32_t arena_lit_impl(ARENA, int64_t)\<close>
   defines \<open>

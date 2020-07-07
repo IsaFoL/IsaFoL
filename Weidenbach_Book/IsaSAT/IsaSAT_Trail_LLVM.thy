@@ -279,6 +279,11 @@ sepref_def get_the_propagation_reason_fast_code
     tri_bool_eq_def[symmetric]
   by sepref
 
+schematic_goal mk_free_trail_pol_fast_assn[sepref_frame_free_rules]: \<open>MK_FREE trail_pol_fast_assn ?fr\<close>
+  unfolding trail_pol_fast_assn_def
+  by (rule free_thms sepref_frame_free_rules)+ (* TODO: Write a method for that! *)
+
+
 experiment begin
 
 export_llvm

@@ -1,7 +1,13 @@
 theory IsaSAT_VMTF_LLVM
-imports Watched_Literals.WB_Sort IsaSAT_VMTF IsaSAT_Setup_LLVM
+imports Watched_Literals.WB_Sort IsaSAT_VMTF
+ (* IsaSAT_Setup_LLVM *)
+   IsaSAT_VMTF_Setup_LLVM
    Isabelle_LLVM.Sorting_Introsort
    IsaSAT_Sorting_LLVM
+   IsaSAT_Literals_LLVM
+   IsaSAT_Trail_LLVM
+   IsaSAT_Clauses_LLVM
+   IsaSAT_Lookup_Conflict_LLVM
 begin
 
 (* TODO: Mathias! Only import the refinement stuff over a single point,
@@ -372,11 +378,6 @@ lemma vmtf_en_dequeue_fast_codeI:
   unfolding isa_vmtf_en_dequeue_pre_def max_unat_def uint64_max_def
   by auto
 
-
-schematic_goal mk_free_trail_pol_fast_assn[sepref_frame_free_rules]: \<open>MK_FREE trail_pol_fast_assn ?fr\<close>
-  unfolding trail_pol_fast_assn_def
-  by (rule free_thms sepref_frame_free_rules)+ (* TODO: Write a method for that! *)
-
 sepref_def vmtf_en_dequeue_fast_code
    is \<open>uncurry2 isa_vmtf_en_dequeue\<close>
    :: \<open>[isa_vmtf_en_dequeue_pre]\<^sub>a
@@ -515,16 +516,6 @@ sepref_def vmtf_rescore_fast_code
   by sepref
 
 
-sepref_def find_decomp_wl_imp'_fast_code
-  is \<open>uncurry find_decomp_wl_st_int\<close>
-  :: \<open>uint32_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d  \<rightarrow>\<^sub>a
-        isasat_bounded_assn\<close>
-  unfolding find_decomp_wl_st_int_def PR_CONST_def isasat_bounded_assn_def
-  supply [[goals_limit = 1]]
-  unfolding fold_tuple_optimizations
-  by sepref
-
-
 lemma (in -) arena_is_valid_clause_idx_le_uint64_max:
   \<open>arena_is_valid_clause_idx be bd \<Longrightarrow>
     length be \<le> sint64_max \<Longrightarrow>
@@ -579,7 +570,6 @@ export_llvm
   vmtf_mark_to_rescore_and_unset_code
   find_decomp_wl_imp_fast_code
   vmtf_rescore_fast_code
-  find_decomp_wl_imp'_fast_code
   vmtf_mark_to_rescore_clause_fast_code
   vmtf_mark_to_rescore_also_reasons_fast_code
 

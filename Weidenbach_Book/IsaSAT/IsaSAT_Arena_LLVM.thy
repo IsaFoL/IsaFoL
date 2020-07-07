@@ -116,6 +116,8 @@ sepref_def xarena_used_impl [llvm_inline] is [] \<open>RETURN o (\<lambda>eli.(e
    apply (rewrite at \<open>RETURN o (\<lambda>_. \<hole>)\<close> annot_unat_unat_downcast[where 'l=2])
   by sepref
 
+sepref_register \<open>(=) :: clause_status \<Rightarrow> clause_status \<Rightarrow> _\<close>
+
 lemmas [sepref_fr_rules] = xarena_used_impl.refine[FCOMP xarena_used_refine1]
 
 lemma status_eq_refine1: \<open>((=),(=)) \<in> status_rel \<rightarrow> status_rel \<rightarrow> bool_rel\<close>
@@ -127,6 +129,9 @@ sepref_def status_eq_impl [llvm_inline] is [] \<open>uncurry (RETURN oo (=))\<cl
 
 lemmas [sepref_fr_rules] = status_eq_impl.refine[FCOMP status_eq_refine1]
 
+sepref_register neq : \<open>(op_neq :: clause_status \<Rightarrow> _ \<Rightarrow> _)\<close>
+lemma status_neq_refine1: \<open>((\<noteq>),op_neq) \<in> status_rel \<rightarrow> status_rel \<rightarrow> bool_rel\<close>
+  by (auto simp: status_rel_def)
 
 definition \<open>AStatus_impl1 cs used lbd \<equiv>
     (cs AND unat_const TYPE(32) 0b11) + (used << 2) + (lbd << unat_const TYPE(32) 5)\<close>
@@ -1012,6 +1017,13 @@ sepref_def mop_arena_status_impl
   unfolding mop_arena_status_def
   by sepref
 
+
+
+sepref_def status_neq_impl is [] \<open>uncurry (RETURN oo (\<noteq>))\<close>
+  :: \<open>(unat_assn' TYPE(32))\<^sup>k *\<^sub>a (unat_assn' TYPE(32))\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
+  by sepref
+
+lemmas [sepref_fr_rules] = status_neq_impl.refine[FCOMP status_neq_refine1]
 
 experiment begin
 export_llvm
