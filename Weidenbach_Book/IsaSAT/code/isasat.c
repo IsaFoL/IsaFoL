@@ -399,7 +399,7 @@ READ_FILE:
 
   printf("c propagations                       redundant                   lrestarts                       GC        \n"
 	 "c                     conflicts                     reductions                 level-0                      LBDs \n");
-  int64_t t = IsaSAT_wrapped(1, 1, 1, 50, 17, 4, clauses);
+  int64_t t = IsaSAT_wrapped(1, 1, 1, 10, 17, 4, clauses);
   _Bool interrupted = t & 2;
   _Bool satisfiable = t & 1;
   fflush(stdout);
