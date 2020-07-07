@@ -1,12 +1,13 @@
 chapter Saturation_Framework
 
-session "Saturation_Framework_Extended" = Saturation_Framework +
+session "Saturation_Framework_Extensions" = Saturation_Framework +
+  options [document = pdf, document_output = "output"]
   sessions
     Ordered_Resolution_Prover
     First_Order_Terms
     Well_Quasi_Orders
   theories
-    Ordered_Resolution_Integration
-    Superposition_Lifting
-    Soundness_Related
-    Standard_Redundancy
+    FO_Ordered_Resolution_Prover_Revisited
+    Given_Clause_Architectures_Revisited
+  document_files
+    "root.tex"

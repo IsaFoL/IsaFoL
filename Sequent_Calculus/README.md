@@ -9,7 +9,7 @@ A tool for teaching a list-based one-sided sequent calculus for first-order logi
 Teaching a Formalized Logical Calculus.  
 Asta Halkjær From, Alexander Birch Jensen, Anders Schlichtkrull and Jørgen Villadsen.  
 Post-proceedings of the 8th International Workshop on Theorem proving components for Educational software (ThEdu'19).  
-To appear in EPTCS.
+[http://eptcs.org/content.cgi?ThEdu19](http://eptcs.org/content.cgi?ThEdu19)
 
 ## Authors ##
 

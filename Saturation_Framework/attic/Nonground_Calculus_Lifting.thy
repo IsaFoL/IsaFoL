@@ -3,17 +3,17 @@
 *)
 
 theory Nonground_Calculus_Lifting
-  imports Saturation_Framework_Preliminaries 
+  imports Saturation_Framework_Preliminaries
 begin
 
 locale nonground_static_refutational_complete_calculus = grounding_function Bot_F entails_sound_F Inf_F Bot_G entails_sound_G Inf_G entails_comp_G Red_Inf_G Red_F_G +
   static_refutational_complete_calculus Bot_G entails_sound_G Inf_G entails_comp_G Red_Inf_G Red_F_G
   for
     Bot_F :: \<open>'f set\<close> and
-    entails_sound_F ::  \<open>'f set \<Rightarrow> 'f set \<Rightarrow> bool\<close> (infix "|\<approx>F" 50) and
+    entails_sound_F ::  \<open>'f set \<Rightarrow> 'f set \<Rightarrow> bool\<close> (infix "\<TTurnstile>F" 50) and
     Inf_F :: \<open>'f inference set\<close> and
     Bot_G :: \<open>'g set\<close> and
-    entails_sound_G ::  \<open>'g set  \<Rightarrow> 'g set  \<Rightarrow> bool\<close> (infix "|\<approx>G" 50) and
+    entails_sound_G ::  \<open>'g set  \<Rightarrow> 'g set  \<Rightarrow> bool\<close> (infix "\<TTurnstile>G" 50) and
     Inf_G ::  \<open>'g inference set\<close> and
     entails_comp_G ::  \<open>'g set  \<Rightarrow> 'g set  \<Rightarrow> bool\<close> (infix "\<Turnstile>G" 50) and
     Red_Inf_G :: \<open>'g set \<Rightarrow> 'g inference set\<close> and
@@ -74,7 +74,7 @@ next
     moreover have \<open>\<G>_set N - Red_F_G (\<G>_set N) \<subseteq> \<G>_set (N - Red_F_F N)\<close> by auto
     ultimately have \<open>\<G>_set (N - Red_F_F N) \<Turnstile>G {C}\<close> by (meson Ground.subset_entailed Ground.entails_trans)
     then have \<open>\<G>_set (N - Red_F_F N) \<Turnstile>G N'\<close> for N' using C_bot Ground.bot_implies_all Ground.entails_trans by blast
-    then show \<open>(N - Red_F_F N) \<Turnstile>F {B}\<close> by auto 
+    then show \<open>(N - Red_F_F N) \<Turnstile>F {B}\<close> by auto
   qed
 next
   show \<open>N \<subseteq> N' \<Longrightarrow> Red_F_F N \<subseteq> Red_F_F N'\<close> for N N'
@@ -140,7 +140,7 @@ proof
         proof -
           assume \<open>\<iota> \<in> Ground.Inf_from (\<G>_set N)\<close>
           then consider (a) \<open>\<iota> \<in> Red_Inf_G (\<G>_set N)\<close>
-                      | (b) \<open>\<exists>\<kappa>. \<kappa> \<in> Non_ground.Inf_from N \<and> \<iota> \<in> \<G>_Inf \<kappa>\<close> 
+                      | (b) \<open>\<exists>\<kappa>. \<kappa> \<in> Non_ground.Inf_from N \<and> \<iota> \<in> \<G>_Inf \<kappa>\<close>
             using Ground_inf_liftable_or_redundant by auto
           then show \<open>\<iota> \<in> Red_Inf_G (\<G>_set N)\<close>
           proof cases
