@@ -153,7 +153,7 @@ lemma reluctant_tick_alt_def:
    else if wait > 1 then RETURN (Reluctant limited trigger u v period (wait - 1) limit)
    else let b = u AND ((u -u) - u);
             (u, v) = (if b = v then (u+1, 1) else (u, 2 * v));
-                 w = v * wait;
+                 wait = v * period;
              (u, v, wait) = (if limited \<and> wait > limit then (1,2, period) else (u, v, wait)) in
   RETURN (Reluctant limited True u v period wait limit)))\<close>
   by (auto intro!: ext simp: reluctant_tick_def Let_def)
@@ -212,7 +212,6 @@ sepref_def reluctant_init_impl
 
 experiment
 begin
-thm reluctant_tick_impl_def
   export_llvm  reluctant_init_impl reluctant_enable_impl reluctant_disable_impl reluctant_triggered2_impl
     reluctant_triggered_impl reluctant_set_trigger_impl reluctant_enable_impl reluctant_triggered_ether_impl
   export_llvm reluctant_tick_impl
