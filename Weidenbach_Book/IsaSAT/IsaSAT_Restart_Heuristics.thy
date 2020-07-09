@@ -833,10 +833,6 @@ fun (in -) get_reductions_count :: \<open>twl_st_wl_heur \<Rightarrow> 64 word\<
        (_, _, _, lres, _, _), _)
       = lres\<close>
 
-definition get_restart_phase :: \<open>twl_st_wl_heur \<Rightarrow> 64 word\<close> where
-  \<open>get_restart_phase = (\<lambda>(_, _, _, _, _, _, _, _, _, _, _, heur, _).
-     current_restart_phase heur)\<close>
-
 definition GC_required_heur :: \<open>twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> bool nres\<close> where
   \<open>GC_required_heur S n = do {
     n \<leftarrow> RETURN (full_arena_length_st S);

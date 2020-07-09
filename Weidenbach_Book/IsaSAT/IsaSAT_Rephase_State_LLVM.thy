@@ -21,7 +21,7 @@ sepref_def save_phase_heur_st
 sepref_def phase_save_rephase_impl
   is \<open>uncurry phase_rephase\<close>
   :: \<open>word_assn\<^sup>k *\<^sub>a phase_heur_assn\<^sup>d \<rightarrow>\<^sub>a phase_heur_assn\<close>
-  unfolding phase_rephase_def copy_phase2_def[symmetric]
+  unfolding phase_rephase_def copy_phase2_def[symmetric] phase_heur_assn_def
   by sepref
 
 
@@ -43,7 +43,7 @@ lemma current_rephasing_phase_alt_def:
 sepref_def current_rephasing_phase
   is \<open>RETURN o current_rephasing_phase\<close>
   :: \<open>heuristic_assn\<^sup>k \<rightarrow>\<^sub>a word64_assn\<close>
-  unfolding current_rephasing_phase_alt_def heuristic_assn_def
+  unfolding current_rephasing_phase_alt_def heuristic_assn_def phase_heur_assn_def
   by sepref
 
 sepref_register rephase_heur

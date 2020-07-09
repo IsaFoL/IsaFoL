@@ -51,7 +51,12 @@ where
      (L = None \<longrightarrow> (\<forall>K\<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>. defined_lit M K)) \<and> M = M' \<and> vm \<in> vmtf \<A> M)\<close>
 
 definition lit_of_found_atm_D_pre where
-\<open>lit_of_found_atm_D_pre = (\<lambda>(\<phi>, L). L \<noteq> None \<longrightarrow> (the L < length \<phi> \<and> the L \<le> uint32_max div 2))\<close>
+\<open>lit_of_found_atm_D_pre \<A> = (\<lambda>((\<phi>, _), L). L \<noteq> None \<longrightarrow>
+       (the L \<le> uint32_max div 2 \<and> the L \<in># \<A> \<and> phase_save_heur_rel \<A> \<phi> ))\<close>
+
+definition get_saved_phase_heur_pre :: \<open>nat option \<Rightarrow> restart_heuristics \<Rightarrow> bool\<close> where
+  \<open>get_saved_phase_heur_pre L = (\<lambda>(fast_ema, slow_ema, res_info, wasted, (\<phi>)).
+       L \<noteq> None \<longrightarrow> get_next_phase_pre True (the L) \<phi>)\<close>
 
 definition find_unassigned_lit_wl_D_heur
   :: \<open>twl_st_wl_heur \<Rightarrow> (twl_st_wl_heur \<times> nat literal option) nres\<close>
@@ -59,7 +64,7 @@ where
   \<open>find_unassigned_lit_wl_D_heur = (\<lambda>(M, N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
        vdom, avdom, lcount, opts, old_arena). do {
       ((M, vm), L) \<leftarrow> isa_vmtf_find_next_undef_upd M vm;
-      ASSERT(L \<noteq> None \<longrightarrow> get_saved_phase_heur_pre (the L) heur);
+      ASSERT(get_saved_phase_heur_pre (L) heur);
       L \<leftarrow> lit_of_found_atm heur L;
       RETURN ((M, N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
        vdom, avdom, lcount, opts, old_arena), L)
@@ -67,9 +72,9 @@ where
 
 lemma lit_of_found_atm_D_pre:
   \<open>heuristic_rel \<A> heur \<Longrightarrow> isasat_input_bounded \<A> \<Longrightarrow> (L \<noteq> None \<Longrightarrow> the L \<in># \<A>) \<Longrightarrow>
-    L \<noteq> None \<Longrightarrow> get_saved_phase_heur_pre (the L) heur\<close>
+    get_saved_phase_heur_pre (L) heur\<close>
   by (auto simp: lit_of_found_atm_D_pre_def phase_saving_def heuristic_rel_def phase_save_heur_rel_def
-    get_saved_phase_heur_pre_def
+    get_saved_phase_heur_pre_def get_next_phase_pre_def
     atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff dest: bspec[of _ _ \<open>Pos (the L)\<close>])
 
 definition find_unassigned_lit_wl_D_heur_pre where
@@ -353,23 +358,31 @@ qed
 
 
 definition lit_of_found_atm_D
-  :: \<open>bool list \<Rightarrow> nat option \<Rightarrow> (nat literal option)nres\<close> where
-  \<open>lit_of_found_atm_D = (\<lambda>(\<phi>::bool list) L. do{
+  :: \<open>restart_heuristics \<Rightarrow>  nat option \<Rightarrow> (nat literal option)nres\<close> where
+  \<open>lit_of_found_atm_D = (\<lambda>(ema, ema, res, x, stats) L. do{
       case L of
         None \<Rightarrow> RETURN None
       | Some L \<Rightarrow> do {
-          ASSERT (L<length \<phi>);
-          if \<phi>!L then RETURN (Some (Pos L)) else RETURN (Some (Neg L))
+          b \<leftarrow> get_next_phase (current_restart_phase (ema, ema, res, x, stats) = QUIET_PHASE) L stats;
+          if b
+          then RETURN (Some (Pos L)) else RETURN (Some (Neg L))
         }
   })\<close>
 
+lemma nofail_get_next_phase:
+  \<open>get_next_phase_pre True L  \<phi> \<Longrightarrow>
+                nofail (get_next_phase b L \<phi>)\<close>
+  by (auto simp: phase_save_heur_rel_def phase_saving_def get_next_phase_def
+    nofail_def bind_ASSERT_eq_if \<L>\<^sub>a\<^sub>l\<^sub>l_add_mset atms_of_def get_next_phase_pre_def split: if_splits
+    dest!: multi_member_split)
 
 lemma lit_of_found_atm_D_lit_of_found_atm:
   \<open>(uncurry lit_of_found_atm_D, uncurry lit_of_found_atm) \<in>
-   [lit_of_found_atm_D_pre]\<^sub>f Id \<times>\<^sub>f Id \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
+   [\<lambda>((\<phi>), x). get_saved_phase_heur_pre x \<phi>]\<^sub>f Id \<times>\<^sub>f Id \<rightarrow> \<langle>Id\<rangle>nres_rel\<close>
   apply (intro frefI nres_relI)
-  unfolding lit_of_found_atm_D_def lit_of_found_atm_def
-  by (auto split: option.splits if_splits simp: pw_le_iff refine_pw_simps lit_of_found_atm_D_pre_def)
+  unfolding lit_of_found_atm_D_def lit_of_found_atm_def uncurry_def
+  by (auto split: option.splits if_splits simp: pw_le_iff refine_pw_simps lit_of_found_atm_D_pre_def
+    nofail_get_next_phase get_saved_phase_heur_pre_def)
 
 definition decide_lit_wl_heur :: \<open>nat literal \<Rightarrow> twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
   \<open>decide_lit_wl_heur = (\<lambda>L' (M, N, D, Q, W, vmtf, clvls, cach, lbd, outl, stats, fema, sema). do {
@@ -503,19 +516,35 @@ do {
 }\<close>
   by (intro bind_cong) auto
 
-definition decide_wl_or_skip_D_heur' where
-  \<open>decide_wl_or_skip_D_heur' = (\<lambda>(M, N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
+definition get_next_phase_st :: \<open>bool \<Rightarrow> nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> (bool) nres\<close> where
+  \<open>get_next_phase_st = (\<lambda>b L (M, N', D', j, W', vm, clvls, cach, lbd, outl, stats, (_, _, _, _, heur),
+       vdom, avdom, lcount, opts, old_arena).
+     (get_next_phase b L heur))\<close>
+
+definition find_unassigned_lit_wl_D_heur2
+  :: \<open>twl_st_wl_heur \<Rightarrow> (twl_st_wl_heur \<times> nat option) nres\<close>
+where
+  \<open>find_unassigned_lit_wl_D_heur2 = (\<lambda>(M, N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
        vdom, avdom, lcount, opts, old_arena). do {
       ((M, vm), L) \<leftarrow> isa_vmtf_find_next_undef_upd M vm;
-      ASSERT(L \<noteq> None \<longrightarrow> get_saved_phase_heur_pre (the L) heur);
+      RETURN ((M, N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
+       vdom, avdom, lcount, opts, old_arena), L)
+    })\<close>
+
+fun get_heur :: \<open>twl_st_wl_heur \<Rightarrow> _\<close> where
+  \<open>get_heur (_, _, _, _, _, _, _, _, _, _, _, heur, _) = heur\<close>
+
+definition decide_wl_or_skip_D_heur' where
+  \<open>decide_wl_or_skip_D_heur' = (\<lambda>S. do {
+      (S, L) \<leftarrow> find_unassigned_lit_wl_D_heur2 S;
+      ASSERT(get_saved_phase_heur_pre L (get_heur S));
       case L of
-       None \<Rightarrow> RETURN (True, (M, N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
-         vdom, avdom, lcount, opts, old_arena))
+       None \<Rightarrow> RETURN (True, S)
      | Some L \<Rightarrow> do {
-        b \<leftarrow> mop_get_saved_phase_heur L heur;
-        let L = (if b then Pos L else Neg L);
-        T \<leftarrow> decide_lit_wl_heur L (M, N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
-          vdom, avdom, lcount, opts, old_arena);
+        L \<leftarrow> do {
+            b \<leftarrow> get_next_phase_st (get_restart_phase S = QUIET_PHASE) L S;
+              RETURN (if b then Pos L else Neg L)};
+        T \<leftarrow> decide_lit_wl_heur L S;
         RETURN (False, T)
       }
     })
@@ -529,18 +558,73 @@ proof -
     apply (case_tac y)
     apply auto
     done
-
+  have H: \<open>do {
+    L \<leftarrow>do {ASSERT \<phi>; P};
+    Q L} =
+    do {ASSERT \<phi>; L \<leftarrow> P; Q L} \<close> for P Q \<phi>
+    by auto
+  have H: \<open>A \<le> \<Down>Id B \<Longrightarrow> B \<le> \<Down>Id A \<Longrightarrow>A = B\<close> for A B
+    by auto
+  have K: \<open>RES {Some (Pos x2), Some (Neg x2)} \<le> \<Down> {(x, y). x = Some y} (RES {Pos x2, Neg x2})\<close>
+    \<open>RES {(Pos x2), (Neg x2)} \<le> \<Down> {(y, x). x = Some y} (RES {Some (Pos x2), Some (Neg x2)})\<close>  for x2
+    by (auto intro!: RES_refine)
+  have S: \<open>S = (a, b, c, d, e, f, g, h, i, j, k, l, m, n, p, q, r) \<Longrightarrow>
+       decide_wl_or_skip_D_heur S =
+       (do {
+                   ((M, vm), L) \<leftarrow> isa_vmtf_find_next_undef_upd a f;
+                   ASSERT (IsaSAT_Decide.get_saved_phase_heur_pre L l);
+                   case L of None \<Rightarrow> RETURN (True, (M, b, c, d, e, vm, g, h, i, j, k, l, m, n, p, q, r))
+                     | Some L \<Rightarrow> do {
+                       _ \<leftarrow> SPEC (\<lambda>_::bool. True);
+                       L \<leftarrow>RES {Pos L, Neg L};
+                      T \<leftarrow> decide_lit_wl_heur L (M, b, c, d, e, vm, g, h, i, j, k, l, m, n, p, q, r);
+                      RETURN (False, T)
+                     }})\<close> for S a b c d e f g h i  j k l m n p q r
+     unfolding decide_wl_or_skip_D_heur_def find_unassigned_lit_wl_D_heur_def
+     apply (simp only: prod.simps)
+     apply (auto intro!: bind_cong[OF refl] simp: lit_of_found_atm_def split: option.splits)
+     apply (rule H)
+     subgoal
+       apply (refine_rcg K)
+       apply auto
+       done
+     subgoal
+       apply (refine_rcg K)
+       apply auto
+       done
+     done
+  have [refine]: \<open>get_saved_phase_heur_pre x2c XX \<Longrightarrow>
+     x2c = Some x'a \<Longrightarrow>x2g = (\<lambda>(x1d, x1e, x1f, x1g, x2g). x2g) XX \<Longrightarrow>
+    get_next_phase b x'a x2g \<le> (SPEC (\<lambda>_::bool. True))\<close> for x'a x1d x1e x1f x1g x2g b XX x2c
+    by (auto simp: get_next_phase_def get_saved_phase_heur_pre_def get_next_phase_pre_def
+      split: prod.splits)
+  have [refine]: \<open>xa =  x'a \<Longrightarrow> RETURN (if xb then Pos xa else Neg xa)
+       \<le> \<Down> Id (RES {Pos x'a, Neg x'a})\<close> for xb x'a xa
+    by auto
+  have [refine]: \<open>decide_lit_wl_heur L S
+    \<le> \<Down> Id
+        (decide_lit_wl_heur La Sa)\<close> if \<open>(L, La) \<in> Id\<close> \<open>(S, Sa) \<in> Id\<close> for L La S Sa
+        using that by auto
   show ?thesis
-    apply (cases S, simp only:)
-    unfolding decide_wl_or_skip_D_heur_def find_unassigned_lit_wl_D_heur_def
-      nres_monad3 prod.case decide_wl_or_skip_D_heur'_def
-    apply (subst (3) bind_triple_unfold[symmetric])
-    unfolding decide_wl_or_skip_D_heur_def find_unassigned_lit_wl_D_heur_def
-      nres_monad3 prod.case lit_of_found_atm_def mop_get_saved_phase_heur_def
-    apply refine_vcg
-    subgoal by fast
-    subgoal
-      by (auto split: option.splits simp: bind_RES)
+    apply (cases S, simp only: S)
+    unfolding find_unassigned_lit_wl_D_heur_def
+      nres_monad3 prod.case find_unassigned_lit_wl_D_heur_def
+      prod.case decide_wl_or_skip_D_heur'_def get_next_phase_st_def
+      find_unassigned_lit_wl_D_heur2_def
+      case_prod_beta snd_conv fst_conv bind_to_let_conv
+    apply (subst Let_def)
+    apply (refine_vcg
+      lit_of_found_atm_D_lit_of_found_atm[THEN fref_to_Down_curry, THEN order_trans]
+      same_in_Id_option_rel)
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    apply assumption
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
+    subgoal by auto
     done
 qed
 

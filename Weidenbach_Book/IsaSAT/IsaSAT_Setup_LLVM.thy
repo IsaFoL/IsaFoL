@@ -469,8 +469,8 @@ sepref_def wasted_bytes_st_impl
   by sepref
 
 lemma set_zero_wasted_def:
-  \<open>set_zero_wasted = (\<lambda>(fast_ema, slow_ema, res_info, wasted, \<phi>, target, best).
-    (fast_ema, slow_ema, res_info, 0, \<phi>, target, best))\<close>
+  \<open>set_zero_wasted = (\<lambda>(fast_ema, slow_ema, res_info, wasted, \<phi>).
+    (fast_ema, slow_ema, res_info, 0, \<phi>))\<close>
   by (auto intro!: ext)
 
 sepref_def set_zero_wasted_impl
@@ -493,7 +493,7 @@ sepref_def mop_save_phase_heur_impl
   :: \<open>atom_assn\<^sup>k *\<^sub>a bool1_assn\<^sup>k *\<^sub>a heuristic_assn\<^sup>d \<rightarrow>\<^sub>a heuristic_assn\<close>
   supply [[goals_limit=1]]
   unfolding mop_save_phase_heur_alt_def save_phase_heur_def save_phase_heur_pre_def
-    heuristic_assn_def
+    heuristic_assn_def phase_heur_assn_def
   apply annot_all_atm_idxs
   by sepref
 
@@ -540,6 +540,24 @@ sepref_def empty_US_heur_code
   is \<open>RETURN o empty_US_heur\<close>
   :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
   unfolding empty_US_heur_def isasat_bounded_assn_def
+  by sepref
+
+lemma current_restart_phase_alt_def:
+  \<open>current_restart_phase = (\<lambda>(fast_ema, slow_ema,
+    (ccount, ema_lvl, restart_phase, end_of_phase), _).
+    restart_phase)\<close>
+  by auto
+
+sepref_def current_restart_phase_impl
+  is \<open>RETURN o current_restart_phase\<close>
+  :: \<open>heuristic_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
+  unfolding current_restart_phase_alt_def heuristic_assn_def
+  by sepref
+
+sepref_def get_restart_phase_imp
+  is \<open>(RETURN o get_restart_phase)\<close>
+  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
+  unfolding get_restart_phase_def isasat_bounded_assn_def
   by sepref
 
 

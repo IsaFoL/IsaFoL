@@ -116,58 +116,80 @@ lemma rephase_random_spec:
   apply (auto dest: in_list_in_setD)
   done
 
+definition rephase_flipped :: \<open>bool list \<Rightarrow> bool list nres\<close> where
+\<open>rephase_flipped \<phi> = do {
+  let n = length \<phi>;
+  (\<phi>) \<leftarrow> nfoldli [0..<n]
+      (\<lambda>_. True)
+      (\<lambda>a  \<phi>. do {
+        ASSERT(a < length \<phi>);
+       let v = \<phi> ! a;
+       RETURN (\<phi>[a := \<not>v])
+     })
+     \<phi>;
+  RETURN \<phi>
+ }\<close>
+
+
+lemma rephase_flipped_spec:
+  \<open>rephase_flipped \<phi> \<le> SPEC(\<lambda>\<psi>. length \<psi> = length \<phi>)\<close>
+  unfolding rephase_flipped_def Let_def
+  apply (refine_vcg nfoldli_rule[where I = \<open>\<lambda>_ _ \<psi>. length \<phi> = length \<psi>\<close>])
+  apply (auto dest: in_list_in_setD)
+  done
+
+
+definition reset_target_phase :: \<open>phase_save_heur \<Rightarrow> phase_save_heur nres\<close> where
+\<open>reset_target_phase = (\<lambda>(\<phi>, target_assigned, target, best_assigned, best, end_of_phase, curr_phase).
+       RETURN (\<phi>, 0, target, best_assigned, best, end_of_phase, curr_phase)
+   )\<close>
+
+
+definition reset_best_phase :: \<open>phase_save_heur \<Rightarrow> phase_save_heur nres\<close> where
+\<open>reset_best_phase = (\<lambda>(\<phi>, target_assigned, target, best_assigned, best, end_of_phase, curr_phase).
+       RETURN (\<phi>, target_assigned, target, 0, best, end_of_phase, curr_phase)
+   )\<close>
+
+
+lemma reset_target_phase_spec:
+  assumes \<open>phase_save_heur_rel \<A> \<phi>\<close>
+  shows \<open>reset_target_phase \<phi> \<le> \<Down>Id (SPEC(phase_save_heur_rel \<A>))\<close>
+  using assms by (cases \<phi>) (auto simp: reset_target_phase_def phase_save_heur_rel_def)
+
+
+lemma reset_best_phase_spec:
+  assumes \<open>phase_save_heur_rel \<A> \<phi>\<close>
+  shows \<open>reset_best_phase \<phi> \<le> \<Down>Id (SPEC(phase_save_heur_rel \<A>))\<close>
+  using assms by (cases \<phi>) (auto simp: reset_best_phase_def phase_save_heur_rel_def)
 
 definition phase_rephase :: \<open>64 word \<Rightarrow> phase_save_heur \<Rightarrow> phase_save_heur nres\<close> where
 \<open>phase_rephase = (\<lambda>b (\<phi>, target_assigned, target, best_assigned, best, end_of_phase, curr_phase, length_phase).
-    if b = 0
-    then do {
-      if curr_phase = 0
+   do {
+      if curr_phase = 0 \<or> curr_phase = 2 \<or> curr_phase = 4 \<or> curr_phase = 6
       then do {
-         \<phi> \<leftarrow> rephase_init False \<phi>;
-         RETURN (\<phi>, target_assigned, target, best_assigned, best, length_phase*100+end_of_phase, 1, length_phase)
+         \<phi> \<leftarrow> copy_phase best \<phi>;
+         RETURN (\<phi>, target_assigned, target, best_assigned, best, length_phase*100+end_of_phase, curr_phase + 1, length_phase)
       }
       else if curr_phase = 1
       then do {
-         \<phi> \<leftarrow> copy_phase best \<phi>;
-         RETURN (\<phi>, target_assigned, target, best_assigned, best, length_phase*100+end_of_phase, 2, length_phase)
-      }
-      else if curr_phase = 2
-      then do {
          \<phi> \<leftarrow> rephase_init True \<phi>;
-         RETURN (\<phi>, target_assigned, target, best_assigned, best, length_phase*100+end_of_phase, 3, length_phase)
+         RETURN (\<phi>, target_assigned, target, best_assigned, best, length_phase*100+end_of_phase, curr_phase + 1, length_phase)
       }
       else if curr_phase = 3
       then do {
          \<phi> \<leftarrow> rephase_random end_of_phase \<phi>;
-         RETURN (\<phi>, target_assigned, target, best_assigned, best, length_phase*100+end_of_phase, 4, length_phase)
+         RETURN (\<phi>, target_assigned, target, best_assigned, best, length_phase*100+end_of_phase, curr_phase + 1, length_phase)
+      }
+      else if curr_phase = 5
+      then do {
+         \<phi> \<leftarrow> rephase_init False \<phi>;
+         RETURN (\<phi>, target_assigned, target, best_assigned, best, length_phase*100+end_of_phase, curr_phase + 1, length_phase)
       }
       else do {
-         \<phi> \<leftarrow> copy_phase best \<phi>;
+         \<phi> \<leftarrow> rephase_flipped \<phi>;
          RETURN (\<phi>, target_assigned, target, best_assigned, best, (1+length_phase)*100+end_of_phase, 0,
             length_phase+1)
       }
-    }
-    else do {
-      if curr_phase = 0
-      then do {
-         \<phi> \<leftarrow> rephase_init False \<phi>;
-         RETURN (\<phi>, target_assigned, target, best_assigned, best, length_phase*100+end_of_phase, 1, length_phase)
-      }
-      else if curr_phase = 1
-      then do {
-         \<phi> \<leftarrow> copy_phase best \<phi>;
-         RETURN (\<phi>, target_assigned, target, best_assigned, best, length_phase*100+end_of_phase, 2, length_phase)
-      }
-      else if curr_phase = 2
-      then do {
-         \<phi> \<leftarrow> rephase_init True \<phi>;
-         RETURN (\<phi>, target_assigned, target, best_assigned, best, length_phase*100+end_of_phase, 3, length_phase)
-      }
-      else do {
-         \<phi> \<leftarrow> copy_phase best \<phi>;
-         RETURN (\<phi>, target_assigned, target, best_assigned, best, (1+length_phase)*100+end_of_phase, 0,
-           length_phase+1)
-     }
     })\<close>
 
 lemma phase_rephase_spec:
@@ -179,65 +201,13 @@ proof -
     by (cases \<phi>) auto
   then have [simp]: \<open>length \<phi>' = length best\<close>
     using assms by (auto simp: phase_save_heur_rel_def)
-  have 1: \<open>\<Down>Id (SPEC(phase_save_heur_rel \<A>)) \<ge>
-    \<Down>Id((\<lambda>(\<phi>, target_assigned, target, best_assigned, best, end_of_phase, curr_phase, length_phase).
-      if b = 0
-      then do {
-        if curr_phase = 0 then  do {
-          \<phi>' \<leftarrow> SPEC (\<lambda>\<phi>'. length \<phi> = length \<phi>');
-          RETURN (\<phi>', target_assigned, target, best_assigned, best,length_phase*100+end_of_phase, 1, length_phase)
-        }
-       else if curr_phase = 1 then  do {
-          \<phi>' \<leftarrow> SPEC (\<lambda>\<phi>'. length \<phi> = length \<phi>');
-          RETURN (\<phi>', target_assigned, target, best_assigned, best, length_phase*100+end_of_phase, 2, length_phase)
-       }
-       else if curr_phase = 2 then  do {
-          \<phi>' \<leftarrow> SPEC (\<lambda>\<phi>'. length \<phi> = length \<phi>');
-          RETURN (\<phi>', target_assigned, target, best_assigned, best, length_phase*100+end_of_phase, 3, length_phase)
-       }
-       else if curr_phase = 3 then  do {
-          \<phi>' \<leftarrow> SPEC (\<lambda>\<phi>'. length \<phi> = length \<phi>');
-          RETURN (\<phi>', target_assigned, target, best_assigned, best, length_phase*100+end_of_phase, 4, length_phase)
-       }
-       else do {
-          \<phi>' \<leftarrow> SPEC (\<lambda>\<phi>'. length \<phi> = length \<phi>');
-          RETURN (\<phi>', target_assigned, target, best_assigned, best, (1+length_phase)*100+end_of_phase, 0, length_phase+1)
-       }
-     }
-     else do {
-        if curr_phase = 0 then  do {
-          \<phi>' \<leftarrow> SPEC (\<lambda>\<phi>'. length \<phi> = length \<phi>');
-          RETURN (\<phi>', target_assigned, target, best_assigned, best,length_phase*100+end_of_phase, 1, length_phase)
-        }
-       else if curr_phase = 1 then  do {
-          \<phi>' \<leftarrow> SPEC (\<lambda>\<phi>'. length \<phi> = length \<phi>');
-          RETURN (\<phi>', target_assigned, target, best_assigned, best, length_phase*100+end_of_phase, 2, length_phase)
-       }
-       else if curr_phase = 2 then  do {
-          \<phi>' \<leftarrow> SPEC (\<lambda>\<phi>'. length \<phi> = length \<phi>');
-          RETURN (\<phi>', target_assigned, target, best_assigned, best, length_phase*100+end_of_phase, 3, length_phase)
-       }
-       else do {
-          \<phi>' \<leftarrow> SPEC (\<lambda>\<phi>'. length \<phi> = length \<phi>');
-          RETURN (\<phi>', target_assigned, target, best_assigned, best, (1+length_phase)*100+end_of_phase, 0,
-            length_phase+1)
-       }
-     }
-     ) \<phi>)\<close>
-   using assms
-   by (cases \<phi>)
-    (auto simp: phase_save_heur_rel_def phase_saving_def RES_RETURN_RES)
-
   show ?thesis
-    unfolding phase_rephase_def \<phi>
-    apply (simp only: prod.case)
-    apply (rule order_trans)
-    defer
-    apply (rule 1)
-    apply (simp only: prod.case \<phi>)
-    apply (refine_vcg if_mono rephase_init_spec copy_phase_spec rephase_random_spec)
-    apply (auto simp: phase_rephase_def)
-    done
+    using assms
+    unfolding phase_rephase_def
+    by (refine_vcg lhs_step_If rephase_init_spec[THEN order_trans]
+      copy_phase_spec[THEN order_trans] rephase_random_spec[THEN order_trans]
+      rephase_flipped_spec[THEN order_trans])
+      (auto simp: phase_save_heur_rel_def phase_saving_def)
 qed
 
 
@@ -289,5 +259,19 @@ proof -
     apply (auto simp: phase_rephase_def)
     done
 qed
+
+definition get_next_phase_pre :: \<open>bool \<Rightarrow> nat \<Rightarrow> phase_save_heur \<Rightarrow> bool\<close> where
+  \<open>get_next_phase_pre = (\<lambda>b L (\<phi>, target_assigned, target, best_assigned, best, end_of_phase, curr_phase).
+    L < length \<phi> \<and> L < length target)\<close>
+
+definition get_next_phase :: \<open>bool \<Rightarrow> nat \<Rightarrow> phase_save_heur \<Rightarrow> bool nres\<close>  where
+  \<open>get_next_phase = (\<lambda>b L (\<phi>, target_assigned, target, best_assigned, best, end_of_phase, curr_phase).
+  if b then do {
+    ASSERT(L < length \<phi>);
+    RETURN(\<phi> ! L)
+  } else  do {
+    ASSERT(L < length target);
+    RETURN(target ! L)
+  })\<close>
 
 end

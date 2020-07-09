@@ -145,6 +145,10 @@ fun get_ops :: \<open>twl_st_wl_heur \<Rightarrow> opts\<close> where
 fun get_old_arena :: \<open>twl_st_wl_heur \<Rightarrow> arena\<close> where
   \<open>get_old_arena (_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, old_arena) = old_arena\<close>
 
+definition get_restart_phase :: \<open>twl_st_wl_heur \<Rightarrow> 64 word\<close> where
+  \<open>get_restart_phase = (\<lambda>(_, _, _, _, _, _, _, _, _, _, _, heur, _).
+     current_restart_phase heur)\<close>
+
 
 
 definition cach_refinement_empty where

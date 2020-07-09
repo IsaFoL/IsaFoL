@@ -34,23 +34,6 @@ sepref_def FLAG_Reduce_restart_impl
   unfolding FLAG_Reduce_restart_def
   by sepref
 
-lemma current_restart_phase_alt_def:
-  \<open>current_restart_phase = (\<lambda>(fast_ema, slow_ema,
-    (ccount, ema_lvl, restart_phase, end_of_phase), _).
-    restart_phase)\<close>
-  by auto
-
-sepref_def current_restart_phase_impl
-  is \<open>RETURN o current_restart_phase\<close>
-  :: \<open>heuristic_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
-  unfolding current_restart_phase_alt_def heuristic_assn_def
-  by sepref
-
-sepref_def get_restart_phase_imp
-  is \<open>(RETURN o get_restart_phase)\<close>
-  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
-  unfolding get_restart_phase_def isasat_bounded_assn_def
-  by sepref
 
 sepref_def end_of_restart_phase_impl
   is \<open>RETURN o end_of_restart_phase\<close>
@@ -67,7 +50,7 @@ sepref_def end_of_restart_phase_st_impl
 sepref_def end_of_rephasing_phase_impl
   is \<open>RETURN o end_of_rephasing_phase\<close>
   :: \<open>phase_heur_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
-  unfolding end_of_rephasing_phase_def heuristic_assn_def
+  unfolding end_of_rephasing_phase_def phase_heur_assn_def
   by sepref
 
 sepref_def end_of_rephasing_phase_heur_impl

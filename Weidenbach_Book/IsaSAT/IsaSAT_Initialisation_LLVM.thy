@@ -620,7 +620,7 @@ sepref_def finalise_init_code'
   supply  [[goals_limit=1]]
   unfolding finalise_init_code_def isasat_init_assn_def isasat_bounded_assn_def
      INITIAL_OUTL_SIZE_def[symmetric] atom.fold_the vmtf_remove_assn_def
-     heuristic_assn_def
+     heuristic_assn_def phase_heur_assn_def
   apply (rewrite at \<open>Pos \<hole>\<close> unat_const_fold[where 'a=32])
   apply (rewrite at \<open>Pos \<hole>\<close> atom_of_value_def[symmetric])
   apply (rewrite at \<open>take \<hole>\<close> snat_const_fold[where 'a=64])

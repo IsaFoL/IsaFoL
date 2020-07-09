@@ -12,9 +12,13 @@ abbreviation phase_saver'_assn :: \<open>phase_saver \<Rightarrow> phase_saver'_
   \<open>phase_saver'_assn \<equiv> array_assn bool1_assn\<close>
 
 
-abbreviation phase_heur_assn where
+definition phase_heur_assn where
   \<open>phase_heur_assn \<equiv> phase_saver_assn \<times>\<^sub>a sint64_nat_assn \<times>\<^sub>a phase_saver'_assn \<times>\<^sub>a sint64_nat_assn \<times>\<^sub>a
      phase_saver'_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn \<times>\<^sub>a word64_assn\<close>
+
+schematic_goal mk_free_lookup_clause_rel_assn[sepref_frame_free_rules]: \<open>MK_FREE phase_heur_assn ?fr\<close>
+  unfolding phase_heur_assn_def
+  by (rule free_thms sepref_frame_free_rules)+ (* TODO: Write a method for that! *)
 
 sepref_def rephase_random_impl
   is \<open>uncurry rephase_random\<close>
@@ -59,15 +63,49 @@ sepref_def copy_phase_impl2
   by sepref
 
 
+sepref_def rephase_flipped_impl
+  is \<open>rephase_flipped\<close>
+  :: \<open>phase_saver_assn\<^sup>d \<rightarrow>\<^sub>a phase_saver_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding rephase_flipped_def
+    while_eq_nfoldli[symmetric]
+  apply (subst while_upt_while_direct, simp)
+  apply (annot_snat_const \<open>TYPE(64)\<close>)
+  by sepref
 
-sepref_register rephase_init rephase_random copy_phase
+
+sepref_register rephase_init rephase_random copy_phase reset_best_phase reset_target_phase
+    rephase_flipped
+
+sepref_def reset_best_phase_impl
+  is \<open>reset_best_phase\<close>
+  :: \<open>phase_heur_assn\<^sup>d \<rightarrow>\<^sub>a phase_heur_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding reset_best_phase_def phase_heur_assn_def
+  apply (annot_snat_const \<open>TYPE(64)\<close>)
+  by sepref
+
+sepref_def reset_target_phase_impl
+  is \<open>reset_target_phase\<close>
+  :: \<open>phase_heur_assn\<^sup>d \<rightarrow>\<^sub>a phase_heur_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding reset_target_phase_def phase_heur_assn_def
+  apply (annot_snat_const \<open>TYPE(64)\<close>)
+  by sepref
 
 sepref_def phase_save_phase_impl
   is \<open>uncurry phase_save_phase\<close>
   :: \<open>sint64_nat_assn\<^sup>k *\<^sub>a phase_heur_assn\<^sup>d \<rightarrow>\<^sub>a phase_heur_assn\<close>
   supply [[goals_limit=1]]
-  unfolding phase_save_phase_def
+  unfolding phase_save_phase_def phase_heur_assn_def
   by sepref
+
+sepref_def get_next_phase_imp
+  is \<open>uncurry2 get_next_phase\<close>
+  :: \<open>bool1_assn\<^sup>k *\<^sub>a atom_assn\<^sup>k *\<^sub>a phase_heur_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
+  unfolding get_next_phase_def phase_heur_assn_def
+  apply annot_all_atm_idxs
+  by  sepref
 
 end
 
