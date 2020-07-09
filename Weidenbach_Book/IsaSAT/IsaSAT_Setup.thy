@@ -460,7 +460,7 @@ lemma phase_save_heur_rel_cong:
 
 lemma heuristic_rel_cong:
   \<open>set_mset \<A> = set_mset \<B> \<Longrightarrow> heuristic_rel \<A> heur \<Longrightarrow> heuristic_rel \<B> heur\<close>
-  using phase_save_heur_rel_cong[of \<A> \<B> \<open>(\<lambda>(_, _, _, _, a). a) heur\<close>]
+  using phase_save_heur_rel_cong[of \<A> \<B> \<open>(\<lambda>(_, _, _, _, a, _). a) heur\<close>]
   by (auto simp: heuristic_rel_def)
 
 lemma vmtf_cong:
@@ -1036,10 +1036,10 @@ text \<open>
 \<close>
 definition incr_restart_stat :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
   \<open>incr_restart_stat = (\<lambda>(M, N, D, Q, W, vm, clvls, cach, lbd, outl, stats, (fast_ema, slow_ema,
-       res_info, wasted), vdom, avdom, lcount, opts, old_arena). do{
+       res_info, wasted, \<phi>, relu), vdom, avdom, lcount, opts, old_arena). do{
      RETURN (M, N, D, Q, W, vm, clvls, cach, lbd, outl, incr_restart stats,
        (fast_ema, slow_ema,
-       restart_info_restart_done res_info, wasted), vdom, avdom,
+       restart_info_restart_done res_info, wasted, \<phi>, reluctant_untrigger relu), vdom, avdom,
        clss_size_resetUS lcount, opts, old_arena)
   })\<close>
 
@@ -1261,5 +1261,14 @@ lemma incr_wasted_st_twl_st[simp]:
   \<open>get_learned_count (incr_wasted_st C T) = get_learned_count T\<close>
   \<open>get_conflict_count_heur (incr_wasted_st C T) = get_conflict_count_heur T\<close>
   by (cases T; auto simp: incr_wasted_st_def; fail)+
+
+definition heuristic_reluctant_triggered2_st :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close> where
+  \<open>heuristic_reluctant_triggered2_st = (\<lambda> (_, _, _, _, _, _, _, _, _, _, _, heur, _). heuristic_reluctant_triggered2 heur)\<close>
+
+definition heuristic_reluctant_untrigger_st :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur\<close> where
+  \<open>heuristic_reluctant_untrigger_st = (\<lambda> (M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
+  vdom, avdom, lcount, opts, old_arena).
+  (M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heuristic_reluctant_untrigger heur,
+       vdom, avdom, lcount, opts, old_arena))\<close>
 
 end

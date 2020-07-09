@@ -34,7 +34,7 @@ sepref_def rephase_heur_impl
 lemma current_rephasing_phase_alt_def:
   \<open>RETURN o current_rephasing_phase =
     (\<lambda>(fast_ema, slow_ema, res_info, wasted,
-      (\<phi>, target_assigned, target, best_assigned, best, end_of_phase, curr_phase, length_phase)).
+      (\<phi>, target_assigned, target, best_assigned, best, end_of_phase, curr_phase, length_phase), _).
       RETURN curr_phase)\<close>
   unfolding current_rephasing_phase_def
     phase_current_rephasing_phase_def

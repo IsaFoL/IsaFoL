@@ -55,7 +55,7 @@ definition lit_of_found_atm_D_pre where
        (the L \<le> uint32_max div 2 \<and> the L \<in># \<A> \<and> phase_save_heur_rel \<A> \<phi> ))\<close>
 
 definition get_saved_phase_heur_pre :: \<open>nat option \<Rightarrow> restart_heuristics \<Rightarrow> bool\<close> where
-  \<open>get_saved_phase_heur_pre L = (\<lambda>(fast_ema, slow_ema, res_info, wasted, (\<phi>)).
+  \<open>get_saved_phase_heur_pre L = (\<lambda>(fast_ema, slow_ema, res_info, wasted, (\<phi>), relu).
        L \<noteq> None \<longrightarrow> get_next_phase_pre True (the L) \<phi>)\<close>
 
 definition find_unassigned_lit_wl_D_heur
@@ -347,7 +347,7 @@ proof -
     apply (rule lit_of_found_atm; assumption)
     subgoal for a aa ab ac ad b ae af ag ba ah ai aj ak al am bb an bc ao ap aq bd ar
        as at au av aw ax ay az be bf bg bh bi bj bk bl bm bn bo bp bq br bs
-       bt bu bv bw bx _ _ _ _ _ _ _ _ _ _ _ "by" bz ca cb cc cd ce cf cg ch ci _ _ x L x1 x1a x2 x2a La Lb
+       bt bu bv bw bx _ _ _ _ _ _ _ _ _ _ _ _ "by" bz ca cb cc cd ce cf cg ch ci _ _ x L x1 x1a x2 x2a La Lb
       by (cases L)
        (clarsimp_all simp: twl_st_heur_def unassigned_atm_def atm_of_eq_atm_of uminus_\<A>\<^sub>i\<^sub>n_iff learned_clss_count_def
           simp del: twl_st_of_wl.simps dest!: atms intro!: RETURN_RES_refine; 
@@ -359,11 +359,11 @@ qed
 
 definition lit_of_found_atm_D
   :: \<open>restart_heuristics \<Rightarrow>  nat option \<Rightarrow> (nat literal option)nres\<close> where
-  \<open>lit_of_found_atm_D = (\<lambda>(ema, ema, res, x, stats) L. do{
+  \<open>lit_of_found_atm_D = (\<lambda>(ema, ema, res, x, stats, relu) L. do{
       case L of
         None \<Rightarrow> RETURN None
       | Some L \<Rightarrow> do {
-          b \<leftarrow> get_next_phase (current_restart_phase (ema, ema, res, x, stats) = QUIET_PHASE) L stats;
+          b \<leftarrow> get_next_phase (current_restart_phase (ema, ema, res, x, stats, relu) = QUIET_PHASE) L stats;
           if b
           then RETURN (Some (Pos L)) else RETURN (Some (Neg L))
         }
@@ -517,7 +517,7 @@ do {
   by (intro bind_cong) auto
 
 definition get_next_phase_st :: \<open>bool \<Rightarrow> nat \<Rightarrow> twl_st_wl_heur \<Rightarrow> (bool) nres\<close> where
-  \<open>get_next_phase_st = (\<lambda>b L (M, N', D', j, W', vm, clvls, cach, lbd, outl, stats, (_, _, _, _, heur),
+  \<open>get_next_phase_st = (\<lambda>b L (M, N', D', j, W', vm, clvls, cach, lbd, outl, stats, (_, _, _, _, heur, relu),
        vdom, avdom, lcount, opts, old_arena).
      (get_next_phase b L heur))\<close>
 
@@ -594,7 +594,7 @@ proof -
        done
      done
   have [refine]: \<open>get_saved_phase_heur_pre x2c XX \<Longrightarrow>
-     x2c = Some x'a \<Longrightarrow>x2g = (\<lambda>(x1d, x1e, x1f, x1g, x2g). x2g) XX \<Longrightarrow>
+     x2c = Some x'a \<Longrightarrow>x2g = (\<lambda>(x1d, x1e, x1f, x1g, x2g, _). x2g) XX \<Longrightarrow>
     get_next_phase b x'a x2g \<le> (SPEC (\<lambda>_::bool. True))\<close> for x'a x1d x1e x1f x1g x2g b XX x2c
     by (auto simp: get_next_phase_def get_saved_phase_heur_pre_def get_next_phase_pre_def
       split: prod.splits)

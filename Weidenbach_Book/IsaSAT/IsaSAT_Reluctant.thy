@@ -13,9 +13,9 @@ datatype reluctant =
     (reluctant_limit: \<open>64 word\<close>)
 
 definition reluctant_set_trigger :: \<open>bool \<Rightarrow> reluctant \<Rightarrow> reluctant\<close> where
-  \<open>reluctant_set_trigger limited r =
+  \<open>reluctant_set_trigger trigger r =
      (let
-    trigger = reluctant_trigger r;
+    limited = reluctant_limited r;
     u = reluctant_u r;
     v = reluctant_v r;
     period = reluctant_period r;
@@ -34,8 +34,14 @@ definition reluctant_disable :: \<open>reluctant \<Rightarrow> reluctant\<close>
   limit = reluctant_limit r in
   (Reluctant limited trigger u v 0 wait limit))\<close>
 
+definition reluctant_untrigger :: \<open>reluctant \<Rightarrow> reluctant\<close> where
+  \<open>reluctant_untrigger r = (reluctant_set_trigger False r)\<close>
+
 definition reluctant_triggered :: \<open>reluctant \<Rightarrow> reluctant \<times> bool\<close> where
   \<open>reluctant_triggered r = (reluctant_set_trigger False r, reluctant_trigger r)\<close>
+
+definition reluctant_triggered2 :: \<open>reluctant \<Rightarrow> bool\<close> where
+  \<open>reluctant_triggered2 r = (reluctant_trigger r)\<close>
 
 definition reluctant_tick :: \<open>reluctant \<Rightarrow> reluctant\<close> where
   \<open>reluctant_tick  r =
@@ -50,8 +56,8 @@ definition reluctant_tick :: \<open>reluctant \<Rightarrow> reluctant\<close> wh
   (if period = 0 \<or> trigger then Reluctant limited trigger u v period (wait) limit
    else if wait > 1 then Reluctant limited trigger u v period (wait - 1) limit
    else let (u, v) = (if u AND (0-u) = v then (u+1, 1) else (u, 2 * v));
-                 w = v * wait;
-             (u, v, wait) = (if limited \<and> wait > limit then (1,2, period) else (u, v, wait)) in
+              wait = v * period;
+      (u, v, wait) = (if limited \<and> wait > limit then (1,2, period) else (u, v, wait)) in
     Reluctant limited True u v period wait limit))\<close>
 
 definition reluctant_enable :: \<open>64 word \<Rightarrow> 64 word \<Rightarrow> reluctant\<close> where
@@ -64,4 +70,10 @@ definition reluctant_enable :: \<open>64 word \<Rightarrow> 64 word \<Rightarrow
 definition reluctant_init :: \<open>reluctant\<close> where
   \<open>reluctant_init = reluctant_enable (1<< 10) (1<<20)\<close>
 
+
+value
+  \<open>let p0 = (reluctant_tick ^^ 1024) (reluctant_enable (1<< 10) (1<<20));
+    p1 = reluctant_untrigger p0;
+    p2 = (reluctant_tick ^^ 1023) p1 in
+   (p0, p1, reluctant_triggered2 p2 = False, reluctant_triggered2 p0 = True)\<close>
 end

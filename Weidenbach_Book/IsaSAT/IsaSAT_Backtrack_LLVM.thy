@@ -295,14 +295,17 @@ thm propagate_bt_wl_D_fast_codeXX_def
                   (incr_uset a1j) xa a2k
                }))))))))))))
 *)
+thm reluctant_tick_impl_def
   export_llvm
-    empty_conflict_and_extract_clause_heur_fast_code
-    empty_cach_code
-    propagate_bt_wl_D_fast_codeXX
-    propagate_unit_bt_wl_D_fast_code
-    extract_shorter_conflict_list_heur_st_fast
-    lit_of_hd_trail_st_heur_fast_code
-    backtrack_wl_D_fast_code
+    (* empty_conflict_and_extract_clause_heur_fast_code
+  * empty_cach_code *)
+  reluctant_tick_impl
+  (* propagate_unit_bt_wl_D_fast_code *)
+    
+    (* propagate_bt_wl_D_fast_codeXX
+     * extract_shorter_conflict_list_heur_st_fast
+     * lit_of_hd_trail_st_heur_fast_code
+     * backtrack_wl_D_fast_code *)
 
 end
 

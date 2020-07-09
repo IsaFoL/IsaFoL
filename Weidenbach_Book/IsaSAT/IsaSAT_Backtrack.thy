@@ -719,7 +719,7 @@ definition propagate_bt_wl_D_heur
       vm \<leftarrow> isa_vmtf_flush_int M vm;
       heur \<leftarrow> mop_save_phase_heur (atm_of L') (is_neg L') heur;
       RETURN (M, N, D, j, W, vm, 0,
-         cach, lbd, outl, add_lbd (of_nat glue) stats, update_heuristics glue heur, vdom @ [i],
+         cach, lbd, outl, add_lbd (of_nat glue) stats, heuristic_reluctant_tick (update_heuristics glue heur), vdom @ [i],
           avdom @ [i],
           clss_size_incr_lcount lcount, opts)
     })\<close>
@@ -746,7 +746,7 @@ definition propagate_unit_bt_wl_D_int
       M \<leftarrow> cons_trail_Propagated_tr (- L) 0 M;
       let stats = incr_uset stats;
       RETURN (M, N, D, j, W, vm, clvls, cach, lbd, outl, stats,
-        (update_heuristics glue heur), vdom, avdom, clss_size_incr_lcountUE lcount, opts, old_arena)})\<close>
+        heuristic_reluctant_tick (update_heuristics glue heur), vdom, avdom, clss_size_incr_lcountUE lcount, opts, old_arena)})\<close>
 
 
 paragraph \<open>Full function\<close>
@@ -1821,7 +1821,7 @@ proof -
           vm \<leftarrow> isa_vmtf_flush_int M vm;
           heur \<leftarrow> mop_save_phase_heur (atm_of L') (is_neg L') heur;
           RETURN (M, N, D, j, W, vm, 0,
-            cach, lbd, outl, add_lbd (of_nat glue) stats, update_heuristics glue heur, vdom @ [ i],
+            cach, lbd, outl, add_lbd (of_nat glue) stats, heuristic_reluctant_tick (update_heuristics glue heur), vdom @ [ i],
               avdom @ [i], clss_size_incr_lcount lcount, opts)
       })\<close>
       unfolding propagate_bt_wl_D_heur_def Let_def
@@ -2584,7 +2584,7 @@ lemma propagate_bt_wl_D_heur_alt_def:
       vm \<leftarrow> isa_vmtf_flush_int M vm;
       heur \<leftarrow> mop_save_phase_heur (atm_of L') (is_neg L') heur;
       RETURN (M, N, D, j, W, vm, 0,
-         cach, lbd, outl, add_lbd (of_nat glue) stats, update_heuristics glue heur, vdom @ [i],
+         cach, lbd, outl, add_lbd (of_nat glue) stats, heuristic_reluctant_tick (update_heuristics glue heur), vdom @ [i],
           avdom @ [i],
           clss_size_incr_lcount lcount, opts)
     })\<close>

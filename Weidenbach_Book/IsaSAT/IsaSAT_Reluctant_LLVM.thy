@@ -28,6 +28,12 @@ schematic_goal mk_free_reluctant_assn[sepref_frame_free_rules]: \<open>MK_FREE r
   unfolding reluctant_assn_def
   by (rule free_thms sepref_frame_free_rules)+ (* TODO: Write a method for that! *)
 
+lemma [safe_constraint_rules]:
+  \<open>CONSTRAINT Sepref_Basic.is_pure reluctant_rel_assn\<close>
+  \<open>CONSTRAINT Sepref_Basic.is_pure reluctant_assn\<close>
+  unfolding reluctant_rel_assn_def reluctant_assn_def
+  by (auto intro!: hr_comp_is_pure)
+
 definition reluctant_c :: \<open> _ \<Rightarrow> _ \<Rightarrow> _ \<Rightarrow> _ \<Rightarrow> _ \<Rightarrow> _ \<Rightarrow> _ \<Rightarrow> reluctant_rel\<close>where
   \<open>reluctant_c limited trigger u v period wait limit = (limited, trigger, u, v, period, wait, limit)\<close>
 
@@ -129,11 +135,37 @@ lemmas [sepref_fr_rules] =
   reluctant_period_impl.refine[FCOMP reluctant_c_period, unfolded reluctant_assn_def[symmetric]]
   reluctant_limit_impl.refine[FCOMP reluctant_c_limit, unfolded reluctant_assn_def[symmetric]]
 
+sepref_register reluctant_impl reluctant_tick reluctant_enable reluctant_set_trigger
+  reluctant_triggered reluctant_untrigger reluctant_triggered2 reluctant_init
+  reluctant_disable
+
+lemma reluctant_tick_alt_def:
+  \<open>RETURN o reluctant_tick  =
+  (\<lambda>r. let
+    limited = reluctant_limited r;
+    trigger = reluctant_trigger r;
+    u = reluctant_u r;
+    v = reluctant_v r;
+    period = reluctant_period r;
+    wait = reluctant_wait r;
+    limit = reluctant_limit r in
+  (if period = 0 \<or> trigger then RETURN (Reluctant limited trigger u v period (wait) limit)
+   else if wait > 1 then RETURN (Reluctant limited trigger u v period (wait - 1) limit)
+   else let b = u AND ((u -u) - u);
+            (u, v) = (if b = v then (u+1, 1) else (u, 2 * v));
+                 w = v * wait;
+             (u, v, wait) = (if limited \<and> wait > limit then (1,2, period) else (u, v, wait)) in
+  RETURN (Reluctant limited True u v period wait limit)))\<close>
+  by (auto intro!: ext simp: reluctant_tick_def Let_def)
+
+sepref_register \<open>(AND) :: 'a :: len0 word \<Rightarrow> _ \<Rightarrow> _\<close>
 sepref_def reluctant_tick_impl
   is \<open>RETURN o reluctant_tick\<close>
   :: \<open>reluctant_assn\<^sup>k \<rightarrow>\<^sub>a reluctant_assn\<close>
-  unfolding reluctant_tick_def
+  unfolding reluctant_tick_alt_def
   by sepref
+
+export_llvm reluctant_tick_impl
 
 sepref_def reluctant_enable_impl
   is \<open>uncurry (RETURN oo reluctant_enable)\<close>
@@ -147,10 +179,22 @@ sepref_def reluctant_set_trigger_impl
   unfolding reluctant_set_trigger_def
   by sepref
 
-sepref_def reluctant_triggered
+sepref_def reluctant_triggered_ether_impl
   is \<open>(RETURN o reluctant_triggered)\<close>
   :: \<open>reluctant_assn\<^sup>k \<rightarrow>\<^sub>a reluctant_assn \<times>\<^sub>a bool1_assn\<close>
   unfolding reluctant_triggered_def
+  by sepref
+
+sepref_def reluctant_triggered2_impl
+  is \<open>(RETURN o reluctant_triggered2)\<close>
+  :: \<open>reluctant_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
+  unfolding reluctant_triggered2_def
+  by sepref
+
+sepref_def reluctant_untrigger_impl
+  is \<open>(RETURN o reluctant_untrigger)\<close>
+  :: \<open>reluctant_assn\<^sup>k \<rightarrow>\<^sub>a reluctant_assn\<close>
+  unfolding reluctant_untrigger_def
   by sepref
 
 sepref_def reluctant_disable_impl
@@ -165,5 +209,14 @@ sepref_def reluctant_init_impl
   unfolding reluctant_init_def
   apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
+
+experiment
+begin
+thm reluctant_tick_impl_def
+  export_llvm  reluctant_init_impl reluctant_enable_impl reluctant_disable_impl reluctant_triggered2_impl
+    reluctant_triggered_impl reluctant_set_trigger_impl reluctant_enable_impl reluctant_triggered_ether_impl
+  export_llvm reluctant_tick_impl
+
+end
 
 end

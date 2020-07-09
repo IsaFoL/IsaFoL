@@ -624,7 +624,7 @@ sepref_def finalise_init_code'
   apply (rewrite at \<open>Pos \<hole>\<close> unat_const_fold[where 'a=32])
   apply (rewrite at \<open>Pos \<hole>\<close> atom_of_value_def[symmetric])
   apply (rewrite at \<open>take \<hole>\<close> snat_const_fold[where 'a=64])
-  apply (rewrite at \<open>(_, _,_,\<hole>, _,_,_,_,_)\<close> snat_const_fold[where 'a=64])
+  apply (rewrite at \<open>(_, \<hole>, _,_,_,_)\<close> snat_const_fold[where 'a=64])
   apply (rewrite at \<open>(_, _,_,\<hole>, _,_,_)\<close> snat_const_fold[where 'a=64])
   apply (rewrite at \<open>(_, \<hole>, _)\<close> al_fold_custom_empty[where 'l=64])
   apply (rewrite at \<open>(_, \<hole>)\<close> al_fold_custom_empty[where 'l=64])

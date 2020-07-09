@@ -1,5 +1,5 @@
 theory IsaSAT_Stats_LLVM
-imports IsaSAT_Stats IsaSAT_EMA_LLVM
+imports IsaSAT_Stats IsaSAT_EMA_LLVM IsaSAT_Rephase_LLVM IsaSAT_Reluctant_LLVM
 begin
   abbreviation stats_rel :: \<open>(stats \<times> stats) set\<close> where
   \<open>stats_rel \<equiv> word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel
@@ -200,6 +200,82 @@ sepref_def ema_extract_value_impl
   is \<open>RETURN o ema_extract_value\<close>
   :: \<open>ema_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
   unfolding emag_extract_value_alt_def ema_extract_value_coeff_def[symmetric]
+  by sepref
+
+type_synonym heur_assn = \<open>(ema \<times> ema \<times> restart_info \<times> 64 word \<times>
+   (phase_saver_assn \<times> 64 word \<times> phase_saver'_assn \<times> 64 word \<times> phase_saver'_assn \<times> 64 word \<times> 64 word \<times> 64 word) \<times> reluctant_rel_assn)\<close>
+
+definition heuristic_assn :: \<open>restart_heuristics \<Rightarrow> heur_assn \<Rightarrow> assn\<close> where
+  \<open>heuristic_assn = ema_assn \<times>\<^sub>a
+  ema_assn \<times>\<^sub>a
+  restart_info_assn \<times>\<^sub>a
+  word64_assn \<times>\<^sub>a phase_heur_assn \<times>\<^sub>a reluctant_assn\<close>
+
+lemma set_zero_wasted_def:
+  \<open>set_zero_wasted = (\<lambda>(fast_ema, slow_ema, res_info, wasted, \<phi>).
+    (fast_ema, slow_ema, res_info, 0, \<phi>))\<close>
+  by (auto intro!: ext)
+
+sepref_def set_zero_wasted_impl
+  is \<open>RETURN o set_zero_wasted\<close>
+  :: \<open>heuristic_assn\<^sup>d \<rightarrow>\<^sub>a heuristic_assn\<close>
+  unfolding heuristic_assn_def set_zero_wasted_def
+  by sepref
+
+lemma mop_save_phase_heur_alt_def:
+  \<open>mop_save_phase_heur = (\<lambda> L b (fast_ema, slow_ema, res_info, wasted, (\<phi>, target, best), rel). do {
+    ASSERT(L < length \<phi>);
+    RETURN (fast_ema, slow_ema, res_info, wasted, (\<phi>[L := b], target,
+                 best), rel)})\<close>
+  unfolding mop_save_phase_heur_def save_phase_heur_def save_phase_heur_pre_def
+    heuristic_assn_def
+  by (auto intro!: ext)
+
+sepref_def mop_save_phase_heur_impl
+  is \<open>uncurry2 (mop_save_phase_heur)\<close>
+  :: \<open>atom_assn\<^sup>k *\<^sub>a bool1_assn\<^sup>k *\<^sub>a heuristic_assn\<^sup>d \<rightarrow>\<^sub>a heuristic_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding mop_save_phase_heur_alt_def save_phase_heur_def save_phase_heur_pre_def
+    heuristic_assn_def phase_heur_assn_def
+  apply annot_all_atm_idxs
+  by sepref
+
+
+sepref_def heuristic_reluctant_tick_impl
+  is \<open>RETURN o heuristic_reluctant_tick\<close>
+  :: \<open>heuristic_assn\<^sup>d \<rightarrow>\<^sub>a heuristic_assn\<close>
+  unfolding heuristic_reluctant_tick_def heuristic_assn_def
+  by sepref
+
+
+sepref_def heuristic_reluctant_enable_impl
+  is \<open>RETURN o heuristic_reluctant_enable\<close>
+  :: \<open>heuristic_assn\<^sup>d \<rightarrow>\<^sub>a heuristic_assn\<close>
+  unfolding heuristic_reluctant_enable_def heuristic_assn_def
+  by sepref
+
+sepref_def heuristic_reluctant_disable_impl
+  is \<open>RETURN o heuristic_reluctant_disable\<close>
+  :: \<open>heuristic_assn\<^sup>d \<rightarrow>\<^sub>a heuristic_assn\<close>
+  unfolding heuristic_reluctant_disable_def heuristic_assn_def
+  by sepref
+
+sepref_def heuristic_reluctant_triggered_impl
+  is \<open>RETURN o heuristic_reluctant_triggered\<close>
+  :: \<open>heuristic_assn\<^sup>d \<rightarrow>\<^sub>a heuristic_assn \<times>\<^sub>a bool1_assn\<close>
+  unfolding heuristic_reluctant_triggered_def heuristic_assn_def
+  by sepref
+
+sepref_def heuristic_reluctant_triggered2_impl
+  is \<open>RETURN o heuristic_reluctant_triggered2\<close>
+  :: \<open>heuristic_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
+  unfolding heuristic_reluctant_triggered2_def heuristic_assn_def
+  by sepref
+
+sepref_def heuristic_reluctant_untrigger_impl
+  is \<open>RETURN o heuristic_reluctant_untrigger\<close>
+  :: \<open>heuristic_assn\<^sup>d \<rightarrow>\<^sub>a heuristic_assn\<close>
+  unfolding heuristic_reluctant_untrigger_def heuristic_assn_def
   by sepref
 
 end

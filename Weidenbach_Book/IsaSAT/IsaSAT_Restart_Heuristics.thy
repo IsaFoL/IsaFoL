@@ -284,6 +284,8 @@ lemma trail_pol_no_dup: \<open>(M, M') \<in> trail_pol \<A> \<Longrightarrow> no
 lemma heuristic_rel_restart_info_done[intro!, simp]:
   \<open>heuristic_rel \<A> (fema, sema, ccount, wasted) \<Longrightarrow>
     heuristic_rel \<A> ((fema, sema, restart_info_restart_done ccount, wasted))\<close>
+  \<open>heuristic_rel \<A> (fema, sema, ccount, wasted', \<phi>, relu) \<Longrightarrow>
+    heuristic_rel \<A> ((fema, sema, restart_info_restart_done ccount, wasted', \<phi>, relu'))\<close>
   by (auto simp: heuristic_rel_def)
 
 lemma cdcl_twl_local_restart_wl_D_heur_cdcl_twl_local_restart_wl_D_spec:
@@ -499,7 +501,7 @@ proof -
       apply assumption
     subgoal for a aa ab ac ad b ae af ag ba ah ai aj ak al am bb an bc ao ap bd aq ar
        as at au av aw ax ay be az bf bg bh bi bj bk bl bm bn bo bp bq br bs
-       bt bu bv bw bx _ _ _ _ _ _ "by" bz ca cb cc cd ce cf cg ch ci cj ck cl cm cn co cp
+       bt bu bv bw bx _ _ _ _ _ _ _ "by" bz ca cb cc cd ce cf cg ch ci cj ck cl cm cn co cp
        lvl i vm0
       unfolding RETURN_def RES_RES2_RETURN_RES RES_RES13_RETURN_RES find_decomp_w_ns_def conc_fun_RES
         RES_RES13_RETURN_RES K2 K
@@ -875,7 +877,9 @@ definition restart_required_heur :: \<open>twl_st_wl_heur \<Rightarrow> nat \<Ri
       let upper = upper_restart_bound_not_reached S;
       if (opt_res \<or> opt_red) \<and> \<not>upper \<and> can_GC
       then RETURN FLAG_GC_restart
-      else RETURN FLAG_no_restart
+      else if heuristic_reluctant_triggered2_st S \<and> can_res
+        then RETURN FLAG_restart
+        else RETURN FLAG_no_restart
     }
     else do {
       let sema = ema_get_value (get_slow_ema_heur S);
@@ -5061,6 +5065,7 @@ definition update_restart_phases :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_w
        vdom, avdom, lcount, opts, old_arena). do {
      heur \<leftarrow> RETURN (incr_restart_phase heur);
      heur \<leftarrow> RETURN (incr_restart_phase_end heur);
+     heur \<leftarrow> RETURN (if current_restart_phase heur = QUIET_PHASE then heuristic_reluctant_enable heur else heuristic_reluctant_disable heur);
      RETURN (M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
          vdom, avdom, lcount, opts, old_arena)
   })\<close>
@@ -5138,7 +5143,10 @@ lemma heuristic_rel_incr_restartI[intro!]:
 
 fun Pair4 :: \<open>'a \<Rightarrow> 'b \<Rightarrow> 'c \<Rightarrow> 'd \<Rightarrow> 'a \<times> 'b \<times> 'c \<times> 'd\<close> where
   \<open>Pair4 a b c d = (a, b, c, d)\<close>
-
+(*TOD MOve*)
+lemma [intro!]:
+  \<open>heuristic_rel \<A> heur \<Longrightarrow> heuristic_rel \<A> (heuristic_reluctant_disable heur)\<close>
+  by (auto simp: heuristic_rel_def heuristic_reluctant_disable_def)
 lemma update_all_phases_Pair:
   \<open>(uncurry3 update_all_phases, uncurry3 (RETURN oooo Pair4)) \<in>
   twl_st_heur'''' r \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<rightarrow>\<^sub>f
