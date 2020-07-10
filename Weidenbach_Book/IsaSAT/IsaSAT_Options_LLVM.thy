@@ -64,6 +64,32 @@ lemma opts_assn_assn_pure[safe_constraint_rules]: \<open>CONSTRAINT is_pure opts
 
 lemmas [sepref_frame_free_rules] = mk_free_is_pure[OF opts_assn_assn_pure[unfolded CONSTRAINT_def]]
 
+definition default_opts :: opts where
+  \<open>default_opts = IsaOptions True True True 50 11 4\<close>
+
+definition default_opts2 :: opts_ref where
+  \<open>default_opts2 = (True, True, True, 50, 11, 4)\<close>
+
+definition IsaOptions_rel :: \<open>bool \<Rightarrow> bool \<Rightarrow> bool \<Rightarrow> 64 word \<Rightarrow> 64 word \<Rightarrow> nat \<Rightarrow> opts_ref \<close> where
+  \<open>IsaOptions_rel a b c d e f = (a, b, c, d, e, f)\<close>
+
+lemma IsaOptions_rel:
+  \<open>(uncurry5 (RETURN oooooo IsaOptions_rel), uncurry5 (RETURN oooooo IsaOptions)) \<in>
+     bool_rel \<times>\<^sub>f bool_rel \<times>\<^sub>f  bool_rel \<times>\<^sub>f  word_rel \<times>\<^sub>f word_rel \<times>\<^sub>f  nat_rel \<rightarrow> \<langle>opts_rel\<rangle>nres_rel\<close>
+  by (auto intro!: frefI nres_relI simp: opts_rel_def IsaOptions_rel_def)
+
+sepref_def IsaOptions_rel_impl
+  is \<open>uncurry5 (RETURN oooooo IsaOptions_rel)\<close>
+  :: \<open>bool1_assn\<^sup>k *\<^sub>a bool1_assn\<^sup>k *\<^sub>a bool1_assn\<^sup>k *\<^sub>a word_assn\<^sup>k *\<^sub>a word_assn\<^sup>k *\<^sub>a (snat_assn' (TYPE(64)))\<^sup>k \<rightarrow>\<^sub>a
+        opts_rel_assn\<close>
+  unfolding IsaOptions_rel_def opts_rel_assn_def
+  by sepref
+
+sepref_register IsaOptions
+
+lemmas [sepref_fr_rules] =
+    IsaOptions_rel_impl.refine[FCOMP IsaOptions_rel, unfolded opts_assn_def[symmetric]]
+
 experiment begin
 
 export_llvm

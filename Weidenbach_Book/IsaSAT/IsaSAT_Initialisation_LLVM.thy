@@ -719,6 +719,9 @@ lemma to_init_state_code_hnr:
 abbreviation (in -)lits_with_max_assn_clss where
   \<open>lits_with_max_assn_clss \<equiv> hr_comp lits_with_max_assn (\<langle>nat_rel\<rangle>mset_rel)\<close>
 
+schematic_goal mk_free_isasat_init_assn[sepref_frame_free_rules]: \<open>MK_FREE isasat_init_assn ?fr\<close>
+  unfolding isasat_init_assn_def
+  by synthesize_free
 
 experiment
 begin

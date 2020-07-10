@@ -1,5 +1,5 @@
 theory IsaSAT
-  imports IsaSAT_Restart IsaSAT_Initialisation
+  imports IsaSAT_CDCL IsaSAT_Restart IsaSAT_Initialisation
 begin
 
 chapter \<open>Full IsaSAT\<close>

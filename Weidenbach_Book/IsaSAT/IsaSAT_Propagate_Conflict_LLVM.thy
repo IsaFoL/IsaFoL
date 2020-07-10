@@ -158,6 +158,8 @@ sepref_def unit_propagation_outer_loop_wl_D_fast_code
     literals_to_update_wl_literals_to_update_wl_empty_def[symmetric]
   by sepref
 
+sepref_register unit_propagation_outer_loop_wl_D_heur
+
 experiment begin
 
 export_llvm

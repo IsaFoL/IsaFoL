@@ -90,4 +90,12 @@ lemma unit_propagation_outer_loop_wl_D_heur_fast:
        length (get_clauses_wl_heur s') \<le> uint64_max\<close>
   by (auto simp: unit_propagation_outer_loop_wl_D_heur_inv_def)
 
+theorem unit_propagation_outer_loop_wl_D_heur_unit_propagation_outer_loop_wl_D:
+  \<open>(unit_propagation_outer_loop_wl_D_heur, unit_propagation_outer_loop_wl) \<in>
+    {(S, T). (S, T) \<in> twl_st_heur \<and> get_learned_count S = lcount} \<rightarrow>\<^sub>f
+       \<langle>{(S, T). (S, T) \<in> twl_st_heur \<and> get_learned_count S = lcount}\<rangle> nres_rel\<close>
+  using twl_st_heur''D_twl_st_heurD[OF
+     unit_propagation_outer_loop_wl_D_heur_unit_propagation_outer_loop_wl_D']
+  .
+
 end

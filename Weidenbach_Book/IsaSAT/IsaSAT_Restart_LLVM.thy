@@ -1,5 +1,6 @@
 theory IsaSAT_Restart_LLVM
-  imports IsaSAT_Restart IsaSAT_Restart_Heuristics_LLVM IsaSAT_CDCL_LLVM IsaSAT_Garbage_Collect_LLVM
+imports IsaSAT_Restart IsaSAT_Restart_Heuristics_LLVM IsaSAT_Garbage_Collect_LLVM
+  IsaSAT_Other_LLVM IsaSAT_Propagate_Conflict_LLVM
 begin
 
 
@@ -89,33 +90,38 @@ sepref_register restart_required_heur cdcl_twl_restart_wl_heur
 
 sepref_def restart_prog_wl_D_heur_fast_code
   is \<open>uncurry4 (restart_prog_wl_D_heur)\<close>
-  :: \<open>[\<lambda>((((S, _), _), n), _). length (get_clauses_wl_heur S) \<le> sint64_max \<and> 
-         learned_clss_count S \<le> uint64_max \<and> n < uint64_max]\<^sub>a
+  :: \<open>[\<lambda>((((S, _), _), n), _). isasat_fast_relaxed2 S n]\<^sub>a
       isasat_bounded_assn\<^sup>d *\<^sub>a uint64_nat_assn\<^sup>k  *\<^sub>a uint64_nat_assn\<^sup>k  *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a
         bool1_assn\<^sup>k \<rightarrow> isasat_bounded_assn \<times>\<^sub>a uint64_nat_assn \<times>\<^sub>a uint64_nat_assn \<times>\<^sub>a uint64_nat_assn\<close>
-  unfolding restart_prog_wl_D_heur_def
+  unfolding restart_prog_wl_D_heur_def isasat_fast_relaxed_def isasat_fast_relaxed2_def
   supply [[goals_limit = 1]]
   apply (annot_unat_const \<open>TYPE(64)\<close>)
   by sepref
 
 definition isasat_fast_bound where
-  \<open>isasat_fast_bound = uint64_max - (uint32_max div 2 + 6)\<close>
+  \<open>isasat_fast_bound = sint64_max - (uint32_max div 2 + 3 + 1)\<close>
 
 lemma isasat_fast_bound_alt_def:
-  \<open>isasat_fast_bound = 18446744071562067962\<close>
+  \<open>isasat_fast_bound = 9223372034707292156\<close>
+  \<open>uint64_max = 18446744073709551615\<close>
   by (auto simp: br_def isasat_fast_bound_def
-     uint64_max_def uint32_max_def)
+     sint64_max_def uint32_max_def uint64_max_def)
 
+
+lemma isasat_fast_alt_def: \<open>isasat_fast S = (length_clauses_heur S \<le> 9223372034707292156 \<and>
+   clss_size_lcount (get_learned_count S) +
+    clss_size_lcountUE (get_learned_count S) + clss_size_lcountUS (get_learned_count S) < 18446744073709551615)\<close>
+  by (cases S; auto simp: isasat_fast_def sint64_max_def uint32_max_def length_clauses_heur_def
+    uint64_max_def learned_clss_count_def)
 
 sepref_register isasat_fast
+
 sepref_def isasat_fast_code
   is \<open>RETURN o isasat_fast\<close>
-  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
-  unfolding isasat_fast_alt_def isasat_fast_bound_def[symmetric]
-    isasat_fast_bound_alt_def
-  apply (rewrite at \<open>_ < \<hole> - _\<close> unat_const_fold[where 'a=64])+
-  apply (rewrite at \<open>_ + _ < \<hole>\<close> unat_const_fold[where 'a=64])+
-  unfolding short_circuit_conv
+  :: \<open>[\<lambda>S. isasat_fast_relaxed S]\<^sub>a isasat_bounded_assn\<^sup>k \<rightarrow> bool1_assn\<close>
+  unfolding isasat_fast_alt_def isasat_fast_relaxed_def
+  apply (rewrite at \<open>_ < \<hole>\<close> unat_const_fold[where 'a=64])+
+  unfolding all_count_learned[symmetric] clss_size_allcount_alt_def
   supply [[goals_limit = 1]]
   apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
@@ -142,38 +148,39 @@ lemma cdcl_twl_stgy_restart_prog_bounded_wl_heurI3:
   using assms
   by (auto simp: isasat_fast_def)
 
-term \<open>length (get_clauses_wl_heur T)\<close>
 sepref_register cdcl_twl_stgy_restart_prog_bounded_wl_heur
 sepref_def cdcl_twl_stgy_restart_prog_wl_heur_fast_code
   is \<open>cdcl_twl_stgy_restart_prog_bounded_wl_heur\<close>
   :: \<open>[\<lambda>S. isasat_fast S]\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> bool1_assn \<times>\<^sub>a isasat_bounded_assn\<close>
   unfolding cdcl_twl_stgy_restart_prog_bounded_wl_heur_def
-  supply [[goals_limit = 1]] isasat_fast_countD[dest] 
-  supply [dest] = cdcl_twl_stgy_restart_prog_bounded_wl_heurI1
-    cdcl_twl_stgy_restart_prog_bounded_wl_heurI2 
-  supply [intro] = cdcl_twl_stgy_restart_prog_bounded_wl_heurI3
+  supply [[goals_limit = 1]] isasat_fast_countD[dest]
+  supply [intro] = cdcl_twl_stgy_restart_prog_bounded_wl_heurI2
+  (* supply [dest] = cdcl_twl_stgy_restart_prog_bounded_wl_heurI1
+   *   cdcl_twl_stgy_restart_prog_bounded_wl_heurI2 
+    * supply [intro] = cdcl_twl_stgy_restart_prog_bounded_wl_heurI3 *)
+  supply [sepref_bounds_simps del] = uint32_max_def sint32_max_def uint64_max_def sint64_max_def
   apply (annot_unat_const \<open>TYPE(64)\<close>)
   by sepref
 
 
-experiment
-begin
-   export_llvm opts_reduction_st_fast_code
-    opts_restart_st_fast_code
-    get_conflict_count_since_last_restart_heur_fast_code
-    get_fast_ema_heur_fast_code
-    get_slow_ema_heur_fast_code
-    get_learned_count_fast_code
-    count_decided_st_heur_pol_fast
-    upper_restart_bound_not_reached_fast_impl
-    minimum_number_between_restarts_impl
-    restart_required_heur_fast_code
-    cdcl_twl_full_restart_wl_D_GC_heur_prog_fast_code
-    cdcl_twl_restart_wl_heur_fast_code
-    cdcl_twl_full_restart_wl_prog_heur_fast_code
-    cdcl_twl_local_restart_wl_D_heur_fast_code
-
-
-end
-
+(* experiment
+ * begin
+ *    export_llvm opts_reduction_st_fast_code
+ *     opts_restart_st_fast_code
+ *     get_conflict_count_since_last_restart_heur_fast_code
+ *     get_fast_ema_heur_fast_code
+ *     get_slow_ema_heur_fast_code
+ *     get_learned_count_fast_code
+ *     count_decided_st_heur_pol_fast
+ *     upper_restart_bound_not_reached_fast_impl
+ *     minimum_number_between_restarts_impl
+ *     restart_required_heur_fast_code
+ *     cdcl_twl_full_restart_wl_D_GC_heur_prog_fast_code
+ *     cdcl_twl_restart_wl_heur_fast_code
+ *     cdcl_twl_full_restart_wl_prog_heur_fast_code
+ *     cdcl_twl_local_restart_wl_D_heur_fast_code
+ * 
+ * 
+ * end *)
+term array_assn
 end

@@ -45,6 +45,13 @@ sepref_def isasat_trail_nth_st_code
   unfolding isasat_trail_nth_st_alt_def isasat_bounded_assn_def
   by sepref
 
+
+sepref_def lit_of_hd_trail_st_heur_fast_code
+  is \<open>lit_of_hd_trail_st_heur\<close>
+  :: \<open>[\<lambda>S. True]\<^sub>a isasat_bounded_assn\<^sup>k \<rightarrow> unat_lit_assn\<close>
+  unfolding lit_of_hd_trail_st_heur_alt_def isasat_bounded_assn_def
+  by sepref
+
 sepref_def heuristic_reluctant_triggered2_st_impl
   is \<open>RETURN o heuristic_reluctant_triggered2_st\<close>
   :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
@@ -127,12 +134,37 @@ sepref_def current_restart_phase_impl
   unfolding current_restart_phase_alt_def heuristic_assn_def
   by sepref
 
-
-
 sepref_def get_restart_phase_imp
   is \<open>(RETURN o get_restart_phase)\<close>
   :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
   unfolding get_restart_phase_def isasat_bounded_assn_def
+  by sepref
+
+sepref_register mark_garbage_heur2 mark_garbage_heur4
+sepref_def mark_garbage_heur2_code
+  is \<open>uncurry mark_garbage_heur2\<close>
+  :: \<open>[\<lambda>(C, S). mark_garbage_pre (get_clauses_wl_heur S, C) \<and> arena_is_valid_clause_vdom (get_clauses_wl_heur S) C]\<^sub>a
+     sint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding mark_garbage_heur2_def isasat_bounded_assn_def
+    fold_tuple_optimizations
+  by sepref
+
+sepref_def mark_garbage_heur4_code
+  is \<open>uncurry mark_garbage_heur4\<close>
+  :: \<open>[\<lambda>(C, S). mark_garbage_pre (get_clauses_wl_heur S, C) \<and> arena_is_valid_clause_vdom (get_clauses_wl_heur S) C \<and>
+        learned_clss_count S \<le> uint64_max]\<^sub>a
+     sint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
+  supply [[goals_limit=1]] isasat_fast_countD[dest] learned_clss_count_def[simp]
+  unfolding mark_garbage_heur4_def isasat_bounded_assn_def
+    fold_tuple_optimizations
+  by sepref
+
+sepref_def access_vdom_at_fast_code
+  is \<open>uncurry (RETURN oo access_vdom_at)\<close>
+  :: \<open>[uncurry access_vdom_at_pre]\<^sub>a isasat_bounded_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> sint64_nat_assn\<close>
+  unfolding access_vdom_at_alt_def access_vdom_at_pre_def isasat_bounded_assn_def
+  supply [[goals_limit = 1]]
   by sepref
 
 end

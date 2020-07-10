@@ -1,40 +1,15 @@
 theory IsaSAT_LLVM
-  imports  Version IsaSAT_CDCL_LLVM
-    IsaSAT_Initialisation_LLVM Version
+  imports
+    IsaSAT_CDCL_LLVM
+    IsaSAT_Initialisation_LLVM
+    IsaSAT_Restart_LLVM 
+     Version
     IsaSAT
-    IsaSAT_Restart_LLVM
 begin
+hide_const (open)array_assn
+
 
 chapter \<open>Code of Full IsaSAT\<close>
-
-(*TODO Move*)
-definition default_opts :: opts where
-  \<open>default_opts = IsaOptions True True True 50 11 4\<close>
-
-definition default_opts2 :: opts_ref where
-  \<open>default_opts2 = (True, True, True, 50, 11, 4)\<close>
-
-definition IsaOptions_rel :: \<open>bool \<Rightarrow> bool \<Rightarrow> bool \<Rightarrow> 64 word \<Rightarrow> 64 word \<Rightarrow> nat \<Rightarrow> opts_ref \<close> where
-  \<open>IsaOptions_rel a b c d e f = (a, b, c, d, e, f)\<close>
-
-lemma IsaOptions_rel:
-  \<open>(uncurry5 (RETURN oooooo IsaOptions_rel), uncurry5 (RETURN oooooo IsaOptions)) \<in>
-     bool_rel \<times>\<^sub>f bool_rel \<times>\<^sub>f  bool_rel \<times>\<^sub>f  word_rel \<times>\<^sub>f word_rel \<times>\<^sub>f  nat_rel \<rightarrow> \<langle>opts_rel\<rangle>nres_rel\<close>
-  by (auto intro!: frefI nres_relI simp: opts_rel_def IsaOptions_rel_def)
-
-sepref_def IsaOptions_rel_impl
-  is \<open>uncurry5 (RETURN oooooo IsaOptions_rel)\<close>
-  :: \<open>bool1_assn\<^sup>k *\<^sub>a bool1_assn\<^sup>k *\<^sub>a bool1_assn\<^sup>k *\<^sub>a word_assn\<^sup>k *\<^sub>a word_assn\<^sup>k *\<^sub>a (snat_assn' (TYPE(64)))\<^sup>k \<rightarrow>\<^sub>a
-        opts_rel_assn\<close>
-  unfolding IsaOptions_rel_def opts_rel_assn_def
-  by sepref
-
-sepref_register IsaOptions
-
-lemmas [sepref_fr_rules] =
-    IsaOptions_rel_impl.refine[FCOMP IsaOptions_rel, unfolded opts_assn_def[symmetric]]
-
-(*END Move*)
 
 abbreviation  model_stat_assn where
   \<open>model_stat_assn \<equiv> bool1_assn \<times>\<^sub>a (arl64_assn unat_lit_assn) \<times>\<^sub>a stats_assn\<close>
@@ -64,7 +39,7 @@ lemma lits_with_max_assn_alt_def: \<open>lits_with_max_assn = hr_comp (arl64_ass
           (lits_with_max_rel O \<langle>nat_rel\<rangle>IsaSAT_Initialisation.mset_rel)\<close>
 proof -
   have 1: \<open>(lits_with_max_rel O \<langle>nat_rel\<rangle>IsaSAT_Initialisation.mset_rel) = lits_with_max_rel\<close>
-    by (auto simp: mset_rel_def  p2rel_def rel2p_def[abs_def] br_def
+    by (auto simp: IsaSAT_Initialisation.mset_rel_def  p2rel_def rel2p_def[abs_def] br_def
          rel_mset_def lits_with_max_rel_def list_rel_def list_all2_op_eq_map_right_iff' list.rel_eq)
   show ?thesis
     unfolding 1
@@ -96,64 +71,6 @@ lemma extract_model_of_state_stat_alt_def:
      })\<close>
   by (auto simp: extract_model_of_state_stat_def mop_free_def intro!: ext)
 
-schematic_goal mk_free_lookup_clause_rel_assn[sepref_frame_free_rules]: \<open>MK_FREE lookup_clause_rel_assn ?fr\<close>
-  unfolding conflict_option_rel_assn_def lookup_clause_rel_assn_def
-  by (rule free_thms sepref_frame_free_rules)+ (* TODO: Write a method for that! *)
-
-schematic_goal mk_free_trail_pol_fast_assn[sepref_frame_free_rules]: \<open>MK_FREE conflict_option_rel_assn ?fr\<close>
-  unfolding conflict_option_rel_assn_def
-  by (rule free_thms sepref_frame_free_rules)+ (* TODO: Write a method for that! *)
-
-
-schematic_goal mk_free_vmtf_remove_assn[sepref_frame_free_rules]: \<open>MK_FREE vmtf_remove_assn ?fr\<close>
-  unfolding vmtf_remove_assn_def
-  by (rule free_thms sepref_frame_free_rules)+ (* TODO: Write a method for that! *)
-(*cach_refinement_l_assn*)
-
-schematic_goal mk_free_cach_refinement_l_assn[sepref_frame_free_rules]: \<open>MK_FREE cach_refinement_l_assn ?fr\<close>
-  unfolding cach_refinement_l_assn_def
-  by (rule free_thms sepref_frame_free_rules)+ (* TODO: Write a method for that! *)
-
-schematic_goal mk_free_lbd_assn[sepref_frame_free_rules]: \<open>MK_FREE lbd_assn ?fr\<close>
-  unfolding lbd_assn_def
-  by (rule free_thms sepref_frame_free_rules)+ (* TODO: Write a method for that! *)
-
-schematic_goal mk_free_heuristic_assn[sepref_frame_free_rules]: \<open>MK_FREE heuristic_assn ?fr\<close>
-  unfolding heuristic_assn_def
-  by (rule free_thms sepref_frame_free_rules)+ (* TODO: Write a method for that! *)
-
-context
-  fixes l_dummy :: \<open>'l::len2 itself\<close>
-  fixes ll_dummy :: \<open>'ll::len2 itself\<close>
-  fixes L LL AA
-  defines [simp]: \<open>L \<equiv> (LENGTH ('l))\<close>
-  defines [simp]: \<open>LL \<equiv> (LENGTH ('ll))\<close>
-  defines [simp]: \<open>AA \<equiv> raw_aal_assn TYPE('l::len2) TYPE('ll::len2)\<close>
-begin
-  private lemma n_unf: \<open>hr_comp AA (\<langle>\<langle>the_pure A\<rangle>list_rel\<rangle>list_rel) = aal_assn A\<close> unfolding aal_assn_def AA_def ..
-
-context
-  notes [fcomp_norm_unfold] = n_unf
-begin
-
-lemma aal_assn_free[sepref_frame_free_rules]: \<open>MK_FREE AA aal_free\<close>
-  apply rule by vcg
-  sepref_decl_op list_list_free: \<open>\<lambda>_::_ list list. ()\<close> :: \<open>\<langle>\<langle>A\<rangle>list_rel\<rangle>list_rel \<rightarrow> unit_rel\<close> .
-
-lemma hn_aal_free_raw: \<open>(aal_free,RETURN o op_list_list_free) \<in> AA\<^sup>d \<rightarrow>\<^sub>a unit_assn\<close>
-    by sepref_to_hoare vcg
-
-  sepref_decl_impl aal_free: hn_aal_free_raw
-     .
-
-  lemmas array_mk_free[sepref_frame_free_rules] = hn_MK_FREEI[OF aal_free_hnr]
-end
-end
-
-schematic_goal mk_free_isasat_init_assn[sepref_frame_free_rules]: \<open>MK_FREE isasat_init_assn ?fr\<close>
-  unfolding isasat_init_assn_def
-  by (rule free_thms sepref_frame_free_rules)+ (* TODO: Write a method for that! *)
-
 sepref_def extract_model_of_state_stat
   is \<open>RETURN o extract_model_of_state_stat\<close>
   :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a model_stat_assn\<close>
@@ -161,8 +78,6 @@ sepref_def extract_model_of_state_stat
   unfolding extract_model_of_state_stat_alt_def isasat_bounded_assn_def
    trail_pol_fast_assn_def
   by sepref
-
-lemmas [sepref_fr_rules] = extract_model_of_state_stat.refine
 
 lemma extract_state_stat_alt_def:
   \<open>RETURN o extract_state_stat = (\<lambda>(M, N', D', j, W', vm, clvls, cach, lbd, outl, stats,
@@ -217,8 +132,6 @@ sepref_def  empty_init_code'
   apply (rewrite in \<open>RETURN (_, \<hole>,_)\<close> annotate_assn[where A=\<open>arl64_assn unat_lit_assn\<close>])
   by sepref
 
-declare empty_init_code'.refine[sepref_fr_rules]
-
 sepref_register init_dt_wl_heur_full
 
 sepref_register to_init_state from_init_state get_conflict_wl_is_None_init extract_stats
@@ -238,9 +151,6 @@ sepref_def isasat_fast_bound_impl
   apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
-lemmas [sepref_fr_rules] = isasat_fast_bound_impl.refine
-
-thm isasat_fast_alt_def
 lemma isasat_fast_init_alt_def:
   \<open>RETURN o isasat_fast_init = (\<lambda>(M, N, _, _, _, _, _, _, _, _, _, failed, lcount).
      RETURN (length N \<le> isasat_fast_bound \<and>

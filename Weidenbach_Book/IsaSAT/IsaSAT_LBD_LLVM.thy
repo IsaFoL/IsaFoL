@@ -1,5 +1,5 @@
 theory IsaSAT_LBD_LLVM
-  imports IsaSAT_LBD IsaSAT_Setup_LLVM
+  imports IsaSAT_LBD IsaSAT_Setup0_LLVM
 begin
 
 sepref_register mark_lbd_from_clause_heur get_level_pol mark_lbd_from_list_heur

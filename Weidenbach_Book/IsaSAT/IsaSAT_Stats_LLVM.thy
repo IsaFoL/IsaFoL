@@ -278,4 +278,21 @@ sepref_def heuristic_reluctant_untrigger_impl
   unfolding heuristic_reluctant_untrigger_def heuristic_assn_def
   by sepref
 
+lemma clss_size_incr_lcount_alt_def:
+  \<open>RETURN o clss_size_incr_lcount =
+  (\<lambda>(lcount,  lcountUE, lcountUS). RETURN (lcount + 1, lcountUE, lcountUS))\<close>
+  by (auto simp: clss_size_incr_lcount_def)
+
+sepref_register clss_size_incr_lcount
+sepref_def clss_size_incr_lcount_fast_code
+  is \<open>RETURN o clss_size_incr_lcount\<close>
+  :: \<open>[\<lambda>S. clss_size_lcount S \<le> max_snat 64]\<^sub>a lcount_assn\<^sup>d \<rightarrow> lcount_assn\<close>
+  unfolding clss_size_incr_lcount_alt_def lcount_assn_def clss_size_lcount_def
+  apply (annot_unat_const \<open>TYPE(64)\<close>)
+  by sepref
+
+schematic_goal mk_free_heuristic_assn[sepref_frame_free_rules]: \<open>MK_FREE heuristic_assn ?fr\<close>
+  unfolding heuristic_assn_def
+  by synthesize_free
+
 end

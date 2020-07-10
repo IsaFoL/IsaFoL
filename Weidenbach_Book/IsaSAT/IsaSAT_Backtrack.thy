@@ -724,9 +724,6 @@ definition propagate_bt_wl_D_heur
           clss_size_incr_lcount lcount, opts)
     })\<close>
 
-definition (in -) lit_of_hd_trail_st_heur :: \<open>twl_st_wl_heur \<Rightarrow> nat literal nres\<close> where
-  \<open>lit_of_hd_trail_st_heur S = do {ASSERT (fst (get_trail_wl_heur S) \<noteq> []); RETURN (lit_of_last_trail_pol (get_trail_wl_heur S))}\<close>
-
 definition remove_last
   :: \<open>nat literal \<Rightarrow> nat clause option \<Rightarrow> nat clause option nres\<close>
   where
@@ -2602,9 +2599,5 @@ lemma propagate_bt_wl_D_fast_code_isasat_fastI3: \<open>isasat_fast b \<Longrigh
        a2' = (a1'a, a2'a) \<Longrightarrow>
        a \<le> length a1'a \<Longrightarrow> a < sint64_max\<close>
   by (cases b) (auto simp: isasat_fast_def sint64_max_def uint32_max_def)
-
-lemma lit_of_hd_trail_st_heur_alt_def:
-  \<open>lit_of_hd_trail_st_heur = (\<lambda>(M, N, D, Q, W, vm, \<phi>). do {ASSERT (fst M \<noteq> []); RETURN (lit_of_last_trail_pol M)})\<close>
-  by (auto simp: lit_of_hd_trail_st_heur_def lit_of_hd_trail_def intro!: ext)
 
 end

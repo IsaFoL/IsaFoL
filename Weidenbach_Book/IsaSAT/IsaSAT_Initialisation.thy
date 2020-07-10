@@ -1,35 +1,9 @@
 theory IsaSAT_Initialisation
-  imports Watched_Literals.Watched_Literals_Watch_List_Initialisation IsaSAT_Setup IsaSAT_VMTF
+  imports Watched_Literals.Watched_Literals_Watch_List_Initialisation IsaSAT_Setup IsaSAT_VMTF WB_More_Word
     Automatic_Refinement.Relators \<comment> \<open>for more lemmas\<close>
 begin
 
 chapter \<open>Initialisation\<close>
-
-(*TODO Move*)
-lemma bitXOR_1_if_mod_2_int: \<open>bitOR L 1 = (if L mod 2 = 0 then L + 1 else L)\<close> for L :: int
-  apply (rule bin_rl_eqI)
-  unfolding bin_rest_OR bin_last_OR
-   apply (auto simp: bin_rest_def bin_last_def)
-  done
-
-
-lemma bitOR_1_if_mod_2_nat:
-  \<open>bitOR L 1 = (if L mod 2 = 0 then L + 1 else L)\<close>
-  \<open>bitOR L (Suc 0) = (if L mod 2 = 0 then L + 1 else L)\<close> for L :: nat
-proof -
-  have H: \<open>bitOR L 1 =  L + (if bin_last (int L) then 0 else 1)\<close>
-    unfolding bitOR_nat_def
-    apply (auto simp: bitOR_nat_def bin_last_def
-        bitXOR_1_if_mod_2_int)
-    done
-  show \<open>bitOR L 1 = (if L mod 2 = 0 then L + 1 else L)\<close>
-    unfolding H
-    apply (auto simp: bitOR_nat_def bin_last_def)
-    apply presburger+
-    done
-  then show \<open>bitOR L (Suc 0) = (if L mod 2 = 0 then L + 1 else L)\<close>
-    by simp
-qed
 
 
 section \<open>Code for the initialisation of the Data Structure\<close>

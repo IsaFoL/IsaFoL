@@ -28,6 +28,8 @@ lemma RETURN_comp_5_10_hnr_post[to_hnr_post]:
   \<open>(RETURN o\<^sub>1\<^sub>4 f14)$a$b$c$d$e$f$g$h$i$j$k$l$m$n = RETURN$(f14$a$b$c$d$e$f$g$h$i$j$k$l$m$n)\<close>
   by simp_all
 
+method synthesize_free =
+  (rule free_thms sepref_frame_free_rules)+
 
 (*  TODO/FIXME: Ad-hoc optimizations for large tuples *)
 definition [simp,llvm_inline]: \<open>case_prod_open \<equiv> case_prod\<close>
@@ -386,4 +388,36 @@ lemma nat_lit_rel: \<open>((=), op_nat_lit_eq) \<in> nat_lit_rel \<rightarrow> n
 sepref_register \<open>(=) :: nat literal \<Rightarrow> _ \<Rightarrow> _\<close>
 declare nat_lit_eq_impl.refine[FCOMP nat_lit_rel, sepref_fr_rules]
 
+context
+  fixes l_dummy :: \<open>'l::len2 itself\<close>
+  fixes ll_dummy :: \<open>'ll::len2 itself\<close>
+  fixes L LL AA
+  defines [simp]: \<open>L \<equiv> (LENGTH ('l))\<close>
+  defines [simp]: \<open>LL \<equiv> (LENGTH ('ll))\<close>
+  defines [simp]: \<open>AA \<equiv> raw_aal_assn TYPE('l::len2) TYPE('ll::len2)\<close>
+begin
+  private lemma n_unf: \<open>hr_comp AA (\<langle>\<langle>the_pure A\<rangle>list_rel\<rangle>list_rel) = aal_assn A\<close> unfolding aal_assn_def AA_def ..
+
+context
+  notes [fcomp_norm_unfold] = n_unf
+begin
+
+lemma aal_assn_free[sepref_frame_free_rules]: \<open>MK_FREE AA aal_free\<close>
+  apply rule by vcg
+  sepref_decl_op list_list_free: \<open>\<lambda>_::_ list list. ()\<close> :: \<open>\<langle>\<langle>A\<rangle>list_rel\<rangle>list_rel \<rightarrow> unit_rel\<close> .
+
+lemma hn_aal_free_raw: \<open>(aal_free,RETURN o op_list_list_free) \<in> AA\<^sup>d \<rightarrow>\<^sub>a unit_assn\<close>
+    by sepref_to_hoare vcg
+
+  sepref_decl_impl aal_free: hn_aal_free_raw
+     .
+
+  lemmas array_mk_free[sepref_frame_free_rules] = hn_MK_FREEI[OF aal_free_hnr]
+end
+end
+
+
+lemma of_nat_snat:
+  \<open>(id,of_nat) \<in> snat_rel' TYPE('a::len2) \<rightarrow> word_rel\<close>
+  by (auto simp: snat_rel_def snat.rel_def in_br_conv snat_eq_unat)
 end
