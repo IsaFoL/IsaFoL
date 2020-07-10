@@ -74,6 +74,10 @@ definition reluctant_init :: \<open>reluctant\<close> where
 value
   \<open>let p0 = (reluctant_tick ^^ 1024) (reluctant_enable (1<< 10) (1<<20));
     p1 = reluctant_untrigger p0;
-    p2 = (reluctant_tick ^^ 1023) p1 in
-   (p0, p1, reluctant_triggered2 p2 = False, reluctant_triggered2 p0 = True)\<close>
+    p2 = (reluctant_tick ^^ 1024) p1;
+    p3 = reluctant_untrigger p2;
+    p4 = (reluctant_tick ^^ 2048) p3;
+    p5 = reluctant_untrigger p3;
+    p6 = (reluctant_tick ^^ 2048) p5 in
+   (p0, p1, p2, p3, p4, p5, p6, reluctant_triggered2 p0 = True, reluctant_triggered2 p2 = False)\<close>
 end

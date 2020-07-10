@@ -1045,9 +1045,9 @@ definition incr_restart_stat :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_he
 
 definition incr_lrestart_stat :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
   \<open>incr_lrestart_stat = (\<lambda>(M, N, D, Q, W, vm, clvls, cach, lbd, outl, stats, (fast_ema, slow_ema,
-     res_info, wasted), vdom, avdom, lcount). do{
+     res_info, wasted, \<phi>, relu), vdom, avdom, lcount). do{
      RETURN (M, N, D, Q, W, vm, clvls, cach, lbd, outl, incr_lrestart stats,
-       (fast_ema, slow_ema, restart_info_restart_done res_info, wasted),
+       (fast_ema, slow_ema, restart_info_restart_done res_info, wasted, \<phi>, reluctant_untrigger relu),
        vdom, avdom, lcount)
   })\<close>
 
