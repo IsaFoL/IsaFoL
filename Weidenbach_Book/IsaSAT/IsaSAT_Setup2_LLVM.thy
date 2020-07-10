@@ -106,24 +106,6 @@ sepref_def mop_clause_not_marked_to_delete_heur_impl
     clause_not_marked_to_delete_heur_pre_def  prod.case isasat_bounded_assn_def
   by sepref
 
-sepref_def delete_index_and_swap_code2
-  is \<open>uncurry (RETURN oo delete_index_and_swap)\<close>
-  :: \<open>[\<lambda>(xs, i). i < length xs]\<^sub>a
-      vdom_fast_assn\<^sup>d *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> vdom_fast_assn\<close>
-  unfolding delete_index_and_swap.simps
-  by sepref
-
-sepref_def mop_mark_garbage_heur_impl
-  is \<open>uncurry2 mop_mark_garbage_heur\<close>
-  :: \<open>[\<lambda>((C, i), S). length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a
-      sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
-  supply [[goals_limit=1]]
-  unfolding mop_mark_garbage_heur_alt_def
-    clause_not_marked_to_delete_heur_pre_def prod.case isasat_bounded_assn_def
-    get_clauses_wl_heur.simps
-  apply (rewrite in \<open>RETURN \<hole>\<close> fold_tuple_optimizations)
-  by sepref
-
 sepref_def mop_arena_lbd_st_impl
   is \<open>uncurry mop_arena_lbd_st\<close>
   :: \<open>isasat_bounded_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>

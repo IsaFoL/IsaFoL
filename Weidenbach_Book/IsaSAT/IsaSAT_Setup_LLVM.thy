@@ -1,5 +1,5 @@
 theory IsaSAT_Setup_LLVM
-  imports 
+  imports
     IsaSAT_Setup1_LLVM
     IsaSAT_Setup2_LLVM
     IsaSAT_Setup3_LLVM

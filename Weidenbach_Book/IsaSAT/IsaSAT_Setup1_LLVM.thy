@@ -114,6 +114,16 @@ sepref_def clause_lbd_heur_code2
 
 sepref_register mark_garbage_heur
 
+sepref_def mop_mark_garbage_heur_impl
+  is \<open>uncurry2 mop_mark_garbage_heur\<close>
+  :: \<open>[\<lambda>((C, i), S). length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a
+      sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding mop_mark_garbage_heur_alt_def
+    clause_not_marked_to_delete_heur_pre_def prod.case isasat_bounded_assn_def
+    get_clauses_wl_heur.simps
+  apply (rewrite in \<open>RETURN \<hole>\<close> fold_tuple_optimizations)
+  by sepref
 
 sepref_def mark_garbage_heur_code2
   is \<open>uncurry2 (RETURN ooo mark_garbage_heur)\<close>
@@ -125,6 +135,26 @@ sepref_def mark_garbage_heur_code2
     length_avdom_def fold_tuple_optimizations clss_size_decr_lcount_def clss_size_lcount_def
     lcount_assn_def fold_tuple_optimizations
   apply (annot_unat_const \<open>TYPE(64)\<close>)
+  by sepref
+
+lemma mop_mark_garbage_heur3_alt_def:
+  \<open>mop_mark_garbage_heur3 C i = (\<lambda>(M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
+       vdom, avdom, lcount, opts, old_arena). do {
+    ASSERT(mark_garbage_pre (get_clauses_wl_heur (M', N', D', j, W', vm, clvls, cach, lbd, outl,
+       stats, heur, vdom, avdom, lcount, opts, old_arena), C) \<and> clss_size_lcount lcount \<ge> 1 \<and> i < length avdom);
+    RETURN (M', extra_information_mark_to_delete N' C, D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
+       vdom, delete_index_and_swap avdom i, clss_size_resetUS (clss_size_decr_lcount lcount), opts, old_arena)
+   })\<close>
+  unfolding mop_mark_garbage_heur3_def mark_garbage_heur3_def
+  by (auto intro!: ext)
+
+sepref_def mop_mark_garbage_heur3_impl
+  is \<open>uncurry2 mop_mark_garbage_heur3\<close>
+  :: \<open>[\<lambda>((C, i), S). length (get_clauses_wl_heur S) \<le> sint64_max]\<^sub>a
+      sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding mop_mark_garbage_heur3_alt_def
+    clause_not_marked_to_delete_heur_pre_def prod.case isasat_bounded_assn_def
   by sepref
 
 sepref_register delete_index_vdom_heur
