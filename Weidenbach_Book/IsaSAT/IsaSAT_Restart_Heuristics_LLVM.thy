@@ -94,22 +94,13 @@ sepref_def incr_restart_phase_impl
   by sepref
 
 sepref_register incr_restart_phase incr_restart_phase_end
-  update_restart_phases update_all_phases
+  update_restart_phases
 
 sepref_def update_restart_phases_impl
   is \<open>update_restart_phases\<close>
   :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
   unfolding update_restart_phases_def isasat_bounded_assn_def
     fold_tuple_optimizations
-  by sepref
-
-(*TODO Move*)
-
-sepref_def update_all_phases_impl
-  is \<open>uncurry3 update_all_phases\<close>
-  :: \<open>isasat_bounded_assn\<^sup>d *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a
-     isasat_bounded_assn \<times>\<^sub>a uint64_nat_assn \<times>\<^sub>a uint64_nat_assn \<times>\<^sub>a uint64_nat_assn\<close>
-  unfolding update_all_phases_def
   by sepref
 
 sepref_def find_local_restart_target_level_fast_code

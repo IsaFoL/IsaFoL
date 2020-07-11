@@ -117,6 +117,9 @@ fun get_lbd :: \<open>twl_st_wl_heur \<Rightarrow> lbd\<close> where
 fun get_outlearned_heur :: \<open>twl_st_wl_heur \<Rightarrow> out_learned\<close> where
   \<open>get_outlearned_heur (_, _, _, _, _, _, _, _, _, out, _) = out\<close>
 
+fun get_stats_heur :: \<open>twl_st_wl_heur \<Rightarrow> stats\<close> where
+  \<open>get_stats_heur (_, _, _, _, _, _, _, _, _, _, stats, _, _) = stats\<close>
+
 fun get_fast_ema_heur :: \<open>twl_st_wl_heur \<Rightarrow> ema\<close> where
   \<open>get_fast_ema_heur (_, _, _, _, _, _, _, _, _, _, _, heur, _) = fast_ema_of heur\<close>
 
@@ -1028,6 +1031,15 @@ lemma get_learned_count_alt_def:
    \<open>RETURN o get_learned_count = (\<lambda>(M, N0, D, Q, W, vm, clvls, cach, lbd, outl,
        stats, _, vdom, avdom, lcount, opts). RETURN lcount)\<close>
   by auto
+
+definition get_global_conflict_count where
+  \<open>get_global_conflict_count S = stats_conflicts (get_stats_heur S)\<close>
+
+lemma (in -) get_global_conflict_count_alt_def:
+   \<open>RETURN o get_global_conflict_count = (\<lambda>(M, N0, D, Q, W, vm, clvls, cach, lbd,
+       outl, (stats), _, lcount). RETURN (stats_conflicts stats))\<close>
+  by (auto simp: get_global_conflict_count_def)
+
 
 text \<open>
   I also played with \<^term>\<open>ema_reinit fast_ema\<close> and \<^term>\<open>ema_reinit slow_ema\<close>. Currently removed,

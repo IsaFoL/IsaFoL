@@ -35,6 +35,9 @@ definition incr_uset :: \<open>stats \<Rightarrow> stats\<close> where
 definition incr_GC :: \<open>stats \<Rightarrow> stats\<close> where
   \<open>incr_GC = (\<lambda>(propa, confl, dec, res, lres, uset, gcs, lbds). (propa, confl, dec, res, lres, uset, gcs + 1, lbds))\<close>
 
+definition stats_conflicts :: \<open>stats \<Rightarrow> 64 word\<close> where
+  \<open>stats_conflicts = (\<lambda>(propa, confl, dec). confl)\<close>
+
 definition add_lbd :: \<open>32 word \<Rightarrow> stats \<Rightarrow> stats\<close> where
   \<open>add_lbd lbd = (\<lambda>(propa, confl, dec, res, lres, uset, gcs, lbds). (propa, confl, dec, res, lres, uset, gcs, ema_update (unat lbd) lbds))\<close>
 

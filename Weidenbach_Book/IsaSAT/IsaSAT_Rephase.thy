@@ -162,32 +162,45 @@ lemma reset_best_phase_spec:
   shows \<open>reset_best_phase \<phi> \<le> \<Down>Id (SPEC(phase_save_heur_rel \<A>))\<close>
   using assms by (cases \<phi>) (auto simp: reset_best_phase_def phase_save_heur_rel_def)
 
+definition current_phase_letter :: \<open>64 word \<Rightarrow> 64 word\<close> where
+  \<open>current_phase_letter curr_phase =
+      (if curr_phase = 0 \<or> curr_phase = 2 \<or> curr_phase = 4 \<or> curr_phase = 6
+      then 66
+      else if curr_phase = 1
+      then 73
+      else if curr_phase = 3
+      then 35
+      else if curr_phase = 5
+      then 79
+      else 70)
+     \<close>
+
 definition phase_rephase :: \<open>64 word \<Rightarrow> phase_save_heur \<Rightarrow> phase_save_heur nres\<close> where
 \<open>phase_rephase = (\<lambda>b (\<phi>, target_assigned, target, best_assigned, best, end_of_phase, curr_phase, length_phase).
    do {
       if curr_phase = 0 \<or> curr_phase = 2 \<or> curr_phase = 4 \<or> curr_phase = 6
       then do {
          \<phi> \<leftarrow> copy_phase best \<phi>;
-         RETURN (\<phi>, target_assigned, target, best_assigned, best, length_phase*100+end_of_phase, curr_phase + 1, length_phase)
+         RETURN (\<phi>, target_assigned, target, best_assigned, best, length_phase*1000+end_of_phase, curr_phase + 1, length_phase)
       }
       else if curr_phase = 1
       then do {
          \<phi> \<leftarrow> rephase_init True \<phi>;
-         RETURN (\<phi>, target_assigned, target, best_assigned, best, length_phase*100+end_of_phase, curr_phase + 1, length_phase)
+         RETURN (\<phi>, target_assigned, target, best_assigned, best, length_phase*1000+end_of_phase, curr_phase + 1, length_phase)
       }
       else if curr_phase = 3
       then do {
          \<phi> \<leftarrow> rephase_random end_of_phase \<phi>;
-         RETURN (\<phi>, target_assigned, target, best_assigned, best, length_phase*100+end_of_phase, curr_phase + 1, length_phase)
+         RETURN (\<phi>, target_assigned, target, best_assigned, best, length_phase*1000+end_of_phase, curr_phase + 1, length_phase)
       }
       else if curr_phase = 5
       then do {
          \<phi> \<leftarrow> rephase_init False \<phi>;
-         RETURN (\<phi>, target_assigned, target, best_assigned, best, length_phase*100+end_of_phase, curr_phase + 1, length_phase)
+         RETURN (\<phi>, target_assigned, target, best_assigned, best, length_phase*1000+end_of_phase, curr_phase + 1, length_phase)
       }
       else do {
          \<phi> \<leftarrow> rephase_flipped \<phi>;
-         RETURN (\<phi>, target_assigned, target, best_assigned, best, (1+length_phase)*100+end_of_phase, 0,
+         RETURN (\<phi>, target_assigned, target, best_assigned, best, (1+length_phase)*1000+end_of_phase, 0,
             length_phase+1)
       }
     })\<close>

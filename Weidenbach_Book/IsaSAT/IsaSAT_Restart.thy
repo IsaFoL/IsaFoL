@@ -9,6 +9,16 @@ definition cdcl_twl_stgy_restart_abs_wl_heur_inv where
     (\<exists>S\<^sub>0' T'. (S\<^sub>0, S\<^sub>0') \<in> twl_st_heur \<and> (T, T') \<in> twl_st_heur \<and>
       cdcl_twl_stgy_restart_abs_wl_inv S\<^sub>0' (brk, T', last_GC, last_Rephase)))\<close>
 
+(*TODO FIX rephasing probably does not work after GC*)
+definition update_all_phases :: \<open>twl_st_wl_heur \<Rightarrow> (twl_st_wl_heur) nres\<close> where
+  \<open>update_all_phases = (\<lambda>S. do {
+     let lcount = get_global_conflict_count S;
+     end_of_restart_phase \<leftarrow> RETURN (end_of_restart_phase_st S);
+     S \<leftarrow> (if end_of_restart_phase > lcount then RETURN S else update_restart_phases S);
+     S \<leftarrow> (if end_of_rephasing_phase_st S > lcount then RETURN S else rephase_heur_st S);
+     RETURN S
+  })\<close>
+
 definition cdcl_twl_stgy_restart_prog_wl_heur
    :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close>
 where
@@ -25,6 +35,49 @@ where
       (False, S\<^sub>0::twl_st_wl_heur, learned_clss_count S\<^sub>0, learned_clss_count S\<^sub>0, 0);
     RETURN T
   }\<close>
+
+fun Pair4 :: \<open>'a \<Rightarrow> 'b \<Rightarrow> 'c \<Rightarrow> 'd \<Rightarrow> 'a \<times> 'b \<times> 'c \<times> 'd\<close> where
+  \<open>Pair4 a b c d = (a, b, c, d)\<close>
+
+lemma update_all_phases_Pair:
+  \<open>(update_all_phases, (RETURN o id)) \<in>
+  twl_st_heur''''uu r  u  \<rightarrow>\<^sub>f \<langle>twl_st_heur''''uu r u\<rangle>nres_rel\<close>
+proof -
+  have [refine0]: \<open>(S, S') \<in> twl_st_heur''''uu r u \<Longrightarrow> update_restart_phases S \<le> SPEC(\<lambda>S. (S, S') \<in> twl_st_heur''''uu r u)\<close>
+    for S :: twl_st_wl_heur and S' :: \<open>nat twl_st_wl\<close>
+    unfolding update_all_phases_def update_restart_phases_def
+    by (auto simp: twl_st_heur'_def twl_st_heur_def learned_clss_count_def
+        intro!: rephase_heur_st_spec[THEN order_trans]
+        simp del: incr_restart_phase_end.simps incr_restart_phase.simps)
+  have [refine0]: \<open>(S, S') \<in> twl_st_heur''''uu r u \<Longrightarrow> rephase_heur_st S \<le> SPEC(\<lambda>S. (S, S') \<in> twl_st_heur''''uu r u)\<close>
+    for S :: twl_st_wl_heur and S' :: \<open>nat twl_st_wl\<close>
+    unfolding update_all_phases_def rephase_heur_st_def
+    apply (cases S')
+    apply (refine_vcg rephase_heur_spec[THEN order_trans, of \<open>all_atms_st S'\<close>])
+    apply (clarsimp simp: twl_st_heur'_def twl_st_heur_def learned_clss_count_def)
+    apply (simp add: learned_clss_count_def)
+    apply (clarsimp simp add: twl_st_heur_def learned_clss_count_def)
+    done
+
+  show ?thesis
+    supply[[goals_limit=1]]
+    unfolding update_all_phases_def
+    apply (subst (1) bind_to_let_conv)
+    apply (subst (1) Let_def)
+    apply (subst (1) Let_def)
+    apply (intro frefI nres_relI)
+    apply (case_tac x rule:prod.exhaust)
+    apply (simp only: uncurry_def prod.case comp_def)
+    apply refine_vcg
+    subgoal by simp
+    apply assumption
+    subgoal by simp
+    apply assumption
+    subgoal by simp
+    apply assumption
+    subgoal by simp
+    done
+qed
 
 
 lemma cdcl_twl_stgy_restart_prog_wl_heur_cdcl_twl_stgy_restart_prog_wl_D:
@@ -403,6 +456,7 @@ where
         (brk, T) \<leftarrow> cdcl_twl_o_prog_wl_D_heur T;
         ASSERT(isasat_fast_relaxed2 T n);
         (T, last_GC, last_Restart, n) \<leftarrow> restart_prog_wl_D_heur T last_GC last_Restart n brk;
+        T \<leftarrow> update_all_phases T;
         ASSERT(isasat_fast_relaxed T);
 	ebrk \<leftarrow> RETURN (\<not>(isasat_fast T \<and> n < uint64_max));
         RETURN (ebrk, brk, T, last_GC, last_Restart, n)
@@ -431,6 +485,7 @@ proof -
 	          T \<leftarrow> unit_propagation_outer_loop_wl S;
 	          (brk, T) \<leftarrow> cdcl_twl_o_prog_wl T;
 	          (T, last_GC, last_Restart, n) \<leftarrow> restart_prog_wl T last_GC last_Restart n brk;
+                  T \<leftarrow> RETURN (id T);
 	          ebrk \<leftarrow> RES UNIV;
 	          RETURN (ebrk, brk, T, last_GC, last_Restart, n)
 	        })
@@ -438,7 +493,8 @@ proof -
                     size (get_all_learned_clss_wl S\<^sub>0), 0);
       RETURN (ebrk, T)
     }\<close> for S\<^sub>0
-    unfolding cdcl_twl_stgy_restart_prog_bounded_wl_def nres_monad1 by (auto intro: bind_cong[OF refl])
+    unfolding cdcl_twl_stgy_restart_prog_bounded_wl_def nres_monad1 Let_def
+    by (auto intro: bind_cong[OF refl])
 
   have [refine0]: \<open>RETURN (\<not>(isasat_fast x \<and> n < uint64_max)) \<le> \<Down>
       {(b, b'). b = b' \<and> (b = (\<not>(isasat_fast x \<and> n < uint64_max)))} (RES UNIV)\<close>
@@ -615,16 +671,27 @@ proof -
     for x y ebrk ebrka xa x' x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d x1e x2e x1f x2f
           x1g x2g x1h x2h x1i x2i T Ta xb x'a x1j x2j x1k x2k
       using that by auto
-
+    have H5:
+      \<open>       (xc, x'b)
+       \<in> twl_st_heur''''uu r u \<times>\<^sub>f
+         (nat_rel \<times>\<^sub>f (nat_rel \<times>\<^sub>f nat_rel)) \<Longrightarrow>
+       x'b = (x1l, x2l) \<Longrightarrow>
+       xc = (x1o, x2o) \<Longrightarrow>
+       (x1o, x1l)
+       \<in> twl_st_heur''''uu r u
+      \<close> for xc x'b u r x1o x1l x2o x2l
+      by auto
   show ?thesis
     supply[[goals_limit=1]] isasat_fast_length_leD[dest] twl_st_heur'_def[simp] learned_clss_count_twl_st_heur[simp]
     unfolding cdcl_twl_stgy_restart_prog_bounded_wl_heur_def
       cdcl_twl_stgy_restart_prog_bounded_wl_alt_def
     apply (intro frefI nres_relI)
+
     apply (refine_rcg
         restart_prog_wl_D_heur_restart_prog_wl_D[THEN fref_to_Down_curry4]
         cdcl_twl_o_prog_wl_D_heur_cdcl_twl_o_prog_wl_D[THEN fref_to_Down]
         unit_propagation_outer_loop_wl_D_heur_unit_propagation_outer_loop_wl_D'[THEN fref_to_Down]
+        update_all_phases_Pair[THEN fref_to_Down, unfolded comp_def]
         WHILEIT_refine[where R = \<open>?R\<close>])
     subgoal using r by (auto simp: sint64_max_def isasat_fast_def uint32_max_def)
     subgoal for x y ebrk ebrka xa x' x1 x2 x1a x2a x1b x2b x1c x2c x1d x2d
@@ -646,6 +713,7 @@ proof -
     subgoal by (auto simp: isasat_fast_def uint64_max_def uint32_max_def sint64_max_def
       isasat_fast_relaxed_def isasat_fast_relaxed2_def)
     apply (rule H4; assumption)
+    apply (rule H5; assumption)
     subgoal
       by (auto simp: isasat_fast_def uint64_max_def uint32_max_def sint64_max_def
         isasat_fast_relaxed_def)

@@ -107,5 +107,12 @@ sepref_def get_next_phase_imp
   apply annot_all_atm_idxs
   by  sepref
 
+sepref_register current_phase_letter
+sepref_def current_phase_letter_impl
+  is \<open>RETURN o current_phase_letter\<close>
+  :: \<open>word64_assn\<^sup>k \<rightarrow>\<^sub>a word64_assn\<close>
+  unfolding current_phase_letter_def
+  by sepref
+
 end
 

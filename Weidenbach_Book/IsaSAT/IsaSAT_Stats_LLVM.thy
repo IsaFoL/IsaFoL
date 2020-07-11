@@ -12,6 +12,7 @@ abbreviation stats_assn :: \<open>stats \<Rightarrow> stats \<Rightarrow> assn\<
 
 lemma [sepref_import_param]:
   \<open>(incr_propagation,incr_propagation) \<in> stats_rel \<rightarrow> stats_rel\<close>
+  \<open>(stats_conflicts,stats_conflicts) \<in> stats_rel \<rightarrow> word_rel\<close>
   \<open>(incr_conflict,incr_conflict) \<in> stats_rel \<rightarrow> stats_rel\<close>
   \<open>(incr_decision,incr_decision) \<in> stats_rel \<rightarrow> stats_rel\<close>
   \<open>(incr_restart,incr_restart) \<in> stats_rel \<rightarrow> stats_rel\<close>
@@ -29,6 +30,7 @@ lemmas [llvm_inline] =
   incr_lrestart_def
   incr_uset_def
   incr_GC_def
+  stats_conflicts_def
 
 
 abbreviation (input) \<open>restart_info_rel \<equiv> word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel\<close>

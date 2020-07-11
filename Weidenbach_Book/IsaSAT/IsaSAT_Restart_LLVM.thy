@@ -3,6 +3,14 @@ imports IsaSAT_Restart IsaSAT_Restart_Heuristics_LLVM IsaSAT_Garbage_Collect_LLV
   IsaSAT_Other_LLVM IsaSAT_Propagate_Conflict_LLVM
 begin
 
+sepref_register update_all_phases
+
+sepref_def update_all_phases_impl
+  is \<open>update_all_phases\<close>
+  :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
+  unfolding update_all_phases_def
+  by sepref
+
 
 sepref_register mark_to_delete_clauses_wl_D_heur
 
@@ -15,6 +23,7 @@ sepref_def MINIMUM_DELETION_LBD_impl
 
 
 sepref_register delete_index_and_swap mop_mark_garbage_heur mop_mark_garbage_heur3
+  mop_access_lit_in_clauses_heur
 
 sepref_def mark_to_delete_clauses_wl_D_heur_fast_impl
   is \<open>mark_to_delete_clauses_wl_D_heur\<close>
@@ -38,6 +47,7 @@ sepref_def mark_to_delete_clauses_wl_D_heur_fast_impl
   apply (rewrite at \<open>_ > \<hole>\<close> unat_const_fold[where 'a=2])
   apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
+
 
 sepref_register cdcl_twl_full_restart_wl_prog_heur
 
@@ -161,5 +171,5 @@ sepref_def cdcl_twl_stgy_restart_prog_wl_heur_fast_code
  * 
  * 
  * end *)
-term array_assn
+
 end

@@ -103,7 +103,7 @@ definition isasat_print_progress :: \<open>64 word \<Rightarrow> 64 word \<Right
      let
          _ = print_c propa;
          _ = if curr_phase = 1 then print_open_colour 33 else ();
-         _ = print_char (48 + c);
+         _ = print_char c;
          _ = print_uint64 propa;
          _ = print_uint64 confl;
          _ = print_uint64 (of_nat lcount);

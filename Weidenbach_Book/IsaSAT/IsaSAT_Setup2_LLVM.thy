@@ -149,4 +149,11 @@ sepref_def full_arena_length_st_impl
   unfolding full_arena_length_st_def isasat_bounded_assn_def
   by sepref
 
+sepref_register get_global_conflict_count
+sepref_def get_global_conflict_count_impl
+  is \<open>RETURN o get_global_conflict_count\<close>
+  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
+  unfolding get_global_conflict_count_alt_def isasat_bounded_assn_def
+  by sepref
+
 end

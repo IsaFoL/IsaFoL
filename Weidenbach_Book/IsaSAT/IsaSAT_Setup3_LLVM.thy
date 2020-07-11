@@ -167,4 +167,12 @@ sepref_def access_vdom_at_fast_code
   supply [[goals_limit = 1]]
   by sepref
 
+sepref_register mop_access_lit_in_clauses_heur mop_watched_by_app_heur
+sepref_def mop_access_lit_in_clauses_heur_impl
+  is \<open>uncurry2 mop_access_lit_in_clauses_heur\<close>
+  :: \<open>isasat_bounded_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a unat_lit_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding mop_access_lit_in_clauses_heur_alt_def isasat_bounded_assn_def
+  by sepref
+
 end
