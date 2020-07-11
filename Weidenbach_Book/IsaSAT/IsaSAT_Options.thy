@@ -4,6 +4,14 @@ begin
 
 section \<open>Options\<close>
 
+text \<open>We define the options from our SAT solver. Using options has several advantages: it is much
+  easier to change the value (instead of recompiling everything from scratch the complete Isabelle
+  development) and it is easier to change.
+
+  We hide the options inside a datatype to make sure Isabelle does not split the the component to
+  make goals even less readable.
+\<close>
+
 subsection \<open>Definition\<close>
 
 datatype opts =

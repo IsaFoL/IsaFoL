@@ -22,7 +22,7 @@ lemma ema_bitshifting_inline[llvm_inline]:
 lemma ema_reinit_inline[llvm_inline]:
   "ema_reinit = (\<lambda>(value, \<alpha>, \<beta>, wait, period).
     (value, \<alpha>, 0x100000000::_::len word, 0::_ word, 0:: _ word))"
-  by auto
+  by (auto simp: ema_bitshifting_def intro!: ext)
 
 lemmas [llvm_inline] = ema_init_def
 

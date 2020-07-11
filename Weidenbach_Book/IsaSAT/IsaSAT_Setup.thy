@@ -46,7 +46,6 @@ definition size_conflict_int :: \<open>conflict_option_rel \<Rightarrow> nat\<cl
   \<open>size_conflict_int = (\<lambda>(_, n, _). n)\<close>
 
 
-
 section \<open>Full state\<close>
 
 text \<open>\<^emph>\<open>heur\<close> stands for heuristic.\<close>
@@ -87,10 +86,10 @@ definition watched_by_app_heur_pre where
   \<open>watched_by_app_heur_pre = (\<lambda>((S, L), K). nat_of_lit L < length (get_watched_wl_heur S) \<and>
           K < length (watched_by_int S L))\<close>
 
-definition (in -) watched_by_app_heur :: \<open>twl_st_wl_heur \<Rightarrow> nat literal \<Rightarrow> nat \<Rightarrow> nat watcher\<close> where
+definition watched_by_app_heur :: \<open>twl_st_wl_heur \<Rightarrow> nat literal \<Rightarrow> nat \<Rightarrow> nat watcher\<close> where
   \<open>watched_by_app_heur S L K = watched_by_int S L ! K\<close>
 
-definition (in -) mop_watched_by_app_heur :: \<open>twl_st_wl_heur \<Rightarrow> nat literal \<Rightarrow> nat \<Rightarrow> nat watcher nres\<close> where
+definition mop_watched_by_app_heur :: \<open>twl_st_wl_heur \<Rightarrow> nat literal \<Rightarrow> nat \<Rightarrow> nat watcher nres\<close> where
   \<open>mop_watched_by_app_heur S L K = do {
      ASSERT(K < length (watched_by_int S L));
      ASSERT(nat_of_lit L < length (get_watched_wl_heur S));
@@ -149,13 +148,13 @@ definition get_restart_phase :: \<open>twl_st_wl_heur \<Rightarrow> 64 word\<clo
   \<open>get_restart_phase = (\<lambda>(_, _, _, _, _, _, _, _, _, _, _, heur, _).
      current_restart_phase heur)\<close>
 
-
-
 definition cach_refinement_empty where
   \<open>cach_refinement_empty \<A> cach \<longleftrightarrow>
        (cach, \<lambda>_. SEEN_UNKNOWN) \<in> cach_refinement \<A>\<close>
 
+
 paragraph \<open>VMTF\<close>
+
 definition isa_vmtf where
   \<open>isa_vmtf \<A> M =
     ((Id \<times>\<^sub>r nat_rel \<times>\<^sub>r nat_rel \<times>\<^sub>r nat_rel \<times>\<^sub>r \<langle>nat_rel\<rangle>option_rel) \<times>\<^sub>f distinct_atoms_rel \<A>)\<inverse>
@@ -1031,7 +1030,7 @@ lemma get_learned_count_alt_def:
   by auto
 
 text \<open>
-  I also played with \<^term>\<open>ema_reinit fast_ema\<close> and  \<^term>\<open>ema_reinit slow_ema\<close>. Currently removed,
+  I also played with \<^term>\<open>ema_reinit fast_ema\<close> and \<^term>\<open>ema_reinit slow_ema\<close>. Currently removed,
   to test the performance, I remove it.
 \<close>
 definition incr_restart_stat :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
@@ -1347,7 +1346,10 @@ proof -
 qed
 
 definition (in -) lit_of_hd_trail_st_heur :: \<open>twl_st_wl_heur \<Rightarrow> nat literal nres\<close> where
-  \<open>lit_of_hd_trail_st_heur S = do {ASSERT (fst (get_trail_wl_heur S) \<noteq> []); RETURN (lit_of_last_trail_pol (get_trail_wl_heur S))}\<close>
+  \<open>lit_of_hd_trail_st_heur S = do {
+     ASSERT (fst (get_trail_wl_heur S) \<noteq> []);
+     RETURN (lit_of_last_trail_pol (get_trail_wl_heur S))
+  }\<close>
 
 lemma lit_of_hd_trail_st_heur_alt_def:
   \<open>lit_of_hd_trail_st_heur = (\<lambda>(M, N, D, Q, W, vm, \<phi>). do {ASSERT (fst M \<noteq> []); RETURN (lit_of_last_trail_pol M)})\<close>
