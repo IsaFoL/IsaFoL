@@ -358,14 +358,25 @@ int main(int argc, char *argv[]) {
   CBOOL target_phases = 1;
   CBOOL reduce = 1;
   CBOOL restart = 1;
+  uint64_t restartint = 10;
+  uint64_t restartmargin = 17;
   for(int i = 1; i < argc - 1; ++i) {
     char * opt = argv[i];
+    int n;
     if(strcmp(opt, "--notarget\0") == 0)
       target_phases = 0;
     else if(strcmp(opt, "--noreduce\0") == 0)
       reduce = 0;
     else if(strcmp(opt, "--norestart\0") == 0)
       restart = 0;
+    else if (strcmp(opt, "--restartint") == 0 && i+1 < argc - 1 && (n = atoi(argv[i+1]))) {
+      restartint = (uint64_t)n;
+      ++i;
+    }
+    else if (strcmp(opt, "--restartmargin") == 0 && i+1 < argc - 1 && (n = atoi(argv[i+1]))) {
+      restartmargin = (uint64_t)n;
+      ++i;
+    }
     else {
       printf("c ignoring  unrecognised option %s", opt);
     }
@@ -412,7 +423,7 @@ READ_FILE:
 
   printf("c propagations                       redundant                   lrestarts                       GC        \n"
 	 "c                     conflicts                     reductions                 level-0                      LBDs \n");
-  int64_t t = IsaSAT_wrapped(reduce, restart, 1, 10, 17, 4, target_phases, clauses);
+  int64_t t = IsaSAT_wrapped(reduce, restart, 1, restartint, restartmargin, 4, target_phases, clauses);
   _Bool interrupted = t & 2;
   _Bool satisfiable = t & 1;
   fflush(stdout);
