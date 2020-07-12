@@ -14,6 +14,8 @@ text \<open>We define the options from our SAT solver. Using options has several
 
 subsection \<open>Definition\<close>
 
+type_synonym opts_target = \<open>3 word\<close>
+
 datatype opts =
   IsaOptions (opts_restart: bool)
   (opts_reduce: bool)
@@ -21,15 +23,28 @@ datatype opts =
   (opts_minimum_between_restart: \<open>64 word\<close>)
   (opts_restart_coeff1: \<open>64 word\<close>)
   (opts_restart_coeff2: nat)
+  (opts_target: \<open>opts_target\<close>)
+
+
+definition TARGET_NEVER :: \<open>opts_target\<close> where
+  \<open>TARGET_NEVER = 0\<close>
+
+definition TARGET_QUIET_ONLY :: \<open>opts_target\<close> where
+  \<open>TARGET_QUIET_ONLY = 1\<close>
+
+definition TARGET_ALWAYS :: \<open>opts_target\<close> where
+  \<open>TARGET_ALWAYS = 2\<close>
+
 
 subsection \<open>Refinement\<close>
 
 type_synonym opts_ref =
-  \<open>bool \<times> bool \<times> bool \<times> 64 word \<times> 64 word \<times> nat\<close>
+  \<open>bool \<times> bool \<times> bool \<times> 64 word \<times> 64 word \<times> nat \<times> opts_target\<close>
 
 definition opts_rel :: \<open>(opts_ref \<times> opts) set\<close> where
   \<open>opts_rel = {(S, T). S = (opts_restart T, opts_reduce T, opts_unbounded_mode T,
-      opts_minimum_between_restart T, opts_restart_coeff1 T, opts_restart_coeff2 T)}\<close>
+      opts_minimum_between_restart T, opts_restart_coeff1 T, opts_restart_coeff2 T,
+      opts_target T)}\<close>
 
 fun opts_rel_restart :: \<open>opts_ref \<Rightarrow> bool\<close> where
   \<open>opts_rel_restart (res, red, unbd, mini, res1, res2) = res\<close>
@@ -68,10 +83,17 @@ lemma opts_rel_restart_coeff1:
   by (auto simp: opts_rel_def intro!: frefI)
 
 fun opts_rel_restart_coeff2 :: \<open>opts_ref \<Rightarrow> nat\<close> where
-  \<open>opts_rel_restart_coeff2 (res, red, unbd, mini, res1, res2) = res2\<close>
+  \<open>opts_rel_restart_coeff2 (res, red, unbd, mini, res1, res2, target) = res2\<close>
 
 lemma opts_rel_restart_coeff2:
   \<open>(opts_rel_restart_coeff2, opts_restart_coeff2) \<in> opts_rel \<rightarrow> Id\<close>
+  by (auto simp: opts_rel_def intro!: frefI)
+
+fun opts_rel_target :: \<open>opts_ref \<Rightarrow> 3 word\<close> where
+  \<open>opts_rel_target (res, red, unbd, mini, res1, res2, target) = target\<close>
+
+lemma opts_rel_target:
+  \<open>(opts_rel_target, opts_target) \<in> opts_rel \<rightarrow> Id\<close>
   by (auto simp: opts_rel_def intro!: frefI)
 
 lemma opts_rel_alt_defs:
@@ -80,7 +102,8 @@ lemma opts_rel_alt_defs:
   \<open>RETURN o opts_rel_unbounded_mode = (\<lambda>(res, red, unbd, mini, res1, res2). RETURN unbd)\<close>
   \<open>RETURN o opts_rel_miminum_between_restart = (\<lambda>(res, red, unbd, mini, res1, res2). RETURN mini)\<close>
   \<open>RETURN o opts_rel_restart_coeff1 = (\<lambda>(res, red, unbd, mini, res1, res2). RETURN res1)\<close>
-  \<open>RETURN o opts_rel_restart_coeff2 = (\<lambda>(res, red, unbd, mini, res1, res2). RETURN res2)\<close>
+  \<open>RETURN o opts_rel_restart_coeff2 = (\<lambda>(res, red, unbd, mini, res1, res2, _). RETURN res2)\<close>
+  \<open>RETURN o opts_rel_target = (\<lambda>(res, red, unbd, mini, res1, res2, target). RETURN target)\<close>
   by (auto intro!: ext)
 
 end

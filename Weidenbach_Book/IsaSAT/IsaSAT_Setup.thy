@@ -141,8 +141,8 @@ fun get_learned_count :: \<open>twl_st_wl_heur \<Rightarrow> clss_size\<close> w
 fun get_learned_count_number :: \<open>twl_st_wl_heur \<Rightarrow> nat\<close> where
   \<open>get_learned_count_number (_, _, _, _, _, _, _, _, _, _, _, _, _, _, lcount, _) = clss_size_lcount lcount\<close>
 
-fun get_ops :: \<open>twl_st_wl_heur \<Rightarrow> opts\<close> where
-  \<open>get_ops (_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, opts, _) = opts\<close>
+fun get_opts :: \<open>twl_st_wl_heur \<Rightarrow> opts\<close> where
+  \<open>get_opts (_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, opts, _) = opts\<close>
 
 fun get_old_arena :: \<open>twl_st_wl_heur \<Rightarrow> arena\<close> where
   \<open>get_old_arena (_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, old_arena) = old_arena\<close>
@@ -1366,5 +1366,11 @@ definition (in -) lit_of_hd_trail_st_heur :: \<open>twl_st_wl_heur \<Rightarrow>
 lemma lit_of_hd_trail_st_heur_alt_def:
   \<open>lit_of_hd_trail_st_heur = (\<lambda>(M, N, D, Q, W, vm, \<phi>). do {ASSERT (fst M \<noteq> []); RETURN (lit_of_last_trail_pol M)})\<close>
   by (auto simp: lit_of_hd_trail_st_heur_def lit_of_hd_trail_def intro!: ext)
+
+
+subsection \<open>Lifting of Options\<close>
+
+definition get_target_opts :: \<open>twl_st_wl_heur \<Rightarrow> opts_target\<close> where
+  \<open>get_target_opts S = opts_target (get_opts S)\<close>
 
 end

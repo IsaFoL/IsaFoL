@@ -224,9 +224,6 @@ typedef struct R {
   int64_t  sat;
 } R;
 
-int64_t IsaSAT_wrapped(int64_t, int64_t, int64_t,
-			       int64_t, int64_t, int64_t, CLAUSES);
-
 void IsaSAT_LLVM_print_propa_impl(int64_t props) {
   printf("\nc propagations %ld\n", props);
 }
@@ -353,11 +350,27 @@ void print_version() {
 
 
 int main(int argc, char *argv[]) {
-  if(argc != 2) {
+  if(argc < 2) {
     printf("expected one argument, the DIMACS file to solve");
     return 0;
   }
-  inputname = argv[1];
+
+  CBOOL target_phases = 1;
+  CBOOL reduce = 1;
+  CBOOL restart = 1;
+  for(int i = 1; i < argc - 1; ++i) {
+    char * opt = argv[i];
+    if(strcmp(opt, "--notarget\0") == 0)
+      target_phases = 0;
+    else if(strcmp(opt, "--noreduce\0") == 0)
+      reduce = 0;
+    else if(strcmp(opt, "--norestart\0") == 0)
+      restart = 0;
+    else {
+      printf("c ignoring  unrecognised option %s", opt);
+    }
+  }
+  inputname = argv[argc-1];
   if(has_suffix(inputname, "version")) {
     print_version();
     printf("\n");
@@ -394,12 +407,12 @@ READ_FILE:
   CLAUSES clauses = parse();
 
   fclose(inputfile);
-  
+
   //print_clauses(&clauses);
 
   printf("c propagations                       redundant                   lrestarts                       GC        \n"
 	 "c                     conflicts                     reductions                 level-0                      LBDs \n");
-  int64_t t = IsaSAT_wrapped(1, 1, 1, 10, 17, 4, clauses);
+  int64_t t = IsaSAT_wrapped(reduce, restart, 1, 10, 17, 4, target_phases, clauses);
   _Bool interrupted = t & 2;
   _Bool satisfiable = t & 1;
   fflush(stdout);

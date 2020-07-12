@@ -168,11 +168,29 @@ sepref_def access_vdom_at_fast_code
   by sepref
 
 sepref_register mop_access_lit_in_clauses_heur mop_watched_by_app_heur
+  get_target_opts get_opts
+
 sepref_def mop_access_lit_in_clauses_heur_impl
   is \<open>uncurry2 mop_access_lit_in_clauses_heur\<close>
   :: \<open>isasat_bounded_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a unat_lit_assn\<close>
   supply [[goals_limit=1]]
   unfolding mop_access_lit_in_clauses_heur_alt_def isasat_bounded_assn_def
+  by sepref
+
+lemma get_opts_alt_def:
+  \<open>get_opts = (\<lambda>(_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, opts, _). opts)\<close>
+  by (auto intro!: ext)
+
+sepref_def get_opts_impl
+  is \<open>RETURN o get_opts\<close>
+  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a opts_assn\<close>
+  unfolding get_opts_alt_def isasat_bounded_assn_def
+  by sepref
+
+sepref_def get_target_opts_impl
+  is \<open>RETURN o get_target_opts\<close>
+  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a word_assn' TYPE(3)\<close>
+  unfolding get_target_opts_def
   by sepref
 
 end

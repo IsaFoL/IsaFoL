@@ -542,7 +542,8 @@ definition decide_wl_or_skip_D_heur' where
        None \<Rightarrow> RETURN (True, S)
      | Some L \<Rightarrow> do {
         L \<leftarrow> do {
-            b \<leftarrow> get_next_phase_st (get_restart_phase S = QUIET_PHASE) L S;
+            b \<leftarrow> get_next_phase_st (get_target_opts S = TARGET_ALWAYS \<or>
+                   (get_target_opts S = TARGET_QUIET_ONLY \<and> get_restart_phase S = QUIET_PHASE)) L S;
               RETURN (if b then Pos L else Neg L)};
         T \<leftarrow> decide_lit_wl_heur L S;
         RETURN (False, T)
