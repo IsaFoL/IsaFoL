@@ -86,7 +86,7 @@ proof (rule ccontr)
     concl_lt_d: "concl_of \<iota> < D"
     using Inf_counterex_reducing[OF bot_ni_n] by force
   have "concl_of \<iota> \<in> N"
-    using \<iota>_inf Red_Inf_of_Inf_to_N by blast
+    using \<iota>_inf Red_I_of_Inf_to_N by blast
   then show False
     using concl_cex concl_lt_d d_min by blast
 qed
@@ -157,8 +157,8 @@ definition redundant_infer :: "'f set \<Rightarrow> 'f inference \<Rightarrow> b
   "redundant_infer N \<iota> \<longleftrightarrow>
    (\<exists>DD \<subseteq> N. DD \<union> set (side_prems_of \<iota>) \<Turnstile> {concl_of \<iota>} \<and> (\<forall>D \<in> DD. D < main_prem_of \<iota>))"
 
-definition Red_Inf :: "'f set \<Rightarrow> 'f inference set" where
-  "Red_Inf N = {\<iota> \<in> Inf. redundant_infer N \<iota>}"
+definition Red_I :: "'f set \<Rightarrow> 'f inference set" where
+  "Red_I N = {\<iota> \<in> Inf. redundant_infer N \<iota>}"
 
 definition Red_F :: "'f set \<Rightarrow> 'f set" where
   "Red_F N = {C. \<exists>DD \<subseteq> N. DD \<Turnstile> {C} \<and> (\<forall>D \<in> DD. D < C)}"
@@ -287,13 +287,13 @@ text \<open>
 The following results correspond to Lemma 4.6. It also uses \<open>wlog_non_Red_F\<close>.
 \<close>
 
-lemma Red_Inf_of_subset: "N \<subseteq> N' \<Longrightarrow> Red_Inf N \<subseteq> Red_Inf N'"
-  unfolding Red_Inf_def redundant_infer_def by auto
+lemma Red_I_of_subset: "N \<subseteq> N' \<Longrightarrow> Red_I N \<subseteq> Red_I N'"
+  unfolding Red_I_def redundant_infer_def by auto
 
-lemma Red_Inf_subs_Red_Inf_diff_Red_F: "Red_Inf N \<subseteq> Red_Inf (N - Red_F N)"
+lemma Red_I_subs_Red_I_diff_Red_F: "Red_I N \<subseteq> Red_I (N - Red_F N)"
 proof
   fix \<iota>
-  assume \<iota>_ri: "\<iota> \<in> Red_Inf N"
+  assume \<iota>_ri: "\<iota> \<in> Red_I N"
   define CC :: "'f set" where
     "CC = set (side_prems_of \<iota>)"
   define D :: 'f where
@@ -304,25 +304,25 @@ proof
     dd_sub: "DD \<subseteq> N" and
     dd_ent: "DD \<union> CC \<Turnstile> {E}" and
     dd_lt_d: "\<forall>C \<in> DD. C < D"
-    using \<iota>_ri unfolding Red_Inf_def redundant_infer_def CC_def D_def E_def by blast
+    using \<iota>_ri unfolding Red_I_def redundant_infer_def CC_def D_def E_def by blast
   obtain DDa :: "'f set" where
     "DDa \<subseteq> N - Red_F N" and "DDa \<union> CC \<Turnstile> {E}" and "\<forall>D' \<in> DDa. D' < D"
     using wlog_non_Red_F[OF dd_sub dd_ent dd_lt_d] by blast
-  then show "\<iota> \<in> Red_Inf (N - Red_F N)"
-    using \<iota>_ri unfolding Red_Inf_def redundant_infer_def CC_def D_def E_def by blast
+  then show "\<iota> \<in> Red_I (N - Red_F N)"
+    using \<iota>_ri unfolding Red_I_def redundant_infer_def CC_def D_def E_def by blast
 qed
 
-lemma Red_Inf_eq_Red_Inf_diff_Red_F: "Red_Inf N = Red_Inf (N - Red_F N)"
-  by (metis Diff_subset Red_Inf_of_subset Red_Inf_subs_Red_Inf_diff_Red_F subset_antisym)
+lemma Red_I_eq_Red_I_diff_Red_F: "Red_I N = Red_I (N - Red_F N)"
+  by (metis Diff_subset Red_I_of_subset Red_I_subs_Red_I_diff_Red_F subset_antisym)
 
-lemma Red_Inf_to_Inf: "Red_Inf N \<subseteq> Inf"
-  unfolding Red_Inf_def by blast
+lemma Red_I_to_Inf: "Red_I N \<subseteq> Inf"
+  unfolding Red_I_def by blast
 
 lemma Red_F_of_Red_F_subset: "N' \<subseteq> Red_F N \<Longrightarrow> Red_F N \<subseteq> Red_F (N - N')"
   by (metis Diff_mono Red_F_eq_Red_F_diff_Red_F Red_F_of_subset order_refl)
 
-lemma Red_Inf_of_Red_F_subset: "N' \<subseteq> Red_F N \<Longrightarrow> Red_Inf N \<subseteq> Red_Inf (N - N')"
-  by (metis Diff_mono Red_Inf_eq_Red_Inf_diff_Red_F Red_Inf_of_subset order_refl)
+lemma Red_I_of_Red_F_subset: "N' \<subseteq> Red_F N \<Longrightarrow> Red_I N \<subseteq> Red_I (N - N')"
+  by (metis Diff_mono Red_I_eq_Red_I_diff_Red_F Red_I_of_subset order_refl)
 
 lemma Red_F_model: "M \<Turnstile> N - Red_F N \<Longrightarrow> M \<Turnstile> N"
   by (metis (no_types) DiffI Red_F_imp_ex_non_Red_F entail_set_all_formulas entails_trans
@@ -331,28 +331,28 @@ lemma Red_F_model: "M \<Turnstile> N - Red_F N \<Longrightarrow> M \<Turnstile> 
 lemma Red_F_Bot: "B \<in> Bot \<Longrightarrow> N \<Turnstile> {B} \<Longrightarrow> N - Red_F N \<Turnstile> {B}"
   using Red_F_model entails_trans subset_entailed by blast
 
-lemma Red_Inf_of_Inf_to_N:
+lemma Red_I_of_Inf_to_N:
   assumes
     in_\<iota>: "\<iota> \<in> Inf" and
     concl_in: "concl_of \<iota> \<in> N"
-  shows "\<iota> \<in> Red_Inf N"
+  shows "\<iota> \<in> Red_I N"
 proof -
   have "concl_of \<iota> \<in> N \<Longrightarrow> redundant_infer N \<iota>"
     unfolding redundant_infer_def
     by (metis (no_types) Inf_reductive empty_iff empty_subsetI entail_union in_\<iota> insert_iff
         insert_subset subset_entailed subset_refl)
-  then show "\<iota> \<in> Red_Inf N"
-    by (simp add: Red_Inf_def concl_in in_\<iota>)
+  then show "\<iota> \<in> Red_I N"
+    by (simp add: Red_I_def concl_in in_\<iota>)
 qed
 
 text \<open>
 The following corresponds to Theorems 4.7 and 4.8:
 \<close>
 
-sublocale calculus Bot Inf "(\<Turnstile>)" Red_Inf Red_F
-  by (unfold_locales, fact Red_Inf_to_Inf, fact Red_F_Bot, fact Red_F_of_subset,
-      fact Red_Inf_of_subset, fact Red_F_of_Red_F_subset, fact Red_Inf_of_Red_F_subset,
-      fact Red_Inf_of_Inf_to_N)
+sublocale calculus Bot Inf "(\<Turnstile>)" Red_I Red_F
+  by (unfold_locales, fact Red_I_to_Inf, fact Red_F_Bot, fact Red_F_of_subset,
+      fact Red_I_of_subset, fact Red_F_of_Red_F_subset, fact Red_I_of_Red_F_subset,
+      fact Red_I_of_Inf_to_N)
 
 end
 
@@ -388,17 +388,17 @@ proof (rule ccontr)
     concl_cex: "\<not> I_of N \<Turnstile> {concl_of \<iota>}" and
     concl_lt_d: "concl_of \<iota> < D"
     using Inf_counterex_reducing[OF bot_ni_n] not_le by metis
-  have "\<iota> \<in> Red_Inf N"
+  have "\<iota> \<in> Red_I N"
     by (rule subsetD[OF satur[unfolded saturated_def Inf_from_def]],
         simp add: \<iota>_in set_prems_of Inf_has_prem)
       (use \<iota>_mprem d_in_n sprem_subs_n  in blast)
-  then have "\<iota> \<in> Red_Inf N"
-    using Red_Inf_without_red_F by blast
+  then have "\<iota> \<in> Red_I N"
+    using Red_I_without_red_F by blast
   then obtain DD :: "'f set" where
     dd_subs_n: "DD \<subseteq> N" and
     dd_cc_ent_d: "DD \<union> set (side_prems_of \<iota>) \<Turnstile> {concl_of \<iota>}" and
     dd_lt_d: "\<forall>C \<in> DD. C < D"
-    unfolding Red_Inf_def redundant_infer_def \<iota>_mprem by blast
+    unfolding Red_I_def redundant_infer_def \<iota>_mprem by blast
   from dd_subs_n dd_lt_d have "I_of N \<Turnstile> DD"
     using d_min by (meson ex_min_counterex subset_iff)
   then have "I_of N \<Turnstile> {concl_of \<iota>}"

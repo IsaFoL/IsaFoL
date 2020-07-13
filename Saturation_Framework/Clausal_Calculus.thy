@@ -196,7 +196,7 @@ begin
 sublocale counterex_reducing_calculus_with_standard_redundancy "{{#}}" "(\<TTurnstile>e)" I_of
   by unfold_locales
 
-sublocale refutationally_compact_calculus "{{#}}" Inf "(\<TTurnstile>e)" Red_Inf Red_F
+sublocale refutationally_compact_calculus "{{#}}" Inf "(\<TTurnstile>e)" Red_I Red_F
   by unfold_locales
 
 lemma clausal_saturated_model: "saturated N \<Longrightarrow> {#} \<notin> N \<Longrightarrow> clausal_I_of N \<TTurnstile>s N"

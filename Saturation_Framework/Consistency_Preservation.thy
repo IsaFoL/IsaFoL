@@ -92,7 +92,7 @@ lemma
   assumes chain_red: "chain (\<rhd>Red) Ns"
   shows
     Red_F_Sup_subset_Red_F_Liminf: "Red_F (Sup_llist Ns) \<subseteq> Red_F (Liminf_llist Ns)" and
-    Red_Inf_Sup_subset_Red_Inf_Liminf: "Red_Inf (Sup_llist Ns) \<subseteq> Red_Inf (Liminf_llist Ns)" and
+    Red_I_Sup_subset_Red_I_Liminf: "Red_I (Sup_llist Ns) \<subseteq> Red_I (Liminf_llist Ns)" and
     unsat_limit_iff: "chain (\<Turnstile>) Ns \<Longrightarrow> Liminf_llist Ns \<Turnstile> Bot \<longleftrightarrow> lhd Ns \<Turnstile> Bot"
 proof -
   {
@@ -136,10 +136,10 @@ proof -
   then show "Red_F (Sup_llist Ns) \<subseteq> Red_F (Liminf_llist Ns)"
     using Red_F_of_Red_F_subset by auto
 
-  have "Red_Inf (Sup_llist Ns - Red_F (Sup_llist Ns)) \<subseteq> Red_Inf (Liminf_llist Ns)"
-    using lu_ll by (simp add: Red_Inf_of_subset)
-  then show "Red_Inf (Sup_llist Ns) \<subseteq> Red_Inf (Liminf_llist Ns)"
-    using Red_Inf_without_red_F  by auto
+  have "Red_I (Sup_llist Ns - Red_F (Sup_llist Ns)) \<subseteq> Red_I (Liminf_llist Ns)"
+    using lu_ll by (simp add: Red_I_of_subset)
+  then show "Red_I (Sup_llist Ns) \<subseteq> Red_I (Liminf_llist Ns)"
+    using Red_I_without_red_F  by auto
 
   {
     assume ent: "chain (\<Turnstile>) Ns"
@@ -166,10 +166,10 @@ lemma
   assumes "chain (\<rhd>Red) Ns"
   shows
     Red_F_limit_Sup: "Red_F (Liminf_llist Ns) = Red_F (Sup_llist Ns)" and
-    Red_Inf_limit_Sup: "Red_Inf (Liminf_llist Ns) = Red_Inf (Sup_llist Ns)"
+    Red_I_limit_Sup: "Red_I (Liminf_llist Ns) = Red_I (Sup_llist Ns)"
   by (metis assms Liminf_llist_subset_Sup_llist Red_F_of_Red_F_subset Red_F_of_subset Red_in_Sup
       double_diff order_refl subset_antisym)
-   (metis assms Liminf_llist_subset_Sup_llist Red_Inf_of_Red_F_subset Red_Inf_of_subset Red_in_Sup
+   (metis assms Liminf_llist_subset_Sup_llist Red_I_of_Red_F_subset Red_I_of_subset Red_in_Sup
      double_diff order_refl subset_antisym)
 
 end
