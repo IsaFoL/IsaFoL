@@ -180,28 +180,15 @@ sepref_def ema_get_value_impl
   unfolding emag_get_value_alt_def
   by sepref
 
-definition ema_extract_value_coeff :: \<open>nat\<close> where
-  [simp]: \<open>ema_extract_value_coeff = 32\<close>
-
-sepref_register ema_extract_value_coeff
-
-lemma ema_extract_value_32[sepref_fr_rules]:
-  \<open>(uncurry0 (return (32 :: 64 word)), uncurry0 (RETURN ema_extract_value_coeff)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a unat_assn\<close>
-  apply sepref_to_hoare
-  apply vcg
-  apply (auto simp: ENTAILS_def unat_rel_def unat.rel_def br_def pred_lift_merge_simps)
-  by (metis (mono_tags, lifting) entails_def entails_lift_extract_simps(2) frame_thms(2))
-
-lemmas [llvm_inline] = ema_extract_value_coeff_def
-
 lemma emag_extract_value_alt_def:
-  \<open>ema_extract_value = (\<lambda>(a, b, c, d). a >> ema_extract_value_coeff)\<close>
+  \<open>ema_extract_value = (\<lambda>(a, b, c, d). a >> EMA_FIXPOINT_SIZE)\<close>
   by auto
 
 sepref_def ema_extract_value_impl
   is \<open>RETURN o ema_extract_value\<close>
   :: \<open>ema_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
-  unfolding emag_extract_value_alt_def ema_extract_value_coeff_def[symmetric]
+  unfolding emag_extract_value_alt_def EMA_FIXPOINT_SIZE_def
+  apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
 type_synonym heur_assn = \<open>(ema \<times> ema \<times> restart_info \<times> 64 word \<times>

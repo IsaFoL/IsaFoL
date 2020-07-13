@@ -883,7 +883,7 @@ definition restart_required_heur :: \<open>twl_st_wl_heur \<Rightarrow> nat \<Ri
     }
     else do {
       let sema = ema_get_value (get_slow_ema_heur S);
-      let limit = (shiftr ((opts_restart_coeff1_st S) * sema) 4);
+      let limit = (opts_restart_coeff1_st S) * (shiftr (sema) 4);
       let fema = ema_get_value (get_fast_ema_heur S);
       let ccount = get_conflict_count_since_last_restart_heur S;
       let min_reached = (ccount > opts_minimum_between_restart_st S);

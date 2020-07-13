@@ -348,7 +348,9 @@ void print_version() {
   //LLVM_DS_NArray_narray_free1(*version);
 };
 
-
+void print_uint32(uint32_t u) {
+  //  printf("LBD: %d -", u);
+}
 int main(int argc, char *argv[]) {
   if(argc < 2) {
     printf("expected one argument, the DIMACS file to solve");
@@ -360,6 +362,8 @@ int main(int argc, char *argv[]) {
   CBOOL restart = 1;
   uint64_t restartint = 10;
   uint64_t restartmargin = 17;
+  uint64_t fema = 128849010;
+  uint64_t sema = 429450;
   for(int i = 1; i < argc - 1; ++i) {
     char * opt = argv[i];
     int n;
@@ -369,12 +373,20 @@ int main(int argc, char *argv[]) {
       reduce = 0;
     else if(strcmp(opt, "--norestart\0") == 0)
       restart = 0;
-    else if (strcmp(opt, "--restartint") == 0 && i+1 < argc - 1 && (n = atoi(argv[i+1]))) {
+    else if (strcmp(opt, "--restartint\0") == 0 && i+1 < argc - 1 && (n = atoi(argv[i+1]))) {
       restartint = (uint64_t)n;
       ++i;
     }
-    else if (strcmp(opt, "--restartmargin") == 0 && i+1 < argc - 1 && (n = atoi(argv[i+1]))) {
+    else if (strcmp(opt, "--restartmargin\0") == 0 && i+1 < argc - 1 && (n = atoi(argv[i+1]))) {
       restartmargin = (uint64_t)n;
+      ++i;
+    }
+    else if (strcmp(opt, "--emafast\0") == 0 && i+1 < argc - 1 && (n = atoi(argv[i+1]))) {
+      fema = (uint64_t)n;
+      ++i;
+    }
+    else if (strcmp(opt, "--emaslow\0") == 0 && i+1 < argc - 1 && (n = atoi(argv[i+1]))) {
+      sema = (uint64_t)n;
       ++i;
     }
     else {
@@ -423,7 +435,7 @@ READ_FILE:
 
   printf("c propagations                       redundant                   lrestarts                       GC        \n"
 	 "c                     conflicts                     reductions                 level-0                      LBDs \n");
-  int64_t t = IsaSAT_wrapped(reduce, restart, 1, restartint, restartmargin, 4, target_phases, clauses);
+  int64_t t = IsaSAT_wrapped(reduce, restart, 1, restartint, restartmargin, 4, target_phases, fema, sema, clauses);
   _Bool interrupted = t & 2;
   _Bool satisfiable = t & 1;
   fflush(stdout);

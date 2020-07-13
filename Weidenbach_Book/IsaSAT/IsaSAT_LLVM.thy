@@ -2,8 +2,8 @@ theory IsaSAT_LLVM
   imports
     IsaSAT_CDCL_LLVM
     IsaSAT_Initialisation_LLVM
-    IsaSAT_Restart_LLVM 
-     Version
+    IsaSAT_Restart_LLVM
+    Version
     IsaSAT
 begin
 hide_const (open)array_assn
@@ -154,7 +154,7 @@ sepref_def isasat_fast_bound_impl
 lemma isasat_fast_init_alt_def:
   \<open>RETURN o isasat_fast_init = (\<lambda>(M, N, _, _, _, _, _, _, _, _, _, failed, lcount).
      RETURN (length N \<le> isasat_fast_bound \<and>
-     (clss_size_lcount (lcount) < 18446744073709551615 - clss_size_lcountUE (lcount) \<and> 
+     (clss_size_lcount (lcount) < 18446744073709551615 - clss_size_lcountUE (lcount) \<and>
       clss_size_lcount (lcount) + clss_size_lcountUE (lcount) < 18446744073709551615 - clss_size_lcountUS (lcount) \<and>
       clss_size_lcount (lcount) + clss_size_lcountUE (lcount) + clss_size_lcountUS (lcount) < 18446744073709551615)))\<close>
   by (auto simp: isasat_fast_init_def uint64_max_def uint32_max_def isasat_fast_bound_def
@@ -333,11 +333,13 @@ sepref_def print_gc_impl
 abbreviation (input) C_bool_to_bool :: \<open>8 word \<Rightarrow> bool\<close> where
   \<open>C_bool_to_bool g \<equiv> g \<noteq> 0\<close>
 
-definition IsaSAT_bounded_heur_wrapper :: \<open>8 word \<Rightarrow> 8 word \<Rightarrow> 8 word \<Rightarrow> 64 word \<Rightarrow> 64 word \<Rightarrow> nat \<Rightarrow> 8 word \<Rightarrow> _ \<Rightarrow> (nat) nres\<close>where
-  \<open>IsaSAT_bounded_heur_wrapper red res unbdd mini res1 res2 target_option C = do {
+definition IsaSAT_bounded_heur_wrapper :: \<open>8 word \<Rightarrow> 8 word \<Rightarrow> 8 word \<Rightarrow> 64 word \<Rightarrow> 64 word \<Rightarrow> nat \<Rightarrow>
+  8 word \<Rightarrow> 64 word \<Rightarrow> 64 word \<Rightarrow> _ \<Rightarrow> (nat) nres\<close>where
+  \<open>IsaSAT_bounded_heur_wrapper red res unbdd mini res1 res2 target_option fema sema C = do {
       let opts = IsaOptions (C_bool_to_bool red) (C_bool_to_bool res)
          (C_bool_to_bool unbdd) mini res1 res2
-         (if target_option = 2 then 2 else if target_option = 0 then 0 else 1);
+         (if target_option = 2 then 2 else if target_option = 0 then 0 else 1)
+         fema sema;
       (b, (b', (_, propa, confl, dec, res, lres, uset, gcs, d))) \<leftarrow> IsaSAT_bounded_heur (opts) C;
       let _ = print_propa propa;
       let _ = print_confl confl;
@@ -360,9 +362,10 @@ abbreviation bool_C_assn where
    \<open>bool_C_assn \<equiv> (word_assn' (TYPE(8)))\<close>
 
 sepref_def IsaSAT_code_wrapped
-  is \<open>uncurry7 IsaSAT_bounded_heur_wrapper\<close>
+  is \<open>uncurry9 IsaSAT_bounded_heur_wrapper\<close>
   :: \<open>bool_C_assn\<^sup>k *\<^sub>a bool_C_assn\<^sup>k *\<^sub>a bool_C_assn\<^sup>k *\<^sub>a word64_assn\<^sup>k *\<^sub>a word64_assn\<^sup>k *\<^sub>a
-      (snat_assn' (TYPE(64)))\<^sup>k *\<^sub>a bool_C_assn\<^sup>k *\<^sub>a (clauses_ll_assn)\<^sup>k \<rightarrow>\<^sub>a sint64_nat_assn\<close>
+      (snat_assn' (TYPE(64)))\<^sup>k *\<^sub>a bool_C_assn\<^sup>k *\<^sub>a word64_assn\<^sup>k *\<^sub>a 
+      word64_assn\<^sup>k *\<^sub>a (clauses_ll_assn)\<^sup>k \<rightarrow>\<^sub>a sint64_nat_assn\<close>
   supply [[goals_limit=1]] if_splits[split]
   unfolding IsaSAT_bounded_heur_wrapper_def
   apply (annot_snat_const \<open>TYPE(64)\<close>)
@@ -417,7 +420,7 @@ begin
     count_decided_pol_impl is \<open>uint32_t count_decided_st_heur_pol_fast(TRAIL)\<close>
     arena_lit_impl is \<open>uint32_t arena_lit_impl(ARENA, int64_t)\<close>
     IsaSAT_code_wrapped is \<open>int64_t IsaSAT_wrapped(CBOOL, CBOOL, CBOOL,
-        int64_t, int64_t, int64_t, CBOOL, CLAUSES)\<close>
+        int64_t, int64_t, int64_t, CBOOL, int64_t, int64_t, CLAUSES)\<close>
   defines \<open>
      typedef int8_t CBOOL;
      typedef struct {int64_t size; struct {int64_t used; uint32_t *clause;};} CLAUSE;
@@ -454,7 +457,8 @@ definition clauses_l_assn where
 theorem IsaSAT_full_correctness:
   \<open>(uncurry IsaSAT_code, uncurry (\<lambda>_. model_if_satisfiable_bounded))
      \<in> [\<lambda>(_, a). Multiset.Ball a distinct_mset \<and>
-      (\<forall>C\<in>#a. \<forall>L\<in>#C. nat_of_lit L \<le> uint32_max)]\<^sub>a opts_assn\<^sup>d *\<^sub>a clauses_l_assn\<^sup>k \<rightarrow> model_bounded_assn\<close>
+         (\<forall>C\<in>#a. \<forall>L\<in>#C. nat_of_lit L \<le> uint32_max)]\<^sub>a opts_assn\<^sup>d *\<^sub>a clauses_l_assn\<^sup>k \<rightarrow>
+      model_bounded_assn\<close>
   using IsaSAT_code.refine[FCOMP IsaSAT_bounded_heur_model_if_sat'[unfolded convert_fref]]
   unfolding model_bounded_assn_def clauses_l_assn_def
   apply auto

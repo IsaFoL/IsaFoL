@@ -635,21 +635,8 @@ sepref_def finalise_init_code'
   apply (rewrite in \<open>replicate _ False\<close> array_fold_custom_replicate)
   by sepref
 
-declare finalise_init_code'.refine[sepref_fr_rules]
-
-
-
-(*sepref_definition init_aa'_code
-  is \<open>RETURN o init_aa'\<close>
-  :: \<open>sint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a arl_assn (clause_status_assn \<times>\<^sub>a uint32_nat_assn \<times>\<^sub>a uint32_nat_assn)\<close>
-  unfolding init_aa'_alt_def
-  by sepref
-
-declare init_aa'_code.refine[sepref_fr_rules]
-*)
-
-
 sepref_register initialise_VMTF
+(*TODO Move*)
 abbreviation snat64_assn :: \<open>nat \<Rightarrow> 64 word \<Rightarrow> _\<close> where \<open>snat64_assn \<equiv> snat_assn\<close>
 abbreviation snat32_assn :: \<open>nat \<Rightarrow> 32 word \<Rightarrow> _\<close> where \<open>snat32_assn \<equiv> snat_assn\<close>
 abbreviation unat64_assn :: \<open>nat \<Rightarrow> 64 word \<Rightarrow> _\<close> where \<open>unat64_assn \<equiv> unat_assn\<close>

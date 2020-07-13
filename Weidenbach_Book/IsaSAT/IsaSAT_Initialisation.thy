@@ -1885,8 +1885,8 @@ definition finalise_init_code :: \<open>opts \<Rightarrow> twl_st_wl_heur_init \
        lbd, vdom, _, lcount). do {
      ASSERT(lst_As \<noteq> None \<and> fst_As \<noteq> None);
      let init_stats = (0::64 word, 0::64 word, 0::64 word, 0::64 word, 0::64 word, 0::64 word, 0::64 word, ema_fast_init);
-     let fema = ema_fast_init;
-     let sema = ema_slow_init;
+     let fema = ema_init (opts_fema opts);
+     let sema = ema_init (opts_sema opts);
      let ccount = restart_info_init;
     RETURN (M', N', D', Q', W', ((ns, m, the fst_As, the lst_As, next_search), to_remove),
        clvls, cach, lbd, take 1(replicate 160 (Pos 0)), init_stats,

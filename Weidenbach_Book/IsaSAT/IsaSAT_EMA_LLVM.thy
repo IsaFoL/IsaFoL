@@ -15,14 +15,40 @@ lemma [sepref_import_param]:
   \<open>(ema_init,ema_init) \<in> word_rel \<rightarrow> ema_rel\<close>
   by auto
 
+sepref_register EMA_FIXPOINT_SIZE ema_bitshifting
+sepref_def EMA_FIXPOINT_SIZE_impl
+  is \<open>uncurry0 (RETURN EMA_FIXPOINT_SIZE)\<close>
+  :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
+  unfolding EMA_FIXPOINT_SIZE_def
+  apply (annot_unat_const \<open>TYPE(64)\<close>)
+  by sepref
 
-lemma ema_bitshifting_inline[llvm_inline]:
-  \<open>ema_bitshifting = (0x100000000::_::len word)\<close> by (auto simp: ema_bitshifting_def)
+lemma EMA[simp]:
+  \<open>EMA_FIXPOINT_SIZE < 64\<close>
+  \<open>EMA_MULT_SHIFT < 64\<close>
+  \<open>EMA_FIXPOINT_SIZE - EMA_MULT_SHIFT < 64\<close>
+  \<open>EMA_MULT_SHIFT \<le> EMA_FIXPOINT_SIZE\<close>
+  \<open>EMA_FIXPOINT_SIZE - 32 < 64\<close>
+  \<open>EMA_FIXPOINT_SIZE \<ge> 32\<close>
+  by (auto simp: EMA_FIXPOINT_SIZE_def EMA_MULT_SHIFT_def)
+
+sepref_def ema_bitshifting_impl
+  is \<open>uncurry0 (RETURN ema_bitshifting)\<close>
+  :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a word64_assn\<close>
+  unfolding ema_bitshifting_def
+  by sepref
 
 lemma ema_reinit_inline[llvm_inline]:
   "ema_reinit = (\<lambda>(value, \<alpha>, \<beta>, wait, period).
-    (value, \<alpha>, 0x100000000::_::len word, 0::_ word, 0:: _ word))"
+    (value, \<alpha>, ema_bitshifting, 0::_ word, 0:: _ word))"
   by (auto simp: ema_bitshifting_def intro!: ext)
+
+sepref_def EMA_MULT_SHIFT_impl
+  is \<open>uncurry0 (RETURN EMA_MULT_SHIFT)\<close>
+  :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a uint64_nat_assn\<close>
+  unfolding EMA_MULT_SHIFT_def
+  apply (annot_unat_const \<open>TYPE(64)\<close>)
+  by sepref
 
 lemmas [llvm_inline] = ema_init_def
 
@@ -34,6 +60,13 @@ sepref_def ema_update_impl is \<open>uncurry (RETURN oo ema_update)\<close>
   (* TODO: The let x=y seems to be inlined, making necessary this COPY! Is this behaviour correct? *)
   apply (annot_unat_const \<open>TYPE(64)\<close>)
   supply [[goals_limit = 1]]
+  by sepref
+
+sepref_def ema_init_impl
+  is \<open>RETURN o ema_init\<close>
+  :: \<open>word64_assn\<^sup>k \<rightarrow>\<^sub>a ema_assn\<close>
+  unfolding ema_init_def
+  apply (annot_unat_const \<open>TYPE(64)\<close>)
   by sepref
 
 end
