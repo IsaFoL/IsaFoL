@@ -620,11 +620,11 @@ sepref_def finalise_init_code'
   supply  [[goals_limit=1]]
   unfolding finalise_init_code_def isasat_init_assn_def isasat_bounded_assn_def
      INITIAL_OUTL_SIZE_def[symmetric] atom.fold_the vmtf_remove_assn_def
-     heuristic_assn_def
+     heuristic_assn_def phase_heur_assn_def
   apply (rewrite at \<open>Pos \<hole>\<close> unat_const_fold[where 'a=32])
   apply (rewrite at \<open>Pos \<hole>\<close> atom_of_value_def[symmetric])
   apply (rewrite at \<open>take \<hole>\<close> snat_const_fold[where 'a=64])
-  apply (rewrite at \<open>(_, _,_,\<hole>, _,_,_,_,_)\<close> snat_const_fold[where 'a=64])
+  apply (rewrite at \<open>(_, \<hole>, _,_,_,_)\<close> snat_const_fold[where 'a=64])
   apply (rewrite at \<open>(_, _,_,\<hole>, _,_,_)\<close> snat_const_fold[where 'a=64])
   apply (rewrite at \<open>(_, \<hole>, _)\<close> al_fold_custom_empty[where 'l=64])
   apply (rewrite at \<open>(_, \<hole>)\<close> al_fold_custom_empty[where 'l=64])
@@ -635,21 +635,8 @@ sepref_def finalise_init_code'
   apply (rewrite in \<open>replicate _ False\<close> array_fold_custom_replicate)
   by sepref
 
-declare finalise_init_code'.refine[sepref_fr_rules]
-
-
-
-(*sepref_definition init_aa'_code
-  is \<open>RETURN o init_aa'\<close>
-  :: \<open>sint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a arl_assn (clause_status_assn \<times>\<^sub>a uint32_nat_assn \<times>\<^sub>a uint32_nat_assn)\<close>
-  unfolding init_aa'_alt_def
-  by sepref
-
-declare init_aa'_code.refine[sepref_fr_rules]
-*)
-
-
 sepref_register initialise_VMTF
+(*TODO Move*)
 abbreviation snat64_assn :: \<open>nat \<Rightarrow> 64 word \<Rightarrow> _\<close> where \<open>snat64_assn \<equiv> snat_assn\<close>
 abbreviation snat32_assn :: \<open>nat \<Rightarrow> 32 word \<Rightarrow> _\<close> where \<open>snat32_assn \<equiv> snat_assn\<close>
 abbreviation unat64_assn :: \<open>nat \<Rightarrow> 64 word \<Rightarrow> _\<close> where \<open>unat64_assn \<equiv> unat_assn\<close>
@@ -719,6 +706,9 @@ lemma to_init_state_code_hnr:
 abbreviation (in -)lits_with_max_assn_clss where
   \<open>lits_with_max_assn_clss \<equiv> hr_comp lits_with_max_assn (\<langle>nat_rel\<rangle>mset_rel)\<close>
 
+schematic_goal mk_free_isasat_init_assn[sepref_frame_free_rules]: \<open>MK_FREE isasat_init_assn ?fr\<close>
+  unfolding isasat_init_assn_def
+  by synthesize_free
 
 experiment
 begin

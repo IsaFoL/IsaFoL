@@ -719,13 +719,10 @@ definition propagate_bt_wl_D_heur
       vm \<leftarrow> isa_vmtf_flush_int M vm;
       heur \<leftarrow> mop_save_phase_heur (atm_of L') (is_neg L') heur;
       RETURN (M, N, D, j, W, vm, 0,
-         cach, lbd, outl, add_lbd (of_nat glue) stats, update_heuristics glue heur, vdom @ [i],
+         cach, lbd, outl, add_lbd (of_nat glue) stats, heuristic_reluctant_tick (update_heuristics glue heur), vdom @ [i],
           avdom @ [i],
           clss_size_incr_lcount lcount, opts)
     })\<close>
-
-definition (in -) lit_of_hd_trail_st_heur :: \<open>twl_st_wl_heur \<Rightarrow> nat literal nres\<close> where
-  \<open>lit_of_hd_trail_st_heur S = do {ASSERT (fst (get_trail_wl_heur S) \<noteq> []); RETURN (lit_of_last_trail_pol (get_trail_wl_heur S))}\<close>
 
 definition remove_last
   :: \<open>nat literal \<Rightarrow> nat clause option \<Rightarrow> nat clause option nres\<close>
@@ -746,7 +743,7 @@ definition propagate_unit_bt_wl_D_int
       M \<leftarrow> cons_trail_Propagated_tr (- L) 0 M;
       let stats = incr_uset stats;
       RETURN (M, N, D, j, W, vm, clvls, cach, lbd, outl, stats,
-        (update_heuristics glue heur), vdom, avdom, clss_size_incr_lcountUE lcount, opts, old_arena)})\<close>
+        heuristic_reluctant_tick (update_heuristics glue heur), vdom, avdom, clss_size_incr_lcountUE lcount, opts, old_arena)})\<close>
 
 
 paragraph \<open>Full function\<close>
@@ -1821,7 +1818,7 @@ proof -
           vm \<leftarrow> isa_vmtf_flush_int M vm;
           heur \<leftarrow> mop_save_phase_heur (atm_of L') (is_neg L') heur;
           RETURN (M, N, D, j, W, vm, 0,
-            cach, lbd, outl, add_lbd (of_nat glue) stats, update_heuristics glue heur, vdom @ [ i],
+            cach, lbd, outl, add_lbd (of_nat glue) stats, heuristic_reluctant_tick (update_heuristics glue heur), vdom @ [ i],
               avdom @ [i], clss_size_incr_lcount lcount, opts)
       })\<close>
       unfolding propagate_bt_wl_D_heur_def Let_def
@@ -2584,7 +2581,7 @@ lemma propagate_bt_wl_D_heur_alt_def:
       vm \<leftarrow> isa_vmtf_flush_int M vm;
       heur \<leftarrow> mop_save_phase_heur (atm_of L') (is_neg L') heur;
       RETURN (M, N, D, j, W, vm, 0,
-         cach, lbd, outl, add_lbd (of_nat glue) stats, update_heuristics glue heur, vdom @ [i],
+         cach, lbd, outl, add_lbd (of_nat glue) stats, heuristic_reluctant_tick (update_heuristics glue heur), vdom @ [i],
           avdom @ [i],
           clss_size_incr_lcount lcount, opts)
     })\<close>
@@ -2602,9 +2599,5 @@ lemma propagate_bt_wl_D_fast_code_isasat_fastI3: \<open>isasat_fast b \<Longrigh
        a2' = (a1'a, a2'a) \<Longrightarrow>
        a \<le> length a1'a \<Longrightarrow> a < sint64_max\<close>
   by (cases b) (auto simp: isasat_fast_def sint64_max_def uint32_max_def)
-
-lemma lit_of_hd_trail_st_heur_alt_def:
-  \<open>lit_of_hd_trail_st_heur = (\<lambda>(M, N, D, Q, W, vm, \<phi>). do {ASSERT (fst M \<noteq> []); RETURN (lit_of_last_trail_pol M)})\<close>
-  by (auto simp: lit_of_hd_trail_st_heur_def lit_of_hd_trail_def intro!: ext)
 
 end

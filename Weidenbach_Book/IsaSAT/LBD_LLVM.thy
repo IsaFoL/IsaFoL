@@ -129,6 +129,9 @@ lemma lbd_write_hnr_[sepref_fr_rules]:
   using lbd_write_code.refine[FCOMP lbd_ref_write_lbd_write[unfolded convert_fref]]
   unfolding lbd_assn_def .
 
+schematic_goal mk_free_lbd_assn[sepref_frame_free_rules]: \<open>MK_FREE lbd_assn ?fr\<close>
+  unfolding lbd_assn_def
+  by synthesize_free
 
 experiment begin
 

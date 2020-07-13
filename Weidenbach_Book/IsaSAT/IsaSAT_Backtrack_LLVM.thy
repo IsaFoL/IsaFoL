@@ -112,28 +112,6 @@ sepref_def update_heuristics_impl
   unfolding update_heuristics_def heuristic_assn_def
   by sepref
 
-(*TODO Move*)
-sepref_def clss_size_incr_lcountUE_fast_code
-  is \<open>RETURN o clss_size_incr_lcountUE\<close>
-  :: \<open>[\<lambda>S. clss_size_lcountUE S \<le> max_snat 64]\<^sub>a lcount_assn\<^sup>d \<rightarrow> lcount_assn\<close>
-  unfolding clss_size_incr_lcountUE_alt_def lcount_assn_def clss_size_lcountUE_def
-  apply (annot_unat_const \<open>TYPE(64)\<close>)
-  by sepref
-
-lemma clss_size_incr_lcount_alt_def:
-  \<open>RETURN o clss_size_incr_lcount =
-  (\<lambda>(lcount,  lcountUE, lcountUS). RETURN (lcount + 1, lcountUE, lcountUS))\<close>
-  by (auto simp: clss_size_incr_lcount_def)
-
-sepref_register clss_size_incr_lcount
-sepref_def clss_size_incr_lcount_fast_code
-  is \<open>RETURN o clss_size_incr_lcount\<close>
-  :: \<open>[\<lambda>S. clss_size_lcount S \<le> max_snat 64]\<^sub>a lcount_assn\<^sup>d \<rightarrow> lcount_assn\<close>
-  unfolding clss_size_incr_lcount_alt_def lcount_assn_def clss_size_lcount_def
-  apply (annot_unat_const \<open>TYPE(64)\<close>)
-  by sepref
-(*END Move*)
-
 sepref_register cons_trail_Propagated_tr
 sepref_def propagate_unit_bt_wl_D_fast_code
   is \<open>uncurry propagate_unit_bt_wl_D_int\<close>
@@ -207,12 +185,6 @@ sepref_register find_lit_of_max_level_wl
   propagate_unit_bt_wl_D_int
 sepref_register backtrack_wl
 
-sepref_def lit_of_hd_trail_st_heur_fast_code
-  is \<open>lit_of_hd_trail_st_heur\<close>
-  :: \<open>[\<lambda>S. True]\<^sub>a isasat_bounded_assn\<^sup>k \<rightarrow> unat_lit_assn\<close>
-  unfolding lit_of_hd_trail_st_heur_alt_def isasat_bounded_assn_def
-  by sepref
-
 lemma get_learned_count_learned_clss_countD2:
   \<open>get_learned_count S = (get_learned_count T) \<Longrightarrow>
        learned_clss_count S \<le> learned_clss_count T\<close>
@@ -244,18 +216,18 @@ lemmas [llvm_inline] = add_lbd_def
 experiment
 begin
   export_llvm
-    empty_conflict_and_extract_clause_heur_fast_code
-    empty_cach_code
-    update_heuristics_impl
-    update_heuristics_impl
-      isa_vmtf_flush_fast_code
-      get_LBD_code
-      mop_isa_length_trail_fast_code
-    cons_trail_Propagated_tr_fast_code
-      update_heuristics_impl
-vmtf_rescore_fast_code
-append_and_length_fast_code
-    update_lbd_impl
+     empty_conflict_and_extract_clause_heur_fast_code
+     empty_cach_code
+     update_heuristics_impl
+     update_heuristics_impl
+     isa_vmtf_flush_fast_code
+     get_LBD_code
+     mop_isa_length_trail_fast_code
+     cons_trail_Propagated_tr_fast_code
+     update_heuristics_impl
+     vmtf_rescore_fast_code
+     append_and_length_fast_code
+     update_lbd_impl
 
 thm propagate_bt_wl_D_fast_codeXX_def
 (*        xd \<leftarrow> update_lbd_impl a2o xb a1o;
@@ -295,14 +267,16 @@ thm propagate_bt_wl_D_fast_codeXX_def
                   (incr_uset a1j) xa a2k
                }))))))))))))
 *)
+thm reluctant_tick_impl_def
   export_llvm
-    empty_conflict_and_extract_clause_heur_fast_code
-    empty_cach_code
-    propagate_bt_wl_D_fast_codeXX
-    propagate_unit_bt_wl_D_fast_code
-    extract_shorter_conflict_list_heur_st_fast
-    lit_of_hd_trail_st_heur_fast_code
-    backtrack_wl_D_fast_code
+    (* empty_conflict_and_extract_clause_heur_fast_code
+  * empty_cach_code *)
+  reluctant_tick_impl
+  (* propagate_unit_bt_wl_D_fast_code *)
+    (* propagate_bt_wl_D_fast_codeXX
+     * extract_shorter_conflict_list_heur_st_fast
+     * lit_of_hd_trail_st_heur_fast_code
+     * backtrack_wl_D_fast_code *)
 
 end
 

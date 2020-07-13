@@ -34,23 +34,6 @@ sepref_def FLAG_Reduce_restart_impl
   unfolding FLAG_Reduce_restart_def
   by sepref
 
-lemma current_restart_phase_alt_def:
-  \<open>current_restart_phase = (\<lambda>(fast_ema, slow_ema,
-    (ccount, ema_lvl, restart_phase, end_of_phase), _).
-    restart_phase)\<close>
-  by auto
-
-sepref_def current_restart_phase_impl
-  is \<open>RETURN o current_restart_phase\<close>
-  :: \<open>heuristic_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
-  unfolding current_restart_phase_alt_def heuristic_assn_def
-  by sepref
-
-sepref_def get_restart_phase_imp
-  is \<open>(RETURN o get_restart_phase)\<close>
-  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
-  unfolding get_restart_phase_def isasat_bounded_assn_def
-  by sepref
 
 sepref_def end_of_restart_phase_impl
   is \<open>RETURN o end_of_restart_phase\<close>
@@ -67,7 +50,7 @@ sepref_def end_of_restart_phase_st_impl
 sepref_def end_of_rephasing_phase_impl
   is \<open>RETURN o end_of_rephasing_phase\<close>
   :: \<open>phase_heur_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
-  unfolding end_of_rephasing_phase_def heuristic_assn_def
+  unfolding end_of_rephasing_phase_def phase_heur_assn_def
   by sepref
 
 sepref_def end_of_rephasing_phase_heur_impl
@@ -111,22 +94,13 @@ sepref_def incr_restart_phase_impl
   by sepref
 
 sepref_register incr_restart_phase incr_restart_phase_end
-  update_restart_phases update_all_phases
+  update_restart_phases
 
 sepref_def update_restart_phases_impl
   is \<open>update_restart_phases\<close>
   :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn\<close>
   unfolding update_restart_phases_def isasat_bounded_assn_def
     fold_tuple_optimizations
-  by sepref
-
-(*TODO Move*)
-
-sepref_def update_all_phases_impl
-  is \<open>uncurry3 update_all_phases\<close>
-  :: \<open>isasat_bounded_assn\<^sup>d *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a
-     isasat_bounded_assn \<times>\<^sub>a uint64_nat_assn \<times>\<^sub>a uint64_nat_assn \<times>\<^sub>a uint64_nat_assn\<close>
-  unfolding update_all_phases_def
   by sepref
 
 sepref_def find_local_restart_target_level_fast_code
@@ -266,12 +240,8 @@ sepref_def get_reductions_count_fast_code
   unfolding get_reduction_count_alt_def isasat_bounded_assn_def
   by sepref
 
-
 sepref_register get_reductions_count
 
-lemma of_nat_snat:
-  \<open>(id,of_nat) \<in> snat_rel' TYPE('a::len2) \<rightarrow> word_rel\<close>
-  by (auto simp: snat_rel_def snat.rel_def in_br_conv snat_eq_unat)
 
 sepref_def GC_required_heur_fast_code
   is \<open>uncurry GC_required_heur\<close>
@@ -305,26 +275,6 @@ sepref_def isasat_replace_annot_in_trail_code
   apply (rewrite at \<open>list_update _ _ _\<close> annot_index_of_atm)
   by sepref
 
-sepref_register mark_garbage_heur2 mark_garbage_heur4
-sepref_def mark_garbage_heur2_code
-  is \<open>uncurry mark_garbage_heur2\<close>
-  :: \<open>[\<lambda>(C, S). mark_garbage_pre (get_clauses_wl_heur S, C) \<and> arena_is_valid_clause_vdom (get_clauses_wl_heur S) C]\<^sub>a
-     sint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
-  supply [[goals_limit=1]]
-  unfolding mark_garbage_heur2_def isasat_bounded_assn_def
-    fold_tuple_optimizations
-  by sepref
-
-sepref_def mark_garbage_heur4_code
-  is \<open>uncurry mark_garbage_heur4\<close>
-  :: \<open>[\<lambda>(C, S). mark_garbage_pre (get_clauses_wl_heur S, C) \<and> arena_is_valid_clause_vdom (get_clauses_wl_heur S) C \<and>
-        learned_clss_count S \<le> uint64_max]\<^sub>a
-     sint64_nat_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>d \<rightarrow> isasat_bounded_assn\<close>
-  supply [[goals_limit=1]] isasat_fast_countD[dest] learned_clss_count_def[simp]
-  unfolding mark_garbage_heur4_def isasat_bounded_assn_def
-    fold_tuple_optimizations
-  by sepref
-
 sepref_register remove_one_annot_true_clause_one_imp_wl_D_heur
 
 lemma remove_one_annot_true_clause_one_imp_wl_D_heurI:
@@ -345,17 +295,7 @@ sepref_def remove_one_annot_true_clause_one_imp_wl_D_heur_code
   apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
-sepref_register mark_clauses_as_unused_wl_D_heur
-
-sepref_def access_vdom_at_fast_code
-  is \<open>uncurry (RETURN oo access_vdom_at)\<close>
-  :: \<open>[uncurry access_vdom_at_pre]\<^sub>a isasat_bounded_assn\<^sup>k *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> sint64_nat_assn\<close>
-  unfolding access_vdom_at_alt_def access_vdom_at_pre_def isasat_bounded_assn_def
-  supply [[goals_limit = 1]]
-  by sepref
-
-
-sepref_register remove_one_annot_true_clause_imp_wl_D_heur
+sepref_register mark_clauses_as_unused_wl_D_heur remove_one_annot_true_clause_imp_wl_D_heur
 
 lemma remove_one_annot_true_clause_imp_wl_D_heurI:
   \<open>learned_clss_count x \<le> uint64_max \<Longrightarrow>
@@ -373,9 +313,6 @@ sepref_def remove_one_annot_true_clause_imp_wl_D_heur_code
   apply (rewrite at \<open>(\<hole>, _)\<close> annot_unat_snat_upcast[where 'l=64])
   apply (annot_unat_const \<open>TYPE(32)\<close>)
   by sepref
-
-(*TODO Move*)
-
 
 
 sepref_def mark_clauses_as_unused_wl_D_heur_fast_code

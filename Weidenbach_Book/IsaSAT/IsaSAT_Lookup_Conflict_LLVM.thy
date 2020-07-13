@@ -705,6 +705,19 @@ sepref_def isasat_lookup_merge_eq2_fast_code
   apply (rewrite in \<open>if _ then arena_lit _ (_ + \<hole>) else _\<close> snat_const_fold[where 'a=64])
   by sepref
 
+
+schematic_goal mk_free_lookup_clause_rel_assn[sepref_frame_free_rules]: \<open>MK_FREE lookup_clause_rel_assn ?fr\<close>
+  unfolding conflict_option_rel_assn_def lookup_clause_rel_assn_def
+  by synthesize_free
+
+schematic_goal mk_free_cach_refinement_l_assn[sepref_frame_free_rules]: \<open>MK_FREE cach_refinement_l_assn ?fr\<close>
+  unfolding cach_refinement_l_assn_def
+  by synthesize_free
+
+schematic_goal mk_free_trail_pol_fast_assn[sepref_frame_free_rules]: \<open>MK_FREE conflict_option_rel_assn ?fr\<close>
+  unfolding conflict_option_rel_assn_def
+  by synthesize_free
+
 experiment begin
 
 export_llvm

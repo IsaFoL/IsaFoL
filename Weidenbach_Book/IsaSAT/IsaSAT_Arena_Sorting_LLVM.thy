@@ -6,6 +6,13 @@ type_synonym vdom_fast_assn = \<open>64 word array_list64\<close>
 abbreviation vdom_fast_assn :: \<open>vdom \<Rightarrow> vdom_fast_assn \<Rightarrow> assn\<close> where
   \<open>vdom_fast_assn \<equiv> arl64_assn sint64_nat_assn\<close>
 
+sepref_def delete_index_and_swap_code2
+  is \<open>uncurry (RETURN oo delete_index_and_swap)\<close>
+  :: \<open>[\<lambda>(xs, i). i < length xs]\<^sub>a
+      vdom_fast_assn\<^sup>d *\<^sub>a sint64_nat_assn\<^sup>k \<rightarrow> vdom_fast_assn\<close>
+  unfolding delete_index_and_swap.simps
+  by sepref
+
 definition idx_cdom :: \<open>arena \<Rightarrow> nat set\<close> where
  \<open>idx_cdom arena \<equiv> {i. valid_sort_clause_score_pre_at arena i}\<close>
 

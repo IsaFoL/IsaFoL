@@ -1,35 +1,9 @@
 theory IsaSAT_Initialisation
-  imports Watched_Literals.Watched_Literals_Watch_List_Initialisation IsaSAT_Setup IsaSAT_VMTF
+  imports Watched_Literals.Watched_Literals_Watch_List_Initialisation IsaSAT_Setup IsaSAT_VMTF WB_More_Word
     Automatic_Refinement.Relators \<comment> \<open>for more lemmas\<close>
 begin
 
 chapter \<open>Initialisation\<close>
-
-(*TODO Move*)
-lemma bitXOR_1_if_mod_2_int: \<open>bitOR L 1 = (if L mod 2 = 0 then L + 1 else L)\<close> for L :: int
-  apply (rule bin_rl_eqI)
-  unfolding bin_rest_OR bin_last_OR
-   apply (auto simp: bin_rest_def bin_last_def)
-  done
-
-
-lemma bitOR_1_if_mod_2_nat:
-  \<open>bitOR L 1 = (if L mod 2 = 0 then L + 1 else L)\<close>
-  \<open>bitOR L (Suc 0) = (if L mod 2 = 0 then L + 1 else L)\<close> for L :: nat
-proof -
-  have H: \<open>bitOR L 1 =  L + (if bin_last (int L) then 0 else 1)\<close>
-    unfolding bitOR_nat_def
-    apply (auto simp: bitOR_nat_def bin_last_def
-        bitXOR_1_if_mod_2_int)
-    done
-  show \<open>bitOR L 1 = (if L mod 2 = 0 then L + 1 else L)\<close>
-    unfolding H
-    apply (auto simp: bitOR_nat_def bin_last_def)
-    apply presburger+
-    done
-  then show \<open>bitOR L (Suc 0) = (if L mod 2 = 0 then L + 1 else L)\<close>
-    by simp
-qed
 
 
 section \<open>Code for the initialisation of the Data Structure\<close>
@@ -1911,12 +1885,13 @@ definition finalise_init_code :: \<open>opts \<Rightarrow> twl_st_wl_heur_init \
        lbd, vdom, _, lcount). do {
      ASSERT(lst_As \<noteq> None \<and> fst_As \<noteq> None);
      let init_stats = (0::64 word, 0::64 word, 0::64 word, 0::64 word, 0::64 word, 0::64 word, 0::64 word, ema_fast_init);
-     let fema = ema_fast_init;
-     let sema = ema_slow_init;
+     let fema = ema_init (opts_fema opts);
+     let sema = ema_init (opts_sema opts);
      let ccount = restart_info_init;
     RETURN (M', N', D', Q', W', ((ns, m, the fst_As, the lst_As, next_search), to_remove),
        clvls, cach, lbd, take 1(replicate 160 (Pos 0)), init_stats,
-        (fema, sema, ccount, 0, \<phi>, 0, replicate (length \<phi>) False, 0, replicate (length \<phi>) False, 10000, 1000, 1), vdom, [], lcount, opts, [])
+       (fema, sema, ccount, 0, (\<phi>, 0, replicate (length \<phi>) False, 0, replicate (length \<phi>) False, 10000, 1000, 1),
+           reluctant_init), vdom, [], lcount, opts, [])
      })\<close>
 
 lemma isa_vmtf_init_nemptyD: \<open>((ak, al, am, an, bc), ao, bd)
@@ -1931,7 +1906,7 @@ lemma isa_vmtf_init_isa_vmtf: \<open>\<A> \<noteq> {#} \<Longrightarrow> ((ak, a
   by (auto simp: isa_vmtf_init_def vmtf_init_def Image_iff intro!: isa_vmtfI)
 
 lemma heuristic_rel_initI:
-   \<open>phase_saving \<A> \<phi> \<Longrightarrow> length \<phi>' = length \<phi> \<Longrightarrow> length \<phi>'' = length \<phi> \<Longrightarrow> heuristic_rel \<A> (fema, sema, ccount, 0, (\<phi>,a, \<phi>',b,\<phi>'',c,d))\<close>
+   \<open>phase_saving \<A> \<phi> \<Longrightarrow> length \<phi>' = length \<phi> \<Longrightarrow> length \<phi>'' = length \<phi> \<Longrightarrow> heuristic_rel \<A> (fema, sema, ccount, 0, (\<phi>,a, \<phi>',b,\<phi>'',c,d), e)\<close>
    by (auto simp: heuristic_rel_def phase_save_heur_rel_def phase_saving_def)
 
 lemma finalise_init_finalise_init_full:

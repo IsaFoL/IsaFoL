@@ -46,7 +46,6 @@ definition size_conflict_int :: \<open>conflict_option_rel \<Rightarrow> nat\<cl
   \<open>size_conflict_int = (\<lambda>(_, n, _). n)\<close>
 
 
-
 section \<open>Full state\<close>
 
 text \<open>\<^emph>\<open>heur\<close> stands for heuristic.\<close>
@@ -87,10 +86,10 @@ definition watched_by_app_heur_pre where
   \<open>watched_by_app_heur_pre = (\<lambda>((S, L), K). nat_of_lit L < length (get_watched_wl_heur S) \<and>
           K < length (watched_by_int S L))\<close>
 
-definition (in -) watched_by_app_heur :: \<open>twl_st_wl_heur \<Rightarrow> nat literal \<Rightarrow> nat \<Rightarrow> nat watcher\<close> where
+definition watched_by_app_heur :: \<open>twl_st_wl_heur \<Rightarrow> nat literal \<Rightarrow> nat \<Rightarrow> nat watcher\<close> where
   \<open>watched_by_app_heur S L K = watched_by_int S L ! K\<close>
 
-definition (in -) mop_watched_by_app_heur :: \<open>twl_st_wl_heur \<Rightarrow> nat literal \<Rightarrow> nat \<Rightarrow> nat watcher nres\<close> where
+definition mop_watched_by_app_heur :: \<open>twl_st_wl_heur \<Rightarrow> nat literal \<Rightarrow> nat \<Rightarrow> nat watcher nres\<close> where
   \<open>mop_watched_by_app_heur S L K = do {
      ASSERT(K < length (watched_by_int S L));
      ASSERT(nat_of_lit L < length (get_watched_wl_heur S));
@@ -118,6 +117,9 @@ fun get_lbd :: \<open>twl_st_wl_heur \<Rightarrow> lbd\<close> where
 fun get_outlearned_heur :: \<open>twl_st_wl_heur \<Rightarrow> out_learned\<close> where
   \<open>get_outlearned_heur (_, _, _, _, _, _, _, _, _, out, _) = out\<close>
 
+fun get_stats_heur :: \<open>twl_st_wl_heur \<Rightarrow> stats\<close> where
+  \<open>get_stats_heur (_, _, _, _, _, _, _, _, _, _, stats, _, _) = stats\<close>
+
 fun get_fast_ema_heur :: \<open>twl_st_wl_heur \<Rightarrow> ema\<close> where
   \<open>get_fast_ema_heur (_, _, _, _, _, _, _, _, _, _, _, heur, _) = fast_ema_of heur\<close>
 
@@ -139,19 +141,23 @@ fun get_learned_count :: \<open>twl_st_wl_heur \<Rightarrow> clss_size\<close> w
 fun get_learned_count_number :: \<open>twl_st_wl_heur \<Rightarrow> nat\<close> where
   \<open>get_learned_count_number (_, _, _, _, _, _, _, _, _, _, _, _, _, _, lcount, _) = clss_size_lcount lcount\<close>
 
-fun get_ops :: \<open>twl_st_wl_heur \<Rightarrow> opts\<close> where
-  \<open>get_ops (_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, opts, _) = opts\<close>
+fun get_opts :: \<open>twl_st_wl_heur \<Rightarrow> opts\<close> where
+  \<open>get_opts (_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, opts, _) = opts\<close>
 
 fun get_old_arena :: \<open>twl_st_wl_heur \<Rightarrow> arena\<close> where
   \<open>get_old_arena (_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, old_arena) = old_arena\<close>
 
-
+definition get_restart_phase :: \<open>twl_st_wl_heur \<Rightarrow> 64 word\<close> where
+  \<open>get_restart_phase = (\<lambda>(_, _, _, _, _, _, _, _, _, _, _, heur, _).
+     current_restart_phase heur)\<close>
 
 definition cach_refinement_empty where
   \<open>cach_refinement_empty \<A> cach \<longleftrightarrow>
        (cach, \<lambda>_. SEEN_UNKNOWN) \<in> cach_refinement \<A>\<close>
 
+
 paragraph \<open>VMTF\<close>
+
 definition isa_vmtf where
   \<open>isa_vmtf \<A> M =
     ((Id \<times>\<^sub>r nat_rel \<times>\<^sub>r nat_rel \<times>\<^sub>r nat_rel \<times>\<^sub>r \<langle>nat_rel\<rangle>option_rel) \<times>\<^sub>f distinct_atoms_rel \<A>)\<inverse>
@@ -456,7 +462,7 @@ lemma phase_save_heur_rel_cong:
 
 lemma heuristic_rel_cong:
   \<open>set_mset \<A> = set_mset \<B> \<Longrightarrow> heuristic_rel \<A> heur \<Longrightarrow> heuristic_rel \<B> heur\<close>
-  using phase_save_heur_rel_cong[of \<A> \<B> \<open>(\<lambda>(_, _, _, _, a). a) heur\<close>]
+  using phase_save_heur_rel_cong[of \<A> \<B> \<open>(\<lambda>(_, _, _, _, a, _). a) heur\<close>]
   by (auto simp: heuristic_rel_def)
 
 lemma vmtf_cong:
@@ -1026,24 +1032,33 @@ lemma get_learned_count_alt_def:
        stats, _, vdom, avdom, lcount, opts). RETURN lcount)\<close>
   by auto
 
+definition get_global_conflict_count where
+  \<open>get_global_conflict_count S = stats_conflicts (get_stats_heur S)\<close>
+
+lemma (in -) get_global_conflict_count_alt_def:
+   \<open>RETURN o get_global_conflict_count = (\<lambda>(M, N0, D, Q, W, vm, clvls, cach, lbd,
+       outl, (stats), _, lcount). RETURN (stats_conflicts stats))\<close>
+  by (auto simp: get_global_conflict_count_def)
+
+
 text \<open>
-  I also played with \<^term>\<open>ema_reinit fast_ema\<close> and  \<^term>\<open>ema_reinit slow_ema\<close>. Currently removed,
+  I also played with \<^term>\<open>ema_reinit fast_ema\<close> and \<^term>\<open>ema_reinit slow_ema\<close>. Currently removed,
   to test the performance, I remove it.
 \<close>
 definition incr_restart_stat :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
   \<open>incr_restart_stat = (\<lambda>(M, N, D, Q, W, vm, clvls, cach, lbd, outl, stats, (fast_ema, slow_ema,
-       res_info, wasted), vdom, avdom, lcount, opts, old_arena). do{
+       res_info, wasted, \<phi>, relu), vdom, avdom, lcount, opts, old_arena). do{
      RETURN (M, N, D, Q, W, vm, clvls, cach, lbd, outl, incr_restart stats,
        (fast_ema, slow_ema,
-       restart_info_restart_done res_info, wasted), vdom, avdom,
+       restart_info_restart_done res_info, wasted, \<phi>, reluctant_untrigger relu), vdom, avdom,
        clss_size_resetUS lcount, opts, old_arena)
   })\<close>
 
 definition incr_lrestart_stat :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur nres\<close> where
   \<open>incr_lrestart_stat = (\<lambda>(M, N, D, Q, W, vm, clvls, cach, lbd, outl, stats, (fast_ema, slow_ema,
-     res_info, wasted), vdom, avdom, lcount). do{
+     res_info, wasted, \<phi>, relu), vdom, avdom, lcount). do{
      RETURN (M, N, D, Q, W, vm, clvls, cach, lbd, outl, incr_lrestart stats,
-       (fast_ema, slow_ema, restart_info_restart_done res_info, wasted),
+       (fast_ema, slow_ema, restart_info_restart_done res_info, wasted, \<phi>, reluctant_untrigger relu),
        vdom, avdom, lcount)
   })\<close>
 
@@ -1257,5 +1272,105 @@ lemma incr_wasted_st_twl_st[simp]:
   \<open>get_learned_count (incr_wasted_st C T) = get_learned_count T\<close>
   \<open>get_conflict_count_heur (incr_wasted_st C T) = get_conflict_count_heur T\<close>
   by (cases T; auto simp: incr_wasted_st_def; fail)+
+
+definition heuristic_reluctant_triggered2_st :: \<open>twl_st_wl_heur \<Rightarrow> bool\<close> where
+  \<open>heuristic_reluctant_triggered2_st = (\<lambda> (_, _, _, _, _, _, _, _, _, _, _, heur, _). heuristic_reluctant_triggered2 heur)\<close>
+
+definition heuristic_reluctant_untrigger_st :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur\<close> where
+  \<open>heuristic_reluctant_untrigger_st = (\<lambda> (M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
+  vdom, avdom, lcount, opts, old_arena).
+  (M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heuristic_reluctant_untrigger heur,
+       vdom, avdom, lcount, opts, old_arena))\<close>
+lemma twl_st_heur''D_twl_st_heurD:
+  assumes H: \<open>(\<And>\<D> r. f \<in> twl_st_heur'' \<D> r lcount \<rightarrow>\<^sub>f \<langle>twl_st_heur'' \<D> r lcount\<rangle> nres_rel)\<close>
+  shows \<open>f \<in> {(S, T). (S, T) \<in> twl_st_heur \<and> get_learned_count S = lcount} \<rightarrow>\<^sub>f
+        \<langle>{(S, T). (S, T) \<in> twl_st_heur \<and> get_learned_count S = lcount}\<rangle> nres_rel\<close>  (is \<open>_ \<in> ?A B\<close>)
+proof -
+  obtain f1 f2 where f: \<open>f = (f1, f2)\<close>
+    by (cases f) auto
+  show ?thesis
+    unfolding f
+    apply (simp only: fref_def twl_st_heur'_def nres_rel_def in_pair_collect_simp)
+    apply (intro conjI impI allI)
+    subgoal for x y
+      using assms[of \<open>dom_m (get_clauses_wl y)\<close>  \<open>length (get_clauses_wl_heur x)\<close>,
+        unfolded twl_st_heur'_def nres_rel_def in_pair_collect_simp f,
+        rule_format] unfolding f
+      apply (simp only: fref_def twl_st_heur'_def nres_rel_def in_pair_collect_simp)
+      apply (drule spec[of _ x])
+      apply (drule spec[of _ y])
+      apply simp
+      apply (rule "weaken_\<Down>'"[of _ \<open>twl_st_heur'' (dom_m (get_clauses_wl y))
+        (length (get_clauses_wl_heur x)) lcount\<close>])
+      apply (fastforce simp: twl_st_heur'_def)+
+      done
+    done
+qed
+
+
+lemma twl_st_heur'''D_twl_st_heurD:
+  assumes H: \<open>(\<And>r. f \<in> twl_st_heur''' r \<rightarrow>\<^sub>f \<langle>twl_st_heur''' r\<rangle> nres_rel)\<close>
+  shows \<open>f \<in> twl_st_heur \<rightarrow>\<^sub>f \<langle>twl_st_heur\<rangle> nres_rel\<close>  (is \<open>_ \<in> ?A B\<close>)
+proof -
+  obtain f1 f2 where f: \<open>f = (f1, f2)\<close>
+    by (cases f) auto
+  show ?thesis
+    unfolding f
+    apply (simp only: fref_def twl_st_heur'_def nres_rel_def in_pair_collect_simp)
+    apply (intro conjI impI allI)
+    subgoal for x y
+      using assms[of \<open>length (get_clauses_wl_heur x)\<close>,
+        unfolded twl_st_heur'_def nres_rel_def in_pair_collect_simp f,
+        rule_format] unfolding f
+      apply (simp only: fref_def twl_st_heur'_def nres_rel_def in_pair_collect_simp)
+      apply (drule spec[of _ x])
+      apply (drule spec[of _ y])
+      apply simp
+      apply (rule "weaken_\<Down>'"[of _ \<open>twl_st_heur''' (length (get_clauses_wl_heur x))\<close>])
+      apply (fastforce simp: twl_st_heur'_def)+
+      done
+    done
+qed
+
+
+lemma twl_st_heur'''D_twl_st_heurD_prod:
+  assumes H: \<open>(\<And>r. f \<in> twl_st_heur''' r \<rightarrow>\<^sub>f \<langle>A \<times>\<^sub>r twl_st_heur''' r\<rangle> nres_rel)\<close>
+  shows \<open>f \<in> twl_st_heur \<rightarrow>\<^sub>f \<langle>A \<times>\<^sub>r twl_st_heur\<rangle> nres_rel\<close>  (is \<open>_ \<in> ?A B\<close>)
+proof -
+  obtain f1 f2 where f: \<open>f = (f1, f2)\<close>
+    by (cases f) auto
+  show ?thesis
+    unfolding f
+    apply (simp only: fref_def twl_st_heur'_def nres_rel_def in_pair_collect_simp)
+    apply (intro conjI impI allI)
+    subgoal for x y
+      using assms[of \<open>length (get_clauses_wl_heur x)\<close>,
+        unfolded twl_st_heur'_def nres_rel_def in_pair_collect_simp f,
+        rule_format] unfolding f
+      apply (simp only: fref_def twl_st_heur'_def nres_rel_def in_pair_collect_simp)
+      apply (drule spec[of _ x])
+      apply (drule spec[of _ y])
+      apply simp
+      apply (rule "weaken_\<Down>'"[of _ \<open>A \<times>\<^sub>r twl_st_heur''' (length (get_clauses_wl_heur x))\<close>])
+      apply (fastforce simp: twl_st_heur'_def)+
+      done
+    done
+qed
+
+definition (in -) lit_of_hd_trail_st_heur :: \<open>twl_st_wl_heur \<Rightarrow> nat literal nres\<close> where
+  \<open>lit_of_hd_trail_st_heur S = do {
+     ASSERT (fst (get_trail_wl_heur S) \<noteq> []);
+     RETURN (lit_of_last_trail_pol (get_trail_wl_heur S))
+  }\<close>
+
+lemma lit_of_hd_trail_st_heur_alt_def:
+  \<open>lit_of_hd_trail_st_heur = (\<lambda>(M, N, D, Q, W, vm, \<phi>). do {ASSERT (fst M \<noteq> []); RETURN (lit_of_last_trail_pol M)})\<close>
+  by (auto simp: lit_of_hd_trail_st_heur_def lit_of_hd_trail_def intro!: ext)
+
+
+subsection \<open>Lifting of Options\<close>
+
+definition get_target_opts :: \<open>twl_st_wl_heur \<Rightarrow> opts_target\<close> where
+  \<open>get_target_opts S = opts_target (get_opts S)\<close>
 
 end

@@ -3,10 +3,10 @@ theory IsaSAT_Rephase_State
 begin
 
 definition rephase_heur :: \<open>64 word \<Rightarrow> restart_heuristics \<Rightarrow> restart_heuristics nres\<close> where
-  \<open>rephase_heur = (\<lambda>b (fast_ema, slow_ema, restart_info, wasted, \<phi>).
+  \<open>rephase_heur = (\<lambda>b (fast_ema, slow_ema, restart_info, wasted, \<phi>, relu).
     do {
       \<phi> \<leftarrow> phase_rephase b \<phi>;
-      RETURN (fast_ema, slow_ema, restart_info, wasted, \<phi>)
+      RETURN (fast_ema, slow_ema, restart_info, wasted, \<phi>, relu)
    })\<close>
 
 lemma rephase_heur_spec:
@@ -21,7 +21,8 @@ definition rephase_heur_st :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_wl_heur
        vdom, avdom, lcount, opts, old_arena). do {
       let b = current_restart_phase heur;
       heur \<leftarrow> rephase_heur b heur;
-      let _ = isasat_print_progress (current_rephasing_phase heur) b stats lcount;
+      let _ = isasat_print_progress (current_phase_letter (current_rephasing_phase heur))
+                  b stats lcount;
       RETURN (M', arena, D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
        vdom, avdom, lcount, opts, old_arena)
    })\<close>
@@ -35,10 +36,10 @@ lemma rephase_heur_st_spec:
   done
 
 definition save_rephase_heur :: \<open>nat \<Rightarrow> restart_heuristics \<Rightarrow> restart_heuristics nres\<close> where
-  \<open>save_rephase_heur = (\<lambda>n (fast_ema, slow_ema, restart_info, wasted, \<phi>).
+  \<open>save_rephase_heur = (\<lambda>n (fast_ema, slow_ema, restart_info, wasted, \<phi>, relu).
     do {
       \<phi> \<leftarrow> phase_save_phase n \<phi>;
-      RETURN (fast_ema, slow_ema, restart_info, wasted, \<phi>)
+      RETURN (fast_ema, slow_ema, restart_info, wasted, \<phi>, relu)
    })\<close>
 
 lemma save_phase_heur_spec:

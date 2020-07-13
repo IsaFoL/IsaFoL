@@ -1,5 +1,5 @@
 theory IsaSAT_Stats_LLVM
-imports IsaSAT_Stats IsaSAT_EMA_LLVM
+imports IsaSAT_Stats IsaSAT_EMA_LLVM IsaSAT_Rephase_LLVM IsaSAT_Reluctant_LLVM
 begin
   abbreviation stats_rel :: \<open>(stats \<times> stats) set\<close> where
   \<open>stats_rel \<equiv> word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel
@@ -12,6 +12,7 @@ abbreviation stats_assn :: \<open>stats \<Rightarrow> stats \<Rightarrow> assn\<
 
 lemma [sepref_import_param]:
   \<open>(incr_propagation,incr_propagation) \<in> stats_rel \<rightarrow> stats_rel\<close>
+  \<open>(stats_conflicts,stats_conflicts) \<in> stats_rel \<rightarrow> word_rel\<close>
   \<open>(incr_conflict,incr_conflict) \<in> stats_rel \<rightarrow> stats_rel\<close>
   \<open>(incr_decision,incr_decision) \<in> stats_rel \<rightarrow> stats_rel\<close>
   \<open>(incr_restart,incr_restart) \<in> stats_rel \<rightarrow> stats_rel\<close>
@@ -29,6 +30,7 @@ lemmas [llvm_inline] =
   incr_lrestart_def
   incr_uset_def
   incr_GC_def
+  stats_conflicts_def
 
 
 abbreviation (input) \<open>restart_info_rel \<equiv> word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel \<times>\<^sub>r word64_rel\<close>
@@ -178,28 +180,108 @@ sepref_def ema_get_value_impl
   unfolding emag_get_value_alt_def
   by sepref
 
-definition ema_extract_value_coeff :: \<open>nat\<close> where
-  [simp]: \<open>ema_extract_value_coeff = 32\<close>
-
-sepref_register ema_extract_value_coeff
-
-lemma ema_extract_value_32[sepref_fr_rules]:
-  \<open>(uncurry0 (return (32 :: 64 word)), uncurry0 (RETURN ema_extract_value_coeff)) \<in> unit_assn\<^sup>k \<rightarrow>\<^sub>a unat_assn\<close>
-  apply sepref_to_hoare
-  apply vcg
-  apply (auto simp: ENTAILS_def unat_rel_def unat.rel_def br_def pred_lift_merge_simps)
-  by (metis (mono_tags, lifting) entails_def entails_lift_extract_simps(2) frame_thms(2))
-
-lemmas [llvm_inline] = ema_extract_value_coeff_def
-
 lemma emag_extract_value_alt_def:
-  \<open>ema_extract_value = (\<lambda>(a, b, c, d). a >> ema_extract_value_coeff)\<close>
+  \<open>ema_extract_value = (\<lambda>(a, b, c, d). a >> EMA_FIXPOINT_SIZE)\<close>
   by auto
 
 sepref_def ema_extract_value_impl
   is \<open>RETURN o ema_extract_value\<close>
   :: \<open>ema_assn\<^sup>k \<rightarrow>\<^sub>a word_assn\<close>
-  unfolding emag_extract_value_alt_def ema_extract_value_coeff_def[symmetric]
+  unfolding emag_extract_value_alt_def EMA_FIXPOINT_SIZE_def
+  apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
+
+type_synonym heur_assn = \<open>(ema \<times> ema \<times> restart_info \<times> 64 word \<times>
+   (phase_saver_assn \<times> 64 word \<times> phase_saver'_assn \<times> 64 word \<times> phase_saver'_assn \<times> 64 word \<times> 64 word \<times> 64 word) \<times> reluctant_rel_assn)\<close>
+
+definition heuristic_assn :: \<open>restart_heuristics \<Rightarrow> heur_assn \<Rightarrow> assn\<close> where
+  \<open>heuristic_assn = ema_assn \<times>\<^sub>a
+  ema_assn \<times>\<^sub>a
+  restart_info_assn \<times>\<^sub>a
+  word64_assn \<times>\<^sub>a phase_heur_assn \<times>\<^sub>a reluctant_assn\<close>
+
+lemma set_zero_wasted_def:
+  \<open>set_zero_wasted = (\<lambda>(fast_ema, slow_ema, res_info, wasted, \<phi>).
+    (fast_ema, slow_ema, res_info, 0, \<phi>))\<close>
+  by (auto intro!: ext)
+
+sepref_def set_zero_wasted_impl
+  is \<open>RETURN o set_zero_wasted\<close>
+  :: \<open>heuristic_assn\<^sup>d \<rightarrow>\<^sub>a heuristic_assn\<close>
+  unfolding heuristic_assn_def set_zero_wasted_def
+  by sepref
+
+lemma mop_save_phase_heur_alt_def:
+  \<open>mop_save_phase_heur = (\<lambda> L b (fast_ema, slow_ema, res_info, wasted, (\<phi>, target, best), rel). do {
+    ASSERT(L < length \<phi>);
+    RETURN (fast_ema, slow_ema, res_info, wasted, (\<phi>[L := b], target,
+                 best), rel)})\<close>
+  unfolding mop_save_phase_heur_def save_phase_heur_def save_phase_heur_pre_def
+    heuristic_assn_def
+  by (auto intro!: ext)
+
+sepref_def mop_save_phase_heur_impl
+  is \<open>uncurry2 (mop_save_phase_heur)\<close>
+  :: \<open>atom_assn\<^sup>k *\<^sub>a bool1_assn\<^sup>k *\<^sub>a heuristic_assn\<^sup>d \<rightarrow>\<^sub>a heuristic_assn\<close>
+  supply [[goals_limit=1]]
+  unfolding mop_save_phase_heur_alt_def save_phase_heur_def save_phase_heur_pre_def
+    heuristic_assn_def phase_heur_assn_def
+  apply annot_all_atm_idxs
+  by sepref
+
+
+sepref_def heuristic_reluctant_tick_impl
+  is \<open>RETURN o heuristic_reluctant_tick\<close>
+  :: \<open>heuristic_assn\<^sup>d \<rightarrow>\<^sub>a heuristic_assn\<close>
+  unfolding heuristic_reluctant_tick_def heuristic_assn_def
+  by sepref
+
+
+sepref_def heuristic_reluctant_enable_impl
+  is \<open>RETURN o heuristic_reluctant_enable\<close>
+  :: \<open>heuristic_assn\<^sup>d \<rightarrow>\<^sub>a heuristic_assn\<close>
+  unfolding heuristic_reluctant_enable_def heuristic_assn_def
+  by sepref
+
+sepref_def heuristic_reluctant_disable_impl
+  is \<open>RETURN o heuristic_reluctant_disable\<close>
+  :: \<open>heuristic_assn\<^sup>d \<rightarrow>\<^sub>a heuristic_assn\<close>
+  unfolding heuristic_reluctant_disable_def heuristic_assn_def
+  by sepref
+
+sepref_def heuristic_reluctant_triggered_impl
+  is \<open>RETURN o heuristic_reluctant_triggered\<close>
+  :: \<open>heuristic_assn\<^sup>d \<rightarrow>\<^sub>a heuristic_assn \<times>\<^sub>a bool1_assn\<close>
+  unfolding heuristic_reluctant_triggered_def heuristic_assn_def
+  by sepref
+
+sepref_def heuristic_reluctant_triggered2_impl
+  is \<open>RETURN o heuristic_reluctant_triggered2\<close>
+  :: \<open>heuristic_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
+  unfolding heuristic_reluctant_triggered2_def heuristic_assn_def
+  by sepref
+
+sepref_def heuristic_reluctant_untrigger_impl
+  is \<open>RETURN o heuristic_reluctant_untrigger\<close>
+  :: \<open>heuristic_assn\<^sup>d \<rightarrow>\<^sub>a heuristic_assn\<close>
+  unfolding heuristic_reluctant_untrigger_def heuristic_assn_def
+  by sepref
+
+lemma clss_size_incr_lcount_alt_def:
+  \<open>RETURN o clss_size_incr_lcount =
+  (\<lambda>(lcount,  lcountUE, lcountUS). RETURN (lcount + 1, lcountUE, lcountUS))\<close>
+  by (auto simp: clss_size_incr_lcount_def)
+
+sepref_register clss_size_incr_lcount
+sepref_def clss_size_incr_lcount_fast_code
+  is \<open>RETURN o clss_size_incr_lcount\<close>
+  :: \<open>[\<lambda>S. clss_size_lcount S \<le> max_snat 64]\<^sub>a lcount_assn\<^sup>d \<rightarrow> lcount_assn\<close>
+  unfolding clss_size_incr_lcount_alt_def lcount_assn_def clss_size_lcount_def
+  apply (annot_unat_const \<open>TYPE(64)\<close>)
+  by sepref
+
+schematic_goal mk_free_heuristic_assn[sepref_frame_free_rules]: \<open>MK_FREE heuristic_assn ?fr\<close>
+  unfolding heuristic_assn_def
+  by synthesize_free
 
 end

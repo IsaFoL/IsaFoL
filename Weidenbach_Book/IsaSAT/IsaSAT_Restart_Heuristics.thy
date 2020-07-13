@@ -284,6 +284,8 @@ lemma trail_pol_no_dup: \<open>(M, M') \<in> trail_pol \<A> \<Longrightarrow> no
 lemma heuristic_rel_restart_info_done[intro!, simp]:
   \<open>heuristic_rel \<A> (fema, sema, ccount, wasted) \<Longrightarrow>
     heuristic_rel \<A> ((fema, sema, restart_info_restart_done ccount, wasted))\<close>
+  \<open>heuristic_rel \<A> (fema, sema, ccount, wasted', \<phi>, relu) \<Longrightarrow>
+    heuristic_rel \<A> ((fema, sema, restart_info_restart_done ccount, wasted', \<phi>, relu'))\<close>
   by (auto simp: heuristic_rel_def)
 
 lemma cdcl_twl_local_restart_wl_D_heur_cdcl_twl_local_restart_wl_D_spec:
@@ -499,7 +501,7 @@ proof -
       apply assumption
     subgoal for a aa ab ac ad b ae af ag ba ah ai aj ak al am bb an bc ao ap bd aq ar
        as at au av aw ax ay be az bf bg bh bi bj bk bl bm bn bo bp bq br bs
-       bt bu bv bw bx _ _ _ _ _ _ "by" bz ca cb cc cd ce cf cg ch ci cj ck cl cm cn co cp
+       bt bu bv bw bx _ _ _ _ _ _ _ "by" bz ca cb cc cd ce cf cg ch ci cj ck cl cm cn co cp
        lvl i vm0
       unfolding RETURN_def RES_RES2_RETURN_RES RES_RES13_RETURN_RES find_decomp_w_ns_def conc_fun_RES
         RES_RES13_RETURN_RES K2 K
@@ -833,10 +835,6 @@ fun (in -) get_reductions_count :: \<open>twl_st_wl_heur \<Rightarrow> 64 word\<
        (_, _, _, lres, _, _), _)
       = lres\<close>
 
-definition get_restart_phase :: \<open>twl_st_wl_heur \<Rightarrow> 64 word\<close> where
-  \<open>get_restart_phase = (\<lambda>(_, _, _, _, _, _, _, _, _, _, _, heur, _).
-     current_restart_phase heur)\<close>
-
 definition GC_required_heur :: \<open>twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> bool nres\<close> where
   \<open>GC_required_heur S n = do {
     n \<leftarrow> RETURN (full_arena_length_st S);
@@ -879,11 +877,13 @@ definition restart_required_heur :: \<open>twl_st_wl_heur \<Rightarrow> nat \<Ri
       let upper = upper_restart_bound_not_reached S;
       if (opt_res \<or> opt_red) \<and> \<not>upper \<and> can_GC
       then RETURN FLAG_GC_restart
-      else RETURN FLAG_no_restart
+      else if heuristic_reluctant_triggered2_st S \<and> can_res
+        then RETURN FLAG_restart
+        else RETURN FLAG_no_restart
     }
     else do {
       let sema = ema_get_value (get_slow_ema_heur S);
-      let limit = (shiftr ((opts_restart_coeff1_st S) * sema) 4);
+      let limit = (opts_restart_coeff1_st S) * (shiftr (sema) 4);
       let fema = ema_get_value (get_fast_ema_heur S);
       let ccount = get_conflict_count_since_last_restart_heur S;
       let min_reached = (ccount > opts_minimum_between_restart_st S);
@@ -4043,7 +4043,7 @@ definition isasat_GC_clauses_prog_wl :: \<open>twl_st_wl_heur \<Rightarrow> twl_
     heur,  vdom, avdom, lcount, opts, old_arena). do {
     ASSERT(old_arena = []);
     (N, (N', vdom, avdom), WS) \<leftarrow> isasat_GC_clauses_prog_wl2 (ns, Some fst_As) (N', (old_arena, take 0 vdom, take 0 avdom), W');
-    RETURN (M', N', D', j, WS, ((ns, st, fst_As, lst_As, nxt), to_remove), clvls, cach, lbd, outl, incr_GC stats, set_zero_wasted heur,
+    RETURN (M', N', D', j, WS, ((ns, st, fst_As, lst_As, nxt), to_remove), clvls, cach, lbd, outl, incr_GC stats, heuristic_reluctant_untrigger (set_zero_wasted heur),
        vdom, avdom, lcount, opts, take 0 N)
   })\<close>
 
@@ -5065,18 +5065,9 @@ definition update_restart_phases :: \<open>twl_st_wl_heur \<Rightarrow> twl_st_w
        vdom, avdom, lcount, opts, old_arena). do {
      heur \<leftarrow> RETURN (incr_restart_phase heur);
      heur \<leftarrow> RETURN (incr_restart_phase_end heur);
+     heur \<leftarrow> RETURN (if current_restart_phase heur = QUIET_PHASE then heuristic_reluctant_enable heur else heuristic_reluctant_disable heur);
      RETURN (M', N', D', j, W', vm, clvls, cach, lbd, outl, stats, heur,
          vdom, avdom, lcount, opts, old_arena)
-  })\<close>
-
-(*TODO FIX rephasing probably does not work after GC*)
-definition update_all_phases :: \<open>twl_st_wl_heur \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow>  (twl_st_wl_heur \<times> nat \<times> nat \<times> nat) nres\<close> where
-  \<open>update_all_phases = (\<lambda>S m n p. do {
-     let lcount = clss_size_lcount (get_learned_count S);
-     end_of_restart_phase \<leftarrow> RETURN (end_of_restart_phase_st S);
-     S \<leftarrow> (if end_of_restart_phase > of_nat lcount then RETURN S else update_restart_phases S);
-     S \<leftarrow> (if end_of_rephasing_phase_st S > of_nat lcount then RETURN S else rephase_heur_st S);
-     RETURN (S, m, n, p)
   })\<close>
 
 
@@ -5105,7 +5096,7 @@ where
          RETURN (T, learned_clss_count T, learned_clss_count T, n+1)
        }
     }
-    else update_all_phases S last_GC last_Restart n
+    else RETURN (S, last_GC, last_Restart, n)
   }\<close>
 
 lemma restart_required_heur_restart_required_wl0:
@@ -5140,45 +5131,10 @@ lemma heuristic_rel_incr_restartI[intro!]:
   \<open>heuristic_rel \<A> heur \<Longrightarrow> heuristic_rel \<A> (incr_restart_phase_end heur)\<close>
   by (auto simp: heuristic_rel_def)
 
-fun Pair4 :: \<open>'a \<Rightarrow> 'b \<Rightarrow> 'c \<Rightarrow> 'd \<Rightarrow> 'a \<times> 'b \<times> 'c \<times> 'd\<close> where
-  \<open>Pair4 a b c d = (a, b, c, d)\<close>
-
-lemma update_all_phases_Pair:
-  \<open>(uncurry3 update_all_phases, uncurry3 (RETURN oooo Pair4)) \<in>
-  twl_st_heur'''' r \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<rightarrow>\<^sub>f
-  \<langle>twl_st_heur'''' r \<times>\<^sub>r nat_rel \<times>\<^sub>r nat_rel \<times>\<^sub>r nat_rel\<rangle>nres_rel\<close>
-proof -
-  have [refine0]: \<open>(S, S') \<in> twl_st_heur'''' r \<Longrightarrow> update_restart_phases S \<le> SPEC(\<lambda>S. (S, S') \<in> twl_st_heur'''' r)\<close>
-    for S :: twl_st_wl_heur and S' :: \<open>nat twl_st_wl\<close>
-    unfolding update_all_phases_def update_restart_phases_def
-    by (auto simp: twl_st_heur'_def twl_st_heur_def
-        intro!: rephase_heur_st_spec[THEN order_trans]
-        simp del: incr_restart_phase_end.simps incr_restart_phase.simps)
-  have [refine0]: \<open>(S, S') \<in> twl_st_heur'''' r \<Longrightarrow> rephase_heur_st S \<le> SPEC(\<lambda>S. (S, S') \<in> twl_st_heur'''' r)\<close>
-    for S :: twl_st_wl_heur and S' :: \<open>nat twl_st_wl\<close>
-    unfolding update_all_phases_def rephase_heur_st_def
-    apply (cases S')
-    apply (refine_vcg rephase_heur_spec[THEN order_trans, of \<open>all_atms_st S'\<close>])
-    apply (clarsimp_all simp: twl_st_heur'_def twl_st_heur_def)
-    done
-  have Pair_alt_def: \<open>RETURN oooo Pair4 = (\<lambda>S m n p. do {S \<leftarrow> RETURN S; S \<leftarrow> RETURN S; RETURN (S, m, n, p)})\<close>
-    by (auto intro!: ext)
-
-  show ?thesis
-    supply[[goals_limit=1]]
-    unfolding update_all_phases_def Pair_alt_def
-    apply (subst (1) bind_to_let_conv)
-    apply (subst (1) Let_def)
-    apply (subst (1) Let_def)
-    apply (intro frefI nres_relI)
-    apply (case_tac x rule:prod.exhaust)
-    apply (simp only: uncurry_def prod.case)
-    apply refine_vcg
-    subgoal by simp
-    subgoal by simp
-    subgoal by simp
-    done
-qed
+(*TOD MOve*)
+lemma [intro!]:
+  \<open>heuristic_rel \<A> heur \<Longrightarrow> heuristic_rel \<A> (heuristic_reluctant_disable heur)\<close>
+  by (auto simp: heuristic_rel_def heuristic_reluctant_disable_def)
 
 
 lemma restart_prog_wl_D_heur_alt_def:
@@ -5199,9 +5155,9 @@ lemma restart_prog_wl_D_heur_alt_def:
        ASSERT(learned_clss_count T \<le> learned_clss_count S);
        RETURN (T, learned_clss_count T, learned_clss_count T, n+1)
     }
-    else update_all_phases S last_GC last_Restart n
+    else RETURN (S, last_GC, last_Restart, n)
   }\<close>
-   unfolding restart_prog_wl_D_heur_def Let_def Pair4.simps
+   unfolding restart_prog_wl_D_heur_def Let_def
    by (auto intro: bind_cong[OF refl])
 
 (*TODO Move*)
@@ -5222,8 +5178,8 @@ lemma cdcl_twl_full_restart_wl_prog_heur_cdcl_twl_full_restart_wl_prog_D2:
 
 lemma restart_prog_wl_D_heur_restart_prog_wl_D:
   \<open>(uncurry4 restart_prog_wl_D_heur, uncurry4 restart_prog_wl) \<in>
-  twl_st_heur''' r \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f bool_rel  \<rightarrow>\<^sub>f
-  \<langle>twl_st_heur'''' r \<times>\<^sub>r nat_rel \<times>\<^sub>r nat_rel \<times>\<^sub>r nat_rel\<rangle>nres_rel\<close>
+  twl_st_heur''''u r u \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f bool_rel  \<rightarrow>\<^sub>f
+  \<langle>twl_st_heur''''uu r u \<times>\<^sub>r nat_rel \<times>\<^sub>r nat_rel \<times>\<^sub>r nat_rel\<rangle>nres_rel\<close>
 proof -
   have [refine0]: \<open>RETURN b \<le> \<Down>{(c, c'). c' \<longleftrightarrow> (c = FLAG_Reduce_restart)} (SPEC (\<lambda>_::bool. True))\<close> for b
     by (auto simp: GC_required_heur_def RETURN_RES_refine_iff)
@@ -5231,7 +5187,7 @@ proof -
         \<in> twl_st_heur''''u r (learned_clss_count x1g)\<close>
     if
       \<open>(x, y)
-       \<in> twl_st_heur''' r \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f bool_rel\<close> and
+       \<in> twl_st_heur''''u r u \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f bool_rel\<close> and
       \<open>x1b = (x1c, x2)\<close> and
       \<open>x1a = (x1b, x2a)\<close> and
       \<open>x1 = (x1a, x2b)\<close> and
@@ -5246,14 +5202,12 @@ proof -
   show ?thesis
     supply RETURN_as_SPEC_refine[refine2 del] learned_clss_count_twl_st_heur[simp]
     unfolding restart_prog_wl_D_heur_alt_def restart_prog_wl_def uncurry_def
-       Pair4.simps[symmetric]
     apply (intro frefI nres_relI)
     subgoal for x y
     apply (refine_rcg
         restart_required_heur_restart_required_wl0[where r=r, THEN fref_to_Down_curry3]
         cdcl_twl_restart_wl_heur_cdcl_twl_restart_wl_D_prog[where r=r, THEN fref_to_Down]
         cdcl_twl_full_restart_wl_D_GC_heur_prog[where r=r, THEN fref_to_Down, THEN order_trans]
-        update_all_phases_Pair[where r=r, THEN fref_to_Down_curry3, unfolded comp_def]
       cdcl_twl_full_restart_wl_prog_heur_cdcl_twl_full_restart_wl_prog_D2[where r=r and
         u = \<open>learned_clss_count (fst (fst (fst (fst x))))\<close>, THEN fref_to_Down])
     subgoal by auto
@@ -5284,7 +5238,8 @@ lemma restart_prog_wl_D_heur_restart_prog_wl_D2:
   \<open>(uncurry4 restart_prog_wl_D_heur, uncurry4 restart_prog_wl) \<in>
   twl_st_heur \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f nat_rel \<times>\<^sub>f bool_rel \<rightarrow>\<^sub>f \<langle>twl_st_heur \<times>\<^sub>r nat_rel \<times>\<^sub>r nat_rel \<times>\<^sub>r nat_rel\<rangle>nres_rel\<close>
   apply (intro frefI nres_relI)
-  apply (rule_tac r2 = \<open>length(get_clauses_wl_heur (fst (fst (fst (fst x)))))\<close> in
+  apply (rule_tac r2 = \<open>length(get_clauses_wl_heur (fst (fst (fst (fst x)))))\<close> and
+       u2 = \<open>learned_clss_count (fst (fst (fst (fst x))))\<close> in
     order_trans[OF restart_prog_wl_D_heur_restart_prog_wl_D[THEN fref_to_Down]])
   apply fast
   apply (auto intro!: conc_fun_R_mono)

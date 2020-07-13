@@ -1306,4 +1306,5 @@ definition conclusive_TWL_run2 :: \<open>nat \<Rightarrow> nat \<Rightarrow> 'v 
        cdcl_twl_stgy_restart\<^sup>*\<^sup>* (S\<^sub>0, T\<^sub>0, U\<^sub>0, m\<^sub>0, n\<^sub>0, True) (R1, R2, T, m) \<and> final_twl_state T))\<close>
 end
 
+
 end

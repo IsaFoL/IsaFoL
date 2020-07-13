@@ -43,37 +43,36 @@ sepref_def update_next_search_code is
   unfolding update_next_search_def vmtf_remove_assn_def
   by sepref
 
-sepref_register isa_vmtf_find_next_undef_upd  mop_get_saved_phase_heur
+sepref_register isa_vmtf_find_next_undef_upd  mop_get_saved_phase_heur get_next_phase_st
 sepref_def isa_vmtf_find_next_undef_upd_code is
   \<open>uncurry isa_vmtf_find_next_undef_upd\<close>
     :: \<open>trail_pol_fast_assn\<^sup>d *\<^sub>a vmtf_remove_assn\<^sup>d \<rightarrow>\<^sub>a (trail_pol_fast_assn \<times>\<^sub>a vmtf_remove_assn) \<times>\<^sub>a atom.option_assn\<close>
   unfolding isa_vmtf_find_next_undef_upd_def
   by sepref
 
-lemma mop_get_saved_phase_heur_alt_def:
-  \<open>mop_get_saved_phase_heur = (\<lambda>L (fast_ema, slow_ema, res_info, wasted, \<phi>, target, best). do {
-            ASSERT (L < length \<phi>);
-            RETURN (\<phi> ! L)
-          })\<close>
-  unfolding mop_get_saved_phase_heur_def
-    get_saved_phase_heur_pre_def get_saved_phase_heur_def
-  by auto
-
-sepref_def mop_get_saved_phase_heur_impl
-  is \<open>uncurry mop_get_saved_phase_heur\<close>
-  :: \<open>atom_assn\<^sup>k *\<^sub>a heuristic_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
-  unfolding mop_get_saved_phase_heur_alt_def[abs_def] heuristic_assn_def
-  apply annot_all_atm_idxs
+sepref_register find_unassigned_lit_wl_D_heur2
+sepref_def find_unassigned_lit_wl_D_heur_impl
+  is \<open>find_unassigned_lit_wl_D_heur2\<close>
+  :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a isasat_bounded_assn \<times>\<^sub>a atom.option_assn\<close>
+  unfolding find_unassigned_lit_wl_D_heur2_def isasat_bounded_assn_def
+    fold_tuple_optimizations
   by sepref
+
+sepref_def get_next_phase_st_impl
+  is \<open>uncurry2 get_next_phase_st\<close>
+  :: \<open>bool1_assn\<^sup>k *\<^sub>a atom_assn\<^sup>k *\<^sub>a isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
+  unfolding get_next_phase_st_def isasat_bounded_assn_def heuristic_assn_def
+  by sepref
+
+
+term get_next_phase_st
 
 sepref_def decide_wl_or_skip_D_fast_code
   is \<open>decide_wl_or_skip_D_heur\<close>
   :: \<open>isasat_bounded_assn\<^sup>d \<rightarrow>\<^sub>a bool1_assn \<times>\<^sub>a isasat_bounded_assn\<close>
   supply[[goals_limit=1]]
-    decide_lit_wl_fast_code.refine[unfolded isasat_bounded_assn_def, sepref_fr_rules]
-    save_phase_heur_st.refine[unfolded isasat_bounded_assn_def, sepref_fr_rules]
   apply (rule hfref_refine_with_pre[OF decide_wl_or_skip_D_heur'_decide_wl_or_skip_D_heur, unfolded Down_id_eq])
-  unfolding decide_wl_or_skip_D_heur'_def isasat_bounded_assn_def
+  unfolding decide_wl_or_skip_D_heur'_def
   unfolding fold_tuple_optimizations option.case_eq_if atom.fold_option
   by sepref
 

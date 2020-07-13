@@ -8,7 +8,9 @@ no_notation WB_More_Refinement.fref (\<open>[_]\<^sub>f _ \<rightarrow> _\<close
 no_notation WB_More_Refinement.freft (\<open>_ \<rightarrow>\<^sub>f _\<close> [60,60] 60)
 
 (* TODO: Let monadify-phase do this automatically? trade-of: goal-size vs. lost information *)
-lemma protected_bind_assoc: \<open>Refine_Basic.bind$(Refine_Basic.bind$m$(\<lambda>\<^sub>2x. f x))$(\<lambda>\<^sub>2y. g y) = Refine_Basic.bind$m$(\<lambda>\<^sub>2x. Refine_Basic.bind$(f x)$(\<lambda>\<^sub>2y. g y))\<close> by simp
+lemma protected_bind_assoc:
+   \<open>Refine_Basic.bind$(Refine_Basic.bind$m$(\<lambda>\<^sub>2x. f x))$(\<lambda>\<^sub>2y. g y) =
+    Refine_Basic.bind$m$(\<lambda>\<^sub>2x. Refine_Basic.bind$(f x)$(\<lambda>\<^sub>2y. g y))\<close> by simp
 
 
 lemma convert_swap: \<open>WB_More_Refinement_List.swap = More_List.swap\<close>
@@ -38,7 +40,8 @@ sepref_def xarena_lit_impl [llvm_inline]
 lemmas [sepref_fr_rules] = xarena_lit_impl.refine[FCOMP xarena_lit_refine1]
 
 lemma ALit_refine1: \<open>(\<lambda>x. x,ALit) \<in> nat_lit_rel \<rightarrow> arena_el_rel\<close> by auto
-sepref_def ALit_impl [llvm_inline] is [] \<open>RETURN o (\<lambda>x. x)\<close> :: \<open>uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close> by sepref
+sepref_def ALit_impl [llvm_inline] is [] \<open>RETURN o (\<lambda>x. x)\<close>
+  :: \<open>uint32_nat_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close> by sepref
 lemmas [sepref_fr_rules] = ALit_impl.refine[FCOMP ALit_refine1]
 
 

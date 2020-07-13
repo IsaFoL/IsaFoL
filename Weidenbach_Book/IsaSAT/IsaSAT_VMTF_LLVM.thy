@@ -553,6 +553,11 @@ sepref_def vmtf_mark_to_rescore_also_reasons_fast_code
   unfolding  nres_monad3 case_option_split
   by sepref
 
+
+schematic_goal mk_free_vmtf_remove_assn[sepref_frame_free_rules]: \<open>MK_FREE vmtf_remove_assn ?fr\<close>
+  unfolding vmtf_remove_assn_def
+  by synthesize_free
+
 experiment begin
 
 export_llvm
