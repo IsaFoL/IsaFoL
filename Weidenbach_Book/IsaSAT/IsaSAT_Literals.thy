@@ -627,4 +627,21 @@ lemma set_mset_all_lits_of_mm_atms_of_ms_iff:
        eq_commute[of \<open>set_mset (all_lits_of_mm _)\<close> \<open>set_mset (\<L>\<^sub>a\<^sub>l\<^sub>l _)\<close>]
       dest: multi_member_split)
 
+section \<open>Polarities\<close>
+
+type_synonym tri_bool = \<open>bool option\<close>
+
+definition UNSET :: \<open>tri_bool\<close> where
+  [simp]: \<open>UNSET = None\<close>
+
+definition SET_FALSE :: \<open>tri_bool\<close> where
+  [simp]: \<open>SET_FALSE = Some False\<close>
+
+definition SET_TRUE :: \<open>tri_bool\<close> where
+  [simp]: \<open>SET_TRUE = Some True\<close>
+
+definition (in -) tri_bool_eq :: \<open>tri_bool \<Rightarrow> tri_bool \<Rightarrow> bool\<close> where
+  \<open>tri_bool_eq = (=)\<close>
+
+
 end

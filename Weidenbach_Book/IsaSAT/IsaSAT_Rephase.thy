@@ -176,8 +176,10 @@ definition current_phase_letter :: \<open>64 word \<Rightarrow> 64 word\<close> 
      \<close>
 
 definition phase_rephase :: \<open>64 word \<Rightarrow> phase_save_heur \<Rightarrow> phase_save_heur nres\<close> where
-\<open>phase_rephase = (\<lambda>b (\<phi>, target_assigned, target, best_assigned, best, end_of_phase, curr_phase, length_phase).
-   do {
+\<open>phase_rephase = (\<lambda>b (\<phi>, target_assigned, target, best_assigned, best, end_of_phase, curr_phase,
+     length_phase).
+  do {
+      let target_assigned = 0;
       if curr_phase = 0 \<or> curr_phase = 2 \<or> curr_phase = 4 \<or> curr_phase = 6
       then do {
          \<phi> \<leftarrow> copy_phase best \<phi>;

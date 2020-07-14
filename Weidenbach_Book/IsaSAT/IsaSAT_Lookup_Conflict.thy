@@ -4215,4 +4215,59 @@ proof -
     done
 qed
 
+definition (in -) get_count_max_lvls_code where
+  \<open>get_count_max_lvls_code = (\<lambda>(_, _, _, _, _, _, _, clvls, _). clvls)\<close>
+
+lemma atm_of_in_atms_of: \<open>atm_of x \<in> atms_of C \<longleftrightarrow> x \<in># C \<or> -x \<in># C\<close>
+  using atm_of_notin_atms_of_iff by blast
+
+definition atm_is_in_conflict where
+  \<open>atm_is_in_conflict L D \<longleftrightarrow> atm_of L \<in> atms_of (the D)\<close>
+
+fun is_in_option_lookup_conflict where
+  is_in_option_lookup_conflict_def[simp del]:
+  \<open>is_in_option_lookup_conflict L (a, n, xs) \<longleftrightarrow> is_in_lookup_conflict (n, xs) L\<close>
+
+
+lemma is_in_option_lookup_conflict_atm_is_in_conflict_iff:
+  assumes
+    \<open>ba \<noteq> None\<close> and aa: \<open>aa \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>\<close> and uaa: \<open>- aa \<notin># the ba\<close> and
+    \<open>((b, c, d), ba) \<in> option_lookup_clause_rel \<A>\<close>
+  shows \<open>is_in_option_lookup_conflict aa (b, c, d) =
+         atm_is_in_conflict aa ba\<close>
+proof -
+  obtain yb where ba[simp]: \<open>ba = Some yb\<close>
+    using assms by auto
+
+  have map: \<open>mset_as_position d yb\<close> and le: \<open>\<forall>L\<in>atms_of (\<L>\<^sub>a\<^sub>l\<^sub>l \<A>). L < length d\<close> and [simp]: \<open>\<not>b\<close>
+    using assms by (auto simp: option_lookup_clause_rel_def lookup_clause_rel_def)
+  have aa_d: \<open>atm_of aa < length d\<close> and uaa_d: \<open>atm_of (-aa) < length d\<close>
+    using le aa by (auto simp: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_in_atms_of_iff)
+  from mset_as_position_in_iff_nth[OF map aa_d]
+  have 1: \<open>(aa \<in># yb) = (d ! atm_of aa = Some (is_pos aa))\<close>
+    .
+
+  from mset_as_position_in_iff_nth[OF map uaa_d] have 2: \<open>(d ! atm_of aa \<noteq> Some (is_pos (-aa)))\<close>
+    using uaa by simp
+
+  then show ?thesis
+    using uaa 1 2
+    by (auto simp: is_in_lookup_conflict_def is_in_option_lookup_conflict_def atm_is_in_conflict_def
+        atm_of_in_atms_of is_neg_neg_not_is_neg
+        split: option.splits)
+qed
+
+lemma is_in_option_lookup_conflict_atm_is_in_conflict:
+  \<open>(uncurry (RETURN oo is_in_option_lookup_conflict), uncurry (RETURN oo atm_is_in_conflict))
+   \<in> [\<lambda>(L, D). D \<noteq> None \<and> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A> \<and> -L \<notin># the D]\<^sub>f
+      Id \<times>\<^sub>f option_lookup_clause_rel \<A> \<rightarrow> \<langle>bool_rel\<rangle>nres_rel\<close>
+  apply (intro frefI nres_relI)
+  apply (case_tac x, case_tac y)
+  by (simp add: is_in_option_lookup_conflict_atm_is_in_conflict_iff[of _ _ \<A>])
+
+lemma is_in_option_lookup_conflict_alt_def:
+  \<open>RETURN oo is_in_option_lookup_conflict =
+     RETURN oo (\<lambda>L (_, n, xs). is_in_lookup_conflict (n, xs) L)\<close>
+  by (auto intro!: ext simp: is_in_option_lookup_conflict_def)
+
 end

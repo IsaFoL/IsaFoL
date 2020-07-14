@@ -27,24 +27,6 @@ trail). Remark that the control stack contains is not updated during the backjum
 \<close>
 
 
-section \<open>Polarities\<close>
-
-type_synonym tri_bool = \<open>bool option\<close>
-
-definition UNSET :: \<open>tri_bool\<close> where
-  [simp]: \<open>UNSET = None\<close>
-
-definition SET_FALSE :: \<open>tri_bool\<close> where
-  [simp]: \<open>SET_FALSE = Some False\<close>
-
-definition SET_TRUE :: \<open>tri_bool\<close> where
-  [simp]: \<open>SET_TRUE = Some True\<close>
-
-definition (in -) tri_bool_eq :: \<open>tri_bool \<Rightarrow> tri_bool \<Rightarrow> bool\<close> where
-  \<open>tri_bool_eq = (=)\<close>
-
-
-
 section \<open>Types\<close>
 
 type_synonym trail_pol =
@@ -440,6 +422,12 @@ lemma polarity_pol_pre:
   \<open>(M', M) \<in> trail_pol \<A> \<Longrightarrow> L \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A> \<Longrightarrow> polarity_pol_pre M' L\<close>
   by (auto simp: trail_pol_def polarity_def polarity_pol_def polarity_pol_pre_def
       dest!: multi_member_split)
+
+definition mop_polarity_pol :: \<open>trail_pol \<Rightarrow> nat literal \<Rightarrow> bool option nres\<close> where
+  \<open>mop_polarity_pol = (\<lambda>M L. do {
+    ASSERT(polarity_pol_pre M L);
+    RETURN (polarity_pol M L)
+  })\<close>
 
 
 subsection \<open>Length of the trail\<close>
@@ -1248,13 +1236,5 @@ lemma lit_of_last_trail_pol_lit_of_last_trail_no_CS:
   by (auto simp: lit_of_hd_trail_def trail_pol_no_CS_def lit_of_last_trail_pol_def
      ann_lits_split_reasons_def hd_map rev_map[symmetric] last_rev
       intro!: frefI nres_relI)
-
-(*TODO Move*)
-
-definition mop_polarity_pol :: \<open>trail_pol \<Rightarrow> nat literal \<Rightarrow> bool option nres\<close> where
-  \<open>mop_polarity_pol = (\<lambda>M L. do {
-    ASSERT(polarity_pol_pre M L);
-    RETURN (polarity_pol M L)
-  })\<close>
 
 end

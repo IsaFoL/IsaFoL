@@ -706,6 +706,28 @@ sepref_def isasat_lookup_merge_eq2_fast_code
   by sepref
 
 
+sepref_def is_in_option_lookup_conflict_code
+  is \<open>uncurry (RETURN oo is_in_option_lookup_conflict)\<close>
+  :: \<open>[\<lambda>(L, (c, n, xs)). atm_of L < length xs]\<^sub>a
+        unat_lit_assn\<^sup>k *\<^sub>a conflict_option_rel_assn\<^sup>k \<rightarrow> bool1_assn\<close>
+  unfolding is_in_option_lookup_conflict_alt_def is_in_lookup_conflict_def PROTECT_def
+     is_NOTIN_alt_def[symmetric] conflict_option_rel_assn_def lookup_clause_rel_assn_def
+  by sepref
+
+definition None_lookup_conflict :: \<open>_ \<Rightarrow> _ \<Rightarrow> conflict_option_rel\<close> where
+\<open>None_lookup_conflict b xs = (b, xs)\<close>
+
+
+sepref_def None_lookup_conflict_impl
+  is \<open>uncurry (RETURN oo None_lookup_conflict)\<close>
+  :: \<open>bool1_assn\<^sup>k *\<^sub>a lookup_clause_rel_assn\<^sup>d \<rightarrow>\<^sub>a conflict_option_rel_assn\<close>
+  unfolding None_lookup_conflict_def conflict_option_rel_assn_def
+    lookup_clause_rel_assn_def
+  by sepref
+
+sepref_register None_lookup_conflict
+declare None_lookup_conflict_impl.refine[sepref_fr_rules]
+
 schematic_goal mk_free_lookup_clause_rel_assn[sepref_frame_free_rules]: \<open>MK_FREE lookup_clause_rel_assn ?fr\<close>
   unfolding conflict_option_rel_assn_def lookup_clause_rel_assn_def
   by synthesize_free

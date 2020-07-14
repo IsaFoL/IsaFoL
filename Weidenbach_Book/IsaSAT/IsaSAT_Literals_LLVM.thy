@@ -420,4 +420,40 @@ end
 lemma of_nat_snat:
   \<open>(id,of_nat) \<in> snat_rel' TYPE('a::len2) \<rightarrow> word_rel\<close>
   by (auto simp: snat_rel_def snat.rel_def in_br_conv snat_eq_unat)
+
+
+type_synonym tri_bool_assn = \<open>8 word\<close>
+
+definition \<open>tri_bool_rel_aux \<equiv> { (0::nat,None), (2,Some True), (3,Some False) }\<close>
+definition \<open>tri_bool_rel \<equiv> unat_rel' TYPE(8) O tri_bool_rel_aux\<close>
+abbreviation \<open>tri_bool_assn \<equiv> pure tri_bool_rel\<close>
+lemmas [fcomp_norm_unfold] = tri_bool_rel_def[symmetric]
+
+lemma tri_bool_UNSET_refine_aux: \<open>(0,UNSET)\<in>tri_bool_rel_aux\<close>
+  and tri_bool_SET_TRUE_refine_aux: \<open>(2,SET_TRUE)\<in>tri_bool_rel_aux\<close>
+  and tri_bool_SET_FALSE_refine_aux: \<open>(3,SET_FALSE)\<in>tri_bool_rel_aux\<close>
+  and tri_bool_eq_refine_aux: \<open>((=),tri_bool_eq) \<in> tri_bool_rel_aux\<rightarrow>tri_bool_rel_aux\<rightarrow>bool_rel\<close>
+  by (auto simp: tri_bool_rel_aux_def tri_bool_eq_def)
+
+sepref_def tri_bool_UNSET_impl is [] \<open>uncurry0 (RETURN 0)\<close> :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a unat_assn' TYPE(8)\<close>
+  apply (annot_unat_const \<open>TYPE(8)\<close>)
+  by sepref
+
+sepref_def tri_bool_SET_TRUE_impl is [] \<open>uncurry0 (RETURN 2)\<close> :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a unat_assn' TYPE(8)\<close>
+  apply (annot_unat_const \<open>TYPE(8)\<close>)
+  by sepref
+
+sepref_def tri_bool_SET_FALSE_impl is [] \<open>uncurry0 (RETURN 3)\<close> :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a unat_assn' TYPE(8)\<close>
+  apply (annot_unat_const \<open>TYPE(8)\<close>)
+  by sepref
+
+sepref_def tri_bool_eq_impl [llvm_inline] is [] \<open>uncurry (RETURN oo (=))\<close> :: \<open>(unat_assn' TYPE(8))\<^sup>k *\<^sub>a (unat_assn' TYPE(8))\<^sup>k \<rightarrow>\<^sub>a bool1_assn\<close>
+  by sepref
+
+lemmas [sepref_fr_rules] =
+  tri_bool_UNSET_impl.refine[FCOMP tri_bool_UNSET_refine_aux]
+  tri_bool_SET_TRUE_impl.refine[FCOMP tri_bool_SET_TRUE_refine_aux]
+  tri_bool_SET_FALSE_impl.refine[FCOMP tri_bool_SET_FALSE_refine_aux]
+  tri_bool_eq_impl.refine[FCOMP tri_bool_eq_refine_aux]
+
 end

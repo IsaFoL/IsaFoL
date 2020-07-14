@@ -156,4 +156,14 @@ sepref_def get_global_conflict_count_impl
   unfolding get_global_conflict_count_alt_def isasat_bounded_assn_def
   by sepref
 
+lemma get_count_max_lvls_heur_def:
+   \<open>get_count_max_lvls_heur = (\<lambda>(_, _, _, _, _, _, clvls, _). clvls)\<close>
+  by (auto intro!: ext)
+
+sepref_def get_count_max_lvls_heur_impl
+  is \<open>RETURN o get_count_max_lvls_heur\<close>
+  :: \<open>isasat_bounded_assn\<^sup>k \<rightarrow>\<^sub>a uint32_nat_assn\<close>
+  unfolding get_count_max_lvls_heur_def isasat_bounded_assn_def
+  by sepref
+
 end

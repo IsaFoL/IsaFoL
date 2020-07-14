@@ -6,18 +6,6 @@ target triple = "x86_64-pc-linux-gnu"
 
 declare void @isabelle_llvm_free(i8*)
 declare i8* @isabelle_llvm_calloc(i64, i64)
-declare void @IsaSAT_Show_LLVM_print_c_impl(i64)
-declare void @IsaSAT_Show_LLVM_print_char_impl(i64)
-declare void @IsaSAT_Show_LLVM_print_uint64_impl(i64)
-declare void @IsaSAT_Show_LLVM_print_open_colour_impl(i64)
-declare void @IsaSAT_Show_LLVM_print_close_colour_impl(i64)
-declare void @IsaSAT_LLVM_print_propa_impl(i64)
-declare void @IsaSAT_LLVM_print_confl_impl(i64)
-declare void @IsaSAT_LLVM_print_dec_impl(i64)
-declare void @IsaSAT_LLVM_print_res_impl(i64)
-declare void @IsaSAT_LLVM_print_lres_impl(i64)
-declare void @IsaSAT_LLVM_print_uset_impl(i64)
-declare void @IsaSAT_LLVM_print_gc_impl(i64)
 
 
 define i32 @LBD_LLVM_get_LBD_code({ { i64, i32* }, { i32, i32 } } %x) {
@@ -912,6 +900,11 @@ define i32* @llvm_version() {
     ret i32* %xi
 }
 
+define void @IsaSAT_LLVM_print_gc_impl(i64 %x) {
+
+  start:
+    ret void
+}
 
 define i64* @LLVM_DS_NArray_array_grow(i64 %newsz, i64 %oldsz, i64* %src) {
 
@@ -959,7 +952,17 @@ define i32* @LLVM_DS_NArray_array_grow1(i64 %newsz, i64 %oldsz, i32* %src) {
     ret i32* %dst
 }
 
+define void @IsaSAT_LLVM_print_dec_impl(i64 %x) {
 
+  start:
+    ret void
+}
+
+define void @IsaSAT_LLVM_print_res_impl(i64 %x) {
+
+  start:
+    ret void
+}
 
 define i1 @LBD_LLVM_level_in_lbd_code(i32 %x, { { i64, i32* }, { i32, i32 } } %x1) {
 
@@ -1149,7 +1152,17 @@ define i64 @Sorting_Log2_word_clz_impl(i64 %x) {
     ret i64 %x3
 }
 
+define void @IsaSAT_LLVM_print_lres_impl(i64 %x) {
 
+  start:
+    ret void
+}
+
+define void @IsaSAT_LLVM_print_uset_impl(i64 %x) {
+
+  start:
+    ret void
+}
 
 define i64 @Sorting_Log2_word_clz_impl1(i64 %x) {
 
@@ -1261,7 +1274,17 @@ define { i1, { { i64, { i64, i32* } }, { i64, { i64, { i64, { i64, { i64, { i64,
     ret { i1, { { i64, { i64, i32* } }, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } } } } %x2
 }
 
+define void @IsaSAT_LLVM_print_confl_impl(i64 %x) {
 
+  start:
+    ret void
+}
+
+define void @IsaSAT_LLVM_print_propa_impl(i64 %x) {
+
+  start:
+    ret void
+}
 
 define { { i64, i32* }, { i32, i32 } } @LBD_LLVM_lbd_empty_loop_code({ { i64, i32* }, { i32, i32 } } %x) {
 
@@ -1340,6 +1363,11 @@ define i32 @IsaSAT_Literals_LLVM_Pos_impl(i32 %x) {
     ret i32 %x1
 }
 
+define void @IsaSAT_Show_LLVM_print_c_impl(i64 %x) {
+
+  start:
+    ret void
+}
 
 define { { i64, i32* }, { i32, i32 } } @LBD_LLVM_lbd_empty_cheap_code({ { i64, i32* }, { i32, i32 } } %x) {
 
@@ -2330,6 +2358,11 @@ define { i1, { i1, { i1, { i64, { i64, { i64, { i3, { i64, i64 } } } } } } } } @
     ret { i1, { i1, { i1, { i64, { i64, { i64, { i3, { i64, i64 } } } } } } } } %a1o
 }
 
+define void @IsaSAT_Show_LLVM_print_char_impl(i64 %x) {
+
+  start:
+    ret void
+}
 
 define i2 @IsaSAT_Arena_LLVM_arena_used_impl({ i64, { i64, i32* } } %x, i64 %x1) {
 
@@ -2646,6 +2679,11 @@ define i1 @IsaSAT_Other_LLVM_isasat_fast_impl({ { { i64, { i64, i32* } }, { { i6
     ret i1 %x5
 }
 
+define void @IsaSAT_Show_LLVM_print_uint64_impl(i64 %x) {
+
+  start:
+    ret void
+}
 
 define i64 @IsaSAT_Stats_LLVM_QUIET_PHASE_impl() {
 
@@ -3305,12 +3343,6 @@ define i32 @IsaSAT_Trail_LLVM_get_level_fast_code({ { i64, { i64, i32* } }, { { 
     %x2 = call i32 @IsaSAT_Literals_LLVM_atm_of_impl (i32 %x1)
     %x3 = call i32 @IsaSAT_Trail_LLVM_get_level_atm_fast_code ({ { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } } %x, i32 %x2)
     ret i32 %x3
-}
-
-define i8 @IsaSAT_Trail_LLVM_tri_bool_UNSET_impl() {
-
-  start:
-    ret i8 0
 }
 
 define { i64, { i32, i32 } }* @IsaSAT_VMTF_LLVM_ns_vmtf_dequeue_code(i32 %x, { i64, { i32, i32 } }* %x1) {
@@ -4153,6 +4185,11 @@ define i64 @IsaSAT_Setup3_LLVM_wasted_bytes_st_impl({ { { i64, { i64, i32* } }, 
     ret i64 %a1o
 }
 
+define void @IsaSAT_Show_LLVM_print_open_colour_impl(i64 %x) {
+
+  start:
+    ret void
+}
 
 define i1 @IsaSAT_Trail_LLVM_defined_atm_fast_code({ { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } } %x, i32 %x1) {
 
@@ -4169,7 +4206,7 @@ define i1 @IsaSAT_Trail_LLVM_defined_atm_fast_code({ { i64, { i64, i32* } }, { {
     %a2 = extractvalue { i64, i8* } %a1a, 1
     %xd = getelementptr i8, i8* %a2, i64 %xca
     %xe = load i8, i8* %xd
-    %xf = call i8 @IsaSAT_Trail_LLVM_tri_bool_UNSET_impl ()
+    %xf = call i8 @IsaSAT_Literals_LLVM_tri_bool_UNSET_impl ()
     %xg = icmp eq i8 %xe, %xf
     %x3 = add i1 %xg, 1
     ret i1 %x3
@@ -4205,7 +4242,7 @@ define { { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* 
     %xk = insertvalue { i64, i32* } %xj, i32* %aa, 1
     %xja = insertvalue { i64, { i64, i32* } } %xha, { i64, i32* } %xk, 1
     %xka = zext i32 %xf to i64
-    %xla = call i8 @IsaSAT_Trail_LLVM_tri_bool_UNSET_impl ()
+    %xla = call i8 @IsaSAT_Literals_LLVM_tri_bool_UNSET_impl ()
     %a1e = extractvalue { i64, i8* } %a1a, 0
     %a2 = extractvalue { i64, i8* } %a1a, 1
     %p = getelementptr i8, i8* %a2, i64 %xka
@@ -4214,7 +4251,7 @@ define { { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* 
     %xo = insertvalue { i64, i8* } %xn, i8* %a2, 1
     %xp = call i32 @IsaSAT_Literals_LLVM_uminus_impl (i32 %xf)
     %xqa = zext i32 %xp to i64
-    %xr = call i8 @IsaSAT_Trail_LLVM_tri_bool_UNSET_impl ()
+    %xr = call i8 @IsaSAT_Literals_LLVM_tri_bool_UNSET_impl ()
     %a1f = extractvalue { i64, i8* } %xo, 0
     %a2a = extractvalue { i64, i8* } %xo, 1
     %pa = getelementptr i8, i8* %a2a, i64 %xqa
@@ -4754,6 +4791,12 @@ define i1 @IsaSAT_Clauses_LLVM_is_short_clause_code({ i64, i32* } %x) {
     ret i1 %x2
 }
 
+define i8 @IsaSAT_Literals_LLVM_tri_bool_UNSET_impl() {
+
+  start:
+    ret i8 0
+}
+
 define i1 @IsaSAT_Options_LLVM_opts_rel_reduce_code({ i1, { i1, { i1, { i64, { i64, { i64, { i3, { i64, i64 } } } } } } } } %x) {
 
   start:
@@ -4904,6 +4947,11 @@ define i64 @IsaSAT_Setup3_LLVM_get_restart_phase_imp({ { { i64, { i64, i32* } },
     ret i64 %x12
 }
 
+define void @IsaSAT_Show_LLVM_print_close_colour_impl(i64 %x) {
+
+  start:
+    ret void
+}
 
 define i64 @IsaSAT_Stats_LLVM_ema_extract_value_impl({ i64, { i64, { i64, { i64, i64 } } } } %x) {
 
@@ -4949,12 +4997,6 @@ define i8 @IsaSAT_Trail_LLVM_polarity_pol_fast_code({ { i64, { i64, i32* } }, { 
     %x3 = getelementptr i8, i8* %a2, i64 %bia
     %x4 = load i8, i8* %x3
     ret i8 %x4
-}
-
-define i8 @IsaSAT_Trail_LLVM_tri_bool_SET_TRUE_impl() {
-
-  start:
-    ret i8 2
 }
 
 define i1 @IsaSAT_Decide_LLVM_get_next_phase_st_impl(i1 %x, i32 %x1, { { { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } }, { { i64, { i64, i32* } }, { { i1, { i32, i1* } }, { i64, { { i64, { i64, { i64, { i64, { i32, i1 } }* } }* }, { { { { i64, { i32, i32 } }*, { i64, { i32, { i32, i32 } } } }, { { i64, { i64, i32* } }, i1* } }, { i32, { { i8*, { i64, { i64, i32* } } }, { { { i64, i32* }, { i32, i32 } }, { { i64, { i64, i32* } }, { { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { { i64, i1* }, { i64, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } } }, { i1, { i1, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { i64, { i64, i64* } }, { { i64, { i64, i64* } }, { { i64, { i64, i64 } }, { { i1, { i1, { i1, { i64, { i64, { i64, { i3, { i64, i64 } } } } } } } }, { i64, { i64, i32* } } } } } } } } } } } } } } } } } } %x2) {
@@ -5287,12 +5329,6 @@ define i32 @IsaSAT_Trail_LLVM_isa_trail_nth_fast_code({ { i64, { i64, i32* } }, 
     %x3 = getelementptr i32, i32* %a, i64 %x1
     %x4 = load i32, i32* %x3
     ret i32 %x4
-}
-
-define i8 @IsaSAT_Trail_LLVM_tri_bool_SET_FALSE_impl() {
-
-  start:
-    ret i8 3
 }
 
 define { i64, { i64, i32* } } @IsaSAT_VMTF_LLVM_VMTF_it_heapify_btu_impl({ i64, { i32, i32 } }* %x, i64 %x1, i64 %x2, { i64, { i64, i32* } } %x3) {
@@ -6416,6 +6452,12 @@ define { i64, { i64, i32* } } @IsaSAT_Arena_LLVM_mop_arena_update_lbd_impl(i64 %
     ret { i64, { i64, i32* } } %x3
 }
 
+define i8 @IsaSAT_Literals_LLVM_tri_bool_SET_TRUE_impl() {
+
+  start:
+    ret i8 2
+}
+
 define { i1, { i1, { i64, { i64, { i64, { i64, i64 } } } } } } @IsaSAT_Reluctant_LLVM_reluctant_enable_impl(i64 %x, i64 %x1) {
 
   start:
@@ -6753,7 +6795,7 @@ define { i64, { i64, i32* } } @IsaSAT_VMTF_LLVM_VMTF_it_introsort_aux_impl({ i64
     %tmpab = insertvalue { i64, { i64, i64 } } %xa, { i64, i64 } %tmpa, 1
     %xb = insertvalue { { i64, { i64, i32* } }, { i64, { i64, i64 } } } zeroinitializer, { i64, { i64, i32* } } %x1, 0
     %x6 = insertvalue { { i64, { i64, i32* } }, { i64, { i64, i64 } } } %xb, { i64, { i64, i64 } } %tmpab, 1
-    %x7 = call { i64, { i64, i32* } } @IsaSAT_LLVM_experiment33374774_VMTF_it_introsort_aux_impl_f_033896564 ({ i64, { i32, i32 } }* %x, { { i64, { i64, i32* } }, { i64, { i64, i64 } } } %x6)
+    %x7 = call { i64, { i64, i32* } } @IsaSAT_LLVM_experiment43181272_VMTF_it_introsort_aux_impl_f_043353428 ({ i64, { i32, i32 } }* %x, { { i64, { i64, i32* } }, { i64, { i64, i64 } } } %x6)
     ret { i64, { i64, i32* } } %x7
 }
 
@@ -6851,6 +6893,12 @@ define { { i64, i32* }, { i32, i32 } } @IsaSAT_LBD_LLVM_mark_lbd_from_list_heur_
     %a12 = extractvalue { i64, { { i64, i32* }, { i32, i32 } } } %xba, 0
     %x7 = extractvalue { i64, { { i64, i32* }, { i32, i32 } } } %xba, 1
     ret { { i64, i32* }, { i32, i32 } } %x7
+}
+
+define i8 @IsaSAT_Literals_LLVM_tri_bool_SET_FALSE_impl() {
+
+  start:
+    ret i8 3
 }
 
 define i8 @IsaSAT_Lookup_Conflict_LLVM_SEEN_FAILED_impl() {
@@ -7267,7 +7315,7 @@ define { { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* 
     %xk = insertvalue { i64, i32* } %xj, i32* %aa, 1
     %xja = insertvalue { i64, { i64, i32* } } %xha, { i64, i32* } %xk, 1
     %xka = zext i32 %xf to i64
-    %xla = call i8 @IsaSAT_Trail_LLVM_tri_bool_UNSET_impl ()
+    %xla = call i8 @IsaSAT_Literals_LLVM_tri_bool_UNSET_impl ()
     %a1e = extractvalue { i64, i8* } %a1a, 0
     %a2 = extractvalue { i64, i8* } %a1a, 1
     %p = getelementptr i8, i8* %a2, i64 %xka
@@ -7276,7 +7324,7 @@ define { { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* 
     %xo = insertvalue { i64, i8* } %xn, i8* %a2, 1
     %xp = call i32 @IsaSAT_Literals_LLVM_uminus_impl (i32 %xf)
     %xqa = zext i32 %xp to i64
-    %xr = call i8 @IsaSAT_Trail_LLVM_tri_bool_UNSET_impl ()
+    %xr = call i8 @IsaSAT_Literals_LLVM_tri_bool_UNSET_impl ()
     %a1f = extractvalue { i64, i8* } %xo, 0
     %a2a = extractvalue { i64, i8* } %xo, 1
     %pa = getelementptr i8, i8* %a2a, i64 %xqa
@@ -9420,6 +9468,26 @@ define i64 @IsaSAT_Setup1_LLVM_learned_clss_count_fast_code({ { { i64, { i64, i3
     ret i64 %x3
 }
 
+define i32 @IsaSAT_Setup2_LLVM_get_count_max_lvls_heur_impl({ { { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } }, { { i64, { i64, i32* } }, { { i1, { i32, i1* } }, { i64, { { i64, { i64, { i64, { i64, { i32, i1 } }* } }* }, { { { { i64, { i32, i32 } }*, { i64, { i32, { i32, i32 } } } }, { { i64, { i64, i32* } }, i1* } }, { i32, { { i8*, { i64, { i64, i32* } } }, { { { i64, i32* }, { i32, i32 } }, { { i64, { i64, i32* } }, { { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { { i64, i1* }, { i64, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } } }, { i1, { i1, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { i64, { i64, i64* } }, { { i64, { i64, i64* } }, { { i64, { i64, i64 } }, { { i1, { i1, { i1, { i64, { i64, { i64, { i3, { i64, i64 } } } } } } } }, { i64, { i64, i32* } } } } } } } } } } } } } } } } } } %x) {
+
+  start:
+    %a1 = extractvalue { { { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } }, { { i64, { i64, i32* } }, { { i1, { i32, i1* } }, { i64, { { i64, { i64, { i64, { i64, { i32, i1 } }* } }* }, { { { { i64, { i32, i32 } }*, { i64, { i32, { i32, i32 } } } }, { { i64, { i64, i32* } }, i1* } }, { i32, { { i8*, { i64, { i64, i32* } } }, { { { i64, i32* }, { i32, i32 } }, { { i64, { i64, i32* } }, { { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { { i64, i1* }, { i64, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } } }, { i1, { i1, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { i64, { i64, i64* } }, { { i64, { i64, i64* } }, { { i64, { i64, i64 } }, { { i1, { i1, { i1, { i64, { i64, { i64, { i3, { i64, i64 } } } } } } } }, { i64, { i64, i32* } } } } } } } } } } } } } } } } } } %x, 0
+    %b = extractvalue { { { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } }, { { i64, { i64, i32* } }, { { i1, { i32, i1* } }, { i64, { { i64, { i64, { i64, { i64, { i32, i1 } }* } }* }, { { { { i64, { i32, i32 } }*, { i64, { i32, { i32, i32 } } } }, { { i64, { i64, i32* } }, i1* } }, { i32, { { i8*, { i64, { i64, i32* } } }, { { { i64, i32* }, { i32, i32 } }, { { i64, { i64, i32* } }, { { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { { i64, i1* }, { i64, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } } }, { i1, { i1, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { i64, { i64, i64* } }, { { i64, { i64, i64* } }, { { i64, { i64, i64 } }, { { i1, { i1, { i1, { i64, { i64, { i64, { i3, { i64, i64 } } } } } } } }, { i64, { i64, i32* } } } } } } } } } } } } } } } } } } %x, 1
+    %a1a = extractvalue { { i64, { i64, i32* } }, { { i1, { i32, i1* } }, { i64, { { i64, { i64, { i64, { i64, { i32, i1 } }* } }* }, { { { { i64, { i32, i32 } }*, { i64, { i32, { i32, i32 } } } }, { { i64, { i64, i32* } }, i1* } }, { i32, { { i8*, { i64, { i64, i32* } } }, { { { i64, i32* }, { i32, i32 } }, { { i64, { i64, i32* } }, { { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { { i64, i1* }, { i64, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } } }, { i1, { i1, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { i64, { i64, i64* } }, { { i64, { i64, i64* } }, { { i64, { i64, i64 } }, { { i1, { i1, { i1, { i64, { i64, { i64, { i3, { i64, i64 } } } } } } } }, { i64, { i64, i32* } } } } } } } } } } } } } } } } } %b, 0
+    %b1 = extractvalue { { i64, { i64, i32* } }, { { i1, { i32, i1* } }, { i64, { { i64, { i64, { i64, { i64, { i32, i1 } }* } }* }, { { { { i64, { i32, i32 } }*, { i64, { i32, { i32, i32 } } } }, { { i64, { i64, i32* } }, i1* } }, { i32, { { i8*, { i64, { i64, i32* } } }, { { { i64, i32* }, { i32, i32 } }, { { i64, { i64, i32* } }, { { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { { i64, i1* }, { i64, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } } }, { i1, { i1, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { i64, { i64, i64* } }, { { i64, { i64, i64* } }, { { i64, { i64, i64 } }, { { i1, { i1, { i1, { i64, { i64, { i64, { i3, { i64, i64 } } } } } } } }, { i64, { i64, i32* } } } } } } } } } } } } } } } } } %b, 1
+    %a1b = extractvalue { { i1, { i32, i1* } }, { i64, { { i64, { i64, { i64, { i64, { i32, i1 } }* } }* }, { { { { i64, { i32, i32 } }*, { i64, { i32, { i32, i32 } } } }, { { i64, { i64, i32* } }, i1* } }, { i32, { { i8*, { i64, { i64, i32* } } }, { { { i64, i32* }, { i32, i32 } }, { { i64, { i64, i32* } }, { { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { { i64, i1* }, { i64, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } } }, { i1, { i1, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { i64, { i64, i64* } }, { { i64, { i64, i64* } }, { { i64, { i64, i64 } }, { { i1, { i1, { i1, { i64, { i64, { i64, { i3, { i64, i64 } } } } } } } }, { i64, { i64, i32* } } } } } } } } } } } } } } } } %b1, 0
+    %b2 = extractvalue { { i1, { i32, i1* } }, { i64, { { i64, { i64, { i64, { i64, { i32, i1 } }* } }* }, { { { { i64, { i32, i32 } }*, { i64, { i32, { i32, i32 } } } }, { { i64, { i64, i32* } }, i1* } }, { i32, { { i8*, { i64, { i64, i32* } } }, { { { i64, i32* }, { i32, i32 } }, { { i64, { i64, i32* } }, { { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { { i64, i1* }, { i64, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } } }, { i1, { i1, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { i64, { i64, i64* } }, { { i64, { i64, i64* } }, { { i64, { i64, i64 } }, { { i1, { i1, { i1, { i64, { i64, { i64, { i3, { i64, i64 } } } } } } } }, { i64, { i64, i32* } } } } } } } } } } } } } } } } %b1, 1
+    %a1c = extractvalue { i64, { { i64, { i64, { i64, { i64, { i32, i1 } }* } }* }, { { { { i64, { i32, i32 } }*, { i64, { i32, { i32, i32 } } } }, { { i64, { i64, i32* } }, i1* } }, { i32, { { i8*, { i64, { i64, i32* } } }, { { { i64, i32* }, { i32, i32 } }, { { i64, { i64, i32* } }, { { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { { i64, i1* }, { i64, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } } }, { i1, { i1, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { i64, { i64, i64* } }, { { i64, { i64, i64* } }, { { i64, { i64, i64 } }, { { i1, { i1, { i1, { i64, { i64, { i64, { i3, { i64, i64 } } } } } } } }, { i64, { i64, i32* } } } } } } } } } } } } } } } %b2, 0
+    %b3 = extractvalue { i64, { { i64, { i64, { i64, { i64, { i32, i1 } }* } }* }, { { { { i64, { i32, i32 } }*, { i64, { i32, { i32, i32 } } } }, { { i64, { i64, i32* } }, i1* } }, { i32, { { i8*, { i64, { i64, i32* } } }, { { { i64, i32* }, { i32, i32 } }, { { i64, { i64, i32* } }, { { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { { i64, i1* }, { i64, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } } }, { i1, { i1, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { i64, { i64, i64* } }, { { i64, { i64, i64* } }, { { i64, { i64, i64 } }, { { i1, { i1, { i1, { i64, { i64, { i64, { i3, { i64, i64 } } } } } } } }, { i64, { i64, i32* } } } } } } } } } } } } } } } %b2, 1
+    %a1d = extractvalue { { i64, { i64, { i64, { i64, { i32, i1 } }* } }* }, { { { { i64, { i32, i32 } }*, { i64, { i32, { i32, i32 } } } }, { { i64, { i64, i32* } }, i1* } }, { i32, { { i8*, { i64, { i64, i32* } } }, { { { i64, i32* }, { i32, i32 } }, { { i64, { i64, i32* } }, { { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { { i64, i1* }, { i64, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } } }, { i1, { i1, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { i64, { i64, i64* } }, { { i64, { i64, i64* } }, { { i64, { i64, i64 } }, { { i1, { i1, { i1, { i64, { i64, { i64, { i3, { i64, i64 } } } } } } } }, { i64, { i64, i32* } } } } } } } } } } } } } } %b3, 0
+    %b4 = extractvalue { { i64, { i64, { i64, { i64, { i32, i1 } }* } }* }, { { { { i64, { i32, i32 } }*, { i64, { i32, { i32, i32 } } } }, { { i64, { i64, i32* } }, i1* } }, { i32, { { i8*, { i64, { i64, i32* } } }, { { { i64, i32* }, { i32, i32 } }, { { i64, { i64, i32* } }, { { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { { i64, i1* }, { i64, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } } }, { i1, { i1, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { i64, { i64, i64* } }, { { i64, { i64, i64* } }, { { i64, { i64, i64 } }, { { i1, { i1, { i1, { i64, { i64, { i64, { i3, { i64, i64 } } } } } } } }, { i64, { i64, i32* } } } } } } } } } } } } } } %b3, 1
+    %a1e = extractvalue { { { { i64, { i32, i32 } }*, { i64, { i32, { i32, i32 } } } }, { { i64, { i64, i32* } }, i1* } }, { i32, { { i8*, { i64, { i64, i32* } } }, { { { i64, i32* }, { i32, i32 } }, { { i64, { i64, i32* } }, { { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { { i64, i1* }, { i64, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } } }, { i1, { i1, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { i64, { i64, i64* } }, { { i64, { i64, i64* } }, { { i64, { i64, i64 } }, { { i1, { i1, { i1, { i64, { i64, { i64, { i3, { i64, i64 } } } } } } } }, { i64, { i64, i32* } } } } } } } } } } } } } %b4, 0
+    %b5 = extractvalue { { { { i64, { i32, i32 } }*, { i64, { i32, { i32, i32 } } } }, { { i64, { i64, i32* } }, i1* } }, { i32, { { i8*, { i64, { i64, i32* } } }, { { { i64, i32* }, { i32, i32 } }, { { i64, { i64, i32* } }, { { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { { i64, i1* }, { i64, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } } }, { i1, { i1, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { i64, { i64, i64* } }, { { i64, { i64, i64* } }, { { i64, { i64, i64 } }, { { i1, { i1, { i1, { i64, { i64, { i64, { i3, { i64, i64 } } } } } } } }, { i64, { i64, i32* } } } } } } } } } } } } } %b4, 1
+    %a1f = extractvalue { i32, { { i8*, { i64, { i64, i32* } } }, { { { i64, i32* }, { i32, i32 } }, { { i64, { i64, i32* } }, { { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { { i64, i1* }, { i64, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } } }, { i1, { i1, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { i64, { i64, i64* } }, { { i64, { i64, i64* } }, { { i64, { i64, i64 } }, { { i1, { i1, { i1, { i64, { i64, { i64, { i3, { i64, i64 } } } } } } } }, { i64, { i64, i32* } } } } } } } } } } } } %b5, 0
+    %a2f = extractvalue { i32, { { i8*, { i64, { i64, i32* } } }, { { { i64, i32* }, { i32, i32 } }, { { i64, { i64, i32* } }, { { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { { i64, i1* }, { i64, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } } }, { i1, { i1, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { i64, { i64, i64* } }, { { i64, { i64, i64* } }, { { i64, { i64, i64 } }, { { i1, { i1, { i1, { i64, { i64, { i64, { i3, { i64, i64 } } } } } } } }, { i64, { i64, i32* } } } } } } } } } } } } %b5, 1
+    ret i32 %a1f
+}
+
 define { { { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } }, { { i64, { i64, i32* } }, { { i1, { i32, i1* } }, { i64, { { i64, { i64, { i64, { i64, { i32, i1 } }* } }* }, { { { { i64, { i32, i32 } }*, { i64, { i32, { i32, i32 } } } }, { { i64, { i64, i32* } }, i1* } }, { i32, { { i8*, { i64, { i64, i32* } } }, { { { i64, i32* }, { i32, i32 } }, { { i64, { i64, i32* } }, { { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { { i64, i1* }, { i64, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } } }, { i1, { i1, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { i64, { i64, i64* } }, { { i64, { i64, i64* } }, { { i64, { i64, i64 } }, { { i1, { i1, { i1, { i64, { i64, { i64, { i3, { i64, i64 } } } } } } } }, { i64, { i64, i32* } } } } } } } } } } } } } } } } } } @IsaSAT_Setup3_LLVM_incr_lrestart_stat_fast_code({ { { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } }, { { i64, { i64, i32* } }, { { i1, { i32, i1* } }, { i64, { { i64, { i64, { i64, { i64, { i32, i1 } }* } }* }, { { { { i64, { i32, i32 } }*, { i64, { i32, { i32, i32 } } } }, { { i64, { i64, i32* } }, i1* } }, { i32, { { i8*, { i64, { i64, i32* } } }, { { { i64, i32* }, { i32, i32 } }, { { i64, { i64, i32* } }, { { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { { i64, i1* }, { i64, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } } }, { i1, { i1, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { i64, { i64, i64* } }, { { i64, { i64, i64* } }, { { i64, { i64, i64 } }, { { i1, { i1, { i1, { i64, { i64, { i64, { i3, { i64, i64 } } } } } } } }, { i64, { i64, i32* } } } } } } } } } } } } } } } } } } %x) {
 
   start:
@@ -10479,7 +10547,7 @@ define { { { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64
     %xk = getelementptr i32, i32* %af, i64 0
     %rb = load i32, i32* %xk
     %xm = call i8 @IsaSAT_Initialisation_LLVM_polarity_st_heur_init_code ({ { { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } }, { { i64, { i64, i32* } }, { { i1, { i32, i1* } }, { i64, { { i64, { i64, { i64, { i64, { i32, i1 } }* } }* }, { { { { i64, { i32, i32 } }*, { i64, { i32, { i32, i32 } } } }, { { i64, { i64, i32* } }, i1* } }, { { i64, i1* }, { i32, { { i8*, { i64, { i64, i32* } } }, { { { i64, i32* }, { i32, i32 } }, { { i64, { i64, i64* } }, { i1, { i64, { i64, i64 } } } } } } } } } } } } } } %x2, i32 %rb)
-    %xn = call i8 @IsaSAT_Trail_LLVM_tri_bool_UNSET_impl ()
+    %xn = call i8 @IsaSAT_Literals_LLVM_tri_bool_UNSET_impl ()
     %xo = icmp eq i8 %xm, %xn
     br i1 %xo, label %thenc, label %elsec
 
@@ -10488,7 +10556,7 @@ define { { { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64
     br label %ctd_ifc
 
   elsec:
-    %xp = call i8 @IsaSAT_Trail_LLVM_tri_bool_SET_TRUE_impl ()
+    %xp = call i8 @IsaSAT_Literals_LLVM_tri_bool_SET_TRUE_impl ()
     %xq = icmp eq i8 %xm, %xp
     br i1 %xq, label %thend, label %elsed
 
@@ -10602,7 +10670,7 @@ define { { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* 
     %xg = insertvalue { i64, i32* } zeroinitializer, i64 8, 0
     %xh = insertvalue { i64, i32* } %xg, i32* %aaa, 1
     %xca = insertvalue { i64, { i64, i32* } } %xba, { i64, i32* } %xh, 1
-    %xda = call i8 @IsaSAT_Trail_LLVM_tri_bool_UNSET_impl ()
+    %xda = call i8 @IsaSAT_Literals_LLVM_tri_bool_UNSET_impl ()
     %xea = call i8* @LLVM_DS_NArray_narray_new_init2 (i64 %x2, i8 %xda)
     %xfa = insertvalue { i64, i8* } zeroinitializer, i64 %x2, 0
     %xga = insertvalue { i64, i8* } %xfa, i8* %xea, 1
@@ -10718,21 +10786,21 @@ define { { i64, i1* }, { i64, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } }
   then:
     %xm = call { i64, i1* } @IsaSAT_Rephase_LLVM_copy_phase_impl2 (i1* %a1d, { i64, i1* } %a1)
     %xn = insertvalue { { i64, i1* }, { i64, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } } } zeroinitializer, { i64, i1* } %xm, 0
-    %tmpa = mul i64 %a2f, 1000
-    %tmpb = add i64 %tmpa, %a1e
-    %tmpaa = add i64 %a1f, 1
-    %xq = insertvalue { i64, i64 } zeroinitializer, i64 %tmpaa, 0
-    %tmpab = insertvalue { i64, i64 } %xq, i64 %a2f, 1
-    %xr = insertvalue { i64, { i64, i64 } } zeroinitializer, i64 %tmpb, 0
-    %tmpc = insertvalue { i64, { i64, i64 } } %xr, { i64, i64 } %tmpab, 1
+    %tmpaa = mul i64 %a2f, 1000
+    %tmpab = add i64 %tmpaa, %a1e
+    %tmpb = add i64 %a1f, 1
+    %xq = insertvalue { i64, i64 } zeroinitializer, i64 %tmpb, 0
+    %tmpba = insertvalue { i64, i64 } %xq, i64 %a2f, 1
+    %xr = insertvalue { i64, { i64, i64 } } zeroinitializer, i64 %tmpab, 0
+    %tmpac = insertvalue { i64, { i64, i64 } } %xr, { i64, i64 } %tmpba, 1
     %xs = insertvalue { i1*, { i64, { i64, i64 } } } zeroinitializer, i1* %a1d, 0
-    %tmpd = insertvalue { i1*, { i64, { i64, i64 } } } %xs, { i64, { i64, i64 } } %tmpc, 1
+    %tmpad = insertvalue { i1*, { i64, { i64, i64 } } } %xs, { i64, { i64, i64 } } %tmpac, 1
     %xt = insertvalue { i64, { i1*, { i64, { i64, i64 } } } } zeroinitializer, i64 %a1c, 0
-    %tmpe = insertvalue { i64, { i1*, { i64, { i64, i64 } } } } %xt, { i1*, { i64, { i64, i64 } } } %tmpd, 1
+    %tmpae = insertvalue { i64, { i1*, { i64, { i64, i64 } } } } %xt, { i1*, { i64, { i64, i64 } } } %tmpad, 1
     %xu = insertvalue { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } zeroinitializer, i1* %a1b, 0
-    %tmpf = insertvalue { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } %xu, { i64, { i1*, { i64, { i64, i64 } } } } %tmpe, 1
-    %xv = insertvalue { i64, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } } zeroinitializer, i64 %a1a, 0
-    %x3 = insertvalue { i64, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } } %xv, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } %tmpf, 1
+    %tmpaf = insertvalue { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } %xu, { i64, { i1*, { i64, { i64, i64 } } } } %tmpae, 1
+    %xv = insertvalue { i64, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } } zeroinitializer, i64 0, 0
+    %x3 = insertvalue { i64, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } } %xv, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } %tmpaf, 1
     %x4 = insertvalue { { i64, i1* }, { i64, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } } } %xn, { i64, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } } %x3, 1
     br label %ctd_if
 
@@ -10743,21 +10811,21 @@ define { { i64, i1* }, { i64, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } }
   thena:
     %xn1 = call { i64, i1* } @IsaSAT_Rephase_LLVM_rephase_init_impl (i1 1, { i64, i1* } %a1)
     %xo = insertvalue { { i64, i1* }, { i64, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } } } zeroinitializer, { i64, i1* } %xn1, 0
-    %tmpb1 = mul i64 %a2f, 1000
-    %tmpc1 = add i64 %tmpb1, %a1e
-    %tmpaa1 = add i64 %a1f, 1
-    %xr1 = insertvalue { i64, i64 } zeroinitializer, i64 %tmpaa1, 0
-    %tmpab1 = insertvalue { i64, i64 } %xr1, i64 %a2f, 1
-    %xs1 = insertvalue { i64, { i64, i64 } } zeroinitializer, i64 %tmpc1, 0
-    %tmpd1 = insertvalue { i64, { i64, i64 } } %xs1, { i64, i64 } %tmpab1, 1
+    %tmpaa1 = mul i64 %a2f, 1000
+    %tmpab1 = add i64 %tmpaa1, %a1e
+    %tmpba1 = add i64 %a1f, 1
+    %xr1 = insertvalue { i64, i64 } zeroinitializer, i64 %tmpba1, 0
+    %tmpbb = insertvalue { i64, i64 } %xr1, i64 %a2f, 1
+    %xs1 = insertvalue { i64, { i64, i64 } } zeroinitializer, i64 %tmpab1, 0
+    %tmpac1 = insertvalue { i64, { i64, i64 } } %xs1, { i64, i64 } %tmpbb, 1
     %xt1 = insertvalue { i1*, { i64, { i64, i64 } } } zeroinitializer, i1* %a1d, 0
-    %tmpe1 = insertvalue { i1*, { i64, { i64, i64 } } } %xt1, { i64, { i64, i64 } } %tmpd1, 1
+    %tmpad1 = insertvalue { i1*, { i64, { i64, i64 } } } %xt1, { i64, { i64, i64 } } %tmpac1, 1
     %xu1 = insertvalue { i64, { i1*, { i64, { i64, i64 } } } } zeroinitializer, i64 %a1c, 0
-    %tmpf1 = insertvalue { i64, { i1*, { i64, { i64, i64 } } } } %xu1, { i1*, { i64, { i64, i64 } } } %tmpe1, 1
+    %tmpae1 = insertvalue { i64, { i1*, { i64, { i64, i64 } } } } %xu1, { i1*, { i64, { i64, i64 } } } %tmpad1, 1
     %xv1 = insertvalue { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } zeroinitializer, i1* %a1b, 0
-    %tmpg = insertvalue { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } %xv1, { i64, { i1*, { i64, { i64, i64 } } } } %tmpf1, 1
-    %xw = insertvalue { i64, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } } zeroinitializer, i64 %a1a, 0
-    %x5 = insertvalue { i64, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } } %xw, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } %tmpg, 1
+    %tmpaf1 = insertvalue { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } %xv1, { i64, { i1*, { i64, { i64, i64 } } } } %tmpae1, 1
+    %xw = insertvalue { i64, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } } zeroinitializer, i64 0, 0
+    %x5 = insertvalue { i64, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } } %xw, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } %tmpaf1, 1
     %x6 = insertvalue { { i64, i1* }, { i64, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } } } %xo, { i64, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } } %x5, 1
     br label %ctd_ifa
 
@@ -10768,21 +10836,21 @@ define { { i64, i1* }, { i64, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } }
   thenb:
     %xo1 = call { i64, i1* } @IsaSAT_Rephase_LLVM_rephase_random_impl (i64 %a1e, { i64, i1* } %a1)
     %xp = insertvalue { { i64, i1* }, { i64, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } } } zeroinitializer, { i64, i1* } %xo1, 0
-    %tmpa1 = mul i64 %a2f, 1000
-    %tmpb2 = add i64 %tmpa1, %a1e
-    %tmpaa2 = add i64 %a1f, 1
-    %xs2 = insertvalue { i64, i64 } zeroinitializer, i64 %tmpaa2, 0
-    %tmpab2 = insertvalue { i64, i64 } %xs2, i64 %a2f, 1
-    %xt2 = insertvalue { i64, { i64, i64 } } zeroinitializer, i64 %tmpb2, 0
-    %tmpc2 = insertvalue { i64, { i64, i64 } } %xt2, { i64, i64 } %tmpab2, 1
+    %tmpaa2 = mul i64 %a2f, 1000
+    %tmpab2 = add i64 %tmpaa2, %a1e
+    %tmpb1 = add i64 %a1f, 1
+    %xs2 = insertvalue { i64, i64 } zeroinitializer, i64 %tmpb1, 0
+    %tmpba2 = insertvalue { i64, i64 } %xs2, i64 %a2f, 1
+    %xt2 = insertvalue { i64, { i64, i64 } } zeroinitializer, i64 %tmpab2, 0
+    %tmpac2 = insertvalue { i64, { i64, i64 } } %xt2, { i64, i64 } %tmpba2, 1
     %xu2 = insertvalue { i1*, { i64, { i64, i64 } } } zeroinitializer, i1* %a1d, 0
-    %tmpd2 = insertvalue { i1*, { i64, { i64, i64 } } } %xu2, { i64, { i64, i64 } } %tmpc2, 1
+    %tmpad2 = insertvalue { i1*, { i64, { i64, i64 } } } %xu2, { i64, { i64, i64 } } %tmpac2, 1
     %xv2 = insertvalue { i64, { i1*, { i64, { i64, i64 } } } } zeroinitializer, i64 %a1c, 0
-    %tmpe2 = insertvalue { i64, { i1*, { i64, { i64, i64 } } } } %xv2, { i1*, { i64, { i64, i64 } } } %tmpd2, 1
+    %tmpae2 = insertvalue { i64, { i1*, { i64, { i64, i64 } } } } %xv2, { i1*, { i64, { i64, i64 } } } %tmpad2, 1
     %xw1 = insertvalue { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } zeroinitializer, i1* %a1b, 0
-    %tmpf2 = insertvalue { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } %xw1, { i64, { i1*, { i64, { i64, i64 } } } } %tmpe2, 1
-    %xx = insertvalue { i64, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } } zeroinitializer, i64 %a1a, 0
-    %x7 = insertvalue { i64, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } } %xx, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } %tmpf2, 1
+    %tmpaf2 = insertvalue { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } %xw1, { i64, { i1*, { i64, { i64, i64 } } } } %tmpae2, 1
+    %xx = insertvalue { i64, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } } zeroinitializer, i64 0, 0
+    %x7 = insertvalue { i64, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } } %xx, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } %tmpaf2, 1
     %x8 = insertvalue { { i64, i1* }, { i64, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } } } %xp, { i64, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } } %x7, 1
     br label %ctd_ifb
 
@@ -10793,43 +10861,43 @@ define { { i64, i1* }, { i64, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } }
   thenc:
     %xp1 = call { i64, i1* } @IsaSAT_Rephase_LLVM_rephase_init_impl (i1 0, { i64, i1* } %a1)
     %xq1 = insertvalue { { i64, i1* }, { i64, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } } } zeroinitializer, { i64, i1* } %xp1, 0
-    %tmpb3 = mul i64 %a2f, 1000
-    %tmpc3 = add i64 %tmpb3, %a1e
-    %tmpaa3 = add i64 %a1f, 1
-    %xt3 = insertvalue { i64, i64 } zeroinitializer, i64 %tmpaa3, 0
-    %tmpab3 = insertvalue { i64, i64 } %xt3, i64 %a2f, 1
-    %xu3 = insertvalue { i64, { i64, i64 } } zeroinitializer, i64 %tmpc3, 0
-    %tmpd3 = insertvalue { i64, { i64, i64 } } %xu3, { i64, i64 } %tmpab3, 1
+    %tmpaa3 = mul i64 %a2f, 1000
+    %tmpab3 = add i64 %tmpaa3, %a1e
+    %tmpba3 = add i64 %a1f, 1
+    %xt3 = insertvalue { i64, i64 } zeroinitializer, i64 %tmpba3, 0
+    %tmpbb1 = insertvalue { i64, i64 } %xt3, i64 %a2f, 1
+    %xu3 = insertvalue { i64, { i64, i64 } } zeroinitializer, i64 %tmpab3, 0
+    %tmpac3 = insertvalue { i64, { i64, i64 } } %xu3, { i64, i64 } %tmpbb1, 1
     %xv3 = insertvalue { i1*, { i64, { i64, i64 } } } zeroinitializer, i1* %a1d, 0
-    %tmpe3 = insertvalue { i1*, { i64, { i64, i64 } } } %xv3, { i64, { i64, i64 } } %tmpd3, 1
+    %tmpad3 = insertvalue { i1*, { i64, { i64, i64 } } } %xv3, { i64, { i64, i64 } } %tmpac3, 1
     %xw2 = insertvalue { i64, { i1*, { i64, { i64, i64 } } } } zeroinitializer, i64 %a1c, 0
-    %tmpf3 = insertvalue { i64, { i1*, { i64, { i64, i64 } } } } %xw2, { i1*, { i64, { i64, i64 } } } %tmpe3, 1
+    %tmpae3 = insertvalue { i64, { i1*, { i64, { i64, i64 } } } } %xw2, { i1*, { i64, { i64, i64 } } } %tmpad3, 1
     %xx1 = insertvalue { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } zeroinitializer, i1* %a1b, 0
-    %tmpg1 = insertvalue { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } %xx1, { i64, { i1*, { i64, { i64, i64 } } } } %tmpf3, 1
-    %xy = insertvalue { i64, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } } zeroinitializer, i64 %a1a, 0
-    %x9 = insertvalue { i64, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } } %xy, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } %tmpg1, 1
+    %tmpaf3 = insertvalue { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } %xx1, { i64, { i1*, { i64, { i64, i64 } } } } %tmpae3, 1
+    %xy = insertvalue { i64, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } } zeroinitializer, i64 0, 0
+    %x9 = insertvalue { i64, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } } %xy, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } %tmpaf3, 1
     %x10 = insertvalue { { i64, i1* }, { i64, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } } } %xq1, { i64, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } } %x9, 1
     br label %ctd_ifc
 
   elsec:
     %xp2 = call { i64, i1* } @IsaSAT_Rephase_LLVM_rephase_flipped_impl ({ i64, i1* } %a1)
     %xq2 = insertvalue { { i64, i1* }, { i64, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } } } zeroinitializer, { i64, i1* } %xp2, 0
-    %tmpb4 = add i64 1, %a2f
-    %tmpc4 = mul i64 %tmpb4, 1000
-    %tmpd4 = add i64 %tmpc4, %a1e
-    %tmpba = add i64 %a2f, 1
+    %tmpab4 = add i64 1, %a2f
+    %tmpac4 = mul i64 %tmpab4, 1000
+    %tmpad4 = add i64 %tmpac4, %a1e
+    %tmpc = add i64 %a2f, 1
     %xt4 = insertvalue { i64, i64 } zeroinitializer, i64 0, 0
-    %tmpab4 = insertvalue { i64, i64 } %xt4, i64 %tmpba, 1
-    %xu4 = insertvalue { i64, { i64, i64 } } zeroinitializer, i64 %tmpd4, 0
-    %tmpe4 = insertvalue { i64, { i64, i64 } } %xu4, { i64, i64 } %tmpab4, 1
+    %tmpba4 = insertvalue { i64, i64 } %xt4, i64 %tmpc, 1
+    %xu4 = insertvalue { i64, { i64, i64 } } zeroinitializer, i64 %tmpad4, 0
+    %tmpae4 = insertvalue { i64, { i64, i64 } } %xu4, { i64, i64 } %tmpba4, 1
     %xv4 = insertvalue { i1*, { i64, { i64, i64 } } } zeroinitializer, i1* %a1d, 0
-    %tmpf4 = insertvalue { i1*, { i64, { i64, i64 } } } %xv4, { i64, { i64, i64 } } %tmpe4, 1
+    %tmpaf4 = insertvalue { i1*, { i64, { i64, i64 } } } %xv4, { i64, { i64, i64 } } %tmpae4, 1
     %xw3 = insertvalue { i64, { i1*, { i64, { i64, i64 } } } } zeroinitializer, i64 %a1c, 0
-    %tmpg2 = insertvalue { i64, { i1*, { i64, { i64, i64 } } } } %xw3, { i1*, { i64, { i64, i64 } } } %tmpf4, 1
+    %tmpag = insertvalue { i64, { i1*, { i64, { i64, i64 } } } } %xw3, { i1*, { i64, { i64, i64 } } } %tmpaf4, 1
     %xx2 = insertvalue { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } zeroinitializer, i1* %a1b, 0
-    %tmph = insertvalue { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } %xx2, { i64, { i1*, { i64, { i64, i64 } } } } %tmpg2, 1
-    %xy1 = insertvalue { i64, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } } zeroinitializer, i64 %a1a, 0
-    %x11 = insertvalue { i64, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } } %xy1, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } %tmph, 1
+    %tmpah = insertvalue { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } %xx2, { i64, { i1*, { i64, { i64, i64 } } } } %tmpag, 1
+    %xy1 = insertvalue { i64, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } } zeroinitializer, i64 0, 0
+    %x11 = insertvalue { i64, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } } %xy1, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } %tmpah, 1
     %x12 = insertvalue { { i64, i1* }, { i64, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } } } %xq2, { i64, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } } %x11, 1
     br label %ctd_ifc
 
@@ -11008,7 +11076,7 @@ define { { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* 
     %xk = insertvalue { i64, i32* } %xj, i32* %ac, 1
     %xja = insertvalue { i64, { i64, i32* } } %xia, { i64, i32* } %xk, 1
     %xka = zext i32 %x to i64
-    %xla = call i8 @IsaSAT_Trail_LLVM_tri_bool_SET_TRUE_impl ()
+    %xla = call i8 @IsaSAT_Literals_LLVM_tri_bool_SET_TRUE_impl ()
     %a1e = extractvalue { i64, i8* } %a1a, 0
     %a2 = extractvalue { i64, i8* } %a1a, 1
     %pa = getelementptr i8, i8* %a2, i64 %xka
@@ -11017,7 +11085,7 @@ define { { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* 
     %xo = insertvalue { i64, i8* } %xn, i8* %a2, 1
     %xp = call i32 @IsaSAT_Literals_LLVM_uminus_impl (i32 %x)
     %xqa = zext i32 %xp to i64
-    %xr = call i8 @IsaSAT_Trail_LLVM_tri_bool_SET_FALSE_impl ()
+    %xr = call i8 @IsaSAT_Literals_LLVM_tri_bool_SET_FALSE_impl ()
     %a1f = extractvalue { i64, i8* } %xo, 0
     %a2a = extractvalue { i64, i8* } %xo, 1
     %pb = getelementptr i8, i8* %a2a, i64 %xqa
@@ -12132,7 +12200,7 @@ define { i64, { i64, i64* } } @IsaSAT_Arena_Sorting_LLVM_LBD_it_introsort_aux_im
     %tmpab = insertvalue { i64, { i64, i64 } } %xa, { i64, i64 } %tmpa, 1
     %xb = insertvalue { { i64, { i64, i64* } }, { i64, { i64, i64 } } } zeroinitializer, { i64, { i64, i64* } } %x1, 0
     %x6 = insertvalue { { i64, { i64, i64* } }, { i64, { i64, i64 } } } %xb, { i64, { i64, i64 } } %tmpab, 1
-    %x7 = call { i64, { i64, i64* } } @IsaSAT_LLVM_experiment33374774_LBD_it_introsort_aux_impl_f_033810496 ({ i64, { i64, i32* } } %x, { { i64, { i64, i64* } }, { i64, { i64, i64 } } } %x6)
+    %x7 = call { i64, { i64, i64* } } @IsaSAT_LLVM_experiment43181272_LBD_it_introsort_aux_impl_f_043273062 ({ i64, { i64, i32* } } %x, { { i64, { i64, i64* } }, { i64, { i64, i64 } } } %x6)
     ret { i64, { i64, i64* } } %x7
 }
 
@@ -13018,7 +13086,7 @@ define { { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* 
     %xi = insertvalue { i64, i32* } %xh, i32* %ab, 1
     %xha = insertvalue { i64, { i64, i32* } } %xga, { i64, i32* } %xi, 1
     %xia = zext i32 %x to i64
-    %xja = call i8 @IsaSAT_Trail_LLVM_tri_bool_SET_TRUE_impl ()
+    %xja = call i8 @IsaSAT_Literals_LLVM_tri_bool_SET_TRUE_impl ()
     %a1e = extractvalue { i64, i8* } %a1a, 0
     %a2 = extractvalue { i64, i8* } %a1a, 1
     %pa = getelementptr i8, i8* %a2, i64 %xia
@@ -13027,7 +13095,7 @@ define { { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* 
     %xm = insertvalue { i64, i8* } %xl, i8* %a2, 1
     %xn = call i32 @IsaSAT_Literals_LLVM_uminus_impl (i32 %x)
     %xoa = zext i32 %xn to i64
-    %xp = call i8 @IsaSAT_Trail_LLVM_tri_bool_SET_FALSE_impl ()
+    %xp = call i8 @IsaSAT_Literals_LLVM_tri_bool_SET_FALSE_impl ()
     %a1f = extractvalue { i64, i8* } %xm, 0
     %a2a = extractvalue { i64, i8* } %xm, 1
     %pb = getelementptr i8, i8* %a2a, i64 %xoa
@@ -13275,6 +13343,14 @@ define i8 @IsaSAT_Initialisation_LLVM_polarity_st_heur_init_code({ { { i64, { i6
     %a2 = extractvalue { { { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } }, { { i64, { i64, i32* } }, { { i1, { i32, i1* } }, { i64, { { i64, { i64, { i64, { i64, { i32, i1 } }* } }* }, { { { { i64, { i32, i32 } }*, { i64, { i32, { i32, i32 } } } }, { { i64, { i64, i32* } }, i1* } }, { { i64, i1* }, { i32, { { i8*, { i64, { i64, i32* } } }, { { { i64, i32* }, { i32, i32 } }, { { i64, { i64, i64* } }, { i1, { i64, { i64, i64 } } } } } } } } } } } } } } %x, 1
     %x2 = call i8 @IsaSAT_Trail_LLVM_polarity_pol_fast_code ({ { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } } %a1, i32 %x1)
     ret i8 %x2
+}
+
+define { i1, { i32, i1* } } @IsaSAT_Lookup_Conflict_LLVM_None_lookup_conflict_impl(i1 %x, { i32, i1* } %x1) {
+
+  start:
+    %x2 = insertvalue { i1, { i32, i1* } } zeroinitializer, i1 %x, 0
+    %x3 = insertvalue { i1, { i32, i1* } } %x2, { i32, i1* } %x1, 1
+    ret { i1, { i32, i1* } } %x3
 }
 
 define { i1, { i32, i1* } } @IsaSAT_Lookup_Conflict_LLVM_Some_lookup_conflict_impl({ i32, i1* } %x) {
@@ -13874,7 +13950,7 @@ define i64 @IsaSAT_Trail_LLVM_get_the_propagation_reason_fast_code({ { i64, { i6
     %a2a = extractvalue { i64, i8* } %a1a, 1
     %xg = getelementptr i8, i8* %a2a, i64 %xf
     %xh = load i8, i8* %xg
-    %xi = call i8 @IsaSAT_Trail_LLVM_tri_bool_SET_TRUE_impl ()
+    %xi = call i8 @IsaSAT_Literals_LLVM_tri_bool_SET_TRUE_impl ()
     %xj = icmp eq i8 %xh, %xi
     %xk = call i64 @IsaSAT_Trail_LLVM_DECISION_REASON_impl ()
     %xl = icmp ne i64 %xe, %xk
@@ -14145,14 +14221,6 @@ define { i64, { i64, i32* } } @IsaSAT_Clauses_LLVM_fm_mv_clause_to_new_arena_fas
     ret { i64, { i64, i32* } } %x10
 }
 
-define { i1, { i32, i1* } } @IsaSAT_Conflict_Analysis_LLVM_None_lookup_conflict_impl(i1 %x, { i32, i1* } %x1) {
-
-  start:
-    %x2 = insertvalue { i1, { i32, i1* } } zeroinitializer, i1 %x, 0
-    %x3 = insertvalue { i1, { i32, i1* } } %x2, { i32, i1* } %x1, 1
-    ret { i1, { i32, i1* } } %x3
-}
-
 define { { { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } }, { { i64, { i64, i32* } }, { { i1, { i32, i1* } }, { i64, { { i64, { i64, { i64, { i64, { i32, i1 } }* } }* }, { { { { i64, { i32, i32 } }*, { i64, { i32, { i32, i32 } } } }, { { i64, { i64, i32* } }, i1* } }, { i32, { { i8*, { i64, { i64, i32* } } }, { { { i64, i32* }, { i32, i32 } }, { { i64, { i64, i32* } }, { { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { { i64, i1* }, { i64, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } } }, { i1, { i1, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { i64, { i64, i64* } }, { { i64, { i64, i64* } }, { { i64, { i64, i64 } }, { { i1, { i1, { i1, { i64, { i64, { i64, { i3, { i64, i64 } } } } } } } }, { i64, { i64, i32* } } } } } } } } } } } } } } } } } } @IsaSAT_Garbage_Collect_LLVM_isasat_GC_clauses_wl_D_code({ { { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } }, { { i64, { i64, i32* } }, { { i1, { i32, i1* } }, { i64, { { i64, { i64, { i64, { i64, { i32, i1 } }* } }* }, { { { { i64, { i32, i32 } }*, { i64, { i32, { i32, i32 } } } }, { { i64, { i64, i32* } }, i1* } }, { i32, { { i8*, { i64, { i64, i32* } } }, { { { i64, i32* }, { i32, i32 } }, { { i64, { i64, i32* } }, { { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { { i64, i1* }, { i64, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } } }, { i1, { i1, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { i64, { i64, i64* } }, { { i64, { i64, i64* } }, { { i64, { i64, i64 } }, { { i1, { i1, { i1, { i64, { i64, { i64, { i3, { i64, i64 } } } } } } } }, { i64, { i64, i32* } } } } } } } } } } } } } } } } } } %x) {
 
   start:
@@ -14296,7 +14364,7 @@ define { i1, { { { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i6
     %xe = extractvalue { { { { i64, { i32, i32 } }*, { i64, { i32, { i32, i32 } } } }, { { i64, { i64, i32* } }, i1* } }, { i32, { { i8*, { i64, { i64, i32* } } }, { { { i64, i32* }, { i32, i32 } }, { { i64, { i64, i32* } }, { { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { { i64, i1* }, { i64, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } } }, { i1, { i1, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { i64, { i64, i64* } }, { { i64, { i64, i64* } }, { { i64, { i64, i64 } }, { { i1, { i1, { i1, { i64, { i64, { i64, { i3, { i64, i64 } } } } } } } }, { i64, { i64, i32* } } } } } } } } } } } } } %xd, 1
     %a1f = extractvalue { i32, { { i8*, { i64, { i64, i32* } } }, { { { i64, i32* }, { i32, i32 } }, { { i64, { i64, i32* } }, { { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { { i64, i1* }, { i64, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } } }, { i1, { i1, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { i64, { i64, i64* } }, { { i64, { i64, i64* } }, { { i64, { i64, i64 } }, { { i1, { i1, { i1, { i64, { i64, { i64, { i3, { i64, i64 } } } } } } } }, { i64, { i64, i32* } } } } } } } } } } } } %xe, 0
     %a2f = extractvalue { i32, { { i8*, { i64, { i64, i32* } } }, { { { i64, i32* }, { i32, i32 } }, { { i64, { i64, i32* } }, { { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { { i64, i1* }, { i64, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } } }, { i1, { i1, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { i64, { i64, i64* } }, { { i64, { i64, i64* } }, { { i64, { i64, i64 } }, { { i1, { i1, { i1, { i64, { i64, { i64, { i3, { i64, i64 } } } } } } } }, { i64, { i64, i32* } } } } } } } } } } } } %xe, 1
-    %xf = call i32 @IsaSAT_Conflict_Analysis_LLVM_lit_of_last_trail_fast_code ({ { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } } %a1)
+    %xf = call i32 @IsaSAT_Trail_LLVM_lit_of_last_trail_fast_code ({ { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } } %a1)
     %xg = call i32 @IsaSAT_Literals_LLVM_atm_of_impl (i32 %xf)
     %xh = call { { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } } @IsaSAT_Trail_LLVM_tl_trail_tr_fast_code ({ { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } } %a1)
     %xj = call { { { i64, { i32, i32 } }*, { i64, { i32, { i32, i32 } } } }, { { i64, { i64, i32* } }, i1* } } @IsaSAT_VMTF_LLVM_isa_vmtf_unset_code (i32 %xg, { { { i64, { i32, i32 } }*, { i64, { i32, { i32, i32 } } } }, { { i64, { i64, i32* } }, i1* } } %a1e)
@@ -14543,21 +14611,6 @@ define { i64, { i64, i64* } } @IsaSAT_Arena_Sorting_LLVM_LBD_it_is_unguarded_ins
     %x5 = insertvalue { i64, i64* } %xi2, i64* %aa2, 1
     %x6 = insertvalue { i64, { i64, i64* } } %xh, { i64, i64* } %x5, 1
     ret { i64, { i64, i64* } } %x6
-}
-
-define i32 @IsaSAT_Conflict_Analysis_LLVM_lit_of_last_trail_fast_code({ { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } } %x) {
-
-  start:
-    %a1 = extractvalue { { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } } %x, 0
-    %a2 = extractvalue { { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } } %x, 1
-    %l = extractvalue { i64, { i64, i32* } } %a1, 0
-    %x1 = extractvalue { i64, { i64, i32* } } %a1, 1
-    %c = extractvalue { i64, i32* } %x1, 0
-    %a = extractvalue { i64, i32* } %x1, 1
-    %la = sub i64 %l, 1
-    %x2 = getelementptr i32, i32* %a, i64 %la
-    %x3 = load i32, i32* %x2
-    ret i32 %x3
 }
 
 define i64 @IsaSAT_Garbage_Collect_LLVM_number_clss_to_keep_fast_code({ { { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } }, { { i64, { i64, i32* } }, { { i1, { i32, i1* } }, { i64, { { i64, { i64, { i64, { i64, { i32, i1 } }* } }* }, { { { { i64, { i32, i32 } }*, { i64, { i32, { i32, i32 } } } }, { { i64, { i64, i32* } }, i1* } }, { i32, { { i8*, { i64, { i64, i32* } } }, { { { i64, i32* }, { i32, i32 } }, { { i64, { i64, i32* } }, { { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { { i64, i1* }, { i64, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } } }, { i1, { i1, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { i64, { i64, i64* } }, { { i64, { i64, i64* } }, { { i64, { i64, i64 } }, { { i1, { i1, { i1, { i64, { i64, { i64, { i3, { i64, i64 } } } } } } } }, { i64, { i64, i32* } } } } } } } } } } } } } } } } } } %x) {
@@ -15486,26 +15539,6 @@ define { i64, { i64, i64* } } @IsaSAT_Arena_Sorting_LLVM_LBD_it_move_median_to_f
     ret { i64, { i64, i64* } } %x22
 }
 
-define i32 @IsaSAT_Conflict_Analysis_LLVM_get_count_max_lvls_heur_impl({ { { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } }, { { i64, { i64, i32* } }, { { i1, { i32, i1* } }, { i64, { { i64, { i64, { i64, { i64, { i32, i1 } }* } }* }, { { { { i64, { i32, i32 } }*, { i64, { i32, { i32, i32 } } } }, { { i64, { i64, i32* } }, i1* } }, { i32, { { i8*, { i64, { i64, i32* } } }, { { { i64, i32* }, { i32, i32 } }, { { i64, { i64, i32* } }, { { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { { i64, i1* }, { i64, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } } }, { i1, { i1, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { i64, { i64, i64* } }, { { i64, { i64, i64* } }, { { i64, { i64, i64 } }, { { i1, { i1, { i1, { i64, { i64, { i64, { i3, { i64, i64 } } } } } } } }, { i64, { i64, i32* } } } } } } } } } } } } } } } } } } %x) {
-
-  start:
-    %a1 = extractvalue { { { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } }, { { i64, { i64, i32* } }, { { i1, { i32, i1* } }, { i64, { { i64, { i64, { i64, { i64, { i32, i1 } }* } }* }, { { { { i64, { i32, i32 } }*, { i64, { i32, { i32, i32 } } } }, { { i64, { i64, i32* } }, i1* } }, { i32, { { i8*, { i64, { i64, i32* } } }, { { { i64, i32* }, { i32, i32 } }, { { i64, { i64, i32* } }, { { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { { i64, i1* }, { i64, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } } }, { i1, { i1, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { i64, { i64, i64* } }, { { i64, { i64, i64* } }, { { i64, { i64, i64 } }, { { i1, { i1, { i1, { i64, { i64, { i64, { i3, { i64, i64 } } } } } } } }, { i64, { i64, i32* } } } } } } } } } } } } } } } } } } %x, 0
-    %b = extractvalue { { { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } }, { { i64, { i64, i32* } }, { { i1, { i32, i1* } }, { i64, { { i64, { i64, { i64, { i64, { i32, i1 } }* } }* }, { { { { i64, { i32, i32 } }*, { i64, { i32, { i32, i32 } } } }, { { i64, { i64, i32* } }, i1* } }, { i32, { { i8*, { i64, { i64, i32* } } }, { { { i64, i32* }, { i32, i32 } }, { { i64, { i64, i32* } }, { { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { { i64, i1* }, { i64, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } } }, { i1, { i1, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { i64, { i64, i64* } }, { { i64, { i64, i64* } }, { { i64, { i64, i64 } }, { { i1, { i1, { i1, { i64, { i64, { i64, { i3, { i64, i64 } } } } } } } }, { i64, { i64, i32* } } } } } } } } } } } } } } } } } } %x, 1
-    %a1a = extractvalue { { i64, { i64, i32* } }, { { i1, { i32, i1* } }, { i64, { { i64, { i64, { i64, { i64, { i32, i1 } }* } }* }, { { { { i64, { i32, i32 } }*, { i64, { i32, { i32, i32 } } } }, { { i64, { i64, i32* } }, i1* } }, { i32, { { i8*, { i64, { i64, i32* } } }, { { { i64, i32* }, { i32, i32 } }, { { i64, { i64, i32* } }, { { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { { i64, i1* }, { i64, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } } }, { i1, { i1, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { i64, { i64, i64* } }, { { i64, { i64, i64* } }, { { i64, { i64, i64 } }, { { i1, { i1, { i1, { i64, { i64, { i64, { i3, { i64, i64 } } } } } } } }, { i64, { i64, i32* } } } } } } } } } } } } } } } } } %b, 0
-    %b1 = extractvalue { { i64, { i64, i32* } }, { { i1, { i32, i1* } }, { i64, { { i64, { i64, { i64, { i64, { i32, i1 } }* } }* }, { { { { i64, { i32, i32 } }*, { i64, { i32, { i32, i32 } } } }, { { i64, { i64, i32* } }, i1* } }, { i32, { { i8*, { i64, { i64, i32* } } }, { { { i64, i32* }, { i32, i32 } }, { { i64, { i64, i32* } }, { { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { { i64, i1* }, { i64, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } } }, { i1, { i1, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { i64, { i64, i64* } }, { { i64, { i64, i64* } }, { { i64, { i64, i64 } }, { { i1, { i1, { i1, { i64, { i64, { i64, { i3, { i64, i64 } } } } } } } }, { i64, { i64, i32* } } } } } } } } } } } } } } } } } %b, 1
-    %a1b = extractvalue { { i1, { i32, i1* } }, { i64, { { i64, { i64, { i64, { i64, { i32, i1 } }* } }* }, { { { { i64, { i32, i32 } }*, { i64, { i32, { i32, i32 } } } }, { { i64, { i64, i32* } }, i1* } }, { i32, { { i8*, { i64, { i64, i32* } } }, { { { i64, i32* }, { i32, i32 } }, { { i64, { i64, i32* } }, { { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { { i64, i1* }, { i64, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } } }, { i1, { i1, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { i64, { i64, i64* } }, { { i64, { i64, i64* } }, { { i64, { i64, i64 } }, { { i1, { i1, { i1, { i64, { i64, { i64, { i3, { i64, i64 } } } } } } } }, { i64, { i64, i32* } } } } } } } } } } } } } } } } %b1, 0
-    %b2 = extractvalue { { i1, { i32, i1* } }, { i64, { { i64, { i64, { i64, { i64, { i32, i1 } }* } }* }, { { { { i64, { i32, i32 } }*, { i64, { i32, { i32, i32 } } } }, { { i64, { i64, i32* } }, i1* } }, { i32, { { i8*, { i64, { i64, i32* } } }, { { { i64, i32* }, { i32, i32 } }, { { i64, { i64, i32* } }, { { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { { i64, i1* }, { i64, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } } }, { i1, { i1, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { i64, { i64, i64* } }, { { i64, { i64, i64* } }, { { i64, { i64, i64 } }, { { i1, { i1, { i1, { i64, { i64, { i64, { i3, { i64, i64 } } } } } } } }, { i64, { i64, i32* } } } } } } } } } } } } } } } } %b1, 1
-    %a1c = extractvalue { i64, { { i64, { i64, { i64, { i64, { i32, i1 } }* } }* }, { { { { i64, { i32, i32 } }*, { i64, { i32, { i32, i32 } } } }, { { i64, { i64, i32* } }, i1* } }, { i32, { { i8*, { i64, { i64, i32* } } }, { { { i64, i32* }, { i32, i32 } }, { { i64, { i64, i32* } }, { { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { { i64, i1* }, { i64, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } } }, { i1, { i1, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { i64, { i64, i64* } }, { { i64, { i64, i64* } }, { { i64, { i64, i64 } }, { { i1, { i1, { i1, { i64, { i64, { i64, { i3, { i64, i64 } } } } } } } }, { i64, { i64, i32* } } } } } } } } } } } } } } } %b2, 0
-    %b3 = extractvalue { i64, { { i64, { i64, { i64, { i64, { i32, i1 } }* } }* }, { { { { i64, { i32, i32 } }*, { i64, { i32, { i32, i32 } } } }, { { i64, { i64, i32* } }, i1* } }, { i32, { { i8*, { i64, { i64, i32* } } }, { { { i64, i32* }, { i32, i32 } }, { { i64, { i64, i32* } }, { { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { { i64, i1* }, { i64, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } } }, { i1, { i1, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { i64, { i64, i64* } }, { { i64, { i64, i64* } }, { { i64, { i64, i64 } }, { { i1, { i1, { i1, { i64, { i64, { i64, { i3, { i64, i64 } } } } } } } }, { i64, { i64, i32* } } } } } } } } } } } } } } } %b2, 1
-    %a1d = extractvalue { { i64, { i64, { i64, { i64, { i32, i1 } }* } }* }, { { { { i64, { i32, i32 } }*, { i64, { i32, { i32, i32 } } } }, { { i64, { i64, i32* } }, i1* } }, { i32, { { i8*, { i64, { i64, i32* } } }, { { { i64, i32* }, { i32, i32 } }, { { i64, { i64, i32* } }, { { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { { i64, i1* }, { i64, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } } }, { i1, { i1, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { i64, { i64, i64* } }, { { i64, { i64, i64* } }, { { i64, { i64, i64 } }, { { i1, { i1, { i1, { i64, { i64, { i64, { i3, { i64, i64 } } } } } } } }, { i64, { i64, i32* } } } } } } } } } } } } } } %b3, 0
-    %b4 = extractvalue { { i64, { i64, { i64, { i64, { i32, i1 } }* } }* }, { { { { i64, { i32, i32 } }*, { i64, { i32, { i32, i32 } } } }, { { i64, { i64, i32* } }, i1* } }, { i32, { { i8*, { i64, { i64, i32* } } }, { { { i64, i32* }, { i32, i32 } }, { { i64, { i64, i32* } }, { { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { { i64, i1* }, { i64, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } } }, { i1, { i1, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { i64, { i64, i64* } }, { { i64, { i64, i64* } }, { { i64, { i64, i64 } }, { { i1, { i1, { i1, { i64, { i64, { i64, { i3, { i64, i64 } } } } } } } }, { i64, { i64, i32* } } } } } } } } } } } } } } %b3, 1
-    %a1e = extractvalue { { { { i64, { i32, i32 } }*, { i64, { i32, { i32, i32 } } } }, { { i64, { i64, i32* } }, i1* } }, { i32, { { i8*, { i64, { i64, i32* } } }, { { { i64, i32* }, { i32, i32 } }, { { i64, { i64, i32* } }, { { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { { i64, i1* }, { i64, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } } }, { i1, { i1, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { i64, { i64, i64* } }, { { i64, { i64, i64* } }, { { i64, { i64, i64 } }, { { i1, { i1, { i1, { i64, { i64, { i64, { i3, { i64, i64 } } } } } } } }, { i64, { i64, i32* } } } } } } } } } } } } } %b4, 0
-    %b5 = extractvalue { { { { i64, { i32, i32 } }*, { i64, { i32, { i32, i32 } } } }, { { i64, { i64, i32* } }, i1* } }, { i32, { { i8*, { i64, { i64, i32* } } }, { { { i64, i32* }, { i32, i32 } }, { { i64, { i64, i32* } }, { { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { { i64, i1* }, { i64, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } } }, { i1, { i1, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { i64, { i64, i64* } }, { { i64, { i64, i64* } }, { { i64, { i64, i64 } }, { { i1, { i1, { i1, { i64, { i64, { i64, { i3, { i64, i64 } } } } } } } }, { i64, { i64, i32* } } } } } } } } } } } } } %b4, 1
-    %a1f = extractvalue { i32, { { i8*, { i64, { i64, i32* } } }, { { { i64, i32* }, { i32, i32 } }, { { i64, { i64, i32* } }, { { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { { i64, i1* }, { i64, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } } }, { i1, { i1, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { i64, { i64, i64* } }, { { i64, { i64, i64* } }, { { i64, { i64, i64 } }, { { i1, { i1, { i1, { i64, { i64, { i64, { i3, { i64, i64 } } } } } } } }, { i64, { i64, i32* } } } } } } } } } } } } %b5, 0
-    %a2f = extractvalue { i32, { { i8*, { i64, { i64, i32* } } }, { { { i64, i32* }, { i32, i32 } }, { { i64, { i64, i32* } }, { { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { { i64, i1* }, { i64, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } } }, { i1, { i1, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { i64, { i64, i64* } }, { { i64, { i64, i64* } }, { { i64, { i64, i64 } }, { { i1, { i1, { i1, { i64, { i64, { i64, { i3, { i64, i64 } } } } } } } }, { i64, { i64, i32* } } } } } } } } } } } } %b5, 1
-    ret i32 %a1f
-}
-
 define { i1, { { { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } }, { { i64, { i64, i32* } }, { { i1, { i32, i1* } }, { i64, { { i64, { i64, { i64, { i64, { i32, i1 } }* } }* }, { { { { i64, { i32, i32 } }*, { i64, { i32, { i32, i32 } } } }, { { i64, { i64, i32* } }, i1* } }, { i32, { { i8*, { i64, { i64, i32* } } }, { { { i64, i32* }, { i32, i32 } }, { { i64, { i64, i32* } }, { { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { { i64, i1* }, { i64, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } } }, { i1, { i1, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { i64, { i64, i64* } }, { { i64, { i64, i64* } }, { { i64, { i64, i64 } }, { { i1, { i1, { i1, { i64, { i64, { i64, { i3, { i64, i64 } } } } } } } }, { i64, { i64, i32* } } } } } } } } } } } } } } } } } } } @IsaSAT_Conflict_Analysis_LLVM_update_confl_tl_wl_fast_code(i32 %x, i64 %x1, { { { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } }, { { i64, { i64, i32* } }, { { i1, { i32, i1* } }, { i64, { { i64, { i64, { i64, { i64, { i32, i1 } }* } }* }, { { { { i64, { i32, i32 } }*, { i64, { i32, { i32, i32 } } } }, { { i64, { i64, i32* } }, i1* } }, { i32, { { i8*, { i64, { i64, i32* } } }, { { { i64, i32* }, { i32, i32 } }, { { i64, { i64, i32* } }, { { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { { i64, i1* }, { i64, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } } }, { i1, { i1, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { i64, { i64, i64* } }, { { i64, { i64, i64* } }, { { i64, { i64, i64 } }, { { i1, { i1, { i1, { i64, { i64, { i64, { i3, { i64, i64 } } } } } } } }, { i64, { i64, i32* } } } } } } } } } } } } } } } } } } %x2) {
 
   start:
@@ -15555,7 +15588,7 @@ define { i1, { { { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i6
     %xp = call { i32, i1* } @IsaSAT_Lookup_Conflict_LLVM_the_lookup_conflict_impl ({ i1, { i32, i1* } } %a1k)
     %xq = call { i32, i1* } @IsaSAT_Lookup_Conflict_LLVM_conflict_remove1_code (i32 %x, { i32, i1* } %xp)
     %xr = call { { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } } @IsaSAT_Trail_LLVM_tl_trail_tr_fast_code ({ { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } } %a1)
-    %xs = call { i1, { i32, i1* } } @IsaSAT_Conflict_Analysis_LLVM_None_lookup_conflict_impl (i1 %xo, { i32, i1* } %xq)
+    %xs = call { i1, { i32, i1* } } @IsaSAT_Lookup_Conflict_LLVM_None_lookup_conflict_impl (i1 %xo, { i32, i1* } %xq)
     %xt = call { { { i64, { i32, i32 } }*, { i64, { i32, { i32, i32 } } } }, { { i64, { i64, i32* } }, i1* } } @IsaSAT_VMTF_LLVM_isa_vmtf_unset_code (i32 %xj, { { { i64, { i32, i32 } }*, { i64, { i32, { i32, i32 } } } }, { { i64, { i64, i32* } }, i1* } } %a1e)
     %xua = sub i32 %a1l, 1
     %xv = insertvalue { { i8*, { i64, { i64, i32* } } }, { { { i64, i32* }, { i32, i32 } }, { { i64, { i64, i32* } }, { { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { { i64, i1* }, { i64, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } } }, { i1, { i1, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { i64, { i64, i64* } }, { { i64, { i64, i64* } }, { { i64, { i64, i64 } }, { { i1, { i1, { i1, { i64, { i64, { i64, { i3, { i64, i64 } } } } } } } }, { i64, { i64, i32* } } } } } } } } } } } zeroinitializer, { i8*, { i64, { i64, i32* } } } %a1g, 0
@@ -18250,7 +18283,7 @@ define i64 @IsaSAT_Inner_Propagation_LLVM_isa_find_unwatched_between_fast_code({
     %a21 = extractvalue { i64, i64 } %s, 1
     %xaa = call i32 @IsaSAT_Arena_LLVM_mop_arena_lit_impl ({ i64, { i64, i32* } } %x1, i64 %a21)
     %xba1 = call i8 @IsaSAT_Trail_LLVM_polarity_pol_fast_code ({ { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } } %x, i32 %xaa)
-    %xc1 = call i8 @IsaSAT_Trail_LLVM_tri_bool_SET_FALSE_impl ()
+    %xc1 = call i8 @IsaSAT_Literals_LLVM_tri_bool_SET_FALSE_impl ()
     %xd = icmp eq i8 %xba1, %xc1
     %xea = add i1 %xd, 1
     br i1 %xea, label %then, label %else
@@ -18504,7 +18537,7 @@ define i1 @IsaSAT_Conflict_Analysis_LLVM_extract_values_of_lookup_conflict_impl(
     ret i1 %a1
 }
 
-define { i64, { i64, i64* } } @IsaSAT_LLVM_experiment33374774_LBD_it_introsort_aux_impl_f_033810496({ i64, { i64, i32* } } %ai, { { i64, { i64, i64* } }, { i64, { i64, i64 } } } %x) {
+define { i64, { i64, i64* } } @IsaSAT_LLVM_experiment43181272_LBD_it_introsort_aux_impl_f_043273062({ i64, { i64, i32* } } %ai, { { i64, { i64, i64* } }, { i64, { i64, i64 } } } %x) {
 
   start:
     %a1 = extractvalue { { i64, { i64, i64* } }, { i64, { i64, i64 } } } %x, 0
@@ -18536,7 +18569,7 @@ define { i64, { i64, i64* } } @IsaSAT_LLVM_experiment33374774_LBD_it_introsort_a
     %tmpda = insertvalue { i64, { i64, i64 } } %xi, { i64, i64 } %tmpca, 1
     %xj = insertvalue { { i64, { i64, i64* } }, { i64, { i64, i64 } } } zeroinitializer, { i64, { i64, i64* } } %a1c, 0
     %xk = insertvalue { { i64, { i64, i64* } }, { i64, { i64, i64 } } } %xj, { i64, { i64, i64 } } %tmpda, 1
-    %xha = call { i64, { i64, i64* } } @IsaSAT_LLVM_experiment33374774_LBD_it_introsort_aux_impl_f_033810496 ({ i64, { i64, i32* } } %ai, { { i64, { i64, i64* } }, { i64, { i64, i64 } } } %xk)
+    %xha = call { i64, { i64, i64* } } @IsaSAT_LLVM_experiment43181272_LBD_it_introsort_aux_impl_f_043273062 ({ i64, { i64, i32* } } %ai, { { i64, { i64, i64* } }, { i64, { i64, i64 } } } %xk)
     %xia = sub i64 %a2b, 1
     %xm = insertvalue { i64, i64 } zeroinitializer, i64 %a1b, 0
     %tmpeb = insertvalue { i64, i64 } %xm, i64 %xia, 1
@@ -18544,7 +18577,7 @@ define { i64, { i64, i64* } } @IsaSAT_LLVM_experiment33374774_LBD_it_introsort_a
     %tmpfa = insertvalue { i64, { i64, i64 } } %xn, { i64, i64 } %tmpeb, 1
     %xo = insertvalue { { i64, { i64, i64* } }, { i64, { i64, i64 } } } zeroinitializer, { i64, { i64, i64* } } %xha, 0
     %x2 = insertvalue { { i64, { i64, i64* } }, { i64, { i64, i64 } } } %xo, { i64, { i64, i64 } } %tmpfa, 1
-    %x3 = call { i64, { i64, i64* } } @IsaSAT_LLVM_experiment33374774_LBD_it_introsort_aux_impl_f_033810496 ({ i64, { i64, i32* } } %ai, { { i64, { i64, i64* } }, { i64, { i64, i64 } } } %x2)
+    %x3 = call { i64, { i64, i64* } } @IsaSAT_LLVM_experiment43181272_LBD_it_introsort_aux_impl_f_043273062 ({ i64, { i64, i32* } } %ai, { { i64, { i64, i64* } }, { i64, { i64, i64 } } } %x2)
     br label %ctd_ifa
 
   ctd_ifa:
@@ -18782,7 +18815,7 @@ define { { i64, { i64, i32* } }, { { i64, { i64, i32* } }, { { i64, { i64, i64* 
     ret { { i64, { i64, i32* } }, { { i64, { i64, i32* } }, { { i64, { i64, i64* } }, { i64, { i64, i64* } } } } } %x22
 }
 
-define { i64, { i64, i32* } } @IsaSAT_LLVM_experiment33374774_VMTF_it_introsort_aux_impl_f_033896564({ i64, { i32, i32 } }* %ai, { { i64, { i64, i32* } }, { i64, { i64, i64 } } } %x) {
+define { i64, { i64, i32* } } @IsaSAT_LLVM_experiment43181272_VMTF_it_introsort_aux_impl_f_043353428({ i64, { i32, i32 } }* %ai, { { i64, { i64, i32* } }, { i64, { i64, i64 } } } %x) {
 
   start:
     %a1 = extractvalue { { i64, { i64, i32* } }, { i64, { i64, i64 } } } %x, 0
@@ -18814,7 +18847,7 @@ define { i64, { i64, i32* } } @IsaSAT_LLVM_experiment33374774_VMTF_it_introsort_
     %tmpda = insertvalue { i64, { i64, i64 } } %xi, { i64, i64 } %tmpca, 1
     %xj = insertvalue { { i64, { i64, i32* } }, { i64, { i64, i64 } } } zeroinitializer, { i64, { i64, i32* } } %a1c, 0
     %xk = insertvalue { { i64, { i64, i32* } }, { i64, { i64, i64 } } } %xj, { i64, { i64, i64 } } %tmpda, 1
-    %xha = call { i64, { i64, i32* } } @IsaSAT_LLVM_experiment33374774_VMTF_it_introsort_aux_impl_f_033896564 ({ i64, { i32, i32 } }* %ai, { { i64, { i64, i32* } }, { i64, { i64, i64 } } } %xk)
+    %xha = call { i64, { i64, i32* } } @IsaSAT_LLVM_experiment43181272_VMTF_it_introsort_aux_impl_f_043353428 ({ i64, { i32, i32 } }* %ai, { { i64, { i64, i32* } }, { i64, { i64, i64 } } } %xk)
     %xia = sub i64 %a2b, 1
     %xm = insertvalue { i64, i64 } zeroinitializer, i64 %a1b, 0
     %tmpeb = insertvalue { i64, i64 } %xm, i64 %xia, 1
@@ -18822,7 +18855,7 @@ define { i64, { i64, i32* } } @IsaSAT_LLVM_experiment33374774_VMTF_it_introsort_
     %tmpfa = insertvalue { i64, { i64, i64 } } %xn, { i64, i64 } %tmpeb, 1
     %xo = insertvalue { { i64, { i64, i32* } }, { i64, { i64, i64 } } } zeroinitializer, { i64, { i64, i32* } } %xha, 0
     %x2 = insertvalue { { i64, { i64, i32* } }, { i64, { i64, i64 } } } %xo, { i64, { i64, i64 } } %tmpfa, 1
-    %x3 = call { i64, { i64, i32* } } @IsaSAT_LLVM_experiment33374774_VMTF_it_introsort_aux_impl_f_033896564 ({ i64, { i32, i32 } }* %ai, { { i64, { i64, i32* } }, { i64, { i64, i64 } } } %x2)
+    %x3 = call { i64, { i64, i32* } } @IsaSAT_LLVM_experiment43181272_VMTF_it_introsort_aux_impl_f_043353428 ({ i64, { i32, i32 } }* %ai, { { i64, { i64, i32* } }, { i64, { i64, i64 } } } %x2)
     br label %ctd_ifa
 
   ctd_ifa:
@@ -19359,7 +19392,7 @@ define { i64, { i64, { { { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }
     %yv = insertvalue { { i64, { i64, i32* } }, { { i1, { i32, i1* } }, { i64, { { i64, { i64, { i64, { i64, { i32, i1 } }* } }* }, { { { { i64, { i32, i32 } }*, { i64, { i32, { i32, i32 } } } }, { { i64, { i64, i32* } }, i1* } }, { i32, { { i8*, { i64, { i64, i32* } } }, { { { i64, i32* }, { i32, i32 } }, { { i64, { i64, i32* } }, { { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { { i64, i1* }, { i64, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } } }, { i1, { i1, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { i64, { i64, i64* } }, { { i64, { i64, i64* } }, { { i64, { i64, i64 } }, { { i1, { i1, { i1, { i64, { i64, { i64, { i3, { i64, i64 } } } } } } } }, { i64, { i64, i32* } } } } } } } } } } } } } } } } } %yu, { { i1, { i32, i1* } }, { i64, { { i64, { i64, { i64, { i64, { i32, i1 } }* } }* }, { { { { i64, { i32, i32 } }*, { i64, { i32, { i32, i32 } } } }, { { i64, { i64, i32* } }, i1* } }, { i32, { { i8*, { i64, { i64, i32* } } }, { { { i64, i32* }, { i32, i32 } }, { { i64, { i64, i32* } }, { { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { { i64, i1* }, { i64, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } } }, { i1, { i1, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { i64, { i64, i64* } }, { { i64, { i64, i64* } }, { { i64, { i64, i64 } }, { { i1, { i1, { i1, { i64, { i64, { i64, { i3, { i64, i64 } } } } } } } }, { i64, { i64, i32* } } } } } } } } } } } } } } } } %tmpga, 1
     %yra = insertvalue { { { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } }, { { i64, { i64, i32* } }, { { i1, { i32, i1* } }, { i64, { { i64, { i64, { i64, { i64, { i32, i1 } }* } }* }, { { { { i64, { i32, i32 } }*, { i64, { i32, { i32, i32 } } } }, { { i64, { i64, i32* } }, i1* } }, { i32, { { i8*, { i64, { i64, i32* } } }, { { { i64, i32* }, { i32, i32 } }, { { i64, { i64, i32* } }, { { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { { i64, i1* }, { i64, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } } }, { i1, { i1, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { i64, { i64, i64* } }, { { i64, { i64, i64* } }, { { i64, { i64, i64 } }, { { i1, { i1, { i1, { i64, { i64, { i64, { i3, { i64, i64 } } } } } } } }, { i64, { i64, i32* } } } } } } } } } } } } } } } } } } %yq, { { i64, { i64, i32* } }, { { i1, { i32, i1* } }, { i64, { { i64, { i64, { i64, { i64, { i32, i1 } }* } }* }, { { { { i64, { i32, i32 } }*, { i64, { i32, { i32, i32 } } } }, { { i64, { i64, i32* } }, i1* } }, { i32, { { i8*, { i64, { i64, i32* } } }, { { { i64, i32* }, { i32, i32 } }, { { i64, { i64, i32* } }, { { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { { i64, i1* }, { i64, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } } }, { i1, { i1, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { i64, { i64, i64* } }, { { i64, { i64, i64* } }, { { i64, { i64, i64 } }, { { i1, { i1, { i1, { i64, { i64, { i64, { i3, { i64, i64 } } } } } } } }, { i64, { i64, i32* } } } } } } } } } } } } } } } } } %yv, 1
     %ysa = call i8 @IsaSAT_Setup1_LLVM_polarity_st_heur_pol_fast ({ { { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } }, { { i64, { i64, i32* } }, { { i1, { i32, i1* } }, { i64, { { i64, { i64, { i64, { i64, { i32, i1 } }* } }* }, { { { { i64, { i32, i32 } }*, { i64, { i32, { i32, i32 } } } }, { { i64, { i64, i32* } }, i1* } }, { i32, { { i8*, { i64, { i64, i32* } } }, { { { i64, i32* }, { i32, i32 } }, { { i64, { i64, i32* } }, { { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { { i64, i1* }, { i64, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } } }, { i1, { i1, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { i64, { i64, i64* } }, { { i64, { i64, i64* } }, { { i64, { i64, i64 } }, { { i1, { i1, { i1, { i64, { i64, { i64, { i3, { i64, i64 } } } } } } } }, { i64, { i64, i32* } } } } } } } } } } } } } } } } } } %yra, i32 %a1ab)
-    %yta = call i8 @IsaSAT_Trail_LLVM_tri_bool_SET_TRUE_impl ()
+    %yta = call i8 @IsaSAT_Literals_LLVM_tri_bool_SET_TRUE_impl ()
     %yua = icmp eq i8 %ysa, %yta
     br i1 %yua, label %then, label %else
 
@@ -19376,7 +19409,7 @@ define { i64, { i64, { { { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }
     br i1 %a2a1, label %thena, label %elsea
 
   thena:
-    %yva1 = call i8 @IsaSAT_Trail_LLVM_tri_bool_SET_FALSE_impl ()
+    %yva1 = call i8 @IsaSAT_Literals_LLVM_tri_bool_SET_FALSE_impl ()
     %yw = icmp eq i8 %ysa, %yva1
     br i1 %yw, label %thenb, label %elseb
 
@@ -19443,7 +19476,7 @@ define { i64, { i64, { { { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }
     %a2aa = extractvalue { { i64, { i64, i32* } }, { { i1, { i32, i1* } }, { i64, { { i64, { i64, { i64, { i64, { i32, i1 } }* } }* }, { { { { i64, { i32, i32 } }*, { i64, { i32, { i32, i32 } } } }, { { i64, { i64, i32* } }, i1* } }, { i32, { { i8*, { i64, { i64, i32* } } }, { { { i64, i32* }, { i32, i32 } }, { { i64, { i64, i32* } }, { { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { { i64, i1* }, { i64, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } } }, { i1, { i1, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { i64, { i64, i64* } }, { { i64, { i64, i64* } }, { { i64, { i64, i64 } }, { { i1, { i1, { i1, { i64, { i64, { i64, { i3, { i64, i64 } } } } } } } }, { i64, { i64, i32* } } } } } } } } } } } } } } } } } %zd, 1
     %ze = call i32 @IsaSAT_Arena_LLVM_arena_other_watched_as_swap_impl ({ i64, { i64, i32* } } %a1ae, i32 %x, i64 %a1m, i64 %zc1)
     %zf = call i8 @IsaSAT_Setup1_LLVM_polarity_st_heur_pol_fast ({ { { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } }, { { i64, { i64, i32* } }, { { i1, { i32, i1* } }, { i64, { { i64, { i64, { i64, { i64, { i32, i1 } }* } }* }, { { { { i64, { i32, i32 } }*, { i64, { i32, { i32, i32 } } } }, { { i64, { i64, i32* } }, i1* } }, { i32, { { i8*, { i64, { i64, i32* } } }, { { { i64, i32* }, { i32, i32 } }, { { i64, { i64, i32* } }, { { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { { i64, i1* }, { i64, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } } }, { i1, { i1, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { i64, { i64, i64* } }, { { i64, { i64, i64* } }, { { i64, { i64, i64 } }, { { i1, { i1, { i1, { i64, { i64, { i64, { i3, { i64, i64 } } } } } } } }, { i64, { i64, i32* } } } } } } } } } } } } } } } } } } %yra, i32 %ze)
-    %zg = call i8 @IsaSAT_Trail_LLVM_tri_bool_SET_TRUE_impl ()
+    %zg = call i8 @IsaSAT_Literals_LLVM_tri_bool_SET_TRUE_impl ()
     %zh = icmp eq i8 %zf, %zg
     br i1 %zh, label %thene, label %elsee
 
@@ -19506,7 +19539,7 @@ define { i64, { i64, { { { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }
     br i1 %zr1, label %theni, label %elsei
 
   theni:
-    %zs1 = call i8 @IsaSAT_Trail_LLVM_tri_bool_SET_FALSE_impl ()
+    %zs1 = call i8 @IsaSAT_Literals_LLVM_tri_bool_SET_FALSE_impl ()
     %zt = icmp eq i8 %zf, %zs1
     br i1 %zt, label %thenj, label %elsej
 
@@ -19548,7 +19581,7 @@ define { i64, { i64, { { { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }
     %zs2 = call { { { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } }, { { i64, { i64, i32* } }, { { i1, { i32, i1* } }, { i64, { { i64, { i64, { i64, { i64, { i32, i1 } }* } }* }, { { { { i64, { i32, i32 } }*, { i64, { i32, { i32, i32 } } } }, { { i64, { i64, i32* } }, i1* } }, { i32, { { i8*, { i64, { i64, i32* } } }, { { { i64, i32* }, { i32, i32 } }, { { i64, { i64, i32* } }, { { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { { i64, i1* }, { i64, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } } }, { i1, { i1, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { i64, { i64, i64* } }, { { i64, { i64, i64* } }, { { i64, { i64, i64 } }, { { i1, { i1, { i1, { i64, { i64, { i64, { i3, { i64, i64 } } } } } } } }, { i64, { i64, i32* } } } } } } } } } } } } } } } } } } @IsaSAT_Inner_Propagation_LLVM_isa_save_pos_fast_code (i64 %a1m, i64 %zq1, { { { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } }, { { i64, { i64, i32* } }, { { i1, { i32, i1* } }, { i64, { { i64, { i64, { i64, { i64, { i32, i1 } }* } }* }, { { { { i64, { i32, i32 } }*, { i64, { i32, { i32, i32 } } } }, { { i64, { i64, i32* } }, i1* } }, { i32, { { i8*, { i64, { i64, i32* } } }, { { { i64, i32* }, { i32, i32 } }, { { i64, { i64, i32* } }, { { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { { i64, i1* }, { i64, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } } }, { i1, { i1, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { i64, { i64, i64* } }, { { i64, { i64, i64* } }, { { i64, { i64, i64 } }, { { i1, { i1, { i1, { i64, { i64, { i64, { i3, { i64, i64 } } } } } } } }, { i64, { i64, i32* } } } } } } } } } } } } } } } } } } %yra)
     %zt1 = call i32 @IsaSAT_Setup3_LLVM_mop_access_lit_in_clauses_heur_impl ({ { { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } }, { { i64, { i64, i32* } }, { { i1, { i32, i1* } }, { i64, { { i64, { i64, { i64, { i64, { i32, i1 } }* } }* }, { { { { i64, { i32, i32 } }*, { i64, { i32, { i32, i32 } } } }, { { i64, { i64, i32* } }, i1* } }, { i32, { { i8*, { i64, { i64, i32* } } }, { { { i64, i32* }, { i32, i32 } }, { { i64, { i64, i32* } }, { { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { { i64, i1* }, { i64, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } } }, { i1, { i1, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { i64, { i64, i64* } }, { { i64, { i64, i64* } }, { { i64, { i64, i64 } }, { { i1, { i1, { i1, { i64, { i64, { i64, { i3, { i64, i64 } } } } } } } }, { i64, { i64, i32* } } } } } } } } } } } } } } } } } } %zs2, i64 %a1m, i64 %zq1)
     %zu2 = call i8 @IsaSAT_Setup1_LLVM_polarity_st_heur_pol_fast ({ { { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } }, { { i64, { i64, i32* } }, { { i1, { i32, i1* } }, { i64, { { i64, { i64, { i64, { i64, { i32, i1 } }* } }* }, { { { { i64, { i32, i32 } }*, { i64, { i32, { i32, i32 } } } }, { { i64, { i64, i32* } }, i1* } }, { i32, { { i8*, { i64, { i64, i32* } } }, { { { i64, i32* }, { i32, i32 } }, { { i64, { i64, i32* } }, { { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { { i64, i1* }, { i64, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } } }, { i1, { i1, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { i64, { i64, i64* } }, { { i64, { i64, i64* } }, { { i64, { i64, i64 } }, { { i1, { i1, { i1, { i64, { i64, { i64, { i3, { i64, i64 } } } } } } } }, { i64, { i64, i32* } } } } } } } } } } } } } } } } } } %zs2, i32 %zt1)
-    %zv = call i8 @IsaSAT_Trail_LLVM_tri_bool_SET_TRUE_impl ()
+    %zv = call i8 @IsaSAT_Literals_LLVM_tri_bool_SET_TRUE_impl ()
     %zw = icmp eq i8 %zu2, %zv
     br i1 %zw, label %thenl, label %elsel
 
@@ -19766,7 +19799,7 @@ define { { { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64
 define i1 @IsaSAT_Conflict_Analysis_LLVM_maximum_level_removed_eq_count_dec_fast_code(i32 %x, { { { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } }, { { i64, { i64, i32* } }, { { i1, { i32, i1* } }, { i64, { { i64, { i64, { i64, { i64, { i32, i1 } }* } }* }, { { { { i64, { i32, i32 } }*, { i64, { i32, { i32, i32 } } } }, { { i64, { i64, i32* } }, i1* } }, { i32, { { i8*, { i64, { i64, i32* } } }, { { { i64, i32* }, { i32, i32 } }, { { i64, { i64, i32* } }, { { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { { i64, i1* }, { i64, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } } }, { i1, { i1, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { i64, { i64, i64* } }, { { i64, { i64, i64* } }, { { i64, { i64, i64 } }, { { i1, { i1, { i1, { i64, { i64, { i64, { i3, { i64, i64 } } } } } } } }, { i64, { i64, i32* } } } } } } } } } } } } } } } } } } %x1) {
 
   start:
-    %x2 = call i32 @IsaSAT_Conflict_Analysis_LLVM_get_count_max_lvls_heur_impl ({ { { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } }, { { i64, { i64, i32* } }, { { i1, { i32, i1* } }, { i64, { { i64, { i64, { i64, { i64, { i32, i1 } }* } }* }, { { { { i64, { i32, i32 } }*, { i64, { i32, { i32, i32 } } } }, { { i64, { i64, i32* } }, i1* } }, { i32, { { i8*, { i64, { i64, i32* } } }, { { { i64, i32* }, { i32, i32 } }, { { i64, { i64, i32* } }, { { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { { i64, i1* }, { i64, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } } }, { i1, { i1, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { i64, { i64, i64* } }, { { i64, { i64, i64* } }, { { i64, { i64, i64 } }, { { i1, { i1, { i1, { i64, { i64, { i64, { i3, { i64, i64 } } } } } } } }, { i64, { i64, i32* } } } } } } } } } } } } } } } } } } %x1)
+    %x2 = call i32 @IsaSAT_Setup2_LLVM_get_count_max_lvls_heur_impl ({ { { i64, { i64, i32* } }, { { i64, i8* }, { { i64, i32* }, { { i64, i64* }, { i32, { i64, { i64, i32* } } } } } } }, { { i64, { i64, i32* } }, { { i1, { i32, i1* } }, { i64, { { i64, { i64, { i64, { i64, { i32, i1 } }* } }* }, { { { { i64, { i32, i32 } }*, { i64, { i32, { i32, i32 } } } }, { { i64, { i64, i32* } }, i1* } }, { i32, { { i8*, { i64, { i64, i32* } } }, { { { i64, i32* }, { i32, i32 } }, { { i64, { i64, i32* } }, { { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { { i64, { i64, { i64, { i64, i64 } } } }, { i64, { { { i64, i1* }, { i64, { i1*, { i64, { i1*, { i64, { i64, i64 } } } } } } }, { i1, { i1, { i64, { i64, { i64, { i64, i64 } } } } } } } } } } }, { { i64, { i64, i64* } }, { { i64, { i64, i64* } }, { { i64, { i64, i64 } }, { { i1, { i1, { i1, { i64, { i64, { i64, { i3, { i64, i64 } } } } } } } }, { i64, { i64, i32* } } } } } } } } } } } } } } } } } } %x1)
     %x3 = icmp ult i32 1, %x2
     ret i1 %x3
 }

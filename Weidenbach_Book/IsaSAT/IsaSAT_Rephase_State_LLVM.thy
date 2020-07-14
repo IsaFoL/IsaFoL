@@ -22,6 +22,7 @@ sepref_def phase_save_rephase_impl
   is \<open>uncurry phase_rephase\<close>
   :: \<open>word_assn\<^sup>k *\<^sub>a phase_heur_assn\<^sup>d \<rightarrow>\<^sub>a phase_heur_assn\<close>
   unfolding phase_rephase_def copy_phase2_def[symmetric] phase_heur_assn_def
+  apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
 
