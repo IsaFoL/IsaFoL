@@ -112,9 +112,6 @@ sepref_def IsaSAT_use_fast_mode_impl
   unfolding IsaSAT_use_fast_mode_def
   by sepref
 
-lemmas [sepref_fr_rules] = IsaSAT_use_fast_mode_impl.refine extract_state_stat.refine
-
-
 sepref_def empty_conflict_code'
   is \<open>uncurry0 (empty_conflict_code)\<close>
   :: \<open>unit_assn\<^sup>k \<rightarrow>\<^sub>a model_stat_assn\<close>

@@ -180,6 +180,7 @@ definition phase_rephase :: \<open>64 word \<Rightarrow> phase_save_heur \<Right
      length_phase).
   do {
       let target_assigned = 0;
+      target \<leftarrow> copy_phase \<phi> target;
       if curr_phase = 0 \<or> curr_phase = 2 \<or> curr_phase = 4 \<or> curr_phase = 6
       then do {
          \<phi> \<leftarrow> copy_phase best \<phi>;
