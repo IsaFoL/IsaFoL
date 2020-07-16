@@ -212,9 +212,33 @@ inductive cdcl_twl_o :: \<open>'v twl_st \<Rightarrow> 'v twl_st \<Rightarrow> b
 
 inductive_cases cdcl_twl_oE: \<open>cdcl_twl_o S T\<close>
 
+
+subsection \<open>Subsumption\<close>
+
+text \<open>
+  The subsumption is very similar to the PCDCL case.
+\<close>
+inductive cdcl_twl_subsumed :: \<open>'v twl_st \<Rightarrow> 'v twl_st \<Rightarrow> bool\<close> where
+subsumed_II:
+  \<open>cdcl_twl_subsumed (M, N + {#C, C'#}, U, D, NE, UE, NS, US, {#}, Q)
+     (M, add_mset C N, U, D, NE, UE, add_mset (clause C') NS, US, {#}, Q)\<close>
+  if \<open>clause C \<subseteq># clause C'\<close> |
+subsumed_RR:
+  \<open>cdcl_twl_subsumed (M, N, U + {#C, C'#}, D, NE, UE, NS, US, {#}, Q)
+     (M, N, add_mset C U, D, NE, UE, NS, add_mset (clause C') US, {#}, Q)\<close>
+  if \<open>clause C \<subseteq># clause C'\<close> |
+subsumed_IR:
+  \<open>cdcl_twl_subsumed (M, add_mset C N, add_mset C' U, D, NE, UE, NS, US, {#}, Q)
+     (M, add_mset C N, U, D, NE, UE, NS, add_mset (clause C') US, {#}, Q)\<close>
+  if \<open>clause C \<subseteq># clause C'\<close>
+
+
+subsubsection \<open>CDCL\<close>
 inductive cdcl_twl_stgy :: \<open>'v twl_st \<Rightarrow> 'v twl_st \<Rightarrow> bool\<close> for S :: \<open>'v twl_st\<close> where
 cp: \<open>cdcl_twl_cp S S' \<Longrightarrow> cdcl_twl_stgy S S'\<close> |
-other': \<open>cdcl_twl_o S S' \<Longrightarrow> cdcl_twl_stgy S S'\<close>
+other': \<open>cdcl_twl_o S S' \<Longrightarrow> cdcl_twl_stgy S S'\<close> |
+subsumed: \<open>cdcl_twl_subsumed S S' \<Longrightarrow> cdcl_twl_stgy S S'\<close>
+
 
 inductive_cases cdcl_twl_stgyE: \<open>cdcl_twl_stgy S T\<close>
 
@@ -4443,6 +4467,153 @@ proof -
     by (auto)
 qed
 
+subsubsection \<open>Subsumption\<close>
+
+lemma cdcl_twl_subsumed_cdcl_subsumed:
+  \<open>cdcl_twl_subsumed S T \<Longrightarrow> cdcl_subsumed (pstate\<^sub>W_of S) (pstate\<^sub>W_of T)\<close>
+  apply (induction rule: cdcl_twl_subsumed.induct)
+  subgoal by (auto simp: cdcl_subsumed.simps)
+  subgoal by (auto simp: cdcl_subsumed.simps)
+  subgoal by (auto simp: cdcl_subsumed.simps)
+  done
+
+lemma conflict_non_zero_unless_level_0_lvl0:
+  \<open>count_decided (trail S) = 0 \<Longrightarrow> cdcl\<^sub>W_restart_mset.conflict_non_zero_unless_level_0 (S)\<close>
+  by (auto simp: cdcl\<^sub>W_restart_mset.conflict_non_zero_unless_level_0_def)
+
+lemma cdcl_twl_subsumed_twl_st_inv:
+  \<open>cdcl_twl_subsumed S T \<Longrightarrow> twl_st_inv S \<Longrightarrow> twl_st_inv T\<close>
+  by (induction rule: cdcl_twl_subsumed.induct) (auto simp: twl_st_inv.simps)
+
+lemma cdcl_subsumed_pcdcl_all_struct_invs:
+  \<open>cdcl_subsumed S T \<Longrightarrow>  pcdcl_all_struct_invs S \<Longrightarrow> pcdcl_all_struct_invs  T\<close>
+  by (simp add: cdcl_subsumed_all_struct_inv cdcl_subsumed_entailed_clss_inv
+    cdcl_subsumed_psubsumed_invs pcdcl_all_struct_invs_def)
+
+lemma cdcl_twl_subsumed_twl_struct_invs:
+  assumes \<open>cdcl_twl_subsumed S T\<close>
+    \<open>twl_struct_invs S\<close>
+  shows \<open>twl_struct_invs T\<close>
+proof -
+  have st_inv: \<open>twl_st_inv S\<close> and
+    enq: \<open>valid_enqueued S\<close> and
+    struct_invs: \<open>pcdcl_all_struct_invs (pstate\<^sub>W_of S)\<close> and
+    excep: \<open>twl_st_exception_inv S\<close> and
+    dup: \<open>no_duplicate_queued S\<close> and
+    dist: \<open>distinct_queued S\<close> and
+    confl: \<open>confl_cands_enqueued S\<close> and
+    propa: \<open>propa_cands_enqueued S\<close> and
+    confl2: \<open>get_conflict S \<noteq> None \<longrightarrow> clauses_to_update S = {#} \<and> literals_to_update S = {#}\<close> and
+    clss: \<open>clauses_to_update_inv S\<close> and
+    upd: \<open>past_invs S\<close> and
+    early_propa: \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa (state\<^sub>W_of S)\<close>
+    using assms(2) unfolding twl_struct_invs_def
+    by blast+
+  have \<open>twl_st_inv T\<close>
+    using cdcl_twl_subsumed_twl_st_inv[of S T, OF assms(1) st_inv] .
+  moreover have \<open>valid_enqueued T\<close>
+    using assms(1) enq
+    by (induction rule: cdcl_twl_subsumed.induct) auto
+  moreover have \<open>pcdcl_all_struct_invs (pstate\<^sub>W_of T)\<close>
+    using cdcl_twl_subsumed_cdcl_subsumed[of S T] struct_invs assms(1)
+      cdcl_subsumed_pcdcl_all_struct_invs[of \<open>pstate\<^sub>W_of S\<close>  \<open>pstate\<^sub>W_of T\<close>]
+    by blast
+  moreover have \<open>twl_st_exception_inv T\<close>
+    using assms(1) excep
+    apply (induction rule: cdcl_twl_subsumed.induct)
+    apply (auto simp: twl_exception_inv.simps)
+    apply (case_tac C; case_tac D; auto simp: twl_exception_inv.simps)
+    apply (case_tac x; case_tac D; auto simp: twl_exception_inv.simps dest!: multi_member_split)
+    apply (case_tac x; case_tac D; auto simp: twl_exception_inv.simps dest!: multi_member_split)
+    apply (case_tac C; case_tac D; auto simp: twl_exception_inv.simps)
+    apply (case_tac x; case_tac D; auto simp: twl_exception_inv.simps dest!: multi_member_split)
+    apply (case_tac x; case_tac D; auto simp: twl_exception_inv.simps dest!: multi_member_split)
+    apply (case_tac C; case_tac D; auto simp: twl_exception_inv.simps)
+    apply (case_tac x; case_tac D; auto simp: twl_exception_inv.simps dest!: multi_member_split)
+    apply (case_tac x; case_tac D; auto simp: twl_exception_inv.simps dest!: multi_member_split)
+    done
+  moreover have \<open>no_duplicate_queued T\<close>
+    using assms(1) dup
+    by (induction rule: cdcl_twl_subsumed.induct) auto
+  moreover have \<open>distinct_queued T\<close>
+    using assms(1) dist
+    by (induction rule: cdcl_twl_subsumed.induct) auto
+  moreover have \<open>confl_cands_enqueued T\<close>
+    using assms(1) confl
+    by (induction rule: cdcl_twl_subsumed.induct)
+      (case_tac D; auto)+
+  moreover have \<open>propa_cands_enqueued T\<close>
+    using assms(1) propa
+    by (induction rule: cdcl_twl_subsumed.induct)
+      (case_tac D; auto)+
+  moreover have \<open>get_conflict T \<noteq> None \<longrightarrow> clauses_to_update T = {#} \<and> literals_to_update T = {#}\<close>
+    using assms(1) confl2
+    by (induction rule: cdcl_twl_subsumed.induct) auto
+  moreover have \<open>clauses_to_update_inv T\<close>
+    using assms(1) clss
+    by (induction rule: cdcl_twl_subsumed.induct)
+      (case_tac D; auto simp: clauses_to_update_prop.simps filter_mset_empty_conv)+
+  moreover have \<open>past_invs T\<close>
+  proof -
+    let ?f = \<open>(\<lambda>(M, N, U, D, NE, UE, NS, US, WS, Q).
+    (\<forall>M1 M2 K. M = M2 @ Decided K # M1 \<longrightarrow> (\<forall>C \<in># N + U. twl_lazy_update M1 C)))\<close>
+    let ?g = \<open>(\<lambda>(M, N, U, D, NE, UE, NS, US, WS, Q).
+    (\<forall>M1 M2 K. M = M2 @ Decided K # M1 \<longrightarrow> (\<forall>C \<in># N + U. watched_literals_false_of_max_level M1 C)))\<close>
+    let ?h = \<open>(\<lambda>(M, N, U, D, NE, UE, NS, US, WS, Q).
+    (\<forall>M1 M2 K. M = M2 @ Decided K # M1 \<longrightarrow> (
+      (\<forall>C \<in># N + U. twl_exception_inv (M1, N, U, None, NE, UE, NS, US, {#}, {#}) C))))\<close>
+    let ?i = \<open>(\<lambda>(M, N, U, D, NE, UE, NS, US, WS, Q).
+    (\<forall>M1 M2 K. M = M2 @ Decided K # M1 \<longrightarrow> (
+      confl_cands_enqueued (M1, N, U, None, NE, UE, NS, US, {#}, {#}))))\<close>
+    let ?j = \<open>(\<lambda>(M, N, U, D, NE, UE, NS, US, WS, Q).
+    (\<forall>M1 M2 K. M = M2 @ Decided K # M1 \<longrightarrow> (
+      propa_cands_enqueued (M1, N, U, None, NE, UE, NS, US, {#}, {#}))))\<close>
+    let ?k = \<open>(\<lambda>(M, N, U, D, NE, UE, NS, US, WS, Q).
+    (\<forall>M1 M2 K. M = M2 @ Decided K # M1 \<longrightarrow> (
+      clauses_to_update_inv (M1, N, U, None, NE, UE, NS, US, {#}, {#}))))\<close>
+    have \<open>?f T\<close> if \<open>?f S\<close>
+      using assms(1) that
+      by (induction rule: cdcl_twl_subsumed.induct) auto
+    moreover have \<open>?g T\<close> if \<open>?g S\<close>
+      using assms(1) that
+      by (induction rule: cdcl_twl_subsumed.induct) auto
+    moreover have \<open>?h T\<close> if \<open>?h S\<close>
+      using assms(1) that
+      by (induction rule: cdcl_twl_subsumed.induct)
+        (case_tac C; auto simp: twl_exception_inv.simps)+
+    moreover have \<open>?i T\<close> if \<open>?i S\<close>
+      using assms(1) that
+      by (induction rule: cdcl_twl_subsumed.induct) auto
+    moreover have \<open>?j T\<close> if \<open>?j S\<close>
+      using assms(1) that
+      by (induction rule: cdcl_twl_subsumed.induct) auto
+    moreover have \<open>?k T\<close> if \<open>?k S\<close>
+      using assms(1) that
+      by (induction rule: cdcl_twl_subsumed.induct) (auto simp: clauses_to_update_prop.simps
+        filter_mset_empty_conv)
+    ultimately show \<open>past_invs T\<close>
+      using upd by (cases S; cases T)
+       (simp only: prod.case past_invs.simps imp_conjR all_conj_distrib
+          ball_conj_distrib, fast)
+  qed
+  moreover have \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa (state\<^sub>W_of T)\<close>
+    using assms(1) early_propa
+    by (induction rule: cdcl_twl_subsumed.induct)
+      (auto simp: cdcl\<^sub>W_restart_mset.no_smaller_propa_def clauses_def)
+  ultimately show ?thesis
+    using cdcl_twl_subsumed_twl_st_inv[of S T] cdcl_twl_subsumed_cdcl_subsumed[of S T]
+      cdcl_subsumed_pcdcl_all_struct_invs[of \<open>pstate\<^sub>W_of S\<close>  \<open>pstate\<^sub>W_of T\<close>]
+    by (simp add: twl_struct_invs_def)
+qed
+
+lemma cdcl_twl_subsumed_twl_stgy_invs:
+  \<open>cdcl_twl_subsumed S T \<Longrightarrow> twl_stgy_invs S \<Longrightarrow> twl_stgy_invs T\<close>
+  by (induction rule: cdcl_twl_subsumed.induct)
+    (auto simp: twl_stgy_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy_invariant_def
+      cdcl\<^sub>W_restart_mset.no_smaller_confl_def cdcl\<^sub>W_restart_mset.propagated_cons_eq_append_decide_cons
+      add_mset_commute get_level_cons_if cdcl\<^sub>W_restart_mset.clauses_def
+    dest!: multi_member_split)
+
 
 subsubsection \<open>The Strategy\<close>
 
@@ -4534,6 +4705,11 @@ next
 
   then show ?case
     by auto
+next
+  case (subsumed S')
+  then show ?case
+    using cdcl_twl_subsumed_cdcl_subsumed[of S S']
+    by (auto simp: pcdcl_tcore_stgy.simps)
 qed
 
 lemma cdcl_twl_stgy_cdcl\<^sub>W_stgy:
@@ -4583,7 +4759,8 @@ lemma cdcl_twl_stgy_twl_struct_invs: (*\htmllink{cdcl_twl_stgy_twl_struct_invs} 
     twl: \<open>twl_struct_invs S\<close>
   shows \<open>twl_struct_invs T\<close>
   using cdcl by (induction rule: cdcl_twl_stgy.induct)
-    (simp_all add: cdcl_twl_cp_twl_struct_invs cdcl_twl_o_twl_struct_invs twl)
+    (simp_all add: cdcl_twl_cp_twl_struct_invs cdcl_twl_o_twl_struct_invs twl
+    cdcl_twl_subsumed_twl_stgy_invs)
 
 lemma rtranclp_cdcl_twl_stgy_twl_struct_invs:
   assumes
@@ -4753,9 +4930,9 @@ lemma full_cdcl_twl_stgy_cdcl\<^sub>W_stgy: (* \htmllink{full_cdcl_twl_stgy_cdcl
     rtranclp_cdcl_twl_stgy_cdcl\<^sub>W_stgy rtranclp_cdcl_twl_stgy_twl_struct_invs)
 
 
-
 definition init_state_twl where
   \<open>init_state_twl N \<equiv> ([], N, {#}, None, {#}, {#}, {#}, {#}, {#}, {#})\<close>
+
 lemma
   assumes
     struct: \<open>\<forall>C \<in># N. struct_wf_twl_cls C\<close> and
