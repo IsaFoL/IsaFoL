@@ -1014,7 +1014,7 @@ proof -
       using Red_ground_clause_def by auto
     (* construct a smaller set than NC0 in which \<iota> is also redundant. This contradicts the minimality of NC0. *)
     let ?NCC = \<open>NC0 - {D} \<union> ND1\<close>
-    have \<open>?NCC \<subseteq> N\<close> using ND1_subset and NC0_prop by auto
+    have \<open>?NCC \<subseteq> N\<close> using ND1_subset and NC0_prop by autoc
     moreover have \<open>finite ?NCC\<close>
       using ND1_finite NC0_prop by blast
     moreover have \<open>(?NCC, NC0) \<in> ground_clause_set_ord\<close>
@@ -1388,6 +1388,9 @@ inductive rewrite_by_trs :: \<open>('f, 'v) trs \<Rightarrow> ('f, 'v) term \<Ri
     func: \<open>rewrite_by_trs S t s \<Longrightarrow> rewrite_by_trs S (Fun f (a1 @ t # a2)) (Fun f (a1 @ s # a2))\<close> |
     trans: \<open>rewrite_by_trs S u t \<Longrightarrow> rewrite_by_trs S t s \<Longrightarrow> rewrite_by_trs S u s\<close>
 
+definition confluent :: \<open>('f, 'v) trs \<Rightarrow> bool\<close>
+  where \<open>confluent TRS = (!s t u. rewrite_by_trs TRS s t \<longrightarrow> rewrite_by_trs TRS s u \<longrightarrow> (\<exists>v. rewrite_by_trs TRS t v \<and> rewrite_by_trs TRS u v))\<close>
+
 definition irreducible :: \<open>('f, 'v) trs \<Rightarrow> ('f, 'v) term \<Rightarrow> bool\<close>
   where \<open>irreducible TRS t = (\<forall>s. \<not>rewrite_by_trs TRS t s)\<close>
 
@@ -1498,12 +1501,9 @@ proof -
   then show ?thesis using \<open>ground_term t\<close> by auto
 qed
 
-lemma ordered_confluent: \<open>ordered S \<Longrightarrow> ground_term t \<Longrightarrow> rewrite_by_trs S t s \<Longrightarrow> rewrite_by_trs S t u \<Longrightarrow> (u, s) \<in> equiv_class_of_trs S\<close>
-  sorry
-
-lemma ordered_unique_normal_form: \<open>ordered S \<Longrightarrow> ground_term t \<Longrightarrow> \<exists>!s. normal_form S t s\<close>
+lemma unique_normal_form: \<open>ordered S \<Longrightarrow> confluent S \<Longrightarrow> ground_term t \<Longrightarrow> \<exists>!s. normal_form S t s\<close>
 proof -
-  assume ord: \<open>ordered S\<close> and \<open>ground_term t\<close>
+  assume \<open>ordered S\<close> and conf: \<open>confluent S\<close> and \<open>ground_term t\<close>
   then obtain s where nf_s: \<open>normal_form S t s\<close> using ordered_normalizing by blast
   show \<open>\<exists>!s. normal_form S t s\<close>
   proof
@@ -1529,8 +1529,8 @@ proof -
       next
         case 4
         then obtain u where \<open>normal_form S s u\<close> and \<open>normal_form S s' u\<close>
-          using ord ordered_confluent \<open>ground_term t\<close>
-          unfolding equiv_class_of_trs_def by blast
+          using conf \<open>ground_term t\<close> nf_s'
+          unfolding equiv_class_of_trs_def confluent_def normal_form_def irreducible_def by blast
         then have \<open>s = u \<and> s' = u\<close> using nf_s nf_s'
           unfolding normal_form_def irreducible_def by auto
         then show ?thesis by auto
@@ -1543,50 +1543,89 @@ lemma equiv_class_refl: \<open>ordered S \<Longrightarrow> refl_on {t. ground_te
   unfolding equiv_class_of_trs_def refl_on_def
   using ordered_normalizing by auto
 
-lemma equiv_class_sym: \<open>ordered S \<Longrightarrow> sym (equiv_class_of_trs S)\<close>
+lemma equiv_class_sym: \<open>sym (equiv_class_of_trs S)\<close>
   unfolding equiv_class_of_trs_def sym_def by blast
 
-lemma equiv_class_trans: \<open>ordered S \<Longrightarrow> trans (equiv_class_of_trs S)\<close>
-  unfolding trans_def equiv_class_of_trs_def
-  using ordered_unique_normal_form by blast
+lemma equiv_class_trans: \<open>confluent S \<Longrightarrow> trans (equiv_class_of_trs S)\<close>
+  by (smt Pair_inject mem_Collect_eq trans_def equiv_class_of_trs_def normal_form_def confluent_def irreducible_def)
 
-lemma equiv_class_fun_comp: \<open>ordered S \<Longrightarrow> fun_comp (equiv_class_of_trs S)\<close>
+lemma equiv_class_rewrite:
+  assumes \<open>ordered S\<close>
+      and \<open>rewrite_by_trs S x y\<close>
+      and \<open>ground_term x\<close>
+      and \<open>ground_term y\<close>
+    shows \<open>(x, y) \<in> equiv_class_of_trs S\<close>
 proof -
-  assume ord: \<open>ordered S\<close>
-  have \<open>t = Fun f a2 \<Longrightarrow> length a1 = length a2 \<Longrightarrow> (\<forall>n. n < length a1 \<longrightarrow> (a1 ! n, a2 ! n) \<in> (equiv_class_of_trs S)) \<Longrightarrow> rewrite_by_trs S t (Fun f a1) \<or> rewrite_by_trs S (Fun f a1) t \<or> Fun f a1 = t\<close> for f a1 a2 t
-  proof (induct rule: wf_induct [of term_ord _ t])
-    show \<open>wf term_ord\<close> using wf_term_ord .
-  next
-    case (2 t)
-    show ?case
-    proof (cases \<open>a1 = a2\<close>)
-      case True
-      then show ?thesis using 2 by blast
-    next
-      case False
-      then obtain n where n_bound: \<open>n < length a1\<close> and arg_neq: \<open>a1 ! n \<noteq> a2 ! n\<close>
-        using \<open>length a1 = length a2\<close>
-        using nth_equalityI by blast
-      then have equiv: \<open>(a1 ! n, a2 ! n) \<in> equiv_class_of_trs S\<close>
-        using 2 by auto
-      then consider (lt) \<open>a1 ! n \<prec> a2 ! n\<close> | (gt) \<open>a2 ! n \<prec> a1 ! n\<close>
-        using arg_neq term_ord_ground_total
-        unfolding equiv_class_of_trs_def total_on_def by blast
-      then show ?thesis
-      proof cases
-        case lt
-        have \<open>Fun f (a2[n := a1 ! n]) \<prec> Fun f a2\<close> sorry
-        then show ?thesis sorry
-      next
-        case gt
-        then show ?thesis sorry
-      qed
-    qed
-  qed
-  then show ?thesis unfolding fun_comp_def sorry
+  obtain u where nf: \<open>normal_form S y u\<close> using ordered_normalizing assms by metis
+  with assms(2) have \<open>normal_form S x u\<close>
+    by (metis normal_form_def rewrite_by_trs.trans)
+  then show ?thesis using nf assms unfolding equiv_class_of_trs_def by blast
 qed
 
-lemma equiv_class_fo: \<open>ordered S \<Longrightarrow> Rep_fo_interp (Abs_fo_interp (equiv_class_of_trs S)) = equiv_class_of_trs S\<close>
+lemma fun_comp_step:
+  assumes \<open>ordered S\<close>
+      and \<open>confluent S\<close>
+      and \<open>(x, y) \<in> equiv_class_of_trs S\<close>
+      and \<open>(Fun f (a1 @ x # a2'), Fun f (a1 @ x # a3')) \<in> equiv_class_of_trs S\<close>
+    shows \<open>(Fun f (a1 @ x # a2'), Fun f (a1 @ y # a3')) \<in> equiv_class_of_trs S\<close>
+proof -
+  obtain u where nf_x: \<open>normal_form S x u\<close>
+             and \<open>normal_form S y u\<close>
+             and gr: \<open>ground_term (Fun f (a1 @ x # a2')) \<and> ground_term (Fun f (a1 @ x # a3')) \<and> ground_term (Fun f (a1 @ y # a3'))\<close>
+    using assms
+    unfolding equiv_class_of_trs_def by auto
+  then consider \<open>x = y\<close> | \<open>rewrite_by_trs S y x\<close> | \<open>rewrite_by_trs S x y\<close> | \<open>rewrite_by_trs S y u \<and> rewrite_by_trs S x u\<close> unfolding normal_form_def by auto
+  then show ?thesis
+  proof cases
+    case 1
+    then show ?thesis using assms by auto
+  next
+    case 2
+    then have \<open>rewrite_by_trs S (Fun f (a1 @ y # a3')) (Fun f (a1 @ x # a3'))\<close>
+      using rewrite_by_trs.func by auto
+    then show ?thesis
+      by (meson assms(1,2,4) equiv_class_rewrite equiv_class_sym equiv_class_trans gr symD transD)
+  next
+    case 3
+    then have \<open>rewrite_by_trs S (Fun f (a1 @ x # a3')) (Fun f (a1 @ y # a3'))\<close>
+      using rewrite_by_trs.func by auto
+    then show ?thesis
+      by (meson assms(1,2,4) equiv_class_rewrite equiv_class_trans gr transD)
+  next
+    case 4
+    then show ?thesis
+      using nf_x assms(2) confluent_def irreducible_def normal_form_def by blast
+  qed
+qed
+
+lemma equiv_class_fun_comp:
+  assumes \<open>ordered S\<close>
+      and \<open>confluent S\<close>
+    shows \<open>fun_comp (equiv_class_of_trs S)\<close>
+proof -
+  have nf: \<open>length a2 = length a3 \<Longrightarrow> (\<forall>t \<in> set a1. ground_term t) \<Longrightarrow> (\<forall>n<length a2. (a2 ! n, a3 ! n) \<in> equiv_class_of_trs S) \<Longrightarrow>
+       (Fun f (a1 @ a2), Fun f (a1 @ a3)) \<in> equiv_class_of_trs S\<close> for f a1 a2 a3
+  proof (induct a2 arbitrary: a1 a3)
+    case Nil
+    then have \<open>Fun f (a1 @ []) = Fun f a1 \<and> Fun f (a1 @ a3) = Fun f a1\<close> by auto
+    moreover have \<open>ground_term (Fun f a1)\<close> using Nil by auto
+    ultimately show ?case using assms(1) ordered_normalizing unfolding equiv_class_of_trs_def by auto
+  next
+    case (Cons x a2')
+    then obtain y a3' where a3_def: \<open>a3 = y # a3'\<close>
+      by (metis list.set_cases nth_equalityI nth_mem)
+    then have \<open>length a2' = length a3'\<close>
+          and equiv: \<open>(x,y) \<in> equiv_class_of_trs S\<close>
+          and \<open>\<forall>n<length a2'. (a2' ! n, a3' ! n) \<in> equiv_class_of_trs S\<close> using Cons by auto
+    moreover have \<open>\<forall>t \<in> set (a1 @ [x]). ground_term t\<close> using Cons equiv unfolding equiv_class_of_trs_def
+      by (smt Pair_inject Un_iff emptyE empty_set insert_iff list.set(2) mem_Collect_eq set_append)
+    ultimately have \<open>(Fun f ((a1 @ [x]) @ a2'), Fun f ((a1 @ [x]) @ a3')) \<in> equiv_class_of_trs S\<close> using Cons(1) by blast
+    then show ?case using fun_comp_step equiv a3_def assms by auto
+  qed
+  show ?thesis using nf [of _ _ \<open>[]\<close>] unfolding fun_comp_def by auto
+qed
+
+lemma equiv_class_fo: \<open>ordered S \<Longrightarrow> confluent S \<Longrightarrow> Rep_fo_interp (Abs_fo_interp (equiv_class_of_trs S)) = equiv_class_of_trs S\<close>
   using equiv_class_refl equiv_class_sym equiv_class_trans equiv_class_fun_comp Abs_fo_interp_inverse by fast
 
 definition production :: \<open>('f, 'v) trs \<Rightarrow> ('f,'v) ground_clause \<Rightarrow> ('f,'v) interp\<close>
@@ -1720,9 +1759,15 @@ qed
 lemma ordered_canonical_trs: \<open>ordered (\<Union> (trs_of_clause S ` S))\<close>
   using ordered_trs_of_clause by fast
 
+lemma confluent_trs_of_clause: \<open>confluent (trs_of_clause N C)\<close>
+  sorry
+
+lemma confluent_canonical_trs: \<open>confluent (\<Union> (trs_of_clause S ` S))\<close>
+  sorry
+
 lemma canonical_interp_fo: \<open>Rep_fo_interp (canonical_interp S) = equiv_class_of_trs (\<Union> (trs_of_clause (Abs_ground_clause ` S) ` Abs_ground_clause ` S))\<close>
   unfolding canonical_interp_def canonical_interp_ground_def
-  using equiv_class_fo ordered_canonical_trs by blast
+  using equiv_class_fo ordered_canonical_trs confluent_canonical_trs by blast
 
 lemma ex_max_literal: \<open>ground_cl C \<Longrightarrow> C \<noteq> \<bottom>F \<Longrightarrow> (\<exists>L \<in># C. \<forall>L' \<in># C. L' \<preceq>L L)\<close>
 proof (induction C rule: multiset_induct)
@@ -2125,7 +2170,7 @@ proof -
           with valid_L have \<open>(s, t) \<in> Rep_fo_interp (Abs_fo_interp (equiv_class_of_trs (trs_of_clause N C)))\<close>
             using validate_ground_lit.simps by (metis Upair.abs_eq validate_eq.abs_eq)
           then have st_elem: \<open>(s, t) \<in> equiv_class_of_trs (trs_of_clause N C)\<close>
-            using equiv_class_fo ordered_trs_of_clause by metis
+            using equiv_class_fo ordered_trs_of_clause confluent_trs_of_clause by metis
           moreover have \<open>\<forall>D \<in> N. C \<prec>G D \<longrightarrow> trs_of_clause N C \<subseteq> trs_of_clause N D\<close> using C_elem
             by (smt UN_I Un_iff mem_Collect_eq subsetI trs_of_clause.simps)
           ultimately have st_elem': \<open>\<forall>D \<in> N. C \<prec>G D \<longrightarrow> (s, t) \<in> equiv_class_of_trs (trs_of_clause N D)\<close>
@@ -2133,14 +2178,14 @@ proof -
           from st_elem C_elem have st_elem'': \<open>(s, t) \<in> equiv_class_of_trs (\<Union>(trs_of_clause N ` N))\<close>
             using equiv_class_subset ordered_canonical_trs [of N] by blast
           show ?thesis unfolding canonical_interp_ground_def using Pos st_elem' st_elem''
-            by (metis Upair.abs_eq equiv_class_fo ordered_canonical_trs ordered_trs_of_clause validate_eq.abs_eq validate_ground_lit.simps)
+            by (metis Upair.abs_eq equiv_class_fo ordered_canonical_trs confluent_canonical_trs ordered_trs_of_clause confluent_trs_of_clause validate_eq.abs_eq validate_ground_lit.simps)
         next
           case (Neg s t)
           (* Rules added later cannot be used to rewrite terms occurring in a negative literal *)
           with valid_L have \<open>(s, t) \<notin> Rep_fo_interp (Abs_fo_interp (equiv_class_of_trs (trs_of_clause N C)))\<close>
             using validate_ground_lit.simps by (metis Upair.abs_eq validate_eq.abs_eq)
           then have s_t_not_elem: \<open>(s, t) \<notin> equiv_class_of_trs (trs_of_clause N C)\<close>
-            using equiv_class_fo ordered_trs_of_clause by metis
+            using equiv_class_fo ordered_trs_of_clause confluent_trs_of_clause by metis
           show ?thesis
           proof -
             have \<open>D \<in> N \<Longrightarrow> C \<prec>G D \<Longrightarrow> validate_ground_lit (Abs_fo_interp (equiv_class_of_trs (trs_of_clause N D))) L\<close> for D
@@ -2156,7 +2201,7 @@ proof -
                 using s_t_not_elem
                 unfolding equiv_class_of_trs_def by blast
               then show ?thesis using Neg
-                by (metis Upair.abs_eq equiv_class_fo ordered_trs_of_clause validate_eq.abs_eq validate_ground_lit.simps)
+                by (metis Upair.abs_eq equiv_class_fo ordered_trs_of_clause confluent_trs_of_clause validate_eq.abs_eq validate_ground_lit.simps)
             qed
             moreover have \<open>validate_ground_lit (canonical_interp_ground N) L\<close>
             proof -
@@ -2170,7 +2215,7 @@ proof -
                 using s_t_not_elem unfolding equiv_class_of_trs_def by blast
               then have \<open>(s, t) \<notin> Rep_fo_interp (canonical_interp_ground N)\<close>
                 unfolding canonical_interp_ground_def
-                using equiv_class_fo ordered_canonical_trs by presburger
+                using equiv_class_fo ordered_canonical_trs confluent_canonical_trs by presburger
               then show ?thesis using Neg
                 by (simp add: Upair.abs_eq validate_eq.abs_eq)
             qed
@@ -2234,7 +2279,7 @@ proof -
     using rewrite eql_in_equiv_class ordered_trs_of_clause by presburger
   then have \<open>validate_eq (Abs_fo_interp (equiv_class_of_trs (trs_of_clause N C))) (Upair t s)\<close>
     unfolding validate_eq_def map_fun_def id_def comp_def
-    using equiv_class_fo [of \<open>trs_of_clause N C\<close>] ordered_trs_of_clause [of N C]
+    using equiv_class_fo ordered_trs_of_clause confluent_trs_of_clause
     by (metis validate_eq.abs_eq validate_eq.rep_eq Uprod.Upair.abs_eq)
   then have \<open>validate_ground_lit (Abs_fo_interp (equiv_class_of_trs (trs_of_clause N C))) L\<close>
     using L_def validate_ground_lit.simps(1) by metis
@@ -2292,7 +2337,7 @@ proof -
         using valid_M validate_ground_lit.simps
         by (metis (no_types, lifting))
       then have \<open>(u, v) \<in> equiv_class_of_trs (?trs_upto D)\<close>
-        by (metis (no_types, lifting) UN_E Upair.abs_eq equiv_class_fo ordered_trs_of_clause validate_eq.abs_eq)
+        by (metis (no_types, lifting) UN_E Upair.abs_eq equiv_class_fo ordered_trs_of_clause confluent_trs_of_clause confluent_canonical_trs validate_eq.abs_eq)
       then obtain u' where nf_u: \<open>normal_form (?trs_upto D) u u'\<close>
                        and nf_v: \<open>normal_form (?trs_upto D) v u'\<close>
                        and u_v_ground: \<open>ground_term u \<and> ground_term v\<close>
