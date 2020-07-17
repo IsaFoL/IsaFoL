@@ -424,7 +424,7 @@ next
 qed
 
 definition pcdcl_twl_final_state :: \<open>'v twl_st \<Rightarrow> bool\<close> where
-  \<open>pcdcl_twl_final_state S \<longleftrightarrow> no_step cdcl_twl_stgy S \<or>
+  \<open>pcdcl_twl_final_state S \<longleftrightarrow> (no_step cdcl_twl_o S \<and> no_step cdcl_twl_cp S ) \<or>
   (count_decided (get_trail S) = 0 \<and> get_conflict S \<noteq> None)\<close>
 
 
@@ -529,7 +529,9 @@ lemma pcdcl_twl_final_state_pcdcl:
   twl_struct_invs S \<Longrightarrow> pcdcl_final_state (pstate\<^sub>W_of S)\<close>
   using no_step_cdcl_twl_stgy_no_step_cdcl\<^sub>W_stgy[of S]
   unfolding pcdcl_twl_final_state_def pcdcl_final_state_def
-  by (auto simp add: no_step_pcdcl_core_stgy_pcdcl_coreD)
+  by (auto simp add: no_literals_to_update_no_cp(1) no_literals_to_update_no_cp(2)
+    no_step_cdcl_twl_cp_no_step_cdcl\<^sub>W_cp no_step_cdcl_twl_o_no_step_cdcl\<^sub>W_o
+    no_step_pcdcl_core_stgy_pcdcl_coreD pcdcl_core_stgy.simps)+
 
 lemma pcdcl_stgy_restart_stepI:
   \<open>pcdcl_tcore_stgy\<^sup>*\<^sup>* T T' \<Longrightarrow> pcdcl_stgy_restart\<^sup>*\<^sup>* (R, S, T, m, n, True) (R, S, T', m, n, True)\<close>
@@ -994,7 +996,8 @@ lemma cdcl_twl_stgy_restart_cdcl\<^sub>W_restart_stgy:
 lemma cdcl_twl_stgy_size_get_all_learned:
   \<open>cdcl_twl_stgy S T \<Longrightarrow> size (get_all_learned_clss S) \<le> size (get_all_learned_clss T)\<close>
   by (induction rule: cdcl_twl_stgy.induct)
-   (auto simp: cdcl_twl_cp.simps cdcl_twl_o.simps update_clauses.simps
+    (auto simp: cdcl_twl_cp.simps cdcl_twl_o.simps update_clauses.simps
+       dest!: cdcl_twl_subsumed_all_learned_diff_learned size_mset_mono
     dest: multi_member_split)
 
 lemma rtranclp_cdcl_twl_stgy_size_get_all_learned:

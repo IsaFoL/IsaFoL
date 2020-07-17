@@ -616,7 +616,7 @@ lemma decide_or_skip_spec:
     twl: \<open>twl_struct_invs S\<close> and twl_s: \<open>twl_stgy_invs S\<close>
   shows \<open>decide_or_skip S \<le> SPEC(\<lambda>(brk, T). cdcl_twl_o\<^sup>*\<^sup>* S T \<and>
        get_conflict T = None \<and>
-       no_step cdcl_twl_o T \<and> (brk \<longrightarrow> no_step cdcl_twl_stgy T) \<and> twl_struct_invs T \<and>
+       no_step cdcl_twl_o T \<and> (brk \<longrightarrow> no_step cdcl_twl_o T \<and> no_step cdcl_twl_cp T) \<and> twl_struct_invs T \<and>
        twl_stgy_invs T \<and> clauses_to_update T = {#} \<and>
        (\<not>brk \<longrightarrow> literals_to_update T \<noteq> {#}) \<and>
        (\<not>no_step cdcl_twl_o S \<longrightarrow> cdcl_twl_o\<^sup>+\<^sup>+ S T))\<close>
@@ -659,6 +659,7 @@ proof -
     subgoal by blast
     subgoal by (force simp: H elim!: cdcl_twl_oE cdcl_twl_stgyE cdcl_twl_cpE dest!: atm_N_U(1))
     subgoal by (force elim!: cdcl_twl_oE cdcl_twl_stgyE cdcl_twl_cpE)
+    subgoal by (force elim!: cdcl_twl_oE cdcl_twl_stgyE cdcl_twl_cpE)
     subgoal by fast
     subgoal by fast
     subgoal by fast
@@ -668,6 +669,7 @@ proof -
     subgoal by auto
     subgoal by (auto elim!: cdcl_twl_oE)
     subgoal using atm_N_U H by auto
+    subgoal using H atm_N_U by auto
     subgoal using H atm_N_U by auto
     subgoal using H atm_N_U by auto
     subgoal by auto
@@ -1600,7 +1602,7 @@ abbreviation cdcl_twl_o_prog_spec where
        cdcl_twl_o\<^sup>*\<^sup>* S T \<and>
        (get_conflict T \<noteq> None \<longrightarrow> count_decided (get_trail T) = 0) \<and>
        (\<not> brk \<longrightarrow> get_conflict T = None \<and> (\<forall>S'. \<not> cdcl_twl_o T S')) \<and>
-       (brk \<longrightarrow> get_conflict T \<noteq> None \<or> (\<forall>S'. \<not> cdcl_twl_stgy T S')) \<and>
+       (brk \<longrightarrow> get_conflict T \<noteq> None \<or> (no_step cdcl_twl_o T \<and> no_step cdcl_twl_cp T)) \<and>
        twl_struct_invs T \<and> twl_stgy_invs T \<and> clauses_to_update T = {#} \<and>
        (\<not> brk \<longrightarrow> literals_to_update T \<noteq> {#}) \<and>
        (\<not>brk \<longrightarrow> \<not> (\<forall>S'. \<not> cdcl_twl_o S S') \<longrightarrow> cdcl_twl_o\<^sup>+\<^sup>+ S T)\<close>
@@ -1713,7 +1715,7 @@ lemma cdcl_twl_o_final_twl_state:
 proof -
   have \<open>cdcl_twl_o\<^sup>*\<^sup>* U V\<close> and
     confl_lev: \<open>get_conflict V \<noteq> None \<longrightarrow> count_decided (get_trail V) = 0\<close> and
-    final: \<open>get_conflict V \<noteq> None \<or> (\<forall>S'. \<not> cdcl_twl_stgy V S')\<close>
+    final: \<open>get_conflict V \<noteq> None \<or> (no_step cdcl_twl_cp V \<and> no_step cdcl_twl_o V)\<close>
     \<open>twl_struct_invs V\<close>
     \<open>twl_stgy_invs V\<close>
     \<open>clauses_to_update V = {#}\<close>
@@ -1747,7 +1749,7 @@ proof -
     UV: \<open>cdcl_twl_o\<^sup>*\<^sup>* U V'\<close> and
     \<open>(get_conflict V' \<noteq> None \<longrightarrow> count_decided (get_trail V') = 0)\<close> and
     not_brk': \<open>(\<not> brk' \<longrightarrow> get_conflict V' = None \<and> (\<forall>S'. \<not> cdcl_twl_o V' S'))\<close> and
-    brk': \<open>(brk' \<longrightarrow> get_conflict V' \<noteq> None \<or> (\<forall>S'. \<not> cdcl_twl_stgy V' S'))\<close> and
+    brk': \<open>(brk' \<longrightarrow> get_conflict V' \<noteq> None \<or> (no_step cdcl_twl_o V' \<and> no_step cdcl_twl_cp V'))\<close> and
     [simp]: \<open>twl_struct_invs V'\<close>
     \<open>twl_stgy_invs V'\<close>
     \<open>clauses_to_update V' = {#}\<close> and

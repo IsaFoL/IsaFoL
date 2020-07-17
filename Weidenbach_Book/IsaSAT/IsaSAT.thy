@@ -386,11 +386,11 @@ proof (rule RES_refine)
       \<open>get_trail s \<Turnstile>asm get_all_init_clss S\<close>
     if confl: \<open>get_conflict s = None\<close>
   proof -
-    have \<open>no_step cdcl_twl_stgy s\<close>
+    have \<open>no_step cdcl_twl_o s\<close> \<open>no_step cdcl_twl_cp s\<close>
       using confl final unfolding final_twl_state_def
-      by blast
+      by blast+
     then have \<open>no_step pcdcl_core_stgy (pstate\<^sub>W_of s)\<close>
-      by (rule no_step_cdcl_twl_stgy_no_step_cdcl\<^sub>W_stgy[OF _ struct_invs_s])
+      by (rule no_step_cdcl_twl_stgy_no_step_cdcl\<^sub>W_stgy[OF _ _ struct_invs_s])
     then have nss: \<open>no_step cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy (state_of (pstate\<^sub>W_of s))\<close>
       by (rule no_step_pcdcl_core_stgy_is_cdcl_stgy)
         (use struct_invs_s in \<open>auto simp: twl_struct_invs_def pcdcl_all_struct_invs_def\<close>)
@@ -447,12 +447,12 @@ proof (rule RES_refine)
   have H5: False
     if confl: \<open>get_conflict s \<noteq> None\<close> \<open>count_decided (get_trail s) \<noteq> 0\<close>
   proof -
-    have \<open>no_step cdcl_twl_stgy s\<close>
+    have \<open>no_step cdcl_twl_o s\<close> \<open>no_step cdcl_twl_cp s\<close>
       using confl final unfolding final_twl_state_def
       by auto
 
     then have \<open>no_step pcdcl_core_stgy (pstate\<^sub>W_of s)\<close>
-      by (rule no_step_cdcl_twl_stgy_no_step_cdcl\<^sub>W_stgy[OF _ struct_invs_s])
+      by (rule no_step_cdcl_twl_stgy_no_step_cdcl\<^sub>W_stgy[OF _ _ struct_invs_s])
     then have nss: \<open>no_step cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy (state_of (pstate\<^sub>W_of s))\<close>
       by (rule no_step_pcdcl_core_stgy_is_cdcl_stgy)
         (use struct_invs_s in \<open>auto simp: twl_struct_invs_def pcdcl_all_struct_invs_def\<close>)

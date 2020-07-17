@@ -4760,7 +4760,7 @@ lemma cdcl_twl_stgy_twl_struct_invs: (*\htmllink{cdcl_twl_stgy_twl_struct_invs} 
   shows \<open>twl_struct_invs T\<close>
   using cdcl by (induction rule: cdcl_twl_stgy.induct)
     (simp_all add: cdcl_twl_cp_twl_struct_invs cdcl_twl_o_twl_struct_invs twl
-    cdcl_twl_subsumed_twl_stgy_invs)
+    cdcl_twl_subsumed_twl_stgy_invs cdcl_twl_subsumed_twl_struct_invs)
 
 lemma rtranclp_cdcl_twl_stgy_twl_struct_invs:
   assumes
@@ -4892,13 +4892,13 @@ proof (rule ccontr)
 qed
 
 lemma no_step_cdcl_twl_stgy_no_step_cdcl\<^sub>W_stgy:
-  assumes ns: \<open>no_step cdcl_twl_stgy S\<close> and twl: \<open>twl_struct_invs S\<close>
+  assumes ns_o: \<open>no_step cdcl_twl_o S\<close> and
+    ns_cp: \<open>no_step cdcl_twl_cp S\<close> and
+    twl: \<open>twl_struct_invs S\<close>
   shows \<open>no_step pcdcl_core_stgy (pstate\<^sub>W_of S)\<close>
 proof -
-  have ns_cp: \<open>no_step cdcl_twl_cp S\<close> and ns_o: \<open>no_step cdcl_twl_o S\<close>
-    using ns by (auto simp: cdcl_twl_stgy.simps)
-  then have w_q: \<open>clauses_to_update S = {#}\<close> and p: \<open>literals_to_update S = {#}\<close>
-    using ns_cp no_step_cdcl_twl_cp_no_step_cdcl\<^sub>W_cp twl by blast+
+  have w_q: \<open>clauses_to_update S = {#}\<close> and p: \<open>literals_to_update S = {#}\<close>
+    using ns_o ns_cp no_step_cdcl_twl_cp_no_step_cdcl\<^sub>W_cp twl by blast+
   then have
     \<open>no_step cdcl_propagate (pstate\<^sub>W_of S)\<close> and
     \<open>no_step cdcl_conflict (pstate\<^sub>W_of S)\<close>
@@ -4910,7 +4910,7 @@ proof -
     by (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy.simps pcdcl_core_stgy.simps)
 qed
 
-text \<open>This where things get different from the direct inheritance from CDCL. Originally,
+text \<open>This is where things get different from the direct inheritance from CDCL. Originally,
   we had the following theorem:
 \<close>
 lemma full_cdcl_twl_stgy_cdcl\<^sub>W_stgy: (* \htmllink{full_cdcl_twl_stgy_cdclW_stgy_old} *)
@@ -4918,11 +4918,12 @@ lemma full_cdcl_twl_stgy_cdcl\<^sub>W_stgy: (* \htmllink{full_cdcl_twl_stgy_cdcl
   shows \<open>full cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_stgy (state\<^sub>W_of S) (state\<^sub>W_of T)\<close>
   oops
 
-text \<open>However, now we have to split the steps part from the end part.\<close>
+text \<open>However, now we have to split the steps part from the end part and we do not want to enforce
+  running the simplification part until completion.\<close>
 
 
 lemma full_cdcl_twl_stgy_cdcl\<^sub>W_stgy: (* \htmllink{full_cdcl_twl_stgy_cdclW_stgy} *)
-  assumes \<open>full cdcl_twl_stgy S T\<close> and twl: \<open>twl_struct_invs S\<close>
+  assumes \<open>full2 cdcl_twl_stgy (\<lambda>S T. cdcl_twl_o S T \<or> cdcl_twl_cp S T) S T\<close> and twl: \<open>twl_struct_invs S\<close>
   shows \<open>full2 pcdcl_tcore_stgy pcdcl_core (pstate\<^sub>W_of S) (pstate\<^sub>W_of T)\<close>
   using assms
   unfolding full2_def full_def
@@ -5360,12 +5361,12 @@ lemma (in -) rtranclp_cdcl_twl_stgy_twl_stgy_invs:
   subgoal by auto
   subgoal for T U
     using cdcl_twl_cp_twl_stgy_invs cdcl_twl_o_twl_stgy_invs cdcl_twl_stgy.simps
-      rtranclp_cdcl_twl_stgy_twl_struct_invs by blast
+      rtranclp_cdcl_twl_stgy_twl_struct_invs cdcl_twl_subsumed_twl_stgy_invs by blast
   using assms cdcl\<^sub>W_restart_mset.rtranclp_cdcl\<^sub>W_stgy_cdcl\<^sub>W_stgy_invariant
     rtranclp_cdcl_twl_stgy_cdcl\<^sub>W_stgy
   done
 
-
+(* TODO Kill
 lemma cdcl_twl_stgy_get_init_learned_clss_mono:
   assumes \<open>cdcl_twl_stgy S T\<close>
   shows \<open>get_init_learned_clss S \<subseteq># get_init_learned_clss T\<close>
@@ -5377,6 +5378,7 @@ lemma rtranclp_cdcl_twl_stgy_get_init_learned_clss_mono:
   shows \<open>get_init_learned_clss S \<subseteq># get_init_learned_clss T\<close>
   using assms
   by induction (auto dest!: cdcl_twl_stgy_get_init_learned_clss_mono)
+*)
 
 lemma cdcl_twl_o_all_learned_diff_learned:
   assumes \<open>cdcl_twl_o S T\<close>
@@ -5403,10 +5405,20 @@ lemma cdcl_twl_cp_all_learned_diff_learned:
       (auto simp: update_clauses.simps size_Suc_Diff1 dest!: multi_member_split)
   done
 
+lemma cdcl_twl_subsumed_all_learned_diff_learned:
+  assumes \<open>cdcl_twl_subsumed S T\<close>
+  shows
+    \<open>get_all_learned_clss S \<subseteq># get_all_learned_clss T \<and>
+     get_init_learned_clss S \<subseteq># get_init_learned_clss T\<and>
+     get_all_init_clss S = get_all_init_clss T\<close>
+  by (use assms in \<open>induction rule: cdcl_twl_subsumed.induct\<close>)
+    (auto simp: cdcl_twl_cp_all_learned_diff_learned cdcl_twl_o_all_learned_diff_learned)
+
+(*
 lemma cdcl_twl_stgy_all_learned_diff_learned:
   assumes \<open>cdcl_twl_stgy S T\<close>
   shows
-    \<open>clause `# get_learned_clss S \<subseteq># clause `# get_learned_clss T \<and>
+    \<open>get_all_learned_clss S \<subseteq># get_all_learned_clss T \<and>
      get_init_learned_clss S \<subseteq># get_init_learned_clss T\<and>
      get_all_init_clss S = get_all_init_clss T\<close>
   by (use assms in \<open>induction rule: cdcl_twl_stgy.induct\<close>)
@@ -5420,6 +5432,7 @@ lemma rtranclp_cdcl_twl_stgy_all_learned_diff_learned:
      get_all_init_clss S = get_all_init_clss T\<close>
   by (use assms in \<open>induction rule: rtranclp_induct\<close>)
    (auto dest: cdcl_twl_stgy_all_learned_diff_learned)
+*)
 
 lemma cdcl_twl_stgy_cdcl\<^sub>W_stgy3:
   assumes \<open>cdcl_twl_stgy S T\<close> and twl: \<open>twl_struct_invs S\<close> and
@@ -5457,7 +5470,8 @@ qed
 
 definition final_twl_state where
   \<open>final_twl_state S \<longleftrightarrow>
-      no_step cdcl_twl_stgy S \<or> (get_conflict S \<noteq> None \<and> count_decided (get_trail S) = 0)\<close>
+      (no_step cdcl_twl_cp S \<and> no_step cdcl_twl_o S) \<or>
+      (get_conflict S \<noteq> None \<and> count_decided (get_trail S) = 0)\<close>
 
 definition partial_conclusive_TWL_norestart_run :: \<open>'v twl_st \<Rightarrow> (bool \<times> 'v twl_st) nres\<close> where
   \<open>partial_conclusive_TWL_norestart_run S = SPEC(\<lambda>(b, T). b \<longrightarrow>   cdcl_twl_stgy\<^sup>*\<^sup>* S T \<and> final_twl_state T)\<close>
@@ -5533,7 +5547,5 @@ proof -
   then show ?thesis
     by (auto simp: S clauses_def dest: satisfiable_decreasing)
 qed
-
-
 
 end

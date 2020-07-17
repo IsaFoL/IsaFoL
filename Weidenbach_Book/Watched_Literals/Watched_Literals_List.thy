@@ -3034,7 +3034,7 @@ proof -
           snd S = S'a \<and>
           get_conflict (snd S) = None \<and>
           (\<forall>S'. \<not> cdcl_twl_o (snd S) S') \<and>
-          (fst S \<longrightarrow> (\<forall>S'. \<not> cdcl_twl_stgy (snd S) S')) \<and>
+          (fst S \<longrightarrow> no_step cdcl_twl_o (snd S) \<and> no_step cdcl_twl_cp (snd S)) \<and>
           twl_struct_invs (snd S) \<and>
           twl_stgy_invs (snd S) \<and>
           clauses_to_update (snd S) = {#} \<and>
