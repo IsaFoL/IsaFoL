@@ -2,6 +2,52 @@ theory Watched_Literals_Clauses
 imports More_Sepref.WB_More_Refinement_List Watched_Literals_Transition_System
 begin
 
+subsection \<open>Indexable Clause set\<close>
+
+text \<open>
+
+  To be able to refine the clause set to the arena, we use a finite map. Initially, we used a list
+  of clauses which achieves a similar effect with a huge difference: the indices are \<^emph>\<open>consecutive\<close>
+  and we cannot leave \<^emph>\<open>holes\<close>. However, both are useful features:
+
+    \<^enum> consecutive indices restrict the possible memory representation to a list of lists (or array
+    of arrays). This does not allow us to efficiently add metadata to clauses. Normally, the
+    metadata should be added before the head of the clause, but we cannot represent that. The arena
+    module makes that possible (at the expense of no abstraction over the memory representation).
+
+    \<^enum> holes are very important for a SAT solver, since a hole can represent a deleted clause that
+    has not yet been removed from the watch lists.
+
+  The representation has a second key critical advantage for the refinement: we move the indexing to
+  the logic, instead of relying on pointers that would make refinement highly complicated. Remember
+  that we have 2 pointers in watch lists, 1 in the arena to be able to delete clauses, and
+  potentially one in the trail (to mark that a clause is a reason). Separation logic really does not
+  like these kind of things. Peter Lammich has iterators to be able express his sorting algorithm
+  (see his IJCAR'20 paper), with two key differences:
+
+  \<^enum> the value is not changed (sorting only requires reading value), while we definitely need to
+  update values.
+
+  \<^enum> when the iterator takes the ownership of the element, it is removed and later re-added to the
+  array. Now, LLVM is able to detect that the value was not modified, but in our case, that would
+  mean freeing the pointers, which seems hardly possible. Furthermore, this approach does not scale
+  with the number of new information we might want to add to the state.
+
+  However, there is a clear drawback from our approach is that we tie the memory representation to
+  the size of integers. Since it is not possible to find a reasonable bound on the number of clauses
+  that are required, we need unbounded integers. If we could talk about arrays directly (and share
+  ownership), then it would be easier: we would just assume that a new clause can be allocated.
+
+
+
+  We define a single finite map that maps an integer (the index) to two information: whether the
+  clause is redundant or not and the clause itself. Any other necessary information must be added
+  here.
+
+\<close>
+
+paragraph \<open>Definition\<close>
+
 type_synonym 'v clause_l = \<open>'v literal list\<close>
 type_synonym 'v clauses_l = \<open>(nat, ('v clause_l \<times> bool)) fmap\<close>
 
