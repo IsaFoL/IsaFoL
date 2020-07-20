@@ -4,8 +4,11 @@ begin
 
 section \<open>Initial Normalisation of Polynoms\<close>
 
+subsection \<open>Sorting\<close>
 
-text \<open>Adapted from the theory \<^text>\<open>HOL-ex.MergeSort\<close> by Tobias.\<close>
+text \<open>Adapted from the theory \<^text>\<open>HOL-ex.MergeSort\<close> by Tobias. We did not change much, but we refine it
+  to executable code and try to improve efficiency.
+\<close>
 
 fun merge :: "_ \<Rightarrow>  'a list \<Rightarrow> 'a list \<Rightarrow> 'a list"
 where
@@ -87,6 +90,9 @@ lemma mset_msort[simp]:
   by (induct f xs rule: msort.induct)
     (simp_all, metis append_take_drop_id mset.simps(2) mset_append)
 
+
+subsection \<open>Sorting applied to monomials\<close>
+
 lemma merge_coeffs_alt_def:
   \<open>(RETURN o merge_coeffs) p =
    REC\<^sub>T(\<lambda>f p.
@@ -122,10 +128,6 @@ lemma hn_invalid_recover:
   \<open>is_pure R \<Longrightarrow> hn_invalid R = (\<lambda>x y. R x y * true)\<close>
   \<open>is_pure R \<Longrightarrow> invalid_assn R = (\<lambda>x y. R x y * true)\<close>
   by (auto simp: is_pure_conv invalid_pure_recover hn_ctxt_def intro!: ext)
-
-lemma [fcomp_norm_unfold]:
-  \<open>(pure R \<times>\<^sub>a pure S) = pure (R \<times>\<^sub>r S)\<close>
-  by auto
 
 lemma safe_poly_vars:
   shows
@@ -180,105 +182,26 @@ lemma WTF_RF:
        emp\<close>
   by sepref_dbg_trans_step+
 
+text \<open>The refinement frameword is completely lost here when synthesizing the constants -- it does
+  not understant what is pure (actually everything) and what must be destroyed.\<close>
 sepref_definition merge_coeffs_impl
   is \<open>RETURN o merge_coeffs\<close>
   :: \<open>poly_assn\<^sup>d \<rightarrow>\<^sub>a poly_assn\<close>
   supply [[goals_limit=1]]
   unfolding merge_coeffs_alt_def
-    HOL_list.fold_custom_empty
+    HOL_list.fold_custom_empty poly_assn_alt_def
   apply (rewrite in \<open>_\<close> annotate_assn[where A=\<open>poly_assn\<close>])
   apply sepref_dbg_preproc
   apply sepref_dbg_cons_init
   apply sepref_dbg_id
   apply sepref_dbg_monadify
   apply sepref_dbg_opt_init
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply (rule WTF_RF)
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply (rule WTF_RF)
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
+  apply (rule WTF_RF | sepref_dbg_trans_step)+
   apply sepref_dbg_opt
   apply sepref_dbg_cons_solve
   apply sepref_dbg_cons_solve
   apply sepref_dbg_constraints
   done
-(*FIXME!*)
 
 definition full_quicksort_poly where
   \<open>full_quicksort_poly = full_quicksort_ref (\<lambda>x y. x = y \<or> (x, y) \<in> term_order_rel) fst\<close>
@@ -333,6 +256,9 @@ proof -
     by (auto simp: rel2p_def p2rel_def)
    done
 qed
+
+
+subsection \<open>Lifting to polynomials\<close>
 
 definition merge_sort_poly :: \<open>_\<close> where
 \<open>merge_sort_poly = msort (\<lambda>a b. fst a \<le> fst b)\<close>
@@ -619,41 +545,28 @@ lemma list_rel_dropD:
   \<open>(a, b) \<in> \<langle>R\<rangle>list_rel \<Longrightarrow> (n, n')\<in> Id \<Longrightarrow> (drop n a, drop n' b) \<in> \<langle>R\<rangle>list_rel\<close>
   by (simp add: list_rel_eq_listrel listrel_iff_nth relAPP_def)
 
-lemma
-  \<open>(vb, aaba) \<in> monomial_rel \<Longrightarrow>
-       (vc, xs'a) \<in> poly_rel \<Longrightarrow>
-       (take (length vc div 2) (vb # vc),
-        take (length xs'a div 2) ((aaba) # xs'a))
-       \<in> poly_rel\<close>
-   using list_rel_takeD[of \<open>vb # vc\<close> \<open>(aaba) # xs'a\<close> monomial_rel
-     \<open>length xs'a div 2\<close>]
-   by (auto simp: list_rel_imp_same_length)
-
 lemma merge_sort_poly[sepref_import_param]:
   \<open>(msort_poly_impl, merge_sort_poly)
    \<in> poly_rel \<rightarrow> poly_rel\<close>
    unfolding merge_sort_poly_def msort_poly_impl_def
   apply (intro fun_relI)
   subgoal for a a'
-  apply (induction \<open>(\<lambda>(a :: String.literal list \<times> int)
-    (b :: String.literal list \<times> int). fst a \<le> fst b)\<close> a
-    arbitrary: a'
-    rule: msort.induct)
-  subgoal
-    by auto
-  subgoal
-    by (auto elim!: list_relE3 list_relE)
-  subgoal premises p
-    using p
-    apply (auto elim!: list_relE3 list_relE4 list_relE list_relE2
-      simp: merge_poly_def[symmetric]
-      intro!: merge_poly_merge_poly2)
-   apply (rule p(1)[simplified])
-   apply (auto simp: list_rel_imp_same_length intro!: list_rel_takeD)[]
-   apply (rule p(2)[simplified])
-   apply (auto simp: list_rel_imp_same_length intro!: list_rel_dropD)
-   done
-  done
+    apply (induction \<open>(\<lambda>(a :: String.literal list \<times> int)
+      (b :: String.literal list \<times> int). fst a \<le> fst b)\<close> a
+      arbitrary: a'
+      rule: msort.induct)
+    subgoal
+      by auto
+    subgoal
+      by (auto elim!: list_relE3 list_relE)
+    subgoal premises p
+      using p
+      by (auto elim!: list_relE3 list_relE4 list_relE list_relE2
+        simp: merge_poly_def[symmetric]
+        intro!: list_rel_takeD list_rel_dropD
+        intro!: merge_poly_merge_poly2 p(1)[simplified] p(2)[simplified],
+        auto simp: list_rel_imp_same_length)
+    done
   done
 
 
@@ -854,8 +767,7 @@ lemma string_rel_order_map:
     simp flip: less_char_def[abs_def])
 
 lemma merge_monoms_merge_monoms:
-  \<open>(merge_monoms, merge_monoms)
-   \<in> monom_rel \<rightarrow> monom_rel \<rightarrow> monom_rel\<close>
+  \<open>(merge_monoms, merge_monoms) \<in> monom_rel \<rightarrow> monom_rel \<rightarrow> monom_rel\<close>
    unfolding merge_monoms_def
   apply (intro fun_relI)
   subgoal for a a' aa a'a
@@ -982,124 +894,7 @@ sepref_definition merge_coeffs0_impl
   apply sepref_dbg_id
   apply sepref_dbg_monadify
   apply sepref_dbg_opt_init
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply (rule WTF_RF)
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply (rule WTF_RF)
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
-  apply sepref_dbg_trans_step
+  apply (rule WTF_RF | sepref_dbg_trans_step)+
   apply sepref_dbg_opt
   apply sepref_dbg_cons_solve
   apply sepref_dbg_cons_solve

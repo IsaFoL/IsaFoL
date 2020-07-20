@@ -5,7 +5,9 @@ theory PAC_Checker_Synthesis
     "More_Refinement_Libs.WB_More_Refinement_Loops"
 begin
 
-section \<open>Code Synthesis of the Checker\<close>
+section \<open>Code Synthesis of the Complete Checker\<close>
+
+text \<open>We here combine refine the full checker, using the initialisation provided in another file.\<close>
 
 abbreviation vars_assn where
   \<open>vars_assn \<equiv> hs.assn string_assn\<close>
@@ -113,8 +115,6 @@ sepref_definition union_vars_poly_impl
 declare union_vars_poly_impl.refine[sepref_fr_rules]
 
 
-
-
 hide_const (open) Autoref_Fix_Rel.CONSTRAINT
 
 fun status_assn where
@@ -137,15 +137,15 @@ lemma is_success_hnr[sepref_fr_rules]:
   \<open>CONSTRAINT is_pure R \<Longrightarrow>
   ((return o is_cfound), (RETURN o is_cfound)) \<in> (status_assn R)\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
   apply (sepref_to_hoare)
-  apply (case_tac xi; case_tac x)
-  apply  sep_auto+
+  apply (rename_tac xi x; case_tac xi; case_tac x)
+  apply sep_auto+
   done
 
 lemma is_cfailed_hnr[sepref_fr_rules]:
   \<open>CONSTRAINT is_pure R \<Longrightarrow>
   ((return o is_cfailed), (RETURN o is_cfailed)) \<in> (status_assn R)\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
   apply (sepref_to_hoare)
-  apply (case_tac xi; case_tac x)
+  apply (rename_tac xi x; case_tac xi; case_tac x)
   apply  sep_auto+
   done
 
@@ -347,7 +347,7 @@ lemma [sepref_fr_rules]:
   poly_assn\<^sup>k *\<^sub>a poly_assn\<^sup>k *\<^sub>a poly_assn\<^sup>k *\<^sub>a poly_assn\<^sup>k \<rightarrow>\<^sub>a raw_string_assn\<close>
   unfolding show_nat_def[symmetric] list_assn_pure_conv
     prod_assn_pure_conv check_not_equal_dom_err_def
-  by (sepref_to_hoare; sep_auto simp: error_msg_not_equal_dom_def list_assn_aux_append)
+  by (sepref_to_hoare; sep_auto simp: error_msg_not_equal_dom_def)
 
 
 
@@ -545,7 +545,7 @@ sepref_register PAC_Polynoms_Operations.normalize_poly
   pac_src1 pac_src2 new_id pac_mult case_pac_step check_mult_l
   check_addition_l check_del_l check_extension_l
 
-lemma pac_step_rel_assn_alt_def:
+lemma pac_step_rel_assn_alt_def2:
   \<open>hn_ctxt (pac_step_rel_assn nat_assn poly_assn id_assn) b bi =
        hn_val
         (p2rel
@@ -567,89 +567,19 @@ lemma is_AddD_import[sepref_fr_rules]:
     \<open>(return o is_Mult, RETURN o is_Mult) \<in> (pac_step_rel_assn K V R)\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
     \<open>(return o is_Del, RETURN o is_Del) \<in> (pac_step_rel_assn K V R)\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
     \<open>(return o is_Extension, RETURN o is_Extension) \<in> (pac_step_rel_assn K V R)\<^sup>k \<rightarrow>\<^sub>a bool_assn\<close>
-  subgoal
-    using assms
-    apply sepref_to_hoare
-    apply sep_auto
-    apply (case_tac x; case_tac xi; auto simp: is_pure_conv ent_true_drop pure_app_eq)+
-    done
-  subgoal
-    using assms
-    apply sepref_to_hoare
-    apply sep_auto
-    apply (case_tac x; case_tac xi;
-      auto simp: is_pure_conv ent_true_drop pure_app_eq; fail)+
-    done
-  subgoal
-    using assms
-    apply sepref_to_hoare
-    apply sep_auto
-    apply (case_tac x; case_tac xi; auto simp: is_pure_conv ent_true_drop pure_app_eq)+
-    done
-  subgoal
-    using assms
-    apply sepref_to_hoare
-    apply sep_auto
-    apply (case_tac x; case_tac xi)
-    apply (auto simp: is_pure_conv ent_true_drop pure_app_eq)
-    apply (case_tac x; case_tac xi)
-    apply (auto simp: is_pure_conv ent_true_drop pure_app_eq)
-    done
-  subgoal
-    using assms
-    apply sepref_to_hoare
-    apply sep_auto
-    apply (case_tac x; case_tac xi)
-    apply (auto simp: is_pure_conv ent_true_drop pure_app_eq)
-    apply (case_tac x; case_tac xi)
-    apply (auto simp: is_pure_conv ent_true_drop pure_app_eq)
-    done
-  subgoal
-    using assms
-    apply sepref_to_hoare
-    apply sep_auto
-    apply (case_tac x; case_tac xi)
-    apply (auto simp: is_pure_conv ent_true_drop pure_app_eq)
-    apply (case_tac x; case_tac xi)
-    apply (auto simp: is_pure_conv ent_true_drop pure_app_eq)
-    done
-  subgoal
-    using assms
-    apply sepref_to_hoare
-    apply sep_auto
-    apply (case_tac x; case_tac xi)
-    apply (auto simp: is_pure_conv ent_true_drop pure_app_eq)
-    apply (case_tac x; case_tac xi)
-    apply (auto simp: is_pure_conv ent_true_drop pure_app_eq)
-    done
-  done
+  using assms
+  by (sepref_to_hoare; sep_auto simp: pac_step_rel_assn_alt_def is_pure_conv ent_true_drop pure_app_eq
+      split: pac_step.splits; fail)+
 
 lemma [sepref_fr_rules]:
   \<open>CONSTRAINT is_pure K \<Longrightarrow>
   (return o pac_src2, RETURN o pac_src2) \<in> [\<lambda>x. is_Add x]\<^sub>a (pac_step_rel_assn K V R)\<^sup>k \<rightarrow> K\<close>
-  apply sepref_to_hoare
-  apply sep_auto
-  apply (case_tac x; case_tac xi)
-  apply (auto simp: is_pure_conv ent_true_drop pure_app_eq)
-  done
-
-lemma [sepref_fr_rules]:
   \<open>CONSTRAINT is_pure V \<Longrightarrow>
   (return o pac_mult, RETURN o pac_mult) \<in> [\<lambda>x. is_Mult x]\<^sub>a (pac_step_rel_assn K V R)\<^sup>k \<rightarrow> V\<close>
-  apply sepref_to_hoare
-  apply sep_auto
-  apply (case_tac x; case_tac xi)
-  apply (auto simp: is_pure_conv ent_true_drop pure_app_eq)
-  done
-
-lemma [sepref_fr_rules]:
   \<open>CONSTRAINT is_pure R \<Longrightarrow>
   (return o new_var, RETURN o new_var) \<in> [\<lambda>x. is_Extension x]\<^sub>a (pac_step_rel_assn K V R)\<^sup>k \<rightarrow> R\<close>
-  apply sepref_to_hoare
-  apply sep_auto
-  apply (case_tac x; case_tac xi)
-  apply (auto simp: is_pure_conv ent_true_drop pure_app_eq)
-  done
+  by (sepref_to_hoare; sep_auto simp: pac_step_rel_assn_alt_def is_pure_conv ent_true_drop pure_app_eq
+      split: pac_step.splits; fail)+
 
 lemma is_Mult_lastI:
   \<open>\<not> is_Add b \<Longrightarrow> \<not>is_Mult b \<Longrightarrow> \<not>is_Extension b \<Longrightarrow> is_Del b\<close>
@@ -678,11 +608,10 @@ lemma poly_rel_the_pure:
   by auto
 
 lemma [safe_constraint_rules]:
-  \<open>CONSTRAINT IS_LEFT_UNIQUE uint64_nat_rel\<close>
-  and
+    \<open>CONSTRAINT IS_LEFT_UNIQUE uint64_nat_rel\<close> and
   single_valued_uint64_nat_rel[safe_constraint_rules]:
     \<open>CONSTRAINT single_valued uint64_nat_rel\<close>
-  by (auto simp: CONSTRAINT_def IS_LEFT_UNIQUE_def single_valued_def uint64_nat_rel_def br_def)
+  by (auto simp: IS_LEFT_UNIQUE_def single_valued_def uint64_nat_rel_def br_def)
 
 sepref_definition check_step_impl
   is \<open>uncurry4 PAC_checker_l_step'\<close>
@@ -717,18 +646,8 @@ sepref_definition PAC_checker_l_impl
   supply [[goals_limit=1]] is_Mult_lastI[intro]
   unfolding PAC_checker_l_def is_success_alt_def[symmetric] PAC_checker_l_step_alt_def
     nres_bind_let_law[symmetric] PAC_checker_l'_def
-    apply (subst nres_bind_let_law)
-  apply sepref_dbg_preproc
-  apply sepref_dbg_cons_init
-  apply sepref_dbg_id
-  apply sepref_dbg_monadify
-  apply sepref_dbg_opt_init
-  apply sepref_dbg_trans_keep
-  apply sepref_dbg_opt
-  apply sepref_dbg_cons_solve
-  apply sepref_dbg_cons_solve
-  apply sepref_dbg_constraints
-  done
+  apply (subst nres_bind_let_law)
+  by sepref
 
 declare PAC_checker_l_impl.refine[sepref_fr_rules]
 
@@ -747,13 +666,14 @@ lemma [sepref_fr_rules]:
    unfolding remap_polys_l_dom_err_def
      remap_polys_l_dom_err_def
      list_assn_pure_conv
-   apply sepref_to_hoare
-   apply sep_auto
-   done
+   by sepref_to_hoare sep_auto
 
-lemma pow_2_64: \<open>(2::nat) ^64 = 18446744073709551616\<close>
+text \<open>MLton is not able to optimise the calls to pow.\<close>
+lemma pow_2_64: \<open>(2::nat) ^ 64 = 18446744073709551616\<close>
   by auto
+
 sepref_register upper_bound_on_dom op_fmap_empty
+
 sepref_definition remap_polys_l_impl
   is \<open>uncurry2 remap_polys_l2\<close>
   :: \<open>poly_assn\<^sup>k *\<^sub>a vars_assn\<^sup>d *\<^sub>a polys_assn_input\<^sup>d \<rightarrow>\<^sub>a
@@ -769,8 +689,6 @@ sepref_definition remap_polys_l_impl
   apply simp
   apply (rewrite at \<open>op_fmap_empty\<close> annotate_assn[where A=\<open>polys_assn\<close>])
   by sepref
-
-thm remap_polys_l2_remap_polys_l
 
 lemma remap_polys_l2_remap_polys_l:
   \<open>(uncurry2 remap_polys_l2, uncurry2 remap_polys_l) \<in> (Id \<times>\<^sub>r \<langle>Id\<rangle>set_rel) \<times>\<^sub>r Id \<rightarrow>\<^sub>f \<langle>Id\<rangle>nres_rel\<close>
@@ -814,8 +732,11 @@ sepref_definition empty_vars_impl
   unfolding hs.fold_custom_empty
   by sepref
 
-text \<open>This is a hack for performance. There is no need to recheck that that a char is valid when working
-  on chars coming from strings.\<close>
+text \<open>This is a hack for performance. There is no need to recheck that that a char is valid when
+  working on chars coming from strings... It is not that important in most cases, but in our case
+  the preformance difference is really large.\<close>
+
+
 definition unsafe_asciis_of_literal :: \<open>_\<close> where
   \<open>unsafe_asciis_of_literal xs = String.asciis_of_literal xs\<close>
 
@@ -829,9 +750,10 @@ code_printing
 text \<open>
   Now comes the big and ugly and unsafe hack.
 
-  Basically, we try to avoid the conversion to IntInf when calculating
-  the hash. The performance gain is rougly 40\%, which is a LOT.
-
+  Basically, we try to avoid the conversion to IntInf when calculating the hash. The performance
+  gain is roughly 40\%, which is a LOT and definitively something we need to do. We are aware that the
+  SML semantic encourages compilers to optimise conversions, but this does not happen here,
+  corroborating our early observation on the verified SAT solver IsaSAT.x
 \<close>
 definition raw_explode where
   [simp]: \<open>raw_explode = String.explode\<close>
@@ -867,7 +789,7 @@ export_code PAC_checker_l_impl PAC_update_impl PAC_empty_impl the_error is_cfail
   full_checker_l_impl check_step_impl CSUCCESS
   Extension hashcode_literal' version
   in SML_imp module_name PAC_Checker
-  file "code/checker.sml"
+  file_prefix "checker"
 
 
 section \<open>Correctness theorem\<close>
@@ -987,23 +909,18 @@ This code is equivalent to:
   in f (next_token)
 \<close>
 
-However, as an hypothetic \<^term>\<open>read_file\<close> changes the underlying
-stream, we would get the next token. Remark that this is already a
-weird point of ML compilers. Anyway, I see currently two solutions to
-this problem:
+However, as an hypothetic \<^term>\<open>read_file\<close> changes the underlying stream, we would get the next
+token. Remark that this is already a weird point of ML compilers. Anyway, I see currently two
+solutions to this problem:
 
-\<^enum> The meta-argument: use it only in the Refinement Framework in a
-setup where copies are disallowed. Basically, this works because we
-can express the non-duplication constraints on the type
-level. However, we cannot forbid people from expressing things
-directly at the HOL level.
+\<^enum> The meta-argument: use it only in the Refinement Framework in a setup where copies are
+disallowed. Basically, this works because we can express the non-duplication constraints on the type
+level. However, we cannot forbid people from expressing things directly at the HOL level.
 
-\<^enum> On the target language side, model the stream as the stream and the
-position. Reading takes two arguments. First, the position to
-read. Second, the stream (and the current position) to read. If the
-position to read does not match the current position, return an
-error.
-
+\<^enum> On the target language side, model the stream as the stream and the position. Reading takes two
+arguments. First, the position to read. Second, the stream (and the current position) to read. If
+the position to read does not match the current position, return an error. This would fit the
+correctness theorem of the code generation, but it is still unsatisfactory.
 \<close>
 
 end
