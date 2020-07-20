@@ -70,12 +70,10 @@ definition hassoc_new :: \<open>('k, 'v) hash_assoc Heap\<close>where
     \<open>map_of p |` (- {k}) = map_of (filter (\<lambda>(a, b). a \<noteq> k) p)\<close>
     apply (induction p)
     apply (auto simp: restrict_map_def fun_eq_iff split: if_split)
-    apply (metis (mono_tags, lifting))
-    apply smt
-    by (smt fst_conv)+
+    apply presburger+
+    done
 
-  lemma hassoc_map_assn_hassoc_delete: \<open><hassoc_map_assn m
-         p> hassoc_delete k p <hassoc_map_assn (m |` (- {k}))>\<^sub>t\<close>
+  lemma hassoc_map_assn_hassoc_delete: \<open><hassoc_map_assn m p> hassoc_delete k p <hassoc_map_assn (m |` (- {k}))>\<^sub>t\<close>
    by (auto simp: hassoc_delete_def hassoc_map_rel_raw_def pure_def br_def
            hassoc_map_of_filter_all
          intro!: return_cons_rule)
