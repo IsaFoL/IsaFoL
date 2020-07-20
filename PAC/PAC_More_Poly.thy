@@ -13,7 +13,6 @@ text \<open>
   Here are more theorems on polynoms. Most of these facts are
   extremely trivial and should probably be generalised and moved to
   the Isabelle distribution.
-
 \<close>
 
 lemma Const\<^sub>0_add:
@@ -186,23 +185,15 @@ proof -
   define I where \<open>I \<equiv> ?I\<close>
   have in_keysD: \<open>x \<in> keys (mapping_of (\<Sum>x\<in>I. MPoly_Type.monom x (h x)))  \<Longrightarrow> x \<in> I\<close>
    if \<open>finite I\<close> for I and h :: \<open>_ \<Rightarrow> int\<close> and x
-   using that apply (induction rule: finite_induct)
-   apply auto
-   by (smt coeff_add coeff_keys empty_iff insert_iff keys_single monom.rep_eq)
+   using that by (induction rule: finite_induct)
+    (force simp: monom.rep_eq empty_iff insert_iff keys_single coeff_monom
+     simp: coeff_keys simp flip: coeff_add
+     simp del: coeff_add)+
   have in_keys: \<open>keys (mapping_of (\<Sum>x\<in>I. MPoly_Type.monom x (h x))) = (\<Union>x \<in> I. (if h x  = 0 then {} else {x}))\<close>
    if \<open>finite I\<close> for I and h :: \<open>_ \<Rightarrow> int\<close> and x
    supply in_keysD[dest]
-   using that apply (induction rule: finite_induct)
-   apply (auto simp: plus_mpoly.rep_eq dest: in_keysD)
-   apply (subst (asm) MPoly_Type_Class.keys_plus_eqI)
-   apply (auto split: if_splits)
-   apply (subst (asm) MPoly_Type_Class.keys_plus_eqI)
-   apply (auto split: if_splits)
-   apply (subst MPoly_Type_Class.keys_plus_eqI)
-   apply (auto split: if_splits)
-   apply (subst MPoly_Type_Class.keys_plus_eqI)
-   apply (auto split: if_splits)
-   done
+   using that by (induction rule: finite_induct)
+     (auto simp: plus_mpoly.rep_eq MPoly_Type_Class.keys_plus_eqI)
 
   have H[simp]: \<open>vars ((\<Sum>x\<in>I. MPoly_Type.monom x (h x))) = (\<Union>x\<in>I. (if h x  = 0 then {} else keys x))\<close>
    if \<open>finite I\<close> for I and h :: \<open>_ \<Rightarrow> int\<close>
@@ -214,9 +205,9 @@ proof -
         MPoly_Type.monom x (c (x - a')))\<close>
     if \<open>finite I\<close> for I a' c q
     using that apply (induction rule: finite_induct)
-    apply auto
-    apply (subst sum.insert)
-    apply auto
+    subgoal by auto
+    subgoal
+      unfolding image_insert by (subst sum.insert) auto
     done
   have non_zero_keysEx: \<open>p \<noteq> 0 \<Longrightarrow> \<exists>a. a \<in> keys (mapping_of p)\<close> for p :: \<open>int mpoly\<close>
      using mapping_of_inject by (fastforce simp add: ex_in_conv)
@@ -752,8 +743,7 @@ proof -
       for xa
     by (smt Sum_any.cong mult_not_zero)
   show ?thesis
-  apply auto
-    apply (auto simp: vars_def times_mpoly.rep_eq Const.rep_eq
+    apply (auto simp: vars_def times_mpoly.rep_eq Const.rep_eq times_poly_mapping.rep_eq
       Const\<^sub>0_def elim!: in_keys_timesE split: if_splits)
     apply (auto simp: lookup_monomial_If prod_fun_def
       keys_def times_poly_mapping.rep_eq)

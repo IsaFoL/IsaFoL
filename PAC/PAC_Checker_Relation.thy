@@ -105,6 +105,10 @@ abbreviation poly_rel where
 abbreviation poly_assn where
   \<open>poly_assn \<equiv> list_assn monomial_assn\<close>
 
+lemma poly_assn_alt_def:
+  \<open>poly_assn = pure poly_rel\<close>
+  by (simp add: list_assn_pure_conv)
+
 abbreviation polys_assn where
   \<open>polys_assn \<equiv> hm_fmap_assn uint64_nat_assn poly_assn\<close>
 

@@ -8,12 +8,25 @@ begin
 
 section \<open>Executable Checker\<close>
 
+text \<open>In this layer we finally refine the checker to executable code.\<close>
+
+subsection \<open>Definitions\<close>
+
+text \<open>Compared to the previous layer, we add an error message when an error is discovered. We do not
+  attempt to prove anything on the error message (neither that there really is an error, nor that the
+  error message is correct).
+\<close>
+
+paragraph \<open>Extended error message\<close>
 
 datatype 'a code_status =
   is_cfailed: CFAILED (the_error: 'a) |
   CSUCCESS |
   is_cfound: CFOUND
 
+text \<open>In the following function, we merge errors. We will never merge an error message with an
+  another error message; hence we do not attempt to concatenate error messages.
+\<close>
 fun merge_cstatus where
   \<open>merge_cstatus (CFAILED a) _ = CFAILED a\<close> |
   \<open>merge_cstatus _ (CFAILED a) = CFAILED a\<close> |
@@ -34,6 +47,9 @@ lemma in_code_status_status_rel_iff[simp]:
   \<open>(a, FAILED) \<in> code_status_status_rel \<longleftrightarrow> is_cfailed a\<close>
   \<open>(CFAILED C, b) \<in> code_status_status_rel \<longleftrightarrow> b = FAILED\<close>
   by (cases a; cases b; auto simp: code_status_status_rel_def; fail)+
+
+
+paragraph \<open>Refinement relation\<close>
 
 fun pac_step_rel_raw :: \<open>('olbl \<times> 'lbl) set \<Rightarrow> ('a \<times> 'b) set \<Rightarrow> ('c \<times> 'd) set \<Rightarrow> ('a, 'c, 'olbl) pac_step \<Rightarrow> ('b, 'd, 'lbl) pac_step \<Rightarrow> bool\<close> where
 \<open>pac_step_rel_raw R1 R2 R3 (Add p1 p2 i r) (Add p1' p2' i' r') \<longleftrightarrow>
@@ -60,6 +76,22 @@ fun pac_step_rel_assn :: \<open>('olbl \<Rightarrow> 'lbl \<Rightarrow> assn) \<
 \<open>pac_step_rel_assn R1 R2 R3 (Extension i x p1) (Extension i' x' p1') =
    R1 i i' * R3 x x' * R2 p1 p1'\<close> |
 \<open>pac_step_rel_assn R1 R2 _ _ _ = false\<close>
+
+lemma pac_step_rel_assn_alt_def:
+  \<open>pac_step_rel_assn R1 R2 R3 x y = (
+  case (x, y) of
+      (Add p1 p2 i r, Add p1' p2' i' r') \<Rightarrow>
+        R1 p1 p1' * R1 p2 p2' * R1 i i' * R2 r r'
+    | (Mult p1 p2 i r, Mult p1' p2' i' r') \<Rightarrow>
+        R1 p1 p1' * R2 p2 p2' * R1 i i' * R2 r r'
+    | (Del p1, Del p1') \<Rightarrow> R1 p1 p1'
+    | (Extension i x p1, Extension i' x' p1') \<Rightarrow> R1 i i' * R3 x x' * R2 p1 p1'
+    | _ \<Rightarrow> false
+    )\<close>
+    by (auto split: pac_step.splits)
+
+
+paragraph \<open>Addition checking\<close>
 
 definition error_msg where
   \<open>error_msg i msg = CFAILED (''s CHECKING failed at line '' @ show i @ '' with error '' @ msg)\<close>
@@ -107,6 +139,8 @@ definition check_addition_l :: \<open>_ \<Rightarrow> _ \<Rightarrow> string set
    }
 }\<close>
 
+
+paragraph \<open>Multiplication checking\<close>
 definition check_mult_l_dom_err :: \<open>bool \<Rightarrow> nat \<Rightarrow> bool \<Rightarrow> nat \<Rightarrow> string nres\<close> where
   \<open>check_mult_l_dom_err p_notin p i_already i = SPEC (\<lambda>_. True)\<close>
 
@@ -135,9 +169,14 @@ definition check_mult_l :: \<open>_ \<Rightarrow> _ \<Rightarrow> _ \<Rightarrow
      }
   }\<close>
 
+
+paragraph \<open>Deletion checking\<close>
+
 definition check_del_l :: \<open>_ \<Rightarrow> _ \<Rightarrow> nat \<Rightarrow> string code_status nres\<close> where
 \<open>check_del_l spec A p = RETURN CSUCCESS\<close>
 
+
+paragraph \<open>Extension checking\<close>
 
 definition check_extension_l_dom_err :: \<open>nat \<Rightarrow> string nres\<close> where
   \<open>check_extension_l_dom_err p = SPEC (\<lambda>_. True)\<close>
@@ -335,6 +374,9 @@ lemma sorted_wrt_insort_key_rel2:
   apply (metis Restricted_Predicates.total_on_def in_mono insertI1 subset_insertI)
   by (simp add: Restricted_Predicates.total_on_def)
 
+
+paragraph \<open>Step checking\<close>
+
 definition PAC_checker_l_step ::  \<open>_ \<Rightarrow> string code_status \<times> string set \<times> _ \<Rightarrow> (llist_polynom, string, nat) pac_step \<Rightarrow> _\<close> where
   \<open>PAC_checker_l_step = (\<lambda>spec (st', \<V>, A) st. case st of
      Add _ _ _ _ \<Rightarrow>
@@ -437,6 +479,10 @@ definition PAC_checker_l where
   }\<close>
 
 
+subsection \<open>Correctness\<close>
+
+text \<open>We now enter the locale to reason about polynomials directly.\<close>
+
 context poly_embed
 begin
 
@@ -465,16 +511,13 @@ lemma vars_polynom_of_mset:
 
 lemma fully_unsorted_poly_rel_vars_subset_vars_llist:
   \<open>(A, B) \<in> fully_unsorted_poly_rel O mset_poly_rel \<Longrightarrow> vars B \<subseteq> \<phi> ` vars_llist A\<close>
-  apply (auto simp: fully_unsorted_poly_list_rel_def mset_poly_rel_def
+  by (auto simp: fully_unsorted_poly_list_rel_def mset_poly_rel_def
       set_rel_def var_rel_def br_def vars_llist_def list_rel_append2 list_rel_append1
       list_rel_split_right_iff list_mset_rel_def image_iff
-    dest!: set_rev_mp[OF _ vars_polynom_of_mset]
-    dest!: split_list)
-    apply (auto dest!: multi_member_split simp: list_rel_append1
-      unsorted_term_poly_list_rel_def eq_commute[of _ \<open>mset _\<close>]
-      list_rel_split_right_iff list_rel_append2 list_rel_split_left_iff
-      dest: arg_cong[of \<open>mset _\<close> \<open>add_mset _ _\<close> set_mset])
-    done
+      unsorted_term_poly_list_rel_def list_rel_split_left_iff
+    dest!: set_rev_mp[OF _ vars_polynom_of_mset] split_list
+    dest: multi_member_split 
+    dest: arg_cong[of \<open>mset _\<close> \<open>add_mset _ _\<close> set_mset])
 
 lemma fully_unsorted_poly_rel_extend_vars:
   \<open>(A, B) \<in> fully_unsorted_poly_rel O mset_poly_rel \<Longrightarrow>

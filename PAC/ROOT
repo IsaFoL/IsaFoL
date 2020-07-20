@@ -12,11 +12,15 @@ session PAC_Checker = "Sepref_IICF" +
      PAC_Specification
      PAC_Map_Rel
      PAC_Checker_Specification
+     PAC_Checker_Relation
      PAC_Polynoms
      PAC_Polynoms_Term
      PAC_Checker
+     PAC_Checker_Init
      PAC_Version
      PAC_Checker_Synthesis
   document_files
     "root.tex"
     "biblio.bib"
+  export_files (in "code") [1]
+    "CDCL.CDCL_W_Implementation:**"

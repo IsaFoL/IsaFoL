@@ -99,6 +99,24 @@ lemma sublist_map: \<open>sublist (map f xs) i j = map f (sublist xs i j)\<close
   apply (auto simp add: sublist_def)
   by (simp add: drop_map take_map)
 
+lemma in_set_conv_iff:
+  \<open>x \<in> set (take n xs) \<longleftrightarrow> (\<exists>i < n. i < length xs \<and> xs ! i = x)\<close>
+  apply (induction n)
+  subgoal by auto
+  subgoal for n
+    apply (cases \<open>Suc n < length xs\<close>)
+    subgoal by (auto simp: take_Suc_conv_app_nth less_Suc_eq dest: in_set_takeD)
+    subgoal
+      apply (cases \<open>n < length xs\<close>)
+      subgoal
+        apply (auto simp: in_set_conv_nth)
+        by (rule_tac x=i in exI; auto; fail)+
+      subgoal
+        apply (auto simp: take_Suc_conv_app_nth dest: in_set_takeD)
+        by (rule_tac x=i in exI; auto; fail)+
+      done
+    done
+  done
 
 lemma take_set: \<open>j \<le> length xs \<Longrightarrow> x \<in> set (take j xs) \<equiv> (\<exists> k. k < j \<and> xs!k = x)\<close>
   apply (induction xs)
@@ -109,11 +127,10 @@ lemma drop_set: \<open>j \<le> length xs \<Longrightarrow> x \<in> set (drop j x
   by (smt Misc.in_set_drop_conv_nth) (* lemma found by sledgehammer *)
 
 lemma sublist_el: \<open>i \<le> j \<Longrightarrow> j < length xs \<Longrightarrow> x \<in> set (sublist xs i j) \<equiv> (\<exists> k. k < Suc j-i \<and> xs!(i+k)=x)\<close>
-  apply (simp add: sublist_def)
-  by (auto simp add: take_set)
+  by (auto simp add: take_set sublist_def)
 
 lemma sublist_el': \<open>i \<le> j \<Longrightarrow> j < length xs \<Longrightarrow> x \<in> set (sublist xs i j) \<equiv> (\<exists> k. i\<le>k\<and>k\<le>j \<and> xs!k=x)\<close>
-  apply (simp add: sublist_el)
+  apply (auto simp add: sublist_el)
   by (smt Groups.add_ac(2) le_add1 le_add_diff_inverse less_Suc_eq less_diff_conv nat_less_le order_refl)
 
 
@@ -130,22 +147,6 @@ lemma sorted_sublist_wrt_le: \<open>hi \<le> lo \<Longrightarrow> hi < length xs
   subgoal apply (rewrite sublist_single) by auto
   subgoal by (auto simp add: sublist_lt)
   done
-
-(*
-text \<open>A sequence consisting of maximal one element is sorted\<close>
-lemma sorted_sublist_wrt_le_Suc_Suc:
-  assumes \<open>lo \<le> hi\<close> and \<open>hi \<le> Suc (Suc lo)\<close>
-    and \<open>lo < length xs\<close>
-  shows \<open>sorted_sublist_wrt R xs lo hi\<close>
-proof -
-  have \<open>hi = lo \<or> hi = Suc lo \<or> hi = Suc (Suc lo)\<close>
-    using assms(1,2) by linarith
-  then consider (a) \<open>hi = lo\<close> | (b) \<open>hi = Suc lo\<close> | (c) \<open>hi = Suc (Suc lo)\<close> by blast
-  then show ?thesis
-    oops
-*)
-
-
 
 text \<open>Elements in a sorted sublists are actually sorted\<close>
 lemma sorted_sublist_wrt_nth_le:
@@ -313,23 +314,11 @@ proof -
     done
 qed
 
-lemma sorted_sublist_map_snoc:
-  \<open>(\<And> x y z. \<lbrakk>R (h x) (h y); R (h y) (h z)\<rbrakk> \<Longrightarrow> R (h x) (h z)) \<Longrightarrow>
-    sorted_sublist_map R h xs lo (hi-1) \<Longrightarrow>
-    lo \<le> hi \<Longrightarrow> hi < length xs \<Longrightarrow> (R (h (xs!(hi-1))) (h (xs!hi))) \<Longrightarrow> sorted_sublist_map R h xs lo hi\<close>
-  by (blast intro: sorted_sublist_wrt_snoc)
-
-
-
-
 lemma sublist_split: \<open>lo \<le> hi \<Longrightarrow> lo < p \<Longrightarrow> p < hi \<Longrightarrow> hi < length xs \<Longrightarrow> sublist xs lo p @ sublist xs (p+1) hi = sublist xs lo hi\<close>
-  apply (auto simp add: sublist_def)
-  by (metis (full_types) diff_Suc_Suc nat_le_eq_or_lt sublist_app sublist_def)
+  by (simp add: sublist_app)
 
 lemma sublist_split_part: \<open>lo \<le> hi \<Longrightarrow> lo < p \<Longrightarrow> p < hi \<Longrightarrow> hi < length xs \<Longrightarrow> sublist xs lo (p-1) @ xs!p # sublist xs (p+1) hi = sublist xs lo hi\<close>
-  apply (auto simp add: sublist_split[symmetric])
-  apply (rewrite sublist_snoc[where xs=xs,where lo=lo,where hi=p])
-  by auto
+  by (auto simp add: sublist_split[symmetric] sublist_snoc[where xs=xs,where lo=lo,where hi=p])
 
 
 text \<open>A property for partitions (we always assume that \<^term>\<open>R\<close> is transitive.\<close>
@@ -576,6 +565,34 @@ definition partition_spec :: \<open>('b \<Rightarrow> 'b \<Rightarrow> bool) \<R
     lo \<le> p \<and> p \<le> hi \<and> \<comment> \<open>The partition index is in bounds\<close>
     (\<forall> i. i<lo \<longrightarrow> xs'!i=xs!i) \<and> (\<forall> i. hi<i\<and>i<length xs' \<longrightarrow> xs'!i=xs!i)\<close> \<comment> \<open>Everything else is unchanged.\<close>
 
+lemma in_set_take_conv_nth:
+  \<open>x \<in> set (take n xs) \<longleftrightarrow> (\<exists>m<min n (length xs). xs ! m = x)\<close>
+  by (metis in_set_conv_nth length_take min.commute min.strict_boundedE nth_take)
+
+lemma mset_drop_upto: \<open>mset (drop a N) = {#N!i. i \<in># mset_set {a..<length N}#}\<close>
+proof (induction N arbitrary: a)
+  case Nil
+  then show ?case by simp
+next
+  case (Cons c N)
+  have upt: \<open>{0..<Suc (length N)} = insert 0 {1..<Suc (length N)}\<close>
+    by auto
+  then have H: \<open>mset_set {0..<Suc (length N)} = add_mset 0 (mset_set {1..<Suc (length N)})\<close>
+    unfolding upt by auto
+  have mset_case_Suc: \<open>{#case x of 0 \<Rightarrow> c | Suc x \<Rightarrow> N ! x . x \<in># mset_set {Suc a..<Suc b}#} =
+    {#N ! (x-1) . x \<in># mset_set {Suc a..<Suc b}#}\<close> for a b
+    by (rule image_mset_cong) (auto split: nat.splits)
+  have Suc_Suc: \<open>{Suc a..<Suc b} = Suc ` {a..<b}\<close> for a b
+    by auto
+  then have mset_set_Suc_Suc: \<open>mset_set {Suc a..<Suc b} = {#Suc n. n \<in># mset_set {a..<b}#}\<close> for a b
+    unfolding Suc_Suc by (subst image_mset_mset_set[symmetric]) auto
+  have *: \<open>{#N ! (x-Suc 0) . x \<in># mset_set {Suc a..<Suc b}#} = {#N ! x . x \<in># mset_set {a..<b}#}\<close>
+    for a b
+    by (auto simp add: mset_set_Suc_Suc multiset.map_comp comp_def)
+  show ?case
+    apply (cases a)
+    using Cons[of 0] Cons by (auto simp: nth_Cons drop_Cons H mset_case_Suc *)
+qed
 
 (* Actually, I only need that \<open>set (sublist xs' lo hi) = set (sublist xs lo hi)\<close> *)
 lemma mathias:
@@ -600,7 +617,7 @@ proof -
     by (metis Perm le_cases mset_eq_length nth_take_lemma take_all)
   have [simp]: \<open>mset xs3 = mset xs3'\<close>
     using Fix(2) unfolding xs3_def xs3'_def mset_drop_upto
-    by (auto intro: image_mset_cong2)
+    by (auto intro: image_mset_cong)
   have \<open>xs = xs1 @ xs2 @ xs3\<close> \<open>xs' = xs1' @ xs2' @ xs3'\<close>
     using I unfolding xs1_def xs2_def xs3_def xs1'_def xs2'_def xs3'_def
     by (metis append.assoc append_take_drop_id le_SucI le_add_diff_inverse order_trans take_add)+
