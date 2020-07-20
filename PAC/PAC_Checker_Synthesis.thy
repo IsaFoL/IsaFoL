@@ -1,7 +1,6 @@
-theory PAC_Checker_Synthesis
+      theory PAC_Checker_Synthesis
   imports PAC_Checker WB_Sort PAC_Checker_Relation
     PAC_Checker_Init
-    PAC_Version
     "More_Refinement_Libs.WB_More_Refinement_Loops"
 begin
 
@@ -31,11 +30,8 @@ lemma vars_llist_alt_def:
 lemma vars_of_monom_in_alt_def2:
   \<open>vars_of_monom_in xs \<V> \<longleftrightarrow> fold (\<lambda>x b. b \<and> x \<in> \<V>) xs True\<close>
   apply (subst foldr_fold[symmetric])
-  subgoal
-    by auto
-  subgoal
-    by (induction xs)
-     auto
+  subgoal by auto
+  subgoal by (induction xs) auto
   done
 
 sepref_definition vars_of_monom_in_impl
@@ -49,11 +45,8 @@ declare vars_of_monom_in_impl.refine[sepref_fr_rules]
 lemma vars_of_poly_in_alt_def2:
   \<open>vars_of_poly_in xs \<V> \<longleftrightarrow> fold (\<lambda>(x, _) b. b \<and> vars_of_monom_in x \<V>) xs True\<close>
   apply (subst foldr_fold[symmetric])
-  subgoal
-    by auto
-  subgoal
-    by (induction xs)
-     auto
+  subgoal by auto
+  subgoal by (induction xs) auto
   done
 
 
@@ -77,11 +70,9 @@ lemma union_vars_monom_alt_def:
   unfolding union_vars_monom_def
   apply (subst foldr_fold[symmetric])
   subgoal for x y
-    by (cases x; cases y)
-      auto
+    by (cases x; cases y) auto
   subgoal
-    by (induction xs)
-     auto
+    by (induction xs) auto
   done
 
 lemma union_vars_poly_alt_def:
@@ -98,7 +89,7 @@ lemma union_vars_poly_alt_def:
 
 sepref_definition union_vars_monom_impl
   is \<open>uncurry (RETURN oo union_vars_monom)\<close>
-  :: \<open>(monom_assn)\<^sup>k *\<^sub>a vars_assn\<^sup>d \<rightarrow>\<^sub>a vars_assn\<close>
+  :: \<open>monom_assn\<^sup>k *\<^sub>a vars_assn\<^sup>d \<rightarrow>\<^sub>a vars_assn\<close>
   unfolding union_vars_monom_def
   by sepref
 
@@ -106,7 +97,7 @@ declare union_vars_monom_impl.refine[sepref_fr_rules]
 
 sepref_definition union_vars_poly_impl
   is \<open>uncurry (RETURN oo union_vars_poly)\<close>
-  :: \<open>(poly_assn)\<^sup>k *\<^sub>a vars_assn\<^sup>d \<rightarrow>\<^sub>a vars_assn\<close>
+  :: \<open>poly_assn\<^sup>k *\<^sub>a vars_assn\<^sup>d \<rightarrow>\<^sub>a vars_assn\<close>
   unfolding union_vars_poly_def
   by sepref
 
@@ -192,22 +183,11 @@ lemma mult_monoms_alt_def:
   apply (subst eq_commute)
   apply (induction x y rule: mult_monoms.induct)
   subgoal for p
-    apply (subst RECT_unfold)
-    apply refine_mono
-    apply (cases p)
-    apply auto
-    done
+    by (subst RECT_unfold, refine_mono) (auto split: list.splits)
   subgoal for p
-    apply (subst RECT_unfold)
-    apply refine_mono
-    apply (cases p)
-    apply auto
-    done
+    by (subst RECT_unfold, refine_mono) (auto split: list.splits)
   subgoal for x p y q
-    apply (subst RECT_unfold)
-    apply refine_mono
-    apply (auto simp: let_to_bind_conv)
-    done
+    by (subst RECT_unfold, refine_mono) (auto split: list.splits simp: let_to_bind_conv)
   done
 
 
@@ -245,16 +225,8 @@ lemma map_append_alt_def2:
      }) xs\<close>
    apply (subst eq_commute)
   apply (induction f b xs rule: map_append.induct)
-  subgoal
-    apply (subst RECT_unfold)
-    apply refine_mono
-    apply auto
-    done
-  subgoal
-    apply (subst RECT_unfold)
-    apply refine_mono
-    apply auto
-    done
+  subgoal by (subst RECT_unfold, refine_mono) auto
+  subgoal by (subst RECT_unfold, refine_mono) auto
   done
 
 
@@ -352,10 +324,14 @@ lemma [sepref_fr_rules]:
 
 
 lemma [sepref_fr_rules]:
-  \<open>(return o (error_msg_notin_dom o nat_of_uint64), RETURN o error_msg_notin_dom) \<in> uint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a raw_string_assn\<close>
-  \<open>(return o (error_msg_reused_dom o nat_of_uint64), RETURN o error_msg_reused_dom) \<in> uint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a raw_string_assn\<close>
-  \<open>(uncurry (return oo (\<lambda>i. error_msg (nat_of_uint64 i))), uncurry (RETURN oo error_msg)) \<in> uint64_nat_assn\<^sup>k *\<^sub>a raw_string_assn\<^sup>k  \<rightarrow>\<^sub>a status_assn raw_string_assn\<close>
-  \<open>(uncurry (return oo  error_msg), uncurry (RETURN oo error_msg)) \<in> nat_assn\<^sup>k *\<^sub>a raw_string_assn\<^sup>k  \<rightarrow>\<^sub>a status_assn raw_string_assn\<close>
+  \<open>(return o (error_msg_notin_dom o nat_of_uint64), RETURN o error_msg_notin_dom)
+   \<in> uint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a raw_string_assn\<close>
+  \<open>(return o (error_msg_reused_dom o nat_of_uint64), RETURN o error_msg_reused_dom)
+    \<in> uint64_nat_assn\<^sup>k \<rightarrow>\<^sub>a raw_string_assn\<close>
+  \<open>(uncurry (return oo (\<lambda>i. error_msg (nat_of_uint64 i))), uncurry (RETURN oo error_msg))
+    \<in> uint64_nat_assn\<^sup>k *\<^sub>a raw_string_assn\<^sup>k  \<rightarrow>\<^sub>a status_assn raw_string_assn\<close>
+  \<open>(uncurry (return oo  error_msg), uncurry (RETURN oo error_msg))
+   \<in> nat_assn\<^sup>k *\<^sub>a raw_string_assn\<^sup>k  \<rightarrow>\<^sub>a status_assn raw_string_assn\<close>
   unfolding error_msg_notin_dom_def list_assn_pure_conv list_rel_id_simp
   unfolding status_assn_pure_conv
   unfolding show_nat_def[symmetric]
@@ -363,7 +339,8 @@ lemma [sepref_fr_rules]:
 
 sepref_definition check_addition_l_impl
   is \<open>uncurry6 check_addition_l\<close>
-  :: \<open>poly_assn\<^sup>k *\<^sub>a polys_assn\<^sup>k *\<^sub>a vars_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a poly_assn\<^sup>k  \<rightarrow>\<^sub>a status_assn raw_string_assn\<close>
+  :: \<open>poly_assn\<^sup>k *\<^sub>a polys_assn\<^sup>k *\<^sub>a vars_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a
+        uint64_nat_assn\<^sup>k *\<^sub>a poly_assn\<^sup>k  \<rightarrow>\<^sub>a status_assn raw_string_assn\<close>
   supply [[goals_limit=1]]
   unfolding mult_poly_full_def
     HOL_list.fold_custom_empty
@@ -865,7 +842,7 @@ export_code PAC_checker_l_impl PAC_update_impl PAC_empty_impl the_error is_cfail
   int_of_integer Del Add Mult nat_of_integer String.implode remap_polys_l_impl
   fully_normalize_poly_impl union_vars_poly_impl empty_vars_impl
   full_checker_l_impl check_step_impl CSUCCESS
-  Extension hashcode_literal' version
+  Extension hashcode_literal'
   in SML_imp module_name PAC_Checker
   file "code/checker.sml"
 

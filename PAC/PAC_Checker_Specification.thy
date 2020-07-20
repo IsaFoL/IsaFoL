@@ -5,7 +5,7 @@ theory PAC_Checker_Specification
 
 begin
 
-section \<open>Checker Implementation\<close>
+section \<open>Checker Algorithm\<close>
 
 
 text \<open>
@@ -15,6 +15,8 @@ implementation of the checker, both with the specification as
 on ideals and the first version of the loop.
 
 \<close>
+
+subsection \<open>Specification\<close>
 
 datatype status =
   is_failed: FAILED |
@@ -111,6 +113,9 @@ type_synonym fpac_step = \<open>nat set \<times> (nat, int_poly) fmap\<close>
 definition check_del :: \<open>(nat, int mpoly) fmap \<Rightarrow> nat \<Rightarrow> bool nres\<close> where
   \<open>check_del A p =
      SPEC(\<lambda>b. b \<longrightarrow> True)\<close>
+
+
+subsection \<open>Algorithm\<close>
 
 definition PAC_checker_step
   ::  \<open>int_poly \<Rightarrow> (status \<times> fpac_step) \<Rightarrow> (int_poly, nat, nat) pac_step \<Rightarrow>
@@ -715,6 +720,8 @@ lemma remap_polys_spec:
    done
 
 
+subsection \<open>Full Checker\<close>
+
 definition full_checker
   :: \<open>int_poly \<Rightarrow> (nat, int_poly) fmap \<Rightarrow> (int_poly, nat,nat) pac_step list \<Rightarrow> (status \<times> _) nres\<close>
  where
@@ -734,7 +741,6 @@ lemma restricted_ideal_to_mono:
   \<U> \<subseteq> \<V> \<Longrightarrow>
    restricted_ideal_to\<^sub>I \<U> I \<subseteq> restricted_ideal_to\<^sub>I \<U>  J\<close>
   by (auto simp: restricted_ideal_to_def)
-
 
 lemma full_checker_spec:
   assumes \<open>(A, A') \<in> polys_rel\<close>

@@ -99,23 +99,12 @@ lemma merge_coeffs_alt_def:
        else do {p \<leftarrow> f ((ys, m) # p); RETURN ((xs, n) # p)})))
     p\<close>
   apply (induction p rule: merge_coeffs.induct)
-  subgoal
-    apply (subst RECT_unfold)
-    apply refine_mono
-    apply auto
-    done
-  subgoal
-    apply (subst RECT_unfold)
-    apply refine_mono
-    apply (cases p)
-    apply auto
-    done
+  subgoal by (subst RECT_unfold, refine_mono) auto
+  subgoal by (subst RECT_unfold, refine_mono) auto
   subgoal for x p y q
-    apply (subst RECT_unfold)
-    apply refine_mono
-    apply (auto simp: let_to_bind_conv)
-    apply (metis let_to_bind_conv)+
-    done
+    by (subst RECT_unfold, refine_mono)
+     (smt case_prod_conv list.simps(5) merge_coeffs.simps(3) nres_monad1
+      push_in_let_conv(2))
   done
 
 lemma hn_invalid_recover:
@@ -421,21 +410,9 @@ lemma lexord_eq_alt_def2:
         (xs, ys)\<close>
   apply (subst eq_commute)
   apply (induction xs ys rule: lexord_eq.induct)
-  subgoal
-    apply (subst RECT_unfold)
-    apply refine_mono
-    apply auto
-    done
-  subgoal
-    apply (subst RECT_unfold)
-    apply refine_mono
-    apply auto
-    done
-  subgoal
-    apply (subst RECT_unfold)
-    apply refine_mono
-    apply auto
-    done
+  subgoal by (subst RECT_unfold, refine_mono) auto
+  subgoal by (subst RECT_unfold, refine_mono) auto
+  subgoal by (subst RECT_unfold, refine_mono) auto
   done
 
 
@@ -535,20 +512,11 @@ lemma msort_alt_def:
   apply (intro ext)
   unfolding comp_def
   apply (induct_tac f x rule: msort.induct)
+  subgoal by (subst RECT_unfold, refine_mono) auto
+  subgoal by (subst RECT_unfold, refine_mono) auto
   subgoal
-    apply (subst RECT_unfold)
-    apply (refine_mono)
-    apply auto
-    done
-  subgoal
-    apply (subst RECT_unfold)
-    apply (refine_mono)
-    apply auto
-    done
-  subgoal
-    apply (subst RECT_unfold)
-    apply (refine_mono)
-    by (smt let_to_bind_conv list.simps(5) msort.simps(3))
+    by (subst RECT_unfold, refine_mono)
+     (smt let_to_bind_conv list.simps(5) msort.simps(3))
   done
 
 lemma monomial_rel_order_map:
@@ -751,6 +719,12 @@ lemma total_on_lexord_less_than_char_linear2:
    apply (auto simp: antisym_def)
    done
 
+lemma string_trans:
+  \<open>(xa, ya) \<in> lexord {(x::char, y::char). x < y} \<Longrightarrow>
+  (ya, z) \<in> lexord {(x::char, y::char). x < y} \<Longrightarrow>
+  (xa, z) \<in> lexord {(x::char, y::char). x < y}\<close>
+  by (smt less_char_def char.less_trans less_than_char_def lexord_partial_trans p2rel_def)
+
 lemma full_quicksort_sort_vars_spec:
   \<open>(full_quicksort_vars, sort_coeff) \<in> \<langle>Id\<rangle>list_rel \<rightarrow>\<^sub>f \<langle>\<langle>Id\<rangle>list_rel\<rangle>nres_rel\<close>
 proof -
@@ -761,9 +735,8 @@ proof -
     unfolding full_quicksort_vars_def
     apply (rule full_quicksort_ref_full_quicksort[THEN fref_to_Down_curry, THEN order_trans])
     subgoal
-      apply (auto simp: rel2p_def var_order_rel_def p2rel_def Relation.total_on_def)
-      apply (smt less_char_def char.less_trans less_than_char_def lexord_partial_trans p2rel_def)
-      done
+      by (auto simp: rel2p_def var_order_rel_def p2rel_def Relation.total_on_def
+        dest: string_trans)
     subgoal
       using total_on_lexord_less_than_char_linear2[unfolded var_order_rel_def]
       apply (auto simp: rel2p_def var_order_rel_def p2rel_def Relation.total_on_def less_char_def)
@@ -775,14 +748,11 @@ proof -
     apply (rule full_quicksort_correct_sorted[where R = \<open>(\<lambda>x y. x = y \<or> (x, y) \<in> var_order_rel)\<close> and h = \<open>id\<close>,
        THEN order_trans])
     subgoal
-      apply (auto simp: rel2p_def var_order_rel_def p2rel_def Relation.total_on_def)
-      apply (smt less_char_def char.less_trans less_than_char_def lexord_partial_trans p2rel_def)
-      done
+      by (auto simp: rel2p_def var_order_rel_def p2rel_def Relation.total_on_def dest: string_trans)
     subgoal for x y
       using total_on_lexord_less_than_char_linear2[unfolded var_order_rel_def]
-      apply (auto simp: rel2p_def var_order_rel_def p2rel_def Relation.total_on_def
+      by (auto simp: rel2p_def var_order_rel_def p2rel_def Relation.total_on_def
         less_char_def)
-      done
    subgoal
     by (auto simp: rel2p_def p2rel_def rel2p_def[abs_def])
    done
@@ -893,25 +863,21 @@ lemma msort_monoms_impl:
    unfolding msort_monoms_impl_def merge_monoms_poly_def
   apply (intro fun_relI)
   subgoal for a a'
-  apply (induction \<open>(\<lambda>(a :: String.literal)
-    (b :: String.literal). a \<le> b)\<close> a
-    arbitrary: a'
-    rule: msort.induct)
-  subgoal
-    by auto
-  subgoal
-    by (auto elim!: list_relE3 list_relE)
-  subgoal premises p
-    using p
-    apply (auto elim!: list_relE3 list_relE4 list_relE list_relE2
-      simp: merge_monoms_def[symmetric]
-      intro!: merge_monoms_merge_monoms2)
-   apply (rule p(1)[simplified])
-   apply (auto simp: list_rel_imp_same_length intro!: list_rel_takeD)[]
-   apply (rule p(2)[simplified])
-   apply (auto simp: list_rel_imp_same_length intro!: list_rel_dropD)
-   done
-  done
+    apply (induction \<open>(\<lambda>(a :: String.literal)
+      (b :: String.literal). a \<le> b)\<close> a
+      arbitrary: a'
+      rule: msort.induct)
+    subgoal
+      by auto
+    subgoal
+      by (auto elim!: list_relE3 list_relE)
+    subgoal premises p
+      using p
+      by (auto elim!: list_relE3 list_relE4 list_relE list_relE2
+        simp: merge_monoms_def[symmetric] intro!: list_rel_takeD list_rel_dropD
+        intro!: merge_monoms_merge_monoms2 p(1)[simplified] p(2)[simplified])
+        (simp_all add: list_rel_imp_same_length)
+    done
   done
 
 lemma merge_sort_monoms_sort_monoms_spec:
@@ -926,11 +892,7 @@ sepref_register sort_coeff
 lemma  [sepref_fr_rules]:
   \<open>(return o msort_monoms_impl, sort_coeff) \<in> monom_assn\<^sup>k \<rightarrow>\<^sub>a monom_assn\<close>
   using msort_monoms_impl[sepref_param, FCOMP merge_sort_monoms_sort_monoms_spec]
-  apply auto
-  done
-
-find_theorems msort_monoms_impl
-
+  by auto
 
 sepref_definition sort_all_coeffs_impl
   is \<open>sort_all_coeffs\<close>
@@ -958,21 +920,9 @@ lemma merge_coeffs0_alt_def:
     p\<close>
   apply (subst eq_commute)
   apply (induction p rule: merge_coeffs0.induct)
-  subgoal
-    apply (subst RECT_unfold)
-    apply refine_mono
-    apply auto
-    done
-  subgoal
-    apply (subst RECT_unfold)
-    apply refine_mono
-    apply auto
-    done
-  subgoal for x p y q
-    apply (subst RECT_unfold)
-    apply refine_mono
-    apply (auto simp: let_to_bind_conv)
-    done
+  subgoal by (subst RECT_unfold, refine_mono) auto
+  subgoal by (subst RECT_unfold, refine_mono) auto
+  subgoal by (subst RECT_unfold, refine_mono) (auto simp: let_to_bind_conv)
   done
 
 text \<open>Again, Sepref does not understand what is going here.\<close>
