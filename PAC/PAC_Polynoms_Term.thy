@@ -6,6 +6,10 @@ begin
 
 section \<open>Terms\<close>
 
+text \<open>We define some helper functions.\<close>
+
+subsection \<open>Ordering\<close>
+
 (*Taken from WB_More_Refinement*)
 lemma fref_to_Down_curry_left:
   fixes f:: \<open>'a \<Rightarrow> 'b \<Rightarrow> 'c nres\<close> and
@@ -62,6 +66,9 @@ lemma trans_less_than_char[simp]:
   antisym_less_than_char:
     \<open>antisym less_than_char\<close>
   by (auto simp: less_than_char_def trans_def irrefl_def antisym_def)
+
+
+subsection \<open>Polynomials\<close>
 
 definition var_order_rel :: \<open>(string \<times> string) set\<close> where
   \<open>var_order_rel \<equiv> lexord less_than_char\<close>
@@ -171,7 +178,8 @@ lemma term_poly_list_relD:
   \<open>(xs, ys) \<in> term_poly_list_rel \<Longrightarrow> ys = mset xs\<close>
   \<open>(xs, ys) \<in> term_poly_list_rel \<Longrightarrow> sorted_wrt (rel2p var_order_rel) xs\<close>
   \<open>(xs, ys) \<in> term_poly_list_rel \<Longrightarrow> sorted_wrt (rel2p (Id \<union> var_order_rel)) xs\<close>
-  apply (auto simp: term_poly_list_rel_def)
-  by (metis UnI2 rel2p_def sorted_wrt_mono_rel)
+  apply (auto simp: term_poly_list_rel_def; fail)+
+  by (metis (mono_tags, lifting) CollectD UnI2 rel2p_def sorted_wrt_mono_rel split_conv
+    term_poly_list_rel_def)
 
 end

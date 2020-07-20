@@ -58,53 +58,6 @@
 %\renewcommand{\isastyle}{\isastyleminor}
 \newcommand{\mailto}[1]{\href{mailto:#1}{#1}}
 
-\newtheorem{theorem}{Theorem}
-\newtheorem{definition}[theorem]{Definition}
-\newtheorem{lemma}[theorem]{Lemma}
-\newtheorem{proposition}[theorem]{Proposition}
-
-\newcommand{\cdcl}{\ensuremath{\Rightarrow_{\text{CDCL}}}}
-\newcommand{\dpll}{\ensuremath{\Rightarrow_{\text{DPLL}}}}
-\newcommand{\cwref}[2]{#2 of Weidenbach's book}
-\newcommand\htmllink[1]{\hypertarget{#1}{}}
-
-%\newenvironment{nit}{\begin{mdframed}\textbf{Nitpicking:}}{\end{mdframed}}
-\newmdtheoremenv[%
-outerlinewidth = 2,%
-roundcorner = 30 pt,%
-leftmargin = 40,%
-rightmargin = 40,%
-backgroundcolor =  gray!40,%
-outerlinecolor = black,%
-innertopmargin = \topskip,%
-splittopskip = \topskip,%
-ntheorem = true,%
-] {nit}{Nitpicking}[theorem]
-
-\newmdtheoremenv[%
-outerlinewidth = 2,%
-roundcorner = 30pt,%
-leftmargin = 40,%
-rightmargin = 40,%
-backgroundcolor =  gray!40,%
-outerlinecolor = gray,%
-innertopmargin = \topskip,%
-splittopskip = \topskip,%
-ntheorem = true,%
-] {CWbook}{Christoph's book draft}[theorem]
-
-\newcommand{\nitpicking}[2]{%
-  \begin{nit}~\\~\\%
-    \begin{minipage}{0.8\textwidth}%
-    \begin{CWbook}%
-    #1%
-    \end{CWbook}%
-    \end{minipage}~\\~\\~\\%
-    #2%
-  \end{nit}%
-}
-\DeclareMathOperator{\atom}{atom}
-
 \newcommand{\shortrules}[3]{#2$\Rightarrow^{\text{#1}}$ #3}
 \newcommand{\isasymRes}{\ensuremath{\text{Res}}} 
 
@@ -116,10 +69,6 @@ ntheorem = true,%
 \author{Mathias Fleury and Daniela Kaufmann}
 \maketitle
 
-\tableofcontents
-
-% sane default for proof documents
-\parindent 0pt\parskip 0.5ex
 \begin{abstract}
   Abstract—Generating and checking proof certificates is important to
   increase the trust in automated reasoning tools. In recent years
@@ -127,8 +76,15 @@ ntheorem = true,%
   is heavily used in automated circuit verification.  An existing
   proof format which covers algebraic reasoning and allows efficient
   proof checking is the practical algebraic calculus. In this
-  development, we present the verified checker Pastèque.
+  development, we present the verified checker Pastèque that is
+  obtained by synthesis via the Refinement Framework.
 \end{abstract}
+
+\tableofcontents
+
+% sane default for proof documents
+\parindent 0pt\parskip 0.5ex
+
 % generated text of all theories
 \input{session}
 

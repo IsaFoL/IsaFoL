@@ -2,7 +2,17 @@ theory PAC_Polynoms_Operations
   imports PAC_Polynoms_Term PAC_Checker_Specification
 begin
 
-section \<open>Polynoms as Lists\<close>
+section \<open>Polynomialss as Lists\<close>
+
+subsection \<open>Addition\<close>
+
+text \<open>In this section, we refine the polynomials to list. These lists will be used in our checker
+to represent the polynomials and execute operations.
+
+There is one \<^emph>\<open>key\<close> difference between the list representation and the usual representation: in the
+former, coefficients can be zero and monomials can appear several times. This makes it easier to
+reason on intermediate representation where this has not yet been sanitized.
+\<close>
 
 fun add_poly_l' :: \<open>llist_polynom \<times> llist_polynom \<Rightarrow> llist_polynom\<close> where
   \<open>add_poly_l' (p, []) = p\<close> |
@@ -63,20 +73,9 @@ lemma sorted_poly_list_rel_ConsD:
   apply (clarsimp)
   apply (subst (asm) list.rel_sel)
   apply (intro conjI)
-  apply (rule_tac b = \<open>tl y\<close> in relcompI)
-  apply (auto simp: sorted_poly_list_rel_wrt_def list_mset_rel_def br_def)
-  apply (case_tac \<open>lead_coeff y\<close>; case_tac y)
-  apply (auto simp: term_poly_list_rel_def)
-  apply (case_tac \<open>lead_coeff y\<close>; case_tac y)
-  apply (auto simp: term_poly_list_rel_def)
-  apply (case_tac \<open>lead_coeff y\<close>; case_tac y)
-  apply (auto simp: term_poly_list_rel_def)
-  apply (case_tac \<open>lead_coeff y\<close>; case_tac y)
-  apply (auto simp: term_poly_list_rel_def)
-  apply (case_tac \<open>lead_coeff y\<close>; case_tac y)
-  apply (auto simp: term_poly_list_rel_def)
-  apply (case_tac \<open>lead_coeff y\<close>; case_tac y)
-  apply (auto simp: term_poly_list_rel_def nonzero_coeffs_def)
+  apply (rename_tac y, rule_tac b = \<open>tl y\<close> in relcompI)
+  apply (auto simp: sorted_poly_list_rel_wrt_def list_mset_rel_def br_def
+    list.tl_def term_poly_list_rel_def nonzero_coeffs_def split: list.splits)
   done
 
 lemma sorted_poly_list_rel_Cons_iff:
@@ -91,7 +90,7 @@ lemma sorted_poly_list_rel_Cons_iff:
       list_rel_def
     apply (clarsimp)
     apply (intro conjI)
-    apply (rule_tac b = \<open>(mset ys, n) # y\<close> in relcompI)
+    apply (rename_tac y; rule_tac b = \<open>(mset ys, n) # y\<close> in relcompI)
     by (auto simp: sorted_poly_list_rel_wrt_def list_mset_rel_def br_def
         term_poly_list_rel_def add_mset_eq_add_mset eq_commute[of _ \<open>mset _\<close>]
         nonzero_coeffs_def
@@ -109,20 +108,9 @@ lemma sorted_repeat_poly_list_rel_ConsD:
   apply (clarsimp)
   apply (subst (asm) list.rel_sel)
   apply (intro conjI)
-  apply (rule_tac b = \<open>tl y\<close> in relcompI)
-  apply (auto simp: sorted_repeat_poly_list_rel_wrt_def list_mset_rel_def br_def)
-  apply (case_tac \<open>lead_coeff y\<close>; case_tac y)
-  apply (auto simp: term_poly_list_rel_def)
-  apply (case_tac \<open>lead_coeff y\<close>; case_tac y)
-  apply (auto simp: term_poly_list_rel_def)
-  apply (case_tac \<open>lead_coeff y\<close>; case_tac y)
-  apply (auto simp: term_poly_list_rel_def)
-  apply (case_tac \<open>lead_coeff y\<close>; case_tac y)
-  apply (auto simp: term_poly_list_rel_def)
-  apply (case_tac \<open>lead_coeff y\<close>; case_tac y)
-  apply (auto simp: term_poly_list_rel_def)
-  apply (case_tac \<open>lead_coeff y\<close>; case_tac y)
-  apply (auto simp: term_poly_list_rel_def nonzero_coeffs_def)
+  apply (rename_tac y, rule_tac b = \<open>tl y\<close> in relcompI)
+  apply (auto simp: sorted_poly_list_rel_wrt_def list_mset_rel_def br_def
+    list.tl_def term_poly_list_rel_def nonzero_coeffs_def split: list.splits)
   done
 
 lemma sorted_repeat_poly_list_rel_Cons_iff:
@@ -137,7 +125,7 @@ lemma sorted_repeat_poly_list_rel_Cons_iff:
       list_rel_def
     apply (clarsimp)
     apply (intro conjI)
-    apply (rule_tac b = \<open>(mset ys, n) # y\<close> in relcompI)
+    apply (rename_tac y, rule_tac b = \<open>(mset ys, n) # y\<close> in relcompI)
     by (auto simp: sorted_repeat_poly_list_rel_wrt_def list_mset_rel_def br_def
         term_poly_list_rel_def add_mset_eq_add_mset eq_commute[of _ \<open>mset _\<close>]
         nonzero_coeffs_def
@@ -168,12 +156,9 @@ lemma add_poly_p_add_to_result:
        add_poly_p\<^sup>*\<^sup>*
         (A, B, p + r) (A', B', p + r')\<close>
   apply (induction rule: rtranclp_induct[of add_poly_p \<open>(_, _, _)\<close> \<open>(_, _, _)\<close>, split_format(complete), of for r])
-  apply auto
-  apply (cases rule: add_poly_p.cases)
-  apply assumption
-  apply (auto simp: )
-  apply (meson add_poly_p.intros rtranclp.simps)+
-  done
+  subgoal by auto
+  by (elim add_poly_pE)
+   (metis (no_types, lifting) Pair_inject add_poly_p.intros rtranclp.simps union_mset_add_mset_right)+
 
 lemma add_poly_p_add_mset_comb:
   \<open>add_poly_p\<^sup>*\<^sup>* (A, Aa, {#}) ({#}, {#}, r) \<Longrightarrow>
@@ -228,10 +213,9 @@ lemma total_on_lexord_less_than_char_linear:
        (ys, xs) \<in> lexord (lexord less_than_char)\<close>
    using lexord_linear[of \<open>lexord less_than_char\<close> xs ys]
    using lexord_linear[of \<open>less_than_char\<close>] less_than_char_linear
-   apply (auto simp: Relation.total_on_def)
    using lexord_irrefl[OF irrefl_less_than_char]
      antisym_lexord[OF antisym_lexord[OF antisym_less_than_char irrefl_less_than_char]]
-   apply (auto simp: antisym_def)
+   apply (auto simp: antisym_def Relation.total_on_def)
    done
 
 lemma sorted_poly_list_rel_nonzeroD:
@@ -379,6 +363,9 @@ proof -
     by refine_rcg (auto intro: H)
 qed
 
+
+subsection \<open>Multiplication\<close>
+
 fun mult_monoms :: \<open>term_poly_list \<Rightarrow> term_poly_list \<Rightarrow> term_poly_list\<close> where
   \<open>mult_monoms p [] = p\<close> |
   \<open>mult_monoms [] p = p\<close> |
@@ -437,7 +424,7 @@ lemma mult_monoms_spec:
      apply (cases \<open>(x, y) \<in> var_order_rel\<close>)
      subgoal
         using p(2)[of \<open>remove1_mset x p'\<close> \<open>q'\<close>] p(4-)
-        apply (auto simp: term_poly_list_rel_Cons_iff rel2p_def
+        apply (auto simp: term_poly_list_rel_Cons_iff
             term_poly_list_rel_set_mset rel2p_def var_order_rel_def
           dest!: multi_member_split[of _ p'] multi_member_split[of _ q']
             var_notin_notin_mult_monomsD
@@ -494,9 +481,7 @@ lemma mult_poly_raw_simp[simp]:
   \<open>mult_poly_raw [] q = []\<close>
   \<open>mult_poly_raw (x # p) q = mult_poly_raw p q @ map (mult_monomials x) q\<close>
   subgoal by (auto simp: mult_poly_raw_def)
-  subgoal
-    by (induction p)
-      (auto simp: mult_poly_raw_def foldl_append_empty)
+  subgoal by (induction p) (auto simp: mult_poly_raw_def foldl_append_empty)
   done
 
 lemma sorted_poly_list_relD:
@@ -666,8 +651,7 @@ lemma merge_coeffs_is_normalize_poly_p:
         remove1_mset_add_mset_If nonzero_coeffs_diff sorted_repeat_poly_list_rel_Cons_iff)
       apply (rule_tac x = \<open>r\<close> in exI)
       using normalize_poly_p.merge_dup_coeff[of \<open>ysa -  {#(mset ys, m), (mset ys, n)#}\<close> \<open>ysa -  {#(mset ys, m), (mset ys, n)#}\<close> \<open>mset ys\<close> m n]
-      apply (auto intro: normalize_poly_p.intros add_mset_commute add_mset_commute converse_rtranclp_into_rtranclp dest!: multi_member_split
-        simp del: normalize_poly_p.merge_dup_coeff)
+      apply (auto dest!: multi_member_split simp del: normalize_poly_p.merge_dup_coeff)
       by (metis add_mset_commute converse_rtranclp_into_rtranclp)
    subgoal
       using p(2)[of \<open>ysa - {#(mset ys, m), (mset ys, n)#}\<close>] p(4-)
@@ -697,7 +681,7 @@ lemma merge_coeffs_is_normalize_poly_p:
 done
 
 
-
+subsection \<open>Normalisation\<close>
 
 definition normalize_poly where
   \<open>normalize_poly p = do {
@@ -1123,6 +1107,9 @@ proof -
     done
 qed
 
+
+subsection \<open>Multiplication and normalisation\<close>
+
 definition mult_poly_p' :: \<open>_\<close> where
 \<open>mult_poly_p' p' q' = do {
   pq \<leftarrow> SPEC(\<lambda>r. (mult_poly_p q')\<^sup>*\<^sup>* (p', {#}) ({#}, r));
@@ -1173,6 +1160,7 @@ lemma add_poly_l_add_poly_p':
   done
 
 
+subsection \<open>Correctness\<close>
 
 context poly_embed
 begin
@@ -1242,7 +1230,6 @@ lemma weak_equality_l_weak_equality_spec:
    (auto simp: weak_equality_l_def weak_equality_spec_def
       sorted_poly_list_rel_wrt_def list_mset_rel_def br_def
     dest: list_rel_term_poly_list_rel_same_rightD)
-
 
 end
 

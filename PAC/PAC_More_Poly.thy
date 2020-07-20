@@ -776,7 +776,7 @@ lemma
 
 
 text \<open>The following theorem is very close to @{thm ideal.span_insert}, except that it
-more useful if we need to take an element of \<^term>\<open>More_Modules.ideal (insert a S)\<close>.\<close>
+is more useful if we need to take an element of \<^term>\<open>More_Modules.ideal (insert a S)\<close>.\<close>
 lemma ideal_insert':
   \<open>More_Modules.ideal (insert a S) = {y. \<exists>x k. y = x + k * a \<and> x \<in> More_Modules.ideal S}\<close>
     apply (auto simp: ideal.span_insert
@@ -794,7 +794,6 @@ lemma ideal_mult_right_in:
 lemma ideal_mult_right_in2:
   \<open>a \<in> ideal A \<Longrightarrow> b * a \<in> More_Modules.ideal A\<close>
   by (metis ideal.span_scale)
-
 
 
 lemma [simp]: \<open>vars (Var x :: 'a :: {zero_neq_one} mpoly) = {x}\<close>
@@ -815,5 +814,8 @@ lemma coeff_monomila_in_varsD:
   by (auto simp: coeff_def vars_def keys_def
     intro!: exI[of _ \<open>monomial (Suc 0) x\<close>])
 
+lemma (in -)coeff_MPoly_monomila[simp]:
+  \<open>Const (MPoly_Type.coeff (MPoly (monomial a m)) m) = Const a\<close>
+  by (metis MPoly_Type.coeff_def lookup_single_eq monom.abs_eq monom.rep_eq)
 
 end

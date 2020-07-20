@@ -5,7 +5,7 @@ theory PAC_Polynoms
 begin
 
 
-section \<open>Polynoms of strings\<close>
+section \<open>Polynomials of strings\<close>
 
 text \<open>
 
@@ -13,12 +13,19 @@ text \<open>
   \<^typ>\<open>nat\<close>. Therefore, we introduce a version that uses strings.
 
 \<close>
+
+subsection \<open>Polynomials and Variables\<close>
+
 lemma poly_embed_EX:
   \<open>\<exists>\<phi>. bij (\<phi> :: string \<Rightarrow> nat)\<close>
   by (rule countableE_infinite[of \<open>UNIV :: string set\<close>])
      (auto intro!: infinite_UNIV_listI)
 
-text \<open>Using a multiset instead of a list has some advantage from an abstract point of view.\<close>
+text \<open>Using a multiset instead of a list has some advantage from an abstract point of view. First,
+  we can have monomials that appear several times  and the coefficient can also be zero. Basically,
+  we can represent un-normalised polynomials, which is very useful to talk about intermediate states
+  in our program.
+\<close>
 type_synonym term_poly = \<open>string multiset\<close>
 type_synonym mset_polynom =
   \<open>(term_poly * int) multiset\<close>
@@ -104,6 +111,8 @@ lemma normalized_poly_normalize_poly[simp]:
   done
 
 
+subsection \<open>Addition\<close>
+
 inductive add_poly_p :: \<open>mset_polynom \<times> mset_polynom \<times> mset_polynom \<Rightarrow> mset_polynom \<times> mset_polynom \<times> mset_polynom \<Rightarrow> bool\<close> where
 add_new_coeff_r:
     \<open>add_poly_p (p, add_mset x q, r) (p, q, add_mset x r)\<close> |
@@ -116,6 +125,7 @@ add_same_coeff_r:
 rem_0_coeff:
     \<open>add_poly_p (p, q, add_mset (x, 0) r) (p, q, r)\<close>
 
+inductive_cases add_poly_pE: \<open>add_poly_p S T\<close>
 
 lemmas add_poly_p_induct =
   add_poly_p.induct[split_format(complete)]
@@ -180,6 +190,8 @@ mult_step:
 
 lemmas mult_poly_p_induct = mult_poly_p.induct[split_format(complete)]
 
+subsection \<open>Normalisation\<close>
+
 inductive normalize_poly_p :: \<open>mset_polynom \<Rightarrow> mset_polynom \<Rightarrow> bool\<close>where
 rem_0_coeff[simp, intro]:
     \<open>normalize_poly_p p q \<Longrightarrow> normalize_poly_p (add_mset (xs, 0) p) q\<close> |
@@ -191,6 +203,7 @@ keep_coeff[simp, intro]:
     \<open>normalize_poly_p p q \<Longrightarrow> normalize_poly_p (add_mset x p) (add_mset x q)\<close>
 
 
+subsection \<open>Correctness\<close>
 text \<open>
   This locales maps string polynoms to real polynoms.
 \<close>
@@ -348,7 +361,7 @@ lemma poly_of_vars_remdups_mset:
   \<open>poly_of_vars (remdups_mset (xs)) - (poly_of_vars xs)
     \<in> More_Modules.ideal polynom_bool\<close>
   apply (induction xs)
-   apply (auto dest!: simp: ideal.span_zero)
+   apply (auto dest!: simp: ideal.span_zero dest!: )
    apply (drule multi_member_split)
    apply auto
     apply (drule multi_member_split)
@@ -445,10 +458,6 @@ lemma \<phi>_\<phi>'[simp]:
   \<open>x \<in> N \<Longrightarrow> \<phi> (\<phi>' x) = x\<close>
   using \<phi>_bij unfolding \<phi>'_def
   by (meson f_the_inv_into_f_bij_betw)
-
-lemma (in -)coeff_MPoly_monomila[simp]:
-  \<open>Const (MPoly_Type.coeff (MPoly (monomial a m)) m) = Const a\<close>
-  by (metis MPoly_Type.coeff_def lookup_single_eq monom.abs_eq monom.rep_eq)
 
 end
 
