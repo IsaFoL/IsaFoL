@@ -157,7 +157,8 @@ lemma WTF_RF_recover:
         x'a \<or>\<^sub>A
        hn_ctxt monomial_assn xb x'a \<Longrightarrow>\<^sub>t
        hn_ctxt (monomial_assn) xb x'a\<close>
-   by (smt assn_aci(5) hn_ctxt_def invalid_assn_distrib invalid_pure_recover is_pure_conv merge_thms(4) merge_true_star reorder_enttI safe_poly_vars(3) star_aci(2) star_aci(3))
+  by (smt assn_aci(5) hn_ctxt_def invalid_assn_distrib invalid_pure_recover is_pure_conv
+    merge_thms(4) merge_true_star reorder_enttI safe_poly_vars(3) star_aci(2) star_aci(3))
 
 lemma WTF_RF:
   \<open>hn_ctxt (invalid_assn monom_assn \<times>\<^sub>a invalid_assn int_assn) xb x'a *
@@ -220,6 +221,12 @@ definition partition_between_poly :: \<open>nat \<Rightarrow> nat \<Rightarrow> 
 definition partition_main_poly :: \<open>nat \<Rightarrow> nat \<Rightarrow> llist_polynom \<Rightarrow> (llist_polynom \<times> nat) nres\<close> where
   \<open>partition_main_poly = partition_main (\<le>)  fst\<close>
 
+lemma string_list_trans:
+  \<open>(xa ::char list list, ya) \<in> lexord (lexord {(x, y). x < y}) \<Longrightarrow>
+  (ya, z) \<in> lexord (lexord {(x, y). x < y}) \<Longrightarrow>
+    (xa, z) \<in> lexord (lexord {(x, y). x < y})\<close>
+  by (smt less_char_def char.less_trans less_than_char_def lexord_partial_trans p2rel_def)
+
 lemma full_quicksort_sort_poly_spec:
   \<open>(full_quicksort_poly, sort_poly_spec) \<in> \<langle>Id\<rangle>list_rel \<rightarrow>\<^sub>f \<langle>\<langle>Id\<rangle>list_rel\<rangle>nres_rel\<close>
 proof -
@@ -230,9 +237,8 @@ proof -
     unfolding full_quicksort_poly_def
     apply (rule full_quicksort_ref_full_quicksort[THEN fref_to_Down_curry, THEN order_trans])
     subgoal
-      apply (auto simp: rel2p_def var_order_rel_def p2rel_def Relation.total_on_def)
-      apply (smt less_char_def char.less_trans less_than_char_def lexord_partial_trans p2rel_def)
-      done
+      by (auto simp: rel2p_def var_order_rel_def p2rel_def Relation.total_on_def
+        dest: string_list_trans)
     subgoal
       using total_on_lexord_less_than_char_linear[unfolded var_order_rel_def]
       apply (auto simp: rel2p_def var_order_rel_def p2rel_def Relation.total_on_def less_char_def)
@@ -244,9 +250,7 @@ proof -
     apply (rule full_quicksort_correct_sorted[where R = \<open>(\<lambda>x y. x = y \<or> (x, y) \<in> term_order_rel)\<close> and h = \<open>fst\<close>,
        THEN order_trans])
     subgoal
-      apply (auto simp: rel2p_def var_order_rel_def p2rel_def Relation.total_on_def)
-      apply (smt less_char_def char.less_trans less_than_char_def lexord_partial_trans p2rel_def)
-      done
+      by (auto simp: rel2p_def var_order_rel_def p2rel_def Relation.total_on_def dest: string_list_trans)
     subgoal for x y
       using total_on_lexord_less_than_char_linear[unfolded var_order_rel_def]
       apply (auto simp: rel2p_def var_order_rel_def p2rel_def Relation.total_on_def
@@ -431,15 +435,18 @@ lemmas [code] =
   msort_poly_impl_def[unfolded lexord_eq_alt_def1[abs_def]]
   msort_monoms_impl_def[unfolded msort_msort2]
 
+lemma term_order_rel_trans:
+  \<open>       (a, aa) \<in> term_order_rel \<Longrightarrow>
+       (aa, ab) \<in> term_order_rel \<Longrightarrow> (a, ab) \<in> term_order_rel\<close>
+  by (metis PAC_Checker_Relation.less_char_def p2rel_def string_list_trans var_order_rel_def)
 
 lemma merge_sort_poly_sort_poly_spec:
   \<open>(RETURN o merge_sort_poly, sort_poly_spec) \<in> \<langle>Id\<rangle>list_rel \<rightarrow>\<^sub>f \<langle>\<langle>Id\<rangle>list_rel\<rangle>nres_rel\<close>
   unfolding sort_poly_spec_def merge_sort_poly_def
   apply (intro frefI nres_relI)
-  apply (auto intro!: sorted_msort simp: sorted_wrt_map rel2p_def
-     le_term_order_rel' transp_def)
-  apply (smt lexord_partial_trans lexord_trans trans_less_than_char var_order_rel_def)
-  using total_on_lexord_less_than_char_linear var_order_rel_def by auto
+  using total_on_lexord_less_than_char_linear var_order_rel_def
+  by (auto intro!: sorted_msort simp: sorted_wrt_map rel2p_def
+    le_term_order_rel' transp_def dest: term_order_rel_trans)
 
 lemma msort_alt_def:
   \<open>RETURN o (msort f) =
@@ -467,8 +474,7 @@ lemma msort_alt_def:
   subgoal
     apply (subst RECT_unfold)
     apply (refine_mono)
-    apply auto
-    by (metis (mono_tags, lifting) nres_monad1)
+    by (smt let_to_bind_conv list.simps(5) msort.simps(3))
   done
 
 lemma monomial_rel_order_map:
@@ -872,7 +878,6 @@ lemma merge_coeffs0_alt_def:
   subgoal
     apply (subst RECT_unfold)
     apply refine_mono
-    apply (cases p)
     apply auto
     done
   subgoal for x p y q
@@ -882,7 +887,7 @@ lemma merge_coeffs0_alt_def:
     done
   done
 
-
+text \<open>Again, Sepref does not understand what is going here.\<close>
 sepref_definition merge_coeffs0_impl
   is \<open>RETURN o merge_coeffs0\<close>
   :: \<open>poly_assn\<^sup>k \<rightarrow>\<^sub>a poly_assn\<close>
