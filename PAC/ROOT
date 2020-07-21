@@ -22,6 +22,6 @@ session PAC_Checker = "Sepref_IICF" +
      PAC_Checker_Synthesis
   document_files
     "root.tex"
-    "biblio.bib"
+    "root.bib"
   export_files (in "code") [1]
     "CDCL.CDCL_W_Implementation:**"

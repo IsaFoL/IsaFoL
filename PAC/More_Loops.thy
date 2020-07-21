@@ -4,6 +4,12 @@ imports
   "Refine_Monadic.Refine_Foreach"
   "HOL-Library.Rewrite"
 begin
+
+subsection \<open>More Theorem about Loops\<close>
+
+text \<open>Most theorem below have a counterpart in the Refinement Framework that is weaker (by missing
+  assertions for example that are critical for code generation).
+\<close>
 lemma Down_id_eq:
   \<open>\<Down>Id x = x\<close>
   by auto
