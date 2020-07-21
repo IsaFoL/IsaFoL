@@ -3,7 +3,7 @@ theory WB_Sort
   imports Refine_Imperative_HOL.IICF "HOL-Library.Rewrite" Duplicate_Free_Multiset
 begin
 
-text \<open>This a complete copy-paste because sharing is hard.\<close>
+text \<open>This a complete copy-paste of the IsaFoL version because sharing is too hard.\<close>
 
 
 text \<open>Every element between \<^term>\<open>lo\<close> and \<^term>\<open>hi\<close> can be chosen as pivot element.\<close>
@@ -89,34 +89,10 @@ lemma sorted_sublist_wrt_refl: \<open>i < length xs \<Longrightarrow> sorted_sub
 lemma sorted_sublist_refl: \<open>i < length xs \<Longrightarrow> sorted_sublist xs i i\<close>
   by (auto simp add: sorted_sublist_def sorted_sublist_wrt_refl)
 
-lemma sorted_sublist_map_refl: \<open>i < length xs \<Longrightarrow> sorted_sublist_map R h xs i i\<close>
-  by (auto simp add: sorted_sublist_wrt_refl)
-
-
-
-
 lemma sublist_map: \<open>sublist (map f xs) i j = map f (sublist xs i j)\<close>
   apply (auto simp add: sublist_def)
   by (simp add: drop_map take_map)
 
-lemma in_set_conv_iff:
-  \<open>x \<in> set (take n xs) \<longleftrightarrow> (\<exists>i < n. i < length xs \<and> xs ! i = x)\<close>
-  apply (induction n)
-  subgoal by auto
-  subgoal for n
-    apply (cases \<open>Suc n < length xs\<close>)
-    subgoal by (auto simp: take_Suc_conv_app_nth less_Suc_eq dest: in_set_takeD)
-    subgoal
-      apply (cases \<open>n < length xs\<close>)
-      subgoal
-        apply (auto simp: in_set_conv_nth)
-        by (rule_tac x=i in exI; auto; fail)+
-      subgoal
-        apply (auto simp: take_Suc_conv_app_nth dest: in_set_takeD)
-        by (rule_tac x=i in exI; auto; fail)+
-      done
-    done
-  done
 
 lemma take_set: \<open>j \<le> length xs \<Longrightarrow> x \<in> set (take j xs) \<equiv> (\<exists> k. k < j \<and> xs!k = x)\<close>
   apply (induction xs)
@@ -1669,7 +1645,7 @@ qed
 
 
 text \<open>Final correctness lemma\<close>
-lemma full_quicksort_correct_sorted:
+theorem full_quicksort_correct_sorted:
   assumes
     trans: \<open>\<And>x y z. \<lbrakk>R (h x) (h y); R (h y) (h z)\<rbrakk> \<Longrightarrow> R (h x) (h z)\<close> and lin: \<open>\<And>x y. x \<noteq> y \<Longrightarrow> R (h x) (h y) \<or> R (h y) (h x)\<close>
   shows \<open>full_quicksort R h xs \<le> \<Down> Id (SPEC(\<lambda>xs'. mset xs' = mset xs \<and> sorted_wrt (\<lambda> x y. R (h x) (h y)) xs'))\<close>
