@@ -1,8 +1,7 @@
 theory PAC_Checker_Specification
   imports PAC_Specification
-     Refine_Imperative_HOL.IICF
-     Weidenbach_Book_Base.WB_List_More
-
+    Refine_Imperative_HOL.IICF
+    Finite_Map_Multiset
 begin
 
 section \<open>Checker Algorithm\<close>

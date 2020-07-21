@@ -1,7 +1,6 @@
-      theory PAC_Checker_Synthesis
+theory PAC_Checker_Synthesis
   imports PAC_Checker WB_Sort PAC_Checker_Relation
-    PAC_Checker_Init
-    "More_Refinement_Libs.WB_More_Refinement_Loops"
+    PAC_Checker_Init More_Loops
 begin
 
 section \<open>Code Synthesis of the Checker\<close>
@@ -730,6 +729,8 @@ lemma [sepref_fr_rules]:
 
 lemma pow_2_64: \<open>(2::nat) ^64 = 18446744073709551616\<close>
   by auto
+
+
 sepref_register upper_bound_on_dom op_fmap_empty
 sepref_definition remap_polys_l_impl
   is \<open>uncurry2 remap_polys_l2\<close>

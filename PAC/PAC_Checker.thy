@@ -769,8 +769,7 @@ proof -
          sorted_wrt term_order (map fst (remove1 ([a], 1) r))\<close>
     by (induction r) auto
   have [intro]: \<open>distinct (map fst r) \<Longrightarrow> distinct (map fst (remove1 x r))\<close> for x
-    apply (induction r) apply auto
-    by (meson img_fst in_set_remove1D)
+    by (induction r) (auto dest: in_set_remove1D)
   have [simp]: \<open>(r, ya) \<in> \<langle>term_poly_list_rel \<times>\<^sub>r int_rel\<rangle>list_rel \<Longrightarrow>
          polynom_of_mset (mset ya) -  Var (\<phi> a) =
          polynom_of_mset (remove1_mset ({#a#}, 1) (mset ya))\<close> for ya
@@ -780,14 +779,12 @@ proof -
 
   show ?thesis
     using assms
-    apply (auto simp: mset_poly_rel_def sorted_poly_list_rel_wrt_def
-      Collect_eq_comp' dest!: )
-    apply (rule_tac b = \<open>remove1_mset ({#a#}, 1) za\<close> in relcompI)
+    apply (auto simp: mset_poly_rel_def sorted_poly_list_rel_wrt_def)
+    apply (rename_tac ya za, rule_tac b = \<open>remove1_mset ({#a#}, 1) za\<close> in relcompI)
     apply (auto)
-    apply (rule_tac b = \<open>remove1 ({#a#}, 1) ya\<close> in relcompI)
-    apply (auto intro!: remove1_list_rel2 intro: H
-      simp: list_mset_rel_def br_def)
-    done
+    apply (rename_tac ya za, rule_tac b = \<open>remove1 ({#a#}, 1) ya\<close> in relcompI)
+    by (auto intro!: remove1_list_rel2 intro: H
+      simp: list_mset_rel_def br_def in_remove1_mset_neq)
 qed
 
 lemma remove1_sorted_poly_rel_mset_poly_rel_minus:
@@ -830,7 +827,7 @@ proof -
     apply (auto)
     apply (rule_tac b = \<open>remove1 ({#a#}, -1) ya\<close> in relcompI)
     apply (auto intro!: remove1_list_rel2 intro: H
-      simp: list_mset_rel_def br_def)
+      simp: list_mset_rel_def br_def in_remove1_mset_neq)
     done
 qed
 

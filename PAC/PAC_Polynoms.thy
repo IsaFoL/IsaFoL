@@ -1,7 +1,5 @@
 theory PAC_Polynoms
-  imports PAC_Specification
-    Weidenbach_Book_Base.WB_List_More
-    Weidenbach_Book_Base.Wellfounded_More
+  imports PAC_Specification Finite_Map_Multiset
 begin
 
 
@@ -159,11 +157,23 @@ lemma add_poly_p_sym:
       (auto intro: add_poly_p.intros)
   done
 
+lemma wf_if_measure_in_wf:
+  \<open>wf R \<Longrightarrow> (\<And>a b. (a, b) \<in> S \<Longrightarrow> (\<nu> a, \<nu> b)\<in>R) \<Longrightarrow> wf S\<close>
+  by (metis in_inv_image wfE_min wfI_min wf_inv_image)
+
+lemma lexn_n:
+  \<open>n > 0 \<Longrightarrow> (x # xs, y # ys) \<in> lexn r n \<longleftrightarrow>
+  (length xs = n-1 \<and> length ys = n-1) \<and> ((x, y) \<in> r \<or> (x = y \<and> (xs, ys) \<in> lexn r (n - 1)))\<close>
+  apply (cases n)
+   apply simp
+  by (auto simp: map_prod_def image_iff lex_prod_def)
+
 lemma wf_add_poly_p:
   \<open>wf {(x, y). add_poly_p y x}\<close>
   by (rule wf_if_measure_in_wf[where R = \<open>lexn less_than 3\<close> and
      \<nu> = \<open>\<lambda>(a,b,c). [size a , size b, size c]\<close>])
-   (auto simp: add_poly_p.simps lexn3_conv wf_lexn)
+    (auto simp: add_poly_p.simps wf_lexn
+     simp: lexn_n simp del: lexn.simps(2))
 
 lemma mult_poly_by_monom_simps[simp]:
   \<open>mult_poly_by_monom t {#} = {#}\<close>

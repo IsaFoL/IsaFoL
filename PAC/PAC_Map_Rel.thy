@@ -1,8 +1,6 @@
 theory PAC_Map_Rel
   imports
-    Refine_Imperative_HOL.IICF
-    "HOL-Library.Finite_Map"
-    Weidenbach_Book_Base.WB_List_More
+    Refine_Imperative_HOL.IICF Finite_Map_Multiset
 begin
 
 
@@ -89,9 +87,9 @@ lemma fmap_rel_fmdrop_fmap_rel:
   using that
   unfolding fmap_rel_alt_def
   apply (auto simp add: all_conj_distrib IS_RIGHT_UNIQUED dest!: multi_member_split)
-  apply (metis IS_RIGHT_UNIQUED dom_m_fmdrop fmlookup_drop in_dom_m_lookup_iff union_single_eq_member)
-  apply (metis IS_RIGHT_UNIQUED dom_m_fmdrop fmlookup_drop in_dom_m_lookup_iff union_single_eq_member)
-  by (metis IS_RIGHT_UNIQUED converse.intros dom_m_fmdrop fmlookup_drop in_dom_m_lookup_iff union_single_eq_member)
+  apply (metis dom_m_fmdrop fmlookup_drop in_dom_m_lookup_iff union_single_eq_member)
+  apply (metis dom_m_fmdrop fmlookup_drop in_dom_m_lookup_iff union_single_eq_member)
+  by (metis IS_RIGHT_UNIQUED converse.intros dom_m_fmdrop fmlookup_drop in_dom_m_lookup_iff union_single_eq_member)+
 
   sepref_decl_op fmap_delete: "fmdrop" :: "K \<rightarrow> \<langle>K,V\<rangle>fmap_rel \<rightarrow> \<langle>K,V\<rangle>fmap_rel"
     where "single_valued K" "single_valued (K\<inverse>)"

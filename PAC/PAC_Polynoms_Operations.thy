@@ -320,7 +320,7 @@ proof -
     zero: \<open>0 \<notin># snd `# p'\<close>
     using assms
     unfolding sort_poly_spec_def poly_list_rel_def sorted_poly_list_rel_wrt_def
-    by (auto simp: list_mset_rel_def br_def Collect_eq_comp')
+    by (auto simp: list_mset_rel_def br_def)
   then have [simp]: \<open>length y = length p\<close>
     by (auto simp: list_rel_def list_all2_conv_all_nth)
   have H: \<open>(x, p')
@@ -660,10 +660,11 @@ lemma merge_coeffs_is_normalize_poly_p:
       apply (rule_tac x = \<open>r\<close> in exI)
       using normalize_poly_p.rem_0_coeff[of \<open>add_mset (mset ys, m +n) ysa -  {#(mset ys, m), (mset ys, n)#}\<close> \<open>add_mset (mset ys, m +n) ysa -  {#(mset ys, m), (mset ys, n)#}\<close> \<open>mset ys\<close>]
       using normalize_poly_p.merge_dup_coeff[of \<open>ysa -  {#(mset ys, m), (mset ys, n)#}\<close> \<open>ysa -  {#(mset ys, m), (mset ys, n)#}\<close> \<open>mset ys\<close> m n]
-      apply (auto intro: normalize_poly_p.intros add_mset_commute add_mset_commute converse_rtranclp_into_rtranclp dest!: multi_member_split
-        simp del: normalize_poly_p.rem_0_coeff)
-      by (metis (no_types) add_mset_diff_bothsides converse_rtranclp_into_rtranclp diff_union_swap2 diff_zero
-        normalize_poly_p.rem_0_coeff p(4) same sorted_repeat_poly_list_rel_ConsD)
+      apply (auto intro: normalize_poly_p.intros add_mset_commute add_mset_commute converse_rtranclp_into_rtranclp
+        dest!: multi_member_split
+        simp del: normalize_poly_p.rem_0_coeff
+        simp: add_eq_0_iff2)
+      by (metis (full_types) add.right_inverse converse_rtranclp_into_rtranclp merge_dup_coeff normalize_poly_p.rem_0_coeff same)
    subgoal
       using p(3)[of \<open>add_mset (mset ys, m) ysa - {#(mset xs, n), (mset ys, m)#}\<close>] p(4-)
     apply (auto simp: sorted_poly_list_rel_Cons_iff ac_simps add_mset_commute
@@ -715,10 +716,9 @@ lemma sort_all_coeffs_gen:
     using p(2-)
     apply (cases a, simp only: monadic_nfoldli_simp bind_to_let_conv Let_def if_True Refine_Basic.nres_monad3
       intro_spec_refine_iff prod.case)
-    apply (auto simp: intro_spec_refine_iff image_Un
+    apply (auto 5 3 simp: intro_spec_refine_iff image_Un
       dest: same_mset_distinct_iff
       intro!: p(1)[THEN order_trans] distinct_var_order_Id_var_order)
-    apply (auto dest: same_mset_distinct_iff)
     apply (metis UnCI fst_eqD rel2p_def sorted_wrt_mono_rel)
     done
   done
@@ -858,7 +858,7 @@ proof -
     p'_y: \<open>p' = mset y\<close>
     using assms
     unfolding fully_unsorted_poly_list_rel_def poly_list_rel_def sorted_poly_list_rel_wrt_def
-    by (auto simp: list_mset_rel_def br_def Collect_eq_comp')
+    by (auto simp: list_mset_rel_def br_def)
   then have [simp]: \<open>length y = length p\<close>
     by (auto simp: list_rel_def list_all2_conv_all_nth)
   have H: \<open>(x, p')
