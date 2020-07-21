@@ -63,7 +63,7 @@ declare vars_of_poly_in_impl.refine[sepref_fr_rules]
 definition union_vars_monom :: \<open>string list \<Rightarrow> string set \<Rightarrow> string set\<close> where
 \<open>union_vars_monom xs \<V> = fold insert xs \<V>\<close>
 
-definition union_vars_poly :: \<open>llist_polynom \<Rightarrow> string set \<Rightarrow> string set\<close> where
+definition union_vars_poly :: \<open>llist_polynomial \<Rightarrow> string set \<Rightarrow> string set\<close> where
 \<open>union_vars_poly xs \<V> = fold (\<lambda>(xs, _) \<V>. union_vars_monom xs \<V>) xs \<V>\<close>
 
 lemma union_vars_monom_alt_def:
@@ -456,7 +456,7 @@ sepref_register check_extension_l_dom_err fmlookup'
   check_extension_l_side_cond_err check_extension_l_no_new_var_err
   check_extension_l_new_var_multiple_err
 
-definition uminus_poly :: \<open>llist_polynom \<Rightarrow> llist_polynom\<close> where
+definition uminus_poly :: \<open>llist_polynomial \<Rightarrow> llist_polynomial\<close> where
   \<open>uminus_poly p' = map (\<lambda>(a, b). (a, - b)) p'\<close>
 
 sepref_register uminus_poly
@@ -850,7 +850,7 @@ The input parameters are:
 
 \<^enum> the specification polynomial represented as a list
 
-\<^enum> the input polynomials as hash map (as an array of option polynom)
+\<^enum> the input polynomials as hash map (as an array of option polynomial)
 
 \<^enum> a represention of the PAC proofs.
 

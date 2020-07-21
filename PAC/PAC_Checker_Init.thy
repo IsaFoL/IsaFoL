@@ -2,7 +2,7 @@ theory PAC_Checker_Init
   imports  PAC_Checker WB_Sort PAC_Checker_Relation
 begin
 
-section \<open>Initial Normalisation of Polynoms\<close>
+section \<open>Initial Normalisation of Polynomials\<close>
 
 subsection \<open>Sorting\<close>
 
@@ -199,15 +199,15 @@ definition full_quicksort_poly where
 lemma down_eq_id_list_rel: \<open>\<Down>(\<langle>Id\<rangle>list_rel) x = x\<close>
   by auto
 
-definition quicksort_poly:: \<open>nat \<Rightarrow> nat \<Rightarrow> llist_polynom \<Rightarrow> (llist_polynom) nres\<close> where
+definition quicksort_poly:: \<open>nat \<Rightarrow> nat \<Rightarrow> llist_polynomial \<Rightarrow> (llist_polynomial) nres\<close> where
   \<open>quicksort_poly x y  z = quicksort_ref (\<le>) fst (x, y, z)\<close>
 
 term partition_between_ref
 
-definition partition_between_poly :: \<open>nat \<Rightarrow> nat \<Rightarrow> llist_polynom \<Rightarrow> (llist_polynom \<times> nat) nres\<close> where
+definition partition_between_poly :: \<open>nat \<Rightarrow> nat \<Rightarrow> llist_polynomial \<Rightarrow> (llist_polynomial \<times> nat) nres\<close> where
   \<open>partition_between_poly = partition_between_ref (\<le>) fst\<close>
 
-definition partition_main_poly :: \<open>nat \<Rightarrow> nat \<Rightarrow> llist_polynom \<Rightarrow> (llist_polynom \<times> nat) nres\<close> where
+definition partition_main_poly :: \<open>nat \<Rightarrow> nat \<Rightarrow> llist_polynomial \<Rightarrow> (llist_polynomial \<times> nat) nres\<close> where
   \<open>partition_main_poly = partition_main (\<le>)  fst\<close>
 
 lemma string_list_trans:

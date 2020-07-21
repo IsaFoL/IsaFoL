@@ -7,15 +7,15 @@ section \<open>Specification of the PAC checker\<close>
 subsection \<open>Ideals\<close>
 
 type_synonym int_poly = \<open>int mpoly\<close>
-definition polynom_bool :: \<open>int_poly set\<close> where
-  \<open>polynom_bool = (\<lambda>c. Var c ^ 2 - Var c) ` UNIV\<close>
+definition polynomial_bool :: \<open>int_poly set\<close> where
+  \<open>polynomial_bool = (\<lambda>c. Var c ^ 2 - Var c) ` UNIV\<close>
 
 definition pac_ideal where
-  \<open>pac_ideal A \<equiv> ideal (A \<union> polynom_bool)\<close>
+  \<open>pac_ideal A \<equiv> ideal (A \<union> polynomial_bool)\<close>
 
 lemma X2_X_in_pac_ideal:
   \<open>Var c ^ 2 - Var c \<in> pac_ideal A\<close>
-  unfolding polynom_bool_def pac_ideal_def
+  unfolding polynomial_bool_def pac_ideal_def
   by (auto intro: ideal.span_base)
 
 lemma pac_idealI1[intro]:
@@ -38,26 +38,26 @@ lemma pac_ideal_Xsq2_iff:
   apply auto
   done
 
-lemma diff_in_polynom_bool_pac_idealI:
+lemma diff_in_polynomial_bool_pac_idealI:
    assumes a1: "p \<in> pac_ideal A"
-   assumes a2: "p - p' \<in> More_Modules.ideal polynom_bool"
+   assumes a2: "p - p' \<in> More_Modules.ideal polynomial_bool"
    shows \<open>p' \<in> pac_ideal A\<close>
  proof -
-   have "insert p polynom_bool \<subseteq> pac_ideal A"
+   have "insert p polynomial_bool \<subseteq> pac_ideal A"
      using a1 unfolding pac_ideal_def by (meson ideal.span_superset insert_subset le_sup_iff)
    then show ?thesis
      using a2 unfolding pac_ideal_def by (metis (no_types) ideal.eq_span_insert_eq ideal.span_subset_spanI ideal.span_superset insert_subset subsetD)
 qed
 
-lemma diff_in_polynom_bool_pac_idealI2:
+lemma diff_in_polynomial_bool_pac_idealI2:
    assumes a1: "p \<in> A"
-   assumes a2: "p - p' \<in> More_Modules.ideal polynom_bool"
+   assumes a2: "p - p' \<in> More_Modules.ideal polynomial_bool"
    shows \<open>p' \<in> pac_ideal A\<close>
-   using diff_in_polynom_bool_pac_idealI[OF _ assms(2), of A] assms(1)
+   using diff_in_polynomial_bool_pac_idealI[OF _ assms(2), of A] assms(1)
    by (auto simp: ideal.span_base)
 
 lemma pac_ideal_alt_def:
-  \<open>pac_ideal A = ideal (A \<union> ideal polynom_bool)\<close>
+  \<open>pac_ideal A = ideal (A \<union> ideal polynomial_bool)\<close>
   unfolding pac_ideal_def
   by (meson ideal.span_eq ideal.span_mono ideal.span_superset le_sup_iff subset_trans sup_ge2)
 
@@ -109,7 +109,7 @@ text \<open>The PAC format contains three kind of steps:
   \<^item> mult that multiply a known polynomial with another one.
   \<^item> del that removes a polynomial that cannot be reused anymore.
 
-To model the simplification that happens, we add the \<^term>\<open>p - p' \<in> polynom_bool\<close>
+To model the simplification that happens, we add the \<^term>\<open>p - p' \<in> polynomial_bool\<close>
 stating that \<^term>\<open>p\<close> and  \<^term>\<open>p'\<close> are equivalent.
 \<close>
 
@@ -120,13 +120,13 @@ add:
   \<open>PAC_Format (\<V>, A) (\<V>, add_mset p' A)\<close>
 if
    \<open>p \<in># A\<close> \<open>q \<in># A\<close>
-   \<open>p+q - p' \<in> ideal polynom_bool\<close>
+   \<open>p+q - p' \<in> ideal polynomial_bool\<close>
    \<open>vars p' \<subseteq> \<V>\<close> |
 mult:
   \<open>PAC_Format (\<V>, A) (\<V>, add_mset p' A)\<close>
 if
    \<open>p \<in># A\<close>
-   \<open>p*q - p' \<in> ideal polynom_bool\<close>
+   \<open>p*q - p' \<in> ideal polynomial_bool\<close>
    \<open>vars p' \<subseteq> \<V>\<close>
    \<open>vars q \<subseteq> \<V>\<close> |
 del:
@@ -134,7 +134,7 @@ del:
 extend_pos:
   \<open>PAC_Format (\<V>, A) (\<V> \<union> {x' \<in> vars (-Var x + p'). x' \<notin> \<V>}, add_mset (-Var x + p') A)\<close>
   if
-    \<open>(p')\<^sup>2 - p' \<in> ideal polynom_bool\<close>
+    \<open>(p')\<^sup>2 - p' \<in> ideal polynomial_bool\<close>
     \<open>vars p' \<subseteq> \<V>\<close>
     \<open>x \<notin> \<V>\<close>
 
@@ -154,12 +154,12 @@ lemma PAC_Format_induct[consumes 1, case_names add mult del ext]:
   assumes
     \<open>PAC_Format (\<V>, A) (\<V>', A')\<close> and
     cases:
-      \<open>\<And>p q p'  A \<V>. p \<in># A \<Longrightarrow> q \<in># A \<Longrightarrow> p+q - p' \<in> ideal polynom_bool \<Longrightarrow> vars p' \<subseteq> \<V> \<Longrightarrow> P \<V> A \<V> (add_mset p' A)\<close>
-      \<open>\<And>p q p' A \<V>. p \<in># A \<Longrightarrow> p*q - p' \<in> ideal polynom_bool \<Longrightarrow> vars p' \<subseteq> \<V> \<Longrightarrow> vars q \<subseteq> \<V> \<Longrightarrow>
+      \<open>\<And>p q p'  A \<V>. p \<in># A \<Longrightarrow> q \<in># A \<Longrightarrow> p+q - p' \<in> ideal polynomial_bool \<Longrightarrow> vars p' \<subseteq> \<V> \<Longrightarrow> P \<V> A \<V> (add_mset p' A)\<close>
+      \<open>\<And>p q p' A \<V>. p \<in># A \<Longrightarrow> p*q - p' \<in> ideal polynomial_bool \<Longrightarrow> vars p' \<subseteq> \<V> \<Longrightarrow> vars q \<subseteq> \<V> \<Longrightarrow>
         P \<V> A \<V> (add_mset p' A)\<close>
       \<open>\<And>p A \<V>. p \<in># A \<Longrightarrow> P \<V> A \<V> (A - {#p#})\<close>
       \<open>\<And>p' x r. 
-        (p')^2 - (p') \<in> ideal polynom_bool \<Longrightarrow> vars p' \<subseteq> \<V> \<Longrightarrow> 
+        (p')^2 - (p') \<in> ideal polynomial_bool \<Longrightarrow> vars p' \<subseteq> \<V> \<Longrightarrow> 
         x \<notin> \<V> \<Longrightarrow> P \<V> A (\<V> \<union> {x' \<in> vars (p' - Var x). x' \<notin> \<V>}) (add_mset (p' -Var x) A)\<close>
   shows
      \<open>P \<V> A \<V>' A'\<close>
@@ -181,11 +181,11 @@ lemma extensions_are_safe:
     \<open>\<Union> (vars ` set_mset A) \<subseteq> \<V>\<close> and
     p_x_coeff: \<open>coeff p (monomial (Suc 0) x') = 1\<close> and
     vars_q: \<open>vars q \<subseteq> \<V>\<close> and
-    q: \<open>q \<in> More_Modules.ideal (insert p (set_mset A \<union> polynom_bool))\<close> and
+    q: \<open>q \<in> More_Modules.ideal (insert p (set_mset A \<union> polynomial_bool))\<close> and
     leading: \<open>x' \<notin> vars (p - Var x')\<close> and
-    diff: \<open>(Var x' - p)\<^sup>2 - (Var x' - p) \<in> More_Modules.ideal polynom_bool\<close>
+    diff: \<open>(Var x' - p)\<^sup>2 - (Var x' - p) \<in> More_Modules.ideal polynomial_bool\<close>
   shows
-    \<open>q \<in> More_Modules.ideal (set_mset A \<union> polynom_bool)\<close>
+    \<open>q \<in> More_Modules.ideal (set_mset A \<union> polynomial_bool)\<close>
 proof -
   define p' where \<open>p' \<equiv> p - Var x'\<close>
   let ?v = \<open>Var x' :: int mpoly\<close>
@@ -194,7 +194,7 @@ proof -
   define q' where \<open>q' \<equiv> Var x' - p\<close>
   have q_q': \<open>p = ?v - q'\<close>
     by (auto simp: q'_def)
-  have diff: \<open>q'^2 - q' \<in> More_Modules.ideal polynom_bool\<close>
+  have diff: \<open>q'^2 - q' \<in> More_Modules.ideal polynomial_bool\<close>
     using diff unfolding q_q' by auto
 
   have [simp]: \<open>vars ((Var c)\<^sup>2 - Var c :: int mpoly) = {c}\<close> for c
@@ -208,7 +208,7 @@ proof -
     by (meson Suc_neq_Zero monomial_0D plus_eq_zero_2)
 
 
-  have eq: \<open>More_Modules.ideal (insert p (set_mset A \<union> polynom_bool)) =
+  have eq: \<open>More_Modules.ideal (insert p (set_mset A \<union> polynomial_bool)) =
       More_Modules.ideal (insert p (set_mset A \<union> (\<lambda>c. Var c ^ 2 - Var c) ` {c. c \<noteq> x'}))\<close>
       (is \<open>?A = ?B\<close> is \<open>_ = More_Modules.ideal ?trimmed\<close>)
   proof -
@@ -219,7 +219,7 @@ proof -
        obtain r t where
          q: \<open>?q = (\<Sum>a\<in>t. r a * a)\<close> and
          fin_t: \<open>finite t\<close> and
-         t: \<open>t \<subseteq> polynom_bool\<close>
+         t: \<open>t \<subseteq> polynomial_bool\<close>
          using diff unfolding ideal.span_explicit
          by auto
        show ?thesis
@@ -228,24 +228,24 @@ proof -
          then show \<open>?thesis\<close>
            using q fin_t t unfolding ideal.span_explicit
            by (auto intro!: exI[of _ \<open>t - {?v^2 -?v}\<close>] exI[of _ r]
-             simp: polynom_bool_def sum_diff1)
+             simp: polynomial_bool_def sum_diff1)
         next
           case False
           define t' where \<open>t' = t - {?v^2 - ?v}\<close>
           have t_t': \<open>t = insert (?v^2 - ?v) t'\<close> and
             notin: \<open>?v^2 - ?v \<notin> t'\<close> and
             \<open>t' \<subseteq> (\<lambda>c. Var c ^ 2 - Var c) ` {c. c \<noteq> x'}\<close>
-            using False t unfolding t'_def polynom_bool_def by auto
+            using False t unfolding t'_def polynomial_bool_def by auto
           have mon: \<open>monom (monomial (Suc 0) x') 1 = Var x'\<close>
             by (auto simp: coeff_def minus_mpoly.rep_eq Var_def Var\<^sub>0_def monom_def
               times_mpoly.rep_eq lookup_minus lookup_times_monomial_right mpoly.MPoly_inverse)
           then have \<open>\<forall>a. \<exists>g h. r a = ?v * g + h \<and> x' \<notin> vars h\<close>
-            using polynom_split_on_var[of \<open>r _\<close> x']
+            using polynomial_split_on_var[of \<open>r _\<close> x']
             by metis
           then obtain g h where
             r: \<open>r a = ?v * g a + h a\<close> and
             x'_h: \<open>x' \<notin> vars (h a)\<close> for a
-            using polynom_split_on_var[of \<open>r a\<close> x']
+            using polynomial_split_on_var[of \<open>r a\<close> x']
             by metis
           have  \<open>?q = ((\<Sum>a\<in>t'. g a * a) + r (?v^2-?v) * (?v - 1)) * ?v + (\<Sum>a\<in>t'. h a * a)\<close>
             using fin_t notin unfolding t_t' q r
@@ -257,26 +257,26 @@ proof -
               vars_in_right_only vars_mult)
           moreover {
             have \<open>x' \<notin> (\<Union>m\<in>t' - {?v^2-?v}. vars (h m * m))\<close>
-              using fin_t x'_h vars_mult[of \<open>h _\<close>] \<open>t \<subseteq> polynom_bool\<close>
-              by (auto simp: polynom_bool_def t_t' elim!: vars_unE)
+              using fin_t x'_h vars_mult[of \<open>h _\<close>] \<open>t \<subseteq> polynomial_bool\<close>
+              by (auto simp: polynomial_bool_def t_t' elim!: vars_unE)
             then have \<open>x' \<notin> vars (\<Sum>a\<in>t'. h a * a)\<close>
               using vars_setsum[of \<open>t'\<close> \<open>\<lambda>a. h a * a\<close>] fin_t x'_h t notin
               by (auto simp: t_t')
           }
           ultimately have \<open>?q = (\<Sum>a\<in>t'. h a * a)\<close>
             unfolding mon[symmetric]
-            by (rule polynom_decomp_alien_var(2)[unfolded])
+            by (rule polynomial_decomp_alien_var(2)[unfolded])
           then show ?thesis
             using t fin_t \<open>t' \<subseteq> (\<lambda>c. Var c ^ 2 - Var c) ` {c. c \<noteq> x'}\<close>
             unfolding ideal.span_explicit t_t'
             by auto
        qed
     qed
-    have eq1: \<open>More_Modules.ideal (insert p (set_mset A \<union> polynom_bool)) =
+    have eq1: \<open>More_Modules.ideal (insert p (set_mset A \<union> polynomial_bool)) =
       More_Modules.ideal (insert (?v^2 - ?v) ?C)\<close>
       (is \<open>More_Modules.ideal _ = More_Modules.ideal (insert _ ?C)\<close>)
       by (rule arg_cong[of _ _ More_Modules.ideal])
-       (auto simp: polynom_bool_def)
+       (auto simp: polynomial_bool_def)
     moreover have \<open>?v^2 - ?v \<in> More_Modules.ideal ?C\<close>
     proof -
       have \<open>?v - q' \<in> More_Modules.ideal ?C\<close>
@@ -348,12 +348,12 @@ proof -
     have
       q: \<open>q = (\<Sum>a\<in>t'. r a * a)\<close> and
      fin_t: \<open>finite t'\<close> and
-      t: \<open>t' \<subseteq> set_mset A \<union> polynom_bool\<close>
+      t: \<open>t' \<subseteq> set_mset A \<union> polynomial_bool\<close>
       using q fin_t t True t''
       apply (subst (asm) t')
       apply (auto intro: sum.cong simp: sum.insert_remove t'_def)
       using q fin_t t True t''
-      apply (auto intro: sum.cong simp: sum.insert_remove t'_def polynom_bool_def)
+      apply (auto intro: sum.cong simp: sum.insert_remove t'_def polynomial_bool_def)
       done
     then show ?thesis
       by (auto simp: ideal.span_explicit)
@@ -370,12 +370,12 @@ proof -
      by (auto simp:coeff_def minus_mpoly.rep_eq Var_def Var\<^sub>0_def monom_def
        times_mpoly.rep_eq lookup_minus lookup_times_monomial_right mpoly.MPoly_inverse)
    then have \<open>\<forall>a. \<exists>g h. r a = (?v + p') * g + h \<and> x' \<notin> vars h\<close>
-     using polynom_split_on_var2[of x' \<open>-p'\<close> \<open>r _\<close>]  \<open>x' \<notin> vars (- p')\<close>
+     using polynomial_split_on_var2[of x' \<open>-p'\<close> \<open>r _\<close>]  \<open>x' \<notin> vars (- p')\<close>
      by (metis diff_minus_eq_add)
    then obtain g h where
      r: \<open>r a = p * g a + h a\<close> and
      x'_h: \<open>x' \<notin> vars (h a)\<close> for a
-     using polynom_split_on_var2[of x' p' \<open>r a\<close>] unfolding p_p'[symmetric]
+     using polynomial_split_on_var2[of x' p' \<open>r a\<close>] unfolding p_p'[symmetric]
      by metis
 
 
@@ -399,7 +399,7 @@ proof -
      by (metis One_nat_def diff_is_0_eq' le_eq_less_or_eq less_Suc_eq_le monomial_0_iff single_diff zero_neq_one)
   have \<open>x \<in> t' \<Longrightarrow> x' \<in> vars x \<Longrightarrow> False\<close> for x
     using  \<open>t \<subseteq> ?trimmed\<close> t assms(2,3)
-    apply (auto simp: polynom_bool_def dest!: multi_member_split)
+    apply (auto simp: polynomial_bool_def dest!: multi_member_split)
     apply (frule set_rev_mp)
     apply assumption
     apply (auto dest!: multi_member_split)
@@ -429,7 +429,7 @@ proof -
     by auto
   then have \<open>?X = 0\<close> and q_decomp: \<open>q = ?NOx'\<close>
     unfolding mon[symmetric] p_p'
-    using polynom_decomp_alien_var2[OF q_decomp[unfolded p_p' mon[symmetric]]]
+    using polynomial_decomp_alien_var2[OF q_decomp[unfolded p_p' mon[symmetric]]]
     by auto
 
   then have \<open>r p = (\<Sum>a\<in>t'. (- g a) * a)\<close>
@@ -451,7 +451,7 @@ proof -
   then show \<open>?thesis\<close>
     using t fin_t \<open>t \<subseteq> ?trimmed\<close> unfolding ideal.span_explicit
     by (auto intro!: exI[of _ t'] exI[of _ \<open>\<lambda>a. r a - p * g a\<close>]
-      simp: field_simps polynom_bool_def)
+      simp: field_simps polynomial_bool_def)
   qed
 qed
 
@@ -461,13 +461,13 @@ lemma extensions_are_safe_uminus:
     \<open>\<Union> (vars ` set_mset A) \<subseteq> \<V>\<close> and
     p_x_coeff: \<open>coeff p (monomial (Suc 0) x') = -1\<close> and
     vars_q: \<open>vars q \<subseteq> \<V>\<close> and
-    q: \<open>q \<in> More_Modules.ideal (insert p (set_mset A \<union> polynom_bool))\<close> and
+    q: \<open>q \<in> More_Modules.ideal (insert p (set_mset A \<union> polynomial_bool))\<close> and
     leading: \<open>x' \<notin> vars (p + Var x')\<close> and
-    diff: \<open>(Var x' + p)^2 - (Var x' + p) \<in> More_Modules.ideal polynom_bool\<close>
+    diff: \<open>(Var x' + p)^2 - (Var x' + p) \<in> More_Modules.ideal polynomial_bool\<close>
   shows
-    \<open>q \<in> More_Modules.ideal (set_mset A \<union> polynom_bool)\<close>
+    \<open>q \<in> More_Modules.ideal (set_mset A \<union> polynomial_bool)\<close>
 proof -
-  have \<open>q \<in> More_Modules.ideal (insert (- p) (set_mset A \<union> polynom_bool))\<close>
+  have \<open>q \<in> More_Modules.ideal (insert (- p) (set_mset A \<union> polynomial_bool))\<close>
     by (metis ideal.span_breakdown_eq minus_mult_minus q)
 
   then show ?thesis
@@ -480,7 +480,7 @@ added to the ideal.\<close>
 
 lemma vars_subst_in_left_only:
   \<open>x \<notin> vars p \<Longrightarrow> x \<in> vars (p - Var x)\<close> for p :: \<open>int mpoly\<close>
-  by (metis One_nat_def Var.abs_eq Var\<^sub>0_def group_eq_aux in_vars_addE monom.abs_eq mult_numeral_1 polynom_decomp_alien_var(1) zero_neq_numeral)
+  by (metis One_nat_def Var.abs_eq Var\<^sub>0_def group_eq_aux in_vars_addE monom.abs_eq mult_numeral_1 polynomial_decomp_alien_var(1) zero_neq_numeral)
 
 lemma vars_subst_in_left_only_diff_iff:
   \<open>x \<notin> vars p \<Longrightarrow> vars (p - Var x) = insert x (vars p)\<close> for p :: \<open>int mpoly\<close>
@@ -505,8 +505,8 @@ lemma coeff_add_left_notin:
   apply (auto simp flip: coeff_minus simp: not_in_vars_coeff0)
   by (simp add: MPoly_Type.coeff_def Var.rep_eq Var\<^sub>0_def)
 
-lemma ideal_insert_polynom_bool_swap: \<open>r - s \<in> ideal polynom_bool \<Longrightarrow>
-  More_Modules.ideal (insert r  (A \<union> polynom_bool)) = More_Modules.ideal (insert s (A \<union> polynom_bool))\<close>
+lemma ideal_insert_polynomial_bool_swap: \<open>r - s \<in> ideal polynomial_bool \<Longrightarrow>
+  More_Modules.ideal (insert r  (A \<union> polynomial_bool)) = More_Modules.ideal (insert s (A \<union> polynomial_bool))\<close>
   apply auto
   using ideal.eq_span_insert_eq ideal.span_mono sup_ge2 apply blast+
   done
@@ -518,13 +518,13 @@ lemma PAC_Format_subset_ideal:
   apply (induction rule:PAC_Format_induct)
   subgoal for p q pq A \<V>
     using vars_add
-    by (force simp: ideal.span_add_eq ideal.span_base pac_ideal_insert_already_in[OF diff_in_polynom_bool_pac_idealI[of \<open>p + q\<close> \<open>_\<close> pq]]
+    by (force simp: ideal.span_add_eq ideal.span_base pac_ideal_insert_already_in[OF diff_in_polynomial_bool_pac_idealI[of \<open>p + q\<close> \<open>_\<close> pq]]
         pac_ideal_add
-      intro!: diff_in_polynom_bool_pac_idealI[of \<open>p + q\<close> \<open>_\<close> pq])
+      intro!: diff_in_polynomial_bool_pac_idealI[of \<open>p + q\<close> \<open>_\<close> pq])
   subgoal for p q pq
     using vars_mult[of p q]
     by (force simp: ideal.span_add_eq ideal.span_base pac_ideal_mult
-      pac_ideal_insert_already_in[OF diff_in_polynom_bool_pac_idealI[of \<open>p*q\<close> \<open>_\<close> pq]])
+      pac_ideal_insert_already_in[OF diff_in_polynomial_bool_pac_idealI[of \<open>p*q\<close> \<open>_\<close> pq]])
   subgoal for p A
     using pac_ideal_mono[of \<open>set_mset (A - {#p#})\<close> \<open>set_mset A\<close>]
     by (auto dest: in_diffD)

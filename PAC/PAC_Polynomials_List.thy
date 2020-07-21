@@ -2,13 +2,13 @@ theory PAC_Polynomials_List
   imports PAC_Polynomials
 begin
 
-type_synonym list_polynom =
+type_synonym list_polynomial =
   \<open>(term_poly * int) list\<close>
 
-type_synonym list_polynom_order =
+type_synonym list_polynomial_order =
   \<open>term_poly \<Rightarrow> term_poly \<Rightarrow> bool\<close>
 
-definition normalized_poly_l :: \<open>list_polynom_order \<Rightarrow> list_polynom \<Rightarrow> bool\<close> where
+definition normalized_poly_l :: \<open>list_polynomial_order \<Rightarrow> list_polynomial \<Rightarrow> bool\<close> where
   \<open>normalized_poly_l R xs \<longleftrightarrow>
     normalized_poly (mset xs) \<and>
     sorted_wrt R (map fst xs)\<close>
@@ -23,7 +23,7 @@ lemma normalized_poly_l_simps[simp]:
   unfolding normalized_poly_l_def normalized_poly_def
   by auto
 
-fun merge_coeffs :: \<open>list_polynom \<Rightarrow> list_polynom\<close> where
+fun merge_coeffs :: \<open>list_polynomial \<Rightarrow> list_polynomial\<close> where
   \<open>merge_coeffs [] = []\<close> |
   \<open>merge_coeffs [(xs, n)] = [(xs, n)]\<close> |
   \<open>merge_coeffs ((xs, n) # (ys, m) # p) =
@@ -32,18 +32,18 @@ fun merge_coeffs :: \<open>list_polynom \<Rightarrow> list_polynom\<close> where
     else (xs, n) # merge_coeffs ((ys, m) # p))\<close>
 
 
-abbreviation  (in -)mononoms_l :: \<open>list_polynom \<Rightarrow> term_poly list\<close> where
+abbreviation  (in -)mononoms_l :: \<open>list_polynomial \<Rightarrow> term_poly list\<close> where
   \<open>mononoms_l p \<equiv> map fst p\<close>
 
-abbreviation  (in -)mononoms :: \<open>list_polynom \<Rightarrow> term_poly set\<close> where
+abbreviation  (in -)mononoms :: \<open>list_polynomial \<Rightarrow> term_poly set\<close> where
   \<open>mononoms p \<equiv> fst `set p\<close>
 
-lemma fst_normalize_polynom_subset:
+lemma fst_normalize_polynomial_subset:
   \<open>mononoms (merge_coeffs p) \<subseteq> mononoms p\<close>
   by (induction p rule: merge_coeffs.induct)  auto
 
 
-lemma fst_normalize_polynom_Cons_subset[simp]:
+lemma fst_normalize_polynomial_Cons_subset[simp]:
   \<open>mononoms (merge_coeffs p) = mononoms p\<close>
   apply (induction p rule: merge_coeffs.induct)
   subgoal
@@ -63,7 +63,7 @@ lemma distinct_merge_coeffs:
 
 
 
-fun remove_empty_coeffs :: \<open>list_polynom \<Rightarrow> list_polynom\<close> where
+fun remove_empty_coeffs :: \<open>list_polynomial \<Rightarrow> list_polynomial\<close> where
   \<open>remove_empty_coeffs [] = []\<close> |
   \<open>remove_empty_coeffs ((xs, n) # p) =
     (if n \<noteq> 0 then [(xs, n)] else []) @ remove_empty_coeffs p\<close>
@@ -84,10 +84,10 @@ definition normalize_poly where
   \<open>normalize_poly p = remove_empty_coeffs (merge_coeffs p)\<close>
 
 context
-  fixes R :: \<open>list_polynom_order\<close>
+  fixes R :: \<open>list_polynomial_order\<close>
 begin
 
-fun add_poly :: \<open>list_polynom \<Rightarrow> list_polynom \<Rightarrow> list_polynom\<close> where
+fun add_poly :: \<open>list_polynomial \<Rightarrow> list_polynomial \<Rightarrow> list_polynomial\<close> where
   \<open>add_poly [] p = p\<close> |
   \<open>add_poly p [] = p\<close> |
   \<open>add_poly ((xs, n) # p) ((ys, m) # q) =
@@ -147,14 +147,14 @@ lemma normalized_poly_l_add_poly:
   done
 end
 
-fun mult_poly_raw_l :: \<open>list_polynom \<Rightarrow> list_polynom \<Rightarrow> list_polynom\<close> where
+fun mult_poly_raw_l :: \<open>list_polynomial \<Rightarrow> list_polynomial \<Rightarrow> list_polynomial\<close> where
   \<open>mult_poly_raw_l [] p = []\<close> |
   \<open>mult_poly_raw_l p [] = []\<close> |
   \<open>mult_poly_raw_l ((xs, m) # p) q =
      map (\<lambda>(ys, n). (xs + ys, n * m)) q @
      mult_poly_raw_l p q\<close>
 
-definition mult_poly_l :: \<open>list_polynom \<Rightarrow> list_polynom \<Rightarrow> list_polynom\<close> where
+definition mult_poly_l :: \<open>list_polynomial \<Rightarrow> list_polynomial \<Rightarrow> list_polynomial\<close> where
   \<open>mult_poly_l xs ys = normalize_poly (mult_poly_raw_l xs ys)\<close>
 
 lemma mult_poly_raw_l_mult_poly_raw:
@@ -167,75 +167,75 @@ lemma mult_poly_raw_l_mult_poly_raw:
 context poly_embed
 begin
 
-fun polynom_of_list :: \<open>list_polynom \<Rightarrow> _\<close> where
-  \<open>polynom_of_list [] = Const 0\<close> |
-  \<open>polynom_of_list ((xs, n) # p) =
-     Const n * poly_of_vars xs + polynom_of_list p\<close>
+fun polynomial_of_list :: \<open>list_polynomial \<Rightarrow> _\<close> where
+  \<open>polynomial_of_list [] = Const 0\<close> |
+  \<open>polynomial_of_list ((xs, n) # p) =
+     Const n * poly_of_vars xs + polynomial_of_list p\<close>
 
-lemma polynom_of_list_alt_def[simp]:
-  \<open>polynom_of_list xs = polynom_of_mset (mset xs)\<close>
+lemma polynomial_of_list_alt_def[simp]:
+  \<open>polynomial_of_list xs = polynomial_of_mset (mset xs)\<close>
   by (induction xs) (auto)
 
-declare polynom_of_list.simps[simp del]
+declare polynomial_of_list.simps[simp del]
 
-lemma polynom_of_list_cong:
-  \<open>mset xs = mset ys \<Longrightarrow> polynom_of_list xs = polynom_of_list ys\<close>
+lemma polynomial_of_list_cong:
+  \<open>mset xs = mset ys \<Longrightarrow> polynomial_of_list xs = polynomial_of_list ys\<close>
   by auto
 
 
-lemma polynom_of_list_merge_coeffs[simp]:
-  \<open>polynom_of_list (merge_coeffs xs) = polynom_of_list xs\<close>
+lemma polynomial_of_list_merge_coeffs[simp]:
+  \<open>polynomial_of_list (merge_coeffs xs) = polynomial_of_list xs\<close>
   by (induction xs rule: merge_coeffs.induct)
     (auto simp: Const_add algebra_simps)
 
-lemma polynom_of_list_remove_empty_coeffs[simp]:
-  \<open>polynom_of_list (remove_empty_coeffs xs) = polynom_of_list xs\<close>
+lemma polynomial_of_list_remove_empty_coeffs[simp]:
+  \<open>polynomial_of_list (remove_empty_coeffs xs) = polynomial_of_list xs\<close>
   by (induction xs)
     (auto simp: Const_add Const_def algebra_simps)
 
 
 
-lemma polynom_of_list_map_mult:
-  \<open>polynom_of_list (map (\<lambda>(ys, n). (ys + x, f n)) va) =
+lemma polynomial_of_list_map_mult:
+  \<open>polynomial_of_list (map (\<lambda>(ys, n). (ys + x, f n)) va) =
      poly_of_vars x *
-     polynom_of_list (map (\<lambda>(ys, n). (ys, f n)) va)\<close>
+     polynomial_of_list (map (\<lambda>(ys, n). (ys, f n)) va)\<close>
   by (induction va)
    (auto simp: Const_add algebra_simps)
 
-lemma polynom_of_list_map_mult2:
-  \<open>polynom_of_list (map (\<lambda>(ys, n). (ys, n * m)) va) =
+lemma polynomial_of_list_map_mult2:
+  \<open>polynomial_of_list (map (\<lambda>(ys, n). (ys, n * m)) va) =
      Const m *
-     polynom_of_list (map (\<lambda>(ys, n). (ys, n)) va)\<close>
+     polynomial_of_list (map (\<lambda>(ys, n). (ys, n)) va)\<close>
   by (induction va)
     (auto simp: Const_add algebra_simps Const_mult)
 
-lemma polynom_of_list_mult_mult_poly_raw_l[simp]:
-  \<open>polynom_of_list (mult_poly_raw_l xs ys) = polynom_of_list xs * polynom_of_list ys\<close>
+lemma polynomial_of_list_mult_mult_poly_raw_l[simp]:
+  \<open>polynomial_of_list (mult_poly_raw_l xs ys) = polynomial_of_list xs * polynomial_of_list ys\<close>
   by (auto simp: mult_poly_raw_l_mult_poly_raw)
 
-lemma polynom_of_mset_remove_empty_coeffs[simp]:
-  \<open>polynom_of_mset (mset (remove_empty_coeffs xs)) =
-            polynom_of_mset (mset xs)\<close>
+lemma polynomial_of_mset_remove_empty_coeffs[simp]:
+  \<open>polynomial_of_mset (mset (remove_empty_coeffs xs)) =
+            polynomial_of_mset (mset xs)\<close>
   by (induction xs) auto
 
 
-lemma polynom_of_mset_merge_coeffs[simp]:
-  \<open>polynom_of_mset (mset (merge_coeffs xs)) =
-            polynom_of_mset (mset xs)\<close>
+lemma polynomial_of_mset_merge_coeffs[simp]:
+  \<open>polynomial_of_mset (mset (merge_coeffs xs)) =
+            polynomial_of_mset (mset xs)\<close>
   apply (induction xs)
   apply auto
-  using polynom_of_list_merge_coeffs by auto
+  using polynomial_of_list_merge_coeffs by auto
 
 
-lemma polynom_of_list_normalize_poly[simp]:
-  \<open>polynom_of_list (normalize_poly xs) = polynom_of_list xs\<close>
+lemma polynomial_of_list_normalize_poly[simp]:
+  \<open>polynomial_of_list (normalize_poly xs) = polynomial_of_list xs\<close>
   by (auto simp: normalize_poly_def)
 
 
-lemma polynom_of_list_mult_poly[simp]:
-  \<open>polynom_of_list (mult_poly_l xs ys) = polynom_of_list xs * polynom_of_list ys\<close>
-  unfolding mult_poly_l_def polynom_of_list_normalize_poly
-    polynom_of_list_mult_mult_poly_raw_l
+lemma polynomial_of_list_mult_poly[simp]:
+  \<open>polynomial_of_list (mult_poly_l xs ys) = polynomial_of_list xs * polynomial_of_list ys\<close>
+  unfolding mult_poly_l_def polynomial_of_list_normalize_poly
+    polynomial_of_list_mult_mult_poly_raw_l
   ..
 
 end

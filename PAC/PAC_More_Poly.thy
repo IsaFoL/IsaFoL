@@ -6,7 +6,7 @@ begin
 
 section \<open>Libraries\<close>
 
-subsection \<open>More Polynoms\<close>
+subsection \<open>More Polynomials\<close>
 
 text \<open>
 
@@ -127,7 +127,7 @@ lemma vars_Un_nointer:
 
 lemmas [simp] = zero_mpoly.rep_eq
 
-lemma polynom_sum_monoms:
+lemma polynomial_sum_monoms:
   fixes p :: \<open>'a :: {comm_monoid_add,cancel_comm_monoid_add} mpoly\<close>
   shows
      \<open>p = (\<Sum>x\<in>keys (mapping_of p). MPoly_Type.monom x (MPoly_Type.coeff p x))\<close>
@@ -179,7 +179,7 @@ proof -
   let ?v = \<open>monom (monomial (Suc 0) x') 1\<close>
   have
     p: \<open>p = (\<Sum>x\<in>keys (mapping_of p). MPoly_Type.monom x (MPoly_Type.coeff p x))\<close> (is \<open>_ = (\<Sum>x \<in> ?I. ?f x)\<close>)
-    using polynom_sum_monoms(1)[of p] .
+    using polynomial_sum_monoms(1)[of p] .
   have pv: \<open>p * ?v = (\<Sum>x \<in> ?I. ?f x * ?v)\<close>
     by (subst p) (auto simp:  field_simps sum_distrib_left)
   define I where \<open>I \<equiv> ?I\<close>
@@ -330,7 +330,7 @@ lemma remove_key_lookup:
   apply (auto intro: finite_subset[of _ \<open>{x. lookup f x \<noteq> 0}\<close>])
   done
 
-lemma polynom_split_on_var:
+lemma polynomial_split_on_var:
   fixes p :: \<open>'a :: {comm_monoid_add,cancel_comm_monoid_add,semiring_0,comm_semiring_1} mpoly\<close>
   obtains q r where
     \<open>p = monom (monomial (Suc 0) x') 1 * q + r\<close> and
@@ -341,7 +341,7 @@ proof -
     by auto
   have
     \<open>p = (\<Sum>x\<in>keys (mapping_of p). MPoly_Type.monom x (MPoly_Type.coeff p x))\<close> (is \<open>_ = (\<Sum>x \<in> ?I. ?f x)\<close>)
-    using polynom_sum_monoms(1)[of p] .
+    using polynomial_sum_monoms(1)[of p] .
   also have \<open>... = (\<Sum>x\<in> {x \<in> ?I. x' \<in> keys x}. ?f x) + (\<Sum>x\<in> {x \<in> ?I. x' \<notin> keys x}. ?f x)\<close> (is \<open>_ = ?pX + ?qX\<close>)
     by (subst comm_monoid_add_class.sum.union_disjoint[symmetric]) auto
   finally have 1: \<open>p = ?pX + ?qX\<close> .
@@ -380,7 +380,7 @@ proof -
 qed
 
 
-lemma polynom_split_on_var2:
+lemma polynomial_split_on_var2:
   fixes p :: \<open>int mpoly\<close>
   assumes \<open>x' \<notin> vars s\<close>
   obtains q r where
@@ -416,7 +416,7 @@ proof -
        obtain A B where
          P: \<open>P = Var x' * A + B\<close> and
          \<open>x' \<notin> vars B\<close>
-         using polynom_split_on_var[of P x'] unfolding eq by blast
+         using polynomial_split_on_var[of P x'] unfolding eq by blast
        have P': \<open>P = (Var x' - s) * A + (s * A + B)\<close>
          by (auto simp: field_simps P)
        have \<open>A = 0 \<or> degree (s * A) x' < degree P x'\<close>
@@ -444,7 +444,7 @@ proof -
     by blast
 qed
 
-lemma polynom_split_on_var_diff_sq2:
+lemma polynomial_split_on_var_diff_sq2:
  fixes p :: \<open>int mpoly\<close>
   obtains q r s where
     \<open>p = monom (monomial (Suc 0) x') 1 * q + r + s * (monom (monomial (Suc 0) x') 1^2 - monom (monomial (Suc 0) x') 1)\<close> and
@@ -498,7 +498,7 @@ proof -
     by (simp add: qr[symmetric] Var_def Var\<^sub>0_def monom.abs_eq[symmetric] cong: if_cong)
 
   have q: \<open>p = (\<Sum>x\<in>keys (mapping_of p). MPoly_Type.monom x (MPoly_Type.coeff p x))\<close>
-    by (rule polynom_sum_monoms(1)[of p])
+    by (rule polynomial_sum_monoms(1)[of p])
   have [simp]:
     \<open>lookup x x' = 0 \<Longrightarrow>
     Abs_poly_mapping (\<lambda>k. lookup x k when k \<noteq> x') = x\<close> for x
@@ -600,7 +600,7 @@ proof -
     done
 qed
 
-lemma polynom_decomp_alien_var:
+lemma polynomial_decomp_alien_var:
   fixes q A b :: \<open>int mpoly\<close>
   assumes
     q: \<open>q = A * (monom (monomial (Suc 0) x') 1) + b\<close> and
@@ -627,7 +627,7 @@ proof -
     using q by auto
 qed
 
-lemma polynom_decomp_alien_var2:
+lemma polynomial_decomp_alien_var2:
   fixes q A b :: \<open>int mpoly\<close>
   assumes
     q: \<open>q = A * (monom (monomial (Suc 0) x') 1 + p) + b\<close> and
@@ -640,7 +640,7 @@ proof -
   have x'[simp]: \<open>?x = Var x'\<close>
     by (simp add: Var.abs_eq Var\<^sub>0_def monom.abs_eq)
   have \<open>\<exists>n Ax A'. A = ?x * Ax + A' \<and> x' \<notin> vars A' \<and> degree Ax x' = n\<close>
-    using polynom_split_on_var[of A x'] by metis
+    using polynomial_split_on_var[of A x'] by metis
   from wellorder_class.exists_least_iff[THEN iffD1, OF this] obtain Ax A' n where
     A: \<open>A = Ax * ?x + A'\<close> and
     \<open>x' \<notin> vars A'\<close> and
@@ -658,7 +658,7 @@ proof -
     using x \<open>x' \<notin> vars A'\<close> apply (auto elim!: )
     by (smt UnE add.assoc add.commute calculation subset_iff vars_in_right_only vars_mult)
   ultimately have \<open>A + Ax * p = 0\<close> \<open>q = p * A' + b\<close>
-    by (rule polynom_decomp_alien_var)+
+    by (rule polynomial_decomp_alien_var)+
 
   have A': \<open>A' = -Ax * ?x - Ax * p\<close>
     using \<open>A + Ax * p = 0\<close> unfolding A
@@ -672,7 +672,7 @@ proof -
   obtain Axx Ax' where
     Ax: \<open>Ax = ?x * Axx + Ax'\<close> and
     \<open>x' \<notin> vars Ax'\<close>
-    using polynom_split_on_var[of Ax x'] by metis
+    using polynomial_split_on_var[of Ax x'] by metis
 
   have \<open>A = ?x * (- Axx * p) + (- Ax' * p)\<close>
     unfolding \<open>A = - (Ax * p)\<close> Ax
@@ -692,7 +692,7 @@ proof -
     using Ax by auto
 
   show \<open>A = 0\<close>
-    using A \<open>A = - (Ax * p)\<close> \<open>x' \<notin> vars (- Ax' * p)\<close> \<open>x' \<notin> vars A'\<close> polynom_decomp_alien_var(1) by force
+    using A \<open>A = - (Ax * p)\<close> \<open>x' \<notin> vars (- Ax' * p)\<close> \<open>x' \<notin> vars A'\<close> polynomial_decomp_alien_var(1) by force
   then show \<open>q = b\<close>
     using q by auto
 qed

@@ -73,31 +73,31 @@ where
 
 
 definition normalize_poly_spec :: \<open>_\<close> where
-  \<open>normalize_poly_spec p = SPEC (\<lambda>r. p - r \<in> ideal polynom_bool \<and> vars r \<subseteq> vars p)\<close>
+  \<open>normalize_poly_spec p = SPEC (\<lambda>r. p - r \<in> ideal polynomial_bool \<and> vars r \<subseteq> vars p)\<close>
 
 lemma normalize_poly_spec_alt_def:
-  \<open>normalize_poly_spec p = SPEC (\<lambda>r. r - p \<in> ideal polynom_bool \<and> vars r \<subseteq> vars p)\<close>
+  \<open>normalize_poly_spec p = SPEC (\<lambda>r. r - p \<in> ideal polynomial_bool \<and> vars r \<subseteq> vars p)\<close>
   unfolding normalize_poly_spec_def
   by (auto dest: ideal.span_neg)
 
 definition mult_poly_spec :: \<open>int mpoly \<Rightarrow> int mpoly \<Rightarrow> int mpoly nres\<close> where
-  \<open>mult_poly_spec p q = SPEC (\<lambda>r. p * q - r \<in> ideal polynom_bool)\<close>
+  \<open>mult_poly_spec p q = SPEC (\<lambda>r. p * q - r \<in> ideal polynomial_bool)\<close>
 
 definition check_add :: \<open>(nat, int mpoly) fmap \<Rightarrow> nat set \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> int mpoly \<Rightarrow> bool nres\<close> where
   \<open>check_add A \<V> p q i r =
      SPEC(\<lambda>b. b \<longrightarrow> p \<in># dom_m A \<and> q \<in># dom_m A \<and> i \<notin># dom_m A \<and> vars r \<subseteq> \<V> \<and>
-            the (fmlookup A p) + the (fmlookup A q) - r \<in>  ideal polynom_bool)\<close>
+            the (fmlookup A p) + the (fmlookup A q) - r \<in>  ideal polynomial_bool)\<close>
 
 definition check_mult :: \<open>(nat, int mpoly) fmap \<Rightarrow> nat set \<Rightarrow> nat \<Rightarrow> int mpoly \<Rightarrow> nat \<Rightarrow> int mpoly \<Rightarrow> bool nres\<close> where
   \<open>check_mult A \<V> p q i r =
      SPEC(\<lambda>b. b \<longrightarrow> p \<in># dom_m A \<and>i \<notin># dom_m A \<and> vars q \<subseteq> \<V> \<and> vars r \<subseteq> \<V> \<and>
-            the (fmlookup A p) * q - r \<in>  ideal polynom_bool)\<close>
+            the (fmlookup A p) * q - r \<in>  ideal polynomial_bool)\<close>
 
 definition check_extension :: \<open>(nat, int mpoly) fmap \<Rightarrow> nat set \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> int mpoly \<Rightarrow> (bool) nres\<close> where
   \<open>check_extension A \<V> i v p =
      SPEC(\<lambda>b. b \<longrightarrow> (i \<notin># dom_m A \<and>
      (v \<notin> \<V> \<and>
-           (p+Var v)\<^sup>2 - (p+Var v) \<in> ideal polynom_bool \<and>
+           (p+Var v)\<^sup>2 - (p+Var v) \<in> ideal polynomial_bool \<and>
             vars (p+Var v) \<subseteq> \<V>)))\<close>
 
 fun merge_status where
@@ -125,7 +125,7 @@ where
        do {
          r \<leftarrow> normalize_poly_spec (pac_res st);
         eq \<leftarrow> check_add A \<V> (pac_src1 st) (pac_src2 st) (new_id st) r;
-        st' \<leftarrow> SPEC(\<lambda>st'. (\<not>is_failed st' \<and> is_found st' \<longrightarrow> r - spec \<in> ideal polynom_bool));
+        st' \<leftarrow> SPEC(\<lambda>st'. (\<not>is_failed st' \<and> is_found st' \<longrightarrow> r - spec \<in> ideal polynomial_bool));
         if eq
         then RETURN (merge_status stat st',
           \<V>, fmupd (new_id st) r A)
@@ -143,7 +143,7 @@ where
          r \<leftarrow> normalize_poly_spec (pac_res st);
          q \<leftarrow> normalize_poly_spec (pac_mult st);
         eq \<leftarrow> check_mult A \<V> (pac_src1 st) q (new_id st) r;
-        st' \<leftarrow> SPEC(\<lambda>st'. (\<not>is_failed st' \<and> is_found st' \<longrightarrow> r - spec \<in> ideal polynom_bool));
+        st' \<leftarrow> SPEC(\<lambda>st'. (\<not>is_failed st' \<and> is_found st' \<longrightarrow> r - spec \<in> ideal polynomial_bool));
         if eq
         then RETURN (merge_status stat st',
           \<V>, fmupd (new_id st) r A)
@@ -195,40 +195,40 @@ lemma polys_rel_in_dom_inD:
   by (auto simp: polys_rel_def)
 
 lemma PAC_Format_add_and_remove:
-  \<open>r - x14 \<in> More_Modules.ideal polynom_bool \<Longrightarrow>
+  \<open>r - x14 \<in> More_Modules.ideal polynomial_bool \<Longrightarrow>
        (A, B) \<in> polys_rel \<Longrightarrow>
        x12 \<in># dom_m A \<Longrightarrow>
        x13 \<notin># dom_m A \<Longrightarrow>
        vars r \<subseteq> \<V> \<Longrightarrow>
-       2 * the (fmlookup A x12) - r \<in> More_Modules.ideal polynom_bool \<Longrightarrow>
+       2 * the (fmlookup A x12) - r \<in> More_Modules.ideal polynomial_bool \<Longrightarrow>
        PAC_Format\<^sup>*\<^sup>* (\<V>, B) (\<V>, remove1_mset (the (fmlookup A x12)) (add_mset r B))\<close>
-   \<open>r - x14 \<in> More_Modules.ideal polynom_bool \<Longrightarrow>
+   \<open>r - x14 \<in> More_Modules.ideal polynomial_bool \<Longrightarrow>
        (A, B) \<in> polys_rel \<Longrightarrow>
-       the (fmlookup A x11) + the (fmlookup A x12) - r \<in> More_Modules.ideal polynom_bool \<Longrightarrow>
+       the (fmlookup A x11) + the (fmlookup A x12) - r \<in> More_Modules.ideal polynomial_bool \<Longrightarrow>
        x11 \<in># dom_m A \<Longrightarrow>
        x12 \<in># dom_m A \<Longrightarrow>
        vars r \<subseteq> \<V> \<Longrightarrow>
        PAC_Format\<^sup>*\<^sup>* (\<V>, B) (\<V>, add_mset r B)\<close>
-   \<open>r - x14 \<in> More_Modules.ideal polynom_bool \<Longrightarrow>
+   \<open>r - x14 \<in> More_Modules.ideal polynomial_bool \<Longrightarrow>
        (A, B) \<in> polys_rel \<Longrightarrow>
        x11 \<in># dom_m A \<Longrightarrow>
        x12 \<in># dom_m A \<Longrightarrow>
-       the (fmlookup A x11) + the (fmlookup A x12) - r \<in> More_Modules.ideal polynom_bool \<Longrightarrow>
+       the (fmlookup A x11) + the (fmlookup A x12) - r \<in> More_Modules.ideal polynomial_bool \<Longrightarrow>
        vars r \<subseteq> \<V> \<Longrightarrow>
        x11 \<noteq> x12 \<Longrightarrow>
        PAC_Format\<^sup>*\<^sup>* (\<V>, B)
         (\<V>, add_mset r B - {#the (fmlookup A x11), the (fmlookup A x12)#})\<close>
    \<open>(A, B) \<in> polys_rel \<Longrightarrow>
-       r - x34 \<in> More_Modules.ideal polynom_bool \<Longrightarrow>
+       r - x34 \<in> More_Modules.ideal polynomial_bool \<Longrightarrow>
        x11 \<in># dom_m A \<Longrightarrow>
-       the (fmlookup A x11) * x32 - r \<in> More_Modules.ideal polynom_bool \<Longrightarrow>
+       the (fmlookup A x11) * x32 - r \<in> More_Modules.ideal polynomial_bool \<Longrightarrow>
        vars x32 \<subseteq> \<V> \<Longrightarrow>
        vars r \<subseteq> \<V> \<Longrightarrow>
        PAC_Format\<^sup>*\<^sup>* (\<V>, B) (\<V>, add_mset r B)\<close>
    \<open>(A, B) \<in> polys_rel \<Longrightarrow>
-       r - x34 \<in> More_Modules.ideal polynom_bool \<Longrightarrow>
+       r - x34 \<in> More_Modules.ideal polynomial_bool \<Longrightarrow>
        x11 \<in># dom_m A \<Longrightarrow>
-       the (fmlookup A x11) * x32 - r \<in> More_Modules.ideal polynom_bool \<Longrightarrow>
+       the (fmlookup A x11) * x32 - r \<in> More_Modules.ideal polynomial_bool \<Longrightarrow>
        vars x32 \<subseteq> \<V> \<Longrightarrow>
        vars r \<subseteq> \<V> \<Longrightarrow>
        PAC_Format\<^sup>*\<^sup>* (\<V>, B) (\<V>, remove1_mset (the (fmlookup A x11)) (add_mset r B))\<close>
@@ -236,7 +236,7 @@ lemma PAC_Format_add_and_remove:
        x12 \<in># dom_m A \<Longrightarrow>
        PAC_Format\<^sup>*\<^sup>* (\<V>, B) (\<V>, remove1_mset (the (fmlookup A x12)) B)\<close>
    \<open>(A, B) \<in> polys_rel \<Longrightarrow>
-       (p' + Var x)\<^sup>2 - (p' + Var x) \<in> ideal polynom_bool \<Longrightarrow>
+       (p' + Var x)\<^sup>2 - (p' + Var x) \<in> ideal polynomial_bool \<Longrightarrow>
        x \<notin> \<V> \<Longrightarrow>
        x \<notin> vars(p' + Var x) \<Longrightarrow>
        vars(p' + Var x) \<subseteq> \<V> \<Longrightarrow>
@@ -355,49 +355,49 @@ proof -
     using AB
     by (auto simp: polys_rel_full_def)
   have H1: \<open> x12 \<in># dom_m A \<Longrightarrow>
-       2 * the (fmlookup A x12) - r \<in> More_Modules.ideal polynom_bool \<Longrightarrow>
-       r - spec \<in> More_Modules.ideal polynom_bool \<Longrightarrow>
+       2 * the (fmlookup A x12) - r \<in> More_Modules.ideal polynomial_bool \<Longrightarrow>
+       r - spec \<in> More_Modules.ideal polynomial_bool \<Longrightarrow>
        vars spec \<subseteq> vars r \<Longrightarrow>
        spec \<in> pac_ideal (set_mset B)\<close> for x12 r
      using \<open>(A,B) \<in> polys_rel\<close>
       ideal.span_add[OF ideal.span_add[OF ideal.span_neg ideal.span_neg,
          of \<open>the (fmlookup A x12)\<close> _  \<open>the (fmlookup A x12)\<close>],
-      of \<open>set_mset B \<union> polynom_bool\<close> \<open>2 * the (fmlookup A x12) - r\<close>]
+      of \<open>set_mset B \<union> polynomial_bool\<close> \<open>2 * the (fmlookup A x12) - r\<close>]
      unfolding polys_rel_def
      apply (subgoal_tac \<open>r \<in> pac_ideal (set_mset B)\<close>)
-     apply (auto dest!: multi_member_split simp: ran_m_def intro: diff_in_polynom_bool_pac_idealI)
-     by (metis (no_types, lifting) ab_semigroup_mult_class.mult.commute diff_in_polynom_bool_pac_idealI
+     apply (auto dest!: multi_member_split simp: ran_m_def intro: diff_in_polynomial_bool_pac_idealI)
+     by (metis (no_types, lifting) ab_semigroup_mult_class.mult.commute diff_in_polynomial_bool_pac_idealI
        ideal.span_base pac_idealI3 set_image_mset set_mset_add_mset_insert union_single_eq_member)
 
   have H2: \<open>x11 \<in># dom_m A \<Longrightarrow>
        x12 \<in># dom_m A \<Longrightarrow>
        the (fmlookup A x11) + the (fmlookup A x12) - r
-       \<in> More_Modules.ideal polynom_bool \<Longrightarrow>
-       r - spec \<in> More_Modules.ideal polynom_bool \<Longrightarrow>
+       \<in> More_Modules.ideal polynomial_bool \<Longrightarrow>
+       r - spec \<in> More_Modules.ideal polynomial_bool \<Longrightarrow>
        spec \<in> pac_ideal (set_mset B)\<close>  for x12 r x11
      using \<open>(A,B) \<in> polys_rel\<close>
       ideal.span_add[OF ideal.span_add[OF ideal.span_neg ideal.span_neg,
          of \<open>the (fmlookup A x11)\<close> _  \<open>the (fmlookup A x12)\<close>],
-      of \<open>set_mset B \<union> polynom_bool\<close> \<open>the (fmlookup A x11) + the (fmlookup A x12) - r\<close>]
+      of \<open>set_mset B \<union> polynomial_bool\<close> \<open>the (fmlookup A x11) + the (fmlookup A x12) - r\<close>]
      unfolding polys_rel_def
     apply (subgoal_tac \<open>r \<in> pac_ideal (set_mset B)\<close>)
-     apply (auto dest!: multi_member_split simp: ran_m_def ideal.span_base intro: diff_in_polynom_bool_pac_idealI)
-     by (metis (mono_tags, lifting) Un_insert_left diff_diff_eq2 diff_in_polynom_bool_pac_idealI diff_zero
+     apply (auto dest!: multi_member_split simp: ran_m_def ideal.span_base intro: diff_in_polynomial_bool_pac_idealI)
+     by (metis (mono_tags, lifting) Un_insert_left diff_diff_eq2 diff_in_polynomial_bool_pac_idealI diff_zero
        ideal.span_diff ideal.span_neg minus_diff_eq pac_idealI1 pac_ideal_def set_image_mset
        set_mset_add_mset_insert union_single_eq_member)
 
   have H3: \<open>x12 \<in># dom_m A \<Longrightarrow>
-       the (fmlookup A x12) * q - r \<in> More_Modules.ideal polynom_bool \<Longrightarrow>
-       r - spec \<in> More_Modules.ideal polynom_bool \<Longrightarrow>
+       the (fmlookup A x12) * q - r \<in> More_Modules.ideal polynomial_bool \<Longrightarrow>
+       r - spec \<in> More_Modules.ideal polynomial_bool \<Longrightarrow>
        spec \<in> pac_ideal (set_mset B)\<close> for x12 r q
      using \<open>(A,B) \<in> polys_rel\<close>
       ideal.span_add[OF ideal.span_add[OF ideal.span_neg ideal.span_neg,
          of \<open>the (fmlookup A x12)\<close> _  \<open>the (fmlookup A x12)\<close>],
-      of \<open>set_mset B \<union> polynom_bool\<close> \<open>2 * the (fmlookup A x12) - r\<close>]
+      of \<open>set_mset B \<union> polynomial_bool\<close> \<open>2 * the (fmlookup A x12) - r\<close>]
      unfolding polys_rel_def
      apply (subgoal_tac \<open>r \<in> pac_ideal (set_mset B)\<close>)
-     apply (auto dest!: multi_member_split simp: ran_m_def intro: diff_in_polynom_bool_pac_idealI)
-     by (metis (no_types, lifting) ab_semigroup_mult_class.mult.commute diff_in_polynom_bool_pac_idealI
+     apply (auto dest!: multi_member_split simp: ran_m_def intro: diff_in_polynomial_bool_pac_idealI)
+     by (metis (no_types, lifting) ab_semigroup_mult_class.mult.commute diff_in_polynomial_bool_pac_idealI
        ideal.span_base pac_idealI3 set_image_mset set_mset_add_mset_insert union_single_eq_member)
 
   have [intro]: \<open>spec \<in> pac_ideal (set_mset B) \<Longrightarrow> spec \<in> pac_ideal (set_mset A\<^sub>0)\<close> and
@@ -568,11 +568,11 @@ lemma PAC_checker_PAC_checker_specification2:
     by auto
   done
 
-definition remap_polys_polynom_bool :: \<open>int mpoly \<Rightarrow> nat set \<Rightarrow> (nat, int_poly) fmap \<Rightarrow> (status \<times> fpac_step) nres\<close> where
-\<open>remap_polys_polynom_bool spec = (\<lambda>\<V> A.
+definition remap_polys_polynomial_bool :: \<open>int mpoly \<Rightarrow> nat set \<Rightarrow> (nat, int_poly) fmap \<Rightarrow> (status \<times> fpac_step) nres\<close> where
+\<open>remap_polys_polynomial_bool spec = (\<lambda>\<V> A.
    SPEC(\<lambda>(st, \<V>', A'). (\<not>is_failed st \<longrightarrow>
       dom_m A = dom_m A' \<and>
-      (\<forall>i \<in># dom_m A. the (fmlookup A i) - the (fmlookup A' i) \<in> ideal polynom_bool) \<and>
+      (\<forall>i \<in># dom_m A. the (fmlookup A i) - the (fmlookup A' i) \<in> ideal polynomial_bool) \<and>
       \<Union>(vars ` set_mset (ran_m A)) \<subseteq> \<V>' \<and>
       \<Union>(vars ` set_mset (ran_m A')) \<subseteq> \<V>') \<and>
     (st = FOUND \<longrightarrow> spec \<in># ran_m A')))\<close>
@@ -612,7 +612,7 @@ lemma pac_ideal_remap_eq:
   \<open>dom_m b = dom_m ba \<Longrightarrow>
        \<forall>i\<in>#dom_m ba.
           the (fmlookup b i) - the (fmlookup ba i)
-          \<in> More_Modules.ideal polynom_bool \<Longrightarrow>
+          \<in> More_Modules.ideal polynomial_bool \<Longrightarrow>
      pac_ideal ((\<lambda>x. the (fmlookup b x)) ` set_mset (dom_m ba)) = pac_ideal ((\<lambda>x. the (fmlookup ba x)) ` set_mset (dom_m ba))\<close>
   unfolding pac_ideal_alt_def
   apply standard
@@ -628,9 +628,9 @@ lemma pac_ideal_remap_eq:
      (auto dest!: multi_member_split)
   done
 
-lemma remap_polys_polynom_bool_remap_polys_change_all:
-  \<open>remap_polys_polynom_bool spec \<V> A \<le> remap_polys_change_all spec \<V> A\<close>
-  unfolding remap_polys_polynom_bool_def remap_polys_change_all_def
+lemma remap_polys_polynomial_bool_remap_polys_change_all:
+  \<open>remap_polys_polynomial_bool spec \<V> A \<le> remap_polys_change_all spec \<V> A\<close>
+  unfolding remap_polys_polynomial_bool_def remap_polys_change_all_def
   apply (simp add: ideal.span_zero fmap_eq_dom_iff ideal.span_eq)
   apply (auto dest: multi_member_split simp: ran_m_def ideal.span_base pac_ideal_remap_eq
     add_mset_eq_add_mset
@@ -652,7 +652,7 @@ definition remap_polys :: \<open>int mpoly \<Rightarrow> nat set \<Rightarrow> (
        (\<lambda>i (b, \<V>, A').
           if i \<in># dom_m A
           then do {
-            p \<leftarrow> SPEC(\<lambda>p. the (fmlookup A i) - p \<in> ideal polynom_bool \<and> vars p \<subseteq> vars (the (fmlookup A i)));
+            p \<leftarrow> SPEC(\<lambda>p. the (fmlookup A i) - p \<in> ideal polynomial_bool \<and> vars p \<subseteq> vars (the (fmlookup A i)));
             eq \<leftarrow> SPEC(\<lambda>eq. eq \<longrightarrow> p = spec);
             \<V> \<leftarrow> SPEC(\<lambda>\<V>'. \<V> \<union> vars (the (fmlookup A i)) \<subseteq> \<V>');
             RETURN(b \<or> eq, \<V>, fmupd i p A')
@@ -663,12 +663,12 @@ definition remap_polys :: \<open>int mpoly \<Rightarrow> nat set \<Rightarrow> (
    })\<close>
 
 lemma remap_polys_spec:
-  \<open>remap_polys spec \<V> A \<le> remap_polys_polynom_bool spec \<V> A\<close>
-  unfolding remap_polys_def remap_polys_polynom_bool_def
+  \<open>remap_polys spec \<V> A \<le> remap_polys_polynomial_bool spec \<V> A\<close>
+  unfolding remap_polys_def remap_polys_polynomial_bool_def
   apply (refine_vcg FOREACH_rule[where
     I = \<open>\<lambda>dom (b, \<V>, A').
       set_mset (dom_m A') =  set_mset (dom_m A) - dom \<and>
-      (\<forall>i \<in> set_mset (dom_m A) - dom. the (fmlookup A i) - the (fmlookup A' i) \<in> ideal polynom_bool) \<and>
+      (\<forall>i \<in> set_mset (dom_m A) - dom. the (fmlookup A i) - the (fmlookup A' i) \<in> ideal polynomial_bool) \<and>
      \<Union>(vars ` set_mset (ran_m (fmrestrict_set (set_mset (dom_m A')) A))) \<subseteq> \<V> \<and>
      \<Union>(vars ` set_mset (ran_m A')) \<subseteq> \<V> \<and>
       (b \<longrightarrow> spec \<in># ran_m A')\<close>])
@@ -786,7 +786,7 @@ proof -
       apply (metis (no_types, lifting) group_eq_aux ideal.span_add ideal.span_base in_mono pac_ideal_alt_def sup.cobounded2)
       apply (smt le_sup_iff restricted_ideal_to_mono subsetD subset_trans sup_ge1 sup_ge2)
       apply (metis (no_types, lifting) cancel_comm_monoid_add_class.diff_cancel diff_add_eq
-        diff_in_polynom_bool_pac_idealI group_eq_aux ideal.span_add_eq2)
+        diff_in_polynomial_bool_pac_idealI group_eq_aux ideal.span_add_eq2)
       apply (drule restricted_ideal_to_mono[of _ _ _ _ \<open>\<Union> (vars ` set_mset (ran_m A)) \<union> vars spec\<close>])
       apply auto[]
       apply auto[]

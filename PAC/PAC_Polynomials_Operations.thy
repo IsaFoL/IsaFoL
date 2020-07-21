@@ -14,7 +14,7 @@ former, coefficients can be zero and monomials can appear several times. This ma
 reason on intermediate representation where this has not yet been sanitized.
 \<close>
 
-fun add_poly_l' :: \<open>llist_polynom \<times> llist_polynom \<Rightarrow> llist_polynom\<close> where
+fun add_poly_l' :: \<open>llist_polynomial \<times> llist_polynomial \<Rightarrow> llist_polynomial\<close> where
   \<open>add_poly_l' (p, []) = p\<close> |
   \<open>add_poly_l' ([], q) = q\<close> |
   \<open>add_poly_l' ((xs, n) # p, (ys, m) # q) =
@@ -30,7 +30,7 @@ fun add_poly_l' :: \<open>llist_polynom \<times> llist_polynom \<Rightarrow> lli
                  ((ys, m) # pq)
             )\<close>
 
-definition add_poly_l :: \<open>llist_polynom \<times> llist_polynom \<Rightarrow> llist_polynom nres\<close> where
+definition add_poly_l :: \<open>llist_polynomial \<times> llist_polynomial \<Rightarrow> llist_polynomial nres\<close> where
   \<open>add_poly_l = REC\<^sub>T
       (\<lambda>add_poly_l (p, q).
         case (p,q) of
@@ -306,7 +306,7 @@ lemma add_poly_l_spec:
   apply (auto simp: conc_fun_RES)
   done
 
-definition sort_poly_spec :: \<open>llist_polynom \<Rightarrow> llist_polynom nres\<close> where
+definition sort_poly_spec :: \<open>llist_polynomial \<Rightarrow> llist_polynomial nres\<close> where
 \<open>sort_poly_spec p =
   SPEC(\<lambda>p'. mset p = mset p' \<and> sorted_wrt (rel2p (Id \<union> term_order_rel)) (map fst p'))\<close>
 
@@ -326,7 +326,7 @@ proof -
   have H: \<open>(x, p')
         \<in> \<langle>term_poly_list_rel \<times>\<^sub>r int_rel\<rangle>list_rel O list_mset_rel\<close>
      if px: \<open>mset p = mset x\<close> and \<open>sorted_wrt (rel2p (Id \<union> lexord var_order_rel)) (map fst x)\<close>
-     for x :: \<open>llist_polynom\<close>
+     for x :: \<open>llist_polynomial\<close>
   proof -
     obtain f where
       f: \<open>bij_betw f {..<length x} {..<length p}\<close> and
@@ -453,7 +453,7 @@ lemma mult_monoms_spec:
 definition mult_monomials :: \<open>term_poly_list \<times> int \<Rightarrow> term_poly_list \<times> int \<Rightarrow> term_poly_list \<times> int\<close> where
   \<open>mult_monomials = (\<lambda>(x, a) (y, b). (mult_monoms x y, a * b))\<close>
 
-definition mult_poly_raw :: \<open>llist_polynom \<Rightarrow> llist_polynom \<Rightarrow> llist_polynom\<close> where
+definition mult_poly_raw :: \<open>llist_polynomial \<Rightarrow> llist_polynomial \<Rightarrow> llist_polynomial\<close> where
   \<open>mult_poly_raw p q = foldl (\<lambda>b x. map (mult_monomials x) q @ b) [] p\<close>
 
 
@@ -588,7 +588,7 @@ proof -
     done
 qed
 
-fun merge_coeffs :: \<open>llist_polynom \<Rightarrow> llist_polynom\<close> where
+fun merge_coeffs :: \<open>llist_polynomial \<Rightarrow> llist_polynomial\<close> where
   \<open>merge_coeffs [] = []\<close> |
   \<open>merge_coeffs [(xs, n)] = [(xs, n)]\<close> |
   \<open>merge_coeffs ((xs, n) # (ys, m) # p) =
@@ -596,16 +596,16 @@ fun merge_coeffs :: \<open>llist_polynom \<Rightarrow> llist_polynom\<close> whe
     then if n + m \<noteq> 0 then merge_coeffs ((xs, n + m) # p) else merge_coeffs p
     else (xs, n) # merge_coeffs ((ys, m) # p))\<close>
 
-abbreviation  (in -)mononoms :: \<open>llist_polynom \<Rightarrow> term_poly_list set\<close> where
+abbreviation  (in -)mononoms :: \<open>llist_polynomial \<Rightarrow> term_poly_list set\<close> where
   \<open>mononoms p \<equiv> fst `set p\<close>
 
 
-lemma fst_normalize_polynom_subset:
+lemma fst_normalize_polynomial_subset:
   \<open>mononoms (merge_coeffs p) \<subseteq> mononoms p\<close>
   by (induction p rule: merge_coeffs.induct)  auto
 
 
-lemma fst_normalize_polynom_subsetD:
+lemma fst_normalize_polynomial_subsetD:
   \<open>(a, b) \<in> set (merge_coeffs p) \<Longrightarrow> a \<in> mononoms p\<close>
   apply (induction p rule: merge_coeffs.induct)
   subgoal
@@ -621,11 +621,11 @@ lemma distinct_merge_coeffs:
   shows \<open>distinct (map fst (merge_coeffs xs))\<close>
   using assms
   by (induction xs rule: merge_coeffs.induct)
-    (auto 5 4 dest: antisympD dest!: fst_normalize_polynom_subsetD)
+    (auto 5 4 dest: antisympD dest!: fst_normalize_polynomial_subsetD)
 
 lemma in_set_merge_coeffsD:
   \<open>(a, b) \<in> set (merge_coeffs p) \<Longrightarrow>\<exists>b. (a, b) \<in> set p\<close>
-  by  (auto dest!: fst_normalize_polynom_subsetD)
+  by  (auto dest!: fst_normalize_polynomial_subsetD)
 
 lemma rtranclp_normalize_poly_add_mset:
   \<open>normalize_poly_p\<^sup>*\<^sup>* A r \<Longrightarrow> normalize_poly_p\<^sup>*\<^sup>* (add_mset x A) (add_mset x r)\<close>
@@ -697,7 +697,7 @@ lemma distinct_var_order_Id_var_order:
           sorted_wrt var_order a\<close>
   by (induction a) (auto simp: rel2p_def)
 
-definition sort_all_coeffs :: \<open>llist_polynom \<Rightarrow> llist_polynom nres\<close> where
+definition sort_all_coeffs :: \<open>llist_polynomial \<Rightarrow> llist_polynomial nres\<close> where
 \<open>sort_all_coeffs xs = monadic_nfoldli xs (\<lambda>_. RETURN True) (\<lambda>(a, n) b. do {a \<leftarrow> sort_coeff a; RETURN ((a, n) # b)}) []\<close>
 
 lemma sort_all_coeffs_gen:
@@ -864,7 +864,7 @@ proof -
   have H: \<open>(x, p')
         \<in> \<langle>term_poly_list_rel \<times>\<^sub>r int_rel\<rangle>list_rel O list_mset_rel\<close>
      if px: \<open>mset p = mset x\<close> and \<open>sorted_wrt (rel2p (Id \<union> lexord var_order_rel)) (map fst x)\<close>
-     for x :: \<open>llist_polynom\<close>
+     for x :: \<open>llist_polynomial\<close>
   proof -
     obtain f where
       f: \<open>bij_betw f {..<length x} {..<length p}\<close> and
@@ -901,7 +901,7 @@ proof -
 qed
 
 
-fun merge_coeffs0 :: \<open>llist_polynom \<Rightarrow> llist_polynom\<close> where
+fun merge_coeffs0 :: \<open>llist_polynomial \<Rightarrow> llist_polynomial\<close> where
   \<open>merge_coeffs0 [] = []\<close> |
   \<open>merge_coeffs0 [(xs, n)] = (if n = 0 then [] else [(xs, n)])\<close> |
   \<open>merge_coeffs0 ((xs, n) # (ys, m) # p) =
@@ -952,7 +952,7 @@ lemma sorted_repeat_poly_list_rel_with0_wrtl_Cons_iff:
       dest!: multi_member_split)
     done
 
-lemma fst_normalize0_polynom_subsetD:
+lemma fst_normalize0_polynomial_subsetD:
   \<open>(a, b) \<in> set (merge_coeffs0 p) \<Longrightarrow> a \<in> mononoms p\<close>
   apply (induction p rule: merge_coeffs0.induct)
   subgoal
@@ -965,7 +965,7 @@ lemma fst_normalize0_polynom_subsetD:
 
 lemma in_set_merge_coeffs0D:
   \<open>(a, b) \<in> set (merge_coeffs0 p) \<Longrightarrow>\<exists>b. (a, b) \<in> set p\<close>
-  by  (auto dest!: fst_normalize0_polynom_subsetD)
+  by  (auto dest!: fst_normalize0_polynomial_subsetD)
 
 
 lemma merge_coeffs0_is_normalize_poly_p:
@@ -1143,7 +1143,7 @@ lemma mult_poly_full_mult_poly_p':
   done
 
 definition add_poly_spec :: \<open>_\<close> where
-\<open>add_poly_spec p q = SPEC (\<lambda>r. p + q - r \<in> ideal polynom_bool)\<close>
+\<open>add_poly_spec p q = SPEC (\<lambda>r. p + q - r \<in> ideal polynomial_bool)\<close>
 
 definition add_poly_p' :: \<open>_\<close> where
 \<open>add_poly_p' p q = SPEC(\<lambda>r. add_poly_p\<^sup>*\<^sup>* (p, q, {#}) ({#}, {#}, r))\<close>
@@ -1166,7 +1166,7 @@ context poly_embed
 begin
 
 definition mset_poly_rel where
-  \<open>mset_poly_rel = {(a, b). b = polynom_of_mset a}\<close>
+  \<open>mset_poly_rel = {(a, b). b = polynomial_of_mset a}\<close>
 
 definition var_rel where
   \<open>var_rel = br \<phi> (\<lambda>_. True)\<close>
@@ -1194,21 +1194,21 @@ lemma add_poly_p'_add_poly_spec:
   \<open>(p, p') \<in> mset_poly_rel \<Longrightarrow> (q, q') \<in> mset_poly_rel \<Longrightarrow>
   add_poly_p' p q \<le> \<Down>mset_poly_rel (add_poly_spec p' q')\<close>
   unfolding add_poly_p'_def add_poly_spec_def
-  apply (auto simp: mset_poly_rel_def dest!: rtranclp_add_poly_p_polynom_of_mset_full)
+  apply (auto simp: mset_poly_rel_def dest!: rtranclp_add_poly_p_polynomial_of_mset_full)
   apply (intro RES_refine)
-  apply (auto simp: rtranclp_add_poly_p_polynom_of_mset_full ideal.span_zero)
+  apply (auto simp: rtranclp_add_poly_p_polynomial_of_mset_full ideal.span_zero)
   done
 
 end
 
 
-definition weak_equality_l :: \<open>llist_polynom \<Rightarrow> llist_polynom \<Rightarrow> bool nres\<close> where
+definition weak_equality_l :: \<open>llist_polynomial \<Rightarrow> llist_polynomial \<Rightarrow> bool nres\<close> where
   \<open>weak_equality_l p q = RETURN (p = q)\<close>
 
 definition weak_equality :: \<open>int mpoly \<Rightarrow> int mpoly \<Rightarrow> bool nres\<close> where
   \<open>weak_equality p q = SPEC (\<lambda>r. r \<longrightarrow> p = q)\<close>
 
-definition weak_equality_spec :: \<open>mset_polynom \<Rightarrow> mset_polynom \<Rightarrow> bool nres\<close> where
+definition weak_equality_spec :: \<open>mset_polynomial \<Rightarrow> mset_polynomial \<Rightarrow> bool nres\<close> where
   \<open>weak_equality_spec p q = SPEC (\<lambda>r. r \<longrightarrow> p = q)\<close>
 
 lemma term_poly_list_rel_same_rightD:
