@@ -1,6 +1,6 @@
 (* Correctness proof contributed by Maximilian Wuttke *)
 theory WB_Sort
-  imports Refine_Imperative_HOL.IICF "HOL-Library.Rewrite" Weidenbach_Book_Base.WB_List_More
+  imports Refine_Imperative_HOL.IICF "HOL-Library.Rewrite" Duplicate_Free_Multiset
 begin
 
 text \<open>This a complete copy-paste because sharing is hard.\<close>
@@ -324,7 +324,7 @@ lemma sorted_sublist_map_snoc:
 
 lemma sublist_split: \<open>lo \<le> hi \<Longrightarrow> lo < p \<Longrightarrow> p < hi \<Longrightarrow> hi < length xs \<Longrightarrow> sublist xs lo p @ sublist xs (p+1) hi = sublist xs lo hi\<close>
   apply (auto simp add: sublist_def)
-  by (smt Suc_leI append_assoc append_eq_append_conv diff_Suc_Suc drop_take_drop_drop le_SucI le_trans nat_less_le) (* Proof by sledgehammer!!! *)
+  by (metis (full_types) diff_Suc_Suc nat_le_eq_or_lt sublist_app sublist_def)
 
 lemma sublist_split_part: \<open>lo \<le> hi \<Longrightarrow> lo < p \<Longrightarrow> p < hi \<Longrightarrow> hi < length xs \<Longrightarrow> sublist xs lo (p-1) @ xs!p # sublist xs (p+1) hi = sublist xs lo hi\<close>
   apply (auto simp add: sublist_split[symmetric])
@@ -1516,9 +1516,6 @@ proof -
     done
 qed
 
-
-
-term quicksort
 
 text \<open>Refined quicksort algorithm: We use the refined partition function.\<close>
 definition quicksort_ref :: \<open>_ \<Rightarrow> _ \<Rightarrow> nat \<times> nat \<times> 'a list \<Rightarrow> 'a list nres\<close> where
