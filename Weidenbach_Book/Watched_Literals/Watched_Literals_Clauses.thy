@@ -98,12 +98,16 @@ abbreviation init_clss_lf :: \<open>'v clauses_l \<Rightarrow> 'v clause_l multi
 abbreviation all_clss_l :: \<open>'v clauses_l \<Rightarrow> ('v clause_l \<times> bool) multiset\<close> where
   \<open>all_clss_l N \<equiv> init_clss_l N + learned_clss_l N\<close>
 
+abbreviation all_clss_lf :: \<open>'v clauses_l \<Rightarrow> 'v clause_l multiset\<close> where
+  \<open>all_clss_lf N \<equiv> init_clss_lf N + learned_clss_lf N\<close>
+
+
+
+paragraph \<open>Properties\<close>
+
 lemma all_clss_l_ran_m[simp]:
   \<open>all_clss_l N = ran_m N\<close>
   by (metis multiset_partition)
-
-abbreviation all_clss_lf :: \<open>'v clauses_l \<Rightarrow> 'v clause_l multiset\<close> where
-  \<open>all_clss_lf N \<equiv> init_clss_lf N + learned_clss_lf N\<close>
 
 lemma all_clss_lf_ran_m: \<open>all_clss_lf N = fst `# ran_m N\<close>
   by (metis (no_types) image_mset_union multiset_partition)
@@ -332,6 +336,8 @@ lemma learned_clss_l_fmupd_if:
   by (cases D) (auto simp: learned_clss_l_mapsto_upd_notin_irrelev
     learned_clss_l_mapsto_upd_notin)
 
+
+paragraph \<open>MOP-operations\<close>
 
 
 definition op_clauses_at :: \<open>'v clauses_l \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'v literal\<close> where

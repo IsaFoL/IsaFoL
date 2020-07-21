@@ -4606,6 +4606,12 @@ proof -
     by (simp add: twl_struct_invs_def)
 qed
 
+lemma rtranclp_cdcl_twl_subsumed_twl_struct_invs:
+  assumes \<open>cdcl_twl_subsumed\<^sup>*\<^sup>* S T\<close>
+    \<open>twl_struct_invs S\<close>
+  shows \<open>twl_struct_invs T\<close>
+  using assms by (induction rule: rtranclp_induct) (auto simp: cdcl_twl_subsumed_twl_struct_invs)
+
 lemma cdcl_twl_subsumed_twl_stgy_invs:
   \<open>cdcl_twl_subsumed S T \<Longrightarrow> twl_stgy_invs S \<Longrightarrow> twl_stgy_invs T\<close>
   by (induction rule: cdcl_twl_subsumed.induct)
@@ -4613,6 +4619,24 @@ lemma cdcl_twl_subsumed_twl_stgy_invs:
       cdcl\<^sub>W_restart_mset.no_smaller_confl_def cdcl\<^sub>W_restart_mset.propagated_cons_eq_append_decide_cons
       add_mset_commute get_level_cons_if cdcl\<^sub>W_restart_mset.clauses_def
     dest!: multi_member_split)
+
+lemma rtranclp_cdcl_twl_subsumed_twl_stgy_invs:
+  \<open>cdcl_twl_subsumed\<^sup>*\<^sup>* S T \<Longrightarrow> twl_stgy_invs S \<Longrightarrow> twl_stgy_invs T\<close>
+  by (induction rule: rtranclp_induct) (auto simp: cdcl_twl_subsumed_twl_stgy_invs)
+
+lemma cdcl_twl_subsumed_same:
+  assumes \<open>cdcl_twl_subsumed S T\<close>
+  shows \<open>clauses_to_update T = clauses_to_update S\<close> \<open>literals_to_update T = literals_to_update S\<close>
+    \<open>get_conflict T = get_conflict S\<close> \<open>get_trail T = get_trail S\<close>
+  using assms
+  by (induction rule: cdcl_twl_subsumed.induct) auto
+
+lemma rtranclp_cdcl_twl_subsumed_same:
+  assumes \<open>cdcl_twl_subsumed\<^sup>*\<^sup>* S T\<close>
+  shows \<open>clauses_to_update T = clauses_to_update S\<close> \<open>literals_to_update T = literals_to_update S\<close>
+    \<open>get_conflict T = get_conflict S\<close> \<open>get_trail T = get_trail S\<close>
+  using assms
+  by (induction rule: rtranclp_induct) (auto dest: cdcl_twl_subsumed_same)
 
 
 subsubsection \<open>The Strategy\<close>
@@ -5288,6 +5312,10 @@ lemma rtranclp_cdcl_twl_cp_stgyD: \<open>cdcl_twl_cp\<^sup>*\<^sup>* S T \<Longr
 
 lemma tranclp_cdcl_twl_o_stgyD: \<open>cdcl_twl_o\<^sup>+\<^sup>+ S T \<Longrightarrow> cdcl_twl_stgy\<^sup>+\<^sup>+ S T\<close>
   using tranclp_mono[of cdcl_twl_o cdcl_twl_stgy] cdcl_twl_stgy.intros(2)
+  by blast
+
+lemma rtranclp_cdcl_twl_subsumed_stgyD: \<open>cdcl_twl_subsumed\<^sup>*\<^sup>* S T \<Longrightarrow> cdcl_twl_stgy\<^sup>*\<^sup>* S T\<close>
+  using rtranclp_mono[of cdcl_twl_subsumed cdcl_twl_stgy] cdcl_twl_stgy.intros(3)
   by blast
 
 lemma tranclp_cdcl_twl_cp_stgyD: \<open>cdcl_twl_cp\<^sup>+\<^sup>+ S T \<Longrightarrow> cdcl_twl_stgy\<^sup>+\<^sup>+ S T\<close>

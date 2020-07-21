@@ -1095,8 +1095,9 @@ definition propagate_bt :: \<open>'v literal \<Rightarrow> 'v literal \<Rightarr
 
 definition mop_propagate_bt :: \<open>'v literal \<Rightarrow> 'v literal \<Rightarrow> 'v twl_st \<Rightarrow> 'v twl_st nres\<close> where
   \<open>mop_propagate_bt = (\<lambda>L L' S. do {
-     ASSERT(propagate_bt_pre L L' S);
-     RETURN (propagate_bt L L' S)
+    ASSERT(propagate_bt_pre L L' S);
+    let T = propagate_bt L L' S;
+    SPEC(\<lambda>U. cdcl_twl_subsumed\<^sup>*\<^sup>* T U)
    })\<close>
 
 
@@ -1175,7 +1176,8 @@ lemma
     twl_struct: \<open>twl_struct_invs S\<close> and twl_stgy: \<open>twl_stgy_invs S\<close>
   shows
     backtrack_spec:
-    \<open>backtrack S \<le> SPEC (\<lambda>T. cdcl_twl_o S T \<and> get_conflict T = None \<and> no_step cdcl_twl_o T \<and>
+    \<open>backtrack S \<le> SPEC (\<lambda>T. (\<exists>T'. cdcl_twl_o S T' \<and> cdcl_twl_subsumed\<^sup>*\<^sup>* T' T) \<and>
+       get_conflict T = None \<and> no_step cdcl_twl_o T \<and>
       twl_struct_invs T \<and> twl_stgy_invs T \<and> clauses_to_update T = {#} \<and>
       literals_to_update T \<noteq> {#})\<close> (is ?spec) and
     backtrack_nofail:
@@ -1421,7 +1423,8 @@ proof -
         get_maximum_level M (remove1_mset (- lit_of (hd M)) D')\<close>
         unfolding get_maximum_level_def by argo
 
-
+      fix V
+      assume V: \<open>cdcl_twl_subsumed\<^sup>*\<^sup>* (propagate_bt (lit_of (hd (get_trail ?S))) K ?U) V\<close>
       have \<open>\<exists>L' \<in># remove1_mset (-lit_of (hd M)) D'.
            get_level M L' = get_maximum_level M (remove1_mset (- lit_of (hd M)) D')\<close>
         by (rule get_maximum_level_exists_lit_of_max_level)
@@ -1462,7 +1465,9 @@ proof -
     moreover have False if \<open>cdcl_twl_o ?T' (an, ao, ap, aq, ar, as, at, b)\<close>
         for an ao ap aq ar as at b
         using that by (auto simp: cdcl_twl_o.simps propagate_bt_def)
-    ultimately show cdcl:
+    moreover 
+
+    ultimately have cdcl:
        \<open>cdcl_twl_o ?S (propagate_bt (lit_of (hd (get_trail ?S))) K ?U)\<close>
        \<open>get_conflict (propagate_bt (lit_of (hd (get_trail ?S))) K ?U) = None\<close>
        \<open>twl_struct_invs (propagate_bt (lit_of (hd (get_trail ?S))) K ?U)\<close>
@@ -1471,6 +1476,20 @@ proof -
        \<open>\<And>S'. cdcl_twl_o (propagate_bt (lit_of (hd (get_trail ?S))) K ?U) S' \<Longrightarrow> False\<close>
        \<open>literals_to_update (propagate_bt (lit_of (hd (get_trail ?S))) K ?U) = {#} \<Longrightarrow> False\<close>
       unfolding propagate_bt_def by auto
+    then show
+      \<open>\<exists>T'. cdcl_twl_o ?S T' \<and> cdcl_twl_subsumed\<^sup>*\<^sup>* T' V\<close>
+      \<open>get_conflict V = None\<close>
+      \<open>twl_struct_invs V\<close>
+      \<open>twl_stgy_invs V\<close>
+      \<open>clauses_to_update V = {#}\<close>
+      \<open>literals_to_update V = {#} \<Longrightarrow> False\<close>
+      apply -
+      apply (rule exI[of _ \<open>(propagate_bt (lit_of (hd (get_trail ?S))) K ?U)\<close>])
+      using V by (auto simp: rtranclp_cdcl_twl_subsumed_twl_struct_invs
+        rtranclp_cdcl_twl_subsumed_twl_stgy_invs dest: rtranclp_cdcl_twl_subsumed_same)
+    from this(2,6) show
+      \<open>\<And>S'. cdcl_twl_o V S' \<Longrightarrow> False\<close>
+      unfolding cdcl_twl_o.simps by auto
     }
 
     { \<comment> \<open>conflict clause has 1 literal\<close>
@@ -1509,12 +1528,13 @@ proof -
       moreover have \<open>clauses_to_update ?T' = {#}\<close>
         using WS by (auto simp add: propagate_unit_bt_def)
       ultimately show cdcl:
-       \<open>cdcl_twl_o ?S (propagate_unit_bt (lit_of (hd (get_trail ?S))) ?U)\<close>
-       \<open>get_conflict (propagate_unit_bt (lit_of (hd (get_trail ?S))) ?U) = None\<close>
-       \<open>twl_struct_invs (propagate_unit_bt (lit_of (hd (get_trail ?S))) ?U)\<close>
-       \<open>twl_stgy_invs (propagate_unit_bt (lit_of (hd (get_trail ?S))) ?U)\<close>
-       \<open>clauses_to_update (propagate_unit_bt (lit_of (hd (get_trail ?S))) ?U) = {#}\<close>
-      unfolding propagate_unit_bt_def by auto
+        \<open>\<exists>T'. cdcl_twl_o ?S T' \<and> cdcl_twl_subsumed\<^sup>*\<^sup>* T' (propagate_unit_bt (lit_of (hd (get_trail ?S))) ?U)\<close>
+        \<open>get_conflict (propagate_unit_bt (lit_of (hd (get_trail ?S))) ?U) = None\<close>
+        \<open>twl_struct_invs (propagate_unit_bt (lit_of (hd (get_trail ?S))) ?U)\<close>
+        \<open>twl_stgy_invs (propagate_unit_bt (lit_of (hd (get_trail ?S))) ?U)\<close>
+        \<open>clauses_to_update (propagate_unit_bt (lit_of (hd (get_trail ?S))) ?U) = {#}\<close>
+        apply - apply (rule exI[of _ \<open>propagate_unit_bt (lit_of (hd (get_trail ?S))) ?U\<close>])
+        unfolding propagate_unit_bt_def by auto
       show False if \<open>literals_to_update (propagate_unit_bt (lit_of (hd (get_trail ?S))) ?U) = {#}\<close>
         using that by (auto simp add: propagate_unit_bt_def)
       fix an ao ap aq ar as at b
@@ -1599,13 +1619,13 @@ lemma empty_conflict_lvl0:
 
 abbreviation cdcl_twl_o_prog_spec where
   \<open>cdcl_twl_o_prog_spec S \<equiv> \<lambda>(brk, T).
-       cdcl_twl_o\<^sup>*\<^sup>* S T \<and>
+       (\<exists>T'. cdcl_twl_o\<^sup>*\<^sup>* S T' \<and> cdcl_twl_subsumed\<^sup>*\<^sup>* T' T) \<and>
        (get_conflict T \<noteq> None \<longrightarrow> count_decided (get_trail T) = 0) \<and>
        (\<not> brk \<longrightarrow> get_conflict T = None \<and> (\<forall>S'. \<not> cdcl_twl_o T S')) \<and>
        (brk \<longrightarrow> get_conflict T \<noteq> None \<or> (no_step cdcl_twl_o T \<and> no_step cdcl_twl_cp T)) \<and>
        twl_struct_invs T \<and> twl_stgy_invs T \<and> clauses_to_update T = {#} \<and>
        (\<not> brk \<longrightarrow> literals_to_update T \<noteq> {#}) \<and>
-       (\<not>brk \<longrightarrow> \<not> (\<forall>S'. \<not> cdcl_twl_o S S') \<longrightarrow> cdcl_twl_o\<^sup>+\<^sup>+ S T)\<close>
+       (\<not>brk \<longrightarrow> \<not> (\<forall>S'. \<not> cdcl_twl_o S S') \<longrightarrow> (\<exists>T'. cdcl_twl_o\<^sup>+\<^sup>+ S T' \<and> cdcl_twl_subsumed\<^sup>*\<^sup>* T' T))\<close>
 
 lemma cdcl_twl_o_prog_spec:
   assumes \<open>twl_struct_invs S\<close> and \<open>twl_stgy_invs S\<close> and \<open>clauses_to_update S = {#}\<close> and
@@ -1627,7 +1647,7 @@ proof -
     subgoal using assms by auto
     subgoal using assms by auto
     subgoal using assms by auto
-    subgoal using assms by auto
+    subgoal using assms by fast
     subgoal using assms by auto
     subgoal using assms by auto
     subgoal by simp
@@ -1636,7 +1656,7 @@ proof -
     subgoal using assms by auto
     subgoal using assms by auto
     subgoal using assms by auto
-    subgoal using assms by auto
+    subgoal by blast
     subgoal using assms by auto
     subgoal using assms by auto
     subgoal using assms by auto
@@ -1644,15 +1664,19 @@ proof -
     subgoal using assms by auto
     subgoal for T using assms empty_conflict_lvl0[of T]
       rtranclp_skip_and_resolve_same_decision_level[of S T] by auto
-    subgoal using assms by auto
+    subgoal by (meson r_into_rtranclp rtranclp_trans)
     subgoal using assms by (auto elim!: cdcl_twl_oE simp: image_Un)
-    subgoal by (auto elim!: cdcl_twl_stgyE cdcl_twl_oE cdcl_twl_cpE)
-    subgoal by (auto simp: rtranclp_unfold elim!: cdcl_twl_oE)
+    subgoal
+      by (meson rtranclp_into_tranclp1)
+    subgoal by  (rule exI[of _ S]) (auto elim!: cdcl_twl_stgyE cdcl_twl_oE cdcl_twl_cpE)
     subgoal using assms by auto
     subgoal using assms by auto
     subgoal using assms by auto
     subgoal using assms by auto
-    subgoal for uip by auto
+    subgoal using assms by auto
+    subgoal using assms by auto
+    subgoal using assms by auto
+    subgoal using assms by auto
     done
 qed
 
@@ -1713,7 +1737,9 @@ lemma cdcl_twl_o_final_twl_state:
     twl_o: \<open>cdcl_twl_o_prog_spec U (True, V)\<close>
   shows \<open>final_twl_state V\<close>
 proof -
-  have \<open>cdcl_twl_o\<^sup>*\<^sup>* U V\<close> and
+  obtain U' where
+    \<open>cdcl_twl_o\<^sup>*\<^sup>* U U'\<close> and
+    \<open>cdcl_twl_subsumed\<^sup>*\<^sup>* U' V\<close> and
     confl_lev: \<open>get_conflict V \<noteq> None \<longrightarrow> count_decided (get_trail V) = 0\<close> and
     final: \<open>get_conflict V \<noteq> None \<or> (no_step cdcl_twl_cp V \<and> no_step cdcl_twl_o V)\<close>
     \<open>twl_struct_invs V\<close>
@@ -1745,8 +1771,8 @@ proof -
   obtain brk' V' where
     V: \<open>V = (brk', V')\<close>
     by (cases V)
-  have
-    UV: \<open>cdcl_twl_o\<^sup>*\<^sup>* U V'\<close> and
+  obtain U' where
+    UV: \<open>cdcl_twl_o\<^sup>*\<^sup>* U U'\<close> \<open>cdcl_twl_subsumed\<^sup>*\<^sup>* U' V'\<close> and
     \<open>(get_conflict V' \<noteq> None \<longrightarrow> count_decided (get_trail V') = 0)\<close> and
     not_brk': \<open>(\<not> brk' \<longrightarrow> get_conflict V' = None \<and> (\<forall>S'. \<not> cdcl_twl_o V' S'))\<close> and
     brk': \<open>(brk' \<longrightarrow> get_conflict V' \<noteq> None \<or> (no_step cdcl_twl_o V' \<and> no_step cdcl_twl_cp V'))\<close> and
@@ -1754,37 +1780,38 @@ proof -
     \<open>twl_stgy_invs V'\<close>
     \<open>clauses_to_update V' = {#}\<close> and
     no_lits_to_upd: \<open>(0 < count_decided (get_trail V') \<longrightarrow> \<not> brk' \<longrightarrow> literals_to_update V' \<noteq> {#})\<close>
-    \<open>(\<not>brk' \<longrightarrow> \<not> (\<forall>S'. \<not> cdcl_twl_o U S') \<longrightarrow> cdcl_twl_o\<^sup>+\<^sup>+ U V')\<close>
-    using twl_o unfolding V
-    by fast+
-    have \<open>cdcl_twl_stgy\<^sup>*\<^sup>* T V'\<close>
-      using TU UV by (auto dest!: rtranclp_cdcl_twl_cp_stgyD rtranclp_cdcl_twl_o_stgyD)
-    then have TV_or_tranclp_TV: \<open>T = V' \<or> cdcl_twl_stgy\<^sup>+\<^sup>+ T V'\<close>
-      unfolding rtranclp_unfold by auto
-    have [simp]: \<open>\<not> cdcl_twl_stgy\<^sup>+\<^sup>+ V' V'\<close>
-      using wf_not_refl[OF tranclp_wf_cdcl_twl_stgy, of V'] by auto
-    have [simp]: \<open>brk0 = False\<close>
-      using brk0 by auto
+    \<open>(\<not>brk' \<longrightarrow> \<not> (\<forall>S'. \<not> cdcl_twl_o U S') \<longrightarrow> (\<exists>U'. cdcl_twl_o\<^sup>+\<^sup>+ U U' \<and> cdcl_twl_subsumed\<^sup>*\<^sup>* U' V'))\<close>
+    using twl_o unfolding V prod.case
+    by blast
+  have \<open>cdcl_twl_stgy\<^sup>*\<^sup>* T V'\<close>
+    using TU UV by (auto dest!: rtranclp_cdcl_twl_cp_stgyD rtranclp_cdcl_twl_o_stgyD
+      rtranclp_cdcl_twl_subsumed_stgyD)
+  then have TV_or_tranclp_TV: \<open>T = V' \<or> cdcl_twl_stgy\<^sup>+\<^sup>+ T V'\<close>
+    unfolding rtranclp_unfold by auto
+  have [simp]: \<open>\<not> cdcl_twl_stgy\<^sup>+\<^sup>+ V' V'\<close>
+    using wf_not_refl[OF tranclp_wf_cdcl_twl_stgy, of V'] by auto
+  have [simp]: \<open>brk0 = False\<close>
+    using brk0 by auto
 
-    have \<open>brk'\<close> if \<open>T = V'\<close>
-    proof -
-      have ns_TV: \<open>\<not>cdcl_twl_stgy\<^sup>+\<^sup>+ T V'\<close>
-        using that[symmetric] wf_not_refl[OF tranclp_wf_cdcl_twl_stgy, of T] by auto
+  have \<open>brk'\<close> if \<open>T = V'\<close>
+  proof -
+    have ns_TV: \<open>\<not>cdcl_twl_stgy\<^sup>+\<^sup>+ T V'\<close>
+      using that[symmetric] wf_not_refl[OF tranclp_wf_cdcl_twl_stgy, of T] by auto
 
-      have ns_T_T: \<open>\<not>cdcl_twl_o\<^sup>+\<^sup>+ T T\<close>
-        using wf_not_refl[OF tranclp_wf_cdcl_twl_o, of T] by auto
-      have \<open>T = U\<close>
-        by (metis (no_types, hide_lams) TU UV ns_TV rtranclp_cdcl_twl_cp_stgyD
-            rtranclp_cdcl_twl_o_stgyD rtranclp_tranclp_tranclp rtranclp_unfold)
-      show ?thesis
-        using assms \<open>literals_to_update U = {#}\<close> unfolding V that[symmetric] \<open>T = U\<close>[symmetric]
-        by (auto simp: ns_T_T)
-    qed
+    have ns_T_T: \<open>\<not>cdcl_twl_o\<^sup>+\<^sup>+ T T\<close>
+      using wf_not_refl[OF tranclp_wf_cdcl_twl_o, of T] by auto
+    have \<open>T = U\<close>
+      by (metis (no_types, hide_lams) TU UV ns_TV rtranclp_cdcl_twl_cp_stgyD rtranclp_cdcl_twl_subsumed_stgyD
+        rtranclp_cdcl_twl_o_stgyD rtranclp_cdcl_twl_subsumed_stgyD  rtranclp_tranclp_tranclp rtranclp_unfold)
+    show ?thesis
+      using assms \<open>literals_to_update U = {#}\<close> unfolding V that[symmetric] \<open>T = U\<close>[symmetric]
+      by (auto simp: ns_T_T)
+  qed
 
-    then show ?thesis
-      using TV_or_tranclp_TV
-      unfolding V
-      by auto
+  then show ?thesis
+    using TV_or_tranclp_TV
+    unfolding V
+    by auto
 qed
 
 lemma cdcl_twl_o_prog_cdcl_twl_stgy:
@@ -1802,10 +1829,11 @@ proof -
   have \<open>cdcl_twl_stgy\<^sup>*\<^sup>* S S'\<close>
     using twl_stgy by fast
   moreover {
-    have \<open>cdcl_twl_o\<^sup>*\<^sup>* T U\<close>
+    obtain T' where \<open>cdcl_twl_o\<^sup>*\<^sup>* T T'\<close> \<open>cdcl_twl_subsumed\<^sup>*\<^sup>* T' U\<close>
       using twl_o by fast
     then have \<open>cdcl_twl_stgy\<^sup>*\<^sup>* S' U\<close>
-      using cp by (auto dest!: rtranclp_cdcl_twl_cp_stgyD rtranclp_cdcl_twl_o_stgyD)
+      using cp by (auto dest!: rtranclp_cdcl_twl_cp_stgyD rtranclp_cdcl_twl_o_stgyD
+        rtranclp_cdcl_twl_subsumed_stgyD)
   }
   ultimately show ?thesis by auto
 qed
