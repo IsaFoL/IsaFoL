@@ -1,5 +1,5 @@
 theory PAC_Memory
-  imports PAC_Polynoms
+  imports PAC_Polynomials
 begin
 
 section \<open>Abstract Specification\<close>

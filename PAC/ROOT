@@ -14,8 +14,8 @@ session PAC_Checker = "Sepref_IICF" +
      PAC_Map_Rel
      PAC_Checker_Specification
      PAC_Checker_Relation
-     PAC_Polynoms
-     PAC_Polynoms_Term
+     PAC_Polynomials
+     PAC_Polynomials_Term
      PAC_Checker
      PAC_Checker_Init
      PAC_Version

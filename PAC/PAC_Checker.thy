@@ -1,5 +1,5 @@
 theory PAC_Checker
-  imports PAC_Polynoms_Operations
+  imports PAC_Polynomials_Operations
     PAC_Checker_Specification
     PAC_Map_Rel
     Show.Show

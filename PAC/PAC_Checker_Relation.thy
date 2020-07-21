@@ -186,8 +186,8 @@ lemma term_order_rel_alt_def:
 
 instantiation char :: linorder
 begin
-  definition less_char where [symmetric, simp]: "less_char = PAC_Polynoms_Term.less_char"
-  definition less_eq_char where [symmetric, simp]: "less_eq_char = PAC_Polynoms_Term.less_eq_char"
+  definition less_char where [symmetric, simp]: "less_char = PAC_Polynomials_Term.less_char"
+  definition less_eq_char where [symmetric, simp]: "less_eq_char = PAC_Polynomials_Term.less_eq_char"
 instance
   apply standard
   using char.linorder_axioms
@@ -268,7 +268,7 @@ proof
       by (auto simp: string_rel_def less_literal.rep_eq less_list_def
         lexordp_conv_lexord lexordp_def char.lexordp_conv_lexord
           simp flip: lexord_code less_char_def
-            PAC_Polynoms_Term.less_char_def)
+            PAC_Polynomials_Term.less_char_def)
     then show \<open>b < b'\<close>
       using \<open>b = u' @ aa' # v'\<close> \<open>b' = u' @ aaa' # w'\<close>
       by (subst less_list_def)
@@ -309,7 +309,7 @@ next
       by (auto simp: string_rel_def less_literal.rep_eq less_list_def
         lexordp_conv_lexord lexordp_def char.lexordp_conv_lexord
           simp flip: lexord_code less_char_def
-            PAC_Polynoms_Term.less_char_def)
+            PAC_Polynomials_Term.less_char_def)
     then show \<open>a < a'\<close>
       using \<open>a = u' @ aa' # v'\<close> \<open>a' = u' @ aaa' # w'\<close>
       by (subst less_list_def)

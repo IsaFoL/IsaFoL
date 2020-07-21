@@ -1,5 +1,5 @@
-theory PAC_Polynoms_Term
-  imports PAC_Polynoms
+theory PAC_Polynomials_Term
+  imports PAC_Polynomials
     Refine_Imperative_HOL.IICF
 begin
 

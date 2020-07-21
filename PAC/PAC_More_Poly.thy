@@ -10,7 +10,7 @@ subsection \<open>More Polynoms\<close>
 
 text \<open>
 
-  Here are more theorems on polynoms. Most of these facts are
+  Here are more theorems on polynomials. Most of these facts are
   extremely trivial and should probably be generalised and moved to
   the Isabelle distribution.
 \<close>

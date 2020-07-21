@@ -357,7 +357,7 @@ sepref_register check_mult_l_dom_err
 
 definition check_mult_l_dom_err_impl where
   \<open>check_mult_l_dom_err_impl pd p ia i =
-    (if pd then ''The polynom with id '' @ show (nat_of_uint64 p) @ '' was not found'' else '''') @
+    (if pd then ''The polynomial with id '' @ show (nat_of_uint64 p) @ '' was not found'' else '''') @
     (if ia then ''The id of the resulting id '' @ show (nat_of_uint64 i) @ '' was already given'' else '''')\<close>
 
 definition check_mult_l_mult_err_impl where
@@ -397,7 +397,7 @@ declare check_mult_l_impl.refine[sepref_fr_rules]
 
 definition check_ext_l_dom_err_impl :: \<open>uint64 \<Rightarrow> _\<close>  where
   \<open>check_ext_l_dom_err_impl p =
-    ''There is already a polynom with index '' @ show (nat_of_uint64 p)\<close>
+    ''There is already a polynomial with index '' @ show (nat_of_uint64 p)\<close>
 
 lemma [sepref_fr_rules]:
   \<open>(((return o (check_ext_l_dom_err_impl))),
@@ -410,7 +410,7 @@ lemma [sepref_fr_rules]:
 
 definition check_extension_l_no_new_var_err_impl :: \<open>_ \<Rightarrow> _\<close>  where
   \<open>check_extension_l_no_new_var_err_impl p =
-    ''No new variable could be found in polynom '' @ show p\<close>
+    ''No new variable could be found in polynomial '' @ show p\<close>
 
 lemma [sepref_fr_rules]:
   \<open>(((return o (check_extension_l_no_new_var_err_impl))),
@@ -424,7 +424,7 @@ lemma [sepref_fr_rules]:
 definition check_extension_l_side_cond_err_impl :: \<open>_ \<Rightarrow> _\<close>  where
   \<open>check_extension_l_side_cond_err_impl v p r s =
     ''Error while checking side conditions of extensions polynow, var is '' @ show v @
-    '' polynom is '' @ show p @ ''side condition p*p - p = '' @ show s @ '' and should be 0''\<close>
+    '' polynomial is '' @ show p @ ''side condition p*p - p = '' @ show s @ '' and should be 0''\<close>
 
 lemma [sepref_fr_rules]:
   \<open>((uncurry3 (\<lambda>x y. return oo (check_extension_l_side_cond_err_impl x y))),
@@ -438,7 +438,7 @@ lemma [sepref_fr_rules]:
 definition check_extension_l_new_var_multiple_err_impl :: \<open>_ \<Rightarrow> _\<close>  where
   \<open>check_extension_l_new_var_multiple_err_impl v p =
     ''Error while checking side conditions of extensions polynow, var is '' @ show v @
-    '' but it either appears at least once in the polynom or another new variable is created '' @
+    '' but it either appears at least once in the polynomial or another new variable is created '' @
     show p @ '' but should not.''\<close>
 
 lemma [sepref_fr_rules]:
@@ -517,7 +517,7 @@ lemmas [sepref_fr_rules] = check_del_l_impl.refine
 abbreviation pac_step_rel where
   \<open>pac_step_rel \<equiv> p2rel (\<langle>Id, \<langle>monomial_rel\<rangle>list_rel, Id\<rangle> pac_step_rel_raw)\<close>
 
-sepref_register PAC_Polynoms_Operations.normalize_poly
+sepref_register PAC_Polynomials_Operations.normalize_poly
   pac_src1 pac_src2 new_id pac_mult case_pac_step check_mult_l
   check_addition_l check_del_l check_extension_l
 
@@ -632,7 +632,7 @@ abbreviation polys_assn_input where
 
 definition remap_polys_l_dom_err_impl :: \<open>_\<close>  where
   \<open>remap_polys_l_dom_err_impl =
-    ''Error during initialisation. Too many polynoms where provided. If this happens,'' @
+    ''Error during initialisation. Too many polynomials where provided. If this happens,'' @
     ''please report the example to the authors, because something went wrong during '' @
     ''code generation (code generation to arrays is likely to be broken).''\<close>
 
@@ -848,9 +848,9 @@ theorem does not say anything about that).
 
 The input parameters are:
 
-\<^enum> the specification polynom represented as a list
+\<^enum> the specification polynomial represented as a list
 
-\<^enum> the input polynoms as hash map (as an array of option polynom)
+\<^enum> the input polynomials as hash map (as an array of option polynom)
 
 \<^enum> a represention of the PAC proofs.
 

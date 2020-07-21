@@ -1,5 +1,5 @@
-theory PAC_Polynoms_Operations
-  imports PAC_Polynoms_Term PAC_Checker_Specification
+theory PAC_Polynomials_Operations
+  imports PAC_Polynomials_Term PAC_Checker_Specification
 begin
 
 section \<open>Polynomialss as Lists\<close>

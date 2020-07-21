@@ -1,5 +1,5 @@
-theory PAC_Polynoms_List
-  imports PAC_Polynoms
+theory PAC_Polynomials_List
+  imports PAC_Polynomials
 begin
 
 type_synonym list_polynom =

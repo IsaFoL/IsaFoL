@@ -1,4 +1,4 @@
-theory PAC_Polynoms
+theory PAC_Polynomials
   imports PAC_Specification Finite_Map_Multiset
 begin
 
@@ -7,7 +7,7 @@ section \<open>Polynomials of strings\<close>
 
 text \<open>
 
-  Isabelle's definition of polynoms only work with variables of type
+  Isabelle's definition of polynomials only work with variables of type
   \<^typ>\<open>nat\<close>. Therefore, we introduce a version that uses strings.
 
 \<close>
@@ -215,7 +215,7 @@ keep_coeff[simp, intro]:
 
 subsection \<open>Correctness\<close>
 text \<open>
-  This locales maps string polynoms to real polynoms.
+  This locales maps string polynomials to real polynomials.
 \<close>
 locale poly_embed =
   fixes \<phi> :: \<open>string \<Rightarrow> nat\<close>

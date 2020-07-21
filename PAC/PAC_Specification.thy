@@ -63,7 +63,7 @@ lemma pac_ideal_alt_def:
 
 text \<open>
 
-  The equality on ideals is restricted to polynoms whose variable
+  The equality on ideals is restricted to polynomials whose variable
   appear in the set of ideals. The function restrict sets:
 
 \<close>
@@ -105,9 +105,9 @@ lemma pac_ideal_mono:
 subsection \<open>PAC Format\<close>
 
 text \<open>The PAC format contains three kind of steps:
-  \<^item> add that adds up two polynoms that are known.
-  \<^item> mult that multiply a known polynom with another one.
-  \<^item> del that removes a polynom that cannot be reused anymore.
+  \<^item> add that adds up two polynomials that are known.
+  \<^item> mult that multiply a known polynomial with another one.
+  \<^item> del that removes a polynomial that cannot be reused anymore.
 
 To model the simplification that happens, we add the \<^term>\<open>p - p' \<in> polynom_bool\<close>
 stating that \<^term>\<open>p\<close> and  \<^term>\<open>p'\<close> are equivalent.
@@ -475,7 +475,7 @@ proof -
     using vars_in_right_only by force
 qed
 
-text \<open>This is the correctness theorem of a PAC step: no polynoms are
+text \<open>This is the correctness theorem of a PAC step: no polynomials are
 added to the ideal.\<close>
 
 lemma vars_subst_in_left_only:

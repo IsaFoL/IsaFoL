@@ -365,7 +365,7 @@ lemma var_order_string_le[sepref_import_param]:
      rel2p_def linorder.lexordp_conv_lexord[OF char.linorder_axioms,
       unfolded less_eq_char_def] var_order_rel_def
       p2rel_def
-      simp flip: PAC_Polynoms_Term.less_char_def)
+      simp flip: PAC_Polynomials_Term.less_char_def)
   using char.lexordp_conv_lexord apply auto
   done
 
@@ -377,9 +377,9 @@ lemma [sepref_import_param]:
 lemma [sepref_import_param]:
   \<open>( (<), (<)) \<in> string_rel \<rightarrow> string_rel \<rightarrow>bool_rel\<close>
   unfolding string_rel_def less_literal.rep_eq less_than_char_def
-    less_eq_list_def PAC_Polynoms_Term.less_char_def[symmetric]
+    less_eq_list_def PAC_Polynomials_Term.less_char_def[symmetric]
   apply (intro fun_relI)
-  apply (auto simp: string_rel_def less_literal.rep_eq PAC_Polynoms_Term.less_char_def
+  apply (auto simp: string_rel_def less_literal.rep_eq PAC_Polynomials_Term.less_char_def
     less_list_def char.lexordp_conv_lexord lexordp_eq_refl
     lexord_code lexordp_eq_conv_lexord less_char_def[abs_def])
   apply (metis PAC_Checker_Relation.less_char_def char.lexordp_conv_lexord less_list_def p2rel_def var_order_rel'' var_order_rel_def)
@@ -389,7 +389,7 @@ lemma [sepref_import_param]:
 lemma [sepref_import_param]:
   \<open>( (\<le>), (\<le>)) \<in> string_rel \<rightarrow> string_rel \<rightarrow>bool_rel\<close>
   unfolding string_rel_def less_eq_literal.rep_eq less_than_char_def
-    less_eq_list_def PAC_Polynoms_Term.less_char_def[symmetric]
+    less_eq_list_def PAC_Polynomials_Term.less_char_def[symmetric]
   by (intro fun_relI)
    (auto simp: string_rel_def less_eq_literal.rep_eq less_than_char_def
     less_eq_list_def char.lexordp_eq_conv_lexord lexordp_eq_refl
@@ -736,7 +736,7 @@ lemma string_rel_order_map:
        (y, aa) \<in> string_rel \<Longrightarrow>
        x \<le> y \<longleftrightarrow> a \<le> aa\<close>
   unfolding string_rel_def less_eq_literal.rep_eq less_than_char_def
-    less_eq_list_def PAC_Polynoms_Term.less_char_def[symmetric]
+    less_eq_list_def PAC_Polynomials_Term.less_char_def[symmetric]
   by (auto simp: string_rel_def less_eq_literal.rep_eq less_than_char_def
     less_eq_list_def char.lexordp_eq_conv_lexord lexordp_eq_refl
     lexord_code lexordp_eq_conv_lexord
