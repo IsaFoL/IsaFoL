@@ -1,3 +1,8 @@
+(*
+  File:         PAC_Checker_Init.thy
+  Author:       Mathias Fleury, Daniela Kaufmann, JKU
+  Maintainer:   Mathias Fleury, JKU
+*)
 theory PAC_Checker_Init
   imports  PAC_Checker WB_Sort PAC_Checker_Relation
 begin

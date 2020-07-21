@@ -1,3 +1,8 @@
+(*
+  File:         PAC_Checker.thy
+  Author:       Mathias Fleury, Daniela Kaufmann, JKU
+  Maintainer:   Mathias Fleury, JKU
+*)
 theory PAC_Checker
   imports PAC_Polynomials_Operations
     PAC_Checker_Specification

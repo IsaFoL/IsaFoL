@@ -1,3 +1,8 @@
+(*
+  File:         PAC_Checker_Specification.thy
+  Author:       Mathias Fleury, Daniela Kaufmann, JKU
+  Maintainer:   Mathias Fleury, JKU
+*)
 theory PAC_Checker_Specification
   imports PAC_Specification
     Refine_Imperative_HOL.IICF

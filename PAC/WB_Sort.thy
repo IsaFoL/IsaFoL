@@ -1,4 +1,10 @@
-(* Correctness proof contributed by Maximilian Wuttke *)
+(*
+  File:         WB_Sort.thy
+  Author:       Mathias Fleury, Daniela Kaufmann, JKU
+  Author:       Maximilian Wuttke, Saarland University
+  Maintainer:   Mathias Fleury, JKU
+
+Correctness proof contributed by Maximilian Wuttke *)
 theory WB_Sort
   imports Refine_Imperative_HOL.IICF "HOL-Library.Rewrite" Duplicate_Free_Multiset
 begin

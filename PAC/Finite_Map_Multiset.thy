@@ -1,3 +1,8 @@
+(*
+  File:         Finite_Map_Multiset.thy
+  Author:       Mathias Fleury, Daniela Kaufmann, JKU
+  Maintainer:   Mathias Fleury, JKU
+*)
 theory Finite_Map_Multiset
 imports "HOL-Library.Finite_Map" Duplicate_Free_Multiset
 begin

@@ -1,3 +1,8 @@
+(*
+  File:         PAC_Polynomials_Term.thy
+  Author:       Mathias Fleury, Daniela Kaufmann, JKU
+  Maintainer:   Mathias Fleury, JKU
+*)
 theory PAC_Polynomials_Term
   imports PAC_Polynomials
     Refine_Imperative_HOL.IICF

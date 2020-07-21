@@ -1,3 +1,8 @@
+(*
+  File:         PAC_Checker_Relation.thy
+  Author:       Mathias Fleury, Daniela Kaufmann, JKU
+  Maintainer:   Mathias Fleury, JKU
+*)
 theory PAC_Checker_Relation
   imports PAC_Checker WB_Sort "Native_Word.Uint64"
 begin

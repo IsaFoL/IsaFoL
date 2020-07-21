@@ -1,3 +1,8 @@
+(*
+  File:         Duplicate_Free_Multiset.thy
+  Author:       Mathias Fleury, Daniela Kaufmann, JKU
+  Maintainer:   Mathias Fleury, JKU
+*)
 theory Duplicate_Free_Multiset
 imports Nested_Multisets_Ordinals.Multiset_More
 begin

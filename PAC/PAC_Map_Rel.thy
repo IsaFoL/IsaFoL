@@ -1,3 +1,8 @@
+(*
+  File:         PAC_Map_Rel.thy
+  Author:       Mathias Fleury, Daniela Kaufmann, JKU
+  Maintainer:   Mathias Fleury, JKU
+*)
 theory PAC_Map_Rel
   imports
     Refine_Imperative_HOL.IICF Finite_Map_Multiset

@@ -1,3 +1,8 @@
+(*
+  File:         More_Loops.thy
+  Author:       Mathias Fleury, Daniela Kaufmann, JKU
+  Maintainer:   Mathias Fleury, JKU
+*)
 theory More_Loops
 imports
   "Refine_Monadic.Refine_While"

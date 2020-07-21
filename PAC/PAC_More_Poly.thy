@@ -1,3 +1,8 @@
+(*
+  File:         PAC_More_Poly.thy
+  Author:       Mathias Fleury, Daniela Kaufmann, JKU
+  Maintainer:   Mathias Fleury, JKU
+*)
 theory PAC_More_Poly
   imports "HOL-Library.Poly_Mapping" "HOL-Algebra.Polynomials" "Polynomials.MPoly_Type_Class"
   "HOL-Algebra.Module"

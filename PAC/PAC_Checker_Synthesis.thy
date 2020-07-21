@@ -1,3 +1,8 @@
+(*
+  File:         PAC_Checker_Synthesis.thy
+  Author:       Mathias Fleury, Daniela Kaufmann, JKU
+  Maintainer:   Mathias Fleury, JKU
+*)
 theory PAC_Checker_Synthesis
   imports PAC_Checker WB_Sort PAC_Checker_Relation
     PAC_Checker_Init More_Loops PAC_Version

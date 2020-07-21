@@ -1,3 +1,8 @@
+(*
+  File:         PAC_Version.thy
+  Author:       Mathias Fleury, Daniela Kaufmann, JKU
+  Maintainer:   Mathias Fleury, JKU
+*)
 theory PAC_Version
   imports Main
 begin
