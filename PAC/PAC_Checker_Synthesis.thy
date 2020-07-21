@@ -841,28 +841,22 @@ The input parameters are:
 lemma PAC_full_correctness: (* \htmllink{PAC-full-correctness} *)
   \<open>(uncurry2 full_checker_l_impl,
      uncurry2 (\<lambda>spec A _. PAC_checker_specification spec A))
-    \<in> (full_poly_assn)\<^sup>k *\<^sub>a
-      (full_poly_input_assn)\<^sup>d *\<^sub>a
-      (fully_pac_assn)\<^sup>k \<rightarrow>\<^sub>a hr_comp
-                            (code_status_assn \<times>\<^sub>a
-                             full_vars_assn \<times>\<^sub>a
-                             hr_comp polys_assn
-                              (\<langle>nat_rel,
-                               sorted_poly_rel O mset_poly_rel\<rangle>fmap_rel))
+    \<in> (full_poly_assn)\<^sup>k *\<^sub>a (full_poly_input_assn)\<^sup>d *\<^sub>a (fully_pac_assn)\<^sup>k \<rightarrow>\<^sub>a hr_comp
+      (code_status_assn \<times>\<^sub>a full_vars_assn \<times>\<^sub>a hr_comp polys_assn
+                              (\<langle>nat_rel, sorted_poly_rel O mset_poly_rel\<rangle>fmap_rel))
                             {((st, G), st', G').
-                             st = st' \<and>
-                             (st \<noteq> FAILED \<longrightarrow> (G, G') \<in> Id \<times>\<^sub>r polys_rel)}\<close>
+                             st = st' \<and> (st \<noteq> FAILED \<longrightarrow> (G, G') \<in> Id \<times>\<^sub>r polys_rel)}\<close>
   using
     full_checker_l_impl.refine[FCOMP full_checker_l_full_checker',
-    FCOMP full_checker_spec',
-    unfolded full_poly_assn_def[symmetric]
-      full_poly_input_assn_def[symmetric]
-      fully_pac_assn_def[symmetric]
-      code_status_assn_def[symmetric]
-      full_vars_assn_def[symmetric]
-      polys_rel_full_polys_rel
-      hr_comp_prod_conv
-      full_polys_assn_def[symmetric]]
+      FCOMP full_checker_spec',
+      unfolded full_poly_assn_def[symmetric]
+        full_poly_input_assn_def[symmetric]
+        fully_pac_assn_def[symmetric]
+        code_status_assn_def[symmetric]
+        full_vars_assn_def[symmetric]
+        polys_rel_full_polys_rel
+        hr_comp_prod_conv
+        full_polys_assn_def[symmetric]]
       hr_comp_Id2
    by auto
 
@@ -878,14 +872,14 @@ by side effects. Assume that this would work. The code could look like:
   in f (next_token)
 \<close>
 
-This code is equivalent to:
+This code is equal to (in the HOL sense of equality):
 \<^term>\<open>
   let _ = read_file file;
       next_token = read_file file
   in f (next_token)
 \<close>
 
-However, as an hypothetic \<^term>\<open>read_file\<close> changes the underlying stream, we would get the next
+However, as an hypothetical \<^term>\<open>read_file\<close> changes the underlying stream, we would get the next
 token. Remark that this is already a weird point of ML compilers. Anyway, I see currently two
 solutions to this problem:
 
@@ -896,7 +890,8 @@ level. However, we cannot forbid people from expressing things directly at the H
 \<^enum> On the target language side, model the stream as the stream and the position. Reading takes two
 arguments. First, the position to read. Second, the stream (and the current position) to read. If
 the position to read does not match the current position, return an error. This would fit the
-correctness theorem of the code generation, but it is still unsatisfactory.
+correctness theorem of the code generation (roughly ``if it terminates without exception, the answer
+is the same''), but it is still unsatisfactory.
 \<close>
 
 end
