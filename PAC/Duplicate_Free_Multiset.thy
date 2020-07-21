@@ -25,22 +25,6 @@ lemma distinct_mset_image_mset:
   apply (subst distinct_mset_mset_distinct)
   ..
 
-lemma distinct_image_mset_not_equal:
-  assumes
-    LL': \<open>L \<noteq> L'\<close> and
-    dist: \<open>distinct_mset (image_mset f M)\<close> and
-    L: \<open>L \<in># M\<close> and
-    L': \<open>L' \<in># M\<close> and
-    fLL'[simp]: \<open>f L = f L'\<close>
-  shows \<open>False\<close>
-proof -
-  obtain M1 where M1: \<open>M = add_mset L M1\<close>
-    using multi_member_split[OF L] by blast
-  obtain M2 where M2: \<open>M1 = add_mset L' M2\<close>
-    using multi_member_split[of L' M1] LL' L' unfolding M1 by (auto simp: add_mset_eq_add_mset)
-  show False
-    using dist unfolding M1 M2 by auto
-qed
 lemma distinct_mset_mono: \<open>D' \<subseteq># D \<Longrightarrow> distinct_mset D \<Longrightarrow> distinct_mset D'\<close>
   by (metis distinct_mset_union subset_mset.le_iff_add)
 
@@ -157,8 +141,10 @@ next
     using Cons[of 0] Cons by (auto simp: nth_Cons drop_Cons H mset_case_Suc *)
 qed
 
+
 subsection \<open>Other\<close>
-text \<open>I believe this should be activated by default, as the set becomes much easier...\<close>
+
+text \<open>I believe this should be added to the simplifier by default...\<close>
 lemma Collect_eq_comp': \<open> {(x, y). P x y} O {(c, a). c = f a} = {(x, a). P x (f a)}\<close>
   by auto
 

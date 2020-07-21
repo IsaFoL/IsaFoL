@@ -764,7 +764,6 @@ lemma [code]: \<open>hashcode s = hashcode_literal' s\<close>
      String.asciis_of_literal_def hashcode_literal_def hashcode_literal'_def)
   done
 
-text \<open>We do not include\<close>
 export_code PAC_checker_l_impl PAC_update_impl PAC_empty_impl the_error is_cfailed is_cfound
   int_of_integer Del Add Mult nat_of_integer String.implode remap_polys_l_impl
   fully_normalize_poly_impl union_vars_poly_impl empty_vars_impl
@@ -774,6 +773,7 @@ export_code PAC_checker_l_impl PAC_update_impl PAC_empty_impl the_error is_cfail
   file_prefix "checker"
 
 
+text \<open>We compile the checker, but do not test it on an example.\<close>
 compile_generated_files _
   external_files
     \<open>code/parser.sml\<close>
@@ -923,7 +923,7 @@ definition \<phi> :: \<open>string \<Rightarrow> nat\<close> where
   \<open>\<phi> = (SOME \<phi>. bij \<phi>)\<close>
 
 lemma bij_\<phi>: \<open>bij \<phi>\<close>
-  using someI[of \<open> \<lambda>\<phi> :: string \<Rightarrow> nat. bij \<phi>\<close>]
+  using someI[of \<open>\<lambda>\<phi> :: string \<Rightarrow> nat. bij \<phi>\<close>]
   unfolding \<phi>_def[symmetric]
   using poly_embed_EX
   by auto
