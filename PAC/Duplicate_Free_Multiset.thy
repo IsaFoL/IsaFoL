@@ -2,7 +2,7 @@ theory Duplicate_Free_Multiset
 imports Nested_Multisets_Ordinals.Multiset_More
 begin
 
-subsection \<open>Duplicate Free Multisets\<close>
+section \<open>Duplicate Free Multisets\<close>
 
 text \<open>Duplicate free multisets are isomorphic to finite sets, but it can be useful to reason about
   duplication to speak about intermediate execution steps in the refinements.

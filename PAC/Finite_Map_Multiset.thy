@@ -6,7 +6,7 @@ notation image_mset (infixr "`#" 90)
 
 section \<open>Finite maps and multisets\<close>
 
-subsubsection \<open>Finite sets and multisets\<close>
+subsection \<open>Finite sets and multisets\<close>
 
 abbreviation mset_fset :: \<open>'a fset \<Rightarrow> 'a multiset\<close> where
   \<open>mset_fset N \<equiv> mset_set (fset N)\<close>
@@ -28,7 +28,7 @@ lemma in_fset_mset_mset[simp]: \<open>x |\<in>| fset_mset N \<longleftrightarrow
   by (auto simp: fmember.rep_eq fset_mset_def Abs_fset_inverse)
 
 
-subsubsection \<open>Finite map and multisets\<close>
+subsection \<open>Finite map and multisets\<close>
 
 text \<open>Roughly the same as \<^term>\<open>ran\<close> and \<^term>\<open>dom\<close>, but with duplication in the content (unlike their
   finite sets counterpart) while still working on finite domains (unlike a function mapping).

@@ -6,6 +6,7 @@ session PAC_Checker = "Sepref_IICF" +
      "HOL-Library"
      "HOL-Algebra"
      "Polynomials"
+     Nested_Multisets_Ordinals
    theories
      WB_Sort
      More_Loops
