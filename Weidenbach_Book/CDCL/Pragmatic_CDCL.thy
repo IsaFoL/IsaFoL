@@ -315,18 +315,11 @@ resolution_LL:
 resolution_IL:
   \<open>cdcl_resolution (M, N + {#add_mset L C#}, U + {#add_mset (-L) C'#}, D, NE, UE, NS, US)
     (M, N + {#add_mset L C#}, U + {#add_mset (-L) C', remdups_mset (C + C')#}, D, NE, UE, NS, US)\<close>
+ if  \<open>count_decided M = 0\<close> and \<open>\<not>tautology (C + C')\<close> |
+resolution_LI:
+  \<open>cdcl_resolution (M, N + {#add_mset L C#}, U + {#add_mset (-L) C'#}, D, NE, UE, NS, US)
+    (M, N + {#add_mset L C, remdups_mset (C + C')#}, U + {#add_mset (-L) C'#}, D, NE, UE, NS, US)\<close>
  if  \<open>count_decided M = 0\<close> and \<open>\<not>tautology (C + C')\<close>
-
-lemma cdcl_resolution_still_entailed:
-  \<open>cdcl_resolution S T \<Longrightarrow> consistent_interp I \<Longrightarrow> I \<Turnstile>m pget_all_init_clss S \<Longrightarrow> I \<Turnstile>m pget_all_init_clss T\<close>
-  apply (induction rule: cdcl_resolution.induct)
-  subgoal for M N L C C' U D NE UE NS US
-    by (auto simp: consistent_interp_def)
- subgoal
-   by auto
- subgoal
-   by auto
-  done
 
 text \<open>
   Tautologies are always entailed by the clause set, but not necessarily entailed by a non-total
@@ -843,6 +836,17 @@ lemma cdcl_resolution_all_struct_inv:
           cdcl\<^sub>W_restart_mset.reasons_in_clauses_def
           insert_commute[of _ \<open>remdups_mset (C + C')\<close>]
         intro: all_decomposition_implies_monoI)
+  subgoal for M C C' N L U D NE UE NS US
+    by (auto 5 3 simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+          cdcl\<^sub>W_restart_mset.no_strange_atm_def
+          cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def
+          cdcl\<^sub>W_restart_mset.distinct_cdcl\<^sub>W_state_def
+          cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
+          cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def
+          cdcl\<^sub>W_restart_mset.clauses_def
+          cdcl\<^sub>W_restart_mset.reasons_in_clauses_def
+          insert_commute[of _ \<open>remdups_mset (C + C')\<close>]
+        intro: all_decomposition_implies_monoI)
   done
 
 lemma cdcl_flush_unit_unchanged:
@@ -1034,13 +1038,12 @@ lemma cdcl_resolution_entailed_by_init:
   shows \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state_of T)\<close>
   using assms
   apply (induction rule: cdcl_resolution.induct)
-  apply (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init_def)
-  apply (metis (full_types) insert_commute true_clss_clss_insert_l)
-  apply (metis (full_types) insert_commute true_clss_clss_insert_l)
-  apply (metis (full_types) insert_commute true_clss_clss_insert_l)
+  apply (auto simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init_def
+    insert_commute[of \<open>add_mset _ _\<close> \<open>remdups_mset _\<close>])
   apply (metis add.commute true_clss_cls_or_true_clss_cls_or_not_true_clss_cls_or)
-  by (metis Partial_Herbrand_Interpretation.uminus_lit_swap member_add_mset set_mset_add_mset_insert
+  apply (metis Partial_Herbrand_Interpretation.uminus_lit_swap member_add_mset set_mset_add_mset_insert
     set_mset_union true_clss_cls_in true_clss_cls_or_true_clss_cls_or_not_true_clss_cls_or)
+  done
 
 lemma cdcl_subsumed_entailed_by_init:
   assumes \<open>cdcl_subsumed S T\<close> and
@@ -1174,8 +1177,8 @@ subresolution_LI:
  if  \<open>count_decided M = 0\<close> and \<open>\<not>tautology (C + C')\<close> and  \<open>C \<subseteq># C'\<close>|
 subresolution_IL:
   \<open>cdcl_subresolution (M, N + {#add_mset L C#}, U + {#add_mset (-L) C'#}, D, NE, UE, NS, US)
-    (M, N + {#remdups_mset C#}, U + {#add_mset (-L) C', remdups_mset C#}, D, NE, UE,
-      add_mset (add_mset L C) NS,  US)\<close>
+    (M, N + {#remdups_mset C#}, U + {#add_mset (-L) C'#}, D, NE, UE,
+      add_mset (add_mset L C) NS, US)\<close>
  if  \<open>count_decided M = 0\<close> and \<open>\<not>tautology (C + C')\<close> and  \<open>C' \<subseteq># C\<close>
 
 
@@ -1229,39 +1232,36 @@ next
   case (subresolution_IL M C C' N L U D NE UE NS US)
   have 1: \<open>cdcl_resolution
      (M, N + {#add_mset L C#}, U + {#add_mset (- L) C'#}, D, NE, UE, NS, US)
-     (M, N + {#add_mset L C#},
-        U + {#add_mset (- L) C', remdups_mset (C + C')#}, D, NE, UE, NS, US)\<close>
+     (M, N + {#add_mset L C, remdups_mset (C + C')#},
+        U + {#add_mset (- L) C'#}, D, NE, UE, NS, US)\<close>
       (is \<open>cdcl_resolution ?A ?B\<close>)
       using subresolution_IL apply -
-      by (rule cdcl_resolution.resolution_IL, assumption, assumption)
+      by (rule cdcl_resolution.resolution_LI, assumption, assumption)
   have \<open>pcdcl_all_struct_invs ?B\<close>
     using 1 pcdcl.intros(3) pcdcl_all_struct_invs subresolution_IL.prems by blast
   moreover have \<open>cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init (state_of ?B)\<close>
     using cdcl_resolution_entailed_by_init[OF 1] subresolution_IL by blast
-  ultimately have 2: \<open>cdcl_learn_clause
-     (M, add_mset (add_mset L C) N,
-      U + {#add_mset (- L) C', remdups_mset (C + C')#}, D, NE, UE, NS, US)
-      (M, add_mset (remdups_mset (C + C')) (add_mset (add_mset L C) N),
-      U + {#add_mset (- L) C', remdups_mset (C + C')#}, D, NE, UE, NS, US)\<close>
-    apply -
-    apply (rule cdcl_learn_clause.intros[of \<open>remdups_mset (C+C')\<close>])
-    using subresolution_IL(1-3)
-    by (auto simp: pcdcl_all_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
-      cdcl\<^sub>W_restart_mset.no_strange_atm_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clause_def
-       cdcl\<^sub>W_restart_mset.clauses_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_learned_clauses_entailed_by_init_def)
+  have 3: \<open>cdcl_subsumed ?B
+     (M, add_mset (remdups_mset C) N, (add_mset (add_mset (- L) C') U), D,
+    NE, UE, add_mset (add_mset L C) NS, US)\<close> (is \<open>cdcl_subsumed _ ?C\<close>)
+    if \<open>C' \<subseteq># C\<close>
+    using cdcl_subsumed.intros(1)[of \<open>remdups_mset (C)\<close> \<open>add_mset L C\<close> M \<open>N\<close>
+      \<open>(add_mset (add_mset (- L) C') U)\<close> D NE UE NS US] that
+    by (auto simp add: dest!: remdups_mset_sum_subset(2)
+      simp: remdups_mset_subset_add_mset add_mset_commute)[]
+  have 4: \<open>cdcl_subsumed (M, add_mset (remdups_mset C) N, add_mset (remdups_mset C) (add_mset (add_mset (- L) C') U), D,
+    NE, UE, add_mset (add_mset L C) NS, US)
+    (M, N + {#remdups_mset C#}, U + {#add_mset (- L) C'#}, D, NE, UE, add_mset (add_mset L C) NS,
+      add_mset (remdups_mset C) US)\<close>
+    by (auto simp: cdcl_subsumed.simps)
   show ?case using subresolution_IL apply -
     apply (rule converse_rtranclp_into_rtranclp)
     apply (rule pcdcl.intros(3)[OF 1])
     apply (rule converse_rtranclp_into_rtranclp)
-    apply (rule pcdcl.intros(2))
-    apply (subst add_mset_add_single[symmetric])
-    apply (rule 2)
-    apply (rule r_into_rtranclp)
     apply (rule pcdcl.intros(4))
-    using cdcl_subsumed.intros(1)[of \<open>remdups_mset (C)\<close> \<open>add_mset L C\<close> M \<open>N\<close>
-      \<open>add_mset (remdups_mset (C)) (add_mset (add_mset (- L) C') U)\<close> D NE UE NS US]
-    apply (auto simp add: dest!: remdups_mset_sum_subset(2)
-      simp: remdups_mset_subset_add_mset add_mset_commute)[]
+    apply (rule 3)
+    apply assumption
+    apply auto
     done
 qed
 

@@ -31,7 +31,7 @@ twl_subresolution_II_nonunit:
    \<open>clause C = add_mset L D\<close>
    \<open>clause C' = add_mset (-L) D'\<close>
    \<open>count_decided M = 0\<close> \<open>D \<subseteq># D'\<close>  \<open>\<not>tautology (D + D')\<close>
-   \<open>clause E = remdups_mset D'\<close> \<open>size (watched E) = 2\<close>  \<open>\<forall>L \<in># clause E. undefined_lit M L\<close>|
+   \<open>clause E = remdups_mset D'\<close> \<open>size (watched E) = 2\<close>  \<open>\<forall>L \<in># D+D'. undefined_lit M L\<close>|
 twl_subresolution_II_unit:
   \<open>cdcl_twl_subresolution (M, N + {#C, C'#}, U, DD, NE, UE, NS, US, {#}, Q)
     (Propagated K {#K#} # M, N + {#C#}, U, DD, add_mset {#K#} NE, UE,
@@ -49,7 +49,7 @@ twl_subresolution_LL_nonunit:
    \<open>clause C = add_mset L D\<close>
    \<open>clause C' = add_mset (-L) D'\<close>
    \<open>count_decided M = 0\<close> \<open>D \<subseteq># D'\<close> \<open>size (watched E) = 2\<close>
-   \<open>clause E = remdups_mset D'\<close> \<open>\<not>tautology (D + D')\<close>  \<open>\<forall>L \<in># clause E. undefined_lit M L\<close>|
+   \<open>clause E = remdups_mset D'\<close> \<open>\<not>tautology (D + D')\<close>  \<open>\<forall>L \<in># D+D'. undefined_lit M L\<close>|
 twl_subresolution_LL_unit:
   \<open>cdcl_twl_subresolution (M, N, U + {#C, C'#}, DD, NE, UE, NS, US, {#}, Q)
     (Propagated K {#K#} # M, N, U + {#C#}, DD, NE, add_mset {#K#} UE, NS,
@@ -67,7 +67,7 @@ twl_subresolution_LI_nonunit:
    \<open>clause C = add_mset L D\<close>
    \<open>clause C' = add_mset (-L) D'\<close>
    \<open>count_decided M = 0\<close> \<open>D \<subseteq># D'\<close> \<open>size (watched E) = 2\<close>
-   \<open>clause E = remdups_mset D'\<close>  \<open>\<not>tautology (D + D')\<close>  \<open>\<forall>L \<in># clause E. undefined_lit M L\<close>|
+   \<open>clause E = remdups_mset D'\<close>  \<open>\<not>tautology (D + D')\<close>  \<open>\<forall>L \<in># D+D'. undefined_lit M L\<close>|
 twl_subresolution_LI_unit:
   \<open>cdcl_twl_subresolution (M, N + {#C#}, U + {#C'#}, DD, NE, UE, NS, US, {#}, Q)
     (Propagated K {#K#} # M, N + {#C#}, U, DD, NE, add_mset {#K#} UE, NS,
@@ -80,19 +80,19 @@ twl_subresolution_LI_unit:
 
 twl_subresolution_IL_nonunit:
   \<open>cdcl_twl_subresolution (M, N + {#C'#}, U + {#C#}, DD, NE, UE, NS, US, {#}, {#})
-    (M, N + {#E#}, U + {#C, E#}, DD, NE, UE, add_mset (clause C') NS, US, {#}, {#})\<close>
+    (M, N + {#E#}, U + {#C#}, DD, NE, UE, add_mset (clause C') NS, US, {#}, {#})\<close>
  if
    \<open>clause C = add_mset L D\<close>
    \<open>clause C' = add_mset (-L) D'\<close>
    \<open>count_decided M = 0\<close> \<open>D \<subseteq># D'\<close> \<open>size (watched E) = 2\<close>
-   \<open>clause E = remdups_mset D'\<close>  \<open>\<not>tautology (D + D')\<close>  \<open>\<forall>L \<in># clause E. undefined_lit M L\<close>|
+   \<open>clause E = remdups_mset D'\<close>  \<open>\<not>tautology (D + D')\<close>  \<open>\<forall>L \<in># D+D'. undefined_lit M L\<close>|
 twl_subresolution_IL_unit:
   \<open>cdcl_twl_subresolution (M, N + {#C'#}, U + {#C#}, DD, NE, UE, NS, US, {#}, Q)
     (Propagated K {#K#} # M, N, U + {#C#}, DD, add_mset {#K#} NE, UE,
        add_mset (clause C') NS, US, {#}, add_mset (-K) Q)\<close>
  if
-   \<open>clause C = add_mset L D\<close>
-   \<open>clause C' = add_mset (-L) D'\<close>
+   \<open>clause C = add_mset (-L) D\<close>
+   \<open>clause C' = add_mset (L) D'\<close>
    \<open>count_decided M = 0\<close> \<open>D \<subseteq># D'\<close> \<open>undefined_lit M K\<close>
    \<open>remdups_mset D' = {#K#}\<close>  \<open>\<not>tautology (D + D')\<close>
 
@@ -107,36 +107,6 @@ lemma has_blitI:
   \<open>K \<in># C \<Longrightarrow> get_level M K = count_decided M \<Longrightarrow> get_level M K' = count_decided M \<Longrightarrow> K \<in> lits_of_l M \<Longrightarrow> has_blit (M) C K'\<close>
   unfolding has_blit_def
   by (rule exI[of _ K]) (auto simp: atm_of_eq_atm_of)
-
-(* find_theorems \<open>twl_lazy_update (_ # _)\<close>
- * lemma \<open>twl_lazy_update M C \<Longrightarrow> undefined_lit M K \<Longrightarrow> twl_lazy_update (Propagated K D # M) C\<close>
- *   using no_blit_propagatedD[of M K D \<open>clause C\<close>]
- *   apply (cases C)
- *   apply (auto simp: get_level_cons_if atm_of_eq_atm_of uminus_lit_swap
- *     count_decided_ge_get_level Decided_Propagated_in_iff_in_lits_of_l
- *     dest: no_blit_propagatedD)
- *   apply (auto simp add: has_blit_def)[]
- * defer
- *   apply force
- *   subgoal for x1 x2 Ka
- *     apply (drule_tac x = Ka in spec)
- *       apply auto
- *   apply (subst (asm)(4) has_blitI[of \<open>-K\<close>])
- *   apply (auto; fail)+
- *     defer
- *     apply auto[]
- * try0 intro: has_blitI
- *   apply auto
- * apply (auto simp add: has_blitI)
- * apply (auto simp add: has_blit_def dest!: multi_member_split)[]
- *   sledgehammer
- * 
- *     sorry
- * apply (metis get_level_uminus has_blit_def is_blit_Cons order_mono_setup.refl union_iff)
- * using count_decided_ge_get_level le_SucI apply blast
- * sledgehammer
- * find_theorems has_blit \<open>_ # _\<close>
- * find_theorems twl_lazy_update Cons *)
 
 lemma struct_wf_twl_cls_alt_def:
   \<open>struct_wf_twl_cls E \<longleftrightarrow> distinct_mset (clause E) \<and> size (watched E) = 2\<close>
@@ -330,5 +300,339 @@ lemma cdcl_twl_subresolution_twl_stgy_invs:
     conflict_non_zero_unless_level_0_lvl0 get_level_cons_if
     dest!: multi_member_split)
   done
+
+lemma cdcl_twl_subresolution_cdcl:
+  assumes \<open>cdcl_twl_subresolution S W\<close> and \<open>get_conflict S = None\<close>
+  obtains T U where
+    \<open>cdcl_subresolution (pstate\<^sub>W_of S) T\<close> and
+    \<open>cdcl_propagate\<^sup>*\<^sup>* T U\<close>and
+    \<open>cdcl_flush_unit\<^sup>*\<^sup>* U (pstate\<^sub>W_of W)\<close>
+proof -
+  show ?thesis
+  using assms(1,2)
+  apply (cases rule: cdcl_twl_subresolution.cases)
+  subgoal for C L D C' D' M E N Ua DD NE UE NS US
+    by (rule that[of \<open>(pstate\<^sub>W_of W)\<close> \<open>(pstate\<^sub>W_of W)\<close>]) (auto simp: cdcl_subresolution.simps)
+  subgoal for C L D C' D' M K N Ua DD NE UE NS US Q
+    apply (rule that[of \<open>(M,  (clause `# N) + {# {#K#}, clause C#}, clause `# Ua, DD, NE, UE, add_mset (clause C') NS, US)\<close>
+                        \<open>(Propagated K {#K#} # M,  (clause `# N) + {# {#K#}, clause C#}, clause `# Ua, DD, NE, UE, add_mset (clause C') NS, US)\<close>])
+    subgoal
+      by (auto simp: cdcl_subresolution.simps)
+    subgoal
+      by (rule r_into_rtranclp) (auto simp: cdcl_propagate.simps)
+    subgoal
+      by (auto simp: cdcl_flush_unit.simps)
+    done
+  subgoal for C L D C' D' M E N U DD NE UE NS US Q
+    by (rule that[of \<open>(pstate\<^sub>W_of W)\<close> \<open>(pstate\<^sub>W_of W)\<close>]) (auto simp: cdcl_subresolution.simps)
+  subgoal for C L D C' D' M K N U DD NE UE NS US Q
+    apply (rule that[of \<open>(M,  (clause `# N), clause `# U + {# {#K#}, clause C#}, DD, NE, UE, NS, add_mset (clause C') US)\<close>
+                        \<open>(Propagated K {#K#} # M,  (clause `# N), clause `# U + {# {#K#}, clause C#}, DD, NE, UE, NS, add_mset (clause C') US)\<close>])
+    subgoal
+      by (fastforce simp: cdcl_subresolution.simps)
+    subgoal
+      by (rule r_into_rtranclp) (auto simp: cdcl_propagate.simps)
+    subgoal
+      by (auto simp: cdcl_flush_unit.simps)
+    done
+  subgoal for C L D C' D' M E N U DD NE UE NS US Q
+    apply (rule that[of \<open>(pstate\<^sub>W_of W)\<close> \<open>(pstate\<^sub>W_of W)\<close>])
+    apply (auto simp: cdcl_subresolution.simps)
+    by fast
+  subgoal for C L D C' D' M K N U DD NE UE NS US Q
+    apply (rule that[of \<open>(M, add_mset (clause C) (clause `# N), clause `# U + {# {#K#}#}, DD, NE, UE, NS, add_mset (clause C') US)\<close>
+                        \<open>(Propagated K {#K#} # M, add_mset (clause C) (clause `# N), clause `# U + {# {#K#}#}, DD, NE, UE, NS, add_mset (clause C') US)\<close>])
+    subgoal
+      by (fastforce simp: cdcl_subresolution.simps)
+    subgoal
+      by (rule r_into_rtranclp) (auto simp: cdcl_propagate.simps)
+    subgoal
+      apply  (rule r_into_rtranclp)
+      by (auto simp: cdcl_flush_unit.simps)
+    done
+  subgoal for C L D C' D' M E N U DD NE UE NS US
+    by (rule that[of \<open>(pstate\<^sub>W_of W)\<close> \<open>(pstate\<^sub>W_of W)\<close>])
+      (fastforce simp: cdcl_subresolution.simps ac_simps)+
+  subgoal for C L D C' D' M K N U DD NE UE NS US Q
+    apply (rule that[of \<open>(M, add_mset ({#K#}) (clause `# N), clause `# U + {# clause C#}, DD, NE, UE, add_mset (clause C') NS, US)\<close>
+                        \<open>(Propagated K {#K#} # M, add_mset {#K#} (clause `# N), clause `# U + {#clause C#}, DD, NE, UE, add_mset (clause C') NS, US)\<close>])
+    subgoal
+      by (fastforce simp: cdcl_subresolution.simps ac_simps)
+    subgoal
+      by (rule r_into_rtranclp) (auto simp: cdcl_propagate.simps)
+    subgoal
+      apply  (rule r_into_rtranclp)
+      by (auto simp: cdcl_flush_unit.simps)
+    done
+  done
+qed
+
+(*TODO Move*)
+lemma cdcl_subresolution:
+  assumes \<open>cdcl_subresolution S T\<close> and
+    \<open>pcdcl_all_struct_invs S\<close>
+  shows \<open>pcdcl\<^sup>*\<^sup>* S T\<close>
+  using assms
+proof  (induction rule: cdcl_subresolution.induct)
+  case (subresolution_II M C C' N L U D NE UE NS US)
+  then show ?case
+    apply -
+    apply (rule converse_rtranclp_into_rtranclp)
+    apply (rule pcdcl.intros(3))
+    apply (rule cdcl_resolution.resolution_II, assumption)
+    apply (rule r_into_rtranclp)
+    apply (rule pcdcl.intros(4))
+    using cdcl_subsumed.intros(1)[of \<open>remdups_mset (C + C')\<close> \<open>add_mset (- L) C'\<close> M
+      \<open>N + {#add_mset L C#}\<close> U D NE UE NS US]
+    apply (auto simp add: dest!: remdups_mset_sum_subset(1)
+      simp: remdups_mset_subset_add_mset add_mset_commute)
+    done
+next
+  case (subresolution_LL M C C' N U L D NE UE NS US)
+  then show ?case apply -
+    apply (rule converse_rtranclp_into_rtranclp)
+    apply (rule pcdcl.intros(3))
+    apply (rule cdcl_resolution.resolution_LL, assumption, assumption)
+    apply (rule r_into_rtranclp)
+    apply (rule pcdcl.intros(4))
+    using cdcl_subsumed.intros(2)[of \<open>remdups_mset (C + C')\<close> \<open>add_mset (- L) C'\<close> M N
+      \<open>U + {#add_mset L C#}\<close> D NE UE NS US]
+    apply (auto dest!: remdups_mset_sum_subset(1)
+      simp: remdups_mset_subset_add_mset add_mset_commute)
+    done
+next
+  case (subresolution_LI M C C' N L U D NE UE NS US)
+  then show ?case apply -
+    apply (rule converse_rtranclp_into_rtranclp)
+    apply (rule pcdcl.intros(3))
+    apply (rule cdcl_resolution.resolution_IL, assumption, assumption)
+    apply (rule r_into_rtranclp)
+    apply (rule pcdcl.intros(4))
+    using cdcl_subsumed.intros(2)[of \<open>remdups_mset (C + C')\<close> \<open>add_mset (- L) C'\<close> M
+      \<open>N  + {#add_mset L C#}\<close> \<open>U\<close> D NE UE NS US]
+    apply (auto simp add: dest!: remdups_mset_sum_subset(1)
+      simp: remdups_mset_subset_add_mset add_mset_commute)
+    done
+next
+  case (subresolution_IL M C C' N L U D NE UE NS US)
+  have 1: \<open>cdcl_resolution
+     (M, N + {#add_mset L C#}, U + {#add_mset (- L) C'#}, D, NE, UE, NS, US)
+     (M, N + {#add_mset L C, remdups_mset (C + C')#},
+        U + {#add_mset (- L) C'#}, D, NE, UE, NS, US)\<close>
+      (is \<open>cdcl_resolution ?A ?B\<close>)
+      using subresolution_IL apply -
+      by (rule cdcl_resolution.resolution_LI, assumption, assumption)
+  have \<open>pcdcl_all_struct_invs ?B\<close>
+    using 1 pcdcl.intros(3) pcdcl_all_struct_invs subresolution_IL.prems by blast
+  have 3: \<open>cdcl_subsumed ?B
+     (M, add_mset (remdups_mset C) N, (add_mset (add_mset (- L) C') U), D,
+    NE, UE, add_mset (add_mset L C) NS, US)\<close> (is \<open>cdcl_subsumed _ ?C\<close>)
+    if \<open>C' \<subseteq># C\<close>
+    using cdcl_subsumed.intros(1)[of \<open>remdups_mset (C)\<close> \<open>add_mset L C\<close> M \<open>N\<close>
+      \<open>(add_mset (add_mset (- L) C') U)\<close> D NE UE NS US] that
+    by (auto simp add: dest!: remdups_mset_sum_subset(2)
+      simp: remdups_mset_subset_add_mset add_mset_commute)[]
+  have 4: \<open>cdcl_subsumed (M, add_mset (remdups_mset C) N, add_mset (remdups_mset C) (add_mset (add_mset (- L) C') U), D,
+    NE, UE, add_mset (add_mset L C) NS, US)
+    (M, N + {#remdups_mset C#}, U + {#add_mset (- L) C'#}, D, NE, UE, add_mset (add_mset L C) NS,
+      add_mset (remdups_mset C) US)\<close>
+    by (auto simp: cdcl_subsumed.simps)
+  show ?case using subresolution_IL apply -
+    apply (rule converse_rtranclp_into_rtranclp)
+    apply (rule pcdcl.intros(3)[OF 1])
+    apply (rule converse_rtranclp_into_rtranclp)
+    apply (rule pcdcl.intros(4))
+    apply (rule 3)
+    apply assumption
+    apply auto
+    done
+qed
+
+lemma clause_alt_def:
+  \<open>clause E =  watched E + unwatched E\<close>
+  by (cases E) auto
+
+lemma cdcl_twl_subresolution_twl_struct_invs:
+  assumes \<open>cdcl_twl_subresolution S T\<close>
+    \<open>twl_struct_invs S\<close> and
+    confl_S: \<open>get_conflict S = None\<close>
+  shows \<open>twl_struct_invs T\<close>
+proof -
+  have st_inv: \<open>twl_st_inv S\<close> and
+    enq: \<open>valid_enqueued S\<close> and
+    struct_invs: \<open>pcdcl_all_struct_invs (pstate\<^sub>W_of S)\<close> and
+    excep: \<open>twl_st_exception_inv S\<close> and
+    dup: \<open>no_duplicate_queued S\<close> and
+    dist: \<open>distinct_queued S\<close> and
+    confl: \<open>confl_cands_enqueued S\<close> and
+    propa: \<open>propa_cands_enqueued S\<close> and
+    confl2: \<open>get_conflict S \<noteq> None \<longrightarrow> clauses_to_update S = {#} \<and> literals_to_update S = {#}\<close> and
+    clss: \<open>clauses_to_update_inv S\<close> and
+    upd: \<open>past_invs S\<close> and
+    early_propa: \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa (state\<^sub>W_of S)\<close>
+    using assms(2) unfolding twl_struct_invs_def
+    by blast+
+  have nd: \<open>no_dup (get_trail S)\<close>
+    using struct_invs unfolding pcdcl_all_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def by auto
+  obtain Ta U where
+    STa: \<open>cdcl_subresolution (pstate\<^sub>W_of S) Ta\<close>
+    \<open>cdcl_propagate\<^sup>*\<^sup>* Ta U\<close>
+    \<open>cdcl_flush_unit\<^sup>*\<^sup>* U (pstate\<^sub>W_of T)\<close>
+    by (rule cdcl_twl_subresolution_cdcl[OF assms(1) confl_S]) blast
+  have
+    STa: \<open>pcdcl\<^sup>*\<^sup>* (pstate\<^sub>W_of S) Ta\<close> and
+    TaU: \<open>pcdcl\<^sup>*\<^sup>* Ta U\<close> and
+    UT: \<open>pcdcl\<^sup>*\<^sup>* U (pstate\<^sub>W_of T)\<close>
+      apply (rule cdcl_subresolution[OF STa(1) struct_invs])
+     apply (metis \<open>cdcl_propagate\<^sup>*\<^sup>* Ta U\<close> mono_rtranclp pcdcl.intros(1) pcdcl_core.intros(2))
+    by (metis \<open>cdcl_flush_unit\<^sup>*\<^sup>* U (pstate\<^sub>W_of T)\<close> mono_rtranclp pcdcl.intros(5))
+
+  have remdups_mset_set_msetD: \<open>remdups_mset D = A \<Longrightarrow> set_mset D = set_mset A\<close> for A D
+    by auto
+
+  have \<open>twl_st_inv T\<close>
+    using cdcl_twl_subresolution_twl_st_inv[of S T, OF assms(1) nd st_inv] .
+  moreover have \<open>valid_enqueued T\<close>
+    using assms(1) enq count_decided_ge_get_level[of \<open>get_trail S\<close>]
+    by (induction rule: cdcl_twl_subresolution.induct) (auto simp: get_level_cons_if)
+  moreover have \<open>pcdcl_all_struct_invs (pstate\<^sub>W_of T)\<close>
+    using struct_invs assms(1) TaU UT STa
+      cdcl_subsumed_pcdcl_all_struct_invs[of \<open>pstate\<^sub>W_of S\<close>  \<open>pstate\<^sub>W_of T\<close>] apply -
+    by (auto dest!: rtranclp_pcdcl_all_struct_invs)
+  moreover have \<open>twl_st_exception_inv T\<close>
+    using assms(1) excep confl_S nd
+    apply (induction rule: cdcl_twl_subresolution.induct)
+    subgoal
+      by (auto simp: twl_exception_inv.simps eq_commute[of \<open>watched _ + unwatched _\<close> \<open>remdups_mset _\<close>] 
+          clause_alt_def uminus_lits_of_l_definedD
+        dest!: remdups_mset_set_msetD dest!: multi_member_split[of _ \<open>watched _\<close>]
+          multi_member_split[of _ \<open>unwatched _\<close>])
+    subgoal
+      apply (auto simp: twl_exception_inv.simps
+          eq_commute[of \<open>watched _ + unwatched _\<close> \<open>remdups_mset _\<close>]
+          clause_alt_def uminus_lits_of_l_definedD uminus_lit_swap
+        dest!: remdups_mset_set_msetD dest!: multi_member_split[of _ \<open>watched _\<close>]
+        multi_member_split[of _ \<open>unwatched _\<close>])
+      apply (metis (no_types, lifting) Un_iff no_blit_propagatedD union_mset_add_mset_left union_mset_add_mset_right union_single_eq_member)
+      by (metis (no_types, lifting) Un_iff no_blit_propagatedD union_mset_add_mset_left union_mset_add_mset_right union_single_eq_member)
+    subgoal
+      by (auto simp: twl_exception_inv.simps eq_commute[of \<open>watched _ + unwatched _\<close> \<open>remdups_mset _\<close>] 
+          clause_alt_def uminus_lits_of_l_definedD
+        dest!: remdups_mset_set_msetD dest!: multi_member_split[of _ \<open>watched _\<close>]
+          multi_member_split[of _ \<open>unwatched _\<close>])
+    subgoal
+      apply (auto simp: twl_exception_inv.simps
+          eq_commute[of \<open>watched _ + unwatched _\<close> \<open>remdups_mset _\<close>]
+          clause_alt_def uminus_lits_of_l_definedD uminus_lit_swap
+        dest!: remdups_mset_set_msetD dest!: multi_member_split[of _ \<open>watched _\<close>]
+        multi_member_split[of _ \<open>unwatched _\<close>])
+      apply (metis (no_types, lifting) Un_iff no_blit_propagatedD union_mset_add_mset_left union_mset_add_mset_right union_single_eq_member)
+      by (metis (no_types, lifting) Un_iff no_blit_propagatedD union_mset_add_mset_left union_mset_add_mset_right union_single_eq_member)
+    subgoal
+      by (auto simp: twl_exception_inv.simps eq_commute[of \<open>watched _ + unwatched _\<close> \<open>remdups_mset _\<close>] 
+          clause_alt_def uminus_lits_of_l_definedD
+        dest!: remdups_mset_set_msetD dest!: multi_member_split[of _ \<open>watched _\<close>]
+          multi_member_split[of _ \<open>unwatched _\<close>])
+    subgoal
+      apply (auto simp: twl_exception_inv.simps
+          eq_commute[of \<open>watched _ + unwatched _\<close> \<open>remdups_mset _\<close>]
+          clause_alt_def uminus_lits_of_l_definedD uminus_lit_swap
+        dest!: remdups_mset_set_msetD dest!: multi_member_split[of _ \<open>watched _\<close>]
+        multi_member_split[of _ \<open>unwatched _\<close>])
+      apply (metis (no_types, lifting) Un_iff no_blit_propagatedD union_mset_add_mset_left union_mset_add_mset_right union_single_eq_member)
+      by (metis (no_types, lifting) Un_iff no_blit_propagatedD union_mset_add_mset_left union_mset_add_mset_right union_single_eq_member)
+    subgoal
+      by (auto simp: twl_exception_inv.simps eq_commute[of \<open>watched _ + unwatched _\<close> \<open>remdups_mset _\<close>] 
+          clause_alt_def uminus_lits_of_l_definedD
+        dest!: remdups_mset_set_msetD dest!: multi_member_split[of _ \<open>watched _\<close>]
+          multi_member_split[of _ \<open>unwatched _\<close>])
+    subgoal
+      apply (auto simp: twl_exception_inv.simps
+          eq_commute[of \<open>watched _ + unwatched _\<close> \<open>remdups_mset _\<close>]
+          clause_alt_def uminus_lits_of_l_definedD uminus_lit_swap
+        dest!: remdups_mset_set_msetD dest!: multi_member_split[of _ \<open>watched _\<close>]
+        multi_member_split[of _ \<open>unwatched _\<close>])
+      apply (metis (no_types, lifting) Un_iff no_blit_propagatedD union_mset_add_mset_left union_mset_add_mset_right union_single_eq_member)
+      by (metis (no_types, lifting) Un_iff no_blit_propagatedD union_mset_add_mset_left union_mset_add_mset_right union_single_eq_member)
+    done
+  moreover have \<open>no_duplicate_queued T\<close>
+    using assms(1) dup
+    by (induction rule: cdcl_twl_subresolution.induct) auto
+  moreover have \<open>distinct_queued T\<close>
+    using assms(1) dist dup
+    apply (induction rule: cdcl_twl_subresolution.induct)
+    apply (clarsimp_all simp: dest!: multi_member_split[of \<open>_ :: _ literal\<close>])
+apply (auto dest: mset_le_add_mset_decr_left2)
+find_theorems \<open>add_mset _ _ \<subseteq># _ \<close> 
+    sorry
+  moreover have \<open>confl_cands_enqueued T\<close>
+    using assms(1) confl
+    by (induction rule: cdcl_twl_subresolution.induct)
+      (case_tac D; auto)+
+  moreover have \<open>propa_cands_enqueued T\<close>
+    using assms(1) propa
+    by (induction rule: cdcl_twl_subresolution.induct)
+      (case_tac D; auto)+
+  moreover have \<open>get_conflict T \<noteq> None \<longrightarrow> clauses_to_update T = {#} \<and> literals_to_update T = {#}\<close>
+    using assms(1) confl2 confl_S
+    by (induction rule: cdcl_twl_subresolution.induct) auto
+  moreover have \<open>clauses_to_update_inv T\<close>
+    using assms(1) clss
+    by (induction rule: cdcl_twl_subresolution.induct)
+      (auto simp: clauses_to_update_prop.simps filter_mset_empty_conv)+
+  moreover have \<open>past_invs T\<close>
+  proof -
+    let ?f = \<open>(\<lambda>(M, N, U, D, NE, UE, NS, US, WS, Q).
+    (\<forall>M1 M2 K. M = M2 @ Decided K # M1 \<longrightarrow> (\<forall>C \<in># N + U. twl_lazy_update M1 C)))\<close>
+    let ?g = \<open>(\<lambda>(M, N, U, D, NE, UE, NS, US, WS, Q).
+    (\<forall>M1 M2 K. M = M2 @ Decided K # M1 \<longrightarrow> (\<forall>C \<in># N + U. watched_literals_false_of_max_level M1 C)))\<close>
+    let ?h = \<open>(\<lambda>(M, N, U, D, NE, UE, NS, US, WS, Q).
+    (\<forall>M1 M2 K. M = M2 @ Decided K # M1 \<longrightarrow> (
+      (\<forall>C \<in># N + U. twl_exception_inv (M1, N, U, None, NE, UE, NS, US, {#}, {#}) C))))\<close>
+    let ?i = \<open>(\<lambda>(M, N, U, D, NE, UE, NS, US, WS, Q).
+    (\<forall>M1 M2 K. M = M2 @ Decided K # M1 \<longrightarrow> (
+      confl_cands_enqueued (M1, N, U, None, NE, UE, NS, US, {#}, {#}))))\<close>
+    let ?j = \<open>(\<lambda>(M, N, U, D, NE, UE, NS, US, WS, Q).
+    (\<forall>M1 M2 K. M = M2 @ Decided K # M1 \<longrightarrow> (
+      propa_cands_enqueued (M1, N, U, None, NE, UE, NS, US, {#}, {#}))))\<close>
+    let ?k = \<open>(\<lambda>(M, N, U, D, NE, UE, NS, US, WS, Q).
+    (\<forall>M1 M2 K. M = M2 @ Decided K # M1 \<longrightarrow> (
+      clauses_to_update_inv (M1, N, U, None, NE, UE, NS, US, {#}, {#}))))\<close>
+    have \<open>?f T\<close> if \<open>?f S\<close>
+      using assms(1) that
+      by (induction rule: cdcl_twl_subsumed.induct) auto
+    moreover have \<open>?g T\<close> if \<open>?g S\<close>
+      using assms(1) that
+      by (induction rule: cdcl_twl_subsumed.induct) auto
+    moreover have \<open>?h T\<close> if \<open>?h S\<close>
+      using assms(1) that
+      by (induction rule: cdcl_twl_subsumed.induct)
+        (case_tac C; auto simp: twl_exception_inv.simps)+
+    moreover have \<open>?i T\<close> if \<open>?i S\<close>
+      using assms(1) that
+      by (induction rule: cdcl_twl_subsumed.induct) auto
+    moreover have \<open>?j T\<close> if \<open>?j S\<close>
+      using assms(1) that
+      by (induction rule: cdcl_twl_subsumed.induct) auto
+    moreover have \<open>?k T\<close> if \<open>?k S\<close>
+      using assms(1) that
+      by (induction rule: cdcl_twl_subsumed.induct) (auto simp: clauses_to_update_prop.simps
+        filter_mset_empty_conv)
+    ultimately show \<open>past_invs T\<close>
+      using upd by (cases S; cases T)
+       (simp only: prod.case past_invs.simps imp_conjR all_conj_distrib
+          ball_conj_distrib, fast)
+  qed
+  moreover have \<open>cdcl\<^sub>W_restart_mset.no_smaller_propa (state\<^sub>W_of T)\<close>
+    using assms(1) early_propa
+    by (induction rule: cdcl_twl_subsumed.induct)
+      (auto simp: cdcl\<^sub>W_restart_mset.no_smaller_propa_def clauses_def)
+  ultimately show ?thesis
+    using cdcl_twl_subsumed_twl_st_inv[of S T] cdcl_twl_subsumed_cdcl_subsumed[of S T]
+      cdcl_subsumed_pcdcl_all_struct_invs[of \<open>pstate\<^sub>W_of S\<close>  \<open>pstate\<^sub>W_of T\<close>]
+    by (simp add: twl_struct_invs_def)
+qed
+
 
 end

@@ -1,6 +1,6 @@
 theory Watched_Literals_List
   imports More_Sepref.WB_More_Refinement_List Watched_Literals_Algorithm CDCL.DPLL_CDCL_W_Implementation
-    Watched_Literals_Clauses
+    Watched_Literals_Clauses Weidenbach_Book_Base.Explorer
 begin
 
 
@@ -483,6 +483,16 @@ lemma convert_lits_lI:
   \<open>length M = length M' \<Longrightarrow> (\<And>i. i < length M \<Longrightarrow> convert_lit N NE (M!i) (M'!i)) \<Longrightarrow>
      (M, M') \<in> convert_lits_l N NE\<close>
   by (auto simp: convert_lits_l_def list_rel_def p2rel_def list_all2_conv_all_nth)
+
+lemma convert_lits_l_drop_irrelevant:
+  \<open>(M, M') \<in> convert_lits_l N NE \<Longrightarrow> C \<notin> set (get_all_mark_of_propagated M) \<Longrightarrow> (M, M') \<in> convert_lits_l (fmdrop C N) NE\<close>
+  apply (auto simp: convert_lits_l_def p2rel_def list_rel_def)
+  apply (induction M M' rule: list_all2_induct)
+  subgoal by auto
+  subgoal for x x'
+    by (case_tac x; case_tac x')
+      (auto simp: convert_lit.simps)
+  done
 
 fun get_learned_clauses_l :: \<open>'v twl_st_l \<Rightarrow> 'v clause_l multiset\<close> where
   \<open>get_learned_clauses_l (M, N, D, NE, UE, WS, Q) = learned_clss_lf N\<close>
@@ -2685,6 +2695,107 @@ definition get_fresh_index :: \<open>'v clauses_l \<Rightarrow> nat nres\<close>
 definition propagate_bt_l_pre where
   \<open>propagate_bt_l_pre L L' S \<longleftrightarrow>
     (\<exists>S'. (S, S') \<in> twl_st_l None \<and> propagate_bt_pre L L' S')\<close>
+
+inductive cdcl_twl_subsumed_bt_list :: \<open>nat \<Rightarrow> 'v clauses_l \<times> 'v clauses \<times> 'v clauses \<times> 'v clauses \<times> 'v clauses  \<Rightarrow> _ \<Rightarrow> bool\<close> where
+subsumed_RR:
+  \<open>cdcl_twl_subsumed_bt_list C (N, NE, UE, NS, US)
+     (fmdrop C' N, NE, UE, NS, add_mset (mset (N \<propto> C')) US)\<close>
+  if \<open>mset (N \<propto> C) \<subseteq># mset (N \<propto> C')\<close> \<open>C \<in># dom_m N\<close>
+    \<open>C' \<in># dom_m N\<close> \<open>\<not>irred N C\<close> \<open>\<not>irred N C'\<close>|
+subsumed_IR:
+  \<open>cdcl_twl_subsumed_bt_list C (N, NE, UE, NS, US)
+     (fmdrop C' N, NE, UE, NS, add_mset (mset (N \<propto> C')) US)\<close>
+  if \<open>mset (N \<propto> C) \<subseteq># mset (N \<propto> C')\<close> \<open>C \<in># dom_m N\<close>
+    \<open>C' \<in># dom_m N\<close> \<open>\<not>irred N C\<close> \<open>irred N C'\<close>
+
+lemma
+  assumes
+    \<open>cdcl_twl_subsumed_bt_list i (N, NE, UE, NS, US) (N', NE', UE', NS', US')\<close> and
+    pre: \<open>((M, N, D, NE, UE, NS, US, WS, Q), x) \<in> twl_st_l None\<close> and
+    \<open>twl_list_invs (M, N, D, NE, UE, NS, US, WS, Q)\<close> and
+    \<open>\<exists>M'. twl_struct_invs (M, N, D, NE, UE, NS, US, WS, Q)\<close>
+    \<open>i \<in># dom_m N\<close> and
+    L: \<open>L \<in># mset (N \<propto> i)\<close> and
+    undef: \<open>undefined_lit M L\<close> and
+    \<open>i \<noteq> 0\<close> \<open>WS = {#}\<close>
+  shows \<open>twl_list_invs (M, N', D, NE', UE', NS', US', WS, Q)\<close>
+proof -
+  have H: \<open>False\<close> if mono: \<open>mset (N \<propto> i) \<subseteq># mset (N \<propto> j)\<close> and
+    j: \<open>j \<in># dom_m N\<close> and
+    Lj: \<open>Propagated K j \<in> set M\<close> \<open>j \<noteq> 0\<close> for j :: nat and K
+  proof -
+    obtain x xa xb xc xd xe xf xg xh xi xj xk xl where
+      Sx: \<open>((M, N, D, NE, UE, NS, US, WS, Q), x) \<in> twl_st_l None\<close> and
+      x: \<open>x = (xa, xb, xc, Some xd, xe, xf, xg, xh, xi, xj)\<close> and
+      struct_invs: \<open>twl_struct_invs (xk @ xa, xb, xc, Some xl, xe, xf, xg, xh, xi, xj)\<close>
+      using pre unfolding propagate_bt_l_pre_def propagate_bt_pre_def apply -
+      apply normalize_goal+
+      by blast
+    have Prop: \<open>Propagated K (mset (N \<propto> j)) \<in> set xa\<close> and
+      M: \<open>(M, xa) \<in> convert_lits_l N (NE+UE)\<close>
+      using Sx Lj unfolding x
+      by (auto simp: twl_st_l_def list_rel_append1 convert_lits_l_def p2rel_def convert_lit.simps
+        dest!: split_list elim!: list_relE1 list_relE2 list_relE3 list_relE4)
+    have \<open>\<forall>L mark a b.
+         a @ Propagated L mark # b = trail (state_of (pstate\<^sub>W_of (xk @ xa, xb, xc, Some xl, xe, xf, xg, xh, xi, xj))) \<longrightarrow>
+         b \<Turnstile>as CNot (remove1_mset L mark) \<and> L \<in># mark\<close>
+      using struct_invs unfolding twl_struct_invs_def pcdcl_all_struct_invs_def
+        cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
+      by fast
+    with Prop have \<open>defined_lit xa K'\<close> if \<open>K' \<in># (mset (N \<propto> j))\<close> for K'
+      using that apply -
+      apply (drule split_list, normalize_goal+)
+      subgoal for x xaa
+        apply (drule_tac spec[of _ K])
+        apply (drule_tac spec[of _ \<open>mset (N \<propto> j)\<close>])
+        apply (drule_tac spec[of _ \<open>xk @ x\<close>])
+        by (cases \<open>K = K'\<close>)
+          (auto dest!: split_list simp: cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_conflicting_def
+          intro: in_lits_of_l_defined_litD uminus_lits_of_l_definedD)
+      done
+    from this[of L] show False
+      using L undef mono M
+      by auto
+  qed
+
+  show ?thesis
+    using assms(1)
+  proof (cases rule: cdcl_twl_subsumed_bt_list.cases)
+    case (subsumed_RR C')
+    then show ?thesis
+      using assms
+      by (auto simp: twl_list_invs_def dest: in_diffD dest: H)
+  next
+    case (subsumed_IR C')
+    then show ?thesis
+      using assms
+      by (auto simp: twl_list_invs_def dest: in_diffD dest: H)
+  qed
+  have \<open>propagate_bt_l_pre L L' (M, N', D, NE', UE', NS', US', WS, Q)\<close>
+  proof -
+    obtain x xa xb xc xd xe xf xg xh xi xj xk xl where
+      Sx: \<open>((M, N, D, NE, UE, NS, US, WS, Q), x) \<in> twl_st_l None\<close> and
+      x: \<open>x = (xa, xb, xc, Some xd, xe, xf, xg, xh, xi, xj)\<close> and
+      struct_invs: \<open>twl_struct_invs (xk @ xa, xb, xc, Some xl, xe, xf, xg, xh, xi, xj)\<close>
+      using pre unfolding propagate_bt_l_pre_def propagate_bt_pre_def apply -
+      apply normalize_goal+
+      by blast
+    show ?thesis
+      using assms(1)
+      apply (cases rule: cdcl_twl_subsumed_bt_list.cases)
+      subgoal for C'
+        unfolding propagate_bt_l_pre_def
+        apply (rule exI[of _ \<open>(xa, xb, remove1_mset (twl_clause_of (N \<propto> C')) xc, Some xd, xe, xf, xg, add_mset (mset (N \<propto> C')) xh, xi, xj)\<close>])
+        using x Sx
+        apply (auto simp: propagate_bt_l_pre_def propagate_bt_pre_def twl_st_l_def
+          mset_take_mset_drop_mset' init_clss_l_fmdrop_irrelev learned_clss_l_l_fmdrop
+          image_mset_remove1_mset_if cdcl\<^sub>W_restart_mset.in_get_all_mark_of_propagated_in_trail
+          intro!: convert_lits_l_drop_irrelevant
+          dest: H)
+        apply (drule H)
+        apply auto
+          find_theorems \<open>_ \<in> set (get_all_mark_of_propagated _)\<close>
+qed
 
 definition propagate_bt_l :: \<open>'v literal \<Rightarrow> 'v literal \<Rightarrow> 'v twl_st_l \<Rightarrow> 'v twl_st_l nres\<close> where
   \<open>propagate_bt_l = (\<lambda>L L' (M, N, D, NE, UE, NS, US, WS, Q). do {

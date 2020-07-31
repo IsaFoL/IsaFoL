@@ -1035,35 +1035,42 @@ lemma pcdcl_core_stgy_pget_all_init_clss:
     cdcl_resolve.simps cdcl_backtrack.simps cdcl_subsumed.simps cdcl_flush_unit.simps)
 
 lemma pcdcl_stgy_pget_all_init_clss:
-  \<open>pcdcl_stgy S T \<Longrightarrow> atms_of_mm (pget_all_init_clss S) =
+  \<open>pcdcl_stgy S T \<Longrightarrow> pcdcl_all_struct_invs S \<Longrightarrow> atms_of_mm (pget_all_init_clss S) =
     atms_of_mm (pget_all_init_clss T)\<close>
   by (induction rule: pcdcl_stgy.induct)
     (auto dest!: tranclp_into_rtranclp rtranclp_pcdcl_tcore_stgy_pget_all_init_clss
-      simp: pcdcl_restart.simps pcdcl_core_stgy_pget_all_init_clss
+    simp: pcdcl_restart.simps pcdcl_core_stgy_pget_all_init_clss pcdcl_all_struct_invs_def
+      cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def cdcl\<^sub>W_restart_mset.no_strange_atm_def
         cdcl_learn_clause.simps cdcl_resolution.simps cdcl_subsumed.simps cdcl_flush_unit.simps)
 
 lemma rtranclp_pcdcl_stgy_pget_all_init_clss:
-  \<open>pcdcl_stgy\<^sup>*\<^sup>* S T \<Longrightarrow> atms_of_mm (pget_all_init_clss S) =
-    atms_of_mm (pget_all_init_clss T)\<close>
-  by (induction rule: rtranclp_induct)
-    (auto dest!: pcdcl_stgy_pget_all_init_clss)
+  \<open>pcdcl_stgy\<^sup>*\<^sup>* S T \<Longrightarrow>  pcdcl_all_struct_invs S \<Longrightarrow> atms_of_mm (pget_all_init_clss S) =
+  atms_of_mm (pget_all_init_clss T)\<close>
+  apply (induction rule: rtranclp_induct)
+  subgoal by auto
+  subgoal
+    using pcdcl_stgy_pget_all_init_clss rtranclp_pcdcl_all_struct_invs rtranclp_pcdcl_stgy_pcdcl by blast
+    done
 
 context twl_restart_ops
 begin
 
 lemma pcdcl_stgy_restart_pget_all_init_clss:
-  \<open>pcdcl_stgy_restart S T \<Longrightarrow>
+  \<open>pcdcl_stgy_restart S T \<Longrightarrow> pcdcl_all_struct_invs (current_state S) \<Longrightarrow>
     atms_of_mm (pget_all_init_clss (last_restart_state S)) = atms_of_mm (pget_all_init_clss (current_state S)) \<Longrightarrow>
     atms_of_mm (pget_all_init_clss (last_GC_state S)) = atms_of_mm (pget_all_init_clss (current_state S)) \<Longrightarrow>
   atms_of_mm (pget_all_init_clss (current_state T)) = atms_of_mm (pget_all_init_clss (current_state S)) \<and>
   atms_of_mm (pget_all_init_clss (last_restart_state T)) = atms_of_mm (pget_all_init_clss (current_state S)) \<and>
   atms_of_mm (pget_all_init_clss (last_GC_state T)) = atms_of_mm (pget_all_init_clss (current_state S))\<close>
   apply (induction rule: pcdcl_stgy_restart.induct)
-  apply (simp add: pcdcl_tcore_stgy_pget_all_init_clss)
-  apply (auto dest!: rtranclp_pcdcl_tcore_stgy_pget_all_init_clss rtranclp_pcdcl_stgy_pget_all_init_clss
-    simp: pcdcl_restart.simps pcdcl_restart_only.simps)[]
-  apply (smt fst_conv pcdcl_restart_only.simps pget_all_init_clss.simps snd_conv)
-  apply simp
+  subgoal by (simp add: pcdcl_tcore_stgy_pget_all_init_clss)
+  subgoal for T R n U V S m
+    using pcdcl_restart_pcdcl_all_struct_invs[of T U]
+      rtranclp_pcdcl_stgy_pget_all_init_clss[of U V]
+    by (auto simp: pcdcl_restart.simps pcdcl_restart_only.simps)
+  subgoal
+    by (smt fst_conv pcdcl_restart_only.simps pget_all_init_clss.simps snd_conv)
+  subgoal by simp
   done
 
 definition pcdcl_stgy_restart_inv :: \<open>'v prag_st_restart \<Rightarrow> bool\<close> where
@@ -1569,7 +1576,7 @@ proof (rule ccontr)
   have \<open>atms_of_mm (pget_all_init_clss (fst (g (Suc i)))) = atms_of_mm (pget_all_init_clss (fst (g i)))\<close> for i
     using pcdcl_stgy_restart_pget_all_init_clss[OF g[of i]]
     by (metis rest_decomp rest_decomp2 rtranclp_pcdcl_stgy_only_restart_pget_all_init_clss
-      rtranclp_pcdcl_tcore_stgy_pget_all_init_clss)
+      rtranclp_pcdcl_tcore_stgy_pget_all_init_clss inv_c)
   then have atms_init[simp]: \<open>NO_MATCH 0 i \<Longrightarrow>
       atms_of_mm (pget_all_init_clss (fst (g i))) = atms_of_mm (pget_all_init_clss (fst (g 0)))\<close> for i
     by (induction i) auto

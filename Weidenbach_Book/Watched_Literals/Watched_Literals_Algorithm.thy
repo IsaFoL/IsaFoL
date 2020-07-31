@@ -1093,6 +1093,8 @@ definition propagate_bt :: \<open>'v literal \<Rightarrow> 'v literal \<Rightarr
       None, NE, UE, NS, US, WS, {#L#})
    })\<close>
 
+text \<open>The idea of eager subsumption is rediscovered every few years. In Armin Biere's SAT solvers,
+the idea go back to Knuth. Christoph Weidenbach had that idea too (independently).\<close>
 definition mop_propagate_bt :: \<open>'v literal \<Rightarrow> 'v literal \<Rightarrow> 'v twl_st \<Rightarrow> 'v twl_st nres\<close> where
   \<open>mop_propagate_bt = (\<lambda>L L' S. do {
     ASSERT(propagate_bt_pre L L' S);
@@ -2035,5 +2037,56 @@ lemma cdcl_twl_stgy_prog_early_spec:
   subgoal by simp
   subgoal by fast
   done
+
+
+subsection \<open>Specialisation\<close>
+
+text \<open>This is a specialized version for use only in the backtrack function. The idea is that we 
+avoid creating the full state and instead only care the clauses.\<close>
+inductive cdcl_twl_subsumed_bt :: \<open>'v twl_clss \<times> 'v twl_clss \<times> 'v clauses \<times> 'v clauses \<times> 'v clauses \<times> 'v clauses  \<Rightarrow> _ \<Rightarrow> bool\<close> where
+subsumed_RR:
+  \<open>cdcl_twl_subsumed_bt (N, U + {#C, C'#}, NE, UE, NS, US)
+     (N, add_mset C U, NE, UE, NS, add_mset (clause C') US)\<close>
+  if \<open>clause C \<subseteq># clause C'\<close> |
+subsumed_IR:
+  \<open>cdcl_twl_subsumed_bt (add_mset C N, add_mset C' U, NE, UE, NS, US)
+     (add_mset C N, U, NE, UE, NS, add_mset (clause C') US)\<close>
+  if \<open>clause C \<subseteq># clause C'\<close>
+
+lemma cdcl_twl_subsumed_bt_cdcl_twl_subsumed:
+  \<open>cdcl_twl_subsumed_bt (N, U, NE, UE, NS, US) (N', U', NE', UE', NS', US') \<Longrightarrow>
+    cdcl_twl_subsumed (M, N, U, D, NE, UE, NS, US, {#}, Q) (M, N', U', D, NE', UE', NS', US', {#}, Q)\<close>
+   by (cases rule: cdcl_twl_subsumed_bt.cases, assumption) (auto simp: cdcl_twl_subsumed.simps)
+
+lemma rtranclp_cdcl_twl_subsumed_bt_cdcl_twl_subsumed:
+  \<open>cdcl_twl_subsumed_bt\<^sup>*\<^sup>* (N, U, NE, UE, NS, US) (N', U', NE', UE', NS', US') \<Longrightarrow>
+    cdcl_twl_subsumed\<^sup>*\<^sup>* (M, N, U, D, NE, UE, NS, US, {#}, Q) (M, N', U', D, NE', UE', NS', US', {#}, Q)\<close>
+  apply (induction \<open>(N', U', NE', UE', NS', US')\<close> arbitrary: N' U' NE' UE' NS' US' rule: rtranclp_induct)
+  subgoal by auto
+  subgoal for y N' U' NE' UE' NS' US'
+    by (cases y)
+     (fastforce dest!: cdcl_twl_subsumed_bt_cdcl_twl_subsumed[of _ _ _ _ _ _ _ _ _ _ _ _ M D Q])
+  done
+
+definition mop_propagate_bt2 :: \<open>'v literal \<Rightarrow> 'v literal \<Rightarrow> 'v twl_st \<Rightarrow> 'v twl_st nres\<close> where
+  \<open>mop_propagate_bt2 = (\<lambda>L L' (M, N, U, D, NE, UE, NS, US, WS, Q). do {
+    let S = (M, N, U, D, NE, UE, NS, US, WS, Q);
+    ASSERT(propagate_bt_pre L L' S);
+    let U = add_mset (TWL_Clause {#-L, L'#} (the D - {#-L, L'#})) U;
+    (N, U, NE, UE, NS, US) \<leftarrow> SPEC(cdcl_twl_subsumed_bt\<^sup>*\<^sup>* (N, U, NE, UE, NS, US));
+    RETURN (Propagated (-L) (the D) # M, N, U,
+      None, NE, UE, NS, US, WS, {#L#})
+   })\<close>
+
+lemma mop_propagate_bt2_mop_propagate_bt:
+  \<open>mop_propagate_bt2 L L' S \<le> (mop_propagate_bt L L' S)\<close>
+  apply (subst (2) Down_id_eq[symmetric])
+  unfolding mop_propagate_bt2_def mop_propagate_bt_def
+  apply (cases S)
+  apply (clarify)
+  apply refine_vcg
+  by (auto simp: mop_propagate_bt2_def mop_propagate_bt_def propagate_bt_def propagate_bt_pre_def
+    twl_struct_invs_def split: prod.splits
+    intro: rtranclp_cdcl_twl_subsumed_bt_cdcl_twl_subsumed)
 
 end
