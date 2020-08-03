@@ -556,20 +556,72 @@ proof -
       apply (metis (no_types, lifting) Un_iff no_blit_propagatedD union_mset_add_mset_left union_mset_add_mset_right union_single_eq_member)
       by (metis (no_types, lifting) Un_iff no_blit_propagatedD union_mset_add_mset_left union_mset_add_mset_right union_single_eq_member)
     done
-  moreover have \<open>no_duplicate_queued T\<close>
+  moreover have dup_T: \<open>no_duplicate_queued T\<close>
     using assms(1) dup
     by (induction rule: cdcl_twl_subresolution.induct) auto
-  moreover have \<open>distinct_queued T\<close>
-    using assms(1) dist dup
-    apply (induction rule: cdcl_twl_subresolution.induct)
-    apply (clarsimp_all simp: dest!: multi_member_split[of \<open>_ :: _ literal\<close>])
-apply (auto dest: mset_le_add_mset_decr_left2)
-find_theorems \<open>add_mset _ _ \<subseteq># _ \<close> 
-    sorry
+  moreover have \<open>distinct_mset {#- lit_of x. x \<in># mset (get_trail S)#}\<close>
+    using nd by (simp add: no_dup_distinct_uminus)
+  with assms(1) have \<open>distinct_queued T\<close>
+    using dist dup_T nd
+    apply (cases rule: cdcl_twl_subresolution.cases)
+    subgoal
+      by (clarsimp_all simp: dest: distinct_mset_mono dest!: multi_member_split[of \<open>_ :: _ literal\<close>])
+    subgoal
+      apply (simp)
+      apply (rule ccontr, subst (asm) not_not)
+      apply (drule multi_member_split)
+      apply (auto dest!: mset_subset_eq_insertD dest: undefined_notin)
+      done
+    subgoal
+      by (clarsimp_all simp: dest: distinct_mset_mono dest!: multi_member_split[of \<open>_ :: _ literal\<close>])
+    subgoal
+      apply (simp)
+      apply (rule ccontr, subst (asm) not_not)
+      apply (drule multi_member_split)
+      apply (auto dest!: mset_subset_eq_insertD dest: undefined_notin)
+      done
+    subgoal
+      by (clarsimp_all simp: dest: distinct_mset_mono dest!: multi_member_split[of \<open>_ :: _ literal\<close>])
+    subgoal
+      apply (simp)
+      apply (rule ccontr, subst (asm) not_not)
+      apply (drule multi_member_split)
+      apply (auto dest!: mset_subset_eq_insertD dest: undefined_notin)
+      done
+    subgoal
+      by (clarsimp_all simp: dest: distinct_mset_mono dest!: multi_member_split[of \<open>_ :: _ literal\<close>])
+    subgoal
+      apply (simp)
+      apply (rule ccontr, subst (asm) not_not)
+      apply (drule multi_member_split)
+      apply (auto dest!: mset_subset_eq_insertD dest: undefined_notin)
+      done
+    done
   moreover have \<open>confl_cands_enqueued T\<close>
-    using assms(1) confl
-    by (induction rule: cdcl_twl_subresolution.induct)
-      (case_tac D; auto)+
+    using assms(1) confl confl_S
+    apply (cases rule: cdcl_twl_subresolution.cases)
+    subgoal for C L D C' D' M E N U DD NE UE NS US
+      apply (case_tac D')
+      apply (auto simp: true_annots_true_cls_def_iff_negation_in_model clause_alt_def Decided_Propagated_in_iff_in_lits_of_l
+        dest!: remdups_mset_set_msetD)[2]
+      apply (metis Un_iff remdups_mset_set_msetD set_mset_union union_single_eq_member)
+      apply (metis Un_iff remdups_mset_set_msetD set_mset_union union_single_eq_member)
+      apply (metis Un_iff remdups_mset_set_msetD set_mset_union union_single_eq_member)
+      apply (metis Un_iff remdups_mset_set_msetD set_mset_union union_single_eq_member)
+      done
+    subgoal for C L D C' D' M E N U DD NE UE NS US
+      apply (case_tac D')
+      apply (auto simp: true_annots_true_cls_def_iff_negation_in_model clause_alt_def Decided_Propagated_in_iff_in_lits_of_l
+        uminus_lit_swap
+        dest!: remdups_mset_set_msetD)[2]
+using Partial_Herbrand_Interpretation.uminus_lit_swap sledgehammer
+      apply (case_tac D')
+      apply (auto simp: true_annots_true_cls_def_iff_negation_in_model clause_alt_def Decided_Propagated_in_iff_in_lits_of_l
+        dest!: remdups_mset_set_msetD)[2]
+      oops
+      apply (smt CNot_plus CNot_remdups_mset Decided_Propagated_in_iff_in_lits_of_l Un_iff add_mset_remove_trivial in_multiset_nempty propa propa_cands_enqueued.simps(1) remdups_mset_sum_subset(1) set_mset_union true_annots_union union_single_eq_member)
+      sorry
+     find_theorems \<open>_ \<Turnstile>as CNot _ \<longleftrightarrow> _\<close>
   moreover have \<open>propa_cands_enqueued T\<close>
     using assms(1) propa
     by (induction rule: cdcl_twl_subresolution.induct)
