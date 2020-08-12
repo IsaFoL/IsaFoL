@@ -1,4 +1,4 @@
-      theory PAC_Checker_Synthesis
+theory PAC_Checker_Synthesis
   imports PAC_Checker WB_Sort PAC_Checker_Relation
     PAC_Checker_Init
     "More_Refinement_Libs.WB_More_Refinement_Loops"

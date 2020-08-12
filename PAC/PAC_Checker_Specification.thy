@@ -184,10 +184,10 @@ lemma polys_rel_update_remove:
   apply (auto simp: polys_rel_def ran_m_mapsto_upd ran_m_mapsto_upd_notin
     ran_m_fmdrop)
   apply (subst ran_m_mapsto_upd_notin)
-  apply (auto dest: in_diffD dest!: multi_member_split simp: ran_m_fmdrop ran_m_fmdrop_If distinct_mset_remove1_All ran_m_def
+  apply (auto dest: in_diffD dest!: multi_member_split simp: ran_m_fmdrop ran_m_fmdrop_If distinct_mset_remove1_All ran_m_def minus_notin_trivial removeAll_notin
       add_mset_eq_add_mset removeAll_notin
-    split: if_splits intro!: image_mset_cong)
- by (smt count_inI diff_single_trivial fmlookup_drop image_mset_cong2 replicate_mset_0)
+    split: if_splits intro!: image_mset_cong image_mset_cong2)
+  done
 
 lemma polys_rel_in_dom_inD:
   \<open>(A, B) \<in> polys_rel \<Longrightarrow>
@@ -777,7 +777,7 @@ proof -
       by auto
     subgoal for speca x1 x2 x x1a x2a x1b
       apply (rule ref_two_step[OF conc_fun_R_mono])
-      apply auto[]
+       apply (solves auto)
       using assms
       apply (auto simp add: PAC_checker_specification_spec_def conc_fun_RES polys_rel_def polys_rel_full_def
         dest!: rtranclp_PAC_Format_subset_ideal dest: is_failed_is_success_completeD)

@@ -46,7 +46,8 @@ lemma diff_in_polynom_bool_pac_idealI:
    have "insert p polynom_bool \<subseteq> pac_ideal A"
      using a1 unfolding pac_ideal_def by (meson ideal.span_superset insert_subset le_sup_iff)
    then show ?thesis
-     using a2 unfolding pac_ideal_def by (metis (no_types) ideal.eq_span_insert_eq ideal.span_subset_spanI ideal.span_superset insert_subset subsetD)
+     using a2 unfolding pac_ideal_def by (metis (no_types) ideal.eq_span_insert_eq
+       ideal.span_subset_spanI ideal.span_superset insert_subset subsetD)
 qed
 
 lemma diff_in_polynom_bool_pac_idealI2:
@@ -92,6 +93,7 @@ lemma pac_ideal_insert_already_in:
 lemma pac_ideal_add:
   \<open>p \<in># A \<Longrightarrow> q \<in># A \<Longrightarrow> p + q \<in> pac_ideal (set_mset A)\<close>
   by (simp add: ideal.span_add ideal.span_base pac_ideal_def)
+
 lemma pac_ideal_mult:
   \<open>p \<in># A \<Longrightarrow> p * q \<in> pac_ideal (set_mset A)\<close>
   by (simp add: ideal.span_base pac_idealI3)
@@ -551,11 +553,8 @@ lemma rtranclp_PAC_Format_subset_ideal:
   subgoal
     by (simp add: restricted_ideal_to_restricted_ideal_to\<^sub>ID)
   subgoal
-    apply (drule PAC_Format_subset_ideal)
-    apply simp_all
-    apply auto
-    by (smt Collect_mono_iff mem_Collect_eq restricted_ideal_to_def subset_trans)
+    by (drule PAC_Format_subset_ideal)
+     (auto simp: restricted_ideal_to_def subset_iff)
   done
-
 
 end

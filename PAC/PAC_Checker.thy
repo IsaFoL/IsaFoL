@@ -786,7 +786,7 @@ lemma remove1_list_rel2:
   (\<And>c. (c, b) \<in> R \<Longrightarrow> c = a) \<Longrightarrow>
   (remove1 a xs, remove1 b ys) \<in> \<langle>R\<rangle>list_rel\<close>
   apply (induction xs ys rule: list_rel_induct)
-  apply (simp (no_asm))
+   apply (simp (no_asm))
   by (smt list_rel_simp(4) remove1.simps(2))
 
 lemma remove1_sorted_poly_rel_mset_poly_rel:
@@ -801,7 +801,7 @@ proof -
      \<open>\<And>aa. ([a], aa) \<in> term_poly_list_rel \<longleftrightarrow> aa = {#a#}\<close>
      by (auto simp: term_poly_list_rel_def)
   have H:
-    \<open>\<And>aa. ([a], aa) \<in> term_poly_list_rel \<Longrightarrow> aa = {#a#}\<close>
+     \<open>\<And>aa. ([a], aa) \<in> term_poly_list_rel \<Longrightarrow> aa = {#a#}\<close>
      \<open>\<And>aa. (aa, {#a#}) \<in> term_poly_list_rel \<Longrightarrow> aa = [a]\<close>
      by (auto simp: single_valued_def IS_LEFT_UNIQUE_def
        term_poly_list_rel_def)
