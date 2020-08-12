@@ -3,6 +3,7 @@ theory Watched_Literals_Transition_System
     CDCL.CDCL_W_Restart  CDCL.Pragmatic_CDCL
 begin
 
+
 chapter \<open>Two-Watched Literals\<close>
 
 section \<open>Rule-based system\<close>
@@ -309,8 +310,7 @@ text \<open>This invariant state that watched literals are set at the end and ar
   unwatched literal later.\<close>
 fun twl_lazy_update :: \<open>('a, 'b) ann_lits \<Rightarrow> 'a twl_cls \<Rightarrow> bool\<close> where
 \<open>twl_lazy_update M (TWL_Clause W UW) \<longleftrightarrow>
-  (\<forall>L. L \<in># W \<longrightarrow> -L \<in> lits_of_l M \<longrightarrow> \<not>has_blit M (W+UW) L \<longrightarrow>
-    (\<forall>K \<in># UW. get_level M L \<ge> get_level M K \<and> -K \<in> lits_of_l M))\<close>
+  (\<forall>L L'. W = {#L, L'#} \<longrightarrow> L \<in># W \<longrightarrow> -L \<in> lits_of_l M \<longrightarrow> has_blit M (W+UW) L)\<close>
 
 text \<open>
   If one watched literals has been assigned to false (\<^term>\<open>-L \<in> lits_of_l M\<close>) and the clause
@@ -413,7 +413,6 @@ fun past_invs :: \<open>'v twl_st \<Rightarrow> bool\<close> where
   \<open>past_invs (M, N, U, D, NE, UE, NS, US, WS, Q) \<longleftrightarrow>
     (\<forall>M1 M2 K. M = M2 @ Decided K # M1 \<longrightarrow> (
       (\<forall>C \<in># N + U. twl_lazy_update M1 C \<and>
-        watched_literals_false_of_max_level M1 C \<and>
         twl_exception_inv (M1, N, U, None, NE, UE, NS, US, {#}, {#}) C) \<and>
       confl_cands_enqueued (M1, N, U, None, NE, UE, NS, US, {#}, {#}) \<and>
       propa_cands_enqueued (M1, N, U, None, NE, UE, NS, US, {#}, {#}) \<and>
@@ -423,17 +422,14 @@ declare past_invs.simps[simp del]
 fun twl_st_inv :: \<open>'v twl_st \<Rightarrow> bool\<close> where
 \<open>twl_st_inv (M, N, U, D, NE, UE, NS, US, WS, Q) \<longleftrightarrow>
   (\<forall>C \<in># N + U. struct_wf_twl_cls C) \<and>
-  (\<forall>C \<in># N + U. D = None \<longrightarrow> \<not>twl_is_an_exception C Q WS \<longrightarrow> (twl_lazy_update M C)) \<and>
-  (\<forall>C \<in># N + U. D = None \<longrightarrow> watched_literals_false_of_max_level M C)\<close>
+  (\<forall>C \<in># N + U. D = None \<longrightarrow> \<not>twl_is_an_exception C Q WS \<longrightarrow> twl_lazy_update M C)\<close>
 
 lemma twl_st_inv_alt_def:
   \<open>twl_st_inv S \<longleftrightarrow>
   (\<forall>C \<in># get_clauses S. struct_wf_twl_cls C) \<and>
   (\<forall>C \<in># get_clauses S. get_conflict S = None \<longrightarrow>
      \<not>twl_is_an_exception C (literals_to_update S) (clauses_to_update S) \<longrightarrow>
-     (twl_lazy_update (get_trail S) C)) \<and>
-  (\<forall>C \<in># get_clauses S. get_conflict S = None \<longrightarrow>
-     watched_literals_false_of_max_level (get_trail S) C)\<close>
+     (twl_lazy_update (get_trail S) C))\<close>
   by (cases S) (auto simp: twl_st_inv.simps)
 
 text \<open>
@@ -519,8 +515,7 @@ lemma twl_st_inv_add_mset_clauses_to_update:
 lemma twl_st_simps:
 \<open>twl_st_inv (M, N, U, D, NE, UE, NS, US, WS, Q) \<longleftrightarrow>
   (\<forall>C \<in># N + U. struct_wf_twl_cls C \<and>
-    (D = None \<longrightarrow> (\<not>twl_is_an_exception C Q WS \<longrightarrow> twl_lazy_update M C) \<and>
-    watched_literals_false_of_max_level M C))\<close>
+    (D = None \<longrightarrow> (\<not>twl_is_an_exception C Q WS \<longrightarrow> twl_lazy_update M C)))\<close>
   unfolding twl_st_inv.simps by fast
 
 lemma propa_cands_enqueued_unit_clause:
@@ -1075,8 +1070,6 @@ next
     ultimately show False
       unfolding distinct_mset_count_less_1 by (metis Suc_1 not_less_eq_eq)
   qed
-  have \<open>watched_literals_false_of_max_level M D\<close>
-    using D_N_U twl by (auto simp: twl_st_inv.simps)
   let ?D = \<open>update_clause D L K\<close>
   have *: \<open>C \<in># N + U\<close> if \<open>C \<noteq> ?D\<close> and C: \<open>C \<in># N' + U'\<close> for C
     using C N'U' that by (auto elim!: update_clausesE dest: in_diffD)
@@ -1094,11 +1087,7 @@ next
   have L_M: \<open>L \<notin> lits_of_l M\<close>
     using n_d uL by (fastforce dest!: distinct_consistent_interp
         simp: consistent_interp_def lits_of_def uminus_lit_swap)
-  have w_max_D: \<open>watched_literals_false_of_max_level M D\<close>
-    using D_N_U twl by (auto simp: twl_st_inv.simps)
-  have lev_L': \<open>get_level M L' = count_decided M\<close>
-    if \<open>- L' \<in> lits_of_l M\<close> \<open>\<not>has_blit M (clause D) L'\<close>
-    using L_M w_max_D D watched L' uL that by auto
+
   have D_ne_D: \<open>D \<noteq> update_clause D L K\<close>
     using D add_remove_WD by auto
   have N'U': \<open>N' + U' = add_mset ?D (remove1_mset D (N + U))\<close>
@@ -1354,11 +1343,6 @@ next
     assume C: \<open>C \<in># N + U\<close>
     show \<open>struct_wf_twl_cls C\<close>
       using twl C by (auto simp: twl_st_inv.simps)[]
-    have watched_max: \<open>watched_literals_false_of_max_level M C\<close>
-      using twl C by (auto simp: twl_st_inv.simps)
-    then show \<open>watched_literals_false_of_max_level (Propagated L' (clause D) # M) C\<close>
-      using undef n_d
-      by (cases C) (auto simp: get_level_cons_if dest!: no_has_blit_propagate')
 
     assume excep: \<open>\<not>twl_is_an_exception C (add_mset (- L') Q) WS\<close>
     have excep_C: \<open>\<not> twl_is_an_exception C Q (add_mset (L, D) WS)\<close> if \<open>C \<noteq> D\<close>
@@ -1366,14 +1350,18 @@ next
     then have \<open>twl_lazy_update M C\<close> if \<open>C \<noteq> D\<close>
       using twl C D_N_U that by (cases \<open>C = D\<close>) (auto simp add: twl_st_inv.simps)
     then show \<open>twl_lazy_update (Propagated L' (clause D) # M) C\<close>
-      using twl C excep uL'_M twl undef n_d uL'_M unw watched_max
+      using twl C excep uL'_M twl undef n_d uL'_M unw
       apply (cases C)
       apply (auto simp: get_level_cons_if count_decided_ge_get_level
           twl_is_an_exception_add_mset_to_queue atm_of_eq_atm_of
           dest!: no_has_blit_propagate' no_has_blit_propagate)
       apply (metis twl_clause.sel(2) uL'_M unw)
+      apply (metis defined_lit_uminus in_lits_of_l_defined_litD twl_clause.sel(2))
+      using count_decided_ge_get_level lev_L watched apply force
+      apply fastforce
       apply (metis twl_clause.sel(2) uL'_M unw)
-      apply (metis twl_clause.sel(2) uL'_M unw)
+      apply (metis defined_lit_uminus in_lits_of_l_defined_litD twl_clause.sel(2))
+      using count_decided_ge_get_level lev_L watched apply force
       apply (metis twl_clause.sel(2) uL'_M unw)
       done
   qed
@@ -1390,14 +1378,10 @@ next
     assume C: \<open>C \<in># N + U\<close>
     show \<open>struct_wf_twl_cls C\<close>
       using twl C by (auto simp: twl_st_inv.simps)[]
-    show \<open>watched_literals_false_of_max_level M C\<close>
-      using twl C by (auto simp: twl_st_inv.simps)
 
     assume excep: \<open>\<not>twl_is_an_exception C Q WS\<close>
     have \<open>get_level M L = count_decided M\<close> and L: \<open>-L \<in> lits_of_l M\<close> and D: \<open>D \<in># N + U\<close>
       using valid by auto
-    have \<open>watched_literals_false_of_max_level M D\<close>
-      using twl D by (auto simp: twl_st_inv.simps)
     have \<open>no_dup M\<close>
       using inv unfolding cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
         cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def by (simp add: trail.simps)
@@ -1406,11 +1390,13 @@ next
     have \<open>\<not> twl_is_an_exception C Q (add_mset (L, D) WS)\<close> if \<open>C \<noteq> D\<close>
       using excep that by (auto simp add: twl_is_an_exception_def)
     have twl_D: \<open>twl_lazy_update M D\<close>
-      using twl C excep twl watched L' \<open>watched_literals_false_of_max_level M D\<close>
-      by (cases D)
-        (auto simp: get_level_cons_if count_decided_ge_get_level has_blit_def
+      using twl C excep twl watched L'
+      apply (cases D)
+      apply (auto simp: get_level_cons_if has_blit_def
           twl_is_an_exception_add_mset_to_queue atm_of_eq_atm_of count_decided_ge_get_level
           dest!: no_has_blit_propagate' no_has_blit_propagate)
+sledgehammer
+sorry
     have twl_C: \<open>twl_lazy_update M C\<close> if \<open>C \<noteq> D\<close>
       using twl C excep that by (auto simp add: twl_st_inv.simps
           twl_is_an_exception_add_mset_to_clauses_to_update)

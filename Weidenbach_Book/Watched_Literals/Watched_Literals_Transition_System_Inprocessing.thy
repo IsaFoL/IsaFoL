@@ -2,6 +2,7 @@ theory Watched_Literals_Transition_System_Inprocessing
   imports Watched_Literals_Transition_System Weidenbach_Book_Base.Explorer
 begin
 
+
 chapter \<open>Inprocessing\<close>
 
 section \<open>Subsumption\<close>
@@ -31,7 +32,8 @@ twl_subresolution_II_nonunit:
    \<open>clause C = add_mset L D\<close>
    \<open>clause C' = add_mset (-L) D'\<close>
    \<open>count_decided M = 0\<close> \<open>D \<subseteq># D'\<close>  \<open>\<not>tautology (D + D')\<close>
-   \<open>clause E = remdups_mset D'\<close> \<open>size (watched E) = 2\<close>  \<open>\<forall>L \<in># D+D'. undefined_lit M L\<close>|
+   \<open>clause E = remdups_mset D'\<close> \<open>size (watched E) = 2\<close>  \<open>\<forall>L \<in># D+D'. undefined_lit M L\<close>
+   \<open>undefined_lit M L\<close>|
 twl_subresolution_II_unit:
   \<open>cdcl_twl_subresolution (M, N + {#C, C'#}, U, DD, NE, UE, NS, US, {#}, Q)
     (Propagated K {#K#} # M, N + {#C#}, U, DD, add_mset {#K#} NE, UE,
@@ -49,7 +51,8 @@ twl_subresolution_LL_nonunit:
    \<open>clause C = add_mset L D\<close>
    \<open>clause C' = add_mset (-L) D'\<close>
    \<open>count_decided M = 0\<close> \<open>D \<subseteq># D'\<close> \<open>size (watched E) = 2\<close>
-   \<open>clause E = remdups_mset D'\<close> \<open>\<not>tautology (D + D')\<close>  \<open>\<forall>L \<in># D+D'. undefined_lit M L\<close>|
+   \<open>clause E = remdups_mset D'\<close> \<open>\<not>tautology (D + D')\<close>  \<open>\<forall>L \<in># D+D'. undefined_lit M L\<close>
+   \<open>undefined_lit M L\<close>|
 twl_subresolution_LL_unit:
   \<open>cdcl_twl_subresolution (M, N, U + {#C, C'#}, DD, NE, UE, NS, US, {#}, Q)
     (Propagated K {#K#} # M, N, U + {#C#}, DD, NE, add_mset {#K#} UE, NS,
@@ -67,7 +70,8 @@ twl_subresolution_LI_nonunit:
    \<open>clause C = add_mset L D\<close>
    \<open>clause C' = add_mset (-L) D'\<close>
    \<open>count_decided M = 0\<close> \<open>D \<subseteq># D'\<close> \<open>size (watched E) = 2\<close>
-   \<open>clause E = remdups_mset D'\<close>  \<open>\<not>tautology (D + D')\<close>  \<open>\<forall>L \<in># D+D'. undefined_lit M L\<close>|
+   \<open>clause E = remdups_mset D'\<close>  \<open>\<not>tautology (D + D')\<close>  \<open>\<forall>L \<in># D+D'. undefined_lit M L\<close>
+   \<open>undefined_lit M L\<close>|
 twl_subresolution_LI_unit:
   \<open>cdcl_twl_subresolution (M, N + {#C#}, U + {#C'#}, DD, NE, UE, NS, US, {#}, Q)
     (Propagated K {#K#} # M, N + {#C#}, U, DD, NE, add_mset {#K#} UE, NS,
@@ -85,7 +89,8 @@ twl_subresolution_IL_nonunit:
    \<open>clause C = add_mset L D\<close>
    \<open>clause C' = add_mset (-L) D'\<close>
    \<open>count_decided M = 0\<close> \<open>D \<subseteq># D'\<close> \<open>size (watched E) = 2\<close>
-   \<open>clause E = remdups_mset D'\<close>  \<open>\<not>tautology (D + D')\<close>  \<open>\<forall>L \<in># D+D'. undefined_lit M L\<close>|
+   \<open>clause E = remdups_mset D'\<close>  \<open>\<not>tautology (D + D')\<close>  \<open>\<forall>L \<in># D+D'. undefined_lit M L\<close>
+   \<open>undefined_lit M L\<close>|
 twl_subresolution_IL_unit:
   \<open>cdcl_twl_subresolution (M, N + {#C'#}, U + {#C#}, DD, NE, UE, NS, US, {#}, Q)
     (Propagated K {#K#} # M, N, U + {#C#}, DD, add_mset {#K#} NE, UE,
@@ -475,6 +480,8 @@ proof -
   have nd: \<open>no_dup (get_trail S)\<close>
     using struct_invs unfolding pcdcl_all_struct_invs_def cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_all_struct_inv_def
       cdcl\<^sub>W_restart_mset.cdcl\<^sub>W_M_level_inv_def by auto
+  have struct_inv: \<open>(\<forall>C \<in># get_clauses S. struct_wf_twl_cls C)\<close>
+    using st_inv by (cases S) (auto simp: twl_st_inv.simps)
   obtain Ta U where
     STa: \<open>cdcl_subresolution (pstate\<^sub>W_of S) Ta\<close>
     \<open>cdcl_propagate\<^sup>*\<^sup>* Ta U\<close>
@@ -488,6 +495,15 @@ proof -
      apply (metis \<open>cdcl_propagate\<^sup>*\<^sup>* Ta U\<close> mono_rtranclp pcdcl.intros(1) pcdcl_core.intros(2))
     by (metis \<open>cdcl_flush_unit\<^sup>*\<^sup>* U (pstate\<^sub>W_of T)\<close> mono_rtranclp pcdcl.intros(5))
 
+  have neg_iff: \<open>Propagated K {#K#} # M \<Turnstile>as CNot (Ca) \<longleftrightarrow> (-K \<notin># Ca \<and> M \<Turnstile>as CNot (Ca)) \<or>
+    (-K \<in># Ca \<and> M \<Turnstile>as CNot (remove1_mset (-K) Ca))\<close>
+    if \<open>distinct_mset Ca\<close> \<open>undefined_lit M K\<close>
+    for K Ca M
+    using that
+    by (cases \<open>-K \<in># Ca\<close>)
+     (auto dest!: multi_member_split simp: Decided_Propagated_in_iff_in_lits_of_l
+      add_mset_eq_add_mset true_annots_true_cls_def_iff_negation_in_model
+      dest: true_annots_CNot_lit_of_notin_skip)
   have remdups_mset_set_msetD: \<open>remdups_mset D = A \<Longrightarrow> set_mset D = set_mset A\<close> for A D
     by auto
 
@@ -540,8 +556,10 @@ proof -
           clause_alt_def uminus_lits_of_l_definedD uminus_lit_swap
         dest!: remdups_mset_set_msetD dest!: multi_member_split[of _ \<open>watched _\<close>]
         multi_member_split[of _ \<open>unwatched _\<close>])
-      apply (metis (no_types, lifting) Un_iff no_blit_propagatedD union_mset_add_mset_left union_mset_add_mset_right union_single_eq_member)
-      by (metis (no_types, lifting) Un_iff no_blit_propagatedD union_mset_add_mset_left union_mset_add_mset_right union_single_eq_member)
+      apply (metis (no_types, lifting) Un_iff no_blit_propagatedD union_mset_add_mset_left
+        union_mset_add_mset_right union_single_eq_member)
+      by (metis (no_types, lifting) Un_iff no_blit_propagatedD union_mset_add_mset_left
+        union_mset_add_mset_right union_single_eq_member)
     subgoal
       by (auto simp: twl_exception_inv.simps eq_commute[of \<open>watched _ + unwatched _\<close> \<open>remdups_mset _\<close>] 
           clause_alt_def uminus_lits_of_l_definedD
@@ -559,73 +577,267 @@ proof -
   moreover have dup_T: \<open>no_duplicate_queued T\<close>
     using assms(1) dup
     by (induction rule: cdcl_twl_subresolution.induct) auto
-  moreover have \<open>distinct_mset {#- lit_of x. x \<in># mset (get_trail S)#}\<close>
-    using nd by (simp add: no_dup_distinct_uminus)
-  with assms(1) have \<open>distinct_queued T\<close>
-    using dist dup_T nd
-    apply (cases rule: cdcl_twl_subresolution.cases)
+  moreover have \<open>distinct_queued T\<close>
+    using assms(1) dist dup
+    apply (induction rule: cdcl_twl_subresolution.induct)
     subgoal
-      by (clarsimp_all simp: dest: distinct_mset_mono dest!: multi_member_split[of \<open>_ :: _ literal\<close>])
+      by (clarsimp_all simp: dest!: multi_member_split[of \<open>_ :: _ literal\<close>])
     subgoal
-      apply (simp)
-      apply (rule ccontr, subst (asm) not_not)
-      apply (drule multi_member_split)
-      apply (auto dest!: mset_subset_eq_insertD dest: undefined_notin)
-      done
+      apply (clarsimp_all simp: dest!: multi_member_split[of \<open>_ :: _ literal\<close>])
+      apply (drule mset_le_add_mset_decr_left2)
+      apply clarsimp
+      using undefined_notin by blast
     subgoal
-      by (clarsimp_all simp: dest: distinct_mset_mono dest!: multi_member_split[of \<open>_ :: _ literal\<close>])
+      by (clarsimp_all simp: dest!: multi_member_split[of \<open>_ :: _ literal\<close>])
     subgoal
-      apply (simp)
-      apply (rule ccontr, subst (asm) not_not)
-      apply (drule multi_member_split)
-      apply (auto dest!: mset_subset_eq_insertD dest: undefined_notin)
-      done
+      apply (clarsimp_all simp: dest!: multi_member_split[of \<open>_ :: _ literal\<close>])
+      apply (drule mset_le_add_mset_decr_left2)
+      by (auto dest: undefined_notin mset_le_add_mset_decr_left2)
     subgoal
-      by (clarsimp_all simp: dest: distinct_mset_mono dest!: multi_member_split[of \<open>_ :: _ literal\<close>])
+      by (clarsimp_all simp: dest!: multi_member_split[of \<open>_ :: _ literal\<close>])
     subgoal
-      apply (simp)
-      apply (rule ccontr, subst (asm) not_not)
-      apply (drule multi_member_split)
-      apply (auto dest!: mset_subset_eq_insertD dest: undefined_notin)
-      done
+      apply (clarsimp_all simp: dest!: multi_member_split[of \<open>_ :: _ literal\<close>])
+      apply (drule mset_le_add_mset_decr_left2)
+      by (auto dest: undefined_notin mset_le_add_mset_decr_left2)
     subgoal
-      by (clarsimp_all simp: dest: distinct_mset_mono dest!: multi_member_split[of \<open>_ :: _ literal\<close>])
+      by (clarsimp_all simp: dest!: multi_member_split[of \<open>_ :: _ literal\<close>])
     subgoal
-      apply (simp)
-      apply (rule ccontr, subst (asm) not_not)
-      apply (drule multi_member_split)
-      apply (auto dest!: mset_subset_eq_insertD dest: undefined_notin)
-      done
+      apply (clarsimp_all simp: dest!: multi_member_split[of \<open>_ :: _ literal\<close>])
+      apply (drule mset_le_add_mset_decr_left2)
+      by (auto dest: undefined_notin mset_le_add_mset_decr_left2)
     done
-  moreover have \<open>confl_cands_enqueued T\<close>
-    using assms(1) confl confl_S
-    apply (cases rule: cdcl_twl_subresolution.cases)
-    subgoal for C L D C' D' M E N U DD NE UE NS US
-      apply (case_tac D')
-      apply (auto simp: true_annots_true_cls_def_iff_negation_in_model clause_alt_def Decided_Propagated_in_iff_in_lits_of_l
-        dest!: remdups_mset_set_msetD)[2]
-      apply (metis Un_iff remdups_mset_set_msetD set_mset_union union_single_eq_member)
-      apply (metis Un_iff remdups_mset_set_msetD set_mset_union union_single_eq_member)
-      apply (metis Un_iff remdups_mset_set_msetD set_mset_union union_single_eq_member)
-      apply (metis Un_iff remdups_mset_set_msetD set_mset_union union_single_eq_member)
+  moreover {
+    have H: \<open>-K \<in># Ca \<and> M \<Turnstile>as CNot (remove1_mset (-K) Ca)\<close>
+      if \<open>Propagated K {#K#} # M \<Turnstile>as CNot (Ca)\<close> \<open>\<not>M \<Turnstile>as CNot (Ca)\<close>
+        \<open>no_dup (Propagated K {#K#} # M)\<close>
+        \<open>distinct_mset Ca\<close>
+      for K Ca M
+      using that
+      by (cases \<open>-K \<in># Ca\<close>)
+       (fastforce dest: true_annots_lit_of_notin_skip multi_member_split)+
+    have one_unset_is_propa: \<open>(\<exists>L'. L' \<in># watched Ca \<and> L' \<in># literals_to_update S)\<close>
+      if \<open>K \<in># clause Ca\<close> and
+        \<open>Ca \<in># get_clauses S\<close>
+        \<open>undefined_lit (get_trail S) K\<close>
+        \<open>K \<in># clause Ca\<close>
+        \<open>clauses_to_update S = {#}\<close>
+        \<open>get_trail S \<Turnstile>as CNot (remove1_mset K (clause Ca))\<close>
+      for K Ca
+      using propa that confl_S
+      apply (cases S)
+      by (auto dest!: multi_member_split simp: all_conj_distrib eq_commute[of _ \<open>clause _\<close>])
+
+    have confl_unit_learned:
+      \<open>confl_cands_enqueued (Propagated K {#K#} # M, N + {#C#}, U, None, add_mset {#K#} NE, UE,
+        add_mset (clause C') NS, US, {#}, add_mset (- K) Q)\<close>
+    if 
+      \<open>confl_cands_enqueued S\<close> and
+      \<open>get_conflict S = None\<close> and
+      \<open>no_dup (get_trail S)\<close> and
+      \<open>clause C = add_mset L D\<close> and
+      \<open>clause C' = add_mset (- L) D'\<close> and
+      \<open>count_decided M = 0\<close> and
+      \<open>D \<subseteq># D'\<close> and
+      \<open>\<not> tautology (D + D')\<close> and
+      \<open>remdups_mset D' = {#K#}\<close> and
+      \<open>undefined_lit M K\<close> and
+      \<open>get_trail S = M\<close> and
+      \<open>get_clauses S = N + {#C, C'#} + U\<close> and
+      \<open>literals_to_update S = Q\<close> and
+      \<open>clauses_to_update S = {#}\<close>
+    for C L D C' D' M K N U DD NE UE NS US Q
+        using that struct_inv one_unset_is_propa[of \<open>-K\<close>]
+        apply (cases S; cases C; cases C')
+        apply (clarsimp_all simp: distinct_mset_remdups_mset_id uminus_lit_swap
+          dest!: multi_member_split[of _ \<open>_ :: _ clause twl_clause multiset\<close>])
+        apply (intro conjI impI allI ballI)
+        apply (metis in_multiset_nempty insert_iff lit_of.simps(2) no_dup_cons no_dup_consistentD
+          set_mset_add_mset_insert subset_eq_mset_single_iff true_annots_lit_of_notin_skip
+          true_annots_true_cls_def_iff_negation_in_model)
+        apply (clarsimp simp add: neg_iff)
+        apply (rule disjE)
+        apply assumption
+        apply (drule multi_member_split)
+        apply (clarsimp simp: struct_wf_twl_cls_alt_def)
+        apply (subst (asm) neg_iff)
+        apply clarsimp_all
+        apply (rule disjE)
+        apply assumption
+        apply clarsimp_all
+        apply blast
+        apply blast
+        apply (drule multi_member_split)
+        apply (clarsimp simp: struct_wf_twl_cls_alt_def)
+        apply (subst (asm) neg_iff)
+        apply clarsimp_all
+        apply (rule disjE)
+        apply assumption
+        apply auto[]
+        apply metis
+        done
+
+    have \<open>confl_cands_enqueued T\<close>
+      using assms(1) confl confl_S nd
+      apply (cases rule: cdcl_twl_subresolution.cases)
+      subgoal H1 for C L D C' D' M E N U DD NE UE NS US
+        using propa
+        by (auto simp: true_annots_true_cls_def_iff_negation_in_model)
+      subgoal for C L D C' D' M K N U DD NE UE NS US Q
+        using confl_unit_learned
+        by auto
+      subgoal for C L D C' D' M E N U DD NE UE NS US Q
+        using propa
+        apply (cases D')
+        apply (clarsimp_all simp: true_annots_true_cls_def_iff_negation_in_model
+            all_conj_distrib clause_alt_def
+          dest!: uminus_lits_of_l_definedD remdups_mset_set_msetD)
+        by (metis mset_left_cancel_union remdups_mset_set_msetD uminus_lits_of_l_definedD
+          union_single_eq_member)
+      subgoal for C L D C' D' M K N U DD NE UE NS US Q
+        using confl_unit_learned
+        by auto
+      subgoal for C L D C' D' M E N U DD NE UE NS US Q
+        using propa
+        apply (cases D')
+        apply (clarsimp_all simp: true_annots_true_cls_def_iff_negation_in_model
+            all_conj_distrib clause_alt_def
+          dest!: uminus_lits_of_l_definedD remdups_mset_set_msetD)
+        by (metis mset_left_cancel_union remdups_mset_set_msetD uminus_lits_of_l_definedD
+          union_single_eq_member)
+      subgoal for C L D C' D' M K N U DD NE UE NS US Q
+        using confl_unit_learned
+        by auto
+      subgoal for C L D C' D' M E N U DD NE UE NS US
+        using propa
+        by (auto simp: true_annots_true_cls_def_iff_negation_in_model)
+      subgoal for C L D C' D' M K N U DD NE UE NS US Q
+        using confl_unit_learned
+        by auto
       done
-    subgoal for C L D C' D' M E N U DD NE UE NS US
-      apply (case_tac D')
-      apply (auto simp: true_annots_true_cls_def_iff_negation_in_model clause_alt_def Decided_Propagated_in_iff_in_lits_of_l
-        uminus_lit_swap
-        dest!: remdups_mset_set_msetD)[2]
-using Partial_Herbrand_Interpretation.uminus_lit_swap sledgehammer
-      apply (case_tac D')
-      apply (auto simp: true_annots_true_cls_def_iff_negation_in_model clause_alt_def Decided_Propagated_in_iff_in_lits_of_l
-        dest!: remdups_mset_set_msetD)[2]
-      oops
-      apply (smt CNot_plus CNot_remdups_mset Decided_Propagated_in_iff_in_lits_of_l Un_iff add_mset_remove_trivial in_multiset_nempty propa propa_cands_enqueued.simps(1) remdups_mset_sum_subset(1) set_mset_union true_annots_union union_single_eq_member)
-      sorry
-     find_theorems \<open>_ \<Turnstile>as CNot _ \<longleftrightarrow> _\<close>
-  moreover have \<open>propa_cands_enqueued T\<close>
+  }
+  moreover {
+    have [simp]: \<open>undefined_lit M K \<Longrightarrow> -K \<notin> lits_of_l M\<close> \<open>undefined_lit M K \<Longrightarrow> K \<notin> lits_of_l M\<close> and
+     [dest]:
+       \<open>- ab \<in> lits_of_l M \<Longrightarrow> defined_lit M ab\<close> \<open>ab \<in> lits_of_l M \<Longrightarrow> defined_lit M ab\<close> for ab K M
+      by (auto simp add: Decided_Propagated_in_iff_in_lits_of_l)
+    have [simp]:
+      \<open>no_dup M \<Longrightarrow> count_decided M = 0 \<Longrightarrow> has_blit M K L \<longleftrightarrow> (\<exists>L'\<in>#K. L' \<in> lits_of_l M)\<close> for M K L
+      using count_decided_ge_get_level[of M]
+      by (auto simp: has_blit_def)
+    have confl_unit_learned:
+      \<open>propa_cands_enqueued (Propagated K {#K#} # M, N + {#C#}, U, None, add_mset {#K#} NE, UE,
+        add_mset (clause C') NS, US, {#}, add_mset (- K) Q)\<close>
+    if 
+      \<open>propa_cands_enqueued S\<close> and
+      \<open>get_conflict S = None\<close> and
+      \<open>no_dup (get_trail S)\<close> and
+      \<open>clause C = add_mset L D\<close> and
+      \<open>clause C' = add_mset (- L) D'\<close> and
+      \<open>count_decided M = 0\<close> and
+      \<open>D \<subseteq># D'\<close> and
+      \<open>\<not> tautology (D + D')\<close> and
+      \<open>remdups_mset D' = {#K#}\<close> and
+      \<open>undefined_lit M K\<close> and
+      \<open>get_trail S = M\<close> and
+      \<open>get_clauses S = N + {#C, C'#} + U\<close> and
+      \<open>literals_to_update S = Q\<close> and
+      \<open>clauses_to_update S = {#}\<close> and
+      \<open>count_decided M = 0\<close>
+    for C L D C' D' M K N U DD NE UE NS US Q
+      using that struct_inv st_inv
+      apply (cases S; cases C; cases C')
+      apply (clarsimp_all simp: distinct_mset_remdups_mset_id uminus_lit_swap atm_of_eq_atm_of
+          all_conj_distrib
+          dest!: multi_member_split[of _ \<open>_ :: _ clause twl_clause multiset\<close>])
+      apply (intro conjI impI allI ballI)
+      subgoal
+        apply (subst (asm) neg_iff)
+          apply clarsimp_all
+        apply (elim disjE)
+         apply clarsimp_all
+         apply blast
+        apply (drule multi_member_split)
+        apply (clarsimp simp: struct_wf_twl_cls_alt_def)
+        done
+      subgoal
+        apply (subst (asm) neg_iff)
+          apply clarsimp_all
+        apply (elim disjE)
+         apply (auto ; fail)[]
+        apply (simp add: in_multiset_nempty subset_eq_mset_single_iff)
+        done
+      subgoal for b c e f g h x1 x2 x1a x2a La Ca
+        apply (subst (asm) neg_iff)
+          apply (simp add: struct_wf_twl_cls_alt_def; fail)
+         apply (clarsimp; fail)
+        apply (elim disjE)
+         apply blast
+        apply (simp add: in_multiset_nempty subset_eq_mset_single_iff tautology_add_mset
+            twl_st_inv.simps uminus_lit_swap)
+        apply normalize_goal+
+        apply (drule multi_member_split)
+        apply (case_tac Ca)
+        apply (clarsimp simp: struct_wf_twl_cls_alt_def twl_is_an_exception_def size_2_iff
+            uminus_lit_swap all_conj_distrib)
+        apply (rule disjE[of _ \<open>_ \<or> _\<close>])
+        apply assumption
+        apply (clarsimp_all simp: struct_wf_twl_cls_alt_def twl_is_an_exception_def size_2_iff
+            uminus_lit_swap)
+        apply (rule disjE[of _ \<open>_ \<in># _\<close>])
+        apply assumption
+        apply (clarsimp_all simp: struct_wf_twl_cls_alt_def twl_is_an_exception_def size_2_iff
+            uminus_lit_swap)
+          apply (metis )
+        apply (drule multi_member_split)
+        apply (clarsimp_all simp: struct_wf_twl_cls_alt_def twl_is_an_exception_def size_2_iff
+            uminus_lit_swap add_mset_eq_add_mset)
+        apply (elim disjE)
+        apply (clarsimp_all simp: struct_wf_twl_cls_alt_def twl_is_an_exception_def size_2_iff
+            uminus_lit_swap add_mset_eq_add_mset)
+            apply (rule ccontr)
+        apply (clarsimp_all simp: struct_wf_twl_cls_alt_def twl_is_an_exception_def size_2_iff
+            uminus_lit_swap add_mset_eq_add_mset all_conj_distrib)
+        apply (metis in_CNot_implies_uminus(2) no_dup_consistentD)
+        apply (metis in_CNot_implies_uminus(2) no_dup_consistentD)
+        apply (metis in_CNot_implies_uminus(2) no_dup_consistentD)
+        apply (metis in_CNot_implies_uminus(2) no_dup_consistentD)
+            apply (rule ccontr)
+        apply (elim disjE[of \<open>_ = _\<close> \<open>_ \<in># _\<close>])
+        apply (clarsimp_all simp: struct_wf_twl_cls_alt_def twl_is_an_exception_def size_2_iff
+            uminus_lit_swap add_mset_eq_add_mset)
+        try0
+        supply[[smt_trace]]
+        apply (smt \<open>\<And>ab M. - ab \<in> lits_of_l M \<Longrightarrow> defined_lit M ab\<close>  insert_iff no_dup_consistentD set_mset_add_mset_insert true_annots_true_cls_def_iff_negation_in_model uminus_of_uminus_id)
+        oops
+        find_theorems \<open>undefined_lit\<close> lits_of_l
+        apply (metis in_multiset_nempty insert_iff lit_of.simps(2) no_dup_cons no_dup_consistentD
+          set_mset_add_mset_insert subset_eq_mset_single_iff true_annots_lit_of_notin_skip
+          true_annots_true_cls_def_iff_negation_in_model)
+        apply (clarsimp simp add: neg_iff)
+        apply (rule disjE)
+        apply assumption
+        apply (drule multi_member_split)
+        apply (clarsimp simp: struct_wf_twl_cls_alt_def)
+        apply (subst (asm) neg_iff)
+        apply clarsimp_all
+        apply (rule disjE)
+        apply assumption
+        apply clarsimp_all
+        apply blast
+        apply blast
+        apply (drule multi_member_split)
+        apply (clarsimp simp: struct_wf_twl_cls_alt_def)
+        apply (subst (asm) neg_iff)
+        apply clarsimp_all
+        apply (rule disjE)
+        apply assumption
+        apply auto[]
+        apply metis
+        done
+    have \<open>propa_cands_enqueued T\<close>
     using assms(1) propa
     by (induction rule: cdcl_twl_subresolution.induct)
-      (case_tac D; auto)+
+      (case_tac D; auto)+}
   moreover have \<open>get_conflict T \<noteq> None \<longrightarrow> clauses_to_update T = {#} \<and> literals_to_update T = {#}\<close>
     using assms(1) confl2 confl_S
     by (induction rule: cdcl_twl_subresolution.induct) auto
