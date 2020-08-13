@@ -786,7 +786,7 @@ lemma remove1_list_rel2:
   (\<And>c. (c, b) \<in> R \<Longrightarrow> c = a) \<Longrightarrow>
   (remove1 a xs, remove1 b ys) \<in> \<langle>R\<rangle>list_rel\<close>
   apply (induction xs ys rule: list_rel_induct)
-   apply (simp (no_asm))
+   apply (solves \<open>simp (no_asm)\<close>)
   by (smt list_rel_simp(4) remove1.simps(2))
 
 lemma remove1_sorted_poly_rel_mset_poly_rel:
@@ -812,8 +812,7 @@ proof -
          sorted_wrt term_order (map fst (remove1 ([a], 1) r))\<close>
     by (induction r) auto
   have [intro]: \<open>distinct (map fst r) \<Longrightarrow> distinct (map fst (remove1 x r))\<close> for x
-    apply (induction r) apply auto
-    by (meson img_fst in_set_remove1D)
+    by (induction r) (auto dest: in_set_remove1D)
   have [simp]: \<open>(r, ya) \<in> \<langle>term_poly_list_rel \<times>\<^sub>r int_rel\<rangle>list_rel \<Longrightarrow>
          polynom_of_mset (mset ya) -  Var (\<phi> a) =
          polynom_of_mset (remove1_mset ({#a#}, 1) (mset ya))\<close> for ya
@@ -823,12 +822,11 @@ proof -
 
   show ?thesis
     using assms
+    apply (elim relcompEpair)
+    apply (rename_tac za, rule_tac b = \<open>remove1_mset ({#a#}, 1) za\<close> in relcompI)
     apply (auto simp: mset_poly_rel_def sorted_poly_list_rel_wrt_def
-      Collect_eq_comp' dest!: )
-    apply (rule_tac b = \<open>remove1_mset ({#a#}, 1) za\<close> in relcompI)
-    apply (auto)
-    apply (rule_tac b = \<open>remove1 ({#a#}, 1) ya\<close> in relcompI)
-    apply (auto intro!: remove1_list_rel2 intro: H
+      Collect_eq_comp' dest!: intro!: relcompI[of _ \<open>remove1 ({#a#}, 1) ya\<close>
+        for ya :: \<open>(string multiset \<times> int) list\<close>]  remove1_list_rel2 intro: H
       simp: list_mset_rel_def br_def)
     done
 qed
@@ -867,12 +865,11 @@ proof -
 
   show ?thesis
     using assms
+    apply (elim relcompEpair)
+    apply (rename_tac za, rule_tac b = \<open>remove1_mset ({#a#}, -1) za\<close> in relcompI)
     apply (auto simp: mset_poly_rel_def sorted_poly_list_rel_wrt_def
-      Collect_eq_comp' dest!: )
-    apply (rule_tac b = \<open>remove1_mset ({#a#}, -1) za\<close> in relcompI)
-    apply (auto)
-    apply (rule_tac b = \<open>remove1 ({#a#}, -1) ya\<close> in relcompI)
-    apply (auto intro!: remove1_list_rel2 intro: H
+      Collect_eq_comp' dest!: intro!: relcompI[of _ \<open>remove1 ({#a#}, -1) ya\<close>
+        for ya :: \<open>(string multiset \<times> int) list\<close>]  remove1_list_rel2 intro: H
       simp: list_mset_rel_def br_def)
     done
 qed
@@ -975,8 +972,7 @@ proof -
       apply (subst \<open>x' = \<phi> x\<close>, rule remove1_sorted_poly_rel_mset_poly_rel_minus)
       subgoal using assms by auto
       subgoal using assms by auto
-      subgoal using sorted_poly_rel_vars_llist[of \<open>r\<close> \<open>r'\<close>]
-          assms
+      subgoal using sorted_poly_rel_vars_llist[of \<open>r\<close> \<open>r'\<close>] assms
         by (force simp: set_rel_def var_rel_def br_def
           dest!: sorted_poly_rel_vars_llist)
       subgoal by auto
@@ -1016,9 +1012,9 @@ qed
 lemma insort_key_rel_decomp:
    \<open>\<exists>ys zs. xs = ys @ zs \<and> insort_key_rel R x xs = ys @ x # zs\<close>
   apply (induction xs)
-  apply (auto 5 3)
-  apply (rule_tac x = \<open>a # ys\<close> in exI)
-  apply auto
+  subgoal by auto
+  subgoal for a xs
+    by (force intro: exI[of _ \<open>a # _\<close>])
   done
 
 lemma list_rel_append_same_length:
