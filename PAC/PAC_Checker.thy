@@ -791,7 +791,7 @@ lemma remove1_list_rel2:
   (\<And>c. (c, b) \<in> R \<Longrightarrow> c = a) \<Longrightarrow>
   (remove1 a xs, remove1 b ys) \<in> \<langle>R\<rangle>list_rel\<close>
   apply (induction xs ys rule: list_rel_induct)
-  apply (simp (no_asm))
+   apply (solves \<open>simp (no_asm)\<close>)
   by (smt list_rel_simp(4) remove1.simps(2))
 
 lemma remove1_sorted_poly_rel_mset_poly_rel:
@@ -827,12 +827,14 @@ proof -
 
   show ?thesis
     using assms
-    apply (auto simp: mset_poly_rel_def sorted_poly_list_rel_wrt_def)
-    apply (rename_tac ya za, rule_tac b = \<open>remove1_mset ({#a#}, 1) za\<close> in relcompI)
-    apply (auto)
-    apply (rename_tac ya za, rule_tac b = \<open>remove1 ({#a#}, 1) ya\<close> in relcompI)
-    by (auto intro!: remove1_list_rel2 intro: H
-      simp: list_mset_rel_def br_def in_remove1_mset_neq)
+    apply (elim relcompEpair)
+    apply (rename_tac za, rule_tac b = \<open>remove1_mset ({#a#}, 1) za\<close> in relcompI)
+    apply (auto simp: mset_poly_rel_def sorted_poly_list_rel_wrt_def Collect_eq_comp'
+      intro!: relcompI[of _ \<open>remove1 ({#a#}, 1) ya\<close>
+        for ya :: \<open>(string multiset \<times> int) list\<close>]  remove1_list_rel2 intro: H
+      simp: list_mset_rel_def br_def
+      dest: in_diffD)
+    done
 qed
 
 lemma remove1_sorted_poly_rel_mset_poly_rel_minus:
@@ -869,14 +871,13 @@ proof -
 
   show ?thesis
     using assms
-    apply (auto simp: mset_poly_rel_def sorted_poly_list_rel_wrt_def
-      Collect_eq_comp' dest!: )
-    apply (rule_tac b = \<open>remove1_mset ({#a#}, -1) za\<close> in relcompI)
-    apply (auto)
-    apply (rule_tac b = \<open>remove1 ({#a#}, -1) ya\<close> in relcompI)
-    apply (auto intro!: remove1_list_rel2 intro: H
-      simp: list_mset_rel_def br_def in_remove1_mset_neq)
-    done
+    apply (elim relcompEpair)
+    apply (rename_tac za, rule_tac b = \<open>remove1_mset ({#a#}, -1) za\<close> in relcompI)
+    by (auto simp: mset_poly_rel_def sorted_poly_list_rel_wrt_def Collect_eq_comp'
+       dest: in_diffD
+       intro!: relcompI[of _ \<open>remove1 ({#a#}, -1) ya\<close>
+         for ya :: \<open>(string multiset \<times> int) list\<close>]  remove1_list_rel2 intro: H
+      simp: list_mset_rel_def br_def)
 qed
 
 
@@ -977,8 +978,7 @@ proof -
       apply (subst \<open>x' = \<phi> x\<close>, rule remove1_sorted_poly_rel_mset_poly_rel_minus)
       subgoal using assms by auto
       subgoal using assms by auto
-      subgoal using sorted_poly_rel_vars_llist[of \<open>r\<close> \<open>r'\<close>]
-          assms
+      subgoal using sorted_poly_rel_vars_llist[of \<open>r\<close> \<open>r'\<close>] assms
         by (force simp: set_rel_def var_rel_def br_def
           dest!: sorted_poly_rel_vars_llist)
       subgoal by auto
@@ -1018,9 +1018,9 @@ qed
 lemma insort_key_rel_decomp:
    \<open>\<exists>ys zs. xs = ys @ zs \<and> insort_key_rel R x xs = ys @ x # zs\<close>
   apply (induction xs)
-  apply (auto 5 3)
-  apply (rule_tac x = \<open>a # ys\<close> in exI)
-  apply auto
+  subgoal by auto
+  subgoal for a xs
+    by (force intro: exI[of _ \<open>a # _\<close>])
   done
 
 lemma list_rel_append_same_length:
