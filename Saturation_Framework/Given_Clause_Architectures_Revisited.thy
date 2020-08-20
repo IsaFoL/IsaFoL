@@ -19,7 +19,7 @@ begin
 
 definition gc_invar :: "('f \<times> 'l) set llist \<Rightarrow> enat \<Rightarrow> bool" where
   "gc_invar Ns i \<longleftrightarrow>
-   Inf_from (active_subset (Liminf_upto_llist Ns i)) \<subseteq> Sup_upto_llist (lmap Red_Inf_\<G>_Q Ns) i"
+   Inf_from (active_subset (Liminf_upto_llist Ns i)) \<subseteq> Sup_upto_llist (lmap Red_I_\<G> Ns) i"
 
 lemma gc_invar_infinity:
   assumes
@@ -55,9 +55,9 @@ proof (intro subsetI, unfold Liminf_upto_llist_infinity Sup_upto_llist_infinity)
     using prems_sub_ge_i i_lt_as by auto
   then have "\<iota> \<in> Inf_from (active_subset (lnth Ns i))"
     using i_lt_as \<iota>_inf unfolding Inf_from_def As_def by auto
-  then have "\<iota> \<in> Sup_upto_llist (lmap Red_Inf_\<G>_Q Ns) (enat i)"
+  then have "\<iota> \<in> Sup_upto_llist (lmap Red_I_\<G> Ns) (enat i)"
     using nnil i_lt_ns invar[unfolded gc_invar_def] by auto
-  then show "\<iota> \<in> Sup_llist (lmap Red_Inf_\<G>_Q Ns)"
+  then show "\<iota> \<in> Sup_llist (lmap Red_I_\<G> Ns)"
     using Sup_upto_llist_subset_Sup_llist by fastforce
 qed
 
@@ -90,9 +90,9 @@ proof cases
     have "Inf_from (active_subset (N \<union> M')) \<subseteq> Inf_from (active_subset (N \<union> M))"
       using m'_pas by (metis active_subset_union boolean_algebra_cancel.sup0 Inf_from_mono
           subset_Un_eq sup_left_idem)
-    also have "\<dots> \<subseteq> Sup_upto_llist (lmap Red_Inf_\<G>_Q Ns) (enat i)"
+    also have "\<dots> \<subseteq> Sup_upto_llist (lmap Red_I_\<G> Ns) (enat i)"
       using invar unfolding gc_invar_def lim_i ni by auto
-    also have "\<dots> \<subseteq> Sup_upto_llist (lmap Red_Inf_\<G>_Q Ns) (enat (Suc i))"
+    also have "\<dots> \<subseteq> Sup_upto_llist (lmap Red_I_\<G> Ns) (enat (Suc i))"
       by simp
     finally show ?thesis
       unfolding gc_invar_def lim_Si nSi .
@@ -116,12 +116,12 @@ proof cases
         "to_F \<iota> \<in> no_labels.Inf_from (fst ` (active_subset N \<union> {(C, active)}))"
         using F\<iota>_inf unfolding to_F_def Inf_from_def no_labels.Inf_from_def by auto
 
-      have "\<iota> \<in> Sup_upto_llist (lmap Red_Inf_\<G>_Q Ns) (enat (Suc i))"
+      have "\<iota> \<in> Sup_upto_llist (lmap Red_I_\<G> Ns) (enat (Suc i))"
       proof (cases "to_F \<iota> \<in> no_labels.Inf_from2 (fst ` active_subset N) {C}")
         case True
-        then have "to_F \<iota> \<in> no_labels.Red_Inf_\<G>_Q (fst ` (N \<union> {(C, active)} \<union> M))"
+        then have "to_F \<iota> \<in> no_labels.Red_I_\<G> (fst ` (N \<union> {(C, active)} \<union> M))"
           using inff_red by auto
-        then have "\<iota> \<in> Red_Inf_\<G>_Q (N \<union> {(C, active)} \<union> M)"
+        then have "\<iota> \<in> Red_I_\<G> (N \<union> {(C, active)} \<union> M)"
           by (subst labeled_red_inf_eq_red_inf[OF \<iota>_inf])
         then show ?thesis
           using Si_lt using nSi by auto
@@ -177,7 +177,7 @@ proof -
   have "Inf_from (Liminf_llist Ns) \<subseteq> Inf_from (active_subset (Liminf_llist Ns))" (is "?lhs \<subseteq> _")
     using lim unfolding active_subset_def passive_subset_def
     by (metis (no_types, lifting) Inf_from_mono empty_Collect_eq mem_Collect_eq subsetI)
-  also have "... \<subseteq> Sup_llist (lmap Red_Inf_\<G>_Q Ns)" (is "_ \<subseteq> ?rhs")
+  also have "... \<subseteq> Sup_llist (lmap Red_I_\<G> Ns)" (is "_ \<subseteq> ?rhs")
     using gc_invar_infinity[OF chain_not_lnull[OF gc]] gc_invar_gc[OF gc init]
     unfolding gc_invar_def by fastforce
   finally show "?lhs \<subseteq> ?rhs"
@@ -198,8 +198,7 @@ definition from_F :: "'f inference \<Rightarrow> ('f \<times> 'l) inference set"
 definition lgc_invar :: "('f inference set \<times> ('f \<times> 'l) set) llist \<Rightarrow> enat \<Rightarrow> bool" where
   "lgc_invar TNs i \<equiv>
    Inf_from (active_subset (Liminf_upto_llist (lmap snd TNs) i))
-   \<subseteq> \<Union> (from_F ` Liminf_upto_llist (lmap fst TNs) i)
-     \<union> Sup_upto_llist (lmap (Red_Inf_\<G>_Q \<circ> snd) TNs) i"
+   \<subseteq> \<Union> (from_F ` Liminf_upto_llist (lmap fst TNs) i) \<union> Sup_upto_llist (lmap (Red_I_\<G> \<circ> snd) TNs) i"
 
 lemma lgc_invar_infinity:
   assumes
@@ -220,7 +219,7 @@ proof (intro subsetI, unfold Liminf_upto_llist_infinity Sup_upto_llist_infinity)
   note \<iota>_inf = Inf_if_Inf_from[OF \<iota>_inff]
   note \<iota>_inff' = \<iota>_inff[unfolded act_ns]
 
-  show "\<iota> \<in> \<Union> (from_F ` Liminf_llist (lmap fst TNs)) \<union> Sup_llist (lmap (Red_Inf_\<G>_Q \<circ> snd) TNs)"
+  show "\<iota> \<in> \<Union> (from_F ` Liminf_llist (lmap fst TNs)) \<union> Sup_llist (lmap (Red_I_\<G> \<circ> snd) TNs)"
   proof -
     {
       assume \<iota>_ni_lim: "\<iota> \<notin> \<Union> (from_F ` Liminf_llist (lmap fst TNs))"
@@ -255,9 +254,9 @@ proof (intro subsetI, unfold Liminf_upto_llist_infinity Sup_upto_llist_infinity)
         using i'_lt_as by auto
       then have "\<iota> \<in> Inf_from (active_subset (snd (lnth TNs i')))"
         using i'_lt_as \<iota>_inf unfolding Inf_from_def As_def by auto
-      then have \<iota>_in_i': "\<iota> \<in> Sup_upto_llist (lmap (Red_Inf_\<G>_Q \<circ> snd) TNs) (enat i')"
+      then have \<iota>_in_i': "\<iota> \<in> Sup_upto_llist (lmap (Red_I_\<G> \<circ> snd) TNs) (enat i')"
         using \<iota>_ni_i' i'_lt_as[unfolded As_def] invar[unfolded lgc_invar_def] by auto
-      then have "\<iota> \<in> Sup_llist (lmap (Red_Inf_\<G>_Q \<circ> snd) TNs)"
+      then have "\<iota> \<in> Sup_llist (lmap (Red_I_\<G> \<circ> snd) TNs)"
         using Sup_upto_llist_subset_Sup_llist by fastforce
     }
     then show ?thesis
@@ -278,10 +277,10 @@ proof -
     using nnil n_init by auto
   also have "... \<subseteq> \<Union> (from_F ` fst (lhd TNs))"
     using t_init Inf_FL_to_Inf_F unfolding Inf_from_def from_F_def to_F_def by force
-  also have "... \<subseteq> \<Union> (from_F ` fst (lhd TNs)) \<union> Red_Inf_\<G>_Q (snd (lhd TNs))"
+  also have "... \<subseteq> \<Union> (from_F ` fst (lhd TNs)) \<union> Red_I_\<G> (snd (lhd TNs))"
     by fast
   also have "... = \<Union> (from_F ` Liminf_upto_llist (lmap fst TNs) 0)
-    \<union> Sup_upto_llist (lmap (Red_Inf_\<G>_Q \<circ> snd) TNs) 0" (is "_ = ?rhs")
+    \<union> Sup_upto_llist (lmap (Red_I_\<G> \<circ> snd) TNs) 0" (is "_ = ?rhs")
     using nnil by auto
   finally show "?lhs \<subseteq> ?rhs"
     .
@@ -295,8 +294,8 @@ lemma lgc_invar_lgc_step:
   shows "lgc_invar TNs (Suc i)"
   using step Si_lt invar
 proof cases
-  let ?Sup_Red_i = "Sup_upto_llist (lmap (Red_Inf_\<G>_Q \<circ> snd) TNs) (enat i)"
-  let ?Sup_Red_Si = "Sup_upto_llist (lmap (Red_Inf_\<G>_Q \<circ> snd) TNs) (enat (Suc i))"
+  let ?Sup_Red_i = "Sup_upto_llist (lmap (Red_I_\<G> \<circ> snd) TNs) (enat i)"
+  let ?Sup_Red_Si = "Sup_upto_llist (lmap (Red_I_\<G> \<circ> snd) TNs) (enat (Suc i))"
 
   have i_lt: "enat i < llength TNs"
     using Si_lt Suc_ile_eq order.strict_implies_order by blast
@@ -405,7 +404,7 @@ proof cases
       have "\<iota> \<in> \<Union> (from_F ` T2) \<union> ?Sup_Red_Si"
       proof (cases "\<iota> \<in> from_F \<iota>'")
         case \<iota>_in_\<iota>': True
-        then have "\<iota> \<in> Red_Inf_\<G>_Q (N1 \<union> M)"
+        then have "\<iota> \<in> Red_I_\<G> (N1 \<union> M)"
           using \<iota>'_red from_F_def labeled_red_inf_eq_red_inf by auto
         then have "\<iota> \<in> ?Sup_Red_Si"
           using Si_lt by (simp add: n2 tnSi)
@@ -487,10 +486,10 @@ proof -
     \<subseteq> Inf_from (active_subset (Liminf_llist (lmap snd TNs)))" (is "?lhs \<subseteq> _")
     by (rule Inf_from_mono) (use n_lim passive_subset_def active_subset_def in blast)
   also have "... \<subseteq> \<Union> (from_F ` Liminf_upto_llist (lmap fst TNs) \<infinity>)
-    \<union> Sup_llist (lmap (Red_Inf_\<G>_Q \<circ> snd) TNs)"
+    \<union> Sup_llist (lmap (Red_I_\<G> \<circ> snd) TNs)"
     using lgc_invar_infinity[OF chain_not_lnull[OF lgc]] lgc_invar_lgc[OF lgc n_init t_init]
     unfolding lgc_invar_def by fastforce
-  also have "... \<subseteq> Sup_llist (lmap (Red_Inf_\<G>_Q \<circ> snd) TNs)" (is "_ \<subseteq> ?rhs")
+  also have "... \<subseteq> Sup_llist (lmap (Red_I_\<G> \<circ> snd) TNs)" (is "_ \<subseteq> ?rhs")
     using t_lim by auto
   finally show "?lhs \<subseteq> ?rhs"
     .
