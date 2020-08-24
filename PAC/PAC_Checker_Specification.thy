@@ -191,7 +191,7 @@ lemma polys_rel_update_remove:
   apply (auto dest: in_diffD dest!: multi_member_split simp: ran_m_fmdrop ran_m_fmdrop_If distinct_mset_remove1_All ran_m_def
       add_mset_eq_add_mset removeAll_notin
     split: if_splits intro!: image_mset_cong)
- by (smt count_inI diff_single_trivial fmlookup_drop image_mset_cong2 replicate_mset_0)
+  done
 
 lemma polys_rel_in_dom_inD:
   \<open>(A, B) \<in> polys_rel \<Longrightarrow>
@@ -764,7 +764,28 @@ proof -
               \<Union> (vars ` set_mset (ran_m A')) \<subseteq> \<V>') \<and> 
             (st = FOUND \<longrightarrow> speca \<in># ran_m A')} \<Longrightarrow>
          x = (st, x') \<Longrightarrow> x' = (\<V>, Aa) \<Longrightarrow>((\<V>', Aa), \<V>', ran_m Aa) \<in> polys_rel_full\<close> for Aa speca x2 st x \<V>' \<V> x' ABC
-       by (auto simp: polys_rel_def polys_rel_full_def)
+    by (auto simp: polys_rel_def polys_rel_full_def)
+  have H1: \<open>\<And>a aa b xa x x1a x1 x2 speca.
+       vars spec \<subseteq> x1b \<Longrightarrow>
+       \<Union> (vars ` set_mset (ran_m A)) \<subseteq> x1b \<Longrightarrow>
+       \<Union> (vars ` set_mset (ran_m x2a)) \<subseteq> x1b \<Longrightarrow>
+       restricted_ideal_to\<^sub>I x1b b \<subseteq> restricted_ideal_to\<^sub>I x1b (ran_m x2a) \<Longrightarrow>
+       xa \<in> restricted_ideal_to\<^sub>I (\<Union> (vars ` set_mset (ran_m A)) \<union> vars spec) b \<Longrightarrow>
+       xa \<in> restricted_ideal_to\<^sub>I (\<Union> (vars ` set_mset (ran_m A)) \<union> vars spec) (ran_m x2a)\<close>
+    for x1b b xa x2a
+    by (drule restricted_ideal_to_mono[of _ _ _ _ \<open>\<Union> (vars ` set_mset (ran_m A)) \<union> vars spec\<close>])
+      auto
+  have H2: \<open>\<And>a aa b speca x2 x1a x1b x2a.
+       spec - speca \<in> More_Modules.ideal polynomial_bool \<Longrightarrow>
+       vars spec \<subseteq> x1b \<Longrightarrow>
+       \<Union> (vars ` set_mset (ran_m A)) \<subseteq> x1b \<Longrightarrow>
+       \<Union> (vars ` set_mset (ran_m x2a)) \<subseteq> x1b \<Longrightarrow>
+       speca \<in> pac_ideal (set_mset (ran_m x2a)) \<Longrightarrow>
+       restricted_ideal_to\<^sub>I x1b b \<subseteq> restricted_ideal_to\<^sub>I x1b (ran_m x2a) \<Longrightarrow>
+       spec \<in> pac_ideal (set_mset (ran_m x2a))\<close>
+    by (metis (no_types, lifting) group_eq_aux ideal.span_add ideal.span_base in_mono
+        pac_ideal_alt_def sup.cobounded2)
+
   show ?thesis
     supply[[goals_limit=1]]
     unfolding full_checker_def normalize_poly_spec_def
@@ -781,29 +802,12 @@ proof -
       by auto
     subgoal for speca x1 x2 x x1a x2a x1b
       apply (rule ref_two_step[OF conc_fun_R_mono])
-      apply auto[]
+       apply auto[]
       using assms
-      apply (auto simp add: PAC_checker_specification_spec_def conc_fun_RES polys_rel_def polys_rel_full_def
-        dest!: rtranclp_PAC_Format_subset_ideal dest: is_failed_is_success_completeD)
-      apply (drule restricted_ideal_to_mono[of _ _ _ _ \<open>\<Union> (vars ` set_mset (ran_m A)) \<union> vars spec\<close>])
-      apply auto[]
-      apply auto[]
-      apply (metis (no_types, lifting) group_eq_aux ideal.span_add ideal.span_base in_mono pac_ideal_alt_def sup.cobounded2)
-      apply (smt le_sup_iff restricted_ideal_to_mono subsetD subset_trans sup_ge1 sup_ge2)
-      apply (metis (no_types, lifting) cancel_comm_monoid_add_class.diff_cancel diff_add_eq
-        diff_in_polynomial_bool_pac_idealI group_eq_aux ideal.span_add_eq2)
-      apply (drule restricted_ideal_to_mono[of _ _ _ _ \<open>\<Union> (vars ` set_mset (ran_m A)) \<union> vars spec\<close>])
-      apply auto[]
-      apply auto[]
-      apply (smt le_sup_iff restricted_ideal_to_mono subsetD subset_trans sup_ge1 sup_ge2)
-      apply (drule restricted_ideal_to_mono[of _ _ _ _ \<open>\<Union> (vars ` set_mset (ran_m A)) \<union> vars spec\<close>])
-      apply auto[]
-      apply auto[]
-      apply (metis (no_types, lifting) group_eq_aux ideal.span_add ideal.span_base in_mono pac_ideal_alt_def sup.cobounded2)
-      apply (smt le_sup_iff restricted_ideal_to_mono subsetD subset_trans sup_ge1 sup_ge2)
-      apply (metis (no_types, lifting) group_eq_aux ideal.span_add ideal.span_base in_mono pac_ideal_alt_def sup.cobounded2)
-      done
-   done
+      by (auto simp add: PAC_checker_specification_spec_def conc_fun_RES polys_rel_def H1 H2
+          polys_rel_full_def
+          dest!: rtranclp_PAC_Format_subset_ideal dest: is_failed_is_success_completeD)
+    done
 qed
 
 

@@ -11,8 +11,8 @@ section \<open>Initial Normalisation of Polynomials\<close>
 
 subsection \<open>Sorting\<close>
 
-text \<open>Adapted from the theory \<^text>\<open>HOL-ex.MergeSort\<close> by Tobias. We did not change much, but we refine it
-  to executable code and try to improve efficiency.
+text \<open>Adapted from the theory \<^text>\<open>HOL-ex.MergeSort\<close> by Tobias Nipkow. We did not change much, but
+   we refine it to executable code and try to improve efficiency.
 \<close>
 
 fun merge :: "_ \<Rightarrow>  'a list \<Rightarrow> 'a list \<Rightarrow> 'a list"

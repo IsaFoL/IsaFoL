@@ -112,7 +112,7 @@ lemma sublist_el: \<open>i \<le> j \<Longrightarrow> j < length xs \<Longrightar
   by (auto simp add: take_set sublist_def)
 
 lemma sublist_el': \<open>i \<le> j \<Longrightarrow> j < length xs \<Longrightarrow> x \<in> set (sublist xs i j) \<equiv> (\<exists> k. i\<le>k\<and>k\<le>j \<and> xs!k=x)\<close>
-  apply (auto simp add: sublist_el)
+  apply (subst sublist_el, assumption, assumption)
   by (smt Groups.add_ac(2) le_add1 le_add_diff_inverse less_Suc_eq less_diff_conv nat_less_le order_refl)
 
 

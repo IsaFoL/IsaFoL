@@ -7,7 +7,13 @@ theory Duplicate_Free_Multiset
 imports Nested_Multisets_Ordinals.Multiset_More
 begin
 
+
 section \<open>Duplicate Free Multisets\<close>
+
+(* TODO Move Multiset_More *)
+lemma remove_diff_multiset[simp]: \<open>x13 \<notin># A \<Longrightarrow> A - add_mset x13 B = A - B\<close>
+  by (metis diff_intersect_left_idem inter_add_right1)
+
 
 text \<open>Duplicate free multisets are isomorphic to finite sets, but it can be useful to reason about
   duplication to speak about intermediate execution steps in the refinements.
@@ -61,9 +67,9 @@ proof -
     apply (induction A)
     subgoal by auto
      subgoal for a A'
-      apply (cases \<open>a \<in># B\<close>)
-      using multi_member_split[of a \<open>B\<close>]  multi_member_split[of a \<open>A\<close>]
-      by (auto simp: mset_set.insert_remove)
+       by (cases \<open>a \<in># B\<close>)
+         (use multi_member_split[of a \<open>B\<close>]  multi_member_split[of a \<open>A\<close>] in
+           \<open>auto simp: mset_set.insert_remove\<close>)
     done
 qed
 
@@ -72,9 +78,9 @@ lemma finite_mset_set_inter:
   apply (induction A rule: finite_induct)
   subgoal by auto
   subgoal for a A
-    apply (cases \<open>a \<in> B\<close>; cases \<open>a \<in># mset_set B\<close>)
-    using multi_member_split[of a \<open>mset_set B\<close>]
-    by (auto simp: mset_set.insert_remove)
+    by (cases \<open>a \<in> B\<close>; cases \<open>a \<in># mset_set B\<close>)
+      (use multi_member_split[of a \<open>mset_set B\<close>] in
+        \<open>auto simp: mset_set.insert_remove\<close>)
   done
 
 lemma removeAll_notin: \<open>a \<notin># A \<Longrightarrow> removeAll_mset a A = A\<close>
@@ -97,10 +103,10 @@ lemma in_set_conv_iff:
       apply (cases \<open>n < length xs\<close>)
       subgoal
         apply (auto simp: in_set_conv_nth)
-        by (rule_tac x=i in exI; auto; fail)+
+        by (rename_tac i, rule_tac x=i in exI; auto; fail)+
       subgoal
         apply (auto simp: take_Suc_conv_app_nth dest: in_set_takeD)
-        by (rule_tac x=i in exI; auto; fail)+
+        by (rename_tac i, rule_tac x=i in exI; auto; fail)+
       done
     done
   done

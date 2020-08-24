@@ -170,8 +170,7 @@ lemma fmlookup_restrict_set_id': \<open>set_mset (dom_m N) \<subseteq> A \<Longr
 lemma ran_m_mapsto_upd:
   assumes
     NC: \<open>C \<in># dom_m N\<close>
-  shows \<open>ran_m (fmupd C C' N) =
-         add_mset C' (remove1_mset (the (fmlookup N C)) (ran_m N))\<close>
+  shows \<open>ran_m (fmupd C C' N) = add_mset C' (remove1_mset (the (fmlookup N C)) (ran_m N))\<close>
 proof -
   define N' where
     \<open>N' = fmdrop C N\<close>
@@ -205,7 +204,7 @@ lemma ran_m_fmdrop:
   by (cases \<open>fmlookup N C\<close>)
     (auto simp: ran_m_def image_mset_If_eq_notin[of C _ \<open>\<lambda>x. fst (the x)\<close>]
      dest!: multi_member_split
-    intro!: filter_mset_cong2 image_mset_cong2)
+     intro!: filter_mset_cong2 image_mset_cong2)
 
 lemma ran_m_fmdrop_notin:
   \<open>C \<notin># dom_m N \<Longrightarrow> ran_m (fmdrop C N) = ran_m N\<close>

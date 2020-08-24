@@ -7,11 +7,11 @@ theory PAC_Version
   imports Main
 begin
 
-text \<open>This code was taken from IsaFoR and adapted to git. \<close>
+text \<open>This code was taken from IsaFoR. However, for the AFP, we use the version name \<^text>\<open>AFP\<close>,
+instead of a mercurial version. \<close>
 local_setup \<open>
   let
-    val version = "2020-AFP"
-(*      trim_line (#1 (Isabelle_System.bash_output ("cd $ISAFOL/ && git rev-parse --short HEAD || echo unknown"))) *)
+    val version = "AFP"
   in
     Local_Theory.define
       ((\<^binding>\<open>version\<close>, NoSyn),

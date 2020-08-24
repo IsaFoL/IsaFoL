@@ -1,3 +1,8 @@
+(*
+  File:         PAC_Checker_MLton.thy
+  Author:       Mathias Fleury, Daniela Kaufmann, JKU
+  Maintainer:   Mathias Fleury, JKU
+*)
 theory PAC_Checker_MLton
   imports PAC_Checker_Synthesis
 begin

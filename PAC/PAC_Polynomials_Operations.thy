@@ -2,8 +2,6 @@ theory PAC_Polynomials_Operations
   imports PAC_Polynomials_Term PAC_Checker_Specification
 begin
 
-section \<open>Polynomialss as Lists\<close>
-
 subsection \<open>Addition\<close>
 
 text \<open>In this section, we refine the polynomials to list. These lists will be used in our checker
@@ -502,9 +500,12 @@ inductive_cases mult_poly_p_elim: \<open>mult_poly_p q (A, r) (B, r')\<close>
 
 lemma mult_poly_p_add_mset_same:
   \<open>(mult_poly_p q')\<^sup>*\<^sup>* (A, r) (B, r') \<Longrightarrow> (mult_poly_p q')\<^sup>*\<^sup>* (add_mset x A, r) (add_mset x B, r')\<close>
-  apply (induction rule: rtranclp_induct[of \<open>mult_poly_p q'\<close> \<open>(p, r)\<close> \<open>(p', q'')\<close> for p' q'', split_format(complete)])
-  apply (auto elim!: mult_poly_p_elim intro: mult_poly_p.intros)
-  by (smt add_mset_commute mult_step rtranclp.rtrancl_into_rtrancl)
+  apply (induction rule: rtranclp_induct[of \<open>mult_poly_p q'\<close> \<open>(_, r)\<close> \<open>(p', q'')\<close> for p' q'', split_format(complete)])
+  subgoal by simp
+  apply (rule rtranclp.rtrancl_into_rtrancl)
+   apply assumption
+  by (auto elim!: mult_poly_p_elim intro: mult_poly_p.intros
+      intro: rtranclp.rtrancl_into_rtrancl simp: add_mset_commute[of x])
 
 lemma mult_poly_raw_mult_poly_p:
   assumes \<open>(p, p') \<in> sorted_poly_rel\<close> and \<open>(q, q') \<in> sorted_poly_rel\<close>
@@ -1185,9 +1186,8 @@ lemma mult_poly_p'_mult_poly_spec:
   apply refine_rcg
   apply (auto simp: mset_poly_rel_def dest!: rtranclp_mult_poly_p_mult_ideal_final)
   apply (intro RES_refine)
-  apply auto
-  by (smt cancel_comm_monoid_add_class.diff_cancel diff_diff_add group_eq_aux ideal.span_diff
-    rtranclp_normalize_poly_p_poly_of_mset)
+  using ideal.span_add_eq2 ideal.span_zero 
+  by (fastforce dest!: rtranclp_normalize_poly_p_poly_of_mset intro: ideal.span_add_eq2)
 
 
 lemma add_poly_p'_add_poly_spec:

@@ -146,6 +146,7 @@ definition check_addition_l :: \<open>_ \<Rightarrow> _ \<Rightarrow> string set
 
 
 paragraph \<open>Multiplication checking\<close>
+
 definition check_mult_l_dom_err :: \<open>bool \<Rightarrow> nat \<Rightarrow> bool \<Rightarrow> nat \<Rightarrow> string nres\<close> where
   \<open>check_mult_l_dom_err p_notin p i_already i = SPEC (\<lambda>_. True)\<close>
 
@@ -325,7 +326,7 @@ proof -
      apply ((auto simp: check_add_alt_def weak_equality_def
         add_poly_spec_def RES_RES_RETURN_RES summarize_ASSERT_conv
       cong: if_cong
-      intro!:  ideal.span_zero;fail)+)
+      intro!: ideal.span_zero;fail)+)
       done
    then show ?thesis
      unfolding check_add_alt_def[symmetric]

@@ -8,7 +8,9 @@ section \<open>Polynomials of strings\<close>
 text \<open>
 
   Isabelle's definition of polynomials only work with variables of type
-  \<^typ>\<open>nat\<close>. Therefore, we introduce a version that uses strings.
+  \<^typ>\<open>nat\<close>. Therefore, we introduce a version that uses strings by using an injective function
+  that converts a string to a natural number. It exists because strings are countable. Remark that
+  the whole development is independent of the function.
 
 \<close>
 
@@ -147,7 +149,7 @@ lemma add_poly_p_empty_r:
   done
 
 lemma add_poly_p_sym:
-  \<open>add_poly_p (p, q, r)  (p', q', r') \<longleftrightarrow> add_poly_p (q, p, r) (q', p', r')\<close>
+  \<open>add_poly_p (p, q, r) (p', q', r') \<longleftrightarrow> add_poly_p (q, p, r) (q', p', r')\<close>
   apply (rule iffI)
   subgoal
     by (cases rule: add_poly_p.cases, assumption)
@@ -371,13 +373,14 @@ lemma poly_of_vars_remdups_mset:
   \<open>poly_of_vars (remdups_mset (xs)) - (poly_of_vars xs)
     \<in> More_Modules.ideal polynomial_bool\<close>
   apply (induction xs)
-   apply (auto dest!: simp: ideal.span_zero dest!: )
-   apply (drule multi_member_split)
-   apply auto
-    apply (drule multi_member_split)
-    apply (smt X2_X_polynomial_bool_mult_in diff_add_cancel diff_diff_eq2 ideal.span_diff)
-   apply (smt X2_X_polynomial_bool_mult_in diff_add_eq group_eq_aux ideal.span_add_eq)
-  by (metis ideal.span_scale right_diff_distrib')
+  subgoal by (auto simp: ideal.span_zero)
+  subgoal for x xs
+    apply (cases \<open>x \<in># xs\<close>)
+     apply (metis (no_types, lifting) X2_X_polynomial_bool_mult_in diff_add_cancel diff_diff_eq2
+        ideal.span_diff insert_DiffM poly_of_vars_simps(1) remdups_mset_singleton_sum)
+    by (metis (no_types, lifting) ideal.span_scale poly_of_vars_simps(1) remdups_mset_singleton_sum
+        right_diff_distrib)
+  done
 
 lemma polynomial_of_mset_mult_map:
   \<open>polynomial_of_mset
@@ -392,12 +395,17 @@ next
   case (add x q)
   then have uP:  \<open>-?P q \<in> More_Modules.ideal polynomial_bool\<close>
     using ideal.span_neg by blast
-  show ?case
+  have \<open> Const b * (Const m * poly_of_vars (remdups_mset (a + xs))) -
+           Const b * (Const m * (poly_of_vars a * poly_of_vars xs))
+           \<in> More_Modules.ideal polynomial_bool\<close> for a b
+    by (auto simp: Const_mult simp flip: right_diff_distrib' poly_of_vars_simps
+        intro!: ideal.span_scale poly_of_vars_remdups_mset)
+  then show ?case
     apply (subst ideal.span_add_eq2[symmetric, OF uP])
     apply (cases x)
-    apply (auto simp: field_simps Const_mult)
-    by (metis ideal.span_scale poly_of_vars_remdups_mset
-      poly_of_vars_simps(2) right_diff_distrib')
+    apply (auto simp: field_simps Const_mult  simp flip: 
+        intro!: ideal.span_scale poly_of_vars_remdups_mset)
+    done
 qed
 
 lemma mult_poly_p_mult_ideal:
@@ -422,7 +430,7 @@ lemma rtranclp_mult_poly_p_mult_ideal:
     apply (drule ideal.span_add)
     apply assumption
     apply (auto simp: group_add_class.diff_add_eq_diff_diff_swap
-      add.assoc add.inverse_distrib_swap ac_simps
+        add.inverse_distrib_swap ac_simps
       simp flip: ab_group_add_class.ab_diff_conv_add_uminus)
     by (metis (no_types, hide_lams) ab_group_add_class.ab_diff_conv_add_uminus
       ab_semigroup_add_class.add.commute add.assoc add.inverse_distrib_swap)
