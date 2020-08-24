@@ -771,7 +771,6 @@ export_code PAC_checker_l_impl PAC_update_impl PAC_empty_impl the_error is_cfail
   full_checker_l_impl check_step_impl CSUCCESS
   Extension hashcode_literal' version
   in SML_imp module_name PAC_Checker
-  file_prefix "checker"
 
 
 section \<open>Correctness theorem\<close>

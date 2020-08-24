@@ -19,7 +19,6 @@ compile_generated_files _
   where \<open>fn dir =>
     let
       val exec = Generated_Files.execute (Path.append dir (Path.basic "code"));
-      val _ = exec \<open>rename file\<close> "mv checker.ML checker.sml"
       val _ =
         exec \<open>Compilation\<close>
           (File.bash_path \<^path>\<open>$ISABELLE_MLTON\<close> ^ " " ^

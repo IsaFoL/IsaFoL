@@ -26,4 +26,4 @@ session PAC_Checker = "Sepref_IICF" +
     "root.tex"
     "root.bib"
   export_files (in "code") [1]
-    "PAC_Checker.PAC_Checker_Synethesis:**"
+    "PAC_Checker.PAC_Checker_Synthesis:**"
