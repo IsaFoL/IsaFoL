@@ -51,7 +51,7 @@ Weidenbach_Book:
 	$(RUN_ISABELLE2020) build -d '$$AFP' -d '$$ISABELLE_LLVM' -o browser_info -o "document=pdf" -o "document_variants=document:outline=/proof,/ML;userguide" -v -b -D Weidenbach_Book
 
 PAC:
-	$(RUN_ISABELLE2020) build -d '$$AFP' -d '$$ISABELLE_LLVM' -d 'Weidenbach_Book' -o browser_info -o "document=pdf" -o "document_variants=document:outline=/proof,/ML;userguide" -v -b -D PAC
+	$(RUN_ISABELLE2020) build -d '$$AFP' -d '$$ISABELLE_LLVM' -d 'Weidenbach_Book' -o browser_info -o "document=pdf" -o "document_variants=document:outline=/proof,/ML;userguide" -v -b -D PAC_Checker
 
 Functional_Ordered_Resolution_Prover:
 	$(RUN_ISABELLE2019) build -d '$$ISAFOR' -o browser_info -o "document=pdf" -v -b -D Functional_Ordered_Resolution_Prover
