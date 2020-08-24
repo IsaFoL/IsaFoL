@@ -91,8 +91,7 @@ lemma pac_step_rel_assn_alt_def:
         R1 p1 p1' * R2 p2 p2' * R1 i i' * R2 r r'
     | (Del p1, Del p1') \<Rightarrow> R1 p1 p1'
     | (Extension i x p1, Extension i' x' p1') \<Rightarrow> R1 i i' * R3 x x' * R2 p1 p1'
-    | _ \<Rightarrow> false
-    )\<close>
+    | _ \<Rightarrow> false)\<close>
     by (auto split: pac_step.splits)
 
 
@@ -256,11 +255,10 @@ proof -
   have [intro]: \<open>ab \<notin> \<V> \<Longrightarrow>
        vars ba \<subseteq> \<V> \<Longrightarrow>
        MPoly_Type.coeff (ba + Var ab) (monomial (Suc 0) ab) = 1\<close> for ab ba
-      apply (auto simp flip: coeff_add simp: not_in_vars_coeff0
-        Var.abs_eq Var\<^sub>0_def)
-      apply (subst not_in_vars_coeff0)
-      apply auto
-      by (metis MPoly_Type.coeff_def lookup_single_eq monom.abs_eq monom.rep_eq)
+    by (subst coeff_add[symmetric], subst not_in_vars_coeff0)
+      (auto simp flip: coeff_add monom.abs_eq
+        simp: not_in_vars_coeff0 MPoly_Type.coeff_def
+          Var.abs_eq Var\<^sub>0_def lookup_single_eq monom.rep_eq)
   have [simp]: \<open>MPoly_Type.coeff p (monomial (Suc 0) ab) = -1\<close>
      if \<open>vars (p + Var ab) \<subseteq> \<V>\<close>
        \<open>ab \<notin> \<V>\<close>
@@ -271,11 +269,12 @@ proof -
        by auto
      show ?thesis
        unfolding p
-      apply (auto simp flip: coeff_minus simp: not_in_vars_coeff0
-        Var.abs_eq Var\<^sub>0_def)
-      apply (subst not_in_vars_coeff0)
-      using that unfolding q_def[symmetric] apply auto
-      by (metis MPoly_Type.coeff_def lookup_single_eq monom.abs_eq monom.rep_eq)
+       apply (subst coeff_minus[symmetric], subst not_in_vars_coeff0)
+       using that unfolding q_def[symmetric]
+       by (auto simp flip: coeff_minus simp: not_in_vars_coeff0
+           Var.abs_eq Var\<^sub>0_def simp flip: monom.abs_eq
+           simp: not_in_vars_coeff0 MPoly_Type.coeff_def
+           Var.abs_eq Var\<^sub>0_def lookup_single_eq monom.rep_eq)
   qed
   have [simp]: \<open>vars (p - Var ab) = vars (Var ab - p)\<close> for ab
     using vars_uminus[of \<open>p - Var ab\<close>]
