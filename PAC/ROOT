@@ -20,8 +20,10 @@ session PAC_Checker = "Sepref_IICF" +
      PAC_Checker_Init
      PAC_Version
      PAC_Checker_Synthesis
+  theories [condition=ISABELLE_MLTON]
+    PAC_Checker_MLton
   document_files
     "root.tex"
     "root.bib"
   export_files (in "code") [1]
-    "CDCL.CDCL_W_Implementation:**"
+    "PAC_Checker.PAC_Checker_Synethesis:**"

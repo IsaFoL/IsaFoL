@@ -764,6 +764,7 @@ lemma [code]: \<open>hashcode s = hashcode_literal' s\<close>
      String.asciis_of_literal_def hashcode_literal_def hashcode_literal'_def)
   done
 
+text \<open>We compile Pastèque in \<^file>\<open>PAC_Checker_MLton.thy\<close>.\<close>
 export_code PAC_checker_l_impl PAC_update_impl PAC_empty_impl the_error is_cfailed is_cfound
   int_of_integer Del Add Mult nat_of_integer String.implode remap_polys_l_impl
   fully_normalize_poly_impl union_vars_poly_impl empty_vars_impl
@@ -771,24 +772,6 @@ export_code PAC_checker_l_impl PAC_update_impl PAC_empty_impl the_error is_cfail
   Extension hashcode_literal' version
   in SML_imp module_name PAC_Checker
   file_prefix "checker"
-
-
-text \<open>We compile the checker, but do not test it on an example.\<close>
-compile_generated_files _
-  external_files
-    \<open>code/parser.sml\<close>
-    \<open>code/pasteque.sml\<close>
-    \<open>code/pasteque.mlb\<close>
-  where \<open>fn dir =>
-    let
-      val exec = Generated_Files.execute (Path.append dir (Path.basic "code"));
-      val _ = exec \<open>rename file\<close> "mv checker.ML checker.sml"
-      val _ =
-        exec \<open>Compilation\<close>
-          (File.bash_path \<^path>\<open>$ISABELLE_MLTON\<close> ^ " " ^
-            "-const 'MLton.safe false' -verbose 1 -default-type int64 -output pasteque " ^
-            "-codegen native -inline 700 -cc-opt -O3 pasteque.mlb");
-    in () end\<close>
 
 
 section \<open>Correctness theorem\<close>
