@@ -521,7 +521,7 @@ lemma fully_unsorted_poly_rel_vars_subset_vars_llist:
       list_rel_split_right_iff list_mset_rel_def image_iff
       unsorted_term_poly_list_rel_def list_rel_split_left_iff
     dest!: set_rev_mp[OF _ vars_polynomial_of_mset] split_list
-    dest: multi_member_split 
+    dest: multi_member_split
     dest: arg_cong[of \<open>mset _\<close> \<open>add_mset _ _\<close> set_mset])
 
 lemma fully_unsorted_poly_rel_extend_vars:

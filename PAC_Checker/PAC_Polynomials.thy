@@ -403,7 +403,7 @@ next
   then show ?case
     apply (subst ideal.span_add_eq2[symmetric, OF uP])
     apply (cases x)
-    apply (auto simp: field_simps Const_mult  simp flip: 
+    apply (auto simp: field_simps Const_mult  simp flip:
         intro!: ideal.span_scale poly_of_vars_remdups_mset)
     done
 qed

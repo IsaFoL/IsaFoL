@@ -1186,7 +1186,7 @@ lemma mult_poly_p'_mult_poly_spec:
   apply refine_rcg
   apply (auto simp: mset_poly_rel_def dest!: rtranclp_mult_poly_p_mult_ideal_final)
   apply (intro RES_refine)
-  using ideal.span_add_eq2 ideal.span_zero 
+  using ideal.span_add_eq2 ideal.span_zero
   by (fastforce dest!: rtranclp_normalize_poly_p_poly_of_mset intro: ideal.span_add_eq2)
 
 

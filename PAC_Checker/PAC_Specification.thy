@@ -164,8 +164,8 @@ lemma PAC_Format_induct[consumes 1, case_names add mult del ext]:
       \<open>\<And>p q p' A \<V>. p \<in># A \<Longrightarrow> p*q - p' \<in> ideal polynomial_bool \<Longrightarrow> vars p' \<subseteq> \<V> \<Longrightarrow> vars q \<subseteq> \<V> \<Longrightarrow>
         P \<V> A \<V> (add_mset p' A)\<close>
       \<open>\<And>p A \<V>. p \<in># A \<Longrightarrow> P \<V> A \<V> (A - {#p#})\<close>
-      \<open>\<And>p' x r. 
-        (p')^2 - (p') \<in> ideal polynomial_bool \<Longrightarrow> vars p' \<subseteq> \<V> \<Longrightarrow> 
+      \<open>\<And>p' x r.
+        (p')^2 - (p') \<in> ideal polynomial_bool \<Longrightarrow> vars p' \<subseteq> \<V> \<Longrightarrow>
         x \<notin> \<V> \<Longrightarrow> P \<V> A (\<V> \<union> {x' \<in> vars (p' - Var x). x' \<notin> \<V>}) (add_mset (p' -Var x) A)\<close>
   shows
      \<open>P \<V> A \<V>' A'\<close>

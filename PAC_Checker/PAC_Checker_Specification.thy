@@ -761,7 +761,7 @@ proof -
           ( \<not> is_failed st \<longrightarrow> pac_ideal (set_mset (ran_m x2)) =
               pac_ideal (set_mset (ran_m A')) \<and>
               \<Union> (vars ` set_mset (ran_m ABC)) \<subseteq> \<V>' \<and>
-              \<Union> (vars ` set_mset (ran_m A')) \<subseteq> \<V>') \<and> 
+              \<Union> (vars ` set_mset (ran_m A')) \<subseteq> \<V>') \<and>
             (st = FOUND \<longrightarrow> speca \<in># ran_m A')} \<Longrightarrow>
          x = (st, x') \<Longrightarrow> x' = (\<V>, Aa) \<Longrightarrow>((\<V>', Aa), \<V>', ran_m Aa) \<in> polys_rel_full\<close> for Aa speca x2 st x \<V>' \<V> x' ABC
     by (auto simp: polys_rel_def polys_rel_full_def)
