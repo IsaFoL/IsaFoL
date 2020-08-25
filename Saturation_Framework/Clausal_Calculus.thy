@@ -7,7 +7,7 @@ section \<open>Clausal Calculi\<close>
 theory Clausal_Calculus
   imports
     Ordered_Resolution_Prover.Unordered_Ground_Resolution
-    Consistency_Preservation
+    Soundness
     Standard_Redundancy_Criterion
 begin
 
