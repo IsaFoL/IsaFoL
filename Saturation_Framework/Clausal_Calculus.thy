@@ -139,16 +139,14 @@ lemma entails_iff_models[simp]: "clss_of_interp I \<TTurnstile>e CC \<longleftri
 
 locale clausal_counterex_reducing_inference_system = inference_system Inf
   for Inf :: "('a :: wellorder) clause inference set" +
-  fixes clausal_I_of :: "'a clause set \<Rightarrow> 'a interp"
+  fixes J_of :: "'a clause set \<Rightarrow> 'a interp"
   assumes clausal_Inf_counterex_reducing:
-    "{#} \<notin> N \<Longrightarrow> D \<in> N \<Longrightarrow> \<not> clausal_I_of N \<TTurnstile> D \<Longrightarrow>
-     (\<And>C. C \<in> N \<Longrightarrow> \<not> clausal_I_of N \<TTurnstile> C \<Longrightarrow> D \<le> C) \<Longrightarrow>
-     \<exists>Cs E. set Cs \<subseteq> N \<and> clausal_I_of N \<TTurnstile>s set Cs \<and> Infer (Cs @ [D]) E \<in> Inf
-        \<and> \<not> clausal_I_of N \<TTurnstile> E \<and> E < D"
+    "{#} \<notin> N \<Longrightarrow> D \<in> N \<Longrightarrow> \<not> J_of N \<TTurnstile> D \<Longrightarrow> (\<And>C. C \<in> N \<Longrightarrow> \<not> J_of N \<TTurnstile> C \<Longrightarrow> D \<le> C) \<Longrightarrow>
+     \<exists>Cs E. set Cs \<subseteq> N \<and> J_of N \<TTurnstile>s set Cs \<and> Infer (Cs @ [D]) E \<in> Inf \<and> \<not> J_of N \<TTurnstile> E \<and> E < D"
 begin
 
 abbreviation I_of :: "'a clause set \<Rightarrow> 'a clause set" where
-  "I_of N \<equiv> clss_of_interp (clausal_I_of N)"
+  "I_of N \<equiv> clss_of_interp (J_of N)"
 
 lemma Inf_counterex_reducing:
   assumes
@@ -157,20 +155,20 @@ lemma Inf_counterex_reducing:
     n_ent_d: "\<not> I_of N \<TTurnstile>e {D}" and
     d_min: "\<And>C. C \<in> N \<Longrightarrow> \<not> I_of N \<TTurnstile>e {C} \<Longrightarrow> D \<le> C"
   shows "\<exists>\<iota> \<in> Inf. prems_of \<iota> \<noteq> [] \<and> main_prem_of \<iota> = D \<and> set (side_prems_of \<iota>) \<subseteq> N
-    \<and> I_of N \<TTurnstile>e set (side_prems_of \<iota>)  \<and> \<not> I_of N \<TTurnstile>e {concl_of \<iota>} \<and> concl_of \<iota> < D"
+    \<and> I_of N \<TTurnstile>e set (side_prems_of \<iota>) \<and> \<not> I_of N \<TTurnstile>e {concl_of \<iota>} \<and> concl_of \<iota> < D"
 proof -
   have "{#} \<notin> N"
     using bot_ni_n by auto
   moreover note d_in_n
-  moreover have "\<not> clausal_I_of N \<TTurnstile> D"
+  moreover have "\<not> J_of N \<TTurnstile> D"
     using n_ent_d by simp
-  moreover have "C \<in> N \<Longrightarrow> \<not> clausal_I_of N \<TTurnstile> C \<Longrightarrow> D \<le> C" for C
+  moreover have "C \<in> N \<Longrightarrow> \<not> J_of N \<TTurnstile> C \<Longrightarrow> D \<le> C" for C
     using d_min[of C] by simp
   ultimately obtain Cs E where
     "set Cs \<subseteq> N" and
-    "clausal_I_of N \<TTurnstile>s set Cs" and
+    "J_of N \<TTurnstile>s set Cs" and
     "Infer (Cs @ [D]) E \<in> Inf" and
-    "\<not> clausal_I_of N \<TTurnstile> E" and
+    "\<not> J_of N \<TTurnstile> E" and
     "E < D"
     using clausal_Inf_counterex_reducing by metis
   then show ?thesis
@@ -187,10 +185,10 @@ subsection \<open>Counterexample-Reducing Calculi Equipped with a Standard Redun
 
 locale clausal_counterex_reducing_calculus_with_standard_redundancy =
   calculus_with_standard_redundancy Inf "{{#}}" "(\<TTurnstile>e)" +
-  clausal_counterex_reducing_inference_system Inf clausal_I_of
+  clausal_counterex_reducing_inference_system Inf J_of
   for
     Inf :: "('a :: wellorder) clause inference set" and
-    clausal_I_of :: "'a clause set \<Rightarrow> 'a set"
+    J_of :: "'a clause set \<Rightarrow> 'a set"
 begin
 
 sublocale counterex_reducing_calculus_with_standard_redundancy "{{#}}" "(\<TTurnstile>e)" I_of
@@ -199,7 +197,7 @@ sublocale counterex_reducing_calculus_with_standard_redundancy "{{#}}" "(\<TTurn
 sublocale refutationally_compact_calculus "{{#}}" Inf "(\<TTurnstile>e)" Red_I Red_F
   by unfold_locales
 
-lemma clausal_saturated_model: "saturated N \<Longrightarrow> {#} \<notin> N \<Longrightarrow> clausal_I_of N \<TTurnstile>s N"
+lemma clausal_saturated_model: "saturated N \<Longrightarrow> {#} \<notin> N \<Longrightarrow> J_of N \<TTurnstile>s N"
   by (simp add: saturated_model[simplified])
 
 corollary clausal_saturated_complete: "saturated N \<Longrightarrow> (\<forall>I. \<not> I \<TTurnstile>s N) \<Longrightarrow> {#} \<in> N"
