@@ -1,7 +1,7 @@
-chapter Saturation_Framework
+chapter AFP
 
-session "Saturation_Framework_Extensions" = Saturation_Framework +
-  options [document = pdf, document_output = "output"]
+session "Saturation_Framework_Extensions" (AFP) = Saturation_Framework +
+  options [timeout = 600]
   sessions
     Ordered_Resolution_Prover
     First_Order_Terms
