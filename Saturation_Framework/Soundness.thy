@@ -8,7 +8,7 @@
 section \<open>Soundness\<close>
 
 theory Soundness
-  imports Consistency_Preservation
+  imports Saturation_Framework.Calculus
 begin
 
 text \<open>
