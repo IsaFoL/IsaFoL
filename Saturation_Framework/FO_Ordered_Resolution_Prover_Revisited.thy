@@ -98,17 +98,33 @@ proof
     "\<not> gr.INTERP M N \<TTurnstile> D" and
     "\<And>C. C \<in> N \<Longrightarrow> \<not> gr.INTERP M N \<TTurnstile> C \<Longrightarrow> D \<le> C"
   then obtain CAs AAs As E where
-    "set CAs \<subseteq> N" and
-    "gr.INTERP M N \<TTurnstile>m mset CAs" and
-    "\<And>CA. CA \<in> set CAs \<Longrightarrow> gr.production M N CA \<noteq> {}" and
-    "gr.ord_resolve M CAs D AAs As E" and
-    "\<not> gr.INTERP M N \<TTurnstile> E" and
-    "E < D"
+    cas_in: "set CAs \<subseteq> N" and
+    n_mod_cas: "gr.INTERP M N \<TTurnstile>m mset CAs" and
+    ca_prod: "\<And>CA. CA \<in> set CAs \<Longrightarrow> gr.production M N CA \<noteq> {}" and
+    e_res: "gr.ord_resolve M CAs D AAs As E" and
+    n_nmod_e: "\<not> gr.INTERP M N \<TTurnstile> E" and
+    e_lt_d: "E < D"
     using gr.ord_resolve_counterex_reducing by blast
-  then show "\<exists>Cs E. set Cs \<subseteq> N \<and> gr.INTERP M N \<TTurnstile>s set Cs \<and> Infer (Cs @ [D]) E \<in> G_Inf M
-    \<and> \<not> gr.INTERP M N \<TTurnstile> E \<and> E < D"
-    unfolding G_Inf_def
-    by (metis (mono_tags, lifting) gr.ex_min_counterex gr.productive_imp_INTERP mem_Collect_eq)
+  define \<iota> where
+    "\<iota> = Infer (CAs @ [D]) E"
+
+  have "\<iota> \<in> G_Inf M"
+    unfolding \<iota>_def G_Inf_def using e_res by auto
+  moreover have "prems_of \<iota> \<noteq> []"
+    unfolding \<iota>_def by simp
+  moreover have "main_prem_of \<iota> = D"
+    unfolding \<iota>_def by simp
+  moreover have "set (side_prems_of \<iota>) \<subseteq> N"
+    unfolding \<iota>_def using cas_in by simp
+  moreover have "gr.INTERP M N \<TTurnstile>s set (side_prems_of \<iota>)"
+    unfolding \<iota>_def using n_mod_cas ca_prod by (simp add: gr.productive_imp_INTERP true_clss_def)
+  moreover have "\<not> gr.INTERP M N \<TTurnstile> concl_of \<iota>"
+    unfolding \<iota>_def using n_nmod_e by simp
+  moreover have "concl_of \<iota> < D"
+    unfolding \<iota>_def using e_lt_d by simp
+  ultimately show "\<exists>\<iota> \<in> G_Inf M. prems_of \<iota> \<noteq> [] \<and> main_prem_of \<iota> = D \<and> set (side_prems_of \<iota>) \<subseteq> N \<and>
+    gr.INTERP M N \<TTurnstile>s set (side_prems_of \<iota>) \<and> \<not> gr.INTERP M N \<TTurnstile> concl_of \<iota> \<and> concl_of \<iota> < D"
+    by blast
 qed
 
 interpretation G: clausal_counterex_reducing_calculus_with_standard_redundancy "G_Inf M"

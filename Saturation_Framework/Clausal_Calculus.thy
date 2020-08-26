@@ -142,7 +142,8 @@ locale clausal_counterex_reducing_inference_system = inference_system Inf
   fixes J_of :: "'a clause set \<Rightarrow> 'a interp"
   assumes clausal_Inf_counterex_reducing:
     "{#} \<notin> N \<Longrightarrow> D \<in> N \<Longrightarrow> \<not> J_of N \<TTurnstile> D \<Longrightarrow> (\<And>C. C \<in> N \<Longrightarrow> \<not> J_of N \<TTurnstile> C \<Longrightarrow> D \<le> C) \<Longrightarrow>
-     \<exists>Cs E. set Cs \<subseteq> N \<and> J_of N \<TTurnstile>s set Cs \<and> Infer (Cs @ [D]) E \<in> Inf \<and> \<not> J_of N \<TTurnstile> E \<and> E < D"
+     \<exists>\<iota> \<in> Inf. prems_of \<iota> \<noteq> [] \<and> main_prem_of \<iota> = D \<and> set (side_prems_of \<iota>) \<subseteq> N \<and>
+       J_of N \<TTurnstile>s set (side_prems_of \<iota>) \<and> \<not> J_of N \<TTurnstile> concl_of \<iota> \<and> concl_of \<iota> < D"
 begin
 
 abbreviation I_of :: "'a clause set \<Rightarrow> 'a clause set" where
@@ -156,24 +157,7 @@ lemma Inf_counterex_reducing:
     d_min: "\<And>C. C \<in> N \<Longrightarrow> \<not> I_of N \<TTurnstile>e {C} \<Longrightarrow> D \<le> C"
   shows "\<exists>\<iota> \<in> Inf. prems_of \<iota> \<noteq> [] \<and> main_prem_of \<iota> = D \<and> set (side_prems_of \<iota>) \<subseteq> N
     \<and> I_of N \<TTurnstile>e set (side_prems_of \<iota>) \<and> \<not> I_of N \<TTurnstile>e {concl_of \<iota>} \<and> concl_of \<iota> < D"
-proof -
-  have "{#} \<notin> N"
-    using bot_ni_n by auto
-  moreover note d_in_n
-  moreover have "\<not> J_of N \<TTurnstile> D"
-    using n_ent_d by simp
-  moreover have "C \<in> N \<Longrightarrow> \<not> J_of N \<TTurnstile> C \<Longrightarrow> D \<le> C" for C
-    using d_min[of C] by simp
-  ultimately obtain Cs E where
-    "set Cs \<subseteq> N" and
-    "J_of N \<TTurnstile>s set Cs" and
-    "Infer (Cs @ [D]) E \<in> Inf" and
-    "\<not> J_of N \<TTurnstile> E" and
-    "E < D"
-    using clausal_Inf_counterex_reducing by metis
-  then show ?thesis
-    using snoc_eq_iff_butlast by fastforce
-qed
+  using bot_ni_n clausal_Inf_counterex_reducing d_in_n d_min n_ent_d by auto
 
 sublocale counterex_reducing_inference_system "{{#}}" "(\<TTurnstile>e)" Inf I_of
   by unfold_locales (fact Inf_counterex_reducing)
