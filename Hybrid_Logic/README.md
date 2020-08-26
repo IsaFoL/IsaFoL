@@ -6,21 +6,22 @@ The formalization is now also in the [Archive of Formal Proof](https://www.isa-a
 
 Supervisors:
 
-* Jørgen Villadsen
+* JÃ¸rgen Villadsen
 * Alexander Birch Jensen
 * Patrick Blackburn
 
+
 ## References ##
 
-Klaus Frovin Jørgensen, Patrick Blackburn, Thomas Bolander and Torben Braüner.  
+Klaus Frovin JÃ¸rgensen, Patrick Blackburn, Thomas Bolander and Torben BraÃ¼ner.  
 Synthetic Completeness Proofs for Seligman-style Tableau Systems.  
 Advances in Modal Logic 11:302-321 2016.
 
-Patrick Blackburn, Thomas Bolander, Torben Braüner and Klaus Frovin Jørgensen.  
+Patrick Blackburn, Thomas Bolander, Torben BraÃ¼ner and Klaus Frovin JÃ¸rgensen.  
 Completeness and Termination for a Seligman-style Tableau System.  
 Journal of Logic and Computation 27(1):81-107 2017.
 
+
 ## Author ##
 
-* [Asta Halkjær From](mailto:s144442 shtrudel student.dtu.dk)
-
+* [Asta HalkjÃ¦r From](mailto:s144442 shtrudel student.dtu.dk)

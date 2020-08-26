@@ -2,19 +2,20 @@
 
 [This directory](https://bitbucket.org/isafol/isafol/src/master/Sequent_Calculus/) contains Isabelle formalizations of sequent calculus proof systems.
 
+
 ## SeCaV: Sequent Calculus Verifier ##
 
 A tool for teaching a list-based one-sided sequent calculus for first-order logic with constants and functions.
 
 Teaching a Formalized Logical Calculus.  
-Asta Halkjær From, Alexander Birch Jensen, Anders Schlichtkrull and Jørgen Villadsen.  
+Asta HalkjÃ¦r From, Alexander Birch Jensen, Anders Schlichtkrull and JÃ¸rgen Villadsen.  
 Post-proceedings of the 8th International Workshop on Theorem proving components for Educational software (ThEdu'19).  
 [http://eptcs.org/content.cgi?ThEdu19](http://eptcs.org/content.cgi?ThEdu19)
 
+
 ## Authors ##
 
-* Jørgen Villadsen
-* Asta Halkjær From
+* JÃ¸rgen Villadsen
+* Asta HalkjÃ¦r From
 * Alexander Birch Jensen
 * Anders Schlichtkrull
-

@@ -8,4 +8,4 @@ and will soon replace it.
 ## Authors ##
 
 * [Anders Schlichtkrull](mailto:andschl shtrudel dtu.dk)
-* [Jørgen Villadsen](mailto:jovi shtrudel dtu.dk)
+* [JÃ¸rgen Villadsen](mailto:jovi shtrudel dtu.dk)

@@ -6,7 +6,7 @@ Donald Monk's axiomatic system for first-order logic that he described as "the s
 
 See also:
 
-Andreas Halkjær From, John Bruntse Larsen, Anders Schlichtkrull and Jørgen Villadsen:
+Andreas HalkjÃ¦r From, John Bruntse Larsen, Anders Schlichtkrull and JÃ¸rgen Villadsen:
 *Substitutionless First-Order Logic: A Formal Soundness Proof*
 http://sketis.net/isabelle/isabelle-workshop-2018
 
@@ -15,7 +15,7 @@ https://github.com/logic-tools/less
 
 ## Authors ##
 
-* [Andreas Halkjær From](mailto:s144442 shtrudel student.dtu.dk)
+* [Andreas HalkjÃ¦r From](mailto:s144442 shtrudel student.dtu.dk)
 * [John Bruntse Larsen](mailto:jobla shtrudel dtu.dk)
 * [Anders Schlichtkrull](mailto:andschl shtrudel dtu.dk)
-* [Jørgen Villadsen](mailto:jovi shtrudel dtu.dk)
+* [JÃ¸rgen Villadsen](mailto:jovi shtrudel dtu.dk)

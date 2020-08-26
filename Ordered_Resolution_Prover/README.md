@@ -1,6 +1,12 @@
 # Formalization of Bachmair and Ganzinger's Ordered Resolution Prover #
 
-[This directory](https://bitbucket.org/isafol/isafol/src/master/Ordered_Resolution_Prover/) used to contain the Isabelle formalization of Sections 3 and 4 of Bachmair and Ganzinger's "Resolution Theorem Proving" (Chapter 2 of Volume 1 of _The Handbook of Automated Reasoning_). The formalization has been [moved to the Archive of Formal Proofs](https://www.isa-afp.org/entries/Ordered_Resolution_Prover.shtml). The only exception is the implementation of atoms and substitutions, which is provided using [IsaFoR project](http://cl-informatik.uibk.ac.at/software/ceta/) and has been [moved to the Functional Ordered Resolution Prover IsaFoL entry](https://bitbucket.org/isafol/isafol/src/master/Functional_Ordered_Resolution_Prover/).
+[This directory](https://bitbucket.org/isafol/isafol/src/master/Ordered_Resolution_Prover/)
+used to contain the Isabelle formalization of Sections 3 and 4 of Bachmair and
+Ganzinger's "Resolution Theorem Proving" (Chapter 2 of Volume 1 of _The Handbook
+of Automated Reasoning_). The formalization has been
+[moved to its own Archive of Formal Proofs entry](https://www.isa-afp.org/entries/Ordered_Resolution_Prover.shtml).
+The file `IsaFoR_Term.thy` is
+[part of a separate AFP entry](https://bitbucket.org/isafol/isafol/src/master/Functional_Ordered_Resolution_Prover/).
 
 
 ## Authors ##
@@ -15,8 +21,12 @@
 * [Uwe Waldmann](mailto:waldmann shtrudel mpi-inf.mpg.de)
 
 
-## Entry in the Archive of Formal Proofs ##
+## Entries in the Archive of Formal Proofs ##
 
 * [Formalization of Bachmair and Ganzinger's Ordered Resolution Prover](https://www.isa-afp.org/entries/Ordered_Resolution_Prover.shtml)
   A. Schlichtkrull, J. C. Blanchette, D. Traytel, U. Waldmann.
+  Archive of Formal Proofs, Formal proof development.
+
+* [A Verified Functional Implementation of Bachmair and Ganzinger's Ordered Resolution Prover](https://www.isa-afp.org/entries/Functional_Ordered_Resolution_Prover.shtml)
+  A. Schlichtkrull, J. C. Blanchette, D. Traytel.
   Archive of Formal Proofs, Formal proof development.

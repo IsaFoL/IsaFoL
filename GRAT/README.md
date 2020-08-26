@@ -11,7 +11,7 @@ then checked against the original formula by the verified <code>gratchk</code> t
 
 ## Getting Started ##
 
-See index.md.
+See `index.md`.
 
 
 ## Features ##
@@ -24,15 +24,20 @@ See index.md.
 
 
 ## News ##
+
 ### Version 1.1 ###
+
   * Support for split certificates
 
 ### Version 1.2 ###
+
   * Separate watchlists (sepWL): More efficient implementation of core-first unit propagation.
   * RAT-run heuristics: Reduction of expensive RAT candidate queries.
 
 ### Version 1.3 ###
+
   * Binary drat format
+
 
 ## Author ##
 
