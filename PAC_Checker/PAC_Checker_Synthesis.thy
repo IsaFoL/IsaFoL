@@ -10,7 +10,9 @@ begin
 
 section \<open>Code Synthesis of the Complete Checker\<close>
 
-text \<open>We here combine refine the full checker, using the initialisation provided in another file.\<close>
+text \<open>We here combine refine the full checker, using the initialisation provided in another file and
+adding more efficient data structures (mostly replacing the set of variables by a more efficient
+hash map).\<close>
 
 abbreviation vars_assn where
   \<open>vars_assn \<equiv> hs.assn string_assn\<close>
